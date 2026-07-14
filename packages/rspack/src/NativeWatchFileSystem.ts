@@ -8,6 +8,13 @@ import type {
   WatchFileSystem,
 } from './util/fs';
 
+// Native generations are uint32. Serial-number arithmetic keeps ordering valid
+// across wraparound while the native watcher has at most one batch in flight.
+const isNewerGeneration = (generation: number, previous: number): boolean => {
+  const distance = (generation - previous) >>> 0;
+  return distance > 0 && distance < 0x80000000;
+};
+
 /**
  * The following code is modified based on
  * https://github.com/webpack/watchpack/blob/332b55016b7c32dab4134f793ca71a5141bd10c1/lib/watchpack.js#L33-L57
@@ -180,7 +187,7 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
         }
         if (
           lastDrainedGeneration !== undefined &&
-          result.generation <= lastDrainedGeneration
+          !isNewerGeneration(result.generation, lastDrainedGeneration)
         ) {
           nativeWatcher.acknowledgePendingEvents(result.generation);
           return;

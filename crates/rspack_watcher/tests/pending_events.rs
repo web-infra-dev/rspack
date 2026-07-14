@@ -28,6 +28,24 @@ impl EventAggregateHandler for AggregateHandler {
   }
 }
 
+struct ClosingDeliveryHandler(UnboundedSender<Aggregate>);
+
+impl EventAggregateHandler for ClosingDeliveryHandler {
+  fn on_event_handle(&self, _changed: FxHashSet<String>, _removed: FxHashSet<String>) {
+    unreachable!("the executor should provide an aggregate generation");
+  }
+
+  fn on_event_handle_with_generation(
+    &self,
+    changed: FxHashSet<String>,
+    removed: FxHashSet<String>,
+    generation: u32,
+  ) -> bool {
+    let _ = self.0.send((changed, removed, generation));
+    false
+  }
+}
+
 struct ChangeHandler(UnboundedSender<(FsEventKind, String)>);
 
 impl EventHandler for ChangeHandler {
@@ -202,6 +220,59 @@ async fn pending_events_are_consumed_once_without_aggregate_replay() {
       .is_err(),
     "coalesced events should produce one aggregate",
   );
+
+  watcher.close().await.expect("watcher should close");
+}
+
+#[tokio::test]
+async fn closing_aggregate_delivery_does_not_block_a_restarted_watcher() {
+  let temp_dir = TempDir::new().expect("temporary directory should be created");
+  let changed_path = ArcPath::from(temp_dir.path().join("changed.js"));
+  let paths = [changed_path.clone()];
+  let mut watcher = FsWatcher::new(
+    FsWatcherOptions {
+      aggregate_timeout: Some(10),
+      ..Default::default()
+    },
+    Default::default(),
+  );
+  let (failed_tx, mut failed_rx) = unbounded_channel();
+  let (aggregate_tx, mut aggregate_rx) = unbounded_channel();
+  let (change_tx, mut change_rx) = unbounded_channel();
+
+  watcher
+    .watch(
+      empty_paths(),
+      empty_paths(),
+      (paths.iter().cloned(), std::iter::empty()),
+      SystemTime::now(),
+      Box::new(ClosingDeliveryHandler(failed_tx)),
+      Box::new(ChangeHandler(change_tx.clone())),
+    )
+    .await;
+  watcher.trigger_event(&changed_path, FsEventKind::Create);
+  assert_eq!(
+    receive_changes(&mut change_rx, 1).await,
+    [(FsEventKind::Change, path_string(&changed_path))],
+  );
+  let (changes, removals, failed_generation) = receive_aggregate(&mut failed_rx).await;
+  assert_eq!(changes, FxHashSet::from_iter([path_string(&changed_path)]));
+  assert!(removals.is_empty());
+
+  // The aggregate TSFN is unbounded, so a live callback cannot lose this batch
+  // to QueueFull. A false result models Closing during callback teardown; no
+  // consumer remains for the claimed batch, and the replacement must not wedge.
+  watch(&mut watcher, &paths, &aggregate_tx, &change_tx).await;
+  watcher.trigger_event(&changed_path, FsEventKind::Remove);
+  assert_eq!(
+    receive_changes(&mut change_rx, 1).await,
+    [(FsEventKind::Remove, path_string(&changed_path))],
+  );
+  let (changes, removals, next_generation) = receive_aggregate(&mut aggregate_rx).await;
+  assert!(changes.is_empty());
+  assert_eq!(removals, FxHashSet::from_iter([path_string(&changed_path)]));
+  assert_ne!(next_generation, failed_generation);
+  watcher.acknowledge_pending_events(next_generation);
 
   watcher.close().await.expect("watcher should close");
 }

@@ -52,8 +52,8 @@ pub trait EventAggregateHandler {
   /// Handle a batch of file system events.
   fn on_event_handle(&self, _changed_files: HashSet<String>, _deleted_files: HashSet<String>);
 
-  /// Handle a versioned batch. Return `true` only when delivery is asynchronous;
-  /// the caller must then acknowledge the generation after delivery.
+  /// Handle a versioned batch. Return `true` only when asynchronous delivery was
+  /// successfully queued; the caller must then acknowledge the generation.
   fn on_event_handle_with_generation(
     &self,
     changed_files: HashSet<String>,

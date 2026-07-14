@@ -230,7 +230,7 @@ struct JsEventHandler {
     Status,
     true,
     true,
-    1,
+    0,
   >,
 }
 
@@ -239,7 +239,9 @@ impl JsEventHandler {
     let callback = callback
       .build_threadsafe_function::<NativeWatchResult>()
       .callee_handled::<true>()
-      .max_queue_size::<1>()
+      // The executor permits at most one aggregate in flight. An unbounded
+      // TSFN prevents a live callback from dropping that batch on QueueFull.
+      .max_queue_size::<0>()
       .weak::<true>()
       .build_callback(
         move |ctx: napi::threadsafe_function::ThreadSafeCallContext<_>| Ok(ctx.value),
@@ -253,7 +255,7 @@ impl JsEventHandler {
     changed_files: rspack_util::fx_hash::FxHashSet<String>,
     deleted_files: rspack_util::fx_hash::FxHashSet<String>,
     generation: u32,
-  ) {
+  ) -> bool {
     let result = NativeWatchResult {
       changed_files: changed_files.into_iter().collect(),
       removed_files: deleted_files.into_iter().collect(),
@@ -262,7 +264,7 @@ impl JsEventHandler {
     self.inner.call(
       Ok(result),
       napi::threadsafe_function::ThreadsafeFunctionCallMode::NonBlocking,
-    );
+    ) == Status::Ok
   }
 }
 
@@ -272,7 +274,7 @@ impl rspack_watcher::EventAggregateHandler for JsEventHandler {
     changed_files: rspack_util::fx_hash::FxHashSet<String>,
     deleted_files: rspack_util::fx_hash::FxHashSet<String>,
   ) {
-    self.deliver(changed_files, deleted_files, 0);
+    let _ = self.deliver(changed_files, deleted_files, 0);
   }
 
   fn on_event_handle_with_generation(
@@ -281,8 +283,7 @@ impl rspack_watcher::EventAggregateHandler for JsEventHandler {
     deleted_files: rspack_util::fx_hash::FxHashSet<String>,
     generation: u32,
   ) -> bool {
-    self.deliver(changed_files, deleted_files, generation);
-    true
+    self.deliver(changed_files, deleted_files, generation)
   }
 
   fn on_error(&self, error: rspack_error::Error) {
