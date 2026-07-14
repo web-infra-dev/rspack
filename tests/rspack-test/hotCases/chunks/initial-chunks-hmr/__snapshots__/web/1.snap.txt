@@ -6,11 +6,11 @@
 
 ## Asset Files
 - Bundle: async/initial_js.js
-- Bundle: lib.js
-- Bundle: main.js
+- Bundle: lib.CURRENT_HASH.js
+- Bundle: main.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 41
 - Update: initial_js.LAST_HASH.hot-update.js, size: 332
-- Update: main.LAST_HASH.hot-update.js, size: 21474
+- Update: main.LAST_HASH.hot-update.js, size: 21129
 
 ## Manifest
 
@@ -79,16 +79,6 @@ it("should work if there are new initial chunks", async () => {
 },
 
 },function(__webpack_require__) {
-// webpack/runtime/get javascript chunk filename
-(() => {
-// This function allow to reference chunks
-__webpack_require__.u = (chunkId) => {
-  // return url for filenames not based on template
-  if (chunkId === "initial_js") return "async/" + chunkId + ".js";
-  // return url for filenames based on template
-  return "" + chunkId + ".js"
-}
-})();
 // webpack/runtime/get_full_hash
 (() => {
 __webpack_require__.h = () => ("CURRENT_HASH")

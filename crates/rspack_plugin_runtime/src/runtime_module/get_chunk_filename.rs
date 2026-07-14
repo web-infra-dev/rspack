@@ -77,13 +77,24 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
     &self,
     compilation: &Compilation,
   ) -> rspack_core::RuntimeModuleRuntimeRequirements {
+    let all_chunks = self.chunk().is_some_and(|chunk_ukey| {
+      (self.all_chunks)(get_chunk_runtime_requirements(compilation, &chunk_ukey))
+    });
+    let needs_full_hash = match self.source_type {
+      SourceType::JavaScript => {
+        has_hash_placeholder(compilation.options.output.chunk_filename.as_str())
+          || (all_chunks && has_hash_placeholder(compilation.options.output.filename.as_str()))
+      }
+      SourceType::Css => {
+        has_hash_placeholder(compilation.options.output.css_chunk_filename.as_str())
+          || (all_chunks && has_hash_placeholder(compilation.options.output.css_filename.as_str()))
+      }
+      _ => false,
+    };
+
     rspack_core::RuntimeModuleRuntimeRequirements {
       dependencies: {
-        if (self.source_type == SourceType::JavaScript
-          && has_hash_placeholder(compilation.options.output.chunk_filename.as_str()))
-          || (self.source_type == SourceType::Css
-            && has_hash_placeholder(compilation.options.output.css_chunk_filename.as_str()))
-        {
+        if needs_full_hash {
           RuntimeGlobals::GET_FULL_HASH
         } else {
           RuntimeGlobals::default()

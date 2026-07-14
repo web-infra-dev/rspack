@@ -21,7 +21,7 @@ module.exports = {
     mangleExports: false,
   },
   output: {
-    filename: '[name].js',
+    filename: '[name].[fullhash].js',
     chunkFilename: 'async/[name].js',
   },
 };
