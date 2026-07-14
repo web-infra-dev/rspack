@@ -17,6 +17,13 @@ import type { FileSystemInfoEntry, Watcher } from './util/fs';
 
 type PendingWatchDelta = { added: Set<string>; removed: Set<string> };
 
+function withWatchDelta(
+  dependencies: Iterable<string>,
+  delta: PendingWatchDelta,
+): Set<string> & PendingWatchDelta {
+  return Object.assign(new Set(dependencies), delta);
+}
+
 // Merge an incremental `(added, removed)` delta into an accumulator, cancelling
 // a path that is added then removed (or vice-versa) across calls.
 function foldWatchDelta(
@@ -477,32 +484,18 @@ export class Watching {
       const pending = this.#pendingWatchDeps!;
       this.#pendingWatchDeps = undefined;
 
-      const fileDependencies = new Set([
-        ...compilation.fileDependencies,
-      ]) as unknown as Iterable<string> & {
-        added?: Iterable<string>;
-        removed?: Iterable<string>;
-      };
-      fileDependencies.added = pending.file.added;
-      fileDependencies.removed = pending.file.removed;
-
-      const contextDependencies = new Set([
-        ...compilation.contextDependencies,
-      ]) as unknown as Iterable<string> & {
-        added?: Iterable<string>;
-        removed?: Iterable<string>;
-      };
-      contextDependencies.added = pending.context.added;
-      contextDependencies.removed = pending.context.removed;
-
-      const missingDependencies = new Set([
-        ...compilation.missingDependencies,
-      ]) as unknown as Iterable<string> & {
-        added?: Iterable<string>;
-        removed?: Iterable<string>;
-      };
-      missingDependencies.added = pending.missing.added;
-      missingDependencies.removed = pending.missing.removed;
+      const fileDependencies = withWatchDelta(
+        compilation.fileDependencies,
+        pending.file,
+      );
+      const contextDependencies = withWatchDelta(
+        compilation.contextDependencies,
+        pending.context,
+      );
+      const missingDependencies = withWatchDelta(
+        compilation.missingDependencies,
+        pending.missing,
+      );
 
       this.handler(null, stats);
 
