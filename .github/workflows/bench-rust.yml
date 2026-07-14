@@ -105,7 +105,6 @@ jobs:
         with:
           mode: simulation
           run: |
-            ulimit -s unlimited
             if [ -n "${{ inputs.bench_target }}" ]; then
               bench_args=(--bench "${{ inputs.bench_target }}")
               if [ -n "${{ inputs.bench_filter }}" ]; then
@@ -131,7 +130,6 @@ jobs:
         with:
           mode: walltime
           run: |
-            ulimit -s unlimited
             sync; echo 1 > /proc/sys/vm/drop_caches
             if [ -n "${{ inputs.bench_target }}" ]; then
               bench_args=(--bench "${{ inputs.bench_target }}")
