@@ -170,17 +170,16 @@ const codmodPlugin: RsbuildPlugin = {
     }
 
     api.onAfterBuild(() => {
-      const dist = fs.readFileSync(
-        require.resolve(path.resolve(import.meta.dirname, 'dist/index.js')),
-        'utf-8',
-      );
-      const root = parse(Lang.JavaScript, dist).root();
-      const edits = [...replaceBinding(root)];
+      for (const filename of ['index.js', 'worker.js']) {
+        const distPath = require.resolve(
+          path.resolve(import.meta.dirname, 'dist', filename),
+        );
+        const dist = fs.readFileSync(distPath, 'utf-8');
+        const root = parse(Lang.JavaScript, dist).root();
+        const edits = [...replaceBinding(root)];
 
-      fs.writeFileSync(
-        require.resolve(path.resolve(import.meta.dirname, 'dist/index.js')),
-        root.commitEdits(edits),
-      );
+        fs.writeFileSync(distPath, root.commitEdits(edits));
+      }
     });
   },
 };
