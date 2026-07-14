@@ -5,7 +5,7 @@ import {
 } from '@rspack/binding';
 import type { Compiler, LiteralUnion } from '../..';
 import { MODULE_TYPE } from './loader';
-import { PLUGIN_NAME } from './utils';
+import { PLUGIN_NAME, markCssRuntimeDisabled } from './utils';
 
 export * from './loader';
 
@@ -40,6 +40,10 @@ export class CssExtractRspackPlugin {
   }
 
   apply(compiler: Compiler) {
+    if (this.options.runtime === false) {
+      markCssRuntimeDisabled(compiler);
+    }
+
     const { splitChunks } = compiler.options.optimization;
 
     if (splitChunks) {

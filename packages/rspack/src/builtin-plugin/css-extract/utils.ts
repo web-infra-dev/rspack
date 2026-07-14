@@ -1,6 +1,27 @@
 import path from 'node:path';
 
-import type { LoaderContext } from '../..';
+import type { Compiler, LoaderContext } from '../..';
+
+// the plugin and the loader are bundled separately, so the marker for
+// `runtime: false` compilers lives on the compiler object under a global
+// registry symbol: they get no hmrC.miniCss handler and the hot loader
+// must keep its own change signal
+const CSS_RUNTIME_DISABLED = Symbol.for(
+  'rspack.CssExtractRspackPlugin.runtimeDisabled',
+);
+
+export function markCssRuntimeDisabled(compiler: Compiler) {
+  (compiler as { [CSS_RUNTIME_DISABLED]?: boolean })[CSS_RUNTIME_DISABLED] =
+    true;
+}
+
+export function isCssRuntimeDisabled(compiler: Compiler | undefined) {
+  return (
+    !!compiler &&
+    (compiler as { [CSS_RUNTIME_DISABLED]?: boolean })[CSS_RUNTIME_DISABLED] ===
+      true
+  );
+}
 
 export function isAbsolutePath(str: string) {
   return path.posix.isAbsolute(str) || path.win32.isAbsolute(str);

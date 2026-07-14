@@ -1,7 +1,12 @@
 import path from 'node:path';
 
 import type { Filename, LoaderContext, LoaderDefinition } from '../..';
-import { PLUGIN_NAME, stringifyLocal, stringifyRequest } from './utils';
+import {
+  PLUGIN_NAME,
+  isCssRuntimeDisabled,
+  stringifyLocal,
+  stringifyRequest,
+} from './utils';
 
 export const BASE_URI = 'rspack-css-extract://';
 export const MODULE_TYPE = 'css/mini-extract';
@@ -39,10 +44,13 @@ export function hotLoader(
   },
 ): string {
   const localsJsonString = JSON.stringify(JSON.stringify(context.locals));
+  const changeSignal = isCssRuntimeDisabled(context.loaderContext._compiler)
+    ? `\n        // ${Date.now()}`
+    : '';
   return `${content}
     if(module.hot) {
       (function() {
-        var localsJsonString = ${localsJsonString};
+        var localsJsonString = ${localsJsonString};${changeSignal}
         var cssReload = require(${stringifyRequest(
           context.loaderContext,
           path.join(import.meta.dirname, 'cssExtractHmr.js'),
