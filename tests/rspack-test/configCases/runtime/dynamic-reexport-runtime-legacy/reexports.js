@@ -1,5 +1,3 @@
-export const local = "local";
-
 export * from "./source?a=1";
 export * from "./source?b=2";
 export * from "./source?c=3";

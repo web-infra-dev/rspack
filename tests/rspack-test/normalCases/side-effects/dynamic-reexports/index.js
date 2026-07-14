@@ -23,7 +23,8 @@ import {
 	value as valueMultipleSources,
 	value2 as value2MultipleSources
 } from "./multiple-sources";
-import * as SharedDynamicRuntime from "./shared-dynamic-runtime";
+import * as InlineDynamicReexports from "./shared-dynamic-runtime/inline";
+import * as RuntimeDynamicReexports from "./shared-dynamic-runtime";
 import { a, b } from "./swapped";
 
 it("should dedupe static reexport target", () => {
@@ -71,31 +72,40 @@ it("should handle default export correctly", () => {
 it("should handle multiple dynamic sources correctly", () => {
 	expect(valueMultipleSources).toBe(42);
 	expect(value2MultipleSources).toBe(42);
+});
+
+it("should preserve dynamic reexport semantics in the shared runtime", () => {
+	const names = "abcdefghijklmnop".split("");
+	const expectedInlineKeys = [...names.slice(0, -1), "local", "setA"].sort();
+	const expectedRuntimeKeys = [...names, "local", "setA"].sort();
+
+	expect(Object.keys(InlineDynamicReexports).sort()).toEqual(
+		expectedInlineKeys
+	);
+	expect(Object.keys(RuntimeDynamicReexports).sort()).toEqual(
+		expectedRuntimeKeys
+	);
+
+	for (const [index, name] of names.entries()) {
+		expect(RuntimeDynamicReexports[name]).toBe(index + 1);
+		if (name !== "p") {
+			expect(InlineDynamicReexports[name]).toBe(index + 1);
+		}
+	}
+
+	expect(InlineDynamicReexports.local).toBe("local");
+	expect(RuntimeDynamicReexports.local).toBe("local");
 	expect(
-		Object.fromEntries(
-			Object.keys(SharedDynamicRuntime).map(key => [
-				key,
-				SharedDynamicRuntime[key]
-			])
-		)
-	).toEqual({
-		a: 1,
-		b: 2,
-		c: 3,
-		d: 4,
-		e: 5,
-		f: 6,
-		g: 7,
-		h: 8,
-		i: 9,
-		j: 10,
-		k: 11,
-		l: 12,
-		m: 13,
-		n: 14,
-		o: 15,
-		p: 16
-	});
+		Object.prototype.hasOwnProperty.call(InlineDynamicReexports, "default")
+	).toBe(false);
+	expect(
+		Object.prototype.hasOwnProperty.call(RuntimeDynamicReexports, "default")
+	).toBe(false);
+
+	RuntimeDynamicReexports.setA(101);
+	expect(InlineDynamicReexports.a).toBe(101);
+	expect(RuntimeDynamicReexports.a).toBe(101);
+	InlineDynamicReexports.setA(1);
 });
 
 it("should handle renamed dynamic reexports", () => {
