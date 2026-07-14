@@ -6,7 +6,7 @@
 ## Asset Files
 - Bundle: bundle.js
 - Bundle: chunk1_js.chunk.CURRENT_HASH.js
-- Update: main.LAST_HASH.hot-update.js, size: 19839
+- Update: main.LAST_HASH.hot-update.js, size: 20218
 
 ## Manifest
 
@@ -437,6 +437,15 @@ function hotApplyHandler(options, moduleFactoryTransaction) {
 							moduleFactoryTransaction.finalizers.push(function () {
 								for (var moduleId in preservedModuleFactories) {
 									if (__webpack_require__.o(preservedModuleFactories, moduleId)) {
+										var module = __webpack_require__.c[moduleId];
+										if (module) {
+											for (var i = 0; i < module.children.length; i++) {
+												var child = __webpack_require__.c[module.children[i]];
+												if (!child) continue;
+												var idx = child.parents.indexOf(moduleId);
+												if (idx >= 0) child.parents.splice(idx, 1);
+											}
+										}
 										delete __webpack_require__.c[moduleId];
 										__webpack_require__.m[moduleId] =
 											preservedModuleFactories[moduleId];
