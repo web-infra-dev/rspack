@@ -104,6 +104,8 @@ declare namespace Rspack {
     ignoreUnaccepted?: boolean;
     ignoreDeclined?: boolean;
     ignoreErrored?: boolean;
+    /** Keep factories for modules removed from the compilation available until the apply transaction settles. */
+    preserveDisposedModuleFactories?: boolean;
     onDeclined?: (event: DeclinedEvent) => void;
     onUnaccepted?: (event: UnacceptedEvent) => void;
     onAccepted?: (event: AcceptedEvent) => void;

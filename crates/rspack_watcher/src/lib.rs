@@ -52,6 +52,18 @@ pub trait EventAggregateHandler {
   /// Handle a batch of file system events.
   fn on_event_handle(&self, _changed_files: HashSet<String>, _deleted_files: HashSet<String>);
 
+  /// Handle a versioned batch. Return `true` only when delivery is asynchronous;
+  /// the caller must then acknowledge the generation after delivery.
+  fn on_event_handle_with_generation(
+    &self,
+    changed_files: HashSet<String>,
+    deleted_files: HashSet<String>,
+    _generation: u32,
+  ) -> bool {
+    self.on_event_handle(changed_files, deleted_files);
+    false
+  }
+
   /// Handle an error that occurs during file system watching.
   fn on_error(&self, _error: rspack_error::Error) {
     // Default implementation does nothing.
@@ -165,11 +177,22 @@ impl FsWatcher {
     }
   }
 
-  /// Pauses the file system watcher, stopping the execution of the event loop.
+  /// Pauses aggregate delivery. Raw events continue accumulating until the next watch cycle.
   pub fn pause(&self) -> Result<()> {
     self.executor.pause();
 
     Ok(())
+  }
+
+  /// Atomically pauses aggregate delivery and consumes its pending events.
+  /// Consumed events will not be delivered to that handler later.
+  pub fn take_pending_events(&self) -> (HashSet<String>, HashSet<String>, u32) {
+    self.executor.take_pending_events()
+  }
+
+  /// Acknowledges asynchronous delivery of an aggregate generation.
+  pub fn acknowledge_pending_events(&self, generation: u32) {
+    self.executor.acknowledge_pending_events(generation);
   }
 
   fn wait_for_event(

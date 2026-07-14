@@ -22,6 +22,8 @@ import binding from '@rspack/binding';
 
 export type { AssetInfo } from '@rspack/binding';
 
+export type WatchInvalidationKind = 'lazy' | 'normal';
+
 import * as liteTapable from '@rspack/lite-tapable';
 import type { Source } from 'webpack-sources';
 import type { EntryOptions, EntryPlugin } from './builtin-plugin';
@@ -292,6 +294,11 @@ export class Compilation {
     needAdditionalPass: liteTapable.SyncBailHook<[], boolean>;
   }>;
   name?: string;
+  /**
+   * The invalidation that started this watch compilation. `normal` dominates
+   * mixed or coalesced invalidations; initial and non-watch compilations are undefined.
+   */
+  readonly watchInvalidationKind: WatchInvalidationKind | undefined;
   startTime?: number;
   endTime?: number;
   compiler: Compiler;
@@ -324,6 +331,7 @@ export class Compilation {
   constructor(compiler: Compiler, inner: JsCompilation) {
     this.#inner = inner;
     this.#shutdown = false;
+    this.watchInvalidationKind = compiler.__internal__watchInvalidationKind;
 
     const processAssetsHook = new liteTapable.AsyncSeriesHook<Assets>([
       'assets',

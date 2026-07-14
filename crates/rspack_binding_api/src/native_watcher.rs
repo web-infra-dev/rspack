@@ -44,6 +44,7 @@ pub struct NativeWatcherOptions {
 pub struct NativeWatchResult {
   pub changed_files: Vec<String>,
   pub removed_files: Vec<String>,
+  pub generation: u32,
 }
 
 /// A single, undelayed file system event delivered to the `callbackUndelayed`
@@ -144,6 +145,21 @@ impl NativeWatcher {
     }
   }
 
+  #[napi]
+  pub fn take_pending_events(&self) -> NativeWatchResult {
+    let (changed_files, removed_files, generation) = self.watcher.take_pending_events();
+    NativeWatchResult {
+      changed_files: changed_files.into_iter().collect(),
+      removed_files: removed_files.into_iter().collect(),
+      generation,
+    }
+  }
+
+  #[napi]
+  pub fn acknowledge_pending_events(&self, generation: u32) {
+    self.watcher.acknowledge_pending_events(generation);
+  }
+
   #[napi(ts_return_type = "Promise<void>")]
   /// # Safety
   ///
@@ -231,6 +247,23 @@ impl JsEventHandler {
 
     Ok(Self { inner: callback })
   }
+
+  fn deliver(
+    &self,
+    changed_files: rspack_util::fx_hash::FxHashSet<String>,
+    deleted_files: rspack_util::fx_hash::FxHashSet<String>,
+    generation: u32,
+  ) {
+    let result = NativeWatchResult {
+      changed_files: changed_files.into_iter().collect(),
+      removed_files: deleted_files.into_iter().collect(),
+      generation,
+    };
+    self.inner.call(
+      Ok(result),
+      napi::threadsafe_function::ThreadsafeFunctionCallMode::NonBlocking,
+    );
+  }
 }
 
 impl rspack_watcher::EventAggregateHandler for JsEventHandler {
@@ -239,16 +272,17 @@ impl rspack_watcher::EventAggregateHandler for JsEventHandler {
     changed_files: rspack_util::fx_hash::FxHashSet<String>,
     deleted_files: rspack_util::fx_hash::FxHashSet<String>,
   ) {
-    let changed_files_vec: Vec<String> = changed_files.into_iter().collect();
-    let deleted_files_vec: Vec<String> = deleted_files.into_iter().collect();
-    let result = NativeWatchResult {
-      changed_files: changed_files_vec,
-      removed_files: deleted_files_vec,
-    };
-    self.inner.call(
-      Ok(result),
-      napi::threadsafe_function::ThreadsafeFunctionCallMode::NonBlocking,
-    );
+    self.deliver(changed_files, deleted_files, 0);
+  }
+
+  fn on_event_handle_with_generation(
+    &self,
+    changed_files: rspack_util::fx_hash::FxHashSet<String>,
+    deleted_files: rspack_util::fx_hash::FxHashSet<String>,
+    generation: u32,
+  ) -> bool {
+    self.deliver(changed_files, deleted_files, generation);
+    true
   }
 
   fn on_error(&self, error: rspack_error::Error) {

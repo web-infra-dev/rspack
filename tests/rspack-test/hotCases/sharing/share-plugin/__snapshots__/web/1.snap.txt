@@ -7,7 +7,7 @@
 - Bundle: bundle.js
 - Bundle: common_js_2.chunk.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.LAST_HASH.hot-update.js, size: 42679
+- Update: main.LAST_HASH.hot-update.js, size: 44265
 
 ## Manifest
 
@@ -777,7 +777,7 @@ var hotCurrentUpdateChunks;
 var hotCurrentUpdate;
 var hotCurrentUpdateRemovedChunks;
 var hotCurrentUpdateRuntime;
-function hotApplyHandler(options) {
+function hotApplyHandler(options, moduleFactoryTransaction) {
 	if (__webpack_require__.f) delete __webpack_require__.f.jsonpHmr;
 	hotCurrentUpdateChunks = undefined;
 	function getAffectedModuleEffects(updateModuleId) {
@@ -1044,7 +1044,45 @@ function hotApplyHandler(options) {
 			// insert new code
 			for (var updateModuleId in appliedUpdate) {
 				if (__webpack_require__.o(appliedUpdate, updateModuleId)) {
-					__webpack_require__.m[updateModuleId] = appliedUpdate[updateModuleId];
+					var newModuleFactory = appliedUpdate[updateModuleId];
+					var preservedModuleFactories =
+						moduleFactoryTransaction &&
+						moduleFactoryTransaction.javascriptModuleFactories;
+					var hasPreservedModuleFactory =
+						preservedModuleFactories &&
+						__webpack_require__.o(preservedModuleFactories, updateModuleId);
+					// Keep removed factories usable until the outer apply transaction settles.
+					if (
+						moduleFactoryTransaction &&
+						(newModuleFactory === warnUnexpectedRequire || hasPreservedModuleFactory)
+					) {
+						if (!preservedModuleFactories) {
+							preservedModuleFactories = Object.create(null);
+							moduleFactoryTransaction.javascriptModuleFactories =
+								preservedModuleFactories;
+							moduleFactoryTransaction.finalizers.push(function () {
+								for (var moduleId in preservedModuleFactories) {
+									if (__webpack_require__.o(preservedModuleFactories, moduleId)) {
+										var module = __webpack_require__.c[moduleId];
+										if (module) {
+											for (var i = 0; i < module.children.length; i++) {
+												var child = __webpack_require__.c[module.children[i]];
+												if (!child) continue;
+												var idx = child.parents.indexOf(moduleId);
+												if (idx >= 0) child.parents.splice(idx, 1);
+											}
+										}
+										delete __webpack_require__.c[moduleId];
+										__webpack_require__.m[moduleId] =
+											preservedModuleFactories[moduleId];
+									}
+								}
+							});
+						}
+						preservedModuleFactories[updateModuleId] = newModuleFactory;
+					} else {
+						__webpack_require__.m[updateModuleId] = newModuleFactory;
+					}
 					
 					if (self.__HMR_UPDATED_RUNTIME__) {
 						self.__HMR_UPDATED_RUNTIME__.javascript.updatedModules.push(updateModuleId);

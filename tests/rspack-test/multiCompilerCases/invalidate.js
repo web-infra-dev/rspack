@@ -5,6 +5,7 @@ const path = require("path");
 module.exports = [
   (() => {
     const events = [];
+    const lazyCompilationCycles = [];
     let state = 0;
     return {
       description: "should respect dependencies when using invalidate",
@@ -36,6 +37,11 @@ module.exports = [
           c.hooks.done.tap("test", () => {
             events.push(`${c.name} done`);
           });
+          c.hooks.thisCompilation.tap("test", compilation => {
+            if (c.name === "a") {
+              lazyCompilationCycles.push(compilation.watchInvalidationKind);
+            }
+          });
         });
 
         compiler.watchFileSystem = { watch() { } };
@@ -48,10 +54,9 @@ module.exports = [
               reject(error);
               return;
             }
-            if (state !== 0) return;
-            state++;
-
-            expect(events).toMatchInlineSnapshot(`
+            if (state === 0) {
+              state = 1;
+              expect(events).toMatchInlineSnapshot(`
 				Array [
 				  b run,
 				  b done,
@@ -59,13 +64,13 @@ module.exports = [
 				  a done,
 				]
 			`);
-            events.length = 0;
+              events.length = 0;
 
-            watching.invalidate(err => {
-              try {
-                if (err) return reject(err);
+              watching.__internal__invalidate("lazy", err => {
+                try {
+                  if (err) return reject(err);
 
-                expect(events).toMatchInlineSnapshot(`
+                  expect(events).toMatchInlineSnapshot(`
 					Array [
 					  a invalid,
 					  b invalid,
@@ -75,16 +80,44 @@ module.exports = [
 					  a done,
 					]
 				`);
-                events.length = 0;
-                expect(state).toBe(1);
-                setTimeout(() => {
-                  compiler.close(resolve);
-                }, 1000);
-              } catch (e) {
-                console.error(e);
-                reject(e);
-              }
-            });
+                  expect(lazyCompilationCycles).toEqual([undefined, "lazy"]);
+                  events.length = 0;
+                  expect(state).toBe(1);
+                  state = 2;
+                  watching.watchings[0].__internal__invalidate("lazy");
+                  watching.watchings[1].invalidate(error => {
+                    if (error) reject(error);
+                  });
+                } catch (e) {
+                  console.error(e);
+                  reject(e);
+                }
+              });
+              return;
+            }
+
+            if (state !== 2) return;
+            try {
+              expect(events).toMatchInlineSnapshot(`
+				Array [
+				  a invalid,
+				  b invalid,
+				  b run,
+				  b done,
+				  a run,
+				  a done,
+				]
+			`);
+              expect(lazyCompilationCycles).toEqual([
+                undefined,
+                "lazy",
+                "normal",
+              ]);
+              state = 3;
+              compiler.close(error => (error ? reject(error) : resolve()));
+            } catch (error) {
+              compiler.close(() => reject(error));
+            }
           });
         });
       }

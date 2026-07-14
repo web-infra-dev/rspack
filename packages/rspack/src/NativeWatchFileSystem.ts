@@ -93,6 +93,19 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
     return this.#watcher;
   }
 
+  #purge(changes: Iterable<string>, removals: Iterable<string>): void {
+    const fs = this.#inputFileSystem;
+    if (!fs.purge) {
+      return;
+    }
+    for (const item of changes) {
+      fs.purge(item);
+    }
+    for (const item of removals) {
+      fs.purge(item);
+    }
+  }
+
   watch(
     files: Iterable<string> & {
       added?: Iterable<string>;
@@ -153,6 +166,7 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
       this.#inner?.triggerEvent(kind, path),
     );
     this.#watcher = watcher;
+    let lastDrainedGeneration: number | undefined;
 
     nativeWatcher.watch(
       this.formatWatchDependencies(files),
@@ -164,18 +178,18 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
           callback(err, new Map(), new Map(), new Set(), new Set());
           return;
         }
+        if (
+          lastDrainedGeneration !== undefined &&
+          result.generation <= lastDrainedGeneration
+        ) {
+          nativeWatcher.acknowledgePendingEvents(result.generation);
+          return;
+        }
         nativeWatcher.pause();
+        nativeWatcher.acknowledgePendingEvents(result.generation);
         const changedFiles = result.changedFiles;
         const removedFiles = result.removedFiles;
-        if (this.#inputFileSystem?.purge) {
-          const fs = this.#inputFileSystem;
-          for (const item of changedFiles) {
-            fs.purge?.(item);
-          }
-          for (const item of removedFiles) {
-            fs.purge?.(item);
-          }
-        }
+        this.#purge(changedFiles, removedFiles);
         // TODO: add fileTimeInfoEntries and contextTimeInfoEntries
         const changes = new Set(changedFiles);
         const removals = new Set(removedFiles);
@@ -223,12 +237,14 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
         nativeWatcher.pause();
       },
 
-      getInfo() {
-        // This is a placeholder implementation.
-        // TODO: The actual implementation should return the current state of the watcher.
+      getInfo: () => {
+        const { changedFiles, removedFiles, generation } =
+          nativeWatcher.takePendingEvents();
+        lastDrainedGeneration = generation;
+        this.#purge(changedFiles, removedFiles);
         return {
-          changes: new Set(),
-          removals: new Set(),
+          changes: new Set(changedFiles),
+          removals: new Set(removedFiles),
           fileTimeInfoEntries: new Map(),
           contextTimeInfoEntries: new Map(),
         };

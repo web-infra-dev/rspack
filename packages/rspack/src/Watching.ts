@@ -11,6 +11,7 @@ import type { Callback } from '@rspack/lite-tapable';
 
 import type { Compilation, Compiler } from '.';
 import { Stats } from '.';
+import type { WatchInvalidationKind } from './Compilation';
 import type { WatchOptions } from './config';
 import type { FileSystemInfoEntry, Watcher } from './util/fs';
 
@@ -53,6 +54,7 @@ export class Watching {
   #closed: boolean;
   #collectedChangedFiles?: Set<string>;
   #collectedRemovedFiles?: Set<string>;
+  #pendingInvalidationKind?: WatchInvalidationKind;
   #pendingWatchDeps?: {
     file: PendingWatchDelta;
     context: PendingWatchDelta;
@@ -131,6 +133,9 @@ export class Watching {
           this.compiler.removedFiles = undefined;
           return this.handler(err);
         }
+        if (changedFiles.size > 0 || removedFiles.size > 0) {
+          this.#recordInvalidation('normal');
+        }
         this.#invalidate(
           fileTimeInfoEntries,
           contextTimeInfoEntries,
@@ -140,6 +145,7 @@ export class Watching {
         this.onChange();
       },
       (fileName, changeTime) => {
+        this.#recordInvalidation('normal');
         if (!this.#invalidReported) {
           this.#invalidReported = true;
           this.compiler.hooks.invalid.call(fileName, changeTime);
@@ -159,6 +165,8 @@ export class Watching {
 
     const finalCallback = (err: Error | null) => {
       this.running = false;
+      this.#pendingInvalidationKind = undefined;
+      this.compiler.__internal__watchInvalidationKind = undefined;
       this.compiler.running = false;
       this.compiler.watching = undefined;
       this.compiler.watchMode = false;
@@ -214,14 +222,40 @@ export class Watching {
     }
   }
 
-  invalidate(callback?: Callback<Error, void>) {
-    if (callback) {
-      this.callbacks.push(callback);
-    }
+  #notifyInvalid() {
     if (!this.#invalidReported) {
       this.#invalidReported = true;
       this.compiler.hooks.invalid.call(null, Date.now());
     }
+  }
+
+  #recordInvalidation(kind: WatchInvalidationKind) {
+    if (kind === 'normal' || this.#pendingInvalidationKind === undefined) {
+      this.#pendingInvalidationKind = kind;
+    }
+  }
+
+  invalidate(callback?: Callback<Error, void>) {
+    this.__internal__invalidate('normal', callback);
+  }
+
+  /** @internal Invalidates with provenance supplied by Rspack internals. */
+  __internal__invalidate(
+    kind: WatchInvalidationKind,
+    callback?: Callback<Error, void>,
+  ) {
+    if (callback) {
+      this.callbacks.push(callback);
+    }
+    this.#recordInvalidation(kind);
+    this.#notifyInvalid();
+    this.onChange();
+    this.#invalidate();
+  }
+
+  /** @internal Resume an invalidation already recorded by MultiCompiler. */
+  __internal__resumeFromMultiCompiler() {
+    this.#notifyInvalid();
     this.onChange();
     this.#invalidate();
   }
@@ -237,10 +271,8 @@ export class Watching {
     if (callback) {
       this.callbacks.push(callback);
     }
-    if (!this.#invalidReported) {
-      this.#invalidReported = true;
-      this.compiler.hooks.invalid.call(null, Date.now());
-    }
+    this.#recordInvalidation('normal');
+    this.#notifyInvalid();
     this.onChange();
     this.#invalidate(undefined, undefined, changedFiles, removedFiles);
   }
@@ -302,10 +334,17 @@ export class Watching {
     } else if (this.pausedWatcher) {
       const { changes, removals, fileTimeInfoEntries, contextTimeInfoEntries } =
         this.pausedWatcher.getInfo();
+      if (changes.size > 0 || removals.size > 0) {
+        this.#recordInvalidation('normal');
+      }
       this.#mergeWithCollected(changes, removals);
       this.compiler.fileTimestamps = fileTimeInfoEntries;
       this.compiler.contextTimestamps = contextTimeInfoEntries;
     }
+
+    this.compiler.__internal__watchInvalidationKind =
+      this.#pendingInvalidationKind;
+    this.#pendingInvalidationKind = undefined;
 
     this.compiler.modifiedFiles = this.#collectedChangedFiles;
     this.compiler.removedFiles = this.#collectedRemovedFiles;
@@ -394,6 +433,8 @@ export class Watching {
     };
 
     if (error) {
+      this.#pendingInvalidationKind = undefined;
+      this.compiler.__internal__watchInvalidationKind = undefined;
       return handleError(error);
     }
 
@@ -411,7 +452,10 @@ export class Watching {
     ) {
       // Coalesced rebuild: the `watch()` delivery below is skipped, so carry
       // this build's deltas forward to the next delivered `watch()`. See #12904.
-      if (compilation) this.#accumulateWatchDeps(compilation);
+      this.#accumulateWatchDeps(compilation);
+      if (compilation.watchInvalidationKind) {
+        this.#recordInvalidation(compilation.watchInvalidationKind);
+      }
       this.#go();
       return;
     }
@@ -423,6 +467,7 @@ export class Watching {
     compilation.endTime = Date.now();
     const cbs = this.callbacks;
     this.callbacks = [];
+    this.compiler.__internal__watchInvalidationKind = undefined;
 
     this.compiler.hooks.done.callAsync(stats, (err) => {
       if (err) return handleError(err, cbs);
