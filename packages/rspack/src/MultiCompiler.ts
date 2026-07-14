@@ -396,12 +396,10 @@ export class MultiCompiler {
         node.state = 'done';
         const invalidationKind = stats.compilation.watchInvalidationKind;
         for (const child of node.children) {
-          if (
-            invalidationKind === 'normal' ||
-            (invalidationKind === 'lazy' &&
-              child.parentInvalidationKind === undefined)
-          ) {
-            child.parentInvalidationKind = invalidationKind;
+          // Dependents consume a newly emitted parent artifact and must take
+          // the normal path even when the parent was explicitly lazy.
+          if (invalidationKind !== undefined) {
+            child.parentInvalidationKind = 'normal';
           }
           if (child.state === 'blocked') queue.enqueue(child);
         }

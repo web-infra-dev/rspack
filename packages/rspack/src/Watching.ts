@@ -471,43 +471,43 @@ export class Watching {
 
     this.compiler.hooks.done.callAsync(stats, (err) => {
       if (err) return handleError(err, cbs);
+
+      // Snapshot this build's watch deltas before user callbacks can invalidate.
+      this.#accumulateWatchDeps(compilation);
+      const pending = this.#pendingWatchDeps!;
+      this.#pendingWatchDeps = undefined;
+
+      const fileDependencies = new Set([
+        ...compilation.fileDependencies,
+      ]) as unknown as Iterable<string> & {
+        added?: Iterable<string>;
+        removed?: Iterable<string>;
+      };
+      fileDependencies.added = pending.file.added;
+      fileDependencies.removed = pending.file.removed;
+
+      const contextDependencies = new Set([
+        ...compilation.contextDependencies,
+      ]) as unknown as Iterable<string> & {
+        added?: Iterable<string>;
+        removed?: Iterable<string>;
+      };
+      contextDependencies.added = pending.context.added;
+      contextDependencies.removed = pending.context.removed;
+
+      const missingDependencies = new Set([
+        ...compilation.missingDependencies,
+      ]) as unknown as Iterable<string> & {
+        added?: Iterable<string>;
+        removed?: Iterable<string>;
+      };
+      missingDependencies.added = pending.missing.added;
+      missingDependencies.removed = pending.missing.removed;
+
       this.handler(null, stats);
 
       process.nextTick(() => {
         if (!this.#closed) {
-          // Deliver this build's deltas merged with any carried from skipped
-          // coalesced builds, then reset the accumulator.
-          this.#accumulateWatchDeps(compilation);
-          const pending = this.#pendingWatchDeps!;
-          this.#pendingWatchDeps = undefined;
-
-          const fileDependencies = new Set([
-            ...compilation.fileDependencies,
-          ]) as unknown as Iterable<string> & {
-            added?: Iterable<string>;
-            removed?: Iterable<string>;
-          };
-          fileDependencies.added = pending.file.added;
-          fileDependencies.removed = pending.file.removed;
-
-          const contextDependencies = new Set([
-            ...compilation.contextDependencies,
-          ]) as unknown as Iterable<string> & {
-            added?: Iterable<string>;
-            removed?: Iterable<string>;
-          };
-          contextDependencies.added = pending.context.added;
-          contextDependencies.removed = pending.context.removed;
-
-          const missingDependencies = new Set([
-            ...compilation.missingDependencies,
-          ]) as unknown as Iterable<string> & {
-            added?: Iterable<string>;
-            removed?: Iterable<string>;
-          };
-          missingDependencies.added = pending.missing.added;
-          missingDependencies.removed = pending.missing.removed;
-
           this.watch(
             fileDependencies,
             contextDependencies,
