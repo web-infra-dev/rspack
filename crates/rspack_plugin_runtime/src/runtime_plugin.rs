@@ -273,6 +273,7 @@ async fn runtime_requirements_in_tree(
                 )
               })
             },
+            *chunk_ukey,
           )
           .boxed(),
         ));
@@ -302,6 +303,7 @@ async fn runtime_requirements_in_tree(
                 .clone()
               })
             },
+            *chunk_ukey,
           )
           .boxed(),
         ));

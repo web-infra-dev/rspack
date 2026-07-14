@@ -29,6 +29,7 @@ pub struct GetChunkFilenameRuntimeModule {
   all_chunks: GetChunkFilenameAllChunks,
   #[cacheable(with=Unsupported)]
   filename_for_chunk: GetFilenameForChunk,
+  chunk_ukey: ChunkUkey,
 }
 
 impl fmt::Debug for GetChunkFilenameRuntimeModule {
@@ -40,6 +41,7 @@ impl fmt::Debug for GetChunkFilenameRuntimeModule {
       .field("source_type", &self.source_type)
       .field("global", &self.global)
       .field("all_chunks", &"...")
+      .field("chunk_ukey", &self.chunk_ukey)
       .finish()
   }
 }
@@ -58,6 +60,7 @@ impl GetChunkFilenameRuntimeModule {
     global: String,
     all_chunks: F,
     filename_for_chunk: T,
+    chunk_ukey: ChunkUkey,
   ) -> Self {
     Self::with_name(
       runtime_template,
@@ -67,18 +70,15 @@ impl GetChunkFilenameRuntimeModule {
       global,
       Box::new(all_chunks),
       Box::new(filename_for_chunk),
+      chunk_ukey,
     )
   }
 
   fn get_filename_chunks(&self, compilation: &Compilation) -> Option<FxIndexSet<ChunkUkey>> {
-    self
-      .chunk()
-      .and_then(|chunk_ukey| {
-        compilation
-          .build_chunk_graph_artifact
-          .chunk_by_ukey
-          .get(&chunk_ukey)
-      })
+    compilation
+      .build_chunk_graph_artifact
+      .chunk_by_ukey
+      .get(&self.chunk_ukey)
       .map(|chunk| {
         let runtime_requirements = get_chunk_runtime_requirements(compilation, &chunk.ukey());
         let mut chunks = if (self.all_chunks)(runtime_requirements) {

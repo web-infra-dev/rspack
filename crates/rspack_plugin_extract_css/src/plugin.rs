@@ -574,6 +574,7 @@ async fn runtime_requirement_in_tree(
               }
             })
         },
+        *chunk_ukey,
       )),
     ));
 
