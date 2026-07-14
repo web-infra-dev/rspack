@@ -153,6 +153,12 @@ export class Watching {
       },
       (fileName, changeTime) => {
         this.#recordInvalidation('normal');
+        if (this.running) {
+          // The aggregate callback can arrive after an in-flight compilation
+          // finishes. Suppress that stale generation and drain the paused
+          // watcher before starting the coalesced rebuild.
+          this.invalid = true;
+        }
         if (!this.#invalidReported) {
           this.#invalidReported = true;
           this.compiler.hooks.invalid.call(fileName, changeTime);
@@ -294,6 +300,7 @@ export class Watching {
     if (this.suspended || (this.isBlocked() && (this.blocked = true))) {
       return;
     }
+    this.blocked = false;
 
     if (this.running) {
       this.invalid = true;
@@ -339,14 +346,7 @@ export class Watching {
       this.compiler.fileTimestamps = fileTimeInfoEntries;
       this.compiler.contextTimestamps = contextTimeInfoEntries;
     } else if (this.pausedWatcher) {
-      const { changes, removals, fileTimeInfoEntries, contextTimeInfoEntries } =
-        this.pausedWatcher.getInfo();
-      if (changes.size > 0 || removals.size > 0) {
-        this.#recordInvalidation('normal');
-      }
-      this.#mergeWithCollected(changes, removals);
-      this.compiler.fileTimestamps = fileTimeInfoEntries;
-      this.compiler.contextTimestamps = contextTimeInfoEntries;
+      this.#drainPausedWatcher();
     }
 
     this.compiler.__internal__watchInvalidationKind =
@@ -451,6 +451,21 @@ export class Watching {
 
     stats = new Stats(compilation);
 
+    const watcherStartTime = Date.now();
+    if (
+      !this.invalid &&
+      this.pausedWatcher?.hasPendingEvents?.() !== false &&
+      this.#drainPausedWatcher()
+    ) {
+      // Watchpack continues collecting while paused but does not deliver an
+      // invalid callback. Coalesce those changes before publishing the stale
+      // generation and advance the baseline so they are not replayed.
+      this.lastWatcherStartTime = watcherStartTime;
+      this.invalid = true;
+      this.#notifyInvalid();
+      this.onInvalid();
+    }
+
     if (
       this.invalid &&
       !this.suspended &&
@@ -511,6 +526,21 @@ export class Watching {
       for (const cb of cbs) cb(null);
       this.compiler.hooks.afterDone.call(stats);
     });
+  }
+
+  #drainPausedWatcher() {
+    if (!this.pausedWatcher) return false;
+
+    const { changes, removals, fileTimeInfoEntries, contextTimeInfoEntries } =
+      this.pausedWatcher.getInfo();
+    const hasChanges = changes.size > 0 || removals.size > 0;
+    if (hasChanges) {
+      this.#recordInvalidation('normal');
+    }
+    this.#mergeWithCollected(changes, removals);
+    this.compiler.fileTimestamps = fileTimeInfoEntries;
+    this.compiler.contextTimestamps = contextTimeInfoEntries;
+    return hasChanges;
   }
 
   #mergeWithCollected(

@@ -31,13 +31,14 @@ async function withTimeout(promise, description) {
 }
 
 describe("lazy MultiCompiler artifact provenance", () => {
-	it("keeps dependent and coalesced file-backed generations normal", async () => {
+	async function runArtifactChain(_watcherName, nativeWatcher) {
 		const root = await fs.mkdtemp(path.join(os.tmpdir(), "rspack-lazy-chain-"));
 		const sourceFile = path.join(root, "source.js");
 		const coalescedEntry = path.join(root, "coalesced-source.js");
 		const stampFile = name => path.join(root, name, "stamp.txt");
 		const generations = Object.fromEntries(names.map(name => [name, 0]));
 		const events = [];
+		const invalidations = [];
 		let delayedSource;
 		let resolveFileInvalidation;
 		let server;
@@ -56,6 +57,14 @@ describe("lazy MultiCompiler artifact provenance", () => {
 				coalescedEntry,
 				'export const coalesced = "coalesced";\n'
 			);
+			// Keep Watchpack's initial scan from treating fresh fixture files as edits.
+			const beforeWatch = new Date(Date.now() - 3000);
+			await Promise.all(
+				[
+					...names.map(name => path.join(root, `${name}.js`)),
+					coalescedEntry
+				].map(file => fs.utimes(file, beforeWatch, beforeWatch))
+			);
 
 			const config = name => ({
 				context: root,
@@ -65,7 +74,7 @@ describe("lazy MultiCompiler artifact provenance", () => {
 					name === "source"
 						? { main: "./source.js", coalesced: "./coalesced-source.js" }
 						: { main: `./${name}.js` },
-				experiments: { nativeWatcher: true },
+				experiments: { nativeWatcher },
 				lazyCompilation: { entries: true, imports: false },
 				mode: "development",
 				name,
@@ -78,6 +87,7 @@ describe("lazy MultiCompiler artifact provenance", () => {
 					{
 						apply(compiler) {
 							compiler.hooks.invalid.tap("lazy-artifact-chain", file => {
+								invalidations.push({ name, file });
 								if (name === "source" && file === sourceFile) {
 									resolveFileInvalidation?.();
 								}
@@ -278,19 +288,32 @@ describe("lazy MultiCompiler artifact provenance", () => {
 			const fileInvalidated = new Promise(resolve => {
 				resolveFileInvalidation = resolve;
 			});
-			delayedSource = { started: signalSourceStarted, release: sourceRelease };
+			delayedSource = {
+				started: signalSourceStarted,
+				release: sourceRelease
+			};
 			const beforeCoalesced = events.length;
 			const beforeGenerations = { ...generations };
 			assert.equal(await activate("source", JSON.parse(coalescedId)), 200);
 			await withTimeout(sourceStarted, "the coalesced source build to start");
+			const beforeFileInvalidations = invalidations.length;
 			await fs.writeFile(
 				sourceFile,
 				'export const source = "source";\nexport const edited = "file-edit";\n'
 			);
-			await withTimeout(fileInvalidated, "the coalesced source file event");
+			if (nativeWatcher) {
+				await withTimeout(fileInvalidated, "the coalesced source file event");
+			}
 			releaseSource();
 			assertBuild(await nextBuild(), ["source", "dependent", "tail"], "normal");
 			const coalesced = events.slice(beforeCoalesced);
+			assert.equal(
+				invalidations
+					.slice(beforeFileInvalidations)
+					.filter(event => event.name === "source").length,
+				1,
+				"a coalesced file edit must notify the source compiler exactly once"
+			);
 			assert.equal(
 				coalesced.every(event => event.kind === "normal"),
 				true,
@@ -319,6 +342,9 @@ describe("lazy MultiCompiler artifact provenance", () => {
 			assert.equal(generations.tail, beforeGenerations.tail + 1);
 			assert.equal(generations.unrelated, beforeGenerations.unrelated);
 			await assertTail();
+			const deliveredGenerations = { ...generations };
+			await new Promise(resolve => setTimeout(resolve, 80));
+			assert.deepEqual(generations, deliveredGenerations);
 		} finally {
 			if (watching) {
 				await new Promise((resolve, reject) =>
@@ -328,5 +354,13 @@ describe("lazy MultiCompiler artifact provenance", () => {
 			if (server) await new Promise(resolve => server.close(resolve));
 			await fs.rm(root, { force: true, recursive: true });
 		}
-	});
+	}
+
+	it.each([
+		["native", true],
+		["watchpack", false]
+	])(
+		"keeps dependent and coalesced file-backed generations normal with %s watching",
+		runArtifactChain
+	);
 });

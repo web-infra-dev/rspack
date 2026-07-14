@@ -431,7 +431,12 @@ export class MultiCompiler {
       if (node.state === 'done') {
         node.state = 'pending';
       } else if (node.state === 'running') {
-        node.state = 'running-outdated';
+        // Watching will coalesce its own in-flight invalidation before
+        // delivering `done`; keep the node runnable so that generation can
+        // finish and unblock its already-invalidated dependents.
+        if (!node.compiler.watching?.invalid) {
+          node.state = 'running-outdated';
+        }
       }
       for (const child of node.children) {
         nodeInvalidFromParent(child);

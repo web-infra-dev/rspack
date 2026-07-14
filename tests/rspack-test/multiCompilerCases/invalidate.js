@@ -80,7 +80,9 @@ module.exports = [
 					  a done,
 					]
 				`);
-                  expect(lazyCompilationCycles).toEqual([undefined, "lazy"]);
+                  // `a` consumes `b`'s lazy artifact, so its dependent
+                  // generation must remain normal and emit fresh output.
+                  expect(lazyCompilationCycles).toEqual([undefined, "normal"]);
                   events.length = 0;
                   expect(state).toBe(1);
                   state = 2;
@@ -110,8 +112,8 @@ module.exports = [
 			`);
               expect(lazyCompilationCycles).toEqual([
                 undefined,
-                "lazy",
                 "normal",
+                "normal"
               ]);
               state = 3;
               compiler.close(error => (error ? reject(error) : resolve()));
