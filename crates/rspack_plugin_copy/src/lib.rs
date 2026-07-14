@@ -15,8 +15,9 @@ use regex::Regex;
 use rspack_core::{
   AssetInfo, AssetInfoRelated, Compilation, CompilationAsset, CompilationLogger,
   CompilationProcessAssets, Filename, GlobMatchOptions, Logger, PathData, Plugin,
-  escape_glob_pattern, find_files_by_glob,
+  escape_glob_pattern, extract_glob_base_dir, find_files_by_glob,
   rspack_sources::{BoxSource, RawBufferSource, SourceExt},
+  unescape_glob_path,
 };
 use rspack_error::{Diagnostic, Error, Result};
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHashDigest, RspackHasher};
@@ -24,6 +25,10 @@ use rspack_hook::{plugin, plugin_hook};
 use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rspack_util::fx_hash::{FxDashMap, FxDashSet};
 use sugar_path::SugarPath;
+
+mod pattern_cache;
+
+use pattern_cache::CachedPatternResult;
 
 #[derive(Debug)]
 pub struct CopyRspackPluginOptions {
@@ -121,30 +126,6 @@ pub struct RunPatternResult {
   pub force: bool,
   pub priority: i32,
   pub pattern_index: usize,
-}
-
-#[derive(Debug, Clone)]
-struct CachedPatternResult {
-  results: Vec<Option<RunPatternResult>>,
-  file_dependencies: Vec<PathBuf>,
-  context_dependencies: Vec<PathBuf>,
-}
-
-impl CachedPatternResult {
-  fn is_invalidated(&self, compilation: &Compilation) -> bool {
-    compilation
-      .modified_files
-      .iter()
-      .chain(compilation.removed_files.iter())
-      .any(|changed| {
-        let changed = changed.as_ref();
-        self.file_dependencies.iter().any(|file| file == changed)
-          || self
-            .context_dependencies
-            .iter()
-            .any(|context| changed.starts_with(context))
-      })
-  }
 }
 
 #[plugin]
@@ -446,11 +427,6 @@ impl CopyRspackPlugin {
     // Enable copy files starts with dot
     let mut dot_enable = pattern.glob_options.dot;
 
-    /*
-     * If input is a glob query like `/a/b/**/*.js`, we need to add common directory
-     * to context_dependencies
-     */
-    let mut need_add_context_to_dependency = false;
     let glob_query = match from_type {
       FromType::Dir => {
         logger.debug(format!("added '{abs_from}' as a context dependency"));
@@ -483,7 +459,6 @@ impl CopyRspackPlugin {
         escape_glob_pattern(&from)
       }
       FromType::Glob => {
-        need_add_context_to_dependency = true;
         let mut glob_query = if Path::new(orig_from).is_absolute() {
           orig_from.into()
         } else {
@@ -501,6 +476,11 @@ impl CopyRspackPlugin {
         }
       }
     };
+
+    if matches!(from_type, FromType::Glob) {
+      let glob_base_dir = unescape_glob_path(extract_glob_base_dir(&glob_query));
+      context_dependencies.insert(PathBuf::from(glob_base_dir).normalize().into_owned());
+    }
 
     logger.log(format!("begin globbing '{glob_query}'..."));
 
@@ -531,18 +511,6 @@ impl CopyRspackPlugin {
             }
           })
           .collect();
-
-        if need_add_context_to_dependency
-          && let Some(common_dir) = get_closest_common_parent_dir(
-            &entries.iter().map(|it| it.as_path()).collect::<Vec<_>>(),
-          )
-        {
-          // The glob common dir is derived from glob-matched entries, which keep
-          // the pattern's raw shape (e.g. a leading `./`, and `/` separators on
-          // Windows). Normalize it so the registered context dependency matches
-          // the native, normalized paths used everywhere else in the dep graph.
-          context_dependencies.insert(common_dir.into_std_path_buf().normalize().into_owned());
-        }
 
         if entries.is_empty() {
           if pattern.no_error_on_missing {
@@ -650,9 +618,14 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       async move {
         let cacheable = CopyRspackPlugin::is_cacheable(pattern);
         if cacheable
-          && (!compilation.modified_files.is_empty() || !compilation.removed_files.is_empty())
           && let Some(cached) = self.pattern_cache.get(&index)
-          && !cached.is_invalidated(compilation)
+          && !cached.is_invalidated(
+            compilation
+              .modified_files
+              .iter()
+              .chain(compilation.removed_files.iter())
+              .map(|changed| changed.as_ref()),
+          )
         {
           logger.debug(format!("reusing unchanged copy pattern {index}"));
           for file in &cached.file_dependencies {
@@ -674,7 +647,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           &pattern_file_dependencies,
           &pattern_context_dependencies,
           pattern_diagnostics.clone(),
-          &logger,
+          logger,
         )
         .await?;
 
@@ -840,26 +813,6 @@ impl Plugin for CopyRspackPlugin {
       .tap(process_assets::new(self));
     Ok(())
   }
-}
-
-fn get_closest_common_parent_dir(paths: &[&Utf8Path]) -> Option<Utf8PathBuf> {
-  // If there are no matching files, return `None`.
-  if paths.is_empty() {
-    return None;
-  }
-
-  // Get the first file path and use it as the initial value for the common parent directory.
-  let mut parent_dir: Utf8PathBuf = paths[0].parent()?.to_path_buf();
-
-  // Iterate over the remaining file paths, updating the common parent directory as necessary.
-  for path in paths.iter().skip(1) {
-    // Find the common parent directory between the current file path and the previous common parent directory.
-    while !path.starts_with(&parent_dir) {
-      parent_dir = parent_dir.parent()?.into();
-    }
-  }
-
-  Some(parent_dir)
 }
 
 fn set_info(target: &mut AssetInfo, info: Info) {
