@@ -127,7 +127,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
       })
       .map(|chunk| {
         let runtime_requirements = get_chunk_runtime_requirements(compilation, &chunk.ukey());
-        if (self.all_chunks)(runtime_requirements) {
+        let mut chunks = if (self.all_chunks)(runtime_requirements) {
           chunk
             .get_all_referenced_chunks(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
         } else {
@@ -148,17 +148,18 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
                 ),
             );
           }
-          for entrypoint in chunk.get_all_referenced_async_entrypoints(
-            &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
-          ) {
-            let entrypoint = compilation
-              .build_chunk_graph_artifact
-              .chunk_group_by_ukey
-              .expect_get(&entrypoint);
-            chunks.insert(entrypoint.get_entrypoint_chunk());
-          }
           chunks
+        };
+        for entrypoint in chunk.get_all_referenced_async_entrypoints(
+          &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
+        ) {
+          let entrypoint = compilation
+            .build_chunk_graph_artifact
+            .chunk_group_by_ukey
+            .expect_get(&entrypoint);
+          chunks.insert(entrypoint.get_entrypoint_chunk());
         }
+        chunks
       });
 
     let mut dynamic_filename: Option<String> = None;
