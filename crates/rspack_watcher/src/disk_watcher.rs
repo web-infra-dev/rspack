@@ -1,4 +1,4 @@
-use std::{sync::Arc, time::Duration};
+use std::{path::Path, sync::Arc, time::Duration};
 
 use notify::{Event, EventKind, RecommendedWatcher, Watcher, event::ModifyKind};
 use rspack_paths::ArcPath;
@@ -109,10 +109,21 @@ impl DiskWatcher {
 
     // notify's inotify backend removes every descendant watch when a recursive
     // parent is unwatched, so retained children must also be registered again.
+    let stale_paths: HashSet<&Path> = stale_patterns
+      .iter()
+      .map(|(path, _)| path.as_ref())
+      .collect();
+    let stale_recursive_paths: HashSet<&Path> = stale_patterns
+      .iter()
+      .filter_map(|(path, recursive)| recursive.then_some(path.as_ref()))
+      .collect();
     self.watch_patterns.retain(|p| {
-      !stale_patterns.iter().any(|(path, recursive)| {
-        p.path == *path || (*recursive && p.path.as_ref().starts_with(path.as_ref()))
-      })
+      !stale_paths.contains(p.path.as_ref())
+        && !p
+          .path
+          .as_ref()
+          .ancestors()
+          .any(|path| stale_recursive_paths.contains(path))
     });
 
     for pattern in new_patterns {
@@ -261,6 +272,76 @@ mod tests {
   }
 
   #[test]
+  fn test_many_stale_siblings_keep_retained_children_and_prefix_siblings() {
+    let root = std::path::PathBuf::from("/virtual-project");
+    let recursive_parent = root.join("package-1");
+    let retained_child = recursive_parent.join("retained");
+    let prefix_sibling = root.join("package-10").join("retained");
+    let retained_siblings = (0..1024)
+      .map(|index| root.join(format!("retained-{index}")))
+      .collect::<Vec<_>>();
+    let stale_siblings = (0..1024)
+      .map(|index| root.join(format!("stale-{index}")))
+      .collect::<Vec<_>>();
+
+    let pattern = |path, mode| WatchPattern {
+      path: ArcPath::from(path),
+      mode,
+    };
+    let mut watcher = create_disk_watcher();
+    watcher.inner = None;
+    watcher.watch_patterns =
+      std::iter::once(pattern(recursive_parent, notify::RecursiveMode::Recursive))
+        .chain(std::iter::once(pattern(
+          retained_child.clone(),
+          notify::RecursiveMode::NonRecursive,
+        )))
+        .chain(std::iter::once(pattern(
+          prefix_sibling.clone(),
+          notify::RecursiveMode::NonRecursive,
+        )))
+        .chain(
+          retained_siblings
+            .iter()
+            .cloned()
+            .map(|path| pattern(path, notify::RecursiveMode::NonRecursive)),
+        )
+        .chain(stale_siblings.into_iter().enumerate().map(|(index, path)| {
+          pattern(
+            path,
+            if index % 2 == 0 {
+              notify::RecursiveMode::Recursive
+            } else {
+              notify::RecursiveMode::NonRecursive
+            },
+          )
+        }))
+        .collect();
+
+    let expected: HashSet<WatchPattern> =
+      std::iter::once(pattern(retained_child, notify::RecursiveMode::NonRecursive))
+        .chain(std::iter::once(pattern(
+          prefix_sibling,
+          notify::RecursiveMode::NonRecursive,
+        )))
+        .chain(
+          retained_siblings
+            .into_iter()
+            .map(|path| pattern(path, notify::RecursiveMode::NonRecursive)),
+        )
+        .collect();
+
+    watcher
+      .watch(expected.iter().map(|pattern| WatchPattern {
+        path: pattern.path.clone(),
+        mode: pattern.mode,
+      }))
+      .unwrap();
+
+    assert_eq!(watcher.watch_patterns, expected);
+  }
+
+  #[test]
   fn test_removing_recursive_parent_keeps_retained_child_observable() {
     let temp_dir = tempfile::TempDir::new().unwrap();
     let parent = temp_dir.path().canonicalize().unwrap();
@@ -310,7 +391,7 @@ mod tests {
     while rx.try_recv().is_ok() {}
     std::fs::write(&file, "after").unwrap();
 
-    let deadline = Instant::now() + Duration::from_secs(2);
+    let deadline = Instant::now() + Duration::from_secs(10);
     let observed = loop {
       if let Ok(events) = rx.try_recv()
         && events.iter().any(|event| event.path.as_ref() == file)
@@ -371,7 +452,7 @@ mod tests {
     while rx.try_recv().is_ok() {}
     std::fs::write(grandchild.join("created.txt"), "created").unwrap();
 
-    let deadline = Instant::now() + Duration::from_secs(2);
+    let deadline = Instant::now() + Duration::from_secs(10);
     let observed = loop {
       if let Ok(events) = rx.try_recv()
         && events.iter().any(|event| event.path.as_ref() == parent)

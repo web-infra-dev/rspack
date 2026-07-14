@@ -527,6 +527,7 @@ impl CopyRspackPlugin {
               "CopyRspackPlugin Error".into(),
               format!("unable to locate '{glob_query}' glob"),
             ));
+          return Ok(None);
         }
 
         let output_path = &compilation.options.output.path;
@@ -635,6 +636,10 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
             context_dependencies.insert(context.clone());
           }
           return Ok(Some(cached.results.clone()));
+        }
+
+        if cacheable {
+          self.pattern_cache.remove(&index);
         }
 
         let pattern_file_dependencies = FxDashSet::default();

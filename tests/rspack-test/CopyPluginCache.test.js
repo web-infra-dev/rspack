@@ -71,6 +71,19 @@ function rebuild(compiler, modifiedFiles = [], removedFiles = []) {
 	});
 }
 
+function rebuildAllowErrors(compiler, modifiedFiles = [], removedFiles = []) {
+	return new Promise((resolve, reject) => {
+		compiler.__internal__rebuild(
+			new Set(modifiedFiles),
+			new Set(removedFiles),
+			error => {
+				if (error) return reject(error);
+				resolve(compiler._lastCompilation);
+			}
+		);
+	});
+}
+
 function watch(compiler) {
 	const builds = [];
 	const waiters = [];
@@ -331,6 +344,42 @@ describe("CopyRspackPlugin pattern cache", () => {
 
 			expect(asset(updated, "copied/one.txt")).toBe("after\n");
 			expect(reusedPatterns(updated)).toBe(0);
+		} finally {
+			await close(compiler);
+		}
+	});
+
+	it("evicts a cached pattern before an errored recomputation and recovers when the source returns", async () => {
+		const { root, compiler } = createCompiler("diagnostic-recovery", [
+			{ from: "assets/source/*.txt", to: "copied", toType: "dir" }
+		]);
+		const source = write(root, "assets/source/one.txt", "before\n");
+
+		try {
+			const initial = await compile(compiler);
+			expect(asset(initial, "copied/assets/source/one.txt")).toBe("before\n");
+
+			remove(root, "assets/source/one.txt");
+			let failed = await rebuildAllowErrors(compiler, [], [source]);
+			expect(failed.errors.length).toBeGreaterThan(0);
+			expect(
+				failed.errors.filter(error =>
+					String(error.message ?? error).includes("unable to locate")
+				)
+			).toHaveLength(1);
+			expect(reusedPatterns(failed)).toBe(0);
+			expect(asset(failed, "copied/assets/source/one.txt")).toBeUndefined();
+
+			const entry = write(root, "src/index.js", "module.exports = 'changed';\n");
+			failed = await rebuildAllowErrors(compiler, [entry]);
+			expect(failed.errors.length).toBeGreaterThan(0);
+			expect(reusedPatterns(failed)).toBe(0);
+			expect(asset(failed, "copied/assets/source/one.txt")).toBeUndefined();
+
+			write(root, "assets/source/one.txt", "after\n");
+			const recovered = await rebuild(compiler, [source]);
+			expect(asset(recovered, "copied/assets/source/one.txt")).toBe("after\n");
+			expect(reusedPatterns(recovered)).toBe(0);
 		} finally {
 			await close(compiler);
 		}
