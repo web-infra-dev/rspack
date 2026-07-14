@@ -160,7 +160,7 @@ describe("CopyRspackPlugin pattern cache", () => {
 
 	it.each([
 		["watchpack", false],
-		["native watcher", true]
+		...(process.env.WASM ? [] : [["native watcher", true]])
 	])(
 		"watches the stable glob base and copies a newly populated sibling with %s",
 		async (watcherName, nativeWatcher) => {

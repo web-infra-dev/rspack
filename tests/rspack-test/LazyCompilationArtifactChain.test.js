@@ -357,7 +357,7 @@ describe("lazy MultiCompiler artifact provenance", () => {
 	}
 
 	it.each([
-		["native", true],
+		...(process.env.WASM ? [] : [["native", true]]),
 		["watchpack", false]
 	])(
 		"keeps dependent and coalesced file-backed generations normal with %s watching",
