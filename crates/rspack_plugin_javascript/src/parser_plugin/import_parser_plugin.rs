@@ -9,7 +9,7 @@ use rustc_hash::FxHashMap;
 use swc_atoms::Atom;
 use swc_experimental_allocator::CloneIn;
 use swc_experimental_ecma_ast::{
-  BlockStmtOrExpr, CallExpr, Expr, GetSpan, Ident, MemberExpr, Pat, Span, VarDeclarator,
+  BlockStmtOrExpr, CallExpr, Expr, GetSpan, Ident, ImportExpr, MemberExpr, Pat, Span, VarDeclarator,
 };
 
 use super::{JavascriptParserPlugin, import_phase::get_import_phase};
@@ -30,7 +30,7 @@ const DYNAMIC_IMPORT_TAG: &str = "dynamic import";
 
 fn tag_dynamic_import_referenced(
   parser: &mut JavascriptParser,
-  import_call: &CallExpr,
+  import_call: &ImportExpr,
   variable_name: Atom,
 ) {
   let import_span = import_call.span();
@@ -127,9 +127,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
     parser: &mut JavascriptParser<'p>,
     expr: &Expr,
   ) -> Option<bool> {
-    if let Some(call) = expr.as_call()
-      && call.callee.is_import()
-    {
+    if expr.is_import() {
       return Some(true);
     }
     if let Some(ident) = expr.as_ident()
@@ -154,13 +152,12 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
     if declaration.kind() != VariableDeclarationKind::Var
       && let Some(init) = &declarator.init
       && let Some(expr) = init.as_await()
-      && let Some(call) = expr.arg.as_call()
-      && call.callee.is_import()
+      && let Some(import_expr) = expr.arg.as_import()
       && let Some(binding) = declarator.name.as_ident()
     {
       let name = Atom::from(binding.id.sym.as_str());
       parser.define_variable(name.clone());
-      tag_dynamic_import_referenced(parser, call, name);
+      tag_dynamic_import_referenced(parser, import_expr, name);
     }
     None
   }
@@ -261,7 +258,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
   fn import_call(
     &self,
     parser: &mut JavascriptParser<'p>,
-    node: &CallExpr,
+    node: &ImportExpr,
     import_then: Option<&CallExpr>,
     referenced_in_members: Option<(&[Atom], bool)>,
   ) -> Option<bool> {
@@ -272,10 +269,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
       return Some(true);
     }
 
-    let dyn_imported = node.args.first()?;
-    if dyn_imported.spread.is_some() {
-      return None;
-    }
+    let dyn_imported = &node.source;
     let import_call_span = node.span();
     let dynamic_import_mode = parser.javascript_options.dynamic_import_mode;
     let dynamic_import_preload = parser
@@ -369,8 +363,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
       parser.add_warning(error.into());
     }
 
-    let syntax_phase = node.callee.as_import().expect("should be import").phase;
-    let phase = get_import_phase(parser, syntax_phase);
+    let phase = get_import_phase(parser, node.phase);
     if phase.is_defer() && !parser.compiler_options.experiments.defer_import {
       parser.add_error(rspack_error::error!("deferImport is still an experimental feature. To continue using it, please enable 'experiments.deferImport'.").into());
     }
@@ -378,8 +371,8 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
       parser.add_error(rspack_error::error!("sourceImport is still an experimental feature. To continue using it, please enable 'experiments.sourceImport'.").into());
     }
 
-    let attributes = get_attributes_from_call_expr(node);
-    let param = parser.evaluate_expression(&dyn_imported.expr);
+    let attributes = get_attributes_from_import_expr(node);
+    let param = parser.evaluate_expression(dyn_imported);
 
     let dep_locator = if param.is_string() {
       if matches!(mode, DynamicImportMode::Eager) {
@@ -596,11 +589,11 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
   }
 }
 
-fn get_attributes_from_call_expr(node: &CallExpr) -> Option<ImportAttributes> {
+fn get_attributes_from_import_expr(node: &ImportExpr) -> Option<ImportAttributes> {
   node
-    .args
-    .get(1)
-    .and_then(|arg| arg.expr.as_object())
+    .options
+    .as_ref()
+    .and_then(|options| options.as_object())
     .and_then(|obj| get_value_by_obj_prop(obj, "with"))
     .and_then(|expr| expr.as_object())
     .map(get_attributes)
@@ -625,7 +618,7 @@ fn get_fulfilled_callback_namespace_obj<'a>(import_then: &'a CallExpr<'a>) -> Op
 
 fn walk_import_then_fulfilled_callback(
   parser: &mut JavascriptParser,
-  import_call: &CallExpr,
+  import_call: &ImportExpr,
   fulfilled_callback: &Expr<'_>,
   namespace_obj_arg: &Pat<'_>,
 ) {
@@ -694,13 +687,12 @@ fn walk_import_then_fulfilled_callback(
         for param in &expr.function.params {
           parser.walk_pattern(&param.pat);
         }
-        if let Some(stmt) = &expr.function.body {
-          parser.detect_mode(&stmt.stmts);
-          let prev = parser.prev_statement;
-          parser.pre_walk_statement(Statement::Block(stmt));
-          parser.prev_statement = prev;
-          parser.walk_statement(Statement::Block(stmt));
-        }
+        let stmt = &expr.function.body;
+        parser.detect_mode(&stmt.stmts);
+        let prev = parser.prev_statement;
+        parser.pre_walk_statement(Statement::Block(stmt));
+        parser.prev_statement = prev;
+        parser.walk_statement(Statement::Block(stmt));
       } else if let Some(expr) = fulfilled_callback.as_arrow() {
         for pat in &expr.params {
           parser.walk_pattern(pat);

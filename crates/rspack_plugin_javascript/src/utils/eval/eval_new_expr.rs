@@ -41,11 +41,7 @@ pub fn eval_new_expression<'a>(
   if scanner.get_variable_info(&Atom::from("RegExp")).is_some() {
     return None;
   }
-  let Some(args) = &expr.args else {
-    let mut res = BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.real_hi());
-    res.set_regexp(String::new(), String::new());
-    return Some(res);
-  };
+  let args = &expr.args;
 
   let Some(arg1) = args.first() else {
     let mut res = BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.real_hi());

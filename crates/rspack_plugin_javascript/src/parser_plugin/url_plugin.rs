@@ -48,7 +48,7 @@ pub fn get_url_request(
   parser: &mut JavascriptParser,
   expr: &NewExpr,
 ) -> Option<(String, u32, u32)> {
-  let args = expr.args.as_ref()?;
+  let args = &expr.args;
   let ExprOrSpread {
     spread: None,
     expr: arg1,
@@ -115,7 +115,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for URLPlugin {
       return None;
     }
 
-    let args = expr.args.as_ref()?;
+    let args = &expr.args;
 
     let arg = args.first()?;
     let magic_comment_options = try_extract_magic_comment(parser, expr.span, arg.span());
@@ -145,13 +145,12 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for URLPlugin {
     }
 
     // should not parse new URL(import.meta.url)
-    if expr.args.as_ref().is_some_and(|args| {
-      args.len() == 1
-        && args[0]
-          .expr
-          .as_member()
-          .is_some_and(|member| is_meta_url(parser, member))
-    }) {
+    if expr.args.len() == 1
+      && expr.args[0]
+        .expr
+        .as_member()
+        .is_some_and(|member| is_meta_url(parser, member))
+    {
       return None;
     }
 

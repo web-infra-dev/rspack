@@ -1,8 +1,8 @@
 use swc_atoms::Atom;
 use swc_experimental_ecma_ast::{
   AssignExpr, AwaitExpr, BinExpr, CallExpr, ClassMember, CondExpr, Expr, ForOfStmt, Ident, IfStmt,
-  ImportDecl, MemberExpr, ModuleDecl, NewExpr, OptChainExpr, Program, Span, ThisExpr, UnaryExpr,
-  VarDeclarator,
+  ImportDecl, ImportExpr, MemberExpr, ModuleDecl, NewExpr, OptChainExpr, Program, Span, ThisExpr,
+  UnaryExpr, VarDeclarator,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -587,7 +587,7 @@ Please annotate your `impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ...` block
   fn import_call(
     &self,
     _parser: &mut JavascriptParser<'p>,
-    _expr: &CallExpr,
+    _expr: &ImportExpr,
     _import_then: Option<&CallExpr>,
     _members: Option<(&[Atom], bool)>,
   ) -> Option<bool> {

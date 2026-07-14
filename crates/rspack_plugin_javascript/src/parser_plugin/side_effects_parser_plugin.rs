@@ -213,7 +213,7 @@ fn collect_pure_function_acceptable_names(program: &Program) -> FxHashSet<Atom> 
               if !local_bindings.contains(&orig_atom) {
                 continue;
               }
-              match named.exported.as_ref().unwrap_or(&named.orig) {
+              match &named.exported {
                 ModuleExportName::Ident(ident) => {
                   names.insert(compat_atom(&ident.sym));
                 }
@@ -1026,12 +1026,7 @@ fn is_pure_new_expr(
   if !pure_flag {
     !expr.may_have_side_effects(expr_ctx(parser, false))
   } else {
-    are_pure_args(
-      parser,
-      analyze_side_effects_free,
-      new_expr.args.as_deref().unwrap_or(&[]),
-      comments,
-    )
+    are_pure_args(parser, analyze_side_effects_free, &new_expr.args, comments)
   }
 }
 
@@ -1451,9 +1446,7 @@ fn is_side_effects_free_function_body(
     return false;
   }
 
-  function.body.as_ref().is_none_or(|body| {
-    is_side_effects_free_block_stmt(parser, analyze_side_effects_free, body, comments)
-  })
+  is_side_effects_free_block_stmt(parser, analyze_side_effects_free, &function.body, comments)
 }
 
 #[inline(never)]

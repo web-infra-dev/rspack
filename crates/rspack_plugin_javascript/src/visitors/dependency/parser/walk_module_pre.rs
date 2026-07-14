@@ -46,13 +46,10 @@ impl JavascriptParser<'_> {
       match specifier {
         ImportSpecifier::Named(named) => {
           let identifier_name = Atom::from(named.local.sym.as_str());
-          let export_name = named.imported.as_ref().map_or_else(
-            || identifier_name.clone(),
-            |imported| match imported {
-              ModuleExportName::Ident(ident) => Atom::from(ident.sym.as_str()),
-              ModuleExportName::Str(s) => Atom::from(s.value.as_wtf8().to_string_lossy().as_ref()),
-            },
-          );
+          let export_name = match &named.imported {
+            ModuleExportName::Ident(ident) => Atom::from(ident.sym.as_str()),
+            ModuleExportName::Str(s) => Atom::from(s.value.as_wtf8().to_string_lossy().as_ref()),
+          };
           if drive
             .import_specifier(
               self,

@@ -176,7 +176,7 @@ impl ExportNamedDeclaration<'_> {
           )
         },
         ExportSpecifier::Named(n) => {
-          let exported_name = n.exported.as_ref().unwrap_or(&n.orig);
+          let exported_name = &n.exported;
           (
             module_export_name_to_atom(&n.orig),
             module_export_name_to_atom(exported_name),

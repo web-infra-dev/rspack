@@ -228,17 +228,15 @@ impl AMDRequireDependenciesBlockParserPlugin {
     if let Some(func_expr) = func_arg.expr.get_function_expr() {
       match func_expr.func {
         Either::Left(func) => {
-          if let Some(body) = &func.function.body {
-            let params = func
-              .function
-              .params
-              .iter()
-              .filter(|param| !is_reserved_param(&param.pat))
-              .map(|param| crate::visitors::PatRef::Borrowed(&param.pat));
-            parser.in_function_scope(true, params, |parser| {
-              parser.walk_statement(Statement::Block(body));
-            });
-          }
+          let params = func
+            .function
+            .params
+            .iter()
+            .filter(|param| !is_reserved_param(&param.pat))
+            .map(|param| crate::visitors::PatRef::Borrowed(&param.pat));
+          parser.in_function_scope(true, params, |parser| {
+            parser.walk_statement(Statement::Block(&func.function.body));
+          });
         }
         Either::Right(arrow) => {
           let params = arrow

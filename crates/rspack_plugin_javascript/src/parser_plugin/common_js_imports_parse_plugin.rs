@@ -394,8 +394,8 @@ fn evaluate_create_require_argument(parser: &mut JavascriptParser, arg: &Expr) -
   {
     return None;
   }
-  if let Some(args) = &new_expr.args
-    && !args.is_empty()
+  if !new_expr.args.is_empty()
+    && let args = &new_expr.args
     && args[0].spread.is_none()
     && let Some(value) = parser.evaluate_expression(&args[0].expr).as_string()
     && value.starts_with("file:/")
@@ -536,8 +536,7 @@ fn parse_create_require_new_argument(
   new_expr: &NewExpr,
   emit_warning: bool,
 ) -> Option<CreateRequireArgument> {
-  let args = new_expr.args.as_deref().unwrap_or_default();
-  parse_create_require_argument_from_args(parser, args, new_expr.span, emit_warning)
+  parse_create_require_argument_from_args(parser, &new_expr.args, new_expr.span, emit_warning)
 }
 
 #[inline(never)]
@@ -553,9 +552,7 @@ fn should_replace_create_require_argument(parser: &mut JavascriptParser, arg: &E
   {
     let is_absolute_file_url = is_absolute_file_url_constructor_arg(parser, arg);
     let start = if is_absolute_file_url { 1 } else { 2 };
-    let Some(args) = &new_expr.args else {
-      return true;
-    };
+    let args = &new_expr.args;
     if is_absolute_file_url
       && let Some(base) = args.get(1)
       && !is_valid_ignored_url_base_arg(parser, base)
@@ -623,9 +620,7 @@ fn is_absolute_file_url_constructor_arg(parser: &mut JavascriptParser, arg: &Exp
   {
     return false;
   };
-  let Some(args) = &new_expr.args else {
-    return false;
-  };
+  let args = &new_expr.args;
   args
     .first()
     .filter(|arg| arg.spread.is_none())
@@ -662,9 +657,7 @@ fn walk_create_require_argument_side_effects(parser: &mut JavascriptParser, arg:
   if !is_unbound_url_constructor(parser, &new_expr.callee) {
     return;
   };
-  let Some(args) = &new_expr.args else {
-    return;
-  };
+  let args = &new_expr.args;
   if args.len() > 1 {
     parser.walk_expr_or_spread(&args[1..]);
   }
@@ -714,9 +707,7 @@ fn create_require_url_arg_side_effects(parser: &mut JavascriptParser, arg: &Expr
   if !is_unbound_url_constructor(parser, &new_expr.callee) {
     return String::new();
   };
-  let Some(args) = &new_expr.args else {
-    return String::new();
-  };
+  let args = &new_expr.args;
   let start = if is_absolute_file_url_constructor_arg(parser, arg) {
     1
   } else {
@@ -845,10 +836,7 @@ pub(crate) fn evaluate_create_require_new_expression<'a>(
   }
   let argument = parse_create_require_new_argument(parser, expr, false)?;
   Some(evaluate_created_require(
-    parser,
-    expr.span,
-    expr.args.as_deref().unwrap_or_default(),
-    argument,
+    parser, expr.span, &expr.args, argument,
   ))
 }
 
@@ -1040,9 +1028,9 @@ fn walk_unsupported_create_require_resolve(
       }
     } else if let Some(new_expr) = arg.as_new()
       && is_unbound_url_constructor(parser, &new_expr.callee)
-      && let Some(args) = new_expr.args.as_ref()
-      && args.len() > 2
+      && new_expr.args.len() > 2
     {
+      let args = &new_expr.args;
       if get_url_request(parser, new_expr).is_some() {
         parser.walk_expr_or_spread(&args[2..]);
       } else {
@@ -1205,7 +1193,7 @@ impl<'a> CallOrNewExpr<'a> {
   pub fn args(&self) -> Option<&'a [ExprOrSpread<'a>]> {
     match self {
       CallOrNewExpr::Call(call_expr) => Some(&call_expr.args),
-      CallOrNewExpr::New(new_expr) => new_expr.args.as_deref(),
+      CallOrNewExpr::New(new_expr) => Some(&new_expr.args),
     }
   }
 
@@ -1772,9 +1760,8 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
       && (is_evaluated_create_require(parser, &init.callee)
         || is_create_require_namespace_member(parser, &init.callee))
       && let Some(argument) = parse_create_require_new_argument(parser, init, false)
-      && let Some(args) = init.args.as_deref()
     {
-      tag_created_require_declarator(parser, &binding.id, init.span, false, args, argument);
+      tag_created_require_declarator(parser, &binding.id, init.span, false, &init.args, argument);
       parser.walk_expression(&init.callee);
       return Some(true);
     }

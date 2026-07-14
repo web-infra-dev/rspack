@@ -126,9 +126,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for RequireEnsureDependenciesBlockPa
         let old_terminated = parser.terminated;
         match success_expr.func {
           Either::Left(func) => {
-            if let Some(body) = &func.function.body {
-              parser.walk_statement(Statement::Block(body));
-            }
+            parser.walk_statement(Statement::Block(&func.function.body));
           }
           Either::Right(arrow) => match &arrow.body {
             BlockStmtOrExpr::BlockStmt(body) => parser.walk_statement(Statement::Block(body)),
@@ -153,9 +151,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for RequireEnsureDependenciesBlockPa
     match error_expr {
       Some(error_expr) => match error_expr.func {
         Either::Left(func) => {
-          if let Some(body) = &func.function.body {
-            parser.walk_statement(Statement::Block(body));
-          }
+          parser.walk_statement(Statement::Block(&func.function.body));
         }
         Either::Right(arrow) => match &arrow.body {
           BlockStmtOrExpr::BlockStmt(body) => parser.walk_statement(Statement::Block(body)),
@@ -212,10 +208,9 @@ impl GetFunctionExpression for Expr<'_> {
         }
 
         if let Some(callee_fn_expr) = callee.as_expr().and_then(|expr| expr.as_fn())
-          && let Some(body_block_stmt) = &callee_fn_expr.function.body
           && first_arg.is_this()
-          && body_block_stmt.stmts.len() == 1
-          && let Some(return_stmt) = &body_block_stmt.stmts[0].as_return()
+          && callee_fn_expr.function.body.stmts.len() == 1
+          && let Some(return_stmt) = &callee_fn_expr.function.body.stmts[0].as_return()
           && let Some(fn_expr) = return_stmt.arg.as_ref().and_then(|expr| expr.as_fn())
         {
           return Some(FunctionExpression {

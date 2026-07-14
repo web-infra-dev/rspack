@@ -38,7 +38,6 @@ fn is_bound_function_expression(expr: &Expr) -> bool {
   let call_expr = expr.as_call().expect("expr is supposed to be CallExpr");
   match &call_expr.callee {
     Callee::Super(_) => return false,
-    Callee::Import(_) => return false,
     Callee::Expr(callee) => {
       if !callee.is_member() {
         return false;
@@ -487,13 +486,12 @@ impl AMDDefineDependencyParserPlugin {
           parser.in_try = in_try;
 
           if let Some(func) = func.and_then(|f| f.as_fn()) {
-            if let Some(body) = &func.function.body {
-              parser.detect_mode(&body.stmts);
-              let prev = parser.prev_statement;
-              parser.pre_walk_statement(Statement::Block(body));
-              parser.prev_statement = prev;
-              parser.walk_statement(Statement::Block(body));
-            }
+            let body = &func.function.body;
+            parser.detect_mode(&body.stmts);
+            let prev = parser.prev_statement;
+            parser.pre_walk_statement(Statement::Block(body));
+            parser.prev_statement = prev;
+            parser.walk_statement(Statement::Block(body));
           } else if let Some(func) = func.and_then(|f| f.as_arrow()) {
             match &func.body {
               BlockStmtOrExpr::BlockStmt(stmt) => {
@@ -543,13 +541,12 @@ impl AMDDefineDependencyParserPlugin {
 
               parser.in_try = in_try;
 
-              if let Some(body) = &func_expr.function.body {
-                parser.detect_mode(&body.stmts);
-                let prev = parser.prev_statement;
-                parser.pre_walk_statement(Statement::Block(body));
-                parser.prev_statement = prev;
-                parser.walk_statement(Statement::Block(body));
-              }
+              let body = &func_expr.function.body;
+              parser.detect_mode(&body.stmts);
+              let prev = parser.prev_statement;
+              parser.pre_walk_statement(Statement::Block(body));
+              parser.prev_statement = prev;
+              parser.walk_statement(Statement::Block(body));
             },
           );
         }

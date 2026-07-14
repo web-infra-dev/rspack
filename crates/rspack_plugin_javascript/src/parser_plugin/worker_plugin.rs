@@ -195,14 +195,10 @@ fn handle_worker<'a>(
     let import_options = expr_box
       .as_new()
       .and_then(|new_url_expr| {
-        new_url_expr
-          .args
-          .as_ref()
-          .and_then(|args| args.first())
-          .and_then(|n| {
-            // new Worker(new URL(/* options */ "worker.js"))
-            parse_new_worker_options_from_comments(parser, n.span(), new_url_expr.span())
-          })
+        new_url_expr.args.first().and_then(|n| {
+          // new Worker(new URL(/* options */ "worker.js"))
+          parse_new_worker_options_from_comments(parser, n.span(), new_url_expr.span())
+        })
       })
       .or_else(|| {
         // new Worker(/* options */ new URL("worker.js"))
@@ -528,8 +524,8 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for WorkerPlugin {
       {
         return new_expr
           .args
-          .as_ref()
-          .and_then(|args| handle_worker(parser, args, new_expr.span))
+          .first()
+          .and_then(|_| handle_worker(parser, &new_expr.args, new_expr.span))
           .map(|(parsed_path, parsed_options, first_arg, need_new_url)| {
             add_dependencies(
               parser,
@@ -541,9 +537,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for WorkerPlugin {
               self.url_mode,
             );
             parser.walk_expression(&new_expr.callee);
-            if let Some(args) = &new_expr.args
-              && let Some(arg) = args.get(1)
-            {
+            if let Some(arg) = new_expr.args.get(1) {
               parser.walk_expression(&arg.expr);
             }
             true
@@ -556,8 +550,8 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for WorkerPlugin {
     }
     new_expr
       .args
-      .as_ref()
-      .and_then(|args| handle_worker(parser, args, new_expr.span))
+      .first()
+      .and_then(|_| handle_worker(parser, &new_expr.args, new_expr.span))
       .map(|(parsed_path, parsed_options, first_arg, need_new_url)| {
         add_dependencies(
           parser,
@@ -569,9 +563,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for WorkerPlugin {
           self.url_mode,
         );
         parser.walk_expression(&new_expr.callee);
-        if let Some(args) = &new_expr.args
-          && let Some(arg) = args.get(1)
-        {
+        if let Some(arg) = new_expr.args.get(1) {
           parser.walk_expression(&arg.expr);
         }
         true

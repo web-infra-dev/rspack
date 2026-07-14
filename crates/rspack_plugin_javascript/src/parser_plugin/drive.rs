@@ -2,8 +2,8 @@ use swc_atoms::Atom;
 use swc_experimental_allocator::CloneIn;
 use swc_experimental_ecma_ast::{
   AssignExpr, AwaitExpr, BinExpr, BinaryOp, CallExpr, Callee, ClassMember, CondExpr, Expr,
-  ForOfStmt, Ident, IfStmt, ImportDecl, MemberExpr, ModuleDecl, NewExpr, OptChainExpr, Program,
-  Span, ThisExpr, UnaryExpr, UnaryOp, VarDeclarator,
+  ForOfStmt, Ident, IfStmt, ImportDecl, ImportExpr, MemberExpr, ModuleDecl, NewExpr, OptChainExpr,
+  Program, Span, ThisExpr, UnaryExpr, UnaryOp, VarDeclarator,
 };
 
 use super::{BoxJavascriptParserPlugin, JavascriptParserPlugin, JavascriptParserPluginHook};
@@ -726,11 +726,10 @@ impl<'p: 'a, 'a> JavascriptParserPlugin<'p, 'a> for JavaScriptParserPluginDrive 
   fn import_call(
     &self,
     parser: &mut JavascriptParser<'p>,
-    expr: &CallExpr,
+    expr: &ImportExpr,
     import_then: Option<&CallExpr>,
     members: Option<(&[Atom], bool /* is_call */)>,
   ) -> Option<bool> {
-    assert!(expr.callee.is_import());
     for plugin in self.plugins_for(JavascriptParserPluginHook::ImportCall) {
       let res = plugin.import_call(parser, expr, import_then, members);
       // `SyncBailHook`

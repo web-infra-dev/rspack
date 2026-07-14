@@ -14,8 +14,8 @@ use rspack_plugin_javascript::{
 };
 use rspack_util::{SpanExt, atom::Atom, json_stringify_str, swc::get_swc_comments};
 use swc_experimental_ecma_ast::{
-  CallExpr, Callee, GetSpan, Ident, IdentName, ImportPhase as AstImportPhase, MemberExpr, Span,
-  UnaryExpr, VarDeclarator,
+  CallExpr, Callee, GetSpan, Ident, IdentName, ImportExpr, ImportPhase as AstImportPhase,
+  MemberExpr, Span, UnaryExpr, VarDeclarator,
 };
 
 static RSTEST_MOCK_FIRST_ARG_TAG: &str = "strip the import call from the first arg of mock series";
@@ -296,8 +296,7 @@ impl RstestParserPlugin {
     let mut is_import_call = false;
 
     if let Some(first_arg) = mock_call_expr.args.first()
-      && let Some(import_call) = first_arg.expr.as_call()
-      && import_call.callee.as_import().is_some()
+      && let Some(import_call) = first_arg.expr.as_import()
     {
       parser.tag_variable::<bool>(
         self.compose_rstest_import_call_key(import_call).into(),
@@ -310,9 +309,8 @@ impl RstestParserPlugin {
     let lit_str = if is_import_call {
       first_arg
         .expr
-        .as_call()
-        .and_then(|expr| expr.args.first())
-        .and_then(|arg| arg.expr.as_lit())
+        .as_import()
+        .and_then(|expr| expr.source.as_lit())
         .and_then(|lit| lit.as_str())
         .and_then(|lit| lit.value.as_str())
     } else {
@@ -644,7 +642,7 @@ impl RstestParserPlugin {
     }
   }
 
-  fn compose_rstest_import_call_key(&self, call_expr: &CallExpr) -> String {
+  fn compose_rstest_import_call_key(&self, call_expr: &ImportExpr) -> String {
     format!(
       "rstest_strip_import_call {} {}",
       call_expr.span.real_lo(),
@@ -817,11 +815,15 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for RstestParserPlugin {
   fn import_call(
     &self,
     parser: &mut JavascriptParser<'p>,
-    call_expr: &CallExpr,
+    call_expr: &ImportExpr,
     import_then: Option<&CallExpr>,
     _members: Option<(&[Atom], bool)>,
   ) -> Option<bool> {
-    let first_arg = self.handle_mock_first_arg(parser, call_expr);
+    let first_arg = call_expr
+      .source
+      .as_lit()
+      .and_then(|lit| lit.as_str())
+      .and_then(|lit| lit.value.as_str());
     if first_arg.is_some() {
       let tag_data = parser.get_tag_data::<bool>(
         &self.compose_rstest_import_call_key(call_expr).into(),
@@ -838,24 +840,18 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for RstestParserPlugin {
       // `import.source(...)` carry phase semantics that rstest's runtime
       // does not implement, and the default `ImportParserPlugin` enforces
       // the `experiments.deferImport` gate which we must not bypass.
-      let import_node = call_expr.callee.as_import()?;
-      if !matches!(import_node.phase, AstImportPhase::Evaluation) {
+      if !matches!(call_expr.phase, AstImportPhase::Evaluation) {
         return None;
       }
 
       // Mirror `ImportParserPlugin.import_call`'s `/* webpackIgnore: true */`
       // bailout so authors can opt out of rewriting on a per-call basis.
-      let arg = call_expr.args.first()?;
-      if arg.spread.is_some() {
-        return None;
-      }
-
-      let magic = try_extract_magic_comment(parser, call_expr.span, arg.span());
+      let magic = try_extract_magic_comment(parser, call_expr.span, call_expr.source.span());
       if magic.get_ignore().unwrap_or_default() {
         return None;
       }
 
-      let param = parser.evaluate_expression(&arg.expr);
+      let param = parser.evaluate_expression(&call_expr.source);
       if param.is_string() {
         return None;
       }
@@ -863,26 +859,29 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for RstestParserPlugin {
       let resource_path = parser.resource_data.path()?;
       let origin_path = resource_path.as_str().to_string();
 
-      let last_arg = call_expr
-        .args
-        .last()
-        .expect("call_expr.args has at least one element");
-      let args_end = last_arg.span().real_hi();
-      let has_attributes = call_expr.args.len() >= 2;
-
+      let args_end = call_expr
+        .options
+        .as_ref()
+        .unwrap_or(&call_expr.source)
+        .span()
+        .real_hi();
+      let has_attributes = call_expr.options.is_some();
       parser.add_presentational_dependency(Box::new(RstestDynamicImportOriginDependency::new(
-        call_expr.callee.span().into(),
+        call_expr.import_span.into(),
         args_end,
         has_attributes,
         origin_path,
       )));
 
       // Returning `Some(true)` short-circuits the parser's walk of this
-      // `import()` node (see `walk.rs` `Callee::Import` branch), so we must
+      // `import()` node (see `walk_import_expression`), so we must
       // walk nested expressions ourselves — otherwise `require(...)` or
       // `import()` calls inside the specifier or the `.then` callback get
       // dropped from the dependency graph.
-      parser.walk_expr_or_spread(&call_expr.args);
+      parser.walk_expression(&call_expr.source);
+      if let Some(options) = &call_expr.options {
+        parser.walk_expression(options);
+      }
       if let Some(import_then) = import_then {
         parser.walk_expr_or_spread(&import_then.args);
       }
