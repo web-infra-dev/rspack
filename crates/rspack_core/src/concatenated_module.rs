@@ -61,6 +61,7 @@ use crate::{
 };
 
 type ExportsDefinitionArgs = Vec<(String, String)>;
+const SWC_ALLOCATOR_BUFFER_SIZE: usize = 1_500_000;
 define_hook!(ConcatenatedModuleExportsDefinitions: SeriesBail(exports_definitions: &mut ExportsDefinitionArgs, is_entry_module: bool) -> bool);
 define_hook!(ConcatenatedModuleConcatenatedInfo: Series(compilation: &Compilation, module: ModuleIdentifier, runtime: Option<&RuntimeSpec>, info: &mut ConcatenatedModuleInfo, all_used_names: &mut HashSet<Atom>));
 
@@ -2607,7 +2608,8 @@ impl ConcatenatedModule {
         })
         .unwrap_or(false);
 
-      let allocator = Allocator::new();
+      let mut allocator_buffer = [mem::MaybeUninit::uninit(); SWC_ALLOCATOR_BUFFER_SIZE];
+      let allocator = Allocator::new(&mut allocator_buffer);
       let lexer = swc_experimental_ecma_parser::Lexer::new(
         &allocator,
         Syntax::Es(EsSyntax {
@@ -3553,16 +3555,16 @@ impl NewConcatenatedModuleIdent<'_> {
 /// which depends on `free_node` during parsing.
 /// However, a better mutability story on swc_experimental is designing and `free_node` is removed temporarily.
 /// Once it's finished, this function will be reverted back.
-pub fn collect_ident<'a>(
-  allocator: &'a Allocator,
+pub fn collect_ident<'a, 'buffer>(
+  allocator: &'a Allocator<'buffer>,
   root: &Program<'a>,
 ) -> Vec<NewConcatenatedModuleIdent<'a>> {
-  struct IdentCollector<'a> {
-    allocator: &'a Allocator,
+  struct IdentCollector<'a, 'buffer> {
+    allocator: &'a Allocator<'buffer>,
     ids: Vec<NewConcatenatedModuleIdent<'a>>,
   }
 
-  impl<'a> Visit<'a> for IdentCollector<'a> {
+  impl<'a> Visit<'a> for IdentCollector<'a, '_> {
     fn visit_ident(&mut self, node: &Ident<'a>) {
       self.ids.push(NewConcatenatedModuleIdent {
         id: node.clone_in(self.allocator),

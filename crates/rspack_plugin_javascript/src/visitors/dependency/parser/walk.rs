@@ -40,7 +40,7 @@ fn is_create_require_tag(tag: &str, include_create_require_fn: bool) -> bool {
       && (tag == CREATE_REQUIRE_SPECIFIER_TAG || tag == CREATE_REQUIRE_EVALUATED_TAG))
 }
 
-fn warp_ident_to_pat<'a>(ident: &Ident<'a>, allocator: &'a Allocator) -> Pat<'a> {
+fn warp_ident_to_pat<'a>(ident: &Ident<'a>, allocator: &'a Allocator<'_>) -> Pat<'a> {
   Pat::Ident(allocator.boxed(ident.clone_in(allocator).into_binding(allocator)))
 }
 
@@ -928,7 +928,7 @@ impl JavascriptParser<'_> {
   }
 
   fn jsx_member_expr_to_member_expr<'a>(
-    allocator: &'a Allocator,
+    allocator: &'a Allocator<'_>,
     member: &'a JSXMemberExpr<'a>,
   ) -> MemberExpr<'a> {
     MemberExpr {
@@ -938,7 +938,7 @@ impl JavascriptParser<'_> {
     }
   }
 
-  fn jsx_object_to_expr<'a>(allocator: &'a Allocator, obj: &'a JSXObject<'a>) -> Expr<'a> {
+  fn jsx_object_to_expr<'a>(allocator: &'a Allocator<'_>, obj: &'a JSXObject<'a>) -> Expr<'a> {
     match obj {
       JSXObject::Ident(ident) => Expr::Ident(allocator.boxed(Ident {
         span: ident.span,

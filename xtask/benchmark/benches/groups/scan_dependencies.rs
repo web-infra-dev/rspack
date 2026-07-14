@@ -2,6 +2,7 @@
 
 use std::{
   fs,
+  mem::MaybeUninit,
   path::{Path, PathBuf},
   process::Command,
   sync::Arc,
@@ -37,6 +38,7 @@ const THREE_MODULE_BENCHMARK_ID: &str = "rust@scan_dependencies@three_module";
 const THREE_MODULE_RESOURCE_PATH: &str = "/node_modules/three/build/three.module.js";
 const THREE_MODULE_TARBALL_URL: &str = "https://registry.npmjs.org/three/-/three-0.183.2.tgz";
 const THREE_MODULE_TAR_ENTRY: &str = "package/build/three.module.js";
+const SWC_ALLOCATOR_BUFFER_SIZE: usize = 1_500_000;
 
 struct ScanDependenciesBenchmarkCaseSpec {
   benchmark_id: &'static str,
@@ -45,21 +47,21 @@ struct ScanDependenciesBenchmarkCaseSpec {
   module_type: ModuleType,
 }
 
-struct PreparedScanDependenciesBenchmarkCase {
+struct PreparedScanDependenciesBenchmarkCase<'ast> {
   benchmark_id: &'static str,
-  source_text: String,
+  source_text: &'ast str,
   compiler_options: Arc<CompilerOptions>,
   initial_semicolons: FxHashSet<u32>,
   module_options: Arc<ResolvedModuleOptions>,
-  parsed_ast: ParsedJavaScriptAst<'static>,
+  parsed_ast: ParsedJavaScriptAst<'ast>,
   module_identifier: ModuleIdentifier,
   module_type: ModuleType,
   resource_data: ResourceData,
   parser_runtime_requirements: ParserRuntimeRequirementsData,
 }
 
-struct PreparedScanDependenciesProgram {
-  parsed_ast: ParsedJavaScriptAst<'static>,
+struct PreparedScanDependenciesProgram<'ast> {
+  parsed_ast: ParsedJavaScriptAst<'ast>,
   semicolons: FxHashSet<u32>,
 }
 
@@ -80,14 +82,13 @@ pub fn benchmark_scan_dependencies(c: &mut Criterion) {
 
 fn register_scan_dependencies_benchmarks(c: &mut Criterion) {
   let compiler = create_scan_dependencies_compiler();
-  let benchmark_cases = load_scan_dependencies_benchmark_specs()
-    .into_iter()
-    .map(|case_spec| prepare_scan_dependencies_benchmark_case(&compiler, case_spec))
-    .collect::<Vec<_>>();
-
-  for benchmark_case in &benchmark_cases {
+  for case_spec in load_scan_dependencies_benchmark_specs() {
+    let mut allocator_buffer = [MaybeUninit::uninit(); SWC_ALLOCATOR_BUFFER_SIZE];
+    let allocator = Allocator::new(&mut allocator_buffer);
+    let benchmark_case =
+      prepare_scan_dependencies_benchmark_case(&compiler, &allocator, &case_spec);
     benchmark_case.assert_can_execute();
-    register_scan_dependencies_benchmark_case(c, benchmark_case);
+    register_scan_dependencies_benchmark_case(c, &benchmark_case);
   }
 }
 
@@ -132,20 +133,19 @@ fn load_scan_dependencies_benchmark_specs() -> Vec<ScanDependenciesBenchmarkCase
   }]
 }
 
-fn prepare_scan_dependencies_benchmark_case(
+fn prepare_scan_dependencies_benchmark_case<'ast>(
   compiler: &Compiler,
-  case_spec: ScanDependenciesBenchmarkCaseSpec,
-) -> PreparedScanDependenciesBenchmarkCase {
-  let ScanDependenciesBenchmarkCaseSpec {
-    benchmark_id,
-    source_text,
-    resource_path,
-    module_type,
-  } = case_spec;
+  allocator: &'ast Allocator<'ast>,
+  case_spec: &'ast ScanDependenciesBenchmarkCaseSpec,
+) -> PreparedScanDependenciesBenchmarkCase<'ast> {
+  let benchmark_id = case_spec.benchmark_id;
+  let source_text = case_spec.source_text.as_str();
+  let resource_path = case_spec.resource_path;
+  let module_type = case_spec.module_type;
   let PreparedScanDependenciesProgram {
     parsed_ast,
     semicolons,
-  } = parse_benchmark_program(resource_path, &source_text, &module_type);
+  } = parse_benchmark_program(allocator, resource_path, source_text, &module_type);
   let compiler_options = compiler.options.clone();
   let parser_options = compiler
     .options
@@ -178,14 +178,13 @@ fn prepare_scan_dependencies_benchmark_case(
   }
 }
 
-fn parse_benchmark_program(
+fn parse_benchmark_program<'ast>(
+  allocator: &'ast Allocator<'ast>,
   resource_path: &str,
-  source_text: &str,
+  source_text: &'ast str,
   module_type: &ModuleType,
-) -> PreparedScanDependenciesProgram {
-  let source_text = Box::leak(source_text.to_string().into_boxed_str());
-  let allocator = Box::leak(Box::new(Allocator::default()));
-  let comments = Box::leak(Box::new(Comments::new_in(allocator)));
+) -> PreparedScanDependenciesProgram<'ast> {
+  let comments = allocator.alloc(Comments::new_in(allocator));
   let parser_lexer = Lexer::new(
     allocator,
     Syntax::Es(EsSyntax {
@@ -224,8 +223,8 @@ fn parse_benchmark_program(
 
   let mut semicolons = FxHashSet::default();
   remove_paren(&mut program, allocator, Some(comments));
-  let program = Box::leak(Box::new(program));
-  let semantic = Box::leak(Box::new(resolver(program)));
+  let program = allocator.alloc(program);
+  let semantic = allocator.alloc(resolver(program));
   program.visit_with(&mut InsertedSemicolons::new(&mut semicolons, &tokens));
 
   PreparedScanDependenciesProgram {
@@ -239,7 +238,7 @@ fn parse_benchmark_program(
   }
 }
 
-impl PreparedScanDependenciesBenchmarkCase {
+impl PreparedScanDependenciesBenchmarkCase<'_> {
   fn build_iteration_state(&self) -> ScanDependenciesIterationState {
     ScanDependenciesIterationState {
       semicolons: self.initial_semicolons.clone(),

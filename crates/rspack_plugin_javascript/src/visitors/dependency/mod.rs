@@ -35,7 +35,7 @@ pub struct ScanDependenciesResult {
 }
 
 pub struct ParsedJavaScriptAst<'ast> {
-  pub allocator: &'ast Allocator,
+  pub allocator: &'ast Allocator<'ast>,
   pub comments: &'ast Comments<'ast>,
   pub semantic: &'ast Semantic,
   pub program: &'ast Program<'ast>,

@@ -361,7 +361,7 @@ fn raw_value_with_offset<'a>(
 }
 
 fn parse_magic_comment_object<'a>(
-  allocator: &'a Allocator,
+  allocator: &'a Allocator<'_>,
   comment_text: &str,
 ) -> Option<(Expr<'a>, usize)> {
   let magic_comment_start = find_magic_comment_start(comment_text)?;
@@ -560,7 +560,7 @@ fn parse_magic_comment_name(name: &str) -> Option<(RspackComment, MagicCommentPr
 }
 
 fn analyze_comments(
-  allocator: &Allocator,
+  allocator: &Allocator<'_>,
   source: &str,
   comments: &[Comment],
   error_span: Span,
@@ -723,12 +723,15 @@ fn analyze_comments(
 
 #[cfg(test)]
 mod tests_extract_magic_comment_object {
+  use std::mem::MaybeUninit;
+
   use swc_experimental_ecma_ast::DUMMY_SP;
 
   use super::*;
 
   fn with_value<R>(raw: &str, name: &str, f: impl FnOnce(&Expr<'_>) -> Option<R>) -> Option<R> {
-    let allocator = Allocator::new();
+    let mut allocator_buffer = [MaybeUninit::uninit(); crate::SWC_ALLOCATOR_BUFFER_SIZE];
+    let allocator = Allocator::new(&mut allocator_buffer);
     let (expr, _) = parse_magic_comment_object(&allocator, raw)?;
     let Expr::Object(object) = &expr else {
       return None;
@@ -750,7 +753,8 @@ mod tests_extract_magic_comment_object {
   fn extract(raw: &str) -> (RspackCommentMap, Vec<Diagnostic>) {
     let mut result = RspackCommentMap::new();
     let mut warning_diagnostics = Vec::new();
-    let allocator = Allocator::new();
+    let mut allocator_buffer = [MaybeUninit::uninit(); crate::SWC_ALLOCATOR_BUFFER_SIZE];
+    let allocator = Allocator::new(&mut allocator_buffer);
     analyze_comments(
       &allocator,
       "",

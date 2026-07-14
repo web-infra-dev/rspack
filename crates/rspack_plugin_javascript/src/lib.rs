@@ -2,6 +2,8 @@
 
 extern crate self as rspack_plugin_javascript;
 
+pub(crate) const SWC_ALLOCATOR_BUFFER_SIZE: usize = 1_500_000;
+
 pub mod dependency;
 mod magic_comment;
 pub mod parser_and_generator;

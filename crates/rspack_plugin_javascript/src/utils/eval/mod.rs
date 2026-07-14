@@ -136,7 +136,7 @@ impl Default for BasicEvaluatedExpression<'_> {
 impl<'a> CloneIn<'a> for IdentifierData {
   type Cloned = Self;
 
-  fn clone_in(&self, _allocator: &'a Allocator) -> Self::Cloned {
+  fn clone_in(&self, _allocator: &'a Allocator<'_>) -> Self::Cloned {
     Self {
       identifier: self.identifier.clone(),
       root_info: self.root_info.clone(),
@@ -150,7 +150,7 @@ impl<'a> CloneIn<'a> for IdentifierData {
 impl<'alloc: 'a, 'a> CloneIn<'alloc> for WrappedData<'a> {
   type Cloned = Self;
 
-  fn clone_in(&self, allocator: &'alloc Allocator) -> Self::Cloned {
+  fn clone_in(&self, allocator: &'alloc Allocator<'_>) -> Self::Cloned {
     Self {
       prefix: self
         .prefix
@@ -172,7 +172,7 @@ impl<'alloc: 'a, 'a> CloneIn<'alloc> for WrappedData<'a> {
 impl<'alloc: 'a, 'a> CloneIn<'alloc> for TemplateStringData<'a> {
   type Cloned = Self;
 
-  fn clone_in(&self, allocator: &'alloc Allocator) -> Self::Cloned {
+  fn clone_in(&self, allocator: &'alloc Allocator<'_>) -> Self::Cloned {
     Self {
       quasis: self
         .quasis
@@ -192,7 +192,7 @@ impl<'alloc: 'a, 'a> CloneIn<'alloc> for TemplateStringData<'a> {
 impl<'alloc: 'a, 'a> CloneIn<'alloc> for Payload<'a> {
   type Cloned = Self;
 
-  fn clone_in(&self, allocator: &'alloc Allocator) -> Self::Cloned {
+  fn clone_in(&self, allocator: &'alloc Allocator<'_>) -> Self::Cloned {
     match self {
       Self::Unknown => Self::Unknown,
       Self::Undefined => Self::Undefined,
@@ -220,7 +220,7 @@ impl<'alloc: 'a, 'a> CloneIn<'alloc> for Payload<'a> {
 impl<'alloc: 'a, 'a> CloneIn<'alloc> for BasicEvaluatedExpression<'a> {
   type Cloned = Self;
 
-  fn clone_in(&self, allocator: &'alloc Allocator) -> Self::Cloned {
+  fn clone_in(&self, allocator: &'alloc Allocator<'_>) -> Self::Cloned {
     Self {
       owned_expression: self
         .owned_expression

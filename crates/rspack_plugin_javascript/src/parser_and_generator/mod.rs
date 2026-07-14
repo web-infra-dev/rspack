@@ -1,6 +1,7 @@
 use std::{
   borrow::Cow,
   collections::HashSet,
+  mem::MaybeUninit,
   sync::{Arc, LazyLock},
 };
 
@@ -256,7 +257,8 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       .and_then(|options| options.jsx)
       .unwrap_or(false);
 
-    let allocator = Allocator::new();
+    let mut allocator_buffer = [MaybeUninit::uninit(); crate::SWC_ALLOCATOR_BUFFER_SIZE];
+    let allocator = Allocator::new(&mut allocator_buffer);
     let mut comments = Comments::new_in(&allocator);
     let parser_lexer = Lexer::new(
       &allocator,

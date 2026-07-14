@@ -1514,7 +1514,7 @@ impl<'parser> JavascriptParser<'parser> {
       Expr::OptChain(opt_chain) => self.enter_optional_chain(
         opt_chain,
         |parser, call| {
-          let allocator: &'a Allocator = parser.ast.allocator;
+          let allocator: &'a Allocator<'_> = parser.ast.allocator;
           let call_expr = allocator.alloc(CallExpr {
             span: call.span,
             callee: Callee::Expr(allocator.boxed(call.callee.clone_in(allocator))),

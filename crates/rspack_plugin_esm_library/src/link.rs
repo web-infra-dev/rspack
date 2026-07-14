@@ -1,6 +1,7 @@
 use std::{
   collections::{self},
   hash::BuildHasher,
+  mem::MaybeUninit,
   sync::{Arc, LazyLock},
 };
 
@@ -38,6 +39,8 @@ use crate::{
   EsmLibraryPlugin,
   chunk_link::{ChunkLinkContext, ExternalInterop, RawImportSource, ReExportFrom, Ref, SymbolRef},
 };
+
+const SWC_ALLOCATOR_BUFFER_SIZE: usize = 1_500_000;
 
 pub(crate) trait GetMut<K, V> {
   fn get_mut_unwrap(&mut self, key: &K) -> &mut V;
@@ -1536,7 +1539,8 @@ var {} = {{}};
                   .source()
                   .into_string_lossy()
                   .into_owned();
-                let allocator = Allocator::new();
+                let mut allocator_buffer = [MaybeUninit::uninit(); SWC_ALLOCATOR_BUFFER_SIZE];
+                let allocator = Allocator::new(&mut allocator_buffer);
                 let lexer = swc_experimental_ecma_parser::Lexer::new(
                   &allocator,
                   Syntax::Es(EsSyntax {

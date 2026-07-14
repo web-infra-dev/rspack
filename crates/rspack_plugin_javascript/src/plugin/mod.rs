@@ -1,6 +1,7 @@
 use std::{
   borrow::Cow,
   collections::hash_map::Entry,
+  mem::MaybeUninit,
   ops::Deref,
   sync::{Arc, LazyLock, RwLock as SyncRwLock},
 };
@@ -1191,7 +1192,8 @@ var {} = {{}};
 
             if !use_cache {
               let code_string = code.source().into_string_lossy();
-              let allocator = Allocator::new();
+              let mut allocator_buffer = [MaybeUninit::uninit(); crate::SWC_ALLOCATOR_BUFFER_SIZE];
+              let allocator = Allocator::new(&mut allocator_buffer);
               let lexer = Lexer::new(
                 &allocator,
                 Syntax::Es(EsSyntax::default()),
