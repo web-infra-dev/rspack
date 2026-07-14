@@ -40,7 +40,28 @@ pub(crate) struct FsEvent {
   pub kind: FsEventKind,
 }
 
-pub(crate) type EventBatch = Vec<FsEvent>;
+pub(crate) enum EventBatch {
+  Shared(Vec<FsEvent>),
+  Split {
+    aggregated: Vec<FsEvent>,
+    undelayed: FsEvent,
+  },
+}
+
+impl EventBatch {
+  pub fn aggregated(&self) -> &[FsEvent] {
+    match self {
+      Self::Shared(events) => events,
+      Self::Split { aggregated, .. } => aggregated,
+    }
+  }
+}
+
+impl From<Vec<FsEvent>> for EventBatch {
+  fn from(events: Vec<FsEvent>) -> Self {
+    Self::Shared(events)
+  }
+}
 
 /// `EventAggregateHandler` is a trait for handling aggregated file system events.
 /// It provides methods to handle changes and deletions of files, as well as errors.

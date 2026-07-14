@@ -211,6 +211,9 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
         callback(err, new Map(), new Map(), changes, removals);
       },
       (event) => {
+        if (this.#watcher !== watcher) {
+          return;
+        }
         if (event.kind === 'change') {
           // The native watcher reports paths without an mtime, so events are
           // stamped with their arrival time.
@@ -229,6 +232,9 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
 
     return {
       close: () => {
+        if (this.#watcher === watcher) {
+          this.#watcher = undefined;
+        }
         if (this.#inner === nativeWatcher) {
           this.#inner = undefined;
           this.#isFirstWatch = true;

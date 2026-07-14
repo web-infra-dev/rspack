@@ -247,7 +247,7 @@ impl Executor {
         while let Some(events) = rx.lock().await.recv().await {
           let should_aggregate = {
             let mut files_data = lock_pending(&files_data);
-            for event in &events {
+            for event in events.aggregated() {
               files_data.record(event.path.to_string_lossy().to_string(), event.kind);
             }
             files_data.schedule_if_needed()
@@ -316,20 +316,26 @@ fn create_execute_task(
     while let Some(exec_event) = exec_rx.lock().await.recv().await {
       match exec_event {
         ExecEvent::Execute(batch_events) => {
-          for event in batch_events {
-            // Handle each event based on its kind
+          let handle_event = |event: crate::FsEvent| {
             let path = event.path.to_string_lossy().to_string();
             match event.kind {
               super::FsEventKind::Change | super::FsEventKind::Create => {
-                if event_handler.on_change(path).is_err() {
+                event_handler.on_change(path)
+              }
+              super::FsEventKind::Remove => event_handler.on_delete(path),
+            }
+          };
+
+          match batch_events {
+            EventBatch::Shared(events) => {
+              for event in events {
+                if handle_event(event).is_err() {
                   break;
                 }
               }
-              super::FsEventKind::Remove => {
-                if event_handler.on_delete(path).is_err() {
-                  break;
-                }
-              }
+            }
+            EventBatch::Split { undelayed, .. } => {
+              let _ = handle_event(undelayed);
             }
           }
         }

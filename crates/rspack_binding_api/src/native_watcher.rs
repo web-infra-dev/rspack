@@ -287,14 +287,16 @@ impl rspack_watcher::EventAggregateHandler for JsEventHandler {
 }
 
 struct JsEventHandlerUndelayed {
-  inner: napi::threadsafe_function::ThreadsafeFunction<
-    NativeWatchUndelayedEvent,
-    napi::Unknown<'static>,
-    NativeWatchUndelayedEvent,
-    Status,
-    false,
-    false,
-    1,
+  inner: Option<
+    napi::threadsafe_function::ThreadsafeFunction<
+      NativeWatchUndelayedEvent,
+      napi::Unknown<'static>,
+      NativeWatchUndelayedEvent,
+      Status,
+      false,
+      false,
+      0,
+    >,
   >,
 }
 
@@ -303,35 +305,60 @@ impl JsEventHandlerUndelayed {
     let callback = callback
       .build_threadsafe_function::<NativeWatchUndelayedEvent>()
       .weak::<false>()
-      .max_queue_size::<1>()
+      // A watch tick can produce a burst of concrete file events. Keep the
+      // raw stream lossless so later children cannot be silently dropped on
+      // QueueFull while the JS thread drains an earlier callback.
+      .max_queue_size::<0>()
       .build_callback(
         move |ctx: napi::threadsafe_function::ThreadSafeCallContext<_>| Ok(ctx.value),
       )?;
 
-    Ok(Self { inner: callback })
+    Ok(Self {
+      inner: Some(callback),
+    })
+  }
+
+  fn deliver(&self, kind: &'static str, path: String) -> rspack_error::Result<()> {
+    let Some(inner) = &self.inner else {
+      return Err(rspack_error::error!(
+        "native watcher raw callback is closed"
+      ));
+    };
+    let status = inner.call(
+      NativeWatchUndelayedEvent {
+        kind: kind.to_string(),
+        path,
+      },
+      napi::threadsafe_function::ThreadsafeFunctionCallMode::NonBlocking,
+    );
+    if status == Status::Ok {
+      Ok(())
+    } else {
+      Err(rspack_error::error!(
+        "native watcher raw callback could not be queued: {status}"
+      ))
+    }
   }
 }
 
 impl rspack_watcher::EventHandler for JsEventHandlerUndelayed {
   fn on_change(&self, changed_file: String) -> rspack_error::Result<()> {
-    self.inner.call(
-      NativeWatchUndelayedEvent {
-        kind: "change".to_string(),
-        path: changed_file,
-      },
-      napi::threadsafe_function::ThreadsafeFunctionCallMode::NonBlocking,
-    );
-    Ok(())
+    self.deliver("change", changed_file)
   }
 
   fn on_delete(&self, deleted_file: String) -> rspack_error::Result<()> {
-    self.inner.call(
-      NativeWatchUndelayedEvent {
-        kind: "remove".to_string(),
-        path: deleted_file,
-      },
-      napi::threadsafe_function::ThreadsafeFunctionCallMode::NonBlocking,
-    );
-    Ok(())
+    self.deliver("remove", deleted_file)
+  }
+}
+
+impl Drop for JsEventHandlerUndelayed {
+  fn drop(&mut self) {
+    if let Some(inner) = self.inner.take() {
+      // Releasing a TSFN drains its queue into the previous watch callback.
+      // Abort the obsolete callback so a rewatch cannot receive stale raw
+      // events after the handler generation has been replaced.
+      #[allow(deprecated)]
+      let _ = inner.abort();
+    }
   }
 }

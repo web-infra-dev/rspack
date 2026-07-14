@@ -9,8 +9,9 @@ class FakeNativeWatcher {
 		generation: 0
 	};
 
-	watch(_files, _directories, _missing, _startTime, onAggregate) {
+	watch(_files, _directories, _missing, _startTime, onAggregate, onRaw) {
 		this.onAggregate = onAggregate;
+		this.onRaw = onRaw;
 	}
 
 	takePendingEvents() {
@@ -36,7 +37,7 @@ const dependencies = () =>
 		removed: []
 	});
 
-function createWatcherHarness() {
+function createWatcherHarness(callbackUndelayed = () => {}) {
 	const nativeWatcher = new FakeNativeWatcher();
 	const purged = [];
 	const callbackChanges = [];
@@ -57,10 +58,10 @@ function createWatcherHarness() {
 		{},
 		(_error, _fileTimes, _contextTimes, changes) =>
 			callbackChanges.push(changes),
-		() => {}
+		callbackUndelayed
 	);
 
-	return { nativeWatcher, purged, callbackChanges, watcher };
+	return { nativeWatcher, purged, callbackChanges, watcher, watchFileSystem };
 }
 
 describe("NativeWatchFileSystem aggregate generations", () => {
@@ -123,5 +124,34 @@ describe("NativeWatchFileSystem aggregate generations", () => {
 		expect(nativeWatcher.pauses).toBe(1);
 		expect(purged).toEqual(["/drained", "/wrapped"]);
 		expect(callbackChanges).toEqual([new Set(["/wrapped"])]);
+	});
+
+	it("ignores a raw callback retained by an earlier watch generation", () => {
+		const stale = [];
+		const fresh = [];
+		const { nativeWatcher, watchFileSystem } = createWatcherHarness(path =>
+			stale.push(path)
+		);
+		const staleRaw = nativeWatcher.onRaw;
+
+		const currentWatcher = watchFileSystem.watch(
+			dependencies(),
+			dependencies(),
+			dependencies(),
+			Date.now(),
+			{},
+			() => {},
+			path => fresh.push(path)
+		);
+
+		staleRaw({ kind: "change", path: "/stale" });
+		nativeWatcher.onRaw({ kind: "change", path: "/fresh" });
+
+		expect(stale).toEqual([]);
+		expect(fresh).toEqual(["/fresh"]);
+
+		currentWatcher.close();
+		nativeWatcher.onRaw({ kind: "change", path: "/after-close" });
+		expect(fresh).toEqual(["/fresh"]);
 	});
 });

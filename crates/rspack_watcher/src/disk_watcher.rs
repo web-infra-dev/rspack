@@ -394,7 +394,10 @@ mod tests {
     let deadline = Instant::now() + Duration::from_secs(10);
     let observed = loop {
       if let Ok(events) = rx.try_recv()
-        && events.iter().any(|event| event.path.as_ref() == file)
+        && events
+          .aggregated()
+          .iter()
+          .any(|event| event.path.as_ref() == file)
       {
         break true;
       }
@@ -455,7 +458,10 @@ mod tests {
     let deadline = Instant::now() + Duration::from_secs(10);
     let observed = loop {
       if let Ok(events) = rx.try_recv()
-        && events.iter().any(|event| event.path.as_ref() == parent)
+        && events
+          .aggregated()
+          .iter()
+          .any(|event| event.path.as_ref() == parent)
       {
         break true;
       }
