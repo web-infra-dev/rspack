@@ -61,7 +61,7 @@ use crate::{
 };
 
 type ExportsDefinitionArgs = Vec<(String, String)>;
-const SWC_ALLOCATOR_BUFFER_SIZE: usize = 1_500_000;
+const SWC_ALLOCATOR_BUFFER_SIZE: usize = 20_000_000;
 define_hook!(ConcatenatedModuleExportsDefinitions: SeriesBail(exports_definitions: &mut ExportsDefinitionArgs, is_entry_module: bool) -> bool);
 define_hook!(ConcatenatedModuleConcatenatedInfo: Series(compilation: &Compilation, module: ModuleIdentifier, runtime: Option<&RuntimeSpec>, info: &mut ConcatenatedModuleInfo, all_used_names: &mut HashSet<Atom>));
 

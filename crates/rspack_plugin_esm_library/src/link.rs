@@ -40,7 +40,7 @@ use crate::{
   chunk_link::{ChunkLinkContext, ExternalInterop, RawImportSource, ReExportFrom, Ref, SymbolRef},
 };
 
-const SWC_ALLOCATOR_BUFFER_SIZE: usize = 1_500_000;
+const SWC_ALLOCATOR_BUFFER_SIZE: usize = 20_000_000;
 
 pub(crate) trait GetMut<K, V> {
   fn get_mut_unwrap(&mut self, key: &K) -> &mut V;

@@ -38,7 +38,7 @@ const THREE_MODULE_BENCHMARK_ID: &str = "rust@scan_dependencies@three_module";
 const THREE_MODULE_RESOURCE_PATH: &str = "/node_modules/three/build/three.module.js";
 const THREE_MODULE_TARBALL_URL: &str = "https://registry.npmjs.org/three/-/three-0.183.2.tgz";
 const THREE_MODULE_TAR_ENTRY: &str = "package/build/three.module.js";
-const SWC_ALLOCATOR_BUFFER_SIZE: usize = 1_500_000;
+const SWC_ALLOCATOR_BUFFER_SIZE: usize = 20_000_000;
 
 struct ScanDependenciesBenchmarkCaseSpec {
   benchmark_id: &'static str,
