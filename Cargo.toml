@@ -24,7 +24,7 @@ async-recursion = { version = "1.1.1", default-features = false }
 async-trait     = { version = "0.1.89", default-features = false }
 atomic_refcell  = { version = "0.1.14", default-features = false }
 base64-simd     = { version = "0.8.0", default-features = false, features = ["alloc"] }
-bitflags        = { version = "2.11.1", default-features = false }
+bitflags        = { version = "2.13.0", default-features = false }
 browserslist-rs = { version = "0.19.0", default-features = false }
 bytes           = { version = "1.12.0", default-features = false }
 camino          = { version = "1.2.3", default-features = false }
@@ -42,7 +42,7 @@ dashmap             = { version = "6.2.1", default-features = false }
 derive_more         = { version = "2.1.1", default-features = false }
 dunce               = { version = "1.0.5", default-features = false }
 dyn-clone           = { version = "1.0.20", default-features = false }
-either              = { version = "1.15.0", default-features = false }
+either              = { version = "1.16.0", default-features = false }
 enum-tag            = { version = "0.3.0", default-features = false }
 fast-glob           = { version = "1.0.1", default-features = false }
 form_urlencoded     = { version = "1.2.2", default-features = false }
@@ -145,12 +145,12 @@ swc_html_minifier   = { version = "57.0.0", default-features = false }
 swc_plugin_runner   = { version = "30.0.1", default-features = false }
 swc_typescript      = { version = "30.0.1", default-features = false }
 
-swc_experimental_allocator            = { version = "0.11.0", default-features = false }
-swc_experimental_ecma_ast             = { version = "0.11.0", default-features = false }
-swc_experimental_ecma_parser          = { version = "0.11.0", default-features = false }
-swc_experimental_ecma_semantic        = { version = "0.11.0", default-features = false }
-swc_experimental_ecma_transforms_base = { version = "0.11.0", default-features = false }
-swc_experimental_ecma_utils           = { version = "0.11.0", default-features = false }
+swc_experimental_allocator            = { git = "https://github.com/CPunisher/swc-experimental.git", branch = "07-14-exp/stack-allocator", default-features = false }
+swc_experimental_ecma_ast             = { git = "https://github.com/CPunisher/swc-experimental.git", branch = "07-14-exp/stack-allocator", default-features = false }
+swc_experimental_ecma_parser          = { git = "https://github.com/CPunisher/swc-experimental.git", branch = "07-14-exp/stack-allocator", default-features = false }
+swc_experimental_ecma_semantic        = { git = "https://github.com/CPunisher/swc-experimental.git", branch = "07-14-exp/stack-allocator", default-features = false }
+swc_experimental_ecma_transforms_base = { git = "https://github.com/CPunisher/swc-experimental.git", branch = "07-14-exp/stack-allocator", default-features = false }
+swc_experimental_ecma_utils           = { git = "https://github.com/CPunisher/swc-experimental.git", branch = "07-14-exp/stack-allocator", default-features = false }
 
 rspack_dojang = { version = "0.1.11", default-features = false }
 tracy-client  = { version = "=0.18.4", default-features = false, features = ["enable", "sampling", "demangle", "system-tracing"] }
