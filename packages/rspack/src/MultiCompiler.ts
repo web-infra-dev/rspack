@@ -15,6 +15,7 @@ import type {
   CompilerHooks,
   RspackOptions,
   Stats,
+  WatchInvalidationKind,
 } from '.';
 import type { WatchOptions } from './config';
 import ConcurrentCompilationError from './error/ConcurrentCompilationError';
@@ -34,6 +35,7 @@ interface Node<T> {
   parents: Node<T>[];
   setupResult?: T;
   result?: Stats;
+  parentInvalidationKind?: WatchInvalidationKind;
   state:
     | 'pending'
     | 'blocked'
@@ -321,6 +323,7 @@ export class MultiCompiler {
       compiler: Compiler,
       res: SetupResult,
       done: liteTapable.Callback<Error, Stats>,
+      parentInvalidationKind?: WatchInvalidationKind,
     ) => void,
     callback: liteTapable.Callback<Error, MultiStats>,
   ): SetupResult[] {
@@ -391,7 +394,15 @@ export class MultiCompiler {
       running--;
       if (node.state === 'running') {
         node.state = 'done';
+        const invalidationKind = stats.compilation.watchInvalidationKind;
         for (const child of node.children) {
+          if (
+            invalidationKind === 'normal' ||
+            (invalidationKind === 'lazy' &&
+              child.parentInvalidationKind === undefined)
+          ) {
+            child.parentInvalidationKind = invalidationKind;
+          }
           if (child.state === 'blocked') queue.enqueue(child);
         }
       } else if (node.state === 'running-outdated') {
@@ -476,7 +487,9 @@ export class MultiCompiler {
             node.compiler,
             node.setupResult!,
             nodeDone.bind(null, node) as liteTapable.Callback<Error, Stats>,
+            node.parentInvalidationKind,
           );
+          node.parentInvalidationKind = undefined;
           node.state = 'running';
         }
       }
@@ -531,9 +544,13 @@ export class MultiCompiler {
           }
           return watching;
         },
-        (compiler, watching, _done) => {
-          if (compiler.watching !== watching) return;
-          if (!watching.running) watching.__internal__resumeFromMultiCompiler();
+        (compiler, watching, _done, parentInvalidationKind) => {
+          if (compiler.watching !== watching || watching.running) return;
+          if (parentInvalidationKind) {
+            watching.__internal__invalidate(parentInvalidationKind);
+          } else {
+            watching.__internal__resumeFromMultiCompiler();
+          }
         },
         handler,
       );

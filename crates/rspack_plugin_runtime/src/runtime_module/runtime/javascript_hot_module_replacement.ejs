@@ -288,6 +288,7 @@ function hotApplyHandler(options, moduleFactoryTransaction) {
 							moduleFactoryTransaction.finalizers.push(function () {
 								for (var moduleId in preservedModuleFactories) {
 									if (<%- HAS_OWN_PROPERTY %>(preservedModuleFactories, moduleId)) {
+										delete <%- MODULE_CACHE %>[moduleId];
 										<%- MODULE_FACTORIES %>[moduleId] =
 											preservedModuleFactories[moduleId];
 									}
