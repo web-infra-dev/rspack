@@ -470,8 +470,8 @@ export declare class NativeWatcher {
    * # Safety
    *
    * This function is unsafe because it uses `&mut self` to call the watcher asynchronously.
-   * It's important to ensure that the watcher is not used in any other places before this function is finished.
-   * You must ensure that the watcher not call watch, close or pause in the same time, otherwise it may lead to undefined behavior.
+   * `watch` and `close` are serialized internally, but calling `pause` while this function is
+   * in flight is still undefined behavior.
    */
   close(): Promise<void>
   pause(): void
