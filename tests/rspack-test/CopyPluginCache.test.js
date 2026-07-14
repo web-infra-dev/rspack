@@ -140,11 +140,31 @@ function reusedPatterns(compilation) {
 		loggingDebug: [/CopyRspackPlugin/]
 	}).logging;
 
+	const entries = Object.values(logging || {})
+		.flatMap(group => group.entries || [])
+		.map(entry => entry.message || "");
+	const summary = entries.find(message =>
+		message.startsWith("copy pattern cache: ")
+	);
+	const hits = summary?.match(/\((\d+)\/\d+\)$/);
+	return hits ? Number(hits[1]) : 0;
+}
+
+function foundPatternFiles(compilation, directory) {
+	const logging = new Stats(compilation).toJson({
+		all: false,
+		logging: false,
+		loggingDebug: [/CopyRspackPlugin/]
+	}).logging;
+	const normalizedDirectory = directory.replaceAll("\\", "/");
+
 	return Object.values(logging || {})
 		.flatMap(group => group.entries || [])
-		.filter(entry =>
-			entry.message?.startsWith("reusing unchanged copy pattern")
-		).length;
+		.map(entry => entry.message || "")
+		.map(message => message.match(/^found '(.+)'$/)?.[1])
+		.filter(filename =>
+			filename?.replaceAll("\\", "/").includes(normalizedDirectory)
+		);
 }
 
 async function close(compiler) {
@@ -349,6 +369,103 @@ describe("CopyRspackPlugin pattern cache", () => {
 		}
 	});
 
+	it("preserves equal-priority copy order with interleaved cache hits and misses", async () => {
+		const patternCount = 64;
+		const patterns = Array.from({ length: patternCount }, (_, index) => ({
+			from: `assets/${index}.txt`,
+			to: "copied/value.txt",
+			toType: "file",
+			force: true,
+			priority: index % 5
+		}));
+		const { root, compiler } = createCompiler("mixed-cache-order", patterns);
+		const files = patterns.map((_, index) =>
+			write(root, `assets/${index}.txt`, `${index}\n`)
+		);
+		const winner = Math.floor((patternCount - 5) / 5) * 5 + 4;
+
+		try {
+			const initial = await compile(compiler);
+			expect(asset(initial, "copied/value.txt")).toBe(`${winner}\n`);
+
+			write(root, "assets/0.txt", "first-edited\n");
+			let updated = await rebuild(compiler, [files[0]]);
+			expect(reusedPatterns(updated)).toBe(patternCount - 1);
+			expect(asset(updated, "copied/value.txt")).toBe(`${winner}\n`);
+
+			write(root, `assets/${winner}.txt`, "last-edited\n");
+			updated = await rebuild(compiler, [files[winner]]);
+			expect(reusedPatterns(updated)).toBe(patternCount - 1);
+			expect(asset(updated, "copied/value.txt")).toBe("last-edited\n");
+
+			const entry = write(root, "src/index.js", "module.exports = 'changed';\n");
+			updated = await rebuild(compiler, [entry]);
+			expect(reusedPatterns(updated)).toBe(patternCount);
+			expect(asset(updated, "copied/value.txt")).toBe("last-edited\n");
+		} finally {
+			await close(compiler);
+		}
+	});
+
+	it("preserves forced glob emission order with interleaved pattern priorities and cache hits", async () => {
+		const interleavedCount = 32;
+		const globFileCount = 64;
+		const patterns = Array.from({ length: interleavedCount }, (_, index) => ({
+			from: `assets/interleaved/${index}.txt`,
+			to: `copied/interleaved-${index}.txt`,
+			toType: "file",
+			force: true,
+			priority: index % 5
+		}));
+		patterns.splice(Math.floor(interleavedCount / 2), 0, {
+			from: "assets/many/*.txt",
+			to: "copied/many.txt",
+			toType: "file",
+			force: true,
+			priority: 2
+		});
+		const { root, compiler } = createCompiler("forced-glob-order", patterns);
+		const interleaved = Array.from({ length: interleavedCount }, (_, index) =>
+			write(root, `assets/interleaved/${index}.txt`, `${index}\n`)
+		);
+		const globFiles = Array.from({ length: globFileCount }, (_, index) =>
+			write(
+				root,
+				`assets/many/${String(index).padStart(4, "0")}.txt`,
+				`${index}\n`
+			)
+		);
+		const expectedWinner = compilation => {
+			const found = foundPatternFiles(compilation, "/assets/many/");
+			expect(found).toHaveLength(globFileCount);
+			return fs.readFileSync(found.at(-1), "utf-8");
+		};
+
+		try {
+			let updated = await compile(compiler);
+			let winner = expectedWinner(updated);
+			expect(asset(updated, "copied/many.txt")).toBe(winner);
+
+			write(root, "assets/interleaved/0.txt", "interleaved-edited\n");
+			updated = await rebuild(compiler, [interleaved[0]]);
+			expect(reusedPatterns(updated)).toBe(patterns.length - 1);
+			expect(asset(updated, "copied/many.txt")).toBe(winner);
+
+			write(root, "assets/many/0000.txt", "glob-edited\n");
+			updated = await rebuild(compiler, [globFiles[0]]);
+			expect(reusedPatterns(updated)).toBe(patterns.length - 1);
+			winner = expectedWinner(updated);
+			expect(asset(updated, "copied/many.txt")).toBe(winner);
+
+			const entry = write(root, "src/index.js", "module.exports = 'changed';\n");
+			updated = await rebuild(compiler, [entry]);
+			expect(reusedPatterns(updated)).toBe(patterns.length);
+			expect(asset(updated, "copied/many.txt")).toBe(winner);
+		} finally {
+			await close(compiler);
+		}
+	});
+
 	it("evicts a cached pattern before an errored recomputation and recovers when the source returns", async () => {
 		const { root, compiler } = createCompiler("diagnostic-recovery", [
 			{ from: "assets/source/*.txt", to: "copied", toType: "dir" }
@@ -380,6 +497,35 @@ describe("CopyRspackPlugin pattern cache", () => {
 			const recovered = await rebuild(compiler, [source]);
 			expect(asset(recovered, "copied/assets/source/one.txt")).toBe("after\n");
 			expect(reusedPatterns(recovered)).toBe(0);
+		} finally {
+			await close(compiler);
+		}
+	});
+
+	it("keeps a successful sibling cached while a glob recomputation reports an error", async () => {
+		const { root, compiler } = createCompiler("sibling-diagnostic", [
+			{ from: "assets/missing/*.txt", to: "copied", toType: "dir" },
+			{ from: "assets/stable.txt", to: "copied/stable.txt", toType: "file" }
+		]);
+		const missing = write(root, "assets/missing/one.txt", "one\n");
+		const stable = write(root, "assets/stable.txt", "before\n");
+
+		try {
+			await compile(compiler);
+			remove(root, "assets/missing/one.txt");
+			write(root, "assets/stable.txt", "after\n");
+			let failed = await rebuildAllowErrors(compiler, [stable], [missing]);
+
+			expect(failed.errors).toHaveLength(1);
+			expect(asset(failed, "copied/stable.txt")).toBe("after\n");
+			expect(reusedPatterns(failed)).toBe(0);
+
+			const entry = write(root, "src/index.js", "module.exports = 'changed';\n");
+			failed = await rebuildAllowErrors(compiler, [entry]);
+
+			expect(failed.errors).toHaveLength(1);
+			expect(asset(failed, "copied/stable.txt")).toBe("after\n");
+			expect(reusedPatterns(failed)).toBe(1);
 		} finally {
 			await close(compiler);
 		}
