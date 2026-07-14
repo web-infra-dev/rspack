@@ -7,7 +7,7 @@
 - Bundle: bundle.js
 - Bundle: common_js_2.chunk.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.LAST_HASH.hot-update.js, size: 43826
+- Update: main.LAST_HASH.hot-update.js, size: 43886
 
 ## Manifest
 
@@ -1063,6 +1063,7 @@ function hotApplyHandler(options, moduleFactoryTransaction) {
 							moduleFactoryTransaction.finalizers.push(function () {
 								for (var moduleId in preservedModuleFactories) {
 									if (__webpack_require__.o(preservedModuleFactories, moduleId)) {
+										delete __webpack_require__.c[moduleId];
 										__webpack_require__.m[moduleId] =
 											preservedModuleFactories[moduleId];
 									}
