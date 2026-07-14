@@ -1,4 +1,4 @@
-use std::sync::{Arc, Mutex as SyncMutex};
+use std::sync::{Arc, Mutex as SyncMutex, MutexGuard as SyncMutexGuard};
 
 use rspack_util::fx_hash::FxHashSet as HashSet;
 use tokio::sync::{
@@ -21,12 +21,12 @@ struct AggregatedFiles {
 }
 
 impl AggregatedFiles {
-  fn merge(&mut self, newer: Self) {
-    for path in newer.changed {
+  fn merge(&mut self, changed: HashSet<String>, deleted: HashSet<String>) {
+    for path in changed {
       self.deleted.remove(&path);
       self.changed.insert(path);
     }
-    for path in newer.deleted {
+    for path in deleted {
       self.changed.remove(&path);
       self.deleted.insert(path);
     }
@@ -80,19 +80,16 @@ impl FilesData {
 
   fn drain(&mut self) -> AggregatedFiles {
     let generation = self.next_generation();
-    let mut files = AggregatedFiles {
+    let mut files = self.in_flight.take().unwrap_or_else(|| AggregatedFiles {
       changed: Default::default(),
       deleted: Default::default(),
       generation,
-    };
-    if let Some(in_flight) = self.in_flight.take() {
-      files.merge(in_flight);
-    }
-    files.merge(AggregatedFiles {
-      changed: std::mem::take(&mut self.changed),
-      deleted: std::mem::take(&mut self.deleted),
-      generation,
     });
+    files.generation = generation;
+    files.merge(
+      std::mem::take(&mut self.changed),
+      std::mem::take(&mut self.deleted),
+    );
     files
   }
 
@@ -116,6 +113,12 @@ impl FilesData {
     self.aggregate_scheduled = true;
     true
   }
+}
+
+fn lock_pending(files: &PendingFiles) -> SyncMutexGuard<'_, FilesData> {
+  files
+    .lock()
+    .expect("pending watcher events mutex should not be poisoned")
 }
 
 /// `WatcherExecutor` is responsible for managing the execution of file system event handlers,
@@ -175,20 +178,13 @@ impl Executor {
 
   /// Pauses aggregate delivery. Raw events continue accumulating until resume.
   pub fn pause(&self) {
-    self
-      .files_data
-      .lock()
-      .expect("pending watcher events mutex should not be poisoned")
-      .paused = true;
+    lock_pending(&self.files_data).paused = true;
   }
 
   /// Atomically pauses aggregate delivery and consumes its pending events.
   /// Consumed events will not be delivered to that handler later.
   pub fn take_pending_events(&self) -> (HashSet<String>, HashSet<String>, u32) {
-    let mut files = self
-      .files_data
-      .lock()
-      .expect("pending watcher events mutex should not be poisoned");
+    let mut files = lock_pending(&self.files_data);
     files.paused = true;
     files.aggregate_scheduled = false;
     let files = files.drain();
@@ -197,10 +193,7 @@ impl Executor {
 
   pub fn acknowledge_pending_events(&self, generation: u32) {
     let should_aggregate = {
-      let mut files = self
-        .files_data
-        .lock()
-        .expect("pending watcher events mutex should not be poisoned");
+      let mut files = lock_pending(&self.files_data);
       if files.acknowledge(generation) {
         files.aggregate_scheduled = false;
       }
@@ -221,11 +214,7 @@ impl Executor {
       if let Err(err) = execute_aggregate_handle.await {
         debug_assert!(err.is_cancelled());
       }
-      self
-        .files_data
-        .lock()
-        .expect("pending watcher events mutex should not be poisoned")
-        .aggregate_scheduled = false;
+      lock_pending(&self.files_data).aggregate_scheduled = false;
     }
     if let Some(execute_handle) = std::mem::take(&mut self.execute_handle) {
       execute_handle.abort();
@@ -257,9 +246,7 @@ impl Executor {
       let future = async move {
         while let Some(events) = rx.lock().await.recv().await {
           let should_aggregate = {
-            let mut files_data = files_data
-              .lock()
-              .expect("pending watcher events mutex should not be poisoned");
+            let mut files_data = lock_pending(&files_data);
             for event in &events {
               files_data.record(event.path.to_string_lossy().to_string(), event.kind);
             }
@@ -292,10 +279,7 @@ impl Executor {
     // but skipped sending Execute because paused was true. No future OS event
     // will re-deliver them, so we must kick the aggregate task ourselves.
     let should_aggregate = {
-      let mut files = self
-        .files_data
-        .lock()
-        .expect("pending watcher events mutex should not be poisoned");
+      let mut files = lock_pending(&self.files_data);
       files.paused = false;
       files.schedule_if_needed()
     };
@@ -383,9 +367,7 @@ fn create_execute_aggregate_task(
 
         // Get the files to process
         let files = {
-          let mut files = pending_files
-            .lock()
-            .expect("pending watcher events mutex should not be poisoned");
+          let mut files = lock_pending(&pending_files);
           if files.paused {
             files.aggregate_scheduled = false;
             continue;
@@ -408,9 +390,7 @@ fn create_execute_aggregate_task(
           event_handler.on_event_handle_with_generation(files.changed, files.deleted, generation);
         if !defer_acknowledgement {
           let should_aggregate = {
-            let mut files = pending_files
-              .lock()
-              .expect("pending watcher events mutex should not be poisoned");
+            let mut files = lock_pending(&pending_files);
             files.acknowledge(generation);
             files.aggregate_scheduled = false;
             files.schedule_if_needed()

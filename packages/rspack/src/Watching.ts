@@ -133,7 +133,7 @@ export class Watching {
           this.compiler.removedFiles = undefined;
           return this.handler(err);
         }
-        if ((changedFiles?.size ?? 0) > 0 || (removedFiles?.size ?? 0) > 0) {
+        if (changedFiles.size > 0 || removedFiles.size > 0) {
           this.#recordInvalidation('normal');
         }
         this.#invalidate(

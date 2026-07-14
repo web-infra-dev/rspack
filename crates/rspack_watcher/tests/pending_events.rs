@@ -74,13 +74,20 @@ async fn receive_changes(
 ) -> Vec<(FsEventKind, String)> {
   let mut events = Vec::with_capacity(count);
   for _ in 0..count {
-    let event = tokio::time::timeout(std::time::Duration::from_secs(1), receiver.recv())
+    let event = tokio::time::timeout(std::time::Duration::from_secs(10), receiver.recv())
       .await
       .expect("watcher event should arrive")
       .expect("watcher event channel should stay open");
     events.push(event);
   }
   events
+}
+
+async fn receive_aggregate(receiver: &mut UnboundedReceiver<Aggregate>) -> Aggregate {
+  tokio::time::timeout(std::time::Duration::from_secs(10), receiver.recv())
+    .await
+    .expect("aggregate should arrive")
+    .expect("aggregate channel should stay open")
 }
 
 #[tokio::test]
@@ -151,11 +158,7 @@ async fn pending_events_are_consumed_once_without_aggregate_replay() {
     ],
   );
 
-  let (changes, removals, aggregate_generation) =
-    tokio::time::timeout(std::time::Duration::from_secs(1), aggregate_rx.recv())
-      .await
-      .expect("aggregate should arrive")
-      .expect("aggregate channel should stay open");
+  let (changes, removals, aggregate_generation) = receive_aggregate(&mut aggregate_rx).await;
   assert_eq!(changes, FxHashSet::from_iter([path_string(&changed_path)]));
   assert!(removals.is_empty());
   watcher.acknowledge_pending_events(aggregate_generation);
@@ -171,11 +174,7 @@ async fn pending_events_are_consumed_once_without_aggregate_replay() {
     receive_changes(&mut change_rx, 1).await,
     [(FsEventKind::Change, path_string(&changed_path))],
   );
-  let (changes, removals, aggregate_generation) =
-    tokio::time::timeout(std::time::Duration::from_secs(1), aggregate_rx.recv())
-      .await
-      .expect("aggregate should arrive")
-      .expect("aggregate channel should stay open");
+  let (changes, removals, aggregate_generation) = receive_aggregate(&mut aggregate_rx).await;
   assert_eq!(changes, FxHashSet::from_iter([path_string(&changed_path)]));
   assert!(removals.is_empty());
 

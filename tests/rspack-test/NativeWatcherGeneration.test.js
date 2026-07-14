@@ -40,7 +40,7 @@ describe("NativeWatchFileSystem aggregate generations", () => {
 	it("suppresses a callback superseded by a synchronous native drain", () => {
 		const nativeWatcher = new FakeNativeWatcher();
 		const purged = [];
-		const callbackCalls = [];
+		const callbackChanges = [];
 		const compiler = rspack({
 			context: __dirname,
 			entry: __filename,
@@ -56,7 +56,8 @@ describe("NativeWatchFileSystem aggregate generations", () => {
 			dependencies(),
 			Date.now(),
 			{},
-			(...args) => callbackCalls.push(args),
+			(_error, _fileTimes, _contextTimes, changes) =>
+				callbackChanges.push(changes),
 			() => {}
 		);
 
@@ -76,7 +77,7 @@ describe("NativeWatchFileSystem aggregate generations", () => {
 		expect(nativeWatcher.acknowledgements).toEqual([1]);
 		expect(nativeWatcher.pauses).toBe(0);
 		expect(purged).toEqual(["/changed"]);
-		expect(callbackCalls).toEqual([]);
+		expect(callbackChanges).toEqual([]);
 
 		nativeWatcher.onAggregate(null, {
 			changedFiles: ["/next"],
@@ -86,7 +87,6 @@ describe("NativeWatchFileSystem aggregate generations", () => {
 		expect(nativeWatcher.acknowledgements).toEqual([1, 3]);
 		expect(nativeWatcher.pauses).toBe(1);
 		expect(purged).toEqual(["/changed", "/next"]);
-		expect(callbackCalls).toHaveLength(1);
-		expect(callbackCalls[0][3]).toEqual(new Set(["/next"]));
+		expect(callbackChanges).toEqual([new Set(["/next"])]);
 	});
 });
