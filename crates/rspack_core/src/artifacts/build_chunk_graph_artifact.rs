@@ -8,8 +8,8 @@ use rustc_hash::FxHashMap as HashMap;
 use tracing::instrument;
 
 use crate::{
-  ArtifactExt, ChunkByUkey, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Compilation,
-  Logger, ModuleIdentifier,
+  ArtifactExt, ChunkByUkey, ChunkGraph, ChunkGroupByUkey, ChunkGroupKind, ChunkGroupUkey,
+  ChunkUkey, Compilation, DependenciesBlock, GroupOptions, Logger,
   build_chunk_graph::code_splitter::{CodeSplitter, DependenciesBlockIdentifier},
   fast_set,
   incremental::{IncrementalPasses, Mutation},
@@ -86,26 +86,113 @@ impl BuildChunkGraphArtifact {
     }
 
     for module in affected_modules {
-      let outgoings: Vec<ModuleIdentifier> = {
-        let mut res = vec![];
-        let mut active_modules = IdentifierIndexMap::<Vec<_>>::default();
-        let module = module_graph
-          .module_graph_module_by_identifier(&module)
-          .expect("should have module");
-        module
-          .all_dependencies()
-          .iter()
-          .filter(|dep_id| {
-            module_graph
-              .dependency_by_id(dep_id)
-              .as_module_dependency()
-              .is_none_or(|module_dep| !module_dep.weak())
-          })
-          .filter_map(|dep| module_graph.connection_by_dependency_id(dep))
-          .for_each(|conn| {
-            let m = *conn.module_identifier();
-            active_modules.entry(m).or_default().push(conn);
+      let module_graph_module = module_graph
+        .module_graph_module_by_identifier(&module)
+        .expect("should have module");
+      let current_blocks = module_graph
+        .module_by_identifier(&module)
+        .expect("should have module")
+        .get_blocks();
+      let previous_blocks = self
+        .code_splitter
+        .prepared_blocks_map
+        .get(&DependenciesBlockIdentifier::Module(module))
+        .map(Vec::as_slice)
+        .unwrap_or_default();
+
+      if current_blocks != previous_blocks {
+        logger.log(format!("module async blocks change detected: {module}"));
+        return false;
+      }
+
+      for block_id in current_blocks {
+        let block = module_graph.block_by_id_expect(block_id);
+        // Nested async blocks are not currently constructed, but avoid
+        // reusing an incomplete topology if support is added later.
+        if !block.get_blocks().is_empty() {
+          logger.log(format!("nested async blocks detected: {module}"));
+          return false;
+        }
+
+        let Some(previous_chunk_group) = self
+          .chunk_graph
+          .get_block_chunk_group(block_id, &self.chunk_group_by_ukey)
+        else {
+          continue;
+        };
+        let same_group_options = match (block.get_group_options(), &previous_chunk_group.kind) {
+          (None, ChunkGroupKind::Normal { options }) => options == &Default::default(),
+          (Some(GroupOptions::ChunkGroup(current)), ChunkGroupKind::Normal { options }) => {
+            current == options
+          }
+          (Some(GroupOptions::Entrypoint(current)), ChunkGroupKind::Entrypoint { options, .. }) => {
+            current == options
+          }
+          _ => false,
+        };
+
+        if !same_group_options {
+          logger.log(format!(
+            "module async block options change detected: {module}"
+          ));
+          return false;
+        }
+      }
+
+      // Match CodeSplitter::prepare: ESM dependencies are ordered by source
+      // order and unordered dependencies are appended afterwards. Keep root
+      // and async-block connections separate; all_dependencies contains both.
+      let mut ordered_dependencies = vec![];
+      let mut unordered_dependencies = vec![];
+      for dep_id in module_graph_module.all_dependencies() {
+        let dependency = module_graph.dependency_by_id(dep_id);
+        let module_dependency = dependency.as_module_dependency();
+        if (module_dependency.is_none() && dependency.as_context_dependency().is_none())
+          || module_dependency.is_some_and(|module_dep| module_dep.weak())
+          || module_graph.connection_by_dependency_id(dep_id).is_none()
+        {
+          continue;
+        }
+
+        if let Some(source_order) = dependency.source_order() {
+          ordered_dependencies.push((source_order, *dep_id));
+        } else {
+          unordered_dependencies.push(*dep_id);
+        }
+      }
+      ordered_dependencies.sort_by_key(|(source_order, _)| *source_order);
+
+      let mut active_modules_by_block =
+        HashMap::<DependenciesBlockIdentifier, IdentifierIndexMap<Vec<_>>>::default();
+      for dep_id in ordered_dependencies
+        .into_iter()
+        .map(|(_, dep_id)| dep_id)
+        .chain(unordered_dependencies)
+      {
+        let block = module_graph
+          .get_parent_block(&dep_id)
+          .map_or(DependenciesBlockIdentifier::Module(module), |block| {
+            DependenciesBlockIdentifier::AsyncDependenciesBlock(*block)
           });
+        let connection = module_graph
+          .connection_by_dependency_id(&dep_id)
+          .expect("should have connection");
+        active_modules_by_block
+          .entry(block)
+          .or_default()
+          .entry(*connection.module_identifier())
+          .or_default()
+          .push(connection);
+      }
+
+      for block in std::iter::once(DependenciesBlockIdentifier::Module(module)).chain(
+        current_blocks
+          .iter()
+          .copied()
+          .map(DependenciesBlockIdentifier::AsyncDependenciesBlock),
+      ) {
+        let mut outgoings = vec![];
+        let active_modules = active_modules_by_block.remove(&block).unwrap_or_default();
 
         'outer: for (m, connections) in active_modules {
           let side_effects_state_artifact = &this_compilation
@@ -122,56 +209,48 @@ impl BuildChunkGraphArtifact {
               )
               .is_not_false()
             {
-              res.push(m);
+              outgoings.push(m);
               continue 'outer;
             }
           }
         }
 
-        res
-      };
+        let mut previous_modules = IdentifierIndexMap::default();
+        let mut miss_in_previous = true;
+        for modules in previous_modules_map.values() {
+          let Some(outgoings) = modules.get(&block) else {
+            continue;
+          };
+          miss_in_previous = false;
 
-      // get outgoings from all runtimes in the previous compilation
-      let mut previous_modules = IdentifierIndexMap::default();
-      let all_runtimes = previous_modules_map.values();
-      let mut miss_in_previous = true;
-
-      all_runtimes.for_each(|modules| {
-        let Some(outgoings) = modules.get(&DependenciesBlockIdentifier::Module(module)) else {
-          return;
-        };
-        miss_in_previous = false;
-
-        for (outgoing, state, _) in outgoings.iter() {
-          // we must insert module even if state is false
-          // because we need to keep the import order
-          previous_modules
-            .entry(*outgoing)
-            .and_modify(|v| {
-              if state.is_not_false() {
-                *v = *state;
-              }
-            })
-            .or_insert(*state);
+          for (outgoing, state, _) in outgoings.iter() {
+            // Keep false connections to preserve source order.
+            previous_modules
+              .entry(*outgoing)
+              .and_modify(|v| {
+                if state.is_not_false() {
+                  *v = *state;
+                }
+              })
+              .or_insert(*state);
+          }
         }
-      });
 
-      if miss_in_previous {
-        logger.log("new module detected, rebuilding chunk graph");
-        return false;
-      }
+        if miss_in_previous {
+          logger.log("new module detected, rebuilding chunk graph");
+          return false;
+        }
 
-      if previous_modules
-        .iter()
-        .filter(|(_, conn_state)| conn_state.is_not_false())
-        .map(|(m, _)| *m)
-        .collect::<Vec<_>>()
-        != outgoings.clone()
-      {
-        // we find one module's outgoings has changed
-        // we cannot skip rebuilding
-        logger.log(format!("module outgoings change detected: {module}"));
-        return false;
+        if previous_modules
+          .iter()
+          .filter(|(_, conn_state)| conn_state.is_not_false())
+          .map(|(m, _)| *m)
+          .collect::<Vec<_>>()
+          != outgoings
+        {
+          logger.log(format!("module outgoings change detected: {module}"));
+          return false;
+        }
       }
     }
 

@@ -307,7 +307,8 @@ pub(crate) struct CodeSplitter {
 
   prepared_connection_map: IdentifierMap<PreparedBlockConnectionMap>,
 
-  prepared_blocks_map: DependenciesBlockIdentifierMap<Vec<AsyncDependenciesBlockIdentifier>>,
+  pub(crate) prepared_blocks_map:
+    DependenciesBlockIdentifierMap<Vec<AsyncDependenciesBlockIdentifier>>,
 }
 
 fn add_chunk_in_group(
