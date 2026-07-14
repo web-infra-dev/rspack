@@ -1,10 +1,10 @@
 ```mjs title=main.mjs
-import { __webpack_require__ } from "./runtime.mjs";
+import { __rspack_context } from "./runtime.mjs";
 
 import * as __rspack_external_path from "path";
 import { createRequire as __rspack_createRequire } from "node:module";
 const __rspack_createRequire_require = __rspack_createRequire(import.meta.url);
-__webpack_require__.add({
+__rspack_context.m.add({
 "./dep.js"
 /*!****************!*\
   !*** ./dep.js ***!
@@ -32,7 +32,7 @@ const external_node_module_namespaceObject = __rspack_createRequire_require("nod
 
 const only_require_require = /* createRequire() */ undefined;
 
-const required = __webpack_require__(/*! ./dep.js */ "./dep.js");
+const required = __rspack_context.r(/*! ./dep.js */ "./dep.js");
 
 // ./with-resolve.js
 
@@ -63,7 +63,7 @@ const optionalCacheCallThrows = (() => {
 
 const mixed_parsed_and_preserved_require = (0,external_node_module_namespaceObject.createRequire)(import.meta.url);
 
-const mixedRequired = __webpack_require__(/*! ./dep.js */ "./dep.js");
+const mixedRequired = __rspack_context.r(/*! ./dep.js */ "./dep.js");
 const mixedResolved = /*require.resolve*/(/*! ./dep.js */ "./dep.js");
 const mixedUnknownMember = mixed_parsed_and_preserved_require.a;
 
@@ -137,12 +137,12 @@ const conditionalUnknownMember = with_conditional_callee_require.a;
 
 const nestedExtraArgRequiredJoinType = typeof external_node_module_namespaceObject.createRequire(
 	"<ROOT>/tests/rspack-test/esmOutputCases/create-require/multi-module-default/with-nested-extra-args.js",
-	__webpack_require__(/*! path */ "path")
+	__rspack_context.r(/*! path */ "path")
 )("path").join;
 
 const nestedExtraArgResolved = external_node_module_namespaceObject.createRequire(
 	"<ROOT>/tests/rspack-test/esmOutputCases/create-require/multi-module-default/with-nested-extra-args.js",
-	__webpack_require__(/*! path */ "path")
+	__rspack_context.r(/*! path */ "path")
 ).resolve("path");
 
 // ./with-use-before-declaration.js
@@ -153,15 +153,15 @@ function readUnknownMember() {
 }
 
 function loadBuiltin() {
-	return typeof (__webpack_require__(/*! path */ "path")/* .join */.join);
+	return typeof (__rspack_context.r(/*! path */ "path")/* .join */.join);
 }
 
 function loadLocalModule() {
-	return __webpack_require__(/*! ./dep.js */ "./dep.js");
+	return __rspack_context.r(/*! ./dep.js */ "./dep.js");
 }
 
 function loadHandledBeforeDeclaration() {
-	return __webpack_require__(/*! ./dep.js */ "./dep.js");
+	return __rspack_context.r(/*! ./dep.js */ "./dep.js");
 }
 
 function loadMutableBeforeDeclaration() {
@@ -169,7 +169,7 @@ function loadMutableBeforeDeclaration() {
 }
 
 const loadBoundBeforeDeclaration = function () {
-	return __webpack_require__(/*! ./dep.js */ "./dep.js");
+	return __rspack_context.r(/*! ./dep.js */ "./dep.js");
 }.bind(null);
 
 let assignedRequire;
@@ -213,7 +213,7 @@ function readAliasedCalleeUnknownMember() {
 	return aliasedCalleeRequire.a;
 }
 function loadAliasedCalleeLocalModule() {
-	return __webpack_require__(/*! ./dep.js */ "./dep.js");
+	return __rspack_context.r(/*! ./dep.js */ "./dep.js");
 }
 const aliasedCalleeRequire = createRequireAlias(import.meta.url);
 const handledAliasedCalleeRequire = (0, createRequireAlias)(import.meta.url);
@@ -222,7 +222,7 @@ const beforeAliasedCalleeUnknownMember =
 	readAliasedCalleeUnknownMember();
 const beforeAliasedCalleeRequired = loadAliasedCalleeLocalModule();
 const handledAliasedCalleeRequired =
-	__webpack_require__(/*! ./dep.js */ "./dep.js");
+	__rspack_context.r(/*! ./dep.js */ "./dep.js");
 const beforeAssignmentUnknownMember = readAssignedUnknownMember();
 const beforeDeclarationBuiltinJoinType = loadBuiltin();
 const boundBeforeDeclarationRequired = loadBoundBeforeDeclaration();
@@ -406,12 +406,12 @@ const preInitializationImmediateExecutionThrows = [
 ];
 
 var logicalOrRequire;
-logicalOrRequire ||= __webpack_require__(/*! ./dep.js */ "./dep.js");
+logicalOrRequire ||= __rspack_context.r(/*! ./dep.js */ "./dep.js");
 const logicalOrValue = logicalOrRequire;
 var logicalOrRequire = (0,external_node_module_namespaceObject.createRequire)(import.meta.url);
 
 var logicalNullishRequire;
-logicalNullishRequire ??= __webpack_require__(/*! ./dep.js */ "./dep.js");
+logicalNullishRequire ??= __rspack_context.r(/*! ./dep.js */ "./dep.js");
 const logicalNullishValue = logicalNullishRequire;
 var logicalNullishRequire = (0,external_node_module_namespaceObject.createRequire)(import.meta.url);
 
@@ -517,35 +517,36 @@ export { beforeAliasedCalleeRequired, beforeAliasedCalleeUnknownMember, beforeAs
 
 ```mjs title=runtime.mjs
 
-var __webpack_modules__ = {};
+var __rspack_modules = {};
 // The module cache
-var __webpack_module_cache__ = {};
+var __rspack_module_cache = {};
 // The require function
-function __webpack_require__(moduleId) {
+function __rspack_require(moduleId) {
 // Check if module is in cache
-var cachedModule = __webpack_module_cache__[moduleId];
+var cachedModule = __rspack_module_cache[moduleId];
 if (cachedModule !== undefined) {
 return cachedModule.exports;
 }
 // Create a new module (and put it into the cache)
-var module = (__webpack_module_cache__[moduleId] = {
+var module = (__rspack_module_cache[moduleId] = {
 exports: {}
 });
 // Execute the module function
-__webpack_modules__[moduleId](module, module.exports, __webpack_require__);
+__rspack_modules[moduleId](module, module.exports, __rspack_context);
 
 // Return the exports of the module
 return module.exports;
 }
-// expose the modules object (__webpack_modules__)
-__webpack_require__.m = __webpack_modules__;
+var __rspack_context = {};
+__rspack_context.r = __rspack_require;
+// expose the modules object (__rspack_modules)
+__rspack_context.m = __rspack_modules;
 
-// webpack/runtime/esm_register_module
-(() => {
-__webpack_require__.add = function registerModules(modules) { Object.assign(__webpack_require__.m, modules) }
+var moduleFactories=__rspack_modules;
+// rspack/runtime/esm_register_module
+moduleFactories.add = function registerModules(modules) { Object.assign(moduleFactories, modules) }
+;
 
-})();
-
-export { __webpack_require__ };
+export { __rspack_context };
 
 ```

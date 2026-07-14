@@ -44,17 +44,64 @@ pub const CREATE_REQUIRE_EVALUATED_TAG: &str = "\0createRequire";
 pub const CREATED_REQUIRE_IDENTIFIER_TAG: &str = "createRequire()";
 
 #[derive(Clone)]
+struct CreateRequireSpecifierTagData {
+  pre_walk: bool,
+  deferred_function_scope_depth: u32,
+  parse_in_deferred_function: bool,
+}
+
+impl CreateRequireSpecifierTagData {
+  fn must_preserve_runtime(
+    &self,
+    current_deferred_function_scope_depth: u32,
+    in_immediate_execution: bool,
+  ) -> bool {
+    if self.pre_walk && in_immediate_execution {
+      return true;
+    }
+    if self.deferred_function_scope_depth == current_deferred_function_scope_depth {
+      self.pre_walk
+    } else {
+      !self.parse_in_deferred_function
+    }
+  }
+}
+
+#[derive(Clone)]
 pub struct CreatedRequireTagData {
   pub(crate) context: Context,
-  pub(crate) side_effects: String,
-  // Before the declarator itself is walked, references must stay verbatim; parsing them as
-  // require calls would incorrectly bypass temporal-dead-zone / pre-initialization behavior.
+  // Before the declarator itself is walked, references in the same execution context must stay
+  // verbatim; parsing them would bypass temporal-dead-zone / pre-initialization behavior.
   pub(crate) pre_walk: bool,
+  // Distinguishes immediately executed code (including immediately invoked functions) from
+  // deferred function bodies,
+  // whose immutable bindings can be parsed like ordinary require usages.
+  pub(crate) deferred_function_scope_depth: u32,
+  // Mutable bindings may be reassigned before a deferred function executes, so references from
+  // that function keep using the runtime binding even after the declarator has been walked.
+  pub(crate) parse_in_deferred_function: bool,
   // Key of the deferred-argument entry for this created require (the
   // `createRequire(import.meta.url)` call span). Set only for a deferrable bare
   // `import.meta.url` declaration; unhandled uses look it up to keep the literal argument.
   // See `CreatedRequireReferencesState` and `finish`.
   pub(crate) decl_span: Option<Span>,
+}
+
+impl CreatedRequireTagData {
+  pub(crate) fn must_preserve_runtime(
+    &self,
+    current_deferred_function_scope_depth: u32,
+    in_immediate_execution: bool,
+  ) -> bool {
+    if self.pre_walk && in_immediate_execution {
+      return true;
+    }
+    if self.deferred_function_scope_depth == current_deferred_function_scope_depth {
+      self.pre_walk
+    } else {
+      !self.parse_in_deferred_function
+    }
+  }
 }
 
 struct CreateRequireArgument {
@@ -262,6 +309,34 @@ pub fn tag_create_require(parser: &mut JavascriptParser, name: Atom) {
   parser.tag_variable_without_data(name, CREATE_REQUIRE_SPECIFIER_TAG);
 }
 
+pub(crate) fn tag_create_require_alias(
+  parser: &mut JavascriptParser,
+  name: Atom,
+  parse_in_deferred_function: bool,
+) {
+  parser.tag_variable(
+    name,
+    CREATE_REQUIRE_SPECIFIER_TAG,
+    Some(CreateRequireSpecifierTagData {
+      pre_walk: false,
+      deferred_function_scope_depth: parser.deferred_function_scope_depth,
+      parse_in_deferred_function,
+    }),
+  );
+}
+
+fn pre_tag_create_require(parser: &mut JavascriptParser, name: Atom) {
+  parser.tag_variable(
+    name,
+    CREATE_REQUIRE_SPECIFIER_TAG,
+    Some(CreateRequireSpecifierTagData {
+      pre_walk: true,
+      deferred_function_scope_depth: parser.deferred_function_scope_depth,
+      parse_in_deferred_function: true,
+    }),
+  );
+}
+
 #[inline(never)]
 fn is_current_create_require_tag(parser: &JavascriptParser) -> bool {
   parser.current_tag_info.is_some_and(|tag_info| {
@@ -269,8 +344,25 @@ fn is_current_create_require_tag(parser: &JavascriptParser) -> bool {
   })
 }
 
-#[inline(never)]
-pub fn is_create_require_specifier(parser: &mut JavascriptParser, name: &Atom) -> bool {
+fn must_preserve_current_create_require_tag(parser: &JavascriptParser) -> bool {
+  parser.current_tag_info.is_some_and(|tag_info| {
+    let tag_info = parser.definitions_db.expect_get_tag_info(tag_info);
+    tag_info.tag == CREATE_REQUIRE_SPECIFIER_TAG
+      && tag_info.data.as_deref().is_some_and(|data| {
+        CreateRequireSpecifierTagData::downcast_ref(data).must_preserve_runtime(
+          parser.deferred_function_scope_depth,
+          parser.in_immediate_execution,
+        )
+      })
+  })
+}
+
+fn has_create_require_specifier_tag(
+  parser: &mut JavascriptParser,
+  name: &Atom,
+  include_pre_initialization: bool,
+) -> bool {
+  let deferred_function_scope_depth = parser.deferred_function_scope_depth;
   let Some(variable_info) = parser.get_variable_info(name) else {
     return false;
   };
@@ -278,18 +370,31 @@ pub fn is_create_require_specifier(parser: &mut JavascriptParser, name: &Atom) -
   while let Some(id) = tag_info_id {
     let tag_info = parser.definitions_db.expect_get_tag_info(id);
     if tag_info.tag == CREATE_REQUIRE_SPECIFIER_TAG {
-      return true;
+      return tag_info.data.as_deref().is_none_or(|data| {
+        let data = CreateRequireSpecifierTagData::downcast_ref(data);
+        (include_pre_initialization
+          && data.deferred_function_scope_depth == deferred_function_scope_depth)
+          || !data
+            .must_preserve_runtime(deferred_function_scope_depth, parser.in_immediate_execution)
+      });
     }
     tag_info_id = tag_info.next;
   }
   false
 }
 
+#[inline(never)]
+pub fn is_create_require_specifier(parser: &mut JavascriptParser, name: &Atom) -> bool {
+  has_create_require_specifier_tag(parser, name, false)
+}
+
 #[cold]
 #[inline(never)]
 fn should_handle_create_require_specifier(parser: &JavascriptParser, for_name: &str) -> bool {
   for_name == CREATE_REQUIRE_EVALUATED_TAG
-    || (for_name == CREATE_REQUIRE_SPECIFIER_TAG && is_current_create_require_tag(parser))
+    || (for_name == CREATE_REQUIRE_SPECIFIER_TAG
+      && is_current_create_require_tag(parser)
+      && !must_preserve_current_create_require_tag(parser))
 }
 
 #[cold]
@@ -326,6 +431,25 @@ fn get_create_require_callee<'a>(
   (is_evaluated_create_require(parser, callee)
     || is_create_require_namespace_member(parser, callee))
   .then_some(callee)
+}
+
+fn get_pre_walk_create_require_callee<'a>(
+  parser: &mut JavascriptParser,
+  expr: &'a Expr<'a>,
+) -> Option<&'a Expr<'a>> {
+  if expr.as_ident().is_some_and(|ident| {
+    has_create_require_specifier_tag(parser, &Atom::from(ident.sym.as_str()), true)
+  }) {
+    return Some(expr);
+  }
+  if let Some(callee) = get_detached_create_require_callee(expr)
+    && callee.as_ident().is_some_and(|ident| {
+      has_create_require_specifier_tag(parser, &Atom::from(ident.sym.as_str()), true)
+    })
+  {
+    return Some(callee);
+  }
+  get_create_require_callee(parser, expr)
 }
 
 fn get_detached_create_require_callee<'a>(expr: &'a Expr<'a>) -> Option<&'a Expr<'a>> {
@@ -850,145 +974,60 @@ fn preserve_create_require_argument(parser: &mut JavascriptParser, arg: &Expr) {
 }
 
 #[inline(never)]
-fn source_for_span(parser: &JavascriptParser, span: Span) -> Option<String> {
-  parser
-    .source()
-    .get(span.real_lo() as usize..span.real_hi() as usize)
-    .map(str::to_string)
-}
-
-#[inline(never)]
-fn push_side_effect(side_effects: &mut String, source: &str) {
-  if !side_effects.is_empty() {
-    side_effects.push_str(", ");
-  }
-  side_effects.push_str(source);
-}
-
-#[inline(never)]
-fn push_spread_side_effect(side_effects: &mut String, source: &str) {
-  if !side_effects.is_empty() {
-    side_effects.push_str(", ");
-  }
-  side_effects.push_str("[...(");
-  side_effects.push_str(source);
-  side_effects.push_str(")]");
-}
-
-#[inline(never)]
-fn side_effects_with_suffix(side_effects: &str, suffix: &str) -> Box<str> {
-  let mut replacement = String::with_capacity(side_effects.len() + suffix.len() + 3);
-  replacement.push('(');
-  replacement.push_str(side_effects);
-  replacement.push_str(", ");
-  replacement.push_str(suffix);
-  replacement.into_boxed_str()
-}
-
-#[inline(never)]
-fn create_require_url_arg_side_effects(parser: &mut JavascriptParser, arg: &Expr) -> String {
+fn has_create_require_url_arg_side_effects(parser: &mut JavascriptParser, arg: &Expr) -> bool {
   let Some(new_expr) = arg.as_new() else {
-    return String::new();
+    return false;
   };
   if !is_unbound_url_constructor(parser, &new_expr.callee) {
-    return String::new();
+    return false;
   };
   let Some(args) = &new_expr.args else {
-    return String::new();
+    return false;
   };
   let start = if is_absolute_file_url_constructor_arg(parser, arg) {
     1
   } else {
     2
   };
-  let mut side_effects = String::new();
-  for arg in args.iter().skip(start) {
-    let Some(source) = source_for_span(parser, arg.expr.span()) else {
-      continue;
-    };
-    if arg.spread.is_some() {
-      push_spread_side_effect(&mut side_effects, &source);
-    } else if !is_side_effect_free_ignored_url_arg(parser, &arg.expr)
-      && !arg
-        .expr
-        .as_member()
-        .is_some_and(|expr| is_meta_url(parser, expr))
-    {
-      push_side_effect(&mut side_effects, &source);
-    }
-  }
-  side_effects
+  args.iter().skip(start).any(|arg| {
+    arg.spread.is_some()
+      || (!is_side_effect_free_ignored_url_arg(parser, &arg.expr)
+        && !arg
+          .expr
+          .as_member()
+          .is_some_and(|expr| is_meta_url(parser, expr)))
+  })
 }
 
 #[inline(never)]
-fn wrap_span_with_side_effects(parser: &mut JavascriptParser, span: Span, side_effects: &str) {
-  if side_effects.is_empty() {
-    return;
-  }
-  parser.add_presentational_dependency(Box::new(ConstDependency::new(
-    (span.real_lo(), span.real_lo()).into(),
-    side_effects_with_suffix(side_effects, ""),
-  )));
-  parser.add_presentational_dependency(Box::new(ConstDependency::new(
-    (span.real_hi(), span.real_hi()).into(),
-    ")".into(),
-  )));
-}
-
-#[inline(never)]
-fn create_require_extra_arg_side_effects(
-  parser: &JavascriptParser,
-  args: &[ExprOrSpread],
-) -> String {
-  let mut side_effects = String::new();
-  for arg in args.iter().skip(1) {
-    let Some(source) = source_for_span(parser, arg.expr.span()) else {
-      continue;
-    };
-    if arg.spread.is_some() {
-      push_spread_side_effect(&mut side_effects, &source);
-    } else {
-      push_side_effect(&mut side_effects, &source);
-    }
-  }
-  side_effects
-}
-
-#[inline(never)]
-fn create_require_args_side_effects(
+fn can_consume_inline_create_require(
   parser: &mut JavascriptParser,
   args: &[ExprOrSpread],
   argument: &CreateRequireArgument,
-) -> String {
-  let mut side_effects = if argument.replace_argument {
-    String::new()
-  } else {
-    create_require_url_arg_side_effects(parser, &args[0].expr)
-  };
-  let extra_side_effects = create_require_extra_arg_side_effects(parser, args);
-  if !extra_side_effects.is_empty() {
-    push_side_effect(&mut side_effects, &extra_side_effects);
-  }
-  side_effects
+) -> bool {
+  // Replacing an inline createRequire call also removes its argument list. Keep non-canonical
+  // forms intact so nested dependencies and arbitrary side effects render at their original AST
+  // ranges instead of being copied as unprocessed source text.
+  args.len() == 1
+    && (argument.replace_argument
+      || !has_create_require_url_arg_side_effects(parser, &args[0].expr))
 }
 
 #[inline(never)]
 fn evaluate_created_require<'a>(
   parser: &mut JavascriptParser,
   range: Span,
-  args: &[ExprOrSpread],
   argument: CreateRequireArgument,
 ) -> BasicEvaluatedExpression<'a> {
-  let side_effects = create_require_args_side_effects(parser, args, &argument);
-  let has_side_effects = !side_effects.is_empty();
   let evaluated_name = Atom::from(range.real_lo().to_string());
   parser.tag_variable(
     evaluated_name.clone(),
     CREATED_REQUIRE_IDENTIFIER_TAG,
     Some(CreatedRequireTagData {
       context: argument.context,
-      side_effects,
       pre_walk: false,
+      deferred_function_scope_depth: parser.deferred_function_scope_depth,
+      parse_in_deferred_function: true,
       decl_span: None,
     }),
   );
@@ -1000,7 +1039,6 @@ fn evaluate_created_require<'a>(
     None,
     None,
   );
-  evaluated.set_side_effects(has_side_effects);
   evaluated.set_truthy();
   evaluated
 }
@@ -1015,13 +1053,10 @@ pub(crate) fn evaluate_create_require_new_expression<'a>(
   if !should_handle_create_require_call(parser, for_name, callee) {
     return None;
   }
+  let args = expr.args.as_deref().unwrap_or_default();
   let argument = parse_create_require_new_argument(parser, expr, false)?;
-  Some(evaluate_created_require(
-    parser,
-    expr.span,
-    expr.args.as_deref().unwrap_or_default(),
-    argument,
-  ))
+  can_consume_inline_create_require(parser, args, &argument)
+    .then(|| evaluate_created_require(parser, expr.span, argument))
 }
 
 #[inline(never)]
@@ -1030,16 +1065,8 @@ fn evaluate_create_require_call_expression<'a>(
   expr: &'a CallExpr,
 ) -> Option<BasicEvaluatedExpression<'a>> {
   let argument = parse_create_require_argument(parser, expr, false)?;
-  Some(evaluate_created_require(
-    parser, expr.span, &expr.args, argument,
-  ))
-}
-
-#[inline(never)]
-fn current_created_require_side_effects(parser: &mut JavascriptParser) -> String {
-  current_created_require_data(parser)
-    .map(|data| data.side_effects)
-    .unwrap_or_default()
+  can_consume_inline_create_require(parser, &expr.args, &argument)
+    .then(|| evaluate_created_require(parser, expr.span, argument))
 }
 
 fn current_created_require_data(parser: &JavascriptParser) -> Option<CreatedRequireTagData> {
@@ -1055,10 +1082,14 @@ fn current_created_require_data(parser: &JavascriptParser) -> Option<CreatedRequ
     .map(CreatedRequireTagData::downcast)
 }
 
-#[inline(never)]
-fn wrap_created_require_with_side_effects(parser: &mut JavascriptParser, span: Span) {
-  let side_effects = current_created_require_side_effects(parser);
-  wrap_span_with_side_effects(parser, span, &side_effects);
+fn must_preserve_created_require_runtime_data(
+  parser: &JavascriptParser,
+  data: &CreatedRequireTagData,
+) -> bool {
+  data.must_preserve_runtime(
+    parser.deferred_function_scope_depth,
+    parser.in_immediate_execution,
+  )
 }
 
 #[cold]
@@ -1241,6 +1272,7 @@ fn tag_created_require_declarator(
   args: &[ExprOrSpread],
   callee: CreateRequireCalleeInfo,
   argument: CreateRequireArgument,
+  parse_in_deferred_function: bool,
 ) -> bool {
   let CreateRequireArgument {
     value,
@@ -1256,7 +1288,14 @@ fn tag_created_require_declarator(
   // replaces the whole call, so extra arguments like `createRequire(import.meta.url,
   // sideEffect())` must keep their literal (side-effect-preserving) form instead.
   let defer = should_defer_created_require_declarator(parser, args, callee.can_defer);
-  tag_created_require_binding(parser, binding, context, defer.then_some(call_span), false);
+  tag_created_require_binding(
+    parser,
+    binding,
+    context,
+    defer.then_some(call_span),
+    false,
+    parse_in_deferred_function,
+  );
   if defer {
     parser.created_require_references.add_pending(
       call_span,
@@ -1301,6 +1340,7 @@ fn tag_created_require_binding(
   context: Context,
   decl_span: Option<Span>,
   pre_walk: bool,
+  parse_in_deferred_function: bool,
 ) {
   let binding_name = Atom::from(binding.sym.as_str());
   parser.define_variable(binding_name.clone());
@@ -1309,18 +1349,23 @@ fn tag_created_require_binding(
     CREATED_REQUIRE_IDENTIFIER_TAG,
     Some(CreatedRequireTagData {
       context,
-      side_effects: String::new(),
       pre_walk,
+      deferred_function_scope_depth: parser.deferred_function_scope_depth,
+      parse_in_deferred_function,
       decl_span,
     }),
   );
 }
 
-// Establishes created-require bindings during block pre-walk. An early reference only marks the
-// declaration as kept and stays verbatim; the regular declarator walk replaces this pre-walk tag
-// with the normal state before later references are handed to the require parser. Rendering still
-// remains deferred to `finish`.
-fn pre_tag_created_require_declarator(parser: &mut JavascriptParser, declarator: &VarDeclarator) {
+// Establishes created-require bindings during block pre-walk. An early reference in the same
+// execution context only marks the declaration as kept and stays verbatim; an immutable reference
+// in a deferred function is handed to the normal require parser. The regular declarator walk
+// replaces this pre-walk tag with the normal state, while rendering remains deferred to `finish`.
+fn pre_tag_created_require_declarator(
+  parser: &mut JavascriptParser,
+  declarator: &VarDeclarator,
+  declaration: VariableDeclaration<'_>,
+) {
   let Some(init) = declarator.init.as_ref() else {
     return;
   };
@@ -1330,7 +1375,7 @@ fn pre_tag_created_require_declarator(parser: &mut JavascriptParser, declarator:
 
   if let Some(call) = init.as_call()
     && let Some(callee) = call.callee.as_expr()
-    && let Some(dependency_callee) = get_create_require_callee(parser, callee)
+    && let Some(dependency_callee) = get_pre_walk_create_require_callee(parser, callee)
     && let Some(argument) = parse_create_require_argument(parser, call, false)
   {
     let callee_dependency = create_require_callee_dependency(
@@ -1352,6 +1397,7 @@ fn pre_tag_created_require_declarator(parser: &mut JavascriptParser, declarator:
       context,
       defer.then_some(call.span),
       true,
+      declaration.kind() == VariableDeclarationKind::Const,
     );
     if defer {
       parser.created_require_references.add_pending(
@@ -1369,7 +1415,27 @@ fn pre_tag_created_require_declarator(parser: &mut JavascriptParser, declarator:
       || is_create_require_namespace_member(parser, &new_expr.callee))
     && let Some(argument) = parse_create_require_new_argument(parser, new_expr, false)
   {
-    tag_created_require_binding(parser, &binding.id, argument.context, None, true);
+    tag_created_require_binding(
+      parser,
+      &binding.id,
+      argument.context,
+      None,
+      true,
+      declaration.kind() == VariableDeclarationKind::Const,
+    );
+    return;
+  }
+
+  // Immutable local aliases are stable enough to propagate during block pre-walk. This lets a
+  // created require whose callee is `const createRequireAlias = createRequire` be visible inside
+  // a function body that appears before its declaration, while mutable aliases remain on the
+  // conservative regular-walk preserve path.
+  if declaration.kind() == VariableDeclarationKind::Const
+    && get_pre_walk_create_require_callee(parser, init).is_some()
+  {
+    let name = Atom::from(binding.id.sym.as_str());
+    parser.define_variable(name.clone());
+    pre_tag_create_require(parser, name);
   }
 }
 
@@ -1418,8 +1484,9 @@ fn current_created_require_decl_span(parser: &JavascriptParser) -> Option<Span> 
   current_created_require_data(parser).and_then(|data| data.decl_span)
 }
 
-fn is_pre_walk_created_require(parser: &JavascriptParser) -> bool {
-  current_created_require_data(parser).is_some_and(|data| data.pre_walk)
+fn must_preserve_current_created_require(parser: &JavascriptParser) -> bool {
+  current_created_require_data(parser)
+    .is_some_and(|data| must_preserve_created_require_runtime_data(parser, &data))
 }
 
 // The created require currently being visited is used as a real require object (resolve,
@@ -2147,7 +2214,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
     declaration: VariableDeclaration<'_>,
   ) -> Option<bool> {
     if parser.javascript_options.is_create_require_enabled() {
-      pre_tag_created_require_declarator(parser, declarator);
+      pre_tag_created_require_declarator(parser, declarator, declaration);
     }
 
     if !should_parse_commonjs_require(parser) {
@@ -2171,20 +2238,24 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
     &self,
     parser: &mut JavascriptParser<'p>,
     declarator: &VarDeclarator,
-    _stmt: VariableDeclaration<'_>,
+    declaration: VariableDeclaration<'_>,
   ) -> Option<bool> {
     if !parser.javascript_options.is_create_require_enabled() {
       return None;
     }
 
     let init = declarator.init.as_ref()?;
+    let deferred_function_scope_depth = parser.deferred_function_scope_depth;
+    let in_immediate_execution = parser.in_immediate_execution;
     if let Some(init) = init.as_ident()
       && let Some((context, decl_span)) = parser
         .get_tag_data::<CreatedRequireTagData>(
           &Atom::from(init.sym.as_str()),
           CREATED_REQUIRE_IDENTIFIER_TAG,
         )
-        .filter(|data| !data.pre_walk)
+        .filter(|data| {
+          !data.must_preserve_runtime(deferred_function_scope_depth, in_immediate_execution)
+        })
         .map(|data| (data.context.clone(), data.decl_span))
       && let Some(binding) = declarator.name.as_ident()
     {
@@ -2203,8 +2274,9 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
         // declaration span so `r2.resolve(...)` keeps the original createRequire call.
         Some(CreatedRequireTagData {
           context,
-          side_effects: String::new(),
           pre_walk: false,
+          deferred_function_scope_depth,
+          parse_in_deferred_function: declaration.kind() == VariableDeclarationKind::Const,
           decl_span,
         }),
       );
@@ -2217,7 +2289,11 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
     {
       let name = Atom::from(binding.id.sym.as_str());
       parser.define_variable(name.clone());
-      tag_create_require(parser, name);
+      tag_create_require_alias(
+        parser,
+        name,
+        declaration.kind() == VariableDeclarationKind::Const,
+      );
     }
 
     let binding = declarator.name.as_ident()?;
@@ -2225,7 +2301,11 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
     if is_create_require_namespace_member(parser, init) {
       let name = Atom::from(binding.id.sym.as_str());
       parser.define_variable(name.clone());
-      tag_create_require(parser, name);
+      tag_create_require_alias(
+        parser,
+        name,
+        declaration.kind() == VariableDeclarationKind::Const,
+      );
     }
 
     if let Some(call) = init.as_call()
@@ -2251,6 +2331,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
         &call.args,
         callee,
         argument,
+        declaration.kind() == VariableDeclarationKind::Const,
       );
       // A deferred declaration must not walk the callee here: keep vs clear is decided in
       // `finish`, and the callee dependency is added only for the kept case.
@@ -2273,6 +2354,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
         args,
         CreateRequireCalleeInfo::default(),
         argument,
+        declaration.kind() == VariableDeclarationKind::Const,
       );
       parser.walk_expression(&init.callee);
       return Some(true);
@@ -2358,7 +2440,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
     member_ranges: &[Span],
   ) -> Option<bool> {
     if for_name == CREATED_REQUIRE_IDENTIFIER_TAG {
-      if is_pre_walk_created_require(parser) {
+      if must_preserve_current_created_require(parser) {
         mark_created_require_must_keep(parser);
         return Some(true);
       }
@@ -2403,7 +2485,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
     _member_ranges: &[Span],
   ) -> Option<bool> {
     if for_name == CREATED_REQUIRE_IDENTIFIER_TAG {
-      if is_pre_walk_created_require(parser) {
+      if must_preserve_current_created_require(parser) {
         mark_created_require_must_keep(parser);
         parser.walk_expr_or_spread(&expr.args);
         return Some(true);
@@ -2419,7 +2501,6 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
           parser.walk_expr_or_spread(&expr.args);
           return Some(true);
         }
-        wrap_created_require_with_side_effects(parser, expr.span());
         return self.require_handler(
           parser,
           CallOrNewExpr::Call(expr),
@@ -2438,6 +2519,10 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
         return Some(true);
       }
       if ids.len() != members.len() {
+        // An optional segment prevents the normal `.cache` member dependency from consuming the
+        // chain. Keep the real require so `r?.cache()` does not silently short-circuit after the
+        // deferred declaration is cleared to `undefined`.
+        mark_created_require_must_keep(parser);
         parser.walk_expr_or_spread(&expr.args);
         return Some(true);
       }
@@ -2515,7 +2600,8 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
         || for_name == expr_name::REQUIRE_RESOLVE
         || for_name == expr_name::REQUIRE_RESOLVE_WEAK))
       || should_handle_create_require_specifier(parser, for_name)
-      || (for_name == CREATED_REQUIRE_IDENTIFIER_TAG && !is_pre_walk_created_require(parser)))
+      || (for_name == CREATED_REQUIRE_IDENTIFIER_TAG
+        && !must_preserve_current_created_require(parser)))
     .then(|| {
       eval::evaluate_to_string(
         "function".to_string(),
@@ -2561,7 +2647,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
           end,
         ))
       }
-      CREATE_REQUIRE_SPECIFIER_TAG if is_current_create_require_tag(parser) => {
+      CREATE_REQUIRE_SPECIFIER_TAG if should_handle_create_require_specifier(parser, for_name) => {
         Some(eval::evaluate_to_identifier(
           CREATE_REQUIRE_EVALUATED_TAG.into(),
           CREATE_REQUIRE_EVALUATED_TAG.into(),
@@ -2618,7 +2704,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
     expr: &UnaryExpr,
     for_name: &str,
   ) -> Option<bool> {
-    if for_name == CREATED_REQUIRE_IDENTIFIER_TAG && is_pre_walk_created_require(parser) {
+    if for_name == CREATED_REQUIRE_IDENTIFIER_TAG && must_preserve_current_created_require(parser) {
       mark_created_require_must_keep(parser);
       return Some(true);
     }
@@ -2676,12 +2762,11 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
       self.process_resolve(parser, call_expr, true, None);
       Some(true)
     } else if for_name == CREATED_REQUIRE_IDENTIFIER_TAG {
-      if is_pre_walk_created_require(parser) {
+      if must_preserve_current_created_require(parser) {
         mark_created_require_must_keep(parser);
         parser.walk_expr_or_spread(&call_expr.args);
         return Some(true);
       }
-      wrap_created_require_with_side_effects(parser, call_expr.span());
       self.require_handler(
         parser,
         CallOrNewExpr::Call(call_expr),
@@ -2703,14 +2788,13 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
     {
       self.require_handler(parser, CallOrNewExpr::New(new_expr), None)
     } else if for_name == CREATED_REQUIRE_IDENTIFIER_TAG {
-      if is_pre_walk_created_require(parser) {
+      if must_preserve_current_created_require(parser) {
         mark_created_require_must_keep(parser);
         if let Some(args) = &new_expr.args {
           parser.walk_expr_or_spread(args);
         }
         return Some(true);
       }
-      wrap_created_require_with_side_effects(parser, new_expr.span);
       self.require_handler(
         parser,
         CallOrNewExpr::New(new_expr),
@@ -2753,12 +2837,14 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
         .is_some_and(|member| member.as_ref() == "cache")
       && let Some(argument) = parse_create_require_argument(parser, call_expr, false)
     {
-      let side_effects = create_require_args_side_effects(parser, &call_expr.args, &argument);
+      if !can_consume_inline_create_require(parser, &call_expr.args, &argument) {
+        keep_inline_create_require_call(parser, call_expr);
+        return Some(true);
+      }
       add_require_cache_dependency(
         parser,
         require_cache_range(member_expr, member_ranges, members).into(),
       );
-      wrap_span_with_side_effects(parser, member_expr.span(), &side_effects);
       walk_create_require_ignored_args(parser, call_expr);
       return Some(true);
     }
@@ -2812,8 +2898,11 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
     {
       // Disabled, ignored, and unsupported resolve calls are kept by the branch above.
       let argument = parse_create_require_argument(parser, inner_call_expr, false)?;
-      let side_effects = create_require_args_side_effects(parser, &inner_call_expr.args, &argument);
-      wrap_span_with_side_effects(parser, call_expr.span(), &side_effects);
+      if !can_consume_inline_create_require(parser, &inner_call_expr.args, &argument) {
+        keep_inline_create_require_call(parser, inner_call_expr);
+        parser.walk_expr_or_spread(&call_expr.args);
+        return Some(true);
+      }
       let context = argument.context;
       walk_create_require_ignored_args(parser, inner_call_expr);
       self.process_resolve(parser, call_expr, false, Some(context));
@@ -2827,8 +2916,11 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
         .is_some_and(|member| member.as_ref() == "cache")
       && let Some(argument) = parse_create_require_argument(parser, inner_call_expr, false)
     {
-      let side_effects = create_require_args_side_effects(parser, &inner_call_expr.args, &argument);
-      let member_span = call_expr.callee.span();
+      if !can_consume_inline_create_require(parser, &inner_call_expr.args, &argument) {
+        keep_inline_create_require_call(parser, inner_call_expr);
+        parser.walk_expr_or_spread(&call_expr.args);
+        return Some(true);
+      }
       add_require_cache_dependency(
         parser,
         require_cache_range(
@@ -2838,7 +2930,6 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
         )
         .into(),
       );
-      wrap_span_with_side_effects(parser, member_span, &side_effects);
       walk_create_require_ignored_args(parser, inner_call_expr);
       parser.walk_expr_or_spread(&call_expr.args);
       return Some(true);

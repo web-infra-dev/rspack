@@ -403,6 +403,11 @@ pub struct JavascriptParser<'parser> {
   // ===== states =======
   pub(crate) definitions_db: ScopeInfoDB,
   pub(crate) definitions: ScopeInfoId,
+  // Syntactically deferred function scopes may consume immutable pre-walk bindings. A directly
+  // constructed class temporarily overrides that rule because its constructor can run before the
+  // surrounding declaration is initialized.
+  pub(crate) deferred_function_scope_depth: u32,
+  pub(crate) in_immediate_execution: bool,
   pub(crate) top_level_scope: TopLevelScope,
   pub(crate) current_tag_info: Option<TagInfoId>,
   pub in_try: bool,
@@ -584,6 +589,8 @@ impl<'parser> JavascriptParser<'parser> {
       is_esm: matches!(module_type, ModuleType::JsEsm),
       in_tagged_template_tag: false,
       definitions: db.create(),
+      deferred_function_scope_depth: 0,
+      in_immediate_execution: false,
       definitions_db: db,
       plugin_drive,
       resource_data,

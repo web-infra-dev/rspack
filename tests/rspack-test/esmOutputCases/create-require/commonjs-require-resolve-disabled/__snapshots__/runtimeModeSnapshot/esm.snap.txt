@@ -1,0 +1,70 @@
+```js title=main.js
+(() => {
+"use strict";
+var __rspack_context={};
+
+(function() {
+// rspack/runtime/define_property_getters
+var definePropertyGetters = (exports, getters, values) => {
+	var define = (defs, kind) => {
+		for(var key in defs) {
+			if(hasOwnProperty(defs, key) && !hasOwnProperty(exports, key)) {
+				Object.defineProperty(exports, key, { enumerable: true, [kind]: defs[key] });
+			}
+		}
+	};
+	define(getters, "get");
+	define(values, "value");
+};;
+__rspack_context.d = definePropertyGetters;
+// rspack/runtime/has_own_property
+var hasOwnProperty = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop));
+// rspack/runtime/make_namespace_object
+// define __esModule on exports
+var makeNamespaceObject = (exports) => {
+	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+	}
+	Object.defineProperty(exports, '__esModule', { value: true });
+};;
+__rspack_context.N = makeNamespaceObject;
+
+}).call(this);
+var __rspack_exports = {};
+
+/*!******************************!*\
+  !*** ./index.js + 1 modules ***!
+  \******************************/
+// ESM COMPAT FLAG
+__rspack_context.N(__rspack_exports);
+
+// EXPORTS
+__rspack_context.d(__rspack_exports, {
+  extraArgResolved: () => (/* binding */ extraArgResolved),
+  resolved: () => (/* binding */ resolved)
+});
+
+;// CONCATENATED MODULE: external "node:module"
+const external_node_module_namespaceObject = require("node:module");
+;// CONCATENATED MODULE: ./index.js
+
+
+const index_require = (0,external_node_module_namespaceObject.createRequire)("<ROOT>/tests/rspack-test/esmOutputCases/create-require/commonjs-require-resolve-disabled/index.js");
+let extraArgRan = false;
+const extraArgRequire = external_node_module_namespaceObject.createRequire("<ROOT>/tests/rspack-test/esmOutputCases/create-require/commonjs-require-resolve-disabled/index.js", (extraArgRan = true));
+
+const resolved = index_require.resolve("path");
+const extraArgResolved = extraArgRequire.resolve("path");
+
+it("keeps a valid created require in CommonJS output when requireResolve is disabled", () => {
+	expect(resolved).toBe("path");
+	expect(extraArgResolved).toBe("path");
+	expect(extraArgRan).toBe(true);
+});
+
+var __rspack_exports_target = exports;
+for(var __rspack_i in __rspack_exports) __rspack_exports_target[__rspack_i] = __rspack_exports[__rspack_i];
+if(__rspack_exports.__esModule) Object.defineProperty(__rspack_exports_target, '__esModule', { value: true });
+})()
+;
+```

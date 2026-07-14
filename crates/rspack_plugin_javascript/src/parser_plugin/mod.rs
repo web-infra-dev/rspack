@@ -43,7 +43,7 @@ pub(crate) use self::{
     CREATE_REQUIRE_EVALUATED_TAG, CREATE_REQUIRE_SPECIFIER_TAG, CREATED_REQUIRE_IDENTIFIER_TAG,
     CommonJsImportsParserPlugin, CreatedRequireReferencesState, CreatedRequireTagData,
     RequireReferencesState, evaluate_create_require_new_expression,
-    is_create_require_namespace_member, is_create_require_specifier,
+    is_create_require_namespace_member, is_create_require_specifier, tag_create_require_alias,
   },
   common_js_plugin::CommonJsPlugin,
   compatibility_plugin::CompatibilityPlugin,

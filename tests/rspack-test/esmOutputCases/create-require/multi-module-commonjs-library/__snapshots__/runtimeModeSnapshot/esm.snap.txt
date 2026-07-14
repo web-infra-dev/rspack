@@ -1,0 +1,144 @@
+```js title=main.js
+(() => {
+var __rspack_modules = ({
+"./dep.js"
+/*!****************!*\
+  !*** ./dep.js ***!
+  \****************/
+(module) {
+module.exports = "dep";
+
+
+},
+
+});
+// The module cache
+var __rspack_module_cache = {};
+
+var __rspack_context={};
+
+// The require function
+function __rspack_require(moduleId) {
+
+// Check if module is in cache
+var cachedModule = __rspack_module_cache[moduleId];
+if (cachedModule !== undefined) {
+return cachedModule.exports;
+}
+// Create a new module (and put it into the cache)
+var module = (__rspack_module_cache[moduleId] = {
+exports: {}
+});
+// Execute the module function
+__rspack_modules[moduleId](module, module.exports, __rspack_context);
+
+// Return the exports of the module
+return module.exports;
+
+}
+
+__rspack_context.r = __rspack_require;
+
+(function() {
+// rspack/runtime/define_property_getters
+var definePropertyGetters = (exports, getters, values) => {
+	var define = (defs, kind) => {
+		for(var key in defs) {
+			if(hasOwnProperty(defs, key) && !hasOwnProperty(exports, key)) {
+				Object.defineProperty(exports, key, { enumerable: true, [kind]: defs[key] });
+			}
+		}
+	};
+	define(getters, "get");
+	define(values, "value");
+};;
+__rspack_context.d = definePropertyGetters;
+// rspack/runtime/has_own_property
+var hasOwnProperty = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop));
+// rspack/runtime/make_namespace_object
+// define __esModule on exports
+var makeNamespaceObject = (exports) => {
+	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+	}
+	Object.defineProperty(exports, '__esModule', { value: true });
+};;
+__rspack_context.N = makeNamespaceObject;
+
+}).call(this);
+var __rspack_exports = {};
+// This entry needs to be wrapped in an IIFE because it needs to be in strict mode.
+(() => {
+"use strict";
+
+/*!******************************!*\
+  !*** ./index.js + 5 modules ***!
+  \******************************/
+// ESM COMPAT FLAG
+__rspack_context.N(__rspack_exports);
+
+// EXPORTS
+__rspack_context.d(__rspack_exports, {
+  escapedRequire: () => (/* reexport */ with_value_escape_require),
+  inlineUnknownMember: () => (/* reexport */ inlineUnknownMember),
+  required: () => (/* reexport */ required),
+  resolved: () => (/* reexport */ resolved),
+  unknownMember: () => (/* reexport */ unknownMember)
+});
+
+;// CONCATENATED MODULE: external "node:module"
+const external_node_module_namespaceObject = require("node:module");
+;// CONCATENATED MODULE: ./only-require.js
+
+
+const only_require_require = /* createRequire() */ undefined;
+
+const required = __rspack_context.r(/*! ./dep.js */ "./dep.js");
+
+;// CONCATENATED MODULE: ./with-resolve.js
+
+
+const with_resolve_require = /* createRequire() */ undefined;
+
+const resolved = /*require.resolve*/(/*! ./dep.js */ "./dep.js");
+
+;// CONCATENATED MODULE: ./with-unknown-member.js
+
+
+const with_unknown_member_require = (0,external_node_module_namespaceObject.createRequire)("<ROOT>/tests/rspack-test/esmOutputCases/create-require/multi-module-commonjs-library/with-unknown-member.js");
+
+const unknownMember = with_unknown_member_require.a;
+const inlineUnknownMember = (0,external_node_module_namespaceObject.createRequire)("<ROOT>/tests/rspack-test/esmOutputCases/create-require/multi-module-commonjs-library/with-unknown-member.js").a;
+
+;// CONCATENATED MODULE: ./with-value-escape.js
+
+
+const with_value_escape_require = (0,external_node_module_namespaceObject.createRequire)("<ROOT>/tests/rspack-test/esmOutputCases/create-require/multi-module-commonjs-library/with-value-escape.js");
+
+
+
+;// CONCATENATED MODULE: ./index.js
+
+
+
+
+
+
+
+it("strips handled uses and preserves runtime created requires in CommonJS output", () => {
+	expect(required).toBe("dep");
+	expect(resolved).toBe("./dep.js");
+	expect(unknownMember).toBe(undefined);
+	expect(inlineUnknownMember).toBe(undefined);
+	expect(typeof with_value_escape_require).toBe("function");
+	expect(with_value_escape_require.resolve("path")).toBe("path");
+});
+
+})();
+
+var __rspack_exports_target = exports;
+for(var __rspack_i in __rspack_exports) __rspack_exports_target[__rspack_i] = __rspack_exports[__rspack_i];
+if(__rspack_exports.__esModule) Object.defineProperty(__rspack_exports_target, '__esModule', { value: true });
+})()
+;
+```

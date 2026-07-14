@@ -1,0 +1,177 @@
+```mjs title=main.mjs
+import { __rspack_context } from "./runtime.mjs";
+
+import { createRequire as __rspack_createRequire } from "node:module";
+const __rspack_createRequire_require = __rspack_createRequire(import.meta.url);
+__rspack_context.m.add({
+"./dep.js"
+/*!****************!*\
+  !*** ./dep.js ***!
+  \****************/
+(module) {
+module.exports = "dep";
+
+
+},
+});
+// node:module
+const external_node_module_namespaceObject = __rspack_createRequire_require("node:module");
+// ./only-require.js
+
+
+const only_require_require = /* createRequire() */ undefined;
+
+const required = __rspack_context.r(/*! ./dep.js */ "./dep.js");
+
+// ./with-resolve.js
+
+
+const with_resolve_require = (0,external_node_module_namespaceObject.createRequire)(import.meta.url);
+
+const resolved = with_resolve_require.resolve("path");
+
+// ./inline-resolve.js
+
+
+const inlineResolved = (0,external_node_module_namespaceObject.createRequire)(import.meta.url).resolve("path");
+
+// ./with-cache.js
+
+
+const with_cache_require = /* createRequire() */ undefined;
+
+const cacheType = typeof __rspack_context.c;
+
+// ./with-unknown-member.js
+
+
+const with_unknown_member_require = (0,external_node_module_namespaceObject.createRequire)(import.meta.url);
+
+const unknownMember = with_unknown_member_require.foo;
+
+// ./with-resolve-paths.js
+
+
+const with_resolve_paths_require = (0,external_node_module_namespaceObject.createRequire)(import.meta.url);
+
+const resolvePaths = with_resolve_paths_require.resolve.paths("path");
+
+// ./mixed-parsed-and-preserved.js
+
+
+const mixed_parsed_and_preserved_require = (0,external_node_module_namespaceObject.createRequire)(import.meta.url);
+
+const mixedDisabledRequired = __rspack_context.r(/*! ./dep.js */ "./dep.js");
+const mixedDisabledResolved = mixed_parsed_and_preserved_require.resolve("path");
+const mixedDisabledUnknownMember = mixed_parsed_and_preserved_require.a;
+
+// ./with-resolve-options.js
+
+
+const with_resolve_options_require = (0,external_node_module_namespaceObject.createRequire)(import.meta.url);
+
+const resolveWithOptions = with_resolve_options_require.resolve("path", { paths: [] });
+
+// ./with-value-escape.js
+
+
+const with_value_escape_require = (0,external_node_module_namespaceObject.createRequire)(import.meta.url);
+const escapedRequire = with_value_escape_require;
+
+const escapedRequireType = typeof escapedRequire;
+
+// ./with-sequence-callee.js
+
+
+const with_sequence_callee_require = (0, external_node_module_namespaceObject.createRequire)(import.meta.url);
+
+const sequenceResolved = with_sequence_callee_require.resolve("path");
+
+// ./with-extra-create-require-args.js
+
+
+let variableExtraArgRan = false;
+const with_extra_create_require_args_require = external_node_module_namespaceObject.createRequire(import.meta.url, (variableExtraArgRan = true));
+
+let inlineExtraArgRan = false;
+const extraArgRequired = __rspack_context.r(/*! ./dep.js */ "./dep.js");
+const inlineExtraArgResolved = external_node_module_namespaceObject.createRequire(
+	import.meta.url,
+	(inlineExtraArgRan = true)
+).resolve("path");
+const extraArgEffects = [variableExtraArgRan, inlineExtraArgRan];
+
+// ./index.js
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+it("preserves only modules with runtime created-require usages when requireResolve is disabled", () => {
+	expect(required).toBe("dep");
+	expect(resolved).toBe("path");
+	expect(inlineResolved).toBe("path");
+	expect(resolvePaths).toBe(null);
+	expect(unknownMember).toBe(undefined);
+	expect(cacheType).toBe("object");
+	expect(mixedDisabledRequired).toBe("dep");
+	expect(mixedDisabledResolved).toBe("path");
+	expect(mixedDisabledUnknownMember).toBe(undefined);
+	expect(resolveWithOptions).toBe("path");
+	expect(escapedRequireType).toBe("function");
+	expect(sequenceResolved).toBe("path");
+	expect(extraArgRequired).toBe("dep");
+	expect(inlineExtraArgResolved).toBe("path");
+	expect(extraArgEffects).toEqual([true, true]);
+});
+
+export { cacheType, escapedRequireType, extraArgEffects, extraArgRequired, inlineExtraArgResolved, inlineResolved, mixedDisabledRequired, mixedDisabledResolved, mixedDisabledUnknownMember, required, resolvePaths, resolveWithOptions, resolved, sequenceResolved, unknownMember };
+
+```
+
+```mjs title=runtime.mjs
+
+var __rspack_modules = {};
+// The module cache
+var __rspack_module_cache = {};
+// The require function
+function __rspack_require(moduleId) {
+// Check if module is in cache
+var cachedModule = __rspack_module_cache[moduleId];
+if (cachedModule !== undefined) {
+return cachedModule.exports;
+}
+// Create a new module (and put it into the cache)
+var module = (__rspack_module_cache[moduleId] = {
+exports: {}
+});
+// Execute the module function
+__rspack_modules[moduleId](module, module.exports, __rspack_context);
+
+// Return the exports of the module
+return module.exports;
+}
+var __rspack_context = {};
+__rspack_context.r = __rspack_require;
+// expose the modules object (__rspack_modules)
+__rspack_context.m = __rspack_modules;
+// expose the module cache
+__rspack_context.c = __rspack_module_cache;
+
+var moduleCache=typeof __rspack_module_cache !== "undefined" ? __rspack_module_cache : {}, moduleFactories=__rspack_modules;
+// rspack/runtime/esm_register_module
+moduleFactories.add = function registerModules(modules) { Object.assign(moduleFactories, modules) }
+;
+
+export { __rspack_context };
+
+```

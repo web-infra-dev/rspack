@@ -11,9 +11,15 @@ function iterateLater() {
 	}
 }
 
+var redeclaredRequire = createRequire(import.meta.url);
+if (globalThis.__RSPACK_REDECLARE_CREATED_REQUIRE__) {
+	var redeclaredRequire = request => request;
+}
+
 export const mutationUnknowns = [
 	typeof updateLater,
 	typeof iterateLater,
 	updatedRequire.a,
-	iteratedRequire.a
+	iteratedRequire.a,
+	redeclaredRequire.a
 ];

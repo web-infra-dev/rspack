@@ -9,9 +9,9 @@ use swc_experimental_ecma_ast::{
   ExprOrSpread, ExprStmt, FnExpr, ForHead, ForInStmt, ForOfStmt, ForStmt, Function, GetSpan,
   GetterProp, Ident, IdentName, IfStmt, JSXAttr, JSXAttrOrSpread, JSXAttrValue, JSXElement,
   JSXElementChild, JSXElementName, JSXExpr, JSXExprContainer, JSXFragment, JSXMemberExpr,
-  JSXNamespacedName, JSXObject, KeyValueProp, LabeledStmt, MemberExpr, MemberProp, MetaPropExpr,
-  ModuleDecl, ModuleItem, NewExpr, ObjectLit, ObjectPat, ObjectPatProp, OptCall, OptChainExpr,
-  Param, Pat, Prop, PropName, PropOrSpread, RestPat, ReturnStmt, SeqExpr, SetterProp,
+  JSXNamespacedName, JSXObject, KeyValueProp, LabeledStmt, Lit, MemberExpr, MemberProp,
+  MetaPropExpr, ModuleDecl, ModuleItem, NewExpr, ObjectLit, ObjectPat, ObjectPatProp, OptCall,
+  OptChainExpr, Param, Pat, Prop, PropName, PropOrSpread, RestPat, ReturnStmt, SeqExpr, SetterProp,
   SimpleAssignTarget, Stmt, SwitchCase, SwitchStmt, TaggedTpl, ThisExpr, ThrowStmt, Tpl, TryStmt,
   UnaryExpr, UnaryOp, UpdateExpr, VarDeclOrExpr, WhileStmt, WithStmt, YieldExpr,
 };
@@ -26,19 +26,14 @@ use crate::{
   parser_plugin::{
     CREATE_REQUIRE_EVALUATED_TAG, CREATE_REQUIRE_SPECIFIER_TAG, CREATED_REQUIRE_IDENTIFIER_TAG,
     CreatedRequireTagData, JavascriptParserPlugin, is_create_require_namespace_member,
+    is_create_require_specifier, tag_create_require_alias,
   },
   visitors::{
-    AtomMembers, ExportedVariableInfo, ExprRef, VariableDeclaration, VariableInfo,
-    VariableInfoFlags, dependency::parser::ExtractedMemberExpressionChainData,
+    AtomMembers, ExportedVariableInfo, ExprRef, VariableDeclaration, VariableDeclarationKind,
+    VariableInfo, VariableInfoFlags, dependency::parser::ExtractedMemberExpressionChainData,
     get_non_optional_part,
   },
 };
-
-fn is_create_require_tag(tag: &str, include_create_require_fn: bool) -> bool {
-  tag == CREATED_REQUIRE_IDENTIFIER_TAG
-    || (include_create_require_fn
-      && (tag == CREATE_REQUIRE_SPECIFIER_TAG || tag == CREATE_REQUIRE_EVALUATED_TAG))
-}
 
 fn warp_ident_to_pat<'a>(ident: &Ident<'a>, allocator: &'a Allocator) -> Pat<'a> {
   Pat::Ident(allocator.boxed(ident.clone_in(allocator).into_binding(allocator)))
@@ -112,11 +107,27 @@ impl JavascriptParser<'_> {
     F: FnOnce(&mut Self),
     I: Iterator<Item = PatRef<'a>>,
   {
+    self.in_function_scope_with_execution(has_this, params, true, f);
+  }
+
+  fn in_function_scope_with_execution<'a, I, F>(
+    &mut self,
+    has_this: bool,
+    params: I,
+    deferred: bool,
+    f: F,
+  ) where
+    F: FnOnce(&mut Self),
+    I: Iterator<Item = PatRef<'a>>,
+  {
     let old_definitions = self.definitions;
     let old_top_level_scope = self.top_level_scope;
     let old_in_tagged_template_tag = self.in_tagged_template_tag;
     let old_terminated = self.terminated;
 
+    if deferred {
+      self.deferred_function_scope_depth += 1;
+    }
     self.definitions = self.definitions_db.create_child(old_definitions);
     self.in_tagged_template_tag = false;
     self.terminated = None;
@@ -130,9 +141,22 @@ impl JavascriptParser<'_> {
 
     self.definitions_db.exit_scope(self.definitions);
     self.definitions = old_definitions;
+    if deferred {
+      self.deferred_function_scope_depth -= 1;
+    }
     self.top_level_scope = old_top_level_scope;
     self.in_tagged_template_tag = old_in_tagged_template_tag;
     self.terminated = old_terminated;
+  }
+
+  fn in_immediate_execution<F>(&mut self, f: F)
+  where
+    F: FnOnce(&mut Self),
+  {
+    let old_in_immediate_execution = self.in_immediate_execution;
+    self.in_immediate_execution = true;
+    f(self);
+    self.in_immediate_execution = old_in_immediate_execution;
   }
 
   pub fn walk_module_items(&mut self, statements: &[ModuleItem<'_>]) {
@@ -503,6 +527,7 @@ impl JavascriptParser<'_> {
         self.copy_create_require_assignment_result(
           Atom::from(binding.id.sym.as_str()),
           &Atom::from(target.id.sym.as_str()),
+          decl.kind() == VariableDeclarationKind::Const,
         );
         continue;
       }
@@ -514,9 +539,10 @@ impl JavascriptParser<'_> {
           && renamed_identifier == CREATE_REQUIRE_EVALUATED_TAG
           && !matches!(init, Expr::Call(_) | Expr::New(_))
         {
-          self.set_variable(
+          tag_create_require_alias(
+            self,
             Atom::from(ident.id.sym.as_str()),
-            ExportedVariableInfo::Name(renamed_identifier),
+            decl.kind() == VariableDeclarationKind::Const,
           );
           self.walk_expression(init);
           continue;
@@ -662,25 +688,41 @@ impl JavascriptParser<'_> {
   }
 
   fn has_create_require_tag(&mut self, name: &Atom, include_create_require_fn: bool) -> bool {
+    let deferred_function_scope_depth = self.deferred_function_scope_depth;
+    let in_immediate_execution = self.in_immediate_execution;
+    let created_require_can_parse = self
+      .get_tag_data::<CreatedRequireTagData>(name, CREATED_REQUIRE_IDENTIFIER_TAG)
+      .map(|data| {
+        !data.must_preserve_runtime(deferred_function_scope_depth, in_immediate_execution)
+      });
+    let create_require_specifier_can_parse =
+      include_create_require_fn && is_create_require_specifier(self, name);
     let Some(variable_info) = self.get_variable_info(name) else {
       return false;
     };
-    if variable_info
-      .name
-      .as_ref()
-      .is_some_and(|name| is_create_require_tag(name, include_create_require_fn))
-    {
-      return true;
+    if let Some(variable_name) = variable_info.name.as_deref() {
+      if variable_name == CREATED_REQUIRE_IDENTIFIER_TAG {
+        return created_require_can_parse.unwrap_or(true);
+      }
+      if include_create_require_fn && variable_name == CREATE_REQUIRE_EVALUATED_TAG {
+        return true;
+      }
+      if include_create_require_fn && variable_name == CREATE_REQUIRE_SPECIFIER_TAG {
+        return create_require_specifier_can_parse;
+      }
     }
     let mut tag_info_id = variable_info.tag_info;
     while let Some(id) = tag_info_id {
       let tag_info = self.definitions_db.expect_get_tag_info(id);
-      if is_create_require_tag(tag_info.tag, include_create_require_fn) {
+      if tag_info.tag == CREATED_REQUIRE_IDENTIFIER_TAG {
+        return created_require_can_parse.unwrap_or(true);
+      }
+      if include_create_require_fn && tag_info.tag == CREATE_REQUIRE_EVALUATED_TAG {
         return true;
       }
       tag_info_id = tag_info.next;
     }
-    false
+    create_require_specifier_can_parse
   }
 
   fn clear_created_require_tags_in_pattern(&mut self, pat: &Pat) {
@@ -722,7 +764,14 @@ impl JavascriptParser<'_> {
     ident: &Ident,
   ) -> Option<bool> {
     let ident_name = Atom::from(ident.sym.as_str());
+    let deferred_function_scope_depth = self.deferred_function_scope_depth;
+    let in_immediate_execution = self.in_immediate_execution;
     if matches!(expr.op, AssignOp::OrAssign | AssignOp::NullishAssign)
+      && !self
+        .get_tag_data::<CreatedRequireTagData>(&ident_name, CREATED_REQUIRE_IDENTIFIER_TAG)
+        .is_some_and(|data| {
+          data.must_preserve_runtime(deferred_function_scope_depth, in_immediate_execution)
+        })
       && self.has_create_require_tag(&ident_name, true)
     {
       // A logical assignment reads the created require's value; its truthiness / nullishness
@@ -735,28 +784,36 @@ impl JavascriptParser<'_> {
     if expr.op != AssignOp::Assign {
       return None;
     }
-    if let Some(variable) = expr.right.as_ident().and_then(|rhs| {
+    if let Some((context, decl_span)) = expr.right.as_ident().and_then(|rhs| {
       let rhs_name = Atom::from(rhs.sym.as_str());
-      if self
-        .get_tag_data::<CreatedRequireTagData>(&rhs_name, CREATED_REQUIRE_IDENTIFIER_TAG)
-        .is_some_and(|data| data.pre_walk)
-        || !self.has_create_require_tag(&rhs_name, false)
-      {
+      let data =
+        self.get_tag_data::<CreatedRequireTagData>(&rhs_name, CREATED_REQUIRE_IDENTIFIER_TAG)?;
+      if data.must_preserve_runtime(deferred_function_scope_depth, in_immediate_execution) {
         return None;
       }
+      let data = (data.context.clone(), data.decl_span);
       self.mark_created_require_must_keep(&rhs_name);
-      self.get_variable_info(&rhs_name).map(|info| info.id())
+      Some(data)
     }) {
-      self.set_variable(
+      self.tag_variable(
         ident_name.clone(),
-        ExportedVariableInfo::VariableInfo(variable),
+        CREATED_REQUIRE_IDENTIFIER_TAG,
+        Some(CreatedRequireTagData {
+          context,
+          pre_walk: false,
+          deferred_function_scope_depth,
+          parse_in_deferred_function: false,
+          decl_span,
+        }),
       );
       return Some(true);
     }
     if let Some(rename_identifier) = self.get_rename_identifier(&expr.right)
       && let Some((context, decl_span)) = self
         .get_tag_data::<CreatedRequireTagData>(&rename_identifier, CREATED_REQUIRE_IDENTIFIER_TAG)
-        .filter(|data| !data.pre_walk)
+        .filter(|data| {
+          !data.must_preserve_runtime(deferred_function_scope_depth, in_immediate_execution)
+        })
         .map(|data| (data.context.clone(), data.decl_span))
     {
       self.mark_created_require_must_keep(&rename_identifier);
@@ -765,8 +822,9 @@ impl JavascriptParser<'_> {
         CREATED_REQUIRE_IDENTIFIER_TAG,
         Some(CreatedRequireTagData {
           context,
-          side_effects: String::new(),
           pre_walk: false,
+          deferred_function_scope_depth,
+          parse_in_deferred_function: false,
           decl_span,
         }),
       );
@@ -776,24 +834,33 @@ impl JavascriptParser<'_> {
       return Some(true);
     }
     if is_create_require_namespace_member(self, &expr.right) {
-      self.tag_variable_without_data(ident_name.clone(), CREATE_REQUIRE_SPECIFIER_TAG);
+      tag_create_require_alias(self, ident_name.clone(), false);
       self.walk_expression(&expr.right);
       return Some(true);
     }
     if let Some(rename_identifier) = self.get_rename_identifier(&expr.right)
       && rename_identifier == CREATE_REQUIRE_EVALUATED_TAG
     {
-      self.set_variable(ident_name, ExportedVariableInfo::Name(rename_identifier));
+      tag_create_require_alias(self, ident_name, false);
       self.walk_expression(&expr.right);
       return Some(true);
     }
     None
   }
 
-  fn copy_create_require_assignment_result(&mut self, binding: Atom, target: &Atom) {
+  fn copy_create_require_assignment_result(
+    &mut self,
+    binding: Atom,
+    target: &Atom,
+    parse_in_deferred_function: bool,
+  ) {
+    let deferred_function_scope_depth = self.deferred_function_scope_depth;
+    let in_immediate_execution = self.in_immediate_execution;
     if let Some((context, decl_span)) = self
       .get_tag_data::<CreatedRequireTagData>(target, CREATED_REQUIRE_IDENTIFIER_TAG)
-      .filter(|data| !data.pre_walk)
+      .filter(|data| {
+        !data.must_preserve_runtime(deferred_function_scope_depth, in_immediate_execution)
+      })
       .map(|data| (data.context.clone(), data.decl_span))
     {
       self.mark_created_require_must_keep(target);
@@ -802,8 +869,9 @@ impl JavascriptParser<'_> {
         CREATED_REQUIRE_IDENTIFIER_TAG,
         Some(CreatedRequireTagData {
           context,
-          side_effects: String::new(),
           pre_walk: false,
+          deferred_function_scope_depth,
+          parse_in_deferred_function,
           decl_span,
         }),
       );
@@ -813,12 +881,9 @@ impl JavascriptParser<'_> {
         .as_ref()
         .is_some_and(|name| name == CREATE_REQUIRE_EVALUATED_TAG)
     {
-      self.set_variable(
-        binding,
-        ExportedVariableInfo::Name(CREATE_REQUIRE_EVALUATED_TAG.into()),
-      );
+      tag_create_require_alias(self, binding, parse_in_deferred_function);
     } else if self.has_create_require_tag(target, true) {
-      self.tag_variable_without_data(binding, CREATE_REQUIRE_SPECIFIER_TAG);
+      tag_create_require_alias(self, binding, parse_in_deferred_function);
     }
   }
 
@@ -855,6 +920,16 @@ impl JavascriptParser<'_> {
   }
 
   fn walk_tagged_template_expression(&mut self, expr: &TaggedTpl) {
+    if let Some(function) = expr.tag.as_fn() {
+      self.walk_expressions(expr.tpl.exprs.iter());
+      self.walk_function_expression_with_execution(function, false);
+      return;
+    }
+    if let Some(arrow) = expr.tag.as_arrow() {
+      self.walk_expressions(expr.tpl.exprs.iter());
+      self.walk_arrow_function_expression_with_execution(arrow, false);
+      return;
+    }
     self.in_tagged_template_tag = true;
     self.walk_expression(&expr.tag);
     self.in_tagged_template_tag = false;
@@ -1115,6 +1190,20 @@ impl JavascriptParser<'_> {
         return;
       }
     }
+    if let Some(function) = expr.callee.as_fn() {
+      if let Some(args) = &expr.args {
+        self.walk_expr_or_spread(args);
+      }
+      self.walk_function_expression_with_execution(function, false);
+      return;
+    }
+    if expr.callee.as_class().is_some() {
+      self.in_immediate_execution(|parser| parser.walk_expression(&expr.callee));
+      if let Some(args) = &expr.args {
+        self.walk_expr_or_spread(args);
+      }
+      return;
+    }
     self.walk_expression(&expr.callee);
     if let Some(args) = &expr.args {
       self.walk_expr_or_spread(args);
@@ -1329,7 +1418,7 @@ impl JavascriptParser<'_> {
     })
   }
 
-  /// Walk IIFE function
+  /// Walk an immediately invoked or bound function.
   ///
   /// # Panics
   /// Either `Params` of `expr` or `params` passed in should be `BindingIdent`.
@@ -1338,6 +1427,7 @@ impl JavascriptParser<'_> {
     expr: &'a Expr<'a>,
     args: impl Iterator<Item = &'a Expr<'a>>,
     current_this: Option<&'a Expr<'a>>,
+    deferred: bool,
   ) {
     fn get_var_name(
       parser: &mut JavascriptParser,
@@ -1421,7 +1511,7 @@ impl JavascriptParser<'_> {
         TopLevelScope::False
       };
 
-    self.in_function_scope(true, scope_params.into_iter(), |parser| {
+    self.in_function_scope_with_execution(true, scope_params.into_iter(), deferred, |parser| {
       if let Some(this) = rename_this
         && !expr.is_arrow()
       {
@@ -1460,50 +1550,100 @@ impl JavascriptParser<'_> {
   }
 
   fn walk_call_expression(&mut self, expr: &CallExpr) {
+    #[derive(Clone, Copy, PartialEq, Eq)]
+    enum FunctionInvocationKind {
+      Apply,
+      Bind,
+      Call,
+    }
+
+    fn function_invocation_kind(prop: &MemberProp) -> Option<FunctionInvocationKind> {
+      fn from_name(name: &str) -> Option<FunctionInvocationKind> {
+        match name {
+          "apply" => Some(FunctionInvocationKind::Apply),
+          "bind" => Some(FunctionInvocationKind::Bind),
+          "call" => Some(FunctionInvocationKind::Call),
+          _ => None,
+        }
+      }
+
+      match prop {
+        MemberProp::Ident(ident) => from_name(ident.sym.as_str()),
+        MemberProp::Computed(computed) => match &computed.expr {
+          Expr::Lit(lit) => match &**lit {
+            Lit::Str(value) => from_name(value.value.as_wtf8().to_string_lossy().as_ref()),
+            _ => None,
+          },
+          _ => None,
+        },
+        MemberProp::PrivateName(_) => None,
+      }
+    }
+
     fn is_simple_function(params: &[Param]) -> bool {
       params.iter().all(|p| matches!(p.pat, Pat::Ident(_)))
+    }
+
+    fn is_simple_callable(expr: &Expr) -> bool {
+      match expr {
+        Expr::Fn(function) => is_simple_function(&function.function.params),
+        Expr::Arrow(arrow) => arrow.params.iter().all(|param| param.as_ident().is_some()),
+        _ => false,
+      }
     }
 
     // FIXME: should align to webpack
     match &expr.callee {
       Callee::Expr(callee) => {
         if let Expr::Member(member_expr) = &**callee
-          && let Expr::Fn(fn_expr) = &member_expr.obj
-          && let MemberProp::Ident(ident) = &member_expr.prop
-          && (ident.sym.as_str() == "call" || ident.sym.as_str() == "bind")
+          && let Some(invocation) = function_invocation_kind(&member_expr.prop)
+          && matches!(
+            invocation,
+            FunctionInvocationKind::Bind | FunctionInvocationKind::Call
+          )
           && !expr.args.is_empty()
-          && is_simple_function(&fn_expr.function.params)
+          && is_simple_callable(&member_expr.obj)
         {
           // (function(…) { }).call(…)
           let mut params = expr.args.iter().map(|arg| &arg.expr);
           let this = params.next();
-          self._walk_iife(&member_expr.obj, params, this)
-        } else if let Expr::Member(member_expr) = &**callee
-          && let Expr::Fn(fn_expr) = &member_expr.obj
-          && let MemberProp::Ident(ident) = &member_expr.prop
-          && (ident.sym.as_str() == "call" || ident.sym.as_str() == "bind")
-          && !expr.args.is_empty()
-          && is_simple_function(&fn_expr.function.params)
-        {
-          // (function(…) { }.call(…))
-          let mut params = expr.args.iter().map(|arg| &arg.expr);
-          let this = params.next();
-          self._walk_iife(&member_expr.obj, params, this)
+          self._walk_iife(
+            &member_expr.obj,
+            params,
+            this,
+            invocation == FunctionInvocationKind::Bind,
+          )
         } else if let Expr::Fn(fn_expr) = &**callee
           && is_simple_function(&fn_expr.function.params)
         {
           // (function(…) { })(…)
-          self._walk_iife(callee, expr.args.iter().map(|arg| &arg.expr), None)
-        } else if let Expr::Fn(fn_expr) = &**callee
-          && is_simple_function(&fn_expr.function.params)
-        {
-          // ((…) => { }(…))
-          self._walk_iife(callee, expr.args.iter().map(|arg| &arg.expr), None)
+          self._walk_iife(callee, expr.args.iter().map(|arg| &arg.expr), None, false)
         } else if let Expr::Arrow(arrow_expr) = &**callee
           && arrow_expr.params.iter().all(|p| p.as_ident().is_some())
         {
-          // (function(…) { }(…))
-          self._walk_iife(callee, expr.args.iter().map(|arg| &arg.expr), None)
+          // ((…) => { })(…)
+          self._walk_iife(callee, expr.args.iter().map(|arg| &arg.expr), None, false)
+        } else if let Expr::Member(member_expr) = &**callee
+          && let Some(invocation) = function_invocation_kind(&member_expr.prop)
+          && matches!(&member_expr.obj, Expr::Fn(_) | Expr::Arrow(_))
+        {
+          self.walk_expr_or_spread(&expr.args);
+          let deferred = invocation == FunctionInvocationKind::Bind;
+          match &member_expr.obj {
+            Expr::Fn(function) => {
+              self.walk_function_expression_with_execution(function, deferred);
+            }
+            Expr::Arrow(arrow) => {
+              self.walk_arrow_function_expression_with_execution(arrow, deferred);
+            }
+            _ => unreachable!("checked above"),
+          }
+        } else if let Expr::Fn(function) = &**callee {
+          self.walk_expr_or_spread(&expr.args);
+          self.walk_function_expression_with_execution(function, false);
+        } else if let Expr::Arrow(arrow) = &**callee {
+          self.walk_expr_or_spread(&expr.args);
+          self.walk_arrow_function_expression_with_execution(arrow, false);
         } else {
           if let Expr::Member(member) = &**callee {
             if let Some(MemberExpressionInfo::Call(expr_info)) = self.get_member_expression_info(
@@ -1818,25 +1958,34 @@ impl JavascriptParser<'_> {
   }
 
   fn walk_arrow_function_expression(&mut self, expr: &ArrowExpr) {
+    self.walk_arrow_function_expression_with_execution(expr, true);
+  }
+
+  fn walk_arrow_function_expression_with_execution(&mut self, expr: &ArrowExpr, deferred: bool) {
     let was_top_level_scope = self.top_level_scope;
     if !matches!(was_top_level_scope, TopLevelScope::False) {
       self.top_level_scope = TopLevelScope::ArrowFunction;
     }
-    self.in_function_scope(false, expr.params.iter().map(PatRef::Borrowed), |this| {
-      for param in &expr.params {
-        this.walk_pattern(param)
-      }
-      match &expr.body {
-        BlockStmtOrExpr::BlockStmt(stmt) => {
-          this.detect_mode(&stmt.stmts);
-          let prev = this.prev_statement;
-          this.pre_walk_statement(Statement::Block(stmt));
-          this.prev_statement = prev;
-          this.walk_statement(Statement::Block(stmt));
+    self.in_function_scope_with_execution(
+      false,
+      expr.params.iter().map(PatRef::Borrowed),
+      deferred,
+      |this| {
+        for param in &expr.params {
+          this.walk_pattern(param)
         }
-        BlockStmtOrExpr::Expr(expr) => this.walk_expression(expr),
-      }
-    });
+        match &expr.body {
+          BlockStmtOrExpr::BlockStmt(stmt) => {
+            this.detect_mode(&stmt.stmts);
+            let prev = this.prev_statement;
+            this.pre_walk_statement(Statement::Block(stmt));
+            this.prev_statement = prev;
+            this.walk_statement(Statement::Block(stmt));
+          }
+          BlockStmtOrExpr::Expr(expr) => this.walk_expression(expr),
+        }
+      },
+    );
     self.top_level_scope = was_top_level_scope;
   }
 
@@ -1907,6 +2056,10 @@ impl JavascriptParser<'_> {
   }
 
   fn walk_function_expression(&mut self, expr: &FnExpr) {
+    self.walk_function_expression_with_execution(expr, true);
+  }
+
+  fn walk_function_expression_with_execution(&mut self, expr: &FnExpr, deferred: bool) {
     let was_top_level = self.top_level_scope;
     self.top_level_scope = TopLevelScope::False;
     let mut scope_params: Vec<_> = expr
@@ -1924,7 +2077,7 @@ impl JavascriptParser<'_> {
       scope_params.push(PatRef::Owned(pat));
     }
 
-    self.in_function_scope(true, scope_params.into_iter(), |this| {
+    self.in_function_scope_with_execution(true, scope_params.into_iter(), deferred, |this| {
       this.walk_function(&expr.function);
     });
     self.top_level_scope = was_top_level;
