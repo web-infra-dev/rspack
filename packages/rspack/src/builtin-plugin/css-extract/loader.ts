@@ -43,7 +43,6 @@ export function hotLoader(
     if(module.hot) {
       (function() {
         var localsJsonString = ${localsJsonString};
-        // ${Date.now()}
         var cssReload = require(${stringifyRequest(
           context.loaderContext,
           path.join(import.meta.dirname, 'cssExtractHmr.js'),

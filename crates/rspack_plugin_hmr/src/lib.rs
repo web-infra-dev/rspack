@@ -203,6 +203,8 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       }
     }
 
+    // Independent of whether the chunk carries updated js modules: a chunk
+    // holding only extracted css has no js update when its stylesheet changes.
     if current_chunk.is_some() {
       for runtime in new_runtime.iter() {
         if let Some(info) = hot_update_main_content_by_runtime.get_mut(runtime) {
@@ -211,6 +213,12 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           }
           if mini_css_update == CssUpdate::Removed {
             info.mini_css_removed_chunk_ids.insert(chunk_id.clone());
+          }
+          if css_update == CssUpdate::Changed {
+            info.css_updated_chunk_ids.insert(chunk_id.clone());
+          }
+          if mini_css_update == CssUpdate::Changed {
+            info.mini_css_updated_chunk_ids.insert(chunk_id.clone());
           }
         }
       }
@@ -371,12 +379,6 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       new_runtime.iter().for_each(|runtime| {
         if let Some(info) = hot_update_main_content_by_runtime.get_mut(runtime) {
           info.updated_chunk_ids.insert(chunk_id.clone());
-          if css_update == CssUpdate::Changed {
-            info.css_updated_chunk_ids.insert(chunk_id.clone());
-          }
-          if mini_css_update == CssUpdate::Changed {
-            info.mini_css_updated_chunk_ids.insert(chunk_id.clone());
-          }
         }
       });
     }
