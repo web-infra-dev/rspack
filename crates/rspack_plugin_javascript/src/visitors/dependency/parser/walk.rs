@@ -805,6 +805,7 @@ impl JavascriptParser<'_> {
           deferred_function_scope_depth,
           parse_in_deferred_function: false,
           decl_span,
+          inline_create_require_callee_span: None,
         }),
       );
       return Some(true);
@@ -828,6 +829,7 @@ impl JavascriptParser<'_> {
           deferred_function_scope_depth,
           parse_in_deferred_function: false,
           decl_span,
+          inline_create_require_callee_span: None,
         }),
       );
       if !expr.right.is_ident() {
@@ -875,6 +877,7 @@ impl JavascriptParser<'_> {
           deferred_function_scope_depth,
           parse_in_deferred_function,
           decl_span,
+          inline_create_require_callee_span: None,
         }),
       );
     } else if let Some(info) = self.get_variable_info(target)

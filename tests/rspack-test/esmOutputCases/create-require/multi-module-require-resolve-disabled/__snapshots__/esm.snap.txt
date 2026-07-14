@@ -1,6 +1,7 @@
 ```mjs title=main.mjs
 import { __webpack_require__ } from "./runtime.mjs";
 
+import * as __rspack_external_path from "path";
 import { createRequire as __rspack_createRequire } from "node:module";
 const __rspack_createRequire_require = __rspack_createRequire(import.meta.url);
 __webpack_require__.add({
@@ -10,6 +11,16 @@ __webpack_require__.add({
   \****************/
 (module) {
 module.exports = "dep";
+
+
+},
+"path"
+/*!***********************!*\
+  !*** external "path" ***!
+  \***********************/
+(module) {
+
+module.exports = __rspack_external_path;
 
 
 },
@@ -94,12 +105,29 @@ let variableExtraArgRan = false;
 const with_extra_create_require_args_require = external_node_module_namespaceObject.createRequire(import.meta.url, (variableExtraArgRan = true));
 
 let inlineExtraArgRan = false;
+let inlineRequireExtraArgRan = false;
+let inlineCacheExtraArgRan = false;
 const extraArgRequired = __webpack_require__(/*! ./dep.js */ "./dep.js");
+const inlineExtraArgRequired = (function() { return __webpack_require__; })(
+	'<ROOT>/tests/rspack-test/esmOutputCases/create-require/multi-module-require-resolve-disabled/with-extra-create-require-args.js',
+	(inlineRequireExtraArgRan = true),
+	__webpack_require__(/*! path */ "path")
+)(/*! ./dep.js */ "./dep.js");
 const inlineExtraArgResolved = external_node_module_namespaceObject.createRequire(
 	import.meta.url,
 	(inlineExtraArgRan = true)
 ).resolve("path");
-const extraArgEffects = [variableExtraArgRan, inlineExtraArgRan];
+const inlineExtraArgCacheType = typeof (function() { return { cache: __webpack_require__.c }; })(
+	'<ROOT>/tests/rspack-test/esmOutputCases/create-require/multi-module-require-resolve-disabled/with-extra-create-require-args.js',
+	(inlineCacheExtraArgRan = true),
+	__webpack_require__(/*! path */ "path")
+).cache;
+const extraArgEffects = [
+	variableExtraArgRan,
+	inlineExtraArgRan,
+	inlineRequireExtraArgRan,
+	inlineCacheExtraArgRan
+];
 
 // ./with-conditional-copy.js
 
@@ -149,12 +177,14 @@ it("preserves only modules with runtime created-require usages when requireResol
 	expect(escapedRequireType).toBe("function");
 	expect(sequenceResolved).toBe("path");
 	expect(extraArgRequired).toBe("dep");
+	expect(inlineExtraArgRequired).toBe("dep");
+	expect(inlineExtraArgCacheType).toBe("object");
 	expect(inlineExtraArgResolved).toBe("path");
-	expect(extraArgEffects).toEqual([true, true]);
+	expect(extraArgEffects).toEqual([true, true, true, true]);
 	expect(conditionalCopyResolved).toEqual(["path", "path"]);
 });
 
-export { cacheType, conditionalCopyResolved, escapedRequireType, extraArgEffects, extraArgRequired, inlineExtraArgResolved, inlineResolved, mixedDisabledRequired, mixedDisabledResolved, mixedDisabledUnknownMember, required, resolvePaths, resolveWithOptions, resolved, sequenceResolved, unknownMember };
+export { cacheType, conditionalCopyResolved, escapedRequireType, extraArgEffects, extraArgRequired, inlineExtraArgCacheType, inlineExtraArgRequired, inlineExtraArgResolved, inlineResolved, mixedDisabledRequired, mixedDisabledResolved, mixedDisabledUnknownMember, required, resolvePaths, resolveWithOptions, resolved, sequenceResolved, unknownMember };
 
 ```
 

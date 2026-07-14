@@ -132,7 +132,14 @@ it("preserves created require only for unhandled usages across modules", () => {
 		true
 	]);
 	expect(preInitializationLogicalAssignmentValues).toEqual(["dep", "dep"]);
-	expect(preInitializationThrows).toEqual([true, true, true, true, true]);
+	expect(preInitializationThrows).toEqual([
+		true,
+		true,
+		true,
+		true,
+		true,
+		true
+	]);
 	expect(shadowedCalleeThrows).toBe(true);
 	expect(ignoredRequiredJoinType).toBe("function");
 	expect(ignoredResolved).toBe("path");

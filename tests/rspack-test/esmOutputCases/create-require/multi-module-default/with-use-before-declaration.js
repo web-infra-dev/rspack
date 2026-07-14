@@ -1,5 +1,17 @@
 import { createRequire } from "node:module";
 
+function invokeBeforeDeferredRequireDeclaration() {
+	deferredPreInitializationRequire("./dep.js");
+}
+
+let deferredFunctionPreInitializationThrows = false;
+try {
+	invokeBeforeDeferredRequireDeclaration();
+} catch {
+	deferredFunctionPreInitializationThrows = true;
+}
+const deferredPreInitializationRequire = createRequire(import.meta.url);
+
 function readUnknownMember() {
 	return require.a;
 }
@@ -97,6 +109,7 @@ export const shadowedCalleeThrows = (() => {
 	}
 })();
 export const preInitializationThrows = [
+	deferredFunctionPreInitializationThrows,
 	(() => {
 		try {
 			lexicalRequire("path");

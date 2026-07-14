@@ -135,10 +135,10 @@ const conditionalUnknownMember = with_conditional_callee_require.a;
 // ./with-nested-extra-args.js
 
 
-const nestedExtraArgRequiredJoinType = typeof external_node_module_namespaceObject.createRequire(
-	"<ROOT>/tests/rspack-test/esmOutputCases/create-require/multi-module-default/with-nested-extra-args.js",
+const nestedExtraArgRequiredJoinType = typeof (function() { return __rspack_context.r; })(
+	'<ROOT>/tests/rspack-test/esmOutputCases/create-require/multi-module-default/with-nested-extra-args.js',
 	__rspack_context.r(/*! path */ "path")
-)("path").join;
+)(/*! path */ "path").join;
 
 const nestedExtraArgResolved = external_node_module_namespaceObject.createRequire(
 	"<ROOT>/tests/rspack-test/esmOutputCases/create-require/multi-module-default/with-nested-extra-args.js",
@@ -147,6 +147,18 @@ const nestedExtraArgResolved = external_node_module_namespaceObject.createRequir
 
 // ./with-use-before-declaration.js
 
+
+function invokeBeforeDeferredRequireDeclaration() {
+	(deferredPreInitializationRequire, __rspack_context.r)(/*! ./dep.js */ "./dep.js");
+}
+
+let deferredFunctionPreInitializationThrows = false;
+try {
+	invokeBeforeDeferredRequireDeclaration();
+} catch {
+	deferredFunctionPreInitializationThrows = true;
+}
+const deferredPreInitializationRequire = (0,external_node_module_namespaceObject.createRequire)(import.meta.url);
 
 function readUnknownMember() {
 	return with_use_before_declaration_require.a;
@@ -157,11 +169,11 @@ function loadBuiltin() {
 }
 
 function loadLocalModule() {
-	return __rspack_context.r(/*! ./dep.js */ "./dep.js");
+	return (with_use_before_declaration_require, __rspack_context.r)(/*! ./dep.js */ "./dep.js");
 }
 
 function loadHandledBeforeDeclaration() {
-	return __rspack_context.r(/*! ./dep.js */ "./dep.js");
+	return (handledBeforeDeclarationRequire, __rspack_context.r)(/*! ./dep.js */ "./dep.js");
 }
 
 function loadMutableBeforeDeclaration() {
@@ -169,7 +181,7 @@ function loadMutableBeforeDeclaration() {
 }
 
 const loadBoundBeforeDeclaration = function () {
-	return __rspack_context.r(/*! ./dep.js */ "./dep.js");
+	return (boundBeforeDeclarationRequire, __rspack_context.r)(/*! ./dep.js */ "./dep.js");
 }.bind(null);
 
 let assignedRequire;
@@ -178,8 +190,8 @@ function readAssignedUnknownMember() {
 }
 
 const with_use_before_declaration_require = (0,external_node_module_namespaceObject.createRequire)(import.meta.url);
-const boundBeforeDeclarationRequire = /* createRequire() */ undefined;
-const handledBeforeDeclarationRequire = /* createRequire() */ undefined;
+const boundBeforeDeclarationRequire = (0,external_node_module_namespaceObject.createRequire)(import.meta.url);
+const handledBeforeDeclarationRequire = (0,external_node_module_namespaceObject.createRequire)(import.meta.url);
 let mutableBeforeDeclarationRequire = (0,external_node_module_namespaceObject.createRequire)(import.meta.url);
 mutableBeforeDeclarationRequire = request => request;
 let mutableAfterDeclarationRequire = (0,external_node_module_namespaceObject.createRequire)(import.meta.url);
@@ -213,7 +225,7 @@ function readAliasedCalleeUnknownMember() {
 	return aliasedCalleeRequire.a;
 }
 function loadAliasedCalleeLocalModule() {
-	return __rspack_context.r(/*! ./dep.js */ "./dep.js");
+	return (aliasedCalleeRequire, __rspack_context.r)(/*! ./dep.js */ "./dep.js");
 }
 const aliasedCalleeRequire = createRequireAlias(import.meta.url);
 const handledAliasedCalleeRequire = (0, createRequireAlias)(import.meta.url);
@@ -245,6 +257,7 @@ const shadowedCalleeThrows = (() => {
 	}
 })();
 const preInitializationThrows = [
+	deferredFunctionPreInitializationThrows,
 	(() => {
 		try {
 			lexicalRequire("path");
@@ -494,7 +507,14 @@ it("preserves created require only for unhandled usages across modules", () => {
 		true
 	]);
 	expect(preInitializationLogicalAssignmentValues).toEqual(["dep", "dep"]);
-	expect(preInitializationThrows).toEqual([true, true, true, true, true]);
+	expect(preInitializationThrows).toEqual([
+		true,
+		true,
+		true,
+		true,
+		true,
+		true
+	]);
 	expect(shadowedCalleeThrows).toBe(true);
 	expect(ignoredRequiredJoinType).toBe("function");
 	expect(ignoredResolved).toBe("path");

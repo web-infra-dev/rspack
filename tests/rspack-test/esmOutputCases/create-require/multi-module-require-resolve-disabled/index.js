@@ -15,6 +15,8 @@ import { sequenceResolved } from "./with-sequence-callee.js";
 import {
 	extraArgEffects,
 	extraArgRequired,
+	inlineExtraArgCacheType,
+	inlineExtraArgRequired,
 	inlineExtraArgResolved
 } from "./with-extra-create-require-args.js";
 import { conditionalCopyResolved } from "./with-conditional-copy.js";
@@ -25,6 +27,8 @@ export {
 	escapedRequireType,
 	extraArgEffects,
 	extraArgRequired,
+	inlineExtraArgCacheType,
+	inlineExtraArgRequired,
 	inlineResolved,
 	inlineExtraArgResolved,
 	mixedDisabledRequired,
@@ -52,7 +56,9 @@ it("preserves only modules with runtime created-require usages when requireResol
 	expect(escapedRequireType).toBe("function");
 	expect(sequenceResolved).toBe("path");
 	expect(extraArgRequired).toBe("dep");
+	expect(inlineExtraArgRequired).toBe("dep");
+	expect(inlineExtraArgCacheType).toBe("object");
 	expect(inlineExtraArgResolved).toBe("path");
-	expect(extraArgEffects).toEqual([true, true]);
+	expect(extraArgEffects).toEqual([true, true, true, true]);
 	expect(conditionalCopyResolved).toEqual(["path", "path"]);
 });
