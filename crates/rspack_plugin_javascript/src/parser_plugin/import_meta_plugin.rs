@@ -356,7 +356,7 @@ impl ImportMetaPlugin {
     )
   }
 
-  fn import_meta_unknown_property(&self, members: &Vec<String>) -> String {
+  fn import_meta_unknown_property(&self, members: &[String]) -> String {
     if self.preserve_property(members.first().map(|property| property.as_str())) {
       concat_string!("import.meta", property_access(members, 0))
     } else {
@@ -367,6 +367,41 @@ impl ImportMetaPlugin {
         property_access(members, 1)
       )
     }
+  }
+
+  fn warn_import_meta_unknown_property(
+    &self,
+    parser: &mut JavascriptParser,
+    members: &[String],
+    span: Span,
+  ) {
+    if !matches!(self.0.as_ref(), ImportMeta::Enabled)
+      || members.first().is_some_and(|property| {
+        let name = concat_string!(expr_name::IMPORT_META, ".", property);
+        Self::known_property_from_name(&name).is_some()
+      })
+    {
+      return;
+    }
+
+    let property = if members.is_empty() {
+      "an unknown property of import.meta".to_string()
+    } else {
+      concat_string!("import.meta.", members.join("."))
+    };
+    let mut error = create_traceable_error(
+      "Critical dependency".into(),
+      concat_string!(
+        "Accessing ",
+        property,
+        " is unsupported and will be replaced with undefined"
+      )
+      .into(),
+      parser.source.to_string(),
+      span.into(),
+    );
+    error.severity = Severity::Warning;
+    parser.add_warning(error.into());
   }
 
   fn process_import_meta_resolve(&self, parser: &mut JavascriptParser, call_expr: &CallExpr) {
@@ -674,10 +709,12 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaPlugin {
               content.push_str(&self.import_meta_unknown_property(&vec![prop.id.to_string()]));
             }
           } else {
+            let members = vec![prop.id.to_string()];
+            self.warn_import_meta_unknown_property(parser, &members, span);
             content.push('[');
             content.push_str(&rspack_util::json_stringify_str(&prop.id));
             content.push_str("]: ");
-            content.push_str(&self.import_meta_unknown_property(&vec![prop.id.to_string()]));
+            content.push_str(&self.import_meta_unknown_property(&members));
           }
         }
         content.push_str("})");
@@ -867,6 +904,12 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaPlugin {
             if self.preserve_property(members.members.first().map(|property| property.as_str())) {
               return Some(true);
             }
+            let unknown_members = members
+              .members
+              .iter()
+              .map(|member| member.to_string())
+              .collect_vec();
+            self.warn_import_meta_unknown_property(parser, &unknown_members, expr.span());
             if members.members.get(1).is_some()
               && members
                 .members_optionals
@@ -877,14 +920,11 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaPlugin {
             } else {
               ConstDependency::new(
                 expr.span().into(),
-                self
-                  .import_meta_unknown_property(
-                    &members.members.iter().map(|x| x.to_string()).collect_vec(),
-                  )
-                  .into(),
+                self.import_meta_unknown_property(&unknown_members).into(),
               )
             }
           } else {
+            self.warn_import_meta_unknown_property(parser, &[], expr.span());
             ConstDependency::new(expr.span().into(), "undefined".into())
           };
 
