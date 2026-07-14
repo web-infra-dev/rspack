@@ -288,6 +288,15 @@ function hotApplyHandler(options, moduleFactoryTransaction) {
 							moduleFactoryTransaction.finalizers.push(function () {
 								for (var moduleId in preservedModuleFactories) {
 									if (<%- HAS_OWN_PROPERTY %>(preservedModuleFactories, moduleId)) {
+										var module = <%- MODULE_CACHE %>[moduleId];
+										if (module) {
+											for (var i = 0; i < module.children.length; i++) {
+												var child = <%- MODULE_CACHE %>[module.children[i]];
+												if (!child) continue;
+												var idx = child.parents.indexOf(moduleId);
+												if (idx >= 0) child.parents.splice(idx, 1);
+											}
+										}
 										delete <%- MODULE_CACHE %>[moduleId];
 										<%- MODULE_FACTORIES %>[moduleId] =
 											preservedModuleFactories[moduleId];

@@ -1,13 +1,18 @@
 const initialRemovedFactory = __webpack_require__.m["./a.js"];
 const readRemovedModule = require("./module");
+const getChildParents = require("./child").getParents;
 let removedModuleId = "./a.js";
 let factoryDuringApply;
 let factoryAtIdle;
 let valueDuringApply;
+let childParentsDuringApply;
 
 module.hot.accept("./module", () => {
 	factoryDuringApply = __webpack_require__.m[removedModuleId];
-	if (removedModuleId === "./a.js") valueDuringApply = readRemovedModule();
+	if (removedModuleId === "./a.js") {
+		valueDuringApply = readRemovedModule();
+		childParentsDuringApply = getChildParents();
+	}
 });
 
 const checkDisposedFactoryAtIdle = (status) => {
@@ -21,6 +26,8 @@ it("should preserve disposed factories only for the requested apply transaction"
 
 	expect(factoryDuringApply).toBe(initialRemovedFactory);
 	expect(valueDuringApply).toBe("a");
+	expect(childParentsDuringApply).toContain("./a.js");
+	expect(getChildParents()).not.toContain("./a.js");
 	expect(factoryAtIdle).not.toBe(initialRemovedFactory);
 	expect(__webpack_require__.m["./a.js"]).toBe(factoryAtIdle);
 	const warn = console.warn;
