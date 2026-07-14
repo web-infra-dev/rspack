@@ -5,7 +5,7 @@ use rspack_cacheable::with::Unsupported;
 use rspack_core::{
   Chunk, ChunkGraph, ChunkUkey, Compilation, Filename, PathData, RuntimeGlobals, RuntimeModule,
   RuntimeModuleGenerateContext, RuntimeTemplate, SourceType, get_filename_without_hash_length,
-  has_hash_placeholder, impl_runtime_module,
+  impl_runtime_module,
 };
 use rspack_util::{
   fx_hash::{FxIndexMap, FxIndexSet},
@@ -69,66 +69,9 @@ impl GetChunkFilenameRuntimeModule {
       Box::new(filename_for_chunk),
     )
   }
-}
 
-#[async_trait::async_trait]
-impl RuntimeModule for GetChunkFilenameRuntimeModule {
-  fn runtime_requirements(
-    &self,
-    compilation: &Compilation,
-  ) -> rspack_core::RuntimeModuleRuntimeRequirements {
-    let all_chunks = self.chunk().is_some_and(|chunk_ukey| {
-      (self.all_chunks)(get_chunk_runtime_requirements(compilation, &chunk_ukey))
-    });
-    let needs_full_hash = match self.source_type {
-      SourceType::JavaScript => {
-        has_hash_placeholder(compilation.options.output.chunk_filename.as_str())
-          || (all_chunks && has_hash_placeholder(compilation.options.output.filename.as_str()))
-      }
-      SourceType::Css => {
-        has_hash_placeholder(compilation.options.output.css_chunk_filename.as_str())
-          || (all_chunks && has_hash_placeholder(compilation.options.output.css_filename.as_str()))
-      }
-      _ => false,
-    };
-
-    rspack_core::RuntimeModuleRuntimeRequirements {
-      dependencies: {
-        if needs_full_hash {
-          RuntimeGlobals::GET_FULL_HASH
-        } else {
-          RuntimeGlobals::default()
-        }
-      },
-      define: {
-        match self.source_type {
-          SourceType::JavaScript => RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME,
-          SourceType::Css => RuntimeGlobals::GET_CHUNK_CSS_FILENAME,
-          _ => RuntimeGlobals::default(),
-        }
-      },
-      ..Default::default()
-    }
-  }
-
-  fn template(&self) -> Vec<(String, String)> {
-    vec![(
-      self.id().to_string(),
-      include_str!("runtime/get_chunk_filename.ejs").to_string(),
-    )]
-  }
-
-  fn dependent_hash(&self) -> bool {
-    true
-  }
-
-  async fn generate(
-    &self,
-    context: &RuntimeModuleGenerateContext<'_>,
-  ) -> rspack_error::Result<String> {
-    let compilation = context.compilation;
-    let runtime_template = context.runtime_template;
-    let chunks = self
+  fn get_filename_chunks(&self, compilation: &Compilation) -> Option<FxIndexSet<ChunkUkey>> {
+    self
       .chunk()
       .and_then(|chunk_ukey| {
         compilation
@@ -171,7 +114,66 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
           chunks.insert(entrypoint.get_entrypoint_chunk());
         }
         chunks
-      });
+      })
+  }
+}
+
+#[async_trait::async_trait]
+impl RuntimeModule for GetChunkFilenameRuntimeModule {
+  fn runtime_requirements(
+    &self,
+    compilation: &Compilation,
+  ) -> rspack_core::RuntimeModuleRuntimeRequirements {
+    let needs_full_hash = self
+      .get_filename_chunks(compilation)
+      .into_iter()
+      .flatten()
+      .filter_map(|chunk_ukey| {
+        compilation
+          .build_chunk_graph_artifact
+          .chunk_by_ukey
+          .get(&chunk_ukey)
+      })
+      .filter_map(|chunk| (self.filename_for_chunk)(chunk, compilation))
+      .any(|filename| filename.has_hash_placeholder());
+
+    rspack_core::RuntimeModuleRuntimeRequirements {
+      dependencies: {
+        if needs_full_hash {
+          RuntimeGlobals::GET_FULL_HASH
+        } else {
+          RuntimeGlobals::default()
+        }
+      },
+      define: {
+        match self.source_type {
+          SourceType::JavaScript => RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME,
+          SourceType::Css => RuntimeGlobals::GET_CHUNK_CSS_FILENAME,
+          _ => RuntimeGlobals::default(),
+        }
+      },
+      ..Default::default()
+    }
+  }
+
+  fn template(&self) -> Vec<(String, String)> {
+    vec![(
+      self.id().to_string(),
+      include_str!("runtime/get_chunk_filename.ejs").to_string(),
+    )]
+  }
+
+  fn dependent_hash(&self) -> bool {
+    true
+  }
+
+  async fn generate(
+    &self,
+    context: &RuntimeModuleGenerateContext<'_>,
+  ) -> rspack_error::Result<String> {
+    let compilation = context.compilation;
+    let runtime_template = context.runtime_template;
+    let chunks = self.get_filename_chunks(compilation);
 
     let mut dynamic_filename: Option<String> = None;
     let mut max_chunk_set_size = 0;
