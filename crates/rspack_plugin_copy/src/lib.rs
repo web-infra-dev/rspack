@@ -22,7 +22,7 @@ use rspack_error::{Diagnostic, Error, Result};
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHashDigest, RspackHasher};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_paths::{Utf8Path, Utf8PathBuf};
-use rspack_util::fx_hash::FxDashSet;
+use rspack_util::fx_hash::{FxDashMap, FxDashSet};
 use sugar_path::SugarPath;
 
 #[derive(Debug)]
@@ -123,10 +123,35 @@ pub struct RunPatternResult {
   pub pattern_index: usize,
 }
 
+#[derive(Debug, Clone)]
+struct CachedPatternResult {
+  results: Vec<Option<RunPatternResult>>,
+  file_dependencies: Vec<PathBuf>,
+  context_dependencies: Vec<PathBuf>,
+}
+
+impl CachedPatternResult {
+  fn is_invalidated(&self, compilation: &Compilation) -> bool {
+    compilation
+      .modified_files
+      .iter()
+      .chain(compilation.removed_files.iter())
+      .any(|changed| {
+        let changed = changed.as_ref();
+        self.file_dependencies.iter().any(|file| file == changed)
+          || self
+            .context_dependencies
+            .iter()
+            .any(|context| changed.starts_with(context))
+      })
+  }
+}
+
 #[plugin]
 #[derive(Debug)]
 pub struct CopyRspackPlugin {
   pub patterns: Vec<CopyPattern>,
+  pattern_cache: FxDashMap<usize, CachedPatternResult>,
 }
 
 static TEMPLATE_RE: LazyLock<Regex> =
@@ -142,7 +167,15 @@ fn normalize_glob_path_separators(path: &str) -> Cow<'_, str> {
 
 impl CopyRspackPlugin {
   pub fn new(patterns: Vec<CopyPattern>) -> Self {
-    Self::new_inner(patterns)
+    Self::new_inner(patterns, Default::default())
+  }
+
+  fn is_cacheable(pattern: &CopyPattern) -> bool {
+    pattern.transform_fn.is_none()
+      && !matches!(pattern.to, Some(ToOption::Fn(_)))
+      && !pattern.copy_permissions.unwrap_or(false)
+      && !matches!(pattern.to_type, Some(ToType::Template))
+      && !matches!(pattern.to, Some(ToOption::String(ref to)) if TEMPLATE_RE.is_match(to))
   }
 
   fn get_content_hash(
@@ -609,15 +642,81 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 
   let mut copied_result: Vec<(i32, RunPatternResult)> =
     join_all(self.patterns.iter().enumerate().map(|(index, pattern)| {
-      CopyRspackPlugin::run_patter(
-        compilation,
-        pattern,
-        index,
-        &file_dependencies,
-        &context_dependencies,
-        diagnostics.clone(),
-        &logger,
-      )
+      let compilation = &*compilation;
+      let logger = &logger;
+      let file_dependencies = &file_dependencies;
+      let context_dependencies = &context_dependencies;
+      let diagnostics = diagnostics.clone();
+      async move {
+        let cacheable = CopyRspackPlugin::is_cacheable(pattern);
+        if cacheable
+          && (!compilation.modified_files.is_empty() || !compilation.removed_files.is_empty())
+          && let Some(cached) = self.pattern_cache.get(&index)
+          && !cached.is_invalidated(compilation)
+        {
+          logger.debug(format!("reusing unchanged copy pattern {index}"));
+          for file in &cached.file_dependencies {
+            file_dependencies.insert(file.clone());
+          }
+          for context in &cached.context_dependencies {
+            context_dependencies.insert(context.clone());
+          }
+          return Ok(Some(cached.results.clone()));
+        }
+
+        let pattern_file_dependencies = FxDashSet::default();
+        let pattern_context_dependencies = FxDashSet::default();
+        let pattern_diagnostics = Arc::new(Mutex::new(Vec::new()));
+        let results = CopyRspackPlugin::run_patter(
+          compilation,
+          pattern,
+          index,
+          &pattern_file_dependencies,
+          &pattern_context_dependencies,
+          pattern_diagnostics.clone(),
+          &logger,
+        )
+        .await?;
+
+        let pattern_file_dependencies = pattern_file_dependencies.into_iter().collect::<Vec<_>>();
+        let pattern_context_dependencies =
+          pattern_context_dependencies.into_iter().collect::<Vec<_>>();
+        let pattern_diagnostics = std::mem::take(
+          pattern_diagnostics
+            .lock()
+            .expect("failed to obtain lock of `pattern_diagnostics`")
+            .deref_mut(),
+        );
+        let has_diagnostics = !pattern_diagnostics.is_empty();
+        for file in &pattern_file_dependencies {
+          file_dependencies.insert(file.clone());
+        }
+        for context in &pattern_context_dependencies {
+          context_dependencies.insert(context.clone());
+        }
+        diagnostics
+          .lock()
+          .expect("failed to obtain lock of `diagnostics`")
+          .extend(pattern_diagnostics);
+
+        if cacheable
+          && !has_diagnostics
+          && let Some(results) = results.as_ref()
+        {
+          self.pattern_cache.insert(
+            index,
+            CachedPatternResult {
+              results: results.clone(),
+              file_dependencies: pattern_file_dependencies,
+              context_dependencies: pattern_context_dependencies,
+            },
+          );
+        } else {
+          self.pattern_cache.remove(&index);
+        }
+
+        Ok(results)
+      }
     }))
     .await
     .into_iter()
