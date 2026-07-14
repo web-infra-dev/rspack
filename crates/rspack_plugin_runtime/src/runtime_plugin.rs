@@ -261,7 +261,9 @@ async fn runtime_requirements_in_tree(
             "javascript",
             SourceType::JavaScript,
             runtime_template.render_runtime_globals(&RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME),
-            |_| false,
+            |runtime_requirements| {
+              runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS)
+            },
             |chunk, compilation| {
               chunk_has_js(&chunk.ukey(), compilation).then(|| {
                 get_js_chunk_filename_template(
