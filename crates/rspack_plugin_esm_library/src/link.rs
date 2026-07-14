@@ -627,7 +627,7 @@ impl EsmLibraryPlugin {
 
       // webpack require iterate the needed_namespace_objects and mutate `needed_namespace_objects`
       // at the same time, https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ConcatenatedModule.js#L1514
-      // Which is impossible in rust, using a fixed point algorithm  to reach the same goal.
+      // Rust cannot mutate the collection while iterating, so repeat until no new module is found.
       loop {
         let mut changed = false;
 
