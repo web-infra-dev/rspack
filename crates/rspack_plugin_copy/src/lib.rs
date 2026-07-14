@@ -524,23 +524,26 @@ impl CopyRspackPlugin {
 
         let output_path = &compilation.options.output.path;
 
-        let copied_result = FuturesOrdered::from_iter(entries.into_iter().map(|entry| {
-          Self::analyze_every_entry(
-            entry,
-            pattern,
-            &context,
-            output_path,
-            from_type,
-            file_dependencies,
-            diagnostics.clone(),
-            compilation,
-            logger,
-          )
-        }))
-        .collect::<Vec<_>>()
-        .await
-        .into_iter()
-        .collect::<Result<Vec<_>>>()?;
+        let copied_result = entries
+          .into_iter()
+          .map(|entry| {
+            Self::analyze_every_entry(
+              entry,
+              pattern,
+              &context,
+              output_path,
+              from_type,
+              file_dependencies,
+              diagnostics.clone(),
+              compilation,
+              logger,
+            )
+          })
+          .collect::<FuturesOrdered<_>>()
+          .collect::<Vec<_>>()
+          .await
+          .into_iter()
+          .collect::<Result<Vec<_>>>()?;
 
         if copied_result.is_empty() {
           if pattern.no_error_on_missing {
@@ -702,18 +705,21 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     }
   }
   logger.cache_end(cache_counter);
-  let pending_results = FuturesOrdered::from_iter(pending_patterns.iter().map(|pending| {
-    CopyRspackPlugin::run_pattern(
-      compilation,
-      pending.pattern,
-      &pending.file_dependencies,
-      &pending.context_dependencies,
-      pending.diagnostics.clone(),
-      &logger,
-    )
-  }))
-  .collect::<Vec<_>>()
-  .await;
+  let pending_results = pending_patterns
+    .iter()
+    .map(|pending| {
+      CopyRspackPlugin::run_pattern(
+        compilation,
+        pending.pattern,
+        &pending.file_dependencies,
+        &pending.context_dependencies,
+        pending.diagnostics.clone(),
+        &logger,
+      )
+    })
+    .collect::<FuturesOrdered<_>>()
+    .collect::<Vec<_>>()
+    .await;
 
   let mut first_error = None;
   if !pending_patterns.is_empty() {
