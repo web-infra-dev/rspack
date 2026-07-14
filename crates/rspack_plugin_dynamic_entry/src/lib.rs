@@ -19,6 +19,7 @@ pub struct EntryDynamicResult {
 
 type EntryDynamic =
   Box<dyn for<'a> Fn() -> BoxFuture<'static, Result<Vec<EntryDynamicResult>>> + Sync + Send>;
+type EntryDependencyKey = (Option<String>, Option<String>);
 
 pub struct DynamicEntryPluginOptions {
   pub context: Context,
@@ -33,7 +34,8 @@ pub struct DynamicEntryPlugin {
   entry: EntryDynamic,
   // Need "cache" the dependency to tell incremental that this entry dependency is not changed
   // so it can be reused and skip the module make
-  imported_dependencies: AtomicRefCell<FxHashMap<Arc<str>, FxHashMap<EntryOptions, DependencyId>>>,
+  imported_dependencies:
+    AtomicRefCell<FxHashMap<Arc<str>, FxHashMap<EntryDependencyKey, DependencyId>>>,
 }
 
 impl DynamicEntryPlugin {
@@ -62,22 +64,25 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
     .mutations_readable(IncrementalPasses::BUILD_MODULE_GRAPH)
   {
     let mut imported_dependencies = self.imported_dependencies.borrow_mut();
-    let mut next_imported_dependencies: FxHashMap<Arc<str>, FxHashMap<EntryOptions, DependencyId>> =
-      Default::default();
+    let mut next_imported_dependencies: FxHashMap<
+      Arc<str>,
+      FxHashMap<EntryDependencyKey, DependencyId>,
+    > = Default::default();
 
     for EntryDynamicResult { import, options } in decs {
       for entry in import {
+        let dependency_key = (options.name.clone(), options.layer.clone());
         let module_graph = compilation.get_module_graph();
 
         let entry_dependency: BoxDependency = if let Some(map) =
           imported_dependencies.get(entry.as_str())
-          && let Some(dependency_id) = map.get(&options)
+          && let Some(dependency_id) = map.get(&dependency_key)
           && let Some(dependency) = internal::try_dependency_by_id(module_graph, dependency_id)
         {
           next_imported_dependencies
             .entry(entry.into())
             .or_default()
-            .insert(options.clone(), *dependency_id);
+            .insert(dependency_key, *dependency_id);
           dependency.clone()
         } else {
           let dependency: BoxDependency = Box::new(EntryDependency::new(
@@ -89,7 +94,7 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
           next_imported_dependencies
             .entry(entry.into())
             .or_default()
-            .insert(options.clone(), *dependency.id());
+            .insert(dependency_key, *dependency.id());
           dependency
         };
         compilation
@@ -104,10 +109,13 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
     // next Hot rebuild reallocates dep ids and breaks every downstream
     // lookup that relies on dep id continuity across compiles.
     let mut imported_dependencies = self.imported_dependencies.borrow_mut();
-    let mut next_imported_dependencies: FxHashMap<Arc<str>, FxHashMap<EntryOptions, DependencyId>> =
-      Default::default();
+    let mut next_imported_dependencies: FxHashMap<
+      Arc<str>,
+      FxHashMap<EntryDependencyKey, DependencyId>,
+    > = Default::default();
     for EntryDynamicResult { import, options } in decs {
       for entry in import {
+        let dependency_key = (options.name.clone(), options.layer.clone());
         let entry_dependency: BoxDependency = Box::new(EntryDependency::new(
           entry.clone(),
           self.context.clone(),
@@ -117,7 +125,7 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
         next_imported_dependencies
           .entry(entry.clone().into())
           .or_default()
-          .insert(options.clone(), *entry_dependency.id());
+          .insert(dependency_key, *entry_dependency.id());
         compilation
           .add_entry(entry_dependency, options.clone())
           .await?;

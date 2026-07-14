@@ -1,6 +1,7 @@
 use std::mem;
 
 use futures::Future;
+use itertools::Itertools;
 use rspack_collections::{IdentifierIndexMap, IdentifierMap};
 use rspack_error::Result;
 use rspack_util::{fx_hash::FxIndexMap, tracing_preset::TRACING_BENCH_TARGET};
@@ -9,7 +10,8 @@ use tracing::instrument;
 
 use crate::{
   ArtifactExt, ChunkByUkey, ChunkGraph, ChunkGroupByUkey, ChunkGroupKind, ChunkGroupUkey,
-  ChunkUkey, Compilation, DependenciesBlock, GroupOptions, Logger,
+  ChunkUkey, Compilation, DependenciesBlock, EntryDependency, EntryOptions, Filename, GroupOptions,
+  Logger, ModuleDependency, ModuleIdentifier, PublicPath,
   build_chunk_graph::code_splitter::{
     CodeSplitter, DependenciesBlockIdentifier, get_active_state_of_connections,
     prepare_module_connection_map,
@@ -29,6 +31,8 @@ pub struct BuildChunkGraphArtifact {
   pub named_chunks: HashMap<String, ChunkUkey>,
   pub(crate) code_splitter: CodeSplitter,
   pub module_idx: IdentifierMap<(u32, u32)>,
+  global_include_modules: Vec<ModuleIdentifier>,
+  entry_include_modules: FxIndexMap<String, Vec<ModuleIdentifier>>,
 }
 
 impl BuildChunkGraphArtifact {
@@ -57,6 +61,80 @@ impl BuildChunkGraphArtifact {
       return false;
     }
 
+    let module_graph = this_compilation.get_module_graph();
+    for (name, entry) in &this_compilation.entries {
+      let Some(previous_entrypoint) = self
+        .entrypoints
+        .get(name)
+        .and_then(|ukey| self.chunk_group_by_ukey.get(ukey))
+      else {
+        logger.log(format!(
+          "entrypoint missing from cached chunk graph: {name}"
+        ));
+        return false;
+      };
+      if !previous_entrypoint
+        .kind
+        .get_entry_options()
+        .is_some_and(|options| same_entry_options_topology(options, &entry.options))
+      {
+        logger.log(format!("entrypoint options change detected: {name}"));
+        return false;
+      }
+
+      let current_entry_modules = this_compilation
+        .global_entry
+        .dependencies
+        .iter()
+        .chain(&entry.dependencies)
+        .filter_map(|dependency| module_graph.module_identifier_by_dependency_id(dependency))
+        .copied()
+        .unique();
+      let previous_entry_modules = self
+        .chunk_graph
+        .get_chunk_entry_modules_with_chunk_group_iterable(
+          &previous_entrypoint.get_entrypoint_chunk(),
+        )
+        .keys()
+        .copied();
+
+      if !current_entry_modules.eq(previous_entry_modules) {
+        logger.log(format!("entrypoint modules change detected: {name}"));
+        return false;
+      }
+
+      let current_entry_requests = this_compilation
+        .global_entry
+        .dependencies
+        .iter()
+        .chain(&entry.dependencies)
+        .map(|dependency| {
+          module_graph
+            .dependency_by_id(dependency)
+            .as_any()
+            .downcast_ref::<EntryDependency>()
+            .map(|dependency| dependency.request())
+        });
+      let previous_entry_requests = previous_entrypoint
+        .origins()
+        .iter()
+        .map(|origin| origin.request.as_deref());
+
+      if !current_entry_requests.eq(previous_entry_requests) {
+        logger.log(format!("entrypoint origins change detected: {name}"));
+        return false;
+      }
+    }
+
+    let (global_include_modules, entry_include_modules) =
+      collect_entry_include_modules(this_compilation);
+    if self.global_include_modules != global_include_modules
+      || self.entry_include_modules != entry_include_modules
+    {
+      logger.log("entrypoint include modules change detected, rebuilding chunk graph");
+      return false;
+    }
+
     let Some(mutations) = this_compilation
       .incremental
       .mutations_read(IncrementalPasses::BUILD_MODULE_GRAPH)
@@ -75,7 +153,6 @@ impl BuildChunkGraphArtifact {
       return false;
     }
 
-    let module_graph = this_compilation.get_module_graph();
     let module_graph_cache = &this_compilation.module_graph_cache_artifact;
     let affected_modules = mutations.get_affected_modules_with_module_graph(module_graph);
     let previous_modules_map = &this_compilation
@@ -240,6 +317,150 @@ impl BuildChunkGraphArtifact {
     self.named_chunks.clear();
     self.set_code_splitter(Default::default());
     self.module_idx.clear();
+    self.global_include_modules.clear();
+    self.entry_include_modules.clear();
+  }
+}
+
+fn collect_entry_include_modules(
+  compilation: &Compilation,
+) -> (
+  Vec<ModuleIdentifier>,
+  FxIndexMap<String, Vec<ModuleIdentifier>>,
+) {
+  let module_graph = compilation.get_module_graph();
+  let mut global_includes = compilation
+    .global_entry
+    .include_dependencies
+    .iter()
+    .filter_map(|dependency| module_graph.module_identifier_by_dependency_id(dependency))
+    .copied()
+    .collect::<Vec<_>>();
+  global_includes.sort_unstable();
+  global_includes.dedup();
+
+  let entry_includes = compilation
+    .entries
+    .iter()
+    .filter_map(|(name, entry)| {
+      if entry.include_dependencies.is_empty() {
+        return None;
+      }
+
+      let mut entry_includes = entry
+        .include_dependencies
+        .iter()
+        .filter_map(|dependency| module_graph.module_identifier_by_dependency_id(dependency))
+        .copied()
+        .collect::<Vec<_>>();
+      entry_includes.sort_unstable();
+      entry_includes.dedup();
+
+      Some((name.clone(), entry_includes))
+    })
+    .collect();
+
+  (global_includes, entry_includes)
+}
+
+fn same_entry_options_topology(previous: &EntryOptions, current: &EntryOptions) -> bool {
+  let EntryOptions {
+    name: previous_name,
+    runtime: previous_runtime,
+    chunk_loading: previous_chunk_loading,
+    wasm_loading: previous_wasm_loading,
+    async_chunks: previous_async_chunks,
+    public_path: previous_public_path,
+    base_uri: previous_base_uri,
+    filename: previous_filename,
+    library: previous_library,
+    depend_on: previous_depend_on,
+    layer: previous_layer,
+  } = previous;
+  let EntryOptions {
+    name: current_name,
+    runtime: current_runtime,
+    chunk_loading: current_chunk_loading,
+    wasm_loading: current_wasm_loading,
+    async_chunks: current_async_chunks,
+    public_path: current_public_path,
+    base_uri: current_base_uri,
+    filename: current_filename,
+    library: current_library,
+    depend_on: current_depend_on,
+    layer: current_layer,
+  } = current;
+
+  previous_name == current_name
+    && previous_runtime == current_runtime
+    && previous_chunk_loading == current_chunk_loading
+    && previous_wasm_loading == current_wasm_loading
+    && previous_async_chunks == current_async_chunks
+    && same_public_path_shape(previous_public_path, current_public_path)
+    && previous_base_uri == current_base_uri
+    && same_filename_shape(previous_filename, current_filename)
+    && previous_library == current_library
+    && previous_depend_on == current_depend_on
+    && previous_layer == current_layer
+}
+
+fn same_public_path_shape(previous: &Option<PublicPath>, current: &Option<PublicPath>) -> bool {
+  match (previous, current) {
+    (Some(PublicPath::Filename(previous)), Some(PublicPath::Filename(current))) => {
+      same_filename(previous, current)
+    }
+    _ => previous == current,
+  }
+}
+
+fn same_filename_shape(previous: &Option<Filename>, current: &Option<Filename>) -> bool {
+  match (previous, current) {
+    (Some(previous), Some(current)) => same_filename(previous, current),
+    _ => previous == current,
+  }
+}
+
+fn same_filename(previous: &Filename, current: &Filename) -> bool {
+  previous == current || (previous.template().is_none() && current.template().is_none())
+}
+
+fn refresh_entrypoint_options(compilation: &mut Compilation) {
+  let artifact = &mut compilation.build_chunk_graph_artifact;
+  let mut requires_full_chunk_assets = false;
+
+  for (name, entry) in &compilation.entries {
+    let entrypoint_ukey = *artifact
+      .entrypoints
+      .get(name)
+      .expect("cached entrypoint should exist");
+    let entrypoint = artifact
+      .chunk_group_by_ukey
+      .expect_get_mut(&entrypoint_ukey);
+    let entrypoint_chunk = entrypoint.get_entrypoint_chunk();
+    let ChunkGroupKind::Entrypoint { options, .. } = &mut entrypoint.kind else {
+      unreachable!("cached entrypoint should have entrypoint options");
+    };
+    **options = entry.options.clone();
+
+    let filename = entry.options.filename.clone();
+    requires_full_chunk_assets |= filename
+      .as_ref()
+      .is_some_and(Filename::has_hash_placeholder);
+    artifact
+      .chunk_by_ukey
+      .expect_get_mut(&entrypoint_chunk)
+      .set_filename_template(filename);
+  }
+
+  if requires_full_chunk_assets
+    && let Some(diagnostic) = compilation.incremental.disable_passes(
+      IncrementalPasses::CHUNK_ASSET,
+      "Chunk filename that dependent on full hash",
+      "chunk filename that dependent on full hash is not supported in incremental compilation",
+    )
+    && let Some(diagnostic) = diagnostic
+  {
+    compilation.push_diagnostic(diagnostic);
   }
 }
 
@@ -270,6 +491,8 @@ where
       .can_skip_rebuilding(compilation);
 
   if no_change {
+    refresh_entrypoint_options(compilation);
+
     let module_idx = &compilation.build_chunk_graph_artifact.module_idx;
     let module_graph = compilation
       .build_module_graph_artifact
@@ -297,6 +520,11 @@ where
     map.insert(*mid, (pre, post));
   }
   compilation.build_chunk_graph_artifact.module_idx = map;
+  let (global_include_modules, entry_include_modules) = collect_entry_include_modules(compilation);
+  compilation
+    .build_chunk_graph_artifact
+    .global_include_modules = global_include_modules;
+  compilation.build_chunk_graph_artifact.entry_include_modules = entry_include_modules;
   Ok(())
 }
 
@@ -318,6 +546,12 @@ impl ArtifactExt for BuildChunkGraphArtifact {
       s.spawn(|_| {
         new.entrypoints.clone_from(&old.entrypoints);
         new.module_idx.clone_from(&old.module_idx);
+        new
+          .global_include_modules
+          .clone_from(&old.global_include_modules);
+        new
+          .entry_include_modules
+          .clone_from(&old.entry_include_modules);
       });
     });
   }
