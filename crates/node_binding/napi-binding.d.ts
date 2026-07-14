@@ -468,13 +468,6 @@ export declare class NativeWatcher {
   triggerEvent(kind: 'change' | 'remove' | 'create', path: string): void
   takePendingEvents(): NativeWatchResult
   acknowledgePendingEvents(generation: number): void
-  /**
-   * # Safety
-   *
-   * This function is unsafe because it uses `&mut self` to call the watcher asynchronously.
-   * It's important to ensure that the watcher is not used in any other places before this function is finished.
-   * You must ensure that the watcher not call watch, close or pause in the same time, otherwise it may lead to undefined behavior.
-   */
   close(): Promise<void>
   pause(): void
 }
