@@ -9,8 +9,12 @@ export function expectWarningFactory() {
   });
 
   afterEach(() => {
-    expectWarning();
-    console.warn = oldWarn;
+    try {
+      expectWarning();
+    } finally {
+      warnings.length = 0;
+      console.warn = oldWarn;
+    }
   });
 
   const expectWarning = (...regexp) => {

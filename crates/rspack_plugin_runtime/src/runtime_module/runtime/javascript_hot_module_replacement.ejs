@@ -290,6 +290,7 @@ function hotApplyHandler(options, moduleFactoryTransaction) {
 									if (<%- HAS_OWN_PROPERTY %>(preservedModuleFactories, moduleId)) {
 										var module = <%- MODULE_CACHE %>[moduleId];
 										if (module) {
+											module.hot.active = false;
 											for (var i = 0; i < module.children.length; i++) {
 												var child = <%- MODULE_CACHE %>[module.children[i]];
 												if (!child) continue;

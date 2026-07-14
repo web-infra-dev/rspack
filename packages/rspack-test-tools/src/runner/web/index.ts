@@ -31,8 +31,11 @@ export class WebRunner extends NodeRunner {
   constructor(protected _webOptions: IWebRunnerOptions) {
     super(_webOptions);
 
+    // Hot cases run concurrently and can temporarily replace console methods.
+    // Keep those overrides local to the JSDOM instance while preserving normal output.
+    const scopedConsole = Object.create(console) as Console;
     const virtualConsole = new VirtualConsole({});
-    virtualConsole.sendTo(console, {
+    virtualConsole.sendTo(scopedConsole, {
       omitJSDOMErrors: true,
     });
     this.dom = new JSDOM(
@@ -51,7 +54,7 @@ export class WebRunner extends NodeRunner {
       },
     );
 
-    this.dom.window.console = console;
+    this.dom.window.console = scopedConsole;
     // compat with FakeDocument
     this.dom.window.eval(`
       var linkSheetDescriptor = Object.getOwnPropertyDescriptor(HTMLLinkElement.prototype, "sheet");

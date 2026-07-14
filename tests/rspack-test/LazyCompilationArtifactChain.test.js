@@ -30,6 +30,18 @@ async function withTimeout(promise, description) {
 	}
 }
 
+async function waitForPausedChange(watching, compilerName) {
+	const child = watching.watchings.find(
+		watching => watching.compiler.name === compilerName
+	);
+	const deadline = Date.now() + 15000;
+	while (Date.now() < deadline) {
+		if (child?.pausedWatcher?.hasPendingEvents?.()) return;
+		await new Promise(resolve => setTimeout(resolve, 10));
+	}
+	throw new Error(`Timed out waiting for the paused ${compilerName} watcher`);
+}
+
 describe("lazy MultiCompiler artifact provenance", () => {
 	async function runArtifactChain(_watcherName, nativeWatcher) {
 		const root = await fs.mkdtemp(path.join(os.tmpdir(), "rspack-lazy-chain-"));
@@ -40,6 +52,7 @@ describe("lazy MultiCompiler artifact provenance", () => {
 		const events = [];
 		const invalidations = [];
 		let delayedSource;
+		let releaseSource;
 		let resolveFileInvalidation;
 		let server;
 		let watching;
@@ -88,7 +101,7 @@ describe("lazy MultiCompiler artifact provenance", () => {
 						apply(compiler) {
 							compiler.hooks.invalid.tap("lazy-artifact-chain", file => {
 								invalidations.push({ name, file });
-								if (name === "source" && file === sourceFile) {
+								if (name === "source" && path.basename(file ?? "") === "source.js") {
 									resolveFileInvalidation?.();
 								}
 							});
@@ -278,7 +291,6 @@ describe("lazy MultiCompiler artifact provenance", () => {
 			await assertTail();
 
 			let signalSourceStarted;
-			let releaseSource;
 			const sourceStarted = new Promise(resolve => {
 				signalSourceStarted = resolve;
 			});
@@ -303,6 +315,8 @@ describe("lazy MultiCompiler artifact provenance", () => {
 			);
 			if (nativeWatcher) {
 				await withTimeout(fileInvalidated, "the coalesced source file event");
+			} else {
+				await waitForPausedChange(watching, "source");
 			}
 			releaseSource();
 			assertBuild(await nextBuild(), ["source", "dependent", "tail"], "normal");
@@ -346,6 +360,7 @@ describe("lazy MultiCompiler artifact provenance", () => {
 			await new Promise(resolve => setTimeout(resolve, 80));
 			assert.deepEqual(generations, deliveredGenerations);
 		} finally {
+			releaseSource?.();
 			if (watching) {
 				await new Promise((resolve, reject) =>
 					watching.close(error => (error ? reject(error) : resolve()))

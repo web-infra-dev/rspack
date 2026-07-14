@@ -6,12 +6,14 @@ let factoryDuringApply;
 let factoryAtIdle;
 let valueDuringApply;
 let childParentsDuringApply;
+let readChildParentsAfterApply;
 
 module.hot.accept("./module", () => {
 	factoryDuringApply = __webpack_require__.m[removedModuleId];
 	if (removedModuleId === "./a.js") {
 		valueDuringApply = readRemovedModule();
 		childParentsDuringApply = getChildParents();
+		readChildParentsAfterApply = __webpack_require__("./a.js").readChildParents;
 	}
 });
 
@@ -30,7 +32,17 @@ it("should preserve disposed factories only for the requested apply transaction"
 	expect(getChildParents()).not.toContain("./a.js");
 	expect(factoryAtIdle).not.toBe(initialRemovedFactory);
 	expect(__webpack_require__.m["./a.js"]).toBe(factoryAtIdle);
+	const warnings = [];
 	const warn = console.warn;
+	console.warn = warning => warnings.push(warning);
+	try {
+		expect(readChildParentsAfterApply()).not.toContain("./a.js");
+	} finally {
+		console.warn = warn;
+	}
+	expect(warnings).toEqual([
+		"[HMR] unexpected require(./child.js) from disposed module ./a.js"
+	]);
 	console.warn = () => {};
 	try {
 		expect(readRemovedModule).toThrow("RuntimeError: factory is undefined(./a.js)");
