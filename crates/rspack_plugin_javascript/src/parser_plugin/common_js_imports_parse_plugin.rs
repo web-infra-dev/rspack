@@ -75,7 +75,10 @@ struct PendingCreatedRequire {
 struct DeferredCreateRequireCallee {
   settings: ESMSpecifierData,
   range: DependencyRange,
+  ids: Vec<Atom>,
   asi_safe: bool,
+  direct_import: bool,
+  ns_access: bool,
   branch_guard: Option<DependencyBranchGuard>,
 }
 
@@ -994,14 +997,30 @@ fn deferred_create_require_callee(
   callee: &Expr,
   call_span: Span,
 ) -> Option<DeferredCreateRequireCallee> {
-  let ident = callee.as_ident()?;
-  let settings = parser
-    .get_tag_data::<ESMSpecifierData>(&Atom::from(ident.sym.as_str()), ESM_SPECIFIER_TAG)?
-    .clone();
+  let (settings, range, ids, direct_import, ns_access) = if let Some(ident) = callee.as_ident() {
+    let settings = parser
+      .get_tag_data::<ESMSpecifierData>(&Atom::from(ident.sym.as_str()), ESM_SPECIFIER_TAG)?
+      .clone();
+    let ids = settings.ids.clone().into_vec();
+    (settings, ident.span.into(), ids, true, false)
+  } else {
+    let member = callee.as_member()?;
+    let namespace = member.obj.as_ident()?;
+    let settings = parser
+      .get_tag_data::<ESMSpecifierData>(&Atom::from(namespace.sym.as_str()), ESM_SPECIFIER_TAG)?
+      .clone();
+    let mut ids = settings.ids.clone().into_vec();
+    ids.push(static_member_name(member)?);
+    let ns_access = settings.namespace_import && !ids.is_empty();
+    (settings, callee.span().into(), ids, false, ns_access)
+  };
   Some(DeferredCreateRequireCallee {
     settings,
-    range: ident.span.into(),
+    range,
+    ids,
     asi_safe: !parser.is_asi_position(call_span.real_lo()),
+    direct_import,
+    ns_access,
     branch_guard: parser.current_branch_guard.clone(),
   })
 }
@@ -1013,10 +1032,12 @@ fn add_deferred_create_require_callee_dependency(
   let DeferredCreateRequireCallee {
     settings,
     range,
+    ids,
     asi_safe,
+    direct_import,
+    ns_access,
     branch_guard,
   } = callee;
-  let ids = settings.ids.clone().into_vec();
   let mut dep = ESMImportSpecifierDependency::new(
     settings.source,
     settings.name,
@@ -1026,14 +1047,19 @@ fn add_deferred_create_require_callee_dependency(
     range,
     ids,
     true,
-    true,
-    false,
+    direct_import,
+    ns_access,
     ESMImportSpecifierDependency::create_export_presence_mode(parser.javascript_options),
     None,
     settings.phase,
     settings.attributes,
     parser.to_dependency_location(range),
   );
+  dep.namespace_object_as_context = parser
+    .javascript_options
+    .strict_this_context_on_imports
+    .unwrap_or(false)
+    && !direct_import;
   if let Some(branch_guard) = branch_guard {
     dep.set_branch_guard(branch_guard);
   }
@@ -1084,12 +1110,11 @@ fn pre_tag_created_require_declarator(
   let Some(callee) = call.callee.as_expr() else {
     return;
   };
-  let Some(callee_ident) = callee.as_ident() else {
-    return;
-  };
-  if !is_create_require_specifier(parser, &Atom::from(callee_ident.sym.as_str()))
-    || !can_defer_create_require_call(parser, &call.args)
-  {
+  let is_create_require_callee = callee
+    .as_ident()
+    .is_some_and(|ident| is_create_require_specifier(parser, &Atom::from(ident.sym.as_str())))
+    || is_create_require_namespace_member(parser, callee);
+  if !is_create_require_callee || !can_defer_create_require_call(parser, &call.args) {
     return;
   }
   let Some(argument) = parse_create_require_argument(parser, call, false) else {

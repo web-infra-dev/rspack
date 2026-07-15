@@ -1,5 +1,7 @@
 import { createRequire } from "node:module";
+import { defaultUnknown } from "./default-require.js";
 import { exportedRequire } from "./exported-require.js";
+import { namespaceUnknown } from "./namespace-require.js";
 import {
 	getNestedRequire,
 	getRequire
@@ -36,6 +38,8 @@ it("should consume createRequire(import.meta.url) like webpack", async () => {
 	expect(value).toBe("loader");
 	expect(loader).toBe("./libCssExtractLoader.js");
 	expect(unknownMember).toBe(undefined);
+	expect(namespaceUnknown).toBe(undefined);
+	expect(defaultUnknown).toBe(undefined);
 	expect(requireAsValueType).toBe("function");
 	expect(exportedRequire.resolve("path")).toBe("path");
 	expect(getRequire().resolve("path")).toBe("path");
