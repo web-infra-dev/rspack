@@ -2,8 +2,9 @@ import path from 'node:path';
 
 import type { Filename, LoaderContext, LoaderDefinition } from '../..';
 import {
+  type CssExtractPluginData,
   PLUGIN_NAME,
-  isCssRuntimeDisabled,
+  pluginSymbol,
   stringifyLocal,
   stringifyRequest,
 } from './utils';
@@ -44,9 +45,16 @@ export function hotLoader(
   },
 ): string {
   const localsJsonString = JSON.stringify(JSON.stringify(context.locals));
-  const changeSignal = isCssRuntimeDisabled(context.loaderContext._compiler)
-    ? `\n        // ${Date.now()}`
-    : '';
+  const pluginData = (
+    context.loaderContext as unknown as Record<
+      symbol,
+      CssExtractPluginData | undefined
+    >
+  )[pluginSymbol];
+  // with `runtime: false` there is no hmrC.miniCss handler, so the injected
+  // timestamp stays as the only change signal for css-only edits
+  const changeSignal =
+    pluginData?.runtime === false ? `\n        // ${Date.now()}` : '';
   return `${content}
     if(module.hot) {
       (function() {
