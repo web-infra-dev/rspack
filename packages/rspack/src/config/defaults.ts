@@ -321,10 +321,12 @@ const applyJavascriptParserOptionsDefaults = (
     deferImport,
     sourceImport,
     outputModule,
+    isNode,
   }: {
     deferImport?: boolean;
     sourceImport?: boolean;
     outputModule: RspackOptionsNormalized['output']['module'];
+    isNode: boolean;
   },
 ) => {
   D(parserOptions, 'dynamicImportMode', 'lazy');
@@ -350,7 +352,7 @@ const applyJavascriptParserOptionsDefaults = (
   D(parserOptions, 'deferImport', deferImport);
   D(parserOptions, 'sourceImport', sourceImport);
   D(parserOptions, 'importMetaResolve', false);
-  D(parserOptions, 'createRequire', false);
+  D(parserOptions, 'createRequire', isNode);
 };
 
 const applyCssGeneratorOptionsDefaults = (
@@ -464,6 +466,7 @@ const applyModuleDefaults = (
     deferImport,
     sourceImport,
     outputModule,
+    isNode: targetProperties !== false && targetProperties.node === true,
   });
 
   F(module.parser, JSON_MODULE_TYPE, () => ({}));
