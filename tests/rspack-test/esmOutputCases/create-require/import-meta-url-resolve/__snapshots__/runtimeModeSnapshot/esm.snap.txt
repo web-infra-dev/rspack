@@ -19,13 +19,56 @@ module.exports = "loader";
 });
 // node:module
 const external_node_module_namespaceObject = __rspack_createRequire_require("node:module");
+// ./exported-require.js
+
+
+const exportedRequire = (0,external_node_module_namespaceObject.createRequire)(import.meta.url);
+
+
+
+// ./pre-declared-require.js
+
+
+function getRequire() {
+	return req;
+}
+
+const req = (0,external_node_module_namespaceObject.createRequire)(import.meta.url);
+
+function getNestedRequire() {
+	function readRequire() {
+		return nestedReq;
+	}
+
+	const nestedReq = (0,external_node_module_namespaceObject.createRequire)(import.meta.url);
+	return readRequire();
+}
+
+// ./pre-declared-require-call.js
+
+
+function load() {
+	return __rspack_context.r(/*! ./libCssExtractLoader.js */ "./libCssExtractLoader.js");
+}
+
+const pre_declared_require_call_req = /* createRequire() */ undefined;
+
 // ./index.js
 
 
-const req = /* createRequire() */ undefined;
 
-const value = __rspack_context.r(/*! ./libCssExtractLoader.js */ "./libCssExtractLoader.js");
+
+
+const index_req = /* createRequire() */ undefined;
+const requireWithUnknownMember = (0,external_node_module_namespaceObject.createRequire)(import.meta.url);
+const requireAsValue = (0,external_node_module_namespaceObject.createRequire)(import.meta.url);
+
+const identity = value => value;
+
+const index_value = __rspack_context.r(/*! ./libCssExtractLoader.js */ "./libCssExtractLoader.js");
 const loader = /*require.resolve*/(/*! ./libCssExtractLoader.js */ "./libCssExtractLoader.js");
+const unknownMember = requireWithUnknownMember.unknown;
+const requireAsValueType = typeof identity(requireAsValue);
 
 it("should consume createRequire(import.meta.url) like webpack", async () => {
 	const fs = await import(/* webpackIgnore: true */ "node:fs");
@@ -33,21 +76,27 @@ it("should consume createRequire(import.meta.url) like webpack", async () => {
 	const source = fs.readFileSync(path.join(__rspack_import_meta_dirname__, "main.mjs"), "utf-8");
 	const fileUrlScheme = "file:" + "//";
 	const normalizedRoot = "<" + "ROOT>";
-	const unresolvedCreateRequire =
-		"external_node_module_namespaceObject." + "createRequire(import.meta.url)";
+	const runtimeCreateRequire =
+		"(0,external_node_module_namespaceObject." + "createRequire)(import.meta.url)";
 
 	expect(source).not.toContain(fileUrlScheme);
 	expect(source).not.toContain("createRequire('" + normalizedRoot);
 	expect(source).not.toContain('createRequire("' + normalizedRoot);
-	expect(source).not.toContain(unresolvedCreateRequire);
+	expect(source.split(runtimeCreateRequire)).toHaveLength(6);
 	expect(source).toContain("/* createRequire() */ undefined");
 	expect(source).toContain("__webpack_require__(");
 	expect(source).toContain("/*require.resolve*/");
-	expect(value).toBe("loader");
+	expect(index_value).toBe("loader");
 	expect(loader).toBe("./libCssExtractLoader.js");
+	expect(unknownMember).toBe(undefined);
+	expect(requireAsValueType).toBe("function");
+	expect(exportedRequire.resolve("path")).toBe("path");
+	expect(getRequire().resolve("path")).toBe("path");
+	expect(getNestedRequire().resolve("path")).toBe("path");
+	expect(load()).toBe("loader");
 });
 
-export { loader, value };
+export { index_value as value, loader, requireAsValueType, unknownMember };
 
 ```
 
