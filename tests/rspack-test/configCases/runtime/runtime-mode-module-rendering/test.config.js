@@ -12,11 +12,31 @@ module.exports = {
     expect(source).toContain("var __rspack_context={};");
     expect(source).toContain("__rspack_context.d");
     expect(source).toContain("__rspack_context.N");
+    expect(source).toContain("__rspack_context.esm");
     expect(source).toContain("__rspack_context.d = definePropertyGetters;");
     expect(source).toContain("__rspack_context.N = makeNamespaceObject;");
+    expect(
+      source.match(/__rspack_context\.d = definePropertyGetters;/g),
+    ).toHaveLength(1);
+    expect(
+      source.match(/__rspack_context\.N = makeNamespaceObject;/g),
+    ).toHaveLength(1);
+    expect(source).toContain("__rspack_context.esm = defineEsmExports;");
     expect(source).toContain("module.exports, __rspack_context");
     expect(source).toContain("definePropertyGetters =");
     expect(source).toContain("makeNamespaceObject =");
+    expect(source).toContain("defineEsmExports =");
+    expect(source).toContain("makeNamespaceObject(exports);");
+    expect(source).toContain(
+      "definePropertyGetters(exports, getters, values);",
+    );
+    expect(source.indexOf("definePropertyGetters(exports, getters, values);"))
+      .toBeGreaterThan(source.indexOf("makeNamespaceObject(exports);"));
+    expect(source).toContain("__rspack_context.esm(__rspack_exports, {");
+    expect(source).not.toContain("__rspack_context.N(__rspack_exports);");
+    expect(source).not.toContain(
+      "__rspack_context.d(__rspack_exports, {",
+    );
 
     expect(source).toMatch(/function __rspack_require\s*\(\s*moduleId\s*\)/);
     expect(source).toMatch(/var __rspack_module_cache\s*=\s*\{\};/);
