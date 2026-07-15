@@ -6,7 +6,7 @@
 ## Asset Files
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.hot-update.js, size: 6038
+- Update: main.hot-update.js, size: 6132
 
 ## Manifest
 
@@ -54,7 +54,9 @@ __webpack_require__.r(__webpack_exports__);
         }
         module.hot.dispose(function(data) {
           data.value = localsJsonString;
-          cssReload();
+          if (!__webpack_require__.hmrC || !__webpack_require__.hmrC.miniCss) {
+            cssReload();
+          }
         });
       })();
     }
