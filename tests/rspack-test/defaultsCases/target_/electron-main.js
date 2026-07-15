@@ -37,6 +37,9 @@ module.exports = {
 			-         "exportsOnly": false,
 			+         "exportsOnly": true,
 			@@ ... @@
+			-         "createRequire": false,
+			+         "createRequire": true,
+			@@ ... @@
 			-     "__dirname": "warn-mock",
 			-     "__filename": "warn-mock",
 			-     "global": "warn",
