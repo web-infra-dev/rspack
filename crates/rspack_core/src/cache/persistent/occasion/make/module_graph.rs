@@ -8,9 +8,9 @@ use rustc_hash::FxHashSet;
 
 use super::alternatives::{TempDependency, TempModule};
 use crate::{
-  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, Dependency,
-  DependencyId, DependencyParents, ModuleGraph, ModuleGraphConnection, ModuleGraphModule,
-  ModuleIdentifier, RayonConsumer,
+  AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, Dependency, DependencyId,
+  DependencyParents, ModuleGraph, ModuleGraphConnection, ModuleGraphModule, ModuleIdentifier,
+  RayonConsumer,
   cache::persistent::{codec::CacheCodec, storage::Storage},
   compilation::build_module_graph::{LazyDependencies, ModuleToLazyMake},
 };
@@ -27,7 +27,6 @@ struct Node<'a> {
     Option<OwnedOrRef<'a, AsyncDependenciesBlockIdentifier>>,
   )>,
   pub connections: Vec<OwnedOrRef<'a, ModuleGraphConnection>>,
-  pub blocks: Vec<OwnedOrRef<'a, AsyncDependenciesBlock>>,
   pub lazy_info: Option<OwnedOrRef<'a, LazyDependencies>>,
 }
 
@@ -55,11 +54,6 @@ pub fn save_module_graph(
       let module = mg
         .module_by_identifier(identifier)
         .expect("should have module");
-      let blocks = module
-        .get_blocks()
-        .par_iter()
-        .map(|block_id| mg.block_by_id(block_id).expect("should have block").into())
-        .collect::<Vec<_>>();
       let dependencies = mgm
         .all_dependencies()
         .par_iter()
@@ -87,7 +81,6 @@ pub fn save_module_graph(
         module: module.into(),
         dependencies,
         connections,
-        blocks,
         lazy_info,
       };
       match codec.encode(&node) {
@@ -101,7 +94,6 @@ pub fn save_module_graph(
             .into_iter()
             .map(|(dep, _)| (TempDependency::transform_from(dep), None))
             .collect();
-          node.blocks = vec![];
           if let Ok(bytes) = codec.encode(&node) {
             (identifier.as_bytes().to_vec(), bytes)
           } else {
@@ -158,10 +150,6 @@ pub async fn recovery_module_graph(
         let con = con.into_owned();
         need_check_dep.push((con.dependency_id, *con.module_identifier()));
         mg.cache_recovery_connection(con);
-      }
-      for block in node.blocks {
-        let block = block.into_owned();
-        mg.add_block(Box::new(block));
       }
       if let Some(lazy_info) = node.lazy_info {
         module_to_lazy_make

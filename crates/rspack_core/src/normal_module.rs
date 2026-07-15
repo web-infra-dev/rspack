@@ -26,14 +26,14 @@ use serde_json::json;
 use tracing::{Instrument, info_span};
 
 use crate::{
-  AsyncDependenciesBlockIdentifier, BoxDependencyTemplate, BoxLoader, BoxModule,
-  BoxModuleDependency, BuildContext, BuildInfo, BuildMeta, BuildResult, ChunkGraph,
-  CodeGenerationResult, Compilation, ConnectionState, Context, DependenciesBlock, DependencyId,
-  FactoryMeta, GenerateContext, GeneratorOptions, ImportPhase, LibIdentOptions, Module,
-  ModuleCodeGenerationContext, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
-  ModuleLayer, ModuleType, OptimizationBailoutItem, OutputOptions, ParseContext, ParseResult,
-  ParserAndGenerator, ParserOptions, Resolve, ResolvedModuleOptions, RspackLoaderRunnerPlugin,
-  RunnerContext, RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, SourceType, contextify,
+  AsyncDependenciesBlock, BoxDependencyTemplate, BoxLoader, BoxModule, BoxModuleDependency,
+  BuildContext, BuildInfo, BuildMeta, BuildResult, ChunkGraph, CodeGenerationResult, Compilation,
+  ConnectionState, Context, DependenciesBlock, DependencyId, FactoryMeta, GenerateContext,
+  GeneratorOptions, ImportPhase, LibIdentOptions, Module, ModuleCodeGenerationContext, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleIdentifier, ModuleLayer, ModuleType, OptimizationBailoutItem,
+  OutputOptions, ParseContext, ParseResult, ParserAndGenerator, ParserOptions, Resolve,
+  ResolvedModuleOptions, RspackLoaderRunnerPlugin, RunnerContext, RuntimeGlobals, RuntimeSpec,
+  SideEffectsStateArtifact, SourceType, contextify,
   diagnostics::ModuleBuildError,
   get_context, module_analyzed_side_effect_free, module_declared_side_effect_free,
   module_update_hash,
@@ -94,7 +94,7 @@ pub struct NormalModuleHooks {
 #[cacheable]
 #[derive(Debug)]
 pub struct NormalModule {
-  blocks: Vec<AsyncDependenciesBlockIdentifier>,
+  blocks: Vec<AsyncDependenciesBlock>,
   dependencies: Vec<DependencyId>,
 
   id: ModuleIdentifier,
@@ -320,12 +320,12 @@ impl Identifiable for NormalModule {
 }
 
 impl DependenciesBlock for NormalModule {
-  fn add_block_id(&mut self, block: AsyncDependenciesBlockIdentifier) {
-    self.blocks.push(block)
+  fn get_blocks(&self) -> &[AsyncDependenciesBlock] {
+    &self.blocks
   }
 
-  fn get_blocks(&self) -> &[AsyncDependenciesBlockIdentifier] {
-    &self.blocks
+  fn add_block(&mut self, block: AsyncDependenciesBlock) {
+    self.blocks.push(block)
   }
 
   fn add_dependency_id(&mut self, dependency: DependencyId) {

@@ -43,10 +43,7 @@ pub(crate) fn extract_tla_shared_modules(compilation: &mut Compilation) -> bool 
     if !module.build_meta().has_top_level_await() {
       continue;
     }
-    for block_id in module.get_blocks() {
-      let Some(block) = module_graph.block_by_id(block_id) else {
-        continue;
-      };
+    for block in module.get_blocks() {
       for dep_id in block.get_dependencies() {
         let dep = module_graph.dependency_by_id(dep_id);
         if dep.dependency_type() != &DependencyType::DynamicImport {
@@ -540,7 +537,6 @@ pub(crate) fn analyze_dyn_import_targets(
     for dep_id in module
       .get_blocks()
       .iter()
-      .filter_map(|block| module_graph.block_by_id(block))
       .flat_map(|block| block.get_dependencies())
     {
       let dep = module_graph.dependency_by_id(dep_id);

@@ -1,6 +1,6 @@
 use rspack_cacheable::cacheable;
 use rspack_core::{
-  AsyncDependenciesBlockIdentifier, ChunkGraph, Compilation, Dependency, DependencyCodeGeneration,
+  AsyncDependenciesBlock, ChunkGraph, Compilation, Dependency, DependencyCodeGeneration,
   DependencyId, DependencyTemplate, DependencyTemplateType, DependencyType, ExportsType,
   FakeNamespaceObjectMode, ModuleCodeTemplate, ModuleDependency, ModuleGraph, RuntimeGlobals,
   TemplateContext, TemplateReplaceSource, get_exports_type,
@@ -30,8 +30,6 @@ impl DependencyTemplate for ImportDependencyTemplate {
       .downcast_ref::<ImportDependency>()
       .expect("ImportDependencyTemplate can only be applied to ImportDependency");
     let range = dep.range().expect("ImportDependency should have range");
-    let module_graph = code_generatable_context.compilation.get_module_graph();
-    let block = module_graph.get_parent_block(dep.id());
     let attributes = &dep.get_attributes();
     let is_import_actual = if let Some(attrs) = attributes {
       // loop attrs and check is there a key `rstest` is `importActual`
@@ -50,7 +48,7 @@ impl DependencyTemplate for ImportDependencyTemplate {
       module_namespace_promise_rstest(
         code_generatable_context,
         dep.id(),
-        block,
+        code_generatable_context.current_block,
         dep.request(),
         dep.dependency_type().as_str(),
         false,
@@ -88,7 +86,7 @@ pub fn module_id_rstest(
 fn module_namespace_promise_rstest(
   code_generatable_context: &mut TemplateContext,
   dep_id: &DependencyId,
-  block: Option<&AsyncDependenciesBlockIdentifier>,
+  block: Option<&AsyncDependenciesBlock>,
   request: &str,
   message: &str,
   weak: bool,

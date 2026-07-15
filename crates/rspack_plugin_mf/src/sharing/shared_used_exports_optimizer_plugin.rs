@@ -1,12 +1,11 @@
 use std::sync::{Arc, RwLock};
 
 use rspack_core::{
-  AsyncDependenciesBlockIdentifier, ChunkUkey, Compilation,
-  CompilationAdditionalTreeRuntimeRequirements, CompilationDependencyReferencedExports,
-  CompilationOptimizeDependencies, CompilationProcessAssets, DependenciesBlock, Dependency,
-  DependencyId, DependencyType, ExportsInfoArtifact, ExtendedReferencedExport, Module, ModuleGraph,
-  ModuleIdentifier, Plugin, RuntimeGlobals, RuntimeModule, RuntimeModuleExt, RuntimeSpec,
-  SideEffectsOptimizeArtifact,
+  AsyncDependenciesBlock, ChunkUkey, Compilation, CompilationAdditionalTreeRuntimeRequirements,
+  CompilationDependencyReferencedExports, CompilationOptimizeDependencies,
+  CompilationProcessAssets, DependenciesBlock, Dependency, DependencyId, DependencyType,
+  ExportsInfoArtifact, ExtendedReferencedExport, Module, ModuleGraph, ModuleIdentifier, Plugin,
+  RuntimeGlobals, RuntimeModule, RuntimeModuleExt, RuntimeSpec, SideEffectsOptimizeArtifact,
   build_module_graph::BuildModuleGraphArtifact,
   module_declared_side_effect_free,
   rspack_sources::{RawStringSource, SourceExt, SourceValue},
@@ -101,7 +100,7 @@ impl SharedUsedExportsOptimizerPlugin {
 
 fn collect_processed_modules(
   module_graph: &ModuleGraph,
-  module_blocks: &[AsyncDependenciesBlockIdentifier],
+  module_blocks: &[AsyncDependenciesBlock],
   module_deps: &[DependencyId],
   out: &mut Vec<ModuleIdentifier>,
 ) {
@@ -111,12 +110,10 @@ fn collect_processed_modules(
     }
   }
 
-  for block_id in module_blocks {
-    if let Some(block) = module_graph.block_by_id(block_id) {
-      for dep_id in block.get_dependencies() {
-        if let Some(target_id) = module_graph.module_identifier_by_dependency_id(dep_id) {
-          out.push(*target_id);
-        }
+  for block in module_blocks {
+    for dep_id in block.get_dependencies() {
+      if let Some(target_id) = module_graph.module_identifier_by_dependency_id(dep_id) {
+        out.push(*target_id);
       }
     }
   }

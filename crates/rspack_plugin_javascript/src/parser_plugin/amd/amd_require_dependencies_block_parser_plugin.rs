@@ -302,13 +302,13 @@ impl AMDRequireDependenciesBlockParserPlugin {
         result = self.process_array(parser, &mut block_deps, call_expr, &param);
       });
       if result.is_some_and(|x| x) {
-        let dep_block = Box::new(AsyncDependenciesBlock::new(
+        let dep_block = AsyncDependenciesBlock::new(
           *parser.module_identifier,
           block_loc,
           None,
           block_deps,
           self.process_array_for_request_string(&param),
-        ));
+        );
         parser.add_block(dep_block);
         return Some(true);
       } else {
@@ -350,13 +350,13 @@ impl AMDRequireDependenciesBlockParserPlugin {
       }
 
       block_deps.insert(0, dep);
-      let dep_block = Box::new(AsyncDependenciesBlock::new(
+      let dep_block = AsyncDependenciesBlock::new(
         *parser.module_identifier,
         block_loc,
         None,
         block_deps,
         self.process_array_for_request_string(&param),
-      ));
+      );
       parser.add_block(dep_block);
 
       return Some(true);

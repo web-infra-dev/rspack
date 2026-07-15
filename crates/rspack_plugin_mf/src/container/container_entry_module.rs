@@ -4,8 +4,8 @@ use async_trait::async_trait;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
-  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildContext,
-  BuildInfo, BuildMeta, BuildMetaExportsType, BuildResult, ChunkGroupOptions, CodeGenerationResult,
+  AsyncDependenciesBlock, BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta,
+  BuildMetaExportsType, BuildResult, ChunkGroupOptions, CodeGenerationResult,
   CodeGenerationRuntimeRequirementsWrite, Compilation, Context, DependenciesBlock, Dependency,
   DependencyId, DependencyType, ExportsArgument, FactoryMeta, GroupOptions, LibIdentOptions,
   Module, ModuleCodeGenerationContext, ModuleCodeTemplate, ModuleDependency, ModuleGraph,
@@ -31,7 +31,7 @@ use crate::{
 #[cacheable]
 #[derive(Debug)]
 pub struct ContainerEntryModule {
-  blocks: Vec<AsyncDependenciesBlockIdentifier>,
+  blocks: Vec<AsyncDependenciesBlock>,
   dependencies: Vec<DependencyId>,
   identifier: ModuleIdentifier,
   lib_ident: String,
@@ -131,12 +131,12 @@ impl Identifiable for ContainerEntryModule {
 }
 
 impl DependenciesBlock for ContainerEntryModule {
-  fn add_block_id(&mut self, block: AsyncDependenciesBlockIdentifier) {
-    self.blocks.push(block)
+  fn get_blocks(&self) -> &[AsyncDependenciesBlock] {
+    &self.blocks
   }
 
-  fn get_blocks(&self) -> &[AsyncDependenciesBlockIdentifier] {
-    &self.blocks
+  fn add_block(&mut self, block: AsyncDependenciesBlock) {
+    self.blocks.push(block)
   }
 
   fn add_dependency_id(&mut self, dependency: DependencyId) {
@@ -194,8 +194,14 @@ impl Module for ContainerEntryModule {
     _build_context: BuildContext,
     _: Option<&Compilation>,
   ) -> Result<BuildResult> {
-    let mut blocks = vec![];
-    let mut dependencies: Vec<BoxDependency> = vec![];
+    let mut blocks = Vec::with_capacity(
+      if self.dependency_type == DependencyType::ShareContainerEntry {
+        0
+      } else {
+        self.exposes.len()
+      },
+    );
+    let mut dependencies: Vec<BoxDependency> = Vec::with_capacity(2);
 
     if self.dependency_type == DependencyType::ShareContainerEntry {
       // Shared Container logic
@@ -229,7 +235,7 @@ impl Module for ContainerEntryModule {
         block.set_group_options(GroupOptions::ChunkGroup(
           ChunkGroupOptions::default().name_optional(options.name.clone()),
         ));
-        blocks.push(Box::new(block));
+        blocks.push(block);
       }
       dependencies.push(Box::new(StaticExportsDependency::new(
         StaticExportsSpec::Array(vec!["get".into(), "init".into()]),
@@ -461,10 +467,7 @@ impl ExposeModuleMap {
   ) -> Self {
     let mut module_map = vec![];
     let module_graph = compilation.get_module_graph();
-    for block_id in container_entry_module.get_blocks() {
-      let block = module_graph
-        .block_by_id(block_id)
-        .expect("should have block");
+    for block in container_entry_module.get_blocks() {
       let modules_iter = block.get_dependencies().iter().map(|dependency_id| {
         let dep = module_graph.dependency_by_id(dependency_id);
         let dep = dep
@@ -487,7 +490,7 @@ impl ExposeModuleMap {
             .join(", "),
         )
       } else {
-        let block_promise = runtime_template.block_promise(Some(block_id), compilation, "");
+        let block_promise = runtime_template.block_promise(Some(block), compilation, "");
         let modules = modules_iter
           .map(|(_, _, request, dependency_id)| {
             runtime_template.module_raw(compilation, dependency_id, request, false)

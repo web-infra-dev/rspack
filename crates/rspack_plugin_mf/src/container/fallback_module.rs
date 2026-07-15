@@ -4,7 +4,7 @@ use async_trait::async_trait;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
-  AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta,
+  AsyncDependenciesBlock, BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta,
   BuildResult, ChunkGraph, ChunkUkey, CodeGenerationResult, Compilation, Context,
   DependenciesBlock, DependencyId, FactoryMeta, LibIdentOptions, Module, ModuleArgument,
   ModuleCodeGenerationContext, ModuleGraph, ModuleIdentifier, ModuleType, RuntimeGlobals,
@@ -23,7 +23,7 @@ use crate::utils::{json_stringify, module_identifier_namespace};
 #[cacheable]
 #[derive(Debug)]
 pub struct FallbackModule {
-  blocks: Vec<AsyncDependenciesBlockIdentifier>,
+  blocks: Vec<AsyncDependenciesBlock>,
   dependencies: Vec<DependencyId>,
   identifier: ModuleIdentifier,
   readable_identifier: String,
@@ -72,11 +72,11 @@ impl Identifiable for FallbackModule {
 }
 
 impl DependenciesBlock for FallbackModule {
-  fn add_block_id(&mut self, block: AsyncDependenciesBlockIdentifier) {
+  fn add_block(&mut self, block: AsyncDependenciesBlock) {
     self.blocks.push(block)
   }
 
-  fn get_blocks(&self) -> &[AsyncDependenciesBlockIdentifier] {
+  fn get_blocks(&self) -> &[AsyncDependenciesBlock] {
     &self.blocks
   }
 

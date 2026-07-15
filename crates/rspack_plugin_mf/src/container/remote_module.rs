@@ -4,7 +4,7 @@ use async_trait::async_trait;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
-  AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta,
+  AsyncDependenciesBlock, BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta,
   BuildResult, ChunkGraph, CodeGenerationResult, Compilation, Context, DependenciesBlock,
   Dependency, DependencyId, ExportsType, FactoryMeta, LibIdentOptions, Module,
   ModuleCodeGenerationContext, ModuleGraph, ModuleIdentifier, ModuleType, RuntimeSpec, SourceType,
@@ -29,7 +29,7 @@ use crate::{
 #[cacheable]
 #[derive(Debug)]
 pub struct RemoteModule {
-  blocks: Vec<AsyncDependenciesBlockIdentifier>,
+  blocks: Vec<AsyncDependenciesBlock>,
   dependencies: Vec<DependencyId>,
   identifier: ModuleIdentifier,
   readable_identifier: String,
@@ -90,11 +90,11 @@ impl Identifiable for RemoteModule {
 }
 
 impl DependenciesBlock for RemoteModule {
-  fn add_block_id(&mut self, block: AsyncDependenciesBlockIdentifier) {
+  fn add_block(&mut self, block: AsyncDependenciesBlock) {
     self.blocks.push(block)
   }
 
-  fn get_blocks(&self) -> &[AsyncDependenciesBlockIdentifier] {
+  fn get_blocks(&self) -> &[AsyncDependenciesBlock] {
     &self.blocks
   }
 

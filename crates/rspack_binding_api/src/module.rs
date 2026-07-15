@@ -418,16 +418,11 @@ impl Module {
   )]
   pub fn blocks(&mut self) -> napi::Result<Vec<AsyncDependenciesBlockWrapper>> {
     self.with_ref(|compilation, module| {
-      let module_graph = compilation.get_module_graph();
       let blocks = module.get_blocks();
       Ok(
         blocks
           .iter()
-          .filter_map(|block_id| {
-            module_graph
-              .block_by_id(block_id)
-              .map(|block| AsyncDependenciesBlockWrapper::new(block, compilation))
-          })
+          .map(|block| AsyncDependenciesBlockWrapper::new(module.identifier(), block, compilation))
           .collect::<Vec<_>>(),
       )
     })

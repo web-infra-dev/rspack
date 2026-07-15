@@ -85,10 +85,8 @@ impl DependencyTemplate for RequireEnsureDependencyTemplate {
       .downcast_ref::<RequireEnsureDependency>()
       .expect("RequireEnsureDependencyTemplate should be used for RequireEnsureDependency");
 
-    let module_graph = code_generatable_context.compilation.get_module_graph();
-    let block = module_graph.get_parent_block(&dep.id);
     let promise = code_generatable_context.runtime_template.block_promise(
-      block,
+      code_generatable_context.current_block,
       code_generatable_context.compilation,
       dep.dependency_type().as_str(),
     );

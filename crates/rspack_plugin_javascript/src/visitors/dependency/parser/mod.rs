@@ -380,10 +380,7 @@ pub struct JavascriptParser<'parser> {
   warning_diagnostics: Vec<Diagnostic>,
   dependencies: Vec<BoxDependency>,
   presentational_dependencies: Vec<BoxDependencyTemplate>,
-  // Vec<Box<T: Sized>> makes sense if T is a large type (see #3530, 1st comment).
-  // #3530: https://github.com/rust-lang/rust-clippy/issues/3530
-  #[allow(clippy::vec_box)]
-  blocks: Vec<Box<AsyncDependenciesBlock>>,
+  blocks: Vec<AsyncDependenciesBlock>,
   // ===== inputs =======
   pub(crate) source: &'parser str,
   pub ast: &'parser ParsedJavaScriptAst<'parser>,
@@ -726,7 +723,7 @@ impl<'parser> JavascriptParser<'parser> {
     self.presentational_dependencies.get_mut(idx)
   }
 
-  pub fn add_block(&mut self, mut block: Box<AsyncDependenciesBlock>) {
+  pub fn add_block(&mut self, mut block: AsyncDependenciesBlock) {
     if let Some(guard) = &self.current_branch_guard {
       for dep in block.dependencies_mut() {
         guard.bind_dependency(dep.as_mut());
@@ -739,7 +736,7 @@ impl<'parser> JavascriptParser<'parser> {
     self.blocks.len()
   }
 
-  pub fn get_block_mut(&mut self, idx: usize) -> Option<&mut Box<AsyncDependenciesBlock>> {
+  pub fn get_block_mut(&mut self, idx: usize) -> Option<&mut AsyncDependenciesBlock> {
     self.blocks.get_mut(idx)
   }
 

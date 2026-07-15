@@ -16,7 +16,7 @@ use crate::{
   ConnectionState, Context, DependenciesBlock, DependencyId, FactoryMeta, Module,
   ModuleCodeGenerationContext, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, ModuleType,
   RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, SourceType,
-  dependencies_block::AsyncDependenciesBlockIdentifier, impl_module_meta_info,
+  dependencies_block::AsyncDependenciesBlock, impl_module_meta_info,
   module_declared_side_effect_free, module_update_hash,
 };
 
@@ -24,7 +24,7 @@ use crate::{
 #[cacheable]
 #[derive(Debug)]
 pub struct RawModule {
-  blocks: Vec<AsyncDependenciesBlockIdentifier>,
+  blocks: Vec<AsyncDependenciesBlock>,
   dependencies: Vec<DependencyId>,
   source_str: String,
   #[cacheable(with=AsOption<AsPreset>)]
@@ -73,12 +73,12 @@ impl Identifiable for RawModule {
 }
 
 impl DependenciesBlock for RawModule {
-  fn add_block_id(&mut self, block: AsyncDependenciesBlockIdentifier) {
-    self.blocks.push(block)
+  fn get_blocks(&self) -> &[AsyncDependenciesBlock] {
+    &self.blocks
   }
 
-  fn get_blocks(&self) -> &[AsyncDependenciesBlockIdentifier] {
-    &self.blocks
+  fn add_block(&mut self, block: AsyncDependenciesBlock) {
+    self.blocks.push(block)
   }
 
   fn add_dependency_id(&mut self, dependency: DependencyId) {

@@ -10,10 +10,10 @@ use rspack_sources::BoxSource;
 use rspack_util::source_map::SourceMapKind;
 
 use crate::{
-  AsyncDependenciesBlockIdentifier, BoxModule, BuildContext, BuildInfo, BuildMeta, BuildResult,
-  ChunkUkey, CodeGenerationResult, Compilation, Context, DependenciesBlock, DependencyId,
-  FactoryMeta, LibIdentOptions, Module, ModuleCodeGenerationContext, ModuleGraph, ModuleIdentifier,
-  ModuleType, RuntimeSpec, SourceType, impl_module_meta_info,
+  AsyncDependenciesBlock, BoxModule, BuildContext, BuildInfo, BuildMeta, BuildResult, ChunkUkey,
+  CodeGenerationResult, Compilation, Context, DependenciesBlock, DependencyId, FactoryMeta,
+  LibIdentOptions, Module, ModuleCodeGenerationContext, ModuleGraph, ModuleIdentifier, ModuleType,
+  RuntimeSpec, SourceType, impl_module_meta_info,
 };
 
 #[impl_source_map_config]
@@ -22,7 +22,7 @@ use crate::{
 pub struct SelfModule {
   identifier: ModuleIdentifier,
   readable_identifier: String,
-  blocks: Vec<AsyncDependenciesBlockIdentifier>,
+  blocks: Vec<AsyncDependenciesBlock>,
   dependencies: Vec<DependencyId>,
   factory_meta: Option<FactoryMeta>,
   build_info: BuildInfo,
@@ -55,12 +55,12 @@ impl Identifiable for SelfModule {
 }
 
 impl DependenciesBlock for SelfModule {
-  fn add_block_id(&mut self, block: AsyncDependenciesBlockIdentifier) {
-    self.blocks.push(block)
+  fn get_blocks(&self) -> &[AsyncDependenciesBlock] {
+    &self.blocks
   }
 
-  fn get_blocks(&self) -> &[AsyncDependenciesBlockIdentifier] {
-    &self.blocks
+  fn add_block(&mut self, block: AsyncDependenciesBlock) {
+    self.blocks.push(block)
   }
 
   fn add_dependency_id(&mut self, dependency: DependencyId) {

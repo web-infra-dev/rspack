@@ -430,9 +430,24 @@ impl CodeSplitter {
       return false;
     };
 
-    let block = module_graph
-      .block_by_id(block_id)
-      .expect("should have block");
+    let Some(owner_module) = self
+      .edges
+      .get(block_id)
+      .filter(|module| **module == cache.module)
+    else {
+      return false;
+    };
+    let Some(block) = module_graph
+      .module_by_identifier(owner_module)
+      .and_then(|module| {
+        module
+          .get_blocks()
+          .iter()
+          .find(|block| block.identifier() == *block_id)
+      })
+    else {
+      return false;
+    };
 
     if !cgi.min_available_modules_init
       || !self.hit_cache(
@@ -765,11 +780,21 @@ impl CodeSplitter {
         let DependenciesBlockIdentifier::AsyncDependenciesBlock(block_id) = block_id else {
           continue;
         };
-        let block_options = module_graph.block_by_id_expect(block_id);
         let module = *self
           .edges
           .get(block_id)
           .expect("should have module for block_id");
+        let Some(block_options) = module_graph
+          .module_by_identifier(&module)
+          .and_then(|module| {
+            module
+              .get_blocks()
+              .iter()
+              .find(|block| block.identifier() == *block_id)
+          })
+        else {
+          continue;
+        };
 
         let can_rebuild = cg.parents.len() == 1;
 

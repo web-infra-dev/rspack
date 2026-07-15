@@ -638,7 +638,7 @@ pub struct BuildResult {
   pub module: BoxModule,
   /// Whether the result is cacheable, i.e shared between builds.
   pub dependencies: Vec<BoxDependency>,
-  pub blocks: Vec<Box<AsyncDependenciesBlock>>,
+  pub blocks: Vec<AsyncDependenciesBlock>,
   pub optimization_bailouts: Vec<OptimizationBailoutItem>,
 }
 
@@ -1153,8 +1153,8 @@ mod test {
 
   use super::{BoxModule, Module};
   use crate::{
-    AsyncDependenciesBlockIdentifier, BuildContext, BuildResult, CodeGenerationResult, Compilation,
-    Context, DependenciesBlock, DependencyId, ModuleCodeGenerationContext, ModuleExt, ModuleGraph,
+    AsyncDependenciesBlock, BuildContext, BuildResult, CodeGenerationResult, Compilation, Context,
+    DependenciesBlock, DependencyId, ModuleCodeGenerationContext, ModuleExt, ModuleGraph,
     ModuleType, RuntimeSpec, SourceType,
   };
 
@@ -1177,12 +1177,12 @@ mod test {
       impl_empty_diagnosable_trait!($ident);
 
       impl DependenciesBlock for $ident {
-        fn add_block_id(&mut self, _: AsyncDependenciesBlockIdentifier) {
-          unreachable!()
+        fn add_block(&mut self, _: AsyncDependenciesBlock) {
+          unreachable!("test module cannot contain async dependency blocks")
         }
 
-        fn get_blocks(&self) -> &[AsyncDependenciesBlockIdentifier] {
-          unreachable!()
+        fn get_blocks(&self) -> &[AsyncDependenciesBlock] {
+          &[]
         }
 
         fn add_dependency_id(&mut self, _: DependencyId) {

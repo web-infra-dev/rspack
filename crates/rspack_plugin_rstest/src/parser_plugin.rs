@@ -245,7 +245,7 @@ impl RstestParserPlugin {
             Some(lit.value.to_string_lossy().to_string()),
           );
 
-          parser.add_block(Box::new(block));
+          parser.add_block(block);
           return Some(true);
         }
       }
@@ -579,7 +579,7 @@ impl RstestParserPlugin {
                   Some(mocked_target.to_string()),
                 );
 
-                parser.add_block(Box::new(block));
+                parser.add_block(block);
 
                 return Some(true);
               } else {

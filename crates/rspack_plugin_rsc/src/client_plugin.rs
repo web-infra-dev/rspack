@@ -4,7 +4,7 @@ use atomic_refcell::AtomicRefCell;
 use derive_more::Debug;
 use rspack_collections::IdentifierSet;
 use rspack_core::{
-  AsyncDependenciesBlockIdentifier, ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkUkey, Compilation,
+  AsyncDependenciesBlock, ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkUkey, Compilation,
   CompilationAfterProcessAssets, CompilationParams, CompilerCompilation, CompilerFailed,
   CompilerId, CompilerMake, CrossOriginLoading, DependenciesBlock, Dependency, DependencyId,
   DependencyType, EntryDependency, Logger, ModuleGraph, ModuleId, ModuleIdentifier, Plugin,
@@ -153,14 +153,11 @@ fn collect_css_files_from_chunks<'a>(
 
 fn collect_css_files_from_block_modules(
   module_loading: &ModuleLoading,
-  block_id: &AsyncDependenciesBlockIdentifier,
+  block: &AsyncDependenciesBlock,
   compilation: &Compilation,
 ) -> Vec<String> {
   let module_graph = compilation.get_module_graph();
   let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
-  let Some(block) = module_graph.block_by_id(block_id) else {
-    return Vec::new();
-  };
 
   block
     .get_dependencies()
@@ -177,13 +174,9 @@ fn collect_server_entry_css_files(
   compilation: &Compilation,
   entry_state: &mut EntryState,
 ) {
-  let module_graph = compilation.get_module_graph();
   let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
   let chunk_group_by_ukey = &compilation.build_chunk_graph_artifact.chunk_group_by_ukey;
-  for block_id in rsc_entry_module.get_blocks() {
-    let Some(block) = module_graph.block_by_id(block_id) else {
-      continue;
-    };
+  for block in rsc_entry_module.get_blocks() {
     let Some(server_entry) = block.request().as_deref() else {
       continue;
     };
@@ -205,15 +198,16 @@ fn collect_server_entry_css_files(
       continue;
     }
 
-    let css_files =
-      if let Some(chunk_group) = chunk_graph.get_block_chunk_group(block_id, chunk_group_by_ukey) {
-        collect_css_files_from_chunk_group(module_loading, chunk_group, compilation)
-      } else {
-        // Async CSS blocks can be inlined when async chunks or chunk loading are
-        // disabled. In that case no block chunk group is created, but the CSS
-        // modules still belong to regular entry chunks.
-        collect_css_files_from_block_modules(module_loading, block_id, compilation)
-      };
+    let css_files = if let Some(chunk_group) =
+      chunk_graph.get_block_chunk_group(&block.identifier(), chunk_group_by_ukey)
+    {
+      collect_css_files_from_chunk_group(module_loading, chunk_group, compilation)
+    } else {
+      // Async CSS blocks can be inlined when async chunks or chunk loading are
+      // disabled. In that case no block chunk group is created, but the CSS
+      // modules still belong to regular entry chunks.
+      collect_css_files_from_block_modules(module_loading, block, compilation)
+    };
     if css_files.is_empty() {
       continue;
     }
@@ -536,10 +530,7 @@ impl RscClientPlugin {
         }
 
         // Traverse the blocks of the RscEntryModule to find the actual client modules
-        for block_id in module.get_blocks() {
-          let Some(block) = module_graph.block_by_id(block_id) else {
-            continue;
-          };
+        for block in module.get_blocks() {
           for dep_id in block.get_dependencies() {
             if let Some(conn) = module_graph.connection_by_dependency_id(dep_id) {
               client_entry_modules.insert(*conn.module_identifier());

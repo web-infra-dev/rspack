@@ -209,15 +209,13 @@ impl DependencyTemplate for ImportDependencyTemplate {
       .downcast_ref::<ImportDependency>()
       .expect("ImportDependencyTemplate can only be applied to ImportDependency");
     let range = dep.range().expect("ImportDependency should have range");
-    let module_graph = code_generatable_context.compilation.get_module_graph();
-    let block = module_graph.get_parent_block(dep.id());
     let mut content = code_generatable_context
       .runtime_template
       .module_namespace_promise(
         code_generatable_context.compilation,
         code_generatable_context.module.identifier(),
         dep.id(),
-        block,
+        code_generatable_context.current_block,
         dep.request(),
         dep.dependency_type().as_str(),
         false,

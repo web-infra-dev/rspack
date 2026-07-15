@@ -12,10 +12,9 @@ use rustc_hash::FxHashMap as HashMap;
 use swc_core::ecma::atoms::Atom;
 
 use crate::{
-  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, AsyncDependenciesBlockIdentifierMap,
-  AsyncModulesArtifact, Compilation, DependenciesBlock, Dependency, ExportInfo,
-  ImportedByDeferModulesArtifact, ModuleGraphCacheArtifact, RuntimeSpec, SideEffectsStateArtifact,
-  UsedNameItem,
+  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, AsyncModulesArtifact, Compilation,
+  Dependency, ExportInfo, ImportedByDeferModulesArtifact, ModuleGraphCacheArtifact, RuntimeSpec,
+  SideEffectsStateArtifact, UsedNameItem,
 };
 mod module;
 pub use module::*;
@@ -113,9 +112,6 @@ pub(crate) struct ModuleGraphData {
 
   /// Dependencies indexed by `DependencyId`.
   dependencies: rollback::DenseDependencyIdMap<BoxDependency>,
-  /// AsyncDependenciesBlocks indexed by `AsyncDependenciesBlockIdentifier`.
-  blocks: AsyncDependenciesBlockIdentifierMap<Box<AsyncDependenciesBlock>>,
-
   /// Dependency_id to parent module identifier and parent block
   ///
   /// # Example
@@ -298,7 +294,6 @@ impl ModuleGraph {
   ) -> Option<BuildDependency> {
     let original_module_identifier = self.get_parent_module(dep_id).copied();
     let module_identifier = self.module_identifier_by_dependency_id(dep_id).copied();
-    let parent_block = self.get_parent_block(dep_id).copied();
 
     if module_identifier.is_some() {
       self.inner.connections.remove(dep_id);
@@ -311,11 +306,6 @@ impl ModuleGraph {
         && let Some(module) = self.inner.modules.get_mut(&m_id)
       {
         module.remove_dependency_id(*dep_id);
-      }
-      if let Some(b_id) = parent_block
-        && let Some(block) = self.inner.blocks.get_mut(&b_id)
-      {
-        block.remove_dependency_id(*dep_id);
       }
     }
 
@@ -340,11 +330,6 @@ impl ModuleGraph {
   }
 
   pub fn revoke_module(&mut self, module_id: &ModuleIdentifier) -> Vec<BuildDependency> {
-    let blocks = self
-      .module_by_identifier(module_id)
-      .map(|m| Vec::from(m.get_blocks()))
-      .unwrap_or_default();
-
     let (incoming_connections, all_dependencies) = self
       .module_graph_module_by_identifier(module_id)
       .map(|mgm| {
@@ -357,10 +342,6 @@ impl ModuleGraph {
 
     self.inner.modules.remove(module_id);
     self.inner.module_graph_modules.remove(module_id);
-
-    for block in blocks {
-      self.inner.blocks.remove(&block);
-    }
 
     for dep_id in all_dependencies {
       self.revoke_dependency(&dep_id, true);
@@ -550,10 +531,6 @@ impl ModuleGraph {
     self.inner.modules.insert(module.identifier(), module);
   }
 
-  pub fn add_block(&mut self, block: Box<AsyncDependenciesBlock>) {
-    self.inner.blocks.insert(block.identifier(), block);
-  }
-
   pub fn set_parents(&mut self, dependency_id: DependencyId, parents: DependencyParents) {
     self
       .inner
@@ -588,26 +565,13 @@ impl ModuleGraph {
       .map(|p| p.index_in_block)
   }
 
-  pub fn block_by_id(
-    &self,
-    block_id: &AsyncDependenciesBlockIdentifier,
-  ) -> Option<&AsyncDependenciesBlock> {
-    self.inner.blocks.get(block_id).map(AsRef::as_ref)
-  }
-
-  pub fn block_by_id_expect(
-    &self,
-    block_id: &AsyncDependenciesBlockIdentifier,
-  ) -> &AsyncDependenciesBlock {
-    self
-      .inner
-      .blocks
-      .get(block_id)
-      .expect("should insert block before get it")
-  }
-
-  pub fn blocks(&self) -> &AsyncDependenciesBlockIdentifierMap<Box<AsyncDependenciesBlock>> {
-    &self.inner.blocks
+  pub fn iter_blocks(&self) -> impl Iterator<Item = (ModuleIdentifier, &AsyncDependenciesBlock)> {
+    self.inner.modules.iter().flat_map(|(module_id, module)| {
+      module
+        .get_blocks()
+        .iter()
+        .map(move |block| (*module_id, block))
+    })
   }
 
   pub fn dependencies(&self) -> impl Iterator<Item = (DependencyId, &BoxDependency)> {

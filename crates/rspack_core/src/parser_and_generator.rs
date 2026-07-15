@@ -106,7 +106,7 @@ impl SideEffectsBailoutItemWithSpan {
 #[derive(Debug)]
 pub struct ParseResult {
   pub dependencies: Vec<BoxDependency>,
-  pub blocks: Vec<Box<AsyncDependenciesBlock>>,
+  pub blocks: Vec<AsyncDependenciesBlock>,
   pub presentational_dependencies: Vec<BoxDependencyTemplate>,
   pub code_generation_dependencies: Vec<BoxModuleDependency>,
   pub source: BoxSource,

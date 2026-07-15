@@ -8,11 +8,11 @@ use rspack_cacheable::{
 };
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
-  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildContext,
-  BuildInfo, BuildMeta, BuildMetaExportsType, BuildResult, CodeGenerationResult, Compilation,
-  Context, DependenciesBlock, Dependency, DependencyId, DependencyRange, FactoryMeta, ImportPhase,
-  LibIdentOptions, Module, ModuleCodeGenerationContext, ModuleGraph, ModuleIdentifier, ModuleLayer,
-  ModuleType, ReferencedSpecifier, RuntimeSpec, SourceType, contextify, impl_module_meta_info,
+  AsyncDependenciesBlock, BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta,
+  BuildMetaExportsType, BuildResult, CodeGenerationResult, Compilation, Context, DependenciesBlock,
+  Dependency, DependencyId, DependencyRange, FactoryMeta, ImportPhase, LibIdentOptions, Module,
+  ModuleCodeGenerationContext, ModuleGraph, ModuleIdentifier, ModuleLayer, ModuleType,
+  ReferencedSpecifier, RuntimeSpec, SourceType, contextify, impl_module_meta_info,
   impl_source_map_config, module_update_hash,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
 };
@@ -33,7 +33,7 @@ use crate::{
 #[cacheable]
 #[derive(Debug)]
 pub struct RscEntryModule {
-  blocks: Vec<AsyncDependenciesBlockIdentifier>,
+  blocks: Vec<AsyncDependenciesBlock>,
   dependencies: Vec<DependencyId>,
   identifier: ModuleIdentifier,
   lib_ident: String,
@@ -193,11 +193,11 @@ impl Identifiable for RscEntryModule {
 }
 
 impl DependenciesBlock for RscEntryModule {
-  fn add_block_id(&mut self, block: AsyncDependenciesBlockIdentifier) {
+  fn add_block(&mut self, block: AsyncDependenciesBlock) {
     self.blocks.push(block)
   }
 
-  fn get_blocks(&self) -> &[AsyncDependenciesBlockIdentifier] {
+  fn get_blocks(&self) -> &[AsyncDependenciesBlock] {
     &self.blocks
   }
 
@@ -332,7 +332,7 @@ impl Module for RscEntryModule {
           block_dependencies,
           Some(server_entry.clone()),
         );
-        blocks.push(Box::new(block));
+        blocks.push(block);
       }
 
       if !self.root_client_modules.is_empty() {
@@ -355,7 +355,7 @@ impl Module for RscEntryModule {
           dependencies,
           Some(format!("{}#root-client", self.name)),
         );
-        blocks.push(Box::new(block));
+        blocks.push(block);
       }
 
       for client_module in &self.client_modules {
@@ -371,7 +371,7 @@ impl Module for RscEntryModule {
           vec![Box::new(dep) as Box<dyn Dependency>],
           Some(client_module.request.clone()),
         );
-        blocks.push(Box::new(block));
+        blocks.push(block);
       }
 
       Ok(BuildResult {

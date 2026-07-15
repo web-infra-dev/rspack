@@ -1048,7 +1048,17 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
           continue;
         };
 
-        let Some(block) = module_graph.block_by_id(&block) else {
+        let Some(owner_module) = self.edges.get(&block) else {
+          continue;
+        };
+        let Some(module) = module_graph.module_by_identifier(owner_module) else {
+          continue;
+        };
+        let Some(block) = module
+          .get_blocks()
+          .iter()
+          .find(|item| item.identifier() == block)
+        else {
           continue;
         };
         let root_modules = block
@@ -1579,7 +1589,13 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         .unwrap_or_else(|| panic!("should have chunk group info for block {block_id:?}"));
       let module_graph = compilation.get_module_graph();
       let block = module_graph
-        .block_by_id(&block_id)
+        .module_by_identifier(&module_id)
+        .and_then(|module| {
+          module
+            .get_blocks()
+            .iter()
+            .find(|block| block.identifier() == block_id)
+        })
         .expect("should have block");
       let entry_options = block.get_group_options().and_then(|o| o.entry_options());
       if entry_options.is_some() {
@@ -1600,7 +1616,13 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     } else {
       let chunk_ukey = if let Some(chunk_name) = compilation
         .get_module_graph()
-        .block_by_id(&block_id)
+        .module_by_identifier(&module_id)
+        .and_then(|module| {
+          module
+            .get_blocks()
+            .iter()
+            .find(|block| block.identifier() == block_id)
+        })
         .unwrap_or_else(|| panic!("should have block: {block_id:?}"))
         .get_group_options()
         .and_then(|x| x.name())
@@ -1629,7 +1651,13 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       self.mask_by_chunk.insert(chunk_ukey, BigUint::from(0u32));
       let module_graph = compilation.get_module_graph();
       let block = module_graph
-        .block_by_id(&block_id)
+        .module_by_identifier(&module_id)
+        .and_then(|module| {
+          module
+            .get_blocks()
+            .iter()
+            .find(|block| block.identifier() == block_id)
+        })
         .expect("should have block");
       let chunk_name = block.get_group_options().and_then(|o| o.name());
       let entry_options = block.get_group_options().and_then(|o| o.entry_options());
@@ -1736,11 +1764,6 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       {
         let mut cgi = existing_cgi;
         let mut chunk_group = self.chunk_group_info(&cgi).chunk_group;
-        let block = module_graph
-          .block_by_id(&block_id)
-          .expect("should have block");
-        let request = block.request().clone();
-        let loc = block.loc();
 
         if compilation
           .build_chunk_graph_artifact
@@ -1875,6 +1898,14 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       }
     }
 
+    let root_module = match module {
+      DependenciesBlockIdentifier::Module(module) => module,
+      DependenciesBlockIdentifier::AsyncDependenciesBlock(block) => *self
+        .edges
+        .get(&block)
+        .expect("should have an owner module for async dependency block"),
+    };
+
     let runtime_map = self
       .block_modules_runtime_map
       .entry(runtime.clone())
@@ -1885,7 +1916,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     }
 
     extract_block_modules(
-      module.get_root_block(compilation.get_module_graph()),
+      root_module,
       runtime,
       compilation,
       &self.prepared_blocks_map,
@@ -2454,15 +2485,21 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         .get_blocks();
 
       if !blocks.is_empty() {
-        prepared_blocks_map.insert((*module).into(), blocks.to_vec());
+        prepared_blocks_map.insert(
+          (*module).into(),
+          blocks.iter().map(|block| block.identifier()).collect(),
+        );
       }
     }
 
-    for (block_id, block) in mg.blocks() {
+    for (_, block) in mg.iter_blocks() {
       let blocks = block.get_blocks();
 
       if !blocks.is_empty() {
-        prepared_blocks_map.insert((*block_id).into(), blocks.to_vec());
+        prepared_blocks_map.insert(
+          block.identifier().into(),
+          blocks.iter().map(|block| block.identifier()).collect(),
+        );
       }
     }
 
@@ -2526,16 +2563,6 @@ pub(crate) enum DependenciesBlockIdentifier {
 }
 
 impl DependenciesBlockIdentifier {
-  pub fn get_root_block<'a>(&'a self, module_graph: &'a ModuleGraph) -> ModuleIdentifier {
-    match self {
-      DependenciesBlockIdentifier::Module(m) => *m,
-      DependenciesBlockIdentifier::AsyncDependenciesBlock(id) => *module_graph
-        .block_by_id(id)
-        .expect("should have block")
-        .parent(),
-    }
-  }
-
   pub fn as_async(self) -> Option<AsyncDependenciesBlockIdentifier> {
     if let DependenciesBlockIdentifier::AsyncDependenciesBlock(id) = self {
       Some(id)

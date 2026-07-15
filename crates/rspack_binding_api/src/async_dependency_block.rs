@@ -9,17 +9,29 @@ use crate::dependency::DependencyWrapper;
 
 #[napi]
 pub struct AsyncDependenciesBlock {
+  pub(crate) module_identifier: rspack_core::ModuleIdentifier,
   pub(crate) block_id: rspack_core::AsyncDependenciesBlockIdentifier,
   compilation: NonNull<rspack_core::Compilation>,
 }
 
 #[napi]
 impl AsyncDependenciesBlock {
+  fn block<'a>(
+    &self,
+    module_graph: &'a rspack_core::ModuleGraph,
+  ) -> Option<&'a rspack_core::AsyncDependenciesBlock> {
+    module_graph
+      .module_by_identifier(&self.module_identifier)?
+      .get_blocks()
+      .iter()
+      .find(|block| block.identifier() == self.block_id)
+  }
+
   #[napi(getter, ts_return_type = "Dependency[]")]
   pub fn dependencies(&mut self) -> Vec<DependencyWrapper> {
     let compilation = unsafe { self.compilation.as_ref() };
     let module_graph = compilation.get_module_graph();
-    if let Some(block) = module_graph.block_by_id(&self.block_id) {
+    if let Some(block) = self.block(module_graph) {
       block
         .get_dependencies()
         .iter()
@@ -42,15 +54,11 @@ impl AsyncDependenciesBlock {
   pub fn blocks(&mut self) -> Vec<AsyncDependenciesBlockWrapper> {
     let compilation = unsafe { self.compilation.as_ref() };
     let module_graph = compilation.get_module_graph();
-    if let Some(block) = module_graph.block_by_id(&self.block_id) {
+    if let Some(block) = self.block(module_graph) {
       block
         .get_blocks()
         .iter()
-        .filter_map(|block_id| {
-          module_graph
-            .block_by_id(block_id)
-            .map(|block| AsyncDependenciesBlockWrapper::new(block, compilation))
-        })
+        .map(|block| AsyncDependenciesBlockWrapper::new(self.module_identifier, block, compilation))
         .collect::<Vec<_>>()
     } else {
       vec![]
@@ -68,12 +76,14 @@ thread_local! {
 }
 
 pub struct AsyncDependenciesBlockWrapper {
+  module_identifier: rspack_core::ModuleIdentifier,
   block_id: rspack_core::AsyncDependenciesBlockIdentifier,
   compilation: NonNull<rspack_core::Compilation>,
 }
 
 impl AsyncDependenciesBlockWrapper {
   pub fn new(
+    module_identifier: rspack_core::ModuleIdentifier,
     block: &rspack_core::AsyncDependenciesBlock,
     compilation: &rspack_core::Compilation,
   ) -> Self {
@@ -81,6 +91,7 @@ impl AsyncDependenciesBlockWrapper {
 
     #[allow(clippy::unwrap_used)]
     Self {
+      module_identifier,
       block_id,
       compilation: NonNull::new(
         compilation as *const rspack_core::Compilation as *mut rspack_core::Compilation,
@@ -122,6 +133,7 @@ impl ToNapiValue for AsyncDependenciesBlockWrapper {
           }
           std::collections::hash_map::Entry::Vacant(vacant_entry) => {
             let js_block = AsyncDependenciesBlock {
+              module_identifier: val.module_identifier,
               block_id: val.block_id,
               compilation: val.compilation,
             };

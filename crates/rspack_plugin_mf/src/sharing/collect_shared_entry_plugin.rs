@@ -175,12 +175,10 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
         target_modules.push(*target_id);
       }
     }
-    for block_id in blocks {
-      if let Some(block) = module_graph.block_by_id(block_id) {
-        for dep_id in block.get_dependencies() {
-          if let Some(target_id) = module_graph.module_identifier_by_dependency_id(dep_id) {
-            target_modules.push(*target_id);
-          }
+    for block in blocks {
+      for dep_id in block.get_dependencies() {
+        if let Some(target_id) = module_graph.module_identifier_by_dependency_id(dep_id) {
+          target_modules.push(*target_id);
         }
       }
     }

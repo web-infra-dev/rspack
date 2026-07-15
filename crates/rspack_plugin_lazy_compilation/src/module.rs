@@ -3,12 +3,12 @@ use std::{borrow::Cow, sync::Arc};
 use rspack_cacheable::{cacheable, cacheable_dyn, with::AsVec};
 use rspack_collections::Identifiable;
 use rspack_core::{
-  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildContext,
-  BuildInfo, BuildMeta, BuildResult, ChunkGraph, CodeGenerationResult, Compilation, Context,
-  DependenciesBlock, DependencyId, DependencyRange, FactoryMeta, ImportPhase, LibIdentOptions,
-  Module, ModuleArgument, ModuleCodeGenerationContext, ModuleFactoryCreateData, ModuleGraph,
-  ModuleIdentifier, ModuleLayer, ModuleType, OutputOptions, RuntimeGlobals, RuntimeSpec,
-  SourceType, ValueCacheVersions, impl_module_meta_info, module_update_hash,
+  AsyncDependenciesBlock, BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta,
+  BuildResult, ChunkGraph, CodeGenerationResult, Compilation, Context, DependenciesBlock,
+  DependencyId, DependencyRange, FactoryMeta, ImportPhase, LibIdentOptions, Module, ModuleArgument,
+  ModuleCodeGenerationContext, ModuleFactoryCreateData, ModuleGraph, ModuleIdentifier, ModuleLayer,
+  ModuleType, OutputOptions, RuntimeGlobals, RuntimeSpec, SourceType, ValueCacheVersions,
+  impl_module_meta_info, module_update_hash,
   rspack_sources::{BoxSource, RawStringSource},
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
@@ -55,7 +55,7 @@ pub(crate) struct LazyCompilationProxyModule {
   identifier: ModuleIdentifier,
   lib_ident: Option<String>,
 
-  blocks: Vec<AsyncDependenciesBlockIdentifier>,
+  blocks: Vec<AsyncDependenciesBlock>,
   dependencies: Vec<DependencyId>,
 
   source_map_kind: SourceMapKind,
@@ -197,21 +197,27 @@ impl Module for LazyCompilationProxyModule {
       false,
       None,
     );
-    let mut dependencies = vec![];
-    let mut blocks = vec![];
+    let dependency_capacity = 1
+      + if self.active {
+        0
+      } else {
+        self.reserved_externals.len()
+      };
+    let mut dependencies = Vec::with_capacity(dependency_capacity);
+    let mut blocks = Vec::with_capacity(usize::from(self.active));
 
     dependencies.push(Box::new(client_dep) as BoxDependency);
 
     if self.active {
       let dep = LazyCompilationDependency::new(self.dep_options.clone());
 
-      blocks.push(Box::new(AsyncDependenciesBlock::new(
+      blocks.push(AsyncDependenciesBlock::new(
         self.identifier,
         None,
         None,
         vec![Box::new(dep)],
         None,
-      )));
+      ));
     } else if has_closure_library(&build_context.compiler_options.output) {
       // Reserve statically-declared externals on the inactive proxy so the
       // initial entry chunk's library wrapper already exposes their closure
@@ -271,11 +277,7 @@ impl Module for LazyCompilationProxyModule {
       block.is_some()
     );
 
-    let source = if let Some(block_id) = block {
-      let block = module_graph
-        .block_by_id(block_id)
-        .expect("should have block");
-
+    let source = if let Some(block) = block {
       let dep_id = block.get_dependencies()[0];
       let module = module_graph
         .module_identifier_by_dependency_id(&dep_id)
@@ -296,7 +298,7 @@ impl Module for LazyCompilationProxyModule {
           compilation,
           *module,
           &dep_id,
-          Some(block_id),
+          Some(block),
           &self.resource,
           "import()",
           false,
@@ -345,12 +347,12 @@ impl Identifiable for LazyCompilationProxyModule {
 }
 
 impl DependenciesBlock for LazyCompilationProxyModule {
-  fn add_block_id(&mut self, block: rspack_core::AsyncDependenciesBlockIdentifier) {
-    self.blocks.push(block);
+  fn get_blocks(&self) -> &[AsyncDependenciesBlock] {
+    &self.blocks
   }
 
-  fn get_blocks(&self) -> &[rspack_core::AsyncDependenciesBlockIdentifier] {
-    &self.blocks
+  fn add_block(&mut self, block: AsyncDependenciesBlock) {
+    self.blocks.push(block)
   }
 
   fn add_dependency_id(&mut self, dependency: rspack_core::DependencyId) {

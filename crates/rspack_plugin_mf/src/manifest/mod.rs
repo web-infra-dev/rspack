@@ -348,7 +348,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
               .build_chunk_graph_artifact
               .chunk_graph
               .get_block_chunk_group(
-                block_id,
+                &block_id.identifier(),
                 &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
               )
           {

@@ -4,12 +4,11 @@ use async_trait::async_trait;
 use rspack_cacheable::{cacheable, cacheable_dyn, with::Unsupported};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
-  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildContext,
-  BuildInfo, BuildMeta, BuildResult, CodeGenerationResult, Compilation, Context, DependenciesBlock,
-  DependencyId, ExportsType, FactoryMeta, LibIdentOptions, Module, ModuleCodeGenerationContext,
-  ModuleGraph, ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
-  impl_module_meta_info, impl_source_map_config, module_update_hash, rspack_sources::BoxSource,
-  runtime_mode::RuntimeMode,
+  AsyncDependenciesBlock, BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta,
+  BuildResult, CodeGenerationResult, Compilation, Context, DependenciesBlock, DependencyId,
+  ExportsType, FactoryMeta, LibIdentOptions, Module, ModuleCodeGenerationContext, ModuleGraph,
+  ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType, impl_module_meta_info,
+  impl_source_map_config, module_update_hash, rspack_sources::BoxSource, runtime_mode::RuntimeMode,
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::{RspackHash, RspackHashDigest, RspackHasher};
@@ -26,7 +25,7 @@ use crate::{ConsumeOptions, ShareScope, utils::module_identifier_namespace};
 #[derive(Debug)]
 pub struct ConsumeSharedModule {
   #[cacheable(with=Unsupported)]
-  blocks: Vec<AsyncDependenciesBlockIdentifier>,
+  blocks: Vec<AsyncDependenciesBlock>,
   dependencies: Vec<DependencyId>,
   identifier: ModuleIdentifier,
   lib_ident: String,
@@ -107,11 +106,11 @@ impl Identifiable for ConsumeSharedModule {
 }
 
 impl DependenciesBlock for ConsumeSharedModule {
-  fn add_block_id(&mut self, block: AsyncDependenciesBlockIdentifier) {
+  fn add_block(&mut self, block: AsyncDependenciesBlock) {
     self.blocks.push(block)
   }
 
-  fn get_blocks(&self) -> &[AsyncDependenciesBlockIdentifier] {
+  fn get_blocks(&self) -> &[AsyncDependenciesBlock] {
     &self.blocks
   }
 
@@ -176,15 +175,15 @@ impl Module for ConsumeSharedModule {
     _build_context: BuildContext,
     _: Option<&Compilation>,
   ) -> Result<BuildResult> {
-    let mut blocks = vec![];
-    let mut dependencies = vec![];
+    let mut blocks = Vec::with_capacity(1);
+    let mut dependencies = Vec::with_capacity(1);
     if let Some(fallback) = &self.options.import {
       let dep = Box::new(ConsumeSharedFallbackDependency::new(fallback.to_owned()));
       if self.options.eager {
         dependencies.push(dep as BoxDependency);
       } else {
         let block = AsyncDependenciesBlock::new(self.identifier, None, None, vec![dep], None);
-        blocks.push(Box::new(block));
+        blocks.push(block);
       }
     }
 

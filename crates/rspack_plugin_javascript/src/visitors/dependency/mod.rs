@@ -28,7 +28,7 @@ use crate::{BoxJavascriptParserPlugin, parser_and_generator::ParserRuntimeRequir
 
 pub struct ScanDependenciesResult {
   pub dependencies: Vec<BoxDependency>,
-  pub blocks: Vec<Box<AsyncDependenciesBlock>>,
+  pub blocks: Vec<AsyncDependenciesBlock>,
   pub presentational_dependencies: Vec<BoxDependencyTemplate>,
   pub warning_diagnostics: Vec<Diagnostic>,
   pub side_effects_item: Option<SideEffectsBailoutItemWithSpan>,

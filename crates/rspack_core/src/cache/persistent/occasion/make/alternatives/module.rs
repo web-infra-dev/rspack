@@ -8,7 +8,7 @@ use rspack_sources::BoxSource;
 use rspack_util::source_map::{ModuleSourceMapConfig, SourceMapKind};
 
 use crate::{
-  AsyncDependenciesBlockIdentifier, BoxModule, BuildContext, BuildInfo, BuildMeta, BuildResult,
+  AsyncDependenciesBlock, BoxModule, BuildContext, BuildInfo, BuildMeta, BuildResult,
   CodeGenerationResult, Compilation, Context, DependenciesBlock, DependencyId, FactoryMeta, Module,
   ModuleCodeGenerationContext, ModuleGraph, ModuleIdentifier, ModuleType, RuntimeSpec, SourceType,
   ValueCacheVersions,
@@ -21,7 +21,7 @@ pub struct TempModule {
   build_info: BuildInfo,
   build_meta: BuildMeta,
   dependencies: Vec<DependencyId>,
-  blocks: Vec<AsyncDependenciesBlockIdentifier>,
+  blocks: Vec<AsyncDependenciesBlock>,
 }
 
 impl TempModule {
@@ -138,10 +138,10 @@ impl Identifiable for TempModule {
 }
 
 impl DependenciesBlock for TempModule {
-  fn add_block_id(&mut self, _block: AsyncDependenciesBlockIdentifier) {
-    unreachable!()
+  fn add_block(&mut self, block: AsyncDependenciesBlock) {
+    self.blocks.push(block)
   }
-  fn get_blocks(&self) -> &[AsyncDependenciesBlockIdentifier] {
+  fn get_blocks(&self) -> &[AsyncDependenciesBlock] {
     &self.blocks
   }
   fn add_dependency_id(&mut self, _dependency: DependencyId) {

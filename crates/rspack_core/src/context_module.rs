@@ -26,16 +26,16 @@ use rspack_util::{
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
-  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildContext,
-  BuildInfo, BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, BuildResult, ChunkGraph,
-  ChunkGroupOptions, CodeGenerationResult, Compilation, ContextElementDependency,
-  DependenciesBlock, Dependency, DependencyCategory, DependencyId, DependencyLocation,
-  DynamicImportMode, ExportsType, FactoryMeta, FakeNamespaceObjectMode, GroupOptions,
-  ImportAttributes, ImportPhase, LibIdentOptions, Module, ModuleArgument,
-  ModuleCodeGenerationContext, ModuleCodeTemplate, ModuleGraph, ModuleId, ModuleIdsArtifact,
-  ModuleLayer, ModuleType, RealDependencyLocation, ReferencedSpecifier, Resolve, RuntimeGlobals,
-  RuntimeSpec, SourceType, contextify, get_exports_type_with_strict, get_outgoing_async_modules,
-  impl_module_meta_info, module_update_hash, property_access, to_path,
+  AsyncDependenciesBlock, BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta,
+  BuildMetaDefaultObject, BuildMetaExportsType, BuildResult, ChunkGraph, ChunkGroupOptions,
+  CodeGenerationResult, Compilation, ContextElementDependency, DependenciesBlock, Dependency,
+  DependencyCategory, DependencyId, DependencyLocation, DynamicImportMode, ExportsType,
+  FactoryMeta, FakeNamespaceObjectMode, GroupOptions, ImportAttributes, ImportPhase,
+  LibIdentOptions, Module, ModuleArgument, ModuleCodeGenerationContext, ModuleCodeTemplate,
+  ModuleGraph, ModuleId, ModuleIdsArtifact, ModuleLayer, ModuleType, RealDependencyLocation,
+  ReferencedSpecifier, Resolve, RuntimeGlobals, RuntimeSpec, SourceType, contextify,
+  get_exports_type_with_strict, get_outgoing_async_modules, impl_module_meta_info,
+  module_update_hash, property_access, to_path,
 };
 
 static CHUNK_NAME_INDEX_PLACEHOLDER: &str = "[index]";
@@ -239,10 +239,10 @@ pub enum FakeMapValue {
   Map(HashMap<String, FakeNamespaceObjectMode>),
 }
 
-struct ContextBlockInfo {
+struct ContextBlockInfo<'a> {
   user_request: String,
   dep_id: DependencyId,
-  block_id: AsyncDependenciesBlockIdentifier,
+  block: &'a AsyncDependenciesBlock,
 }
 
 pub type ResolveContextModuleDependencies = Arc<
@@ -256,7 +256,7 @@ pub type ResolveContextModuleDependencies = Arc<
 #[derive(Debug)]
 pub struct ContextModule {
   dependencies: Vec<DependencyId>,
-  blocks: Vec<AsyncDependenciesBlockIdentifier>,
+  blocks: Vec<AsyncDependenciesBlock>,
   identifier: Identifier,
   options: ContextModuleOptions,
   factory_meta: Option<FactoryMeta>,
@@ -580,13 +580,15 @@ impl ContextModule {
       .map(|import| property_access([import], 0))
   }
 
-  fn get_sorted_context_block_info(&self, compilation: &Compilation) -> Vec<ContextBlockInfo> {
+  fn get_sorted_context_block_info<'a>(
+    &'a self,
+    compilation: &Compilation,
+  ) -> Vec<ContextBlockInfo<'a>> {
     let module_graph = compilation.get_module_graph();
     let mut block_info: Vec<_> = self
       .get_blocks()
       .iter()
-      .filter_map(|b| {
-        let block = module_graph.block_by_id(b)?;
+      .filter_map(|block| {
         let dep = block.get_dependencies().first()?;
         let dependency = module_graph.dependency_by_id(dep);
         let user_request = dependency
@@ -600,7 +602,7 @@ impl ContextModule {
         Some(ContextBlockInfo {
           user_request,
           dep_id: *dep,
-          block_id: block.identifier(),
+          block,
         })
       })
       .collect();
@@ -626,7 +628,7 @@ impl ContextModule {
             compilation,
             self.identifier,
             &info.dep_id,
-            Some(&info.block_id),
+            Some(info.block),
             &info.user_request,
             DependencyCategory::Esm.as_str(),
             false,
@@ -758,10 +760,7 @@ impl ContextModule {
     runtime_template: &mut ModuleCodeTemplate,
   ) -> String {
     let module_graph = compilation.get_module_graph();
-    let blocks = self
-      .get_blocks()
-      .iter()
-      .filter_map(|b| module_graph.block_by_id(b));
+    let blocks = self.get_blocks().iter();
     let block_and_first_dependency_list = blocks
       .clone()
       .filter_map(|b| b.get_dependencies().first().map(|d| (b, d)));
@@ -966,13 +965,11 @@ impl ContextModule {
   fn get_lazy_once_source(
     &self,
     compilation: &Compilation,
-    block_id: &AsyncDependenciesBlockIdentifier,
+    block: &AsyncDependenciesBlock,
     runtime_template: &mut ModuleCodeTemplate,
   ) -> String {
-    let mg = compilation.get_module_graph();
-    let block = mg.block_by_id_expect(block_id);
     let dependencies = block.get_dependencies();
-    let promise = runtime_template.block_promise(Some(block_id), compilation, "lazy-once context");
+    let promise = runtime_template.block_promise(Some(block), compilation, "lazy-once context");
     let map = self.get_user_request_map(dependencies, compilation);
     let fake_map = self.get_fake_map(dependencies, compilation);
     let async_deps_map = self
@@ -1283,12 +1280,12 @@ impl ContextModule {
 }
 
 impl DependenciesBlock for ContextModule {
-  fn add_block_id(&mut self, block: AsyncDependenciesBlockIdentifier) {
-    self.blocks.push(block)
+  fn get_blocks(&self) -> &[AsyncDependenciesBlock] {
+    &self.blocks
   }
 
-  fn get_blocks(&self) -> &[AsyncDependenciesBlockIdentifier] {
-    &self.blocks
+  fn add_block(&mut self, block: AsyncDependenciesBlock) {
+    self.blocks.push(block)
   }
 
   fn add_dependency_id(&mut self, dependency: DependencyId) {
@@ -1411,8 +1408,15 @@ impl Module for ContextModule {
     let resolve_dependencies = &self.resolve_dependencies;
     let context_element_dependencies = resolve_dependencies(self.options.clone()).await?;
 
-    let mut dependencies: Vec<BoxDependency> = vec![];
-    let mut blocks = vec![];
+    let dependency_count = context_element_dependencies.len();
+    let block_capacity = match &self.options.context_options.mode {
+      ContextMode::Lazy => dependency_count,
+      ContextMode::LazyOnce if dependency_count != 0 => 1,
+      _ => 0,
+    };
+    let mut dependencies: Vec<BoxDependency> =
+      Vec::with_capacity(usize::from(block_capacity == 0) * dependency_count);
+    let mut blocks = Vec::with_capacity(block_capacity);
     if matches!(self.options.context_options.mode, ContextMode::LazyOnce)
       && !context_element_dependencies.is_empty()
     {
@@ -1437,7 +1441,7 @@ impl Module for ContextModule {
       if let Some(group_options) = &self.options.context_options.group_options {
         block.set_group_options(group_options.clone());
       }
-      blocks.push(Box::new(block));
+      blocks.push(block);
     } else if matches!(self.options.context_options.mode, ContextMode::Lazy) {
       let mut index = 0;
       for context_element_dependency in context_element_dependencies {
@@ -1483,7 +1487,7 @@ impl Module for ContextModule {
           prefetch_order,
           fetch_priority,
         )));
-        blocks.push(Box::new(block));
+        blocks.push(block);
       }
     } else {
       dependencies = context_element_dependencies
@@ -1523,11 +1527,7 @@ impl Module for ContextModule {
     );
     code_generation_result.add(SourceType::JavaScript, source);
     let mut all_deps = self.get_dependencies().to_vec();
-    let module_graph = compilation.get_module_graph();
     for block in self.get_blocks() {
-      let block = module_graph
-        .block_by_id(block)
-        .expect("should have block in ContextModule code_generation");
       all_deps.extend(block.get_dependencies());
     }
 

@@ -4,10 +4,10 @@ use async_trait::async_trait;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
-  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildContext,
-  BuildInfo, BuildMeta, BuildResult, CodeGenerationResult, Compilation, Context, DependenciesBlock,
-  DependencyId, FactoryMeta, LibIdentOptions, Module, ModuleCodeGenerationContext, ModuleGraph,
-  ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType, impl_module_meta_info,
+  AsyncDependenciesBlock, BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta,
+  BuildResult, CodeGenerationResult, Compilation, Context, DependenciesBlock, DependencyId,
+  FactoryMeta, LibIdentOptions, Module, ModuleCodeGenerationContext, ModuleGraph, ModuleIdentifier,
+  ModuleType, RuntimeGlobals, RuntimeSpec, SourceType, impl_module_meta_info,
   impl_source_map_config, module_update_hash, rspack_sources::BoxSource, runtime_mode::RuntimeMode,
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
@@ -27,7 +27,7 @@ use crate::{ConsumeVersion, ShareScope, utils::module_identifier_namespace};
 #[cacheable]
 #[derive(Debug)]
 pub struct ProvideSharedModule {
-  blocks: Vec<AsyncDependenciesBlockIdentifier>,
+  blocks: Vec<AsyncDependenciesBlock>,
   dependencies: Vec<DependencyId>,
   identifier: ModuleIdentifier,
   lib_ident: String,
@@ -114,11 +114,11 @@ impl Identifiable for ProvideSharedModule {
 }
 
 impl DependenciesBlock for ProvideSharedModule {
-  fn add_block_id(&mut self, block: AsyncDependenciesBlockIdentifier) {
+  fn add_block(&mut self, block: AsyncDependenciesBlock) {
     self.blocks.push(block)
   }
 
-  fn get_blocks(&self) -> &[AsyncDependenciesBlockIdentifier] {
+  fn get_blocks(&self) -> &[AsyncDependenciesBlock] {
     &self.blocks
   }
 
@@ -169,14 +169,14 @@ impl Module for ProvideSharedModule {
     _build_context: BuildContext,
     _: Option<&Compilation>,
   ) -> Result<BuildResult> {
-    let mut blocks = vec![];
-    let mut dependencies = vec![];
+    let mut blocks = Vec::with_capacity(1);
+    let mut dependencies = Vec::with_capacity(1);
     let dep = Box::new(ProvideForSharedDependency::new(self.request.clone()));
     if self.eager {
       dependencies.push(dep as BoxDependency);
     } else {
       let block = AsyncDependenciesBlock::new(self.identifier, None, None, vec![dep], None);
-      blocks.push(Box::new(block));
+      blocks.push(block);
     }
 
     Ok(BuildResult {

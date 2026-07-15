@@ -183,8 +183,6 @@ impl DependencyTemplate for ImportEagerDependencyTemplate {
       .downcast_ref::<ImportEagerDependency>()
       .expect("ImportEagerDependencyTemplate should only be used for ImportEagerDependency");
 
-    let module_graph = code_generatable_context.compilation.get_module_graph();
-    let block = module_graph.get_parent_block(&dep.id);
     source.replace(
       dep.range.start,
       dep.range.end,
@@ -194,7 +192,7 @@ impl DependencyTemplate for ImportEagerDependencyTemplate {
           code_generatable_context.compilation,
           code_generatable_context.module.identifier(),
           &dep.id,
-          block,
+          code_generatable_context.current_block,
           &dep.request,
           dep.dependency_type().as_str(),
           false,

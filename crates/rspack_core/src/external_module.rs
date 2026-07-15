@@ -10,12 +10,12 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet};
 use serde::Serialize;
 
 use crate::{
-  AsyncDependenciesBlockIdentifier, BoxModule, BuildContext, BuildInfo, BuildMeta,
-  BuildMetaExportsType, BuildResult, ChunkGraph, ChunkInitFragments, ChunkUkey,
-  CodeGenerationDataUrl, CodeGenerationResult, Compilation, ConcatenationScope, Context,
-  DependenciesBlock, DependencyId, ExportProvided, ExternalType, FactoryMeta, ImportAttributes,
-  ImportPhase, InitFragmentExt, InitFragmentKey, InitFragmentStage, LibIdentOptions, Module,
-  ModuleArgument, ModuleCodeGenerationContext, ModuleCodeTemplate, ModuleGraph, ModuleType,
+  AsyncDependenciesBlock, BoxModule, BuildContext, BuildInfo, BuildMeta, BuildMetaExportsType,
+  BuildResult, ChunkGraph, ChunkInitFragments, ChunkUkey, CodeGenerationDataUrl,
+  CodeGenerationResult, Compilation, ConcatenationScope, Context, DependenciesBlock, DependencyId,
+  ExportProvided, ExternalType, FactoryMeta, ImportAttributes, ImportPhase, InitFragmentExt,
+  InitFragmentKey, InitFragmentStage, LibIdentOptions, Module, ModuleArgument,
+  ModuleCodeGenerationContext, ModuleCodeTemplate, ModuleGraph, ModuleType,
   NAMESPACE_OBJECT_EXPORT, NormalInitFragment, RuntimeGlobals, RuntimeSpec, SourceType,
   StaticExportsDependency, StaticExportsSpec, UsageState, UsedExports, UsedNameItem,
   extract_url_and_global, impl_module_meta_info, module_update_hash, property_access,
@@ -435,7 +435,7 @@ fn resolve_external_type<'a>(
 #[derive(Debug)]
 pub struct ExternalModule {
   dependencies: Vec<DependencyId>,
-  blocks: Vec<AsyncDependenciesBlockIdentifier>,
+  blocks: Vec<AsyncDependenciesBlock>,
   pub id: Identifier,
   pub request: ExternalRequest,
   pub external_type: ExternalType,
@@ -1030,12 +1030,12 @@ impl Identifiable for ExternalModule {
 }
 
 impl DependenciesBlock for ExternalModule {
-  fn add_block_id(&mut self, block: AsyncDependenciesBlockIdentifier) {
-    self.blocks.push(block)
+  fn get_blocks(&self) -> &[AsyncDependenciesBlock] {
+    &self.blocks
   }
 
-  fn get_blocks(&self) -> &[AsyncDependenciesBlockIdentifier] {
-    &self.blocks
+  fn add_block(&mut self, block: AsyncDependenciesBlock) {
+    self.blocks.push(block)
   }
 
   fn add_dependency_id(&mut self, dependency: DependencyId) {

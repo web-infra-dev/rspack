@@ -10,7 +10,7 @@ use rspack_cacheable::{
   with::{AsInner, Skip},
 };
 use rspack_core::{
-  ArcComputed, AsyncDependenciesBlockIdentifier, BuildMetaExportsType,
+  ArcComputed, AsyncDependenciesBlock, BuildMetaExportsType,
   COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY, ChunkGraph, CollectedTypeScriptInfo, Compilation,
   DependenciesBlock, DependencyId, GenerateContext, ImportMeta, Module, ModuleArgument,
   ModuleCodeTemplate, ModuleGraph, ModuleType, ParseContext, ParseResult, ParserAndGenerator,
@@ -138,25 +138,22 @@ impl JavaScriptParserAndGenerator {
     self.parser_plugins.push(parser_plugin);
   }
 
-  fn source_block(
+  fn source_block<'a, 'b, 'c>(
     &self,
-    compilation: &Compilation,
-    block_id: &AsyncDependenciesBlockIdentifier,
+    compilation: &'a Compilation,
+    block: &'a AsyncDependenciesBlock,
     source: &mut TemplateReplaceSource,
-    context: &mut TemplateContext,
+    context: &mut TemplateContext<'a, 'b, 'c>,
   ) {
-    let module_graph = compilation.get_module_graph();
-    let block = module_graph
-      .block_by_id(block_id)
-      .expect("should have block");
-    //    let block = block_id.expect_get(compilation);
+    let previous_block = context.current_block.replace(block);
     block.get_dependencies().iter().for_each(|dependency_id| {
       self.source_dependency(compilation, dependency_id, source, context)
     });
     block
       .get_blocks()
       .iter()
-      .for_each(|block_id| self.source_block(compilation, block_id, source, context));
+      .for_each(|block| self.source_block(compilation, block, source, context));
+    context.current_block = previous_block;
   }
 
   fn source_dependency(
@@ -397,6 +394,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       let mut context = TemplateContext {
         compilation,
         module,
+        current_block: None,
         init_fragments: &mut init_fragments,
         runtime: generate_context.runtime,
         concatenation_scope: generate_context.concatenation_scope.take(),
@@ -427,7 +425,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       module
         .get_blocks()
         .iter()
-        .for_each(|block_id| self.source_block(compilation, block_id, &mut source, &mut context));
+        .for_each(|block| self.source_block(compilation, block, &mut source, &mut context));
       generate_context.concatenation_scope = context.concatenation_scope.take();
       render_init_fragments(source.boxed(), init_fragments, generate_context)
     } else {

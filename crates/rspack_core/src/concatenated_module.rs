@@ -39,21 +39,21 @@ use swc_experimental_ecma_parser::{EsSyntax, Parser, StringSource, Syntax};
 use swc_experimental_ecma_semantic::resolver::{Semantic, resolver};
 
 use crate::{
-  AsyncDependenciesBlockIdentifier, BoxDependency, BoxDependencyTemplate, BoxModule,
-  BoxModuleDependency, BuildContext, BuildInfo, BuildMeta, BuildMetaDefaultObject,
-  BuildMetaExportsType, BuildResult, ChunkGraph, ChunkInitFragments, ChunkRenderContext,
-  CodeGenerationDataTopLevelDeclarations, CodeGenerationExportsFinalNames,
-  CodeGenerationPublicPathAutoReplace, CodeGenerationResult, Compilation, ConcatenatedModuleIdent,
-  ConcatenationScope, ConditionalInitFragment, ConnectionState, Context, DEFAULT_EXPORT,
-  DEFAULT_EXPORT_ATOM, DependenciesBlock, DependencyId, DependencyType, ExportInfo, ExportProvided,
-  ExportsArgument, ExportsInfoArtifact, ExportsType, FactoryMeta, ImportedByDeferModulesArtifact,
-  InitFragment, InitFragmentStage, LibIdentOptions, Module, ModuleArgument,
-  ModuleCodeGenerationContext, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection,
-  ModuleIdentifier, ModuleLayer, ModuleStaticCache, ModuleType, NAMESPACE_OBJECT_EXPORT,
-  ParserOptions, Resolve, RuntimeCondition, RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact,
-  SourceType, URLStaticMode, UsageState, UsedName, UsedNameItem, escape_identifier, fast_set,
-  filter_runtime, find_target, get_runtime_key, impl_source_map_config, merge_runtime_condition,
-  merge_runtime_condition_non_false, module_update_hash, property_access, property_name,
+  AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BoxModule, BoxModuleDependency,
+  BuildContext, BuildInfo, BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, BuildResult,
+  ChunkGraph, ChunkInitFragments, ChunkRenderContext, CodeGenerationDataTopLevelDeclarations,
+  CodeGenerationExportsFinalNames, CodeGenerationPublicPathAutoReplace, CodeGenerationResult,
+  Compilation, ConcatenatedModuleIdent, ConcatenationScope, ConditionalInitFragment,
+  ConnectionState, Context, DEFAULT_EXPORT, DEFAULT_EXPORT_ATOM, DependenciesBlock, DependencyId,
+  DependencyType, ExportInfo, ExportProvided, ExportsArgument, ExportsInfoArtifact, ExportsType,
+  FactoryMeta, ImportedByDeferModulesArtifact, InitFragment, InitFragmentStage, LibIdentOptions,
+  Module, ModuleArgument, ModuleCodeGenerationContext, ModuleGraph, ModuleGraphCacheArtifact,
+  ModuleGraphConnection, ModuleIdentifier, ModuleLayer, ModuleStaticCache, ModuleType,
+  NAMESPACE_OBJECT_EXPORT, ParserOptions, Resolve, RuntimeCondition, RuntimeGlobals, RuntimeSpec,
+  SideEffectsStateArtifact, SourceType, URLStaticMode, UsageState, UsedName, UsedNameItem,
+  escape_identifier, fast_set, filter_runtime, find_target, get_runtime_key,
+  impl_source_map_config, merge_runtime_condition, merge_runtime_condition_non_false,
+  module_update_hash, property_access, property_name,
   render_make_deferred_namespace_mode_from_exports_type,
   reserved_names::RESERVED_NAMES_ATOM_SET,
   subtract_runtime_condition, to_identifier_with_escaped, to_normal_comment,
@@ -610,7 +610,7 @@ pub struct ConcatenatedModule {
   modules: Vec<ConcatenatedInnerModule>,
   runtime: Option<RuntimeSpec>,
 
-  blocks: Vec<AsyncDependenciesBlockIdentifier>,
+  blocks: Vec<AsyncDependenciesBlock>,
   dependencies: Vec<DependencyId>,
   #[cacheable(with=As<SourceSizeCacheSerde>)]
   cached_source_sizes: SourceSizeCache,
@@ -733,11 +733,11 @@ impl Identifiable for ConcatenatedModule {
 }
 
 impl DependenciesBlock for ConcatenatedModule {
-  fn add_block_id(&mut self, block: AsyncDependenciesBlockIdentifier) {
+  fn add_block(&mut self, block: AsyncDependenciesBlock) {
     self.blocks.push(block)
   }
 
-  fn get_blocks(&self) -> &[AsyncDependenciesBlockIdentifier] {
+  fn get_blocks(&self) -> &[AsyncDependenciesBlock] {
     &self.blocks
   }
 
@@ -943,7 +943,7 @@ impl Module for ConcatenatedModule {
 
       // populate blocks
       for b in module.get_blocks() {
-        self.blocks.push(*b);
+        self.blocks.push(b.clone());
       }
       // populate diagnostic
       self.diagnostics.extend(module.diagnostics().into_owned());

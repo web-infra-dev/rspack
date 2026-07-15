@@ -452,7 +452,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
           fetch_priority,
         )));
         let block_idx = parser.next_block_idx();
-        parser.add_block(Box::new(block));
+        parser.add_block(block);
         ImportDependencyLocator {
           block_idx: Some(block_idx),
           dep_idx: 0,

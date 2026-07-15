@@ -288,6 +288,7 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     let mut context = TemplateContext {
       compilation,
       module: self.module,
+      current_block: None,
       runtime: self.generate_context.runtime,
       init_fragments: &mut init_fragments,
       concatenation_scope: self.generate_context.concatenation_scope.take(),

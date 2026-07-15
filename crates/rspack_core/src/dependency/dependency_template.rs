@@ -7,13 +7,15 @@ use rspack_sources::ReplaceSource;
 use rspack_util::ext::AsAny;
 
 use crate::{
-  ChunkInitFragments, CodeGenerationData, Compilation, ConcatenationScope, DependencyType, Module,
-  ModuleCodeTemplate, ModuleInitFragments, RuntimeSpec,
+  AsyncDependenciesBlock, ChunkInitFragments, CodeGenerationData, Compilation, ConcatenationScope,
+  DependencyType, Module, ModuleCodeTemplate, ModuleInitFragments, RuntimeSpec,
 };
 
 pub struct TemplateContext<'a, 'b, 'c> {
   pub compilation: &'a Compilation,
   pub module: &'a dyn Module,
+  /// The async block currently being rendered. Top-level dependencies have no block.
+  pub current_block: Option<&'a AsyncDependenciesBlock>,
   pub init_fragments: &'a mut ModuleInitFragments<'b>,
   pub runtime: Option<&'a RuntimeSpec>,
   pub concatenation_scope: Option<&'c mut ConcatenationScope>,

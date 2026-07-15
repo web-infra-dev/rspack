@@ -120,7 +120,7 @@ fn add_dependencies(
     layer: None,
   })));
 
-  parser.add_block(Box::new(block));
+  parser.add_block(block);
 
   if parser.compiler_options.output.trusted_types.is_some() {
     parser.add_dependency(Box::new(CreateScriptUrlDependency::new(

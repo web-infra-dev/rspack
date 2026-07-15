@@ -196,8 +196,6 @@ impl DependencyTemplate for ImportWeakDependencyTemplate {
       .downcast_ref::<ImportWeakDependency>()
       .expect("ImportWeakDependencyTemplate should only be used for ImportWeakDependency");
 
-    let module_graph = code_generatable_context.compilation.get_module_graph();
-    let block = module_graph.get_parent_block(&dep.id);
     source.replace(
       dep.range.start,
       dep.range.end,
@@ -207,7 +205,7 @@ impl DependencyTemplate for ImportWeakDependencyTemplate {
           code_generatable_context.compilation,
           code_generatable_context.module.identifier(),
           &dep.id,
-          block,
+          code_generatable_context.current_block,
           &dep.request,
           dep.dependency_type().as_str(),
           true,

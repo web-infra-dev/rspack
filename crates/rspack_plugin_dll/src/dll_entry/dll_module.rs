@@ -4,7 +4,7 @@ use async_trait::async_trait;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
-  AsyncDependenciesBlockIdentifier, BoxModule, BuildContext, BuildInfo, BuildMeta, BuildResult,
+  AsyncDependenciesBlock, BoxModule, BuildContext, BuildInfo, BuildMeta, BuildResult,
   CodeGenerationResult, Compilation, Context, DependenciesBlock, Dependency, DependencyId,
   EntryDependency, FactoryMeta, Module, ModuleArgument, ModuleCodeGenerationContext, ModuleGraph,
   ModuleType, RuntimeGlobals, RuntimeSpec, SourceType, ValueCacheVersions, impl_module_meta_info,
@@ -29,7 +29,7 @@ pub struct DllModule {
 
   build_meta: BuildMeta,
 
-  blocks: Vec<AsyncDependenciesBlockIdentifier>,
+  blocks: Vec<AsyncDependenciesBlock>,
 
   entries: Vec<String>,
 
@@ -147,12 +147,12 @@ impl Identifiable for DllModule {
 }
 
 impl DependenciesBlock for DllModule {
-  fn add_block_id(&mut self, block: AsyncDependenciesBlockIdentifier) {
-    self.blocks.push(block);
+  fn get_blocks(&self) -> &[AsyncDependenciesBlock] {
+    &self.blocks
   }
 
-  fn get_blocks(&self) -> &[AsyncDependenciesBlockIdentifier] {
-    &self.blocks
+  fn add_block(&mut self, block: AsyncDependenciesBlock) {
+    self.blocks.push(block)
   }
 
   fn add_dependency_id(&mut self, dependency: DependencyId) {

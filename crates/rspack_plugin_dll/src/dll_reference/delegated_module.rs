@@ -4,7 +4,7 @@ use async_trait::async_trait;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
-  AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta,
+  AsyncDependenciesBlock, BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta,
   BuildResult, CodeGenerationResult, Compilation, Context, DependenciesBlock, DependencyId,
   FactoryMeta, LibIdentOptions, Module, ModuleArgument, ModuleCodeGenerationContext,
   ModuleDependency, ModuleGraph, ModuleId, ModuleType, RuntimeSpec, SourceType,
@@ -32,7 +32,7 @@ pub struct DelegatedModule {
   original_request: Option<String>,
   delegate_data: DllManifestContentItem,
   dependencies: Vec<DependencyId>,
-  blocks: Vec<AsyncDependenciesBlockIdentifier>,
+  blocks: Vec<AsyncDependenciesBlock>,
   factory_meta: Option<FactoryMeta>,
   build_info: BuildInfo,
   build_meta: BuildMeta,
@@ -218,12 +218,12 @@ impl Identifiable for DelegatedModule {
 }
 
 impl DependenciesBlock for DelegatedModule {
-  fn add_block_id(&mut self, block: AsyncDependenciesBlockIdentifier) {
-    self.blocks.push(block);
+  fn get_blocks(&self) -> &[AsyncDependenciesBlock] {
+    &self.blocks
   }
 
-  fn get_blocks(&self) -> &[AsyncDependenciesBlockIdentifier] {
-    &self.blocks
+  fn add_block(&mut self, block: AsyncDependenciesBlock) {
+    self.blocks.push(block)
   }
 
   fn add_dependency_id(&mut self, dependency: DependencyId) {

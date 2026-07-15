@@ -18,7 +18,7 @@ use serde_json::{Value, json};
 use swc_core::atoms::Atom;
 
 use crate::{
-  AsyncDependenciesBlockIdentifier, ChunkGraph, Compilation, CompilerOptions, DependenciesBlock,
+  AsyncDependenciesBlock, ChunkGraph, Compilation, CompilerOptions, DependenciesBlock,
   DependencyId, DependencyType, ExportsArgument, ExportsInfoArtifact, ExportsType,
   FakeNamespaceObjectMode, GenerateContext, ImportPhase, InitFragment, InitFragmentExt,
   InitFragmentKey, InitFragmentStage, Module, ModuleArgument, ModuleGraph,
@@ -932,7 +932,7 @@ impl ModuleCodeTemplate {
 
   pub fn block_promise(
     &mut self,
-    block: Option<&AsyncDependenciesBlockIdentifier>,
+    block: Option<&AsyncDependenciesBlock>,
     compilation: &Compilation,
     message: &str,
   ) -> String {
@@ -944,11 +944,12 @@ impl ModuleCodeTemplate {
       });
       return format!("Promise.resolve({})", comment.trim());
     };
+    let block_id = block.identifier();
     let chunk_group = compilation
       .build_chunk_graph_artifact
       .chunk_graph
       .get_block_chunk_group(
-        block,
+        &block_id,
         &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
       );
     let Some(chunk_group) = chunk_group else {
@@ -967,8 +968,6 @@ impl ModuleCodeTemplate {
       });
       return format!("Promise.resolve({})", comment.trim());
     }
-    let mg = compilation.get_module_graph();
-    let block = mg.block_by_id_expect(block);
     let comment = self.comment(CommentOptions {
       request: None,
       chunk_name: block.get_group_options().and_then(|o| o.name()),
@@ -1474,7 +1473,7 @@ impl ModuleCodeTemplate {
     compilation: &Compilation,
     module_id: Identifier,
     dep_id: &DependencyId,
-    block: Option<&AsyncDependenciesBlockIdentifier>,
+    block: Option<&AsyncDependenciesBlock>,
     request: &str,
     message: &str,
     weak: bool,
@@ -1681,16 +1680,12 @@ return {}
 
   pub fn async_module_factory(
     &mut self,
-    block_id: &AsyncDependenciesBlockIdentifier,
+    block: &AsyncDependenciesBlock,
     request: &str,
     compilation: &Compilation,
   ) -> String {
-    let module_graph = compilation.get_module_graph();
-    let block = module_graph
-      .block_by_id(block_id)
-      .expect("should have block");
     let dep = block.get_dependencies()[0];
-    let ensure_chunk = self.block_promise(Some(block_id), compilation, "");
+    let ensure_chunk = self.block_promise(Some(block), compilation, "");
     let return_value = self.module_raw(compilation, &dep, request, false);
     let factory = self.returning_function(&return_value, "");
     self.returning_function(

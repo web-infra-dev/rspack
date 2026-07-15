@@ -145,7 +145,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for RequireEnsureDependenciesBlockPa
     block.set_group_options(GroupOptions::ChunkGroup(
       ChunkGroupOptions::default().name_optional(chunk_name),
     ));
-    parser.add_block(Box::new(block));
+    parser.add_block(block);
 
     if success_expr.is_none() {
       parser.walk_expression(success_arg);

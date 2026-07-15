@@ -1,9 +1,12 @@
-use std::collections::{VecDeque, hash_map::Entry};
+use std::{
+  collections::{VecDeque, hash_map::Entry},
+  hash::{Hash, Hasher},
+};
 
 use rayon::prelude::*;
 use rspack_collections::IdentifierMap;
 use rspack_core::{
-  AsyncDependenciesBlockIdentifier, BuildMetaExportsType, CanInlineUse, Compilation,
+  AsyncDependenciesBlock, BuildMetaExportsType, CanInlineUse, Compilation,
   CompilationOptimizeDependencies, ConnectionState, DependenciesBlock, DependencyId, ExportsInfo,
   ExportsInfoArtifact, ExportsInfoData, ExtendedReferencedExport, GroupOptions, ModuleGraph,
   ModuleGraphCacheArtifact, ModuleIdentifier, Plugin, ReferencedExport, RuntimeSpec,
@@ -16,13 +19,41 @@ use rspack_hook::{plugin, plugin_hook};
 use rspack_util::{atom::Atom, queue::Queue};
 use rustc_hash::FxHashMap as HashMap;
 
-type ProcessBlockTask = (ModuleOrAsyncDependenciesBlock, Option<RuntimeSpec>, bool);
+type ProcessBlockTask<'a> = (
+  ModuleOrAsyncDependenciesBlock<'a>,
+  Option<RuntimeSpec>,
+  bool,
+);
 type NonNestedTask = (Option<RuntimeSpec>, bool, Vec<ExtendedReferencedExport>);
 
-#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
-enum ModuleOrAsyncDependenciesBlock {
+#[derive(Debug, Clone, Copy)]
+enum ModuleOrAsyncDependenciesBlock<'a> {
   Module(ModuleIdentifier),
-  AsyncDependenciesBlock(AsyncDependenciesBlockIdentifier),
+  AsyncDependenciesBlock(&'a AsyncDependenciesBlock),
+}
+
+impl PartialEq for ModuleOrAsyncDependenciesBlock<'_> {
+  fn eq(&self, other: &Self) -> bool {
+    match (self, other) {
+      (Self::Module(a), Self::Module(b)) => a == b,
+      (Self::AsyncDependenciesBlock(a), Self::AsyncDependenciesBlock(b)) => {
+        a.identifier() == b.identifier()
+      }
+      _ => false,
+    }
+  }
+}
+
+impl Eq for ModuleOrAsyncDependenciesBlock<'_> {}
+
+impl Hash for ModuleOrAsyncDependenciesBlock<'_> {
+  fn hash<H: Hasher>(&self, state: &mut H) {
+    std::mem::discriminant(self).hash(state);
+    match self {
+      Self::Module(module) => module.hash(state),
+      Self::AsyncDependenciesBlock(block) => block.identifier().hash(state),
+    }
+  }
 }
 
 #[derive(Debug, Clone)]
@@ -61,7 +92,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
       .build_module_graph_artifact
       .side_effects_state_artifact
       .clone();
-    let mut module_graph = self.build_module_graph_artifact.get_module_graph_mut();
+    let module_graph = self.build_module_graph_artifact.get_module_graph();
     self.exports_info_artifact.reset_all_exports_info_used();
 
     for (_, mgm) in module_graph.module_graph_modules() {
@@ -73,13 +104,11 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
       );
     }
     let mut q = Queue::new();
-    let mg = &mut *module_graph;
-
     let mut global_runtime: Option<RuntimeSpec> = if self.global {
       None
     } else {
       let mut global_runtime = RuntimeSpec::default();
-      for block in module_graph.blocks().values() {
+      for (_, block) in module_graph.iter_blocks() {
         if let Some(GroupOptions::Entrypoint(options)) = block.get_group_options()
           && let Some(runtime) = RuntimeSpec::from_entry_options(options)
         {
@@ -101,27 +130,17 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
         global_runtime.get_or_insert_default().extend(runtime);
       }
       for &dep in entry.dependencies.iter() {
-        self.process_entry_dependency(dep, runtime.clone(), &side_effects_state_artifact, &mut q);
+        self.process_entry_dependency(dep, runtime.clone(), &mut q);
       }
       for &dep in entry.include_dependencies.iter() {
-        self.process_entry_dependency(dep, runtime.clone(), &side_effects_state_artifact, &mut q);
+        self.process_entry_dependency(dep, runtime.clone(), &mut q);
       }
     }
     for dep in self.compilation.global_entry.dependencies.clone() {
-      self.process_entry_dependency(
-        dep,
-        global_runtime.clone(),
-        &side_effects_state_artifact,
-        &mut q,
-      );
+      self.process_entry_dependency(dep, global_runtime.clone(), &mut q);
     }
     for dep in self.compilation.global_entry.include_dependencies.clone() {
-      self.process_entry_dependency(
-        dep,
-        global_runtime.clone(),
-        &side_effects_state_artifact,
-        &mut q,
-      );
+      self.process_entry_dependency(dep, global_runtime.clone(), &mut q);
     }
 
     loop {
@@ -262,30 +281,29 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
           .collect::<Vec<_>>()
       };
 
-      {
-        // after processing, we will set the exports info data back to the module graph
-        let mut mg = self.build_module_graph_artifact.get_module_graph_mut();
-        for (exports_info, res) in non_nested_res {
-          for i in res {
-            q.enqueue(i);
-          }
-
-          self
-            .exports_info_artifact
-            .set_exports_info_by_id(exports_info.id(), exports_info);
+      // after processing, set the exports info data back
+      for (exports_info, res) in non_nested_res {
+        for i in res {
+          q.enqueue(i);
         }
+
+        self
+          .exports_info_artifact
+          .set_exports_info_by_id(exports_info.id(), exports_info);
       }
 
       // for nested tasks, just process them one by one to prevent conflicts while modifying the exports info data
       for (runtime, force_side_effects, module_id, exports_info, referenced_exports) in nested_tasks
       {
-        let res = self.process_referenced_module(
+        let res = Self::process_referenced_module(
+          self.build_module_graph_artifact.get_module_graph(),
+          self.exports_info_artifact,
+          &self.exports_info_module_map,
           exports_info,
           module_id,
           referenced_exports,
           runtime.clone(),
           force_side_effects,
-          &side_effects_state_artifact,
         );
         for i in res {
           q.enqueue(i);
@@ -300,17 +318,17 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
     }
   }
 
-  fn process_module(
+  fn process_module<'b>(
     &self,
-    module_graph: &ModuleGraph,
+    module_graph: &'b ModuleGraph,
     side_effects_state_artifact: &SideEffectsStateArtifact,
-    block_id: ModuleOrAsyncDependenciesBlock,
+    block_id: ModuleOrAsyncDependenciesBlock<'b>,
     runtime: Option<&RuntimeSpec>,
     force_side_effects: bool,
     global: bool,
   ) -> (
     Vec<(ModuleIdentifier, Vec<ExtendedReferencedExport>)>,
-    Vec<ProcessBlockTask>,
+    Vec<ProcessBlockTask<'b>>,
   ) {
     let compilation = self.compilation;
     let mut q = vec![];
@@ -392,12 +410,11 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
     )
   }
 
-  fn process_entry_dependency(
+  fn process_entry_dependency<'b>(
     &mut self,
     dep: DependencyId,
     runtime: Option<RuntimeSpec>,
-    side_effects_state_artifact: &SideEffectsStateArtifact,
-    queue: &mut Queue<ProcessBlockTask>,
+    queue: &mut Queue<ProcessBlockTask<'b>>,
   ) {
     if let Some(module) = self
       .build_module_graph_artifact
@@ -408,13 +425,15 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
       let exports_info = self
         .exports_info_artifact
         .get_exports_info(&module.module_identifier);
-      let res = self.process_referenced_module(
+      let res = Self::process_referenced_module(
+        mg,
+        self.exports_info_artifact,
+        &self.exports_info_module_map,
         exports_info,
         module.module_identifier,
         vec![],
         runtime,
         true,
-        side_effects_state_artifact,
       );
       for i in res {
         queue.enqueue(i);
@@ -422,17 +441,18 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
     }
   }
 
-  fn process_referenced_module(
-    &mut self,
+  #[allow(clippy::too_many_arguments)]
+  fn process_referenced_module<'b>(
+    module_graph: &ModuleGraph,
+    exports_info_artifact: &mut ExportsInfoArtifact,
+    exports_info_module_map: &HashMap<ExportsInfo, ModuleIdentifier>,
     mgm_exports_info: ExportsInfo,
     module_id: ModuleIdentifier,
     used_exports: Vec<ExtendedReferencedExport>,
     runtime: Option<RuntimeSpec>,
     force_side_effects: bool,
-    side_effects_state_artifact: &SideEffectsStateArtifact,
-  ) -> Vec<ProcessBlockTask> {
+  ) -> Vec<ProcessBlockTask<'b>> {
     let mut queue = vec![];
-    let mut module_graph = self.build_module_graph_artifact.get_module_graph_mut();
     let module = module_graph
       .module_by_identifier(&module_id)
       .expect("should have module");
@@ -444,7 +464,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
 
       if need_insert {
         let flag = mgm_exports_info
-          .as_data_mut(self.exports_info_artifact)
+          .as_data_mut(exports_info_artifact)
           .set_used_without_info(runtime.as_ref());
         if flag {
           queue.push((
@@ -468,7 +488,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
         };
         if used_exports.is_empty() {
           let flag = mgm_exports_info
-            .as_data_mut(self.exports_info_artifact)
+            .as_data_mut(exports_info_artifact)
             .set_used_in_unknown_way(runtime.as_ref());
 
           if flag {
@@ -484,9 +504,9 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
 
           for (i, used_export) in used_exports.into_iter().enumerate() {
             let export_info = current_exports_info
-              .as_data_mut(self.exports_info_artifact)
+              .as_data_mut(exports_info_artifact)
               .ensure_export_info(&used_export)
-              .as_data_mut(self.exports_info_artifact);
+              .as_data_mut(exports_info_artifact);
             if ns_access {
               export_info.set_ns_access(true);
             }
@@ -514,10 +534,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
                 let current_module = if current_exports_info == mgm_exports_info {
                   Some(module_id)
                 } else {
-                  self
-                    .exports_info_module_map
-                    .get(&current_exports_info)
-                    .copied()
+                  exports_info_module_map.get(&current_exports_info).copied()
                 };
                 if let Some(current_module) = current_module {
                   queue.push((
@@ -540,10 +557,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
               let current_module = if current_exports_info == mgm_exports_info {
                 Some(module_id)
               } else {
-                self
-                  .exports_info_module_map
-                  .get(&current_exports_info)
-                  .copied()
+                exports_info_module_map.get(&current_exports_info).copied()
               };
               if let Some(current_module) = current_module {
                 queue.push((
@@ -564,7 +578,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
         return queue;
       }
       let changed_flag = mgm_exports_info
-        .as_data_mut(self.exports_info_artifact)
+        .as_data_mut(exports_info_artifact)
         .set_used_for_side_effects_only(runtime.as_ref());
       if changed_flag {
         queue.push((
@@ -695,15 +709,18 @@ fn referenced_export_key(item: &ExtendedReferencedExport) -> Vec<Atom> {
   }
 }
 
-fn collect_active_dependencies(
-  block_id: ModuleOrAsyncDependenciesBlock,
+fn collect_active_dependencies<'a>(
+  block_id: ModuleOrAsyncDependenciesBlock<'a>,
   runtime: Option<&RuntimeSpec>,
-  module_graph: &ModuleGraph,
+  module_graph: &'a ModuleGraph,
   module_graph_cache: &ModuleGraphCacheArtifact,
   side_effects_state_artifact: &SideEffectsStateArtifact,
   exports_info_artifact: &ExportsInfoArtifact,
   global: bool,
-) -> (Vec<(DependencyId, ModuleIdentifier)>, Vec<ProcessBlockTask>) {
+) -> (
+  Vec<(DependencyId, ModuleIdentifier)>,
+  Vec<ProcessBlockTask<'a>>,
+) {
   let mut q = vec![];
   let mut queue = VecDeque::new();
   let mut dependencies = vec![];
@@ -716,10 +733,7 @@ fn collect_active_dependencies(
           .expect("should have module");
         (block.get_blocks(), block.get_dependencies())
       }
-      ModuleOrAsyncDependenciesBlock::AsyncDependenciesBlock(async_dependencies_block_id) => {
-        let block = module_graph
-          .block_by_id(&async_dependencies_block_id)
-          .expect("should have module");
+      ModuleOrAsyncDependenciesBlock::AsyncDependenciesBlock(block) => {
         (block.get_blocks(), block.get_dependencies())
       }
     };
@@ -751,20 +765,17 @@ fn collect_active_dependencies(
       }
       dependencies.push((dep_id, *connection.module_identifier()));
     }
-    for block_id in blocks {
-      let block = module_graph
-        .block_by_id(block_id)
-        .expect("should have block");
+    for block in blocks {
       if !global && let Some(GroupOptions::Entrypoint(options)) = block.get_group_options() {
         let runtime = RuntimeSpec::from_entry_options(options);
         q.push((
-          ModuleOrAsyncDependenciesBlock::AsyncDependenciesBlock(*block_id),
+          ModuleOrAsyncDependenciesBlock::AsyncDependenciesBlock(block),
           runtime,
           true,
         ));
       } else {
         queue.push_back(ModuleOrAsyncDependenciesBlock::AsyncDependenciesBlock(
-          *block_id,
+          block,
         ));
       }
     }
@@ -796,7 +807,7 @@ fn get_dependency_referenced_exports(
   }
 }
 
-fn process_referenced_module_without_nested(
+fn process_referenced_module_without_nested<'a>(
   module_id: ModuleIdentifier,
   is_exports_type_unset: bool,
   is_side_effect_free: bool,
@@ -804,7 +815,7 @@ fn process_referenced_module_without_nested(
   used_exports: Vec<ExtendedReferencedExport>,
   runtime: Option<RuntimeSpec>,
   force_side_effects: bool,
-) -> Vec<ProcessBlockTask> {
+) -> Vec<ProcessBlockTask<'a>> {
   let mut queue = vec![];
   if !used_exports.is_empty() {
     if is_exports_type_unset {

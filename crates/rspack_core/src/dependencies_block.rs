@@ -10,9 +10,9 @@ use crate::{
 };
 
 pub trait DependenciesBlock {
-  fn add_block_id(&mut self, block: AsyncDependenciesBlockIdentifier);
+  fn add_block(&mut self, block: AsyncDependenciesBlock);
 
-  fn get_blocks(&self) -> &[AsyncDependenciesBlockIdentifier];
+  fn get_blocks(&self) -> &[AsyncDependenciesBlock];
 
   fn add_dependency_id(&mut self, dependency: DependencyId);
 
@@ -31,7 +31,7 @@ pub type AsyncDependenciesBlockIdentifierSet =
 
 pub fn dependencies_block_update_hash(
   deps: &[DependencyId],
-  blocks: &[AsyncDependenciesBlockIdentifier],
+  blocks: &[AsyncDependenciesBlock],
   hasher: &mut RspackHasher,
   compilation: &Compilation,
   runtime: Option<&RuntimeSpec>,
@@ -43,8 +43,7 @@ pub fn dependencies_block_update_hash(
       dep.update_hash(hasher, compilation, runtime);
     }
   }
-  for block_id in blocks {
-    let block = mg.block_by_id_expect(block_id);
+  for block in blocks {
     block.update_hash(hasher, compilation, runtime);
   }
 }
@@ -76,12 +75,8 @@ impl From<Identifier> for AsyncDependenciesBlockIdentifier {
 pub struct AsyncDependenciesBlock {
   id: AsyncDependenciesBlockIdentifier,
   group_options: Option<GroupOptions>,
-  // Vec<Box<T: Sized>> makes sense if T is a large type (see #3530, 1st comment).
-  // #3530: https://github.com/rust-lang/rust-clippy/issues/3530
-  #[allow(clippy::vec_box)]
   #[cacheable(omit_bounds)]
-  blocks: Vec<Box<AsyncDependenciesBlock>>,
-  block_ids: Vec<AsyncDependenciesBlockIdentifier>,
+  blocks: Vec<AsyncDependenciesBlock>,
   dependency_ids: Vec<DependencyId>,
   dependencies: Vec<BoxDependency>,
   loc: Option<DependencyLocation>,
@@ -130,7 +125,6 @@ impl AsyncDependenciesBlock {
       id: id.into(),
       group_options: Default::default(),
       blocks: Default::default(),
-      block_ids: Default::default(),
       dependency_ids,
       dependencies,
       loc,
@@ -163,13 +157,11 @@ impl AsyncDependenciesBlock {
     &mut self.dependencies
   }
 
-  pub fn add_block(&mut self, _block: AsyncDependenciesBlock) {
-    unimplemented!("Nested block are not implemented");
-    // self.block_ids.push(block.id);
-    // self.blocks.push(block);
+  pub fn add_block(&mut self, block: AsyncDependenciesBlock) {
+    self.blocks.push(block);
   }
 
-  pub fn take_blocks(&mut self) -> Vec<Box<AsyncDependenciesBlock>> {
+  pub fn take_blocks(&mut self) -> Vec<AsyncDependenciesBlock> {
     std::mem::take(&mut self.blocks)
   }
 
@@ -213,13 +205,12 @@ impl AsyncDependenciesBlock {
 }
 
 impl DependenciesBlock for AsyncDependenciesBlock {
-  fn add_block_id(&mut self, _block: AsyncDependenciesBlockIdentifier) {
-    unimplemented!("Nested block are not implemented");
-    // self.block_ids.push(block);
+  fn add_block(&mut self, block: AsyncDependenciesBlock) {
+    AsyncDependenciesBlock::add_block(self, block);
   }
 
-  fn get_blocks(&self) -> &[AsyncDependenciesBlockIdentifier] {
-    &self.block_ids
+  fn get_blocks(&self) -> &[AsyncDependenciesBlock] {
+    &self.blocks
   }
 
   fn add_dependency_id(&mut self, dependency: DependencyId) {

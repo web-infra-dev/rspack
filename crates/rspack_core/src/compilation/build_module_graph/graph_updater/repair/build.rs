@@ -143,9 +143,9 @@ impl Task<TaskContext> for BuildResultTask {
     let mut queue = VecDeque::new();
     let mut all_dependencies = vec![];
     let mut handle_block = |dependencies: Vec<BoxDependency>,
-                            blocks: Vec<Box<AsyncDependenciesBlock>>,
-                            current_block: Option<Box<AsyncDependenciesBlock>>|
-     -> Vec<Box<AsyncDependenciesBlock>> {
+                            blocks: Vec<AsyncDependenciesBlock>,
+                            current_block: Option<AsyncDependenciesBlock>|
+     -> Vec<AsyncDependenciesBlock> {
       for (index_in_block, dependency) in dependencies.into_iter().enumerate() {
         let dependency_id = *dependency.id();
         if let Some(until) = dependency.lazy() {
@@ -166,8 +166,7 @@ impl Task<TaskContext> for BuildResultTask {
         module_graph.add_dependency(dependency);
       }
       if let Some(current_block) = current_block {
-        module.add_block_id(current_block.identifier());
-        module_graph.add_block(current_block);
+        module.add_block(current_block);
       }
       blocks
     };
