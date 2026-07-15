@@ -331,14 +331,7 @@ impl Dependency for ESMImportSpecifierDependency {
       // remove last one
       ids = &ids[..ids.len().saturating_sub(1)];
     }
-    let referenced_exports = self.get_referenced_exports_in_destructuring(Some(ids));
-    if self.request.contains("referenced-export-smallvec-case") {
-      println!(
-        "[ReferencedExport SmallVec ESM case] request={:?}, referenced_exports={referenced_exports:?}",
-        self.request
-      );
-    }
-    referenced_exports
+    self.get_referenced_exports_in_destructuring(Some(ids))
   }
 
   fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
