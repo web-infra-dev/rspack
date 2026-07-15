@@ -105,11 +105,6 @@ impl ReferencedExport {
   pub fn ns_access(&self) -> bool {
     self.flags.contains(ReferencedExportFlags::NS_ACCESS)
   }
-
-  #[inline]
-  pub fn merge_flags(&mut self, other: ReferencedExportFlags) {
-    self.flags.merge(other);
-  }
 }
 
 pub fn collect_referenced_export_items<'a>(
