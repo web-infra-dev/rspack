@@ -384,17 +384,17 @@ impl ImportMetaPlugin {
       return;
     }
 
-    let property = if members.is_empty() {
-      "<computed>".to_string()
+    let message = if members.is_empty() {
+      "Unknown `import.meta` property replaced with undefined.".to_string()
     } else {
-      members.join(".")
+      concat_string!(
+        "Unknown `import.meta` property `",
+        members.join("."),
+        "` replaced with undefined."
+      )
     };
     let range: DependencyRange = span.into();
-    let mut error = Error::warning(concat_string!(
-      "Unknown `import.meta` property `",
-      property,
-      "` replaced with undefined."
-    ));
+    let mut error = Error::warning(message);
     error.src = Some(parser.source.to_string());
     error.labels = Some(vec![Label {
       name: None,
@@ -522,6 +522,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaPlugin {
     for_name: &str,
   ) -> Option<eval::BasicEvaluatedExpression<'a>> {
     let mut evaluated = None;
+    let mut has_unknown_property = false;
     if for_name == expr_name::IMPORT_META {
       evaluated = Some("object".to_string());
     } else if let Some(property) = ImportMetaBuiltinProperty::from_name(for_name)
@@ -557,9 +558,17 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaPlugin {
         })
         .unwrap_or(false)
     {
-      evaluated = Some("undefined".to_string())
+      evaluated = Some("undefined".to_string());
+      has_unknown_property = Self::known_property_from_name(for_name).is_none();
     }
-    evaluated.map(|e| eval::evaluate_to_string(e, expr.span.real_lo(), expr.span.real_hi()))
+    evaluated.map(|e| {
+      let mut evaluated = eval::evaluate_to_string(e, expr.span.real_lo(), expr.span.real_hi());
+      if has_unknown_property {
+        // Ensure the original expression is walked so the replacement emits its warning.
+        evaluated.set_side_effects(true);
+      }
+      evaluated
+    })
   }
 
   fn evaluate_identifier(

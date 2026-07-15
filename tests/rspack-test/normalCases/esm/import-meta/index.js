@@ -44,6 +44,7 @@ it("should return correct import.meta.webpack", () => {
 it("should return undefined for unknown property", () => {
 	expect(import.meta.other).toBe(undefined);
 	if (typeof import.meta.other !== "undefined") require("fail");
+	expect(typeof import.meta["computed-other"]).toBe("undefined");
 	expect(() => import.meta.other.other.other).toThrowError();
 });
 

@@ -3,6 +3,12 @@ module.exports = [
 		/Unknown `import.meta` property `other` replaced with undefined./
 	],
 	[
+		/Unknown `import.meta` property `other` replaced with undefined./
+	],
+	[
+		/Unknown `import.meta` property `computed-other` replaced with undefined./
+	],
+	[
 		/Unknown `import.meta` property `other.other.other` replaced with undefined./
 	],
 	[
