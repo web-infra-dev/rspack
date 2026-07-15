@@ -730,16 +730,16 @@ impl JavascriptParser<'_> {
       return Some(true);
     }
     if let Some(rename_identifier) = self.get_rename_identifier(&expr.right)
-      && let Some(context) = self
+      && let Some(data) = self
         .get_tag_data::<CreatedRequireTagData>(&rename_identifier, CREATED_REQUIRE_IDENTIFIER_TAG)
-        .map(|data| data.context.clone())
+        .cloned()
     {
       self.tag_variable(
         ident_name.clone(),
         CREATED_REQUIRE_IDENTIFIER_TAG,
         Some(CreatedRequireTagData {
-          context,
           side_effects: String::new(),
+          ..data
         }),
       );
       if !expr.right.is_ident() {
@@ -763,16 +763,16 @@ impl JavascriptParser<'_> {
   }
 
   fn copy_create_require_assignment_result(&mut self, binding: Atom, target: &Atom) {
-    if let Some(context) = self
+    if let Some(data) = self
       .get_tag_data::<CreatedRequireTagData>(target, CREATED_REQUIRE_IDENTIFIER_TAG)
-      .map(|data| data.context.clone())
+      .cloned()
     {
       self.tag_variable(
         binding,
         CREATED_REQUIRE_IDENTIFIER_TAG,
         Some(CreatedRequireTagData {
-          context,
           side_effects: String::new(),
+          ..data
         }),
       );
     } else if let Some(info) = self.get_variable_info(target)

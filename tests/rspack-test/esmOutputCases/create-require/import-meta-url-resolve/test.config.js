@@ -11,8 +11,11 @@ module.exports = {
 		expect(source).not.toContain("file://");
 		expect(source).not.toContain("createRequire('<ROOT>");
 		expect(source).not.toContain('createRequire("<ROOT>');
-		expect(source).not.toContain(
+		expect(source).toContain(
 			"external_node_module_namespaceObject.createRequire(import.meta.url)"
+		);
+		expect(source).toContain(
+			"external_node_module_default().createRequire(import.meta.url)"
 		);
 		expect(source).toContain("/* createRequire() */ undefined");
 		expect(source).toContain("__webpack_require__(");
