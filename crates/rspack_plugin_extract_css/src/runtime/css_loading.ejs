@@ -1,4 +1,10 @@
 if (typeof document === "undefined") return;
+// Scopes the chunk-identity attribute used to find a currently installed stylesheet
+// (see extractCssFindStylesheet) to this compilation, so two independently compiled
+// apps sharing a chunk id on the same page can't steal or remove each other's
+// stylesheet. Matches the same output.uniqueName-based identity scheme chunk/module
+// script loading already uses (see load_script.ejs).
+var extractCssUniquePrefix = <%- _unique_name_prefix %>;
 var extractCssCreateStylesheet = function (
 	chunkId, fullhref, oldTag, resolve, reject, fetchPriority
 ) {
@@ -30,7 +36,7 @@ var extractCssFindStylesheet = function (href, fullhref, chunkId) {
 		// When a chunkId is given (HMR replacement lookup), prefer matching the tag that
 		// was created for that chunk: the href it was created with may since have changed
 		// (e.g. a hashed filename), so it can no longer be found by comparing hrefs.
-		if (chunkId !== undefined && tag.getAttribute("data-webpack-chunk") === String(chunkId)) {
+		if (chunkId !== undefined && tag.getAttribute("data-webpack-chunk") === extractCssUniquePrefix + String(chunkId)) {
 			return tag;
 		}
 		var dataHref = tag.getAttribute("data-href") || tag.getAttribute("href");
@@ -50,7 +56,15 @@ var extractCssFindStylesheet = function (href, fullhref, chunkId) {
 
 var extractCssLoadStylesheet = function (chunkId, fetchPriority) {
 	return new Promise(function (resolve, reject) {
-		var href = <%- REQUIRE_SCOPE %>.miniCssF(chunkId);
+		/**
+			A chunk that hasn't been loaded yet (e.g. a lazy route not imported so far) has
+			no tag for the HMR handler to update, so it instead just retains the fresh
+			filename it learned about (see HMR_MINI_CSS_FILENAMES in the with-hmr runtime).
+			Consult that retained mapping here too, or loading the chunk for the first time
+			after its CSS changed would still request the stale, pre-edit filename.
+		 */
+		var miniCssFilenames = <%- weak(HMR_MINI_CSS_FILENAMES) %>;
+		var href = (miniCssFilenames && miniCssFilenames[chunkId]) || <%- REQUIRE_SCOPE %>.miniCssF(chunkId);
 		var fullhref = <%- PUBLIC_PATH %> + href;
 		if (extractCssFindStylesheet(href, fullhref)) return resolve();
 		extractCssCreateStylesheet(chunkId, fullhref, null, resolve, reject, fetchPriority);

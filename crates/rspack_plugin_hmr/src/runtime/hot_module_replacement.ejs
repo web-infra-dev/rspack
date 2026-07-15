@@ -1,5 +1,5 @@
 var currentModuleData = {};
-var currentUpdateCssFilenames = {};
+var currentUpdateMiniCssFilenames = {};
 var hmrInstalledModules = <%- MODULE_CACHE %>;
 
 // module and require creation
@@ -19,7 +19,7 @@ var currentUpdateApplyHandlers;
 var queuedInvalidatedModules;
 
 <%- define(HMR_MODULE_DATA) %> = currentModuleData;
-<%- define(HMR_CSS_FILENAMES) %> = currentUpdateCssFilenames;
+<%- define(HMR_MINI_CSS_FILENAMES) %> = currentUpdateMiniCssFilenames;
 <% if (_is_rspack_runtime_mode) { %><%- define(INTERCEPT_MODULE_EXECUTION) %> = [];
 <% } %>
 <%- INTERCEPT_MODULE_EXECUTION %>.push(function (options) {
@@ -264,12 +264,12 @@ function hotCheck(applyOnUpdate) {
 			return setStatus("prepare").then(function () {
 				var updatedModules = [];
 				currentUpdateApplyHandlers = [];
-				// Mutate in place: HMR_CSS_FILENAMES was handed out as a reference to this
-				// same object, so reassigning the variable here would leave that reference
-				// pointing at the old (stale) object instead of this update's data.
-				if (update.css) {
-					for (var cssChunkId in update.css) {
-						currentUpdateCssFilenames[cssChunkId] = update.css[cssChunkId];
+				// Mutate in place: HMR_MINI_CSS_FILENAMES was handed out as a reference to
+				// this same object, so reassigning the variable here would leave that
+				// reference pointing at the old (stale) object instead of this update's data.
+				if (update.miniCss) {
+					for (var cssChunkId in update.miniCss) {
+						currentUpdateMiniCssFilenames[cssChunkId] = update.miniCss[cssChunkId];
 					}
 				}
 

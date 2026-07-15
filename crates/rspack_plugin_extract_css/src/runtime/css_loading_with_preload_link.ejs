@@ -4,7 +4,8 @@ if (<%- weak(SCRIPT_NONCE) %>) {
 }
 link.rel = "preload";
 link.as = "style";
-link.href = <%- PUBLIC_PATH %> + <%- REQUIRE_SCOPE %>.miniCssF(chunkId);
+var extractCssPreloadMiniCssFilenames = <%- weak(HMR_MINI_CSS_FILENAMES) %>;
+link.href = <%- PUBLIC_PATH %> + ((extractCssPreloadMiniCssFilenames && extractCssPreloadMiniCssFilenames[chunkId]) || <%- REQUIRE_SCOPE %>.miniCssF(chunkId));
 <% if (_cross_origin == "use-credentials") { %>
 link.crossOrigin = "use-credentials";
 <% } else if (_cross_origin != "") { %>
