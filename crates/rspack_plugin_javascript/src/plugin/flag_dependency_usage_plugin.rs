@@ -6,8 +6,8 @@ use rspack_core::{
   AsyncDependenciesBlockIdentifier, BuildMetaExportsType, CanInlineUse, Compilation,
   CompilationOptimizeDependencies, ConnectionState, DependenciesBlock, DependencyId, ExportsInfo,
   ExportsInfoArtifact, ExportsInfoData, GroupOptions, ModuleGraph, ModuleGraphCacheArtifact,
-  ModuleIdentifier, Plugin, ReferencedExport, ReferencedExportPath, RuntimeSpec,
-  SideEffectsOptimizeArtifact, SideEffectsStateArtifact, UsageState,
+  ModuleIdentifier, Plugin, ReferencedExport, ReferencedExportFlags, ReferencedExportPath,
+  RuntimeSpec, SideEffectsOptimizeArtifact, SideEffectsStateArtifact, UsageState,
   build_module_graph::BuildModuleGraphArtifact, get_entry_runtime, incremental::IncrementalPasses,
   is_exports_object_referenced, is_no_exports_referenced, module_declared_side_effect_free,
 };
@@ -27,7 +27,7 @@ enum ModuleOrAsyncDependenciesBlock {
 
 #[derive(Debug, Clone)]
 enum ProcessModuleReferencedExports {
-  Map(HashMap<ReferencedExportPath, ReferencedExport>),
+  Map(HashMap<ReferencedExportPath, ReferencedExportFlags>),
   ExtendRef(Vec<ReferencedExport>),
 }
 #[allow(unused)]
@@ -379,7 +379,10 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
           (
             module_id,
             match referenced_exports {
-              ProcessModuleReferencedExports::Map(map) => map.into_values().collect::<Vec<_>>(),
+              ProcessModuleReferencedExports::Map(map) => map
+                .into_iter()
+                .map(|(name, flags)| ReferencedExport { name, flags })
+                .collect::<Vec<_>>(),
               ProcessModuleReferencedExports::ExtendRef(extend_ref) => extend_ref,
             },
           )
@@ -639,16 +642,15 @@ fn merge_referenced_exports(
       ProcessModuleReferencedExports::Map(map) => map,
       ProcessModuleReferencedExports::ExtendRef(ref_items) => ref_items
         .into_iter()
-        .map(|item| (item.name.clone(), item))
+        .map(|item| (item.name, item.flags))
         .collect::<HashMap<_, _>>(),
     };
 
     for item in referenced_exports {
-      let key = item.name.clone();
-      match exports_map.entry(key) {
-        Entry::Occupied(mut occ) => occ.get_mut().merge_flags(item.flags),
+      match exports_map.entry(item.name) {
+        Entry::Occupied(mut occ) => occ.get_mut().merge(item.flags),
         Entry::Vacant(vac) => {
-          vac.insert(item);
+          vac.insert(item.flags);
         }
       }
     }

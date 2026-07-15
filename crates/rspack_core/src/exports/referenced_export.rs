@@ -22,7 +22,25 @@ impl Default for ReferencedExportFlags {
   }
 }
 
-#[derive(Clone, Debug)]
+impl ReferencedExportFlags {
+  #[inline]
+  pub fn merge(&mut self, other: Self) {
+    self.set(
+      Self::CAN_MANGLE,
+      self.contains(Self::CAN_MANGLE) && other.contains(Self::CAN_MANGLE),
+    );
+    self.set(
+      Self::CAN_INLINE,
+      self.contains(Self::CAN_INLINE) && other.contains(Self::CAN_INLINE),
+    );
+    self.set(
+      Self::NS_ACCESS,
+      self.contains(Self::NS_ACCESS) || other.contains(Self::NS_ACCESS),
+    );
+  }
+}
+
+#[derive(Clone, Debug, Default)]
 pub struct ReferencedExport {
   pub name: ReferencedExportPath,
   pub flags: ReferencedExportFlags,
@@ -73,40 +91,24 @@ impl ReferencedExport {
     self
   }
 
+  #[inline]
   pub fn can_mangle(&self) -> bool {
     self.flags.contains(ReferencedExportFlags::CAN_MANGLE)
   }
 
+  #[inline]
   pub fn can_inline(&self) -> bool {
     self.flags.contains(ReferencedExportFlags::CAN_INLINE)
   }
 
+  #[inline]
   pub fn ns_access(&self) -> bool {
     self.flags.contains(ReferencedExportFlags::NS_ACCESS)
   }
 
+  #[inline]
   pub fn merge_flags(&mut self, other: ReferencedExportFlags) {
-    self.flags.set(
-      ReferencedExportFlags::CAN_MANGLE,
-      self.can_mangle() && other.contains(ReferencedExportFlags::CAN_MANGLE),
-    );
-    self.flags.set(
-      ReferencedExportFlags::CAN_INLINE,
-      self.can_inline() && other.contains(ReferencedExportFlags::CAN_INLINE),
-    );
-    self.flags.set(
-      ReferencedExportFlags::NS_ACCESS,
-      self.ns_access() || other.contains(ReferencedExportFlags::NS_ACCESS),
-    );
-  }
-}
-
-impl Default for ReferencedExport {
-  fn default() -> Self {
-    Self {
-      name: SmallVec::new(),
-      flags: ReferencedExportFlags::default(),
-    }
+    self.flags.merge(other);
   }
 }
 
