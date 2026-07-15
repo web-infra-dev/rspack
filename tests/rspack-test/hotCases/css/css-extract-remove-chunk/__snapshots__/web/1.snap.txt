@@ -6,7 +6,7 @@
 ## Asset Files
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 147
-- Update: main.LAST_HASH.hot-update.js, size: 20817
+- Update: main.LAST_HASH.hot-update.js, size: 21639
 
 ## Manifest
 
@@ -138,6 +138,13 @@ var extractCssApplyHandler = function (options) {
 		}
 	}
 }
+var extractCssInitialChunkIds = {"main": 1,};
+// the jsonp runtime's persistent installed-chunk state (webpack's
+// hmrRuntimeStatePrefix); a chunk is on this page when it recorded the
+// chunk as fully loaded (0)
+var extractCssChunkIsLoaded = function (chunkId) {
+	return typeof __webpack_require__.hmrS_jsonp !== "undefined" && __webpack_require__.hmrS_jsonp && __webpack_require__.hmrS_jsonp[chunkId] === 0;
+};
 __webpack_require__.hmrC.miniCss = function (chunkIds, removedChunks, removedModules, promises, applyHandlers, updatedModulesList, css, miniCss) {
 	applyHandlers.push(extractCssApplyHandler);
 	/**
@@ -166,6 +173,11 @@ __webpack_require__.hmrC.miniCss = function (chunkIds, removedChunks, removedMod
 		if (seen[fullhref]) return;
 		seen[fullhref] = true;
 		var oldTag = extractCssFindStylesheet(href, fullhref);
+		// The manifest is computed from the compilation and also lists chunks this
+		// page never loaded. A missing tag is legitimate only for a chunk that is
+		// actually on the page: an initial chunk gaining its first stylesheet, or
+		// a loaded async chunk whose stylesheet was removed by an earlier update.
+		if (!oldTag && !extractCssInitialChunkIds[chunkId] && !extractCssChunkIsLoaded(chunkId)) return;
 		promises.push(new Promise(function (resolve, reject) {
 			var tag = extractCssCreateStylesheet(
 				chunkId,

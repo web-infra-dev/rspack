@@ -8,7 +8,8 @@ use rspack_core::{
 };
 use rspack_plugin_runtime::{
   CreateLinkData, LinkPrefetchData, LinkPreloadData, RuntimePlugin, chunk_has_css,
-  extract_runtime_globals_from_ejs, get_chunk_runtime_requirements, stringify_chunks,
+  extract_runtime_globals_from_ejs, get_chunk_runtime_requirements,
+  render_hmr_runtime_state_expression, stringify_chunks,
 };
 use rspack_util::json_stringify;
 
@@ -251,6 +252,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
       let initial_chunks =
         chunk.get_all_initial_chunks(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey);
       let mut initial_chunk_ids = ChunkIdSet::default();
+      let mut all_initial_chunk_ids = ChunkIdSet::default();
 
       for chunk_ukey in initial_chunks.iter() {
         let id = compilation
@@ -260,8 +262,9 @@ impl RuntimeModule for CssLoadingRuntimeModule {
           .expect_id()
           .clone();
         if chunk_has_css(chunk_ukey, compilation) {
-          initial_chunk_ids.insert(id);
+          initial_chunk_ids.insert(id.clone());
         }
+        all_initial_chunk_ids.insert(id);
       }
 
       let environment = &compilation.options.output.environment;
@@ -417,7 +420,9 @@ impl RuntimeModule for CssLoadingRuntimeModule {
           let source_with_hmr = context.runtime_template.render(
             &self.template_id(TemplateId::WithHmr),
             Some(serde_json::json!({
-              "_is_neutral_platform": is_neutral_platform
+              "_is_neutral_platform": is_neutral_platform,
+              "_initial_chunk_ids": stringify_chunks(&all_initial_chunk_ids, 1),
+              "_js_state_expression": render_hmr_runtime_state_expression(runtime_template, "jsonp"),
             })),
           )?;
           source.push_str(&source_with_hmr);
