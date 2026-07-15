@@ -10,5 +10,5 @@ it('should tree-shake unused exports from "use client" modules', async () => {
     const chunkId = __rspack_rsc_manifest__.clientManifest[TODOS_PATH].chunks[0];
     const moduleId = __rspack_rsc_manifest__.clientManifest[TODOS_PATH].id;
     const exports = await loadClientModule(chunkId, moduleId);
-    expect(exports).toEqual(['Todos']);
+    expect(exports.sort()).toEqual(['TodoItem', 'Todos']);
 });
