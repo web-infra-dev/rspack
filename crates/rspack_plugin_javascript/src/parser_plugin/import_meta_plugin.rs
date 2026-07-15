@@ -299,6 +299,14 @@ pub struct ImportMetaPlugin(pub(crate) ArcComputed<ResolvedModuleOptions, Import
 
 impl ImportMetaPlugin {
   fn known_property_from_name(name: &str) -> Option<ImportMetaKnownProperties> {
+    match name {
+      expr_name::IMPORT_META_HOT => return Some(ImportMetaKnownProperties::WEBPACK_HOT),
+      expr_name::IMPORT_META_CONTEXT => {
+        return Some(ImportMetaKnownProperties::WEBPACK_CONTEXT);
+      }
+      expr_name::IMPORT_META_GLOB => return Some(ImportMetaKnownProperties::GLOB),
+      _ => {}
+    }
     if let Some(property) = ImportMetaBuiltinProperty::from_name(name) {
       return Some(property.property);
     }
@@ -605,25 +613,42 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaPlugin {
           return None;
         }
         let span = member.span();
-        return Some(eval::evaluate_to_undefined(span.real_lo(), span.real_hi()));
+        let mut evaluated = eval::evaluate_to_undefined(span.real_lo(), span.real_hi());
+        let name = concat_string!(expr_name::IMPORT_META, ".", ident.sym);
+        if Self::known_property_from_name(&name).is_none() {
+          // Ensure the original expression is walked so the replacement emits its warning.
+          evaluated.set_side_effects(true);
+        }
+        return Some(evaluated);
       }
       if let Some(computed) = member.prop.as_computed()
         && computed.expr.is_lit()
       {
         // Check for computed properties like import.meta["dirname"]
-        if let Some(str_lit) = computed.expr.as_lit().and_then(|lit| lit.as_str())
-          && str_lit.value.as_str().is_some_and(|value| {
-            ImportMetaBuiltinProperty::from_property(value)
-              .is_some_and(|property| property.skip_undefined_evaluation(self, parser))
-              || import_meta_runtime_api_from_property(value)
-                .is_some_and(|api| self.runtime_api_enabled(api))
-              || self.preserve_property(Some(value))
-          })
-        {
+        let property = computed
+          .expr
+          .as_lit()
+          .and_then(|lit| lit.as_str())
+          .and_then(|str_lit| str_lit.value.as_str());
+        if property.is_some_and(|value| {
+          ImportMetaBuiltinProperty::from_property(value)
+            .is_some_and(|property| property.skip_undefined_evaluation(self, parser))
+            || import_meta_runtime_api_from_property(value)
+              .is_some_and(|api| self.runtime_api_enabled(api))
+            || self.preserve_property(Some(value))
+        }) {
           return None;
         }
         let span = member.span();
-        return Some(eval::evaluate_to_undefined(span.real_lo(), span.real_hi()));
+        let mut evaluated = eval::evaluate_to_undefined(span.real_lo(), span.real_hi());
+        if property.is_none_or(|property| {
+          let name = concat_string!(expr_name::IMPORT_META, ".", property);
+          Self::known_property_from_name(&name).is_none()
+        }) {
+          // Ensure the original expression is walked so the replacement emits its warning.
+          evaluated.set_side_effects(true);
+        }
+        return Some(evaluated);
       }
     }
     None

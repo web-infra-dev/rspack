@@ -45,7 +45,17 @@ it("should return undefined for unknown property", () => {
 	expect(import.meta.other).toBe(undefined);
 	if (typeof import.meta.other !== "undefined") require("fail");
 	expect(typeof import.meta["computed-other"]).toBe("undefined");
+	if (import.meta.condition) require("fail");
+	if (import.meta["computed-condition"]) require("fail");
 	expect(() => import.meta.other.other.other).toThrowError();
+});
+
+it("should not warn for known context properties", () => {
+	expect(typeof import.meta.glob).toBe("undefined");
+	expect(typeof import.meta.webpackContext).toBe("undefined");
+	const { glob, webpackContext } = import.meta;
+	expect(glob).toBeUndefined();
+	expect(webpackContext).toBeUndefined();
 });
 
 it("should add warning on direct import.meta usage", () => {
