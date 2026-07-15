@@ -57,10 +57,6 @@ const MODULE_DEPENDENCIES: &[(RuntimeGlobals, RuntimeGlobals)] = &[
     RuntimeGlobals::MODULE,
   ),
   (RuntimeGlobals::AMD_DEFINE, RuntimeGlobals::REQUIRE),
-  (
-    RuntimeGlobals::DEFINE_ESM_EXPORTS,
-    RuntimeGlobals::MAKE_NAMESPACE_OBJECT.union(RuntimeGlobals::DEFINE_PROPERTY_GETTERS),
-  ),
 ];
 
 fn handle_scope_globals(

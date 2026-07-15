@@ -8,17 +8,9 @@ const source = fs.readFileSync(
 
 expect(source).toContain("var __rspack_context={};");
 expect(source).toContain("__rspack_context.r = __webpack_require__;");
-expect(source).toContain("__rspack_context.d");
-expect(source).toContain("__rspack_context.N");
 expect(source).toContain("__rspack_context.esm");
-expect(source).toContain("__rspack_context.d = definePropertyGetters;");
-expect(source).toContain("__rspack_context.N = makeNamespaceObject;");
-expect(
-  source.match(/__rspack_context\.d = definePropertyGetters;/g),
-).toHaveLength(1);
-expect(
-  source.match(/__rspack_context\.N = makeNamespaceObject;/g),
-).toHaveLength(1);
+expect(source).not.toContain("__rspack_context.d = definePropertyGetters;");
+expect(source).not.toContain("__rspack_context.N = makeNamespaceObject;");
 expect(source).toContain("__rspack_context.esm = defineEsmExports;");
 expect(source).toContain("module.exports, __rspack_context");
 expect(source).toContain("definePropertyGetters =");
