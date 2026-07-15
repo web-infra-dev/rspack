@@ -60,12 +60,30 @@ impl DependencyTemplate for ESMCompatibilityDependencyTemplate {
       .get_read_only_export_info(&name)
       .get_used(*runtime);
     if !matches!(used, UsageState::Unused) {
-      init_fragments.push(Box::new(ESMExportInitFragment::new_esm_compatibility(
-        module.get_exports_argument(),
-        compilation
-          .circular_modules
-          .is_circular_module(&module.identifier()),
-      )));
+      let module_identifier = module.identifier();
+      let is_circular_module = compilation
+        .circular_modules
+        .is_circular_module(&module_identifier);
+      if matches!(is_circular_module, Some(false)) {
+        // Export definitions for non-circular modules are emitted at the end. Keep the
+        // namespace marker at the beginning instead of moving it just to combine calls.
+        init_fragments.push(Box::new(NormalInitFragment::new(
+          format!(
+            "{}({});\n",
+            runtime_template.render_runtime_globals(&RuntimeGlobals::MAKE_NAMESPACE_OBJECT),
+            runtime_template.render_exports_argument(module.get_exports_argument()),
+          ),
+          InitFragmentStage::StageESMExports,
+          0,
+          InitFragmentKey::ESMCompatibility,
+          None,
+        )));
+      } else {
+        init_fragments.push(Box::new(ESMExportInitFragment::new_esm_compatibility(
+          module.get_exports_argument(),
+          is_circular_module,
+        )));
+      }
     }
 
     if ModuleGraph::is_async(&compilation.async_modules_artifact, &module.identifier()) {

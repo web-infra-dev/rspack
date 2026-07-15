@@ -8,6 +8,7 @@ __rspack_context.m.add({
   !*** ./index.js ***!
   \******************/
 (module, __rspack_exports, __rspack_context) {
+__rspack_context.N(__rspack_exports);
 /* import */ var fs__rspack_import_0 = __rspack_context.r(/*! fs */ "fs");
 
 /* reexport */ var __rspack_reexport = {};
@@ -37,7 +38,7 @@ it('should compile and import success', async () => {
 	expect(readFile).toBeDefined()
 })
 
-__rspack_context.esm(__rspack_exports, {
+__rspack_context.d(__rspack_exports, {
   fs: () => (/* reexport safe */ fs__rspack_import_0["default"]),
   named: () => (/* reexport safe */ (/* inlined export _lib__rspack_import_1 */42)),
   r: () => (/* reexport safe */ fs__rspack_import_0.readFile),
@@ -99,13 +100,6 @@ __rspack_context.r = __rspack_require;
 __rspack_context.m = __rspack_modules;
 
 var moduleFactories=__rspack_modules;
-// rspack/runtime/define_esm_exports
-var defineEsmExports = (exports, getters, values) => {
-	makeNamespaceObject(exports);
-	definePropertyGetters(exports, getters, values);
-};
-;
-__rspack_context.esm = defineEsmExports;
 // rspack/runtime/define_property_getters
 var definePropertyGetters = (exports, getters, values) => {
 	var define = (defs, kind) => {
@@ -145,6 +139,7 @@ var makeNamespaceObject = (exports) => {
 	}
 	Object.defineProperty(exports, '__esModule', { value: true });
 };;
+__rspack_context.N = makeNamespaceObject;
 
 export { __rspack_context };
 

@@ -45,6 +45,7 @@ module.exports = {
     );
 
     const libSource = extractModuleSource(source, "./lib.js");
+    const splitSource = extractModuleSource(source, "./split.js");
 
     if (source.includes("var __rspack_context={};")) {
       expect(
@@ -58,6 +59,12 @@ module.exports = {
       expect(libSource).not.toContain(
         "__rspack_context.d(__rspack_exports, {",
       );
+      const combinedCall = libSource.indexOf(
+        "__rspack_context.esm(__rspack_exports, {",
+      );
+      const cycleImport = libSource.indexOf("./cycle.js");
+      expect(cycleImport).toBeGreaterThan(-1);
+      expect(combinedCall).toBeLessThan(cycleImport);
       expect(source).toContain("__rspack_context.esm = defineEsmExports;");
       const markerCall = source.indexOf("makeNamespaceObject(exports);");
       const gettersCall = source.indexOf(
@@ -65,6 +72,23 @@ module.exports = {
       );
       expect(markerCall).toBeGreaterThan(-1);
       expect(gettersCall).toBeGreaterThan(markerCall);
+
+      const splitMarker = splitSource.indexOf(
+        "__rspack_context.N(__rspack_exports);",
+      );
+      const splitDefinitions = splitSource.indexOf(
+        "__rspack_context.d(__rspack_exports, {",
+      );
+      expect(splitSource).not.toContain(
+        "__rspack_context.esm(__rspack_exports, {",
+      );
+      expect(splitMarker).toBeGreaterThan(-1);
+      expect(splitMarker).toBeLessThan(
+        splitSource.indexOf("const splitValue = 42;"),
+      );
+      expect(splitDefinitions).toBeGreaterThan(
+        splitSource.indexOf("const splitValue = 42;"),
+      );
     } else {
       expect(
         libSource.match(
@@ -77,6 +101,12 @@ module.exports = {
       expect(libSource).not.toContain(
         "__webpack_require__.d(__webpack_exports__, {",
       );
+      const combinedCall = libSource.indexOf(
+        "__webpack_require__.esm(__webpack_exports__, {",
+      );
+      const cycleImport = libSource.indexOf("./cycle.js");
+      expect(cycleImport).toBeGreaterThan(-1);
+      expect(combinedCall).toBeLessThan(cycleImport);
       expect(source).toContain("__webpack_require__.esm =");
       const markerCall = source.indexOf("__webpack_require__.r(exports);");
       const gettersCall = source.indexOf(
@@ -84,6 +114,23 @@ module.exports = {
       );
       expect(markerCall).toBeGreaterThan(-1);
       expect(gettersCall).toBeGreaterThan(markerCall);
+
+      const splitMarker = splitSource.indexOf(
+        "__webpack_require__.r(__webpack_exports__);",
+      );
+      const splitDefinitions = splitSource.indexOf(
+        "__webpack_require__.d(__webpack_exports__, {",
+      );
+      expect(splitSource).not.toContain(
+        "__webpack_require__.esm(__webpack_exports__, {",
+      );
+      expect(splitMarker).toBeGreaterThan(-1);
+      expect(splitMarker).toBeLessThan(
+        splitSource.indexOf("const splitValue = 42;"),
+      );
+      expect(splitDefinitions).toBeGreaterThan(
+        splitSource.indexOf("const splitValue = 42;"),
+      );
     }
   },
 };

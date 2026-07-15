@@ -8,23 +8,17 @@ const source = fs.readFileSync(
 
 expect(source).toContain("var __rspack_context={};");
 expect(source).toContain("__rspack_context.r = __webpack_require__;");
-expect(source).toContain("__rspack_context.esm");
-// Every ESM module in this fixture uses the combined helper, so exposing
-// .d or .N here would mean module-level runtime requirements leaked.
-expect(source).not.toContain("__rspack_context.d = definePropertyGetters;");
-expect(source).not.toContain("__rspack_context.N = makeNamespaceObject;");
-expect(source).toContain("__rspack_context.esm = defineEsmExports;");
+expect(source).toContain("__rspack_context.d = definePropertyGetters;");
+expect(source).toContain("__rspack_context.N = makeNamespaceObject;");
+expect(source).not.toContain("__rspack_context.esm = defineEsmExports;");
 expect(source).toContain("module.exports, __rspack_context");
 expect(source).toContain("definePropertyGetters =");
 expect(source).toContain("makeNamespaceObject =");
-expect(source).toContain("defineEsmExports =");
-expect(source).toContain("makeNamespaceObject(exports);");
-expect(source).toContain("definePropertyGetters(exports, getters, values);");
-expect(source.indexOf("definePropertyGetters(exports, getters, values);"))
-  .toBeGreaterThan(source.indexOf("makeNamespaceObject(exports);"));
-expect(source).toContain("__rspack_context.esm(__rspack_exports, {");
-expect(source).not.toContain("__rspack_context.N(__rspack_exports);");
-expect(source).not.toContain("__rspack_context.d(__rspack_exports, {");
+expect(source).not.toContain("defineEsmExports =");
+expect(source).toContain("__rspack_context.N(__rspack_exports);");
+expect(source).toContain("__rspack_context.d(__rspack_exports, {");
+expect(source.indexOf("__rspack_context.d(__rspack_exports, {"))
+  .toBeGreaterThan(source.indexOf("__rspack_context.N(__rspack_exports);"));
 expect(source).not.toContain("__webpack_require__.d(__webpack_exports__");
 expect(source).not.toContain("__webpack_require__.r(__webpack_exports__");
 expect(source).not.toContain("__webpack_require__.d =");

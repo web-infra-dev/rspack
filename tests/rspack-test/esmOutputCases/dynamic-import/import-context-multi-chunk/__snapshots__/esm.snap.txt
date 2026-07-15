@@ -8,12 +8,13 @@ __webpack_require__.add({
   !*** ./modules/a.js ***!
   \**********************/
 (__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
 /* import */ var _shared__rspack_import_0 = __webpack_require__(/*! ../shared */ "./shared.js");
 
 
 /* export default */ const __rspack_default_export = (_shared__rspack_import_0/* .value */.U);
 
-__webpack_require__.esm(__webpack_exports__, {
+__webpack_require__.d(__webpack_exports__, {
 }, {
   "default": __rspack_default_export
 });
@@ -35,12 +36,13 @@ __webpack_require__.add({
   !*** ./modules/b.js ***!
   \**********************/
 (__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
 /* import */ var _shared__rspack_import_0 = __webpack_require__(/*! ../shared */ "./shared.js");
 
 
 /* export default */ const __rspack_default_export = (_shared__rspack_import_0/* .value */.U + 1);
 
-__webpack_require__.esm(__webpack_exports__, {
+__webpack_require__.d(__webpack_exports__, {
 }, {
   "default": __rspack_default_export
 });
@@ -158,14 +160,6 @@ return module.exports;
 // expose the modules object (__webpack_modules__)
 __webpack_require__.m = __webpack_modules__;
 
-// webpack/runtime/define_esm_exports
-(() => {
-__webpack_require__.esm = (exports, getters, values) => {
-	__webpack_require__.r(exports);
-	__webpack_require__.d(exports, getters, values);
-};
-
-})();
 // webpack/runtime/define_property_getters
 (() => {
 __webpack_require__.d = (exports, getters, values) => {

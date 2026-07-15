@@ -18,5 +18,5 @@ it("compactExternalModuleDynamicImport should preserve dynamic import of externa
 	expect(asyncChunk).toContain('const solidNs = await import("solid-alias")');
 
 	const initialChunk2 = fs.readFileSync(path.resolve(__dirname, "main2.js"), "utf-8");
-	expect(initialChunk2).not.toContain('__webpack_require__.e');
+	expect(initialChunk2).not.toMatch(/__webpack_require__\.e\s*\(/);
 });

@@ -10,29 +10,23 @@ module.exports = {
     );
 
     expect(source).toContain("var __rspack_context={};");
-    expect(source).toContain("__rspack_context.esm");
-    // Every ESM module in this fixture uses the combined helper, so exposing
-    // .d or .N here would mean module-level runtime requirements leaked.
-    expect(source).not.toContain(
+    // These non-circular modules keep the marker at the beginning and export
+    // definitions at the end instead of moving either call to combine them.
+    expect(source).toContain(
       "__rspack_context.d = definePropertyGetters;",
     );
-    expect(source).not.toContain("__rspack_context.N = makeNamespaceObject;");
-    expect(source).toContain("__rspack_context.esm = defineEsmExports;");
+    expect(source).toContain("__rspack_context.N = makeNamespaceObject;");
+    expect(source).not.toContain("__rspack_context.esm = defineEsmExports;");
     expect(source).toContain("module.exports, __rspack_context");
     expect(source).toContain("definePropertyGetters =");
     expect(source).toContain("makeNamespaceObject =");
-    expect(source).toContain("defineEsmExports =");
-    expect(source).toContain("makeNamespaceObject(exports);");
+    expect(source).not.toContain("defineEsmExports =");
+    expect(source).toContain("__rspack_context.N(__rspack_exports);");
     expect(source).toContain(
-      "definePropertyGetters(exports, getters, values);",
-    );
-    expect(source.indexOf("definePropertyGetters(exports, getters, values);"))
-      .toBeGreaterThan(source.indexOf("makeNamespaceObject(exports);"));
-    expect(source).toContain("__rspack_context.esm(__rspack_exports, {");
-    expect(source).not.toContain("__rspack_context.N(__rspack_exports);");
-    expect(source).not.toContain(
       "__rspack_context.d(__rspack_exports, {",
     );
+    expect(source.indexOf("__rspack_context.d(__rspack_exports, {"))
+      .toBeGreaterThan(source.indexOf("__rspack_context.N(__rspack_exports);"));
 
     expect(source).toMatch(/function __rspack_require\s*\(\s*moduleId\s*\)/);
     expect(source).toMatch(/var __rspack_module_cache\s*=\s*\{\};/);
