@@ -6,7 +6,7 @@
 ## Asset Files
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.hot-update.js, size: 6038
+- Update: main.hot-update.js, size: 6194
 
 ## Manifest
 
@@ -27,6 +27,7 @@
 - ./index.css
 
 #### Changed Runtime Modules
+- webpack/runtime/define_esm_exports
 - webpack/runtime/define_property_getters
 - webpack/runtime/get_full_hash
 
@@ -62,8 +63,7 @@ __webpack_require__.r(__webpack_exports__);
 
 },
 "../../../../../../../../packages/rspack/dist/cssExtractHmr.js"(__unused_rspack___webpack_module__, __webpack_exports__, __webpack_require__) {
-__webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {
+__webpack_require__.esm(__webpack_exports__, {
   cssReload: () => (cssReload),
   normalizeUrl: () => (normalizeUrl)
 });
@@ -171,6 +171,14 @@ function cssReload(moduleId, options) {
 },
 
 },function(__webpack_require__) {
+// webpack/runtime/define_esm_exports
+(() => {
+__webpack_require__.esm = (exports, getters, values) => {
+	__webpack_require__.r(exports);
+	__webpack_require__.d(exports, getters, values);
+};
+
+})();
 // webpack/runtime/define_property_getters
 (() => {
 
