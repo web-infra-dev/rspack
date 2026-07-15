@@ -3684,6 +3684,7 @@ pub struct ExperimentsBuilder {
   source_import: Option<bool>,
   // TODO: lazy compilation
   pure_functions: Option<bool>,
+  builtin_pure_globals: Option<bool>,
   runtime_mode: Option<RuntimeMode>,
 }
 
@@ -3696,6 +3697,7 @@ impl From<Experiments> for ExperimentsBuilder {
       defer_import: Some(value.defer_import),
       source_import: Some(value.source_import),
       pure_functions: Some(value.pure_functions),
+      builtin_pure_globals: Some(value.builtin_pure_globals),
       runtime_mode: Some(value.runtime_mode),
     }
   }
@@ -3710,6 +3712,7 @@ impl From<&mut ExperimentsBuilder> for ExperimentsBuilder {
       defer_import: value.defer_import.take(),
       source_import: value.source_import.take(),
       pure_functions: value.pure_functions.take(),
+      builtin_pure_globals: value.builtin_pure_globals.take(),
       runtime_mode: value.runtime_mode.take(),
     }
   }
@@ -3765,6 +3768,7 @@ impl ExperimentsBuilder {
       defer_import: d!(self.defer_import, false),
       source_import: d!(self.source_import, false),
       pure_functions: d!(self.pure_functions, _production),
+      builtin_pure_globals: d!(self.builtin_pure_globals, false),
       runtime_mode: d!(self.runtime_mode, RuntimeMode::Webpack),
     })
   }

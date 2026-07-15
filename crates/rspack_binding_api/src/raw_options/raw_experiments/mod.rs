@@ -16,6 +16,8 @@ pub struct RawExperiments {
   pub defer_import: bool,
   pub source_import: bool,
   pub pure_functions: bool,
+  #[napi(js_name = "builtinPureGlobals")]
+  pub builtin_pure_globals: bool,
   #[napi(ts_type = "\"webpack\" | \"rspack\"")]
   pub runtime_mode: Option<String>,
 }
@@ -33,6 +35,7 @@ impl From<RawExperiments> for Experiments {
       defer_import: value.defer_import,
       source_import: value.source_import,
       pure_functions: value.pure_functions,
+      builtin_pure_globals: value.builtin_pure_globals,
       runtime_mode,
     }
   }

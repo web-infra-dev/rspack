@@ -290,6 +290,7 @@ const applyExperimentsDefaults = (
 
   // IGNORE(experiments.pureFunctions): Rspack specific configuration for pure function annotations and hints
   D(experiments, 'pureFunctions', production);
+  D(experiments, 'builtinPureGlobals', false);
   D(experiments, 'runtimeMode', 'webpack');
 };
 

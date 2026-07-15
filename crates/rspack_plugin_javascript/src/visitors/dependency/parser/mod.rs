@@ -559,6 +559,7 @@ impl<'parser> JavascriptParser<'parser> {
     if compiler_options.optimization.side_effects.is_true() {
       plugins.push(Box::new(parser_plugin::SideEffectsParserPlugin::new(
         compiler_options.experiments.pure_functions,
+        compiler_options.experiments.builtin_pure_globals,
       )));
     }
 

@@ -1,0 +1,125 @@
+```js title=main.js
+(self["rspackChunk"] ||= []).push([["main"], {
+"./app.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+"use strict";
+__webpack_require__.d(__webpack_exports__, {
+  marker: () => (marker)
+});
+/* import */ var _shadow__rspack_import_0 = __webpack_require__("./shadow.js");
+/* import */ var _shadow__rspack_import_0_default = /*#__PURE__*/__webpack_require__.n(_shadow__rspack_import_0);
+
+
+const marker = 1;
+
+// This module is imported for an export, so these local declarations are kept
+// in the emitted module. Side-effect-only imports are covered by the sibling
+// modules in this case.
+
+let unusedBoolean = Boolean("hello");
+let unusedArrIsArray = Array.isArray([1, 2, 3]);
+let unusedObjectKeys = Object.keys({ a: 1 });
+let unusedMathSin = (/* unused pure expression or super */ null && (Math.sin(1)));
+let unusedStringChar = String.fromCharCode(65);
+let unusedPromiseAccess = (/* unused pure expression or super */ null && (Promise));
+let unusedNumberProp = Number.foo;
+let unusedComputedStatic = Array["isArray"]([]);
+
+function impureArg() {
+	console.log("keep");
+	return 1;
+}
+
+let unusedConstructor = new Set();
+let unusedPromiseCtor = new Promise();
+let unusedUnsupportedStatic = (/* unused pure expression or super */ null && (Math.acosh(1)));
+let unusedPromiseStatic = Promise.withResolvers();
+let unusedNumberParseInt = Number.parseInt("1", 10);
+let unusedObjectIs = Object.is(1, 2);
+globalThis.isFinite(1);
+
+let dynamic = "isArray";
+let unusedDynamicStatic = Array[dynamic]([]);
+let unusedBoolImpure = Boolean(impureArg());
+
+
+},
+"./impure-side-effects.js"() {
+// This module is also imported only for side effects, but these built-ins must
+// keep impure arguments alive.
+function impureArg() {
+	console.log("keep side effects");
+	return 1;
+}
+
+Boolean(impureArg());
+Array.isArray([impureArg()]);
+Object.keys({ value: impureArg() });
+Math.sin(impureArg());
+String.fromCharCode(impureArg());
+
+
+},
+"./index.js"(__unused_rspack_module, __unused_rspack___webpack_exports__, __webpack_require__) {
+"use strict";
+/* import */ var _app__rspack_import_0 = __webpack_require__("./app.js");
+/* import */ var _terser_kept_side_effects__rspack_import_1 = __webpack_require__("./terser-kept-side-effects.js");
+/* import */ var _terser_kept_side_effects__rspack_import_1_default = /*#__PURE__*/__webpack_require__.n(_terser_kept_side_effects__rspack_import_1);
+/* import */ var _impure_side_effects__rspack_import_2 = __webpack_require__("./impure-side-effects.js");
+/* import */ var _impure_side_effects__rspack_import_2_default = /*#__PURE__*/__webpack_require__.n(_impure_side_effects__rspack_import_2);
+
+
+
+
+
+
+_app__rspack_import_0.marker;
+
+
+},
+"./shadow.js"() {
+// Shadowing: these are LOCAL bindings, not the real globals.
+// The unresolved-context check must keep these calls despite matching names.
+function impureValue() {
+	console.log("keep");
+	return () => 1;
+}
+const Boolean = impureValue();
+let shadowedBoolean = Boolean(1);
+
+const Array = { isArray: impureValue() };
+let shadowedArray = Array.isArray([]);
+
+
+},
+"./terser-kept-side-effects.js"() {
+// Terser `compress.unsafe` does not treat `new` constructors, unsupported
+// static functions, `globalThis.*`, or dynamic member calls as pure.
+new Object();
+new Set();
+new Promise();
+new Number(1);
+Array.of(1, 2);
+ArrayBuffer.isView(new Uint8Array());
+Date.now();
+Math.acosh(1);
+Number.parseInt("1", 10);
+Object.is(1, 2);
+Promise.withResolvers();
+String.fromCodePoint(65);
+globalThis.isFinite(1);
+globalThis.Math.cos(1);
+Promise.foo;
+
+const dynamic = "isArray";
+Array[dynamic]([]);
+
+
+},
+
+},function(__webpack_require__) {
+var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }
+var __webpack_exports__ = (__webpack_exec__("./index.js"));
+
+}
+]);
+```

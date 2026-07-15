@@ -9,12 +9,13 @@ use swc_atoms::Atom;
 use swc_experimental_allocator::{CloneIn, atom::Atom as AstAtom};
 use swc_experimental_ecma_ast::{
   ArrayLit, ArrowExpr, BlockStmt, BlockStmtOrExpr, CallExpr, Class, ClassMember, CommentKind,
-  Comments, Decl, DefaultDecl, ExportSpecifier, Expr, ExprOrSpread, Function, GetSpan,
+  Comments, Decl, DefaultDecl, ExportSpecifier, Expr, ExprOrSpread, Function, GetSpan, Ident,
   ImportSpecifier, ModuleDecl, ModuleExportName, ModuleItem, ObjectPatProp, Pat, Program, PropName,
   Span, Span as AstSpan, Stmt, VarDecl, VarDeclKind, VarDeclOrExpr, Visit, VisitWith,
 };
 use swc_experimental_ecma_utils::{ExprCtx, ExprExt};
 
+use super::pure_globals::{CalleePosition, classify_pure_global, is_pure_global_access};
 use crate::{
   ClassExt, JavascriptParserPlugin,
   dependency::ESMImportSideEffectDependency,
@@ -27,12 +28,14 @@ static PURE_COMMENTS: LazyLock<regex::Regex> = LazyLock::new(|| {
 });
 pub struct SideEffectsParserPlugin {
   analyze_side_effects_free: bool,
+  builtin_pure_globals: bool,
 }
 
 impl SideEffectsParserPlugin {
-  pub fn new(analyze_side_effects_free: bool) -> Self {
+  pub fn new(analyze_side_effects_free: bool, builtin_pure_globals: bool) -> Self {
     Self {
       analyze_side_effects_free,
+      builtin_pure_globals,
     }
   }
 }
@@ -57,6 +60,12 @@ fn expr_ctx<'a>(parser: &'a JavascriptParser<'_>, is_unresolved_ref_safe: bool) 
     in_strict: false,
     remaining_depth: 4,
   }
+}
+
+fn is_unresolved_ident(parser: &mut JavascriptParser<'_>, ident: &Ident<'_>) -> bool {
+  parser
+    .get_variable_info(&compat_atom(&ident.sym))
+    .is_none_or(|info| info.is_free())
 }
 
 impl<'a> Visit<'a> for PureAnnotation<'a> {
@@ -377,6 +386,7 @@ fn mark_side_effects_free(parser: &mut JavascriptParser, name: &Atom, export_nam
 fn try_mark_auto_side_effects_free_var_decl(
   parser: &mut JavascriptParser,
   analyze_side_effects_free: bool,
+  builtin_pure_globals: bool,
   var_decl: &VarDecl,
   export_name: Option<&Atom>,
   comments: &Comments<'_>,
@@ -409,12 +419,17 @@ fn try_mark_auto_side_effects_free_var_decl(
       Some(Expr::Fn(fn_expr)) => is_side_effects_free_function_body(
         parser,
         analyze_side_effects_free,
+        builtin_pure_globals,
         &fn_expr.function,
         comments,
       ),
-      Some(Expr::Arrow(arrow_expr)) => {
-        is_side_effects_free_arrow_body(parser, analyze_side_effects_free, arrow_expr, comments)
-      }
+      Some(Expr::Arrow(arrow_expr)) => is_side_effects_free_arrow_body(
+        parser,
+        analyze_side_effects_free,
+        builtin_pure_globals,
+        arrow_expr,
+        comments,
+      ),
       _ => false,
     };
 
@@ -427,6 +442,7 @@ fn try_mark_auto_side_effects_free_var_decl(
 fn try_mark_auto_side_effects_free_stmt(
   parser: &mut JavascriptParser,
   analyze_side_effects_free: bool,
+  builtin_pure_globals: bool,
   stmt: &Stmt,
   comments: &Comments<'_>,
   duplicate_names: &FxHashSet<Atom>,
@@ -448,6 +464,7 @@ fn try_mark_auto_side_effects_free_stmt(
         if is_side_effects_free_function_body(
           parser,
           analyze_side_effects_free,
+          builtin_pure_globals,
           &fn_decl.function,
           comments,
         ) {
@@ -457,6 +474,7 @@ fn try_mark_auto_side_effects_free_stmt(
       Decl::Var(var_decl) => try_mark_auto_side_effects_free_var_decl(
         parser,
         analyze_side_effects_free,
+        builtin_pure_globals,
         var_decl,
         None,
         comments,
@@ -470,6 +488,7 @@ fn try_mark_auto_side_effects_free_stmt(
 fn try_mark_auto_side_effects_free_module_decl(
   parser: &mut JavascriptParser,
   analyze_side_effects_free: bool,
+  builtin_pure_globals: bool,
   decl: &ModuleDecl,
   comments: &Comments<'_>,
   duplicate_names: &FxHashSet<Atom>,
@@ -496,6 +515,7 @@ fn try_mark_auto_side_effects_free_module_decl(
       if is_side_effects_free_function_body(
         parser,
         analyze_side_effects_free,
+        builtin_pure_globals,
         &fn_expr.function,
         comments,
       ) {
@@ -523,6 +543,7 @@ fn try_mark_auto_side_effects_free_module_decl(
       if is_side_effects_free_function_body(
         parser,
         analyze_side_effects_free,
+        builtin_pure_globals,
         &fn_expr.function,
         comments,
       ) {
@@ -546,6 +567,7 @@ fn try_mark_auto_side_effects_free_module_decl(
         if is_side_effects_free_function_body(
           parser,
           analyze_side_effects_free,
+          builtin_pure_globals,
           &fn_decl.function,
           comments,
         ) {
@@ -555,6 +577,7 @@ fn try_mark_auto_side_effects_free_module_decl(
       Decl::Var(var_decl) => try_mark_auto_side_effects_free_var_decl(
         parser,
         analyze_side_effects_free,
+        builtin_pure_globals,
         var_decl,
         None,
         comments,
@@ -569,6 +592,7 @@ fn try_mark_auto_side_effects_free_module_decl(
 fn mark_auto_side_effects_free_program(
   parser: &mut JavascriptParser,
   analyze_side_effects_free: bool,
+  builtin_pure_globals: bool,
   program: &Program,
   comments: &Comments<'_>,
   duplicate_names: &FxHashSet<Atom>,
@@ -580,6 +604,7 @@ fn mark_auto_side_effects_free_program(
           ModuleItem::Stmt(stmt) => try_mark_auto_side_effects_free_stmt(
             parser,
             analyze_side_effects_free,
+            builtin_pure_globals,
             stmt,
             comments,
             duplicate_names,
@@ -587,6 +612,7 @@ fn mark_auto_side_effects_free_program(
           ModuleItem::ModuleDecl(decl) => try_mark_auto_side_effects_free_module_decl(
             parser,
             analyze_side_effects_free,
+            builtin_pure_globals,
             decl,
             comments,
             duplicate_names,
@@ -599,6 +625,7 @@ fn mark_auto_side_effects_free_program(
         try_mark_auto_side_effects_free_stmt(
           parser,
           analyze_side_effects_free,
+          builtin_pure_globals,
           stmt,
           comments,
           duplicate_names,
@@ -653,6 +680,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for SideEffectsParserPlugin {
         mark_auto_side_effects_free_program(
           parser,
           self.analyze_side_effects_free,
+          self.builtin_pure_globals,
           ast,
           parser.ast.comments,
           &duplicate_names,
@@ -682,6 +710,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for SideEffectsParserPlugin {
         if !is_pure_expression(
           parser,
           self.analyze_side_effects_free,
+          self.builtin_pure_globals,
           &expr.expr,
           parser.ast.comments,
           Some(&mut callees),
@@ -719,6 +748,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for SideEffectsParserPlugin {
         if !is_pure_decl(
           parser,
           self.analyze_side_effects_free,
+          self.builtin_pure_globals,
           &decl.decl,
           parser.ast.comments,
           Some(&mut callees),
@@ -800,6 +830,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for SideEffectsParserPlugin {
 fn is_pure_call_expr(
   parser: &mut JavascriptParser,
   analyze_side_effects_free: bool,
+  builtin_pure_globals: bool,
   expr: &Expr,
   comments: &Comments<'_>,
   callees: Option<&mut Vec<(Atom, Span)>>,
@@ -815,6 +846,7 @@ fn is_pure_call_expr(
     return is_pure_call_args(
       parser,
       analyze_side_effects_free,
+      builtin_pure_globals,
       call_expr,
       comments,
       callees,
@@ -830,6 +862,7 @@ fn is_pure_call_expr(
         return is_pure_call_args(
           parser,
           analyze_side_effects_free,
+          builtin_pure_globals,
           call_expr,
           comments,
           callees,
@@ -843,6 +876,7 @@ fn is_pure_call_expr(
         return is_pure_call_args(
           parser,
           analyze_side_effects_free,
+          builtin_pure_globals,
           call_expr,
           comments,
           Some(callees),
@@ -852,14 +886,53 @@ fn is_pure_call_expr(
       ExplicitSideEffectsFreeCallee::NotMarked => {}
     }
 
+    if builtin_pure_globals {
+      let is_pure_global = {
+        let mut is_unresolved = |ident: &Ident<'_>| is_unresolved_ident(parser, ident);
+        classify_pure_global(
+          callee.as_expr().expect("callee is ident"),
+          &mut is_unresolved,
+          CalleePosition::Call,
+        )
+      };
+      if is_pure_global {
+        return are_pure_global_args(
+          parser,
+          analyze_side_effects_free,
+          builtin_pure_globals,
+          &call_expr.args,
+          comments,
+          callees,
+        );
+      }
+    }
+
     if let Some(callees) = callees {
       callees.push((compat_atom(&ident.sym), callee.span()));
       return is_pure_call_args(
         parser,
         analyze_side_effects_free,
+        builtin_pure_globals,
         call_expr,
         comments,
         Some(callees),
+      );
+    }
+  }
+
+  if builtin_pure_globals && let Some(callee_expr) = call_expr.callee.as_expr() {
+    let is_pure_global = {
+      let mut is_unresolved = |ident: &Ident<'_>| is_unresolved_ident(parser, ident);
+      classify_pure_global(callee_expr, &mut is_unresolved, CalleePosition::Call)
+    };
+    if is_pure_global {
+      return are_pure_global_args(
+        parser,
+        analyze_side_effects_free,
+        builtin_pure_globals,
+        &call_expr.args,
+        comments,
+        callees,
       );
     }
   }
@@ -871,6 +944,7 @@ fn is_pure_call_expr(
 fn is_pure_call_args(
   parser: &mut JavascriptParser,
   analyze_side_effects_free: bool,
+  builtin_pure_globals: bool,
   call_expr: &CallExpr,
   comments: &Comments<'_>,
   mut callees: Option<&mut Vec<(Atom, Span)>>,
@@ -882,6 +956,7 @@ fn is_pure_call_args(
     if !is_pure_expression(
       parser,
       analyze_side_effects_free,
+      builtin_pure_globals,
       &arg.expr,
       comments,
       callees.as_deref_mut(),
@@ -892,9 +967,37 @@ fn is_pure_call_args(
   true
 }
 
+fn are_pure_global_args(
+  parser: &mut JavascriptParser,
+  analyze_side_effects_free: bool,
+  builtin_pure_globals: bool,
+  args: &[ExprOrSpread],
+  comments: &Comments<'_>,
+  mut callees: Option<&mut Vec<(Atom, Span)>>,
+) -> bool {
+  for arg in args {
+    if arg.spread.is_some() {
+      return false;
+    }
+    if !is_pure_expression(
+      parser,
+      analyze_side_effects_free,
+      builtin_pure_globals,
+      &arg.expr,
+      comments,
+      callees.as_deref_mut(),
+    ) {
+      return false;
+    }
+  }
+
+  true
+}
+
 fn is_pure_array_lit<'a>(
   parser: &mut JavascriptParser,
   analyze_side_effects_free: bool,
+  builtin_pure_globals: bool,
   array_lit: &'a ArrayLit,
   comments: &'a Comments<'a>,
   mut callees: Option<&mut Vec<(Atom, Span)>>,
@@ -904,6 +1007,7 @@ fn is_pure_array_lit<'a>(
       || !is_pure_expression(
         parser,
         analyze_side_effects_free,
+        builtin_pure_globals,
         &elem.expr,
         comments,
         callees.as_deref_mut(),
@@ -1016,6 +1120,7 @@ fn try_extract_deferred_check(
 fn is_pure_new_expr(
   parser: &mut JavascriptParser,
   analyze_side_effects_free: bool,
+  builtin_pure_globals: bool,
   expr: &Expr,
   comments: &Comments<'_>,
 ) -> bool {
@@ -1023,16 +1128,34 @@ fn is_pure_new_expr(
     unreachable!();
   };
   let pure_flag = has_pure_comment(comments, expr.span().start);
-  if !pure_flag {
-    !expr.may_have_side_effects(expr_ctx(parser, false))
-  } else {
-    are_pure_args(
+  if pure_flag {
+    return are_pure_args(
       parser,
       analyze_side_effects_free,
+      builtin_pure_globals,
       new_expr.args.as_deref().unwrap_or(&[]),
       comments,
-    )
+    );
   }
+
+  if builtin_pure_globals {
+    let is_pure_global = {
+      let mut is_unresolved = |ident: &Ident<'_>| is_unresolved_ident(parser, ident);
+      classify_pure_global(&new_expr.callee, &mut is_unresolved, CalleePosition::New)
+    };
+    if is_pure_global {
+      return are_pure_global_args(
+        parser,
+        analyze_side_effects_free,
+        builtin_pure_globals,
+        new_expr.args.as_deref().unwrap_or(&[]),
+        comments,
+        None,
+      );
+    }
+  }
+
+  !expr.may_have_side_effects(expr_ctx(parser, false))
 }
 
 fn has_pure_comment(comments: &Comments<'_>, pos: u32) -> bool {
@@ -1046,6 +1169,7 @@ fn has_pure_comment(comments: &Comments<'_>, pos: u32) -> bool {
 fn are_pure_args<'a>(
   parser: &mut JavascriptParser,
   analyze_side_effects_free: bool,
+  builtin_pure_globals: bool,
   args: &'a [ExprOrSpread],
   comments: &'a Comments<'a>,
 ) -> bool {
@@ -1053,7 +1177,14 @@ fn are_pure_args<'a>(
     if arg.spread.is_some() {
       false
     } else {
-      is_pure_expression(parser, analyze_side_effects_free, &arg.expr, comments, None)
+      is_pure_expression(
+        parser,
+        analyze_side_effects_free,
+        builtin_pure_globals,
+        &arg.expr,
+        comments,
+        None,
+      )
     }
   })
 }
@@ -1069,6 +1200,7 @@ impl SideEffectsParserPlugin {
         if !is_pure_expression(
           parser,
           self.analyze_side_effects_free,
+          self.builtin_pure_globals,
           &if_stmt.test,
           parser.ast.comments,
           Some(&mut callees),
@@ -1086,6 +1218,7 @@ impl SideEffectsParserPlugin {
         if !is_pure_expression(
           parser,
           self.analyze_side_effects_free,
+          self.builtin_pure_globals,
           &while_stmt.test,
           parser.ast.comments,
           Some(&mut callees),
@@ -1103,6 +1236,7 @@ impl SideEffectsParserPlugin {
         if !is_pure_expression(
           parser,
           self.analyze_side_effects_free,
+          self.builtin_pure_globals,
           &do_while_stmt.test,
           parser.ast.comments,
           Some(&mut callees),
@@ -1122,6 +1256,7 @@ impl SideEffectsParserPlugin {
             VarDeclOrExpr::VarDecl(decl) => is_pure_var_decl(
               parser,
               self.analyze_side_effects_free,
+              self.builtin_pure_globals,
               decl,
               parser.ast.comments,
               Some(&mut callees),
@@ -1129,6 +1264,7 @@ impl SideEffectsParserPlugin {
             VarDeclOrExpr::Expr(expr) => is_pure_expression(
               parser,
               self.analyze_side_effects_free,
+              self.builtin_pure_globals,
               expr,
               parser.ast.comments,
               Some(&mut callees),
@@ -1152,6 +1288,7 @@ impl SideEffectsParserPlugin {
           Some(test) => is_pure_expression(
             parser,
             self.analyze_side_effects_free,
+            self.builtin_pure_globals,
             test,
             parser.ast.comments,
             Some(&mut callees),
@@ -1174,6 +1311,7 @@ impl SideEffectsParserPlugin {
           Some(ref expr) => is_pure_expression(
             parser,
             self.analyze_side_effects_free,
+            self.builtin_pure_globals,
             expr,
             parser.ast.comments,
             Some(&mut callees),
@@ -1195,6 +1333,7 @@ impl SideEffectsParserPlugin {
         if !is_pure_expression(
           parser,
           self.analyze_side_effects_free,
+          self.builtin_pure_globals,
           &expr_stmt.expr,
           parser.ast.comments,
           Some(&mut callees),
@@ -1212,6 +1351,7 @@ impl SideEffectsParserPlugin {
         if !is_pure_expression(
           parser,
           self.analyze_side_effects_free,
+          self.builtin_pure_globals,
           &switch_stmt.discriminant,
           parser.ast.comments,
           Some(&mut callees),
@@ -1229,6 +1369,7 @@ impl SideEffectsParserPlugin {
         if !is_pure_class(
           parser,
           self.analyze_side_effects_free,
+          self.builtin_pure_globals,
           class_stmt.class(),
           parser.ast.comments,
           Some(&mut callees),
@@ -1247,6 +1388,7 @@ impl SideEffectsParserPlugin {
           if !is_pure_var_decl(
             parser,
             self.analyze_side_effects_free,
+            self.builtin_pure_globals,
             var_decl,
             parser.ast.comments,
             Some(&mut callees),
@@ -1310,6 +1452,7 @@ impl SideEffectsParserPlugin {
 pub fn is_pure_pat<'a>(
   parser: &mut JavascriptParser,
   analyze_side_effects_free: bool,
+  builtin_pure_globals: bool,
   pat: &'a Pat,
   comments: &'a Comments<'a>,
   mut callees: Option<&mut Vec<(Atom, Span)>>,
@@ -1321,6 +1464,7 @@ pub fn is_pure_pat<'a>(
         if !is_pure_pat(
           parser,
           analyze_side_effects_free,
+          builtin_pure_globals,
           pat,
           comments,
           callees.as_deref_mut(),
@@ -1332,9 +1476,14 @@ pub fn is_pure_pat<'a>(
     }
     Pat::Rest(_) => true,
     Pat::Invalid(_) | Pat::Assign(_) | Pat::Object(_) => false,
-    Pat::Expr(expr) => {
-      is_pure_expression(parser, analyze_side_effects_free, expr, comments, callees)
-    }
+    Pat::Expr(expr) => is_pure_expression(
+      parser,
+      analyze_side_effects_free,
+      builtin_pure_globals,
+      expr,
+      comments,
+      callees,
+    ),
   }
 }
 
@@ -1346,6 +1495,7 @@ fn is_side_effects_free_param(pat: &Pat) -> bool {
 fn is_side_effects_free_var_decl(
   parser: &mut JavascriptParser,
   analyze_side_effects_free: bool,
+  builtin_pure_globals: bool,
   var_decl: &VarDecl,
   comments: &Comments<'_>,
 ) -> bool {
@@ -1355,7 +1505,14 @@ fn is_side_effects_free_var_decl(
     }
 
     if let Some(init) = declarator.init.as_ref()
-      && !is_pure_expression(parser, analyze_side_effects_free, init, comments, None)
+      && !is_pure_expression(
+        parser,
+        analyze_side_effects_free,
+        builtin_pure_globals,
+        init,
+        comments,
+        None,
+      )
     {
       return false;
     }
@@ -1391,6 +1548,7 @@ fn stmt_may_have_side_effects(parser: &JavascriptParser, stmt: &Stmt) -> bool {
 fn is_side_effects_free_stmt(
   parser: &mut JavascriptParser,
   analyze_side_effects_free: bool,
+  builtin_pure_globals: bool,
   stmt: &Stmt,
   comments: &Comments<'_>,
 ) -> bool {
@@ -1402,18 +1560,29 @@ fn is_side_effects_free_stmt(
     Stmt::Expr(expr_stmt) => is_pure_expression(
       parser,
       analyze_side_effects_free,
+      builtin_pure_globals,
       &expr_stmt.expr,
       comments,
       None,
     ),
-    Stmt::Return(return_stmt) => return_stmt
-      .arg
-      .as_ref()
-      .is_none_or(|arg| is_pure_expression(parser, analyze_side_effects_free, arg, comments, None)),
+    Stmt::Return(return_stmt) => return_stmt.arg.as_ref().is_none_or(|arg| {
+      is_pure_expression(
+        parser,
+        analyze_side_effects_free,
+        builtin_pure_globals,
+        arg,
+        comments,
+        None,
+      )
+    }),
     Stmt::Decl(decl) => match &**decl {
-      Decl::Var(var_decl) => {
-        is_side_effects_free_var_decl(parser, analyze_side_effects_free, var_decl, comments)
-      }
+      Decl::Var(var_decl) => is_side_effects_free_var_decl(
+        parser,
+        analyze_side_effects_free,
+        builtin_pure_globals,
+        var_decl,
+        comments,
+      ),
       _ => false,
     },
     _ => false,
@@ -1424,11 +1593,18 @@ fn is_side_effects_free_stmt(
 fn is_side_effects_free_block_stmt(
   parser: &mut JavascriptParser,
   analyze_side_effects_free: bool,
+  builtin_pure_globals: bool,
   block_stmt: &BlockStmt,
   comments: &Comments<'_>,
 ) -> bool {
   for stmt in &block_stmt.stmts {
-    if !is_side_effects_free_stmt(parser, analyze_side_effects_free, stmt, comments) {
+    if !is_side_effects_free_stmt(
+      parser,
+      analyze_side_effects_free,
+      builtin_pure_globals,
+      stmt,
+      comments,
+    ) {
       return false;
     }
   }
@@ -1440,6 +1616,7 @@ fn is_side_effects_free_block_stmt(
 fn is_side_effects_free_function_body(
   parser: &mut JavascriptParser,
   analyze_side_effects_free: bool,
+  builtin_pure_globals: bool,
   function: &Function,
   comments: &Comments<'_>,
 ) -> bool {
@@ -1452,7 +1629,13 @@ fn is_side_effects_free_function_body(
   }
 
   function.body.as_ref().is_none_or(|body| {
-    is_side_effects_free_block_stmt(parser, analyze_side_effects_free, body, comments)
+    is_side_effects_free_block_stmt(
+      parser,
+      analyze_side_effects_free,
+      builtin_pure_globals,
+      body,
+      comments,
+    )
   })
 }
 
@@ -1460,6 +1643,7 @@ fn is_side_effects_free_function_body(
 fn is_side_effects_free_arrow_body(
   parser: &mut JavascriptParser,
   analyze_side_effects_free: bool,
+  builtin_pure_globals: bool,
   arrow_expr: &ArrowExpr,
   comments: &Comments<'_>,
 ) -> bool {
@@ -1468,18 +1652,28 @@ fn is_side_effects_free_arrow_body(
   }
 
   match &arrow_expr.body {
-    BlockStmtOrExpr::BlockStmt(block_stmt) => {
-      is_side_effects_free_block_stmt(parser, analyze_side_effects_free, block_stmt, comments)
-    }
-    BlockStmtOrExpr::Expr(expr) => {
-      is_pure_expression(parser, analyze_side_effects_free, expr, comments, None)
-    }
+    BlockStmtOrExpr::BlockStmt(block_stmt) => is_side_effects_free_block_stmt(
+      parser,
+      analyze_side_effects_free,
+      builtin_pure_globals,
+      block_stmt,
+      comments,
+    ),
+    BlockStmtOrExpr::Expr(expr) => is_pure_expression(
+      parser,
+      analyze_side_effects_free,
+      builtin_pure_globals,
+      expr,
+      comments,
+      None,
+    ),
   }
 }
 
 pub fn is_pure_function<'a>(
   parser: &mut JavascriptParser,
   analyze_side_effects_free: bool,
+  builtin_pure_globals: bool,
   function: &'a Function,
   comments: &'a Comments<'a>,
   mut callees: Option<&mut Vec<(Atom, Span)>>,
@@ -1488,6 +1682,7 @@ pub fn is_pure_function<'a>(
     if !is_pure_pat(
       parser,
       analyze_side_effects_free,
+      builtin_pure_globals,
       &param.pat,
       comments,
       callees.as_deref_mut(),
@@ -1502,6 +1697,7 @@ pub fn is_pure_function<'a>(
 pub fn is_pure_expression<'a>(
   parser: &mut JavascriptParser,
   analyze_side_effects_free: bool,
+  builtin_pure_globals: bool,
   expr: &'a Expr,
   comments: &'a Comments<'a>,
   callees: Option<&mut Vec<(Atom, Span)>>,
@@ -1509,6 +1705,7 @@ pub fn is_pure_expression<'a>(
   pub fn _is_pure_expression<'a>(
     parser: &mut JavascriptParser,
     analyze_side_effects_free: bool,
+    builtin_pure_globals: bool,
     expr: &'a Expr,
     comments: &'a Comments<'a>,
     mut callees: Option<&mut Vec<(Atom, Span)>>,
@@ -1521,20 +1718,33 @@ pub fn is_pure_expression<'a>(
       Expr::Array(array_lit) => is_pure_array_lit(
         parser,
         analyze_side_effects_free,
+        builtin_pure_globals,
         array_lit,
         comments,
         callees.as_deref_mut(),
       ),
-      Expr::Call(_) => {
-        is_pure_call_expr(parser, analyze_side_effects_free, expr, comments, callees)
-      }
-      Expr::New(_) => is_pure_new_expr(parser, analyze_side_effects_free, expr, comments),
+      Expr::Call(_) => is_pure_call_expr(
+        parser,
+        analyze_side_effects_free,
+        builtin_pure_globals,
+        expr,
+        comments,
+        callees,
+      ),
+      Expr::New(_) => is_pure_new_expr(
+        parser,
+        analyze_side_effects_free,
+        builtin_pure_globals,
+        expr,
+        comments,
+      ),
       Expr::Paren(_) => unreachable!(),
       Expr::Seq(seq_expr) => {
         for expr in &seq_expr.exprs {
           if !is_pure_expression(
             parser,
             analyze_side_effects_free,
+            builtin_pure_globals,
             expr,
             comments,
             callees.as_deref_mut(),
@@ -1548,19 +1758,36 @@ pub fn is_pure_expression<'a>(
         if !expr.may_have_side_effects(expr_ctx(parser, true)) {
           return true;
         }
+        if builtin_pure_globals {
+          let is_pure_access = {
+            let mut is_unresolved = |ident: &Ident<'_>| is_unresolved_ident(parser, ident);
+            is_pure_global_access(expr, &mut is_unresolved)
+          };
+          if is_pure_access {
+            return true;
+          }
+        }
         // could_have_side_effects is true by default, so here we test if it's modified by other plugins to return false.
         let evaluated = parser.evaluate_expression(expr);
         !evaluated.could_have_side_effects()
       }
     }
   }
-  _is_pure_expression(parser, analyze_side_effects_free, expr, comments, callees)
+  _is_pure_expression(
+    parser,
+    analyze_side_effects_free,
+    builtin_pure_globals,
+    expr,
+    comments,
+    callees,
+  )
 }
 
 #[inline(never)]
 pub fn is_pure_class_member<'a>(
   parser: &mut JavascriptParser,
   analyze_side_effects_free: bool,
+  builtin_pure_globals: bool,
   member: &'a ClassMember,
   comments: &'a Comments<'a>,
   mut callees: Option<&mut Vec<(Atom, Span)>>,
@@ -1572,6 +1799,7 @@ pub fn is_pure_class_member<'a>(
     Some(PropName::Computed(computed)) => is_pure_expression(
       parser,
       analyze_side_effects_free,
+      builtin_pure_globals,
       &computed.expr,
       comments,
       callees.as_deref_mut(),
@@ -1592,6 +1820,7 @@ pub fn is_pure_class_member<'a>(
         is_pure_expression(
           parser,
           analyze_side_effects_free,
+          builtin_pure_globals,
           value,
           comments,
           callees.as_deref_mut(),
@@ -1602,7 +1831,14 @@ pub fn is_pure_class_member<'a>(
     }
     ClassMember::PrivateProp(prop) => {
       if let Some(ref value) = prop.value {
-        is_pure_expression(parser, analyze_side_effects_free, value, comments, callees)
+        is_pure_expression(
+          parser,
+          analyze_side_effects_free,
+          builtin_pure_globals,
+          value,
+          comments,
+          callees,
+        )
       } else {
         true
       }
@@ -1621,6 +1857,7 @@ pub fn is_pure_class_member<'a>(
 pub fn is_pure_decl(
   parser: &mut JavascriptParser,
   analyze_side_effects_free: bool,
+  builtin_pure_globals: bool,
   stmt: &Decl,
   comments: &Comments<'_>,
   callees: Option<&mut Vec<(Atom, Span)>>,
@@ -1629,12 +1866,20 @@ pub fn is_pure_decl(
     Decl::Class(class) => is_pure_class(
       parser,
       analyze_side_effects_free,
+      builtin_pure_globals,
       &class.class,
       comments,
       callees,
     ),
     Decl::Fn(_) => true,
-    Decl::Var(var) => is_pure_var_decl(parser, analyze_side_effects_free, var, comments, callees),
+    Decl::Var(var) => is_pure_var_decl(
+      parser,
+      analyze_side_effects_free,
+      builtin_pure_globals,
+      var,
+      comments,
+      callees,
+    ),
     Decl::Using(_) => false,
   }
 }
@@ -1643,6 +1888,7 @@ pub fn is_pure_decl(
 pub fn is_pure_class(
   parser: &mut JavascriptParser,
   analyze_side_effects_free: bool,
+  builtin_pure_globals: bool,
   class: &Class,
   comments: &Comments<'_>,
   mut callees: Option<&mut Vec<(Atom, Span)>>,
@@ -1651,6 +1897,7 @@ pub fn is_pure_class(
     && !is_pure_expression(
       parser,
       analyze_side_effects_free,
+      builtin_pure_globals,
       super_class,
       comments,
       callees.as_deref_mut(),
@@ -1667,6 +1914,7 @@ pub fn is_pure_class(
       PropName::Computed(computed) => is_pure_expression(
         parser,
         analyze_side_effects_free,
+        builtin_pure_globals,
         &computed.expr,
         comments,
         callees,
@@ -1681,6 +1929,7 @@ pub fn is_pure_class(
       ClassMember::PrivateMethod(method) => is_pure_expression(
         parser,
         analyze_side_effects_free,
+        builtin_pure_globals,
         &Expr::PrivateName(method.key.clone_in(parser.ast.allocator)),
         comments,
         callees.as_deref_mut(),
@@ -1692,6 +1941,7 @@ pub fn is_pure_class(
               is_pure_expression(
                 parser,
                 analyze_side_effects_free,
+                builtin_pure_globals,
                 value,
                 comments,
                 callees.as_deref_mut(),
@@ -1704,6 +1954,7 @@ pub fn is_pure_class(
         is_pure_expression(
           parser,
           analyze_side_effects_free,
+          builtin_pure_globals,
           &Expr::PrivateName(prop.key.clone_in(parser.ast.allocator)),
           comments,
           callees.as_deref_mut(),
@@ -1712,6 +1963,7 @@ pub fn is_pure_class(
             is_pure_expression(
               parser,
               analyze_side_effects_free,
+              builtin_pure_globals,
               value,
               comments,
               callees.as_deref_mut(),
@@ -1735,6 +1987,7 @@ pub fn is_pure_class(
 fn is_pure_var_decl<'a>(
   parser: &mut JavascriptParser,
   analyze_side_effects_free: bool,
+  builtin_pure_globals: bool,
   var: &'a VarDecl,
   comments: &'a Comments<'a>,
   mut callees: Option<&mut Vec<(Atom, Span)>>,
@@ -1744,6 +1997,7 @@ fn is_pure_var_decl<'a>(
       && !is_pure_expression(
         parser,
         analyze_side_effects_free,
+        builtin_pure_globals,
         init,
         comments,
         callees.as_deref_mut(),

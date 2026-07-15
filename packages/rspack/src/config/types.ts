@@ -3140,6 +3140,11 @@ export type Experiments = {
    */
   pureFunctions?: boolean;
   /**
+   * Enable Terser-compatible builtin global purity for side-effects analysis.
+   * @default false
+   */
+  builtinPureGlobals?: boolean;
+  /**
    * Select runtime proxy context behavior. `webpack` keeps the webpack startup hook,
    * while `rspack` uses `__rspack_context`.
    * @default "webpack"
