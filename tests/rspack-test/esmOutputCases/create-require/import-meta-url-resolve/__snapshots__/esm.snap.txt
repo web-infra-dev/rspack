@@ -19,13 +19,73 @@ module.exports = "loader";
 });
 // node:module
 const external_node_module_namespaceObject = __rspack_createRequire_require("node:module");
+
+var external_node_module_default = /*#__PURE__*/__webpack_require__.n(external_node_module_namespaceObject);// ./default-require.js
+
+
+const defaultRequire = external_node_module_default().createRequire(import.meta.url);
+
+const defaultUnknown = defaultRequire.unknown;
+
+// ./exported-require.js
+
+
+const exportedRequire = (0,external_node_module_namespaceObject.createRequire)(import.meta.url);
+
+
+
+// ./namespace-require.js
+
+
+const namespaceRequire = external_node_module_namespaceObject.createRequire(import.meta.url);
+
+const namespaceUnknown = namespaceRequire.unknown;
+
+// ./pre-declared-require.js
+
+
+function getRequire() {
+	return req;
+}
+
+const req = (0,external_node_module_namespaceObject.createRequire)(import.meta.url);
+
+function getNestedRequire() {
+	function readRequire() {
+		return nestedReq;
+	}
+
+	const nestedReq = (0,external_node_module_namespaceObject.createRequire)(import.meta.url);
+	return readRequire();
+}
+
+// ./pre-declared-require-call.js
+
+
+function load() {
+	return __webpack_require__(/*! ./libCssExtractLoader.js */ "./libCssExtractLoader.js");
+}
+
+const pre_declared_require_call_req = /* createRequire() */ undefined;
+
 // ./index.js
 
 
-const req = /* createRequire() */ undefined;
 
-const value = __webpack_require__(/*! ./libCssExtractLoader.js */ "./libCssExtractLoader.js");
+
+
+
+
+const index_req = /* createRequire() */ undefined;
+const requireWithUnknownMember = (0,external_node_module_namespaceObject.createRequire)(import.meta.url);
+const requireAsValue = (0,external_node_module_namespaceObject.createRequire)(import.meta.url);
+
+const identity = value => value;
+
+const index_value = __webpack_require__(/*! ./libCssExtractLoader.js */ "./libCssExtractLoader.js");
 const loader = /*require.resolve*/(/*! ./libCssExtractLoader.js */ "./libCssExtractLoader.js");
+const unknownMember = requireWithUnknownMember.unknown;
+const requireAsValueType = typeof identity(requireAsValue);
 
 it("should consume createRequire(import.meta.url) like webpack", async () => {
 	const fs = await import(/* webpackIgnore: true */ "node:fs");
@@ -33,21 +93,29 @@ it("should consume createRequire(import.meta.url) like webpack", async () => {
 	const source = fs.readFileSync(path.join(__rspack_import_meta_dirname__, "main.mjs"), "utf-8");
 	const fileUrlScheme = "file:" + "//";
 	const normalizedRoot = "<" + "ROOT>";
-	const unresolvedCreateRequire =
-		"external_node_module_namespaceObject." + "createRequire(import.meta.url)";
+	const runtimeCreateRequire =
+		"(0,external_node_module_namespaceObject." + "createRequire)(import.meta.url)";
 
 	expect(source).not.toContain(fileUrlScheme);
 	expect(source).not.toContain("createRequire('" + normalizedRoot);
 	expect(source).not.toContain('createRequire("' + normalizedRoot);
-	expect(source).not.toContain(unresolvedCreateRequire);
+	expect(source.split(runtimeCreateRequire)).toHaveLength(6);
 	expect(source).toContain("/* createRequire() */ undefined");
 	expect(source).toContain("__webpack_require__(");
 	expect(source).toContain("/*require.resolve*/");
-	expect(value).toBe("loader");
+	expect(index_value).toBe("loader");
 	expect(loader).toBe("./libCssExtractLoader.js");
+	expect(unknownMember).toBe(undefined);
+	expect(namespaceUnknown).toBe(undefined);
+	expect(defaultUnknown).toBe(undefined);
+	expect(requireAsValueType).toBe("function");
+	expect(exportedRequire.resolve("path")).toBe("path");
+	expect(getRequire().resolve("path")).toBe("path");
+	expect(getNestedRequire().resolve("path")).toBe("path");
+	expect(load()).toBe("loader");
 });
 
-export { loader, value };
+export { index_value as value, loader, requireAsValueType, unknownMember };
 
 ```
 
@@ -76,10 +144,40 @@ return module.exports;
 // expose the modules object (__webpack_modules__)
 __webpack_require__.m = __webpack_modules__;
 
+// webpack/runtime/compat_get_default_export
+(() => {
+// getDefaultExport function for compatibility with non-ESM modules
+__webpack_require__.n = (module) => {
+	var getter = module && module.__esModule ?
+		() => (module['default']) :
+		() => (module);
+	__webpack_require__.d(getter, { a: getter });
+	return getter;
+};
+
+})();
+// webpack/runtime/define_property_getters
+(() => {
+__webpack_require__.d = (exports, getters, values) => {
+	var define = (defs, kind) => {
+		for(var key in defs) {
+			if(__webpack_require__.o(defs, key) && !__webpack_require__.o(exports, key)) {
+				Object.defineProperty(exports, key, { enumerable: true, [kind]: defs[key] });
+			}
+		}
+	};
+	define(getters, "get");
+	define(values, "value");
+};
+})();
 // webpack/runtime/esm_register_module
 (() => {
 __webpack_require__.add = function registerModules(modules) { Object.assign(__webpack_require__.m, modules) }
 
+})();
+// webpack/runtime/has_own_property
+(() => {
+__webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
 })();
 
 export { __webpack_require__ };

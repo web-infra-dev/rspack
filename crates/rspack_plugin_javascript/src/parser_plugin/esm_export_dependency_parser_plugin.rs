@@ -118,6 +118,11 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
     export_name: &Atom,
     export_name_span: Span,
   ) -> Option<bool> {
+    if parser.javascript_options.is_create_require_enabled() {
+      parser
+        .created_require_references
+        .record_exported_local(local_id.clone());
+    }
     InnerGraphParserPlugin::add_variable_usage(
       parser,
       local_id,
