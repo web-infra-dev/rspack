@@ -490,6 +490,23 @@ impl ContextModule {
       .collect()
   }
 
+  fn get_context_factory_call(
+    &self,
+    compilation: &Compilation,
+    load: &str,
+    create_resolve: Option<&str>,
+    expose_resolve: bool,
+    runtime_template: &mut ModuleCodeTemplate,
+  ) -> String {
+    let create_context = runtime_template.render_runtime_globals(&RuntimeGlobals::CREATE_CONTEXT);
+    format!(
+      "{create_context}(map, {}, {load}, {}, {})",
+      json_stringify(self.get_module_id(&compilation.module_ids_artifact)),
+      create_resolve.unwrap_or("0"),
+      if expose_resolve { "true" } else { "false" },
+    )
+  }
+
   fn get_source_for_empty_async_context(
     &self,
     compilation: &Compilation,
@@ -521,20 +538,16 @@ impl ContextModule {
     compilation: &Compilation,
     runtime_template: &mut ModuleCodeTemplate,
   ) -> String {
+    let load = runtime_template.basic_function("req, resolve", "return resolve(req);");
+    let context_factory_call =
+      self.get_context_factory_call(compilation, &load, None, false, runtime_template);
     formatdoc! {r#"
-      function __rspack_empty_context(req) {{
-        var e = new Error("Cannot find module '" + req + "'");
-        e.code = 'MODULE_NOT_FOUND';
-        throw e;
-      }}
-      __rspack_empty_context.keys = {keys};
+      var map = {{}};
+      var __rspack_empty_context = {context_factory_call};
       __rspack_empty_context.resolve = __rspack_empty_context;
-      __rspack_empty_context.id = {id};
       {module}.exports = __rspack_empty_context;
       "#,
       module = runtime_template.render_module_argument(ModuleArgument::Module),
-      keys = runtime_template.returning_function("[]", ""),
-      id = json_stringify(self.get_module_id(&compilation.module_ids_artifact))
     }
   }
 
@@ -1122,39 +1135,34 @@ impl ContextModule {
     let fake_map = self.get_fake_map(dependencies, compilation);
     let return_module_object =
       self.get_return_module_object_source(&fake_map, true, None, "fakeMap[id]", runtime_template);
-    formatdoc! {r#"
-      var map = {map};
-      {fake_map_init_statement}
-
-      function __rspack_context_module(req) {{
-        var id = __rspack_context_module_resolve(req);
+    let module_factories =
+      runtime_template.render_runtime_globals(&RuntimeGlobals::MODULE_FACTORIES);
+    let load = runtime_template.basic_function(
+      "req, resolve",
+      &formatdoc! {r#"
+        var id = resolve(req);
         if(!{module_factories}[id]) {{
           var e = new Error("Module '" + req + "' ('" + id + "') is not available (weak dependency)");
           e.code = 'MODULE_NOT_FOUND';
           throw e;
         }}
         return {return_module_object};
-      }}
-      function __rspack_context_module_resolve(req) {{
-        if(!{has_own_property}(map, req)) {{
-          var e = new Error("Cannot find module '" + req + "'");
-          e.code = 'MODULE_NOT_FOUND';
-          throw e;
-        }}
-        return map[req];
-      }}
-      __rspack_context_module.keys = {keys};
-      __rspack_context_module.resolve = __rspack_context_module_resolve;
-      __rspack_context_module.id = {id};
+        "#,
+        module_factories = module_factories,
+      },
+    );
+    let context_factory_call =
+      self.get_context_factory_call(compilation, &load, None, true, runtime_template);
+    formatdoc! {r#"
+      var map = {map};
+      {fake_map_init_statement}
+
+      var __rspack_context_module = {context_factory_call};
       {module}.exports = __rspack_context_module;
       "#,
       module = runtime_template.render_module_argument(ModuleArgument::Module),
       map = json_stringify_pretty(&map),
       fake_map_init_statement = self.get_fake_map_init_statement(&fake_map),
-      module_factories = runtime_template.render_runtime_globals(&RuntimeGlobals::MODULE_FACTORIES),
-      has_own_property = runtime_template.render_runtime_globals(&RuntimeGlobals::HAS_OWN_PROPERTY),
-      keys = runtime_template.returning_function("Object.keys(map)", ""),
-      id = json_stringify(self.get_module_id(&compilation.module_ids_artifact))
     }
   }
 
@@ -1234,33 +1242,25 @@ impl ContextModule {
     let fake_map = self.get_fake_map(dependencies, compilation);
     let return_module_object =
       self.get_return_module_object_source(&fake_map, false, None, "fakeMap[id]", runtime_template);
+    let load = runtime_template.basic_function(
+      "req, resolve",
+      &formatdoc! {r#"
+        var id = resolve(req);
+        return {return_module_object};
+        "#},
+    );
+    let context_factory_call =
+      self.get_context_factory_call(compilation, &load, None, true, runtime_template);
     formatdoc! {r#"
       var map = {map};
       {fake_map_init_statement}
 
-      function __rspack_context_module(req) {{
-        var id = __rspack_context_module_resolve(req);
-        return {return_module_object};
-      }}
-      function __rspack_context_module_resolve(req) {{
-        if(!{has_own_property}(map, req)) {{
-          var e = new Error("Cannot find module '" + req + "'");
-          e.code = 'MODULE_NOT_FOUND';
-          throw e;
-        }}
-        return map[req];
-      }}
-      __rspack_context_module.keys = {keys};
-      __rspack_context_module.resolve = __rspack_context_module_resolve;
+      var __rspack_context_module = {context_factory_call};
       {module}.exports = __rspack_context_module;
-      __rspack_context_module.id = {id};
       "#,
       module = runtime_template.render_module_argument(ModuleArgument::Module),
       map = json_stringify_pretty(&map),
       fake_map_init_statement = self.get_fake_map_init_statement(&fake_map),
-      has_own_property = runtime_template.render_runtime_globals(&RuntimeGlobals::HAS_OWN_PROPERTY),
-      keys = runtime_template.returning_function("Object.keys(map)", ""),
-      id = json_stringify(self.get_module_id(&compilation.module_ids_artifact))
     }
   }
 

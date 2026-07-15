@@ -1,0 +1,18 @@
+<%- define(CREATE_CONTEXT) %> = <%- basicFunction("map, id, load, createResolve, exposeResolve") %> {
+	var resolve = <%- basicFunction("req") %> {
+		if(!<%- HAS_OWN_PROPERTY %>(map, req)) {
+			var e = new Error("Cannot find module '" + req + "'");
+			e.code = 'MODULE_NOT_FOUND';
+			throw e;
+		}
+		return map[req];
+	};
+	if(createResolve) resolve = createResolve(resolve);
+	var context = <%- basicFunction("req") %> {
+		return load(req, resolve);
+	};
+	context.keys = <%- returningFunction("Object.keys(map)", "") %>;
+	if(exposeResolve) context.resolve = resolve;
+	context.id = id;
+	return context;
+};
