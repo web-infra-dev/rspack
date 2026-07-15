@@ -1398,7 +1398,7 @@ export type JavascriptParserOptions = {
 
   /**
    * Enable or disable parsing `import { createRequire } from "module"` and evaluating createRequire().
-   * @default false
+   * @default true for Node.js targets unless `requireResolve` is false, otherwise false
    */
   createRequire?: boolean | string;
 

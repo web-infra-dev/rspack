@@ -50,13 +50,6 @@ module.exports = {
     path: 'node-commonjs path',
   },
   target: 'node',
-  module: {
-    parser: {
-      javascript: {
-        createRequire: true,
-      },
-    },
-  },
   optimization: {
     inlineExports: true,
     moduleIds: 'named',

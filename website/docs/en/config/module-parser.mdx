@@ -667,12 +667,11 @@ export default {
 
 ### javascript.createRequire
 
-<PropertyType
-  type="boolean | string"
-  defaultValueList={[{ defaultValue: 'false' }]}
-/>
+<PropertyType type="boolean | string" />
 
 Control whether Rspack parses `createRequire()` from Node.js `module` and turns the created `require` function into a statically analyzable dependency context.
+
+This option defaults to `true` for Node.js-compatible targets unless `javascript.requireResolve` is `false`. It defaults to `false` for other targets.
 
 When set to `true`, it is equivalent to `"createRequire from module"`. Rspack recognizes imports from both `module` and `node:module` for this default form.
 
