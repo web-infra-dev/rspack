@@ -47,6 +47,14 @@ it("should return undefined for unknown property", () => {
 	expect(typeof import.meta["computed-other"]).toBe("undefined");
 	if (import.meta.condition) require("fail");
 	if (import.meta["computed-condition"]) require("fail");
+	expect(import.meta[0]).toBeUndefined();
+	let computedAccesses = 0;
+	const getUnknownProperty = () => {
+		computedAccesses++;
+		return "unknown";
+	};
+	expect(import.meta[getUnknownProperty()]).toBeUndefined();
+	expect(computedAccesses).toBe(1);
 	expect(() => import.meta.other.other.other).toThrowError();
 });
 

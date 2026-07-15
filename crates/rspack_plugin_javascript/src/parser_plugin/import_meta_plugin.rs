@@ -35,7 +35,7 @@ use crate::{
   visitors::{
     AllowedMemberTypes, ExportedVariableInfo, ExprRef, JavascriptParser, MemberExpressionInfo,
     RootName, context_reg_exp, create_context_dependency, create_traceable_error, expr_name,
-    get_non_optional_member_chain_from_expr,
+    get_non_optional_member_chain_from_expr, member_literal_to_atom,
   },
 };
 
@@ -299,14 +299,6 @@ pub struct ImportMetaPlugin(pub(crate) ArcComputed<ResolvedModuleOptions, Import
 
 impl ImportMetaPlugin {
   fn known_property_from_name(name: &str) -> Option<ImportMetaKnownProperties> {
-    match name {
-      expr_name::IMPORT_META_HOT => return Some(ImportMetaKnownProperties::WEBPACK_HOT),
-      expr_name::IMPORT_META_CONTEXT => {
-        return Some(ImportMetaKnownProperties::WEBPACK_CONTEXT);
-      }
-      expr_name::IMPORT_META_GLOB => return Some(ImportMetaKnownProperties::GLOB),
-      _ => {}
-    }
     if let Some(property) = ImportMetaBuiltinProperty::from_name(name) {
       return Some(property.property);
     }
@@ -386,14 +378,17 @@ impl ImportMetaPlugin {
     if !matches!(self.0.as_ref(), ImportMeta::Enabled)
       || members.first().is_some_and(|property| {
         let name = concat_string!(expr_name::IMPORT_META, ".", property);
-        Self::known_property_from_name(&name).is_some()
+        matches!(
+          name.as_str(),
+          expr_name::IMPORT_META_HOT | expr_name::IMPORT_META_CONTEXT | expr_name::IMPORT_META_GLOB
+        ) || Self::known_property_from_name(&name).is_some()
       })
     {
       return;
     }
 
     let message = if members.is_empty() {
-      "Unknown `import.meta` property replaced with undefined.".to_string()
+      "Dynamic `import.meta` property access may return undefined.".to_string()
     } else {
       concat_string!(
         "Unknown `import.meta` property `",
@@ -410,7 +405,7 @@ impl ImportMetaPlugin {
       len: range.end.saturating_sub(range.start) as usize,
     }]);
     error.hide_stack = Some(true);
-    parser.add_warning(error.into());
+    parser.add_warning_once(error.into());
   }
 
   fn process_import_meta_resolve(&self, parser: &mut JavascriptParser, call_expr: &CallExpr) {
@@ -530,7 +525,6 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaPlugin {
     for_name: &str,
   ) -> Option<eval::BasicEvaluatedExpression<'a>> {
     let mut evaluated = None;
-    let mut has_unknown_property = false;
     if for_name == expr_name::IMPORT_META {
       evaluated = Some("object".to_string());
     } else if let Some(property) = ImportMetaBuiltinProperty::from_name(for_name)
@@ -567,16 +561,15 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaPlugin {
         .unwrap_or(false)
     {
       evaluated = Some("undefined".to_string());
-      has_unknown_property = Self::known_property_from_name(for_name).is_none();
-    }
-    evaluated.map(|e| {
-      let mut evaluated = eval::evaluate_to_string(e, expr.span.real_lo(), expr.span.real_hi());
-      if has_unknown_property {
-        // Ensure the original expression is walked so the replacement emits its warning.
-        evaluated.set_side_effects(true);
+      if Self::known_property_from_name(for_name).is_none() {
+        let members = for_name
+          .strip_prefix(expr_name::IMPORT_META_PREFIX)
+          .map(|property| vec![property.to_string()])
+          .unwrap_or_default();
+        self.warn_import_meta_unknown_property(parser, &members, member_expr.span());
       }
-      evaluated
-    })
+    }
+    evaluated.map(|e| eval::evaluate_to_string(e, expr.span.real_lo(), expr.span.real_hi()))
   }
 
   fn evaluate_identifier(
@@ -613,42 +606,37 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaPlugin {
           return None;
         }
         let span = member.span();
-        let mut evaluated = eval::evaluate_to_undefined(span.real_lo(), span.real_hi());
         let name = concat_string!(expr_name::IMPORT_META, ".", ident.sym);
         if Self::known_property_from_name(&name).is_none() {
-          // Ensure the original expression is walked so the replacement emits its warning.
-          evaluated.set_side_effects(true);
+          self.warn_import_meta_unknown_property(parser, &[ident.sym.to_string()], span);
         }
-        return Some(evaluated);
+        return Some(eval::evaluate_to_undefined(span.real_lo(), span.real_hi()));
       }
       if let Some(computed) = member.prop.as_computed()
         && computed.expr.is_lit()
       {
         // Check for computed properties like import.meta["dirname"]
-        let property = computed
-          .expr
-          .as_lit()
-          .and_then(|lit| lit.as_str())
-          .and_then(|str_lit| str_lit.value.as_str());
-        if property.is_some_and(|value| {
-          ImportMetaBuiltinProperty::from_property(value)
+        let property = computed.expr.as_lit().map(member_literal_to_atom);
+        if property.as_ref().is_some_and(|value| {
+          ImportMetaBuiltinProperty::from_property(value.as_ref())
             .is_some_and(|property| property.skip_undefined_evaluation(self, parser))
-            || import_meta_runtime_api_from_property(value)
+            || import_meta_runtime_api_from_property(value.as_ref())
               .is_some_and(|api| self.runtime_api_enabled(api))
-            || self.preserve_property(Some(value))
+            || self.preserve_property(Some(value.as_ref()))
         }) {
           return None;
         }
         let span = member.span();
-        let mut evaluated = eval::evaluate_to_undefined(span.real_lo(), span.real_hi());
-        if property.is_none_or(|property| {
-          let name = concat_string!(expr_name::IMPORT_META, ".", property);
+        if property.as_ref().is_none_or(|property| {
+          let name = concat_string!(expr_name::IMPORT_META, ".", property.as_ref());
           Self::known_property_from_name(&name).is_none()
         }) {
-          // Ensure the original expression is walked so the replacement emits its warning.
-          evaluated.set_side_effects(true);
+          let members = property
+            .map(|property| vec![property.to_string()])
+            .unwrap_or_default();
+          self.warn_import_meta_unknown_property(parser, &members, span);
         }
-        return Some(evaluated);
+        return Some(eval::evaluate_to_undefined(span.real_lo(), span.real_hi()));
       }
     }
     None
@@ -935,32 +923,38 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaPlugin {
               _ => None,
             });
 
-          let dep = if let Some(members) = members {
-            if self.preserve_property(members.members.first().map(|property| property.as_str())) {
+          let Some(members) = members else {
+            if self.preserve_property(None) {
               return Some(true);
             }
-            let unknown_members = members
-              .members
-              .iter()
-              .map(|member| member.to_string())
-              .collect_vec();
-            self.warn_import_meta_unknown_property(parser, &unknown_members, expr.span());
-            if members.members.get(1).is_some()
-              && members
-                .members_optionals
-                .get(1)
-                .is_some_and(|optional| *optional)
-            {
-              ConstDependency::new(expr.span().into(), "undefined".into())
-            } else {
-              ConstDependency::new(
-                expr.span().into(),
-                self.import_meta_unknown_property(&unknown_members).into(),
-              )
-            }
-          } else {
             self.warn_import_meta_unknown_property(parser, &[], expr.span());
+            parser.add_presentational_dependency(Box::new(ConstDependency::new(
+              expr.obj.span().into(),
+              "({})".into(),
+            )));
+            return Some(true);
+          };
+          if self.preserve_property(members.members.first().map(|property| property.as_str())) {
+            return Some(true);
+          }
+          let unknown_members = members
+            .members
+            .iter()
+            .map(|member| member.to_string())
+            .collect_vec();
+          self.warn_import_meta_unknown_property(parser, &unknown_members, expr.span());
+          let dep = if members.members.get(1).is_some()
+            && members
+              .members_optionals
+              .get(1)
+              .is_some_and(|optional| *optional)
+          {
             ConstDependency::new(expr.span().into(), "undefined".into())
+          } else {
+            ConstDependency::new(
+              expr.span().into(),
+              self.import_meta_unknown_property(&unknown_members).into(),
+            )
           };
 
           parser.add_presentational_dependency(Box::new(dep));

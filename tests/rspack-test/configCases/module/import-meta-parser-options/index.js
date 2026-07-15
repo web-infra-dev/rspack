@@ -2,12 +2,26 @@ import disabledFields from "./disabled-fields";
 import emptyOptions from "./empty-options";
 const fs = require("fs");
 
+let preservedComputedAccesses = 0;
+const getPreservedProperty = () => {
+	preservedComputedAccesses++;
+	return "url";
+};
+const preservedComputedUrl = import.meta[getPreservedProperty()];
+
 it("should treat an empty importMeta object like preserve-unknown", () => {
 	expect(emptyOptions.url).toBe(emptyOptions.sourceUrl);
 	expect(emptyOptions.webpack).toBe(5);
 	expect(emptyOptions.unknown).toBe("runtime");
+	expect(emptyOptions.computedUnknown).toBe("runtime");
+	expect(emptyOptions.computedAccesses).toBe(1);
 	expect(emptyOptions.unknownOptional).toBe("runtime".length);
 	expect(emptyOptions.missingOptional).toBeUndefined();
+});
+
+it("should preserve computed import.meta properties for runtime evaluation", () => {
+	expect(preservedComputedUrl).toBeTypeOf("string");
+	expect(preservedComputedAccesses).toBe(1);
 });
 
 it("should preserve disabled import.meta fields for runtime evaluation", () => {

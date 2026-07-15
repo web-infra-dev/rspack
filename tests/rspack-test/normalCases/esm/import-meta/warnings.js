@@ -14,6 +14,8 @@ module.exports = [
 	[
 		/Unknown `import.meta` property `computed-condition` replaced with undefined\./
 	],
+	[/Unknown `import.meta` property `0` replaced with undefined\./],
+	[/Dynamic `import.meta` property access may return undefined\./],
 	[
 		/Unknown `import.meta` property `other.other.other` replaced with undefined\./
 	],

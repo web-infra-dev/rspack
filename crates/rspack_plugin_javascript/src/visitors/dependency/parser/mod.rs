@@ -72,6 +72,17 @@ fn atom_from_wtf8(value: swc_experimental_allocator::atom::Wtf8Atom<'_>) -> Atom
   Atom::from(value.as_wtf8().to_string_lossy().as_ref())
 }
 
+pub(crate) fn member_literal_to_atom(lit: &Lit) -> Atom {
+  match lit {
+    Lit::Str(s) => atom_from_wtf8(s.value),
+    Lit::Bool(b) => Atom::from(if b.value { "true" } else { "false" }),
+    Lit::Null(_) => Atom::from("null"),
+    Lit::Num(n) => Atom::from(n.value.to_string().as_str()),
+    Lit::BigInt(i) => Atom::from(i.value.as_str()),
+    Lit::Regex(r) => Atom::from(r.exp.as_str()),
+  }
+}
+
 impl GetSpan for estree::Statement<'_> {
   fn span(&self) -> Span {
     self.span()
@@ -754,6 +765,27 @@ impl<'parser> JavascriptParser<'parser> {
     self.warning_diagnostics.push(warning);
   }
 
+  pub fn add_warning_once(&mut self, warning: Diagnostic) {
+    let is_duplicate = self.warning_diagnostics.iter().any(|existing| {
+      existing.message == warning.message
+        && match (&existing.labels, &warning.labels) {
+          (Some(existing), Some(incoming)) => {
+            existing.len() == incoming.len()
+              && existing.iter().zip(incoming).all(|(existing, incoming)| {
+                existing.name == incoming.name
+                  && existing.offset == incoming.offset
+                  && existing.len == incoming.len
+              })
+          }
+          (None, None) => true,
+          _ => false,
+        }
+    });
+    if !is_duplicate {
+      self.warning_diagnostics.push(warning);
+    }
+  }
+
   pub fn add_warnings(&mut self, warnings: impl IntoIterator<Item = Diagnostic>) {
     self.warning_diagnostics.extend(warnings);
   }
@@ -1190,14 +1222,7 @@ impl<'parser> JavascriptParser<'parser> {
             let Expr::Lit(lit) = &computed.expr else {
               break;
             };
-            let value = match &**lit {
-              Lit::Str(s) => atom_from_wtf8(s.value),
-              Lit::Bool(b) => Atom::from(if b.value { "true" } else { "false" }),
-              Lit::Null(_) => Atom::from("null"),
-              Lit::Num(n) => Atom::from(n.value.to_string().as_str()),
-              Lit::BigInt(i) => Atom::from(i.value.as_str()),
-              Lit::Regex(r) => Atom::from(r.exp.as_str()),
-            };
+            let value = member_literal_to_atom(lit);
             // Since members are not used across rspack javascript parser plugin,
             // we directly makes it atom here
             members.push(value);
