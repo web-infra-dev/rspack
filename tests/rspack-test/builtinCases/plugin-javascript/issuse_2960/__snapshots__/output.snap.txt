@@ -28,22 +28,12 @@ var map = {
 };
 
 
-function __rspack_context_module(req) {
-  var id = __rspack_context_module_resolve(req);
-  return __webpack_require__(id);
-}
-function __rspack_context_module_resolve(req) {
-  if(!__webpack_require__.o(map, req)) {
-    var e = new Error("Cannot find module '" + req + "'");
-    e.code = 'MODULE_NOT_FOUND';
-    throw e;
-  }
-  return map[req];
-}
-__rspack_context_module.keys = () => (Object.keys(map));
-__rspack_context_module.resolve = __rspack_context_module_resolve;
+var __rspack_context_module = __webpack_require__.ctx(map, "./resources sync recursive ^\\.\\/pre_.*\\.js$", (req, resolve) => {
+var id = resolve(req);
+return __webpack_require__(id);
+
+}, 0, true);
 module.exports = __rspack_context_module;
-__rspack_context_module.id = "./resources sync recursive ^\\.\\/pre_.*\\.js$";
 
 
 },
