@@ -188,6 +188,69 @@ impl JavaScriptParserAndGenerator {
 
 static SOURCE_TYPES: &[SourceType; 1] = &[SourceType::JavaScript];
 
+thread_local! {
+  // Module parsing runs in parallel during make, so each worker keeps an arena
+  // that can be reset and reused without synchronizing with other workers.
+  static SWC_ALLOCATOR: std::cell::RefCell<Option<Allocator>> = const {
+    std::cell::RefCell::new(None)
+  };
+}
+
+struct ReusableSwcAllocator(Option<Allocator>);
+
+impl ReusableSwcAllocator {
+  fn take() -> Self {
+    Self(SWC_ALLOCATOR.with(|allocator| {
+      allocator
+        .borrow_mut()
+        .take()
+        .or_else(|| Some(Allocator::new()))
+    }))
+  }
+}
+
+impl std::ops::Deref for ReusableSwcAllocator {
+  type Target = Allocator;
+
+  fn deref(&self) -> &Self::Target {
+    self.0.as_ref().expect("allocator should exist")
+  }
+}
+
+impl Drop for ReusableSwcAllocator {
+  fn drop(&mut self) {
+    let Some(mut allocator) = self.0.take() else {
+      return;
+    };
+    allocator.reset();
+    SWC_ALLOCATOR.with(|cached_allocator| {
+      let mut cached_allocator = cached_allocator.borrow_mut();
+      if cached_allocator.is_none() {
+        *cached_allocator = Some(allocator);
+      }
+    });
+  }
+}
+
+#[cfg(test)]
+mod reusable_swc_allocator_tests {
+  use super::ReusableSwcAllocator;
+
+  #[test]
+  fn reuses_allocations_after_reset() {
+    let first = {
+      let allocator = ReusableSwcAllocator::take();
+      allocator.alloc(1_u64) as *mut u64
+    };
+    let second = {
+      let allocator = ReusableSwcAllocator::take();
+      allocator.alloc(2_u64) as *mut u64
+    };
+
+    assert_eq!(first, second);
+  }
+}
+
 #[cacheable_dyn]
 #[async_trait::async_trait]
 impl ParserAndGenerator for JavaScriptParserAndGenerator {
@@ -256,7 +319,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       .and_then(|options| options.jsx)
       .unwrap_or(false);
 
-    let allocator = Allocator::new();
+    let allocator = ReusableSwcAllocator::take();
     let mut comments = Comments::new_in(&allocator);
     let parser_lexer = Lexer::new(
       &allocator,
