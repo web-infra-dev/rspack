@@ -320,18 +320,27 @@ describe("CopyRspackPlugin pattern cache", () => {
 				}
 			},
 			{ from: "assets/template", to: "template/[name][ext]" },
+			{ from: "assets/nested-template", to: "template-path/[path][name][ext]" },
 			{ from: "assets/permissions", to: "permissions", copyPermissions: true }
 		]);
 		write(root, "assets/static/one.txt", "static\n");
 		write(root, "assets/transform/one.txt", "transform\n");
 		write(root, "assets/function/one.txt", "function\n");
 		write(root, "assets/template/one.txt", "template\n");
+		write(root, "assets/nested-template/deep/two.txt", "nested-template\n");
 		write(root, "assets/permissions/one.txt", "permissions\n");
 
 		try {
-			await compile(compiler);
+			const initial = await compile(compiler);
 			expect(transformCalls).toBe(1);
 			expect(destinationCalls).toBe(1);
+			expect(asset(initial, "template/one.txt")).toBe("template\n");
+			expect(asset(initial, "template-path/deep/two.txt")).toBe(
+				"nested-template\n"
+			);
+			expect(initial.getAssets().some(({ name }) => name.includes("\\"))).toBe(
+				false
+			);
 
 			const entry = write(root, "src/index.js", "module.exports = 'changed';\n");
 			const updated = await rebuild(compiler, [entry]);
@@ -343,6 +352,12 @@ describe("CopyRspackPlugin pattern cache", () => {
 			expect(asset(updated, "transform/one.txt")).toBe("transform\n");
 			expect(asset(updated, "function/one.txt")).toBe("function\n");
 			expect(asset(updated, "template/one.txt")).toBe("template\n");
+			expect(asset(updated, "template-path/deep/two.txt")).toBe(
+				"nested-template\n"
+			);
+			expect(updated.getAssets().some(({ name }) => name.includes("\\"))).toBe(
+				false
+			);
 			expect(asset(updated, "permissions/one.txt")).toBe("permissions\n");
 		} finally {
 			await close(compiler);

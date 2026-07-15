@@ -356,9 +356,9 @@ impl CopyRspackPlugin {
 
       template_str
     } else {
-      let filename = filename.as_str().normalize().to_string_lossy().to_string();
-      normalize_glob_path_separators(&filename).into_owned()
+      filename.as_str().normalize().to_string_lossy().to_string()
     };
+    let filename = normalize_glob_path_separators(&filename).into_owned();
 
     Ok(Some(RunPatternResult {
       source_filename,
