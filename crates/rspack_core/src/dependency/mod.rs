@@ -52,12 +52,6 @@ use crate::{
   SideEffectsStateArtifact, create_exports_object_referenced,
 };
 
-#[derive(Debug, Clone)]
-pub enum ProcessModuleReferencedExports {
-  Map(FxHashMap<String, ReferencedExport>),
-  ExtendRef(Vec<ReferencedExport>),
-}
-
 #[derive(Debug, Default)]
 pub struct ExportSpec {
   pub name: Atom,

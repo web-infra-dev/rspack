@@ -30,6 +30,7 @@ enum ProcessModuleReferencedExports {
   Map(HashMap<ReferencedExportPath, ReferencedExportFlags>),
   ExtendRef(Vec<ReferencedExport>),
 }
+
 #[allow(unused)]
 pub struct FlagDependencyUsagePluginProxy<'a> {
   global: bool,
