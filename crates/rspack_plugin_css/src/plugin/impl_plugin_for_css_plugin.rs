@@ -11,7 +11,7 @@ use rspack_core::{
   ModuleIdentifier, ModuleType, NormalModuleCreateData, NormalModuleFactoryAfterResolve,
   NormalModuleFactoryModule, ParserAndGenerator, PathData, Plugin, PublicPath, RenderManifestEntry,
   RuntimeGlobals, RuntimeModule, RuntimeModuleExt, SelfModuleFactory, SourceType,
-  css_module_render_conditions_identifier, get_css_chunk_filename_template,
+  css_module_render_conditions_identifier, get_css_chunk_filename_template, is_source_equal,
   rspack_sources::{BoxSource, CachedSource, ReplaceSource, Source, SourceExt},
 };
 use rspack_error::{Diagnostic, Result, ToStringResultToRspackResultExt};
@@ -236,24 +236,41 @@ impl CssPlugin {
     ordered_css_modules: &[&dyn Module],
     module_sources: &HashMap<ModuleIdentifier, BoxSource>,
   ) -> BoxSource {
-    let non_import_css_resources = ordered_css_modules
+    let mut non_import_css_sources = HashMap::<_, Vec<_>>::default();
+    for module in ordered_css_modules
       .iter()
       .filter(|module| !css_module_is_import_dependency(**module))
-      .filter(|module| module_sources.contains_key(&module.identifier()))
-      .filter_map(|module| css_module_resource(*module))
-      .collect::<HashSet<_>>();
+    {
+      let identifier = module.identifier();
+      if let Some(resource) = css_module_resource(*module)
+        && let Some(source) = module_sources.get(&identifier)
+      {
+        non_import_css_sources
+          .entry(resource)
+          .or_default()
+          .push(source);
+      }
+    }
 
     let mut builder = CssSourceBuilder::new(false, true, Default::default());
     for module in ordered_css_modules {
+      let identifier = module.identifier();
       if css_module_is_import_dependency(*module)
         && css_render_conditions_from_module(*module).is_empty()
         && let Some(resource) = css_module_resource(*module)
-        && non_import_css_resources.contains(resource)
+        && let Some(source) = module_sources.get(&identifier)
+        && non_import_css_sources.get(resource).is_some_and(|sources| {
+          sources
+            .iter()
+            .any(|other| is_source_equal(source.as_ref(), (*other).as_ref()))
+        })
       {
+        if css_module_has_charset(*module) {
+          builder.set_has_charset();
+        }
         continue;
       }
 
-      let identifier = module.identifier();
       if let Some(source) = module_sources.get(&identifier) {
         if css_module_has_charset(*module) {
           builder.set_has_charset();
