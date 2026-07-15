@@ -518,24 +518,19 @@ impl ContextModule {
     compilation: &Compilation,
     runtime_template: &mut ModuleCodeTemplate,
   ) -> String {
+    let load = runtime_template.basic_function(
+      "req, resolve",
+      "return Promise.resolve().then(resolve.bind(null, req));",
+    );
+    let context_factory_call =
+      self.get_context_factory_call(compilation, &load, None, false, runtime_template);
     formatdoc! {r#"
-      function __rspack_empty_async_context(req) {{
-        // Here Promise.resolve().then() is used instead of new Promise() to prevent
-        // uncaught exception popping up in devtools
-        return Promise.resolve().then(function() {{
-          var e = new Error("Cannot find module '" + req + "'");
-          e.code = 'MODULE_NOT_FOUND';
-          throw e;
-        }});
-      }}
-      __rspack_empty_async_context.keys = {keys};
+      var map = {{}};
+      var __rspack_empty_async_context = {context_factory_call};
       __rspack_empty_async_context.resolve = __rspack_empty_async_context;
-      __rspack_empty_async_context.id = {id};
       {module}.exports = __rspack_empty_async_context;
       "#,
       module = runtime_template.render_module_argument(ModuleArgument::Module),
-      keys = runtime_template.returning_function("[]", ""),
-      id = json_stringify(self.get_module_id(&compilation.module_ids_artifact))
     }
   }
 
@@ -918,67 +913,51 @@ impl ContextModule {
       runtime_template,
     );
 
-    let has_own_property =
-      runtime_template.render_runtime_globals(&RuntimeGlobals::HAS_OWN_PROPERTY);
-    let async_context = if has_no_chunk {
+    let load = if has_no_chunk {
       let then_function = runtime_template.basic_function(
         "",
         &formatdoc! {
-          r#"if(!{has_own_property}(map, req)) {{
-            var e = new Error("Cannot find module '" + req + "'");
-            e.code = 'MODULE_NOT_FOUND';
-            throw e;
-          }}
-
-          {}
+          r#"{}
           return {return_module_object};"#,
           if short_mode {
-            "var id = map[req];"
+            "var id = resolve(req);"
           } else {
-            "var ids = map[req], id = ids[0];"
+            "var ids = resolve(req), id = ids[0];"
           }
         },
       );
-      formatdoc! {r#"
-        function __rspack_async_context(req) {{
-          return Promise.resolve().then({then_function});
-        }}
-      "#}
+      runtime_template.basic_function(
+        "req, resolve",
+        &format!("return Promise.resolve().then({then_function});"),
+      )
     } else {
+      let reject = runtime_template.basic_function("", "throw e;");
       let then_function = runtime_template.returning_function(&return_module_object, "");
-      let module_not_found = runtime_template.basic_function(
-        "",
-        &formatdoc! {
-          r#"var e = new Error("Cannot find module '" + req + "'");
-            e.code = 'MODULE_NOT_FOUND';
-            throw e;"#
-        },
-      );
-      formatdoc! {r#"
-        function __rspack_async_context(req) {{
-          if(!{}(map, req)) {{
-            return Promise.resolve().then({module_not_found});
+      runtime_template.basic_function(
+        "req, resolve",
+        &formatdoc! {r#"
+          var ids;
+          try {{
+            ids = resolve(req);
+          }} catch(e) {{
+            return Promise.resolve().then({reject});
           }}
-
-          var ids = map[req], id = ids[0];
+          var id = ids[0];
           return {request_prefix}.then({then_function});
-        }}
         "#,
-        runtime_template.render_runtime_globals(&RuntimeGlobals::HAS_OWN_PROPERTY),
-      }
+        },
+      )
     };
+    let context_factory_call =
+      self.get_context_factory_call(compilation, &load, None, false, runtime_template);
 
     formatdoc! {r#"
       var map = {map};
-      {async_context}
-      __rspack_async_context.keys = {keys};
-      __rspack_async_context.id = {id};
+      var __rspack_async_context = {context_factory_call};
       {module}.exports = __rspack_async_context;
       "#,
       module = runtime_template.render_module_argument(ModuleArgument::Module),
       map = json_stringify_pretty(&map),
-      keys = runtime_template.returning_function("Object.keys(map)", ""),
-      id = json_stringify(self.get_module_id(&compilation.module_ids_artifact))
     }
   }
 
