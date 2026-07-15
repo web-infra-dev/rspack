@@ -11,6 +11,8 @@ module.exports = {
 
     expect(source).toContain("var __rspack_context={};");
     expect(source).toContain("__rspack_context.esm");
+    // Every ESM module in this fixture uses the combined helper, so exposing
+    // .d or .N here would mean module-level runtime requirements leaked.
     expect(source).not.toContain(
       "__rspack_context.d = definePropertyGetters;",
     );

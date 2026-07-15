@@ -1,6 +1,41 @@
 const fs = require("fs");
 const path = require("path");
 
+const escapeRegExp = (value) => value.replace(/[|\\{}()[\]^$+*?.]/g, "\\$&");
+
+function extractModuleSource(source, moduleId) {
+  const moduleHeader = new RegExp(
+    "^(?:\\/\\*\\*\\*\\/\\s*)?" +
+      escapeRegExp(JSON.stringify(moduleId)) +
+      "(?::|\\([^\\n]*\\)\\s*\\{)",
+    "m",
+  );
+  const headerMatch = moduleHeader.exec(source);
+  if (!headerMatch) {
+    throw new Error("Unable to find module definition for " + moduleId);
+  }
+
+  const searchStart = headerMatch.index + headerMatch[0].length;
+  const remainingSource = source.slice(searchStart);
+  const nextModuleHeader = remainingSource.search(
+    /^(?:\/\*\*\*\/\s*)?"(?:[^"\\]|\\.)+"(?::|\([^\n]*\)\s*\{)/m,
+  );
+  const runtimeSection = remainingSource.search(
+    /^(?:\/\/\s*|\/\*{6}\/\s*\/\*\s*)(?:webpack|rspack)\/runtime\//m,
+  );
+  const boundaries = [nextModuleHeader, runtimeSection].filter(
+    (index) => index >= 0,
+  );
+  if (boundaries.length === 0) {
+    throw new Error("Unable to find the end of module definition for " + moduleId);
+  }
+
+  return source.slice(
+    headerMatch.index,
+    searchStart + Math.min(...boundaries),
+  );
+}
+
 /** @type {import("../../../..").TConfigCaseConfig} */
 module.exports = {
   afterExecute(options) {
@@ -9,11 +44,7 @@ module.exports = {
       "utf-8",
     );
 
-    const libStart = source.indexOf('"./lib.js"');
-    const libEnd = source.indexOf("\n\n},\n\n});", libStart);
-    expect(libStart).toBeGreaterThan(-1);
-    expect(libEnd).toBeGreaterThan(libStart);
-    const libSource = source.slice(libStart, libEnd);
+    const libSource = extractModuleSource(source, "./lib.js");
 
     if (source.includes("var __rspack_context={};")) {
       expect(
