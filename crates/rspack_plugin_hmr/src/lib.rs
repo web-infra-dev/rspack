@@ -130,6 +130,13 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       .find(|(_, chunk)| chunk.expect_id().eq(&chunk_id))
       .map(|(_, chunk)| chunk);
     let current_chunk_ukey = current_chunk.map(|c| c.ukey());
+    let updated_css_filename = current_chunk.and_then(|chunk| {
+      chunk
+        .files()
+        .iter()
+        .find(|filename| filename.ends_with(".css"))
+        .cloned()
+    });
 
     if let Some(current_chunk) = current_chunk {
       new_runtime = current_chunk
@@ -338,6 +345,11 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       new_runtime.iter().for_each(|runtime| {
         if let Some(info) = hot_update_main_content_by_runtime.get_mut(runtime) {
           info.updated_chunk_ids.insert(chunk_id.clone());
+          if let Some(css_filename) = &updated_css_filename {
+            info
+              .css_filenames
+              .insert(chunk_id.clone(), css_filename.clone());
+          }
         }
       });
     }
@@ -376,6 +388,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           .removed_chunk_ids
           .extend(content.removed_chunk_ids);
         old_content.removed_modules.extend(content.removed_modules);
+        old_content.css_filenames.extend(content.css_filenames);
         compilation.push_diagnostic(Diagnostic::warn(
           "HotModuleReplacementPlugin".to_string(),
           r#"The configured output.hotUpdateMainFilename doesn't lead to unique filenames per runtime and HMR update differs between runtimes.
@@ -401,6 +414,7 @@ To fix this, make sure to include [runtime] in the output.hotUpdateMainFilename 
       "c": c,
       "r": r,
       "m": m,
+      "css": content.css_filenames,
     })
     .to_string();
 
@@ -502,4 +516,9 @@ struct HotUpdateContent {
   updated_chunk_ids: ChunkIdSet,
   removed_chunk_ids: ChunkIdSet,
   removed_modules: HashSet<ModuleId>,
+  // CSS filename freshly emitted for an updated chunk, keyed by chunk id. Lets CSS HMR
+  // handlers resolve the current stylesheet URL directly instead of relying on the
+  // chunk filename runtime function, which is never re-evaluated by HMR and so cannot
+  // reflect a filename that includes a content hash.
+  css_filenames: HashMap<ChunkId, String>,
 }

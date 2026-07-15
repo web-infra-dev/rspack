@@ -21,12 +21,28 @@ var extractCssApplyHandler = function (options) {
 	applyHandlers.push(extractCssApplyHandler);
 	var seen = {};
 	chunkIds.forEach(function (chunkId) {
-		var href = <%- REQUIRE_SCOPE %>.miniCssF(chunkId);
+		/**
+			The runtime chunk's own `miniCssF` literal is baked in at build time and never
+			re-fetched by HMR, so it goes stale whenever the CSS filename is hashed
+			([contenthash]). `HMR_CSS_FILENAMES` is populated from the hot-update manifest
+			with the freshly emitted filename for this update and takes priority; `miniCssF`
+			remains the fallback for chunks the manifest didn't report (e.g. unhashed names).
+		 */
+		var staleHref = <%- REQUIRE_SCOPE %>.miniCssF(chunkId);
+		var href = <%- HMR_CSS_FILENAMES %>[chunkId] || staleHref;
 		if (!href) return;
 		var fullhref = <%- PUBLIC_PATH %> + href;
 		if (seen[fullhref]) return;
 		seen[fullhref] = true;
-		var oldTag = extractCssFindStylesheet(href, fullhref);
+		/**
+			Find the currently installed stylesheet primarily by chunk identity (set on tags
+			this handler previously created), so repeated updates keep tracking the right tag
+			even as the href keeps changing. The very first update after a page load has
+			nothing to match by chunk identity yet, since that tag was written directly into
+			the HTML by HtmlRspackPlugin - fall back to the stale (frozen at initial-load)
+			`miniCssF` href, which still matches that tag's real, unmodified href.
+		 */
+		var oldTag = extractCssFindStylesheet(staleHref, <%- PUBLIC_PATH %> + staleHref, chunkId);
 		if (!oldTag) return;
 		promises.push(new Promise(function (resolve, reject) {
 			var tag = extractCssCreateStylesheet(
