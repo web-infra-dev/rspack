@@ -21,9 +21,20 @@ impl Compiler {
     changed_files: FxHashSet<String>,
     deleted_files: FxHashSet<String>,
   ) -> Result<()> {
+    self
+      .rebuild_with_invalidation_provenance(changed_files, deleted_files, false)
+      .await
+  }
+
+  pub async fn rebuild_with_invalidation_provenance(
+    &mut self,
+    changed_files: FxHashSet<String>,
+    deleted_files: FxHashSet<String>,
+    is_lazy_watch_rebuild: bool,
+  ) -> Result<()> {
     match within_compiler_context(
       self.compiler_context.clone(),
-      self.rebuild_inner(changed_files, deleted_files),
+      self.rebuild_inner(changed_files, deleted_files, is_lazy_watch_rebuild),
     )
     .await
     {
@@ -50,12 +61,14 @@ impl Compiler {
 
   #[tracing::instrument("Compiler:rebuild", skip_all, fields(
     compiler.changed_files = ?changed_files.iter().cloned().collect::<Vec<_>>(),
-    compiler.deleted_files = ?deleted_files.iter().cloned().collect::<Vec<_>>()
+    compiler.deleted_files = ?deleted_files.iter().cloned().collect::<Vec<_>>(),
+    compiler.is_lazy_watch_rebuild = is_lazy_watch_rebuild
   ))]
   async fn rebuild_inner(
     &mut self,
     changed_files: FxHashSet<String>,
     deleted_files: FxHashSet<String>,
+    is_lazy_watch_rebuild: bool,
   ) -> Result<()> {
     let records = self.last_records.clone();
 
@@ -93,6 +106,7 @@ impl Compiler {
         true,
         self.compiler_context.clone(),
       );
+      next_compilation.is_lazy_watch_rebuild = is_lazy_watch_rebuild;
       next_compilation.hot_index = self.compilation.hot_index + 1;
 
       if next_compilation

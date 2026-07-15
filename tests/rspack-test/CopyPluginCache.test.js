@@ -1,6 +1,11 @@
 const fs = require("node:fs");
 const path = require("node:path");
-const { CopyRspackPlugin, Stats, rspack } = require("@rspack/core");
+const {
+	CopyRspackPlugin,
+	Stats,
+	lazyCompilationMiddleware,
+	rspack
+} = require("@rspack/core");
 
 const fixtureRoot = path.resolve(__dirname, "js/copy-plugin-cache");
 
@@ -112,6 +117,9 @@ function watch(compiler) {
 			return new Promise((resolve, reject) => {
 				watching.close(error => (error ? reject(error) : resolve()));
 			});
+		},
+		invalidate() {
+			watching.invalidate();
 		}
 	};
 }
@@ -381,6 +389,142 @@ describe("CopyRspackPlugin pattern cache", () => {
 			expect(reusedPatterns(updated)).toBe(0);
 		} finally {
 			await close(compiler);
+		}
+	});
+
+	it("reuses a 2000-file copy pattern during an empty lazy watch rebuild", async () => {
+		const fileCount = 2000;
+		const root = path.join(fixtureRoot, "lazy-watch-cache-hit");
+		const beforeWatch = new Date(Date.now() - 3000);
+		fs.rmSync(root, { recursive: true, force: true });
+		const entry = write(root, "src/index.js", "export const value = 'lazy';\n");
+		for (let index = 0; index < fileCount; index += 1) {
+			const asset = write(root, `assets/${index}.txt`, `${index}\n`);
+			fs.utimesSync(asset, beforeWatch, beforeWatch);
+		}
+		for (const filename of [
+			path.join(root, "src"),
+			path.join(root, "assets"),
+			entry
+		]) {
+			fs.utimesSync(filename, beforeWatch, beforeWatch);
+		}
+
+		const compiler = rspack({
+			context: root,
+			mode: "development",
+			target: "web",
+			devtool: false,
+			cache: true,
+			incremental: true,
+			entry: "./src/index.js",
+			lazyCompilation: { entries: true, imports: false },
+			output: { path: path.join(root, "dist"), filename: "main.js" },
+			plugins: [
+				new CopyRspackPlugin({ patterns: [{ from: "assets", to: "copied" }] })
+			]
+		});
+		const middleware = lazyCompilationMiddleware(compiler);
+		const watching = watch(compiler);
+
+		try {
+			const initial = await watching.next();
+			expect(initial.error).toBeNull();
+			expect(initial.stats.hasErrors()).toBe(false);
+			expect(
+				initial.stats.compilation
+					.getAssets()
+					.filter(({ name }) => name.startsWith("copied/"))
+			).toHaveLength(fileCount);
+			await new Promise(resolve => setTimeout(resolve, 200));
+
+			const bundle = fs.readFileSync(path.join(root, "dist/main.js"), "utf8");
+			const encoded = bundle.match(/var data = ("(?:[^"\\]|\\.)*")/)?.[1];
+			expect(encoded).toBeDefined();
+			const moduleId = JSON.parse(encoded);
+
+			await new Promise((resolve, reject) => {
+				Promise.resolve(
+					middleware(
+						{
+							body: [moduleId],
+							method: "POST",
+							url: "/_rspack/lazy/trigger"
+						},
+						{
+							end: resolve,
+							write() {},
+							writeHead(status) {
+								expect(status).toBe(200);
+							}
+						},
+						reject
+					)
+				).catch(reject);
+			});
+			const updated = await watching.next();
+
+			expect(updated.error).toBeNull();
+			expect(updated.stats.hasErrors()).toBe(false);
+			expect(updated.stats.compilation.watchInvalidationKind).toBe("lazy");
+			expect(compiler.modifiedFiles).toEqual(new Set());
+			expect(compiler.removedFiles).toEqual(new Set());
+			expect(reusedPatterns(updated.stats.compilation)).toBe(1);
+			expect(
+				updated.stats.compilation
+					.getAssets()
+					.filter(({ name }) => name.startsWith("copied/"))
+			).toHaveLength(fileCount);
+		} finally {
+			await watching.close();
+		}
+	});
+
+	it("does not reuse a copy pattern for an empty normal watch invalidation", async () => {
+		const { root, compiler } = createCompiler("normal-watch-invalidation", [
+			{ from: "assets/source", to: "copied" }
+		]);
+		const source = write(root, "assets/source/one.txt", "before\n");
+		const beforeWatch = new Date(Date.now() - 3000);
+		for (const filename of [
+			path.join(root, "src"),
+			path.join(root, "src/index.js"),
+			path.join(root, "assets"),
+			path.join(root, "assets/source"),
+			source
+		]) {
+			fs.utimesSync(filename, beforeWatch, beforeWatch);
+		}
+		let mutateDuringWatchRun = false;
+		compiler.hooks.watchRun.tap("copy-plugin-cache-test", () => {
+			if (!mutateDuringWatchRun) return;
+			mutateDuringWatchRun = false;
+			const { atime, mtime } = fs.statSync(source);
+			write(root, "assets/source/one.txt", "after\n");
+			fs.utimesSync(source, atime, mtime);
+		});
+		const watching = watch(compiler);
+
+		try {
+			const initial = await watching.next();
+			expect(initial.error).toBeNull();
+			expect(initial.stats.hasErrors()).toBe(false);
+			expect(asset(initial.stats.compilation, "copied/one.txt")).toBe("before\n");
+			await new Promise(resolve => setTimeout(resolve, 200));
+
+			mutateDuringWatchRun = true;
+			watching.invalidate();
+			const updated = await watching.next();
+
+			expect(updated.error).toBeNull();
+			expect(updated.stats.hasErrors()).toBe(false);
+			expect(updated.stats.compilation.watchInvalidationKind).toBe("normal");
+			expect(compiler.modifiedFiles).toEqual(new Set());
+			expect(compiler.removedFiles).toEqual(new Set());
+			expect(asset(updated.stats.compilation, "copied/one.txt")).toBe("after\n");
+			expect(reusedPatterns(updated.stats.compilation)).toBe(0);
+		} finally {
+			await watching.close();
 		}
 	});
 

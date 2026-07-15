@@ -848,6 +848,7 @@ class Compiler {
           Array.from(this.modifiedFiles || []),
           Array.from(this.removedFiles || []),
           callback,
+          this.__internal__watchInvalidationKind === 'lazy',
         );
         return;
       }

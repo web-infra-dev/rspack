@@ -10,12 +10,10 @@ pub(super) struct CachedPatternResult {
 }
 
 impl CachedPatternResult {
-  pub(super) fn is_invalidated<'a>(&self, changed_paths: impl Iterator<Item = &'a Path>) -> bool {
-    let mut changed_paths = changed_paths.peekable();
-    if changed_paths.peek().is_none() {
-      return true;
-    }
-
+  pub(super) fn is_invalidated<'a>(
+    &self,
+    mut changed_paths: impl Iterator<Item = &'a Path>,
+  ) -> bool {
     changed_paths.any(|changed| {
       self
         .file_dependencies
@@ -56,10 +54,10 @@ mod tests {
   }
 
   #[test]
-  fn reuses_only_when_unrelated_watcher_provenance_exists() {
+  fn reuses_for_empty_and_unrelated_changes() {
     let cached = cached(&["/project/assets/file.txt"], &["/project/assets/glob"]);
 
     assert!(!cached.is_invalidated([Path::new("/project/src/index.js")].into_iter()));
-    assert!(cached.is_invalidated(std::iter::empty()));
+    assert!(!cached.is_invalidated(std::iter::empty()));
   }
 }

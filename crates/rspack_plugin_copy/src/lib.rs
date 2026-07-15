@@ -676,6 +676,9 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       let cached = &mut pattern_cache[index];
 
       if cacheable
+        && (compilation.is_lazy_watch_rebuild
+          || !compilation.modified_files.is_empty()
+          || !compilation.removed_files.is_empty())
         && let Some(cached) = cached.as_ref()
         && !cached.is_invalidated(
           compilation
