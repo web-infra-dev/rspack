@@ -27,7 +27,7 @@ __webpack_require__.d(__webpack_exports__, {
 
 },
 "./colors/index.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.esm(__webpack_exports__, {
+__webpack_require__.D(__webpack_exports__, {
   blue: () => (/* reexport safe */ _b__rspack_import_1.blue),
   red: () => (/* reexport safe */ _a__rspack_import_0.red),
   result: () => (/* reexport safe */ _c__rspack_import_2.result)

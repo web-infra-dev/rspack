@@ -29,9 +29,9 @@ module.exports = {
 		expect(concatedModule).toBeTruthy();
 		expect(stats?.toString(statsOptions))
 			.toMatchInlineSnapshot(`
-				asset main.js 466 bytes [emitted] (name: main)
+				asset main.js 462 bytes [emitted] (name: main)
 				orphan modules 192 bytes [orphan] 4 modules
-				runtime modules 849 bytes 4 modules
+				runtime modules 847 bytes 4 modules
 				./fixtures/esm/abc.js + 3 modules 192 bytes [code generated]
 				  | orphan modules 192 bytes [orphan] 4 modules
 				Rspack compiled successfully
