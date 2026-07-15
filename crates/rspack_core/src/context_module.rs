@@ -507,6 +507,12 @@ impl ContextModule {
     )
   }
 
+  fn get_async_resolve_factory(&self, runtime_template: &ModuleCodeTemplate) -> String {
+    let resolve =
+      runtime_template.returning_function("Promise.resolve().then(resolve.bind(null, req))", "req");
+    runtime_template.returning_function(&resolve, "resolve")
+  }
+
   fn get_source_for_empty_async_context(
     &self,
     compilation: &Compilation,
@@ -1007,18 +1013,20 @@ impl ContextModule {
     );
     let then_function = runtime_template.returning_function(&return_module_object_source, "id");
 
-    let has_own_property =
-      runtime_template.render_runtime_globals(&RuntimeGlobals::HAS_OWN_PROPERTY);
-    let module_not_found = runtime_template.basic_function(
-      "",
-      &formatdoc! {
-        r#"if(!{has_own_property}(map, req)) {{
-          var e = new Error("Cannot find module '" + req + "'");
-          e.code = 'MODULE_NOT_FOUND';
-          throw e;
-        }}
-        return map[req];"#
-      },
+    let resolve_module = runtime_template.basic_function("", "return resolve(req);");
+    let resolve =
+      runtime_template.basic_function("req", &format!("return {promise}.then({resolve_module});"));
+    let create_resolve = runtime_template.returning_function(&resolve, "resolve");
+    let load = runtime_template.basic_function(
+      "req, resolve",
+      &format!("return resolve(req).then({then_function});"),
+    );
+    let context_factory_call = self.get_context_factory_call(
+      compilation,
+      &load,
+      Some(&create_resolve),
+      true,
+      runtime_template,
     );
 
     formatdoc! {r#"
@@ -1026,23 +1034,13 @@ impl ContextModule {
       {fake_map_init_statement}
       {async_deps_map_init_statement}
 
-      function __rspack_async_context(req) {{
-        return __rspack_async_context_resolve(req).then({then_function});
-      }}
-      function __rspack_async_context_resolve(req) {{
-        return {promise}.then({module_not_found});
-      }}
-      __rspack_async_context.keys = {keys};
-      __rspack_async_context.resolve = __rspack_async_context_resolve;
-      __rspack_async_context.id = {id};
+      var __rspack_async_context = {context_factory_call};
       {module}.exports = __rspack_async_context;
       "#,
       module = runtime_template.render_module_argument(ModuleArgument::Module),
       map = json_stringify_pretty(&map),
       fake_map_init_statement = self.get_fake_map_init_statement(&fake_map),
       async_deps_map_init_statement = self.get_module_deferred_async_deps_map_init_statement(async_deps_map.as_ref()),
-      keys = runtime_template.returning_function("Object.keys(map)", ""),
-      id = json_stringify(self.get_module_id(&compilation.module_ids_artifact))
     }
   }
 
@@ -1084,18 +1082,17 @@ impl ContextModule {
         return {return_module_object};"#
       },
     );
-    let has_own_property =
-      runtime_template.render_runtime_globals(&RuntimeGlobals::HAS_OWN_PROPERTY);
-    let module_not_found = runtime_template.basic_function(
-      "",
-      &formatdoc! {
-        r#"if(!{has_own_property}(map, req)) {{
-          var e = new Error("Cannot find module '" + req + "'");
-          e.code = 'MODULE_NOT_FOUND';
-          throw e;
-        }}
-        return map[req];"#
-      },
+    let load = runtime_template.basic_function(
+      "req, resolve",
+      &format!("return resolve(req).then({then_function});"),
+    );
+    let create_resolve = self.get_async_resolve_factory(runtime_template);
+    let context_factory_call = self.get_context_factory_call(
+      compilation,
+      &load,
+      Some(&create_resolve),
+      true,
+      runtime_template,
     );
 
     formatdoc! {r#"
@@ -1103,25 +1100,13 @@ impl ContextModule {
       {fake_map_init_statement}
       {async_deps_map_init_statement}
 
-      function __rspack_async_context(req) {{
-        return __rspack_async_context_resolve(req).then({then_function});
-      }}
-      function __rspack_async_context_resolve(req) {{
-        // Here Promise.resolve().then() is used instead of new Promise() to prevent
-        // uncaught exception popping up in devtools
-        return Promise.resolve().then({module_not_found});
-      }}
-      __rspack_async_context.keys = {keys};
-      __rspack_async_context.resolve = __rspack_async_context_resolve;
-      __rspack_async_context.id = {id};
+      var __rspack_async_context = {context_factory_call};
       {module}.exports = __rspack_async_context;
       "#,
       module = runtime_template.render_module_argument(ModuleArgument::Module),
       map = json_stringify_pretty(&map),
       fake_map_init_statement = self.get_fake_map_init_statement(&fake_map),
       async_deps_map_init_statement = self.get_module_deferred_async_deps_map_init_statement(async_deps_map.as_ref()),
-      keys = runtime_template.returning_function("Object.keys(map)", ""),
-      id = json_stringify(self.get_module_id(&compilation.module_ids_artifact))
     }
   }
 
@@ -1191,18 +1176,17 @@ impl ContextModule {
       runtime_template,
     );
     let then_function = runtime_template.returning_function(&return_module_object_source, "id");
-    let has_own_property =
-      runtime_template.render_runtime_globals(&RuntimeGlobals::HAS_OWN_PROPERTY);
-    let module_not_found = runtime_template.basic_function(
-      "",
-      &formatdoc! {
-        r#"if(!{has_own_property}(map, req)) {{
-          var e = new Error("Cannot find module '" + req + "'");
-          e.code = 'MODULE_NOT_FOUND';
-          throw e;
-        }}
-        return map[req];"#
-      },
+    let load = runtime_template.basic_function(
+      "req, resolve",
+      &format!("return resolve(req).then({then_function});"),
+    );
+    let create_resolve = self.get_async_resolve_factory(runtime_template);
+    let context_factory_call = self.get_context_factory_call(
+      compilation,
+      &load,
+      Some(&create_resolve),
+      true,
+      runtime_template,
     );
 
     formatdoc! {r#"
@@ -1210,25 +1194,13 @@ impl ContextModule {
       {fake_map_init_statement}
       {async_deps_map_init_statement}
 
-      function __rspack_async_context(req) {{
-        return __rspack_async_context_resolve(req).then({then_function});
-      }}
-      function __rspack_async_context_resolve(req) {{
-        // Here Promise.resolve().then() is used instead of new Promise() to prevent
-        // uncaught exception popping up in devtools
-        return Promise.resolve().then({module_not_found});
-      }}
-      __rspack_async_context.keys = {keys};
-      __rspack_async_context.resolve = __rspack_async_context_resolve;
-      __rspack_async_context.id = {id};
+      var __rspack_async_context = {context_factory_call};
       {module}.exports = __rspack_async_context;
       "#,
       module = runtime_template.render_module_argument(ModuleArgument::Module),
       map = json_stringify_pretty(&map),
       fake_map_init_statement = self.get_fake_map_init_statement(&fake_map),
       async_deps_map_init_statement = self.get_module_deferred_async_deps_map_init_statement(async_deps_map.as_ref()),
-      keys = runtime_template.returning_function("Object.keys(map)", ""),
-      id = json_stringify(self.get_module_id(&compilation.module_ids_artifact))
     }
   }
 
