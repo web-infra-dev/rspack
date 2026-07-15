@@ -7,10 +7,9 @@ __rspack_context.m.add({
   !*** ./modules/a.js ***!
   \**********************/
 (__unused_rspack_module, __rspack_exports, __rspack_context) {
-__rspack_context.N(__rspack_exports);
 /* export default */ const __rspack_default_export = ("a");
 
-__rspack_context.d(__rspack_exports, {
+__rspack_context.esm(__rspack_exports, {
 }, {
   "default": __rspack_default_export
 });
@@ -30,12 +29,11 @@ __rspack_context.m.add({
   !*** ./modules/b.js ***!
   \**********************/
 (__unused_rspack_module, __rspack_exports, __rspack_context) {
-__rspack_context.N(__rspack_exports);
 import("./c.mjs").then(__rspack_context.r.bind(__rspack_context.r, /*! ./c */ "./modules/c.js"));
 
 /* export default */ const __rspack_default_export = ("b");
 
-__rspack_context.d(__rspack_exports, {
+__rspack_context.esm(__rspack_exports, {
 }, {
   "default": __rspack_default_export
 });
@@ -55,10 +53,9 @@ __rspack_context.m.add({
   !*** ./modules/c.js ***!
   \**********************/
 (__unused_rspack_module, __rspack_exports, __rspack_context) {
-__rspack_context.N(__rspack_exports);
 /* export default */ const __rspack_default_export = ("c");
 
-__rspack_context.d(__rspack_exports, {
+__rspack_context.esm(__rspack_exports, {
 }, {
   "default": __rspack_default_export
 });
@@ -227,6 +224,13 @@ __rspack_context.r = __rspack_require;
 __rspack_context.m = __rspack_modules;
 
 var publicPath, moduleFactories=__rspack_modules, scriptNonce, prefetchChunk, preloadChunk;
+// rspack/runtime/define_esm_exports
+var defineEsmExports = (exports, getters, values) => {
+	makeNamespaceObject(exports);
+	definePropertyGetters(exports, getters, values);
+};
+;
+__rspack_context.esm = defineEsmExports;
 // rspack/runtime/define_property_getters
 var definePropertyGetters = (exports, getters, values) => {
 	var define = (defs, kind) => {
@@ -239,7 +243,6 @@ var definePropertyGetters = (exports, getters, values) => {
 	define(getters, "get");
 	define(values, "value");
 };;
-__rspack_context.d = definePropertyGetters;
 // rspack/runtime/esm_ensure_chunk
 var ensureChunkHandlers = {};
 var ensureChunk = function(chunkId, fetchPriority) {
@@ -272,7 +275,6 @@ var makeNamespaceObject = (exports) => {
 	}
 	Object.defineProperty(exports, '__esModule', { value: true });
 };;
-__rspack_context.N = makeNamespaceObject;
 // rspack/runtime/on_chunk_loaded
 var deferred = [];
 var onChunksLoaded = (result, chunkIds, fn, priority) => {

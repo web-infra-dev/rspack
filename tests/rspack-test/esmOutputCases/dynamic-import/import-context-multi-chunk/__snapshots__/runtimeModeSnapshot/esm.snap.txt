@@ -8,13 +8,12 @@ __rspack_context.m.add({
   !*** ./modules/a.js ***!
   \**********************/
 (__unused_rspack_module, __rspack_exports, __rspack_context) {
-__rspack_context.N(__rspack_exports);
 /* import */ var _shared__rspack_import_0 = __rspack_context.r(/*! ../shared */ "./shared.js");
 
 
 /* export default */ const __rspack_default_export = (_shared__rspack_import_0/* .value */.U);
 
-__rspack_context.d(__rspack_exports, {
+__rspack_context.esm(__rspack_exports, {
 }, {
   "default": __rspack_default_export
 });
@@ -36,13 +35,12 @@ __rspack_context.m.add({
   !*** ./modules/b.js ***!
   \**********************/
 (__unused_rspack_module, __rspack_exports, __rspack_context) {
-__rspack_context.N(__rspack_exports);
 /* import */ var _shared__rspack_import_0 = __rspack_context.r(/*! ../shared */ "./shared.js");
 
 
 /* export default */ const __rspack_default_export = (_shared__rspack_import_0/* .value */.U + 1);
 
-__rspack_context.d(__rspack_exports, {
+__rspack_context.esm(__rspack_exports, {
 }, {
   "default": __rspack_default_export
 });
@@ -163,6 +161,13 @@ __rspack_context.r = __rspack_require;
 __rspack_context.m = __rspack_modules;
 
 var moduleFactories=__rspack_modules;
+// rspack/runtime/define_esm_exports
+var defineEsmExports = (exports, getters, values) => {
+	makeNamespaceObject(exports);
+	definePropertyGetters(exports, getters, values);
+};
+;
+__rspack_context.esm = defineEsmExports;
 // rspack/runtime/define_property_getters
 var definePropertyGetters = (exports, getters, values) => {
 	var define = (defs, kind) => {
@@ -200,7 +205,6 @@ var makeNamespaceObject = (exports) => {
 	}
 	Object.defineProperty(exports, '__esModule', { value: true });
 };;
-__rspack_context.N = makeNamespaceObject;
 // rspack/runtime/esm_chunk_loading
 var esmInstalledChunks = {};
 var esmChunkMap = {

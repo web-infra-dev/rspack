@@ -16,12 +16,11 @@ exports.bar = 2
   !*** ./foo.js ***!
   \****************/
 (__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.r(__webpack_exports__);
 /* import */ var _bar__rspack_import_0 = __webpack_require__(/*! ./bar */ "./bar.js");
 const foo = 1
 
 
-__webpack_require__.d(__webpack_exports__, {
+__webpack_require__.esm(__webpack_exports__, {
   bar: () => (/* reexport safe */ _bar__rspack_import_0.bar)
 }, {
   foo: foo
@@ -80,6 +79,14 @@ return module.exports;
 // expose the modules object (__webpack_modules__)
 __webpack_require__.m = __webpack_modules__;
 
+// webpack/runtime/define_esm_exports
+(() => {
+__webpack_require__.esm = (exports, getters, values) => {
+	__webpack_require__.r(exports);
+	__webpack_require__.d(exports, getters, values);
+};
+
+})();
 // webpack/runtime/define_property_getters
 (() => {
 __webpack_require__.d = (exports, getters, values) => {

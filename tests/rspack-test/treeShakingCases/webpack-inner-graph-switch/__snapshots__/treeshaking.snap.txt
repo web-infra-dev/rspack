@@ -89,8 +89,7 @@ function useDocument(obj) {
 },
 "./some-module.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
-__webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {
+__webpack_require__.esm(__webpack_exports__, {
   Block: () => (Block),
   Document: () => (Document),
   Inline: () => (Inline)

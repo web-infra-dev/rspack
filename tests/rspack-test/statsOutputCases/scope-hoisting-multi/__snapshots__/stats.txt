@@ -1,4 +1,4 @@
-runtime modules xx KiB 18 modules
+runtime modules xx KiB 20 modules
 orphan modules xx bytes [orphan] 6 modules
 cacheable modules xx bytes
   ./first.js xx bytes [built] [code generated]
@@ -8,7 +8,7 @@ cacheable modules xx bytes
   ./lazy_second.js xx bytes [built] [code generated]
 Rspack x.x.x compiled successfully in X s
 
-runtime modules xx KiB 18 modules
+runtime modules xx KiB 20 modules
 cacheable modules xx bytes
   orphan modules xx bytes [orphan]
     ./common.js xx bytes [orphan] [built]

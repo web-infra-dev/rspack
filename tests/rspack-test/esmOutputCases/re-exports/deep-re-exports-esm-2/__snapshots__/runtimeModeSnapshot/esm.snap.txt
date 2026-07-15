@@ -9,7 +9,6 @@ __rspack_context.m.add({
   !*** ./lib.js ***!
   \****************/
 (__unused_rspack_module, __rspack_exports, __rspack_context) {
-__rspack_context.N(__rspack_exports);
 /* import */ var fs__rspack_import_0 = __rspack_context.r(/*! fs */ "fs");
 
 /* reexport */ var __rspack_reexport = {};
@@ -26,7 +25,7 @@ __rspack_context.N(__rspack_exports);
 
 const lib = 42
 
-__rspack_context.d(__rspack_exports, {
+__rspack_context.esm(__rspack_exports, {
 }, {
   lib: lib
 });
@@ -38,7 +37,6 @@ __rspack_context.d(__rspack_exports, {
   !*** ./lib2.js ***!
   \*****************/
 (__unused_rspack_module, __rspack_exports, __rspack_context) {
-__rspack_context.N(__rspack_exports);
 /* import */ var path__rspack_import_0 = __rspack_context.r(/*! path */ "path");
 
 /* reexport */ var __rspack_reexport = {};
@@ -51,7 +49,7 @@ __rspack_context.N(__rspack_exports);
 
 const lib2 = 42
 
-__rspack_context.d(__rspack_exports, {
+__rspack_context.esm(__rspack_exports, {
   fs: () => (/* reexport safe */ _lib3__rspack_import_1.fs),
   lib3: () => (/* reexport safe */ (/* inlined export _lib3__rspack_import_1 */42)),
   lib4: () => (/* reexport safe */ (/* inlined export _lib3__rspack_import_1 */24))
@@ -156,6 +154,13 @@ __rspack_context.r = __rspack_require;
 __rspack_context.m = __rspack_modules;
 
 var moduleFactories=__rspack_modules;
+// rspack/runtime/define_esm_exports
+var defineEsmExports = (exports, getters, values) => {
+	makeNamespaceObject(exports);
+	definePropertyGetters(exports, getters, values);
+};
+;
+__rspack_context.esm = defineEsmExports;
 // rspack/runtime/define_property_getters
 var definePropertyGetters = (exports, getters, values) => {
 	var define = (defs, kind) => {
@@ -182,7 +187,6 @@ var makeNamespaceObject = (exports) => {
 	}
 	Object.defineProperty(exports, '__esModule', { value: true });
 };;
-__rspack_context.N = makeNamespaceObject;
 
 export { __rspack_context };
 
