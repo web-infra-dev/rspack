@@ -12,9 +12,9 @@ use super::{
   dependency_template::AsDependencyCodeGeneration, module_dependency::*,
 };
 use crate::{
-  AsContextDependency, ConnectionState, Context, ExportsInfoArtifact, ExtendedReferencedExport,
-  ForwardId, ImportAttributes, ImportPhase, LazyUntil, ModuleGraph, ModuleGraphCacheArtifact,
-  ModuleLayer, RuntimeSpec, SideEffectsStateArtifact, create_exports_object_referenced,
+  AsContextDependency, ConnectionState, Context, ExportsInfoArtifact, ForwardId, ImportAttributes,
+  ImportPhase, LazyUntil, ModuleGraph, ModuleGraphCacheArtifact, ModuleLayer, ReferencedExport,
+  RuntimeSpec, SideEffectsStateArtifact, create_exports_object_referenced,
 };
 
 #[derive(Debug, Clone, Copy)]
@@ -114,7 +114,7 @@ pub trait Dependency:
     _module_graph_cache: &ModuleGraphCacheArtifact,
     _exports_info_artifact: &ExportsInfoArtifact,
     _runtime: Option<&RuntimeSpec>,
-  ) -> Vec<ExtendedReferencedExport> {
+  ) -> Vec<ReferencedExport> {
     create_exports_object_referenced()
   }
 

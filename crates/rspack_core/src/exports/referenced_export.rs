@@ -1,68 +1,111 @@
+use bitflags::bitflags;
 use rspack_util::atom::Atom;
 use rustc_hash::FxHashSet;
+use smallvec::SmallVec;
 
 use crate::{ExportInfo, ExportInfoData, ExportsInfoArtifact, RuntimeSpec, UsageState};
 
-/// refer https://github.com/webpack/webpack/blob/d15c73469fd71cf98734685225250148b68ddc79/lib/FlagDependencyUsagePlugin.js#L64
-#[derive(Clone, Debug)]
-pub enum ExtendedReferencedExport {
-  Array(Vec<Atom>),
-  Export(ReferencedExport),
-}
+pub type ReferencedExportPath = SmallVec<[Atom; 2]>;
 
-pub fn is_no_exports_referenced(exports: &[ExtendedReferencedExport]) -> bool {
-  exports.is_empty()
-}
-
-pub fn is_exports_object_referenced(exports: &[ExtendedReferencedExport]) -> bool {
-  matches!(exports[..], [ExtendedReferencedExport::Array(ref arr)] if arr.is_empty())
-}
-
-pub fn create_no_exports_referenced() -> Vec<ExtendedReferencedExport> {
-  vec![]
-}
-
-pub fn create_exports_object_referenced() -> Vec<ExtendedReferencedExport> {
-  vec![ExtendedReferencedExport::Array(vec![])]
-}
-
-impl From<Vec<Atom>> for ExtendedReferencedExport {
-  fn from(value: Vec<Atom>) -> Self {
-    ExtendedReferencedExport::Array(value)
+bitflags! {
+  #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+  pub struct ReferencedExportFlags: u8 {
+    const CAN_MANGLE = 1 << 0;
+    const CAN_INLINE = 1 << 1;
+    const NS_ACCESS = 1 << 2;
   }
 }
-impl From<ReferencedExport> for ExtendedReferencedExport {
-  fn from(value: ReferencedExport) -> Self {
-    ExtendedReferencedExport::Export(value)
+
+impl Default for ReferencedExportFlags {
+  fn default() -> Self {
+    Self::CAN_MANGLE | Self::CAN_INLINE
   }
 }
 
 #[derive(Clone, Debug)]
 pub struct ReferencedExport {
-  pub name: Vec<Atom>,
-  pub can_mangle: bool,
-  pub can_inline: bool,
-  pub ns_access: bool,
+  pub name: ReferencedExportPath,
+  pub flags: ReferencedExportFlags,
+}
+
+pub fn is_no_exports_referenced(exports: &[ReferencedExport]) -> bool {
+  exports.is_empty()
+}
+
+pub fn is_exports_object_referenced(exports: &[ReferencedExport]) -> bool {
+  matches!(exports, [export] if export.name.is_empty())
+}
+
+pub fn create_no_exports_referenced() -> Vec<ReferencedExport> {
+  vec![]
+}
+
+pub fn create_exports_object_referenced() -> Vec<ReferencedExport> {
+  vec![ReferencedExport::default()]
+}
+
+impl From<Vec<Atom>> for ReferencedExport {
+  fn from(value: Vec<Atom>) -> Self {
+    Self::from_path(value)
+  }
 }
 
 impl ReferencedExport {
-  pub fn new(name: Vec<Atom>, can_mangle: bool, can_inline: bool) -> Self {
+  pub fn from_path(name: impl IntoIterator<Item = Atom>) -> Self {
     Self {
-      name,
-      can_mangle,
-      can_inline,
-      ns_access: false,
+      name: name.into_iter().collect(),
+      flags: ReferencedExportFlags::default(),
     }
+  }
+
+  pub fn new(name: impl IntoIterator<Item = Atom>, can_mangle: bool, can_inline: bool) -> Self {
+    let mut flags = ReferencedExportFlags::empty();
+    flags.set(ReferencedExportFlags::CAN_MANGLE, can_mangle);
+    flags.set(ReferencedExportFlags::CAN_INLINE, can_inline);
+    Self {
+      name: name.into_iter().collect(),
+      flags,
+    }
+  }
+
+  pub fn with_ns_access(mut self, ns_access: bool) -> Self {
+    self.flags.set(ReferencedExportFlags::NS_ACCESS, ns_access);
+    self
+  }
+
+  pub fn can_mangle(&self) -> bool {
+    self.flags.contains(ReferencedExportFlags::CAN_MANGLE)
+  }
+
+  pub fn can_inline(&self) -> bool {
+    self.flags.contains(ReferencedExportFlags::CAN_INLINE)
+  }
+
+  pub fn ns_access(&self) -> bool {
+    self.flags.contains(ReferencedExportFlags::NS_ACCESS)
+  }
+
+  pub fn merge_flags(&mut self, other: ReferencedExportFlags) {
+    self.flags.set(
+      ReferencedExportFlags::CAN_MANGLE,
+      self.can_mangle() && other.contains(ReferencedExportFlags::CAN_MANGLE),
+    );
+    self.flags.set(
+      ReferencedExportFlags::CAN_INLINE,
+      self.can_inline() && other.contains(ReferencedExportFlags::CAN_INLINE),
+    );
+    self.flags.set(
+      ReferencedExportFlags::NS_ACCESS,
+      self.ns_access() || other.contains(ReferencedExportFlags::NS_ACCESS),
+    );
   }
 }
 
 impl Default for ReferencedExport {
   fn default() -> Self {
     Self {
-      name: vec![],
-      can_mangle: true,
-      can_inline: true,
-      ns_access: false,
+      name: SmallVec::new(),
+      flags: ReferencedExportFlags::default(),
     }
   }
 }

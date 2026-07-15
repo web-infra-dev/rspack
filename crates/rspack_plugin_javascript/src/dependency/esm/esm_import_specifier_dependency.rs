@@ -7,12 +7,11 @@ use rspack_core::{
   AsContextDependency, ConnectionState, Dependency, DependencyCategory, DependencyCodeGeneration,
   DependencyCondition, DependencyConditionFn, DependencyId, DependencyLocation, DependencyRange,
   DependencyTemplate, DependencyTemplateType, DependencyType, ExportPresenceMode, ExportProvided,
-  ExportsInfoArtifact, ExportsType, ExtendedReferencedExport, FactorizeInfo, ForwardId,
-  ImportAttributes, ImportPhase, JavascriptParserOptions, ModuleDependency, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleReferenceOptions, ReferencedExport,
-  ResourceIdentifier, RuntimeSpec, SideEffectsStateArtifact, TemplateContext,
-  TemplateReplaceSource, UsedByExports, UsedName, create_exports_object_referenced,
-  property_access, to_normal_comment,
+  ExportsInfoArtifact, ExportsType, FactorizeInfo, ForwardId, ImportAttributes, ImportPhase,
+  JavascriptParserOptions, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
+  ModuleGraphConnection, ModuleReferenceOptions, ReferencedExport, ResourceIdentifier, RuntimeSpec,
+  SideEffectsStateArtifact, TemplateContext, TemplateReplaceSource, UsedByExports, UsedName,
+  create_exports_object_referenced, property_access, to_normal_comment,
 };
 use rspack_error::Diagnostic;
 use rspack_hash::{RspackHash, RspackHasher};
@@ -127,7 +126,7 @@ impl ESMImportSpecifierDependency {
   pub fn get_referenced_exports_in_destructuring(
     &self,
     ids: Option<&[Atom]>,
-  ) -> Vec<ExtendedReferencedExport> {
+  ) -> Vec<ReferencedExport> {
     if let Some(referenced_properties) = &self.referenced_properties_in_destructuring {
       let mut refs = Vec::new();
       referenced_properties.traverse_on_leaf(&mut |stack| {
@@ -143,23 +142,18 @@ impl ESMImportSpecifierDependency {
       refs
         .into_iter()
         // Do not inline if there are any places where used as destructuring
-        .map(|name| {
-          ExtendedReferencedExport::Export(ReferencedExport {
-            name,
-            can_mangle: true,
-            can_inline: false,
-            ns_access: self.ns_access,
-          })
-        })
+        .map(|name| ReferencedExport::new(name, true, false).with_ns_access(self.ns_access))
         .collect::<Vec<_>>()
     } else if let Some(v) = ids {
-      vec![ExtendedReferencedExport::Export(ReferencedExport {
-        name: v.to_vec(),
-        can_mangle: true,
-        // Need access the export value to trigger side effects for deferred module
-        can_inline: !self.phase.is_defer(),
-        ns_access: self.ns_access,
-      })]
+      vec![
+        ReferencedExport::new(
+          v.iter().cloned(),
+          true,
+          // Need access the export value to trigger side effects for deferred module
+          !self.phase.is_defer(),
+        )
+        .with_ns_access(self.ns_access),
+      ]
     } else {
       create_exports_object_referenced()
     }
@@ -277,7 +271,7 @@ impl Dependency for ESMImportSpecifierDependency {
     module_graph_cache: &ModuleGraphCacheArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
     _runtime: Option<&RuntimeSpec>,
-  ) -> Vec<ExtendedReferencedExport> {
+  ) -> Vec<ReferencedExport> {
     let mut ids = self.get_ids(module_graph);
     // namespace import
     if ids.is_empty() {
@@ -337,7 +331,14 @@ impl Dependency for ESMImportSpecifierDependency {
       // remove last one
       ids = &ids[..ids.len().saturating_sub(1)];
     }
-    self.get_referenced_exports_in_destructuring(Some(ids))
+    let referenced_exports = self.get_referenced_exports_in_destructuring(Some(ids));
+    if self.request.contains("referenced-export-smallvec-case") {
+      println!(
+        "[ReferencedExport SmallVec ESM case] request={:?}, referenced_exports={referenced_exports:?}",
+        self.request
+      );
+    }
+    referenced_exports
   }
 
   fn could_affect_referencing_module(&self) -> rspack_core::AffectType {

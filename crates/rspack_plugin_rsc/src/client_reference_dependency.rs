@@ -4,8 +4,8 @@ use rspack_cacheable::{
 };
 use rspack_core::{
   AsContextDependency, AsDependencyCodeGeneration, Dependency, DependencyCategory, DependencyId,
-  DependencyType, ExportsInfoArtifact, ExtendedReferencedExport, FactorizeInfo, ModuleDependency,
-  ModuleGraph, ModuleGraphCacheArtifact, ReferencedExport, ResourceIdentifier, RuntimeSpec,
+  DependencyType, ExportsInfoArtifact, FactorizeInfo, ModuleDependency, ModuleGraph,
+  ModuleGraphCacheArtifact, ReferencedExport, ResourceIdentifier, RuntimeSpec,
   create_exports_object_referenced,
 };
 use rspack_util::fx_hash::FxIndexSet;
@@ -69,7 +69,7 @@ impl Dependency for ClientReferenceDependency {
     _module_graph_cache: &ModuleGraphCacheArtifact,
     _exports_info_artifact: &ExportsInfoArtifact,
     _runtime: Option<&RuntimeSpec>,
-  ) -> Vec<ExtendedReferencedExport> {
+  ) -> Vec<ReferencedExport> {
     // `*` is an internal sentinel meaning this client reference needs the
     // whole exports object, not a narrowed list of named exports.
     if self
@@ -86,9 +86,7 @@ impl Dependency for ClientReferenceDependency {
       .referenced_exports
       .iter()
       .cloned()
-      .map(|export_name| {
-        ExtendedReferencedExport::Export(ReferencedExport::new(vec![export_name], false, false))
-      })
+      .map(|export_name| ReferencedExport::new([export_name], false, false))
       .collect()
   }
 }

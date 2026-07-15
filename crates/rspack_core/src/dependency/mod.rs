@@ -47,16 +47,15 @@ pub use static_exports_dependency::{StaticExportsDependency, StaticExportsSpec};
 use swc_core::ecma::atoms::Atom;
 
 use crate::{
-  ConnectionState, EvaluatedInlinableValue, ExportsInfoArtifact, ExportsType,
-  ExtendedReferencedExport, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection,
-  ModuleIdentifier, ReferencedExport, RuntimeSpec, SideEffectsStateArtifact,
-  create_exports_object_referenced,
+  ConnectionState, EvaluatedInlinableValue, ExportsInfoArtifact, ExportsType, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, ReferencedExport, RuntimeSpec,
+  SideEffectsStateArtifact, create_exports_object_referenced,
 };
 
 #[derive(Debug, Clone)]
 pub enum ProcessModuleReferencedExports {
-  Map(FxHashMap<String, ExtendedReferencedExport>),
-  ExtendRef(Vec<ExtendedReferencedExport>),
+  Map(FxHashMap<String, ReferencedExport>),
+  ExtendRef(Vec<ReferencedExport>),
 }
 
 #[derive(Debug, Default)]
@@ -312,7 +311,7 @@ pub fn create_referenced_exports_by_referenced_specifiers(
   referenced_specifiers: &[ReferencedSpecifier],
   exports_type: ExportsType,
   is_json: bool,
-) -> Vec<ExtendedReferencedExport> {
+) -> Vec<ReferencedExport> {
   let mut refs = vec![];
   for ReferencedSpecifier {
     names,
@@ -357,11 +356,7 @@ pub fn create_referenced_exports_by_referenced_specifiers(
       // remove last one
       names = &names[..names.len().saturating_sub(1)];
     }
-    refs.push(ExtendedReferencedExport::Export(ReferencedExport::new(
-      names.to_vec(),
-      false,
-      false,
-    )));
+    refs.push(ReferencedExport::new(names.iter().cloned(), false, false));
   }
   refs
 }
