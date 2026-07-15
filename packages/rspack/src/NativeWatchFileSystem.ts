@@ -169,9 +169,11 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
     // Fresh shim per cycle (see field comment). Events are emitted to both the
     // long-lived `#events` (the `on`/`once` API) and this cycle's shim (the
     // `.watcher` surface).
-    const watcher = new NativeWatcherShim((kind, path) =>
-      this.#inner?.triggerEvent(kind, path),
-    );
+    const watcher = new NativeWatcherShim((kind, path) => {
+      if (this.#watcher === watcher) {
+        nativeWatcher.triggerEvent(kind, path);
+      }
+    });
     this.#watcher = watcher;
     let lastDrainedGeneration: number | undefined;
 
@@ -181,6 +183,12 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
       this.formatWatchDependencies(missing),
       BigInt(startTime),
       (err: Error | null, result) => {
+        if (this.#watcher !== watcher) {
+          if (!err) {
+            nativeWatcher.acknowledgePendingEvents(result.generation);
+          }
+          return;
+        }
         if (err) {
           callback(err, new Map(), new Map(), new Set(), new Set());
           return;
@@ -232,9 +240,10 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
 
     return {
       close: () => {
-        if (this.#watcher === watcher) {
-          this.#watcher = undefined;
+        if (this.#watcher !== watcher) {
+          return;
         }
+        this.#watcher = undefined;
         if (this.#inner === nativeWatcher) {
           this.#inner = undefined;
           this.#isFirstWatch = true;
@@ -245,10 +254,20 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
       },
 
       pause: () => {
-        nativeWatcher.pause();
+        if (this.#watcher === watcher) {
+          nativeWatcher.pause();
+        }
       },
 
       getInfo: () => {
+        if (this.#watcher !== watcher) {
+          return {
+            changes: new Set(),
+            removals: new Set(),
+            fileTimeInfoEntries: new Map(),
+            contextTimeInfoEntries: new Map(),
+          };
+        }
         const { changedFiles, removedFiles, generation } =
           nativeWatcher.takePendingEvents();
         lastDrainedGeneration = generation;

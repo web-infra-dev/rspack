@@ -3,6 +3,9 @@ const { rspack } = require("@rspack/core");
 class FakeNativeWatcher {
 	acknowledgements = [];
 	pauses = 0;
+	closes = 0;
+	drains = 0;
+	triggered = [];
 	pendingDrain = {
 		changedFiles: [],
 		removedFiles: [],
@@ -15,6 +18,7 @@ class FakeNativeWatcher {
 	}
 
 	takePendingEvents() {
+		this.drains++;
 		return this.pendingDrain;
 	}
 
@@ -26,7 +30,12 @@ class FakeNativeWatcher {
 		this.pauses++;
 	}
 
+	triggerEvent(kind, path) {
+		this.triggered.push([kind, path]);
+	}
+
 	close() {
+		this.closes++;
 		return Promise.resolve();
 	}
 }
@@ -153,5 +162,119 @@ describe("NativeWatchFileSystem aggregate generations", () => {
 		currentWatcher.close();
 		nativeWatcher.onRaw({ kind: "change", path: "/after-close" });
 		expect(fresh).toEqual(["/fresh"]);
+	});
+
+	it("forwards concrete child events to long-lived watch-file-system listeners", () => {
+		const events = [];
+		const { nativeWatcher, watchFileSystem } = createWatcherHarness();
+		watchFileSystem.on("change", (file, mtime) =>
+			events.push(["change", file, mtime])
+		);
+		watchFileSystem.on("remove", file => events.push(["remove", file]));
+		const staleRaw = nativeWatcher.onRaw;
+
+		const currentWatcher = watchFileSystem.watch(
+			dependencies(),
+			dependencies(),
+			dependencies(),
+			Date.now(),
+			{},
+			() => {},
+			() => {}
+		);
+
+		staleRaw({ kind: "change", path: "/src/stale.js" });
+		staleRaw({ kind: "remove", path: "/src/stale.js" });
+		nativeWatcher.onRaw({ kind: "change", path: "/src/created.js" });
+		nativeWatcher.onRaw({ kind: "remove", path: "/src/created.js" });
+		expect(events).toEqual([
+			["change", "/src/created.js", expect.any(Number)],
+			["remove", "/src/created.js"]
+		]);
+
+		currentWatcher.close();
+		nativeWatcher.onRaw({ kind: "change", path: "/src/after-close.js" });
+		nativeWatcher.onRaw({ kind: "remove", path: "/src/after-close.js" });
+		expect(events).toHaveLength(2);
+	});
+
+	it("prevents stale watcher handles and callbacks from affecting the live generation", () => {
+		const events = [];
+		const {
+			nativeWatcher,
+			purged,
+			callbackChanges,
+			watcher: staleWatcher,
+			watchFileSystem
+		} = createWatcherHarness();
+		watchFileSystem.on("aggregated", (changes, removals) =>
+			events.push([changes, removals])
+		);
+		const staleAggregate = nativeWatcher.onAggregate;
+		const staleShim = watchFileSystem.watcher;
+
+		const currentChanges = [];
+		const currentWatcher = watchFileSystem.watch(
+			dependencies(),
+			dependencies(),
+			dependencies(),
+			Date.now(),
+			{},
+			(_error, _fileTimes, _contextTimes, changes) =>
+				currentChanges.push(changes),
+			() => {}
+		);
+
+		nativeWatcher.pendingDrain = {
+			changedFiles: ["/src/live.js"],
+			removedFiles: [],
+			generation: 2
+		};
+		staleWatcher.pause();
+		expect(staleWatcher.getInfo()).toEqual({
+			changes: new Set(),
+			removals: new Set(),
+			fileTimeInfoEntries: new Map(),
+			contextTimeInfoEntries: new Map()
+		});
+		staleWatcher.close();
+		staleShim._onChange("/src/stale.js");
+		staleShim._onRemove("/src/stale.js");
+		staleAggregate(null, {
+			changedFiles: ["/src/stale.js"],
+			removedFiles: [],
+			generation: 1
+		});
+
+		expect(nativeWatcher.pauses).toBe(0);
+		expect(nativeWatcher.drains).toBe(0);
+		expect(nativeWatcher.closes).toBe(0);
+		expect(nativeWatcher.triggered).toEqual([]);
+		expect(nativeWatcher.acknowledgements).toEqual([1]);
+		expect(purged).toEqual([]);
+		expect(callbackChanges).toEqual([]);
+		expect(currentChanges).toEqual([]);
+		expect(events).toEqual([]);
+
+		nativeWatcher.onAggregate(null, {
+			changedFiles: ["/src/live.js"],
+			removedFiles: [],
+			generation: 2
+		});
+		expect(nativeWatcher.pauses).toBe(1);
+		expect(nativeWatcher.acknowledgements).toEqual([1, 2]);
+		expect(purged).toEqual(["/src/live.js"]);
+		expect(callbackChanges).toEqual([]);
+		expect(currentChanges).toEqual([new Set(["/src/live.js"])]);
+		expect(events).toEqual([[new Set(["/src/live.js"]), new Set()]]);
+		watchFileSystem.watcher._onChange("/src/live.js");
+		watchFileSystem.watcher._onRemove("/src/live.js");
+		expect(nativeWatcher.triggered).toEqual([
+			["change", "/src/live.js"],
+			["remove", "/src/live.js"]
+		]);
+
+		currentWatcher.close();
+		expect(nativeWatcher.closes).toBe(1);
 	});
 });
