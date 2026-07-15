@@ -161,14 +161,20 @@ impl RuntimeModule for CssLoadingRuntimeModule {
         CSS_LOADING_BASIC_RUNTIME_REQUIREMENTS.dependencies
           | CSS_LOADING_WITH_LOADING_RUNTIME_REQUIREMENTS.dependencies,
       );
-      weak.insert(CSS_LOADING_CREATE_LINK_RUNTIME_REQUIREMENTS.weak);
+      weak.insert(
+        CSS_LOADING_BASIC_RUNTIME_REQUIREMENTS.weak
+          | CSS_LOADING_CREATE_LINK_RUNTIME_REQUIREMENTS.weak,
+      );
     }
     if runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS) {
       dependencies.insert(
         CSS_LOADING_BASIC_RUNTIME_REQUIREMENTS.dependencies
           | CSS_LOADING_WITH_HMR_RUNTIME_REQUIREMENTS.dependencies,
       );
-      weak.insert(CSS_LOADING_CREATE_LINK_RUNTIME_REQUIREMENTS.weak);
+      weak.insert(
+        CSS_LOADING_BASIC_RUNTIME_REQUIREMENTS.weak
+          | CSS_LOADING_CREATE_LINK_RUNTIME_REQUIREMENTS.weak,
+      );
     }
     if runtime_requirements.contains(RuntimeGlobals::PREFETCH_CHUNK_HANDLERS) {
       let requirements = *CSS_LOADING_WITH_PREFETCH_RUNTIME_REQUIREMENTS;
