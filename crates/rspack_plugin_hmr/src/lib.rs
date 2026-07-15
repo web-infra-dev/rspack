@@ -410,13 +410,15 @@ To fix this, make sure to include [runtime] in the output.hotUpdateMainFilename 
       m.into_iter().collect()
     };
 
-    let manifest_content = serde_json::json!({
+    let mut manifest = serde_json::json!({
       "c": c,
       "r": r,
       "m": m,
-      "css": content.css_filenames,
-    })
-    .to_string();
+    });
+    if !content.css_filenames.is_empty() {
+      manifest["css"] = serde_json::json!(content.css_filenames);
+    }
+    let manifest_content = manifest.to_string();
 
     compilation.emit_asset(
       filename,
