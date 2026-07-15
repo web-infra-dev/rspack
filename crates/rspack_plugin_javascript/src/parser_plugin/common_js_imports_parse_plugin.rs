@@ -642,14 +642,19 @@ fn should_replace_create_require_argument(parser: &mut JavascriptParser, arg: &E
 }
 
 #[inline(never)]
-fn should_clear_create_require_call(parser: &mut JavascriptParser, args: &[ExprOrSpread]) -> bool {
+fn can_defer_create_require_call(parser: &mut JavascriptParser, args: &[ExprOrSpread]) -> bool {
   args.len() == 1
-    && !matches!(parser.javascript_options.require_resolve, Some(false))
     && args[0].spread.is_none()
     && args[0]
       .expr
       .as_member()
       .is_some_and(|member| is_meta_url(parser, member))
+}
+
+#[inline(never)]
+fn should_clear_create_require_call(parser: &mut JavascriptParser, args: &[ExprOrSpread]) -> bool {
+  !matches!(parser.javascript_options.require_resolve, Some(false))
+    && can_defer_create_require_call(parser, args)
 }
 
 #[inline(never)]
@@ -1083,7 +1088,7 @@ fn pre_tag_created_require_declarator(
     return;
   };
   if !is_create_require_specifier(parser, &Atom::from(callee_ident.sym.as_str()))
-    || !should_clear_create_require_call(parser, &call.args)
+    || !can_defer_create_require_call(parser, &call.args)
   {
     return;
   }
@@ -1997,9 +2002,11 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
       && let Some(argument) = parse_create_require_argument(parser, call, false)
     {
       let clear_call = should_clear_create_require_call(parser, &call.args);
-      let deferred_callee = (declaration.kind() == VariableDeclarationKind::Const && clear_call)
-        .then(|| deferred_create_require_callee(parser, callee, call.span))
-        .flatten();
+      let deferred_callee = (declaration.kind() == VariableDeclarationKind::Const
+        && can_defer_create_require_call(parser, &call.args))
+      .then(|| deferred_create_require_callee(parser, callee, call.span))
+      .flatten();
+      let walk_callee = !clear_call && deferred_callee.is_none();
       tag_created_require_declarator(
         parser,
         &binding.id,
@@ -2009,7 +2016,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
         deferred_callee,
         argument,
       );
-      if !clear_call {
+      if walk_callee {
         walk_create_require_callee(parser, call);
       }
       return Some(true);
