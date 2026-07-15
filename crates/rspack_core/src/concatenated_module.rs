@@ -1800,8 +1800,7 @@ impl Module for ConcatenatedModule {
       namespace_object_sources.insert(
         module_info_id,
         format!(
-          "// NAMESPACE OBJECT: {}\nvar {} = {{}};\n{}\n",
-          module_readable_identifier, name, namespace_init
+          "// NAMESPACE OBJECT: {module_readable_identifier}\nvar {name} = {{}};\n{namespace_init}\n"
         ),
       );
     }
