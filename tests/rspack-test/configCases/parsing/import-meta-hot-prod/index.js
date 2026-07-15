@@ -1,6 +1,7 @@
 it('should transform import.meta.webpackHot to false', () => {
 	expect(import.meta.webpackHot).toBeUndefined();
 	expect(import.meta["webpackHot"]).toBeUndefined();
+	expect(import.meta[`webpackHot`]).toBeUndefined();
 	expect(typeof import.meta.webpackHot).toBe("undefined");
 
 	let hot = false;

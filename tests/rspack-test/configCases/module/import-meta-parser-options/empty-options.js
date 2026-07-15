@@ -21,6 +21,7 @@ export default {
 	sourceUrl,
 	unknown: UNKNOWN_PROPERTY,
 	computedUnknown: import.meta[getUnknownProperty()],
+	templateUnknown: import.meta[`UNKNOWN_PROPERTY`],
 	computedAccesses,
 	unknownOptional: import.meta.UNKNOWN_PROPERTY?.length,
 	missingOptional: import.meta.MISSING_PROPERTY?.length,

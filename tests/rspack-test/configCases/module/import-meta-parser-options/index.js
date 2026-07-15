@@ -14,6 +14,7 @@ it("should treat an empty importMeta object like preserve-unknown", () => {
 	expect(emptyOptions.webpack).toBe(5);
 	expect(emptyOptions.unknown).toBe("runtime");
 	expect(emptyOptions.computedUnknown).toBe("runtime");
+	expect(emptyOptions.templateUnknown).toBe("runtime");
 	expect(emptyOptions.computedAccesses).toBe(1);
 	expect(emptyOptions.unknownOptional).toBe("runtime".length);
 	expect(emptyOptions.missingOptional).toBeUndefined();

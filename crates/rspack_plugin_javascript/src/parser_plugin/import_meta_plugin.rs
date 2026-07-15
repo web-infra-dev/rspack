@@ -4,7 +4,7 @@ use itertools::Itertools;
 use rspack_core::{
   ArcComputed, ConstDependency, ContextDependency, ContextMode, ContextOptions, DependencyCategory,
   DependencyRange, ImportMeta, ImportMetaKnownProperties, ResolvedModuleOptions, RscMeta,
-  RscModuleType, RuntimeGlobals, RuntimeRequirementsDependency, property_access,
+  RscModuleType, RuntimeGlobals, RuntimeRequirementsDependency, property_access, to_normal_comment,
 };
 use rspack_error::{Error, Label, Severity};
 use rspack_util::{SpanExt, json_stringify_str};
@@ -35,7 +35,7 @@ use crate::{
   visitors::{
     AllowedMemberTypes, ExportedVariableInfo, ExprRef, JavascriptParser, MemberExpressionInfo,
     RootName, context_reg_exp, create_context_dependency, create_traceable_error, expr_name,
-    get_non_optional_member_chain_from_expr, member_literal_to_atom,
+    get_non_optional_member_chain_from_expr, member_property_to_atom,
   },
 };
 
@@ -360,12 +360,11 @@ impl ImportMetaPlugin {
     if self.preserve_property(members.first().map(|property| property.as_str())) {
       concat_string!("import.meta", property_access(members, 0))
     } else {
-      concat_string!(
-        "/* unsupported import.meta.",
-        members.join("."),
-        " */ undefined",
-        property_access(members, 1)
-      )
+      let comment = to_normal_comment(&concat_string!(
+        "unsupported import.meta.",
+        members.join(".")
+      ));
+      concat_string!(comment, " undefined", property_access(members, 1))
     }
   }
 
@@ -390,15 +389,31 @@ impl ImportMetaPlugin {
     let message = if members.is_empty() {
       "Dynamic `import.meta` property access may return undefined.".to_string()
     } else {
+      let property = members
+        .iter()
+        .map(|member| {
+          let mut escaped = String::with_capacity(member.len());
+          for ch in member.chars() {
+            if ch == '`' {
+              escaped.push_str("\\`");
+            } else {
+              escaped.extend(ch.escape_debug());
+            }
+          }
+          escaped
+        })
+        .join(".");
       concat_string!(
         "Unknown `import.meta` property `",
-        members.join("."),
+        property,
         "` replaced with undefined."
       )
     };
-    let range: DependencyRange = span.into();
+    let range = parser
+      .evaluated_source_range
+      .unwrap_or_else(|| DependencyRange::from(span));
     let mut error = Error::warning(message);
-    error.src = Some(parser.source.to_string());
+    error.src = Some(parser.source.to_string().into());
     error.labels = Some(vec![Label {
       name: None,
       offset: range.start as usize,
@@ -540,33 +555,16 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaPlugin {
       && meta_expr
         .get_root_name()
         .is_some_and(|name| name == expr_name::IMPORT_META)
-      && (match &member_expr.prop {
-        MemberProp::Ident(_) => true,
-        MemberProp::Computed(computed) => computed.expr.is_lit(),
-        _ => false,
+      && let Some(property) = (match &member_expr.prop {
+        MemberProp::Ident(ident) => Some(Atom::from(ident.sym.as_str())),
+        MemberProp::Computed(computed) => member_property_to_atom(&computed.expr),
+        _ => None,
       })
-      && member_expr
-        .prop
-        .as_ident()
-        .map(|ident| !self.preserve_property(Some(ident.sym.as_ref())))
-        .or_else(|| {
-          member_expr
-            .prop
-            .as_computed()
-            .and_then(|computed| computed.expr.as_lit())
-            .and_then(|lit| lit.as_str())
-            .and_then(|str_lit| str_lit.value.as_str())
-            .map(|value| !self.preserve_property(Some(value)))
-        })
-        .unwrap_or(false)
+      && !self.preserve_property(Some(property.as_ref()))
     {
       evaluated = Some("undefined".to_string());
       if Self::known_property_from_name(for_name).is_none() {
-        let members = for_name
-          .strip_prefix(expr_name::IMPORT_META_PREFIX)
-          .map(|property| vec![property.to_string()])
-          .unwrap_or_default();
-        self.warn_import_meta_unknown_property(parser, &members, member_expr.span());
+        self.warn_import_meta_unknown_property(parser, &[property.to_string()], member_expr.span());
       }
     }
     evaluated.map(|e| eval::evaluate_to_string(e, expr.span.real_lo(), expr.span.real_hi()))
@@ -613,28 +611,21 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaPlugin {
         return Some(eval::evaluate_to_undefined(span.real_lo(), span.real_hi()));
       }
       if let Some(computed) = member.prop.as_computed()
-        && computed.expr.is_lit()
+        && let Some(property) = member_property_to_atom(&computed.expr)
       {
-        // Check for computed properties like import.meta["dirname"]
-        let property = computed.expr.as_lit().map(member_literal_to_atom);
-        if property.as_ref().is_some_and(|value| {
-          ImportMetaBuiltinProperty::from_property(value.as_ref())
-            .is_some_and(|property| property.skip_undefined_evaluation(self, parser))
-            || import_meta_runtime_api_from_property(value.as_ref())
-              .is_some_and(|api| self.runtime_api_enabled(api))
-            || self.preserve_property(Some(value.as_ref()))
-        }) {
+        // Check for computed properties like import.meta["dirname"] and import.meta[`dirname`]
+        if ImportMetaBuiltinProperty::from_property(property.as_ref())
+          .is_some_and(|property| property.skip_undefined_evaluation(self, parser))
+          || import_meta_runtime_api_from_property(property.as_ref())
+            .is_some_and(|api| self.runtime_api_enabled(api))
+          || self.preserve_property(Some(property.as_ref()))
+        {
           return None;
         }
         let span = member.span();
-        if property.as_ref().is_none_or(|property| {
-          let name = concat_string!(expr_name::IMPORT_META, ".", property.as_ref());
-          Self::known_property_from_name(&name).is_none()
-        }) {
-          let members = property
-            .map(|property| vec![property.to_string()])
-            .unwrap_or_default();
-          self.warn_import_meta_unknown_property(parser, &members, span);
+        let name = concat_string!(expr_name::IMPORT_META, ".", property.as_ref());
+        if Self::known_property_from_name(&name).is_none() {
+          self.warn_import_meta_unknown_property(parser, &[property.to_string()], span);
         }
         return Some(eval::evaluate_to_undefined(span.real_lo(), span.real_hi()));
       }

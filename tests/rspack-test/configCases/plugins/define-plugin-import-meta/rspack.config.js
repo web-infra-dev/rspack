@@ -5,6 +5,7 @@ module.exports = {
   plugins: [
     new DefinePlugin({
       'import.meta.env.MODE': '"production"',
+      FOO: 'import.meta.unknownProperty',
     }),
   ],
 };
