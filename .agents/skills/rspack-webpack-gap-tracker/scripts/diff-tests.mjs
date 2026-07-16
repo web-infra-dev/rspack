@@ -213,7 +213,7 @@ async function directoriesAtDepth(root, depth) {
 function compileFilters(rawFilters) {
   return rawFilters.map((filter) => {
     try {
-      return new RegExp(filter.replaceAll('\\', '/'), 'i');
+      return new RegExp(filter, 'i');
     } catch (error) {
       throw new Error(
         'Invalid filter ' + JSON.stringify(filter) + ': ' + error.message,
