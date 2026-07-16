@@ -109,7 +109,7 @@ const lazyFilteredNamedModules = import.meta.glob(['./dir/*.js', '!**/bar.js'], 
 const caseSensitiveModules = import.meta.glob('./case-test/*.JS', { eager: true })
 const caseInsensitiveModules = import.meta.glob('./case-test/*.JS', {
   eager: true,
-  caseSensitive: !true,
+  caseSensitive: false,
 })
 const numberCaseSensitiveModules = import.meta.glob('./case-test/*.JS', {
   eager: true,
