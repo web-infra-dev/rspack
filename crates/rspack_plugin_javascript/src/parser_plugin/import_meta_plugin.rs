@@ -1,4 +1,5 @@
 use concat_string::concat_string;
+use cow_utils::CowUtils;
 use itertools::Itertools;
 use rspack_core::{
   ArcComputed, ConstDependency, ContextDependency, ContextMode, ContextOptions, DependencyCategory,
@@ -41,7 +42,7 @@ use crate::{
 
 fn single_quoted_string(value: &str) -> String {
   let json = json_stringify_str(value);
-  let escaped = json[1..json.len() - 1].replace('\'', "\\'");
+  let escaped = json[1..json.len() - 1].cow_replace('\'', "\\'");
   concat_string!("'", escaped, "'")
 }
 
