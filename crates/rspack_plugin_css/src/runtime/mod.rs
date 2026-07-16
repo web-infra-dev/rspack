@@ -9,7 +9,7 @@ use rspack_core::{
 use rspack_plugin_runtime::{
   CreateLinkData, LinkPrefetchData, LinkPreloadData, RuntimePlugin, chunk_has_css,
   extract_runtime_globals_from_ejs, get_chunk_runtime_requirements,
-  render_hmr_runtime_state_expression, stringify_chunks,
+  render_chunk_loading_hmr_state_expression, stringify_chunks,
 };
 use rspack_util::json_stringify;
 
@@ -422,7 +422,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
             Some(serde_json::json!({
               "_is_neutral_platform": is_neutral_platform,
               "_initial_chunk_ids": stringify_chunks(&all_initial_chunk_ids, 1),
-              "_js_state_expression": render_hmr_runtime_state_expression(runtime_template, "jsonp"),
+              "_js_state_expression": render_chunk_loading_hmr_state_expression(runtime_template, &chunk_ukey, compilation),
             })),
           )?;
           source.push_str(&source_with_hmr);
