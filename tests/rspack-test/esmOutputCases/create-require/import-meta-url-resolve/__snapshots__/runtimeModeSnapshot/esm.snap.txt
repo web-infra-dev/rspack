@@ -68,7 +68,15 @@ function load() {
 
 const pre_declared_require_call_req = /* createRequire() */ undefined;
 
+// ./quote'require.js
+
+
+const quotedRequire = (0,external_node_module_namespaceObject.createRequire)('<ROOT>/tests/rspack-test/esmOutputCases/create-require/import-meta-url-resolve/quote\'require.js');
+
+const quotedUnknown = quotedRequire.unknown;
+
 // ./index.js
+
 
 
 
@@ -110,6 +118,7 @@ it("should consume createRequire(import.meta.url) like webpack", async () => {
 	expect(getRequire().resolve("path")).toBe("path");
 	expect(getNestedRequire().resolve("path")).toBe("path");
 	expect(load()).toBe("loader");
+	expect(quotedUnknown).toBe(undefined);
 });
 
 export { index_value as value, loader, requireAsValueType, unknownMember };

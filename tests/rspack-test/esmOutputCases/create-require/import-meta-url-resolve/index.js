@@ -7,6 +7,7 @@ import {
 	getRequire
 } from "./pre-declared-require.js";
 import { load } from "./pre-declared-require-call.js";
+import { quotedUnknown } from "./quote'require.js";
 
 const req = createRequire(import.meta.url);
 const requireWithUnknownMember = createRequire(import.meta.url);
@@ -42,4 +43,5 @@ it("should consume createRequire(import.meta.url) like webpack", async () => {
 	expect(getRequire().resolve("path")).toBe("path");
 	expect(getNestedRequire().resolve("path")).toBe("path");
 	expect(load()).toBe("loader");
+	expect(quotedUnknown).toBe(undefined);
 });

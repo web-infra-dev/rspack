@@ -6,7 +6,7 @@ use rspack_core::{
   RscModuleType, RuntimeGlobals, RuntimeRequirementsDependency, property_access,
 };
 use rspack_error::{Error, Severity};
-use rspack_util::SpanExt;
+use rspack_util::{SpanExt, json_stringify_str};
 use swc_atoms::Atom;
 use swc_experimental_ecma_ast::{
   AssignExpr, CallExpr, Expr, GetSpan, MemberExpr, MemberProp, MetaPropKind, OptChainBase,
@@ -38,6 +38,12 @@ use crate::{
     get_non_optional_member_chain_from_expr,
   },
 };
+
+fn single_quoted_string(value: &str) -> String {
+  let json = json_stringify_str(value);
+  let escaped = json[1..json.len() - 1].replace('\'', "\\'");
+  concat_string!("'", escaped, "'")
+}
 
 fn create_import_meta_resolve_context_dependency(
   parser: &mut JavascriptParser,
@@ -252,7 +258,7 @@ impl ImportMetaBuiltinProperty {
     }
 
     let replacement = match self.property {
-      ImportMetaKnownProperties::URL => concat_string!("'", plugin.import_meta_url(parser), "'"),
+      ImportMetaKnownProperties::URL => single_quoted_string(&plugin.import_meta_url(parser)),
       ImportMetaKnownProperties::WEBPACK => plugin.import_meta_version(),
       ImportMetaKnownProperties::MAIN => plugin.import_meta_main(parser),
       ImportMetaKnownProperties::FILENAME | ImportMetaKnownProperties::DIRNAME => {
