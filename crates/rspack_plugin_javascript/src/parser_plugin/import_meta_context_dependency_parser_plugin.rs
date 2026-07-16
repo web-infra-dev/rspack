@@ -330,7 +330,8 @@ fn create_import_meta_glob_dependency(
   }
   let raw_glob_patterns = static_glob_patterns_from_expr(&dyn_imported.expr)?;
   let importer_context = get_context(parser.resource_data);
-  let options = match node.args.get(1).and_then(|arg| arg.expr.as_object()) {
+  let glob_options = node.args.get(1).and_then(|arg| arg.expr.as_object());
+  let options = match glob_options {
     Some(raw_options) => {
       let (options, diagnostics) =
         ImportMetaGlobOptions::from_ast_object_with_diagnostics(raw_options);
@@ -346,6 +347,10 @@ fn create_import_meta_glob_dependency(
     .as_ref()
     .map_or_else(String::new, ImportMetaGlobQuery::to_query_string);
   let base = options.base.as_deref();
+  let glob_case_sensitive = glob_options
+    .and_then(|object| get_from_object(object, &["caseSensitive"]))
+    .and_then(|value| parser.evaluate_expression(value).as_bool())
+    .unwrap_or(true);
   let context = resolve_import_meta_glob_context(
     importer_context.as_str(),
     parser.compiler_options.context.as_str(),
@@ -388,6 +393,7 @@ fn create_import_meta_glob_dependency(
     start: span.real_lo(),
     end: span.real_hi(),
     referenced_specifiers,
+    glob_case_sensitive,
     ..ContextOptions::from(&options)
   };
   Some(ImportMetaContextDependency::new_glob(

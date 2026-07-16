@@ -162,6 +162,7 @@ pub(super) struct ContextModuleGlobMatcher<'a> {
   context: &'a str,
   compiler_context: &'a str,
   exhaustive: bool,
+  case_sensitive: bool,
 }
 
 impl<'a> ContextModuleGlobMatcher<'a> {
@@ -178,6 +179,7 @@ impl<'a> ContextModuleGlobMatcher<'a> {
       context: &context_options.context,
       compiler_context: &context_options.compiler_context,
       exhaustive: context_options.glob_exhaustive,
+      case_sensitive: context_options.glob_case_sensitive,
     })
   }
 
@@ -200,7 +202,8 @@ impl<'a> ContextModuleGlobMatcher<'a> {
           },
           pattern.root_relative,
         );
-        glob_pattern_matches(pattern, &request, self.exhaustive).then_some(request)
+        glob_pattern_matches(pattern, &request, self.exhaustive, self.case_sensitive)
+          .then_some(request)
       })?;
 
     if self
@@ -217,7 +220,7 @@ impl<'a> ContextModuleGlobMatcher<'a> {
           },
           pattern.root_relative,
         );
-        glob_pattern_matches(pattern, &request, self.exhaustive)
+        glob_pattern_matches(pattern, &request, self.exhaustive, self.case_sensitive)
       })
     {
       return None;
@@ -241,14 +244,15 @@ fn glob_pattern_matches(
   pattern: &ContextModuleGlobPattern,
   normalized_path: &str,
   exhaustive: bool,
+  case_sensitive: bool,
 ) -> bool {
   glob_match_normalized_with_explicit_dot(
     &pattern.pattern,
     normalized_path,
     &pattern.pattern_base,
     &GlobMatchOptions {
+      case_sensitive,
       require_literal_leading_dot: !exhaustive,
-      ..Default::default()
     },
   )
 }
