@@ -4,12 +4,13 @@ use rspack_core::{
   ReferencedSpecifier, escape_glob_pattern, extract_glob_base_dir, get_context,
   normalize_path_separators, normalize_path_separators_for_path, unescape_glob_path,
 };
+use rspack_error::{Error, Severity};
 use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rspack_regex::RspackRegex;
 use rspack_util::{SpanExt, identifier::relative_path_to_request, node_path::NodePath};
 use sugar_path::SugarPath;
 use swc_atoms::Atom;
-use swc_experimental_ecma_ast::{CallExpr, Expr, GetSpan, Lit, PropName};
+use swc_experimental_ecma_ast::{CallExpr, Expr, GetSpan, Lit, ObjectLit, PropName};
 
 use super::JavascriptParserPlugin;
 use crate::{
@@ -22,10 +23,35 @@ use crate::{
     },
   },
   visitors::{
-    JavascriptParser, clean_regexp_in_context_module, default_context_reg_exp, expr_name,
-    static_string_from_expr,
+    JavascriptParser, clean_regexp_in_context_module, create_traceable_error,
+    default_context_reg_exp, expr_name, static_string_from_expr,
   },
 };
+
+fn parse_import_meta_glob_case_sensitive(
+  glob_options: Option<&ObjectLit>,
+  parser: &mut JavascriptParser,
+) -> bool {
+  let Some(value) = glob_options.and_then(|obj| get_value_by_obj_prop(obj, "caseSensitive")) else {
+    return true;
+  };
+
+  let evaluated = parser.evaluate_expression(value);
+  if evaluated.is_bool() {
+    return evaluated.bool();
+  }
+
+  let mut error: Error = create_traceable_error(
+    "Invalid import.meta.glob option".into(),
+    "import.meta.glob() 'caseSensitive' option must be a constant boolean (true or false), defaulting to true".into(),
+    parser.source.to_string(),
+    value.span().into(),
+  );
+  error.severity = Severity::Warning;
+  error.hide_stack = Some(true);
+  parser.add_warning(error.into());
+  true
+}
 
 fn static_glob_patterns_from_expr(expr: &Expr) -> Option<Vec<String>> {
   if let Some(pattern) = static_string_from_expr(expr) {
@@ -367,13 +393,7 @@ fn create_import_meta_glob_dependency(
     .and_then(static_string_from_expr);
   let glob_exhaustive = glob_options
     .is_some_and(|obj| get_bool_by_obj_prop(obj, "exhaustive").is_some_and(|b| b.value));
-  let glob_case_sensitive = glob_options
-    .and_then(|obj| get_value_by_obj_prop(obj, "caseSensitive"))
-    .and_then(|value| {
-      let evaluated = parser.evaluate_expression(value);
-      evaluated.is_bool().then(|| evaluated.bool())
-    })
-    .unwrap_or(true);
+  let glob_case_sensitive = parse_import_meta_glob_case_sensitive(glob_options, parser);
   let context = resolve_import_meta_glob_context(
     importer_context.as_str(),
     parser.compiler_options.context.as_str(),
