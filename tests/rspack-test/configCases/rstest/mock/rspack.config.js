@@ -37,6 +37,13 @@ Object.keys(originalRequire).forEach(key => {
 });
 
 __webpack_require__.rstest_original_modules = {};
+__webpack_require__.rstest_original_module_factories = {};
+
+const captureOriginalFactory = (id) => {
+  if (!Object.hasOwn(__webpack_require__.rstest_original_module_factories, id)) {
+    __webpack_require__.rstest_original_module_factories[id] = __webpack_modules__[id];
+  }
+};
 
 __webpack_require__.rstest_reset_modules = () => {
   const mockedIds = Object.keys(__webpack_require__.rstest_original_modules)
@@ -49,14 +56,26 @@ __webpack_require__.rstest_reset_modules = () => {
 }
 
 __webpack_require__.rstest_unmock = (id) => {
+  const originalFactory = __webpack_require__.rstest_original_module_factories[id];
+  if (originalFactory) {
+    __webpack_modules__[id] = originalFactory;
+  }
   delete __webpack_module_cache__[id]
 }
 
 __webpack_require__.rstest_require_actual = __webpack_require__.rstest_import_actual = (id) => {
-  const originalModule = __webpack_require__.rstest_original_modules[id];
+  if (Object.hasOwn(__webpack_require__.rstest_original_modules, id)) {
+    return __webpack_require__.rstest_original_modules[id];
+  }
+  const originalFactory = __webpack_require__.rstest_original_module_factories[id];
+  if (originalFactory) {
+    const moduleInstance = { exports: {} };
+    originalFactory(moduleInstance, moduleInstance.exports, __webpack_require__);
+    __webpack_require__.rstest_original_modules[id] = moduleInstance.exports;
+    return moduleInstance.exports;
+  }
   // Use fallback module if the module is not mocked.
-  const fallbackMod = __webpack_require__(id);
-  return originalModule ? originalModule : fallbackMod;
+  return __webpack_require__(id);
 }
 
 __webpack_require__.rstest_exec = async (id, modFactory) => {
@@ -69,14 +88,13 @@ __webpack_require__.rstest_exec = async (id, modFactory) => {
 };
 
 __webpack_require__.rstest_mock = (id, modFactory) => {
-  let requiredModule = undefined
-  try {
-    requiredModule = __webpack_require__(id);
-  } catch {
-    // TODO: non-resolved module
-  } finally {
-    __webpack_require__.rstest_original_modules[id] = requiredModule;
+  // Registering a mock must not eagerly evaluate the real module (and its
+  // transitive deps) — only capture what is already evaluated, plus the
+  // original factory so rstest_import_actual can run it lazily.
+  if (__webpack_module_cache__[id]) {
+    __webpack_require__.rstest_original_modules[id] = __webpack_module_cache__[id].exports;
   }
+  captureOriginalFactory(id);
   if (modFactory && modFactory.mock === true) {
     return;
   } else if (typeof modFactory === 'string' || typeof modFactory === 'number') {
@@ -205,6 +223,8 @@ module.exports = [
   rstestEntry('./directoryManualMock.js'),
   rstestEntry('./importActual.js'),
   rstestEntry('./importActualHoisted.js'),
+  rstestEntry('./importActualTransitive.js'),
+  rstestEntry('./importActualSpreadTransitive.js'),
   rstestEntry('./requireActual.js'),
   rstestEntry('./doMockRequire.js'),
   rstestEntry('./unmockRequire.js'),
