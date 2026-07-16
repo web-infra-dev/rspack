@@ -8,4 +8,5 @@ module.exports = [
 	[/Missing trailing whitespace/, /:local\.class/],
 	[/Missing trailing whitespace/, /:local\/\*\* test \*\*\/\.class/],
 	[/Missing trailing whitespace/, /:local\/\*\* test \*\*\/#hash/],
+	[/Missing trailing whitespace/, /:local\/\*\* test \*\*\/\{/],
 ];

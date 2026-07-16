@@ -3,7 +3,7 @@
 		color: red;
 	}
 
-.class {
+/** test **/.class {
 		color: red;
 	}
 
@@ -11,15 +11,15 @@
 		color: red;
 	}
 
-.style_module_css-class {
+/** test **/.style_module_css-class {
 		color: red;
 	}
 
-#style_module_css-hash {
+/** test **/#style_module_css-hash {
 		color: red;
 	}
 
-{
+/** test **/{
 		color: red;
 	}
 }
