@@ -398,7 +398,10 @@ fn create_import_meta_glob_dependency(
   let base = options.base.as_deref();
   let glob_case_sensitive = glob_options
     .and_then(|object| get_from_object(object, &["caseSensitive"]))
-    .and_then(|value| parser.evaluate_expression(value).as_bool())
+    .and_then(|value| {
+      let evaluated = parser.evaluate_expression(value);
+      evaluated.is_bool().then(|| evaluated.bool())
+    })
     .unwrap_or(true);
   let resolve_context = resolve_import_meta_glob_context(
     importer_context.as_str(),
