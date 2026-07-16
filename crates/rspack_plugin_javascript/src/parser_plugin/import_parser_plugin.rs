@@ -501,6 +501,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
           referenced_specifiers: None,
           glob_import: None,
           glob_exhaustive: false,
+          glob_case_sensitive: true,
           attributes,
           phase: Some(phase),
           ..create_context_options(parser)
