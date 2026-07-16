@@ -68,7 +68,7 @@ impl Dependency for CssSelfReferenceLocalIdentDependency {
     self
       .names
       .iter()
-      .map(|n| ReferencedExport::from_path([Atom::from(n.as_str())]))
+      .map(|n| ReferencedExport::from(Atom::from(n.as_str())))
       .collect()
   }
 }

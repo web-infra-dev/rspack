@@ -78,12 +78,10 @@ impl Dependency for CommonJsSelfReferenceDependency {
       if self.names.is_empty() {
         vec![ReferencedExport::default()]
       } else {
-        vec![ReferencedExport::from_path(
-          self.names[0..self.names.len() - 1].iter().cloned(),
-        )]
+        vec![ReferencedExport::from(&self.names[0..self.names.len() - 1])]
       }
     } else {
-      vec![ReferencedExport::from_path(self.names.iter().cloned())]
+      vec![ReferencedExport::from(self.names.as_slice())]
     }
   }
 

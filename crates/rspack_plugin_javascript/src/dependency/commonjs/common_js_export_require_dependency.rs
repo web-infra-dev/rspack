@@ -309,12 +309,12 @@ impl Dependency for CommonJsExportRequireDependency {
       if ids.is_empty() {
         create_exports_object_referenced()
       } else {
-        vec![ReferencedExport::new(
-          ids.iter().cloned(),
-          // `module.exports = require("./m")` can't be mangled
-          !self.is_all_exported_by_module_exports(),
-          false,
-        )]
+        vec![
+          ReferencedExport::from(ids)
+            // `module.exports = require("./m")` can't be mangled
+            .with_can_mangle(!self.is_all_exported_by_module_exports())
+            .with_can_inline(false),
+        ]
       }
     };
     if self.result_used {
@@ -372,12 +372,10 @@ impl Dependency for CommonJsExportRequireDependency {
     referenced_exports
       .into_iter()
       .map(|name| {
-        ReferencedExport::new(
-          name.into_iter().cloned(),
+        ReferencedExport::from(name)
           // `module.exports = require("./m")` can't be mangled
-          !self.is_all_exported_by_module_exports(),
-          false,
-        )
+          .with_can_mangle(!self.is_all_exported_by_module_exports())
+          .with_can_inline(false)
       })
       .collect_vec()
   }

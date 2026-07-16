@@ -350,7 +350,11 @@ pub fn create_referenced_exports_by_referenced_specifiers(
       // remove last one
       names = &names[..names.len().saturating_sub(1)];
     }
-    refs.push(ReferencedExport::new(names.iter().cloned(), false, false));
+    refs.push(
+      ReferencedExport::from(names)
+        .with_can_mangle(false)
+        .with_can_inline(false),
+    );
   }
   refs
 }

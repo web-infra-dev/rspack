@@ -82,11 +82,7 @@ impl Dependency for CssComposeDependency {
     _exports_info_artifact: &ExportsInfoArtifact,
     _runtime: Option<&RuntimeSpec>,
   ) -> Vec<ReferencedExport> {
-    self
-      .names
-      .iter()
-      .map(|n| ReferencedExport::from_path([n.clone()]))
-      .collect()
+    self.names.iter().map(ReferencedExport::from).collect()
   }
 }
 

@@ -57,7 +57,7 @@ impl Dependency for WasmImportDependency {
     _exports_info_artifact: &ExportsInfoArtifact,
     _runtime: Option<&RuntimeSpec>,
   ) -> Vec<ReferencedExport> {
-    vec![ReferencedExport::from_path([self.name.clone()])]
+    vec![ReferencedExport::from(&self.name)]
   }
 
   fn could_affect_referencing_module(&self) -> rspack_core::AffectType {

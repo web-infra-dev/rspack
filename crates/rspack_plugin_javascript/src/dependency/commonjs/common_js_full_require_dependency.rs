@@ -111,13 +111,11 @@ impl Dependency for CommonJsFullRequireDependency {
       if self.names.is_empty() {
         return create_exports_object_referenced();
       }
-      return vec![ReferencedExport::from_path(
-        self.names[0..self.names.len().saturating_sub(1)]
-          .iter()
-          .cloned(),
+      return vec![ReferencedExport::from(
+        &self.names[..self.names.len().saturating_sub(1)],
       )];
     }
-    vec![ReferencedExport::from_path(self.names.iter().cloned())]
+    vec![ReferencedExport::from(self.names.as_slice())]
   }
 
   fn could_affect_referencing_module(&self) -> rspack_core::AffectType {

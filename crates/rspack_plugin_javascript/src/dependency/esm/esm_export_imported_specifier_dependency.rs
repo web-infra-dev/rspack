@@ -1506,7 +1506,7 @@ impl Dependency for ESMExportImportedSpecifierDependency {
         );
         referenced_exports
           .into_iter()
-          .map(|i| ReferencedExport::from_path(i.into_iter().cloned()))
+          .map(ReferencedExport::from)
           .collect::<Vec<_>>()
       }
       ExportMode::NormalReexport(mode) => {
@@ -1527,7 +1527,7 @@ impl Dependency for ESMExportImportedSpecifierDependency {
         }
         referenced_exports
           .into_iter()
-          .map(|i| ReferencedExport::from_path(i.into_iter().cloned()))
+          .map(ReferencedExport::from)
           .collect::<Vec<_>>()
       }
     }

@@ -85,8 +85,11 @@ impl Dependency for ClientReferenceDependency {
     self
       .referenced_exports
       .iter()
-      .cloned()
-      .map(|export_name| ReferencedExport::new([export_name], false, false))
+      .map(|export_name| {
+        ReferencedExport::from(export_name)
+          .with_can_mangle(false)
+          .with_can_inline(false)
+      })
       .collect()
   }
 }

@@ -75,7 +75,7 @@ impl Dependency for ProvideDependency {
     if self.ids.is_empty() {
       create_exports_object_referenced()
     } else {
-      vec![ReferencedExport::from_path(self.ids.iter().cloned())]
+      vec![ReferencedExport::from(self.ids.as_slice())]
     }
   }
 

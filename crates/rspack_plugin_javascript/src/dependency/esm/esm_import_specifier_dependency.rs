@@ -142,17 +142,18 @@ impl ESMImportSpecifierDependency {
       refs
         .into_iter()
         // Do not inline if there are any places where used as destructuring
-        .map(|name| ReferencedExport::new(name, true, false).with_ns_access(self.ns_access))
+        .map(|name| {
+          ReferencedExport::from(name)
+            .with_can_inline(false)
+            .with_ns_access(self.ns_access)
+        })
         .collect::<Vec<_>>()
     } else if let Some(v) = ids {
       vec![
-        ReferencedExport::new(
-          v.iter().cloned(),
-          true,
+        ReferencedExport::from(v)
           // Need access the export value to trigger side effects for deferred module
-          !self.phase.is_defer(),
-        )
-        .with_ns_access(self.ns_access),
+          .with_can_inline(!self.phase.is_defer())
+          .with_ns_access(self.ns_access),
       ]
     } else {
       create_exports_object_referenced()

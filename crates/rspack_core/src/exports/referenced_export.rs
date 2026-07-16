@@ -63,29 +63,70 @@ pub fn create_exports_object_referenced() -> Vec<ReferencedExport> {
 }
 
 impl From<Vec<Atom>> for ReferencedExport {
+  #[inline]
   fn from(value: Vec<Atom>) -> Self {
-    Self::from_path(value)
+    Self::from(ReferencedExportPath::from_vec(value))
+  }
+}
+
+impl From<Vec<&Atom>> for ReferencedExport {
+  #[inline]
+  fn from(value: Vec<&Atom>) -> Self {
+    Self::from(value.into_iter().cloned().collect::<ReferencedExportPath>())
+  }
+}
+
+impl From<&[Atom]> for ReferencedExport {
+  #[inline]
+  fn from(value: &[Atom]) -> Self {
+    Self::from(ReferencedExportPath::from(value))
+  }
+}
+
+impl From<ReferencedExportPath> for ReferencedExport {
+  #[inline]
+  fn from(name: ReferencedExportPath) -> Self {
+    Self {
+      name,
+      flags: ReferencedExportFlags::default(),
+    }
+  }
+}
+
+impl From<Atom> for ReferencedExport {
+  #[inline]
+  fn from(value: Atom) -> Self {
+    let mut path = ReferencedExportPath::new();
+    path.push(value);
+    Self::from(path)
+  }
+}
+
+impl From<&Atom> for ReferencedExport {
+  #[inline]
+  fn from(value: &Atom) -> Self {
+    Self::from(value.clone())
   }
 }
 
 impl ReferencedExport {
-  pub fn from_path(name: impl IntoIterator<Item = Atom>) -> Self {
-    Self {
-      name: name.into_iter().collect(),
-      flags: ReferencedExportFlags::default(),
-    }
+  #[inline]
+  pub fn with_can_mangle(mut self, can_mangle: bool) -> Self {
+    self
+      .flags
+      .set(ReferencedExportFlags::CAN_MANGLE, can_mangle);
+    self
   }
 
-  pub fn new(name: impl IntoIterator<Item = Atom>, can_mangle: bool, can_inline: bool) -> Self {
-    let mut flags = ReferencedExportFlags::empty();
-    flags.set(ReferencedExportFlags::CAN_MANGLE, can_mangle);
-    flags.set(ReferencedExportFlags::CAN_INLINE, can_inline);
-    Self {
-      name: name.into_iter().collect(),
-      flags,
-    }
+  #[inline]
+  pub fn with_can_inline(mut self, can_inline: bool) -> Self {
+    self
+      .flags
+      .set(ReferencedExportFlags::CAN_INLINE, can_inline);
+    self
   }
 
+  #[inline]
   pub fn with_ns_access(mut self, ns_access: bool) -> Self {
     self.flags.set(ReferencedExportFlags::NS_ACCESS, ns_access);
     self
