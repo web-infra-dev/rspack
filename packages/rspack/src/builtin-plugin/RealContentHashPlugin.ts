@@ -1,4 +1,5 @@
 import { BuiltinPluginName, RegisterJsTapKind } from '@rspack/binding';
+import type { JsRealContentHashPluginUpdateHashData } from '@rspack/binding';
 import * as liteTapable from '@rspack/lite-tapable';
 
 import { type Compilation, checkCompilation } from '../Compilation';
@@ -50,7 +51,10 @@ export const createRealContentHashPluginHooksRegisters: CreatePartialRegisters<
         ).updateHash;
       },
       function (queried) {
-        return function ([assets, oldHash]: [Buffer[], string]) {
+        return function ({
+          assets,
+          oldHash,
+        }: JsRealContentHashPluginUpdateHashData) {
           return queried.call(assets, oldHash);
         };
       },

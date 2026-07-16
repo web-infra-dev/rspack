@@ -1022,6 +1022,11 @@ export interface JsPathDataChunkLike {
   hash?: string
 }
 
+export interface JsRealContentHashPluginUpdateHashData {
+  assets: Array<Buffer>
+  oldHash: string
+}
+
 export interface JsResolveData {
   request: string
   context: string
@@ -3282,7 +3287,7 @@ export interface RegisterJsTaps {
   registerRuntimePluginCreateLinkTaps: (stages: Array<number>) => Array<{ function: ((arg: JsLinkPreloadData) => String); stage: number; }>
   registerRuntimePluginLinkPreloadTaps: (stages: Array<number>) => Array<{ function: ((arg: JsCreateLinkData) => String); stage: number; }>
   registerRuntimePluginLinkPrefetchTaps: (stages: Array<number>) => Array<{ function: ((arg: JsLinkPrefetchData) => String); stage: number; }>
-  registerRealContentHashPluginUpdateHashTaps: (stages: Array<number>) => Array<{ function: ((args: [assets: Array<Buffer>, oldHash: string]) => string | undefined); stage: number; }>
+  registerRealContentHashPluginUpdateHashTaps: (stages: Array<number>) => Array<{ function: ((data: JsRealContentHashPluginUpdateHashData) => string | undefined); stage: number; }>
   registerRsdoctorPluginModuleGraphTaps: (stages: Array<number>) => Array<{ function: ((arg: JsRsdoctorModuleGraph) => Promise<boolean | undefined>); stage: number; }>
   registerRsdoctorPluginChunkGraphTaps: (stages: Array<number>) => Array<{ function: ((arg: JsRsdoctorChunkGraph) => Promise<boolean | undefined>); stage: number; }>
   registerRsdoctorPluginModuleIdsTaps: (stages: Array<number>) => Array<{ function: ((arg: JsRsdoctorModuleIdsPatch) => Promise<boolean | undefined>); stage: number; }>

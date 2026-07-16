@@ -140,6 +140,12 @@ pub struct JsBeforeModuleIdsResult {
   pub assignments: FxHashMap<String, Either<String, u32>>,
 }
 
+#[napi(object, object_from_js = false)]
+pub struct JsRealContentHashPluginUpdateHashData {
+  pub assets: Vec<Buffer>,
+  pub old_hash: String,
+}
+
 #[napi(object)]
 pub struct JsTap<'f> {
   #[napi(ts_type = "(...args: any[]) => any")]
@@ -688,7 +694,7 @@ pub struct RegisterJsTaps {
   pub register_runtime_plugin_link_prefetch_taps: RegisterFunction,
   // real content hash plugin
   #[napi(
-    ts_type = "(stages: Array<number>) => Array<{ function: ((args: [assets: Array<Buffer>, oldHash: string]) => string | undefined); stage: number; }>"
+    ts_type = "(stages: Array<number>) => Array<{ function: ((data: JsRealContentHashPluginUpdateHashData) => string | undefined); stage: number; }>"
   )]
   pub register_real_content_hash_plugin_update_hash_taps: RegisterFunction,
   // rsdoctor plugin
@@ -1056,7 +1062,7 @@ define_register!(
 /* RealContentHashPlugin Hooks */
 define_register!(
   RegisterRealContentHashPluginUpdateHashTaps,
-  tap = RealContentHashPluginUpdateHashTap<(Vec<Buffer>, String), Option<String>> @ RealContentHashPluginUpdateHashHook,
+  tap = RealContentHashPluginUpdateHashTap<JsRealContentHashPluginUpdateHashData, Option<String>> @ RealContentHashPluginUpdateHashHook,
   cache = true,
   kind = RegisterJsTapKind::RealContentHashPluginUpdateHash,
   skip = false,
@@ -2052,7 +2058,10 @@ impl RealContentHashPluginUpdateHash for RealContentHashPluginUpdateHashTap {
       .collect::<Vec<_>>();
     self
       .function
-      .call_with_sync((assets, old_hash.to_string()))
+      .call_with_sync(JsRealContentHashPluginUpdateHashData {
+        assets,
+        old_hash: old_hash.to_string(),
+      })
       .await
   }
 
