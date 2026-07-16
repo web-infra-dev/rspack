@@ -9,7 +9,8 @@ use rspack_error::{Error, Severity};
 use rspack_util::SpanExt;
 use swc_atoms::Atom;
 use swc_experimental_ecma_ast::{
-  AssignExpr, CallExpr, Expr, GetSpan, MemberExpr, MemberProp, MetaPropKind, Span, UnaryExpr,
+  AssignExpr, CallExpr, Expr, GetSpan, MemberExpr, MemberProp, MetaPropKind, OptChainBase,
+  OptChainExpr, Span, UnaryExpr,
 };
 use url::Url;
 
@@ -34,6 +35,7 @@ use crate::{
   visitors::{
     AllowedMemberTypes, ExportedVariableInfo, ExprRef, JavascriptParser, MemberExpressionInfo,
     RootName, context_reg_exp, create_context_dependency, create_traceable_error, expr_name,
+    get_non_optional_member_chain_from_expr,
   },
 };
 
@@ -783,6 +785,55 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaPlugin {
       parser.walk_expression(&expr.right);
     }
     handled
+  }
+
+  fn optional_chaining(
+    &self,
+    parser: &mut JavascriptParser<'p>,
+    expr: &OptChainExpr,
+  ) -> Option<bool> {
+    let OptChainBase::Call(call_expr) = &expr.base else {
+      return None;
+    };
+    let info = parser
+      .get_member_expression_info_from_expr(&call_expr.callee, AllowedMemberTypes::Expression)?;
+    let MemberExpressionInfo::Expression(info) = info else {
+      return None;
+    };
+    let ExportedVariableInfo::Name(root) = &info.root_info else {
+      return None;
+    };
+    if root.as_str() != expr_name::IMPORT_META {
+      return None;
+    }
+
+    let first_property = info.members.first()?;
+    if self.preserve_property(Some(first_property.as_str())) {
+      return None;
+    }
+
+    let optional_after_first_property = info
+      .members_optionals
+      .get(1)
+      .is_some_and(|optional| *optional);
+    if !optional_after_first_property {
+      return None;
+    }
+
+    let first_property_expr =
+      get_non_optional_member_chain_from_expr(&call_expr.callee, (info.members.len() - 1) as i32);
+    if !parser
+      .evaluate_expression(first_property_expr)
+      .is_undefined()
+    {
+      return None;
+    }
+
+    parser.add_presentational_dependency(Box::new(ConstDependency::new(
+      expr.span().into(),
+      "undefined".into(),
+    )));
+    Some(true)
   }
 
   fn unhandled_expression_member_chain(
