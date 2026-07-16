@@ -21,7 +21,7 @@ use crate::{
 
 pub struct RuntimeModuleGenerateContext<'a> {
   pub compilation: &'a Compilation,
-  pub runtime_template: &'a RuntimeCodeTemplate<'a>,
+  pub runtime_template: &'a RuntimeCodeTemplate,
 }
 
 pub fn runtime_module_owned_define_fields(
@@ -168,7 +168,9 @@ pub async fn runtime_module_get_generated_code(
   let result: Result<&BoxSource> = common
     .cached_generated_code
     .get_or_try_init(|| async {
-      let runtime_template = compilation.runtime_template.create_runtime_code_template();
+      let runtime_template = compilation
+        .runtime_template
+        .create_runtime_module_code_template();
       let context = RuntimeModuleGenerateContext {
         compilation,
         runtime_template: &runtime_template,
@@ -207,7 +209,9 @@ pub async fn runtime_module_get_runtime_hash(
   module.name().hash(&mut hasher);
   module.stage().hash(&mut hasher);
   if module.full_hash() || module.dependent_hash() {
-    let runtime_template = compilation.runtime_template.create_runtime_code_template();
+    let runtime_template = compilation
+      .runtime_template
+      .create_runtime_module_code_template();
     let context = RuntimeModuleGenerateContext {
       compilation,
       runtime_template: &runtime_template,

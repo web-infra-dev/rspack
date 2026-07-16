@@ -4,9 +4,9 @@ use itertools::Itertools;
 use regex::Regex;
 use rspack_collections::IdentifierLinkedMap;
 use rspack_core::{
-  Chunk, ChunkCodeTemplate, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkLoading,
-  ChunkLoadingType, ChunkUkey, Compilation, PathData, RuntimeGlobals,
-  RuntimeModuleRuntimeRequirements, RuntimeVariable, SourceType,
+  Chunk, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkLoading, ChunkLoadingType, ChunkUkey,
+  Compilation, PathData, RuntimeCodeTemplate, RuntimeGlobals, RuntimeModuleRuntimeRequirements,
+  RuntimeVariable, SourceType,
   chunk_graph_chunk::ChunkIdSet,
   get_js_chunk_filename_template,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
@@ -225,7 +225,7 @@ pub fn generate_entry_startup(
   chunk: &ChunkUkey,
   entries: &IdentifierLinkedMap<ChunkGroupUkey>,
   passive: bool,
-  runtime_template: &ChunkCodeTemplate,
+  runtime_template: &RuntimeCodeTemplate,
 ) -> BoxSource {
   let mut module_id_exprs = vec![];
   let mut chunks_ids = ChunkIdSet::default();

@@ -72,9 +72,7 @@ async fn runtime_requirements_in_tree(
   // ESM library chunks are self-registering modules loaded by
   // rspack_plugin_esm_library. The generic module chunk loader expects
   // import() to return installChunk data, so it must not attach the JS handler.
-  let omit_on_demand_loading = compilation.options.experiments.runtime_mode
-    != rspack_core::runtime_mode::RuntimeMode::Rspack
-    && is_modern_module_library_chunk(chunk_ukey, compilation)
+  let omit_on_demand_loading = is_modern_module_library_chunk(chunk_ukey, compilation)
     && runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
     && !(runtime_requirements.contains(RuntimeGlobals::EXTERNAL_INSTALL_CHUNK)
       || should_export_webpack_require);

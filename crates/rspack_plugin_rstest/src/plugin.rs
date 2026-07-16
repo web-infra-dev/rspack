@@ -84,7 +84,9 @@ async fn runtime_module(
     return Ok(());
   };
 
-  let runtime_template = compilation.runtime_template.create_runtime_code_template();
+  let runtime_template = compilation
+    .runtime_template
+    .create_runtime_module_code_template();
   match runtime_module.get_constructor_name().as_str() {
     "DefinePropertyGettersRuntimeModule" => {
       runtime_module.set_custom_source(
@@ -283,7 +285,9 @@ impl RstestPlugin {
   }
 
   fn generate_define_property_getters_runtime_source(compilation: &Compilation) -> String {
-    let runtime_template = compilation.runtime_template.create_runtime_code_template();
+    let runtime_template = compilation
+      .runtime_template
+      .create_runtime_module_code_template();
     let define_property_getters =
       runtime_template.render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
     let has_own_property =

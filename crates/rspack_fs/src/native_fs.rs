@@ -1,9 +1,11 @@
 use std::{
-  fs::{self, File},
   io::{BufRead, BufReader, BufWriter, Read, Write},
   path::{Path, PathBuf},
 };
 
+#[cfg(not(target_family = "wasm"))]
+use fs_err::tokio as tokio_fs;
+use fs_err::{self as fs, File};
 use pnp::fs::{FileType, LruZipCache, VPath, VPathInfo, ZipCache};
 use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
 use tracing::instrument;
@@ -48,17 +50,17 @@ impl WritableFileSystem for NativeFileSystem {
   }
   #[instrument(skip(self), level = "debug")]
   async fn remove_file(&self, file: &Utf8Path) -> Result<()> {
-    tokio::fs::remove_file(file).await.to_fs_result()
+    tokio_fs::remove_file(file).await.to_fs_result()
   }
   #[instrument(skip(self), level = "debug")]
   async fn remove_dir_all(&self, dir: &Utf8Path) -> Result<()> {
     let dir = dir.to_path_buf();
-    tokio::fs::remove_dir_all(dir).await.to_fs_result()
+    tokio_fs::remove_dir_all(dir).await.to_fs_result()
   }
   #[instrument(skip(self), level = "debug")]
   async fn read_dir(&self, dir: &Utf8Path) -> Result<Vec<String>> {
     let dir = dir.to_path_buf();
-    let mut reader = tokio::fs::read_dir(dir).await.to_fs_result()?;
+    let mut reader = tokio_fs::read_dir(dir).await.to_fs_result()?;
     let mut res = vec![];
     while let Some(entry) = reader.next_entry().await.to_fs_result()? {
       res.push(entry.file_name().to_string_lossy().to_string());
@@ -67,17 +69,17 @@ impl WritableFileSystem for NativeFileSystem {
   }
   #[instrument(skip(self), level = "debug")]
   async fn read_file(&self, file: &Utf8Path) -> Result<Vec<u8>> {
-    tokio::fs::read(file).await.to_fs_result()
+    tokio_fs::read(file).await.to_fs_result()
   }
   #[instrument(skip(self), level = "debug")]
   async fn stat(&self, file: &Utf8Path) -> Result<FileMetadata> {
-    let metadata = tokio::fs::metadata(file).await.to_fs_result()?;
+    let metadata = tokio_fs::metadata(file).await.to_fs_result()?;
     FileMetadata::try_from(metadata)
   }
   #[instrument(skip(self), level = "debug")]
   async fn set_permissions(&self, path: &Utf8Path, perm: FilePermissions) -> Result<()> {
     if let Some(perm) = perm.into_std() {
-      return tokio::fs::set_permissions(path, perm).await.to_fs_result();
+      return tokio_fs::set_permissions(path, perm).await.to_fs_result();
     }
     Ok(())
   }
@@ -171,8 +173,8 @@ impl ReadableFileSystem for NativeFileSystem {
       let path = path.as_std_path();
       let buffer = match VPath::from(path)? {
         VPath::Zip(info) => self.pnp_lru.read(info.physical_base_path(), info.zip_path),
-        VPath::Virtual(info) => std::fs::read(info.physical_base_path()),
-        VPath::Native(path) => std::fs::read(&path),
+        VPath::Virtual(info) => fs::read(info.physical_base_path()),
+        VPath::Native(path) => fs::read(&path),
       };
       return buffer.to_fs_result();
     }
@@ -266,7 +268,7 @@ impl ReadableFileSystem for NativeFileSystem {
   }
   #[instrument(skip(self), level = "debug")]
   async fn permissions(&self, path: &Utf8Path) -> Result<Option<FilePermissions>> {
-    let meta = tokio::fs::metadata(path).await.to_fs_result()?;
+    let meta = tokio_fs::metadata(path).await.to_fs_result()?;
     Ok(Some(FilePermissions::from_std(meta.permissions())))
   }
 }
@@ -434,5 +436,34 @@ impl WriteStream for NativeWriteStream {
   #[instrument(skip(self), level = "debug")]
   async fn close(&mut self) -> Result<()> {
     Ok(())
+  }
+}
+
+#[cfg(all(test, not(target_family = "wasm")))]
+mod tests {
+  use rspack_paths::AssertUtf8;
+
+  use super::{IntermediateFileSystemExtras, NativeFileSystem};
+
+  #[tokio::test]
+  async fn test_rename_error_includes_source_and_destination_paths() {
+    let temp = tempfile::tempdir().expect("should create temp directory");
+    let source = temp.path().join("source").assert_utf8();
+    let destination = temp.path().join("destination").assert_utf8();
+    std::fs::create_dir(&source).expect("should create source directory");
+    std::fs::write(source.join("content"), "source")
+      .expect("should make source directory non-empty");
+    std::fs::create_dir(&destination).expect("should create destination directory");
+    std::fs::write(destination.join("blocker"), "blocker")
+      .expect("should make destination directory non-empty");
+
+    let error = NativeFileSystem::new(false)
+      .rename(&source, &destination)
+      .await
+      .expect_err("rename should fail when destination is a non-empty directory");
+    let message = error.to_string();
+
+    assert!(message.contains(source.as_str()));
+    assert!(message.contains(destination.as_str()));
   }
 }

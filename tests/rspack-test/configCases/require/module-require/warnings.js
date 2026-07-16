@@ -12,8 +12,6 @@ const warnings = [
 	/the request of a dependency is an expression/,
 	/The accessed createRequire\(\) member is not supported by Rspack/,
 	/The accessed createRequire\(\) member is not supported by Rspack/,
-	/The accessed createRequire\(\) member is not supported by Rspack/,
-	/The accessed createRequire\(\) member is not supported by Rspack/,
 	/The accessed createRequire\(\) member is not supported by Rspack/
 ];
 

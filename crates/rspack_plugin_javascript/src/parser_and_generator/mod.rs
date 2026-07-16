@@ -5,13 +5,17 @@ use std::{
 };
 
 use regex::Regex;
-use rspack_cacheable::{cacheable, cacheable_dyn, with::Skip};
+use rspack_cacheable::{
+  cacheable, cacheable_dyn,
+  with::{AsInner, Skip},
+};
 use rspack_core::{
-  AsyncDependenciesBlockIdentifier, BuildMetaExportsType, COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY,
-  ChunkGraph, CollectedTypeScriptInfo, Compilation, DependenciesBlock, DependencyId,
-  GenerateContext, Module, ModuleArgument, ModuleCodeTemplate, ModuleGraph, ModuleType,
-  ParseContext, ParseResult, ParserAndGenerator, RuntimeGlobals, RuntimeVariable,
-  SideEffectsBailoutItem, SourceType, TemplateContext, TemplateReplaceSource,
+  ArcComputed, AsyncDependenciesBlockIdentifier, BuildMetaExportsType,
+  COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY, ChunkGraph, CollectedTypeScriptInfo, Compilation,
+  DependenciesBlock, DependencyId, GenerateContext, ImportMeta, Module, ModuleArgument,
+  ModuleCodeTemplate, ModuleGraph, ModuleType, ParseContext, ParseResult, ParserAndGenerator,
+  ResolvedModuleOptions, RuntimeGlobals, RuntimeVariable, SideEffectsBailoutItem, SourceType,
+  TemplateContext, TemplateReplaceSource,
   diagnostics::map_box_diagnostics_to_module_parse_diagnostics,
   remove_bom, render_init_fragments,
   rspack_sources::{BoxSource, ReplaceSource, Source, SourceExt},
@@ -107,8 +111,9 @@ impl ParserRuntimeRequirementsData {
 }
 
 #[cacheable]
-#[derive(Default)]
 pub struct JavaScriptParserAndGenerator {
+  #[cacheable(with=AsInner)]
+  import_meta: ArcComputed<ResolvedModuleOptions, ImportMeta>,
   #[cacheable(with=Skip)]
   parser_plugins: Vec<BoxJavascriptParserPlugin>,
 }
@@ -122,6 +127,13 @@ impl std::fmt::Debug for JavaScriptParserAndGenerator {
 }
 
 impl JavaScriptParserAndGenerator {
+  pub fn new(module_options: Arc<ResolvedModuleOptions>) -> Self {
+    Self {
+      import_meta: ArcComputed::new(module_options, |options| options.into()),
+      parser_plugins: Vec::default(),
+    }
+  }
+
   pub fn add_parser_plugin(&mut self, parser_plugin: BoxJavascriptParserPlugin) {
     self.parser_plugins.push(parser_plugin);
   }
@@ -326,6 +338,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       build_info,
       module_identifier,
       module_parser_options,
+      ArcComputed::clone(&self.import_meta),
       &mut semicolons,
       &mut self.parser_plugins,
       parse_meta,

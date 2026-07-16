@@ -3,13 +3,13 @@ use std::sync::LazyLock;
 use futures::future::join_all;
 use regex::Regex;
 use rspack_core::{
-  AsyncModulesArtifact, BoxModule, CanInlineUse, Chunk, ChunkCodeTemplate, ChunkUkey,
+  AsyncModulesArtifact, BoxModule, CanInlineUse, Chunk, ChunkUkey,
   CodeGenerationDataTopLevelDeclarations, Compilation,
   CompilationAdditionalChunkRuntimeRequirements, CompilationFinishModules, CompilationParams,
   CompilerCompilation, EntryData, ExportProvided, ExportsInfoArtifact, Filename, LibraryExport,
   LibraryName, LibraryNonUmdObject, LibraryOptions, ModuleIdentifier, PathData, Plugin,
-  RuntimeGlobals, RuntimeModule, RuntimeVariable, SideEffectsStateArtifact, SourceType, UsageState,
-  get_entry_runtime, property_access,
+  RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule, RuntimeVariable, SideEffectsStateArtifact,
+  SourceType, UsageState, get_entry_runtime, property_access,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
   to_identifier,
 };
@@ -214,7 +214,7 @@ async fn render(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
   render_source: &mut RenderSource,
-  _runtime_template: &ChunkCodeTemplate,
+  _runtime_template: &RuntimeCodeTemplate,
 ) -> Result<()> {
   let Some(options) = self.get_options_for_chunk(compilation, chunk_ukey)? else {
     return Ok(());
@@ -249,7 +249,7 @@ async fn render_startup(
   chunk_ukey: &ChunkUkey,
   module: &ModuleIdentifier,
   render_source: &mut RenderSource,
-  runtime_template: &ChunkCodeTemplate,
+  runtime_template: &RuntimeCodeTemplate,
 ) -> Result<()> {
   let Some(options) = self.get_options_for_chunk(compilation, chunk_ukey)? else {
     return Ok(());

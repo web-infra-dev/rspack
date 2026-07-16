@@ -52,7 +52,7 @@ __rspack_context.r = __rspack_require;
 // expose the modules object (__rspack_modules)
 __rspack_context.m = __rspack_modules;
 
-// rspack/runtime/export_webpack_require
+// rspack/runtime/export_require
 var __rspack_contexttemp = __rspack_context;
 export { __rspack_contexttemp as __rspack_context };
 ;

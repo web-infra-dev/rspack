@@ -12,6 +12,7 @@ use rspack_core::{
   ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType, StaticExportsDependency,
   StaticExportsSpec, impl_module_meta_info, impl_source_map_config, module_update_hash,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
+  runtime_mode::RuntimeMode,
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::{RspackHashDigest, RspackHasher};
@@ -23,7 +24,7 @@ use super::{
 };
 use crate::{
   ShareScope,
-  utils::{json_stringify, module_require_scope_name},
+  utils::{json_stringify, module_identifier_namespace, module_require_scope_name},
 };
 
 #[impl_source_map_config]
@@ -52,8 +53,10 @@ impl ContainerEntryModule {
     exposes: Vec<(String, ExposeOptions)>,
     share_scope: ShareScope,
     enhanced: bool,
+    runtime_mode: RuntimeMode,
   ) -> Self {
-    let lib_ident = format!("webpack/container/entry/{}", &name);
+    let namespace = module_identifier_namespace(runtime_mode);
+    let lib_ident = format!("{namespace}/container/entry/{name}");
     Self {
       blocks: Vec::new(),
       dependencies: Vec::new(),
@@ -81,8 +84,14 @@ impl ContainerEntryModule {
     }
   }
 
-  pub fn new_share_container_entry(name: String, request: String, version: String) -> Self {
-    let lib_ident = format!("webpack/share/container/{}", &name);
+  pub fn new_share_container_entry(
+    name: String,
+    request: String,
+    version: String,
+    runtime_mode: RuntimeMode,
+  ) -> Self {
+    let namespace = module_identifier_namespace(runtime_mode);
+    let lib_ident = format!("{namespace}/share/container/{name}");
     Self {
       blocks: Vec::new(),
       dependencies: Vec::new(),

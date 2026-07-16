@@ -9,8 +9,8 @@ use rspack_collections::{
   Identifiable, Identifier, IdentifierIndexMap, IdentifierMap, IdentifierSet,
 };
 use rspack_core::{
-  ApplyContext, AssetInfo, AsyncModulesArtifact, BoxModule, BuildModuleGraphArtifact,
-  ChunkCodeTemplate, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
+  ApplyContext, AssetInfo, AsyncModulesArtifact, BoxModule, BuildModuleGraphArtifact, ChunkUkey,
+  Compilation, CompilationAdditionalChunkRuntimeRequirements,
   CompilationAdditionalModuleRuntimeRequirements, CompilationAdditionalTreeRuntimeRequirements,
   CompilationAfterCodeGeneration, CompilationConcatenationScope, CompilationFinishModules,
   CompilationOptimizeChunkModules, CompilationOptimizeChunks, CompilationOptimizeDependencies,
@@ -19,8 +19,8 @@ use rspack_core::{
   ExportsInfoArtifact, ExternalModuleInfo, GetTargetResult, Logger, ModuleFactoryCreateData,
   ModuleGraph, ModuleIdentifier, ModuleInfo, ModuleType, NormalModuleFactoryAfterFactorize,
   NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, Plugin, REQUIRE_SCOPE_GLOBALS,
-  RuntimeGlobals, RuntimeModule, SideEffectsOptimizeArtifact, SideEffectsStateArtifact, get_target,
-  is_esm_dep_like,
+  RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule, SideEffectsOptimizeArtifact,
+  SideEffectsStateArtifact, get_target, is_esm_dep_like,
   rspack_sources::{ReplaceSource, Source},
 };
 use rspack_error::{Diagnostic, Result};
@@ -284,7 +284,7 @@ async fn render_chunk_content(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
   asset_info: &mut AssetInfo,
-  runtime_template: &ChunkCodeTemplate,
+  runtime_template: &RuntimeCodeTemplate,
 ) -> Result<Option<RenderSource>> {
   self
     .render_chunk(compilation, chunk_ukey, asset_info, runtime_template)

@@ -63,7 +63,7 @@ impl ImportScriptsChunkLoadingRuntimeModule {
     &self,
     chunk: &Chunk,
     compilation: &Compilation,
-    runtime_template: &RuntimeCodeTemplate<'_>,
+    runtime_template: &RuntimeCodeTemplate,
   ) -> rspack_error::Result<String> {
     let base_uri = if let Some(base_uri) = chunk
       .get_entry_options(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)

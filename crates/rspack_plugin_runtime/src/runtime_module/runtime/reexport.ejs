@@ -1,0 +1,9 @@
+<%- define(REEXPORT) %> = <%- basicFunction("exports, source, excluded") %> {
+	var getters = {};
+	for(<%- _key_decl %> key in source) {
+		if(excluded === 0 || (typeof excluded === "string" ? key !== excluded : excluded.indexOf(key) < 0)) {
+			getters[key] = <%- _getter %>;
+		}
+	}
+	<%- DEFINE_PROPERTY_GETTERS %>(exports, getters);
+};

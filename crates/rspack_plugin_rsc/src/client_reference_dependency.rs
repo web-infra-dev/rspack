@@ -70,23 +70,27 @@ impl Dependency for ClientReferenceDependency {
     _exports_info_artifact: &ExportsInfoArtifact,
     _runtime: Option<&RuntimeSpec>,
   ) -> Vec<ExtendedReferencedExport> {
-    // `*` is an internal sentinel meaning this client reference needs the
-    // whole exports object, not a narrowed list of named exports.
-    if self
-      .referenced_exports
-      .iter()
-      .any(|export_name| export_name == "*")
+    // An empty set and `*` both mean this client reference needs the whole
+    // exports object, not a narrowed list of named exports.
+    if self.referenced_exports.is_empty()
+      || self
+        .referenced_exports
+        .iter()
+        .any(|export_name| export_name == "*")
     {
       return create_exports_object_referenced();
     }
 
     // Otherwise keep the exact export names so usage analysis can preserve
     // tree-shaking granularity for this client reference.
-    vec![ExtendedReferencedExport::Export(ReferencedExport::new(
-      self.referenced_exports.iter().cloned().collect(),
-      false,
-      false,
-    ))]
+    self
+      .referenced_exports
+      .iter()
+      .cloned()
+      .map(|export_name| {
+        ExtendedReferencedExport::Export(ReferencedExport::new(vec![export_name], false, false))
+      })
+      .collect()
   }
 }
 

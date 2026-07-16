@@ -52,7 +52,7 @@ impl RuntimeModule for FederationDataRuntimeModule {
 
 pub async fn federation_runtime_template(
   chunk: &Chunk,
-  runtime_template: &RuntimeCodeTemplate<'_>,
+  runtime_template: &RuntimeCodeTemplate,
   compilation: &Compilation,
 ) -> String {
   let federation_global = format!(

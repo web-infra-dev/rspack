@@ -10,7 +10,7 @@ use rspack_core::{
   CompilationParams, CompilerThisCompilation, Context, DependencyCategory, DependencyType,
   ModuleExt, ModuleFactoryCreateData, NormalModuleCreateData, NormalModuleFactoryCreateModule,
   NormalModuleFactoryFactorize, Plugin, ResolveOptionsWithDependencyType, ResolveResult, Resolver,
-  RuntimeGlobals, RuntimeModule,
+  RuntimeGlobals, RuntimeModule, runtime_mode::RuntimeMode,
 };
 use rspack_error::{Diagnostic, Result, error};
 use rspack_hash::{RspackHash, RspackHasher};
@@ -287,6 +287,7 @@ impl ConsumeSharedPlugin {
     context: &Context,
     request: &str,
     config: Arc<ConsumeOptions>,
+    runtime_mode: RuntimeMode,
     mut add_diagnostic: impl FnMut(Diagnostic),
   ) -> ConsumeSharedModule {
     let direct_fallback = matches!(&config.import, Some(i) if RELATIVE_REQUEST.is_match(i) | ABSOLUTE_REQUEST.is_match(i));
@@ -342,6 +343,7 @@ impl ConsumeSharedPlugin {
         eager: config.eager,
         tree_shaking_mode: config.tree_shaking_mode.clone(),
       },
+      runtime_mode,
     )
   }
 }
@@ -388,9 +390,13 @@ async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<B
 
   if let Some(matched) = consumes.unresolved.get(request) {
     let module = self
-      .create_consume_shared_module(&data.context, request, matched.clone(), |d| {
-        data.diagnostics.push(d)
-      })
+      .create_consume_shared_module(
+        &data.context,
+        request,
+        matched.clone(),
+        data.options.experiments.runtime_mode,
+        |d| data.diagnostics.push(d),
+      )
       .await;
     return Ok(Some(module.boxed()));
   }
@@ -413,6 +419,7 @@ async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<B
             eager: options.eager,
             tree_shaking_mode: options.tree_shaking_mode.clone(),
           }),
+          data.options.experiments.runtime_mode,
           |d| data.diagnostics.push(d),
         )
         .await;
@@ -441,9 +448,13 @@ async fn create_module(
 
   if let Some(options) = consumes.resolved.get(resource) {
     let module = self
-      .create_consume_shared_module(&data.context, resource, options.clone(), |d| {
-        data.diagnostics.push(d)
-      })
+      .create_consume_shared_module(
+        &data.context,
+        resource,
+        options.clone(),
+        data.options.experiments.runtime_mode,
+        |d| data.diagnostics.push(d),
+      )
       .await;
     return Ok(Some(module.boxed()));
   }

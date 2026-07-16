@@ -109,7 +109,7 @@ impl JsonpChunkLoadingRuntimeModule {
     &self,
     chunk: &Chunk,
     compilation: &Compilation,
-    runtime_template: &RuntimeCodeTemplate<'_>,
+    runtime_template: &RuntimeCodeTemplate,
   ) -> String {
     let base_uri = chunk
       .get_entry_options(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)

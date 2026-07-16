@@ -12,7 +12,7 @@ use rspack_core::{
   NormalModuleFactoryAfterResolve, NormalModuleFactoryModule, ParserAndGenerator, PathData, Plugin,
   PublicPath, RenderManifestEntry, RuntimeGlobals, RuntimeModule, RuntimeModuleExt,
   SelfModuleFactory, SourceType, css_module_render_conditions_identifier,
-  get_css_chunk_filename_template,
+  get_css_chunk_filename_template, is_source_equal,
   rspack_sources::{BoxSource, CachedSource, ReplaceSource, Source, SourceExt},
 };
 use rspack_error::{Diagnostic, Result, ToStringResultToRspackResultExt};
@@ -46,6 +46,11 @@ use crate::{
 ///
 /// We should make sure that there's no read-write and write-write conflicts for each hook instance by looking up [CssPlugin::get_compilation_hooks_mut]
 type ArcCssModulesPluginHooks = Arc<AtomicRefCell<CssModulesPluginHooks>>;
+
+struct CssModuleRenderSources {
+  source_before_hooks: BoxSource,
+  rendered_source: BoxSource,
+}
 
 static COMPILATION_HOOKS_MAP: LazyLock<FxDashMap<CompilationId, ArcCssModulesPluginHooks>> =
   LazyLock::new(Default::default);
@@ -207,12 +212,21 @@ impl CssPlugin {
               };
 
               let chunk_ukey = chunk.as_u32().into();
+              // Module package hooks may add module-specific decorations such as pathinfo.
+              // Deduplicate the undecorated source but emit the rendered source.
+              let source_before_hooks = post_module_container.source.clone();
               hooks
                 .render_module_package
                 .call(compilation, &chunk_ukey, module, &mut post_module_container)
                 .await?;
 
-              Ok((module.identifier(), post_module_container.source))
+              Ok((
+                module.identifier(),
+                CssModuleRenderSources {
+                  source_before_hooks,
+                  rendered_source: post_module_container.source,
+                },
+              ))
             },
           );
         });
@@ -235,31 +249,49 @@ impl CssPlugin {
 
   fn render_ordered_css_sources(
     ordered_css_modules: &[&dyn Module],
-    module_sources: &HashMap<ModuleIdentifier, BoxSource>,
+    module_sources: &HashMap<ModuleIdentifier, CssModuleRenderSources>,
   ) -> BoxSource {
-    let non_import_css_resources = ordered_css_modules
+    let mut non_import_css_sources = HashMap::<_, Vec<_>>::default();
+    for module in ordered_css_modules
       .iter()
       .filter(|module| !css_module_is_import_dependency(**module))
-      .filter(|module| module_sources.contains_key(&module.identifier()))
-      .filter_map(|module| css_module_resource(*module))
-      .collect::<HashSet<_>>();
+    {
+      let identifier = module.identifier();
+      if let Some(resource) = css_module_resource(*module)
+        && let Some(source) = module_sources.get(&identifier)
+      {
+        non_import_css_sources
+          .entry(resource)
+          .or_default()
+          .push(&source.source_before_hooks);
+      }
+    }
 
     let mut builder = CssSourceBuilder::new(false, true, Default::default());
     for module in ordered_css_modules {
+      let identifier = module.identifier();
       if css_module_is_import_dependency(*module)
         && css_render_conditions_from_module(*module).is_empty()
         && let Some(resource) = css_module_resource(*module)
-        && non_import_css_resources.contains(resource)
+        && let Some(source) = module_sources.get(&identifier)
+        && non_import_css_sources.get(resource).is_some_and(|sources| {
+          sources.iter().any(|other| {
+            source.source_before_hooks.size() == other.size()
+              && is_source_equal(source.source_before_hooks.as_ref(), (*other).as_ref())
+          })
+        })
       {
+        if css_module_has_charset(*module) {
+          builder.set_has_charset();
+        }
         continue;
       }
 
-      let identifier = module.identifier();
       if let Some(source) = module_sources.get(&identifier) {
         if css_module_has_charset(*module) {
           builder.set_has_charset();
         }
-        builder.push_css_source(source.clone(), &[], false);
+        builder.push_css_source(source.rendered_source.clone(), &[], false);
       }
     }
 
@@ -544,7 +576,9 @@ async fn render_manifest(
     .build_chunk_graph_artifact
     .chunk_by_ukey
     .expect_get(chunk_ukey);
-  let _runtime_template = compilation.runtime_template.create_runtime_code_template();
+  let _runtime_template = compilation
+    .runtime_template
+    .create_runtime_module_code_template();
   if matches!(chunk.kind(), ChunkKind::HotUpdate) {
     return Ok(());
   }

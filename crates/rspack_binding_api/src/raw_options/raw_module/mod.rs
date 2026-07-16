@@ -19,12 +19,14 @@ use rspack_core::{
   CssAutoOrModuleParserOptions, CssGeneratorOptions, CssModuleGeneratorOptions,
   CssModuleParserOptions, CssParserImport, CssParserImportContext, CssParserOptions,
   DescriptionData, DynamicImportFetchPriority, DynamicImportMode, ExportPresenceMode, FuncUseCtx,
-  GeneratorOptions, GeneratorOptionsMap, ImportMeta, JavascriptParserCommonjsExportsOption,
-  JavascriptParserCommonjsOptions, JavascriptParserCreateRequire, JavascriptParserOptions,
-  JavascriptParserOrder, JavascriptParserUrl, JsonGeneratorOptions, JsonParserOptions,
-  ModuleNoParseRule, ModuleNoParseRules, ModuleNoParseTestFn, ModuleOptions, ModuleRule,
-  ModuleRuleEffect, ModuleRuleEnforce, ModuleRuleUse, ModuleRuleUseLoader, OverrideStrict,
-  ParseOption, ParserOptions, ParserOptionsMap, TypeReexportPresenceMode,
+  GeneratorOptions, GeneratorOptionsMap, ImportMeta, ImportMetaOptions,
+  JavascriptParserCommonjsExportsOption, JavascriptParserCommonjsOptions,
+  JavascriptParserCreateRequire, JavascriptParserOptions, JavascriptParserOrder,
+  JavascriptParserUrl, JavascriptParserWorkerOptions, JavascriptParserWorkerUrl,
+  JsonGeneratorOptions, JsonParserOptions, ModuleNoParseRule, ModuleNoParseRules,
+  ModuleNoParseTestFn, ModuleOptions, ModuleRule, ModuleRuleEffect, ModuleRuleEnforce,
+  ModuleRuleUse, ModuleRuleUseLoader, OverrideStrict, ParseOption, ParserOptions, ParserOptionsMap,
+  TypeReexportPresenceMode,
 };
 use rspack_error::error;
 use rspack_regex::RspackRegex;
@@ -295,9 +297,11 @@ pub struct RawJavascriptParserOptions {
   pub exports_presence: Option<String>,
   pub import_exports_presence: Option<String>,
   pub reexport_exports_presence: Option<String>,
-  pub worker: Option<Vec<String>>,
+  #[napi(ts_type = "boolean | Array<string> | RawJavascriptParserWorkerOptions")]
+  pub worker: Option<Either3<bool, Vec<String>, RawJavascriptParserWorkerOptions>>,
   pub override_strict: Option<String>,
-  pub import_meta: Option<String>,
+  #[napi(ts_type = "string | Record<string, boolean>")]
+  pub import_meta: Option<Either<String, RawImportMetaOptions>>,
   pub commonjs_magic_comments: Option<bool>,
   #[napi(ts_type = "boolean | string")]
   pub create_require: Option<Either<bool, String>>,
@@ -337,11 +341,20 @@ pub struct RawJavascriptParserOptions {
   pub pure_functions: Option<Vec<String>>,
 }
 
+pub type RawImportMetaOptions = HashMap<String, bool>;
+
 #[napi(object)]
 #[derive(Debug)]
 pub struct RawJavascriptParserCommonjsOptions {
   #[napi(ts_type = "boolean | 'skipInEsm'")]
   pub exports: Option<Either<bool, RawJavascriptParserCommonjsExports>>,
+}
+
+#[napi(object)]
+#[derive(Debug)]
+pub struct RawJavascriptParserWorkerOptions {
+  pub alias: Option<Vec<String>>,
+  pub url: Option<String>,
 }
 
 #[napi(string_enum)]
@@ -384,11 +397,30 @@ impl From<RawJavascriptParserOptions> for JavascriptParserOptions {
       type_reexports_presence: value
         .type_reexports_presence
         .map(|e| TypeReexportPresenceMode::from(e.as_str())),
-      worker: value.worker,
+      worker: value.worker.map(|worker| match worker {
+        Either3::A(flag) => JavascriptParserWorkerOptions::new(
+          if flag {
+            vec!["...".to_string()]
+          } else {
+            vec![]
+          },
+          None,
+        ),
+        Either3::B(alias) => JavascriptParserWorkerOptions::new(alias, None),
+        Either3::C(options) => JavascriptParserWorkerOptions {
+          alias: options.alias,
+          url: options
+            .url
+            .and_then(|url| JavascriptParserWorkerUrl::from(url.as_str())),
+        },
+      }),
       override_strict: value
         .override_strict
         .map(|e| OverrideStrict::from(e.as_str())),
-      import_meta: value.import_meta.map(|e| ImportMeta::from(e.as_str())),
+      import_meta: value.import_meta.map(|e| match e {
+        Either::A(value) => ImportMeta::from(value.as_str()),
+        Either::B(value) => ImportMeta::Granular(ImportMetaOptions::new(value)),
+      }),
       require_alias: value.require_alias,
       require_as_expression: value.require_as_expression,
       require_dynamic: value.require_dynamic,

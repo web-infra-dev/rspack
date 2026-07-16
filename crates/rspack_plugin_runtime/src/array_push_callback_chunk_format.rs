@@ -1,7 +1,7 @@
 use rspack_core::{
-  ChunkCodeTemplate, ChunkGraph, ChunkKind, ChunkUkey, Compilation,
-  CompilationAdditionalChunkRuntimeRequirements, CompilationParams, CompilerCompilation, Plugin,
-  RuntimeGlobals, RuntimeModule, RuntimeVariable,
+  ChunkGraph, ChunkKind, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
+  CompilationParams, CompilerCompilation, Plugin, RuntimeCodeTemplate, RuntimeGlobals,
+  RuntimeModule, RuntimeVariable,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
 };
 use rspack_error::Result;
@@ -106,7 +106,7 @@ async fn render_chunk(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
   render_source: &mut RenderSource,
-  runtime_template: &ChunkCodeTemplate,
+  runtime_template: &RuntimeCodeTemplate,
 ) -> Result<()> {
   let hooks = JsPlugin::get_compilation_hooks(compilation.id());
   let chunk = compilation

@@ -58,7 +58,7 @@ impl Chunk {
         f(compilation, chunk)
       } else {
         Err(napi::Error::from_reason(format!(
-          "Unable to access chunk with id = {:?} now. The module have been removed on the Rust side.",
+          "Unable to access chunk with id = {:?} now. The chunk have been removed on the Rust side.",
           self.chunk_ukey
         )))
       }

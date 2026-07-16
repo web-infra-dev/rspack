@@ -2,10 +2,10 @@ use std::borrow::Cow;
 
 use rspack_cacheable::with::AsVecConverter;
 use rspack_core::{
-  BuildMetaExportsType, ChunkCodeTemplate, ChunkGraph, ChunkInitFragments, ChunkUkey, Compilation,
-  CompilationParams, CompilerCompilation, ExportInfo, ExportProvided, ExportsInfoArtifact,
-  ExportsInfoData, GetTargetResult, Module, ModuleGraph, ModuleIdentifier, OptimizationBailoutItem,
-  Plugin, UsageState, get_target,
+  BuildMetaExportsType, ChunkGraph, ChunkInitFragments, ChunkUkey, Compilation, CompilationParams,
+  CompilerCompilation, ExportInfo, ExportProvided, ExportsInfoArtifact, ExportsInfoData,
+  GetTargetResult, Module, ModuleGraph, ModuleIdentifier, OptimizationBailoutItem, Plugin,
+  RuntimeCodeTemplate, UsageState, get_target,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
   to_comment_with_nl,
 };
@@ -238,7 +238,7 @@ async fn render_js_module_package(
   module: &dyn Module,
   render_source: &mut RenderSource,
   _init_fragments: &mut ChunkInitFragments,
-  runtime_template: &ChunkCodeTemplate,
+  runtime_template: &RuntimeCodeTemplate,
 ) -> Result<()> {
   let mut new_source: ConcatSource = Default::default();
 

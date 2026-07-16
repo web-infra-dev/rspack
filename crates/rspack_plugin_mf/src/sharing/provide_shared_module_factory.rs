@@ -32,6 +32,7 @@ impl ModuleFactory for ProvideSharedModuleFactory {
         dep.required_version.clone(),
         dep.strict_version,
         dep.tree_shaking_mode.clone(),
+        data.options.experiments.runtime_mode,
       )
       .boxed(),
     ))

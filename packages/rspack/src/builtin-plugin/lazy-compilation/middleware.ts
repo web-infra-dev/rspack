@@ -72,11 +72,7 @@ export const lazyCompilationMiddleware = (
 
       middlewareByCompiler.set(
         options.prefix,
-        lazyCompilationMiddlewareInternal(
-          compiler,
-          activeModules,
-          options.prefix,
-        ),
+        lazyCompilationMiddlewareInternal(c, activeModules, options.prefix),
       );
 
       applyPlugin(c, options, activeModules);

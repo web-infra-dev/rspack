@@ -13,7 +13,7 @@ use super::{
   fallback_module_factory::FallbackModuleFactory, remote_module::RemoteModule,
   remote_runtime_module::RemoteRuntimeModule,
 };
-use crate::ShareScope;
+use crate::{ShareScope, utils::module_identifier_namespace};
 
 #[derive(Debug)]
 pub struct ContainerReferencePluginOptions {
@@ -72,6 +72,8 @@ async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<B
         && (request.len() == key_len || request[key_len..].starts_with('/'))
       {
         let internal_request = &request[key_len..];
+        let runtime_mode = data.options.experiments.runtime_mode;
+        let namespace = module_identifier_namespace(runtime_mode);
         let remote = RemoteModule::new(
           request.to_owned(),
           config
@@ -89,13 +91,14 @@ async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<B
                 } else {
                   Default::default()
                 };
-                format!("webpack/container/reference/{key}{fallback_suffix}")
+                format!("{namespace}/container/reference/{key}{fallback_suffix}")
               }
             })
             .collect(),
           format!(".{internal_request}"),
           config.share_scope.clone(),
           key.clone(),
+          runtime_mode,
         )
         .boxed();
         return Ok(Some(remote));

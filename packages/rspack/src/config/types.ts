@@ -1167,6 +1167,114 @@ export type JavascriptParserCommonjsOption =
       exports?: JavascriptParserCommonjsExports;
     };
 
+export type JavascriptParserWorkerOptions =
+  | boolean
+  | string[]
+  | {
+      /** Provide custom syntax for Worker parsing, commonly used to support Worklet */
+      alias?: string[];
+
+      /**
+       * Controls how Worker URLs are generated.
+       * Set to 'new-url-relative' to emit a static new URL(..., import.meta.url) expression.
+       */
+      url?: 'new-url-relative';
+    };
+
+export type ImportMetaParserOptions = {
+  [property: string]: boolean | undefined;
+
+  /**
+   * Enable/disable evaluating import.meta.dirname.
+   */
+  dirname?: boolean;
+
+  /**
+   * Enable/disable evaluating import.meta.filename.
+   */
+  filename?: boolean;
+
+  /**
+   * Enable/disable evaluating import.meta.glob.
+   */
+  glob?: boolean;
+
+  /**
+   * Enable/disable evaluating import.meta.main.
+   */
+  main?: boolean;
+
+  /**
+   * Enable/disable evaluating import.meta.resolve.
+   */
+  resolve?: boolean;
+
+  /**
+   * Enable/disable evaluating import.meta.rspackBaseUri.
+   */
+  rspackBaseUri?: boolean;
+
+  /**
+   * Enable/disable evaluating import.meta.rspackHash.
+   */
+  rspackHash?: boolean;
+
+  /**
+   * Enable/disable evaluating import.meta.rspackInitSharing.
+   */
+  rspackInitSharing?: boolean;
+
+  /**
+   * Enable/disable evaluating import.meta.rspackNonce.
+   */
+  rspackNonce?: boolean;
+
+  /**
+   * Enable/disable evaluating import.meta.rspackPublicPath.
+   */
+  rspackPublicPath?: boolean;
+
+  /**
+   * Enable/disable evaluating import.meta.rspackRsc.
+   */
+  rspackRsc?: boolean;
+
+  /**
+   * Enable/disable evaluating import.meta.rspackShareScopes.
+   */
+  rspackShareScopes?: boolean;
+
+  /**
+   * Enable/disable evaluating import.meta.rspackUniqueId.
+   */
+  rspackUniqueId?: boolean;
+
+  /**
+   * Enable/disable evaluating import.meta.rspackVersion.
+   */
+  rspackVersion?: boolean;
+
+  /**
+   * Enable/disable evaluating import.meta.url.
+   */
+  url?: boolean;
+
+  /**
+   * Enable/disable evaluating import.meta.webpack.
+   */
+  webpack?: boolean;
+
+  /**
+   * Enable/disable evaluating import.meta.webpackContext.
+   */
+  webpackContext?: boolean;
+
+  /**
+   * Enable/disable evaluating import.meta.webpackHot.
+   */
+  webpackHot?: boolean;
+};
+
 export type JavascriptParserOptions = {
   /**
    * Specifies global mode for dynamic import.
@@ -1193,9 +1301,9 @@ export type JavascriptParserOptions = {
   dynamicImportFetchPriority?: 'low' | 'high' | 'auto';
 
   /**
-   * Enable or disable evaluating import.meta. Set to 'preserve-unknown' to preserve unknown properties for runtime evaluation.
+   * Enable or disable evaluating import.meta. Set to 'preserve-unknown' or use an object to preserve unknown properties for runtime evaluation.
    */
-  importMeta?: boolean | 'preserve-unknown';
+  importMeta?: boolean | 'preserve-unknown' | ImportMetaParserOptions;
 
   /**
    * Enable parsing of new URL() syntax.
@@ -1241,8 +1349,8 @@ export type JavascriptParserOptions = {
   /** Handle the this context correctly according to the spec for namespace objects. */
   strictThisContextOnImports?: boolean;
 
-  /** Provide custom syntax for Worker parsing, commonly used to support Worklet */
-  worker?: string[] | boolean;
+  /** Configure Worker parsing and URL generation. */
+  worker?: JavascriptParserWorkerOptions;
 
   /** Override the module to strict or non-strict. */
   overrideStrict?: 'strict' | 'non-strict';

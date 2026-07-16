@@ -15,11 +15,6 @@ describeByWalk(
 	},
 	{
 		source: path.resolve(__dirname, "./esmOutputCases"),
-		dist: path.resolve(__dirname, "./js/runtime-mode-esm-output"),
-		exclude: [
-			// ESM chunk loading in rspack runtime mode currently expects
-			// chunk-format metadata that these context import cases do not emit.
-			/^dynamic-import\/import-context-(lazy|multi-chunk|prefetch-preload)$/
-		]
+		dist: path.resolve(__dirname, "./js/runtime-mode-esm-output")
 	}
 );

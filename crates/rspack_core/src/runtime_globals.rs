@@ -5,8 +5,6 @@ use heck::ToLowerCamelCase;
 use rspack_hash::{RspackHash, RspackHasher};
 use rustc_hash::FxHashMap;
 
-use crate::{CompilerOptions, runtime_mode::RuntimeMode};
-
 #[rspack_cacheable::cacheable]
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
 pub struct RuntimeGlobals(u128);
@@ -311,6 +309,9 @@ define_runtime_globals! {
 
   // react server component
   const RSC_MANIFEST;
+
+  // reexport
+  const REEXPORT;
 }
 
 impl Default for RuntimeGlobals {
@@ -412,6 +413,7 @@ pub fn runtime_globals_property_name(runtime_globals: &RuntimeGlobals) -> Option
     RuntimeGlobals::CREATE_SCRIPT => "ts",
     RuntimeGlobals::GET_TRUSTED_TYPES_POLICY => "tt",
     RuntimeGlobals::DEFINE_PROPERTY_GETTERS => "d",
+    RuntimeGlobals::REEXPORT => "re",
     RuntimeGlobals::ENTRY_MODULE_ID => "s",
     RuntimeGlobals::STARTUP_NO_DEFAULT => "x (no default handler)",
     RuntimeGlobals::ENSURE_CHUNK_INCLUDE_ENTRIES => "f (include entries)",
@@ -496,16 +498,6 @@ pub enum RuntimeVariable {
   Module,
   Exports,
   StartupExec,
-}
-
-pub fn runtime_variable_to_string(
-  runtime_variable: &RuntimeVariable,
-  compiler_options: &CompilerOptions,
-) -> String {
-  match compiler_options.experiments.runtime_mode {
-    RuntimeMode::Webpack => runtime_variable_name(runtime_variable).to_string(),
-    RuntimeMode::Rspack => rspack_runtime_variable_name(runtime_variable).to_string(),
-  }
 }
 
 pub fn rspack_runtime_variable_name(runtime_variable: &RuntimeVariable) -> &'static str {

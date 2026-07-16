@@ -1,5 +1,7 @@
+use concat_string::concat_string;
 use rspack_core::{
-  ConstDependency, ModuleArgument, RuntimeGlobals, RuntimeRequirementsDependency, property_access,
+  ConstDependency, ImportMetaKnownProperties, ModuleArgument, RuntimeGlobals,
+  RuntimeRequirementsDependency, property_access,
   runtime_mode::RuntimeMode as ExperimentRuntimeMode,
 };
 use rspack_error::{Error, Severity};
@@ -15,7 +17,7 @@ use crate::{
   },
   parser_plugin::JavascriptParserPlugin,
   utils::eval::{self, BasicEvaluatedExpression},
-  visitors::{JavascriptParser, Statement, VariableDeclaration, create_traceable_error},
+  visitors::{JavascriptParser, Statement, VariableDeclaration, create_traceable_error, expr_name},
 };
 
 fn expression_not_supported(
@@ -177,65 +179,72 @@ static RUNTIME_APIS: &[RuntimeApi] = &[
 #[derive(Clone, Copy)]
 pub(crate) struct ImportMetaRuntimeApi {
   pub(crate) name: &'static str,
-  pub(crate) property: &'static str,
+  pub(crate) property: ImportMetaKnownProperties,
   pub(crate) type_of: &'static str,
   runtime_global: RuntimeGlobals,
   runtime_call: bool,
 }
 
+impl ImportMetaRuntimeApi {
+  fn property_name(&self) -> &'static str {
+    debug_assert!(self.name.starts_with(expr_name::IMPORT_META_PREFIX));
+    &self.name[expr_name::IMPORT_META_PREFIX.len()..]
+  }
+}
+
 static IMPORT_META_RUNTIME_APIS: &[ImportMetaRuntimeApi] = &[
   ImportMetaRuntimeApi {
     name: "import.meta.rspackPublicPath",
-    property: "rspackPublicPath",
+    property: ImportMetaKnownProperties::RSPACK_PUBLIC_PATH,
     type_of: "string",
     runtime_global: RuntimeGlobals::PUBLIC_PATH,
     runtime_call: false,
   },
   ImportMetaRuntimeApi {
     name: "import.meta.rspackBaseUri",
-    property: "rspackBaseUri",
+    property: ImportMetaKnownProperties::RSPACK_BASE_URI,
     type_of: "string",
     runtime_global: RuntimeGlobals::BASE_URI,
     runtime_call: false,
   },
   ImportMetaRuntimeApi {
     name: "import.meta.rspackShareScopes",
-    property: "rspackShareScopes",
+    property: ImportMetaKnownProperties::RSPACK_SHARE_SCOPES,
     type_of: "object",
     runtime_global: RuntimeGlobals::SHARE_SCOPE_MAP,
     runtime_call: false,
   },
   ImportMetaRuntimeApi {
     name: "import.meta.rspackInitSharing",
-    property: "rspackInitSharing",
+    property: ImportMetaKnownProperties::RSPACK_INIT_SHARING,
     type_of: "function",
     runtime_global: RuntimeGlobals::INITIALIZE_SHARING,
     runtime_call: false,
   },
   ImportMetaRuntimeApi {
     name: "import.meta.rspackNonce",
-    property: "rspackNonce",
+    property: ImportMetaKnownProperties::RSPACK_NONCE,
     type_of: "string",
     runtime_global: RuntimeGlobals::SCRIPT_NONCE,
     runtime_call: false,
   },
   ImportMetaRuntimeApi {
     name: "import.meta.rspackUniqueId",
-    property: "rspackUniqueId",
+    property: ImportMetaKnownProperties::RSPACK_UNIQUE_ID,
     type_of: "string",
     runtime_global: RuntimeGlobals::RSPACK_UNIQUE_ID,
     runtime_call: false,
   },
   ImportMetaRuntimeApi {
     name: "import.meta.rspackVersion",
-    property: "rspackVersion",
+    property: ImportMetaKnownProperties::RSPACK_VERSION,
     type_of: "string",
     runtime_global: RuntimeGlobals::RSPACK_VERSION,
     runtime_call: true,
   },
   ImportMetaRuntimeApi {
     name: "import.meta.rspackHash",
-    property: "rspackHash",
+    property: ImportMetaKnownProperties::RSPACK_HASH,
     type_of: "string",
     runtime_global: RuntimeGlobals::GET_FULL_HASH,
     runtime_call: true,
@@ -276,7 +285,7 @@ pub(crate) fn import_meta_runtime_api_from_property(
 ) -> Option<&'static ImportMetaRuntimeApi> {
   IMPORT_META_RUNTIME_APIS
     .iter()
-    .find(|api| api.property == property)
+    .find(|api| api.property_name() == property)
 }
 
 pub(crate) fn render_import_meta_runtime_api(
@@ -313,7 +322,7 @@ pub(crate) fn render_import_meta_runtime_api_destructuring(
   )));
   Some(format!(
     "{}: {}",
-    api.property,
+    api.property_name(),
     render_import_meta_runtime_api(parser, api)?
   ))
 }
@@ -356,18 +365,21 @@ pub(crate) fn import_meta_runtime_api_assign(
   simple_assignment: bool,
 ) -> Option<bool> {
   if api.runtime_call {
+    let property = api.property_name();
     let content = if full_assignment {
       if simple_assignment {
-        format!("({{}}).{}", api.property)
+        concat_string!("({}).", property)
       } else {
         parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::add_only(
           api.runtime_global,
         )));
-        format!(
-          "({{ {}: {} }}).{}",
-          api.property,
+        concat_string!(
+          "({ ",
+          property,
+          ": ",
           render_import_meta_runtime_api(parser, api)?,
-          api.property
+          " }).",
+          property
         )
       }
     } else {

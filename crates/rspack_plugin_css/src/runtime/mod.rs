@@ -430,7 +430,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
       }
 
       if with_inject_style {
-        let data_webpack_prefix = if unique_name.is_empty() {
+        let data_rspack_prefix = if unique_name.is_empty() {
           json_stringify("rspack:")
         } else {
           json_stringify(&format!("{unique_name}:"))
@@ -445,7 +445,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
               runtime_template.render_runtime_globals(&RuntimeGlobals::SCRIPT_NONCE)
             ));
           }
-          code.push_str("style.setAttribute(\"data-rspack\", getDataWebpackId(key));");
+          code.push_str("style.setAttribute(\"data-rspack\", getDataRspackId(key));");
           code
         };
         let css_inject_style =
@@ -455,7 +455,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
         let source_with_style = context.runtime_template.render(
           &self.template_id(TemplateId::WithStyle),
           Some(serde_json::json!({
-            "_data_webpack_prefix": data_webpack_prefix,
+            "_data_rspack_prefix": data_rspack_prefix,
             "_create_style": &create_style_element_code,
             "_css_inject_style": &css_inject_style,
             "_with_hmr": with_hmr,
