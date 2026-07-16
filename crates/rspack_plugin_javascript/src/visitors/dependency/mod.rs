@@ -4,8 +4,9 @@ mod util;
 
 use rspack_core::{
   ArcComputed, AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BuildInfo, BuildMeta,
-  CompilerOptions, FactoryMeta, ImportMeta, ModuleIdentifier, ModuleLayer, ModuleType, ParseMeta,
-  ParserOptions, ResolvedModuleOptions, ResourceData, SideEffectsBailoutItemWithSpan,
+  CompilationId, CompilerOptions, FactoryMeta, ImportMeta, ModuleIdentifier, ModuleLayer,
+  ModuleType, ParseMeta, ParserOptions, ResolvedModuleOptions, ResourceData,
+  SideEffectsBailoutItemWithSpan,
 };
 use rspack_error::Diagnostic;
 use rustc_hash::FxHashSet;
@@ -55,6 +56,7 @@ pub fn scan_dependencies(
   module_identifier: ModuleIdentifier,
   module_parser_options: Option<&ParserOptions>,
   import_meta: ArcComputed<ResolvedModuleOptions, ImportMeta>,
+  compilation_id: CompilationId,
   semicolons: &mut FxHashSet<u32>,
   parser_plugins: &mut Vec<BoxJavascriptParserPlugin>,
   parse_meta: ParseMeta,
@@ -78,6 +80,7 @@ pub fn scan_dependencies(
     semicolons,
     parser_plugins,
     parse_meta,
+    compilation_id,
     parser_runtime_requirements,
   );
 

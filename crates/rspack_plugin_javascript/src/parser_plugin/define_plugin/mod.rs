@@ -1,5 +1,5 @@
 mod parser;
-mod utils;
+pub(crate) mod utils;
 mod walk_data;
 
 use std::sync::Arc;
@@ -11,13 +11,13 @@ use rspack_core::{
 };
 use rspack_error::{Diagnostic, Error, Result};
 use rspack_hook::{plugin, plugin_hook};
-use rustc_hash::FxHashMap;
+use rspack_util::fx_hash::FxHashMap;
 use serde_json::Value;
 
 use self::walk_data::WalkData;
-use crate::parser_and_generator::JavaScriptParserAndGenerator;
+use crate::{parser_and_generator::JavaScriptParserAndGenerator, plugin::EnvPlugin};
 
-const VALUE_DEP_PREFIX: &str = "rspack/DefinePlugin ";
+pub(crate) const VALUE_DEP_PREFIX: &str = "rspack/DefinePlugin ";
 
 #[derive(Debug)]
 struct ConflictingValuesError(String, String, String);
@@ -47,12 +47,18 @@ impl DefinePlugin {
 }
 
 #[plugin_hook(CompilerCompilation for DefinePlugin, tracing=false)]
-async fn compilation(
+async fn collect_import_meta_env_definitions(
   &self,
   compilation: &mut Compilation,
   _params: &mut CompilationParams,
 ) -> Result<()> {
   compilation.extend_diagnostics(self.walk_data.diagnostics.clone());
+  if compilation.options.experiments.env {
+    EnvPlugin::collect(
+      compilation.id(),
+      &self.walk_data.import_meta_env_definitions,
+    );
+  }
   for (key, value) in self.walk_data.tiling_definitions.iter() {
     let cache_key = format!("{VALUE_DEP_PREFIX}{key}");
     if let Some(prev) = compilation.value_cache_versions.get(&cache_key)
@@ -92,7 +98,10 @@ impl Plugin for DefinePlugin {
   }
 
   fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
-    ctx.compiler_hooks.compilation.tap(compilation::new(self));
+    ctx
+      .compiler_hooks
+      .compilation
+      .tap(collect_import_meta_env_definitions::new(self));
     ctx
       .normal_module_factory_hooks
       .parser

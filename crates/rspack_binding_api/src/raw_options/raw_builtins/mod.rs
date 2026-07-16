@@ -76,7 +76,7 @@ use rspack_plugin_hmr::HotModuleReplacementPlugin;
 use rspack_plugin_html::HtmlRspackPlugin;
 use rspack_plugin_ignore::IgnorePlugin;
 use rspack_plugin_javascript::{
-  FlagDependencyExportsPlugin, FlagDependencyUsagePlugin, InferAsyncModulesPlugin,
+  EnvPlugin, FlagDependencyExportsPlugin, FlagDependencyUsagePlugin, InferAsyncModulesPlugin,
   InlineExportsPlugin, JsPlugin, MangleExportsPlugin, ModuleConcatenationPlugin,
   SideEffectsFlagPlugin, api_plugin::APIPlugin, define_plugin::DefinePlugin,
   provide_plugin::ProvidePlugin, url_plugin::URLPlugin,
@@ -643,7 +643,10 @@ impl<'a> BuiltinPlugin<'a> {
       BuiltinPluginName::InferAsyncModulesPlugin => {
         plugins.push(InferAsyncModulesPlugin::default().boxed())
       }
-      BuiltinPluginName::JavascriptModulesPlugin => plugins.push(JsPlugin::default().boxed()),
+      BuiltinPluginName::JavascriptModulesPlugin => {
+        plugins.push(JsPlugin::default().boxed());
+        plugins.push(EnvPlugin::default().boxed());
+      }
       BuiltinPluginName::AsyncWebAssemblyModulesPlugin => {
         plugins.push(AsyncWasmPlugin::default().boxed())
       }

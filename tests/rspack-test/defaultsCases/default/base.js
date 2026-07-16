@@ -23,6 +23,7 @@ module.exports = {
 			    asyncWebAssembly: true,
 			    buildHttp: undefined,
 			    deferImport: false,
+			    env: false,
 			    futureDefaults: false,
 			    pureFunctions: false,
 			    runtimeMode: webpack,

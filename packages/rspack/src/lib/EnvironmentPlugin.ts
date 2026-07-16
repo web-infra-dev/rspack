@@ -8,8 +8,8 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
-import { DefinePlugin } from '../builtin-plugin';
 import type { Compiler } from '../Compiler';
+import { DefinePlugin } from '../builtin-plugin';
 import WebpackError from './WebpackError';
 
 // Waiting to adapt > import("./DefinePlugin").CodeValue
@@ -41,19 +41,20 @@ class EnvironmentPlugin {
    * @returns
    */
   apply(compiler: Compiler) {
-    const definitions: Record<string, CodeValue> = {};
+    const definitions: Record<string, CodeValue> = Object.create(null);
     for (const key of this.keys) {
-      const value =
-        process.env[key] !== undefined
-          ? process.env[key]
-          : this.defaultValues[key];
+      const value = Object.prototype.hasOwnProperty.call(process.env, key)
+        ? process.env[key]
+        : this.defaultValues[key];
 
       if (value === undefined) {
         compiler.hooks.thisCompilation.tap(
           'EnvironmentPlugin',
           (compilation) => {
             const error = new WebpackError(
-              `EnvironmentPlugin - ${key} environment variable is undefined.\n\nYou can pass an object with default values to suppress this warning.\nSee https://rspack.rs/plugins/webpack/environment-plugin for example.`,
+              `EnvironmentPlugin - ${key} environment variable is undefined.\n\n` +
+                'You can pass an object with default values to suppress this warning.\n' +
+                'See https://rspack.rs/plugins/webpack/environment-plugin for example.',
             );
 
             error.name = 'EnvVariableNotDefinedError';
@@ -62,8 +63,12 @@ class EnvironmentPlugin {
         );
       }
 
-      definitions[`process.env.${key}`] =
+      const defValue =
         value === undefined ? 'undefined' : JSON.stringify(value);
+      definitions[`process.env.${key}`] = defValue;
+      if (compiler.options.experiments.env) {
+        definitions[`import.meta.env.${key}`] = defValue;
+      }
     }
     new DefinePlugin(definitions).apply(compiler);
   }

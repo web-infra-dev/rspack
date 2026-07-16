@@ -9,7 +9,7 @@ mod target;
 pub use builder_context::BuilderContext;
 pub use devtool::Devtool;
 use rspack_tasks::CURRENT_COMPILER_CONTEXT;
-use rspack_util::{fx_hash::FxIndexMap, json_stringify_str};
+use rspack_util::fx_hash::FxIndexMap;
 pub use target::Targets;
 
 macro_rules! d {
@@ -3392,7 +3392,7 @@ impl OptimizationOptionsBuilder {
   where
     V: Into<String>,
   {
-    self.node_env = Some(json_stringify_str(&value.into()));
+    self.node_env = Some(value.into());
     self
   }
 
@@ -3645,12 +3645,15 @@ impl OptimizationOptionsBuilder {
       }
     });
     if let Some(node_env) = node_env {
+      let node_env = format!("{}", json!(node_env));
+      let mut definitions =
+        HashMap::from_iter([("process.env.NODE_ENV".to_string(), node_env.clone().into())]);
+      if experiments.env {
+        definitions.insert("import.meta.env.NODE_ENV".to_string(), node_env.into());
+      }
       builder_context
         .plugins
-        .push(BuiltinPluginOptions::DefinePlugin(HashMap::from_iter([(
-          "process.env.NODE_ENV".to_string(),
-          format!("{}", json!(node_env)).into(),
-        )])));
+        .push(BuiltinPluginOptions::DefinePlugin(definitions));
     }
 
     Ok(Optimization {
@@ -3680,6 +3683,8 @@ pub struct ExperimentsBuilder {
   async_web_assembly: Option<bool>,
   /// Whether to enable defer import.
   defer_import: Option<bool>,
+  /// Whether to enable import.meta.env support.
+  env: Option<bool>,
   /// Whether to enable source import.
   source_import: Option<bool>,
   // TODO: lazy compilation
@@ -3694,6 +3699,7 @@ impl From<Experiments> for ExperimentsBuilder {
       css: Some(value.css),
       async_web_assembly: None,
       defer_import: Some(value.defer_import),
+      env: Some(value.env),
       source_import: Some(value.source_import),
       pure_functions: Some(value.pure_functions),
       runtime_mode: Some(value.runtime_mode),
@@ -3708,6 +3714,7 @@ impl From<&mut ExperimentsBuilder> for ExperimentsBuilder {
       css: value.css.take(),
       async_web_assembly: value.async_web_assembly.take(),
       defer_import: value.defer_import.take(),
+      env: value.env.take(),
       source_import: value.source_import.take(),
       pure_functions: value.pure_functions.take(),
       runtime_mode: value.runtime_mode.take(),
@@ -3740,6 +3747,12 @@ impl ExperimentsBuilder {
     self
   }
 
+  /// Set whether to enable import.meta.env support.
+  pub fn env(&mut self, env: bool) -> &mut Self {
+    self.env = Some(env);
+    self
+  }
+
   /// Set whether to enable source import.
   pub fn source_import(&mut self, source_import: bool) -> &mut Self {
     self.source_import = Some(source_import);
@@ -3763,6 +3776,7 @@ impl ExperimentsBuilder {
     Ok(Experiments {
       css: d!(self.css, false),
       defer_import: d!(self.defer_import, false),
+      env: d!(self.env, false),
       source_import: d!(self.source_import, false),
       pure_functions: d!(self.pure_functions, _production),
       runtime_mode: d!(self.runtime_mode, RuntimeMode::Webpack),
@@ -3859,6 +3873,57 @@ mod test {
           .iter()
           .any(|plugin| matches!(plugin, BuiltinPluginOptions::SideEffectsFlagPlugin(false)))
       );
+    })
+  }
+
+  #[test]
+  fn node_env_define_respects_env_experiment() {
+    within_compiler_context_for_testing_sync(|| {
+      let mut context: BuilderContext = Default::default();
+      CompilerOptions::builder()
+        .mode(Mode::Production)
+        .target(vec!["web".to_string()])
+        .experiments(ExperimentsBuilder::default().env(true))
+        .optimization(OptimizationOptionsBuilder::default().node_env("staging"))
+        .build(&mut context)
+        .unwrap();
+
+      let definitions = context
+        .plugins
+        .iter()
+        .find_map(|plugin| match plugin {
+          BuiltinPluginOptions::DefinePlugin(definitions) => Some(definitions),
+          _ => None,
+        })
+        .expect("NODE_ENV DefinePlugin should exist");
+      assert_eq!(
+        definitions
+          .get("process.env.NODE_ENV")
+          .and_then(|value| value.as_str()),
+        Some("\"staging\"")
+      );
+      assert_eq!(
+        definitions.get("import.meta.env.NODE_ENV"),
+        definitions.get("process.env.NODE_ENV")
+      );
+
+      let mut context: BuilderContext = Default::default();
+      CompilerOptions::builder()
+        .mode(Mode::Production)
+        .target(vec!["web".to_string()])
+        .build(&mut context)
+        .unwrap();
+
+      let definitions = context
+        .plugins
+        .iter()
+        .find_map(|plugin| match plugin {
+          BuiltinPluginOptions::DefinePlugin(definitions) => Some(definitions),
+          _ => None,
+        })
+        .expect("NODE_ENV DefinePlugin should exist");
+      assert!(definitions.contains_key("process.env.NODE_ENV"));
+      assert!(!definitions.contains_key("import.meta.env.NODE_ENV"));
     })
   }
 
