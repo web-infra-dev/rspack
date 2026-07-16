@@ -12,6 +12,14 @@ test('should apply a CSS edit made before the chunk owning it is ever imported',
   page,
   fileAction,
 }) => {
+  // Unlike the sibling contenthash-hmr case (which mutates an already-loaded
+  // stylesheet and lets toHaveCSS retry), this one must wait for the update to be fully
+  // *applied* before triggering the first import(): if #load runs while the retained
+  // filename is still stale, the chunk loads the pre-edit href and the failure is
+  // permanent (the chunk is marked errored and never re-fetched). "[HMR] App is up to
+  // date." is emitted by this repo's own hot client (packages/rspack/hot/dev-server.js)
+  // exactly on apply completion, so it's the correct - and repo-owned, not third-party -
+  // signal to gate on.
   const hmrSettled = page.waitForEvent('console', {
     predicate: (msg) => msg.text().includes('up to date'),
   });

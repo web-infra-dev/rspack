@@ -272,6 +272,24 @@ function hotCheck(applyOnUpdate) {
 						currentUpdateMiniCssFilenames[cssChunkId] = update.miniCss[cssChunkId];
 					}
 				}
+				// Prune retained filenames that have gone stale, so a later first-time import()
+				// of such a chunk resolves miniCssF (or nothing) rather than preferring a href the
+				// dev server no longer holds - a guaranteed 404. Two cases:
+				//   - a chunk in update.c but absent from update.miniCss was rebuilt yet now carries
+				//     no extract-css asset (its CSS import was removed), so any retained href is dead;
+				//   - a chunk in update.r was removed outright.
+				if (update.c) {
+					update.c.forEach(function (updatedChunkId) {
+						if (!(update.miniCss && updatedChunkId in update.miniCss)) {
+							delete currentUpdateMiniCssFilenames[updatedChunkId];
+						}
+					});
+				}
+				if (update.r) {
+					update.r.forEach(function (removedChunkId) {
+						delete currentUpdateMiniCssFilenames[removedChunkId];
+					});
+				}
 
 				return Promise.all(
 					Object.keys(<%- HMR_DOWNLOAD_UPDATE_HANDLERS %>).reduce(function (
