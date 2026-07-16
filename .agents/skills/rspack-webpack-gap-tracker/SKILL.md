@@ -85,6 +85,8 @@ pnpm --filter @rspack/skill-webpack-gap-tracker diff-tests -- --webpack /path/to
 
 Treat `webpack.config.{js,mjs,cjs,ts,mts,cts}` and `rspack.config.{js,mjs,cjs,ts,mts,cts}` as the same logical file when comparing content, even when their extensions differ. Keep their real names in diff headers. Use `--context <lines>` to control unified diff context.
 
+Normalize supported text formats with one deterministic Prettier configuration before comparing them so quote, indentation, trailing-comma, line-ending, and trailing-whitespace differences do not appear in patches. If parsing fails, fall back to line-ending and trailing-whitespace normalization. Use `--no-format` only when the exact raw text difference is required.
+
 Set the webpack checkout with `--webpack` or `WEBPACK_ROOT`. Set a different Rspack checkout with `--rspack`. Pass either a repository root or its test directory.
 
 Use `--direction webpack` to show tests missing from Rspack, `--direction rspack` to show Rspack-only tests, or the default `--direction both` to show the symmetric directory diff. Read `scripts/diff-tests.mjs` only when changing its comparison behavior.

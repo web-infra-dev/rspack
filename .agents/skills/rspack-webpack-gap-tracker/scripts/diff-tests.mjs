@@ -2,9 +2,10 @@
 
 import { isUtf8 } from 'node:buffer';
 import { readFile, readdir, stat } from 'node:fs/promises';
-import { dirname, join, relative, resolve, sep } from 'node:path';
+import { dirname, extname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createTwoFilesPatch } from 'diff';
+import { format as formatWithPrettier } from 'prettier';
 import { argv, chalk } from 'zx';
 
 const scriptDirectory = dirname(fileURLToPath(import.meta.url));
@@ -43,6 +44,7 @@ const help = [
   '  --direction <value>    both, webpack, or rspack (default: both)',
   '  --content              Diff files in test cases present on both sides',
   '  --context <lines>      Unified diff context lines (default: 3)',
+  '  --no-format            Keep raw formatting in content diffs',
   '  -h, --help             Show this help',
 ].join('\n');
 
@@ -60,7 +62,8 @@ if (!['both', 'webpack', 'rspack'].includes(direction)) {
   );
 }
 
-const showContent = Boolean(argv.content);
+const showContent = argv.content !== undefined && argv.content !== false;
+const formatContent = argv.format !== false;
 const contextLines = Number(argv.context ?? 3);
 if (!Number.isInteger(contextLines) || contextLines < 0) {
   throw new Error(
@@ -91,7 +94,11 @@ const webpackTests = await resolveTestDirectory(
   'webpack',
   'webpack',
 );
-const filters = compileFilters(argv._.map(String));
+const filterArguments = argv._.map(String);
+if (typeof argv.content === 'string') {
+  filterArguments.unshift(argv.content);
+}
+const filters = compileFilters(filterArguments);
 
 const [webpackCases, rspackCases] = await Promise.all([
   collectCases(webpackTests, 'webpack'),
@@ -105,7 +112,7 @@ console.log(chalk.bold('Test directory diff'));
 console.log('webpack: ' + webpackTests);
 console.log('rspack:  ' + rspackTests);
 if (filters.length > 0) {
-  console.log('filters: ' + argv._.join(', '));
+  console.log('filters: ' + filterArguments.join(', '));
 }
 
 if (direction === 'both' || direction === 'webpack') {
@@ -122,6 +129,7 @@ if (showContent) {
     filters,
     direction,
     contextLines,
+    formatContent,
   });
 }
 
@@ -234,6 +242,7 @@ async function printContentDiff({
   filters,
   direction,
   contextLines,
+  formatContent,
 }) {
   const sharedCases = [...webpackCases.keys()]
     .filter((path) => rspackCases.has(path))
@@ -249,6 +258,7 @@ async function printContentDiff({
       rspackRoot: rspackCases.get(casePath),
       direction,
       contextLines,
+      formatContent,
     });
     if (diffs.length > 0) {
       groupedDiffs.push({ casePath, diffs });
@@ -263,7 +273,9 @@ async function printContentDiff({
           groupedDiffs.length +
           ' cases, ' +
           fileCount +
-          ' files)',
+          ' files, ' +
+          (formatContent ? 'format normalized' : 'raw formatting') +
+          ')',
       ),
   );
   if (fileCount === 0) {
@@ -286,6 +298,7 @@ async function diffCaseFiles({
   rspackRoot,
   direction,
   contextLines,
+  formatContent,
 }) {
   const [webpackFiles, rspackFiles] = await Promise.all([
     collectFiles(webpackRoot, 'webpack'),
@@ -305,6 +318,7 @@ async function diffCaseFiles({
       webpackFile,
       rspackFile,
       contextLines,
+      formatContent,
     });
     if (diff) diffs.push(diff);
   }
@@ -356,6 +370,7 @@ async function createFileDiff({
   webpackFile,
   rspackFile,
   contextLines,
+  formatContent,
 }) {
   const [webpackBuffer, rspackBuffer] = await Promise.all([
     webpackFile ? readFile(webpackFile.path) : undefined,
@@ -383,18 +398,91 @@ async function createFileDiff({
     };
   }
 
+  const parser = prettierParserFor(
+    webpackFile?.relativePath ?? rspackFile?.relativePath,
+  );
+  const [webpackText, rspackText] = await normalizeTexts(
+    webpackBuffer?.toString('utf8') ?? '',
+    rspackBuffer?.toString('utf8') ?? '',
+    parser,
+    formatContent,
+  );
+  if (webpackText === rspackText) return undefined;
+
   return {
     label,
     patch: createTwoFilesPatch(
       webpackName,
       rspackName,
-      webpackBuffer?.toString('utf8') ?? '',
-      rspackBuffer?.toString('utf8') ?? '',
+      webpackText,
+      rspackText,
       '',
       '',
       { context: contextLines },
     ).trimEnd(),
   };
+}
+
+async function normalizeTexts(left, right, parser, shouldFormat) {
+  if (!shouldFormat) return [left, right];
+
+  const normalizeWhitespace = (text) =>
+    text
+      .replace(/\r\n?/g, '\n')
+      .split('\n')
+      .map((line) => line.trimEnd())
+      .join('\n');
+  const normalized = [normalizeWhitespace(left), normalizeWhitespace(right)];
+  if (!parser || normalized.every((text) => text.length === 0)) {
+    return normalized;
+  }
+
+  try {
+    const options = {
+      parser,
+      endOfLine: 'lf',
+      printWidth: 80,
+      semi: true,
+      singleQuote: true,
+      tabWidth: 2,
+      trailingComma: 'all',
+      useTabs: false,
+    };
+    return await Promise.all(
+      normalized.map((text) =>
+        text.length === 0 ? text : formatWithPrettier(text, options),
+      ),
+    );
+  } catch {
+    return normalized;
+  }
+}
+
+function prettierParserFor(path) {
+  const parsers = {
+    '.cjs': 'babel',
+    '.cts': 'typescript',
+    '.css': 'css',
+    '.graphql': 'graphql',
+    '.gql': 'graphql',
+    '.html': 'html',
+    '.js': 'babel',
+    '.json': 'json',
+    '.json5': 'json5',
+    '.jsx': 'babel',
+    '.less': 'less',
+    '.md': 'markdown',
+    '.mdx': 'mdx',
+    '.mjs': 'babel',
+    '.mts': 'typescript',
+    '.scss': 'scss',
+    '.ts': 'typescript',
+    '.tsx': 'typescript',
+    '.vue': 'vue',
+    '.yaml': 'yaml',
+    '.yml': 'yaml',
+  };
+  return parsers[extname(path ?? '').toLowerCase()];
 }
 
 function displayFileName(source, casePath, file) {
