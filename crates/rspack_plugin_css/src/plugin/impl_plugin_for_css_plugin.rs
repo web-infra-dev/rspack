@@ -46,6 +46,11 @@ use crate::{
 /// We should make sure that there's no read-write and write-write conflicts for each hook instance by looking up [CssPlugin::get_compilation_hooks_mut]
 type ArcCssModulesPluginHooks = Arc<AtomicRefCell<CssModulesPluginHooks>>;
 
+struct CssModuleRenderSources {
+  source_before_hooks: BoxSource,
+  rendered_source: BoxSource,
+}
+
 static COMPILATION_HOOKS_MAP: LazyLock<FxDashMap<CompilationId, ArcCssModulesPluginHooks>> =
   LazyLock::new(Default::default);
 
@@ -206,12 +211,21 @@ impl CssPlugin {
               };
 
               let chunk_ukey = chunk.as_u32().into();
+              // Module package hooks may add module-specific decorations such as pathinfo.
+              // Deduplicate the undecorated source but emit the rendered source.
+              let source_before_hooks = post_module_container.source.clone();
               hooks
                 .render_module_package
                 .call(compilation, &chunk_ukey, module, &mut post_module_container)
                 .await?;
 
-              Ok((module.identifier(), post_module_container.source))
+              Ok((
+                module.identifier(),
+                CssModuleRenderSources {
+                  source_before_hooks,
+                  rendered_source: post_module_container.source,
+                },
+              ))
             },
           );
         });
@@ -234,7 +248,7 @@ impl CssPlugin {
 
   fn render_ordered_css_sources(
     ordered_css_modules: &[&dyn Module],
-    module_sources: &HashMap<ModuleIdentifier, BoxSource>,
+    module_sources: &HashMap<ModuleIdentifier, CssModuleRenderSources>,
   ) -> BoxSource {
     let mut non_import_css_sources = HashMap::<_, Vec<_>>::default();
     for module in ordered_css_modules
@@ -248,7 +262,7 @@ impl CssPlugin {
         non_import_css_sources
           .entry(resource)
           .or_default()
-          .push(source);
+          .push(&source.source_before_hooks);
       }
     }
 
@@ -260,9 +274,10 @@ impl CssPlugin {
         && let Some(resource) = css_module_resource(*module)
         && let Some(source) = module_sources.get(&identifier)
         && non_import_css_sources.get(resource).is_some_and(|sources| {
-          sources
-            .iter()
-            .any(|other| is_source_equal(source.as_ref(), (*other).as_ref()))
+          sources.iter().any(|other| {
+            source.source_before_hooks.size() == other.size()
+              && is_source_equal(source.source_before_hooks.as_ref(), (*other).as_ref())
+          })
         })
       {
         if css_module_has_charset(*module) {
@@ -275,7 +290,7 @@ impl CssPlugin {
         if css_module_has_charset(*module) {
           builder.set_has_charset();
         }
-        builder.push_css_source(source.clone(), &[], false);
+        builder.push_css_source(source.rendered_source.clone(), &[], false);
       }
     }
 

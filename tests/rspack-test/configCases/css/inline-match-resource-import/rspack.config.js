@@ -2,6 +2,9 @@
 module.exports = {
   target: 'web',
   mode: 'development',
+  output: {
+    pathinfo: true,
+  },
   experiments: {
     css: true,
   },
