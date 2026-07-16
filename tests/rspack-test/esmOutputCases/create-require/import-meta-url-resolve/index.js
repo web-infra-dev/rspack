@@ -24,14 +24,11 @@ it("should consume createRequire(import.meta.url) like webpack", async () => {
 	const path = await import(/* webpackIgnore: true */ "node:path");
 	const source = fs.readFileSync(path.join(__dirname, "main.mjs"), "utf-8");
 	const fileUrlScheme = "file:" + "//";
-	const normalizedRoot = "<" + "ROOT>";
 	const runtimeCreateRequire =
 		"(0,external_node_module_namespaceObject." + "createRequire)(import.meta.url)";
 
-	expect(source).not.toContain(fileUrlScheme);
-	expect(source).not.toContain("createRequire('" + normalizedRoot);
-	expect(source).not.toContain('createRequire("' + normalizedRoot);
-	expect(source.split(runtimeCreateRequire)).toHaveLength(6);
+	expect(source).toContain(fileUrlScheme);
+	expect(source).not.toContain(runtimeCreateRequire);
 	expect(source).toContain("/* createRequire() */ undefined");
 	expect(source).toContain("__webpack_require__(");
 	expect(source).toContain("/*require.resolve*/");

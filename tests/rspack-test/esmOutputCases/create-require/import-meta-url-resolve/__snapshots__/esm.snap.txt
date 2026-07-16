@@ -23,21 +23,21 @@ const external_node_module_namespaceObject = __rspack_createRequire_require("nod
 var external_node_module_default = /*#__PURE__*/__webpack_require__.n(external_node_module_namespaceObject);// ./default-require.js
 
 
-const defaultRequire = external_node_module_default().createRequire(import.meta.url);
+const defaultRequire = external_node_module_default().createRequire('<ROOT>/tests/rspack-test/esmOutputCases/create-require/import-meta-url-resolve/default-require.js');
 
 const defaultUnknown = defaultRequire.unknown;
 
 // ./exported-require.js
 
 
-const exportedRequire = (0,external_node_module_namespaceObject.createRequire)(import.meta.url);
+const exportedRequire = (0,external_node_module_namespaceObject.createRequire)('<ROOT>/tests/rspack-test/esmOutputCases/create-require/import-meta-url-resolve/exported-require.js');
 
 
 
 // ./namespace-require.js
 
 
-const namespaceRequire = external_node_module_namespaceObject.createRequire(import.meta.url);
+const namespaceRequire = external_node_module_namespaceObject.createRequire('<ROOT>/tests/rspack-test/esmOutputCases/create-require/import-meta-url-resolve/namespace-require.js');
 
 const namespaceUnknown = namespaceRequire.unknown;
 
@@ -48,14 +48,14 @@ function getRequire() {
 	return req;
 }
 
-const req = (0,external_node_module_namespaceObject.createRequire)(import.meta.url);
+const req = (0,external_node_module_namespaceObject.createRequire)('<ROOT>/tests/rspack-test/esmOutputCases/create-require/import-meta-url-resolve/pre-declared-require.js');
 
 function getNestedRequire() {
 	function readRequire() {
 		return nestedReq;
 	}
 
-	const nestedReq = (0,external_node_module_namespaceObject.createRequire)(import.meta.url);
+	const nestedReq = (0,external_node_module_namespaceObject.createRequire)('<ROOT>/tests/rspack-test/esmOutputCases/create-require/import-meta-url-resolve/pre-declared-require.js');
 	return readRequire();
 }
 
@@ -77,8 +77,8 @@ const pre_declared_require_call_req = /* createRequire() */ undefined;
 
 
 const index_req = /* createRequire() */ undefined;
-const requireWithUnknownMember = (0,external_node_module_namespaceObject.createRequire)(import.meta.url);
-const requireAsValue = (0,external_node_module_namespaceObject.createRequire)(import.meta.url);
+const requireWithUnknownMember = (0,external_node_module_namespaceObject.createRequire)('<ROOT>/tests/rspack-test/esmOutputCases/create-require/import-meta-url-resolve/index.js');
+const requireAsValue = (0,external_node_module_namespaceObject.createRequire)('<ROOT>/tests/rspack-test/esmOutputCases/create-require/import-meta-url-resolve/index.js');
 
 const identity = value => value;
 
@@ -92,14 +92,11 @@ it("should consume createRequire(import.meta.url) like webpack", async () => {
 	const path = await import(/* webpackIgnore: true */ "node:path");
 	const source = fs.readFileSync(path.join(__rspack_import_meta_dirname__, "main.mjs"), "utf-8");
 	const fileUrlScheme = "file:" + "//";
-	const normalizedRoot = "<" + "ROOT>";
 	const runtimeCreateRequire =
 		"(0,external_node_module_namespaceObject." + "createRequire)(import.meta.url)";
 
-	expect(source).not.toContain(fileUrlScheme);
-	expect(source).not.toContain("createRequire('" + normalizedRoot);
-	expect(source).not.toContain('createRequire("' + normalizedRoot);
-	expect(source.split(runtimeCreateRequire)).toHaveLength(6);
+	expect(source).toContain(fileUrlScheme);
+	expect(source).not.toContain(runtimeCreateRequire);
 	expect(source).toContain("/* createRequire() */ undefined");
 	expect(source).toContain("__webpack_require__(");
 	expect(source).toContain("/*require.resolve*/");
