@@ -464,6 +464,7 @@ async fn visit_dirs(
     };
   let is_import_meta_glob = resolved_glob_patterns.is_some();
   let glob_exhaustive = options.context_options.glob_exhaustive;
+  let glob_case_sensitive = options.context_options.glob_case_sensitive;
 
   walk_dir(
     dir,
@@ -511,7 +512,8 @@ async fn visit_dirs(
         // Keep import.meta.glob Vite-compatible: expose only filesystem-matched
         // paths, not resolver alternative requests like extensionless aliases.
         // Revisit this branch if import.meta.glob compatibility changes.
-        if let Some(user_request) = glob_user_request(patterns, path_str, glob_exhaustive)
+        if let Some(user_request) =
+          glob_user_request(patterns, path_str, glob_exhaustive, glob_case_sensitive)
           && !dependencies.iter().any(|d| d.user_request == user_request)
         {
           push_context_element_dependency(dependencies, options, &relative_path, &user_request);
@@ -658,17 +660,18 @@ fn glob_user_request(
   patterns: &[ResolvedContextModuleGlobPattern],
   path: &str,
   exhaustive: bool,
+  case_sensitive: bool,
 ) -> Option<String> {
   let normalized_path = normalize_path_separators_for_path(path);
   let matched = patterns
     .iter()
     .filter(|pattern| !pattern.negative)
-    .find(|pattern| glob_pattern_matches(pattern, &normalized_path, exhaustive))?;
+    .find(|pattern| glob_pattern_matches(pattern, &normalized_path, exhaustive, case_sensitive))?;
 
   if patterns
     .iter()
     .filter(|pattern| pattern.negative)
-    .any(|pattern| glob_pattern_matches(pattern, &normalized_path, exhaustive))
+    .any(|pattern| glob_pattern_matches(pattern, &normalized_path, exhaustive, case_sensitive))
   {
     return None;
   }
@@ -688,14 +691,15 @@ fn glob_pattern_matches(
   pattern: &ResolvedContextModuleGlobPattern,
   normalized_path: &str,
   exhaustive: bool,
+  case_sensitive: bool,
 ) -> bool {
   glob_match_normalized_with_explicit_dot(
     &pattern.absolute_pattern,
     normalized_path,
     &pattern.absolute_base,
     &GlobMatchOptions {
+      case_sensitive,
       require_literal_leading_dot: !exhaustive,
-      ..Default::default()
     },
   )
 }

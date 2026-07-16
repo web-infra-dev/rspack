@@ -106,6 +106,11 @@ const filteredDefaultModules = import.meta.glob(['./dir/*.js', '!**/bar.js'], {
 const lazyFilteredNamedModules = import.meta.glob(['./dir/*.js', '!**/bar.js'], {
   import: 'named',
 })
+const caseSensitiveModules = import.meta.glob('./case-test/*.JS', { eager: true })
+const caseInsensitiveModules = import.meta.glob('./case-test/*.JS', {
+  eager: true,
+  caseSensitive: false,
+})
 const quotedModules = import.meta.glob("./quoted/*.js", { eager: true })
 const escapeModules = import.meta.glob('./escape/**/glob.js', { eager: true })
 
@@ -313,6 +318,12 @@ it('should parse glob calls with comments in the argument list', async () => {
 it('should work when glob results are wrapped with Object.keys and Object.values', () => {
   expect(objectKeyModules.sort()).toEqual(dirKeys)
   expect(objectValueModules.map(mod => mod.default).sort()).toEqual(['bar', 'foo'])
+})
+
+it('should match case-insensitively only when caseSensitive is false', () => {
+  expect(Object.keys(caseSensitiveModules)).toEqual([])
+  expect(Object.keys(caseInsensitiveModules)).toEqual(['./case-test/alpha.js'])
+  expect(caseInsensitiveModules['./case-test/alpha.js'].default).toBe('alpha')
 })
 
 it('should handle matched paths containing single quotes', () => {
