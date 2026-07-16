@@ -688,7 +688,7 @@ pub struct RegisterJsTaps {
   pub register_runtime_plugin_link_prefetch_taps: RegisterFunction,
   // real content hash plugin
   #[napi(
-    ts_type = "(stages: Array<number>) => Array<{ function: ((assets: Array<Buffer>, oldHash: string) => string | undefined); stage: number; }>"
+    ts_type = "(stages: Array<number>) => Array<{ function: ((args: [assets: Array<Buffer>, oldHash: string]) => string | undefined); stage: number; }>"
   )]
   pub register_real_content_hash_plugin_update_hash_taps: RegisterFunction,
   // rsdoctor plugin
