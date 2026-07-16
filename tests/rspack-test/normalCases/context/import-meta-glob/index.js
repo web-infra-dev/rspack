@@ -109,7 +109,15 @@ const lazyFilteredNamedModules = import.meta.glob(['./dir/*.js', '!**/bar.js'], 
 const caseSensitiveModules = import.meta.glob('./case-test/*.JS', { eager: true })
 const caseInsensitiveModules = import.meta.glob('./case-test/*.JS', {
   eager: true,
-  caseSensitive: false,
+  caseSensitive: !true,
+})
+const numberCaseSensitiveModules = import.meta.glob('./case-test/*.JS', {
+  eager: true,
+  caseSensitive: 0,
+})
+const stringCaseSensitiveModules = import.meta.glob('./case-test/*.JS', {
+  eager: true,
+  caseSensitive: '',
 })
 const quotedModules = import.meta.glob("./quoted/*.js", { eager: true })
 const escapeModules = import.meta.glob('./escape/**/glob.js', { eager: true })
@@ -324,6 +332,11 @@ it('should match case-insensitively only when caseSensitive is false', () => {
   expect(Object.keys(caseSensitiveModules)).toEqual([])
   expect(Object.keys(caseInsensitiveModules)).toEqual(['./case-test/alpha.js'])
   expect(caseInsensitiveModules['./case-test/alpha.js'].default).toBe('alpha')
+})
+
+it('should use case-sensitive matching for non-boolean caseSensitive values', () => {
+  expect(Object.keys(numberCaseSensitiveModules)).toEqual([])
+  expect(Object.keys(stringCaseSensitiveModules)).toEqual([])
 })
 
 it('should handle matched paths containing single quotes', () => {

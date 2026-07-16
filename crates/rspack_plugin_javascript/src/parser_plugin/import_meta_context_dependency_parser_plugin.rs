@@ -369,7 +369,10 @@ fn create_import_meta_glob_dependency(
     .is_some_and(|obj| get_bool_by_obj_prop(obj, "exhaustive").is_some_and(|b| b.value));
   let glob_case_sensitive = glob_options
     .and_then(|obj| get_value_by_obj_prop(obj, "caseSensitive"))
-    .and_then(|value| parser.evaluate_expression(value).as_bool())
+    .and_then(|value| {
+      let evaluated = parser.evaluate_expression(value);
+      evaluated.is_bool().then(|| evaluated.bool())
+    })
     .unwrap_or(true);
   let context = resolve_import_meta_glob_context(
     importer_context.as_str(),
