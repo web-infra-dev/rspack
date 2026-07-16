@@ -15,7 +15,6 @@ import type {
   JsStatsError,
   JsStatsModule,
 } from '@rspack/binding';
-import type { Chunk } from '../Chunk';
 import type { LogEntry, NormalizedStatsOptions } from '../Compilation';
 import type { Compiler } from '../Compiler';
 import type { StatsOptions } from '../config';
@@ -1006,24 +1005,15 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
         chunkGroup: entrypoint,
       }));
 
-      const chunks = Array.from(compilation.chunks).reduce<
-        Record<string, Chunk>
-      >((res, chunk) => {
-        res[chunk.id!] = chunk;
-        return res;
-      }, {});
-
       if (entrypoints === 'auto' && !chunkGroups) {
         if (array.length > 5) return;
         if (
           !chunkGroupChildren &&
           array.every(({ chunkGroup }) => {
             if (chunkGroup.chunks.length !== 1) return false;
-            const chunk = chunks[chunkGroup.chunks[0]];
             return (
-              chunk &&
-              chunk.files.size === 1 &&
-              (!chunkGroupAuxiliary || chunk.auxiliaryFiles.size === 0)
+              chunkGroup.assets.length === 1 &&
+              (!chunkGroupAuxiliary || chunkGroup.auxiliaryAssets?.length === 0)
             );
           })
         ) {
