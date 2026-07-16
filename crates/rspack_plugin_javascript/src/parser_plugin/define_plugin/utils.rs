@@ -1,5 +1,6 @@
 use std::borrow::Cow;
 
+use concat_string::concat_string;
 use itertools::Itertools as _;
 use rspack_core::{
   BoxDependencyTemplate, ConstDependency, RuntimeGlobals, RuntimeRequirementsDependency,
@@ -17,7 +18,7 @@ pub fn gen_const_dep(
   end: u32,
 ) -> Vec<BoxDependencyTemplate> {
   let code = if parser.in_short_hand {
-    format!("{for_name}: {code}")
+    concat_string!(for_name, ": ", code)
   } else {
     code.into_owned()
   };
@@ -56,34 +57,11 @@ pub(crate) fn wrap_code<'a>(
 ) -> Cow<'a, str> {
   match asi_safe {
     Some(true) if is_array => code,
-    Some(true) => Cow::Owned(format!("({code})")),
-    Some(false) if is_array => Cow::Owned(format!(";{code}")),
-    Some(false) => Cow::Owned(format!(";({code})")),
+    Some(true) => Cow::Owned(concat_string!("(", code, ")")),
+    Some(false) if is_array => Cow::Owned(concat_string!(";", code)),
+    Some(false) => Cow::Owned(concat_string!(";(", code, ")")),
     None => code,
   }
-}
-
-pub fn code_object_properties_to_string<'a>(
-  entries: impl IntoIterator<Item = (&'a str, &'a Value)>,
-  obj_keys: Option<&DestructuringAssignmentProperties>,
-) -> String {
-  entries
-    .into_iter()
-    .filter_map(|(key, value)| {
-      if obj_keys.is_none_or(|keys| keys.iter().any(|prop| prop.id.as_str() == key)) {
-        // Emit `__proto__` as a computed key so it becomes an own property
-        // instead of setting the prototype (matches webpack's `stringifyObj`).
-        let key = if key == "__proto__" {
-          format!("[{}]", json_stringify_str(key))
-        } else {
-          json_stringify_str(key)
-        };
-        Some(format!("{key}:{}", code_to_string(value, None, None)))
-      } else {
-        None
-      }
-    })
-    .join(",")
 }
 
 pub(crate) fn code_object_to_string<'a>(
@@ -91,11 +69,28 @@ pub(crate) fn code_object_to_string<'a>(
   asi_safe: Option<bool>,
   obj_keys: Option<&DestructuringAssignmentProperties>,
 ) -> Cow<'a, str> {
-  let elements = code_object_properties_to_string(
-    object.iter().map(|(key, value)| (key.as_str(), value)),
-    obj_keys,
-  );
-  wrap_code(Cow::Owned(format!("{{ {elements} }}")), false, asi_safe)
+  let elements = object
+    .iter()
+    .filter_map(|(key, value)| {
+      if obj_keys.is_none_or(|keys| keys.iter().any(|prop| prop.id.as_str() == key)) {
+        // Emit `__proto__` as a computed key so it becomes an own property
+        // instead of setting the prototype (matches webpack's `stringifyObj`).
+        let key = if key == "__proto__" {
+          concat_string!("[", json_stringify_str(key), "]")
+        } else {
+          json_stringify_str(key)
+        };
+        Some(concat_string!(key, ":", code_to_string(value, None, None)))
+      } else {
+        None
+      }
+    })
+    .join(",");
+  wrap_code(
+    Cow::Owned(concat_string!("{ ", elements, " }")),
+    false,
+    asi_safe,
+  )
 }
 
 pub fn code_to_string<'a>(
@@ -113,7 +108,11 @@ pub fn code_to_string<'a>(
         .iter()
         .map(|code| code_to_string(code, None, None))
         .join(",");
-      wrap_code(Cow::Owned(format!("[{elements}]")), true, asi_safe)
+      wrap_code(
+        Cow::Owned(concat_string!("[", elements, "]")),
+        true,
+        asi_safe,
+      )
     }
     Value::Object(obj) => code_object_to_string(obj, asi_safe, obj_keys),
   }
