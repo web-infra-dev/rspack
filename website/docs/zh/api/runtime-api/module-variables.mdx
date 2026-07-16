@@ -236,6 +236,12 @@ interface ImportMetaGlobOptions<Eager extends boolean = boolean> {
    * 用于解析相对 glob 模式和返回 key 的 base 路径。
    */
   base?: string;
+  /**
+   * 是否区分文件路径大小写。
+   *
+   * @default true
+   */
+  caseSensitive?: boolean;
 }
 
 function glob(
@@ -262,6 +268,7 @@ function glob(
   - `options.query`：为每个匹配模块请求追加 query。可以是 `'?raw'` 这样的 query 字符串，也可以是会序列化为 URL query 字符串的对象。`import.meta.glob()` 返回对象中的 key 不包含 query。
   - `options.exhaustive`：搜索 `node_modules` 和隐藏路径中的文件。默认关闭，因为可能增加构建时间。
   - `options.base`：用于解析相对 glob 模式和返回 key 的 base 路径。绝对 glob 模式仍从项目根目录解析，但返回 key 会相对于 `base`。
+  - `options.caseSensitive`：是否区分文件路径大小写。设置为 `false` 时忽略大小写匹配，返回对象的 key 保留文件系统原始大小写。默认为 `true`。
 
 - **示例：**
 
