@@ -64,15 +64,15 @@ pub(crate) fn wrap_code<'a>(
   }
 }
 
-pub(crate) fn code_object_to_string<'a>(
+fn code_object_to_string_with_filter<'a>(
   object: &'a Map<String, Value>,
   asi_safe: Option<bool>,
-  obj_keys: Option<&DestructuringAssignmentProperties>,
+  should_include: impl Fn(&str) -> bool,
 ) -> Cow<'a, str> {
   let elements = object
     .iter()
     .filter_map(|(key, value)| {
-      if obj_keys.is_none_or(|keys| keys.iter().any(|prop| prop.id.as_str() == key)) {
+      if should_include(key) {
         // Emit `__proto__` as a computed key so it becomes an own property
         // instead of setting the prototype (matches webpack's `stringifyObj`).
         let key = if key == "__proto__" {
@@ -91,6 +91,24 @@ pub(crate) fn code_object_to_string<'a>(
     false,
     asi_safe,
   )
+}
+
+pub(crate) fn code_object_to_string<'a>(
+  object: &'a Map<String, Value>,
+  asi_safe: Option<bool>,
+  obj_keys: Option<&DestructuringAssignmentProperties>,
+) -> Cow<'a, str> {
+  code_object_to_string_with_filter(object, asi_safe, |key| {
+    obj_keys.is_none_or(|keys| keys.iter().any(|prop| prop.id.as_str() == key))
+  })
+}
+
+pub(crate) fn code_object_property_to_string<'a>(
+  object: &'a Map<String, Value>,
+  asi_safe: Option<bool>,
+  property: &str,
+) -> Cow<'a, str> {
+  code_object_to_string_with_filter(object, asi_safe, |key| key == property)
 }
 
 pub fn code_to_string<'a>(

@@ -2,6 +2,21 @@ function loadEnv() {
 	return { PRESENT: "present" };
 }
 
+it("should preserve Object.prototype properties for direct access", () => {
+	expect(import.meta.env.toString).toBe(Object.prototype.toString);
+	expect(import.meta.env.hasOwnProperty).toBe(Object.prototype.hasOwnProperty);
+});
+
+it("should not evaluate unrelated definitions for a missing env key", () => {
+	expect(import.meta.env.MISSING_WITH_SIDE_EFFECT).toBe(undefined);
+	expect(import.meta.env.NESTED_MISSING_WITH_SIDE_EFFECT.MISSING).toBe(
+		undefined
+	);
+	expect(globalThis.__IMPORT_META_ENV_MISSING_SIDE_EFFECT__).toBe(
+		undefined
+	);
+});
+
 it("should expose NODE_ENV from mode (WebpackOptionsApply)", () => {
 	const env = import.meta.env;
 	expect(env.NODE_ENV).toBe("production");

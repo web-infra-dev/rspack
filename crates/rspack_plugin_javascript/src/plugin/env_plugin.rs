@@ -15,7 +15,7 @@ use swc_experimental_ecma_ast::{MemberExpr, MemberProp, MetaPropKind};
 use crate::{
   parser_plugin::define_plugin::{
     VALUE_DEP_PREFIX,
-    utils::{code_object_to_string, code_to_string, wrap_code},
+    utils::{code_object_property_to_string, code_object_to_string, code_to_string, wrap_code},
   },
   visitors::{
     DestructuringAssignmentProperties, ExportedVariableInfo, ExpressionExpressionInfo,
@@ -330,20 +330,34 @@ pub(crate) fn render_import_meta_env_member_chain(
             code_to_string(value, Some(!parser.is_asi_position(start)), None).into_owned(),
           );
         }
-        let value = code_to_string(value, None, None);
+        let value = match value {
+          Value::Object(object) => {
+            code_object_property_to_string(object, None, env_members[count].as_ref())
+          }
+          _ => code_to_string(value, None, None),
+        };
         let remaining =
           property_access_with_optional(&env_members[count..], &members_optionals[count + 1..], 0);
         return Some(concat_string!("(", value, ")", remaining));
       }
     }
   }
-  let definitions = render_import_meta_env_definitions(parser, start, None);
+  let property = env_members.first()?;
+  let definitions = IMPORT_META_ENV_DEFINITIONS_MAP
+    .get(&parser.compilation_id)
+    .map_or_else(
+      || "{ }".to_string(),
+      |state| {
+        code_object_property_to_string(&state.definitions.definitions, None, property.as_ref())
+          .into_owned()
+      },
+    );
   let remaining = property_access_with_optional(
     env_members,
     members_optionals.get(1..).unwrap_or_default(),
     0,
   );
-  Some(concat_string!(definitions, remaining))
+  Some(concat_string!("(", definitions, ")", remaining))
 }
 
 pub(crate) fn render_import_meta_env_expression_info(
