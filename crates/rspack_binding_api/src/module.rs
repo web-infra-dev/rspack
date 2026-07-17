@@ -875,6 +875,7 @@ impl From<JsBuildMeta> for BuildMeta {
       strict_esm_module,
       has_top_level_await,
       esm,
+      inferred_js_auto_esm: None,
       is_css_module: None,
       need_id_in_concatenation: None,
       exports_type,
