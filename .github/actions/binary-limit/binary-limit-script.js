@@ -12,8 +12,12 @@ module.exports = async function action({ github, context, limit }) {
 
   let baseCommit;
   let baseSize;
+  let unpublishedBase;
   try {
-    ({ baseCommit, baseSize } = await findBaseCommit(github, context));
+    ({ baseCommit, baseSize, unpublishedBase } = await findBaseCommit(
+      github,
+      context,
+    ));
   } catch (e) {
     if (e instanceof PendingBinaryDataError) {
       await tryComment(
@@ -27,11 +31,11 @@ module.exports = async function action({ github, context, limit }) {
 
   console.log(`Base commit size: ${baseSize}`);
 
-  await tryComment(
-    github,
-    context,
-    compareBinarySize(headSize, baseSize, context, baseCommit),
-  );
+  let comment = compareBinarySize(headSize, baseSize, context, baseCommit);
+  if (unpublishedBase) {
+    comment += stackedBaseNote(unpublishedBase);
+  }
+  await tryComment(github, context, comment);
 
   const increasedSize = headSize - baseSize;
   if (increasedSize > limit) {
@@ -87,11 +91,21 @@ async function findBaseCommit(github, context) {
       if (pendingBase) {
         const data = await fetchDataBySha(github, commit.sha);
         if (data?.size) {
-          console.log(`Fallback reference ${commit.sha}: ${data.size}`);
-          throw new PendingBinaryDataError(pendingBase, {
+          console.log(`Nearest published ancestor ${commit.sha}: ${data.size}`);
+          if (await dataWillBePublished(github, owner, repo, pendingBase.sha)) {
+            throw new PendingBinaryDataError(pendingBase, {
+              baseCommit: commit,
+              baseSize: data.size,
+            });
+          }
+          // The true base commit sits on a branch that never publishes size
+          // data (e.g. this PR is stacked on another PR), so waiting is
+          // pointless; the nearest published ancestor is the best baseline.
+          return {
             baseCommit: commit,
             baseSize: data.size,
-          });
+            unpublishedBase: pendingBase,
+          };
         }
         continue;
       }
@@ -157,6 +171,31 @@ async function triggersBinaryBuild(github, owner, repo, sha) {
 
 function isDocFile(filename) {
   return filename.endsWith('.md') || filename.startsWith('website/');
+}
+
+// Ecosystem-benchmark only uploads size data on pushes to these branches
+// (`on.push.branches` plus the upload step's `if: github.event_name == 'push'`),
+// so data for a commit not reachable from one of them will never appear.
+const DATA_PUBLISHING_BRANCHES = ['main', 'v1.x'];
+
+async function dataWillBePublished(github, owner, repo, sha) {
+  for (const branch of DATA_PUBLISHING_BRANCHES) {
+    try {
+      const { data } = await github.rest.repos.compareCommitsWithBasehead({
+        owner,
+        repo,
+        basehead: `${sha}...${branch}`,
+        per_page: 1,
+      });
+      // "identical"/"ahead" means the branch contains the commit.
+      if (data.status === 'identical' || data.status === 'ahead') {
+        return true;
+      }
+    } catch (e) {
+      if (e.status !== 404) throw e;
+    }
+  }
+  return false;
 }
 
 async function tryComment(github, context, comment) {
@@ -266,6 +305,16 @@ function referenceComparison(headSize, { baseCommit, baseSize }) {
     `([\`${shortSha}\`](${baseCommit.html_url})) for a rough estimate:\n` +
     '>\n' +
     `> ${sizeDiffLine(headSize, baseSize)}`
+  );
+}
+
+function stackedBaseNote(unpublishedBase) {
+  const shortSha = unpublishedBase.sha.slice(0, 7);
+  return (
+    '\n\n> [!NOTE]\n' +
+    `> The base commit [\`${shortSha}\`](${unpublishedBase.html_url}) is not on a ` +
+    'branch that publishes binary-size data, so this compares against its nearest ' +
+    'published ancestor instead.'
   );
 }
 
