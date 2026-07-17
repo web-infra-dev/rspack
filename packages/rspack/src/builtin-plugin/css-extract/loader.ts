@@ -39,6 +39,8 @@ export function hotLoader(
   },
 ): string {
   const localsJsonString = JSON.stringify(JSON.stringify(context.locals));
+  // The extracted-CSS runtime owns stylesheet replacement when present; keep
+  // the loader reload only as the fallback for `CssExtractRspackPlugin({ runtime: false })`.
   return `${content}
     if(module.hot) {
       (function() {
@@ -60,7 +62,9 @@ export function hotLoader(
         }
         module.hot.dispose(function(data) {
           data.value = localsJsonString;
-          cssReload();
+          if (!__webpack_require__.hmrC || !__webpack_require__.hmrC.miniCss) {
+            cssReload();
+          }
         });
       })();
     }
