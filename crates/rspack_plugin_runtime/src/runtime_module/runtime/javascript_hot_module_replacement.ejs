@@ -207,6 +207,9 @@ function hotApplyHandler(options) {
 	for (var j = 0; j < outdatedModules.length; j++) {
 		var outdatedModuleId = outdatedModules[j];
 		var module = <%- MODULE_CACHE %>[outdatedModuleId];
+		var hotState = <%- weak(HOT_CONTEXT) %>
+			? <%- HOT_CONTEXT %>.get(outdatedModuleId)
+			: undefined;
 		if (
 			module &&
 			(module.hot._selfAccepted || module.hot._main) &&
@@ -219,6 +222,19 @@ function hotApplyHandler(options) {
 				module: outdatedModuleId,
 				require: module.hot._requireSelf,
 				errorHandler: module.hot._selfAccepted
+			});
+		}
+		if (
+			module &&
+			hotState &&
+			hotState.selfAccepted &&
+			// removed self-accepted modules should not be required
+			appliedUpdate[outdatedModuleId] !== warnUnexpectedRequire
+		) {
+			outdatedSelfAcceptedModules.push({
+				module: outdatedModuleId,
+				type: "import-meta-hot",
+				callback: hotState.selfCallback
 			});
 		}
 	}
@@ -424,6 +440,23 @@ function hotApplyHandler(options) {
 			for (var o = 0; o < outdatedSelfAcceptedModules.length; o++) {
 				var item = outdatedSelfAcceptedModules[o];
 				var moduleId = item.module;
+				if (item.type === "import-meta-hot") {
+					var namespace;
+					try {
+						namespace = <%- REQUIRE %>(moduleId);
+					} catch (err) {
+						reportError(err);
+						continue;
+					}
+					if (typeof item.callback === "function") {
+						try {
+							item.callback(namespace);
+						} catch (err) {
+							reportError(err);
+						}
+					}
+					continue;
+				}
 				try {
 					item.require(moduleId);
 				} catch (err) {
