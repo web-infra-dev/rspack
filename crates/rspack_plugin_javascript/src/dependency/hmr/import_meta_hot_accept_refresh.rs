@@ -113,20 +113,26 @@ impl DependencyTemplate for ImportMetaHotAcceptRefreshDependencyTemplate {
         phase,
         true,
       );
+      let mut refresh = String::default();
       if condition == "true" {
-        content.push_str(stmts.0.as_str());
-        content.push_str(stmts.1.as_str());
+        refresh.push_str(stmts.0.as_str());
+        refresh.push_str(stmts.1.as_str());
       } else {
-        content.push_str(format!("if ({condition}) {{\n").as_str());
-        content.push_str(stmts.0.as_str());
-        content.push_str(stmts.1.as_str());
-        content.push_str("\n}\n");
+        refresh.push_str(format!("if ({condition}) {{\n").as_str());
+        refresh.push_str(stmts.0.as_str());
+        refresh.push_str(stmts.1.as_str());
+        refresh.push_str("\n}\n");
       }
+      content.push_str("try {\n");
+      content.push_str(&refresh);
+      content.push_str("\n} catch (err) {\n");
+      content.push_str("__rspack_hot_report_error(err);\n");
+      content.push_str("}\n");
     });
 
     source.insert(
       dep.range.start,
-      format!(", function() {{\n{content}\n}}"),
+      format!(", function(__rspack_hot_report_error) {{\n{content}\n}}"),
       None,
     );
   }

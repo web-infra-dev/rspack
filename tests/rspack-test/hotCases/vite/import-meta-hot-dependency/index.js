@@ -1,9 +1,12 @@
 import { value } from "./dep";
 import { value as aValue } from "./a";
 import { value as bValue } from "./b";
+import { value as throwingValue } from "./throwing";
+import { value as laterValue } from "./later";
 
 let acceptedDep;
 let acceptedArray;
+let acceptedErrorArray;
 
 if (import.meta.hot) {
 	import.meta.hot.accept("./dep", mod => {
@@ -12,18 +15,34 @@ if (import.meta.hot) {
 	import.meta.hot.accept(["./a", "./b"], mods => {
 		acceptedArray = mods;
 	});
+	import.meta.hot.accept(["./throwing", "./later"], mods => {
+		acceptedErrorArray = mods;
+	});
 }
 
-it("passes updated namespaces to Vite accept callbacks", async () => {
+it("continues dependency refreshes and callbacks after an update error", async () => {
 	expect(value).toBe(1);
 	expect(aValue).toBe("a1");
 	expect(bValue).toBe("b1");
+	expect(throwingValue).toBe("throwing1");
+	expect(laterValue).toBe("later1");
 
-	await NEXT_HMR();
+	let applyError;
+	try {
+		await NEXT_HMR();
+	} catch (error) {
+		applyError = error;
+	}
 
+	expect(applyError.message).toBe("throwing dependency update");
 	expect(acceptedDep.value).toBe(2);
 	expect(acceptedArray.map(mod => mod && mod.value)).toEqual(["a2", "b2"]);
+	expect(acceptedErrorArray.map(mod => mod && mod.value)).toEqual([
+		undefined,
+		"later2"
+	]);
 	expect(value).toBe(2);
 	expect(aValue).toBe("a2");
 	expect(bValue).toBe("b2");
+	expect(laterValue).toBe("later2");
 });

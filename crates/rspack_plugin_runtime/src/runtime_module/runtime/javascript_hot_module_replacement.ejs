@@ -395,17 +395,21 @@ function hotApplyHandler(options) {
 									return moduleOutdatedDependencies.indexOf(depId) !== -1;
 								});
 								if (!changed) continue;
-								try {
-									var namespaces = record.deps.map(function (depId) {
-										try {
-											return <%- REQUIRE %>(depId);
-										} catch (_err) {
-											return undefined;
-										}
-									});
-									if (typeof record.refresh === "function") {
-										record.refresh();
+								var namespaces = record.deps.map(function (depId) {
+									try {
+										return <%- REQUIRE %>(depId);
+									} catch (_err) {
+										return undefined;
 									}
+								});
+								if (typeof record.refresh === "function") {
+									try {
+										record.refresh(reportError);
+									} catch (err) {
+										reportError(err);
+									}
+								}
+								try {
 									record.callback(record.single ? namespaces[0] : namespaces);
 								} catch (err) {
 									reportError(err);
