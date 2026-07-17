@@ -84,6 +84,11 @@ it("should evaluate typeof for an undefined env field", () => {
 	expect(typeof import.meta.env.TYPEOF_UNKNOWN).toBe("undefined");
 });
 
+it("should support typeof-only import.meta.env definitions", () => {
+	expect(typeof import.meta.env.TYPEOF_DEFINED).toBe("string");
+	expect(import.meta.env.TYPEOF_DEFINED).toBe(undefined);
+});
+
 it("should preserve an env field explicitly defined as undefined", () => {
 	expect(import.meta.env.EXPLICIT_UNDEFINED).toBe(undefined);
 });

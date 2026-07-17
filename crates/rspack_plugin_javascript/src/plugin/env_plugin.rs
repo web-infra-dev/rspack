@@ -13,7 +13,10 @@ use swc_atoms::Atom;
 use swc_experimental_ecma_ast::{MemberExpr, MemberProp, MetaPropKind};
 
 use crate::{
-  parser_plugin::define_plugin::utils::{code_object_to_string, code_to_string, wrap_code},
+  parser_plugin::define_plugin::{
+    VALUE_DEP_PREFIX,
+    utils::{code_object_to_string, code_to_string, wrap_code},
+  },
   visitors::{
     DestructuringAssignmentProperties, ExportedVariableInfo, ExpressionExpressionInfo,
     JavascriptParser,
@@ -82,15 +85,24 @@ impl Plugin for EnvPlugin {
 pub(crate) const IMPORT_META_ENV: &str = "import.meta.env";
 pub(crate) const IMPORT_META_ENV_PREFIX: &str = "import.meta.env.";
 pub(crate) const IMPORT_META_ENV_VALUE_DEP_KEY: &str = "rspack/DefinePlugin import.meta.env.*";
+const TYPEOF_PREFIX: &str = "typeof ";
 
 #[derive(Debug, Default)]
 pub(crate) struct ImportMetaEnvDefinitions {
   definitions: Map<String, Value>,
+  typeof_definitions: Map<String, Value>,
 }
 
 impl ImportMetaEnvDefinitions {
   pub(crate) fn collect(&mut self, name: &str, code: &Value) {
-    if name == IMPORT_META_ENV {
+    if let Some(name) = name.strip_prefix(TYPEOF_PREFIX)
+      && is_import_meta_env_name(name)
+    {
+      self
+        .typeof_definitions
+        .entry(name.to_string())
+        .or_insert_with(|| code.clone());
+    } else if name == IMPORT_META_ENV {
       self.collect_json_object(code);
     } else if let Some(name) = name.strip_prefix(IMPORT_META_ENV_PREFIX) {
       insert_definition(
@@ -120,6 +132,12 @@ impl ImportMetaEnvDefinitions {
 
   fn merge(&mut self, other: &Self) {
     merge_definitions(&mut self.definitions, &other.definitions);
+    for (key, value) in &other.typeof_definitions {
+      self
+        .typeof_definitions
+        .entry(key.clone())
+        .or_insert_with(|| value.clone());
+    }
   }
 
   fn get(&self, path: &[Atom]) -> Option<&Value> {
@@ -238,6 +256,19 @@ pub(crate) fn add_import_meta_env_value_dependency(parser: &mut JavascriptParser
     IMPORT_META_ENV_VALUE_DEP_KEY.to_string(),
     import_meta_env_definitions_string(parser.compilation_id),
   );
+}
+
+pub(crate) fn import_meta_env_typeof_definition(
+  parser: &mut JavascriptParser,
+  name: &str,
+) -> Option<String> {
+  let state = IMPORT_META_ENV_DEFINITIONS_MAP.get(&parser.compilation_id)?;
+  let code = state.definitions.typeof_definitions.get(name)?;
+  parser.build_info.value_dependencies.insert(
+    concat_string!(VALUE_DEP_PREFIX, TYPEOF_PREFIX, name),
+    code.to_string(),
+  );
+  Some(code_to_string(code, None, None).into_owned())
 }
 
 pub(crate) fn is_import_meta_env_name(name: &str) -> bool {

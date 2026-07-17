@@ -39,8 +39,9 @@ use crate::{
   parser_plugin::define_plugin::utils::gen_const_dep,
   plugin::env_plugin::{
     add_import_meta_env_value_dependency, import_meta_env_definitions_string_with_properties,
-    import_meta_env_key, is_import_meta_env_member, render_import_meta_env_definitions,
-    render_import_meta_env_expression_info, render_import_meta_env_member_chain,
+    import_meta_env_key, import_meta_env_typeof_definition, is_import_meta_env_member,
+    render_import_meta_env_definitions, render_import_meta_env_expression_info,
+    render_import_meta_env_member_chain,
   },
   utils::eval::{self, BasicEvaluatedExpression},
   visitors::{
@@ -450,20 +451,25 @@ impl ImportMetaPlugin {
     }
 
     add_import_meta_env_value_dependency(parser);
-    let Some(code) =
-      member_expr_info.and_then(|info| render_import_meta_env_expression_info(parser, info, start))
-    else {
-      return Some(eval::evaluate_to_string(
-        "undefined".to_string(),
-        start,
-        end,
-      ));
+    let code = if let Some(code) = import_meta_env_typeof_definition(parser, for_name) {
+      code
+    } else {
+      let Some(code) = member_expr_info
+        .and_then(|info| render_import_meta_env_expression_info(parser, info, start))
+      else {
+        return Some(eval::evaluate_to_string(
+          "undefined".to_string(),
+          start,
+          end,
+        ));
+      };
+      concat_string!("typeof (", code, ")")
     };
     if self.recurse_env_typeof.swap(true, Ordering::Acquire) {
       return None;
     }
     let evaluated = parser
-      .evaluate(concat_string!("typeof (", code, ")"), "ImportMetaPlugin")
+      .evaluate(code, "ImportMetaPlugin")
       .map(|mut evaluated| {
         evaluated.set_range(start, end);
         evaluated

@@ -41,6 +41,7 @@ module.exports = {
       'process.env.PROCESS_ONLY': JSON.stringify('process_only'),
       'import.meta.env.EXPLICIT_UNDEFINED': 'undefined',
       'import.meta.env.DYNAMIC': 'loadEnv()',
+      'typeof import.meta.env.TYPEOF_DEFINED': JSON.stringify('string'),
       'import.meta.env.DESTRUCTURED_USED': JSON.stringify('destructured-used'),
       'import.meta.env.DESTRUCTURED_UNUSED':
         'globalThis.__IMPORT_META_ENV_UNUSED__ = true',
