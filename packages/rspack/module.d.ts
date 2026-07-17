@@ -11,6 +11,22 @@
 declare namespace Rspack {
   type ModuleId = string | number;
 
+  type ModuleNamespace = Record<string, any> & {
+    [Symbol.toStringTag]: 'Module';
+  };
+
+  interface ImportMetaHotContext {
+    readonly data: any;
+    accept(): void;
+    accept(cb: (mod: ModuleNamespace | undefined) => void): void;
+    accept(dep: string, cb: (mod: ModuleNamespace | undefined) => void): void;
+    accept(
+      deps: readonly string[],
+      cb: (mods: Array<ModuleNamespace | undefined>) => void,
+    ): void;
+    dispose(cb: (data: any) => void): void;
+  }
+
   type DeclinedEvent =
     | {
         type: 'declined';
@@ -234,7 +250,6 @@ interface ImportMetaEnv {
 interface ImportMeta {
   url: string;
   env: ImportMetaEnv;
-  hot?: Rspack.Hot;
   webpackHot?: Rspack.Hot;
   webpackContext: (
     request: string,
