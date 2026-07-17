@@ -1,16 +1,18 @@
+mod hot_context;
 mod hot_module_replacement;
 
 use std::collections::hash_map;
 
+use hot_context::HotContextRuntimeModule;
 use hot_module_replacement::HotModuleReplacementRuntimeModule;
 use rspack_collections::IdentifierSet;
 use rspack_core::{
   AssetInfo, Chunk, ChunkGraph, ChunkKind, ChunkUkey, Compilation,
   CompilationAdditionalTreeRuntimeRequirements, CompilationAsset, CompilationParams,
-  CompilationProcessAssets, CompilationRecords, CompilerCompilation, DependencyType, LoaderContext,
-  ModuleId, ModuleIdentifier, ModuleType, NormalModuleFactoryParser, NormalModuleLoader,
-  ParserAndGenerator, ParserOptions, PathData, Plugin, RunnerContext, RuntimeGlobals,
-  RuntimeModule, RuntimeModuleExt, RuntimeSpec,
+  CompilationProcessAssets, CompilationRecords, CompilationRuntimeRequirementInTree,
+  CompilerCompilation, DependencyType, LoaderContext, ModuleId, ModuleIdentifier, ModuleType,
+  NormalModuleFactoryParser, NormalModuleLoader, ParserAndGenerator, ParserOptions, PathData,
+  Plugin, RunnerContext, RuntimeGlobals, RuntimeModule, RuntimeModuleExt, RuntimeSpec,
   chunk_graph_chunk::{ChunkId, ChunkIdSet},
   rspack_sources::{RawStringSource, SourceExt},
 };
@@ -19,7 +21,8 @@ use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_css::parser_and_generator::CssParserAndGenerator;
 use rspack_plugin_javascript::{
   hot_module_replacement_plugin::{
-    ImportMetaHotReplacementParserPlugin, ModuleHotReplacementParserPlugin,
+    ImportMetaHotReplacementParserPlugin, ImportMetaWebpackHotReplacementParserPlugin,
+    ModuleHotReplacementParserPlugin,
   },
   parser_and_generator::JavaScriptParserAndGenerator,
 };
@@ -40,7 +43,11 @@ async fn compilation(
     params.normal_module_factory.clone(),
   );
   compilation.set_dependency_factory(
-    DependencyType::ImportMetaHotDecline,
+    DependencyType::ImportMetaWebpackHotAccept,
+    params.normal_module_factory.clone(),
+  );
+  compilation.set_dependency_factory(
+    DependencyType::ImportMetaWebpackHotDecline,
     params.normal_module_factory.clone(),
   );
   compilation.set_dependency_factory(
@@ -439,10 +446,12 @@ async fn normal_module_factory_parser(
   if let Some(parser) = parser.downcast_mut::<JavaScriptParserAndGenerator>() {
     if module_type.is_js_auto() {
       parser.add_parser_plugin(Box::new(ModuleHotReplacementParserPlugin::new()));
+      parser.add_parser_plugin(Box::new(ImportMetaWebpackHotReplacementParserPlugin::new()));
       parser.add_parser_plugin(Box::new(ImportMetaHotReplacementParserPlugin::new()));
     } else if module_type.is_js_dynamic() {
       parser.add_parser_plugin(Box::new(ModuleHotReplacementParserPlugin::new()));
     } else if module_type.is_js_esm() {
+      parser.add_parser_plugin(Box::new(ImportMetaWebpackHotReplacementParserPlugin::new()));
       parser.add_parser_plugin(Box::new(ImportMetaHotReplacementParserPlugin::new()));
     }
   } else if matches!(
@@ -454,6 +463,25 @@ async fn normal_module_factory_parser(
   }
 
   Ok(())
+}
+
+#[plugin_hook(CompilationRuntimeRequirementInTree for HotModuleReplacementPlugin)]
+async fn runtime_requirement_in_tree(
+  &self,
+  compilation: &Compilation,
+  chunk_ukey: &ChunkUkey,
+  _all_runtime_requirements: &RuntimeGlobals,
+  runtime_requirements: &RuntimeGlobals,
+  _runtime_requirements_mut: &mut RuntimeGlobals,
+  runtime_modules_to_add: &mut Vec<(ChunkUkey, Box<dyn RuntimeModule>)>,
+) -> Result<Option<()>> {
+  if runtime_requirements.contains(RuntimeGlobals::HOT_CONTEXT) {
+    runtime_modules_to_add.push((
+      *chunk_ukey,
+      HotContextRuntimeModule::new(&compilation.runtime_template).boxed(),
+    ));
+  }
+  Ok(None)
 }
 
 #[plugin_hook(CompilationAdditionalTreeRuntimeRequirements for HotModuleReplacementPlugin)]
@@ -489,6 +517,10 @@ impl Plugin for HotModuleReplacementPlugin {
       .normal_module_factory_hooks
       .parser
       .tap(normal_module_factory_parser::new(self));
+    ctx
+      .compilation_hooks
+      .runtime_requirement_in_tree
+      .tap(runtime_requirement_in_tree::new(self));
     ctx
       .compilation_hooks
       .additional_tree_runtime_requirements

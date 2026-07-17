@@ -411,7 +411,8 @@ fn should_ignore_dependency_type(ty: DependencyType) -> bool {
     // HMR accept/decline references are invoked by the hot runtime later, not
     // by normal module initialization.
     | DependencyType::ImportMetaHotAccept
-    | DependencyType::ImportMetaHotDecline
+    | DependencyType::ImportMetaWebpackHotAccept
+    | DependencyType::ImportMetaWebpackHotDecline
     | DependencyType::ModuleHotAccept
     | DependencyType::ModuleHotDecline
     // URL, worker, asset, and CSS resource references do not synchronously

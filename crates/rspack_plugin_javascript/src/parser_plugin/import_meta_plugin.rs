@@ -387,8 +387,8 @@ impl ImportMetaPlugin {
       return Some(api.property);
     }
     match name {
-      expr_name::IMPORT_META_HOT => Some(ImportMetaKnownProperties::WEBPACK_HOT),
-      expr_name::IMPORT_META_HOT_ALIAS => Some(ImportMetaKnownProperties::HOT),
+      expr_name::IMPORT_META_WEBPACK_HOT => Some(ImportMetaKnownProperties::WEBPACK_HOT),
+      expr_name::IMPORT_META_HOT => Some(ImportMetaKnownProperties::HOT),
       _ => None,
     }
   }

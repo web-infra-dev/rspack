@@ -1,0 +1,69 @@
+var hotContexts = Object.create(null);
+var hotData = Object.create(null);
+
+function createHotContext(moduleId) {
+	var state = {
+		moduleId: moduleId,
+		data: hotData[moduleId] || (hotData[moduleId] = {}),
+		selfAccepted: false,
+		selfCallback: undefined,
+		acceptCallbacks: [],
+		disposeCallbacks: []
+	};
+
+	var context = {
+		get data() {
+			return state.data;
+		},
+		accept: function (deps, callback) {
+			if (deps === undefined) {
+				state.selfAccepted = true;
+				return;
+			}
+			if (typeof deps === "function") {
+				state.selfAccepted = true;
+				state.selfCallback = deps;
+				return;
+			}
+			if (!Array.isArray(deps)) {
+				state.acceptCallbacks.push({
+					deps: [deps],
+					callback: callback,
+					single: true
+				});
+				return;
+			}
+			state.acceptCallbacks.push({
+				deps: deps.slice(),
+				callback: callback,
+				single: false
+			});
+		},
+		dispose: function (callback) {
+			state.disposeCallbacks.push(callback);
+		}
+	};
+
+	state.context = context;
+	hotContexts[moduleId] = state;
+	return context;
+}
+
+<%- HOT_CONTEXT %> = function (moduleId) {
+	var state = hotContexts[moduleId];
+	return state ? state.context : createHotContext(moduleId);
+};
+
+<%- HOT_CONTEXT %>.get = function (moduleId) {
+	return hotContexts[moduleId];
+};
+
+<%- HOT_CONTEXT %>.dispose = function (moduleId, removed) {
+	var state = hotContexts[moduleId];
+	if (!state) return;
+	for (var i = 0; i < state.disposeCallbacks.length; i++) {
+		state.disposeCallbacks[i](state.data);
+	}
+	delete hotContexts[moduleId];
+	if (removed) delete hotData[moduleId];
+};

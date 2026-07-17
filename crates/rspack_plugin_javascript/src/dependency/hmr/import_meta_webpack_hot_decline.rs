@@ -8,7 +8,7 @@ use swc_atoms::Atom;
 
 #[cacheable]
 #[derive(Debug, Clone)]
-pub struct ImportMetaHotDeclineDependency {
+pub struct ImportMetaWebpackHotDeclineDependency {
   id: DependencyId,
   #[cacheable(with=AsPreset)]
   request: Atom,
@@ -16,7 +16,7 @@ pub struct ImportMetaHotDeclineDependency {
   factorize_info: FactorizeInfo,
 }
 
-impl ImportMetaHotDeclineDependency {
+impl ImportMetaWebpackHotDeclineDependency {
   pub fn new(request: Atom, range: DependencyRange) -> Self {
     Self {
       request,
@@ -28,7 +28,7 @@ impl ImportMetaHotDeclineDependency {
 }
 
 #[cacheable_dyn]
-impl Dependency for ImportMetaHotDeclineDependency {
+impl Dependency for ImportMetaWebpackHotDeclineDependency {
   fn id(&self) -> &DependencyId {
     &self.id
   }
@@ -38,7 +38,7 @@ impl Dependency for ImportMetaHotDeclineDependency {
   }
 
   fn dependency_type(&self) -> &DependencyType {
-    &DependencyType::ImportMetaHotDecline
+    &DependencyType::ImportMetaWebpackHotDecline
   }
 
   fn range(&self) -> Option<DependencyRange> {
@@ -51,7 +51,7 @@ impl Dependency for ImportMetaHotDeclineDependency {
 }
 
 #[cacheable_dyn]
-impl ModuleDependency for ImportMetaHotDeclineDependency {
+impl ModuleDependency for ImportMetaWebpackHotDeclineDependency {
   fn request(&self) -> &str {
     &self.request
   }
@@ -74,25 +74,25 @@ impl ModuleDependency for ImportMetaHotDeclineDependency {
 }
 
 #[cacheable_dyn]
-impl DependencyCodeGeneration for ImportMetaHotDeclineDependency {
+impl DependencyCodeGeneration for ImportMetaWebpackHotDeclineDependency {
   fn dependency_template(&self) -> Option<DependencyTemplateType> {
-    Some(ImportMetaHotDeclineDependencyTemplate::template_type())
+    Some(ImportMetaWebpackHotDeclineDependencyTemplate::template_type())
   }
 }
 
-impl AsContextDependency for ImportMetaHotDeclineDependency {}
+impl AsContextDependency for ImportMetaWebpackHotDeclineDependency {}
 
 #[cacheable]
 #[derive(Debug, Clone, Default)]
-pub struct ImportMetaHotDeclineDependencyTemplate;
+pub struct ImportMetaWebpackHotDeclineDependencyTemplate;
 
-impl ImportMetaHotDeclineDependencyTemplate {
+impl ImportMetaWebpackHotDeclineDependencyTemplate {
   pub fn template_type() -> DependencyTemplateType {
-    DependencyTemplateType::Dependency(DependencyType::ImportMetaHotDecline)
+    DependencyTemplateType::Dependency(DependencyType::ImportMetaWebpackHotDecline)
   }
 }
 
-impl DependencyTemplate for ImportMetaHotDeclineDependencyTemplate {
+impl DependencyTemplate for ImportMetaWebpackHotDeclineDependencyTemplate {
   fn render(
     &self,
     dep: &dyn DependencyCodeGeneration,
@@ -101,9 +101,9 @@ impl DependencyTemplate for ImportMetaHotDeclineDependencyTemplate {
   ) {
     let dep = dep
       .as_any()
-      .downcast_ref::<ImportMetaHotDeclineDependency>()
+      .downcast_ref::<ImportMetaWebpackHotDeclineDependency>()
       .expect(
-        "ImportMetaHotDeclineDependencyTemplate should be used for ImportMetaHotDeclineDependency",
+        "ImportMetaWebpackHotDeclineDependencyTemplate should be used for ImportMetaWebpackHotDeclineDependency",
       );
 
     source.replace(
