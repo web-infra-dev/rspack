@@ -1,3 +1,4 @@
+mod ast_object;
 mod hook;
 mod javascript_parser_plugin_hooks;
 mod merge;
@@ -74,6 +75,17 @@ pub fn merge_from_derive(input: proc_macro::TokenStream) -> proc_macro::TokenStr
 pub fn rspack_hash_derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
   let input = syn::parse_macro_input!(input as syn::DeriveInput);
   let output = rspack_hash::expand_rspack_hash_derive(input);
+  match output {
+    syn::Result::Ok(tt) => tt,
+    syn::Result::Err(err) => err.to_compile_error(),
+  }
+  .into()
+}
+
+#[proc_macro_derive(AstObject, attributes(ast_object))]
+pub fn ast_object_derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+  let input = syn::parse_macro_input!(input as syn::DeriveInput);
+  let output = ast_object::expand_ast_object_derive(input);
   match output {
     syn::Result::Ok(tt) => tt,
     syn::Result::Err(err) => err.to_compile_error(),
