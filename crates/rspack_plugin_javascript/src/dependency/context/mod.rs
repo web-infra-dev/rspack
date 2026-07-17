@@ -218,4 +218,21 @@ mod tests {
       create_resource_identifier_for_context_dependency(None, &options_b)
     );
   }
+
+  #[test]
+  fn context_dependency_resource_identifier_has_no_trailing_space() {
+    let options = ContextOptions {
+      request: "./request".into(),
+      glob_case_sensitive: false,
+      ..Default::default()
+    };
+
+    let without_root =
+      create_resource_identifier_for_context_dependency(Some("/issuer"), &options).to_string();
+    assert!(
+      without_root.ends_with(" globCaseInsensitive"),
+      "unexpected identifier tail: {without_root:?}"
+    );
+    assert!(!without_root.ends_with(' '));
+  }
 }
