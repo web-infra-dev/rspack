@@ -10,6 +10,7 @@ use napi_derive::*;
 use rspack_paths::ArcPath;
 use rspack_regex::RspackRegex;
 use rspack_watcher::{FsEventKind, FsWatcher, FsWatcherIgnored, FsWatcherOptions};
+use tokio::sync::Mutex;
 
 type JsWatcherIgnored = Either3<String, Vec<String>, RspackRegex>;
 
@@ -54,10 +55,14 @@ pub struct NativeWatchUndelayedEvent {
   pub path: String,
 }
 
+struct NativeWatcherState {
+  watcher: Mutex<FsWatcher>,
+  closed: AtomicBool,
+}
+
 #[napi]
 pub struct NativeWatcher {
-  watcher: FsWatcher,
-  closed: bool,
+  state: Arc<NativeWatcherState>,
 }
 
 fn timestamp_to_system_time(millis: u64) -> SystemTime {
@@ -78,8 +83,10 @@ impl NativeWatcher {
     );
 
     Self {
-      watcher,
-      closed: false,
+      state: Arc::new(NativeWatcherState {
+        watcher: Mutex::new(watcher),
+        closed: AtomicBool::new(false),
+      }),
     }
   }
 
@@ -95,7 +102,7 @@ impl NativeWatcher {
     #[napi(ts_arg_type = "(event: NativeWatchUndelayedEvent) => void")]
     callback_undelayed: Function<'static>,
   ) -> napi::Result<()> {
-    if self.closed {
+    if self.state.closed.load(Ordering::Acquire) {
       return Err(napi::Error::from_reason(
         "The native watcher has been closed, cannot watch again.",
       ));
@@ -105,7 +112,6 @@ impl NativeWatcher {
     let js_event_handler_undelayed = JsEventHandlerUndelayed::new(callback_undelayed)?;
 
     let start_time = start_time.get_u64().1;
-
     // `FsWatcher::watch` has already enqueued the request by the time it
     // returns; the future only signals "applied", so dropping it cancels
     // nothing.
@@ -131,7 +137,9 @@ impl NativeWatcher {
       _ => None,
     } {
       self
+        .state
         .watcher
+        .blocking_lock()
         .trigger_event(&ArcPath::from(AsRef::<Path>::as_ref(&path)), kind);
     }
   }
@@ -154,7 +162,9 @@ impl NativeWatcher {
   #[napi]
   pub fn pause(&self) -> napi::Result<()> {
     self
+      .state
       .watcher
+      .blocking_lock()
       .pause()
       .map_err(|e| napi::Error::from_reason(e.to_string()))?;
 
