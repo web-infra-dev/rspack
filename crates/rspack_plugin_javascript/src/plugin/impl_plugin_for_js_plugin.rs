@@ -29,11 +29,11 @@ use crate::{
     ExportInfoDependencyTemplate, ExternalModuleDependencyTemplate,
     ImportContextDependencyTemplate, ImportDependencyTemplate, ImportEagerDependencyTemplate,
     ImportMetaContextDependencyTemplate, ImportMetaHotAcceptDependencyTemplate,
-    ImportMetaHotDependencyTemplate, ImportMetaResolveContextDependencyTemplate,
-    ImportMetaResolveDependencyTemplate, ImportMetaResolveHeaderDependencyTemplate,
-    ImportMetaRscDependencyTemplate, ImportMetaWebpackHotAcceptDependencyTemplate,
-    ImportMetaWebpackHotDeclineDependencyTemplate, ImportWeakDependencyTemplate,
-    IsIncludedDependencyTemplate, ModuleArgumentDependencyTemplate,
+    ImportMetaHotAcceptRefreshDependencyTemplate, ImportMetaHotDependencyTemplate,
+    ImportMetaResolveContextDependencyTemplate, ImportMetaResolveDependencyTemplate,
+    ImportMetaResolveHeaderDependencyTemplate, ImportMetaRscDependencyTemplate,
+    ImportMetaWebpackHotAcceptDependencyTemplate, ImportMetaWebpackHotDeclineDependencyTemplate,
+    ImportWeakDependencyTemplate, IsIncludedDependencyTemplate, ModuleArgumentDependencyTemplate,
     ModuleDecoratorDependencyTemplate, ModuleHotAcceptDependencyTemplate,
     ModuleHotDeclineDependencyTemplate, ProvideDependencyTemplate,
     PureExpressionDependencyTemplate, RequireContextDependencyTemplate,
@@ -375,6 +375,10 @@ async fn compilation(
   compilation.set_dependency_template(
     ImportMetaHotAcceptDependencyTemplate::template_type(),
     Arc::new(ImportMetaHotAcceptDependencyTemplate),
+  );
+  compilation.set_dependency_template(
+    ImportMetaHotAcceptRefreshDependencyTemplate::template_type(),
+    Arc::new(ImportMetaHotAcceptRefreshDependencyTemplate),
   );
   compilation.set_dependency_template(
     ImportMetaWebpackHotAcceptDependencyTemplate::template_type(),

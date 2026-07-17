@@ -15,7 +15,7 @@ function createHotContext(moduleId) {
 		get data() {
 			return state.data;
 		},
-		accept: function (deps, callback) {
+		accept: function (deps, callback, refresh) {
 			if (deps === undefined) {
 				state.selfAccepted = true;
 				return;
@@ -29,6 +29,7 @@ function createHotContext(moduleId) {
 				state.acceptCallbacks.push({
 					deps: [deps],
 					callback: callback,
+					refresh: refresh,
 					single: true
 				});
 				return;
@@ -36,6 +37,7 @@ function createHotContext(moduleId) {
 			state.acceptCallbacks.push({
 				deps: deps.slice(),
 				callback: callback,
+				refresh: refresh,
 				single: false
 			});
 		},

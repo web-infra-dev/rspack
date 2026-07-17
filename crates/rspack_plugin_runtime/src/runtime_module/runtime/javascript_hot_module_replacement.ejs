@@ -19,9 +19,13 @@ function hotApplyHandler(options) {
 			var moduleId = queueItem.id;
 			var chain = queueItem.chain;
 			var module = <%- MODULE_CACHE %>[moduleId];
+			var hotState = <%- weak(HOT_CONTEXT) %>
+				? <%- HOT_CONTEXT %>.get(moduleId)
+				: undefined;
 			if (
 				!module ||
-				(module.hot._selfAccepted && !module.hot._selfInvalidated)
+				((module.hot._selfAccepted || (hotState && hotState.selfAccepted)) &&
+					!module.hot._selfInvalidated)
 			) {
 				continue;
 			}
@@ -59,7 +63,15 @@ function hotApplyHandler(options) {
 				if (outdatedModules.indexOf(parentId) !== -1) {
 					continue;
 				}
-				if (parent.hot._acceptedDependencies[moduleId]) {
+				var parentHotState = <%- weak(HOT_CONTEXT) %>
+					? <%- HOT_CONTEXT %>.get(parentId)
+					: undefined;
+				var hotAccepted = parentHotState && parentHotState.acceptCallbacks.some(
+					function (record) {
+						return record.deps.indexOf(moduleId) !== -1;
+					}
+				);
+				if (parent.hot._acceptedDependencies[moduleId] || hotAccepted) {
 					if (!outdatedDependencies[parentId]) {
 						outdatedDependencies[parentId] = [];
 					}
@@ -179,6 +191,18 @@ function hotApplyHandler(options) {
 	}
 	hotCurrentUpdate = undefined;
 
+	var outdatedHotAcceptCallbacks = {};
+	for (var outdatedModuleId in outdatedDependencies) {
+		if (<%- HAS_OWN_PROPERTY %>(outdatedDependencies, outdatedModuleId)) {
+			var hotState = <%- weak(HOT_CONTEXT) %>
+				? <%- HOT_CONTEXT %>.get(outdatedModuleId)
+				: undefined;
+			if (hotState) {
+				outdatedHotAcceptCallbacks[outdatedModuleId] = hotState.acceptCallbacks.slice();
+			}
+		}
+	}
+
 	var outdatedSelfAcceptedModules = [];
 	for (var j = 0; j < outdatedModules.length; j++) {
 		var outdatedModuleId = outdatedModules[j];
@@ -233,6 +257,10 @@ function hotApplyHandler(options) {
 					disposeHandlers[j].call(null, data);
 				}
 				<%- HMR_MODULE_DATA %>[moduleId] = data;
+				if (<%- weak(HOT_CONTEXT) %>) {
+					var removed = appliedUpdate[moduleId] === warnUnexpectedRequire;
+					<%- HOT_CONTEXT %>.dispose(moduleId, removed);
+				}
 
 				module.hot.active = false;
 
@@ -356,6 +384,31 @@ function hotApplyHandler(options) {
 									if (!options.ignoreErrored) {
 										reportError(err);
 									}
+								}
+							}
+						}
+						var hotAcceptCallbacks = outdatedHotAcceptCallbacks[outdatedModuleId];
+						if (hotAcceptCallbacks) {
+							for (var i = 0; i < hotAcceptCallbacks.length; i++) {
+								var record = hotAcceptCallbacks[i];
+								var changed = record.deps.some(function (depId) {
+									return moduleOutdatedDependencies.indexOf(depId) !== -1;
+								});
+								if (!changed) continue;
+								try {
+									var namespaces = record.deps.map(function (depId) {
+										try {
+											return <%- REQUIRE %>(depId);
+										} catch (_err) {
+											return undefined;
+										}
+									});
+									if (typeof record.refresh === "function") {
+										record.refresh();
+									}
+									record.callback(record.single ? namespaces[0] : namespaces);
+								} catch (err) {
+									reportError(err);
 								}
 							}
 						}

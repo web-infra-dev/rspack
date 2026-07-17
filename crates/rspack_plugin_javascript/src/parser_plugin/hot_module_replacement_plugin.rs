@@ -6,10 +6,10 @@ use swc_experimental_ecma_ast::{CallExpr, GetSpan, MemberExpr, Span};
 
 use crate::{
   dependency::{
-    ESMAcceptDependency, ImportMetaHotAcceptDependency, ImportMetaHotDependency,
-    ImportMetaWebpackHotAcceptDependency, ImportMetaWebpackHotDeclineDependency,
-    ModuleArgumentDependency, ModuleHotAcceptDependency, ModuleHotDeclineDependency,
-    import_emitted_runtime,
+    ESMAcceptDependency, ImportMetaHotAcceptDependency, ImportMetaHotAcceptRefreshDependency,
+    ImportMetaHotDependency, ImportMetaWebpackHotAcceptDependency,
+    ImportMetaWebpackHotDeclineDependency, ModuleArgumentDependency, ModuleHotAcceptDependency,
+    ModuleHotDeclineDependency, import_emitted_runtime,
   },
   parser_plugin::JavascriptParserPlugin,
   utils::eval,
@@ -141,6 +141,17 @@ impl JavascriptParser<'_> {
       Some(String::from("Dedicated import.meta.hot.accept"));
 
     let dependencies = extract_import_meta_deps(self, call_expr);
+    if !dependencies.is_empty() {
+      let dependency_ids = dependencies.iter().map(|dep| *dep.id()).collect::<Vec<_>>();
+      let range = DependencyRange::new(call_expr.span().real_hi() - 1, 0);
+      let call_range = DependencyRange::from(call_expr.span());
+      let loc = self.to_dependency_location(call_range);
+      self.add_presentational_dependency(Box::new(ImportMetaHotAcceptRefreshDependency::new(
+        range,
+        dependency_ids,
+        loc,
+      )));
+    }
     self.add_dependencies(dependencies);
     self.walk_expr_or_spread(&call_expr.args);
     Some(true)
@@ -322,6 +333,7 @@ pub struct ImportMetaHotReplacementParserPlugin {
 impl ImportMetaHotReplacementParserPlugin {
   #[allow(clippy::new_without_default)]
   pub fn new() -> Self {
+    import_emitted_runtime::init_map();
     Self { _private: () }
   }
 

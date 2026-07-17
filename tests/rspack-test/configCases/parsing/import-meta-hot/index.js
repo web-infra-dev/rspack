@@ -55,6 +55,7 @@ it("should support a dedicated import.meta.hot context", () => {
 	const hotContextNeedle = [".hmr", "H("].join("");
 	const moduleArgumentHotNeedle = ["__webpack_module__", "hot"].join(".");
 	const outdatedNeedle = ["__rspack_hmr", "outdated"].join("_");
+	const refreshNeedle = "mod => mod, function() {";
 	const hotAcceptStart = source.indexOf(hotAcceptStartMarker);
 	const hotAcceptEnd = source.indexOf(hotAcceptEndMarker, hotAcceptStart);
 	expect(hotAcceptStart).toBeGreaterThan(-1);
@@ -64,4 +65,5 @@ it("should support a dedicated import.meta.hot context", () => {
 	expect(hotAcceptSource).not.toContain(moduleHotNeedle);
 	expect(hotAcceptSource).not.toContain(moduleArgumentHotNeedle);
 	expect(hotAcceptSource).not.toContain(outdatedNeedle);
+	expect(hotAcceptSource).toContain(refreshNeedle);
 });
