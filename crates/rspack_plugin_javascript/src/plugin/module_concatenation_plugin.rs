@@ -57,7 +57,7 @@ enum ConcatenationProblem {
   },
   UnsupportedSyntax {
     module: ModuleIdentifier,
-    modules: Vec<(ModuleIdentifier, Vec<String>)>,
+    modules: Arc<[(ModuleIdentifier, Vec<String>)]>,
   },
 }
 
@@ -858,7 +858,7 @@ impl ModuleConcatenationPlugin {
 
         Warning::Problem(ConcatenationProblem::UnsupportedSyntax {
           module: *module_id,
-          modules,
+          modules: modules.into(),
         })
       };
       state.statistics.incorrect_module_dependency += 1;
@@ -1094,11 +1094,7 @@ impl ModuleConcatenationPlugin {
     ));
 
     let start = logger.time("sort relevant modules");
-    relevant_modules.sort_by(|a, b| {
-      let ad = module_graph.get_depth(a);
-      let bd = module_graph.get_depth(b);
-      ad.cmp(&bd)
-    });
+    relevant_modules.sort_by_cached_key(|module| module_graph.get_depth(module));
 
     logger.time_end(start);
     let mut statistics = Statistics::default();
@@ -1914,6 +1910,7 @@ fn add_concatenated_module(
   // integrate
 
   let module_graph = compilation.get_module_graph_mut();
+  let root_chunks = chunk_graph.get_module_chunks(root_module_id).clone();
 
   for m in modules_set.iter() {
     if *m == root_module_id {
@@ -1923,18 +1920,18 @@ fn add_concatenated_module(
       .module_by_identifier(m)
       .expect("should exist module");
     // TODO: optimize asset module https://github.com/webpack/webpack/pull/15515/files
-    for chunk_ukey in chunk_graph.get_module_chunks(root_module_id).clone() {
+    for chunk_ukey in &root_chunks {
       let source_types =
-        chunk_graph.get_chunk_module_source_types(&chunk_ukey, module, module_graph);
+        chunk_graph.get_chunk_module_source_types(chunk_ukey, module, module_graph);
 
       if source_types.len() == 1 && source_types.contains(&SourceType::JavaScript) {
-        chunk_graph.disconnect_chunk_and_module(&chunk_ukey, *m);
+        chunk_graph.disconnect_chunk_and_module(chunk_ukey, *m);
       } else {
         let new_source_types = source_types
           .into_iter()
           .filter(|source_type| !matches!(source_type, SourceType::JavaScript))
           .collect();
-        chunk_graph.set_chunk_modules_source_types(&chunk_ukey, *m, new_source_types)
+        chunk_graph.set_chunk_modules_source_types(chunk_ukey, *m, new_source_types)
       }
     }
   }
