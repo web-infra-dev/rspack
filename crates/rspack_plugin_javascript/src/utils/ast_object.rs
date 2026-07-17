@@ -28,7 +28,25 @@
 
 use swc_experimental_ecma_ast::{Expr, Lit, PropName, Span};
 
-use crate::visitors::static_string_from_expr;
+use crate::{utils::object_properties::get_value_by_obj_prop, visitors::static_string_from_expr};
+
+/// Look up a nested value in AST object literals by a key path, like
+/// lodash's `get`. Returns the value expression at the path, or `None` if
+/// any segment is missing or is not an object literal. An empty path returns
+/// the expression itself.
+pub fn get<'e>(expr: &'e Expr<'e>, path: &[&'e str]) -> Option<&'e Expr<'e>> {
+  let mut current = expr;
+  for key in path {
+    current = get_value_by_obj_prop(current.as_object()?, key)?;
+  }
+  Some(current)
+}
+
+/// Look up a nested value by a key path and extract it as `T`, combining
+/// [`get`] with [`FromAstExpr`].
+pub fn get_value<'e, T: FromAstExpr<'e>>(expr: &'e Expr<'e>, path: &[&'e str]) -> Option<T> {
+  get(expr, path).and_then(|expr| T::from_ast_expr(expr))
+}
 
 /// Extract a typed value from an AST expression, if the expression is a
 /// statically resolvable representation of the value.
@@ -289,5 +307,53 @@ mod tests {
         .reg_exp
         .is_none()
     );
+  }
+}
+
+#[cfg(test)]
+mod get_tests {
+  use swc_experimental_allocator::Allocator;
+  use swc_experimental_ecma_ast::EsVersion;
+  use swc_experimental_ecma_parser::{
+    EsSyntax, Lexer, Parser, StringSource, Syntax, unstable::Capturing,
+  };
+
+  use super::*;
+
+  fn parse_expr<'a>(allocator: &'a Allocator, source: &'a str) -> Expr<'a> {
+    let lexer = Lexer::new(
+      allocator,
+      Syntax::Es(EsSyntax::default()),
+      EsVersion::EsNext,
+      StringSource::new(source),
+      None,
+    );
+    let lexer = Capturing::new(lexer);
+    let mut parser = Parser::new_from(allocator, lexer);
+    parser
+      .parse_expr()
+      .expect("failed to parse test expression")
+  }
+
+  #[test]
+  fn gets_nested_values_by_key_path() {
+    let allocator = Allocator::new();
+    let expr = parse_expr(&allocator, "{ a: { b: { c: 42 } } }");
+    assert_eq!(get_value::<f64>(&expr, &["a", "b", "c"]), Some(42.0));
+    assert!(get(&expr, &["a", "b"]).is_some_and(|expr| expr.as_object().is_some()));
+    // An empty path is the identity.
+    assert!(get(&expr, &[]).is_some());
+  }
+
+  #[test]
+  fn get_returns_none_for_missing_or_non_object_segments() {
+    let allocator = Allocator::new();
+    let expr = parse_expr(&allocator, "{ a: { b: 1 } }");
+    assert_eq!(get_value::<f64>(&expr, &["a", "x"]), None);
+    assert_eq!(get_value::<f64>(&expr, &["x"]), None);
+    // Intermediate value is not an object.
+    assert_eq!(get_value::<f64>(&expr, &["a", "b", "c"]), None);
+    // The leaf exists but does not match the requested type.
+    assert_eq!(get_value::<String>(&expr, &["a", "b"]), None);
   }
 }
