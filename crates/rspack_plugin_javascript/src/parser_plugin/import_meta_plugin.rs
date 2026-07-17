@@ -40,8 +40,8 @@ use crate::{
   plugin::env_plugin::{
     add_import_meta_env_value_dependency, import_meta_env_definitions_string_with_properties,
     import_meta_env_key, import_meta_env_typeof_definition, is_import_meta_env_member,
-    render_import_meta_env_definitions, render_import_meta_env_expression_info,
-    render_import_meta_env_member_chain,
+    is_import_meta_env_name, render_import_meta_env_definitions,
+    render_import_meta_env_expression_info, render_import_meta_env_member_chain,
   },
   utils::eval::{self, BasicEvaluatedExpression},
   visitors::{
@@ -445,7 +445,9 @@ impl ImportMetaPlugin {
     start: u32,
     end: u32,
   ) -> Option<BasicEvaluatedExpression<'p>> {
-    import_meta_env_key(for_name)?;
+    if !is_import_meta_env_name(for_name) {
+      return None;
+    }
     if !self.import_meta_env_enabled(parser) {
       return None;
     }
@@ -646,14 +648,16 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaPlugin {
   where
     'p: 'a,
   {
-    let member_expr_info = import_meta_env_key(for_name).and_then(|_| {
+    let member_expr_info = if is_import_meta_env_name(for_name) {
       parser
         .get_member_expression_info_from_expr(&expr.arg, AllowedMemberTypes::Expression)
         .and_then(|info| match info {
           MemberExpressionInfo::Expression(info) => Some(info),
           MemberExpressionInfo::Call(_) => None,
         })
-    });
+    } else {
+      None
+    };
     if let Some(mut evaluated) = self.evaluate_import_meta_env_typeof(
       parser,
       for_name,
@@ -783,7 +787,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaPlugin {
         Some(true)
       }
       _ => {
-        if import_meta_env_key(for_name).is_some() && self.import_meta_env_enabled(parser) {
+        if is_import_meta_env_name(for_name) && self.import_meta_env_enabled(parser) {
           let member_expr_info = parser
             .get_member_expression_info_from_expr(&unary_expr.arg, AllowedMemberTypes::Expression)
             .and_then(|info| match info {
