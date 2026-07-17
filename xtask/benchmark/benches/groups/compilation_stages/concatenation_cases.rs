@@ -20,11 +20,13 @@ enum ConcatenationBenchmarkTopology {
 enum SharedRootsTopology {
   Standard,
   Bailouts,
+  UnsupportedSyntax,
 }
 
 #[derive(Clone, Copy)]
 pub(super) enum ConcatenationStatistic {
   IncorrectChunksOfImporter,
+  IncorrectModuleDependency,
   ImporterFailed,
 }
 
@@ -32,6 +34,7 @@ impl ConcatenationStatistic {
   pub(super) const fn log_label(self) -> &'static str {
     match self {
       Self::IncorrectChunksOfImporter => "incorrect chunks of importer",
+      Self::IncorrectModuleDependency => "incorrect module dependency",
       Self::ImporterFailed => "importer failed",
     }
   }
@@ -45,7 +48,7 @@ pub(super) struct ConcatenationBenchmarkCase {
   topology: ConcatenationBenchmarkTopology,
 }
 
-pub(super) const CONCATENATION_BENCHMARK_CASES: [ConcatenationBenchmarkCase; 3] = [
+pub(super) const CONCATENATION_BENCHMARK_CASES: [ConcatenationBenchmarkCase; 4] = [
   ConcatenationBenchmarkCase {
     name: "rust@create_concatenate_module",
     setup_label: "create_concatenate_module setup",
@@ -66,6 +69,12 @@ pub(super) const CONCATENATION_BENCHMARK_CASES: [ConcatenationBenchmarkCase; 3] 
       ConcatenationStatistic::ImporterFailed,
     ],
     topology: ConcatenationBenchmarkTopology::SharedRoots(SharedRootsTopology::Bailouts),
+  },
+  ConcatenationBenchmarkCase {
+    name: "rust@create_concatenate_module_unsupported_syntax",
+    setup_label: "create_concatenate_module_unsupported_syntax setup",
+    expected_statistics: &[ConcatenationStatistic::IncorrectModuleDependency],
+    topology: ConcatenationBenchmarkTopology::SharedRoots(SharedRootsTopology::UnsupportedSyntax),
   },
 ];
 
@@ -218,7 +227,7 @@ async fn prepare_shared_concatenation_case(topology: SharedRootsTopology, fs: &M
         }
         imports
       }
-      SharedRootsTopology::Standard => Vec::new(),
+      SharedRootsTopology::Standard | SharedRootsTopology::UnsupportedSyntax => Vec::new(),
     };
 
     let mut imports = vec![format!(
@@ -227,6 +236,9 @@ async fn prepare_shared_concatenation_case(topology: SharedRootsTopology, fs: &M
     )];
     if matches!(topology, SharedRootsTopology::Bailouts) {
       imports.push("import './blocker.js';".to_string());
+    }
+    if matches!(topology, SharedRootsTopology::UnsupportedSyntax) {
+      imports.push("require('./local-0.js');".to_string());
     }
     let mut values = vec!["local".to_string()];
     for offset in 0..CONCAT_SHARED_WINDOW {
@@ -243,7 +255,7 @@ async fn prepare_shared_concatenation_case(topology: SharedRootsTopology, fs: &M
         lazy_panel_imports.join(", "),
         values.join(" + ")
       ),
-      SharedRootsTopology::Standard => format!(
+      SharedRootsTopology::Standard | SharedRootsTopology::UnsupportedSyntax => format!(
         "{}\nexport default {};",
         imports.join("\n"),
         values.join(" + ")
