@@ -11,7 +11,7 @@ module.exports = {
   },
   plugins: [
     new DefinePlugin({
-      'import.meta.url': JSON.stringify('file:///virtual/index.js'),
+      'import.meta.url': JSON.stringify('file:///C:/virtual/index.js'),
     }),
   ],
 };
