@@ -391,6 +391,7 @@ fn create_import_meta_glob_dependency(
     context.as_str(),
     parser.compiler_options.context.as_str(),
     true,
+    glob_case_sensitive,
   );
 
   let referenced_specifiers = options
