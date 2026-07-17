@@ -846,4 +846,17 @@ mod tests {
     );
     assert_eq!(root_relative.absolute_pattern, "/project/shared/*.js");
   }
+
+  #[test]
+  fn root_relative_glob_uses_project_context_not_walk_base() {
+    let pattern = resolve_context_module_glob_pattern(
+      "/app/*.JS",
+      "/repo/app/src",
+      "/repo/app",
+      "/repo/app/src",
+    );
+
+    assert_eq!(pattern.absolute_pattern, "/repo/app/app/*.JS");
+    assert_eq!(pattern.request_context, "/repo/app");
+  }
 }

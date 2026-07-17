@@ -1,3 +1,5 @@
+import { internalDotDotModules } from './nested/internal-dot-dot'
+
 // Lazy (default): each value is a thunk () => Promise<module>
 const lazyModules = import.meta.glob('./dir/*.js')
 const wildcardModules = import.meta.glob('./dir/*')
@@ -348,6 +350,8 @@ it('should match case-insensitively only when caseSensitive is false', () => {
   expect(caseInsensitiveModules['./case-test/alpha.js'].default).toBe('alpha')
   expect(Object.keys(caseInsensitiveDirectoryModules)).toEqual(['./case-test/alpha.js'])
   expect(caseInsensitiveDirectoryModules['./case-test/alpha.js'].default).toBe('alpha')
+  expect(Object.keys(internalDotDotModules)).toEqual(['../case-test/alpha.js'])
+  expect(internalDotDotModules['../case-test/alpha.js'].default).toBe('alpha')
 })
 
 it('should use case-sensitive matching for non-boolean caseSensitive values', () => {

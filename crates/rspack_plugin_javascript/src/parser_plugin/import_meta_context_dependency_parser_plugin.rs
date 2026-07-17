@@ -286,7 +286,10 @@ fn case_insensitive_glob_pattern_root(
   let pattern = normalize_path_separators(pattern);
   let (base, pattern_to_join) =
     import_meta_glob_path_parts(context, compiler_context, pattern.as_str());
-  let stable_prefix = pattern_to_join
+  let normalized_pattern_to_join = Utf8Path::new(pattern_to_join)
+    .node_normalize_posix()
+    .to_string();
+  let stable_prefix = normalized_pattern_to_join
     .split('/')
     .take_while(|segment| segment.is_empty() || *segment == "." || *segment == "..")
     .collect::<Vec<_>>()
