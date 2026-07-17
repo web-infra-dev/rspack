@@ -1,21 +1,17 @@
 use std::{
   boxed::Box,
-  panic::AssertUnwindSafe,
-  path::{Path, PathBuf},
-  sync::Mutex,
+  path::PathBuf,
   time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
-use futures::FutureExt;
 use napi::bindgen_prelude::*;
 use napi_derive::*;
 use rspack_paths::ArcPath;
 use rspack_regex::RspackRegex;
 use rspack_watcher::{
-  EventAggregateHandler, EventHandler, FsEventKind, FsWatcher, FsWatcherControl, FsWatcherIgnored,
+  FsEventKind, FsWatcherHandle, FsWatcherHandleError, FsWatcherIgnored, FsWatcherOperation,
   FsWatcherOptions,
 };
-use tokio::sync::{mpsc, watch};
 
 type JsWatcherIgnored = Either3<String, Vec<String>, RspackRegex>;
 
@@ -62,138 +58,25 @@ pub struct NativeWatchUndelayedEvent {
 
 #[napi]
 pub struct NativeWatcher {
-  command_tx: mpsc::UnboundedSender<NativeWatcherCommand>,
-  control: FsWatcherControl,
-  close_state_tx: watch::Sender<NativeWatcherCloseState>,
-  admission: Mutex<()>,
+  watcher: FsWatcherHandle,
 }
 
-enum NativeWatcherCommand {
-  Watch {
-    files: (Vec<String>, Vec<String>),
-    directories: (Vec<String>, Vec<String>),
-    missing: (Vec<String>, Vec<String>),
-    start_time: SystemTime,
-    event_handler: Box<dyn EventAggregateHandler + Send>,
-    event_handler_undelayed: Box<dyn EventHandler + Send>,
-  },
-  Close,
-}
-
-#[derive(Clone)]
-enum NativeWatcherCloseState {
-  Open,
-  Closing,
-  Closed(std::result::Result<(), String>),
-}
-
-const WATCH_AFTER_CLOSE_ERROR: &str = "The native watcher has been closed, cannot watch again.";
-const COMMAND_LOOP_STOPPED_ERROR: &str =
-  "The native watcher command loop stopped before the request could be processed.";
-
-fn publish_close_result(
-  close_state_tx: &watch::Sender<NativeWatcherCloseState>,
-  result: std::result::Result<(), String>,
-) {
-  close_state_tx.send_if_modified(|state| {
-    if matches!(state, NativeWatcherCloseState::Closed(_)) {
-      return false;
+fn to_napi_error(error: FsWatcherHandleError) -> napi::Error {
+  let reason = match error {
+    FsWatcherHandleError::Closed(FsWatcherOperation::Watch) => {
+      "The native watcher has been closed, cannot watch again.".to_string()
     }
-
-    *state = NativeWatcherCloseState::Closed(result);
-    true
-  });
-}
-
-async fn run_native_watcher_actor(
-  mut watcher: FsWatcher,
-  command_rx: &mut mpsc::UnboundedReceiver<NativeWatcherCommand>,
-) -> std::result::Result<(), String> {
-  while let Some(command) = command_rx.recv().await {
-    match command {
-      NativeWatcherCommand::Watch {
-        files,
-        directories,
-        missing,
-        start_time,
-        event_handler,
-        event_handler_undelayed,
-      } => {
-        watcher
-          .watch(
-            to_tuple_path_iterator(files),
-            to_tuple_path_iterator(directories),
-            to_tuple_path_iterator(missing),
-            start_time,
-            event_handler,
-            event_handler_undelayed,
-          )
-          .await;
-      }
-      NativeWatcherCommand::Close => {
-        return watcher.close().await.map_err(|error| error.to_string());
-      }
+    FsWatcherHandleError::Closed(FsWatcherOperation::TriggerEvent) => {
+      "The native watcher has been closed, cannot trigger events.".to_string()
     }
-  }
-
-  watcher.close().await.map_err(|error| error.to_string())
-}
-
-fn spawn_native_watcher_actor(
-  watcher: FsWatcher,
-  mut command_rx: mpsc::UnboundedReceiver<NativeWatcherCommand>,
-  close_state_tx: watch::Sender<NativeWatcherCloseState>,
-) {
-  rspack_napi::runtime::spawn(async move {
-    let result = AssertUnwindSafe(run_native_watcher_actor(watcher, &mut command_rx))
-      .catch_unwind()
-      .await;
-    let result = match result {
-      Ok(result) => result,
-      Err(payload) => Err(rspack_napi::runtime::panic_to_napi_error(payload).reason),
-    };
-    publish_close_result(&close_state_tx, result);
-  });
-}
-
-fn is_open(close_state_tx: &watch::Sender<NativeWatcherCloseState>) -> bool {
-  matches!(*close_state_tx.borrow(), NativeWatcherCloseState::Open)
-}
-
-fn watch_after_close_error() -> napi::Error {
-  napi::Error::from_reason(WATCH_AFTER_CLOSE_ERROR)
-}
-
-fn command_loop_stopped_error() -> napi::Error {
-  napi::Error::from_reason(COMMAND_LOOP_STOPPED_ERROR)
-}
-
-fn admission_error() -> napi::Error {
-  napi::Error::from_reason("The native watcher admission lock is poisoned.")
-}
-
-async fn wait_for_close(
-  mut close_state_rx: watch::Receiver<NativeWatcherCloseState>,
-) -> napi::Result<()> {
-  loop {
-    let result = {
-      let state = close_state_rx.borrow_and_update();
-      match &*state {
-        NativeWatcherCloseState::Closed(result) => Some(result.clone()),
-        NativeWatcherCloseState::Open | NativeWatcherCloseState::Closing => None,
-      }
-    };
-
-    if let Some(result) = result {
-      return result.map_err(napi::Error::from_reason);
+    FsWatcherHandleError::Closed(FsWatcherOperation::Pause) => {
+      "The native watcher has been closed, cannot pause.".to_string()
     }
+    FsWatcherHandleError::Unavailable => "The native watcher is unavailable.".to_string(),
+    FsWatcherHandleError::Internal(error) => error.to_string(),
+  };
 
-    close_state_rx.changed().await.map_err(|_| {
-      napi::Error::from_reason(
-        "The native watcher lifecycle ended before a close result was published.",
-      )
-    })?;
-  }
+  napi::Error::from_reason(reason)
 }
 
 fn timestamp_to_system_time(millis: u64) -> SystemTime {
@@ -204,7 +87,7 @@ fn timestamp_to_system_time(millis: u64) -> SystemTime {
 impl NativeWatcher {
   #[napi(constructor)]
   pub fn new(options: NativeWatcherOptions) -> Self {
-    let watcher = FsWatcher::new(
+    let (watcher, task) = FsWatcherHandle::new(
       FsWatcherOptions {
         follow_symlinks: options.follow_symlinks.unwrap_or(false),
         poll_interval: options.poll_interval,
@@ -212,17 +95,9 @@ impl NativeWatcher {
       },
       to_fs_watcher_ignored(options.ignored),
     );
-    let control = watcher.control();
-    let (command_tx, command_rx) = mpsc::unbounded_channel();
-    let (close_state_tx, _) = watch::channel(NativeWatcherCloseState::Open);
-    spawn_native_watcher_actor(watcher, command_rx, close_state_tx.clone());
+    rspack_napi::runtime::spawn(task);
 
-    Self {
-      command_tx,
-      control,
-      close_state_tx,
-      admission: Mutex::new(()),
-    }
+    Self { watcher }
   }
 
   #[napi]
@@ -238,111 +113,67 @@ impl NativeWatcher {
     #[napi(ts_arg_type = "(event: NativeWatchUndelayedEvent) => void")]
     callback_undelayed: Function<'static>,
   ) -> napi::Result<()> {
-    if !is_open(&self.close_state_tx) {
-      return Err(watch_after_close_error());
-    }
-
     let event_handler = Box::new(JsEventHandler::new(callback)?);
     let event_handler_undelayed = Box::new(JsEventHandlerUndelayed::new(callback_undelayed)?);
-    let command = NativeWatcherCommand::Watch {
-      files,
-      directories,
-      missing,
-      start_time: timestamp_to_system_time(start_time.get_u64().1),
-      event_handler,
-      event_handler_undelayed,
-    };
 
-    let _admission = self.admission.lock().map_err(|_| admission_error())?;
-    if !is_open(&self.close_state_tx) {
-      return Err(watch_after_close_error());
-    }
-
-    if self.command_tx.send(command).is_err() {
-      publish_close_result(
-        &self.close_state_tx,
-        Err(COMMAND_LOOP_STOPPED_ERROR.to_string()),
-      );
-      return Err(command_loop_stopped_error());
-    }
-
-    Ok(())
+    self
+      .watcher
+      .watch(
+        to_tuple_paths(files),
+        to_tuple_paths(directories),
+        to_tuple_paths(missing),
+        timestamp_to_system_time(start_time.get_u64().1),
+        event_handler,
+        event_handler_undelayed,
+      )
+      .map_err(to_napi_error)
   }
 
   #[napi(ts_type = "(kind: 'change' | 'remove' | 'create', path: string): void")]
   pub fn trigger_event(&self, kind: String, path: String) -> napi::Result<()> {
-    let _admission = self.admission.lock().map_err(|_| admission_error())?;
-    if !is_open(&self.close_state_tx) {
-      return Err(napi::Error::from_reason(
-        "The native watcher has been closed, cannot trigger events.",
-      ));
-    }
-
-    if let Some(kind) = match kind.as_str() {
+    let Some(kind) = (match kind.as_str() {
       "change" => Some(FsEventKind::Change),
       "remove" => Some(FsEventKind::Remove),
       "create" => Some(FsEventKind::Create),
       _ => None,
-    } {
-      self
-        .control
-        .trigger_event(&ArcPath::from(AsRef::<Path>::as_ref(&path)), kind);
-    }
+    }) else {
+      return Ok(());
+    };
 
-    Ok(())
+    self
+      .watcher
+      .trigger_event(&ArcPath::from(PathBuf::from(path)), kind)
+      .map_err(to_napi_error)
   }
 
   #[napi(ts_return_type = "Promise<void>")]
   pub fn close<'env>(&self, env: &'env Env) -> napi::Result<PromiseRaw<'env, ()>> {
-    let close_state_rx = {
-      let _admission = self.admission.lock().map_err(|_| admission_error())?;
-      let close_state_rx = self.close_state_tx.subscribe();
-      let should_send_close = self.close_state_tx.send_if_modified(|state| {
-        if matches!(state, NativeWatcherCloseState::Open) {
-          *state = NativeWatcherCloseState::Closing;
-          true
-        } else {
-          false
-        }
-      });
+    let close = self.watcher.close();
 
-      if should_send_close && self.command_tx.send(NativeWatcherCommand::Close).is_err() {
-        publish_close_result(
-          &self.close_state_tx,
-          Err(COMMAND_LOOP_STOPPED_ERROR.to_string()),
-        );
-      }
-
-      close_state_rx
-    };
-
-    rspack_napi::runtime::promise_from_future(env, wait_for_close(close_state_rx))
+    rspack_napi::runtime::promise_from_future(
+      env,
+      async move { close.await.map_err(to_napi_error) },
+    )
   }
 
   #[napi]
   pub fn pause(&self) -> napi::Result<()> {
-    let _admission = self.admission.lock().map_err(|_| admission_error())?;
-    if !is_open(&self.close_state_tx) {
-      return Err(napi::Error::from_reason(
-        "The native watcher has been closed, cannot pause.",
-      ));
-    }
-
-    self
-      .control
-      .pause()
-      .map_err(|e| napi::Error::from_reason(e.to_string()))?;
-
-    Ok(())
+    self.watcher.pause().map_err(to_napi_error)
   }
 }
 
-fn to_tuple_path_iterator(
-  tuple: (Vec<String>, Vec<String>),
-) -> (impl Iterator<Item = ArcPath>, impl Iterator<Item = ArcPath>) {
+fn to_tuple_paths(tuple: (Vec<String>, Vec<String>)) -> (Vec<ArcPath>, Vec<ArcPath>) {
   (
-    tuple.0.into_iter().map(|s| ArcPath::from(PathBuf::from(s))),
-    tuple.1.into_iter().map(|s| ArcPath::from(PathBuf::from(s))),
+    tuple
+      .0
+      .into_iter()
+      .map(|path| ArcPath::from(PathBuf::from(path)))
+      .collect(),
+    tuple
+      .1
+      .into_iter()
+      .map(|path| ArcPath::from(PathBuf::from(path)))
+      .collect(),
   )
 }
 

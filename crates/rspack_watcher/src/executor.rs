@@ -46,6 +46,17 @@ pub struct Executor {
   execute_aggregate_handle: Option<tokio::task::JoinHandle<()>>,
 }
 
+impl Drop for Executor {
+  fn drop(&mut self) {
+    if let Some(handle) = self.execute_aggregate_handle.take() {
+      handle.abort();
+    }
+    if let Some(handle) = self.execute_handle.take() {
+      handle.abort();
+    }
+  }
+}
+
 const DEFAULT_AGGREGATE_TIMEOUT: u32 = 50; // Default timeout in milliseconds
 
 /// `ExecEvent` represents control events for the watcher executor loop.
@@ -84,10 +95,6 @@ impl Executor {
       execute_handle: None,
       aggregate_timeout: aggregate_timeout.unwrap_or(DEFAULT_AGGREGATE_TIMEOUT),
     }
-  }
-
-  pub(super) fn pause_handle(&self) -> Arc<AtomicBool> {
-    Arc::clone(&self.paused)
   }
 
   /// Pause the aggregate executor, it will not execute the event handler until resume.
