@@ -15,7 +15,7 @@ cow-utils                             = { workspace = true }
 either                                = { workspace = true }
 fast-glob                             = { workspace = true }
 form_urlencoded                       = { workspace = true }
-indexmap                              = { workspace = true }
+indexmap                              = { workspace = true, features = ["serde"] }
 itertools                             = { workspace = true }
 memchr                                = { workspace = true }
 num-bigint                            = { workspace = true }
@@ -36,6 +36,7 @@ rspack_paths                          = { workspace = true }
 rspack_regex                          = { workspace = true }
 rspack_util                           = { workspace = true }
 rustc-hash                            = { workspace = true }
+serde                                 = { workspace = true, features = ["std"] }
 serde_json                            = { workspace = true }
 slotmap                               = { workspace = true }
 smallvec                              = { workspace = true }
