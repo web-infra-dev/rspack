@@ -98,9 +98,31 @@ pub(crate) fn code_object_to_string<'a>(
   asi_safe: Option<bool>,
   obj_keys: Option<&DestructuringAssignmentProperties>,
 ) -> Cow<'a, str> {
-  code_object_to_string_with_filter(object, asi_safe, |key| {
-    obj_keys.is_none_or(|keys| keys.iter().any(|prop| prop.id.as_str() == key))
-  })
+  let elements = object
+    .iter()
+    .filter_map(|(key, value)| {
+      let matched = obj_keys.and_then(|keys| keys.iter().find(|prop| prop.id.as_str() == key));
+      if obj_keys.is_some() && matched.is_none() {
+        return None;
+      }
+      let nested_keys = matched.and_then(|prop| prop.pattern.as_ref());
+      let key = if key == "__proto__" {
+        concat_string!("[", json_stringify_str(key), "]")
+      } else {
+        json_stringify_str(key)
+      };
+      Some(concat_string!(
+        key,
+        ":",
+        code_to_string(value, None, nested_keys)
+      ))
+    })
+    .join(",");
+  wrap_code(
+    Cow::Owned(concat_string!("{ ", elements, " }")),
+    false,
+    asi_safe,
+  )
 }
 
 pub(crate) fn code_object_property_to_string<'a>(
@@ -111,6 +133,14 @@ pub(crate) fn code_object_property_to_string<'a>(
   code_object_to_string_with_filter(object, asi_safe, |key| key == property)
 }
 
+/// Serialize a define value to its code representation. String values are
+/// code fragments and are embedded verbatim; object keys are JSON-escaped.
+///
+/// When `obj_keys` is given (the destructured properties collected from an
+/// object pattern), only those properties are emitted, recursing into nested
+/// object patterns. Note that values are never parsed: code fragments are
+/// spliced verbatim, which tolerates fragments that are not valid standalone
+/// expressions (they may only be valid—or even invalid—where they are used).
 pub fn code_to_string<'a>(
   code: &'a Value,
   asi_safe: Option<bool>,
@@ -133,5 +163,90 @@ pub fn code_to_string<'a>(
       )
     }
     Value::Object(obj) => code_object_to_string(obj, asi_safe, obj_keys),
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use rspack_core::DependencyRange;
+  use rspack_util::fx_hash::FxIndexSet;
+  use serde_json::json;
+  use swc_atoms::Atom;
+
+  use super::*;
+  use crate::visitors::DestructuringAssignmentProperty;
+
+  fn keys(
+    props: impl IntoIterator<Item = DestructuringAssignmentProperty>,
+  ) -> DestructuringAssignmentProperties {
+    DestructuringAssignmentProperties::new(FxIndexSet::from_iter(props))
+  }
+
+  fn prop(id: &str) -> DestructuringAssignmentProperty {
+    DestructuringAssignmentProperty {
+      range: DependencyRange::default(),
+      id: Atom::from(id),
+      pattern: None,
+      shorthand: true,
+    }
+  }
+
+  fn prop_nested(
+    id: &str,
+    pattern: DestructuringAssignmentProperties,
+  ) -> DestructuringAssignmentProperty {
+    DestructuringAssignmentProperty {
+      pattern: Some(pattern),
+      ..prop(id)
+    }
+  }
+
+  #[test]
+  fn filters_top_level_keys() {
+    let value = json!({ "a": 1, "b": 2, "c": 3 });
+    assert_eq!(
+      code_to_string(&value, None, Some(&keys([prop("a"), prop("c")]))),
+      r#"{ "a":1,"c":3 }"#
+    );
+  }
+
+  #[test]
+  fn filters_nested_object_patterns() {
+    let value = json!({ "env": { "NODE_ENV": "\"production\"", "DEBUG": true }, "other": 1 });
+    assert_eq!(
+      code_to_string(
+        &value,
+        None,
+        Some(&keys([prop_nested("env", keys([prop("NODE_ENV")]))]))
+      ),
+      r#"{ "env":{ "NODE_ENV":"production" } }"#
+    );
+  }
+
+  #[test]
+  fn keeps_arrays_whole_even_with_nested_patterns() {
+    let value = json!({ "arr": [1, 2, 3], "other": 1 });
+    assert_eq!(
+      code_to_string(
+        &value,
+        None,
+        Some(&keys([prop_nested("arr", keys([prop("0")]))]))
+      ),
+      r#"{ "arr":[1,2,3] }"#
+    );
+  }
+
+  #[test]
+  fn prunes_unparseable_fragments_verbatim() {
+    // Unused properties may contain fragments that are not valid standalone
+    // expressions; they must be pruned without ever being parsed.
+    let value = json!({
+      "used": 1,
+      "unused": "(() => throw new Error('unused property was rendered'))()",
+    });
+    assert_eq!(
+      code_to_string(&value, None, Some(&keys([prop("used")]))),
+      r#"{ "used":1 }"#
+    );
   }
 }
