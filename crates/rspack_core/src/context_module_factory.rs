@@ -652,7 +652,7 @@ fn glob_pattern_base_reaches_dir(patterns: &[ResolvedContextModuleGlobPattern], 
   } else {
     format!("{normalized_dir}/")
   };
-  let lowercase_dir = dir_with_slash.to_lowercase();
+  let lowercase_dir = dir_with_slash.cow_to_lowercase();
   patterns
     .iter()
     .filter(|pattern| !pattern.negative)
@@ -662,7 +662,7 @@ fn glob_pattern_base_reaches_dir(patterns: &[ResolvedContextModuleGlobPattern], 
       } else {
         format!("{}/", pattern.absolute_base)
       };
-      base.to_lowercase().starts_with(&lowercase_dir)
+      base.cow_to_lowercase().starts_with(lowercase_dir.as_ref())
     })
 }
 

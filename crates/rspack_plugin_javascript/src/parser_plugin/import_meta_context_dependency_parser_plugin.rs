@@ -211,8 +211,9 @@ fn join_import_meta_glob_path(base: &str, path: &str) -> String {
 }
 
 fn join_import_meta_glob_fs_path(base: &str, path: &str) -> String {
+  let base = normalize_path_separators_for_path(base);
   normalize_path_separators_for_path(
-    Utf8Path::new(base)
+    Utf8Path::new(&base)
       .node_join_posix(path)
       .node_normalize_posix()
       .as_ref(),
@@ -637,5 +638,12 @@ mod tests {
     assert_eq!(context_options.mode, ContextMode::Lazy);
     assert_eq!(context_options.glob_import.as_deref(), Some("default"));
     assert!(context_options.glob_exhaustive);
+  }
+  #[test]
+  fn import_meta_glob_fs_path_normalizes_windows_base_before_parent_join() {
+    assert_eq!(
+      join_import_meta_glob_fs_path(r"D:\repo\context\nested", ".."),
+      "D:/repo/context"
+    );
   }
 }
