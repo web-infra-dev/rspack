@@ -437,16 +437,23 @@ function hotApplyHandler(options) {
 			}
 
 			// Load self accepted modules
+			var selfEvaluationResults = Object.create(null);
 			for (var o = 0; o < outdatedSelfAcceptedModules.length; o++) {
 				var item = outdatedSelfAcceptedModules[o];
 				var moduleId = item.module;
 				if (item.type === "import-meta-hot") {
 					var namespace;
-					try {
-						namespace = <%- REQUIRE %>(moduleId);
-					} catch (err) {
-						reportError(err);
-						continue;
+					var selfEvaluationResult = selfEvaluationResults[moduleId];
+					if (selfEvaluationResult) {
+						if (!selfEvaluationResult.success) continue;
+						namespace = selfEvaluationResult.namespace;
+					} else {
+						try {
+							namespace = <%- REQUIRE %>(moduleId);
+						} catch (err) {
+							reportError(err);
+							continue;
+						}
 					}
 					if (typeof item.callback === "function") {
 						try {
@@ -459,7 +466,12 @@ function hotApplyHandler(options) {
 				}
 				try {
 					item.require(moduleId);
+					selfEvaluationResults[moduleId] = {
+						success: true,
+						namespace: <%- MODULE_CACHE %>[moduleId].exports
+					};
 				} catch (err) {
+					selfEvaluationResults[moduleId] = { success: false };
 					if (typeof item.errorHandler === "function") {
 						try {
 							item.errorHandler(err, {
