@@ -35,7 +35,10 @@ use super::{
   create_resource_identifier_for_esm_dependency,
   esm_import_dependency::esm_import_dependency_get_linking_error, esm_import_dependency_apply,
 };
-use crate::connection_active_inline_value_for_esm_export_imported_specifier;
+use crate::{
+  connection_active_inline_value_for_esm_export_imported_specifier,
+  parser_and_generator::{UseCheckedReexportRuntime, should_render_checked_reexport_loop},
+};
 
 const DYNAMIC_REEXPORT_RUNTIME_THRESHOLD: usize = 16;
 
@@ -686,6 +689,7 @@ impl ESMExportImportedSpecifierDependency {
           .module_identifier_by_dependency_id(&self.id)
           .expect("should have imported module identifier");
         let exports_info = exports_info_artifact.get_exports_info_data(&module_identifier);
+        let mut checked_items = Vec::new();
         for item in mode.items {
           let NormalReexportItem {
             name,
@@ -699,61 +703,103 @@ impl ESMExportImportedSpecifierDependency {
             continue;
           }
 
+          if checked {
+            checked_items.push((name, ids));
+            continue;
+          }
+
           let used_name =
             exports_info.get_used_name(exports_info_artifact, runtime, std::slice::from_ref(&name));
           let key = render_used_name(used_name.as_ref());
+          let exports_info = exports_info_artifact.get_exports_info_data(imported_module);
+          let used_name = exports_info.get_used_name(exports_info_artifact, runtime, &ids);
+          let init_fragment = self
+            .get_reexport_fragment(ctxt, "reexport safe", key, &import_var, used_name.into())
+            .boxed();
+          ctxt.init_fragments.push(init_fragment);
+        }
 
-          if checked {
-            let key = InitFragmentKey::ESMImport(format!("reexport (checked) {import_var} {name}"));
-            let runtime_condition = if self.weak() {
-              RuntimeCondition::Boolean(false)
-            } else if let Some(connection) = mg.connection_by_dependency_id(self.id()) {
-              filter_runtime(ctxt.runtime, |r| {
-                connection.is_target_active(
-                  mg,
-                  r,
-                  mg_cache,
-                  &ctxt
-                    .compilation
-                    .build_module_graph_artifact
-                    .side_effects_state_artifact,
-                  exports_info_artifact,
+        if !checked_items.is_empty() {
+          let runtime_condition = if self.weak() {
+            RuntimeCondition::Boolean(false)
+          } else if let Some(connection) = mg.connection_by_dependency_id(self.id()) {
+            filter_runtime(ctxt.runtime, |runtime| {
+              connection.is_target_active(
+                mg,
+                runtime,
+                mg_cache,
+                &ctxt
+                  .compilation
+                  .build_module_graph_artifact
+                  .side_effects_state_artifact,
+                exports_info_artifact,
+              )
+            })
+          } else {
+            RuntimeCondition::Boolean(true)
+          };
+
+          let use_loop = should_render_checked_reexport_loop(
+            checked_items.len(),
+            compilation
+              .options
+              .output
+              .environment
+              .supports_computed_property(),
+          );
+          let content = if use_loop {
+            let keys = checked_items
+              .iter()
+              .map(|(_, ids)| &ids[0])
+              .collect::<Vec<_>>();
+            if ctxt.data.contains::<UseCheckedReexportRuntime>() {
+              let checked_reexport = ctxt
+                .runtime_template
+                .render_runtime_globals(&RuntimeGlobals::CHECKED_REEXPORT);
+              let exports = ctxt
+                .runtime_template
+                .render_exports_argument(module.get_exports_argument());
+              format!(
+                "/* reexport (checked) */ {checked_reexport}({exports}, {import_var}, {});\n",
+                json_stringify(&keys)
+              )
+            } else {
+              Self::get_checked_reexport_loop_statement(ctxt, &import_var, &keys)
+            }
+          } else {
+            checked_items
+              .into_iter()
+              .map(|(name, ids)| {
+                self.get_conditional_reexport_statement(
+                  ctxt,
+                  name,
+                  &import_var,
+                  ids[0].clone(),
+                  ValueKey::UsedName(UsedName::Normal(ids)),
                 )
               })
-            } else {
-              RuntimeCondition::Boolean(true)
-            };
-            let stmt = self.get_conditional_reexport_statement(
-              ctxt,
-              name,
-              &import_var,
-              ids[0].clone(),
-              ValueKey::UsedName(UsedName::Normal(ids)),
-            );
-            let is_async =
-              ModuleGraph::is_async(&compilation.async_modules_artifact, &module_identifier);
-            ctxt
-              .init_fragments
-              .push(Box::new(ConditionalInitFragment::new(
-                stmt,
-                if is_async {
-                  InitFragmentStage::StageAsyncESMImports
-                } else {
-                  InitFragmentStage::StageESMImports
-                },
-                self.source_order,
-                key,
-                None,
-                runtime_condition,
-              )));
-          } else {
-            let exports_info = exports_info_artifact.get_exports_info_data(imported_module);
-            let used_name = exports_info.get_used_name(exports_info_artifact, runtime, &ids);
-            let init_fragment = self
-              .get_reexport_fragment(ctxt, "reexport safe", key, &import_var, used_name.into())
-              .boxed();
-            ctxt.init_fragments.push(init_fragment);
-          }
+              .collect::<String>()
+          };
+
+          let is_async =
+            ModuleGraph::is_async(&compilation.async_modules_artifact, &module_identifier);
+          ctxt
+            .init_fragments
+            .push(Box::new(ConditionalInitFragment::new(
+              content,
+              if is_async {
+                InitFragmentStage::StageAsyncESMImports
+              } else {
+                InitFragmentStage::StageESMImports
+              },
+              self.source_order,
+              InitFragmentKey::ESMImport(format!(
+                "reexport (checked) {import_var} {}",
+                self.id.as_u32()
+              )),
+              None,
+              runtime_condition,
+            )));
         }
       }
       ExportMode::DynamicReexport(mode) => {
@@ -1022,6 +1068,32 @@ impl ESMExportImportedSpecifierDependency {
       runtime_template.render_exports_argument(exports_name),
       property_name(&key).expect("should have property_name"),
       return_value
+    )
+  }
+
+  fn get_checked_reexport_loop_statement(
+    ctxt: &mut TemplateContext<'_, '_, '_>,
+    source: &str,
+    keys: &[&Atom],
+  ) -> String {
+    let TemplateContext {
+      module,
+      runtime_template,
+      ..
+    } = ctxt;
+    let has_own_property =
+      runtime_template.render_runtime_globals(&RuntimeGlobals::HAS_OWN_PROPERTY);
+    let define_property_getters =
+      runtime_template.render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
+    let exports = runtime_template.render_exports_argument(module.get_exports_argument());
+    let getter = runtime_template.returning_function(&format!("{source}[key]"), "");
+    let callback_body = format!(
+      "if({has_own_property}({source}, key)) {{\n{define_property_getters}({exports}, {{\n[key]: {getter}\n}});\n}}"
+    );
+    let callback = runtime_template.basic_function("key", &callback_body);
+    format!(
+      "/* reexport (checked) */ {}.forEach({callback});\n",
+      json_stringify(keys)
     )
   }
 

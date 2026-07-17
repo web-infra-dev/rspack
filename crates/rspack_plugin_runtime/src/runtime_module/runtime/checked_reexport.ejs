@@ -1,0 +1,9 @@
+<%- define(CHECKED_REEXPORT) %> = <%- basicFunction("exports, source, keys") %> {
+	keys.forEach(<%- basicFunction("key") %> {
+		if(<%- HAS_OWN_PROPERTY %>(source, key)) {
+			<%- DEFINE_PROPERTY_GETTERS %>(exports, {
+				[key]: <%- basicFunction("") %> { return source[key]; }
+			});
+		}
+	});
+};
