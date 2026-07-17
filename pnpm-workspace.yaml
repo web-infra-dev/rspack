@@ -2,6 +2,7 @@ packages:
   - 'packages/*'
   - 'examples/*'
   - 'scripts'
+  - '.agents/skills/*'
   - 'website'
   - 'tests/e2e/fixtures/**'
   - 'npm/*'

@@ -1,0 +1,14 @@
+{
+  "name": "@rspack/skill-webpack-gap-tracker",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "diff-tests": "zx ./scripts/diff-tests.mjs"
+  },
+  "devDependencies": {
+    "diff": "8.0.4",
+    "prettier": "3.9.5",
+    "zx": "8.8.5"
+  }
+}

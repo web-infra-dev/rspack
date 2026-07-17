@@ -58,6 +58,18 @@ importers:
         specifier: 8.8.5
         version: 8.8.5
 
+  .agents/skills/rspack-webpack-gap-tracker:
+    devDependencies:
+      diff:
+        specifier: 8.0.4
+        version: 8.0.4
+      prettier:
+        specifier: 3.9.5
+        version: 3.9.5
+      zx:
+        specifier: 8.8.5
+        version: 8.8.5
+
   crates/node_binding:
     devDependencies:
       '@emnapi/core':
