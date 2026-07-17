@@ -7,7 +7,7 @@
 - Bundle: bundle.js
 - Bundle: common_js_2.chunk.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.LAST_HASH.hot-update.js, size: 42679
+- Update: main.LAST_HASH.hot-update.js, size: 45874
 
 ## Manifest
 
@@ -794,9 +794,13 @@ function hotApplyHandler(options) {
 			var moduleId = queueItem.id;
 			var chain = queueItem.chain;
 			var module = __webpack_require__.c[moduleId];
+			var hotState = __webpack_require__.hmrH
+				? __webpack_require__.hmrH.get(moduleId)
+				: undefined;
 			if (
 				!module ||
-				(module.hot._selfAccepted && !module.hot._selfInvalidated)
+				((module.hot._selfAccepted || (hotState && hotState.selfAccepted)) &&
+					!module.hot._selfInvalidated)
 			) {
 				continue;
 			}
@@ -834,7 +838,15 @@ function hotApplyHandler(options) {
 				if (outdatedModules.indexOf(parentId) !== -1) {
 					continue;
 				}
-				if (parent.hot._acceptedDependencies[moduleId]) {
+				var parentHotState = __webpack_require__.hmrH
+					? __webpack_require__.hmrH.get(parentId)
+					: undefined;
+				var hotAccepted = parentHotState && parentHotState.acceptCallbacks.some(
+					function (record) {
+						return record.deps.indexOf(moduleId) !== -1;
+					}
+				);
+				if (parent.hot._acceptedDependencies[moduleId] || hotAccepted) {
 					if (!outdatedDependencies[parentId]) {
 						outdatedDependencies[parentId] = [];
 					}
@@ -954,10 +966,25 @@ function hotApplyHandler(options) {
 	}
 	hotCurrentUpdate = undefined;
 
+	var outdatedHotAcceptCallbacks = {};
+	for (var outdatedModuleId in outdatedDependencies) {
+		if (__webpack_require__.o(outdatedDependencies, outdatedModuleId)) {
+			var hotState = __webpack_require__.hmrH
+				? __webpack_require__.hmrH.get(outdatedModuleId)
+				: undefined;
+			if (hotState) {
+				outdatedHotAcceptCallbacks[outdatedModuleId] = hotState.acceptCallbacks.slice();
+			}
+		}
+	}
+
 	var outdatedSelfAcceptedModules = [];
 	for (var j = 0; j < outdatedModules.length; j++) {
 		var outdatedModuleId = outdatedModules[j];
 		var module = __webpack_require__.c[outdatedModuleId];
+		var hotState = __webpack_require__.hmrH
+			? __webpack_require__.hmrH.get(outdatedModuleId)
+			: undefined;
 		if (
 			module &&
 			(module.hot._selfAccepted || module.hot._main) &&
@@ -970,6 +997,19 @@ function hotApplyHandler(options) {
 				module: outdatedModuleId,
 				require: module.hot._requireSelf,
 				errorHandler: module.hot._selfAccepted
+			});
+		}
+		if (
+			module &&
+			hotState &&
+			hotState.selfAccepted &&
+			// removed self-accepted modules should not be required
+			appliedUpdate[outdatedModuleId] !== warnUnexpectedRequire
+		) {
+			outdatedSelfAcceptedModules.push({
+				module: outdatedModuleId,
+				type: "import-meta-hot",
+				callback: hotState.selfCallback
 			});
 		}
 	}
@@ -1008,6 +1048,10 @@ function hotApplyHandler(options) {
 					disposeHandlers[j].call(null, data);
 				}
 				__webpack_require__.hmrD[moduleId] = data;
+				if (__webpack_require__.hmrH) {
+					var removed = appliedUpdate[moduleId] === warnUnexpectedRequire;
+					__webpack_require__.hmrH.dispose(moduleId, removed);
+				}
 
 				module.hot.active = false;
 
@@ -1132,17 +1176,75 @@ function hotApplyHandler(options) {
 								}
 							}
 						}
+						var hotAcceptCallbacks = outdatedHotAcceptCallbacks[outdatedModuleId];
+						if (hotAcceptCallbacks) {
+							for (var i = 0; i < hotAcceptCallbacks.length; i++) {
+								var record = hotAcceptCallbacks[i];
+								var changed = record.deps.some(function (depId) {
+									return moduleOutdatedDependencies.indexOf(depId) !== -1;
+								});
+								if (!changed) continue;
+								var namespaces = record.deps.map(function (depId) {
+									try {
+										return __webpack_require__(depId);
+									} catch (_err) {
+										return undefined;
+									}
+								});
+								if (typeof record.refresh === "function") {
+									try {
+										record.refresh(reportError);
+									} catch (err) {
+										reportError(err);
+									}
+								}
+								try {
+									record.callback(record.single ? namespaces[0] : namespaces);
+								} catch (err) {
+									reportError(err);
+								}
+							}
+						}
 					}
 				}
 			}
 
 			// Load self accepted modules
+			var selfEvaluationResults = Object.create(null);
 			for (var o = 0; o < outdatedSelfAcceptedModules.length; o++) {
 				var item = outdatedSelfAcceptedModules[o];
 				var moduleId = item.module;
+				if (item.type === "import-meta-hot") {
+					var namespace;
+					var selfEvaluationResult = selfEvaluationResults[moduleId];
+					if (selfEvaluationResult) {
+						if (!selfEvaluationResult.success) continue;
+						namespace = selfEvaluationResult.namespace;
+					} else {
+						try {
+							namespace = __webpack_require__(moduleId);
+						} catch (err) {
+							reportError(err);
+							continue;
+						}
+					}
+					if (typeof item.callback === "function") {
+						try {
+							item.callback(namespace);
+						} catch (err) {
+							reportError(err);
+						}
+					}
+					continue;
+				}
 				try {
 					item.require(moduleId);
+					selfEvaluationResults[moduleId] = {
+						success: true,
+						namespace: __webpack_require__.c[moduleId].exports
+					};
 				} catch (err) {
+					selfEvaluationResults[moduleId] = { success: false };
 					if (typeof item.errorHandler === "function") {
 						try {
 							item.errorHandler(err, {
