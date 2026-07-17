@@ -96,7 +96,8 @@ fn case_insensitive_context_module_glob_base(
       } else {
         (context, pattern.pattern.as_str())
       };
-      let stable_prefix = pattern
+      let normalized_pattern = Utf8Path::new(pattern).node_normalize_posix().to_string();
+      let stable_prefix = normalized_pattern
         .split('/')
         .take_while(|segment| segment.is_empty() || *segment == "." || *segment == "..")
         .collect::<Vec<_>>()
