@@ -15,6 +15,11 @@ import WebpackError from './WebpackError';
 // Waiting to adapt > import("./DefinePlugin").CodeValue
 type CodeValue = any;
 
+/**
+ * Define environment variables via `process.env.*` replacements.
+ * When `experiments.env` is enabled, each variable is also defined
+ * under `import.meta.env.*`.
+ */
 class EnvironmentPlugin {
   keys: string[];
   defaultValues: Record<string, string | undefined | null>;

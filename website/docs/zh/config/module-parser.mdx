@@ -400,7 +400,7 @@ export default {
 对象形式支持以下字段：
 
 - 兼容 webpack 的字段：`dirname`、`filename`、`main`、`url`、`webpack` 和 `webpackContext`。
-- Rspack 特有字段：`glob`、`resolve`、`rspackBaseUri`、`rspackHash`、`rspackInitSharing`、`rspackNonce`、`rspackPublicPath`、`rspackRsc`、`rspackShareScopes`、`rspackUniqueId` 和 `rspackVersion`。
+- Rspack 特有字段：`env`、`glob`、`resolve`、`rspackBaseUri`、`rspackHash`、`rspackInitSharing`、`rspackNonce`、`rspackPublicPath`、`rspackRsc`、`rspackShareScopes`、`rspackUniqueId` 和 `rspackVersion`。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -420,6 +420,8 @@ export default {
 ```
 
 `resolve` 只控制已经启用的 [`import.meta.resolve()`](#javascriptimportmetaresolve) 表达式是否在编译期处理。要使用 `import.meta.resolve()`，仍然需要启用 `javascript.importMetaResolve`。
+
+`env` 仅在启用 [`experiments.env`](/config/experiments#experimentsenv) 后生效。将其设为 `false` 可以让该模块中的 `import.meta.env` 保留到运行时再求值，而不是在编译时替换。
 
 ### javascript.exportsPresence
 

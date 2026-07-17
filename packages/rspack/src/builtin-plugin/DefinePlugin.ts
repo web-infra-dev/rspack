@@ -97,6 +97,9 @@ const normalizeImportMetaEnvValue = (
     return value;
   }
   if (typeof value !== 'string') {
+    warnings.push(
+      'DefinePlugin: the value of "import.meta.env" should be an object or a JSON stringified object.',
+    );
     return {};
   }
 
