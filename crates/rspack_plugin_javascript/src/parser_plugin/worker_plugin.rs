@@ -6,6 +6,7 @@ use rspack_core::{
   JavascriptParserWorkerOptions, JavascriptParserWorkerUrl,
 };
 use rspack_hash::{RspackHash, RspackHasher};
+use rspack_macros::AstObject;
 use rspack_util::SpanExt;
 use rustc_hash::{FxHashMap, FxHashSet};
 use swc_atoms::Atom;
@@ -23,7 +24,6 @@ use crate::{
   dependency::{CreateScriptUrlDependency, WorkerDependency},
   magic_comment::try_extract_magic_comment,
   parser_plugin::url_plugin::is_meta_url,
-  utils::object_properties::get_literal_str_by_obj_prop,
   visitors::{JavascriptParser, TagInfoData, VariableDeclaration},
 };
 
@@ -31,6 +31,12 @@ use crate::{
 struct ParsedNewWorkerPath {
   pub range: (u32, u32),
   pub value: String,
+}
+
+/// Options of `new Worker(url, options)`.
+#[derive(Debug, Default, AstObject)]
+struct NewWorkerOptions {
+  name: Option<String>,
 }
 
 #[derive(Debug)]
@@ -46,14 +52,15 @@ struct ParsedNewWorkerImportOptions {
 }
 
 fn parse_new_worker_options(arg: &ExprOrSpread) -> ParsedNewWorkerOptions {
-  let obj = arg.expr.as_object();
-  let name = obj
-    .and_then(|obj| get_literal_str_by_obj_prop(obj, "name"))
-    .map(|str| str.value.to_string_lossy().into());
+  let options = arg
+    .expr
+    .as_object()
+    .map(NewWorkerOptions::from_ast_object)
+    .unwrap_or_default();
   let span = arg.span();
   ParsedNewWorkerOptions {
     range: Some((span.real_lo(), span.real_hi())),
-    name,
+    name: options.name,
   }
 }
 
