@@ -54,7 +54,7 @@ type OnTypeof = dyn Fn(&DefineRecord, &mut JavascriptParser, u32 /* start */, u3
   + Sync;
 
 pub struct DefineRecord {
-  code: Value,
+  code: Arc<str>,
   pub on_evaluate_identifier: Option<Box<OnEvaluateIdentifier>>,
   pub on_evaluate_typeof: Option<Box<OnEvaluateTypeof>>,
   pub on_expression: Option<Box<OnExpression>>,
@@ -89,9 +89,9 @@ impl std::fmt::Debug for DefineRecord {
 }
 
 impl DefineRecord {
-  fn from_code(code: Value) -> DefineRecord {
+  fn from_code(code: &Value) -> DefineRecord {
     Self {
-      code,
+      code: code_to_string(code, None, None).into_owned().into(),
       on_evaluate_identifier: None,
       on_evaluate_typeof: None,
       on_expression: None,
@@ -256,28 +256,21 @@ impl WalkData {
         original_key
       };
       let key = Arc::<str>::from(key);
-      let mut define_record = DefineRecord::from_code(code.clone());
+      let mut define_record = DefineRecord::from_code(code);
       if !is_typeof {
         walk_data.can_rename.insert(key.clone(), None);
         define_record = define_record
           .with_on_evaluate_identifier(Box::new(move |record, parser, _ident, start, end| {
             parser
-              .evaluate(
-                code_to_string(&record.code, None, None).into_owned(),
-                "DefinePlugin",
-              )
+              .evaluate(record.code.to_string(), "DefinePlugin")
               .map(|mut evaluated| {
                 evaluated.set_range(start, end);
                 evaluated
               })
           }))
           .with_on_expression(Box::new(
-            move |record, parser, span, start, end, for_name| {
-              let code = code_to_string(
-                &record.code,
-                Some(!parser.is_asi_position(span.start)),
-                None,
-              );
+            move |record, parser, _span, start, end, for_name| {
+              let code = Cow::Borrowed(record.code.as_ref());
               for dep in gen_const_dep(parser, code, for_name, start, end) {
                 parser.add_presentational_dependency(dep);
               }
@@ -289,9 +282,9 @@ impl WalkData {
 
       define_record = define_record
         .with_on_evaluate_typeof(Box::new(move |record, parser, start, end| {
-          let code = code_to_string(&record.code, None, None);
+          let code = record.code.as_ref();
           let typeof_code = if is_typeof {
-            code
+            Cow::Borrowed(code)
           } else {
             Cow::Owned(format!("typeof ({code})"))
           };
@@ -303,9 +296,9 @@ impl WalkData {
             })
         }))
         .with_on_typeof(Box::new(move |record, parser, start, end| {
-          let code = code_to_string(&record.code, None, None);
+          let code = record.code.as_ref();
           let typeof_code = if is_typeof {
-            code
+            Cow::Borrowed(code)
           } else {
             Cow::Owned(format!("typeof ({code})"))
           };
