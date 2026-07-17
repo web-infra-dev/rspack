@@ -322,6 +322,10 @@ impl ChunkGroup {
     &self.origins
   }
 
+  pub(crate) fn origins_mut(&mut self) -> &mut [OriginRecord] {
+    &mut self.origins
+  }
+
   pub fn get_children_by_orders(
     &self,
     compilation: &Compilation,

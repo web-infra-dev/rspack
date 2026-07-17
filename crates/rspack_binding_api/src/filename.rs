@@ -12,6 +12,14 @@ use crate::{
   path_data::JsPathData,
 };
 
+type GenerationFilenameValue = Either<
+  String,
+  rspack_napi::threadsafe_function::ThreadsafeFunction<
+    FnArgs<(JsPathData, Option<AssetInfo>)>,
+    String,
+  >,
+>;
+
 type FilenameValue =
   Either<String, ThreadsafeFunction<FnArgs<(JsPathData, Option<AssetInfo>)>, String>>;
 
@@ -19,6 +27,37 @@ type FilenameValue =
 #[derive(Debug)]
 pub struct JsFilename {
   pub filename: FilenameValue,
+}
+
+/// A filename returned by a generation-time callback, such as a dynamic entry.
+/// Unlike constructor options, it is parsed after compiler construction and owns
+/// its TSFN directly through the returned `EntryOptions` lifetime.
+#[derive(Debug)]
+pub struct JsGenerationFilename {
+  filename: GenerationFilenameValue,
+}
+
+impl FromNapiValue for JsGenerationFilename {
+  unsafe fn from_napi_value(
+    env: napi::sys::napi_env,
+    napi_val: napi::sys::napi_value,
+  ) -> napi::Result<Self> {
+    unsafe {
+      Ok(Self {
+        filename: Either::from_napi_value(env, napi_val)?,
+      })
+    }
+  }
+}
+
+impl TypeName for JsGenerationFilename {
+  fn type_name() -> &'static str {
+    "JsFilename"
+  }
+
+  fn value_type() -> napi::ValueType {
+    napi::ValueType::Unknown
+  }
 }
 
 impl FromNapiValue for JsFilename {
@@ -60,6 +99,34 @@ impl From<JsFilename> for Filename {
 
 impl From<JsFilename> for PublicPath {
   fn from(value: JsFilename) -> Self {
+    match value.filename {
+      Either::A(template) => template.into(),
+      Either::B(f) => PublicPath::Filename(Filename::from(Arc::new(ThreadSafeFilenameFn(Arc::new(
+        move |path_data, asset_info| {
+          let f = f.clone();
+          Box::pin(async move { f.call_with_sync((path_data, asset_info).into()).await })
+        },
+      ))) as Arc<dyn FilenameFn>)),
+    }
+  }
+}
+
+impl From<JsGenerationFilename> for Filename {
+  fn from(value: JsGenerationFilename) -> Self {
+    match value.filename {
+      Either::A(template) => Filename::from(template),
+      Either::B(f) => Filename::from(Arc::new(ThreadSafeFilenameFn(Arc::new(
+        move |path_data, asset_info| {
+          let f = f.clone();
+          Box::pin(async move { f.call_with_sync((path_data, asset_info).into()).await })
+        },
+      ))) as Arc<dyn FilenameFn>),
+    }
+  }
+}
+
+impl From<JsGenerationFilename> for PublicPath {
+  fn from(value: JsGenerationFilename) -> Self {
     match value.filename {
       Either::A(template) => template.into(),
       Either::B(f) => PublicPath::Filename(Filename::from(Arc::new(ThreadSafeFilenameFn(Arc::new(

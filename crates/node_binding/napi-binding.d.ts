@@ -824,6 +824,20 @@ export interface JsDiagnosticLocation {
   length: number
 }
 
+export interface JsDynamicEntryOptions {
+  name?: string
+  runtime?: false | string
+  chunkLoading?: false | string
+  wasmLoading?: false | string
+  asyncChunks?: boolean
+  publicPath?: "auto" | JsFilename
+  baseUri?: string
+  filename?: JsFilename
+  library?: JsLibraryOptions
+  dependOn?: Array<string>
+  layer?: string
+}
+
 export interface JsEntryData {
   dependencies: Array<Dependency>
   includeDependencies: Array<Dependency>
