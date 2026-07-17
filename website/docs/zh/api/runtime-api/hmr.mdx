@@ -1,5 +1,5 @@
 ---
-description: '如果你通过 HotModuleReplacementPlugin 启用了模块热替换，它的接口将暴露在 module.hot 和 import.meta.webpackHot 对象下。'
+description: 'Rspack 提供 webpack HMR API 和独立的 import.meta.hot 上下文。'
 ---
 
 import WebpackLicense from '@components/WebpackLicense';
@@ -8,15 +8,75 @@ import WebpackLicense from '@components/WebpackLicense';
 
 # 模块热替换
 
-Rspack 提供了与 webpack 相同的接口来实现模块热替换。
+Rspack 提供两组 HMR API：
 
-如果你通过 [HotModuleReplacementPlugin](/plugins/webpack/hot-module-replacement-plugin) 启用了模块热替换，它的接口将暴露在 `module.hot`、`import.meta.webpackHot` 和 `import.meta.hot` 对象下。
+- `module.hot` 和 `import.meta.webpackHot` 实现 webpack HMR API。
+- `import.meta.hot` 是独立的模块级上下文，仅支持下文介绍的四种
+  `accept` 形式、`data` 和 `dispose`。
 
-注意，在 ESM 中请使用 `import.meta.webpackHot` 或 `import.meta.hot` 来代替 `module.hot`。
+请通过 [HotModuleReplacementPlugin](/plugins/webpack/hot-module-replacement-plugin) 启用这些 API。在 ESM 中，请使用 `import.meta.webpackHot` 访问 webpack API，或使用独立的 `import.meta.hot` 上下文，而不是 `module.hot`。
 
 `import.meta.hot` 从 Rspack 2.1.5 开始可用。
 
-## 示例
+## `import.meta.hot` API
+
+`import.meta.hot` 支持以下四种 `accept` 形式：
+
+```js
+if (import.meta.hot) {
+  // 接受自身更新，不注册回调。
+  import.meta.hot.accept();
+
+  // 接受自身更新，回调接收更新后的模块命名空间。
+  import.meta.hot.accept((module) => {
+    console.log(module?.default);
+  });
+
+  // 接受单个依赖，回调接收该依赖更新后的命名空间。
+  import.meta.hot.accept('./library.js', (module) => {
+    console.log(module?.default);
+  });
+
+  // 接受多个依赖，命名空间与请求列表保持对齐。
+  import.meta.hot.accept(['./a.js', './b.js'], ([a, b]) => {
+    console.log(a?.default, b?.default);
+  });
+}
+```
+
+如果某个依赖无法执行，依赖接受回调会在对应位置收到 `undefined`。多个依赖的回调仍会收到与声明的依赖列表对齐的数组。只有在更新后的模块成功执行后，才会调用自接受回调。
+
+使用 `data` 和 `dispose` 向模块的下一个版本传递状态，并在模块被替换前释放资源：
+
+```js
+if (import.meta.hot) {
+  import.meta.hot.data.updateCount ??= 0;
+
+  import.meta.hot.dispose((data) => {
+    data.updateCount += 1;
+  });
+}
+```
+
+此上下文不支持其他方法。特别是，本版本不支持 `decline`、`invalidate`、`check` 或 `apply` 等未支持的生命周期或管理方法，`on`、`off` 或 `send` 等客户端传输方法，以及 `acceptExports` 或 `prune` 等导出边界方法。
+
+### TypeScript
+
+在仅使用 Rspack 的项目中，通过 `@rspack/core/import-meta-hot` 选择性启用全局 `ImportMeta.hot` 声明：
+
+```ts
+/// <reference types="@rspack/core/import-meta-hot" />
+
+if (import.meta.hot) {
+  import.meta.hot.accept('./library.js', (module) => {
+    module?.default;
+  });
+}
+```
+
+此 opt-in 入口适用于尚未提供 `ImportMeta.hot` 声明的项目。如果迁移项目已经提供了兼容的 `HotContext` 声明，请勿再加载此 opt-in 入口；Rspack 运行时支持其中的 `accept`、`data` 和 `dispose` 子集，但不实现 `on`、`off`、`send`、`prune` 或 `acceptExports`。
+
+## webpack HMR API
 
 通常，你需要检查这个接口是否可访问，然后再使用它。例如，你可以这样使用 `accept` 操作一个更新的模块：
 
@@ -35,7 +95,7 @@ if (import.meta.webpackHot) {
 }
 ```
 
-`module.hot`、`import.meta.webpackHot` 和 `import.meta.hot` 支持以下方法。
+以下“模块 API”和“API 管理”章节仅适用于 `module.hot` 和 `import.meta.webpackHot`。
 
 ## 模块 API
 

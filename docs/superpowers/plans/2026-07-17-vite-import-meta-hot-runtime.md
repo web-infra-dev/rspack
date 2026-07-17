@@ -39,8 +39,8 @@
 - `tests/rspack-test/hotCases/vite/import-meta-hot-dependency/b.js` — second array dependency fixture.
 - `tests/rspack-test/hotCases/vite/import-meta-hot-self/index.js` — driver for self-accept and lifecycle assertions.
 - `tests/rspack-test/hotCases/vite/import-meta-hot-self/self.js` — self-updating module fixture.
-- `tests/type-tests/vite-client-compat.ts` — verifies that `vite/client` and `@rspack/core/module` can be loaded together.
 - `packages/rspack/import-meta-hot.d.ts` — opt-in global `ImportMeta.hot` declaration for projects that do not load `vite/client`.
+- `.superpowers/sdd/vite-hot-context-compat/` — local, uncommitted package that verifies the supported hot-context subset against the Vite hot-context type.
 
 ### Modify
 
@@ -55,9 +55,7 @@
 - `crates/rspack_plugin_runtime/src/runtime_module/runtime/javascript_hot_module_replacement.ejs` — consult dedicated accept state during propagation, disposal, dependency callback execution, and self re-evaluation.
 - `packages/rspack/module.d.ts` — remove `hot?: Rspack.Hot` and export the Vite-shaped namespace types.
 - `packages/rspack/package.json` — export and publish `./import-meta-hot`.
-- `tests/type-tests/package.json` — add the type-test input needed for Vite declaration coexistence.
 - `tests/type-tests/resolution-bundler/index.ts` — verify all supported callback overloads.
-- `tests/type-tests/resolution-bundler/tsconfig.json` — include `index.ts` and `../vite-client-compat.ts`.
 - `tests/rspack-test/configCases/parsing/import-meta-hot/index.js` — assert dedicated-runtime code generation.
 - `tests/rspack-test/configCases/parsing/import-meta-hot/parser-options.js` — ensure `hot: false` still preserves the native expression.
 - `website/docs/en/api/runtime-api/hmr.mdx` — document the split webpack/Vite contracts and examples.
@@ -70,6 +68,7 @@
 **Atomic slice:** Tasks 1–4 are one TDD batch. Intermediate focused tests are expected to stay red; do not commit until Task 4 installs the runtime and makes the complete context slice pass.
 
 **Files:**
+
 - Modify: `tests/rspack-test/configCases/parsing/import-meta-hot/index.js`
 - Modify: `tests/rspack-test/configCases/parsing/import-meta-hot/parser-options.js`
 - Modify: `crates/rspack_core/src/runtime_globals.rs`
@@ -78,6 +77,7 @@
 - Modify: `crates/rspack_plugin_javascript/src/plugin/impl_plugin_for_js_plugin.rs`
 
 **Interfaces:**
+
 - Produces: `RuntimeGlobals::WEBPACK_HOT_CONTEXT`, rendered as `hmrW`, for the existing webpack hot-object factory.
 - Produces: `RuntimeGlobals::HOT_CONTEXT`, rendered as `hmrH`, for the dedicated `import.meta.hot` registry.
 - Produces: `ImportMetaHotDependency::new(range, loc)` replacing the source range with `<require>.hmrH(<module>.id)`.
@@ -88,10 +88,10 @@
 Add these assertions to `tests/rspack-test/configCases/parsing/import-meta-hot/index.js`:
 
 ```js
-const source = fs.readFileSync(__filename, "utf-8");
-expect(source).toContain(".hmrH(");
-expect(source).not.toContain("module.hot");
-expect(source).not.toContain("__webpack_module__.hot");
+const source = fs.readFileSync(__filename, 'utf-8');
+expect(source).toContain('.hmrH(');
+expect(source).not.toContain('module.hot');
+expect(source).not.toContain('__webpack_module__.hot');
 expect(import.meta.hot).toBe(import.meta.hot);
 ```
 
@@ -251,12 +251,14 @@ Keep the failing test and scaffold changes in the worktree. Task 2 connects the 
 ### Task 2: Split the Vite Parser Path from webpack HMR
 
 **Files:**
+
 - Modify: `crates/rspack_plugin_javascript/src/parser_plugin/hot_module_replacement_plugin.rs`
 - Modify: `crates/rspack_plugin_javascript/src/visitors/dependency/util.rs`
 - Modify: `crates/rspack_plugin_hmr/src/lib.rs`
 - Test: `tests/rspack-test/configCases/parsing/import-meta-hot/index.js`
 
 **Interfaces:**
+
 - Consumes: `ImportMetaHotDependency::new(range, loc)` from Task 1.
 - Produces: `ImportMetaHotReplacementParserPlugin` for JS auto and ESM module types.
 - Preserves: `ImportMetaWebpackHotReplacementParserPlugin` as webpack-only handling for `import.meta.webpackHot`.
@@ -371,6 +373,7 @@ Keep the parser split in the same atomic worktree change; the runtime is intenti
 ### Task 3: Resolve Vite Dependency-Accept Requests Without webpack Callback Wrapping
 
 **Files:**
+
 - Modify: `crates/rspack_core/src/dependency/dependency_type.rs`
 - Rename: `crates/rspack_plugin_javascript/src/dependency/hmr/import_meta_hot_accept.rs` to `import_meta_webpack_hot_accept.rs` and rename its Rust types with `Webpack`.
 - Create: `crates/rspack_plugin_javascript/src/dependency/hmr/import_meta_hot_accept.rs`
@@ -381,6 +384,7 @@ Keep the parser split in the same atomic worktree change; the runtime is intenti
 - Test: `tests/rspack-test/configCases/parsing/import-meta-hot/index.js`
 
 **Interfaces:**
+
 - Produces: `DependencyType::ImportMetaHotAccept`.
 - Produces: `ImportMetaHotAcceptDependency::new(request, range)`; weak ESM dependency whose template replaces the request string with a module ID.
 - Produces: `create_import_meta_accept_handler`, which never creates `ESMAcceptDependency`.
@@ -391,8 +395,8 @@ Extend the configCase source:
 
 ```js
 if (import.meta.hot) {
-  import.meta.hot.accept("./dep", mod => mod);
-  import.meta.hot.accept(["./dep"], mods => mods);
+  import.meta.hot.accept('./dep', (mod) => mod);
+  import.meta.hot.accept(['./dep'], (mods) => mods);
   import.meta.hot.accept(() => {});
   import.meta.hot.accept();
 }
@@ -401,7 +405,7 @@ if (import.meta.hot) {
 Assert the emitted source does not contain `__rspack_hmr_outdated`, because that identifier belongs to webpack's `ESMAcceptDependency` wrapper:
 
 ```js
-expect(source).not.toContain("__rspack_hmr_outdated");
+expect(source).not.toContain('__rspack_hmr_outdated');
 ```
 
 - [ ] **Step 2: Run the configCase and verify the dependency form fails**
@@ -488,15 +492,18 @@ Keep the dependency parsing changes in the same atomic worktree change so no com
 ---
 
 ### Task 4: Add the Dedicated Vite HotContext Runtime Module
+
 - Modify: `crates/rspack_plugin_hmr/src/runtime/hot_module_replacement.ejs`
 
 **Files:**
+
 - Create: `crates/rspack_plugin_hmr/src/hot_context.rs`
 - Create: `crates/rspack_plugin_hmr/src/runtime/hot_context.ejs`
 - Modify: `crates/rspack_plugin_hmr/src/lib.rs`
 - Test: `tests/rspack-test/configCases/parsing/import-meta-hot/index.js`
 
 **Interfaces:**
+
 - Produces: `<require>.hmrH(moduleId) -> ImportMetaHotContext`.
 - Produces: `<require>.hmrH.get(moduleId) -> ImportMetaHotState | undefined` for the apply runtime.
 - Produces: `<require>.hmrH.dispose(moduleId, removed) -> void` for lifecycle cleanup.
@@ -509,8 +516,8 @@ Add to the configCase:
 ```js
 expect(import.meta.hot).toBe(import.meta.hot);
 expect(import.meta.hot.data).toEqual({});
-expect(typeof import.meta.hot.accept).toBe("function");
-expect(typeof import.meta.hot.dispose).toBe("function");
+expect(typeof import.meta.hot.accept).toBe('function');
+expect(typeof import.meta.hot.dispose).toBe('function');
 ```
 
 Run the configCase. Expected: FAIL because `hmrH` is required but no runtime module defines it.
@@ -677,6 +684,7 @@ git commit -m "feat: add dedicated vite hot context runtime"
 ### Task 5: Integrate Vite Accept State into HMR Propagation and Apply
 
 **Files:**
+
 - Modify: `crates/rspack_plugin_runtime/src/runtime_module/runtime/javascript_hot_module_replacement.ejs`
 - Modify: `crates/rspack_plugin_hmr/src/runtime/hot_context.ejs`
 - Create: `tests/rspack-test/hotCases/vite/import-meta-hot-dependency/index.js`
@@ -685,6 +693,7 @@ git commit -m "feat: add dedicated vite hot context runtime"
 - Create: `tests/rspack-test/hotCases/vite/import-meta-hot-dependency/b.js`
 
 **Interfaces:**
+
 - Consumes: `HOT_CONTEXT.get(moduleId)` and `.dispose(moduleId, removed)` from Task 4.
 - Produces: dependency callbacks invoked after updated factories are installed, with `require(depId)` namespace values.
 - Preserves: webpack accept callback execution and error handlers unchanged.
@@ -694,34 +703,34 @@ git commit -m "feat: add dedicated vite hot context runtime"
 Create `index.js`:
 
 ```js
-import { value } from "./dep";
-import { value as aValue } from "./a";
-import { value as bValue } from "./b";
+import { value } from './dep';
+import { value as aValue } from './a';
+import { value as bValue } from './b';
 
 let acceptedDep;
 let acceptedArray;
 
 if (import.meta.hot) {
-  import.meta.hot.accept("./dep", mod => {
+  import.meta.hot.accept('./dep', (mod) => {
     acceptedDep = mod;
   });
-  import.meta.hot.accept(["./a", "./b"], mods => {
+  import.meta.hot.accept(['./a', './b'], (mods) => {
     acceptedArray = mods;
   });
 }
 
-it("passes updated namespaces to Vite accept callbacks", async () => {
+it('passes updated namespaces to Vite accept callbacks', async () => {
   expect(value).toBe(1);
-  expect(aValue).toBe("a1");
-  expect(bValue).toBe("b1");
+  expect(aValue).toBe('a1');
+  expect(bValue).toBe('b1');
 
   await NEXT_HMR();
 
   expect(acceptedDep.value).toBe(2);
-  expect(acceptedArray.map(mod => mod && mod.value)).toEqual(["a2", "b2"]);
+  expect(acceptedArray.map((mod) => mod && mod.value)).toEqual(['a2', 'b2']);
   expect(value).toBe(2);
-  expect(aValue).toBe("a2");
-  expect(bValue).toBe("b2");
+  expect(aValue).toBe('a2');
+  expect(bValue).toBe('b2');
 });
 ```
 
@@ -854,12 +863,14 @@ git commit -m "feat: apply vite dependency hot updates"
 ### Task 6: Implement Self-Accept, Persistent Data, and Dispose
 
 **Files:**
+
 - Modify: `crates/rspack_plugin_runtime/src/runtime_module/runtime/javascript_hot_module_replacement.ejs`
 - Modify: `crates/rspack_plugin_hmr/src/runtime/hot_context.ejs`
 - Create: `tests/rspack-test/hotCases/vite/import-meta-hot-self/index.js`
 - Create: `tests/rspack-test/hotCases/vite/import-meta-hot-self/self.js`
 
 **Interfaces:**
+
 - Consumes: `ImportMetaHotState.selfAccepted`, `selfCallback`, `data`, and `disposeCallbacks`.
 - Produces: successful self-re-evaluation callback `(namespace) => void`.
 - Produces: fresh callback registrations with persistent `data` after every update.
@@ -869,9 +880,9 @@ git commit -m "feat: apply vite dependency hot updates"
 Create `index.js`:
 
 ```js
-import "./self";
+import './self';
 
-it("runs the Vite self callback and preserves hot data", async () => {
+it('runs the Vite self callback and preserves hot data', async () => {
   expect(globalThis.__importMetaHotInitial).toEqual({ value: 1, count: 0 });
   await NEXT_HMR();
   expect(globalThis.__importMetaHotAccepted).toEqual({ value: 2, count: 1 });
@@ -924,8 +935,8 @@ When building `outdatedSelfAcceptedModules`, add an entry for Vite state indepen
 if (hotState && hotState.selfAccepted) {
   outdatedSelfAcceptedModules.push({
     module: outdatedModuleId,
-    type: "import-meta-hot",
-    callback: hotState.selfCallback
+    type: 'import-meta-hot',
+    callback: hotState.selfCallback,
   });
 }
 ```
@@ -989,18 +1000,18 @@ git commit -m "feat: support vite self accept lifecycle"
 
 ---
 
-### Task 7: Publish Vite-Shaped Types Without Colliding with `vite/client`
+### Task 7: Publish the Opt-In Hot-Context Types
 
 **Files:**
+
 - Modify: `packages/rspack/module.d.ts`
 - Create: `packages/rspack/import-meta-hot.d.ts`
 - Modify: `packages/rspack/package.json`
-- Modify: `tests/type-tests/package.json`
 - Modify: `tests/type-tests/resolution-bundler/index.ts`
-- Modify: `tests/type-tests/resolution-bundler/tsconfig.json`
-- Create: `tests/type-tests/vite-client-compat.ts`
+- Verify locally without committing: `.superpowers/sdd/vite-hot-context-compat/`
 
 **Interfaces:**
+
 - Produces: `Rspack.ModuleNamespace`.
 - Produces: `Rspack.ImportMetaHotContext` with only `data`, four `accept` overloads, and `dispose`.
 - Produces: opt-in `@rspack/core/import-meta-hot` ambient declaration.
@@ -1015,17 +1026,17 @@ Add this type reference and the usages to `resolution-bundler/index.ts`:
 
 if (import.meta.hot) {
   import.meta.hot.accept();
-  import.meta.hot.accept(mod => {
+  import.meta.hot.accept((mod) => {
     mod?.default;
   });
-  import.meta.hot.accept('./dep', mod => {
+  import.meta.hot.accept('./dep', (mod) => {
     mod?.default;
   });
-  import.meta.hot.accept(['./a', './b'] as const, mods => {
+  import.meta.hot.accept(['./a', './b'] as const, (mods) => {
     mods[0]?.default;
     mods[1]?.default;
   });
-  import.meta.hot.dispose(data => {
+  import.meta.hot.dispose((data) => {
     data.disposed = true;
   });
 
@@ -1060,10 +1071,7 @@ declare namespace Rspack {
     readonly data: any;
     accept(): void;
     accept(cb: (mod: ModuleNamespace | undefined) => void): void;
-    accept(
-      dep: string,
-      cb: (mod: ModuleNamespace | undefined) => void,
-    ): void;
+    accept(dep: string, cb: (mod: ModuleNamespace | undefined) => void): void;
     accept(
       deps: readonly string[],
       cb: (mods: Array<ModuleNamespace | undefined>) => void,
@@ -1096,28 +1104,19 @@ Add to the existing `exports` and `files` collections in `packages/rspack/packag
       "types": "./import-meta-hot.d.ts"
     }
   },
-  "files": [
-    "import-meta-hot.d.ts"
-  ]
+  "files": ["import-meta-hot.d.ts"]
 }
 ```
 
 Keep every existing export and published file entry.
 
-- [ ] **Step 5: Verify coexistence with Vite's ambient declaration**
+- [ ] **Step 5: Verify the supported subset in a separate local package**
 
-Add `"vite": "8.1.5"` to `tests/type-tests` devDependencies, then create `tests/type-tests/vite-client-compat.ts`:
+Keep `tests/type-tests/resolution-bundler/tsconfig.json` scoped to its own `index.ts`, so the committed Rspack opt-in declaration is verified in an isolated TypeScript program.
 
-```ts
-/// <reference types="vite/client" />
-/// <reference types="@rspack/core/module" />
+Create `.superpowers/sdd/vite-hot-context-compat/` locally, pin Vite 8.1.5, and import `ViteHotContext` directly from the Vite hot type module rather than loading `vite/client`. With `skipLibCheck: false`, verify structural assignability in both directions between `Rspack.ImportMetaHotContext` and `Pick<ViteHotContext, "data" | "accept" | "dispose">`.
 
-if (import.meta.hot) {
-  import.meta.hot.accept(mod => mod?.default);
-}
-```
-
-Set the bundler tsconfig include list to `["index.ts", "../vite-client-compat.ts"]`. Deliberately do not reference `@rspack/core/import-meta-hot` in this coexistence file: Vite supplies the global declaration, while Rspack supplies runtime compatibility.
+Do not commit this local package, a Vite workspace dependency, a workspace lockfile change, or a `vite/client` fixture. Loading the complete ambient declarations also exposes the pre-existing unrelated `ImportMeta.glob` property merge conflict; do not change `import.meta.glob` as part of this work.
 
 - [ ] **Step 6: Run type and package checks**
 
@@ -1128,7 +1127,7 @@ pnpm run test:type
 pnpm run check-dependency-version
 ```
 
-Expected: PASS with `skipLibCheck: false`; Vite and `@rspack/core/module` coexist without an `ImportMeta.hot` merge error.
+Expected: the committed Rspack opt-in type program passes, and the separate local package passes with `skipLibCheck: false` in both assignability directions.
 
 - [ ] **Step 7: Commit the type surface**
 
@@ -1136,8 +1135,8 @@ Expected: PASS with `skipLibCheck: false`; Vite and `@rspack/core/module` coexis
 git add packages/rspack/module.d.ts \
   packages/rspack/import-meta-hot.d.ts \
   packages/rspack/package.json \
-  tests/type-tests
-git commit -m "feat: add vite-compatible import meta hot types"
+  tests/type-tests/resolution-bundler/index.ts
+git commit -m "feat: add import meta hot types"
 ```
 
 ---
@@ -1145,13 +1144,15 @@ git commit -m "feat: add vite-compatible import meta hot types"
 ### Task 8: Update Documentation and Run Final Verification
 
 **Files:**
+
 - Modify: `website/docs/en/api/runtime-api/hmr.mdx`
 - Modify: `website/docs/zh/api/runtime-api/hmr.mdx`
 - Verify: all files changed by Tasks 1–7
 
 **Interfaces:**
+
 - Documents: separate webpack and Vite HMR surfaces.
-- Documents: `@rspack/core/import-meta-hot` for Rspack-only TypeScript projects and continued `vite/client` use for migrated Vite projects.
+- Documents: `@rspack/core/import-meta-hot` for Rspack-only TypeScript projects and the runtime's supported subset for migrated projects with an existing HotContext declaration.
 
 - [ ] **Step 1: Replace alias wording in English docs**
 
@@ -1254,7 +1255,7 @@ Request a focused code review after:
 
 1. Task 3 — parser/dependency split is complete and no webpack wrapper is emitted.
 2. Task 6 — runtime propagation, dependency namespaces, and self-accept lifecycle all pass.
-3. Task 7 — ambient types coexist with `vite/client` under `skipLibCheck: false`.
+3. Task 7 — the Rspack opt-in type program and the local hot-context subset compatibility package pass separately with `skipLibCheck: false`.
 4. Task 8 — final verification completes.
 
 At every checkpoint, reject changes that implement `import.meta.hot` by returning or mutating `module.hot`; the only allowed integration point is the HMR apply runtime reading the independent Vite context registry.
