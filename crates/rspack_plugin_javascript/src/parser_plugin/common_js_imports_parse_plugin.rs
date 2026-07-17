@@ -33,8 +33,8 @@ use crate::{
   magic_comment::try_extract_magic_comment,
   utils::eval::{self, BasicEvaluatedExpression},
   visitors::{
-    CallHooksName, ExportedVariableInfo, JavascriptParser, TagInfoData, VariableDeclaration,
-    VariableDeclarationKind, VariableInfo, VariableInfoFlags, context_reg_exp,
+    CallHooksName, ExportedVariableInfo, JavascriptParser, StatementPath, TagInfoData,
+    VariableDeclaration, VariableDeclarationKind, VariableInfo, VariableInfoFlags, context_reg_exp,
     create_context_dependency, create_traceable_error, expr_name, get_non_optional_part,
   },
 };
@@ -71,6 +71,8 @@ struct PendingCreatedRequire<'a> {
   callee: DeferredCreateRequireCallee,
   // Deferred calls skip this expression until their keep/strip state is known.
   argument: Expr<'a>,
+  statement_path: Vec<StatementPath>,
+  prev_statement: Option<StatementPath>,
 }
 
 struct DeferredCreateRequireCallee {
@@ -89,6 +91,8 @@ impl<'a> CreatedRequireReferencesState<'a> {
     call_span: Span,
     callee: DeferredCreateRequireCallee,
     argument: Expr<'a>,
+    statement_path: Vec<StatementPath>,
+    prev_statement: Option<StatementPath>,
   ) {
     // Normal walk refreshes provisional pre-walk data after earlier references may mark it.
     let must_keep = self
@@ -101,6 +105,8 @@ impl<'a> CreatedRequireReferencesState<'a> {
         must_keep,
         callee,
         argument,
+        statement_path,
+        prev_statement,
       },
     );
   }
@@ -1076,7 +1082,11 @@ fn keep_deferred_create_require_call<'a>(
 ) {
   add_deferred_create_require_callee_dependency(parser, pending.callee);
   // Let the regular parser plugins own children of a call that survives.
+  let statement_path = std::mem::replace(&mut parser.statement_path, pending.statement_path);
+  let prev_statement = std::mem::replace(&mut parser.prev_statement, pending.prev_statement);
   parser.walk_expression(&pending.argument);
+  parser.statement_path = statement_path;
+  parser.prev_statement = prev_statement;
 }
 
 fn pre_tag_created_require_declarator<'a>(
@@ -1127,10 +1137,14 @@ fn pre_tag_created_require_declarator<'a>(
       preserve_unhandled: true,
     }),
   );
+  let statement_path = parser.statement_path.clone();
+  let prev_statement = parser.prev_statement;
   parser.created_require_references.add_pending(
     call.span,
     deferred_callee,
     call.args[0].expr.clone_in(parser.ast.allocator),
+    statement_path,
+    prev_statement,
   );
 }
 
@@ -1164,10 +1178,14 @@ fn tag_created_require_declarator<'a>(
     }),
   );
   if let Some(callee) = deferred_callee {
+    let statement_path = parser.statement_path.clone();
+    let prev_statement = parser.prev_statement;
     parser.created_require_references.add_pending(
       call_span,
       callee,
       args[0].expr.clone_in(parser.ast.allocator),
+      statement_path,
+      prev_statement,
     );
   } else if clear_call {
     clear_create_require_call(parser, call_span);
