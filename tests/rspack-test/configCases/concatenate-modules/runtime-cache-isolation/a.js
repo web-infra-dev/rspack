@@ -12,10 +12,7 @@ it("should keep runtime-specific concatenation results isolated", () => {
 
   const shared = __STATS__.modules.find(module => module.name.endsWith("root-shared.js"));
   expect(shared).toBeDefined();
-  // Runtime-mode compilation exercises the runtime-keyed bailout; the default compilation
-  // exercises the same candidate across incompatible root chunks.
-  const leafWasConcatenated = rootAGroup.modules.some(module => module.name.endsWith("leaf.js"));
-  const expectedBailout = leafWasConcatenated
+  const expectedBailout = globalThis.__RSPACK_TEST_RUNTIME_MODE_RSPACK
     ? "runtime-dependent referenced"
     : "not in the same chunk(s)";
   expect(shared.optimizationBailout).toEqual(

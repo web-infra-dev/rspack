@@ -1190,8 +1190,15 @@ impl ModuleConcatenationPlugin {
           })
           .collect::<Vec<_>>();
 
+        let incoming_connection_ids = module_graph
+          .module_graph_module_by_identifier(&module_id)
+          .expect("should have mgm")
+          .incoming_connections();
         let mut incomings = IncomingConnections::default();
-        for connection in module_graph.get_incoming_connections(&module_id) {
+        for dependency_id in incoming_connection_ids {
+          let connection = module_graph
+            .connection_by_dependency_id(dependency_id)
+            .expect("should have connection");
           let origin_module = connection.original_module_identifier;
           let connection = CachedIncomingConnection::new(
             connection,
@@ -1437,6 +1444,8 @@ impl ModuleConcatenationPlugin {
         );
       });
 
+    // These lazy warnings inspect the current chunk graph, so materialize them before
+    // creating concatenated modules mutates that graph below.
     let formatted_empty_config_warnings = empty_config_warnings
       .into_par_iter()
       .map(|(current_root, warnings)| {
