@@ -390,7 +390,7 @@ impl JsCompiler {
 
   /// Rebuild with the given option passed to the constructor
   #[napi(
-    ts_args_type = "changed_files: string[], removed_files: string[], callback: (err: null | Error) => void"
+    ts_args_type = "changed_files: string[], removed_files: string[], callback: (err: null | Error) => void, is_lazy_watch_rebuild?: boolean"
   )]
   pub fn rebuild(
     &mut self,
@@ -398,6 +398,7 @@ impl JsCompiler {
     changed_files: Vec<String>,
     removed_files: Vec<String>,
     f: Function<'static>,
+    is_lazy_watch_rebuild: Option<bool>,
   ) -> Result<(), ErrorCode> {
     unsafe {
       self.run(reference, |compiler, guard| {
@@ -405,9 +406,10 @@ impl JsCompiler {
           f,
           async move {
             let result = compiler
-              .rebuild(
+              .rebuild_with_invalidation_provenance(
                 changed_files.into_iter().collect::<FxHashSet<_>>(),
                 removed_files.into_iter().collect::<FxHashSet<_>>(),
+                is_lazy_watch_rebuild.unwrap_or(false),
               )
               .await
               .to_napi_result_with_message(|e| {
