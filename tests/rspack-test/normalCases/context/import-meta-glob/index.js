@@ -12,6 +12,10 @@ const eagerNamespaceModules = import.meta.glob('./dir/*.js', {
 const explicitNodeModulesModules = import.meta.glob('./dir/node_modules/*.js', {
   eager: true,
 })
+const caseInsensitiveExplicitNodeModulesModules = import.meta.glob('./DIR/NODE_MODULES/*.JS', {
+  eager: true,
+  caseSensitive: false,
+})
 const skippedExhaustiveModules = import.meta.glob(
   ['./dot/.*.js', './.foo/*.js', './dir/node_modules/**'],
   { eager: true },
@@ -111,6 +115,10 @@ const caseInsensitiveModules = import.meta.glob('./case-test/*.JS', {
   eager: true,
   caseSensitive: false,
 })
+const caseInsensitiveDirectoryModules = import.meta.glob('./CASE-TEST/*.JS', {
+  eager: true,
+  caseSensitive: false,
+})
 const numberCaseSensitiveModules = import.meta.glob('./case-test/*.JS', {
   eager: true,
   caseSensitive: 0,
@@ -191,6 +199,12 @@ it('should allow explicit glob roots inside node_modules', () => {
   expect(explicitNodeModulesModules['./dir/node_modules/hoge.js'].default).toBe(
     'hoge',
   )
+  expect(Object.keys(caseInsensitiveExplicitNodeModulesModules)).toEqual([
+    './dir/node_modules/hoge.js',
+  ])
+  expect(
+    caseInsensitiveExplicitNodeModulesModules['./dir/node_modules/hoge.js'].default,
+  ).toBe('hoge')
 })
 
 it('should only search hidden directories and node_modules in exhaustive mode', () => {
@@ -332,6 +346,8 @@ it('should match case-insensitively only when caseSensitive is false', () => {
   expect(Object.keys(caseSensitiveModules)).toEqual([])
   expect(Object.keys(caseInsensitiveModules)).toEqual(['./case-test/alpha.js'])
   expect(caseInsensitiveModules['./case-test/alpha.js'].default).toBe('alpha')
+  expect(Object.keys(caseInsensitiveDirectoryModules)).toEqual(['./case-test/alpha.js'])
+  expect(caseInsensitiveDirectoryModules['./case-test/alpha.js'].default).toBe('alpha')
 })
 
 it('should use case-sensitive matching for non-boolean caseSensitive values', () => {

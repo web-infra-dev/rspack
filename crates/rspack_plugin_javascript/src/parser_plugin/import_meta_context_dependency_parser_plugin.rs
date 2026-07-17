@@ -250,15 +250,17 @@ fn resolve_glob_pattern(
   }
 }
 
-fn common_glob_base_dir(patterns: &[ResolvedContextModuleGlobPattern], fallback: &str) -> String {
-  let mut positive_patterns = patterns.iter().filter(|pattern| !pattern.negative);
-  let Some(first) = positive_patterns.next() else {
+fn common_glob_base_dir<'a>(
+  mut base_dirs: impl Iterator<Item = &'a str>,
+  fallback: &str,
+) -> String {
+  let Some(first) = base_dirs.next() else {
     return fallback.to_string();
   };
 
-  let mut common_base = Utf8PathBuf::from(first.absolute_base.as_str());
-  for pattern in positive_patterns {
-    let base = Utf8Path::new(pattern.absolute_base.as_str());
+  let mut common_base = Utf8PathBuf::from(first);
+  for base in base_dirs {
+    let base = Utf8Path::new(base);
     while !base.starts_with(&common_base) {
       let Some(parent) = common_base.parent() else {
         return fallback.to_string();
@@ -273,6 +275,36 @@ fn common_glob_base_dir(patterns: &[ResolvedContextModuleGlobPattern], fallback:
   } else {
     concat_string!(common_base, "/")
   }
+}
+
+fn case_insensitive_glob_pattern_root(
+  pattern: &str,
+  context: &str,
+  compiler_context: &str,
+) -> String {
+  let pattern = pattern.strip_prefix('!').unwrap_or(pattern);
+  let pattern = normalize_path_separators(pattern);
+  let (base, pattern_to_join) =
+    import_meta_glob_path_parts(context, compiler_context, pattern.as_str());
+  let stable_prefix = pattern_to_join
+    .split('/')
+    .take_while(|segment| segment.is_empty() || *segment == "." || *segment == "..")
+    .collect::<Vec<_>>()
+    .join("/");
+  join_import_meta_glob_fs_path(base, &stable_prefix)
+}
+
+fn case_insensitive_glob_base_dir(
+  patterns: &[String],
+  context: &str,
+  compiler_context: &str,
+) -> String {
+  let roots = patterns
+    .iter()
+    .filter(|pattern| !pattern.starts_with('!'))
+    .map(|pattern| case_insensitive_glob_pattern_root(pattern, context, compiler_context))
+    .collect::<Vec<_>>();
+  common_glob_base_dir(roots.iter().map(String::as_str), context)
 }
 
 fn resolve_import_meta_glob_context(
@@ -445,7 +477,21 @@ fn create_import_meta_glob_dependency(
       )
     })
     .collect::<Vec<_>>();
-  let base_dir = common_glob_base_dir(&resolved_glob_patterns, resolve_context.as_str());
+  let base_dir = if glob_case_sensitive {
+    common_glob_base_dir(
+      resolved_glob_patterns
+        .iter()
+        .filter(|pattern| !pattern.negative)
+        .map(|pattern| pattern.absolute_base.as_str()),
+      resolve_context.as_str(),
+    )
+  } else {
+    case_insensitive_glob_base_dir(
+      &glob_patterns,
+      resolve_context.as_str(),
+      parser.compiler_options.context.as_str(),
+    )
+  };
   let recursive = glob_patterns_are_recursive(&resolved_glob_patterns, &base_dir);
 
   let referenced_specifiers = options
