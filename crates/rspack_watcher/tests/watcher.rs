@@ -173,3 +173,52 @@ fn should_emit_remove_when_a_watched_file_is_deleted() {
     },
   );
 }
+
+#[test]
+fn should_emit_existing_and_created_files_in_the_same_context_batch() {
+  let mut helper = h!(FsWatcherOptions {
+    aggregate_timeout: Some(100),
+    ..Default::default()
+  });
+  std::fs::create_dir_all(helper.join("assets")).unwrap();
+  helper.file("assets/existing.js");
+
+  let rx = helper.watch(f!("assets/existing.js"), f!("assets"), e!());
+
+  helper.tick(|| {
+    helper.file("assets/existing.js");
+    helper.file("assets/created.js");
+  });
+
+  let existing_events = c!();
+  let created_events = c!();
+  helper.collect_events(
+    rx,
+    |event, _| {
+      if let helpers::ChangedEvent::Changed(path) = event {
+        if path == helper.join("assets/existing.js").as_str() {
+          add!(existing_events);
+        }
+        if path == helper.join("assets/created.js").as_str() {
+          add!(created_events);
+        }
+      }
+    },
+    |changes, abort| {
+      if load!(created_events) == 0 {
+        return;
+      }
+      changes.assert_changed(helper.join("assets"));
+      changes.assert_changed(helper.join("assets/existing.js"));
+      assert!(
+        !changes
+          .changed_files
+          .contains(helper.join("assets/created.js").as_str())
+      );
+      *abort = true;
+    },
+  );
+
+  assert!(load!(existing_events) > 0);
+  assert!(load!(created_events) > 0);
+}

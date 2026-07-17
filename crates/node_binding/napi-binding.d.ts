@@ -466,6 +466,8 @@ export declare class NativeWatcher {
   constructor(options: NativeWatcherOptions)
   watch(files: [Array<string>, Array<string>], directories: [Array<string>, Array<string>], missing: [Array<string>, Array<string>], startTime: bigint, callback: (err: Error | null, result: NativeWatchResult) => void, callbackUndelayed: (event: NativeWatchUndelayedEvent) => void): void
   triggerEvent(kind: 'change' | 'remove' | 'create', path: string): void
+  takePendingEvents(): NativeWatchResult
+  acknowledgePendingEvents(generation: number): void
   close(): Promise<void>
   pause(): void
 }
@@ -473,6 +475,7 @@ export declare class NativeWatcher {
 export declare class NativeWatchResult {
   changedFiles: Array<string>
   removedFiles: Array<string>
+  generation: number
 }
 
 
