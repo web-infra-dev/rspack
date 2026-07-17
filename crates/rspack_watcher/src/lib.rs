@@ -7,7 +7,13 @@ mod scanner;
 mod time_info;
 mod trigger;
 
-use std::{sync::Arc, time::SystemTime};
+use std::{
+  sync::{
+    Arc, Weak,
+    atomic::{AtomicBool, Ordering},
+  },
+  time::SystemTime,
+};
 
 use analyzer::{Analyzer, RecommendedAnalyzer};
 use disk_watcher::DiskWatcher;
@@ -85,6 +91,26 @@ pub struct FsWatcherOptions {
   pub aggregate_timeout: Option<u32>,
 }
 
+#[derive(Clone)]
+pub struct FsWatcherControl {
+  paused: Arc<AtomicBool>,
+  trigger: Weak<Trigger>,
+}
+
+impl FsWatcherControl {
+  pub fn pause(&self) -> Result<()> {
+    self.paused.store(true, Ordering::Relaxed);
+
+    Ok(())
+  }
+
+  pub fn trigger_event(&self, path: &ArcPath, kind: FsEventKind) {
+    if let Some(trigger) = self.trigger.upgrade() {
+      trigger.on_event(path, kind);
+    }
+  }
+}
+
 pub struct FsWatcher {
   path_manager: Arc<PathManager>,
   disk_watcher: DiskWatcher,
@@ -116,6 +142,13 @@ impl FsWatcher {
       scanner,
       analyzer: RecommendedAnalyzer::default(),
       trigger: Some(trigger),
+    }
+  }
+
+  pub fn control(&self) -> FsWatcherControl {
+    FsWatcherControl {
+      paused: self.executor.pause_handle(),
+      trigger: self.trigger.as_ref().map_or_else(Weak::new, Arc::downgrade),
     }
   }
 

@@ -86,6 +86,10 @@ impl Executor {
     }
   }
 
+  pub(super) fn pause_handle(&self) -> Arc<AtomicBool> {
+    Arc::clone(&self.paused)
+  }
+
   /// Pause the aggregate executor, it will not execute the event handler until resume.
   pub fn pause(&self) {
     self
