@@ -17,6 +17,7 @@ mod raw_limit_chunk_count;
 mod raw_mf;
 mod raw_normal_replacement;
 mod raw_progress;
+mod raw_remove_duplicate_modules;
 mod raw_runtime_chunk;
 mod raw_size_limits;
 mod raw_sri;
@@ -134,6 +135,7 @@ use self::{
     RawSharedContainerPluginOptions,
   },
   raw_normal_replacement::RawNormalModuleReplacementPluginOptions,
+  raw_remove_duplicate_modules::RawRemoveDuplicateModulesPluginOptions,
   raw_runtime_chunk::RawRuntimeChunkOptions,
   raw_size_limits::RawSizeLimitsPluginOptions,
   raw_swc_js_minimizer::RawSwcJsMinimizerRspackPluginOptions,
@@ -497,7 +499,10 @@ impl<'a> BuiltinPlugin<'a> {
         plugins.push(SplitChunksPlugin::new(options).boxed());
       }
       BuiltinPluginName::RemoveDuplicateModulesPlugin => {
-        plugins.push(RemoveDuplicateModulesPlugin::default().boxed());
+        let options = downcast_into::<RawRemoveDuplicateModulesPluginOptions>(self.options)
+          .map_err(|report| napi::Error::from_reason(report.to_string()))?
+          .into();
+        plugins.push(RemoveDuplicateModulesPlugin::new(options).boxed());
       }
       BuiltinPluginName::ShareRuntimePlugin => plugins.push(
         ShareRuntimePlugin::new(

@@ -1,7 +1,5 @@
-use std::sync::Arc;
-
 use rayon::prelude::*;
-use rspack_collections::IdentifierSet;
+use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   ChunkUkey, Compilation, CompilationOptimizeChunks, ModuleIdentifier, Plugin,
   incremental::Mutation,
@@ -12,13 +10,24 @@ use rspack_util::fx_hash::FxDashMap;
 
 #[derive(Debug)]
 #[plugin]
-pub struct RemoveDuplicateModulesPlugin {}
+pub struct RemoveDuplicateModulesPlugin {
+  options: RemoveDuplicateModulesPluginOptions,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct RemoveDuplicateModulesPluginOptions {
+  pub min_size: f64,
+}
 
 impl std::default::Default for RemoveDuplicateModulesPlugin {
   fn default() -> Self {
-    Self {
-      inner: Arc::new(RemoveDuplicateModulesPluginInner {}),
-    }
+    Self::new(Default::default())
+  }
+}
+
+impl RemoveDuplicateModulesPlugin {
+  pub fn new(options: RemoveDuplicateModulesPluginOptions) -> Self {
+    Self::new_inner(options)
   }
 }
 
@@ -45,20 +54,29 @@ fn find_reusable_chunk(
 
 #[plugin_hook(CompilationOptimizeChunks for RemoveDuplicateModulesPlugin)]
 async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
-  let module_graph = compilation.get_module_graph();
-  let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
+  let (chunk_map, module_sizes) = {
+    let module_graph = compilation.get_module_graph();
+    let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
+    let chunk_map: FxDashMap<Vec<ChunkUkey>, Vec<ModuleIdentifier>> = FxDashMap::default();
 
-  let chunk_map: FxDashMap<Vec<ChunkUkey>, Vec<ModuleIdentifier>> = FxDashMap::default();
+    module_graph.modules_par().for_each(|(identifier, _)| {
+      let chunks = chunk_graph.get_module_chunks(*identifier);
+      let mut sorted_chunks = chunks.iter().copied().collect::<Vec<_>>();
+      sorted_chunks.sort();
+      chunk_map
+        .entry(sorted_chunks)
+        .or_default()
+        .push(*identifier);
+    });
 
-  module_graph.modules_par().for_each(|(identifier, _)| {
-    let chunks = chunk_graph.get_module_chunks(*identifier);
-    let mut sorted_chunks = chunks.iter().copied().collect::<Vec<_>>();
-    sorted_chunks.sort();
-    chunk_map
-      .entry(sorted_chunks)
-      .or_default()
-      .push(*identifier);
-  });
+    let module_sizes = (self.options.min_size > 0.0).then(|| {
+      module_graph
+        .modules()
+        .map(|(identifier, module)| (*identifier, module.size(None, Some(compilation))))
+        .collect::<IdentifierMap<_>>()
+    });
+    (chunk_map, module_sizes)
+  };
 
   /*
     sort chunks so that do max effort to find reusable chunk
@@ -90,6 +108,16 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
   for (chunks, modules) in chunk_map.into_iter().rev() {
     if chunks.len() <= 1 {
       continue;
+    }
+
+    if let Some(module_sizes) = &module_sizes {
+      let size = modules
+        .iter()
+        .filter_map(|module| module_sizes.get(module))
+        .sum::<f64>();
+      if size < self.options.min_size {
+        continue;
+      }
     }
 
     // split chunks from original chunks and create new chunk
