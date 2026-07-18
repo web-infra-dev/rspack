@@ -104,7 +104,7 @@ export const getRawOptions = (
     }),
     optimization: options.optimization as Required<Optimization>,
     stats: getRawStats(options.stats),
-    cache: getRawCache(options.cache!),
+    cache: getRawCache(options.cache!, compiler),
     experiments,
     incremental: options.incremental,
     node: getRawNode(options.node),
@@ -114,9 +114,16 @@ export const getRawOptions = (
   };
 };
 
-function getRawCache(cache: CacheNormalized): RawOptions['cache'] {
+function getRawCache(
+  cache: CacheNormalized,
+  compiler: Compiler,
+): RawOptions['cache'] {
   if (cache === false) return false;
   if (cache.type === 'memory') return cache;
+  const version = JSON.stringify([
+    cache.version,
+    compiler.__internal__builtinPlugins.map((plugin) => plugin.name),
+  ]);
   const toRawStorageLimit = (name: string, value: number) => {
     if (value === Infinity) return 0;
     if (!Number.isSafeInteger(value) || value < 1 || value > MAX_U32) {
@@ -128,6 +135,9 @@ function getRawCache(cache: CacheNormalized): RawOptions['cache'] {
   };
   return {
     ...cache,
+    // The persistent cache restores the complete module graph, whose shape
+    // depends on the registered builtin plugins and their application order.
+    version,
     maxAge: toRawStorageLimit('cache.maxAge', cache.maxAge!),
     maxVersions: toRawStorageLimit('cache.maxVersions', cache.maxVersions!),
     storage: {

@@ -1,0 +1,1 @@
+export { double } from './double';
