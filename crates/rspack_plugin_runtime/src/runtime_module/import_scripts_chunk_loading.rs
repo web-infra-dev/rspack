@@ -9,7 +9,8 @@ use rspack_plugin_javascript::impl_plugin_for_js_plugin::chunk_has_js;
 
 use super::{generate_javascript_hmr_runtime, utils::get_output_dir};
 use crate::{
-  extract_runtime_globals_from_ejs, get_chunk_runtime_requirements,
+  extract_runtime_globals_from_ejs, extract_runtime_module_variables_from_ejs,
+  get_chunk_runtime_requirements,
   runtime_module::utils::{
     get_initial_chunk_ids, render_hmr_runtime_state_expression, stringify_chunks,
   },
@@ -25,6 +26,17 @@ static IMPORT_SCRIPTS_CHUNK_LOADING_WITH_HMR_MANIFEST_TEMPLATE: &str =
   include_str!("runtime/import_scripts_chunk_loading_with_hmr_manifest.ejs");
 static JAVASCRIPT_HOT_MODULE_REPLACEMENT_TEMPLATE: &str =
   include_str!("runtime/javascript_hot_module_replacement.ejs");
+static RUNTIME_MODULE_VARIABLES: LazyLock<Vec<&'static str>> = LazyLock::new(|| {
+  let mut variables = extract_runtime_module_variables_from_ejs(&[
+    IMPORT_SCRIPTS_CHUNK_LOADING_TEMPLATE,
+    IMPORT_SCRIPTS_CHUNK_LOADING_WITH_LOADING_TEMPLATE,
+    IMPORT_SCRIPTS_CHUNK_LOADING_WITH_HMR_TEMPLATE,
+    IMPORT_SCRIPTS_CHUNK_LOADING_WITH_HMR_MANIFEST_TEMPLATE,
+    JAVASCRIPT_HOT_MODULE_REPLACEMENT_TEMPLATE,
+  ]);
+  variables.push("importScriptsInstalledChunks");
+  variables
+});
 
 static IMPORT_SCRIPTS_CHUNK_LOADING_RUNTIME_REQUIREMENTS: LazyLock<
   RuntimeModuleRuntimeRequirements,
@@ -48,7 +60,7 @@ static JAVASCRIPT_HOT_MODULE_REPLACEMENT_RUNTIME_REQUIREMENTS: LazyLock<
   RuntimeModuleRuntimeRequirements,
 > = LazyLock::new(|| extract_runtime_globals_from_ejs(JAVASCRIPT_HOT_MODULE_REPLACEMENT_TEMPLATE));
 
-#[impl_runtime_module]
+#[impl_runtime_module(runtime_module_variables)]
 #[derive(Debug, Default)]
 pub struct ImportScriptsChunkLoadingRuntimeModule {
   with_create_script_url: bool,
@@ -130,6 +142,10 @@ enum TemplateId {
 
 #[async_trait::async_trait]
 impl RuntimeModule for ImportScriptsChunkLoadingRuntimeModule {
+  fn runtime_module_variables() -> &'static [&'static str] {
+    RUNTIME_MODULE_VARIABLES.as_slice()
+  }
+
   fn runtime_requirements(&self, compilation: &Compilation) -> RuntimeModuleRuntimeRequirements {
     let Some(chunk_ukey) = self.chunk() else {
       return RuntimeModuleRuntimeRequirements::default();
@@ -170,23 +186,23 @@ impl RuntimeModule for ImportScriptsChunkLoadingRuntimeModule {
     vec![
       (
         self.template_id(TemplateId::Raw),
-        include_str!("runtime/import_scripts_chunk_loading.ejs").to_string(),
+        IMPORT_SCRIPTS_CHUNK_LOADING_TEMPLATE.to_string(),
       ),
       (
         self.template_id(TemplateId::WithLoading),
-        include_str!("runtime/import_scripts_chunk_loading_with_loading.ejs").to_string(),
+        IMPORT_SCRIPTS_CHUNK_LOADING_WITH_LOADING_TEMPLATE.to_string(),
       ),
       (
         self.template_id(TemplateId::WithHmr),
-        include_str!("runtime/import_scripts_chunk_loading_with_hmr.ejs").to_string(),
+        IMPORT_SCRIPTS_CHUNK_LOADING_WITH_HMR_TEMPLATE.to_string(),
       ),
       (
         self.template_id(TemplateId::WithHmrManifest),
-        include_str!("runtime/import_scripts_chunk_loading_with_hmr_manifest.ejs").to_string(),
+        IMPORT_SCRIPTS_CHUNK_LOADING_WITH_HMR_MANIFEST_TEMPLATE.to_string(),
       ),
       (
         self.template_id(TemplateId::HmrRuntime),
-        include_str!("runtime/javascript_hot_module_replacement.ejs").to_string(),
+        JAVASCRIPT_HOT_MODULE_REPLACEMENT_TEMPLATE.to_string(),
       ),
     ]
   }

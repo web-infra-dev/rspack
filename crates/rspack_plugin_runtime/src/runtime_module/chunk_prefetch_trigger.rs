@@ -7,13 +7,15 @@ use rspack_core::{
   chunk_graph_chunk::ChunkId, impl_runtime_module,
 };
 
-use crate::extract_runtime_globals_from_ejs;
+use crate::{extract_runtime_globals_from_ejs, extract_runtime_module_variables_from_ejs};
 
 static CHUNK_PREFETCH_TRIGGER_TEMPLATE: &str = include_str!("runtime/chunk_prefetch_trigger.ejs");
+static RUNTIME_MODULE_VARIABLES: LazyLock<Vec<&'static str>> =
+  LazyLock::new(|| extract_runtime_module_variables_from_ejs(&[CHUNK_PREFETCH_TRIGGER_TEMPLATE]));
 static CHUNK_PREFETCH_TRIGGER_RUNTIME_REQUIREMENTS: LazyLock<RuntimeModuleRuntimeRequirements> =
   LazyLock::new(|| extract_runtime_globals_from_ejs(CHUNK_PREFETCH_TRIGGER_TEMPLATE));
 
-#[impl_runtime_module]
+#[impl_runtime_module(runtime_module_variables)]
 #[derive(Debug)]
 pub struct ChunkPrefetchTriggerRuntimeModule {
   #[cacheable(with=AsMap)]
@@ -28,6 +30,10 @@ impl ChunkPrefetchTriggerRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for ChunkPrefetchTriggerRuntimeModule {
+  fn runtime_module_variables() -> &'static [&'static str] {
+    RUNTIME_MODULE_VARIABLES.as_slice()
+  }
+
   fn template(&self) -> Vec<(String, String)> {
     vec![(
       self.id().to_string(),

@@ -1,4 +1,4 @@
-  function moduleLoadUpdateChunk(chunkId, updatedModulesList) {
+  <%- fn("moduleLoadUpdateChunk") %>(chunkId, updatedModulesList) {
     return new Promise( <%- basicFunction("resolve, reject")  %> {
       // start update chunk loading
       var url = <%- PUBLIC_PATH %> + <%- GET_CHUNK_UPDATE_SCRIPT_FILENAME %>(chunkId);

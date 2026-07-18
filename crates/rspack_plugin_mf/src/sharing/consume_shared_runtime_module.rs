@@ -5,7 +5,9 @@ use rspack_core::{
   RuntimeModuleGenerateContext, RuntimeModuleRuntimeRequirements, RuntimeModuleStage,
   RuntimeTemplate, SourceType, impl_runtime_module,
 };
-use rspack_plugin_runtime::extract_runtime_globals_from_ejs;
+use rspack_plugin_runtime::{
+  extract_runtime_globals_from_ejs, extract_runtime_module_variables_from_ejs,
+};
 use rspack_util::json_stringify_str;
 
 use super::consume_shared_plugin::ConsumeVersion;
@@ -23,8 +25,15 @@ static CONSUMES_INITIAL_RUNTIME_REQUIREMENTS: LazyLock<RuntimeModuleRuntimeRequi
   LazyLock::new(|| extract_runtime_globals_from_ejs(CONSUMES_INITIAL_TEMPLATE));
 static CONSUMES_LOADING_RUNTIME_REQUIREMENTS: LazyLock<RuntimeModuleRuntimeRequirements> =
   LazyLock::new(|| extract_runtime_globals_from_ejs(CONSUMES_LOADING_TEMPLATE));
+static RUNTIME_MODULE_VARIABLES: LazyLock<Vec<&'static str>> = LazyLock::new(|| {
+  extract_runtime_module_variables_from_ejs(&[
+    CONSUMES_COMMON_TEMPLATE,
+    CONSUMES_INITIAL_TEMPLATE,
+    CONSUMES_LOADING_TEMPLATE,
+  ])
+});
 
-#[impl_runtime_module]
+#[impl_runtime_module(runtime_module_variables)]
 #[derive(Debug)]
 pub struct ConsumeSharedRuntimeModule {
   enhanced: bool,
@@ -52,6 +61,10 @@ enum TemplateId {
 
 #[async_trait::async_trait]
 impl RuntimeModule for ConsumeSharedRuntimeModule {
+  fn runtime_module_variables() -> &'static [&'static str] {
+    RUNTIME_MODULE_VARIABLES.as_slice()
+  }
+
   fn runtime_requirements(
     &self,
     compilation: &Compilation,

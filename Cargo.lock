@@ -3941,6 +3941,7 @@ dependencies = [
  "hex",
  "indexmap",
  "indoc",
+ "inventory",
  "itertools 0.14.0",
  "json",
  "mime_guess",

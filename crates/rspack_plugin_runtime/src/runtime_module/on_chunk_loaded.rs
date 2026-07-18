@@ -1,9 +1,17 @@
+use std::sync::LazyLock;
+
 use rspack_core::{
   Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext, RuntimeTemplate,
   impl_runtime_module,
 };
 
-#[impl_runtime_module]
+use crate::extract_runtime_module_variables_from_ejs;
+
+static ON_CHUNK_LOADED_TEMPLATE: &str = include_str!("runtime/on_chunk_loaded.ejs");
+static RUNTIME_MODULE_VARIABLES: LazyLock<Vec<&'static str>> =
+  LazyLock::new(|| extract_runtime_module_variables_from_ejs(&[ON_CHUNK_LOADED_TEMPLATE]));
+
+#[impl_runtime_module(runtime_module_variables)]
 #[derive(Debug)]
 pub struct OnChunkLoadedRuntimeModule {}
 
@@ -15,6 +23,10 @@ impl OnChunkLoadedRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for OnChunkLoadedRuntimeModule {
+  fn runtime_module_variables() -> &'static [&'static str] {
+    RUNTIME_MODULE_VARIABLES.as_slice()
+  }
+
   fn runtime_requirements(
     &self,
     _compilation: &Compilation,
@@ -26,10 +38,7 @@ impl RuntimeModule for OnChunkLoadedRuntimeModule {
   }
 
   fn template(&self) -> Vec<(String, String)> {
-    vec![(
-      self.id().to_string(),
-      include_str!("runtime/on_chunk_loaded.ejs").to_string(),
-    )]
+    vec![(self.id().to_string(), ON_CHUNK_LOADED_TEMPLATE.to_string())]
   }
 
   async fn generate(
