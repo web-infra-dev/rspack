@@ -1,10 +1,7 @@
-use rspack_cacheable::{cacheable, with::AsPreset};
-use swc_core::{
-  atoms::Atom,
-  ecma::{
-    ast::{ClassExpr, Ident, ObjectPatProp, Prop},
-    visit::{Visit, VisitWith, noop_visit_type},
-  },
+use rspack_cacheable::cacheable;
+use swc_core::ecma::{
+  ast::{ClassExpr, Ident, ObjectPatProp, Prop},
+  visit::{Visit, VisitWith, noop_visit_type},
 };
 
 use crate::DependencyRange;
@@ -29,8 +26,7 @@ pub struct ConcatenationScopeIdent {
 pub struct ConcatenationScopeSnapshot {
   pub module_ctxt: u32,
   pub global_ctxt: u32,
-  #[cacheable(with=rspack_cacheable::with::AsVec<AsPreset>)]
-  pub symbols: Vec<Atom>,
+  pub symbol_ranges: Vec<DependencyRange>,
   pub top_level_idents: Vec<ConcatenationScopeIdent>,
   pub global_idents: Vec<ConcatenationScopeIdent>,
   pub used_names: Vec<u32>,

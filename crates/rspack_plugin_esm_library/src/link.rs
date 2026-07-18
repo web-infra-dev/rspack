@@ -1551,7 +1551,19 @@ var {} = {{}};
                   .concatenation_scope_snapshot
                   .as_deref()
                   .unwrap_or(&empty_scope_snapshot);
-                ConcatenatedModule::populate_info_from_snapshot(scope_snapshot, &mut concate_info);
+                let original_source = if let Some(source) =
+                  js_source.as_any().downcast_ref::<ReplaceSource>()
+                {
+                  source.inner().source().into_string_lossy()
+                } else {
+                  js_source.source().into_string_lossy()
+                };
+                ConcatenatedModule::populate_info_from_snapshot(
+                  scope_snapshot,
+                  &original_source,
+                  &mut concate_info,
+                );
+                drop(original_source);
                 concate_info.has_ast = true;
                 concate_info.rendered_init_fragments = codegen_res
                   .data

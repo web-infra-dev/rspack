@@ -693,8 +693,24 @@ impl ConcatenatedModule {
 
   pub fn populate_info_from_snapshot(
     snapshot: &ConcatenationScopeSnapshot,
+    original_source: &str,
     module_info: &mut ConcatenatedModuleInfo,
   ) {
+    let symbols = snapshot
+      .symbol_ranges
+      .iter()
+      .map(|range| {
+        let symbol = original_source
+          .get(range.start as usize..range.end as usize)
+          .unwrap_or_else(|| {
+            panic!(
+              "concatenation scope symbol range {}..{} should be in the original source",
+              range.start, range.end
+            )
+          });
+        Atom::from(symbol)
+      })
+      .collect::<Vec<_>>();
     module_info.module_ctxt = SyntaxContext::from_u32(snapshot.module_ctxt);
     module_info.global_ctxt = SyntaxContext::from_u32(snapshot.global_ctxt);
     module_info.idents.clear();
@@ -703,7 +719,7 @@ impl ConcatenatedModule {
     module_info.all_used_names = snapshot
       .used_names
       .iter()
-      .map(|symbol| snapshot.symbols[*symbol as usize].clone())
+      .map(|symbol| symbols[*symbol as usize].clone())
       .collect();
     module_info
       .all_used_names
@@ -719,7 +735,7 @@ impl ConcatenatedModule {
     let snapshot_ident_to_legacy =
       |ident: &ConcatenationScopeIdent, ctxt: SyntaxContext| ConcatenatedModuleIdent {
         id: swc_ecma_ast::Ident::new(
-          snapshot.symbols[ident.symbol as usize].clone(),
+          symbols[ident.symbol as usize].clone(),
           Span::new(
             BytePos(ident.range.start.saturating_add(1)),
             BytePos(ident.range.end.saturating_add(1)),
@@ -3043,8 +3059,6 @@ impl ConcatenatedModule {
           end: fragments.end().to_string(),
         })
         .filter(|fragments| !fragments.start.is_empty() || !fragments.end.is_empty());
-      Self::populate_info_from_snapshot(scope_snapshot, &mut module_info);
-      module_info.rendered_init_fragments = rendered_init_fragments;
       // JavaScript code generation already returns a ReplaceSource whose
       // coordinates are based on the make-time parser source. Keep that
       // coordinate space so the snapshot spans can be applied directly. The
@@ -3057,6 +3071,10 @@ impl ConcatenatedModule {
       } else {
         ReplaceSource::new(rendered_source)
       };
+      let original_source = result_source.inner().source().into_string_lossy();
+      Self::populate_info_from_snapshot(scope_snapshot, &original_source, &mut module_info);
+      drop(original_source);
+      module_info.rendered_init_fragments = rendered_init_fragments;
       module_info.internal_source = Some(result_source.inner().clone());
       module_info.has_ast = true;
       module_info.runtime_requirements = runtime_requirements;

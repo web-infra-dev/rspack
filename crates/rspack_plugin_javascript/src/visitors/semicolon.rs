@@ -1,5 +1,4 @@
 use rspack_core::{ConcatenationScopeIdent, ConcatenationScopeSnapshot};
-use rspack_util::atom::Atom;
 use rustc_hash::{FxHashMap, FxHashSet};
 use smallvec::SmallVec;
 use swc_experimental_allocator::atom::Atom as AstAtom;
@@ -23,25 +22,25 @@ pub(crate) struct PendingConcatenationScopeSnapshot<'ast> {
   global_ctxt: u32,
   top_level_idents: SmallVec<[PendingConcatenationScopeIdent<'ast>; 8]>,
   global_idents: SmallVec<[PendingConcatenationScopeIdent<'ast>; 4]>,
-  used_names: SmallVec<[AstAtom<'ast>; 8]>,
+  used_names: SmallVec<[(AstAtom<'ast>, rspack_core::DependencyRange); 8]>,
 }
 
 #[derive(Default)]
 struct SnapshotSymbols<'ast> {
   inline_indices: SmallVec<[(AstAtom<'ast>, u32); 8]>,
   indices: Option<FxHashMap<AstAtom<'ast>, u32>>,
-  symbols: Vec<Atom>,
+  symbol_ranges: Vec<rspack_core::DependencyRange>,
 }
 
 impl<'ast> SnapshotSymbols<'ast> {
-  fn intern(&mut self, symbol: AstAtom<'ast>) -> u32 {
+  fn intern(&mut self, symbol: AstAtom<'ast>, range: rspack_core::DependencyRange) -> u32 {
     if let Some(indices) = &mut self.indices {
       if let Some(index) = indices.get(&symbol) {
         return *index;
       }
-      let index = self.symbols.len() as u32;
+      let index = self.symbol_ranges.len() as u32;
       indices.insert(symbol, index);
-      self.symbols.push(Atom::from(symbol.as_str()));
+      self.symbol_ranges.push(range);
       return index;
     }
     if let Some((_, index)) = self
@@ -51,9 +50,9 @@ impl<'ast> SnapshotSymbols<'ast> {
     {
       return *index;
     }
-    let index = self.symbols.len() as u32;
+    let index = self.symbol_ranges.len() as u32;
     self.inline_indices.push((symbol, index));
-    self.symbols.push(Atom::from(symbol.as_str()));
+    self.symbol_ranges.push(range);
     if self.inline_indices.spilled() {
       self.indices = Some(self.inline_indices.iter().copied().collect());
     }
@@ -68,7 +67,7 @@ impl<'ast> PendingConcatenationScopeSnapshot<'ast> {
       .top_level_idents
       .into_iter()
       .map(|ident| ConcatenationScopeIdent {
-        symbol: symbols.intern(ident.symbol),
+        symbol: symbols.intern(ident.symbol, ident.range),
         range: ident.range,
         shorthand: ident.shorthand,
       })
@@ -77,7 +76,7 @@ impl<'ast> PendingConcatenationScopeSnapshot<'ast> {
       .global_idents
       .into_iter()
       .map(|ident| ConcatenationScopeIdent {
-        symbol: symbols.intern(ident.symbol),
+        symbol: symbols.intern(ident.symbol, ident.range),
         range: ident.range,
         shorthand: ident.shorthand,
       })
@@ -85,14 +84,14 @@ impl<'ast> PendingConcatenationScopeSnapshot<'ast> {
     let mut used_names = self
       .used_names
       .into_iter()
-      .map(|symbol| symbols.intern(symbol))
+      .map(|(symbol, range)| symbols.intern(symbol, range))
       .collect::<Vec<_>>();
     used_names.sort_unstable();
     used_names.dedup();
     ConcatenationScopeSnapshot {
       module_ctxt: self.module_ctxt,
       global_ctxt: self.global_ctxt,
-      symbols: symbols.symbols,
+      symbol_ranges: symbols.symbol_ranges,
       top_level_idents,
       global_idents,
       used_names,
@@ -104,7 +103,7 @@ struct ConcatenationScopeSnapshotCollector<'semantic, 'ast> {
   semantic: &'semantic Semantic,
   top_level_idents: SmallVec<[PendingConcatenationScopeIdent<'ast>; 8]>,
   global_idents: SmallVec<[PendingConcatenationScopeIdent<'ast>; 4]>,
-  used_names: SmallVec<[AstAtom<'ast>; 8]>,
+  used_names: SmallVec<[(AstAtom<'ast>, rspack_core::DependencyRange); 8]>,
 }
 
 impl<'ast> ConcatenationScopeSnapshotCollector<'_, 'ast> {
@@ -114,19 +113,20 @@ impl<'ast> ConcatenationScopeSnapshotCollector<'_, 'ast> {
       return;
     }
     let scope = self.semantic.node_scope(ident);
+    let range = ident.span.into();
     if scope == self.semantic.unresolved_scope_id() {
       self.global_idents.push(PendingConcatenationScopeIdent {
         symbol: ident.sym,
-        range: ident.span.into(),
+        range,
         shorthand,
       });
-      self.used_names.push(ident.sym);
+      self.used_names.push((ident.sym, range));
     } else if class_expr_with_ident || scope != self.semantic.top_level_scope_id() {
-      self.used_names.push(ident.sym);
+      self.used_names.push((ident.sym, range));
     } else {
       self.top_level_idents.push(PendingConcatenationScopeIdent {
         symbol: ident.sym,
-        range: ident.span.into(),
+        range,
         shorthand,
       });
     }
