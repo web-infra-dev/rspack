@@ -296,6 +296,13 @@ fn is_two_char_deterministic_mangle_name(name: &str) -> bool {
       || ((b'1'..=b'9').contains(&bytes[0]) && bytes[1].is_ascii_digit()))
 }
 
+fn deterministic_export_id_range(item_count: usize, used_name_count: usize) -> usize {
+  item_count
+    .saturating_mul(20)
+    .saturating_add(used_name_count)
+    .max(NUMBER_OF_IDENTIFIER_START_CHARS as usize)
+}
+
 /// Function to mangle exports information.
 fn mangle_exports_info(
   exports_info_artifact: &ExportsInfoArtifact,
@@ -316,6 +323,7 @@ fn mangle_exports_info(
 
   if deterministic {
     let used_names_len = used_names.len();
+    let optimal_range = deterministic_export_id_range(mangleable_exports.len(), used_names_len);
     let mut export_info_used_name =
       FxHashMap::with_capacity_and_hasher(mangleable_exports.len(), Default::default());
     assign_deterministic_ids(
@@ -333,10 +341,7 @@ fn mangle_exports_info(
           true
         }
       },
-      &[
-        NUMBER_OF_IDENTIFIER_START_CHARS as usize,
-        (NUMBER_OF_IDENTIFIER_START_CHARS * NUMBER_OF_IDENTIFIER_CONTINUATION_CHARS) as usize,
-      ],
+      &[optimal_range],
       NUMBER_OF_IDENTIFIER_CONTINUATION_CHARS as usize,
       used_names_len,
       0,
@@ -376,4 +381,21 @@ fn mangle_exports_info(
     }
   }
   (changes, nested_exports)
+}
+
+#[cfg(test)]
+mod tests {
+  use super::{NUMBER_OF_IDENTIFIER_START_CHARS, deterministic_export_id_range};
+
+  #[test]
+  fn deterministic_export_id_range_avoids_unused_identifier_space() {
+    let start_chars = NUMBER_OF_IDENTIFIER_START_CHARS as usize;
+    assert_eq!(deterministic_export_id_range(0, 0), start_chars);
+    assert_eq!(deterministic_export_id_range(2, 1), start_chars);
+    assert_eq!(deterministic_export_id_range(3, 1), 61);
+    assert_eq!(
+      deterministic_export_id_range(usize::MAX, usize::MAX),
+      usize::MAX
+    );
+  }
 }
