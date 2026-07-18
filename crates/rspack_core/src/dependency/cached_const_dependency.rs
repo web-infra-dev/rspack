@@ -128,12 +128,14 @@ impl DependencyTemplate for CachedConstDependencyTemplate {
       code_generatable_context
         .concatenation_scope
         .as_mut()
-        .map(|scope| {
-          scope
-            .get_or_create_generated_top_level_symbol(dep.identifier.as_ref())
-            .to_string()
-        })
-        .unwrap_or_else(|| dep.identifier.to_string())
+        .map_or_else(
+          || dep.identifier.to_string(),
+          |scope| {
+            scope
+              .get_or_create_generated_top_level_symbol(dep.identifier.as_ref())
+              .to_string()
+          },
+        )
     } else {
       dep.identifier.to_string()
     };

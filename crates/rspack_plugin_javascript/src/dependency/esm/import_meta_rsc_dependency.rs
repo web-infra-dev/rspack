@@ -158,12 +158,14 @@ impl DependencyTemplate for ImportMetaRscDependencyTemplate {
     let rendered_binding = code_generatable_context
       .concatenation_scope
       .as_mut()
-      .map(|scope| {
-        scope
-          .get_or_create_generated_top_level_symbol(IMPORT_META_RSC_BINDING)
-          .to_string()
-      })
-      .unwrap_or_else(|| IMPORT_META_RSC_BINDING.to_string());
+      .map_or_else(
+        || IMPORT_META_RSC_BINDING.to_string(),
+        |scope| {
+          scope
+            .get_or_create_generated_top_level_symbol(IMPORT_META_RSC_BINDING)
+            .to_string()
+        },
+      );
 
     let TemplateContext {
       compilation,

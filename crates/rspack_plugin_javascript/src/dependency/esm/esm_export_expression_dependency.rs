@@ -219,7 +219,7 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
       };
 
       if let Some(scope) = concatenation_scope {
-        scope.register_export(JS_DEFAULT_KEYWORD.clone(), name.to_string());
+        scope.register_export(JS_DEFAULT_KEYWORD.clone(), name);
       } else if let Some(used) = compilation
         .exports_info_artifact
         .get_exports_info_data(&module_identifier)

@@ -162,12 +162,14 @@ impl DependencyTemplate for ProvideDependencyTemplate {
     let rendered_identifier = code_generatable_context
       .concatenation_scope
       .as_mut()
-      .map(|scope| {
-        scope
-          .get_or_create_generated_top_level_symbol(&dep.identifier)
-          .to_string()
-      })
-      .unwrap_or_else(|| dep.identifier.clone());
+      .map_or_else(
+        || dep.identifier.clone(),
+        |scope| {
+          scope
+            .get_or_create_generated_top_level_symbol(&dep.identifier)
+            .to_string()
+        },
+      );
 
     let TemplateContext {
       compilation,
@@ -203,10 +205,7 @@ impl DependencyTemplate for ProvideDependencyTemplate {
 
     init_fragments.push(Box::new(
       NormalInitFragment::new(
-        format!(
-          "/* provided dependency */ var {} = {};\n",
-          rendered_identifier, provided_expr
-        ),
+        format!("/* provided dependency */ var {rendered_identifier} = {provided_expr};\n"),
         InitFragmentStage::StageProvides,
         1,
         InitFragmentKey::ModuleExternal(format!("provided {}", dep.identifier)),

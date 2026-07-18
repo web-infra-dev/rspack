@@ -1,3 +1,4 @@
+use cow_utils::CowUtils;
 use rspack_cacheable::{cacheable, cacheable_dyn, with::AsRefStr};
 use rspack_hash::{RspackHash, RspackHasher};
 
@@ -92,7 +93,8 @@ impl DependencyTemplate for ConstDependencyTemplate {
           let placeholder = scope.get_or_create_generated_top_level_symbol(identifier);
           dep
             .content
-            .replace(identifier.as_ref(), placeholder.as_ref())
+            .cow_replace(identifier.as_ref(), placeholder.as_ref())
+            .into_owned()
         } else {
           for candidate in dep
             .content

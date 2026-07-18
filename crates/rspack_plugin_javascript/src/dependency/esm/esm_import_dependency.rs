@@ -256,12 +256,14 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
     let async_dependencies_binding = code_generatable_context
       .concatenation_scope
       .as_mut()
-      .map(|scope| {
-        scope
-          .get_or_create_generated_top_level_symbol("__rspack_async_deps")
-          .to_string()
-      })
-      .unwrap_or_else(|| "__rspack_async_deps".to_string());
+      .map_or_else(
+        || "__rspack_async_deps".to_string(),
+        |scope| {
+          scope
+            .get_or_create_generated_top_level_symbol("__rspack_async_deps")
+            .to_string()
+        },
+      );
     init_fragments.push(Box::new(ConditionalInitFragment::new(
       content.0,
       InitFragmentStage::StageESMImports,

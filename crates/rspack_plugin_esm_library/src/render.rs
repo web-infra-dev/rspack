@@ -1,7 +1,8 @@
 mod runtime_mode;
 
-use std::{borrow::Cow, sync::Arc};
+use std::{borrow::Cow, cmp::Reverse, sync::Arc};
 
+use cow_utils::CowUtils;
 use rspack_collections::IdentifierIndexSet;
 use rspack_core::{
   AssetInfo, Chunk, ChunkGraph, ChunkGroup, ChunkRenderContext, ChunkUkey, Compilation,
@@ -795,12 +796,12 @@ var {} = {{}};
             .map(|name| (symbol.placeholder.to_string(), name.to_string()))
         }),
     );
-    placeholder_replacements.sort_by(|a, b| b.0.len().cmp(&a.0.len()));
+    placeholder_replacements.sort_by_key(|replacement| Reverse(replacement.0.len()));
 
     let replace_placeholders = |mut content: String| {
       for (placeholder, final_name) in &placeholder_replacements {
         if content.contains(placeholder) {
-          content = content.replace(placeholder, final_name);
+          content = content.cow_replace(placeholder, final_name).into_owned();
         }
       }
       content
@@ -812,7 +813,7 @@ var {} = {{}};
           content.clear();
           content.push_str(final_name);
         } else if content.contains(placeholder) {
-          *content = content.replace(placeholder, final_name);
+          *content = content.cow_replace(placeholder, final_name).into_owned();
         }
       }
     });

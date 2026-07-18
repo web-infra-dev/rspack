@@ -823,7 +823,7 @@ impl ConcatenatedModule {
     while let Some(offset) = source[cursor..].find("__rspack_") {
       let start = cursor + offset;
       output.push_str(&source[cursor..start]);
-      if let Some((end, value)) = Self::find_placeholder_replacement(&source, start, replacements) {
+      if let Some((end, value)) = Self::find_placeholder_replacement(source, start, replacements) {
         output.push_str(value);
         cursor = end;
         changed = true;

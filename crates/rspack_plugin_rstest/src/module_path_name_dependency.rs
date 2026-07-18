@@ -73,13 +73,15 @@ impl DependencyTemplate for ModulePathNameDependencyTemplate {
           let identifier = code_generatable_context
             .concatenation_scope
             .as_mut()
-            .map(|scope| {
-              scope.remove_original_range(dep.range);
-              scope
-                .get_or_create_generated_top_level_symbol("__filename")
-                .to_string()
-            })
-            .unwrap_or_else(|| "__filename".to_string());
+            .map_or_else(
+              || "__filename".to_string(),
+              |scope| {
+                scope.remove_original_range(dep.range);
+                scope
+                  .get_or_create_generated_top_level_symbol("__filename")
+                  .to_string()
+              },
+            );
           if identifier != "__filename" {
             source.replace(dep.range.start, dep.range.end, identifier.clone(), None);
           }
@@ -103,13 +105,15 @@ impl DependencyTemplate for ModulePathNameDependencyTemplate {
         let identifier = code_generatable_context
           .concatenation_scope
           .as_mut()
-          .map(|scope| {
-            scope.remove_original_range(dep.range);
-            scope
-              .get_or_create_generated_top_level_symbol("__dirname")
-              .to_string()
-          })
-          .unwrap_or_else(|| "__dirname".to_string());
+          .map_or_else(
+            || "__dirname".to_string(),
+            |scope| {
+              scope.remove_original_range(dep.range);
+              scope
+                .get_or_create_generated_top_level_symbol("__dirname")
+                .to_string()
+            },
+          );
         if identifier != "__dirname" {
           source.replace(dep.range.start, dep.range.end, identifier.clone(), None);
         }
