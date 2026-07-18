@@ -8,7 +8,7 @@ use rspack_core::{
   ConcatenatedModuleInfo, InitFragment, ModuleIdentifier, PathData, PathInfo, RuntimeCodeTemplate,
   RuntimeGlobals, RuntimeVariable, SourceType, export_name, get_js_chunk_filename_template,
   get_undo_path, render_init_fragments,
-  rspack_sources::{ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt},
+  rspack_sources::{BoxSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt},
 };
 use rspack_error::Result;
 use rspack_plugin_javascript::{
@@ -724,7 +724,7 @@ var {} = {{}};
   pub fn render_module(
     info: &ConcatenatedModuleInfo,
     chunk_link: &ChunkLinkContext,
-  ) -> Result<ReplaceSource> {
+  ) -> Result<BoxSource> {
     let Some(mut source) = info.source.clone() else {
       return Err(rspack_error::Error::error(format!(
         "module: {} has no source",
@@ -772,7 +772,83 @@ var {} = {{}};
       }
     }
 
-    Ok(source)
+    let mut placeholder_replacements = Vec::with_capacity(
+      info.module_reference_placeholders.len() + info.generated_top_level_symbols.len(),
+    );
+    for placeholder in &info.module_reference_placeholders {
+      if let Some(binding_ref) = chunk_link.refs.get(placeholder.trim_end_matches("._")) {
+        let final_name = match binding_ref {
+          Ref::Symbol(symbol_ref) => symbol_ref.render(),
+          Ref::Inline(inline) => inline.clone(),
+        };
+        placeholder_replacements.push((placeholder.clone(), final_name));
+      }
+    }
+    placeholder_replacements.extend(
+      info
+        .generated_top_level_symbols
+        .iter()
+        .filter_map(|symbol| {
+          info
+            .internal_names
+            .get(&symbol.placeholder)
+            .map(|name| (symbol.placeholder.to_string(), name.to_string()))
+        }),
+    );
+    placeholder_replacements.sort_by(|a, b| b.0.len().cmp(&a.0.len()));
+
+    let replace_placeholders = |mut content: String| {
+      for (placeholder, final_name) in &placeholder_replacements {
+        if content.contains(placeholder) {
+          content = content.replace(placeholder, final_name);
+        }
+      }
+      content
+    };
+
+    source.update_owned_replacement_contents(|content| {
+      for (placeholder, final_name) in &placeholder_replacements {
+        if content == placeholder {
+          content.clear();
+          content.push_str(final_name);
+        } else if content.contains(placeholder) {
+          *content = content.replace(placeholder, final_name);
+        }
+      }
+    });
+
+    if source.replacements().is_empty() {
+      let inner_source = source.inner().source().into_string_lossy();
+      if inner_source.contains("__rspack_") {
+        let inner_source = inner_source.into_owned();
+        for (placeholder, final_name) in &placeholder_replacements {
+          let mut cursor = 0;
+          while let Some(offset) = inner_source[cursor..].find(placeholder) {
+            let start = cursor + offset;
+            let end = start + placeholder.len();
+            source.replace(start as u32, end as u32, final_name.clone(), None);
+            cursor = end;
+          }
+        }
+      }
+    }
+
+    let Some(fragments) = &info.rendered_init_fragments else {
+      return Ok(source.boxed());
+    };
+    let mut result = ConcatSource::default();
+    if !fragments.start.is_empty() {
+      result.add(RawStringSource::from(replace_placeholders(
+        fragments.start.clone(),
+      )));
+    }
+    result.add(source);
+    if !fragments.end.is_empty() {
+      result.add(RawStringSource::from(replace_placeholders(
+        fragments.end.clone(),
+      )));
+    }
+    Ok(result.boxed())
   }
 
   pub fn render_external_required(

@@ -92,6 +92,30 @@ impl CodeGenerationDataTopLevelDeclarations {
   }
 }
 
+#[derive(Clone, Debug, Default)]
+pub struct CodeGenerationDataRenderedInitFragments {
+  start: String,
+  end: String,
+}
+
+impl CodeGenerationDataRenderedInitFragments {
+  pub fn new(start: String, end: String) -> Self {
+    Self { start, end }
+  }
+
+  pub fn start(&self) -> &str {
+    &self.start
+  }
+
+  pub fn end(&self) -> &str {
+    &self.end
+  }
+
+  pub fn is_empty(&self) -> bool {
+    self.start.is_empty() && self.end.is_empty()
+  }
+}
+
 #[derive(Clone, Debug)]
 pub struct CodeGenerationExportsFinalNames {
   inner: HashMap<String, String>,

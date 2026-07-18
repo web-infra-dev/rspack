@@ -1,13 +1,39 @@
-use swc_core::ecma::{
-  ast::{ClassExpr, Ident, ObjectPatProp, Prop},
-  visit::{Visit, VisitWith, noop_visit_type},
+use rspack_cacheable::{cacheable, with::AsPreset};
+use swc_core::{
+  atoms::Atom,
+  ecma::{
+    ast::{ClassExpr, Ident, ObjectPatProp, Prop},
+    visit::{Visit, VisitWith, noop_visit_type},
+  },
 };
+
+use crate::DependencyRange;
 
 #[derive(Clone, Debug)]
 pub struct ConcatenatedModuleIdent {
   pub id: Ident,
   pub shorthand: bool,
   pub is_class_expr_with_ident: bool,
+}
+
+#[cacheable]
+#[derive(Clone, Debug)]
+pub struct ConcatenationScopeIdent {
+  #[cacheable(with=AsPreset)]
+  pub symbol: Atom,
+  pub range: DependencyRange,
+  pub shorthand: bool,
+}
+
+#[cacheable]
+#[derive(Clone, Debug, Default)]
+pub struct ConcatenationScopeSnapshot {
+  pub module_ctxt: u32,
+  pub global_ctxt: u32,
+  pub top_level_idents: Vec<ConcatenationScopeIdent>,
+  pub global_idents: Vec<ConcatenationScopeIdent>,
+  #[cacheable(with=rspack_cacheable::with::AsVec<AsPreset>)]
+  pub used_names: Vec<Atom>,
 }
 
 #[derive(Default)]

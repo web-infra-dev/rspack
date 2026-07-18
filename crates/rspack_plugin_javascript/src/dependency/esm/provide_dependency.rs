@@ -159,6 +159,15 @@ impl DependencyTemplate for ProvideDependencyTemplate {
       .as_any()
       .downcast_ref::<ProvideDependency>()
       .expect("ProvideDependencyTemplate should only be used for ProvideDependency");
+    let rendered_identifier = code_generatable_context
+      .concatenation_scope
+      .as_mut()
+      .map(|scope| {
+        scope
+          .get_or_create_generated_top_level_symbol(&dep.identifier)
+          .to_string()
+      })
+      .unwrap_or_else(|| dep.identifier.clone());
 
     let TemplateContext {
       compilation,
@@ -196,7 +205,7 @@ impl DependencyTemplate for ProvideDependencyTemplate {
       NormalInitFragment::new(
         format!(
           "/* provided dependency */ var {} = {};\n",
-          dep.identifier, provided_expr
+          rendered_identifier, provided_expr
         ),
         InitFragmentStage::StageProvides,
         1,
@@ -205,6 +214,6 @@ impl DependencyTemplate for ProvideDependencyTemplate {
       )
       .with_top_level_decl_symbols(vec![dep.identifier.clone().into()]),
     ));
-    source.replace(dep.range.start, dep.range.end, dep.identifier.clone(), None);
+    source.replace(dep.range.start, dep.range.end, rendered_identifier, None);
   }
 }

@@ -27,6 +27,18 @@ pub struct InitFragmentContents {
   pub end: Option<String>,
 }
 
+#[derive(Debug, Clone, Default)]
+pub struct RenderedInitFragments {
+  pub start: String,
+  pub end: String,
+}
+
+impl RenderedInitFragments {
+  pub fn is_empty(&self) -> bool {
+    self.start.is_empty() && self.end.is_empty()
+  }
+}
+
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum InitFragmentKey {
   Unique(u32),
@@ -159,8 +171,24 @@ impl InitFragmentKey {
         ESMExportInitFragment::new(export_argument, export_map, is_circular_module).boxed()
       }
       InitFragmentKey::AwaitDependencies => {
-        let promises = fragments.into_iter().map(|f| f.into_any().downcast::<AwaitDependenciesInitFragment>().expect("fragment of InitFragmentKey::AwaitDependencies should be a AwaitDependenciesInitFragment")).flat_map(|f| f.promises).collect();
-        AwaitDependenciesInitFragment::new(promises).boxed()
+        let mut iter = fragments.into_iter().map(|fragment| {
+          fragment
+            .into_any()
+            .downcast::<AwaitDependenciesInitFragment>()
+            .expect(
+              "fragment of InitFragmentKey::AwaitDependencies should be a AwaitDependenciesInitFragment",
+            )
+        });
+        let first = iter
+          .next()
+          .expect("keyed_fragments should at least have one value");
+        let binding = first.binding.clone();
+        let mut promises = first.promises;
+        for fragment in iter {
+          debug_assert_eq!(binding, fragment.binding);
+          promises.extend(fragment.promises);
+        }
+        AwaitDependenciesInitFragment::new(promises, binding).boxed()
       }
       InitFragmentKey::ExternalModule(_) => {
         let mut iter = fragments.into_iter();
@@ -281,11 +309,10 @@ impl Display for InitFragmentStage {
 }
 
 /// InitFragment.addToSource
-pub fn render_init_fragments<C: InitFragmentRenderContext>(
-  source: BoxSource,
+pub fn render_init_fragments_to_strings<C: InitFragmentRenderContext>(
   mut fragments: Vec<Box<dyn InitFragment<C>>>,
   context: &mut C,
-) -> Result<BoxSource> {
+) -> Result<RenderedInitFragments> {
   // here use sort_by_key because need keep order equal stage fragments
   fragments.sort_by(|a, b| {
     let stage = a.stage().cmp(&b.stage());
@@ -309,24 +336,40 @@ pub fn render_init_fragments<C: InitFragmentRenderContext>(
     }
   }
 
+  let mut start = String::new();
   let mut end_contents = vec![];
-  let mut concat_source = ConcatSource::default();
 
   for (key, fragments) in keyed_fragments {
     let f = key.merge_fragments(fragments);
     let contents = f.contents(context)?;
-    concat_source.add(RawStringSource::from(contents.start));
+    start.push_str(&contents.start);
     if let Some(end_content) = contents.end {
-      end_contents.push(RawStringSource::from(end_content))
+      end_contents.push(end_content)
     }
   }
 
-  concat_source.add(source);
-
+  let mut end = String::new();
   for content in end_contents.into_iter().rev() {
-    concat_source.add(content);
+    end.push_str(&content);
   }
 
+  Ok(RenderedInitFragments { start, end })
+}
+
+pub fn render_init_fragments<C: InitFragmentRenderContext>(
+  source: BoxSource,
+  fragments: Vec<Box<dyn InitFragment<C>>>,
+  context: &mut C,
+) -> Result<BoxSource> {
+  let rendered = render_init_fragments_to_strings(fragments, context)?;
+  let mut concat_source = ConcatSource::default();
+  if !rendered.start.is_empty() {
+    concat_source.add(RawStringSource::from(rendered.start));
+  }
+  concat_source.add(source);
+  if !rendered.end.is_empty() {
+    concat_source.add(RawStringSource::from(rendered.end));
+  }
   Ok(concat_source.boxed())
 }
 
@@ -556,22 +599,27 @@ impl<C: InitFragmentRenderContext> InitFragment<C> for ESMExportInitFragment {
 #[derive(Debug, Clone)]
 pub struct AwaitDependenciesInitFragment {
   promises: LinkedHashSet<String, BuildHasherDefault<FxHasher>>,
+  binding: String,
 }
 
 impl AwaitDependenciesInitFragment {
-  pub fn new(promises: LinkedHashSet<String, BuildHasherDefault<FxHasher>>) -> Self {
-    Self { promises }
+  pub fn new(
+    promises: LinkedHashSet<String, BuildHasherDefault<FxHasher>>,
+    binding: String,
+  ) -> Self {
+    Self { promises, binding }
   }
 
-  pub fn new_single(promise: String) -> Self {
+  pub fn new_single(promise: String, binding: String) -> Self {
     let mut promises = LinkedHashSet::default();
     promises.insert(promise);
-    Self { promises }
+    Self { promises, binding }
   }
 }
 
 impl RspackHash for AwaitDependenciesInitFragment {
   fn hash(&self, state: &mut RspackHasher) {
+    self.binding.hash(state);
     for promise in &self.promises {
       promise.hash(state);
     }
@@ -589,7 +637,8 @@ impl<C: InitFragmentRenderContext> InitFragment<C> for AwaitDependenciesInitFrag
       let sep = self.promises.front().expect("at least have one");
       Ok(InitFragmentContents {
         start: format!(
-          "var __rspack_async_deps = __rspack_load_async_deps([{sep}]);\n{sep} = (__rspack_async_deps.then ? (await __rspack_async_deps)() : __rspack_async_deps)[0];"
+          "var {binding} = __rspack_load_async_deps([{sep}]);\n{sep} = ({binding}.then ? (await {binding})() : {binding})[0];",
+          binding = self.binding,
         ),
         end: None,
       })
@@ -597,7 +646,8 @@ impl<C: InitFragmentRenderContext> InitFragment<C> for AwaitDependenciesInitFrag
       let sep = Vec::from_iter(self.promises).join(", ");
       Ok(InitFragmentContents {
         start: format!(
-          "var __rspack_async_deps = __rspack_load_async_deps([{sep}]);\n([{sep}] = __rspack_async_deps.then ? (await __rspack_async_deps)() : __rspack_async_deps);"
+          "var {binding} = __rspack_load_async_deps([{sep}]);\n([{sep}] = {binding}.then ? (await {binding})() : {binding});",
+          binding = self.binding,
         ),
         end: None,
       })

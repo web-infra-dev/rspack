@@ -129,6 +129,15 @@ impl ReplaceSource {
     &self.replacements
   }
 
+  /// Update owned replacement contents in place without rebuilding the source.
+  pub fn update_owned_replacement_contents(&mut self, mut update: impl FnMut(&mut String)) {
+    for replacement in &mut self.replacements {
+      if let Cow::Owned(content) = &mut replacement.content {
+        update(content);
+      }
+    }
+  }
+
   /// Insert a content at start.
   pub fn insert(&mut self, start: u32, content: String, name: Option<String>) {
     self.replace(start, start, content, name)

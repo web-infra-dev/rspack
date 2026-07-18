@@ -124,17 +124,31 @@ impl DependencyTemplate for CachedConstDependencyTemplate {
       .as_any()
       .downcast_ref::<CachedConstDependency>()
       .expect("CachedConstDependencyTemplate should be used for CachedConstDependency");
+    let rendered_identifier = if matches!(dep.place, CachedConstDependencyPlace::Module) {
+      code_generatable_context
+        .concatenation_scope
+        .as_mut()
+        .map(|scope| {
+          scope
+            .get_or_create_generated_top_level_symbol(dep.identifier.as_ref())
+            .to_string()
+        })
+        .unwrap_or_else(|| dep.identifier.to_string())
+    } else {
+      dep.identifier.to_string()
+    };
 
     match dep.place {
       CachedConstDependencyPlace::Module => {
         code_generatable_context.init_fragments.push(
           NormalInitFragment::new(
-            format!("var {} = {};\n", dep.identifier, dep.content),
+            format!("var {rendered_identifier} = {};\n", dep.content),
             InitFragmentStage::StageConstants,
             dep.place.order(),
             InitFragmentKey::Const(dep.identifier.to_string()),
             None,
           )
+          .with_top_level_decl_symbols(vec![dep.identifier.as_ref().into()])
           .boxed(),
         );
       }
@@ -147,13 +161,14 @@ impl DependencyTemplate for CachedConstDependencyTemplate {
             InitFragmentKey::Const(dep.identifier.to_string()),
             None,
           )
+          .with_top_level_decl_symbols(vec![dep.identifier.as_ref().into()])
           .boxed(),
         );
       }
     }
 
     if let Some(range) = dep.range {
-      source.replace(range.start, range.end, dep.identifier.to_string(), None);
+      source.replace(range.start, range.end, rendered_identifier, None);
     }
   }
 }

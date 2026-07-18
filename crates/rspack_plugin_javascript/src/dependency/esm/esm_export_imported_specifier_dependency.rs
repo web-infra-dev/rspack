@@ -19,11 +19,12 @@ use rspack_core::{
   ExportsInfoData, ExportsOfExportsSpec, ExportsSpec, ExportsType, FactorizeInfo, ForwardId,
   ImportAttributes, ImportPhase, InitFragmentExt, InitFragmentKey, InitFragmentStage,
   JavascriptParserOptions, LazyUntil, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
-  ModuleIdentifier, NormalInitFragment, NormalReexportItem, ReferencedExport, ResourceIdentifier,
-  RuntimeCondition, RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, StarReexportsInfo,
-  TemplateContext, TemplateReplaceSource, UsageState, UsedName, collect_referenced_export_items,
-  create_exports_object_referenced, create_no_exports_referenced, filter_runtime, get_exports_type,
-  get_runtime_key, get_terminal_binding, property_access, property_name,
+  ModuleIdentifier, ModuleReferenceOptions, NormalInitFragment, NormalReexportItem,
+  ReferencedExport, ResourceIdentifier, RuntimeCondition, RuntimeGlobals, RuntimeSpec,
+  SideEffectsStateArtifact, StarReexportsInfo, TemplateContext, TemplateReplaceSource, UsageState,
+  UsedName, collect_referenced_export_items, create_exports_object_referenced,
+  create_no_exports_referenced, filter_runtime, get_exports_type, get_runtime_key,
+  get_terminal_binding, property_access, property_name,
   render_make_deferred_namespace_mode_from_exports_type, to_normal_comment,
 };
 use rspack_error::{Diagnostic, Error, Severity};
@@ -520,6 +521,15 @@ impl ESMExportImportedSpecifierDependency {
       self.phase,
       runtime,
     );
+    let import_var = ctxt
+      .concatenation_scope
+      .as_mut()
+      .map(|scope| {
+        scope
+          .get_or_create_generated_top_level_symbol(import_var.as_str())
+          .to_string()
+      })
+      .unwrap_or(import_var);
     match mode {
       ExportMode::Missing | ExportMode::LazyMake | ExportMode::EmptyStar(_) => {
         ctxt.init_fragments.push(
@@ -779,38 +789,57 @@ impl ESMExportImportedSpecifierDependency {
           let ignored = render_dynamic_reexport_excluded(&ignored);
           format!("/* reexport */ {reexport}({exports}, {import_var}, {ignored});\n")
         } else {
+          let (reexport_binding, import_key_binding) = ctxt
+            .concatenation_scope
+            .as_mut()
+            .map(|scope| {
+              (
+                scope
+                  .get_or_create_generated_top_level_symbol("__rspack_reexport")
+                  .to_string(),
+                scope
+                  .get_or_create_generated_top_level_symbol("__rspack_import_key")
+                  .to_string(),
+              )
+            })
+            .unwrap_or_else(|| {
+              (
+                "__rspack_reexport".to_string(),
+                "__rspack_import_key".to_string(),
+              )
+            });
           let environment = compilation.options.output.environment;
           let supports_arrow_function = environment.supports_arrow_function();
           let supports_const = environment.supports_const();
           let mut content = format!(
             r"
-/* reexport */ var __rspack_reexport = {{}};
-/* reexport */ for( {} __rspack_import_key in {import_var}) ",
-            if supports_const { "const" } else { "var" }
+/* reexport */ var {reexport_binding} = {{}};
+/* reexport */ for( {} {import_key_binding} in {import_var}) ",
+            if supports_const { "const" } else { "var" },
           );
 
           if ignored.len() > 1 {
             content += &format!(
-              "if({}.indexOf(__rspack_import_key) < 0) ",
-              json_stringify(&ignored)
+              "if({}.indexOf({import_key_binding}) < 0) ",
+              json_stringify(&ignored),
             );
           } else if let Some(item) = ignored.iter().next() {
             content += &format!(
-              "if(__rspack_import_key !== {}) ",
+              "if({import_key_binding} !== {}) ",
               rspack_util::json_stringify_str(item)
             );
           }
-          content += "__rspack_reexport[__rspack_import_key] =";
+          content += &format!("{reexport_binding}[{import_key_binding}] =");
           if supports_arrow_function && supports_const {
-            content += &format!("() => {import_var}[__rspack_import_key]");
+            content += &format!("() => {import_var}[{import_key_binding}]");
           } else {
             content += &format!(
-              "function(key) {{ return {import_var}[key]; }}.bind(0, __rspack_import_key)"
+              "function(key) {{ return {import_var}[key]; }}.bind(0, {import_key_binding})"
             );
           }
           content += &format!(
             r#"
-/* reexport */ {}({}, __rspack_reexport);
+/* reexport */ {}({}, {reexport_binding});
 "#,
             ctxt
               .runtime_template
@@ -1713,7 +1742,7 @@ impl DependencyTemplate for ESMExportImportedSpecifierDependencyTemplate {
   fn render(
     &self,
     dep: &dyn DependencyCodeGeneration,
-    _source: &mut TemplateReplaceSource,
+    source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {
     let dep = dep
@@ -1736,14 +1765,87 @@ impl DependencyTemplate for ESMExportImportedSpecifierDependencyTemplate {
       module_graph_cache,
       exports_info_artifact,
     );
+    let target_module = module_graph
+      .module_identifier_by_dependency_id(dep.id())
+      .copied();
+    let can_use_concatenated_reference = concatenation_scope
+      .as_ref()
+      .zip(target_module.as_ref())
+      .is_some_and(|(scope, target_module)| scope.is_module_in_scope(target_module));
+    let can_handle_in_concatenation_scope = matches!(
+      mode,
+      ExportMode::Missing
+        | ExportMode::LazyMake
+        | ExportMode::Unused(_)
+        | ExportMode::EmptyStar(_)
+        | ExportMode::ReexportUndefined(_)
+    ) || can_use_concatenated_reference;
 
-    if let Some(scope) = concatenation_scope {
-      if let ExportMode::ReexportUndefined(mode) = mode {
-        scope.register_raw_export(
-          mode.name,
-          String::from("/* reexport non-default export from non-ESM */ undefined"),
-        );
+    if let Some(scope) = concatenation_scope
+      && can_handle_in_concatenation_scope
+    {
+      source.replace(dep.range.start, dep.range.end, String::new(), None);
+      scope.remove_original_range(dep.range);
+
+      let create_reference = |scope: &mut rspack_core::ConcatenationScope, ids: Vec<Atom>| {
+        target_module.map(|target_module| {
+          scope.create_export_reference(
+            &target_module,
+            &ModuleReferenceOptions {
+              ids,
+              call: false,
+              direct_import: false,
+              deferred_import: dep.phase.is_defer(),
+              asi_safe: None,
+              index: 0,
+            },
+          )
+        })
       };
+
+      match mode {
+        ExportMode::Missing
+        | ExportMode::LazyMake
+        | ExportMode::Unused(_)
+        | ExportMode::EmptyStar(_) => {}
+        ExportMode::ReexportUndefined(mode) => {
+          scope.register_raw_export(
+            mode.name,
+            String::from("/* reexport non-default export from non-ESM */ undefined"),
+          );
+        }
+        ExportMode::ReexportDynamicDefault(mode) => {
+          if let Some(reference) = create_reference(scope, vec![Atom::from("default")]) {
+            scope.register_export(mode.name, reference);
+          }
+        }
+        ExportMode::ReexportNamedDefault(mode) => {
+          if let Some(reference) = create_reference(scope, vec![Atom::from("default")]) {
+            scope.register_export(mode.name, reference);
+          }
+        }
+        ExportMode::ReexportNamespaceObject(mode) => {
+          if let Some(reference) = create_reference(scope, vec![]) {
+            scope.register_export(mode.name, reference);
+          }
+        }
+        ExportMode::ReexportFakeNamespaceObject(mode) => {
+          if let Some(reference) = create_reference(scope, vec![]) {
+            scope.register_export(mode.name, reference);
+          }
+        }
+        ExportMode::NormalReexport(mode) => {
+          for item in mode.items {
+            if item.hidden {
+              continue;
+            }
+            if let Some(reference) = create_reference(scope, item.ids) {
+              scope.register_export(item.name, reference);
+            }
+          }
+        }
+        ExportMode::DynamicReexport(_) => {}
+      }
 
       return;
     }

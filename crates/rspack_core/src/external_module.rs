@@ -88,9 +88,11 @@ fn get_namespace_object_export(
   runtime_template: &mut ModuleCodeTemplate,
 ) -> String {
   if let Some(concatenation_scope) = concatenation_scope {
-    concatenation_scope.register_namespace_export(NAMESPACE_OBJECT_EXPORT);
+    let namespace_export =
+      concatenation_scope.get_or_create_generated_top_level_symbol(NAMESPACE_OBJECT_EXPORT);
+    concatenation_scope.register_namespace_export(namespace_export.as_ref());
     format!(
-      "{} {NAMESPACE_OBJECT_EXPORT}",
+      "{} {namespace_export}",
       if supports_const { "const" } else { "var" }
     )
   } else {

@@ -246,7 +246,11 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CompatibilityPlugin {
         NESTED_IDENTIFIER_TAG,
       )?;
       if !data.update {
-        let dep = Box::new(ConstDependency::new(data.loc, data.name.clone().into()));
+        let dep = Box::new(ConstDependency::new_with_concatenation_scope_identifier(
+          data.loc,
+          data.name.clone().into(),
+          data.name.clone().into(),
+        ));
         data.update = true;
         parser.add_presentational_dependency(dep);
       }
@@ -274,25 +278,31 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CompatibilityPlugin {
     let name = nested_require_data.name.clone();
     if !nested_require_data.update {
       let shorthand = nested_require_data.in_short_hand;
-      deps.push(Box::new(ConstDependency::new(
-        nested_require_data.loc,
-        if shorthand {
+      deps.push(Box::new(
+        ConstDependency::new_with_concatenation_scope_identifier(
+          nested_require_data.loc,
+          if shorthand {
+            format!("{}: {}", ident.sym, name).into()
+          } else {
+            name.clone().into()
+          },
+          name.clone().into(),
+        ),
+      ));
+      nested_require_data.update = true;
+    }
+
+    deps.push(Box::new(
+      ConstDependency::new_with_concatenation_scope_identifier(
+        ident.span.into(),
+        if parser.in_short_hand {
           format!("{}: {}", ident.sym, name).into()
         } else {
           name.clone().into()
         },
-      )));
-      nested_require_data.update = true;
-    }
-
-    deps.push(Box::new(ConstDependency::new(
-      ident.span.into(),
-      if parser.in_short_hand {
-        format!("{}: {}", ident.sym, name).into()
-      } else {
-        name.into()
-      },
-    )));
+        name.into(),
+      ),
+    ));
     parser.add_presentational_dependencies(deps);
     Some(true)
   }

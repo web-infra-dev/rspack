@@ -515,6 +515,15 @@ impl ESMImportSpecifierDependencyTemplate {
         dep.phase,
         code_generatable_context.runtime,
       );
+      let rendered_import_var = code_generatable_context
+        .concatenation_scope
+        .as_mut()
+        .map(|scope| {
+          scope
+            .get_or_create_generated_top_level_symbol(import_var.as_str())
+            .to_string()
+        })
+        .unwrap_or(import_var);
       esm_import_dependency_apply(dep, dep.source_order, dep.phase, code_generatable_context);
       let TemplateContext {
         compilation,
@@ -531,7 +540,7 @@ impl ESMImportSpecifierDependencyTemplate {
         *runtime,
         true,
         &dep.request,
-        &import_var,
+        &rendered_import_var,
         ids,
         &dep.id,
         dep.call,
@@ -553,6 +562,9 @@ impl ESMImportSpecifierDependencyTemplate {
     let Some(con) = connection else {
       return;
     };
+    if let Some(scope) = code_generatable_context.concatenation_scope.as_mut() {
+      scope.remove_original_range(dep.range);
+    }
     let TemplateContext {
       runtime,
       module: self_module,
@@ -700,6 +712,10 @@ impl DependencyTemplate for ESMImportSpecifierDependencyTemplate {
 
     let export_expr = self.get_code_for_ids(ids, dep, connection, code_generatable_context);
 
+    if let Some(scope) = code_generatable_context.concatenation_scope.as_mut() {
+      scope.remove_original_range(dep.range);
+    }
+
     if dep.shorthand {
       source.insert(dep.range.end, format!(": {export_expr}"), None);
     } else {
@@ -770,6 +786,9 @@ impl DependencyTemplate for ESMImportSpecifierDependencyTemplate {
         } else {
           key
         };
+        if let Some(scope) = code_generatable_context.concatenation_scope.as_mut() {
+          scope.remove_original_range(prop.range);
+        }
         source.replace(prop.range.start, prop.range.end, content, None);
       });
     }

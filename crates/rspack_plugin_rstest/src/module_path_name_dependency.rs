@@ -1,8 +1,8 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  AsContextDependency, AsModuleDependency, DependencyCodeGeneration, DependencyTemplate,
-  DependencyTemplateType, DependencyType, InitFragmentExt, InitFragmentKey, InitFragmentStage,
-  NormalInitFragment, TemplateContext, TemplateReplaceSource,
+  AsContextDependency, AsModuleDependency, DependencyCodeGeneration, DependencyRange,
+  DependencyTemplate, DependencyTemplateType, DependencyType, InitFragmentExt, InitFragmentKey,
+  InitFragmentStage, NormalInitFragment, TemplateContext, TemplateReplaceSource,
 };
 use rspack_util::json_stringify;
 
@@ -17,11 +17,12 @@ pub enum NameType {
 #[derive(Debug, Clone)]
 pub struct ModulePathNameDependency {
   r#type: NameType,
+  range: DependencyRange,
 }
 
 impl ModulePathNameDependency {
-  pub fn new(r#type: NameType) -> Self {
-    Self { r#type }
+  pub fn new(r#type: NameType, range: DependencyRange) -> Self {
+    Self { r#type, range }
   }
 }
 
@@ -49,7 +50,7 @@ impl DependencyTemplate for ModulePathNameDependencyTemplate {
   fn render(
     &self,
     dep: &dyn DependencyCodeGeneration,
-    _source: &mut TemplateReplaceSource,
+    source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {
     let TemplateContext {
@@ -69,9 +70,22 @@ impl DependencyTemplate for ModulePathNameDependencyTemplate {
 
       if dep.r#type == NameType::FileName {
         if let Some(resource_path) = resource_path {
+          let identifier = code_generatable_context
+            .concatenation_scope
+            .as_mut()
+            .map(|scope| {
+              scope.remove_original_range(dep.range);
+              scope
+                .get_or_create_generated_top_level_symbol("__filename")
+                .to_string()
+            })
+            .unwrap_or_else(|| "__filename".to_string());
+          if identifier != "__filename" {
+            source.replace(dep.range.start, dep.range.end, identifier.clone(), None);
+          }
           let init = NormalInitFragment::new(
             format!(
-              "const __filename = {};\n",
+              "const {identifier} = {};\n",
               json_stringify(&resource_path.as_std_path())
             ),
             InitFragmentStage::StageConstants,
@@ -86,11 +100,24 @@ impl DependencyTemplate for ModulePathNameDependencyTemplate {
         && let Some(resource_path) = resource_path
         && let Some(parent_path) = resource_path.parent()
       {
+        let identifier = code_generatable_context
+          .concatenation_scope
+          .as_mut()
+          .map(|scope| {
+            scope.remove_original_range(dep.range);
+            scope
+              .get_or_create_generated_top_level_symbol("__dirname")
+              .to_string()
+          })
+          .unwrap_or_else(|| "__dirname".to_string());
+        if identifier != "__dirname" {
+          source.replace(dep.range.start, dep.range.end, identifier.clone(), None);
+        }
         // If the parent path is None, we use an empty string
         // to avoid issues with the path being undefined.
         let init = NormalInitFragment::new(
           format!(
-            "const __dirname = {};\n",
+            "const {identifier} = {};\n",
             json_stringify(parent_path.as_std_path())
           ),
           InitFragmentStage::StageConstants,

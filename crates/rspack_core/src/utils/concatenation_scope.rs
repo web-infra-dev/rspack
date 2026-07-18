@@ -9,7 +9,7 @@ use rspack_util::{
 use swc_core::atoms::Atom;
 
 use crate::{
-  ExportMode, ModuleIdentifier,
+  DependencyRange, ExportMode, ModuleIdentifier,
   concatenated_module::{ConcatenatedModuleInfo, ModuleInfo},
 };
 
@@ -118,11 +118,60 @@ impl ConcatenationScope {
     self.current_module.namespace_export_symbol = Some(symbol.into());
   }
 
-  pub fn create_module_reference(
+  pub fn remove_original_range(&mut self, range: DependencyRange) {
+    self.current_module.removed_original_ranges.push(range);
+  }
+
+  pub fn add_scope_ident(&mut self, symbol: Atom, range: DependencyRange) {
+    self
+      .current_module
+      .added_scope_idents
+      .push(crate::AddedScopeIdent {
+        symbol,
+        range,
+        shorthand: false,
+        is_class_expr_with_ident: false,
+      });
+  }
+
+  pub fn add_used_name(&mut self, symbol: Atom) {
+    self.current_module.added_used_names.push(symbol);
+  }
+
+  pub fn get_or_create_generated_top_level_symbol(&mut self, preferred_name: &str) -> Atom {
+    let preferred_name = Atom::from(preferred_name);
+    if let Some(existing) = self
+      .current_module
+      .generated_top_level_symbols
+      .iter()
+      .find(|symbol| symbol.preferred_name == preferred_name)
+    {
+      return existing.placeholder.clone();
+    }
+
+    // The sentinel is intentionally not a valid JavaScript identifier. Generated
+    // sources may contain arbitrary user strings (for example JSON values), so a
+    // regular identifier could otherwise be replaced inside user data.
+    let placeholder = Atom::from(format!(
+      "__rspack_symbol_{}__\0",
+      self.current_module.generated_top_level_symbols.len()
+    ));
+    self
+      .current_module
+      .generated_top_level_symbols
+      .push(crate::GeneratedTopLevelSymbol {
+        preferred_name,
+        placeholder: placeholder.clone(),
+      });
+    placeholder
+  }
+
+  fn build_module_reference(
     &mut self,
     module: &ModuleIdentifier,
-    options: ModuleReferenceOptions,
-  ) -> String {
+    options: &ModuleReferenceOptions,
+    track_placeholder: bool,
+  ) -> (String, ModuleReferenceOptions) {
     let info = self
       .modules_map
       .get(module)
@@ -154,9 +203,35 @@ impl ConcatenationScope {
       module_ref.push_str(if asi_safe { "_asiSafe1" } else { "_asiSafe0" });
     }
     module_ref.push_str("__._");
-    let entry = self.refs.entry(*module).or_default();
-    entry.insert(module_ref.clone(), options);
+    if track_placeholder {
+      self
+        .current_module
+        .module_reference_placeholders
+        .push(module_ref.clone());
+    }
+    (module_ref, options.clone())
+  }
 
+  pub fn create_module_reference(
+    &mut self,
+    module: &ModuleIdentifier,
+    options: ModuleReferenceOptions,
+  ) -> String {
+    let (module_ref, options) = self.build_module_reference(module, &options, true);
+    self
+      .refs
+      .entry(*module)
+      .or_default()
+      .insert(module_ref.clone(), options);
+    module_ref
+  }
+
+  pub fn create_export_reference(
+    &mut self,
+    module: &ModuleIdentifier,
+    options: &ModuleReferenceOptions,
+  ) -> String {
+    let (module_ref, _) = self.build_module_reference(module, options, true);
     module_ref
   }
 

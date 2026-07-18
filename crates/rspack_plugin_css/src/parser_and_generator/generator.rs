@@ -758,13 +758,14 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
       i += 1;
     }
 
-    let export_source = concat_string!("var ", identifier, " = ", content, ";\n");
-    self.concat_source.add(RawStringSource::from(export_source));
     state.used_identifiers.insert(identifier.clone());
     let Some(ref mut scope) = self.generate_context.concatenation_scope else {
       unreachable!();
     };
-    scope.register_export(key.into(), identifier);
+    let symbol = scope.get_or_create_generated_top_level_symbol(&identifier);
+    scope.register_export(key.into(), symbol.to_string());
+    let export_source = concat_string!("var ", symbol, " = ", content, ";\n");
+    self.concat_source.add(RawStringSource::from(export_source));
   }
 
   fn render_css_export_content(&mut self, elements: &FxIndexSet<CssExport>) -> String {

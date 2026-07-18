@@ -13,11 +13,28 @@ pub struct ConstDependency {
   pub range: DependencyRange,
   #[cacheable(with=AsRefStr)]
   pub content: Box<str>,
+  pub concatenation_scope_identifier: Option<Box<str>>,
 }
 
 impl ConstDependency {
   pub fn new(range: DependencyRange, content: Box<str>) -> Self {
-    Self { range, content }
+    Self {
+      range,
+      content,
+      concatenation_scope_identifier: None,
+    }
+  }
+
+  pub fn new_with_concatenation_scope_identifier(
+    range: DependencyRange,
+    content: Box<str>,
+    identifier: Box<str>,
+  ) -> Self {
+    Self {
+      range,
+      content,
+      concatenation_scope_identifier: Some(identifier),
+    }
   }
 }
 
@@ -26,6 +43,7 @@ impl RspackHash for ConstDependency {
     self.range.hash(state);
     state.write(b"|");
     self.content.hash(state);
+    self.concatenation_scope_identifier.hash(state);
   }
 }
 
@@ -60,18 +78,40 @@ impl DependencyTemplate for ConstDependencyTemplate {
     &self,
     dep: &dyn DependencyCodeGeneration,
     source: &mut TemplateReplaceSource,
-    _code_generatable_context: &mut TemplateContext,
+    code_generatable_context: &mut TemplateContext,
   ) {
     let dep = dep
       .as_any()
       .downcast_ref::<ConstDependency>()
       .expect("ConstDependencyTemplate should be used for ConstDependency");
 
-    source.replace(
-      dep.range.start,
-      dep.range.end,
-      dep.content.to_string(),
-      None,
-    );
+    let rendered_content =
+      if let Some(scope) = code_generatable_context.concatenation_scope.as_mut() {
+        scope.remove_original_range(dep.range);
+        if let Some(identifier) = &dep.concatenation_scope_identifier {
+          let placeholder = scope.get_or_create_generated_top_level_symbol(identifier);
+          dep
+            .content
+            .replace(identifier.as_ref(), placeholder.as_ref())
+        } else {
+          for candidate in dep
+            .content
+            .split(|ch: char| !(ch == '_' || ch == '$' || ch.is_ascii_alphanumeric()))
+          {
+            let mut chars = candidate.chars();
+            if chars
+              .next()
+              .is_some_and(|ch| ch == '_' || ch == '$' || ch.is_ascii_alphabetic())
+            {
+              scope.add_used_name(candidate.into());
+            }
+          }
+          dep.content.to_string()
+        }
+      } else {
+        dep.content.to_string()
+      };
+
+    source.replace(dep.range.start, dep.range.end, rendered_content, None);
   }
 }

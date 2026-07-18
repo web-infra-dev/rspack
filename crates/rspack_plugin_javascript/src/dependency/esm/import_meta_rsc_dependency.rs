@@ -155,6 +155,15 @@ impl DependencyTemplate for ImportMetaRscDependencyTemplate {
       .as_any()
       .downcast_ref::<ImportMetaRscDependency>()
       .expect("ImportMetaRscDependencyTemplate should only be used for ImportMetaRscDependency");
+    let rendered_binding = code_generatable_context
+      .concatenation_scope
+      .as_mut()
+      .map(|scope| {
+        scope
+          .get_or_create_generated_top_level_symbol(IMPORT_META_RSC_BINDING)
+          .to_string()
+      })
+      .unwrap_or_else(|| IMPORT_META_RSC_BINDING.to_string());
 
     let TemplateContext {
       compilation,
@@ -170,7 +179,7 @@ impl DependencyTemplate for ImportMetaRscDependencyTemplate {
     init_fragments.push(Box::new(
       NormalInitFragment::new(
         format!(
-          r#"var {IMPORT_META_RSC_BINDING} = {{
+          r#"var {rendered_binding} = {{
   loadCss: function() {{
     return (({rsc_manifest}.entryCssFiles[{importer}] || []).map(function(href) {{
       return {react}.createElement("link", Object.assign({{}}, {rsc_manifest}.cssLinkProps, {{
@@ -195,12 +204,7 @@ impl DependencyTemplate for ImportMetaRscDependencyTemplate {
     ));
 
     if let Some(range) = dependency.range {
-      source.replace(
-        range.start,
-        range.end,
-        IMPORT_META_RSC_BINDING.to_string(),
-        None,
-      );
+      source.replace(range.start, range.end, rendered_binding, None);
     }
   }
 }
