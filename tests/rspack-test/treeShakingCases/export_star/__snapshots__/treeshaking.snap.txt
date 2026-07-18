@@ -17,8 +17,7 @@ function b() {}
 
 },
 "./foo.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {
+__webpack_require__.D(__webpack_exports__, {
   a: () => (a),
   b: () => (/* reexport safe */ _bar__rspack_import_0.b),
   bar: () => (/* reexport safe */ _bar__rspack_import_0.bar),

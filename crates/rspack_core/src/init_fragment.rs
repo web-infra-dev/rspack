@@ -147,16 +147,25 @@ impl InitFragmentKey {
           .expect("fragment of InitFragmentKey::ESMExports should be a ESMExportInitFragment");
         let export_argument = first.exports_argument;
         let is_circular_module = first.is_circular_module;
+        let mut make_namespace_object = first.make_namespace_object;
         export_map.extend(first.export_map);
         for fragment in iter {
           let fragment = fragment
             .into_any()
             .downcast::<ESMExportInitFragment>()
             .expect("fragment of InitFragmentKey::ESMExports should be a ESMExportInitFragment");
+          debug_assert_eq!(export_argument, fragment.exports_argument);
           debug_assert_eq!(is_circular_module, fragment.is_circular_module);
+          make_namespace_object |= fragment.make_namespace_object;
           export_map.extend(fragment.export_map);
         }
-        ESMExportInitFragment::new(export_argument, export_map, is_circular_module).boxed()
+        ESMExportInitFragment {
+          exports_argument: export_argument,
+          export_map,
+          is_circular_module,
+          make_namespace_object,
+        }
+        .boxed()
       }
       InitFragmentKey::AwaitDependencies => {
         let promises = fragments.into_iter().map(|f| f.into_any().downcast::<AwaitDependenciesInitFragment>().expect("fragment of InitFragmentKey::AwaitDependencies should be a AwaitDependenciesInitFragment")).flat_map(|f| f.promises).collect();
@@ -448,6 +457,7 @@ pub struct ESMExportInitFragment {
   // TODO: should be a map
   export_map: Vec<(Atom, ESMExportBinding)>,
   is_circular_module: Option<bool>,
+  make_namespace_object: bool,
 }
 
 impl ESMExportInitFragment {
@@ -460,6 +470,19 @@ impl ESMExportInitFragment {
       exports_argument,
       export_map,
       is_circular_module,
+      make_namespace_object: false,
+    }
+  }
+
+  pub fn new_esm_compatibility(
+    exports_argument: ExportsArgument,
+    is_circular_module: Option<bool>,
+  ) -> Self {
+    Self {
+      exports_argument,
+      export_map: Vec::new(),
+      is_circular_module,
+      make_namespace_object: true,
     }
   }
 }
@@ -470,8 +493,28 @@ impl<C: InitFragmentRenderContext> InitFragment<C> for ESMExportInitFragment {
 
     self.export_map.sort_by(|a, b| a.0.cmp(&b.0));
 
-    let mut content =
-      runtime_template.render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
+    if self.export_map.is_empty() {
+      let content = if self.make_namespace_object {
+        format!(
+          "{}({});\n",
+          runtime_template.render_runtime_globals(&RuntimeGlobals::MAKE_NAMESPACE_OBJECT),
+          runtime_template.render_exports_argument(self.exports_argument),
+        )
+      } else {
+        String::new()
+      };
+      return Ok(InitFragmentContents {
+        start: content,
+        end: None,
+      });
+    }
+
+    let runtime_global = if self.make_namespace_object {
+      RuntimeGlobals::DEFINE_ESM_EXPORTS
+    } else {
+      RuntimeGlobals::DEFINE_PROPERTY_GETTERS
+    };
+    let mut content = runtime_template.render_runtime_globals(&runtime_global);
     content.push('(');
     content.push_str(&runtime_template.render_exports_argument(self.exports_argument));
     content.push_str(", {");
@@ -545,7 +588,7 @@ impl<C: InitFragmentRenderContext> InitFragment<C> for ESMExportInitFragment {
   }
 
   fn position(&self) -> i32 {
-    1
+    if self.make_namespace_object { 0 } else { 1 }
   }
 
   fn key(&self) -> &InitFragmentKey {

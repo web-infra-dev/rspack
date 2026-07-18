@@ -8,8 +8,8 @@
 - Bundle: file_js.chunk.CURRENT_HASH.js
 - Bundle: vendors-node_modules_vue_js.chunk.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 94
-- Update: file_js.LAST_HASH.hot-update.js, size: 380
-- Update: main.LAST_HASH.hot-update.js, size: 651
+- Update: file_js.LAST_HASH.hot-update.js, size: 336
+- Update: main.LAST_HASH.hot-update.js, size: 607
 
 ## Manifest
 
@@ -36,8 +36,7 @@
 "use strict";
 self["rspackHotUpdate"]("file_js", {
 "./file.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {
+__webpack_require__.D(__webpack_exports__, {
   Vue: () => (/* reexport safe */ vue__rspack_import_0.Vue)
 });
 /* import */ var vue__rspack_import_0 = __webpack_require__("./node_modules/vue.js");
@@ -64,8 +63,7 @@ __webpack_require__.d(__webpack_exports__, {
 "use strict";
 self["rspackHotUpdate"]("main", {
 "./chunk.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {
+__webpack_require__.D(__webpack_exports__, {
   test: () => (test)
 });
 function test(count) {

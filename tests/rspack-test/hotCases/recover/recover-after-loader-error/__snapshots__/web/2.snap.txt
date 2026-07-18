@@ -6,7 +6,7 @@
 ## Asset Files
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.LAST_HASH.hot-update.js, size: 926
+- Update: main.LAST_HASH.hot-update.js, size: 1078
 
 ## Manifest
 
@@ -26,6 +26,7 @@
 - ./loader.js!./a.js
 
 #### Changed Runtime Modules
+- webpack/runtime/define_esm_exports
 - webpack/runtime/define_property_getters
 - webpack/runtime/get_full_hash
 
@@ -34,8 +35,7 @@
 "use strict";
 self["rspackHotUpdate"]("main", {
 "./loader.js!./a.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {
+__webpack_require__.D(__webpack_exports__, {
   "default": () => (__rspack_default_export)
 });
 /* export default */ const __rspack_default_export = (3);
@@ -44,6 +44,14 @@ __webpack_require__.d(__webpack_exports__, {
 },
 
 },function(__webpack_require__) {
+// webpack/runtime/define_esm_exports
+(() => {
+__webpack_require__.D = (exports, getters, values) => {
+	__webpack_require__.r(exports);
+	__webpack_require__.d(exports, getters, values);
+};
+
+})();
 // webpack/runtime/define_property_getters
 (() => {
 

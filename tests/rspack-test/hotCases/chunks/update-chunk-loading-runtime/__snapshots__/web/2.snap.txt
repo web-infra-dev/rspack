@@ -13,7 +13,7 @@
 - Manifest: runtime~main.LAST_HASH.hot-update.json, size: 76
 - Update: main.LAST_HASH.hot-update.js, size: 633
 - Update: runtime~main.LAST_HASH.hot-update.js, size: 189
-- Update: vendors-node_modules_vendor_js.LAST_HASH.hot-update.js, size: 374
+- Update: vendors-node_modules_vendor_js.LAST_HASH.hot-update.js, size: 330
 
 ## Manifest
 
@@ -95,8 +95,7 @@ __webpack_require__.h = () => ("CURRENT_HASH")
 "use strict";
 self["rspackHotUpdate"]("vendors-node_modules_vendor_js", {
 "./node_modules/vendor.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {
+__webpack_require__.D(__webpack_exports__, {
   "default": () => (__rspack_default_export)
 });
 /* export default */ const __rspack_default_export = (3);

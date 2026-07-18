@@ -318,6 +318,8 @@ define_runtime_globals! {
 
   // context module factory
   const CREATE_CONTEXT;
+
+  const DEFINE_ESM_EXPORTS;
 }
 
 impl Default for RuntimeGlobals {
@@ -419,6 +421,7 @@ pub fn runtime_globals_property_name(runtime_globals: &RuntimeGlobals) -> Option
     RuntimeGlobals::CREATE_SCRIPT => "ts",
     RuntimeGlobals::GET_TRUSTED_TYPES_POLICY => "tt",
     RuntimeGlobals::DEFINE_PROPERTY_GETTERS => "d",
+    RuntimeGlobals::DEFINE_ESM_EXPORTS => "D",
     RuntimeGlobals::REEXPORT => "re",
     RuntimeGlobals::CHECKED_REEXPORT => "cr",
     RuntimeGlobals::CREATE_CONTEXT => "ctx",
