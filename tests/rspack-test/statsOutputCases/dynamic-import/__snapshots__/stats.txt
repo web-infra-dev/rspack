@@ -2,7 +2,7 @@ asset runtime.js xx KiB [emitted] (name: runtime)
 asset common.js xx KiB [emitted] (name: common) (id hint: common)
 asset main.js xx bytes [emitted] (name: main)
 Entrypoint main xx KiB = runtime.js xx KiB common.js xx KiB main.js xx bytes
-runtime modules xx KiB 6 modules
+runtime modules xx KiB 7 modules
 cacheable modules xx bytes
   modules by path ./src/*.js xx bytes
     ./src/index.js xx bytes [built] [code generated]

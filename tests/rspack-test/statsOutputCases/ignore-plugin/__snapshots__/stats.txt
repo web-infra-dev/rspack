@@ -1,4 +1,4 @@
-runtime modules xx bytes 1 module
+runtime modules xx bytes 2 modules
 ./index.js xx bytes [built] [code generated]
 ./locals|sync|/^\.\/.*$/ xx bytes [built] [code generated]
 ./locals/en.js xx bytes [built] [code generated]

@@ -98,21 +98,19 @@ var map = {
     ]
   ]
 };
-function __rspack_async_context(req) {
-  if(!__webpack_require__.o(map, req)) {
-    return Promise.resolve().then(() => {
-var e = new Error("Cannot find module '" + req + "'");
-e.code = 'MODULE_NOT_FOUND';
+var __rspack_async_context = __webpack_require__.ctx(map, "./modules lazy recursive ^\\.\\/.*\\.js$ referencedExports: default?32bc", (req, resolve) => {
+var ids;
+try {
+  ids = resolve(req);
+} catch(e) {
+  return Promise.resolve().then(() => {
 throw e;
 });
-  }
-
-  var ids = map[req], id = ids[0];
-  return __webpack_require__.e(ids[1][0]).then(() => (__webpack_require__(id)));
 }
+var id = ids[0];
+return __webpack_require__.e(ids[1][0]).then(() => (__webpack_require__(id)));
 
-__rspack_async_context.keys = () => (Object.keys(map));
-__rspack_async_context.id = "./modules lazy recursive ^\\.\\/.*\\.js$ referencedExports: default?32bc";
+}, 0, false);
 module.exports = __rspack_async_context;
 
 
@@ -142,21 +140,19 @@ var map = {
     ]
   ]
 };
-function __rspack_async_context(req) {
-  if(!__webpack_require__.o(map, req)) {
-    return Promise.resolve().then(() => {
-var e = new Error("Cannot find module '" + req + "'");
-e.code = 'MODULE_NOT_FOUND';
+var __rspack_async_context = __webpack_require__.ctx(map, "./modules lazy recursive ^\\.\\/.*\\.js$ referencedExports: default?bdfa", (req, resolve) => {
+var ids;
+try {
+  ids = resolve(req);
+} catch(e) {
+  return Promise.resolve().then(() => {
 throw e;
 });
-  }
-
-  var ids = map[req], id = ids[0];
-  return __webpack_require__.e(ids[1][0]).then(() => (__webpack_require__(id)));
 }
+var id = ids[0];
+return __webpack_require__.e(ids[1][0]).then(() => (__webpack_require__(id)));
 
-__rspack_async_context.keys = () => (Object.keys(map));
-__rspack_async_context.id = "./modules lazy recursive ^\\.\\/.*\\.js$ referencedExports: default?bdfa";
+}, 0, false);
 module.exports = __rspack_async_context;
 
 
@@ -224,6 +220,28 @@ return module.exports;
 // expose the modules object (__webpack_modules__)
 __webpack_require__.m = __webpack_modules__;
 
+// webpack/runtime/context
+(() => {
+__webpack_require__.ctx = (map, id, load, createResolve, exposeResolve) => {
+	var resolve = (req) => {
+		if(!__webpack_require__.o(map, req)) {
+			var e = new Error("Cannot find module '" + req + "'");
+			e.code = 'MODULE_NOT_FOUND';
+			throw e;
+		}
+		return map[req];
+	};
+	if(createResolve) resolve = createResolve(resolve);
+	var context = (req) => {
+		return load(req, resolve);
+	};
+	context.keys = () => (Object.keys(map));
+	if(exposeResolve) context.resolve = resolve;
+	context.id = id;
+	return context;
+};
+
+})();
 // webpack/runtime/define_property_getters
 (() => {
 __webpack_require__.d = (exports, getters, values) => {
