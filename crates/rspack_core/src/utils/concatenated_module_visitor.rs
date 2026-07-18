@@ -14,11 +14,19 @@ pub struct ConcatenatedModuleIdent {
 }
 
 #[cacheable]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ConcatenationScopeIdentKind {
+  TopLevel,
+  Global,
+  UsedName,
+}
+
+#[cacheable]
 #[derive(Clone, Debug)]
 pub struct ConcatenationScopeIdent {
-  pub symbol: u32,
   pub range: DependencyRange,
   pub shorthand: bool,
+  pub kind: ConcatenationScopeIdentKind,
 }
 
 #[cacheable]
@@ -26,10 +34,7 @@ pub struct ConcatenationScopeIdent {
 pub struct ConcatenationScopeSnapshot {
   pub module_ctxt: u32,
   pub global_ctxt: u32,
-  pub symbol_ranges: Vec<DependencyRange>,
-  pub top_level_idents: Vec<ConcatenationScopeIdent>,
-  pub global_idents: Vec<ConcatenationScopeIdent>,
-  pub used_names: Vec<u32>,
+  pub idents: Vec<ConcatenationScopeIdent>,
 }
 
 #[derive(Default)]

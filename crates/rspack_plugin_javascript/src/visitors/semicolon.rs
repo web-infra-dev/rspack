@@ -1,5 +1,7 @@
-use rspack_core::{ConcatenationScopeIdent, ConcatenationScopeSnapshot};
-use rustc_hash::{FxHashMap, FxHashSet};
+use rspack_core::{
+  ConcatenationScopeIdent, ConcatenationScopeIdentKind, ConcatenationScopeSnapshot,
+};
+use rustc_hash::FxHashSet;
 use smallvec::SmallVec;
 use swc_experimental_allocator::atom::Atom as AstAtom;
 use swc_experimental_ecma_ast::{
@@ -11,8 +13,7 @@ use swc_experimental_ecma_parser::unstable::{Token, TokenAndSpan};
 use swc_experimental_ecma_semantic::resolver::Semantic;
 
 #[derive(Clone, Copy)]
-struct PendingConcatenationScopeIdent<'ast> {
-  symbol: AstAtom<'ast>,
+struct PendingConcatenationScopeIdent {
   range: rspack_core::DependencyRange,
   shorthand: bool,
 }
@@ -20,89 +21,60 @@ struct PendingConcatenationScopeIdent<'ast> {
 pub(crate) struct PendingConcatenationScopeSnapshot<'ast> {
   module_ctxt: u32,
   global_ctxt: u32,
-  top_level_idents: SmallVec<[PendingConcatenationScopeIdent<'ast>; 8]>,
-  global_idents: SmallVec<[PendingConcatenationScopeIdent<'ast>; 4]>,
+  top_level_idents: SmallVec<[PendingConcatenationScopeIdent; 8]>,
+  global_idents: SmallVec<[PendingConcatenationScopeIdent; 4]>,
   used_names: SmallVec<[(AstAtom<'ast>, rspack_core::DependencyRange); 8]>,
-}
-
-#[derive(Default)]
-struct SnapshotSymbols<'ast> {
-  inline_indices: SmallVec<[(AstAtom<'ast>, u32); 8]>,
-  indices: Option<FxHashMap<AstAtom<'ast>, u32>>,
-  symbol_ranges: Vec<rspack_core::DependencyRange>,
-}
-
-impl<'ast> SnapshotSymbols<'ast> {
-  fn intern(&mut self, symbol: AstAtom<'ast>, range: rspack_core::DependencyRange) -> u32 {
-    if let Some(indices) = &mut self.indices {
-      if let Some(index) = indices.get(&symbol) {
-        return *index;
-      }
-      let index = self.symbol_ranges.len() as u32;
-      indices.insert(symbol, index);
-      self.symbol_ranges.push(range);
-      return index;
-    }
-    if let Some((_, index)) = self
-      .inline_indices
-      .iter()
-      .find(|(candidate, _)| *candidate == symbol)
-    {
-      return *index;
-    }
-    let index = self.symbol_ranges.len() as u32;
-    self.inline_indices.push((symbol, index));
-    self.symbol_ranges.push(range);
-    if self.inline_indices.spilled() {
-      self.indices = Some(self.inline_indices.iter().copied().collect());
-    }
-    index
-  }
 }
 
 impl<'ast> PendingConcatenationScopeSnapshot<'ast> {
   pub(crate) fn into_snapshot(self) -> ConcatenationScopeSnapshot {
-    let mut symbols = SnapshotSymbols::default();
-    let top_level_idents = self
-      .top_level_idents
-      .into_iter()
-      .map(|ident| ConcatenationScopeIdent {
-        symbol: symbols.intern(ident.symbol, ident.range),
-        range: ident.range,
-        shorthand: ident.shorthand,
+    let mut idents = Vec::with_capacity(
+      self.top_level_idents.len() + self.global_idents.len() + self.used_names.len(),
+    );
+    idents.extend(
+      self
+        .top_level_idents
+        .into_iter()
+        .map(|ident| ConcatenationScopeIdent {
+          range: ident.range,
+          shorthand: ident.shorthand,
+          kind: ConcatenationScopeIdentKind::TopLevel,
+        }),
+    );
+    idents.extend(
+      self
+        .global_idents
+        .into_iter()
+        .map(|ident| ConcatenationScopeIdent {
+          range: ident.range,
+          shorthand: ident.shorthand,
+          kind: ConcatenationScopeIdentKind::Global,
+        }),
+    );
+    let mut used_names = SmallVec::<[AstAtom<'ast>; 8]>::new();
+    idents.extend(self.used_names.into_iter().filter_map(|(symbol, range)| {
+      if used_names.contains(&symbol) {
+        return None;
+      }
+      used_names.push(symbol);
+      Some(ConcatenationScopeIdent {
+        range,
+        shorthand: false,
+        kind: ConcatenationScopeIdentKind::UsedName,
       })
-      .collect();
-    let global_idents = self
-      .global_idents
-      .into_iter()
-      .map(|ident| ConcatenationScopeIdent {
-        symbol: symbols.intern(ident.symbol, ident.range),
-        range: ident.range,
-        shorthand: ident.shorthand,
-      })
-      .collect();
-    let mut used_names = self
-      .used_names
-      .into_iter()
-      .map(|(symbol, range)| symbols.intern(symbol, range))
-      .collect::<Vec<_>>();
-    used_names.sort_unstable();
-    used_names.dedup();
+    }));
     ConcatenationScopeSnapshot {
       module_ctxt: self.module_ctxt,
       global_ctxt: self.global_ctxt,
-      symbol_ranges: symbols.symbol_ranges,
-      top_level_idents,
-      global_idents,
-      used_names,
+      idents,
     }
   }
 }
 
 struct ConcatenationScopeSnapshotCollector<'semantic, 'ast> {
   semantic: &'semantic Semantic,
-  top_level_idents: SmallVec<[PendingConcatenationScopeIdent<'ast>; 8]>,
-  global_idents: SmallVec<[PendingConcatenationScopeIdent<'ast>; 4]>,
+  top_level_idents: SmallVec<[PendingConcatenationScopeIdent; 8]>,
+  global_idents: SmallVec<[PendingConcatenationScopeIdent; 4]>,
   used_names: SmallVec<[(AstAtom<'ast>, rspack_core::DependencyRange); 8]>,
 }
 
@@ -115,20 +87,15 @@ impl<'ast> ConcatenationScopeSnapshotCollector<'_, 'ast> {
     let scope = self.semantic.node_scope(ident);
     let range = ident.span.into();
     if scope == self.semantic.unresolved_scope_id() {
-      self.global_idents.push(PendingConcatenationScopeIdent {
-        symbol: ident.sym,
-        range,
-        shorthand,
-      });
-      self.used_names.push((ident.sym, range));
+      self
+        .global_idents
+        .push(PendingConcatenationScopeIdent { range, shorthand });
     } else if class_expr_with_ident || scope != self.semantic.top_level_scope_id() {
       self.used_names.push((ident.sym, range));
     } else {
-      self.top_level_idents.push(PendingConcatenationScopeIdent {
-        symbol: ident.sym,
-        range,
-        shorthand,
-      });
+      self
+        .top_level_idents
+        .push(PendingConcatenationScopeIdent { range, shorthand });
     }
   }
 

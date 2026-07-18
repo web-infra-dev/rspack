@@ -26,6 +26,7 @@ use rspack_util::{
   swc::join_atom,
 };
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
+use smallvec::SmallVec;
 use swc_core::{
   atoms::Atom,
   common::{BytePos, Span, Spanned, SyntaxContext},
@@ -42,17 +43,17 @@ use crate::{
   CodeGenerationDataRenderedInitFragments, CodeGenerationDataTopLevelDeclarations,
   CodeGenerationExportsFinalNames, CodeGenerationPublicPathAutoReplace, CodeGenerationResult,
   CodeGenerationRuntimeRequirementsWrite, Compilation, ConcatenatedModuleIdent, ConcatenationScope,
-  ConcatenationScopeIdent, ConcatenationScopeSnapshot, ConditionalInitFragment, ConnectionState,
-  Context, DEFAULT_EXPORT, DEFAULT_EXPORT_ATOM, DependenciesBlock, DependencyId, DependencyRange,
-  DependencyType, ExportInfo, ExportProvided, ExportsArgument, ExportsInfoArtifact, ExportsType,
-  FactoryMeta, ImportedByDeferModulesArtifact, InitFragment, InitFragmentStage, LibIdentOptions,
-  Module, ModuleArgument, ModuleCodeGenerationContext, ModuleGraph, ModuleGraphCacheArtifact,
-  ModuleGraphConnection, ModuleIdentifier, ModuleLayer, ModuleStaticCache, ModuleType,
-  NAMESPACE_OBJECT_EXPORT, Resolve, RuntimeCondition, RuntimeGlobals, RuntimeSpec,
-  SideEffectsStateArtifact, SourceType, URLStaticMode, UsageState, UsedName, UsedNameItem,
-  escape_identifier, fast_set, filter_runtime, find_target, get_runtime_key,
-  impl_source_map_config, merge_runtime_condition, merge_runtime_condition_non_false,
-  module_update_hash, property_access, property_name,
+  ConcatenationScopeIdentKind, ConcatenationScopeSnapshot, ConditionalInitFragment,
+  ConnectionState, Context, DEFAULT_EXPORT, DEFAULT_EXPORT_ATOM, DependenciesBlock, DependencyId,
+  DependencyRange, DependencyType, ExportInfo, ExportProvided, ExportsArgument,
+  ExportsInfoArtifact, ExportsType, FactoryMeta, ImportedByDeferModulesArtifact, InitFragment,
+  InitFragmentStage, LibIdentOptions, Module, ModuleArgument, ModuleCodeGenerationContext,
+  ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, ModuleLayer,
+  ModuleStaticCache, ModuleType, NAMESPACE_OBJECT_EXPORT, Resolve, RuntimeCondition,
+  RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, SourceType, URLStaticMode, UsageState,
+  UsedName, UsedNameItem, escape_identifier, fast_set, filter_runtime, find_target,
+  get_runtime_key, impl_source_map_config, merge_runtime_condition,
+  merge_runtime_condition_non_false, module_update_hash, property_access, property_name,
   render_make_deferred_namespace_mode_from_exports_type,
   reserved_names::RESERVED_NAMES_ATOM_SET,
   subtract_runtime_condition, to_identifier_with_escaped, to_normal_comment,
@@ -696,30 +697,38 @@ impl ConcatenatedModule {
     original_source: &str,
     module_info: &mut ConcatenatedModuleInfo,
   ) {
-    let symbols = snapshot
-      .symbol_ranges
-      .iter()
-      .map(|range| {
-        let symbol = original_source
-          .get(range.start as usize..range.end as usize)
-          .unwrap_or_else(|| {
-            panic!(
-              "concatenation scope symbol range {}..{} should be in the original source",
-              range.start, range.end
-            )
-          });
-        Atom::from(symbol)
-      })
-      .collect::<Vec<_>>();
+    let mut symbols = SmallVec::<[(&str, Atom); 8]>::new();
+    let mut symbol_from_range = |range: DependencyRange| {
+      let symbol = original_source
+        .get(range.start as usize..range.end as usize)
+        .unwrap_or_else(|| {
+          panic!(
+            "concatenation scope symbol range {}..{} should be in the original source",
+            range.start, range.end
+          )
+        });
+      if let Some((_, interned)) = symbols.iter().find(|(candidate, _)| *candidate == symbol) {
+        return interned.clone();
+      }
+      let interned = Atom::from(symbol);
+      symbols.push((symbol, interned.clone()));
+      interned
+    };
     module_info.module_ctxt = SyntaxContext::from_u32(snapshot.module_ctxt);
     module_info.global_ctxt = SyntaxContext::from_u32(snapshot.global_ctxt);
     module_info.idents.clear();
     module_info.global_scope_ident.clear();
     module_info.binding_to_ref.clear();
     module_info.all_used_names = snapshot
-      .used_names
+      .idents
       .iter()
-      .map(|symbol| symbols[*symbol as usize].clone())
+      .filter(|ident| {
+        matches!(
+          ident.kind,
+          ConcatenationScopeIdentKind::Global | ConcatenationScopeIdentKind::UsedName
+        )
+      })
+      .map(|ident| symbol_from_range(ident.range))
       .collect();
     module_info
       .all_used_names
@@ -732,36 +741,39 @@ impl ConcatenatedModule {
         .retain(|placeholder| seen.insert(placeholder.clone()));
     }
 
-    let snapshot_ident_to_legacy =
-      |ident: &ConcatenationScopeIdent, ctxt: SyntaxContext| ConcatenatedModuleIdent {
+    let mut snapshot_ident_to_legacy =
+      |range: DependencyRange, shorthand: bool, ctxt: SyntaxContext| ConcatenatedModuleIdent {
         id: swc_ecma_ast::Ident::new(
-          symbols[ident.symbol as usize].clone(),
+          symbol_from_range(range),
           Span::new(
-            BytePos(ident.range.start.saturating_add(1)),
-            BytePos(ident.range.end.saturating_add(1)),
+            BytePos(range.start.saturating_add(1)),
+            BytePos(range.end.saturating_add(1)),
           ),
           ctxt,
         ),
-        shorthand: ident.shorthand,
+        shorthand,
         is_class_expr_with_ident: false,
       };
-    let mut idents = Vec::with_capacity(
-      snapshot.top_level_idents.len()
-        + snapshot.global_idents.len()
-        + module_info.added_scope_idents.len(),
-    );
+    let mut idents =
+      Vec::with_capacity(snapshot.idents.len() + module_info.added_scope_idents.len());
     idents.extend(
       snapshot
-        .top_level_idents
+        .idents
         .iter()
-        .map(|ident| snapshot_ident_to_legacy(ident, module_info.module_ctxt))
+        .filter(|ident| ident.kind == ConcatenationScopeIdentKind::TopLevel)
+        .map(|ident| {
+          snapshot_ident_to_legacy(ident.range, ident.shorthand, module_info.module_ctxt)
+        })
         .filter(|ident| !Self::is_ident_removed(ident, &module_info.removed_original_ranges)),
     );
     idents.extend(
       snapshot
-        .global_idents
+        .idents
         .iter()
-        .map(|ident| snapshot_ident_to_legacy(ident, module_info.global_ctxt))
+        .filter(|ident| ident.kind == ConcatenationScopeIdentKind::Global)
+        .map(|ident| {
+          snapshot_ident_to_legacy(ident.range, ident.shorthand, module_info.global_ctxt)
+        })
         .filter(|ident| !Self::is_ident_removed(ident, &module_info.removed_original_ranges)),
     );
     idents.extend(
