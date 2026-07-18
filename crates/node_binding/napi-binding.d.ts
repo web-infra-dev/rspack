@@ -2905,6 +2905,7 @@ export interface RawRemoteOptions {
 
 export interface RawRemoveDuplicateModulesPluginOptions {
   minSize?: number
+  minSizeReduction?: number
 }
 
 export interface RawResolveOptions {

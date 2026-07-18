@@ -11,6 +11,12 @@ export interface RemoveDuplicateModulesPluginOptions {
    * @default 0
    */
   minSize?: number;
+  /**
+   * The minimum estimated size reduction before extracting a duplicated
+   * module group.
+   * @default 0
+   */
+  minSizeReduction?: number;
 }
 
 export const RemoveDuplicateModulesPlugin = create(
@@ -20,6 +26,7 @@ export const RemoveDuplicateModulesPlugin = create(
   ): RawRemoveDuplicateModulesPluginOptions => {
     return {
       minSize: options.minSize,
+      minSizeReduction: options.minSizeReduction,
     };
   },
 );

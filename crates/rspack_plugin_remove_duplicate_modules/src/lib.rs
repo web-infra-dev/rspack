@@ -17,6 +17,7 @@ pub struct RemoveDuplicateModulesPlugin {
 #[derive(Debug, Clone, Default)]
 pub struct RemoveDuplicateModulesPluginOptions {
   pub min_size: f64,
+  pub min_size_reduction: f64,
 }
 
 impl std::default::Default for RemoveDuplicateModulesPlugin {
@@ -29,6 +30,15 @@ impl RemoveDuplicateModulesPlugin {
   pub fn new(options: RemoveDuplicateModulesPluginOptions) -> Self {
     Self::new_inner(options)
   }
+}
+
+fn satisfies_size_thresholds(
+  size: f64,
+  chunk_count: usize,
+  options: &RemoveDuplicateModulesPluginOptions,
+) -> bool {
+  let size_reduction = size * chunk_count.saturating_sub(1) as f64;
+  size >= options.min_size && size_reduction >= options.min_size_reduction
 }
 
 fn find_reusable_chunk(
@@ -69,12 +79,13 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
         .push(*identifier);
     });
 
-    let module_sizes = (self.options.min_size > 0.0).then(|| {
-      module_graph
-        .modules()
-        .map(|(identifier, module)| (*identifier, module.size(None, Some(compilation))))
-        .collect::<IdentifierMap<_>>()
-    });
+    let module_sizes =
+      (self.options.min_size > 0.0 || self.options.min_size_reduction > 0.0).then(|| {
+        module_graph
+          .modules()
+          .map(|(identifier, module)| (*identifier, module.size(None, Some(compilation))))
+          .collect::<IdentifierMap<_>>()
+      });
     (chunk_map, module_sizes)
   };
 
@@ -113,9 +124,13 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
     if let Some(module_sizes) = &module_sizes {
       let size = modules
         .iter()
-        .filter_map(|module| module_sizes.get(module))
+        .map(|module| {
+          module_sizes
+            .get(module)
+            .expect("module size should be collected")
+        })
         .sum::<f64>();
-      if size < self.options.min_size {
+      if !satisfies_size_thresholds(size, chunks.len(), &self.options) {
         continue;
       }
     }
@@ -235,5 +250,21 @@ impl Plugin for RemoveDuplicateModulesPlugin {
       .optimize_chunks
       .tap(optimize_chunks::new(self));
     Ok(())
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn should_consider_the_number_of_removed_copies() {
+    let options = RemoveDuplicateModulesPluginOptions {
+      min_size: 0.0,
+      min_size_reduction: 40.0,
+    };
+
+    assert!(!satisfies_size_thresholds(27.0, 2, &options));
+    assert!(satisfies_size_thresholds(27.0, 3, &options));
   }
 }
