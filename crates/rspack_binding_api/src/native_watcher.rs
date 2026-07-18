@@ -75,7 +75,6 @@ impl NativeWatcher {
         aggregate_timeout: options.aggregate_timeout,
       },
       to_fs_watcher_ignored(options.ignored),
-      rspack_napi::runtime::handle(),
     );
 
     Self {

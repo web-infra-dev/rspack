@@ -128,11 +128,7 @@ struct FsWatcherInner {
 
 impl FsWatcher {
   /// Creates a new [`FsWatcher`] instance with the specified options and ignored paths.
-  pub fn new(
-    options: FsWatcherOptions,
-    ignored: FsWatcherIgnored,
-    handle: tokio::runtime::Handle,
-  ) -> Self {
+  pub fn new(options: FsWatcherOptions, ignored: FsWatcherIgnored) -> Self {
     let (tx, rx) = mpsc::unbounded_channel();
 
     let path_manager = Arc::new(PathManager::new(ignored));
@@ -159,7 +155,7 @@ impl FsWatcher {
     Self {
       paused,
       trigger,
-      op_tx: spawn_owner_task(inner, handle),
+      op_tx: spawn_owner_thread(inner),
     }
   }
 
@@ -238,10 +234,7 @@ impl FsWatcher {
   }
 }
 
-fn spawn_owner_task(
-  mut inner: FsWatcherInner,
-  handle: tokio::runtime::Handle,
-) -> mpsc::UnboundedSender<WatcherOp> {
+fn spawn_owner_thread(mut inner: FsWatcherInner) -> mpsc::UnboundedSender<WatcherOp> {
   let (tx, mut rx) = mpsc::unbounded_channel::<WatcherOp>();
 
   let owner_loop = async move {
@@ -290,8 +283,15 @@ fn spawn_owner_task(
 
   std::thread::Builder::new()
     .name("rspack-fs-watcher".to_string())
-    .spawn(move || handle.block_on(owner_loop))
-    .expect("Failed to spawn fs watcher thread");
+    .spawn(move || {
+      let runtime = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .expect("create watcher runtime");
+
+      runtime.block_on(owner_loop);
+    })
+    .expect("spawn watcher thread");
 
   tx
 }
