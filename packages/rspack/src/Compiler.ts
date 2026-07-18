@@ -20,7 +20,7 @@ import {
 } from './builtin-plugin';
 import { canInherentFromParent } from './builtin-plugin/base';
 import type { Chunk } from './Chunk';
-import type { CompilationParams } from './Compilation';
+import type { CompilationParams, WatchInvalidationKind } from './Compilation';
 import { Compilation } from './Compilation';
 import { ContextModuleFactory } from './ContextModuleFactory';
 import type {
@@ -166,6 +166,9 @@ class Compiler {
   resolverFactory: ResolverFactory;
   infrastructureLogger: any;
   watching?: Watching;
+
+  /** @internal Set by Watching while a watch compilation is being created. */
+  __internal__watchInvalidationKind?: WatchInvalidationKind;
 
   inputFileSystem: InputFileSystem | null;
   intermediateFileSystem: IntermediateFileSystem | null;
@@ -845,6 +848,7 @@ class Compiler {
           Array.from(this.modifiedFiles || []),
           Array.from(this.removedFiles || []),
           callback,
+          this.__internal__watchInvalidationKind === 'lazy',
         );
         return;
       }

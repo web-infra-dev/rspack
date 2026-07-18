@@ -1,16 +1,19 @@
 use std::{
   boxed::Box,
-  panic::AssertUnwindSafe,
   path::{Path, PathBuf},
+  sync::{
+    Arc,
+    atomic::{AtomicBool, Ordering},
+  },
   time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
-use futures::FutureExt;
 use napi::bindgen_prelude::*;
 use napi_derive::*;
 use rspack_paths::ArcPath;
 use rspack_regex::RspackRegex;
 use rspack_watcher::{FsEventKind, FsWatcher, FsWatcherIgnored, FsWatcherOptions};
+use tokio::sync::Mutex;
 
 type JsWatcherIgnored = Either3<String, Vec<String>, RspackRegex>;
 
@@ -44,6 +47,7 @@ pub struct NativeWatcherOptions {
 pub struct NativeWatchResult {
   pub changed_files: Vec<String>,
   pub removed_files: Vec<String>,
+  pub generation: u32,
 }
 
 /// A single, undelayed file system event delivered to the `callbackUndelayed`
@@ -55,10 +59,14 @@ pub struct NativeWatchUndelayedEvent {
   pub path: String,
 }
 
+struct NativeWatcherState {
+  watcher: Mutex<FsWatcher>,
+  closed: AtomicBool,
+}
+
 #[napi]
 pub struct NativeWatcher {
-  watcher: FsWatcher,
-  closed: bool,
+  state: Arc<NativeWatcherState>,
 }
 
 fn timestamp_to_system_time(millis: u64) -> SystemTime {
@@ -79,16 +87,17 @@ impl NativeWatcher {
     );
 
     Self {
-      watcher,
-      closed: false,
+      state: Arc::new(NativeWatcherState {
+        watcher: Mutex::new(watcher),
+        closed: AtomicBool::new(false),
+      }),
     }
   }
 
   #[napi]
   #[allow(clippy::too_many_arguments)]
   pub fn watch(
-    &mut self,
-    reference: Reference<NativeWatcher>,
+    &self,
     files: (Vec<String>, Vec<String>),
     directories: (Vec<String>, Vec<String>),
     missing: (Vec<String>, Vec<String>),
@@ -97,9 +106,8 @@ impl NativeWatcher {
     callback: Function<'static>,
     #[napi(ts_arg_type = "(event: NativeWatchUndelayedEvent) => void")]
     callback_undelayed: Function<'static>,
-    env: Env,
   ) -> napi::Result<()> {
-    if self.closed {
+    if self.state.closed.load(Ordering::Acquire) {
       return Err(napi::Error::from_reason(
         "The native watcher has been closed, cannot watch again.",
       ));
@@ -109,11 +117,12 @@ impl NativeWatcher {
     let js_event_handler_undelayed = JsEventHandlerUndelayed::new(callback_undelayed)?;
 
     let start_time = start_time.get_u64().1;
+    let state = Arc::clone(&self.state);
 
-    reference.share_with(env, |native_watcher| {
-      rspack_napi::runtime::spawn(async move {
-        native_watcher
-          .watcher
+    rspack_napi::runtime::spawn(async move {
+      let mut watcher = state.watcher.lock().await;
+      if !state.closed.load(Ordering::Acquire) {
+        watcher
           .watch(
             to_tuple_path_iterator(files),
             to_tuple_path_iterator(directories),
@@ -122,10 +131,9 @@ impl NativeWatcher {
             Box::new(js_event_handler),
             Box::new(js_event_handler_undelayed),
           )
-          .await
-      });
-      Ok(())
-    })?;
+          .await;
+      }
+    });
 
     Ok(())
   }
@@ -139,57 +147,55 @@ impl NativeWatcher {
       _ => None,
     } {
       self
+        .state
         .watcher
+        .blocking_lock()
         .trigger_event(&ArcPath::from(AsRef::<Path>::as_ref(&path)), kind);
     }
   }
 
+  #[napi]
+  pub fn take_pending_events(&self) -> NativeWatchResult {
+    let (changed_files, removed_files, generation) =
+      self.state.watcher.blocking_lock().take_pending_events();
+    NativeWatchResult {
+      changed_files: changed_files.into_iter().collect(),
+      removed_files: removed_files.into_iter().collect(),
+      generation,
+    }
+  }
+
+  #[napi]
+  pub fn acknowledge_pending_events(&self, generation: u32) {
+    self
+      .state
+      .watcher
+      .blocking_lock()
+      .acknowledge_pending_events(generation);
+  }
+
   #[napi(ts_return_type = "Promise<void>")]
-  /// # Safety
-  ///
-  /// This function is unsafe because it uses `&mut self` to call the watcher asynchronously.
-  /// It's important to ensure that the watcher is not used in any other places before this function is finished.
-  /// You must ensure that the watcher not call watch, close or pause in the same time, otherwise it may lead to undefined behavior.
-  pub unsafe fn close<'env>(
-    &mut self,
-    env: &'env Env,
-    reference: Reference<NativeWatcher>,
-  ) -> napi::Result<PromiseRaw<'env, ()>> {
-    let (deferred, promise) = env.create_deferred()?;
-    let mut promise = PromiseRaw::new(env.raw(), promise.raw());
-    let shared_reference = reference.share_with(Env::from_raw(env.raw()), |native_watcher| {
-      rspack_napi::runtime::spawn(async move {
-        let result = AssertUnwindSafe(async {
-          native_watcher
-            .watcher
-            .close()
-            .await
-            .map_err(|e| napi::Error::from_reason(e.to_string()))?;
-          native_watcher.closed = true;
-          Ok(())
-        })
-        .catch_unwind()
-        .await;
+  pub fn close<'env>(&self, env: &'env Env) -> napi::Result<PromiseRaw<'env, ()>> {
+    self.state.closed.store(true, Ordering::Release);
+    let state = Arc::clone(&self.state);
 
-        match result {
-          Ok(Ok(())) => deferred.resolve(|_| Ok(())),
-          Ok(Err(error)) => deferred.reject(error),
-          Err(payload) => deferred.reject(rspack_napi::runtime::panic_to_napi_error(payload)),
-        }
-      });
-      Ok(())
-    })?;
-
-    promise.finally(|_env| {
-      drop(shared_reference);
-      Ok(())
+    rspack_napi::runtime::promise_from_future(env, async move {
+      state
+        .watcher
+        .lock()
+        .await
+        .close()
+        .await
+        .map_err(|e| napi::Error::from_reason(e.to_string()))
     })
   }
 
   #[napi]
   pub fn pause(&self) -> napi::Result<()> {
     self
+      .state
       .watcher
+      .blocking_lock()
       .pause()
       .map_err(|e| napi::Error::from_reason(e.to_string()))?;
 
@@ -214,7 +220,7 @@ struct JsEventHandler {
     Status,
     true,
     true,
-    1,
+    0,
   >,
 }
 
@@ -223,13 +229,32 @@ impl JsEventHandler {
     let callback = callback
       .build_threadsafe_function::<NativeWatchResult>()
       .callee_handled::<true>()
-      .max_queue_size::<1>()
+      // The executor permits at most one aggregate in flight. An unbounded
+      // TSFN prevents a live callback from dropping that batch on QueueFull.
+      .max_queue_size::<0>()
       .weak::<true>()
       .build_callback(
         move |ctx: napi::threadsafe_function::ThreadSafeCallContext<_>| Ok(ctx.value),
       )?;
 
     Ok(Self { inner: callback })
+  }
+
+  fn deliver(
+    &self,
+    changed_files: rspack_util::fx_hash::FxHashSet<String>,
+    deleted_files: rspack_util::fx_hash::FxHashSet<String>,
+    generation: u32,
+  ) -> bool {
+    let result = NativeWatchResult {
+      changed_files: changed_files.into_iter().collect(),
+      removed_files: deleted_files.into_iter().collect(),
+      generation,
+    };
+    self.inner.call(
+      Ok(result),
+      napi::threadsafe_function::ThreadsafeFunctionCallMode::NonBlocking,
+    ) == Status::Ok
   }
 }
 
@@ -239,16 +264,16 @@ impl rspack_watcher::EventAggregateHandler for JsEventHandler {
     changed_files: rspack_util::fx_hash::FxHashSet<String>,
     deleted_files: rspack_util::fx_hash::FxHashSet<String>,
   ) {
-    let changed_files_vec: Vec<String> = changed_files.into_iter().collect();
-    let deleted_files_vec: Vec<String> = deleted_files.into_iter().collect();
-    let result = NativeWatchResult {
-      changed_files: changed_files_vec,
-      removed_files: deleted_files_vec,
-    };
-    self.inner.call(
-      Ok(result),
-      napi::threadsafe_function::ThreadsafeFunctionCallMode::NonBlocking,
-    );
+    let _ = self.deliver(changed_files, deleted_files, 0);
+  }
+
+  fn on_event_handle_with_generation(
+    &self,
+    changed_files: rspack_util::fx_hash::FxHashSet<String>,
+    deleted_files: rspack_util::fx_hash::FxHashSet<String>,
+    generation: u32,
+  ) -> bool {
+    self.deliver(changed_files, deleted_files, generation)
   }
 
   fn on_error(&self, error: rspack_error::Error) {
@@ -262,14 +287,16 @@ impl rspack_watcher::EventAggregateHandler for JsEventHandler {
 }
 
 struct JsEventHandlerUndelayed {
-  inner: napi::threadsafe_function::ThreadsafeFunction<
-    NativeWatchUndelayedEvent,
-    napi::Unknown<'static>,
-    NativeWatchUndelayedEvent,
-    Status,
-    false,
-    false,
-    1,
+  inner: Option<
+    napi::threadsafe_function::ThreadsafeFunction<
+      NativeWatchUndelayedEvent,
+      napi::Unknown<'static>,
+      NativeWatchUndelayedEvent,
+      Status,
+      false,
+      false,
+      0,
+    >,
   >,
 }
 
@@ -278,35 +305,60 @@ impl JsEventHandlerUndelayed {
     let callback = callback
       .build_threadsafe_function::<NativeWatchUndelayedEvent>()
       .weak::<false>()
-      .max_queue_size::<1>()
+      // A watch tick can produce a burst of concrete file events. Keep the
+      // raw stream lossless so later children cannot be silently dropped on
+      // QueueFull while the JS thread drains an earlier callback.
+      .max_queue_size::<0>()
       .build_callback(
         move |ctx: napi::threadsafe_function::ThreadSafeCallContext<_>| Ok(ctx.value),
       )?;
 
-    Ok(Self { inner: callback })
+    Ok(Self {
+      inner: Some(callback),
+    })
+  }
+
+  fn deliver(&self, kind: &'static str, path: String) -> rspack_error::Result<()> {
+    let Some(inner) = &self.inner else {
+      return Err(rspack_error::error!(
+        "native watcher raw callback is closed"
+      ));
+    };
+    let status = inner.call(
+      NativeWatchUndelayedEvent {
+        kind: kind.to_string(),
+        path,
+      },
+      napi::threadsafe_function::ThreadsafeFunctionCallMode::NonBlocking,
+    );
+    if status == Status::Ok {
+      Ok(())
+    } else {
+      Err(rspack_error::error!(
+        "native watcher raw callback could not be queued: {status}"
+      ))
+    }
   }
 }
 
 impl rspack_watcher::EventHandler for JsEventHandlerUndelayed {
   fn on_change(&self, changed_file: String) -> rspack_error::Result<()> {
-    self.inner.call(
-      NativeWatchUndelayedEvent {
-        kind: "change".to_string(),
-        path: changed_file,
-      },
-      napi::threadsafe_function::ThreadsafeFunctionCallMode::NonBlocking,
-    );
-    Ok(())
+    self.deliver("change", changed_file)
   }
 
   fn on_delete(&self, deleted_file: String) -> rspack_error::Result<()> {
-    self.inner.call(
-      NativeWatchUndelayedEvent {
-        kind: "remove".to_string(),
-        path: deleted_file,
-      },
-      napi::threadsafe_function::ThreadsafeFunctionCallMode::NonBlocking,
-    );
-    Ok(())
+    self.deliver("remove", deleted_file)
+  }
+}
+
+impl Drop for JsEventHandlerUndelayed {
+  fn drop(&mut self) {
+    if let Some(inner) = self.inner.take() {
+      // Releasing a TSFN drains its queue into the previous watch callback.
+      // Abort the obsolete callback so a rewatch cannot receive stale raw
+      // events after the handler generation has been replaced.
+      #[allow(deprecated)]
+      let _ = inner.abort();
+    }
   }
 }

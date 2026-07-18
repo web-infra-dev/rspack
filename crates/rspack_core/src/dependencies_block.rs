@@ -118,9 +118,6 @@ impl AsyncDependenciesBlock {
       dependency_ids.push(*dep.id());
     }
 
-    if let Some(loc) = loc.as_ref() {
-      write!(id, "|loc={loc}").expect("write to String should not fail");
-    }
     if let Some(modifier) = modifier {
       id.push_str("|modifier=");
       id.push_str(modifier);
@@ -141,6 +138,17 @@ impl AsyncDependenciesBlock {
 
   pub fn identifier(&self) -> AsyncDependenciesBlockIdentifier {
     self.id
+  }
+
+  fn set_identifier_occurrence(
+    &mut self,
+    identifier: AsyncDependenciesBlockIdentifier,
+    occurrence: usize,
+  ) {
+    let mut id = String::with_capacity(identifier.0.as_str().len() + "|occurrence=".len() + 20);
+    id.push_str(identifier.0.as_str());
+    write!(id, "|occurrence={occurrence}").expect("write to String should not fail");
+    self.id = id.into();
   }
 
   pub fn set_group_options(&mut self, group_options: GroupOptions) {
@@ -212,6 +220,29 @@ impl AsyncDependenciesBlock {
   }
 }
 
+pub(crate) fn stabilize_async_block_identifiers(blocks: &mut [Box<AsyncDependenciesBlock>]) {
+  if blocks.len() < 2 {
+    return;
+  }
+
+  let mut occurrences = AsyncDependenciesBlockIdentifierMap::<usize>::default();
+  let mut identifiers = AsyncDependenciesBlockIdentifierSet::default();
+  for block in blocks {
+    let identifier = block.identifier();
+    let occurrence = occurrences.entry(identifier).or_default();
+    loop {
+      if *occurrence != 0 {
+        block.set_identifier_occurrence(identifier, *occurrence);
+      }
+      if identifiers.insert(block.identifier()) {
+        break;
+      }
+      *occurrence += 1;
+    }
+    *occurrence += 1;
+  }
+}
+
 impl DependenciesBlock for AsyncDependenciesBlock {
   fn add_block_id(&mut self, _block: AsyncDependenciesBlockIdentifier) {
     unimplemented!("Nested block are not implemented");
@@ -246,5 +277,76 @@ impl From<AsyncDependenciesToInitialChunkError> for rspack_error::Error {
     );
     error.code = Some("AsyncDependencyToInitialChunkError".into());
     error
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::{AsyncDependenciesBlock, stabilize_async_block_identifiers};
+  use crate::{DependencyLocation, SyntheticDependencyLocation};
+
+  fn block(request: &str, location: &str) -> Box<AsyncDependenciesBlock> {
+    Box::new(AsyncDependenciesBlock::new(
+      "module".into(),
+      Some(DependencyLocation::Synthetic(
+        SyntheticDependencyLocation::new(location),
+      )),
+      Some(request),
+      vec![],
+      None,
+    ))
+  }
+
+  #[test]
+  fn async_block_identifier_is_stable_when_source_location_moves() {
+    let mut before = vec![block("same-request", "4:8-4:24")];
+    let mut after = vec![block("same-request", "7:8-7:24")];
+    stabilize_async_block_identifiers(&mut before);
+    stabilize_async_block_identifiers(&mut after);
+
+    assert_eq!(before[0].identifier(), after[0].identifier());
+  }
+
+  #[test]
+  fn repeated_async_blocks_keep_distinct_identifiers() {
+    let mut blocks = vec![
+      block("same-request", "4:8-4:24"),
+      block("same-request", "5:8-5:24"),
+    ];
+    stabilize_async_block_identifiers(&mut blocks);
+
+    assert_ne!(blocks[0].identifier(), blocks[1].identifier());
+  }
+
+  #[test]
+  fn unrelated_async_blocks_do_not_change_existing_identifiers() {
+    let mut before = vec![
+      block("first-request", "4:8-4:24"),
+      block("second-request", "5:8-5:24"),
+    ];
+    let mut after = vec![
+      block("new-request", "4:8-4:24"),
+      block("first-request", "5:8-5:24"),
+      block("second-request", "6:8-6:24"),
+    ];
+    stabilize_async_block_identifiers(&mut before);
+    stabilize_async_block_identifiers(&mut after);
+
+    assert_eq!(before[0].identifier(), after[1].identifier());
+    assert_eq!(before[1].identifier(), after[2].identifier());
+  }
+
+  #[test]
+  fn occurrence_suffix_in_a_request_cannot_collide_with_repeated_async_blocks() {
+    let mut blocks = vec![
+      block("same-request", "4:8-4:24"),
+      block("same-request", "5:8-5:24"),
+      block("same-request|occurrence=1", "6:8-6:24"),
+    ];
+    stabilize_async_block_identifiers(&mut blocks);
+
+    assert_ne!(blocks[0].identifier(), blocks[1].identifier());
+    assert_ne!(blocks[0].identifier(), blocks[2].identifier());
+    assert_ne!(blocks[1].identifier(), blocks[2].identifier());
   }
 }

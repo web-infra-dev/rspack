@@ -316,6 +316,8 @@ pub struct Compilation {
   ///
   /// Rebuild will include previous compilation data, so persistent cache will not recovery anything
   pub is_rebuild: bool,
+  /// Whether this rebuild was explicitly invalidated by lazy compilation.
+  pub is_lazy_watch_rebuild: bool,
   pub compiler_context: Arc<CompilerContext>,
 }
 
@@ -445,6 +447,7 @@ impl Compilation {
       intermediate_filesystem,
       output_filesystem,
       is_rebuild,
+      is_lazy_watch_rebuild: false,
       compiler_context,
     }
   }
@@ -525,7 +528,7 @@ impl Compilation {
       .build_module_graph_artifact
       .context_dependencies
       .added_files()
-      .chain(&self.file_dependencies);
+      .chain(&self.context_dependencies);
     let updated_files = self
       .build_module_graph_artifact
       .context_dependencies
@@ -554,7 +557,7 @@ impl Compilation {
       .build_module_graph_artifact
       .missing_dependencies
       .added_files()
-      .chain(&self.file_dependencies);
+      .chain(&self.missing_dependencies);
     let updated_files = self
       .build_module_graph_artifact
       .missing_dependencies
@@ -583,7 +586,7 @@ impl Compilation {
       .build_module_graph_artifact
       .build_dependencies
       .added_files()
-      .chain(&self.file_dependencies);
+      .chain(&self.build_dependencies);
     let updated_files = self
       .build_module_graph_artifact
       .build_dependencies

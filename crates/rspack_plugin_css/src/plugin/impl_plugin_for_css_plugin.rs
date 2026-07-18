@@ -667,4 +667,8 @@ impl Plugin for CssPlugin {
 
     Ok(())
   }
+
+  fn clear_cache(&self, id: CompilationId) {
+    COMPILATION_HOOKS_MAP.remove(&id);
+  }
 }

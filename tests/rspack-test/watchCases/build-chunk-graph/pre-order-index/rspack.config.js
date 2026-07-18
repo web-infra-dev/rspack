@@ -6,4 +6,9 @@ module.exports = {
   incremental: {
     buildChunkGraph: true,
   },
+  stats: {
+    preset: 'verbose',
+    logging: 'verbose',
+    loggingDebug: [/codeSplittingCache/, /incremental/],
+  },
 };

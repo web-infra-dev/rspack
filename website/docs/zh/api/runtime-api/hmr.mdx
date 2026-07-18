@@ -311,6 +311,7 @@ import.meta.webpackHot
 - `ignoreUnaccepted`（boolean）：忽略对不可接受的模块所做的更改。
 - `ignoreDeclined`（boolean）：忽略对已拒绝的模块所做的更改。
 - `ignoreErrored`（boolean）：忽略在接受处理程序、错误处理器以及重新评估模块时抛出的错误。
+- `preserveDisposedModuleFactories`（boolean）：仅在当前 apply 事务结束前，保持从 compilation 中移除的模块工厂可读取。默认为 `false`，用于激活通过 lazy compilation 编译的模块。
 - `onDeclined`（function(info)）：拒绝模块的通知者。
 - `onUnaccepted`（function(info)）：不可接受的模块的通知程序。
 - `onAccepted`（function(info)）：可接受模块的通知者。

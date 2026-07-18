@@ -340,7 +340,7 @@ export declare class JsCompiler {
   /** Build with the given option passed to the constructor */
   build(callback: (err: null | Error) => void): void
   /** Rebuild with the given option passed to the constructor */
-  rebuild(changed_files: string[], removed_files: string[], callback: (err: null | Error) => void): void
+  rebuild(changed_files: string[], removed_files: string[], callback: (err: null | Error) => void, is_lazy_watch_rebuild?: boolean): void
   close(): Promise<void>
   getVirtualFileStore(): VirtualFileStore | null
   getCompilerId(): ExternalObject<CompilerId>
@@ -466,13 +466,8 @@ export declare class NativeWatcher {
   constructor(options: NativeWatcherOptions)
   watch(files: [Array<string>, Array<string>], directories: [Array<string>, Array<string>], missing: [Array<string>, Array<string>], startTime: bigint, callback: (err: Error | null, result: NativeWatchResult) => void, callbackUndelayed: (event: NativeWatchUndelayedEvent) => void): void
   triggerEvent(kind: 'change' | 'remove' | 'create', path: string): void
-  /**
-   * # Safety
-   *
-   * This function is unsafe because it uses `&mut self` to call the watcher asynchronously.
-   * It's important to ensure that the watcher is not used in any other places before this function is finished.
-   * You must ensure that the watcher not call watch, close or pause in the same time, otherwise it may lead to undefined behavior.
-   */
+  takePendingEvents(): NativeWatchResult
+  acknowledgePendingEvents(generation: number): void
   close(): Promise<void>
   pause(): void
 }
@@ -480,6 +475,7 @@ export declare class NativeWatcher {
 export declare class NativeWatchResult {
   changedFiles: Array<string>
   removedFiles: Array<string>
+  generation: number
 }
 
 

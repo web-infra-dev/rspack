@@ -1,15 +1,15 @@
 #![allow(unused)]
 use rspack_paths::ArcPath;
-use rspack_util::fx_hash::FxHashSet as HashSet;
+use rspack_util::fx_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use super::{Analyzer, WatchPattern};
 use crate::paths::PathAccessor;
 
 /// `WatcherDirectoriesAnalyzer` analyzes the path register and determines
 ///
-/// which directories should be watched individually (non-recursively).
-/// This is typically used on platforms where recursive watching is not
-/// available or not desired, so each directory is watched separately.
+/// which directories should be watched individually. File parents stay
+/// non-recursive, while registered context directories must be recursive so
+/// changes in pre-existing child directories are observable.
 #[derive(Default)]
 pub struct WatcherDirectoriesAnalyzer;
 
@@ -25,25 +25,47 @@ impl Analyzer for WatcherDirectoriesAnalyzer {
 const DIRECTORY_WATCH_DEPTH: u32 = 2;
 
 impl WatcherDirectoriesAnalyzer {
-  /// Finds all directories that should be watched individually (non-recursively).
+  /// Finds all directories that should be watched individually, keeping the
+  /// strongest required mode when a file parent and context share a path.
   fn find_watch_directories<'a>(&self, path_accessor: PathAccessor<'a>) -> HashSet<WatchPattern> {
-    let mut patterns = HashSet::default();
-    let all = path_accessor.all();
-    for path in all {
+    let mut modes = HashMap::default();
+    let directories = path_accessor.directories().0;
+
+    for path in path_accessor.all() {
       if let Some((dir, deep)) = self.find_exists_path(path) {
-        // Insert the parent directory of the file
-        patterns.insert(WatchPattern {
-          path: dir,
-          mode: if deep >= DIRECTORY_WATCH_DEPTH {
-            notify::RecursiveMode::Recursive
-          } else {
-            notify::RecursiveMode::NonRecursive
-          },
-        });
+        let recursive = deep >= DIRECTORY_WATCH_DEPTH || directories.contains(&dir);
+        modes
+          .entry(dir)
+          .and_modify(|current| *current |= recursive)
+          .or_insert(recursive);
       }
     }
 
-    patterns
+    // A recursive root already covers its descendants. Re-registering a child
+    // non-recursively duplicates inotify work and can downgrade that child's mode.
+    let recursive_roots: HashSet<ArcPath> = modes
+      .iter()
+      .filter_map(|(path, recursive)| recursive.then_some(path.clone()))
+      .collect();
+
+    modes
+      .into_iter()
+      .filter(|(path, _)| {
+        path
+          .as_ref()
+          .ancestors()
+          .skip(1)
+          .all(|parent| !recursive_roots.contains(&ArcPath::from(parent)))
+      })
+      .map(|(path, recursive)| WatchPattern {
+        path,
+        mode: if recursive {
+          notify::RecursiveMode::Recursive
+        } else {
+          notify::RecursiveMode::NonRecursive
+        },
+      })
+      .collect()
   }
 
   /// Finds the deepest existing directory path and its depth.
@@ -101,7 +123,7 @@ mod tests {
     }));
     assert!(watch_patterns.contains(&WatchPattern {
       path: ArcPath::from(current_dir.join("src")),
-      mode: notify::RecursiveMode::NonRecursive
+      mode: notify::RecursiveMode::Recursive
     }));
   }
 
@@ -134,11 +156,7 @@ mod tests {
     let analyzer = WatcherDirectoriesAnalyzer::default();
     let watch_patterns = analyzer.analyze(path_manager.access());
 
-    assert_eq!(watch_patterns.len(), 3);
-    assert!(watch_patterns.contains(&WatchPattern {
-      path: dir_0.clone(),
-      mode: notify::RecursiveMode::NonRecursive,
-    }));
+    assert_eq!(watch_patterns.len(), 2);
     assert!(watch_patterns.contains(&WatchPattern {
       path: dir_0,
       mode: notify::RecursiveMode::Recursive,
@@ -147,5 +165,44 @@ mod tests {
       path: ArcPath::from(current_dir),
       mode: notify::RecursiveMode::NonRecursive,
     }));
+  }
+
+  #[test]
+  fn test_recursive_context_prunes_covered_file_parents() {
+    let temp_dir = tempfile::TempDir::new().unwrap();
+    let base = temp_dir.path().canonicalize().unwrap();
+    let context_a = base.join("a");
+    let context_b = base.join("b");
+    let child = context_a.join("child");
+    let file = child.join("file.txt");
+    std::fs::create_dir_all(&child).unwrap();
+    std::fs::create_dir_all(&context_b).unwrap();
+    std::fs::write(&file, "file").unwrap();
+
+    let path_manager = PathManager::default();
+    path_manager
+      .update(
+        (std::iter::once(ArcPath::from(file)), std::iter::empty()),
+        (
+          [
+            ArcPath::from(context_a.clone()),
+            ArcPath::from(context_b.clone()),
+          ]
+          .into_iter(),
+          std::iter::empty(),
+        ),
+        (std::iter::empty(), std::iter::empty()),
+      )
+      .unwrap();
+
+    let watch_patterns = WatcherDirectoriesAnalyzer.analyze(path_manager.access());
+
+    assert_eq!(watch_patterns.len(), 2);
+    for context in [context_a, context_b] {
+      assert!(watch_patterns.contains(&WatchPattern {
+        path: ArcPath::from(context),
+        mode: notify::RecursiveMode::Recursive,
+      }));
+    }
   }
 }

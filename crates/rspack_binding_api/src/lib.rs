@@ -111,8 +111,7 @@ use std::{
 use napi::{CallContext, bindgen_prelude::*};
 pub use raw_options::{CustomPluginBuilder, register_custom_plugin};
 use rspack_core::{
-  BoxDependency, Compilation, CompilerId, CompilerPlatform, EntryOptions, ModuleIdentifier,
-  PluginExt,
+  BoxDependency, Compilation, CompilerId, CompilerPlatform, ModuleIdentifier, PluginExt,
 };
 use rspack_error::Diagnostic;
 use rspack_fs::{IntermediateFileSystem, NativeFileSystem, ReadableFileSystem};
@@ -131,6 +130,7 @@ use crate::{
   error::{ErrorCode, RspackResultToNapiResultExt},
   fs_node::{HybridFileSystem, NodeFileSystem, ThreadsafeNodeFS},
   module::ModuleObject,
+  module_graph_connection::ModuleGraphConnectionWrapper,
   platform::RawCompilerPlatform,
   plugins::{
     JsCleanupPlugin, JsHooksAdapterPlugin, RegisterJsTapKind, RegisterJsTaps, buildtime_plugins,
@@ -154,6 +154,8 @@ thread_local! {
   static COMPILER_REFERENCES: RefCell<FxHashMap<CompilerId, WeakReference<JsCompiler>>> = Default::default();
 }
 
+type EntryDependencyCacheKey = (String, String, Option<String>, Option<String>);
+
 #[js_function(1)]
 fn cleanup_revoked_modules(ctx: CallContext) -> Result<()> {
   let external = ctx.get::<&mut External<(CompilerId, Vec<ModuleIdentifier>)>>(0)?;
@@ -172,8 +174,8 @@ struct JsCompiler {
   // call drop manually to avoid unnecessary drop overhead in cli build
   compiler: ManuallyDrop<Compiler>,
   state: CompilerState,
-  include_dependencies_map: FxHashMap<String, FxHashMap<EntryOptions, BoxDependency>>,
-  entry_dependencies_map: FxHashMap<String, FxHashMap<EntryOptions, BoxDependency>>,
+  include_dependencies_map: FxHashMap<EntryDependencyCacheKey, BoxDependency>,
+  entry_dependencies_map: FxHashMap<EntryDependencyCacheKey, BoxDependency>,
   compiler_context: Arc<CompilerContext>,
   virtual_file_store: Option<Arc<RwLock<dyn VirtualFileStore>>>,
 }
@@ -388,7 +390,7 @@ impl JsCompiler {
 
   /// Rebuild with the given option passed to the constructor
   #[napi(
-    ts_args_type = "changed_files: string[], removed_files: string[], callback: (err: null | Error) => void"
+    ts_args_type = "changed_files: string[], removed_files: string[], callback: (err: null | Error) => void, is_lazy_watch_rebuild?: boolean"
   )]
   pub fn rebuild(
     &mut self,
@@ -396,6 +398,7 @@ impl JsCompiler {
     changed_files: Vec<String>,
     removed_files: Vec<String>,
     f: Function<'static>,
+    is_lazy_watch_rebuild: Option<bool>,
   ) -> Result<(), ErrorCode> {
     unsafe {
       self.run(reference, |compiler, guard| {
@@ -403,9 +406,10 @@ impl JsCompiler {
           f,
           async move {
             let result = compiler
-              .rebuild(
+              .rebuild_with_invalidation_provenance(
                 changed_files.into_iter().collect::<FxHashSet<_>>(),
                 removed_files.into_iter().collect::<FxHashSet<_>>(),
+                is_lazy_watch_rebuild.unwrap_or(false),
               )
               .await
               .to_napi_result_with_message(|e| {
@@ -528,6 +532,7 @@ impl JsCompiler {
     ChunkGroupWrapper::cleanup_last_compilation(compilation_id);
     DependencyWrapper::cleanup_last_compilation(compilation_id);
     AsyncDependenciesBlockWrapper::cleanup_last_compilation(compilation_id);
+    ModuleGraphConnectionWrapper::cleanup_last_compilation(compilation_id);
   }
 }
 
