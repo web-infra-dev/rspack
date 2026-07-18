@@ -244,7 +244,7 @@ fn spawn_owner_task(
 ) -> mpsc::UnboundedSender<WatcherOp> {
   let (tx, mut rx) = mpsc::unbounded_channel::<WatcherOp>();
 
-  handle.spawn(async move {
+  let owner_loop = async move {
     let mut closed = false;
     while let Some(op) = rx.recv().await {
       match op {
@@ -286,7 +286,12 @@ fn spawn_owner_task(
         }
       }
     }
-  });
+  };
+
+  std::thread::Builder::new()
+    .name("rspack-fs-watcher".to_string())
+    .spawn(move || handle.block_on(owner_loop))
+    .expect("Failed to spawn fs watcher thread");
 
   tx
 }
