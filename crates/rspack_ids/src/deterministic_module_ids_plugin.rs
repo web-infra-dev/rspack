@@ -13,6 +13,45 @@ use crate::id_helpers::{
   get_used_module_ids_and_modules_with_async_filter,
 };
 
+const IDENTIFIER_START_CHARS: &[u8] = b"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+const IDENTIFIER_CONTINUE_CHARS: &[u8] =
+  b"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+
+// Keep deterministic ids valid as unquoted JavaScript property names while
+// using the full alphanumeric alphabet after the first character.
+fn identifier_space(max_length: usize) -> usize {
+  let mut space = 0usize;
+  let mut block = IDENTIFIER_START_CHARS.len();
+  for _ in 0..max_length {
+    space = space.saturating_add(block);
+    block = block.saturating_mul(IDENTIFIER_CONTINUE_CHARS.len());
+  }
+  space
+}
+
+fn to_identifier(mut id: usize) -> String {
+  let mut length = 1usize;
+  let mut block = IDENTIFIER_START_CHARS.len();
+  while id >= block {
+    id -= block;
+    length += 1;
+    block = block.saturating_mul(IDENTIFIER_CONTINUE_CHARS.len());
+  }
+
+  let mut divisor = IDENTIFIER_CONTINUE_CHARS
+    .len()
+    .saturating_pow((length - 1) as u32);
+  let mut result = String::with_capacity(length);
+  result.push(IDENTIFIER_START_CHARS[id / divisor] as char);
+  id %= divisor;
+  while divisor > 1 {
+    divisor /= IDENTIFIER_CONTINUE_CHARS.len();
+    result.push(IDENTIFIER_CONTINUE_CHARS[id / divisor] as char);
+    id %= divisor;
+  }
+  result
+}
+
 #[derive(Debug, Clone, Default)]
 pub struct DeterministicModuleIdsPluginOptions {
   pub context: Option<String>,
@@ -115,21 +154,20 @@ async fn module_ids(
       )
     },
     |(module, _), id| {
-      if !used_ids.insert(id.to_string()) {
+      let id = to_identifier(id);
+      if !used_ids.insert(id.clone()) {
         conflicts += 1;
         return false;
       }
-      ChunkGraph::set_module_id(
-        &mut module_ids_map,
-        module.identifier(),
-        id.to_string().into(),
-      );
+      ChunkGraph::set_module_id(&mut module_ids_map, module.identifier(), id.into());
       true
     },
-    &[10usize
-      .checked_pow(self.max_length as u32)
-      .unwrap_or(usize::MAX)],
-    if self.fixed_length { 0 } else { 10 },
+    &[identifier_space(self.max_length)],
+    if self.fixed_length {
+      0
+    } else {
+      IDENTIFIER_CONTINUE_CHARS.len()
+    },
     used_ids_len,
     self.salt,
   );
@@ -147,5 +185,40 @@ impl Plugin for DeterministicModuleIdsPlugin {
   fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
     ctx.compilation_hooks.module_ids.tap(module_ids::new(self));
     Ok(())
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use std::collections::HashSet;
+
+  use super::{identifier_space, to_identifier};
+
+  #[test]
+  fn encodes_compact_javascript_identifiers() {
+    assert_eq!(to_identifier(0), "a");
+    assert_eq!(to_identifier(25), "z");
+    assert_eq!(to_identifier(26), "A");
+    assert_eq!(to_identifier(51), "Z");
+    assert_eq!(to_identifier(52), "aa");
+    assert_eq!(to_identifier(113), "a9");
+    assert_eq!(to_identifier(114), "ba");
+    assert_eq!(to_identifier(3275), "Z9");
+    assert_eq!(to_identifier(3276), "aaa");
+  }
+
+  #[test]
+  fn identifier_space_is_unique_and_valid() {
+    let space = identifier_space(3);
+    assert_eq!(space, 203_164);
+
+    let mut ids = HashSet::with_capacity(space);
+    for id in 0..space {
+      let encoded = to_identifier(id);
+      assert!(encoded.len() <= 3);
+      assert!(encoded.as_bytes()[0].is_ascii_alphabetic());
+      assert!(encoded.bytes().all(|byte| byte.is_ascii_alphanumeric()));
+      assert!(ids.insert(encoded));
+    }
   }
 }
