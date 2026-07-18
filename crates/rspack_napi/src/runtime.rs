@@ -42,6 +42,10 @@ pub fn block_on<F: Future>(future: F) -> F::Output {
   with_runtime(|runtime| runtime.block_on(future))
 }
 
+pub fn handle() -> tokio::runtime::Handle {
+  with_runtime(|runtime| runtime.handle().clone())
+}
+
 pub fn promise_from_future<'env, T, F>(env: &'env Env, future: F) -> Result<PromiseRaw<'env, T>>
 where
   T: 'static + Send + ToNapiValue,

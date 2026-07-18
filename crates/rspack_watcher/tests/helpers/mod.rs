@@ -133,12 +133,10 @@ static TOKIO_RUNTIME: std::sync::LazyLock<tokio::runtime::Runtime> =
 
 impl TestHelper {
   /// Creates a new `TestHelper` instance
-  pub fn new(watcher: impl FnOnce() -> FsWatcher) -> Self {
+  pub fn new(watcher: impl FnOnce(tokio::runtime::Handle) -> FsWatcher) -> Self {
     let temp_dir = TempDir::new().expect("Failed to create temp dir");
     let canonicalized_temp_dir = temp_dir.path().canonicalize().unwrap();
-    // FsWatcher::new spawns its owner task, so it needs the runtime context.
-    let _guard = TOKIO_RUNTIME.enter();
-    let watcher = watcher();
+    let watcher = watcher(TOKIO_RUNTIME.handle().clone());
     Self {
       temp_dir: ManuallyDrop::new(temp_dir),
       canonicalized_temp_dir,

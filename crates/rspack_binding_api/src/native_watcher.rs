@@ -68,17 +68,15 @@ fn timestamp_to_system_time(millis: u64) -> SystemTime {
 impl NativeWatcher {
   #[napi(constructor)]
   pub fn new(options: NativeWatcherOptions) -> Self {
-    // FsWatcher::new spawns its owner task, so it needs the runtime context.
-    let watcher = rspack_napi::runtime::block_on(async {
-      FsWatcher::new(
-        FsWatcherOptions {
-          follow_symlinks: options.follow_symlinks.unwrap_or(false),
-          poll_interval: options.poll_interval,
-          aggregate_timeout: options.aggregate_timeout,
-        },
-        to_fs_watcher_ignored(options.ignored),
-      )
-    });
+    let watcher = FsWatcher::new(
+      FsWatcherOptions {
+        follow_symlinks: options.follow_symlinks.unwrap_or(false),
+        poll_interval: options.poll_interval,
+        aggregate_timeout: options.aggregate_timeout,
+      },
+      to_fs_watcher_ignored(options.ignored),
+      rspack_napi::runtime::handle(),
+    );
 
     Self {
       watcher,

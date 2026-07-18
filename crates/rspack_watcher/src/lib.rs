@@ -128,7 +128,11 @@ struct FsWatcherInner {
 
 impl FsWatcher {
   /// Creates a new [`FsWatcher`] instance with the specified options and ignored paths.
-  pub fn new(options: FsWatcherOptions, ignored: FsWatcherIgnored) -> Self {
+  pub fn new(
+    options: FsWatcherOptions,
+    ignored: FsWatcherIgnored,
+    handle: tokio::runtime::Handle,
+  ) -> Self {
     let (tx, rx) = mpsc::unbounded_channel();
 
     let path_manager = Arc::new(PathManager::new(ignored));
@@ -155,7 +159,7 @@ impl FsWatcher {
     Self {
       paused,
       trigger,
-      op_tx: spawn_owner_task(inner),
+      op_tx: spawn_owner_task(inner, handle),
     }
   }
 
@@ -234,10 +238,13 @@ impl FsWatcher {
   }
 }
 
-fn spawn_owner_task(mut inner: FsWatcherInner) -> mpsc::UnboundedSender<WatcherOp> {
+fn spawn_owner_task(
+  mut inner: FsWatcherInner,
+  handle: tokio::runtime::Handle,
+) -> mpsc::UnboundedSender<WatcherOp> {
   let (tx, mut rx) = mpsc::unbounded_channel::<WatcherOp>();
 
-  tokio::spawn(async move {
+  handle.spawn(async move {
     let mut closed = false;
     while let Some(op) = rx.recv().await {
       match op {

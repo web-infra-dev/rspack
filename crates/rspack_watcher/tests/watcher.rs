@@ -24,7 +24,7 @@ macro_rules! h {
     h!($options, Default::default())
   };
   ($options:expr, $ignore:expr) => {
-    helpers::TestHelper::new(|| FsWatcher::new($options, $ignore))
+    helpers::TestHelper::new(|handle| FsWatcher::new($options, $ignore, handle))
   };
 }
 
@@ -117,7 +117,11 @@ async fn should_report_error_when_watching_after_close() {
   struct NoopHandler;
   impl EventHandler for NoopHandler {}
 
-  let watcher = FsWatcher::new(FsWatcherOptions::default(), Default::default());
+  let watcher = FsWatcher::new(
+    FsWatcherOptions::default(),
+    Default::default(),
+    tokio::runtime::Handle::current(),
+  );
   watcher.close().await.unwrap();
 
   let (tx, rx) = std::sync::mpsc::channel();
