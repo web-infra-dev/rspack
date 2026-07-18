@@ -391,19 +391,24 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       Ok(result) => result,
       Err(mut e) => {
         diagnostics.append(&mut e);
+        drop(concatenation_scope_snapshot);
         return default_with_diagnostics(source, diagnostics);
       }
     };
     diagnostics.append(&mut warning_diagnostics);
     let mut side_effects_bailout = None;
 
-    build_info.concatenation_scope_snapshot = (build_meta.esm()
+    let concatenation_scope_snapshot = if build_meta.esm()
       && (uses_esm_library
         || (compiler_options.optimization.concatenate_modules
-          && build_info.module_concatenation_bailout.is_none())))
-    .then_some(concatenation_scope_snapshot)
-    .flatten()
-    .map(Box::new);
+          && build_info.module_concatenation_bailout.is_none()))
+    {
+      concatenation_scope_snapshot.map(|snapshot| Box::new(snapshot.into_snapshot()))
+    } else {
+      drop(concatenation_scope_snapshot);
+      None
+    };
+    build_info.concatenation_scope_snapshot = concatenation_scope_snapshot;
 
     if compiler_options.optimization.side_effects.is_true() {
       let has_side_effects = side_effects_item.is_some();

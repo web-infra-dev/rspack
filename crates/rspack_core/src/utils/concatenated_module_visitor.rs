@@ -19,8 +19,7 @@ pub struct ConcatenatedModuleIdent {
 #[cacheable]
 #[derive(Clone, Debug)]
 pub struct ConcatenationScopeIdent {
-  #[cacheable(with=AsPreset)]
-  pub symbol: Atom,
+  pub symbol: u32,
   pub range: DependencyRange,
   pub shorthand: bool,
 }
@@ -30,10 +29,11 @@ pub struct ConcatenationScopeIdent {
 pub struct ConcatenationScopeSnapshot {
   pub module_ctxt: u32,
   pub global_ctxt: u32,
+  #[cacheable(with=rspack_cacheable::with::AsVec<AsPreset>)]
+  pub symbols: Vec<Atom>,
   pub top_level_idents: Vec<ConcatenationScopeIdent>,
   pub global_idents: Vec<ConcatenationScopeIdent>,
-  #[cacheable(with=rspack_cacheable::with::AsVec<AsPreset>)]
-  pub used_names: Vec<Atom>,
+  pub used_names: Vec<u32>,
 }
 
 #[derive(Default)]

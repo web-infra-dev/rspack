@@ -1,6 +1,8 @@
 use rspack_core::{ConcatenationScopeIdent, ConcatenationScopeSnapshot};
 use rspack_util::atom::Atom;
-use rustc_hash::FxHashSet;
+use rustc_hash::{FxHashMap, FxHashSet};
+use smallvec::SmallVec;
+use swc_experimental_allocator::atom::Atom as AstAtom;
 use swc_experimental_ecma_ast::{
   BreakStmt, ClassExpr, ClassMember, ContinueStmt, DebuggerStmt, ExportAll, ExportDefaultExpr,
   ExprStmt, Ident, ImportDecl, NamedExport, ObjectPatProp, Prop, ReturnStmt, Span, ThrowStmt,
@@ -9,59 +11,147 @@ use swc_experimental_ecma_ast::{
 use swc_experimental_ecma_parser::unstable::{Token, TokenAndSpan};
 use swc_experimental_ecma_semantic::resolver::Semantic;
 
-struct ConcatenationScopeSnapshotCollector<'a> {
-  semantic: &'a Semantic,
-  top_level_idents: Vec<ConcatenationScopeIdent>,
-  global_idents: Vec<ConcatenationScopeIdent>,
-  used_names: FxHashSet<Atom>,
+#[derive(Clone, Copy)]
+struct PendingConcatenationScopeIdent<'ast> {
+  symbol: AstAtom<'ast>,
+  range: rspack_core::DependencyRange,
+  shorthand: bool,
 }
 
-impl ConcatenationScopeSnapshotCollector<'_> {
+pub(crate) struct PendingConcatenationScopeSnapshot<'ast> {
+  module_ctxt: u32,
+  global_ctxt: u32,
+  top_level_idents: SmallVec<[PendingConcatenationScopeIdent<'ast>; 8]>,
+  global_idents: SmallVec<[PendingConcatenationScopeIdent<'ast>; 4]>,
+  used_names: SmallVec<[AstAtom<'ast>; 8]>,
+}
+
+#[derive(Default)]
+struct SnapshotSymbols<'ast> {
+  inline_indices: SmallVec<[(AstAtom<'ast>, u32); 8]>,
+  indices: Option<FxHashMap<AstAtom<'ast>, u32>>,
+  symbols: Vec<Atom>,
+}
+
+impl<'ast> SnapshotSymbols<'ast> {
+  fn intern(&mut self, symbol: AstAtom<'ast>) -> u32 {
+    if let Some(indices) = &mut self.indices {
+      if let Some(index) = indices.get(&symbol) {
+        return *index;
+      }
+      let index = self.symbols.len() as u32;
+      indices.insert(symbol, index);
+      self.symbols.push(Atom::from(symbol.as_str()));
+      return index;
+    }
+    if let Some((_, index)) = self
+      .inline_indices
+      .iter()
+      .find(|(candidate, _)| *candidate == symbol)
+    {
+      return *index;
+    }
+    let index = self.symbols.len() as u32;
+    self.inline_indices.push((symbol, index));
+    self.symbols.push(Atom::from(symbol.as_str()));
+    if self.inline_indices.spilled() {
+      self.indices = Some(self.inline_indices.iter().copied().collect());
+    }
+    index
+  }
+}
+
+impl<'ast> PendingConcatenationScopeSnapshot<'ast> {
+  pub(crate) fn into_snapshot(self) -> ConcatenationScopeSnapshot {
+    let mut symbols = SnapshotSymbols::default();
+    let top_level_idents = self
+      .top_level_idents
+      .into_iter()
+      .map(|ident| ConcatenationScopeIdent {
+        symbol: symbols.intern(ident.symbol),
+        range: ident.range,
+        shorthand: ident.shorthand,
+      })
+      .collect();
+    let global_idents = self
+      .global_idents
+      .into_iter()
+      .map(|ident| ConcatenationScopeIdent {
+        symbol: symbols.intern(ident.symbol),
+        range: ident.range,
+        shorthand: ident.shorthand,
+      })
+      .collect();
+    let mut used_names = self
+      .used_names
+      .into_iter()
+      .map(|symbol| symbols.intern(symbol))
+      .collect::<Vec<_>>();
+    used_names.sort_unstable();
+    used_names.dedup();
+    ConcatenationScopeSnapshot {
+      module_ctxt: self.module_ctxt,
+      global_ctxt: self.global_ctxt,
+      symbols: symbols.symbols,
+      top_level_idents,
+      global_idents,
+      used_names,
+    }
+  }
+}
+
+struct ConcatenationScopeSnapshotCollector<'semantic, 'ast> {
+  semantic: &'semantic Semantic,
+  top_level_idents: SmallVec<[PendingConcatenationScopeIdent<'ast>; 8]>,
+  global_idents: SmallVec<[PendingConcatenationScopeIdent<'ast>; 4]>,
+  used_names: SmallVec<[AstAtom<'ast>; 8]>,
+}
+
+impl<'ast> ConcatenationScopeSnapshotCollector<'_, 'ast> {
   #[inline]
-  fn add_ident(&mut self, ident: &Ident<'_>, shorthand: bool, class_expr_with_ident: bool) {
+  fn add_ident(&mut self, ident: &Ident<'ast>, shorthand: bool, class_expr_with_ident: bool) {
     if ident.symbol_id.get().is_none() {
       return;
     }
-    let symbol = Atom::from(ident.sym.as_str());
     let scope = self.semantic.node_scope(ident);
     if scope == self.semantic.unresolved_scope_id() {
-      self.global_idents.push(ConcatenationScopeIdent {
-        symbol: symbol.clone(),
+      self.global_idents.push(PendingConcatenationScopeIdent {
+        symbol: ident.sym,
         range: ident.span.into(),
         shorthand,
       });
-      self.used_names.insert(symbol);
+      self.used_names.push(ident.sym);
     } else if class_expr_with_ident || scope != self.semantic.top_level_scope_id() {
-      self.used_names.insert(symbol);
+      self.used_names.push(ident.sym);
     } else {
-      self.top_level_idents.push(ConcatenationScopeIdent {
-        symbol,
+      self.top_level_idents.push(PendingConcatenationScopeIdent {
+        symbol: ident.sym,
         range: ident.span.into(),
         shorthand,
       });
     }
   }
 
-  fn into_snapshot(self) -> ConcatenationScopeSnapshot {
-    ConcatenationScopeSnapshot {
+  fn into_pending(self) -> PendingConcatenationScopeSnapshot<'ast> {
+    PendingConcatenationScopeSnapshot {
       module_ctxt: self.semantic.top_level_scope_id().raw(),
       global_ctxt: self.semantic.unresolved_scope_id().raw(),
       top_level_idents: self.top_level_idents,
       global_idents: self.global_idents,
-      used_names: self.used_names.into_iter().collect(),
+      used_names: self.used_names,
     }
   }
 }
 
 /// Auto inserted semicolon
 /// See: https://262.ecma-international.org/7.0/#sec-rules-of-automatic-semicolon-insertion
-pub struct InsertedSemicolons<'a> {
+pub struct InsertedSemicolons<'a, 'ast> {
   semicolons: &'a mut FxHashSet<u32>,
   tokens: &'a [TokenAndSpan],
-  concatenation_scope: Option<ConcatenationScopeSnapshotCollector<'a>>,
+  concatenation_scope: Option<ConcatenationScopeSnapshotCollector<'a, 'ast>>,
 }
 
-impl<'a> InsertedSemicolons<'a> {
+impl<'a, 'ast> InsertedSemicolons<'a, 'ast> {
   pub fn new(semicolons: &'a mut FxHashSet<u32>, tokens: &'a [TokenAndSpan]) -> Self {
     Self {
       semicolons,
@@ -73,17 +163,19 @@ impl<'a> InsertedSemicolons<'a> {
   pub fn with_concatenation_scope(mut self, semantic: &'a Semantic) -> Self {
     self.concatenation_scope = Some(ConcatenationScopeSnapshotCollector {
       semantic,
-      top_level_idents: Vec::new(),
-      global_idents: Vec::new(),
-      used_names: FxHashSet::default(),
+      top_level_idents: SmallVec::new(),
+      global_idents: SmallVec::new(),
+      used_names: SmallVec::new(),
     });
     self
   }
 
-  pub fn into_concatenation_scope_snapshot(self) -> Option<ConcatenationScopeSnapshot> {
+  pub(crate) fn into_concatenation_scope_snapshot(
+    self,
+  ) -> Option<PendingConcatenationScopeSnapshot<'ast>> {
     self
       .concatenation_scope
-      .map(ConcatenationScopeSnapshotCollector::into_snapshot)
+      .map(ConcatenationScopeSnapshotCollector::into_pending)
   }
 
   /// Find the starting token of this span.
@@ -146,14 +238,14 @@ impl<'a> InsertedSemicolons<'a> {
   }
 }
 
-impl<'a> Visit<'a> for InsertedSemicolons<'_> {
-  fn visit_ident(&mut self, ident: &Ident<'a>) {
+impl<'ast> Visit<'ast> for InsertedSemicolons<'_, 'ast> {
+  fn visit_ident(&mut self, ident: &Ident<'ast>) {
     if let Some(collector) = &mut self.concatenation_scope {
       collector.add_ident(ident, false, false);
     }
   }
 
-  fn visit_object_pat_prop(&mut self, prop: &ObjectPatProp<'a>) {
+  fn visit_object_pat_prop(&mut self, prop: &ObjectPatProp<'ast>) {
     match prop {
       ObjectPatProp::Assign(assign) => {
         if let Some(collector) = &mut self.concatenation_scope {
@@ -165,7 +257,7 @@ impl<'a> Visit<'a> for InsertedSemicolons<'_> {
     }
   }
 
-  fn visit_prop(&mut self, prop: &Prop<'a>) {
+  fn visit_prop(&mut self, prop: &Prop<'ast>) {
     if let Prop::Shorthand(ident) = prop {
       if let Some(collector) = &mut self.concatenation_scope {
         collector.add_ident(ident, true, false);
@@ -175,7 +267,7 @@ impl<'a> Visit<'a> for InsertedSemicolons<'_> {
     }
   }
 
-  fn visit_class_expr(&mut self, class_expr: &ClassExpr<'a>) {
+  fn visit_class_expr(&mut self, class_expr: &ClassExpr<'ast>) {
     if let Some(ident) = &class_expr.ident
       && class_expr.class.super_class.is_some()
     {
@@ -188,64 +280,64 @@ impl<'a> Visit<'a> for InsertedSemicolons<'_> {
     }
   }
 
-  fn visit_expr_stmt(&mut self, n: &ExprStmt<'a>) {
+  fn visit_expr_stmt(&mut self, n: &ExprStmt<'ast>) {
     self.post_semi(&n.span);
     n.visit_children_with(self)
   }
 
-  fn visit_var_decl(&mut self, n: &VarDecl<'a>) {
+  fn visit_var_decl(&mut self, n: &VarDecl<'ast>) {
     self.post_semi(&n.span);
     n.visit_children_with(self)
   }
 
-  fn visit_update_expr(&mut self, n: &UpdateExpr<'a>) {
+  fn visit_update_expr(&mut self, n: &UpdateExpr<'ast>) {
     self.semi(&n.span);
     n.visit_children_with(self)
   }
 
-  fn visit_continue_stmt(&mut self, n: &ContinueStmt<'a>) {
+  fn visit_continue_stmt(&mut self, n: &ContinueStmt<'ast>) {
     self.post_semi(&n.span);
     n.visit_children_with(self)
   }
 
-  fn visit_break_stmt(&mut self, n: &BreakStmt<'a>) {
+  fn visit_break_stmt(&mut self, n: &BreakStmt<'ast>) {
     self.post_semi(&n.span);
     n.visit_children_with(self)
   }
 
-  fn visit_return_stmt(&mut self, n: &ReturnStmt<'a>) {
+  fn visit_return_stmt(&mut self, n: &ReturnStmt<'ast>) {
     self.post_semi(&n.span);
     n.visit_children_with(self)
   }
 
-  fn visit_throw_stmt(&mut self, n: &ThrowStmt<'a>) {
+  fn visit_throw_stmt(&mut self, n: &ThrowStmt<'ast>) {
     self.post_semi(&n.span);
     n.visit_children_with(self)
   }
 
-  fn visit_yield_expr(&mut self, n: &YieldExpr<'a>) {
+  fn visit_yield_expr(&mut self, n: &YieldExpr<'ast>) {
     self.post_semi(&n.span);
     if let Some(arg) = &n.arg {
       arg.visit_children_with(self)
     }
   }
 
-  fn visit_import_decl(&mut self, n: &ImportDecl<'a>) {
+  fn visit_import_decl(&mut self, n: &ImportDecl<'ast>) {
     self.post_semi(&n.span);
     n.visit_children_with(self)
   }
 
-  fn visit_named_export(&mut self, n: &NamedExport<'a>) {
+  fn visit_named_export(&mut self, n: &NamedExport<'ast>) {
     self.post_semi(&n.span);
     n.visit_children_with(self)
   }
 
-  fn visit_export_default_expr(&mut self, n: &ExportDefaultExpr<'a>) {
+  fn visit_export_default_expr(&mut self, n: &ExportDefaultExpr<'ast>) {
     self.post_semi(&n.span);
     n.visit_children_with(self)
   }
 
-  fn visit_export_all(&mut self, n: &ExportAll<'a>) {
+  fn visit_export_all(&mut self, n: &ExportAll<'ast>) {
     self.post_semi(&n.span);
     n.visit_children_with(self)
   }
@@ -255,7 +347,7 @@ impl<'a> Visit<'a> for InsertedSemicolons<'_> {
     n.visit_children_with(self);
   }
 
-  fn visit_class_member(&mut self, n: &ClassMember<'a>) {
+  fn visit_class_member(&mut self, n: &ClassMember<'ast>) {
     match n {
       ClassMember::ClassProp(prop) => self.post_semi(&prop.span),
       ClassMember::PrivateProp(prop) => self.post_semi(&prop.span),

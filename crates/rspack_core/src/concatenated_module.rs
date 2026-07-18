@@ -700,7 +700,11 @@ impl ConcatenatedModule {
     module_info.idents.clear();
     module_info.global_scope_ident.clear();
     module_info.binding_to_ref.clear();
-    module_info.all_used_names = snapshot.used_names.iter().cloned().collect();
+    module_info.all_used_names = snapshot
+      .used_names
+      .iter()
+      .map(|symbol| snapshot.symbols[*symbol as usize].clone())
+      .collect();
     module_info
       .all_used_names
       .extend(module_info.added_used_names.iter().cloned());
@@ -715,7 +719,7 @@ impl ConcatenatedModule {
     let snapshot_ident_to_legacy =
       |ident: &ConcatenationScopeIdent, ctxt: SyntaxContext| ConcatenatedModuleIdent {
         id: swc_ecma_ast::Ident::new(
-          ident.symbol.clone(),
+          snapshot.symbols[ident.symbol as usize].clone(),
           Span::new(
             BytePos(ident.range.start.saturating_add(1)),
             BytePos(ident.range.end.saturating_add(1)),
