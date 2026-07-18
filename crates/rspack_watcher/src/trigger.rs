@@ -4,7 +4,9 @@ use rspack_paths::{ArcPath, ArcPathDashSet};
 use tokio::sync::mpsc::UnboundedSender;
 
 use super::{FsEvent, FsEventKind};
-use crate::{EventBatch, paths::PathManager};
+#[cfg(test)]
+use crate::DiskInputFileSystem;
+use crate::{EventBatch, WatchInputFileSystem, paths::PathManager};
 /// `DependencyFinder` provides references to sets of files, directories, and missing paths,
 /// allowing efficient lookup and dependency resolution for a given path.
 ///
@@ -91,12 +93,29 @@ pub struct Trigger {
   path_manager: Arc<PathManager>,
   /// Sender for communicating file system events to the watcher executor.
   tx: UnboundedSender<EventBatch>,
+  /// File system used to decide whether a path still exists. A virtual-module
+  /// aware fs reports virtual paths as existing even though they are not on disk.
+  input_fs: Arc<dyn WatchInputFileSystem>,
 }
 
 impl Trigger {
-  /// Create a new `Trigger` with the given path register and event sender.
+  /// Create a new `Trigger` whose existence checks consult the real disk.
+  #[cfg(test)]
   pub fn new(path_manager: Arc<PathManager>, tx: UnboundedSender<EventBatch>) -> Self {
-    Self { path_manager, tx }
+    Self::new_with_input_fs(path_manager, tx, Arc::new(DiskInputFileSystem))
+  }
+
+  /// Create a new `Trigger` that resolves path existence through `input_fs`.
+  pub fn new_with_input_fs(
+    path_manager: Arc<PathManager>,
+    tx: UnboundedSender<EventBatch>,
+    input_fs: Arc<dyn WatchInputFileSystem>,
+  ) -> Self {
+    Self {
+      path_manager,
+      tx,
+      input_fs,
+    }
   }
 
   /// Called when a file system event occurs.
@@ -121,13 +140,16 @@ impl Trigger {
       return;
     }
 
-    // A watched path that no longer exists on disk is a removal, regardless of
-    // how the OS reported the event. macOS FSEvents reports an unlink as a
-    // rename (`ModifyKind::Name` → `Change`), so normalize a `Change` whose
-    // path is gone into a `Remove`, keeping the event kind consistent with
-    // inotify (which already reports `Remove`). Done before the stale-event
-    // filter below, which only applies to `Change`/`Create`.
-    let kind = if kind == FsEventKind::Change && !path.exists() {
+    // A watched path that no longer exists in the watch input file system is a
+    // removal, regardless of how the OS reported the event. macOS FSEvents
+    // reports an unlink as a rename (`ModifyKind::Name` → `Change`), so
+    // normalize a `Change` whose path is gone into a `Remove`, keeping the
+    // event kind consistent with inotify (which already reports `Remove`).
+    // Existence is resolved through `input_fs`, not the raw disk, so a virtual
+    // module (present in the input fs but absent on disk) stays a `Change`.
+    // Done before the stale-event filter below, which only applies to
+    // `Change`/`Create`.
+    let kind = if kind == FsEventKind::Change && !self.input_fs.exists(path) {
       FsEventKind::Remove
     } else {
       kind
@@ -238,5 +260,68 @@ mod tests {
     assert_eq!(associated_events.len(), 2);
     assert!(associated_events.contains(&(dir_0, FsEventKind::Change)));
     assert!(associated_events.contains(&(dir_1, FsEventKind::Change)));
+  }
+
+  /// An input file system that reports only the paths it was given as existing.
+  #[derive(Debug)]
+  struct StubInputFileSystem {
+    existing: Vec<ArcPath>,
+  }
+
+  impl WatchInputFileSystem for StubInputFileSystem {
+    fn exists(&self, path: &Path) -> bool {
+      self
+        .existing
+        .iter()
+        .any(|p| p.as_os_str() == path.as_os_str())
+    }
+  }
+
+  /// A `Change` for a path that is absent from disk but present in the watch
+  /// input file system (a virtual module) must stay `Change`, not be normalized
+  /// to `Remove`.
+  #[test]
+  fn change_for_path_present_in_input_fs_is_not_normalized_to_remove() {
+    // Absolute on every platform (a bare `/...` is not absolute on Windows, so
+    // `PathManager::update` would absolutize it against cwd and the registered
+    // path would no longer match the event path).
+    let virtual_path = ArcPath::from(
+      std::env::current_dir()
+        .expect("cwd")
+        .join("__virtual__")
+        .join("dynamic-module.js"),
+    );
+
+    let path_manager = Arc::new(PathManager::default());
+    path_manager
+      .update(
+        (std::iter::once(virtual_path.clone()), std::iter::empty()),
+        (std::iter::empty(), std::iter::empty()),
+        (std::iter::empty(), std::iter::empty()),
+      )
+      .unwrap();
+
+    let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
+    let trigger = Trigger::new_with_input_fs(
+      path_manager,
+      tx,
+      Arc::new(StubInputFileSystem {
+        existing: vec![virtual_path.clone()],
+      }),
+    );
+
+    trigger.on_event(&virtual_path, FsEventKind::Change);
+
+    let batch = rx.try_recv().expect("an event should be emitted");
+    assert!(
+      batch
+        .iter()
+        .any(|e| e.path == virtual_path && e.kind == FsEventKind::Change),
+      "a virtual path present in the input fs must stay Change, got: {batch:?}"
+    );
+    assert!(
+      batch.iter().all(|e| e.kind != FsEventKind::Remove),
+      "must not normalize to Remove, got: {batch:?}"
+    );
   }
 }

@@ -82,8 +82,17 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
   // don't accumulate listeners on a stale shim.
   #watcher: NativeWatcherShim | undefined;
 
-  constructor(inputFileSystem: InputFileSystem) {
+  // Resolves the compiler's virtual file store (if virtual modules are in use)
+  // so the native watcher can treat virtual modules as existing and avoid
+  // reporting their changes as removals.
+  #getVirtualFileStore?: () => binding.VirtualFileStore | null | undefined;
+
+  constructor(
+    inputFileSystem: InputFileSystem,
+    getVirtualFileStore?: () => binding.VirtualFileStore | null | undefined,
+  ) {
     this.#inputFileSystem = inputFileSystem;
+    this.#getVirtualFileStore = getVirtualFileStore;
   }
 
   // Backward-compatible accessor: lets plugins that reach for the underlying
@@ -247,7 +256,10 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
       pollInterval: typeof options.poll === 'boolean' ? 0 : options.poll,
       ignored: toJsWatcherIgnored(options.ignored),
     };
-    const nativeWatcher = new binding.NativeWatcher(nativeWatcherOptions);
+    const nativeWatcher = new binding.NativeWatcher(
+      nativeWatcherOptions,
+      this.#getVirtualFileStore?.() ?? undefined,
+    );
     this.#inner = nativeWatcher;
 
     return nativeWatcher;

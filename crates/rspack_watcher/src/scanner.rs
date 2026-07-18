@@ -1,12 +1,26 @@
 use std::{ops::Deref, sync::Arc, time::SystemTime};
 
-use rspack_paths::{ArcPath, ArcPathDashSet};
+use rspack_paths::ArcPath;
 use tokio::sync::mpsc::UnboundedSender;
 
 use super::{FsEvent, FsEventKind, PathManager};
 use crate::{EventBatch, time_info};
 
-// Scanner will scann the path whether it is exist or not in disk on initialization
+// Scanner inspects registered paths at watch startup.
+//
+// Two responsibilities:
+// 1. `reclassify_missing` — for file/directory deps that are not present on
+//    disk, reclassify them into the `missing` tracker. Runs synchronously
+//    BEFORE the analyzer so it sees the updated tracker and watches those paths
+//    for future creation — the same way watchpack handles absent
+//    `fileDependencies`. No Remove event is emitted here; changes for paths
+//    served outside the real fs (e.g. virtual modules) are delivered through
+//    `FsWatcher::trigger_event` by the owning plugin.
+// 2. `scan` — synthesize the events the live watch could not deliver yet: a
+//    `Change` for a registered path modified since `start_time`, and a `Create`
+//    for a registered-missing dependency that has appeared. Dispatched to the
+//    tokio runtime and runs AFTER the OS watch is active (#14210), so a change
+//    landing before the watch is on disk and caught here.
 pub struct Scanner {
   path_manager: Arc<PathManager>,
   tx: Option<UnboundedSender<EventBatch>>,
@@ -21,12 +35,36 @@ impl Scanner {
     }
   }
 
-  /// Synthesizes the events the live watch could not deliver yet: a `Remove` for
-  /// a registered path gone from disk, a `Change` for a file/directory changed
-  /// since `start_time`, and a `Create` for a registered-missing dependency that
-  /// has appeared. Change is judged from a fresh, accuracy-padded mtime read
-  /// ([`changed_since`]) — the scan runs after the OS watch is active (#14210),
-  /// so a change landing before the watch is on disk and caught here.
+  /// Reclassify registered file/directory deps absent from disk into the
+  /// `missing` tracker. Synchronous so the analyzer, which runs immediately
+  /// after, sees the updated tracker and watches those paths for creation
+  /// instead of treating them as removed.
+  pub fn reclassify_missing(&self) {
+    let accessor = self.path_manager.access();
+    let files = accessor
+      .files()
+      .1
+      .iter()
+      .map(|file| file.deref().clone())
+      .collect::<Vec<_>>();
+    let directories = accessor
+      .directories()
+      .1
+      .iter()
+      .map(|dir| dir.deref().clone())
+      .collect::<Vec<_>>();
+
+    scan_path_missing(&files, &self.path_manager);
+    scan_path_missing(&directories, &self.path_manager);
+  }
+
+  /// Synthesizes the events the live watch could not deliver yet: a `Change` for
+  /// a file/directory changed since `start_time`, and a `Create` for a
+  /// registered-missing dependency that has appeared. Change is judged from a
+  /// fresh, accuracy-padded mtime read ([`changed_since`]) — the scan runs after
+  /// the OS watch is active (#14210), so a change landing before the watch is on
+  /// disk and caught here. Absent registered paths are not reported as `Remove`;
+  /// they are reclassified into `missing` by [`Scanner::reclassify_missing`].
   /// align watchpack action: https://github.com/webpack/watchpack/blob/v2.4.4/lib/DirectoryWatcher.js#L565-L568
   pub fn scan(&self, start_time: SystemTime) {
     if let Some(tx) = self.tx.clone() {
@@ -38,10 +76,8 @@ impl Scanner {
         .iter()
         .map(|file| file.deref().clone())
         .collect::<Vec<_>>();
-      let missing = accessor.missing().0.clone();
       let files_tx = tx.clone();
       tokio::spawn(async move {
-        _ = scan_path_missing(&files, &missing, &files_tx);
         _ = scan_path_events(
           &files,
           |p| changed_since(p, start_time),
@@ -56,10 +92,8 @@ impl Scanner {
         .iter()
         .map(|file| file.deref().clone())
         .collect::<Vec<_>>();
-      let missing = accessor.missing().0.clone();
       let dirs_tx = tx.clone();
       tokio::spawn(async move {
-        _ = scan_path_missing(&directories, &missing, &dirs_tx);
         _ = scan_path_events(
           &directories,
           |p| changed_since(p, start_time),
@@ -93,24 +127,21 @@ impl Scanner {
   }
 }
 
-fn scan_path_missing(
-  paths: &[ArcPath],
-  missing: &ArcPathDashSet,
-  tx: &UnboundedSender<EventBatch>,
-) -> bool {
-  let remove_event = paths
-    .iter()
-    .filter(|path| !path.exists() && !missing.contains(*path))
-    .cloned()
-    .map(|path| FsEvent {
-      path,
-      kind: FsEventKind::Remove,
-    })
-    .collect::<Vec<_>>();
-  if remove_event.is_empty() {
-    return true;
+/// Reclassify paths that are absent from the real filesystem as missing deps.
+/// Paths already tracked as missing are skipped, so `missing.added` keeps
+/// meaning "newly missing" for the analyzer and for the `Create` backfill in
+/// [`Scanner::scan`].
+/// No events are emitted: the watcher waits for them to appear (either via an
+/// OS event on the watched parent directory or an explicit `trigger_event`
+/// from the owning plugin).
+fn scan_path_missing(paths: &[ArcPath], path_manager: &PathManager) {
+  let accessor = path_manager.access();
+  let missing = accessor.missing().0;
+  for path in paths {
+    if !path.exists() && !missing.contains(path) {
+      path_manager.promote_to_missing(path.clone());
+    }
   }
-  tx.send(remove_event).is_ok()
 }
 
 fn scan_path_events(
@@ -154,53 +185,98 @@ mod tests {
   use super::*;
 
   #[tokio::test]
-  async fn test_scan() {
+  async fn test_scan_missing_paths_are_promoted_to_missing() {
+    // Paths absent from disk should be reclassified into the `missing`
+    // tracker, not reported as Remove events.
     let current_dir = std::env::current_dir().expect("Failed to get current directory");
     let path_manager = PathManager::default();
 
-    let files = (
-      vec![current_dir.join("___test_file.txt").into()].into_iter(),
-      vec![].into_iter(),
-    );
+    let ghost_file: ArcPath = current_dir.join("___ghost_file.txt").into();
+    let ghost_dir: ArcPath = current_dir.join("___ghost_dir/a/b/c").into();
 
-    let dirs = (
-      vec![current_dir.join("___test_dir/a/b/c").into()].into_iter(),
-      vec![].into_iter(),
-    );
-
-    let missing = (
-      vec![current_dir.join("___missing_file.txt").into()].into_iter(),
-      vec![].into_iter(),
-    );
+    let files = (vec![ghost_file.clone()].into_iter(), vec![].into_iter());
+    let dirs = (vec![ghost_dir.clone()].into_iter(), vec![].into_iter());
+    let missing = (vec![].into_iter(), vec![].into_iter());
     path_manager.update(files, dirs, missing).unwrap();
 
-    let (tx, mut _rx) = tokio::sync::mpsc::unbounded_channel();
+    let path_manager = Arc::new(path_manager);
+    let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
+    let mut scanner = Scanner::new(tx, Arc::clone(&path_manager));
+
+    let collector = tokio::spawn(async move {
+      let mut collected = Vec::new();
+      while let Some(event) = rx.recv().await {
+        collected.push(event);
+      }
+      collected
+    });
+
+    scanner.reclassify_missing();
+    scanner.scan(SystemTime::now());
+    scanner.close();
+
+    let collected = collector.await.unwrap();
+    assert!(
+      collected
+        .iter()
+        .flatten()
+        .all(|event| event.kind != FsEventKind::Remove),
+      "scan should not emit Remove for missing paths, got: {collected:?}"
+    );
+
+    let accessor = path_manager.access();
+    let missing_all = accessor.missing().0;
+    assert!(
+      missing_all.contains(&ghost_file),
+      "ghost file should be promoted to missing tracker"
+    );
+    assert!(
+      missing_all.contains(&ghost_dir),
+      "ghost directory should be promoted to missing tracker"
+    );
+  }
+
+  #[tokio::test]
+  async fn test_scan_change_emits_for_fresh_file() {
+    // A real file whose mtime is after start_time should emit Change.
+    let tmp = tempfile::TempDir::new().unwrap();
+    let file_path = tmp.path().join("fresh.txt");
+    std::fs::write(&file_path, "hello").unwrap();
+
+    let start_time = SystemTime::now() - std::time::Duration::from_secs(10);
+
+    let path_manager = PathManager::default();
+    let files = (
+      vec![ArcPath::from(file_path.clone())].into_iter(),
+      vec![].into_iter(),
+    );
+    let dirs = (vec![].into_iter(), vec![].into_iter());
+    let missing = (vec![].into_iter(), vec![].into_iter());
+    path_manager.update(files, dirs, missing).unwrap();
+
+    let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
     let mut scanner = Scanner::new(tx, Arc::new(path_manager));
 
     let collector = tokio::spawn(async move {
-      let mut collected_events = Vec::new();
-      while let Some(event) = _rx.recv().await {
-        collected_events.push(event);
+      let mut collected = Vec::new();
+      while let Some(event) = rx.recv().await {
+        collected.push(event);
       }
-      collected_events
+      collected
     });
 
-    scanner.scan(SystemTime::now());
-    // Simulate scanner dropping to trigger the end of the channel
+    scanner.scan(start_time);
     scanner.close();
 
-    let collected_events = collector.await.unwrap();
-    println!("Collected events: {collected_events:?}");
-    assert_eq!(collected_events.len(), 2);
-
-    assert!(collected_events.contains(&vec![FsEvent {
-      path: ArcPath::from(current_dir.join("___test_file.txt")),
-      kind: FsEventKind::Remove
-    }]));
-    assert!(collected_events.contains(&vec![FsEvent {
-      path: ArcPath::from(current_dir.join("___test_dir/a/b/c")),
-      kind: FsEventKind::Remove,
-    }]));
+    let collected = collector.await.unwrap();
+    assert!(
+      collected
+        .iter()
+        .flatten()
+        .any(|event| event.kind == FsEventKind::Change
+          && event.path == ArcPath::from(file_path.clone())),
+      "scan should emit Change for file with mtime after start_time, got: {collected:?}"
+    );
   }
 
   /// Park a file's mtime in the past so a scan-time stat sees it as unchanged

@@ -248,6 +248,28 @@ impl PathManager {
     self.file_mtimes.remove(path);
   }
 
+  /// Reclassify `path` as a missing dependency. Used by the scanner for file
+  /// or directory dependencies that are not present on disk at watch startup
+  /// (virtual paths, or real paths that were deleted between build and watch):
+  /// the analyzer and `DependencyFinder` treat `missing` entries as paths to
+  /// wait for, delivering Create events if/when they appear — matching
+  /// watchpack's behavior for absent `fileDependencies`.
+  pub fn promote_to_missing(&self, path: ArcPath) {
+    self.missing.add(path);
+  }
+
+  /// Read the mtime of `path` from the real disk.
+  /// This baseline is only used to filter stale FSEvents, which are never emitted for
+  /// paths served by a virtual file system — so the `input_fs` is intentionally NOT
+  /// consulted here, keeping mtime logic consistent with the real disk.
+  /// Returns `None` if the path cannot be resolved.
+  pub fn read_mtime(&self, path: &ArcPath) -> Option<SystemTime> {
+    path
+      .metadata()
+      .and_then(|m| m.modified().or_else(|_| m.created()))
+      .ok()
+  }
+
   /// Check if a file's mtime has changed from the stored baseline.
   /// Returns `true` if the event should pass through (mtime changed or no baseline).
   /// Returns `false` if the event should be suppressed (mtime unchanged = stale).
@@ -256,12 +278,9 @@ impl PathManager {
       return true;
     }
 
-    let current_mtime = match path
-      .metadata()
-      .and_then(|m| m.modified().or_else(|_| m.created()))
-    {
-      Ok(mtime) => mtime,
-      Err(_) => return true,
+    let current_mtime = match self.read_mtime(path) {
+      Some(mtime) => mtime,
+      None => return true,
     };
 
     match self.file_mtimes.get(path) {

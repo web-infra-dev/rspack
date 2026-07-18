@@ -2,15 +2,46 @@ use std::{
   boxed::Box,
   panic::AssertUnwindSafe,
   path::{Path, PathBuf},
+  sync::{Arc, RwLock},
   time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
 use futures::FutureExt;
 use napi::bindgen_prelude::*;
 use napi_derive::*;
-use rspack_paths::ArcPath;
+use rspack_paths::{ArcPath, Utf8Path};
 use rspack_regex::RspackRegex;
-use rspack_watcher::{FsEventKind, FsWatcher, FsWatcherIgnored, FsWatcherOptions};
+use rspack_watcher::{
+  DiskInputFileSystem, FsEventKind, FsWatcher, FsWatcherIgnored, FsWatcherOptions,
+  WatchInputFileSystem,
+};
+
+use crate::virtual_modules::{JsVirtualFileStore, VirtualFileStore};
+
+/// A [`WatchInputFileSystem`] that treats a path as existing when it is on the
+/// real disk OR present in the virtual file store, so virtual modules are not
+/// misreported as removed when they change.
+struct VirtualAwareInputFileSystem {
+  store: Arc<RwLock<dyn VirtualFileStore>>,
+}
+
+impl std::fmt::Debug for VirtualAwareInputFileSystem {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    f.debug_struct("VirtualAwareInputFileSystem").finish()
+  }
+}
+
+impl WatchInputFileSystem for VirtualAwareInputFileSystem {
+  fn exists(&self, path: &Path) -> bool {
+    if path.exists() {
+      return true;
+    }
+    let Some(path) = Utf8Path::from_path(path) else {
+      return false;
+    };
+    self.store.read().is_ok_and(|store| store.contains(path))
+  }
+}
 
 type JsWatcherIgnored = Either3<String, Vec<String>, RspackRegex>;
 
@@ -68,14 +99,25 @@ fn timestamp_to_system_time(millis: u64) -> SystemTime {
 #[napi]
 impl NativeWatcher {
   #[napi(constructor)]
-  pub fn new(options: NativeWatcherOptions) -> Self {
-    let watcher = FsWatcher::new(
+  pub fn new(
+    options: NativeWatcherOptions,
+    virtual_file_store: Option<&JsVirtualFileStore>,
+  ) -> Self {
+    let input_fs: Arc<dyn WatchInputFileSystem> = match virtual_file_store {
+      Some(store) => Arc::new(VirtualAwareInputFileSystem {
+        store: store.store(),
+      }),
+      None => Arc::new(DiskInputFileSystem),
+    };
+
+    let watcher = FsWatcher::with_input_file_system(
       FsWatcherOptions {
         follow_symlinks: options.follow_symlinks.unwrap_or(false),
         poll_interval: options.poll_interval,
         aggregate_timeout: options.aggregate_timeout,
       },
       to_fs_watcher_ignored(options.ignored),
+      input_fs,
     );
 
     Self {

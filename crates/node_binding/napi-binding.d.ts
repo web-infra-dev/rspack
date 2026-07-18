@@ -463,7 +463,7 @@ export declare class ModuleGraphConnection {
 }
 
 export declare class NativeWatcher {
-  constructor(options: NativeWatcherOptions)
+  constructor(options: NativeWatcherOptions, virtualFileStore?: JsVirtualFileStore | undefined | null)
   watch(files: [Array<string>, Array<string>], directories: [Array<string>, Array<string>], missing: [Array<string>, Array<string>], startTime: bigint, callback: (err: Error | null, result: NativeWatchResult) => void, callbackUndelayed: (event: NativeWatchUndelayedEvent) => void): void
   triggerEvent(kind: 'change' | 'remove' | 'create', path: string): void
   /**

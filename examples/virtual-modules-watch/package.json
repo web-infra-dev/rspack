@@ -1,0 +1,11 @@
+{
+  "name": "examples-virtual-modules-watch",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "repro": "node ./watch.mjs"
+  },
+  "devDependencies": {
+    "@rspack/core": "workspace:*"
+  }
+}

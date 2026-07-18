@@ -53,7 +53,10 @@ export default class NodeEnvironmentPlugin {
     compiler.intermediateFileSystem = null;
 
     if (compiler.options.experiments.nativeWatcher) {
-      compiler.watchFileSystem = new NativeWatchFileSystem(inputFileSystem);
+      compiler.watchFileSystem = new NativeWatchFileSystem(
+        inputFileSystem,
+        () => compiler.__internal__get_virtual_file_store(),
+      );
     } else {
       compiler.watchFileSystem = new NodeWatchFileSystem(inputFileSystem);
     }
