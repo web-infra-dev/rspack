@@ -1224,9 +1224,11 @@ impl JavascriptParser<'_> {
       }
     }
 
-    // (await import(...)).a.b
-    if let Some((call, members, await_expr)) = self.extract_await_import_member(expr) {
-      if self.is_top_level_scope() {
+    // (await import(...)).a.b / (yield import(...)).a.b
+    if let Some((call, members, await_expr)) = self.extract_await_or_yield_import_member(expr) {
+      if let Some(await_expr) = await_expr
+        && self.is_top_level_scope()
+      {
         self
           .plugin_drive
           .clone()
@@ -1510,9 +1512,13 @@ impl JavascriptParser<'_> {
             {
               return;
             }
-            // (await import(...)).a.b()
-            if let Some((call, members, await_expr)) = self.extract_await_import_member(member) {
-              if self.is_top_level_scope() {
+            // (await import(...)).a.b() / (yield import(...)).a.b()
+            if let Some((call, members, await_expr)) =
+              self.extract_await_or_yield_import_member(member)
+            {
+              if let Some(await_expr) = await_expr
+                && self.is_top_level_scope()
+              {
                 self
                   .plugin_drive
                   .clone()
@@ -1604,20 +1610,22 @@ impl JavascriptParser<'_> {
     }
   }
 
-  fn extract_await_import_member<'a>(
+  fn extract_await_or_yield_import_member<'a>(
     &self,
     expr: &'a MemberExpr<'a>,
-  ) -> Option<(&'a CallExpr<'a>, AtomMembers, &'a AwaitExpr<'a>)> {
+  ) -> Option<(&'a CallExpr<'a>, AtomMembers, Option<&'a AwaitExpr<'a>>)> {
     let ExtractedMemberExpressionChainData {
       object,
       mut members,
       mut members_optionals,
       ..
     } = self.extract_member_expression_chain(ExprRef::Member(expr));
-    let ExprRef::Await(await_expr) = object else {
-      return None;
+    let (import_expr, await_expr) = match object {
+      ExprRef::Await(await_expr) => (&await_expr.arg, Some(await_expr)),
+      ExprRef::Yield(yield_expr) if !yield_expr.delegate => (yield_expr.arg.as_ref()?, None),
+      _ => return None,
     };
-    let call = await_expr.arg.as_call()?;
+    let call = import_expr.as_call()?;
     if !call.callee.is_import() {
       return None;
     }

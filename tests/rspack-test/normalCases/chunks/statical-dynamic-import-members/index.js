@@ -58,3 +58,18 @@ it("should analyze top-level await correctly", async () => {
 	expect(a).toBe(1);
 	expect(b).toEqual(["a", "usedExports"]);
 });
+
+it("should analyze members of a yielded dynamic import", async () => {
+	function* load() {
+		const value = (yield import("../statical-dynamic-import/dir1/a?yield-member")).a;
+		const usedExports = (yield import("../statical-dynamic-import/dir1/a?yield-member")).usedExports;
+		return { value, usedExports };
+	}
+
+	const iterator = load();
+	const firstNamespace = await iterator.next().value;
+	const secondNamespace = await iterator.next(firstNamespace).value;
+	const { value, usedExports } = iterator.next(secondNamespace).value;
+	expect(value).toBe(1);
+	expect(usedExports).toEqual(["a", "usedExports"]);
+});
