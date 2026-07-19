@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use rspack_error::BatchErrors;
 use rspack_util::source_map::SourceMapKind;
-use rustc_hash::{FxHashMap, FxHashSet};
+use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 pub use swc_core::base::BoolOrDataConfig;
 use swc_core::{
@@ -12,22 +12,19 @@ use swc_core::{
     config::{IsModule, JsMinifyCommentOption, JsMinifyFormatOptions, SourceMapsConfig},
   },
   common::{
-    BytePos, DUMMY_SP, FileName, Mark, SyntaxContext,
+    BytePos, FileName, Mark,
     comments::{Comment, CommentKind, Comments, SingleThreadedComments},
     errors::HANDLER,
   },
   ecma::{
-    ast::{
-      BlockStmt, CallExpr, Callee, Decl, EmptyStmt, Expr, Ident, Lit, ModuleItem, Pat,
-      Program as SwcProgram, Stmt, Str, VarDecl, VarDeclKind, VarDeclarator,
-    },
+    ast::Ident,
     parser::{EsSyntax, Syntax},
     transforms::base::{
       fixer::{fixer, paren_remover},
       hygiene::hygiene,
       resolver,
     },
-    visit::{Visit, VisitMut, VisitMutWith, VisitWith, noop_visit_mut_type, noop_visit_type},
+    visit::{Visit, VisitMutWith, noop_visit_type},
   },
 };
 pub use swc_ecma_minifier::option::{
@@ -40,151 +37,6 @@ use super::{
   stringify::{PrintOptions, SourceMapConfig},
 };
 use crate::error::with_rspack_error_handler;
-
-const MIN_DEDUPLICATED_STRING_SIZE: usize = 10_000;
-
-#[derive(Default)]
-struct LargeStringCollector {
-  counts: FxHashMap<swc_core::atoms::Wtf8Atom, usize>,
-  strings: Vec<Str>,
-  used_symbols: FxHashSet<Atom>,
-  has_direct_eval: bool,
-}
-
-impl Visit for LargeStringCollector {
-  noop_visit_type!();
-
-  fn visit_expr(&mut self, expr: &Expr) {
-    if let Expr::Lit(Lit::Str(string)) = expr
-      && string.value.as_bytes().len() >= MIN_DEDUPLICATED_STRING_SIZE
-    {
-      let count = self.counts.entry(string.value.clone()).or_default();
-      if *count == 0 {
-        self.strings.push(string.clone());
-      }
-      *count += 1;
-    }
-    expr.visit_children_with(self);
-  }
-
-  fn visit_ident(&mut self, ident: &Ident) {
-    self.used_symbols.insert(ident.sym.clone());
-  }
-
-  fn visit_call_expr(&mut self, call_expr: &CallExpr) {
-    if let Callee::Expr(callee) = &call_expr.callee
-      && let Expr::Ident(ident) = &**callee
-      && ident.sym == "eval"
-    {
-      self.has_direct_eval = true;
-    }
-    call_expr.visit_children_with(self);
-  }
-}
-
-struct LargeStringReplacer {
-  replacements: FxHashMap<swc_core::atoms::Wtf8Atom, Ident>,
-}
-
-impl VisitMut for LargeStringReplacer {
-  noop_visit_mut_type!();
-
-  fn visit_mut_expr(&mut self, expr: &mut Expr) {
-    if let Expr::Lit(Lit::Str(string)) = expr
-      && let Some(ident) = self.replacements.get(&string.value)
-    {
-      *expr = Expr::Ident(Ident::new(
-        ident.sym.clone(),
-        string.span,
-        SyntaxContext::empty(),
-      ));
-      return;
-    }
-    expr.visit_mut_children_with(self);
-  }
-}
-
-/// Hoists repeated large strings only within one top-level expression. The
-/// block keeps the generated binding out of the global lexical scope while
-/// allowing nested module factories to capture it.
-fn deduplicate_large_strings_in_statement(statement: &mut Stmt) {
-  let Stmt::Expr(expr_statement) = statement else {
-    return;
-  };
-
-  let mut collector = LargeStringCollector::default();
-  expr_statement.expr.visit_with(&mut collector);
-  if collector.has_direct_eval {
-    return;
-  }
-
-  let mut replacement_index = 0;
-  let mut replacements = Vec::new();
-  for string in collector.strings {
-    if collector.counts.get(&string.value).copied().unwrap_or(0) < 2 {
-      continue;
-    }
-
-    let ident = loop {
-      let symbol = Atom::from(format!("__rspack_string_{replacement_index}"));
-      replacement_index += 1;
-      if !collector.used_symbols.contains(&symbol) {
-        break Ident::new(symbol, DUMMY_SP, SyntaxContext::empty());
-      }
-    };
-    replacements.push((string, ident));
-  }
-
-  if replacements.is_empty() {
-    return;
-  }
-
-  let mut replacer = LargeStringReplacer {
-    replacements: replacements
-      .iter()
-      .map(|(string, ident)| (string.value.clone(), ident.clone()))
-      .collect(),
-  };
-  expr_statement.expr.visit_mut_with(&mut replacer);
-
-  let declaration = Stmt::Decl(Decl::Var(Box::new(VarDecl {
-    span: DUMMY_SP,
-    kind: VarDeclKind::Const,
-    decls: replacements
-      .into_iter()
-      .map(|(string, ident)| VarDeclarator {
-        span: DUMMY_SP,
-        name: Pat::Ident(ident.into()),
-        init: Some(Box::new(Expr::Lit(Lit::Str(string)))),
-        definite: false,
-      })
-      .collect(),
-    ..Default::default()
-  })));
-  let original = std::mem::replace(statement, Stmt::Empty(EmptyStmt { span: DUMMY_SP }));
-  *statement = Stmt::Block(BlockStmt {
-    span: DUMMY_SP,
-    stmts: vec![declaration, original],
-    ..Default::default()
-  });
-}
-
-fn deduplicate_large_strings(program: &mut SwcProgram) {
-  match program {
-    SwcProgram::Script(script) => {
-      for statement in &mut script.body {
-        deduplicate_large_strings_in_statement(statement);
-      }
-    }
-    SwcProgram::Module(module) => {
-      for item in &mut module.body {
-        if let ModuleItem::Stmt(statement) = item {
-          deduplicate_large_strings_in_statement(statement);
-        }
-      }
-    }
-  }
-}
 
 /**
  * Some code is modified based on
@@ -368,7 +220,6 @@ impl JavaScriptCompiler {
           if !is_mangler_enabled {
             program.visit_mut_with(&mut hygiene())
           }
-          deduplicate_large_strings(&mut program);
           program.apply(&mut fixer(Some(&comments as &dyn Comments)))
         });
 
@@ -468,61 +319,6 @@ pub struct JsMinifyOptions {
 
 const fn true_as_default() -> bool {
   true
-}
-
-#[cfg(test)]
-mod tests {
-  use super::*;
-
-  fn minify_without_compression(source: String) -> String {
-    JavaScriptCompiler::new()
-      .minify(
-        FileName::Custom("test.js".into()),
-        source,
-        JsMinifyOptions {
-          minify: true,
-          compress: BoolOrDataConfig::from_bool(false),
-          mangle: BoolOrDataConfig::from_bool(false),
-          ..Default::default()
-        },
-        None::<fn(&SingleThreadedComments)>,
-      )
-      .expect("minification should succeed")
-      .code
-  }
-
-  #[test]
-  fn deduplicates_large_strings_in_one_top_level_expression() {
-    let large_string = "x".repeat(MIN_DEDUPLICATED_STRING_SIZE);
-    let output = minify_without_compression(format!(
-      "globalThis.values = [{large_string:?}, {large_string:?}]"
-    ));
-
-    assert_eq!(output.matches(&large_string).count(), 1);
-    assert!(output.contains("const __rspack_string_0="));
-  }
-
-  #[test]
-  fn preserves_large_strings_across_top_level_expressions() {
-    let large_string = "x".repeat(MIN_DEDUPLICATED_STRING_SIZE);
-    let output = minify_without_compression(format!(
-      "globalThis.first = {large_string:?}; globalThis.second = {large_string:?}"
-    ));
-
-    assert_eq!(output.matches(&large_string).count(), 2);
-    assert!(!output.contains("__rspack_string_"));
-  }
-
-  #[test]
-  fn skips_statements_containing_direct_eval() {
-    let large_string = "x".repeat(MIN_DEDUPLICATED_STRING_SIZE);
-    let output = minify_without_compression(format!(
-      "globalThis.values = [eval('0'), {large_string:?}, {large_string:?}]"
-    ));
-
-    assert_eq!(output.matches(&large_string).count(), 2);
-    assert!(!output.contains("__rspack_string_"));
-  }
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
