@@ -551,7 +551,7 @@ async fn render_manifest(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
   manifest: &mut Vec<RenderManifestEntry>,
-  _diagnostics: &mut Vec<Diagnostic>,
+  diagnostics: &mut Vec<Diagnostic>,
 ) -> Result<()> {
   let chunk = compilation
     .build_chunk_graph_artifact
@@ -583,6 +583,16 @@ async fn render_manifest(
   if !is_hot_update && !is_main_chunk && !is_runtime_chunk && !chunk_has_js(chunk_ukey, compilation)
   {
     return Ok(());
+  }
+  if let Some(name) = chunk.name()
+    && (name.contains('?') || name.contains('#'))
+  {
+    diagnostics.push(Diagnostic::warn(
+      "Invalid chunk name".to_string(),
+      format!(
+        "Chunk name \"{name}\" contains '?' or '#', which can make the emitted filename differ from the URL requested by the runtime. Avoid these characters in chunk names."
+      ),
+    ));
   }
   let filename_template = get_js_chunk_filename_template(
     chunk,

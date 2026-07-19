@@ -1,0 +1,3 @@
+WARNING in ⚠ Chunk name "chunk?query" contains '?' or '#', which can make the emitted filename differ from the URL requested by the runtime. Avoid these characters in chunk names.
+
+WARNING in ⚠ Chunk name "chunk#fragment" contains '?' or '#', which can make the emitted filename differ from the URL requested by the runtime. Avoid these characters in chunk names.
