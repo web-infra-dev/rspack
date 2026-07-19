@@ -66,6 +66,7 @@ pub struct ESMExportImportedSpecifierDependency {
   loc: Option<DependencyLocation>,
   factorize_info: FactorizeInfo,
   lazy_make: bool,
+  commonjs_export_star: bool,
 }
 
 impl ESMExportImportedSpecifierDependency {
@@ -99,7 +100,12 @@ impl ESMExportImportedSpecifierDependency {
       loc,
       factorize_info: Default::default(),
       lazy_make: false,
+      commonjs_export_star: false,
     }
+  }
+
+  pub fn set_commonjs_export_star(&mut self) {
+    self.commonjs_export_star = true;
   }
 
   // Because it is shared by multiply ESMExportImportedSpecifierDependency, so put it to `BuildInfo`
@@ -338,6 +344,9 @@ impl ESMExportImportedSpecifierDependency {
     let ignored_exports: HashSet<Atom> = {
       let mut e = self.active_exports(module_graph).clone();
       e.insert("default".into());
+      if self.commonjs_export_star {
+        e.insert("__esModule".into());
+      }
       e
     };
 
@@ -1495,6 +1504,9 @@ impl Dependency for ESMExportImportedSpecifierDependency {
     module_graph_cache: &ModuleGraphCacheArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
   ) -> Option<Vec<Diagnostic>> {
+    if self.commonjs_export_star {
+      return None;
+    }
     let module = module_graph.get_parent_module(&self.id)?;
     let module = module_graph.module_by_identifier(module)?;
     let ids = self.get_ids(module_graph);
