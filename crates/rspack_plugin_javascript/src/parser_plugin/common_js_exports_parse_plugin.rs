@@ -1,21 +1,97 @@
-use rspack_core::{BuildMetaDefaultObject, BuildMetaExportsType, DependencyRange, RuntimeGlobals};
+use rspack_core::{
+  BuildMetaDefaultObject, BuildMetaExportsType, ConstDependency, Dependency, DependencyRange,
+  DependencyType, ImportPhase, RuntimeGlobals,
+};
 use rspack_util::SpanExt;
 use swc_atoms::Atom;
 use swc_experimental_ecma_ast::{
   AssignExpr, CallExpr, Expr, ExprOrSpread, GetSpan, Ident, Lit, MemberExpr, Prop, PropName,
-  PropOrSpread, Span, ThisExpr, UnaryExpr, UnaryOp,
+  PropOrSpread, Span, ThisExpr, UnaryExpr, UnaryOp, VarDeclarator,
 };
 
 use super::JavascriptParserPlugin;
 use crate::{
   dependency::{
     CommonJsExportRequireDependency, CommonJsExportsDependency, CommonJsSelfReferenceDependency,
-    ExportsBase, ModuleDecoratorDependency,
+    ESMExportImportedSpecifierDependency, ESMImportSideEffectDependency, ExportsBase,
+    ModuleDecoratorDependency,
   },
   parser_plugin::common_js_imports_parse_plugin::is_require_call_expr,
   utils::eval::{self, BasicEvaluatedExpression},
-  visitors::JavascriptParser,
+  visitors::{JavascriptParser, VariableDeclaration},
 };
+
+const TYPESCRIPT_EXPORT_STAR_TAG: &str = "typescript export star";
+const TYPESCRIPT_EXPORT_STAR_HELPER: &str = "(this&&this.__exportStar)||function(m,exports){for(varpinm)if(p!==\"default\"&&!Object.prototype.hasOwnProperty.call(exports,p))__createBinding(exports,m,p);}";
+
+#[derive(Clone)]
+struct TypeScriptExportStarTagData;
+
+fn is_typescript_export_star_helper(parser: &JavascriptParser, declarator: &VarDeclarator) -> bool {
+  if !parser.is_top_level_scope()
+    || declarator
+      .name
+      .as_ident()
+      .is_none_or(|ident| ident.id.sym.as_str() != "__exportStar")
+  {
+    return false;
+  }
+  let Some(init) = &declarator.init else {
+    return false;
+  };
+  let range = DependencyRange::from(init.span());
+  let Some(source) = parser
+    .source()
+    .get(range.start as usize..range.end as usize)
+  else {
+    return false;
+  };
+  source
+    .chars()
+    .filter(|char| !char.is_whitespace())
+    .eq(TYPESCRIPT_EXPORT_STAR_HELPER.chars())
+}
+
+fn is_typescript_cached_helper(parser: &JavascriptParser, declarator: &VarDeclarator) -> bool {
+  if !parser.is_top_level_scope() {
+    return false;
+  }
+  let Some(name) = declarator
+    .name
+    .as_ident()
+    .map(|ident| ident.id.sym.as_str())
+    .filter(|name| matches!(*name, "__createBinding" | "__decorate" | "__exportStar"))
+  else {
+    return false;
+  };
+  let Some(init) = &declarator.init else {
+    return false;
+  };
+  let range = DependencyRange::from(init.span());
+  let Some(source) = parser
+    .source()
+    .get(range.start as usize..range.end as usize)
+  else {
+    return false;
+  };
+  let source = source
+    .chars()
+    .filter(|char| !char.is_whitespace())
+    .collect::<String>();
+  source.starts_with(&format!("(this&&this.{name})||")) && !source.contains("require(")
+}
+
+fn is_typescript_export_star_barrel(parser: &JavascriptParser) -> bool {
+  let source = parser
+    .source()
+    .chars()
+    .filter(|char| !char.is_whitespace())
+    .collect::<String>();
+  !source.contains("exports.")
+    && !source.contains("module.exports")
+    && source.matches("Object.defineProperty(exports,").count() == 1
+    && source.contains("Object.defineProperty(exports,\"__esModule\",")
+}
 
 fn get_value_of_property_description<'a>(expr: &'a Expr<'a>) -> Option<&'a Expr<'a>> {
   if let Expr::Object(obj) = expr {
@@ -281,6 +357,35 @@ impl CommonJsExportsParserPlugin {
 
 #[rspack_macros::implemented_javascript_parser_hooks]
 impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsExportsParserPlugin {
+  fn pre_declarator(
+    &self,
+    parser: &mut JavascriptParser<'p>,
+    declarator: &VarDeclarator,
+    _declaration: VariableDeclaration<'_>,
+  ) -> Option<bool> {
+    if is_typescript_export_star_helper(parser, declarator) {
+      let ident = declarator
+        .name
+        .as_ident()
+        .expect("TypeScript export star helper should have an identifier");
+      parser.tag_variable(
+        Atom::from(ident.id.sym.as_str()),
+        TYPESCRIPT_EXPORT_STAR_TAG,
+        Some(TypeScriptExportStarTagData),
+      );
+    }
+    None
+  }
+
+  fn declarator(
+    &self,
+    parser: &mut JavascriptParser<'p>,
+    declarator: &VarDeclarator,
+    _declaration: VariableDeclaration<'_>,
+  ) -> Option<bool> {
+    is_typescript_cached_helper(parser, declarator).then_some(true)
+  }
+
   fn assign_member_chain(
     &self,
     parser: &mut JavascriptParser<'p>,
@@ -325,6 +430,81 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsExportsParserPlugin {
 
     if parser.is_esm {
       return None;
+    }
+    if (for_name == TYPESCRIPT_EXPORT_STAR_TAG
+      || parser
+        .get_tag_data::<TypeScriptExportStarTagData>(
+          &Atom::from(for_name),
+          TYPESCRIPT_EXPORT_STAR_TAG,
+        )
+        .is_some())
+      && is_typescript_export_star_barrel(parser)
+      && parser.is_statement_level_expression(call_expr.span)
+      && call_expr.args.len() == 2
+      && let [
+        ExprOrSpread {
+          spread: None,
+          expr: imported,
+        },
+        ExprOrSpread {
+          spread: None,
+          expr: exports,
+        },
+      ] = call_expr.args.as_slice()
+      && let exports = parser.evaluate_expression(exports)
+      && exports.is_identifier()
+      && exports.identifier().as_str() == "exports"
+      && let Some((request, ids)) = parse_require_call(parser, imported)
+      && request.is_string()
+      && ids.is_empty()
+    {
+      parser.enable();
+      parser.last_esm_import_order += 1;
+      let source_order = parser.last_esm_import_order;
+      let request = Atom::from(request.string().as_str());
+      let range = DependencyRange::from(call_expr.span);
+      let loc = parser.to_dependency_location(range);
+
+      parser
+        .add_presentational_dependency(Box::new(ConstDependency::new(range, String::new().into())));
+
+      let mut side_effect_dep = ESMImportSideEffectDependency::new(
+        request.clone(),
+        source_order,
+        range,
+        DependencyType::EsmExportImport,
+        ImportPhase::Evaluation,
+        None,
+        loc.clone(),
+        true,
+      );
+      let mut export_dep = ESMExportImportedSpecifierDependency::new(
+        request,
+        source_order,
+        vec![],
+        None,
+        Some(parser.build_info.all_star_exports.clone()),
+        range,
+        ESMExportImportedSpecifierDependency::create_export_presence_mode(
+          parser.javascript_options,
+        ),
+        ImportPhase::Evaluation,
+        None,
+        loc,
+      );
+      export_dep.set_commonjs_export_star();
+      parser.build_info.all_star_exports.push(export_dep.id);
+      if parser
+        .factory_meta
+        .and_then(|meta| meta.side_effect_free)
+        .unwrap_or_default()
+      {
+        side_effect_dep.set_lazy();
+        export_dep.set_lazy();
+      }
+      parser.add_dependency(Box::new(side_effect_dep));
+      parser.add_dependency(Box::new(export_dep));
+      return Some(true);
     }
     if for_name == "Object.defineProperty"
       && parser.is_statement_level_expression(call_expr.span)
