@@ -388,6 +388,7 @@ import {
 import { createNativePlugin } from './builtin-plugin';
 import { ExtractInlineDataUrlPlugin } from './experimental/ExtractInlineDataUrlPlugin';
 import { ExtractInlineWorkerPlugin } from './experimental/ExtractInlineWorkerPlugin';
+import { ManglePrivateIdentifiersPlugin } from './experimental/ManglePrivateIdentifiersPlugin';
 ///// Experiments SWC /////
 import { minify, minifySync, transform, transformSync } from './swc';
 import { JavaScriptTracer } from './trace';
@@ -405,6 +406,7 @@ interface Experiments {
   RemoveDuplicateModulesPlugin: typeof RemoveDuplicateModulesPlugin;
   ExtractInlineDataUrlPlugin: typeof ExtractInlineDataUrlPlugin;
   ExtractInlineWorkerPlugin: typeof ExtractInlineWorkerPlugin;
+  ManglePrivateIdentifiersPlugin: typeof ManglePrivateIdentifiersPlugin;
   RsdoctorPlugin: typeof RsdoctorPlugin;
   RstestPlugin: typeof RstestPlugin;
   RslibPlugin: typeof RslibPlugin;
@@ -446,6 +448,7 @@ export const experiments: Experiments = {
   RemoveDuplicateModulesPlugin,
   ExtractInlineDataUrlPlugin,
   ExtractInlineWorkerPlugin,
+  ManglePrivateIdentifiersPlugin,
   /**
    * Note: This plugin is unstable yet
    *
