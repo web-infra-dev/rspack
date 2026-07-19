@@ -98,19 +98,21 @@ var map = {
     ]
   ]
 };
-var __rspack_async_context = __rspack_context.ctx(map, "./modules lazy recursive ^\\.\\/.*\\.js$ referencedExports: default?32bc", (req, resolve) => {
-var ids;
-try {
-  ids = resolve(req);
-} catch(e) {
-  return Promise.resolve().then(() => {
+function __rspack_async_context(req) {
+  if(!__rspack_context.o(map, req)) {
+    return Promise.resolve().then(() => {
+var e = new Error("Cannot find module '" + req + "'");
+e.code = 'MODULE_NOT_FOUND';
 throw e;
 });
-}
-var id = ids[0];
-return __rspack_context.e(ids[1][0]).then(() => (__rspack_context.r(id)));
+  }
 
-}, 0, false);
+  var ids = map[req], id = ids[0];
+  return __rspack_context.e(ids[1][0]).then(() => (__rspack_context.r(id)));
+}
+
+__rspack_async_context.keys = () => (Object.keys(map));
+__rspack_async_context.id = "./modules lazy recursive ^\\.\\/.*\\.js$ referencedExports: default?32bc";
 module.exports = __rspack_async_context;
 
 
@@ -140,19 +142,21 @@ var map = {
     ]
   ]
 };
-var __rspack_async_context = __rspack_context.ctx(map, "./modules lazy recursive ^\\.\\/.*\\.js$ referencedExports: default?bdfa", (req, resolve) => {
-var ids;
-try {
-  ids = resolve(req);
-} catch(e) {
-  return Promise.resolve().then(() => {
+function __rspack_async_context(req) {
+  if(!__rspack_context.o(map, req)) {
+    return Promise.resolve().then(() => {
+var e = new Error("Cannot find module '" + req + "'");
+e.code = 'MODULE_NOT_FOUND';
 throw e;
 });
-}
-var id = ids[0];
-return __rspack_context.e(ids[1][0]).then(() => (__rspack_context.r(id)));
+  }
 
-}, 0, false);
+  var ids = map[req], id = ids[0];
+  return __rspack_context.e(ids[1][0]).then(() => (__rspack_context.r(id)));
+}
+
+__rspack_async_context.keys = () => (Object.keys(map));
+__rspack_async_context.id = "./modules lazy recursive ^\\.\\/.*\\.js$ referencedExports: default?bdfa";
 module.exports = __rspack_async_context;
 
 
@@ -223,27 +227,6 @@ __rspack_context.r = __rspack_require;
 __rspack_context.m = __rspack_modules;
 
 var publicPath, moduleFactories=__rspack_modules, scriptNonce, prefetchChunk, preloadChunk;
-// rspack/runtime/context
-var createContext = (map, id, load, createResolve, exposeResolve) => {
-	var resolve = (req) => {
-		if(!hasOwnProperty(map, req)) {
-			var e = new Error("Cannot find module '" + req + "'");
-			e.code = 'MODULE_NOT_FOUND';
-			throw e;
-		}
-		return map[req];
-	};
-	if(createResolve) resolve = createResolve(resolve);
-	var context = (req) => {
-		return load(req, resolve);
-	};
-	context.keys = () => (Object.keys(map));
-	if(exposeResolve) context.resolve = resolve;
-	context.id = id;
-	return context;
-};
-;
-__rspack_context.ctx = createContext;
 // rspack/runtime/define_property_getters
 var definePropertyGetters = (exports, getters, values) => {
 	var define = (defs, kind) => {
@@ -280,6 +263,7 @@ var getChunkScriptFilename = (chunkId) => {
 };
 // rspack/runtime/has_own_property
 var hasOwnProperty = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop));
+__rspack_context.o = hasOwnProperty;
 // rspack/runtime/make_namespace_object
 // define __esModule on exports
 var makeNamespaceObject = (exports) => {

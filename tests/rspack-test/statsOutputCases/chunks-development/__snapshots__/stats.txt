@@ -1,6 +1,6 @@
 PublicPath: auto
 asset bundle.js xx KiB [emitted] (name: main)
-chunk (runtime: main) bundle.js (main) xx bytes (javascript) xx bytes (runtime) [entry] [rendered]
+chunk (runtime: main) bundle.js (main) xx bytes [entry] [rendered]
   > ./index main
   ./.|sync xx bytes [dependent] [built] [code generated]
     commonjs require context . ./index.js 2:1-17

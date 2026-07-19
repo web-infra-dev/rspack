@@ -24,9 +24,8 @@ use crate::{
     AmdDefineRuntimeModule, AmdOptionsRuntimeModule, AsyncRuntimeModule,
     AutoPublicPathRuntimeModule, BaseUriRuntimeModule, CheckedReexportRuntimeModule,
     ChunkNameRuntimeModule, ChunkPrefetchPreloadFunctionRuntimeModule,
-    CompatGetDefaultExportRuntimeModule, ContextRuntimeModule,
-    CreateFakeNamespaceObjectRuntimeModule, CreateScriptRuntimeModule,
-    CreateScriptUrlRuntimeModule, DefineEsmExportsRuntimeModule,
+    CompatGetDefaultExportRuntimeModule, CreateFakeNamespaceObjectRuntimeModule,
+    CreateScriptRuntimeModule, CreateScriptUrlRuntimeModule, DefineEsmExportsRuntimeModule,
     DefinePropertyGettersRuntimeModule, ESMModuleDecoratorRuntimeModule, EnsureChunkRuntimeModule,
     GetChunkFilenameRuntimeModule, GetChunkUpdateFilenameRuntimeModule, GetFullHashRuntimeModule,
     GetMainFilenameRuntimeModule, GetTrustedTypesPolicyRuntimeModule, GlobalRuntimeModule,
@@ -393,12 +392,6 @@ async fn runtime_requirements_in_tree(
         runtime_modules_to_add.push((
           *chunk_ukey,
           CheckedReexportRuntimeModule::new(&compilation.runtime_template).boxed(),
-        ));
-      }
-      RuntimeGlobals::CREATE_CONTEXT => {
-        runtime_modules_to_add.push((
-          *chunk_ukey,
-          ContextRuntimeModule::new(&compilation.runtime_template).boxed(),
         ));
       }
       RuntimeGlobals::GET_TRUSTED_TYPES_POLICY => {

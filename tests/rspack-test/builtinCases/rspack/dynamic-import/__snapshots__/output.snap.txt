@@ -45,19 +45,21 @@ var map = {
     ]
   ]
 };
-var __rspack_async_context = __webpack_require__.ctx(map, "./child lazy recursive ^\\.\\/.*\\.js$ referencedExports: a", (req, resolve) => {
-var ids;
-try {
-  ids = resolve(req);
-} catch(e) {
-  return Promise.resolve().then(() => {
+function __rspack_async_context(req) {
+  if(!__webpack_require__.o(map, req)) {
+    return Promise.resolve().then(() => {
+var e = new Error("Cannot find module '" + req + "'");
+e.code = 'MODULE_NOT_FOUND';
 throw e;
 });
-}
-var id = ids[0];
-return __webpack_require__.e(ids[1][0]).then(() => (__webpack_require__(id)));
+  }
 
-}, 0, false);
+  var ids = map[req], id = ids[0];
+  return __webpack_require__.e(ids[1][0]).then(() => (__webpack_require__(id)));
+}
+
+__rspack_async_context.keys = () => (Object.keys(map));
+__rspack_async_context.id = "./child lazy recursive ^\\.\\/.*\\.js$ referencedExports: a";
 module.exports = __rspack_async_context;
 
 

@@ -7,7 +7,7 @@
 - Bundle: bundle.js
 - Bundle: lib_a_js.chunk.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 87
-- Update: main.LAST_HASH.hot-update.js, size: 1065
+- Update: main.LAST_HASH.hot-update.js, size: 1242
 
 ## Manifest
 
@@ -35,7 +35,8 @@
 self["rspackHotUpdate"]("main", {
 "./file.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
-__webpack_require__.D(__webpack_exports__, {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
   fn: () => (fn)
 });
 const fn = async function () {
@@ -55,19 +56,21 @@ var map = {
     ]
   ]
 };
-var __rspack_async_context = __webpack_require__.ctx(map, "./lib lazy recursive ^\\.\\/.*\\.js$", (req, resolve) => {
-var ids;
-try {
-  ids = resolve(req);
-} catch(e) {
-  return Promise.resolve().then(() => {
+function __rspack_async_context(req) {
+  if(!__webpack_require__.o(map, req)) {
+    return Promise.resolve().then(() => {
+var e = new Error("Cannot find module '" + req + "'");
+e.code = 'MODULE_NOT_FOUND';
 throw e;
 });
-}
-var id = ids[0];
-return __webpack_require__.e(ids[1][0]).then(() => (__webpack_require__(id)));
+  }
 
-}, 0, false);
+  var ids = map[req], id = ids[0];
+  return __webpack_require__.e(ids[1][0]).then(() => (__webpack_require__(id)));
+}
+
+__rspack_async_context.keys = () => (Object.keys(map));
+__rspack_async_context.id = "./lib lazy recursive ^\\.\\/.*\\.js$";
 module.exports = __rspack_async_context;
 
 

@@ -81,19 +81,21 @@ var map = {
     ]
   ]
 };
-var __rspack_async_context = __webpack_require__.ctx(map, "./modules lazy recursive ^\\.\\/.*\\.js$ referencedExports: default", (req, resolve) => {
-var ids;
-try {
-  ids = resolve(req);
-} catch(e) {
-  return Promise.resolve().then(() => {
+function __rspack_async_context(req) {
+  if(!__webpack_require__.o(map, req)) {
+    return Promise.resolve().then(() => {
+var e = new Error("Cannot find module '" + req + "'");
+e.code = 'MODULE_NOT_FOUND';
 throw e;
 });
-}
-var id = ids[0];
-return Promise.all(ids[1].map(function(chunkId) { return __webpack_require__.e(chunkId); })).then(() => (__webpack_require__(id)));
+  }
 
-}, 0, false);
+  var ids = map[req], id = ids[0];
+  return Promise.all(ids[1].map(function(chunkId) { return __webpack_require__.e(chunkId); })).then(() => (__webpack_require__(id)));
+}
+
+__rspack_async_context.keys = () => (Object.keys(map));
+__rspack_async_context.id = "./modules lazy recursive ^\\.\\/.*\\.js$ referencedExports: default";
 module.exports = __rspack_async_context;
 
 
@@ -158,28 +160,6 @@ return module.exports;
 // expose the modules object (__webpack_modules__)
 __webpack_require__.m = __webpack_modules__;
 
-// webpack/runtime/context
-(() => {
-__webpack_require__.ctx = (map, id, load, createResolve, exposeResolve) => {
-	var resolve = (req) => {
-		if(!__webpack_require__.o(map, req)) {
-			var e = new Error("Cannot find module '" + req + "'");
-			e.code = 'MODULE_NOT_FOUND';
-			throw e;
-		}
-		return map[req];
-	};
-	if(createResolve) resolve = createResolve(resolve);
-	var context = (req) => {
-		return load(req, resolve);
-	};
-	context.keys = () => (Object.keys(map));
-	if(exposeResolve) context.resolve = resolve;
-	context.id = id;
-	return context;
-};
-
-})();
 // webpack/runtime/define_property_getters
 (() => {
 __webpack_require__.d = (exports, getters, values) => {
@@ -209,16 +189,6 @@ __webpack_require__.e = function(chunkId, fetchPriority) {
 (() => {
 __webpack_require__.add = function registerModules(modules) { Object.assign(__webpack_require__.m, modules) }
 
-})();
-// webpack/runtime/get javascript chunk filename
-(() => {
-// This function allow to reference chunks
-__webpack_require__.u = (chunkId) => {
-  // return url for filenames not based on template
-
-  // return url for filenames based on template
-  return "" + chunkId + ".mjs"
-}
 })();
 // webpack/runtime/has_own_property
 (() => {
