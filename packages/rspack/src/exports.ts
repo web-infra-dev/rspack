@@ -386,6 +386,7 @@ import {
   syncTraceEvent,
 } from '@rspack/binding';
 import { createNativePlugin } from './builtin-plugin';
+import { ExtractInlineDataUrlPlugin } from './experimental/ExtractInlineDataUrlPlugin';
 import { ExtractInlineWorkerPlugin } from './experimental/ExtractInlineWorkerPlugin';
 ///// Experiments SWC /////
 import { minify, minifySync, transform, transformSync } from './swc';
@@ -402,6 +403,7 @@ interface Experiments {
     cleanup: () => Promise<void>;
   };
   RemoveDuplicateModulesPlugin: typeof RemoveDuplicateModulesPlugin;
+  ExtractInlineDataUrlPlugin: typeof ExtractInlineDataUrlPlugin;
   ExtractInlineWorkerPlugin: typeof ExtractInlineWorkerPlugin;
   RsdoctorPlugin: typeof RsdoctorPlugin;
   RstestPlugin: typeof RstestPlugin;
@@ -442,6 +444,7 @@ export const experiments: Experiments = {
     },
   },
   RemoveDuplicateModulesPlugin,
+  ExtractInlineDataUrlPlugin,
   ExtractInlineWorkerPlugin,
   /**
    * Note: This plugin is unstable yet

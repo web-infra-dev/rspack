@@ -13,6 +13,7 @@ function replaceFileContent(filePath, replaceFn) {
 export default {
   dependencies: [
     '@swc/types',
+    'acorn',
     {
       name: 'webpack-sources',
       copyDts: true,
