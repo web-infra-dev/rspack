@@ -1,17 +1,11 @@
-use std::sync::LazyLock;
-
 use rspack_core::{
   Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext, RuntimeTemplate,
   impl_runtime_module, runtime_mode::RuntimeMode,
 };
 
-use crate::extract_runtime_module_variables_from_ejs;
-
 static CREATE_FAKE_NAMESPACE_OBJECT_TEMPLATE: &str =
   include_str!("runtime/create_fake_namespace_object.ejs");
-static RUNTIME_MODULE_VARIABLES: LazyLock<Vec<&'static str>> = LazyLock::new(|| {
-  extract_runtime_module_variables_from_ejs(&[CREATE_FAKE_NAMESPACE_OBJECT_TEMPLATE])
-});
+static RUNTIME_MODULE_VARIABLES: &[&str] = &["getProto", "leafPrototypes"];
 
 #[impl_runtime_module(runtime_module_variables)]
 #[derive(Debug)]
@@ -44,7 +38,7 @@ impl RuntimeModule for CreateFakeNamespaceObjectRuntimeModule {
   }
 
   fn runtime_module_variables() -> &'static [&'static str] {
-    RUNTIME_MODULE_VARIABLES.as_slice()
+    RUNTIME_MODULE_VARIABLES
   }
 
   async fn generate(

@@ -1,4 +1,4 @@
-use std::{iter, sync::LazyLock};
+use std::iter;
 
 use itertools::Itertools;
 use rspack_core::{
@@ -6,13 +6,9 @@ use rspack_core::{
   impl_runtime_module,
 };
 
-use crate::extract_runtime_module_variables_from_ejs;
-
 static STARTUP_CHUNK_DEPENDENCIES_TEMPLATE: &str =
   include_str!("runtime/startup_chunk_dependencies.ejs");
-static RUNTIME_MODULE_VARIABLES: LazyLock<Vec<&'static str>> = LazyLock::new(|| {
-  extract_runtime_module_variables_from_ejs(&[STARTUP_CHUNK_DEPENDENCIES_TEMPLATE])
-});
+static RUNTIME_MODULE_VARIABLES: &[&str] = &["next"];
 
 #[impl_runtime_module(runtime_module_variables)]
 #[derive(Debug)]
@@ -29,7 +25,7 @@ impl StartupChunkDependenciesRuntimeModule {
 #[async_trait::async_trait]
 impl RuntimeModule for StartupChunkDependenciesRuntimeModule {
   fn runtime_module_variables() -> &'static [&'static str] {
-    RUNTIME_MODULE_VARIABLES.as_slice()
+    RUNTIME_MODULE_VARIABLES
   }
 
   fn runtime_requirements(

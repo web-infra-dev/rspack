@@ -1,16 +1,13 @@
-use std::sync::LazyLock;
-
 use rspack_core::{
   Compilation, OnPolicyCreationFailure, RuntimeGlobals, RuntimeModule,
   RuntimeModuleGenerateContext, RuntimeTemplate, impl_runtime_module,
 };
 
-use crate::{extract_runtime_module_variables_from_ejs, get_chunk_runtime_requirements};
+use crate::get_chunk_runtime_requirements;
 
 static GET_TRUSTED_TYPES_POLICY_TEMPLATE: &str =
   include_str!("runtime/get_trusted_types_policy.ejs");
-static RUNTIME_MODULE_VARIABLES: LazyLock<Vec<&'static str>> =
-  LazyLock::new(|| extract_runtime_module_variables_from_ejs(&[GET_TRUSTED_TYPES_POLICY_TEMPLATE]));
+static RUNTIME_MODULE_VARIABLES: &[&str] = &["policy"];
 
 #[impl_runtime_module(runtime_module_variables)]
 #[derive(Debug)]
@@ -25,7 +22,7 @@ impl GetTrustedTypesPolicyRuntimeModule {
 #[async_trait::async_trait]
 impl RuntimeModule for GetTrustedTypesPolicyRuntimeModule {
   fn runtime_module_variables() -> &'static [&'static str] {
-    RUNTIME_MODULE_VARIABLES.as_slice()
+    RUNTIME_MODULE_VARIABLES
   }
 
   fn runtime_requirements(
