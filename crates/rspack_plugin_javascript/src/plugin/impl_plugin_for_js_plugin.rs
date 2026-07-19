@@ -557,6 +557,16 @@ async fn render_manifest(
     .build_chunk_graph_artifact
     .chunk_by_ukey
     .expect_get(chunk_ukey);
+  if let Some(name) = chunk.name()
+    && (name.contains('?') || name.contains('#'))
+  {
+    diagnostics.push(Diagnostic::warn(
+      "Invalid chunk name".to_string(),
+      format!(
+        "Chunk name \"{name}\" contains '?' or '#', which can make the emitted filename differ from the URL requested by the runtime. Avoid these characters in chunk names."
+      ),
+    ));
+  }
   let runtime_template = compilation.runtime_template.create_chunk_code_template();
   let is_hot_update = matches!(chunk.kind(), ChunkKind::HotUpdate);
   let is_main_chunk = chunk.groups().iter().any(|group_ukey| {
@@ -583,16 +593,6 @@ async fn render_manifest(
   if !is_hot_update && !is_main_chunk && !is_runtime_chunk && !chunk_has_js(chunk_ukey, compilation)
   {
     return Ok(());
-  }
-  if let Some(name) = chunk.name()
-    && (name.contains('?') || name.contains('#'))
-  {
-    diagnostics.push(Diagnostic::warn(
-      "Invalid chunk name".to_string(),
-      format!(
-        "Chunk name \"{name}\" contains '?' or '#', which can make the emitted filename differ from the URL requested by the runtime. Avoid these characters in chunk names."
-      ),
-    ));
   }
   let filename_template = get_js_chunk_filename_template(
     chunk,
