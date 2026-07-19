@@ -12,10 +12,10 @@ use rspack_cacheable::{
 use rspack_core::{
   ArcComputed, AsyncDependenciesBlockIdentifier, BuildMetaExportsType,
   COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY, ChunkGraph, CollectedTypeScriptInfo, Compilation,
-  DependenciesBlock, DependencyId, ExportMode, GenerateContext, ImportMeta, Module, ModuleArgument,
+  DependenciesBlock, DependencyId, GenerateContext, ImportMeta, Module, ModuleArgument,
   ModuleCodeTemplate, ModuleGraph, ModuleType, ParseContext, ParseResult, ParserAndGenerator,
-  ResolvedModuleOptions, RuntimeGlobals, RuntimeSpec, RuntimeVariable, SideEffectsBailoutItem,
-  SourceType, TemplateContext, TemplateReplaceSource,
+  ResolvedModuleOptions, RuntimeGlobals, RuntimeVariable, SideEffectsBailoutItem, SourceType,
+  TemplateContext, TemplateReplaceSource,
   diagnostics::map_box_diagnostics_to_module_parse_diagnostics,
   remove_bom, render_init_fragments,
   rspack_sources::{BoxSource, ReplaceSource, Source, SourceExt},
@@ -31,135 +31,9 @@ use swc_experimental_ecma_transforms_base::remove_paren::remove_paren;
 
 use crate::{
   BoxJavascriptParserPlugin,
-  dependency::{ESMCompatibilityDependency, ESMExportImportedSpecifierDependency},
+  dependency::ESMCompatibilityDependency,
   visitors::{ParsedJavaScriptAst, ScanDependenciesResult, scan_dependencies, semicolon},
 };
-
-pub(crate) const CHECKED_REEXPORT_KEY_THRESHOLD: usize = 8;
-const CHECKED_REEXPORT_RUNTIME_CALL_THRESHOLD: usize = 8;
-
-#[derive(Debug, Clone, Copy)]
-pub(crate) struct UseCheckedReexportRuntime;
-
-pub(crate) fn should_render_checked_reexport_loop(
-  checked_item_count: usize,
-  supports_computed_property: bool,
-) -> bool {
-  supports_computed_property && checked_item_count >= CHECKED_REEXPORT_KEY_THRESHOLD
-}
-
-fn checked_reexport_runtime_required_calls(runtime_copy_count: usize) -> Option<usize> {
-  let required_calls = CHECKED_REEXPORT_RUNTIME_CALL_THRESHOLD.saturating_mul(runtime_copy_count);
-  (required_calls != 0).then_some(required_calls)
-}
-
-fn checked_reexport_runtime_copy_count(
-  module: &dyn Module,
-  compilation: &Compilation,
-  runtime: Option<&RuntimeSpec>,
-) -> Option<usize> {
-  let runtime = runtime.filter(|runtime| !runtime.is_empty())?;
-  let module_identifier = module.identifier();
-  let current_hash = ChunkGraph::get_module_hash(compilation, module_identifier, runtime)?;
-  let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
-  let module_runtimes = chunk_graph.get_module_runtimes(
-    module_identifier,
-    &compilation.build_chunk_graph_artifact.chunk_by_ukey,
-  );
-  let runtime_group = RuntimeSpec::from_runtimes(module_runtimes.values().filter(|candidate| {
-    !candidate.is_empty()
-      && ChunkGraph::get_module_hash(compilation, module_identifier, candidate)
-        .is_some_and(|hash| hash == current_hash)
-  }));
-  (!runtime_group.is_empty()).then_some(runtime_group.len())
-}
-
-fn should_use_checked_reexport_runtime(
-  module: &dyn Module,
-  compilation: &Compilation,
-  runtime: Option<&RuntimeSpec>,
-  has_concatenation_scope: bool,
-) -> bool {
-  let supports_computed_property = compilation
-    .options
-    .output
-    .environment
-    .supports_computed_property();
-  if has_concatenation_scope || !supports_computed_property {
-    return false;
-  }
-
-  let module_graph = compilation.get_module_graph();
-  let star_reexport_count = module
-    .get_dependencies()
-    .iter()
-    .filter_map(|dependency_id| {
-      module_graph
-        .dependency_by_id(dependency_id)
-        .downcast_ref::<ESMExportImportedSpecifierDependency>()
-    })
-    .filter(|dependency| dependency.name.is_none())
-    .take(CHECKED_REEXPORT_RUNTIME_CALL_THRESHOLD)
-    .count();
-  if star_reexport_count < CHECKED_REEXPORT_RUNTIME_CALL_THRESHOLD {
-    return false;
-  }
-
-  let Some(required_calls) = checked_reexport_runtime_copy_count(module, compilation, runtime)
-    .and_then(checked_reexport_runtime_required_calls)
-  else {
-    return false;
-  };
-
-  module
-    .get_dependencies()
-    .iter()
-    .filter_map(|dependency_id| {
-      module_graph
-        .dependency_by_id(dependency_id)
-        .downcast_ref::<ESMExportImportedSpecifierDependency>()
-    })
-    .filter(|dependency| dependency.name.is_none())
-    .filter(|dependency| {
-      let checked_item_count = match dependency.get_mode(
-        module_graph,
-        runtime,
-        &compilation.module_graph_cache_artifact,
-        &compilation.exports_info_artifact,
-      ) {
-        ExportMode::NormalReexport(mode) => mode
-          .items
-          .iter()
-          .filter(|item| item.checked && !item.hidden)
-          .take(CHECKED_REEXPORT_KEY_THRESHOLD)
-          .count(),
-        _ => 0,
-      };
-      should_render_checked_reexport_loop(checked_item_count, supports_computed_property)
-    })
-    .take(required_calls)
-    .count()
-    >= required_calls
-}
-
-#[cfg(test)]
-mod checked_reexport_tests {
-  use super::{checked_reexport_runtime_required_calls, should_render_checked_reexport_loop};
-
-  #[test]
-  fn checked_reexport_loop_boundary() {
-    assert!(!should_render_checked_reexport_loop(7, true));
-    assert!(should_render_checked_reexport_loop(8, true));
-    assert!(!should_render_checked_reexport_loop(8, false));
-  }
-
-  #[test]
-  fn checked_reexport_runtime_call_threshold_accounts_for_copies() {
-    assert_eq!(checked_reexport_runtime_required_calls(0), None);
-    assert_eq!(checked_reexport_runtime_required_calls(1), Some(8));
-    assert_eq!(checked_reexport_runtime_required_calls(4), Some(32));
-  }
-}
 
 #[derive(Debug)]
 pub struct ParserRuntimeRequirementsData {
@@ -520,14 +394,6 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       let mut source = ReplaceSource::new(source.clone());
       let compilation = generate_context.compilation;
       let mut init_fragments = vec![];
-      if should_use_checked_reexport_runtime(
-        module,
-        compilation,
-        generate_context.runtime,
-        generate_context.concatenation_scope.is_some(),
-      ) {
-        generate_context.data.insert(UseCheckedReexportRuntime);
-      }
       let mut context = TemplateContext {
         compilation,
         module,
@@ -562,7 +428,6 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         .get_blocks()
         .iter()
         .for_each(|block_id| self.source_block(compilation, block_id, &mut source, &mut context));
-      context.data.remove::<UseCheckedReexportRuntime>();
       generate_context.concatenation_scope = context.concatenation_scope.take();
       render_init_fragments(source.boxed(), init_fragments, generate_context)
     } else {
