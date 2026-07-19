@@ -6,8 +6,9 @@ use rspack_util::SpanExt;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_atoms::Atom;
 use swc_experimental_ecma_ast::{
-  AssignExpr, AssignOp, ClassMember, DefaultDecl, Expr, GetSpan, Ident, MemberExpr, ModuleDecl,
-  Pat, Program, Span, ThisExpr, VarDeclarator,
+  AssignExpr, AssignOp, BinaryOp, ClassMember, DefaultDecl, Expr, GetSpan, Ident, Lit, MemberExpr,
+  MemberProp, ModuleDecl, Pat, Program, SimpleAssignTarget, Span, Stmt, ThisExpr, UnaryOp,
+  VarDeclarator,
 };
 
 use super::state::{
@@ -37,6 +38,193 @@ fn class_member_is_static(member: &ClassMember<'_>) -> bool {
     ClassMember::StaticBlock(_) => true,
     ClassMember::AutoAccessor(a) => a.is_static,
   }
+}
+
+fn without_parentheses<'a>(mut expr: &'a Expr<'a>) -> &'a Expr<'a> {
+  while let Expr::Paren(paren) = expr {
+    expr = &paren.expr;
+  }
+  expr
+}
+
+fn simple_assignment_ident<'a>(assign: &'a AssignExpr<'a>) -> Option<&'a Ident<'a>> {
+  if assign.op != AssignOp::Assign {
+    return None;
+  }
+  let SimpleAssignTarget::Ident(ident) = assign.left.as_simple()? else {
+    return None;
+  };
+  Some(&ident.id)
+}
+
+fn computed_string_member_name<'a>(member: &'a MemberExpr<'a>, object: &str) -> Option<&'a str> {
+  let Expr::Ident(member_object) = without_parentheses(&member.obj) else {
+    return None;
+  };
+  if member_object.sym.as_str() != object {
+    return None;
+  }
+  let MemberProp::Computed(computed) = &member.prop else {
+    return None;
+  };
+  let Expr::Lit(lit) = without_parentheses(&computed.expr) else {
+    return None;
+  };
+  let Lit::Str(property) = &**lit else {
+    return None;
+  };
+  property.value.as_str()
+}
+
+fn is_typescript_enum_constant(expr: &Expr<'_>) -> bool {
+  match without_parentheses(expr) {
+    Expr::Lit(lit) => matches!(&**lit, Lit::Str(_) | Lit::Num(_)),
+    Expr::Unary(unary) if matches!(unary.op, UnaryOp::Plus | UnaryOp::Minus) => {
+      matches!(without_parentheses(&unary.arg), Expr::Lit(lit) if matches!(&**lit, Lit::Num(_)))
+    }
+    _ => false,
+  }
+}
+
+fn is_typescript_enum_member_statement(stmt: &Stmt<'_>, enum_name: &str) -> bool {
+  let Stmt::Expr(expr_stmt) = stmt else {
+    return false;
+  };
+  let Expr::Assign(outer_assign) = without_parentheses(&expr_stmt.expr) else {
+    return false;
+  };
+  if outer_assign.op != AssignOp::Assign {
+    return false;
+  }
+  let Some(SimpleAssignTarget::Member(outer_member)) = outer_assign.left.as_simple() else {
+    return false;
+  };
+
+  if computed_string_member_name(outer_member, enum_name).is_some() {
+    return is_typescript_enum_constant(&outer_assign.right);
+  }
+
+  let MemberProp::Computed(computed) = &outer_member.prop else {
+    return false;
+  };
+  let Expr::Ident(member_object) = without_parentheses(&outer_member.obj) else {
+    return false;
+  };
+  if member_object.sym.as_str() != enum_name {
+    return false;
+  }
+  let Expr::Assign(inner_assign) = without_parentheses(&computed.expr) else {
+    return false;
+  };
+  let Some(member_name) = simple_typescript_enum_assignment(inner_assign, enum_name) else {
+    return false;
+  };
+  matches!(without_parentheses(&outer_assign.right), Expr::Lit(lit) if matches!(&**lit, Lit::Str(value) if value.value.as_str() == Some(member_name)))
+}
+
+fn simple_typescript_enum_assignment<'a>(
+  assign: &'a AssignExpr<'a>,
+  enum_name: &str,
+) -> Option<&'a str> {
+  if assign.op != AssignOp::Assign || !is_typescript_enum_constant(&assign.right) {
+    return None;
+  }
+  let SimpleAssignTarget::Member(member) = assign.left.as_simple()? else {
+    return None;
+  };
+  computed_string_member_name(member, enum_name)
+}
+
+fn typescript_enum_export_name<'a>(expr: &'a Expr<'a>, enum_name: &str) -> Option<Option<Atom>> {
+  let Expr::Bin(logical_or) = without_parentheses(expr) else {
+    return None;
+  };
+  if logical_or.op != BinaryOp::LogicalOr
+    || !matches!(without_parentheses(&logical_or.left), Expr::Ident(ident) if ident.sym.as_str() == enum_name)
+  {
+    return None;
+  }
+
+  let Expr::Assign(assignment) = without_parentheses(&logical_or.right) else {
+    return None;
+  };
+  let mut assignment = &**assignment;
+  let mut export_name = None;
+  if simple_assignment_ident(assignment).is_none_or(|ident| ident.sym.as_str() != enum_name) {
+    let Some(SimpleAssignTarget::Member(member)) = assignment.left.as_simple() else {
+      return None;
+    };
+    let Expr::Ident(object) = without_parentheses(&member.obj) else {
+      return None;
+    };
+    if object.sym.as_str() != "exports" {
+      return None;
+    }
+    let name = match &member.prop {
+      MemberProp::Ident(ident) => ident.sym.as_str(),
+      MemberProp::Computed(computed) => {
+        let Expr::Lit(lit) = without_parentheses(&computed.expr) else {
+          return None;
+        };
+        let Lit::Str(name) = &**lit else {
+          return None;
+        };
+        name.value.as_str()?
+      }
+      _ => return None,
+    };
+    if name != enum_name {
+      return None;
+    }
+    export_name = Some(Atom::from(name));
+    let Expr::Assign(inner_assignment) = without_parentheses(&assignment.right) else {
+      return None;
+    };
+    assignment = &**inner_assignment;
+  }
+
+  if simple_assignment_ident(assignment).is_none_or(|ident| ident.sym.as_str() != enum_name)
+    || !matches!(without_parentheses(&assignment.right), Expr::Object(object) if object.props.is_empty())
+  {
+    return None;
+  }
+  Some(export_name)
+}
+
+fn match_typescript_enum_statement(stmt: Statement<'_>) -> Option<(Atom, Option<Atom>, Span)> {
+  let Statement::Expr(expr_stmt) = stmt else {
+    return None;
+  };
+  let Expr::Call(call) = without_parentheses(&expr_stmt.expr) else {
+    return None;
+  };
+  if call.args.len() != 1 || call.args[0].spread.is_some() {
+    return None;
+  }
+  let Expr::Fn(function) = without_parentheses(call.callee.as_expr()?) else {
+    return None;
+  };
+  if function.ident.is_some()
+    || function.function.is_async
+    || function.function.is_generator
+    || function.function.params.len() != 1
+  {
+    return None;
+  }
+  let Pat::Ident(parameter) = &function.function.params[0].pat else {
+    return None;
+  };
+  let enum_name = parameter.id.sym.as_str();
+  let body = function.function.body.as_ref()?;
+  if !body
+    .stmts
+    .iter()
+    .all(|stmt| is_typescript_enum_member_statement(stmt, enum_name))
+  {
+    return None;
+  }
+  let export_name = typescript_enum_export_name(&call.args[0].expr, enum_name)?;
+  Some((Atom::from(enum_name), export_name, call.span))
 }
 
 #[derive(Debug)]
@@ -431,6 +619,22 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InnerGraphParserPlugin {
   ) -> Option<bool> {
     if !parser.inner_graph.is_enabled() || !parser.is_top_level_scope() {
       return None;
+    }
+
+    if let Some((name, export_name, pure_span)) = match_typescript_enum_statement(stmt) {
+      let variable = Self::tag_top_level_symbol(parser, &name);
+      parser
+        .inner_graph
+        .statement_with_top_level_symbol
+        .insert(stmt.span(), variable);
+      parser
+        .inner_graph
+        .statement_pure_part
+        .insert(stmt.span(), pure_span);
+      if let Some(export_name) = export_name {
+        Self::add_variable_usage(parser, &name, InnerGraphMapUsage::Value(export_name));
+      }
+      return Some(true);
     }
 
     if let Some(class_decl) = stmt.as_class_decl()
