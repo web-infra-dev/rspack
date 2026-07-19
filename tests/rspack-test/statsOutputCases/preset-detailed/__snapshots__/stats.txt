@@ -4,15 +4,15 @@ asset main.js xx KiB {889} [emitted] (name: main)
 Entrypoint main xx KiB = main.js
 chunk {889} (runtime: main) main.js (main) xx bytes [entry] [rendered]
   > ./index main
-./index.js [237] xx bytes {889} [depth 0] [built] [code generated] [2 warnings]
+./index.js [xl] xx bytes {889} [depth 0] [built] [code generated] [2 warnings]
   [no exports used]
   Statement with side_effects in source code at ./index.js<LINE_COL>-8
   ModuleConcatenation bailout: Module is not an ECMAScript module
-./a.js [670] xx bytes {889} [depth 1] [built] [code generated]
+./a.js [ZBW] xx bytes {889} [depth 1] [built] [code generated]
   [used exports unknown]
   Statement with side_effects in source code at ./a.js<LINE_COL>-22
   ModuleConcatenation bailout: Module is not an ECMAScript module
-./.|sync [641] xx bytes {889} [depth 1] [built] [code generated]
+./.|sync [e8T] xx bytes {889} [depth 1] [built] [code generated]
   [no exports]
   ModuleConcatenation bailout: Module Concatenation is not implemented for javascript/auto
 
@@ -54,4 +54,4 @@ WARNING in ./index.js 3:1-17
    ·         ───────
    ╰────
 
-1970-04-20 12<LINE_COL>: Rspack x.x.x compiled with 2 warnings in X s (d2cff3f6f4e0a843)
+1970-04-20 12<LINE_COL>: Rspack x.x.x compiled with 2 warnings in X s (ba27dd1379b240b8)

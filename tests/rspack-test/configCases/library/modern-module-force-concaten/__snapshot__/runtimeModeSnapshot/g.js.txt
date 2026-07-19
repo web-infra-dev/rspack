@@ -1,13 +1,13 @@
 import { __rspack_context } from "./runtime~0.js";
 
 __rspack_context.m.add({
-547(module) {
+"OnH"(module) {
 module.exports = 'foo'
 
 
 },
 });
-const foo = __rspack_context.r("547");
+const foo = __rspack_context.r("OnH");
 var foo_default = /*#__PURE__*/__rspack_context.n(foo);
 var foo_default_0 = foo_default();
 
