@@ -10,7 +10,7 @@
 - Bundle: modules_module_js.chunk.CURRENT_HASH.js
 - Bundle: modules_module_js_lazy-compilation-proxy.chunk.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 71
-- Update: main.LAST_HASH.hot-update.js, size: 426
+- Update: main.LAST_HASH.hot-update.js, size: 470
 - Update: modules_module_js_lazy-compilation-proxy.LAST_HASH.hot-update.js, size: 1054
 
 ## Manifest
@@ -38,7 +38,8 @@
 "use strict";
 self["rspackHotUpdate"]("main", {
 "./generation.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.D(__webpack_exports__, {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
   "default": () => (__rspack_default_export)
 });
 /* export default */ const __rspack_default_export = (3);

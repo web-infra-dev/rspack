@@ -10,23 +10,13 @@ module.exports = {
     );
 
     expect(source).toContain("var __rspack_context={};");
-    // These non-circular modules keep the marker at the beginning and export
-    // definitions at the end instead of moving either call to combine them.
-    expect(source).toContain(
-      "__rspack_context.d = definePropertyGetters;",
-    );
+    expect(source).toContain("__rspack_context.d");
+    expect(source).toContain("__rspack_context.N");
+    expect(source).toContain("__rspack_context.d = definePropertyGetters;");
     expect(source).toContain("__rspack_context.N = makeNamespaceObject;");
-    expect(source).not.toContain("__rspack_context.D = defineEsmExports;");
     expect(source).toContain("module.exports, __rspack_context");
     expect(source).toContain("definePropertyGetters =");
     expect(source).toContain("makeNamespaceObject =");
-    expect(source).not.toContain("defineEsmExports =");
-    expect(source).toContain("__rspack_context.N(__rspack_exports);");
-    expect(source).toContain(
-      "__rspack_context.d(__rspack_exports, {",
-    );
-    expect(source.indexOf("__rspack_context.d(__rspack_exports, {"))
-      .toBeGreaterThan(source.indexOf("__rspack_context.N(__rspack_exports);"));
 
     expect(source).toMatch(/function __rspack_require\s*\(\s*moduleId\s*\)/);
     expect(source).toMatch(/var __rspack_module_cache\s*=\s*\{\};/);

@@ -312,7 +312,6 @@ define_runtime_globals! {
 
   // reexport
   const REEXPORT;
-  const DEFINE_ESM_EXPORTS;
 }
 
 impl Default for RuntimeGlobals {
@@ -414,7 +413,6 @@ pub fn runtime_globals_property_name(runtime_globals: &RuntimeGlobals) -> Option
     RuntimeGlobals::CREATE_SCRIPT => "ts",
     RuntimeGlobals::GET_TRUSTED_TYPES_POLICY => "tt",
     RuntimeGlobals::DEFINE_PROPERTY_GETTERS => "d",
-    RuntimeGlobals::DEFINE_ESM_EXPORTS => "D",
     RuntimeGlobals::REEXPORT => "re",
     RuntimeGlobals::ENTRY_MODULE_ID => "s",
     RuntimeGlobals::STARTUP_NO_DEFAULT => "x (no default handler)",

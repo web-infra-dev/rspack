@@ -59,7 +59,7 @@ module.exports = {
 			      isOverSizeLimit: false,
 			      name: main.js,
 			      related: Array [],
-			      size: 462,
+			      size: 444,
 			      type: asset,
 			    },
 			  ],
@@ -79,7 +79,7 @@ module.exports = {
 			        main.js,
 			      ],
 			      filteredModules: undefined,
-			      hash: eeecce090f59e7e0,
+			      hash: 01b216cf5147ae81,
 			      id: 889,
 			      idHints: Array [],
 			      initial: true,
@@ -100,7 +100,7 @@ module.exports = {
 			          failed: false,
 			          filteredModules: undefined,
 			          filteredReasons: undefined,
-			          id: rxz,
+			          id: 19,
 			          identifier: <TEST_ROOT>/fixtures/esm/abc.js|03380b8b9c8c2fbd,
 			          index: 0,
 			          index2: 3,
@@ -437,7 +437,7 @@ module.exports = {
 			      size: 192,
 			      sizes: Object {
 			        javascript: 192,
-			        runtime: 847,
+			        runtime: 705,
 			      },
 			      type: chunk,
 			    },
@@ -447,10 +447,10 @@ module.exports = {
 			      assets: Array [
 			        Object {
 			          name: main.js,
-			          size: 462,
+			          size: 444,
 			        },
 			      ],
-			      assetsSize: 462,
+			      assetsSize: 444,
 			      auxiliaryAssets: Array [],
 			      auxiliaryAssetsSize: 0,
 			      childAssets: Object {},
@@ -467,7 +467,7 @@ module.exports = {
 			  errorsCount: 0,
 			  filteredAssets: undefined,
 			  filteredModules: undefined,
-			  hash: c401b828a0c3092b,
+			  hash: 5a1a86e0fbb6505a,
 			  modules: Array [
 			    Object {
 			      assets: Array [],
@@ -527,7 +527,7 @@ module.exports = {
 			      failed: false,
 			      filteredModules: undefined,
 			      filteredReasons: undefined,
-			      id: rxz,
+			      id: 19,
 			      identifier: <TEST_ROOT>/fixtures/esm/abc.js|03380b8b9c8c2fbd,
 			      index: 0,
 			      index2: 3,
@@ -1088,48 +1088,6 @@ module.exports = {
 			      failed: false,
 			      filteredReasons: undefined,
 			      id: ,
-			      identifier: webpack/runtime/define_esm_exports,
-			      index: undefined,
-			      index2: undefined,
-			      issuer: undefined,
-			      issuerId: undefined,
-			      issuerName: undefined,
-			      issuerPath: undefined,
-			      layer: undefined,
-			      moduleType: runtime,
-			      name: webpack/runtime/define_esm_exports,
-			      nameForCondition: undefined,
-			      optimizationBailout: Array [],
-			      optional: false,
-			      orphan: false,
-			      postOrderIndex: undefined,
-			      preOrderIndex: undefined,
-			      providedExports: Array [],
-			      reasons: Array [],
-			      size: 142,
-			      sizes: Object {
-			        runtime: 142,
-			      },
-			      type: module,
-			      usedExports: null,
-			      warnings: 0,
-			    },
-			    Object {
-			      assets: Array [],
-			      buildTimeExecuted: false,
-			      built: false,
-			      cacheable: true,
-			      cached: false,
-			      chunks: Array [
-			        889,
-			      ],
-			      codeGenerated: true,
-			      dependent: false,
-			      depth: undefined,
-			      errors: 0,
-			      failed: false,
-			      filteredReasons: undefined,
-			      id: ,
 			      identifier: webpack/runtime/define_property_getters,
 			      index: undefined,
 			      index2: undefined,
@@ -1246,10 +1204,10 @@ module.exports = {
 			      assets: Array [
 			        Object {
 			          name: main.js,
-			          size: 462,
+			          size: 444,
 			        },
 			      ],
-			      assetsSize: 462,
+			      assetsSize: 444,
 			      auxiliaryAssets: Array [],
 			      auxiliaryAssetsSize: 0,
 			      childAssets: Object {},
@@ -1277,9 +1235,9 @@ module.exports = {
 			builtAt: false,
 			version: false
 		})).toMatchInlineSnapshot(`
-			asset main.js 462 bytes [emitted] (name: main)
+			asset main.js 444 bytes [emitted] (name: main)
 			orphan modules 192 bytes [orphan] 4 modules
-			runtime modules 847 bytes 4 modules
+			runtime modules 705 bytes 3 modules
 			./fixtures/esm/abc.js + 3 modules 192 bytes [code generated]
 			  [no exports]
 			  [no exports used]

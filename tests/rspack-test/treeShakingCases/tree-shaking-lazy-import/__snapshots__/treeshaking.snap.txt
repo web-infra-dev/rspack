@@ -2,7 +2,8 @@
 "use strict";
 (self["rspackChunk"] ||= []).push([["lib_js"], {
 "./lib.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.D(__webpack_exports__, {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
   "default": () => (__rspack_default_export)
 });
 /* import */ var _test__rspack_import_0 = __webpack_require__("./test.js");

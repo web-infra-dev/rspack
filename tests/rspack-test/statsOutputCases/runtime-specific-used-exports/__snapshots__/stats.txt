@@ -129,7 +129,7 @@ development:
       [used exports unknown]
     ./module.js?chunk xx bytes [dependent] [built] [code generated]
       [used exports unknown]
-  runtime modules xx KiB 20 modules
+  runtime modules xx KiB 18 modules
   cacheable modules xx KiB
     ./a.js xx bytes [built] [code generated]
       [used exports unknown]

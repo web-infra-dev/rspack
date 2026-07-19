@@ -17,9 +17,9 @@
 - Manifest: [runtime of workerB_js].LAST_HASH.hot-update.json, size: 43
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
 - Update: main.LAST_HASH.hot-update.js, size: 181
-- Update: shared.LAST_HASH.hot-update.js, size: 677
-- Update: workerA_js.LAST_HASH.hot-update.js, size: 429
-- Update: workerB_js.LAST_HASH.hot-update.js, size: 568
+- Update: shared.LAST_HASH.hot-update.js, size: 765
+- Update: workerA_js.LAST_HASH.hot-update.js, size: 473
+- Update: workerB_js.LAST_HASH.hot-update.js, size: 612
 
 ## Manifest
 
@@ -86,7 +86,8 @@ __webpack_require__.h = () => ("CURRENT_HASH")
 "use strict";
 self["rspackHotUpdate"]("shared", {
 "./moduleAs.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.D(__webpack_exports__, {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
   "default": () => (__rspack_default_export)
 });
 /* export default */ const __rspack_default_export = (6);
@@ -94,7 +95,8 @@ __webpack_require__.D(__webpack_exports__, {
 
 },
 "./moduleBs.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.D(__webpack_exports__, {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
   "default": () => (__rspack_default_export)
 });
 /* export default */ const __rspack_default_export = (6);
@@ -121,7 +123,8 @@ if (Math.random() < 0) __webpack_require__.e(/* import() */ "chunkS_js").then(__
 "use strict";
 self["rspackHotUpdate"]("workerA_js", {
 "./moduleA.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.D(__webpack_exports__, {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
   "default": () => (__rspack_default_export)
 });
 /* export default */ const __rspack_default_export = (6);
@@ -154,7 +157,8 @@ __webpack_require__.h = () => ("CURRENT_HASH")
 "use strict";
 self["rspackHotUpdate"]("workerB_js", {
 "./moduleB.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.D(__webpack_exports__, {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
   "default": () => (__rspack_default_export)
 });
 /* export default */ const __rspack_default_export = (6);

@@ -2,7 +2,8 @@
 "use strict";
 (self["rspackChunk"] ||= []).push([["main"], {
 "./src/answer.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.D(__webpack_exports__, {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
   formatNumber: () => (/* reexport safe */ _plugin_formatNumber__rspack_import_0["default"])
 });
 /* import */ var _plugin_formatNumber__rspack_import_0 = __webpack_require__("./src/plugin/formatNumber.js");

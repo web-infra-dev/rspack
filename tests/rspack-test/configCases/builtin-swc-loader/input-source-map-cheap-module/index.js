@@ -19,7 +19,6 @@ it("should keep the original content with `devtool: \"cheap-module-source-map\"`
 	expect(map.sources.sort()).toEqual([
 		sourceUrl("./a.jsx"),
 		sourceUrl("./index.js"),
-		runtimeSource("define_esm_exports"),
 		runtimeSource("define_property_getters"),
 		runtimeSource("has_own_property"),
 		runtimeSource("make_namespace_object"),
