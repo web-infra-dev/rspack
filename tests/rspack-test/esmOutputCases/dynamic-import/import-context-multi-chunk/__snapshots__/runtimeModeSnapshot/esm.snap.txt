@@ -55,7 +55,7 @@ export {};
 ```
 
 ```mjs title=main.mjs
-import { rspackRequire, ensureChunk, hasOwnProperty, moduleFactories } from "./runtime.mjs";
+import { rspackRequire, ensureChunk, moduleFactories, createContext } from "./runtime.mjs";
 moduleFactories.add({
 "./modules lazy recursive ^\\.\\/.*\\.js$ referencedExports: default"
 /*!**************************************************************************************************************************!*\
@@ -80,20 +80,17 @@ var map = {
     ]
   ]
 };
-function __rspack_async_context(req) {
-  if(!hasOwnProperty(map, req)) {
-    return Promise.resolve().then(() => {
-var e = new Error("Cannot find module '" + req + "'");
-e.code = 'MODULE_NOT_FOUND';
+var __rspack_async_context = createContext(map, "./modules lazy recursive ^\\.\\/.*\\.js$ referencedExports: default", (req, resolve) => {
+var ids;
+try {
+  ids = resolve(req);
+} catch(e) {
+  return Promise.resolve().then(() => {
 throw e;
 });
-  }
-
-  var ids = map[req], id = ids[0];
-  return Promise.all(ids[1].map(function(chunkId) { return ensureChunk(chunkId); })).then(() => (rspackRequire(id)));
 }
 var id = ids[0];
-return Promise.all(ids[1].map(function(chunkId) { return __rspack_context.e(chunkId); })).then(() => (__rspack_context.r(id)));
+return Promise.all(ids[1].map(function(chunkId) { return ensureChunk(chunkId); })).then(() => (rspackRequire(id)));
 
 }, 0, false);
 module.exports = __rspack_async_context;
@@ -162,6 +159,27 @@ export { rspackRequire };
 var moduleFactories = modules;
 export { moduleFactories };
 
+// rspack/runtime/context
+var createContext = (map, id, load, createResolve, exposeResolve) => {
+	var resolve = (req) => {
+		if(!hasOwnProperty(map, req)) {
+			var e = new Error("Cannot find module '" + req + "'");
+			e.code = 'MODULE_NOT_FOUND';
+			throw e;
+		}
+		return map[req];
+	};
+	if(createResolve) resolve = createResolve(resolve);
+	var context = (req) => {
+		return load(req, resolve);
+	};
+	context.keys = () => (Object.keys(map));
+	if(exposeResolve) context.resolve = resolve;
+	context.id = id;
+	return context;
+};
+;
+export { createContext };
 // rspack/runtime/define_property_getters
 var definePropertyGetters = (exports, getters, values) => {
 	var define = (defs, kind) => {
@@ -198,7 +216,6 @@ var getChunkScriptFilename = (chunkId) => {
 };
 // rspack/runtime/has_own_property
 var hasOwnProperty = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop));
-export { hasOwnProperty };
 // rspack/runtime/make_namespace_object
 // define __esModule on exports
 var makeNamespaceObject = (exports) => {

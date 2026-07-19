@@ -1,7 +1,7 @@
 asset main.js xx bytes {889} [emitted] (name: main)
 chunk {889} (runtime: main) main.js (main) xx bytes [entry] [rendered]
 orphan modules xx bytes [orphan] 1 module
-./index.js [237] xx bytes {889} [built] [code generated]
+./index.js [xl] xx bytes {889} [built] [code generated]
   [no exports]
   [no exports used]
   ModuleConcatenation bailout: Module is an entry point

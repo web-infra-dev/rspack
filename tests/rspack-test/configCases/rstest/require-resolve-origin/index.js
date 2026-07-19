@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { regexEscape } = require('@rspack/test-tools/helper/legacy/regexEscape');
 
 const sourceFile = path.resolve(
 	__dirname,
@@ -14,6 +15,7 @@ it('rewrites require.resolve calls with source module origin', () => {
 
 	const helper = '__rstest_require_resolve__';
 	const originLiteral = JSON.stringify(sourceFile);
+	const moduleId = String.raw`(?:\d+|"[A-Za-z][A-Za-z0-9]*")`;
 
 	expect(content).toContain(`${helper}('./target', ${originLiteral})`);
 	expect(content).toContain(`${helper}(name, ${originLiteral})`);
@@ -28,12 +30,12 @@ it('rewrites require.resolve calls with source module origin', () => {
 	// `webpackIgnore` only affects require.resolve when commonjsMagicComments is
 	// enabled, and shadowed require must not be rewritten.
 	if (globalThis.__RSPACK_TEST_RUNTIME_MODE_RSPACK) {
-		expect(content).toContain(
-			`${helper}((__rspack_context.r(161)/* .name */.name), ${originLiteral})`,
+		expect(content).toMatch(
+			new RegExp(`${helper}\\(\\(__rspack_context\\.r\\(${moduleId}\\)/\\* \\.name \\*/\\.name\\), ${regexEscape(originLiteral)}\\)`),
 		);
 	} else {
-		expect(content).toContain(
-			`${helper}((__webpack_require__(161)/* .name */.name), ${originLiteral})`,
+		expect(content).toMatch(
+			new RegExp(`${helper}\\(\\(__webpack_require__\\(${moduleId}\\)/\\* \\.name \\*/\\.name\\), ${regexEscape(originLiteral)}\\)`),
 		);
 	}
 	expect(content).toContain(

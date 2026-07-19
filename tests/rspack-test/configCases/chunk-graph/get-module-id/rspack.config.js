@@ -33,6 +33,6 @@ module.exports = [
     optimization: {
       moduleIds: 'deterministic',
     },
-    plugins: [new Plugin([237])],
+    plugins: [new Plugin(['xl'])],
   },
 ];

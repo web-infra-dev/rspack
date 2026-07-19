@@ -4,18 +4,18 @@ asset main.js xx KiB {889} [emitted] (name: main)
 Entrypoint main xx KiB = main.js
 chunk {889} (runtime: main) main.js (main) xx bytes (javascript) xx bytes (runtime) [entry] [rendered]
   > ./index main
-  ./.|sync [641] xx bytes {889} [depth 1] [dependent] [built] [code generated]
+  ./.|sync [e8T] xx bytes {889} [depth 1] [dependent] [built] [code generated]
     [no exports]
     ModuleConcatenation bailout: Module Concatenation is not implemented for javascript/auto
-    commonjs require context . [237] ./index.js 2:1-17
-    commonjs require context . [237] ./index.js 3:1-17
-  ./a.js [670] xx bytes {889} [depth 1] [dependent] [built] [code generated]
+    commonjs require context . [xl] ./index.js 2:1-17
+    commonjs require context . [xl] ./index.js 3:1-17
+  ./a.js [ZBW] xx bytes {889} [depth 1] [dependent] [built] [code generated]
     [used exports unknown]
     Statement with side_effects in source code at ./a.js<LINE_COL>-22
     ModuleConcatenation bailout: Module is not an ECMAScript module
-    cjs self exports reference self [670] ./a.js
-    cjs require ./a [237] ./index.js 1:9-14
-  ./index.js [237] xx bytes {889} [depth 0] [built] [code generated] [2 warnings]
+    cjs self exports reference self [ZBW] ./a.js
+    cjs require ./a [xl] ./index.js 1:9-14
+  ./index.js [xl] xx bytes {889} [depth 0] [built] [code generated] [2 warnings]
     [no exports used]
     Statement with side_effects in source code at ./index.js<LINE_COL>-8
     ModuleConcatenation bailout: Module is not an ECMAScript module
@@ -134,4 +134,4 @@ WARNING in ./index.js 3:1-17
    ·         ───────
    ╰────
 
-1970-04-20 12<LINE_COL>: Rspack x.x.x compiled with 2 warnings in X s (41ad2fda81b65b0e)
+1970-04-20 12<LINE_COL>: Rspack x.x.x compiled with 2 warnings in X s (180a4049a32ba6e9)

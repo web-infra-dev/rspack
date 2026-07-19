@@ -3,8 +3,8 @@ asset preloaded.js xx bytes [emitted] (name: preloaded)
 asset inner2.js xx bytes [emitted] (name: inner2)
 asset inner.js xx bytes [emitted] (name: inner)
 asset normal.js xx bytes [emitted] (name: normal)
-asset preloaded3.js xx bytes [emitted] (name: preloaded3)
 asset preloaded2.js xx bytes [emitted] (name: preloaded2)
+asset preloaded3.js xx bytes [emitted] (name: preloaded3)
 Entrypoint main xx KiB = main.js
   preload: preloaded.js {70} (name: preloaded), preloaded3.js {101} (name: preloaded3), preloaded2.js {206} (name: preloaded2)
 chunk (runtime: main) preloaded3.js (preloaded3) xx bytes [rendered]

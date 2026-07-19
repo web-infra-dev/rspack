@@ -2,19 +2,19 @@ import { rspackRequire, moduleFactories, compatGetDefaultExport } from "./runtim
 import { createRequire as __rspack_createRequire } from "node:module";
 const __rspack_createRequire_require = __rspack_createRequire(import.meta.url);
 moduleFactories.add({
-928(module) {
+"Zm8"(module) {
 module.exports = __rspack_createRequire_require("path");
 
 },
-227(module, __unused_rspack_exports, rspackRequire) {
-const path = rspackRequire(928)
+"gzj"(module, __unused_rspack_exports, rspackRequire) {
+const path = rspackRequire("Zm8")
 
 module.exports = path.sep
 
 
 },
 });
-const bar = rspackRequire("227");
+const bar = rspackRequire("gzj");
 var bar_default = /*#__PURE__*/compatGetDefaultExport(bar);
 
 

@@ -33,7 +33,7 @@ it("should load an harmony module from dll (star export)", function() {
 });
 
 it("should load a module with loader applied", function() {
-	expect(require("dll/g.abc.js")).toBe("number");
+	expect(require("dll/g.abc.js")).toBe("string");
 });
 
 it("should give modules the correct ids", function() {

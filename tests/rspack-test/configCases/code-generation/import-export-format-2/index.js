@@ -11,6 +11,7 @@ export { theDefaultExpression }
 
 const { expectSourceToContain, expectSourceToMatch } = require("@rspack/test-tools/helper/legacy/expectSource");
 const { regexEscape } = require("@rspack/test-tools/helper/legacy/regexEscape");
+const moduleIdPattern = String.raw`(?:\d+|"[A-Za-z][A-Za-z0-9]*")`;
 
 // It's important to use propertyName when generating object members to ensure that the exported property name
 // uses the same accessor syntax (quotes vs. dot notatation) as the imported property name on the other end
@@ -37,11 +38,11 @@ it("should use the same accessor syntax for import and export", function () {
 
 	// Checking formation of imports
 	if (globalThis.__RSPACK_TEST_RUNTIME_MODE_RSPACK) {
-		expectSourceToMatch(source, `${regexEscape("const { harmonyexport_cjsimport } = (__rspack_context.r(")}\\d+${regexEscape(")/* .bar */.bar);")}`);
-		expectSourceToMatch(source, `${regexEscape("const harmonyexport_cjsimportdefault = (__rspack_context.r(")}\\d+${regexEscape(")/* [\"default\"] */[\"default\"]);")}`);
+		expectSourceToMatch(source, `${regexEscape("const { harmonyexport_cjsimport } = (__rspack_context.r(")}${moduleIdPattern}${regexEscape(")/* .bar */.bar);")}`);
+		expectSourceToMatch(source, `${regexEscape("const harmonyexport_cjsimportdefault = (__rspack_context.r(")}${moduleIdPattern}${regexEscape(")/* [\"default\"] */[\"default\"]);")}`);
 	} else {
-		expectSourceToMatch(source, `${regexEscape("const { harmonyexport_cjsimport } = (__webpack_require__(")}\\d+${regexEscape(")/* .bar */.bar);")}`);
-		expectSourceToMatch(source, `${regexEscape("const harmonyexport_cjsimportdefault = (__webpack_require__(")}\\d+${regexEscape(")/* [\"default\"] */[\"default\"]);")}`);
+		expectSourceToMatch(source, `${regexEscape("const { harmonyexport_cjsimport } = (__webpack_require__(")}${moduleIdPattern}${regexEscape(")/* .bar */.bar);")}`);
+		expectSourceToMatch(source, `${regexEscape("const harmonyexport_cjsimportdefault = (__webpack_require__(")}${moduleIdPattern}${regexEscape(")/* [\"default\"] */[\"default\"]);")}`);
 	}
 
 	// Checking concatenatedmodule.js formation of exports

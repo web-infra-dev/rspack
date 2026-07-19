@@ -1,11 +1,11 @@
 import { rspackRequire, moduleFactories, compatGetDefaultExport } from "./runtime~0.js";
 moduleFactories.add({
-100(module) {
+"uE4"(module) {
 module.exports = 'bar'
 
 },
 });
-const bar = rspackRequire("100");
+const bar = rspackRequire("uE4");
 var bar_default = /*#__PURE__*/compatGetDefaultExport(bar);
 var bar_default_0 = bar_default();
 

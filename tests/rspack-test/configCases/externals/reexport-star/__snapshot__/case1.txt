@@ -3,14 +3,14 @@ import { __webpack_require__ } from "./runtime~0.mjs";
 import * as __rspack_external_external1_alias_dd38afe7 from "external1-alias";
 import * as __rspack_external_external2_alias_d6100a5a from "external2-alias";
 __webpack_require__.add({
-42(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+"Bmc"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
-/* import */ var external1__rspack_import_0 = __webpack_require__(322);
+/* import */ var external1__rspack_import_0 = __webpack_require__("Pt4");
 
 /* reexport */ var __rspack_reexport = {};
 /* reexport */ for( const __rspack_import_key in external1__rspack_import_0) if(__rspack_import_key !== "default") __rspack_reexport[__rspack_import_key] =() => external1__rspack_import_0[__rspack_import_key]
 /* reexport */ __webpack_require__.d(__webpack_exports__, __rspack_reexport);
-/* import */ var external2__rspack_import_1 = __webpack_require__(101);
+/* import */ var external2__rspack_import_1 = __webpack_require__("W3F");
 
 /* reexport */ var __rspack_reexport = {};
 /* reexport */ for( const __rspack_import_key in external2__rspack_import_1) if(__rspack_import_key !== "default") __rspack_reexport[__rspack_import_key] =() => external2__rspack_import_1[__rspack_import_key]
@@ -20,20 +20,20 @@ __webpack_require__.r(__webpack_exports__);
 
 
 },
-322(module) {
+"Pt4"(module) {
 
 module.exports = __rspack_external_external1_alias_dd38afe7;
 
 
 },
-101(module) {
+"W3F"(module) {
 
 module.exports = __rspack_external_external2_alias_d6100a5a;
 
 
 },
 });
-__webpack_require__("42");
+__webpack_require__("Bmc");
 
 export * from "external1-alias";
 export * from "external2-alias";

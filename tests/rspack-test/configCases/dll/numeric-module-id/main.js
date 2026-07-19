@@ -1,5 +1,5 @@
 import t from "dll/lib";
 
-it("module id should be number type", () => {
-  expect(t).toBe("number");
+it("module id should be string type", () => {
+  expect(t).toBe("string");
 })

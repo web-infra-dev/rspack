@@ -43,10 +43,10 @@ module.exports = {
 			      assets: Array [
 			        Object {
 			          name: entryA.js,
-			          size: 195,
+			          size: 197,
 			        },
 			      ],
-			      assetsSize: 195,
+			      assetsSize: 197,
 			      auxiliaryAssets: undefined,
 			      auxiliaryAssetsSize: undefined,
 			      childAssets: undefined,
@@ -61,10 +61,10 @@ module.exports = {
 			      assets: Array [
 			        Object {
 			          name: entryB.js,
-			          size: 3210,
+			          size: 3214,
 			        },
 			      ],
-			      assetsSize: 3210,
+			      assetsSize: 3214,
 			      auxiliaryAssets: undefined,
 			      auxiliaryAssetsSize: undefined,
 			      childAssets: undefined,

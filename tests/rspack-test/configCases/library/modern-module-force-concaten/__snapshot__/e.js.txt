@@ -1,12 +1,12 @@
 import { __webpack_require__ } from "./runtime~0.js";
 
 __webpack_require__.add({
-100(module) {
+"uE4"(module) {
 module.exports = 'bar'
 
 },
 });
-const bar = __webpack_require__("100");
+const bar = __webpack_require__("uE4");
 var bar_default = /*#__PURE__*/__webpack_require__.n(bar);
 var bar_default_0 = bar_default();
 

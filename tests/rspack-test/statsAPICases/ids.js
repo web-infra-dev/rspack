@@ -41,7 +41,7 @@ module.exports = {
 			        related: Object {},
 			      },
 			      name: main.js,
-			      size: 195,
+			      size: 197,
 			      type: asset,
 			    },
 			  ],
@@ -58,7 +58,7 @@ module.exports = {
 			      files: Array [
 			        main.js,
 			      ],
-			      hash: b5cd62d7f1e244c4,
+			      hash: 8d2da77dbd0b2163,
 			      id: 889,
 			      idHints: Array [],
 			      initial: true,
@@ -92,7 +92,7 @@ module.exports = {
 			      dependent: undefined,
 			      errors: 0,
 			      failed: false,
-			      id: 195,
+			      id: rAN,
 			      identifier: <TEST_ROOT>/fixtures/a.js,
 			      index: 0,
 			      index2: 0,
@@ -119,9 +119,9 @@ module.exports = {
 			}
 		`);
 		expect(stats?.toString(options)).toBeEquivalentStatsStringWith(`
-			asset main.js 195 bytes {889} [emitted] (name: main)
+			asset main.js 197 bytes {889} [emitted] (name: main)
 			chunk {889} (runtime: main) main.js (main) 55 bytes [entry] [rendered]
-			./fixtures/a.js [195] 55 bytes {889} [built] [code generated]
+			./fixtures/a.js [rAN] 55 bytes {889} [built] [code generated]
 		`);
 	}
 };
