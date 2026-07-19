@@ -1,9 +1,9 @@
-<%- var("extractCssOldTags") %> = [];
-<%- var("extractCssNewTags") %> = [];
-<%- var("extractCssTextKey") %> = function (link) {
+var extractCssOldTags = [];
+var extractCssNewTags = [];
+var extractCssTextKey = function (link) {
 	return Array.from(link.sheet.cssRules, function (r) { return r.cssText; }).join();
 }
-<%- var("extractCssApplyHandler") %> = function (options) {
+var extractCssApplyHandler = function (options) {
 	return {
 		dispose: function () {},
 		apply: function () {
@@ -21,7 +21,7 @@
 	applyHandlers.push(extractCssApplyHandler);
 	var seen = {};
 	chunkIds.forEach(function (chunkId) {
-		var href = <%- _get_chunk_css_filename %>(chunkId);
+		var href = <%- REQUIRE_SCOPE %>.miniCssF(chunkId);
 		if (!href) return;
 		var fullhref = <%- PUBLIC_PATH %> + href;
 		if (seen[fullhref]) return;

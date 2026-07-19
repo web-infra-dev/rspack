@@ -26,7 +26,7 @@ module.exports = {
           const bundle = Object.values(assets)[0]._value;
           if (globalThis.__RSPACK_TEST_RUNTIME_MODE_RSPACK) {
             expect(bundle).toContain(
-              `var foo_default = /*#__PURE__*/compatGetDefaultExport(foo);\nvar foo_default_0 = foo_default();`,
+              `var foo_default = /*#__PURE__*/__rspack_context.n(foo);\nvar foo_default_0 = foo_default();`,
             );
           } else {
             expect(bundle).toContain(

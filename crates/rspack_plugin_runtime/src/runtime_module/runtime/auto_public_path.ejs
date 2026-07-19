@@ -1,9 +1,9 @@
-<%- var("scriptUrl") %>;
+var scriptUrl;
 <% if (_script_type == "module") { %>
 if (typeof <%- _import_meta_name %>.url === "string") scriptUrl = <%- _import_meta_name %>.url
 <% } else { %>
 if (<%- GLOBAL %>.importScripts) scriptUrl = <%- GLOBAL %>.location + "";
-<%- var("document") %> = <%- GLOBAL %>.document;
+var document = <%- GLOBAL %>.document;
 if (!scriptUrl && document) {
   // Technically we could use `document.currentScript instanceof window.HTMLScriptElement`,
   // but an attacker could try to inject `<script>HTMLScriptElement = HTMLImageElement</script>`

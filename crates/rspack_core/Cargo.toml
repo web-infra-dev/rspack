@@ -24,7 +24,6 @@ heck                       = { workspace = true }
 hex                        = { workspace = true }
 indexmap                   = { workspace = true, features = ["rayon"] }
 indoc                      = { workspace = true }
-inventory                  = { workspace = true }
 itertools                  = { workspace = true }
 json                       = { workspace = true }
 mime_guess                 = { workspace = true }

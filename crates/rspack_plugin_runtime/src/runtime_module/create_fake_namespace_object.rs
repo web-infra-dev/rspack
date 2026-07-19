@@ -5,9 +5,8 @@ use rspack_core::{
 
 static CREATE_FAKE_NAMESPACE_OBJECT_TEMPLATE: &str =
   include_str!("runtime/create_fake_namespace_object.ejs");
-static RUNTIME_MODULE_VARIABLES: &[&str] = &["getProto", "leafPrototypes"];
 
-#[impl_runtime_module(runtime_module_variables)]
+#[impl_runtime_module]
 #[derive(Debug)]
 pub struct CreateFakeNamespaceObjectRuntimeModule {}
 
@@ -35,10 +34,6 @@ impl RuntimeModule for CreateFakeNamespaceObjectRuntimeModule {
       self.id().to_string(),
       CREATE_FAKE_NAMESPACE_OBJECT_TEMPLATE.to_string(),
     )]
-  }
-
-  fn runtime_module_variables() -> &'static [&'static str] {
-    RUNTIME_MODULE_VARIABLES
   }
 
   async fn generate(

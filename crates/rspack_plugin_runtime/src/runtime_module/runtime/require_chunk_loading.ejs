@@ -1,6 +1,6 @@
 // object to store loaded chunks
 // "1" means "loaded", otherwise not loaded yet
-<%- var("requireInstallChunk") %> = <%- basicFunction("chunk") %> {
+var requireInstallChunk = <%- basicFunction("chunk") %> {
 	var moreModules = chunk.modules, chunkIds = chunk.ids, runtime = chunk.runtime;
 	for (var moduleId in moreModules) {
 		if (<%- HAS_OWN_PROPERTY %>(moreModules, moduleId)) {

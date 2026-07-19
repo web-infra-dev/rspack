@@ -1,12 +1,13 @@
 ```mjs title=dynamic.mjs
-import { rspackRequire, moduleFactories, compatGetDefaultExport } from "./runtime.mjs";
-moduleFactories.add({
+import { __rspack_context } from "./runtime.mjs";
+
+__rspack_context.m.add({
 "./dynamic.js"
 /*!********************!*\
   !*** ./dynamic.js ***!
   \********************/
-(__unused_rspack_module, exports, rspackRequire) {
-const shared = rspackRequire(/*! ./shared */ "./shared.js");
+(__unused_rspack_module, exports, __rspack_context) {
+const shared = __rspack_context.r(/*! ./shared */ "./shared.js");
 
 exports.value = shared.base + 41;
 
@@ -22,8 +23,8 @@ exports.base = 1;
 
 },
 });
-const dynamic = rspackRequire("./dynamic.js");
-var dynamic_default = /*#__PURE__*/compatGetDefaultExport(dynamic);
+const dynamic = __rspack_context.r("./dynamic.js");
+var dynamic_default = /*#__PURE__*/__rspack_context.n(dynamic);
 var dynamic_default_0 = dynamic_default();
 var value = dynamic.value;
 
@@ -33,12 +34,13 @@ export default dynamic_default_0;
 ```
 
 ```mjs title=main.mjs
-import { rspackRequire, createFakeNamespaceObject } from "./runtime.mjs";
+import { __rspack_context } from "./runtime.mjs";
+
 // ./index.js
 it("should split runtime for Promise.all with external and bundled async chunks", async () => {
 	const [stream, mod] = await Promise.all([
-		import("node:module").then(function(module) { return createFakeNamespaceObject(module.createRequire(import.meta.url)("node:stream"), 22) }),
-		import("./dynamic.mjs").then(createFakeNamespaceObject.bind(rspackRequire, /*! ./dynamic */ "./dynamic.js", 19)),
+		import("node:module").then(function(module) { return __rspack_context.t(module.createRequire(import.meta.url)("node:stream"), 22) }),
+		import("./dynamic.mjs").then(__rspack_context.t.bind(__rspack_context.r, /*! ./dynamic */ "./dynamic.js", 19)),
 	]);
 
 	expect(stream.Readable).toBeDefined();
@@ -51,31 +53,32 @@ export {};
 
 ```mjs title=runtime.mjs
 
-var modules = {};
+var __rspack_modules = {};
 // The module cache
-var moduleCache = {};
+var __rspack_module_cache = {};
 // The require function
-function rspackRequire(moduleId) {
+function __rspack_require(moduleId) {
 // Check if module is in cache
-var cachedModule = moduleCache[moduleId];
+var cachedModule = __rspack_module_cache[moduleId];
 if (cachedModule !== undefined) {
 return cachedModule.exports;
 }
 // Create a new module (and put it into the cache)
-var module = (moduleCache[moduleId] = {
+var module = (__rspack_module_cache[moduleId] = {
 exports: {}
 });
 // Execute the module function
-modules[moduleId](module, module.exports, rspackRequire);
+__rspack_modules[moduleId](module, module.exports, __rspack_context);
 
 // Return the exports of the module
 return module.exports;
 }
-export { rspackRequire };
-// expose the modules object (modules)
-var moduleFactories = modules;
-export { moduleFactories };
+var __rspack_context = {};
+__rspack_context.r = __rspack_require;
+// expose the modules object (__rspack_modules)
+__rspack_context.m = __rspack_modules;
 
+var moduleFactories=__rspack_modules;
 // rspack/runtime/compat_get_default_export
 // getDefaultExport function for compatibility with non-ESM modules
 var compatGetDefaultExport = (module) => {
@@ -86,7 +89,7 @@ var compatGetDefaultExport = (module) => {
 	return getter;
 };
 ;
-export { compatGetDefaultExport };
+__rspack_context.n = compatGetDefaultExport;
 // rspack/runtime/create_fake_namespace_object
 var getProto = Object.getPrototypeOf ? (obj) => (Object.getPrototypeOf(obj)) : (obj) => (obj.__proto__);
 var leafPrototypes;
@@ -114,7 +117,7 @@ var createFakeNamespaceObject = function(value, mode) {
 	definePropertyGetters(ns, def);
 	return ns;
 };;
-export { createFakeNamespaceObject };
+__rspack_context.t = createFakeNamespaceObject;
 // rspack/runtime/define_property_getters
 var definePropertyGetters = (exports, getters, values) => {
 	var define = (defs, kind) => {
@@ -141,5 +144,6 @@ var makeNamespaceObject = (exports) => {
 	Object.defineProperty(exports, '__esModule', { value: true });
 };;
 
+export { __rspack_context };
 
 ```

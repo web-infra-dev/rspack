@@ -13,22 +13,12 @@ pub fn render_lexical_declarations(
   fields: RuntimeGlobals,
   render_runtime_global: Option<&dyn Fn(RuntimeGlobals) -> Option<String>>,
 ) -> String {
-  render_lexical_declarations_with_name(fields, render_runtime_global, &|runtime_global| {
-    runtime_global.to_lexical_name().map(str::to_string)
-  })
-}
-
-fn render_lexical_declarations_with_name(
-  fields: RuntimeGlobals,
-  render_runtime_global: Option<&dyn Fn(RuntimeGlobals) -> Option<String>>,
-  render_lexical_name: &dyn Fn(RuntimeGlobals) -> Option<String>,
-) -> String {
   let names = fields
     .renderable_require_scope()
     .difference(RuntimeGlobals::REQUIRE | RuntimeGlobals::REQUIRE_SCOPE)
     .iter_names()
     .filter_map(|(_, runtime_global)| {
-      let lexical_name = render_lexical_name(runtime_global)?;
+      let lexical_name = runtime_global.to_lexical_name()?;
       if let Some(render_runtime_global) = render_runtime_global
         && let Some(value) = render_runtime_global(runtime_global)
       {
@@ -38,7 +28,7 @@ fn render_lexical_declarations_with_name(
       } else if runtime_global.should_initialize_as_array() {
         Some(format!("{lexical_name}=[]"))
       } else {
-        Some(lexical_name)
+        Some(lexical_name.to_string())
       }
     })
     .collect::<Vec<_>>();

@@ -1,11 +1,11 @@
 ```mjs title=main.mjs
-import { rspackRequire, compatGetDefaultExport } from "./runtime.mjs";
+import { __rspack_context } from "./runtime.mjs";
 import * as __rspack_external_fs from "fs";
 
 // fs-promises
 
 
-var external_fs_promises_default = /*#__PURE__*/compatGetDefaultExport(__rspack_external_fs.promises);// ./index.js
+var external_fs_promises_default = /*#__PURE__*/__rspack_context.n(__rspack_external_fs.promises);// ./index.js
 
 
 it('should support array-type module external with property access', async () => {
@@ -19,8 +19,8 @@ export {};
 
 ```mjs title=runtime.mjs
 // The require scope
-var rspackRequire = {};
-export { rspackRequire };
+var __rspack_require = {};
+var __rspack_context = {};
 
 // rspack/runtime/compat_get_default_export
 // getDefaultExport function for compatibility with non-ESM modules
@@ -32,7 +32,7 @@ var compatGetDefaultExport = (module) => {
 	return getter;
 };
 ;
-export { compatGetDefaultExport };
+__rspack_context.n = compatGetDefaultExport;
 // rspack/runtime/define_property_getters
 var definePropertyGetters = (exports, getters, values) => {
 	var define = (defs, kind) => {
@@ -48,5 +48,6 @@ var definePropertyGetters = (exports, getters, values) => {
 // rspack/runtime/has_own_property
 var hasOwnProperty = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop));
 
+export { __rspack_context };
 
 ```

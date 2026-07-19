@@ -14,20 +14,14 @@ module.exports = {
 			false,
 		);
 		if (globalThis.__RSPACK_TEST_RUNTIME_MODE_RSPACK) {
+			expect(entry).toContain('import { __rspack_context } from "./runtime.mjs";');
 			expect(entry).toContain(
-				'import { rspackRequire, createFakeNamespaceObject } from "./runtime.mjs";'
+				'__rspack_context.t(module.createRequire(import.meta.url)("node:stream"), 22)'
 			);
-			expect(entry).toContain(
-				'createFakeNamespaceObject(module.createRequire(import.meta.url)("node:stream"), 22)'
-			);
-			expect(runtime).toContain("export { rspackRequire");
-			expect(runtime).toContain("createFakeNamespaceObject");
-			expect(runtime.match(/var moduleFactories/g)).toHaveLength(1);
-			expect(entry).not.toContain("export { rspackRequire");
-			expect(entry).not.toContain("as rspackRequire");
-			expect(dynamic).toContain(
-				'import { rspackRequire, moduleFactories, compatGetDefaultExport } from "./runtime.mjs";'
-			);
+			expect(runtime).toContain("export { __rspack_context");
+			expect(entry).not.toContain("export { __rspack_context");
+			expect(entry).not.toContain("as __rspack_context");
+			expect(dynamic).toContain('import { __rspack_context } from "./runtime.mjs";');
 		} else {
 			expect(entry).toContain(
 				'import { __webpack_require__ } from "./runtime.mjs";'

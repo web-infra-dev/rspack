@@ -1,8 +1,8 @@
-<%- var("hotCurrentUpdateChunks") %>;
-<%- var("hotCurrentUpdate") %>;
-<%- var("hotCurrentUpdateRemovedChunks") %>;
-<%- var("hotCurrentUpdateRuntime") %>;
-<%- fn("hotApplyHandler") %>(options) {
+var hotCurrentUpdateChunks;
+var hotCurrentUpdate;
+var hotCurrentUpdateRemovedChunks;
+var hotCurrentUpdateRuntime;
+function hotApplyHandler(options) {
 	if (<%- weak(ENSURE_CHUNK_HANDLERS) %>) delete <%- weak(ENSURE_CHUNK_HANDLERS) %>.<%- _loading_method %>Hmr;
 	hotCurrentUpdateChunks = undefined;
 	function getAffectedModuleEffects(updateModuleId) {

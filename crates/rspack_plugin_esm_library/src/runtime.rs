@@ -5,8 +5,6 @@ use rspack_core::{
 use rspack_plugin_javascript::impl_plugin_for_js_plugin::chunk_has_js;
 use rspack_util::json_stringify_str;
 
-const ESM_CHUNK_LOADING_RUNTIME_MODULE_VARIABLES: &[&str] = &["esmInstalledChunks", "esmChunkMap"];
-
 #[impl_runtime_module]
 #[derive(Debug)]
 pub(crate) struct EsmRegisterModuleRuntimeModule {}
@@ -97,7 +95,7 @@ impl RuntimeModule for EsmEnsureChunkRuntimeModule {
   }
 }
 
-#[impl_runtime_module(runtime_module_variables)]
+#[impl_runtime_module]
 #[derive(Debug)]
 pub(crate) struct EsmChunkLoadingRuntimeModule {}
 
@@ -109,10 +107,6 @@ impl EsmChunkLoadingRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for EsmChunkLoadingRuntimeModule {
-  fn runtime_module_variables() -> &'static [&'static str] {
-    ESM_CHUNK_LOADING_RUNTIME_MODULE_VARIABLES
-  }
-
   async fn generate(
     &self,
     context: &RuntimeModuleGenerateContext<'_>,

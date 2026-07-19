@@ -7,4 +7,4 @@ if (<%- weak(SCRIPT_NONCE) %>) {
 }
 link.rel = "prefetch";
 link.as = "style";
-link.href = <%- PUBLIC_PATH %> + <%- _get_chunk_css_filename %>(chunkId);
+link.href = <%- PUBLIC_PATH %> + <%- REQUIRE_SCOPE %>.miniCssF(chunkId);

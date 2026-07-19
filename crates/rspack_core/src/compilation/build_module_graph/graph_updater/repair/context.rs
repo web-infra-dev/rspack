@@ -90,8 +90,6 @@ impl TaskContext {
       false,
       compiler_context,
     );
-    compilation.runtime_template =
-      RuntimeTemplate::for_module_execution(self.compiler_options.clone());
     compilation.dependency_factories = self.dependency_factories.clone();
     compilation.dependency_templates = self.dependency_templates.clone();
     std::mem::swap(

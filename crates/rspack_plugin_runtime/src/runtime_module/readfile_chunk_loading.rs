@@ -28,16 +28,6 @@ static READFILE_CHUNK_LOADING_WITH_HMR_MANIFEST_TEMPLATE: &str =
   include_str!("runtime/readfile_chunk_loading_with_hmr_manifest.ejs");
 static JAVASCRIPT_HOT_MODULE_REPLACEMENT_TEMPLATE: &str =
   include_str!("runtime/javascript_hot_module_replacement.ejs");
-static RUNTIME_MODULE_VARIABLES: &[&str] = &[
-  "hotApplyHandler",
-  "hotCurrentUpdate",
-  "hotCurrentUpdateChunks",
-  "hotCurrentUpdateRemovedChunks",
-  "hotCurrentUpdateRuntime",
-  "readFileVmInstallChunk",
-  "readFileVmInstalledChunks",
-  "readFileVmLoadUpdateChunk",
-];
 
 static READFILE_CHUNK_LOADING_RUNTIME_REQUIREMENTS: LazyLock<RuntimeModuleRuntimeRequirements> =
   LazyLock::new(|| extract_runtime_globals_from_ejs(READFILE_CHUNK_LOADING_TEMPLATE));
@@ -67,7 +57,7 @@ static JAVASCRIPT_HOT_MODULE_REPLACEMENT_RUNTIME_REQUIREMENTS: LazyLock<
   RuntimeModuleRuntimeRequirements,
 > = LazyLock::new(|| extract_runtime_globals_from_ejs(JAVASCRIPT_HOT_MODULE_REPLACEMENT_TEMPLATE));
 
-#[impl_runtime_module(runtime_module_variables)]
+#[impl_runtime_module]
 #[derive(Debug)]
 pub struct ReadFileChunkLoadingRuntimeModule {}
 
@@ -165,10 +155,6 @@ enum TemplateId {
 
 #[async_trait::async_trait]
 impl RuntimeModule for ReadFileChunkLoadingRuntimeModule {
-  fn runtime_module_variables() -> &'static [&'static str] {
-    RUNTIME_MODULE_VARIABLES
-  }
-
   fn runtime_requirements(&self, compilation: &Compilation) -> RuntimeModuleRuntimeRequirements {
     let Some(chunk_ukey) = self.chunk() else {
       return RuntimeModuleRuntimeRequirements::default();

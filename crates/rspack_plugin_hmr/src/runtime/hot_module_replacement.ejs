@@ -1,21 +1,21 @@
-<%- var("currentModuleData") %> = {};
-<%- var("hmrInstalledModules") %> = <%- MODULE_CACHE %>;
+var currentModuleData = {};
+var hmrInstalledModules = <%- MODULE_CACHE %>;
 
 // module and require creation
-<%- var("currentChildModule") %>;
-<%- var("currentParents") %> = [];
+var currentChildModule;
+var currentParents = [];
 
 // status
-<%- var("registeredStatusHandlers") %> = [];
-<%- var("currentStatus") %> = "idle";
+var registeredStatusHandlers = [];
+var currentStatus = "idle";
 
 // while downloading
-<%- var("blockingPromises") %> = 0;
-<%- var("blockingPromisesWaiting") %> = [];
+var blockingPromises = 0;
+var blockingPromisesWaiting = [];
 
 // The update info
-<%- var("currentUpdateApplyHandlers") %>;
-<%- var("queuedInvalidatedModules") %>;
+var currentUpdateApplyHandlers;
+var queuedInvalidatedModules;
 
 <%- define(HMR_MODULE_DATA) %> = currentModuleData;
 <% if (_is_rspack_runtime_mode) { %><%- define(INTERCEPT_MODULE_EXECUTION) %> = [];
@@ -34,7 +34,7 @@
 <%- define(HMR_DOWNLOAD_UPDATE_HANDLERS) %> = {};
 <%- define(HMR_INVALIDATE_MODULE_HANDLERS) %> = {};
 
-<%- fn("createRequire") %>(require, moduleId<% if (_is_rspack_runtime_mode) { %>, context<% } %>) {
+function createRequire(require, moduleId<% if (_is_rspack_runtime_mode) { %>, context<% } %>) {
 	var me = hmrInstalledModules[moduleId];
 	if (!me) return require;
 	var fn = function (request) {
@@ -87,7 +87,7 @@
 	return fn;
 }
 
-<%- fn("createModuleHotObject") %>(moduleId, me) {
+function createModuleHotObject(moduleId, me) {
 	var _main = currentChildModule !== moduleId;
 	var hot = {
 		_acceptedDependencies: {},
@@ -180,7 +180,7 @@
 	return hot;
 }
 
-<%- fn("setStatus") %>(newStatus) {
+function setStatus(newStatus) {
 	currentStatus = newStatus;
 	<% if (_is_hot_test) { %>
 	if (self.__HMR_UPDATED_RUNTIME__) {
@@ -194,7 +194,7 @@
 	return Promise.all(results).then(function () { });
 }
 
-<%- fn("unblock") %>() {
+function unblock() {
 	if (--blockingPromises === 0) {
 		setStatus("ready").then(function () {
 			if (blockingPromises === 0) {
@@ -208,7 +208,7 @@
 	}
 }
 
-<%- fn("trackBlockingPromise") %>(promise) {
+function trackBlockingPromise(promise) {
 	switch (currentStatus) {
 		case "ready":
 			setStatus("prepare");
@@ -221,7 +221,7 @@
 	}
 }
 
-<%- fn("waitForBlockingPromises") %>(fn) {
+function waitForBlockingPromises(fn) {
 	if (blockingPromises === 0) return fn();
 	return new Promise(function (resolve) {
 		blockingPromisesWaiting.push(function () {
@@ -230,7 +230,7 @@
 	});
 }
 
-<%- fn("hotCheck") %>(applyOnUpdate) {
+function hotCheck(applyOnUpdate) {
 	if (currentStatus !== "idle") {
 		throw new Error("check() is only allowed in idle status");
 	}
@@ -293,7 +293,7 @@
 		});
 }
 
-<%- fn("hotApply") %>(options) {
+function hotApply(options) {
 	if (currentStatus !== "ready") {
 		return Promise.resolve().then(function () {
 			throw new Error(
@@ -304,7 +304,7 @@
 	return internalApply(options);
 }
 
-<%- fn("internalApply") %>(options) {
+function internalApply(options) {
 	options = options || {};
 	applyInvalidatedModules();
 	var results = currentUpdateApplyHandlers.map(function (handler) {
@@ -370,7 +370,7 @@
 	});
 }
 
-<%- fn("applyInvalidatedModules") %>() {
+function applyInvalidatedModules() {
 	if (queuedInvalidatedModules) {
 		if (!currentUpdateApplyHandlers) currentUpdateApplyHandlers = [];
 		Object.keys(<%- HMR_INVALIDATE_MODULE_HANDLERS %>).forEach(function (key) {

@@ -16,8 +16,8 @@ export {};
 
 ```mjs title=runtime.mjs
 // The require scope
-var rspackRequire = {};
-export { rspackRequire };
+var __rspack_require = {};
+var __rspack_context = {};
 
 // rspack/runtime/define_property_getters
 var definePropertyGetters = (exports, getters, values) => {
@@ -31,7 +31,7 @@ var definePropertyGetters = (exports, getters, values) => {
 	define(getters, "get");
 	define(values, "value");
 };;
-export { definePropertyGetters };
+__rspack_context.d = definePropertyGetters;
 // rspack/runtime/has_own_property
 var hasOwnProperty = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop));
 // rspack/runtime/make_namespace_object
@@ -42,27 +42,28 @@ var makeNamespaceObject = (exports) => {
 	}
 	Object.defineProperty(exports, '__esModule', { value: true });
 };;
-export { makeNamespaceObject };
+__rspack_context.N = makeNamespaceObject;
 
+export { __rspack_context };
 
 ```
 
 ```mjs title=shared.mjs
-import { rspackRequire, definePropertyGetters, makeNamespaceObject } from "./runtime.mjs";
+import { __rspack_context } from "./runtime.mjs";
 import * as __rspack_external_path from "path";
 import { resolve } from "path";
 
 // NAMESPACE OBJECT: ./a.js
 var a_namespaceObject = {};
-makeNamespaceObject(a_namespaceObject);
-definePropertyGetters(a_namespaceObject, { 
+__rspack_context.N(a_namespaceObject);
+__rspack_context.d(a_namespaceObject, { 
   resolve: () => (__rspack_external_path) });
 
 
 // NAMESPACE OBJECT: ./b.js
 var b_namespaceObject = {};
-makeNamespaceObject(b_namespaceObject);
-definePropertyGetters(b_namespaceObject, { 
+__rspack_context.N(b_namespaceObject);
+__rspack_context.d(b_namespaceObject, { 
   marker: () => (marker),
   resolve: () => (resolve) });
 

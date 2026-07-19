@@ -1,7 +1,7 @@
 use concat_string::concat_string;
 use rspack_core::{
   ConstDependency, ImportMetaKnownProperties, ModuleArgument, RuntimeGlobals,
-  RuntimeRequirementsDependency, RuntimeRequirementsDependencyWriteOperation, property_access,
+  RuntimeRequirementsDependency, property_access,
   runtime_mode::RuntimeMode as ExperimentRuntimeMode,
 };
 use rspack_error::{Error, Severity};
@@ -360,15 +360,14 @@ pub(crate) fn import_meta_runtime_api_call(
 pub(crate) fn import_meta_runtime_api_assign(
   parser: &mut JavascriptParser,
   span: Span,
-  value_span: Span,
   api: &ImportMetaRuntimeApi,
   full_assignment: bool,
-  operation: AssignOp,
+  simple_assignment: bool,
 ) -> Option<bool> {
   if api.runtime_call {
     let property = api.property_name();
     let content = if full_assignment {
-      if is_simple_assign_op(operation) {
+      if simple_assignment {
         concat_string!("({}).", property)
       } else {
         parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::add_only(
@@ -390,47 +389,15 @@ pub(crate) fn import_meta_runtime_api_assign(
       .add_presentational_dependency(Box::new(ConstDependency::new(span.into(), content.into())));
     return Some(true);
   }
-  let dependency = if full_assignment {
-    RuntimeRequirementsDependency::write_assignment(
-      span.into(),
-      value_span.into(),
-      runtime_requirements_write_operation(operation),
-      api.runtime_global,
-    )
-  } else {
-    RuntimeRequirementsDependency::write(span.into(), api.runtime_global)
-  };
-  parser.add_presentational_dependency(Box::new(dependency));
+  parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::write(
+    span.into(),
+    api.runtime_global,
+  )));
   Some(true)
 }
 
 pub(crate) fn is_simple_assign_op(op: AssignOp) -> bool {
   matches!(op, AssignOp::Assign)
-}
-
-fn runtime_requirements_write_operation(
-  op: AssignOp,
-) -> RuntimeRequirementsDependencyWriteOperation {
-  match op {
-    AssignOp::Assign => RuntimeRequirementsDependencyWriteOperation::Assign,
-    AssignOp::AddAssign => RuntimeRequirementsDependencyWriteOperation::Add,
-    AssignOp::SubAssign => RuntimeRequirementsDependencyWriteOperation::Subtract,
-    AssignOp::MulAssign => RuntimeRequirementsDependencyWriteOperation::Multiply,
-    AssignOp::DivAssign => RuntimeRequirementsDependencyWriteOperation::Divide,
-    AssignOp::ModAssign => RuntimeRequirementsDependencyWriteOperation::Remainder,
-    AssignOp::LShiftAssign => RuntimeRequirementsDependencyWriteOperation::LeftShift,
-    AssignOp::RShiftAssign => RuntimeRequirementsDependencyWriteOperation::RightShift,
-    AssignOp::ZeroFillRShiftAssign => {
-      RuntimeRequirementsDependencyWriteOperation::UnsignedRightShift
-    }
-    AssignOp::BitOrAssign => RuntimeRequirementsDependencyWriteOperation::BitwiseOr,
-    AssignOp::BitXorAssign => RuntimeRequirementsDependencyWriteOperation::BitwiseXor,
-    AssignOp::BitAndAssign => RuntimeRequirementsDependencyWriteOperation::BitwiseAnd,
-    AssignOp::ExpAssign => RuntimeRequirementsDependencyWriteOperation::Exponentiation,
-    AssignOp::AndAssign => RuntimeRequirementsDependencyWriteOperation::LogicalAnd,
-    AssignOp::OrAssign => RuntimeRequirementsDependencyWriteOperation::LogicalOr,
-    AssignOp::NullishAssign => RuntimeRequirementsDependencyWriteOperation::NullishCoalescing,
-  }
 }
 
 fn static_require_member_chain(
@@ -439,7 +406,7 @@ fn static_require_member_chain(
   members: &[Atom],
   member_ranges: Option<&[Span]>,
   expr_span: Span,
-  assignment: Option<&AssignExpr>,
+  write: bool,
 ) -> Option<bool> {
   if parser.compiler_options.experiments.runtime_mode != ExperimentRuntimeMode::Rspack {
     return None;
@@ -458,17 +425,8 @@ fn static_require_member_chain(
       } else {
         expr_span
       };
-      let dep = if let Some(expr) = assignment {
-        if members.len() == 1 {
-          RuntimeRequirementsDependency::write_assignment(
-            dep_span.into(),
-            expr.right.span().into(),
-            runtime_requirements_write_operation(expr.op),
-            runtime_global,
-          )
-        } else {
-          RuntimeRequirementsDependency::write(dep_span.into(), runtime_global)
-        }
+      let dep = if write {
+        RuntimeRequirementsDependency::write(dep_span.into(), runtime_global)
       } else {
         RuntimeRequirementsDependency::new(dep_span.into(), runtime_global)
       };
@@ -724,7 +682,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
       members,
       Some(member_ranges),
       member_expr.span,
-      None,
+      false,
     )
   }
 
@@ -746,7 +704,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
       members,
       Some(member_ranges),
       expr.callee.span(),
-      None,
+      false,
     );
     if handled.is_some() {
       parser.walk_expr_or_spread(&expr.args);
@@ -771,7 +729,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
       members,
       Some(member_ranges),
       expr.left.span(),
-      Some(expr),
+      true,
     );
     if handled.is_some() {
       parser.walk_expression(&expr.right);

@@ -4,18 +4,8 @@ use rspack_core::{
 };
 
 static ASYNC_MODULE_TEMPLATE: &str = include_str!("runtime/async_module.ejs");
-static RUNTIME_MODULE_VARIABLES: &[&str] = &[
-  "hasSymbol",
-  "resolveQueue",
-  "rspackDefer",
-  "rspackDone",
-  "rspackError",
-  "rspackExports",
-  "rspackQueues",
-  "wrapDeps",
-];
 
-#[impl_runtime_module(runtime_module_variables)]
+#[impl_runtime_module]
 #[derive(Debug)]
 pub struct AsyncRuntimeModule {}
 
@@ -27,17 +17,13 @@ impl AsyncRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for AsyncRuntimeModule {
-  fn runtime_module_variables() -> &'static [&'static str] {
-    RUNTIME_MODULE_VARIABLES
-  }
-
   async fn generate(
     &self,
     context: &RuntimeModuleGenerateContext<'_>,
   ) -> rspack_error::Result<String> {
     let runtime_template = context.runtime_template;
     let uses_lexical_runtime_globals = match runtime_template.render_mode() {
-      RuntimeGlobalsRenderMode::RspackLexical | RuntimeGlobalsRenderMode::RspackExport => true,
+      RuntimeGlobalsRenderMode::RspackLexical => true,
       RuntimeGlobalsRenderMode::Webpack | RuntimeGlobalsRenderMode::RspackContext => false,
     };
     runtime_template.render(

@@ -17,7 +17,6 @@ pub use crate::runtime_context::{
   render_rspack_runtime_modules,
   render_runtime_chunk_runtime_modules as render_rspack_runtime_chunk_runtime_modules,
   render_runtime_context_declaration, render_runtime_context_require_assignment,
-  should_export_rspack_runtime_globals,
 };
 use crate::{JavascriptModulesPluginHooks, RenderSource};
 

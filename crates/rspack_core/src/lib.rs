@@ -106,7 +106,6 @@ pub use rspack_location::{
 };
 pub mod concatenated_module;
 pub mod reserved_names;
-pub use inventory;
 use rspack_cacheable::{cacheable, with::AsPreset};
 use rspack_hash::{RspackHash, RspackHasher};
 pub use rspack_loader_runner::{

@@ -7,11 +7,11 @@ export default dynamic;
 ```
 
 ```mjs title=main.mjs
-import { rspackRequire, definePropertyGetters, makeNamespaceObject } from "./runtime.mjs";
+import { __rspack_context } from "./runtime.mjs";
 // NAMESPACE OBJECT: ./dynamic.js?1
 var dynamic1_namespaceObject = {};
-makeNamespaceObject(dynamic1_namespaceObject);
-definePropertyGetters(dynamic1_namespaceObject, { 
+__rspack_context.N(dynamic1_namespaceObject);
+__rspack_context.d(dynamic1_namespaceObject, { 
   "default": () => (dynamic1) });
 
 
@@ -36,8 +36,8 @@ export {};
 
 ```mjs title=runtime.mjs
 // The require scope
-var rspackRequire = {};
-export { rspackRequire };
+var __rspack_require = {};
+var __rspack_context = {};
 
 // rspack/runtime/define_property_getters
 var definePropertyGetters = (exports, getters, values) => {
@@ -51,7 +51,7 @@ var definePropertyGetters = (exports, getters, values) => {
 	define(getters, "get");
 	define(values, "value");
 };;
-export { definePropertyGetters };
+__rspack_context.d = definePropertyGetters;
 // rspack/runtime/has_own_property
 var hasOwnProperty = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop));
 // rspack/runtime/make_namespace_object
@@ -62,7 +62,8 @@ var makeNamespaceObject = (exports) => {
 	}
 	Object.defineProperty(exports, '__esModule', { value: true });
 };;
-export { makeNamespaceObject };
+__rspack_context.N = makeNamespaceObject;
 
+export { __rspack_context };
 
 ```

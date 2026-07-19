@@ -1,5 +1,6 @@
 ```mjs title=main.mjs
-import { rspackRequire, createFakeNamespaceObject } from "./runtime.mjs";
+import { __rspack_context } from "./runtime.mjs";
+
 // ./index.js
 const index_require = () => {
 	throw new Error("user require should not be called");
@@ -10,7 +11,7 @@ import.meta.__customImport__ = async request => {
 };
 
 async function loadPlatform(require) {
-	const os = await import("node:module").then(function(module) { return createFakeNamespaceObject(module.createRequire(import.meta.url)("os"), 22) });
+	const os = await import("node:module").then(function(module) { return __rspack_context.t(module.createRequire(import.meta.url)("os"), 22) });
 	return [typeof os.platform, typeof os.default.platform, require];
 }
 
@@ -30,8 +31,8 @@ export { index_require as userRequire, loadPlatform };
 
 ```mjs title=runtime.mjs
 // The require scope
-var rspackRequire = {};
-export { rspackRequire };
+var __rspack_require = {};
+var __rspack_context = {};
 
 // rspack/runtime/create_fake_namespace_object
 var getProto = Object.getPrototypeOf ? (obj) => (Object.getPrototypeOf(obj)) : (obj) => (obj.__proto__);
@@ -60,7 +61,7 @@ var createFakeNamespaceObject = function(value, mode) {
 	definePropertyGetters(ns, def);
 	return ns;
 };;
-export { createFakeNamespaceObject };
+__rspack_context.t = createFakeNamespaceObject;
 // rspack/runtime/define_property_getters
 var definePropertyGetters = (exports, getters, values) => {
 	var define = (defs, kind) => {
@@ -84,5 +85,6 @@ var makeNamespaceObject = (exports) => {
 	Object.defineProperty(exports, '__esModule', { value: true });
 };;
 
+export { __rspack_context };
 
 ```

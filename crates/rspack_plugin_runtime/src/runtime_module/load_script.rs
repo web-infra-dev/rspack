@@ -13,13 +13,12 @@ use crate::{
 static LOAD_SCRIPT_TEMPLATE: &str = include_str!("runtime/load_script.ejs");
 static LOAD_SCRIPT_CREATE_SCRIPT_TEMPLATE: &str =
   include_str!("runtime/load_script_create_script.ejs");
-static RUNTIME_MODULE_VARIABLES: &[&str] = &["inProgress", "uniqueName"];
 static LOAD_SCRIPT_RUNTIME_REQUIREMENTS: LazyLock<RuntimeModuleRuntimeRequirements> =
   LazyLock::new(|| extract_runtime_globals_from_ejs(LOAD_SCRIPT_TEMPLATE));
 static LOAD_SCRIPT_CREATE_SCRIPT_RUNTIME_REQUIREMENTS: LazyLock<RuntimeModuleRuntimeRequirements> =
   LazyLock::new(|| extract_runtime_globals_from_ejs(LOAD_SCRIPT_CREATE_SCRIPT_TEMPLATE));
 
-#[impl_runtime_module(runtime_module_variables)]
+#[impl_runtime_module]
 #[derive(Debug)]
 pub struct LoadScriptRuntimeModule {
   unique_name: String,
@@ -50,10 +49,6 @@ enum TemplateId {
 
 #[async_trait::async_trait]
 impl RuntimeModule for LoadScriptRuntimeModule {
-  fn runtime_module_variables() -> &'static [&'static str] {
-    RUNTIME_MODULE_VARIABLES
-  }
-
   fn runtime_requirements(
     &self,
     _compilation: &Compilation,

@@ -71,9 +71,7 @@ pub fn render_hmr_runtime_state_expression(
       .property_name()
       .expect("hmr runtime state prefix should have property name")
       .to_string(),
-    RuntimeGlobalsRenderMode::Webpack
-    | RuntimeGlobalsRenderMode::RspackContext
-    | RuntimeGlobalsRenderMode::RspackExport => {
+    RuntimeGlobalsRenderMode::Webpack | RuntimeGlobalsRenderMode::RspackContext => {
       runtime_template.render_runtime_globals(&RuntimeGlobals::HMR_RUNTIME_STATE_PREFIX)
     }
   };

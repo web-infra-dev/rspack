@@ -1,5 +1,5 @@
-<%- var("initPromises") %> = {};
-<%- var("initTokens") %> = {};
+var initPromises = {};
+var initTokens = {};
 <%- define(INITIALIZE_SHARING) %> = function(name, initScope) {
 	if (!initScope) initScope = [];
 	// handling circular init calls

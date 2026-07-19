@@ -1,10 +1,11 @@
-import { rspackRequire, moduleFactories } from "./runtime~0.js";
-moduleFactories.add({
-"Gfx"(module) {
+import { __rspack_context } from "./runtime~0.js";
+
+__rspack_context.m.add({
+917(module) {
 module.exports = 'b'
 
 },
 });
-rspackRequire("Gfx");
+__rspack_context.r("917");
 
 export {};
