@@ -51,6 +51,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMDetectionParserPlugin {
     let is_strict_esm = matches!(parser.module_type, ModuleType::JsEsm);
     let is_esm = is_strict_esm
       || matches!(ast, Program::Module(module) if module.body.iter().any(|s| matches!(s, ModuleItem::ModuleDecl(_))));
+
     if is_esm {
       parser.add_presentational_dependency(Box::new(ESMCompatibilityDependency));
       parser.build_meta.set_esm(true);
@@ -66,15 +67,6 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMDetectionParserPlugin {
       parser.build_info.module_argument = ModuleArgument::RspackModule;
     }
 
-    None
-  }
-
-  fn finish(&self, parser: &mut JavascriptParser<'p>) -> Option<bool> {
-    if matches!(parser.module_type, ModuleType::JsAuto)
-      && parser.build_meta.exports_type == BuildMetaExportsType::Unset
-    {
-      parser.add_presentational_dependency(Box::new(ESMCompatibilityDependency));
-    }
     None
   }
 

@@ -509,8 +509,6 @@ pub struct BuildMeta {
   #[serde(skip_serializing_if = "Option::is_none")]
   pub esm: Option<bool>,
   #[serde(skip_serializing_if = "Option::is_none")]
-  pub inferred_js_auto_esm: Option<bool>,
-  #[serde(skip_serializing_if = "Option::is_none")]
   pub is_css_module: Option<bool>,
   #[serde(skip_serializing_if = "Option::is_none")]
   pub need_id_in_concatenation: Option<bool>,
@@ -531,11 +529,7 @@ impl BuildMeta {
   }
 
   pub fn esm(&self) -> bool {
-    self.esm.unwrap_or(false) || self.inferred_js_auto_esm()
-  }
-
-  pub fn inferred_js_auto_esm(&self) -> bool {
-    self.inferred_js_auto_esm.unwrap_or(false)
+    self.esm.unwrap_or(false)
   }
 
   pub fn is_css_module(&self) -> bool {
@@ -547,11 +541,7 @@ impl BuildMeta {
   }
 
   pub fn exports_type(&self) -> BuildMetaExportsType {
-    if self.inferred_js_auto_esm() {
-      BuildMetaExportsType::Namespace
-    } else {
-      self.exports_type
-    }
+    self.exports_type
   }
 
   pub fn default_object(&self) -> BuildMetaDefaultObject {
@@ -572,10 +562,6 @@ impl BuildMeta {
 
   pub fn set_esm(&mut self, value: bool) {
     self.esm = Some(value);
-  }
-
-  pub fn set_inferred_js_auto_esm(&mut self, value: bool) {
-    self.inferred_js_auto_esm = value.then_some(true);
   }
 
   pub fn set_is_css_module(&mut self, value: bool) {
@@ -724,11 +710,7 @@ pub trait Module:
   fn build_meta_mut(&mut self) -> &mut BuildMeta;
 
   fn get_exports_argument(&self) -> ExportsArgument {
-    if self.build_meta().inferred_js_auto_esm() {
-      ExportsArgument::RspackExports
-    } else {
-      self.build_info().exports_argument
-    }
+    self.build_info().exports_argument
   }
 
   fn get_module_argument(&self) -> ModuleArgument {

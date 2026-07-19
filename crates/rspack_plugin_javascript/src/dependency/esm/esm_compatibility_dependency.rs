@@ -52,9 +52,6 @@ impl DependencyTemplate for ESMCompatibilityDependencyTemplate {
     let module = module_graph
       .module_by_identifier(&module.identifier())
       .expect("should have mgm");
-    if !module.build_meta().esm() {
-      return;
-    }
     let name = Atom::from("__esModule");
     let exports_info = compilation
       .exports_info_artifact
