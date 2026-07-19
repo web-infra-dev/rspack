@@ -34,24 +34,24 @@ fn can_define_runtime_exports(dependency_type: &DependencyType) -> bool {
 fn infer_js_auto_modules_without_exports_as_esm(module_graph: &mut ModuleGraph) {
   let inferred_states = module_graph
     .modules()
-    .filter_map(|(identifier, module)| {
-      (matches!(module.module_type(), ModuleType::JsAuto)
-        && module.build_meta().exports_type == BuildMetaExportsType::Unset)
-        .then(|| {
-          let has_runtime_exports = module.get_dependencies().iter().any(|dependency_id| {
-            can_define_runtime_exports(
-              module_graph
-                .dependency_by_id(dependency_id)
-                .dependency_type(),
-            )
-          });
-          let inferred = module_graph
-            .get_incoming_connections(identifier)
-            .map(|connection| module_graph.dependency_by_id(&connection.dependency_id))
-            .any(|dependency| is_static_esm_dependency(dependency.dependency_type()))
-            && !has_runtime_exports;
-          (*identifier, inferred)
-        })
+    .filter(|(_, module)| {
+      matches!(module.module_type(), ModuleType::JsAuto)
+        && module.build_meta().exports_type == BuildMetaExportsType::Unset
+    })
+    .map(|(identifier, module)| {
+      let has_runtime_exports = module.get_dependencies().iter().any(|dependency_id| {
+        can_define_runtime_exports(
+          module_graph
+            .dependency_by_id(dependency_id)
+            .dependency_type(),
+        )
+      });
+      let inferred = module_graph
+        .get_incoming_connections(identifier)
+        .map(|connection| module_graph.dependency_by_id(&connection.dependency_id))
+        .any(|dependency| is_static_esm_dependency(dependency.dependency_type()))
+        && !has_runtime_exports;
+      (*identifier, inferred)
     })
     .collect::<Vec<_>>();
 
