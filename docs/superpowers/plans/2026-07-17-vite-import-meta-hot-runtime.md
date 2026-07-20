@@ -1,5 +1,12 @@
 # Vite-Compatible `import.meta.hot` Runtime Implementation Plan
 
+> **Historical plan:** This plan describes the implementation already present
+> at commit `7e0cc38e81`. Its independent module-id registry architecture and
+> the final instruction forbidding `module.hot`-backed state are superseded by
+> `docs/superpowers/specs/2026-07-20-import-meta-hot-module-wrapper-design.md`
+> and its corresponding implementation plan. The public API requirements in
+> this document remain relevant.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Replace the webpack alias implementation of `import.meta.hot` with a dedicated runtime that implements Vite-compatible `accept` callback semantics without changing `module.hot` or `import.meta.webpackHot`.
