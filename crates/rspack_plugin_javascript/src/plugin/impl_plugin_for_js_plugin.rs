@@ -4,10 +4,10 @@ use rspack_core::{
   AssetInfo, CachedConstDependencyTemplate, ChunkGraph, ChunkKind, ChunkUkey, Compilation,
   CompilationAdditionalTreeRuntimeRequirements, CompilationChunkHash, CompilationContentHash,
   CompilationId, CompilationParams, CompilationRenderManifest, CompilerCompilation,
-  ConstDependencyTemplate, DependencyType, IgnoreErrorModuleFactory, ManifestAssetType,
-  ModuleGraph, ModuleType, ParserAndGenerator, PathData, Plugin, RenderManifestEntry,
-  RuntimeGlobals, RuntimeModule, RuntimeRequirementsDependencyTemplate, SelfModuleFactory,
-  SourceType, get_js_chunk_filename_template,
+  ConstDependencyTemplate, DependencyType, IgnoreErrorModuleFactory, ManifestAssetType, ModuleType,
+  ParserAndGenerator, PathData, Plugin, RenderManifestEntry, RuntimeGlobals, RuntimeModule,
+  RuntimeRequirementsDependencyTemplate, SelfModuleFactory, SourceType,
+  get_js_chunk_filename_template,
   rspack_sources::{BoxSource, CachedSource, SourceExt},
 };
 use rspack_error::{Diagnostic, Result};
@@ -577,29 +577,13 @@ async fn render_manifest(
   }
   let runtime_template = compilation.runtime_template.create_chunk_code_template();
   let is_hot_update = matches!(chunk.kind(), ChunkKind::HotUpdate);
-  let is_main_chunk = chunk.groups().iter().any(|group_ukey| {
-    let group = compilation
-      .build_chunk_graph_artifact
-      .chunk_group_by_ukey
-      .expect_get(group_ukey);
-
-    group.is_initial() && group.kind.is_entrypoint() && &group.get_entrypoint_chunk() == chunk_ukey
-  });
   let is_runtime_chunk =
     chunk.has_runtime(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey);
 
-  if !is_hot_update
-    && is_runtime_chunk
-    && !chunk_has_runtime_or_js(
-      chunk_ukey,
-      &compilation.build_chunk_graph_artifact.chunk_graph,
-      compilation.get_module_graph(),
-    )
-  {
+  if !is_hot_update && is_runtime_chunk && !chunk_has_runtime_or_js(chunk_ukey, compilation) {
     return Ok(());
   }
-  if !is_hot_update && !is_main_chunk && !is_runtime_chunk && !chunk_has_js(chunk_ukey, compilation)
-  {
+  if !is_hot_update && !is_runtime_chunk && !chunk_has_js(chunk_ukey, compilation) {
     return Ok(());
   }
   let mut asset_info = AssetInfo::default().with_asset_type(ManifestAssetType::JavaScript);
@@ -724,15 +708,6 @@ pub struct ExtractedCommentsInfo {
 }
 
 pub fn chunk_has_js(chunk_ukey: &ChunkUkey, compilation: &Compilation) -> bool {
-  if compilation
-    .build_chunk_graph_artifact
-    .chunk_graph
-    .get_number_of_entry_modules(chunk_ukey)
-    > 0
-  {
-    return true;
-  }
-
   compilation
     .build_chunk_graph_artifact
     .chunk_graph
@@ -743,20 +718,35 @@ pub fn chunk_has_js(chunk_ukey: &ChunkUkey, compilation: &Compilation) -> bool {
     )
 }
 
-fn chunk_has_runtime_or_js(
-  chunk: &ChunkUkey,
-  chunk_graph: &ChunkGraph,
-  module_graph: &ModuleGraph,
-) -> bool {
+fn chunk_has_runtime_or_js(chunk_ukey: &ChunkUkey, compilation: &Compilation) -> bool {
+  if chunk_has_js(chunk_ukey, compilation) {
+    return true;
+  }
+
+  let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
   if chunk_graph
-    .get_chunk_runtime_modules_iterable(chunk)
+    .get_chunk_runtime_modules_iterable(chunk_ukey)
     .next()
-    .is_some()
+    .is_none()
   {
-    return true;
+    return false;
   }
-  if chunk_graph.has_chunk_module_by_source_type(chunk, SourceType::JavaScript, module_graph) {
-    return true;
+
+  let chunk = compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .expect_get(chunk_ukey);
+  for group_ukey in chunk.groups() {
+    let chunk_group = compilation
+      .build_chunk_graph_artifact
+      .chunk_group_by_ukey
+      .expect_get(group_ukey);
+    for chunk_ukey in &chunk_group.chunks {
+      if chunk_has_js(chunk_ukey, compilation) {
+        return true;
+      }
+    }
   }
+
   false
 }
