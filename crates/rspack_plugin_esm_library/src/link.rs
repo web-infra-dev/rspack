@@ -2350,6 +2350,51 @@ var {} = {{}};
       }
     }
 
+    // Async entrypoints such as workers don't expose library exports, but their
+    // entry modules still need to execute when the entry chunk is loaded. The
+    // normal startup runtime is disabled for ESM library output, so explicitly
+    // execute entry modules that couldn't be scope hoisted.
+    for entrypoint_ukey in &compilation.build_chunk_graph_artifact.async_entrypoints {
+      let entrypoint = compilation
+        .build_chunk_graph_artifact
+        .chunk_group_by_ukey
+        .expect_get(entrypoint_ukey);
+      let entry_chunk_ukey = entrypoint.get_entrypoint_chunk();
+      let entry_imports = imports
+        .get_mut(&entry_chunk_ukey)
+        .unwrap_or_else(|| panic!("should set imports for chunk {entry_chunk_ukey:?}"));
+
+      for chunk_ukey in &entrypoint.chunks {
+        for (entry_module, module_entrypoint_ukey) in compilation
+          .build_chunk_graph_artifact
+          .chunk_graph
+          .get_chunk_entry_modules_with_chunk_group_iterable(chunk_ukey)
+        {
+          if module_entrypoint_ukey != entrypoint_ukey
+            || compilation
+              .code_generation_results
+              .get_one(entry_module)
+              .get(&SourceType::JavaScript)
+              .is_none()
+          {
+            continue;
+          }
+
+          entry_imports.entry(*entry_module).or_default();
+
+          if concate_modules_map[entry_module].is_external() {
+            Self::add_require(
+              *entry_module,
+              None,
+              None,
+              &mut FxHashSet::default(),
+              required.entry(*chunk_ukey).or_default(),
+            );
+          }
+        }
+      }
+    }
+
     if let Some(root) = &self.preserve_modules {
       let preserve_entry_modules = compilation
         .entries
