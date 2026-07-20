@@ -686,8 +686,8 @@ async fn render_manifest(
           compilation.options.output.hash_digest_length,
         ))
         .chunk_name_optional(chunk.name_for_filename_template())
-        .content_hash_optional(chunk.rendered_content_hash_by_source_type(
-          &compilation.chunk_hashes_artifact,
+        .content_hash_optional(compilation.get_rendered_chunk_content_hash(
+          chunk,
           &SOURCE_TYPE[0],
           compilation.options.output.hash_digest_length,
         )),
@@ -695,23 +695,32 @@ async fn render_manifest(
     )
     .await?;
 
-  let (source, more_diagnostics) = compilation
+  let (source, mut content_hash_dependencies, more_diagnostics) = compilation
     .chunk_render_cache_artifact
     .use_cache(compilation, chunk, &SOURCE_TYPE[0], &filename, || async {
-      let (source, diagnostics) = self
-        .render_content_asset(chunk, &rendered_modules, &filename, compilation)
-        .await;
-      Ok((CachedSource::new(source).boxed(), diagnostics))
+      let (result, dependencies) = rspack_core::collect_content_hash_dependencies(
+        compilation.options.optimization.real_content_hash,
+        self.render_content_asset(chunk, &rendered_modules, &filename, compilation),
+      )
+      .await;
+      let (source, diagnostics) = result;
+      Ok((CachedSource::new(source).boxed(), dependencies, diagnostics))
     })
     .await?;
+
+  if compilation.options.optimization.real_content_hash {
+    content_hash_dependencies.extend(&compilation.get_chunk_content_hash_dependencies(chunk_ukey));
+  }
 
   diagnostics.extend(more_diagnostics);
   manifest.push(RenderManifestEntry {
     source,
     filename,
     has_filename: false,
+    source_type: Some(SOURCE_TYPE[0]),
     info: asset_info,
     auxiliary: false,
+    content_hash_dependencies,
   });
 
   Ok(())

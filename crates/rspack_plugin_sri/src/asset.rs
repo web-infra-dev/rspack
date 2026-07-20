@@ -27,6 +27,7 @@ struct ProcessChunkResult {
   pub warnings: Vec<String>,
   pub placeholder: Option<String>,
   pub integrity: Option<String>,
+  pub content_hash_dependencies: Vec<String>,
 }
 
 fn process_chunks(
@@ -96,6 +97,7 @@ See https://w3c.github.io/webappsec-subresource-integrity/#cross-origin-data-lea
             warnings: vec![format!("No asset found for source path '{}'", file)],
             placeholder: None,
             integrity: None,
+            content_hash_dependencies: Vec::new(),
           }
         }
       })
@@ -120,6 +122,16 @@ See https://w3c.github.io/webappsec-subresource-integrity/#cross-origin-data-lea
       }
 
       let real_content_hash = compilation.options.optimization.real_content_hash;
+      if real_content_hash {
+        compilation
+          .real_content_hash_artifact
+          .add_asset_content_hash(&result.file, integrity.clone());
+        for dependency in result.content_hash_dependencies {
+          compilation
+            .real_content_hash_artifact
+            .add_asset_content_hash_dependency(&result.file, dependency);
+        }
+      }
 
       if let Some(source) = result.source
         && let Some(error) = compilation
@@ -165,6 +177,7 @@ fn process_chunk_source(
 ) -> ProcessChunkResult {
   // generate new source
   let mut new_source = ReplaceSource::new(source.clone());
+  let mut content_hash_dependencies = Vec::new();
 
   let mut warnings = vec![];
   let source_content = source.source().into_string_lossy();
@@ -175,10 +188,12 @@ fn process_chunk_source(
   // replace placeholders with integrity hash
   for caps in PLACEHOLDER_REGEX.captures_iter(&source_content) {
     if let Some(m) = caps.get(0) {
-      let replacement = hash_by_placeholders
-        .get(m.as_str())
-        .map_or(m.as_str(), |i| i.as_str())
-        .to_string();
+      let replacement = if let Some(integrity) = hash_by_placeholders.get(m.as_str()) {
+        content_hash_dependencies.push(integrity.clone());
+        integrity.clone()
+      } else {
+        m.as_str().to_string()
+      };
       new_source.replace(m.start() as u32, m.end() as u32, replacement, None);
     }
   }
@@ -193,6 +208,7 @@ fn process_chunk_source(
     warnings,
     placeholder,
     integrity: Some(integrity),
+    content_hash_dependencies,
   }
 }
 

@@ -562,6 +562,11 @@ impl ParserAndGenerator for AssetParserAndGenerator {
         } else if parsed_asset_config.is_resource() {
           let contenthash = self.hash_for_source(source, &compilation.options);
           let contenthash = contenthash.rendered(compilation.options.output.hash_digest_length);
+          if compilation.options.optimization.real_content_hash {
+            generate_context
+              .data
+              .add_content_hash_dependency(contenthash);
+          }
 
           let source_file_name = self.get_source_file_name(normal_module, compilation);
           let (original_filename, filename, mut asset_info) = self
@@ -856,8 +861,10 @@ async fn render_manifest(
           source: source.clone(),
           filename: asset_filename.to_owned(),
           has_filename: true,
+          source_type: None,
           info: asset_info,
           auxiliary: true,
+          content_hash_dependencies: Default::default(),
         }
       });
 

@@ -260,15 +260,16 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
       );
       let content_hash = stringify_dynamic_chunk_map(
         |c| {
-          c.rendered_content_hash_by_source_type(
-            &compilation.chunk_hashes_artifact,
-            &self.source_type,
-            compilation.options.output.hash_digest_length,
-          )
-          .map(|hash| match hash_len_map.get("[contenthash]") {
-            Some(hash_len) => hash[..*hash_len].to_string(),
-            None => hash.to_string(),
-          })
+          compilation
+            .get_rendered_chunk_content_hash(
+              c,
+              &self.source_type,
+              compilation.options.output.hash_digest_length,
+            )
+            .map(|hash| match hash_len_map.get("[contenthash]") {
+              Some(hash_len) => hash[..*hash_len].to_string(),
+              None => hash.to_string(),
+            })
         },
         &chunks,
         &chunk_map,
@@ -343,9 +344,8 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
               None => hash,
             }
           });
-        let content_hash = chunk
-          .content_hash(&compilation.chunk_hashes_artifact)
-          .and_then(|content_hash| content_hash.get(&self.source_type))
+        let content_hash = compilation
+          .get_chunk_content_hash_by_source_type(chunk, &self.source_type)
           .map(|i| {
             let hash = unquoted_stringify(
               chunk.id(),

@@ -4,7 +4,8 @@ use rustc_hash::FxHashSet;
 
 use super::*;
 use crate::{
-  ModuleCodeGenerationContext, cache::Cache, compilation::pass::PassExt, logger::Logger,
+  ModuleCodeGenerationContext, cache::Cache, collect_content_hash_dependencies,
+  compilation::pass::PassExt, logger::Logger,
 };
 
 pub struct ChunkHashResult {
@@ -496,13 +497,20 @@ pub async fn runtime_modules_code_generation(compilation: &mut Compilation) -> R
               concatenation_scope: None,
               runtime_template: &mut runtime_template,
             };
-            let result = runtime_module
-              .code_generation(&mut code_generation_context)
-              .await?;
+            let (result, content_hash_dependencies) = collect_content_hash_dependencies(
+              compilation.options.optimization.real_content_hash,
+              runtime_module.code_generation(&mut code_generation_context),
+            )
+            .await;
+            let result = result?;
             let source = result
               .get(&SourceType::Runtime)
               .expect("should have source");
-            Ok((*runtime_module_identifier, source.clone()))
+            Ok((
+              *runtime_module_identifier,
+              source.clone(),
+              content_hash_dependencies,
+            ))
           },
         )
       })
@@ -513,12 +521,17 @@ pub async fn runtime_modules_code_generation(compilation: &mut Compilation) -> R
   .collect::<Result<Vec<_>>>()?;
 
   let mut runtime_module_sources = IdentifierMap::<BoxSource>::default();
+  let mut runtime_module_dependencies = IdentifierMap::default();
   for result in results {
-    let (runtime_module_identifier, source) = result?;
+    let (runtime_module_identifier, source, dependencies) = result?;
     runtime_module_sources.insert(runtime_module_identifier, source);
+    if !dependencies.is_empty() {
+      runtime_module_dependencies.insert(runtime_module_identifier, dependencies);
+    }
   }
 
   compilation.runtime_modules_code_generation_source = runtime_module_sources;
+  compilation.runtime_modules_content_hash_dependencies = runtime_module_dependencies;
   compilation
     .code_generated_modules
     .extend(compilation.runtime_modules.keys().copied());

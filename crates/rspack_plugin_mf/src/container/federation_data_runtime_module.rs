@@ -97,8 +97,8 @@ chunkMatcher: function(chunkId) {{
           ))
           .chunk_id_optional(chunk.id().map(|id| id.as_str()))
           .chunk_name_optional(chunk.name_for_filename_template())
-          .content_hash_optional(chunk.rendered_content_hash_by_source_type(
-            &compilation.chunk_hashes_artifact,
+          .content_hash_optional(compilation.get_rendered_chunk_content_hash(
+            chunk,
             &SourceType::JavaScript,
             compilation.options.output.hash_digest_length,
           ))

@@ -9,6 +9,9 @@ module.exports = {
   node: {
     __filename: false,
   },
+  optimization: {
+    realContentHash: true,
+  },
   module: {
     rules: [
       {
