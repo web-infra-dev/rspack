@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use futures::Future;
 use rspack_collections::Identifier;
 use rspack_error::{Diagnostic, Result};
@@ -8,9 +10,15 @@ use crate::{
   incremental::{Incremental, IncrementalPasses},
 };
 
+#[derive(Debug, Clone)]
+struct ChunkRenderCacheEntry {
+  filename: Arc<str>,
+  source: BoxSource,
+}
+
 #[derive(Debug, Default)]
 pub struct ChunkRenderCacheArtifact {
-  storage: Option<MemoryGCStorage<BoxSource>>,
+  storage: Option<MemoryGCStorage<ChunkRenderCacheEntry>>,
 }
 
 impl ArtifactExt for ChunkRenderCacheArtifact {
@@ -23,9 +31,9 @@ impl ArtifactExt for ChunkRenderCacheArtifact {
 }
 
 impl ChunkRenderCacheArtifact {
-  pub fn new(storage: MemoryGCStorage<BoxSource>) -> Self {
+  pub fn new(max_generations: u32) -> Self {
     Self {
-      storage: Some(storage),
+      storage: Some(MemoryGCStorage::new(max_generations)),
     }
   }
   pub fn start_next_generation(&self) {
@@ -53,15 +61,21 @@ impl ChunkRenderCacheArtifact {
     else {
       return generator().await;
     };
-    // Rendering can produce output-path-relative URLs, so an unchanged content hash is not enough
-    // when a filename function moves the chunk between compilations.
-    let cache_key = Identifier::from(format!("{}|{output_path}", content_hash.encoded()));
-    if let Some(value) = storage.get(&cache_key) {
-      Ok((value, Vec::new()))
-    } else {
-      let res = generator().await?;
-      storage.set(cache_key, res.0.clone());
-      Ok(res)
+    let cache_key = Identifier::from(content_hash.encoded());
+    if let Some(entry) = storage.get(&cache_key)
+      && entry.filename.as_ref() == output_path
+    {
+      return Ok((entry.source, Vec::new()));
     }
+
+    let res = generator().await?;
+    storage.set(
+      cache_key,
+      ChunkRenderCacheEntry {
+        filename: Arc::from(output_path),
+        source: res.0.clone(),
+      },
+    );
+    Ok(res)
   }
 }
