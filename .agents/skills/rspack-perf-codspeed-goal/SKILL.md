@@ -19,7 +19,7 @@ The agent owns the loop. After the user gives the target benchmark, threshold, a
 - Prefer the GitHub connector/plugin for GitHub operations; use `gh` only when the connector cannot perform the required action. Avoid the 1Password `gh` shell plugin unless explicitly requested.
 - Preserve behavior unless the user explicitly accepts a semantic change.
 - Keep changes scoped to the requested ownership boundary. Expand scope only when the measured bottleneck or correctness fix requires it, and explain the expansion.
-- Use local verification for correctness and CI/CodSpeed for final external validation. Local performance benchmarks are optional triage signals only when the repository documents a reliable command for the requested benchmark; final performance evidence must still come from CI/CodSpeed comments.
+- Use local verification only for correctness. Run all CodSpeed performance validation in CI and use the CI/CodSpeed result for the current PR head as the source of truth.
 - Use append-only commits for normal optimization rounds. Do not routinely amend previous commits or force-push; use history rewriting only for an explicit user-requested rebase or another unavoidable repository operation.
 
 ## Initial Setup
@@ -60,7 +60,7 @@ Run these steps in order for every round.
    - Run the relevant lint/check command for the touched language, including `clippy` or Rust check coverage for Rust changes.
    - Run format verification, not broad formatting churn, unless formatting is already required.
    - For Rspack, follow repository guidance: JavaScript/TypeScript changes need the relevant JS build before JS tests; Rust changes need the relevant Rust binding build before Rust tests; mixed changes need the full dev build.
-   - Do not require local CodSpeed benches. When Rspack documents a reliable local benchmark command for the requested benchmark, you may run it as a pre-push signal to catch obvious slowdowns before spending CI/CodSpeed rounds.
+   - Do not run CodSpeed locally. All performance validation and comparisons must come from CI/CodSpeed for the current PR head.
    - Some local test cases, especially native watcher and swc-related cases, may be flaky in local runs. If such a known-flaky case fails and the failure is unrelated to the scoped change, record it as ignored local flakiness and continue; do not let it block the round.
    - If a local correctness command fails, fix it locally and repeat local verification before pushing.
    - Do not substitute CodSpeed performance data for correctness evidence.

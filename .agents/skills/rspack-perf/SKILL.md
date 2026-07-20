@@ -125,7 +125,8 @@ Functional validation:
 
 Performance validation:
 
-- Validate with CodSpeed cases.
+- Run CodSpeed performance validation only in GitHub CI. Do not run CodSpeed locally or use local benchmark results for performance decisions.
+- Use the CodSpeed result for the current PR head as the source of truth.
 - Prefer the CodSpeed `compilation stages` case that directly covers the optimized feature.
 - If no matching compilation-stage case exists, use the closest existing CodSpeed case for the affected feature and explain the coverage gap.
 - If adding or changing benchmark coverage is necessary, keep the case focused on the optimized stage and avoid unrelated noise such as minimization unless it is the target.
@@ -135,7 +136,7 @@ Before submitting:
 - Run `pnpm run format:rs`.
 - Run `pnpm run format:js`.
 - Run `cargo clippy --workspace --all-targets --all-features`.
-- Summarize the hot path, the data cardinality risk, the chosen CPU/memory optimization technique, functional test result, CodSpeed performance result, format result, and clippy result.
+- Summarize the hot path, the data cardinality risk, the chosen CPU/memory optimization technique, functional test result, CI CodSpeed performance result, format result, and clippy result.
 
 ## PR and Benchmark Follow-up
 
@@ -176,4 +177,4 @@ If the user allows waiting for GitHub CI:
 - Making a hot structure larger to save one rare computation.
 - Adding parallelism before removing repeated serial work.
 - Trading a CPU bottleneck for large temporary allocations.
-- Verifying only output snapshots without checking the relevant CodSpeed case.
+- Verifying only output snapshots without checking the relevant CI CodSpeed result.
