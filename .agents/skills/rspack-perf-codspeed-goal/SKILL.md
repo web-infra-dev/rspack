@@ -127,7 +127,7 @@ Run these steps in order for every round.
 9. Decide the next action independently.
    - If local correctness, required CI, review comments, and CodSpeed target all pass, report success with exact commit SHA, benchmark values, percentage delta, and PR status.
    - Compare the first performance-focused round with the CodSpeed PR base. Compare each later performance-focused round with the previous retained performance-focused round.
-   - If a performance-focused round does not improve performance versus that comparison point, revert that commit's code changes with a new follow-up commit, update the progress comment with the reverted state, and start the next round from the reverted code state.
+   - If a performance-focused round does not improve performance versus that comparison point, revert that commit's code changes with a new follow-up commit and update the progress comment with the reverted state. If the round limit has been reached, stop after the revert; otherwise start the next round from the reverted code state.
    - If a round only fixes correctness, CI, or review feedback, keep the fix when validation improves even if the CodSpeed result is neutral.
    - If CodSpeed improves versus that comparison point but remains below threshold and the round limit is not reached, immediately choose the next scoped optimization direction and start the next round.
    - If review or CI requires code changes, start the next round focused on that fix before additional performance work.

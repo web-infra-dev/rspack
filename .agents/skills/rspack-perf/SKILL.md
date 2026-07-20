@@ -128,7 +128,7 @@ Before submitting:
 - Run `pnpm run format:rs`.
 - Run `pnpm run format:js`.
 - Run `cargo clippy --workspace --all-targets --all-features`.
-- Summarize the hot path, the data cardinality risk, the chosen CPU/memory optimization technique, functional test result, Ecosystem Benchmark result, format result, and clippy result.
+- Summarize the hot path, the data cardinality risk, the chosen CPU/memory optimization technique, functional test result, format result, and clippy result.
 
 ## PR and Benchmark Follow-up
 
@@ -161,6 +161,7 @@ If the user allows waiting for GitHub CI:
 3. Compare improvements and regressions in the report.
 4. If the report shows regressions, analyze likely causes from the changed hot path, data structure cardinality, CPU work, and allocation behavior.
 5. Perform one additional optimization iteration when there is a plausible fix, then update the PR branch, push again, and rerun the Ecosystem Benchmark workflow.
+6. Summarize the final Ecosystem Benchmark result after the workflow completes.
 
 ## Common Mistakes
 
