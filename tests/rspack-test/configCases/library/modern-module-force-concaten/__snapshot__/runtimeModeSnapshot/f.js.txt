@@ -1,21 +1,21 @@
 import { rspackRequire, moduleFactories, compatGetDefaultExport } from "./runtime~0.js";
 import { createRequire as __rspack_createRequire } from "node:module";
 const __rspack_createRequire_require = __rspack_createRequire(import.meta.url);
-__rspack_context.m.add({
-928(module) {
+moduleFactories.add({
+"Zm8"(module) {
 module.exports = __rspack_createRequire_require("path");
 
 },
-227(module, __unused_rspack_exports, __rspack_context) {
-const path = __rspack_context.r(928)
+"gzj"(module, __unused_rspack_exports, rspackRequire) {
+const path = rspackRequire("Zm8")
 
 module.exports = path.sep
 
 
 },
 });
-const bar = __rspack_context.r("227");
-var bar_default = /*#__PURE__*/__rspack_context.n(bar);
+const bar = rspackRequire("gzj");
+var bar_default = /*#__PURE__*/compatGetDefaultExport(bar);
 
 
 

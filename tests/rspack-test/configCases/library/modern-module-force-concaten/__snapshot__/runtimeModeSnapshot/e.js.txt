@@ -1,13 +1,12 @@
-import { __rspack_context } from "./runtime~0.js";
-
-__rspack_context.m.add({
-100(module) {
+import { rspackRequire, moduleFactories, compatGetDefaultExport } from "./runtime~0.js";
+moduleFactories.add({
+"uE4"(module) {
 module.exports = 'bar'
 
 },
 });
-const bar = __rspack_context.r("100");
-var bar_default = /*#__PURE__*/__rspack_context.n(bar);
+const bar = rspackRequire("uE4");
+var bar_default = /*#__PURE__*/compatGetDefaultExport(bar);
 var bar_default_0 = bar_default();
 
 
