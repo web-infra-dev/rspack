@@ -555,7 +555,7 @@ export default {
 
 Specify the default type of externals as `'modern-module'`.
 
-For compatibility, Rspack does not enable this automatically when [`output.library.type`](/config/output#outputlibrarytype) is `'modern-module'` yet. Configure `externalsType: 'modern-module'` explicitly to opt in. This will become the default for `modern-module` libraries in the next major version.
+This is the default when [`output.library.type`](/config/output#outputlibrarytype) is `'modern-module'`.
 
 For static ESM imports, Rspack renders the external like [`'module'`](#externalstypemodule), using a static `import` statement. For dynamic `import()`, Rspack renders the external like [`'module-import'`](#externalstypemodule-import), using `import()`.
 

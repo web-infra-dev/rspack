@@ -40,7 +40,7 @@ async fn default_stats_colors_follows_environment() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
-async fn modern_module_library_keeps_module_import_externals_default() {
+async fn modern_module_library_uses_modern_module_externals_default() {
   let mut builder_context = BuilderContext::default();
   CompilerOptionsBuilder::default()
     .mode(Mode::None)
@@ -62,11 +62,11 @@ async fn modern_module_library_keeps_module_import_externals_default() {
 
   let builder_context = format!("{builder_context:?}");
   assert!(
-    builder_context.contains(r#"ExternalsPlugin(("module-import""#),
-    "modern-module libraries should keep the module-import externals default until the next major"
+    builder_context.contains(r#"ExternalsPlugin(("modern-module""#),
+    "modern-module libraries should use modern-module externals by default"
   );
   assert!(
-    !builder_context.contains(r#"ExternalsPlugin(("modern-module""#),
-    "modern-module externals should require an explicit externals_type opt-in"
+    !builder_context.contains(r#"ExternalsPlugin(("module-import""#),
+    "modern-module libraries should not use module-import externals by default"
   );
 }

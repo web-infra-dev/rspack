@@ -21,7 +21,9 @@ module.exports = {
 
 		expect(source).toMatch(/import\s*\{\s*resolve\s*\}\s*from\s*["']path["']/);
 		expect(source).toMatch(/import\s*\(\s*["']os["']\s*\)/);
-		expect(source).toMatch(/from\s*["']fs["']/);
-		expect(source).not.toContain("createRequire");
+		expect(source).toMatch(/createRequire\s+as\s+__rspack_createRequire/);
+		expect(source).toMatch(
+			/__rspack_createRequire_require\s*\(\s*["']fs["']\s*\)/
+		);
 	}
 };

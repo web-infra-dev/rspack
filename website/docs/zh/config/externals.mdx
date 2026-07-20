@@ -554,7 +554,7 @@ export default {
 
 将 externals 的默认类型指定为 `'modern-module'`。
 
-出于兼容性考虑，Rspack 暂时不会在 [`output.library.type`](/config/output#outputlibrarytype) 为 `'modern-module'` 时自动启用它。请显式配置 `externalsType: 'modern-module'` 来开启。下一个 major 版本中，它会成为 `modern-module` library 的默认值。
+当 [`output.library.type`](/config/output#outputlibrarytype) 为 `'modern-module'` 时，这是默认值。
 
 对于静态 ESM import，Rspack 会像 [`'module'`](#externalstypemodule) 一样渲染 external，生成静态 `import` 语句。对于动态 `import()`，Rspack 会像 [`'module-import'`](#externalstypemodule-import) 一样渲染 external，生成 `import()`。
 

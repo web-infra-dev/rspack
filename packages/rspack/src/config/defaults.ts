@@ -149,13 +149,8 @@ export const applyRspackOptionsDefaults = (
 
   F(options, 'externalsType', () => {
     if (options.output.library?.type) {
-      // Keep modern-module libraries on the existing output.module default for
-      // compatibility. `externalsType: "modern-module"` must be enabled
-      // explicitly for now, and will become the default in the next major.
-      if (options.output.library.type !== 'modern-module') {
-        // loose type 'string', actual type is "commonjs" | "var" | "commonjs2"....
-        return options.output.library.type as any;
-      }
+      // loose type 'string', actual type is "commonjs" | "var" | "commonjs2"....
+      return options.output.library.type as any;
     }
     return options.output.module ? 'module-import' : 'var';
   });

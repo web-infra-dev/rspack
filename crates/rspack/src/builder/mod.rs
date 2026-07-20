@@ -1070,16 +1070,7 @@ impl CompilerOptionsBuilder {
 
     w!(self.externals_type, {
       if let Some(library) = &output.library {
-        // Keep modern-module libraries on the existing output.module default
-        // for compatibility. `externalsType: "modern-module"` must be enabled
-        // explicitly for now, and will become the default in the next major.
-        if library.library_type != "modern-module" {
-          library.library_type.clone()
-        } else if output.module {
-          "module-import".to_string()
-        } else {
-          "var".to_string()
-        }
+        library.library_type.clone()
       } else if output.module {
         "module-import".to_string()
       } else {
