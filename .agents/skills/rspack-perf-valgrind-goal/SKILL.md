@@ -29,6 +29,29 @@ Use `scripts/run_local_valgrind.sh` from this skill. It builds a reusable native
 
 The helper passes the repository's existing `--cfg codspeed` compile-time switch to ordinary `cargo build` so the benchmark adapter exposes its Valgrind client-request boundaries. This is only a source configuration name: no CodSpeed executable, service, token, API, upload, PR comment, or benchmark result participates in the workflow. Valgrind starts instrumentation at the selected benchmark boundary, and `run-*.instructions` plus the local Callgrind profiles are the only performance source of truth.
 
+## Docker Prerequisite and Installation
+
+Verify Docker before preparing fixtures or building the measurement image:
+
+```bash
+command -v docker
+docker version
+docker info
+docker compose version
+docker run --rm hello-world
+```
+
+If Docker is missing or the engine is unavailable, install and validate it before continuing. When the local task history is available, read task `019f7e27-50ba-7ac1-8ab4-3cdc868818fe` (`安装 Docker 并运行 Valgrind`) and follow its tested installation flow. Do not replace the Docker measurement environment with host-side Valgrind.
+
+Apply these installation requirements even when that task cannot be read:
+
+- Detect the host OS and native architecture before downloading anything. On Apple Silicon macOS, install the official arm64 Docker Desktop application, start Docker Desktop, and wait for the Linux engine to become ready.
+- Treat license acceptance, administrator privileges, and first-launch permission dialogs as user-owned gates. Ask the user to complete them when the operating system requires interaction; do not bypass them.
+- Ensure the Docker CLI, Compose plugin, and credential helper are reachable from the current shell. If Docker Desktop was installed by copying the application and did not update `PATH`, add its supported CLI directory to the shell configuration, start a new shell, and re-run the verification commands above.
+- Use `docker run --rm hello-world` to verify image pulling, credentials, networking, and container execution rather than accepting an installed application as sufficient evidence.
+- On macOS, allocate about 16 GiB to Docker Desktop when the host has enough memory. The Rspack optimized benchmark build has been observed to receive `SIGKILL` with the default 8 GiB allocation. If that happens, increase Docker memory, restart the engine, preserve the Docker volumes, and resume the cached build.
+- Confirm the organization permits Docker Desktop use under its applicable commercial license. On Linux, install the official Docker Engine packages appropriate for the distribution and apply the same engine and `hello-world` verification.
+
 From the optimization checkout, initialize the environment once:
 
 ```bash

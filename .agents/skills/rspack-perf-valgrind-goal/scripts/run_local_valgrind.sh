@@ -4,6 +4,7 @@ set -euo pipefail
 
 readonly DEFAULT_IMAGE="rspack-perf-valgrind:nightly-2026-04-16"
 readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+readonly DOCKER_INSTALL_TASK="019f7e27-50ba-7ac1-8ab4-3cdc868818fe"
 
 usage() {
   cat <<'EOF'
@@ -27,6 +28,10 @@ Defaults:
   PLATFORM  Native Docker architecture (`linux/arm64` or `linux/amd64`)
   REPEAT    2
 
+Prerequisite:
+  Docker CLI and Engine must be installed and running. If they are missing,
+  follow installation task 019f7e27-50ba-7ac1-8ab4-3cdc868818fe first.
+
 A valid measurement produces a nonzero Callgrind instruction total. The
 output directory must not contain prior run data.
 EOF
@@ -39,6 +44,13 @@ fail() {
 
 require_command() {
   command -v "$1" >/dev/null 2>&1 || fail "required command not found: $1"
+}
+
+require_docker() {
+  command -v docker >/dev/null 2>&1 \
+    || fail "Docker is not installed; follow installation task $DOCKER_INSTALL_TASK before continuing"
+  docker info >/dev/null 2>&1 \
+    || fail "Docker Engine is unavailable; start and verify Docker using installation task $DOCKER_INSTALL_TASK"
 }
 
 canonical_directory() {
@@ -143,8 +155,8 @@ while (($# > 0)); do
   esac
 done
 
+require_docker
 if [[ "$command_name" != "prepare" ]]; then
-  require_command docker
   native_platform="$(native_docker_platform)"
   platform="${platform:-$native_platform}"
   [[ "$platform" == "$native_platform" ]] \
