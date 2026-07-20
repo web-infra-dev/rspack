@@ -207,11 +207,19 @@ case "$command_name" in
       || fail "measure requires a committed, clean source snapshot: $repo"
     git_common_directory="$(git -C "$repo" rev-parse --path-format=absolute --git-common-dir)"
     git_common_directory="$(canonical_directory "$git_common_directory")"
-    repo_cache_key="$(hash_text "$repo")"
-    target_volume="rspack-perf-valgrind-target-${repo_cache_key}"
+    image_id="$(docker image inspect "$image" --format '{{.Id}}')"
+    target_cache_key="$(hash_text "$repo|$image_id|$platform")"
+    target_volume="rspack-perf-valgrind-target-${target_cache_key}"
     registry_volume="rspack-perf-valgrind-cargo-registry"
     git_volume="rspack-perf-valgrind-cargo-git"
-    image_id="$(docker image inspect "$image" --format '{{.Id}}')"
+    container_fixtures="/benchcases-source"
+    fixture_mode="read-only"
+    copy_fixtures="false"
+    if [[ "$bench_target" == "benches" && "$bench_filter" == *persistent_cache* ]]; then
+      container_fixtures="/benchcases"
+      fixture_mode="writable-copy"
+      copy_fixtures="true"
+    fi
     glibc_tunables=""
     if [[ "$platform" == "linux/amd64" ]]; then
       glibc_tunables="glibc.cpu.hwcaps=-AVX512F,-AVX2,-AVX,-AVX_Fast_Unaligned_Load,-ERMS,-Prefer_ERMS,-SSE4_2,-SSSE3"
@@ -228,6 +236,7 @@ case "$command_name" in
       echo "platform=$platform"
       echo "bench_target=$bench_target"
       echo "bench_filter=$bench_filter"
+      echo "fixture_mode=$fixture_mode"
       echo "repeat=$repeat_count"
       echo "target_volume=$target_volume"
       echo "measurement=callgrind-instructions"
@@ -245,7 +254,7 @@ case "$command_name" in
       --security-opt seccomp=unconfined \
       --volume "$repo:/rspack:ro" \
       --volume "$git_common_directory:$git_common_directory:ro" \
-      --volume "$fixtures:/benchcases:ro" \
+      --volume "$fixtures:/benchcases-source:ro" \
       --volume "$output_directory:/results" \
       --volume "$target_volume:/target" \
       --volume "$registry_volume:/usr/local/cargo/registry" \
@@ -255,7 +264,7 @@ case "$command_name" in
       --env CARGO_TARGET_DIR=/target \
       --env "GLIBC_TUNABLES=$glibc_tunables" \
       --env MIMALLOC_PURGE_DELAY=-1 \
-      --env RSPACK_BENCHCASES_DIR=/benchcases \
+      --env "RSPACK_BENCHCASES_DIR=$container_fixtures" \
       "$image" \
       bash -c '
         set -euo pipefail
@@ -264,6 +273,7 @@ case "$command_name" in
         bench_target="$1"
         bench_filter="$2"
         repeat_count="$3"
+        copy_fixtures="$4"
 
         {
           rustc --version
@@ -296,6 +306,11 @@ case "$command_name" in
           echo "benchmark binary not found: $benchmark_binary" >&2
           exit 1
         }
+
+        if [[ "$copy_fixtures" == "true" ]]; then
+          mkdir -p /benchcases
+          cp -a /benchcases-source/. /benchcases/
+        fi
 
         for ((run_index = 1; run_index <= repeat_count; run_index++)); do
           run_directory="/results/run-${run_index}"
@@ -356,7 +371,7 @@ case "$command_name" in
           echo "instruction_count=$instruction_count" \
             | tee "$run_directory.instructions"
         done
-      ' bash "$bench_target" "$bench_filter" "$repeat_count"
+      ' bash "$bench_target" "$bench_filter" "$repeat_count" "$copy_fixtures"
 
     echo "measurement results: $output_directory"
     ;;

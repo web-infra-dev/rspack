@@ -25,7 +25,9 @@ The agent owns the loop. After the user gives the target benchmark stage, thresh
 
 ## Local Measurement Contract
 
-Use `scripts/run_local_valgrind.sh` from this skill. It builds a reusable native-architecture image containing the repository's pinned Rust toolchain and Debian's standard Valgrind package. The helper mounts source and fixtures read-only, stores build caches in Docker volumes, builds with ordinary Cargo, executes only the selected benchmark binary under Callgrind, captures raw logs and profiles, and records an environment manifest.
+Use `scripts/run_local_valgrind.sh` from this skill. It builds a reusable native-architecture image containing the repository's pinned Rust toolchain and Debian's standard Valgrind package. The helper mounts source and canonical fixtures read-only, stores build caches in Docker volumes keyed by checkout path, image ID, and native platform, builds with ordinary Cargo, executes only the selected benchmark binary under Callgrind, captures raw logs and profiles, and records an environment manifest.
+
+For persistent-cache benchmark filters, the helper copies the read-only fixtures into ephemeral writable container storage before execution because those benchmarks create temporary workspaces beneath `RSPACK_BENCHCASES_DIR`. The copy preserves fixture symlinks and is discarded with the container; never make the canonical host fixture directory writable.
 
 The helper passes the repository's existing `--cfg codspeed` compile-time switch to ordinary `cargo build` so the benchmark adapter exposes its Valgrind client-request boundaries. This is only a source configuration name: no CodSpeed executable, service, token, API, upload, PR comment, or benchmark result participates in the workflow. Valgrind starts instrumentation at the selected benchmark boundary, and `run-*.instructions` plus the local Callgrind profiles are the only performance source of truth.
 
@@ -196,9 +198,9 @@ Base: `<sha>` at `<instruction count>`
 Current status: `<running|passed|failed|blocked>`
 Latest head: `<sha>`
 
-| Round | Commit | Change | Local Valgrind | Decision | Correctness |
-| ----- | ------ | ------ | -------------- | -------- | ----------- |
-| 1 | `<sha>` | `<summary>` | `<base -> candidate; delta>` | `<retained|reverted>` | `<summary>` |
+| Round | Commit  | Change      | Local Valgrind               | Decision              | Correctness |
+| ----- | ------- | ----------- | ---------------------------- | --------------------- | ----------- |
+| 1     | `<sha>` | `<summary>` | `<base -> candidate; delta>` | `<retained/reverted>` | `<summary>` |
 ```
 
 Update this report rather than duplicating it. Keep entries concise and include links or paths to raw local logs.
