@@ -171,7 +171,7 @@ impl InitFragmentKey {
         ESMExportInitFragment::new(export_argument, export_map, is_circular_module).boxed()
       }
       InitFragmentKey::AwaitDependencies => {
-        let mut iter = fragments.into_iter().map(|fragment| {
+        let iter = fragments.into_iter().map(|fragment| {
           fragment
             .into_any()
             .downcast::<AwaitDependenciesInitFragment>()
@@ -179,16 +179,7 @@ impl InitFragmentKey {
               "fragment of InitFragmentKey::AwaitDependencies should be a AwaitDependenciesInitFragment",
             )
         });
-        let first = iter
-          .next()
-          .expect("keyed_fragments should at least have one value");
-        let binding = first.binding.clone();
-        let mut promises = first.promises;
-        for fragment in iter {
-          debug_assert_eq!(binding, fragment.binding);
-          promises.extend(fragment.promises);
-        }
-        AwaitDependenciesInitFragment { promises, binding }.boxed()
+        AwaitDependenciesInitFragment::merge(iter).boxed()
       }
       InitFragmentKey::ExternalModule(_) => {
         let mut iter = fragments.into_iter();
@@ -637,6 +628,22 @@ pub struct AwaitDependenciesInitFragment {
 }
 
 impl AwaitDependenciesInitFragment {
+  fn merge(mut fragments: impl Iterator<Item = Box<Self>>) -> Self {
+    let first = fragments
+      .next()
+      .expect("keyed_fragments should at least have one value");
+    let binding = first.binding.clone();
+    let mut promises = first.promises;
+    for fragment in fragments {
+      assert_eq!(
+        binding, fragment.binding,
+        "merged AwaitDependenciesInitFragments must use the same binding"
+      );
+      promises.extend(fragment.promises);
+    }
+    Self { promises, binding }
+  }
+
   pub fn new(promises: LinkedHashSet<String, BuildHasherDefault<FxHasher>>) -> Self {
     Self {
       promises,
@@ -722,6 +729,54 @@ impl<C: InitFragmentRenderContext> InitFragment<C> for AwaitDependenciesInitFrag
 
   fn key(&self) -> &InitFragmentKey {
     &InitFragmentKey::AwaitDependencies
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::AwaitDependenciesInitFragment;
+
+  #[test]
+  fn merges_await_dependencies_with_the_same_binding() {
+    let fragments = vec![
+      Box::new(AwaitDependenciesInitFragment::new_single_with_binding(
+        "first".to_string(),
+        "binding".to_string(),
+      )),
+      Box::new(AwaitDependenciesInitFragment::new_single_with_binding(
+        "second".to_string(),
+        "binding".to_string(),
+      )),
+    ];
+
+    let merged = AwaitDependenciesInitFragment::merge(fragments.into_iter());
+
+    assert_eq!(merged.binding.as_deref(), Some("binding"));
+    assert_eq!(
+      merged
+        .promises
+        .iter()
+        .map(String::as_str)
+        .collect::<Vec<_>>(),
+      ["first", "second"]
+    );
+  }
+
+  #[test]
+  #[should_panic(expected = "must use the same binding")]
+  fn rejects_await_dependencies_with_different_bindings() {
+    let fragments = vec![
+      Box::new(AwaitDependenciesInitFragment::new_single_with_binding(
+        "first".to_string(),
+        "first_binding".to_string(),
+      )),
+      Box::new(AwaitDependenciesInitFragment::new_single_with_binding(
+        "second".to_string(),
+        "second_binding".to_string(),
+      )),
+    ];
+
+    AwaitDependenciesInitFragment::merge(fragments.into_iter());
   }
 }
 
