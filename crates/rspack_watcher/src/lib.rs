@@ -7,7 +7,15 @@ mod scanner;
 mod time_info;
 mod trigger;
 
-use std::{sync::Arc, time::SystemTime};
+use std::{
+  future::Future,
+  pin::Pin,
+  sync::{
+    Arc, Mutex,
+    atomic::{AtomicBool, Ordering},
+  },
+  time::SystemTime,
+};
 
 use analyzer::{Analyzer, RecommendedAnalyzer};
 use disk_watcher::DiskWatcher;
@@ -18,7 +26,7 @@ use rspack_error::Result;
 use rspack_paths::ArcPath;
 use rspack_util::fx_hash::FxHashSet as HashSet;
 use scanner::Scanner;
-use tokio::sync::mpsc;
+use tokio::sync::{mpsc, oneshot};
 use trigger::Trigger;
 
 #[derive(Debug, PartialEq, Eq, Hash)]
@@ -85,13 +93,37 @@ pub struct FsWatcherOptions {
   pub aggregate_timeout: Option<u32>,
 }
 
+const WATCHER_UNAVAILABLE: &str =
+  "The watcher has been stopped and cannot accept new watch requests";
+
+enum WatcherOp {
+  Watch {
+    files: (Vec<ArcPath>, Vec<ArcPath>),
+    directories: (Vec<ArcPath>, Vec<ArcPath>),
+    missing: (Vec<ArcPath>, Vec<ArcPath>),
+    start_time: SystemTime,
+    event_aggregate_handler: Box<dyn EventAggregateHandler + Send>,
+    event_handler: Box<dyn EventHandler + Send>,
+    done: oneshot::Sender<()>,
+  },
+  Close {
+    done: oneshot::Sender<Result<()>>,
+  },
+}
+
 pub struct FsWatcher {
+  paused: Arc<AtomicBool>,
+  trigger: Arc<Mutex<Option<Arc<Trigger>>>>,
+  op_tx: mpsc::UnboundedSender<WatcherOp>,
+}
+
+struct FsWatcherInner {
   path_manager: Arc<PathManager>,
   disk_watcher: DiskWatcher,
   executor: Executor,
   scanner: Scanner,
   analyzer: RecommendedAnalyzer,
-  trigger: Option<Arc<Trigger>>,
+  trigger: Arc<Mutex<Option<Arc<Trigger>>>>,
 }
 
 impl FsWatcher {
@@ -106,16 +138,24 @@ impl FsWatcher {
       options.poll_interval,
       trigger.clone(),
     );
-    let executor = Executor::new(rx, options.aggregate_timeout);
+    let paused = Arc::new(AtomicBool::new(false));
+    let executor = Executor::new(rx, options.aggregate_timeout, Arc::clone(&paused));
     let scanner = Scanner::new(tx, Arc::clone(&path_manager));
+    let trigger = Arc::new(Mutex::new(Some(trigger)));
 
-    Self {
+    let inner = FsWatcherInner {
+      path_manager,
       disk_watcher,
       executor,
-      path_manager,
       scanner,
       analyzer: RecommendedAnalyzer::default(),
-      trigger: Some(trigger),
+      trigger: Arc::clone(&trigger),
+    };
+
+    Self {
+      paused,
+      trigger,
+      op_tx: spawn_owner_thread(inner),
     }
   }
 
@@ -127,11 +167,141 @@ impl FsWatcher {
   /// * `missing` - An tuple of iterators for missing paths to watch (added, removed).
   /// * `event_aggregate_handler` - A boxed trait object for handling aggregated events.
   /// * `event_handler` - A boxed trait object for handling individual events.
-  pub async fn watch(
-    &mut self,
+  pub fn watch(
+    &self,
     files: (impl Iterator<Item = ArcPath>, impl Iterator<Item = ArcPath>),
     directories: (impl Iterator<Item = ArcPath>, impl Iterator<Item = ArcPath>),
     missing: (impl Iterator<Item = ArcPath>, impl Iterator<Item = ArcPath>),
+    start_time: SystemTime,
+    event_aggregate_handler: Box<dyn EventAggregateHandler + Send>,
+    event_handler: Box<dyn EventHandler + Send>,
+  ) -> Pin<Box<dyn Future<Output = ()> + Send>> {
+    let (done_tx, done_rx) = oneshot::channel();
+
+    let send_result = self.op_tx.send(WatcherOp::Watch {
+      files: (files.0.collect(), files.1.collect()),
+      directories: (directories.0.collect(), directories.1.collect()),
+      missing: (missing.0.collect(), missing.1.collect()),
+      start_time,
+      event_aggregate_handler,
+      event_handler,
+      done: done_tx,
+    });
+    if let Err(send_error) = send_result
+      && let WatcherOp::Watch {
+        event_aggregate_handler,
+        ..
+      } = send_error.0
+    {
+      event_aggregate_handler.on_error(rspack_error::error!("{WATCHER_UNAVAILABLE}"));
+    }
+
+    Box::pin(async move {
+      let _ = done_rx.await;
+    })
+  }
+
+  /// Closes the file system watcher, stopping all background tasks and releasing resources.
+  pub fn close(&self) -> Pin<Box<dyn Future<Output = Result<()>> + Send>> {
+    let (done_tx, done_rx) = oneshot::channel();
+    let submitted = self.op_tx.send(WatcherOp::Close { done: done_tx }).is_ok();
+
+    Box::pin(async move {
+      if !submitted {
+        return Ok(());
+      }
+      match done_rx.await {
+        Ok(result) => result,
+        Err(_) => Err(rspack_error::error!(
+          "The watcher stopped before close completed"
+        )),
+      }
+    })
+  }
+
+  pub fn trigger_event(&self, path: &ArcPath, kind: FsEventKind) {
+    let trigger = self.trigger.lock().expect("should lock trigger").clone();
+    if let Some(trigger) = trigger {
+      trigger.on_event(path, kind);
+    }
+  }
+
+  /// Pauses the file system watcher, stopping the execution of the event loop.
+  pub fn pause(&self) -> Result<()> {
+    self.paused.store(true, Ordering::Relaxed);
+
+    Ok(())
+  }
+}
+
+fn spawn_owner_thread(mut inner: FsWatcherInner) -> mpsc::UnboundedSender<WatcherOp> {
+  let (tx, mut rx) = mpsc::unbounded_channel::<WatcherOp>();
+
+  let owner_loop = async move {
+    let mut closed = false;
+    while let Some(op) = rx.recv().await {
+      match op {
+        WatcherOp::Watch {
+          event_aggregate_handler,
+          done,
+          ..
+        } if closed => {
+          event_aggregate_handler.on_error(rspack_error::error!("{WATCHER_UNAVAILABLE}"));
+          drop(done);
+        }
+        WatcherOp::Watch {
+          files,
+          directories,
+          missing,
+          start_time,
+          event_aggregate_handler,
+          event_handler,
+          done,
+        } => {
+          inner
+            .watch(
+              files,
+              directories,
+              missing,
+              start_time,
+              event_aggregate_handler,
+              event_handler,
+            )
+            .await;
+          let _ = done.send(());
+        }
+        WatcherOp::Close { done } if closed => {
+          let _ = done.send(Ok(()));
+        }
+        WatcherOp::Close { done } => {
+          let _ = done.send(inner.close().await);
+          closed = true;
+        }
+      }
+    }
+  };
+
+  std::thread::Builder::new()
+    .name("rspack-fs-watcher".to_string())
+    .spawn(move || {
+      let runtime = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .expect("create watcher runtime");
+
+      runtime.block_on(owner_loop);
+    })
+    .expect("spawn watcher thread");
+
+  tx
+}
+
+impl FsWatcherInner {
+  async fn watch(
+    &mut self,
+    files: (Vec<ArcPath>, Vec<ArcPath>),
+    directories: (Vec<ArcPath>, Vec<ArcPath>),
+    missing: (Vec<ArcPath>, Vec<ArcPath>),
     start_time: SystemTime,
     event_aggregate_handler: Box<dyn EventAggregateHandler + Send>,
     event_handler: Box<dyn EventHandler + Send>,
@@ -149,37 +319,27 @@ impl FsWatcher {
       .await;
   }
 
-  /// Closes the file system watcher, stopping all background tasks and releasing resources.
-  pub async fn close(&mut self) -> Result<()> {
+  async fn close(&mut self) -> Result<()> {
     self.disk_watcher.close();
     self.scanner.close();
     self.executor.close().await;
-    self.trigger.take();
-
-    Ok(())
-  }
-
-  pub fn trigger_event(&self, path: &ArcPath, kind: FsEventKind) {
-    if let Some(trigger) = &self.trigger {
-      trigger.on_event(path, kind);
-    }
-  }
-
-  /// Pauses the file system watcher, stopping the execution of the event loop.
-  pub fn pause(&self) -> Result<()> {
-    self.executor.pause();
+    self.trigger.lock().expect("should lock trigger").take();
 
     Ok(())
   }
 
   fn wait_for_event(
     &mut self,
-    files: (impl Iterator<Item = ArcPath>, impl Iterator<Item = ArcPath>),
-    directories: (impl Iterator<Item = ArcPath>, impl Iterator<Item = ArcPath>),
-    missing: (impl Iterator<Item = ArcPath>, impl Iterator<Item = ArcPath>),
+    files: (Vec<ArcPath>, Vec<ArcPath>),
+    directories: (Vec<ArcPath>, Vec<ArcPath>),
+    missing: (Vec<ArcPath>, Vec<ArcPath>),
     start_time: SystemTime,
   ) -> Result<()> {
-    self.path_manager.update(files, directories, missing)?;
+    self.path_manager.update(
+      (files.0.into_iter(), files.1.into_iter()),
+      (directories.0.into_iter(), directories.1.into_iter()),
+      (missing.0.into_iter(), missing.1.into_iter()),
+    )?;
 
     // Record baseline mtimes for files added in this watch() cycle, BEFORE
     // starting the disk watcher. Synchronous so a stale FSEvent delivered

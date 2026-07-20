@@ -97,6 +97,47 @@ fn should_watch_a_single_file() {
   );
 }
 
+#[tokio::test]
+async fn should_report_error_when_watching_after_close() {
+  use rspack_watcher::{EventAggregateHandler, EventHandler};
+
+  struct ErrorProbe(std::sync::mpsc::Sender<String>);
+  impl EventAggregateHandler for ErrorProbe {
+    fn on_event_handle(
+      &self,
+      _changed_files: rspack_util::fx_hash::FxHashSet<String>,
+      _deleted_files: rspack_util::fx_hash::FxHashSet<String>,
+    ) {
+    }
+    fn on_error(&self, error: rspack_error::Error) {
+      let _ = self.0.send(error.to_string());
+    }
+  }
+
+  struct NoopHandler;
+  impl EventHandler for NoopHandler {}
+
+  let watcher = FsWatcher::new(FsWatcherOptions::default(), Default::default());
+  watcher.close().await.unwrap();
+
+  let (tx, rx) = std::sync::mpsc::channel();
+  watcher
+    .watch(
+      e!(),
+      e!(),
+      e!(),
+      std::time::SystemTime::now(),
+      Box::new(ErrorProbe(tx)),
+      Box::new(NoopHandler),
+    )
+    .await;
+
+  let message = rx
+    .try_recv()
+    .expect("watch on a stopped watcher must be rejected through on_error");
+  assert!(message.contains("stopped"), "unexpected message: {message}");
+}
+
 #[test]
 fn should_emit_remove_when_a_watched_file_is_deleted() {
   let mut helper = h!(FsWatcherOptions {
