@@ -5,12 +5,25 @@ import { value as throwingValue } from "./throwing";
 import { value as laterValue } from "./later";
 
 let acceptedDep;
+let acceptedDepAgain;
 let acceptedArray;
 let acceptedErrorArray;
+let webpackAcceptedDependencies;
+let webpackAcceptCalls = 0;
+
+if (module.hot) {
+	module.hot.accept("./dep", outdatedDependencies => {
+		webpackAcceptCalls += 1;
+		webpackAcceptedDependencies = outdatedDependencies;
+	});
+}
 
 if (import.meta.hot) {
 	import.meta.hot.accept("./dep", mod => {
 		acceptedDep = mod;
+	});
+	import.meta.hot.accept("./dep", mod => {
+		acceptedDepAgain = mod;
 	});
 	import.meta.hot.accept(["./a", "./b"], mods => {
 		acceptedArray = mods;
@@ -36,6 +49,9 @@ it("continues dependency refreshes and callbacks after an update error", async (
 
 	expect(applyError.message).toBe("throwing dependency update");
 	expect(acceptedDep.value).toBe(2);
+	expect(acceptedDepAgain.value).toBe(2);
+	expect(webpackAcceptCalls).toBe(1);
+	expect(webpackAcceptedDependencies).toContain("./dep.js");
 	expect(acceptedArray.map(mod => mod && mod.value)).toEqual(["a2", "b2"]);
 	expect(acceptedErrorArray.map(mod => mod && mod.value)).toEqual([
 		undefined,

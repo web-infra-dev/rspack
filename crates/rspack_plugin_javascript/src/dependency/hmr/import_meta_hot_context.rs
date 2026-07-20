@@ -27,7 +27,7 @@ impl RspackHash for ImportMetaHotDependency {
     "ImportMetaHotDependency".hash(state);
     self.range.hash(state);
     RuntimeGlobals::HOT_CONTEXT.hash(state);
-    RuntimeGlobals::MODULE_ID.hash(state);
+    RuntimeGlobals::MODULE.hash(state);
   }
 }
 
@@ -79,14 +79,14 @@ impl DependencyTemplate for ImportMetaHotDependencyTemplate {
     context
       .runtime_template
       .runtime_requirements_mut()
-      .insert(RuntimeGlobals::HOT_CONTEXT | RuntimeGlobals::MODULE_ID);
+      .insert(RuntimeGlobals::HOT_CONTEXT | RuntimeGlobals::MODULE);
     let getter = context
       .runtime_template
       .render_runtime_globals(&RuntimeGlobals::HOT_CONTEXT);
     source.replace(
       dep.range.start,
       dep.range.end,
-      format!("{getter}({module_argument}.id)"),
+      format!("{getter}({module_argument}.hot)"),
       None,
     );
   }

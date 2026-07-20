@@ -7,7 +7,7 @@
 ## Asset Files
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.LAST_HASH.hot-update.js, size: 1112
+- Update: main.LAST_HASH.hot-update.js, size: 1547
 
 ## Manifest
 
@@ -51,7 +51,7 @@ if (true) {
 }
 
 if (true) {
-	__webpack_require__.hmrH(module.id).accept(mod => {
+	__webpack_require__.hmrH(module.hot).accept(mod => {
 		globalThis.__mixedSelfAccepted = {
 			value: mod.value,
 			calls: (globalThis.__mixedSelfAccepted?.calls || 0) + 1
@@ -73,10 +73,21 @@ __webpack_require__.d(__webpack_exports__, {
 const value = 2;
 
 if (true) {
-	__webpack_require__.hmrH(module.id).dispose(data => {
+	globalThis.__importMetaHotDataIdentity =
+		__webpack_require__.hmrH(module.hot).data === globalThis.__importMetaHotData;
+	globalThis.__importMetaHotDataStoredInWebpackData =
+		 true &&
+		module.hot.data &&
+		Object.getOwnPropertyNames(module.hot.data).some(
+			key => module.hot.data[key] === __webpack_require__.hmrH(module.hot).data
+		);
+	globalThis.__importMetaHotWebpackDataKeys =  true
+		? Object.keys(module.hot.data)
+		: 0;
+	__webpack_require__.hmrH(module.hot).dispose(data => {
 		data.count += 1;
 	});
-	__webpack_require__.hmrH(module.id).accept();
+	__webpack_require__.hmrH(module.hot).accept();
 }
 
 

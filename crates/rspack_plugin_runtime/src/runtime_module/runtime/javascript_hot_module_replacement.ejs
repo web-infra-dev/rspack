@@ -19,12 +19,9 @@ function hotApplyHandler(options) {
 			var moduleId = queueItem.id;
 			var chain = queueItem.chain;
 			var module = <%- MODULE_CACHE %>[moduleId];
-			var hotState = <%- weak(HOT_CONTEXT) %>
-				? <%- HOT_CONTEXT %>.get(moduleId)
-				: undefined;
 			if (
 				!module ||
-				((module.hot._selfAccepted || (hotState && hotState.selfAccepted)) &&
+				(module.hot._selfAccepted &&
 					!module.hot._selfInvalidated)
 			) {
 				continue;
@@ -63,10 +60,8 @@ function hotApplyHandler(options) {
 				if (outdatedModules.indexOf(parentId) !== -1) {
 					continue;
 				}
-				var parentHotState = <%- weak(HOT_CONTEXT) %>
-					? <%- HOT_CONTEXT %>.get(parentId)
-					: undefined;
-				var hotAccepted = parentHotState && parentHotState.acceptCallbacks.some(
+				var parentHotContext = parent.hot.__rspack_hot_context__;
+				var hotAccepted = parentHotContext && parentHotContext.acceptCallbacks.some(
 					function (record) {
 						return record.deps.indexOf(moduleId) !== -1;
 					}
@@ -194,11 +189,10 @@ function hotApplyHandler(options) {
 	var outdatedHotAcceptCallbacks = {};
 	for (var outdatedModuleId in outdatedDependencies) {
 		if (<%- HAS_OWN_PROPERTY %>(outdatedDependencies, outdatedModuleId)) {
-			var hotState = <%- weak(HOT_CONTEXT) %>
-				? <%- HOT_CONTEXT %>.get(outdatedModuleId)
-				: undefined;
-			if (hotState) {
-				outdatedHotAcceptCallbacks[outdatedModuleId] = hotState.acceptCallbacks.slice();
+			var module = <%- MODULE_CACHE %>[outdatedModuleId];
+			var hotContext = module && module.hot.__rspack_hot_context__;
+			if (hotContext) {
+				outdatedHotAcceptCallbacks[outdatedModuleId] = hotContext.acceptCallbacks.slice();
 			}
 		}
 	}
@@ -207,9 +201,7 @@ function hotApplyHandler(options) {
 	for (var j = 0; j < outdatedModules.length; j++) {
 		var outdatedModuleId = outdatedModules[j];
 		var module = <%- MODULE_CACHE %>[outdatedModuleId];
-		var hotState = <%- weak(HOT_CONTEXT) %>
-			? <%- HOT_CONTEXT %>.get(outdatedModuleId)
-			: undefined;
+		var hotContext = module && module.hot.__rspack_hot_context__;
 		if (
 			module &&
 			(module.hot._selfAccepted || module.hot._main) &&
@@ -221,20 +213,8 @@ function hotApplyHandler(options) {
 			outdatedSelfAcceptedModules.push({
 				module: outdatedModuleId,
 				require: module.hot._requireSelf,
-				errorHandler: module.hot._selfAccepted
-			});
-		}
-		if (
-			module &&
-			hotState &&
-			hotState.selfAccepted &&
-			// removed self-accepted modules should not be required
-			appliedUpdate[outdatedModuleId] !== warnUnexpectedRequire
-		) {
-			outdatedSelfAcceptedModules.push({
-				module: outdatedModuleId,
-				type: "import-meta-hot",
-				callback: hotState.selfCallback
+				errorHandler: module.hot._selfAccepted,
+				callback: hotContext && hotContext.selfCallback
 			});
 		}
 	}
@@ -272,11 +252,10 @@ function hotApplyHandler(options) {
 				for (j = 0; j < disposeHandlers.length; j++) {
 					disposeHandlers[j].call(null, data);
 				}
-				<%- HMR_MODULE_DATA %>[moduleId] = data;
-				if (<%- weak(HOT_CONTEXT) %>) {
-					var removed = appliedUpdate[moduleId] === warnUnexpectedRequire;
-					<%- HOT_CONTEXT %>.dispose(moduleId, removed);
+				if (appliedUpdate[moduleId] === warnUnexpectedRequire) {
+					delete data.__rspack_hot_context_data__;
 				}
+				<%- HMR_MODULE_DATA %>[moduleId] = data;
 
 				module.hot.active = false;
 
@@ -437,41 +416,12 @@ function hotApplyHandler(options) {
 			}
 
 			// Load self accepted modules
-			var selfEvaluationResults = Object.create(null);
 			for (var o = 0; o < outdatedSelfAcceptedModules.length; o++) {
 				var item = outdatedSelfAcceptedModules[o];
 				var moduleId = item.module;
-				if (item.type === "import-meta-hot") {
-					var namespace;
-					var selfEvaluationResult = selfEvaluationResults[moduleId];
-					if (selfEvaluationResult) {
-						if (!selfEvaluationResult.success) continue;
-						namespace = selfEvaluationResult.namespace;
-					} else {
-						try {
-							namespace = <%- REQUIRE %>(moduleId);
-						} catch (err) {
-							reportError(err);
-							continue;
-						}
-					}
-					if (typeof item.callback === "function") {
-						try {
-							item.callback(namespace);
-						} catch (err) {
-							reportError(err);
-						}
-					}
-					continue;
-				}
 				try {
 					item.require(moduleId);
-					selfEvaluationResults[moduleId] = {
-						success: true,
-						namespace: <%- MODULE_CACHE %>[moduleId].exports
-					};
 				} catch (err) {
-					selfEvaluationResults[moduleId] = { success: false };
 					if (typeof item.errorHandler === "function") {
 						try {
 							item.errorHandler(err, {
@@ -503,6 +453,14 @@ function hotApplyHandler(options) {
 						if (!options.ignoreErrored) {
 							reportError(err);
 						}
+					}
+					continue;
+				}
+				if (typeof item.callback === "function") {
+					try {
+						item.callback(<%- MODULE_CACHE %>[moduleId].exports);
+					} catch (err) {
+						reportError(err);
 					}
 				}
 			}

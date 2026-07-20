@@ -1,14 +1,14 @@
-var hotContexts = Object.create(null);
-var hotData = Object.create(null);
+var hotContextStateKey = "__rspack_hot_context__";
+var hotContextDataKey = "__rspack_hot_context_data__";
 
-function createHotContext(moduleId) {
+<%- HOT_CONTEXT %> = function (moduleHot) {
+	var previousState = moduleHot[hotContextStateKey];
+	if (previousState) return previousState.context;
+
 	var state = {
-		moduleId: moduleId,
-		data: hotData[moduleId] || (hotData[moduleId] = {}),
-		selfAccepted: false,
+		data: moduleHot.data && moduleHot.data[hotContextDataKey] || {},
 		selfCallback: undefined,
-		acceptCallbacks: [],
-		disposeCallbacks: []
+		acceptCallbacks: []
 	};
 
 	var context = {
@@ -17,11 +17,11 @@ function createHotContext(moduleId) {
 		},
 		accept: function (deps, callback, refresh) {
 			if (deps === undefined) {
-				state.selfAccepted = true;
+				if (!moduleHot._selfAccepted) moduleHot.accept();
 				return;
 			}
 			if (typeof deps === "function") {
-				state.selfAccepted = true;
+				if (!moduleHot._selfAccepted) moduleHot.accept();
 				state.selfCallback = deps;
 				return;
 			}
@@ -42,30 +42,21 @@ function createHotContext(moduleId) {
 			});
 		},
 		dispose: function (callback) {
-			state.disposeCallbacks.push(callback);
+			moduleHot.dispose(function () {
+				callback(state.data);
+			});
 		}
 	};
 
 	state.context = context;
-	hotContexts[moduleId] = state;
+	Object.defineProperty(moduleHot, hotContextStateKey, {
+		value: state
+	});
+	moduleHot.dispose(function (data) {
+		Object.defineProperty(data, hotContextDataKey, {
+			configurable: true,
+			value: state.data
+		});
+	});
 	return context;
-}
-
-<%- HOT_CONTEXT %> = function (moduleId) {
-	var state = hotContexts[moduleId];
-	return state ? state.context : createHotContext(moduleId);
-};
-
-<%- HOT_CONTEXT %>.get = function (moduleId) {
-	return hotContexts[moduleId];
-};
-
-<%- HOT_CONTEXT %>.dispose = function (moduleId, removed) {
-	var state = hotContexts[moduleId];
-	if (!state) return;
-	for (var i = 0; i < state.disposeCallbacks.length; i++) {
-		state.disposeCallbacks[i](state.data);
-	}
-	delete hotContexts[moduleId];
-	if (removed) delete hotData[moduleId];
 };

@@ -30,6 +30,7 @@ it("should support a dedicated import.meta.hot context", () => {
 	expect(webpackHotTypeofGuardMatched).toBe(true);
 	expect(typeof import.meta.hot).toBe("object");
 	expect(import.meta.hot).toBe(import.meta.hot);
+	expect(import.meta.hot).not.toBe(module.hot);
 	expect(import.meta.hot.data).toEqual({});
 	expect(typeof import.meta.hot.accept).toBe("function");
 	expect(typeof import.meta.hot.dispose).toBe("function");
@@ -53,7 +54,7 @@ it("should support a dedicated import.meta.hot context", () => {
 		"ACCEPT_END__"
 	].join("");
 	const hotContextNeedle = [".hmr", "H("].join("");
-	const moduleArgumentHotNeedle = ["__webpack_module__", "hot"].join(".");
+	const moduleIdNeedle = ["module", "id"].join(".");
 	const outdatedNeedle = ["__rspack_hmr", "outdated"].join("_");
 	const refreshNeedle =
 		"mod => mod, function(__rspack_hot_report_error) {";
@@ -63,8 +64,8 @@ it("should support a dedicated import.meta.hot context", () => {
 	expect(hotAcceptEnd).toBeGreaterThan(hotAcceptStart);
 	const hotAcceptSource = source.slice(hotAcceptStart, hotAcceptEnd);
 	expect(hotAcceptSource).toContain(hotContextNeedle);
-	expect(hotAcceptSource).not.toContain(moduleHotNeedle);
-	expect(hotAcceptSource).not.toContain(moduleArgumentHotNeedle);
+	expect(hotAcceptSource).toContain(moduleHotNeedle);
+	expect(hotAcceptSource).not.toContain(moduleIdNeedle);
 	expect(hotAcceptSource).not.toContain(outdatedNeedle);
 	expect(hotAcceptSource).toContain(refreshNeedle);
 });
