@@ -39,7 +39,11 @@ The agent owns the loop. After the user gives the target benchmark, threshold, a
    - Record the PR URL, branch, base, head SHA, and current round number.
    - For Rspack work, use `$rspack-perf` to guide the optimization strategy before changing code.
 
-3. Create or identify the fixed progress comment.
+3. Ensure PR-dependent actions wait for an open PR.
+   - Reuse the supplied PR when one exists.
+   - For a fresh branch, create the PR after the first scoped change is committed and pushed, before requesting review, creating the progress comment, or starting CI/CodSpeed tracking.
+
+4. Create or identify the fixed progress comment after the PR exists.
    - Maintain one persistent PR comment that records every round and every pushed commit.
    - Reuse the existing progress comment if present; otherwise create one.
    - Update this comment after every pushed round and after every terminal CodSpeed decision.
@@ -65,10 +69,11 @@ Run these steps in order for every round.
    - If a local correctness command fails, fix it locally and repeat local verification before pushing.
    - Do not substitute CodSpeed performance data for correctness evidence.
 
-3. Run a correctness-focused subagent code review.
-   - Before every commit/push, dispatch an independent subagent over the current diff.
-   - Ask it to focus on correctness, behavior preservation, ordering, deduplication, hashing/equality, diagnostics, concurrency, cancellation, and cache lifetime where relevant.
-   - If the subagent reports a real concern, fix it and repeat local verification plus subagent review.
+3. Run a correctness-focused independent review.
+   - Before every commit/push, review the current diff independently from the implementation pass.
+   - Use a subagent only when it is available and explicitly allowed by the current environment and delegation rules; otherwise perform a local diff review.
+   - Focus the review on correctness, behavior preservation, ordering, deduplication, hashing/equality, diagnostics, concurrency, cancellation, and cache lifetime where relevant.
+   - If the review reports a real concern, fix it and repeat local verification plus independent review.
    - If the concern is not valid, record the technical reason in a review reply or final report.
 
 4. Commit and push.
@@ -76,8 +81,9 @@ Run these steps in order for every round.
    - Commit with a focused title, usually `perf: ...`.
    - Push the branch as a new commit on top of the prior round. Do not amend the previous optimization commit for normal iteration.
    - Use `--force-with-lease` only after an explicit rebase or another unavoidable history rewrite, not as the default round workflow.
+   - If this is a fresh branch without a PR, create the PR now before any PR-dependent action.
    - Request or re-request GitHub Copilot code review for the latest head SHA.
-   - Update the fixed progress comment with the new commit SHA and change summary.
+   - Create or update the fixed progress comment with the new commit SHA and change summary.
 
 5. Start CI/CodSpeed tracking.
    - Fetch workflow runs once after pushing to confirm CI started.
@@ -102,8 +108,8 @@ Run these steps in order for every round.
 7. Handle code review comments before performance evaluation completes.
    - Inspect unresolved code review comments and review threads for the latest PR head SHA before declaring the performance evaluation complete.
    - Include Copilot and human reviewer comments.
-   - Resolve outdated threads directly.
-   - If a live comment is reasonable, implement the fix, reply with what changed, resolve the thread, and start a new round with local verification and subagent review.
+   - Inspect outdated threads against the current code and resolve them only after confirming the concern was addressed or no longer applies.
+   - If a live comment is reasonable, implement the fix, reply with what changed, resolve the thread, and start a new round with local verification and independent review.
    - If a live comment is not reasonable, reply with the technical reason and supporting evidence, resolve the thread, and continue the same evaluation if no code changed.
    - Do not declare success while any non-outdated review comment or requested-change thread remains unresolved.
 
@@ -120,9 +126,10 @@ Run these steps in order for every round.
 
 9. Decide the next action independently.
    - If local correctness, required CI, review comments, and CodSpeed target all pass, report success with exact commit SHA, benchmark values, percentage delta, and PR status.
-   - If a performance-focused round does not improve performance versus the previous round, revert that commit's code changes with a new follow-up commit, update the progress comment with the reverted state, and start the next round from the reverted code state.
+   - Compare the first performance-focused round with the CodSpeed PR base. Compare each later performance-focused round with the previous retained performance-focused round.
+   - If a performance-focused round does not improve performance versus that comparison point, revert that commit's code changes with a new follow-up commit, update the progress comment with the reverted state, and start the next round from the reverted code state.
    - If a round only fixes correctness, CI, or review feedback, keep the fix when validation improves even if the CodSpeed result is neutral.
-   - If CodSpeed improves versus the previous round but remains below threshold and the round limit is not reached, immediately choose the next scoped optimization direction and start the next round.
+   - If CodSpeed improves versus that comparison point but remains below threshold and the round limit is not reached, immediately choose the next scoped optimization direction and start the next round.
    - If review or CI requires code changes, start the next round focused on that fix before additional performance work.
    - If the round limit is reached, stop and report the best observed result, all attempted directions, current CI/review state, and the reason for stopping.
    - If resumed from a timer, goal continuation, or thread wakeup, inspect the current PR head SHA, fixed progress comment, CI state, review threads, and latest CodSpeed comment before deciding. Continue the same round when the head SHA is unchanged; start a new round only when code changes are required.
@@ -131,9 +138,9 @@ Run these steps in order for every round.
 10. Perform terminal CodSpeed explain request.
 
     - Run this only after the workflow is terminal: either the target is reached or the round limit has been reached.
-    - If the final trusted CodSpeed result shows any performance improvement, add a PR comment exactly: `@codspeedbot explain why this PR is faster`.
-    - Add this comment even when the target threshold was not reached, as long as the final trusted CodSpeed result is faster than the relevant base or previous retained round.
-    - Do not add the comment when the final CodSpeed result is provisional, unreliable, neutral, or slower.
+    - If the final trusted CodSpeed result shows a net performance improvement over the CodSpeed PR base, add a PR comment exactly: `@codspeedbot explain why this PR is faster`.
+    - Add this comment even when the target threshold was not reached, as long as the final trusted CodSpeed result is faster than the PR base.
+    - Do not add the comment when the final CodSpeed result is provisional, unreliable, neutral, or slower than the PR base.
     - Record whether this comment was added in the fixed progress comment and final report.
 
 ## Progress Comment Format
@@ -181,7 +188,7 @@ Keep updates short and decision-oriented:
 
 - State the PR URL, branch, head SHA, round number, and target.
 - State what changed in the current round and why it should affect the benchmark.
-- List local correctness validation: tests, clippy/check/lint, format verification, ignored local flaky cases, and subagent review result.
+- List local correctness validation: tests, clippy/check/lint, format verification, ignored local flaky cases, and independent review result.
 - List required CI checks that passed, failed, or are pending.
 - State Copilot/human review-comment status and how comments were handled.
 - Summarize CodSpeed outcome with exact benchmark deltas and target pass/fail.
