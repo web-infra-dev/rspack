@@ -312,6 +312,9 @@ define_runtime_globals! {
 
   // reexport
   const REEXPORT;
+
+  // checked reexport
+  const CHECKED_REEXPORT;
   const DEFINE_ESM_EXPORTS;
 }
 
@@ -416,6 +419,7 @@ pub fn runtime_globals_property_name(runtime_globals: &RuntimeGlobals) -> Option
     RuntimeGlobals::DEFINE_PROPERTY_GETTERS => "d",
     RuntimeGlobals::DEFINE_ESM_EXPORTS => "D",
     RuntimeGlobals::REEXPORT => "re",
+    RuntimeGlobals::CHECKED_REEXPORT => "cr",
     RuntimeGlobals::ENTRY_MODULE_ID => "s",
     RuntimeGlobals::STARTUP_NO_DEFAULT => "x (no default handler)",
     RuntimeGlobals::ENSURE_CHUNK_INCLUDE_ENTRIES => "f (include entries)",
