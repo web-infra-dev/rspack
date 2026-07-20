@@ -38,6 +38,7 @@ impl ChunkRenderCacheArtifact {
     compilation: &Compilation,
     chunk: &Chunk,
     source_type: &SourceType,
+    output_path: &str,
     generator: G,
   ) -> Result<(BoxSource, Vec<Diagnostic>)>
   where
@@ -52,7 +53,9 @@ impl ChunkRenderCacheArtifact {
     else {
       return generator().await;
     };
-    let cache_key = Identifier::from(content_hash.encoded());
+    // Rendering can produce output-path-relative URLs, so an unchanged content hash is not enough
+    // when a filename function moves the chunk between compilations.
+    let cache_key = Identifier::from(format!("{}|{output_path}", content_hash.encoded()));
     if let Some(value) = storage.get(&cache_key) {
       Ok((value, Vec::new()))
     } else {
