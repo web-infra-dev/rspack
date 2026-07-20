@@ -1,13 +1,14 @@
-import { rspackRequire, moduleFactories, compatGetDefaultExport } from "./runtime~0.js";
-moduleFactories.add({
-"OnH"(module) {
+import { __rspack_context } from "./runtime~0.js";
+
+__rspack_context.m.add({
+547(module) {
 module.exports = 'foo'
 
 
 },
 });
-const foo = rspackRequire("OnH");
-var foo_default = /*#__PURE__*/compatGetDefaultExport(foo);
+const foo = __rspack_context.r("547");
+var foo_default = /*#__PURE__*/__rspack_context.n(foo);
 var foo_default_0 = foo_default();
 
 
