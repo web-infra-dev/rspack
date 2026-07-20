@@ -25,11 +25,11 @@ use crate::{
     AutoPublicPathRuntimeModule, BaseUriRuntimeModule, ChunkNameRuntimeModule,
     ChunkPrefetchPreloadFunctionRuntimeModule, CompatGetDefaultExportRuntimeModule,
     CreateFakeNamespaceObjectRuntimeModule, CreateScriptRuntimeModule,
-    CreateScriptUrlRuntimeModule, DefinePropertyGettersRuntimeModule,
-    ESMModuleDecoratorRuntimeModule, EnsureChunkRuntimeModule, GetChunkFilenameRuntimeModule,
-    GetChunkUpdateFilenameRuntimeModule, GetFullHashRuntimeModule, GetMainFilenameRuntimeModule,
-    GetTrustedTypesPolicyRuntimeModule, GlobalRuntimeModule, HasOwnPropertyRuntimeModule,
-    LoadScriptRuntimeModule, MakeDeferredNamespaceObjectRuntimeModule,
+    CreateScriptUrlRuntimeModule, DefineEsmExportsRuntimeModule,
+    DefinePropertyGettersRuntimeModule, ESMModuleDecoratorRuntimeModule, EnsureChunkRuntimeModule,
+    GetChunkFilenameRuntimeModule, GetChunkUpdateFilenameRuntimeModule, GetFullHashRuntimeModule,
+    GetMainFilenameRuntimeModule, GetTrustedTypesPolicyRuntimeModule, GlobalRuntimeModule,
+    HasOwnPropertyRuntimeModule, LoadScriptRuntimeModule, MakeDeferredNamespaceObjectRuntimeModule,
     MakeNamespaceObjectRuntimeModule, MakeOptimizedDeferredNamespaceObjectRuntimeModule,
     NodeModuleDecoratorRuntimeModule, NonceRuntimeModule, OnChunkLoadedRuntimeModule,
     PublicPathRuntimeModule, ReexportRuntimeModule, RelativeUrlRuntimeModule,
@@ -374,6 +374,12 @@ async fn runtime_requirements_in_tree(
         runtime_modules_to_add.push((
           *chunk_ukey,
           DefinePropertyGettersRuntimeModule::new(&compilation.runtime_template).boxed(),
+        ));
+      }
+      RuntimeGlobals::DEFINE_ESM_EXPORTS => {
+        runtime_modules_to_add.push((
+          *chunk_ukey,
+          DefineEsmExportsRuntimeModule::new(&compilation.runtime_template).boxed(),
         ));
       }
       RuntimeGlobals::REEXPORT => {
