@@ -114,6 +114,38 @@ impl CodeGenerationDataRenderedInitFragments {
   pub fn is_empty(&self) -> bool {
     self.start.is_empty() && self.end.is_empty()
   }
+
+  pub(crate) fn hash_parts(start: &str, end: &str, state: &mut RspackHasher) {
+    state.write(b"CodeGenerationDataRenderedInitFragments");
+    state.write(&(start.len() as u64).to_be_bytes());
+    state.write(start.as_bytes());
+    state.write(&(end.len() as u64).to_be_bytes());
+    state.write(end.as_bytes());
+  }
+}
+
+impl RspackHash for CodeGenerationDataRenderedInitFragments {
+  fn hash(&self, state: &mut RspackHasher) {
+    Self::hash_parts(&self.start, &self.end, state);
+  }
+}
+
+#[derive(Clone, Debug)]
+pub struct CodeGenerationDataRenderedInitFragmentsDigest {
+  inner: RspackHashDigest,
+}
+
+impl CodeGenerationDataRenderedInitFragmentsDigest {
+  pub fn new(inner: RspackHashDigest) -> Self {
+    Self { inner }
+  }
+}
+
+impl RspackHash for CodeGenerationDataRenderedInitFragmentsDigest {
+  fn hash(&self, state: &mut RspackHasher) {
+    state.write(b"CodeGenerationDataRenderedInitFragmentsDigest");
+    self.inner.hash(state);
+  }
 }
 
 #[derive(Clone, Debug)]
@@ -163,6 +195,23 @@ pub struct CodeGenerationResult {
 }
 
 impl CodeGenerationResult {
+  fn hash_rendered_init_fragments(&self, hasher: &mut RspackHasher) {
+    if let Some(fragments) = self.data.get::<CodeGenerationDataRenderedInitFragments>()
+      && !fragments.is_empty()
+    {
+      fragments.hash(hasher);
+    }
+  }
+
+  fn hash_rendered_init_fragments_digest(&self, hasher: &mut RspackHasher) {
+    if let Some(digest) = self
+      .data
+      .get::<CodeGenerationDataRenderedInitFragmentsDigest>()
+    {
+      digest.hash(hasher);
+    }
+  }
+
   pub fn with_javascript(mut self, generation_result: BoxSource) -> Self {
     self.inner.insert(SourceType::JavaScript, generation_result);
     self
@@ -197,6 +246,25 @@ impl CodeGenerationResult {
     self.hash = Some(hasher.digest(hash_digest));
   }
 
+  /// Hash a scoped normal-module result whose rendered init fragments are
+  /// carried as code generation data instead of being part of `inner`.
+  pub fn set_hash_with_rendered_init_fragments(
+    &mut self,
+    hash_function: &HashFunction,
+    hash_digest: &HashDigest,
+    hash_salt: &HashSalt,
+  ) {
+    let mut hasher = RspackHasher::with_salt(hash_function, hash_salt);
+    for (source_type, source) in self.inner.as_ref() {
+      source_type.hash(&mut hasher);
+      std::hash::Hash::hash(source, &mut hasher);
+    }
+    self.hash_rendered_init_fragments(&mut hasher);
+    self.chunk_init_fragments.hash(&mut hasher);
+    self.runtime_requirements.hash(&mut hasher);
+    self.hash = Some(hasher.digest(hash_digest));
+  }
+
   /// Concatenated modules already encode the generated module bodies into
   /// `ConcatenatedModule::get_runtime_hash`, so we can reuse that digest here
   /// and only mix in codegen-specific metadata instead of hashing the large
@@ -213,6 +281,24 @@ impl CodeGenerationResult {
     for source_type in self.inner.as_ref().keys() {
       source_type.hash(&mut hasher);
     }
+    self.chunk_init_fragments.hash(&mut hasher);
+    self.runtime_requirements.hash(&mut hasher);
+    self.hash = Some(hasher.digest(hash_digest));
+  }
+
+  pub fn set_hash_for_faster_concatenated_module(
+    &mut self,
+    runtime_hash: &RspackHashDigest,
+    hash_function: &HashFunction,
+    hash_digest: &HashDigest,
+    hash_salt: &HashSalt,
+  ) {
+    let mut hasher = RspackHasher::with_salt(hash_function, hash_salt);
+    runtime_hash.hash(&mut hasher);
+    for source_type in self.inner.as_ref().keys() {
+      source_type.hash(&mut hasher);
+    }
+    self.hash_rendered_init_fragments_digest(&mut hasher);
     self.chunk_init_fragments.hash(&mut hasher);
     self.runtime_requirements.hash(&mut hasher);
     self.hash = Some(hasher.digest(hash_digest));
@@ -437,4 +523,104 @@ pub struct CodeGenerationJob {
   pub runtime: RuntimeSpec,
   pub runtimes: Vec<RuntimeSpec>,
   pub scope: Option<ConcatenationScope>,
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  fn hash_with_fragments(start: &str, end: &str) -> RspackHashDigest {
+    let mut result = CodeGenerationResult::default();
+    if !start.is_empty() || !end.is_empty() {
+      result
+        .data
+        .insert(CodeGenerationDataRenderedInitFragments::new(
+          start.to_string(),
+          end.to_string(),
+        ));
+    }
+    result.set_hash_with_rendered_init_fragments(
+      &HashFunction::Xxhash64,
+      &HashDigest::Hex,
+      &HashSalt::default(),
+    );
+    result.hash.expect("hash should be set")
+  }
+
+  fn concatenated_hash_with_fragments(start: &str, end: &str) -> RspackHashDigest {
+    let mut result = CodeGenerationResult::default();
+    if !start.is_empty() || !end.is_empty() {
+      let mut fragments_hasher = RspackHasher::new(&HashFunction::Xxhash64);
+      CodeGenerationDataRenderedInitFragments::hash_parts(start, end, &mut fragments_hasher);
+      result
+        .data
+        .insert(CodeGenerationDataRenderedInitFragmentsDigest::new(
+          fragments_hasher.digest(&HashDigest::Hex),
+        ));
+    }
+    result.set_hash_for_faster_concatenated_module(
+      &RspackHashDigest::from("runtime"),
+      &HashFunction::Xxhash64,
+      &HashDigest::Hex,
+      &HashSalt::default(),
+    );
+    result.hash.expect("hash should be set")
+  }
+
+  #[test]
+  fn rendered_init_fragments_affect_codegen_hash() {
+    let without_fragments = hash_with_fragments("", "");
+    let with_start = hash_with_fragments("const value = 1;", "");
+    let with_end = hash_with_fragments("", "value();");
+
+    assert_ne!(without_fragments, with_start);
+    assert_ne!(without_fragments, with_end);
+    assert_ne!(with_start, with_end);
+  }
+
+  #[test]
+  fn rendered_init_fragment_boundaries_affect_codegen_hash() {
+    assert_ne!(
+      hash_with_fragments("ab", "c"),
+      hash_with_fragments("a", "bc")
+    );
+  }
+
+  #[test]
+  fn empty_rendered_init_fragments_preserve_codegen_hash() {
+    let without_fragments = hash_with_fragments("", "");
+    let mut result = CodeGenerationResult::default();
+    result
+      .data
+      .insert(CodeGenerationDataRenderedInitFragments::default());
+    result.set_hash_with_rendered_init_fragments(
+      &HashFunction::Xxhash64,
+      &HashDigest::Hex,
+      &HashSalt::default(),
+    );
+
+    assert_eq!(without_fragments, result.hash.expect("hash should be set"));
+  }
+
+  #[test]
+  fn rendered_init_fragments_affect_concatenated_codegen_hash() {
+    assert_ne!(
+      concatenated_hash_with_fragments("", ""),
+      concatenated_hash_with_fragments("const value = 1;", "")
+    );
+  }
+
+  #[test]
+  fn empty_rendered_init_fragments_preserve_concatenated_codegen_hash() {
+    let faster_hash = concatenated_hash_with_fragments("", "");
+    let mut legacy_result = CodeGenerationResult::default();
+    legacy_result.set_hash_for_concatenated_module(
+      &RspackHashDigest::from("runtime"),
+      &HashFunction::Xxhash64,
+      &HashDigest::Hex,
+      &HashSalt::default(),
+    );
+
+    assert_eq!(faster_hash, legacy_result.hash.expect("hash should be set"));
+  }
 }

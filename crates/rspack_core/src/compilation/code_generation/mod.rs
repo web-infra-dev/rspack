@@ -198,8 +198,28 @@ pub(crate) async fn code_generation_modules(
                   // Concatenated modules are special here: `job.hash` already
                   // fingerprints the generated module bodies, so we only need
                   // to fold in the remaining codegen metadata.
-                  codegen_res.set_hash_for_concatenated_module(
-                    &job.hash,
+                  if options.experiments.faster_module_concatenation {
+                    codegen_res.set_hash_for_faster_concatenated_module(
+                      &job.hash,
+                      &options.output.hash_function,
+                      &options.output.hash_digest,
+                      &options.output.hash_salt,
+                    );
+                  } else {
+                    codegen_res.set_hash_for_concatenated_module(
+                      &job.hash,
+                      &options.output.hash_function,
+                      &options.output.hash_digest,
+                      &options.output.hash_salt,
+                    );
+                  }
+                } else if options.experiments.faster_module_concatenation
+                  && job
+                    .scope
+                    .as_ref()
+                    .is_some_and(ConcatenationScope::is_faster_module_concatenation)
+                {
+                  codegen_res.set_hash_with_rendered_init_fragments(
                     &options.output.hash_function,
                     &options.output.hash_digest,
                     &options.output.hash_salt,

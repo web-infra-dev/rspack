@@ -43,8 +43,9 @@ use crate::{
   AsyncDependenciesBlockIdentifier, BoxDependency, BoxDependencyTemplate, BoxModule,
   BoxModuleDependency, BuildContext, BuildInfo, BuildMeta, BuildMetaDefaultObject,
   BuildMetaExportsType, BuildResult, ChunkGraph, ChunkInitFragments, ChunkRenderContext,
-  CodeGenerationDataRenderedInitFragments, CodeGenerationDataTopLevelDeclarations,
-  CodeGenerationExportsFinalNames, CodeGenerationPublicPathAutoReplace, CodeGenerationResult,
+  CodeGenerationDataRenderedInitFragments, CodeGenerationDataRenderedInitFragmentsDigest,
+  CodeGenerationDataTopLevelDeclarations, CodeGenerationExportsFinalNames,
+  CodeGenerationPublicPathAutoReplace, CodeGenerationResult,
   CodeGenerationRuntimeRequirementsWrite, Compilation, ConcatenatedModuleIdent, ConcatenationScope,
   ConcatenationScopeIdentKind, ConcatenationScopeSnapshot, ConditionalInitFragment,
   ConnectionState, Context, DEFAULT_EXPORT, DEFAULT_EXPORT_ATOM, DependenciesBlock, DependencyId,
@@ -993,6 +994,7 @@ impl ConcatenatedModule {
   fn render_concatenated_module_source(
     info: &mut ConcatenatedModuleInfo,
     module_reference_replacements: &[(String, String)],
+    rendered_init_fragments_hasher: Option<&mut RspackHasher>,
   ) -> BoxSource {
     let source = info.source.take().expect("should have source");
     let fragments = info.rendered_init_fragments.take();
@@ -1007,18 +1009,16 @@ impl ConcatenatedModule {
       Self::replace_placeholders_in_inner_source(rendered_source, &replacements).boxed();
 
     if let Some(fragments) = fragments {
+      let start = Self::apply_placeholder_replacements(fragments.start, &replacements);
+      let end = Self::apply_placeholder_replacements(fragments.end, &replacements);
+      if let Some(hasher) = rendered_init_fragments_hasher {
+        info.module.hash(hasher);
+        CodeGenerationDataRenderedInitFragments::hash_parts(&start, &end, hasher);
+      }
       ConcatSource::new([
-        RawStringSource::from(Self::apply_placeholder_replacements(
-          fragments.start,
-          &replacements,
-        ))
-        .boxed(),
+        RawStringSource::from(start).boxed(),
         rendered_source,
-        RawStringSource::from(Self::apply_placeholder_replacements(
-          fragments.end,
-          &replacements,
-        ))
-        .boxed(),
+        RawStringSource::from(end).boxed(),
       ])
       .boxed()
     } else {
@@ -2121,6 +2121,7 @@ impl Module for ConcatenatedModule {
     let mut result: ConcatSource = ConcatSource::default();
     let mut should_add_esm_flag = false;
     let mut chunk_init_fragments: Vec<Box<dyn InitFragment<ChunkRenderContext>>> = Vec::new();
+    let mut rendered_init_fragments_hasher = None;
 
     for ((source, attr), import_spec) in import_stmts {
       let content = render_imports(&source, attr.as_deref(), &import_spec);
@@ -2400,9 +2401,14 @@ impl Module for ConcatenatedModule {
               .get(&info.module)
               .map(Vec::as_slice)
               .unwrap_or_default();
+            let fragment_hasher = info.rendered_init_fragments.as_ref().map(|_| {
+              rendered_init_fragments_hasher
+                .get_or_insert_with(|| RspackHasher::new(&compilation.options.output.hash_function))
+            });
             result.add(Self::render_concatenated_module_source(
               info,
               module_reference_replacements,
+              fragment_hasher,
             ));
           } else {
             result.add(info.source.take().expect("should have source"));
@@ -2510,6 +2516,14 @@ impl Module for ConcatenatedModule {
     let mut code_generation_result = CodeGenerationResult::default();
     code_generation_result.add(SourceType::JavaScript, CachedSource::new(result).boxed());
     code_generation_result.chunk_init_fragments = chunk_init_fragments;
+
+    if let Some(hasher) = rendered_init_fragments_hasher {
+      code_generation_result
+        .data
+        .insert(CodeGenerationDataRenderedInitFragmentsDigest::new(
+          hasher.digest(&HashDigest::Hex),
+        ));
+    }
 
     if public_path_auto_replace {
       code_generation_result
