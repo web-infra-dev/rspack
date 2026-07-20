@@ -119,16 +119,16 @@ Run these steps in order for every round.
    - If any test-related CI action has not passed, record CodSpeed as provisional only, fix or wait on CI first, and do not declare the target reached.
    - Compare the requested benchmark against the PR base used by CodSpeed.
    - Record exact before/after values, percentage delta, environment warnings, and whether the requested threshold is met.
-   - Compare the current commit's performance result with the previous round's result when both are available.
+   - Compare the current commit's performance result with the most recent retained snapshot's result when both are available.
    - Check for meaningful regressions in other benchmarks before declaring success.
    - Treat environment warnings as reportable context. Discard a result only when the comparison is unreliable.
    - Update the fixed progress comment with the CodSpeed result.
 
 9. Decide the next action independently.
    - If local correctness, required CI, review comments, and CodSpeed target all pass, report success with exact commit SHA, benchmark values, percentage delta, and PR status.
-   - Compare the first performance-focused round with the CodSpeed PR base. Compare each later performance-focused round with the previous retained performance-focused round.
+   - Compare the first candidate with the CodSpeed PR base. Compare every later candidate with the most recent retained snapshot, including a retained correctness-only fix, because that snapshot is the candidate's actual code parent.
    - If a performance-focused round does not improve performance versus that comparison point, revert that commit's code changes with a new follow-up commit and update the progress comment with the reverted state. If the round limit has been reached, stop after the revert; otherwise start the next round from the reverted code state.
-   - If a round only fixes correctness, CI, or review feedback, keep the fix when validation improves even if the CodSpeed result is neutral.
+   - If a round only fixes correctness, CI, or review feedback, keep the fix when validation improves even if the CodSpeed result is neutral or slower. Record its trusted CodSpeed result as the comparison point for the next candidate.
    - If CodSpeed improves versus that comparison point but remains below threshold and the round limit is not reached, immediately choose the next scoped optimization direction and start the next round.
    - If review or CI requires code changes, start the next round focused on that fix before additional performance work.
    - If the round limit is reached, stop and report the best observed result, all attempted directions, current CI/review state, and the reason for stopping.

@@ -148,14 +148,14 @@ Run these steps in order for every round.
    - Require the exact target stage in every repetition and retain all raw logs.
    - Use the median under the repetition rule.
    - Compute improvement for a lower-is-better instruction count as `(comparison - candidate) / comparison * 100`.
-   - Compare the first performance round with the immutable base. Compare later performance rounds with the previous retained performance round.
+   - Compare the first candidate with the immutable base. Compare every later candidate with the most recent retained snapshot, including a retained correctness-only fix, because that snapshot is the candidate's actual code parent.
    - Also compute the candidate's total improvement from the immutable base for the goal threshold.
    - If another stage may have regressed, measure it separately with its own exact filter. Do not combine multiple stages into one instruction count.
 
 6. Decide whether to retain the round.
    - Retain a performance round only when it improves on its comparison point and passes correctness/review validation.
    - If it is neutral or slower, revert the candidate with a new follow-up commit. Do not erase the failed attempt by amending or resetting history.
-   - Keep a correctness-only fix when validation improves even if the performance result is neutral.
+   - Keep a correctness-only fix when validation improves even if the performance result is neutral or slower. Record its measured value as the comparison point for the next candidate.
    - If the target is met, stop performance iteration after reporting and handling currently available review comments.
    - If the result improves but remains below target and rounds remain, choose the next scoped direction immediately.
    - If the round limit is reached, stop after reverting a non-improving final round and report the best retained result.
