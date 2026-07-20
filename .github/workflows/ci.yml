@@ -236,6 +236,29 @@ jobs:
           workflow-file: rspack-ecosystem-ci-from-commit.yml
           client-payload: '{"commitSHA":"${{ github.sha }}","updateComment":true,"repo":"web-infra-dev/rspack","suite":"-","suiteRefType":"precoded","suiteRef":"precoded","sourceRunId":"${{ github.run_id }}","sourceRepo":"web-infra-dev/rspack"}'
 
+  upload-binary-size:
+    name: Upload Binary Size
+    needs: [check-changed, build-linux]
+    if: ${{ needs.check-changed.outputs.code_changed == 'true' && github.event_name == 'push' && github.repository == 'web-infra-dev/rspack' }}
+    runs-on: ${{ fromJSON(vars.CI_LINUX_MINI_RUNNER || '"ubuntu-latest"') }}
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+
+      - name: Download binding artifact
+        uses: ./.github/actions/artifact/download
+        with:
+          name: bindings-x86_64-unknown-linux-gnu
+          path: crates/node_binding/
+
+      # Must mirror size-limit.yml: the uploaded size is the baseline PRs compare against.
+      - name: Strip binary
+        run: strip crates/node_binding/rspack.linux-x64-gnu.node
+
+      - name: Upload binary size
+        env:
+          PERF_DATA_TOKEN: ${{ secrets.PERF_DATA_TOKEN }}
+        run: node ./.github/actions/binary-limit/upload-binary-size.js
+
   # TODO: enable it after self hosted runners are ready
   # pkg-preview:
   #   name: Pkg Preview
