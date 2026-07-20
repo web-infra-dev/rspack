@@ -17,8 +17,8 @@ use rspack_core::{
   ParseResult, ParserAndGenerator, ResolvedModuleOptions, RuntimeGlobals, RuntimeGlobalsRenderMode,
   RuntimeVariable, SideEffectsBailoutItem, SourceType, TemplateContext, TemplateReplaceSource,
   diagnostics::map_box_diagnostics_to_module_parse_diagnostics,
-  remove_bom, render_init_fragments_to_strings,
-  rspack_sources::{BoxSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt},
+  remove_bom, render_init_fragments, render_init_fragments_to_strings,
+  rspack_sources::{BoxSource, ReplaceSource, Source, SourceExt},
 };
 use rspack_error::{Diagnostic, Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use swc_experimental_allocator::Allocator;
@@ -339,12 +339,15 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       return default_with_diagnostics(source, diagnostics);
     }
 
-    let uses_esm_library = compiler_options
-      .output
-      .enabled_library_types
-      .as_ref()
-      .is_some_and(|types| types.iter().any(|ty| ty == "modern-module"));
-    let may_need_concatenation_scope = matches!(program, Program::Module(_))
+    let faster_module_concatenation = compiler_options.experiments.faster_module_concatenation;
+    let uses_esm_library = faster_module_concatenation
+      && compiler_options
+        .output
+        .enabled_library_types
+        .as_ref()
+        .is_some_and(|types| types.iter().any(|ty| ty == "modern-module"));
+    let may_need_concatenation_scope = faster_module_concatenation
+      && matches!(program, Program::Module(_))
       && (uses_esm_library || compiler_options.optimization.concatenate_modules);
 
     let mut semicolons = Default::default();
@@ -487,11 +490,14 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
           .iter()
           .for_each(|block_id| self.source_block(compilation, block_id, &mut source, &mut context));
         let concatenation_scope = context.concatenation_scope.take();
-        let is_concatenated_codegen = concatenation_scope.is_some();
+        let is_concatenated_codegen = concatenation_scope
+          .as_ref()
+          .is_some_and(|scope| scope.is_faster_module_concatenation());
         (concatenation_scope, is_concatenated_codegen)
       };
-      let rendered_fragments = render_init_fragments_to_strings(init_fragments, generate_context)?;
       if is_concatenated_codegen {
+        let rendered_fragments =
+          render_init_fragments_to_strings(init_fragments, generate_context)?;
         if !rendered_fragments.is_empty() {
           let rspack_core::RenderedInitFragments { start, end } = rendered_fragments;
           generate_context
@@ -502,15 +508,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         return Ok(source.boxed());
       }
       generate_context.concatenation_scope = concatenation_scope;
-      let mut concat_source = ConcatSource::default();
-      if !rendered_fragments.start.is_empty() {
-        concat_source.add(RawStringSource::from(rendered_fragments.start));
-      }
-      concat_source.add(source.boxed());
-      if !rendered_fragments.end.is_empty() {
-        concat_source.add(RawStringSource::from(rendered_fragments.end));
-      }
-      Ok(concat_source.boxed())
+      render_init_fragments(source.boxed(), init_fragments, generate_context)
     } else {
       panic!(
         "Unsupported source type: {:?}",

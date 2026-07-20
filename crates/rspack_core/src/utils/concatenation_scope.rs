@@ -45,8 +45,10 @@ impl ConcatenationScope {
   pub fn new(
     concat_module_id: ModuleIdentifier,
     modules_map: Arc<IdentifierIndexMap<ModuleInfo>>,
-    current_module: ConcatenatedModuleInfo,
+    mut current_module: ConcatenatedModuleInfo,
+    faster_module_concatenation: bool,
   ) -> Self {
+    current_module.faster_module_concatenation = faster_module_concatenation;
     ConcatenationScope {
       concat_module_id,
       current_module,
@@ -56,6 +58,10 @@ impl ConcatenationScope {
       dyn_refs: Default::default(),
       re_exports: Default::default(),
     }
+  }
+
+  pub fn is_faster_module_concatenation(&self) -> bool {
+    self.current_module.faster_module_concatenation
   }
 
   pub fn is_module_in_scope(&self, module: &ModuleIdentifier) -> bool {
@@ -119,6 +125,9 @@ impl ConcatenationScope {
   }
 
   pub fn remove_original_range(&mut self, range: DependencyRange) {
+    if !self.is_faster_module_concatenation() {
+      return;
+    }
     self
       .current_module
       .original_scope_ident_updates
@@ -126,6 +135,9 @@ impl ConcatenationScope {
   }
 
   pub fn set_original_range_non_shorthand(&mut self, range: DependencyRange) {
+    if !self.is_faster_module_concatenation() {
+      return;
+    }
     self
       .current_module
       .original_scope_ident_updates
@@ -133,6 +145,9 @@ impl ConcatenationScope {
   }
 
   pub fn add_scope_ident(&mut self, symbol: Atom, range: DependencyRange) {
+    if !self.is_faster_module_concatenation() {
+      return;
+    }
     self
       .current_module
       .added_scope_idents
@@ -145,11 +160,17 @@ impl ConcatenationScope {
   }
 
   pub fn add_used_name(&mut self, symbol: Atom) {
+    if !self.is_faster_module_concatenation() {
+      return;
+    }
     self.current_module.added_used_names.push(symbol);
   }
 
   pub fn get_or_create_generated_top_level_symbol(&mut self, preferred_name: &str) -> Atom {
     let preferred_name = Atom::from(preferred_name);
+    if !self.is_faster_module_concatenation() {
+      return preferred_name;
+    }
     if let Some(existing) = self
       .current_module
       .generated_top_level_symbols
@@ -181,7 +202,7 @@ impl ConcatenationScope {
     module: &ModuleIdentifier,
     options: &ModuleReferenceOptions,
     track_placeholder: bool,
-  ) -> (String, ModuleReferenceOptions) {
+  ) -> String {
     let info = self
       .modules_map
       .get(module)
@@ -213,13 +234,13 @@ impl ConcatenationScope {
       module_ref.push_str(if asi_safe { "_asiSafe1" } else { "_asiSafe0" });
     }
     module_ref.push_str("__._");
-    if track_placeholder {
+    if track_placeholder && self.is_faster_module_concatenation() {
       self
         .current_module
         .module_reference_placeholders
         .push(module_ref.clone());
     }
-    (module_ref, options.clone())
+    module_ref
   }
 
   pub fn create_module_reference(
@@ -227,7 +248,7 @@ impl ConcatenationScope {
     module: &ModuleIdentifier,
     options: ModuleReferenceOptions,
   ) -> String {
-    let (module_ref, options) = self.build_module_reference(module, &options, true);
+    let module_ref = self.build_module_reference(module, &options, true);
     self
       .refs
       .entry(*module)
@@ -241,8 +262,7 @@ impl ConcatenationScope {
     module: &ModuleIdentifier,
     options: &ModuleReferenceOptions,
   ) -> String {
-    let (module_ref, _) = self.build_module_reference(module, options, true);
-    module_ref
+    self.build_module_reference(module, options, true)
   }
 
   pub fn match_module_reference(name: &str) -> Option<ModuleReferenceOptions> {
@@ -336,7 +356,12 @@ mod tests {
     );
 
     (
-      ConcatenationScope::new(concat_module_id, Arc::new(modules_map), current_module),
+      ConcatenationScope::new(
+        concat_module_id,
+        Arc::new(modules_map),
+        current_module,
+        true,
+      ),
       referenced_module_id,
     )
   }

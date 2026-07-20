@@ -330,10 +330,18 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
         )))
       }
       ExportDefaultExpression::ClassDecl(c) => c.ident.as_ref().map(|ident| {
-        DeclarationId::Id(NamedDeclarationInfo::new(
-          ident.sym.to_string(),
-          ident.span.into(),
-        ))
+        if parser
+          .compiler_options
+          .experiments
+          .faster_module_concatenation
+        {
+          DeclarationId::Named(NamedDeclarationInfo::new(
+            ident.sym.to_string(),
+            ident.span.into(),
+          ))
+        } else {
+          DeclarationId::Id(ident.sym.to_string())
+        }
       }),
       ExportDefaultExpression::Expr(_) => None,
     };

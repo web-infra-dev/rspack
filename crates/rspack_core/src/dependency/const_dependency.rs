@@ -44,7 +44,9 @@ impl RspackHash for ConstDependency {
     self.range.hash(state);
     state.write(b"|");
     self.content.hash(state);
-    self.concatenation_scope_identifier.hash(state);
+    if self.concatenation_scope_identifier.is_some() {
+      self.concatenation_scope_identifier.hash(state);
+    }
   }
 }
 
@@ -86,33 +88,36 @@ impl DependencyTemplate for ConstDependencyTemplate {
       .downcast_ref::<ConstDependency>()
       .expect("ConstDependencyTemplate should be used for ConstDependency");
 
-    let rendered_content =
-      if let Some(scope) = code_generatable_context.concatenation_scope.as_mut() {
-        scope.remove_original_range(dep.range);
-        if let Some(identifier) = &dep.concatenation_scope_identifier {
-          let placeholder = scope.get_or_create_generated_top_level_symbol(identifier);
-          dep
-            .content
-            .cow_replace(identifier.as_ref(), placeholder.as_ref())
-            .into_owned()
-        } else {
-          for candidate in dep
-            .content
-            .split(|ch: char| !(ch == '_' || ch == '$' || ch.is_ascii_alphanumeric()))
-          {
-            let mut chars = candidate.chars();
-            if chars
-              .next()
-              .is_some_and(|ch| ch == '_' || ch == '$' || ch.is_ascii_alphabetic())
-            {
-              scope.add_used_name(candidate.into());
-            }
-          }
-          dep.content.to_string()
-        }
+    let rendered_content = if let Some(scope) = code_generatable_context
+      .concatenation_scope
+      .as_mut()
+      .filter(|scope| scope.is_faster_module_concatenation())
+    {
+      scope.remove_original_range(dep.range);
+      if let Some(identifier) = &dep.concatenation_scope_identifier {
+        let placeholder = scope.get_or_create_generated_top_level_symbol(identifier);
+        dep
+          .content
+          .cow_replace(identifier.as_ref(), placeholder.as_ref())
+          .into_owned()
       } else {
+        for candidate in dep
+          .content
+          .split(|ch: char| !(ch == '_' || ch == '$' || ch.is_ascii_alphanumeric()))
+        {
+          let mut chars = candidate.chars();
+          if chars
+            .next()
+            .is_some_and(|ch| ch == '_' || ch == '$' || ch.is_ascii_alphabetic())
+          {
+            scope.add_used_name(candidate.into());
+          }
+        }
         dep.content.to_string()
-      };
+      }
+    } else {
+      dep.content.to_string()
+    };
 
     source.replace(dep.range.start, dep.range.end, rendered_content, None);
   }

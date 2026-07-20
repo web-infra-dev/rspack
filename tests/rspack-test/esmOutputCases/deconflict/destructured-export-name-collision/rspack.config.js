@@ -3,6 +3,9 @@ const rspack = require('@rspack/core');
 module.exports = {
   mode: 'production',
   target: 'node',
+  experiments: {
+    fasterModuleConcatenation: true,
+  },
   optimization: {
     concatenateModules: false,
     sideEffects: true,

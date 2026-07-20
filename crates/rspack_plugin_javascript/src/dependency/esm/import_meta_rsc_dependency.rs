@@ -158,6 +158,7 @@ impl DependencyTemplate for ImportMetaRscDependencyTemplate {
     let rendered_binding = code_generatable_context
       .concatenation_scope
       .as_mut()
+      .filter(|scope| scope.is_faster_module_concatenation())
       .map_or_else(
         || IMPORT_META_RSC_BINDING.to_string(),
         |scope| {

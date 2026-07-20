@@ -1047,17 +1047,29 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for RstestParserPlugin {
     if self.options.module_path_name {
       match for_name {
         DIR_NAME => {
-          parser.add_presentational_dependency(Box::new(ModulePathNameDependency::new(
-            NameType::DirName,
-            ident.span.into(),
-          )));
+          let dependency = if parser
+            .compiler_options()
+            .experiments
+            .faster_module_concatenation
+          {
+            ModulePathNameDependency::new_with_range(NameType::DirName, ident.span.into())
+          } else {
+            ModulePathNameDependency::new(NameType::DirName)
+          };
+          parser.add_presentational_dependency(Box::new(dependency));
           return Some(true);
         }
         FILE_NAME => {
-          parser.add_presentational_dependency(Box::new(ModulePathNameDependency::new(
-            NameType::FileName,
-            ident.span.into(),
-          )));
+          let dependency = if parser
+            .compiler_options()
+            .experiments
+            .faster_module_concatenation
+          {
+            ModulePathNameDependency::new_with_range(NameType::FileName, ident.span.into())
+          } else {
+            ModulePathNameDependency::new(NameType::FileName)
+          };
+          parser.add_presentational_dependency(Box::new(dependency));
           return Some(true);
         }
         _ => return None,

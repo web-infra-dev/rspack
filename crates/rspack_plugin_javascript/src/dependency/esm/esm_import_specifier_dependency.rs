@@ -518,6 +518,7 @@ impl ESMImportSpecifierDependencyTemplate {
       let rendered_import_var = code_generatable_context
         .concatenation_scope
         .as_mut()
+        .filter(|scope| scope.is_faster_module_concatenation())
         .map(|scope| {
           scope
             .get_or_create_generated_top_level_symbol(import_var.as_str())
@@ -562,7 +563,11 @@ impl ESMImportSpecifierDependencyTemplate {
     let Some(con) = connection else {
       return;
     };
-    if let Some(scope) = code_generatable_context.concatenation_scope.as_mut() {
+    if let Some(scope) = code_generatable_context
+      .concatenation_scope
+      .as_mut()
+      .filter(|scope| scope.is_faster_module_concatenation())
+    {
       scope.remove_original_range(dep.range);
     }
     let TemplateContext {
@@ -712,7 +717,11 @@ impl DependencyTemplate for ESMImportSpecifierDependencyTemplate {
 
     let export_expr = self.get_code_for_ids(ids, dep, connection, code_generatable_context);
 
-    if let Some(scope) = code_generatable_context.concatenation_scope.as_mut() {
+    if let Some(scope) = code_generatable_context
+      .concatenation_scope
+      .as_mut()
+      .filter(|scope| scope.is_faster_module_concatenation())
+    {
       scope.remove_original_range(dep.range);
     }
 
@@ -781,7 +790,12 @@ impl DependencyTemplate for ESMImportSpecifierDependencyTemplate {
 
         let comment = to_normal_comment(prop.id.as_str());
         let key = format!("{comment}{new_name}");
-        if prop.shorthand {
+        let faster_module_concatenation = code_generatable_context
+          .compilation
+          .options
+          .experiments
+          .faster_module_concatenation;
+        if prop.shorthand && faster_module_concatenation {
           // Keep the original identifier as the local binding. Its make-time
           // scope snapshot is still needed by concatenation to deconflict the
           // binding and all of its references.
@@ -789,11 +803,18 @@ impl DependencyTemplate for ESMImportSpecifierDependencyTemplate {
             scope.set_original_range_non_shorthand(prop.range);
           }
           source.insert(prop.range.start, format!("{key}: "), None);
-        } else {
+        } else if faster_module_concatenation {
           if let Some(scope) = code_generatable_context.concatenation_scope.as_mut() {
             scope.remove_original_range(prop.range);
           }
           source.replace(prop.range.start, prop.range.end, key, None);
+        } else {
+          let content = if prop.shorthand {
+            format!("{key}: {}", prop.id)
+          } else {
+            key
+          };
+          source.replace(prop.range.start, prop.range.end, content, None);
         }
       });
     }

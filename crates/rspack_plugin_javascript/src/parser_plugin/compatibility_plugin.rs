@@ -237,6 +237,10 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CompatibilityPlugin {
     declarator: &VarDeclarator,
     _stmt: VariableDeclaration<'_>,
   ) -> Option<bool> {
+    let faster_module_concatenation = parser
+      .compiler_options
+      .experiments
+      .faster_module_concatenation;
     if let Some(ident) = declarator.name.as_ident()
       && (ident.id.sym.as_str() == parser.parser_runtime_requirements.exports
         || ident.id.sym.as_str() == self.nested_require_name(parser))
@@ -246,13 +250,17 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CompatibilityPlugin {
         NESTED_IDENTIFIER_TAG,
       )?;
       if !data.update {
-        let dep = Box::new(ConstDependency::new_with_concatenation_scope_identifier(
-          data.loc,
-          data.name.clone().into(),
-          data.name.clone().into(),
-        ));
+        let dep = if faster_module_concatenation {
+          ConstDependency::new_with_concatenation_scope_identifier(
+            data.loc,
+            data.name.clone().into(),
+            data.name.clone().into(),
+          )
+        } else {
+          ConstDependency::new(data.loc, data.name.clone().into())
+        };
         data.update = true;
-        parser.add_presentational_dependency(dep);
+        parser.add_presentational_dependency(Box::new(dep));
       }
     }
     None
@@ -267,6 +275,10 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CompatibilityPlugin {
     if for_name != NESTED_IDENTIFIER_TAG {
       return None;
     }
+    let faster_module_concatenation = parser
+      .compiler_options
+      .experiments
+      .faster_module_concatenation;
     let tag_info = parser
       .definitions_db
       .expect_get_mut_tag_info(parser.current_tag_info?)
@@ -278,31 +290,39 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CompatibilityPlugin {
     let name = nested_require_data.name.clone();
     if !nested_require_data.update {
       let shorthand = nested_require_data.in_short_hand;
-      deps.push(Box::new(
+      let content = if shorthand {
+        format!("{}: {}", ident.sym, name).into()
+      } else {
+        name.clone().into()
+      };
+      let dep = if faster_module_concatenation {
         ConstDependency::new_with_concatenation_scope_identifier(
           nested_require_data.loc,
-          if shorthand {
-            format!("{}: {}", ident.sym, name).into()
-          } else {
-            name.clone().into()
-          },
+          content,
           name.clone().into(),
-        ),
-      ));
+        )
+      } else {
+        ConstDependency::new(nested_require_data.loc, content)
+      };
+      deps.push(Box::new(dep));
       nested_require_data.update = true;
     }
 
-    deps.push(Box::new(
+    let content = if parser.in_short_hand {
+      format!("{}: {}", ident.sym, name).into()
+    } else {
+      name.clone().into()
+    };
+    let dep = if faster_module_concatenation {
       ConstDependency::new_with_concatenation_scope_identifier(
         ident.span.into(),
-        if parser.in_short_hand {
-          format!("{}: {}", ident.sym, name).into()
-        } else {
-          name.clone().into()
-        },
+        content,
         name.into(),
-      ),
-    ));
+      )
+    } else {
+      ConstDependency::new(ident.span.into(), content)
+    };
+    deps.push(Box::new(dep));
     parser.add_presentational_dependencies(deps);
     Some(true)
   }

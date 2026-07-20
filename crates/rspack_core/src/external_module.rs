@@ -88,13 +88,21 @@ fn get_namespace_object_export(
   runtime_template: &mut ModuleCodeTemplate,
 ) -> String {
   if let Some(concatenation_scope) = concatenation_scope {
-    let namespace_export =
-      concatenation_scope.get_or_create_generated_top_level_symbol(NAMESPACE_OBJECT_EXPORT);
-    concatenation_scope.register_namespace_export(namespace_export.as_ref());
-    format!(
-      "{} {namespace_export}",
-      if supports_const { "const" } else { "var" }
-    )
+    if concatenation_scope.is_faster_module_concatenation() {
+      let namespace_export =
+        concatenation_scope.get_or_create_generated_top_level_symbol(NAMESPACE_OBJECT_EXPORT);
+      concatenation_scope.register_namespace_export(namespace_export.as_ref());
+      format!(
+        "{} {namespace_export}",
+        if supports_const { "const" } else { "var" }
+      )
+    } else {
+      concatenation_scope.register_namespace_export(NAMESPACE_OBJECT_EXPORT);
+      format!(
+        "{} {NAMESPACE_OBJECT_EXPORT}",
+        if supports_const { "const" } else { "var" }
+      )
+    }
   } else {
     format!(
       "{}.exports",

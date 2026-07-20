@@ -17,10 +17,10 @@ use rspack_core::{
   AssignRuntimeIdsPass, AsyncModulesArtifact, CacheOptions, ChunkByUkey, ChunkContentHash,
   ChunkGraph, ChunkNamedIdArtifact, ChunkUkey, CodeGenerationJob, CodeGenerationPass, Compilation,
   CompilationAsset, CompilationAssets, Compiler, CreateChunkAssetsPass, CreateHashPass,
-  CreateModuleAssetsPass, CreateModuleHashesPass, DEFAULT_DELIMITER, LogType, MangleExportsOption,
-  Mode, ModuleCodeGenerationContext, ModuleIdsArtifact, Optimization, OptimizeCodeGenerationPass,
-  OutputOptions, ProcessAssetsPass, RuntimeRequirementsPass, SideEffectsOptimizeArtifact,
-  SourceType, UsedExportsOption, build_chunk_graph,
+  CreateModuleAssetsPass, CreateModuleHashesPass, DEFAULT_DELIMITER, Experiments, LogType,
+  MangleExportsOption, Mode, ModuleCodeGenerationContext, ModuleIdsArtifact, Optimization,
+  OptimizeCodeGenerationPass, OutputOptions, ProcessAssetsPass, RuntimeRequirementsPass,
+  SideEffectsOptimizeArtifact, SourceType, UsedExportsOption, build_chunk_graph,
   build_module_graph::{build_module_graph_pass, finish_build_module_graph},
   cache::Cache,
   incremental::IncrementalOptions,
@@ -1128,6 +1128,7 @@ fn create_concatenate_stage_compiler(fs: Arc<MemoryFileSystem>) -> Compiler {
     .entry("main", "/src/index.js")
     .input_filesystem(fs.clone())
     .output_filesystem(fs)
+    .experiments(Experiments::builder().faster_module_concatenation(true))
     .optimization(
       Optimization::builder()
         .provided_exports(true)

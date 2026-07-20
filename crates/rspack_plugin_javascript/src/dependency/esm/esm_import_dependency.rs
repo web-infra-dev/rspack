@@ -188,6 +188,7 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
   let rendered_import_var = code_generatable_context
     .concatenation_scope
     .as_mut()
+    .filter(|scope| scope.is_faster_module_concatenation())
     .map(|scope| {
       scope
         .get_or_create_generated_top_level_symbol(import_var.as_str())
@@ -256,14 +257,12 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
     let async_dependencies_binding = code_generatable_context
       .concatenation_scope
       .as_mut()
-      .map_or_else(
-        || "__rspack_async_deps".to_string(),
-        |scope| {
-          scope
-            .get_or_create_generated_top_level_symbol("__rspack_async_deps")
-            .to_string()
-        },
-      );
+      .filter(|scope| scope.is_faster_module_concatenation())
+      .map(|scope| {
+        scope
+          .get_or_create_generated_top_level_symbol("__rspack_async_deps")
+          .to_string()
+      });
     init_fragments.push(Box::new(ConditionalInitFragment::new(
       content.0,
       InitFragmentStage::StageESMImports,
@@ -272,10 +271,17 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
       None,
       runtime_condition.clone(),
     )));
-    init_fragments.push(
-      AwaitDependenciesInitFragment::new_single(rendered_import_var, async_dependencies_binding)
-        .boxed(),
-    );
+    let await_dependencies = if let Some(binding) = async_dependencies_binding {
+      AwaitDependenciesInitFragment::new_single_with_binding(rendered_import_var, binding)
+    } else if compilation.options.experiments.faster_module_concatenation {
+      AwaitDependenciesInitFragment::new_single_with_binding(
+        rendered_import_var,
+        "__rspack_async_deps".to_string(),
+      )
+    } else {
+      AwaitDependenciesInitFragment::new_single(rendered_import_var)
+    };
+    init_fragments.push(await_dependencies.boxed());
     init_fragments.push(Box::new(ConditionalInitFragment::new(
       content.1,
       InitFragmentStage::StageAsyncESMImports,

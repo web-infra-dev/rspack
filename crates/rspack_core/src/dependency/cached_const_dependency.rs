@@ -124,10 +124,16 @@ impl DependencyTemplate for CachedConstDependencyTemplate {
       .as_any()
       .downcast_ref::<CachedConstDependency>()
       .expect("CachedConstDependencyTemplate should be used for CachedConstDependency");
+    let faster_module_concatenation = code_generatable_context
+      .compilation
+      .options
+      .experiments
+      .faster_module_concatenation;
     let rendered_identifier = if matches!(dep.place, CachedConstDependencyPlace::Module) {
       code_generatable_context
         .concatenation_scope
         .as_mut()
+        .filter(|scope| scope.is_faster_module_concatenation())
         .map_or_else(
           || dep.identifier.to_string(),
           |scope| {
@@ -142,30 +148,38 @@ impl DependencyTemplate for CachedConstDependencyTemplate {
 
     match dep.place {
       CachedConstDependencyPlace::Module => {
-        code_generatable_context.init_fragments.push(
-          NormalInitFragment::new(
-            format!("var {rendered_identifier} = {};\n", dep.content),
-            InitFragmentStage::StageConstants,
-            dep.place.order(),
-            InitFragmentKey::Const(dep.identifier.to_string()),
-            None,
-          )
-          .with_top_level_decl_symbols(vec![dep.identifier.as_ref().into()])
-          .boxed(),
+        let fragment = NormalInitFragment::new(
+          format!("var {rendered_identifier} = {};\n", dep.content),
+          InitFragmentStage::StageConstants,
+          dep.place.order(),
+          InitFragmentKey::Const(dep.identifier.to_string()),
+          None,
         );
+        let fragment = if faster_module_concatenation {
+          fragment.with_top_level_decl_symbols(vec![dep.identifier.as_ref().into()])
+        } else {
+          fragment
+        };
+        code_generatable_context
+          .init_fragments
+          .push(fragment.boxed());
       }
       CachedConstDependencyPlace::Chunk => {
-        code_generatable_context.chunk_init_fragments().push(
-          NormalInitFragment::new(
-            format!("var {} = {};\n", dep.identifier, dep.content),
-            InitFragmentStage::StageConstants,
-            dep.place.order(),
-            InitFragmentKey::Const(dep.identifier.to_string()),
-            None,
-          )
-          .with_top_level_decl_symbols(vec![dep.identifier.as_ref().into()])
-          .boxed(),
+        let fragment = NormalInitFragment::new(
+          format!("var {} = {};\n", dep.identifier, dep.content),
+          InitFragmentStage::StageConstants,
+          dep.place.order(),
+          InitFragmentKey::Const(dep.identifier.to_string()),
+          None,
         );
+        let fragment = if faster_module_concatenation {
+          fragment.with_top_level_decl_symbols(vec![dep.identifier.as_ref().into()])
+        } else {
+          fragment
+        };
+        code_generatable_context
+          .chunk_init_fragments()
+          .push(fragment.boxed());
       }
     }
 

@@ -28,6 +28,7 @@ pub struct Experiments {
   pub css: bool,
   pub defer_import: bool,
   pub source_import: bool,
+  pub faster_module_concatenation: bool,
   pub pure_functions: bool,
   pub runtime_mode: RuntimeMode,
 }

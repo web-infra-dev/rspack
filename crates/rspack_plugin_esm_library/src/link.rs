@@ -9,25 +9,32 @@ use rspack_collections::{IdentifierIndexMap, IdentifierIndexSet, IdentifierMap};
 use rspack_core::{
   BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, ChunkInitFragments, ChunkRenderContext,
   ChunkUkey, CodeGenerationDataRenderedInitFragments, CodeGenerationPublicPathAutoReplace,
-  Compilation, ConcatenatedModule, ConcatenationScope, ConditionalInitFragment, DependencyType,
-  ExportInfo, ExportMode, ExportProvided, ExportsInfoArtifact, ExportsType, FindTargetResult,
-  ImportSpec, InitFragmentKey, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, ModuleInfo,
-  NAMESPACE_OBJECT_EXPORT, RuntimeGlobals, RuntimeGlobalsRenderMode, RuntimeTemplateRenderMode,
-  RuntimeVariable, SideEffectsStateArtifact, SourceType, URLStaticMode, UsageState, UsedName,
-  UsedNameItem, all_runtime_module_variables, escape_name_atom_ref, find_new_name, find_target,
-  get_cached_readable_identifier, get_module_directives, get_module_hashbang, property_access,
-  property_name, reserved_names::RESERVED_NAMES_ATOM_SET, rspack_sources::ReplaceSource,
+  Compilation, ConcatenatedModule, ConcatenatedModuleIdent, ConcatenationScope,
+  ConditionalInitFragment, DependencyType, ExportInfo, ExportMode, ExportProvided,
+  ExportsInfoArtifact, ExportsType, FindTargetResult, ImportSpec, InitFragmentKey, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleIdentifier, ModuleInfo, NAMESPACE_OBJECT_EXPORT, RuntimeGlobals,
+  RuntimeGlobalsRenderMode, RuntimeTemplateRenderMode, RuntimeVariable, SideEffectsStateArtifact,
+  SourceType, URLStaticMode, UsageState, UsedName, UsedNameItem, all_runtime_module_variables,
+  collect_ident, escape_name_atom_ref, find_new_name, find_target, get_cached_readable_identifier,
+  get_module_directives, get_module_hashbang, property_access, property_name,
+  reserved_names::RESERVED_NAMES_ATOM_SET, rspack_sources::ReplaceSource,
   split_readable_identifier, to_normal_comment,
 };
-use rspack_error::{Diagnostic, Result};
+use rspack_error::{Diagnostic, Error, Result};
 use rspack_plugin_javascript::{
   JsPlugin, RenderSource, dependency::ESMExportImportedSpecifierDependency,
 };
 use rspack_plugin_runtime::should_export_webpack_require_for_module_chunk_loading;
 use rspack_util::{
+  SpanExt,
   atom::Atom,
   fx_hash::{FxHashMap, FxHashSet, FxIndexMap, FxIndexSet},
 };
+use swc_core::common::SyntaxContext;
+use swc_experimental_allocator::Allocator;
+use swc_experimental_ecma_ast::{EsVersion, Program};
+use swc_experimental_ecma_parser::{EsSyntax, Parser, StringSource, Syntax};
+use swc_experimental_ecma_semantic::resolver::resolver;
 
 use crate::{
   EsmLibraryPlugin,
@@ -1235,7 +1242,11 @@ var {} = {{}};
           }
         }
 
-        for symbol in &concate_info.generated_top_level_symbols {
+        for symbol in concate_info
+          .generated_top_level_symbols
+          .iter()
+          .filter(|_| concate_info.faster_module_concatenation)
+        {
           let final_name = if all_used_names.contains(&symbol.preferred_name) {
             find_new_name(
               escaped_names
@@ -1545,44 +1556,137 @@ var {} = {{}};
                 let module = module_graph
                   .module_by_identifier(&id)
                   .expect("should have module");
-                let empty_scope_snapshot = rspack_core::ConcatenationScopeSnapshot::default();
-                let scope_snapshot = module
-                  .build_info()
-                  .concatenation_scope_snapshot
-                  .as_deref()
-                  .unwrap_or(&empty_scope_snapshot);
-                let original_source = if let Some(source) =
-                  js_source.as_any().downcast_ref::<ReplaceSource>()
-                {
-                  source.inner().source().into_string_lossy()
+                if concate_info.faster_module_concatenation {
+                  let empty_scope_snapshot = rspack_core::ConcatenationScopeSnapshot::default();
+                  let scope_snapshot = module
+                    .build_info()
+                    .concatenation_scope_snapshot
+                    .as_deref()
+                    .unwrap_or(&empty_scope_snapshot);
+                  let original_source = if let Some(source) =
+                    js_source.as_any().downcast_ref::<ReplaceSource>()
+                  {
+                    source.inner().source().into_string_lossy()
+                  } else {
+                    js_source.source().into_string_lossy()
+                  };
+                  ConcatenatedModule::populate_info_from_snapshot(
+                    scope_snapshot,
+                    &original_source,
+                    &mut concate_info,
+                  );
+                  drop(original_source);
+                  concate_info.rendered_init_fragments = codegen_res
+                    .data
+                    .get::<CodeGenerationDataRenderedInitFragments>()
+                    .map(|fragments| rspack_core::RenderedInitFragments {
+                      start: fragments.start().to_string(),
+                      end: fragments.end().to_string(),
+                    })
+                    .filter(|fragments| {
+                      !fragments.start.is_empty() || !fragments.end.is_empty()
+                    });
                 } else {
-                  js_source.source().into_string_lossy()
-                };
-                ConcatenatedModule::populate_info_from_snapshot(
-                  scope_snapshot,
-                  &original_source,
-                  &mut concate_info,
-                );
-                drop(original_source);
+                  let jsx = module
+                    .as_ref()
+                    .as_normal_module()
+                    .and_then(|normal_module| normal_module.get_parser_options())
+                    .and_then(|options| {
+                      options
+                        .get_javascript()
+                        .and_then(|js_options| js_options.jsx)
+                    })
+                    .unwrap_or(false);
+                  let source_str = render_source
+                    .source
+                    .source()
+                    .into_string_lossy()
+                    .into_owned();
+                  let allocator = Allocator::new();
+                  let lexer = swc_experimental_ecma_parser::Lexer::new(
+                    &allocator,
+                    Syntax::Es(EsSyntax {
+                      jsx,
+                      ..Default::default()
+                    }),
+                    EsVersion::EsNext,
+                    StringSource::new(&source_str),
+                    None,
+                  );
+                  let mut parser = Parser::new_from(&allocator, lexer);
+                  let parsed_module = match parser.parse_module() {
+                    Ok(module) => module,
+                    Err(err) => {
+                      return Err(Error::from_string(
+                        Some(source_str.clone()),
+                        err.span().real_lo() as usize,
+                        err.span().real_hi() as usize,
+                        "JavaScript parse error:\n".to_string(),
+                        err.kind().msg().to_string(),
+                      ));
+                    }
+                  };
+                  let program = Program::Module(allocator.boxed(parsed_module));
+                  let semantic = resolver(&program);
+                  let ids = collect_ident(&allocator, &program);
+
+                  concate_info.module_ctxt =
+                    SyntaxContext::from_u32(semantic.top_level_scope_id().raw());
+                  concate_info.global_ctxt =
+                    SyntaxContext::from_u32(semantic.unresolved_scope_id().raw());
+
+                  let top_level_scope_id = semantic.top_level_scope_id();
+                  let mut all_used_names = FxHashSet::default();
+                  all_used_names.reserve(ids.len());
+                  concate_info.idents.reserve(ids.len());
+                  concate_info.global_scope_ident.reserve(ids.len());
+                  let mut binding_to_ref: FxIndexMap<
+                    (Atom, SyntaxContext),
+                    Vec<ConcatenatedModuleIdent>,
+                  > = Default::default();
+                  binding_to_ref.reserve(ids.len());
+
+                  for ident in ids {
+                    let scope = semantic.node_scope(&ident.id);
+                    let is_global =
+                      SyntaxContext::from_u32(scope.raw()) == concate_info.global_ctxt;
+                    let legacy = if is_global {
+                      let legacy = ident.to_legacy(&semantic);
+                      concate_info.global_scope_ident.push(legacy.clone());
+                      all_used_names.insert(legacy.id.sym.clone());
+                      Some(legacy)
+                    } else {
+                      None
+                    };
+                    if ident.is_class_expr_with_ident {
+                      all_used_names.insert(Atom::from(ident.id.sym.as_str()));
+                      continue;
+                    }
+                    if scope != top_level_scope_id {
+                      all_used_names.insert(Atom::from(ident.id.sym.as_str()));
+                    }
+                    let legacy = legacy.unwrap_or_else(|| ident.to_legacy(&semantic));
+                    concate_info.idents.push(legacy.clone());
+                    binding_to_ref
+                      .entry((legacy.id.sym.clone(), legacy.id.ctxt))
+                      .or_default()
+                      .push(legacy);
+                  }
+
+                  concate_info.all_used_names = all_used_names;
+                  concate_info.binding_to_ref = binding_to_ref;
+                }
                 concate_info.has_ast = true;
-                concate_info.rendered_init_fragments = codegen_res
-                  .data
-                  .get::<CodeGenerationDataRenderedInitFragments>()
-                  .map(|fragments| rspack_core::RenderedInitFragments {
-                    start: fragments.start().to_string(),
-                    end: fragments.end().to_string(),
-                  })
-                  .filter(|fragments| {
-                    !fragments.start.is_empty() || !fragments.end.is_empty()
-                  });
-                concate_info.source = Some(
+                concate_info.source = Some(if concate_info.faster_module_concatenation {
                   render_source
                     .source
                     .as_any()
                     .downcast_ref::<ReplaceSource>()
                     .cloned()
-                    .unwrap_or_else(|| ReplaceSource::new(render_source.source.clone())),
-                );
+                    .unwrap_or_else(|| ReplaceSource::new(render_source.source.clone()))
+                } else {
+                  ReplaceSource::new(render_source.source.clone())
+                });
                 concate_info.internal_source = Some(render_source.source.clone());
                 concate_info.runtime_requirements = runtime_requirements;
                 concate_info.chunk_init_fragments = codegen_res
@@ -3323,8 +3427,9 @@ var {} = {{}};
         if let Some(ref export_id) = export_id
           && let Some(direct_export) = info.export_map.as_ref().and_then(|map| map.get(export_id))
         {
-          if let Some(match_info) =
-            ConcatenationScope::match_module_reference(direct_export.trim_end_matches("._"))
+          if info.faster_module_concatenation
+            && let Some(match_info) =
+              ConcatenationScope::match_module_reference(direct_export.trim_end_matches("._"))
           {
             let referenced_info_id = module_to_info_map
               .values()

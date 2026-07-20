@@ -162,6 +162,7 @@ impl DependencyTemplate for ProvideDependencyTemplate {
     let rendered_identifier = code_generatable_context
       .concatenation_scope
       .as_mut()
+      .filter(|scope| scope.is_faster_module_concatenation())
       .map_or_else(
         || dep.identifier.clone(),
         |scope| {

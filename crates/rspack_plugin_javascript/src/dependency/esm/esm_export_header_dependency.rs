@@ -89,7 +89,11 @@ impl DependencyTemplate for ESMExportHeaderDependencyTemplate {
     } else {
       dep.range.end
     };
-    if let Some(scope) = code_generatable_context.concatenation_scope.as_mut() {
+    if let Some(scope) = code_generatable_context
+      .concatenation_scope
+      .as_mut()
+      .filter(|scope| scope.is_faster_module_concatenation())
+    {
       scope.remove_original_range(DependencyRange::new(dep.range.start, replacement_end));
     }
     source.replace_static(dep.range.start, replacement_end, "", None);

@@ -524,6 +524,7 @@ impl ESMExportImportedSpecifierDependency {
     let import_var = ctxt
       .concatenation_scope
       .as_mut()
+      .filter(|scope| scope.is_faster_module_concatenation())
       .map(|scope| {
         scope
           .get_or_create_generated_top_level_symbol(import_var.as_str())
@@ -789,8 +790,11 @@ impl ESMExportImportedSpecifierDependency {
           let ignored = render_dynamic_reexport_excluded(&ignored);
           format!("/* reexport */ {reexport}({exports}, {import_var}, {ignored});\n")
         } else {
-          let (reexport_binding, import_key_binding) =
-            ctxt.concatenation_scope.as_mut().map_or_else(
+          let (reexport_binding, import_key_binding) = ctxt
+            .concatenation_scope
+            .as_mut()
+            .filter(|scope| scope.is_faster_module_concatenation())
+            .map_or_else(
               || {
                 (
                   "__rspack_reexport".to_string(),
@@ -1765,6 +1769,23 @@ impl DependencyTemplate for ESMExportImportedSpecifierDependencyTemplate {
       module_graph_cache,
       exports_info_artifact,
     );
+
+    if concatenation_scope
+      .as_ref()
+      .is_some_and(|scope| !scope.is_faster_module_concatenation())
+    {
+      let scope = concatenation_scope
+        .as_mut()
+        .expect("concatenation scope was checked above");
+      if let ExportMode::ReexportUndefined(mode) = mode {
+        scope.register_raw_export(
+          mode.name,
+          String::from("/* reexport non-default export from non-ESM */ undefined"),
+        );
+      }
+      return;
+    }
+
     let target_module = module_graph
       .module_identifier_by_dependency_id(dep.id())
       .copied();

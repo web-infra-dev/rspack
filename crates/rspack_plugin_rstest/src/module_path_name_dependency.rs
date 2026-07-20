@@ -17,12 +17,22 @@ pub enum NameType {
 #[derive(Debug, Clone)]
 pub struct ModulePathNameDependency {
   r#type: NameType,
-  range: DependencyRange,
+  range: Option<DependencyRange>,
 }
 
 impl ModulePathNameDependency {
-  pub fn new(r#type: NameType, range: DependencyRange) -> Self {
-    Self { r#type, range }
+  pub fn new(r#type: NameType) -> Self {
+    Self {
+      r#type,
+      range: None,
+    }
+  }
+
+  pub fn new_with_range(r#type: NameType, range: DependencyRange) -> Self {
+    Self {
+      r#type,
+      range: Some(range),
+    }
   }
 }
 
@@ -70,20 +80,23 @@ impl DependencyTemplate for ModulePathNameDependencyTemplate {
 
       if dep.r#type == NameType::FileName {
         if let Some(resource_path) = resource_path {
-          let identifier = code_generatable_context
+          let rendered_identifier = code_generatable_context
             .concatenation_scope
             .as_mut()
-            .map_or_else(
-              || "__filename".to_string(),
-              |scope| {
-                scope.remove_original_range(dep.range);
+            .filter(|scope| scope.is_faster_module_concatenation())
+            .and_then(|scope| {
+              dep.range.map(|range| {
+                scope.remove_original_range(range);
                 scope
                   .get_or_create_generated_top_level_symbol("__filename")
                   .to_string()
-              },
-            );
-          if identifier != "__filename" {
-            source.replace(dep.range.start, dep.range.end, identifier.clone(), None);
+              })
+            });
+          let identifier = rendered_identifier.as_deref().unwrap_or("__filename");
+          if let (Some(range), Some(rendered_identifier)) =
+            (dep.range, rendered_identifier.as_ref())
+          {
+            source.replace(range.start, range.end, rendered_identifier.clone(), None);
           }
           let init = NormalInitFragment::new(
             format!(
@@ -102,20 +115,22 @@ impl DependencyTemplate for ModulePathNameDependencyTemplate {
         && let Some(resource_path) = resource_path
         && let Some(parent_path) = resource_path.parent()
       {
-        let identifier = code_generatable_context
+        let rendered_identifier = code_generatable_context
           .concatenation_scope
           .as_mut()
-          .map_or_else(
-            || "__dirname".to_string(),
-            |scope| {
-              scope.remove_original_range(dep.range);
+          .filter(|scope| scope.is_faster_module_concatenation())
+          .and_then(|scope| {
+            dep.range.map(|range| {
+              scope.remove_original_range(range);
               scope
                 .get_or_create_generated_top_level_symbol("__dirname")
                 .to_string()
-            },
-          );
-        if identifier != "__dirname" {
-          source.replace(dep.range.start, dep.range.end, identifier.clone(), None);
+            })
+          });
+        let identifier = rendered_identifier.as_deref().unwrap_or("__dirname");
+        if let (Some(range), Some(rendered_identifier)) = (dep.range, rendered_identifier.as_ref())
+        {
+          source.replace(range.start, range.end, rendered_identifier.clone(), None);
         }
         // If the parent path is None, we use an empty string
         // to avoid issues with the path being undefined.

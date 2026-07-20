@@ -74,6 +74,7 @@ winnow                     = { workspace = true }
 
 swc_experimental_allocator     = { workspace = true }
 swc_experimental_ecma_ast      = { workspace = true }
+swc_experimental_ecma_parser   = { workspace = true }
 swc_experimental_ecma_semantic = { workspace = true }
 
 [dev-dependencies]

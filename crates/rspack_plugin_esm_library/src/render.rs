@@ -773,6 +773,10 @@ var {} = {{}};
       }
     }
 
+    if !info.faster_module_concatenation {
+      return Ok(source.boxed());
+    }
+
     let mut placeholder_replacements = Vec::with_capacity(
       info.module_reference_placeholders.len() + info.generated_top_level_symbols.len(),
     );
