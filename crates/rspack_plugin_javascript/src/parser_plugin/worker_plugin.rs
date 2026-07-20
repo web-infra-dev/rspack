@@ -146,6 +146,12 @@ fn add_dependencies(
       )
       .into(),
     )));
+  } else if options_range.is_none() && output_module {
+    let insert_position = first_arg.span().real_hi();
+    parser.add_presentational_dependency(Box::new(ConstDependency::new(
+      (insert_position, insert_position).into(),
+      ", { type: \"module\" }".into(),
+    )));
   }
 }
 
