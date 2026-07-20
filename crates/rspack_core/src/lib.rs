@@ -147,6 +147,8 @@ pub enum SourceType {
   Runtime,
 }
 
+pub static NO_SOURCE_TYPE_LIST: &[SourceType; 0] = &[];
+
 impl std::fmt::Display for SourceType {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     f.write_str(self.as_str())
