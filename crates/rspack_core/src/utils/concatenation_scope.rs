@@ -10,7 +10,7 @@ use swc_core::atoms::Atom;
 
 use crate::{
   DependencyRange, ExportMode, ModuleIdentifier,
-  concatenated_module::{ConcatenatedModuleInfo, ModuleInfo},
+  concatenated_module::{ConcatenatedModuleInfo, ModuleInfo, OriginalScopeIdentUpdate},
 };
 
 pub static DEFAULT_EXPORT_ATOM: LazyLock<Atom> = LazyLock::new(|| "__rspack_default_export".into());
@@ -119,7 +119,17 @@ impl ConcatenationScope {
   }
 
   pub fn remove_original_range(&mut self, range: DependencyRange) {
-    self.current_module.removed_original_ranges.push(range);
+    self
+      .current_module
+      .original_scope_ident_updates
+      .push(OriginalScopeIdentUpdate::Remove(range));
+  }
+
+  pub fn set_original_range_non_shorthand(&mut self, range: DependencyRange) {
+    self
+      .current_module
+      .original_scope_ident_updates
+      .push(OriginalScopeIdentUpdate::NonShorthand(range));
   }
 
   pub fn add_scope_ident(&mut self, symbol: Atom, range: DependencyRange) {

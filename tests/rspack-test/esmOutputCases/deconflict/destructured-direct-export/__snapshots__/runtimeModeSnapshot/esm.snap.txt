@@ -1,0 +1,37 @@
+```mjs title=main.mjs
+// wrapper to provide named exports for ESM.
+const {
+  /* program */DM: program,
+  /* createCommand */gu: createCommand,
+  /* createArgument */er: createArgument,
+  /* createOption */Ww: createOption,
+  /* CommanderError */b7: CommanderError,
+  /* InvalidArgumentError */Di: InvalidArgumentError,
+  /* InvalidOptionArgumentError */a2: InvalidOptionArgumentError, // deprecated old name
+  /* Command */uB: Command,
+  /* Argument */ef: Argument,
+  /* Option */c$: Option,
+  /* Help */_V: Help,
+} = commander_0;
+
+// ./index.js
+
+
+const index_Command = "entry command";
+const commander = "entry local";
+
+function index_createCommand(name) {
+	return new Command(name);
+}
+
+it("should link a destructured direct export", () => {
+	const command = index_createCommand("build");
+
+	expect(command.name()).toBe("build");
+	expect(index_Command).toBe("entry command");
+	expect(commander).toBe("entry local");
+});
+
+export { index_createCommand as createCommand };
+
+```

@@ -781,15 +781,20 @@ impl DependencyTemplate for ESMImportSpecifierDependencyTemplate {
 
         let comment = to_normal_comment(prop.id.as_str());
         let key = format!("{comment}{new_name}");
-        let content = if prop.shorthand {
-          format!("{key}: {}", prop.id)
+        if prop.shorthand {
+          // Keep the original identifier as the local binding. Its make-time
+          // scope snapshot is still needed by concatenation to deconflict the
+          // binding and all of its references.
+          if let Some(scope) = code_generatable_context.concatenation_scope.as_mut() {
+            scope.set_original_range_non_shorthand(prop.range);
+          }
+          source.insert(prop.range.start, format!("{key}: "), None);
         } else {
-          key
-        };
-        if let Some(scope) = code_generatable_context.concatenation_scope.as_mut() {
-          scope.remove_original_range(prop.range);
+          if let Some(scope) = code_generatable_context.concatenation_scope.as_mut() {
+            scope.remove_original_range(prop.range);
+          }
+          source.replace(prop.range.start, prop.range.end, key, None);
         }
-        source.replace(prop.range.start, prop.range.end, content, None);
       });
     }
   }

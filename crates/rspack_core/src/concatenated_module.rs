@@ -300,6 +300,12 @@ pub struct AddedScopeIdent {
   pub is_class_expr_with_ident: bool,
 }
 
+#[derive(Debug, Clone, Copy)]
+pub enum OriginalScopeIdentUpdate {
+  Remove(DependencyRange),
+  NonShorthand(DependencyRange),
+}
+
 struct PlaceholderReplacements<'a> {
   module_references: &'a [(String, String)],
   generated_symbols: &'a [GeneratedTopLevelSymbol],
@@ -357,7 +363,7 @@ pub struct ConcatenatedModuleInfo {
   pub all_used_names: HashSet<Atom>,
   pub binding_to_ref: FxIndexMap<(Atom, SyntaxContext), Vec<ConcatenatedModuleIdent>>,
   pub rendered_init_fragments: Option<crate::RenderedInitFragments>,
-  pub removed_original_ranges: Vec<DependencyRange>,
+  pub original_scope_ident_updates: Vec<OriginalScopeIdentUpdate>,
   pub generated_top_level_symbols: Vec<GeneratedTopLevelSymbol>,
   pub added_scope_idents: Vec<AddedScopeIdent>,
   pub added_used_names: Vec<Atom>,
@@ -680,16 +686,31 @@ impl ConcatenatedModule {
     chars.all(|ch| ch == '_' || ch == '$' || ch.is_ascii_alphanumeric())
   }
 
-  fn is_ident_removed(ident: &ConcatenatedModuleIdent, removed_ranges: &[DependencyRange]) -> bool {
-    if removed_ranges.is_empty() {
+  fn is_ident_removed(
+    ident: &ConcatenatedModuleIdent,
+    updates: &[OriginalScopeIdentUpdate],
+  ) -> bool {
+    if updates.is_empty() {
       return false;
     }
     let span = ident.id.span();
     let low = span.real_lo();
     let high = span.real_hi();
-    removed_ranges
-      .iter()
-      .any(|range| range.start <= low && high <= range.end)
+    updates.iter().any(|update| match update {
+      OriginalScopeIdentUpdate::Remove(range) => range.start <= low && high <= range.end,
+      OriginalScopeIdentUpdate::NonShorthand(_) => false,
+    })
+  }
+
+  fn is_ident_shorthand(
+    range: DependencyRange,
+    shorthand: bool,
+    updates: &[OriginalScopeIdentUpdate],
+  ) -> bool {
+    shorthand
+      && !updates.iter().any(|update| {
+        matches!(update, OriginalScopeIdentUpdate::NonShorthand(updated_range) if *updated_range == range)
+      })
   }
 
   pub fn populate_info_from_snapshot(
@@ -762,9 +783,17 @@ impl ConcatenatedModule {
         .iter()
         .filter(|ident| ident.kind == ConcatenationScopeIdentKind::TopLevel)
         .map(|ident| {
-          snapshot_ident_to_legacy(ident.range, ident.shorthand, module_info.module_ctxt)
+          snapshot_ident_to_legacy(
+            ident.range,
+            Self::is_ident_shorthand(
+              ident.range,
+              ident.shorthand,
+              &module_info.original_scope_ident_updates,
+            ),
+            module_info.module_ctxt,
+          )
         })
-        .filter(|ident| !Self::is_ident_removed(ident, &module_info.removed_original_ranges)),
+        .filter(|ident| !Self::is_ident_removed(ident, &module_info.original_scope_ident_updates)),
     );
     idents.extend(
       snapshot
@@ -772,9 +801,17 @@ impl ConcatenatedModule {
         .iter()
         .filter(|ident| ident.kind == ConcatenationScopeIdentKind::Global)
         .map(|ident| {
-          snapshot_ident_to_legacy(ident.range, ident.shorthand, module_info.global_ctxt)
+          snapshot_ident_to_legacy(
+            ident.range,
+            Self::is_ident_shorthand(
+              ident.range,
+              ident.shorthand,
+              &module_info.original_scope_ident_updates,
+            ),
+            module_info.global_ctxt,
+          )
         })
-        .filter(|ident| !Self::is_ident_removed(ident, &module_info.removed_original_ranges)),
+        .filter(|ident| !Self::is_ident_removed(ident, &module_info.original_scope_ident_updates)),
     );
     idents.extend(
       module_info

@@ -1,0 +1,134 @@
+```mjs title=main.mjs
+
+var __rspack_modules = {};
+// The module cache
+var __rspack_module_cache = {};
+// The require function
+function __rspack_require(moduleId) {
+// Check if module is in cache
+var cachedModule = __rspack_module_cache[moduleId];
+if (cachedModule !== undefined) {
+return cachedModule.exports;
+}
+// Create a new module (and put it into the cache)
+var module = (__rspack_module_cache[moduleId] = {
+exports: {}
+});
+// Execute the module function
+__rspack_modules[moduleId](module, module.exports, __rspack_context);
+
+// Return the exports of the module
+return module.exports;
+}
+var __rspack_context = {};
+__rspack_context.r = __rspack_require;
+// expose the modules object (__rspack_modules)
+__rspack_context.m = __rspack_modules;
+
+(function() {
+var moduleFactories=__rspack_modules;
+// rspack/runtime/compat_get_default_export
+// getDefaultExport function for compatibility with non-ESM modules
+var compatGetDefaultExport = (module) => {
+	var getter = module && module.__esModule ?
+		() => (module['default']) :
+		() => (module);
+	definePropertyGetters(getter, { a: getter });
+	return getter;
+};
+;
+__rspack_context.n = compatGetDefaultExport;
+// rspack/runtime/define_property_getters
+var definePropertyGetters = (exports, getters, values) => {
+	var define = (defs, kind) => {
+		for(var key in defs) {
+			if(hasOwnProperty(defs, key) && !hasOwnProperty(exports, key)) {
+				Object.defineProperty(exports, key, { enumerable: true, [kind]: defs[key] });
+			}
+		}
+	};
+	define(getters, "get");
+	define(values, "value");
+};;
+// rspack/runtime/esm_register_module
+moduleFactories.add = function registerModules(modules) { Object.assign(moduleFactories, modules) }
+;
+// rspack/runtime/has_own_property
+var hasOwnProperty = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop));
+
+}).call(this);
+
+__rspack_context.m.add({
+"./api-a.cjs"
+/*!*******************!*\
+  !*** ./api-a.cjs ***!
+  \*******************/
+(module) {
+class Command {
+	constructor(name) {
+		this.name = `a:${name}`;
+	}
+}
+
+module.exports = {
+	createCommand: name => new Command(name),
+	Command
+};
+
+
+},
+"./api-b.cjs"
+/*!*******************!*\
+  !*** ./api-b.cjs ***!
+  \*******************/
+(module) {
+class Command {
+	constructor(name) {
+		this.name = `b:${name}`;
+	}
+}
+
+module.exports = {
+	createCommand: name => new Command(name),
+	Command
+};
+
+
+},
+});
+// ./wrapper-a.js
+const api_a = __rspack_context.r("./api-a.cjs");
+var api_a_default = /*#__PURE__*/__rspack_context.n(api_a);
+
+
+const { createCommand: createCommand, Command: Command } = (api_a_default());
+
+// ./wrapper-b.js
+const api_b = __rspack_context.r("./api-b.cjs");
+var api_b_default = /*#__PURE__*/__rspack_context.n(api_b);
+
+
+const { createCommand: wrapper_b_createCommand, Command: wrapper_b_Command } = (api_b_default());
+
+// ./index.js
+
+
+
+
+
+const index_Command = "consumer command";
+
+it("should deconflict destructured exports from multiple wrappers", () => {
+	const commandA = new Command("build");
+	const commandB = new wrapper_b_Command("build");
+
+	expect(commandA.name).toBe("a:build");
+	expect(commandB.name).toBe("b:build");
+	expect(createCommand("serve").name).toBe("a:serve");
+	expect(wrapper_b_createCommand("serve").name).toBe("b:serve");
+	expect(index_Command).toBe("consumer command");
+});
+
+export { Command as CommandA, createCommand as createCommandA, wrapper_b_Command as CommandB, wrapper_b_createCommand as createCommandB };
+
+```

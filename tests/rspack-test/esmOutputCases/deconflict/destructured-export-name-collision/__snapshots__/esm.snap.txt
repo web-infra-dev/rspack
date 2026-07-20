@@ -1,0 +1,135 @@
+```mjs title=main.mjs
+
+var __webpack_modules__ = {};
+// The module cache
+var __webpack_module_cache__ = {};
+// The require function
+function __webpack_require__(moduleId) {
+// Check if module is in cache
+var cachedModule = __webpack_module_cache__[moduleId];
+if (cachedModule !== undefined) {
+return cachedModule.exports;
+}
+// Create a new module (and put it into the cache)
+var module = (__webpack_module_cache__[moduleId] = {
+exports: {}
+});
+// Execute the module function
+__webpack_modules__[moduleId](module, module.exports, __webpack_require__);
+
+// Return the exports of the module
+return module.exports;
+}
+// expose the modules object (__webpack_modules__)
+__webpack_require__.m = __webpack_modules__;
+
+// webpack/runtime/compat_get_default_export
+(() => {
+// getDefaultExport function for compatibility with non-ESM modules
+__webpack_require__.n = (module) => {
+	var getter = module && module.__esModule ?
+		() => (module['default']) :
+		() => (module);
+	__webpack_require__.d(getter, { a: getter });
+	return getter;
+};
+
+})();
+// webpack/runtime/define_property_getters
+(() => {
+__webpack_require__.d = (exports, getters, values) => {
+	var define = (defs, kind) => {
+		for(var key in defs) {
+			if(__webpack_require__.o(defs, key) && !__webpack_require__.o(exports, key)) {
+				Object.defineProperty(exports, key, { enumerable: true, [kind]: defs[key] });
+			}
+		}
+	};
+	define(getters, "get");
+	define(values, "value");
+};
+})();
+// webpack/runtime/esm_register_module
+(() => {
+__webpack_require__.add = function registerModules(modules) { Object.assign(__webpack_require__.m, modules) }
+
+})();
+// webpack/runtime/has_own_property
+(() => {
+__webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
+})();
+
+__webpack_require__.add({
+"./api-a.cjs"
+/*!*******************!*\
+  !*** ./api-a.cjs ***!
+  \*******************/
+(module) {
+class Command {
+	constructor(name) {
+		this.name = `a:${name}`;
+	}
+}
+
+module.exports = {
+	createCommand: name => new Command(name),
+	Command
+};
+
+
+},
+"./api-b.cjs"
+/*!*******************!*\
+  !*** ./api-b.cjs ***!
+  \*******************/
+(module) {
+class Command {
+	constructor(name) {
+		this.name = `b:${name}`;
+	}
+}
+
+module.exports = {
+	createCommand: name => new Command(name),
+	Command
+};
+
+
+},
+});
+// ./wrapper-a.js
+const api_a = __webpack_require__("./api-a.cjs");
+var api_a_default = /*#__PURE__*/__webpack_require__.n(api_a);
+
+
+const { createCommand: createCommand, Command: Command } = (api_a_default());
+
+// ./wrapper-b.js
+const api_b = __webpack_require__("./api-b.cjs");
+var api_b_default = /*#__PURE__*/__webpack_require__.n(api_b);
+
+
+const { createCommand: wrapper_b_createCommand, Command: wrapper_b_Command } = (api_b_default());
+
+// ./index.js
+
+
+
+
+
+const index_Command = "consumer command";
+
+it("should deconflict destructured exports from multiple wrappers", () => {
+	const commandA = new Command("build");
+	const commandB = new wrapper_b_Command("build");
+
+	expect(commandA.name).toBe("a:build");
+	expect(commandB.name).toBe("b:build");
+	expect(createCommand("serve").name).toBe("a:serve");
+	expect(wrapper_b_createCommand("serve").name).toBe("b:serve");
+	expect(index_Command).toBe("consumer command");
+});
+
+export { Command as CommandA, createCommand as createCommandA, wrapper_b_Command as CommandB, wrapper_b_createCommand as createCommandB };
+
+```
