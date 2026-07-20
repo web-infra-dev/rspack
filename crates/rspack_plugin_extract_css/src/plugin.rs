@@ -553,28 +553,32 @@ async fn runtime_requirement_in_tree(
 
     runtime_modules_to_add.push((
       *chunk_ukey,
-      Box::new(GetChunkFilenameRuntimeModule::new(
-        &compilation.runtime_template,
-        "css",
-        "mini-css",
-        SOURCE_TYPE[0],
-        global,
-        move |runtime_requirements| {
-          runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS)
-        },
-        move |chunk, compilation| {
-          chunk
-            .content_hash(&compilation.chunk_hashes_artifact)?
-            .contains_key(&SOURCE_TYPE[0])
-            .then(|| {
-              if chunk.can_be_initial(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey) {
-                filename.clone()
-              } else {
-                chunk_filename.clone()
-              }
-            })
-        },
-      )),
+      Box::new(
+        GetChunkFilenameRuntimeModule::new(
+          &compilation.runtime_template,
+          "css",
+          "mini-css",
+          SOURCE_TYPE[0],
+          global,
+          move |runtime_requirements| {
+            runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS)
+          },
+          move |chunk, compilation| {
+            chunk
+              .content_hash(&compilation.chunk_hashes_artifact)?
+              .contains_key(&SOURCE_TYPE[0])
+              .then(|| {
+                if chunk.can_be_initial(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
+                {
+                  filename.clone()
+                } else {
+                  chunk_filename.clone()
+                }
+              })
+          },
+        )
+        .with_rspack_export_global("__rspack_get_mini_css_chunk_filename"),
+      ),
     ));
 
     runtime_modules_to_add.push((

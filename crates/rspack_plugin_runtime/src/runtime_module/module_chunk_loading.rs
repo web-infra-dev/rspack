@@ -35,6 +35,16 @@ static MODULE_CHUNK_LOADING_WITH_HMR_MANIFEST_TEMPLATE: &str =
   include_str!("runtime/module_chunk_loading_with_hmr_manifest.ejs");
 static JAVASCRIPT_HOT_MODULE_REPLACEMENT_TEMPLATE: &str =
   include_str!("runtime/javascript_hot_module_replacement.ejs");
+static RUNTIME_MODULE_VARIABLES: &[&str] = &[
+  "hotApplyHandler",
+  "hotCurrentUpdate",
+  "hotCurrentUpdateChunks",
+  "hotCurrentUpdateRemovedChunks",
+  "hotCurrentUpdateRuntime",
+  "moduleInstallChunk",
+  "moduleInstalledChunks",
+  "moduleLoadUpdateChunk",
+];
 
 static MODULE_CHUNK_LOADING_BASIC_RUNTIME_REQUIREMENTS: LazyLock<RuntimeModuleRuntimeRequirements> =
   LazyLock::new(|| extract_runtime_globals_from_ejs(MODULE_CHUNK_LOADING_TEMPLATE));
@@ -65,7 +75,7 @@ static JAVASCRIPT_HOT_MODULE_REPLACEMENT_RUNTIME_REQUIREMENTS: LazyLock<
   RuntimeModuleRuntimeRequirements,
 > = LazyLock::new(|| extract_runtime_globals_from_ejs(JAVASCRIPT_HOT_MODULE_REPLACEMENT_TEMPLATE));
 
-#[impl_runtime_module]
+#[impl_runtime_module(runtime_module_variables)]
 #[derive(Debug)]
 pub struct ModuleChunkLoadingRuntimeModule {
   omit_on_demand_loading: bool,
@@ -159,6 +169,10 @@ enum TemplateId {
 
 #[async_trait::async_trait]
 impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
+  fn runtime_module_variables() -> &'static [&'static str] {
+    RUNTIME_MODULE_VARIABLES
+  }
+
   fn runtime_requirements(&self, compilation: &Compilation) -> RuntimeModuleRuntimeRequirements {
     let Some(chunk_ukey) = self.chunk() else {
       return RuntimeModuleRuntimeRequirements::default();

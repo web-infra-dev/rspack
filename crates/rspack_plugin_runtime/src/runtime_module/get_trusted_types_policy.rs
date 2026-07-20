@@ -5,7 +5,11 @@ use rspack_core::{
 
 use crate::get_chunk_runtime_requirements;
 
-#[impl_runtime_module]
+static GET_TRUSTED_TYPES_POLICY_TEMPLATE: &str =
+  include_str!("runtime/get_trusted_types_policy.ejs");
+static RUNTIME_MODULE_VARIABLES: &[&str] = &["policy"];
+
+#[impl_runtime_module(runtime_module_variables)]
 #[derive(Debug)]
 pub struct GetTrustedTypesPolicyRuntimeModule {}
 
@@ -17,6 +21,10 @@ impl GetTrustedTypesPolicyRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for GetTrustedTypesPolicyRuntimeModule {
+  fn runtime_module_variables() -> &'static [&'static str] {
+    RUNTIME_MODULE_VARIABLES
+  }
+
   fn runtime_requirements(
     &self,
     _compilation: &Compilation,
@@ -30,7 +38,7 @@ impl RuntimeModule for GetTrustedTypesPolicyRuntimeModule {
   fn template(&self) -> Vec<(String, String)> {
     vec![(
       self.id().to_string(),
-      include_str!("runtime/get_trusted_types_policy.ejs").to_string(),
+      GET_TRUSTED_TYPES_POLICY_TEMPLATE.to_string(),
     )]
   }
 

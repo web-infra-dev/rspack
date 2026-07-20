@@ -6,7 +6,11 @@ use rspack_core::{
   impl_runtime_module,
 };
 
-#[impl_runtime_module]
+static STARTUP_CHUNK_DEPENDENCIES_TEMPLATE: &str =
+  include_str!("runtime/startup_chunk_dependencies.ejs");
+static RUNTIME_MODULE_VARIABLES: &[&str] = &["next"];
+
+#[impl_runtime_module(runtime_module_variables)]
 #[derive(Debug)]
 pub struct StartupChunkDependenciesRuntimeModule {
   async_chunk_loading: bool,
@@ -20,6 +24,10 @@ impl StartupChunkDependenciesRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for StartupChunkDependenciesRuntimeModule {
+  fn runtime_module_variables() -> &'static [&'static str] {
+    RUNTIME_MODULE_VARIABLES
+  }
+
   fn runtime_requirements(
     &self,
     _compilation: &Compilation,
@@ -40,7 +48,7 @@ impl RuntimeModule for StartupChunkDependenciesRuntimeModule {
   fn template(&self) -> Vec<(String, String)> {
     vec![(
       self.id().to_string(),
-      include_str!("runtime/startup_chunk_dependencies.ejs").to_string(),
+      STARTUP_CHUNK_DEPENDENCIES_TEMPLATE.to_string(),
     )]
   }
 

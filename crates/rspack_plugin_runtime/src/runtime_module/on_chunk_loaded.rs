@@ -3,7 +3,10 @@ use rspack_core::{
   impl_runtime_module,
 };
 
-#[impl_runtime_module]
+static ON_CHUNK_LOADED_TEMPLATE: &str = include_str!("runtime/on_chunk_loaded.ejs");
+static RUNTIME_MODULE_VARIABLES: &[&str] = &["deferred"];
+
+#[impl_runtime_module(runtime_module_variables)]
 #[derive(Debug)]
 pub struct OnChunkLoadedRuntimeModule {}
 
@@ -15,6 +18,10 @@ impl OnChunkLoadedRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for OnChunkLoadedRuntimeModule {
+  fn runtime_module_variables() -> &'static [&'static str] {
+    RUNTIME_MODULE_VARIABLES
+  }
+
   fn runtime_requirements(
     &self,
     _compilation: &Compilation,
@@ -26,10 +33,7 @@ impl RuntimeModule for OnChunkLoadedRuntimeModule {
   }
 
   fn template(&self) -> Vec<(String, String)> {
-    vec![(
-      self.id().to_string(),
-      include_str!("runtime/on_chunk_loaded.ejs").to_string(),
-    )]
+    vec![(self.id().to_string(), ON_CHUNK_LOADED_TEMPLATE.to_string())]
   }
 
   async fn generate(

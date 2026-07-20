@@ -35,6 +35,19 @@ static JSONP_CHUNK_LOADING_WITH_CALLBACK_TEMPLATE: &str =
   include_str!("runtime/jsonp_chunk_loading_with_callback.ejs");
 static JAVASCRIPT_HOT_MODULE_REPLACEMENT_TEMPLATE: &str =
   include_str!("runtime/javascript_hot_module_replacement.ejs");
+static RUNTIME_MODULE_VARIABLES: &[&str] = &[
+  "__rspack_jsonp",
+  "hotApplyHandler",
+  "hotCurrentUpdate",
+  "hotCurrentUpdateChunks",
+  "hotCurrentUpdateRemovedChunks",
+  "hotCurrentUpdateRuntime",
+  "hotCurrentUpdatedModulesList",
+  "hotWaitingUpdateResolves",
+  "jsonpChunkLoadingGlobal",
+  "jsonpInstalledChunks",
+  "jsonpLoadUpdateChunk",
+];
 
 static JSONP_CHUNK_LOADING_BASIC_RUNTIME_REQUIREMENTS: LazyLock<RuntimeModuleRuntimeRequirements> =
   LazyLock::new(|| extract_runtime_globals_from_ejs(JSONP_CHUNK_LOADING_TEMPLATE));
@@ -70,7 +83,7 @@ static JAVASCRIPT_HOT_MODULE_REPLACEMENT_RUNTIME_REQUIREMENTS: LazyLock<
   RuntimeModuleRuntimeRequirements,
 > = LazyLock::new(|| extract_runtime_globals_from_ejs(JAVASCRIPT_HOT_MODULE_REPLACEMENT_TEMPLATE));
 
-#[impl_runtime_module]
+#[impl_runtime_module(runtime_module_variables)]
 #[derive(Debug)]
 pub struct JsonpChunkLoadingRuntimeModule {}
 
@@ -159,6 +172,10 @@ enum TemplateId {
 
 #[async_trait::async_trait]
 impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
+  fn runtime_module_variables() -> &'static [&'static str] {
+    RUNTIME_MODULE_VARIABLES
+  }
+
   fn runtime_requirements(&self, compilation: &Compilation) -> RuntimeModuleRuntimeRequirements {
     let Some(chunk_ukey) = self.chunk() else {
       return RuntimeModuleRuntimeRequirements::default();

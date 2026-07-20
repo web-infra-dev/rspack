@@ -13,6 +13,18 @@ use rspack_error::Result;
 
 use super::module_federation_runtime_plugin::ModuleFederationRuntimeExperimentsOptions;
 
+static EMBED_FEDERATION_RUNTIME_ASYNC_TEMPLATE: &str =
+  include_str!("./embed_federation_runtime_async.ejs");
+static EMBED_FEDERATION_RUNTIME_SYNC_TEMPLATE: &str =
+  include_str!("./embed_federation_runtime_sync.ejs");
+static RUNTIME_MODULE_VARIABLES: &[&str] = &[
+  "hasRun",
+  "mfAsyncStartup",
+  "mfStartupBase",
+  "prevStartup",
+  "wrapStartup",
+];
+
 #[cacheable]
 #[derive(Debug, Default, Clone, Hash, PartialEq, Eq)]
 pub struct EmbedFederationRuntimeModuleOptions {
@@ -20,7 +32,7 @@ pub struct EmbedFederationRuntimeModuleOptions {
   pub experiments: ModuleFederationRuntimeExperimentsOptions,
 }
 
-#[impl_runtime_module]
+#[impl_runtime_module(runtime_module_variables)]
 #[derive(Debug)]
 pub struct EmbedFederationRuntimeModule {
   options: EmbedFederationRuntimeModuleOptions,
@@ -51,6 +63,10 @@ impl EmbedFederationRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for EmbedFederationRuntimeModule {
+  fn runtime_module_variables() -> &'static [&'static str] {
+    RUNTIME_MODULE_VARIABLES
+  }
+
   fn runtime_requirements(
     &self,
     _compilation: &Compilation,
@@ -70,11 +86,11 @@ impl RuntimeModule for EmbedFederationRuntimeModule {
     vec![
       (
         self.template_id(TemplateId::Async),
-        include_str!("./embed_federation_runtime_async.ejs").to_string(),
+        EMBED_FEDERATION_RUNTIME_ASYNC_TEMPLATE.to_string(),
       ),
       (
         self.template_id(TemplateId::Sync),
-        include_str!("./embed_federation_runtime_sync.ejs").to_string(),
+        EMBED_FEDERATION_RUNTIME_SYNC_TEMPLATE.to_string(),
       ),
     ]
   }

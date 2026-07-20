@@ -17,8 +17,30 @@ static HOT_MODULE_REPLACEMENT_RUNTIME_REQUIREMENTS: LazyLock<RuntimeModuleRuntim
       .insert(RuntimeGlobals::INTERCEPT_MODULE_EXECUTION);
     requirements
   });
+static RUNTIME_MODULE_VARIABLES: &[&str] = &[
+  "applyInvalidatedModules",
+  "blockingPromises",
+  "blockingPromisesWaiting",
+  "createModuleHotObject",
+  "createRequire",
+  "currentChildModule",
+  "currentModuleData",
+  "currentParents",
+  "currentStatus",
+  "currentUpdateApplyHandlers",
+  "hmrInstalledModules",
+  "hotApply",
+  "hotCheck",
+  "internalApply",
+  "queuedInvalidatedModules",
+  "registeredStatusHandlers",
+  "setStatus",
+  "trackBlockingPromise",
+  "unblock",
+  "waitForBlockingPromises",
+];
 
-#[impl_runtime_module]
+#[impl_runtime_module(runtime_module_variables)]
 #[derive(Debug)]
 pub struct HotModuleReplacementRuntimeModule {}
 
@@ -30,6 +52,10 @@ impl HotModuleReplacementRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for HotModuleReplacementRuntimeModule {
+  fn runtime_module_variables() -> &'static [&'static str] {
+    RUNTIME_MODULE_VARIABLES
+  }
+
   fn template(&self) -> Vec<(String, String)> {
     vec![(
       self.id().to_string(),

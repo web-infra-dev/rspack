@@ -1,4 +1,4 @@
-var mfStartupBase = <%- REQUIRE %>.mfStartupBase = (function () {
+<%- var("mfStartupBase") %> = <%- REQUIRE %>.mfStartupBase = (function () {
 	var hasRun = false;
 	var result;
 	return function __rspack_require_mfStartupBase() {
@@ -10,7 +10,7 @@ var mfStartupBase = <%- REQUIRE %>.mfStartupBase = (function () {
 	};
 })();
 
-var mfAsyncStartup = <%- REQUIRE %>.mfAsyncStartup = (function () {
+<%- var("mfAsyncStartup") %> = <%- REQUIRE %>.mfAsyncStartup = (function () {
 	var hasRun = false;
 	var result;
 	return function __rspack_require_mfAsyncStartup() {
@@ -33,7 +33,7 @@ var mfAsyncStartup = <%- REQUIRE %>.mfAsyncStartup = (function () {
 
 <%- REQUIRE %>.mfStartup = <%- STARTUP %>;
 
-var wrapStartup = function (prev, isEntry) {
+<%- var("wrapStartup") %> = function (prev, isEntry) {
 	prev = typeof prev === "function" ? prev : function () {};
 	return function (result, chunkIds, cb) {
 		var res = mfAsyncStartup();
