@@ -5,6 +5,7 @@ const common = {
   entry: {
     main: './index.js',
     test: './test.js',
+    mixed: './mixed.js',
   },
   optimization: {
     splitChunks: {
@@ -19,6 +20,12 @@ const common = {
     },
   },
   module: {
+    rules: [
+      {
+        test: /mixed-asset\.js$/,
+        type: 'asset/resource',
+      },
+    ],
     parser: {
       javascript: {
         url: 'new-url-relative',
