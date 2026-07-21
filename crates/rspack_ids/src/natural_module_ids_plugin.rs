@@ -18,10 +18,11 @@ async fn module_ids(
   &self,
   compilation: &Compilation,
   module_ids: &mut ModuleIdsArtifact,
+  preserved_module_ids: &ModuleIdsArtifact,
   diagnostics: &mut Vec<Diagnostic>,
 ) -> Result<()> {
   if let Some(diagnostic) = compilation.incremental.disable_passes(
-    IncrementalPasses::MODULE_IDS,
+    IncrementalPasses::MODULE_IDS | IncrementalPasses::MODULES_HASHES,
     "NaturalModuleIdsPlugin (optimization.moduleIds = \"natural\")",
     "it requires calculating the id of all the modules, which is a global effect",
   ) {
@@ -30,6 +31,11 @@ async fn module_ids(
     }
     module_ids.clear();
   }
+  module_ids.extend(
+    preserved_module_ids
+      .iter()
+      .map(|(module, id)| (*module, id.clone())),
+  );
 
   let (used_ids, mut modules_in_natural_order) =
     get_used_module_ids_and_modules_with_artifact(compilation, module_ids, None);

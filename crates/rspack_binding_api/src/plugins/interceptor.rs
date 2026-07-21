@@ -1384,7 +1384,7 @@ impl CompilationBeforeModuleIds for CompilationBeforeModuleIdsTap {
     &self,
     compilation: &Compilation,
     modules: &IdentifierSet,
-    module_ids: &mut ModuleIdsArtifact,
+    preserved_module_ids: &mut ModuleIdsArtifact,
   ) -> rspack_error::Result<()> {
     let arg = JsBeforeModuleIdsArg::new(compilation, modules);
     let result: JsBeforeModuleIdsResult = self.function.call_with_sync(arg).await?;
@@ -1395,7 +1395,7 @@ impl CompilationBeforeModuleIds for CompilationBeforeModuleIdsTap {
         Either::A(s) => ModuleId::from(s),
         Either::B(n) => ModuleId::from(n),
       };
-      ChunkGraph::set_module_id(module_ids, identifier, module_id);
+      ChunkGraph::set_module_id(preserved_module_ids, identifier, module_id);
     }
 
     Ok(())

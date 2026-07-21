@@ -49,7 +49,8 @@ impl PassExt for ModuleIdsPass {
       compilation.module_ids_artifact.clear();
     }
 
-    let mut module_ids_artifact = compilation.module_ids_artifact.steal();
+    let module_ids_artifact = compilation.module_ids_artifact.steal();
+    let mut preserved_module_ids_artifact = ModuleIdsArtifact::default();
 
     // Call reviveModules hook - allows plugins to restore IDs from records
     if !compilation
@@ -58,13 +59,18 @@ impl PassExt for ModuleIdsPass {
       .revive_modules
       .is_empty()
     {
-      let modules_needing_ids = get_modules_needing_ids(compilation, &module_ids_artifact);
+      let modules_needing_ids =
+        get_modules_needing_ids(compilation, &preserved_module_ids_artifact);
       compilation
         .plugin_driver
         .clone()
         .compilation_hooks
         .revive_modules
-        .call(compilation, &modules_needing_ids, &mut module_ids_artifact)
+        .call(
+          compilation,
+          &modules_needing_ids,
+          &mut preserved_module_ids_artifact,
+        )
         .await
         .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.reviveModules"))?;
     }
@@ -76,19 +82,23 @@ impl PassExt for ModuleIdsPass {
       .before_module_ids
       .is_empty()
     {
-      let modules_needing_ids = get_modules_needing_ids(compilation, &module_ids_artifact);
+      let modules_needing_ids =
+        get_modules_needing_ids(compilation, &preserved_module_ids_artifact);
       compilation
         .plugin_driver
         .clone()
         .compilation_hooks
         .before_module_ids
-        .call(compilation, &modules_needing_ids, &mut module_ids_artifact)
+        .call(
+          compilation,
+          &modules_needing_ids,
+          &mut preserved_module_ids_artifact,
+        )
         .await
         .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.beforeModuleIds"))?;
     }
 
-    // Put artifact back so moduleIds plugins can see custom IDs from beforeModuleIds
-    // when they call get_used_module_ids_and_modules
+    // Put the recovered artifact back before moduleIds plugins merge preserved IDs.
     compilation.module_ids_artifact = module_ids_artifact.into();
 
     let mut diagnostics = vec![];
@@ -98,7 +108,12 @@ impl PassExt for ModuleIdsPass {
       .clone()
       .compilation_hooks
       .module_ids
-      .call(compilation, &mut module_ids_artifact, &mut diagnostics)
+      .call(
+        compilation,
+        &mut module_ids_artifact,
+        &preserved_module_ids_artifact,
+        &mut diagnostics,
+      )
       .await
       .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.moduleIds"))?;
     if !compilation

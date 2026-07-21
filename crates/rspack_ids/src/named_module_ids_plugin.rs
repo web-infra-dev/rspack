@@ -191,8 +191,14 @@ async fn module_ids(
   &self,
   compilation: &rspack_core::Compilation,
   module_ids_artifact: &mut ModuleIdsArtifact,
+  preserved_module_ids: &ModuleIdsArtifact,
   _diagnostics: &mut Vec<Diagnostic>,
 ) -> Result<()> {
+  module_ids_artifact.extend(
+    preserved_module_ids
+      .iter()
+      .map(|(module, id)| (*module, id.clone())),
+  );
   let mut module_ids = std::mem::take(module_ids_artifact);
   let mut used_ids: ModuleIdMap<ModuleIdentifier> = module_ids
     .iter()

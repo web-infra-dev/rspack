@@ -63,10 +63,11 @@ async fn module_ids(
   &self,
   compilation: &Compilation,
   module_ids: &mut ModuleIdsArtifact,
+  preserved_module_ids: &ModuleIdsArtifact,
   diagnostics: &mut Vec<Diagnostic>,
 ) -> Result<()> {
   if let Some(diagnostic) = compilation.incremental.disable_passes(
-    IncrementalPasses::MODULE_IDS,
+    IncrementalPasses::MODULE_IDS | IncrementalPasses::MODULES_HASHES,
     "DeterministicModuleIdsPlugin (optimization.moduleIds = \"deterministic\")",
     "it requires calculating the id of all the modules, which is a global effect",
   ) {
@@ -75,6 +76,11 @@ async fn module_ids(
     }
     module_ids.clear();
   }
+  module_ids.extend(
+    preserved_module_ids
+      .iter()
+      .map(|(module, id)| (*module, id.clone())),
+  );
 
   // Use the sync path when no async test filter is provided (the common case),
   // avoiding unnecessary async overhead on the hot path.
