@@ -1,4 +1,4 @@
-```mjs title=worker.mjs
+```mjs title=worker-cjs.mjs
 
 var __rspack_modules = {};
 // The module cache
@@ -27,54 +27,38 @@ __rspack_context.m = __rspack_modules;
 
 (function() {
 var moduleFactories=__rspack_modules;
-// rspack/runtime/define_property_getters
-var definePropertyGetters = (exports, getters, values) => {
-	var define = (defs, kind) => {
-		for(var key in defs) {
-			if(hasOwnProperty(defs, key) && !hasOwnProperty(exports, key)) {
-				Object.defineProperty(exports, key, { enumerable: true, [kind]: defs[key] });
-			}
-		}
-	};
-	define(getters, "get");
-	define(values, "value");
-};;
-__rspack_context.d = definePropertyGetters;
 // rspack/runtime/esm_register_module
 moduleFactories.add = function registerModules(modules) { Object.assign(moduleFactories, modules) }
 ;
-// rspack/runtime/has_own_property
-var hasOwnProperty = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop));
-// rspack/runtime/make_namespace_object
-// define __esModule on exports
-var makeNamespaceObject = (exports) => {
-	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
-		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
-	}
-	Object.defineProperty(exports, '__esModule', { value: true });
-};;
-__rspack_context.N = makeNamespaceObject;
 
 }).call(this);
 
 __rspack_context.m.add({
-"./worker.js"
-/*!*******************!*\
-  !*** ./worker.js ***!
-  \*******************/
-(__unused_rspack_module, __rspack_exports, __rspack_context) {
-__rspack_context.N(__rspack_exports);
-__rspack_context.d(__rspack_exports, {
-  "default": () => (__rspack_default_export)
-});
-/* export default */ const __rspack_default_export = ('worker');
+"./worker-cjs.js"
+/*!***********************!*\
+  !*** ./worker-cjs.js ***!
+  \***********************/
+(module) {
+module.exports = 'worker-cjs';
 
-globalThis.__workerEntryExecuted = true;
+globalThis.__workerCommonJsEntryExecuted = true;
 
 
 },
 });
-__rspack_context.r("./worker.js");
+__rspack_context.r("./worker-cjs.js");
+
+export {};
+
+```
+
+```mjs title=worker.mjs
+
+
+// ./worker.js
+/* export default */ const worker = ('worker');
+
+globalThis.__workerEntryExecuted = true;
 
 export {};
 
