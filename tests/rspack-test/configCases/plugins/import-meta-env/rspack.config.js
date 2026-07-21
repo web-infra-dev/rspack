@@ -42,6 +42,7 @@ module.exports = {
       'import.meta.env.EXPLICIT_UNDEFINED': 'undefined',
       'import.meta.env.DYNAMIC': 'loadEnv()',
       'typeof import.meta.env.TYPEOF_DEFINED': JSON.stringify('string'),
+      'import.meta.env.RAW_OBJECT_CODE': JSON.stringify({ x: 1 }),
       'import.meta.env.UNRELATED_SIDE_EFFECT':
         'globalThis.__IMPORT_META_ENV_MISSING_SIDE_EFFECT__ = true',
       'import.meta.env.NESTED_MISSING_WITH_SIDE_EFFECT.UNUSED':

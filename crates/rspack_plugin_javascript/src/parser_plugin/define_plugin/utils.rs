@@ -118,7 +118,7 @@ pub fn code_to_string<'a>(
 ) -> Cow<'a, str> {
   match code {
     Value::Null => Cow::Borrowed("null"),
-    Value::String(s) => Cow::Borrowed(s),
+    Value::String(s) => wrap_code(Cow::Borrowed(s), false, asi_safe),
     Value::Bool(b) => Cow::Borrowed(if *b { "true" } else { "false" }),
     Value::Number(n) => Cow::Owned(n.to_string()),
     Value::Array(arr) => {
