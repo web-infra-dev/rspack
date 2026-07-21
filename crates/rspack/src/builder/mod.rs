@@ -9,7 +9,7 @@ mod target;
 pub use builder_context::BuilderContext;
 pub use devtool::Devtool;
 use rspack_tasks::CURRENT_COMPILER_CONTEXT;
-use rspack_util::fx_hash::FxIndexMap;
+use rspack_util::{fx_hash::FxIndexMap, json_stringify_str};
 pub use target::Targets;
 
 macro_rules! d {
@@ -3392,7 +3392,7 @@ impl OptimizationOptionsBuilder {
   where
     V: Into<String>,
   {
-    self.node_env = Some(value.into());
+    self.node_env = Some(json_stringify_str(&value.into()));
     self
   }
 
@@ -3645,7 +3645,6 @@ impl OptimizationOptionsBuilder {
       }
     });
     if let Some(node_env) = node_env {
-      let node_env = format!("{}", json!(node_env));
       let mut definitions =
         HashMap::from_iter([("process.env.NODE_ENV".to_string(), node_env.clone().into())]);
       if experiments.env {
