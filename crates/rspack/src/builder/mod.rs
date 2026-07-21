@@ -3645,10 +3645,11 @@ impl OptimizationOptionsBuilder {
       }
     });
     if let Some(node_env) = node_env {
+      let node_env: serde_json::value::Value = format!("{}", json!(node_env)).into();
       let mut definitions =
-        HashMap::from_iter([("process.env.NODE_ENV".to_string(), node_env.clone().into())]);
+        HashMap::from_iter([("process.env.NODE_ENV".to_string(), node_env.clone())]);
       if experiments.env {
-        definitions.insert("import.meta.env.NODE_ENV".to_string(), node_env.into());
+        definitions.insert("import.meta.env.NODE_ENV".to_string(), node_env);
       }
       builder_context
         .plugins
