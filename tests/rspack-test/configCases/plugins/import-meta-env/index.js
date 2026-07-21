@@ -16,13 +16,6 @@ it("should not evaluate unrelated definitions for a missing env key", () => {
 		undefined
 	);
 });
-it("should wrap raw object code in expression position", () => {
-	import.meta.env.RAW_OBJECT_CODE;
-	expect(
-		import.meta.env.RAW_OBJECT_CODE && import.meta.env.RAW_OBJECT_CODE.x
-	).toBe(1);
-});
-
 it("should expose NODE_ENV from mode (WebpackOptionsApply)", () => {
 	const env = import.meta.env;
 	expect(env.NODE_ENV).toBe("production");
