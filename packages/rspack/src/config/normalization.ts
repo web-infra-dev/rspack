@@ -284,7 +284,7 @@ export const getNormalizedRspackOptions = (
             ...cache,
             type: 'memory',
           };
-        case 'persistent': {
+        default: {
           const context = config.context || process.cwd();
           return {
             type: 'persistent',
@@ -317,8 +317,6 @@ export const getNormalizedRspackOptions = (
             })),
           };
         }
-        default:
-          throw new Error(`Not implemented cache.type ${(cache as any).type}`);
       }
     }),
     stats: nestedConfig(config.stats, (stats) => {
