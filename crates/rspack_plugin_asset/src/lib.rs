@@ -328,38 +328,42 @@ const DEFAULT_MAX_SIZE: f64 = 8096.0;
 #[async_trait::async_trait]
 impl ParserAndGenerator for AssetParserAndGenerator {
   fn source_types(&self, module: &dyn Module, module_graph: &ModuleGraph) -> &[SourceType] {
-    let mut source_types = FxHashSet::default();
     let module_id = module.identifier();
-    let mut has_incoming_connection = false;
-    let mut only_new_url_relative = true;
+    if self.emit
+      && module
+        .build_info()
+        .asset
+        .as_ref()
+        .is_some_and(|x| x.data_url.is_resource())
+      && module_graph
+        .get_incoming_connections(&module_id)
+        .all(|connection| {
+          let dependency = module_graph.dependency_by_id(&connection.dependency_id);
+          matches!(dependency.dependency_type(), DependencyType::NewUrl)
+            && matches!(
+              dependency.url_mode(),
+              Some(JavascriptParserUrl::NewUrlRelative)
+            )
+        })
+    {
+      return ASSET_TYPES;
+    }
+
+    let mut source_types = FxHashSet::default();
     for connection in module_graph.get_incoming_connections(&module_id) {
-      has_incoming_connection = true;
       if let Some(module) = connection
         .original_module_identifier
         .and_then(|id| module_graph.module_by_identifier(&id))
       {
-        if only_new_url_relative {
-          let dependency = module_graph.dependency_by_id(&connection.dependency_id);
-          only_new_url_relative = matches!(dependency.dependency_type(), DependencyType::NewUrl)
-            && module
-              .as_normal_module()
-              .and_then(|module| module.get_parser_options())
-              .and_then(|options| options.get_javascript())
-              .is_some_and(|options| {
-                matches!(options.url, Some(JavascriptParserUrl::NewUrlRelative))
-              });
-        }
         let module_type = module.module_type();
         source_types.insert(SourceType::from(module_type));
       } else {
-        only_new_url_relative = false;
         let dependency = module_graph.dependency_by_id(&connection.dependency_id);
         if matches!(dependency.dependency_type(), DependencyType::LoaderImport) {
           source_types.insert(SourceType::JavaScript);
         }
       }
     }
-    only_new_url_relative &= has_incoming_connection;
 
     let is_import_mode_preserve = self
       .get_import_mode(
@@ -368,19 +372,6 @@ impl ParserAndGenerator for AssetParserAndGenerator {
           .and_then(|x| x.get_generator_options()),
       )
       .is_ok_and(|x| x.is_preserve());
-
-    // NewUrlRelative renders the emitted filename directly in the issuer, so the
-    // asset's JavaScript export is unnecessary when there are no other references.
-    if only_new_url_relative
-      && self.emit
-      && module
-        .build_info()
-        .asset
-        .as_ref()
-        .is_some_and(|x| x.data_url.is_resource())
-    {
-      return ASSET_TYPES;
-    }
 
     if module
       .build_info()

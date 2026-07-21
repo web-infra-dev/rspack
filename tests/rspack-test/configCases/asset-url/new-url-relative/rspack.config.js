@@ -6,6 +6,7 @@ const common = {
     main: './index.js',
     test: './test.js',
     mixed: './mixed.js',
+    normal: './normal.js',
   },
   optimization: {
     splitChunks: {
@@ -22,8 +23,14 @@ const common = {
   module: {
     rules: [
       {
-        test: /mixed-asset\.js$/,
+        test: /(?:mixed|normal)-asset\.js$/,
         type: 'asset/resource',
+      },
+      {
+        test: /normal\.js$/,
+        parser: {
+          url: true,
+        },
       },
     ],
     parser: {
