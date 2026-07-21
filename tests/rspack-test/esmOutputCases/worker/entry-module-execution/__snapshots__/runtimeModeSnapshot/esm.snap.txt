@@ -1,3 +1,52 @@
+```mjs title=main.mjs
+// The require scope
+var __rspack_require = {};
+var __rspack_context = {};
+
+(function() {
+var publicPath, hasOwnProperty, baseUri;
+// rspack/runtime/get javascript chunk filename
+// This function allow to reference chunks
+var getChunkScriptFilename = (chunkId) => {
+  // return url for filenames not based on template
+
+  // return url for filenames based on template
+  return "" + chunkId + ".mjs"
+};
+__rspack_context.u = getChunkScriptFilename;
+// rspack/runtime/public_path
+var publicPath = "";;
+__rspack_context.p = publicPath;
+// rspack/runtime/module_chunk_loading
+baseUri = new URL("./", import.meta.url);;
+
+      // object to store loaded and loading chunks
+      // undefined = chunk not loaded, null = chunk preloaded/prefetched
+      // [resolve, Promise] = chunk loading, 0 = chunk loaded
+      var moduleInstalledChunks = {"main": 0,};
+      // no install chunk// no chunk on demand loading
+// no external install chunk
+// no on chunks loaded
+// no HMR
+// no HMR manifest
+;
+__rspack_context.b = baseUri;
+
+}).call(this);
+
+// ./index.js
+function createWorker() {
+  return new Worker(new URL(/* worker import */__rspack_context.p + __rspack_context.u("worker"), __rspack_context.b), { type: "module" });
+}
+
+function createCommonJsWorker() {
+  return new Worker(new URL(/* worker import */__rspack_context.p + __rspack_context.u("worker-cjs"), __rspack_context.b), { type: "module" });
+}
+
+export { createCommonJsWorker, createWorker };
+
+```
+
 ```mjs title=worker-cjs.mjs
 
 var __rspack_modules = {};

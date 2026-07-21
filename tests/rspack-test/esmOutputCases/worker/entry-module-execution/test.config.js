@@ -2,8 +2,8 @@ const fs = require('fs');
 const path = require('path');
 
 module.exports = {
-  snapshotFileFilter(file) {
-    return file === 'worker.mjs' || file === 'worker-cjs.mjs';
+  snapshotContent(content) {
+    return content.replace(/[ \t]+$/gm, '');
   },
   afterExecute(options) {
     const esmSource = fs.readFileSync(
