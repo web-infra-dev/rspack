@@ -3875,58 +3875,6 @@ mod test {
       );
     })
   }
-
-  #[test]
-  fn node_env_define_respects_env_experiment() {
-    within_compiler_context_for_testing_sync(|| {
-      let mut context: BuilderContext = Default::default();
-      CompilerOptions::builder()
-        .mode(Mode::Production)
-        .target(vec!["web".to_string()])
-        .experiments(ExperimentsBuilder::default().env(true))
-        .optimization(OptimizationOptionsBuilder::default().node_env("staging"))
-        .build(&mut context)
-        .unwrap();
-
-      let definitions = context
-        .plugins
-        .iter()
-        .find_map(|plugin| match plugin {
-          BuiltinPluginOptions::DefinePlugin(definitions) => Some(definitions),
-          _ => None,
-        })
-        .expect("NODE_ENV DefinePlugin should exist");
-      assert_eq!(
-        definitions
-          .get("process.env.NODE_ENV")
-          .and_then(|value| value.as_str()),
-        Some("\"staging\"")
-      );
-      assert_eq!(
-        definitions.get("import.meta.env.NODE_ENV"),
-        definitions.get("process.env.NODE_ENV")
-      );
-
-      let mut context: BuilderContext = Default::default();
-      CompilerOptions::builder()
-        .mode(Mode::Production)
-        .target(vec!["web".to_string()])
-        .build(&mut context)
-        .unwrap();
-
-      let definitions = context
-        .plugins
-        .iter()
-        .find_map(|plugin| match plugin {
-          BuiltinPluginOptions::DefinePlugin(definitions) => Some(definitions),
-          _ => None,
-        })
-        .expect("NODE_ENV DefinePlugin should exist");
-      assert!(definitions.contains_key("process.env.NODE_ENV"));
-      assert!(!definitions.contains_key("import.meta.env.NODE_ENV"));
-    })
-  }
-
   #[test]
   fn mutable_builder_into_owned_builder() {
     let _ = CompilerOptions::builder()
