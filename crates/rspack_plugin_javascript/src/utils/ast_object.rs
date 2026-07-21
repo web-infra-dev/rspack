@@ -26,25 +26,50 @@
 //! nested options objects) participate by implementing [`FromAstExpr`], and
 //! `Vec<(String, T)>` extracts records with unknown keys in source order.
 
-use swc_experimental_ecma_ast::{Expr, Lit, PropName, Span};
+use swc_experimental_ecma_ast::{Expr, Lit, ObjectLit, PropName, Span};
 
 use crate::{utils::object_properties::get_value_by_obj_prop, visitors::static_string_from_expr};
+
+/// Look up a value expression by key in an AST object literal.
+pub fn get_property<'r, 'ast>(obj: &'r ObjectLit<'ast>, key: &str) -> Option<&'r Expr<'ast>> {
+  get_value_by_obj_prop(obj, key)
+}
+
+/// Look up a nested value from an AST object literal by a non-empty key path.
+pub fn get_from_object<'r, 'ast>(
+  object: &'r ObjectLit<'ast>,
+  path: &[&str],
+) -> Option<&'r Expr<'ast>> {
+  let (key, remaining) = path.split_first()?;
+  get(get_property(object, key)?, remaining)
+}
+
+/// Look up a nested value from an AST object literal and extract it as `T`.
+///
+/// `#[derive(AstObject)]` delegates field extraction to this helper so derived
+/// options and path-based lookups share the same lookup and conversion logic.
+pub fn get_value_from_object<'r, 'ast, T: FromAstExpr<'ast>>(
+  object: &'r ObjectLit<'ast>,
+  path: &[&str],
+) -> Option<T> {
+  get_from_object(object, path).and_then(T::from_ast_expr)
+}
 
 /// Look up a nested value in AST object literals by a key path, like
 /// lodash's `get`. Returns the value expression at the path, or `None` if
 /// any segment is missing or is not an object literal. An empty path returns
 /// the expression itself.
-pub fn get<'e>(expr: &'e Expr<'e>, path: &[&'e str]) -> Option<&'e Expr<'e>> {
+pub fn get<'r, 'ast>(expr: &'r Expr<'ast>, path: &[&str]) -> Option<&'r Expr<'ast>> {
   let mut current = expr;
   for key in path {
-    current = get_value_by_obj_prop(current.as_object()?, key)?;
+    current = get_property(current.as_object()?, key)?;
   }
   Some(current)
 }
 
 /// Look up a nested value by a key path and extract it as `T`, combining
 /// [`get`] with [`FromAstExpr`].
-pub fn get_value<'e, T: FromAstExpr<'e>>(expr: &'e Expr<'e>, path: &[&'e str]) -> Option<T> {
+pub fn get_value<'r, 'ast, T: FromAstExpr<'ast>>(expr: &'r Expr<'ast>, path: &[&str]) -> Option<T> {
   get(expr, path).and_then(|expr| T::from_ast_expr(expr))
 }
 
@@ -339,10 +364,33 @@ mod get_tests {
   fn gets_nested_values_by_key_path() {
     let allocator = Allocator::new();
     let expr = parse_expr(&allocator, "{ a: { b: { c: 42 } } }");
+    assert_eq!(
+      get_value_from_object::<f64>(expr.as_object().unwrap(), &["a"]),
+      None
+    );
     assert_eq!(get_value::<f64>(&expr, &["a", "b", "c"]), Some(42.0));
     assert!(get(&expr, &["a", "b"]).is_some_and(|expr| expr.as_object().is_some()));
     // An empty path is the identity.
     assert!(get(&expr, &[]).is_some());
+  }
+
+  #[test]
+  fn gets_typed_values_from_object_paths() {
+    let allocator = Allocator::new();
+    let expr = parse_expr(&allocator, "{ enabled: true, label: 'test' }");
+    let object = expr.as_object().unwrap();
+
+    let dynamic_key = "enabled".to_string();
+    assert_eq!(
+      get_value_from_object::<bool>(object, &[dynamic_key.as_str()]),
+      Some(true)
+    );
+    assert_eq!(
+      get_value_from_object::<String>(object, &["label"]),
+      Some("test".to_string())
+    );
+    assert_eq!(get_value_from_object::<bool>(object, &["missing"]), None);
+    assert_eq!(get_value_from_object::<bool>(object, &[]), None);
   }
 
   #[test]

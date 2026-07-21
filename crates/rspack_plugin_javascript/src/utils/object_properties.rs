@@ -1,7 +1,10 @@
 use rspack_core::ImportAttributes;
 use swc_experimental_ecma_ast::{Bool, Expr, Lit, ObjectLit, Regex, Str};
 
-pub fn get_value_by_obj_prop<'a>(obj: &'a ObjectLit<'a>, field: &'a str) -> Option<&'a Expr<'a>> {
+pub fn get_value_by_obj_prop<'r, 'ast>(
+  obj: &'r ObjectLit<'ast>,
+  field: &str,
+) -> Option<&'r Expr<'ast>> {
   obj.props.iter().find_map(|p| {
     let prop = p.as_prop()?;
     let kv = prop.as_key_value()?;
@@ -14,10 +17,10 @@ pub fn get_value_by_obj_prop<'a>(obj: &'a ObjectLit<'a>, field: &'a str) -> Opti
   })
 }
 
-pub fn get_literal_str_by_obj_prop<'a>(
-  obj: &'a ObjectLit<'a>,
-  field: &'a str,
-) -> Option<&'a Str<'a>> {
+pub fn get_literal_str_by_obj_prop<'r, 'ast>(
+  obj: &'r ObjectLit<'ast>,
+  field: &str,
+) -> Option<&'r Str<'ast>> {
   let lit = get_value_by_obj_prop(obj, field).and_then(|e| e.as_lit())?;
   match lit {
     Lit::Str(str) => Some(str),
@@ -25,7 +28,7 @@ pub fn get_literal_str_by_obj_prop<'a>(
   }
 }
 
-pub fn get_bool_by_obj_prop<'a>(obj: &'a ObjectLit<'a>, field: &'a str) -> Option<&'a Bool> {
+pub fn get_bool_by_obj_prop<'r, 'ast>(obj: &'r ObjectLit<'ast>, field: &str) -> Option<&'r Bool> {
   let lit = get_value_by_obj_prop(obj, field).and_then(|e| e.as_lit())?;
   match lit {
     Lit::Bool(bool) => Some(bool),
@@ -33,7 +36,10 @@ pub fn get_bool_by_obj_prop<'a>(obj: &'a ObjectLit<'a>, field: &'a str) -> Optio
   }
 }
 
-pub fn get_regex_by_obj_prop<'a>(obj: &'a ObjectLit<'a>, field: &'a str) -> Option<&'a Regex<'a>> {
+pub fn get_regex_by_obj_prop<'r, 'ast>(
+  obj: &'r ObjectLit<'ast>,
+  field: &str,
+) -> Option<&'r Regex<'ast>> {
   let lit = get_value_by_obj_prop(obj, field).and_then(|e| e.as_lit())?;
   match lit {
     Lit::Regex(regexp) => Some(regexp),

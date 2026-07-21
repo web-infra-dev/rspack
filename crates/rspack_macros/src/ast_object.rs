@@ -101,8 +101,7 @@ pub fn expand_ast_object_derive(input: DeriveInput) -> Result<TokenStream> {
     });
     let ty = &field.ty;
     let extract = quote! {
-      crate::utils::object_properties::get_value_by_obj_prop(obj, #key)
-        .and_then(<#ty as crate::utils::ast_object::FromAstExpr>::from_ast_expr)
+      crate::utils::ast_object::get_value_from_object::<#ty>(obj, &[#key])
     };
     let initializer = match default_fn {
       Some(default_fn) => quote!(#extract.unwrap_or_else(#default_fn)),
