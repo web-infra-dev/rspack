@@ -3,5 +3,5 @@
     "types": ["node"],
     "noEmit": true
   },
-  "include": ["napi-binding.d.ts", "binding.d.ts", "napi-binding.type-test.ts"]
+  "include": ["napi-binding.d.ts", "binding.d.ts"]
 }
