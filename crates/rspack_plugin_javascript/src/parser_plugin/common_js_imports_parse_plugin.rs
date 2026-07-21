@@ -456,17 +456,17 @@ fn dirname(path: &str) -> Option<&str> {
 #[cold]
 #[inline(never)]
 fn evaluate_create_require_argument(parser: &mut JavascriptParser, arg: &Expr) -> Option<String> {
+  let evaluated = parser.evaluate_expression(arg);
+  if let Some(value) = evaluated.as_string() {
+    return Some(value);
+  }
+
   if let Some(member) = arg.as_member()
     && is_meta_url(parser, member)
   {
     return Url::from_file_path(parser.resource_data.resource())
       .ok()
       .map(|url| url.to_string());
-  }
-
-  let evaluated = parser.evaluate_expression(arg);
-  if let Some(value) = evaluated.as_string() {
-    return Some(value);
   }
 
   let new_expr = arg.as_new()?;
