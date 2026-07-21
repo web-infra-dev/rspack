@@ -32,7 +32,7 @@ pub async fn create_chunk_assets(
   compilation: &mut Compilation,
   plugin_driver: SharedPluginDriver,
 ) -> Result<()> {
-  if (compilation.options.output.filename.has_hash_placeholder()
+  let filename_has_hash_placeholder = compilation.options.output.filename.has_hash_placeholder()
     || compilation
       .options
       .output
@@ -47,7 +47,16 @@ pub async fn create_chunk_assets(
       .options
       .output
       .css_chunk_filename
-      .has_hash_placeholder())
+      .has_hash_placeholder()
+    || compilation.entries.values().any(|entry| {
+      entry
+        .options
+        .filename
+        .as_ref()
+        .is_some_and(|filename| filename.has_hash_placeholder())
+    });
+
+  if filename_has_hash_placeholder
     && let Some(diagnostic) = compilation.incremental.disable_passes(
       IncrementalPasses::CHUNK_ASSET,
       "Chunk filename that dependent on full hash",
