@@ -10,6 +10,27 @@ use serde_json::{Map, Value};
 
 use crate::visitors::{DestructuringAssignmentProperties, JavascriptParser};
 
+/// Collect the nested patterns for every destructuring property matching
+/// `key`. The outer `Option` distinguishes an unreferenced property; the inner
+/// `Option` is `None` when any match reads the complete property value.
+fn merged_nested_properties(
+  keys: &DestructuringAssignmentProperties,
+  key: &str,
+) -> Option<Option<DestructuringAssignmentProperties>> {
+  let mut matched = false;
+  let mut nested = DestructuringAssignmentProperties::default();
+
+  for property in keys.iter().filter(|property| property.id.as_str() == key) {
+    matched = true;
+    let Some(pattern) = &property.pattern else {
+      return Some(None);
+    };
+    nested.extend(pattern.clone());
+  }
+
+  matched.then_some(Some(nested))
+}
+
 pub fn gen_const_dep(
   parser: &JavascriptParser,
   code: Cow<str>,
@@ -101,11 +122,10 @@ pub(crate) fn code_object_to_string<'a>(
   let elements = object
     .iter()
     .filter_map(|(key, value)| {
-      let matched = obj_keys.and_then(|keys| keys.iter().find(|prop| prop.id.as_str() == key));
-      if obj_keys.is_some() && matched.is_none() {
-        return None;
-      }
-      let nested_keys = matched.and_then(|prop| prop.pattern.as_ref());
+      let nested_keys = match obj_keys {
+        Some(keys) => merged_nested_properties(keys, key)?,
+        None => None,
+      };
       let key = if key == "__proto__" {
         concat_string!("[", json_stringify_str(key), "]")
       } else {
@@ -114,7 +134,7 @@ pub(crate) fn code_object_to_string<'a>(
       Some(concat_string!(
         key,
         ":",
-        code_to_string(value, None, nested_keys)
+        code_to_string(value, None, nested_keys.as_ref())
       ))
     })
     .join(",");
@@ -201,6 +221,17 @@ mod tests {
     }
   }
 
+  fn prop_nested_at(
+    id: &str,
+    pattern: DestructuringAssignmentProperties,
+    start: u32,
+  ) -> DestructuringAssignmentProperty {
+    DestructuringAssignmentProperty {
+      range: DependencyRange::new(start, start + 1),
+      ..prop_nested(id, pattern)
+    }
+  }
+
   #[test]
   fn filters_top_level_keys() {
     let value = json!({ "a": 1, "b": 2, "c": 3 });
@@ -234,6 +265,46 @@ mod tests {
       ),
       r#"{ "arr":[1,2,3] }"#
     );
+  }
+
+  #[test]
+  fn merges_repeated_nested_object_patterns() {
+    let value = json!({ "x": { "a": 1, "b": 2, "c": 3 } });
+    let selected = keys([
+      prop_nested_at("x", keys([prop("a")]), 1),
+      prop_nested_at("x", keys([prop("b")]), 2),
+    ]);
+
+    assert_eq!(
+      code_to_string(&value, None, Some(&selected)),
+      r#"{ "x":{ "a":1,"b":2 } }"#
+    );
+  }
+
+  #[test]
+  fn repeated_leaf_keeps_the_complete_object_regardless_of_order() {
+    let value = json!({ "x": { "a": 1, "b": 2 } });
+    let nested_then_leaf = keys([
+      prop_nested_at("x", keys([prop("a")]), 1),
+      DestructuringAssignmentProperty {
+        range: DependencyRange::new(2, 3),
+        ..prop("x")
+      },
+    ]);
+    let leaf_then_nested = keys([
+      DestructuringAssignmentProperty {
+        range: DependencyRange::new(1, 2),
+        ..prop("x")
+      },
+      prop_nested_at("x", keys([prop("a")]), 2),
+    ]);
+
+    for selected in [nested_then_leaf, leaf_then_nested] {
+      assert_eq!(
+        code_to_string(&value, None, Some(&selected)),
+        r#"{ "x":{ "a":1,"b":2 } }"#
+      );
+    }
   }
 
   #[test]
