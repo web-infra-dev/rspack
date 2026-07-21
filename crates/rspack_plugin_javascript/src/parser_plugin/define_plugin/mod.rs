@@ -47,7 +47,7 @@ impl DefinePlugin {
 }
 
 #[plugin_hook(CompilerCompilation for DefinePlugin, tracing=false)]
-async fn collect_import_meta_env_definitions(
+async fn compilation(
   &self,
   compilation: &mut Compilation,
   _params: &mut CompilationParams,
@@ -98,10 +98,7 @@ impl Plugin for DefinePlugin {
   }
 
   fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
-    ctx
-      .compiler_hooks
-      .compilation
-      .tap(collect_import_meta_env_definitions::new(self));
+    ctx.compiler_hooks.compilation.tap(compilation::new(self));
     ctx
       .normal_module_factory_hooks
       .parser
