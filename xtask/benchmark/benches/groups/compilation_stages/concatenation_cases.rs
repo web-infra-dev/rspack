@@ -48,19 +48,77 @@ pub(super) struct ConcatenationBenchmarkCase {
   topology: ConcatenationBenchmarkTopology,
 }
 
+// Benchmark case selection:
+//
+// - Use `DisjointGroups` as the general-purpose baseline for successful module concatenation. It
+//   keeps every group independent and in the same chunk, so the result is dominated by finding and
+//   creating concatenation configurations rather than rejecting candidates shared across chunks.
+// - Use `SharedRoots(Standard)` for changes that analyze the same modules from many roots, such as
+//   incoming-connection analysis, runtime-aware caches, or chunk-membership checks.
+// - Use `SharedRoots(Bailouts)` for changes to candidate rejection, failure caching/propagation, or
+//   graphs with many async chunks. This case intentionally contains more modules and chunks than
+//   `Standard`, so compare it with its own historical results instead of treating the difference
+//   between the two cases as the cost of bailouts alone.
+// - Use `SharedRoots(UnsupportedSyntax)` for changes to ESM eligibility and non-ESM incoming
+//   dependency handling. It keeps the standard shared-root pressure but adds a targeted CommonJS
+//   edge, without the extra lazy-panel graph used by `Bailouts`.
+//
+// Run all cases when changing shared candidate-search or `try_to_add` logic, since those changes
+// can affect both successful concatenation and several independent bailout paths.
 pub(super) const CONCATENATION_BENCHMARK_CASES: [ConcatenationBenchmarkCase; 4] = [
+  // Legacy / disjoint-groups benchmark (160 groups x 12 modules):
+  //
+  //   index.js
+  //     +--static--> group-0/entry.js --imports all--> m0 ... m11
+  //     |                                         chain: m11 -> ... -> m1 -> m0
+  //     +--static--> group-1/entry.js --imports all--> m0 ... m11
+  //     `-- ... --> group-159/entry.js
+  //
+  // Every group is independent and all edges stay in the initial chunk. Use this case as the
+  // stable baseline for finding and creating successful concatenation configurations without
+  // shared-module or async-chunk pressure.
   ConcatenationBenchmarkCase {
     name: "rust@create_concatenate_module",
     setup_label: "create_concatenate_module setup",
     expected_statistics: &[],
     topology: ConcatenationBenchmarkTopology::DisjointGroups,
   },
+  // Shared-roots benchmark (192 route chunks, 128 shared modules, window size 16):
+  //
+  //   index.js
+  //     +--import()--> route-0/entry.js
+  //     |                +--static--> local-7 -> ... -> local-1 -> local-0
+  //     |                `--static--> { shared-0,  ..., shared-15 }
+  //     +--import()--> route-1/entry.js
+  //     |                +--static--> local-7 -> ... -> local-1 -> local-0
+  //     |                `--static--> { shared-1,  ..., shared-16 }
+  //     `-- ... ----> route-191/entry.js
+  //
+  //                           route-0 -----+
+  //                           route-128 ---+--> shared-0 --> multiple route chunks
+  //                           ... ---------+
+  //
+  // The sliding window makes each shared module reachable from many roots and chunks. Use this
+  // case for cross-root reuse, incoming-connection analysis, runtime-aware caches, and root/chunk
+  // compatibility checks. It exercises `incorrect chunks of importer` without extra blockers.
   ConcatenationBenchmarkCase {
     name: "rust@create_concatenate_module_shared_roots",
     setup_label: "create_concatenate_module_shared_roots setup",
     expected_statistics: &[ConcatenationStatistic::IncorrectChunksOfImporter],
     topology: ConcatenationBenchmarkTopology::SharedRoots(SharedRootsTopology::Standard),
   },
+  // Bailout-heavy variant: keep the shared-root graph above, then add this subtree to every route:
+  //
+  //   route-N/entry.js
+  //     +--static----> local-7 -> ... -> local-0
+  //     +--static----> blocker.js [eval] --static--> local-7
+  //     +--import()--> panel-0.js --static--> { local-0, local-1 }
+  //     +--import()--> panel-1.js --static--> { local-1, local-2 }
+  //     `--import()--> panel-2.js --static--> { local-2, local-3 }
+  //
+  // `eval` makes the blocker ineligible for concatenation, while the panels place local modules in
+  // additional async chunks. Use this case for failure caching, failed-importer propagation, and
+  // rejection-heavy search. It exercises both `incorrect chunks of importer` and `importer failed`.
   ConcatenationBenchmarkCase {
     name: "rust@create_concatenate_module_bailouts",
     setup_label: "create_concatenate_module_bailouts setup",
@@ -70,6 +128,16 @@ pub(super) const CONCATENATION_BENCHMARK_CASES: [ConcatenationBenchmarkCase; 4] 
     ],
     topology: ConcatenationBenchmarkTopology::SharedRoots(SharedRootsTopology::Bailouts),
   },
+  // Unsupported-syntax variant: keep the standard shared-root graph and add one CommonJS edge per
+  // route, without adding the bailout variant's blocker or lazy panels:
+  //
+  //   route-N/entry.js
+  //     +--ESM import--> local-7 -> ... -> local-1 -> local-0
+  //     `--require()--------------------------------------^
+  //
+  // `local-0` now has an active non-ESM incoming dependency in addition to its ESM importer. Use
+  // this case for ESM eligibility and unsupported-dependency checks. It specifically exercises
+  // `incorrect module dependency` under the same shared-module pressure as `Standard`.
   ConcatenationBenchmarkCase {
     name: "rust@create_concatenate_module_unsupported_syntax",
     setup_label: "create_concatenate_module_unsupported_syntax setup",
@@ -92,6 +160,9 @@ pub(super) async fn prepare_concatenation_benchmark_case(
   }
 }
 
+// Keep the code-generation benchmark on the legacy disjoint graph: it reliably produces many
+// concatenated modules, while the shared-root variants are designed primarily to stress candidate
+// search and bailout paths before code generation.
 pub(super) async fn prepare_default_concatenation_case(fs: &MemoryFileSystem) {
   prepare_large_concatenation_case(CONCAT_GROUPS, CONCAT_MODULES_PER_GROUP, fs).await;
 }
