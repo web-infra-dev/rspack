@@ -1399,21 +1399,31 @@ fn get_modules_needing_ids(
 
 async fn run_module_ids_hook(compilation: &mut Compilation) -> Result<()> {
   let mut module_ids_artifact = compilation.module_ids_artifact.steal();
+  let mut preserved_module_ids_artifact = ModuleIdsArtifact::default();
   if !compilation
     .plugin_driver
     .compilation_hooks
     .before_module_ids
     .is_empty()
   {
-    let modules_needing_ids = get_modules_needing_ids(compilation, &module_ids_artifact);
+    let modules_needing_ids = get_modules_needing_ids(compilation, &preserved_module_ids_artifact);
     compilation
       .plugin_driver
       .clone()
       .compilation_hooks
       .before_module_ids
-      .call(compilation, &modules_needing_ids, &mut module_ids_artifact)
+      .call(
+        compilation,
+        &modules_needing_ids,
+        &mut preserved_module_ids_artifact,
+      )
       .await?;
   }
+  module_ids_artifact.extend(
+    preserved_module_ids_artifact
+      .iter()
+      .map(|(module, id)| (*module, id.clone())),
+  );
   compilation.module_ids_artifact = module_ids_artifact.into();
 
   let mut diagnostics = vec![];
@@ -1423,7 +1433,12 @@ async fn run_module_ids_hook(compilation: &mut Compilation) -> Result<()> {
     .clone()
     .compilation_hooks
     .module_ids
-    .call(compilation, &mut module_ids_artifact, &mut diagnostics)
+    .call(
+      compilation,
+      &mut module_ids_artifact,
+      &preserved_module_ids_artifact,
+      &mut diagnostics,
+    )
     .await?;
   compilation.module_ids_artifact = module_ids_artifact.into();
   assert!(

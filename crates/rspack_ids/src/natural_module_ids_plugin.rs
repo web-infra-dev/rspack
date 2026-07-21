@@ -29,13 +29,8 @@ async fn module_ids(
     if let Some(diagnostic) = diagnostic {
       diagnostics.push(diagnostic);
     }
-    module_ids.clear();
+    module_ids.retain(|module, _| preserved_module_ids.contains_key(module));
   }
-  module_ids.extend(
-    preserved_module_ids
-      .iter()
-      .map(|(module, id)| (*module, id.clone())),
-  );
 
   let (used_ids, mut modules_in_natural_order) =
     get_used_module_ids_and_modules_with_artifact(compilation, module_ids, None);

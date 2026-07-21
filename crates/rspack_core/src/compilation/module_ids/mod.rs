@@ -98,11 +98,26 @@ impl PassExt for ModuleIdsPass {
         .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.beforeModuleIds"))?;
     }
 
-    // Put the recovered artifact back before moduleIds plugins merge preserved IDs.
+    // Put the recovered artifact back before preserved IDs are merged.
     compilation.module_ids_artifact = module_ids_artifact.into();
 
     let mut diagnostics = vec![];
     let mut module_ids_artifact = compilation.module_ids_artifact.steal();
+
+    // Merge IDs assigned by reviveModules and beforeModuleIds before running module ID plugins,
+    // so every plugin sees them as reserved IDs. Plugins that reset global IDs retain this
+    // preserved subset.
+    {
+      let mut mutations = compilation.incremental.mutations_write();
+      for (module, id) in preserved_module_ids_artifact.iter() {
+        if ChunkGraph::set_module_id(&mut module_ids_artifact, *module, id.clone())
+          && let Some(mutations) = &mut mutations
+        {
+          mutations.add(Mutation::ModuleSetId { module: *module });
+        }
+      }
+    }
+
     compilation
       .plugin_driver
       .clone()
@@ -116,6 +131,7 @@ impl PassExt for ModuleIdsPass {
       )
       .await
       .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.moduleIds"))?;
+
     if !compilation
       .plugin_driver
       .compilation_hooks
