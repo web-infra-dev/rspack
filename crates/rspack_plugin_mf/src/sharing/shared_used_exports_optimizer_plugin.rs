@@ -23,8 +23,9 @@ use super::{
   shared_used_exports_optimizer_runtime_module::SharedUsedExportsOptimizerRuntimeModule,
 };
 use crate::{
-  ShareScope, SharedIdentity, container::container_entry_module::ContainerEntryModule,
-  manifest::StatsRoot,
+  ShareScope, SharedIdentity,
+  container::container_entry_module::ContainerEntryModule,
+  manifest::{ManifestRoot, StatsRoot},
 };
 
 fn shared_identity_from_output(
@@ -315,26 +316,54 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     .shared_referenced_exports
     .read()
     .expect("lock poisoned");
-  for file_name in [&self.stats_file_name, &self.manifest_file_name] {
-    if let Some(file_name) = file_name
-      && let Some(file) = compilation.assets().get(file_name)
-      && let Some(source) = file.get_source()
-      && let SourceValue::String(content) = source.source()
-      && let Ok(mut stats_root) = serde_json::from_str::<StatsRoot>(&content)
-    {
-      for shared in &mut stats_root.shared {
-        let identity = shared_identity_from_output(&shared.name, None, None);
-        if let Some(exports_set) = shared_referenced_exports.get(&identity) {
-          shared.usedExports = exports_set.iter().cloned().collect::<Vec<_>>();
-          shared.usedExports.sort();
-        }
+
+  if let Some(file_name) = &self.stats_file_name
+    && let Some(file) = compilation.assets().get(file_name)
+    && let Some(source) = file.get_source()
+    && let SourceValue::String(content) = source.source()
+    && let Ok(mut stats_root) = serde_json::from_str::<StatsRoot>(&content)
+  {
+    for shared in &mut stats_root.shared {
+      let identity = shared_identity_from_output(
+        &shared.name,
+        shared.share_scope.as_ref(),
+        shared.layer.as_deref(),
+      );
+      if let Some(exports_set) = shared_referenced_exports.get(&identity) {
+        shared.usedExports = exports_set.iter().cloned().collect::<Vec<_>>();
+        shared.usedExports.sort();
       }
-      let updated_content = serde_json::to_string_pretty(&stats_root)
-        .map_err(|e| rspack_error::error!("Failed to serialize stats root: {}", e))?;
-      compilation.update_asset(file_name, |_, info| {
-        Ok((RawStringSource::from(updated_content).boxed(), info))
-      })?;
     }
+    let updated_content = serde_json::to_string_pretty(&stats_root)
+      .map_err(|e| rspack_error::error!("Failed to serialize stats root: {}", e))?;
+    compilation.update_asset(file_name, |_, info| {
+      Ok((RawStringSource::from(updated_content).boxed(), info))
+    })?;
+  }
+
+  if let Some(file_name) = &self.manifest_file_name
+    && let Some(file) = compilation.assets().get(file_name)
+    && let Some(source) = file.get_source()
+    && let SourceValue::String(content) = source.source()
+    && let Ok(mut manifest_root) = serde_json::from_str::<ManifestRoot>(&content)
+  {
+    for shared in &mut manifest_root.shared {
+      let identity = shared_identity_from_output(
+        &shared.name,
+        shared.share_scope.as_ref(),
+        shared.layer.as_deref(),
+      );
+      if let Some(exports_set) = shared_referenced_exports.get(&identity) {
+        shared.usedExports = exports_set.iter().cloned().collect::<Vec<_>>();
+        shared.usedExports.sort();
+        shared.referenceExports.clone_from(&shared.usedExports);
+      }
+    }
+    let updated_content = serde_json::to_string_pretty(&manifest_root)
+      .map_err(|e| rspack_error::error!("Failed to serialize manifest root: {}", e))?;
+    compilation.update_asset(file_name, |_, info| {
+      Ok((RawStringSource::from(updated_content).boxed(), info))
+    })?;
   }
 
   Ok(())
