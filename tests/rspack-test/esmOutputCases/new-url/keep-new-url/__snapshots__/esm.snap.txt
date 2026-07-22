@@ -5,20 +5,10 @@
 ```mjs title=main.mjs
 import { __webpack_require__ } from "./runtime.mjs";
 
-__webpack_require__.add({
-"./asset.js"
-/*!******************!*\
-  !*** ./asset.js ***!
-  \******************/
-(module, __unused_rspack_exports, __webpack_require__) {
-module.exports = __webpack_require__.p + "ef46db3751d8e999.js";
-
-},
-});
 // ./index.js
 
 function neverUse() {
-	new URL("./ef46db3751d8e999.js", import.meta.url)(function foo() {})();
+	new URL((typeof ("./ef46db3751d8e999.js") !== "undefined" ? ("./ef46db3751d8e999.js") : __webpack_require__(/*! ./asset.js */ "./asset.js")), import.meta.url)(function foo() {})();
 }
 neverUse.bind(neverUse)
 
@@ -27,8 +17,6 @@ export {};
 ```
 
 ```mjs title=runtime.mjs
-
-var __webpack_modules__ = {};
 // The module cache
 var __webpack_module_cache__ = {};
 // The require function
@@ -48,18 +36,7 @@ __webpack_modules__[moduleId](module, module.exports, __webpack_require__);
 // Return the exports of the module
 return module.exports;
 }
-// expose the modules object (__webpack_modules__)
-__webpack_require__.m = __webpack_modules__;
 
-// webpack/runtime/esm_register_module
-(() => {
-__webpack_require__.add = function registerModules(modules) { Object.assign(__webpack_require__.m, modules) }
-
-})();
-// webpack/runtime/public_path
-(() => {
-__webpack_require__.p = "";
-})();
 
 export { __webpack_require__ };
 

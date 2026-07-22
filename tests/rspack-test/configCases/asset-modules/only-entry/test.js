@@ -92,5 +92,19 @@ it("should work", () => {
 
 			break;
 		}
+		case 7: {
+			expect(stats.assets.length).toBe(3);
+
+			const wasmEntryInJs = stats.assets.find(
+				a => a.name.endsWith("wasm-entry.js")
+			);
+			expect(Boolean(wasmEntryInJs)).toBe(false);
+
+			const wasmEntry = stats.assets.find(
+				a => a.name.endsWith(".wasm")
+			);
+			expect(Boolean(wasmEntry)).toBe(true);
+			break;
+		}
 	}
 });

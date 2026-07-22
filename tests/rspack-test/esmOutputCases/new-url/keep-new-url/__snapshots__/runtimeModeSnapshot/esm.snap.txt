@@ -5,20 +5,10 @@
 ```mjs title=main.mjs
 import { __rspack_context } from "./runtime.mjs";
 
-__rspack_context.m.add({
-"./asset.js"
-/*!******************!*\
-  !*** ./asset.js ***!
-  \******************/
-(module, __unused_rspack_exports, __rspack_context) {
-module.exports = __rspack_context.p + "ef46db3751d8e999.js";
-
-},
-});
 // ./index.js
 
 function neverUse() {
-	new URL("./ef46db3751d8e999.js", import.meta.url)(function foo() {})();
+	new URL((typeof ("./ef46db3751d8e999.js") !== "undefined" ? ("./ef46db3751d8e999.js") : __rspack_context.r(/*! ./asset.js */ "./asset.js")), import.meta.url)(function foo() {})();
 }
 neverUse.bind(neverUse)
 
@@ -27,8 +17,6 @@ export {};
 ```
 
 ```mjs title=runtime.mjs
-
-var __rspack_modules = {};
 // The module cache
 var __rspack_module_cache = {};
 // The require function
@@ -50,16 +38,7 @@ return module.exports;
 }
 var __rspack_context = {};
 __rspack_context.r = __rspack_require;
-// expose the modules object (__rspack_modules)
-__rspack_context.m = __rspack_modules;
 
-var publicPath, moduleFactories=__rspack_modules;
-// rspack/runtime/esm_register_module
-moduleFactories.add = function registerModules(modules) { Object.assign(moduleFactories, modules) }
-;
-// rspack/runtime/public_path
-var publicPath = "";;
-__rspack_context.p = publicPath;
 
 export { __rspack_context };
 

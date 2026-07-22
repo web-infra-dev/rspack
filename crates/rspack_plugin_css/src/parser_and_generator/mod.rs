@@ -205,6 +205,9 @@ impl ParserAndGenerator for CssParserAndGenerator {
     ) {
       return CSS_MODULE_EXPORTS_ONLY_SOURCE_TYPE_LIST;
     }
+    if matches!(export_type, Some(CssExportType::Link)) {
+      return CSS_MODULE_AND_JS_SOURCE_TYPE_LIST;
+    }
 
     let incoming_connections = module_graph
       .get_incoming_connections(&module.identifier())
@@ -212,9 +215,12 @@ impl ParserAndGenerator for CssParserAndGenerator {
 
     if self.exports_only {
       let is_root_only = !incoming_connections.is_empty()
-        && incoming_connections
-          .iter()
-          .all(|conn| conn.original_module_identifier.is_none());
+        && incoming_connections.iter().all(|conn| {
+          module_graph
+            .dependency_by_id(&conn.dependency_id)
+            .dependency_type()
+            == &DependencyType::Entry
+        });
       return if is_root_only {
         CSS_MODULE_NO_SOURCE_TYPE_LIST
       } else {
@@ -223,14 +229,13 @@ impl ParserAndGenerator for CssParserAndGenerator {
     }
 
     let no_need_js = incoming_connections.iter().all(|conn| {
-      if conn.original_module_identifier.is_none() {
-        return true;
-      }
-
       let dep = module_graph.dependency_by_id(&conn.dependency_id);
       matches!(
         dep.dependency_type(),
-        DependencyType::CssImport | DependencyType::EsmImport
+        DependencyType::Entry
+          | DependencyType::NewUrl
+          | DependencyType::CssImport
+          | DependencyType::EsmImport
       )
     });
 

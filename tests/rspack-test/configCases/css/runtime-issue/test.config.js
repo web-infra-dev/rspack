@@ -11,7 +11,6 @@ module.exports = {
 	},
 	findBundle: function (i, options) {
 		return [
-			"./common-share_js-img_png.js",
 			"./asyncChunk_js.js",
 			"./main.js",
 			"./secondMain.js",
