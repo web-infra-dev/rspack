@@ -1,6 +1,7 @@
 use rspack_core::{
   ContextDependency, ContextMode, ContextModulePattern, ContextOptions, DependencyRange,
-  GroupOptions, ResourceIdentifier, TemplateContext, TemplateReplaceSource, contextify,
+  GroupOptions, ResourceIdentifier, TemplateContext, TemplateReplaceSource,
+  resolve_context_identifier,
 };
 
 mod amd_require_context_dependency;
@@ -39,11 +40,8 @@ fn create_resource_identifier_for_context_dependency(
   let resolve_context = context
     .filter(|context| !context.is_empty())
     .unwrap_or(&options.resolve_context);
-  let resolve_context = if resolve_context.is_empty() {
-    String::new()
-  } else {
-    contextify(&options.context, resolve_context)
-  };
+  let resolve_context =
+    resolve_context_identifier(&options.context, resolve_context).unwrap_or_default();
   let request = &options.request;
   let recursive = options.recursive.to_string();
   let pattern = match &options.pattern {
@@ -211,6 +209,22 @@ mod tests {
     assert_eq!(
       create_resource_identifier_for_context_dependency(None, &options_a),
       create_resource_identifier_for_context_dependency(None, &options_b)
+    );
+  }
+
+  #[test]
+  fn context_dependency_identifier_omits_the_project_context() {
+    let options = ContextOptions {
+      context: "/project".into(),
+      resolve_context: "/project".into(),
+      request: "./local".into(),
+      ..Default::default()
+    };
+
+    assert!(
+      create_resource_identifier_for_context_dependency(None, &options)
+        .to_string()
+        .starts_with("context|ctx request./local")
     );
   }
 }

@@ -228,6 +228,18 @@ impl Default for ContextOptions {
   }
 }
 
+/// Returns the project-relative form of a relative-path resolution base when it needs to be part
+/// of an identifier. The project context itself is implicit, so encoding it as `./.` would only
+/// change existing identifiers without distinguishing different resolution behavior.
+pub fn resolve_context_identifier(context: &str, resolve_context: &str) -> Option<String> {
+  if resolve_context.is_empty() {
+    return None;
+  }
+
+  let resolve_context = contextify(context, resolve_context);
+  (resolve_context != "./.").then_some(resolve_context)
+}
+
 #[cacheable]
 #[derive(Debug, Clone)]
 pub struct ContextModuleOptions {
@@ -1673,10 +1685,28 @@ fn create_identifier(options: &ContextModuleOptions, resource: Option<&str>) -> 
 }
 
 fn append_resolve_context_identifier(id: &mut String, options: &ContextOptions, prefix: &str) {
-  if options.resolve_context.is_empty() || !matches!(options.pattern, ContextModulePattern::Glob(_))
-  {
+  if !matches!(options.pattern, ContextModulePattern::Glob(_)) {
     return;
   }
+  let Some(resolve_context) =
+    resolve_context_identifier(&options.context, &options.resolve_context)
+  else {
+    return;
+  };
   id.push_str(prefix);
-  id.push_str(&contextify(&options.context, &options.resolve_context));
+  id.push_str(&resolve_context);
+}
+
+#[cfg(test)]
+mod tests {
+  use super::resolve_context_identifier;
+
+  #[test]
+  fn resolve_context_identifier_omits_the_project_context() {
+    assert_eq!(resolve_context_identifier("/project", "/project"), None);
+    assert_eq!(
+      resolve_context_identifier("/project", "/project/src/pages"),
+      Some("./src/pages".to_string())
+    );
+  }
 }
