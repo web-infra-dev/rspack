@@ -5,6 +5,9 @@ module.exports = [
   {
     entry: './index.js',
     devtool: false,
+    experiments: {
+      importMetaHot: true,
+    },
     externals: {
       fs: 'node-commonjs fs',
     },
@@ -17,6 +20,9 @@ module.exports = [
     entry: './production.js',
     mode: 'production',
     target: 'web',
+    experiments: {
+      importMetaHot: true,
+    },
     devServer: {
       hot: true,
     },
@@ -27,6 +33,7 @@ module.exports = [
     devtool: false,
     target: 'node',
     experiments: {
+      importMetaHot: true,
       outputModule: true,
     },
     output: {
@@ -41,6 +48,17 @@ module.exports = [
           },
         },
       },
+    },
+    plugins: [new HotModuleReplacementPlugin()],
+  },
+  {
+    entry: './experiment-disabled.js',
+    devtool: false,
+    externals: {
+      fs: 'node-commonjs fs',
+    },
+    node: {
+      __filename: false,
     },
     plugins: [new HotModuleReplacementPlugin()],
   },

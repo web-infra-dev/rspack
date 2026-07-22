@@ -3145,6 +3145,11 @@ export type Experiments = {
    */
   env?: boolean;
   /**
+   * Enable the experimental `import.meta.hot` compatibility API.
+   * @default false
+   */
+  importMetaHot?: boolean;
+  /**
    * Enable source phase import feature
    * @default false
    */

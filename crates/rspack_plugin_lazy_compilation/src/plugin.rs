@@ -155,8 +155,7 @@ async fn normal_module_factory_module(
     DependencyType::ModuleHotAccept
       | DependencyType::ModuleHotDecline
       | DependencyType::ImportMetaHotAccept
-      | DependencyType::ImportMetaWebpackHotAccept
-      | DependencyType::ImportMetaWebpackHotDecline
+      | DependencyType::ImportMetaHotDecline
   ) {
     // TODO: we cannot access module graph at this stage
     // if hmr point to a module that is already been dyn imported

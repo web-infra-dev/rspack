@@ -22,6 +22,9 @@ if (import.meta.hot) {
 			count: import.meta.hot.data.count
 		};
 	});
+	import.meta.hot.accept(mod => {
+		globalThis.__importMetaHotSecondAccepted = mod.value;
+	});
 }
 
 ---

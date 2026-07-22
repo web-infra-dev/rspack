@@ -1,5 +1,3 @@
-/// <reference types="@rspack/core/import-meta-hot" />
-
 import rspack, { type RspackOptions } from '@rspack/core';
 import '@rspack/core/module';
 import { defineConfig, definePlugin, type Configuration } from '@rspack/cli';
@@ -74,27 +72,5 @@ const multiGlobModules = import.meta.glob<GlobModule>(
   },
 );
 multiGlobModules['./dir/foo.js'].default.toUpperCase();
-
-if (import.meta.hot) {
-  import.meta.hot.accept();
-  import.meta.hot.accept((mod) => {
-    mod?.default;
-  });
-  import.meta.hot.accept('./dep', (mod) => {
-    mod?.default;
-  });
-  import.meta.hot.accept(['./a', './b'] as const, (mods) => {
-    mods[0]?.default;
-    mods[1]?.default;
-  });
-  import.meta.hot.dispose((data) => {
-    data.disposed = true;
-  });
-
-  // @ts-expect-error webpack-only API
-  import.meta.hot.decline();
-  // @ts-expect-error Vite transport API is not implemented by this runtime
-  import.meta.hot.send('event');
-}
 
 export const cliConfig: Configuration = defineConfig(config);

@@ -7,7 +7,7 @@
 - Bundle: bundle.js
 - Bundle: common_js_2.chunk.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.LAST_HASH.hot-update.js, size: 44672
+- Update: main.LAST_HASH.hot-update.js, size: 42669
 
 ## Manifest
 
@@ -796,8 +796,7 @@ function hotApplyHandler(options) {
 			var module = __webpack_require__.c[moduleId];
 			if (
 				!module ||
-				(module.hot._selfAccepted &&
-					!module.hot._selfInvalidated)
+				(module.hot._selfAccepted && !module.hot._selfInvalidated)
 			) {
 				continue;
 			}
@@ -835,13 +834,7 @@ function hotApplyHandler(options) {
 				if (outdatedModules.indexOf(parentId) !== -1) {
 					continue;
 				}
-				var parentHotContext = parent.hot.__rspack_hot_context__;
-				var hotAccepted = parentHotContext && parentHotContext.acceptCallbacks.some(
-					function (record) {
-						return record.deps.indexOf(moduleId) !== -1;
-					}
-				);
-				if (parent.hot._acceptedDependencies[moduleId] || hotAccepted) {
+				if (parent.hot._acceptedDependencies[moduleId]) {
 					if (!outdatedDependencies[parentId]) {
 						outdatedDependencies[parentId] = [];
 					}
@@ -961,22 +954,10 @@ function hotApplyHandler(options) {
 	}
 	hotCurrentUpdate = undefined;
 
-	var outdatedHotAcceptCallbacks = {};
-	for (var outdatedModuleId in outdatedDependencies) {
-		if (__webpack_require__.o(outdatedDependencies, outdatedModuleId)) {
-			var module = __webpack_require__.c[outdatedModuleId];
-			var hotContext = module && module.hot.__rspack_hot_context__;
-			if (hotContext) {
-				outdatedHotAcceptCallbacks[outdatedModuleId] = hotContext.acceptCallbacks.slice();
-			}
-		}
-	}
-
 	var outdatedSelfAcceptedModules = [];
 	for (var j = 0; j < outdatedModules.length; j++) {
 		var outdatedModuleId = outdatedModules[j];
 		var module = __webpack_require__.c[outdatedModuleId];
-		var hotContext = module && module.hot.__rspack_hot_context__;
 		if (
 			module &&
 			(module.hot._selfAccepted || module.hot._main) &&
@@ -988,8 +969,7 @@ function hotApplyHandler(options) {
 			outdatedSelfAcceptedModules.push({
 				module: outdatedModuleId,
 				require: module.hot._requireSelf,
-				errorHandler: module.hot._selfAccepted,
-				callback: hotContext && hotContext.selfCallback
+				errorHandler: module.hot._selfAccepted
 			});
 		}
 	}
@@ -1026,9 +1006,6 @@ function hotApplyHandler(options) {
 				
 				for (j = 0; j < disposeHandlers.length; j++) {
 					disposeHandlers[j].call(null, data);
-				}
-				if (appliedUpdate[moduleId] === warnUnexpectedRequire) {
-					delete data.__rspack_hot_context_data__;
 				}
 				__webpack_require__.hmrD[moduleId] = data;
 
@@ -1155,35 +1132,6 @@ function hotApplyHandler(options) {
 								}
 							}
 						}
-						var hotAcceptCallbacks = outdatedHotAcceptCallbacks[outdatedModuleId];
-						if (hotAcceptCallbacks) {
-							for (var i = 0; i < hotAcceptCallbacks.length; i++) {
-								var record = hotAcceptCallbacks[i];
-								var changed = record.deps.some(function (depId) {
-									return moduleOutdatedDependencies.indexOf(depId) !== -1;
-								});
-								if (!changed) continue;
-								var namespaces = record.deps.map(function (depId) {
-									try {
-										return __webpack_require__(depId);
-									} catch (_err) {
-										return undefined;
-									}
-								});
-								if (typeof record.refresh === "function") {
-									try {
-										record.refresh(reportError);
-									} catch (err) {
-										reportError(err);
-									}
-								}
-								try {
-									record.callback(record.single ? namespaces[0] : namespaces);
-								} catch (err) {
-									reportError(err);
-								}
-							}
-						}
 					}
 				}
 			}
@@ -1226,14 +1174,6 @@ function hotApplyHandler(options) {
 						if (!options.ignoreErrored) {
 							reportError(err);
 						}
-					}
-					continue;
-				}
-				if (typeof item.callback === "function") {
-					try {
-						item.callback(__webpack_require__.c[moduleId].exports);
-					} catch (err) {
-						reportError(err);
 					}
 				}
 			}

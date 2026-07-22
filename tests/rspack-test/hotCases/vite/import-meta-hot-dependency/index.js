@@ -6,7 +6,8 @@ import { value as laterValue } from "./later";
 
 let acceptedDep;
 let acceptedDepAgain;
-let acceptedArray;
+let acceptedArrays = [];
+let acceptedDuplicateArrays = [];
 let acceptedErrorArray;
 let webpackAcceptedDependencies;
 let webpackAcceptCalls = 0;
@@ -26,11 +27,15 @@ if (import.meta.hot) {
 		acceptedDepAgain = mod;
 	});
 	import.meta.hot.accept(["./a", "./b"], mods => {
-		acceptedArray = mods;
+		acceptedArrays.push(mods);
+	});
+	import.meta.hot.accept(["./a", "./a"], mods => {
+		acceptedDuplicateArrays.push(mods);
 	});
 	import.meta.hot.accept(["./throwing", "./later"], mods => {
 		acceptedErrorArray = mods;
 	});
+	import.meta.hot.accept("./later");
 }
 
 it("continues dependency refreshes and callbacks after an update error", async () => {
@@ -52,7 +57,13 @@ it("continues dependency refreshes and callbacks after an update error", async (
 	expect(acceptedDepAgain.value).toBe(2);
 	expect(webpackAcceptCalls).toBe(1);
 	expect(webpackAcceptedDependencies).toContain("./dep.js");
-	expect(acceptedArray.map(mod => mod && mod.value)).toEqual(["a2", "b2"]);
+	expect(acceptedArrays.map(mods => mods.map(mod => mod && mod.value))).toEqual([
+		["a2", undefined],
+		[undefined, "b2"]
+	]);
+	expect(
+		acceptedDuplicateArrays.map(mods => mods.map(mod => mod && mod.value))
+	).toEqual([["a2", "a2"]]);
 	expect(acceptedErrorArray.map(mod => mod && mod.value)).toEqual([
 		undefined,
 		"later2"

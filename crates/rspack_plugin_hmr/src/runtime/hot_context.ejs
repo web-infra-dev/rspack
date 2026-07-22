@@ -7,8 +7,11 @@ var hotContextDataKey = "__rspack_hot_context_data__";
 
 	var state = {
 		data: moduleHot.data && moduleHot.data[hotContextDataKey] || {},
-		selfCallback: undefined,
+		selfCallbacks: [],
 		acceptCallbacks: []
+	};
+	var acceptDependency = function (dep) {
+		if (!moduleHot._acceptedDependencies[dep]) moduleHot.accept(dep);
 	};
 
 	var context = {
@@ -22,10 +25,11 @@ var hotContextDataKey = "__rspack_hot_context_data__";
 			}
 			if (typeof deps === "function") {
 				if (!moduleHot._selfAccepted) moduleHot.accept();
-				state.selfCallback = deps;
+				state.selfCallbacks.push(deps);
 				return;
 			}
 			if (!Array.isArray(deps)) {
+				acceptDependency(deps);
 				state.acceptCallbacks.push({
 					deps: [deps],
 					callback: callback,
@@ -34,6 +38,7 @@ var hotContextDataKey = "__rspack_hot_context_data__";
 				});
 				return;
 			}
+			for (var i = 0; i < deps.length; i++) acceptDependency(deps[i]);
 			state.acceptCallbacks.push({
 				deps: deps.slice(),
 				callback: callback,

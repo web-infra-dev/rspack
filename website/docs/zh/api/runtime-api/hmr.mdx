@@ -1,5 +1,5 @@
 ---
-description: 'Rspack 提供 webpack HMR API 和独立的 import.meta.hot 上下文。'
+description: 'Rspack 提供 webpack HMR API 和 import.meta.hot 兼容 facade。'
 ---
 
 import WebpackLicense from '@components/WebpackLicense';
@@ -11,12 +11,20 @@ import WebpackLicense from '@components/WebpackLicense';
 Rspack 提供两组 HMR API：
 
 - `module.hot` 和 `import.meta.webpackHot` 实现 webpack HMR API。
-- `import.meta.hot` 是独立的模块级上下文，仅支持下文介绍的四种
+- `import.meta.hot` 是基于 webpack HMR runtime 的模块级兼容 facade，仅支持下文介绍的四种
   `accept` 形式、`data` 和 `dispose`。
 
-请通过 [HotModuleReplacementPlugin](/plugins/webpack/hot-module-replacement-plugin) 启用这些 API。在 ESM 中，请使用 `import.meta.webpackHot` 访问 webpack API，或使用独立的 `import.meta.hot` 上下文，而不是 `module.hot`。
+请通过 [HotModuleReplacementPlugin](/plugins/webpack/hot-module-replacement-plugin) 启用 webpack API。在 ESM 中，请使用 `import.meta.webpackHot` 访问 webpack API，而不是 `module.hot`。
 
-`import.meta.hot` 从 Rspack 2.1.5 开始可用。
+`import.meta.hot` 目前是实验性能力，默认关闭。除 HMR 外，还需要启用对应开关：
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    importMetaHot: true,
+  },
+};
+```
 
 ## `import.meta.hot` API
 

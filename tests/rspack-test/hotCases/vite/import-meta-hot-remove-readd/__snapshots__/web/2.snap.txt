@@ -7,7 +7,7 @@
 ## Asset Files
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 36
-- Update: main.LAST_HASH.hot-update.js, size: 2279
+- Update: main.LAST_HASH.hot-update.js, size: 2487
 
 ## Manifest
 
@@ -73,8 +73,11 @@ __webpack_require__.hmrH = function (moduleHot) {
 
 	var state = {
 		data: moduleHot.data && moduleHot.data[hotContextDataKey] || {},
-		selfCallback: undefined,
+		selfCallbacks: [],
 		acceptCallbacks: []
+	};
+	var acceptDependency = function (dep) {
+		if (!moduleHot._acceptedDependencies[dep]) moduleHot.accept(dep);
 	};
 
 	var context = {
@@ -88,10 +91,11 @@ __webpack_require__.hmrH = function (moduleHot) {
 			}
 			if (typeof deps === "function") {
 				if (!moduleHot._selfAccepted) moduleHot.accept();
-				state.selfCallback = deps;
+				state.selfCallbacks.push(deps);
 				return;
 			}
 			if (!Array.isArray(deps)) {
+				acceptDependency(deps);
 				state.acceptCallbacks.push({
 					deps: [deps],
 					callback: callback,
@@ -100,6 +104,7 @@ __webpack_require__.hmrH = function (moduleHot) {
 				});
 				return;
 			}
+			for (var i = 0; i < deps.length; i++) acceptDependency(deps[i]);
 			state.acceptCallbacks.push({
 				deps: deps.slice(),
 				callback: callback,

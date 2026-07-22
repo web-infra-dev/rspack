@@ -23,7 +23,7 @@ var queuedInvalidatedModules;
 <%- INTERCEPT_MODULE_EXECUTION %>.push(function (options) {
 	var module = options.module;
 	var require = createRequire(options.require, options.id<% if (_is_rspack_runtime_mode) { %>, options.context<% } %>);
-	module.hot = <%- WEBPACK_HOT_CONTEXT %>(options.id, module);
+	module.hot = createModuleHotObject(options.id, module);
 	module.parents = currentParents;
 	module.children = [];
 	currentParents = [];
@@ -87,7 +87,7 @@ function createRequire(require, moduleId<% if (_is_rspack_runtime_mode) { %>, co
 	return fn;
 }
 
-<%- define(WEBPACK_HOT_CONTEXT) %> = function (moduleId, me) {
+function createModuleHotObject(moduleId, me) {
 	var _main = currentChildModule !== moduleId;
 	var hot = {
 		_acceptedDependencies: {},
@@ -178,7 +178,7 @@ function createRequire(require, moduleId<% if (_is_rspack_runtime_mode) { %>, co
 	};
 	currentChildModule = undefined;
 	return hot;
-};
+}
 
 function setStatus(newStatus) {
 	currentStatus = newStatus;

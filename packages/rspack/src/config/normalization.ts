@@ -640,6 +640,7 @@ export interface ExperimentsNormalized {
   nativeWatcher?: boolean;
   deferImport?: boolean;
   env?: boolean;
+  importMetaHot?: boolean;
   sourceImport?: boolean;
   pureFunctions?: boolean;
   runtimeMode?: 'webpack' | 'rspack';

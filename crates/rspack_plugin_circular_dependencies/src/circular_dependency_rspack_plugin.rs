@@ -109,8 +109,7 @@ impl AggregatedDependency {
           | DependencyType::DynamicImportWeak
           | DependencyType::LazyImport
           | DependencyType::ImportMetaHotAccept
-          | DependencyType::ImportMetaWebpackHotAccept
-          | DependencyType::ImportMetaWebpackHotDecline
+          | DependencyType::ImportMetaHotDecline
           | DependencyType::ImportMetaResolve
           | DependencyType::ImportMetaResolveContext
           | DependencyType::ModuleHotAccept

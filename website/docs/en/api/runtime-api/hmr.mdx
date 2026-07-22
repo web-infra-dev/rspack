@@ -1,5 +1,5 @@
 ---
-description: 'Rspack provides webpack HMR APIs and a separate import.meta.hot context'
+description: 'Rspack provides webpack HMR APIs and an import.meta.hot compatibility facade'
 ---
 
 import WebpackLicense from '@components/WebpackLicense';
@@ -11,12 +11,20 @@ import WebpackLicense from '@components/WebpackLicense';
 Rspack exposes two HMR API families:
 
 - `module.hot` and `import.meta.webpackHot` implement the webpack HMR API.
-- `import.meta.hot` is a separate per-module context. It supports only the four
+- `import.meta.hot` is a per-module compatibility facade over the webpack HMR runtime. It supports only the four
   `accept` forms described below, `data`, and `dispose`.
 
-Enable these APIs with the [HotModuleReplacementPlugin](/plugins/webpack/hot-module-replacement-plugin). In ESM, use `import.meta.webpackHot` for the webpack API or `import.meta.hot` for the separate context instead of `module.hot`.
+Enable the webpack APIs with the [HotModuleReplacementPlugin](/plugins/webpack/hot-module-replacement-plugin). In ESM, use `import.meta.webpackHot` for the webpack API instead of `module.hot`.
 
-`import.meta.hot` is available since Rspack 2.1.5.
+`import.meta.hot` is experimental and disabled by default. Enable its facade in addition to HMR:
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    importMetaHot: true,
+  },
+};
+```
 
 ## `import.meta.hot` API
 

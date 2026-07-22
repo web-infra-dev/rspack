@@ -52,11 +52,9 @@ pub enum DependencyType {
   // create script url
   CreateScriptUrl,
   // import.meta.webpackHot.accept
-  ImportMetaWebpackHotAccept,
-  // import.meta.hot.accept
   ImportMetaHotAccept,
   // import.meta.webpackHot.decline
-  ImportMetaWebpackHotDecline,
+  ImportMetaHotDecline,
   // module.hot.accept
   ModuleHotAccept,
   // module.hot.decline
@@ -178,9 +176,8 @@ impl DependencyType {
       DependencyType::NewUrlContext => "new URL() context",
       DependencyType::NewWorker => "new Worker()",
       DependencyType::CreateScriptUrl => "create script url",
-      DependencyType::ImportMetaWebpackHotAccept => "import.meta.webpackHot.accept",
-      DependencyType::ImportMetaHotAccept => "import.meta.hot.accept",
-      DependencyType::ImportMetaWebpackHotDecline => "import.meta.webpackHot.decline",
+      DependencyType::ImportMetaHotAccept => "import.meta.webpackHot.accept",
+      DependencyType::ImportMetaHotDecline => "import.meta.webpackHot.decline",
       DependencyType::ModuleHotAccept => "module.hot.accept",
       DependencyType::ModuleHotDecline => "module.hot.decline",
       DependencyType::CssUrl => "css url",

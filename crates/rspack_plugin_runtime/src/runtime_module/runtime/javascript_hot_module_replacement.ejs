@@ -21,8 +21,7 @@ function hotApplyHandler(options) {
 			var module = <%- MODULE_CACHE %>[moduleId];
 			if (
 				!module ||
-				(module.hot._selfAccepted &&
-					!module.hot._selfInvalidated)
+				(module.hot._selfAccepted && !module.hot._selfInvalidated)
 			) {
 				continue;
 			}
@@ -60,13 +59,7 @@ function hotApplyHandler(options) {
 				if (outdatedModules.indexOf(parentId) !== -1) {
 					continue;
 				}
-				var parentHotContext = parent.hot.__rspack_hot_context__;
-				var hotAccepted = parentHotContext && parentHotContext.acceptCallbacks.some(
-					function (record) {
-						return record.deps.indexOf(moduleId) !== -1;
-					}
-				);
-				if (parent.hot._acceptedDependencies[moduleId] || hotAccepted) {
+				if (parent.hot._acceptedDependencies[moduleId]) {
 					if (!outdatedDependencies[parentId]) {
 						outdatedDependencies[parentId] = [];
 					}
@@ -184,7 +177,7 @@ function hotApplyHandler(options) {
 			}
 		}
 	}
-	hotCurrentUpdate = undefined;
+	hotCurrentUpdate = undefined;<% if (_with_hot_context) { %>
 
 	var outdatedHotAcceptCallbacks = {};
 	for (var outdatedModuleId in outdatedDependencies) {
@@ -195,13 +188,13 @@ function hotApplyHandler(options) {
 				outdatedHotAcceptCallbacks[outdatedModuleId] = hotContext.acceptCallbacks.slice();
 			}
 		}
-	}
+	}<% } %>
 
 	var outdatedSelfAcceptedModules = [];
 	for (var j = 0; j < outdatedModules.length; j++) {
 		var outdatedModuleId = outdatedModules[j];
-		var module = <%- MODULE_CACHE %>[outdatedModuleId];
-		var hotContext = module && module.hot.__rspack_hot_context__;
+		var module = <%- MODULE_CACHE %>[outdatedModuleId];<% if (_with_hot_context) { %>
+		var hotContext = module && module.hot.__rspack_hot_context__;<% } %>
 		if (
 			module &&
 			(module.hot._selfAccepted || module.hot._main) &&
@@ -213,8 +206,8 @@ function hotApplyHandler(options) {
 			outdatedSelfAcceptedModules.push({
 				module: outdatedModuleId,
 				require: module.hot._requireSelf,
-				errorHandler: module.hot._selfAccepted,
-				callback: hotContext && hotContext.selfCallback
+				errorHandler: module.hot._selfAccepted<% if (_with_hot_context) { %>,
+				callbacks: hotContext && hotContext.selfCallbacks.slice()<% } %>
 			});
 		}
 	}
@@ -251,10 +244,10 @@ function hotApplyHandler(options) {
 				<% } %>
 				for (j = 0; j < disposeHandlers.length; j++) {
 					disposeHandlers[j].call(null, data);
-				}
+				}<% if (_with_hot_context) { %>
 				if (appliedUpdate[moduleId] === warnUnexpectedRequire) {
 					delete data.__rspack_hot_context_data__;
-				}
+				}<% } %>
 				<%- HMR_MODULE_DATA %>[moduleId] = data;
 
 				module.hot.active = false;
@@ -381,22 +374,15 @@ function hotApplyHandler(options) {
 									}
 								}
 							}
-						}
+						}<% if (_with_hot_context) { %>
 						var hotAcceptCallbacks = outdatedHotAcceptCallbacks[outdatedModuleId];
 						if (hotAcceptCallbacks) {
 							for (var i = 0; i < hotAcceptCallbacks.length; i++) {
 								var record = hotAcceptCallbacks[i];
-								var changed = record.deps.some(function (depId) {
-									return moduleOutdatedDependencies.indexOf(depId) !== -1;
+								var changedDeps = record.deps.filter(function (depId, index) {
+									return record.deps.indexOf(depId) === index && moduleOutdatedDependencies.indexOf(depId) !== -1;
 								});
-								if (!changed) continue;
-								var namespaces = record.deps.map(function (depId) {
-									try {
-										return <%- REQUIRE %>(depId);
-									} catch (_err) {
-										return undefined;
-									}
-								});
+								if (changedDeps.length === 0) continue;
 								if (typeof record.refresh === "function") {
 									try {
 										record.refresh(reportError);
@@ -404,13 +390,26 @@ function hotApplyHandler(options) {
 										reportError(err);
 									}
 								}
-								try {
-									record.callback(record.single ? namespaces[0] : namespaces);
-								} catch (err) {
-									reportError(err);
+								if (typeof record.callback === "function") {
+									for (var j = 0; j < changedDeps.length; j++) {
+										var changedDep = changedDeps[j];
+										var namespaces = record.deps.map(function (depId) {
+											if (depId !== changedDep) return undefined;
+											try {
+												return <%- REQUIRE %>(depId);
+											} catch (_err) {
+												return undefined;
+											}
+										});
+										try {
+											record.callback(record.single ? namespaces[0] : namespaces);
+										} catch (err) {
+											reportError(err);
+										}
+									}
 								}
 							}
-						}
+						}<% } %>
 					}
 				}
 			}
@@ -453,16 +452,18 @@ function hotApplyHandler(options) {
 						if (!options.ignoreErrored) {
 							reportError(err);
 						}
+					}<% if (_with_hot_context) { %>
+					continue;<% } %>
+				}<% if (_with_hot_context) { %>
+				if (item.callbacks) {
+					for (var p = 0; p < item.callbacks.length; p++) {
+						try {
+							item.callbacks[p](<%- MODULE_CACHE %>[moduleId].exports);
+						} catch (err) {
+							reportError(err);
+						}
 					}
-					continue;
-				}
-				if (typeof item.callback === "function") {
-					try {
-						item.callback(<%- MODULE_CACHE %>[moduleId].exports);
-					} catch (err) {
-						reportError(err);
-					}
-				}
+				}<% } %>
 			}
 
 			return outdatedModules;

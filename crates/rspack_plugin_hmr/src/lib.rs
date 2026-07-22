@@ -43,11 +43,7 @@ async fn compilation(
     params.normal_module_factory.clone(),
   );
   compilation.set_dependency_factory(
-    DependencyType::ImportMetaWebpackHotAccept,
-    params.normal_module_factory.clone(),
-  );
-  compilation.set_dependency_factory(
-    DependencyType::ImportMetaWebpackHotDecline,
+    DependencyType::ImportMetaHotDecline,
     params.normal_module_factory.clone(),
   );
   compilation.set_dependency_factory(

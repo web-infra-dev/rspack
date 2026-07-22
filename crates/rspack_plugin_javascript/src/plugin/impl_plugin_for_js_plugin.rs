@@ -29,14 +29,13 @@ use crate::{
     ExportInfoDependencyTemplate, ExternalModuleDependencyTemplate,
     ImportContextDependencyTemplate, ImportDependencyTemplate, ImportEagerDependencyTemplate,
     ImportMetaContextDependencyTemplate, ImportMetaHotAcceptDependencyTemplate,
-    ImportMetaHotAcceptRefreshDependencyTemplate, ImportMetaHotDependencyTemplate,
-    ImportMetaResolveContextDependencyTemplate, ImportMetaResolveDependencyTemplate,
-    ImportMetaResolveHeaderDependencyTemplate, ImportMetaRscDependencyTemplate,
-    ImportMetaWebpackHotAcceptDependencyTemplate, ImportMetaWebpackHotDeclineDependencyTemplate,
-    ImportWeakDependencyTemplate, IsIncludedDependencyTemplate, ModuleArgumentDependencyTemplate,
-    ModuleDecoratorDependencyTemplate, ModuleHotAcceptDependencyTemplate,
-    ModuleHotDeclineDependencyTemplate, ProvideDependencyTemplate,
-    PureExpressionDependencyTemplate, RequireContextDependencyTemplate,
+    ImportMetaHotAcceptRefreshDependencyTemplate, ImportMetaHotDeclineDependencyTemplate,
+    ImportMetaHotDependencyTemplate, ImportMetaResolveContextDependencyTemplate,
+    ImportMetaResolveDependencyTemplate, ImportMetaResolveHeaderDependencyTemplate,
+    ImportMetaRscDependencyTemplate, ImportWeakDependencyTemplate, IsIncludedDependencyTemplate,
+    ModuleArgumentDependencyTemplate, ModuleDecoratorDependencyTemplate,
+    ModuleHotAcceptDependencyTemplate, ModuleHotDeclineDependencyTemplate,
+    ProvideDependencyTemplate, PureExpressionDependencyTemplate, RequireContextDependencyTemplate,
     RequireEnsureDependencyTemplate, RequireHeaderDependencyTemplate,
     RequireMainDependencyTemplate, RequireResolveContextDependencyTemplate,
     RequireResolveDependencyTemplate, RequireResolveHeaderDependencyTemplate,
@@ -374,19 +373,15 @@ async fn compilation(
   );
   compilation.set_dependency_template(
     ImportMetaHotAcceptDependencyTemplate::template_type(),
-    Arc::new(ImportMetaHotAcceptDependencyTemplate),
+    Arc::new(ImportMetaHotAcceptDependencyTemplate::default()),
   );
   compilation.set_dependency_template(
     ImportMetaHotAcceptRefreshDependencyTemplate::template_type(),
     Arc::new(ImportMetaHotAcceptRefreshDependencyTemplate),
   );
   compilation.set_dependency_template(
-    ImportMetaWebpackHotAcceptDependencyTemplate::template_type(),
-    Arc::new(ImportMetaWebpackHotAcceptDependencyTemplate::default()),
-  );
-  compilation.set_dependency_template(
-    ImportMetaWebpackHotDeclineDependencyTemplate::template_type(),
-    Arc::new(ImportMetaWebpackHotDeclineDependencyTemplate::default()),
+    ImportMetaHotDeclineDependencyTemplate::template_type(),
+    Arc::new(ImportMetaHotDeclineDependencyTemplate::default()),
   );
   compilation.set_dependency_template(
     ModuleHotAcceptDependencyTemplate::template_type(),

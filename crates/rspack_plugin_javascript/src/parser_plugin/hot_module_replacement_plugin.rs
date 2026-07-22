@@ -7,9 +7,8 @@ use swc_experimental_ecma_ast::{CallExpr, GetSpan, MemberExpr, Span};
 use crate::{
   dependency::{
     ESMAcceptDependency, ImportMetaHotAcceptDependency, ImportMetaHotAcceptRefreshDependency,
-    ImportMetaHotDependency, ImportMetaWebpackHotAcceptDependency,
-    ImportMetaWebpackHotDeclineDependency, ModuleArgumentDependency, ModuleHotAcceptDependency,
-    ModuleHotDeclineDependency, import_emitted_runtime,
+    ImportMetaHotDeclineDependency, ImportMetaHotDependency, ModuleArgumentDependency,
+    ModuleHotAcceptDependency, ModuleHotDeclineDependency, import_emitted_runtime,
   },
   parser_plugin::JavascriptParserPlugin,
   utils::eval,
@@ -314,11 +313,11 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaWebpackHotReplacementP
 
     if for_name == expr_name::IMPORT_META_WEBPACK_HOT_ACCEPT {
       parser.create_accept_handler(call_expr, |request, range| {
-        Box::new(ImportMetaWebpackHotAcceptDependency::new(request, range))
+        Box::new(ImportMetaHotAcceptDependency::new(request, range))
       })
     } else if for_name == expr_name::IMPORT_META_WEBPACK_HOT_DECLINE {
       parser.create_decline_handler(call_expr, |request, range| {
-        Box::new(ImportMetaWebpackHotDeclineDependency::new(request, range))
+        Box::new(ImportMetaHotDeclineDependency::new(request, range))
       })
     } else {
       None
@@ -338,15 +337,16 @@ impl ImportMetaHotReplacementParserPlugin {
   }
 
   fn enabled(parser: &JavascriptParser) -> bool {
-    parser
-      .javascript_options
-      .import_meta()
-      .is_known_property_enabled(ImportMetaKnownProperties::HOT)
+    parser.compiler_options.experiments.import_meta_hot
+      && parser
+        .javascript_options
+        .import_meta()
+        .is_known_property_enabled(ImportMetaKnownProperties::HOT)
   }
 
   fn add_context_dependency(parser: &mut JavascriptParser, span: Span) {
     parser.build_info.module_concatenation_bailout =
-      Some(String::from("Dedicated import.meta.hot context"));
+      Some(String::from("import.meta.hot compatibility facade"));
     let range = DependencyRange::from(span);
     let loc = parser.to_dependency_location(range);
     parser.add_presentational_dependency(Box::new(ImportMetaHotDependency::new(range, loc)));

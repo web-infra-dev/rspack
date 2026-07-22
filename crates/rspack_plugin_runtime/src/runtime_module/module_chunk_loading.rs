@@ -471,7 +471,8 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
         generate_javascript_hmr_runtime(
           &self.template(TemplateId::HmrRuntime),
           "module",
-          runtime_template
+          runtime_template,
+          compilation.options.experiments.import_meta_hot,
         )?,
         runtime_template.render(
           &self.template(TemplateId::WithHMR),
