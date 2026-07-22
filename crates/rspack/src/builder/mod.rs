@@ -474,6 +474,14 @@ impl CompilerBuilder {
   }
 }
 
+#[cfg(feature = "loader_cache")]
+impl CompilerBuilder {
+  /// Enable support for builtin:cache-loader.
+  pub fn enable_loader_cache(&mut self) -> &mut Self {
+    self.plugin(Box::new(rspack_loader_cache::CacheLoaderPlugin::new()))
+  }
+}
+
 #[cfg(feature = "loader_lightningcss")]
 impl CompilerBuilder {
   /// Enable support for builtin:lightningcss-loader.

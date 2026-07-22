@@ -176,6 +176,7 @@ rspack_hash                            = { version = "=0.101.4", path = "crates/
 rspack_hook                            = { version = "=0.101.4", path = "crates/rspack_hook", default-features = false }
 rspack_ids                             = { version = "=0.101.4", path = "crates/rspack_ids", default-features = false }
 rspack_javascript_compiler             = { version = "=0.101.4", path = "crates/rspack_javascript_compiler", default-features = false }
+rspack_loader_cache                    = { version = "=0.101.4", path = "crates/rspack_loader_cache", default-features = false }
 rspack_loader_lightningcss             = { version = "=0.101.4", path = "crates/rspack_loader_lightningcss", default-features = false }
 rspack_loader_preact_refresh           = { version = "=0.101.4", path = "crates/rspack_loader_preact_refresh", default-features = false }
 rspack_loader_react_refresh            = { version = "=0.101.4", path = "crates/rspack_loader_react_refresh", default-features = false }

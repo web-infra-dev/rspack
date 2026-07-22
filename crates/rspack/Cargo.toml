@@ -10,11 +10,12 @@ version.workspace = true
 codspeed = ["rspack_core/codspeed", "rspack_plugin_schemes/codspeed"]
 full     = ["loaders"]
 
+loader_cache          = ["rspack_loader_cache"]
 loader_lightningcss   = ["rspack_loader_lightningcss"]
 loader_preact_refresh = ["rspack_loader_preact_refresh"]
 loader_react_refresh  = ["rspack_loader_react_refresh"]
 loader_swc            = ["rspack_loader_swc"]
-loaders               = ["loader_lightningcss", "loader_preact_refresh", "loader_react_refresh", "loader_swc"]
+loaders               = ["loader_cache", "loader_lightningcss", "loader_preact_refresh", "loader_react_refresh", "loader_swc"]
 
 [dependencies]
 bitflags            = { workspace = true }
@@ -56,6 +57,7 @@ rspack_plugin_worker                  = { workspace = true }
 rspack_tasks                          = { workspace = true }
 rspack_util                           = { workspace = true }
 # Loaders
+rspack_loader_cache          = { workspace = true, optional = true }
 rspack_loader_lightningcss   = { workspace = true, optional = true }
 rspack_loader_preact_refresh = { workspace = true, optional = true }
 rspack_loader_react_refresh  = { workspace = true, optional = true }
