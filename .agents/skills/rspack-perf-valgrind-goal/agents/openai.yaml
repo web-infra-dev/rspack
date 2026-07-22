@@ -1,0 +1,7 @@
+interface:
+  display_name: 'Rspack Perf Valgrind Goal'
+  short_description: 'Optimize Rspack with local Docker Valgrind measurements'
+  default_prompt: 'Use $rspack-perf-valgrind-goal to optimize the requested Rspack benchmark stage with reproducible local Docker and Valgrind measurements.'
+
+policy:
+  allow_implicit_invocation: false

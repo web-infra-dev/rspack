@@ -1,11 +1,10 @@
 use std::{
   boxed::Box,
-  panic::AssertUnwindSafe,
   path::{Path, PathBuf},
+  sync::Arc,
   time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
-use futures::FutureExt;
 use napi::bindgen_prelude::*;
 use napi_derive::*;
 use rspack_paths::ArcPath;
@@ -85,10 +84,8 @@ impl NativeWatcher {
   }
 
   #[napi]
-  #[allow(clippy::too_many_arguments)]
   pub fn watch(
     &mut self,
-    reference: Reference<NativeWatcher>,
     files: (Vec<String>, Vec<String>),
     directories: (Vec<String>, Vec<String>),
     missing: (Vec<String>, Vec<String>),
@@ -97,7 +94,6 @@ impl NativeWatcher {
     callback: Function<'static>,
     #[napi(ts_arg_type = "(event: NativeWatchUndelayedEvent) => void")]
     callback_undelayed: Function<'static>,
-    env: Env,
   ) -> napi::Result<()> {
     if self.closed {
       return Err(napi::Error::from_reason(
@@ -110,22 +106,18 @@ impl NativeWatcher {
 
     let start_time = start_time.get_u64().1;
 
-    reference.share_with(env, |native_watcher| {
-      rspack_napi::runtime::spawn(async move {
-        native_watcher
-          .watcher
-          .watch(
-            to_tuple_path_iterator(files),
-            to_tuple_path_iterator(directories),
-            to_tuple_path_iterator(missing),
-            timestamp_to_system_time(start_time),
-            Box::new(js_event_handler),
-            Box::new(js_event_handler_undelayed),
-          )
-          .await
-      });
-      Ok(())
-    })?;
+    // `FsWatcher::watch` has already enqueued the request by the time it
+    // returns; the future only signals "applied", so dropping it cancels
+    // nothing.
+    #[allow(clippy::let_underscore_future)]
+    let _ = self.watcher.watch(
+      to_tuple_path_iterator(files),
+      to_tuple_path_iterator(directories),
+      to_tuple_path_iterator(missing),
+      timestamp_to_system_time(start_time),
+      Box::new(js_event_handler),
+      Box::new(js_event_handler_undelayed),
+    );
 
     Ok(())
   }
@@ -145,44 +137,17 @@ impl NativeWatcher {
   }
 
   #[napi(ts_return_type = "Promise<void>")]
-  /// # Safety
-  ///
-  /// This function is unsafe because it uses `&mut self` to call the watcher asynchronously.
-  /// It's important to ensure that the watcher is not used in any other places before this function is finished.
-  /// You must ensure that the watcher not call watch, close or pause in the same time, otherwise it may lead to undefined behavior.
-  pub unsafe fn close<'env>(
-    &mut self,
-    env: &'env Env,
-    reference: Reference<NativeWatcher>,
-  ) -> napi::Result<PromiseRaw<'env, ()>> {
-    let (deferred, promise) = env.create_deferred()?;
-    let mut promise = PromiseRaw::new(env.raw(), promise.raw());
-    let shared_reference = reference.share_with(Env::from_raw(env.raw()), |native_watcher| {
-      rspack_napi::runtime::spawn(async move {
-        let result = AssertUnwindSafe(async {
-          native_watcher
-            .watcher
-            .close()
-            .await
-            .map_err(|e| napi::Error::from_reason(e.to_string()))?;
-          native_watcher.closed = true;
-          Ok(())
-        })
-        .catch_unwind()
-        .await;
+  pub fn close<'env>(&mut self, env: &'env Env) -> napi::Result<PromiseRaw<'env, ()>> {
+    self.closed = true;
 
-        match result {
-          Ok(Ok(())) => deferred.resolve(|_| Ok(())),
-          Ok(Err(error)) => deferred.reject(error),
-          Err(payload) => deferred.reject(rspack_napi::runtime::panic_to_napi_error(payload)),
-        }
-      });
-      Ok(())
-    })?;
+    // Call outside the async block: the synchronous enqueue keeps close
+    // ordered behind preceding `watch` calls.
+    let closing = self.watcher.close();
 
-    promise.finally(|_env| {
-      drop(shared_reference);
-      Ok(())
+    rspack_napi::runtime::promise_from_future(env, async move {
+      closing
+        .await
+        .map_err(|e| napi::Error::from_reason(e.to_string()))
     })
   }
 

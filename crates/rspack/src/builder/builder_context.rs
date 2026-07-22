@@ -210,6 +210,7 @@ impl BuilderContext {
       // Core module plugins
       BuiltinPluginOptions::JavascriptModulesPlugin => {
         plugins.push(rspack_plugin_javascript::JsPlugin::default().boxed());
+        plugins.push(rspack_plugin_javascript::EnvPlugin::default().boxed());
       }
       BuiltinPluginOptions::JsonModulesPlugin => {
         plugins.push(rspack_plugin_json::JsonPlugin.boxed());

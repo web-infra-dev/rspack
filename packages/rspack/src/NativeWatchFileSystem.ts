@@ -208,15 +208,16 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
 
     return {
       close: () => {
-        nativeWatcher.close().then(
-          () => {
-            // Clean up the internal reference to the native watcher to allow it to be garbage collected.
-            this.#inner = undefined;
-          },
-          (err: unknown) => {
-            console.error('Error closing native watcher:', err);
-          },
-        );
+        // Detach immediately: a closed native watcher rejects further watch()
+        // calls, so a later compiler.watch() must get a fresh instance with a
+        // full (non-incremental) registration.
+        if (this.#inner === nativeWatcher) {
+          this.#inner = undefined;
+          this.#isFirstWatch = true;
+        }
+        nativeWatcher.close().catch((err: unknown) => {
+          console.error('Error closing native watcher:', err);
+        });
       },
 
       pause: () => {

@@ -3,10 +3,11 @@ use std::{
   sync::{Arc, LazyLock},
 };
 
+use concat_string::concat_string;
 use itertools::Itertools as _;
 use regex::Regex;
 use rspack_error::Diagnostic;
-use rustc_hash::FxHashMap;
+use rspack_util::fx_hash::FxHashMap;
 use serde_json::{Map, Value, json};
 use swc_experimental_ecma_ast::Span;
 
@@ -14,7 +15,11 @@ use super::{
   ConflictingValuesError, DefineValue,
   utils::{code_to_string, gen_const_dep},
 };
-use crate::{utils::eval::BasicEvaluatedExpression, visitors::JavascriptParser};
+use crate::{
+  plugin::env_plugin::{ImportMetaEnvDefinitions, is_import_meta_env_name},
+  utils::eval::BasicEvaluatedExpression,
+  visitors::JavascriptParser,
+};
 
 static TYPEOF_OPERATOR_REGEXP: LazyLock<Regex> =
   LazyLock::new(|| Regex::new("^typeof\\s+").expect("should init `TYPEOF_OPERATOR_REGEXP`"));
@@ -186,6 +191,7 @@ impl ObjectDefineRecord {
 #[derive(Debug, Default)]
 pub struct WalkData {
   pub tiling_definitions: FxHashMap<String, String>,
+  pub import_meta_env_definitions: ImportMetaEnvDefinitions,
   pub diagnostics: Vec<Diagnostic>,
   pub can_rename: FxHashMap<Arc<str>, Option<Arc<str>>>,
   pub define_record: FxHashMap<Arc<str>, DefineRecord>,
@@ -207,15 +213,14 @@ impl WalkData {
     prefix: Cow<'s, str>,
   ) {
     definitions.for_each(|(key, value)| {
-      let name = format!("{prefix}{key}");
+      let name = concat_string!(prefix.as_ref(), key.as_str());
       let value_str = value.to_string();
       if let Some(prev) = self.tiling_definitions.get(&name)
         && !prev.eq(&value_str)
       {
-        self.diagnostics.push(
-          ConflictingValuesError(format!("{prefix}{key}"), prev.clone(), value_str)
-            .into_diagnostic(),
-        );
+        self
+          .diagnostics
+          .push(ConflictingValuesError(name.clone(), prev.clone(), value_str).into_diagnostic());
       } else {
         self.tiling_definitions.insert(name, value_str);
       }
@@ -390,33 +395,69 @@ impl WalkData {
       walk_data.object_define_record.insert(key, define_record);
     }
 
-    fn walk_code(code: &Value, prefix: Cow<str>, key: Cow<str>, walk_data: &mut WalkData) {
+    fn walk_code(
+      code: &Value,
+      prefix: Cow<str>,
+      key: Cow<str>,
+      walk_data: &mut WalkData,
+      collect_import_meta_env: bool,
+    ) {
       let prefix_for_object = || Cow::Owned(format!("{prefix}{key}."));
+      let full_key = concat_string!(prefix.as_ref(), key.as_ref());
+      if collect_import_meta_env {
+        walk_data
+          .import_meta_env_definitions
+          .collect(&full_key, code);
+      }
+      let collect_children = collect_import_meta_env && !is_import_meta_env_name(&full_key);
       if let Some(array) = code.as_array() {
-        walk_array(array, prefix_for_object(), walk_data);
-        apply_array_define(Cow::Owned(format!("{prefix}{key}")), array, walk_data);
+        walk_array(array, prefix_for_object(), walk_data, collect_children);
+        apply_array_define(Cow::Owned(full_key), array, walk_data);
       } else if let Some(obj) = code.as_object() {
-        walk_object(obj, prefix_for_object(), walk_data);
-        apply_object_define(Cow::Owned(format!("{prefix}{key}")), obj, walk_data);
+        walk_object(obj, prefix_for_object(), walk_data, collect_children);
+        apply_object_define(Cow::Owned(full_key), obj, walk_data);
       } else {
         apply_define_key(prefix.clone(), Cow::Owned(key.to_string()), walk_data);
-        apply_define(Cow::Owned(format!("{prefix}{key}")), code, walk_data);
+        apply_define(Cow::Owned(full_key), code, walk_data);
       }
     }
 
-    fn walk_array(arr: &[Value], prefix: Cow<str>, walk_data: &mut WalkData) {
+    fn walk_array(
+      arr: &[Value],
+      prefix: Cow<str>,
+      walk_data: &mut WalkData,
+      collect_import_meta_env: bool,
+    ) {
       arr.iter().enumerate().for_each(|(key, code)| {
-        walk_code(code, prefix.clone(), Cow::Owned(key.to_string()), walk_data)
+        walk_code(
+          code,
+          prefix.clone(),
+          Cow::Owned(key.to_string()),
+          walk_data,
+          collect_import_meta_env,
+        )
       })
     }
 
-    fn walk_object(obj: &Map<String, Value>, prefix: Cow<str>, walk_data: &mut WalkData) {
-      obj
-        .iter()
-        .for_each(|(key, code)| walk_code(code, prefix.clone(), Cow::Owned(key.clone()), walk_data))
+    fn walk_object(
+      obj: &Map<String, Value>,
+      prefix: Cow<str>,
+      walk_data: &mut WalkData,
+      collect_import_meta_env: bool,
+    ) {
+      obj.iter().for_each(|(key, code)| {
+        walk_code(
+          code,
+          prefix.clone(),
+          Cow::Owned(key.clone()),
+          walk_data,
+          collect_import_meta_env,
+        )
+      })
     }
 
-    let object = definitions.clone().into_iter().collect();
-    walk_object(&object, "".into(), self);
+    definitions
+      .iter()
+      .for_each(|(key, code)| walk_code(code, "".into(), Cow::Borrowed(key), self, true));
   }
 }

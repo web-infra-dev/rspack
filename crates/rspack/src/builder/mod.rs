@@ -3645,12 +3645,15 @@ impl OptimizationOptionsBuilder {
       }
     });
     if let Some(node_env) = node_env {
+      let node_env: serde_json::value::Value = format!("{}", json!(node_env)).into();
+      let mut definitions =
+        HashMap::from_iter([("process.env.NODE_ENV".to_string(), node_env.clone())]);
+      if experiments.env {
+        definitions.insert("import.meta.env.NODE_ENV".to_string(), node_env);
+      }
       builder_context
         .plugins
-        .push(BuiltinPluginOptions::DefinePlugin(HashMap::from_iter([(
-          "process.env.NODE_ENV".to_string(),
-          format!("{}", json!(node_env)).into(),
-        )])));
+        .push(BuiltinPluginOptions::DefinePlugin(definitions));
     }
 
     Ok(Optimization {
@@ -3680,6 +3683,8 @@ pub struct ExperimentsBuilder {
   async_web_assembly: Option<bool>,
   /// Whether to enable defer import.
   defer_import: Option<bool>,
+  /// Whether to enable import.meta.env support.
+  env: Option<bool>,
   /// Whether to enable source import.
   source_import: Option<bool>,
   // TODO: lazy compilation
@@ -3694,6 +3699,7 @@ impl From<Experiments> for ExperimentsBuilder {
       css: Some(value.css),
       async_web_assembly: None,
       defer_import: Some(value.defer_import),
+      env: Some(value.env),
       source_import: Some(value.source_import),
       pure_functions: Some(value.pure_functions),
       runtime_mode: Some(value.runtime_mode),
@@ -3708,6 +3714,7 @@ impl From<&mut ExperimentsBuilder> for ExperimentsBuilder {
       css: value.css.take(),
       async_web_assembly: value.async_web_assembly.take(),
       defer_import: value.defer_import.take(),
+      env: value.env.take(),
       source_import: value.source_import.take(),
       pure_functions: value.pure_functions.take(),
       runtime_mode: value.runtime_mode.take(),
@@ -3740,6 +3747,12 @@ impl ExperimentsBuilder {
     self
   }
 
+  /// Set whether to enable import.meta.env support.
+  pub fn env(&mut self, env: bool) -> &mut Self {
+    self.env = Some(env);
+    self
+  }
+
   /// Set whether to enable source import.
   pub fn source_import(&mut self, source_import: bool) -> &mut Self {
     self.source_import = Some(source_import);
@@ -3763,6 +3776,7 @@ impl ExperimentsBuilder {
     Ok(Experiments {
       css: d!(self.css, false),
       defer_import: d!(self.defer_import, false),
+      env: d!(self.env, false),
       source_import: d!(self.source_import, false),
       pure_functions: d!(self.pure_functions, _production),
       runtime_mode: d!(self.runtime_mode, RuntimeMode::Webpack),
@@ -3861,7 +3875,6 @@ mod test {
       );
     })
   }
-
   #[test]
   fn mutable_builder_into_owned_builder() {
     let _ = CompilerOptions::builder()

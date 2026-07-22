@@ -13,6 +13,7 @@ use super::{VALUE_DEP_PREFIX, utils::gen_const_dep, walk_data::WalkData};
 use crate::{
   JavascriptParserPlugin,
   define_plugin::walk_data::DefineRecord,
+  plugin::env_plugin::is_import_meta_env_name,
   utils::eval::{BasicEvaluatedExpression, evaluate_to_string},
   visitors::{AllowedMemberTypes, JavascriptParser, MemberExpressionInfo},
 };
@@ -49,11 +50,18 @@ impl DefineParserPlugin {
       .get(for_name)
       .or_else(|| self.walk_data.typeof_define_record.get(for_name))
   }
+
+  fn should_skip_import_meta_env(&self, parser: &JavascriptParser, name: &str) -> bool {
+    parser.compiler_options.experiments.env && is_import_meta_env_name(name)
+  }
 }
 
 #[rspack_macros::implemented_javascript_parser_hooks]
 impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for DefineParserPlugin {
   fn can_rename(&self, parser: &mut JavascriptParser<'p>, str: &str) -> Option<bool> {
+    if self.should_skip_import_meta_env(parser, str) {
+      return None;
+    }
     if let Some(first_key) = self.walk_data.can_rename.get(str) {
       self.add_value_dependency(parser, str);
       if let Some(first_key) = first_key
@@ -76,6 +84,9 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for DefineParserPlugin {
   where
     'p: 'a,
   {
+    if self.should_skip_import_meta_env(parser, for_name) {
+      return None;
+    }
     if let Some(record) = self.get_define_record(for_name)
       && let Some(on_evaluate_typeof) = &record.on_evaluate_typeof
     {
@@ -107,6 +118,9 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for DefineParserPlugin {
     start: u32,
     end: u32,
   ) -> Option<crate::utils::eval::BasicEvaluatedExpression<'p>> {
+    if self.should_skip_import_meta_env(parser, for_name) {
+      return None;
+    }
     if let Some(record) = self.get_define_record(for_name)
       && let Some(on_evaluate_identifier) = &record.on_evaluate_identifier
     {
@@ -133,6 +147,9 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for DefineParserPlugin {
     expr: &UnaryExpr<'_>,
     for_name: &str,
   ) -> Option<bool> {
+    if self.should_skip_import_meta_env(parser, for_name) {
+      return None;
+    }
     if let Some(record) = self.get_define_record(for_name)
       && let Some(on_typeof) = &record.on_typeof
     {
@@ -163,6 +180,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for DefineParserPlugin {
   ) -> Option<bool> {
     if let MemberExpressionInfo::Expression(info) =
       parser.get_member_expression_info_from_expr(expr, AllowedMemberTypes::Expression)?
+      && !self.should_skip_import_meta_env(parser, info.name.as_str())
       && (self
         .walk_data
         .define_record
@@ -183,6 +201,9 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for DefineParserPlugin {
     expr: &MemberExpr<'_>,
     for_name: &str,
   ) -> Option<bool> {
+    if self.should_skip_import_meta_env(parser, for_name) {
+      return None;
+    }
     if let Some(record) = self.get_define_record(for_name)
       && let Some(on_expression) = &record.on_expression
     {
@@ -219,6 +240,9 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for DefineParserPlugin {
     ident: &Ident<'_>,
     for_name: &str,
   ) -> Option<bool> {
+    if self.should_skip_import_meta_env(parser, for_name) {
+      return None;
+    }
     if let Some(record) = self.get_define_record(for_name)
       && let Some(on_expression) = &record.on_expression
     {

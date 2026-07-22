@@ -8,6 +8,7 @@ it("should treat an empty importMeta object like preserve-unknown", () => {
 	expect(emptyOptions.unknown).toBe("runtime");
 	expect(emptyOptions.unknownOptional).toBe("runtime".length);
 	expect(emptyOptions.missingOptional).toBeUndefined();
+	expect(emptyOptions.env.RUNTIME).toBe("runtime");
 });
 
 it("should preserve disabled import.meta fields for runtime evaluation", () => {
