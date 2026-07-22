@@ -255,10 +255,15 @@ jobs:
       - name: Strip binary
         run: strip crates/node_binding/rspack.linux-x64-gnu.node
 
+      # github-script rather than `run: node`: this runner has no Node installed.
       - name: Upload binary size
+        uses: actions/github-script@450193c5abd4cdb17ba9f3ffcfe8f635c4bb6c2a
         env:
           PERF_DATA_TOKEN: ${{ secrets.PERF_DATA_TOKEN }}
-        run: node ./.github/actions/binary-limit/upload-binary-size.js
+        with:
+          script: |
+            const upload = require('./.github/actions/binary-limit/upload-binary-size.js');
+            upload({ sha: context.sha, token: process.env.PERF_DATA_TOKEN });
 
   # TODO: enable it after self hosted runners are ready
   # pkg-preview:
