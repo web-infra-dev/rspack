@@ -1,5 +1,7 @@
 #![allow(clippy::unwrap_used)]
 
+mod concatenation_cases;
+
 use std::{
   cell::{Cell, RefCell},
   collections::HashMap,
@@ -36,13 +38,15 @@ use rspack_plugin_split_chunks::{
 use rustc_hash::FxHashMap;
 use tokio::runtime::Runtime;
 
+use self::concatenation_cases::{
+  CONCATENATION_BENCHMARK_CASES, ConcatenationBenchmarkCase, ConcatenationStatistic,
+  prepare_concatenation_benchmark_case, prepare_default_concatenation_case,
+};
 use crate::groups::{
   build_chunk_graph::prepare_large_code_splitting_case, diagnostics::assert_no_compilation_errors,
 };
 
 const GENERAL_STAGE_NUM_MODULES: usize = 3000;
-const CONCAT_GROUPS: usize = 160;
-const CONCAT_MODULES_PER_GROUP: usize = 12;
 const SPLIT_CHUNKS_ENTRY_COUNT: usize = 48;
 const SPLIT_CHUNKS_SHARED_MODULES: usize = 192;
 const SPLIT_CHUNKS_WINDOW: usize = 20;
@@ -856,15 +860,26 @@ pub(crate) fn real_content_hash_benchmark(c: &mut Criterion, rt: &Runtime) {
 }
 
 pub(crate) fn create_concatenate_module_benchmark(c: &mut Criterion, rt: &Runtime) {
-  let fs = Arc::new(MemoryFileSystem::default());
-  let mut compiler = create_concatenate_stage_compiler(fs.clone());
+  for case in CONCATENATION_BENCHMARK_CASES {
+    let fs = Arc::new(MemoryFileSystem::default());
+    let mut compiler = create_concatenate_stage_compiler(fs.clone());
 
-  rt.block_on(async {
-    prepare_large_concatenation_case(CONCAT_GROUPS, CONCAT_MODULES_PER_GROUP, &fs).await;
-    prepare_for_concatenate_module(&mut compiler).await.unwrap();
-  });
+    rt.block_on(async {
+      prepare_concatenation_benchmark_case(case, &fs).await;
+      prepare_for_concatenate_module(&mut compiler).await.unwrap();
+    });
 
-  assert_no_compilation_errors(&compiler.compilation, "create_concatenate_module setup");
+    register_create_concatenate_module_benchmark(c, rt, compiler, case);
+  }
+}
+
+fn register_create_concatenate_module_benchmark(
+  c: &mut Criterion,
+  rt: &Runtime,
+  mut compiler: Compiler,
+  case: ConcatenationBenchmarkCase,
+) {
+  assert_no_compilation_errors(&compiler.compilation, case.setup_label);
   compiler
     .compilation
     .build_module_graph_artifact
@@ -891,6 +906,15 @@ pub(crate) fn create_concatenate_module_benchmark(c: &mut Criterion, rt: &Runtim
     statistics_fingerprint > 0,
     "create_concatenate_module setup should produce module concatenation statistics"
   );
+  for &statistic in case.expected_statistics {
+    assert!(
+      concatenation_statistic_count(&compiler.compilation, statistic)
+        .is_some_and(|count| count > 0),
+      "{} should exercise {}",
+      case.setup_label,
+      statistic.log_label()
+    );
+  }
   compiler
     .compilation
     .build_module_graph_artifact
@@ -905,7 +929,7 @@ pub(crate) fn create_concatenate_module_benchmark(c: &mut Criterion, rt: &Runtim
 
   let compiler = RefCell::new(compiler);
   let should_reset = Cell::new(false);
-  c.bench_function("rust@create_concatenate_module", |b| {
+  c.bench_function(case.name, |b| {
     b.iter_batched_ref(
       || {
         let mut compiler = compiler.borrow_mut();
@@ -949,7 +973,7 @@ pub(crate) fn concatenate_module_code_generation_benchmark(c: &mut Criterion, rt
   let mut compiler = create_concatenate_stage_compiler(fs.clone());
 
   rt.block_on(async {
-    prepare_large_concatenation_case(CONCAT_GROUPS, CONCAT_MODULES_PER_GROUP, &fs).await;
+    prepare_default_concatenation_case(&fs).await;
     compiler.build().await.unwrap();
   });
 
@@ -1779,70 +1803,6 @@ async fn compute_concatenated_module_codegen(
   Ok(generated)
 }
 
-async fn prepare_large_concatenation_case(
-  groups: usize,
-  modules_per_group: usize,
-  fs: &MemoryFileSystem,
-) {
-  fs.create_dir_all("/src".into()).await.unwrap();
-  let mut root_imports = Vec::with_capacity(groups);
-  let mut root_values = Vec::with_capacity(groups);
-
-  for group in 0..groups {
-    let group_dir = format!("/src/group-{group}");
-    fs.create_dir_all(group_dir.as_str().into()).await.unwrap();
-
-    let mut group_imports = Vec::with_capacity(modules_per_group);
-    let mut group_values = Vec::with_capacity(modules_per_group);
-
-    for module in 0..modules_per_group {
-      let file = format!("/src/group-{group}/module-{module}.js");
-      let code = if module == 0 {
-        format!("export const value = {group};")
-      } else {
-        format!(
-          "import {{ value as prev }} from './module-{}.js'; export const value = prev + {};",
-          module - 1,
-          module
-        )
-      };
-      fs.write(file.as_str().into(), code.as_bytes())
-        .await
-        .unwrap();
-      group_imports.push(format!(
-        "import {{ value as v{module} }} from './module-{module}.js';"
-      ));
-      group_values.push(format!("v{module}"));
-    }
-
-    let group_entry = format!(
-      "{}\nexport default {};",
-      group_imports.join("\n"),
-      group_values.join(" + ")
-    );
-    fs.write(
-      format!("/src/group-{group}/entry.js").as_str().into(),
-      group_entry.as_bytes(),
-    )
-    .await
-    .unwrap();
-
-    root_imports.push(format!(
-      "import g{group} from '/src/group-{group}/entry.js';"
-    ));
-    root_values.push(format!("g{group}"));
-  }
-
-  let entry = format!(
-    "{}\nconsole.log({});",
-    root_imports.join("\n"),
-    root_values.join(" + ")
-  );
-  fs.write("/src/index.js".into(), entry.as_bytes())
-    .await
-    .unwrap();
-}
-
 async fn prepare_large_split_chunks_case(
   entry_count: usize,
   shared_modules: usize,
@@ -1926,6 +1886,29 @@ fn concatenation_statistics_fingerprint(compilation: &Compilation) -> usize {
     })
     .map(|message| message.bytes().map(usize::from).sum::<usize>())
     .sum()
+}
+
+fn concatenation_statistic_count(
+  compilation: &Compilation,
+  statistic: ConcatenationStatistic,
+) -> Option<usize> {
+  let logs = compilation
+    .get_logging()
+    .get("rspack.ModuleConcatenationPlugin")?;
+
+  logs.iter().find_map(|log| {
+    let message = match log {
+      LogType::Debug { message } | LogType::Log { message } => message,
+      _ => return None,
+    };
+    let (_, statistics) = message.split_once("candidates were considered for adding (")?;
+    let statistics = statistics.strip_suffix(')')?;
+    statistics.split(", ").find_map(|item| {
+      item
+        .strip_suffix(statistic.log_label())
+        .and_then(|count| count.trim().parse().ok())
+    })
+  })
 }
 
 fn count_assigned_export_used_names(compilation: &Compilation) -> usize {
