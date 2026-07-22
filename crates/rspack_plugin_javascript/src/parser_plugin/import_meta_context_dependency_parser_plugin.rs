@@ -424,7 +424,10 @@ fn create_import_meta_glob_dependency(
   ))
 }
 
-pub struct ImportMetaContextDependencyParserPlugin;
+pub struct ImportMetaContextDependencyParserPlugin {
+  pub webpack_context: bool,
+  pub glob: bool,
+}
 
 #[rspack_macros::implemented_javascript_parser_hooks]
 impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaContextDependencyParserPlugin {
@@ -437,8 +440,8 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaContextDependencyParse
     end: u32,
   ) -> Option<BasicEvaluatedExpression<'p>> {
     let name = match for_name {
-      expr_name::IMPORT_META_CONTEXT => expr_name::IMPORT_META_CONTEXT,
-      expr_name::IMPORT_META_GLOB => expr_name::IMPORT_META_GLOB,
+      expr_name::IMPORT_META_CONTEXT if self.webpack_context => expr_name::IMPORT_META_CONTEXT,
+      expr_name::IMPORT_META_GLOB if self.glob => expr_name::IMPORT_META_GLOB,
       _ => return None,
     };
 
@@ -462,8 +465,10 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaContextDependencyParse
     }
 
     let dep = match for_name {
-      expr_name::IMPORT_META_CONTEXT => create_import_meta_context_dependency(expr, parser),
-      expr_name::IMPORT_META_GLOB => create_import_meta_glob_dependency(expr, parser),
+      expr_name::IMPORT_META_CONTEXT if self.webpack_context => {
+        create_import_meta_context_dependency(expr, parser)
+      }
+      expr_name::IMPORT_META_GLOB if self.glob => create_import_meta_glob_dependency(expr, parser),
       _ => None,
     };
 

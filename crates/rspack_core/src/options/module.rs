@@ -298,11 +298,12 @@ impl From<&str> for OverrideStrict {
 }
 
 #[cacheable]
-#[derive(Debug, Clone, Copy, MergeFrom)]
+#[derive(Debug, Clone, MergeFrom)]
 pub enum ImportMeta {
   PreserveUnknown,
   Enabled,
   Disabled,
+  Granular(ImportMetaOptions),
 }
 
 impl From<&str> for ImportMeta {
@@ -311,6 +312,184 @@ impl From<&str> for ImportMeta {
       "preserve-unknown" => Self::PreserveUnknown,
       "false" => Self::Disabled,
       _ => Self::Enabled,
+    }
+  }
+}
+
+#[cacheable]
+#[derive(Debug, Clone, Copy, MergeFrom, PartialEq, Eq, Hash)]
+pub enum JavascriptParserWorkerUrl {
+  NewUrlRelative,
+}
+
+impl JavascriptParserWorkerUrl {
+  pub fn from(value: &str) -> Option<Self> {
+    match value {
+      "new-url-relative" => Some(Self::NewUrlRelative),
+      _ => None,
+    }
+  }
+}
+
+impl RspackHash for JavascriptParserWorkerUrl {
+  fn hash(&self, state: &mut RspackHasher) {
+    match self {
+      Self::NewUrlRelative => "new-url-relative",
+    }
+    .hash(state);
+  }
+}
+
+#[cacheable]
+#[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash)]
+pub struct ImportMetaKnownProperties(u32);
+
+macro_rules! define_import_meta_known_properties {
+  (@step ($val:expr) ({$($flags:tt)*}) ({$($properties:tt)*}) ($(#[$($attr:tt)+])* const $name:ident = $property:literal; $($rest:tt)*)) => {
+    define_import_meta_known_properties! {
+      @step ($val << 1) ({
+        $($flags)*
+        $(#[$($attr)+])*
+        const $name = $val;
+      }) ({
+        $($properties)*
+        ($name, $property);
+      }) ($($rest)*)
+    }
+  };
+  (@step ($val:expr) ({$($flags:tt)*}) ({$($properties:tt)*}) ()) => {
+    bitflags! {
+      impl ImportMetaKnownProperties: u32 {
+        $($flags)*
+      }
+    }
+
+    impl ImportMetaKnownProperties {
+      pub fn enabled_from_properties(properties: &HashMap<String, bool>) -> Self {
+        let mut enabled_properties = Self::all();
+        define_import_meta_known_properties! {
+          @disable (enabled_properties) (properties) $($properties)*
+        }
+        enabled_properties
+      }
+    }
+  };
+  (@disable ($enabled_properties:ident) ($properties:ident) ($name:ident, $property:literal); $($rest:tt)*) => {
+    if matches!($properties.get($property), Some(false)) {
+      $enabled_properties.remove(Self::$name);
+    }
+    define_import_meta_known_properties! {
+      @disable ($enabled_properties) ($properties) $($rest)*
+    }
+  };
+  (@disable ($enabled_properties:ident) ($properties:ident)) => {};
+  ($($rest:tt)*) => {
+    define_import_meta_known_properties! {
+      @step (1u32) ({}) ({}) ($($rest)*)
+    }
+  };
+}
+
+define_import_meta_known_properties! {
+  const DIRNAME = "dirname";
+  const FILENAME = "filename";
+  const GLOB = "glob";
+  const MAIN = "main";
+  const RESOLVE = "resolve";
+  const RSPACK_BASE_URI = "rspackBaseUri";
+  const RSPACK_HASH = "rspackHash";
+  const RSPACK_INIT_SHARING = "rspackInitSharing";
+  const RSPACK_NONCE = "rspackNonce";
+  const RSPACK_PUBLIC_PATH = "rspackPublicPath";
+  const RSPACK_RSC = "rspackRsc";
+  const RSPACK_SHARE_SCOPES = "rspackShareScopes";
+  const RSPACK_UNIQUE_ID = "rspackUniqueId";
+  const RSPACK_VERSION = "rspackVersion";
+  const URL = "url";
+  const WEBPACK = "webpack";
+  const WEBPACK_CONTEXT = "webpackContext";
+  const WEBPACK_HOT = "webpackHot";
+}
+
+impl MergeFrom for ImportMetaKnownProperties {
+  fn merge_from(self, other: &Self) -> Self {
+    *other
+  }
+}
+
+#[cacheable]
+#[derive(Debug, Clone, MergeFrom, Default)]
+pub struct JavascriptParserWorkerOptions {
+  pub alias: Option<Vec<String>>,
+  pub url: Option<JavascriptParserWorkerUrl>,
+}
+
+impl JavascriptParserWorkerOptions {
+  pub fn new(alias: Vec<String>, url: Option<JavascriptParserWorkerUrl>) -> Self {
+    Self {
+      alias: Some(alias),
+      url,
+    }
+  }
+}
+
+#[cacheable]
+#[derive(Debug, Clone)]
+pub struct ImportMetaOptions {
+  enabled_known_properties: ImportMetaKnownProperties,
+  properties: HashMap<String, bool>,
+}
+
+impl ImportMetaOptions {
+  pub fn new(properties: HashMap<String, bool>) -> Self {
+    let enabled_known_properties = ImportMetaKnownProperties::enabled_from_properties(&properties);
+
+    Self {
+      enabled_known_properties,
+      properties,
+    }
+  }
+
+  fn enabled_known_properties(properties: &HashMap<String, bool>) -> ImportMetaKnownProperties {
+    ImportMetaKnownProperties::enabled_from_properties(properties)
+  }
+
+  pub fn is_known_property_enabled(&self, property: ImportMetaKnownProperties) -> bool {
+    self.enabled_known_properties.contains(property)
+  }
+}
+
+impl MergeFrom for ImportMetaOptions {
+  fn merge_from(mut self, other: &Self) -> Self {
+    self.properties.extend(other.properties.clone());
+    self.enabled_known_properties = Self::enabled_known_properties(&self.properties);
+    self
+  }
+}
+
+impl Default for ImportMetaOptions {
+  fn default() -> Self {
+    Self {
+      enabled_known_properties: ImportMetaKnownProperties::all(),
+      properties: Default::default(),
+    }
+  }
+}
+
+impl ImportMeta {
+  pub fn is_enabled(&self) -> bool {
+    !matches!(self, Self::Disabled)
+  }
+
+  pub fn preserve_unknown(&self) -> bool {
+    matches!(self, Self::PreserveUnknown | Self::Granular(_))
+  }
+
+  pub fn is_known_property_enabled(&self, property: ImportMetaKnownProperties) -> bool {
+    match self {
+      Self::Disabled => false,
+      Self::Enabled | Self::PreserveUnknown => true,
+      Self::Granular(options) => options.is_known_property_enabled(property),
     }
   }
 }
@@ -332,7 +511,7 @@ pub struct JavascriptParserOptions {
   pub import_exports_presence: Option<ExportPresenceMode>,
   pub reexport_exports_presence: Option<ExportPresenceMode>,
   pub type_reexports_presence: Option<TypeReexportPresenceMode>,
-  pub worker: Option<Vec<String>>,
+  pub worker: Option<JavascriptParserWorkerOptions>,
   pub override_strict: Option<OverrideStrict>,
   pub import_meta: Option<ImportMeta>,
   pub require_alias: Option<bool>,
@@ -351,6 +530,13 @@ pub struct JavascriptParserOptions {
 }
 
 impl JavascriptParserOptions {
+  pub fn import_meta(&self) -> &ImportMeta {
+    self
+      .import_meta
+      .as_ref()
+      .expect("javascript parser import_meta should be normalized by defaults")
+  }
+
   pub fn create_require_option(&self) -> Option<&str> {
     match self.create_require.as_ref()? {
       JavascriptParserCreateRequire::Disabled => None,

@@ -89,7 +89,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
           RuntimeGlobals::default()
         }
       },
-      write: {
+      define: {
         match self.source_type {
           SourceType::JavaScript => RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME,
           SourceType::Css => RuntimeGlobals::GET_CHUNK_CSS_FILENAME,
@@ -385,6 +385,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
                 fake_filename
                   .render(
                     PathData::default()
+                      .chunk(chunk.ukey(), compilation)
                       .chunk_name_optional(chunk.name())
                       .chunk_id_optional(chunk.id().map(|id| id.as_str())),
                     None,
@@ -413,7 +414,14 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
     }
 
     let source = runtime_template.render(self.id(), Some(serde_json::json!({
-      "_global": self.global,
+      "_global": match self.source_type {
+        SourceType::JavaScript => runtime_template
+          .render_runtime_global_definition(&RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME),
+        SourceType::Css => {
+          runtime_template.render_runtime_global_definition(&RuntimeGlobals::GET_CHUNK_CSS_FILENAME)
+        }
+        _ => self.global.clone(),
+      },
       "_static_urls": static_urls
                         .iter()
                         .map(|(filename, chunk_ids)| stringify_static_chunk_map(filename, chunk_ids))

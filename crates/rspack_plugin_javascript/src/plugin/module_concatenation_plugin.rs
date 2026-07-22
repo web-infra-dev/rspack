@@ -7,7 +7,7 @@ use rspack_collections::{
 };
 use rspack_core::{
   BoxDependency, BoxModule, ChunkUkey, Compilation, CompilationOptimizeChunkModules, DependencyId,
-  DependencyType, ExportProvided, ExportsInfoArtifact, ExtendedReferencedExport, GetTargetResult,
+  DependencyType, ExportProvided, ExportsInfoArtifact, GetTargetResult,
   ImportedByDeferModulesArtifact, LibIdentOptions, Logger, ModuleGraph, ModuleGraphCacheArtifact,
   ModuleGraphConnection, ModuleGraphModule, ModuleIdentifier, OptimizationBailoutItem, Plugin,
   ProvidedExports, RuntimeCondition, RuntimeSpec, SideEffectsStateArtifact, SourceType,
@@ -1113,10 +1113,7 @@ impl ModuleConcatenationPlugin {
             Some(CachedOutgoingConnection {
               connection: con.clone(),
               module_identifier: *con.module_identifier(),
-              has_imported_names: imported_names.iter().all(|item| match item {
-                ExtendedReferencedExport::Array(arr) => !arr.is_empty(),
-                ExtendedReferencedExport::Export(export) => !export.name.is_empty(),
-              }),
+              has_imported_names: imported_names.iter().all(|item| !item.name.is_empty()),
               active: con.is_target_active(
                 module_graph,
                 Some(&runtime),

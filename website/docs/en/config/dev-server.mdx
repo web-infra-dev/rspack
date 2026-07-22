@@ -960,10 +960,7 @@ export default {
 
 ```ts
 type DevServerStatic =
-  | string
-  | boolean
-  | DevServerStaticItem
-  | (string | DevServerStaticItem)[];
+  string | boolean | DevServerStaticItem | (string | DevServerStaticItem)[];
 ```
 
 This option controls how the dev server serves static files from disk. These files are read directly from the file system and are not processed by Rspack.

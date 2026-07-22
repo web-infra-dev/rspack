@@ -1,42 +1,42 @@
-var oldTags = [];
-var newTags = [];
-var applyHandler = <%- basicFunction("options") %> {
+var cssOldTags = [];
+var cssNewTags = [];
+var cssApplyHandler = <%- basicFunction("options") %> {
 	return {
 		dispose: <%- basicFunction("") %> { },
 		apply: <%- basicFunction("") %> {
-			var moduleIds = [];
-			newTags.forEach(<%- basicFunction("info") %> {
-				info[1].sheet.disabled = false;
+			cssNewTags.forEach(<%- basicFunction("newTag") %> {
+				newTag.sheet.disabled = false;
 			});
-			while (oldTags.length) {
-				var oldTag = oldTags.pop();
+			while (cssOldTags.length) {
+				var oldTag = cssOldTags.pop();
 				if (oldTag.parentNode) oldTag.parentNode.removeChild(oldTag);
 			}
-			while (newTags.length) {
-				var info = newTags.pop();
-				var chunkModuleIds = loadCssChunkData(<%- MODULE_FACTORIES %>, info[0]);
-				chunkModuleIds.forEach(function(id) {
-				    moduleIds.push(id)
-				});
+			while (cssNewTags.length) {
+				cssNewTags.pop();
 			}
-			return moduleIds;
 		}
 	};
 };
-var cssTextKey = <%- basicFunction("link") %> {
+var cssTextKeyOfLink = <%- basicFunction("link") %> {
 	return Array.from(link.sheet.cssRules, <%- returningFunction("r.cssText", "r") %>).join();
 };
 <%- HMR_DOWNLOAD_UPDATE_HANDLERS %>.css = <%- basicFunction("chunkIds, removedChunks, removedModules, promises, applyHandlers, updatedModulesList") %> {
 	if (typeof document === 'undefined') return;
-	applyHandlers.push(applyHandler);
+	applyHandlers.push(cssApplyHandler);
+	var seen = {};
 	chunkIds.forEach(<%- basicFunction("chunkId") %> {
 		var filename = <%- GET_CHUNK_CSS_FILENAME %>(chunkId);
+		if (!filename) return;
 		var url = <%- PUBLIC_PATH %> + filename;
-		var oldTag = loadStylesheet(chunkId, url);
+		if (seen[url]) {
+			return;
+		}
+		seen[url] = true;
+		var oldTag = cssLoadStylesheet(chunkId, url);
 		if (!oldTag) return;
 		promises.push(
 			new Promise(<%- basicFunction("resolve, reject") %> {
-				var link = loadStylesheet(
+				var link = cssLoadStylesheet(
 					chunkId,
 					url + (url.indexOf("?") < 0 ? "?" : "&") + "hmr=" + Date.now(),
 					<%- basicFunction("event") %> {
@@ -58,19 +58,14 @@ var cssTextKey = <%- basicFunction("link") %> {
 							reject(error);
 						} else {
 							try {
-								if (cssTextKey(oldTag) == cssTextKey(link)) {
+								if (cssTextKeyOfLink(oldTag) == cssTextKeyOfLink(link)) {
 									if (link.parentNode) link.parentNode.removeChild(link);
 									return resolve();
 								}
 							} catch (e) {}
-							var factories = {};
-							loadCssChunkData(factories, link, chunkId);
-							Object.keys(factories).forEach(function(id) {
-							    (updatedModulesList.push(id));
-							});
+							cssOldTags.push(oldTag);
+							cssNewTags.push(link);
 							link.sheet.disabled = true;
-							oldTags.push(oldTag);
-							newTags.push([chunkId, link]);
 							resolve();
 						}
 					},

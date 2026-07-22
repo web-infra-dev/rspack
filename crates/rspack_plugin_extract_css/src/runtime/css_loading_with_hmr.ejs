@@ -1,29 +1,35 @@
-var oldTags = [];
-var newTags = [];
-var applyHandler = function (options) {
+var extractCssOldTags = [];
+var extractCssNewTags = [];
+var extractCssTextKey = function (link) {
+	return Array.from(link.sheet.cssRules, function (r) { return r.cssText; }).join();
+}
+var extractCssApplyHandler = function (options) {
 	return {
-		dispose: function () {
-			for (var i = 0; i < oldTags.length; i++) {
-				var oldTag = oldTags[i];
+		dispose: function () {},
+		apply: function () {
+			for (var i = 0; i < extractCssNewTags.length; i++) extractCssNewTags[i].sheet.disabled = false;
+			for (var i = 0; i < extractCssOldTags.length; i++) {
+				var oldTag = extractCssOldTags[i];
 				if (oldTag.parentNode) oldTag.parentNode.removeChild(oldTag);
 			}
-			oldTags.length = 0;
-		},
-		apply: function () {
-			for (var i = 0; i < newTags.length; i++) newTags[i].rel = "stylesheet";
-			newTags.length = 0;
+			extractCssOldTags.length = 0;
+			extractCssNewTags.length = 0;
 		}
 	}
 }
 <%- HMR_DOWNLOAD_UPDATE_HANDLERS %>.miniCss = function (chunkIds, removedChunks, removedModules, promises, applyHandlers, updatedModulesList) {
-	applyHandlers.push(applyHandler);
+	applyHandlers.push(extractCssApplyHandler);
+	var seen = {};
 	chunkIds.forEach(function (chunkId) {
 		var href = <%- REQUIRE_SCOPE %>.miniCssF(chunkId);
+		if (!href) return;
 		var fullhref = <%- PUBLIC_PATH %> + href;
-		var oldTag = findStylesheet(href, fullhref);
+		if (seen[fullhref]) return;
+		seen[fullhref] = true;
+		var oldTag = extractCssFindStylesheet(href, fullhref);
 		if (!oldTag) return;
 		promises.push(new Promise(function (resolve, reject) {
-			var tag = createStylesheet(
+			var tag = extractCssCreateStylesheet(
 				chunkId,
 
 				/**
@@ -33,14 +39,19 @@ var applyHandler = function (options) {
 				`${fullhref}?${Date.now()}`,
 				oldTag,
 				function () {
-					tag.as = "style";
-					tag.rel = "preload";
+					try {
+						if (extractCssTextKey(oldTag) === extractCssTextKey(tag)) {
+							if (tag.parentNode) tag.parentNode.removeChild(tag);
+							return resolve();
+						}
+					} catch (e) {}
+					tag.sheet.disabled = true;
+					extractCssOldTags.push(oldTag);
+					extractCssNewTags.push(tag);
 					resolve();
 				},
 				reject
 			);
-			oldTags.push(oldTag);
-			newTags.push(tag);
 		}))
 	});
 }

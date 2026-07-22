@@ -3,9 +3,9 @@ mod parser;
 mod util;
 
 use rspack_core::{
-  AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BuildInfo, BuildMeta,
-  CompilerOptions, FactoryMeta, ModuleIdentifier, ModuleLayer, ModuleType, ParseMeta,
-  ParserOptions, ResourceData, SideEffectsBailoutItemWithSpan,
+  ArcComputed, AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BuildInfo, BuildMeta,
+  CompilerOptions, FactoryMeta, ImportMeta, ModuleIdentifier, ModuleLayer, ModuleType, ParseMeta,
+  ParserOptions, ResolvedModuleOptions, ResourceData, SideEffectsBailoutItemWithSpan,
 };
 use rspack_error::Diagnostic;
 use rustc_hash::FxHashSet;
@@ -54,6 +54,7 @@ pub fn scan_dependencies(
   build_info: &mut BuildInfo,
   module_identifier: ModuleIdentifier,
   module_parser_options: Option<&ParserOptions>,
+  import_meta: ArcComputed<ResolvedModuleOptions, ImportMeta>,
   semicolons: &mut FxHashSet<u32>,
   parser_plugins: &mut Vec<BoxJavascriptParserPlugin>,
   parse_meta: ParseMeta,
@@ -66,6 +67,7 @@ pub fn scan_dependencies(
     module_parser_options
       .and_then(|p| p.get_javascript())
       .expect("should at least have a global javascript parser options"),
+    import_meta,
     &module_identifier,
     module_type,
     module_layer,

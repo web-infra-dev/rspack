@@ -62,7 +62,7 @@ impl RuntimeModule for MakeOptimizedDeferredNamespaceObjectRuntimeModule {
     }
     rspack_core::RuntimeModuleRuntimeRequirements {
       dependencies,
-      write: { RuntimeGlobals::MAKE_OPTIMIZED_DEFERRED_NAMESPACE_OBJECT },
+      define: { RuntimeGlobals::MAKE_OPTIMIZED_DEFERRED_NAMESPACE_OBJECT },
       ..Default::default()
     }
   }

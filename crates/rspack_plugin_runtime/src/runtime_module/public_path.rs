@@ -22,7 +22,7 @@ impl RuntimeModule for PublicPathRuntimeModule {
     _compilation: &Compilation,
   ) -> rspack_core::RuntimeModuleRuntimeRequirements {
     rspack_core::RuntimeModuleRuntimeRequirements {
-      write: { RuntimeGlobals::PUBLIC_PATH },
+      define: { RuntimeGlobals::PUBLIC_PATH },
       force_context: RuntimeGlobals::PUBLIC_PATH,
       ..Default::default()
     }
@@ -37,7 +37,7 @@ impl RuntimeModule for PublicPathRuntimeModule {
       "{} = \"{}\";",
       context
         .runtime_template
-        .render_runtime_globals(&RuntimeGlobals::PUBLIC_PATH),
+        .render_runtime_global_definition(&RuntimeGlobals::PUBLIC_PATH),
       &PublicPath::render_filename(compilation, &self.public_path).await,
     ))
   }

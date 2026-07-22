@@ -375,7 +375,7 @@ export default {
 
 <ApiMeta addedVersion="1.0.0-alpha.6" />
 
-- **类型：** `boolean | 'preserve-unknown'`
+- **类型：** `boolean | 'preserve-unknown' | ImportMetaParserOptions`
 - **默认值：** 当输出为 [ESM 格式](/guide/features/esm) 时，默认值为 `'preserve-unknown'`，其他情况默认值为 `true`
 
 用于控制是否要解析和替换源代码中的 `import.meta`，可选值有：
@@ -383,6 +383,7 @@ export default {
 - `"preserve-unknown"`: [已知的 `import.meta` 字段](/api/runtime-api/module-variables#import-meta) 会在编译期被替换，其他字段会被保留并在运行时被计算。
 - `true`: 所有 `import.meta` 字段在编译期被替换。
 - `false`: 所有 `import.meta` 字段都在运行时被计算。
+- `ImportMetaParserOptions`: 对每个已知的 `import.meta` 字段分别配置。设置为 `false` 的字段会被保留并在运行时计算，未设置的字段会保持默认启用行为。未知的 `import.meta` 字段会被保留。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -395,6 +396,30 @@ export default {
   },
 };
 ```
+
+对象形式支持以下字段：
+
+- 兼容 webpack 的字段：`dirname`、`filename`、`main`、`url`、`webpack` 和 `webpackContext`。
+- Rspack 特有字段：`glob`、`resolve`、`rspackBaseUri`、`rspackHash`、`rspackInitSharing`、`rspackNonce`、`rspackPublicPath`、`rspackRsc`、`rspackShareScopes`、`rspackUniqueId` 和 `rspackVersion`。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        importMeta: {
+          url: false,
+          webpack: true,
+          webpackContext: true,
+          rspackHash: false,
+        },
+      },
+    },
+  },
+};
+```
+
+`resolve` 只控制已经启用的 [`import.meta.resolve()`](#javascriptimportmetaresolve) 表达式是否在编译期处理。要使用 `import.meta.resolve()`，仍然需要启用 `javascript.importMetaResolve`。
 
 ### javascript.exportsPresence
 
@@ -536,7 +561,7 @@ export default {
 
 <ApiMeta addedVersion="1.0.0-alpha.0" />
 
-<PropertyType type="string[] | boolean" />
+<PropertyType type="string[] | boolean | { alias?: string[], url?: 'new-url-relative' }" />
 
 为 Worker 解析提供自定义的语法，常用于支持 Worklet：
 
@@ -559,6 +584,37 @@ export default {
     },
   },
 };
+```
+
+`string[]` 写法等价于将相同的值配置到 `worker.alias`。
+不配置 `worker.url` 时，Rspack 会保留已有的 Worker URL 输出。
+当 `worker.url` 设置为 `'new-url-relative'` 且启用 `output.module` 时，
+Rspack 会为 `new Worker(new URL(..., import.meta.url))` 输出静态的 `new URL()`
+表达式。对于非 ESM 输出，Rspack 会保留已有的运行时 Worker URL 输出：
+
+```js title="rspack.config.mjs"
+export default {
+  output: {
+    module: true,
+    chunkFilename: '[name].bundle.js',
+  },
+  module: {
+    parser: {
+      javascript: {
+        worker: {
+          url: 'new-url-relative',
+        },
+      },
+    },
+  },
+};
+```
+
+```js
+new Worker(new URL('./worker.js', import.meta.url));
+
+// 将转换为 👇
+new Worker(new URL('./worker.bundle.js', import.meta.url));
 ```
 
 > 查看 [Web Workers](/guide/features/web-workers) 了解更多。

@@ -20,7 +20,7 @@ impl RuntimeModule for AmdDefineRuntimeModule {
     _compilation: &Compilation,
   ) -> rspack_core::RuntimeModuleRuntimeRequirements {
     rspack_core::RuntimeModuleRuntimeRequirements {
-      write: { RuntimeGlobals::AMD_DEFINE },
+      define: { RuntimeGlobals::AMD_DEFINE },
       ..Default::default()
     }
   }
@@ -33,7 +33,7 @@ impl RuntimeModule for AmdDefineRuntimeModule {
       "{} = function () {{ throw new Error('define cannot be used indirect'); }}",
       context
         .runtime_template
-        .render_runtime_globals(&RuntimeGlobals::AMD_DEFINE),
+        .render_runtime_global_definition(&RuntimeGlobals::AMD_DEFINE),
     ))
   }
 }

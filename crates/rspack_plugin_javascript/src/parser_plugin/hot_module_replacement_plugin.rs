@@ -1,4 +1,4 @@
-use rspack_core::{BoxDependency, DependencyRange};
+use rspack_core::{BoxDependency, DependencyRange, ImportMetaKnownProperties};
 use rspack_util::SpanExt;
 use swc_atoms::Atom;
 use swc_experimental_ecma_ast::{CallExpr, GetSpan, MemberExpr, Span};
@@ -205,13 +205,18 @@ impl ImportMetaHotReplacementParserPlugin {
 impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaHotReplacementParserPlugin {
   fn evaluate_identifier(
     &self,
-    _parser: &mut JavascriptParser<'p>,
+    parser: &mut JavascriptParser<'p>,
     for_name: &str,
     _member_expr_info: Option<&crate::visitors::ExpressionExpressionInfo>,
     start: u32,
     end: u32,
   ) -> Option<crate::utils::eval::BasicEvaluatedExpression<'p>> {
-    if for_name == expr_name::IMPORT_META_HOT {
+    if for_name == expr_name::IMPORT_META_HOT
+      && parser
+        .javascript_options
+        .import_meta()
+        .is_known_property_enabled(ImportMetaKnownProperties::WEBPACK_HOT)
+    {
       Some(eval::evaluate_to_identifier(
         expr_name::IMPORT_META_HOT.into(),
         expr_name::IMPORT_META.into(),
@@ -230,7 +235,12 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaHotReplacementParserPl
     expr: &MemberExpr,
     for_name: &str,
   ) -> Option<bool> {
-    if for_name == expr_name::IMPORT_META_HOT {
+    if for_name == expr_name::IMPORT_META_HOT
+      && parser
+        .javascript_options
+        .import_meta()
+        .is_known_property_enabled(ImportMetaKnownProperties::WEBPACK_HOT)
+    {
       parser.create_hmr_expression_handler(expr.span());
       Some(true)
     } else {
@@ -244,6 +254,14 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaHotReplacementParserPl
     call_expr: &CallExpr,
     for_name: &str,
   ) -> Option<bool> {
+    if !parser
+      .javascript_options
+      .import_meta()
+      .is_known_property_enabled(ImportMetaKnownProperties::WEBPACK_HOT)
+    {
+      return None;
+    }
+
     if for_name == expr_name::IMPORT_META_HOT_ACCEPT {
       parser.create_accept_handler(call_expr, |request, range| {
         Box::new(ImportMetaHotAcceptDependency::new(request, range))

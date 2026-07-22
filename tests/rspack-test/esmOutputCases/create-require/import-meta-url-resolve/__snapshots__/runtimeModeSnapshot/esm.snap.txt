@@ -1,0 +1,181 @@
+```mjs title=main.mjs
+import { __rspack_context } from "./runtime.mjs";
+
+import {fileURLToPath as __rspack_fileURLToPath} from "node:url";
+import {dirname as __rspack_dirname} from "node:path";
+var __rspack_import_meta_dirname__ = __rspack_dirname(__rspack_fileURLToPath(import.meta.url));
+import { createRequire as __rspack_createRequire } from "node:module";
+const __rspack_createRequire_require = __rspack_createRequire(import.meta.url);
+__rspack_context.m.add({
+"./libCssExtractLoader.js"
+/*!********************************!*\
+  !*** ./libCssExtractLoader.js ***!
+  \********************************/
+(module) {
+module.exports = "loader";
+
+
+},
+});
+// node:module
+const external_node_module_namespaceObject = __rspack_createRequire_require("node:module");
+
+var external_node_module_default = /*#__PURE__*/__rspack_context.n(external_node_module_namespaceObject);// ./default-require.js
+
+
+const defaultRequire = external_node_module_default().createRequire(import.meta.url);
+
+const defaultUnknown = defaultRequire.unknown;
+
+// ./exported-require.js
+
+
+const exportedRequire = (0,external_node_module_namespaceObject.createRequire)(import.meta.url);
+
+
+
+// ./namespace-require.js
+
+
+const namespaceRequire = external_node_module_namespaceObject.createRequire(import.meta.url);
+
+const namespaceUnknown = namespaceRequire.unknown;
+
+// ./pre-declared-require.js
+
+
+function getRequire() {
+	return req;
+}
+
+const req = (0,external_node_module_namespaceObject.createRequire)(import.meta.url);
+
+function getNestedRequire() {
+	function readRequire() {
+		return nestedReq;
+	}
+
+	const nestedReq = (0,external_node_module_namespaceObject.createRequire)(import.meta.url);
+	return readRequire();
+}
+
+// ./pre-declared-require-call.js
+
+
+function load() {
+	return __rspack_context.r(/*! ./libCssExtractLoader.js */ "./libCssExtractLoader.js");
+}
+
+const pre_declared_require_call_req = /* createRequire() */ undefined;
+
+// ./index.js
+
+
+
+
+
+
+
+const index_req = /* createRequire() */ undefined;
+const requireWithUnknownMember = (0,external_node_module_namespaceObject.createRequire)(import.meta.url);
+const requireAsValue = (0,external_node_module_namespaceObject.createRequire)(import.meta.url);
+
+const identity = value => value;
+
+const index_value = __rspack_context.r(/*! ./libCssExtractLoader.js */ "./libCssExtractLoader.js");
+const loader = /*require.resolve*/(/*! ./libCssExtractLoader.js */ "./libCssExtractLoader.js");
+const unknownMember = requireWithUnknownMember.unknown;
+const requireAsValueType = typeof identity(requireAsValue);
+
+it("should consume createRequire(import.meta.url) like webpack", async () => {
+	const fs = await import(/* webpackIgnore: true */ "node:fs");
+	const path = await import(/* webpackIgnore: true */ "node:path");
+	const source = fs.readFileSync(path.join(__rspack_import_meta_dirname__, "main.mjs"), "utf-8");
+	const fileUrlScheme = "file:" + "//";
+	const normalizedRoot = "<" + "ROOT>";
+	const runtimeCreateRequire =
+		"(0,external_node_module_namespaceObject." + "createRequire)(import.meta.url)";
+
+	expect(source).not.toContain(fileUrlScheme);
+	expect(source).not.toContain("createRequire('" + normalizedRoot);
+	expect(source).not.toContain('createRequire("' + normalizedRoot);
+	expect(source.split(runtimeCreateRequire)).toHaveLength(6);
+	expect(source).toContain("/* createRequire() */ undefined");
+	expect(source).toContain("__webpack_require__(");
+	expect(source).toContain("/*require.resolve*/");
+	expect(index_value).toBe("loader");
+	expect(loader).toBe("./libCssExtractLoader.js");
+	expect(unknownMember).toBe(undefined);
+	expect(namespaceUnknown).toBe(undefined);
+	expect(defaultUnknown).toBe(undefined);
+	expect(requireAsValueType).toBe("function");
+	expect(exportedRequire.resolve("path")).toBe("path");
+	expect(getRequire().resolve("path")).toBe("path");
+	expect(getNestedRequire().resolve("path")).toBe("path");
+	expect(load()).toBe("loader");
+});
+
+export { index_value as value, loader, requireAsValueType, unknownMember };
+
+```
+
+```mjs title=runtime.mjs
+
+var __rspack_modules = {};
+// The module cache
+var __rspack_module_cache = {};
+// The require function
+function __rspack_require(moduleId) {
+// Check if module is in cache
+var cachedModule = __rspack_module_cache[moduleId];
+if (cachedModule !== undefined) {
+return cachedModule.exports;
+}
+// Create a new module (and put it into the cache)
+var module = (__rspack_module_cache[moduleId] = {
+exports: {}
+});
+// Execute the module function
+__rspack_modules[moduleId](module, module.exports, __rspack_context);
+
+// Return the exports of the module
+return module.exports;
+}
+var __rspack_context = {};
+__rspack_context.r = __rspack_require;
+// expose the modules object (__rspack_modules)
+__rspack_context.m = __rspack_modules;
+
+var moduleFactories=__rspack_modules;
+// rspack/runtime/compat_get_default_export
+// getDefaultExport function for compatibility with non-ESM modules
+var compatGetDefaultExport = (module) => {
+	var getter = module && module.__esModule ?
+		() => (module['default']) :
+		() => (module);
+	definePropertyGetters(getter, { a: getter });
+	return getter;
+};
+;
+__rspack_context.n = compatGetDefaultExport;
+// rspack/runtime/define_property_getters
+var definePropertyGetters = (exports, getters, values) => {
+	var define = (defs, kind) => {
+		for(var key in defs) {
+			if(hasOwnProperty(defs, key) && !hasOwnProperty(exports, key)) {
+				Object.defineProperty(exports, key, { enumerable: true, [kind]: defs[key] });
+			}
+		}
+	};
+	define(getters, "get");
+	define(values, "value");
+};;
+// rspack/runtime/esm_register_module
+moduleFactories.add = function registerModules(modules) { Object.assign(moduleFactories, modules) }
+;
+// rspack/runtime/has_own_property
+var hasOwnProperty = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop));
+
+export { __rspack_context };
+
+```

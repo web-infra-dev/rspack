@@ -1,6 +1,6 @@
 use rspack_core::{
-  Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext, RuntimeTemplate,
-  RuntimeVariable, impl_runtime_module,
+  Compilation, RuntimeGlobals, RuntimeGlobalsRenderMode, RuntimeModule,
+  RuntimeModuleGenerateContext, RuntimeTemplate, RuntimeVariable, impl_runtime_module,
 };
 
 static ASYNC_MODULE_TEMPLATE: &str = include_str!("runtime/async_module.ejs");
@@ -22,10 +22,15 @@ impl RuntimeModule for AsyncRuntimeModule {
     context: &RuntimeModuleGenerateContext<'_>,
   ) -> rspack_error::Result<String> {
     let runtime_template = context.runtime_template;
+    let uses_lexical_runtime_globals = match runtime_template.render_mode() {
+      RuntimeGlobalsRenderMode::RspackLexical => true,
+      RuntimeGlobalsRenderMode::Webpack | RuntimeGlobalsRenderMode::RspackContext => false,
+    };
     runtime_template.render(
       self.id(),
       Some(serde_json::json!({
         "_module_cache": runtime_template.render_runtime_variable(&RuntimeVariable::ModuleCache),
+        "_uses_lexical_runtime_globals": uses_lexical_runtime_globals,
       })),
     )
   }
@@ -39,7 +44,7 @@ impl RuntimeModule for AsyncRuntimeModule {
   ) -> rspack_core::RuntimeModuleRuntimeRequirements {
     rspack_core::RuntimeModuleRuntimeRequirements {
       dependencies: { RuntimeGlobals::REQUIRE | RuntimeGlobals::MODULE_CACHE },
-      write: {
+      define: {
         RuntimeGlobals::ASYNC_MODULE
           | RuntimeGlobals::ASYNC_MODULE_EXPORT_SYMBOL
           | RuntimeGlobals::DEFERRED_MODULES_ASYNC_TRANSITIVE_DEPENDENCIES

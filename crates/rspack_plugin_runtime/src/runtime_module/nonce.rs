@@ -20,7 +20,7 @@ impl RuntimeModule for NonceRuntimeModule {
     _compilation: &Compilation,
   ) -> rspack_core::RuntimeModuleRuntimeRequirements {
     rspack_core::RuntimeModuleRuntimeRequirements {
-      write: { RuntimeGlobals::SCRIPT_NONCE },
+      define: { RuntimeGlobals::SCRIPT_NONCE },
       force_context: RuntimeGlobals::SCRIPT_NONCE,
       ..Default::default()
     }
@@ -34,7 +34,7 @@ impl RuntimeModule for NonceRuntimeModule {
       "{} = undefined;",
       context
         .runtime_template
-        .render_runtime_globals(&RuntimeGlobals::SCRIPT_NONCE)
+        .render_runtime_global_definition(&RuntimeGlobals::SCRIPT_NONCE)
     ))
   }
 }

@@ -24,7 +24,7 @@ impl RuntimeModule for CreateFakeNamespaceObjectRuntimeModule {
   ) -> rspack_core::RuntimeModuleRuntimeRequirements {
     rspack_core::RuntimeModuleRuntimeRequirements {
       dependencies: RuntimeGlobals::MAKE_NAMESPACE_OBJECT | RuntimeGlobals::DEFINE_PROPERTY_GETTERS,
-      write: { RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT },
+      define: { RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT },
       ..Default::default()
     }
   }

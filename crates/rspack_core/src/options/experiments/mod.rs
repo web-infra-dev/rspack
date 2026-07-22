@@ -19,12 +19,6 @@ pub mod runtime_mode {
       }
     }
   }
-
-  impl RuntimeMode {
-    pub fn uses_runtime_context(&self) -> bool {
-      matches!(self, RuntimeMode::Rspack)
-    }
-  }
 }
 
 use runtime_mode::RuntimeMode;

@@ -348,4 +348,8 @@ impl ParserAndGenerator for CssParserAndGenerator {
     self.effective_export_type(module).hash(&mut hasher);
     Ok(hasher.digest(&compilation.options.output.hash_digest))
   }
+
+  fn has_runtime_hash(&self) -> bool {
+    true
+  }
 }

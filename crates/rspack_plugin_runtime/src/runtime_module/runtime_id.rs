@@ -21,7 +21,7 @@ impl RuntimeModule for RuntimeIdRuntimeModule {
     _compilation: &Compilation,
   ) -> rspack_core::RuntimeModuleRuntimeRequirements {
     rspack_core::RuntimeModuleRuntimeRequirements {
-      write: { RuntimeGlobals::RUNTIME_ID },
+      define: { RuntimeGlobals::RUNTIME_ID },
       ..Default::default()
     }
   }
@@ -58,7 +58,7 @@ impl RuntimeModule for RuntimeIdRuntimeModule {
         "{} = {};",
         context
           .runtime_template
-          .render_runtime_globals(&RuntimeGlobals::RUNTIME_ID),
+          .render_runtime_global_definition(&RuntimeGlobals::RUNTIME_ID),
         id.as_deref()
           .map_or_else(|| "null".to_string(), rspack_util::json_stringify_str)
       ))

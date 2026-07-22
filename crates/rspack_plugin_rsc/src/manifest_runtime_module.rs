@@ -28,7 +28,7 @@ impl RuntimeModule for RscManifestRuntimeModule {
     _compilation: &Compilation,
   ) -> rspack_core::RuntimeModuleRuntimeRequirements {
     rspack_core::RuntimeModuleRuntimeRequirements {
-      write: { RuntimeGlobals::RSC_MANIFEST },
+      define: { RuntimeGlobals::RSC_MANIFEST },
       ..Default::default()
     }
   }
@@ -97,7 +97,7 @@ impl RuntimeModule for RscManifestRuntimeModule {
       r#"
         {rsc_manifest} = JSON.parse({rsc_manifest_json});
       "#,
-      rsc_manifest = runtime_template.render_runtime_globals(&RuntimeGlobals::RSC_MANIFEST),
+      rsc_manifest = runtime_template.render_runtime_global_definition(&RuntimeGlobals::RSC_MANIFEST),
       rsc_manifest_json = to_json_string_literal(&rsc_manifest).to_rspack_result()?,
     })
   }

@@ -23,7 +23,7 @@ if (!scriptUrl && document) {
 if (!scriptUrl) throw new Error("Automatic publicPath is not supported in this browser");
 scriptUrl = scriptUrl.replace(/^blob:/, "").replace(/#.*$/, "").replace(/\?.*$/, "").replace(/\/[^\/]+$/, "/");
 <% if (_undo_path == "") { %>
-<%- PUBLIC_PATH %> = scriptUrl;
+<%- define(PUBLIC_PATH) %> = scriptUrl;
 <% } else { %>
-<%- PUBLIC_PATH %> = scriptUrl + '<%- _undo_path %>';
+<%- define(PUBLIC_PATH) %> = scriptUrl + '<%- _undo_path %>';
 <% } %>

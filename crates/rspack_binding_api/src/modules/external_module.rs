@@ -14,8 +14,7 @@ impl ExternalModule {
     mut self,
     env: &napi::Env,
   ) -> napi::Result<napi::bindgen_prelude::ClassInstance<'_, Self>> {
-    let (_, module) = self.as_ref()?;
-    let user_request = env.create_string(module.user_request())?;
+    let user_request = self.with_ref(|_, module| env.create_string(module.user_request()))?;
 
     MODULE_PROPERTIES_BUFFER.with(|ref_cell| {
       let mut properties = ref_cell.borrow_mut();
@@ -30,15 +29,19 @@ impl ExternalModule {
     })
   }
 
-  fn as_ref(&mut self) -> napi::Result<(&rspack_core::Compilation, &rspack_core::ExternalModule)> {
-    let (compilation, module) = self.module.as_ref()?;
-    match module.as_external_module() {
-      Some(external_module) => Ok((compilation, external_module)),
-      None => Err(napi::Error::new(
-        napi::Status::GenericFailure,
-        "Module is not a ExternalModule",
-      )),
-    }
+  fn with_ref<R>(
+    &mut self,
+    f: impl FnOnce(&rspack_core::Compilation, &rspack_core::ExternalModule) -> napi::Result<R>,
+  ) -> napi::Result<R> {
+    self
+      .module
+      .with_ref(|compilation, module| match module.as_external_module() {
+        Some(external_module) => f(compilation, external_module),
+        None => Err(napi::Error::new(
+          napi::Status::GenericFailure,
+          "Module is not a ExternalModule",
+        )),
+      })
   }
 }
 

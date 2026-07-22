@@ -375,7 +375,7 @@ export default {
 
 <ApiMeta addedVersion="1.0.0-alpha.6" />
 
-- **Type:** `boolean | 'preserve-unknown'`
+- **Type:** `boolean | 'preserve-unknown' | ImportMetaParserOptions`
 - **Default:** When using [ESM output](/guide/features/esm), the default value is `'preserve-unknown'`; otherwise, it is `true`
 
 Control whether Rspack parses and replaces `import.meta` in source code. Available values:
@@ -383,6 +383,7 @@ Control whether Rspack parses and replaces `import.meta` in source code. Availab
 - `"preserve-unknown"`: [Known `import.meta` properties](/api/runtime-api/module-variables#import-meta) are statically analyzed at compile-time, other properties are preserved and evaluated at runtime.
 - `true`: All `import.meta` properties are statically analyzed at compile-time.
 - `false`: All `import.meta` properties are evaluated at runtime.
+- `ImportMetaParserOptions`: Configure each known `import.meta` property independently. Properties set to `false` are preserved for runtime evaluation, while omitted properties keep the default enabled behavior. Unknown `import.meta` properties are preserved.
 
 ```js title="rspack.config.mjs"
 export default {
@@ -395,6 +396,30 @@ export default {
   },
 };
 ```
+
+The object form supports the following keys:
+
+- Webpack-compatible keys: `dirname`, `filename`, `main`, `url`, `webpack`, and `webpackContext`.
+- Rspack-specific keys: `glob`, `resolve`, `rspackBaseUri`, `rspackHash`, `rspackInitSharing`, `rspackNonce`, `rspackPublicPath`, `rspackRsc`, `rspackShareScopes`, `rspackUniqueId`, and `rspackVersion`.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        importMeta: {
+          url: false,
+          webpack: true,
+          webpackContext: true,
+          rspackHash: false,
+        },
+      },
+    },
+  },
+};
+```
+
+`resolve` only controls whether an already enabled [`import.meta.resolve()`](#javascriptimportmetaresolve) expression is handled at compile time. To use `import.meta.resolve()`, you still need to enable `javascript.importMetaResolve`.
 
 ### javascript.exportsPresence
 
@@ -536,7 +561,7 @@ Please refer to [type reexports presence example](https://github.com/rstackjs/rs
 
 <ApiMeta addedVersion="1.0.0-alpha.0" />
 
-<PropertyType type="string[] | boolean" />
+<PropertyType type="string[] | boolean | { alias?: string[], url?: 'new-url-relative' }" />
 
 Provide custom syntax for Worker parsing, commonly used to support Worklet:
 
@@ -559,6 +584,38 @@ export default {
     },
   },
 };
+```
+
+The `string[]` form is equivalent to setting the same values on `worker.alias`.
+When `worker.url` is unset, Rspack keeps the existing Worker URL output. When
+`worker.url` is set to `'new-url-relative'` and `output.module` is enabled,
+Rspack emits a static `new URL()` expression for
+`new Worker(new URL(..., import.meta.url))`. For non-ESM output, Rspack keeps
+the existing runtime Worker URL output:
+
+```js title="rspack.config.mjs"
+export default {
+  output: {
+    module: true,
+    chunkFilename: '[name].bundle.js',
+  },
+  module: {
+    parser: {
+      javascript: {
+        worker: {
+          url: 'new-url-relative',
+        },
+      },
+    },
+  },
+};
+```
+
+```js
+new Worker(new URL('./worker.js', import.meta.url));
+
+// would become 👇
+new Worker(new URL('./worker.bundle.js', import.meta.url));
 ```
 
 > See [Web Workers](/guide/features/web-workers) for more details.

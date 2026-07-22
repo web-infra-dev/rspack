@@ -8,7 +8,7 @@ var installedCssChunks = {
 	if (installedCssChunks[chunkId]) promises.push(installedCssChunks[chunkId])
 	else if (installedCssChunks[chunkId] !== 0 && cssChunks[chunkId])
 		promises.push(
-			installedCssChunks[chunkId] = loadStylesheet(chunkId, fetchPriority).then(
+			installedCssChunks[chunkId] = extractCssLoadStylesheet(chunkId, fetchPriority).then(
 				function () {
 					installedCssChunks[chunkId] = 0;
 				},

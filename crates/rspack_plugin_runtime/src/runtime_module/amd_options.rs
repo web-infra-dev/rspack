@@ -22,7 +22,7 @@ impl RuntimeModule for AmdOptionsRuntimeModule {
     _compilation: &Compilation,
   ) -> rspack_core::RuntimeModuleRuntimeRequirements {
     rspack_core::RuntimeModuleRuntimeRequirements {
-      write: { RuntimeGlobals::AMD_OPTIONS },
+      define: { RuntimeGlobals::AMD_OPTIONS },
       ..Default::default()
     }
   }
@@ -35,7 +35,7 @@ impl RuntimeModule for AmdOptionsRuntimeModule {
       "{} = {}",
       context
         .runtime_template
-        .render_runtime_globals(&RuntimeGlobals::AMD_OPTIONS),
+        .render_runtime_global_definition(&RuntimeGlobals::AMD_OPTIONS),
       self.options,
     ))
   }

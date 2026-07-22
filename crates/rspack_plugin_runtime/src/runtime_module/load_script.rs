@@ -1,13 +1,22 @@
-use std::ptr::NonNull;
+use std::{ptr::NonNull, sync::LazyLock};
 
 use rspack_core::{
   ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext,
-  RuntimeTemplate, impl_runtime_module,
+  RuntimeModuleRuntimeRequirements, RuntimeTemplate, impl_runtime_module,
 };
 
 use crate::{
-  CreateScriptData, RuntimeModuleChunkWrapper, RuntimePlugin, get_chunk_runtime_requirements,
+  CreateScriptData, RuntimeModuleChunkWrapper, RuntimePlugin, extract_runtime_globals_from_ejs,
+  get_chunk_runtime_requirements,
 };
+
+static LOAD_SCRIPT_TEMPLATE: &str = include_str!("runtime/load_script.ejs");
+static LOAD_SCRIPT_CREATE_SCRIPT_TEMPLATE: &str =
+  include_str!("runtime/load_script_create_script.ejs");
+static LOAD_SCRIPT_RUNTIME_REQUIREMENTS: LazyLock<RuntimeModuleRuntimeRequirements> =
+  LazyLock::new(|| extract_runtime_globals_from_ejs(LOAD_SCRIPT_TEMPLATE));
+static LOAD_SCRIPT_CREATE_SCRIPT_RUNTIME_REQUIREMENTS: LazyLock<RuntimeModuleRuntimeRequirements> =
+  LazyLock::new(|| extract_runtime_globals_from_ejs(LOAD_SCRIPT_CREATE_SCRIPT_TEMPLATE));
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -46,14 +55,15 @@ impl RuntimeModule for LoadScriptRuntimeModule {
   ) -> rspack_core::RuntimeModuleRuntimeRequirements {
     rspack_core::RuntimeModuleRuntimeRequirements {
       dependencies: {
-        let mut requirements = RuntimeGlobals::default();
+        let mut requirements = LOAD_SCRIPT_RUNTIME_REQUIREMENTS.dependencies
+          | LOAD_SCRIPT_CREATE_SCRIPT_RUNTIME_REQUIREMENTS.dependencies;
         if self.with_create_script_url {
           requirements.insert(RuntimeGlobals::CREATE_SCRIPT_URL);
         }
         requirements
       },
-      weak: RuntimeGlobals::SCRIPT_NONCE,
-      write: { RuntimeGlobals::LOAD_SCRIPT },
+      weak: LOAD_SCRIPT_CREATE_SCRIPT_RUNTIME_REQUIREMENTS.weak,
+      define: LOAD_SCRIPT_RUNTIME_REQUIREMENTS.define,
       ..Default::default()
     }
   }
@@ -62,11 +72,11 @@ impl RuntimeModule for LoadScriptRuntimeModule {
     vec![
       (
         self.template_id(TemplateId::Raw),
-        include_str!("runtime/load_script.ejs").to_string(),
+        LOAD_SCRIPT_TEMPLATE.to_string(),
       ),
       (
         self.template_id(TemplateId::CreateScript),
-        include_str!("runtime/load_script_create_script.ejs").to_string(),
+        LOAD_SCRIPT_CREATE_SCRIPT_TEMPLATE.to_string(),
       ),
     ]
   }

@@ -55,12 +55,12 @@ impl RuntimeModule for EmbedFederationRuntimeModule {
     &self,
     _compilation: &Compilation,
   ) -> rspack_core::RuntimeModuleRuntimeRequirements {
-    let mut write = RuntimeGlobals::STARTUP;
+    let mut define = RuntimeGlobals::STARTUP;
     if self.options.experiments.async_startup {
-      write.insert(RuntimeGlobals::STARTUP_ENTRYPOINT);
+      define.insert(RuntimeGlobals::STARTUP_ENTRYPOINT);
     }
     rspack_core::RuntimeModuleRuntimeRequirements {
-      write,
+      define,
       force_context: RuntimeGlobals::ENSURE_CHUNK_HANDLERS | RuntimeGlobals::HAS_OWN_PROPERTY,
       ..Default::default()
     }

@@ -40,7 +40,7 @@ impl RuntimeModule for GetMainFilenameRuntimeModule {
           RuntimeGlobals::default()
         }
       },
-      write: { self.global },
+      define: { self.global },
       ..Default::default()
     }
   }
@@ -60,6 +60,7 @@ impl RuntimeModule for GetMainFilenameRuntimeModule {
         .get_path(
           &self.filename,
           PathData::default()
+            .chunk(chunk.ukey(), compilation)
             .chunk_id_optional(chunk.id().map(|id| id.as_str()))
             .chunk_hash_optional(chunk.rendered_hash(
               &compilation.chunk_hashes_artifact,
@@ -87,7 +88,7 @@ impl RuntimeModule for GetMainFilenameRuntimeModule {
             return \"{}\";
          }};
         ",
-        runtime_template.render_runtime_globals(&self.global),
+        runtime_template.render_runtime_global_definition(&self.global),
         filename,
       ))
     } else {

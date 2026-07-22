@@ -109,6 +109,7 @@ CompilerOptions {
             global_this: false,
             module: false,
             optional_chaining: false,
+            logical_assignment: false,
             template_literal: false,
             dynamic_import_in_worker: false,
             import_meta_dirname_and_filename: false,
@@ -1677,9 +1678,14 @@ CompilerOptions {
                             reexport_exports_presence: None,
                             type_reexports_presence: None,
                             worker: Some(
-                                [
-                                    "...",
-                                ],
+                                JavascriptParserWorkerOptions {
+                                    alias: Some(
+                                        [
+                                            "...",
+                                        ],
+                                    ),
+                                    url: None,
+                                },
                             ),
                             override_strict: None,
                             import_meta: Some(

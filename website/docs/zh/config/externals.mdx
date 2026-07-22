@@ -19,10 +19,7 @@ import { Stability } from '../../../components/ApiMeta';
 
 ```ts
 type ExternalItem =
-  | string
-  | RegExp
-  | Function
-  | { [x: string]: ExternalItemValue };
+  string | RegExp | Function | { [x: string]: ExternalItemValue };
 
 type Externals = ExternalItem | ExternalItem[];
 ```

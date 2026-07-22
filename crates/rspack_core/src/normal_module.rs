@@ -695,7 +695,7 @@ impl Module for NormalModule {
     let mut hasher = RspackHasher::from(&compilation.options.output);
     self.build_info.hash.hash(&mut hasher);
     // For built failed NormalModule, hash will be calculated by build_info.hash, which contains error message
-    if self.source.is_some() {
+    if self.source.is_some() && self.parser_and_generator.has_runtime_hash() {
       let runtime_hash = self
         .parser_and_generator
         .get_runtime_hash(self, compilation, runtime)

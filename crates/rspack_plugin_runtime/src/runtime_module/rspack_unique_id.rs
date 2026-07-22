@@ -27,7 +27,7 @@ impl RuntimeModule for RspackUniqueIdRuntimeModule {
     _compilation: &Compilation,
   ) -> rspack_core::RuntimeModuleRuntimeRequirements {
     rspack_core::RuntimeModuleRuntimeRequirements {
-      write: { RuntimeGlobals::RSPACK_UNIQUE_ID },
+      define: { RuntimeGlobals::RSPACK_UNIQUE_ID },
       force_context: RuntimeGlobals::RSPACK_UNIQUE_ID,
       ..Default::default()
     }

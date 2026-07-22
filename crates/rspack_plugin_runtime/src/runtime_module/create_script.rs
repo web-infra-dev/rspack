@@ -27,7 +27,7 @@ impl RuntimeModule for CreateScriptRuntimeModule {
           RuntimeGlobals::default()
         }
       },
-      write: { RuntimeGlobals::CREATE_SCRIPT },
+      define: { RuntimeGlobals::CREATE_SCRIPT },
       ..Default::default()
     }
   }

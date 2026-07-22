@@ -44,7 +44,9 @@ impl RuntimeModule for ChunkPrefetchPreloadFunctionRuntimeModule {
       self.id(),
       Some(serde_json::json!({
         "_runtime_handlers":  runtime_template.render_runtime_globals(&self.runtime_handlers),
+        "_runtime_handlers_define":  runtime_template.render_runtime_global_definition(&self.runtime_handlers),
         "_runtime_function": runtime_template.render_runtime_globals(&self.runtime_function),
+        "_runtime_function_define": runtime_template.render_runtime_global_definition(&self.runtime_function),
       })),
     )?;
 
@@ -56,7 +58,7 @@ impl RuntimeModule for ChunkPrefetchPreloadFunctionRuntimeModule {
   ) -> rspack_core::RuntimeModuleRuntimeRequirements {
     rspack_core::RuntimeModuleRuntimeRequirements {
       dependencies: { self.runtime_handlers },
-      write: { self.runtime_function | self.runtime_handlers },
+      define: { self.runtime_function | self.runtime_handlers },
       force_context: self.runtime_function,
       ..Default::default()
     }

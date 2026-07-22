@@ -1,7 +1,7 @@
-var dataWebpackPrefix = <%- _data_webpack_prefix %>;
+var dataRspackPrefix = <%- _data_rspack_prefix %>;
 
-function getDataWebpackId(identifier) {
-	return dataWebpackPrefix + identifier;
+function getDataRspackId(identifier) {
+	return dataRspackPrefix + identifier;
 }
 
 function applyStyle(styleElement, css) {
@@ -18,7 +18,7 @@ function findStyleElement(identifier) {
 	var elements = document.getElementsByTagName("style");
 	for (var i = 0; i < elements.length; i++) {
 		var el = elements[i];
-		if (el.getAttribute("data-rspack") == getDataWebpackId(identifier)) {
+		if (el.getAttribute("data-rspack") == getDataRspackId(identifier)) {
 			return el;
 		}
 	}
@@ -31,7 +31,7 @@ function insertStyleElement(key) {
 	return style;
 }
 
-<%- _css_inject_style %> = <%- basicFunction("identifier, css") %> {
+<%- define(CSS_INJECT_STYLE) %> = <%- basicFunction("identifier, css") %> {
 	var element = findStyleElement(identifier);
 	if (element) {
 		applyStyle(element, css);
@@ -41,7 +41,7 @@ function insertStyleElement(key) {
 	}
 };
 
-<%- _css_inject_style %>.removeModules = <%- basicFunction("removedModules") %> {
+<%- weak(CSS_INJECT_STYLE) %>.removeModules = <%- basicFunction("removedModules") %> {
 	if (!removedModules) return;
 	var identifiers = Array.isArray(removedModules) ? removedModules : [removedModules];
 	for (var i = 0; i < identifiers.length; i++) {
@@ -53,9 +53,9 @@ function insertStyleElement(key) {
 	}
 };
 <% if (_with_hmr) { %>
-<%- HMR_DOWNLOAD_UPDATE_HANDLERS %>.cssInjectStyle = <%- basicFunction("chunkIds, removedChunks, removedModules, promises, applyHandlers, updatedModulesList, css") %> {
+<%- weak(HMR_DOWNLOAD_UPDATE_HANDLERS) %>.cssInjectStyle = <%- basicFunction("chunkIds, removedChunks, removedModules, promises, applyHandlers, updatedModulesList, css") %> {
 	if (removedModules) {
-		<%- _css_inject_style %>.removeModules(removedModules);
+		<%- weak(CSS_INJECT_STYLE) %>.removeModules(removedModules);
 	}
 };
 <% } else { %>

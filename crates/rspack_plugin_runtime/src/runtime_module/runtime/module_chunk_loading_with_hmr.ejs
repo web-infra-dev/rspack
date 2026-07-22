@@ -1,14 +1,14 @@
-  function loadUpdateChunk(chunkId, updatedModulesList) {
+  function moduleLoadUpdateChunk(chunkId, updatedModulesList) {
     return new Promise( <%- basicFunction("resolve, reject")  %> {
       // start update chunk loading
       var url = <%- PUBLIC_PATH %> + <%- GET_CHUNK_UPDATE_SCRIPT_FILENAME %>(chunkId);
       var onResolve = <%- basicFunction("obj") %> {
         var updatedModules = obj.<%- _modules %>;
         var updatedRuntime = obj.__rspack_esm_runtime;
-        if (updatedRuntime) currentUpdateRuntime.push(updatedRuntime);
+        if (updatedRuntime) hotCurrentUpdateRuntime.push(updatedRuntime);
         for (var moduleId in updatedModules) {
           if ((<%- HAS_OWN_PROPERTY %>)(updatedModules, moduleId)) {
-            currentUpdate[moduleId] = updatedModules[moduleId];
+            hotCurrentUpdate[moduleId] = updatedModules[moduleId];
             if (updatedModulesList) updatedModulesList.push(moduleId);
           }
         }

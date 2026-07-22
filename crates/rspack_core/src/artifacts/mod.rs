@@ -103,6 +103,8 @@ pub use imported_by_defer_modules_artifact::ImportedByDeferModulesArtifact;
 pub use module_graph_cache_artifact::*;
 pub use module_ids_artifact::ModuleIdsArtifact;
 pub use process_runtime_requirements_cache_artifact::ProcessRuntimeRequirementsCacheArtifact;
-pub use runtime_proxy_metadata_artifact::{RuntimeProxyMetadata, RuntimeProxyMetadataArtifact};
+pub use runtime_proxy_metadata_artifact::{
+  RuntimeProxyMetadata, RuntimeProxyMetadataArtifact, render_lexical_declarations,
+};
 pub use side_effects_do_optimize_artifact::*;
 pub use side_effects_state_artifact::*;

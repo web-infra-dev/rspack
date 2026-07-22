@@ -20,7 +20,7 @@ impl RuntimeModule for GlobalRuntimeModule {
     _compilation: &Compilation,
   ) -> rspack_core::RuntimeModuleRuntimeRequirements {
     rspack_core::RuntimeModuleRuntimeRequirements {
-      write: { RuntimeGlobals::GLOBAL },
+      define: { RuntimeGlobals::GLOBAL },
       ..Default::default()
     }
   }

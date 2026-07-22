@@ -20,7 +20,7 @@ impl RuntimeModule for ChunkNameRuntimeModule {
     _compilation: &Compilation,
   ) -> rspack_core::RuntimeModuleRuntimeRequirements {
     rspack_core::RuntimeModuleRuntimeRequirements {
-      write: { RuntimeGlobals::CHUNK_NAME },
+      define: { RuntimeGlobals::CHUNK_NAME },
       ..Default::default()
     }
   }
@@ -39,7 +39,7 @@ impl RuntimeModule for ChunkNameRuntimeModule {
         "{} = {};",
         context
           .runtime_template
-          .render_runtime_globals(&RuntimeGlobals::CHUNK_NAME),
+          .render_runtime_global_definition(&RuntimeGlobals::CHUNK_NAME),
         chunk
           .name()
           .map_or_else(|| "null".to_string(), rspack_util::json_stringify_str)

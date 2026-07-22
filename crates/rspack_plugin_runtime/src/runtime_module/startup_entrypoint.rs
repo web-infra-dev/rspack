@@ -42,7 +42,7 @@ impl RuntimeModule for StartupEntrypointRuntimeModule {
       dependencies: RuntimeGlobals::REQUIRE
         | RuntimeGlobals::ENSURE_CHUNK
         | RuntimeGlobals::ENSURE_CHUNK_INCLUDE_ENTRIES,
-      write: { RuntimeGlobals::STARTUP_ENTRYPOINT },
+      define: { RuntimeGlobals::STARTUP_ENTRYPOINT },
       ..Default::default()
     }
   }

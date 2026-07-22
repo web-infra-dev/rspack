@@ -10,6 +10,7 @@ use rspack_core::{
   ModuleCodeGenerationContext, ModuleGraph, ModuleIdentifier, ModuleType, RuntimeSpec, SourceType,
   impl_module_meta_info, impl_source_map_config, module_update_hash,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
+  runtime_mode::RuntimeMode,
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::{RspackHashDigest, RspackHasher};
@@ -21,7 +22,7 @@ use super::{
 };
 use crate::{
   CodeGenerationDataShareInit, ShareInitData, ShareScope,
-  sharing::share_runtime_module::DataInitInfo,
+  sharing::share_runtime_module::DataInitInfo, utils::module_identifier_namespace,
 };
 
 #[impl_source_map_config]
@@ -50,9 +51,11 @@ impl RemoteModule {
     internal_request: String,
     share_scope: ShareScope,
     remote_key: String,
+    runtime_mode: RuntimeMode,
   ) -> Self {
     let readable_identifier = format!("remote {}", &request);
-    let lib_ident = format!("webpack/container/remote/{}", &request);
+    let namespace = module_identifier_namespace(runtime_mode);
+    let lib_ident = format!("{namespace}/container/remote/{request}");
     Self {
       blocks: Default::default(),
       dependencies: Default::default(),

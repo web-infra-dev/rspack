@@ -24,7 +24,7 @@ impl From<rspack_error::Error> for Error {
 
 impl std::fmt::Display for Error {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    write!(f, "Rspack FS Error:")?;
+    write!(f, "Rspack FS Error: ")?;
     match self {
       Error::Io(err) => write!(f, "IO error: {err}"),
     }

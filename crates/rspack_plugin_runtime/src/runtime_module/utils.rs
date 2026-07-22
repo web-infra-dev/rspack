@@ -2,7 +2,7 @@ use std::fmt::Write as _;
 
 use rspack_core::{
   Chunk, ChunkLoading, ChunkUkey, Compilation, PathData, RuntimeCodeTemplate, RuntimeGlobals,
-  SourceType,
+  RuntimeGlobalsRenderMode, SourceType,
   chunk_graph_chunk::{ChunkId, ChunkIdSet},
   get_js_chunk_filename_template, get_undo_path,
 };
@@ -63,16 +63,17 @@ pub fn stringify_chunks(chunks: &ChunkIdSet, value: u8) -> String {
 }
 
 pub fn render_hmr_runtime_state_expression(
-  runtime_template: &RuntimeCodeTemplate<'_>,
+  runtime_template: &RuntimeCodeTemplate,
   key: &str,
 ) -> String {
-  let state_prefix = if runtime_template.uses_lexical_runtime_globals() {
-    RuntimeGlobals::HMR_RUNTIME_STATE_PREFIX
+  let state_prefix = match runtime_template.render_mode() {
+    RuntimeGlobalsRenderMode::RspackLexical => RuntimeGlobals::HMR_RUNTIME_STATE_PREFIX
       .property_name()
       .expect("hmr runtime state prefix should have property name")
-      .to_string()
-  } else {
-    runtime_template.render_runtime_globals(&RuntimeGlobals::HMR_RUNTIME_STATE_PREFIX)
+      .to_string(),
+    RuntimeGlobalsRenderMode::Webpack | RuntimeGlobalsRenderMode::RspackContext => {
+      runtime_template.render_runtime_globals(&RuntimeGlobals::HMR_RUNTIME_STATE_PREFIX)
+    }
   };
   format!("{state_prefix}_{key}")
 }
@@ -98,6 +99,7 @@ pub async fn get_output_dir(
     .get_path(
       &filename,
       PathData::default()
+        .chunk(chunk.ukey(), compilation)
         .chunk_id_optional(chunk.id().map(|id| id.as_str()))
         .chunk_hash_optional(chunk.rendered_hash(
           &compilation.chunk_hashes_artifact,
@@ -254,6 +256,8 @@ pub fn generate_javascript_hmr_runtime(
     key,
     Some(serde_json::json!({
       "_loading_method": method,
+      "_installed_chunks": format!("{method}InstalledChunks"),
+      "_load_update_chunk": format!("{method}LoadUpdateChunk"),
       "_is_hot_test": is_hot_test(),
     })),
   )

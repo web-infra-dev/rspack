@@ -79,13 +79,13 @@ use crate::{
   CompilationLogger, CompilationLogging, CompilerOptions, CompilerPlatform, ConcatenationScope,
   DependenciesDiagnosticsArtifact, DependencyId, DependencyTemplate, DependencyTemplateType,
   DependencyType, Entry, EntryData, EntryOptions, EntryRuntime, Entrypoint, ExecuteModuleId,
-  ExportsInfoArtifact, ExtendedReferencedExport, Filename, ImportPhase, ImportVarMap,
-  ImportedByDeferModulesArtifact, MemoryGCStorage, ModuleFactory, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleIdentifier, ModuleIdsArtifact, ModuleStaticCache, PathData,
-  ProcessRuntimeRequirementsCacheArtifact, ResolverFactory, RuntimeGlobals, RuntimeKeyMap,
-  RuntimeMode, RuntimeModule, RuntimeProxyMetadataArtifact, RuntimeSpec, RuntimeSpecMap,
-  RuntimeTemplate, SharedPluginDriver, SideEffectsOptimizeArtifact, SideEffectsStateArtifact,
-  SourceType, Stats, StatsContext, StealCell, ValueCacheVersions,
+  ExportsInfoArtifact, Filename, ImportPhase, ImportVarMap, ImportedByDeferModulesArtifact,
+  ModuleFactory, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, ModuleIdsArtifact,
+  ModuleStaticCache, PathData, ProcessRuntimeRequirementsCacheArtifact, ReferencedExport,
+  ResolverFactory, RuntimeGlobals, RuntimeKeyMap, RuntimeMode, RuntimeModule,
+  RuntimeProxyMetadataArtifact, RuntimeSpec, RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver,
+  SideEffectsOptimizeArtifact, SideEffectsStateArtifact, SourceType, Stats, StatsContext,
+  StealCell, ValueCacheVersions,
   cache::persistent::occasion::{
     devtool::SourceMapDevToolPluginCacheArtifact, minimize::MinimizePersistentCacheArtifact,
   },
@@ -110,7 +110,7 @@ define_hook!(CompilationSeal: Series(compilation: &Compilation, diagnostics: &mu
 define_hook!(CompilationDependencyReferencedExports: Sync(
   compilation: &Compilation,
   dependency: &DependencyId,
-  referenced_exports: &Option<Vec<ExtendedReferencedExport>>,
+  referenced_exports: &Option<Vec<ReferencedExport>>,
   runtime: Option<&RuntimeSpec>,
   module_graph: Option<&ModuleGraph>
 ));
@@ -406,11 +406,11 @@ impl Compilation {
       module_static_cache: Default::default(),
       code_generated_modules: Default::default(),
       chunk_render_cache_artifact: StealCell::new(ChunkRenderCacheArtifact::new(
-        MemoryGCStorage::new(match &options.cache {
+        match &options.cache {
           CacheOptions::Disabled => 0, // FIXME: this should be removed in future
           CacheOptions::Memory { max_generations } => *max_generations,
           CacheOptions::Persistent(_) => 1,
-        }),
+        },
       )),
       code_generate_cache_artifact: StealCell::new(CodeGenerateCacheArtifact::new(&options)),
       process_runtime_requirements_cache_artifact: StealCell::new(

@@ -14,6 +14,7 @@ import * as liteTapable from '@rspack/lite-tapable';
 import type Watchpack from 'watchpack';
 import type { Source } from 'webpack-sources';
 import {
+  createRealContentHashPluginHooksRegisters,
   createRsdoctorPluginHooksRegisters,
   createRuntimePluginHooksRegisters,
   JsLoaderRspackPlugin,
@@ -1017,6 +1018,11 @@ class Compiler {
         createMapTap,
       ),
       ...createHtmlPluginHooksRegisters(getCompiler, createTap, createMapTap),
+      ...createRealContentHashPluginHooksRegisters(
+        getCompiler,
+        createTap,
+        createMapTap,
+      ),
       ...createRuntimePluginHooksRegisters(
         getCompiler,
         createTap,

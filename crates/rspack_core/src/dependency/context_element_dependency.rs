@@ -8,8 +8,8 @@ use super::{AffectType, FactorizeInfo};
 use crate::{
   AsContextDependency, AsDependencyCodeGeneration, Context, ContextMode, ContextNameSpaceObject,
   ContextOptions, Dependency, DependencyCategory, DependencyId, DependencyType,
-  ExportsInfoArtifact, ExtendedReferencedExport, ImportAttributes, ModuleDependency, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleLayer, ReferencedSpecifier, ResourceIdentifier, RuntimeSpec,
+  ExportsInfoArtifact, ImportAttributes, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
+  ModuleLayer, ReferencedExport, ReferencedSpecifier, ResourceIdentifier, RuntimeSpec,
   create_exports_object_referenced, create_referenced_exports_by_referenced_specifiers,
 };
 
@@ -82,7 +82,7 @@ impl Dependency for ContextElementDependency {
     module_graph_cache: &ModuleGraphCacheArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
     _runtime: Option<&RuntimeSpec>,
-  ) -> Vec<ExtendedReferencedExport> {
+  ) -> Vec<ReferencedExport> {
     if let Some(referenced_specifiers) = &self.referenced_specifiers {
       let Some(parent_module) = module_graph
         .get_parent_module(&self.id)

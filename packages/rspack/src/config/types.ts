@@ -16,8 +16,7 @@ export type LiteralUnion<T extends U, U> = T | (U & Record<never, never>);
 export type FilenameTemplate = string;
 
 export type Filename =
-  | FilenameTemplate
-  | ((pathData: PathData, assetInfo?: AssetInfo) => string);
+  FilenameTemplate | ((pathData: PathData, assetInfo?: AssetInfo) => string);
 
 //#region Name
 /** Name of the configuration. Used when loading multiple configurations. */
@@ -52,8 +51,7 @@ export type Falsy = false | '' | 0 | null | undefined;
 //#region Entry
 /** The publicPath of the resource referenced by this entry. */
 export type PublicPath =
-  | LiteralUnion<'auto', string>
-  | Exclude<Filename, string>;
+  LiteralUnion<'auto', string> | Exclude<Filename, string>;
 
 /** The baseURI of the resource referenced by this entry. */
 export type BaseUri = string;
@@ -292,8 +290,7 @@ export type EnabledLibraryTypes = string[];
 
 /** Whether delete all files in the output directory. */
 export type Clean =
-  | boolean
-  | { keep?: string | RegExp | ((path: string) => boolean) };
+  boolean | { keep?: string | RegExp | ((path: string) => boolean) };
 
 /** Output JavaScript files as module type. */
 export type OutputModule = boolean;
@@ -385,8 +382,7 @@ export interface ModuleFilenameTemplateContext {
 
 /** This option is only used when devtool uses an option that requires module names. */
 export type DevtoolModuleFilenameTemplate =
-  | string
-  | ((context: ModuleFilenameTemplateContext) => string);
+  string | ((context: ModuleFilenameTemplateContext) => string);
 
 /** A fallback is used when the template string or function above yields duplicates. */
 export type DevtoolFallbackModuleFilenameTemplate =
@@ -444,6 +440,9 @@ export type Environment = {
 
   /** The environment supports optional chaining ('obj?.a' or 'obj?.()'). */
   optionalChaining?: boolean;
+
+  /** The environment supports logical assignment ('a ||= b'). */
+  logicalAssignment?: boolean;
 
   /** The environment supports template literals. */
   templateLiteral?: boolean;
@@ -1038,8 +1037,7 @@ export type CssParserResolveImportContext = {
 };
 
 export type CssParserResolveImport =
-  | boolean
-  | ((context: CssParserResolveImportContext) => boolean);
+  boolean | ((context: CssParserResolveImportContext) => boolean);
 
 /** Options object for `css` modules. */
 export type CssParserOptions = {
@@ -1169,6 +1167,114 @@ export type JavascriptParserCommonjsOption =
       exports?: JavascriptParserCommonjsExports;
     };
 
+export type JavascriptParserWorkerOptions =
+  | boolean
+  | string[]
+  | {
+      /** Provide custom syntax for Worker parsing, commonly used to support Worklet */
+      alias?: string[];
+
+      /**
+       * Controls how Worker URLs are generated.
+       * Set to 'new-url-relative' to emit a static new URL(..., import.meta.url) expression.
+       */
+      url?: 'new-url-relative';
+    };
+
+export type ImportMetaParserOptions = {
+  [property: string]: boolean | undefined;
+
+  /**
+   * Enable/disable evaluating import.meta.dirname.
+   */
+  dirname?: boolean;
+
+  /**
+   * Enable/disable evaluating import.meta.filename.
+   */
+  filename?: boolean;
+
+  /**
+   * Enable/disable evaluating import.meta.glob.
+   */
+  glob?: boolean;
+
+  /**
+   * Enable/disable evaluating import.meta.main.
+   */
+  main?: boolean;
+
+  /**
+   * Enable/disable evaluating import.meta.resolve.
+   */
+  resolve?: boolean;
+
+  /**
+   * Enable/disable evaluating import.meta.rspackBaseUri.
+   */
+  rspackBaseUri?: boolean;
+
+  /**
+   * Enable/disable evaluating import.meta.rspackHash.
+   */
+  rspackHash?: boolean;
+
+  /**
+   * Enable/disable evaluating import.meta.rspackInitSharing.
+   */
+  rspackInitSharing?: boolean;
+
+  /**
+   * Enable/disable evaluating import.meta.rspackNonce.
+   */
+  rspackNonce?: boolean;
+
+  /**
+   * Enable/disable evaluating import.meta.rspackPublicPath.
+   */
+  rspackPublicPath?: boolean;
+
+  /**
+   * Enable/disable evaluating import.meta.rspackRsc.
+   */
+  rspackRsc?: boolean;
+
+  /**
+   * Enable/disable evaluating import.meta.rspackShareScopes.
+   */
+  rspackShareScopes?: boolean;
+
+  /**
+   * Enable/disable evaluating import.meta.rspackUniqueId.
+   */
+  rspackUniqueId?: boolean;
+
+  /**
+   * Enable/disable evaluating import.meta.rspackVersion.
+   */
+  rspackVersion?: boolean;
+
+  /**
+   * Enable/disable evaluating import.meta.url.
+   */
+  url?: boolean;
+
+  /**
+   * Enable/disable evaluating import.meta.webpack.
+   */
+  webpack?: boolean;
+
+  /**
+   * Enable/disable evaluating import.meta.webpackContext.
+   */
+  webpackContext?: boolean;
+
+  /**
+   * Enable/disable evaluating import.meta.webpackHot.
+   */
+  webpackHot?: boolean;
+};
+
 export type JavascriptParserOptions = {
   /**
    * Specifies global mode for dynamic import.
@@ -1195,9 +1301,9 @@ export type JavascriptParserOptions = {
   dynamicImportFetchPriority?: 'low' | 'high' | 'auto';
 
   /**
-   * Enable or disable evaluating import.meta. Set to 'preserve-unknown' to preserve unknown properties for runtime evaluation.
+   * Enable or disable evaluating import.meta. Set to 'preserve-unknown' or use an object to preserve unknown properties for runtime evaluation.
    */
-  importMeta?: boolean | 'preserve-unknown';
+  importMeta?: boolean | 'preserve-unknown' | ImportMetaParserOptions;
 
   /**
    * Enable parsing of new URL() syntax.
@@ -1243,8 +1349,8 @@ export type JavascriptParserOptions = {
   /** Handle the this context correctly according to the spec for namespace objects. */
   strictThisContextOnImports?: boolean;
 
-  /** Provide custom syntax for Worker parsing, commonly used to support Worklet */
-  worker?: string[] | boolean;
+  /** Configure Worker parsing and URL generation. */
+  worker?: JavascriptParserWorkerOptions;
 
   /** Override the module to strict or non-strict. */
   overrideStrict?: 'strict' | 'non-strict';
@@ -1380,8 +1486,7 @@ export type ParserOptionsByModuleTypeUnknown = {
 
 /** Configure all parsers' options in one place with module.parser. */
 export type ParserOptionsByModuleType =
-  | ParserOptionsByModuleTypeKnown
-  | ParserOptionsByModuleTypeUnknown;
+  ParserOptionsByModuleTypeKnown | ParserOptionsByModuleTypeUnknown;
 
 export type AssetGeneratorDataUrlOptions = {
   encoding?: false | 'base64';
@@ -1397,8 +1502,7 @@ export type AssetGeneratorDataUrlFunction = (
 ) => string;
 
 export type AssetGeneratorDataUrl =
-  | AssetGeneratorDataUrlOptions
-  | AssetGeneratorDataUrlFunction;
+  AssetGeneratorDataUrlOptions | AssetGeneratorDataUrlFunction;
 
 /** Options for asset inline modules. */
 export type AssetInlineGeneratorOptions = {
@@ -1457,11 +1561,7 @@ export type AssetGeneratorOptions = AssetInlineGeneratorOptions &
   AssetResourceGeneratorOptions;
 
 export type CssGeneratorExportsConvention =
-  | 'as-is'
-  | 'camel-case'
-  | 'camel-case-only'
-  | 'dashes'
-  | 'dashes-only';
+  'as-is' | 'camel-case' | 'camel-case-only' | 'dashes' | 'dashes-only';
 
 export type CssGeneratorExportsOnly = boolean;
 
@@ -1572,8 +1672,7 @@ export type GeneratorOptionsByModuleTypeUnknown = Record<
 
 /** Options for module.generator */
 export type GeneratorOptionsByModuleType =
-  | GeneratorOptionsByModuleTypeKnown
-  | GeneratorOptionsByModuleTypeUnknown;
+  GeneratorOptionsByModuleTypeKnown | GeneratorOptionsByModuleTypeUnknown;
 
 type NoParseOptionSingle = string | RegExp | ((request: string) => boolean);
 
@@ -2043,9 +2142,7 @@ export type MemoryCacheOptions = {
  * cache: false
  */
 export type CacheOptions =
-  | boolean
-  | MemoryCacheOptions
-  | PersistentCacheOptions;
+  boolean | MemoryCacheOptions | PersistentCacheOptions;
 //#endregion
 
 //#region Stats
@@ -2061,21 +2158,15 @@ export type StatsPresets =
   | 'summary';
 
 type AssetFilterItemTypes =
-  | RegExp
-  | string
-  | ((name: string, asset: any) => boolean);
+  RegExp | string | ((name: string, asset: any) => boolean);
 
 type AssetFilterTypes = boolean | AssetFilterItemTypes | AssetFilterItemTypes[];
 
 type ModuleFilterItemTypes =
-  | RegExp
-  | string
-  | ((name: string, module: any, type: any) => boolean);
+  RegExp | string | ((name: string, module: any, type: any) => boolean);
 
 type ModuleFilterTypes =
-  | boolean
-  | ModuleFilterItemTypes
-  | ModuleFilterItemTypes[];
+  boolean | ModuleFilterItemTypes | ModuleFilterItemTypes[];
 
 export type StatsColorOptions = {
   /**
@@ -2539,18 +2630,12 @@ export type OptimizationSplitChunksNameFunction = (
 ) => string | undefined;
 
 type OptimizationSplitChunksName =
-  | string
-  | false
-  | OptimizationSplitChunksNameFunction;
+  string | false | OptimizationSplitChunksNameFunction;
 
 type OptimizationSplitChunksSizes = number | Record<string, number>;
 
 type OptimizationSplitChunksChunks =
-  | 'initial'
-  | 'async'
-  | 'all'
-  | RegExp
-  | ((chunk: Chunk) => boolean);
+  'initial' | 'async' | 'all' | RegExp | ((chunk: Chunk) => boolean);
 
 type SharedOptimizationSplitChunksCacheGroup = {
   /**
@@ -2976,11 +3061,7 @@ export type Incremental = {
  * Presets for incremental
  */
 export type IncrementalPresets =
-  | boolean
-  | 'none'
-  | 'safe'
-  | 'advance'
-  | 'advance-silent';
+  boolean | 'none' | 'safe' | 'advance' | 'advance-silent';
 
 /**
  * Options for experiments.buildHttp

@@ -529,6 +529,10 @@ impl ExternalModule {
     &self.external_type
   }
 
+  pub fn get_import_phase(&self) -> ImportPhase {
+    self.dependency_meta.phase
+  }
+
   pub fn resolve_external_type(&self) -> &str {
     resolve_external_type(self.external_type.as_str(), &self.dependency_meta)
   }

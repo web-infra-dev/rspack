@@ -11,6 +11,7 @@ mod esm_export_dependency_parser_plugin;
 mod esm_import_dependency_parser_plugin;
 mod esm_top_level_this_plugin;
 mod import_meta_context_dependency_parser_plugin;
+mod import_meta_path;
 mod import_meta_plugin;
 mod import_parser_plugin;
 mod import_phase;
@@ -40,9 +41,9 @@ pub(crate) use self::{
   common_js_exports_parse_plugin::CommonJsExportsParserPlugin,
   common_js_imports_parse_plugin::{
     CREATE_REQUIRE_EVALUATED_TAG, CREATE_REQUIRE_SPECIFIER_TAG, CREATED_REQUIRE_IDENTIFIER_TAG,
-    CommonJsImportsParserPlugin, CreatedRequireTagData, RequireReferencesState,
-    evaluate_create_require_new_expression, is_create_require_namespace_member,
-    is_create_require_specifier,
+    CommonJsImportsParserPlugin, CreatedRequireReferencesState, CreatedRequireTagData,
+    RequireReferencesState, evaluate_create_require_new_expression,
+    is_create_require_namespace_member, is_create_require_specifier,
   },
   common_js_plugin::CommonJsPlugin,
   compatibility_plugin::CompatibilityPlugin,

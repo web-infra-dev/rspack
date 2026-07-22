@@ -1,69 +1,150 @@
+use bitflags::bitflags;
 use rspack_util::atom::Atom;
 use rustc_hash::FxHashSet;
+use smallvec::SmallVec;
 
 use crate::{ExportInfo, ExportInfoData, ExportsInfoArtifact, RuntimeSpec, UsageState};
 
-/// refer https://github.com/webpack/webpack/blob/d15c73469fd71cf98734685225250148b68ddc79/lib/FlagDependencyUsagePlugin.js#L64
-#[derive(Clone, Debug)]
-pub enum ExtendedReferencedExport {
-  Array(Vec<Atom>),
-  Export(ReferencedExport),
+pub type ReferencedExportPath = SmallVec<[Atom; 2]>;
+
+bitflags! {
+  #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+  pub struct ReferencedExportFlags: u8 {
+    const CAN_MANGLE = 1 << 0;
+    const CAN_INLINE = 1 << 1;
+    const NS_ACCESS = 1 << 2;
+  }
 }
 
-pub fn is_no_exports_referenced(exports: &[ExtendedReferencedExport]) -> bool {
+impl Default for ReferencedExportFlags {
+  fn default() -> Self {
+    Self::CAN_MANGLE | Self::CAN_INLINE
+  }
+}
+
+impl ReferencedExportFlags {
+  #[inline]
+  pub fn merge(&mut self, other: Self) {
+    self.set(
+      Self::CAN_MANGLE,
+      self.contains(Self::CAN_MANGLE) && other.contains(Self::CAN_MANGLE),
+    );
+    self.set(
+      Self::CAN_INLINE,
+      self.contains(Self::CAN_INLINE) && other.contains(Self::CAN_INLINE),
+    );
+    self.set(
+      Self::NS_ACCESS,
+      self.contains(Self::NS_ACCESS) || other.contains(Self::NS_ACCESS),
+    );
+  }
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct ReferencedExport {
+  pub name: ReferencedExportPath,
+  pub flags: ReferencedExportFlags,
+}
+
+pub fn is_no_exports_referenced(exports: &[ReferencedExport]) -> bool {
   exports.is_empty()
 }
 
-pub fn is_exports_object_referenced(exports: &[ExtendedReferencedExport]) -> bool {
-  matches!(exports[..], [ExtendedReferencedExport::Array(ref arr)] if arr.is_empty())
+pub fn is_exports_object_referenced(exports: &[ReferencedExport]) -> bool {
+  matches!(exports, [export] if export.name.is_empty())
 }
 
-pub fn create_no_exports_referenced() -> Vec<ExtendedReferencedExport> {
+pub fn create_no_exports_referenced() -> Vec<ReferencedExport> {
   vec![]
 }
 
-pub fn create_exports_object_referenced() -> Vec<ExtendedReferencedExport> {
-  vec![ExtendedReferencedExport::Array(vec![])]
+pub fn create_exports_object_referenced() -> Vec<ReferencedExport> {
+  vec![ReferencedExport::default()]
 }
 
-impl From<Vec<Atom>> for ExtendedReferencedExport {
+impl From<Vec<Atom>> for ReferencedExport {
+  #[inline]
   fn from(value: Vec<Atom>) -> Self {
-    ExtendedReferencedExport::Array(value)
-  }
-}
-impl From<ReferencedExport> for ExtendedReferencedExport {
-  fn from(value: ReferencedExport) -> Self {
-    ExtendedReferencedExport::Export(value)
+    Self::from(ReferencedExportPath::from_vec(value))
   }
 }
 
-#[derive(Clone, Debug)]
-pub struct ReferencedExport {
-  pub name: Vec<Atom>,
-  pub can_mangle: bool,
-  pub can_inline: bool,
-  pub ns_access: bool,
+impl From<Vec<&Atom>> for ReferencedExport {
+  #[inline]
+  fn from(value: Vec<&Atom>) -> Self {
+    Self::from(value.into_iter().cloned().collect::<ReferencedExportPath>())
+  }
+}
+
+impl From<&[Atom]> for ReferencedExport {
+  #[inline]
+  fn from(value: &[Atom]) -> Self {
+    Self::from(ReferencedExportPath::from(value))
+  }
+}
+
+impl From<ReferencedExportPath> for ReferencedExport {
+  #[inline]
+  fn from(name: ReferencedExportPath) -> Self {
+    Self {
+      name,
+      flags: ReferencedExportFlags::default(),
+    }
+  }
+}
+
+impl From<Atom> for ReferencedExport {
+  #[inline]
+  fn from(value: Atom) -> Self {
+    let mut path = ReferencedExportPath::new();
+    path.push(value);
+    Self::from(path)
+  }
+}
+
+impl From<&Atom> for ReferencedExport {
+  #[inline]
+  fn from(value: &Atom) -> Self {
+    Self::from(value.clone())
+  }
 }
 
 impl ReferencedExport {
-  pub fn new(name: Vec<Atom>, can_mangle: bool, can_inline: bool) -> Self {
-    Self {
-      name,
-      can_mangle,
-      can_inline,
-      ns_access: false,
-    }
+  #[inline]
+  pub fn with_can_mangle(mut self, can_mangle: bool) -> Self {
+    self
+      .flags
+      .set(ReferencedExportFlags::CAN_MANGLE, can_mangle);
+    self
   }
-}
 
-impl Default for ReferencedExport {
-  fn default() -> Self {
-    Self {
-      name: vec![],
-      can_mangle: true,
-      can_inline: true,
-      ns_access: false,
-    }
+  #[inline]
+  pub fn with_can_inline(mut self, can_inline: bool) -> Self {
+    self
+      .flags
+      .set(ReferencedExportFlags::CAN_INLINE, can_inline);
+    self
+  }
+
+  #[inline]
+  pub fn with_ns_access(mut self, ns_access: bool) -> Self {
+    self.flags.set(ReferencedExportFlags::NS_ACCESS, ns_access);
+    self
+  }
+
+  #[inline]
+  pub fn can_mangle(&self) -> bool {
+    self.flags.contains(ReferencedExportFlags::CAN_MANGLE)
+  }
+
+  #[inline]
+  pub fn can_inline(&self) -> bool {
+    self.flags.contains(ReferencedExportFlags::CAN_INLINE)
+  }
+
+  #[inline]
+  pub fn ns_access(&self) -> bool {
+    self.flags.contains(ReferencedExportFlags::NS_ACCESS)
   }
 }
 

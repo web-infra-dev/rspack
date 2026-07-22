@@ -39,24 +39,15 @@ jobs:
         shell: bash
     steps:
       - name: Checkout
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
         with:
           ref: ${{ inputs.ref }}
           clean: ${{ runner.environment == 'github-hosted' }}
 
       - name: Disable CPU hogs (Windows)
         if: runner.os == 'Windows'
-        shell: powershell
         continue-on-error: true
-        run: |
-          $ErrorActionPreference = 'SilentlyContinue'
-          Set-MpPreference -DisableRealtimeMonitoring $true -Force
-          Add-MpPreference -ExclusionPath "C:\" -Force
-          Add-MpPreference -ExclusionPath "D:\" -Force
-          sc.exe config wuauserv start= disabled
-          Stop-Service wuauserv
-          reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\wsl.exe" /v Debugger /t REG_SZ /d "block.exe" /f
-          reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\CompatTelRunner.exe" /v Debugger /t REG_SZ /d "block.exe" /f
+        uses: ./.github/actions/windows-disable-cpu-hogs
 
       - name: Download and install zstd
         if: ${{ runner.os == 'Windows' }}

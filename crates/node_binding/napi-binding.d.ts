@@ -466,13 +466,6 @@ export declare class NativeWatcher {
   constructor(options: NativeWatcherOptions)
   watch(files: [Array<string>, Array<string>], directories: [Array<string>, Array<string>], missing: [Array<string>, Array<string>], startTime: bigint, callback: (err: Error | null, result: NativeWatchResult) => void, callbackUndelayed: (event: NativeWatchUndelayedEvent) => void): void
   triggerEvent(kind: 'change' | 'remove' | 'create', path: string): void
-  /**
-   * # Safety
-   *
-   * This function is unsafe because it uses `&mut self` to call the watcher asynchronously.
-   * It's important to ensure that the watcher is not used in any other places before this function is finished.
-   * You must ensure that the watcher not call watch, close or pause in the same time, otherwise it may lead to undefined behavior.
-   */
   close(): Promise<void>
   pause(): void
 }
@@ -1020,13 +1013,18 @@ export interface JsPathData {
   runtime?: string
   url?: string
   id?: string
-  chunk?: JsPathDataChunkLike
+  chunk?: Chunk | JsPathDataChunkLike
 }
 
 export interface JsPathDataChunkLike {
+  id?: string | number
   name?: string
   hash?: string
-  id?: string
+}
+
+export interface JsRealContentHashPluginUpdateHashData {
+  assets: Array<Buffer>
+  oldHash: string
 }
 
 export interface JsResolveData {
@@ -2276,6 +2274,7 @@ export interface RawEnvironment {
   globalThis: boolean
   module: boolean
   optionalChaining: boolean
+  logicalAssignment: boolean
   templateLiteral: boolean
   dynamicImportInWorker: boolean
   importMetaDirnameAndFilename: boolean
@@ -2496,9 +2495,9 @@ export interface RawJavascriptParserOptions {
   exportsPresence?: string
   importExportsPresence?: string
   reexportExportsPresence?: string
-  worker?: Array<string>
+  worker?: boolean | Array<string> | RawJavascriptParserWorkerOptions
   overrideStrict?: string
-  importMeta?: string
+  importMeta?: string | Record<string, boolean>
   commonjsMagicComments?: boolean
   createRequire?: boolean | string
 commonjs?: boolean | { exports?: boolean | 'skipInEsm' }
@@ -2550,6 +2549,11 @@ importMetaResolve?: boolean
  * @experimental
  */
 pureFunctions?: Array<string>
+}
+
+export interface RawJavascriptParserWorkerOptions {
+  alias?: Array<string>
+  url?: string
 }
 
 export interface RawJsonGeneratorOptions {
@@ -3234,11 +3238,12 @@ export declare enum RegisterJsTapKind {
   RuntimePluginCreateLink = 44,
   RuntimePluginLinkPreload = 45,
   RuntimePluginLinkPrefetch = 46,
-  RsdoctorPluginModuleGraph = 47,
-  RsdoctorPluginChunkGraph = 48,
-  RsdoctorPluginModuleIds = 49,
-  RsdoctorPluginModuleSources = 50,
-  RsdoctorPluginAssets = 51
+  RealContentHashPluginUpdateHash = 47,
+  RsdoctorPluginModuleGraph = 48,
+  RsdoctorPluginChunkGraph = 49,
+  RsdoctorPluginModuleIds = 50,
+  RsdoctorPluginModuleSources = 51,
+  RsdoctorPluginAssets = 52
 }
 
 export interface RegisterJsTaps {
@@ -3289,6 +3294,7 @@ export interface RegisterJsTaps {
   registerRuntimePluginCreateLinkTaps: (stages: Array<number>) => Array<{ function: ((arg: JsLinkPreloadData) => String); stage: number; }>
   registerRuntimePluginLinkPreloadTaps: (stages: Array<number>) => Array<{ function: ((arg: JsCreateLinkData) => String); stage: number; }>
   registerRuntimePluginLinkPrefetchTaps: (stages: Array<number>) => Array<{ function: ((arg: JsLinkPrefetchData) => String); stage: number; }>
+  registerRealContentHashPluginUpdateHashTaps: (stages: Array<number>) => Array<{ function: ((data: JsRealContentHashPluginUpdateHashData) => string | undefined); stage: number; }>
   registerRsdoctorPluginModuleGraphTaps: (stages: Array<number>) => Array<{ function: ((arg: JsRsdoctorModuleGraph) => Promise<boolean | undefined>); stage: number; }>
   registerRsdoctorPluginChunkGraphTaps: (stages: Array<number>) => Array<{ function: ((arg: JsRsdoctorChunkGraph) => Promise<boolean | undefined>); stage: number; }>
   registerRsdoctorPluginModuleIdsTaps: (stages: Array<number>) => Array<{ function: ((arg: JsRsdoctorModuleIdsPatch) => Promise<boolean | undefined>); stage: number; }>

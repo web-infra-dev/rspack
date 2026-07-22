@@ -16,7 +16,7 @@ use rspack_paths::Utf8PathBuf;
 use rspack_util::allocative;
 
 use super::CleanOptions;
-use crate::{Chunk, ChunkGroupByUkey, ChunkKind, Compilation, Filename};
+use crate::{Chunk, ChunkGroupByUkey, ChunkKind, ChunkUkey, Compilation, Filename};
 
 #[derive(Debug)]
 pub enum PathInfo {
@@ -278,6 +278,7 @@ impl fmt::Display for CrossOriginLoading {
 #[derive(Default, Clone, Copy, Debug)]
 pub struct PathData<'a> {
   pub filename: Option<&'a str>,
+  pub chunk: Option<PathDataChunk<'a>>,
   pub chunk_name: Option<&'a str>,
   pub chunk_hash: Option<&'a str>,
   pub chunk_id: Option<&'a str>,
@@ -287,6 +288,12 @@ pub struct PathData<'a> {
   pub runtime: Option<&'a str>,
   pub url: Option<&'a str>,
   pub id: Option<&'a str>,
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct PathDataChunk<'a> {
+  pub chunk_ukey: ChunkUkey,
+  pub compilation: &'a Compilation,
 }
 
 static MATCH_ID_REGEX: LazyLock<Regex> =
@@ -308,6 +315,14 @@ impl<'a> PathData<'a> {
 
   pub fn filename(mut self, v: &'a str) -> Self {
     self.filename = Some(v);
+    self
+  }
+
+  pub fn chunk(mut self, chunk_ukey: ChunkUkey, compilation: &'a Compilation) -> Self {
+    self.chunk = Some(PathDataChunk {
+      chunk_ukey,
+      compilation,
+    });
     self
   }
 
@@ -618,6 +633,7 @@ pub struct Environment {
   pub global_this: bool,
   pub module: bool,
   pub optional_chaining: bool,
+  pub logical_assignment: bool,
   pub template_literal: bool,
   pub dynamic_import_in_worker: bool,
   pub import_meta_dirname_and_filename: bool,
@@ -686,6 +702,10 @@ impl Environment {
 
   pub fn supports_optional_chaining(&self) -> bool {
     self.optional_chaining
+  }
+
+  pub fn supports_logical_assignment(&self) -> bool {
+    self.logical_assignment
   }
 
   pub fn supports_template_literal(&self) -> bool {

@@ -5,11 +5,12 @@
  * Author Donny/강동윤
  * Copyright (c)
  */
-use std::{cell::RefCell, fs::File, path::PathBuf, rc::Rc, sync::Arc};
+use std::{cell::RefCell, path::PathBuf, rc::Rc, sync::Arc};
 
 use anyhow::{Context, bail};
 use indoc::formatdoc;
 use rspack_error::Result;
+use rspack_sources::SourceMap as RspackSourceMap;
 use rspack_util::{base64, source_map::SourceMapKind};
 use rustc_hash::FxHashSet as HashSet;
 use swc_config::{is_module::IsModule, merge::Merge};
@@ -20,7 +21,6 @@ use swc_core::{
     config::{
       BuiltInput, Config, InputSourceMap, JsMinifyCommentOption, OutputCharset, SourceMapsConfig,
     },
-    sourcemap,
   },
   common::{
     FileName, GLOBALS, Mark, SourceFile, SourceMap,
@@ -338,7 +338,7 @@ impl<'a> JavaScriptTransformer<'a> {
       source_map: self.cm.clone(),
       target,
       source_map_config,
-      input_source_map: input_source_map.as_ref(),
+      input_source_map,
       minify,
       comments: Some(&self.comments as &dyn Comments),
       preamble: &built_input.output.preamble,
@@ -513,11 +513,11 @@ impl<'a> JavaScriptTransformer<'a> {
   pub fn input_source_map(
     &self,
     input_src_map: &InputSourceMap,
-  ) -> Result<Option<sourcemap::SourceMap>, anyhow::Error> {
+  ) -> Result<Option<RspackSourceMap<'static>>, anyhow::Error> {
     let fm = &self.fm;
     let name = &self.fm.name;
     let read_inline_sourcemap =
-      |data_url: Option<&str>| -> Result<Option<sourcemap::SourceMap>, anyhow::Error> {
+      |data_url: Option<&str>| -> Result<Option<RspackSourceMap<'static>>, anyhow::Error> {
         match data_url {
           Some(data_url) => {
             let url = Url::parse(data_url)
@@ -535,7 +535,7 @@ impl<'a> JavaScriptTransformer<'a> {
             let res = base64::decode_to_vec(content.as_bytes())
               .context("failed to decode base64-encoded source map")?;
 
-            Ok(Some(sourcemap::SourceMap::from_slice(&res).context(
+            Ok(Some(RspackSourceMap::from_bytes(res).context(
               "failed to read input source map from inlined base64 encoded \
                                 string",
             )?))
@@ -547,7 +547,7 @@ impl<'a> JavaScriptTransformer<'a> {
       };
 
     let read_file_sourcemap =
-      |data_url: Option<&str>| -> Result<Option<sourcemap::SourceMap>, anyhow::Error> {
+      |data_url: Option<&str>| -> Result<Option<RspackSourceMap<'static>>, anyhow::Error> {
         match name.as_ref() {
           FileName::Real(filename) => {
             let dir = match filename.parent() {
@@ -595,12 +595,12 @@ impl<'a> JavaScriptTransformer<'a> {
             match map_path {
               Some(map_path) => {
                 let path = map_path.display().to_string();
-                let file = File::open(&path);
+                let content = std::fs::read(&path);
 
                 // Old behavior.
-                let file = file?;
+                let content = content?;
 
-                Ok(Some(sourcemap::SourceMap::from_reader(file).with_context(
+                Ok(Some(RspackSourceMap::from_bytes(content).with_context(
                   || {
                     format!(
                       "failed to read input source map
@@ -616,7 +616,7 @@ impl<'a> JavaScriptTransformer<'a> {
         }
       };
 
-    let read_sourcemap = || -> Option<sourcemap::SourceMap> {
+    let read_sourcemap = || -> Option<RspackSourceMap<'static>> {
       let s = "sourceMappingURL=";
       let idx = fm.src.rfind(s);
 
@@ -647,10 +647,9 @@ impl<'a> JavaScriptTransformer<'a> {
           Ok(read_sourcemap())
         } else {
           // Load source map passed by user
-          Ok(Some(
-            sourcemap::SourceMap::from_slice(s.as_bytes())
-              .context("failed to read input source map from user-provided sourcemap")?,
-          ))
+          Ok(Some(RspackSourceMap::from_json(s.clone()).context(
+            "failed to read input source map from user-provided sourcemap",
+          )?))
         }
       }
     }

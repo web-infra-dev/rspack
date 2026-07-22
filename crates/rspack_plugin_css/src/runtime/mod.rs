@@ -1,4 +1,4 @@
-use std::{borrow::Cow, ptr::NonNull, sync::LazyLock};
+use std::sync::LazyLock;
 
 use rspack_core::{
   BooleanMatcher, ChunkGroupOrderKey, Compilation, CrossOriginLoading, RuntimeGlobals,
@@ -7,9 +7,8 @@ use rspack_core::{
   impl_runtime_module,
 };
 use rspack_plugin_runtime::{
-  CreateLinkData, LinkPrefetchData, LinkPreloadData, RuntimeModuleChunkWrapper, RuntimePlugin,
-  chunk_has_css, extract_runtime_globals_dependencies_from_ejs, get_chunk_runtime_requirements,
-  stringify_chunks,
+  CreateLinkData, LinkPrefetchData, LinkPreloadData, RuntimePlugin, chunk_has_css,
+  extract_runtime_globals_from_ejs, get_chunk_runtime_requirements, stringify_chunks,
 };
 use rspack_util::json_stringify;
 
@@ -28,71 +27,32 @@ static CSS_LOADING_WITH_STYLE_SHEET_TEMPLATE: &str =
   include_str!("./css_loading_with_style_sheet.ejs");
 
 static CSS_LOADING_BASIC_RUNTIME_REQUIREMENTS: LazyLock<RuntimeModuleRuntimeRequirements> =
-  LazyLock::new(|| RuntimeModuleRuntimeRequirements {
-    dependencies: extract_runtime_globals_dependencies_from_ejs(
-      CSS_LOADING_TEMPLATE,
-      RuntimeGlobals::default(),
-    ),
-    ..Default::default()
-  });
+  LazyLock::new(|| extract_runtime_globals_from_ejs(CSS_LOADING_TEMPLATE));
+static CSS_LOADING_CREATE_LINK_RUNTIME_REQUIREMENTS: LazyLock<RuntimeModuleRuntimeRequirements> =
+  LazyLock::new(|| extract_runtime_globals_from_ejs(CSS_LOADING_CREATE_LINK_TEMPLATE));
 static CSS_LOADING_WITH_LOADING_RUNTIME_REQUIREMENTS: LazyLock<RuntimeModuleRuntimeRequirements> =
-  LazyLock::new(|| RuntimeModuleRuntimeRequirements {
-    dependencies: extract_runtime_globals_dependencies_from_ejs(
-      CSS_LOADING_WITH_LOADING_TEMPLATE,
-      RuntimeGlobals::default(),
-    ),
-    ..Default::default()
-  });
+  LazyLock::new(|| extract_runtime_globals_from_ejs(CSS_LOADING_WITH_LOADING_TEMPLATE));
 static CSS_LOADING_WITH_HMR_RUNTIME_REQUIREMENTS: LazyLock<RuntimeModuleRuntimeRequirements> =
-  LazyLock::new(|| RuntimeModuleRuntimeRequirements {
-    dependencies: extract_runtime_globals_dependencies_from_ejs(
-      CSS_LOADING_WITH_HMR_TEMPLATE,
-      RuntimeGlobals::default(),
-    ),
-    ..Default::default()
-  });
+  LazyLock::new(|| extract_runtime_globals_from_ejs(CSS_LOADING_WITH_HMR_TEMPLATE));
 static CSS_LOADING_WITH_PREFETCH_RUNTIME_REQUIREMENTS: LazyLock<RuntimeModuleRuntimeRequirements> =
-  LazyLock::new(|| RuntimeModuleRuntimeRequirements {
-    dependencies: extract_runtime_globals_dependencies_from_ejs(
-      CSS_LOADING_WITH_PREFETCH_TEMPLATE,
-      RuntimeGlobals::default(),
-    ) | extract_runtime_globals_dependencies_from_ejs(
-      CSS_LOADING_WITH_PREFETCH_LINK_TEMPLATE,
-      RuntimeGlobals::SCRIPT_NONCE,
-    ),
-    weak: RuntimeGlobals::SCRIPT_NONCE,
-    ..Default::default()
+  LazyLock::new(|| {
+    extract_runtime_globals_from_ejs(CSS_LOADING_WITH_PREFETCH_TEMPLATE)
+      | extract_runtime_globals_from_ejs(CSS_LOADING_WITH_PREFETCH_LINK_TEMPLATE)
   });
 static CSS_LOADING_WITH_PRELOAD_RUNTIME_REQUIREMENTS: LazyLock<RuntimeModuleRuntimeRequirements> =
-  LazyLock::new(|| RuntimeModuleRuntimeRequirements {
-    dependencies: extract_runtime_globals_dependencies_from_ejs(
-      CSS_LOADING_WITH_PRELOAD_TEMPLATE,
-      RuntimeGlobals::default(),
-    ) | extract_runtime_globals_dependencies_from_ejs(
-      CSS_LOADING_WITH_PRELOAD_LINK_TEMPLATE,
-      RuntimeGlobals::SCRIPT_NONCE,
-    ),
-    weak: RuntimeGlobals::SCRIPT_NONCE,
-    ..Default::default()
+  LazyLock::new(|| {
+    extract_runtime_globals_from_ejs(CSS_LOADING_WITH_PRELOAD_TEMPLATE)
+      | extract_runtime_globals_from_ejs(CSS_LOADING_WITH_PRELOAD_LINK_TEMPLATE)
   });
 static CSS_LOADING_WITH_STYLE_RUNTIME_REQUIREMENTS: LazyLock<RuntimeModuleRuntimeRequirements> =
   LazyLock::new(|| RuntimeModuleRuntimeRequirements {
-    dependencies: extract_runtime_globals_dependencies_from_ejs(
-      CSS_LOADING_WITH_STYLE_TEMPLATE,
-      RuntimeGlobals::CSS_INJECT_STYLE | RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS,
-    ),
-    write: RuntimeGlobals::CSS_INJECT_STYLE,
-    ..Default::default()
+    define: RuntimeGlobals::CSS_INJECT_STYLE,
+    ..extract_runtime_globals_from_ejs(CSS_LOADING_WITH_STYLE_TEMPLATE)
   });
 static CSS_LOADING_WITH_STYLE_SHEET_RUNTIME_REQUIREMENTS: LazyLock<
   RuntimeModuleRuntimeRequirements,
 > = LazyLock::new(|| RuntimeModuleRuntimeRequirements {
-  dependencies: extract_runtime_globals_dependencies_from_ejs(
-    CSS_LOADING_WITH_STYLE_SHEET_TEMPLATE,
-    RuntimeGlobals::CSS_STYLE_SHEET,
-  ),
-  write: RuntimeGlobals::CSS_STYLE_SHEET,
-  ..Default::default()
+  ..extract_runtime_globals_from_ejs(CSS_LOADING_WITH_STYLE_SHEET_TEMPLATE)
 });
 
 #[impl_runtime_module]
@@ -170,37 +130,45 @@ impl RuntimeModule for CssLoadingRuntimeModule {
     };
     let runtime_requirements = get_chunk_runtime_requirements(compilation, &chunk_ukey);
     let mut dependencies = RuntimeGlobals::default();
-    let weak = RuntimeGlobals::SCRIPT_NONCE;
+    let mut weak = RuntimeGlobals::default();
     if runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS) {
       dependencies.insert(
         Self::get_runtime_requirements_basic() | Self::get_runtime_requirements_with_loading(),
       );
+      weak.insert(CSS_LOADING_CREATE_LINK_RUNTIME_REQUIREMENTS.weak);
     }
     if runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS) {
       dependencies
         .insert(Self::get_runtime_requirements_basic() | Self::get_runtime_requirements_with_hmr());
+      weak.insert(CSS_LOADING_CREATE_LINK_RUNTIME_REQUIREMENTS.weak);
     }
     if runtime_requirements.contains(RuntimeGlobals::PREFETCH_CHUNK_HANDLERS) {
-      dependencies.insert(Self::get_runtime_requirements_with_prefetch());
+      let requirements = *CSS_LOADING_WITH_PREFETCH_RUNTIME_REQUIREMENTS;
+      dependencies.insert(requirements.dependencies);
+      weak.insert(requirements.weak);
     }
     if runtime_requirements.contains(RuntimeGlobals::PRELOAD_CHUNK_HANDLERS) {
-      dependencies.insert(Self::get_runtime_requirements_with_preload());
+      let requirements = *CSS_LOADING_WITH_PRELOAD_RUNTIME_REQUIREMENTS;
+      dependencies.insert(requirements.dependencies);
+      weak.insert(requirements.weak);
     }
-    let mut write = RuntimeGlobals::default();
+    let mut define = RuntimeGlobals::default();
     if runtime_requirements.contains(RuntimeGlobals::CSS_INJECT_STYLE) {
       let requirements = Self::get_runtime_requirements_with_style();
       dependencies.insert(requirements.dependencies);
-      write.insert(requirements.write);
+      weak.insert(requirements.weak);
+      define.insert(requirements.define);
     }
     if runtime_requirements.contains(RuntimeGlobals::CSS_STYLE_SHEET) {
       let requirements = Self::get_runtime_requirements_with_style_sheet();
       dependencies.insert(requirements.dependencies);
-      write.insert(requirements.write);
+      weak.insert(requirements.weak);
+      define.insert(requirements.define);
     }
     rspack_core::RuntimeModuleRuntimeRequirements {
       dependencies,
       weak,
-      write,
+      define,
       ..Default::default()
     }
   }
@@ -334,7 +302,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
         // One entry initial chunk maybe is other entry dynamic chunk, so here
         // only render chunk without css. See packages/rspack/tests/runtimeCases/runtime/split-css-chunk test.
         source.push_str(&format!(
-          "var installedChunks = {};\n",
+          "var cssInstalledChunks = {};\n",
           &stringify_chunks(&initial_chunk_ids, 0)
         ));
 
@@ -353,74 +321,22 @@ impl RuntimeModule for CssLoadingRuntimeModule {
         let create_link = runtime_hooks
           .borrow()
           .create_link
-          .call(CreateLinkData {
-            code: create_link_raw,
-            chunk: RuntimeModuleChunkWrapper {
-              chunk_ukey,
-              compilation_id: compilation.id(),
-              compilation: NonNull::from(compilation),
+          .call(
+            compilation,
+            CreateLinkData {
+              code: create_link_raw,
+              chunk,
             },
-          })
+          )
           .await?;
 
         let chunk_load_timeout = compilation.options.output.chunk_load_timeout.to_string();
-        let module_factories =
-          runtime_template.render_runtime_globals(&RuntimeGlobals::MODULE_FACTORIES);
-
-        let load_css_chunk_data = runtime_template.basic_function(
-          "target, chunkId",
-          &format!(
-            r#"{}
-installedChunks[chunkId] = 0;
-{}"#,
-            with_css_hmr
-              .then_some(format!(
-                "var moduleIds = [];\nif(target == {module_factories})"
-              ))
-              .unwrap_or_default(),
-            if with_css_hmr {
-              "return moduleIds"
-            } else {
-              Default::default()
-            },
-          ),
-        );
-        let load_initial_chunk_data = if initial_chunk_ids.len() > 2 {
-          Cow::Owned(format!(
-            "[{}].forEach(loadCssChunkData.bind(null, {}, 0));",
-            initial_chunk_ids
-              .iter()
-              .map(rspack_util::json_stringify)
-              .collect::<Vec<_>>()
-              .join(","),
-            runtime_template.render_runtime_globals(&RuntimeGlobals::MODULE_FACTORIES)
-          ))
-        } else if !initial_chunk_ids.is_empty() {
-          Cow::Owned(
-            initial_chunk_ids
-              .iter()
-              .map(|id| {
-                let id = rspack_util::json_stringify(id);
-                format!(
-                  "loadCssChunkData({}, 0, {});",
-                  runtime_template.render_runtime_globals(&RuntimeGlobals::MODULE_FACTORIES),
-                  id
-                )
-              })
-              .collect::<String>(),
-          )
-        } else {
-          Cow::Borrowed("// no initial css")
-        };
-
         let raw_source = context.runtime_template.render(
           &self.template_id(TemplateId::Raw),
           Some(serde_json::json!({
             "_unique_name": unique_name,
-            "_css_chunk_data": &load_css_chunk_data,
             "_create_link": &create_link.code,
             "_chunk_load_timeout": &chunk_load_timeout,
-            "_initial_css_chunk_data": &load_initial_chunk_data,
           })),
         )?;
         source.push_str(&raw_source);
@@ -447,14 +363,13 @@ installedChunks[chunkId] = 0;
           let link_prefetch = runtime_hooks
             .borrow()
             .link_prefetch
-            .call(LinkPrefetchData {
-              code: link_prefetch_raw,
-              chunk: RuntimeModuleChunkWrapper {
-                chunk_ukey,
-                compilation_id: compilation.id(),
-                compilation: NonNull::from(compilation),
+            .call(
+              compilation,
+              LinkPrefetchData {
+                code: link_prefetch_raw,
+                chunk,
               },
-            })
+            )
             .await?;
 
           let source_with_prefetch = context.runtime_template.render(
@@ -479,14 +394,13 @@ installedChunks[chunkId] = 0;
           let link_preload = runtime_hooks
             .borrow()
             .link_preload
-            .call(LinkPreloadData {
-              code: link_preload_raw,
-              chunk: RuntimeModuleChunkWrapper {
-                chunk_ukey,
-                compilation_id: compilation.id(),
-                compilation: NonNull::from(compilation),
+            .call(
+              compilation,
+              LinkPreloadData {
+                code: link_preload_raw,
+                chunk,
               },
-            })
+            )
             .await?;
 
           let source_with_preload = context.runtime_template.render(
@@ -512,7 +426,7 @@ installedChunks[chunkId] = 0;
       }
 
       if with_inject_style {
-        let data_webpack_prefix = if unique_name.is_empty() {
+        let data_rspack_prefix = if unique_name.is_empty() {
           json_stringify("rspack:")
         } else {
           json_stringify(&format!("{unique_name}:"))
@@ -520,7 +434,6 @@ installedChunks[chunkId] = 0;
         let create_style_element_code = {
           let mut code = String::new();
           code.push_str("var style = document.createElement(\"style\");\n");
-          code.push_str("style.setAttribute(\"data-rspack-native-css\", \"true\");\n");
           if runtime_requirements.contains(RuntimeGlobals::SCRIPT_NONCE) {
             code.push_str(&format!(
               "if ({}) {{\n  style.setAttribute(\"nonce\", {});\n}}\n",
@@ -528,7 +441,7 @@ installedChunks[chunkId] = 0;
               runtime_template.render_runtime_globals(&RuntimeGlobals::SCRIPT_NONCE)
             ));
           }
-          code.push_str("style.setAttribute(\"data-rspack\", getDataWebpackId(key));");
+          code.push_str("style.setAttribute(\"data-rspack\", getDataRspackId(key));");
           code
         };
         let css_inject_style =
@@ -538,7 +451,7 @@ installedChunks[chunkId] = 0;
         let source_with_style = context.runtime_template.render(
           &self.template_id(TemplateId::WithStyle),
           Some(serde_json::json!({
-            "_data_webpack_prefix": data_webpack_prefix,
+            "_data_rspack_prefix": data_rspack_prefix,
             "_create_style": &create_style_element_code,
             "_css_inject_style": &css_inject_style,
             "_with_hmr": with_hmr,

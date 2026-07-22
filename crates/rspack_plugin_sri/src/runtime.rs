@@ -201,8 +201,12 @@ pub async fn create_script(&self, mut data: CreateScriptData) -> Result<CreateSc
 }
 
 #[plugin_hook(RuntimePluginCreateLink for SubresourceIntegrityPlugin)]
-pub async fn create_link(&self, mut data: CreateLinkData) -> Result<CreateLinkData> {
-  let ctx = SubresourceIntegrityPlugin::get_compilation_sri_context(data.chunk.compilation_id);
+pub async fn create_link<'a>(
+  &self,
+  compilation: &Compilation,
+  mut data: CreateLinkData<'a>,
+) -> Result<CreateLinkData<'a>> {
+  let ctx = SubresourceIntegrityPlugin::get_compilation_sri_context(compilation.id());
   if data.code.contains("loadingAttribute") {
     data.code = add_attribute(
       "link",
@@ -226,8 +230,12 @@ pub async fn create_link(&self, mut data: CreateLinkData) -> Result<CreateLinkDa
 }
 
 #[plugin_hook(RuntimePluginLinkPreload for SubresourceIntegrityPlugin)]
-pub async fn link_preload(&self, mut data: LinkPreloadData) -> Result<LinkPreloadData> {
-  let ctx = SubresourceIntegrityPlugin::get_compilation_sri_context(data.chunk.compilation_id);
+pub async fn link_preload<'a>(
+  &self,
+  compilation: &Compilation,
+  mut data: LinkPreloadData<'a>,
+) -> Result<LinkPreloadData<'a>> {
+  let ctx = SubresourceIntegrityPlugin::get_compilation_sri_context(compilation.id());
   if data.code.contains(".as = \"style\"") {
     data.code = add_attribute(
       "link",

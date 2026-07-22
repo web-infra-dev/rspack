@@ -95,7 +95,7 @@ impl RuntimeModule for AsyncWasmCompileRuntimeModule {
     _compilation: &Compilation,
   ) -> rspack_core::RuntimeModuleRuntimeRequirements {
     rspack_core::RuntimeModuleRuntimeRequirements {
-      write: { RuntimeGlobals::COMPILE_WASM },
+      define: { RuntimeGlobals::COMPILE_WASM },
       ..Default::default()
     }
   }
@@ -138,7 +138,7 @@ impl RuntimeModule for AsyncWasmLoadingRuntimeModule {
     _compilation: &Compilation,
   ) -> rspack_core::RuntimeModuleRuntimeRequirements {
     rspack_core::RuntimeModuleRuntimeRequirements {
-      write: RuntimeGlobals::INSTANTIATE_WASM,
+      define: RuntimeGlobals::INSTANTIATE_WASM,
       force_context: RuntimeGlobals::INSTANTIATE_WASM,
       ..Default::default()
     }
@@ -244,7 +244,8 @@ fn get_async_wasm_loading(
       }});
 "#
   );
-  let instantiate_wasm = runtime_template.render_runtime_globals(&RuntimeGlobals::INSTANTIATE_WASM);
+  let instantiate_wasm =
+    runtime_template.render_runtime_global_definition(&RuntimeGlobals::INSTANTIATE_WASM);
 
   if supports_streaming {
     format!(
@@ -304,7 +305,8 @@ fn get_async_wasm_compile(
       }});
 "#
   );
-  let compile_wasm = runtime_template.render_runtime_globals(&RuntimeGlobals::COMPILE_WASM);
+  let compile_wasm =
+    runtime_template.render_runtime_global_definition(&RuntimeGlobals::COMPILE_WASM);
 
   if supports_streaming {
     format!(

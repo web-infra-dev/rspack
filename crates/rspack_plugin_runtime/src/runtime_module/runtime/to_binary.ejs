@@ -1,5 +1,5 @@
 // define to binary helper
-<%- TO_BINARY %> = <% if (_is_neutral_platform) { %>typeof Buffer !== 'undefined' ? <% } %>
+<%- define(TO_BINARY) %> = <% if (_is_neutral_platform) { %>typeof Buffer !== 'undefined' ? <% } %>
   <% if (_is_node_platform || _is_neutral_platform) { %>
     <%- returningFunction("new Uint8Array(Buffer.from(base64, 'base64'))", "base64") %>
   <% } %>

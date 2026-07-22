@@ -16,7 +16,6 @@ use rspack_error::Result;
 use rspack_util::{
   atom::Atom,
   fx_hash::{FxIndexMap, FxIndexSet},
-  identifier::make_paths_relative,
   itoa, json_stringify, json_stringify_str,
 };
 use rustc_hash::FxHashSet as HashSet;
@@ -31,21 +30,8 @@ use crate::{
   },
 };
 
-fn css_source_map_module_name(module: &dyn Module, context: &Context) -> String {
-  let identifier = module.identifier();
-  let identifier = identifier.as_str();
-  let Some((prefix, resource)) = identifier.rsplit_once('|') else {
-    return identifier.to_string();
-  };
-
-  if resource.starts_with('/') || resource.as_bytes().get(1).is_some_and(|ch| *ch == b':') {
-    return format!(
-      "{prefix}|{}",
-      make_paths_relative(context.as_str(), resource)
-    );
-  }
-
-  identifier.to_string()
+fn css_javascript_source_map_module_name(module: &dyn Module, context: &Context) -> String {
+  concat_string!("css ", module.readable_identifier(context))
 }
 
 pub fn update_css_exports(exports: &mut CssExports, name: &str, css_export: CssExport) -> bool {
@@ -226,7 +212,7 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     }
     let generated_source = self.concat_source.source().into_string_lossy().into_owned();
     if self.module.get_source_map_kind().enabled() {
-      let source_name = css_source_map_module_name(
+      let source_name = css_javascript_source_map_module_name(
         self.module,
         &self.generate_context.compilation.options.context,
       );

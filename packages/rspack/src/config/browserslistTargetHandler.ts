@@ -279,6 +279,24 @@ export const resolve = (
       kaios: [3, 0],
       node: 14,
     }),
+    logicalAssignment: rawChecker({
+      chrome: 85,
+      and_chr: 85,
+      edge: 85,
+      firefox: 79,
+      and_ff: 79,
+      // ie: Not supported,
+      opera: 71,
+      op_mob: 60,
+      safari: 14,
+      ios_saf: 14,
+      samsung: 14,
+      android: 85,
+      // and_qq: Not supported
+      // baidu: Not supported
+      // and_uc: Not supported
+      node: 15,
+    }),
     templateLiteral: rawChecker({
       chrome: 41,
       and_chr: 41,

@@ -3,9 +3,9 @@ use std::{borrow::Cow, sync::Arc};
 use derive_more::Debug;
 use futures::future::join_all;
 use rspack_core::{
-  ChunkCodeTemplate, ChunkGraph, ChunkInitFragments, ChunkUkey, Compilation,
+  ChunkGraph, ChunkInitFragments, ChunkUkey, Compilation,
   CompilationAdditionalModuleRuntimeRequirements, CompilationParams, CompilerCompilation, Filename,
-  Module, ModuleIdentifier, PathData, Plugin, RuntimeGlobals,
+  Module, ModuleIdentifier, PathData, Plugin, RuntimeCodeTemplate, RuntimeGlobals,
   rspack_sources::{BoxSource, MapOptions, ObjectPool, RawStringSource, Source, SourceExt},
 };
 use rspack_error::Result;
@@ -96,7 +96,7 @@ async fn render_module_content(
   module: &dyn Module,
   render_source: &mut RenderSource,
   _init_fragments: &mut ChunkInitFragments,
-  runtime_template: &ChunkCodeTemplate,
+  runtime_template: &RuntimeCodeTemplate,
 ) -> Result<()> {
   let output_options = &compilation.options.output;
   let chunk = compilation
@@ -161,6 +161,7 @@ async fn render_module_content(
           }
         });
         let path_data = PathData::default()
+          .chunk(chunk.ukey(), compilation)
           .chunk_id_optional(chunk.id().map(|id| id.as_str()))
           .chunk_name_optional(chunk.name())
           .chunk_hash_optional(chunk.rendered_hash(

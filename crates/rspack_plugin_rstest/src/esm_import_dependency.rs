@@ -116,6 +116,11 @@ fn hoist_new_esm_import_fragments(
       conditional_fragment.content().to_string()
     };
 
+    // Position -1: after the hoisted mock placeholders (-2) so the importActual
+    // subgraph is evaluated with mocks already registered, but before normal
+    // imports (source_order >= 1) so mock factories that spread an importActual
+    // binding observe an initialized value. See the ordering contract in
+    // `mock_method_dependency.rs`.
     let override_fragment = rspack_core::ConditionalInitFragment::new(
       content,
       InitFragmentStage::StageESMImports,

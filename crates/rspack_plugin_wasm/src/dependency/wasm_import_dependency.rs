@@ -1,8 +1,8 @@
 use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
 use rspack_core::{
   AsContextDependency, AsDependencyCodeGeneration, Dependency, DependencyCategory, DependencyId,
-  DependencyRange, DependencyType, ExportsInfoArtifact, ExtendedReferencedExport, FactorizeInfo,
-  ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, RuntimeSpec,
+  DependencyRange, DependencyType, ExportsInfoArtifact, FactorizeInfo, ModuleDependency,
+  ModuleGraph, ModuleGraphCacheArtifact, ReferencedExport, RuntimeSpec,
 };
 use swc_core::ecma::atoms::Atom;
 
@@ -56,8 +56,8 @@ impl Dependency for WasmImportDependency {
     _module_graph_cache: &ModuleGraphCacheArtifact,
     _exports_info_artifact: &ExportsInfoArtifact,
     _runtime: Option<&RuntimeSpec>,
-  ) -> Vec<ExtendedReferencedExport> {
-    vec![ExtendedReferencedExport::Array(vec![self.name.clone()])]
+  ) -> Vec<ReferencedExport> {
+    vec![ReferencedExport::from(&self.name)]
   }
 
   fn could_affect_referencing_module(&self) -> rspack_core::AffectType {

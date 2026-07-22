@@ -679,6 +679,7 @@ async fn render_manifest(
     .get_path_with_info(
       filename_template,
       PathData::default()
+        .chunk(*chunk_ukey, compilation)
         .chunk_id_optional(chunk.id().map(|id| id.as_str()))
         .chunk_hash_optional(chunk.rendered_hash(
           &compilation.chunk_hashes_artifact,
@@ -696,7 +697,7 @@ async fn render_manifest(
 
   let (source, more_diagnostics) = compilation
     .chunk_render_cache_artifact
-    .use_cache(compilation, chunk, &SOURCE_TYPE[0], || async {
+    .use_cache(compilation, chunk, &SOURCE_TYPE[0], &filename, || async {
       let (source, diagnostics) = self
         .render_content_asset(chunk, &rendered_modules, &filename, compilation)
         .await;

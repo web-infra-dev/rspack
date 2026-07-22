@@ -4,8 +4,8 @@ linkTag.rel = "stylesheet";
 <% if (_set_linktype != "") { %>
 linkTag.type = <%- _set_linktype %>;
 <% } %>
-if (<%- SCRIPT_NONCE %>) {
-  linkTag.nonce = <%- SCRIPT_NONCE %>;
+if (<%- weak(SCRIPT_NONCE) %>) {
+  linkTag.nonce = <%- weak(SCRIPT_NONCE) %>;
 }
 linkTag.href = fullhref;
 <% if (_with_fetch_priority) { %>

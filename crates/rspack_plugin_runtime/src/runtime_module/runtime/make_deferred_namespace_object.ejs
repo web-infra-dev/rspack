@@ -1,4 +1,4 @@
-<%- MAKE_DEFERRED_NAMESPACE_OBJECT %> = <%- basicFunction("moduleId, mode") %> {
+<%- define(MAKE_DEFERRED_NAMESPACE_OBJECT) %> = <%- basicFunction("moduleId, mode") %> {
   var cachedModule = <%- _module_cache %>[moduleId];
   if (cachedModule && cachedModule.error === undefined) {
     var exports = cachedModule.exports;

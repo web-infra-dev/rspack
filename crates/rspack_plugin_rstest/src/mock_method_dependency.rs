@@ -192,7 +192,17 @@ impl MockMethodDependencyTemplate {
     }
   }
 
-  /// Add a placeholder init fragment that marks where hoisted code should be inserted
+  /// Add a placeholder init fragment that marks where hoisted code should be inserted.
+  ///
+  /// `StageESMImports` ordering contract (position → fragment):
+  /// - `-3`: the hoisted `@rstest/core` import (see [`Self::hoist_rstest_core_import`])
+  /// - `-2`: this placeholder — mock registrations run before any user module is
+  ///   evaluated, so an `importActual` subgraph still sees mocked transitive deps
+  /// - `-1`: `importActual` imports (see `esm_import_dependency.rs`) — evaluated
+  ///   after mocks are registered (registration does not run mock factories) but
+  ///   before normal imports, so factories that spread an `importActual` binding
+  ///   observe an initialized value once they lazily run
+  /// - `>= 1`: normal ESM imports (`source_order` starts at 1)
   fn add_placeholder_fragment(
     init_fragments: &mut Vec<Box<dyn rspack_core::InitFragment<rspack_core::GenerateContext<'_>>>>,
     flag: &str,
@@ -202,7 +212,7 @@ impl MockMethodDependencyTemplate {
     let init = NormalInitFragment::new(
       format!("/* RSTEST:{flag}:{hoist_id}:{request}:PLACEHOLDER */;"),
       InitFragmentStage::StageESMImports,
-      0,
+      -2,
       InitFragmentKey::Const(format!("rstest mock_hoist {hoist_id}")),
       None,
     );
@@ -234,12 +244,13 @@ impl MockMethodDependencyTemplate {
       return;
     };
 
-    // Create a new fragment with higher priority (position=-1) and insert at the beginning
+    // Create a new fragment with higher priority (position=-3, before the mock
+    // placeholder at -2 and importActual imports at -1) and insert at the beginning
     let content = conditional_fragment.content().to_string();
     let rstest_import = ConditionalInitFragment::new(
       content,
       InitFragmentStage::StageESMImports,
-      -1, // Higher priority than default (0)
+      -3,
       target_key,
       None,
       RuntimeCondition::Boolean(true),

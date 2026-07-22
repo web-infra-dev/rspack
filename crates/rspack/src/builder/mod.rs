@@ -48,13 +48,14 @@ use rspack_core::{
   EntryDescription, EntryOptions, EntryRuntime, Environment, Experiments, ExternalItem,
   ExternalType, Filename, GeneratorOptions, GeneratorOptionsMap, ImportMeta,
   JavascriptParserCommonjsExportsOption, JavascriptParserCommonjsOptions, JavascriptParserOptions,
-  JavascriptParserOrder, JavascriptParserUrl, JsonGeneratorOptions, JsonParserOptions, LibraryName,
-  LibraryNonUmdObject, LibraryOptions, LibraryType, MangleExportsOption, Mode, ModuleNoParseRules,
-  ModuleOptions, ModuleRule, ModuleRuleEffect, ModuleType, NodeDirnameOption, NodeFilenameOption,
-  NodeGlobalOption, NodeOption, Optimization, OutputOptions, ParseOption, ParserOptions,
-  ParserOptionsMap, PathInfo, PublicPath, Resolve, RuleSetCondition, RuleSetLogicalConditions,
-  SideEffectOption, StatsOptions, TrustedTypes, UsedExportsOption, WasmLoading, WasmLoadingType,
-  incremental::IncrementalOptions, runtime_mode::RuntimeMode,
+  JavascriptParserOrder, JavascriptParserUrl, JavascriptParserWorkerOptions, JsonGeneratorOptions,
+  JsonParserOptions, LibraryName, LibraryNonUmdObject, LibraryOptions, LibraryType,
+  MangleExportsOption, Mode, ModuleNoParseRules, ModuleOptions, ModuleRule, ModuleRuleEffect,
+  ModuleType, NodeDirnameOption, NodeFilenameOption, NodeGlobalOption, NodeOption, Optimization,
+  OutputOptions, ParseOption, ParserOptions, ParserOptionsMap, PathInfo, PublicPath, Resolve,
+  RuleSetCondition, RuleSetLogicalConditions, SideEffectOption, StatsOptions, TrustedTypes,
+  UsedExportsOption, WasmLoading, WasmLoadingType, incremental::IncrementalOptions,
+  runtime_mode::RuntimeMode,
 };
 use rspack_error::{Error, Result};
 use rspack_fs::{IntermediateFileSystem, ReadableFileSystem, WritableFileSystem};
@@ -1727,7 +1728,10 @@ impl ModuleOptionsBuilder {
           wrapped_context_critical: Some(false),
           strict_this_context_on_imports: Some(false),
           wrapped_context_reg_exp: Some(RspackRegex::new(".*").expect("should initialize `Regex`")),
-          worker: Some(vec!["...".to_string()]),
+          worker: Some(JavascriptParserWorkerOptions::new(
+            vec!["...".to_string()],
+            None,
+          )),
           import_meta: target_properties.module.map(|val| {
             if val {
               ImportMeta::PreserveUnknown

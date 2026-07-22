@@ -168,6 +168,7 @@ function getRawOutputEnvironment(
     globalThis: Boolean(environment.globalThis),
     module: Boolean(environment.module),
     optionalChaining: Boolean(environment.optionalChaining),
+    logicalAssignment: Boolean(environment.logicalAssignment),
     templateLiteral: Boolean(environment.templateLiteral),
     importMetaDirnameAndFilename: Boolean(
       environment.importMetaDirnameAndFilename,
@@ -602,10 +603,7 @@ function getRawJavascriptParserOptions(
     dynamicImportPreload: parser.dynamicImportPreload?.toString(),
     dynamicImportPrefetch: parser.dynamicImportPrefetch?.toString(),
     dynamicImportFetchPriority: parser.dynamicImportFetchPriority,
-    importMeta:
-      typeof parser.importMeta === 'boolean'
-        ? String(parser.importMeta)
-        : parser.importMeta,
+    importMeta: getRawImportMeta(parser.importMeta),
     url: parser.url?.toString(),
     exprContextCritical: parser.exprContextCritical,
     unknownContextCritical: parser.unknownContextCritical,
@@ -622,12 +620,7 @@ function getRawJavascriptParserOptions(
       parser.reexportExportsPresence === false
         ? 'false'
         : parser.reexportExportsPresence,
-    worker:
-      typeof parser.worker === 'boolean'
-        ? parser.worker
-          ? ['...']
-          : []
-        : parser.worker,
+    worker: getRawJavascriptParserWorkerOptions(parser.worker),
     overrideStrict: parser.overrideStrict,
     requireAsExpression: parser.requireAsExpression,
     requireAlias: parser.requireAlias,
@@ -644,6 +637,36 @@ function getRawJavascriptParserOptions(
     importMetaResolve: parser.importMetaResolve,
     pureFunctions: parser.pureFunctions,
   };
+}
+
+function getRawJavascriptParserWorkerOptions(
+  worker: JavascriptParserOptions['worker'],
+): RawJavascriptParserOptions['worker'] {
+  if (typeof worker === 'boolean') {
+    return worker;
+  }
+  if (Array.isArray(worker)) {
+    return { alias: worker };
+  }
+  return worker;
+}
+
+function getRawImportMeta(
+  importMeta: JavascriptParserOptions['importMeta'],
+): RawJavascriptParserOptions['importMeta'] {
+  if (typeof importMeta === 'boolean') {
+    return String(importMeta);
+  }
+  if (typeof importMeta === 'object' && importMeta !== null) {
+    const rawImportMeta: Record<string, boolean> = {};
+    for (const [property, value] of Object.entries(importMeta)) {
+      if (typeof value === 'boolean') {
+        rawImportMeta[property] = value;
+      }
+    }
+    return rawImportMeta;
+  }
+  return importMeta;
 }
 
 function getRawAssetParserOptions(

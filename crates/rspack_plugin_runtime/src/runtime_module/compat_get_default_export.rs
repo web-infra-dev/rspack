@@ -24,7 +24,7 @@ impl RuntimeModule for CompatGetDefaultExportRuntimeModule {
   ) -> rspack_core::RuntimeModuleRuntimeRequirements {
     rspack_core::RuntimeModuleRuntimeRequirements {
       dependencies: RuntimeGlobals::DEFINE_PROPERTY_GETTERS,
-      write: { RuntimeGlobals::COMPAT_GET_DEFAULT_EXPORT },
+      define: { RuntimeGlobals::COMPAT_GET_DEFAULT_EXPORT },
       ..Default::default()
     }
   }
