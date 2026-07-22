@@ -3,13 +3,41 @@
 ```
 
 ```mjs title=main.mjs
+import { __webpack_require__ } from "./runtime.mjs";
+
 // ./index.js
 
 function neverUse() {
-	new URL("./ef46db3751d8e999.js", import.meta.url)(function foo() {})();
+	new URL((typeof ("./ef46db3751d8e999.js") !== "undefined" ? ("./ef46db3751d8e999.js") : __webpack_require__(/*! ./asset.js */ "./asset.js")), import.meta.url)(function foo() {})();
 }
 neverUse.bind(neverUse)
 
 export {};
+
+```
+
+```mjs title=runtime.mjs
+// The module cache
+var __webpack_module_cache__ = {};
+// The require function
+function __webpack_require__(moduleId) {
+// Check if module is in cache
+var cachedModule = __webpack_module_cache__[moduleId];
+if (cachedModule !== undefined) {
+return cachedModule.exports;
+}
+// Create a new module (and put it into the cache)
+var module = (__webpack_module_cache__[moduleId] = {
+exports: {}
+});
+// Execute the module function
+__webpack_modules__[moduleId](module, module.exports, __webpack_require__);
+
+// Return the exports of the module
+return module.exports;
+}
+
+
+export { __webpack_require__ };
 
 ```

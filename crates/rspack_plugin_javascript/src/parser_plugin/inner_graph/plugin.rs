@@ -1,5 +1,5 @@
 use rspack_core::{
-  BoxDependency, Dependency, DependencyId, DependencyRange, UsedByExports,
+  AsyncDependenciesBlock, BoxDependency, Dependency, DependencyId, DependencyRange, UsedByExports,
   UsedByExportsDeferredPureCheck,
 };
 use rspack_util::SpanExt;
@@ -243,6 +243,7 @@ impl InnerGraphParserPlugin {
   pub fn finalize_dependency_usage(
     state: &mut InnerGraphState,
     dependencies: &mut [BoxDependency],
+    blocks: &mut [Box<AsyncDependenciesBlock>],
   ) {
     if !state.is_enabled() || state.usage_map.is_empty() {
       return;
@@ -300,8 +301,18 @@ impl InnerGraphParserPlugin {
     {
       let dep_idx = match operation {
         InnerGraphUsageOperation::PureExpression(dep_idx)
-        | InnerGraphUsageOperation::ESMImportSpecifier(dep_idx)
-        | InnerGraphUsageOperation::URLDependency(dep_idx) => dep_idx,
+        | InnerGraphUsageOperation::ESMImportSpecifier(dep_idx) => dep_idx,
+        InnerGraphUsageOperation::URLDependency(dep_id) => {
+          if let Some(dep) = dependencies
+            .iter_mut()
+            .chain(blocks.iter_mut().flat_map(|block| block.dependencies_mut()))
+            .find(|dep| dep.id() == &dep_id)
+            && let Some(dep) = dep.downcast_mut::<URLDependency>()
+          {
+            dep.set_used_by_exports(Some(used_by_exports));
+          }
+          continue;
+        }
       };
       let Some(dep) = dependencies.get_mut(dep_idx) else {
         continue;
@@ -317,11 +328,7 @@ impl InnerGraphParserPlugin {
             dep.set_used_by_exports(Some(used_by_exports));
           }
         }
-        InnerGraphUsageOperation::URLDependency(_) => {
-          if let Some(dep) = dep.downcast_mut::<URLDependency>() {
-            dep.set_used_by_exports(Some(used_by_exports));
-          }
-        }
+        InnerGraphUsageOperation::URLDependency(_) => unreachable!(),
       }
     }
   }

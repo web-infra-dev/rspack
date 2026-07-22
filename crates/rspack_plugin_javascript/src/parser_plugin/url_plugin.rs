@@ -1,6 +1,7 @@
 use rspack_core::{
-  ContextDependency, ContextMode, ContextOptions, DependencyCategory, JavascriptParserUrl,
-  RuntimeGlobals, RuntimeRequirementsDependency, get_context,
+  AsyncDependenciesBlock, ContextDependency, ContextMode, ContextOptions, Dependency,
+  DependencyCategory, EntryOptions, GroupOptions, JavascriptParserUrl, RuntimeGlobals,
+  RuntimeRequirementsDependency, get_context,
 };
 use rspack_util::SpanExt;
 use swc_atoms::Atom;
@@ -164,15 +165,42 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for URLPlugin {
         }
         return None;
       }
+      if request.starts_with('#') {
+        if args.len() == 2 {
+          parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
+            args[1].span().into(),
+            RuntimeGlobals::BASE_URI,
+          )));
+          return Some(true);
+        }
+        return None;
+      }
       let dep = URLDependency::new(
-        request.into(),
+        request.clone().into(),
         expr.span.into(),
         (start, end).into(),
         self.mode,
       );
-      let dep_idx = parser.next_dependency_idx();
-      parser.add_dependency(Box::new(dep));
-      InnerGraphParserPlugin::on_usage(parser, InnerGraphUsageOperation::URLDependency(dep_idx));
+      let dep_id = *dep.id();
+      if Url::parse(&request).is_ok_and(|url| !matches!(url.scheme(), "data" | "file")) {
+        parser.add_dependency(Box::new(dep));
+        InnerGraphParserPlugin::on_usage(parser, InnerGraphUsageOperation::URLDependency(dep_id));
+        return Some(true);
+      }
+      let loc = parser.to_dependency_location(expr.span.into());
+      let mut block = AsyncDependenciesBlock::new(
+        *parser.module_identifier,
+        loc,
+        None,
+        vec![Box::new(dep)],
+        Some(request),
+      );
+      block.set_group_options(GroupOptions::Entrypoint(Box::new(EntryOptions {
+        runtime: Some(format!("url-{}", dep_id.as_u32()).into()),
+        ..Default::default()
+      })));
+      parser.add_block(Box::new(block));
+      InnerGraphParserPlugin::on_usage(parser, InnerGraphUsageOperation::URLDependency(dep_id));
       return Some(true);
     }
 

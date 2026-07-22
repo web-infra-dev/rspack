@@ -8,5 +8,5 @@ it("should keep wasm new URL untouched in rstest", () => {
 });
 
 it("should keep non-wasm new URL behavior", () => {
-	expect(content).toContain("/* asset import */");
+	expect(content).toContain("/* entry url */");
 });
