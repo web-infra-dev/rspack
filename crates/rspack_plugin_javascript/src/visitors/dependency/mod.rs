@@ -14,6 +14,7 @@ use swc_experimental_allocator::Allocator;
 use swc_experimental_ecma_ast::{Comments, Program};
 use swc_experimental_ecma_semantic::resolver::Semantic;
 
+pub(crate) use self::parser::StatementPath;
 pub use self::{
   context_dependency_helper::{ContextModuleScanResult, create_context_dependency},
   parser::{
