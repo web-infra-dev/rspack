@@ -12,6 +12,7 @@ import type { Compiler } from '../Compiler';
 import { normalizeConsumeShareOptions } from './ConsumeSharedPlugin';
 import {
   createConsumeShareOptions,
+  normalizeShareScope,
   type NormalizedSharedOptions,
   type ShareScope,
 } from './SharePlugin';
@@ -21,11 +22,16 @@ export type CollectSharedEntryPluginOptions = {
   shareScope?: ShareScope;
 };
 
+export type ShareRequestVariant = {
+  shareScope: ShareScope;
+  layer?: string;
+  requests: [string, string][];
+};
+
 export type ShareRequestsMap = Record<
   string,
-  {
-    shareScope: string;
-    requests: [string, string][];
+  Omit<ShareRequestVariant, 'layer'> & {
+    variants?: ShareRequestVariant[];
   }
 >;
 
@@ -35,13 +41,19 @@ const READ_COLLECTED_SHARED_ENTRY_STAGE = 101;
 export class CollectSharedEntryPlugin extends RspackBuiltinPlugin {
   name = BuiltinPluginName.CollectSharedEntryPlugin;
   sharedOptions: NormalizedSharedOptions;
+  shareScope: ShareScope;
   private _collectedEntries: ShareRequestsMap;
 
   constructor(options: CollectSharedEntryPluginOptions) {
     super();
-    const { sharedOptions } = options;
+    const { sharedOptions, shareScope = 'default' } = options;
 
     this.sharedOptions = sharedOptions;
+    this.shareScope = normalizeShareScope(
+      shareScope,
+      true,
+      'CollectSharedEntryPlugin',
+    );
     this._collectedEntries = {};
   }
 
@@ -59,7 +71,9 @@ export class CollectSharedEntryPlugin extends RspackBuiltinPlugin {
     const readCollectedEntries = (compilation: Compilation) => {
       const asset = compilation.getAsset(SHARE_ENTRY_ASSET);
       if (!asset) return;
-      this._collectedEntries = JSON.parse(asset.source.source().toString());
+      this._collectedEntries = JSON.parse(
+        asset.source.source().toString(),
+      ) as ShareRequestsMap;
       compilation.deleteAsset(asset.name);
     };
 
@@ -73,9 +87,15 @@ export class CollectSharedEntryPlugin extends RspackBuiltinPlugin {
   }
 
   raw(): BuiltinPlugin {
-    const consumeShareOptions = createConsumeShareOptions(this.sharedOptions);
-    const normalizedConsumeShareOptions =
-      normalizeConsumeShareOptions(consumeShareOptions);
+    const consumeShareOptions = createConsumeShareOptions(
+      this.sharedOptions,
+      true,
+    );
+    const normalizedConsumeShareOptions = normalizeConsumeShareOptions(
+      consumeShareOptions,
+      this.shareScope,
+      true,
+    );
     const rawOptions: RawCollectShareEntryPluginOptions = {
       consumes: normalizedConsumeShareOptions.map(([key, v]) => ({
         key,

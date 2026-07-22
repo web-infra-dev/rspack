@@ -8,19 +8,22 @@ use rspack_core::{
 use rspack_error::{Result, error};
 use rustc_hash::{FxHashMap, FxHashSet};
 
-use crate::utils::{runtime_require_scope_name, runtime_require_scope_requirement};
+use crate::{
+  SharedIdentity,
+  utils::{runtime_require_scope_name, runtime_require_scope_requirement},
+};
 
 #[impl_runtime_module]
 #[derive(Debug)]
 pub struct SharedUsedExportsOptimizerRuntimeModule {
   // Keep type consistent with plugin: FxHashMap<String, FxHashSet<String>>
-  shared_used_exports: Arc<FxHashMap<String, FxHashSet<String>>>,
+  shared_used_exports: Arc<FxHashMap<SharedIdentity, FxHashSet<String>>>,
 }
 
 impl SharedUsedExportsOptimizerRuntimeModule {
-  pub fn new(
+  pub(crate) fn new(
     runtime_template: &RuntimeTemplate,
-    shared_used_exports: Arc<FxHashMap<String, FxHashSet<String>>>,
+    shared_used_exports: Arc<FxHashMap<SharedIdentity, FxHashSet<String>>>,
   ) -> Self {
     Self::with_name(
       runtime_template,
@@ -58,9 +61,15 @@ impl RuntimeModule for SharedUsedExportsOptimizerRuntimeModule {
       "{}.federation",
       runtime_require_scope_name(context.runtime_template)
     );
+    let mut merged_exports = FxHashMap::<String, FxHashSet<String>>::default();
+    for (identity, set) in self.shared_used_exports.iter() {
+      let merged_set = merged_exports
+        .entry(identity.share_key.clone())
+        .or_default();
+      merged_set.extend(set.iter().cloned());
+    }
     // Convert set to vec for JSON serialization stability
-    let stable_map: BTreeMap<String, Vec<String>> = self
-      .shared_used_exports
+    let stable_map: BTreeMap<String, Vec<String>> = merged_exports
       .iter()
       .map(|(share_key, set)| {
         let mut v: Vec<String> = set.iter().cloned().collect();

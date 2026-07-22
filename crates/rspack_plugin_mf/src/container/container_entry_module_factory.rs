@@ -25,6 +25,10 @@ impl ModuleFactory for ContainerEntryModuleFactory {
           dep.name.clone(),
           dep.request.clone().expect("should have request"),
           dep.version.clone().expect("should have version"),
+          dep
+            .shared_identity
+            .clone()
+            .expect("share container entry should have shared identity"),
           data.options.experiments.runtime_mode,
         )
         .boxed(),

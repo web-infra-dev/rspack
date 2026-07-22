@@ -1,11 +1,12 @@
 use std::{
+  collections::BTreeMap,
   path::{Path, PathBuf},
   sync::Arc,
 };
 
 use regex::Regex;
 use rspack_core::{
-  Compilation, CompilationAsset, CompilerFinishMake, Context, DependenciesBlock, Module, Plugin,
+  Compilation, CompilationAsset, CompilerFinishMake, DependenciesBlock, Plugin,
   rspack_sources::{RawStringSource, SourceExt},
 };
 use rspack_error::Result;
@@ -14,15 +15,26 @@ use rustc_hash::FxHashMap;
 use serde::Serialize;
 
 use super::consume_shared_plugin::ConsumeOptions;
-use crate::ShareScope;
+use crate::{ShareScope, SharedIdentity};
 
 const DEFAULT_FILENAME: &str = "collect-shared-entries.json";
 
 #[derive(Debug, Serialize)]
-struct CollectSharedEntryAssetItem<'a> {
+struct CollectSharedEntryVariant {
   #[serde(rename = "shareScope")]
-  share_scope: &'a ShareScope,
-  requests: &'a [[String; 2]],
+  share_scope: ShareScope,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  layer: Option<String>,
+  requests: Vec<[String; 2]>,
+}
+
+#[derive(Debug, Serialize)]
+struct CollectSharedEntryAssetItem {
+  #[serde(rename = "shareScope")]
+  share_scope: ShareScope,
+  requests: Vec<[String; 2]>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  variants: Option<Vec<CollectSharedEntryVariant>>,
 }
 
 #[derive(Debug)]
@@ -100,8 +112,7 @@ impl CollectSharedEntryPlugin {
 async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
   // Traverse ConsumeSharedModule in the graph and collect real resolved module paths from fallback
   let module_graph = compilation.get_module_graph();
-  let mut ordered_requests: FxHashMap<String, Vec<[String; 2]>> = FxHashMap::default();
-  let mut share_scopes: FxHashMap<String, ShareScope> = FxHashMap::default();
+  let mut ordered_requests: FxHashMap<SharedIdentity, Vec<[String; 2]>> = FxHashMap::default();
 
   for (_id, module) in module_graph.modules() {
     let module_type = module.module_type();
@@ -120,26 +131,8 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
         else {
           continue;
         };
-        // Parse share_key from readable_identifier
-        let ident = consume.readable_identifier(&Context::default()).to_string();
-        // Format: "consume shared module ({scope}) {share_key}@..."
-        let key = {
-          let mut key = String::new();
-          if let Some(pos) = ident.find(") ") {
-            let rest = &ident[pos + 2..];
-            // Limit to the segment before any suffixes like " (strict)", " (fallback: ...)" or " (eager)"
-            let suffix_start = rest.find(" (").unwrap_or(rest.len());
-            let head = &rest[..suffix_start];
-            // Use the LAST '@' within the head to split "{share_key}@{version}",
-            // so scoped names like "@scope/pkg@1.0.0" are handled correctly.
-            let at = head.rfind('@').unwrap_or(head.len());
-            key = head[..at].to_string();
-          }
-          key
-        };
         (
-          key,
-          consume.share_scope().clone(),
+          consume.shared_identity(),
           consume.get_dependencies(),
           consume.get_blocks(),
           None,
@@ -153,8 +146,7 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
           continue;
         };
         (
-          provide.share_key().to_string(),
-          provide.share_scope().clone(),
+          provide.shared_identity(),
           provide.get_dependencies(),
           provide.get_blocks(),
           provide.version().map(str::to_string),
@@ -163,8 +155,8 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
       _ => continue,
     };
 
-    let (key, scope, dependencies, blocks, provided_version) = share_info;
-    if key.is_empty() {
+    let (identity, dependencies, blocks, provided_version) = share_info;
+    if identity.share_key.is_empty() || identity.share_scope.is_empty() {
       continue;
     }
 
@@ -186,7 +178,7 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
     }
 
     // Add real module resource paths to the map and infer version
-    let mut reqs = ordered_requests.remove(&key).unwrap_or_default();
+    let mut reqs = ordered_requests.remove(&identity).unwrap_or_default();
     for target_id in target_modules {
       if let Some(target) = module_graph.module_by_identifier(&target_id)
         && let Some(name) = target.name_for_condition()
@@ -206,25 +198,48 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
       }
     }
     reqs.sort_by(|a, b| a[0].cmp(&b[0]).then(a[1].cmp(&b[1])));
-    ordered_requests.insert(key.clone(), reqs);
-    if !scope.is_empty() {
-      share_scopes.insert(key.clone(), scope);
-    }
+    ordered_requests.insert(identity, reqs);
   }
 
   // Build asset content
-  let default_scope = ShareScope::Single("default".to_string());
-  let mut shared: FxHashMap<&str, CollectSharedEntryAssetItem<'_>> = FxHashMap::default();
-  for (share_key, requests) in ordered_requests.iter() {
-    let scope = share_scopes.get(share_key).unwrap_or(&default_scope);
-    shared.insert(
-      share_key.as_str(),
-      CollectSharedEntryAssetItem {
-        share_scope: scope,
-        requests: requests.as_slice(),
-      },
-    );
+  let mut shared_variants: BTreeMap<String, Vec<CollectSharedEntryVariant>> = BTreeMap::new();
+  for (identity, requests) in ordered_requests {
+    shared_variants
+      .entry(identity.share_key)
+      .or_default()
+      .push(CollectSharedEntryVariant {
+        share_scope: identity.share_scope,
+        layer: identity.layer,
+        requests,
+      });
   }
+  let shared = shared_variants
+    .into_iter()
+    .filter_map(|(share_key, mut variants)| {
+      variants.sort_by(|a, b| {
+        a.layer.cmp(&b.layer).then_with(|| {
+          a.share_scope
+            .identifier_key()
+            .cmp(&b.share_scope.identifier_key())
+        })
+      });
+      let preferred = variants
+        .iter()
+        .find(|entry| entry.layer.is_none())
+        .or_else(|| variants.first())?;
+      let share_scope = preferred.share_scope.clone();
+      let requests = preferred.requests.clone();
+      let variants = (variants.len() != 1 || variants[0].layer.is_some()).then_some(variants);
+      Some((
+        share_key,
+        CollectSharedEntryAssetItem {
+          share_scope,
+          requests,
+          variants,
+        },
+      ))
+    })
+    .collect::<BTreeMap<_, _>>();
 
   let json = serde_json::to_string_pretty(&shared)
     .expect("CollectSharedEntryPlugin: failed to serialize share entries");

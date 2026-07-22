@@ -4,7 +4,7 @@ use rspack_core::{
   DependencyType, FactorizeInfo, ModuleDependency, ResourceIdentifier,
 };
 
-use crate::{ExposeOptions, ShareScope};
+use crate::{ExposeOptions, ShareScope, SharedIdentity};
 
 #[cacheable]
 #[derive(Debug, Clone)]
@@ -15,6 +15,7 @@ pub struct ContainerEntryDependency {
   pub share_scope: ShareScope,
   pub request: Option<String>,
   pub version: Option<String>,
+  pub(crate) shared_identity: Option<SharedIdentity>,
   resource_identifier: ResourceIdentifier,
   pub(crate) enhanced: bool,
   dependency_type: DependencyType,
@@ -36,6 +37,7 @@ impl ContainerEntryDependency {
       share_scope,
       request: None,
       version: None,
+      shared_identity: None,
       resource_identifier,
       enhanced,
       dependency_type: DependencyType::ContainerEntry,
@@ -43,15 +45,26 @@ impl ContainerEntryDependency {
     }
   }
 
-  pub fn new_share_container_entry(name: String, request: String, version: String) -> Self {
-    let resource_identifier = format!("share-container-entry-{}", &name).into();
+  pub(crate) fn new_share_container_entry(
+    name: String,
+    request: String,
+    version: String,
+    shared_identity: SharedIdentity,
+  ) -> Self {
+    let resource_identifier = format!(
+      "share-container-entry-{}-{}",
+      &name,
+      shared_identity.identifier_key()
+    )
+    .into();
     Self {
       id: DependencyId::new(),
       name,
       exposes: vec![],
-      share_scope: ShareScope::Multiple(vec![]),
+      share_scope: shared_identity.share_scope.clone(),
       request: Some(request),
       version: Some(version),
+      shared_identity: Some(shared_identity),
       resource_identifier,
       enhanced: false,
       dependency_type: DependencyType::ShareContainerEntry,
