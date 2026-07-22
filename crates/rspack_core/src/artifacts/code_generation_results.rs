@@ -13,8 +13,9 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet};
 use serde::Serialize;
 
 use crate::{
-  ArtifactExt, AssetInfo, BindingCell, ChunkInitFragments, ConcatenationScope, ModuleIdentifier,
-  RuntimeGlobals, RuntimeSpec, RuntimeSpecMap, SourceType, incremental::IncrementalPasses,
+  ArtifactExt, AssetInfo, BindingCell, ChunkInitFragments, ConcatenationScope,
+  ContentHashDependencies, ModuleIdentifier, RuntimeGlobals, RuntimeSpec, RuntimeSpecMap,
+  SourceType, incremental::IncrementalPasses,
 };
 
 #[derive(Clone, Debug)]
@@ -123,6 +124,18 @@ impl Deref for CodeGenerationData {
 impl DerefMut for CodeGenerationData {
   fn deref_mut(&mut self) -> &mut Self::Target {
     &mut self.inner
+  }
+}
+
+impl CodeGenerationData {
+  pub fn add_content_hash_dependency(&mut self, hash: impl Into<String>) {
+    if let Some(dependencies) = self.get_mut::<ContentHashDependencies>() {
+      dependencies.insert_hash(hash);
+    } else {
+      let mut dependencies = ContentHashDependencies::default();
+      dependencies.insert_hash(hash);
+      self.insert(dependencies);
+    }
   }
 }
 

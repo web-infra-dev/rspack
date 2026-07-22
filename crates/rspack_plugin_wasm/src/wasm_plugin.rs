@@ -79,8 +79,10 @@ async fn render_manifest(
       source: source.clone(),
       filename: output_path,
       has_filename: true,
+      source_type: Some(SourceType::Wasm),
       info: asset_info,
       auxiliary: false,
+      content_hash_dependencies: Default::default(),
     })
   }
 

@@ -32,6 +32,10 @@ pub async fn create_chunk_assets(
   compilation: &mut Compilation,
   plugin_driver: SharedPluginDriver,
 ) -> Result<()> {
+  if compilation.options.optimization.real_content_hash {
+    compilation.real_content_hash_artifact.clear();
+  }
+
   if (compilation.options.output.filename.has_hash_placeholder()
     || compilation
       .options
@@ -163,23 +167,38 @@ pub async fn create_chunk_assets(
     compilation.extend_diagnostics(diagnostics);
 
     for file_manifest in manifests {
-      let filename = file_manifest.filename;
+      let RenderManifestEntry {
+        source,
+        filename,
+        source_type,
+        info,
+        auxiliary,
+        content_hash_dependencies,
+        ..
+      } = file_manifest;
       let current_chunk = compilation
         .build_chunk_graph_artifact
         .chunk_by_ukey
         .expect_get_mut(&chunk_ukey);
 
       current_chunk.set_rendered(true);
-      if file_manifest.auxiliary {
+      if auxiliary {
         current_chunk.add_auxiliary_file(filename.clone());
       } else {
         current_chunk.add_file(filename.clone());
       }
 
-      compilation.emit_asset(
-        filename.clone(),
-        CompilationAsset::new(Some(file_manifest.source), file_manifest.info),
-      );
+      if compilation.options.optimization.real_content_hash {
+        compilation.real_content_hash_artifact.record_asset(
+          filename.clone(),
+          chunk_ukey,
+          source_type,
+          info.content_hash.iter().cloned(),
+          content_hash_dependencies,
+        );
+      }
+
+      compilation.emit_asset(filename.clone(), CompilationAsset::new(Some(source), info));
 
       _ = chunk_asset(compilation, chunk_ukey, &filename, plugin_driver.clone()).await;
     }

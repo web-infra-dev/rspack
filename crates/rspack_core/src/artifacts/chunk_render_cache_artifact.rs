@@ -6,7 +6,7 @@ use rspack_error::{Diagnostic, Result};
 use rspack_sources::BoxSource;
 
 use crate::{
-  ArtifactExt, Chunk, Compilation, MemoryGCStorage, SourceType,
+  ArtifactExt, Chunk, Compilation, ContentHashDependencies, MemoryGCStorage, SourceType,
   incremental::{Incremental, IncrementalPasses},
 };
 
@@ -14,6 +14,7 @@ use crate::{
 struct ChunkRenderCacheEntry {
   filename: Arc<str>,
   source: BoxSource,
+  content_hash_dependencies: ContentHashDependencies,
 }
 
 #[derive(Debug, Default)]
@@ -48,10 +49,10 @@ impl ChunkRenderCacheArtifact {
     source_type: &SourceType,
     output_path: &str,
     generator: G,
-  ) -> Result<(BoxSource, Vec<Diagnostic>)>
+  ) -> Result<(BoxSource, ContentHashDependencies, Vec<Diagnostic>)>
   where
     G: FnOnce() -> F,
-    F: Future<Output = Result<(BoxSource, Vec<Diagnostic>)>>,
+    F: Future<Output = Result<(BoxSource, ContentHashDependencies, Vec<Diagnostic>)>>,
   {
     let Some(storage) = &self.storage else {
       panic!("ChunkRenderCacheArtifact storage is not set");
@@ -65,7 +66,7 @@ impl ChunkRenderCacheArtifact {
     if let Some(entry) = storage.get(&cache_key)
       && entry.filename.as_ref() == output_path
     {
-      return Ok((entry.source, Vec::new()));
+      return Ok((entry.source, entry.content_hash_dependencies, Vec::new()));
     }
 
     let res = generator().await?;
@@ -74,6 +75,7 @@ impl ChunkRenderCacheArtifact {
       ChunkRenderCacheEntry {
         filename: Arc::from(output_path),
         source: res.0.clone(),
+        content_hash_dependencies: res.1.clone(),
       },
     );
     Ok(res)

@@ -77,11 +77,12 @@ use crate::{
   ChunkRenderCacheArtifact, ChunkRenderResult, ChunkUkey, CircularModulesInfo,
   CodeGenerateCacheArtifact, CodeGenerationJob, CodeGenerationResult, CodeGenerationResults,
   CompilationLogger, CompilationLogging, CompilerOptions, CompilerPlatform, ConcatenationScope,
-  DependenciesDiagnosticsArtifact, DependencyId, DependencyTemplate, DependencyTemplateType,
-  DependencyType, Entry, EntryData, EntryOptions, EntryRuntime, Entrypoint, ExecuteModuleId,
-  ExportsInfoArtifact, Filename, ImportPhase, ImportVarMap, ImportedByDeferModulesArtifact,
-  ModuleFactory, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, ModuleIdsArtifact,
-  ModuleStaticCache, PathData, ProcessRuntimeRequirementsCacheArtifact, ReferencedExport,
+  ContentHashDependencies, DependenciesDiagnosticsArtifact, DependencyId, DependencyTemplate,
+  DependencyTemplateType, DependencyType, Entry, EntryData, EntryOptions, EntryRuntime, Entrypoint,
+  ExecuteModuleId, ExportsInfoArtifact, Filename, ImportPhase, ImportVarMap,
+  ImportedByDeferModulesArtifact, ModuleFactory, ModuleGraph, ModuleGraphCacheArtifact,
+  ModuleIdentifier, ModuleIdsArtifact, ModuleStaticCache, PathData,
+  ProcessRuntimeRequirementsCacheArtifact, RealContentHashArtifact, ReferencedExport,
   ResolverFactory, RuntimeGlobals, RuntimeKeyMap, RuntimeMode, RuntimeModule,
   RuntimeProxyMetadataArtifact, RuntimeSpec, RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver,
   SideEffectsOptimizeArtifact, SideEffectsStateArtifact, SourceType, Stats, StatsContext,
@@ -95,7 +96,7 @@ use crate::{
   compiler::{CompilationRecords, CompilerId},
   get_runtime_key,
   incremental::{self, Incremental, IncrementalPasses, Mutation},
-  is_source_equal, to_identifier,
+  is_source_equal, record_chunk_content_hash_dependency, to_identifier,
 };
 
 define_hook!(CompilationAddEntry: Series(entry_name: Option<&str>, options: &mut EntryOptions));
@@ -229,6 +230,7 @@ pub struct Compilation {
   pub runtime_modules: IdentifierMap<Box<dyn RuntimeModule>>,
   pub runtime_modules_hash: IdentifierMap<RspackHashDigest>,
   pub runtime_modules_code_generation_source: IdentifierMap<BoxSource>,
+  pub runtime_modules_content_hash_dependencies: IdentifierMap<ContentHashDependencies>,
   assets: CompilationAssets,
   assets_related_in: HashMap<String, HashSet<String>>,
   pub emitted_assets: DashSet<String, BuildHasherDefault<FxHasher>>,
@@ -266,6 +268,7 @@ pub struct Compilation {
   pub chunk_hashes_artifact: StealCell<ChunkHashesArtifact>,
   // artifact for create_chunk_assets
   pub chunk_render_artifact: StealCell<ChunkRenderArtifact>,
+  pub real_content_hash_artifact: RealContentHashArtifact,
   // artifact for caching get_mode
   pub module_graph_cache_artifact: StealCell<ModuleGraphCacheArtifact>,
   // transient cache for module static info
@@ -375,6 +378,7 @@ impl Compilation {
       runtime_modules: Default::default(),
       runtime_modules_hash: Default::default(),
       runtime_modules_code_generation_source: Default::default(),
+      runtime_modules_content_hash_dependencies: Default::default(),
       entries: Default::default(),
       global_entry: Default::default(),
       assets: Default::default(),
@@ -402,6 +406,7 @@ impl Compilation {
       runtime_proxy_metadata_artifact: StealCell::new(Default::default()),
       chunk_hashes_artifact: StealCell::new(Default::default()),
       chunk_render_artifact: StealCell::new(Default::default()),
+      real_content_hash_artifact: Default::default(),
       module_graph_cache_artifact: StealCell::new(Default::default()),
       module_static_cache: Default::default(),
       code_generated_modules: Default::default(),
@@ -904,20 +909,42 @@ impl Compilation {
   // repeated full traversals of chunk_by_ukey. This method uses parallel iteration
   // over chunk_by_ukey to reduce traversal frequency and improve performance.
   pub fn par_rename_assets(&mut self, renames: Vec<(String, String)>) {
+    let rename_map = renames
+      .iter()
+      .map(|(old_name, new_name)| (old_name.as_str(), new_name.as_str()))
+      .collect::<HashMap<_, _>>();
     self
       .build_chunk_graph_artifact
       .chunk_by_ukey
       .values_mut()
       .par_bridge()
       .for_each(|chunk| {
-        for (old_name, new_name) in renames.iter() {
-          if chunk.remove_file(old_name) {
-            chunk.add_file(new_name.clone());
-          }
+        let renamed_files = chunk
+          .files()
+          .iter()
+          .filter_map(|old_name| {
+            rename_map
+              .get(old_name.as_str())
+              .map(|new_name| (old_name.clone(), (*new_name).to_string()))
+          })
+          .collect::<Vec<_>>();
+        for (old_name, new_name) in renamed_files {
+          chunk.remove_file(&old_name);
+          chunk.add_file(new_name);
+        }
 
-          if chunk.remove_auxiliary_file(old_name) {
-            chunk.add_auxiliary_file(new_name.clone());
-          }
+        let renamed_auxiliary_files = chunk
+          .auxiliary_files()
+          .iter()
+          .filter_map(|old_name| {
+            rename_map
+              .get(old_name.as_str())
+              .map(|new_name| (old_name.clone(), (*new_name).to_string()))
+          })
+          .collect::<Vec<_>>();
+        for (old_name, new_name) in renamed_auxiliary_files {
+          chunk.remove_auxiliary_file(&old_name);
+          chunk.add_auxiliary_file(new_name);
         }
       });
 
@@ -1189,6 +1216,71 @@ impl Compilation {
       .hash
       .as_ref()
       .map(|hash| hash.rendered(self.options.output.hash_digest_length))
+  }
+
+  pub fn get_chunk_content_hash_by_source_type<'a>(
+    &'a self,
+    chunk: &Chunk,
+    source_type: &SourceType,
+  ) -> Option<&'a RspackHashDigest> {
+    let hash = chunk.content_hash_by_source_type(&self.chunk_hashes_artifact, source_type);
+    if self.options.optimization.real_content_hash && hash.is_some() {
+      record_chunk_content_hash_dependency(chunk.ukey(), *source_type);
+    }
+    hash
+  }
+
+  pub fn get_rendered_chunk_content_hash<'a>(
+    &'a self,
+    chunk: &Chunk,
+    source_type: &SourceType,
+    len: usize,
+  ) -> Option<&'a str> {
+    self
+      .get_chunk_content_hash_by_source_type(chunk, source_type)
+      .map(|hash| hash.rendered(len))
+  }
+
+  pub fn get_chunk_content_hash_dependencies(
+    &self,
+    chunk_ukey: &ChunkUkey,
+  ) -> ContentHashDependencies {
+    let mut dependencies = ContentHashDependencies::default();
+    let chunk = self
+      .build_chunk_graph_artifact
+      .chunk_by_ukey
+      .expect_get(chunk_ukey);
+    let module_graph = self.get_module_graph();
+
+    for module in self
+      .build_chunk_graph_artifact
+      .chunk_graph
+      .get_chunk_modules(chunk_ukey, module_graph)
+    {
+      if let Some(module_dependencies) = self
+        .code_generation_results
+        .get(&module.identifier(), Some(chunk.runtime()))
+        .data
+        .get::<ContentHashDependencies>()
+      {
+        dependencies.extend(module_dependencies);
+      }
+    }
+
+    for runtime_module in self
+      .build_chunk_graph_artifact
+      .chunk_graph
+      .get_chunk_runtime_modules_iterable(chunk_ukey)
+    {
+      if let Some(runtime_dependencies) = self
+        .runtime_modules_content_hash_dependencies
+        .get(runtime_module)
+      {
+        dependencies.extend(runtime_dependencies);
+      }
+    }
+
+    dependencies
   }
 
   pub async fn get_path<'b, 'a: 'b>(
@@ -1525,8 +1617,10 @@ pub struct RenderManifestEntry {
   pub source: BoxSource,
   pub filename: String,
   pub has_filename: bool, /* webpack only asset has filename, js/css/wasm has filename template */
+  pub source_type: Option<SourceType>,
   pub info: AssetInfo,
   pub auxiliary: bool,
+  pub content_hash_dependencies: ContentHashDependencies,
 }
 
 #[cacheable]

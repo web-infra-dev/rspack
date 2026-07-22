@@ -602,8 +602,8 @@ async fn render_manifest(
         ))
         .chunk_id_optional(chunk.id().map(|id| id.as_str()))
         .chunk_name_optional(chunk.name_for_filename_template())
-        .content_hash_optional(chunk.rendered_content_hash_by_source_type(
-          &compilation.chunk_hashes_artifact,
+        .content_hash_optional(compilation.get_rendered_chunk_content_hash(
+          chunk,
           &SourceType::JavaScript,
           compilation.options.output.hash_digest_length,
         ))
@@ -615,7 +615,7 @@ async fn render_manifest(
   let hooks = JsPlugin::get_compilation_hooks(compilation.id());
   let hooks = hooks.read().await;
 
-  let (source, _) = compilation
+  let (source, mut content_hash_dependencies, _) = compilation
     .chunk_render_cache_artifact
     .use_cache(
       compilation,
@@ -623,36 +623,48 @@ async fn render_manifest(
       &SourceType::JavaScript,
       &output_path,
       || async {
-        let source = if let Some(source) = hooks
-          .render_chunk_content
-          .call(compilation, chunk_ukey, &mut asset_info, &runtime_template)
-          .await?
-        {
-          source.source
-        } else if is_hot_update {
-          self
-            .render_chunk(compilation, chunk_ukey, &output_path, &runtime_template)
-            .await?
-        } else if is_runtime_chunk {
-          self
-            .render_main(compilation, chunk_ukey, &output_path, &runtime_template)
-            .await?
-        } else {
-          self
-            .render_chunk(compilation, chunk_ukey, &output_path, &runtime_template)
-            .await?
-        };
-        Ok((CachedSource::new(source).boxed(), Vec::new()))
+        let (source, dependencies) = rspack_core::collect_content_hash_dependencies(
+          compilation.options.optimization.real_content_hash,
+          async {
+            if let Some(source) = hooks
+              .render_chunk_content
+              .call(compilation, chunk_ukey, &mut asset_info, &runtime_template)
+              .await?
+            {
+              Ok(source.source)
+            } else if is_hot_update {
+              self
+                .render_chunk(compilation, chunk_ukey, &output_path, &runtime_template)
+                .await
+            } else if is_runtime_chunk {
+              self
+                .render_main(compilation, chunk_ukey, &output_path, &runtime_template)
+                .await
+            } else {
+              self
+                .render_chunk(compilation, chunk_ukey, &output_path, &runtime_template)
+                .await
+            }
+          },
+        )
+        .await;
+        Ok((CachedSource::new(source?).boxed(), dependencies, Vec::new()))
       },
     )
     .await?;
+
+  if compilation.options.optimization.real_content_hash {
+    content_hash_dependencies.extend(&compilation.get_chunk_content_hash_dependencies(chunk_ukey));
+  }
 
   manifest.push(RenderManifestEntry {
     source,
     filename: output_path,
     has_filename: false,
+    source_type: Some(SourceType::JavaScript),
     info: asset_info,
     auxiliary: false,
+    content_hash_dependencies,
   });
   Ok(())
 }
