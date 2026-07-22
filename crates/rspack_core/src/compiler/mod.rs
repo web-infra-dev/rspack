@@ -412,7 +412,7 @@ impl Compiler {
     .await;
 
     for result in emit_results {
-      result.map_err(|error| rspack_error::error!("Emit asset task failed: {error}"))??;
+      result.map_err(|error| rspack_error::error!("Emit asset failed: {error}"))??;
     }
 
     self.emitted_asset_versions = new_emitted_asset_versions;
