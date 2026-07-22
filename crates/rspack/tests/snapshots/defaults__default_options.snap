@@ -1749,6 +1749,7 @@ CompilerOptions {
     experiments: Experiments {
         css: false,
         defer_import: false,
+        env: false,
         source_import: false,
         pure_functions: false,
         runtime_mode: Webpack,
