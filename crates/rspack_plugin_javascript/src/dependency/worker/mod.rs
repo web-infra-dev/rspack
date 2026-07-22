@@ -10,9 +10,9 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, Compilation, Dependency, DependencyCategory, DependencyCodeGeneration,
   DependencyId, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
-  ExportsInfoArtifact, ExtendedReferencedExport, FactorizeInfo, JavascriptParserWorkerUrl,
-  ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, RuntimeGlobals, RuntimeSpec,
-  TemplateContext, TemplateReplaceSource, URLStaticMode,
+  ExportsInfoArtifact, FactorizeInfo, JavascriptParserWorkerUrl, ModuleDependency, ModuleGraph,
+  ModuleGraphCacheArtifact, ReferencedExport, RuntimeGlobals, RuntimeSpec, TemplateContext,
+  TemplateReplaceSource, URLStaticMode,
 };
 use rspack_hash::{RspackHash, RspackHasher};
 
@@ -89,7 +89,7 @@ impl Dependency for WorkerDependency {
     _module_graph_cache: &ModuleGraphCacheArtifact,
     _exports_info_artifact: &ExportsInfoArtifact,
     _runtime: Option<&RuntimeSpec>,
-  ) -> Vec<ExtendedReferencedExport> {
+  ) -> Vec<ReferencedExport> {
     vec![]
   }
 

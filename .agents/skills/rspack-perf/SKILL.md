@@ -123,19 +123,12 @@ Functional validation:
 - Run `pnpm run build:cli:dev` before `pnpm run test:unit`.
 - Always complete `pnpm run test:unit` after the optimization.
 
-Performance validation:
-
-- Validate with CodSpeed cases.
-- Prefer the CodSpeed `compilation stages` case that directly covers the optimized feature.
-- If no matching compilation-stage case exists, use the closest existing CodSpeed case for the affected feature and explain the coverage gap.
-- If adding or changing benchmark coverage is necessary, keep the case focused on the optimized stage and avoid unrelated noise such as minimization unless it is the target.
-
 Before submitting:
 
 - Run `pnpm run format:rs`.
 - Run `pnpm run format:js`.
 - Run `cargo clippy --workspace --all-targets --all-features`.
-- Summarize the hot path, the data cardinality risk, the chosen CPU/memory optimization technique, functional test result, CodSpeed performance result, format result, and clippy result.
+- Summarize the hot path, the data cardinality risk, the chosen CPU/memory optimization technique, functional test result, format result, and clippy result.
 
 ## PR and Benchmark Follow-up
 
@@ -164,10 +157,11 @@ Use the PR number as the workflow input. A run on `main` does not benchmark the 
 If the user allows waiting for GitHub CI:
 
 1. Wait for the relevant GitHub checks and the Ecosystem Benchmark run to finish.
-2. Fetch the PR comments and locate the CodSpeed performance report.
+2. Fetch the Ecosystem Benchmark report.
 3. Compare improvements and regressions in the report.
 4. If the report shows regressions, analyze likely causes from the changed hot path, data structure cardinality, CPU work, and allocation behavior.
 5. Perform one additional optimization iteration when there is a plausible fix, then update the PR branch, push again, and rerun the Ecosystem Benchmark workflow.
+6. Summarize the final Ecosystem Benchmark result after the workflow completes.
 
 ## Common Mistakes
 
@@ -176,4 +170,3 @@ If the user allows waiting for GitHub CI:
 - Making a hot structure larger to save one rare computation.
 - Adding parallelism before removing repeated serial work.
 - Trading a CPU bottleneck for large temporary allocations.
-- Verifying only output snapshots without checking the relevant CodSpeed case.

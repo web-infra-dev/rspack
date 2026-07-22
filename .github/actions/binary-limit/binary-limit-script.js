@@ -198,12 +198,22 @@ async function commentToPullRequest(github, context, comment) {
   });
 }
 
+// `ci-binary.json` is uploaded by the base commit's own CI right after the binding
+// build; `rspack-build.json` carries the same measurement but only lands once the
+// ecosystem benchmark completes, so it is a fallback for commits predating that job.
+async function fetchDataBySha(github, sha) {
+  const dir = `commits/${sha.slice(0, 2)}/${sha.slice(2)}`;
+  return (
+    (await fetchJson(github, `${dir}/ci-binary.json`)) ??
+    (await fetchJson(github, `${dir}/rspack-build.json`))
+  );
+}
+
 // Read via the authenticated Contents API rather than raw.githubusercontent.com:
 // the CDN rate-limits anonymous requests per shared runner IP and 429s almost
 // immediately, while the API uses the workflow token (5000 req/h) with octokit's
 // built-in retry/throttling.
-async function fetchDataBySha(github, sha) {
-  const path = `commits/${sha.slice(0, 2)}/${sha.slice(2)}/rspack-build.json`;
+async function fetchJson(github, path) {
   console.log(
     'fetching',
     `${DATA_REPO.owner}/${DATA_REPO.repo}:${path}`,

@@ -45,15 +45,15 @@ function log(level, msg) {
   }
 }
 
-var group = console.group || dummy;
-var groupCollapsed = console.groupCollapsed || dummy;
-var groupEnd = console.groupEnd || dummy;
+var consoleGroup = console.group || dummy;
+var consoleGroupCollapsed = console.groupCollapsed || dummy;
+var consoleGroupEnd = console.groupEnd || dummy;
 
-export var group = logGroup(group);
+export var group = logGroup(consoleGroup);
 
-export var groupCollapsed = logGroup(groupCollapsed);
+export var groupCollapsed = logGroup(consoleGroupCollapsed);
 
-export var groupEnd = logGroup(groupEnd);
+export var groupEnd = logGroup(consoleGroupEnd);
 
 /**
  * @param {LogLevel} level log level

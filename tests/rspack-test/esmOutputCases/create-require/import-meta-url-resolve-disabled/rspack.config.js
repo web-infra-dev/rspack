@@ -6,5 +6,13 @@ module.exports = {
         requireResolve: false,
       },
     },
+    rules: [
+      {
+        test: /preserve-import-meta\.js$/,
+        parser: {
+          importMeta: false,
+        },
+      },
+    ],
   },
 };

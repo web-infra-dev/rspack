@@ -2853,6 +2853,7 @@ impl ConcatenatedModule {
     if export_name.is_empty() {
       match exports_type {
         ExportsType::DefaultOnly => {
+          let needed_namespace_object = info.try_as_concatenated().map(|info| info.module);
           // shadowing the previous immutable ref to avoid violating rustc borrow rules
           let (raw_name, interop_namespace_object2_used, deferred_namespace_object_used) =
             if is_deferred {
@@ -2872,10 +2873,11 @@ impl ConcatenatedModule {
             interop_namespace_object_used: None,
             interop_default_access_used: None,
             deferred_namespace_object_used,
-            needed_namespace_object: None,
+            needed_namespace_object,
           };
         }
         ExportsType::DefaultWithNamed => {
+          let needed_namespace_object = info.try_as_concatenated().map(|info| info.module);
           // shadowing the previous immutable ref to avoid violating rustc borrow rules
           let (raw_name, interop_namespace_object_used, deferred_namespace_object_used) =
             if is_deferred {
@@ -2895,7 +2897,7 @@ impl ConcatenatedModule {
             interop_namespace_object2_used: None,
             interop_default_access_used: None,
             deferred_namespace_object_used,
-            needed_namespace_object: None,
+            needed_namespace_object,
           };
         }
         _ => {}

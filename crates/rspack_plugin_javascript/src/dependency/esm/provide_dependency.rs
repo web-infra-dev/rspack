@@ -5,8 +5,8 @@ use rspack_cacheable::{
 use rspack_core::{
   AsContextDependency, Compilation, Dependency, DependencyCategory, DependencyCodeGeneration,
   DependencyId, DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType,
-  DependencyType, ExportsInfoArtifact, ExtendedReferencedExport, FactorizeInfo, InitFragmentKey,
-  InitFragmentStage, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, NormalInitFragment,
+  DependencyType, ExportsInfoArtifact, FactorizeInfo, InitFragmentKey, InitFragmentStage,
+  ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, NormalInitFragment, ReferencedExport,
   RuntimeSpec, TemplateContext, TemplateReplaceSource, UsedName, create_exports_object_referenced,
   property_access, to_normal_comment,
 };
@@ -71,11 +71,11 @@ impl Dependency for ProvideDependency {
     _module_graph_cache: &ModuleGraphCacheArtifact,
     _exports_info_artifact: &ExportsInfoArtifact,
     _runtime: Option<&RuntimeSpec>,
-  ) -> Vec<ExtendedReferencedExport> {
+  ) -> Vec<ReferencedExport> {
     if self.ids.is_empty() {
       create_exports_object_referenced()
     } else {
-      vec![ExtendedReferencedExport::Array(self.ids.clone())]
+      vec![ReferencedExport::from(self.ids.as_slice())]
     }
   }
 

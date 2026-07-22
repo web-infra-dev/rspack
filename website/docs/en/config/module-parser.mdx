@@ -400,7 +400,7 @@ export default {
 The object form supports the following keys:
 
 - Webpack-compatible keys: `dirname`, `filename`, `main`, `url`, `webpack`, and `webpackContext`.
-- Rspack-specific keys: `glob`, `resolve`, `rspackBaseUri`, `rspackHash`, `rspackInitSharing`, `rspackNonce`, `rspackPublicPath`, `rspackRsc`, `rspackShareScopes`, `rspackUniqueId`, and `rspackVersion`.
+- Rspack-specific keys: `env`, `glob`, `resolve`, `rspackBaseUri`, `rspackHash`, `rspackInitSharing`, `rspackNonce`, `rspackPublicPath`, `rspackRsc`, `rspackShareScopes`, `rspackUniqueId`, and `rspackVersion`.
 
 ```js title="rspack.config.mjs"
 export default {
@@ -420,6 +420,8 @@ export default {
 ```
 
 `resolve` only controls whether an already enabled [`import.meta.resolve()`](#javascriptimportmetaresolve) expression is handled at compile time. To use `import.meta.resolve()`, you still need to enable `javascript.importMetaResolve`.
+
+`env` only takes effect when [`experiments.env`](/config/experiments#experimentsenv) is enabled. Setting it to `false` preserves `import.meta.env` in this module for runtime evaluation instead of replacing it at compile time.
 
 ### javascript.exportsPresence
 

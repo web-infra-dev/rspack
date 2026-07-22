@@ -1,10 +1,12 @@
 use std::borrow::Cow;
 
+use concat_string::concat_string;
 use itertools::Itertools as _;
 use rspack_core::{
   BoxDependencyTemplate, ConstDependency, RuntimeGlobals, RuntimeRequirementsDependency,
 };
-use serde_json::{Value, json};
+use rspack_util::json_stringify_str;
+use serde_json::{Map, Value};
 
 use crate::visitors::{DestructuringAssignmentProperties, JavascriptParser};
 
@@ -16,7 +18,7 @@ pub fn gen_const_dep(
   end: u32,
 ) -> Vec<BoxDependencyTemplate> {
   let code = if parser.in_short_hand {
-    format!("{for_name}: {code}")
+    concat_string!(for_name, ": ", code)
   } else {
     code.into_owned()
   };
@@ -48,21 +50,72 @@ pub fn gen_const_dep(
   }
 }
 
+pub(crate) fn wrap_code<'a>(
+  code: Cow<'a, str>,
+  is_array: bool,
+  asi_safe: Option<bool>,
+) -> Cow<'a, str> {
+  match asi_safe {
+    Some(true) if is_array => code,
+    Some(true) => Cow::Owned(concat_string!("(", code, ")")),
+    Some(false) if is_array => Cow::Owned(concat_string!(";", code)),
+    Some(false) => Cow::Owned(concat_string!(";(", code, ")")),
+    None => code,
+  }
+}
+
+fn code_object_to_string_with_filter<'a>(
+  object: &'a Map<String, Value>,
+  asi_safe: Option<bool>,
+  should_include: impl Fn(&str) -> bool,
+) -> Cow<'a, str> {
+  let elements = object
+    .iter()
+    .filter_map(|(key, value)| {
+      if should_include(key) {
+        // Emit `__proto__` as a computed key so it becomes an own property
+        // instead of setting the prototype (matches webpack's `stringifyObj`).
+        let key = if key == "__proto__" {
+          concat_string!("[", json_stringify_str(key), "]")
+        } else {
+          json_stringify_str(key)
+        };
+        Some(concat_string!(key, ":", code_to_string(value, None, None)))
+      } else {
+        None
+      }
+    })
+    .join(",");
+  wrap_code(
+    Cow::Owned(concat_string!("{ ", elements, " }")),
+    false,
+    asi_safe,
+  )
+}
+
+pub(crate) fn code_object_to_string<'a>(
+  object: &'a Map<String, Value>,
+  asi_safe: Option<bool>,
+  obj_keys: Option<&DestructuringAssignmentProperties>,
+) -> Cow<'a, str> {
+  code_object_to_string_with_filter(object, asi_safe, |key| {
+    obj_keys.is_none_or(|keys| keys.iter().any(|prop| prop.id.as_str() == key))
+  })
+}
+
+pub(crate) fn code_object_property_to_string<'a>(
+  object: &'a Map<String, Value>,
+  asi_safe: Option<bool>,
+  property: &str,
+) -> Cow<'a, str> {
+  code_object_to_string_with_filter(object, asi_safe, |key| key == property)
+}
+
 pub fn code_to_string<'a>(
   code: &'a Value,
   asi_safe: Option<bool>,
   obj_keys: Option<&DestructuringAssignmentProperties>,
 ) -> Cow<'a, str> {
-  fn wrap_ansi(code: Cow<str>, is_arr: bool, asi_safe: Option<bool>) -> Cow<str> {
-    match asi_safe {
-      Some(true) if is_arr => code,
-      Some(true) => Cow::Owned(format!("({code})")),
-      Some(false) if is_arr => Cow::Owned(format!(";{code}")),
-      Some(false) => Cow::Owned(format!(";({code})")),
-      None => code,
-    }
-  }
-
   match code {
     Value::Null => Cow::Borrowed("null"),
     Value::String(s) => Cow::Borrowed(s),
@@ -73,24 +126,12 @@ pub fn code_to_string<'a>(
         .iter()
         .map(|code| code_to_string(code, None, None))
         .join(",");
-      wrap_ansi(Cow::Owned(format!("[{elements}]")), true, asi_safe)
+      wrap_code(
+        Cow::Owned(concat_string!("[", elements, "]")),
+        true,
+        asi_safe,
+      )
     }
-    Value::Object(obj) => {
-      let elements = obj
-        .iter()
-        .filter_map(|(key, value)| {
-          if obj_keys.is_none_or(|keys| keys.iter().any(|prop| prop.id.as_str() == key)) {
-            Some(format!(
-              "{}:{}",
-              json!(key),
-              code_to_string(value, None, None)
-            ))
-          } else {
-            None
-          }
-        })
-        .join(",");
-      wrap_ansi(Cow::Owned(format!("{{ {elements} }}")), false, asi_safe)
-    }
+    Value::Object(obj) => code_object_to_string(obj, asi_safe, obj_keys),
   }
 }

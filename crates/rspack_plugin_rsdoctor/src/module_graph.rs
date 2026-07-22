@@ -4,10 +4,10 @@ use rayon::iter::{IntoParallelRefIterator, ParallelBridge, ParallelIterator};
 use rspack_collections::{Identifiable, IdentifierMap, IdentifierSet};
 use rspack_core::{
   BoxModule, ChunkGraph, Compilation, Context, Dependency, DependencyId, DependencyType,
-  ExportInfoData, ExportMode, ExportProvided, ExportsInfoArtifact, ExtendedReferencedExport,
-  Module, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdsArtifact, ModuleType,
-  OptimizationBailoutItem, SideEffectsStateArtifact, UsageState, UsedByExports,
-  UsedByExportsCondition, collect_referenced_export_items,
+  ExportInfoData, ExportMode, ExportProvided, ExportsInfoArtifact, Module, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleIdsArtifact, ModuleType, OptimizationBailoutItem,
+  SideEffectsStateArtifact, UsageState, UsedByExports, UsedByExportsCondition,
+  collect_referenced_export_items,
   rspack_sources::{MapOptions, ObjectPool},
 };
 use rspack_paths::Utf8PathBuf;
@@ -338,10 +338,7 @@ fn get_esm_import_specifier_target_exports(
       None,
     )
     .into_iter()
-    .map(|referenced_export| match referenced_export {
-      ExtendedReferencedExport::Array(ids) => ids,
-      ExtendedReferencedExport::Export(export) => export.name,
-    })
+    .map(|referenced_export| referenced_export.name)
     .map(|ids| {
       if ids.is_empty() {
         None
