@@ -10,18 +10,18 @@ use rspack_regex::RspackRegex;
 use rspack_util::{SpanExt, identifier::relative_path_to_request, node_path::NodePath};
 use sugar_path::SugarPath;
 use swc_atoms::Atom;
-use swc_experimental_ecma_ast::{CallExpr, Expr};
+use swc_experimental_ecma_ast::{CallExpr, Expr, GetSpan};
 
 use super::JavascriptParserPlugin;
 use crate::{
   dependency::ImportMetaContextDependency,
   utils::{
-    ast_object::{AstRegex, FromAstExpr},
     eval::{self, BasicEvaluatedExpression},
+    object_properties::{FromAstExpr, get_from_object},
   },
   visitors::{
-    JavascriptParser, clean_regexp_in_context_module, create_context_options,
-    default_context_reg_exp, expr_name, static_string_from_expr,
+    JavascriptParser, clean_regexp_in_context_module, default_context_reg_exp, expr_name,
+    static_string_from_expr,
   },
 };
 
@@ -30,9 +30,9 @@ use crate::{
 #[derive(Debug, Default, AstObject)]
 #[ast_object(rename_all = "camelCase")]
 struct ImportMetaWebpackContextOptions {
-  reg_exp: Option<AstRegex>,
-  include: Option<AstRegex>,
-  exclude: Option<AstRegex>,
+  reg_exp: Option<RspackRegex>,
+  include: Option<RspackRegex>,
+  exclude: Option<RspackRegex>,
   mode: Option<String>,
   /// Absent or unrecognized means `true`.
   recursive: Option<bool>,
@@ -48,6 +48,37 @@ struct ImportMetaGlobOptions {
   query: Option<ImportMetaGlobQuery>,
   base: Option<String>,
   exhaustive: bool,
+}
+
+impl From<&ImportMetaWebpackContextOptions> for ContextOptions {
+  fn from(options: &ImportMetaWebpackContextOptions) -> Self {
+    Self {
+      pattern: options.reg_exp.clone().into(),
+      include: options.include.clone(),
+      exclude: options.exclude.clone(),
+      mode: options
+        .mode
+        .as_deref()
+        .map_or(ContextMode::Sync, ContextMode::from),
+      recursive: options.recursive.unwrap_or(true),
+      ..Default::default()
+    }
+  }
+}
+
+impl From<&ImportMetaGlobOptions> for ContextOptions {
+  fn from(options: &ImportMetaGlobOptions) -> Self {
+    Self {
+      mode: if options.eager {
+        ContextMode::Sync
+      } else {
+        ContextMode::Lazy
+      },
+      glob_import: options.import.clone(),
+      glob_exhaustive: options.exhaustive,
+      ..Default::default()
+    }
+  }
 }
 
 #[derive(Debug)]
@@ -85,18 +116,18 @@ impl FromAstExpr<'_> for ImportMetaGlobQueryValue {
 }
 
 impl ImportMetaGlobQuery {
-  fn into_query_string(self) -> String {
+  fn to_query_string(&self) -> String {
     match self {
-      Self::String(query) => normalize_import_meta_glob_query(query),
+      Self::String(query) => normalize_import_meta_glob_query(query.clone()),
       Self::Record(entries) => {
         let mut serializer = form_urlencoded::Serializer::new(String::new());
         for (key, value) in entries {
           let value = match value {
-            ImportMetaGlobQueryValue::String(value) => value,
+            ImportMetaGlobQueryValue::String(value) => value.clone(),
             ImportMetaGlobQueryValue::Number(value) => value.to_string(),
             ImportMetaGlobQueryValue::Bool(value) => value.to_string(),
           };
-          serializer.append_pair(&key, &value);
+          serializer.append_pair(key, &value);
         }
         normalize_import_meta_glob_query(serializer.finish())
       }
@@ -314,41 +345,30 @@ fn create_import_meta_context_dependency(
   }
   // TODO: should've used expression evaluation to handle cases like `abc${"efg"}`, etc.
   let request = static_string_from_expr(&dyn_imported.expr)?;
-  let options = node
-    .args
-    .get(1)
-    .and_then(|arg| arg.expr.as_object())
+  let raw_options = node.args.get(1).and_then(|arg| arg.expr.as_object());
+  let options = raw_options
     .map(ImportMetaWebpackContextOptions::from_ast_object)
     .unwrap_or_default();
-  let regexp_span = options.reg_exp.as_ref().map(|regex| regex.span.into());
+  let regexp_span = options.reg_exp.as_ref().and_then(|_| {
+    raw_options
+      .and_then(|options| get_from_object(options, &["regExp"]))
+      .map(|regexp| regexp.span().into())
+  });
   let regexp = options
     .reg_exp
-    .map_or_else(default_context_reg_exp, |regex| {
-      RspackRegex::with_flags(regex.exp.as_str(), regex.flags.as_str()).expect("reg failed")
-    });
-  let include = options.include.map(|regex| {
-    RspackRegex::with_flags(regex.exp.as_str(), regex.flags.as_str()).expect("reg failed")
-  });
-  let exclude = options.exclude.map(|regex| {
-    RspackRegex::with_flags(regex.exp.as_str(), regex.flags.as_str()).expect("reg failed")
-  });
-  let mode = options
-    .mode
-    .map_or(ContextMode::Sync, |mode| mode.as_str().into());
-  let recursive = options.recursive.is_none_or(|recursive| recursive);
+    .clone()
+    .unwrap_or_else(default_context_reg_exp);
   let span = node.span;
-  let context_options = ContextOptions {
-    pattern: clean_regexp_in_context_module(regexp, regexp_span, parser).into(),
-    include,
-    exclude,
-    recursive,
-    category: DependencyCategory::Esm,
+  let mut context_options = ContextOptions::new(
+    &options,
+    DependencyCategory::Esm,
     request,
-    mode,
-    start: span.real_lo(),
-    end: span.real_hi(),
-    ..create_context_options(parser)
-  };
+    parser.compiler_options.context.to_string(),
+    get_context(parser.resource_data).to_string(),
+    span.real_lo(),
+    span.real_hi(),
+  );
+  context_options.pattern = clean_regexp_in_context_module(regexp, regexp_span, parser).into();
   Some(ImportMetaContextDependency::new(
     context_options,
     node.span.into(),
@@ -373,21 +393,15 @@ fn create_import_meta_glob_dependency(
     .and_then(|arg| arg.expr.as_object())
     .map(ImportMetaGlobOptions::from_ast_object)
     .unwrap_or_default();
-  let mode = if options.eager {
-    ContextMode::Sync
-  } else {
-    ContextMode::Lazy
-  };
-  let glob_import = options.import;
   let glob_query = options
     .query
-    .map_or_else(String::new, ImportMetaGlobQuery::into_query_string);
-  let base = options.base;
-  let glob_exhaustive = options.exhaustive;
+    .as_ref()
+    .map_or_else(String::new, ImportMetaGlobQuery::to_query_string);
+  let base = options.base.as_deref();
   let resolve_context = resolve_import_meta_glob_context(
     importer_context.as_str(),
     parser.compiler_options.context.as_str(),
-    base.as_deref(),
+    base,
   );
   let glob_patterns = normalize_import_meta_glob_patterns(
     raw_glob_patterns,
@@ -408,10 +422,11 @@ fn create_import_meta_glob_dependency(
   let base_dir = common_glob_base_dir(&resolved_glob_patterns, resolve_context.as_str());
   let recursive = glob_patterns_are_recursive(&resolved_glob_patterns, &base_dir);
 
-  let referenced_specifiers = glob_import
-    .as_ref()
-    .filter(|import| import.as_str() != "*")
-    .map(|import| vec![ReferencedSpecifier::new(vec![Atom::from(import.as_str())])]);
+  let referenced_specifiers = options
+    .import
+    .as_deref()
+    .filter(|import| *import != "*")
+    .map(|import| vec![ReferencedSpecifier::new(vec![Atom::from(import)])]);
   let namespace_object = if parser.build_meta.strict_esm_module() {
     ContextNameSpaceObject::Strict
   } else {
@@ -422,17 +437,17 @@ fn create_import_meta_glob_dependency(
   let context_options = ContextOptions {
     pattern: ContextModulePattern::Glob(glob_patterns),
     recursive,
-    category: DependencyCategory::Esm,
-    request: concat_string!(base_dir, glob_query),
-    resolve_context,
     namespace_object,
-    mode,
-    start: span.real_lo(),
-    end: span.real_hi(),
     referenced_specifiers,
-    glob_import,
-    glob_exhaustive,
-    ..create_context_options(parser)
+    ..ContextOptions::new(
+      &options,
+      DependencyCategory::Esm,
+      concat_string!(base_dir, glob_query),
+      parser.compiler_options.context.to_string(),
+      resolve_context,
+      span.real_lo(),
+      span.real_hi(),
+    )
   };
   Some(ImportMetaContextDependency::new_glob(
     context_options,
@@ -495,5 +510,56 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaContextDependencyParse
     } else {
       None
     }
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn converts_webpack_context_options() {
+    let options = ImportMetaWebpackContextOptions {
+      reg_exp: Some(RspackRegex::with_flags("^\\./", "i").expect("valid regexp")),
+      include: Some(RspackRegex::new("include").expect("valid regexp")),
+      exclude: Some(RspackRegex::new("exclude").expect("valid regexp")),
+      mode: Some("lazy".to_string()),
+      recursive: Some(false),
+    };
+    let context_options = ContextOptions::new(
+      &options,
+      DependencyCategory::Esm,
+      "./request".to_string(),
+      "/project".to_string(),
+      "/project/src".to_string(),
+      1,
+      2,
+    );
+
+    assert_eq!(context_options.mode, ContextMode::Lazy);
+    assert!(!context_options.recursive);
+    assert_eq!(context_options.pattern.reg_exp(), options.reg_exp.as_ref());
+    assert_eq!(context_options.include, options.include);
+    assert_eq!(context_options.exclude, options.exclude);
+    assert_eq!(context_options.category, DependencyCategory::Esm);
+    assert_eq!(context_options.request, "./request");
+    assert_eq!(context_options.context, "/project");
+    assert_eq!(context_options.resolve_context, "/project/src");
+    assert_eq!((context_options.start, context_options.end), (1, 2));
+  }
+
+  #[test]
+  fn converts_glob_options() {
+    let options = ImportMetaGlobOptions {
+      eager: false,
+      import: Some("default".to_string()),
+      exhaustive: true,
+      ..Default::default()
+    };
+    let context_options = ContextOptions::from(&options);
+
+    assert_eq!(context_options.mode, ContextMode::Lazy);
+    assert_eq!(context_options.glob_import.as_deref(), Some("default"));
+    assert!(context_options.glob_exhaustive);
   }
 }

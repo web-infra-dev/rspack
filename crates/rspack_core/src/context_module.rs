@@ -202,6 +202,30 @@ pub struct ContextOptions {
   pub phase: Option<ImportPhase>,
 }
 
+impl ContextOptions {
+  /// Creates context options by combining option-specific values with the
+  /// dependency metadata shared by context dependency parsers.
+  pub fn new(
+    options: impl Into<Self>,
+    category: DependencyCategory,
+    request: String,
+    context: String,
+    resolve_context: String,
+    start: u32,
+    end: u32,
+  ) -> Self {
+    Self {
+      category,
+      request,
+      context,
+      resolve_context,
+      start,
+      end,
+      ..options.into()
+    }
+  }
+}
+
 impl Default for ContextOptions {
   fn default() -> Self {
     Self {

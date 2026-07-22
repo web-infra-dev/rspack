@@ -3,7 +3,7 @@ use quote::quote;
 use syn::{Data, DeriveInput, Error, ExprPath, Fields, LitStr, Result};
 
 /// Derives `from_ast_object` for plain data structs, extracting each field
-/// from an AST object literal. See `utils/ast_object.rs` in
+/// from an AST object literal. See `utils/object_properties.rs` in
 /// `rspack_plugin_javascript` for the runtime side.
 pub fn expand_ast_object_derive(input: DeriveInput) -> Result<TokenStream> {
   let name = &input.ident;
@@ -101,7 +101,7 @@ pub fn expand_ast_object_derive(input: DeriveInput) -> Result<TokenStream> {
     });
     let ty = &field.ty;
     let extract = quote! {
-      crate::utils::ast_object::get_value_from_object::<#ty>(obj, &[#key])
+      crate::utils::object_properties::get_value_from_object::<#ty>(obj, &[#key])
     };
     let initializer = match default_fn {
       Some(default_fn) => quote!(#extract.unwrap_or_else(#default_fn)),
@@ -121,7 +121,7 @@ pub fn expand_ast_object_derive(input: DeriveInput) -> Result<TokenStream> {
       }
     }
 
-    impl<'__ast> crate::utils::ast_object::FromAstExpr<'__ast> for #name {
+    impl<'__ast> crate::utils::object_properties::FromAstExpr<'__ast> for #name {
       fn from_ast_expr(expr: &::swc_experimental_ecma_ast::Expr<'__ast>) -> Option<Self> {
         expr.as_object().map(Self::from_ast_object)
       }
