@@ -183,7 +183,8 @@ impl Module for ConsumeSharedModule {
       if self.options.eager {
         dependencies.push(dep as BoxDependency);
       } else {
-        let block = AsyncDependenciesBlock::new(self.identifier, None, None, vec![dep], None);
+        let block =
+          AsyncDependenciesBlock::new(self.identifier, blocks.len(), None, vec![dep], None);
         blocks.push(Box::new(block));
       }
     }

@@ -239,8 +239,8 @@ impl RstestParserPlugin {
           let loc = parser.to_dependency_location(range);
           let block = AsyncDependenciesBlock::new(
             *parser.module_identifier,
+            parser.next_block_idx(),
             loc,
-            None,
             vec![dep],
             Some(lit.value.to_string_lossy().to_string()),
           );
@@ -573,8 +573,8 @@ impl RstestParserPlugin {
                 let loc = parser.to_dependency_location(range);
                 let block = AsyncDependenciesBlock::new(
                   *parser.module_identifier,
+                  parser.next_block_idx(),
                   loc,
-                  None,
                   vec![dep],
                   Some(mocked_target.to_string()),
                 );
