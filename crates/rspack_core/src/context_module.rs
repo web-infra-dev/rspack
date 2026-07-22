@@ -179,8 +179,16 @@ pub struct ContextOptions {
   pub include: Option<RspackRegex>,
   pub exclude: Option<RspackRegex>,
   pub category: DependencyCategory,
-  pub request: String,
+  /// The compiler/project context. Root-relative glob patterns are resolved from this directory.
+  /// This value is stable for the lifetime of a compilation and must not be changed by context
+  /// module factory hooks.
   pub context: String,
+  /// The base directory used to resolve relative context requests and glob patterns. This is the
+  /// importer directory by default, but may be changed by options such as `import.meta.glob`'s
+  /// `base` or by context module factory hooks.
+  pub resolve_context: String,
+  /// The context request passed to the resolver.
+  pub request: String,
   pub namespace_object: ContextNameSpaceObject,
   pub group_options: Option<GroupOptions>,
   pub replaces: Vec<(String, u32, u32)>,
@@ -203,8 +211,9 @@ impl Default for ContextOptions {
       include: None,
       exclude: None,
       category: DependencyCategory::Unknown,
-      request: String::new(),
       context: String::new(),
+      resolve_context: String::new(),
+      request: String::new(),
       namespace_object: ContextNameSpaceObject::Unset,
       group_options: None,
       replaces: Vec::new(),
@@ -1413,6 +1422,7 @@ impl Module for ContextModule {
     if self.options.context_options.glob_exhaustive {
       id += " globExhaustive";
     }
+    append_resolve_context_identifier(&mut id, &self.options.context_options, " resolveContext: ");
     Some(Cow::Owned(id))
   }
 
@@ -1623,6 +1633,7 @@ fn create_identifier(options: &ContextModuleOptions, resource: Option<&str>) -> 
   if options.context_options.glob_exhaustive {
     id += "|globExhaustive";
   }
+  append_resolve_context_identifier(&mut id, &options.context_options, "|resolveContext: ");
 
   if let Some(GroupOptions::ChunkGroup(group)) = &options.context_options.group_options {
     if let Some(chunk_name) = &group.name {
@@ -1659,4 +1670,13 @@ fn create_identifier(options: &ContextModuleOptions, resource: Option<&str>) -> 
     id += layer;
   }
   id.into()
+}
+
+fn append_resolve_context_identifier(id: &mut String, options: &ContextOptions, prefix: &str) {
+  if options.resolve_context.is_empty() || !matches!(options.pattern, ContextModulePattern::Glob(_))
+  {
+    return;
+  }
+  id.push_str(prefix);
+  id.push_str(&contextify(&options.context, &options.resolve_context));
 }

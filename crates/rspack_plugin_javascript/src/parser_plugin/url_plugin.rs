@@ -14,7 +14,9 @@ use crate::{
   InnerGraphParserPlugin,
   dependency::{URLContextDependency, URLDependency},
   magic_comment::{MagicCommentValue, try_extract_magic_comment},
-  visitors::{ExprRef, JavascriptParser, context_reg_exp, create_context_dependency},
+  visitors::{
+    ExprRef, JavascriptParser, context_reg_exp, create_context_dependency, create_context_options,
+  },
 };
 
 #[derive(Default)]
@@ -201,11 +203,10 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for URLPlugin {
       exclude: magic_comment_options.get_exclude(),
       category: DependencyCategory::Url,
       request: format!("{}{}{}", result.context, result.query, result.fragment),
-      context: result.context,
       replaces: result.replaces,
       start: expr.span().real_lo(),
       end: expr.span().real_hi(),
-      ..Default::default()
+      ..create_context_options(parser)
     };
 
     let mut dep = URLContextDependency::new(

@@ -34,8 +34,9 @@ use crate::{
   utils::eval::{self, BasicEvaluatedExpression},
   visitors::{
     AllowedMemberTypes, ExportedVariableInfo, ExprRef, JavascriptParser, MemberExpressionInfo,
-    RootName, context_reg_exp, create_context_dependency, create_traceable_error, expr_name,
-    get_non_optional_member_chain_from_expr, member_property_to_atom,
+    RootName, context_reg_exp, create_context_dependency, create_context_options,
+    create_traceable_error, expr_name, get_non_optional_member_chain_from_expr,
+    member_property_to_atom,
   },
 };
 
@@ -60,11 +61,10 @@ fn create_import_meta_resolve_context_dependency(
     pattern: context_reg_exp(&result.reg, "", None, parser).into(),
     category: DependencyCategory::Esm,
     request: format!("{}{}{}", result.context, result.query, result.fragment),
-    context: result.context,
     replaces: result.replaces,
     start,
     end,
-    ..Default::default()
+    ..create_context_options(parser)
   };
   let mut dep = ImportMetaResolveContextDependency::new(options, range, parser.in_try);
   *dep.critical_mut() = result.critical;

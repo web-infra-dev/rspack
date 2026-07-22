@@ -1,12 +1,20 @@
 use std::borrow::Cow;
 
 use itertools::Itertools;
-use rspack_core::parse_resource;
+use rspack_core::{ContextOptions, get_context, parse_resource};
 use rspack_error::{Diagnostic, Severity};
 use rspack_util::{json_stringify_str, quote_meta};
 
 use super::create_traceable_error;
 use crate::utils::eval::{BasicEvaluatedExpression, TemplateStringKind};
+
+pub fn create_context_options(parser: &crate::visitors::JavascriptParser) -> ContextOptions {
+  ContextOptions {
+    context: parser.compiler_options.context.to_string(),
+    resolve_context: get_context(parser.resource_data).to_string(),
+    ..Default::default()
+  }
+}
 
 // Webpack will walk only the dynamic parts of evaluated expression in this function
 // but in our implementation, due to we can't easily implement setExpression for
