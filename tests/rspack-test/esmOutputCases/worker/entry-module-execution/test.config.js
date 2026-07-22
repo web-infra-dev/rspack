@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { execFileSync } = require('child_process');
 
 module.exports = {
   snapshotContent(content) {
@@ -36,10 +37,14 @@ module.exports = {
     );
 
     expect(asyncSource).toMatch(
-      /await (?:__webpack_require__|__rspack_context\.r)\("\.\/worker-async\.js"\);/,
+      /await (?:__webpack_require__\(__webpack_require__\.s|__rspack_context\.r\(__rspack_context\.s) = "\.\/worker-async\.js"\);/,
     );
     expect(asyncSource).toContain(
       'globalThis.__workerAsyncEntryExecuted = true;',
     );
+
+    execFileSync(process.execPath, [
+      path.join(options.output.path, 'worker-async.mjs'),
+    ]);
   },
 };

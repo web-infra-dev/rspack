@@ -227,6 +227,10 @@ if ((__webpack_require__.c[__webpack_require__.s] === module)) {
 
 await Promise.resolve();
 
+if (!globalThis.__workerIsMain) {
+  throw new Error('worker entry should be the main module');
+}
+
 /* export default */ const __rspack_default_export = ('worker-async');
 
 globalThis.__workerAsyncEntryExecuted = true;
@@ -236,7 +240,7 @@ __rspack_async_done();
 
 },
 });
-await __webpack_require__("./worker-async.js");
+await __webpack_require__(__webpack_require__.s = "./worker-async.js");
 
 export {};
 

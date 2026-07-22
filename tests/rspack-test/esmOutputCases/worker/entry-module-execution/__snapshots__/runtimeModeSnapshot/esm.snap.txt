@@ -230,6 +230,10 @@ if ((__rspack_context.c[__rspack_context.s] === module)) {
 
 await Promise.resolve();
 
+if (!globalThis.__workerIsMain) {
+  throw new Error('worker entry should be the main module');
+}
+
 /* export default */ const __rspack_default_export = ('worker-async');
 
 globalThis.__workerAsyncEntryExecuted = true;
@@ -239,7 +243,7 @@ __rspack_async_done();
 
 },
 });
-await __rspack_context.r("./worker-async.js");
+await __rspack_context.r(__rspack_context.s = "./worker-async.js");
 
 export {};
 

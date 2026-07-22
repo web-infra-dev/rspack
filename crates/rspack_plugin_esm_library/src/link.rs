@@ -1617,6 +1617,7 @@ var {} = {{}};
     let require_info: &mut ExternalInterop = required.entry(m).or_insert(ExternalInterop {
       module: m,
       from_module: Default::default(),
+      set_entry_module_id: false,
       required_symbol: None,
       default_access: None,
       default_exported: None,
@@ -2370,12 +2371,14 @@ var {} = {{}};
           .chunk_graph
           .get_chunk_entry_modules_with_chunk_group_iterable(chunk_ukey)
         {
-          if module_entrypoint_ukey != entrypoint_ukey
-            || compilation
-              .code_generation_results
-              .get_one(entry_module)
-              .get(&SourceType::JavaScript)
-              .is_none()
+          if module_entrypoint_ukey != entrypoint_ukey {
+            continue;
+          }
+
+          let code_generation_result = compilation.code_generation_results.get_one(entry_module);
+          if code_generation_result
+            .get(&SourceType::JavaScript)
+            .is_none()
           {
             continue;
           }
@@ -2398,13 +2401,16 @@ var {} = {{}};
           entry_imports.entry(*entry_module).or_default();
 
           if concate_modules_map[entry_module].is_external() {
-            Self::add_require(
+            let require_info = Self::add_require(
               *entry_module,
               None,
               None,
               &mut FxHashSet::default(),
               required.entry(*chunk_ukey).or_default(),
             );
+            require_info.set_entry_module_id |= code_generation_result
+              .runtime_requirements
+              .contains(RuntimeGlobals::ENTRY_MODULE_ID);
           }
         }
       }
