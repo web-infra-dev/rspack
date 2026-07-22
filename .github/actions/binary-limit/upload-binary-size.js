@@ -25,6 +25,17 @@ function git(...args) {
   execFileSync('git', args, { cwd: DATA_DIR, stdio: 'inherit' });
 }
 
+// `git commit` exits non-zero with nothing staged, which a re-run of an already
+// uploaded commit would hit.
+function hasStagedChanges() {
+  try {
+    git('diff', '--cached', '--quiet');
+    return false;
+  } catch {
+    return true;
+  }
+}
+
 // Self-hosted runners reuse workspaces, so a leftover clone from a previous run
 // would make `git clone` fail.
 fs.rmSync(DATA_DIR, { recursive: true, force: true });
@@ -59,6 +70,10 @@ for (let attempt = 1; ; attempt++) {
     `${JSON.stringify({ size }, null, 2)}\n`,
   );
   git('add', path.join(relativePath, 'ci-binary.json'));
+  if (!hasStagedChanges()) {
+    console.log('Binary size already up to date, nothing to upload');
+    break;
+  }
   git('commit', '-m', `add ${sha.slice(0, 8)} ci binary size`);
 
   try {
