@@ -2,9 +2,9 @@ use std::sync::LazyLock;
 
 use rspack_collections::Identifiable;
 use rspack_core::{
-  ChunkGraph, Compilation, DependenciesBlock, ModuleId, RuntimeGlobals, RuntimeModule,
-  RuntimeModuleGenerateContext, RuntimeModuleRuntimeRequirements, RuntimeModuleStage,
-  RuntimeTemplate, SourceType, impl_runtime_module,
+  ChunkGraph, Compilation, DependenciesBlock, ExternalModule, ModuleId, RuntimeGlobals,
+  RuntimeModule, RuntimeModuleGenerateContext, RuntimeModuleRuntimeRequirements,
+  RuntimeModuleStage, RuntimeTemplate, SourceType, extract_url_and_global, impl_runtime_module,
 };
 use rspack_plugin_runtime::extract_runtime_globals_from_ejs;
 use rustc_hash::FxHashMap;
@@ -98,6 +98,26 @@ impl RuntimeModule for RemoteRuntimeModule {
         let external_module = module_graph
           .get_module_by_dependency_id(&dep)
           .expect("should have module");
+        let remote_info = self
+          .enhanced
+          .then(|| {
+            external_module
+              .downcast_ref::<ExternalModule>()
+              .map(|external_module| {
+                let external_type = external_module.get_external_type().as_str();
+                let name = if external_type == "script" {
+                  extract_url_and_global(external_module.get_request().primary())
+                    .map_or("", |url_and_global| url_and_global.global)
+                } else {
+                  ""
+                };
+                RemoteInfo {
+                  external_type,
+                  name,
+                }
+              })
+          })
+          .flatten();
         let external_module_id = ChunkGraph::get_module_id(
           &compilation.module_ids_artifact,
           external_module.identifier(),
@@ -111,6 +131,7 @@ impl RuntimeModule for RemoteRuntimeModule {
             name,
             external_module_id,
             remote_name: &m.remote_key,
+            remote_info,
           },
         );
       }
@@ -158,6 +179,15 @@ struct RemoteData<'a> {
   name: &'a str,
   external_module_id: &'a ModuleId,
   remote_name: &'a str,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  remote_info: Option<RemoteInfo<'a>>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct RemoteInfo<'a> {
+  external_type: &'a str,
+  name: &'a str,
 }
 
 #[derive(Debug, Serialize)]

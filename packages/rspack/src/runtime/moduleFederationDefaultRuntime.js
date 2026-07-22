@@ -5,6 +5,7 @@ var __module_federation_bundler_runtime__,
   __module_federation_container_name__,
   __module_federation_share_strategy__,
   __module_federation_share_fallbacks__,
+  __module_federation_share_fallback_variants__,
   __module_federation_library_type__;
 export default function () {
   const runtimeRequire = __module_federation_runtime_require__;
@@ -43,8 +44,75 @@ export default function () {
     const consumesLoadinginstalledModules = {};
     const initializeSharingInitPromises = [];
     const initializeSharingInitTokens = {};
+    const arrayInitializedExternals = new WeakMap();
     const containerShareScope =
       runtimeRequire.initializeExposesData?.shareScope;
+    const additionalContainerInitScopes =
+      runtimeRequire.initializeSharingData?.additionalInitScopes;
+
+    const createArrayScopeRequire = (shareScopes) => {
+      const wrapExternal = (external) => {
+        if (!external) return external;
+        if (external.then) return external.then(wrapExternal);
+        const init = external.init;
+        if (typeof init !== 'function') return external;
+        const facade = Object.create(external);
+        Object.defineProperty(facade, 'init', {
+          value: (shareScope, initScope, remoteEntryInitOptions) => {
+            if (arrayInitializedExternals.has(external)) {
+              return arrayInitializedExternals.get(external);
+            }
+            arrayInitializedExternals.set(external, undefined);
+            const result = init.call(
+              external,
+              runtimeRequire.S[shareScopes[0]],
+              initScope,
+              remoteEntryInitOptions,
+            );
+            arrayInitializedExternals.set(external, result);
+            return result;
+          },
+        });
+        return facade;
+      };
+      return new Proxy(runtimeRequire, {
+        apply(target, thisArg, args) {
+          return wrapExternal(Reflect.apply(target, thisArg, args));
+        },
+      });
+    };
+
+    const enableArrayRemoteShareScopes = (instance) => {
+      const sharedHandler = instance?.sharedHandler;
+      const initializeSharing = sharedHandler?.initializeSharing;
+      if (
+        typeof initializeSharing !== 'function' ||
+        initializeSharing.__rspack_share_scope_array_wrapper__
+      ) {
+        return;
+      }
+      const arrayAwareInitializeSharing = function (shareScope, options) {
+        const arrayRemotes = [];
+        for (const remote of instance.options.remotes) {
+          if (
+            Array.isArray(remote.shareScope) &&
+            remote.shareScope.includes(shareScope)
+          ) {
+            arrayRemotes.push([remote, remote.shareScope]);
+            remote.shareScope = shareScope;
+          }
+        }
+        try {
+          return initializeSharing.call(this, shareScope, options);
+        } finally {
+          for (const [remote, shareScopes] of arrayRemotes) {
+            remote.shareScope = shareScopes;
+          }
+        }
+      };
+      arrayAwareInitializeSharing.__rspack_share_scope_array_wrapper__ = true;
+      sharedHandler.initializeSharing = arrayAwareInitializeSharing;
+    };
 
     for (const key in __module_federation_bundler_runtime__) {
       runtimeRequire.federation[key] =
@@ -62,6 +130,40 @@ export default function () {
       () => __module_federation_share_fallbacks__,
     );
     const sharedFallback = runtimeRequire.federation.sharedFallback;
+    const getSharedFallbackKey = (moduleId, data) => {
+      const variants =
+        __module_federation_share_fallback_variants__?.[data.shareKey];
+      if (!variants) return data.shareKey;
+      const expectedScopes = Array.isArray(data.shareScope)
+        ? data.shareScope
+        : [data.shareScope || 'default'];
+      const matchesScope = (variant) => {
+        const scopes = Array.isArray(variant.shareScope)
+          ? variant.shareScope
+          : [variant.shareScope || 'default'];
+        return (
+          scopes.length === expectedScopes.length &&
+          scopes.every((scope, index) => scope === expectedScopes[index])
+        );
+      };
+      let matches = variants.filter(
+        (variant) => variant.layer === data.layer && matchesScope(variant),
+      );
+      if (matches.length === 0 && data.layer !== undefined) {
+        matches = variants.filter(
+          (variant) => variant.layer === undefined && matchesScope(variant),
+        );
+      }
+      const requestMatches = (variant) =>
+        !variant.import || variant.import === data.import;
+      matches = matches.filter(requestMatches);
+      if (matches.length === 0) return;
+      const fallbackKey = `${data.shareKey}\0${moduleId}`;
+      sharedFallback[fallbackKey] = matches.map(
+        ({ entry, version, globalName }) => [entry, version, globalName],
+      );
+      return fallbackKey;
+    };
     early(
       runtimeRequire.federation,
       'consumesLoadingModuleToHandlerMapping',
@@ -70,17 +172,19 @@ export default function () {
         for (let [moduleId, data] of Object.entries(
           consumesLoadingModuleToConsumeDataMapping,
         )) {
+          const fallbackKey = getSharedFallbackKey(moduleId, data);
           consumesLoadingModuleToHandlerMapping[moduleId] = {
-            getter: sharedFallback
-              ? runtimeRequire.federation.bundlerRuntime?.getSharedFallbackGetter(
-                  {
-                    shareKey: data.shareKey,
-                    factory: data.fallback,
-                    webpackRequire: runtimeRequire,
-                    libraryType: runtimeRequire.federation.libraryType,
-                  },
-                )
-              : data.fallback,
+            getter:
+              sharedFallback && fallbackKey
+                ? runtimeRequire.federation.bundlerRuntime?.getSharedFallbackGetter(
+                    {
+                      shareKey: fallbackKey,
+                      factory: data.fallback,
+                      webpackRequire: runtimeRequire,
+                      libraryType: runtimeRequire.federation.libraryType,
+                    },
+                  )
+                : data.fallback,
             treeShakingGetter: sharedFallback ? data.fallback : undefined,
             shareInfo: {
               shareConfig: {
@@ -89,8 +193,11 @@ export default function () {
                 strictVersion: data.strictVersion,
                 singleton: data.singleton,
                 eager: data.eager,
+                layer: data.layer,
               },
-              scope: [data.shareScope],
+              scope: Array.isArray(data.shareScope)
+                ? data.shareScope
+                : [data.shareScope || 'default'],
             },
             shareKey: data.shareKey,
             treeShaking: runtimeRequire.federation.sharedFallback
@@ -104,7 +211,6 @@ export default function () {
         return consumesLoadingModuleToHandlerMapping;
       },
     );
-
     early(runtimeRequire.federation, 'initOptions', () => ({}));
     early(
       runtimeRequire.federation.initOptions,
@@ -132,6 +238,7 @@ export default function () {
               requiredVersion,
               strictVersion,
               treeShakingMode,
+              layer,
             } = stage;
             const shareConfig = {};
             const isValidValue = function (val) {
@@ -148,6 +255,9 @@ export default function () {
             }
             if (isValidValue(strictVersion)) {
               shareConfig.strictVersion = strictVersion;
+            }
+            if (isValidValue(layer)) {
+              shareConfig.layer = layer;
             }
             const options = {
               version,
@@ -228,9 +338,15 @@ export default function () {
         for (let [id, remoteData] of Object.entries(
           remotesLoadingModuleIdToRemoteDataMapping,
         )) {
+          const existingInfos =
+            __module_federation_remote_infos__[remoteData.remoteName] || [];
           const info =
-            __module_federation_remote_infos__[remoteData.remoteName];
-          if (info) idToRemoteMap[id] = info;
+            existingInfos.length > 0
+              ? existingInfos
+              : remoteData.remoteInfo
+                ? [remoteData.remoteInfo]
+                : [];
+          if (info.length > 0) idToRemoteMap[id] = info;
         }
         return idToRemoteMap;
       },
@@ -254,37 +370,114 @@ export default function () {
         webpackRequire: runtimeRequire,
       }),
     );
-    override(runtimeRequire.f, 'consumes', (chunkId, promises) =>
-      runtimeRequire.federation.bundlerRuntime.consumes({
-        chunkId,
-        promises,
-        chunkMapping: consumesLoadingChunkMapping,
-        moduleToHandlerMapping:
-          runtimeRequire.federation.consumesLoadingModuleToHandlerMapping,
-        installedModules: consumesLoadinginstalledModules,
-        webpackRequire: runtimeRequire,
-      }),
-    );
-    override(runtimeRequire, 'I', (name, initScope) =>
-      runtimeRequire.federation.bundlerRuntime.I({
+    const initializeConsumeShareScopes = (moduleIds) => {
+      if (!moduleIds?.length) return [];
+      const initPromises = [];
+      const initializedScopes = new Set();
+      for (const moduleId of moduleIds) {
+        const shareScope =
+          consumesLoadingModuleToConsumeDataMapping[moduleId]?.shareScope ||
+          'default';
+        const scopeKey = JSON.stringify(
+          Array.isArray(shareScope) ? shareScope : [shareScope],
+        );
+        if (initializedScopes.has(scopeKey)) continue;
+        initializedScopes.add(scopeKey);
+        const initialized = runtimeRequire.I(shareScope, []);
+        if (initialized?.then) initPromises.push(initialized);
+      }
+      return initPromises;
+    };
+    override(runtimeRequire.f, 'consumes', (chunkId, promises) => {
+      const consume = (targetPromises) =>
+        runtimeRequire.federation.bundlerRuntime.consumes({
+          chunkId,
+          promises: targetPromises,
+          chunkMapping: consumesLoadingChunkMapping,
+          moduleToHandlerMapping:
+            runtimeRequire.federation.consumesLoadingModuleToHandlerMapping,
+          installedModules: consumesLoadinginstalledModules,
+          webpackRequire: runtimeRequire,
+        });
+      const initPromises = initializeConsumeShareScopes(
+        consumesLoadingChunkMapping[chunkId],
+      );
+      if (initPromises.length === 0) return consume(promises);
+      promises.push(
+        Promise.all(initPromises).then(() => {
+          const consumePromises = [];
+          consume(consumePromises);
+          return Promise.all(consumePromises);
+        }),
+      );
+    });
+    override(runtimeRequire, 'I', (name, initScope) => {
+      const webpackRequire = Array.isArray(name)
+        ? createArrayScopeRequire(name)
+        : runtimeRequire;
+      return runtimeRequire.federation.bundlerRuntime.I({
         shareScopeName: name,
         initScope,
         initPromises: initializeSharingInitPromises,
         initTokens: initializeSharingInitTokens,
-        webpackRequire: runtimeRequire,
-      }),
-    );
+        webpackRequire,
+      });
+    });
     override(
       runtimeRequire,
       'initContainer',
-      (shareScope, initScope, remoteEntryInitOptions) =>
-        runtimeRequire.federation.bundlerRuntime.initContainerEntry({
-          shareScope,
-          initScope,
-          remoteEntryInitOptions,
-          shareScopeKey: containerShareScope,
-          webpackRequire: runtimeRequire,
-        }),
+      (shareScope, initScope, remoteEntryInitOptions) => {
+        let options = remoteEntryInitOptions;
+        const additionalScopes = [];
+        if (
+          additionalContainerInitScopes?.length &&
+          options?.shareScopeMap &&
+          !Array.isArray(options.shareScopeKeys)
+        ) {
+          const primaryScope = options.shareScopeKeys || 'default';
+          const shareScopeKeys = [primaryScope];
+          const containerScopes = Array.isArray(containerShareScope)
+            ? containerShareScope
+            : [containerShareScope || 'default'];
+          for (const scope of additionalContainerInitScopes) {
+            if (scope === primaryScope) continue;
+            shareScopeKeys.push(scope);
+            if (!containerScopes.includes(scope)) additionalScopes.push(scope);
+          }
+          const descriptors = Object.getOwnPropertyDescriptors(options);
+          descriptors.shareScopeKeys = {
+            configurable: true,
+            enumerable:
+              Object.getOwnPropertyDescriptor(options, 'shareScopeKeys')
+                ?.enumerable ?? true,
+            value: shareScopeKeys,
+            writable: true,
+          };
+          options = Object.create(Object.getPrototypeOf(options), descriptors);
+        }
+        const result =
+          runtimeRequire.federation.bundlerRuntime.initContainerEntry({
+            shareScope,
+            initScope,
+            remoteEntryInitOptions: options,
+            shareScopeKey: containerShareScope,
+            webpackRequire: runtimeRequire,
+          });
+        if (additionalScopes.length === 0) return result;
+        const initializeAdditionalScopes = () =>
+          Promise.all(
+            additionalScopes.flatMap((scope) =>
+              runtimeRequire.federation.instance.initializeSharing(scope, {
+                from: 'build',
+                strategy:
+                  runtimeRequire.federation.instance.options.shareStrategy,
+              }),
+            ),
+          );
+        return result?.then
+          ? Promise.resolve(result).then(initializeAdditionalScopes)
+          : initializeAdditionalScopes();
+      },
     );
     override(runtimeRequire, 'getContainer', (module, getScope) => {
       var moduleMap = runtimeRequire.initializeExposesData.moduleMap;
@@ -304,6 +497,7 @@ export default function () {
       runtimeRequire.federation.bundlerRuntime.init({
         webpackRequire: runtimeRequire,
       });
+    enableArrayRemoteShareScopes(runtimeRequire.federation.instance);
 
     if (runtimeRequire.consumesLoadingData?.initialConsumes) {
       runtimeRequire.federation.bundlerRuntime.installInitialConsumes({
