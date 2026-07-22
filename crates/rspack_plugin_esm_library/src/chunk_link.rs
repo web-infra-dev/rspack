@@ -223,7 +223,8 @@ impl ExternalInterop {
       }
     } else {
       source.add(RawStringSource::from(format!(
-        "{}({});\n",
+        "{}{}({});\n",
+        if is_async { "await " } else { "" },
         runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
         rspack_util::json_stringify(
           ChunkGraph::get_module_id(&compilation.module_ids_artifact, self.module)

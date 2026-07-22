@@ -2380,6 +2380,21 @@ var {} = {{}};
             continue;
           }
 
+          // Rslib removes entry hashbangs and directives from the module source
+          // during parsing, so restore them at the top of the async entry chunk.
+          let hashbang = get_module_hashbang(module_graph, entry_module);
+          let directives = get_module_directives(module_graph, entry_module);
+
+          if let Some(hashbang) = &hashbang {
+            let entry_chunk_link = link.get_mut_unwrap(&entry_chunk_ukey);
+            entry_chunk_link.hashbang = Some(format!("{hashbang}\n"));
+          }
+
+          if let Some(directives) = directives {
+            let entry_chunk_link = link.get_mut_unwrap(&entry_chunk_ukey);
+            entry_chunk_link.directives = directives;
+          }
+
           entry_imports.entry(*entry_module).or_default();
 
           if concate_modules_map[entry_module].is_external() {
