@@ -280,8 +280,9 @@ impl ContextModuleFactory {
       None => (String::new(), request),
     };
 
+    let resolve_context = before_resolve_data.context;
     let resolve_args = ResolveArgs {
-      context: before_resolve_data.context.into(),
+      context: resolve_context.clone().into(),
       importer: data.issuer_identifier.as_ref(),
       issuer: data.issuer.as_deref(),
       specifier: specifier.as_str(),
@@ -302,6 +303,7 @@ impl ContextModuleFactory {
         let mut dependency_options = dependency.options().clone();
         dependency_options.recursive = before_resolve_data.recursive;
         dependency_options.pattern = before_resolve_data.pattern.clone();
+        dependency_options.resolve_context = resolve_context.clone();
 
         let options = ContextModuleOptions {
           addon: loader_request.clone(),
@@ -326,6 +328,7 @@ impl ContextModuleFactory {
         let mut dependency_options = dependency.options().clone();
         dependency_options.recursive = before_resolve_data.recursive;
         dependency_options.pattern = before_resolve_data.pattern.clone();
+        dependency_options.resolve_context = resolve_context;
 
         let options = ContextModuleOptions {
           addon: loader_request.clone(),
@@ -371,7 +374,7 @@ impl ContextModuleFactory {
     let after_resolve_data = AfterResolveData {
       compilation_id: data.compilation_id,
       resource: context_module_options.resource.clone(),
-      context: context_options.context.clone(),
+      context: context_options.resolve_context.clone(),
       dependencies: data.dependencies.clone(),
       request: context_options.request.clone(),
       pattern: context_options.pattern.clone(),
@@ -404,7 +407,7 @@ impl ContextModuleFactory {
         }
 
         context_module_options.resource = after_resolve_data.resource;
-        context_module_options.context_options.context = after_resolve_data.context;
+        context_module_options.context_options.resolve_context = after_resolve_data.context;
         context_module_options.context_options.pattern = after_resolve_data.pattern.clone();
         context_module_options.context_options.recursive = after_resolve_data.recursive;
 
@@ -456,8 +459,8 @@ async fn visit_dirs(
     if let ContextModulePattern::Glob(patterns) = &options.context_options.pattern {
       Some(resolve_context_module_glob_patterns(
         patterns,
+        &options.context_options.resolve_context,
         &options.context_options.context,
-        ctx,
       ))
     } else {
       None
@@ -574,19 +577,19 @@ struct ResolvedContextModuleGlobPattern {
 
 fn resolve_context_module_glob_patterns(
   patterns: &[String],
+  resolve_context: &str,
   context: &str,
-  common_base: &str,
 ) -> Vec<ResolvedContextModuleGlobPattern> {
   patterns
     .iter()
-    .map(|pattern| resolve_context_module_glob_pattern(pattern, context, common_base))
+    .map(|pattern| resolve_context_module_glob_pattern(pattern, resolve_context, context))
     .collect()
 }
 
 fn resolve_context_module_glob_pattern(
   pattern: &str,
+  resolve_context: &str,
   context: &str,
-  common_base: &str,
 ) -> ResolvedContextModuleGlobPattern {
   let (pattern, negative) = if let Some(pattern) = pattern.strip_prefix('!') {
     (pattern, true)
@@ -595,21 +598,11 @@ fn resolve_context_module_glob_pattern(
   };
   let pattern = normalize_path_separators(pattern);
   let (base, pattern_to_join) = if let Some(pattern_to_join) = pattern.strip_prefix('/') {
-    (
-      infer_glob_root_context(common_base, extract_glob_base_dir(&pattern)),
-      pattern_to_join,
-    )
+    (context, pattern_to_join)
   } else {
-    (
-      if context.is_empty() {
-        common_base.to_string()
-      } else {
-        context.to_string()
-      },
-      pattern.as_str(),
-    )
+    (resolve_context, pattern.as_str())
   };
-  let base = normalize_path_separators_for_path(&base);
+  let base = normalize_path_separators_for_path(base);
   let escaped_base = escape_glob_pattern(&base);
   let absolute_pattern = Utf8Path::new(&escaped_base)
     .node_join_posix(pattern_to_join)
@@ -625,29 +618,6 @@ fn resolve_context_module_glob_pattern(
     absolute_base,
     negative,
   }
-}
-
-fn infer_glob_root_context(common_base: &str, pattern_base: &str) -> String {
-  let mut common_base = normalize_path_separators_for_path(common_base);
-  if !common_base.ends_with('/') {
-    common_base.push('/');
-  }
-  let pattern_base = pattern_base.trim_start_matches('/');
-  let mut matched_len = 0;
-  for idx in pattern_base
-    .char_indices()
-    .map(|(idx, _)| idx)
-    .chain(std::iter::once(pattern_base.len()))
-  {
-    if !pattern_base[..idx].ends_with('/') && idx != pattern_base.len() {
-      continue;
-    }
-    if common_base.ends_with(&pattern_base[..idx]) {
-      matched_len = idx;
-    }
-  }
-
-  common_base[..common_base.len() - matched_len].to_string()
 }
 
 fn is_non_exhaustive_import_meta_glob_skipped_dir(dirname: &str) -> bool {
@@ -793,4 +763,20 @@ fn alternative_requests(
   }
 
   items
+}
+
+#[cfg(test)]
+mod tests {
+  use super::resolve_context_module_glob_pattern;
+
+  #[test]
+  fn resolves_relative_and_root_relative_globs_from_distinct_contexts() {
+    let relative =
+      resolve_context_module_glob_pattern("./local/*.js", "/project/src/pages", "/project");
+    assert_eq!(relative.absolute_pattern, "/project/src/pages/local/*.js");
+
+    let root_relative =
+      resolve_context_module_glob_pattern("/shared/*.js", "/project/src/pages", "/project");
+    assert_eq!(root_relative.absolute_pattern, "/project/shared/*.js");
+  }
 }

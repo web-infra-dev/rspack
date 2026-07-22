@@ -22,8 +22,8 @@ use crate::{
     },
   },
   visitors::{
-    JavascriptParser, clean_regexp_in_context_module, default_context_reg_exp, expr_name,
-    static_string_from_expr,
+    JavascriptParser, clean_regexp_in_context_module, create_context_options,
+    default_context_reg_exp, expr_name, static_string_from_expr,
   },
 };
 
@@ -284,7 +284,7 @@ fn create_import_meta_context_dependency(
     return None;
   }
   // TODO: should've used expression evaluation to handle cases like `abc${"efg"}`, etc.
-  let context = static_string_from_expr(&dyn_imported.expr)?;
+  let request = static_string_from_expr(&dyn_imported.expr)?;
   let context_options = if let Some(obj) = node.args.get(1).and_then(|arg| arg.expr.as_object()) {
     let regexp = get_regex_by_obj_prop(obj, "regExp");
     let regexp_span = regexp.map(|r| r.span().into());
@@ -308,12 +308,11 @@ fn create_import_meta_context_dependency(
       exclude,
       recursive,
       category: DependencyCategory::Esm,
-      request: context.clone(),
-      context,
+      request,
       mode,
       start: span.real_lo(),
       end: span.real_hi(),
-      ..Default::default()
+      ..create_context_options(parser)
     }
   } else {
     let span = node.span;
@@ -322,11 +321,10 @@ fn create_import_meta_context_dependency(
       mode: ContextMode::Sync,
       pattern: clean_regexp_in_context_module(default_context_reg_exp(), None, parser).into(),
       category: DependencyCategory::Esm,
-      request: context.clone(),
-      context,
+      request,
       start: span.real_lo(),
       end: span.real_hi(),
-      ..Default::default()
+      ..create_context_options(parser)
     }
   };
   Some(ImportMetaContextDependency::new(
@@ -367,14 +365,14 @@ fn create_import_meta_glob_dependency(
     .and_then(static_string_from_expr);
   let glob_exhaustive = glob_options
     .is_some_and(|obj| get_bool_by_obj_prop(obj, "exhaustive").is_some_and(|b| b.value));
-  let context = resolve_import_meta_glob_context(
+  let resolve_context = resolve_import_meta_glob_context(
     importer_context.as_str(),
     parser.compiler_options.context.as_str(),
     base.as_deref(),
   );
   let glob_patterns = normalize_import_meta_glob_patterns(
     raw_glob_patterns,
-    context.as_str(),
+    resolve_context.as_str(),
     parser.compiler_options.context.as_str(),
     base.is_some(),
   );
@@ -383,12 +381,12 @@ fn create_import_meta_glob_dependency(
     .map(|pattern| {
       resolve_glob_pattern(
         pattern,
-        context.as_str(),
+        resolve_context.as_str(),
         parser.compiler_options.context.as_str(),
       )
     })
     .collect::<Vec<_>>();
-  let base_dir = common_glob_base_dir(&resolved_glob_patterns, context.as_str());
+  let base_dir = common_glob_base_dir(&resolved_glob_patterns, resolve_context.as_str());
   let recursive = glob_patterns_are_recursive(&resolved_glob_patterns, &base_dir);
 
   let referenced_specifiers = glob_import
@@ -407,7 +405,7 @@ fn create_import_meta_glob_dependency(
     recursive,
     category: DependencyCategory::Esm,
     request: concat_string!(base_dir, glob_query),
-    context,
+    resolve_context,
     namespace_object,
     mode,
     start: span.real_lo(),
@@ -415,7 +413,7 @@ fn create_import_meta_glob_dependency(
     referenced_specifiers,
     glob_import,
     glob_exhaustive,
-    ..Default::default()
+    ..create_context_options(parser)
   };
   Some(ImportMetaContextDependency::new_glob(
     context_options,

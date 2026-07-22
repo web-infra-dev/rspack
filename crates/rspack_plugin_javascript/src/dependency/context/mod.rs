@@ -1,6 +1,6 @@
 use rspack_core::{
   ContextDependency, ContextMode, ContextModulePattern, ContextOptions, DependencyRange,
-  GroupOptions, ResourceIdentifier, TemplateContext, TemplateReplaceSource,
+  GroupOptions, ResourceIdentifier, TemplateContext, TemplateReplaceSource, contextify,
 };
 
 mod amd_require_context_dependency;
@@ -36,7 +36,14 @@ fn create_resource_identifier_for_context_dependency(
   context: Option<&str>,
   options: &ContextOptions,
 ) -> ResourceIdentifier {
-  let context = context.unwrap_or_default();
+  let resolve_context = context
+    .filter(|context| !context.is_empty())
+    .unwrap_or(&options.resolve_context);
+  let resolve_context = if resolve_context.is_empty() {
+    String::new()
+  } else {
+    contextify(&options.context, resolve_context)
+  };
   let request = &options.request;
   let recursive = options.recursive.to_string();
   let pattern = match &options.pattern {
@@ -102,7 +109,7 @@ fn create_resource_identifier_for_context_dependency(
   }
 
   let id = format!(
-    "context{context}|ctx request{request} {recursive} {pattern} {include} {exclude} {mode} {group_options} {referenced_exports} {glob_import} {glob_exhaustive}",
+    "context{resolve_context}|ctx request{request} {recursive} {pattern} {include} {exclude} {mode} {group_options} {referenced_exports} {glob_import} {glob_exhaustive}",
   );
   id.into()
 }
@@ -180,4 +187,30 @@ fn context_dependency_template_as_id(
     None,
   );
   source.replace_static(range.end, range.end, ")", None);
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn context_dependency_identifier_uses_project_relative_resolve_context() {
+    let options_a = ContextOptions {
+      context: "/checkout-a/project".into(),
+      resolve_context: "/checkout-a/project/src/pages".into(),
+      request: "./local".into(),
+      ..Default::default()
+    };
+    let options_b = ContextOptions {
+      context: "/checkout-b/project".into(),
+      resolve_context: "/checkout-b/project/src/pages".into(),
+      request: "./local".into(),
+      ..Default::default()
+    };
+
+    assert_eq!(
+      create_resource_identifier_for_context_dependency(None, &options_a),
+      create_resource_identifier_for_context_dependency(None, &options_b)
+    );
+  }
 }

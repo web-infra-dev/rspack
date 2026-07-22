@@ -35,7 +35,8 @@ use crate::{
   visitors::{
     CallHooksName, ExportedVariableInfo, JavascriptParser, StatementPath, TagInfoData,
     VariableDeclaration, VariableDeclarationKind, VariableInfo, VariableInfoFlags, context_reg_exp,
-    create_context_dependency, create_traceable_error, expr_name, get_non_optional_part,
+    create_context_dependency, create_context_options, create_traceable_error, expr_name,
+    get_non_optional_part,
   },
 };
 
@@ -1367,11 +1368,10 @@ fn create_commonjs_require_context_dependency(
     pattern: context_reg_exp(&result.reg, "", None, parser).into(),
     category: DependencyCategory::CommonJS,
     request: format!("{}{}{}", result.context, result.query, result.fragment),
-    context: result.context,
     replaces: result.replaces,
     start: span.real_lo(),
     end: span.real_hi(),
-    ..Default::default()
+    ..create_context_options(parser)
   };
   let range = call_expr.span.into();
   let loc = parser
@@ -1414,11 +1414,10 @@ fn create_require_resolve_context_dependency(
     pattern: context_reg_exp(&result.reg, "", None, parser).into(),
     category: DependencyCategory::CommonJS,
     request: format!("{}{}{}", result.context, result.query, result.fragment),
-    context: result.context,
     replaces: result.replaces,
     start,
     end,
-    ..Default::default()
+    ..create_context_options(parser)
   };
   RequireResolveContextDependency::new(options, range, parser.in_try, request_context)
 }
@@ -1884,10 +1883,9 @@ impl CommonJsImportsParserPlugin {
         recursive: true,
         pattern: ContextModulePattern::None,
         request: ".".to_string(),
-        context: ".".to_string(),
         start,
         end,
-        ..Default::default()
+        ..create_context_options(parser)
       },
       parser
         .to_dependency_location(DependencyRange::from(span))

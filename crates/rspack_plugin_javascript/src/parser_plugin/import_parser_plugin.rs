@@ -22,7 +22,7 @@ use crate::{
   visitors::{
     ContextModuleScanResult, JavascriptParser, PatRef, Statement, TagInfoData, TopLevelScope,
     VariableDeclaration, VariableDeclarationKind, context_reg_exp, create_context_dependency,
-    create_traceable_error, get_non_optional_part, parse_order_string,
+    create_context_options, create_traceable_error, get_non_optional_part, parse_order_string,
   },
 };
 
@@ -484,7 +484,6 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
           exclude,
           category: DependencyCategory::Esm,
           request: format!("{context}{query}{fragment}"),
-          context,
           namespace_object: if parser.build_meta.strict_esm_module() {
             ContextNameSpaceObject::Strict
           } else {
@@ -504,6 +503,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
           glob_exhaustive: false,
           attributes,
           phase: Some(phase),
+          ..create_context_options(parser)
         },
         import_call_span.into(),
         dyn_imported_span.into(),

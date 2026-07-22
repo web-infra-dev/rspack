@@ -8,7 +8,10 @@ use swc_experimental_ecma_ast::{CallExpr, GetSpan};
 use super::JavascriptParserPlugin;
 use crate::{
   dependency::RequireContextDependency,
-  visitors::{JavascriptParser, clean_regexp_in_context_module, default_context_reg_exp},
+  visitors::{
+    JavascriptParser, clean_regexp_in_context_module, create_context_options,
+    default_context_reg_exp,
+  },
 };
 
 pub struct RequireContextDependencyParserPlugin;
@@ -79,10 +82,9 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for RequireContextDependencyParserPl
           pattern: reg_exp.into(),
           category: DependencyCategory::CommonJS,
           request: request_expr.string().clone(),
-          context: request_expr.string().clone(),
           start: expr.span().real_lo(),
           end: expr.span().real_hi(),
-          ..Default::default()
+          ..create_context_options(parser)
         },
         expr.span.into(),
         parser.in_try,

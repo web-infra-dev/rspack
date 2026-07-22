@@ -1,0 +1,40 @@
+const assert = require('node:assert');
+const path = require('node:path');
+
+const pluginName = 'context-module-resolve-context';
+
+class ContextModuleResolveContextPlugin {
+  apply(compiler) {
+    compiler.hooks.contextModuleFactory.tap(
+      pluginName,
+      (contextModuleFactory) => {
+        contextModuleFactory.hooks.beforeResolve.tap(
+          pluginName,
+          (resolveData) => {
+            assert.strictEqual(
+              resolveData.context,
+              path.join(__dirname, 'src'),
+            );
+            resolveData.context = path.join(__dirname, 'fixtures');
+          },
+        );
+        contextModuleFactory.hooks.afterResolve.tap(
+          pluginName,
+          (resolveData) => {
+            assert.strictEqual(
+              resolveData.context,
+              path.join(__dirname, 'fixtures'),
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
+/** @type {import("@rspack/core").Configuration} */
+module.exports = {
+  context: __dirname,
+  entry: './src/index.js',
+  plugins: [new ContextModuleResolveContextPlugin()],
+};

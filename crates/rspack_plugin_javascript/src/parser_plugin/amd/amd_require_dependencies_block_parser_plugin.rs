@@ -23,7 +23,8 @@ use crate::{
   parser_plugin::require_ensure_dependencies_block_parse_plugin::GetFunctionExpression,
   utils::eval::BasicEvaluatedExpression,
   visitors::{
-    JavascriptParser, Statement, context_reg_exp, create_context_dependency, create_traceable_error,
+    JavascriptParser, Statement, context_reg_exp, create_context_dependency,
+    create_context_options, create_traceable_error,
   },
 };
 
@@ -177,11 +178,10 @@ impl AMDRequireDependenciesBlockParserPlugin {
       pattern: context_reg_exp(&result.reg, "", Some(call_span.into()), parser).into(),
       category: DependencyCategory::Amd,
       request: format!("{}{}{}", result.context, result.query, result.fragment),
-      context: result.context,
       replaces: result.replaces,
       start: call_span.real_lo(),
       end: call_span.real_hi(),
-      ..Default::default()
+      ..create_context_options(parser)
     };
     let mut dep = AMDRequireContextDependency::new(options, param_range.into(), parser.in_try);
     *dep.critical_mut() = result.critical;
