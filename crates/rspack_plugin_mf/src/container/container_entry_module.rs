@@ -230,6 +230,7 @@ impl Module for ContainerEntryModule {
               Box::new(ContainerExposedDependency::new(
                 name.clone(),
                 request.clone(),
+                options.layer.clone(),
               )) as Box<dyn Dependency>
             })
             .collect(),
