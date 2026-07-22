@@ -43,6 +43,86 @@ fn find_reusable_chunk(
   }
 }
 
+fn has_non_initial_entry_module(
+  compilation: &Compilation,
+  chunks: &[ChunkUkey],
+  modules: &[ModuleIdentifier],
+) -> bool {
+  chunks.iter().any(|chunk| {
+    compilation
+      .build_chunk_graph_artifact
+      .chunk_graph
+      .get_chunk_entry_modules_with_chunk_group_iterable(chunk)
+      .iter()
+      .any(|(module, group)| {
+        if !modules.contains(module) {
+          return false;
+        }
+
+        let group = compilation
+          .build_chunk_graph_artifact
+          .chunk_group_by_ukey
+          .expect_get(group);
+        group.kind.is_entrypoint() && !group.is_initial()
+      })
+  })
+}
+
+fn move_empty_non_initial_entrypoints(
+  compilation: &mut Compilation,
+  chunks: &[ChunkUkey],
+  modules: &[ModuleIdentifier],
+  new_chunk_ukey: ChunkUkey,
+) {
+  let mut entrypoints = Vec::new();
+
+  for chunk_ukey in chunks {
+    if chunk_ukey == &new_chunk_ukey
+      || compilation
+        .build_chunk_graph_artifact
+        .chunk_graph
+        .get_number_of_chunk_modules(chunk_ukey)
+        != 0
+    {
+      continue;
+    }
+
+    for (module, group) in compilation
+      .build_chunk_graph_artifact
+      .chunk_graph
+      .get_chunk_entry_modules_with_chunk_group_iterable(chunk_ukey)
+    {
+      let chunk_group = compilation
+        .build_chunk_graph_artifact
+        .chunk_group_by_ukey
+        .expect_get(group);
+      if modules.contains(module)
+        && chunk_group.kind.is_entrypoint()
+        && !chunk_group.is_initial()
+        && chunk_group.get_entrypoint_chunk() == *chunk_ukey
+      {
+        entrypoints.push((*chunk_ukey, *module, *group));
+      }
+    }
+  }
+
+  for (chunk_ukey, module, group) in entrypoints {
+    compilation
+      .build_chunk_graph_artifact
+      .chunk_graph
+      .disconnect_chunk_and_entry_module(&chunk_ukey, module);
+    compilation
+      .build_chunk_graph_artifact
+      .chunk_graph
+      .connect_chunk_and_entry_module(new_chunk_ukey, module, group);
+    compilation
+      .build_chunk_graph_artifact
+      .chunk_group_by_ukey
+      .expect_get_mut(&group)
+      .set_entrypoint_chunk(new_chunk_ukey);
+  }
+}
+
 #[plugin_hook(CompilationOptimizeChunks for RemoveDuplicateModulesPlugin)]
 async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
   let module_graph = compilation.get_module_graph();
@@ -92,8 +172,17 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
       continue;
     }
 
+    let preserve_entry_chunks = has_non_initial_entry_module(compilation, &chunks, &modules);
+
     // split chunks from original chunks and create new chunk
-    let new_chunk_ukey = if let Some(chunk) = find_reusable_chunk(compilation, &chunks, &modules) {
+    // A non-initial entrypoint needs to keep its own runtime/startup chunk. Reusing one of the
+    // existing chunks would make that entrypoint point at a chunk owned by another runtime.
+    let reusable_chunk = if preserve_entry_chunks {
+      None
+    } else {
+      find_reusable_chunk(compilation, &chunks, &modules)
+    };
+    let new_chunk_ukey = if let Some(chunk) = reusable_chunk {
       // we can use this chunk directly
       // all modules are into existing chunk, the chunkMap needs update
 
@@ -151,7 +240,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
       }
     }
 
-    for m in modules {
+    for &m in &modules {
       let is_entry = entry_modules.contains(&m);
       for chunk_ukey in &chunks {
         if chunk_ukey == &new_chunk_ukey {
@@ -162,7 +251,9 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
           .chunk_graph
           .disconnect_chunk_and_module(chunk_ukey, m);
 
-        if is_entry {
+        // Keep entry-module associations on their original startup chunks when the shared
+        // modules include a non-initial entrypoint. Only the module content moves.
+        if is_entry && !preserve_entry_chunks {
           compilation
             .build_chunk_graph_artifact
             .chunk_graph
@@ -175,7 +266,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
         .chunk_graph
         .connect_chunk_and_module(new_chunk_ukey, m);
 
-      if is_entry {
+      if is_entry && !preserve_entry_chunks {
         let chunk = compilation
           .build_chunk_graph_artifact
           .chunk_by_ukey
@@ -194,6 +285,12 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
             .connect_chunk_and_entry_module(new_chunk_ukey, m, *group);
         }
       }
+    }
+
+    // Empty async entry chunks are not emitted by module output. Point the entrypoint at the
+    // shared module chunk while keeping its original runtime chunk.
+    if preserve_entry_chunks && compilation.options.output.module {
+      move_empty_non_initial_entrypoints(compilation, &chunks, &modules, new_chunk_ukey);
     }
   }
 
