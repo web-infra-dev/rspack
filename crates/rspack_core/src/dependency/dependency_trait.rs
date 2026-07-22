@@ -13,8 +13,8 @@ use super::{
 };
 use crate::{
   AsContextDependency, ConnectionState, Context, ExportsInfoArtifact, ForwardId, ImportAttributes,
-  ImportPhase, LazyUntil, ModuleGraph, ModuleGraphCacheArtifact, ModuleLayer, ReferencedExport,
-  RuntimeSpec, SideEffectsStateArtifact, create_exports_object_referenced,
+  ImportPhase, JavascriptParserUrl, LazyUntil, ModuleGraph, ModuleGraphCacheArtifact, ModuleLayer,
+  ReferencedExport, RuntimeSpec, SideEffectsStateArtifact, create_exports_object_referenced,
 };
 
 #[derive(Debug, Clone, Copy)]
@@ -43,6 +43,10 @@ pub trait Dependency:
 
   fn dependency_type(&self) -> &DependencyType {
     &DependencyType::Unknown
+  }
+
+  fn url_mode(&self) -> Option<JavascriptParserUrl> {
+    None
   }
 
   // get issuer context
