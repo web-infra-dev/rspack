@@ -41,6 +41,36 @@ type BlockConnectionMap = DependenciesBlockIdentifierMap<Arc<BlockModules>>;
 
 static EMPTY_BLOCK_MODULES: LazyLock<Arc<BlockModules>> = LazyLock::new(|| Arc::new(Vec::new()));
 
+fn block_modules_equal(a: &BlockModules, b: &BlockModules) -> bool {
+  a.len() == b.len()
+    && a
+      .iter()
+      .zip(b)
+      .all(|((a_module, a_state, _), (b_module, b_state, _))| {
+        a_module == b_module && a_state == b_state
+      })
+}
+
+fn prepared_block_targets_equal(
+  a: Option<&PreparedBlockConnectionMap>,
+  a_block: DependenciesBlockIdentifier,
+  b: Option<&PreparedBlockConnectionMap>,
+  b_block: DependenciesBlockIdentifier,
+) -> bool {
+  a.map(Vec::as_slice)
+    .unwrap_or_default()
+    .iter()
+    .filter(|connection| connection.block == a_block)
+    .map(|connection| connection.module)
+    .eq(
+      b.map(Vec::as_slice)
+        .unwrap_or_default()
+        .iter()
+        .filter(|connection| connection.block == b_block)
+        .map(|connection| connection.module),
+    )
+}
+
 #[derive(Debug, Clone)]
 struct PreparedBlockConnection {
   block: DependenciesBlockIdentifier,
@@ -280,6 +310,7 @@ pub(crate) struct CodeSplitter {
   pub(crate) named_chunk_groups: HashMap<String, CgiUkey>,
   pub(crate) named_async_entrypoints: HashMap<String, CgiUkey>,
   pub(crate) block_modules_runtime_map: BlockModulesRuntimeMap,
+  pub(crate) block_origin_indices: AsyncDependenciesBlockIdentifierMap<usize>,
   pub(crate) ordinal_by_module: IdentifierMap<u64>,
   pub(crate) mask_by_chunk: HashMap<ChunkUkey, BigUint>,
 
@@ -308,6 +339,7 @@ pub(crate) struct CodeSplitter {
   prepared_connection_map: IdentifierMap<PreparedBlockConnectionMap>,
 
   prepared_blocks_map: DependenciesBlockIdentifierMap<Vec<AsyncDependenciesBlockIdentifier>>,
+  prepared_block_group_options: AsyncDependenciesBlockIdentifierMap<Option<GroupOptions>>,
 }
 
 fn add_chunk_in_group(
@@ -315,7 +347,7 @@ fn add_chunk_in_group(
   module_id: ModuleIdentifier,
   loc: Option<DependencyLocation>,
   request: Option<String>,
-) -> ChunkGroup {
+) -> (ChunkGroup, usize) {
   let options = ChunkGroupOptions::new(
     group_options
       .and_then(|x| x.name())
@@ -332,8 +364,8 @@ fn add_chunk_in_group(
   );
   let kind = ChunkGroupKind::Normal { options };
   let mut chunk_group = ChunkGroup::new(kind);
-  chunk_group.add_origin(Some(module_id), loc, request);
-  chunk_group
+  let origin_index = chunk_group.add_origin(Some(module_id), loc, request);
+  (chunk_group, origin_index)
 }
 
 fn get_active_state_of_connections(
@@ -1651,11 +1683,12 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
           chunk_name.and_then(|name| self.named_async_entrypoints.get(name).copied())
         {
           let cgi_chunk_group = self.chunk_group_info(&cgi).chunk_group;
-          compilation
+          let origin_index = compilation
             .build_chunk_graph_artifact
             .chunk_group_by_ukey
             .expect_get_mut(&cgi_chunk_group)
             .add_origin(Some(module_id), loc, request);
+          self.block_origin_indices.insert(block_id, origin_index);
 
           compilation
             .build_chunk_graph_artifact
@@ -1764,11 +1797,12 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
           chunk_group = item_chunk_group;
         }
 
-        compilation
+        let origin_index = compilation
           .build_chunk_graph_artifact
           .chunk_group_by_ukey
           .expect_get_mut(&chunk_group)
           .add_origin(Some(module_id), loc, request);
+        self.block_origin_indices.insert(block_id, origin_index);
 
         compilation
           .build_chunk_graph_artifact
@@ -1777,12 +1811,13 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         c = Some(chunk_group);
         cgi
       } else {
-        let mut chunk_group = add_chunk_in_group(
+        let (mut chunk_group, origin_index) = add_chunk_in_group(
           block.get_group_options(),
           module_id,
           block.loc(),
           block.request().clone(),
         );
+        self.block_origin_indices.insert(block_id, origin_index);
         let chunk_group_ukey = chunk_group.ukey;
         let chunk = compilation
           .build_chunk_graph_artifact
@@ -1865,6 +1900,90 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         DependenciesBlockIdentifier::AsyncDependenciesBlock(block_id),
       );
     }
+  }
+
+  /// Compares the part of a module's dependency blocks that can affect code
+  /// splitting. Block identifiers only select the corresponding value on each
+  /// side; identifier equality is deliberately not part of the comparison.
+  pub(crate) fn module_code_splitting_value_equal(
+    &self,
+    current: &mut CodeSplitter,
+    module: ModuleIdentifier,
+    compilation: &Compilation,
+  ) -> bool {
+    let old_connections = self.prepared_connection_map.get(&module);
+    let current_connections = current.prepared_connection_map.get(&module);
+    let module_block = DependenciesBlockIdentifier::Module(module);
+
+    if !prepared_block_targets_equal(
+      old_connections,
+      module_block,
+      current_connections,
+      module_block,
+    ) {
+      return false;
+    }
+
+    let old_blocks = self
+      .prepared_blocks_map
+      .get(&module_block)
+      .cloned()
+      .unwrap_or_default();
+    let current_blocks = current
+      .prepared_blocks_map
+      .get(&module_block)
+      .cloned()
+      .unwrap_or_default();
+
+    if old_blocks.len() != current_blocks.len() {
+      return false;
+    }
+
+    for (old_block, current_block) in old_blocks.iter().zip(&current_blocks) {
+      if self.prepared_block_group_options.get(old_block)
+        != current.prepared_block_group_options.get(current_block)
+        || !prepared_block_targets_equal(
+          old_connections,
+          (*old_block).into(),
+          current_connections,
+          (*current_block).into(),
+        )
+      {
+        return false;
+      }
+    }
+
+    let mut has_old_runtime_snapshot = false;
+    for (runtime, old_runtime_map) in &self.block_modules_runtime_map {
+      let Some(old_modules) = old_runtime_map.get(&module_block) else {
+        continue;
+      };
+      has_old_runtime_snapshot = true;
+      let current_modules = current.get_block_modules(module_block, runtime.clone(), compilation);
+      if !block_modules_equal(old_modules, &current_modules) {
+        return false;
+      }
+
+      let current_runtime_map = current
+        .block_modules_runtime_map
+        .get(runtime)
+        .expect("current runtime map should be prepared");
+      for (old_block, current_block) in old_blocks.iter().zip(&current_blocks) {
+        let old_block = DependenciesBlockIdentifier::AsyncDependenciesBlock(*old_block);
+        let current_block = DependenciesBlockIdentifier::AsyncDependenciesBlock(*current_block);
+        let Some(old_modules) = old_runtime_map.get(&old_block) else {
+          return false;
+        };
+        let Some(current_modules) = current_runtime_map.get(&current_block) else {
+          return false;
+        };
+        if !block_modules_equal(old_modules, current_modules) {
+          return false;
+        }
+      }
+    }
+
+    has_old_runtime_snapshot
   }
 
   #[allow(clippy::rc_buffer)]
@@ -2455,6 +2574,8 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     >::with_capacity_and_hasher(
       all_modules.len(), Default::default()
     );
+    let mut prepared_block_group_options = AsyncDependenciesBlockIdentifierMap::default();
+    let mut blocks_to_prepare = Vec::new();
 
     for module in all_modules {
       let blocks = compilation
@@ -2465,18 +2586,26 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
 
       if !blocks.is_empty() {
         prepared_blocks_map.insert((*module).into(), blocks.to_vec());
+        blocks_to_prepare.extend(blocks.iter().copied());
       }
     }
 
-    for (block_id, block) in mg.blocks() {
+    while let Some(block_id) = blocks_to_prepare.pop() {
+      if prepared_block_group_options.contains_key(&block_id) {
+        continue;
+      }
+      let block = mg.block_by_id_expect(&block_id);
+      prepared_block_group_options.insert(block_id, block.get_group_options().cloned());
       let blocks = block.get_blocks();
 
       if !blocks.is_empty() {
-        prepared_blocks_map.insert((*block_id).into(), blocks.to_vec());
+        prepared_blocks_map.insert(block_id.into(), blocks.to_vec());
+        blocks_to_prepare.extend(blocks.iter().copied());
       }
     }
 
     self.prepared_blocks_map = prepared_blocks_map;
+    self.prepared_block_group_options = prepared_block_group_options;
 
     Ok(())
   }

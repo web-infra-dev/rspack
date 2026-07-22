@@ -1,4 +1,4 @@
-use std::{fmt::Write as _, hash::BuildHasherDefault};
+use std::hash::BuildHasherDefault;
 
 use rspack_cacheable::cacheable;
 use rspack_collections::{Identifier, IdentifierHasher};
@@ -90,41 +90,17 @@ pub struct AsyncDependenciesBlock {
 }
 
 impl AsyncDependenciesBlock {
-  /// modifier should be Dependency.span in most of time
+  /// `block_index` is this block's ordinal within its parent module. Location,
+  /// request and dependency data are deliberately excluded from the identity.
   pub fn new(
     parent: ModuleIdentifier,
+    block_index: usize,
     loc: Option<DependencyLocation>,
-    modifier: Option<&str>,
     dependencies: Vec<BoxDependency>,
     request: Option<String>,
   ) -> Self {
-    let dependencies_resource_identifier_len = dependencies
-      .iter()
-      .filter_map(|dep| dep.resource_identifier())
-      .map(str::len)
-      .sum::<usize>();
-    let modifier_len = modifier.map_or(0, |modifier| "|modifier=".len() + modifier.len());
-    let mut id = String::with_capacity(
-      parent.len() + "|dep=".len() + dependencies_resource_identifier_len + modifier_len,
-    );
-    id.push_str(parent.as_str());
-    id.push_str("|dep=");
-
-    let mut dependency_ids = Vec::with_capacity(dependencies.len());
-    for dep in &dependencies {
-      if let Some(resource_identifier) = dep.resource_identifier() {
-        id.push_str(resource_identifier);
-      }
-      dependency_ids.push(*dep.id());
-    }
-
-    if let Some(loc) = loc.as_ref() {
-      write!(id, "|loc={loc}").expect("write to String should not fail");
-    }
-    if let Some(modifier) = modifier {
-      id.push_str("|modifier=");
-      id.push_str(modifier);
-    }
+    let id = format!("{parent}|block={block_index}");
+    let dependency_ids = dependencies.iter().map(|dep| *dep.id()).collect();
 
     Self {
       id: id.into(),

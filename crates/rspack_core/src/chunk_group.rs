@@ -307,12 +307,30 @@ impl ChunkGroup {
     module_id: Option<ModuleIdentifier>,
     loc: Option<DependencyLocation>,
     request: Option<String>,
-  ) {
+  ) -> usize {
+    let index = self.origins.len();
     self.origins.push(OriginRecord {
       module: module_id,
       loc,
       request,
     });
+    index
+  }
+
+  pub(crate) fn update_origin(
+    &mut self,
+    index: usize,
+    module: Option<ModuleIdentifier>,
+    loc: Option<DependencyLocation>,
+    request: Option<String>,
+  ) {
+    let origin = self
+      .origins
+      .get_mut(index)
+      .expect("origin index should be valid");
+    origin.module = module;
+    origin.loc = loc;
+    origin.request = request;
   }
 
   pub fn origins(&self) -> &[OriginRecord] {
