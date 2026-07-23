@@ -3,10 +3,10 @@ export default 42
 ```
 
 ```mjs title=main.mjs
-import { __rspack_context } from "./runtime.mjs";
+import { rspackRequire, createFakeNamespaceObject } from "./runtime.mjs";
 // ./foo.mjs
 import foo_namespaceObject from "./407a5f26e1107499.mjs";
-var foo_namespaceObject2 = /*#__PURE__*/__rspack_context.t(foo_namespaceObject);
+var foo_namespaceObject2 = /*#__PURE__*/createFakeNamespaceObject(foo_namespaceObject);
 // ./index.js
 
 
@@ -20,8 +20,8 @@ export {};
 
 ```mjs title=runtime.mjs
 // The require scope
-var __rspack_require = {};
-var __rspack_context = {};
+var rspackRequire = {};
+export { rspackRequire };
 
 // rspack/runtime/create_fake_namespace_object
 var getProto = Object.getPrototypeOf ? (obj) => (Object.getPrototypeOf(obj)) : (obj) => (obj.__proto__);
@@ -50,7 +50,7 @@ var createFakeNamespaceObject = function(value, mode) {
 	definePropertyGetters(ns, def);
 	return ns;
 };;
-__rspack_context.t = createFakeNamespaceObject;
+export { createFakeNamespaceObject };
 // rspack/runtime/define_property_getters
 var definePropertyGetters = (exports, getters, values) => {
 	var define = (defs, kind) => {
@@ -74,6 +74,5 @@ var makeNamespaceObject = (exports) => {
 	Object.defineProperty(exports, '__esModule', { value: true });
 };;
 
-export { __rspack_context };
 
 ```

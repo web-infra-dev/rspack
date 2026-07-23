@@ -2,9 +2,10 @@ use std::sync::LazyLock;
 
 use itertools::Itertools;
 use rspack_core::{
-  BooleanMatcher, ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule,
-  RuntimeModuleGenerateContext, RuntimeModuleRuntimeRequirements, RuntimeModuleStage,
-  RuntimeTemplate, compile_boolean_matcher, impl_runtime_module,
+  BooleanMatcher, ChunkUkey, Compilation, RuntimeCodeTemplate, RuntimeGlobals,
+  RuntimeGlobalsRenderMode, RuntimeModule, RuntimeModuleGenerateContext,
+  RuntimeModuleRuntimeRequirements, RuntimeModuleStage, RuntimeTemplate, compile_boolean_matcher,
+  impl_runtime_module,
 };
 use rspack_error::Result;
 use rspack_plugin_runtime::{
@@ -15,6 +16,14 @@ use rspack_plugin_runtime::{
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::plugin::{InsertType, SOURCE_TYPE};
+
+fn render_mini_css_chunk_filename(runtime_template: &RuntimeCodeTemplate) -> String {
+  if runtime_template.render_mode() == RuntimeGlobalsRenderMode::RspackExport {
+    "__rspack_get_mini_css_chunk_filename".to_string()
+  } else {
+    format!("{}.miniCssF", runtime_template.render_runtime_argument())
+  }
+}
 
 static CSS_LOADING_TEMPLATE: &str = include_str!("./runtime/css_loading.ejs");
 static CSS_LOADING_CREATE_LINK_TEMPLATE: &str =
@@ -323,7 +332,8 @@ impl RuntimeModule for CssLoadingRuntimeModule {
           } else {
             document.head.appendChild(linkTag);
           }".to_string(),
-        }
+        },
+        "_get_chunk_css_filename": render_mini_css_chunk_filename(runtime_template),
       })),
     )?;
 
@@ -367,7 +377,12 @@ impl RuntimeModule for CssLoadingRuntimeModule {
     }
 
     if with_hmr {
-      let hmr = runtime_template.render(&self.template_id(TemplateId::WithHmr), None)?;
+      let hmr = runtime_template.render(
+        &self.template_id(TemplateId::WithHmr),
+        Some(serde_json::json!({
+          "_get_chunk_css_filename": render_mini_css_chunk_filename(runtime_template),
+        })),
+      )?;
       res.push(hmr);
     } else {
       res.push("// no hmr".to_string());
@@ -379,6 +394,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
         &self.template_id(TemplateId::WithPrefetchLink),
         Some(serde_json::json!({
           "_cross_origin": compilation.options.output.cross_origin_loading.to_string(),
+          "_get_chunk_css_filename": render_mini_css_chunk_filename(runtime_template),
         })),
       )?;
 
@@ -412,6 +428,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
         &self.template_id(TemplateId::WithPreloadLink),
         Some(serde_json::json!({
           "_cross_origin": compilation.options.output.cross_origin_loading.to_string(),
+          "_get_chunk_css_filename": render_mini_css_chunk_filename(runtime_template),
         })),
       )?;
 
