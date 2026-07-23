@@ -22,14 +22,13 @@ use rspack_cacheable::{
 };
 use rspack_core::{
   ArcComputed, AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BuildInfo, BuildMeta,
-  CompilerOptions, DependencyId, DependencyLocation, DependencyRange, FactoryMeta, ImportMeta,
-  ImportMetaKnownProperties, JavascriptParserCommonjsExportsOption, JavascriptParserOptions,
-  ModuleIdentifier, ModuleLayer, ModuleType, ParseMeta, ResolvedModuleOptions, ResourceData,
-  SideEffectsBailoutItemWithSpan,
+  CompilationId, CompilerOptions, DependencyId, DependencyLocation, DependencyRange, FactoryMeta,
+  ImportMeta, ImportMetaKnownProperties, JavascriptParserCommonjsExportsOption,
+  JavascriptParserOptions, ModuleIdentifier, ModuleLayer, ModuleType, ParseMeta,
+  ResolvedModuleOptions, ResourceData, SideEffectsBailoutItemWithSpan,
 };
 use rspack_error::{Diagnostic, Result};
-use rspack_util::fx_hash::FxIndexSet;
-use rustc_hash::{FxHashMap, FxHashSet};
+use rspack_util::fx_hash::{FxHashMap, FxHashSet, FxIndexSet};
 use smallvec::SmallVec;
 use swc_atoms::Atom;
 use swc_experimental_allocator::{Allocator, CloneIn};
@@ -394,6 +393,7 @@ pub struct JavascriptParser<'parser> {
   pub build_info: &'parser mut BuildInfo,
   pub resource_data: &'parser ResourceData,
   pub(crate) compiler_options: &'parser CompilerOptions,
+  pub(crate) compilation_id: CompilationId,
   pub(crate) javascript_options: &'parser JavascriptParserOptions,
   pub parser_runtime_requirements: &'parser ParserRuntimeRequirementsData,
   pub module_type: &'parser ModuleType,
@@ -417,7 +417,7 @@ pub struct JavascriptParser<'parser> {
   pub(crate) destructuring_assignment_properties: DestructuringAssignmentPropertiesMap,
   pub(crate) dynamic_import_references: ImportsReferencesState,
   pub(crate) common_js_require_references: RequireReferencesState,
-  pub(crate) created_require_references: CreatedRequireReferencesState,
+  pub(crate) created_require_references: CreatedRequireReferencesState<'parser>,
   pub(crate) worker_index: u32,
   pub(crate) parser_exports_state: Option<bool>,
   pub(crate) local_modules: Vec<LocalModule>,
@@ -449,6 +449,7 @@ impl<'parser> JavascriptParser<'parser> {
     semicolons: &'parser mut FxHashSet<u32>,
     parser_plugins: &'parser mut Vec<BoxJavascriptParserPlugin>,
     parse_meta: ParseMeta,
+    compilation_id: CompilationId,
     parser_runtime_requirements: &'parser ParserRuntimeRequirementsData,
   ) -> Self {
     let warning_diagnostics: Vec<Diagnostic> = Vec::new();
@@ -488,7 +489,7 @@ impl<'parser> JavascriptParser<'parser> {
         },
       ));
       if import_meta.is_enabled() {
-        plugins.push(Box::new(parser_plugin::ImportMetaPlugin(import_meta)));
+        plugins.push(Box::new(parser_plugin::ImportMetaPlugin::new(import_meta)));
       } else {
         plugins.push(Box::new(parser_plugin::ImportMetaDisabledPlugin));
       }
@@ -591,6 +592,7 @@ impl<'parser> JavascriptParser<'parser> {
       build_meta,
       build_info,
       compiler_options,
+      compilation_id,
       module_type,
       module_layer,
       parser_exports_state,
