@@ -133,7 +133,7 @@ impl EsmLibraryPlugin {
           !is_esm_dep_like(dep)
             && !matches!(
               dep.dependency_type(),
-              DependencyType::Entry | DependencyType::DynamicImport
+              DependencyType::Entry | DependencyType::DynamicImport | DependencyType::NewWorker
             )
         })
       {
