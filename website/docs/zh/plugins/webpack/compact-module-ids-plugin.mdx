@@ -1,0 +1,68 @@
+---
+description: '为模块分配紧凑且稳定的字母数字 id'
+---
+
+# CompactModuleIdsPlugin
+
+`CompactModuleIdsPlugin` 根据模块标识符分配稳定的字母数字 id。首字符使用 `a-zA-Z`，后续字符使用 `a-zA-Z0-9`。更密集的 id 空间可以减少包含大量模块的产物中重复出现的模块 id 字节。
+
+`optimization.moduleIds: 'compact'` 内部会使用该插件。只有在需要自定义 compact id 生成行为时，才需要直接使用该插件。
+
+```js title="rspack.config.mjs"
+import rspack from '@rspack/core';
+
+export default {
+  optimization: {
+    moduleIds: false,
+  },
+  plugins: [
+    new rspack.ids.CompactModuleIdsPlugin({
+      maxLength: 3,
+    }),
+  ],
+};
+```
+
+## 选项
+
+### context
+
+- **类型：** `string`
+- **默认值：** `compiler.context`
+
+生成 id 前，用于创建相对模块标识符的上下文。
+
+### test
+
+- **类型：** `(module: Module) => boolean`
+- **默认值：** `undefined`
+
+用于筛选哪些模块由该插件分配 compact id。未设置时，会包含所有需要 id 的模块。
+
+### maxLength
+
+- **类型：** `number`
+- **默认值：** `3`
+
+作为起始 id 空间使用的最大编码长度。默认包含 203,164 个长度为一至三个字符的 id。
+
+### salt
+
+- **类型：** `number`
+- **默认值：** `0`
+
+生成 id 时使用的哈希盐值。调整该值可以在相同 id 空间中尝试不同的哈希起始值。
+
+### fixedLength
+
+- **类型：** `boolean`
+- **默认值：** `false`
+
+启用后，Rspack 不会为了处理冲突而扩大 id 空间。
+
+### failOnConflict
+
+- **类型：** `boolean`
+- **默认值：** `false`
+
+启用后，如果 compact id 分配出现冲突，Rspack 会报告错误。默认情况下，Rspack 会通过使用更大的 id 空间重试来解决冲突。

@@ -9,7 +9,7 @@ use rspack_core::{
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
-use rspack_ids::id_helpers::assign_deterministic_ids;
+use rspack_ids::id_helpers::assign_deterministic_ids_with_range_factor;
 use rspack_util::atom::Atom;
 use rustc_hash::{FxHashMap, FxHashSet};
 
@@ -296,6 +296,13 @@ fn is_two_char_deterministic_mangle_name(name: &str) -> bool {
       || ((b'1'..=b'9').contains(&bytes[0]) && bytes[1].is_ascii_digit()))
 }
 
+fn deterministic_export_id_range(item_count: usize, used_name_count: usize) -> usize {
+  item_count
+    .saturating_mul(4)
+    .saturating_add(used_name_count)
+    .max(NUMBER_OF_IDENTIFIER_START_CHARS as usize)
+}
+
 /// Function to mangle exports information.
 fn mangle_exports_info(
   exports_info_artifact: &ExportsInfoArtifact,
@@ -316,9 +323,10 @@ fn mangle_exports_info(
 
   if deterministic {
     let used_names_len = used_names.len();
+    let optimal_range = deterministic_export_id_range(mangleable_exports.len(), used_names_len);
     let mut export_info_used_name =
       FxHashMap::with_capacity_and_hasher(mangleable_exports.len(), Default::default());
-    assign_deterministic_ids(
+    assign_deterministic_ids_with_range_factor(
       mangleable_exports,
       |e| e.name.as_str(),
       |a, b| compare_strings_numeric(a.name, b.name),
@@ -333,13 +341,11 @@ fn mangle_exports_info(
           true
         }
       },
-      &[
-        NUMBER_OF_IDENTIFIER_START_CHARS as usize,
-        (NUMBER_OF_IDENTIFIER_START_CHARS * NUMBER_OF_IDENTIFIER_CONTINUATION_CHARS) as usize,
-      ],
+      &[optimal_range],
       NUMBER_OF_IDENTIFIER_CONTINUATION_CHARS as usize,
       used_names_len,
       0,
+      4,
     );
     for (export_info, name) in export_info_used_name {
       changes.push((export_info, UsedNameItem::Str(name.into())));
@@ -376,4 +382,22 @@ fn mangle_exports_info(
     }
   }
   (changes, nested_exports)
+}
+
+#[cfg(test)]
+mod tests {
+  use super::{NUMBER_OF_IDENTIFIER_START_CHARS, deterministic_export_id_range};
+
+  #[test]
+  fn deterministic_export_id_range_prefers_short_names() {
+    let start_chars = NUMBER_OF_IDENTIFIER_START_CHARS as usize;
+    assert_eq!(deterministic_export_id_range(0, 0), start_chars);
+    assert_eq!(deterministic_export_id_range(2, 1), start_chars);
+    assert_eq!(deterministic_export_id_range(13, 1), start_chars);
+    assert_eq!(deterministic_export_id_range(14, 1), 57);
+    assert_eq!(
+      deterministic_export_id_range(usize::MAX, usize::MAX),
+      usize::MAX
+    );
+  }
 }
