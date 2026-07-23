@@ -29,7 +29,10 @@ use rspack_plugin_javascript::{
   JavascriptModulesRenderChunkContent, JsPlugin, RenderSource,
   dependency::ImportDependencyTemplate, parser_and_generator::JavaScriptParserAndGenerator,
 };
-use rspack_plugin_rslib::dyn_import_external::cutout_dyn_import_externals;
+use rspack_plugin_rslib::{
+  dyn_import_external::cutout_dyn_import_externals,
+  worker_external::{ExternalWorkerDependencyTemplate, cutout_worker_externals},
+};
 use rspack_plugin_split_chunks::CacheGroup;
 use rspack_util::{
   atom::Atom,
@@ -273,6 +276,16 @@ async fn compilation(
     ImportDependencyTemplate::template_type(),
     Arc::new(DynamicImportDependencyTemplate {
       dyn_import_ns_map: self.dyn_import_ns_map.clone(),
+    }),
+  );
+  let worker_template = compilation.get_dependency_template(
+    rspack_core::DependencyTemplateType::Dependency(DependencyType::NewWorker),
+  );
+  compilation.set_dependency_template(
+    rspack_core::DependencyTemplateType::Dependency(DependencyType::NewWorker),
+    Arc::new(ExternalWorkerDependencyTemplate {
+      cutout_all_externals: false,
+      template: worker_template,
     }),
   );
   Ok(())
@@ -768,6 +781,11 @@ async fn optimize_dependencies(
   _diagnostics: &mut Vec<Diagnostic>,
 ) -> Result<Option<bool>> {
   cutout_dyn_import_externals(
+    false,
+    compilation.options.output.module,
+    build_module_graph_artifact,
+  );
+  cutout_worker_externals(
     false,
     compilation.options.output.module,
     build_module_graph_artifact,
