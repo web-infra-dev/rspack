@@ -1,3 +1,5 @@
+mod compact_module_ids_plugin;
+pub use compact_module_ids_plugin::*;
 mod deterministic_module_ids_plugin;
 pub use deterministic_module_ids_plugin::*;
 mod hashed_module_ids_plugin;
