@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { type Edit, Lang, parse, type SgNode } from '@ast-grep/napi';
 import type { Kinds, TypesMap } from '@ast-grep/napi/types/staticTypes';
 import {
@@ -78,20 +79,6 @@ const commonLibConfig: LibConfig = {
     },
   },
 };
-
-// TODO: Remove this workaround once rslib/rspack fixes runtime chunk naming
-// for bundled multi-lib builds.
-const withRuntimeChunk = (name: string): Pick<LibConfig, 'tools'> => ({
-  tools: {
-    rspack: {
-      optimization: {
-        runtimeChunk: {
-          name,
-        },
-      },
-    },
-  },
-});
 
 const mfRuntimePlugin: RsbuildPlugin = {
   name: 'mf-runtime',
@@ -213,6 +200,9 @@ export default defineConfig({
       dts: {
         build: true,
         tsgo: true,
+        typescriptPath: fileURLToPath(
+          import.meta.resolve('@typescript/native'),
+        ),
         alias: {
           // alias to pre-bundled types as they are public API
           open: './compiled/open',
@@ -237,7 +227,6 @@ export default defineConfig({
       output: {
         externals: [externalAlias, './moduleFederationDefaultRuntime.js'],
       },
-      ...withRuntimeChunk('rslib-runtime-index'),
     }),
     merge(commonLibConfig, {
       source: {
@@ -260,7 +249,6 @@ export default defineConfig({
           worker: './src/loader-runner/worker.ts',
         },
       },
-      ...withRuntimeChunk('rslib-runtime-worker'),
     }),
   ],
 });
