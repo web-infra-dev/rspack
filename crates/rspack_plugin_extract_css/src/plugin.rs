@@ -49,6 +49,8 @@ pub static BASE_URI: &str = "rspack-css-extract://";
 pub static ABSOLUTE_PUBLIC_PATH: &str = "rspack-css-extract:///css-extract-plugin/";
 pub static AUTO_PUBLIC_PATH: &str = "__css_extract_public_path_auto__";
 pub static SINGLE_DOT_PATH_SEGMENT: &str = "__css_extract_single_dot_path_segment__";
+pub(crate) const MINI_CSS_CHUNK_FILENAME_EXPORT_GLOBAL: &str =
+  "__rspack_get_mini_css_chunk_filename";
 
 static STARTS_WITH_AT_IMPORT: &str = "@import url";
 
@@ -577,7 +579,7 @@ async fn runtime_requirement_in_tree(
               })
           },
         )
-        .with_rspack_export_global("__rspack_get_mini_css_chunk_filename"),
+        .with_rspack_export_global(MINI_CSS_CHUNK_FILENAME_EXPORT_GLOBAL),
       ),
     ));
 

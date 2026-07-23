@@ -268,9 +268,19 @@ var {} = {{}};
       } else {
         *tree_runtime_requirements
       };
+      let exports_require_via_runtime_module = compilation
+        .build_chunk_graph_artifact
+        .chunk_graph
+        .get_chunk_runtime_modules_iterable(chunk_ukey)
+        .any(|runtime_module_id| {
+          compilation
+            .runtime_modules
+            .get(runtime_module_id)
+            .is_some_and(|module| module.get_constructor_name() == "ExportRequireRuntimeModule")
+        });
 
       let should_export_require_from_runtime = is_pure_runtime_chunk
-        && !chunk_link.exports_require_via_runtime_module
+        && !exports_require_via_runtime_module
         && effective_tree_requirements
           .intersects(RuntimeGlobals::REQUIRE | RuntimeGlobals::REQUIRE_SCOPE);
       let runtimes = runtime_mode_renderer.render_runtime(RuntimeRenderContext {
@@ -287,8 +297,7 @@ var {} = {{}};
         .add(render_runtime_modules(compilation, chunk_ukey, module_runtime_template).await?);
       runtime_source.add(RawStringSource::from_static("\n"));
 
-      // Link already decides whether the runtime binding is exported via a runtime module.
-      // Only pure runtime chunks without that runtime-module export should emit a direct export.
+      // Only pure runtime chunks without a runtime-module export need a direct export.
       if let Some(runtime_export) = runtime_mode_renderer
         .render_direct_runtime_export(runtime_template, should_export_require_from_runtime)
       {

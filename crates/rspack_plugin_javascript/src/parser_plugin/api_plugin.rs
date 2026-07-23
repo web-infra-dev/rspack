@@ -1,7 +1,8 @@
 use concat_string::concat_string;
 use rspack_core::{
   ConstDependency, ImportMetaKnownProperties, ModuleArgument, RuntimeGlobals,
-  RuntimeRequirementsDependency, RuntimeRequirementsDependencyWriteOperation, property_access,
+  RuntimeGlobalsRenderMode, RuntimeRequirementsDependency,
+  RuntimeRequirementsDependencyWriteOperation, property_access,
   runtime_mode::RuntimeMode as ExperimentRuntimeMode,
 };
 use rspack_error::{Error, Severity};
@@ -270,6 +271,14 @@ fn runtime_api_from_name(name: &str) -> Option<&'static RuntimeApi> {
   RUNTIME_APIS.iter().find(|api| api.name == name)
 }
 
+fn is_writable_string_runtime_global(runtime_global: RuntimeGlobals) -> bool {
+  RUNTIME_APIS.iter().any(|api| {
+    api.runtime_global == Some(runtime_global)
+      && api.type_of == Some("string")
+      && matches!(api.identifier_mode, Some(RuntimeApiIdentifierMode::Normal))
+  })
+}
+
 fn get_typeof_evaluate_of_api(sym: &str) -> Option<&'static str> {
   runtime_api_from_name(sym).and_then(|api| api.type_of)
 }
@@ -292,19 +301,20 @@ pub(crate) fn render_import_meta_runtime_api(
   parser: &JavascriptParser,
   api: &ImportMetaRuntimeApi,
 ) -> Option<String> {
-  let content = if parser.compiler_options.experiments.runtime_mode == ExperimentRuntimeMode::Rspack
-  {
-    format!(
-      "{}{}",
-      parser.parser_runtime_requirements.context,
-      property_access([api.runtime_global.rspack_context_property_name()?], 0)
-    )
-  } else {
-    format!(
+  let content = match parser.parser_runtime_requirements.render_mode {
+    RuntimeGlobalsRenderMode::Webpack => format!(
       "{}{}",
       parser.parser_runtime_requirements.require,
       property_access([api.runtime_global.property_name()?], 0)
-    )
+    ),
+    RuntimeGlobalsRenderMode::RspackContext => format!(
+      "{}{}",
+      parser.parser_runtime_requirements.context,
+      property_access([api.runtime_global.rspack_context_property_name()?], 0)
+    ),
+    RuntimeGlobalsRenderMode::RspackLexical | RuntimeGlobalsRenderMode::RspackExport => {
+      api.runtime_global.to_lexical_name()?.to_string()
+    }
   };
   Some(if api.runtime_call {
     format!("{content}()")
@@ -361,6 +371,7 @@ pub(crate) fn import_meta_runtime_api_assign(
   parser: &mut JavascriptParser,
   span: Span,
   value_span: Span,
+  assignment_span: Span,
   api: &ImportMetaRuntimeApi,
   full_assignment: bool,
   operation: AssignOp,
@@ -390,13 +401,23 @@ pub(crate) fn import_meta_runtime_api_assign(
       .add_presentational_dependency(Box::new(ConstDependency::new(span.into(), content.into())));
     return Some(true);
   }
+  if parser.parser_runtime_requirements.render_mode == RuntimeGlobalsRenderMode::RspackExport
+    && api.type_of != "string"
+  {
+    return None;
+  }
   let dependency = if full_assignment {
-    RuntimeRequirementsDependency::write_assignment(
-      span.into(),
-      value_span.into(),
-      runtime_requirements_write_operation(operation),
+    runtime_requirements_write_assignment(
+      parser.parser_runtime_requirements.render_mode,
+      span,
+      value_span,
+      assignment_span,
+      operation,
       api.runtime_global,
-    )
+    )?
+  } else if parser.parser_runtime_requirements.render_mode == RuntimeGlobalsRenderMode::RspackExport
+  {
+    RuntimeRequirementsDependency::new(span.into(), api.runtime_global)
   } else {
     RuntimeRequirementsDependency::write(span.into(), api.runtime_global)
   };
@@ -410,27 +431,36 @@ pub(crate) fn is_simple_assign_op(op: AssignOp) -> bool {
 
 fn runtime_requirements_write_operation(
   op: AssignOp,
-) -> RuntimeRequirementsDependencyWriteOperation {
+) -> Option<RuntimeRequirementsDependencyWriteOperation> {
   match op {
-    AssignOp::Assign => RuntimeRequirementsDependencyWriteOperation::Assign,
-    AssignOp::AddAssign => RuntimeRequirementsDependencyWriteOperation::Add,
-    AssignOp::SubAssign => RuntimeRequirementsDependencyWriteOperation::Subtract,
-    AssignOp::MulAssign => RuntimeRequirementsDependencyWriteOperation::Multiply,
-    AssignOp::DivAssign => RuntimeRequirementsDependencyWriteOperation::Divide,
-    AssignOp::ModAssign => RuntimeRequirementsDependencyWriteOperation::Remainder,
-    AssignOp::LShiftAssign => RuntimeRequirementsDependencyWriteOperation::LeftShift,
-    AssignOp::RShiftAssign => RuntimeRequirementsDependencyWriteOperation::RightShift,
-    AssignOp::ZeroFillRShiftAssign => {
-      RuntimeRequirementsDependencyWriteOperation::UnsignedRightShift
-    }
-    AssignOp::BitOrAssign => RuntimeRequirementsDependencyWriteOperation::BitwiseOr,
-    AssignOp::BitXorAssign => RuntimeRequirementsDependencyWriteOperation::BitwiseXor,
-    AssignOp::BitAndAssign => RuntimeRequirementsDependencyWriteOperation::BitwiseAnd,
-    AssignOp::ExpAssign => RuntimeRequirementsDependencyWriteOperation::Exponentiation,
-    AssignOp::AndAssign => RuntimeRequirementsDependencyWriteOperation::LogicalAnd,
-    AssignOp::OrAssign => RuntimeRequirementsDependencyWriteOperation::LogicalOr,
-    AssignOp::NullishAssign => RuntimeRequirementsDependencyWriteOperation::NullishCoalescing,
+    AssignOp::Assign => Some(RuntimeRequirementsDependencyWriteOperation::Assign),
+    AssignOp::AddAssign => Some(RuntimeRequirementsDependencyWriteOperation::Add),
+    AssignOp::AndAssign => Some(RuntimeRequirementsDependencyWriteOperation::LogicalAnd),
+    AssignOp::OrAssign => Some(RuntimeRequirementsDependencyWriteOperation::LogicalOr),
+    AssignOp::NullishAssign => Some(RuntimeRequirementsDependencyWriteOperation::NullishCoalescing),
+    _ => None,
   }
+}
+
+fn runtime_requirements_write_assignment(
+  render_mode: RuntimeGlobalsRenderMode,
+  span: Span,
+  value_span: Span,
+  assignment_span: Span,
+  operation: AssignOp,
+  runtime_global: RuntimeGlobals,
+) -> Option<RuntimeRequirementsDependency> {
+  if let Some(operation) = runtime_requirements_write_operation(operation) {
+    return Some(RuntimeRequirementsDependency::write_assignment(
+      span.into(),
+      value_span.into(),
+      assignment_span.into(),
+      operation,
+      runtime_global,
+    ));
+  }
+  (render_mode != RuntimeGlobalsRenderMode::RspackExport)
+    .then(|| RuntimeRequirementsDependency::write(span.into(), runtime_global))
 }
 
 fn static_require_member_chain(
@@ -460,12 +490,24 @@ fn static_require_member_chain(
       };
       let dep = if let Some(expr) = assignment {
         if members.len() == 1 {
-          RuntimeRequirementsDependency::write_assignment(
-            dep_span.into(),
-            expr.right.span().into(),
-            runtime_requirements_write_operation(expr.op),
+          if parser.parser_runtime_requirements.render_mode
+            == RuntimeGlobalsRenderMode::RspackExport
+            && !is_writable_string_runtime_global(runtime_global)
+          {
+            return None;
+          }
+          runtime_requirements_write_assignment(
+            parser.parser_runtime_requirements.render_mode,
+            dep_span,
+            expr.right.span(),
+            expr.span(),
+            expr.op,
             runtime_global,
-          )
+          )?
+        } else if parser.parser_runtime_requirements.render_mode
+          == RuntimeGlobalsRenderMode::RspackExport
+        {
+          RuntimeRequirementsDependency::new(dep_span.into(), runtime_global)
         } else {
           RuntimeRequirementsDependency::write(dep_span.into(), runtime_global)
         }
@@ -474,9 +516,16 @@ fn static_require_member_chain(
       };
       parser.add_presentational_dependency(Box::new(dep));
     } else {
+      let require_scope = if parser.parser_runtime_requirements.render_mode
+        == RuntimeGlobalsRenderMode::RspackExport
+      {
+        &parser.parser_runtime_requirements.require
+      } else {
+        &parser.parser_runtime_requirements.context
+      };
       let content = format!(
         "{}{}",
-        parser.parser_runtime_requirements.context,
+        require_scope,
         property_access(members.iter().map(Atom::as_ref), 0)
       );
       parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::add_only(
@@ -782,16 +831,28 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
   fn assign(
     &self,
     parser: &mut JavascriptParser,
-    _expr: &AssignExpr,
-    _ident: &Ident,
+    expr: &AssignExpr,
+    ident: &Ident,
     for_name: &str,
   ) -> Option<bool> {
+    if expr.left.as_pat().is_some() {
+      return None;
+    }
     if let Some(runtime_global) = runtime_api_from_name(for_name).and_then(|api| api.runtime_global)
+      && (parser.parser_runtime_requirements.render_mode != RuntimeGlobalsRenderMode::RspackExport
+        || is_writable_string_runtime_global(runtime_global))
       && parser.compiler_options.experiments.runtime_mode == ExperimentRuntimeMode::Rspack
     {
-      parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::write_only(
+      let dependency = runtime_requirements_write_assignment(
+        parser.parser_runtime_requirements.render_mode,
+        ident.span,
+        expr.right.span(),
+        expr.span(),
+        expr.op,
         runtime_global,
-      )));
+      )?;
+      parser.add_presentational_dependency(Box::new(dependency));
+      return Some(true);
     }
     None
   }

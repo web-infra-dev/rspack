@@ -1059,6 +1059,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaPlugin {
       parser,
       span,
       expr.right.span(),
+      expr.span(),
       api,
       full_assignment,
       expr.op,

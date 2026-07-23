@@ -512,12 +512,6 @@ impl EsmLibraryPlugin {
       })
       .collect::<FxHashSet<_>>();
 
-    for runtime_chunk in &runtime_chunks_exporting_require_via_runtime_module {
-      link
-        .get_mut_unwrap(runtime_chunk)
-        .exports_require_via_runtime_module = true;
-    }
-
     let (escaped_name_entries, escaped_identifier_entries) = concate_modules_map
       .par_values()
       .map(|info| {

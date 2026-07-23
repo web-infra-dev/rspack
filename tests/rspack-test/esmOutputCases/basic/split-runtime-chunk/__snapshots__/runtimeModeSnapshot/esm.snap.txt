@@ -1,16 +1,24 @@
 ```mjs title=main.mjs
-import { rspackRequire, publicPath, setPublicPath } from "./runtime.mjs";
+import { rspackRequire, publicPath, scriptNonce, setPublicPath, setScriptNonce } from "./runtime.mjs";
 import "./other.mjs";
 
 // ./index.js
 const other = rspackRequire("./other.js");
 
 
-setPublicPath('/assets/')
+setPublicPath(('/assets/'))
+scriptNonce ?? setScriptNonce('nonce')
+scriptNonce || setScriptNonce('fallback')
+scriptNonce && setScriptNonce('nonce-updated')
+setPublicPath(publicPath + ('nested/'))
 
 it('should have correct value', () => {
+  const { rspackPublicPath } = ({rspackPublicPath: publicPath})
   expect((0,other.U)()).toBe(42)
-  expect(publicPath).toBe('/assets/')
+  expect(publicPath).toBe('/assets/nested/')
+  expect(rspackPublicPath).toBe('/assets/nested/')
+  expect(rspackRequire.custom).toBeUndefined()
+  expect(scriptNonce).toBe('nonce-updated')
 })
 
 export {};
@@ -60,10 +68,15 @@ export { rspackRequire };
 var moduleFactories = modules;
 export { moduleFactories };
 
-var publicPath;
+var publicPath, scriptNonce;
 // rspack/runtime/esm_register_module
 moduleFactories.add = function registerModules(modules) { Object.assign(moduleFactories, modules) }
 ;
+// rspack/runtime/nonce
+var scriptNonce = undefined;;
+export { scriptNonce };
+function setScriptNonce(value) { return scriptNonce = value; }
+export { setScriptNonce };
 // rspack/runtime/public_path
 var publicPath = "";;
 export { publicPath };

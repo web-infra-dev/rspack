@@ -15,11 +15,11 @@ use rspack_plugin_runtime::{
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 
-use crate::plugin::{InsertType, SOURCE_TYPE};
+use crate::plugin::{InsertType, MINI_CSS_CHUNK_FILENAME_EXPORT_GLOBAL, SOURCE_TYPE};
 
 fn render_mini_css_chunk_filename(runtime_template: &RuntimeCodeTemplate) -> String {
   if runtime_template.render_mode() == RuntimeGlobalsRenderMode::RspackExport {
-    "__rspack_get_mini_css_chunk_filename".to_string()
+    MINI_CSS_CHUNK_FILENAME_EXPORT_GLOBAL.to_string()
   } else {
     format!("{}.miniCssF", runtime_template.render_runtime_argument())
   }
@@ -40,7 +40,7 @@ static CSS_LOADING_WITH_PRELOAD_TEMPLATE: &str =
 static CSS_LOADING_WITH_PRELOAD_LINK_TEMPLATE: &str =
   include_str!("./runtime/css_loading_with_preload_link.ejs");
 static RUNTIME_MODULE_VARIABLES: LazyLock<Vec<&'static str>> = LazyLock::new(|| {
-  extract_runtime_module_variables_from_ejs(&[
+  let mut variables = extract_runtime_module_variables_from_ejs(&[
     CSS_LOADING_TEMPLATE,
     CSS_LOADING_CREATE_LINK_TEMPLATE,
     CSS_LOADING_WITH_HMR_TEMPLATE,
@@ -49,7 +49,9 @@ static RUNTIME_MODULE_VARIABLES: LazyLock<Vec<&'static str>> = LazyLock::new(|| 
     CSS_LOADING_WITH_PREFETCH_LINK_TEMPLATE,
     CSS_LOADING_WITH_PRELOAD_TEMPLATE,
     CSS_LOADING_WITH_PRELOAD_LINK_TEMPLATE,
-  ])
+  ]);
+  variables.push(MINI_CSS_CHUNK_FILENAME_EXPORT_GLOBAL);
+  variables
 });
 
 static CSS_LOADING_BASIC_RUNTIME_REQUIREMENTS: LazyLock<RuntimeModuleRuntimeRequirements> =

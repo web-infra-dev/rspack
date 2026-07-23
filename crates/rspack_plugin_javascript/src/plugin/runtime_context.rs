@@ -81,12 +81,18 @@ var module = ({module_cache}[moduleId] = {{"#,
     let module_execution = if runtime_requirements
       .contains(RuntimeGlobals::INTERCEPT_MODULE_EXECUTION)
     {
+      let factory_runtime_argument =
+        if runtime_template.render_mode() == RuntimeGlobalsRenderMode::RspackContext {
+          "execOptions.context"
+        } else {
+          "execOptions.require"
+        };
       format!(
         r#"
         var execOptions = {{ id: moduleId, module: module, factory: {module_factories}[moduleId], require: {callable_require}, context: Object.create({runtime_context}) }};
         {}.forEach(function(handler) {{ handler(execOptions); }});
         module = execOptions.module;
-        execOptions.factory.call(module.exports, module, module.exports, execOptions.context);
+        execOptions.factory.call(module.exports, module, module.exports, {factory_runtime_argument});
       "#,
         runtime_template.render_runtime_globals(&RuntimeGlobals::INTERCEPT_MODULE_EXECUTION)
       )

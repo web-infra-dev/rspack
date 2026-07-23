@@ -14,17 +14,6 @@ use crate::{
 pub enum RuntimeRequirementsDependencyWriteOperation {
   Assign,
   Add,
-  Subtract,
-  Multiply,
-  Divide,
-  Remainder,
-  LeftShift,
-  RightShift,
-  UnsignedRightShift,
-  BitwiseOr,
-  BitwiseXor,
-  BitwiseAnd,
-  Exponentiation,
   LogicalAnd,
   LogicalOr,
   NullishCoalescing,
@@ -37,15 +26,17 @@ impl RspackHash for RuntimeRequirementsDependencyWriteOperation {
 }
 
 #[cacheable]
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct RuntimeRequirementsDependencyWriteInfo {
   pub value_range: DependencyRange,
+  pub assignment_range: DependencyRange,
   pub operation: RuntimeRequirementsDependencyWriteOperation,
 }
 
 impl RspackHash for RuntimeRequirementsDependencyWriteInfo {
   fn hash(&self, state: &mut RspackHasher) {
     self.value_range.hash(state);
+    self.assignment_range.hash(state);
     self.operation.hash(state);
   }
 }
@@ -57,14 +48,16 @@ pub enum RuntimeRequirementsDependencyMode {
   Normal,
   Call,
   AddOnly,
-  Write,
-  WriteOnly,
+  Write(Option<RuntimeRequirementsDependencyWriteInfo>),
   UnsupportedRequireProperty,
 }
 
 impl RspackHash for RuntimeRequirementsDependencyMode {
   fn hash(&self, state: &mut RspackHasher) {
     self.as_str().hash(state);
+    if let RuntimeRequirementsDependencyMode::Write(write_info) = self {
+      write_info.hash(state);
+    }
   }
 }
 
@@ -80,8 +73,7 @@ impl RuntimeRequirementsDependencyMode {
       RuntimeRequirementsDependencyMode::Normal => "normal",
       RuntimeRequirementsDependencyMode::Call => "call",
       RuntimeRequirementsDependencyMode::AddOnly => "add-only",
-      RuntimeRequirementsDependencyMode::Write => "write",
-      RuntimeRequirementsDependencyMode::WriteOnly => "write-only",
+      RuntimeRequirementsDependencyMode::Write(_) => "write",
       RuntimeRequirementsDependencyMode::UnsupportedRequireProperty => {
         "unsupported-require-property"
       }
@@ -95,15 +87,13 @@ pub struct RuntimeRequirementsDependency {
   pub range: DependencyRange,
   pub runtime_requirements: RuntimeGlobals,
   pub mode: RuntimeRequirementsDependencyMode,
-  pub write_info: Option<RuntimeRequirementsDependencyWriteInfo>,
 }
 
 impl RspackHash for RuntimeRequirementsDependency {
   fn hash(&self, state: &mut RspackHasher) {
     "runtime_requirements".hash(state);
     self.runtime_requirements.hash(state);
-    self.write_info.hash(state);
-    match self.mode {
+    match &self.mode {
       RuntimeRequirementsDependencyMode::Normal => {
         "range".hash(state);
         self.range.hash(state);
@@ -114,14 +104,10 @@ impl RspackHash for RuntimeRequirementsDependency {
         "mode".hash(state);
         self.mode.hash(state);
       }
-      RuntimeRequirementsDependencyMode::Write
+      RuntimeRequirementsDependencyMode::Write(_)
       | RuntimeRequirementsDependencyMode::UnsupportedRequireProperty => {
         "range".hash(state);
         self.range.hash(state);
-        "mode".hash(state);
-        self.mode.hash(state);
-      }
-      RuntimeRequirementsDependencyMode::WriteOnly => {
         "mode".hash(state);
         self.mode.hash(state);
       }
@@ -152,7 +138,6 @@ impl RuntimeRequirementsDependency {
       range,
       runtime_requirements,
       mode: RuntimeRequirementsDependencyMode::Normal,
-      write_info: None,
     }
   }
   pub fn call(range: DependencyRange, runtime_requirements: RuntimeGlobals) -> Self {
@@ -160,7 +145,6 @@ impl RuntimeRequirementsDependency {
       range,
       runtime_requirements,
       mode: RuntimeRequirementsDependencyMode::Call,
-      write_info: None,
     }
   }
   pub fn add_only(runtime_requirements: RuntimeGlobals) -> Self {
@@ -168,39 +152,32 @@ impl RuntimeRequirementsDependency {
       range: DependencyRange::default(),
       runtime_requirements,
       mode: RuntimeRequirementsDependencyMode::AddOnly,
-      write_info: None,
     }
   }
   pub fn write(range: DependencyRange, runtime_requirements: RuntimeGlobals) -> Self {
     Self {
       range,
       runtime_requirements,
-      mode: RuntimeRequirementsDependencyMode::Write,
-      write_info: None,
+      mode: RuntimeRequirementsDependencyMode::Write(None),
     }
   }
   pub fn write_assignment(
     range: DependencyRange,
     value_range: DependencyRange,
+    assignment_range: DependencyRange,
     operation: RuntimeRequirementsDependencyWriteOperation,
     runtime_requirements: RuntimeGlobals,
   ) -> Self {
     Self {
       range,
       runtime_requirements,
-      mode: RuntimeRequirementsDependencyMode::Write,
-      write_info: Some(RuntimeRequirementsDependencyWriteInfo {
-        value_range,
-        operation,
-      }),
-    }
-  }
-  pub fn write_only(runtime_requirements: RuntimeGlobals) -> Self {
-    Self {
-      range: DependencyRange::default(),
-      runtime_requirements,
-      mode: RuntimeRequirementsDependencyMode::WriteOnly,
-      write_info: None,
+      mode: RuntimeRequirementsDependencyMode::Write(Some(
+        RuntimeRequirementsDependencyWriteInfo {
+          value_range,
+          assignment_range,
+          operation,
+        },
+      )),
     }
   }
   pub fn unsupported_require_property(
@@ -211,7 +188,6 @@ impl RuntimeRequirementsDependency {
       range,
       runtime_requirements,
       mode: RuntimeRequirementsDependencyMode::UnsupportedRequireProperty,
-      write_info: None,
     }
   }
 }
@@ -251,7 +227,7 @@ impl DependencyTemplate for RuntimeRequirementsDependencyTemplate {
         "RuntimeRequirementsDependencyTemplate should be used for RuntimeRequirementsDependency",
       );
 
-    if matches!(dep.mode, RuntimeRequirementsDependencyMode::AddOnly) {
+    if matches!(&dep.mode, RuntimeRequirementsDependencyMode::AddOnly) {
       code_generatable_context
         .runtime_template
         .runtime_requirements_mut()
@@ -260,17 +236,14 @@ impl DependencyTemplate for RuntimeRequirementsDependencyTemplate {
     }
 
     if matches!(
-      dep.mode,
+      &dep.mode,
       RuntimeRequirementsDependencyMode::UnsupportedRequireProperty
     ) {
       source.replace(dep.range.start, dep.range.end, "undefined".into(), None);
       return;
     }
 
-    if matches!(
-      dep.mode,
-      RuntimeRequirementsDependencyMode::Write | RuntimeRequirementsDependencyMode::WriteOnly
-    ) {
+    if let RuntimeRequirementsDependencyMode::Write(write_info) = &dep.mode {
       code_generatable_context
         .runtime_template
         .runtime_requirements_mut()
@@ -289,19 +262,25 @@ impl DependencyTemplate for RuntimeRequirementsDependencyTemplate {
         .get_mut::<CodeGenerationRuntimeRequirementsWrite>()
         .expect("should have runtime requirements write metadata")
         .insert(dep.runtime_requirements);
-      if matches!(dep.mode, RuntimeRequirementsDependencyMode::WriteOnly) {
-        return;
-      }
       if code_generatable_context.runtime_template.render_mode()
         == RuntimeGlobalsRenderMode::RspackExport
-        && let Some(write_info) = dep.write_info
         && let Some(setter) = dep.runtime_requirements.to_rspack_export_setter_name()
       {
+        let Some(write_info) = write_info else {
+          let content = code_generatable_context
+            .runtime_template
+            .render_runtime_globals(&dep.runtime_requirements);
+          source.replace(dep.range.start, dep.range.end, content, None);
+          return;
+        };
         let runtime_global = code_generatable_context
           .runtime_template
           .render_runtime_globals(&dep.runtime_requirements);
         let prefix = match write_info.operation {
           RuntimeRequirementsDependencyWriteOperation::Assign => format!("{setter}("),
+          RuntimeRequirementsDependencyWriteOperation::Add => {
+            format!("{setter}({runtime_global} + ")
+          }
           RuntimeRequirementsDependencyWriteOperation::LogicalAnd => {
             format!("{runtime_global} && {setter}(")
           }
@@ -311,30 +290,22 @@ impl DependencyTemplate for RuntimeRequirementsDependencyTemplate {
           RuntimeRequirementsDependencyWriteOperation::NullishCoalescing => {
             format!("{runtime_global} ?? {setter}(")
           }
-          operation => {
-            let operator = match operation {
-              RuntimeRequirementsDependencyWriteOperation::Add => "+",
-              RuntimeRequirementsDependencyWriteOperation::Subtract => "-",
-              RuntimeRequirementsDependencyWriteOperation::Multiply => "*",
-              RuntimeRequirementsDependencyWriteOperation::Divide => "/",
-              RuntimeRequirementsDependencyWriteOperation::Remainder => "%",
-              RuntimeRequirementsDependencyWriteOperation::LeftShift => "<<",
-              RuntimeRequirementsDependencyWriteOperation::RightShift => ">>",
-              RuntimeRequirementsDependencyWriteOperation::UnsignedRightShift => ">>>",
-              RuntimeRequirementsDependencyWriteOperation::BitwiseOr => "|",
-              RuntimeRequirementsDependencyWriteOperation::BitwiseXor => "^",
-              RuntimeRequirementsDependencyWriteOperation::BitwiseAnd => "&",
-              RuntimeRequirementsDependencyWriteOperation::Exponentiation => "**",
-              RuntimeRequirementsDependencyWriteOperation::Assign
-              | RuntimeRequirementsDependencyWriteOperation::LogicalAnd
-              | RuntimeRequirementsDependencyWriteOperation::LogicalOr
-              | RuntimeRequirementsDependencyWriteOperation::NullishCoalescing => unreachable!(),
-            };
-            format!("{setter}({runtime_global} {operator} ")
-          }
+        };
+        // ParenExpr nodes are removed before dependency creation. Rebuild one pair to preserve
+        // RHS grouping while consuming the original trailing delimiters.
+        let has_parenthesized_value = write_info.value_range.end < write_info.assignment_range.end;
+        let (prefix, suffix) = if has_parenthesized_value {
+          (format!("{prefix}("), "))")
+        } else {
+          (prefix, ")")
         };
         source.replace(dep.range.start, write_info.value_range.start, prefix, None);
-        source.insert(write_info.value_range.end, ")".to_string(), None);
+        source.replace(
+          write_info.value_range.end,
+          write_info.assignment_range.end,
+          suffix.to_string(),
+          None,
+        );
         return;
       }
       let content = code_generatable_context
@@ -348,7 +319,7 @@ impl DependencyTemplate for RuntimeRequirementsDependencyTemplate {
       .runtime_template
       .render_runtime_globals(&dep.runtime_requirements);
 
-    if matches!(dep.mode, RuntimeRequirementsDependencyMode::Call) {
+    if matches!(&dep.mode, RuntimeRequirementsDependencyMode::Call) {
       content = format!("{content}()");
     }
 
