@@ -1,5 +1,5 @@
-var getProto = Object.getPrototypeOf ? <%- returningFunction("Object.getPrototypeOf(obj)", "obj") %> : <%- returningFunction("obj.__proto__", "obj") %>;
-var leafPrototypes;
+<%- var("getProto") %> = Object.getPrototypeOf ? <%- returningFunction("Object.getPrototypeOf(obj)", "obj") %> : <%- returningFunction("obj.__proto__", "obj") %>;
+<%- var("leafPrototypes") %>;
 // create a fake namespace object
 // mode & 1: value is a module id, require it
 // mode & 2: merge all properties of value into the ns

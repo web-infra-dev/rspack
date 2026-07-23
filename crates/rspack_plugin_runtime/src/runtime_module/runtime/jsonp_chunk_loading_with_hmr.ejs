@@ -1,6 +1,6 @@
-var hotCurrentUpdatedModulesList;
-var hotWaitingUpdateResolves = {};
-function jsonpLoadUpdateChunk(chunkId, updatedModulesList) {
+<%- var("hotCurrentUpdatedModulesList") %>;
+<%- var("hotWaitingUpdateResolves") %> = {};
+<%- fn("jsonpLoadUpdateChunk") %>(chunkId, updatedModulesList) {
 	hotCurrentUpdatedModulesList = updatedModulesList;
 	return new Promise(<%- basicFunction("resolve, reject") %> {
 		hotWaitingUpdateResolves[chunkId] = resolve;

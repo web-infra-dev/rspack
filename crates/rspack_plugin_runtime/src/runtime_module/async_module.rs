@@ -1,9 +1,15 @@
+use std::sync::LazyLock;
+
 use rspack_core::{
   Compilation, RuntimeGlobals, RuntimeGlobalsRenderMode, RuntimeModule,
   RuntimeModuleGenerateContext, RuntimeTemplate, RuntimeVariable, impl_runtime_module,
 };
 
+use crate::extract_runtime_module_variables_from_ejs;
+
 static ASYNC_MODULE_TEMPLATE: &str = include_str!("runtime/async_module.ejs");
+static RUNTIME_MODULE_VARIABLES: LazyLock<Vec<&'static str>> =
+  LazyLock::new(|| extract_runtime_module_variables_from_ejs(&[ASYNC_MODULE_TEMPLATE]));
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -17,6 +23,10 @@ impl AsyncRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for AsyncRuntimeModule {
+  fn runtime_module_variables() -> &'static [&'static str] {
+    RUNTIME_MODULE_VARIABLES.as_slice()
+  }
+
   async fn generate(
     &self,
     context: &RuntimeModuleGenerateContext<'_>,
