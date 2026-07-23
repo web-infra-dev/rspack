@@ -8,7 +8,7 @@
   },
   "devDependencies": {
     "diff": "8.0.4",
-    "prettier": "3.9.5",
+    "prettier": "3.9.6",
     "zx": "8.8.5"
   }
 }
