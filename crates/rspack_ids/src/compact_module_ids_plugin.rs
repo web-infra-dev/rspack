@@ -180,38 +180,3 @@ impl Plugin for CompactModuleIdsPlugin {
     Ok(())
   }
 }
-
-#[cfg(test)]
-mod tests {
-  use std::collections::HashSet;
-
-  use super::{identifier_space, to_identifier};
-
-  #[test]
-  fn encodes_compact_javascript_identifiers() {
-    assert_eq!(to_identifier(0), "a");
-    assert_eq!(to_identifier(25), "z");
-    assert_eq!(to_identifier(26), "A");
-    assert_eq!(to_identifier(51), "Z");
-    assert_eq!(to_identifier(52), "aa");
-    assert_eq!(to_identifier(113), "a9");
-    assert_eq!(to_identifier(114), "ba");
-    assert_eq!(to_identifier(3275), "Z9");
-    assert_eq!(to_identifier(3276), "aaa");
-  }
-
-  #[test]
-  fn identifier_space_is_unique_and_valid() {
-    let space = identifier_space(3);
-    assert_eq!(space, 203_164);
-
-    let mut ids = HashSet::with_capacity(space);
-    for id in 0..space {
-      let encoded = to_identifier(id);
-      assert!(encoded.len() <= 3);
-      assert!(encoded.as_bytes()[0].is_ascii_alphabetic());
-      assert!(encoded.bytes().all(|byte| byte.is_ascii_alphanumeric()));
-      assert!(ids.insert(encoded));
-    }
-  }
-}

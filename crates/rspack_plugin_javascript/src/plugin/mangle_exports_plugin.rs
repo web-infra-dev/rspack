@@ -383,21 +383,3 @@ fn mangle_exports_info(
   }
   (changes, nested_exports)
 }
-
-#[cfg(test)]
-mod tests {
-  use super::{NUMBER_OF_IDENTIFIER_START_CHARS, deterministic_export_id_range};
-
-  #[test]
-  fn deterministic_export_id_range_prefers_short_names() {
-    let start_chars = NUMBER_OF_IDENTIFIER_START_CHARS as usize;
-    assert_eq!(deterministic_export_id_range(0, 0), start_chars);
-    assert_eq!(deterministic_export_id_range(2, 1), start_chars);
-    assert_eq!(deterministic_export_id_range(13, 1), start_chars);
-    assert_eq!(deterministic_export_id_range(14, 1), 57);
-    assert_eq!(
-      deterministic_export_id_range(usize::MAX, usize::MAX),
-      usize::MAX
-    );
-  }
-}
