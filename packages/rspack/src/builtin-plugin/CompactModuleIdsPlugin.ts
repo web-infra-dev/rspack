@@ -1,10 +1,7 @@
 import { type BuiltinPlugin, BuiltinPluginName } from '@rspack/binding';
 import { createBuiltinPlugin, RspackBuiltinPlugin } from './base';
-import type { Module } from '../Module';
 
 export interface CompactModuleIdsPluginOptions {
-  context?: string;
-  test?: (module: Module) => boolean;
   minLength?: number;
 }
 

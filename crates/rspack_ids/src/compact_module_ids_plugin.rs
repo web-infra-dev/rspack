@@ -9,8 +9,8 @@ use rspack_hash::{HashFunction, RspackHasher};
 use rspack_hook::{plugin, plugin_hook};
 
 use crate::id_helpers::{
-  ModuleFilterFn, compare_modules_by_pre_order_index_or_identifier, get_full_module_name,
-  get_used_module_ids_and_modules_with_artifact, get_used_module_ids_and_modules_with_async_filter,
+  compare_modules_by_pre_order_index_or_identifier, get_full_module_name,
+  get_used_module_ids_and_modules_with_artifact,
 };
 
 const IDENTIFIER_START_CHARS: &[u8] = b"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -20,9 +20,6 @@ const FULL_IDENTIFIER_LENGTH: usize = 11;
 
 #[derive(Debug, Clone, Default)]
 pub struct CompactModuleIdsPluginOptions {
-  pub context: Option<String>,
-  #[debug(skip)]
-  pub test: Option<ModuleFilterFn>,
   pub min_length: Option<usize>,
 }
 
@@ -42,9 +39,6 @@ fn encode_identifier_hash(mut hash: u64) -> [u8; FULL_IDENTIFIER_LENGTH] {
 #[plugin]
 #[derive(Debug)]
 pub struct CompactModuleIdsPlugin {
-  context: Option<String>,
-  #[debug(skip)]
-  test: Option<ModuleFilterFn>,
   min_length: usize,
 }
 
@@ -57,8 +51,6 @@ impl Default for CompactModuleIdsPlugin {
 impl CompactModuleIdsPlugin {
   pub fn new(options: CompactModuleIdsPluginOptions) -> Self {
     Self::new_inner(
-      options.context,
-      options.test,
       options
         .min_length
         .filter(|min_length| *min_length != 0)
@@ -92,18 +84,11 @@ async fn module_ids(
     ));
   }
 
-  let (mut used_ids, modules) = if self.test.is_some() {
-    get_used_module_ids_and_modules_with_async_filter(compilation, module_ids, self.test.as_ref())
-      .await?
-  } else {
-    get_used_module_ids_and_modules_with_artifact(compilation, module_ids, None)
-  };
+  let (mut used_ids, modules) =
+    get_used_module_ids_and_modules_with_artifact(compilation, module_ids, None);
 
   let mut module_ids_map = std::mem::take(module_ids);
-  let context = self
-    .context
-    .as_deref()
-    .unwrap_or(compilation.options.context.as_ref());
+  let context = compilation.options.context.as_ref();
   let module_graph = compilation.get_module_graph();
   let modules = modules
     .into_iter()

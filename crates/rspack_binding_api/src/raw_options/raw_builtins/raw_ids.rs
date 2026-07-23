@@ -76,17 +76,12 @@ fn into_module_filter(test: RawModuleFilter) -> ModuleFilterFn {
 #[derive(Debug)]
 #[napi(object, object_to_js = false)]
 pub struct RawCompactModuleIdsPluginOptions {
-  pub context: Option<String>,
-  #[napi(ts_type = "(module: Module) => boolean")]
-  pub test: Option<RawModuleFilter>,
   pub min_length: Option<u32>,
 }
 
 impl From<RawCompactModuleIdsPluginOptions> for CompactModuleIdsPluginOptions {
   fn from(value: RawCompactModuleIdsPluginOptions) -> Self {
     Self {
-      context: value.context,
-      test: value.test.map(into_module_filter),
       min_length: value.min_length.map(|n| n as usize),
     }
   }
