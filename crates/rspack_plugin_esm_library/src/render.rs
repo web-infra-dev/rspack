@@ -712,7 +712,8 @@ var {} = {{}};
       // concate module does this by render_module()
       // however esm module does not have concate module,
       // some replacement needs to be done here
-      replace_static_url_placeholders(compilation, &output_path, final_source).await?
+      replace_static_url_placeholders(compilation, runtime_template, &output_path, final_source)
+        .await?
     } else {
       final_source
     };
