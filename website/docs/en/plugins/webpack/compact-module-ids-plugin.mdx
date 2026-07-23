@@ -4,7 +4,7 @@ description: 'Assign compact and stable alphanumeric module ids'
 
 # CompactModuleIdsPlugin
 
-`CompactModuleIdsPlugin` assigns stable alphanumeric ids based on module identifiers. The first character uses `a-zA-Z`, and subsequent characters use `a-zA-Z0-9`. This denser id space can reduce repeated module id bytes in bundles with many modules.
+`CompactModuleIdsPlugin` assigns stable alphanumeric ids based on module identifiers. The first character uses `a-zA-Z`, and subsequent characters use `a-zA-Z0-9`. It starts with the shortest configured hash prefix and only extends ids whose prefixes collide.
 
 `optimization.moduleIds: 'compact'` uses this plugin internally. Use the plugin directly when you need to customize compact id generation.
 
@@ -17,7 +17,7 @@ export default {
   },
   plugins: [
     new rspack.ids.CompactModuleIdsPlugin({
-      maxLength: 3,
+      minLength: 1,
     }),
   ],
 };
@@ -39,30 +39,9 @@ The context used to create relative module identifiers before ids are generated.
 
 Selects which modules should receive compact ids. When omitted, all modules that need ids are included.
 
-### maxLength
+### minLength
 
 - **Type:** `number`
-- **Default:** `3`
+- **Default:** `1`
 
-The maximum encoded id length used for the starting id space. The default includes 203,164 ids with one to three characters.
-
-### salt
-
-- **Type:** `number`
-- **Default:** `0`
-
-The hash salt used when generating ids. Change this value to try a different hash starting value in the same id space.
-
-### fixedLength
-
-- **Type:** `boolean`
-- **Default:** `false`
-
-When enabled, Rspack does not expand the id space to resolve conflicts.
-
-### failOnConflict
-
-- **Type:** `boolean`
-- **Default:** `false`
-
-When enabled, Rspack reports an error if compact id assignment produces conflicts. By default, Rspack resolves conflicts by retrying with a larger id space.
+The minimum encoded id length. Rspack extends an id one character at a time when its hash prefix is already used. If the complete hash still conflicts, compilation fails with an error.

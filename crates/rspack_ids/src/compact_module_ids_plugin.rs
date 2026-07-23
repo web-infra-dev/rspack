@@ -5,56 +5,38 @@ use rspack_core::{
   incremental::IncrementalPasses,
 };
 use rspack_error::{Diagnostic, Result, error};
+use rspack_hash::{HashFunction, RspackHasher};
 use rspack_hook::{plugin, plugin_hook};
 
-use crate::{
-  DeterministicModuleIdsPluginOptions,
-  id_helpers::{
-    ModuleFilterFn, assign_deterministic_ids, compare_modules_by_pre_order_index_or_identifier,
-    get_full_module_name, get_used_module_ids_and_modules_with_artifact,
-    get_used_module_ids_and_modules_with_async_filter,
-  },
+use crate::id_helpers::{
+  ModuleFilterFn, compare_modules_by_pre_order_index_or_identifier, get_full_module_name,
+  get_used_module_ids_and_modules_with_artifact, get_used_module_ids_and_modules_with_async_filter,
 };
 
 const IDENTIFIER_START_CHARS: &[u8] = b"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
 const IDENTIFIER_CONTINUE_CHARS: &[u8] =
   b"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+const FULL_IDENTIFIER_LENGTH: usize = 11;
 
-pub type CompactModuleIdsPluginOptions = DeterministicModuleIdsPluginOptions;
-
-// Keep ids valid as unquoted JavaScript property names while using the full
-// alphanumeric alphabet after the first character.
-fn identifier_space(max_length: usize) -> usize {
-  let mut space = 0usize;
-  let mut block = IDENTIFIER_START_CHARS.len();
-  for _ in 0..max_length {
-    space = space.saturating_add(block);
-    block = block.saturating_mul(IDENTIFIER_CONTINUE_CHARS.len());
-  }
-  space
+#[derive(Debug, Clone, Default)]
+pub struct CompactModuleIdsPluginOptions {
+  pub context: Option<String>,
+  #[debug(skip)]
+  pub test: Option<ModuleFilterFn>,
+  pub min_length: Option<usize>,
 }
 
-fn to_identifier(mut id: usize) -> String {
-  let mut length = 1usize;
-  let mut block = IDENTIFIER_START_CHARS.len();
-  while id >= block {
-    id -= block;
-    length += 1;
-    block = block.saturating_mul(IDENTIFIER_CONTINUE_CHARS.len());
+fn encode_identifier_hash(mut hash: u64) -> [u8; FULL_IDENTIFIER_LENGTH] {
+  let mut identifier = [0; FULL_IDENTIFIER_LENGTH];
+  identifier[0] = IDENTIFIER_START_CHARS[(hash % IDENTIFIER_START_CHARS.len() as u64) as usize];
+  hash /= IDENTIFIER_START_CHARS.len() as u64;
+  for character in &mut identifier[1..] {
+    *character =
+      IDENTIFIER_CONTINUE_CHARS[(hash % IDENTIFIER_CONTINUE_CHARS.len() as u64) as usize];
+    hash /= IDENTIFIER_CONTINUE_CHARS.len() as u64;
   }
-
-  let mut divisor = IDENTIFIER_CONTINUE_CHARS
-    .len()
-    .saturating_pow((length - 1) as u32);
-  let mut result = String::with_capacity(length);
-  result.push(IDENTIFIER_START_CHARS[id / divisor] as char);
-  id %= divisor;
-  while divisor > 1 {
-    divisor /= IDENTIFIER_CONTINUE_CHARS.len();
-    result.push(IDENTIFIER_CONTINUE_CHARS[id / divisor] as char);
-    id %= divisor;
-  }
-  result
+  debug_assert_eq!(hash, 0);
+  identifier
 }
 
 #[plugin]
@@ -63,10 +45,7 @@ pub struct CompactModuleIdsPlugin {
   context: Option<String>,
   #[debug(skip)]
   test: Option<ModuleFilterFn>,
-  max_length: usize,
-  salt: usize,
-  fixed_length: bool,
-  fail_on_conflict: bool,
+  min_length: usize,
 }
 
 impl Default for CompactModuleIdsPlugin {
@@ -81,12 +60,9 @@ impl CompactModuleIdsPlugin {
       options.context,
       options.test,
       options
-        .max_length
-        .filter(|max_length| *max_length != 0)
-        .unwrap_or(3),
-      options.salt.unwrap_or_default(),
-      options.fixed_length.unwrap_or_default(),
-      options.fail_on_conflict.unwrap_or_default(),
+        .min_length
+        .filter(|min_length| *min_length != 0)
+        .unwrap_or(1),
     )
   }
 }
@@ -110,6 +86,12 @@ async fn module_ids(
     module_ids.retain(|module, _| preserved_module_ids.contains_key(module));
   }
 
+  if self.min_length > FULL_IDENTIFIER_LENGTH {
+    return Err(error!(
+      "'minLength' must not exceed {FULL_IDENTIFIER_LENGTH} for CompactModuleIdsPlugin"
+    ));
+  }
+
   let (mut used_ids, modules) = if self.test.is_some() {
     get_used_module_ids_and_modules_with_async_filter(compilation, module_ids, self.test.as_ref())
       .await?
@@ -122,55 +104,48 @@ async fn module_ids(
     .context
     .as_deref()
     .unwrap_or(compilation.options.context.as_ref());
-  let mut conflicts = 0;
-
   let module_graph = compilation.get_module_graph();
   let modules = modules
     .into_iter()
-    .filter_map(|i| module_graph.module_by_identifier(&i))
+    .filter_map(|identifier| module_graph.module_by_identifier(&identifier))
     .collect::<Vec<_>>();
-  let used_ids_len = used_ids.len();
 
-  let modules_with_names = modules
+  let mut modules_with_hashes = modules
     .into_par_iter()
-    .map(|m| (m, get_full_module_name(m, context)))
+    .map(|module| {
+      let name = get_full_module_name(module, context);
+      let mut hasher = RspackHasher::new(&HashFunction::Xxhash64);
+      hasher.write(name.as_bytes());
+      (module, encode_identifier_hash(hasher.finish()))
+    })
     .collect::<Vec<_>>();
 
-  assign_deterministic_ids(
-    modules_with_names,
-    |(_, name)| name.as_str(),
-    |(a, _), (b, _)| {
-      compare_modules_by_pre_order_index_or_identifier(
-        module_graph,
-        &a.identifier(),
-        &b.identifier(),
-      )
-    },
-    |(module, _), id| {
-      let id = to_identifier(id);
-      if !used_ids.insert(id.clone()) {
-        conflicts += 1;
-        return false;
+  modules_with_hashes.sort_unstable_by(|(a, _), (b, _)| {
+    compare_modules_by_pre_order_index_or_identifier(module_graph, &a.identifier(), &b.identifier())
+  });
+
+  for (module, hash) in modules_with_hashes {
+    // SAFETY: `encode_identifier_hash` only emits ASCII characters.
+    let hash = unsafe { std::str::from_utf8_unchecked(&hash) };
+    let Some(module_id) = (self.min_length..=hash.len()).find_map(|length| {
+      let candidate = &hash[..length];
+      if used_ids.contains(candidate) {
+        None
+      } else {
+        Some(candidate.to_string())
       }
-      ChunkGraph::set_module_id(&mut module_ids_map, module.identifier(), id.into());
-      true
-    },
-    &[identifier_space(self.max_length)],
-    if self.fixed_length {
-      0
-    } else {
-      IDENTIFIER_CONTINUE_CHARS.len()
-    },
-    used_ids_len,
-    self.salt,
-  );
-  *module_ids = module_ids_map;
-  if self.fail_on_conflict && conflicts > 0 {
-    return Err(error!(
-      "Assigning compact module ids has lead to {conflicts} conflict{}.\nIncrease the 'maxLength' to increase the id space and make conflicts less likely (recommended when there are many conflicts or application is expected to grow), or add an 'salt' number to try another hash starting value in the same id space (recommended when there is only a single conflict).",
-      if conflicts > 1 { "s" } else { "" }
-    ));
+    }) else {
+      return Err(error!(
+        "Unable to assign a unique compact id to module '{}' after using all {FULL_IDENTIFIER_LENGTH} hash characters",
+        module.identifier()
+      ));
+    };
+
+    used_ids.insert(module_id.clone());
+    ChunkGraph::set_module_id(&mut module_ids_map, module.identifier(), module_id.into());
   }
+
+  *module_ids = module_ids_map;
   Ok(())
 }
 

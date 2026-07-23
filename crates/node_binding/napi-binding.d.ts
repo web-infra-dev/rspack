@@ -1956,6 +1956,12 @@ export interface RawCollectShareEntryPluginOptions {
   filename?: string
 }
 
+export interface RawCompactModuleIdsPluginOptions {
+  context?: string
+  test?: (module: Module) => boolean
+  minLength?: number
+}
+
 export interface RawCompilerPlatform {
   web?: boolean | null
   browser?: boolean | null
