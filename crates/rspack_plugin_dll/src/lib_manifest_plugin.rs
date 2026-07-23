@@ -128,7 +128,9 @@ async fn emit(&self, compilation: &mut Compilation) -> Result<()> {
       // Match webpack by deriving the library identifier from the concatenation root.
       let module_for_ident = module
         .as_concatenated_module()
-        .and_then(|module| module_graph.module_by_identifier(&module.get_root()))
+        .and_then(|concatenated_module| {
+          module_graph.module_by_identifier(&concatenated_module.get_root())
+        })
         .unwrap_or(module);
       let ident = module_for_ident.lib_ident(LibIdentOptions { context });
 

@@ -13,7 +13,14 @@ module.exports = {
 			statsJson.modules ??
 			statsJson.children?.flatMap(child => child.modules ?? []) ??
 			[];
-		expect(modules.some(module => module.modules?.length === 2)).toBe(true);
+		const concatenatedModule = modules.find(module => {
+			const innerIdentifiers =
+				module.modules?.map(innerModule => innerModule.identifier) ?? [];
+			return ["index.mjs", "bar.mjs"].every(filename =>
+				innerIdentifiers.some(identifier => identifier.endsWith(filename))
+			);
+		});
+		expect(concatenatedModule).toBeDefined();
 
 		const manifest = JSON.parse(
 			fs.readFileSync(path.resolve(config.output.path, "manifest.json"), "utf-8")
