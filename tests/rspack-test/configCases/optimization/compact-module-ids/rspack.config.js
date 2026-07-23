@@ -8,9 +8,10 @@ module.exports = [
     },
   },
   {
+    entry: './min-length',
     optimization: {
       moduleIds: false,
     },
-    plugins: [new rspack.ids.CompactModuleIdsPlugin()],
+    plugins: [new rspack.ids.CompactModuleIdsPlugin({ minLength: 1 })],
   },
 ];

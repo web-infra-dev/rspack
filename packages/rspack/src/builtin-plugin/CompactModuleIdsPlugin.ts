@@ -5,10 +5,7 @@ import type { Module } from '../Module';
 export interface CompactModuleIdsPluginOptions {
   context?: string;
   test?: (module: Module) => boolean;
-  maxLength?: number;
-  salt?: number;
-  fixedLength?: boolean;
-  failOnConflict?: boolean;
+  minLength?: number;
 }
 
 export class CompactModuleIdsPlugin extends RspackBuiltinPlugin {

@@ -31,8 +31,9 @@ use napi::{
 use napi_derive::napi;
 use raw_dll::{RawDllReferenceAgencyPluginOptions, RawFlagAllModulesAsUsedPluginOptions};
 use raw_ids::{
-  RawDeterministicModuleIdsPluginOptions, RawHashedModuleIdsPluginOptions,
-  RawOccurrenceChunkIdsPluginOptions, RawSyncModuleIdsPluginOptions,
+  RawCompactModuleIdsPluginOptions, RawDeterministicModuleIdsPluginOptions,
+  RawHashedModuleIdsPluginOptions, RawOccurrenceChunkIdsPluginOptions,
+  RawSyncModuleIdsPluginOptions,
 };
 use raw_lightning_css_minimizer::RawLightningCssMinimizerRspackPluginOptions;
 use raw_mf::{
@@ -588,7 +589,7 @@ impl<'a> BuiltinPlugin<'a> {
       ),
       BuiltinPluginName::CompactModuleIdsPlugin => plugins.push(
         CompactModuleIdsPlugin::new(
-          downcast_into::<RawDeterministicModuleIdsPluginOptions>(self.options)
+          downcast_into::<RawCompactModuleIdsPluginOptions>(self.options)
             .map_err(|report| napi::Error::from_reason(report.to_string()))?
             .into(),
         )

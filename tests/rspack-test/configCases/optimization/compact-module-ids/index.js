@@ -3,6 +3,6 @@ it("should assign compact identifier-safe module ids", () => {
 
 	expect(new Set(ids).size).toBe(ids.length);
 	for (const id of ids) {
-		expect(id).toMatch(/^[A-Za-z][A-Za-z0-9]{0,2}$/);
+		expect(id).toMatch(/^[A-Za-z][A-Za-z0-9]*$/);
 	}
 });
