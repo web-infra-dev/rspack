@@ -92,7 +92,15 @@ pub(crate) fn swc_diagnostics_to_rspack_error(
 }
 
 fn swc_diagnostic_to_rspack_error(diagnostic: &SwcDiagnostic, source_map: &SourceMap) -> Error {
-  let message = diagnostic.message();
+  let mut message = diagnostic.message();
+  let code = diagnostic.code.as_ref().map(|code| match code {
+    DiagnosticId::Error(code) | DiagnosticId::Lint(code) => code,
+  });
+  if let Some(code) = code {
+    message.insert_str(0, ": ");
+    message.insert_str(0, code);
+  }
+
   let mut error = match diagnostic.level {
     Level::Warning | Level::Note | Level::Help => Error::warning(message),
     Level::Bug
@@ -103,9 +111,7 @@ fn swc_diagnostic_to_rspack_error(diagnostic: &SwcDiagnostic, source_map: &Sourc
     | Level::Cancelled => Error::error(message),
   };
 
-  error.code = diagnostic.code.as_ref().map(|code| match code {
-    DiagnosticId::Error(code) | DiagnosticId::Lint(code) => code.clone(),
-  });
+  error.code = code.cloned();
 
   if let Some(primary_span) = diagnostic.span.primary_span()
     && let Ok(primary) = source_map.try_lookup_byte_offset(primary_span.lo())

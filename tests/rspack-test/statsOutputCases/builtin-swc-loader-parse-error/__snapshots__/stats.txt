@@ -1,6 +1,6 @@
 ERROR in ./index.ts
   × Module build failed (from builtin:swc-loader):
-  ╰─▶   × Expected '{', got 'ident'
+  ╰─▶   × Syntax Error: Expected '{', got 'ident'
          ╭────
        1 │ export error;
          ·        ─────

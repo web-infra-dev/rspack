@@ -25,7 +25,7 @@ use swc_core::{
   common::{
     FileName, GLOBALS, Mark, SourceFile, SourceMap,
     comments::{Comments, SingleThreadedComments},
-    errors::Handler,
+    errors::{DiagnosticId, Handler},
   },
   ecma::{
     ast::{
@@ -57,6 +57,15 @@ use super::{
   stringify::{PrintOptions, SourceMapConfig},
 };
 use crate::error::swc_diagnostics_to_rspack_error;
+
+const SWC_SYNTAX_ERROR_CODE: &str = "Syntax Error";
+
+fn emit_syntax_error(error: swc_core::ecma::parser::error::Error, handler: &Handler) {
+  error
+    .into_diagnostic(handler)
+    .code(DiagnosticId::Error(SWC_SYNTAX_ERROR_CODE.into()))
+    .emit();
+}
 
 impl JavaScriptCompiler {
   /// Transforms the given JavaScript source code according to the provided options and source map kind.
@@ -181,17 +190,17 @@ impl JavaScriptCompiler {
         let program = parse_file_as_program(&fm, syntax, target, Some(&comments), &mut errors);
 
         for error in errors {
-          error.into_diagnostic(handler).emit();
+          emit_syntax_error(error, handler);
           had_error = true;
         }
 
         let program = program.map_err(|error| {
-          error.into_diagnostic(handler).emit();
-          anyhow::Error::msg("Syntax Error")
+          emit_syntax_error(error, handler);
+          anyhow::Error::msg(SWC_SYNTAX_ERROR_CODE)
         })?;
 
         if had_error {
-          bail!("Syntax Error");
+          bail!(SWC_SYNTAX_ERROR_CODE);
         }
 
         Ok(program)
@@ -382,17 +391,17 @@ impl<'a> JavaScriptTransformer<'a> {
     };
 
     for e in errors {
-      e.into_diagnostic(handler).emit();
+      emit_syntax_error(e, handler);
       error = true;
     }
 
     let res = program_result.map_err(|e| {
-      e.into_diagnostic(handler).emit();
-      anyhow::Error::msg("Syntax Error")
+      emit_syntax_error(e, handler);
+      anyhow::Error::msg(SWC_SYNTAX_ERROR_CODE)
     });
 
     if error {
-      return Err(anyhow::anyhow!("Syntax Error"));
+      return Err(anyhow::anyhow!(SWC_SYNTAX_ERROR_CODE));
     }
     res
   }
