@@ -1,9 +1,9 @@
 ```mjs title=chunk.mjs
-import { __rspack_context } from "./runtime.mjs";
+import { rspackRequire } from "./runtime.mjs";
 import "./index_js.mjs";
 
 // ./chunk.js
-const cjs = __rspack_context.r("./cjs.js");
+const cjs = rspackRequire("./cjs.js");
 // this will import from the entry chunk
 
 
@@ -14,9 +14,8 @@ export {};
 ```
 
 ```mjs title=index_js.mjs
-import { __rspack_context } from "./runtime.mjs";
-
-__rspack_context.m.add({
+import { rspackRequire, moduleFactories } from "./runtime.mjs";
+moduleFactories.add({
 "./cjs.js"
 /*!****************!*\
   !*** ./cjs.js ***!
@@ -28,17 +27,17 @@ exports.p = () => 42
 },
 });
 // ./index.js
-const cjs = __rspack_context.r("./cjs.js");
+const cjs = rspackRequire("./cjs.js");
 
 
 it('should only contains needed exports', async () => {
 	await import("./chunk.mjs")
 	expect((0,cjs.p)()).toBe(42)
 
-	const exports = await import(/*webpackIgnore: true*/'./main.mjs')
+	const __nested_rspack_exports__ = await import(/*webpackIgnore: true*/'./main.mjs')
 
-	expect(Reflect.ownKeys(exports).filter(t => typeof t === 'string').length).toBe(1)
-	const {value} = exports
+	expect(Reflect.ownKeys(__nested_rspack_exports__).filter(t => typeof t === 'string').length).toBe(1)
+	const {value} = __nested_rspack_exports__
 
 	expect(value()()).toBe(42)
 })
@@ -57,36 +56,34 @@ export { value } from "./index_js.mjs";
 
 ```mjs title=runtime.mjs
 
-var __rspack_modules = {};
+var modules = {};
 // The module cache
-var __rspack_module_cache = {};
+var moduleCache = {};
 // The require function
-function __rspack_require(moduleId) {
+function rspackRequire(moduleId) {
 // Check if module is in cache
-var cachedModule = __rspack_module_cache[moduleId];
+var cachedModule = moduleCache[moduleId];
 if (cachedModule !== undefined) {
 return cachedModule.exports;
 }
 // Create a new module (and put it into the cache)
-var module = (__rspack_module_cache[moduleId] = {
+var module = (moduleCache[moduleId] = {
 exports: {}
 });
 // Execute the module function
-__rspack_modules[moduleId](module, module.exports, __rspack_context);
+modules[moduleId](module, module.exports, rspackRequire);
 
 // Return the exports of the module
 return module.exports;
 }
-var __rspack_context = {};
-__rspack_context.r = __rspack_require;
-// expose the modules object (__rspack_modules)
-__rspack_context.m = __rspack_modules;
+export { rspackRequire };
+// expose the modules object (modules)
+var moduleFactories = modules;
+export { moduleFactories };
 
-var moduleFactories=__rspack_modules;
 // rspack/runtime/esm_register_module
 moduleFactories.add = function registerModules(modules) { Object.assign(moduleFactories, modules) }
 ;
 
-export { __rspack_context };
 
 ```

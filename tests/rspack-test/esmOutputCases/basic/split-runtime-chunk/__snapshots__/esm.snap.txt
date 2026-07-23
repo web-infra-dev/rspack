@@ -6,9 +6,13 @@ import "./other.mjs";
 const other = __webpack_require__("./other.js");
 
 
+__webpack_require__.p = '/assets/'
+
 it('should have correct value', () => {
   expect((0,other.U)()).toBe(42)
+  expect(__webpack_require__.p).toBe('/assets/')
 })
+
 export {};
 
 ```

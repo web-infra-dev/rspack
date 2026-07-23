@@ -12,7 +12,8 @@ use rspack_core::{
   ConditionalInitFragment, DependencyType, ExportInfo, ExportMode, ExportProvided,
   ExportsInfoArtifact, ExportsType, FindTargetResult, ImportSpec, InitFragmentKey, ModuleGraph,
   ModuleGraphCacheArtifact, ModuleIdentifier, ModuleInfo, NAMESPACE_OBJECT_EXPORT, RuntimeGlobals,
-  SideEffectsStateArtifact, SourceType, URLStaticMode, UsageState, UsedName, UsedNameItem,
+  RuntimeGlobalsRenderMode, RuntimeTemplateRenderMode, RuntimeVariable, SideEffectsStateArtifact,
+  SourceType, URLStaticMode, UsageState, UsedName, UsedNameItem, all_runtime_module_variables,
   collect_ident, escape_name_atom_ref, find_new_name, find_target, get_cached_readable_identifier,
   get_module_directives, get_module_hashbang, property_access, property_name,
   reserved_names::RESERVED_NAMES_ATOM_SET, rspack_sources::ReplaceSource,
@@ -65,6 +66,12 @@ pub(crate) struct ExportsContext {
   exports: FxHashMap<Atom, FxIndexSet<Atom>>,
   exported_symbols: FxHashSet<Atom>,
   re_exports: FxIndexMap<ReExportFrom, FxHashMap<Atom, FxHashSet<Atom>>>,
+}
+
+struct DeconflictSymbolsContext<'a> {
+  runtime_module_used_names: &'a FxHashSet<Atom>,
+  escaped_names: &'a FxHashMap<Atom, Atom>,
+  escaped_identifiers: &'a FxHashMap<String, Vec<Atom>>,
 }
 
 enum ExternalImportBinding {
@@ -596,14 +603,20 @@ impl EsmLibraryPlugin {
       escaped_identifiers.insert(identifier, parts);
     }
 
+    let runtime_module_used_names = Self::collect_rspack_export_runtime_used_names(compilation);
+    let deconflict_context = DeconflictSymbolsContext {
+      runtime_module_used_names: &runtime_module_used_names,
+      escaped_names: &escaped_names,
+      escaped_identifiers: &escaped_identifiers,
+    };
+
     for chunk_link in link.values_mut() {
       self.deconflict_symbols(
         compilation,
         &mut concate_modules_map,
         &external_module_init_fragments,
         chunk_link,
-        &escaped_names,
-        &escaped_identifiers,
+        &deconflict_context,
       );
     }
 
@@ -949,20 +962,66 @@ var {} = {{}};
     }
   }
 
+  fn collect_rspack_export_runtime_used_names(compilation: &Compilation) -> FxHashSet<Atom> {
+    let mut used_names = FxHashSet::default();
+    let runtime_template = compilation
+      .runtime_template
+      .create_runtime_module_code_template();
+    if runtime_template.render_mode() != RuntimeGlobalsRenderMode::RspackExport {
+      return used_names;
+    }
+
+    used_names.extend(all_runtime_module_variables().map(Atom::from));
+
+    for (_, runtime_global) in RuntimeGlobals::all().iter_names() {
+      used_names.insert(
+        runtime_template
+          .render_runtime_globals(&runtime_global)
+          .into(),
+      );
+      if let Some(setter) = runtime_global.to_rspack_export_setter_name() {
+        used_names.insert(setter.into());
+      }
+    }
+
+    for runtime_variable in [
+      RuntimeVariable::Require,
+      RuntimeVariable::Context,
+      RuntimeVariable::Modules,
+      RuntimeVariable::ModuleCache,
+      RuntimeVariable::Module,
+      RuntimeVariable::Exports,
+      RuntimeVariable::StartupExec,
+    ] {
+      used_names.insert(
+        runtime_template
+          .render_runtime_variable(&runtime_variable)
+          .into(),
+      );
+    }
+
+    used_names
+  }
+
   fn deconflict_symbols(
     &self,
     compilation: &Compilation,
     concate_modules_map: &mut IdentifierIndexMap<ModuleInfo>,
     external_module_init_fragments: &IdentifierMap<ChunkInitFragments>,
     chunk_link: &mut ChunkLinkContext,
-    escaped_names: &FxHashMap<Atom, Atom>,
-    escaped_identifiers: &FxHashMap<String, Vec<Atom>>,
+    deconflict_context: &DeconflictSymbolsContext<'_>,
   ) {
     let context = &compilation.options.context;
+    let DeconflictSymbolsContext {
+      runtime_module_used_names,
+      escaped_names,
+      escaped_identifiers,
+    } = deconflict_context;
 
     let module_graph = compilation.get_module_graph();
 
     let mut all_used_names: FxHashSet<Atom> = RESERVED_NAMES_ATOM_SET.clone();
+    all_used_names.extend(runtime_module_used_names.iter().cloned());
     all_used_names.extend(chunk_link.hoisted_modules.iter().flat_map(|m| {
       let info = &concate_modules_map[m];
       info
@@ -2633,6 +2692,9 @@ var {} = {{}};
         let info = &concate_modules_map[m];
         let runtime_requirements = info.get_runtime_requirements();
         if !runtime_requirements.is_empty() && runtime_chunk != *chunk {
+          if compilation.runtime_template.render_mode() == RuntimeTemplateRenderMode::RspackExport {
+            continue;
+          }
           let runtime_template = compilation.runtime_template.create_chunk_code_template();
           let require_symbol: Atom = runtime_template.render_runtime_argument().into();
           if !runtime_chunks_exporting_require_via_runtime_module.contains(&runtime_chunk) {

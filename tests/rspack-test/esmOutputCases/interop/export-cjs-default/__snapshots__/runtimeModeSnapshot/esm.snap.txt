@@ -1,13 +1,12 @@
 ```mjs title=main.mjs
-import { __rspack_context } from "./runtime.mjs";
-
-__rspack_context.m.add({
+import { rspackRequire, moduleFactories, compatGetDefaultExport, nodeModuleDecorator } from "./runtime.mjs";
+moduleFactories.add({
 "./foo.cjs"
 /*!*****************!*\
   !*** ./foo.cjs ***!
   \*****************/
-(module, __unused_rspack_exports, __rspack_context) {
-/* module decorator */ module = __rspack_context.nmd(module);
+(module) {
+/* module decorator */ module = nodeModuleDecorator(module);
 function defExports(m) {
   m.exports = 42
 }
@@ -28,8 +27,8 @@ it('should have correct interop for cjs', async () => {
   const { value } = await import(/*webpackIgnore: true*/ './main.mjs')
   expect(value).toBe(42)
 })
-const foo = __rspack_context.r("./foo.cjs");
-var foo_default = /*#__PURE__*/__rspack_context.n(foo);
+const foo = rspackRequire("./foo.cjs");
+var foo_default = /*#__PURE__*/compatGetDefaultExport(foo);
 var foo_default_0 = foo_default();
 
 export { foo_default_0 as value };
@@ -38,32 +37,31 @@ export { foo_default_0 as value };
 
 ```mjs title=runtime.mjs
 
-var __rspack_modules = {};
+var modules = {};
 // The module cache
-var __rspack_module_cache = {};
+var moduleCache = {};
 // The require function
-function __rspack_require(moduleId) {
+function rspackRequire(moduleId) {
 // Check if module is in cache
-var cachedModule = __rspack_module_cache[moduleId];
+var cachedModule = moduleCache[moduleId];
 if (cachedModule !== undefined) {
 return cachedModule.exports;
 }
 // Create a new module (and put it into the cache)
-var module = (__rspack_module_cache[moduleId] = {
+var module = (moduleCache[moduleId] = {
 exports: {}
 });
 // Execute the module function
-__rspack_modules[moduleId](module, module.exports, __rspack_context);
+modules[moduleId](module, module.exports, rspackRequire);
 
 // Return the exports of the module
 return module.exports;
 }
-var __rspack_context = {};
-__rspack_context.r = __rspack_require;
-// expose the modules object (__rspack_modules)
-__rspack_context.m = __rspack_modules;
+export { rspackRequire };
+// expose the modules object (modules)
+var moduleFactories = modules;
+export { moduleFactories };
 
-var moduleFactories=__rspack_modules;
 // rspack/runtime/compat_get_default_export
 // getDefaultExport function for compatibility with non-ESM modules
 var compatGetDefaultExport = (module) => {
@@ -74,7 +72,7 @@ var compatGetDefaultExport = (module) => {
 	return getter;
 };
 ;
-__rspack_context.n = compatGetDefaultExport;
+export { compatGetDefaultExport };
 // rspack/runtime/define_property_getters
 var definePropertyGetters = (exports, getters, values) => {
 	var define = (defs, kind) => {
@@ -98,8 +96,7 @@ var nodeModuleDecorator = (module) => {
   if (!module.children) module.children = [];
   return module;
 };;
-__rspack_context.nmd = nodeModuleDecorator;
+export { nodeModuleDecorator };
 
-export { __rspack_context };
 
 ```
