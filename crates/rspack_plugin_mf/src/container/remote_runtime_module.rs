@@ -37,6 +37,10 @@ impl RemoteRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for RemoteRuntimeModule {
+  fn runtime_module_variables() -> &'static [&'static str] {
+    &[]
+  }
+
   fn runtime_requirements(
     &self,
     compilation: &Compilation,
