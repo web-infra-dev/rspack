@@ -1,5 +1,5 @@
 mod parser;
-mod utils;
+pub(crate) mod utils;
 mod walk_data;
 
 use std::sync::Arc;
@@ -11,13 +11,13 @@ use rspack_core::{
 };
 use rspack_error::{Diagnostic, Error, Result};
 use rspack_hook::{plugin, plugin_hook};
-use rustc_hash::FxHashMap;
+use rspack_util::fx_hash::FxHashMap;
 use serde_json::Value;
 
 use self::walk_data::WalkData;
-use crate::parser_and_generator::JavaScriptParserAndGenerator;
+use crate::{parser_and_generator::JavaScriptParserAndGenerator, plugin::EnvPlugin};
 
-const VALUE_DEP_PREFIX: &str = "rspack/DefinePlugin ";
+pub(crate) const VALUE_DEP_PREFIX: &str = "rspack/DefinePlugin ";
 
 #[derive(Debug)]
 struct ConflictingValuesError(String, String, String);
@@ -53,6 +53,12 @@ async fn compilation(
   _params: &mut CompilationParams,
 ) -> Result<()> {
   compilation.extend_diagnostics(self.walk_data.diagnostics.clone());
+  if compilation.options.experiments.env {
+    EnvPlugin::collect(
+      compilation.id(),
+      &self.walk_data.import_meta_env_definitions,
+    );
+  }
   for (key, value) in self.walk_data.tiling_definitions.iter() {
     let cache_key = format!("{VALUE_DEP_PREFIX}{key}");
     if let Some(prev) = compilation.value_cache_versions.get(&cache_key)

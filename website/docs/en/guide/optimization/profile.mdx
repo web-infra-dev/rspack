@@ -60,6 +60,10 @@ If you need to use some Babel plugins for custom transformations, configure babe
 
 [html-webpack-plugin](https://github.com/jantimon/html-webpack-plugin) performs poorly when generating large numbers of HTML files. The [HtmlRspackPlugin](/plugins/rspack/html-rspack-plugin) implemented in Rust by Rspack can provide better performance.
 
+### ts-checker-rspack-plugin
+
+When using [ts-checker-rspack-plugin](https://github.com/rspack-contrib/ts-checker-rspack-plugin), TypeScript 7 or later is recommended to enable the native type checker and improve type-checking performance on large projects. See the [plugin README](https://github.com/rspack-contrib/ts-checker-rspack-plugin#typescript-7-support) for details.
+
 ## Blocking thread pool size
 
 Rspack internally uses a dedicated thread pool to handle blocking operations such as file system reads and writes, preventing the main thread from being blocked.
