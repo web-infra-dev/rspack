@@ -121,6 +121,14 @@ pub static URL_STATIC_PLACEHOLDER: &str = "RSPACK_AUTO_URL_STATIC_PLACEHOLDER_";
 pub static URL_STATIC_PLACEHOLDER_RE: LazyLock<Regex> = LazyLock::new(|| {
   Regex::new(&format!(r#"{URL_STATIC_PLACEHOLDER}(?<dep>\d+)"#)).expect("should be valid regex")
 });
+pub static URL_STATIC_EXPRESSION_START: &str = "RSPACK_AUTO_URL_STATIC_EXPRESSION_";
+pub static URL_STATIC_EXPRESSION_END: &str = "RSPACK_AUTO_URL_STATIC_EXPRESSION_END";
+pub static URL_STATIC_EXPRESSION_RE: LazyLock<Regex> = LazyLock::new(|| {
+  Regex::new(&format!(
+    r#"(?s)/\* {URL_STATIC_EXPRESSION_START}(?<dep>\d+) \*/.*?/\* {URL_STATIC_EXPRESSION_END} \*/"#
+  ))
+  .expect("should be valid regex")
+});
 
 impl URLDependencyTemplate {
   pub fn template_type() -> DependencyTemplateType {
@@ -179,25 +187,21 @@ impl DependencyTemplate for URLDependencyTemplate {
 
     code_generatable_context.data.insert(URLStaticMode);
     let output_value_placeholder = format!("{URL_STATIC_PLACEHOLDER}{}", &dep.id.as_u32());
-    // executeModule runs generated code before chunk rendering has replaced the static URL
-    // placeholder. Keep the legacy module export as a fallback for that phase.
-    let output_value = format!(
-      "(typeof ({0}) !== \"undefined\" ? ({0}) : {1}({2}))",
-      output_value_placeholder,
-      runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
-      runtime_template.module_id(compilation, &dep.id, &dep.request, false),
-    );
 
     match dep.mode {
       Some(JavascriptParserUrl::Relative) => {
+        runtime_template
+          .runtime_requirements_mut()
+          .insert(RuntimeGlobals::PUBLIC_PATH);
         source.replace(
           dep.range.start,
           dep.range.end,
           format!(
-            "/* entry url */ new {}((function(p) {{ return {}; }}({})))",
+            "/* asset import */ new {}(/* {URL_STATIC_EXPRESSION_START}{} */{}({})/* {URL_STATIC_EXPRESSION_END} */)",
             runtime_template.render_runtime_globals(&RuntimeGlobals::RELATIVE_URL),
-            output_value,
-            runtime_template.render_runtime_globals(&RuntimeGlobals::PUBLIC_PATH),
+            dep.id.as_u32(),
+            runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
+            runtime_template.module_id(compilation, &dep.id, &dep.request, false),
           ),
           None,
         );
@@ -206,18 +210,22 @@ impl DependencyTemplate for URLDependencyTemplate {
         source.replace(
           dep.range.start,
           dep.range.end,
-          format!("new URL({output_value}, import.meta.url)"),
+          format!("new URL(\"{output_value_placeholder}\", import.meta.url)"),
           None,
         );
       }
       _ => {
+        runtime_template
+          .runtime_requirements_mut()
+          .insert(RuntimeGlobals::PUBLIC_PATH);
         source.replace(
           dep.range_url.start,
           dep.range_url.end,
           format!(
-            "/* entry url */ (function(p) {{ return {}; }}({})), {}",
-            output_value,
-            runtime_template.render_runtime_globals(&RuntimeGlobals::PUBLIC_PATH),
+            "/* asset import *//* {URL_STATIC_EXPRESSION_START}{} */{}({})/* {URL_STATIC_EXPRESSION_END} */, {}",
+            dep.id.as_u32(),
+            runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
+            runtime_template.module_id(compilation, &dep.id, &dep.request, false),
             runtime_template.render_runtime_globals(&RuntimeGlobals::BASE_URI)
           ),
           None,
