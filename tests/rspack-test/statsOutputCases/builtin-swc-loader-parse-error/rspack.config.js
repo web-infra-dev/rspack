@@ -8,7 +8,7 @@ module.exports = {
   module: {
     rules: [
       {
-        test: /\.ts$/,
+        test: /\.jsx$/,
         loader: 'builtin:swc-loader',
         options: {
           detectSyntax: 'auto',

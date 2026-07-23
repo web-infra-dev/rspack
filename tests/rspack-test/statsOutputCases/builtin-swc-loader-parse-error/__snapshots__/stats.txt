@@ -1,12 +1,12 @@
-ERROR in ./index.ts
+ERROR in ./index.jsx
   × Module build failed (from builtin:swc-loader):
-  ├─▶   ×   x Expected '{', got 'ident'
-  │     │    ,-[<TEST_ROOT>/statsOutputCases/builtin-swc-loader-parse-error/index.ts<LINE_COL>]
-  │     │  1 | export error;
-  │     │    :        ^^^^^
-  │     │    `----
-  │     │
-  │   
-  ╰─▶   × Syntax Error
+  ╰─▶   × Expected '>', got ','
+         ╭─[4:20]
+       2 │   <React.StrictMode>
+       3 │     <App />
+       4 │   </React.StrictMode,
+         ·                     ─
+       5 │ );
+         ╰────
 
 Rspack compiled with 1 error

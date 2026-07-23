@@ -56,6 +56,7 @@ use super::{
   minify::minify_file_comments,
   stringify::{PrintOptions, SourceMapConfig},
 };
+use crate::error::swc_diagnostics_to_rspack_error;
 
 impl JavaScriptCompiler {
   /// Transforms the given JavaScript source code according to the provided options and source map kind.
@@ -195,7 +196,10 @@ impl JavaScriptCompiler {
 
         Ok(program)
       })
-      .map_err(|error| error.to_pretty_error())?;
+      .map_err(|error| {
+        swc_diagnostics_to_rspack_error(error.diagnostics(), &self.cm)
+          .unwrap_or_else(|| error.to_pretty_error().into())
+      })?;
       program.visit_mut_with(&mut resolver(
         unresolved_mark,
         top_level_mark,
@@ -427,7 +431,10 @@ impl<'a> JavaScriptTransformer<'a> {
           before_pass,
         )
       })
-      .map_err(|e| e.to_pretty_error().into())
+      .map_err(|error| {
+        swc_diagnostics_to_rspack_error(error.diagnostics(), &self.cm)
+          .unwrap_or_else(|| error.to_pretty_error().into())
+      })
     })
   }
 
@@ -471,20 +478,20 @@ impl<'a> JavaScriptTransformer<'a> {
             None => false,
           }) {
             // swc errors includes plugin error;
-            let error_msg = err.to_pretty_string();
             let swc_core_version = rspack_workspace::rspack_swc_core_version!();
-            // FIXME: with_help has bugs, use with_help when diagnostic print is fixed
             let help_msg = formatdoc!{"
               The version of the SWC Wasm plugin you're using might not be compatible with `builtin:swc-loader`.
               The `swc_core` version of the current `rspack_core` is {swc_core_version}. 
               Please check the `swc_core` version of SWC Wasm plugin to make sure these versions are within the compatible range.
               See this guide as a reference for selecting SWC Wasm plugin versions: https://rspack.rs/errors/swc-plugin-version"};
-            let mut error = rspack_error::error!(format!("{error_msg}{help_msg}"));
+            let mut error = swc_diagnostics_to_rspack_error(err.diagnostics(), &self.cm)
+              .unwrap_or_else(|| rspack_error::error!(err.to_pretty_string()));
+            error.help = Some(help_msg);
             error.code = Some(SWC_MIETTE_DIAGNOSTIC_CODE.into());
             error
           } else {
-            let error_msg = err.to_pretty_string();
-            let mut error = rspack_error::error!(error_msg);
+            let mut error = swc_diagnostics_to_rspack_error(err.diagnostics(), &self.cm)
+              .unwrap_or_else(|| rspack_error::error!(err.to_pretty_string()));
             error.code = Some(SWC_MIETTE_DIAGNOSTIC_CODE.into());
             error
           }
