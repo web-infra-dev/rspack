@@ -1957,8 +1957,6 @@ export interface RawCollectShareEntryPluginOptions {
 }
 
 export interface RawCompactModuleIdsPluginOptions {
-  context?: string
-  test?: (module: Module) => boolean
   minLength?: number
 }
 
