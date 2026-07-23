@@ -218,16 +218,13 @@ function replaceDtsPlugin(): RsbuildPlugin {
           const dts = (await fs.readFile(filePath)).toString();
           let relativeBindingDts = path.relative(
             path.dirname(filePath),
-            path.join(distDir, 'binding'),
+            path.join(distDir, 'binding.js'),
           );
 
           // Ensure relative path starts with "./"
           if (!relativeBindingDts.startsWith('../')) {
             relativeBindingDts = `./${relativeBindingDts}`;
           }
-
-          // `@rspack/binding` -> `../binding.js`
-          relativeBindingDts = `${relativeBindingDts}.js`;
 
           // There are three cases that @rspack/binding may be used
           // 1. import("@rspack/binding").XXX
