@@ -26,6 +26,10 @@ impl FederationDataRuntimeModule {
 }
 #[async_trait]
 impl RuntimeModule for FederationDataRuntimeModule {
+  fn runtime_module_variables() -> &'static [&'static str] {
+    &[]
+  }
+
   fn stage(&self) -> RuntimeModuleStage {
     RuntimeModuleStage::Normal
   }
