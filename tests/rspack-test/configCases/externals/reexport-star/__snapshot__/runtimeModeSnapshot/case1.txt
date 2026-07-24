@@ -2,14 +2,14 @@ import { rspackRequire, moduleFactories, definePropertyGetters, makeNamespaceObj
 import * as __rspack_external_external1_alias_dd38afe7 from "external1-alias";
 import * as __rspack_external_external2_alias_d6100a5a from "external2-alias";
 moduleFactories.add({
-"Bmc"(__unused_rspack_module, exports, rspackRequire) {
+42(__unused_rspack_module, exports, rspackRequire) {
 makeNamespaceObject(exports);
-/* import */ var external1__rspack_import_0 = rspackRequire("Pt4");
+/* import */ var external1__rspack_import_0 = rspackRequire(322);
 
 /* reexport */ var __rspack_reexport = {};
 /* reexport */ for( const __rspack_import_key in external1__rspack_import_0) if(__rspack_import_key !== "default") __rspack_reexport[__rspack_import_key] =() => external1__rspack_import_0[__rspack_import_key]
 /* reexport */ definePropertyGetters(exports, __rspack_reexport);
-/* import */ var external2__rspack_import_1 = rspackRequire("W3F");
+/* import */ var external2__rspack_import_1 = rspackRequire(101);
 
 /* reexport */ var __rspack_reexport = {};
 /* reexport */ for( const __rspack_import_key in external2__rspack_import_1) if(__rspack_import_key !== "default") __rspack_reexport[__rspack_import_key] =() => external2__rspack_import_1[__rspack_import_key]
@@ -19,20 +19,20 @@ makeNamespaceObject(exports);
 
 
 },
-"Pt4"(module) {
+322(module) {
 
 module.exports = __rspack_external_external1_alias_dd38afe7;
 
 
 },
-"W3F"(module) {
+101(module) {
 
 module.exports = __rspack_external_external2_alias_d6100a5a;
 
 
 },
 });
-rspackRequire("Bmc");
+rspackRequire("42");
 
 export * from "external1-alias";
 export * from "external2-alias";

@@ -11,18 +11,18 @@ it('should merge module ids with existing records', () => {
     fs.readFileSync(path.join(__dirname, 'merge-module-ids.json'), 'utf-8'),
   );
 
-  expect(typeof ids['./a.js']).toBe('string');
-  expect(typeof ids['./b.js']).toBe('string');
-  expect(typeof ids['./c.js']).toBe('string');
-  expect(typeof ids['./merge.js']).toBe('string');
-  expect(typeof ids['./seed.js']).toBe('string');
+  expect(typeof ids['./a.js']).toBe('number');
+  expect(typeof ids['./b.js']).toBe('number');
+  expect(typeof ids['./c.js']).toBe('number');
+  expect(typeof ids['./merge.js']).toBe('number');
+  expect(typeof ids['./seed.js']).toBe('number');
 
   const source = fs.readFileSync(
     path.join(__dirname, `bundle${__STATS_I__}.js`),
     'utf-8',
   );
 
-  expect(source).toContain(`${JSON.stringify(ids['./a.js'])}(module)`);
-  expect(source).toContain(`${JSON.stringify(ids['./b.js'])}(module)`);
-  expect(source).toContain(`${JSON.stringify(ids['./c.js'])}(module)`);
+  expect(source).toContain(`${ids['./a.js']}(module)`);
+  expect(source).toContain(`${ids['./b.js']}(module)`);
+  expect(source).toContain(`${ids['./c.js']}(module)`);
 });

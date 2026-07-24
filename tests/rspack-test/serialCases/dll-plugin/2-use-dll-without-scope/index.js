@@ -34,7 +34,7 @@ it("should load an ES module from dll (star export)", function () {
 });
 
 it("should load a module with loader applied", function () {
-	expect(require("../0-create-dll/g.abc.js")).toBe("string");
+	expect(require("../0-create-dll/g.abc.js")).toBe("number");
 });
 
 it("should give modules the correct ids", function () {

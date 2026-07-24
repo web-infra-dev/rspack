@@ -49,7 +49,7 @@ module.exports = {
 			      isOverSizeLimit: false,
 			      name: main.js,
 			      related: Array [],
-			      size: 197,
+			      size: 195,
 			      type: asset,
 			    },
 			  ],
@@ -69,7 +69,7 @@ module.exports = {
 			        main.js,
 			      ],
 			      filteredModules: undefined,
-			      hash: 8d2da77dbd0b2163,
+			      hash: b5cd62d7f1e244c4,
 			      id: 889,
 			      idHints: Array [],
 			      initial: true,
@@ -89,7 +89,7 @@ module.exports = {
 			          errors: 0,
 			          failed: false,
 			          filteredReasons: undefined,
-			          id: rAN,
+			          id: 195,
 			          identifier: <TEST_ROOT>/fixtures/a.js,
 			          index: 0,
 			          index2: 0,
@@ -124,11 +124,11 @@ module.exports = {
 			              active: true,
 			              explanation: undefined,
 			              loc: undefined,
-			              moduleId: rAN,
+			              moduleId: 195,
 			              moduleIdentifier: <TEST_ROOT>/fixtures/a.js,
 			              moduleName: ./fixtures/a.js,
 			              resolvedModule: ./fixtures/a.js,
-			              resolvedModuleId: rAN,
+			              resolvedModuleId: 195,
 			              resolvedModuleIdentifier: <TEST_ROOT>/fixtures/a.js,
 			              type: cjs self exports reference,
 			              userRequest: self,
@@ -178,10 +178,10 @@ module.exports = {
 			      assets: Array [
 			        Object {
 			          name: main.js,
-			          size: 197,
+			          size: 195,
 			        },
 			      ],
-			      assetsSize: 197,
+			      assetsSize: 195,
 			      auxiliaryAssets: Array [],
 			      auxiliaryAssetsSize: 0,
 			      childAssets: Object {},
@@ -199,7 +199,7 @@ module.exports = {
 			  errorsCount: 0,
 			  filteredAssets: undefined,
 			  filteredModules: undefined,
-			  hash: 5136a91a0406f59d,
+			  hash: f36e50fd765d4017,
 			  modules: Array [
 			    Object {
 			      assets: Array [],
@@ -216,7 +216,7 @@ module.exports = {
 			      errors: 0,
 			      failed: false,
 			      filteredReasons: undefined,
-			      id: rAN,
+			      id: 195,
 			      identifier: <TEST_ROOT>/fixtures/a.js,
 			      index: 0,
 			      index2: 0,
@@ -251,11 +251,11 @@ module.exports = {
 			          active: true,
 			          explanation: undefined,
 			          loc: undefined,
-			          moduleId: rAN,
+			          moduleId: 195,
 			          moduleIdentifier: <TEST_ROOT>/fixtures/a.js,
 			          moduleName: ./fixtures/a.js,
 			          resolvedModule: ./fixtures/a.js,
-			          resolvedModuleId: rAN,
+			          resolvedModuleId: 195,
 			          resolvedModuleIdentifier: <TEST_ROOT>/fixtures/a.js,
 			          type: cjs self exports reference,
 			          userRequest: self,
@@ -278,10 +278,10 @@ module.exports = {
 			      assets: Array [
 			        Object {
 			          name: main.js,
-			          size: 197,
+			          size: 195,
 			        },
 			      ],
-			      assetsSize: 197,
+			      assetsSize: 195,
 			      auxiliaryAssets: Array [],
 			      auxiliaryAssetsSize: 0,
 			      childAssets: Object {},
@@ -302,24 +302,24 @@ module.exports = {
 		`);
 		expect(stats?.toString(statsOptions)).toMatchInlineSnapshot(`
 			PublicPath: auto
-			asset main.js 197 bytes {889} [emitted] (name: main)
-			Entrypoint main 197 bytes = main.js
+			asset main.js 195 bytes {889} [emitted] (name: main)
+			Entrypoint main 195 bytes = main.js
 			chunk {889} (runtime: main) main.js (main) 55 bytes [entry] [rendered]
 			  > ./fixtures/a main
-			  ./fixtures/a.js [rAN] 55 bytes {889} [depth 0] [built] [code generated]
+			  ./fixtures/a.js [195] 55 bytes {889} [depth 0] [built] [code generated]
 			    [used exports unknown]
 			    Statement with side_effects in source code at ./fixtures/a.js<LINE_COL_RANGE>
 			    ModuleConcatenation bailout: Module is not an ECMAScript module
 			    entry ./fixtures/a
-			    cjs self exports reference self [rAN] ./fixtures/a.js
-			./fixtures/a.js [rAN] 55 bytes {889} [depth 0] [built] [code generated]
+			    cjs self exports reference self [195] ./fixtures/a.js
+			./fixtures/a.js [195] 55 bytes {889} [depth 0] [built] [code generated]
 			  [used exports unknown]
 			  Statement with side_effects in source code at ./fixtures/a.js<LINE_COL_RANGE>
 			  ModuleConcatenation bailout: Module is not an ECMAScript module
 			  entry ./fixtures/a
-			  cjs self exports reference self [rAN] ./fixtures/a.js
+			  cjs self exports reference self [195] ./fixtures/a.js
 			  
-			Rspack compiled successfully (5136a91a0406f59d)
+			Rspack compiled successfully (f36e50fd765d4017)
 		`);
 	}
 };

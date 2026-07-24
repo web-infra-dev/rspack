@@ -1,8 +1,8 @@
-```js title=main.c81fc52b03766ea7.js
+```js title=main.415fc23ec3091317.js
 // UPDATED
 (() => {
 var __webpack_modules__ = ({
-"hri"(module) {
+402(module) {
 module.exports = "This is hook"
 
 
@@ -35,7 +35,7 @@ return module.exports;
 // startup
 // Load entry module and return exports
 // This entry module is referenced by other modules so it can't be inlined
-var __webpack_exports__ = __webpack_require__("hri");
+var __webpack_exports__ = __webpack_require__(402);
 })()
 ;
 ```

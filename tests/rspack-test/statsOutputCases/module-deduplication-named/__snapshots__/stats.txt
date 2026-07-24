@@ -1,9 +1,9 @@
-asset e1.js xx KiB [emitted] (name: e1)
 asset e3.js xx KiB [emitted] (name: e3)
+asset e1.js xx KiB [emitted] (name: e1)
 asset e2.js xx KiB [emitted] (name: e2)
+asset async2.js xx bytes [emitted] (name: async2)
 asset async3.js xx bytes [emitted] (name: async3)
 asset async1.js xx bytes [emitted] (name: async1)
-asset async2.js xx bytes [emitted] (name: async2)
 chunk (runtime: e1) e1.js (e1) xx bytes (javascript) xx KiB (runtime) [entry] [rendered]
   ./e1.js xx bytes [built] [code generated]
 chunk (runtime: e2) e2.js (e2) xx bytes (javascript) xx KiB (runtime) [entry] [rendered]
