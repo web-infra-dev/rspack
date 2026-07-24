@@ -27,7 +27,7 @@
     "@napi-rs/cli": "3.7.4",
     "@napi-rs/wasm-runtime": "1.1.6",
     "emnapi": "1.11.2",
-    "typescript": "^6.0.3"
+    "typescript": "catalog:"
   },
   "napi": {
     "binaryName": "rspack",

@@ -28,7 +28,7 @@
   },
   "devDependencies": {
     "@rslib/core": "1.0.0-beta.1",
-    "typescript": "^6.0.3"
+    "typescript": "catalog:"
   },
   "publishConfig": {
     "access": "public",

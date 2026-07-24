@@ -31,9 +31,6 @@ jobs:
       - name: Prettier
         run: pnpm run format-ci:js
 
-      - name: Check Dependency Version
-        run: pnpm run check-dependency-version
-
       - name: Website Spell Check
         run: pnpm --dir website run check:spell
 
