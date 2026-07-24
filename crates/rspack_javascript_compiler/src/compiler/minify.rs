@@ -41,28 +41,74 @@ use super::{
 };
 use crate::error::with_rspack_error_handler;
 
-const MIN_DEDUPLICATED_STRING_SIZE: usize = 10_000;
+const MIN_DEDUPLICATED_STRING_SIZE: usize = 32;
+// Keep the previous behavior for very large strings. Shorter strings are only
+// extracted when they are not local repetitions that transfer compression can
+// already encode cheaply.
+const ALWAYS_DEDUPLICATED_STRING_SIZE: usize = 10_000;
+const MIN_STRING_BYTES_BETWEEN_OCCURRENCES: usize = 4 * 1024;
+
+fn compact_string_binding_name(index: usize) -> Atom {
+  if index == 0 {
+    "$".into()
+  } else {
+    format!("${}", index - 1).into()
+  }
+}
+
+fn is_string_deduplication_size_positive(
+  string_size: usize,
+  count: usize,
+  ident_size: usize,
+) -> bool {
+  // `const <ident>=<string>` plus the identifier at every replacement.
+  // Account for the declaration separators and the block used to isolate the
+  // generated bindings. This intentionally underestimates the literal's
+  // printed size, so escaping can only make the transformation more useful.
+  let removed_literal_bytes = count.saturating_sub(1).saturating_mul(string_size + 2);
+  let added_bytes = count
+    .saturating_mul(ident_size)
+    .saturating_add(ident_size)
+    .saturating_add(10);
+  removed_literal_bytes > added_bytes
+}
 
 #[derive(Default)]
 struct LargeStringCollector {
   counts: FxHashMap<swc_core::atoms::Wtf8Atom, usize>,
+  string_byte_offsets: FxHashMap<swc_core::atoms::Wtf8Atom, (usize, usize)>,
   strings: Vec<Str>,
   used_symbols: FxHashSet<Atom>,
   has_direct_eval: bool,
+  string_bytes_seen: usize,
 }
 
 impl Visit for LargeStringCollector {
   noop_visit_type!();
 
   fn visit_expr(&mut self, expr: &Expr) {
-    if let Expr::Lit(Lit::Str(string)) = expr
-      && string.value.as_bytes().len() >= MIN_DEDUPLICATED_STRING_SIZE
-    {
-      let count = self.counts.entry(string.value.clone()).or_default();
-      if *count == 0 {
-        self.strings.push(string.clone());
+    if let Expr::Lit(Lit::Str(string)) = expr {
+      let string_size = string.value.as_bytes().len();
+      let position = self.string_bytes_seen;
+      self.string_bytes_seen = self
+        .string_bytes_seen
+        .saturating_add(string_size)
+        .saturating_add(2);
+      if string_size >= MIN_DEDUPLICATED_STRING_SIZE {
+        let count = self.counts.entry(string.value.clone()).or_default();
+        if *count == 0 {
+          self.strings.push(string.clone());
+        }
+        *count += 1;
+        self
+          .string_byte_offsets
+          .entry(string.value.clone())
+          .and_modify(|(first, last)| {
+            *first = (*first).min(position);
+            *last = (*last).max(position);
+          })
+          .or_insert((position, position));
       }
-      *count += 1;
     }
     expr.visit_children_with(self);
   }
@@ -121,17 +167,35 @@ fn deduplicate_large_strings_in_statement(statement: &mut Stmt) {
   let mut replacement_index = 0;
   let mut replacements = Vec::new();
   for string in collector.strings {
-    if collector.counts.get(&string.value).copied().unwrap_or(0) < 2 {
+    let count = collector.counts.get(&string.value).copied().unwrap_or(0);
+    if count < 2 {
+      continue;
+    }
+    // Count only string literal bytes between occurrences. This is independent
+    // of input formatting and is a conservative proxy for their output
+    // distance because all non-string syntax is omitted from the count.
+    let (first_position, last_position) = collector
+      .string_byte_offsets
+      .get(&string.value)
+      .copied()
+      .unwrap_or_default();
+    if string.value.as_bytes().len() < ALWAYS_DEDUPLICATED_STRING_SIZE
+      && last_position.saturating_sub(first_position) <= MIN_STRING_BYTES_BETWEEN_OCCURRENCES
+    {
       continue;
     }
 
     let ident = loop {
-      let symbol = Atom::from(format!("__rspack_string_{replacement_index}"));
+      let symbol = compact_string_binding_name(replacement_index);
       replacement_index += 1;
       if !collector.used_symbols.contains(&symbol) {
         break Ident::new(symbol, DUMMY_SP, SyntaxContext::empty());
       }
     };
+    if !is_string_deduplication_size_positive(string.value.as_bytes().len(), count, ident.sym.len())
+    {
+      continue;
+    }
     replacements.push((string, ident));
   }
 
@@ -492,14 +556,26 @@ mod tests {
   }
 
   #[test]
-  fn deduplicates_large_strings_in_one_top_level_expression() {
+  fn deduplicates_distant_strings_in_one_top_level_expression() {
+    let large_string = "x".repeat(MIN_DEDUPLICATED_STRING_SIZE);
+    let filler = "y".repeat(MIN_STRING_BYTES_BETWEEN_OCCURRENCES + 1);
+    let output = minify_without_compression(format!(
+      "globalThis.values = [{large_string:?}, {filler:?}, {large_string:?}]"
+    ));
+
+    assert_eq!(output.matches(&large_string).count(), 1);
+    assert!(output.contains("const $="));
+  }
+
+  #[test]
+  fn preserves_nearby_short_strings() {
     let large_string = "x".repeat(MIN_DEDUPLICATED_STRING_SIZE);
     let output = minify_without_compression(format!(
       "globalThis.values = [{large_string:?}, {large_string:?}]"
     ));
 
-    assert_eq!(output.matches(&large_string).count(), 1);
-    assert!(output.contains("const __rspack_string_0="));
+    assert_eq!(output.matches(&large_string).count(), 2);
+    assert!(!output.contains("const $="));
   }
 
   #[test]
@@ -510,18 +586,19 @@ mod tests {
     ));
 
     assert_eq!(output.matches(&large_string).count(), 2);
-    assert!(!output.contains("__rspack_string_"));
+    assert!(!output.contains("const $="));
   }
 
   #[test]
   fn skips_statements_containing_direct_eval() {
     let large_string = "x".repeat(MIN_DEDUPLICATED_STRING_SIZE);
+    let filler = "y".repeat(MIN_STRING_BYTES_BETWEEN_OCCURRENCES + 1);
     let output = minify_without_compression(format!(
-      "globalThis.values = [eval('0'), {large_string:?}, {large_string:?}]"
+      "globalThis.values = [eval('0'), {large_string:?}, {filler:?}, {large_string:?}]"
     ));
 
     assert_eq!(output.matches(&large_string).count(), 2);
-    assert!(!output.contains("__rspack_string_"));
+    assert!(!output.contains("const $="));
   }
 }
 
