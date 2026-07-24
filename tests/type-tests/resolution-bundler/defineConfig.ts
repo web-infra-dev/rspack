@@ -44,8 +44,8 @@ defineConfig(async () => [
   },
 ]);
 
+// @ts-expect-error invalid mode
 defineConfig({
-  // @ts-expect-error invalid mode
   mode: 'invalid',
 });
 
