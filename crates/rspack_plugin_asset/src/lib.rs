@@ -8,10 +8,10 @@ use rspack_core::{
   AssetInfo, AssetParserDataUrl, BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph,
   ChunkUkey, CodeGenerationDataAssetInfo, CodeGenerationDataFilename, CodeGenerationDataUrl,
   CodeGenerationPublicPathAutoReplace, Compilation, CompilationRenderManifest, CompilerOptions,
-  DependencyType, Filename, GenerateContext, GeneratorOptions, ManifestAssetType, Module,
-  ModuleArgument, ModuleGraph, NAMESPACE_OBJECT_EXPORT, NormalModule, ParseContext,
-  ParserAndGenerator, ParserOptions, PathData, Plugin, PublicPath, RenderManifestEntry,
-  ResourceData, RuntimeGlobals, RuntimeSpec, SourceType,
+  DependencyType, Filename, GenerateContext, GeneratorOptions, JavascriptParserUrl,
+  ManifestAssetType, Module, ModuleArgument, ModuleGraph, NAMESPACE_OBJECT_EXPORT, NormalModule,
+  ParseContext, ParserAndGenerator, ParserOptions, PathData, Plugin, PublicPath,
+  RenderManifestEntry, ResourceData, RuntimeGlobals, RuntimeSpec, SourceType,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
 };
 use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, error};
@@ -328,8 +328,28 @@ const DEFAULT_MAX_SIZE: f64 = 8096.0;
 #[async_trait::async_trait]
 impl ParserAndGenerator for AssetParserAndGenerator {
   fn source_types(&self, module: &dyn Module, module_graph: &ModuleGraph) -> &[SourceType] {
-    let mut source_types = FxHashSet::default();
     let module_id = module.identifier();
+    if self.emit
+      && module
+        .build_info()
+        .asset
+        .as_ref()
+        .is_some_and(|x| x.data_url.is_resource())
+      && module_graph
+        .get_incoming_connections(&module_id)
+        .all(|connection| {
+          let dependency = module_graph.dependency_by_id(&connection.dependency_id);
+          matches!(dependency.dependency_type(), DependencyType::NewUrl)
+            && matches!(
+              dependency.url_mode(),
+              Some(JavascriptParserUrl::NewUrlRelative)
+            )
+        })
+    {
+      return ASSET_TYPES;
+    }
+
+    let mut source_types = FxHashSet::default();
     for connection in module_graph.get_incoming_connections(&module_id) {
       if let Some(module) = connection
         .original_module_identifier

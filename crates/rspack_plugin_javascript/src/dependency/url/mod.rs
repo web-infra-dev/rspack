@@ -68,6 +68,10 @@ impl Dependency for URLDependency {
     &DependencyType::NewUrl
   }
 
+  fn url_mode(&self) -> Option<JavascriptParserUrl> {
+    self.mode
+  }
+
   fn range(&self) -> Option<DependencyRange> {
     Some(self.range)
   }

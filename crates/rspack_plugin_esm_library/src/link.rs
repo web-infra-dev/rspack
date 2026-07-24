@@ -1676,6 +1676,7 @@ var {} = {{}};
     let require_info: &mut ExternalInterop = required.entry(m).or_insert(ExternalInterop {
       module: m,
       from_module: Default::default(),
+      set_entry_module_id: false,
       required_symbol: None,
       default_access: None,
       default_exported: None,
@@ -2406,6 +2407,71 @@ var {} = {{}};
           false,
           &mut re_export_star_cache,
         ));
+      }
+    }
+
+    // Async entrypoints such as workers don't expose library exports, but their
+    // entry modules still need to execute when the entry chunk is loaded. The
+    // normal startup runtime is disabled for ESM library output, so explicitly
+    // execute entry modules that couldn't be scope hoisted.
+    for entrypoint_ukey in &compilation.build_chunk_graph_artifact.async_entrypoints {
+      let entrypoint = compilation
+        .build_chunk_graph_artifact
+        .chunk_group_by_ukey
+        .expect_get(entrypoint_ukey);
+      let entry_chunk_ukey = entrypoint.get_entrypoint_chunk();
+      let entry_imports = imports
+        .get_mut(&entry_chunk_ukey)
+        .unwrap_or_else(|| panic!("should set imports for chunk {entry_chunk_ukey:?}"));
+
+      for chunk_ukey in &entrypoint.chunks {
+        for (entry_module, module_entrypoint_ukey) in compilation
+          .build_chunk_graph_artifact
+          .chunk_graph
+          .get_chunk_entry_modules_with_chunk_group_iterable(chunk_ukey)
+        {
+          if module_entrypoint_ukey != entrypoint_ukey {
+            continue;
+          }
+
+          let code_generation_result = compilation.code_generation_results.get_one(entry_module);
+          if code_generation_result
+            .get(&SourceType::JavaScript)
+            .is_none()
+          {
+            continue;
+          }
+
+          // Rslib removes entry hashbangs and directives from the module source
+          // during parsing, so restore them at the top of the async entry chunk.
+          let hashbang = get_module_hashbang(module_graph, entry_module);
+          let directives = get_module_directives(module_graph, entry_module);
+
+          if let Some(hashbang) = &hashbang {
+            let entry_chunk_link = link.get_mut_unwrap(&entry_chunk_ukey);
+            entry_chunk_link.hashbang = Some(format!("{hashbang}\n"));
+          }
+
+          if let Some(directives) = directives {
+            let entry_chunk_link = link.get_mut_unwrap(&entry_chunk_ukey);
+            entry_chunk_link.directives = directives;
+          }
+
+          entry_imports.entry(*entry_module).or_default();
+
+          if concate_modules_map[entry_module].is_external() {
+            let require_info = Self::add_require(
+              *entry_module,
+              None,
+              None,
+              &mut FxHashSet::default(),
+              required.entry(*chunk_ukey).or_default(),
+            );
+            require_info.set_entry_module_id |= code_generation_result
+              .runtime_requirements
+              .contains(RuntimeGlobals::ENTRY_MODULE_ID);
+          }
+        }
       }
     }
 

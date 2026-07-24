@@ -7,13 +7,20 @@ use rspack_core::{
 
 use crate::{
   CreateScriptData, RuntimeModuleChunkWrapper, RuntimePlugin, extract_runtime_globals_from_ejs,
-  get_chunk_runtime_requirements,
+  extract_runtime_module_variables_from_ejs, get_chunk_runtime_requirements,
 };
 
 static LOAD_SCRIPT_TEMPLATE: &str = include_str!("runtime/load_script.ejs");
 static LOAD_SCRIPT_CREATE_SCRIPT_TEMPLATE: &str =
   include_str!("runtime/load_script_create_script.ejs");
-static RUNTIME_MODULE_VARIABLES: &[&str] = &["inProgress", "uniqueName"];
+static RUNTIME_MODULE_VARIABLES: LazyLock<Vec<&'static str>> = LazyLock::new(|| {
+  let mut variables = extract_runtime_module_variables_from_ejs(&[
+    LOAD_SCRIPT_TEMPLATE,
+    LOAD_SCRIPT_CREATE_SCRIPT_TEMPLATE,
+  ]);
+  variables.push("uniqueName");
+  variables
+});
 static LOAD_SCRIPT_RUNTIME_REQUIREMENTS: LazyLock<RuntimeModuleRuntimeRequirements> =
   LazyLock::new(|| extract_runtime_globals_from_ejs(LOAD_SCRIPT_TEMPLATE));
 static LOAD_SCRIPT_CREATE_SCRIPT_RUNTIME_REQUIREMENTS: LazyLock<RuntimeModuleRuntimeRequirements> =
@@ -51,7 +58,7 @@ enum TemplateId {
 #[async_trait::async_trait]
 impl RuntimeModule for LoadScriptRuntimeModule {
   fn runtime_module_variables() -> &'static [&'static str] {
-    RUNTIME_MODULE_VARIABLES
+    RUNTIME_MODULE_VARIABLES.as_slice()
   }
 
   fn runtime_requirements(

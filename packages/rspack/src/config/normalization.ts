@@ -639,6 +639,7 @@ export interface ExperimentsNormalized {
   useInputFileSystem?: false | RegExp[];
   nativeWatcher?: boolean;
   deferImport?: boolean;
+  env?: boolean;
   sourceImport?: boolean;
   pureFunctions?: boolean;
   runtimeMode?: 'webpack' | 'rspack';

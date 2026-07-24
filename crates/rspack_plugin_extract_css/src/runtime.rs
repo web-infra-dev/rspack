@@ -10,7 +10,8 @@ use rspack_core::{
 use rspack_error::Result;
 use rspack_plugin_runtime::{
   CreateLinkData, LinkPrefetchData, LinkPreloadData, RuntimePlugin,
-  extract_runtime_globals_from_ejs, get_chunk_runtime_requirements,
+  extract_runtime_globals_from_ejs, extract_runtime_module_variables_from_ejs,
+  get_chunk_runtime_requirements,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 
@@ -38,16 +39,18 @@ static CSS_LOADING_WITH_PRELOAD_TEMPLATE: &str =
   include_str!("./runtime/css_loading_with_preload.ejs");
 static CSS_LOADING_WITH_PRELOAD_LINK_TEMPLATE: &str =
   include_str!("./runtime/css_loading_with_preload_link.ejs");
-static RUNTIME_MODULE_VARIABLES: &[&str] = &[
-  "extractCssApplyHandler",
-  "extractCssCreateStylesheet",
-  "extractCssFindStylesheet",
-  "extractCssLoadStylesheet",
-  "extractCssNewTags",
-  "extractCssOldTags",
-  "extractCssTextKey",
-  "installedCssChunks",
-];
+static RUNTIME_MODULE_VARIABLES: LazyLock<Vec<&'static str>> = LazyLock::new(|| {
+  extract_runtime_module_variables_from_ejs(&[
+    CSS_LOADING_TEMPLATE,
+    CSS_LOADING_CREATE_LINK_TEMPLATE,
+    CSS_LOADING_WITH_HMR_TEMPLATE,
+    CSS_LOADING_WITH_LOADING_TEMPLATE,
+    CSS_LOADING_WITH_PREFETCH_TEMPLATE,
+    CSS_LOADING_WITH_PREFETCH_LINK_TEMPLATE,
+    CSS_LOADING_WITH_PRELOAD_TEMPLATE,
+    CSS_LOADING_WITH_PRELOAD_LINK_TEMPLATE,
+  ])
+});
 
 static CSS_LOADING_BASIC_RUNTIME_REQUIREMENTS: LazyLock<RuntimeModuleRuntimeRequirements> =
   LazyLock::new(|| extract_runtime_globals_from_ejs(CSS_LOADING_TEMPLATE));
@@ -158,7 +161,7 @@ enum TemplateId {
 #[async_trait::async_trait]
 impl RuntimeModule for CssLoadingRuntimeModule {
   fn runtime_module_variables() -> &'static [&'static str] {
-    RUNTIME_MODULE_VARIABLES
+    RUNTIME_MODULE_VARIABLES.as_slice()
   }
 
   fn stage(&self) -> RuntimeModuleStage {

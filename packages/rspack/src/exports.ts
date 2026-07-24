@@ -240,6 +240,7 @@ export const webworker: Webworker = { WebWorkerTemplatePlugin };
 import {
   CssChunkingPlugin,
   LimitChunkCountPlugin,
+  RealContentHashPlugin,
   RemoveDuplicateModulesPlugin,
   RsdoctorPlugin,
   RslibPlugin,
@@ -250,12 +251,14 @@ import {
 
 interface Optimize {
   LimitChunkCountPlugin: typeof LimitChunkCountPlugin;
+  RealContentHashPlugin: typeof RealContentHashPlugin;
   RuntimeChunkPlugin: typeof RuntimeChunkPlugin;
   SplitChunksPlugin: typeof SplitChunksPlugin;
 }
 
 export const optimize: Optimize = {
   LimitChunkCountPlugin,
+  RealContentHashPlugin,
   RuntimeChunkPlugin,
   SplitChunksPlugin,
 };

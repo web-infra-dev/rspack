@@ -5,31 +5,13 @@ pub fn impl_runtime_module(
   args: proc_macro::TokenStream,
   tokens: proc_macro::TokenStream,
 ) -> proc_macro::TokenStream {
-  let register_runtime_module_variables = if args.is_empty() {
-    false
-  } else {
-    let arg = parse_macro_input!(args as syn::Ident);
-    if arg != "runtime_module_variables" {
-      return syn::Error::new_spanned(arg, "expected `runtime_module_variables`")
-        .to_compile_error()
-        .into();
-    }
-    true
-  };
+  parse_macro_input!(args as syn::parse::Nothing);
   let mut input = parse_macro_input!(tokens as ItemStruct);
   let name = &input.ident;
   let generics = &input.generics;
   let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
   let origin_fields = input.fields.clone();
-  if register_runtime_module_variables && !generics.params.is_empty() {
-    return syn::Error::new_spanned(
-      generics,
-      "generic runtime modules cannot register static runtime module variables",
-    )
-    .to_compile_error()
-    .into();
-  }
-  let runtime_module_variable_provider = register_runtime_module_variables.then(|| {
+  let runtime_module_variable_provider = generics.params.is_empty().then(|| {
     quote! {
       ::rspack_core::inventory::submit! {
         ::rspack_core::RuntimeModuleVariableProvider {

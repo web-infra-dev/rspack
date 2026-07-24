@@ -1,11 +1,16 @@
+use std::sync::LazyLock;
+
 use rspack_core::{
   Compilation, OutputOptions, PathData, RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule,
   RuntimeModuleGenerateContext, RuntimeModuleStage, RuntimeTemplate, SourceType,
   get_js_chunk_filename_template, get_undo_path, impl_runtime_module,
 };
 
+use crate::extract_runtime_module_variables_from_ejs;
+
 static AUTO_PUBLIC_PATH_TEMPLATE: &str = include_str!("runtime/auto_public_path.ejs");
-static RUNTIME_MODULE_VARIABLES: &[&str] = &["document", "scriptUrl"];
+static RUNTIME_MODULE_VARIABLES: LazyLock<Vec<&'static str>> =
+  LazyLock::new(|| extract_runtime_module_variables_from_ejs(&[AUTO_PUBLIC_PATH_TEMPLATE]));
 
 #[impl_runtime_module(runtime_module_variables)]
 #[derive(Debug)]
@@ -20,7 +25,7 @@ impl AutoPublicPathRuntimeModule {
 #[async_trait::async_trait]
 impl RuntimeModule for AutoPublicPathRuntimeModule {
   fn runtime_module_variables() -> &'static [&'static str] {
-    RUNTIME_MODULE_VARIABLES
+    RUNTIME_MODULE_VARIABLES.as_slice()
   }
 
   fn stage(&self) -> RuntimeModuleStage {

@@ -19,6 +19,10 @@ impl EsmRegisterModuleRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for EsmRegisterModuleRuntimeModule {
+  fn runtime_module_variables() -> &'static [&'static str] {
+    &[]
+  }
+
   fn runtime_requirements(
     &self,
     _compilation: &Compilation,
@@ -61,6 +65,10 @@ impl EsmEnsureChunkRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for EsmEnsureChunkRuntimeModule {
+  fn runtime_module_variables() -> &'static [&'static str] {
+    &[]
+  }
+
   async fn generate(
     &self,
     context: &RuntimeModuleGenerateContext<'_>,

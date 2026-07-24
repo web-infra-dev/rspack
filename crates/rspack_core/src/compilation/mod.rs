@@ -80,9 +80,9 @@ use crate::{
   DependenciesDiagnosticsArtifact, DependencyId, DependencyTemplate, DependencyTemplateType,
   DependencyType, Entry, EntryData, EntryOptions, EntryRuntime, Entrypoint, ExecuteModuleId,
   ExportsInfoArtifact, Filename, ImportPhase, ImportVarMap, ImportedByDeferModulesArtifact,
-  MemoryGCStorage, ModuleFactory, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
-  ModuleIdsArtifact, ModuleStaticCache, PathData, ProcessRuntimeRequirementsCacheArtifact,
-  ReferencedExport, ResolverFactory, RuntimeGlobals, RuntimeKeyMap, RuntimeMode, RuntimeModule,
+  ModuleFactory, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, ModuleIdsArtifact,
+  ModuleStaticCache, PathData, ProcessRuntimeRequirementsCacheArtifact, ReferencedExport,
+  ResolverFactory, RuntimeGlobals, RuntimeKeyMap, RuntimeMode, RuntimeModule,
   RuntimeProxyMetadataArtifact, RuntimeSpec, RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver,
   SideEffectsOptimizeArtifact, SideEffectsStateArtifact, SourceType, Stats, StatsContext,
   StealCell, ValueCacheVersions,
@@ -122,9 +122,9 @@ define_hook!(CompilationAfterOptimizeModules: Series(compilation: &Compilation))
 define_hook!(CompilationOptimizeChunks: SeriesBail(compilation: &mut Compilation) -> bool);
 define_hook!(CompilationOptimizeTree: Series(compilation: &Compilation));
 define_hook!(CompilationOptimizeChunkModules: SeriesBail(compilation: &mut Compilation) -> bool);
-define_hook!(CompilationReviveModules: Series(compilation: &Compilation, modules: &IdentifierSet, module_ids: &mut ModuleIdsArtifact));
-define_hook!(CompilationBeforeModuleIds: Series(compilation: &Compilation, modules: &IdentifierSet, module_ids: &mut ModuleIdsArtifact));
-define_hook!(CompilationModuleIds: Series(compilation: &Compilation, module_ids: &mut ModuleIdsArtifact, diagnostics: &mut Vec<Diagnostic>));
+define_hook!(CompilationReviveModules: Series(compilation: &Compilation, modules: &IdentifierSet, preserved_module_ids: &mut ModuleIdsArtifact));
+define_hook!(CompilationBeforeModuleIds: Series(compilation: &Compilation, modules: &IdentifierSet, preserved_module_ids: &mut ModuleIdsArtifact));
+define_hook!(CompilationModuleIds: Series(compilation: &Compilation, module_ids: &mut ModuleIdsArtifact, preserved_module_ids: &ModuleIdsArtifact, diagnostics: &mut Vec<Diagnostic>));
 define_hook!(CompilationRecordModules: Series(compilation: &Compilation, module_ids: &ModuleIdsArtifact));
 define_hook!(CompilationChunkIds: Series(compilation: &Compilation, chunk_by_ukey: &mut ChunkByUkey, named_chunk_ids_artifact: &mut ChunkNamedIdArtifact, diagnostics: &mut Vec<Diagnostic>));
 define_hook!(CompilationRuntimeModule: Series(compilation: &Compilation, module: &ModuleIdentifier, chunk: &ChunkUkey, runtime_modules: &mut IdentifierMap<Box<dyn RuntimeModule>>));
@@ -406,11 +406,11 @@ impl Compilation {
       module_static_cache: Default::default(),
       code_generated_modules: Default::default(),
       chunk_render_cache_artifact: StealCell::new(ChunkRenderCacheArtifact::new(
-        MemoryGCStorage::new(match &options.cache {
+        match &options.cache {
           CacheOptions::Disabled => 0, // FIXME: this should be removed in future
           CacheOptions::Memory { max_generations } => *max_generations,
           CacheOptions::Persistent(_) => 1,
-        }),
+        },
       )),
       code_generate_cache_artifact: StealCell::new(CodeGenerateCacheArtifact::new(&options)),
       process_runtime_requirements_cache_artifact: StealCell::new(

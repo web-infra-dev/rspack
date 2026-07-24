@@ -9,7 +9,8 @@ use rspack_plugin_javascript::impl_plugin_for_js_plugin::chunk_has_js;
 
 use super::{generate_javascript_hmr_runtime, utils::get_output_dir};
 use crate::{
-  extract_runtime_globals_from_ejs, get_chunk_runtime_requirements,
+  extract_runtime_globals_from_ejs, extract_runtime_module_variables_from_ejs,
+  get_chunk_runtime_requirements,
   runtime_module::utils::{
     get_initial_chunk_ids, render_hmr_runtime_state_expression, stringify_chunks,
   },
@@ -28,16 +29,19 @@ static READFILE_CHUNK_LOADING_WITH_HMR_MANIFEST_TEMPLATE: &str =
   include_str!("runtime/readfile_chunk_loading_with_hmr_manifest.ejs");
 static JAVASCRIPT_HOT_MODULE_REPLACEMENT_TEMPLATE: &str =
   include_str!("runtime/javascript_hot_module_replacement.ejs");
-static RUNTIME_MODULE_VARIABLES: &[&str] = &[
-  "hotApplyHandler",
-  "hotCurrentUpdate",
-  "hotCurrentUpdateChunks",
-  "hotCurrentUpdateRemovedChunks",
-  "hotCurrentUpdateRuntime",
-  "readFileVmInstallChunk",
-  "readFileVmInstalledChunks",
-  "readFileVmLoadUpdateChunk",
-];
+static RUNTIME_MODULE_VARIABLES: LazyLock<Vec<&'static str>> = LazyLock::new(|| {
+  let mut variables = extract_runtime_module_variables_from_ejs(&[
+    READFILE_CHUNK_LOADING_WITH_ON_CHUNK_LOAD_TEMPLATE,
+    READFILE_CHUNK_LOADING_TEMPLATE,
+    READFILE_CHUNK_LOADING_WITH_LOADING_TEMPLATE,
+    READFILE_CHUNK_LOADING_WITH_EXTERNAL_INSTALL_CHUNK_TEMPLATE,
+    READFILE_CHUNK_LOADING_WITH_HMR_TEMPLATE,
+    READFILE_CHUNK_LOADING_WITH_HMR_MANIFEST_TEMPLATE,
+    JAVASCRIPT_HOT_MODULE_REPLACEMENT_TEMPLATE,
+  ]);
+  variables.push("readFileVmInstalledChunks");
+  variables
+});
 
 static READFILE_CHUNK_LOADING_RUNTIME_REQUIREMENTS: LazyLock<RuntimeModuleRuntimeRequirements> =
   LazyLock::new(|| extract_runtime_globals_from_ejs(READFILE_CHUNK_LOADING_TEMPLATE));
@@ -166,7 +170,7 @@ enum TemplateId {
 #[async_trait::async_trait]
 impl RuntimeModule for ReadFileChunkLoadingRuntimeModule {
   fn runtime_module_variables() -> &'static [&'static str] {
-    RUNTIME_MODULE_VARIABLES
+    RUNTIME_MODULE_VARIABLES.as_slice()
   }
 
   fn runtime_requirements(&self, compilation: &Compilation) -> RuntimeModuleRuntimeRequirements {

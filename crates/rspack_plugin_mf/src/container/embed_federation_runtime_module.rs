@@ -4,12 +4,15 @@
 //! execute before other modules. Generates a "prevStartup wrapper" pattern with defensive
 //! checks that intercepts and modifies the startup execution order.
 
+use std::sync::LazyLock;
+
 use rspack_cacheable::cacheable;
 use rspack_core::{
   Compilation, DependencyId, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext,
   RuntimeModuleStage, RuntimeTemplate, impl_runtime_module,
 };
 use rspack_error::Result;
+use rspack_plugin_runtime::extract_runtime_module_variables_from_ejs;
 
 use super::module_federation_runtime_plugin::ModuleFederationRuntimeExperimentsOptions;
 
@@ -17,13 +20,12 @@ static EMBED_FEDERATION_RUNTIME_ASYNC_TEMPLATE: &str =
   include_str!("./embed_federation_runtime_async.ejs");
 static EMBED_FEDERATION_RUNTIME_SYNC_TEMPLATE: &str =
   include_str!("./embed_federation_runtime_sync.ejs");
-static RUNTIME_MODULE_VARIABLES: &[&str] = &[
-  "hasRun",
-  "mfAsyncStartup",
-  "mfStartupBase",
-  "prevStartup",
-  "wrapStartup",
-];
+static RUNTIME_MODULE_VARIABLES: LazyLock<Vec<&'static str>> = LazyLock::new(|| {
+  extract_runtime_module_variables_from_ejs(&[
+    EMBED_FEDERATION_RUNTIME_ASYNC_TEMPLATE,
+    EMBED_FEDERATION_RUNTIME_SYNC_TEMPLATE,
+  ])
+});
 
 #[cacheable]
 #[derive(Debug, Default, Clone, Hash, PartialEq, Eq)]
@@ -64,7 +66,7 @@ impl EmbedFederationRuntimeModule {
 #[async_trait::async_trait]
 impl RuntimeModule for EmbedFederationRuntimeModule {
   fn runtime_module_variables() -> &'static [&'static str] {
-    RUNTIME_MODULE_VARIABLES
+    RUNTIME_MODULE_VARIABLES.as_slice()
   }
 
   fn runtime_requirements(

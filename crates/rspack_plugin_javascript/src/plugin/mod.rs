@@ -9,6 +9,7 @@ use rayon::prelude::*;
 use rustc_hash::{FxHashMap, FxHashSet as HashSet};
 pub mod api_plugin;
 mod drive;
+pub mod env_plugin;
 mod flag_dependency_exports_plugin;
 mod flag_dependency_usage_plugin;
 pub mod impl_plugin_for_js_plugin;
@@ -21,6 +22,7 @@ mod side_effects_flag_plugin;
 pub mod url_plugin;
 
 pub use drive::*;
+pub use env_plugin::*;
 pub use flag_dependency_exports_plugin::*;
 pub use flag_dependency_usage_plugin::*;
 pub use inline_exports_plugin::*;

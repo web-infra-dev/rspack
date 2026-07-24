@@ -80,6 +80,10 @@ impl GetChunkFilenameRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for GetChunkFilenameRuntimeModule {
+  fn runtime_module_variables() -> &'static [&'static str] {
+    &[]
+  }
+
   fn runtime_requirements(
     &self,
     compilation: &Compilation,

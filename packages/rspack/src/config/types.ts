@@ -1190,6 +1190,11 @@ export type ImportMetaParserOptions = {
   dirname?: boolean;
 
   /**
+   * Enable/disable evaluating import.meta.env.
+   */
+  env?: boolean;
+
+  /**
    * Enable/disable evaluating import.meta.filename.
    */
   filename?: boolean;
@@ -3129,6 +3134,11 @@ export type Experiments = {
    * @default false
    */
   deferImport?: boolean;
+  /**
+   * Enable import.meta.env object replacement.
+   * @default false
+   */
+  env?: boolean;
   /**
    * Enable source phase import feature
    * @default false

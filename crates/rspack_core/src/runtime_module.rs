@@ -250,14 +250,11 @@ pub trait RuntimeModule:
   /// Names that this runtime module may declare in the surrounding chunk scope.
   ///
   /// Runtime modules backed by EJS templates should derive these names from top-level `var()` and
-  /// `fn()` declarations. `#[impl_runtime_module(runtime_module_variables)]` registers the provider
-  /// so the names can be reserved before runtime module instances are created.
+  /// `fn()` declarations. `#[impl_runtime_module]` registers the provider so the names can be
+  /// reserved before runtime module instances are created.
   fn runtime_module_variables() -> &'static [&'static str]
   where
-    Self: Sized,
-  {
-    &[]
-  }
+    Self: Sized;
   async fn generate(
     &self,
     context: &RuntimeModuleGenerateContext<'_>,

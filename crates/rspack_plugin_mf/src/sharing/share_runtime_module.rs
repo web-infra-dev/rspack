@@ -5,7 +5,9 @@ use rspack_core::{
   Compilation, ModuleId, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext,
   RuntimeModuleRuntimeRequirements, RuntimeTemplate, SourceType, impl_runtime_module,
 };
-use rspack_plugin_runtime::extract_runtime_globals_from_ejs;
+use rspack_plugin_runtime::{
+  extract_runtime_globals_from_ejs, extract_runtime_module_variables_from_ejs,
+};
 use rspack_util::{
   fx_hash::{FxLinkedHashMap, FxLinkedHashSet},
   json_stringify_str,
@@ -24,7 +26,8 @@ static INITIALIZE_SHARING_RUNTIME_REQUIREMENTS: LazyLock<RuntimeModuleRuntimeReq
     force_context: RuntimeGlobals::INITIALIZE_SHARING | RuntimeGlobals::SHARE_SCOPE_MAP,
     ..extract_runtime_globals_from_ejs(INITIALIZE_SHARING_TEMPLATE)
   });
-static RUNTIME_MODULE_VARIABLES: &[&str] = &["initPromises", "initTokens"];
+static RUNTIME_MODULE_VARIABLES: LazyLock<Vec<&'static str>> =
+  LazyLock::new(|| extract_runtime_module_variables_from_ejs(&[INITIALIZE_SHARING_TEMPLATE]));
 
 #[impl_runtime_module(runtime_module_variables)]
 #[derive(Debug)]
@@ -41,7 +44,7 @@ impl ShareRuntimeModule {
 #[async_trait::async_trait]
 impl RuntimeModule for ShareRuntimeModule {
   fn runtime_module_variables() -> &'static [&'static str] {
-    RUNTIME_MODULE_VARIABLES
+    RUNTIME_MODULE_VARIABLES.as_slice()
   }
 
   fn runtime_requirements(

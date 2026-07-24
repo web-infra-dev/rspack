@@ -597,19 +597,25 @@ async fn render_manifest(
 
   let (source, more_diagnostics) = compilation
     .chunk_render_cache_artifact
-    .use_cache(compilation, chunk, &SourceType::Css, || async {
-      let (source, diagnostics) = self
-        .render_chunk(
-          compilation,
-          module_graph,
-          chunk,
-          &output_path,
-          css_import_modules,
-          css_modules,
-        )
-        .await?;
-      Ok((CachedSource::new(source).boxed(), diagnostics))
-    })
+    .use_cache(
+      compilation,
+      chunk,
+      &SourceType::Css,
+      &output_path,
+      || async {
+        let (source, diagnostics) = self
+          .render_chunk(
+            compilation,
+            module_graph,
+            chunk,
+            &output_path,
+            css_import_modules,
+            css_modules,
+          )
+          .await?;
+        Ok((CachedSource::new(source).boxed(), diagnostics))
+      },
+    )
     .await?;
 
   diagnostics.extend(more_diagnostics);

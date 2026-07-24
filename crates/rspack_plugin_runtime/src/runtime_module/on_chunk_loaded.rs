@@ -1,12 +1,17 @@
+use std::sync::LazyLock;
+
 use rspack_core::{
   Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext, RuntimeTemplate,
   impl_runtime_module,
 };
 
-static ON_CHUNK_LOADED_TEMPLATE: &str = include_str!("runtime/on_chunk_loaded.ejs");
-static RUNTIME_MODULE_VARIABLES: &[&str] = &["deferred"];
+use crate::extract_runtime_module_variables_from_ejs;
 
-#[impl_runtime_module(runtime_module_variables)]
+static ON_CHUNK_LOADED_TEMPLATE: &str = include_str!("runtime/on_chunk_loaded.ejs");
+static RUNTIME_MODULE_VARIABLES: LazyLock<Vec<&'static str>> =
+  LazyLock::new(|| extract_runtime_module_variables_from_ejs(&[ON_CHUNK_LOADED_TEMPLATE]));
+
+#[impl_runtime_module]
 #[derive(Debug)]
 pub struct OnChunkLoadedRuntimeModule {}
 
@@ -19,7 +24,7 @@ impl OnChunkLoadedRuntimeModule {
 #[async_trait::async_trait]
 impl RuntimeModule for OnChunkLoadedRuntimeModule {
   fn runtime_module_variables() -> &'static [&'static str] {
-    RUNTIME_MODULE_VARIABLES
+    RUNTIME_MODULE_VARIABLES.as_slice()
   }
 
   fn runtime_requirements(
