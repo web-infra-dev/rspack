@@ -1578,6 +1578,31 @@ impl Module for ConcatenatedModule {
       if matches!(export_info.provided(), Some(ExportProvided::NotProvided)) {
         continue;
       }
+      let all_properties_unused_or_inlined = export_info.get_used(runtime)
+        == UsageState::OnlyPropertiesUsed
+        && export_info
+          .exports_info()
+          .is_some_and(|nested_exports_info| {
+            let nested_exports_info_data =
+              nested_exports_info.as_data(&compilation.exports_info_artifact);
+            nested_exports_info_data
+              .other_exports_info()
+              .get_used(runtime)
+              == UsageState::Unused
+              && nested_exports_info_data
+                .exports()
+                .values()
+                .all(|nested_export_info| {
+                  matches!(
+                    nested_export_info.get_used_name(nested_export_info.name(), runtime),
+                    None | Some(UsedNameItem::Inlined(_))
+                  )
+                })
+          });
+      if all_properties_unused_or_inlined {
+        inlined_exports.insert(name);
+        continue;
+      }
       let used_name = export_info.get_used_name(None, runtime);
 
       let Some(used_name) = used_name else {

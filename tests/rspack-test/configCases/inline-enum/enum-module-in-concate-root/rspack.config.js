@@ -2,6 +2,9 @@ module.exports = {
   entry: {
     main: './index.js',
   },
+  externals: {
+    fs: 'node-commonjs fs',
+  },
   module: {
     rules: [
       {
