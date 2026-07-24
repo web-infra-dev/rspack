@@ -1,12 +1,20 @@
-use std::{collections::HashSet, path::PathBuf, time::UNIX_EPOCH};
+use std::{
+  collections::{HashMap, HashSet},
+  path::PathBuf,
+  sync::{
+    Arc, LazyLock, RwLock,
+    atomic::{AtomicU64, Ordering},
+  },
+  time::UNIX_EPOCH,
+};
 
 use rspack_cacheable::{cacheable, cacheable_dyn};
-use rspack_core::{Content, Loader, LoaderContext, RunnerContext, rspack_sources::SourceMap};
+use rspack_core::{
+  CacheOptions, Content, Loader, LoaderContext, RunnerContext, rspack_sources::SourceMap,
+};
 use rspack_error::Result;
 use rspack_loader_runner::{DisplayWithSuffix, Identifier};
-use rspack_paths::{Utf8Path, Utf8PathBuf};
 use serde::{Deserialize, Serialize};
-use sha2::{Digest, Sha256};
 
 mod plugin;
 
@@ -14,91 +22,71 @@ pub use plugin::CacheLoaderPlugin;
 
 pub const CACHE_LOADER_IDENTIFIER: &str = "builtin:cache-loader";
 
-#[cacheable]
-#[derive(Debug, Default, Deserialize)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct CacheLoaderOptions {
-  /// Directory used to store cache entries.
-  pub cache_directory: Option<String>,
-  /// Extra identifier used to invalidate all entries.
-  pub cache_identifier: Option<String>,
+type CacheStore = Arc<RwLock<HashMap<String, Arc<CacheEntry>>>>;
+
+static NEXT_CACHE_ID: AtomicU64 = AtomicU64::new(1);
+static CACHE_STORES: LazyLock<RwLock<HashMap<u64, CacheStore>>> =
+  LazyLock::new(|| RwLock::new(HashMap::new()));
+
+pub(crate) fn create_cache() -> u64 {
+  let cache_id = NEXT_CACHE_ID.fetch_add(1, Ordering::Relaxed);
+  CACHE_STORES
+    .write()
+    .expect("cache loader stores should not be poisoned")
+    .insert(cache_id, CacheStore::default());
+  cache_id
+}
+
+pub(crate) fn remove_cache(cache_id: u64) {
+  CACHE_STORES
+    .write()
+    .expect("cache loader stores should not be poisoned")
+    .remove(&cache_id);
+}
+
+fn cache_store(cache_id: u64) -> CacheStore {
+  CACHE_STORES
+    .write()
+    .expect("cache loader stores should not be poisoned")
+    .entry(cache_id)
+    .or_default()
+    .clone()
 }
 
 #[cacheable]
 #[derive(Debug)]
 pub struct CacheLoader {
   identifier: Identifier,
-  options: CacheLoaderOptions,
+  cache_id: u64,
 }
 
 impl CacheLoader {
-  pub fn new(identifier: Identifier, options: CacheLoaderOptions) -> Self {
+  pub fn new(identifier: Identifier, cache_id: u64) -> Self {
     debug_assert!(identifier.starts_with(CACHE_LOADER_IDENTIFIER));
     Self {
       identifier,
-      options,
+      cache_id,
     }
   }
 
-  fn cache_directory(&self, compiler_context: &Utf8Path) -> Utf8PathBuf {
-    if let Some(directory) = self.options.cache_directory.as_deref() {
-      let directory = Utf8Path::new(directory);
-      if directory.is_absolute() {
-        directory.to_path_buf()
-      } else {
-        compiler_context.join(directory)
-      }
-    } else {
-      compiler_context.join("node_modules/.cache/cache-loader")
-    }
+  fn cache(&self) -> CacheStore {
+    cache_store(self.cache_id)
   }
 
-  fn cache_identifier(&self, loader_context: &LoaderContext<RunnerContext>) -> String {
-    self.options.cache_identifier.clone().unwrap_or_else(|| {
-      format!(
-        "builtin:cache-loader:{} {:?}",
-        env!("CARGO_PKG_VERSION"),
-        loader_context.context.options.mode
-      )
-    })
+  fn should_cache(loader_context: &LoaderContext<RunnerContext>) -> bool {
+    matches!(&loader_context.context.options.cache, CacheOptions::Disabled)
   }
 
-  fn cache_key(&self, loader_context: &LoaderContext<RunnerContext>, request: &str) -> Utf8PathBuf {
-    let compiler_context = loader_context.context.options.context.as_path();
-    let identifier = self.cache_identifier(loader_context);
-    let digest = Sha256::digest(format!("{identifier}\n{request}").as_bytes());
-    let filename = format!("{digest:x}.json");
-    self.cache_directory(compiler_context).join(filename)
-  }
-
-  async fn read_cache(&self, key: &Utf8Path) -> Option<CacheEntry> {
-    let content = tokio::fs::read(key.as_std_path()).await.ok()?;
-    serde_json::from_slice(&content).ok()
-  }
-
-  async fn write_cache(&self, key: &Utf8Path, entry: &CacheEntry) {
-    let Ok(content) = serde_json::to_vec(entry) else {
-      return;
-    };
-    let Some(parent) = key.parent() else {
-      return;
-    };
-    if tokio::fs::create_dir_all(parent.as_std_path())
-      .await
-      .is_err()
+  async fn is_cache_valid(entry: &CacheEntry) -> bool {
+    for dependency in entry
+      .dependencies
+      .iter()
+      .chain(&entry.context_dependencies)
     {
-      return;
-    }
-    // Match cache-loader's best-effort behavior: cache I/O must not fail a build.
-    let _ = tokio::fs::write(key.as_std_path(), content).await;
-  }
-
-  async fn is_cache_valid(&self, entry: &CacheEntry) -> bool {
-    for dependency in entry.dependencies.iter().chain(&entry.context_dependencies) {
       let Ok(metadata) = tokio::fs::metadata(&dependency.path).await else {
         return false;
       };
-      if metadata_mtime_ms(&metadata) != Some(dependency.mtime) {
+      if metadata_mtime(&metadata) != Some(dependency.mtime) {
         return false;
       }
     }
@@ -114,22 +102,33 @@ impl Loader<RunnerContext> for CacheLoader {
   }
 
   async fn pitch(&self, loader_context: &mut LoaderContext<RunnerContext>) -> Result<()> {
-    let remaining_request = loader_context
+    if !Self::should_cache(loader_context) {
+      return Ok(());
+    }
+
+    let key = loader_context
       .remaining_request()
       .display_with_suffix(loader_context.resource());
-    let key = self.cache_key(loader_context, &remaining_request);
-    let data = CacheLoaderData {
-      key: key.as_str().to_string(),
-      remaining_request: remaining_request.clone(),
-    };
+    let data = CacheLoaderData { key: key.clone() };
     let loader_index = loader_context.loader_index as usize;
     loader_context.loader_items[loader_index]
       .set_data(serde_json::to_value(data).expect("cache loader data should be serializable"));
 
-    let Some(entry) = self.read_cache(&key).await else {
+    let cache = self.cache();
+    let entry = cache
+      .read()
+      .expect("cache loader store should not be poisoned")
+      .get(&key)
+      .cloned();
+    let Some(entry) = entry else {
       return Ok(());
     };
-    if entry.remaining_request != remaining_request || !self.is_cache_valid(&entry).await {
+
+    if !Self::is_cache_valid(&entry).await {
+      cache
+        .write()
+        .expect("cache loader store should not be poisoned")
+        .remove(&key);
       return Ok(());
     }
 
@@ -144,20 +143,20 @@ impl Loader<RunnerContext> for CacheLoader {
         .insert(PathBuf::from(&dependency.path));
     }
 
-    let content = match entry.content {
-      CachedContent::String(content) => Content::String(content),
-      CachedContent::Buffer(content) => Content::Buffer(content),
-    };
-    let source_map = match entry.source_map {
-      Some(source_map) => {
-        let Ok(source_map) = SourceMap::from_json(source_map) else {
+    let source_map = match &entry.source_map {
+      Some(source_map) => match SourceMap::from_json(source_map.clone()) {
+        Ok(source_map) => Some(source_map),
+        Err(_) => {
+          cache
+            .write()
+            .expect("cache loader store should not be poisoned")
+            .remove(&key);
           return Ok(());
-        };
-        Some(source_map)
-      }
+        }
+      },
       None => None,
     };
-    loader_context.finish_with((content, source_map, None));
+    loader_context.finish_with((entry.content.clone(), source_map, None));
     Ok(())
   }
 
@@ -167,41 +166,39 @@ impl Loader<RunnerContext> for CacheLoader {
       return Ok(());
     };
 
-    // Additional data is type-erased on the Rust side. Avoid caching it instead
-    // of returning an incomplete result on a cache hit.
-    if additional_data.is_none() {
-      let data =
-        serde_json::from_value::<CacheLoaderData>(loader_context.current_loader().data().clone())
-          .ok();
-      if let Some(data) = data {
-        let mut file_dependencies = loader_context.file_dependencies.clone();
-        file_dependencies.extend(
-          loader_context
-            .loader_items
-            .iter()
-            .map(|loader| loader.path().as_std_path().to_path_buf())
-            .filter(|path| path.is_absolute()),
-        );
-        let dependencies = dependency_details(file_dependencies).await;
-        let context_dependencies =
-          dependency_details(loader_context.context_dependencies.iter().cloned()).await;
+    if Self::should_cache(loader_context)
+      && loader_context.cacheable
+      && additional_data.is_none()
+      && let Ok(data) = serde_json::from_value::<CacheLoaderData>(
+        loader_context.current_loader().data().clone(),
+      )
+    {
+      let mut file_dependencies = loader_context.file_dependencies.clone();
+      file_dependencies.extend(
+        loader_context
+          .loader_items
+          .iter()
+          .map(|loader| loader.path().as_std_path().to_path_buf())
+          .filter(|path| path.is_absolute()),
+      );
+      let dependencies = dependency_details(file_dependencies).await;
+      let context_dependencies =
+        dependency_details(loader_context.context_dependencies.iter().cloned()).await;
 
-        if let (Some(dependencies), Some(context_dependencies)) =
-          (dependencies, context_dependencies)
-        {
-          let cached_content = match &content {
-            Content::String(content) => CachedContent::String(content.clone()),
-            Content::Buffer(content) => CachedContent::Buffer(content.clone()),
-          };
-          let entry = CacheEntry {
-            remaining_request: data.remaining_request,
-            dependencies,
-            context_dependencies,
-            content: cached_content,
-            source_map: source_map.as_ref().map(SourceMap::to_json),
-          };
-          self.write_cache(Utf8Path::new(&data.key), &entry).await;
-        }
+      if let (Some(dependencies), Some(context_dependencies)) =
+        (dependencies, context_dependencies)
+      {
+        let entry = Arc::new(CacheEntry {
+          dependencies,
+          context_dependencies,
+          content: content.clone(),
+          source_map: source_map.as_ref().map(SourceMap::to_json),
+        });
+        self
+          .cache()
+          .write()
+          .expect("cache loader store should not be poisoned")
+          .insert(data.key, entry);
       }
     }
 
@@ -213,29 +210,20 @@ impl Loader<RunnerContext> for CacheLoader {
 #[derive(Debug, Deserialize, Serialize)]
 struct CacheLoaderData {
   key: String,
-  remaining_request: String,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Clone)]
 struct CacheEntry {
-  remaining_request: String,
   dependencies: Vec<CacheDependency>,
   context_dependencies: Vec<CacheDependency>,
-  content: CachedContent,
+  content: Content,
   source_map: Option<String>,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Clone)]
 struct CacheDependency {
   path: String,
-  mtime: u64,
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-#[serde(tag = "type", content = "value", rename_all = "camelCase")]
-enum CachedContent {
-  String(String),
-  Buffer(Vec<u8>),
+  mtime: u128,
 }
 
 async fn dependency_details(
@@ -248,7 +236,7 @@ async fn dependency_details(
       continue;
     }
     let metadata = tokio::fs::metadata(&dependency).await.ok()?;
-    let mtime = metadata_mtime_ms(&metadata)?;
+    let mtime = metadata_mtime(&metadata)?;
     details.push(CacheDependency {
       path: dependency.to_string_lossy().into_owned(),
       mtime,
@@ -257,25 +245,51 @@ async fn dependency_details(
   Some(details)
 }
 
-fn metadata_mtime_ms(metadata: &std::fs::Metadata) -> Option<u64> {
+fn metadata_mtime(metadata: &std::fs::Metadata) -> Option<u128> {
   metadata
     .modified()
     .ok()
     .and_then(|mtime| mtime.duration_since(UNIX_EPOCH).ok())
-    .map(|duration| duration.as_millis() as u64)
+    .map(|duration| duration.as_nanos())
 }
 
 #[cfg(test)]
 mod tests {
+  use std::sync::Arc;
+
+  use rspack_core::Content;
+
   use super::{
-    CacheDependency, CacheEntry, CacheLoader, CacheLoaderOptions, CachedContent, metadata_mtime_ms,
+    CacheDependency, CacheEntry, CacheLoader, create_cache, metadata_mtime, remove_cache,
   };
 
   #[test]
-  fn reads_metadata_mtime() {
-    let file = tempfile::NamedTempFile::new().expect("should create temp file");
-    let metadata = file.as_file().metadata().expect("should read metadata");
-    assert!(metadata_mtime_ms(&metadata).expect("should have mtime") > 0);
+  fn shares_cache_between_loaders() {
+    let cache_id = create_cache();
+    let first = CacheLoader::new("builtin:cache-loader".into(), cache_id);
+    let second = CacheLoader::new("builtin:cache-loader".into(), cache_id);
+    first
+      .cache()
+      .write()
+      .expect("cache loader store should not be poisoned")
+      .insert(
+        "key".to_string(),
+        Arc::new(CacheEntry {
+          dependencies: Vec::new(),
+          context_dependencies: Vec::new(),
+          content: Content::String("cached".to_string()),
+          source_map: None,
+        }),
+      );
+
+    assert!(
+      second
+        .cache()
+        .read()
+        .expect("cache loader store should not be poisoned")
+        .contains_key("key")
+    );
+    remove_cache(cache_id);
   }
 
   #[tokio::test]
@@ -283,19 +297,17 @@ mod tests {
     let file = tempfile::NamedTempFile::new().expect("should create temp file");
     let metadata = file.as_file().metadata().expect("should read metadata");
     let mut entry = CacheEntry {
-      remaining_request: String::new(),
       dependencies: vec![CacheDependency {
         path: file.path().to_string_lossy().into_owned(),
-        mtime: metadata_mtime_ms(&metadata).expect("should have mtime"),
+        mtime: metadata_mtime(&metadata).expect("should have mtime"),
       }],
       context_dependencies: Vec::new(),
-      content: CachedContent::String(String::new()),
+      content: Content::String(String::new()),
       source_map: None,
     };
-    let loader = CacheLoader::new("builtin:cache-loader".into(), CacheLoaderOptions::default());
 
-    assert!(loader.is_cache_valid(&entry).await);
+    assert!(CacheLoader::is_cache_valid(&entry).await);
     entry.dependencies[0].mtime += 1;
-    assert!(!loader.is_cache_valid(&entry).await);
+    assert!(!CacheLoader::is_cache_valid(&entry).await);
   }
 }
