@@ -174,30 +174,6 @@ pub fn get_hash(s: impl Hash, length: usize) -> String {
 
 #[allow(clippy::too_many_arguments)]
 pub fn assign_deterministic_ids<T>(
-  items: Vec<T>,
-  get_name: impl for<'b> Fn(&'b T) -> &'b str,
-  comparator: impl FnMut(&T, &T) -> Ordering,
-  assign_id: impl FnMut(&T, usize) -> bool,
-  ranges: &[usize],
-  expand_factor: usize,
-  extra_space: usize,
-  salt: usize,
-) {
-  assign_deterministic_ids_with_range_factor(
-    items,
-    get_name,
-    comparator,
-    assign_id,
-    ranges,
-    expand_factor,
-    extra_space,
-    salt,
-    20,
-  );
-}
-
-#[allow(clippy::too_many_arguments)]
-pub fn assign_deterministic_ids_with_range_factor<T>(
   mut items: Vec<T>,
   get_name: impl for<'b> Fn(&'b T) -> &'b str,
   comparator: impl FnMut(&T, &T) -> Ordering,
@@ -206,14 +182,10 @@ pub fn assign_deterministic_ids_with_range_factor<T>(
   expand_factor: usize,
   extra_space: usize,
   salt: usize,
-  range_factor: usize,
 ) {
   items.sort_unstable_by(comparator);
 
-  let optimal_range = items
-    .len()
-    .saturating_mul(range_factor)
-    .saturating_add(extra_space);
+  let optimal_range = usize::min(items.len() * 20 + extra_space, usize::MAX);
   let mut i = 0;
   debug_assert!(!ranges.is_empty());
   let mut range = ranges[i];
@@ -282,10 +254,7 @@ mod tests {
   };
   use rustc_hash::FxHashMap;
 
-  use super::{
-    NaturalChunkCompareCache, assign_deterministic_ids, assign_deterministic_ids_with_range_factor,
-    compare_chunks_natural,
-  };
+  use super::{NaturalChunkCompareCache, assign_deterministic_ids, compare_chunks_natural};
 
   #[test]
   fn assign_deterministic_ids_accepts_borrowed_names() {
@@ -311,30 +280,6 @@ mod tests {
     );
 
     assert_eq!(assigned.len(), 3);
-  }
-
-  #[test]
-  fn assign_deterministic_ids_supports_custom_range_factor() {
-    let items = vec!["module-a", "module-b", "module-c"];
-    let mut assigned = FxHashMap::default();
-
-    assign_deterministic_ids_with_range_factor(
-      items,
-      |name| *name,
-      |a, b| a.cmp(b),
-      |item, id| {
-        assigned.insert(*item, id);
-        true
-      },
-      &[12],
-      10,
-      0,
-      0,
-      4,
-    );
-
-    assert_eq!(assigned.len(), 3);
-    assert!(assigned.values().all(|id| *id < 12));
   }
 
   #[test]
