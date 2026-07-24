@@ -116,7 +116,7 @@ it("should consume createRequire(import.meta.url) like webpack", async () => {
 	expect(exportedRequire.resolve("path")).toBe("path");
 	expect(getRequire().resolve("path")).toBe("path");
 	expect(getNestedRequire().resolve("path")).toBe("path");
-	expect(load()).toBe("loader");
+	expect(pre_declared_require_call_load()).toBe("loader");
 	expect(quotedUnknown).toBe(undefined);
 });
 

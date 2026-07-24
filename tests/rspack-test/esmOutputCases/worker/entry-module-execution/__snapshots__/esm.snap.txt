@@ -176,6 +176,14 @@ __webpack_require__.a = (module, body, hasAwait) => {
 };
 
 })();
+// webpack/runtime/define_esm_exports
+(() => {
+__webpack_require__.D = (exports, getters, values) => {
+	__webpack_require__.r(exports);
+	__webpack_require__.d(exports, getters, values);
+};
+
+})();
 // webpack/runtime/define_property_getters
 (() => {
 __webpack_require__.d = (exports, getters, values) => {
@@ -217,8 +225,7 @@ __webpack_require__.add({
   \*************************/
 (module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.a(module, async function (__rspack_load_async_deps, __rspack_async_done) { try {
-__webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {
+__webpack_require__.D(__webpack_exports__, {
   "default": () => (__rspack_default_export)
 });
 if ((__webpack_require__.c[__webpack_require__.s] === module)) {
