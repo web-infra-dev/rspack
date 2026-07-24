@@ -64,7 +64,7 @@ jobs:
         uses: ./.github/actions/pnpm/setup
 
       - name: Install Binding Dependencies
-        run: pnpm i
+        run: pnpm --filter @rspack/binding install --frozen-lockfile
 
       - name: Install Rust Toolchain
         uses: ./.github/actions/rustup
