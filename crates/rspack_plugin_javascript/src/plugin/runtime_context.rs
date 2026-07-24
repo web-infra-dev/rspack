@@ -35,7 +35,6 @@ impl JsPlugin {
       runtime_requirements.contains(RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT);
     let callable_require = runtime_template.render_runtime_variable(&RuntimeVariable::Require);
     let require_argument = runtime_template.render_runtime_argument();
-    let runtime_context = runtime_template.render_runtime_variable(&RuntimeVariable::Context);
     let module_factories = runtime_template.render_runtime_variable(&RuntimeVariable::Modules);
     let module_cache = runtime_template.render_runtime_variable(&RuntimeVariable::ModuleCache);
     let mut sources: Vec<Cow<str>> = Vec::new();
@@ -81,15 +80,18 @@ var module = ({module_cache}[moduleId] = {{"#,
     let module_execution = if runtime_requirements
       .contains(RuntimeGlobals::INTERCEPT_MODULE_EXECUTION)
     {
-      let factory_runtime_argument =
+      let (factory_runtime_argument, context_prototype) =
         if runtime_template.render_mode() == RuntimeGlobalsRenderMode::RspackContext {
-          "execOptions.context"
+          (
+            "execOptions.context",
+            runtime_template.render_runtime_variable(&RuntimeVariable::Context),
+          )
         } else {
-          "execOptions.require"
+          ("execOptions.require", callable_require.clone())
         };
       format!(
         r#"
-        var execOptions = {{ id: moduleId, module: module, factory: {module_factories}[moduleId], require: {callable_require}, context: Object.create({runtime_context}) }};
+        var execOptions = {{ id: moduleId, module: module, factory: {module_factories}[moduleId], require: {callable_require}, context: Object.create({context_prototype}) }};
         {}.forEach(function(handler) {{ handler(execOptions); }});
         module = execOptions.module;
         execOptions.factory.call(module.exports, module, module.exports, {factory_runtime_argument});
