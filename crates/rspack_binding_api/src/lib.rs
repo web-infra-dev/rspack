@@ -221,7 +221,6 @@ impl JsCompiler {
       plugins.push(js_hooks_plugin.clone().boxed());
 
       // Register builtin loader plugins
-      plugins.push(Box::new(rspack_loader_cache::CacheLoaderPlugin::new()));
       plugins.push(Box::new(
         rspack_loader_lightningcss::LightningcssLoaderPlugin::new(),
       ));

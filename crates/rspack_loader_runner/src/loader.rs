@@ -40,6 +40,8 @@ pub struct LoaderItem<Context: Send> {
   r#type: String,
   pitch_executed: AtomicBool,
   normal_executed: AtomicBool,
+  /// Whether this loader is an in-memory cache boundary.
+  cache: bool,
   /// Whether loader was called with [LoaderContext::finish_with].
   ///
   /// Indicates that the loader has finished its work,
@@ -78,6 +80,11 @@ impl<C: Send> LoaderItem<C> {
   #[inline]
   pub fn r#type(&self) -> &str {
     &self.r#type
+  }
+
+  #[inline]
+  pub fn cache(&self) -> bool {
+    self.cache
   }
 
   #[inline]
@@ -224,6 +231,7 @@ impl<C: Send> From<Arc<dyn Loader<C>>> for LoaderItem<C> {
         pitch_executed: AtomicBool::new(false),
         normal_executed: AtomicBool::new(false),
         finish_called: AtomicBool::new(false),
+        cache: false,
       };
     }
     let ident = loader.identifier();
@@ -243,7 +251,16 @@ impl<C: Send> From<Arc<dyn Loader<C>>> for LoaderItem<C> {
       pitch_executed: AtomicBool::new(false),
       normal_executed: AtomicBool::new(false),
       finish_called: AtomicBool::new(false),
+      cache: false,
     }
+  }
+}
+
+impl<C: Send> From<(Arc<dyn Loader<C>>, bool)> for LoaderItem<C> {
+  fn from((loader, cache): (Arc<dyn Loader<C>>, bool)) -> Self {
+    let mut item: Self = loader.into();
+    item.cache = cache;
+    item
   }
 }
 

@@ -21,6 +21,16 @@ impl LoaderRunnerPlugin for RspackLoaderRunnerPlugin {
     "rspack-loader-runner"
   }
 
+  fn load_cache(&self, context: &mut LoaderContext<Self::Context>) -> Result<bool> {
+    let loader_cache = context.context.loader_cache.clone();
+    loader_cache.restore(context)
+  }
+
+  fn store_cache(&self, context: &LoaderContext<Self::Context>) -> Result<()> {
+    context.context.loader_cache.store(context);
+    Ok(())
+  }
+
   async fn before_all(&self, context: &mut LoaderContext<Self::Context>) -> Result<()> {
     self
       .plugin_driver

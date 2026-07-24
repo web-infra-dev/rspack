@@ -875,6 +875,13 @@ export type RuleSetLoaderWithOptions = {
    */
   parallel?: boolean | { maxWorkers?: number };
 
+  /**
+   * Cache this loader's result in memory for the lifetime of the compiler.
+   * On a cache hit, this loader and the loaders after it are skipped.
+   * The cache is invalidated when the module resource is modified or removed.
+   */
+  cache?: boolean;
+
   options?: RuleSetLoaderOptions;
 };
 

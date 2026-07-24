@@ -331,7 +331,6 @@ export const sharing = {
   SharePlugin,
 };
 
-export type { CacheLoaderOptions } from './builtin-loader/cache/index';
 export type {
   FeatureOptions as LightningcssFeatureOptions,
   LoaderOptions as LightningcssLoaderOptions,

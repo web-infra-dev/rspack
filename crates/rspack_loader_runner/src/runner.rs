@@ -105,8 +105,32 @@ pub async fn run_loaders<Context: Send>(
 ) -> (LoaderResult<Context>, Option<Error>) {
   let loaders = loaders
     .into_iter()
+    .map(Into::into)
+    .collect::<Vec<LoaderItem<Context>>>();
+  run_loaders_with_items(loaders, resource_data, plugin, context, fs).await
+}
+
+pub async fn run_loaders_with_cache<Context: Send>(
+  loaders: Vec<(Arc<dyn Loader<Context>>, bool)>,
+  resource_data: Arc<ResourceData>,
+  plugin: Option<Arc<dyn LoaderRunnerPlugin<Context = Context>>>,
+  context: Context,
+  fs: Arc<dyn ReadableFileSystem>,
+) -> (LoaderResult<Context>, Option<Error>) {
+  let loaders = loaders
+    .into_iter()
     .map(|i| i.into())
     .collect::<Vec<LoaderItem<Context>>>();
+  run_loaders_with_items(loaders, resource_data, plugin, context, fs).await
+}
+
+async fn run_loaders_with_items<Context: Send>(
+  loaders: Vec<LoaderItem<Context>>,
+  resource_data: Arc<ResourceData>,
+  plugin: Option<Arc<dyn LoaderRunnerPlugin<Context = Context>>>,
+  context: Context,
+  fs: Arc<dyn ReadableFileSystem>,
+) -> (LoaderResult<Context>, Option<Error>) {
   let mut cx = create_loader_context(loaders, resource_data, plugin, context);
   let result = run_loaders_impl(&mut cx, fs).await;
   (LoaderResult::new(cx), result.err())
@@ -139,6 +163,15 @@ async fn run_loaders_impl<Context: Send>(
           }
           continue;
         }
+        if cx.current_loader().cache()
+          && cx.cacheable
+          && let Some(plugin) = cx.plugin.clone()
+          && plugin.load_cache(cx)?
+        {
+          cx.state.transition(State::Normal);
+          cx.loader_index -= 1;
+          continue;
+        }
 
         if cx.current_loader().pitch_executed() {
           cx.loader_index += 1;
@@ -150,6 +183,12 @@ async fn run_loaders_impl<Context: Send>(
         let span = info_span!("run_loader:pitch", resource);
         loader.pitch(cx).instrument(span).await?;
         if cx.content.is_some() {
+          if cx.current_loader().cache()
+            && cx.cacheable
+            && let Some(plugin) = cx.plugin.clone()
+          {
+            plugin.store_cache(cx)?;
+          }
           cx.state.transition(State::Normal);
           cx.loader_index -= 1;
         }
@@ -190,6 +229,12 @@ async fn run_loaders_impl<Context: Send>(
           // we set everything to [None] and move to the next loader.
           // This mocks the behavior of webpack loader-runner.
           cx.finish_with_empty();
+        }
+        if cx.current_loader().cache()
+          && cx.cacheable
+          && let Some(plugin) = cx.plugin.clone()
+        {
+          plugin.store_cache(cx)?;
         }
       }
       State::Finished => break,

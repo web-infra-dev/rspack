@@ -3599,7 +3599,6 @@ dependencies = [
  "rspack_fs",
  "rspack_hash",
  "rspack_ids",
- "rspack_loader_cache",
  "rspack_loader_lightningcss",
  "rspack_loader_preact_refresh",
  "rspack_loader_react_refresh",
@@ -3730,7 +3729,6 @@ dependencies = [
  "rspack_hook",
  "rspack_ids",
  "rspack_javascript_compiler",
- "rspack_loader_cache",
  "rspack_loader_lightningcss",
  "rspack_loader_preact_refresh",
  "rspack_loader_react_refresh",
@@ -4111,25 +4109,6 @@ dependencies = [
  "swc_error_reporters",
  "swc_typescript",
  "url",
-]
-
-[[package]]
-name = "rspack_loader_cache"
-version = "0.101.4"
-dependencies = [
- "async-trait",
- "rspack_cacheable",
- "rspack_core",
- "rspack_error",
- "rspack_hook",
- "rspack_loader_runner",
- "rspack_paths",
- "serde",
- "serde_json",
- "sha2",
- "tempfile",
- "tokio",
- "tracing",
 ]
 
 [[package]]

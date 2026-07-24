@@ -7,10 +7,23 @@ module.exports = {
   module: {
     rules: [
       {
-        test: /value\.js$/,
+        test: /[/\\]value\.js$/,
         use: [
-          'builtin:cache-loader',
+          {
+            loader: path.resolve(__dirname, 'passthrough-loader.js'),
+            cache: true,
+          },
           path.resolve(__dirname, 'count-loader.js'),
+        ],
+      },
+      {
+        test: /builtin-value\.js$/,
+        use: [
+          {
+            loader: 'builtin:test-passthrough-loader',
+            cache: true,
+          },
+          path.resolve(__dirname, 'builtin-count-loader.js'),
         ],
       },
     ],

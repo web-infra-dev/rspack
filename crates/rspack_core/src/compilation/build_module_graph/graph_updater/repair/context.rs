@@ -7,8 +7,9 @@ use rustc_hash::FxHashMap as HashMap;
 use super::BuildModuleGraphArtifact;
 use crate::{
   Compilation, CompilationId, CompilerId, CompilerOptions, CompilerPlatform, DependencyTemplate,
-  DependencyTemplateType, DependencyType, ExportsInfoArtifact, ModuleFactory, ResolverFactory,
-  RuntimeTemplate, SharedPluginDriver, incremental::Incremental, module_graph::ModuleGraph,
+  DependencyTemplateType, DependencyType, ExportsInfoArtifact, LoaderCache, ModuleFactory,
+  ResolverFactory, RuntimeTemplate, SharedPluginDriver, incremental::Incremental,
+  module_graph::ModuleGraph,
 };
 
 #[derive(Debug)]
@@ -16,6 +17,9 @@ pub struct TaskContext {
   pub compiler_id: CompilerId,
   // compilation info
   pub compilation_id: CompilationId,
+  pub loader_cache: Arc<LoaderCache>,
+  pub modified_files: Arc<rspack_paths::ArcPathSet>,
+  pub removed_files: Arc<rspack_paths::ArcPathSet>,
   pub plugin_driver: SharedPluginDriver,
   pub buildtime_plugin_driver: SharedPluginDriver,
   pub fs: Arc<dyn ReadableFileSystem>,
@@ -42,6 +46,9 @@ impl TaskContext {
     Self {
       compiler_id: compilation.compiler_id(),
       compilation_id: compilation.id(),
+      loader_cache: compilation.loader_cache.clone(),
+      modified_files: Arc::new(compilation.modified_files.clone()),
+      removed_files: Arc::new(compilation.removed_files.clone()),
       plugin_driver: compilation.plugin_driver.clone(),
       buildtime_plugin_driver: compilation.buildtime_plugin_driver.clone(),
       compiler_options: compilation.options.clone(),
@@ -91,6 +98,9 @@ impl TaskContext {
       compiler_context,
     );
     compilation.dependency_factories = self.dependency_factories.clone();
+    compilation.loader_cache = self.loader_cache.clone();
+    compilation.modified_files = (*self.modified_files).clone();
+    compilation.removed_files = (*self.removed_files).clone();
     compilation.dependency_templates = self.dependency_templates.clone();
     std::mem::swap(
       &mut *compilation.build_module_graph_artifact,
