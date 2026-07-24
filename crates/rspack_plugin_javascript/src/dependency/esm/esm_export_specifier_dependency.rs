@@ -10,7 +10,7 @@ use rspack_core::{
 };
 use swc_atoms::Atom;
 
-use crate::{ConstValue, is_export_inlined};
+use crate::ConstValue;
 
 // Create __rspack_context.d(__rspack_exports, {}) for each export.
 #[cacheable]
@@ -182,30 +182,24 @@ impl DependencyTemplate for ESMExportSpecifierDependencyTemplate {
     let module = module_graph
       .module_by_identifier(&module.identifier())
       .expect("should have module graph module");
+    let exports_info = compilation
+      .exports_info_artifact
+      .get_exports_info_data(&module.identifier());
 
-    // remove the enum decl export if all the enum members are inlined
+    // Remove the enum export when every member is either unused or inlined.
     if let Some(enum_value) = &dep.enum_value {
-      let all_enum_member_inlined = enum_value.iter().all(|(enum_key, enum_member)| {
-        // if there are enum member need to keep origin/non-inlineable, then we need to keep the enum decl
-        if enum_member.is_none() {
-          return false;
-        }
+      let all_enum_members_unused_or_inlined = enum_value.iter().all(|(enum_key, _)| {
         let export_name = &[dep.name.clone(), enum_key.clone()];
-        is_export_inlined(
-          &compilation.exports_info_artifact,
-          &module.identifier(),
-          export_name,
-          *runtime,
+        matches!(
+          exports_info.get_used_name(&compilation.exports_info_artifact, *runtime, export_name,),
+          None | Some(UsedName::Inlined(_))
         )
       });
-      if all_enum_member_inlined {
+      if all_enum_members_unused_or_inlined {
         return;
       }
     }
 
-    let exports_info = compilation
-      .exports_info_artifact
-      .get_exports_info_data(&module.identifier());
     let Some(used_name) = exports_info.get_used_name(
       &compilation.exports_info_artifact,
       *runtime,

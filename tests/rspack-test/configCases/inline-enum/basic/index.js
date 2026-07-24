@@ -111,6 +111,15 @@ it("should keep the module if all enum members are inlined but have side effects
   }
 })
 
+it("should not emit an enum export when members are unused or inlined", () => {
+  if (!CONCATENATED) {
+    const moduleStart = generated.indexOf(`"./enum.side-effects.ts"(`);
+    const moduleEnd = generated.indexOf("\n},", moduleStart);
+    const moduleSource = generated.slice(moduleStart, moduleEnd);
+    expect(moduleSource.includes("__webpack_require__.d")).toBe(false);
+  }
+})
+
 it("should keep the module if part of the enum members are inlined and side effects free", () => {
   const partialInlinedSideEffectsFreeModuleIds = ["./enum.destructuring.ts"];
   if (CONCATENATED) {
