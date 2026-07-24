@@ -1,5 +1,5 @@
 use rspack_core::{
-  BoxDependency, Dependency, DependencyId, DependencyRange, UsedByExports,
+  AsyncDependenciesBlock, BoxDependency, Dependency, DependencyId, DependencyRange, UsedByExports,
   UsedByExportsDeferredPureCheck,
 };
 use rspack_util::SpanExt;
@@ -7,8 +7,8 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_atoms::Atom;
 use swc_experimental_ecma_ast::{
   AssignExpr, AssignOp, BinaryOp, ClassMember, DefaultDecl, Expr, GetSpan, Ident, Lit, MemberExpr,
-  MemberProp, ModuleDecl, Pat, Program, SimpleAssignTarget, Span, Stmt, ThisExpr, UnaryOp,
-  VarDeclarator,
+  MemberProp, ModuleDecl, Pat, Program, Prop, PropOrSpread, SimpleAssignTarget, Span, Stmt,
+  ThisExpr, UnaryOp, VarDeclarator,
 };
 
 use super::state::{
@@ -16,7 +16,9 @@ use super::state::{
   InnerGraphUsageOperation, TopLevelSymbol,
 };
 use crate::{
-  dependency::{ESMImportSpecifierDependency, PureExpressionDependency, URLDependency},
+  dependency::{
+    ESMImportSpecifierDependency, ImportDependency, PureExpressionDependency, URLDependency,
+  },
   parser_plugin::{DEFAULT_STAR_JS_WORD, JavascriptParserPlugin},
   side_effects_parser_plugin::{
     is_pure_class, is_pure_class_member, is_pure_expression, is_pure_function,
@@ -45,6 +47,29 @@ fn without_parentheses<'a>(mut expr: &'a Expr<'a>) -> &'a Expr<'a> {
     expr = &paren.expr;
   }
   expr
+}
+
+fn object_function_spans(expr: &Expr<'_>) -> Vec<Span> {
+  let Expr::Object(object) = without_parentheses(expr) else {
+    return Vec::new();
+  };
+  object
+    .props
+    .iter()
+    .filter_map(|prop| {
+      let PropOrSpread::Prop(prop) = prop else {
+        return None;
+      };
+      let Prop::KeyValue(prop) = &**prop else {
+        return None;
+      };
+      match without_parentheses(&prop.value) {
+        Expr::Arrow(expr) => Some(expr.span),
+        Expr::Fn(expr) => Some(expr.function.span),
+        _ => None,
+      }
+    })
+    .collect()
 }
 
 fn simple_assignment_ident<'a>(assign: &'a AssignExpr<'a>) -> Option<&'a Ident<'a>> {
@@ -431,6 +456,7 @@ impl InnerGraphParserPlugin {
   pub fn finalize_dependency_usage(
     state: &mut InnerGraphState,
     dependencies: &mut [BoxDependency],
+    blocks: &mut [Box<AsyncDependenciesBlock>],
   ) {
     if !state.is_enabled() || state.usage_map.is_empty() {
       return;
@@ -486,12 +512,15 @@ impl InnerGraphParserPlugin {
     for (operation, used_by_exports) in
       Self::infer_dependency_usage(state, &deferred_pure_checks_by_symbol)
     {
-      let dep_idx = match operation {
+      let dep = match operation {
         InnerGraphUsageOperation::PureExpression(dep_idx)
         | InnerGraphUsageOperation::ESMImportSpecifier(dep_idx)
-        | InnerGraphUsageOperation::URLDependency(dep_idx) => dep_idx,
+        | InnerGraphUsageOperation::URLDependency(dep_idx) => dependencies.get_mut(dep_idx),
+        InnerGraphUsageOperation::ImportDependency { block_idx, dep_idx } => blocks
+          .get_mut(block_idx)
+          .and_then(|block| block.get_dependency_mut(dep_idx)),
       };
-      let Some(dep) = dependencies.get_mut(dep_idx) else {
+      let Some(dep) = dep else {
         continue;
       };
       match operation {
@@ -502,6 +531,11 @@ impl InnerGraphParserPlugin {
         }
         InnerGraphUsageOperation::ESMImportSpecifier(_) => {
           if let Some(dep) = dep.downcast_mut::<ESMImportSpecifierDependency>() {
+            dep.set_used_by_exports(Some(used_by_exports));
+          }
+        }
+        InnerGraphUsageOperation::ImportDependency { .. } => {
+          if let Some(dep) = dep.downcast_mut::<ImportDependency>() {
             dep.set_used_by_exports(Some(used_by_exports));
           }
         }
@@ -524,8 +558,27 @@ impl InnerGraphParserPlugin {
   }
 
   pub fn on_usage(parser: &mut JavascriptParser, operation: InnerGraphUsageOperation) {
+    Self::on_usage_with_symbol(parser, operation, parser.inner_graph.get_top_level_symbol());
+  }
+
+  pub fn on_usage_in_object_function(
+    parser: &mut JavascriptParser,
+    operation: InnerGraphUsageOperation,
+    span: Span,
+  ) {
+    let symbol = parser
+      .inner_graph
+      .get_top_level_symbol_for_object_function(span);
+    Self::on_usage_with_symbol(parser, operation, symbol);
+  }
+
+  fn on_usage_with_symbol(
+    parser: &mut JavascriptParser,
+    operation: InnerGraphUsageOperation,
+    symbol: Option<TopLevelSymbol>,
+  ) {
     if parser.inner_graph.is_enabled()
-      && let Some(symbol) = parser.inner_graph.get_top_level_symbol()
+      && let Some(symbol) = symbol
     {
       parser
         .inner_graph
@@ -756,6 +809,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InnerGraphParserPlugin {
     {
       let name = Atom::from(ident.id.sym.as_str());
       let mut callees = vec![];
+      let object_function_spans = object_function_spans(init);
 
       if init.is_class()
         && is_pure_class(
@@ -792,6 +846,12 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InnerGraphParserPlugin {
         if !init.is_fn() && !init.is_arrow() && !init.is_lit() {
           parser.inner_graph.pure_declarators.insert(decl.span());
         }
+      } else if !object_function_spans.is_empty() {
+        let v = Self::tag_top_level_symbol(parser, &name);
+        parser
+          .inner_graph
+          .object_function_with_top_level_symbol
+          .extend(object_function_spans.into_iter().map(|span| (span, v)));
       }
     }
 

@@ -3,17 +3,21 @@ use rspack_cacheable::{
   with::{AsCacheable, AsOption, AsPreset, AsVec},
 };
 use rspack_core::{
-  AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration,
-  DependencyCondition, DependencyId, DependencyRange, DependencyTemplate, DependencyTemplateType,
-  DependencyType, ExportsInfoArtifact, FactorizeInfo, ImportAttributes, ImportPhase,
-  ModuleDependency, ModuleGraphCacheArtifact, ReferencedSpecifier, ResourceIdentifier,
-  TemplateContext, TemplateReplaceSource, create_exports_object_referenced,
+  AsContextDependency, ConnectionState, Dependency, DependencyCategory, DependencyCodeGeneration,
+  DependencyCondition, DependencyConditionFn, DependencyId, DependencyRange, DependencyTemplate,
+  DependencyTemplateType, DependencyType, ExportsInfoArtifact, FactorizeInfo, ImportAttributes,
+  ImportPhase, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection,
+  ReferencedSpecifier, ResourceIdentifier, RuntimeSpec, SideEffectsStateArtifact, TemplateContext,
+  TemplateReplaceSource, UsedByExports, create_exports_object_referenced,
   create_referenced_exports_by_referenced_specifiers,
 };
 use swc_atoms::Atom;
 
 use super::create_resource_identifier_for_esm_dependency;
-use crate::dependency::{DependencyBranchGuard, compose_dependency_condition};
+use crate::{
+  connection_active_used_by_exports,
+  dependency::{DependencyBranchGuard, compose_dependency_condition},
+};
 
 #[cacheable]
 #[derive(Debug, Clone)]
@@ -30,6 +34,7 @@ pub struct ImportDependency {
   resource_identifier: ResourceIdentifier,
   factorize_info: FactorizeInfo,
   optional: bool,
+  used_by_exports: Option<UsedByExports>,
   #[cacheable(with=AsOption<AsCacheable>)]
   branch_guard: Option<DependencyBranchGuard>,
 }
@@ -55,6 +60,7 @@ impl ImportDependency {
       resource_identifier,
       factorize_info: Default::default(),
       optional,
+      used_by_exports: None,
       comments,
       branch_guard: None,
     }
@@ -79,6 +85,10 @@ impl ImportDependency {
       Some(old_guard) => old_guard.and(guard),
       None => guard,
     });
+  }
+
+  pub fn set_used_by_exports(&mut self, used_by_exports: Option<UsedByExports>) {
+    self.used_by_exports = used_by_exports;
   }
 }
 
@@ -174,7 +184,10 @@ impl ModuleDependency for ImportDependency {
   }
 
   fn get_condition(&self) -> Option<DependencyCondition> {
-    compose_dependency_condition(None, self.branch_guard.as_ref())
+    compose_dependency_condition(
+      Some(DependencyCondition::new(ImportDependencyCondition)),
+      self.branch_guard.as_ref(),
+    )
   }
 }
 
@@ -186,6 +199,32 @@ impl DependencyCodeGeneration for ImportDependency {
 }
 
 impl AsContextDependency for ImportDependency {}
+
+struct ImportDependencyCondition;
+
+impl DependencyConditionFn for ImportDependencyCondition {
+  fn get_connection_state(
+    &self,
+    connection: &ModuleGraphConnection,
+    runtime: Option<&RuntimeSpec>,
+    module_graph: &ModuleGraph,
+    _module_graph_cache: &ModuleGraphCacheArtifact,
+    _side_effects_state_artifact: &SideEffectsStateArtifact,
+    exports_info_artifact: &ExportsInfoArtifact,
+  ) -> ConnectionState {
+    let dependency = module_graph.dependency_by_id(&connection.dependency_id);
+    let dependency = dependency
+      .downcast_ref::<ImportDependency>()
+      .expect("should be ImportDependency");
+    ConnectionState::Active(connection_active_used_by_exports(
+      connection,
+      runtime,
+      module_graph,
+      exports_info_artifact,
+      dependency.used_by_exports.as_ref(),
+    ))
+  }
+}
 
 #[cacheable]
 #[derive(Debug, Default)]

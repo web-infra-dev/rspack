@@ -86,6 +86,7 @@ pub(crate) struct InnerGraphState {
   pub(super) statement_pure_part: HashMap<Span, Span>,
   pub(super) class_with_top_level_symbol: HashMap<Span, TopLevelSymbol>,
   pub(super) decl_with_top_level_symbol: HashMap<Span, TopLevelSymbol>,
+  pub(super) object_function_with_top_level_symbol: Vec<(Span, TopLevelSymbol)>,
   pub(super) pure_declarators: HashSet<Span>,
 }
 
@@ -144,6 +145,22 @@ impl InnerGraphState {
     }
   }
 
+  pub(crate) fn get_top_level_symbol_for_object_function(
+    &self,
+    span: Span,
+  ) -> Option<TopLevelSymbol> {
+    if !self.is_enabled() {
+      return None;
+    }
+    self
+      .object_function_with_top_level_symbol
+      .iter()
+      .rev()
+      .find_map(|(function_span, symbol)| {
+        (function_span.start <= span.start && function_span.end >= span.end).then_some(*symbol)
+      })
+  }
+
   pub(crate) fn add_usage(&mut self, symbol: TopLevelSymbol, usage: InnerGraphMapUsage) {
     if !self.is_enabled() {
       return;
@@ -181,5 +198,6 @@ impl InnerGraphState {
 pub(crate) enum InnerGraphUsageOperation {
   PureExpression(usize),
   ESMImportSpecifier(usize),
+  ImportDependency { block_idx: usize, dep_idx: usize },
   URLDependency(usize),
 }

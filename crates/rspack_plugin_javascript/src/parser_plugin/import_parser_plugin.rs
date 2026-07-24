@@ -12,7 +12,11 @@ use swc_experimental_ecma_ast::{
   BlockStmtOrExpr, CallExpr, Expr, GetSpan, Ident, MemberExpr, Pat, Span, VarDeclarator,
 };
 
-use super::{JavascriptParserPlugin, import_phase::get_import_phase};
+use super::{
+  JavascriptParserPlugin,
+  import_phase::get_import_phase,
+  inner_graph::{plugin::InnerGraphParserPlugin, state::InnerGraphUsageOperation},
+};
 use crate::{
   dependency::{
     ImportContextDependency, ImportDependency, ImportEagerDependency, ImportWeakDependency,
@@ -453,6 +457,14 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
         )));
         let block_idx = parser.next_block_idx();
         parser.add_block(Box::new(block));
+        InnerGraphParserPlugin::on_usage_in_object_function(
+          parser,
+          InnerGraphUsageOperation::ImportDependency {
+            block_idx,
+            dep_idx: 0,
+          },
+          import_call_span,
+        );
         ImportDependencyLocator {
           block_idx: Some(block_idx),
           dep_idx: 0,
