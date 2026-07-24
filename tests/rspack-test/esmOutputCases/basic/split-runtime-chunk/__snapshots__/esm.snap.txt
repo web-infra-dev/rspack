@@ -2,15 +2,17 @@
 import { __webpack_require__ } from "./runtime.mjs";
 import "./other.mjs";
 
-// ./index.js
-const other = __webpack_require__("./other.js");
-
-
+// ./runtime-writes.js
 __webpack_require__.p = ('/assets/')
 __webpack_require__.nc ??= 'nonce'
 __webpack_require__.nc ||= 'fallback'
 __webpack_require__.nc &&= 'nonce-updated'
 __webpack_require__.p += ('nested/')
+
+// ./index.js
+const other = __webpack_require__("./other.js");
+
+
 
 it('should have correct value', () => {
   const { rspackPublicPath } = ({rspackPublicPath: __webpack_require__.p})

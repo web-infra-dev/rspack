@@ -2,15 +2,17 @@
 import { rspackRequire, publicPath, scriptNonce, setPublicPath, setScriptNonce } from "./runtime.mjs";
 import "./other.mjs";
 
-// ./index.js
-const other = rspackRequire("./other.js");
-
-
+// ./runtime-writes.js
 setPublicPath(('/assets/'))
 scriptNonce ?? setScriptNonce('nonce')
 scriptNonce || setScriptNonce('fallback')
 scriptNonce && setScriptNonce('nonce-updated')
 setPublicPath(publicPath + ('nested/'))
+
+// ./index.js
+const other = rspackRequire("./other.js");
+
+
 
 it('should have correct value', () => {
   const { rspackPublicPath } = ({rspackPublicPath: publicPath})
