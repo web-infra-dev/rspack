@@ -296,13 +296,6 @@ fn is_two_char_deterministic_mangle_name(name: &str) -> bool {
       || ((b'1'..=b'9').contains(&bytes[0]) && bytes[1].is_ascii_digit()))
 }
 
-fn deterministic_export_id_range(item_count: usize, used_name_count: usize) -> usize {
-  item_count
-    .saturating_mul(4)
-    .saturating_add(used_name_count)
-    .max(NUMBER_OF_IDENTIFIER_START_CHARS as usize)
-}
-
 /// Function to mangle exports information.
 fn mangle_exports_info(
   exports_info_artifact: &ExportsInfoArtifact,
@@ -323,7 +316,6 @@ fn mangle_exports_info(
 
   if deterministic {
     let used_names_len = used_names.len();
-    let optimal_range = deterministic_export_id_range(mangleable_exports.len(), used_names_len);
     let mut export_info_used_name =
       FxHashMap::with_capacity_and_hasher(mangleable_exports.len(), Default::default());
     assign_deterministic_ids_with_range_factor(
@@ -341,7 +333,10 @@ fn mangle_exports_info(
           true
         }
       },
-      &[optimal_range],
+      &[
+        NUMBER_OF_IDENTIFIER_START_CHARS as usize,
+        (NUMBER_OF_IDENTIFIER_START_CHARS * NUMBER_OF_IDENTIFIER_CONTINUATION_CHARS) as usize,
+      ],
       NUMBER_OF_IDENTIFIER_CONTINUATION_CHARS as usize,
       used_names_len,
       0,
