@@ -287,9 +287,6 @@ importers:
       '@types/node':
         specifier: ^20.19.43
         version: 20.19.43
-      acorn:
-        specifier: ^8.17.0
-        version: 8.17.0
       browserslist-load-config:
         specifier: ^1.0.3
         version: 1.0.3

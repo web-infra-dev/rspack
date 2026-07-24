@@ -1,5 +1,7 @@
+use std::sync::Arc;
+
 use rayon::prelude::*;
-use rspack_collections::{IdentifierMap, IdentifierSet};
+use rspack_collections::IdentifierSet;
 use rspack_core::{
   ChunkUkey, Compilation, CompilationOptimizeChunks, ModuleIdentifier, Plugin,
   incremental::Mutation,
@@ -10,35 +12,14 @@ use rspack_util::fx_hash::FxDashMap;
 
 #[derive(Debug)]
 #[plugin]
-pub struct RemoveDuplicateModulesPlugin {
-  options: RemoveDuplicateModulesPluginOptions,
-}
-
-#[derive(Debug, Clone, Default)]
-pub struct RemoveDuplicateModulesPluginOptions {
-  pub min_size: f64,
-  pub min_size_reduction: f64,
-}
+pub struct RemoveDuplicateModulesPlugin {}
 
 impl std::default::Default for RemoveDuplicateModulesPlugin {
   fn default() -> Self {
-    Self::new(Default::default())
+    Self {
+      inner: Arc::new(RemoveDuplicateModulesPluginInner {}),
+    }
   }
-}
-
-impl RemoveDuplicateModulesPlugin {
-  pub fn new(options: RemoveDuplicateModulesPluginOptions) -> Self {
-    Self::new_inner(options)
-  }
-}
-
-fn satisfies_size_thresholds(
-  size: f64,
-  chunk_count: usize,
-  options: &RemoveDuplicateModulesPluginOptions,
-) -> bool {
-  let size_reduction = size * chunk_count.saturating_sub(1) as f64;
-  size >= options.min_size && size_reduction >= options.min_size_reduction
 }
 
 fn find_reusable_chunk(
@@ -64,30 +45,20 @@ fn find_reusable_chunk(
 
 #[plugin_hook(CompilationOptimizeChunks for RemoveDuplicateModulesPlugin)]
 async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
-  let (chunk_map, module_sizes) = {
-    let module_graph = compilation.get_module_graph();
-    let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
-    let chunk_map: FxDashMap<Vec<ChunkUkey>, Vec<ModuleIdentifier>> = FxDashMap::default();
+  let module_graph = compilation.get_module_graph();
+  let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
 
-    module_graph.modules_par().for_each(|(identifier, _)| {
-      let chunks = chunk_graph.get_module_chunks(*identifier);
-      let mut sorted_chunks = chunks.iter().copied().collect::<Vec<_>>();
-      sorted_chunks.sort();
-      chunk_map
-        .entry(sorted_chunks)
-        .or_default()
-        .push(*identifier);
-    });
+  let chunk_map: FxDashMap<Vec<ChunkUkey>, Vec<ModuleIdentifier>> = FxDashMap::default();
 
-    let module_sizes =
-      (self.options.min_size > 0.0 || self.options.min_size_reduction > 0.0).then(|| {
-        module_graph
-          .modules()
-          .map(|(identifier, module)| (*identifier, module.size(None, Some(compilation))))
-          .collect::<IdentifierMap<_>>()
-      });
-    (chunk_map, module_sizes)
-  };
+  module_graph.modules_par().for_each(|(identifier, _)| {
+    let chunks = chunk_graph.get_module_chunks(*identifier);
+    let mut sorted_chunks = chunks.iter().copied().collect::<Vec<_>>();
+    sorted_chunks.sort();
+    chunk_map
+      .entry(sorted_chunks)
+      .or_default()
+      .push(*identifier);
+  });
 
   /*
     sort chunks so that do max effort to find reusable chunk
@@ -119,20 +90,6 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
   for (chunks, modules) in chunk_map.into_iter().rev() {
     if chunks.len() <= 1 {
       continue;
-    }
-
-    if let Some(module_sizes) = &module_sizes {
-      let size = modules
-        .iter()
-        .map(|module| {
-          module_sizes
-            .get(module)
-            .expect("module size should be collected")
-        })
-        .sum::<f64>();
-      if !satisfies_size_thresholds(size, chunks.len(), &self.options) {
-        continue;
-      }
     }
 
     // split chunks from original chunks and create new chunk
@@ -250,21 +207,5 @@ impl Plugin for RemoveDuplicateModulesPlugin {
       .optimize_chunks
       .tap(optimize_chunks::new(self));
     Ok(())
-  }
-}
-
-#[cfg(test)]
-mod tests {
-  use super::*;
-
-  #[test]
-  fn should_consider_the_number_of_removed_copies() {
-    let options = RemoveDuplicateModulesPluginOptions {
-      min_size: 0.0,
-      min_size_reduction: 40.0,
-    };
-
-    assert!(!satisfies_size_thresholds(27.0, 2, &options));
-    assert!(satisfies_size_thresholds(27.0, 3, &options));
   }
 }

@@ -2903,11 +2903,6 @@ export interface RawRemoteOptions {
   shareScope: string | Array<string>
 }
 
-export interface RawRemoveDuplicateModulesPluginOptions {
-  minSize?: number
-  minSizeReduction?: number
-}
-
 export interface RawResolveOptions {
   preferRelative?: boolean
   preferAbsolute?: boolean
