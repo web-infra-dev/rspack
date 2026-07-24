@@ -15,7 +15,7 @@ static RUNTIME_MODULE_VARIABLES: LazyLock<Vec<&'static str>> =
 static CHUNK_PRELOAD_TRIGGER_RUNTIME_REQUIREMENTS: LazyLock<RuntimeModuleRuntimeRequirements> =
   LazyLock::new(|| extract_runtime_globals_from_ejs(CHUNK_PRELOAD_TRIGGER_TEMPLATE));
 
-#[impl_runtime_module(runtime_module_variables)]
+#[impl_runtime_module]
 #[derive(Debug)]
 pub struct ChunkPreloadTriggerRuntimeModule {
   #[cacheable(with=AsMap)]

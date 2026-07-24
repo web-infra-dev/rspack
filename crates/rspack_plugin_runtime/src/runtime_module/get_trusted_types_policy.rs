@@ -12,11 +12,7 @@ static GET_TRUSTED_TYPES_POLICY_TEMPLATE: &str =
 static RUNTIME_MODULE_VARIABLES: LazyLock<Vec<&'static str>> =
   LazyLock::new(|| extract_runtime_module_variables_from_ejs(&[GET_TRUSTED_TYPES_POLICY_TEMPLATE]));
 
-static GET_TRUSTED_TYPES_POLICY_TEMPLATE: &str =
-  include_str!("runtime/get_trusted_types_policy.ejs");
-static RUNTIME_MODULE_VARIABLES: &[&str] = &["policy"];
-
-#[impl_runtime_module(runtime_module_variables)]
+#[impl_runtime_module]
 #[derive(Debug)]
 pub struct GetTrustedTypesPolicyRuntimeModule {}
 

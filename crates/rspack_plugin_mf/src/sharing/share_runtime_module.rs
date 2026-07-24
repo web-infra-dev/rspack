@@ -29,7 +29,7 @@ static INITIALIZE_SHARING_RUNTIME_REQUIREMENTS: LazyLock<RuntimeModuleRuntimeReq
 static RUNTIME_MODULE_VARIABLES: LazyLock<Vec<&'static str>> =
   LazyLock::new(|| extract_runtime_module_variables_from_ejs(&[INITIALIZE_SHARING_TEMPLATE]));
 
-#[impl_runtime_module(runtime_module_variables)]
+#[impl_runtime_module]
 #[derive(Debug)]
 pub struct ShareRuntimeModule {
   enhanced: bool,

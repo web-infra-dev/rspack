@@ -22,7 +22,7 @@ static HOT_MODULE_REPLACEMENT_RUNTIME_REQUIREMENTS: LazyLock<RuntimeModuleRuntim
 static RUNTIME_MODULE_VARIABLES: LazyLock<Vec<&'static str>> =
   LazyLock::new(|| extract_runtime_module_variables_from_ejs(&[HOT_MODULE_REPLACEMENT_TEMPLATE]));
 
-#[impl_runtime_module(runtime_module_variables)]
+#[impl_runtime_module]
 #[derive(Debug)]
 pub struct HotModuleReplacementRuntimeModule {}
 

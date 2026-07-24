@@ -11,7 +11,7 @@ const RUNTIME_MODULE_VARIABLES: &[&str] = &[
   "rspackRequiretemp",
 ];
 
-#[impl_runtime_module(runtime_module_variables)]
+#[impl_runtime_module]
 #[derive(Debug)]
 pub struct ExportRequireRuntimeModule {}
 

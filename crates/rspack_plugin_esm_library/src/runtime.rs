@@ -105,7 +105,7 @@ impl RuntimeModule for EsmEnsureChunkRuntimeModule {
   }
 }
 
-#[impl_runtime_module(runtime_module_variables)]
+#[impl_runtime_module]
 #[derive(Debug)]
 pub(crate) struct EsmChunkLoadingRuntimeModule {}
 

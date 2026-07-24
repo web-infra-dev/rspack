@@ -17,6 +17,10 @@ impl ContextRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for ContextRuntimeModule {
+  fn runtime_module_variables() -> &'static [&'static str] {
+    &[]
+  }
+
   fn runtime_requirements(
     &self,
     _compilation: &Compilation,

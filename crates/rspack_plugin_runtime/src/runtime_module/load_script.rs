@@ -26,7 +26,7 @@ static LOAD_SCRIPT_RUNTIME_REQUIREMENTS: LazyLock<RuntimeModuleRuntimeRequiremen
 static LOAD_SCRIPT_CREATE_SCRIPT_RUNTIME_REQUIREMENTS: LazyLock<RuntimeModuleRuntimeRequirements> =
   LazyLock::new(|| extract_runtime_globals_from_ejs(LOAD_SCRIPT_CREATE_SCRIPT_TEMPLATE));
 
-#[impl_runtime_module(runtime_module_variables)]
+#[impl_runtime_module]
 #[derive(Debug)]
 pub struct LoadScriptRuntimeModule {
   unique_name: String,

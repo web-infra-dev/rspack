@@ -17,6 +17,10 @@ impl DefineEsmExportsRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for DefineEsmExportsRuntimeModule {
+  fn runtime_module_variables() -> &'static [&'static str] {
+    &[]
+  }
+
   fn runtime_requirements(
     &self,
     _compilation: &Compilation,
