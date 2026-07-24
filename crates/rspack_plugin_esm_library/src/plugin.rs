@@ -112,10 +112,30 @@ impl EsmLibraryPlugin {
       // make sure all exports are provided
       let mut should_scope_hoisting = true;
 
-      if let Some(reason) = module.get_concatenation_bailout_reason(
-        module_graph,
-        &compilation.build_chunk_graph_artifact.chunk_graph,
-      ) {
+      let reason = module
+        .as_normal_module()
+        .and_then(|module| {
+          module
+            .parser_and_generator()
+            .downcast_ref::<JavaScriptParserAndGenerator>()
+        })
+        .map_or_else(
+          || {
+            module.get_concatenation_bailout_reason(
+              module_graph,
+              &compilation.build_chunk_graph_artifact.chunk_graph,
+            )
+          },
+          |parser_and_generator| {
+            parser_and_generator.get_concatenation_bailout_reason_with_commonjs(
+              module.as_ref(),
+              module_graph,
+              true,
+            )
+          },
+        );
+
+      if let Some(reason) = reason {
         logger.debug(format!(
           "module {module_identifier} has bailout reason: {reason}",
         ));
@@ -128,13 +148,15 @@ impl EsmLibraryPlugin {
       // }
       else if module_graph
         .get_incoming_connections(module_identifier)
-        .map(|conn| module_graph.dependency_by_id(&conn.dependency_id))
-        .any(|dep| {
+        .any(|conn| {
+          let dep = module_graph.dependency_by_id(&conn.dependency_id);
           !is_esm_dep_like(dep)
             && !matches!(
               dep.dependency_type(),
               DependencyType::Entry | DependencyType::DynamicImport | DependencyType::NewWorker
             )
+            && !(*dep.dependency_type() == DependencyType::CjsSelfReference
+              && conn.original_module_identifier == Some(*module_identifier))
         })
       {
         logger.debug(format!(

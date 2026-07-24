@@ -286,7 +286,7 @@ impl JavaScriptParserAndGenerator {
     None
   }
 
-  pub(crate) fn get_concatenation_bailout_reason_with_commonjs(
+  pub fn get_concatenation_bailout_reason_with_commonjs(
     &self,
     module: &dyn Module,
     module_graph: &ModuleGraph,
