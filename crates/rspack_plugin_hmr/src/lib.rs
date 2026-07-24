@@ -8,9 +8,9 @@ use rspack_core::{
   AssetInfo, Chunk, ChunkGraph, ChunkKind, ChunkUkey, Compilation,
   CompilationAdditionalTreeRuntimeRequirements, CompilationAsset, CompilationParams,
   CompilationProcessAssets, CompilationRecords, CompilerCompilation, DependencyType, LoaderContext,
-  ModuleId, ModuleIdentifier, ModuleType, NormalModuleFactoryParser, NormalModuleLoader,
-  ParserAndGenerator, ParserOptions, PathData, Plugin, RunnerContext, RuntimeGlobals,
-  RuntimeModule, RuntimeModuleExt, RuntimeSpec,
+  ManifestAssetType, ModuleId, ModuleIdentifier, ModuleType, NormalModuleFactoryParser,
+  NormalModuleLoader, ParserAndGenerator, ParserOptions, PathData, Plugin, RunnerContext,
+  RuntimeGlobals, RuntimeModule, RuntimeModuleExt, RuntimeSpec,
   chunk_graph_chunk::{ChunkId, ChunkIdSet},
   rspack_sources::{RawStringSource, SourceExt},
 };
@@ -130,6 +130,25 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       .find(|(_, chunk)| chunk.expect_id().eq(&chunk_id))
       .map(|(_, chunk)| chunk);
     let current_chunk_ukey = current_chunk.map(|c| c.ukey());
+    // Matched by asset ownership (the extract-css plugin tags its own assets with this
+    // type, same convention rspack_plugin_sri already relies on), not by filename suffix:
+    // a chunk can carry both native CSS and extract-css output, or another plugin's own
+    // `.css`-suffixed asset, and picking "the first `.css` file" could silently grab the
+    // wrong one.
+    let updated_mini_css_filename = current_chunk.and_then(|chunk| {
+      chunk
+        .files()
+        .iter()
+        .find(|filename| {
+          compilation.assets().get(*filename).is_some_and(|asset| {
+            matches!(
+              &asset.info.asset_type,
+              ManifestAssetType::Custom(name) if name.as_str() == EXTRACT_CSS_ASSET_TYPE_NAME
+            )
+          })
+        })
+        .cloned()
+    });
 
     if let Some(current_chunk) = current_chunk {
       new_runtime = current_chunk
@@ -338,6 +357,11 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       new_runtime.iter().for_each(|runtime| {
         if let Some(info) = hot_update_main_content_by_runtime.get_mut(runtime) {
           info.updated_chunk_ids.insert(chunk_id.clone());
+          if let Some(css_filename) = &updated_mini_css_filename {
+            info
+              .mini_css_filenames
+              .insert(chunk_id.clone(), css_filename.clone());
+          }
         }
       });
     }
@@ -376,6 +400,9 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           .removed_chunk_ids
           .extend(content.removed_chunk_ids);
         old_content.removed_modules.extend(content.removed_modules);
+        old_content
+          .mini_css_filenames
+          .extend(content.mini_css_filenames);
         compilation.push_diagnostic(Diagnostic::warn(
           "HotModuleReplacementPlugin".to_string(),
           r#"The configured output.hotUpdateMainFilename doesn't lead to unique filenames per runtime and HMR update differs between runtimes.
@@ -397,12 +424,15 @@ To fix this, make sure to include [runtime] in the output.hotUpdateMainFilename 
       m.into_iter().collect()
     };
 
-    let manifest_content = serde_json::json!({
+    let mut manifest = serde_json::json!({
       "c": c,
       "r": r,
       "m": m,
-    })
-    .to_string();
+    });
+    if !content.mini_css_filenames.is_empty() {
+      manifest["miniCss"] = serde_json::json!(content.mini_css_filenames);
+    }
+    let manifest_content = manifest.to_string();
 
     compilation.emit_asset(
       filename,
@@ -497,9 +527,19 @@ impl Plugin for HotModuleReplacementPlugin {
   }
 }
 
+// Matches the asset type extract-css tags its own emitted assets with
+// (see crates/rspack_plugin_extract_css/src/plugin.rs render_manifest, and the
+// equivalent lookup in rspack_plugin_sri/src/runtime.rs).
+const EXTRACT_CSS_ASSET_TYPE_NAME: &str = "extract-css";
+
 #[derive(Default)]
 struct HotUpdateContent {
   updated_chunk_ids: ChunkIdSet,
   removed_chunk_ids: ChunkIdSet,
   removed_modules: HashSet<ModuleId>,
+  // extract-css filename freshly emitted for an updated chunk, keyed by chunk id. Lets
+  // the extract-css HMR handler resolve the current stylesheet URL directly instead of
+  // relying on the chunk filename runtime function, which is never re-evaluated by HMR
+  // and so cannot reflect a filename that includes a content hash.
+  mini_css_filenames: HashMap<ChunkId, String>,
 }
