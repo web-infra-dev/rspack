@@ -840,6 +840,9 @@ importers:
       '@rspack/core':
         specifier: workspace:*
         version: link:../../packages/rspack
+      typescript:
+        specifier: ^6.0.3
+        version: 6.0.3
 
   website:
     dependencies:
