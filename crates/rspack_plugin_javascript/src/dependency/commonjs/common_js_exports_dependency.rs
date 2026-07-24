@@ -7,8 +7,8 @@ use rspack_core::{
   DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
   DependencyTemplateType, DependencyType, ExportNameOrSpec, ExportSpec, ExportsInfoArtifact,
   ExportsOfExportsSpec, ExportsSpec, InitFragmentExt, InitFragmentKey, InitFragmentStage,
-  ModuleGraph, ModuleGraphCacheArtifact, NormalInitFragment, TemplateContext,
-  TemplateReplaceSource, UsedName, property_access,
+  ModuleGraph, ModuleGraphCacheArtifact, ModuleInitFragments, NormalInitFragment, TemplateContext,
+  TemplateReplaceSource, UsedName, property_access, to_identifier,
 };
 use rspack_util::json_stringify_str;
 use swc_atoms::Atom;
@@ -27,6 +27,17 @@ pub enum ExportsBase {
 }
 
 impl ExportsBase {
+  pub const fn as_str(&self) -> &'static str {
+    match self {
+      Self::Exports => "exports",
+      Self::ModuleExports => "module.exports",
+      Self::This => "this",
+      Self::DefinePropertyExports => "Object.defineProperty(exports)",
+      Self::DefinePropertyModuleExports => "Object.defineProperty(module.exports)",
+      Self::DefinePropertyThis => "Object.defineProperty(this)",
+    }
+  }
+
   pub const fn is_exports(&self) -> bool {
     matches!(self, Self::Exports | Self::DefinePropertyExports)
   }
@@ -80,6 +91,46 @@ impl CommonJsExportsDependency {
       names,
     }
   }
+
+  pub fn base(&self) -> ExportsBase {
+    self.base
+  }
+
+  pub fn names(&self) -> &[Atom] {
+    &self.names
+  }
+}
+
+pub(super) fn get_concatenated_export_access(
+  concatenation_scope: &mut rspack_core::ConcatenationScope,
+  init_fragments: &mut ModuleInitFragments<'_>,
+  names: &[Atom],
+  property_access_suffix: String,
+) -> String {
+  let name = names.first().expect("should have a CommonJS export name");
+  let identifier = to_identifier(name);
+  let symbol = if identifier == name.as_str() {
+    format!("__RSPACK_CJS_EXPORT_{name}__")
+  } else {
+    format!(
+      "__RSPACK_CJS_EXPORT_{}_{}__",
+      identifier,
+      hex::encode(name.as_bytes())
+    )
+  };
+
+  init_fragments.push(
+    NormalInitFragment::new(
+      format!("var {symbol};\n"),
+      InitFragmentStage::StageConstants,
+      0,
+      InitFragmentKey::CommonJsExports(symbol.clone()),
+      None,
+    )
+    .boxed(),
+  );
+  concatenation_scope.register_export(name.clone(), symbol.clone());
+  format!("{symbol}{property_access_suffix}")
 }
 
 #[cacheable_dyn]
@@ -167,6 +218,7 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
       runtime,
       init_fragments,
       runtime_template,
+      concatenation_scope,
       ..
     } = code_generatable_context;
 
@@ -179,6 +231,45 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
       .exports_info_artifact
       .get_exports_info_data(&module.identifier());
     let used = exports_info.get_used_name(&compilation.exports_info_artifact, *runtime, &dep.names);
+
+    if let Some(concatenation_scope) = concatenation_scope {
+      debug_assert!(
+        matches!(dep.base, ExportsBase::Exports | ExportsBase::ModuleExports),
+        "unsupported CommonJS exports base in a concatenated module"
+      );
+      if let Some(UsedName::Normal(_)) = used {
+        source.replace(
+          dep.range.start,
+          dep.range.end,
+          get_concatenated_export_access(
+            concatenation_scope,
+            init_fragments,
+            &dep.names,
+            property_access(dep.names[1..].iter(), 0),
+          ),
+          None,
+        );
+      } else {
+        let placeholder_var = "__rspack_unused_export".to_string();
+        source.replace(
+          dep.range.start,
+          dep.range.end,
+          placeholder_var.clone(),
+          None,
+        );
+        init_fragments.push(
+          NormalInitFragment::new(
+            format!("var {placeholder_var};\n"),
+            InitFragmentStage::StageConstants,
+            0,
+            InitFragmentKey::CommonJsExports(placeholder_var),
+            None,
+          )
+          .boxed(),
+        );
+      }
+      return;
+    }
 
     let exports_argument = module.get_exports_argument();
     let module_argument = module.get_module_argument();

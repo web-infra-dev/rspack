@@ -720,9 +720,13 @@ impl<'a> BuiltinPlugin<'a> {
         )
         .boxed(),
       ),
-      BuiltinPluginName::ModuleConcatenationPlugin => {
-        plugins.push(ModuleConcatenationPlugin::default().boxed())
-      }
+      BuiltinPluginName::ModuleConcatenationPlugin => plugins.push(
+        ModuleConcatenationPlugin::new(
+          downcast_into::<bool>(self.options)
+            .map_err(|report| napi::Error::from_reason(report.to_string()))?,
+        )
+        .boxed(),
+      ),
       BuiltinPluginName::CssModulesPlugin => plugins.push(CssPlugin::default().boxed()),
       BuiltinPluginName::APIPlugin => plugins.push(APIPlugin::default().boxed()),
       BuiltinPluginName::RuntimeChunkPlugin => plugins.push(

@@ -64,7 +64,6 @@ import type {
   JsonParserOptions,
   NewCache,
   Node,
-  Optimization,
   Output,
   ParserOptionsByModuleType,
   Resolve,
@@ -110,7 +109,13 @@ export const getRawOptions = (
       context: options.context!,
       experiments,
     }),
-    optimization: options.optimization as Required<Optimization>,
+    optimization: {
+      ...options.optimization,
+      // The object form only controls how ModuleConcatenationPlugin is
+      // configured. The native compiler option still records whether the
+      // optimization itself is enabled.
+      concatenateModules: Boolean(options.optimization?.concatenateModules),
+    } as RawOptions['optimization'],
     stats: getRawStats(options.stats),
     cache: getRawCache(options.cache!),
     experiments,
