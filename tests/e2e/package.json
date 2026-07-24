@@ -25,7 +25,7 @@
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-refresh": "^0.18.0",
-    "typescript": "^6.0.3",
+    "typescript": "catalog:",
     "tailwindcss": "^3.4.19",
     "vue": "^3.5.40",
     "rspack-vue-loader": "^17.5.1",

@@ -39,7 +39,7 @@
     "@napi-rs/wasm-runtime": "1.1.6",
     "@types/node": "^20.19.43",
     "emnapi": "1.11.2",
-    "typescript": "^6.0.3"
+    "typescript": "catalog:"
   },
   "napi": {
     "binaryName": "rspack",
