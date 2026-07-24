@@ -15,6 +15,13 @@ packages:
   # this following is used to test resolve in monorepo
   - 'tests/rspack-test/normalCases/resolve/pnpm-workspace/packages/*'
 
+catalog:
+  typescript: ^6.0.3
+
+catalogs:
+  typescript7:
+    typescript: ^7.0.2
+
 allowBuilds:
   '@parcel/watcher': false
   core-js: false

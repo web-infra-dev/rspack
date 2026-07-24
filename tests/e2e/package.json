@@ -20,16 +20,16 @@
     "@types/fs-extra": "11.0.4",
     "babel-loader": "^10.1.1",
     "fs-extra": "^11.3.6",
-    "postcss": "^8.5.16",
+    "postcss": "^8.5.22",
     "postcss-loader": "^8.2.1",
-    "react": "^19.2.7",
-    "react-dom": "^19.2.7",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
     "react-refresh": "^0.18.0",
-    "typescript": "^6.0.3",
+    "typescript": "catalog:",
     "tailwindcss": "^3.4.19",
-    "vue": "^3.5.39",
+    "vue": "^3.5.40",
     "rspack-vue-loader": "^17.5.1",
     "css-loader": "^7.1.4",
-    "ws": "^8.21.0"
+    "ws": "^8.21.1"
   }
 }

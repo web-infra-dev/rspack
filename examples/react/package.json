@@ -8,8 +8,8 @@
     "preview": "rspack preview"
   },
   "dependencies": {
-    "react": "^19.2.7",
-    "react-dom": "^19.2.7"
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
   },
   "devDependencies": {
     "@rspack/cli": "workspace:*",
@@ -19,6 +19,6 @@
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "react-refresh": "^0.18.0",
-    "typescript": "^6.0.3"
+    "typescript": "catalog:"
   }
 }
