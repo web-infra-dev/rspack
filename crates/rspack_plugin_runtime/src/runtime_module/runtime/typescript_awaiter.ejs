@@ -1,0 +1,17 @@
+<%- define(TYPESCRIPT_AWAITER) %> = function(thisArg, argumentsValue, PromiseConstructor, generator) {
+	function adopt(value) {
+		return value instanceof PromiseConstructor ? value : new PromiseConstructor(function(resolve) { resolve(value); });
+	}
+	return new (PromiseConstructor || (PromiseConstructor = Promise))(function(resolve, reject) {
+		function fulfilled(value) {
+			try { step(generator.next(value)); } catch(error) { reject(error); }
+		}
+		function rejected(value) {
+			try { step(generator["throw"](value)); } catch(error) { reject(error); }
+		}
+		function step(result) {
+			result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected);
+		}
+		step((generator = generator.apply(thisArg, argumentsValue || [])).next());
+	});
+};

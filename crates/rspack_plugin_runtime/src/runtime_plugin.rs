@@ -36,9 +36,9 @@ use crate::{
     NodeModuleDecoratorRuntimeModule, NonceRuntimeModule, OnChunkLoadedRuntimeModule,
     PublicPathRuntimeModule, ReexportRuntimeModule, RelativeUrlRuntimeModule,
     RuntimeIdRuntimeModule, SystemContextRuntimeModule, ToBinaryRuntimeModule,
-    TypeScriptAssignRuntimeModule, TypeScriptDecorateRuntimeModule, TypeScriptExtendsRuntimeModule,
-    TypeScriptGeneratorRuntimeModule, TypeScriptImportDefaultRuntimeModule, chunk_has_css,
-    is_enabled_for_chunk,
+    TypeScriptAssignRuntimeModule, TypeScriptAwaiterRuntimeModule, TypeScriptDecorateRuntimeModule,
+    TypeScriptExtendsRuntimeModule, TypeScriptGeneratorRuntimeModule,
+    TypeScriptImportDefaultRuntimeModule, chunk_has_css, is_enabled_for_chunk,
   },
 };
 
@@ -444,6 +444,12 @@ async fn runtime_requirements_in_tree(
         runtime_modules_to_add.push((
           *chunk_ukey,
           TypeScriptExtendsRuntimeModule::new(&compilation.runtime_template).boxed(),
+        ));
+      }
+      RuntimeGlobals::TYPESCRIPT_AWAITER => {
+        runtime_modules_to_add.push((
+          *chunk_ukey,
+          TypeScriptAwaiterRuntimeModule::new(&compilation.runtime_template).boxed(),
         ));
       }
       RuntimeGlobals::GET_TRUSTED_TYPES_POLICY => {
