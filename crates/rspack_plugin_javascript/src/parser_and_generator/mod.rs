@@ -35,7 +35,7 @@ use crate::{
   visitors::{ParsedJavaScriptAst, ScanDependenciesResult, scan_dependencies, semicolon},
 };
 
-pub(crate) const CHECKED_REEXPORT_KEY_THRESHOLD: usize = 8;
+pub(crate) const CHECKED_REEXPORT_KEY_THRESHOLD: usize = 2;
 const CHECKED_REEXPORT_RUNTIME_CALL_THRESHOLD: usize = 8;
 
 #[derive(Debug, Clone, Copy)]
@@ -148,9 +148,9 @@ mod checked_reexport_tests {
 
   #[test]
   fn checked_reexport_loop_boundary() {
-    assert!(!should_render_checked_reexport_loop(7, true));
-    assert!(should_render_checked_reexport_loop(8, true));
-    assert!(!should_render_checked_reexport_loop(8, false));
+    assert!(!should_render_checked_reexport_loop(1, true));
+    assert!(should_render_checked_reexport_loop(2, true));
+    assert!(!should_render_checked_reexport_loop(2, false));
   }
 
   #[test]

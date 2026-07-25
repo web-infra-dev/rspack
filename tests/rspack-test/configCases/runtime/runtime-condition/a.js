@@ -83,7 +83,7 @@ it("should emit one runtime condition per checked star reexport", () => {
 	expect(largeModule.split(condition)).toHaveLength(2);
 	expect(smallModule.split(condition)).toHaveLength(2);
 	expect(largeModule.split(".forEach(")).toHaveLength(2);
-	expect(smallModule).not.toContain(".forEach(");
+	expect(smallModule.split(".forEach(")).toHaveLength(2);
 	expect(largeModule).not.toContain(`${runtime}.cr(`);
 	expect(smallModule).not.toContain(`${runtime}.cr(`);
 
