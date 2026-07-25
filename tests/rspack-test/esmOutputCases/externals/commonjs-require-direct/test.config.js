@@ -19,16 +19,15 @@ module.exports = {
 	afterExecute(options) {
 		const source = readOutput(options);
 
-		expect(source).toMatch(/import\s*\{\s*resolve\s*\}\s*from\s*["']path["']/);
-		expect(source).toMatch(/import\s*\(\s*["']os["']\s*\)/);
-		expect(source).toMatch(/createRequire\s+as\s+__rspack_createRequire/);
 		expect(source).toMatch(
-			/const\s+fs\s*=\s*__rspack_createRequire_require\s*\(\s*["']fs["']\s*\)/
+			/const\s+external\s*=\s*require\s*\(\s*["']external["']\s*\)/
 		);
-		expect(source).not.toContain('external "fs"');
-		expect(source).not.toMatch(/__webpack_require__\s*\(\s*[^)]*["']fs["']/);
 		expect(source).toMatch(
-			/__rspack_createRequire_require\s*\(\s*["']fs["']\s*\)\.stat/
+			/module\.exports\s*=\s*require\s*\(\s*["']external["']\s*\)/
+		);
+		expect(source).not.toContain('external "external"');
+		expect(source).not.toMatch(
+			/(?:__webpack_require__|__rspack_context\.r)\s*\(\s*[^)]*["']external["']/
 		);
 	}
 };

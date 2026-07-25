@@ -1,20 +1,9 @@
 ```mjs title=main.mjs
-import { rspackRequire, moduleFactories } from "./runtime.mjs";
 import {fileURLToPath as __rspack_fileURLToPath} from "node:url";
 import {dirname as __rspack_dirname} from "node:path";
 var __rspack_import_meta_dirname__ = __rspack_dirname(__rspack_fileURLToPath(import.meta.url));
 import { createRequire as __rspack_createRequire } from "node:module";
 const __rspack_createRequire_require = __rspack_createRequire(import.meta.url);
-moduleFactories.add({
-"fs"
-/*!*********************!*\
-  !*** external "fs" ***!
-  \*********************/
-(module) {
-module.exports = __rspack_createRequire_require("fs");
-
-},
-});
 // node:module
 const external_node_module_namespaceObject = __rspack_createRequire_require("node:module");
 // ./index.js
@@ -26,7 +15,7 @@ const external_fs_namespaceObject = index_rspack_createRequire_require("fs");
 
 const sourceCreateRequireRequire = index_rspack_createRequire_require;
 const sourceReadFile = external_fs_namespaceObject.readFile;
-const sourceRequireReadFile = (rspackRequire(/*! fs */ "fs")/* .readFile */.readFile);
+const sourceRequireReadFile = (index_rspack_createRequire_require("fs").readFile);
 
 it("should deconflict source bindings that already use the node-commonjs helper names", async () => {
   const mod = await import(/* webpackIgnore: true */ "./main.mjs");
@@ -48,39 +37,5 @@ it("should deconflict source bindings that already use the node-commonjs helper 
 });
 
 export { sourceCreateRequireRequire, sourceReadFile, sourceRequireReadFile };
-
-```
-
-```mjs title=runtime.mjs
-
-var modules = {};
-// The module cache
-var moduleCache = {};
-// The require function
-function rspackRequire(moduleId) {
-// Check if module is in cache
-var cachedModule = moduleCache[moduleId];
-if (cachedModule !== undefined) {
-return cachedModule.exports;
-}
-// Create a new module (and put it into the cache)
-var module = (moduleCache[moduleId] = {
-exports: {}
-});
-// Execute the module function
-modules[moduleId](module, module.exports, rspackRequire);
-
-// Return the exports of the module
-return module.exports;
-}
-export { rspackRequire };
-// expose the modules object (modules)
-var moduleFactories = modules;
-export { moduleFactories };
-
-// rspack/runtime/esm_register_module
-moduleFactories.add = function registerModules(modules) { Object.assign(moduleFactories, modules) }
-;
-
 
 ```
