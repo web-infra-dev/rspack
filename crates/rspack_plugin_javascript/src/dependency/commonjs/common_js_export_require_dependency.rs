@@ -54,6 +54,18 @@ impl CommonJsExportRequireDependency {
       result_used,
     }
   }
+
+  pub fn range(&self) -> DependencyRange {
+    self.range
+  }
+
+  pub fn base(&self) -> ExportsBase {
+    self.base
+  }
+
+  pub fn names(&self) -> &[Atom] {
+    &self.names
+  }
 }
 
 impl CommonJsExportRequireDependency {
