@@ -31,6 +31,7 @@ const TYPESCRIPT_GENERATOR_HELPER: &str = r#"(this&&this.__generator)||function(
 const TYPESCRIPT_EXTENDS_HELPER: &str = r#"(this&&this.__extends)||(function(){varextendStatics=function(d,b){extendStatics=Object.setPrototypeOf||({__proto__:[]}instanceofArray&&function(d,b){d.__proto__=b;})||function(d,b){for(varpinb)if(Object.prototype.hasOwnProperty.call(b,p))d[p]=b[p];};returnextendStatics(d,b);};returnfunction(d,b){if(typeofb!=="function"&&b!==null)thrownewTypeError("Classextendsvalue"+String(b)+"isnotaconstructorornull");extendStatics(d,b);function__(){this.constructor=d;}d.prototype=b===null?Object.create(b):(__.prototype=b.prototype,new__());};})()"#;
 const TYPESCRIPT_AWAITER_HELPER: &str = r#"(this&&this.__awaiter)||function(thisArg,_arguments,P,generator){functionadopt(value){returnvalueinstanceofP?value:newP(function(resolve){resolve(value);});}returnnew(P||(P=Promise))(function(resolve,reject){functionfulfilled(value){try{step(generator.next(value));}catch(e){reject(e);}}functionrejected(value){try{step(generator["throw"](value));}catch(e){reject(e);}}functionstep(result){result.done?resolve(result.value):adopt(result.value).then(fulfilled,rejected);}step((generator=generator.apply(thisArg,_arguments||[])).next());});}"#;
 const TYPESCRIPT_READ_HELPER: &str = r#"(this&&this.__read)||function(o,n){varm=typeofSymbol==="function"&&o[Symbol.iterator];if(!m)returno;vari=m.call(o),r,ar=[],e;try{while((n===void0||n-->0)&&!(r=i.next()).done)ar.push(r.value);}catch(error){e={error:error};}finally{try{if(r&&!r.done&&(m=i["return"]))m.call(i);}finally{if(e)throwe.error;}}returnar;}"#;
+const TYPESCRIPT_REST_HELPER: &str = r#"(this&&this.__rest)||function(s,e){vart={};for(varpins)if(Object.prototype.hasOwnProperty.call(s,p)&&e.indexOf(p)<0)t[p]=s[p];if(s!=null&&typeofObject.getOwnPropertySymbols==="function")for(vari=0,p=Object.getOwnPropertySymbols(s);i<p.length;i++){if(e.indexOf(p[i])<0&&Object.prototype.propertyIsEnumerable.call(s,p[i]))t[p[i]]=s[p[i]];}returnt;}"#;
 
 #[derive(Clone)]
 struct TypeScriptExportStarTagData;
@@ -302,6 +303,10 @@ fn typescript_read_fallback(parser: &JavascriptParser, declarator: &VarDeclarato
   typescript_runtime_helper_fallback(parser, declarator, "__read", TYPESCRIPT_READ_HELPER)
 }
 
+fn typescript_rest_fallback(parser: &JavascriptParser, declarator: &VarDeclarator) -> Option<Span> {
+  typescript_runtime_helper_fallback(parser, declarator, "__rest", TYPESCRIPT_REST_HELPER)
+}
+
 fn is_typescript_cached_helper(parser: &JavascriptParser, declarator: &VarDeclarator) -> bool {
   if !parser.is_top_level_scope() {
     return false;
@@ -320,6 +325,7 @@ fn is_typescript_cached_helper(parser: &JavascriptParser, declarator: &VarDeclar
           | "__extends"
           | "__awaiter"
           | "__read"
+          | "__rest"
       )
     })
   else {
@@ -705,6 +711,12 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsExportsParserPlugin {
       parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
         fallback.into(),
         RuntimeGlobals::TYPESCRIPT_READ,
+      )));
+    }
+    if let Some(fallback) = typescript_rest_fallback(parser, declarator) {
+      parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
+        fallback.into(),
+        RuntimeGlobals::TYPESCRIPT_REST,
       )));
     }
 

@@ -1,0 +1,17 @@
+<%- define(TYPESCRIPT_REST) %> = function(source, excluded) {
+	var target = {};
+	for(var property in source) {
+		if(Object.prototype.hasOwnProperty.call(source, property) && excluded.indexOf(property) < 0) {
+			target[property] = source[property];
+		}
+	}
+	if(source != null && typeof Object.getOwnPropertySymbols === "function") {
+		var symbols = Object.getOwnPropertySymbols(source);
+		for(var index = 0; index < symbols.length; index++) {
+			if(excluded.indexOf(symbols[index]) < 0 && Object.prototype.propertyIsEnumerable.call(source, symbols[index])) {
+				target[symbols[index]] = source[symbols[index]];
+			}
+		}
+	}
+	return target;
+};
