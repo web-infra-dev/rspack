@@ -329,6 +329,9 @@ define_runtime_globals! {
 
   // Define the canonical CommonJS __esModule marker
   const DEFINE_ESM_MARKER;
+
+  // Define a CommonJS export property
+  const DEFINE_PROPERTY;
 }
 
 impl Default for RuntimeGlobals {
@@ -437,6 +440,7 @@ pub fn runtime_globals_property_name(runtime_globals: &RuntimeGlobals) -> Option
     RuntimeGlobals::TYPESCRIPT_ASSIGN => "A",
     RuntimeGlobals::TYPESCRIPT_DECORATE => "B",
     RuntimeGlobals::DEFINE_ESM_MARKER => "J",
+    RuntimeGlobals::DEFINE_PROPERTY => "P",
     RuntimeGlobals::ENTRY_MODULE_ID => "s",
     RuntimeGlobals::STARTUP_NO_DEFAULT => "x (no default handler)",
     RuntimeGlobals::ENSURE_CHUNK_INCLUDE_ENTRIES => "f (include entries)",

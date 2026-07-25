@@ -254,11 +254,15 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
               );
               return;
             }
+            runtime_template
+              .runtime_requirements_mut()
+              .insert(RuntimeGlobals::DEFINE_PROPERTY);
             source.replace(
               dep.range.start,
               value_range.start,
               format!(
-                "Object.defineProperty({}{}, {}, (",
+                "{}({}{}, {}, (",
+                runtime_template.render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY),
                 base,
                 property_access(used[0..used.len() - 1].iter(), 0),
                 json_stringify_str(used.last().expect("Unexpected render define property base"))
