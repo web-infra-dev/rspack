@@ -37,7 +37,8 @@ use crate::{
     PublicPathRuntimeModule, ReexportRuntimeModule, RelativeUrlRuntimeModule,
     RuntimeIdRuntimeModule, SystemContextRuntimeModule, ToBinaryRuntimeModule,
     TypeScriptAssignRuntimeModule, TypeScriptDecorateRuntimeModule,
-    TypeScriptImportDefaultRuntimeModule, chunk_has_css, is_enabled_for_chunk,
+    TypeScriptGeneratorRuntimeModule, TypeScriptImportDefaultRuntimeModule, chunk_has_css,
+    is_enabled_for_chunk,
   },
 };
 
@@ -431,6 +432,12 @@ async fn runtime_requirements_in_tree(
         runtime_modules_to_add.push((
           *chunk_ukey,
           TypeScriptImportDefaultRuntimeModule::new(&compilation.runtime_template).boxed(),
+        ));
+      }
+      RuntimeGlobals::TYPESCRIPT_GENERATOR => {
+        runtime_modules_to_add.push((
+          *chunk_ukey,
+          TypeScriptGeneratorRuntimeModule::new(&compilation.runtime_template).boxed(),
         ));
       }
       RuntimeGlobals::GET_TRUSTED_TYPES_POLICY => {

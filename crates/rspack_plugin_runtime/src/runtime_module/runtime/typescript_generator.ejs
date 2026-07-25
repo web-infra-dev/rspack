@@ -1,0 +1,78 @@
+<%- define(TYPESCRIPT_GENERATOR) %> = function(thisArg, body) {
+	var state = { label: 0, sent: function() { if (operation[0] & 1) throw operation[1]; return operation[1]; }, trys: [], ops: [] };
+	var executing;
+	var iterator;
+	var operation;
+	var generator;
+	generator = { next: verb(0), "throw": verb(1), "return": verb(2) };
+	if(typeof Symbol === "function") {
+		generator[Symbol.iterator] = function() { return this; };
+	}
+	return generator;
+	function verb(type) {
+		return function(value) { return step([type, value]); };
+	}
+	function step(nextOperation) {
+		if(executing) throw new TypeError("Generator is already executing.");
+		while(state) {
+			try {
+				executing = 1;
+				if(iterator && (operation = nextOperation[0] & 2 ? iterator["return"] : nextOperation[0] ? iterator["throw"] || ((operation = iterator["return"]) && operation.call(iterator), 0) : iterator.next) && !(operation = operation.call(iterator, nextOperation[1])).done) {
+					return operation;
+				}
+				iterator = 0;
+				if(operation) nextOperation = [nextOperation[0] & 2, operation.value];
+				switch(nextOperation[0]) {
+					case 0:
+					case 1:
+						operation = nextOperation;
+						break;
+					case 4:
+						state.label++;
+						return { value: nextOperation[1], done: false };
+					case 5:
+						state.label++;
+						iterator = nextOperation[1];
+						nextOperation = [0];
+						continue;
+					case 7:
+						nextOperation = state.ops.pop();
+						state.trys.pop();
+						continue;
+					default:
+						operation = state.trys;
+						operation = operation.length > 0 && operation[operation.length - 1];
+						if(!operation && (nextOperation[0] === 6 || nextOperation[0] === 2)) {
+							state = 0;
+							continue;
+						}
+						if(nextOperation[0] === 3 && (!operation || (nextOperation[1] > operation[0] && nextOperation[1] < operation[3]))) {
+							state.label = nextOperation[1];
+							break;
+						}
+						if(nextOperation[0] === 6 && state.label < operation[1]) {
+							state.label = operation[1];
+							operation = nextOperation;
+							break;
+						}
+						if(operation && state.label < operation[2]) {
+							state.label = operation[2];
+							state.ops.push(nextOperation);
+							break;
+						}
+						if(operation[2]) state.ops.pop();
+						state.trys.pop();
+						continue;
+				}
+				nextOperation = body.call(thisArg, state);
+			} catch(error) {
+				nextOperation = [6, error];
+				iterator = 0;
+			} finally {
+				executing = operation = 0;
+			}
+		}
+		if(nextOperation[0] & 5) throw nextOperation[1];
+		return { value: nextOperation[0] ? nextOperation[1] : void 0, done: true };
+	}
+};

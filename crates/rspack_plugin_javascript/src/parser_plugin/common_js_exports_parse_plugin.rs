@@ -27,6 +27,7 @@ const TYPESCRIPT_ASSIGN_HELPER: &str = "(this&&this.__assign)||function(){__assi
 const TYPESCRIPT_DECORATE_HELPER: &str = "(this&&this.__decorate)||function(decorators,target,key,desc){varc=arguments.length,r=c<3?target:desc===null?desc=Object.getOwnPropertyDescriptor(target,key):desc,d;if(typeofReflect===\"object\"&&typeofReflect.decorate===\"function\")r=Reflect.decorate(decorators,target,key,desc);elsefor(vari=decorators.length-1;i>=0;i--)if(d=decorators[i])r=(c<3?d(r):c>3?d(target,key,r):d(target,key))||r;returnc>3&&r&&Object.defineProperty(target,key,r),r;}";
 const TYPESCRIPT_IMPORT_DEFAULT_HELPER: &str =
   "(this&&this.__importDefault)||function(mod){return(mod&&mod.__esModule)?mod:{\"default\":mod};}";
+const TYPESCRIPT_GENERATOR_HELPER: &str = r#"(this&&this.__generator)||function(thisArg,body){var_={label:0,sent:function(){if(t[0]&1)throwt[1];returnt[1];},trys:[],ops:[]},f,y,t,g;returng={next:verb(0),"throw":verb(1),"return":verb(2)},typeofSymbol==="function"&&(g[Symbol.iterator]=function(){returnthis;}),g;functionverb(n){returnfunction(v){returnstep([n,v]);};}functionstep(op){if(f)thrownewTypeError("Generatorisalreadyexecuting.");while(_)try{if(f=1,y&&(t=op[0]&2?y["return"]:op[0]?y["throw"]||((t=y["return"])&&t.call(y),0):y.next)&&!(t=t.call(y,op[1])).done)returnt;if(y=0,t)op=[op[0]&2,t.value];switch(op[0]){case0:case1:t=op;break;case4:_.label++;return{value:op[1],done:false};case5:_.label++;y=op[1];op=[0];continue;case7:op=_.ops.pop();_.trys.pop();continue;default:if(!(t=_.trys,t=t.length>0&&t[t.length-1])&&(op[0]===6||op[0]===2)){_=0;continue;}if(op[0]===3&&(!t||(op[1]>t[0]&&op[1]<t[3]))){_.label=op[1];break;}if(op[0]===6&&_.label<t[1]){_.label=t[1];t=op;break;}if(t&&_.label<t[2]){_.label=t[2];_.ops.push(op);break;}if(t[2])_.ops.pop();_.trys.pop();continue;}op=body.call(thisArg,_);}catch(e){op=[6,e];y=0;}finally{f=t=0;}if(op[0]&5)throwop[1];return{value:op[0]?op[1]:void0,done:true};}}"#;
 
 #[derive(Clone)]
 struct TypeScriptExportStarTagData;
@@ -208,6 +209,67 @@ fn typescript_import_default_fallback(
   Some(fallback.function.span)
 }
 
+fn typescript_generator_fallback(
+  parser: &JavascriptParser,
+  declarator: &VarDeclarator,
+) -> Option<Span> {
+  if !parser.is_top_level_scope()
+    || declarator
+      .name
+      .as_ident()
+      .is_none_or(|ident| ident.id.sym.as_str() != "__generator")
+  {
+    return None;
+  }
+  let init = declarator.init.as_ref()?;
+  let range = DependencyRange::from(init.span());
+  let source = parser
+    .source()
+    .get(range.start as usize..range.end as usize)?;
+  if !source
+    .chars()
+    .filter(|char| !char.is_whitespace())
+    .eq(TYPESCRIPT_GENERATOR_HELPER.chars())
+  {
+    return None;
+  }
+
+  let Expr::Bin(cached_helper) = init else {
+    return None;
+  };
+  if cached_helper.op != BinaryOp::LogicalOr {
+    return None;
+  }
+  let Expr::Fn(fallback) = &cached_helper.right else {
+    return None;
+  };
+  let is_directive = |statement: &Stmt| {
+    matches!(
+      statement,
+      Stmt::Expr(expression)
+        if matches!(&expression.expr, Expr::Lit(literal) if matches!(&**literal, Lit::Str(_)))
+    )
+  };
+  let helper_start = declarator.span().start;
+  let has_only_directives_before = match parser.ast.program {
+    Program::Script(script) => script
+      .body
+      .iter()
+      .take_while(|statement| statement.span().end <= helper_start)
+      .all(is_directive),
+    Program::Module(module) => module
+      .body
+      .iter()
+      .take_while(|item| item.span().end <= helper_start)
+      .all(|item| matches!(item, ModuleItem::Stmt(statement) if is_directive(statement))),
+  };
+  Some(if has_only_directives_before {
+    init.span()
+  } else {
+    fallback.function.span
+  })
+}
+
 fn is_typescript_cached_helper(parser: &JavascriptParser, declarator: &VarDeclarator) -> bool {
   if !parser.is_top_level_scope() {
     return false;
@@ -216,7 +278,12 @@ fn is_typescript_cached_helper(parser: &JavascriptParser, declarator: &VarDeclar
     .name
     .as_ident()
     .map(|ident| ident.id.sym.as_str())
-    .filter(|name| matches!(*name, "__createBinding" | "__decorate" | "__exportStar"))
+    .filter(|name| {
+      matches!(
+        *name,
+        "__createBinding" | "__decorate" | "__exportStar" | "__generator"
+      )
+    })
   else {
     return false;
   };
@@ -576,6 +643,12 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsExportsParserPlugin {
       parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
         fallback.into(),
         RuntimeGlobals::TYPESCRIPT_IMPORT_DEFAULT,
+      )));
+    }
+    if let Some(fallback) = typescript_generator_fallback(parser, declarator) {
+      parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
+        fallback.into(),
+        RuntimeGlobals::TYPESCRIPT_GENERATOR,
       )));
     }
 
