@@ -383,7 +383,24 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsExportsParserPlugin {
     declarator: &VarDeclarator,
     _declaration: VariableDeclaration<'_>,
   ) -> Option<bool> {
-    is_typescript_cached_helper(parser, declarator).then_some(true)
+    if !is_typescript_cached_helper(parser, declarator) {
+      return None;
+    }
+
+    if is_typescript_export_star_barrel(parser)
+      && declarator
+        .name
+        .as_ident()
+        .is_some_and(|ident| matches!(ident.id.sym.as_str(), "__createBinding" | "__exportStar"))
+      && let Some(init) = &declarator.init
+    {
+      parser.add_presentational_dependency(Box::new(ConstDependency::new(
+        init.span().into(),
+        "undefined".into(),
+      )));
+    }
+
+    Some(true)
   }
 
   fn assign_member_chain(
