@@ -5,8 +5,8 @@ use rspack_core::{
 use rspack_util::SpanExt;
 use swc_atoms::Atom;
 use swc_experimental_ecma_ast::{
-  AssignExpr, BinaryOp, CallExpr, Expr, ExprOrSpread, GetSpan, Ident, Lit, MemberExpr, Prop,
-  PropName, PropOrSpread, Span, Stmt, ThisExpr, UnaryExpr, UnaryOp, VarDeclarator,
+  AssignExpr, BinaryOp, CallExpr, Expr, ExprOrSpread, GetSpan, Ident, Lit, MemberExpr, ModuleItem,
+  Program, Prop, PropName, PropOrSpread, Span, Stmt, ThisExpr, UnaryExpr, UnaryOp, VarDeclarator,
 };
 
 use super::JavascriptParserPlugin;
@@ -108,7 +108,7 @@ fn typescript_assign_fallback(
   Some(fallback.span())
 }
 
-fn typescript_decorate_fallback(
+fn typescript_decorate_helper(
   parser: &JavascriptParser,
   declarator: &VarDeclarator,
 ) -> Option<Span> {
@@ -139,10 +139,36 @@ fn typescript_decorate_fallback(
   if cached_helper.op != BinaryOp::LogicalOr {
     return None;
   }
-  let Expr::Fn(fallback) = &cached_helper.right else {
+  let Expr::Fn(helper) = &cached_helper.right else {
     return None;
   };
-  Some(fallback.function.span)
+  let is_directive = |statement: &Stmt| {
+    matches!(
+      statement,
+      Stmt::Expr(expression)
+        if matches!(&expression.expr, Expr::Lit(literal) if matches!(&**literal, Lit::Str(_)))
+    )
+  };
+  let helper_start = declarator.span().start;
+  let has_only_directives_before = match parser.ast.program {
+    Program::Script(script) => script
+      .body
+      .iter()
+      .take_while(|statement| statement.span().end <= helper_start)
+      .all(is_directive),
+    Program::Module(module) => module
+      .body
+      .iter()
+      .take_while(|item| item.span().end <= helper_start)
+      .all(|item| matches!(item, ModuleItem::Stmt(statement) if is_directive(statement))),
+  };
+  // A module factory receives a fresh exports object. When only directives
+  // precede the canonical top-level helper, `this.__decorate` cannot exist.
+  Some(if has_only_directives_before {
+    init.span()
+  } else {
+    helper.function.span
+  })
 }
 
 fn typescript_import_default_fallback(
@@ -540,9 +566,9 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsExportsParserPlugin {
         RuntimeGlobals::TYPESCRIPT_ASSIGN,
       )));
     }
-    if let Some(fallback) = typescript_decorate_fallback(parser, declarator) {
+    if let Some(helper) = typescript_decorate_helper(parser, declarator) {
       parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
-        fallback.into(),
+        helper.into(),
         RuntimeGlobals::TYPESCRIPT_DECORATE,
       )));
     }

@@ -1,3 +1,5 @@
+globalThis.__decorateTestSideEffect = true;
+
 // prettier-ignore
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
 	var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
@@ -6,10 +8,8 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 	return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
 
-const setValue = value => target => {
-	target.prototype.value = value;
-};
-
-let DecoratedA = class DecoratedA {};
-DecoratedA = __decorate([setValue("a")], DecoratedA);
-exports.DecoratedA = DecoratedA;
+it("should preserve the cache probe after executable code", () => {
+	expect(globalThis.__decorateTestSideEffect).toBe(true);
+	expect(__decorate([() => "decorated"], class {})).toBe("decorated");
+	delete globalThis.__decorateTestSideEffect;
+});
