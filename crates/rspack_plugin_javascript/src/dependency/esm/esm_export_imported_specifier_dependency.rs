@@ -67,6 +67,8 @@ pub struct ESMExportImportedSpecifierDependency {
   factorize_info: FactorizeInfo,
   lazy_make: bool,
   commonjs_export_star: bool,
+  #[cacheable(with=AsOption<AsVec<AsPreset>>)]
+  commonjs_active_exports: Option<Vec<Atom>>,
 }
 
 impl ESMExportImportedSpecifierDependency {
@@ -101,21 +103,26 @@ impl ESMExportImportedSpecifierDependency {
       factorize_info: Default::default(),
       lazy_make: false,
       commonjs_export_star: false,
+      commonjs_active_exports: None,
     }
   }
 
-  pub fn set_commonjs_export_star(&mut self) {
+  pub fn set_commonjs_export_star(&mut self, active_exports: Vec<Atom>) {
     self.commonjs_export_star = true;
+    self.commonjs_active_exports = Some(active_exports);
   }
 
   // Because it is shared by multiply ESMExportImportedSpecifierDependency, so put it to `BuildInfo`
-  pub fn active_exports<'a>(&self, module_graph: &'a ModuleGraph) -> &'a HashSet<Atom> {
+  pub fn active_exports(&self, module_graph: &ModuleGraph) -> HashSet<Atom> {
+    if let Some(active_exports) = &self.commonjs_active_exports {
+      return active_exports.iter().cloned().collect();
+    }
     let build_info = module_graph
       .get_parent_module(&self.id)
       .and_then(|ident| module_graph.module_by_identifier(ident))
       .expect("should have mgm")
       .build_info();
-    &build_info.esm_named_exports
+    build_info.esm_named_exports.clone()
   }
 
   // Because it is shared by multiply ESMExportImportedSpecifierDependency, so put it to `BuildInfo`
@@ -342,7 +349,7 @@ impl ESMExportImportedSpecifierDependency {
     );
 
     let ignored_exports: HashSet<Atom> = {
-      let mut e = self.active_exports(module_graph).clone();
+      let mut e = self.active_exports(module_graph);
       e.insert("default".into());
       if self.commonjs_export_star {
         e.insert("__esModule".into());

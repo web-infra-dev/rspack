@@ -22,4 +22,7 @@ var __exportStar =
         __createBinding(exports, m, p);
   };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.shadowed = exports.local = void 0;
+exports.local = 'local';
+exports.shadowed = 'barrel';
 __exportStar(require('./values'), exports);

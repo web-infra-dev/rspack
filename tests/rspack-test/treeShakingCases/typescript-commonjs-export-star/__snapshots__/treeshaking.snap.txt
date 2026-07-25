@@ -9,18 +9,41 @@ __webpack_require__.d(exports, {
 /* import */ var _values__rspack_import_0 = __webpack_require__("./values.js");
 
 var __createBinding =
-  undefined;
+  (this && this.__createBinding) ||
+  (Object.create
+    ? function (o, m, k, k2) {
+        if (k2 === undefined) k2 = k;
+        var desc = Object.getOwnPropertyDescriptor(m, k);
+        if (!desc || ('get' in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+          desc = { enumerable: true, get: function () { return m[k]; } };
+        }
+        Object.defineProperty(o, k2, desc);
+      }
+    : function (o, m, k, k2) {
+        if (k2 === undefined) k2 = k;
+        o[k2] = m[k];
+      });
 var __exportStar =
-  undefined;
+  (this && this.__exportStar) ||
+  function (m, exports) {
+    for (var p in m)
+      if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p))
+        __createBinding(exports, m, p);
+  };
 __rspack_unused_export = ({ value: true });
+exports.shadowed = exports.local = void 0;
+exports.local = 'local';
+exports.shadowed = 'barrel';
 ;
 
 
 },
 "./index.js"(__unused_rspack_module, __unused_rspack_exports, __webpack_require__) {
-const used = (__webpack_require__("./barrel.js")/* .used */.used);
+const { local, shadowed, used } = __webpack_require__("./barrel.js");
 
-it('keeps the selected CommonJS star reexport', () => {
+it('keeps explicit exports and the selected CommonJS star reexport', () => {
+  expect(local).toBe('local');
+  expect(shadowed).toBe('barrel');
   expect(used).toBe('used');
 });
 
@@ -31,8 +54,9 @@ it('keeps the selected CommonJS star reexport', () => {
 var __rspack_unused_export;
 
 __rspack_unused_export = ({ value: true });
-__rspack_unused_export = exports.used = void 0;
+__rspack_unused_export = __rspack_unused_export = exports.used = void 0;
 exports.used = 'used';
+__rspack_unused_export = 'values';
 __rspack_unused_export = 'unused';
 
 

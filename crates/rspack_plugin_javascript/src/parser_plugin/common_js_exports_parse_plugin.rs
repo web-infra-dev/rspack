@@ -286,6 +286,13 @@ fn handle_assign_export(
     return None;
   }
 
+  if parser.is_statement_level_expression(assign_expr.span)
+    && let Some(name) = remaining.first()
+    && name != "__esModule"
+  {
+    parser.common_js_named_exports.insert(name.clone());
+  }
+
   parser.enable();
   // exports.__esModule = true;
   // module.exports.__esModule = true;
@@ -455,7 +462,6 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsExportsParserPlugin {
           TYPESCRIPT_EXPORT_STAR_TAG,
         )
         .is_some())
-      && is_typescript_export_star_barrel(parser)
       && parser.is_statement_level_expression(call_expr.span)
       && call_expr.args.len() == 2
       && let [
@@ -509,7 +515,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsExportsParserPlugin {
         None,
         loc,
       );
-      export_dep.set_commonjs_export_star();
+      export_dep.set_commonjs_export_star(parser.common_js_named_exports.iter().cloned().collect());
       parser.build_info.all_star_exports.push(export_dep.id);
       if parser
         .factory_meta
@@ -559,6 +565,10 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsExportsParserPlugin {
           parser.statement_path.len() == 1,
           get_value_of_property_description(arg2),
         );
+      } else {
+        parser
+          .common_js_named_exports
+          .insert(property.clone().into());
       }
       parser.add_dependency(Box::new(CommonJsExportsDependency::new(
         call_expr.span.into(),

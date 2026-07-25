@@ -1,5 +1,7 @@
-const used = require('./barrel').used;
+const { local, shadowed, used } = require('./barrel');
 
-it('keeps the selected CommonJS star reexport', () => {
+it('keeps explicit exports and the selected CommonJS star reexport', () => {
+  expect(local).toBe('local');
+  expect(shadowed).toBe('barrel');
   expect(used).toBe('used');
 });
