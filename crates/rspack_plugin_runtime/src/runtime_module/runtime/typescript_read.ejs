@@ -1,0 +1,20 @@
+<%- define(TYPESCRIPT_READ) %> = function(iterable, limit) {
+	var iteratorFactory = typeof Symbol === "function" && iterable[Symbol.iterator];
+	if(!iteratorFactory) return iterable;
+	var iterator = iteratorFactory.call(iterable);
+	var step;
+	var values = [];
+	var caught;
+	try {
+		while((limit === void 0 || limit-- > 0) && !(step = iterator.next()).done) values.push(step.value);
+	} catch(error) {
+		caught = { error: error };
+	} finally {
+		try {
+			if(step && !step.done && (iteratorFactory = iterator["return"])) iteratorFactory.call(iterator);
+		} finally {
+			if(caught) throw caught.error;
+		}
+	}
+	return values;
+};

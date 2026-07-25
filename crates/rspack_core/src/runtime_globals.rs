@@ -339,6 +339,9 @@ define_runtime_globals! {
   // TypeScript async function fallback
   const TYPESCRIPT_AWAITER;
 
+  // TypeScript iterable read fallback
+  const TYPESCRIPT_READ;
+
   // Define the canonical CommonJS __esModule marker
   const DEFINE_ESM_MARKER;
 
@@ -455,6 +458,7 @@ pub fn runtime_globals_property_name(runtime_globals: &RuntimeGlobals) -> Option
     RuntimeGlobals::TYPESCRIPT_GENERATOR => "L",
     RuntimeGlobals::TYPESCRIPT_EXTENDS => "M",
     RuntimeGlobals::TYPESCRIPT_AWAITER => "N",
+    RuntimeGlobals::TYPESCRIPT_READ => "Q",
     RuntimeGlobals::DEFINE_ESM_MARKER => "J",
     RuntimeGlobals::DEFINE_PROPERTY => "P",
     RuntimeGlobals::ENTRY_MODULE_ID => "s",
