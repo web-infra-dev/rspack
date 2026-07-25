@@ -60,11 +60,29 @@ impl Occasion for MetaOccasion {
       return Ok(());
     };
 
-    let meta: Meta = self.codec.decode(&value).expect("should decode success");
+    let meta: Meta = self.codec.decode(&value)?;
     if get_current_dependency_id() != 0 {
       panic!("The global dependency id generator is not 0 when the persistent cache is restored.");
     }
     set_current_dependency_id(meta.max_dependencies_id);
     Ok(())
+  }
+}
+
+#[cfg(test)]
+mod test {
+  use std::sync::Arc;
+
+  use rspack_storage::MemoryStorage;
+
+  use super::{CacheCodec, MetaOccasion, Occasion, SCOPE, Storage};
+
+  #[tokio::test]
+  async fn recovery_errors_on_corrupt_meta() {
+    let mut storage = MemoryStorage::default();
+    storage.set(SCOPE, "default".as_bytes().to_vec(), vec![0u8]);
+
+    let occasion = MetaOccasion::new(Arc::new(CacheCodec::new(None)));
+    assert!(occasion.recovery(&storage).await.is_err());
   }
 }
