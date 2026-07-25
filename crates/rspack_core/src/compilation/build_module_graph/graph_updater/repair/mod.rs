@@ -31,8 +31,20 @@ pub async fn repair(
   }
   let init_tasks = grouped_deps
     .into_iter()
-    .flat_map(|(parent_module_identifier, dependencies)| {
+    .flat_map(|(parent_module_identifier, mut dependencies)| {
       if let Some(original_module_identifier) = parent_module_identifier {
+        // `build_dependencies` is a `HashSet`; restore source order so diagnostics stay stable.
+        if let Some(mgm) =
+          module_graph.module_graph_module_by_identifier(&original_module_identifier)
+        {
+          let order: HashMap<_, _> = mgm
+            .all_dependencies()
+            .iter()
+            .enumerate()
+            .map(|(i, dep_id)| (*dep_id, i))
+            .collect();
+          dependencies.sort_by_key(|dep_id| order.get(dep_id).copied().unwrap_or(usize::MAX));
+        }
         return vec![Box::new(process_dependencies::ProcessDependenciesTask {
           original_module_identifier,
           dependencies,
