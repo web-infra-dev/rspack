@@ -19,8 +19,6 @@ catalogMode: prefer
 
 cleanupUnusedCatalogs: true
 
-peersSuffixMaxLength: 32
-
 catalog:
   '@actions/core': '3.0.1'
   '@ast-grep/napi': '^0.44.1'

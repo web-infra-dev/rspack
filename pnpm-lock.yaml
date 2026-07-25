@@ -4,7 +4,6 @@ settings:
   autoInstallPeers: false
   dedupePeers: true
   excludeLinksFromLockfile: false
-  peersSuffixMaxLength: 32
 
 catalogs:
   chalk5:
@@ -489,7 +488,7 @@ importers:
         version: 0.7.0(jiti@2.7.0)
       '@rstest/core':
         specifier: 'catalog:'
-        version: 0.10.6(66ca9e5597e226188f7252a086b4b057)
+        version: 0.10.6(@module-federation/runtime-tools@2.8.0)(core-js@3.49.0)(jsdom@26.1.0)
       '@taplo/cli':
         specifier: 'catalog:'
         version: 0.7.0
@@ -549,10 +548,10 @@ importers:
         version: 1.11.2
       '@napi-rs/cli':
         specifier: 'catalog:'
-        version: 3.7.4(fdc210b059fdfb52ae86ad2b922ded64)
+        version: 3.7.4(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)(@types/node@20.19.43)(node-addon-api@7.1.1)
       '@napi-rs/wasm-runtime':
         specifier: 'catalog:'
-        version: 1.1.6(16e8e9b35eab0183fe5f95d872d87ed4)
+        version: 1.1.6(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)
       '@types/node':
         specifier: 'catalog:'
         version: 20.19.43
@@ -610,10 +609,10 @@ importers:
         version: 1.11.2
       '@napi-rs/cli':
         specifier: 'catalog:'
-        version: 3.7.4(c6d5de13c1ba5bb6baace5c97c743b71)
+        version: 3.7.4(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)(@types/node@26.1.1)(node-addon-api@7.1.1)
       '@napi-rs/wasm-runtime':
         specifier: 'catalog:'
-        version: 1.1.6(16e8e9b35eab0183fe5f95d872d87ed4)
+        version: 1.1.6(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)
       emnapi:
         specifier: 'catalog:'
         version: 1.11.2(node-addon-api@7.1.1)
@@ -653,7 +652,7 @@ importers:
         version: 2.1.0(@rspack/core@packages+rspack)
       '@rspack/plugin-react-refresh':
         specifier: 'catalog:'
-        version: 2.0.2(4ca03dc228d1c4faff2952482b5c924b)
+        version: 2.0.2(@rspack/core@packages+rspack)(react-refresh@0.18.0)
       '@types/react':
         specifier: 'catalog:'
         version: 19.2.17
@@ -708,7 +707,7 @@ importers:
         version: 1.11.2
       '@napi-rs/wasm-runtime':
         specifier: 'catalog:'
-        version: 1.1.6(16e8e9b35eab0183fe5f95d872d87ed4)
+        version: 1.1.6(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)
 
   npm/win32-arm64-msvc: {}
 
@@ -724,7 +723,7 @@ importers:
     devDependencies:
       '@rslib/core':
         specifier: 'catalog:'
-        version: 1.0.0-beta.1(6364532af16af6794553267e0b62b8e3)
+        version: 1.0.0-beta.1(@microsoft/api-extractor@7.58.12)(@module-federation/runtime-tools@2.8.0)(core-js@3.49.0)(typescript@6.0.3)
       typescript:
         specifier: 'catalog:'
         version: 6.0.3
@@ -740,13 +739,13 @@ importers:
         version: 0.44.1
       '@napi-rs/wasm-runtime':
         specifier: 'catalog:'
-        version: 1.1.6(16e8e9b35eab0183fe5f95d872d87ed4)
+        version: 1.1.6(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)
       '@rsbuild/plugin-node-polyfill':
         specifier: 'catalog:'
         version: 1.4.6(@rsbuild/core@2.1.8)
       '@rslib/core':
         specifier: 'catalog:'
-        version: 1.0.0-beta.1(6364532af16af6794553267e0b62b8e3)
+        version: 1.0.0-beta.1(@microsoft/api-extractor@7.58.12)(@module-federation/runtime-tools@2.8.0)(core-js@3.49.0)(typescript@6.0.3)
       '@rspack/lite-tapable':
         specifier: 'catalog:'
         version: 1.1.2
@@ -803,7 +802,7 @@ importers:
         version: 1.11.2
       '@napi-rs/wasm-runtime':
         specifier: 'catalog:'
-        version: 1.1.6(16e8e9b35eab0183fe5f95d872d87ed4)
+        version: 1.1.6(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)
       '@rspack/lite-tapable':
         specifier: 'catalog:'
         version: 1.1.2
@@ -827,7 +826,7 @@ importers:
         version: 7.58.12(@types/node@26.1.1)
       '@rslib/core':
         specifier: 'catalog:'
-        version: 1.0.0-beta.1(6364532af16af6794553267e0b62b8e3)
+        version: 1.0.0-beta.1(@microsoft/api-extractor@7.58.12)(@module-federation/runtime-tools@2.8.0)(core-js@3.49.0)(typescript@6.0.3)
       '@rspack/core':
         specifier: workspace:*
         version: link:../rspack
@@ -936,7 +935,7 @@ importers:
     devDependencies:
       '@rslib/core':
         specifier: 'catalog:'
-        version: 1.0.0-beta.1(6364532af16af6794553267e0b62b8e3)
+        version: 1.0.0-beta.1(@microsoft/api-extractor@7.58.12)(@module-federation/runtime-tools@2.8.0)(core-js@3.49.0)(typescript@6.0.3)
       '@rspack/core':
         specifier: workspace:*
         version: link:../rspack
@@ -1008,7 +1007,7 @@ importers:
         version: 2.1.0(@rspack/core@packages+rspack)
       '@rspack/plugin-react-refresh':
         specifier: 'catalog:'
-        version: 2.0.2(4ca03dc228d1c4faff2952482b5c924b)
+        version: 2.0.2(@rspack/core@packages+rspack)(react-refresh@0.18.0)
       '@swc/helpers':
         specifier: 'catalog:'
         version: 0.5.23
@@ -1017,7 +1016,7 @@ importers:
         version: 11.0.4
       babel-loader:
         specifier: 'catalog:'
-        version: 10.1.1(15b437b90a168643aa4829d79f66a51c)
+        version: 10.1.1(@babel/core@7.29.7)(@rspack/core@packages+rspack)
       core-js:
         specifier: 'catalog:'
         version: 3.49.0
@@ -1032,7 +1031,7 @@ importers:
         version: 8.5.22
       postcss-loader:
         specifier: 'catalog:'
-        version: 8.2.1(82820807ce90697fe8e2fe0020748102)
+        version: 8.2.1(@rspack/core@packages+rspack)(postcss@8.5.22)(typescript@6.0.3)
       react:
         specifier: 'catalog:'
         version: 19.2.8
@@ -1044,7 +1043,7 @@ importers:
         version: 0.18.0
       rspack-vue-loader:
         specifier: 'catalog:'
-        version: 17.6.1(843e2792512b7689ce471116a9f5ea64)
+        version: 17.6.1(@rspack/core@packages+rspack)(vue@3.5.40)
       tailwindcss:
         specifier: catalog:tailwindcss3
         version: 3.4.19(yaml@2.9.0)
@@ -1065,7 +1064,7 @@ importers:
         version: 1.60.0
       '@rsbuild/core':
         specifier: 'catalog:'
-        version: 2.1.8(f52a260f1dab652b07a34f7b78d247e1)
+        version: 2.1.8(@module-federation/runtime-tools@2.8.0)(core-js@3.49.0)
       '@rspack/browser':
         specifier: workspace:*
         version: link:../../packages/rspack-browser
@@ -1101,16 +1100,16 @@ importers:
         version: link:../../packages/rspack
       '@rspack/plugin-preact-refresh':
         specifier: 'catalog:'
-        version: 2.0.1(e4c70ad217787f69e835cc6b99809872)
+        version: 2.0.1(@prefresh/core@1.5.10)(@prefresh/utils@1.2.1)(@rspack/core@packages+rspack)
       '@rspack/plugin-react-refresh':
         specifier: 'catalog:'
-        version: 2.0.2(4ca03dc228d1c4faff2952482b5c924b)
+        version: 2.0.2(@rspack/core@packages+rspack)(react-refresh@0.18.0)
       '@rspack/test-tools':
         specifier: workspace:*
         version: link:../../packages/rspack-test-tools
       '@rstest/core':
         specifier: 'catalog:'
-        version: 0.10.6(66ca9e5597e226188f7252a086b4b057)
+        version: 0.10.6(@module-federation/runtime-tools@2.8.0)(core-js@3.49.0)(jsdom@26.1.0)
       '@swc/helpers':
         specifier: 'catalog:'
         version: 0.5.23
@@ -1143,7 +1142,7 @@ importers:
         version: 8.17.0
       babel-loader:
         specifier: 'catalog:'
-        version: 10.1.1(15b437b90a168643aa4829d79f66a51c)
+        version: 10.1.1(@babel/core@7.29.7)(@rspack/core@packages+rspack)
       babel-plugin-import:
         specifier: 'catalog:'
         version: 1.13.8
@@ -1194,7 +1193,7 @@ importers:
         version: 4.6.7
       less-loader:
         specifier: 'catalog:'
-        version: 12.3.3(e0349d0ef9de43af00bebc7229f6211f)
+        version: 12.3.3(@rspack/core@packages+rspack)(less@4.6.7)
       lodash:
         specifier: 'catalog:'
         version: 4.18.1
@@ -1215,7 +1214,7 @@ importers:
         version: 4.1.0
       postcss-loader:
         specifier: 'catalog:'
-        version: 8.2.1(82820807ce90697fe8e2fe0020748102)
+        version: 8.2.1(@rspack/core@packages+rspack)(postcss@8.5.22)(typescript@6.0.3)
       postcss-pxtorem:
         specifier: 'catalog:'
         version: 6.1.0(postcss@8.5.22)
@@ -1239,13 +1238,13 @@ importers:
         version: 0.18.0
       react-server-dom-rspack:
         specifier: 'catalog:'
-        version: 0.0.2(231956e4390a5061e35186f0f3c99039)
+        version: 0.0.2(@rspack/core@packages+rspack)(react-dom@19.2.8)(react@19.2.8)
       rimraf:
         specifier: 'catalog:'
         version: 5.0.10
       sass-loader:
         specifier: 'catalog:'
-        version: 16.0.8(63c593f76bfb2c23121c9fa1a3ce3904)
+        version: 16.0.8(@rspack/core@packages+rspack)(sass-embedded@1.100.0)(sass@1.100.0)
       source-map:
         specifier: 'catalog:'
         version: 0.7.6
@@ -1266,7 +1265,7 @@ importers:
         version: 4.3.0
       ts-checker-rspack-plugin:
         specifier: 'catalog:'
-        version: 1.5.2(6d75046edeb86e0f275d001ff7c09dbf)
+        version: 1.5.2(@rspack/core@packages+rspack)(typescript@6.0.3)
       typescript:
         specifier: 'catalog:'
         version: 6.0.3
@@ -1339,13 +1338,13 @@ importers:
         version: 2.0.1(@rsbuild/core@2.1.8)
       '@rsbuild/plugin-tailwindcss':
         specifier: 'catalog:'
-        version: 2.0.3(6344402acdaa6a09452095675a526cfd)
+        version: 2.0.3(@rsbuild/core@2.1.8)(@rspack/core@2.1.5)
       '@rspress/core':
         specifier: 'catalog:'
-        version: 2.0.18(7550d2ebd3bb512717e62d9ac262bd96)
+        version: 2.0.18(@module-federation/runtime-tools@2.8.0)(@rspack/core@2.1.5)(@types/mdast@4.0.4)(@types/react@19.2.17)(core-js@3.49.0)(micromark-util-types@2.0.2)(micromark@4.0.2)
       '@rspress/plugin-algolia':
         specifier: 'catalog:'
-        version: 2.0.18(1e2c915bc8bc41a90fd07cf85f791db4)
+        version: 2.0.18(@rspress/core@2.0.18)(@types/react@19.2.17)(react-dom@19.2.8)(react@19.2.8)
       '@rspress/plugin-client-redirects':
         specifier: 'catalog:'
         version: 2.0.18(@rspress/core@2.0.18)
@@ -7594,8 +7593,8 @@ snapshots:
 
   '@asamuzakjp/css-color@3.2.0':
     dependencies:
-      '@csstools/css-calc': 2.1.4(ebb239c240844e85478eb5be39da24a7)
-      '@csstools/css-color-parser': 3.1.0(ebb239c240844e85478eb5be39da24a7)
+      '@csstools/css-calc': 2.1.4(@csstools/css-parser-algorithms@3.0.5)(@csstools/css-tokenizer@3.0.4)
+      '@csstools/css-color-parser': 3.1.0(@csstools/css-parser-algorithms@3.0.5)(@csstools/css-tokenizer@3.0.4)
       '@csstools/css-parser-algorithms': 3.0.5(@csstools/css-tokenizer@3.0.4)
       '@csstools/css-tokenizer': 3.0.4
       lru-cache: 10.4.3
@@ -7876,7 +7875,7 @@ snapshots:
       '@cspell/dict-lorem-ipsum': 4.0.5
       '@cspell/dict-lua': 4.0.8
       '@cspell/dict-makefile': 1.0.5
-      '@cspell/dict-markdown': 2.0.17(613ea5385082949a184338eea8ceba2f)
+      '@cspell/dict-markdown': 2.0.17(@cspell/dict-css@4.1.2)(@cspell/dict-html-symbol-entities@4.0.5)(@cspell/dict-html@4.0.15)(@cspell/dict-typescript@3.2.3)
       '@cspell/dict-monkeyc': 1.0.12
       '@cspell/dict-node': 5.0.9
       '@cspell/dict-npm': 5.2.43
@@ -7996,7 +7995,7 @@ snapshots:
 
   '@cspell/dict-makefile@1.0.5': {}
 
-  '@cspell/dict-markdown@2.0.17(613ea5385082949a184338eea8ceba2f)':
+  '@cspell/dict-markdown@2.0.17(@cspell/dict-css@4.1.2)(@cspell/dict-html-symbol-entities@4.0.5)(@cspell/dict-html@4.0.15)(@cspell/dict-typescript@3.2.3)':
     dependencies:
       '@cspell/dict-css': 4.1.2
       '@cspell/dict-html': 4.0.15
@@ -8060,15 +8059,15 @@ snapshots:
 
   '@csstools/color-helpers@5.1.0': {}
 
-  '@csstools/css-calc@2.1.4(ebb239c240844e85478eb5be39da24a7)':
+  '@csstools/css-calc@2.1.4(@csstools/css-parser-algorithms@3.0.5)(@csstools/css-tokenizer@3.0.4)':
     dependencies:
       '@csstools/css-parser-algorithms': 3.0.5(@csstools/css-tokenizer@3.0.4)
       '@csstools/css-tokenizer': 3.0.4
 
-  '@csstools/css-color-parser@3.1.0(ebb239c240844e85478eb5be39da24a7)':
+  '@csstools/css-color-parser@3.1.0(@csstools/css-parser-algorithms@3.0.5)(@csstools/css-tokenizer@3.0.4)':
     dependencies:
       '@csstools/color-helpers': 5.1.0
-      '@csstools/css-calc': 2.1.4(ebb239c240844e85478eb5be39da24a7)
+      '@csstools/css-calc': 2.1.4(@csstools/css-parser-algorithms@3.0.5)(@csstools/css-tokenizer@3.0.4)
       '@csstools/css-parser-algorithms': 3.0.5(@csstools/css-tokenizer@3.0.4)
       '@csstools/css-tokenizer': 3.0.4
 
@@ -8080,7 +8079,7 @@ snapshots:
 
   '@discoveryjs/json-ext@1.1.0': {}
 
-  '@docsearch/core@4.6.3(477c1f082ab72df8146c4ad42d266c12)':
+  '@docsearch/core@4.6.3(@types/react@19.2.17)(react-dom@19.2.8)(react@19.2.8)':
     optionalDependencies:
       '@types/react': 19.2.17
       react: 19.2.8
@@ -8088,10 +8087,10 @@ snapshots:
 
   '@docsearch/css@4.6.3': {}
 
-  '@docsearch/react@4.6.3(477c1f082ab72df8146c4ad42d266c12)':
+  '@docsearch/react@4.6.3(@types/react@19.2.17)(react-dom@19.2.8)(react@19.2.8)':
     dependencies:
       '@algolia/autocomplete-core': 1.19.2
-      '@docsearch/core': 4.6.3(477c1f082ab72df8146c4ad42d266c12)
+      '@docsearch/core': 4.6.3(@types/react@19.2.17)(react-dom@19.2.8)(react@19.2.8)
       '@docsearch/css': 4.6.3
     optionalDependencies:
       '@types/react': 19.2.17
@@ -8576,7 +8575,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@mdx-js/react@3.1.1(acbbabfc5a6713db78b918461fce96a5)':
+  '@mdx-js/react@3.1.1(@types/react@19.2.17)(react@19.2.8)':
     dependencies:
       '@types/mdx': 2.0.14
       '@types/react': 19.2.17
@@ -8647,11 +8646,11 @@ snapshots:
       '@module-federation/runtime': 2.8.0
       '@module-federation/sdk': 2.8.0
 
-  '@napi-rs/cli@3.7.4(c6d5de13c1ba5bb6baace5c97c743b71)':
+  '@napi-rs/cli@3.7.4(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)(@types/node@20.19.43)(node-addon-api@7.1.1)':
     dependencies:
-      '@inquirer/prompts': 8.5.2(@types/node@26.1.1)
+      '@inquirer/prompts': 8.5.2(@types/node@20.19.43)
       '@napi-rs/cross-toolchain': 1.0.3
-      '@napi-rs/wasm-tools': 1.0.1(16e8e9b35eab0183fe5f95d872d87ed4)
+      '@napi-rs/wasm-tools': 1.0.1(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)
       '@octokit/rest': 22.0.1
       clipanion: 4.0.0-rc.4
       colorette: 2.0.20
@@ -8679,11 +8678,11 @@ snapshots:
       - node-addon-api
       - supports-color
 
-  '@napi-rs/cli@3.7.4(fdc210b059fdfb52ae86ad2b922ded64)':
+  '@napi-rs/cli@3.7.4(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)(@types/node@26.1.1)(node-addon-api@7.1.1)':
     dependencies:
-      '@inquirer/prompts': 8.5.2(@types/node@20.19.43)
+      '@inquirer/prompts': 8.5.2(@types/node@26.1.1)
       '@napi-rs/cross-toolchain': 1.0.3
-      '@napi-rs/wasm-tools': 1.0.1(16e8e9b35eab0183fe5f95d872d87ed4)
+      '@napi-rs/wasm-tools': 1.0.1(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)
       '@octokit/rest': 22.0.1
       clipanion: 4.0.0-rc.4
       colorette: 2.0.20
@@ -8762,7 +8761,7 @@ snapshots:
     dependencies:
       '@emnapi/core': 1.11.2
       '@emnapi/runtime': 1.11.2
-      '@napi-rs/wasm-runtime': 1.1.6(16e8e9b35eab0183fe5f95d872d87ed4)
+      '@napi-rs/wasm-runtime': 1.1.6(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)
     optional: true
 
   '@napi-rs/lzma-win32-arm64-msvc@1.5.1':
@@ -8834,7 +8833,7 @@ snapshots:
     dependencies:
       '@emnapi/core': 1.11.2
       '@emnapi/runtime': 1.11.2
-      '@napi-rs/wasm-runtime': 1.1.6(16e8e9b35eab0183fe5f95d872d87ed4)
+      '@napi-rs/wasm-runtime': 1.1.6(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)
     optional: true
 
   '@napi-rs/tar-win32-arm64-msvc@1.1.1':
@@ -8865,14 +8864,14 @@ snapshots:
       '@napi-rs/tar-win32-ia32-msvc': 1.1.1
       '@napi-rs/tar-win32-x64-msvc': 1.1.1
 
-  '@napi-rs/wasm-runtime@1.1.4(8738cc0ffd7f5348356f0f10f02ca7f5)':
+  '@napi-rs/wasm-runtime@1.1.4(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)':
     dependencies:
       '@emnapi/core': 1.10.0
       '@emnapi/runtime': 1.10.0
       '@tybys/wasm-util': 0.10.3
     optional: true
 
-  '@napi-rs/wasm-runtime@1.1.6(16e8e9b35eab0183fe5f95d872d87ed4)':
+  '@napi-rs/wasm-runtime@1.1.6(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)':
     dependencies:
       '@emnapi/core': 1.11.2
       '@emnapi/runtime': 1.11.2
@@ -8905,9 +8904,9 @@ snapshots:
   '@napi-rs/wasm-tools-linux-x64-musl@1.0.1':
     optional: true
 
-  '@napi-rs/wasm-tools-wasm32-wasi@1.0.1(16e8e9b35eab0183fe5f95d872d87ed4)':
+  '@napi-rs/wasm-tools-wasm32-wasi@1.0.1(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)':
     dependencies:
-      '@napi-rs/wasm-runtime': 1.1.6(16e8e9b35eab0183fe5f95d872d87ed4)
+      '@napi-rs/wasm-runtime': 1.1.6(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)
     transitivePeerDependencies:
       - '@emnapi/core'
       - '@emnapi/runtime'
@@ -8922,7 +8921,7 @@ snapshots:
   '@napi-rs/wasm-tools-win32-x64-msvc@1.0.1':
     optional: true
 
-  '@napi-rs/wasm-tools@1.0.1(16e8e9b35eab0183fe5f95d872d87ed4)':
+  '@napi-rs/wasm-tools@1.0.1(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)':
     optionalDependencies:
       '@napi-rs/wasm-tools-android-arm-eabi': 1.0.1
       '@napi-rs/wasm-tools-android-arm64': 1.0.1
@@ -8933,7 +8932,7 @@ snapshots:
       '@napi-rs/wasm-tools-linux-arm64-musl': 1.0.1
       '@napi-rs/wasm-tools-linux-x64-gnu': 1.0.1
       '@napi-rs/wasm-tools-linux-x64-musl': 1.0.1
-      '@napi-rs/wasm-tools-wasm32-wasi': 1.0.1(16e8e9b35eab0183fe5f95d872d87ed4)
+      '@napi-rs/wasm-tools-wasm32-wasi': 1.0.1(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)
       '@napi-rs/wasm-tools-win32-arm64-msvc': 1.0.1
       '@napi-rs/wasm-tools-win32-ia32-msvc': 1.0.1
       '@napi-rs/wasm-tools-win32-x64-msvc': 1.0.1
@@ -9161,18 +9160,18 @@ snapshots:
   '@rollup/rollup-win32-x64-msvc@4.62.2':
     optional: true
 
-  '@rsbuild/core@2.0.15(f52a260f1dab652b07a34f7b78d247e1)':
+  '@rsbuild/core@2.0.15(@module-federation/runtime-tools@2.8.0)(core-js@3.49.0)':
     dependencies:
-      '@rspack/core': 2.0.8(b468c45cb2035f36342c894866343c43)
+      '@rspack/core': 2.0.8(@module-federation/runtime-tools@2.8.0)(@swc/helpers@0.5.23)
       '@swc/helpers': 0.5.23
     optionalDependencies:
       core-js: 3.49.0
     transitivePeerDependencies:
       - '@module-federation/runtime-tools'
 
-  '@rsbuild/core@2.1.8(f52a260f1dab652b07a34f7b78d247e1)':
+  '@rsbuild/core@2.1.8(@module-federation/runtime-tools@2.8.0)(core-js@3.49.0)':
     dependencies:
-      '@rspack/core': 2.1.5(b468c45cb2035f36342c894866343c43)
+      '@rspack/core': 2.1.5(@module-federation/runtime-tools@2.8.0)(@swc/helpers@0.5.23)
       '@swc/helpers': 0.5.23
     optionalDependencies:
       core-js: 3.49.0
@@ -9205,14 +9204,14 @@ snapshots:
       util: 0.12.5
       vm-browserify: 1.1.2
     optionalDependencies:
-      '@rsbuild/core': 2.1.8(f52a260f1dab652b07a34f7b78d247e1)
+      '@rsbuild/core': 2.1.8(@module-federation/runtime-tools@2.8.0)(core-js@3.49.0)
 
-  '@rsbuild/plugin-react@2.1.0(6344402acdaa6a09452095675a526cfd)':
+  '@rsbuild/plugin-react@2.1.0(@rsbuild/core@2.1.8)(@rspack/core@2.1.5)':
     dependencies:
-      '@rspack/plugin-react-refresh': 2.0.2(3b5facc2c5611f942814114a3418aaee)
+      '@rspack/plugin-react-refresh': 2.0.2(@rspack/core@2.1.5)(react-refresh@0.18.0)
       react-refresh: 0.18.0
     optionalDependencies:
-      '@rsbuild/core': 2.1.8(f52a260f1dab652b07a34f7b78d247e1)
+      '@rsbuild/core': 2.1.8(@module-federation/runtime-tools@2.8.0)(core-js@3.49.0)
     transitivePeerDependencies:
       - '@rspack/core'
 
@@ -9224,21 +9223,21 @@ snapshots:
       reduce-configs: 2.0.1
       sass-embedded: 1.100.0
     optionalDependencies:
-      '@rsbuild/core': 2.1.8(f52a260f1dab652b07a34f7b78d247e1)
+      '@rsbuild/core': 2.1.8(@module-federation/runtime-tools@2.8.0)(core-js@3.49.0)
 
-  '@rsbuild/plugin-tailwindcss@2.0.3(6344402acdaa6a09452095675a526cfd)':
+  '@rsbuild/plugin-tailwindcss@2.0.3(@rsbuild/core@2.1.8)(@rspack/core@2.1.5)':
     dependencies:
       '@tailwindcss/webpack': 4.3.3(@rspack/core@2.1.5)
     optionalDependencies:
-      '@rsbuild/core': 2.1.8(f52a260f1dab652b07a34f7b78d247e1)
+      '@rsbuild/core': 2.1.8(@module-federation/runtime-tools@2.8.0)(core-js@3.49.0)
     transitivePeerDependencies:
       - '@rspack/core'
       - webpack
 
-  '@rslib/core@1.0.0-beta.1(6364532af16af6794553267e0b62b8e3)':
+  '@rslib/core@1.0.0-beta.1(@microsoft/api-extractor@7.58.12)(@module-federation/runtime-tools@2.8.0)(core-js@3.49.0)(typescript@6.0.3)':
     dependencies:
-      '@rsbuild/core': 2.1.8(f52a260f1dab652b07a34f7b78d247e1)
-      rsbuild-plugin-dts: 1.0.0-beta.1(6c95a8c1fd7c745a81d4a1c077913a40)
+      '@rsbuild/core': 2.1.8(@module-federation/runtime-tools@2.8.0)(core-js@3.49.0)
+      rsbuild-plugin-dts: 1.0.0-beta.1(@microsoft/api-extractor@7.58.12)(@rsbuild/core@2.1.8)(typescript@6.0.3)
     optionalDependencies:
       '@microsoft/api-extractor': 7.58.12(@types/node@26.1.1)
       typescript: 6.0.3
@@ -9330,14 +9329,14 @@ snapshots:
     dependencies:
       '@emnapi/core': 1.10.0
       '@emnapi/runtime': 1.10.0
-      '@napi-rs/wasm-runtime': 1.1.4(8738cc0ffd7f5348356f0f10f02ca7f5)
+      '@napi-rs/wasm-runtime': 1.1.4(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)
     optional: true
 
   '@rspack/binding-wasm32-wasi@2.1.5':
     dependencies:
       '@emnapi/core': 1.11.2
       '@emnapi/runtime': 1.11.2
-      '@napi-rs/wasm-runtime': 1.1.6(16e8e9b35eab0183fe5f95d872d87ed4)
+      '@napi-rs/wasm-runtime': 1.1.6(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)
     optional: true
 
   '@rspack/binding-win32-arm64-msvc@2.0.8':
@@ -9386,14 +9385,14 @@ snapshots:
       '@rspack/binding-win32-ia32-msvc': 2.1.5
       '@rspack/binding-win32-x64-msvc': 2.1.5
 
-  '@rspack/core@2.0.8(b468c45cb2035f36342c894866343c43)':
+  '@rspack/core@2.0.8(@module-federation/runtime-tools@2.8.0)(@swc/helpers@0.5.23)':
     dependencies:
       '@rspack/binding': 2.0.8
     optionalDependencies:
       '@module-federation/runtime-tools': 2.8.0
       '@swc/helpers': 0.5.23
 
-  '@rspack/core@2.1.5(b468c45cb2035f36342c894866343c43)':
+  '@rspack/core@2.1.5(@module-federation/runtime-tools@2.8.0)(@swc/helpers@0.5.23)':
     dependencies:
       '@rspack/binding': 2.1.5
     optionalDependencies:
@@ -9411,32 +9410,32 @@ snapshots:
 
   '@rspack/lite-tapable@1.1.2': {}
 
-  '@rspack/plugin-preact-refresh@2.0.1(e4c70ad217787f69e835cc6b99809872)':
+  '@rspack/plugin-preact-refresh@2.0.1(@prefresh/core@1.5.10)(@prefresh/utils@1.2.1)(@rspack/core@packages+rspack)':
     dependencies:
       '@prefresh/core': 1.5.10(preact@10.29.7)
       '@prefresh/utils': 1.2.1
     optionalDependencies:
       '@rspack/core': link:packages/rspack
 
-  '@rspack/plugin-react-refresh@2.0.2(3b5facc2c5611f942814114a3418aaee)':
+  '@rspack/plugin-react-refresh@2.0.2(@rspack/core@2.1.5)(react-refresh@0.18.0)':
     dependencies:
       react-refresh: 0.18.0
     optionalDependencies:
-      '@rspack/core': 2.1.5(b468c45cb2035f36342c894866343c43)
+      '@rspack/core': 2.1.5(@module-federation/runtime-tools@2.8.0)(@swc/helpers@0.5.23)
 
-  '@rspack/plugin-react-refresh@2.0.2(4ca03dc228d1c4faff2952482b5c924b)':
+  '@rspack/plugin-react-refresh@2.0.2(@rspack/core@packages+rspack)(react-refresh@0.18.0)':
     dependencies:
       react-refresh: 0.18.0
     optionalDependencies:
       '@rspack/core': link:packages/rspack
 
-  '@rspress/core@2.0.18(7550d2ebd3bb512717e62d9ac262bd96)':
+  '@rspress/core@2.0.18(@module-federation/runtime-tools@2.8.0)(@rspack/core@2.1.5)(@types/mdast@4.0.4)(@types/react@19.2.17)(core-js@3.49.0)(micromark-util-types@2.0.2)(micromark@4.0.2)':
     dependencies:
       '@mdx-js/mdx': 3.1.1
-      '@mdx-js/react': 3.1.1(acbbabfc5a6713db78b918461fce96a5)
-      '@rsbuild/core': 2.1.8(f52a260f1dab652b07a34f7b78d247e1)
-      '@rsbuild/plugin-react': 2.1.0(6344402acdaa6a09452095675a526cfd)
-      '@rspress/shared': 2.0.18(f52a260f1dab652b07a34f7b78d247e1)
+      '@mdx-js/react': 3.1.1(@types/react@19.2.17)(react@19.2.8)
+      '@rsbuild/core': 2.1.8(@module-federation/runtime-tools@2.8.0)(core-js@3.49.0)
+      '@rsbuild/plugin-react': 2.1.0(@rsbuild/core@2.1.8)(@rspack/core@2.1.5)
+      '@rspress/shared': 2.0.18(@module-federation/runtime-tools@2.8.0)(core-js@3.49.0)
       '@shikijs/rehype': 4.3.1
       '@types/unist': 3.0.3
       '@unhead/react': 2.1.16(react@19.2.8)
@@ -9458,8 +9457,8 @@ snapshots:
       react-router-dom: 7.18.1(react-dom@19.2.8)(react@19.2.8)
       rehype-external-links: 3.0.0
       rehype-raw: 7.0.0
-      remark-cjk-friendly: 2.3.1(3178efdbc198871be009f03d7b1a7527)
-      remark-cjk-friendly-gfm-strikethrough: 2.3.1(3178efdbc198871be009f03d7b1a7527)
+      remark-cjk-friendly: 2.3.1(@types/mdast@4.0.4)(micromark-util-types@2.0.2)(micromark@4.0.2)(unified@11.0.5)
+      remark-cjk-friendly-gfm-strikethrough: 2.3.1(@types/mdast@4.0.4)(micromark-util-types@2.0.2)(micromark@4.0.2)(unified@11.0.5)
       remark-gfm: 4.0.1
       remark-mdx: 3.1.1
       remark-parse: 11.0.0
@@ -9480,11 +9479,11 @@ snapshots:
       - micromark-util-types
       - supports-color
 
-  '@rspress/plugin-algolia@2.0.18(1e2c915bc8bc41a90fd07cf85f791db4)':
+  '@rspress/plugin-algolia@2.0.18(@rspress/core@2.0.18)(@types/react@19.2.17)(react-dom@19.2.8)(react@19.2.8)':
     dependencies:
       '@docsearch/css': 4.6.3
-      '@docsearch/react': 4.6.3(477c1f082ab72df8146c4ad42d266c12)
-      '@rspress/core': 2.0.18(7550d2ebd3bb512717e62d9ac262bd96)
+      '@docsearch/react': 4.6.3(@types/react@19.2.17)(react-dom@19.2.8)(react@19.2.8)
+      '@rspress/core': 2.0.18(@module-federation/runtime-tools@2.8.0)(@rspack/core@2.1.5)(@types/mdast@4.0.4)(@types/react@19.2.17)(core-js@3.49.0)(micromark-util-types@2.0.2)(micromark@4.0.2)
       react: 19.2.8
       react-dom: 19.2.8(react@19.2.8)
     transitivePeerDependencies:
@@ -9495,20 +9494,20 @@ snapshots:
 
   '@rspress/plugin-client-redirects@2.0.18(@rspress/core@2.0.18)':
     dependencies:
-      '@rspress/core': 2.0.18(7550d2ebd3bb512717e62d9ac262bd96)
+      '@rspress/core': 2.0.18(@module-federation/runtime-tools@2.8.0)(@rspack/core@2.1.5)(@types/mdast@4.0.4)(@types/react@19.2.17)(core-js@3.49.0)(micromark-util-types@2.0.2)(micromark@4.0.2)
 
   '@rspress/plugin-rss@2.0.18(@rspress/core@2.0.18)':
     dependencies:
-      '@rspress/core': 2.0.18(7550d2ebd3bb512717e62d9ac262bd96)
+      '@rspress/core': 2.0.18(@module-federation/runtime-tools@2.8.0)(@rspack/core@2.1.5)(@types/mdast@4.0.4)(@types/react@19.2.17)(core-js@3.49.0)(micromark-util-types@2.0.2)(micromark@4.0.2)
       feed: 5.2.1
 
   '@rspress/plugin-sitemap@2.0.18(@rspress/core@2.0.18)':
     dependencies:
-      '@rspress/core': 2.0.18(7550d2ebd3bb512717e62d9ac262bd96)
+      '@rspress/core': 2.0.18(@module-federation/runtime-tools@2.8.0)(@rspack/core@2.1.5)(@types/mdast@4.0.4)(@types/react@19.2.17)(core-js@3.49.0)(micromark-util-types@2.0.2)(micromark@4.0.2)
 
-  '@rspress/shared@2.0.18(f52a260f1dab652b07a34f7b78d247e1)':
+  '@rspress/shared@2.0.18(@module-federation/runtime-tools@2.8.0)(core-js@3.49.0)':
     dependencies:
-      '@rsbuild/core': 2.1.8(f52a260f1dab652b07a34f7b78d247e1)
+      '@rsbuild/core': 2.1.8(@module-federation/runtime-tools@2.8.0)(core-js@3.49.0)
       '@shikijs/rehype': 4.3.1
       unified: 11.0.5
     transitivePeerDependencies:
@@ -9517,15 +9516,15 @@ snapshots:
 
   '@rstack-dev/doc-ui@1.14.7(@rspress/core@2.0.18)':
     optionalDependencies:
-      '@rspress/core': 2.0.18(7550d2ebd3bb512717e62d9ac262bd96)
+      '@rspress/core': 2.0.18(@module-federation/runtime-tools@2.8.0)(@rspack/core@2.1.5)(@types/mdast@4.0.4)(@types/react@19.2.17)(core-js@3.49.0)(micromark-util-types@2.0.2)(micromark@4.0.2)
 
   '@rstackjs/load-config@0.1.2(jiti@2.7.0)':
     optionalDependencies:
       jiti: 2.7.0
 
-  '@rstest/core@0.10.6(66ca9e5597e226188f7252a086b4b057)':
+  '@rstest/core@0.10.6(@module-federation/runtime-tools@2.8.0)(core-js@3.49.0)(jsdom@26.1.0)':
     dependencies:
-      '@rsbuild/core': 2.0.15(f52a260f1dab652b07a34f7b78d247e1)
+      '@rsbuild/core': 2.0.15(@module-federation/runtime-tools@2.8.0)(core-js@3.49.0)
       '@types/chai': 5.2.3
     optionalDependencies:
       jsdom: 26.1.0
@@ -9710,7 +9709,7 @@ snapshots:
       '@tailwindcss/oxide': 4.3.3
       tailwindcss: 4.3.3
     optionalDependencies:
-      '@rspack/core': 2.1.5(b468c45cb2035f36342c894866343c43)
+      '@rspack/core': 2.1.5(@module-federation/runtime-tools@2.8.0)(@swc/helpers@0.5.23)
 
   '@taplo/cli@0.7.0': {}
 
@@ -10169,7 +10168,7 @@ snapshots:
     dependencies:
       possible-typed-array-names: 1.1.0
 
-  babel-loader@10.1.1(15b437b90a168643aa4829d79f66a51c):
+  babel-loader@10.1.1(@babel/core@7.29.7)(@rspack/core@packages+rspack):
     dependencies:
       '@babel/core': 7.29.7
       find-up: 5.0.0
@@ -11806,7 +11805,7 @@ snapshots:
 
   layout-base@2.0.1: {}
 
-  less-loader@12.3.3(e0349d0ef9de43af00bebc7229f6211f):
+  less-loader@12.3.3(@rspack/core@packages+rspack)(less@4.6.7):
     dependencies:
       less: 4.6.7
     optionalDependencies:
@@ -12097,7 +12096,7 @@ snapshots:
       unist-util-visit: 5.1.0
       vfile: 6.0.3
 
-  mdast-util-to-markdown-cjk-friendly-gfm-strikethrough@1.0.0(6633faa75f0a42a3aa008941ce63db82):
+  mdast-util-to-markdown-cjk-friendly-gfm-strikethrough@1.0.0(@types/mdast@4.0.4)(micromark-util-types@2.0.2):
     dependencies:
       mdast-util-gfm-strikethrough: 2.0.0
       mdast-util-to-markdown: 2.1.2
@@ -12109,7 +12108,7 @@ snapshots:
       - micromark-util-types
       - supports-color
 
-  mdast-util-to-markdown-cjk-friendly@1.0.0(6633faa75f0a42a3aa008941ce63db82):
+  mdast-util-to-markdown-cjk-friendly@1.0.0(@types/mdast@4.0.4)(micromark-util-types@2.0.2):
     dependencies:
       mdast-util-to-markdown: 2.1.2
       micromark-extension-cjk-friendly-util: 3.0.1(micromark-util-types@2.0.2)
@@ -12201,7 +12200,7 @@ snapshots:
       micromark-util-symbol: 2.0.1
       micromark-util-types: 2.0.2
 
-  micromark-extension-cjk-friendly-gfm-strikethrough@2.0.1(4818b44f4407b1490f9384a18ffc2c24):
+  micromark-extension-cjk-friendly-gfm-strikethrough@2.0.1(micromark-util-types@2.0.2)(micromark@4.0.2):
     dependencies:
       devlop: 1.1.0
       get-east-asian-width: 1.6.0
@@ -12222,7 +12221,7 @@ snapshots:
     optionalDependencies:
       micromark-util-types: 2.0.2
 
-  micromark-extension-cjk-friendly@2.0.1(4818b44f4407b1490f9384a18ffc2c24):
+  micromark-extension-cjk-friendly@2.0.1(micromark-util-types@2.0.2)(micromark@4.0.2):
     dependencies:
       devlop: 1.1.0
       micromark: 4.0.2
@@ -12796,7 +12795,7 @@ snapshots:
       camelcase-css: 2.0.1
       postcss: 8.5.22
 
-  postcss-load-config@6.0.1(aee9f2f3b034ebd0c13d97af7c62b15d):
+  postcss-load-config@6.0.1(jiti@1.21.7)(postcss@8.5.22)(yaml@2.9.0):
     dependencies:
       lilconfig: 3.1.3
     optionalDependencies:
@@ -12804,7 +12803,7 @@ snapshots:
       postcss: 8.5.22
       yaml: 2.9.0
 
-  postcss-loader@8.2.1(82820807ce90697fe8e2fe0020748102):
+  postcss-loader@8.2.1(@rspack/core@packages+rspack)(postcss@8.5.22)(typescript@6.0.3):
     dependencies:
       cosmiconfig: 9.0.2(typescript@6.0.3)
       jiti: 2.7.0
@@ -13048,7 +13047,7 @@ snapshots:
     optionalDependencies:
       react-dom: 19.2.8(react@19.2.8)
 
-  react-server-dom-rspack@0.0.2(231956e4390a5061e35186f0f3c99039):
+  react-server-dom-rspack@0.0.2(@rspack/core@packages+rspack)(react-dom@19.2.8)(react@19.2.8):
     dependencies:
       '@rspack/core': link:packages/rspack
       react: 19.2.8
@@ -13157,10 +13156,10 @@ snapshots:
 
   relateurl@0.2.7: {}
 
-  remark-cjk-friendly-gfm-strikethrough@2.3.1(3178efdbc198871be009f03d7b1a7527):
+  remark-cjk-friendly-gfm-strikethrough@2.3.1(@types/mdast@4.0.4)(micromark-util-types@2.0.2)(micromark@4.0.2)(unified@11.0.5):
     dependencies:
-      mdast-util-to-markdown-cjk-friendly-gfm-strikethrough: 1.0.0(6633faa75f0a42a3aa008941ce63db82)
-      micromark-extension-cjk-friendly-gfm-strikethrough: 2.0.1(4818b44f4407b1490f9384a18ffc2c24)
+      mdast-util-to-markdown-cjk-friendly-gfm-strikethrough: 1.0.0(@types/mdast@4.0.4)(micromark-util-types@2.0.2)
+      micromark-extension-cjk-friendly-gfm-strikethrough: 2.0.1(micromark-util-types@2.0.2)(micromark@4.0.2)
       unified: 11.0.5
     optionalDependencies:
       '@types/mdast': 4.0.4
@@ -13169,10 +13168,10 @@ snapshots:
       - micromark-util-types
       - supports-color
 
-  remark-cjk-friendly@2.3.1(3178efdbc198871be009f03d7b1a7527):
+  remark-cjk-friendly@2.3.1(@types/mdast@4.0.4)(micromark-util-types@2.0.2)(micromark@4.0.2)(unified@11.0.5):
     dependencies:
-      mdast-util-to-markdown-cjk-friendly: 1.0.0(6633faa75f0a42a3aa008941ce63db82)
-      micromark-extension-cjk-friendly: 2.0.1(4818b44f4407b1490f9384a18ffc2c24)
+      mdast-util-to-markdown-cjk-friendly: 1.0.0(@types/mdast@4.0.4)(micromark-util-types@2.0.2)
+      micromark-extension-cjk-friendly: 2.0.1(micromark-util-types@2.0.2)(micromark@4.0.2)
       unified: 11.0.5
     optionalDependencies:
       '@types/mdast': 4.0.4
@@ -13298,25 +13297,25 @@ snapshots:
 
   rrweb-cssom@0.8.0: {}
 
-  rsbuild-plugin-dts@1.0.0-beta.1(6c95a8c1fd7c745a81d4a1c077913a40):
+  rsbuild-plugin-dts@1.0.0-beta.1(@microsoft/api-extractor@7.58.12)(@rsbuild/core@2.1.8)(typescript@6.0.3):
     dependencies:
       '@ast-grep/napi': 0.37.0
-      '@rsbuild/core': 2.1.8(f52a260f1dab652b07a34f7b78d247e1)
+      '@rsbuild/core': 2.1.8(@module-federation/runtime-tools@2.8.0)(core-js@3.49.0)
     optionalDependencies:
       '@microsoft/api-extractor': 7.58.12(@types/node@26.1.1)
       typescript: 6.0.3
 
   rsbuild-plugin-google-analytics@1.0.6(@rsbuild/core@2.1.8):
     optionalDependencies:
-      '@rsbuild/core': 2.1.8(f52a260f1dab652b07a34f7b78d247e1)
+      '@rsbuild/core': 2.1.8(@module-federation/runtime-tools@2.8.0)(core-js@3.49.0)
 
   rsbuild-plugin-open-graph@1.1.3(@rsbuild/core@2.1.8):
     optionalDependencies:
-      '@rsbuild/core': 2.1.8(f52a260f1dab652b07a34f7b78d247e1)
+      '@rsbuild/core': 2.1.8(@module-federation/runtime-tools@2.8.0)(core-js@3.49.0)
 
   rspack-merge@1.0.1: {}
 
-  rspack-vue-loader@17.6.1(843e2792512b7689ce471116a9f5ea64):
+  rspack-vue-loader@17.6.1(@rspack/core@packages+rspack)(vue@3.5.40):
     dependencies:
       '@rspack/lite-tapable': 1.1.2
       chalk: 4.1.2
@@ -13326,7 +13325,7 @@ snapshots:
 
   rspress-plugin-font-open-sans@1.0.4(@rspress/core@2.0.18):
     dependencies:
-      '@rspress/core': 2.0.18(7550d2ebd3bb512717e62d9ac262bd96)
+      '@rspress/core': 2.0.18(@module-federation/runtime-tools@2.8.0)(@rspack/core@2.1.5)(@types/mdast@4.0.4)(@types/react@19.2.17)(core-js@3.49.0)(micromark-util-types@2.0.2)(micromark@4.0.2)
 
   run-applescript@7.1.0: {}
 
@@ -13439,7 +13438,7 @@ snapshots:
       sass-embedded-win32-arm64: 1.100.0
       sass-embedded-win32-x64: 1.100.0
 
-  sass-loader@16.0.8(63c593f76bfb2c23121c9fa1a3ce3904):
+  sass-loader@16.0.8(@rspack/core@packages+rspack)(sass-embedded@1.100.0)(sass@1.100.0):
     dependencies:
       neo-async: 2.6.2
     optionalDependencies:
@@ -13695,7 +13694,7 @@ snapshots:
       postcss: 8.5.22
       postcss-import: 15.1.0(postcss@8.5.22)
       postcss-js: 4.1.0(postcss@8.5.22)
-      postcss-load-config: 6.0.1(aee9f2f3b034ebd0c13d97af7c62b15d)
+      postcss-load-config: 6.0.1(jiti@1.21.7)(postcss@8.5.22)(yaml@2.9.0)
       postcss-nested: 6.2.0(postcss@8.5.22)
       postcss-selector-parser: 6.1.4
       resolve: 1.22.12
@@ -13798,7 +13797,7 @@ snapshots:
 
   trough@2.2.0: {}
 
-  ts-checker-rspack-plugin@1.5.2(6d75046edeb86e0f275d001ff7c09dbf):
+  ts-checker-rspack-plugin@1.5.2(@rspack/core@packages+rspack)(typescript@6.0.3):
     dependencies:
       '@rspack/lite-tapable': 1.1.2
       chokidar: 3.6.0
