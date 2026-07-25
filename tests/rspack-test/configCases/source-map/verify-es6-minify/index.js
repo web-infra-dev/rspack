@@ -22,6 +22,7 @@ it("verify es6 (esmodule) minify bundle source map", async () => {
 		sourceUrl("./b-dir/b.js"),
 		sourceUrl("./b-dir/c-dir/c.js"),
 		sourceUrl("./index.js"),
+		runtimeSource("define_esm_marker"),
 		runtimeSource("define_property_getters"),
 		runtimeSource("has_own_property"),
 		runtimeSource("make_namespace_object"),

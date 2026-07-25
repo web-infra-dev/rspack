@@ -27,7 +27,9 @@ it("verify es6 (esmodule) bundle source map", async () => {
 			sourceUrl("./index.js"),
 		]);
 	} else {
-		expect(map.sources).toEqual([
+		expect(map.sources.filter(source =>
+			source !== "webpack:///webpack/runtime/define_esm_marker"
+		)).toEqual([
 			sourceUrl(`../../../../../packages/rspack-test-tools/dist/helper/util/checkSourceMap.js`),
 			sourceUrl("./b-dir/c-dir/c.js"),
 			sourceUrl("./b-dir/b.js"),
