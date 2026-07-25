@@ -28,6 +28,7 @@ const TYPESCRIPT_DECORATE_HELPER: &str = "(this&&this.__decorate)||function(deco
 const TYPESCRIPT_IMPORT_DEFAULT_HELPER: &str =
   "(this&&this.__importDefault)||function(mod){return(mod&&mod.__esModule)?mod:{\"default\":mod};}";
 const TYPESCRIPT_GENERATOR_HELPER: &str = r#"(this&&this.__generator)||function(thisArg,body){var_={label:0,sent:function(){if(t[0]&1)throwt[1];returnt[1];},trys:[],ops:[]},f,y,t,g;returng={next:verb(0),"throw":verb(1),"return":verb(2)},typeofSymbol==="function"&&(g[Symbol.iterator]=function(){returnthis;}),g;functionverb(n){returnfunction(v){returnstep([n,v]);};}functionstep(op){if(f)thrownewTypeError("Generatorisalreadyexecuting.");while(_)try{if(f=1,y&&(t=op[0]&2?y["return"]:op[0]?y["throw"]||((t=y["return"])&&t.call(y),0):y.next)&&!(t=t.call(y,op[1])).done)returnt;if(y=0,t)op=[op[0]&2,t.value];switch(op[0]){case0:case1:t=op;break;case4:_.label++;return{value:op[1],done:false};case5:_.label++;y=op[1];op=[0];continue;case7:op=_.ops.pop();_.trys.pop();continue;default:if(!(t=_.trys,t=t.length>0&&t[t.length-1])&&(op[0]===6||op[0]===2)){_=0;continue;}if(op[0]===3&&(!t||(op[1]>t[0]&&op[1]<t[3]))){_.label=op[1];break;}if(op[0]===6&&_.label<t[1]){_.label=t[1];t=op;break;}if(t&&_.label<t[2]){_.label=t[2];_.ops.push(op);break;}if(t[2])_.ops.pop();_.trys.pop();continue;}op=body.call(thisArg,_);}catch(e){op=[6,e];y=0;}finally{f=t=0;}if(op[0]&5)throwop[1];return{value:op[0]?op[1]:void0,done:true};}}"#;
+const TYPESCRIPT_EXTENDS_HELPER: &str = r#"(this&&this.__extends)||(function(){varextendStatics=function(d,b){extendStatics=Object.setPrototypeOf||({__proto__:[]}instanceofArray&&function(d,b){d.__proto__=b;})||function(d,b){for(varpinb)if(Object.prototype.hasOwnProperty.call(b,p))d[p]=b[p];};returnextendStatics(d,b);};returnfunction(d,b){if(typeofb!=="function"&&b!==null)thrownewTypeError("Classextendsvalue"+String(b)+"isnotaconstructorornull");extendStatics(d,b);function__(){this.constructor=d;}d.prototype=b===null?Object.create(b):(__.prototype=b.prototype,new__());};})()"#;
 
 #[derive(Clone)]
 struct TypeScriptExportStarTagData;
@@ -209,15 +210,17 @@ fn typescript_import_default_fallback(
   Some(fallback.function.span)
 }
 
-fn typescript_generator_fallback(
+fn typescript_runtime_helper_fallback(
   parser: &JavascriptParser,
   declarator: &VarDeclarator,
+  name: &str,
+  helper_source: &str,
 ) -> Option<Span> {
   if !parser.is_top_level_scope()
     || declarator
       .name
       .as_ident()
-      .is_none_or(|ident| ident.id.sym.as_str() != "__generator")
+      .is_none_or(|ident| ident.id.sym.as_str() != name)
   {
     return None;
   }
@@ -229,7 +232,7 @@ fn typescript_generator_fallback(
   if !source
     .chars()
     .filter(|char| !char.is_whitespace())
-    .eq(TYPESCRIPT_GENERATOR_HELPER.chars())
+    .eq(helper_source.chars())
   {
     return None;
   }
@@ -240,9 +243,6 @@ fn typescript_generator_fallback(
   if cached_helper.op != BinaryOp::LogicalOr {
     return None;
   }
-  let Expr::Fn(fallback) = &cached_helper.right else {
-    return None;
-  };
   let is_directive = |statement: &Stmt| {
     matches!(
       statement,
@@ -266,8 +266,27 @@ fn typescript_generator_fallback(
   Some(if has_only_directives_before {
     init.span()
   } else {
-    fallback.function.span
+    cached_helper.right.span()
   })
+}
+
+fn typescript_generator_fallback(
+  parser: &JavascriptParser,
+  declarator: &VarDeclarator,
+) -> Option<Span> {
+  typescript_runtime_helper_fallback(
+    parser,
+    declarator,
+    "__generator",
+    TYPESCRIPT_GENERATOR_HELPER,
+  )
+}
+
+fn typescript_extends_fallback(
+  parser: &JavascriptParser,
+  declarator: &VarDeclarator,
+) -> Option<Span> {
+  typescript_runtime_helper_fallback(parser, declarator, "__extends", TYPESCRIPT_EXTENDS_HELPER)
 }
 
 fn is_typescript_cached_helper(parser: &JavascriptParser, declarator: &VarDeclarator) -> bool {
@@ -281,7 +300,7 @@ fn is_typescript_cached_helper(parser: &JavascriptParser, declarator: &VarDeclar
     .filter(|name| {
       matches!(
         *name,
-        "__createBinding" | "__decorate" | "__exportStar" | "__generator"
+        "__createBinding" | "__decorate" | "__exportStar" | "__generator" | "__extends"
       )
     })
   else {
@@ -649,6 +668,12 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsExportsParserPlugin {
       parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
         fallback.into(),
         RuntimeGlobals::TYPESCRIPT_GENERATOR,
+      )));
+    }
+    if let Some(fallback) = typescript_extends_fallback(parser, declarator) {
+      parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
+        fallback.into(),
+        RuntimeGlobals::TYPESCRIPT_EXTENDS,
       )));
     }
 

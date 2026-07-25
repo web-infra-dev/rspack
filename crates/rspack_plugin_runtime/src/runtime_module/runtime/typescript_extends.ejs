@@ -1,0 +1,20 @@
+<%- define(TYPESCRIPT_EXTENDS) %> = (function() {
+	var extendStatics = function(derived, base) {
+		extendStatics = Object.setPrototypeOf ||
+			({ __proto__: [] } instanceof Array && function(derived, base) { derived.__proto__ = base; }) ||
+			function(derived, base) {
+				for(var property in base) {
+					if(Object.prototype.hasOwnProperty.call(base, property)) derived[property] = base[property];
+				}
+			};
+		return extendStatics(derived, base);
+	};
+	return function(derived, base) {
+		if(typeof base !== "function" && base !== null) {
+			throw new TypeError("Class extends value " + String(base) + " is not a constructor or null");
+		}
+		extendStatics(derived, base);
+		function Intermediate() { this.constructor = derived; }
+		derived.prototype = base === null ? Object.create(base) : (Intermediate.prototype = base.prototype, new Intermediate());
+	};
+})();

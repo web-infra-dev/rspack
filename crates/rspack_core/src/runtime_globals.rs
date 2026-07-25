@@ -333,6 +333,9 @@ define_runtime_globals! {
   // TypeScript generator fallback
   const TYPESCRIPT_GENERATOR;
 
+  // TypeScript class inheritance fallback
+  const TYPESCRIPT_EXTENDS;
+
   // Define the canonical CommonJS __esModule marker
   const DEFINE_ESM_MARKER;
 
@@ -447,6 +450,7 @@ pub fn runtime_globals_property_name(runtime_globals: &RuntimeGlobals) -> Option
     RuntimeGlobals::TYPESCRIPT_DECORATE => "B",
     RuntimeGlobals::TYPESCRIPT_IMPORT_DEFAULT => "K",
     RuntimeGlobals::TYPESCRIPT_GENERATOR => "L",
+    RuntimeGlobals::TYPESCRIPT_EXTENDS => "M",
     RuntimeGlobals::DEFINE_ESM_MARKER => "J",
     RuntimeGlobals::DEFINE_PROPERTY => "P",
     RuntimeGlobals::ENTRY_MODULE_ID => "s",
