@@ -129,17 +129,21 @@ pub async fn recovery_module_graph(
   let mut need_check_dep = vec![];
   let mut mg = ModuleGraph::default();
   let mut module_to_lazy_make = ModuleToLazyMake::default();
+  let mut decode_error = None;
   storage
     .load(SCOPE)
     .await?
     .into_par_iter()
-    .map(|(_, v)| {
-      codec
-        .decode::<Node>(&v)
-        .expect("unexpected module graph deserialize failed")
-    })
+    .map(|(_, v)| codec.decode::<Node>(&v))
     .with_max_len(1)
     .consume(|node| {
+      let node = match node {
+        Ok(node) => node,
+        Err(err) => {
+          decode_error.get_or_insert(err);
+          return;
+        }
+      };
       let mgm = node.mgm.into_owned();
       let module = node.module.into_owned();
       for (index_in_block, (dep, parent_block)) in node.dependencies.into_iter().enumerate() {
@@ -170,6 +174,9 @@ pub async fn recovery_module_graph(
       mg.add_module_graph_module(mgm);
       mg.add_module(module);
     });
+  if let Some(err) = decode_error {
+    return Err(err);
+  }
   // recovery incoming connections
   for (dep_id, module_identifier) in need_check_dep {
     let mgm = mg.module_graph_module_by_identifier_mut(&module_identifier);
