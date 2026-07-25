@@ -93,6 +93,18 @@ impl CacheContext {
             .warn("persistent cache is readonly, stale entries will not be rewritten");
         }
       }
+      Ok(BuildDepsValidationResult::Missing) => {
+        self.invalid = true;
+        self.load_failed = true;
+        self.logger().warn(
+          "persistent cache invalidated because the build dependencies snapshot is missing or incomplete",
+        );
+        if self.readonly {
+          self
+            .logger()
+            .warn("persistent cache is readonly, stale entries will not be rewritten");
+        }
+      }
       Err(err) => {
         self.load_failed = true;
         self
