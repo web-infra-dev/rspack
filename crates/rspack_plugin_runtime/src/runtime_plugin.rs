@@ -26,7 +26,7 @@ use crate::{
     ChunkNameRuntimeModule, ChunkPrefetchPreloadFunctionRuntimeModule,
     CompatGetDefaultExportRuntimeModule, ContextRuntimeModule,
     CreateFakeNamespaceObjectRuntimeModule, CreateScriptRuntimeModule,
-    CreateScriptUrlRuntimeModule, DefineEsmExportsRuntimeModule,
+    CreateScriptUrlRuntimeModule, DefineEsmExportsRuntimeModule, DefineEsmMarkerRuntimeModule,
     DefinePropertyGettersRuntimeModule, ESMModuleDecoratorRuntimeModule, EnsureChunkRuntimeModule,
     GetChunkFilenameRuntimeModule, GetChunkUpdateFilenameRuntimeModule, GetFullHashRuntimeModule,
     GetMainFilenameRuntimeModule, GetTrustedTypesPolicyRuntimeModule, GlobalRuntimeModule,
@@ -382,6 +382,12 @@ async fn runtime_requirements_in_tree(
         runtime_modules_to_add.push((
           *chunk_ukey,
           DefineEsmExportsRuntimeModule::new(&compilation.runtime_template).boxed(),
+        ));
+      }
+      RuntimeGlobals::DEFINE_ESM_MARKER => {
+        runtime_modules_to_add.push((
+          *chunk_ukey,
+          DefineEsmMarkerRuntimeModule::new(&compilation.runtime_template).boxed(),
         ));
       }
       RuntimeGlobals::REEXPORT => {

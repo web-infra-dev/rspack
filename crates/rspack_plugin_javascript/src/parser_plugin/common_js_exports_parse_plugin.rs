@@ -225,6 +225,20 @@ fn is_falsy_literal(expr: &Expr) -> bool {
   }
 }
 
+fn is_canonical_esm_marker(expr: &Expr) -> bool {
+  let Expr::Object(object) = expr else {
+    return false;
+  };
+  let [PropOrSpread::Prop(property)] = object.props.as_slice() else {
+    return false;
+  };
+  let Prop::KeyValue(property) = &**property else {
+    return false;
+  };
+  matches!(&property.key, PropName::Ident(ident) if ident.sym == "value")
+    && matches!(&property.value, Expr::Lit(value) if matches!(&**value, Lit::Bool(value) if value.value))
+}
+
 fn is_lit_truthy_literal(lit: &Lit) -> bool {
   match lit {
     Lit::Str(str) => !str.value.as_wtf8().is_empty(),
@@ -674,12 +688,16 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsExportsParserPlugin {
           .common_js_named_exports
           .insert(property.clone().into());
       }
-      parser.add_dependency(Box::new(CommonJsExportsDependency::new(
+      let mut dependency = CommonJsExportsDependency::new(
         call_expr.span.into(),
         Some(arg2.span().into()),
         base,
-        vec![property.into()],
-      )));
+        vec![property.clone().into()],
+      );
+      if property == "__esModule" && is_canonical_esm_marker(arg2) {
+        dependency = dependency.compact_esm_marker();
+      }
+      parser.add_dependency(Box::new(dependency));
 
       parser.walk_expression(arg2);
       return Some(true);

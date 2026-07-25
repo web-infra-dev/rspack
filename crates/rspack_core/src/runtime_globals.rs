@@ -326,6 +326,9 @@ define_runtime_globals! {
 
   // TypeScript decorator application fallback
   const TYPESCRIPT_DECORATE;
+
+  // Define the canonical CommonJS __esModule marker
+  const DEFINE_ESM_MARKER;
 }
 
 impl Default for RuntimeGlobals {
@@ -433,6 +436,7 @@ pub fn runtime_globals_property_name(runtime_globals: &RuntimeGlobals) -> Option
     RuntimeGlobals::CREATE_CONTEXT => "ctx",
     RuntimeGlobals::TYPESCRIPT_ASSIGN => "A",
     RuntimeGlobals::TYPESCRIPT_DECORATE => "B",
+    RuntimeGlobals::DEFINE_ESM_MARKER => "J",
     RuntimeGlobals::ENTRY_MODULE_ID => "s",
     RuntimeGlobals::STARTUP_NO_DEFAULT => "x (no default handler)",
     RuntimeGlobals::ENSURE_CHUNK_INCLUDE_ENTRIES => "f (include entries)",

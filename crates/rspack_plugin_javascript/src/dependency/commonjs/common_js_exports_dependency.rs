@@ -7,7 +7,7 @@ use rspack_core::{
   DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
   DependencyTemplateType, DependencyType, ExportNameOrSpec, ExportSpec, ExportsInfoArtifact,
   ExportsOfExportsSpec, ExportsSpec, InitFragmentExt, InitFragmentKey, InitFragmentStage,
-  ModuleGraph, ModuleGraphCacheArtifact, NormalInitFragment, TemplateContext,
+  ModuleGraph, ModuleGraphCacheArtifact, NormalInitFragment, RuntimeGlobals, TemplateContext,
   TemplateReplaceSource, UsedName, property_access,
 };
 use rspack_util::json_stringify_str;
@@ -63,6 +63,7 @@ pub struct CommonJsExportsDependency {
   base: ExportsBase,
   #[cacheable(with=AsVec<AsPreset>)]
   names: Vec<Atom>,
+  compact_esm_marker: bool,
 }
 
 impl CommonJsExportsDependency {
@@ -78,7 +79,13 @@ impl CommonJsExportsDependency {
       value_range,
       base,
       names,
+      compact_esm_marker: false,
     }
+  }
+
+  pub fn compact_esm_marker(mut self) -> Self {
+    self.compact_esm_marker = true;
+    self
   }
 }
 
@@ -232,6 +239,21 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
       if let Some(value_range) = &dep.value_range {
         if let Some(UsedName::Normal(used)) = used {
           if !used.is_empty() {
+            if dep.compact_esm_marker && used.len() == 1 && used[0] == "__esModule" {
+              runtime_template
+                .runtime_requirements_mut()
+                .insert(RuntimeGlobals::DEFINE_ESM_MARKER);
+              source.replace(
+                dep.range.start,
+                dep.range.end,
+                format!(
+                  "{}({base})",
+                  runtime_template.render_runtime_globals(&RuntimeGlobals::DEFINE_ESM_MARKER)
+                ),
+                None,
+              );
+              return;
+            }
             source.replace(
               dep.range.start,
               value_range.start,
