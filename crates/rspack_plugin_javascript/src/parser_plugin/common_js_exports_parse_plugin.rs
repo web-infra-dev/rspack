@@ -1,12 +1,12 @@
 use rspack_core::{
   BuildMetaDefaultObject, BuildMetaExportsType, ConstDependency, Dependency, DependencyRange,
-  DependencyType, ImportPhase, RuntimeGlobals,
+  DependencyType, ImportPhase, RuntimeGlobals, RuntimeRequirementsDependency,
 };
 use rspack_util::SpanExt;
 use swc_atoms::Atom;
 use swc_experimental_ecma_ast::{
-  AssignExpr, CallExpr, Expr, ExprOrSpread, GetSpan, Ident, Lit, MemberExpr, Prop, PropName,
-  PropOrSpread, Span, ThisExpr, UnaryExpr, UnaryOp, VarDeclarator,
+  AssignExpr, BinaryOp, CallExpr, Expr, ExprOrSpread, GetSpan, Ident, Lit, MemberExpr, Prop,
+  PropName, PropOrSpread, Span, Stmt, ThisExpr, UnaryExpr, UnaryOp, VarDeclarator,
 };
 
 use super::JavascriptParserPlugin;
@@ -23,6 +23,7 @@ use crate::{
 
 const TYPESCRIPT_EXPORT_STAR_TAG: &str = "typescript export star";
 const TYPESCRIPT_EXPORT_STAR_HELPER: &str = "(this&&this.__exportStar)||function(m,exports){for(varpinm)if(p!==\"default\"&&!Object.prototype.hasOwnProperty.call(exports,p))__createBinding(exports,m,p);}";
+const TYPESCRIPT_ASSIGN_HELPER: &str = "(this&&this.__assign)||function(){__assign=Object.assign||function(t){for(vars,i=1,n=arguments.length;i<n;i++){s=arguments[i];for(varpins)if(Object.prototype.hasOwnProperty.call(s,p))t[p]=s[p];}returnt;};return__assign.apply(this,arguments);}";
 
 #[derive(Clone)]
 struct TypeScriptExportStarTagData;
@@ -50,6 +51,58 @@ fn is_typescript_export_star_helper(parser: &JavascriptParser, declarator: &VarD
     .chars()
     .filter(|char| !char.is_whitespace())
     .eq(TYPESCRIPT_EXPORT_STAR_HELPER.chars())
+}
+
+fn typescript_assign_fallback(
+  parser: &JavascriptParser,
+  declarator: &VarDeclarator,
+) -> Option<Span> {
+  if !parser.is_top_level_scope()
+    || declarator
+      .name
+      .as_ident()
+      .is_none_or(|ident| ident.id.sym.as_str() != "__assign")
+  {
+    return None;
+  }
+  let init = declarator.init.as_ref()?;
+  let range = DependencyRange::from(init.span());
+  let source = parser
+    .source()
+    .get(range.start as usize..range.end as usize)?;
+  if !source
+    .chars()
+    .filter(|char| !char.is_whitespace())
+    .eq(TYPESCRIPT_ASSIGN_HELPER.chars())
+  {
+    return None;
+  }
+
+  let Expr::Bin(cached_helper) = init else {
+    return None;
+  };
+  if cached_helper.op != BinaryOp::LogicalOr {
+    return None;
+  }
+  let Expr::Fn(helper) = &cached_helper.right else {
+    return None;
+  };
+  let Stmt::Expr(assignment) = helper.function.body.as_ref()?.stmts.first()? else {
+    return None;
+  };
+  let Expr::Assign(assignment) = &assignment.expr else {
+    return None;
+  };
+  let Expr::Bin(assign_implementation) = &assignment.right else {
+    return None;
+  };
+  if assign_implementation.op != BinaryOp::LogicalOr {
+    return None;
+  }
+  let Expr::Fn(fallback) = &assign_implementation.right else {
+    return None;
+  };
+  Some(fallback.span())
 }
 
 fn is_typescript_cached_helper(parser: &JavascriptParser, declarator: &VarDeclarator) -> bool {
@@ -390,6 +443,13 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsExportsParserPlugin {
     declarator: &VarDeclarator,
     _declaration: VariableDeclaration<'_>,
   ) -> Option<bool> {
+    if let Some(fallback) = typescript_assign_fallback(parser, declarator) {
+      parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
+        fallback.into(),
+        RuntimeGlobals::TYPESCRIPT_ASSIGN,
+      )));
+    }
+
     if !is_typescript_cached_helper(parser, declarator) {
       return None;
     }

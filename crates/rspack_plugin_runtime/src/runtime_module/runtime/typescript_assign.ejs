@@ -1,0 +1,7 @@
+<%- define(TYPESCRIPT_ASSIGN) %> = function(target) {
+	for(var source, index = 1, length = arguments.length; index < length; index++) {
+		source = arguments[index];
+		for(var property in source) if(<%- HAS_OWN_PROPERTY %>(source, property)) target[property] = source[property];
+	}
+	return target;
+};

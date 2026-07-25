@@ -320,6 +320,9 @@ define_runtime_globals! {
   const CREATE_CONTEXT;
 
   const DEFINE_ESM_EXPORTS;
+
+  // TypeScript object assignment fallback
+  const TYPESCRIPT_ASSIGN;
 }
 
 impl Default for RuntimeGlobals {
@@ -425,6 +428,7 @@ pub fn runtime_globals_property_name(runtime_globals: &RuntimeGlobals) -> Option
     RuntimeGlobals::REEXPORT => "re",
     RuntimeGlobals::CHECKED_REEXPORT => "cr",
     RuntimeGlobals::CREATE_CONTEXT => "ctx",
+    RuntimeGlobals::TYPESCRIPT_ASSIGN => "A",
     RuntimeGlobals::ENTRY_MODULE_ID => "s",
     RuntimeGlobals::STARTUP_NO_DEFAULT => "x (no default handler)",
     RuntimeGlobals::ENSURE_CHUNK_INCLUDE_ENTRIES => "f (include entries)",
