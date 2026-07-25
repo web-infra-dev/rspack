@@ -23,6 +23,8 @@ extend-exclude = [
 
 [default.extend-identifiers]
 JSerFeng = "JSerFeng"
+trys     = "trys"
+vart     = "vart"
 
 [default.extend-words]
 ba       = "ba"
