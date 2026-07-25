@@ -323,6 +323,9 @@ define_runtime_globals! {
 
   // TypeScript object assignment fallback
   const TYPESCRIPT_ASSIGN;
+
+  // TypeScript decorator application fallback
+  const TYPESCRIPT_DECORATE;
 }
 
 impl Default for RuntimeGlobals {
@@ -429,6 +432,7 @@ pub fn runtime_globals_property_name(runtime_globals: &RuntimeGlobals) -> Option
     RuntimeGlobals::CHECKED_REEXPORT => "cr",
     RuntimeGlobals::CREATE_CONTEXT => "ctx",
     RuntimeGlobals::TYPESCRIPT_ASSIGN => "A",
+    RuntimeGlobals::TYPESCRIPT_DECORATE => "B",
     RuntimeGlobals::ENTRY_MODULE_ID => "s",
     RuntimeGlobals::STARTUP_NO_DEFAULT => "x (no default handler)",
     RuntimeGlobals::ENSURE_CHUNK_INCLUDE_ENTRIES => "f (include entries)",

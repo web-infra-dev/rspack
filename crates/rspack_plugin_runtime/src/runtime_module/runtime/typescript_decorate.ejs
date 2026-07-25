@@ -1,0 +1,16 @@
+<%- define(TYPESCRIPT_DECORATE) %> = function(decorators, target, key, descriptor) {
+	var count = arguments.length;
+	var result = count < 3 ? target : descriptor === null ? descriptor = Object.getOwnPropertyDescriptor(target, key) : descriptor;
+	var decorator;
+	if(typeof Reflect === "object" && typeof Reflect.decorate === "function") {
+		result = Reflect.decorate(decorators, target, key, descriptor);
+	} else {
+		for(var index = decorators.length - 1; index >= 0; index--) {
+			if(decorator = decorators[index]) {
+				result = (count < 3 ? decorator(result) : count > 3 ? decorator(target, key, result) : decorator(target, key)) || result;
+			}
+		}
+	}
+	if(count > 3 && result) Object.defineProperty(target, key, result);
+	return result;
+};

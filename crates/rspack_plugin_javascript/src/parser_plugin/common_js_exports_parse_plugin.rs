@@ -24,6 +24,7 @@ use crate::{
 const TYPESCRIPT_EXPORT_STAR_TAG: &str = "typescript export star";
 const TYPESCRIPT_EXPORT_STAR_HELPER: &str = "(this&&this.__exportStar)||function(m,exports){for(varpinm)if(p!==\"default\"&&!Object.prototype.hasOwnProperty.call(exports,p))__createBinding(exports,m,p);}";
 const TYPESCRIPT_ASSIGN_HELPER: &str = "(this&&this.__assign)||function(){__assign=Object.assign||function(t){for(vars,i=1,n=arguments.length;i<n;i++){s=arguments[i];for(varpins)if(Object.prototype.hasOwnProperty.call(s,p))t[p]=s[p];}returnt;};return__assign.apply(this,arguments);}";
+const TYPESCRIPT_DECORATE_HELPER: &str = "(this&&this.__decorate)||function(decorators,target,key,desc){varc=arguments.length,r=c<3?target:desc===null?desc=Object.getOwnPropertyDescriptor(target,key):desc,d;if(typeofReflect===\"object\"&&typeofReflect.decorate===\"function\")r=Reflect.decorate(decorators,target,key,desc);elsefor(vari=decorators.length-1;i>=0;i--)if(d=decorators[i])r=(c<3?d(r):c>3?d(target,key,r):d(target,key))||r;returnc>3&&r&&Object.defineProperty(target,key,r),r;}";
 
 #[derive(Clone)]
 struct TypeScriptExportStarTagData;
@@ -103,6 +104,43 @@ fn typescript_assign_fallback(
     return None;
   };
   Some(fallback.span())
+}
+
+fn typescript_decorate_fallback(
+  parser: &JavascriptParser,
+  declarator: &VarDeclarator,
+) -> Option<Span> {
+  if !parser.is_top_level_scope()
+    || declarator
+      .name
+      .as_ident()
+      .is_none_or(|ident| ident.id.sym.as_str() != "__decorate")
+  {
+    return None;
+  }
+  let init = declarator.init.as_ref()?;
+  let range = DependencyRange::from(init.span());
+  let source = parser
+    .source()
+    .get(range.start as usize..range.end as usize)?;
+  if !source
+    .chars()
+    .filter(|char| !char.is_whitespace())
+    .eq(TYPESCRIPT_DECORATE_HELPER.chars())
+  {
+    return None;
+  }
+
+  let Expr::Bin(cached_helper) = init else {
+    return None;
+  };
+  if cached_helper.op != BinaryOp::LogicalOr {
+    return None;
+  }
+  let Expr::Fn(fallback) = &cached_helper.right else {
+    return None;
+  };
+  Some(fallback.function.span)
 }
 
 fn is_typescript_cached_helper(parser: &JavascriptParser, declarator: &VarDeclarator) -> bool {
@@ -447,6 +485,12 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsExportsParserPlugin {
       parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
         fallback.into(),
         RuntimeGlobals::TYPESCRIPT_ASSIGN,
+      )));
+    }
+    if let Some(fallback) = typescript_decorate_fallback(parser, declarator) {
+      parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
+        fallback.into(),
+        RuntimeGlobals::TYPESCRIPT_DECORATE,
       )));
     }
 
