@@ -396,7 +396,7 @@ catalogs:
       specifier: 1.0.1
       version: 1.0.1
     rspack-vue-loader:
-      specifier: ^17.5.1
+      specifier: ^17.6.1
       version: 17.6.1
     rspress-plugin-font-open-sans:
       specifier: 1.0.4
