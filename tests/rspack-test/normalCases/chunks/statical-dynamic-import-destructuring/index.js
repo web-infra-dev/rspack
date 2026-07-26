@@ -86,6 +86,36 @@ it("should tree shake a dynamic import awaited through SWC's async helper", asyn
 	expect(usedExports).toEqual(["default", "usedExports"]);
 });
 
+it("should keep nested generators conservative inside SWC's async helper", async () => {
+	const load = swcAsyncToGenerator(function* () {
+		function* loadDestructured() {
+			const { default: def } = yield import("../statical-dynamic-import/dir1/a?swc-nested-destructuring");
+			return def;
+		}
+
+		function* loadMember() {
+			return (yield import("../statical-dynamic-import/dir1/a?swc-nested-member")).a;
+		}
+
+		const destructuredIterator = loadDestructured();
+		const destructuredNamespace = yield destructuredIterator.next().value;
+		expect(destructuredNamespace.a).toBe(1);
+		expect(destructuredNamespace.usedExports).toBe(true);
+
+		const memberIterator = loadMember();
+		const memberNamespace = yield memberIterator.next().value;
+		expect(memberNamespace.default).toBe(3);
+		expect(memberNamespace.usedExports).toBe(true);
+
+		return [
+			destructuredIterator.next({ default: 42 }).value,
+			memberIterator.next({ a: 43 }).value
+		];
+	});
+
+	expect(await load()).toEqual([42, 43]);
+});
+
 it("should not trust an arbitrary helper with the same name", async () => {
 	const load = _async_to_generator(function* () {
 		const { default: def } = yield import("../statical-dynamic-import/dir1/a?fake-swc-yield");

@@ -429,7 +429,8 @@ pub struct JavascriptParser<'parser> {
   pub(crate) collecting_dependencies_for_block: Option<usize>,
   pub(crate) dependencies_in_branch_guard: Option<FxHashMap<DependencyRange, DependencyId>>,
   pub(crate) current_branch_guard: Option<DependencyBranchGuard>,
-  pub(crate) in_swc_async_to_generator: bool,
+  pub(crate) function_scope_depth: usize,
+  pub(crate) swc_async_to_generator_function_depth: Option<usize>,
   pub(crate) swc_async_to_generator_argument: Option<Span>,
 }
 
@@ -619,7 +620,8 @@ impl<'parser> JavascriptParser<'parser> {
       collecting_dependencies_for_block: None,
       dependencies_in_branch_guard: None,
       current_branch_guard: None,
-      in_swc_async_to_generator: false,
+      function_scope_depth: 0,
+      swc_async_to_generator_function_depth: None,
       swc_async_to_generator_argument: None,
     }
   }
@@ -1397,7 +1399,10 @@ impl<'parser> JavascriptParser<'parser> {
     let drive = self.plugin_drive.clone();
     let expr = match expr {
       Expr::Await(await_expr) => &await_expr.arg,
-      Expr::Yield(yield_expr) if self.in_swc_async_to_generator && !yield_expr.delegate => {
+      Expr::Yield(yield_expr)
+        if self.swc_async_to_generator_function_depth == Some(self.function_scope_depth)
+          && !yield_expr.delegate =>
+      {
         yield_expr.arg.as_ref().unwrap_or(expr)
       }
       _ => expr,

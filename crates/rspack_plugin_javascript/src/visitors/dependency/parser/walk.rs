@@ -117,10 +117,12 @@ impl JavascriptParser<'_> {
     let old_top_level_scope = self.top_level_scope;
     let old_in_tagged_template_tag = self.in_tagged_template_tag;
     let old_terminated = self.terminated;
+    let old_function_scope_depth = self.function_scope_depth;
 
     self.definitions = self.definitions_db.create_child(old_definitions);
     self.in_tagged_template_tag = false;
     self.terminated = None;
+    self.function_scope_depth = old_function_scope_depth + 1;
     if has_this {
       self.undefined_variable(&"this".into());
     }
@@ -134,6 +136,7 @@ impl JavascriptParser<'_> {
     self.top_level_scope = old_top_level_scope;
     self.in_tagged_template_tag = old_in_tagged_template_tag;
     self.terminated = old_terminated;
+    self.function_scope_depth = old_function_scope_depth;
   }
 
   pub fn walk_module_items(&mut self, statements: &[ModuleItem<'_>]) {
@@ -1656,7 +1659,10 @@ impl JavascriptParser<'_> {
     } = self.extract_member_expression_chain(ExprRef::Member(expr));
     let (import_expr, await_expr) = match object {
       ExprRef::Await(await_expr) => (&await_expr.arg, Some(await_expr)),
-      ExprRef::Yield(yield_expr) if self.in_swc_async_to_generator && !yield_expr.delegate => {
+      ExprRef::Yield(yield_expr)
+        if self.swc_async_to_generator_function_depth == Some(self.function_scope_depth)
+          && !yield_expr.delegate =>
+      {
         (yield_expr.arg.as_ref()?, None)
       }
       _ => return None,
@@ -1674,10 +1680,11 @@ impl JavascriptParser<'_> {
   pub fn walk_expr_or_spread(&mut self, args: &[ExprOrSpread]) {
     for arg in args {
       if self.swc_async_to_generator_argument == Some(arg.expr.span()) {
-        let old_in_swc_async_to_generator = self.in_swc_async_to_generator;
-        self.in_swc_async_to_generator = true;
+        let old_function_depth = self
+          .swc_async_to_generator_function_depth
+          .replace(self.function_scope_depth + 1);
         self.walk_expression(&arg.expr);
-        self.in_swc_async_to_generator = old_in_swc_async_to_generator;
+        self.swc_async_to_generator_function_depth = old_function_depth;
       } else {
         self.walk_expression(&arg.expr)
       }
