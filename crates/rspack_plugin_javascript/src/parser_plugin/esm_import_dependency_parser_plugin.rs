@@ -1,5 +1,5 @@
 use rspack_core::{
-  ConstDependency, Dependency, DependencyRange, DependencyType, ExportPresenceMode,
+  ConstDependency, Dependency, DependencyId, DependencyRange, DependencyType, ExportPresenceMode,
   ImportAttributes, ImportPhase,
 };
 use rspack_util::SpanExt;
@@ -65,6 +65,7 @@ fn check_import_phase(parser: &mut JavascriptParser, phase: ImportPhase) {
 pub struct ESMSpecifierData {
   pub name: Atom,
   pub source: Atom,
+  pub dependency_id: DependencyId,
   pub ids: AtomMembers,
   pub namespace_import: bool,
   pub source_order: i32,
@@ -95,6 +96,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMImportDependencyParserPlugin 
       parser.to_dependency_location(DependencyRange::from(import_span)),
       false,
     );
+    parser.last_esm_import_dependency = Some((import_span, *dependency.id()));
 
     parser.add_dependency(Box::new(dependency));
 
@@ -120,12 +122,17 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMImportDependencyParserPlugin 
   ) -> Option<bool> {
     let is_create_require = is_create_require_import(parser, source, id);
     let phase = get_import_phase(parser, statement.phase);
+    let dependency_id = parser
+      .last_esm_import_dependency
+      .filter(|(span, _)| *span == statement.span)
+      .map(|(_, dependency_id)| dependency_id)?;
     parser.tag_variable::<ESMSpecifierData>(
       name.clone(),
       ESM_SPECIFIER_TAG,
       Some(ESMSpecifierData {
         name: name.clone(),
         source: source.clone(),
+        dependency_id,
         ids: id.into_iter().cloned().collect(),
         namespace_import: id.is_none(),
         source_order: parser.last_esm_import_order,
@@ -156,6 +163,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMImportDependencyParserPlugin 
       source_order,
       phase,
       attributes,
+      ..
     } = if let ExportedVariableInfo::VariableInfo(variable) = root_info {
       parser
         .get_variable_tag_data::<ESMSpecifierData>(*variable, ESM_SPECIFIER_TAG)?

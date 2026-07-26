@@ -357,6 +357,11 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
       || referenced_in_variable.is_some()
       || referenced_fulfilled_ns_obj.is_some()
       || referenced_in_members.is_some();
+    // Defer trusting SWC yield semantics until the helper import is resolved.
+    let swc_async_helper_dependency = (is_statical
+      && parser.swc_async_to_generator_function_depth == Some(parser.function_scope_depth))
+    .then_some(parser.swc_async_to_generator_dependency)
+    .flatten();
     if is_statical && has_exports_magic_comment {
       let mut error: Error = create_traceable_error(
         "Useless magic comments".into(),
@@ -392,6 +397,9 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
         if let Some(exports) = exports {
           dep.set_referenced_specifiers(exports, !is_statical && has_exports_magic_comment);
         }
+        if let Some(dependency_id) = swc_async_helper_dependency {
+          dep.set_swc_async_helper_dependency(dependency_id);
+        }
         let dep_idx = parser.next_dependency_idx();
         parser.add_dependency(Box::new(dep));
         ImportDependencyLocator {
@@ -409,6 +417,9 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
         );
         if let Some(exports) = exports {
           dep.set_referenced_specifiers(exports, !is_statical && has_exports_magic_comment);
+        }
+        if let Some(dependency_id) = swc_async_helper_dependency {
+          dep.set_swc_async_helper_dependency(dependency_id);
         }
         let dep_idx = parser.next_dependency_idx();
         parser.add_dependency(Box::new(dep));
@@ -435,6 +446,9 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
         );
         if let Some(export) = exports {
           dep.set_referenced_specifiers(export, !is_statical && has_exports_magic_comment);
+        }
+        if let Some(dependency_id) = swc_async_helper_dependency {
+          dep.set_swc_async_helper_dependency(dependency_id);
         }
         let range = DependencyRange::from(import_call_span);
         let loc = parser.to_dependency_location(range);
@@ -509,6 +523,9 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
         dyn_imported_span.into(),
         parser.in_try,
       );
+      if swc_async_helper_dependency.is_some() {
+        dep.suppress_inferred_references();
+      }
       if let Some(export) = exports {
         dep.set_referenced_specifiers(export, !is_statical && has_exports_magic_comment);
       }

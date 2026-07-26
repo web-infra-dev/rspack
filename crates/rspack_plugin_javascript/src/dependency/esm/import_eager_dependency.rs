@@ -11,7 +11,7 @@ use rspack_core::{
 };
 use swc_atoms::Atom;
 
-use super::create_resource_identifier_for_esm_dependency;
+use super::{create_resource_identifier_for_esm_dependency, is_resolved_swc_async_to_generator};
 
 #[cacheable]
 #[derive(Debug, Clone)]
@@ -26,6 +26,7 @@ pub struct ImportEagerDependency {
   phase: ImportPhase,
   resource_identifier: ResourceIdentifier,
   factorize_info: FactorizeInfo,
+  swc_async_helper_dependency: Option<DependencyId>,
 }
 
 impl ImportEagerDependency {
@@ -46,6 +47,7 @@ impl ImportEagerDependency {
       phase,
       resource_identifier,
       factorize_info: Default::default(),
+      swc_async_helper_dependency: None,
     }
   }
 
@@ -61,6 +63,10 @@ impl ImportEagerDependency {
       return;
     }
     self.referenced_specifiers = Some(referenced_specifiers);
+  }
+
+  pub fn set_swc_async_helper_dependency(&mut self, dependency_id: DependencyId) {
+    self.swc_async_helper_dependency = Some(dependency_id);
   }
 }
 
@@ -101,6 +107,13 @@ impl Dependency for ImportEagerDependency {
     exports_info_artifact: &ExportsInfoArtifact,
     _runtime: Option<&rspack_core::RuntimeSpec>,
   ) -> Vec<rspack_core::ReferencedExport> {
+    if self
+      .swc_async_helper_dependency
+      .as_ref()
+      .is_some_and(|dependency_id| !is_resolved_swc_async_to_generator(module_graph, dependency_id))
+    {
+      return create_exports_object_referenced();
+    }
     if let Some(referenced_specifiers) = &self.referenced_specifiers {
       let module = module_graph
         .get_module_by_dependency_id(&self.id)

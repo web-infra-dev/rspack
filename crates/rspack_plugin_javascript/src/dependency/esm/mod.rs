@@ -14,9 +14,11 @@ mod import_meta_rsc_dependency;
 mod import_weak_dependency;
 mod provide_dependency;
 
-use std::fmt::Write as _;
+use std::{fmt::Write as _, path::Path};
 
-use rspack_core::{DependencyCategory, ImportAttributes, ImportPhase, ResourceIdentifier};
+use rspack_core::{
+  DependencyCategory, DependencyId, ImportAttributes, ImportPhase, ModuleGraph, ResourceIdentifier,
+};
 
 pub use self::{
   esm_compatibility_dependency::{ESMCompatibilityDependency, ESMCompatibilityDependencyTemplate},
@@ -91,6 +93,40 @@ pub fn create_resource_identifier_for_esm_dependency(
   let len = attrs.len();
   push_esm_resource_identifier_attributes(&mut ident, attrs.into_iter(), len);
   ident.into()
+}
+
+fn is_resolved_swc_async_to_generator(
+  module_graph: &ModuleGraph,
+  dependency_id: &DependencyId,
+) -> bool {
+  // The parser only sees the import request, which aliases and replacement
+  // plugins may redirect. Narrow exports only after verifying the resolved file.
+  let Some(module) = module_graph.get_module_by_dependency_id(dependency_id) else {
+    return false;
+  };
+  let Some(normal_module) = module.as_normal_module() else {
+    return false;
+  };
+  let resource_data = normal_module.resource_resolved_data();
+  let Some(description) = resource_data.description() else {
+    return false;
+  };
+  if description
+    .json()
+    .get("name")
+    .and_then(|name| name.as_str())
+    != Some("@swc/helpers")
+  {
+    return false;
+  }
+  let Some(resource_path) = resource_data.path() else {
+    return false;
+  };
+  let Ok(relative_path) = resource_path.as_std_path().strip_prefix(description.path()) else {
+    return false;
+  };
+  relative_path == Path::new("esm/_async_to_generator.js")
+    || relative_path == Path::new("cjs/_async_to_generator.cjs")
 }
 
 fn push_esm_resource_identifier_attributes<'a>(

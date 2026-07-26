@@ -34,6 +34,7 @@ pub struct ImportContextDependency {
   optional: bool,
   critical: Option<Diagnostic>,
   factorize_info: FactorizeInfo,
+  suppress_inferred_references: bool,
 }
 
 impl ImportContextDependency {
@@ -51,6 +52,7 @@ impl ImportContextDependency {
       optional,
       critical: None,
       factorize_info: Default::default(),
+      suppress_inferred_references: false,
       options,
     }
   }
@@ -60,6 +62,9 @@ impl ImportContextDependency {
     referenced_specifiers: Vec<ReferencedSpecifier>,
     from_magic_comment: bool,
   ) {
+    if self.suppress_inferred_references && !from_magic_comment {
+      return;
+    }
     if !from_magic_comment && referenced_specifiers.is_empty() {
       // If the referenced specifiers are empty, keep it as default (None), since this dependency can't eliminate by side effects optimization,
       // so if we set it to Some(vec![]), and the dependency still executes, it will cause runtime error because the exports are all tree shaken.
@@ -68,6 +73,10 @@ impl ImportContextDependency {
     }
     self.options.referenced_specifiers = Some(referenced_specifiers);
     self.resource_identifier = create_resource_identifier(&self.options);
+  }
+
+  pub fn suppress_inferred_references(&mut self) {
+    self.suppress_inferred_references = true;
   }
 }
 

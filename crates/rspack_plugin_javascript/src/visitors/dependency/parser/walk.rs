@@ -1,5 +1,6 @@
 use std::{borrow::Cow, cell::Cell};
 
+use rspack_core::DependencyId;
 use swc_atoms::Atom;
 use swc_experimental_allocator::{Allocator, CloneIn};
 use swc_experimental_ecma_ast::{
@@ -1434,7 +1435,7 @@ impl JavascriptParser<'_> {
   }
 
   fn walk_call_expression(&mut self, expr: &CallExpr) {
-    let Some(argument) = self.get_swc_async_to_generator_argument(expr) else {
+    let Some((argument, dependency_id)) = self.get_swc_async_to_generator_argument(expr) else {
       self.walk_call_expression_inner(expr);
       return;
     };
@@ -1442,8 +1443,12 @@ impl JavascriptParser<'_> {
     let old_argument = self
       .swc_async_to_generator_argument
       .replace(argument.span());
+    let old_dependency = self
+      .swc_async_to_generator_dependency
+      .replace(dependency_id);
     self.walk_call_expression_inner(expr);
     self.swc_async_to_generator_argument = old_argument;
+    self.swc_async_to_generator_dependency = old_dependency;
   }
 
   fn walk_call_expression_inner(&mut self, expr: &CallExpr) {
@@ -1630,7 +1635,7 @@ impl JavascriptParser<'_> {
   fn get_swc_async_to_generator_argument<'a>(
     &mut self,
     expr: &'a CallExpr<'a>,
-  ) -> Option<&'a Expr<'a>> {
+  ) -> Option<(&'a Expr<'a>, DependencyId)> {
     let callee = expr.callee.as_expr()?.as_ident()?;
     let name = Atom::from(callee.sym.as_str());
     let variable = self.get_variable_info(&name)?.id();
@@ -1644,7 +1649,8 @@ impl JavascriptParser<'_> {
       return None;
     }
     let argument = expr.args.first()?.expr.as_fn()?;
-    (argument.ident.is_none() && argument.function.is_generator).then_some(&expr.args[0].expr)
+    (argument.ident.is_none() && argument.function.is_generator)
+      .then_some((&expr.args[0].expr, specifier.dependency_id))
   }
 
   fn extract_await_or_swc_yield_import_member<'a>(

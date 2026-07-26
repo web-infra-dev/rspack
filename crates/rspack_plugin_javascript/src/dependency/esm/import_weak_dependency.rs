@@ -11,7 +11,7 @@ use rspack_core::{
 };
 use swc_atoms::Atom;
 
-use super::create_resource_identifier_for_esm_dependency;
+use super::{create_resource_identifier_for_esm_dependency, is_resolved_swc_async_to_generator};
 
 // Align with webpack's ImportWeakDependency:
 // https://github.com/webpack/webpack/blob/2944286213cf1b3697a1c8dd41ffd3f8ada99448/lib/dependencies/ImportWeakDependency.js
@@ -29,6 +29,7 @@ pub struct ImportWeakDependency {
   resource_identifier: ResourceIdentifier,
   factorize_info: FactorizeInfo,
   optional: bool,
+  swc_async_helper_dependency: Option<DependencyId>,
 }
 
 impl ImportWeakDependency {
@@ -51,6 +52,7 @@ impl ImportWeakDependency {
       resource_identifier,
       factorize_info: Default::default(),
       optional,
+      swc_async_helper_dependency: None,
     }
   }
 
@@ -66,6 +68,10 @@ impl ImportWeakDependency {
       return;
     }
     self.referenced_specifiers = Some(referenced_specifiers);
+  }
+
+  pub fn set_swc_async_helper_dependency(&mut self, dependency_id: DependencyId) {
+    self.swc_async_helper_dependency = Some(dependency_id);
   }
 }
 
@@ -106,6 +112,13 @@ impl Dependency for ImportWeakDependency {
     exports_info_artifact: &ExportsInfoArtifact,
     _runtime: Option<&rspack_core::RuntimeSpec>,
   ) -> Vec<rspack_core::ReferencedExport> {
+    if self
+      .swc_async_helper_dependency
+      .as_ref()
+      .is_some_and(|dependency_id| !is_resolved_swc_async_to_generator(module_graph, dependency_id))
+    {
+      return create_exports_object_referenced();
+    }
     if let Some(referenced_specifiers) = &self.referenced_specifiers {
       let module = module_graph
         .get_module_by_dependency_id(&self.id)

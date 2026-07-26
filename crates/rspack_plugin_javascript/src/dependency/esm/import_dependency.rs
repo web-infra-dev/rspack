@@ -12,7 +12,7 @@ use rspack_core::{
 };
 use swc_atoms::Atom;
 
-use super::create_resource_identifier_for_esm_dependency;
+use super::{create_resource_identifier_for_esm_dependency, is_resolved_swc_async_to_generator};
 use crate::dependency::{DependencyBranchGuard, compose_dependency_condition};
 
 #[cacheable]
@@ -32,6 +32,7 @@ pub struct ImportDependency {
   optional: bool,
   #[cacheable(with=AsOption<AsCacheable>)]
   branch_guard: Option<DependencyBranchGuard>,
+  swc_async_helper_dependency: Option<DependencyId>,
 }
 
 impl ImportDependency {
@@ -57,6 +58,7 @@ impl ImportDependency {
       optional,
       comments,
       branch_guard: None,
+      swc_async_helper_dependency: None,
     }
   }
 
@@ -79,6 +81,10 @@ impl ImportDependency {
       Some(old_guard) => old_guard.and(guard),
       None => guard,
     });
+  }
+
+  pub fn set_swc_async_helper_dependency(&mut self, dependency_id: DependencyId) {
+    self.swc_async_helper_dependency = Some(dependency_id);
   }
 }
 
@@ -119,6 +125,13 @@ impl Dependency for ImportDependency {
     exports_info_artifact: &ExportsInfoArtifact,
     _runtime: Option<&rspack_core::RuntimeSpec>,
   ) -> Vec<rspack_core::ReferencedExport> {
+    if self
+      .swc_async_helper_dependency
+      .as_ref()
+      .is_some_and(|dependency_id| !is_resolved_swc_async_to_generator(module_graph, dependency_id))
+    {
+      return create_exports_object_referenced();
+    }
     if let Some(referenced_specifiers) = &self.referenced_specifiers {
       let module = module_graph
         .get_module_by_dependency_id(&self.id)

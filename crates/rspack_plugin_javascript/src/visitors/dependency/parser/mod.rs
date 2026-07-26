@@ -422,6 +422,7 @@ pub struct JavascriptParser<'parser> {
   pub(crate) parser_exports_state: Option<bool>,
   pub(crate) local_modules: Vec<LocalModule>,
   pub(crate) last_esm_import_order: i32,
+  pub(crate) last_esm_import_dependency: Option<(Span, DependencyId)>,
   pub(crate) inner_graph: InnerGraphState,
   pub(crate) side_effects_item: Option<SideEffectsBailoutItemWithSpan>,
   pub(crate) is_renaming: Option<Atom>,
@@ -432,6 +433,7 @@ pub struct JavascriptParser<'parser> {
   pub(crate) function_scope_depth: usize,
   pub(crate) swc_async_to_generator_function_depth: Option<usize>,
   pub(crate) swc_async_to_generator_argument: Option<Span>,
+  pub(crate) swc_async_to_generator_dependency: Option<DependencyId>,
 }
 
 impl<'parser> JavascriptParser<'parser> {
@@ -613,6 +615,7 @@ impl<'parser> JavascriptParser<'parser> {
       inner_graph: InnerGraphState::new(),
       parse_meta,
       local_modules: Default::default(),
+      last_esm_import_dependency: None,
       side_effects_item: None,
       parser_runtime_requirements,
       is_renaming: None,
@@ -623,6 +626,7 @@ impl<'parser> JavascriptParser<'parser> {
       function_scope_depth: 0,
       swc_async_to_generator_function_depth: None,
       swc_async_to_generator_argument: None,
+      swc_async_to_generator_dependency: None,
     }
   }
 
