@@ -1,3 +1,5 @@
+import { _ as swcAsyncToGenerator } from "@swc/helpers/_/_async_to_generator";
+
 it("should load only used exports", async () => {
 	const def = (await import("../statical-dynamic-import/dir1/a")).default;
 	const usedExports = (await import("../statical-dynamic-import/dir1/a")).usedExports;
@@ -70,4 +72,16 @@ it("should preserve a dynamic import namespace yielded before member access", as
 	expect(namespace.default).toBe(3);
 	expect(namespace.usedExports).toBe(true);
 	expect(iterator.next({ a: 42 }).value).toBe(42);
+});
+
+it("should tree shake dynamic import members awaited through SWC's async helper", async () => {
+	const load = swcAsyncToGenerator(function* () {
+		const value = (yield import("../statical-dynamic-import/dir1/a?swc-yield-member")).a;
+		const usedExports = (yield import("../statical-dynamic-import/dir1/a?swc-yield-member")).usedExports;
+		return { value, usedExports };
+	});
+
+	const { value, usedExports } = await load();
+	expect(value).toBe(1);
+	expect(usedExports).toEqual(["a", "usedExports"]);
 });

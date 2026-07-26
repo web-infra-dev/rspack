@@ -25,7 +25,8 @@ use crate::{
   dependency::DependencyBranchGuard,
   parser_plugin::{
     CREATE_REQUIRE_EVALUATED_TAG, CREATE_REQUIRE_SPECIFIER_TAG, CREATED_REQUIRE_IDENTIFIER_TAG,
-    CreatedRequireTagData, JavascriptParserPlugin, is_create_require_namespace_member,
+    CreatedRequireTagData, ESM_SPECIFIER_TAG, ESMSpecifierData, JavascriptParserPlugin,
+    is_create_require_namespace_member,
   },
   visitors::{
     AtomMembers, ExportedVariableInfo, ExprRef, VariableDeclaration, VariableInfo,
@@ -1224,9 +1225,11 @@ impl JavascriptParser<'_> {
       }
     }
 
-    // (await import(...)).a.b
-    if let Some((call, members, await_expr)) = self.extract_await_import_member(expr) {
-      if self.is_top_level_scope() {
+    // (await import(...)).a.b / (yield import(...)).a.b inside SWC's async helper
+    if let Some((call, members, await_expr)) = self.extract_await_or_swc_yield_import_member(expr) {
+      if let Some(await_expr) = await_expr
+        && self.is_top_level_scope()
+      {
         self
           .plugin_drive
           .clone()
@@ -1428,6 +1431,19 @@ impl JavascriptParser<'_> {
   }
 
   fn walk_call_expression(&mut self, expr: &CallExpr) {
+    let Some(argument) = self.get_swc_async_to_generator_argument(expr) else {
+      self.walk_call_expression_inner(expr);
+      return;
+    };
+
+    let old_argument = self
+      .swc_async_to_generator_argument
+      .replace(argument.span());
+    self.walk_call_expression_inner(expr);
+    self.swc_async_to_generator_argument = old_argument;
+  }
+
+  fn walk_call_expression_inner(&mut self, expr: &CallExpr) {
     fn is_simple_function(params: &[Param]) -> bool {
       params.iter().all(|p| matches!(p.pat, Pat::Ident(_)))
     }
@@ -1510,9 +1526,13 @@ impl JavascriptParser<'_> {
             {
               return;
             }
-            // (await import(...)).a.b()
-            if let Some((call, members, await_expr)) = self.extract_await_import_member(member) {
-              if self.is_top_level_scope() {
+            // (await import(...)).a.b() / (yield import(...)).a.b() inside SWC's async helper
+            if let Some((call, members, await_expr)) =
+              self.extract_await_or_swc_yield_import_member(member)
+            {
+              if let Some(await_expr) = await_expr
+                && self.is_top_level_scope()
+              {
                 self
                   .plugin_drive
                   .clone()
@@ -1604,20 +1624,44 @@ impl JavascriptParser<'_> {
     }
   }
 
-  fn extract_await_import_member<'a>(
+  fn get_swc_async_to_generator_argument<'a>(
+    &mut self,
+    expr: &'a CallExpr<'a>,
+  ) -> Option<&'a Expr<'a>> {
+    let callee = expr.callee.as_expr()?.as_ident()?;
+    let name = Atom::from(callee.sym.as_str());
+    let variable = self.get_variable_info(&name)?.id();
+    let specifier = self.get_variable_tag_data::<ESMSpecifierData>(variable, ESM_SPECIFIER_TAG)?;
+    // SWC's helper resumes the generator with each yielded promise's fulfilled
+    // value, so yield has await semantics only inside this exact imported helper.
+    if specifier.source != "@swc/helpers/_/_async_to_generator"
+      || specifier.ids.len() != 1
+      || specifier.ids[0] != "_"
+    {
+      return None;
+    }
+    let argument = expr.args.first()?.expr.as_fn()?;
+    argument.function.is_generator.then_some(&expr.args[0].expr)
+  }
+
+  fn extract_await_or_swc_yield_import_member<'a>(
     &self,
     expr: &'a MemberExpr<'a>,
-  ) -> Option<(&'a CallExpr<'a>, AtomMembers, &'a AwaitExpr<'a>)> {
+  ) -> Option<(&'a CallExpr<'a>, AtomMembers, Option<&'a AwaitExpr<'a>>)> {
     let ExtractedMemberExpressionChainData {
       object,
       mut members,
       mut members_optionals,
       ..
     } = self.extract_member_expression_chain(ExprRef::Member(expr));
-    let ExprRef::Await(await_expr) = object else {
-      return None;
+    let (import_expr, await_expr) = match object {
+      ExprRef::Await(await_expr) => (&await_expr.arg, Some(await_expr)),
+      ExprRef::Yield(yield_expr) if self.in_swc_async_to_generator && !yield_expr.delegate => {
+        (yield_expr.arg.as_ref()?, None)
+      }
+      _ => return None,
     };
-    let call = await_expr.arg.as_call()?;
+    let call = import_expr.as_call()?;
     if !call.callee.is_import() {
       return None;
     }
@@ -1629,7 +1673,14 @@ impl JavascriptParser<'_> {
 
   pub fn walk_expr_or_spread(&mut self, args: &[ExprOrSpread]) {
     for arg in args {
-      self.walk_expression(&arg.expr)
+      if self.swc_async_to_generator_argument == Some(arg.expr.span()) {
+        let old_in_swc_async_to_generator = self.in_swc_async_to_generator;
+        self.in_swc_async_to_generator = true;
+        self.walk_expression(&arg.expr);
+        self.in_swc_async_to_generator = old_in_swc_async_to_generator;
+      } else {
+        self.walk_expression(&arg.expr)
+      }
     }
   }
 

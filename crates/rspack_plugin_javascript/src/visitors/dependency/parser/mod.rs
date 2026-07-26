@@ -429,6 +429,8 @@ pub struct JavascriptParser<'parser> {
   pub(crate) collecting_dependencies_for_block: Option<usize>,
   pub(crate) dependencies_in_branch_guard: Option<FxHashMap<DependencyRange, DependencyId>>,
   pub(crate) current_branch_guard: Option<DependencyBranchGuard>,
+  pub(crate) in_swc_async_to_generator: bool,
+  pub(crate) swc_async_to_generator_argument: Option<Span>,
 }
 
 impl<'parser> JavascriptParser<'parser> {
@@ -617,6 +619,8 @@ impl<'parser> JavascriptParser<'parser> {
       collecting_dependencies_for_block: None,
       dependencies_in_branch_guard: None,
       current_branch_guard: None,
+      in_swc_async_to_generator: false,
+      swc_async_to_generator_argument: None,
     }
   }
 
@@ -1391,10 +1395,12 @@ impl<'parser> JavascriptParser<'parser> {
     expr: &'a Expr<'a>,
   ) -> Option<&'a Expr<'a>> {
     let drive = self.plugin_drive.clone();
-    let expr = if let Expr::Await(await_expr) = expr {
-      &await_expr.arg
-    } else {
-      expr
+    let expr = match expr {
+      Expr::Await(await_expr) => &await_expr.arg,
+      Expr::Yield(yield_expr) if self.in_swc_async_to_generator && !yield_expr.delegate => {
+        yield_expr.arg.as_ref().unwrap_or(expr)
+      }
+      _ => expr,
     };
     let destructuring = if let Some(assign) = expr.as_assign()
       && let Some(pat) = assign.left.as_pat()

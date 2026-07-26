@@ -51,7 +51,9 @@ pub(crate) use self::{
   drive::JavaScriptParserPluginDrive,
   esm_detection_parser_plugin::ESMDetectionParserPlugin,
   esm_export_dependency_parser_plugin::ESMExportDependencyParserPlugin,
-  esm_import_dependency_parser_plugin::ESMImportDependencyParserPlugin,
+  esm_import_dependency_parser_plugin::{
+    ESM_SPECIFIER_TAG, ESMImportDependencyParserPlugin, ESMSpecifierData,
+  },
   esm_top_level_this_plugin::ESMTopLevelThisParserPlugin,
   import_meta_context_dependency_parser_plugin::ImportMetaContextDependencyParserPlugin,
   import_meta_plugin::{ImportMetaDisabledPlugin, ImportMetaPlugin},
