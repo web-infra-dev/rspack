@@ -59,17 +59,15 @@ it("should analyze top-level await correctly", async () => {
 	expect(b).toEqual(["a", "usedExports"]);
 });
 
-it("should analyze members of a yielded dynamic import", async () => {
+it("should preserve a dynamic import namespace yielded before member access", async () => {
 	function* load() {
-		const value = (yield import("../statical-dynamic-import/dir1/a?yield-member")).a;
-		const usedExports = (yield import("../statical-dynamic-import/dir1/a?yield-member")).usedExports;
-		return { value, usedExports };
+		return (yield import("../statical-dynamic-import/dir1/a?yield-member")).a;
 	}
 
 	const iterator = load();
-	const firstNamespace = await iterator.next().value;
-	const secondNamespace = await iterator.next(firstNamespace).value;
-	const { value, usedExports } = iterator.next(secondNamespace).value;
-	expect(value).toBe(1);
-	expect(usedExports).toEqual(["a", "usedExports"]);
+	const namespace = await iterator.next().value;
+	expect(namespace.a).toBe(1);
+	expect(namespace.default).toBe(3);
+	expect(namespace.usedExports).toBe(true);
+	expect(iterator.next({ a: 42 }).value).toBe(42);
 });

@@ -48,15 +48,16 @@ it("expect support of \"deep\" tree-shaking for destructuring assignment dynamic
 	expect(usedExportsB).toEqual(["bbb", "usedExports"]);
 });
 
-it("should tree shake a dynamic import destructured through yield", async () => {
+it("should preserve a dynamic import namespace yielded before destructuring", async () => {
 	function* load() {
-		const { default: def, usedExports } = yield import("../statical-dynamic-import/dir1/a?yield");
-		return { def, usedExports };
+		const { default: def } = yield import("../statical-dynamic-import/dir1/a?yield");
+		return def;
 	}
 
 	const iterator = load();
 	const namespace = await iterator.next().value;
-	const { def, usedExports } = iterator.next(namespace).value;
-	expect(def).toBe(3);
-	expect(usedExports).toEqual(["default", "usedExports"]);
+	expect(namespace.a).toBe(1);
+	expect(namespace.default).toBe(3);
+	expect(namespace.usedExports).toBe(true);
+	expect(iterator.next({ default: 42 }).value).toBe(42);
 });

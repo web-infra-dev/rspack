@@ -1391,10 +1391,10 @@ impl<'parser> JavascriptParser<'parser> {
     expr: &'a Expr<'a>,
   ) -> Option<&'a Expr<'a>> {
     let drive = self.plugin_drive.clone();
-    let expr = match expr {
-      Expr::Await(await_expr) => &await_expr.arg,
-      Expr::Yield(yield_expr) => yield_expr.arg.as_ref().unwrap_or(expr),
-      _ => expr,
+    let expr = if let Expr::Await(await_expr) = expr {
+      &await_expr.arg
+    } else {
+      expr
     };
     let destructuring = if let Some(assign) = expr.as_assign()
       && let Some(pat) = assign.left.as_pat()
