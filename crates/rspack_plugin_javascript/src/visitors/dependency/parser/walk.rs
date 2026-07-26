@@ -1644,7 +1644,7 @@ impl JavascriptParser<'_> {
       return None;
     }
     let argument = expr.args.first()?.expr.as_fn()?;
-    argument.function.is_generator.then_some(&expr.args[0].expr)
+    (argument.ident.is_none() && argument.function.is_generator).then_some(&expr.args[0].expr)
   }
 
   fn extract_await_or_swc_yield_import_member<'a>(

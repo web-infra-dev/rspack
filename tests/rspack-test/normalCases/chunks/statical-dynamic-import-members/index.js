@@ -85,3 +85,19 @@ it("should tree shake dynamic import members awaited through SWC's async helper"
 	expect(value).toBe(1);
 	expect(usedExports).toEqual(["a", "usedExports"]);
 });
+
+it("should keep named generators conservative when passed to SWC's async helper", async () => {
+	let escaped;
+	const load = swcAsyncToGenerator(function* namedGenerator() {
+		escaped = namedGenerator;
+		return (yield import("../statical-dynamic-import/dir1/a?swc-named-generator")).a;
+	});
+
+	expect(await load()).toBe(1);
+
+	const iterator = escaped();
+	const namespace = await iterator.next().value;
+	expect(namespace.default).toBe(3);
+	expect(namespace.usedExports).toBe(true);
+	expect(iterator.next({ a: 42 }).value).toBe(42);
+});
