@@ -321,7 +321,7 @@ catalogs:
       specifier: ^4.18.1
       version: 4.18.1
     markdown-to-jsx:
-      specifier: ^9.8.2
+      specifier: ^9.9.0
       version: 9.9.0
     memfs:
       specifier: 4.57.8
