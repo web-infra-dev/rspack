@@ -29,6 +29,10 @@ use crate::{
   merge_runtime,
 };
 
+mod parallel;
+
+use parallel::ParallelCodeSplitterState;
+
 pub(crate) type DependenciesBlockIdentifierMap<V> =
   std::collections::HashMap<DependenciesBlockIdentifier, V, BuildHasherDefault<FxHasher>>;
 pub(crate) type DependenciesBlockIdentifierSet =
@@ -308,6 +312,9 @@ pub(crate) struct CodeSplitter {
   prepared_connection_map: IdentifierMap<PreparedBlockConnectionMap>,
 
   prepared_blocks_map: DependenciesBlockIdentifierMap<Vec<AsyncDependenciesBlockIdentifier>>,
+  prepared_async_entrypoints: AsyncDependenciesBlockIdentifierSet,
+
+  parallel_state: ParallelCodeSplitterState,
 }
 
 fn add_chunk_in_group(
@@ -379,6 +386,10 @@ fn get_active_state_of_connections(
 }
 
 impl CodeSplitter {
+  pub(crate) fn configure_parallel(&mut self) {
+    self.parallel_state.configure_from_env();
+  }
+
   pub(crate) fn chunk_group_info(&self, ukey: &CgiUkey) -> &ChunkGroupInfo {
     self
       .chunk_group_infos
@@ -983,7 +994,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         self.process_outdated_chunk_group_info(compilation);
       }
 
-      if self.queue.is_empty() {
+      if self.queue.is_empty() && !parallel::try_process_delayed_queue(self, compilation) {
         let queue_delay = std::mem::take(&mut self.queue_delayed);
         self.queue = queue_delay;
         self.queue.reverse();
@@ -1090,7 +1101,6 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         }
       }
     }
-
     {
       let mut processed_queue_buffer = itoa::Buffer::new();
       let processed_queue_str = processed_queue_buffer.format(self.stat_processed_queue_items);
@@ -1953,18 +1963,13 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
             .available_modules_to_be_merged
             .push(resulting_available_modules.clone());
 
-          // get mutable reference to runtime
-          // if the runtime has been referenced, clone and create a new Arc
-          let target_runtime = if let Some(target_runtime) = Arc::get_mut(&mut target_cgi.runtime) {
-            target_runtime
-          } else {
-            target_cgi.runtime = Arc::new(target_cgi.runtime.as_ref().clone());
-            Arc::get_mut(&mut target_cgi.runtime).expect("should have runtime")
-          };
-
-          let runtime_len = target_runtime.len();
-          target_runtime.extend(&runtime);
-          (target_group, target_runtime.len() != runtime_len)
+          let updated = runtime
+            .iter()
+            .any(|runtime| !target_cgi.runtime.contains(runtime));
+          if updated {
+            Arc::make_mut(&mut target_cgi.runtime).extend(&runtime);
+          }
+          (target_group, updated)
         };
         target_groups.push(target_group);
 
@@ -2243,112 +2248,97 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
   fn process_chunk_groups_for_merging(&mut self, compilation: &mut Compilation) {
     self.stat_processed_chunk_groups_for_merging += self.chunk_groups_for_merging.len() as u32;
     let chunk_groups_for_merging = std::mem::take(&mut self.chunk_groups_for_merging);
-    let mut chunk_groups_merging_batches: Vec<Vec<(CgiUkey, Option<ProcessBlock>)>> = vec![vec![]];
-
-    // take chunk group infos and process parallelly
-    // cause the chunk group info keys may be duplicated with different process blocks
-    // so a new batch will be created when chunk group info key has been exists
     let mut taken_cgi = HashSet::<CgiUkey>::default();
-    for (info_ukey, process_block) in chunk_groups_for_merging {
-      if !taken_cgi.insert(info_ukey) {
-        chunk_groups_merging_batches.push(vec![]);
-        taken_cgi.clear();
-        taken_cgi.insert(info_ukey);
+    let mut chunk_groups_merging_tasks = Vec::new();
+    for (info_ukey, _) in &chunk_groups_for_merging {
+      if taken_cgi.insert(*info_ukey) {
+        let cgi = std::mem::take(self.chunk_group_info_mut(info_ukey));
+        chunk_groups_merging_tasks.push((*info_ukey, cgi));
       }
-      chunk_groups_merging_batches
-        .last_mut()
-        .expect("should have last batch")
-        .push((info_ukey, process_block));
     }
+    let chunk_group_merging_results = chunk_groups_merging_tasks
+      .into_par_iter()
+      .map(|(info_ukey, mut cgi)| {
+        let mut changed = false;
+        let available_modules_length = cgi.available_modules_to_be_merged.len() as u32;
 
-    for batch in chunk_groups_merging_batches {
-      let mut chunk_groups_merging_tasks = Vec::with_capacity(batch.len());
-      for (info_ukey, process_block) in batch {
-        let cgi = std::mem::take(self.chunk_group_info_mut(&info_ukey));
-        chunk_groups_merging_tasks.push((info_ukey, process_block, cgi));
-      }
+        if !cgi.available_modules_to_be_merged.is_empty() {
+          let mut available_modules_to_be_merged =
+            std::mem::take(&mut cgi.available_modules_to_be_merged).into_iter();
 
-      let mut chunk_group_merging_results = chunk_groups_merging_tasks
-        .into_par_iter()
-        .map(|(info_ukey, process_block, mut cgi)| {
-          let mut changed = false;
-          let available_modules_length = cgi.available_modules_to_be_merged.len() as u32;
+          if !cgi.min_available_modules_init
+            && let Some(available_modules) = available_modules_to_be_merged.next()
+          {
+            cgi.min_available_modules_init = true;
+            cgi.min_available_modules = available_modules;
+            changed = true;
+          }
 
-          if !cgi.available_modules_to_be_merged.is_empty() {
-            let available_modules_to_be_merged =
-              std::mem::take(&mut cgi.available_modules_to_be_merged);
-
-            for modules_to_be_merged in available_modules_to_be_merged {
-              if !cgi.min_available_modules_init {
-                cgi.min_available_modules_init = true;
-                cgi.min_available_modules = modules_to_be_merged;
-                changed = true;
-                continue;
-              }
-
-              let merged = cgi.min_available_modules.as_ref() & modules_to_be_merged.as_ref();
-              if &merged != cgi.min_available_modules.as_ref() {
-                cgi.min_available_modules = Arc::new(merged);
-                changed = true;
-              }
+          if let Some(available_modules) = available_modules_to_be_merged.next() {
+            let current = cgi.min_available_modules.clone();
+            let mut merged = current.as_ref().clone();
+            merged &= available_modules.as_ref();
+            for available_modules in available_modules_to_be_merged {
+              merged &= available_modules.as_ref();
+            }
+            if &merged != current.as_ref() {
+              cgi.min_available_modules = Arc::new(merged);
+              changed = true;
             }
           }
-
-          if changed {
-            cgi.invalidate_resulting_available_modules();
-          }
-
-          (
-            info_ukey,
-            Some(cgi),
-            process_block,
-            changed,
-            available_modules_length,
-          )
-        })
-        .collect::<Vec<_>>();
-
-      for (info_ukey, cgi, _, _, _) in &mut chunk_group_merging_results {
-        *self.chunk_group_info_mut(info_ukey) = cgi.take().expect("should have chunk group info");
-      }
-
-      for (info_ukey, _, process_block, changed, available_modules_length) in
-        chunk_group_merging_results
-      {
-        self.stat_merged_available_module_sets += available_modules_length;
+        }
 
         if changed {
-          self.outdated_chunk_group_info.insert(info_ukey);
+          cgi.invalidate_resulting_available_modules();
         }
 
-        let Some(process_block) = process_block else {
+        (info_ukey, cgi, changed, available_modules_length)
+      })
+      .collect::<Vec<_>>();
+
+    let mut changed_by_cgi =
+      HashMap::with_capacity_and_hasher(chunk_group_merging_results.len(), Default::default());
+    for (info_ukey, cgi, changed, available_modules_length) in chunk_group_merging_results {
+      *self.chunk_group_info_mut(&info_ukey) = cgi;
+      self.stat_merged_available_module_sets += available_modules_length;
+      changed_by_cgi.insert(info_ukey, changed);
+    }
+
+    // Replay roots in their original order after each unique chunk group has merged its pending
+    // available-module inputs once.
+    for (info_ukey, process_block) in chunk_groups_for_merging {
+      let changed = changed_by_cgi.remove(&info_ukey).unwrap_or(false);
+      if changed {
+        self.outdated_chunk_group_info.insert(info_ukey);
+      }
+
+      let Some(process_block) = process_block else {
+        continue;
+      };
+
+      let (initialized, cgi_ukey) = {
+        let cgi = self.chunk_group_info(&info_ukey);
+        (cgi.initialized, cgi.ukey)
+      };
+      let mut needs_walk = !initialized || changed;
+
+      let blocks = self.incoming_blocks_by_cgi.entry(cgi_ukey).or_default();
+      if blocks.insert(process_block.block) {
+        needs_walk = true;
+      }
+
+      if needs_walk {
+        self.chunk_group_info_mut(&info_ukey).initialized = true;
+
+        // check if we can use cache to initialize it
+        if !initialized && self.recover_from_cache(info_ukey, compilation) {
+          self.stat_use_cache += 1;
           continue;
-        };
-
-        let (initialized, cgi_ukey) = {
-          let cgi = self.chunk_group_info(&info_ukey);
-          (cgi.initialized, cgi.ukey)
-        };
-        let mut needs_walk = !initialized || changed;
-
-        let blocks = self.incoming_blocks_by_cgi.entry(cgi_ukey).or_default();
-        if blocks.insert(process_block.block) {
-          needs_walk = true;
         }
 
-        if needs_walk {
-          self.chunk_group_info_mut(&info_ukey).initialized = true;
-
-          // check if we can use cache to initialize it
-          if !initialized && self.recover_from_cache(info_ukey, compilation) {
-            self.stat_use_cache += 1;
-            continue;
-          }
-
-          self
-            .queue_delayed
-            .push(QueueAction::ProcessBlock(process_block));
-        }
+        self
+          .queue_delayed
+          .push(QueueAction::ProcessBlock(process_block));
       }
     }
   }
@@ -2439,7 +2429,6 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         ))
       })
       .collect::<IdentifierMap<_>>();
-
     let mut prepared_blocks_map = DependenciesBlockIdentifierMap::<
       Vec<AsyncDependenciesBlockIdentifier>,
     >::with_capacity_and_hasher(
@@ -2458,7 +2447,16 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       }
     }
 
+    self.prepared_async_entrypoints.clear();
     for (block_id, block) in mg.blocks() {
+      if block
+        .get_group_options()
+        .and_then(|options| options.entry_options())
+        .is_some()
+      {
+        self.prepared_async_entrypoints.insert(*block_id);
+      }
+
       let blocks = block.get_blocks();
 
       if !blocks.is_empty() {

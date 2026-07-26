@@ -367,13 +367,20 @@ impl ChunkGraph {
   }
 
   pub fn connect_chunk_and_modules(&mut self, chunk: ChunkUkey, modules: &[ModuleIdentifier]) {
-    for module in modules.iter() {
-      let cgm = self.expect_chunk_graph_module_mut(*module);
-      cgm.chunks.insert(chunk);
-    }
-    let cgc = self.expect_chunk_graph_chunk_mut(chunk);
+    let cgc = self
+      .chunk_graph_chunk_by_chunk_ukey
+      .entry(chunk)
+      .or_default();
+    cgc.modules.reserve(modules.len());
     for module in modules.iter() {
       cgc.modules.insert(*module);
+    }
+    for module in modules.iter() {
+      let cgm = self
+        .chunk_graph_module_by_module_identifier
+        .entry(*module)
+        .or_default();
+      cgm.chunks.insert(chunk);
     }
   }
 
