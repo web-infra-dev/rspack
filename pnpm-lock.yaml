@@ -312,7 +312,7 @@ catalogs:
       specifier: ^12.3.3
       version: 12.3.3
     lint-staged:
-      specifier: ^17.0.8
+      specifier: ^17.2.0
       version: 17.2.0
     lodash:
       specifier: ^4.18.1
