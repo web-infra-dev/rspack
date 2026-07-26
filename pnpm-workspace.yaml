@@ -159,7 +159,7 @@ catalog:
   'terser': '5.48.0'
   'terser-webpack-plugin': '^5.6.1'
   'tinypool': '^2.1.0'
-  'toml': '^4.1.2'
+  'toml': '^4.3.0'
   'ts-checker-rspack-plugin': '^1.5.3'
   'typescript': '^6.0.3'
   'url-loader': '^4.1.1'

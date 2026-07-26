@@ -429,7 +429,7 @@ catalogs:
       specifier: ^2.1.0
       version: 2.1.0
     toml:
-      specifier: ^4.1.2
+      specifier: ^4.3.0
       version: 4.3.0
     ts-checker-rspack-plugin:
       specifier: ^1.5.3
