@@ -258,7 +258,7 @@ catalogs:
       specifier: 4.3.0
       version: 4.3.0
     fs-extra:
-      specifier: ^11.3.6
+      specifier: ^11.4.0
       version: 11.4.0
     glob:
       specifier: ^11.1.0
