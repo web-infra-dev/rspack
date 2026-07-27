@@ -158,6 +158,9 @@ impl Dependency for CommonJsExportsDependency {
     _exports_info_artifact: &ExportsInfoArtifact,
   ) -> Option<ExportsSpec> {
     let name = self.names[0].clone();
+    if self.base.is_expression() && name.as_str() == "__proto__" {
+      return None;
+    }
     let vec = vec![ExportNameOrSpec::ExportSpec(ExportSpec {
       // We can't mangle names that are in an empty object because one could access the prototype property
       // when export isn't set yet. It's different for different targets. so here we only list common properties.
@@ -226,6 +229,19 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
     let module = module_graph
       .module_by_identifier(&module.identifier())
       .expect("should have mgm");
+
+    if dep.base.is_expression()
+      && dep
+        .names
+        .first()
+        .is_some_and(|name| name.as_str() == "__proto__")
+    {
+      debug_assert!(
+        concatenation_scope.is_none(),
+        "CommonJS __proto__ assignment should prevent concatenation"
+      );
+      return;
+    }
 
     let exports_info = compilation
       .exports_info_artifact

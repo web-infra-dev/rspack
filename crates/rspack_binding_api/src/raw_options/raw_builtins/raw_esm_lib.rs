@@ -5,6 +5,7 @@ use crate::raw_options::RawSplitChunksOptions;
 #[napi(object, object_to_js = false)]
 pub struct RawEsmLibraryPlugin<'a> {
   pub preserve_modules: Option<String>,
+  pub concatenate_common_js_modules: bool,
   pub split_chunks: Option<RawSplitChunksOptions<'a>>,
 }
 
@@ -12,6 +13,7 @@ pub struct RawEsmLibraryPlugin<'a> {
 pub struct RawEnableLibraryPluginOptions<'a> {
   pub library_type: String,
   pub preserve_modules: Option<String>,
+  pub concatenate_common_js_modules: bool,
   pub split_chunks: Option<RawSplitChunksOptions<'a>>,
 }
 
