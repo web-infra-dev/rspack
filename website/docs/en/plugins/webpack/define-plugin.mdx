@@ -159,3 +159,60 @@ new rspack.DefinePlugin({
 ```
 
 This makes `APP_INFO` a usable object literal in the generated code. By contrast, `APP_INFO: { ... }` would be treated by `DefinePlugin` as a nested definition config and processed recursively, rather than being injected as an object literal into application code.
+
+## `import.meta.env`
+
+When `experiments.env` is enabled, `import.meta.env` can be defined with `DefinePlugin`:
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    env: true,
+  },
+  plugins: [
+    new rspack.DefinePlugin({
+      'import.meta.env': {
+        MODE: JSON.stringify('production'),
+        API_URL: JSON.stringify('https://example.com'),
+      },
+    }),
+  ],
+};
+```
+
+When only individual fields are accessed, Rspack replaces each access with its value:
+
+```js title="src/index.js"
+console.log(import.meta.env.MODE);
+```
+
+The code above is roughly equivalent to:
+
+```js title="dist/main.js"
+console.log('production');
+```
+
+When the whole `import.meta.env` object is read, Rspack generates an object containing all defined fields:
+
+```js title="src/index.js"
+const env = import.meta.env;
+
+console.log(typeof env); // 'object'
+console.log(Boolean(env)); // true
+console.log(env.MODE); // 'production'
+```
+
+The code above is roughly equivalent to:
+
+```js title="dist/main.js"
+const env = {
+  MODE: 'production',
+  API_URL: 'https://example.com',
+};
+
+console.log(typeof env);
+console.log(Boolean(env));
+console.log(env.MODE);
+```
+
+When `experiments.env` is enabled, [`EnvironmentPlugin`](/plugins/webpack/environment-plugin), `NODE_ENV`, and `DefinePlugin` keys under `import.meta.env.*` are collected into `import.meta.env`.

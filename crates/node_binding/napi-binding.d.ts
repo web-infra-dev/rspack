@@ -466,13 +466,6 @@ export declare class NativeWatcher {
   constructor(options: NativeWatcherOptions)
   watch(files: [Array<string>, Array<string>], directories: [Array<string>, Array<string>], missing: [Array<string>, Array<string>], startTime: bigint, callback: (err: Error | null, result: NativeWatchResult) => void, callbackUndelayed: (event: NativeWatchUndelayedEvent) => void): void
   triggerEvent(kind: 'change' | 'remove' | 'create', path: string): void
-  /**
-   * # Safety
-   *
-   * This function is unsafe because it uses `&mut self` to call the watcher asynchronously.
-   * It's important to ensure that the watcher is not used in any other places before this function is finished.
-   * You must ensure that the watcher not call watch, close or pause in the same time, otherwise it may lead to undefined behavior.
-   */
   close(): Promise<void>
   pause(): void
 }
@@ -1027,6 +1020,11 @@ export interface JsPathDataChunkLike {
   id?: string | number
   name?: string
   hash?: string
+}
+
+export interface JsRealContentHashPluginUpdateHashData {
+  assets: Array<Buffer>
+  oldHash: string
 }
 
 export interface JsResolveData {
@@ -2292,6 +2290,7 @@ export interface RawExperiments {
   useInputFileSystem?: false | Array<RegExp>
   css?: boolean
   deferImport: boolean
+  env: boolean
   sourceImport: boolean
   pureFunctions: boolean
   runtimeMode?: "webpack" | "rspack"
@@ -3234,11 +3233,12 @@ export declare enum RegisterJsTapKind {
   RuntimePluginCreateLink = 43,
   RuntimePluginLinkPreload = 44,
   RuntimePluginLinkPrefetch = 45,
-  RsdoctorPluginModuleGraph = 46,
-  RsdoctorPluginChunkGraph = 47,
-  RsdoctorPluginModuleIds = 48,
-  RsdoctorPluginModuleSources = 49,
-  RsdoctorPluginAssets = 50
+  RealContentHashPluginUpdateHash = 46,
+  RsdoctorPluginModuleGraph = 47,
+  RsdoctorPluginChunkGraph = 48,
+  RsdoctorPluginModuleIds = 49,
+  RsdoctorPluginModuleSources = 50,
+  RsdoctorPluginAssets = 51
 }
 
 export interface RegisterJsTaps {
@@ -3288,6 +3288,7 @@ export interface RegisterJsTaps {
   registerRuntimePluginCreateLinkTaps: (stages: Array<number>) => Array<{ function: ((arg: JsLinkPreloadData) => String); stage: number; }>
   registerRuntimePluginLinkPreloadTaps: (stages: Array<number>) => Array<{ function: ((arg: JsCreateLinkData) => String); stage: number; }>
   registerRuntimePluginLinkPrefetchTaps: (stages: Array<number>) => Array<{ function: ((arg: JsLinkPrefetchData) => String); stage: number; }>
+  registerRealContentHashPluginUpdateHashTaps: (stages: Array<number>) => Array<{ function: ((data: JsRealContentHashPluginUpdateHashData) => string | undefined); stage: number; }>
   registerRsdoctorPluginModuleGraphTaps: (stages: Array<number>) => Array<{ function: ((arg: JsRsdoctorModuleGraph) => Promise<boolean | undefined>); stage: number; }>
   registerRsdoctorPluginChunkGraphTaps: (stages: Array<number>) => Array<{ function: ((arg: JsRsdoctorChunkGraph) => Promise<boolean | undefined>); stage: number; }>
   registerRsdoctorPluginModuleIdsTaps: (stages: Array<number>) => Array<{ function: ((arg: JsRsdoctorModuleIdsPatch) => Promise<boolean | undefined>); stage: number; }>

@@ -15,15 +15,15 @@ use rspack_core::{
   ExportModeNormalReexport, ExportModeReexportDynamicDefault, ExportModeReexportNamedDefault,
   ExportModeReexportNamespaceObject, ExportModeReexportUndefined, ExportModeUnused,
   ExportNameOrSpec, ExportPresenceMode, ExportProvided, ExportSpec, ExportsInfoArtifact,
-  ExportsInfoData, ExportsOfExportsSpec, ExportsSpec, ExportsType, ExtendedReferencedExport,
-  FactorizeInfo, ForwardId, ImportAttributes, ImportPhase, InitFragmentExt, InitFragmentKey,
-  InitFragmentStage, JavascriptParserOptions, LazyUntil, ModuleDependency, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleIdentifier, NormalInitFragment, NormalReexportItem,
-  ResourceIdentifier, RuntimeCondition, RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact,
-  StarReexportsInfo, TemplateContext, TemplateReplaceSource, UsageState, UsedName,
-  collect_referenced_export_items, create_exports_object_referenced, create_no_exports_referenced,
-  filter_runtime, get_exports_type, get_runtime_key, get_terminal_binding, property_access,
-  property_name, render_make_deferred_namespace_mode_from_exports_type, to_normal_comment,
+  ExportsInfoData, ExportsOfExportsSpec, ExportsSpec, ExportsType, FactorizeInfo, ForwardId,
+  ImportAttributes, ImportPhase, InitFragmentExt, InitFragmentKey, InitFragmentStage,
+  JavascriptParserOptions, LazyUntil, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
+  ModuleIdentifier, NormalInitFragment, NormalReexportItem, ReferencedExport, ResourceIdentifier,
+  RuntimeCondition, RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, StarReexportsInfo,
+  TemplateContext, TemplateReplaceSource, UsageState, UsedName, collect_referenced_export_items,
+  create_exports_object_referenced, create_no_exports_referenced, filter_runtime, get_exports_type,
+  get_runtime_key, get_terminal_binding, property_access, property_name,
+  render_make_deferred_namespace_mode_from_exports_type, to_normal_comment,
 };
 use rspack_error::{Diagnostic, Error, Severity};
 use rspack_hash::{RspackHash, RspackHasher};
@@ -1466,7 +1466,7 @@ impl Dependency for ESMExportImportedSpecifierDependency {
     module_graph_cache: &ModuleGraphCacheArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
     runtime: Option<&RuntimeSpec>,
-  ) -> Vec<ExtendedReferencedExport> {
+  ) -> Vec<ReferencedExport> {
     let mode = self.get_mode(
       module_graph,
       runtime,
@@ -1506,7 +1506,7 @@ impl Dependency for ESMExportImportedSpecifierDependency {
         );
         referenced_exports
           .into_iter()
-          .map(|i| ExtendedReferencedExport::Array(i.into_iter().map(|i| i.to_owned()).collect()))
+          .map(ReferencedExport::from)
           .collect::<Vec<_>>()
       }
       ExportMode::NormalReexport(mode) => {
@@ -1527,7 +1527,7 @@ impl Dependency for ESMExportImportedSpecifierDependency {
         }
         referenced_exports
           .into_iter()
-          .map(|i| ExtendedReferencedExport::Array(i.into_iter().map(|i| i.to_owned()).collect()))
+          .map(ReferencedExport::from)
           .collect::<Vec<_>>()
       }
     }

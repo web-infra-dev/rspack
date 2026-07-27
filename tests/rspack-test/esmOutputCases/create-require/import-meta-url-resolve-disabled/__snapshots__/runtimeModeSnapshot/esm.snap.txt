@@ -26,15 +26,23 @@ const req = /* createRequire() */ undefined;
 
 const bundledValue = __rspack_context.r(/*! ./dep.js */ "./dep.js");
 
+// ./preserve-import-meta.js
+
+
+const preserve_import_meta_req = (0,external_node_module_namespaceObject.createRequire)(import.meta.url);
+
+const preservedResolved = preserve_import_meta_req.resolve("path");
+
 // ./index.js
 
 
 
-const index_req = (0,external_node_module_namespaceObject.createRequire)(import.meta.url);
+
+const index_req = (0,external_node_module_namespaceObject.createRequire)('<ROOT>/tests/rspack-test/esmOutputCases/create-require/import-meta-url-resolve-disabled/index.js');
 
 const resolved = index_req.resolve("path");
 
-it("should preserve import.meta.url when requireResolve is disabled", async () => {
+it("should delegate import.meta.url parsing when requireResolve is disabled", async () => {
 	const fs = await import(/* webpackIgnore: true */ "node:fs");
 	const path = await import(/* webpackIgnore: true */ "node:path");
 	const source = fs.readFileSync(path.join(__rspack_import_meta_dirname__, "main.mjs"), "utf-8");
@@ -42,9 +50,10 @@ it("should preserve import.meta.url when requireResolve is disabled", async () =
 		"(0,external_node_module_namespaceObject." + "createRequire)(import.meta.url)";
 
 	expect(source.split(runtimeCreateRequire)).toHaveLength(2);
-	expect(source).not.toContain("file:" + "//");
+	expect(source).toContain("file:" + "//");
 	expect(source).toContain("/* createRequire() */ undefined");
 	expect(resolved).toBe("path");
+	expect(preservedResolved).toBe("path");
 	expect(bundledValue).toBe("dep");
 });
 

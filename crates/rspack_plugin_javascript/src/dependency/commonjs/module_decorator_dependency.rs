@@ -83,7 +83,7 @@ impl Dependency for ModuleDecoratorDependency {
     _module_graph_cache: &ModuleGraphCacheArtifact,
     _exports_info_artifact: &ExportsInfoArtifact,
     _runtime: Option<&rspack_core::RuntimeSpec>,
-  ) -> Vec<rspack_core::ExtendedReferencedExport> {
+  ) -> Vec<rspack_core::ReferencedExport> {
     if self.allow_exports_access {
       create_exports_object_referenced()
     } else {

@@ -2,7 +2,7 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
   DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, ExportsInfoArtifact,
-  ExtendedReferencedExport, FactorizeInfo, ModuleDependency, RuntimeSpec, TemplateContext,
+  FactorizeInfo, ModuleDependency, ReferencedExport, RuntimeSpec, TemplateContext,
   TemplateReplaceSource,
 };
 use rspack_util::atom::Atom;
@@ -64,11 +64,11 @@ impl Dependency for CssSelfReferenceLocalIdentDependency {
     _module_graph_cache: &rspack_core::ModuleGraphCacheArtifact,
     _exports_info_artifact: &ExportsInfoArtifact,
     _runtime: Option<&RuntimeSpec>,
-  ) -> Vec<ExtendedReferencedExport> {
+  ) -> Vec<ReferencedExport> {
     self
       .names
       .iter()
-      .map(|n| ExtendedReferencedExport::Array(vec![Atom::from(n.as_str())]))
+      .map(|n| ReferencedExport::from(Atom::from(n.as_str())))
       .collect()
   }
 }

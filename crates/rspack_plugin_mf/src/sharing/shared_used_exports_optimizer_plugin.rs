@@ -4,8 +4,8 @@ use rspack_core::{
   AsyncDependenciesBlockIdentifier, ChunkUkey, Compilation,
   CompilationAdditionalTreeRuntimeRequirements, CompilationDependencyReferencedExports,
   CompilationOptimizeDependencies, CompilationProcessAssets, DependenciesBlock, Dependency,
-  DependencyId, DependencyType, ExportsInfoArtifact, ExtendedReferencedExport, Module, ModuleGraph,
-  ModuleIdentifier, Plugin, RuntimeGlobals, RuntimeModule, RuntimeModuleExt, RuntimeSpec,
+  DependencyId, DependencyType, ExportsInfoArtifact, Module, ModuleGraph, ModuleIdentifier, Plugin,
+  ReferencedExport, RuntimeGlobals, RuntimeModule, RuntimeModuleExt, RuntimeSpec,
   SideEffectsOptimizeArtifact,
   build_module_graph::BuildModuleGraphArtifact,
   module_declared_side_effect_free,
@@ -385,7 +385,7 @@ fn dependency_referenced_exports(
   &self,
   compilation: &Compilation,
   dependency_id: &DependencyId,
-  referenced_exports: &Option<Vec<ExtendedReferencedExport>>,
+  referenced_exports: &Option<Vec<ReferencedExport>>,
   _runtime: Option<&RuntimeSpec>,
   module_graph: Option<&ModuleGraph>,
 ) -> Result<()> {
@@ -413,10 +413,7 @@ fn dependency_referenced_exports(
 
   // If it's an import dependency and referenced exports indicate "exports object referenced",
   // clear any recorded shared referenced exports for this share key and stop here.
-  let is_exports_object = matches!(
-    final_exports.as_slice(),
-    [ExtendedReferencedExport::Array(arr)] if arr.is_empty()
-  );
+  let is_exports_object = matches!(final_exports.as_slice(), [export] if export.name.is_empty());
   if dependency
     .as_any()
     .downcast_ref::<ImportDependency>()
@@ -464,21 +461,12 @@ fn dependency_referenced_exports(
       .entry(share_key.to_string())
       .or_default();
 
-    for referenced_export in &final_exports {
-      match referenced_export {
-        ExtendedReferencedExport::Array(exports_array) => {
-          for export in exports_array {
-            export_set.insert(export.to_string());
-          }
-        }
-        ExtendedReferencedExport::Export(referenced) => {
-          if referenced.name.is_empty() {
-            continue;
-          }
-          for atom in &referenced.name {
-            export_set.insert(atom.to_string());
-          }
-        }
+    for referenced in &final_exports {
+      if referenced.name.is_empty() {
+        continue;
+      }
+      for atom in &referenced.name {
+        export_set.insert(atom.to_string());
       }
     }
   }

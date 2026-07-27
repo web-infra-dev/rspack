@@ -1,5 +1,6 @@
 const fs = require("fs");
 const path = require("path");
+const { execFileSync } = require("child_process");
 
 const cases = [
 	{
@@ -51,6 +52,21 @@ module.exports = {
 				);
 			} else {
 				expect(workerUrl).toBe(testCase.url);
+				const output = execFileSync(
+					process.execPath,
+					[
+						"--input-type=module",
+						"--eval",
+						`const types = []; globalThis.Worker = class { constructor(_url, options) { types.push(options.type); } }; ${source}; console.log(JSON.stringify(types));`
+					],
+					{ encoding: "utf8" }
+				);
+				expect(JSON.parse(output)).toEqual([
+					"module",
+					"module",
+					"module",
+					"module"
+				]);
 			}
 
 			expect(

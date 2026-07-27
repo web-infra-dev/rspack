@@ -392,6 +392,7 @@ macro_rules! define_import_meta_known_properties {
 
 define_import_meta_known_properties! {
   const DIRNAME = "dirname";
+  const ENV = "env";
   const FILENAME = "filename";
   const GLOB = "glob";
   const MAIN = "main";

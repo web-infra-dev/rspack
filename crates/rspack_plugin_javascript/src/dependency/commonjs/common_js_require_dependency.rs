@@ -5,10 +5,10 @@ use rspack_cacheable::{
 use rspack_core::{
   AsContextDependency, Context, Dependency, DependencyCategory, DependencyCodeGeneration,
   DependencyCondition, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
-  DependencyTemplateType, DependencyType, ExportsInfoArtifact, ExtendedReferencedExport,
-  FactorizeInfo, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ReferencedSpecifier,
-  ResourceIdentifier, RuntimeSpec, TemplateContext, TemplateReplaceSource,
-  create_exports_object_referenced, create_referenced_exports_by_referenced_specifiers,
+  DependencyTemplateType, DependencyType, ExportsInfoArtifact, FactorizeInfo, ModuleDependency,
+  ModuleGraph, ModuleGraphCacheArtifact, ReferencedExport, ReferencedSpecifier, ResourceIdentifier,
+  RuntimeSpec, TemplateContext, TemplateReplaceSource, create_exports_object_referenced,
+  create_referenced_exports_by_referenced_specifiers,
 };
 
 use super::create_resource_identifier_for_contextual_commonjs_dependency;
@@ -133,7 +133,7 @@ impl Dependency for CommonJsRequireDependency {
     module_graph_cache: &ModuleGraphCacheArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
     _runtime: Option<&RuntimeSpec>,
-  ) -> Vec<ExtendedReferencedExport> {
+  ) -> Vec<ReferencedExport> {
     if let Some(referenced_specifiers) = &self.referenced_specifiers {
       let module = module_graph
         .get_module_by_dependency_id(&self.id)

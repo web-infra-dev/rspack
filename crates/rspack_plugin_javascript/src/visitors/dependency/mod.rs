@@ -4,8 +4,9 @@ mod util;
 
 use rspack_core::{
   ArcComputed, AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BuildInfo, BuildMeta,
-  CompilerOptions, FactoryMeta, ImportMeta, ModuleIdentifier, ModuleLayer, ModuleType, ParseMeta,
-  ParserOptions, ResolvedModuleOptions, ResourceData, SideEffectsBailoutItemWithSpan,
+  CompilationId, CompilerOptions, FactoryMeta, ImportMeta, ModuleIdentifier, ModuleLayer,
+  ModuleType, ParseMeta, ParserOptions, ResolvedModuleOptions, ResourceData,
+  SideEffectsBailoutItemWithSpan,
 };
 use rspack_error::Diagnostic;
 use rustc_hash::FxHashSet;
@@ -13,6 +14,7 @@ use swc_experimental_allocator::Allocator;
 use swc_experimental_ecma_ast::{Comments, Program};
 use swc_experimental_ecma_semantic::resolver::Semantic;
 
+pub(crate) use self::parser::StatementPath;
 pub use self::{
   context_dependency_helper::{ContextModuleScanResult, create_context_dependency},
   parser::{
@@ -55,6 +57,7 @@ pub fn scan_dependencies(
   module_identifier: ModuleIdentifier,
   module_parser_options: Option<&ParserOptions>,
   import_meta: ArcComputed<ResolvedModuleOptions, ImportMeta>,
+  compilation_id: CompilationId,
   semicolons: &mut FxHashSet<u32>,
   parser_plugins: &mut Vec<BoxJavascriptParserPlugin>,
   parse_meta: ParseMeta,
@@ -78,6 +81,7 @@ pub fn scan_dependencies(
     semicolons,
     parser_plugins,
     parse_meta,
+    compilation_id,
     parser_runtime_requirements,
   );
 

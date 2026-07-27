@@ -62,6 +62,10 @@ RSPACK_PROFILE=ALL rspack build
 
 [html-webpack-plugin](https://github.com/jantimon/html-webpack-plugin) 在生成大量 HTML 文件时，性能表现不佳，Rspack 基于 Rust 实现的 [HtmlRspackPlugin](/plugins/rspack/html-rspack-plugin) 可以提供更好的性能。
 
+### ts-checker-rspack-plugin
+
+使用 [ts-checker-rspack-plugin](https://github.com/rspack-contrib/ts-checker-rspack-plugin) 时，推荐使用 TypeScript 7 或更高版本，以启用原生类型检查器并提升大型项目的类型检查性能，详见[插件 README](https://github.com/rspack-contrib/ts-checker-rspack-plugin#typescript-7-support)。
+
 ## 阻塞线程池大小
 
 Rspack 在内部使用一个专门的线程池来执行文件系统读写等阻塞操作，以避免阻塞主线程。
