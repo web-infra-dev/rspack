@@ -1,5 +1,4 @@
 use std::{
-  collections::BTreeMap,
   path::{Path, PathBuf},
   sync::Arc,
 };
@@ -12,7 +11,7 @@ use rspack_core::{
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use rustc_hash::FxHashMap;
-use serde::Serialize;
+use serde::{Serialize, Serializer, ser::SerializeMap};
 
 use super::consume_shared_plugin::ConsumeOptions;
 use crate::{ShareScope, SharedIdentity};
@@ -29,12 +28,27 @@ struct CollectSharedEntryVariant {
 }
 
 #[derive(Debug, Serialize)]
-struct CollectSharedEntryAssetItem {
+struct CollectSharedEntryAssetItem<'a> {
   #[serde(rename = "shareScope")]
-  share_scope: ShareScope,
-  requests: Vec<[String; 2]>,
+  share_scope: &'a ShareScope,
+  requests: &'a [[String; 2]],
   #[serde(skip_serializing_if = "Option::is_none")]
-  variants: Option<Vec<CollectSharedEntryVariant>>,
+  variants: Option<&'a [CollectSharedEntryVariant]>,
+}
+
+struct CollectSharedEntries<'a>(&'a [(&'a str, CollectSharedEntryAssetItem<'a>)]);
+
+impl Serialize for CollectSharedEntries<'_> {
+  fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+  where
+    S: Serializer,
+  {
+    let mut map = serializer.serialize_map(Some(self.0.len()))?;
+    for (share_key, entry) in self.0 {
+      map.serialize_entry(share_key, entry)?;
+    }
+    map.end()
+  }
 }
 
 #[derive(Debug)]
@@ -202,7 +216,7 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
   }
 
   // Build asset content
-  let mut shared_variants: BTreeMap<String, Vec<CollectSharedEntryVariant>> = BTreeMap::new();
+  let mut shared_variants: FxHashMap<String, Vec<CollectSharedEntryVariant>> = FxHashMap::default();
   for (identity, requests) in ordered_requests {
     shared_variants
       .entry(identity.share_key)
@@ -213,10 +227,10 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
         requests,
       });
   }
-  let shared = shared_variants
-    .into_iter()
-    .filter_map(|(share_key, mut variants)| {
-      variants.sort_by(|a, b| {
+  let mut shared = shared_variants
+    .iter_mut()
+    .filter_map(|(share_key, variants)| {
+      variants.sort_unstable_by(|a, b| {
         a.layer.cmp(&b.layer).then_with(|| {
           a.share_scope
             .identifier_key()
@@ -227,21 +241,21 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
         .iter()
         .find(|entry| entry.layer.is_none())
         .or_else(|| variants.first())?;
-      let share_scope = preferred.share_scope.clone();
-      let requests = preferred.requests.clone();
-      let variants = (variants.len() != 1 || variants[0].layer.is_some()).then_some(variants);
+      let variants =
+        (variants.len() != 1 || variants[0].layer.is_some()).then_some(variants.as_slice());
       Some((
-        share_key,
+        share_key.as_str(),
         CollectSharedEntryAssetItem {
-          share_scope,
-          requests,
+          share_scope: &preferred.share_scope,
+          requests: &preferred.requests,
           variants,
         },
       ))
     })
-    .collect::<BTreeMap<_, _>>();
+    .collect::<Vec<_>>();
+  shared.sort_unstable_by(|a, b| a.0.cmp(b.0));
 
-  let json = serde_json::to_string_pretty(&shared)
+  let json = serde_json::to_string_pretty(&CollectSharedEntries(&shared))
     .expect("CollectSharedEntryPlugin: failed to serialize share entries");
 
   // Get filename, or use default when absent
