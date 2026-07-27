@@ -7,9 +7,8 @@ use rspack_core::{
   runtime_module_owned_define_fields,
 };
 use rspack_error::Result;
-use rspack_util::fx_hash::FxIndexSet;
 
-use crate::runtime::render_runtime_module_sources;
+use crate::runtime::{RuntimeModuleSourceItem, render_runtime_module_sources};
 
 static HMR_RUNTIME_STATE_GLOBALS: LazyLock<RuntimeGlobals> = LazyLock::new(|| {
   RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS
@@ -100,7 +99,8 @@ fn render_rspack_runtime_exports(
   setter_fields: RuntimeGlobals,
   should_export: bool,
   runtime_template: &RuntimeCodeTemplate,
-  emitted_exports: &mut FxIndexSet<String>,
+  emitted_fields: &mut RuntimeGlobals,
+  emitted_setters: &mut RuntimeGlobals,
 ) -> String {
   let mut source = String::new();
 
@@ -110,25 +110,29 @@ fn render_rspack_runtime_exports(
       .difference(*BOOTSTRAP_EXPORT_GLOBALS)
       .iter_names()
     {
-      let specifier = runtime_template.render_runtime_globals(&runtime_global);
-      if emitted_exports.insert(specifier.clone()) {
-        source.push_str(&format!("export {{ {specifier} }};\n"));
+      if emitted_fields.contains(runtime_global) {
+        continue;
       }
+      emitted_fields.insert(runtime_global);
+      let specifier = runtime_template.render_runtime_globals(&runtime_global);
+      source.push_str(&format!("export {{ {specifier} }};\n"));
     }
   }
 
   for (_, runtime_global) in setter_fields.renderable_require_scope().iter_names() {
+    if emitted_setters.contains(runtime_global) {
+      continue;
+    }
     let Some(setter_name) = runtime_global.to_rspack_export_setter_name() else {
       continue;
     };
+    emitted_setters.insert(runtime_global);
     let lexical_name = runtime_template.render_runtime_globals(&runtime_global);
-    if emitted_exports.insert(setter_name.clone()) {
-      source.push_str(&format!(
-        "function {setter_name}(value) {{ return {lexical_name} = value; }}\n"
-      ));
-      if should_export {
-        source.push_str(&format!("export {{ {setter_name} }};\n"));
-      }
+    source.push_str(&format!(
+      "function {setter_name}(value) {{ return {lexical_name} = value; }}\n"
+    ));
+    if should_export {
+      source.push_str(&format!("export {{ {setter_name} }};\n"));
     }
   }
 
@@ -173,9 +177,24 @@ pub async fn render_runtime_chunk_runtime_modules(
   runtime_template: &RuntimeCodeTemplate,
 ) -> Result<BoxSource> {
   let runtime_module_sources = render_runtime_module_sources(compilation, chunk_ukey, true).await?;
+  Ok(render_runtime_chunk_runtime_modules_sync(
+    compilation,
+    chunk_ukey,
+    runtime_template,
+    runtime_module_sources,
+  ))
+}
+
+#[inline(never)]
+fn render_runtime_chunk_runtime_modules_sync(
+  compilation: &Compilation,
+  chunk_ukey: &ChunkUkey,
+  runtime_template: &RuntimeCodeTemplate,
+  runtime_module_sources: Vec<RuntimeModuleSourceItem>,
+) -> BoxSource {
   let mut sources = ConcatSource::default();
   if runtime_module_sources.is_empty() {
-    return Ok(sources.boxed());
+    return sources.boxed();
   }
   let metadata = compilation
     .runtime_proxy_metadata_artifact
@@ -282,7 +301,8 @@ pub async fn render_runtime_chunk_runtime_modules(
       }
     }
 
-    let mut emitted_exports = FxIndexSet::default();
+    let mut emitted_fields = RuntimeGlobals::default();
+    let mut emitted_setters = RuntimeGlobals::default();
     let setters = metadata.context_setter_fields();
     let mut remaining_setters = setters;
     for (runtime_module_source, generated_requirements, context_requirements, _) in
@@ -301,7 +321,8 @@ pub async fn render_runtime_chunk_runtime_modules(
         context_setters,
         should_export_runtime_globals,
         runtime_template,
-        &mut emitted_exports,
+        &mut emitted_fields,
+        &mut emitted_setters,
       )));
     }
     sources.add(RawStringSource::from(render_rspack_runtime_exports(
@@ -309,10 +330,11 @@ pub async fn render_runtime_chunk_runtime_modules(
       remaining_setters,
       should_export_runtime_globals,
       runtime_template,
-      &mut emitted_exports,
+      &mut emitted_fields,
+      &mut emitted_setters,
     )));
 
-    return Ok(sources.boxed());
+    return sources.boxed();
   }
   wrapped_sources.add(RawStringSource::from(render_lexical_declarations(
     lexical_fields.difference(runtime_module_owned_define_fields(compilation, chunk_ukey)),
@@ -378,7 +400,7 @@ pub async fn render_runtime_chunk_runtime_modules(
     sources.add(wrapped_sources);
   }
 
-  Ok(sources.boxed())
+  sources.boxed()
 }
 
 pub async fn render_chunk_runtime_modules(
