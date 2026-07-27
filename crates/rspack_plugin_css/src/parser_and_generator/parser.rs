@@ -216,117 +216,6 @@ fn normalize_dashed_ident_name(name: &str) -> SmolStr {
   SmolStr::new(unescape(name).trim_start_matches("--"))
 }
 
-fn scan_css_identifier_end(bytes: &[u8], mut offset: usize) -> usize {
-  while let Some(byte) = bytes.get(offset).copied() {
-    if byte.is_ascii_alphanumeric() || byte >= 0x80 || matches!(byte, b'-' | b'_' | b'\\') {
-      offset += 1;
-    } else {
-      break;
-    }
-  }
-  offset
-}
-
-fn add_mode_replace_dependency<'source>(
-  deps: &mut Vec<css_module_lexer::Dependency<'source>>,
-  mode_start: usize,
-  mode_end: usize,
-) {
-  if deps.iter().any(|dependency| {
-    matches!(
-      dependency,
-      css_module_lexer::Dependency::Replace { content: "", range }
-        if range.start <= mode_start as u32 && range.end >= mode_end as u32
-    )
-  }) {
-    return;
-  }
-
-  deps.push(css_module_lexer::Dependency::Replace {
-    content: "",
-    range: css_module_lexer::Range::new(mode_start as u32, mode_end as u32),
-  });
-}
-
-fn strip_css_comments(value: &str) -> String {
-  let bytes = value.as_bytes();
-  let mut result = String::with_capacity(value.len());
-  let mut offset = 0;
-
-  while offset < bytes.len() {
-    if bytes.get(offset) == Some(&b'/') && bytes.get(offset + 1) == Some(&b'*') {
-      offset += 2;
-      while offset + 1 < bytes.len()
-        && (bytes.get(offset) != Some(&b'*') || bytes.get(offset + 1) != Some(&b'/'))
-      {
-        offset += 1;
-      }
-      offset = (offset + 2).min(bytes.len());
-      continue;
-    }
-
-    let Some(char) = value[offset..].chars().next() else {
-      break;
-    };
-    result.push(char);
-    offset += char.len_utf8();
-  }
-
-  result
-}
-
-fn is_invalid_bare_import(source: &str, request: &str, range: &css_module_lexer::Range) -> bool {
-  let Some(rule) = source.get(range.start as usize..range.end as usize) else {
-    return false;
-  };
-  let rule = strip_css_comments(rule);
-  let Some(prelude) = rule.trim_start().strip_prefix("@import") else {
-    return false;
-  };
-
-  let prelude = prelude.trim_start();
-  if prelude.starts_with('"') || prelude.starts_with('\'') || prelude.starts_with("url(") {
-    return false;
-  }
-
-  let request = request.trim();
-  if request.is_empty() {
-    return false;
-  }
-
-  let Some(rest) = prelude.strip_prefix(request) else {
-    return false;
-  };
-
-  rest
-    .bytes()
-    .next()
-    .is_none_or(|byte| byte == b';' || byte.is_ascii_whitespace())
-}
-
-fn last_quoted_string(value: &str) -> Option<&str> {
-  let mut quote = None;
-  let mut escaped = false;
-  let mut last = None;
-
-  for (index, char) in value.char_indices() {
-    if let Some((current_quote, start)) = quote {
-      if escaped {
-        escaped = false;
-      } else if char == '\\' {
-        escaped = true;
-      } else if char == current_quote {
-        last = Some(&value[start..index]);
-        quote = None;
-      }
-    } else if matches!(char, '"' | '\'') {
-      quote = Some((char, index + char.len_utf8()));
-    }
-  }
-
-  last
-}
-
 impl<'context> CssModuleParser<'context> {
   pub fn new(
     generator_options: &'context CssModuleGeneratorOptions,
@@ -369,11 +258,7 @@ impl<'context> CssModuleParser<'context> {
   pub async fn parse(mut self) -> Result<TWithDiagnosticArray<ParseResult>> {
     let mode = self.mode();
     let deps_source_code = self.source_code.clone();
-    let (mut deps, warnings) = css_module_lexer::collect_dependencies(&deps_source_code, mode);
-    if self.is_css_modules() {
-      self.add_missing_whitespace_mode_dependencies(&mut deps, &warnings, &deps_source_code);
-      self.add_missing_value_at_rule_warnings(&deps_source_code);
-    }
+    let (deps, warnings) = css_module_lexer::collect_dependencies(&deps_source_code, mode);
     let local_css_ident_declarations = self.collect_local_css_ident_declarations(&deps);
     let module_hash_options = self.create_module_hash_options(&deps, &local_css_ident_declarations);
 
@@ -789,145 +674,6 @@ impl<'context> CssModuleParser<'context> {
     (start as u32, end as u32).into()
   }
 
-  fn add_missing_value_at_rule_warnings(&mut self, source: &str) {
-    let mut offset = 0;
-
-    while let Some(relative_start) = source[offset..].find("@value") {
-      let start = offset + relative_start;
-      let line_start = source[..start].rfind("\n").map_or(0, |pos| pos + 1);
-      let params_start = start + "@value".len();
-
-      if !source[line_start..start].trim().is_empty() {
-        offset = params_start;
-        continue;
-      }
-
-      let Some(relative_end) = source[params_start..].find(";") else {
-        break;
-      };
-      let end = params_start + relative_end;
-      let params = source[params_start..end].trim();
-
-      if !params.is_empty() && params.split_whitespace().nth(1).is_none() && !params.contains(":") {
-        let error = css_parsing_traceable_error(
-          &self.source_code,
-          start as u32,
-          (end + 1) as u32,
-          "Broken \x27@value\x27 at-rule".to_string(),
-          Severity::Warning,
-        );
-        self.diagnostics.push(error.into());
-      }
-
-      offset = end + 1;
-    }
-  }
-
-  fn add_missing_whitespace_mode_dependencies<'source>(
-    &mut self,
-    deps: &mut Vec<css_module_lexer::Dependency<'source>>,
-    warnings: &[css_module_lexer::Warning<'_>],
-    source: &'source str,
-  ) {
-    let bytes = source.as_bytes();
-    let mut offset = 0;
-
-    while let Some(relative_start) = source[offset..].find(':') {
-      let mode_start = offset + relative_start;
-      let Some(mode) = source[mode_start..]
-        .strip_prefix(":local")
-        .map(|_| css_module_lexer::Mode::Local)
-        .or_else(|| {
-          source[mode_start..]
-            .strip_prefix(":global")
-            .map(|_| css_module_lexer::Mode::Global)
-        })
-      else {
-        offset = mode_start + 1;
-        continue;
-      };
-
-      let mode_len = match mode {
-        css_module_lexer::Mode::Local => ":local".len(),
-        css_module_lexer::Mode::Global => ":global".len(),
-        _ => unreachable!(),
-      };
-      let mut selector_start = mode_start + mode_len;
-      while source[selector_start..].starts_with("/*") {
-        let Some(comment_end) = source[selector_start + 2..].find("*/") else {
-          break;
-        };
-        selector_start += 2 + comment_end + 2;
-      }
-
-      let Some(prefix) = bytes.get(selector_start).copied() else {
-        break;
-      };
-      let mode_end = mode_start + mode_len;
-      if prefix == b'{' {
-        add_mode_replace_dependency(deps, mode_start, mode_end);
-        if !warnings.iter().any(|warning| {
-          warning.range().start <= mode_start as u32
-            && warning.range().end >= (mode_start + mode_len) as u32
-        }) {
-          self.add_missing_whitespace_mode_warning(mode_start as u32, selector_start as u32);
-        }
-        offset = selector_start + 1;
-        continue;
-      }
-      if prefix != b'.' && prefix != b'#' {
-        offset = mode_start + mode_len;
-        continue;
-      }
-
-      let selector_end = scan_css_identifier_end(bytes, selector_start + 1);
-      if selector_end == selector_start + 1 {
-        offset = selector_start + 1;
-        continue;
-      }
-
-      add_mode_replace_dependency(deps, mode_start, mode_end);
-
-      if matches!(mode, css_module_lexer::Mode::Local) {
-        let name = &source[selector_start..selector_end];
-        let range = css_module_lexer::Range::new(selector_start as u32, selector_end as u32);
-        if prefix == b'.' {
-          deps.push(css_module_lexer::Dependency::LocalClass {
-            name,
-            range,
-            explicit: true,
-          });
-        } else {
-          deps.push(css_module_lexer::Dependency::LocalId {
-            name,
-            range,
-            explicit: true,
-          });
-        }
-      }
-
-      if !warnings.iter().any(|warning| {
-        warning.range().start <= mode_start as u32
-          && warning.range().end >= (mode_start + mode_len) as u32
-      }) {
-        self.add_missing_whitespace_mode_warning(mode_start as u32, selector_end as u32);
-      }
-
-      offset = selector_end;
-    }
-  }
-
-  fn add_missing_whitespace_mode_warning(&mut self, start: u32, end: u32) {
-    let error = css_parsing_traceable_error(
-      &self.source_code,
-      start,
-      end,
-      "Missing trailing whitespace".to_string(),
-      Severity::Warning,
-    );
-    self.diagnostics.push(error.into());
-  }
-
   fn add_invalid_bare_import_warning(&mut self, range: &css_module_lexer::Range) {
     let when = self
       .source_code
@@ -941,10 +687,6 @@ impl<'context> CssModuleParser<'context> {
       Severity::Warning,
     );
     self.diagnostics.push(error.into());
-  }
-
-  fn is_css_modules(&self) -> bool {
-    self.generator_options.local_ident_name.is_some()
   }
 
   async fn handle_dependency<'source>(
@@ -1031,10 +773,10 @@ impl<'context> CssModuleParser<'context> {
         Ok(())
       }
       css_module_lexer::Dependency::ICSSImportUrl { name, range, .. } => {
-        if self.is_css_modules() {
-          let request = self.resolve_icss_import_request(name);
+        if let Some(request) = self.resolve_icss_import_url_request(name) {
           self.handle_import(&request, range, None, None, None).await
         } else {
+          self.add_invalid_bare_import_warning(&range);
           Ok(())
         }
       }
@@ -1191,11 +933,6 @@ impl<'context> CssModuleParser<'context> {
     supports: Option<&str>,
     layer: Option<&str>,
   ) -> Result<()> {
-    if is_invalid_bare_import(&self.source_code, request, &range) {
-      self.add_invalid_bare_import_warning(&range);
-      return Ok(());
-    }
-
     let request = normalize_url(request);
     if request.trim().is_empty() {
       self
@@ -1869,9 +1606,6 @@ impl<'context> CssModuleParser<'context> {
   }
 
   fn resolve_icss_import_request(&self, path: &str) -> String {
-    let recovered_path = self.recover_icss_import_request_from_source(path);
-    let path = recovered_path.unwrap_or(path);
-    let path = strip_css_comments(path);
     let path = path.trim().trim_matches(|c| c == '\'' || c == '"');
     if let Some(IcssDefinition::Value(value)) = self.icss_definitions.get(path) {
       value.trim_matches(|c| c == '\'' || c == '"').to_string()
@@ -1887,21 +1621,16 @@ impl<'context> CssModuleParser<'context> {
     }
   }
 
-  fn recover_icss_import_request_from_source<'source>(
-    &'source self,
-    path: &str,
-  ) -> Option<&'source str> {
-    if !path.contains("/*") {
+  fn resolve_icss_import_url_request(&self, name: &str) -> Option<String> {
+    let name = name.trim().trim_matches(|c| c == '\'' || c == '"');
+    if !matches!(
+      self.icss_definitions.get(name),
+      Some(IcssDefinition::Value(_))
+    ) {
       return None;
     }
-
-    let source = self.source_code.as_ref();
-    let request_start = source.find(path)?;
-    let at_value_start = source[..request_start].rfind("@value")?;
-    let declaration_end = source[request_start..]
-      .find(';')
-      .map_or(source.len(), |index| request_start + index);
-    last_quoted_string(&source[at_value_start..declaration_end])
+    let request = self.resolve_icss_import_request(name);
+    (!request.trim().is_empty()).then_some(request)
   }
 
   fn update_css_exports_from_icss_definition(
