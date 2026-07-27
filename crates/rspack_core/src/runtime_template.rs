@@ -181,6 +181,7 @@ impl RuntimeTemplate {
     let render_mode = RuntimeTemplateRenderMode::from(compiler_options.experiments.runtime_mode);
     let runtime_globals = get_runtime_globals_render_map(render_mode.runtime_module_render_mode());
     let mut dojang = Dojang::new();
+    register_runtime_module_declaration_functions(&mut dojang);
 
     let runtime_globals_cloned = runtime_globals.clone();
     let compiler_options_cloned = compiler_options.clone();
@@ -509,6 +510,21 @@ fn dojang_empty_function(compiler_options: &Arc<CompilerOptions>) -> Operand {
   } else {
     Operand::Value(Value::from("function() {}"))
   }
+}
+
+fn register_runtime_module_declaration_functions(dojang: &mut Dojang) {
+  dojang.functions.insert(
+    "var".into(),
+    FunctionContainer::F1(Box::new(|name: Operand| {
+      Operand::Value(Value::from(format!("var {}", String::from(name))))
+    })),
+  );
+  dojang.functions.insert(
+    "fn".into(),
+    FunctionContainer::F1(Box::new(|name: Operand| {
+      Operand::Value(Value::from(format!("function {}", String::from(name))))
+    })),
+  );
 }
 
 fn dojang_array_destructure(

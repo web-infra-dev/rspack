@@ -2,14 +2,24 @@ use quote::quote;
 use syn::{ItemStruct, parse::Parser, parse_macro_input};
 
 pub fn impl_runtime_module(
-  _args: proc_macro::TokenStream,
+  args: proc_macro::TokenStream,
   tokens: proc_macro::TokenStream,
 ) -> proc_macro::TokenStream {
+  parse_macro_input!(args as syn::parse::Nothing);
   let mut input = parse_macro_input!(tokens as ItemStruct);
   let name = &input.ident;
   let generics = &input.generics;
   let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
   let origin_fields = input.fields.clone();
+  let runtime_module_variable_provider = generics.params.is_empty().then(|| {
+    quote! {
+      ::rspack_core::inventory::submit! {
+        ::rspack_core::RuntimeModuleVariableProvider {
+          variables: <#name as ::rspack_core::RuntimeModule>::runtime_module_variables,
+        }
+      }
+    }
+  });
 
   if let syn::Fields::Named(ref mut fields) = input.fields {
     fields.named.push(
@@ -120,6 +130,8 @@ pub fn impl_runtime_module(
         unreachable!()
       }
     }
+
+    #runtime_module_variable_provider
 
     #[rspack_cacheable::cacheable_dyn]
     #[async_trait::async_trait]

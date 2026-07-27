@@ -90,6 +90,10 @@ impl AsyncWasmCompileRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for AsyncWasmCompileRuntimeModule {
+  fn runtime_module_variables() -> &'static [&'static str] {
+    &[]
+  }
+
   fn runtime_requirements(
     &self,
     _compilation: &Compilation,
@@ -133,6 +137,10 @@ impl RuntimeModule for AsyncWasmCompileRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for AsyncWasmLoadingRuntimeModule {
+  fn runtime_module_variables() -> &'static [&'static str] {
+    &[]
+  }
+
   fn runtime_requirements(
     &self,
     _compilation: &Compilation,

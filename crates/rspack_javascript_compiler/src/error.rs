@@ -3,12 +3,12 @@ use std::{
   sync::{Arc, mpsc},
 };
 
-use rspack_error::{BatchErrors, Error, error};
+use rspack_error::{BatchErrors, Error, Label, Severity, error};
 use rspack_util::SpanExt;
 use rustc_hash::FxHashSet as HashSet;
 use swc_core::common::{
   SourceMap, Span, Spanned,
-  errors::{Emitter, HANDLER, Handler},
+  errors::{Diagnostic as SwcDiagnostic, DiagnosticId, Emitter, HANDLER, Handler, Level},
 };
 
 #[derive(Debug, PartialEq, Eq, Hash)]
@@ -61,6 +61,97 @@ pub fn ecma_parse_error_deduped_to_rspack_error(
     "JavaScript parse error".into(),
     message,
   )
+}
+
+/// Converts structured SWC diagnostics into a Rspack error chain.
+///
+/// SWC spans use absolute byte positions within a [`SourceMap`], while Rspack
+/// errors expect byte offsets relative to the source file. Resolve the spans
+/// here instead of rendering them to text so Rspack can render the diagnostics
+/// together with its own error context.
+pub(crate) fn swc_diagnostics_to_rspack_error(
+  diagnostics: &[SwcDiagnostic],
+  source_map: &SourceMap,
+) -> Option<Error> {
+  let mut errors = diagnostics
+    .iter()
+    .rev()
+    .map(|diagnostic| swc_diagnostic_to_rspack_error(diagnostic, source_map));
+  let mut error = errors.next()?;
+
+  for mut outer in errors {
+    outer.source_error = Some(Box::new(error));
+    error = outer;
+  }
+
+  if diagnostics.iter().any(SwcDiagnostic::is_error) {
+    error.severity = Severity::Error;
+  }
+
+  Some(error)
+}
+
+fn swc_diagnostic_to_rspack_error(diagnostic: &SwcDiagnostic, source_map: &SourceMap) -> Error {
+  let mut message = diagnostic.message();
+  let code = diagnostic.code.as_ref().map(|code| match code {
+    DiagnosticId::Error(code) | DiagnosticId::Lint(code) => code,
+  });
+  if let Some(code) = code {
+    message.insert_str(0, ": ");
+    message.insert_str(0, code);
+  }
+
+  let mut error = match diagnostic.level {
+    Level::Warning | Level::Note | Level::Help => Error::warning(message),
+    Level::Bug
+    | Level::Fatal
+    | Level::PhaseFatal
+    | Level::Error
+    | Level::FailureNote
+    | Level::Cancelled => Error::error(message),
+  };
+
+  error.code = code.cloned();
+
+  if let Some(primary_span) = diagnostic.span.primary_span()
+    && let Ok(primary) = source_map.try_lookup_byte_offset(primary_span.lo())
+  {
+    let source_file = primary.sf;
+    let labels = diagnostic
+      .span
+      .span_labels()
+      .into_iter()
+      .filter_map(|label| {
+        if label.span.lo() < source_file.start_pos || label.span.hi() > source_file.end_pos {
+          return None;
+        }
+
+        Some(Label {
+          name: label.label,
+          offset: (label.span.lo() - source_file.start_pos).0 as usize,
+          len: (label.span.hi() - label.span.lo()).0 as usize,
+        })
+      })
+      .collect::<Vec<_>>();
+
+    error.src = Some(source_file.src.to_string());
+    if !labels.is_empty() {
+      error.labels = Some(labels);
+    }
+  }
+
+  let help = diagnostic
+    .children
+    .iter()
+    .filter(|child| child.level == Level::Help)
+    .map(|child| child.message())
+    .collect::<Vec<_>>()
+    .join("\n");
+  if !help.is_empty() {
+    error.help = Some(help);
+  }
+
+  error
 }
 
 // keep this private to make sure with_rspack_error_handler is safety

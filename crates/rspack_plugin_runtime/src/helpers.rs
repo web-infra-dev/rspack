@@ -412,6 +412,11 @@ static EJS_RUNTIME_GLOBAL_WEAK_RE: LazyLock<Regex> = LazyLock::new(|| {
     .expect("invalid EJS runtime global weak regex")
 });
 
+static EJS_RUNTIME_MODULE_VARIABLE_RE: LazyLock<Regex> = LazyLock::new(|| {
+  Regex::new(r#"<%\-\s*(?:var|fn)\(\s*"([A-Za-z_$][A-Za-z0-9_$]*)"\s*\)\s*%>"#)
+    .expect("invalid EJS runtime module variable regex")
+});
+
 /// Extracts all RuntimeGlobals references from an EJS template string.
 ///
 /// Matches patterns like `<%- PUBLIC_PATH %>` or `<%- GET_CHUNK_SCRIPT_FILENAME %>`
@@ -444,6 +449,26 @@ pub fn extract_runtime_globals_from_ejs(ejs_content: &str) -> RuntimeModuleRunti
     define,
     ..Default::default()
   }
+}
+
+/// Extracts top-level runtime module declarations written with EJS `var()` and `fn()` helpers.
+pub fn extract_runtime_module_variables_from_ejs(
+  ejs_contents: &[&'static str],
+) -> Vec<&'static str> {
+  let mut variables = FxIndexSet::default();
+  for ejs_content in ejs_contents {
+    variables.extend(
+      EJS_RUNTIME_MODULE_VARIABLE_RE
+        .captures_iter(ejs_content)
+        .map(|capture| {
+          capture
+            .get(1)
+            .expect("should have a variable name")
+            .as_str()
+        }),
+    );
+  }
+  variables.into_iter().collect()
 }
 
 #[cfg(test)]

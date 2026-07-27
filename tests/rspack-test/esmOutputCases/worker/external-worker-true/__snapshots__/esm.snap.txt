@@ -1,0 +1,22 @@
+```mjs title=main.mjs
+// ./index.js
+function createWorker() {
+	return new Worker(
+		/* webpackChunkName: "worker-facade" */ new URL(
+			"./worker-source.mjs",
+			import.meta.url
+		), { type: "module" }
+	);
+}
+
+export { createWorker };
+
+```
+
+```mjs title=worker-source.mjs
+// ./worker.js
+const workerValue = 42;
+
+export { workerValue };
+
+```
