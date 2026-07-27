@@ -367,58 +367,42 @@ async fn normal_module_factory_module(
     .cloned()
     .or_else(|| data.issuer_layer.clone());
   let request = &data.request;
-  let matched = {
+  let mut matched = {
     let match_provides = self.match_provides.read().await;
-    find_exact_match(&match_provides, request, effective_layer.as_deref()).cloned()
+    find_exact_match(&match_provides, request, effective_layer.as_deref())
+      .cloned()
+      .unwrap_or_default()
   };
-  if let Some(configs) = matched {
-    for config in configs {
-      self
-        .provide_shared_module(
-          config.config_id,
-          request,
-          &config.share_key,
-          &config.share_scope,
-          config.version.as_ref(),
-          config.eager,
-          config.singleton,
-          config.required_version.clone(),
-          config.strict_version,
-          config.tree_shaking_mode.clone(),
-          config.layer.clone(),
-          resource,
-          resource_data,
-          |d| data.diagnostics.push(d),
-        )
-        .await;
-    }
-  }
   let prefix_match = {
     let prefix_match_provides = self.prefix_match_provides.read().await;
     find_prefix_match(&prefix_match_provides, request, effective_layer.as_deref())
       .map(|(config, remainder)| (config.clone(), remainder.to_string()))
   };
   if let Some((configs, remainder)) = prefix_match {
-    for config in configs {
-      self
-        .provide_shared_module(
-          config.config_id,
-          request,
-          &(config.share_key.clone() + remainder.as_str()),
-          &config.share_scope,
-          config.version.as_ref(),
-          config.eager,
-          config.singleton,
-          config.required_version.clone(),
-          config.strict_version,
-          config.tree_shaking_mode.clone(),
-          config.layer.clone(),
-          resource,
-          resource_data,
-          |d| data.diagnostics.push(d),
-        )
-        .await;
+    for mut config in configs {
+      config.share_key.push_str(&remainder);
+      matched.push(config);
     }
+  }
+  for config in matched {
+    self
+      .provide_shared_module(
+        config.config_id,
+        request,
+        &config.share_key,
+        &config.share_scope,
+        config.version.as_ref(),
+        config.eager,
+        config.singleton,
+        config.required_version.clone(),
+        config.strict_version,
+        config.tree_shaking_mode.clone(),
+        config.layer.clone(),
+        resource,
+        resource_data,
+        |d| data.diagnostics.push(d),
+      )
+      .await;
   }
   Ok(())
 }
