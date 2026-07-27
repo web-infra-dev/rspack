@@ -221,7 +221,7 @@ async fn optimize_dependencies(
               share_container_entry_module.get_dependencies(),
               &mut modules_to_process,
             );
-            share_container_entry_module.shared_identity()?.clone()
+            share_container_entry_module.shared_identity()?
           }
           _ => return None,
         };
