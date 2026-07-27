@@ -1,6 +1,10 @@
 use std::fmt;
 
-/// Filesystem persistent-cache version directory name.
+/// Filesystem persistent-cache directory in the form
+/// `rspack_v_<compiler scope hash>_<version hash>`.
+///
+/// The scope hash identifies the compiler that owns the directory, while the
+/// version hash identifies a cache-compatible configuration of that compiler.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Version(String);
 

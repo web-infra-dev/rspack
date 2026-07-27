@@ -125,6 +125,8 @@ impl Meta {
         .into_iter()
         .filter_map(|version| {
           let version = Version::parse(version)?;
+          // The caller deletes every returned stale version, so never add the
+          // active version or a version owned by another compiler scope.
           if &version == active_version || !version.has_same_scope(active_version) {
             return None;
           }
@@ -133,8 +135,11 @@ impl Meta {
           Some((version, timestamp))
         })
         .collect::<Vec<_>>();
+      // The active version already occupies one maxVersions slot.
       let retained_inactive_versions = max_versions.saturating_sub(1) as usize;
       let remove_count = candidates.len().saturating_sub(retained_inactive_versions);
+      // A version without metadata has timestamp 0 and is reclaimed first.
+      // The version ID makes deletion deterministic when timestamps are equal.
       candidates.sort_unstable_by(|(version_a, timestamp_a), (version_b, timestamp_b)| {
         timestamp_a
           .cmp(timestamp_b)

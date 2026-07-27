@@ -85,9 +85,11 @@ impl PersistentCache {
     let option_bytes = codec
       .encode(option)
       .expect("should persistent cache options can be serialized");
-    // maxVersions is enforced per compiler. compiler_path contains each child
-    // compiler's name and index, while portable caches intentionally omit the
-    // project context from their scope.
+    // The scope identifies the compiler that owns a group of cache versions.
+    // Keep it independent of cache options: changing an option should create a
+    // new version in the same scope so maxVersions can retire the old version.
+    // compiler_path distinguishes child compilers by name and index. Portable
+    // caches omit context so moving the project does not change the owner.
     let version_scope = {
       let mut hasher = DefaultHasher::new();
       (
@@ -98,6 +100,8 @@ impl PersistentCache {
         .hash(&mut hasher);
       hex::encode(hasher.finish().to_ne_bytes())
     };
+    // The version hash identifies one cache-compatible configuration within
+    // the compiler scope.
     let version = {
       let mut hasher = DefaultHasher::new();
       compiler_path.hash(&mut hasher);
