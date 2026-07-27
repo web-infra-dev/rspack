@@ -316,7 +316,6 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     .shared_referenced_exports
     .read()
     .expect("lock poisoned");
-
   if let Some(file_name) = &self.stats_file_name
     && let Some(file) = compilation.assets().get(file_name)
     && let Some(source) = file.get_source()
@@ -331,7 +330,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       );
       if let Some(exports_set) = shared_referenced_exports.get(&identity) {
         shared.usedExports = exports_set.iter().cloned().collect::<Vec<_>>();
-        shared.usedExports.sort();
+        shared.usedExports.sort_unstable();
       }
     }
     let updated_content = serde_json::to_string_pretty(&stats_root)
@@ -355,7 +354,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       );
       if let Some(exports_set) = shared_referenced_exports.get(&identity) {
         shared.usedExports = exports_set.iter().cloned().collect::<Vec<_>>();
-        shared.usedExports.sort();
+        shared.usedExports.sort_unstable();
         shared.referenceExports.clone_from(&shared.usedExports);
       }
     }
