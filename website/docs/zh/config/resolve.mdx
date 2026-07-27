@@ -565,7 +565,28 @@ export default {
 - **类型：** `string[]`
 - **默认值：** `["node_modules"]`
 
-解析依赖时的目录名。
+指定 Rspack 解析非相对模块请求时要搜索的目录，例如 `import 'react'` 或 `import 'utils/format'`。`import './utils/format'` 这类相对路径请求仍然从发起导入的文件所在位置解析，不会通过 `resolve.modules` 查找。
+
+Rspack 会按照数组顺序依次尝试每一项。数组项可以是目录名、相对路径或绝对路径：
+
+- 对于目录名或相对路径，Rspack 会从发起导入的文件所在目录开始，逐级向父目录查找。例如，`node_modules` 会依次查找 `<导入方所在目录>/node_modules` 以及各级父目录下的 `node_modules`。
+- 对于绝对路径，Rspack 只会使用该路径所指向的固定目录，不会基于各级父目录再次解析。
+
+例如，下面的配置支持使用非相对模块请求导入 `src` 中的模块，同时保留从 `node_modules` 查找第三方依赖的默认行为：
+
+```js title="rspack.config.mjs"
+import path from 'node:path';
+
+export default {
+  resolve: {
+    modules: [path.resolve(import.meta.dirname, 'src'), 'node_modules'],
+  },
+};
+```
+
+在此配置下，`import 'utils/format'` 可以解析到 `<project>/src/utils/format.js`。如果请求在 `src` 中不存在，Rspack 会继续从 `node_modules` 中查找。
+
+显式设置 `resolve.modules` 会替换默认数组。如果仍需正常解析第三方依赖，应在数组中保留 `'node_modules'`。
 
 ## resolve.pnp
 
