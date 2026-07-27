@@ -151,6 +151,18 @@ jobs:
         env:
           TARGET_CC: clang
 
+      - name: Build powerpc64le-unknown-linux-gnu
+        if: ${{ inputs.target == 'powerpc64le-unknown-linux-gnu' }}
+        run: RUST_TARGET=powerpc64le-unknown-linux-gnu USE_NAPI_CROSS=1 pnpm build:binding:${{ inputs.profile }}
+        env:
+          TARGET_CC: clang
+
+      - name: Build s390x-unknown-linux-gnu
+        if: ${{ inputs.target == 's390x-unknown-linux-gnu' }}
+        run: RUST_TARGET=s390x-unknown-linux-gnu USE_NAPI_CROSS=1 pnpm build:binding:${{ inputs.profile }}
+        env:
+          TARGET_CC: clang
+
       # Windows
       - name: Build i686-pc-windows-msvc
         if: ${{ inputs.target == 'i686-pc-windows-msvc' }}

@@ -50,6 +50,10 @@ jobs:
             runner: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS }}
           - target: riscv64gc-unknown-linux-musl
             runner: "'ubuntu-latest'"
+          - target: powerpc64le-unknown-linux-gnu
+            runner: "'ubuntu-latest'"
+          - target: s390x-unknown-linux-gnu
+            runner: "'ubuntu-latest'"
           - target: i686-pc-windows-msvc
             runner: ${{ needs.get-runner-labels.outputs.WINDOWS_RUNNER_LABELS }}
           - target: x86_64-pc-windows-msvc
