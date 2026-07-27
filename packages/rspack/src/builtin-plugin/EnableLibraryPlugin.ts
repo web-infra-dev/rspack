@@ -2,6 +2,7 @@ import { type BuiltinPlugin, BuiltinPluginName } from '@rspack/binding';
 
 import type { Compiler, LibraryType } from '..';
 import { createBuiltinPlugin, RspackBuiltinPlugin } from './base';
+import { getConcatenateCommonJsModules } from './EsmLibraryPlugin';
 import { toRawSplitChunksOptions } from './SplitChunksPlugin';
 
 const enabledTypes = new WeakMap();
@@ -45,6 +46,10 @@ export class EnableLibraryPlugin extends RspackBuiltinPlugin {
     return createBuiltinPlugin(this.name, {
       libraryType: type,
       preserveModules: compiler.options.output.library?.preserveModules,
+      concatenateCommonJsModules:
+        type === 'modern-module'
+          ? getConcatenateCommonJsModules(compiler.options)
+          : true,
       splitChunks: toRawSplitChunksOptions(
         compiler.options.optimization.splitChunks ?? false,
         compiler,

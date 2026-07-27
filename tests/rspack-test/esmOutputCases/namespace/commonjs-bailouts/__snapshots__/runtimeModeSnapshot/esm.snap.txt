@@ -1,0 +1,153 @@
+```mjs title=main.mjs
+import { __rspack_context } from "./runtime.mjs";
+
+__rspack_context.m.add({
+"./delete-reference.js"
+/*!*****************************!*\
+  !*** ./delete-reference.js ***!
+  \*****************************/
+(__unused_rspack_module, exports) {
+
+
+exports.Uq = 1;
+exports.LF = function read() {
+	return exports.Uq;
+};
+exports.TF = function remove() {
+	return delete exports.Uq;
+};
+
+
+},
+"./factory-arguments.js"
+/*!******************************!*\
+  !*** ./factory-arguments.js ***!
+  \******************************/
+(__unused_rspack_module, exports) {
+
+
+exports.o = arguments.length;
+exports.U = (() => arguments.length)();
+
+
+},
+"./prototype-read.js"
+/*!***************************!*\
+  !*** ./prototype-read.js ***!
+  \***************************/
+(__unused_rspack_module, exports) {
+
+
+exports.U = typeof exports.toString;
+
+
+},
+"./prototype-setter.js"
+/*!*****************************!*\
+  !*** ./prototype-setter.js ***!
+  \*****************************/
+(__unused_rspack_module, exports) {
+
+
+exports.__proto__ = { inherited: 42 };
+exports.U = exports.inherited;
+
+
+},
+"./tagged-template.js"
+/*!****************************!*\
+  !*** ./tagged-template.js ***!
+  \****************************/
+(__unused_rspack_module, exports) {
+
+
+exports.value = 1;
+exports.tag = function tag() {
+	return this.value;
+};
+exports.run = function run() {
+	return exports.tag``;
+};
+
+
+},
+"./top-level-return.js"
+/*!*****************************!*\
+  !*** ./top-level-return.js ***!
+  \*****************************/
+(__unused_rspack_module, exports) {
+
+
+exports.g = "before";
+return;
+exports.P = "after";
+
+
+},
+});
+// ./index.js
+const top_level_return = __rspack_context.r("./top-level-return.js");
+const factory_arguments = __rspack_context.r("./factory-arguments.js");
+const delete_reference = __rspack_context.r("./delete-reference.js");
+const tagged_template = __rspack_context.r("./tagged-template.js");
+const prototype_read = __rspack_context.r("./prototype-read.js");
+const prototype_setter = __rspack_context.r("./prototype-setter.js");
+
+
+
+
+
+
+
+it("should keep CommonJS factory and exports object semantics", () => {
+	expect(top_level_return.g).toBe("before");
+	expect(top_level_return.P).toBeUndefined();
+	expect(factory_arguments.o).toBe(3);
+	expect(factory_arguments.U).toBe(3);
+	expect((0,delete_reference.LF)()).toBe(1);
+	expect((0,delete_reference.TF)()).toBe(true);
+	expect((0,delete_reference.LF)()).toBeUndefined();
+	expect((0,tagged_template.run)()).toBe(1);
+	expect(prototype_read.U).toBe("function");
+	expect(prototype_setter.U).toBe(42);
+});
+
+export {};
+
+```
+
+```mjs title=runtime.mjs
+
+var __rspack_modules = {};
+// The module cache
+var __rspack_module_cache = {};
+// The require function
+function __rspack_require(moduleId) {
+// Check if module is in cache
+var cachedModule = __rspack_module_cache[moduleId];
+if (cachedModule !== undefined) {
+return cachedModule.exports;
+}
+// Create a new module (and put it into the cache)
+var module = (__rspack_module_cache[moduleId] = {
+exports: {}
+});
+// Execute the module function
+__rspack_modules[moduleId](module, module.exports, __rspack_context);
+
+// Return the exports of the module
+return module.exports;
+}
+var __rspack_context = {};
+__rspack_context.r = __rspack_require;
+// expose the modules object (__rspack_modules)
+__rspack_context.m = __rspack_modules;
+
+var moduleFactories=__rspack_modules;
+// rspack/runtime/esm_register_module
+moduleFactories.add = function registerModules(modules) { Object.assign(moduleFactories, modules) }
+;
+
+export { __rspack_context };
+
+```

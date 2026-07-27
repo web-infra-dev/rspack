@@ -58,10 +58,11 @@ use crate::{
 pub static RSPACK_ESM_RUNTIME_CHUNK: &str = "RSPACK_ESM_RUNTIME";
 
 #[plugin]
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct EsmLibraryPlugin {
   pub(crate) preserve_modules: Option<PathBuf>,
   pub(crate) split_chunks: Option<Vec<CacheGroup>>,
+  pub(crate) concatenate_commonjs_modules: bool,
 
   // module instance will hold this map till compile done, we can't mutate it,
   // normal concatenateModule just read the info from it
@@ -80,11 +81,26 @@ pub struct EsmLibraryPlugin {
   pub(crate) dyn_import_ns_map: Arc<AtomicRefCell<IdentifierMap<Atom>>>,
 }
 
+impl Default for EsmLibraryPlugin {
+  fn default() -> Self {
+    Self::new(None, None)
+  }
+}
+
 impl EsmLibraryPlugin {
   pub fn new(preserve_modules: Option<PathBuf>, split_chunks: Option<Vec<CacheGroup>>) -> Self {
+    Self::new_with_commonjs_modules(preserve_modules, split_chunks, true)
+  }
+
+  pub fn new_with_commonjs_modules(
+    preserve_modules: Option<PathBuf>,
+    split_chunks: Option<Vec<CacheGroup>>,
+    concatenate_commonjs_modules: bool,
+  ) -> Self {
     Self::new_inner(
       preserve_modules,
       split_chunks,
+      concatenate_commonjs_modules,
       Default::default(),
       Default::default(),
       Default::default(),
@@ -130,7 +146,7 @@ impl EsmLibraryPlugin {
             parser_and_generator.get_concatenation_bailout_reason_with_commonjs(
               module.as_ref(),
               module_graph,
-              true,
+              self.concatenate_commonjs_modules,
             )
           },
         );
@@ -150,6 +166,9 @@ impl EsmLibraryPlugin {
         .get_incoming_connections(module_identifier)
         .any(|conn| {
           let dep = module_graph.dependency_by_id(&conn.dependency_id);
+          let is_current_module_self_reference = *dep.dependency_type()
+            == DependencyType::CjsSelfReference
+            && conn.original_module_identifier == Some(*module_identifier);
           !is_esm_dep_like(dep)
             && !matches!(
               (dep.dependency_type(), dep.url_mode()),
@@ -161,8 +180,7 @@ impl EsmLibraryPlugin {
                 Some(JavascriptParserUrl::NewUrlRelative)
               )
             )
-            && !(*dep.dependency_type() == DependencyType::CjsSelfReference
-              && conn.original_module_identifier == Some(*module_identifier))
+            && !is_current_module_self_reference
         })
       {
         logger.debug(format!(

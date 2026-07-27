@@ -33,7 +33,7 @@ use crate::{
   BoxJavascriptParserPlugin,
   dependency::{
     CommonJsExportsDependency, CommonJsSelfReferenceDependency, ESMCompatibilityDependency,
-    ExportsBase,
+    ExportsBase, OBJECT_PROTOTYPE_METHODS,
   },
   visitors::{ParsedJavaScriptAst, ScanDependenciesResult, scan_dependencies, semicolon},
 };
@@ -222,6 +222,15 @@ impl JavaScriptParserAndGenerator {
         if dependency.names().is_empty() {
           return Some("Module exports are used in an unsupported way".into());
         }
+        if dependency
+          .names()
+          .first()
+          .is_some_and(|name| name.as_str() == "__proto__")
+        {
+          return Some(
+            format!("Module assigns to {}.__proto__", dependency.base().as_str()).into(),
+          );
+        }
       } else if let Some(dependency) = dependency
         .as_any()
         .downcast_ref::<CommonJsSelfReferenceDependency>()
@@ -240,6 +249,20 @@ impl JavaScriptParserAndGenerator {
         }
         if dependency.names().is_empty() {
           return Some(format!("Module uses {} as a value", dependency.base().as_str()).into());
+        }
+        if dependency
+          .names()
+          .first()
+          .is_some_and(|name| OBJECT_PROTOTYPE_METHODS.contains(&name.as_str()))
+        {
+          return Some(
+            format!(
+              "Module references Object.prototype via {}{}",
+              dependency.base().as_str(),
+              property_access(dependency.names().iter(), 0)
+            )
+            .into(),
+          );
         }
         if dependency.is_call() && dependency.names().len() == 1 {
           return Some(

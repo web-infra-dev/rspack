@@ -252,12 +252,18 @@ fn handle_access_export(
   if remaining.is_empty() {
     parser.bailout();
   }
+  if parser.in_unary_delete {
+    parser
+      .build_info
+      .module_concatenation_bailout
+      .get_or_insert_with(|| "delete on CommonJS exports".into());
+  }
   parser.add_dependency(Box::new(CommonJsSelfReferenceDependency::new(
     expr_span.into(),
     base,
     remaining.to_vec(),
     remaining_optionals.to_vec(),
-    call_args.is_some(),
+    call_args.is_some() || parser.in_tagged_template_tag,
   )));
   if let Some(call_args) = call_args {
     parser.walk_expr_or_spread(call_args);

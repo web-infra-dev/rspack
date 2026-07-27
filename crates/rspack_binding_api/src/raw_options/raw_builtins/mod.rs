@@ -435,6 +435,7 @@ impl<'a> BuiltinPlugin<'a> {
           options.library_type,
           options.preserve_modules.as_deref().map(Into::into),
           options.split_chunks.map(Into::into),
+          options.concatenate_common_js_modules,
           plugins,
         );
       }
@@ -458,9 +459,10 @@ impl<'a> BuiltinPlugin<'a> {
         let options = downcast_into::<RawEsmLibraryPlugin>(self.options)
           .map_err(|report| napi::Error::from_reason(report.to_string()))?;
         plugins.push(
-          EsmLibraryPlugin::new(
+          EsmLibraryPlugin::new_with_commonjs_modules(
             options.preserve_modules.as_deref().map(Into::into),
             options.split_chunks.map(Into::into),
+            options.concatenate_common_js_modules,
           )
           .boxed(),
         );

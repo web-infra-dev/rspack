@@ -8,7 +8,31 @@ import WebpackError from '../lib/WebpackError';
 import { RemoveDuplicateModulesPlugin } from './RemoveDuplicateModulesPlugin';
 import { toRawSplitChunksOptions } from './SplitChunksPlugin';
 
+const concatenateCommonJsModulesMap = new WeakMap<
+  RspackOptionsNormalized,
+  boolean
+>();
+
+export function getConcatenateCommonJsModules(
+  options: RspackOptionsNormalized,
+): boolean {
+  const cached = concatenateCommonJsModulesMap.get(options);
+  if (cached !== undefined) {
+    return cached;
+  }
+
+  const { concatenateModules } = options.optimization;
+  const concatenateCommonJsModules =
+    typeof concatenateModules === 'object'
+      ? concatenateModules.commonjs !== false
+      : concatenateModules !== false;
+  concatenateCommonJsModulesMap.set(options, concatenateCommonJsModules);
+  return concatenateCommonJsModules;
+}
+
 export function applyLimits(options: RspackOptionsNormalized) {
+  getConcatenateCommonJsModules(options);
+
   // concatenateModules is not supported in ESM library mode, it has its own scope hoist algorithm
   options.optimization.concatenateModules = false;
 
@@ -75,6 +99,9 @@ export class EsmLibraryPlugin {
       name: BuiltinPluginName.EsmLibraryPlugin,
       options: {
         preserveModules: this.options.preserveModules,
+        concatenateCommonJsModules: getConcatenateCommonJsModules(
+          compiler.options,
+        ),
         splitChunks: toRawSplitChunksOptions(
           this.options.splitChunks ?? false,
           compiler,

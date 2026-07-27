@@ -52,10 +52,12 @@ impl JavascriptParser<'_> {
     let old_definitions = self.definitions;
     let old_top_level_scope = self.top_level_scope;
     let old_in_tagged_template_tag = self.in_tagged_template_tag;
+    let old_in_unary_delete = self.in_unary_delete;
     let old_in_try = self.in_try;
     let old_terminated = self.terminated;
 
     self.in_tagged_template_tag = false;
+    self.in_unary_delete = false;
     self.definitions = self.definitions_db.create_child(old_definitions);
     f(self);
 
@@ -65,6 +67,7 @@ impl JavascriptParser<'_> {
     self.definitions = old_definitions;
     self.top_level_scope = old_top_level_scope;
     self.in_tagged_template_tag = old_in_tagged_template_tag;
+    self.in_unary_delete = old_in_unary_delete;
     self.in_try = old_in_try;
     self.terminated = old_terminated;
 
@@ -82,10 +85,12 @@ impl JavascriptParser<'_> {
     let old_in_try = self.in_try;
     let old_top_level_scope = self.top_level_scope;
     let old_in_tagged_template_tag = self.in_tagged_template_tag;
+    let old_in_unary_delete = self.in_unary_delete;
     let old_terminated = self.terminated;
 
     self.in_try = false;
     self.in_tagged_template_tag = false;
+    self.in_unary_delete = false;
     self.terminated = None;
     self.definitions = self.definitions_db.create_child(old_definitions);
 
@@ -104,6 +109,7 @@ impl JavascriptParser<'_> {
     self.definitions = old_definitions;
     self.top_level_scope = old_top_level_scope;
     self.in_tagged_template_tag = old_in_tagged_template_tag;
+    self.in_unary_delete = old_in_unary_delete;
     self.terminated = old_terminated;
   }
 
@@ -115,10 +121,12 @@ impl JavascriptParser<'_> {
     let old_definitions = self.definitions;
     let old_top_level_scope = self.top_level_scope;
     let old_in_tagged_template_tag = self.in_tagged_template_tag;
+    let old_in_unary_delete = self.in_unary_delete;
     let old_terminated = self.terminated;
 
     self.definitions = self.definitions_db.create_child(old_definitions);
     self.in_tagged_template_tag = false;
+    self.in_unary_delete = false;
     self.terminated = None;
     if has_this {
       self.undefined_variable(&"this".into());
@@ -132,6 +140,7 @@ impl JavascriptParser<'_> {
     self.definitions = old_definitions;
     self.top_level_scope = old_top_level_scope;
     self.in_tagged_template_tag = old_in_tagged_template_tag;
+    self.in_unary_delete = old_in_unary_delete;
     self.terminated = old_terminated;
   }
 
@@ -322,6 +331,10 @@ impl JavascriptParser<'_> {
       self.walk_expression(arg);
     }
     if self.is_top_level_scope() {
+      self
+        .build_info
+        .module_concatenation_bailout
+        .get_or_insert_with(|| "top-level return".into());
       return;
     }
     // Mark current scope as terminated by return. This mirrors webpack's
@@ -809,7 +822,14 @@ impl JavascriptParser<'_> {
       }
     };
     // TODO: expr.arg belongs chain_expression
-    self.walk_expression(&expr.arg)
+    if expr.op == UnaryOp::Delete {
+      let old_in_unary_delete = self.in_unary_delete;
+      self.in_unary_delete = true;
+      self.walk_expression(&expr.arg);
+      self.in_unary_delete = old_in_unary_delete;
+    } else {
+      self.walk_expression(&expr.arg);
+    }
   }
 
   fn walk_this_expression(&mut self, expr: &ThisExpr) {
