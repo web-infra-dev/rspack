@@ -7,8 +7,8 @@
     "diff-tests": "zx ./scripts/diff-tests.mjs"
   },
   "devDependencies": {
-    "diff": "8.0.4",
-    "prettier": "3.9.5",
-    "zx": "8.8.5"
+    "diff": "catalog:",
+    "prettier": "catalog:",
+    "zx": "catalog:"
   }
 }

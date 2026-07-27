@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url';
 import { defineConfig } from '@rslib/core';
 import packageJson from './package.json' with { type: 'json' };
 
@@ -9,6 +10,9 @@ export default defineConfig({
       dts: {
         bundle: true,
         tsgo: true,
+        typescriptPath: fileURLToPath(
+          import.meta.resolve('@typescript/native'),
+        ),
       },
     },
   ],
