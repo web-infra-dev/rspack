@@ -10,7 +10,7 @@ pub struct ContainerExposedDependency {
   id: DependencyId,
   request: String,
   pub exposed_name: String,
-  layer: Option<ModuleLayer>,
+  layer: Option<Box<ModuleLayer>>,
   resource_identifier: ResourceIdentifier,
   dependency_type: DependencyType,
   factorize_info: FactorizeInfo,
@@ -27,7 +27,7 @@ impl ContainerExposedDependency {
       id: DependencyId::new(),
       request,
       exposed_name,
-      layer,
+      layer: layer.map(Box::new),
       resource_identifier,
       dependency_type: DependencyType::ContainerExposed,
       factorize_info: Default::default(),
@@ -63,7 +63,7 @@ impl Dependency for ContainerExposedDependency {
   }
 
   fn get_layer(&self) -> Option<&ModuleLayer> {
-    self.layer.as_ref()
+    self.layer.as_deref()
   }
 
   fn resource_identifier(&self) -> Option<&str> {
