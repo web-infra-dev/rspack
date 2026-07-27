@@ -1,6 +1,6 @@
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[derive(Debug, Serialize, Clone, Default)]
 pub struct StatsAssetsGroup {
   #[serde(default)]
   pub js: AssetsSplit,
@@ -8,7 +8,7 @@ pub struct StatsAssetsGroup {
   pub css: AssetsSplit,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[derive(Debug, Serialize, Clone, Default)]
 pub struct AssetsSplit {
   #[serde(default)]
   pub sync: Vec<String>,
@@ -16,7 +16,7 @@ pub struct AssetsSplit {
   pub r#async: Vec<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[derive(Debug, Serialize, Clone, Default)]
 pub struct StatsBuildInfo {
   #[serde(rename = "buildVersion")]
   pub build_version: String,
@@ -28,7 +28,7 @@ pub struct StatsBuildInfo {
   pub plugins: Option<Vec<String>>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Clone)]
 pub struct StatsExpose {
   pub path: String,
   #[serde(default)]
@@ -41,7 +41,7 @@ pub struct StatsExpose {
   pub assets: StatsAssetsGroup,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Clone)]
 pub struct StatsShared {
   pub id: String,
   pub name: String,
@@ -58,7 +58,7 @@ pub struct StatsShared {
   pub usedExports: Vec<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Clone)]
 pub struct StatsRemote {
   pub alias: String,
   pub consumingFederationContainerName: String,
@@ -70,7 +70,7 @@ pub struct StatsRemote {
   pub usedIn: Vec<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Clone)]
 pub struct BasicStatsMetaData {
   pub name: String,
   pub globalName: String,
@@ -84,7 +84,7 @@ pub struct BasicStatsMetaData {
   pub r#type: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[derive(Debug, Serialize, Clone, Default)]
 pub struct RemoteEntryMeta {
   #[serde(default)]
   pub name: String,
@@ -94,7 +94,7 @@ pub struct RemoteEntryMeta {
   pub r#type: String,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Clone)]
 pub struct StatsRoot {
   pub id: String,
   pub name: String,
