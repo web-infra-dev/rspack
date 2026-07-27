@@ -162,29 +162,36 @@ pub fn compose_shared_id(container: &str, identity: &SharedIdentity) -> String {
 }
 
 pub fn finalize_shared_ids(shared: &mut [StatsShared], container_name: &str) {
-  let mut scalar_scopes: HashMap<String, HashSet<ShareScope>> = HashMap::default();
-  for entry in shared.iter().filter(|entry| entry.layer.is_none()) {
-    let share_scope = entry
-      .share_scope
-      .clone()
-      .unwrap_or_else(|| ShareScope::Single("default".to_string()));
-    if matches!(share_scope, ShareScope::Single(_)) {
-      scalar_scopes
-        .entry(entry.name.clone())
-        .or_default()
-        .insert(share_scope);
-    }
-  }
+  let scope_collisions = shared
+    .iter()
+    .map(|entry| {
+      if entry.layer.is_some() {
+        return false;
+      }
+      let share_scope = entry
+        .share_scope
+        .clone()
+        .unwrap_or_else(|| ShareScope::Single("default".to_string()));
+      matches!(share_scope, ShareScope::Single(_))
+        && shared.iter().any(|candidate| {
+          if candidate.layer.is_some() || candidate.name != entry.name {
+            return false;
+          }
+          let candidate_scope = candidate
+            .share_scope
+            .clone()
+            .unwrap_or_else(|| ShareScope::Single("default".to_string()));
+          matches!(candidate_scope, ShareScope::Single(_)) && candidate_scope != share_scope
+        })
+    })
+    .collect::<Vec<_>>();
 
-  for entry in shared {
+  for (entry, has_scope_collision) in shared.iter_mut().zip(scope_collisions) {
     let share_scope = entry
       .share_scope
       .clone()
       .unwrap_or_else(|| ShareScope::Single("default".to_string()));
     let identity = SharedIdentity::new(&share_scope, &entry.name, entry.layer.as_deref());
-    let has_scope_collision = scalar_scopes
-      .get(&entry.name)
-      .is_some_and(|scopes| scopes.len() > 1);
     entry.id = compose_shared_id(container_name, &identity);
     entry.identity_id = if has_scope_collision
       && entry.layer.is_none()

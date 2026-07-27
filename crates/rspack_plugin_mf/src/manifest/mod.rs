@@ -40,6 +40,16 @@ use crate::{
   container::{container_entry_module::ContainerEntryModule, remote_module::RemoteModule},
 };
 
+fn sort_small_by<T>(values: &mut [T], mut compare: impl FnMut(&T, &T) -> std::cmp::Ordering) {
+  for index in 1..values.len() {
+    let mut current = index;
+    while current > 0 && compare(&values[current - 1], &values[current]).is_gt() {
+      values.swap(current - 1, current);
+      current -= 1;
+    }
+  }
+}
+
 #[plugin]
 #[derive(Debug)]
 pub struct ModuleFederationManifestPlugin {
@@ -744,7 +754,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       .into_values()
       .map(|mut expose| {
         expose.requires.sort_unstable();
-        expose.required_shared.sort_unstable_by(|a, b| {
+        sort_small_by(&mut expose.required_shared, |a, b| {
           a.name
             .cmp(&b.name)
             .then_with(|| a.layer.cmp(&b.layer))
@@ -769,8 +779,10 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     (exposes, shared, remote_list)
   };
   finalize_shared_ids(&mut shared, &container_name);
-  exposes.sort_unstable_by(|a, b| a.id.cmp(&b.id).then_with(|| a.layer.cmp(&b.layer)));
-  shared.sort_unstable_by(|a, b| a.id.cmp(&b.id));
+  sort_small_by(&mut exposes, |a, b| {
+    a.id.cmp(&b.id).then_with(|| a.layer.cmp(&b.layer))
+  });
+  sort_small_by(&mut shared, |a, b| a.id.cmp(&b.id));
   // Ensure all configured remotes exist in stats, add missing with defaults
   let mut remote_list = remote_list;
   ensure_configured_remotes(
