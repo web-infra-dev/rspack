@@ -105,7 +105,7 @@ impl PersistentCache {
       rspack_pkg_version!().hash(&mut hasher);
       compiler_options.name.hash(&mut hasher);
       compiler_options.mode.hash(&mut hasher);
-      Version::new_scoped(version_scope, hex::encode(hasher.finish().to_ne_bytes()))
+      Version::new(version_scope, hex::encode(hasher.finish().to_ne_bytes()))
     };
     let storage = create_storage(
       option.storage.clone(),

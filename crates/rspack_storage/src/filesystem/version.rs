@@ -9,16 +9,7 @@ impl Version {
   const HASH_LEN: usize = 16;
   const SCOPE_SEPARATOR: char = '_';
 
-  pub fn new(hash: impl AsRef<str>) -> Self {
-    let hash = hash.as_ref();
-    assert!(
-      Self::is_valid_hash(hash),
-      "invalid persistent cache version hash"
-    );
-    Self(format!("{}{hash}", Self::PREFIX))
-  }
-
-  pub fn new_scoped(scope: impl AsRef<str>, hash: impl AsRef<str>) -> Self {
+  pub fn new(scope: impl AsRef<str>, hash: impl AsRef<str>) -> Self {
     let scope = scope.as_ref();
     let hash = hash.as_ref();
     assert!(
@@ -46,23 +37,24 @@ impl Version {
       return false;
     };
 
-    if let Some((scope, hash)) = value.split_once(Self::SCOPE_SEPARATOR) {
-      Self::is_valid_hash(scope) && Self::is_valid_hash(hash)
-    } else {
-      Self::is_valid_hash(value)
-    }
+    let Some((scope, hash)) = value.split_once(Self::SCOPE_SEPARATOR) else {
+      return false;
+    };
+
+    Self::is_valid_hash(scope) && Self::is_valid_hash(hash)
   }
 
   pub fn as_str(&self) -> &str {
     &self.0
   }
 
-  pub fn scope(&self) -> Option<&str> {
+  pub fn scope(&self) -> &str {
     self
       .0
       .strip_prefix(Self::PREFIX)
       .and_then(|value| value.split_once(Self::SCOPE_SEPARATOR))
       .map(|(scope, _)| scope)
+      .expect("validated persistent cache version should have a scope")
   }
 
   pub fn has_same_scope(&self, other: &Self) -> bool {
@@ -94,25 +86,22 @@ mod tests {
   use super::Version;
 
   #[test]
-  fn parses_scoped_and_legacy_versions() {
-    let scoped = Version::new_scoped("aaaaaaaaaaaaaaaa", "0000000000000001");
-    let legacy = Version::new("0000000000000001");
+  fn parses_scoped_versions() {
+    let version = Version::new("aaaaaaaaaaaaaaaa", "0000000000000001");
 
     assert_eq!(
-      scoped.as_str(),
+      version.as_str(),
       "rspack_v_aaaaaaaaaaaaaaaa_0000000000000001"
     );
-    assert_eq!(scoped.scope(), Some("aaaaaaaaaaaaaaaa"));
-    assert_eq!(legacy.scope(), None);
-    assert_eq!(Version::parse(scoped.as_str()), Some(scoped));
-    assert_eq!(Version::parse(legacy.as_str()), Some(legacy));
+    assert_eq!(version.scope(), "aaaaaaaaaaaaaaaa");
+    assert_eq!(Version::parse(version.as_str()), Some(version));
   }
 
   #[test]
   fn compares_version_scopes() {
-    let a_v1 = Version::new_scoped("aaaaaaaaaaaaaaaa", "0000000000000001");
-    let a_v2 = Version::new_scoped("aaaaaaaaaaaaaaaa", "0000000000000002");
-    let b_v1 = Version::new_scoped("bbbbbbbbbbbbbbbb", "0000000000000001");
+    let a_v1 = Version::new("aaaaaaaaaaaaaaaa", "0000000000000001");
+    let a_v2 = Version::new("aaaaaaaaaaaaaaaa", "0000000000000002");
+    let b_v1 = Version::new("bbbbbbbbbbbbbbbb", "0000000000000001");
 
     assert!(a_v1.has_same_scope(&a_v2));
     assert!(!a_v1.has_same_scope(&b_v1));
@@ -120,6 +109,7 @@ mod tests {
 
   #[test]
   fn rejects_invalid_scoped_versions() {
+    assert!(!Version::is_valid("rspack_v_0000000000000001"));
     assert!(!Version::is_valid(
       "rspack_v_aaaaaaaaaaaaaaaa_0000000000000001_extra"
     ));
