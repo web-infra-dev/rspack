@@ -565,7 +565,28 @@ export default {
 - **Type:** `string[]`
 - **Default:** `["node_modules"]`
 
-The name of the directory to use when resolving dependencies.
+Specifies the directories Rspack searches when resolving bare module requests, such as `import 'react'` or `import 'utils/format'`. Relative requests such as `import './utils/format'` are resolved from the importing file and are not searched through `resolve.modules`.
+
+Entries are tried in array order, and can be directory names, relative paths, or absolute paths:
+
+- A directory name or relative path is searched from the directory containing the importing file, and then from each parent directory. For example, `node_modules` searches `<importer-directory>/node_modules`, then each ancestor's `node_modules` directory.
+- An absolute path refers to that exact directory; it is not resolved again from each ancestor.
+
+For example, the following configuration allows modules inside `src` to be imported with bare requests, while preserving the normal lookup of third-party packages from `node_modules`:
+
+```js title="rspack.config.mjs"
+import path from 'node:path';
+
+export default {
+  resolve: {
+    modules: [path.resolve(import.meta.dirname, 'src'), 'node_modules'],
+  },
+};
+```
+
+With this configuration, `import 'utils/format'` can resolve to `<project>/src/utils/format.js`. If a request is not found in `src`, Rspack continues with the `node_modules` lookup.
+
+Setting `resolve.modules` replaces the default array. Include `'node_modules'` explicitly when normal package lookup should remain enabled.
 
 ## resolve.pnp
 

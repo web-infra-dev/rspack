@@ -1,5 +1,6 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import vm from 'node:vm';
 import { pluginNodePolyfill } from '@rsbuild/plugin-node-polyfill';
 import { defineConfig, type RsbuildPlugin, rspack } from '@rslib/core';
@@ -45,8 +46,13 @@ export default defineConfig({
       dts: {
         build: true,
         tsgo: true,
+        typescriptPath: fileURLToPath(
+          import.meta.resolve('@typescript/native'),
+        ),
       },
-      autoExternal: false,
+      output: {
+        autoExternal: false,
+      },
       source: {
         entry: {
           index: './src/browser/index.ts',
@@ -76,7 +82,7 @@ export default defineConfig({
     externals: [
       '@rspack/lite-tapable',
       {
-        '@rspack/binding': './rspack.wasi-browser.js',
+        '@rspack/binding': 'module-import ./rspack.wasi-browser.js',
       },
     ],
     copy: {
@@ -212,7 +218,7 @@ function replaceDtsPlugin(): RsbuildPlugin {
           const dts = (await fs.readFile(filePath)).toString();
           let relativeBindingDts = path.relative(
             path.dirname(filePath),
-            path.join(distDir, 'binding'),
+            path.join(distDir, 'binding.js'),
           );
 
           // Ensure relative path starts with "./"

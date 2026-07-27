@@ -1,9 +1,9 @@
-var extractCssOldTags = [];
-var extractCssNewTags = [];
-var extractCssTextKey = function (link) {
+<%- var("extractCssOldTags") %> = [];
+<%- var("extractCssNewTags") %> = [];
+<%- var("extractCssTextKey") %> = function (link) {
 	return Array.from(link.sheet.cssRules, function (r) { return r.cssText; }).join();
 }
-var extractCssApplyHandler = function (options) {
+<%- var("extractCssApplyHandler") %> = function (options) {
 	return {
 		dispose: function () {},
 		apply: function () {

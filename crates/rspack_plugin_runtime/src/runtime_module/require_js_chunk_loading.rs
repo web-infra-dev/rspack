@@ -9,7 +9,8 @@ use rspack_plugin_javascript::impl_plugin_for_js_plugin::chunk_has_js;
 
 use super::{generate_javascript_hmr_runtime, utils::get_output_dir};
 use crate::{
-  extract_runtime_globals_from_ejs, get_chunk_runtime_requirements,
+  extract_runtime_globals_from_ejs, extract_runtime_module_variables_from_ejs,
+  get_chunk_runtime_requirements,
   runtime_module::utils::{
     get_initial_chunk_ids, render_hmr_runtime_state_expression, stringify_chunks,
   },
@@ -30,6 +31,20 @@ static REQUIRE_CHUNK_LOADING_WITH_HMR_MANIFEST_TEMPLATE: &str =
   include_str!("runtime/require_chunk_loading_with_hmr_manifest.ejs");
 static JAVASCRIPT_HOT_MODULE_REPLACEMENT_TEMPLATE: &str =
   include_str!("runtime/javascript_hot_module_replacement.ejs");
+static RUNTIME_MODULE_VARIABLES: LazyLock<Vec<&'static str>> = LazyLock::new(|| {
+  let mut variables = extract_runtime_module_variables_from_ejs(&[
+    REQUIRE_CHUNK_LOADING_TEMPLATE,
+    REQUIRE_CHUNK_LOADING_WITH_LOADING_TEMPLATE,
+    REQUIRE_CHUNK_LOADING_WITH_LOADING_MATCHER_TEMPLATE,
+    REQUIRE_CHUNK_LOADING_WITH_ON_CHUNK_LOAD_TEMPLATE,
+    REQUIRE_CHUNK_LOADING_WITH_EXTERNAL_INSTALL_CHUNK_TEMPLATE,
+    REQUIRE_CHUNK_LOADING_WITH_HMR_TEMPLATE,
+    REQUIRE_CHUNK_LOADING_WITH_HMR_MANIFEST_TEMPLATE,
+    JAVASCRIPT_HOT_MODULE_REPLACEMENT_TEMPLATE,
+  ]);
+  variables.push("requireInstalledChunks");
+  variables
+});
 
 static REQUIRE_CHUNK_LOADING_RUNTIME_REQUIREMENTS: LazyLock<RuntimeModuleRuntimeRequirements> =
   LazyLock::new(|| extract_runtime_globals_from_ejs(REQUIRE_CHUNK_LOADING_TEMPLATE));
@@ -161,6 +176,10 @@ enum TemplateId {
 
 #[async_trait::async_trait]
 impl RuntimeModule for RequireChunkLoadingRuntimeModule {
+  fn runtime_module_variables() -> &'static [&'static str] {
+    RUNTIME_MODULE_VARIABLES.as_slice()
+  }
+
   fn runtime_requirements(&self, compilation: &Compilation) -> RuntimeModuleRuntimeRequirements {
     let Some(chunk_ukey) = self.chunk() else {
       return RuntimeModuleRuntimeRequirements::default();
