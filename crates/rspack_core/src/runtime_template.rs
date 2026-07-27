@@ -1742,10 +1742,16 @@ return {}
         } else {
           fake_type |= FakeNamespaceObjectMode::MODULE_ID;
           if let Some(header) = header {
-            let expr = format!(
-              "{}({module_id_expr}, {fake_type}))",
-              self.render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT)
-            );
+            let create_fake_namespace_object =
+              self.render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT);
+            let expr = if self.render_mode() == RuntimeGlobalsRenderMode::RspackExport {
+              let require = self.render_runtime_globals(&RuntimeGlobals::REQUIRE);
+              format!(
+                "{create_fake_namespace_object}.call({require}, {module_id_expr}, {fake_type})"
+              )
+            } else {
+              format!("{create_fake_namespace_object}({module_id_expr}, {fake_type})")
+            };
             appending = format!(
               r#".then(function() {{
  {header} return {expr};
