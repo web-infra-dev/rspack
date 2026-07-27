@@ -2098,8 +2098,9 @@ export type PersistentCacheOptions = {
   maxAge?: number;
   /**
    * Maximum number of filesystem cache versions to retain for each compiler
-   * in the cache directory. Must be an integer between 1 and 4294967295, or
-   * Infinity to disable version-based cleanup.
+   * scope in the cache directory. A scope is identified only by compiler names
+   * and indices. Must be an integer between 1 and 4294967295, or Infinity to
+   * disable version-based cleanup.
    * @default 3
    */
   maxVersions?: number;

@@ -136,7 +136,7 @@ Changing these values isolates the cache and avoids reusing stale persistent cac
 - **Type:** `number` (positive integer) or `Infinity`
 - **Default:** `3`
 
-This is a version-count cleanup policy that controls how many cache versions can be retained for each compiler in the current cache directory. When the number of versions for a compiler exceeds the limit, Rspack removes that compiler's old inactive versions without affecting root or child compilers with other names. A cache directory used by `n` compilers can therefore retain up to `n * maxVersions` versions. Set `maxVersions` to `Infinity` to disable version-based cleanup.
+This is a version-count cleanup policy that controls how many cache versions can be retained for each compiler in the current cache directory. A compiler scope is determined only by its configured name and child compiler path, which contains child compiler names and indices. When the number of versions for a compiler exceeds the limit, Rspack removes that compiler's old inactive versions without affecting other root or child compiler scopes. A cache directory used by `n` compilers can therefore retain up to `n * maxVersions` versions. Set `maxVersions` to `Infinity` to disable version-based cleanup.
 
 ```js title="rspack.config.mjs"
 export default {
