@@ -16,17 +16,14 @@ use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::dependency::{ESMImportSpecifierDependency, ImportDependency};
 use rspack_util::atom::Atom;
 use rustc_hash::{FxHashMap, FxHashSet};
+use serde_json::Value;
 
 use super::{
   RequestMatchKey, consume_shared_module::ConsumeSharedModule, find_exact_match,
   provide_shared_module::ProvideSharedModule,
   shared_used_exports_optimizer_runtime_module::SharedUsedExportsOptimizerRuntimeModule,
 };
-use crate::{
-  ShareScope, SharedIdentity,
-  container::container_entry_module::ContainerEntryModule,
-  manifest::{ManifestRoot, StatsRoot},
-};
+use crate::{ShareScope, SharedIdentity, container::container_entry_module::ContainerEntryModule};
 
 fn shared_identity_from_output(
   share_key: &str,
@@ -35,6 +32,49 @@ fn shared_identity_from_output(
 ) -> SharedIdentity {
   let default_scope = ShareScope::Single("default".to_string());
   SharedIdentity::new(share_scope.unwrap_or(&default_scope), share_key, layer)
+}
+
+fn share_scope_from_json(value: Option<&Value>) -> Option<Option<ShareScope>> {
+  match value {
+    None => Some(None),
+    Some(Value::String(scope)) => Some(Some(ShareScope::Single(scope.clone()))),
+    Some(Value::Array(scopes)) => scopes
+      .iter()
+      .map(|scope| scope.as_str().map(str::to_string))
+      .collect::<Option<Vec<_>>>()
+      .map(ShareScope::Multiple)
+      .map(Some),
+    Some(_) => None,
+  }
+}
+
+fn update_shared_exports(
+  content: &str,
+  shared_referenced_exports: &FxHashMap<SharedIdentity, FxHashSet<String>>,
+  update_reference_exports: bool,
+) -> Option<String> {
+  let mut root = serde_json::from_str::<Value>(content).ok()?;
+  for shared in root.get_mut("shared")?.as_array_mut()? {
+    let identity = {
+      let shared = shared.as_object()?;
+      let share_key = shared.get("name")?.as_str()?;
+      let share_scope = share_scope_from_json(shared.get("shareScope"))?;
+      let layer = shared.get("layer").and_then(Value::as_str);
+      shared_identity_from_output(share_key, share_scope.as_ref(), layer)
+    };
+    let Some(exports_set) = shared_referenced_exports.get(&identity) else {
+      continue;
+    };
+    let mut exports = exports_set.iter().cloned().collect::<Vec<_>>();
+    exports.sort_unstable();
+    let exports = exports.into_iter().map(Value::String).collect::<Vec<_>>();
+    let shared = shared.as_object_mut()?;
+    shared.insert("usedExports".to_string(), Value::Array(exports.clone()));
+    if update_reference_exports {
+      shared.insert("referenceExports".to_string(), Value::Array(exports));
+    }
+  }
+  serde_json::to_string_pretty(&root).ok()
 }
 
 #[derive(Debug, Clone)]
@@ -316,53 +356,24 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     .shared_referenced_exports
     .read()
     .expect("lock poisoned");
-  if let Some(file_name) = &self.stats_file_name
-    && let Some(file) = compilation.assets().get(file_name)
-    && let Some(source) = file.get_source()
-    && let SourceValue::String(content) = source.source()
-    && let Ok(mut stats_root) = serde_json::from_str::<StatsRoot>(&content)
-  {
-    for shared in &mut stats_root.shared {
-      let identity = shared_identity_from_output(
-        &shared.name,
-        shared.share_scope.as_ref(),
-        shared.layer.as_deref(),
-      );
-      if let Some(exports_set) = shared_referenced_exports.get(&identity) {
-        shared.usedExports = exports_set.iter().cloned().collect::<Vec<_>>();
-        shared.usedExports.sort_unstable();
-      }
+  for (file_name, update_reference_exports) in [
+    (&self.stats_file_name, false),
+    (&self.manifest_file_name, true),
+  ] {
+    if let Some(file_name) = file_name
+      && let Some(file) = compilation.assets().get(file_name)
+      && let Some(source) = file.get_source()
+      && let SourceValue::String(content) = source.source()
+      && let Some(updated_content) = update_shared_exports(
+        &content,
+        &shared_referenced_exports,
+        update_reference_exports,
+      )
+    {
+      compilation.update_asset(file_name, |_, info| {
+        Ok((RawStringSource::from(updated_content).boxed(), info))
+      })?;
     }
-    let updated_content = serde_json::to_string_pretty(&stats_root)
-      .map_err(|e| rspack_error::error!("Failed to serialize stats root: {}", e))?;
-    compilation.update_asset(file_name, |_, info| {
-      Ok((RawStringSource::from(updated_content).boxed(), info))
-    })?;
-  }
-
-  if let Some(file_name) = &self.manifest_file_name
-    && let Some(file) = compilation.assets().get(file_name)
-    && let Some(source) = file.get_source()
-    && let SourceValue::String(content) = source.source()
-    && let Ok(mut manifest_root) = serde_json::from_str::<ManifestRoot>(&content)
-  {
-    for shared in &mut manifest_root.shared {
-      let identity = shared_identity_from_output(
-        &shared.name,
-        shared.share_scope.as_ref(),
-        shared.layer.as_deref(),
-      );
-      if let Some(exports_set) = shared_referenced_exports.get(&identity) {
-        shared.usedExports = exports_set.iter().cloned().collect::<Vec<_>>();
-        shared.usedExports.sort_unstable();
-        shared.referenceExports.clone_from(&shared.usedExports);
-      }
-    }
-    let updated_content = serde_json::to_string_pretty(&manifest_root)
-      .map_err(|e| rspack_error::error!("Failed to serialize manifest root: {}", e))?;
-    compilation.update_asset(file_name, |_, info| {
-      Ok((RawStringSource::from(updated_content).boxed(), info))
-    })?;
   }
 
   Ok(())
@@ -539,10 +550,39 @@ impl Plugin for SharedUsedExportsOptimizerPlugin {
 
 #[cfg(test)]
 mod tests {
+  use rustc_hash::{FxHashMap, FxHashSet};
+
   use super::{
-    OptimizeSharedConfig, SharedUsedExportsOptimizerPlugin, SharedUsedExportsOptimizerPluginOptions,
+    OptimizeSharedConfig, SharedUsedExportsOptimizerPlugin,
+    SharedUsedExportsOptimizerPluginOptions, update_shared_exports,
   };
-  use crate::ShareScope;
+  use crate::{ShareScope, SharedIdentity};
+
+  #[test]
+  fn updates_layered_manifest_exports_without_typed_deserialization() {
+    let identity = SharedIdentity::new(
+      &ShareScope::Single("scope".to_string()),
+      "pkg",
+      Some("server"),
+    );
+    let mut referenced_exports = FxHashMap::default();
+    referenced_exports.insert(
+      identity,
+      FxHashSet::from_iter(["named".to_string(), "default".to_string()]),
+    );
+    let content = r#"{"shared":[{"name":"pkg","shareScope":"scope","layer":"server"}]}"#;
+
+    let updated = update_shared_exports(content, &referenced_exports, true).expect("updated");
+    let updated: serde_json::Value = serde_json::from_str(&updated).expect("valid json");
+    assert_eq!(
+      updated["shared"][0]["usedExports"],
+      serde_json::json!(["default", "named"])
+    );
+    assert_eq!(
+      updated["shared"][0]["referenceExports"],
+      serde_json::json!(["default", "named"])
+    );
+  }
 
   #[test]
   fn optimizer_keeps_same_key_and_layer_separate_by_scope() {

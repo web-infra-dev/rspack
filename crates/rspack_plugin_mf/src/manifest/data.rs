@@ -1,8 +1,8 @@
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 
 use crate::ShareScope;
 
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[derive(Debug, Serialize, Clone, Default)]
 pub struct StatsAssetsGroup {
   #[serde(default)]
   pub js: AssetsSplit,
@@ -10,7 +10,7 @@ pub struct StatsAssetsGroup {
   pub css: AssetsSplit,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[derive(Debug, Serialize, Clone, Default)]
 pub struct AssetsSplit {
   #[serde(default)]
   pub sync: Vec<String>,
@@ -18,7 +18,7 @@ pub struct AssetsSplit {
   pub r#async: Vec<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[derive(Debug, Serialize, Clone, Default)]
 pub struct StatsBuildInfo {
   #[serde(rename = "buildVersion")]
   pub build_version: String,
@@ -30,7 +30,7 @@ pub struct StatsBuildInfo {
   pub plugins: Option<Vec<String>>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Clone)]
 pub struct StatsExpose {
   pub path: String,
   #[serde(default)]
@@ -51,7 +51,7 @@ pub struct StatsExpose {
   pub assets: StatsAssetsGroup,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
+#[derive(Debug, Serialize, Clone, PartialEq, Eq)]
 pub struct StatsSharedRequirement {
   pub name: String,
   #[serde(skip_serializing_if = "Option::is_none")]
@@ -60,7 +60,7 @@ pub struct StatsSharedRequirement {
   pub share_scope: Option<ShareScope>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Clone)]
 pub struct StatsShared {
   pub id: String,
   #[serde(rename = "identityId", skip_serializing_if = "Option::is_none")]
@@ -83,7 +83,7 @@ pub struct StatsShared {
   pub usedExports: Vec<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Clone)]
 pub struct StatsRemote {
   pub alias: String,
   pub consumingFederationContainerName: String,
@@ -95,7 +95,7 @@ pub struct StatsRemote {
   pub usedIn: Vec<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Clone)]
 pub struct BasicStatsMetaData {
   pub name: String,
   pub globalName: String,
@@ -109,7 +109,7 @@ pub struct BasicStatsMetaData {
   pub r#type: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[derive(Debug, Serialize, Clone, Default)]
 pub struct RemoteEntryMeta {
   #[serde(default)]
   pub name: String,
@@ -119,7 +119,7 @@ pub struct RemoteEntryMeta {
   pub r#type: String,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Clone)]
 pub struct StatsRoot {
   pub id: String,
   pub name: String,
@@ -132,7 +132,7 @@ pub struct StatsRoot {
   pub exposes: Vec<StatsExpose>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Clone)]
 pub struct ManifestExpose {
   pub id: String,
   pub name: String,
@@ -148,7 +148,7 @@ pub struct ManifestExpose {
   pub assets: StatsAssetsGroup,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Clone)]
 pub struct ManifestShared {
   pub id: String,
   #[serde(rename = "identityId", skip_serializing_if = "Option::is_none")]
@@ -171,7 +171,7 @@ pub struct ManifestShared {
   pub assets: StatsAssetsGroup,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Clone)]
 pub struct ManifestRemote {
   pub federationContainerName: String,
   pub moduleName: String,
@@ -180,7 +180,7 @@ pub struct ManifestRemote {
   pub entry: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Clone)]
 pub struct ManifestRoot {
   pub id: String,
   pub name: String,

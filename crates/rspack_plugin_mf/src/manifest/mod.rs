@@ -11,10 +11,9 @@ use asset::{
   collect_assets_for_module, collect_assets_from_chunk, collect_usage_files_for_module,
   empty_assets_group, module_source_path, normalize_assets_group,
 };
-pub(crate) use data::ManifestRoot;
 use data::{
-  BasicStatsMetaData, ManifestExpose, ManifestRemote, ManifestShared, RemoteEntryMeta,
-  StatsAssetsGroup, StatsExpose, StatsRemote, StatsShared,
+  BasicStatsMetaData, ManifestExpose, ManifestRemote, ManifestRoot, ManifestShared,
+  RemoteEntryMeta, StatsAssetsGroup, StatsExpose, StatsRemote, StatsShared,
 };
 pub use data::{StatsBuildInfo, StatsRoot};
 pub use options::{
@@ -744,8 +743,8 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     let exposes = exposes_map
       .into_values()
       .map(|mut expose| {
-        expose.requires.sort();
-        expose.required_shared.sort_by(|a, b| {
+        expose.requires.sort_unstable();
+        expose.required_shared.sort_unstable_by(|a, b| {
           a.name
             .cmp(&b.name)
             .then_with(|| a.layer.cmp(&b.layer))
@@ -770,8 +769,8 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     (exposes, shared, remote_list)
   };
   finalize_shared_ids(&mut shared, &container_name);
-  exposes.sort_by(|a, b| a.id.cmp(&b.id).then_with(|| a.layer.cmp(&b.layer)));
-  shared.sort_by(|a, b| a.id.cmp(&b.id));
+  exposes.sort_unstable_by(|a, b| a.id.cmp(&b.id).then_with(|| a.layer.cmp(&b.layer)));
+  shared.sort_unstable_by(|a, b| a.id.cmp(&b.id));
   // Ensure all configured remotes exist in stats, add missing with defaults
   let mut remote_list = remote_list;
   ensure_configured_remotes(
