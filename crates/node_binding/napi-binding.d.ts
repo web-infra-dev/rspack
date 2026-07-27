@@ -566,6 +566,7 @@ export declare enum BuiltinPluginName {
   NaturalChunkIdsPlugin = 'NaturalChunkIdsPlugin',
   NamedChunkIdsPlugin = 'NamedChunkIdsPlugin',
   DeterministicChunkIdsPlugin = 'DeterministicChunkIdsPlugin',
+  CompactChunkIdsPlugin = 'CompactChunkIdsPlugin',
   OccurrenceChunkIdsPlugin = 'OccurrenceChunkIdsPlugin',
   RealContentHashPlugin = 'RealContentHashPlugin',
   RemoveEmptyChunksPlugin = 'RemoveEmptyChunksPlugin',
@@ -1963,6 +1964,10 @@ export interface RawCollectShareEntryPluginOptions {
 }
 
 export interface RawCompatHashedModuleIdsPluginOptions {
+  minLength?: number
+}
+
+export interface RawCompactChunkIdsPluginOptions {
   minLength?: number
 }
 
