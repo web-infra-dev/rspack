@@ -1,4 +1,7 @@
+mod compact_chunk_ids_plugin;
+mod compact_id;
 mod compact_module_ids_plugin;
+pub use compact_chunk_ids_plugin::*;
 pub use compact_module_ids_plugin::*;
 mod deterministic_module_ids_plugin;
 pub use deterministic_module_ids_plugin::*;

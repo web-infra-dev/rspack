@@ -567,6 +567,7 @@ export declare enum BuiltinPluginName {
   NaturalChunkIdsPlugin = 'NaturalChunkIdsPlugin',
   NamedChunkIdsPlugin = 'NamedChunkIdsPlugin',
   DeterministicChunkIdsPlugin = 'DeterministicChunkIdsPlugin',
+  CompactChunkIdsPlugin = 'CompactChunkIdsPlugin',
   OccurrenceChunkIdsPlugin = 'OccurrenceChunkIdsPlugin',
   RealContentHashPlugin = 'RealContentHashPlugin',
   RemoveEmptyChunksPlugin = 'RemoveEmptyChunksPlugin',
@@ -1954,6 +1955,10 @@ export interface RawCircularDependencyRspackPluginOptions {
 export interface RawCollectShareEntryPluginOptions {
   consumes: Array<RawConsumeOptions>
   filename?: string
+}
+
+export interface RawCompactChunkIdsPluginOptions {
+  minLength?: number
 }
 
 export interface RawCompactModuleIdsPluginOptions {

@@ -31,9 +31,9 @@ use napi::{
 use napi_derive::napi;
 use raw_dll::{RawDllReferenceAgencyPluginOptions, RawFlagAllModulesAsUsedPluginOptions};
 use raw_ids::{
-  RawCompactModuleIdsPluginOptions, RawDeterministicModuleIdsPluginOptions,
-  RawHashedModuleIdsPluginOptions, RawOccurrenceChunkIdsPluginOptions,
-  RawSyncModuleIdsPluginOptions,
+  RawCompactChunkIdsPluginOptions, RawCompactModuleIdsPluginOptions,
+  RawDeterministicModuleIdsPluginOptions, RawHashedModuleIdsPluginOptions,
+  RawOccurrenceChunkIdsPluginOptions, RawSyncModuleIdsPluginOptions,
 };
 use raw_lightning_css_minimizer::RawLightningCssMinimizerRspackPluginOptions;
 use raw_mf::{
@@ -45,9 +45,9 @@ use raw_sri::RawSubresourceIntegrityPluginOptions;
 use rspack_core::{BoxPlugin, Plugin, PluginExt};
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_ids::{
-  CompactModuleIdsPlugin, DeterministicChunkIdsPlugin, DeterministicModuleIdsPlugin,
-  HashedModuleIdsPlugin, NamedChunkIdsPlugin, NamedModuleIdsPlugin, NaturalChunkIdsPlugin,
-  NaturalModuleIdsPlugin, OccurrenceChunkIdsPlugin, SyncModuleIdsPlugin,
+  CompactChunkIdsPlugin, CompactModuleIdsPlugin, DeterministicChunkIdsPlugin,
+  DeterministicModuleIdsPlugin, HashedModuleIdsPlugin, NamedChunkIdsPlugin, NamedModuleIdsPlugin,
+  NaturalChunkIdsPlugin, NaturalModuleIdsPlugin, OccurrenceChunkIdsPlugin, SyncModuleIdsPlugin,
 };
 use rspack_plugin_asset::AssetPlugin;
 use rspack_plugin_banner::BannerPlugin;
@@ -204,6 +204,7 @@ pub enum BuiltinPluginName {
   NaturalChunkIdsPlugin,
   NamedChunkIdsPlugin,
   DeterministicChunkIdsPlugin,
+  CompactChunkIdsPlugin,
   OccurrenceChunkIdsPlugin,
   RealContentHashPlugin,
   RemoveEmptyChunksPlugin,
@@ -620,6 +621,14 @@ impl<'a> BuiltinPlugin<'a> {
       BuiltinPluginName::DeterministicChunkIdsPlugin => {
         plugins.push(DeterministicChunkIdsPlugin::default().boxed())
       }
+      BuiltinPluginName::CompactChunkIdsPlugin => plugins.push(
+        CompactChunkIdsPlugin::new(
+          downcast_into::<RawCompactChunkIdsPluginOptions>(self.options)
+            .map_err(|report| napi::Error::from_reason(report.to_string()))?
+            .into(),
+        )
+        .boxed(),
+      ),
       BuiltinPluginName::OccurrenceChunkIdsPlugin => plugins.push(
         OccurrenceChunkIdsPlugin::new(
           downcast_into::<RawOccurrenceChunkIdsPluginOptions>(self.options)

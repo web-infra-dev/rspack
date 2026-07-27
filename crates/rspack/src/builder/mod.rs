@@ -3506,6 +3506,11 @@ impl OptimizationOptionsBuilder {
           .plugins
           .push(BuiltinPluginOptions::DeterministicChunkIdsPlugin);
       }
+      "compact" => {
+        builder_context
+          .plugins
+          .push(BuiltinPluginOptions::CompactChunkIdsPlugin);
+      }
       "named" => {
         builder_context
           .plugins

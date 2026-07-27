@@ -1,6 +1,7 @@
 [
   "index",
   "banner-plugin",
+  "compact-chunk-ids-plugin",
   "compact-module-ids-plugin",
   "context-replacement-plugin",
   "define-plugin",

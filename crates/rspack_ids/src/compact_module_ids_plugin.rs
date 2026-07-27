@@ -8,32 +8,17 @@ use rspack_error::{Diagnostic, Result, error};
 use rspack_hash::{HashFunction, RspackHasher};
 use rspack_hook::{plugin, plugin_hook};
 
-use crate::id_helpers::{
-  compare_modules_by_pre_order_index_or_identifier, get_full_module_name,
-  get_used_module_ids_and_modules_with_artifact,
+use crate::{
+  compact_id::{FULL_IDENTIFIER_LENGTH, encode_identifier_hash},
+  id_helpers::{
+    compare_modules_by_pre_order_index_or_identifier, get_full_module_name,
+    get_used_module_ids_and_modules_with_artifact,
+  },
 };
-
-const IDENTIFIER_START_CHARS: &[u8] = b"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
-const IDENTIFIER_CONTINUE_CHARS: &[u8] =
-  b"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-const FULL_IDENTIFIER_LENGTH: usize = 11;
 
 #[derive(Debug, Clone, Default)]
 pub struct CompactModuleIdsPluginOptions {
   pub min_length: Option<usize>,
-}
-
-fn encode_identifier_hash(mut hash: u64) -> [u8; FULL_IDENTIFIER_LENGTH] {
-  let mut identifier = [0; FULL_IDENTIFIER_LENGTH];
-  identifier[0] = IDENTIFIER_START_CHARS[(hash % IDENTIFIER_START_CHARS.len() as u64) as usize];
-  hash /= IDENTIFIER_START_CHARS.len() as u64;
-  for character in &mut identifier[1..] {
-    *character =
-      IDENTIFIER_CONTINUE_CHARS[(hash % IDENTIFIER_CONTINUE_CHARS.len() as u64) as usize];
-    hash /= IDENTIFIER_CONTINUE_CHARS.len() as u64;
-  }
-  debug_assert_eq!(hash, 0);
-  identifier
 }
 
 #[plugin]
