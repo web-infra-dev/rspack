@@ -29,7 +29,8 @@ use crate::{
     ExportInfoDependencyTemplate, ExternalModuleDependencyTemplate,
     ImportContextDependencyTemplate, ImportDependencyTemplate, ImportEagerDependencyTemplate,
     ImportMetaContextDependencyTemplate, ImportMetaHotAcceptDependencyTemplate,
-    ImportMetaHotDeclineDependencyTemplate, ImportMetaResolveContextDependencyTemplate,
+    ImportMetaHotAcceptRefreshDependencyTemplate, ImportMetaHotDeclineDependencyTemplate,
+    ImportMetaHotDependencyTemplate, ImportMetaResolveContextDependencyTemplate,
     ImportMetaResolveDependencyTemplate, ImportMetaResolveHeaderDependencyTemplate,
     ImportMetaRscDependencyTemplate, ImportWeakDependencyTemplate, IsIncludedDependencyTemplate,
     ModuleArgumentDependencyTemplate, ModuleDecoratorDependencyTemplate,
@@ -367,8 +368,16 @@ async fn compilation(
     Arc::new(ESMAcceptDependencyTemplate::default()),
   );
   compilation.set_dependency_template(
+    ImportMetaHotDependencyTemplate::template_type(),
+    Arc::new(ImportMetaHotDependencyTemplate),
+  );
+  compilation.set_dependency_template(
     ImportMetaHotAcceptDependencyTemplate::template_type(),
     Arc::new(ImportMetaHotAcceptDependencyTemplate::default()),
+  );
+  compilation.set_dependency_template(
+    ImportMetaHotAcceptRefreshDependencyTemplate::template_type(),
+    Arc::new(ImportMetaHotAcceptRefreshDependencyTemplate),
   );
   compilation.set_dependency_template(
     ImportMetaHotDeclineDependencyTemplate::template_type(),

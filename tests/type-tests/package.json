@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "tsc --noEmit -p resolution-bundler/tsconfig.json && tsc --noEmit -p resolution-nodenext/tsconfig.json"
+    "test": "tsc --noEmit -p resolution-bundler/tsconfig.json && tsc --noEmit -p resolution-bundler-import-meta-hot/tsconfig.json && tsc --noEmit -p resolution-nodenext/tsconfig.json"
   },
   "devDependencies": {
     "@rspack/cli": "workspace:*",

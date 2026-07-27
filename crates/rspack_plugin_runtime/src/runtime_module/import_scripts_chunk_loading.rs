@@ -307,6 +307,7 @@ impl RuntimeModule for ImportScriptsChunkLoadingRuntimeModule {
         &self.template_id(TemplateId::HmrRuntime),
         "importScripts",
         runtime_template,
+        compilation.options.experiments.import_meta_hot,
       )?;
       source.push_str(&hmr_runtime);
     }

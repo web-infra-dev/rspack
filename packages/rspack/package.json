@@ -18,7 +18,10 @@
     "./hot/*": "./hot/*.js",
     "./hot/*.js": "./hot/*.js",
     "./package.json": "./package.json",
-    "./module": "./module.d.ts"
+    "./module": "./module.d.ts",
+    "./import-meta-hot": {
+      "types": "./import-meta-hot.d.ts"
+    }
   },
   "scripts": {
     "prepare": "prebundle && node ./move-tinypool.js",
@@ -30,7 +33,8 @@
     "dist",
     "hot",
     "compiled",
-    "module.d.ts"
+    "module.d.ts",
+    "import-meta-hot.d.ts"
   ],
   "engines": {
     "node": "^20.19.0 || >=22.12.0"

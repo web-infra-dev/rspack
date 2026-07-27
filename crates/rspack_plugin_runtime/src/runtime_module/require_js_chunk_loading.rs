@@ -367,6 +367,7 @@ impl RuntimeModule for RequireChunkLoadingRuntimeModule {
         &self.template_id(TemplateId::HmrRuntime),
         "require",
         runtime_template,
+        compilation.options.experiments.import_meta_hot,
       )?;
       source.push_str(&hmr_runtime);
     }

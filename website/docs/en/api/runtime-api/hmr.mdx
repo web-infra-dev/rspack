@@ -1,5 +1,5 @@
 ---
-description: 'Rspack provides the same interface as webpack for implementing HMR'
+description: 'Rspack provides webpack HMR APIs and an import.meta.hot compatibility facade'
 ---
 
 import WebpackLicense from '@components/WebpackLicense';
@@ -8,13 +8,83 @@ import WebpackLicense from '@components/WebpackLicense';
 
 # Hot module replacement
 
-Rspack provides the same interface as webpack for implementing HMR.
+Rspack exposes two HMR API families:
 
-If you've enabled Hot Module Replacement via the [HotModuleReplacementPlugin](/plugins/webpack/hot-module-replacement-plugin), its interface is exposed on the `module.hot` and `import.meta.webpackHot` objects.
+- `module.hot` and `import.meta.webpackHot` implement the webpack HMR API.
+- `import.meta.hot` is a per-module compatibility facade over the webpack HMR runtime. It supports only the four
+  `accept` forms described below, `data`, and `dispose`.
 
-In ESM, use `import.meta.webpackHot` instead of `module.hot`.
+Enable the webpack APIs with the [HotModuleReplacementPlugin](/plugins/webpack/hot-module-replacement-plugin). In ESM, use `import.meta.webpackHot` for the webpack API instead of `module.hot`.
 
-## Example
+`import.meta.hot` is experimental and disabled by default. Enable its facade in addition to HMR:
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    importMetaHot: true,
+  },
+};
+```
+
+## `import.meta.hot` API
+
+`import.meta.hot` supports these four `accept` forms:
+
+```js
+if (import.meta.hot) {
+  // Self-accept without a callback.
+  import.meta.hot.accept();
+
+  // Self-accept with the updated module namespace.
+  import.meta.hot.accept((module) => {
+    console.log(module?.default);
+  });
+
+  // Accept one dependency. The callback receives its updated namespace.
+  import.meta.hot.accept('./library.js', (module) => {
+    console.log(module?.default);
+  });
+
+  // Accept multiple dependencies. The namespaces remain aligned with the requests.
+  import.meta.hot.accept(['./a.js', './b.js'], ([a, b]) => {
+    console.log(a?.default, b?.default);
+  });
+}
+```
+
+A dependency callback receives `undefined` for a dependency that cannot be evaluated. A multiple-dependency callback still receives an array aligned with the declared dependency list. A self-accept callback runs only after the updated module evaluates successfully.
+
+Use `data` and `dispose` to pass state to the next version of the module and release resources before replacement:
+
+```js
+if (import.meta.hot) {
+  import.meta.hot.data.updateCount ??= 0;
+
+  import.meta.hot.dispose((data) => {
+    data.updateCount += 1;
+  });
+}
+```
+
+No other methods are supported on this context. In particular, this release does not implement unsupported lifecycle or management methods such as `decline`, `invalidate`, `check`, or `apply`; client transport methods such as `on`, `off`, or `send`; or export-boundary methods such as `acceptExports` or `prune`.
+
+### TypeScript
+
+In an Rspack-only project, opt in to the ambient `ImportMeta.hot` declaration with `@rspack/core/import-meta-hot`:
+
+```ts
+/// <reference types="@rspack/core/import-meta-hot" />
+
+if (import.meta.hot) {
+  import.meta.hot.accept('./library.js', (module) => {
+    module?.default;
+  });
+}
+```
+
+This opt-in entry is for projects that do not already provide an `ImportMeta.hot` declaration. If a migrated project already supplies a compatible `HotContext` declaration, do not load the opt-in entry; the Rspack runtime supports its `accept`, `data`, and `dispose` subset, but does not implement `on`, `off`, `send`, `prune`, or `acceptExports`.
+
+## webpack HMR API
 
 First, check if the interface is available, then use it. Here's how to `accept` an updated module:
 
@@ -33,7 +103,7 @@ if (import.meta.webpackHot) {
 }
 ```
 
-The following methods are supported by `module.hot` and `import.meta.webpackHot`.
+The following Module API and Management API sections apply only to `module.hot` and `import.meta.webpackHot`.
 
 ## Module API
 

@@ -1750,6 +1750,7 @@ CompilerOptions {
         css: false,
         defer_import: false,
         env: false,
+        import_meta_hot: false,
         source_import: false,
         pure_functions: false,
         runtime_mode: Webpack,

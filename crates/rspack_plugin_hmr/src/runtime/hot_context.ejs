@@ -1,0 +1,67 @@
+var hotContextStateKey = "__rspack_hot_context__";
+var hotContextDataKey = "__rspack_hot_context_data__";
+
+<%- HOT_CONTEXT %> = function (moduleHot) {
+	var previousState = moduleHot[hotContextStateKey];
+	if (previousState) return previousState.context;
+
+	var state = {
+		data: moduleHot.data && moduleHot.data[hotContextDataKey] || {},
+		selfCallbacks: [],
+		acceptCallbacks: []
+	};
+	var acceptDependency = function (dep) {
+		if (!moduleHot._acceptedDependencies[dep]) moduleHot.accept(dep);
+	};
+
+	var context = {
+		get data() {
+			return state.data;
+		},
+		accept: function (deps, callback, refresh) {
+			if (deps === undefined) {
+				if (!moduleHot._selfAccepted) moduleHot.accept();
+				return;
+			}
+			if (typeof deps === "function") {
+				if (!moduleHot._selfAccepted) moduleHot.accept();
+				state.selfCallbacks.push(deps);
+				return;
+			}
+			if (!Array.isArray(deps)) {
+				acceptDependency(deps);
+				state.acceptCallbacks.push({
+					deps: [deps],
+					callback: callback,
+					refresh: refresh,
+					single: true
+				});
+				return;
+			}
+			for (var i = 0; i < deps.length; i++) acceptDependency(deps[i]);
+			state.acceptCallbacks.push({
+				deps: deps.slice(),
+				callback: callback,
+				refresh: refresh,
+				single: false
+			});
+		},
+		dispose: function (callback) {
+			moduleHot.dispose(function () {
+				callback(state.data);
+			});
+		}
+	};
+
+	state.context = context;
+	Object.defineProperty(moduleHot, hotContextStateKey, {
+		value: state
+	});
+	moduleHot.dispose(function (data) {
+		Object.defineProperty(data, hotContextDataKey, {
+			configurable: true,
+			value: state.data
+		});
+	});
+	return context;
+};

@@ -25,6 +25,7 @@ module.exports = {
 			    deferImport: false,
 			    env: false,
 			    futureDefaults: false,
+			    importMetaHot: false,
 			    pureFunctions: false,
 			    runtimeMode: webpack,
 			    sourceImport: false,

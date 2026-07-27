@@ -251,6 +251,7 @@ pub fn generate_javascript_hmr_runtime(
   key: &str,
   method: &str,
   runtime_template: &RuntimeCodeTemplate,
+  with_hot_context: bool,
 ) -> Result<String> {
   runtime_template.render(
     key,
@@ -259,6 +260,7 @@ pub fn generate_javascript_hmr_runtime(
       "_installed_chunks": format!("{method}InstalledChunks"),
       "_load_update_chunk": format!("{method}LoadUpdateChunk"),
       "_is_hot_test": is_hot_test(),
+      "_with_hot_context": with_hot_context,
     })),
   )
 }

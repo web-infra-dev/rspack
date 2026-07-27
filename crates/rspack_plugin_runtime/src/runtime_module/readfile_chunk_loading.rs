@@ -365,6 +365,7 @@ impl RuntimeModule for ReadFileChunkLoadingRuntimeModule {
         &self.template_id(TemplateId::HmrRuntime),
         "readFileVm",
         runtime_template,
+        compilation.options.experiments.import_meta_hot,
       )?;
       source.push_str(&hmr_runtime);
     }

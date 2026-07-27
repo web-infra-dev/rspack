@@ -30,9 +30,11 @@ pub mod expr_name {
   pub const IMPORT_META_VERSION: &str = "import.meta.webpack";
   pub const IMPORT_META_MAIN: &str = "import.meta.main";
   pub const IMPORT_META_RSPACK_RSC: &str = "import.meta.rspackRsc";
-  pub const IMPORT_META_HOT: &str = "import.meta.webpackHot";
-  pub const IMPORT_META_HOT_ACCEPT: &str = "import.meta.webpackHot.accept";
-  pub const IMPORT_META_HOT_DECLINE: &str = "import.meta.webpackHot.decline";
+  pub const IMPORT_META_WEBPACK_HOT: &str = "import.meta.webpackHot";
+  pub const IMPORT_META_WEBPACK_HOT_ACCEPT: &str = "import.meta.webpackHot.accept";
+  pub const IMPORT_META_WEBPACK_HOT_DECLINE: &str = "import.meta.webpackHot.decline";
+  pub const IMPORT_META_HOT: &str = "import.meta.hot";
+  pub const IMPORT_META_HOT_ACCEPT: &str = "import.meta.hot.accept";
   pub const IMPORT_META_CONTEXT: &str = "import.meta.webpackContext";
   pub const IMPORT_META_GLOB: &str = "import.meta.glob";
 }

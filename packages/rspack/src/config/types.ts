@@ -1205,6 +1205,11 @@ export type ImportMetaParserOptions = {
   glob?: boolean;
 
   /**
+   * Enable/disable evaluating import.meta.hot.
+   */
+  hot?: boolean;
+
+  /**
    * Enable/disable evaluating import.meta.main.
    */
   main?: boolean;
@@ -3139,6 +3144,11 @@ export type Experiments = {
    * @default false
    */
   env?: boolean;
+  /**
+   * Enable the experimental `import.meta.hot` compatibility API.
+   * @default false
+   */
+  importMetaHot?: boolean;
   /**
    * Enable source phase import feature
    * @default false

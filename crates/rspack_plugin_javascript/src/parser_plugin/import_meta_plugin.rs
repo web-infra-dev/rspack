@@ -386,7 +386,11 @@ impl ImportMetaPlugin {
     if let Some(api) = import_meta_runtime_api_from_name(name) {
       return Some(api.property);
     }
-    None
+    match name {
+      expr_name::IMPORT_META_WEBPACK_HOT => Some(ImportMetaKnownProperties::WEBPACK_HOT),
+      expr_name::IMPORT_META_HOT => Some(ImportMetaKnownProperties::HOT),
+      _ => None,
+    }
   }
 
   fn preserve_property(&self, parser: &JavascriptParser, property: Option<&str>) -> bool {
@@ -687,6 +691,14 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaPlugin {
       && self.runtime_api_enabled(api)
     {
       evaluated = Some(api.type_of.to_string())
+    } else if Self::known_property_from_name(for_name).is_some_and(|property| {
+      self.known_property_enabled(property)
+        && (property != ImportMetaKnownProperties::HOT
+          || parser.compiler_options.experiments.import_meta_hot)
+    }) {
+      // HMR fields are evaluated by HotModuleReplacementPlugin. Keep `typeof`
+      // unknown here so the member expression can be rewritten to `module.hot`.
+      return None;
     } else if let Some(member_expr) = expr.arg.as_member()
       && let Some(meta_expr) = member_expr.obj.as_meta_prop()
       && meta_expr

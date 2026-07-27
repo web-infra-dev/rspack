@@ -3685,6 +3685,8 @@ pub struct ExperimentsBuilder {
   defer_import: Option<bool>,
   /// Whether to enable import.meta.env support.
   env: Option<bool>,
+  /// Whether to enable import.meta.hot.
+  import_meta_hot: Option<bool>,
   /// Whether to enable source import.
   source_import: Option<bool>,
   // TODO: lazy compilation
@@ -3700,6 +3702,7 @@ impl From<Experiments> for ExperimentsBuilder {
       async_web_assembly: None,
       defer_import: Some(value.defer_import),
       env: Some(value.env),
+      import_meta_hot: Some(value.import_meta_hot),
       source_import: Some(value.source_import),
       pure_functions: Some(value.pure_functions),
       runtime_mode: Some(value.runtime_mode),
@@ -3715,6 +3718,7 @@ impl From<&mut ExperimentsBuilder> for ExperimentsBuilder {
       async_web_assembly: value.async_web_assembly.take(),
       defer_import: value.defer_import.take(),
       env: value.env.take(),
+      import_meta_hot: value.import_meta_hot.take(),
       source_import: value.source_import.take(),
       pure_functions: value.pure_functions.take(),
       runtime_mode: value.runtime_mode.take(),
@@ -3753,6 +3757,12 @@ impl ExperimentsBuilder {
     self
   }
 
+  /// Set whether to enable import.meta.hot.
+  pub fn import_meta_hot(&mut self, import_meta_hot: bool) -> &mut Self {
+    self.import_meta_hot = Some(import_meta_hot);
+    self
+  }
+
   /// Set whether to enable source import.
   pub fn source_import(&mut self, source_import: bool) -> &mut Self {
     self.source_import = Some(source_import);
@@ -3777,6 +3787,7 @@ impl ExperimentsBuilder {
       css: d!(self.css, false),
       defer_import: d!(self.defer_import, false),
       env: d!(self.env, false),
+      import_meta_hot: d!(self.import_meta_hot, false),
       source_import: d!(self.source_import, false),
       pure_functions: d!(self.pure_functions, _production),
       runtime_mode: d!(self.runtime_mode, RuntimeMode::Webpack),

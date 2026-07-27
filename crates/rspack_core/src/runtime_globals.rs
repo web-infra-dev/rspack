@@ -312,6 +312,9 @@ define_runtime_globals! {
 
   // reexport
   const REEXPORT;
+
+  /// Returns the dedicated import.meta.hot context for a module.
+  const HOT_CONTEXT;
 }
 
 impl Default for RuntimeGlobals {
@@ -393,6 +396,7 @@ pub fn runtime_globals_property_name(runtime_globals: &RuntimeGlobals) -> Option
     RuntimeGlobals::HMR_INVALIDATE_MODULE_HANDLERS => "hmrI",
     RuntimeGlobals::HMR_MODULE_DATA => "hmrD",
     RuntimeGlobals::HMR_RUNTIME_STATE_PREFIX => "hmrS",
+    RuntimeGlobals::HOT_CONTEXT => "hmrH",
     RuntimeGlobals::GET_UPDATE_MANIFEST_FILENAME => "hmrF",
     RuntimeGlobals::GET_CHUNK_UPDATE_SCRIPT_FILENAME => "hu",
     RuntimeGlobals::GET_CHUNK_UPDATE_CSS_FILENAME => "hk",

@@ -1,0 +1,117 @@
+# Case import-meta-hot-self: Step 2
+
+## Changed Files
+- mixed.js
+- self.js
+
+## Asset Files
+- Bundle: bundle.js
+- Manifest: main.LAST_HASH.hot-update.json, size: 28
+- Update: main.LAST_HASH.hot-update.js, size: 728
+
+## Manifest
+
+### main.LAST_HASH.hot-update.json
+
+```json
+{"c":["main"],"r":[],"m":[]}
+```
+
+
+## Update
+
+
+### main.LAST_HASH.hot-update.js
+
+#### Changed Modules
+- ./mixed.js
+
+#### Changed Runtime Modules
+- webpack/runtime/get_full_hash
+
+#### Changed Content
+```js
+"use strict";
+self["rspackHotUpdate"]("main", {
+"./mixed.js"(module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  value: () => (value)
+});
+
+const value = 3;
+
+globalThis.__mixedSelfEvaluations += 1;
+
+if (true) {
+	module.hot.accept(error => {
+		globalThis.__mixedSelfWebpackError = error.message;
+	});
+}
+
+if (true) {
+	__webpack_require__.hmrH(module.hot).accept(mod => {
+		globalThis.__mixedSelfAccepted = {
+			value: mod.value,
+			calls: (globalThis.__mixedSelfAccepted?.calls || 0) + 1
+		};
+	});
+}
+
+
+},
+
+},function(__webpack_require__) {
+// webpack/runtime/get_full_hash
+(() => {
+__webpack_require__.h = () => ("CURRENT_HASH")
+})();
+
+}
+);
+```
+
+
+
+
+## Runtime
+### Status
+
+```txt
+check => prepare => dispose => apply => idle
+```
+
+
+
+### JavaScript
+
+#### Outdated
+
+Outdated Modules:
+- ./mixed.js
+- ./self.js
+
+
+Outdated Dependencies:
+```json
+{}
+```
+
+#### Updated
+
+Updated Modules:
+- ./mixed.js
+- ./self.js
+
+Updated Runtime:
+- `__webpack_require__.h`
+
+
+#### Callback
+
+Accepted Callback:
+
+
+Disposed Callback:
+- ./mixed.js
+- ./self.js
