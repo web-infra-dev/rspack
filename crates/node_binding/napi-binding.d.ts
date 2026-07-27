@@ -2738,6 +2738,7 @@ export interface RawModuleRule {
 export interface RawModuleRuleUse {
   loader: string
   options?: string
+  cache: boolean
 }
 
 export interface RawNodeOption {

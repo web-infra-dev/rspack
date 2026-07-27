@@ -63,6 +63,7 @@ import {
 } from './utils';
 
 const LOADER_PROCESS_NAME = 'Loader Analysis';
+const INTERNAL_CACHE_LOADER_IDENTIFIER = 'builtin:cache-loader';
 
 type LoaderObjectOptions = string | (object & { ident?: unknown }) | null;
 
@@ -537,7 +538,17 @@ export async function runLoaders(
     );
   };
   loaderContext.rootContext = compiler.context;
+  const markNonReplayableSideEffect = () => {
+    if (
+      loaderContext.loaders.some(
+        (loader) => loader.path === INTERNAL_CACHE_LOADER_IDENTIFIER,
+      )
+    ) {
+      loaderContext.cacheable(false);
+    }
+  };
   loaderContext.emitError = function emitError(e) {
+    markNonReplayableSideEffect();
     if (!(e instanceof Error)) {
       e = new NonErrorEmittedError(e);
     }
@@ -553,6 +564,7 @@ export async function runLoaders(
     });
   };
   loaderContext.emitWarning = function emitWarning(e) {
+    markNonReplayableSideEffect();
     if (!(e instanceof Error)) {
       e = new NonErrorEmittedError(e);
     }
@@ -573,6 +585,7 @@ export async function runLoaders(
     sourceMap?,
     assetInfo?,
   ) {
+    markNonReplayableSideEffect();
     let source: Source | undefined;
     if (sourceMap) {
       if (
@@ -602,6 +615,7 @@ export async function runLoaders(
   loaderContext.fs = compiler.inputFileSystem;
   loaderContext.experiments = {
     emitDiagnostic: (diagnostic: Diagnostic) => {
+      markNonReplayableSideEffect();
       const d = Object.assign({}, diagnostic, {
         message:
           diagnostic.severity === 'warning'

@@ -875,6 +875,11 @@ export type RuleSetLoaderWithOptions = {
    */
   parallel?: boolean | { maxWorkers?: number };
 
+  /**
+   * Cache this loader and all loaders after it in memory while the resource is unchanged.
+   */
+  cache?: boolean;
+
   options?: RuleSetLoaderOptions;
 };
 
