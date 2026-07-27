@@ -689,7 +689,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     let shared = shared_map
       .into_values()
       .map(|mut v| {
-        v.usedIn.sort();
+        v.usedIn.sort_unstable();
         v.usedIn.dedup();
         v
       })
