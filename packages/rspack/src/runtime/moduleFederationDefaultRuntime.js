@@ -91,6 +91,7 @@ export default function () {
                 eager: data.eager,
               },
               scope: [data.shareScope],
+              layer: data.layer,
             },
             shareKey: data.shareKey,
             treeShaking: runtimeRequire.federation.sharedFallback
@@ -132,6 +133,7 @@ export default function () {
               requiredVersion,
               strictVersion,
               treeShakingMode,
+              layer,
             } = stage;
             const shareConfig = {};
             const isValidValue = function (val) {
@@ -154,6 +156,7 @@ export default function () {
               scope: [scope],
               shareConfig,
               get: factory,
+              layer,
               treeShaking: treeShakingMode
                 ? {
                     mode: treeShakingMode,
