@@ -186,6 +186,10 @@ impl Module for ContainerEntryModule {
     }
   }
 
+  fn get_layer(&self) -> Option<&rspack_core::ModuleLayer> {
+    self.shared_layer.as_ref()
+  }
+
   fn source_types(&self, _module_graph: &ModuleGraph) -> &[SourceType] {
     &[SourceType::JavaScript, SourceType::Expose]
   }
