@@ -541,25 +541,25 @@ importers:
   crates/node_binding:
     devDependencies:
       '@emnapi/core':
-        specifier: 'catalog:'
+        specifier: 1.11.2
         version: 1.11.2
       '@emnapi/runtime':
-        specifier: 'catalog:'
+        specifier: 1.11.2
         version: 1.11.2
       '@napi-rs/cli':
-        specifier: 'catalog:'
+        specifier: 3.7.4
         version: 3.7.4(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)(@types/node@20.19.43)(node-addon-api@7.1.1)
       '@napi-rs/wasm-runtime':
-        specifier: 'catalog:'
+        specifier: 1.1.6
         version: 1.1.6(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)
       '@types/node':
-        specifier: 'catalog:'
+        specifier: ^20.19.43
         version: 20.19.43
       emnapi:
-        specifier: 'catalog:'
+        specifier: 1.11.2
         version: 1.11.2(node-addon-api@7.1.1)
       typescript:
-        specifier: 'catalog:'
+        specifier: ^6.0.3
         version: 6.0.3
     optionalDependencies:
       '@rspack/binding-darwin-arm64':
