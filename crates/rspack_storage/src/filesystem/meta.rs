@@ -114,9 +114,10 @@ impl Meta {
     }
 
     if max_versions != 0 {
-      // Valid version directories on disk are candidates even when `_meta` has
-      // no timestamp for them. Treat missing timestamps as the oldest entries so
-      // orphaned cache versions can still be reclaimed by maxVersions cleanup.
+      // Valid version directories from the active compiler scope are candidates
+      // even when `_meta` has no timestamp for them. Treat missing timestamps as
+      // the oldest entries so orphaned cache versions can still be reclaimed by
+      // maxVersions cleanup without evicting another compiler's cache.
       let mut candidates = fs
         .list_child()
         .await
@@ -124,7 +125,7 @@ impl Meta {
         .into_iter()
         .filter_map(|version| {
           let version = Version::parse(version)?;
-          if &version == active_version {
+          if &version == active_version || !version.has_same_scope(active_version) {
             return None;
           }
 
@@ -160,6 +161,11 @@ mod test {
   const V1: &str = "rspack_v_0000000000000001";
   const V2: &str = "rspack_v_0000000000000002";
   const V3: &str = "rspack_v_0000000000000003";
+  const A_V1: &str = "rspack_v_aaaaaaaaaaaaaaaa_0000000000000001";
+  const A_V2: &str = "rspack_v_aaaaaaaaaaaaaaaa_0000000000000002";
+  const A_V3: &str = "rspack_v_aaaaaaaaaaaaaaaa_0000000000000003";
+  const B_V1: &str = "rspack_v_bbbbbbbbbbbbbbbb_0000000000000001";
+  const B_V2: &str = "rspack_v_bbbbbbbbbbbbbbbb_0000000000000002";
 
   fn version(value: &str) -> Version {
     Version::parse(value).expect("valid test version")
@@ -260,6 +266,29 @@ mod test {
     );
     assert!(meta.access_times.contains_key(&version(V2)));
     assert!(meta.access_times.contains_key(&version(V3)));
+
+    Ok(())
+  }
+
+  #[tokio::test]
+  async fn max_versions_only_removes_versions_from_the_active_scope() -> Result<()> {
+    let fs = ScopeFileSystem::new_memory_fs("/max_versions_scoped".into());
+    fs.ensure_exist().await?;
+    create_child_dirs(&fs, &[A_V1, A_V2, B_V1, B_V2]).await?;
+
+    let mut meta = Meta::default();
+    meta.access_times.insert(version(A_V1), 1);
+    meta.access_times.insert(version(A_V2), 2);
+    meta.access_times.insert(version(B_V1), 1);
+    meta.access_times.insert(version(B_V2), 2);
+
+    let (expired, _) = meta.refresh(&fs, &version(A_V3), 0, 2).await?;
+
+    assert_eq!(expired, vec![version(A_V1)]);
+    assert!(meta.access_times.contains_key(&version(A_V2)));
+    assert!(meta.access_times.contains_key(&version(A_V3)));
+    assert!(meta.access_times.contains_key(&version(B_V1)));
+    assert!(meta.access_times.contains_key(&version(B_V2)));
 
     Ok(())
   }
