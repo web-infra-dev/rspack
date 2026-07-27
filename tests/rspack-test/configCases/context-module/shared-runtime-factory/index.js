@@ -1,0 +1,79 @@
+const syncContext = require.context("./modules", false, /\.js$/, "sync");
+const weakContext = require.context("./modules", false, /\.js$/, "weak");
+const emptyContext = require.context(
+	"./modules",
+	false,
+	/never-match/,
+	"sync"
+);
+const eagerContext = require.context("./modules", false, /\.js$/, "eager");
+const asyncWeakContext = require.context(
+	"./modules",
+	false,
+	/\.js$/,
+	"async-weak"
+);
+const lazyOnceContext = require.context(
+	"./modules",
+	false,
+	/\.js$/,
+	"lazy-once"
+);
+const lazyContext = require.context("./modules", false, /\.js$/, "lazy");
+const emptyAsyncContext = require.context(
+	"./modules",
+	false,
+	/never-match-async/,
+	"lazy"
+);
+
+it("keeps sync context behavior", () => {
+	expect(syncContext("./a.js").value).toBe("a");
+	expect(syncContext.keys()).toEqual(["./a.js"]);
+	expect(syncContext.resolve("./a.js")).toBeDefined();
+});
+
+it("keeps weak context behavior", () => {
+	expect(weakContext("./a.js").value).toBe("a");
+	expect(weakContext.keys()).toEqual(["./a.js"]);
+});
+
+it("keeps empty sync context behavior", () => {
+	expect(emptyContext.keys()).toEqual([]);
+	expect(emptyContext.resolve).toBe(emptyContext);
+	expect(() => emptyContext("./missing.js")).toThrow(
+		"Cannot find module './missing.js'"
+	);
+});
+
+it("keeps eager context behavior", async () => {
+	expect((await eagerContext("./a.js")).value).toBe("a");
+	await expect(eagerContext("./missing.js")).rejects.toMatchObject({
+		code: "MODULE_NOT_FOUND"
+	});
+});
+
+it("keeps async weak context behavior", async () => {
+	expect((await asyncWeakContext("./a.js")).value).toBe("a");
+});
+
+it("keeps lazy-once context behavior", async () => {
+	expect((await lazyOnceContext("./a.js")).value).toBe("a");
+	expect(typeof lazyOnceContext.resolve("./a.js").then).toBe("function");
+});
+
+it("keeps lazy context behavior", async () => {
+	expect((await lazyContext("./a.js")).value).toBe("a");
+	expect(lazyContext.resolve).toBeUndefined();
+	await expect(lazyContext("./missing.js")).rejects.toMatchObject({
+		code: "MODULE_NOT_FOUND"
+	});
+});
+
+it("keeps empty async context behavior", async () => {
+	expect(emptyAsyncContext.keys()).toEqual([]);
+	expect(emptyAsyncContext.resolve).toBe(emptyAsyncContext);
+	await expect(emptyAsyncContext("./missing.js")).rejects.toMatchObject({
+		code: "MODULE_NOT_FOUND"
+	});
+});
