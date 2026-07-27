@@ -43,7 +43,8 @@ pub struct ContainerEntryModule {
   enhanced: bool,
   request: Option<String>,
   version: Option<String>,
-  shared_identity: Option<SharedIdentity>,
+  shared_share_key: Option<String>,
+  shared_layer: Option<String>,
   dependency_type: DependencyType,
   name: String,
 }
@@ -79,7 +80,8 @@ impl ContainerEntryModule {
       enhanced,
       request: None,
       version: None,
-      shared_identity: None,
+      shared_share_key: None,
+      shared_layer: None,
       dependency_type: DependencyType::ContainerEntry,
       source_map_kind: SourceMapKind::empty(),
       name,
@@ -90,10 +92,13 @@ impl ContainerEntryModule {
     name: String,
     request: String,
     version: String,
-    shared_identity: SharedIdentity,
+    share_scope: ShareScope,
+    share_key: String,
+    layer: Option<String>,
     runtime_mode: RuntimeMode,
   ) -> Self {
     let namespace = module_identifier_namespace(runtime_mode);
+    let shared_identity = SharedIdentity::new(&share_scope, &share_key, layer.as_deref());
     let identity_key = shared_identity.identifier_key();
     let lib_ident = format!("{namespace}/share/container/{identity_key}");
     Self {
@@ -102,7 +107,7 @@ impl ContainerEntryModule {
       identifier: ModuleIdentifier::from(format!("share container entry {identity_key}@{version}")),
       lib_ident,
       exposes: vec![],
-      share_scope: shared_identity.share_scope.clone(),
+      share_scope,
       factory_meta: None,
       build_info: BuildInfo {
         strict: true,
@@ -113,7 +118,8 @@ impl ContainerEntryModule {
       enhanced: false,
       request: Some(request),
       version: Some(version),
-      shared_identity: Some(shared_identity),
+      shared_share_key: Some(share_key),
+      shared_layer: layer,
       dependency_type: DependencyType::ShareContainerEntry,
       source_map_kind: SourceMapKind::empty(),
       name,
@@ -128,8 +134,10 @@ impl ContainerEntryModule {
     &self.name
   }
 
-  pub(crate) fn shared_identity(&self) -> Option<&SharedIdentity> {
-    self.shared_identity.as_ref()
+  pub(crate) fn shared_identity(&self) -> Option<SharedIdentity> {
+    self.shared_share_key.as_deref().map(|share_key| {
+      SharedIdentity::new(&self.share_scope, share_key, self.shared_layer.as_deref())
+    })
   }
 }
 
@@ -478,11 +486,13 @@ mod tests {
       "pkg".to_string(),
       "pkg".to_string(),
       "1.0.0".to_string(),
-      identity.clone(),
+      identity.share_scope.clone(),
+      identity.share_key.clone(),
+      identity.layer.clone(),
       RuntimeMode::Webpack,
     );
 
-    assert_eq!(module.shared_identity(), Some(&identity));
+    assert_eq!(module.shared_identity(), Some(identity));
   }
 }
 
