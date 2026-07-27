@@ -89,9 +89,9 @@ export default function () {
                 strictVersion: data.strictVersion,
                 singleton: data.singleton,
                 eager: data.eager,
+                layer: data.layer,
               },
               scope: [data.shareScope],
-              layer: data.layer,
             },
             shareKey: data.shareKey,
             treeShaking: runtimeRequire.federation.sharedFallback
@@ -151,12 +151,14 @@ export default function () {
             if (isValidValue(strictVersion)) {
               shareConfig.strictVersion = strictVersion;
             }
+            if (isValidValue(layer)) {
+              shareConfig.layer = layer;
+            }
             const options = {
               version,
               scope: [scope],
               shareConfig,
               get: factory,
-              layer,
               treeShaking: treeShakingMode
                 ? {
                     mode: treeShakingMode,
