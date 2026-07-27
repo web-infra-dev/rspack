@@ -421,6 +421,7 @@ impl Module for NormalModule {
         compilation_id,
         options: compiler_options,
         resolver_factory,
+        fs: fs.clone(),
         source_map_kind: self.source_map_kind,
         module: self,
       },
