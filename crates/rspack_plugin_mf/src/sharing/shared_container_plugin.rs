@@ -9,7 +9,7 @@ use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 
 use crate::{
-  ShareScope, SharedIdentity,
+  ShareScope,
   container::{
     container_entry_dependency::ContainerEntryDependency,
     container_entry_module_factory::ContainerEntryModuleFactory,
@@ -60,16 +60,13 @@ async fn compilation(
 
 #[plugin_hook(CompilerMake for SharedContainerPlugin)]
 async fn make(&self, compilation: &mut Compilation) -> Result<()> {
-  let shared_identity = SharedIdentity::new(
-    &self.options.share_scope,
-    &self.options.share_key,
-    self.options.layer.as_deref(),
-  );
   let dep = ContainerEntryDependency::new_share_container_entry(
     self.options.name.clone(),
     self.options.request.clone(),
     self.options.version.clone(),
-    shared_identity,
+    self.options.share_scope.clone(),
+    self.options.share_key.clone(),
+    self.options.layer.clone(),
   );
 
   compilation

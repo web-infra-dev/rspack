@@ -69,7 +69,6 @@ impl ShareScope {
   }
 }
 
-#[rspack_cacheable::cacheable(hashable)]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub(crate) struct SharedIdentity {
   pub(crate) share_scope: ShareScope,
