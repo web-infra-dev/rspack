@@ -1,10 +1,18 @@
-use std::iter;
+use std::{iter, sync::LazyLock};
 
 use itertools::Itertools;
 use rspack_core::{
   Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext, RuntimeTemplate,
   impl_runtime_module,
 };
+
+use crate::extract_runtime_module_variables_from_ejs;
+
+static STARTUP_CHUNK_DEPENDENCIES_TEMPLATE: &str =
+  include_str!("runtime/startup_chunk_dependencies.ejs");
+static RUNTIME_MODULE_VARIABLES: LazyLock<Vec<&'static str>> = LazyLock::new(|| {
+  extract_runtime_module_variables_from_ejs(&[STARTUP_CHUNK_DEPENDENCIES_TEMPLATE])
+});
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -20,6 +28,10 @@ impl StartupChunkDependenciesRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for StartupChunkDependenciesRuntimeModule {
+  fn runtime_module_variables() -> &'static [&'static str] {
+    RUNTIME_MODULE_VARIABLES.as_slice()
+  }
+
   fn runtime_requirements(
     &self,
     _compilation: &Compilation,
@@ -40,7 +52,7 @@ impl RuntimeModule for StartupChunkDependenciesRuntimeModule {
   fn template(&self) -> Vec<(String, String)> {
     vec![(
       self.id().to_string(),
-      include_str!("runtime/startup_chunk_dependencies.ejs").to_string(),
+      STARTUP_CHUNK_DEPENDENCIES_TEMPLATE.to_string(),
     )]
   }
 
