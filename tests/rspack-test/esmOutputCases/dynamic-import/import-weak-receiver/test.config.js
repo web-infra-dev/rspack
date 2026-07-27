@@ -15,6 +15,9 @@ module.exports = {
 			expect(source).toContain(
 				"createFakeNamespaceObject.call(rspackRequire,",
 			);
+			expect(source).toContain(
+				"createFakeNamespaceObject.call(rspackRequire, /*require.resolve*/(",
+			);
 		} else {
 			expect(source).toContain("__webpack_require__.t(");
 			expect(source).not.toContain("__webpack_require__.t.call(");

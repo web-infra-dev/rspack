@@ -789,6 +789,13 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
     if parser.compiler_options.experiments.runtime_mode != ExperimentRuntimeMode::Rspack {
       return None;
     }
+    let preserve_require_receiver =
+      parser.parser_runtime_requirements.render_mode == RuntimeGlobalsRenderMode::RspackExport
+        && for_name == API_REQUIRE
+        && members.len() == 1
+        && members.first().and_then(|property| {
+          RuntimeGlobals::from_rspack_context_property_name(property.as_ref())
+        }) == Some(RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT);
     let handled = static_require_member_chain(
       parser,
       for_name,
@@ -798,6 +805,21 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
       None,
     );
     if handled.is_some() {
+      if preserve_require_receiver && let Some(first_arg) = expr.args.first() {
+        parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::add_only(
+          RuntimeGlobals::REQUIRE,
+        )));
+        let callee_end = expr.callee.span().real_hi();
+        parser.add_presentational_dependency(Box::new(ConstDependency::new(
+          (callee_end, callee_end).into(),
+          ".call".into(),
+        )));
+        let first_arg_start = first_arg.span().real_lo();
+        parser.add_presentational_dependency(Box::new(ConstDependency::new(
+          (first_arg_start, first_arg_start).into(),
+          format!("{}, ", parser.parser_runtime_requirements.require).into(),
+        )));
+      }
       parser.walk_expr_or_spread(&expr.args);
     }
     handled
