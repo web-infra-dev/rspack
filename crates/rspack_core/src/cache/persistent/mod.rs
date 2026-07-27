@@ -88,11 +88,11 @@ impl PersistentCache {
     // The scope identifies the compiler that owns a group of cache versions.
     // Keep it independent of cache options: changing an option should create a
     // new version in the same scope so maxVersions can retire the old version.
-    // The configured name identifies a root compiler, while compiler_path
-    // distinguishes its child compilers by name and index.
+    // compiler_path is empty for the root compiler and distinguishes child
+    // compilers by their name and index.
     let version_scope = {
       let mut hasher = DefaultHasher::new();
-      (compiler_options.name.as_deref(), compiler_path).hash(&mut hasher);
+      compiler_path.hash(&mut hasher);
       hex::encode(hasher.finish().to_ne_bytes())
     };
     // The version hash identifies one cache-compatible configuration within
