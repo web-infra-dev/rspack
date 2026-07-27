@@ -138,7 +138,7 @@ export default {
 - **类型：** `number`（正整数）或 `Infinity`
 - **默认值：** `3`
 
-控制当前缓存目录中每个 compiler 最多保留多少个缓存版本。compiler scope 仅由配置的 compiler name 和包含 child compiler name、index 的 compiler path 决定。某个 compiler 的版本数超过限制时，Rspack 只会删除属于该 compiler scope 的较旧且未处于当前使用状态的版本，不会影响其他 root 或 child compiler scope。因此，同一缓存目录由 `n` 个 compiler 使用时，最多可保留 `n * maxVersions` 个版本。设置为 `Infinity` 可禁用基于数量的清理。
+控制当前缓存目录中每个 compiler 最多保留多少个缓存版本。某个 compiler 的版本数超过限制时，Rspack 只会删除属于该 compiler 的较旧且未处于当前使用状态的版本，不会影响其他 root 或 child compiler。因此，同一缓存目录由 `n` 个 compiler 使用时，最多可保留 `n * maxVersions` 个版本。设置为 `Infinity` 可禁用基于数量的清理。
 
 ```js title="rspack.config.mjs"
 export default {
