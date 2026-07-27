@@ -24,11 +24,11 @@
     "dev": "rslib build -w"
   },
   "dependencies": {
-    "create-rstack": "2.1.3"
+    "create-rstack": "catalog:"
   },
   "devDependencies": {
-    "@rslib/core": "^0.23.2",
-    "typescript": "^6.0.3"
+    "@rslib/core": "catalog:",
+    "typescript": "catalog:"
   },
   "publishConfig": {
     "access": "public",

@@ -35,6 +35,10 @@ impl SharedUsedExportsOptimizerRuntimeModule {
 
 #[async_trait]
 impl RuntimeModule for SharedUsedExportsOptimizerRuntimeModule {
+  fn runtime_module_variables() -> &'static [&'static str] {
+    &[]
+  }
+
   fn stage(&self) -> RuntimeModuleStage {
     RuntimeModuleStage::Attach
   }

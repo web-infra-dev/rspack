@@ -1,6 +1,6 @@
-var cssOldTags = [];
-var cssNewTags = [];
-var cssApplyHandler = <%- basicFunction("options") %> {
+<%- var("cssOldTags") %> = [];
+<%- var("cssNewTags") %> = [];
+<%- var("cssApplyHandler") %> = <%- basicFunction("options") %> {
 	return {
 		dispose: <%- basicFunction("") %> { },
 		apply: <%- basicFunction("") %> {
@@ -17,7 +17,7 @@ var cssApplyHandler = <%- basicFunction("options") %> {
 		}
 	};
 };
-var cssTextKeyOfLink = <%- basicFunction("link") %> {
+<%- var("cssTextKeyOfLink") %> = <%- basicFunction("link") %> {
 	return Array.from(link.sheet.cssRules, <%- returningFunction("r.cssText", "r") %>).join();
 };
 <%- HMR_DOWNLOAD_UPDATE_HANDLERS %>.css = <%- basicFunction("chunkIds, removedChunks, removedModules, promises, applyHandlers, updatedModulesList") %> {

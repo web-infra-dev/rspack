@@ -33,6 +33,10 @@ impl EnsureChunkRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for EnsureChunkRuntimeModule {
+  fn runtime_module_variables() -> &'static [&'static str] {
+    &[]
+  }
+
   fn template(&self) -> Vec<(String, String)> {
     vec![
       (
