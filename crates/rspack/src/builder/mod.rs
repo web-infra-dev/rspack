@@ -50,11 +50,11 @@ use rspack_core::{
   JavascriptParserCommonjsExportsOption, JavascriptParserCommonjsOptions, JavascriptParserOptions,
   JavascriptParserOrder, JavascriptParserUrl, JavascriptParserWorkerOptions, JsonGeneratorOptions,
   JsonParserOptions, LibraryName, LibraryNonUmdObject, LibraryOptions, LibraryType,
-  LoaderCachePlugin, MangleExportsOption, Mode, ModuleNoParseRules, ModuleOptions, ModuleRule,
-  ModuleRuleEffect, ModuleType, NodeDirnameOption, NodeFilenameOption, NodeGlobalOption,
-  NodeOption, Optimization, OutputOptions, ParseOption, ParserOptions, ParserOptionsMap, PathInfo,
-  PublicPath, Resolve, RuleSetCondition, RuleSetLogicalConditions, SideEffectOption, StatsOptions,
-  TrustedTypes, UsedExportsOption, WasmLoading, WasmLoadingType, incremental::IncrementalOptions,
+  MangleExportsOption, Mode, ModuleNoParseRules, ModuleOptions, ModuleRule, ModuleRuleEffect,
+  ModuleType, NodeDirnameOption, NodeFilenameOption, NodeGlobalOption, NodeOption, Optimization,
+  OutputOptions, ParseOption, ParserOptions, ParserOptionsMap, PathInfo, PublicPath, Resolve,
+  RuleSetCondition, RuleSetLogicalConditions, SideEffectOption, StatsOptions, TrustedTypes,
+  UsedExportsOption, WasmLoading, WasmLoadingType, incremental::IncrementalOptions,
   runtime_mode::RuntimeMode,
 };
 use rspack_error::{Error, Result};
@@ -451,7 +451,6 @@ impl CompilerBuilder {
     let mut builder_context = BuilderContext::default();
     let compiler_options = self.options_builder.build(&mut builder_context)?;
     let mut plugins = builder_context.take_plugins(&compiler_options);
-    plugins.push(Box::new(LoaderCachePlugin::new()));
     let platform = builder_context.take_platform();
     plugins.append(&mut self.plugins);
 
