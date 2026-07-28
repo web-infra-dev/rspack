@@ -67,7 +67,7 @@
     "react": "catalog:",
     "react-dom": "catalog:",
     "react-refresh": "catalog:",
-    "react-server-dom-rspack": "catalog:",
+    "react-server-dom-rspack": "file:/tmp/react-server-dom-rspack-0.1.0.tgz",
     "rimraf": "catalog:",
     "sass-loader": "catalog:",
     "source-map": "catalog:",
