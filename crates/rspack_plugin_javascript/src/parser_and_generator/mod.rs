@@ -58,6 +58,7 @@ fn append_experimental_parse_errors(
   errors: impl IntoIterator<Item = swc_experimental_ecma_parser::error::Error>,
 ) {
   let mut visited = HashSet::new();
+  let source: Arc<str> = source.into();
   diagnostics.extend(errors.into_iter().filter_map(|err| {
     let span = err.span();
     let message = err.kind().msg().to_string();
@@ -65,8 +66,8 @@ fn append_experimental_parse_errors(
       return None;
     }
     Some(
-      Error::from_string(
-        Some(source.to_string()),
+      Error::from_shared_source(
+        Some(source.clone()),
         span.start.saturating_sub(1) as usize,
         span.end.saturating_sub(1) as usize,
         "JavaScript parse error".to_string(),
@@ -75,6 +76,34 @@ fn append_experimental_parse_errors(
       .into(),
     )
   }));
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn parse_errors_share_source_code() {
+    let source = "'\\101';'\\102';";
+    let allocator = Allocator::new();
+    let lexer = Lexer::new(
+      &allocator,
+      Syntax::Es(EsSyntax::default()),
+      EsVersion::EsNext,
+      StringSource::new(source),
+      None,
+    );
+    let mut parser = Parser::new_from(&allocator, lexer);
+    parser.parse_module().expect("should recover parse errors");
+
+    let mut diagnostics = Vec::new();
+    append_experimental_parse_errors(&mut diagnostics, source, parser.take_errors());
+
+    assert_eq!(diagnostics.len(), 2);
+    let first_source = diagnostics[0].src.as_ref().expect("should have source");
+    let second_source = diagnostics[1].src.as_ref().expect("should have source");
+    assert_eq!(first_source.as_ptr(), second_source.as_ptr());
+  }
 }
 
 impl ParserRuntimeRequirementsData {
