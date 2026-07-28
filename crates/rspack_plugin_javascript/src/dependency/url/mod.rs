@@ -3,16 +3,16 @@ use std::sync::LazyLock;
 use regex::Regex;
 use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
 use rspack_core::{
-  AsContextDependency, CodeGenerationPublicPathAutoReplace, ConnectionState, Dependency,
-  DependencyCategory, DependencyCodeGeneration, DependencyCondition, DependencyConditionFn,
-  DependencyId, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
-  ExportsInfoArtifact, FactorizeInfo, JavascriptParserUrl, ModuleDependency, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleGraphConnection, RuntimeGlobals, RuntimeSpec,
-  SideEffectsStateArtifact, TemplateContext, TemplateReplaceSource, URLStaticMode, UsedByExports,
+  AsContextDependency, ConnectionState, Dependency, DependencyCategory, DependencyCodeGeneration,
+  DependencyCondition, DependencyConditionFn, DependencyId, DependencyRange, DependencyTemplate,
+  DependencyTemplateType, DependencyType, ExportsInfoArtifact, FactorizeInfo, JavascriptParserUrl,
+  ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection, RuntimeGlobals,
+  RuntimeSpec, SideEffectsStateArtifact, TemplateContext, TemplateReplaceSource, URLStaticMode,
+  UsedByExports,
 };
 use swc_atoms::Atom;
 
-use crate::{connection_active_used_by_exports, runtime::AUTO_PUBLIC_PATH_PLACEHOLDER};
+use crate::connection_active_used_by_exports;
 
 #[cacheable]
 #[derive(Debug, Clone)]
@@ -51,6 +51,10 @@ impl URLDependency {
 
   pub fn used_by_exports(&self) -> Option<&UsedByExports> {
     self.used_by_exports.as_ref()
+  }
+
+  pub fn mode(&self) -> Option<JavascriptParserUrl> {
+    self.mode
   }
 }
 
@@ -121,6 +125,14 @@ pub static URL_STATIC_PLACEHOLDER: &str = "RSPACK_AUTO_URL_STATIC_PLACEHOLDER_";
 pub static URL_STATIC_PLACEHOLDER_RE: LazyLock<Regex> = LazyLock::new(|| {
   Regex::new(&format!(r#"{URL_STATIC_PLACEHOLDER}(?<dep>\d+)"#)).expect("should be valid regex")
 });
+pub static URL_STATIC_EXPRESSION_START: &str = "RSPACK_AUTO_URL_STATIC_EXPRESSION_";
+pub static URL_STATIC_EXPRESSION_END: &str = "RSPACK_AUTO_URL_STATIC_EXPRESSION_END";
+pub static URL_STATIC_EXPRESSION_RE: LazyLock<Regex> = LazyLock::new(|| {
+  Regex::new(&format!(
+    r#"(?s)/\* {URL_STATIC_EXPRESSION_START}(?<dep>\d+) \*/.*?/\* {URL_STATIC_EXPRESSION_END} \*/"#
+  ))
+  .expect("should be valid regex")
+});
 
 impl URLDependencyTemplate {
   pub fn template_type() -> DependencyTemplateType {
@@ -145,9 +157,13 @@ impl DependencyTemplate for URLDependencyTemplate {
       ..
     } = code_generatable_context;
 
-    match dep.mode {
-      Some(JavascriptParserUrl::Relative) => {
-        source.replace(
+    if compilation
+      .get_module_graph()
+      .get_parent_block(&dep.id)
+      .is_none()
+    {
+      match dep.mode {
+        Some(JavascriptParserUrl::Relative) => source.replace(
           dep.range.start,
           dep.range.end,
           format!(
@@ -157,32 +173,61 @@ impl DependencyTemplate for URLDependencyTemplate {
             runtime_template.module_id(compilation, &dep.id, &dep.request, false),
           ),
           None,
-        );
-      }
-      Some(JavascriptParserUrl::NewUrlRelative) => {
-        code_generatable_context.data.insert(URLStaticMode);
-        code_generatable_context
-          .data
-          .insert(CodeGenerationPublicPathAutoReplace(true));
-        source.replace(
-          dep.range.start,
-          dep.range.end,
-          format!(
-            "new URL({}, import.meta.url)",
-            rspack_util::json_stringify_str(&format!(
-              "{AUTO_PUBLIC_PATH_PLACEHOLDER}{URL_STATIC_PLACEHOLDER}{}",
-              &dep.id.as_u32()
-            )),
-          ),
-          None,
-        );
-      }
-      _ => {
-        source.replace(
+        ),
+        _ => source.replace(
           dep.range_url.start,
           dep.range_url.end,
           format!(
             "/* asset import */{}({}), {}",
+            runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
+            runtime_template.module_id(compilation, &dep.id, &dep.request, false),
+            runtime_template.render_runtime_globals(&RuntimeGlobals::BASE_URI)
+          ),
+          None,
+        ),
+      }
+      return;
+    }
+
+    code_generatable_context.data.insert(URLStaticMode);
+    let output_value_placeholder = format!("{URL_STATIC_PLACEHOLDER}{}", &dep.id.as_u32());
+
+    match dep.mode {
+      Some(JavascriptParserUrl::Relative) => {
+        runtime_template
+          .runtime_requirements_mut()
+          .insert(RuntimeGlobals::PUBLIC_PATH);
+        source.replace(
+          dep.range.start,
+          dep.range.end,
+          format!(
+            "/* asset import */ new {}(/* {URL_STATIC_EXPRESSION_START}{} */{}({})/* {URL_STATIC_EXPRESSION_END} */)",
+            runtime_template.render_runtime_globals(&RuntimeGlobals::RELATIVE_URL),
+            dep.id.as_u32(),
+            runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
+            runtime_template.module_id(compilation, &dep.id, &dep.request, false),
+          ),
+          None,
+        );
+      }
+      Some(JavascriptParserUrl::NewUrlRelative) => {
+        source.replace(
+          dep.range.start,
+          dep.range.end,
+          format!("new URL(\"{output_value_placeholder}\", import.meta.url)"),
+          None,
+        );
+      }
+      _ => {
+        runtime_template
+          .runtime_requirements_mut()
+          .insert(RuntimeGlobals::PUBLIC_PATH);
+        source.replace(
+          dep.range_url.start,
+          dep.range_url.end,
+          format!(
+            "/* asset import *//* {URL_STATIC_EXPRESSION_START}{} */{}({})/* {URL_STATIC_EXPRESSION_END} */, {}",
+            dep.id.as_u32(),
             runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
             runtime_template.module_id(compilation, &dep.id, &dep.request, false),
             runtime_template.render_runtime_globals(&RuntimeGlobals::BASE_URI)
@@ -210,6 +255,17 @@ impl DependencyConditionFn for URLDependencyCondition {
     let dependency = dependency
       .downcast_ref::<URLDependency>()
       .expect("should be URLDependency");
+    // An async entry has its own runtime, but `used_by_exports` belongs to the origin module.
+    // Query global usage for the entry-side connection so an export used by any origin runtime
+    // activates the entry without making unused URL exports unconditionally active.
+    let runtime = if module_graph
+      .get_parent_block(&connection.dependency_id)
+      .is_some()
+    {
+      None
+    } else {
+      runtime
+    };
     ConnectionState::Active(connection_active_used_by_exports(
       connection,
       runtime,

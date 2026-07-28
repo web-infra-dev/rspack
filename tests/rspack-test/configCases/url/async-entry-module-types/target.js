@@ -1,0 +1,1 @@
+globalThis.URL_ENTRY_TARGET_EXECUTED = true;

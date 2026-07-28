@@ -46,6 +46,8 @@ pub(crate) static CSS_MODULE_AND_JS_SOURCE_TYPE_LIST: &[SourceType; 2] =
 pub(crate) static CSS_MODULE_EXPORTS_ONLY_SOURCE_TYPE_LIST: &[SourceType; 1] =
   &[SourceType::JavaScript];
 
+pub(crate) static CSS_MODULE_NO_SOURCE_TYPE_LIST: &[SourceType; 0] = &[];
+
 pub type CssExportsRef<'a> = FxIndexMap<&'a str, &'a FxIndexSet<CssExport>>;
 
 #[cacheable]
@@ -203,20 +205,39 @@ impl ParserAndGenerator for CssParserAndGenerator {
     ) {
       return CSS_MODULE_EXPORTS_ONLY_SOURCE_TYPE_LIST;
     }
-
-    if self.exports_only {
-      return CSS_MODULE_EXPORTS_ONLY_SOURCE_TYPE_LIST;
+    if matches!(export_type, Some(CssExportType::Link)) {
+      return CSS_MODULE_AND_JS_SOURCE_TYPE_LIST;
     }
 
-    let no_need_js = module_graph
+    let incoming_connections = module_graph
       .get_incoming_connections(&module.identifier())
-      .all(|conn| {
-        let dep = module_graph.dependency_by_id(&conn.dependency_id);
-        matches!(
-          dep.dependency_type(),
-          DependencyType::CssImport | DependencyType::EsmImport
-        )
-      });
+      .collect::<Vec<_>>();
+
+    if self.exports_only {
+      let is_root_only = !incoming_connections.is_empty()
+        && incoming_connections.iter().all(|conn| {
+          module_graph
+            .dependency_by_id(&conn.dependency_id)
+            .dependency_type()
+            == &DependencyType::Entry
+        });
+      return if is_root_only {
+        CSS_MODULE_NO_SOURCE_TYPE_LIST
+      } else {
+        CSS_MODULE_EXPORTS_ONLY_SOURCE_TYPE_LIST
+      };
+    }
+
+    let no_need_js = incoming_connections.iter().all(|conn| {
+      let dep = module_graph.dependency_by_id(&conn.dependency_id);
+      matches!(
+        dep.dependency_type(),
+        DependencyType::Entry
+          | DependencyType::NewUrl
+          | DependencyType::CssImport
+          | DependencyType::EsmImport
+      )
+    });
 
     if no_need_js {
       CSS_MODULE_SOURCE_TYPE_LIST
