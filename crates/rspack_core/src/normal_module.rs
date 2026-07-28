@@ -423,6 +423,7 @@ impl Module for NormalModule {
         resolver_factory,
         fs: fs.clone(),
         source_map_kind: self.source_map_kind,
+        loader_cache: build_context.plugin_driver.loader_cache_service.clone(),
         module: self,
       },
       fs,
