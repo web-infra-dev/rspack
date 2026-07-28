@@ -14,8 +14,8 @@ use rspack_core::{
   COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY, ChunkGraph, CollectedTypeScriptInfo, Compilation,
   DependenciesBlock, DependencyId, GenerateContext, ImportMeta, Module, ModuleArgument,
   ModuleCodeTemplate, ModuleGraph, ModuleType, ParseContext, ParseResult, ParserAndGenerator,
-  ResolvedModuleOptions, RuntimeGlobals, RuntimeVariable, SideEffectsBailoutItem, SourceType,
-  TemplateContext, TemplateReplaceSource,
+  ResolvedModuleOptions, RuntimeGlobals, RuntimeGlobalsRenderMode, RuntimeVariable,
+  SideEffectsBailoutItem, SourceType, TemplateContext, TemplateReplaceSource,
   diagnostics::map_box_diagnostics_to_module_parse_diagnostics,
   remove_bom, render_init_fragments,
   rspack_sources::{BoxSource, ReplaceSource, Source, SourceExt},
@@ -37,6 +37,7 @@ use crate::{
 
 #[derive(Debug)]
 pub struct ParserRuntimeRequirementsData {
+  pub render_mode: RuntimeGlobalsRenderMode,
   pub context: String,
   pub module: String,
   pub rspack_module: String,
@@ -91,6 +92,7 @@ impl ParserRuntimeRequirementsData {
     let context_name = runtime_template.render_runtime_variable(&RuntimeVariable::Context);
     let rspack_module_name = runtime_template.render_runtime_variable(&RuntimeVariable::Module);
     Self {
+      render_mode: runtime_template.render_mode(),
       require_regex: &LEGACY_REQUIRE_REGEX,
       context: context_name,
       module: module_name,

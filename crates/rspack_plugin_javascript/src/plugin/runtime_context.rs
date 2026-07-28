@@ -3,8 +3,8 @@ use std::borrow::Cow;
 use rspack_core::{
   ChunkGraph, ChunkInitFragments, ChunkRenderContext, ChunkUkey,
   CodeGenerationDataTopLevelDeclarations, Compilation, ExportsArgument, Module,
-  RuntimeCodeTemplate, RuntimeGlobals, RuntimeVariable, SourceType, property_access,
-  render_init_fragments,
+  RuntimeCodeTemplate, RuntimeGlobals, RuntimeGlobalsRenderMode, RuntimeVariable, SourceType,
+  property_access, render_init_fragments,
   rspack_sources::{BoxSource, ConcatSource, RawStringSource, SourceExt},
 };
 use rspack_error::Result;
@@ -35,7 +35,6 @@ impl JsPlugin {
       runtime_requirements.contains(RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT);
     let callable_require = runtime_template.render_runtime_variable(&RuntimeVariable::Require);
     let require_argument = runtime_template.render_runtime_argument();
-    let runtime_context = runtime_template.render_runtime_variable(&RuntimeVariable::Context);
     let module_factories = runtime_template.render_runtime_variable(&RuntimeVariable::Modules);
     let module_cache = runtime_template.render_runtime_variable(&RuntimeVariable::ModuleCache);
     let mut sources: Vec<Cow<str>> = Vec::new();
@@ -81,12 +80,21 @@ var module = ({module_cache}[moduleId] = {{"#,
     let module_execution = if runtime_requirements
       .contains(RuntimeGlobals::INTERCEPT_MODULE_EXECUTION)
     {
+      let (factory_runtime_argument, context_prototype) =
+        if runtime_template.render_mode() == RuntimeGlobalsRenderMode::RspackContext {
+          (
+            "execOptions.context",
+            runtime_template.render_runtime_variable(&RuntimeVariable::Context),
+          )
+        } else {
+          ("execOptions.require", callable_require.clone())
+        };
       format!(
         r#"
-        var execOptions = {{ id: moduleId, module: module, factory: {module_factories}[moduleId], require: {callable_require}, context: Object.create({runtime_context}) }};
+        var execOptions = {{ id: moduleId, module: module, factory: {module_factories}[moduleId], require: {callable_require}, context: Object.create({context_prototype}) }};
         {}.forEach(function(handler) {{ handler(execOptions); }});
         module = execOptions.module;
-        execOptions.factory.call(module.exports, module, module.exports, execOptions.context);
+        execOptions.factory.call(module.exports, module, module.exports, {factory_runtime_argument});
       "#,
         runtime_template.render_runtime_globals(&RuntimeGlobals::INTERCEPT_MODULE_EXECUTION)
       )
@@ -169,6 +177,8 @@ var module = ({module_cache}[moduleId] = {{"#,
       .environment
       .supports_arrow_function();
     let has_bootstrap_runtime_context = runtime_requirements.needs_bootstrap_runtime_context();
+    let uses_runtime_context =
+      runtime_template.render_mode() == RuntimeGlobalsRenderMode::RspackContext;
 
     if allow_inline_startup && module_factories {
       startup.push("// module factories are used so entry inlining is disabled".into());
@@ -204,7 +214,7 @@ var __rspack_deferred_exports = {};
       );
     }
 
-    if has_bootstrap_runtime_context {
+    if uses_runtime_context && has_bootstrap_runtime_context {
       header.push(render_runtime_context_declaration(runtime_template).into());
     }
 
@@ -229,12 +239,16 @@ function {}(moduleId) {{
 "#
         .into(),
       );
-      header.push(render_runtime_context_require_assignment(runtime_template).into());
-    } else if require_scope_used && !has_bootstrap_runtime_context {
+      if uses_runtime_context {
+        header.push(render_runtime_context_require_assignment(runtime_template).into());
+      }
+    } else if uses_runtime_context && require_scope_used && !has_bootstrap_runtime_context {
       header.push(render_runtime_context_declaration(runtime_template).into());
     }
 
-    if module_factories || runtime_requirements.contains(RuntimeGlobals::MODULE_FACTORIES_ADD_ONLY)
+    if uses_runtime_context
+      && (module_factories
+        || runtime_requirements.contains(RuntimeGlobals::MODULE_FACTORIES_ADD_ONLY))
     {
       let runtime_context = runtime_template.render_runtime_variable(&RuntimeVariable::Context);
       let name = RuntimeGlobals::MODULE_FACTORIES
@@ -253,7 +267,7 @@ function {}(moduleId) {{
       );
     }
 
-    if runtime_requirements.contains(RuntimeGlobals::MODULE_CACHE) {
+    if uses_runtime_context && runtime_requirements.contains(RuntimeGlobals::MODULE_CACHE) {
       let runtime_context = runtime_template.render_runtime_variable(&RuntimeVariable::Context);
       let name = RuntimeGlobals::MODULE_CACHE
         .rspack_context_property_name()
@@ -272,19 +286,30 @@ function {}(moduleId) {{
     }
 
     if intercept_module_execution {
-      let runtime_context = runtime_template.render_runtime_variable(&RuntimeVariable::Context);
-      let name = RuntimeGlobals::INTERCEPT_MODULE_EXECUTION
-        .rspack_context_property_name()
-        .expect("intercept module execution should have context property name");
-      let intercept_module_execution = format!("{runtime_context}{}", property_access([name], 0));
-      header.push(
-        format!(
-          r#"// expose the module execution interceptor
+      if !uses_runtime_context {
+        header.push(
+          format!(
+            "{} = [];\n",
+            runtime_template
+              .render_runtime_global_definition(&RuntimeGlobals::INTERCEPT_MODULE_EXECUTION)
+          )
+          .into(),
+        );
+      } else {
+        let runtime_context = runtime_template.render_runtime_variable(&RuntimeVariable::Context);
+        let name = RuntimeGlobals::INTERCEPT_MODULE_EXECUTION
+          .rspack_context_property_name()
+          .expect("intercept module execution should have context property name");
+        let intercept_module_execution = format!("{runtime_context}{}", property_access([name], 0));
+        header.push(
+          format!(
+            r#"// expose the module execution interceptor
 {intercept_module_execution} = [];
 "#,
-        )
-        .into(),
-      );
+          )
+          .into(),
+        );
+      }
     }
 
     if !runtime_requirements.contains(RuntimeGlobals::STARTUP_NO_DEFAULT) {

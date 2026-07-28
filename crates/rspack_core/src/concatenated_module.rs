@@ -43,16 +43,17 @@ use crate::{
   BoxModuleDependency, BuildContext, BuildInfo, BuildMeta, BuildMetaDefaultObject,
   BuildMetaExportsType, BuildResult, ChunkGraph, ChunkInitFragments, ChunkRenderContext,
   CodeGenerationDataTopLevelDeclarations, CodeGenerationExportsFinalNames,
-  CodeGenerationPublicPathAutoReplace, CodeGenerationResult, Compilation, ConcatenatedModuleIdent,
-  ConcatenationScope, ConditionalInitFragment, ConnectionState, Context, DEFAULT_EXPORT,
-  DEFAULT_EXPORT_ATOM, DependenciesBlock, DependencyId, DependencyType, ExportInfo, ExportProvided,
-  ExportsArgument, ExportsInfoArtifact, ExportsType, FactoryMeta, ImportedByDeferModulesArtifact,
-  InitFragment, InitFragmentStage, LibIdentOptions, Module, ModuleArgument,
-  ModuleCodeGenerationContext, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection,
-  ModuleIdentifier, ModuleLayer, ModuleStaticCache, ModuleType, NAMESPACE_OBJECT_EXPORT,
-  ParserOptions, Resolve, RuntimeCondition, RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact,
-  SourceType, URLStaticMode, UsageState, UsedName, UsedNameItem, escape_identifier, fast_set,
-  filter_runtime, find_target, get_runtime_key, impl_source_map_config, merge_runtime_condition,
+  CodeGenerationPublicPathAutoReplace, CodeGenerationResult,
+  CodeGenerationRuntimeRequirementsWrite, Compilation, ConcatenatedModuleIdent, ConcatenationScope,
+  ConditionalInitFragment, ConnectionState, Context, DEFAULT_EXPORT, DEFAULT_EXPORT_ATOM,
+  DependenciesBlock, DependencyId, DependencyType, ExportInfo, ExportProvided, ExportsArgument,
+  ExportsInfoArtifact, ExportsType, FactoryMeta, ImportedByDeferModulesArtifact, InitFragment,
+  InitFragmentStage, LibIdentOptions, Module, ModuleArgument, ModuleCodeGenerationContext,
+  ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, ModuleLayer,
+  ModuleStaticCache, ModuleType, NAMESPACE_OBJECT_EXPORT, ParserOptions, Resolve, RuntimeCondition,
+  RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, SourceType, URLStaticMode, UsageState,
+  UsedName, UsedNameItem, escape_identifier, fast_set, filter_runtime, find_target,
+  get_runtime_key, impl_source_map_config, merge_runtime_condition,
   merge_runtime_condition_non_false, module_update_hash, property_access, property_name,
   render_make_deferred_namespace_mode_from_exports_type,
   reserved_names::RESERVED_NAMES_ATOM_SET,
@@ -295,6 +296,7 @@ pub struct ConcatenatedModuleInfo {
   pub module_ctxt: SyntaxContext,
   pub global_ctxt: SyntaxContext,
   pub runtime_requirements: RuntimeGlobals,
+  pub runtime_requirements_write: RuntimeGlobals,
   pub has_ast: bool,
   pub source: Option<ReplaceSource>,
   pub internal_source: Option<Arc<dyn Source>>,
@@ -1072,6 +1074,7 @@ impl Module for ConcatenatedModule {
     let mut top_level_declarations: HashSet<Atom> = HashSet::default();
     let mut public_path_auto_replace: bool = false;
     let mut static_url_replace: bool = false;
+    let mut runtime_requirements_write = CodeGenerationRuntimeRequirementsWrite::default();
 
     for (module_info_id, _) in references_info.iter() {
       let Some(ModuleInfo::Concatenated(info)) = module_to_info_map.get(module_info_id) else {
@@ -1372,6 +1375,8 @@ impl Module for ConcatenatedModule {
           if info.static_url_replacement {
             static_url_replace = true;
           }
+
+          runtime_requirements_write.insert(info.runtime_requirements_write);
         }
 
         // Handle external type
@@ -2013,6 +2018,12 @@ impl Module for ConcatenatedModule {
 
     if static_url_replace {
       code_generation_result.data.insert(URLStaticMode);
+    }
+
+    if !runtime_requirements_write.runtime_requirements.is_empty() {
+      code_generation_result
+        .data
+        .insert(runtime_requirements_write);
     }
 
     code_generation_result
@@ -2683,6 +2694,12 @@ impl ConcatenatedModule {
       let result_source = ReplaceSource::new(source.clone());
       module_info.has_ast = true;
       module_info.runtime_requirements = runtime_requirements;
+      if let Some(runtime_requirements_write) = codegen_res
+        .data
+        .get::<CodeGenerationRuntimeRequirementsWrite>()
+      {
+        module_info.runtime_requirements_write = runtime_requirements_write.runtime_requirements;
+      }
       module_info.internal_source = Some(source);
       module_info.source = Some(result_source);
       module_info.chunk_init_fragments = chunk_init_fragments;

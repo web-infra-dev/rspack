@@ -9,8 +9,9 @@ use rspack_core::{
   CodeGenerationRuntimeRequirementsWrite, Compilation, Context, DependenciesBlock, Dependency,
   DependencyId, DependencyType, ExportsArgument, FactoryMeta, GroupOptions, LibIdentOptions,
   Module, ModuleCodeGenerationContext, ModuleCodeTemplate, ModuleDependency, ModuleGraph,
-  ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType, StaticExportsDependency,
-  StaticExportsSpec, impl_module_meta_info, impl_source_map_config, module_update_hash,
+  ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeGlobalsRenderMode, RuntimeSpec, SourceType,
+  StaticExportsDependency, StaticExportsSpec, impl_module_meta_info, impl_source_map_config,
+  module_update_hash,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
   runtime_mode::RuntimeMode,
 };
@@ -366,17 +367,32 @@ impl Module for ContainerEntryModule {
         runtime_template.returning_function(&init_container, ""),
       )
     } else {
+      let current_remote_get_scope =
+        runtime_template.render_runtime_globals(&RuntimeGlobals::CURRENT_REMOTE_GET_SCOPE);
+      let current_remote_get_scope_setter =
+        (runtime_template.render_mode() == RuntimeGlobalsRenderMode::RspackExport).then(|| {
+          RuntimeGlobals::CURRENT_REMOTE_GET_SCOPE
+            .to_rspack_export_setter_name()
+            .expect("current remote get scope should have an export setter")
+        });
+      let render_current_remote_get_scope_assignment = |value: &str| {
+        if let Some(setter) = &current_remote_get_scope_setter {
+          format!("{setter}({value});")
+        } else {
+          format!("{current_remote_get_scope} = {value};")
+        }
+      };
       format!(
         r#"
 var moduleMap = {module_map_str};
 var get = function(module, getScope) {{
-  {current_remote_get_scope} = getScope;
+  {set_current_remote_get_scope}
   getScope = (
     {has_own_property}(moduleMap, module)
       ? moduleMap[module]()
       : Promise.resolve().then({get_scope_reject})
   );
-  {current_remote_get_scope} = undefined;
+  {clear_current_remote_get_scope}
   return getScope;
 }}
 var init = function(shareScope, initScope) {{
@@ -392,8 +408,8 @@ var init = function(shareScope, initScope) {{
 	init: {export_init}
 }});"#,
         exports = runtime_template.render_exports_argument(ExportsArgument::Exports),
-        current_remote_get_scope =
-          runtime_template.render_runtime_globals(&RuntimeGlobals::CURRENT_REMOTE_GET_SCOPE),
+        set_current_remote_get_scope = render_current_remote_get_scope_assignment("getScope"),
+        clear_current_remote_get_scope = render_current_remote_get_scope_assignment("undefined"),
         has_own_property =
           runtime_template.render_runtime_globals(&RuntimeGlobals::HAS_OWN_PROPERTY),
         share_scope_map = runtime_template.render_runtime_globals(&RuntimeGlobals::SHARE_SCOPE_MAP),
