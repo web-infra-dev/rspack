@@ -369,18 +369,18 @@ The `deterministic` option is useful for long term caching, and results in small
 
 ## optimization.nodeEnv
 
-<PropertyType
-  type="string | false"
-  defaultValueList={[{ defaultValue: 'false' }]}
-/>
+- **Type:** `string | false`
+- **Default:** Determined by [`mode`](/config/mode):
+  - [`production` mode](/config/mode#production): `'production'`
+  - [`development` mode](/config/mode#development): `'development'`
+  - [`none` mode](/config/mode#none): `false`
 
-Tells Rspack to set `process.env.NODE_ENV` to a given string value. `optimization.nodeEnv` uses [DefinePlugin](/plugins/webpack/define-plugin) unless set to false.
-`optimization.nodeEnv` **defaults** to [mode](/config/mode) if set, else falls back to `'production'`.
+`optimization.nodeEnv` controls the value used to replace `process.env.NODE_ENV` at compile time. Rspack performs this replacement with [DefinePlugin](/plugins/webpack/define-plugin).
 
-Possible values:
+You can override the mode-dependent default with either of the following values:
 
-- any string: the value to set `process.env.NODE_ENV` to.
-- false: do not modify/set the value of `process.env.NODE_ENV`.
+- Any string: replace `process.env.NODE_ENV` with the specified string.
+- `false`: disable the replacement and leave `process.env.NODE_ENV` unchanged.
 
 ```js title="rspack.config.mjs"
 export default {
@@ -389,10 +389,6 @@ export default {
   },
 };
 ```
-
-:::tip
-When [mode](/config/mode) is set to `'none'`, `optimization.nodeEnv` defaults to `false`.
-:::
 
 ## optimization.providedExports
 
