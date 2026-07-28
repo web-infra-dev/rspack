@@ -52,10 +52,6 @@ fn referenced_exports_for_output<'a>(
   shared_referenced_exports: &'a FxHashMap<SharedIdentity, FxHashSet<String>>,
   share_key: &str,
 ) -> Option<&'a FxHashSet<String>> {
-  let exact = shared_identity_from_output(share_key, None, None);
-  if let Some(exports) = shared_referenced_exports.get(&exact) {
-    return Some(exports);
-  }
   let mut matching = None;
   for (identity, exports) in shared_referenced_exports {
     if identity.share_key != share_key {
