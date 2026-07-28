@@ -10,6 +10,7 @@ use super::WithFalse;
 #[derive(Debug)]
 #[napi(object, object_to_js = false)]
 pub struct RawExperiments {
+  pub loader_cache: bool,
   #[napi(ts_type = "false | Array<RegExp>")]
   pub use_input_file_system: Option<WithFalse<Vec<RspackRegex>>>,
   pub css: Option<bool>,
@@ -30,6 +31,7 @@ impl From<RawExperiments> for Experiments {
     };
 
     Self {
+      loader_cache: value.loader_cache,
       css: value.css.unwrap_or(false),
       defer_import: value.defer_import,
       env: value.env,

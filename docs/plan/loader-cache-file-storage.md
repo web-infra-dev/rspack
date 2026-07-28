@@ -6,6 +6,12 @@ Keep the existing compiler-local `FxDashMap` loader cache and add an optional
 file backend. Do not reuse `rspack_storage`, add a new public option, or change
 the loader-runner state machine.
 
+The feature is guarded by `experiments.loaderCache`, which defaults to
+`false`. When the experiment is disabled, `Rule.use.cache` is ignored for
+loader execution: no internal cache loader is inserted and no cache storage is
+created. Enabling the experiment is required for both memory and persistent
+loader caching.
+
 The backend is enabled only for `cache.type = "persistent"`. Its root is the
 configured compiler cache directory:
 
@@ -76,6 +82,11 @@ after a failed read.
 
 ## Integration
 
+- Add `experiments.loaderCache?: boolean` to the public TypeScript options,
+  defaulting to `false`, and pass it through raw options into Rust
+  `Experiments.loader_cache`.
+- The NormalModuleFactory checks this experiment before inserting the internal
+  cache loader. Disabled experiments retain ordinary loader behavior.
 - `PersistentCache` derives the loader-cache root from its existing filesystem
   cache directory and constructs `LoaderCacheFileStore`.
 - `MemoryCache` and `DisableCache` continue using memory-only loader cache.

@@ -3088,6 +3088,11 @@ export type UseInputFileSystem = false | RegExp[];
  */
 export type Experiments = {
   /**
+   * Enable loader result caching for rule use entries with `cache: true`.
+   * @default false
+   */
+  loaderCache?: boolean;
+  /**
    * Enable async WebAssembly.
    * Support the new WebAssembly according to the [updated specification](https://github.com/WebAssembly/esm-integration), it makes a WebAssembly module an async module.
    * @default false

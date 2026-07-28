@@ -274,6 +274,7 @@ const applyExperimentsDefaults = (
   experiments: ExperimentsNormalized,
   { production }: { production: boolean },
 ) => {
+  D(experiments, 'loaderCache', false);
   D(experiments, 'futureDefaults', false);
   D(experiments, 'asyncWebAssembly', true);
   D(experiments, 'deferImport', false);

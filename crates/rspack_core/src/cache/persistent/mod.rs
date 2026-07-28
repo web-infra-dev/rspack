@@ -116,12 +116,15 @@ impl PersistentCache {
       compiler_options.mode.hash(&mut hasher);
       Version::new(hex::encode(hasher.finish().to_ne_bytes()))
     };
-    let loader_cache_store = match &option.storage {
-      StorageOptions::FileSystem { directory } => Some(LoaderCacheFileStore::new(
-        directory.join("loader-cache/v1"),
-        option.readonly,
-      )),
-    };
+    let loader_cache_store =
+      compiler_options
+        .experiments
+        .loader_cache
+        .then(|| match &option.storage {
+          StorageOptions::FileSystem { directory } => {
+            LoaderCacheFileStore::new(directory.join("loader-cache/v1"), option.readonly)
+          }
+        });
     let storage = create_storage(
       option.storage.clone(),
       version,
