@@ -143,6 +143,7 @@ catalog:
   'react': '^19.2.8'
   'react-dom': '^19.2.8'
   'react-refresh': '^0.18.0'
+  'react-server-dom-rspack': '0.0.2'
   'rimraf': '^5.0.10'
   'rsbuild-plugin-google-analytics': '1.0.6'
   'rsbuild-plugin-open-graph': '1.1.3'
