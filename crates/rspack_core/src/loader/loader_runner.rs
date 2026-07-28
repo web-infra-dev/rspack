@@ -18,7 +18,7 @@ pub struct RunnerContext {
   pub fs: Arc<dyn ReadableFileSystem>,
   pub module: Box<NormalModule>,
   pub source_map_kind: SourceMapKind,
-  pub(crate) loader_cache: Arc<LoaderCacheService>,
+  pub(crate) loader_cache: Option<Arc<LoaderCacheService>>,
 }
 
 pub type BoxLoader = Arc<dyn for<'a> Loader<RunnerContext>>;

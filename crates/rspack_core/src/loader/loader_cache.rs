@@ -10,7 +10,6 @@ use async_trait::async_trait;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::Identifiable;
 use rspack_error::Result;
-use rspack_fs::ReadableFileSystem;
 use rspack_hash::{HashFunction, RspackHasher};
 use rspack_loader_runner::{AdditionalData, Content, Loader, LoaderContext, Scheme};
 use rspack_paths::Utf8PathBuf;
@@ -19,27 +18,28 @@ use rspack_util::fx_hash::FxDashMap;
 use rustc_hash::FxHashSet;
 use serde::{Deserialize, Serialize};
 
-use crate::RunnerContext;
+use crate::{
+  CacheOptions, CompilerOptions, RunnerContext, cache::persistent::storage::StorageOptions,
+};
 
 pub(crate) const INTERNAL_CACHE_LOADER_IDENTIFIER: &str = "builtin:cache-loader";
 
 const FORMAT_VERSION: u8 = 1;
-const FUTURE_TIMESTAMP_TOLERANCE: Duration = Duration::from_secs(2);
 const LOCK_WAIT_TIMEOUT: Duration = Duration::from_millis(500);
-const STALE_LOCK_AGE: Duration = Duration::from_secs(30);
 const LOCK_RETRY_INTERVAL: Duration = Duration::from_millis(10);
 static TEMP_FILE_ID: AtomicU64 = AtomicU64::new(0);
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 struct LoaderCacheKey {
   rspack_version: String,
+  compiler_scope: String,
   module_identifier: String,
   remaining_request: String,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 struct ResourceStamp {
-  mtime_ns: u64,
+  mtime_ms: u64,
   size: u64,
 }
 
@@ -49,17 +49,9 @@ struct DependencyDelta {
   removed: FxHashSet<PathBuf>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-struct DependencySnapshot {
-  path: String,
-  kind: u8,
-  fingerprint: u64,
-}
-
 #[derive(Debug, Clone)]
 struct LoaderCacheEntry {
   resource: ResourceStamp,
-  written_at_ns: u64,
   content: Option<Content>,
   source_map: Option<String>,
   additional_data: Option<AdditionalData>,
@@ -67,7 +59,6 @@ struct LoaderCacheEntry {
   context_dependencies: DependencyDelta,
   missing_dependencies: DependencyDelta,
   build_dependencies: DependencyDelta,
-  dependency_snapshot: Vec<DependencySnapshot>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -78,23 +69,15 @@ enum PersistedContent {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct PersistedPayload {
+  version: u8,
   identity: LoaderCacheKey,
   resource: ResourceStamp,
-  written_at_ns: u64,
   content: PersistedContent,
   source_map: Option<String>,
   file_dependencies: DependencyDelta,
   context_dependencies: DependencyDelta,
   missing_dependencies: DependencyDelta,
   build_dependencies: DependencyDelta,
-  dependency_snapshot: Vec<DependencySnapshot>,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-struct PersistedEnvelope {
-  version: u8,
-  checksum: u64,
-  payload: PersistedPayload,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -102,6 +85,7 @@ struct PitchData {
   key: LoaderCacheKey,
   digest: String,
   resource: ResourceStamp,
+  started_at_ms: u64,
   diagnostics_len: usize,
   file_dependencies: FxHashSet<PathBuf>,
   context_dependencies: FxHashSet<PathBuf>,
@@ -109,18 +93,14 @@ struct PitchData {
   build_dependencies: FxHashSet<PathBuf>,
 }
 
-/// A deliberately small loader-cache file backend.
-///
-/// It owns only byte IO and locking. Cache identity, validation and replay stay
-/// in `LoaderCacheService`.
 #[derive(Debug, Clone)]
-pub(crate) struct LoaderCacheFileStore {
+struct LoaderCacheFileStore {
   root: Utf8PathBuf,
   readonly: bool,
 }
 
 impl LoaderCacheFileStore {
-  pub(crate) fn new(root: Utf8PathBuf, readonly: bool) -> Self {
+  fn new(root: Utf8PathBuf, readonly: bool) -> Self {
     Self { root, readonly }
   }
 
@@ -196,18 +176,6 @@ fn acquire_file_lock(path: &Path) -> std::io::Result<FileLock> {
         });
       }
       Err(error) if error.kind() == ErrorKind::AlreadyExists => {
-        let stale = fs::metadata(path)
-          .and_then(|metadata| metadata.modified())
-          .and_then(|modified| {
-            SystemTime::now()
-              .duration_since(modified)
-              .map_err(std::io::Error::other)
-          })
-          .is_ok_and(|age| age >= STALE_LOCK_AGE);
-        if stale {
-          let _ = fs::remove_file(path);
-          continue;
-        }
         if start.elapsed() >= LOCK_WAIT_TIMEOUT {
           return Err(std::io::Error::new(
             ErrorKind::WouldBlock,
@@ -287,17 +255,47 @@ fn remove_with_lock(
 
 #[derive(Debug)]
 pub(crate) struct LoaderCacheService {
+  compiler_scope: String,
   entries: FxDashMap<LoaderCacheKey, LoaderCacheEntry>,
   file_store: Option<LoaderCacheFileStore>,
 }
 
 impl LoaderCacheService {
-  pub(crate) fn memory_only() -> Self {
-    Self::new(None)
+  pub(crate) fn from_compiler_options(
+    compiler_path: &str,
+    options: &CompilerOptions,
+  ) -> Option<Self> {
+    if !options.experiments.loader_cache {
+      return None;
+    }
+
+    let (cache_version, file_store) = match &options.cache {
+      CacheOptions::Persistent(option) => {
+        let file_store = match &option.storage {
+          StorageOptions::FileSystem { directory } => Some(LoaderCacheFileStore::new(
+            directory.join("loader-cache/v1"),
+            option.readonly,
+          )),
+        };
+        (option.version.as_str(), file_store)
+      }
+      CacheOptions::Disabled | CacheOptions::Memory { .. } => ("", None),
+    };
+    let compiler_scope = format!(
+      "{}\0{}\0{:?}\0{}\0{}",
+      compiler_path,
+      options.name.as_deref().unwrap_or_default(),
+      options.mode,
+      options.context,
+      cache_version
+    );
+
+    Some(Self::new(compiler_scope, file_store))
   }
 
-  pub(crate) fn new(file_store: Option<LoaderCacheFileStore>) -> Self {
+  fn new(compiler_scope: String, file_store: Option<LoaderCacheFileStore>) -> Self {
     Self {
+      compiler_scope,
       entries: FxDashMap::default(),
       file_store,
     }
@@ -308,11 +306,9 @@ impl LoaderCacheService {
     key: &LoaderCacheKey,
     digest: &str,
     resource: ResourceStamp,
-    fs: &dyn ReadableFileSystem,
   ) -> Option<LoaderCacheEntry> {
-    let now_ns = now_ns()?;
     if let Some(entry) = self.entries.get(key).map(|entry| entry.value().clone())
-      && resource_is_valid(&entry, resource, now_ns)
+      && entry.resource == resource
     {
       return Some(entry);
     }
@@ -327,7 +323,7 @@ impl LoaderCacheService {
         return None;
       }
     };
-    if !entry_is_valid(&entry, resource, now_ns, fs).await {
+    if entry.resource != resource {
       file_store.remove_if_unchanged(digest, bytes).await;
       return None;
     }
@@ -335,16 +331,7 @@ impl LoaderCacheService {
     Some(entry)
   }
 
-  async fn store(
-    &self,
-    key: LoaderCacheKey,
-    digest: String,
-    entry: LoaderCacheEntry,
-    fs: &dyn ReadableFileSystem,
-  ) {
-    if !validate_dependencies(&entry.dependency_snapshot, fs).await {
-      return;
-    }
+  async fn store(&self, key: LoaderCacheKey, digest: String, entry: LoaderCacheEntry) {
     self.entries.insert(key.clone(), entry.clone());
 
     let Some(file_store) = &self.file_store else {
@@ -376,100 +363,81 @@ fn encode_entry(key: LoaderCacheKey, entry: LoaderCacheEntry) -> Option<Vec<u8>>
     Content::Buffer(value) => PersistedContent::Buffer(value),
   };
   let payload = PersistedPayload {
+    version: FORMAT_VERSION,
     identity: key,
     resource: entry.resource,
-    written_at_ns: entry.written_at_ns,
     content,
     source_map: entry.source_map,
     file_dependencies: entry.file_dependencies,
     context_dependencies: entry.context_dependencies,
     missing_dependencies: entry.missing_dependencies,
     build_dependencies: entry.build_dependencies,
-    dependency_snapshot: entry.dependency_snapshot,
   };
-  let payload_bytes = serde_json::to_vec(&payload).ok()?;
-  serde_json::to_vec(&PersistedEnvelope {
-    version: FORMAT_VERSION,
-    checksum: checksum(&payload_bytes),
-    payload,
-  })
-  .ok()
+  serde_json::to_vec(&payload).ok()
+}
+
+fn decode_stored_entry(
+  bytes: &[u8],
+) -> std::result::Result<(LoaderCacheKey, LoaderCacheEntry), ()> {
+  let payload: PersistedPayload = serde_json::from_slice(bytes).map_err(|_| ())?;
+  if payload.version != FORMAT_VERSION {
+    return Err(());
+  }
+  let key = payload.identity;
+  let content = match payload.content {
+    PersistedContent::String(value) => Content::String(value),
+    PersistedContent::Buffer(value) => Content::Buffer(value),
+  };
+  Ok((
+    key,
+    LoaderCacheEntry {
+      resource: payload.resource,
+      content: Some(content),
+      source_map: payload.source_map,
+      additional_data: None,
+      file_dependencies: payload.file_dependencies,
+      context_dependencies: payload.context_dependencies,
+      missing_dependencies: payload.missing_dependencies,
+      build_dependencies: payload.build_dependencies,
+    },
+  ))
 }
 
 fn decode_entry(
   bytes: &[u8],
   expected_key: &LoaderCacheKey,
 ) -> std::result::Result<LoaderCacheEntry, ()> {
-  let envelope: PersistedEnvelope = serde_json::from_slice(bytes).map_err(|_| ())?;
-  if envelope.version != FORMAT_VERSION || &envelope.payload.identity != expected_key {
+  let (key, entry) = decode_stored_entry(bytes)?;
+  if &key != expected_key {
     return Err(());
   }
-  let payload_bytes = serde_json::to_vec(&envelope.payload).map_err(|_| ())?;
-  if checksum(&payload_bytes) != envelope.checksum {
-    return Err(());
-  }
-  let content = match envelope.payload.content {
-    PersistedContent::String(value) => Content::String(value),
-    PersistedContent::Buffer(value) => Content::Buffer(value),
-  };
-  Ok(LoaderCacheEntry {
-    resource: envelope.payload.resource,
-    written_at_ns: envelope.payload.written_at_ns,
-    content: Some(content),
-    source_map: envelope.payload.source_map,
-    additional_data: None,
-    file_dependencies: envelope.payload.file_dependencies,
-    context_dependencies: envelope.payload.context_dependencies,
-    missing_dependencies: envelope.payload.missing_dependencies,
-    build_dependencies: envelope.payload.build_dependencies,
-    dependency_snapshot: envelope.payload.dependency_snapshot,
-  })
+  Ok(entry)
 }
 
-async fn entry_is_valid(
-  entry: &LoaderCacheEntry,
-  resource: ResourceStamp,
-  now_ns: u64,
-  fs: &dyn ReadableFileSystem,
-) -> bool {
-  resource_is_valid(entry, resource, now_ns)
-    && validate_dependencies(&entry.dependency_snapshot, fs).await
-}
-
-fn resource_is_valid(entry: &LoaderCacheEntry, resource: ResourceStamp, now_ns: u64) -> bool {
-  entry.resource == resource
-    && timestamp_not_in_future(entry.resource.mtime_ns, now_ns)
-    && timestamp_not_in_future(entry.written_at_ns, now_ns)
-}
-
-fn timestamp_not_in_future(timestamp_ns: u64, now_ns: u64) -> bool {
-  timestamp_ns
-    <= now_ns.saturating_add(
-      FUTURE_TIMESTAMP_TOLERANCE
-        .as_nanos()
-        .try_into()
-        .unwrap_or(u64::MAX),
-    )
-}
-
-fn now_ns() -> Option<u64> {
+fn now_ms() -> Option<u64> {
   SystemTime::now()
     .duration_since(UNIX_EPOCH)
     .ok()?
-    .as_nanos()
+    .as_millis()
     .try_into()
     .ok()
 }
 
-fn checksum(value: &[u8]) -> u64 {
+fn hash_bytes(value: &[u8]) -> u64 {
   let mut hasher = RspackHasher::new(&HashFunction::Xxhash64);
   hasher.write(value);
   hasher.finish()
 }
 
 fn cache_key(loader_context: &LoaderContext<RunnerContext>) -> (LoaderCacheKey, String) {
+  let loader_cache = loader_context
+    .context
+    .loader_cache
+    .as_ref()
+    .expect("cache loader should only run when loader cache is enabled");
   let key = LoaderCacheKey {
     rspack_version: env!("CARGO_PKG_VERSION").to_string(),
+    compiler_scope: loader_cache.compiler_scope.clone(),
     module_identifier: loader_context
       .context
       .module
@@ -479,7 +447,7 @@ fn cache_key(loader_context: &LoaderContext<RunnerContext>) -> (LoaderCacheKey, 
     remaining_request: loader_context.remaining_request().to_string(),
   };
   let bytes = serde_json::to_vec(&key).expect("loader cache key should be serializable");
-  let digest = format!("{:016x}", checksum(&bytes));
+  let digest = format!("{:016x}", hash_bytes(&bytes));
   (key, digest)
 }
 
@@ -495,66 +463,17 @@ async fn resource_stamp(loader_context: &LoaderContext<RunnerContext>) -> Option
   if !metadata.is_file {
     return None;
   }
-  let mtime_ns = metadata.mtime_ms.saturating_mul(1_000_000);
-  if !timestamp_not_in_future(mtime_ns, now_ns()?) {
-    return None;
-  }
   Some(ResourceStamp {
-    mtime_ns,
+    mtime_ms: metadata.mtime_ms,
     size: metadata.size,
   })
 }
 
-async fn dependency_fingerprint(path: &str, kind: u8, fs: &dyn ReadableFileSystem) -> Option<u64> {
-  let path = rspack_paths::Utf8Path::new(path);
-  if kind == 2 {
-    let parent = path.parent()?;
-    let mut entries = fs.read_dir(parent).await.ok()?;
-    entries.sort();
-    return Some(checksum(entries.join("\0").as_bytes()));
-  }
-  let metadata = fs.metadata(path).await.ok()?;
-  if kind == 1 || metadata.is_directory {
-    let mut entries = fs.read_dir(path).await.ok()?;
-    entries.sort();
-    return Some(checksum(entries.join("\0").as_bytes()));
-  }
-  Some(checksum(&fs.read(path).await.ok()?))
-}
-
-async fn validate_dependencies(
-  dependencies: &[DependencySnapshot],
-  fs: &dyn ReadableFileSystem,
-) -> bool {
-  for dependency in dependencies {
-    if dependency_fingerprint(&dependency.path, dependency.kind, fs).await
-      != Some(dependency.fingerprint)
-    {
-      return false;
-    }
-  }
-  true
-}
-
-async fn dependency_snapshots(
-  file: &FxHashSet<PathBuf>,
-  context: &FxHashSet<PathBuf>,
-  missing: &FxHashSet<PathBuf>,
-  build: &FxHashSet<PathBuf>,
-  fs: &dyn ReadableFileSystem,
-) -> Option<Vec<DependencySnapshot>> {
-  let mut snapshots = Vec::new();
-  for (kind, values) in [(0, file), (1, context), (2, missing), (0, build)] {
-    for path in values {
-      let path = path.to_string_lossy().into_owned();
-      snapshots.push(DependencySnapshot {
-        fingerprint: dependency_fingerprint(&path, kind, fs).await?,
-        path,
-        kind,
-      });
-    }
-  }
-  Some(snapshots)
+fn mtime_is_reliable(mtime_ms: u64, started_at_ms: u64) -> bool {
+  // Match cache-loader's conservative handling for coarse filesystems: when
+  // the resource mtime is in the same second as this cache attempt (or later),
+  // it may have changed without producing a distinguishable timestamp.
+  mtime_ms / 1000 < started_at_ms / 1000
 }
 
 fn dependency_delta(
@@ -582,6 +501,7 @@ fn record_pitch_data(
     key,
     digest,
     resource,
+    started_at_ms: now_ms().expect("system time should be after unix epoch"),
     diagnostics_len: loader_context.diagnostics.len(),
     file_dependencies: loader_context.file_dependencies.clone(),
     context_dependencies: loader_context.context_dependencies.clone(),
@@ -612,7 +532,9 @@ impl Loader<RunnerContext> for CacheLoader {
     let entry = loader_context
       .context
       .loader_cache
-      .lookup(&key, &digest, resource, loader_context.context.fs.as_ref())
+      .as_ref()
+      .expect("cache loader should only run when loader cache is enabled")
+      .lookup(&key, &digest, resource)
       .await;
     if let Some(entry) = entry {
       let source_map = match entry.source_map {
@@ -622,6 +544,8 @@ impl Loader<RunnerContext> for CacheLoader {
             loader_context
               .context
               .loader_cache
+              .as_ref()
+              .expect("cache loader should only run when loader cache is enabled")
               .remove(&key, &digest)
               .await;
             record_pitch_data(loader_context, key, digest, resource);
@@ -661,6 +585,7 @@ impl Loader<RunnerContext> for CacheLoader {
       && loader_context.cacheable
       && loader_context.diagnostics.len() == pitch_data.diagnostics_len
       && resource_stamp(loader_context).await == Some(pitch_data.resource)
+      && mtime_is_reliable(pitch_data.resource.mtime_ms, pitch_data.started_at_ms)
     {
       let file_dependencies = dependency_delta(
         &pitch_data.file_dependencies,
@@ -690,38 +615,26 @@ impl Loader<RunnerContext> for CacheLoader {
         added: loader_files,
         removed: build_dependencies.removed,
       };
-      if let Some(dependency_snapshot) = dependency_snapshots(
-        &file_dependencies.added,
-        &context_dependencies.added,
-        &missing_dependencies.added,
-        &build_dependencies.added,
-        loader_context.context.fs.as_ref(),
-      )
-      .await
-        && let Some(written_at_ns) = now_ns()
-      {
-        loader_context
-          .context
-          .loader_cache
-          .store(
-            pitch_data.key,
-            pitch_data.digest,
-            LoaderCacheEntry {
-              resource: pitch_data.resource,
-              written_at_ns,
-              content: loader_context.content().cloned(),
-              source_map: loader_context.source_map().map(SourceMap::to_json),
-              additional_data: loader_context.additional_data().cloned(),
-              file_dependencies,
-              context_dependencies,
-              missing_dependencies,
-              build_dependencies,
-              dependency_snapshot,
-            },
-            loader_context.context.fs.as_ref(),
-          )
-          .await;
-      }
+      loader_context
+        .context
+        .loader_cache
+        .as_ref()
+        .expect("cache loader should only run when loader cache is enabled")
+        .store(
+          pitch_data.key,
+          pitch_data.digest,
+          LoaderCacheEntry {
+            resource: pitch_data.resource,
+            content: loader_context.content().cloned(),
+            source_map: loader_context.source_map().map(SourceMap::to_json),
+            additional_data: loader_context.additional_data().cloned(),
+            file_dependencies,
+            context_dependencies,
+            missing_dependencies,
+            build_dependencies,
+          },
+        )
+        .await;
     }
 
     loader_context.current_loader().set_finish_called();
@@ -736,14 +649,13 @@ mod tests {
     sync::atomic::{AtomicU64, Ordering},
   };
 
-  use rspack_fs::MemoryFileSystem;
   use rspack_loader_runner::Content;
   use rspack_paths::Utf8PathBuf;
   use rustc_hash::FxHashSet;
 
   use super::{
-    DependencyDelta, LoaderCacheEntry, LoaderCacheFileStore, LoaderCacheKey, LoaderCacheService,
-    ResourceStamp, decode_entry, dependency_delta, encode_entry, entry_is_valid, now_ns,
+    DependencyDelta, LoaderCacheEntry, LoaderCacheFileStore, LoaderCacheKey, ResourceStamp,
+    decode_stored_entry, dependency_delta, encode_entry, mtime_is_reliable,
     replay_dependency_delta,
   };
 
@@ -765,6 +677,7 @@ mod tests {
   fn key() -> LoaderCacheKey {
     LoaderCacheKey {
       rspack_version: "test".to_string(),
+      compiler_scope: "scope".to_string(),
       module_identifier: "module".to_string(),
       remaining_request: "loader!resource".to_string(),
     }
@@ -773,10 +686,9 @@ mod tests {
   fn entry() -> LoaderCacheEntry {
     LoaderCacheEntry {
       resource: ResourceStamp {
-        mtime_ns: 1,
+        mtime_ms: 1,
         size: 3,
       },
-      written_at_ns: now_ns().unwrap(),
       content: Some(Content::Buffer(vec![1, 2, 3])),
       source_map: None,
       additional_data: None,
@@ -784,7 +696,6 @@ mod tests {
       context_dependencies: DependencyDelta::default(),
       missing_dependencies: DependencyDelta::default(),
       build_dependencies: DependencyDelta::default(),
-      dependency_snapshot: vec![],
     }
   }
 
@@ -804,13 +715,14 @@ mod tests {
   fn json_entry_round_trips_and_rejects_bad_data() {
     let key = key();
     let bytes = encode_entry(key.clone(), entry()).unwrap();
-    let decoded = decode_entry(&bytes, &key).unwrap();
+    let (decoded_key, decoded) = decode_stored_entry(&bytes).unwrap();
+    assert_eq!(decoded_key, key);
     assert_eq!(decoded.content, Some(Content::Buffer(vec![1, 2, 3])));
 
-    assert!(decode_entry(b"{", &key).is_err());
-    let mut envelope: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
-    envelope["checksum"] = serde_json::json!(0);
-    assert!(decode_entry(&serde_json::to_vec(&envelope).unwrap(), &key).is_err());
+    assert!(decode_stored_entry(b"{").is_err());
+    let mut payload: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+    payload["version"] = serde_json::json!(0);
+    assert!(decode_stored_entry(&serde_json::to_vec(&payload).unwrap()).is_err());
   }
 
   #[tokio::test]
@@ -826,88 +738,10 @@ mod tests {
     let _ = std::fs::remove_dir_all(root);
   }
 
-  #[tokio::test]
-  async fn concurrent_writers_leave_a_complete_entry() {
-    let root = test_dir("concurrent");
-    let store = LoaderCacheFileStore::new(root.clone(), false);
-    let first = store.put("same", vec![1; 4096]);
-    let second = store.put("same", vec![2; 4096]);
-    tokio::join!(first, second);
-
-    let bytes = store.get("same").await.unwrap();
-    assert!(bytes == vec![1; 4096] || bytes == vec![2; 4096]);
-    assert!(std::fs::read_dir(&root).unwrap().all(|entry| {
-      !entry
-        .unwrap()
-        .file_name()
-        .to_string_lossy()
-        .contains(".tmp.")
-    }));
-
-    let _ = std::fs::remove_dir_all(root);
-  }
-
-  #[tokio::test]
-  async fn service_round_trips_between_instances_and_checks_mtime() {
-    let root = test_dir("service-roundtrip");
-    let store = LoaderCacheFileStore::new(root.clone(), false);
-    let key = key();
-    let digest = "digest".to_string();
-    let entry = entry();
-    LoaderCacheService::new(Some(store.clone()))
-      .store(
-        key.clone(),
-        digest.clone(),
-        entry.clone(),
-        &MemoryFileSystem::default(),
-      )
-      .await;
-
-    let reader = LoaderCacheService::new(Some(store));
-    assert!(
-      reader
-        .lookup(&key, &digest, entry.resource, &MemoryFileSystem::default())
-        .await
-        .is_some()
-    );
-    assert!(
-      reader
-        .lookup(
-          &key,
-          &digest,
-          ResourceStamp {
-            mtime_ns: entry.resource.mtime_ns + 1,
-            ..entry.resource
-          },
-          &MemoryFileSystem::default(),
-        )
-        .await
-        .is_none()
-    );
-
-    let _ = std::fs::remove_dir_all(root);
-  }
-
-  #[tokio::test]
-  async fn timestamp_rollback_is_invalid() {
-    let mut entry = entry();
-    let now = now_ns().unwrap();
-    entry.written_at_ns = now + 10_000_000_000;
-    assert!(!entry_is_valid(&entry, entry.resource, now, &MemoryFileSystem::default()).await);
-  }
-
-  #[tokio::test]
-  async fn conditional_remove_does_not_delete_a_replaced_entry() {
-    let root = test_dir("conditional-remove");
-    let store = LoaderCacheFileStore::new(root.clone(), false);
-    store.put("same", b"new".to_vec()).await;
-
-    store.remove_if_unchanged("same", b"old".to_vec()).await;
-    assert_eq!(store.get("same").await, Some(b"new".to_vec()));
-
-    store.remove_if_unchanged("same", b"new".to_vec()).await;
-    assert_eq!(store.get("same").await, None);
-
-    let _ = std::fs::remove_dir_all(root);
+  #[test]
+  fn rejects_mtime_from_the_cache_attempt_second_or_later() {
+    assert!(mtime_is_reliable(9_999, 10_000));
+    assert!(!mtime_is_reliable(10_000, 10_999));
+    assert!(!mtime_is_reliable(11_000, 10_999));
   }
 }

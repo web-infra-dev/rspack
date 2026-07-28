@@ -1,8 +1,11 @@
+const fs = require('fs');
+
 const loaderRuns = {
   left: 0,
   marked: 0,
   right: 0,
 };
+const adjustedResources = new Set();
 
 module.exports = function (source, sourceMap, additionalData) {
   const { name } = this.getOptions();
@@ -40,4 +43,13 @@ module.exports = function (source, sourceMap, additionalData) {
       '__ADDITIONAL_DATA__',
       additionalData?.right === true && additionalData?.marked === true,
     );
+};
+
+module.exports.pitch = function () {
+  const { name } = this.getOptions();
+  if (name === 'left' && !adjustedResources.has(this.resourcePath)) {
+    const reliableMtime = new Date(Date.now() - 3000);
+    fs.utimesSync(this.resourcePath, reliableMtime, reliableMtime);
+    adjustedResources.add(this.resourcePath);
+  }
 };

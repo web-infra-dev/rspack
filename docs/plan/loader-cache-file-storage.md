@@ -23,9 +23,9 @@ There is no directory sharding in v1.
 
 ## Responsibilities
 
-`LoaderCacheService` remains responsible for cache identity, dependency
-validation, serialization, L1 lookup, and L1 replay. `LoaderCacheFileStore`
-only provides:
+`LoaderCacheService` remains responsible for cache identity, resource
+validation, serialization, L1 lookup, and dependency replay.
+`LoaderCacheFileStore` only provides:
 
 ```text
 get(hash) -> bytes?
@@ -38,13 +38,13 @@ compilation.
 
 ## Entry and validity
 
-The persisted JSON envelope contains:
+The persisted JSON payload contains:
 
 - format version and complete cache identity;
-- resource `mtime_ns` and file size;
-- cache write timestamp;
+- compiler scope, including compiler path/name/mode/context and persistent
+  cache version;
+- resource `mtime_ms` and file size;
 - content, source map, and supported dependency data;
-- checksum of the encoded payload.
 
 The key hash is only a path lookup. The complete identity is checked after
 reading the file.
@@ -52,33 +52,41 @@ reading the file.
 A hit requires:
 
 ```text
-current mtime_ns == stored mtime_ns
-current size    == stored size
-current mtime_ns is not in the future beyond a small tolerance
+current mtime_ms == stored mtime_ms
+current size     == stored size
 ```
 
-Any timestamp rollback/too-early result, missing file, parse error, checksum
-error, identity mismatch, or dependency mismatch is a miss. A resource or
-dependency changed between pitch and store, so the candidate is not written.
+As in `cache-loader`, a miss records its start time. The result is not cached
+when the resource mtime falls in the same second as that start time or later:
+
+```text
+resource_mtime_ms / 1000 >= cache_start_ms / 1000
+```
+
+This avoids trusting a coarse filesystem timestamp when the resource may have
+changed during loader execution. A resource stamp change between pitch and
+store also prevents the candidate from being written. Missing files, parse
+errors, version mismatches, and identity mismatches are misses.
 
 ## Atomic write and lock
 
 The writer creates a sibling lock file with `create_new` and waits briefly when
-another process owns it. A stale lock can be removed after a bounded timeout.
+another process owns it. A timed-out lock attempt skips the cache write; it
+does not fail compilation.
 
 Writes use:
 
 ```text
 create parent directory
-write <hash>.json.tmp.<pid>.<random>
+write <hash>.json.tmp.<pid>.<sequence>
 flush and close
 rename temporary file to <hash>.json
 remove lock
 ```
 
 Readers see either the old complete file or the new complete file. They never
-parse a file while it is being written. Corrupt files are removed/quarantined
-after a failed read.
+parse a file while it is being written. Corrupt files are removed after a
+failed read.
 
 ## Integration
 
@@ -87,31 +95,29 @@ after a failed read.
   `Experiments.loader_cache`.
 - The NormalModuleFactory checks this experiment before inserting the internal
   cache loader. Disabled experiments retain ordinary loader behavior.
-- `PersistentCache` derives the loader-cache root from its existing filesystem
-  cache directory and constructs `LoaderCacheFileStore`.
+- The compiler derives the loader-cache root from the existing persistent
+  filesystem cache options and constructs one compiler-local service.
 - `MemoryCache` and `DisableCache` continue using memory-only loader cache.
-- Remove the loader-specific `StorageRouter`, scope loading, update batching,
-  and failed-build cache finalization introduced by the more complex design.
 - Keep the plugin/compiler ownership and compiler isolation unchanged.
 - File writes are immediate; compiler close is not required for durability.
 
 ## Limits of v1
 
-- No TTL/LRU or size budget; versioned directories are the cleanup boundary.
+- No TTL/LRU or size budget.
 - No remote backend or cross-process generation protocol beyond per-key lock
   and atomic rename.
 - Arbitrary `AdditionalData` stays memory-only when it cannot be encoded.
 - mtime/size validation is intentionally weaker than content hashing and may
-  miss changes hidden by a coarse filesystem timestamp; dependency snapshots
-  remain the stronger validation path where available.
+  miss externally preserved timestamps. Dependency changes are replayed for
+  watch/build bookkeeping but are not additional cache-key inputs in v1.
 
 ## Tests
 
 - cold process/compiler writes, then a second compiler hits the JSON entry;
 - unchanged mtime/size hits and changed mtime/size misses;
-- timestamps earlier than the stored observation are rejected;
-- malformed/truncated/checksum-invalid entries degrade to miss;
+- resources modified in the cache-attempt second are not cached;
+- malformed/truncated/version-invalid entries degrade to miss;
 - concurrent writers leave one complete valid file;
 - write/read/lock failures do not fail compilation;
-- temporary files and stale locks are recoverable;
+- temporary files do not become cache hits;
 - memory-only cache paths do not touch disk.

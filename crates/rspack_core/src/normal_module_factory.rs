@@ -1372,7 +1372,7 @@ async fn resolve_each_with_cache(
   loader: &ModuleRuleUseLoader,
 ) -> Result<Vec<BoxLoader>> {
   let resolved_loader = resolve_each(plugin_driver, context, loader_resolver, loader).await?;
-  if !loader.cache || !plugin_driver.options.experiments.loader_cache {
+  if !loader.cache || plugin_driver.loader_cache_service.is_none() {
     return Ok(vec![resolved_loader]);
   }
 

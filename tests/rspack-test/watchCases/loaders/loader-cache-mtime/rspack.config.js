@@ -15,8 +15,6 @@ module.exports = {
           },
           {
             loader: path.resolve(__dirname, 'loader.js'),
-            options: {},
-            parallel: { maxWorkers: 1 },
             cache: true,
           },
         ],

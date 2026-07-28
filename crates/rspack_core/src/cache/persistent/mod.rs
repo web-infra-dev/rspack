@@ -27,10 +27,7 @@ use self::{
   storage::{StorageOptions, Version, create_storage},
 };
 use super::Cache;
-use crate::{
-  Compilation, CompilationLogger, CompilationLogging, CompilerOptions, Logger,
-  loader::{LoaderCacheFileStore, LoaderCacheService},
-};
+use crate::{Compilation, CompilationLogger, CompilationLogging, CompilerOptions, Logger};
 
 const LOGGER_NAME: &str = "rspack.persistentCache";
 
@@ -77,25 +74,6 @@ impl PersistentCache {
     intermediate_filesystem: Arc<dyn IntermediateFileSystem>,
     compilation_logging: CompilationLogging,
   ) -> Self {
-    Self::new_with_loader_cache(
-      compiler_path,
-      option,
-      compiler_options,
-      input_filesystem,
-      intermediate_filesystem,
-      compilation_logging,
-    )
-    .0
-  }
-
-  pub(crate) fn new_with_loader_cache(
-    compiler_path: &str,
-    option: &PersistentCacheOptions,
-    compiler_options: Arc<CompilerOptions>,
-    input_filesystem: Arc<dyn ReadableFileSystem>,
-    intermediate_filesystem: Arc<dyn IntermediateFileSystem>,
-    compilation_logging: CompilationLogging,
-  ) -> (Self, Arc<LoaderCacheService>) {
     let project_root = if option.portable {
       Some(compiler_options.context.as_path().to_path_buf())
     } else {
@@ -128,15 +106,6 @@ impl PersistentCache {
       compiler_options.mode.hash(&mut hasher);
       Version::new(version_scope, hex::encode(hasher.finish().to_ne_bytes()))
     };
-    let loader_cache_store =
-      compiler_options
-        .experiments
-        .loader_cache
-        .then(|| match &option.storage {
-          StorageOptions::FileSystem { directory } => {
-            LoaderCacheFileStore::new(directory.join("loader-cache/v1"), option.readonly)
-          }
-        });
     let storage = create_storage(
       option.storage.clone(),
       version,
@@ -149,29 +118,25 @@ impl PersistentCache {
       input_filesystem.clone(),
       codec.clone(),
     ));
-    let loader_cache_service = Arc::new(LoaderCacheService::new(loader_cache_store));
 
-    (
-      Self {
-        initialized: false,
-        ctx: CacheContext::new(
-          storage,
-          option.readonly,
-          CompilationLogger::new(LOGGER_NAME.to_string(), compilation_logging),
-        ),
-        build_deps: BuildDeps::new(
-          &option.build_dependencies,
-          input_filesystem,
-          snapshot.clone(),
-        ),
-        snapshot,
-        make_occasion: MakeOccasion::new(codec.clone()),
-        meta_occasion: MetaOccasion::new(codec.clone()),
-        minimize_occasion: MinimizeOccasion::new(codec.clone()),
-        source_map_dev_tool_plugin_occasion: SourceMapDevToolPluginOccasion::new(codec),
-      },
-      loader_cache_service,
-    )
+    Self {
+      initialized: false,
+      ctx: CacheContext::new(
+        storage,
+        option.readonly,
+        CompilationLogger::new(LOGGER_NAME.to_string(), compilation_logging),
+      ),
+      build_deps: BuildDeps::new(
+        &option.build_dependencies,
+        input_filesystem,
+        snapshot.clone(),
+      ),
+      snapshot,
+      make_occasion: MakeOccasion::new(codec.clone()),
+      meta_occasion: MetaOccasion::new(codec.clone()),
+      minimize_occasion: MinimizeOccasion::new(codec.clone()),
+      source_map_dev_tool_plugin_occasion: SourceMapDevToolPluginOccasion::new(codec),
+    }
   }
 
   async fn initialize(&mut self) {

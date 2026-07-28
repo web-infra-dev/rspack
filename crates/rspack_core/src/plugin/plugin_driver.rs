@@ -15,7 +15,7 @@ pub struct PluginDriver {
   pub(crate) options: Arc<CompilerOptions>,
   pub plugins: Vec<Box<dyn Plugin>>,
   pub resolver_factory: Arc<ResolverFactory>,
-  pub(crate) loader_cache_service: Arc<LoaderCacheService>,
+  pub(crate) loader_cache_service: Option<Arc<LoaderCacheService>>,
   #[debug(skip)]
   pub registered_parser_and_generator_builder:
     FxDashMap<ModuleType, BoxedParserAndGeneratorBuilder>,
@@ -35,19 +35,14 @@ impl PluginDriver {
     plugins: Vec<Box<dyn Plugin>>,
     resolver_factory: Arc<ResolverFactory>,
   ) -> Arc<Self> {
-    Self::new_with_loader_cache(
-      options,
-      plugins,
-      resolver_factory,
-      Arc::new(LoaderCacheService::memory_only()),
-    )
+    Self::new_with_loader_cache(options, plugins, resolver_factory, None)
   }
 
   pub(crate) fn new_with_loader_cache(
     options: Arc<CompilerOptions>,
     plugins: Vec<Box<dyn Plugin>>,
     resolver_factory: Arc<ResolverFactory>,
-    loader_cache_service: Arc<LoaderCacheService>,
+    loader_cache_service: Option<Arc<LoaderCacheService>>,
   ) -> Arc<Self> {
     let mut compiler_hooks = Default::default();
     let mut compilation_hooks = Default::default();
