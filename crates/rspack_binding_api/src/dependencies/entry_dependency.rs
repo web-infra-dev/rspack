@@ -11,7 +11,6 @@ impl EntryDependency {
     &mut self,
     context: rspack_core::Context,
     layer: Option<String>,
-    is_global: bool,
   ) -> napi::Result<Box<dyn rspack_core::Dependency>> {
     match &self.dependency_id {
       Some(dependency_id) => Err(napi::Error::from_reason(format!(
@@ -22,7 +21,7 @@ impl EntryDependency {
           self.request.clone(),
           context,
           layer,
-          is_global,
+          false,
         )) as rspack_core::BoxDependency;
         self.dependency_id = Some(*dependency.id());
         Ok(dependency)
