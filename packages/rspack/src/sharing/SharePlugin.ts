@@ -113,9 +113,7 @@ export function createProvideShareOptions(
         requiredVersion: options.requiredVersion,
         strictVersion: options.strictVersion,
         layer: enhanced ? options.layer : undefined,
-        request: enhanced
-          ? resolveShareRequest(options.request, options.import || key)
-          : undefined,
+        request: enhanced ? options.import || key : undefined,
         treeShakingMode: options.treeShaking?.mode,
       },
     }));
