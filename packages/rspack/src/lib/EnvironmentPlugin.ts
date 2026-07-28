@@ -8,18 +8,13 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
-import type { Compiler } from '../Compiler';
 import { DefinePlugin } from '../builtin-plugin';
+import type { Compiler } from '../Compiler';
 import WebpackError from './WebpackError';
 
 // Waiting to adapt > import("./DefinePlugin").CodeValue
 type CodeValue = any;
 
-/**
- * Define environment variables via `process.env.*` replacements.
- * When `experiments.env` is enabled, each variable is also defined
- * under `import.meta.env.*`.
- */
 class EnvironmentPlugin {
   keys: string[];
   defaultValues: Record<string, string | undefined | null>;
@@ -46,20 +41,19 @@ class EnvironmentPlugin {
    * @returns
    */
   apply(compiler: Compiler) {
-    const definitions: Record<string, CodeValue> = Object.create(null);
+    const definitions: Record<string, CodeValue> = {};
     for (const key of this.keys) {
-      const value = Object.prototype.hasOwnProperty.call(process.env, key)
-        ? process.env[key]
-        : this.defaultValues[key];
+      const value =
+        process.env[key] !== undefined
+          ? process.env[key]
+          : this.defaultValues[key];
 
       if (value === undefined) {
         compiler.hooks.thisCompilation.tap(
           'EnvironmentPlugin',
           (compilation) => {
             const error = new WebpackError(
-              `EnvironmentPlugin - ${key} environment variable is undefined.\n\n` +
-                'You can pass an object with default values to suppress this warning.\n' +
-                'See https://rspack.rs/plugins/webpack/environment-plugin for example.',
+              `EnvironmentPlugin - ${key} environment variable is undefined.\n\nYou can pass an object with default values to suppress this warning.\nSee https://rspack.rs/plugins/webpack/environment-plugin for example.`,
             );
 
             error.name = 'EnvVariableNotDefinedError';
@@ -68,12 +62,8 @@ class EnvironmentPlugin {
         );
       }
 
-      const defValue =
+      definitions[`process.env.${key}`] =
         value === undefined ? 'undefined' : JSON.stringify(value);
-      definitions[`process.env.${key}`] = defValue;
-      if (compiler.options.experiments.env) {
-        definitions[`import.meta.env.${key}`] = defValue;
-      }
     }
     new DefinePlugin(definitions).apply(compiler);
   }

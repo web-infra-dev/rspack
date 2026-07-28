@@ -101,23 +101,6 @@ if ('false') {
 }
 ```
 
-### `import.meta.env`
-
-When [`experiments.env`](/config/experiments#experimentsenv) is enabled, the `EnvironmentPlugin` also defines each environment variable under `import.meta.env.*` in addition to `process.env.*`:
-
-```js
-new rspack.EnvironmentPlugin(['NODE_ENV']);
-```
-
-This is equivalent to the following `DefinePlugin` application:
-
-```js
-new rspack.DefinePlugin({
-  'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV),
-  'import.meta.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV),
-});
-```
-
 ### Git version
 
 The following `EnvironmentPlugin` configuration provides `process.env.GIT_VERSION` (such as "v5.4.0-2-g25139f57f") and `process.env.GIT_AUTHOR_DATE` (such as "2020-11-04T12:25:16+01:00") corresponding to the last Git commit of the repository:
