@@ -163,6 +163,10 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for URLPlugin {
         }
         return None;
       }
+      // A directory request is not an asset; keep `new URL(...)` as-is.
+      if request == "." || request == ".." || request.ends_with('/') {
+        return Some(true);
+      }
       let dep = URLDependency::new(
         request.into(),
         expr.span.into(),
