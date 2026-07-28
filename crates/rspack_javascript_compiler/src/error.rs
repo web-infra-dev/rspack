@@ -5,7 +5,7 @@ use std::{
 
 use rspack_error::{BatchErrors, Error, Label, Severity, error};
 use rspack_util::SpanExt;
-use rustc_hash::FxHashSet as HashSet;
+use rustc_hash::{FxHashMap, FxHashSet as HashSet};
 use swc_core::common::{
   SourceMap, Span, Spanned,
   errors::{Diagnostic as SwcDiagnostic, DiagnosticId, Emitter, HANDLER, Handler, Level},
@@ -52,9 +52,9 @@ pub trait DedupEcmaErrors {
 
 pub fn ecma_parse_error_deduped_to_rspack_error(
   EcmaError(message, span): EcmaError,
-  source: String,
+  source: Arc<str>,
 ) -> Error {
-  Error::from_string(
+  Error::from_shared_source(
     Some(source),
     span.real_lo() as usize,
     span.real_hi() as usize,
@@ -73,10 +73,11 @@ pub(crate) fn swc_diagnostics_to_rspack_error(
   diagnostics: &[SwcDiagnostic],
   source_map: &SourceMap,
 ) -> Option<Error> {
+  let mut source_cache = FxHashMap::default();
   let mut errors = diagnostics
     .iter()
     .rev()
-    .map(|diagnostic| swc_diagnostic_to_rspack_error(diagnostic, source_map));
+    .map(|diagnostic| swc_diagnostic_to_rspack_error(diagnostic, source_map, &mut source_cache));
   let mut error = errors.next()?;
 
   for mut outer in errors {
@@ -91,7 +92,11 @@ pub(crate) fn swc_diagnostics_to_rspack_error(
   Some(error)
 }
 
-fn swc_diagnostic_to_rspack_error(diagnostic: &SwcDiagnostic, source_map: &SourceMap) -> Error {
+fn swc_diagnostic_to_rspack_error(
+  diagnostic: &SwcDiagnostic,
+  source_map: &SourceMap,
+  source_cache: &mut FxHashMap<u32, Arc<str>>,
+) -> Error {
   let mut message = diagnostic.message();
   let code = diagnostic.code.as_ref().map(|code| match code {
     DiagnosticId::Error(code) | DiagnosticId::Lint(code) => code,
@@ -134,7 +139,12 @@ fn swc_diagnostic_to_rspack_error(diagnostic: &SwcDiagnostic, source_map: &Sourc
       })
       .collect::<Vec<_>>();
 
-    error.src = Some(source_file.src.to_string());
+    error.src = Some(
+      source_cache
+        .entry(source_file.start_pos.0)
+        .or_insert_with(|| source_file.src.to_string().into())
+        .clone(),
+    );
     if !labels.is_empty() {
       error.labels = Some(labels);
     }
@@ -158,6 +168,7 @@ fn swc_diagnostic_to_rspack_error(diagnostic: &SwcDiagnostic, source_map: &Sourc
 struct RspackErrorEmitter {
   tx: mpsc::Sender<Error>,
   source_map: Arc<SourceMap>,
+  source_cache: FxHashMap<u32, Arc<str>>,
   title: String,
 }
 
@@ -168,10 +179,15 @@ impl Emitter for RspackErrorEmitter {
       .primary_span()
       .map(|s| self.source_map.lookup_byte_offset(s.lo()));
     if let Some(source_file_and_byte_pos) = source_file_and_byte_pos {
+      let source = self
+        .source_cache
+        .entry(source_file_and_byte_pos.sf.start_pos.0)
+        .or_insert_with(|| source_file_and_byte_pos.sf.src.to_string().into())
+        .clone();
       self
         .tx
-        .send(Error::from_string(
-          Some(source_file_and_byte_pos.sf.src.clone().into_string()),
+        .send(Error::from_shared_source(
+          Some(source),
           source_file_and_byte_pos.pos.0 as usize,
           source_file_and_byte_pos.pos.0 as usize,
           self.title.clone(),
@@ -216,6 +232,7 @@ where
   let emitter = RspackErrorEmitter {
     title,
     source_map: cm,
+    source_cache: Default::default(),
     tx,
   };
   let handler = Handler::with_emitter(true, false, Box::new(emitter));
