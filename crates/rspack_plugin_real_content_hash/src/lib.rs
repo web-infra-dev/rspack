@@ -364,14 +364,8 @@ impl AssetData {
       {
         let mut new_content = String::with_capacity(content.len());
         hash_ac.replace_all_with(content, &mut new_content, |_, hash, dst| {
-          let replace_to = if without_own && self.own_hashes.contains(hash) {
-            ""
-          } else {
-            hash_to_new_hash
-              .get(hash)
-              .expect("RealContentHashPlugin: should have new hash")
-          };
-          dst.push_str(replace_to);
+          let replace_to = replacement_hash(hash, without_own, &self.own_hashes, hash_to_new_hash);
+          dst.push_str(&replace_to);
           true
         });
         return RawStringSource::from(new_content).boxed();
@@ -463,13 +457,30 @@ impl OrderedHashesBuilder<'_> {
         continue;
       }
       if stack.contains(dep) {
-        // Safety: all chunk-level hash will be collected in runtime chunk
-        // so there shouldn't have circular hash dependency between chunks
-        panic!("RealContentHashPlugin: circular hash dependency");
+        // Multiple async runtimes (e.g. Module Federation) can each embed the
+        // full chunk-id→hash map, creating mutual references between chunk hashes.
+        // Break the cycle: the hash is still ordered, and unresolved deps keep
+        // their provisional value until processed.
+        continue;
       }
       self.add_to_ordered_hashes(dep, ordered_hashes, stack, hash_dependencies);
     }
     ordered_hashes.insert(hash.to_string());
     stack.remove(hash);
   }
+}
+
+fn replacement_hash(
+  hash: &str,
+  without_own: bool,
+  own_hashes: &HashSet<String>,
+  hash_to_new_hash: &HashMap<String, String>,
+) -> String {
+  if without_own && own_hashes.contains(hash) {
+    return String::new();
+  }
+  hash_to_new_hash
+    .get(hash)
+    .cloned()
+    .unwrap_or_else(|| hash.to_string())
 }
