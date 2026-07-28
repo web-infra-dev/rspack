@@ -61,7 +61,7 @@ impl JavaScriptCompiler {
           .with_context(ast::Context::new(self.cm, Some(self.globals)))
       })
       .map_err(|errs| {
-        let source: Arc<str> = fm.src.to_string().into();
+        let source: Arc<str> = Arc::from(fm.src.as_ref());
         BatchErrors(
           errs
             .dedup_ecma_errors()
@@ -113,7 +113,7 @@ impl JavaScriptCompiler {
     parse_with_lexer(lexer, is_module, false)
       .map(|(program, _)| program)
       .map_err(|errs| {
-        let source: Arc<str> = fm.src.to_string().into();
+        let source: Arc<str> = Arc::from(fm.src.as_ref());
         BatchErrors(
           errs
             .dedup_ecma_errors()

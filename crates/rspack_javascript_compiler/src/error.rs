@@ -142,7 +142,7 @@ fn swc_diagnostic_to_rspack_error(
     error.src = Some(
       source_cache
         .entry(source_file.start_pos.0)
-        .or_insert_with(|| source_file.src.to_string().into())
+        .or_insert_with(|| Arc::from(source_file.src.as_ref()))
         .clone(),
     );
     if !labels.is_empty() {
@@ -182,7 +182,7 @@ impl Emitter for RspackErrorEmitter {
       let source = self
         .source_cache
         .entry(source_file_and_byte_pos.sf.start_pos.0)
-        .or_insert_with(|| source_file_and_byte_pos.sf.src.to_string().into())
+        .or_insert_with(|| Arc::from(source_file_and_byte_pos.sf.src.as_ref()))
         .clone();
       self
         .tx
