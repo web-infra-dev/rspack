@@ -56,12 +56,16 @@ fn referenced_exports_for_output<'a>(
   if let Some(exports) = shared_referenced_exports.get(&exact) {
     return Some(exports);
   }
-  let mut matching = shared_referenced_exports
-    .iter()
-    .filter(|(identity, _)| identity.share_key == share_key)
-    .map(|(_, exports)| exports);
-  let exports = matching.next()?;
-  matching.next().is_none().then_some(exports)
+  let mut matching = None;
+  for (identity, exports) in shared_referenced_exports {
+    if identity.share_key != share_key {
+      continue;
+    }
+    if matching.replace(exports).is_some() {
+      return None;
+    }
+  }
+  matching
 }
 
 fn update_shared_exports(
