@@ -102,26 +102,27 @@ impl RuntimeModule for RemoteRuntimeModule {
         let external_module = module_graph
           .get_module_by_dependency_id(&dep)
           .expect("should have module");
-        let remote_info = self
-          .enhanced
-          .then(|| {
-            external_module
-              .downcast_ref::<ExternalModule>()
-              .map(|external_module| {
-                let external_type = external_module.get_external_type().as_str();
-                let name = if external_type == "script" {
-                  extract_url_and_global(external_module.get_request().primary())
-                    .map_or("", |url_and_global| url_and_global.global)
-                } else {
-                  ""
-                };
-                RemoteInfo {
-                  external_type,
-                  name,
-                }
-              })
-          })
-          .flatten();
+        let remote_info = if self.enhanced {
+          if let Some(external_module) = external_module.downcast_ref::<ExternalModule>() {
+            let external_type = external_module.get_external_type().as_str();
+            let name = if external_type == "script" {
+              match extract_url_and_global(external_module.get_request().primary()) {
+                Ok(url_and_global) => url_and_global.global,
+                Err(_) => "",
+              }
+            } else {
+              ""
+            };
+            Some(RemoteInfo {
+              external_type,
+              name,
+            })
+          } else {
+            None
+          }
+        } else {
+          None
+        };
         let external_module_id = ChunkGraph::get_module_id(
           &compilation.module_ids_artifact,
           external_module.identifier(),
