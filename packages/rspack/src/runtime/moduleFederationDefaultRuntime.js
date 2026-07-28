@@ -63,12 +63,19 @@ export default function () {
               return arrayInitializedExternals.get(external);
             }
             arrayInitializedExternals.set(external, undefined);
-            const result = init.call(
-              external,
-              runtimeRequire.S[shareScopes[0]],
-              initScope,
-              remoteEntryInitOptions,
-            );
+            const result =
+              remoteEntryInitOptions === undefined
+                ? init.call(
+                    external,
+                    runtimeRequire.S[shareScopes[0]],
+                    initScope,
+                  )
+                : init.call(
+                    external,
+                    runtimeRequire.S[shareScopes[0]],
+                    initScope,
+                    remoteEntryInitOptions,
+                  );
             arrayInitializedExternals.set(external, result);
             return result;
           },
@@ -146,17 +153,22 @@ export default function () {
           scopes.every((scope, index) => scope === expectedScopes[index])
         );
       };
+      const requestMatches = (variant) =>
+        !variant.import || variant.import === data.import;
       let matches = variants.filter(
-        (variant) => variant.layer === data.layer && matchesScope(variant),
+        (variant) =>
+          requestMatches(variant) &&
+          variant.layer === data.layer &&
+          matchesScope(variant),
       );
       if (matches.length === 0 && data.layer !== undefined) {
         matches = variants.filter(
-          (variant) => variant.layer === undefined && matchesScope(variant),
+          (variant) =>
+            requestMatches(variant) &&
+            variant.layer === undefined &&
+            matchesScope(variant),
         );
       }
-      const requestMatches = (variant) =>
-        !variant.import || variant.import === data.import;
-      matches = matches.filter(requestMatches);
       if (matches.length === 0) return;
       const fallbackKey = `${data.shareKey}\0${moduleId}`;
       sharedFallback[fallbackKey] = matches.map(

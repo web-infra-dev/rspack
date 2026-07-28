@@ -34,6 +34,22 @@ fn shared_identity_from_output(
   SharedIdentity::new(share_scope.unwrap_or(&default_scope), share_key, layer)
 }
 
+fn referenced_exports_for_output<'a>(
+  shared_referenced_exports: &'a FxHashMap<SharedIdentity, FxHashSet<String>>,
+  share_key: &str,
+) -> Option<&'a FxHashSet<String>> {
+  let exact = shared_identity_from_output(share_key, None, None);
+  if let Some(exports) = shared_referenced_exports.get(&exact) {
+    return Some(exports);
+  }
+  let mut matching = shared_referenced_exports
+    .iter()
+    .filter(|(identity, _)| identity.share_key == share_key)
+    .map(|(_, exports)| exports);
+  let exports = matching.next()?;
+  matching.next().is_none().then_some(exports)
+}
+
 fn update_shared_exports(
   content: &str,
   shared_referenced_exports: &FxHashMap<SharedIdentity, FxHashSet<String>>,
@@ -41,8 +57,8 @@ fn update_shared_exports(
   let mut root = serde_json::from_str::<Value>(content).ok()?;
   for shared in root.get_mut("shared")?.as_array_mut()? {
     let share_key = shared.get("name")?.as_str()?;
-    let identity = shared_identity_from_output(share_key, None, None);
-    let Some(exports_set) = shared_referenced_exports.get(&identity) else {
+    let Some(exports_set) = referenced_exports_for_output(shared_referenced_exports, share_key)
+    else {
       continue;
     };
     let mut exports = exports_set.iter().cloned().collect::<Vec<_>>();
@@ -525,7 +541,7 @@ mod tests {
 
   use super::{
     OptimizeSharedConfig, SharedUsedExportsOptimizerPlugin,
-    SharedUsedExportsOptimizerPluginOptions, update_shared_exports,
+    SharedUsedExportsOptimizerPluginOptions, referenced_exports_for_output, update_shared_exports,
   };
   use crate::{ShareScope, SharedIdentity};
 
@@ -546,7 +562,6 @@ mod tests {
       serde_json::json!(["default", "named"])
     );
   }
-
   #[test]
   fn optimizer_keeps_same_key_and_layer_separate_by_scope() {
     let plugin = SharedUsedExportsOptimizerPlugin::new(SharedUsedExportsOptimizerPluginOptions {
@@ -578,5 +593,29 @@ mod tests {
     assert_eq!(plugin.shared_map.len(), 2);
     assert_eq!(plugin.request_map.len(), 1);
     assert_eq!(plugin.request_map.values().next().map(Vec::len), Some(2));
+  }
+
+  #[test]
+  fn output_without_identity_metadata_uses_an_unambiguous_shared_entry() {
+    let mut exports = FxHashMap::default();
+    exports.insert(
+      SharedIdentity::new(
+        &ShareScope::Single("custom".to_string()),
+        "react",
+        Some("server"),
+      ),
+      FxHashSet::from_iter(["use".to_string()]),
+    );
+
+    assert!(referenced_exports_for_output(&exports, "react").is_some());
+    exports.insert(
+      SharedIdentity::new(
+        &ShareScope::Single("other".to_string()),
+        "react",
+        Some("client"),
+      ),
+      FxHashSet::default(),
+    );
+    assert!(referenced_exports_for_output(&exports, "react").is_none());
   }
 }

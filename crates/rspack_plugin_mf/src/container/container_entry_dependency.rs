@@ -93,6 +93,10 @@ impl Dependency for ContainerEntryDependency {
     &self.dependency_type
   }
 
+  fn get_layer(&self) -> Option<&rspack_core::ModuleLayer> {
+    self.layer.as_ref()
+  }
+
   fn resource_identifier(&self) -> Option<&str> {
     Some(&self.resource_identifier)
   }

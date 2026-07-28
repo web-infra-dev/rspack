@@ -2,6 +2,7 @@ import rspack, {
   type ConsumesConfig,
   type ConsumeSharedPluginOptions,
   type ContainerPluginOptions,
+  type ModuleFederationPluginV1Options,
 } from '@rspack/core';
 
 interface ExtendedConsumesConfig extends ConsumesConfig {
@@ -57,6 +58,13 @@ const annotatedEnhancedContainer: ContainerPluginOptions = {
 };
 new rspack.container.ContainerPlugin(annotatedEnhancedContainer);
 
+const dynamicEnhanced = Math.random() > 0.5;
+new rspack.container.ContainerPlugin({
+  name: 'dynamic-enhanced',
+  enhanced: dynamicEnhanced,
+  exposes: { './entry': './index' },
+});
+
 // @ts-expect-error Expose layers require the enhanced runtime gate.
 new rspack.container.ContainerPlugin({
   name: 'legacy',
@@ -64,3 +72,12 @@ new rspack.container.ContainerPlugin({
     './entry': { import: './index', layer: 'server' },
   },
 });
+
+const legacyV1Options: ModuleFederationPluginV1Options<false> = {
+  name: 'legacy-v1',
+  // @ts-expect-error Expose layers require the enhanced runtime gate.
+  exposes: {
+    './entry': { import: './index', layer: 'server' },
+  },
+};
+new rspack.container.ModuleFederationPluginV1(legacyV1Options);

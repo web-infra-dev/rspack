@@ -4,6 +4,21 @@ use rspack_core::{
   DependencyType, FactorizeInfo, ModuleDependency, ModuleLayer, ResourceIdentifier,
 };
 
+use crate::push_identifier_component;
+
+fn exposed_resource_identifier(exposed_name: &str, request: &str, layer: Option<&str>) -> String {
+  let mut resource_identifier = String::from("exposed dependency ");
+  push_identifier_component(&mut resource_identifier, exposed_name);
+  push_identifier_component(&mut resource_identifier, request);
+  if let Some(layer) = layer {
+    resource_identifier.push('1');
+    push_identifier_component(&mut resource_identifier, layer);
+  } else {
+    resource_identifier.push('0');
+  }
+  resource_identifier
+}
+
 #[cacheable]
 #[derive(Debug, Clone)]
 pub struct ContainerExposedDependency {
@@ -18,11 +33,8 @@ pub struct ContainerExposedDependency {
 
 impl ContainerExposedDependency {
   pub fn new(exposed_name: String, request: String, layer: Option<ModuleLayer>) -> Self {
-    let resource_identifier = if let Some(layer) = &layer {
-      format!("exposed dependency {exposed_name}={request}|layer={layer}").into()
-    } else {
-      format!("exposed dependency {exposed_name}={request}").into()
-    };
+    let resource_identifier =
+      exposed_resource_identifier(&exposed_name, &request, layer.as_deref()).into();
     Self {
       id: DependencyId::new(),
       request,
@@ -96,3 +108,15 @@ impl ModuleDependency for ContainerExposedDependency {
 
 impl AsContextDependency for ContainerExposedDependency {}
 impl AsDependencyCodeGeneration for ContainerExposedDependency {}
+
+#[cfg(test)]
+mod tests {
+  use super::exposed_resource_identifier;
+
+  #[test]
+  fn exposed_resource_identifiers_are_collision_free() {
+    let first = exposed_resource_identifier("./a", "b=c|layer=foo", None);
+    let second = exposed_resource_identifier("./a=b", "c", Some("foo"));
+    assert_ne!(first, second);
+  }
+}

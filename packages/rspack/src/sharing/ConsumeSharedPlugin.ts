@@ -131,7 +131,7 @@ export function normalizeConsumeShareOptions<
           !!enhanced,
           'ConsumeSharedPlugin',
         ),
-        shareKey: resolveShareKey(item.shareKey, request),
+        shareKey: resolveShareKey(item.shareKey, key),
         requiredVersion: item.requiredVersion,
         strictVersion:
           typeof item.strictVersion === 'boolean'

@@ -5,7 +5,7 @@ use rspack_core::{
 };
 
 use super::provide_shared_plugin::ProvideVersion;
-use crate::{ConsumeVersion, ShareScope};
+use crate::{ConsumeVersion, ShareScope, SharedIdentity, push_identifier_component};
 
 #[cacheable]
 #[derive(Debug, Clone)]
@@ -39,19 +39,15 @@ impl ProvideSharedDependency {
     layer: Option<ModuleLayer>,
     tree_shaking_mode: Option<String>,
   ) -> Self {
-    let resource_identifier = format!(
-      "provide module {}{} {} as {} @ {} {}",
-      share_scope.identifier_fragment(),
-      layer
-        .as_ref()
-        .map(|layer| format!(" ({layer})"))
-        .unwrap_or_default(),
-      &request,
-      &name,
-      &version,
-      if eager { "eager" } else { Default::default() },
-    )
-    .into();
+    let mut resource_identifier = String::from("provide module ");
+    push_identifier_component(
+      &mut resource_identifier,
+      &SharedIdentity::new(&share_scope, &name, layer.as_deref()).identifier_key(),
+    );
+    push_identifier_component(&mut resource_identifier, &request);
+    push_identifier_component(&mut resource_identifier, &version.to_string());
+    resource_identifier.push(if eager { '1' } else { '0' });
+    let resource_identifier = resource_identifier.into();
     Self {
       id: DependencyId::new(),
       request,
