@@ -10,7 +10,9 @@ use rspack_fs::{IntermediateFileSystem, ReadableFileSystem};
 use self::{
   disable::DisableCache, memory::MemoryCache, mixed::MixedCache, persistent::PersistentCache,
 };
-use crate::{CacheOptions, Compilation, CompilationLogging, CompilerOptions};
+use crate::{
+  CacheOptions, Compilation, CompilationLogging, CompilerOptions, loader::LoaderCacheService,
+};
 
 /// Cache trait
 ///
@@ -106,11 +108,34 @@ pub fn new_cache(
   intermediate_filesystem: Arc<dyn IntermediateFileSystem>,
   compilation_logging: CompilationLogging,
 ) -> Box<dyn Cache> {
+  new_cache_with_loader_cache(
+    compiler_path,
+    compiler_option,
+    input_filesystem,
+    intermediate_filesystem,
+    compilation_logging,
+  )
+  .0
+}
+
+pub(crate) fn new_cache_with_loader_cache(
+  compiler_path: &str,
+  compiler_option: Arc<CompilerOptions>,
+  input_filesystem: Arc<dyn ReadableFileSystem>,
+  intermediate_filesystem: Arc<dyn IntermediateFileSystem>,
+  compilation_logging: CompilationLogging,
+) -> (Box<dyn Cache>, Arc<LoaderCacheService>) {
   match &compiler_option.cache {
-    CacheOptions::Disabled => Box::new(DisableCache),
-    CacheOptions::Memory { .. } => Box::<MemoryCache>::default(),
+    CacheOptions::Disabled => (
+      Box::new(DisableCache),
+      Arc::new(LoaderCacheService::memory_only()),
+    ),
+    CacheOptions::Memory { .. } => (
+      Box::<MemoryCache>::default(),
+      Arc::new(LoaderCacheService::memory_only()),
+    ),
     CacheOptions::Persistent(option) => {
-      let persistent = PersistentCache::new(
+      let (persistent, service) = PersistentCache::new_with_loader_cache(
         compiler_path,
         option,
         compiler_option.clone(),
@@ -118,7 +143,7 @@ pub fn new_cache(
         intermediate_filesystem,
         compilation_logging,
       );
-      Box::new(MixedCache::new(persistent))
+      (Box::new(MixedCache::new(persistent)), service)
     }
   }
 }
