@@ -27,23 +27,10 @@ use crate::{
   manifest::StatsRoot,
 };
 
-fn shared_identity_from_output(
-  share_key: &str,
-  share_scope: Option<&ShareScope>,
-  layer: Option<&str>,
-) -> SharedIdentity {
-  let default_scope = ShareScope::Single("default".to_string());
-  SharedIdentity::new(share_scope.unwrap_or(&default_scope), share_key, layer)
-}
-
 fn referenced_exports_for_output<'a>(
   shared_referenced_exports: &'a FxHashMap<SharedIdentity, FxHashSet<String>>,
   share_key: &str,
 ) -> Option<&'a FxHashSet<String>> {
-  let exact = shared_identity_from_output(share_key, None, None);
-  if let Some(exports) = shared_referenced_exports.get(&exact) {
-    return Some(exports);
-  }
   let mut matching = None;
   for (identity, exports) in shared_referenced_exports {
     if identity.share_key != share_key {
