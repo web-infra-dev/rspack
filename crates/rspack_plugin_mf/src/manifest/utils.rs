@@ -255,7 +255,7 @@ pub(crate) fn manifest_share_scope(identity: &SharedIdentity) -> Option<ShareSco
 }
 
 pub fn record_shared_usage(
-  shared_usage_links: &mut Vec<(SharedIdentity, String)>,
+  shared_usage_links: &mut Vec<(SharedIdentity, String, Option<String>)>,
   identity: &SharedIdentity,
   module_identifier: &ModuleIdentifier,
   module_graph: &ModuleGraph,
@@ -268,13 +268,16 @@ pub fn record_shared_usage(
       s.to_string()
     }
   }
+  let issuer_layer = module_graph
+    .get_issuer(module_identifier)
+    .and_then(|module| module.get_layer().cloned());
   if let Some(issuer_module) = module_graph.get_issuer(module_identifier) {
     let issuer_name = issuer_module
       .readable_identifier(&compilation.options.context)
       .to_string();
     if !issuer_name.is_empty() {
       let key = strip_ext(&strip_aggregate_suffix(&issuer_name));
-      shared_usage_links.push((identity.clone(), key));
+      shared_usage_links.push((identity.clone(), key, issuer_layer.clone()));
     }
   }
   if let Some(mgm) = module_graph.module_graph_module_by_identifier(module_identifier) {
@@ -293,7 +296,7 @@ pub fn record_shared_usage(
         });
       if let Some(request) = maybe_request {
         let key = strip_ext(&strip_aggregate_suffix(&request));
-        shared_usage_links.push((identity.clone(), key));
+        shared_usage_links.push((identity.clone(), key, issuer_layer.clone()));
       }
     }
   }
@@ -302,11 +305,11 @@ pub fn record_shared_usage(
 pub fn collect_expose_requirements(
   shared_map: &mut HashMap<SharedIdentity, StatsShared>,
   exposes_map: &mut HashMap<ExposeIdentity, StatsExpose>,
-  links: Vec<(SharedIdentity, String)>,
+  links: Vec<(SharedIdentity, String, Option<String>)>,
   expose_identities_by_import: &HashMap<String, Vec<ExposeIdentity>>,
   expose_module_paths: &HashMap<ExposeIdentity, String>,
 ) {
-  for (identity, expose_import) in links {
+  for (identity, expose_import, issuer_layer) in links {
     let identity_count = shared_map
       .keys()
       .filter(|candidate| candidate.share_key == identity.share_key)
@@ -327,7 +330,7 @@ pub fn collect_expose_requirements(
       || required_shared.share_scope.is_some();
 
     for expose_identity in expose_identities {
-      if identity.layer.is_some() && expose_identity.layer != identity.layer {
+      if issuer_layer.is_some() && expose_identity.layer != issuer_layer {
         continue;
       }
       let Some(expose) = exposes_map.get_mut(expose_identity) else {
@@ -350,10 +353,12 @@ pub fn collect_expose_requirements(
 
 #[cfg(test)]
 mod tests {
-  use super::{compose_shared_id, finalize_shared_ids};
+  use super::{
+    ExposeIdentity, HashMap, collect_expose_requirements, compose_shared_id, finalize_shared_ids,
+  };
   use crate::{
     ShareScope, SharedIdentity,
-    manifest::data::{StatsAssetsGroup, StatsShared},
+    manifest::data::{StatsAssetsGroup, StatsExpose, StatsShared},
   };
 
   fn stats_shared(name: &str, share_scope: Option<ShareScope>) -> StatsShared {
@@ -417,5 +422,54 @@ mod tests {
     );
     assert_eq!(shared[2].id, "app:vue");
     assert_eq!(shared[2].identity_id, None);
+  }
+
+  #[test]
+  fn expose_requirements_follow_the_consuming_issuer_layer() {
+    let shared_identity = SharedIdentity::new(
+      &ShareScope::Single("default".to_string()),
+      "react",
+      Some("server"),
+    );
+    let mut shared_map = HashMap::default();
+    shared_map.insert(
+      shared_identity.clone(),
+      stats_shared("react", Some(ShareScope::Single("default".to_string()))),
+    );
+    let client_expose = ExposeIdentity::new("./entry", Some("client"));
+    let server_expose = ExposeIdentity::new("./entry", Some("server"));
+    let expose = |layer: &str| StatsExpose {
+      path: "./entry".to_string(),
+      file: String::new(),
+      id: String::new(),
+      name: "entry".to_string(),
+      layer: Some(layer.to_string()),
+      requires: Vec::new(),
+      required_shared: Vec::new(),
+      assets: StatsAssetsGroup::default(),
+    };
+    let mut exposes_map = HashMap::from_iter([
+      (client_expose.clone(), expose("client")),
+      (server_expose.clone(), expose("server")),
+    ]);
+    let expose_identities_by_import = HashMap::from_iter([(
+      "entry".to_string(),
+      vec![client_expose.clone(), server_expose.clone()],
+    )]);
+
+    collect_expose_requirements(
+      &mut shared_map,
+      &mut exposes_map,
+      vec![(
+        shared_identity,
+        "entry".to_string(),
+        Some("client".to_string()),
+      )],
+      &expose_identities_by_import,
+      &HashMap::default(),
+    );
+
+    assert_eq!(exposes_map[&client_expose].requires, ["react"]);
+    assert!(exposes_map[&server_expose].requires.is_empty());
   }
 }

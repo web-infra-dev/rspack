@@ -282,7 +282,7 @@ function collectManifestShared(
       version,
       requiredVersion,
       shareScope: normalizeShareScope(
-        config.shareScope ?? rootShareScope ?? 'default',
+        config.shareScope || rootShareScope || 'default',
         true,
         'ModuleFederationManifestPlugin',
       ),

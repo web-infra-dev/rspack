@@ -310,7 +310,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     let mut expose_fallback_chunk_keys: HashMap<ExposeIdentity, rspack_core::ChunkUkey> =
       HashMap::default();
     let mut shared_map: HashMap<SharedIdentity, StatsShared> = HashMap::default();
-    let mut shared_usage_links: Vec<(SharedIdentity, String)> = Vec::new();
+    let mut shared_usage_links: Vec<(SharedIdentity, String, Option<String>)> = Vec::new();
     let mut shared_module_targets: HashMap<SharedIdentity, IdentifierSet> = HashMap::default();
     let mut module_ids_by_name: HashMap<String, ModuleIdentifier> = HashMap::default();
     let mut remote_module_ids: Vec<ModuleIdentifier> = Vec::new();
@@ -458,7 +458,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       if matches!(module_type, ModuleType::ProvideShared) {
         if let Some(provide) = module.as_any().downcast_ref::<ProvideSharedModule>() {
           let identity = provide.shared_identity();
-          let ver = provide.version().unwrap_or_default().to_string();
+          let ver = provide.manifest_version().to_string();
           let entry = ensure_shared_entry(&mut shared_map, &identity, &container_name);
           if entry.version.is_empty() {
             entry.version = ver;
@@ -782,7 +782,11 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   sort_small_by(&mut exposes, |a, b| {
     a.id.cmp(&b.id).then_with(|| a.layer.cmp(&b.layer))
   });
-  sort_small_by(&mut shared, |a, b| a.id.cmp(&b.id));
+  sort_small_by(&mut shared, |a, b| {
+    a.id
+      .cmp(&b.id)
+      .then_with(|| a.identity_id.cmp(&b.identity_id))
+  });
   // Ensure all configured remotes exist in stats, add missing with defaults
   let mut remote_list = remote_list;
   ensure_configured_remotes(

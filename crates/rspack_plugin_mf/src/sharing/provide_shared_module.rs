@@ -133,6 +133,13 @@ impl ProvideSharedModule {
       ProvideVersion::False => None,
     }
   }
+
+  pub(crate) fn manifest_version(&self) -> &str {
+    match &self.version {
+      ProvideVersion::Version(version) => version,
+      ProvideVersion::False => "0",
+    }
+  }
 }
 
 impl Identifiable for ProvideSharedModule {

@@ -28,7 +28,8 @@ export type ContainerPluginOptions<Enhanced extends boolean = boolean> = [
   : [Enhanced] extends [false]
     ? ContainerPluginBaseOptions<false> & { enhanced?: false }
     : | (ContainerPluginBaseOptions<false> & { enhanced?: false })
-      | (ContainerPluginBaseOptions<true> & { enhanced: true });
+      | (ContainerPluginBaseOptions<true> & { enhanced: true })
+      | (ContainerPluginBaseOptions<false> & { enhanced: boolean });
 export type Exposes<Enhanced extends boolean = boolean> =
   (ExposesItem | ExposesObject<Enhanced>)[] | ExposesObject<Enhanced>;
 export type ExposesItem = string;
@@ -85,7 +86,7 @@ export class ContainerPlugin<
           return {
             import: Array.isArray(item.import) ? item.import : [item.import],
             name: item.name || undefined,
-            layer: enhanced ? item.layer || undefined : undefined,
+            layer: enhanced ? item.layer : undefined,
           };
         },
       ),

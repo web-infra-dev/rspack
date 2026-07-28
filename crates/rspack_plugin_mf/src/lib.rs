@@ -4,7 +4,7 @@ mod sharing;
 
 use rspack_hash::{RspackHash, RspackHasher};
 
-fn push_identifier_component(key: &mut String, value: &str) {
+pub(crate) fn push_identifier_component(key: &mut String, value: &str) {
   key.push_str(&value.len().to_string());
   key.push(':');
   key.push_str(value);
