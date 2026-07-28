@@ -14,7 +14,6 @@ pub struct RawExperiments {
   pub use_input_file_system: Option<WithFalse<Vec<RspackRegex>>>,
   pub css: Option<bool>,
   pub defer_import: bool,
-  pub env: bool,
   pub source_import: bool,
   pub pure_functions: bool,
   #[napi(ts_type = "\"webpack\" | \"rspack\"")]
@@ -32,7 +31,6 @@ impl From<RawExperiments> for Experiments {
     Self {
       css: value.css.unwrap_or(false),
       defer_import: value.defer_import,
-      env: value.env,
       source_import: value.source_import,
       pure_functions: value.pure_functions,
       runtime_mode,
