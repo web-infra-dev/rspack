@@ -2,10 +2,7 @@ use std::{
   fs::{self, OpenOptions},
   io::{ErrorKind, Write},
   path::{Path, PathBuf},
-  sync::{
-    Arc,
-    atomic::{AtomicU64, Ordering},
-  },
+  sync::atomic::{AtomicU64, Ordering},
   time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
 
@@ -15,7 +12,6 @@ use rspack_collections::Identifiable;
 use rspack_error::Result;
 use rspack_fs::ReadableFileSystem;
 use rspack_hash::{HashFunction, RspackHasher};
-use rspack_hook::{plugin, plugin_hook};
 use rspack_loader_runner::{AdditionalData, Content, Loader, LoaderContext, Scheme};
 use rspack_paths::Utf8PathBuf;
 use rspack_sources::SourceMap;
@@ -23,10 +19,7 @@ use rspack_util::fx_hash::FxDashMap;
 use rustc_hash::FxHashSet;
 use serde::{Deserialize, Serialize};
 
-use crate::{
-  ApplyContext, BoxLoader, ModuleRuleUseLoader, NormalModuleFactoryCreateLoaderCache, Plugin,
-  RunnerContext,
-};
+use crate::RunnerContext;
 
 pub(crate) const INTERNAL_CACHE_LOADER_IDENTIFIER: &str = "builtin:cache-loader";
 
@@ -602,7 +595,7 @@ fn record_pitch_data(
 
 #[cacheable]
 #[derive(Debug, Default)]
-struct CacheLoader;
+pub(crate) struct CacheLoader;
 
 #[async_trait]
 #[cacheable_dyn]
@@ -732,37 +725,6 @@ impl Loader<RunnerContext> for CacheLoader {
     }
 
     loader_context.current_loader().set_finish_called();
-    Ok(())
-  }
-}
-
-#[plugin]
-#[derive(Debug, Default)]
-#[doc(hidden)]
-pub struct LoaderCachePlugin;
-
-impl LoaderCachePlugin {
-  #[doc(hidden)]
-  pub fn new() -> Self {
-    Self::new_inner()
-  }
-}
-
-#[plugin_hook(NormalModuleFactoryCreateLoaderCache for LoaderCachePlugin)]
-async fn create_loader_cache(&self, _loader: &ModuleRuleUseLoader) -> Result<Option<BoxLoader>> {
-  Ok(Some(Arc::new(CacheLoader)))
-}
-
-impl Plugin for LoaderCachePlugin {
-  fn name(&self) -> &'static str {
-    "rspack.LoaderCachePlugin"
-  }
-
-  fn apply(&self, ctx: &mut ApplyContext<'_>) -> Result<()> {
-    ctx
-      .normal_module_factory_hooks
-      .create_loader_cache
-      .tap(create_loader_cache::new(self));
     Ok(())
   }
 }

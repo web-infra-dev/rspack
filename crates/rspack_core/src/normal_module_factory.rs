@@ -19,7 +19,8 @@ use crate::{
   ResolveOptionsWithDependencyType, ResolveResult, ResolvedModuleOptions,
   ResolvedModuleOptionsCacheKey, Resolver, ResolverFactory, ResourceData, ResourceParsedData,
   RunnerContext, RuntimeGlobals, SharedPluginDriver, diagnostics::EmptyDependency,
-  module_rules_matcher, parse_resource, resolve, stringify_loaders_and_resource,
+  loader::CacheLoader, module_rules_matcher, parse_resource, resolve,
+  stringify_loaders_and_resource,
 };
 
 define_hook!(NormalModuleFactoryBeforeResolve: SeriesBail(data: &mut ModuleFactoryCreateData) -> bool,tracing=false);
@@ -32,8 +33,6 @@ define_hook!(NormalModuleFactoryCreateModule: SeriesBail(data: &mut ModuleFactor
 define_hook!(NormalModuleFactoryModule: Series(data: &mut ModuleFactoryCreateData, create_data: &NormalModuleCreateData, module: &mut BoxModule),tracing=false);
 define_hook!(NormalModuleFactoryParser: Series(module_type: &ModuleType, parser: &mut Box<dyn ParserAndGenerator>, parser_options: Option<&ParserOptions>),tracing=false);
 define_hook!(NormalModuleFactoryResolveLoader: SeriesBail(context: &Context, resolver: &Resolver, l: &ModuleRuleUseLoader) -> BoxLoader,tracing=false);
-#[doc(hidden)]
-define_hook!(NormalModuleFactoryCreateLoaderCache: SeriesBail(l: &ModuleRuleUseLoader) -> BoxLoader,tracing=false);
 define_hook!(NormalModuleFactoryAfterFactorize: Series(data: &mut ModuleFactoryCreateData, module: &mut BoxModule),tracing=false);
 
 pub enum NormalModuleFactoryResolveResult {
@@ -390,9 +389,6 @@ pub struct NormalModuleFactoryHooks {
   /// So this hook is used to resolve inline loader (inline loader requests).
   // should move to ResolverFactory?
   pub resolve_loader: NormalModuleFactoryResolveLoaderHook,
-  /// Creates the native loader used for an internally inserted loader-cache boundary.
-  #[doc(hidden)]
-  pub create_loader_cache: NormalModuleFactoryCreateLoaderCacheHook,
   pub after_factorize: NormalModuleFactoryAfterFactorizeHook,
 }
 
@@ -1380,13 +1376,7 @@ async fn resolve_each_with_cache(
     return Ok(vec![resolved_loader]);
   }
 
-  let cache_loader = plugin_driver
-    .normal_module_factory_hooks
-    .create_loader_cache
-    .call(loader)
-    .await?
-    .ok_or_else(|| error!("Internal loader cache plugin is not registered"))?;
-  Ok(vec![cache_loader, resolved_loader])
+  Ok(vec![Arc::new(CacheLoader), resolved_loader])
 }
 
 #[derive(Debug)]
