@@ -3676,6 +3676,8 @@ impl OptimizationOptionsBuilder {
 /// [`Experiments`]: rspack_core::options::Experiments
 #[derive(Debug, Default)]
 pub struct ExperimentsBuilder {
+  /// Whether to enable loader result caching.
+  loader_cache: Option<bool>,
   /// Whether to enable future defaults.
   future_defaults: Option<bool>,
   /// Whether to enable css.
@@ -3696,6 +3698,7 @@ pub struct ExperimentsBuilder {
 impl From<Experiments> for ExperimentsBuilder {
   fn from(value: Experiments) -> Self {
     ExperimentsBuilder {
+      loader_cache: Some(value.loader_cache),
       future_defaults: None,
       css: Some(value.css),
       async_web_assembly: None,
@@ -3711,6 +3714,7 @@ impl From<Experiments> for ExperimentsBuilder {
 impl From<&mut ExperimentsBuilder> for ExperimentsBuilder {
   fn from(value: &mut ExperimentsBuilder) -> Self {
     ExperimentsBuilder {
+      loader_cache: value.loader_cache.take(),
       future_defaults: value.future_defaults.take(),
       css: value.css.take(),
       async_web_assembly: value.async_web_assembly.take(),
@@ -3724,6 +3728,12 @@ impl From<&mut ExperimentsBuilder> for ExperimentsBuilder {
 }
 
 impl ExperimentsBuilder {
+  /// Set whether to enable loader result caching.
+  pub fn loader_cache(&mut self, loader_cache: bool) -> &mut Self {
+    self.loader_cache = Some(loader_cache);
+    self
+  }
+
   /// Set whether to enable future defaults.
   pub fn future_defaults(&mut self, future_defaults: bool) -> &mut Self {
     self.future_defaults = Some(future_defaults);
@@ -3775,6 +3785,7 @@ impl ExperimentsBuilder {
     w!(self.async_web_assembly, true);
 
     Ok(Experiments {
+      loader_cache: d!(self.loader_cache, false),
       css: d!(self.css, false),
       defer_import: d!(self.defer_import, false),
       env: d!(self.env, false),

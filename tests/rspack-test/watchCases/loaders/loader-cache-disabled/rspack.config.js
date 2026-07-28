@@ -2,9 +2,6 @@ const path = require('path');
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
-  experiments: {
-    loaderCache: true,
-  },
   module: {
     rules: [
       {
