@@ -25,8 +25,7 @@ use super::{
   api_plugin::{
     ImportMetaRuntimeApi, import_meta_runtime_api_assign, import_meta_runtime_api_call,
     import_meta_runtime_api_from_name, import_meta_runtime_api_from_property,
-    import_meta_runtime_api_member, is_simple_assign_op,
-    render_import_meta_runtime_api_destructuring,
+    import_meta_runtime_api_member, render_import_meta_runtime_api_destructuring,
   },
   import_meta_path::{
     get_import_meta_eval_value, get_import_meta_member_replacement, should_handle_import_meta_path,
@@ -1059,9 +1058,11 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaPlugin {
     let handled = import_meta_runtime_api_assign(
       parser,
       span,
+      expr.right.span(),
+      expr.span(),
       api,
       full_assignment,
-      is_simple_assign_op(expr.op),
+      expr.op,
     );
     if handled.is_some() {
       parser.walk_expression(&expr.right);
