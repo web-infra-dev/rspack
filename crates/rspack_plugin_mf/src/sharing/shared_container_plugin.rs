@@ -9,6 +9,7 @@ use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 
 use crate::{
+  ShareScope,
   container::{
     container_entry_dependency::ContainerEntryDependency,
     container_entry_module_factory::ContainerEntryModuleFactory,
@@ -23,6 +24,9 @@ pub struct SharedContainerPluginOptions {
   pub version: String,
   pub file_name: Option<Filename>,
   pub library: LibraryOptions,
+  pub share_key: String,
+  pub share_scope: ShareScope,
+  pub layer: Option<String>,
 }
 
 #[plugin]
@@ -60,6 +64,9 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
     self.options.name.clone(),
     self.options.request.clone(),
     self.options.version.clone(),
+    self.options.share_scope.clone(),
+    self.options.share_key.clone(),
+    self.options.layer.clone(),
   );
 
   compilation
@@ -69,6 +76,7 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
         name: Some(self.options.name.clone()),
         filename: self.options.file_name.clone(),
         library: Some(self.options.library.clone()),
+        layer: self.options.layer.clone(),
         ..Default::default()
       },
     )

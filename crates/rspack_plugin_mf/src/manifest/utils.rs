@@ -218,14 +218,6 @@ pub fn record_shared_usage(
   }
 }
 
-pub fn parse_provide_shared_identifier(identifier: &str) -> Option<(String, String)> {
-  let (before_request, _) = identifier.split_once(" = ")?;
-  let token = before_request.split_whitespace().last()?;
-  // For scoped packages like @scope/pkg@1.0.0, split at the LAST '@'
-  let (name, version) = token.rsplit_once('@')?;
-  Some((name.to_string(), version.to_string()))
-}
-
 pub fn parse_consume_shared_identifier(identifier: &str) -> Option<(String, Option<String>)> {
   let (_, rest) = identifier.split_once(") ")?;
   let token = rest.split_whitespace().next()?;
