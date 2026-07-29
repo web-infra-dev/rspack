@@ -29,8 +29,8 @@
     "format-ci:js": "prettier . --check && heading-case",
     "format-ci:toml": "taplo format --check",
     "format:toml": "taplo format",
-    "lint:js": "rslint --fix",
-    "lint-ci:js": "rslint",
+    "lint:js": "rs lint --fix",
+    "lint-ci:js": "rs lint",
     "lint:rs": "cargo check --workspace --all-targets --locked",
     "build:binding:dev": "pnpm --filter @rspack/binding run build:dev",
     "build:binding:debug": "pnpm --filter @rspack/binding run build:debug",
@@ -57,7 +57,6 @@
     "pnpm": "11.8.0"
   },
   "devDependencies": {
-    "@rslint/core": "catalog:",
     "@rstest/core": "catalog:",
     "@taplo/cli": "catalog:",
     "@types/node": "catalog:",
