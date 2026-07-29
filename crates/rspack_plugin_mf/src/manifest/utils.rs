@@ -313,6 +313,7 @@ pub fn collect_expose_requirements(
   exposes_map: &mut HashMap<ExposeIdentity, StatsExpose>,
   links: Vec<(SharedIdentity, String, Option<String>)>,
   expose_identities_by_import: &HashMap<String, Vec<ExposeIdentity>>,
+  expose_effective_layers: &HashMap<ExposeIdentity, Option<String>>,
   expose_module_paths: &HashMap<ExposeIdentity, String>,
 ) {
   for (identity, expose_import, issuer_layer) in links {
@@ -335,12 +336,11 @@ pub fn collect_expose_requirements(
       || required_shared.layer.is_some()
       || required_shared.share_scope.is_some();
     for expose_identity in expose_identities {
-      if let Some(issuer_layer) = issuer_layer.as_deref()
-        && expose_identity
-          .layer
-          .as_deref()
-          .is_some_and(|layer| layer != issuer_layer)
-      {
+      let effective_layer = expose_effective_layers
+        .get(expose_identity)
+        .map(|layer| layer.as_deref())
+        .unwrap_or(expose_identity.layer.as_deref());
+      if effective_layer != issuer_layer.as_deref() {
         continue;
       }
       let Some(expose) = exposes_map.get_mut(expose_identity) else {
@@ -476,6 +476,10 @@ mod tests {
         Some("client".to_string()),
       )],
       &expose_identities_by_import,
+      &HashMap::from_iter([
+        (client_expose.clone(), Some("client".to_string())),
+        (server_expose.clone(), Some("server".to_string())),
+      ]),
       &HashMap::default(),
     );
 
@@ -484,7 +488,7 @@ mod tests {
   }
 
   #[test]
-  fn unlayered_expose_accepts_a_rule_layered_issuer() {
+  fn unlayered_expose_requires_a_matching_effective_layer() {
     let shared_identity =
       SharedIdentity::new(&ShareScope::Single("default".to_string()), "react", None);
     let mut shared_map = HashMap::default();
@@ -520,11 +524,15 @@ mod tests {
       &mut shared_map,
       &mut exposes_map,
       vec![(
-        shared_identity,
+        shared_identity.clone(),
         "entry".to_string(),
         Some("server".to_string()),
       )],
       &expose_identities_by_import,
+      &HashMap::from_iter([
+        (expose_identity.clone(), Some("server".to_string())),
+        (layered_expose_identity.clone(), Some("server".to_string())),
+      ]),
       &HashMap::default(),
     );
 
@@ -535,5 +543,31 @@ mod tests {
         .usedIn,
       ["./fallback", "./server"]
     );
+
+    for expose in exposes_map.values_mut() {
+      expose.requires.clear();
+      expose.required_shared.clear();
+    }
+    shared_map.get_mut(&shared_identity).unwrap().usedIn.clear();
+
+    collect_expose_requirements(
+      &mut shared_map,
+      &mut exposes_map,
+      vec![(
+        shared_identity.clone(),
+        "entry".to_string(),
+        Some("server".to_string()),
+      )],
+      &expose_identities_by_import,
+      &HashMap::from_iter([
+        (expose_identity.clone(), None),
+        (layered_expose_identity.clone(), Some("server".to_string())),
+      ]),
+      &HashMap::default(),
+    );
+
+    assert!(exposes_map[&expose_identity].requires.is_empty());
+    assert_eq!(exposes_map[&layered_expose_identity].requires, ["react"]);
+    assert_eq!(shared_map[&shared_identity].usedIn, ["./server"]);
   }
 }

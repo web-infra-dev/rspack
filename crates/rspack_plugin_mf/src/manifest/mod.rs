@@ -22,8 +22,8 @@ pub use options::{
 };
 use rspack_collections::IdentifierSet;
 use rspack_core::{
-  Compilation, CompilationAsset, CompilationProcessAssets, ModuleIdentifier, ModuleType, Plugin,
-  PublicPath,
+  Compilation, CompilationAsset, CompilationProcessAssets, DependenciesBlock, ModuleIdentifier,
+  ModuleType, Plugin, PublicPath,
   rspack_sources::{RawStringSource, SourceExt},
 };
 use rspack_error::Result;
@@ -306,6 +306,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     let mut exposes_map: HashMap<ExposeIdentity, StatsExpose> = HashMap::default();
     let mut expose_imports: HashMap<ExposeIdentity, String> = HashMap::default();
     let mut expose_identities_by_import: HashMap<String, Vec<ExposeIdentity>> = HashMap::default();
+    let mut expose_effective_layers: HashMap<ExposeIdentity, Option<String>> = HashMap::default();
     let mut expose_chunk_keys: HashMap<ExposeIdentity, rspack_core::ChunkUkey> = HashMap::default();
     let mut expose_fallback_chunk_keys: HashMap<ExposeIdentity, rspack_core::ChunkUkey> =
       HashMap::default();
@@ -380,6 +381,18 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
             .cloned()
             .flatten();
           let expose_identity = ExposeIdentity::new(expose_key, expose_layer.as_deref());
+          let effective_layer = blocks
+            .get(index)
+            .and_then(|block_id| module_graph.block_by_id(block_id))
+            .and_then(|block| {
+              block.get_dependencies().iter().find_map(|dependency_id| {
+                module_graph
+                  .module_identifier_by_dependency_id(dependency_id)
+                  .and_then(|module_id| module_graph.module_by_identifier(module_id))
+                  .and_then(|module| module.get_layer().cloned())
+              })
+            });
+          expose_effective_layers.insert(expose_identity.clone(), effective_layer);
           expose_imports.insert(expose_identity.clone(), expose_file_key.clone());
           let expose_identities = expose_identities_by_import
             .entry(expose_file_key.clone())
@@ -567,6 +580,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       &mut exposes_map,
       shared_usage_links_for_requirements,
       &expose_identities_by_import,
+      &expose_effective_layers,
       &expose_module_paths,
     );
     let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
