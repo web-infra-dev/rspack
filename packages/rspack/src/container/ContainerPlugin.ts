@@ -30,18 +30,18 @@ export type ContainerPluginOptions<Enhanced extends boolean = boolean> = [
     : | (ContainerPluginBaseOptions<false> & { enhanced?: false })
       | (ContainerPluginBaseOptions<true> & { enhanced: true })
       | (ContainerPluginBaseOptions<false> & { enhanced: boolean });
-export type Exposes<Enhanced extends boolean = boolean> =
+export type Exposes<Enhanced extends boolean = false> =
   (ExposesItem | ExposesObject<Enhanced>)[] | ExposesObject<Enhanced>;
 export type ExposesItem = string;
 export type ExposesItems = ExposesItem[];
-export type ExposesObject<Enhanced extends boolean = boolean> = {
+export type ExposesObject<Enhanced extends boolean = false> = {
   [k: string]: ExposesConfig<Enhanced> | ExposesItem | ExposesItems;
 };
 type ExposesBaseConfig = {
   import: ExposesItem | ExposesItems;
   name?: string;
 };
-export type ExposesConfig<Enhanced extends boolean = boolean> = [
+export type ExposesConfig<Enhanced extends boolean = false> = [
   Enhanced,
 ] extends [true]
   ? ExposesBaseConfig & { layer?: string }
