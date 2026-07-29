@@ -183,6 +183,7 @@ async fn optimize_dependencies(
     module_graph.modules_keys().copied().collect()
   };
   self.apply_custom_exports();
+  let mut exports_info_reset = false;
   for module_id in module_ids {
     let module_graph = build_module_graph_artifact.get_module_graph();
     let share_info = {
@@ -278,7 +279,10 @@ async fn optimize_dependencies(
       continue;
     }
 
-    exports_info_artifact.reset_all_exports_info_used();
+    if !exports_info_reset {
+      exports_info_artifact.reset_all_exports_info_used();
+      exports_info_reset = true;
+    }
     for module_id in &modules_to_process {
       let exports_info_data = exports_info_artifact.get_exports_info_data_mut(module_id);
 
