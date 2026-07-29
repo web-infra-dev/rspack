@@ -111,7 +111,14 @@ export class ModuleFederationPlugin {
       this._treeShakingSharedPlugin.apply(compiler);
     }
 
-    const asyncStartup = this._options.experiments?.asyncStartup ?? false;
+    const hasOrderedEagerConsume = getSharedOptions(this._options).some(
+      ([, config]) =>
+        config.eager === true &&
+        Array.isArray(config.shareScope ?? this._options.shareScope),
+    );
+    const asyncStartup =
+      this._options.experiments?.asyncStartup === true ||
+      hasOrderedEagerConsume;
     const runtimeExperiments: ModuleFederationRuntimeExperimentsOptions = {
       asyncStartup,
     };

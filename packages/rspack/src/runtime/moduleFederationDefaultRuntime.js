@@ -407,6 +407,8 @@ export default function () {
       return initPromises;
     };
     override(runtimeRequire.f, 'consumes', (chunkId, promises) => {
+      const initialConsumesInit = runtimeRequire.federation.initialConsumesInit;
+      if (initialConsumesInit?.then) promises.push(initialConsumesInit);
       const consume = (targetPromises) =>
         runtimeRequire.federation.bundlerRuntime.consumes({
           chunkId,
@@ -532,7 +534,9 @@ export default function () {
       if (initPromises.length === 0) {
         installInitialConsumes();
       } else {
-        Promise.all(initPromises).then(installInitialConsumes);
+        runtimeRequire.federation.initialConsumesInit = Promise.all(
+          initPromises,
+        ).then(installInitialConsumes);
       }
     }
   }
