@@ -5,6 +5,7 @@ var __module_federation_bundler_runtime__,
   __module_federation_container_name__,
   __module_federation_share_strategy__,
   __module_federation_share_fallbacks__,
+  __module_federation_share_fallback_variants__,
   __module_federation_library_type__;
 export default function () {
   const runtimeRequire = __module_federation_runtime_require__;
@@ -62,6 +63,45 @@ export default function () {
       () => __module_federation_share_fallbacks__,
     );
     const sharedFallback = runtimeRequire.federation.sharedFallback;
+    const getSharedFallbackKey = (moduleId, data) => {
+      const variants =
+        __module_federation_share_fallback_variants__?.[data.shareKey];
+      if (!variants) return data.shareKey;
+      const expectedScopes = Array.isArray(data.shareScope)
+        ? data.shareScope
+        : [data.shareScope || 'default'];
+      const matchesScope = (variant) => {
+        const scopes = Array.isArray(variant.shareScope)
+          ? variant.shareScope
+          : [variant.shareScope || 'default'];
+        return (
+          scopes.length === expectedScopes.length &&
+          scopes.every((scope, index) => scope === expectedScopes[index])
+        );
+      };
+      const requestMatches = (variant) =>
+        !variant.import || variant.import === data.import;
+      let matches = variants.filter(
+        (variant) =>
+          requestMatches(variant) &&
+          variant.layer === data.layer &&
+          matchesScope(variant),
+      );
+      if (matches.length === 0 && data.layer !== undefined) {
+        matches = variants.filter(
+          (variant) =>
+            requestMatches(variant) &&
+            variant.layer === undefined &&
+            matchesScope(variant),
+        );
+      }
+      if (matches.length === 0) return;
+      const fallbackKey = `${data.shareKey}\0${moduleId}`;
+      sharedFallback[fallbackKey] = matches.map(
+        ({ entry, version, globalName }) => [entry, version, globalName],
+      );
+      return fallbackKey;
+    };
     early(
       runtimeRequire.federation,
       'consumesLoadingModuleToHandlerMapping',
@@ -70,17 +110,19 @@ export default function () {
         for (let [moduleId, data] of Object.entries(
           consumesLoadingModuleToConsumeDataMapping,
         )) {
+          const fallbackKey = getSharedFallbackKey(moduleId, data);
           consumesLoadingModuleToHandlerMapping[moduleId] = {
-            getter: sharedFallback
-              ? runtimeRequire.federation.bundlerRuntime?.getSharedFallbackGetter(
-                  {
-                    shareKey: data.shareKey,
-                    factory: data.fallback,
-                    webpackRequire: runtimeRequire,
-                    libraryType: runtimeRequire.federation.libraryType,
-                  },
-                )
-              : data.fallback,
+            getter:
+              sharedFallback && fallbackKey
+                ? runtimeRequire.federation.bundlerRuntime?.getSharedFallbackGetter(
+                    {
+                      shareKey: fallbackKey,
+                      factory: data.fallback,
+                      webpackRequire: runtimeRequire,
+                      libraryType: runtimeRequire.federation.libraryType,
+                    },
+                  )
+                : data.fallback,
             treeShakingGetter: sharedFallback ? data.fallback : undefined,
             shareInfo: {
               shareConfig: {
@@ -91,7 +133,9 @@ export default function () {
                 eager: data.eager,
                 layer: data.layer,
               },
-              scope: [data.shareScope],
+              scope: Array.isArray(data.shareScope)
+                ? data.shareScope
+                : [data.shareScope || 'default'],
             },
             shareKey: data.shareKey,
             treeShaking: runtimeRequire.federation.sharedFallback
