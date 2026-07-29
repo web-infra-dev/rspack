@@ -75,7 +75,7 @@ new rspack.container.ContainerPlugin({
   },
 });
 
-const legacyV1Options: ModuleFederationPluginV1Options<false> = {
+const legacyV1Options: ModuleFederationPluginV1Options = {
   name: 'legacy-v1',
   // @ts-expect-error Expose layers require the enhanced runtime gate.
   exposes: {
@@ -84,10 +84,19 @@ const legacyV1Options: ModuleFederationPluginV1Options<false> = {
 };
 new rspack.container.ModuleFederationPluginV1(legacyV1Options);
 
-// @ts-expect-error Expose layers require enhanced: true.
+interface ExtendedV1Options extends ModuleFederationPluginV1Options {
+  customRuntimeFlag?: boolean;
+}
+const extendedV1Options: ExtendedV1Options = {
+  name: 'extended-v1',
+  customRuntimeFlag: true,
+};
+new rspack.container.ModuleFederationPluginV1(extendedV1Options);
+
 new rspack.container.ModuleFederationPluginV1({
   name: 'legacy-v1-inferred',
   enhanced: false,
+  // @ts-expect-error Expose layers require enhanced: true.
   exposes: {
     './entry': { import: './index', layer: 'server' },
   },

@@ -27,20 +27,34 @@ export interface ModuleFederationPluginV1BaseOptions<
   enhanced?: Enhanced;
 }
 
-export type ModuleFederationPluginV1Options<
-  Enhanced extends boolean = boolean,
-> = [Enhanced] extends [true]
-  ? ModuleFederationPluginV1BaseOptions<true> & { enhanced: true }
-  : [Enhanced] extends [false]
-    ? ModuleFederationPluginV1BaseOptions<false> & { enhanced?: false }
-    : | (ModuleFederationPluginV1BaseOptions<false> & { enhanced?: false })
-      | (ModuleFederationPluginV1BaseOptions<true> & { enhanced: true })
-      | (Omit<ModuleFederationPluginV1BaseOptions<false>, 'enhanced'> & {
-          enhanced: boolean;
-        });
+export interface ModuleFederationPluginV1Options {
+  exposes?: Exposes;
+  filename?: string;
+  library?: LibraryOptions;
+  name: string;
+  remoteType?: ExternalsType;
+  remotes?: Remotes;
+  runtime?: EntryRuntime;
+  shareScope?: ShareScope;
+  shared?: Shared;
+  enhanced?: boolean;
+}
 
-export class ModuleFederationPluginV1<Enhanced extends boolean = boolean> {
-  constructor(private _options: ModuleFederationPluginV1Options<Enhanced>) {}
+type EnhancedModuleFederationPluginV1Options =
+  ModuleFederationPluginV1BaseOptions<true> & { enhanced: true };
+
+export class ModuleFederationPluginV1 {
+  private _options:
+    ModuleFederationPluginV1Options | EnhancedModuleFederationPluginV1Options;
+
+  constructor(options: EnhancedModuleFederationPluginV1Options);
+  constructor(options: ModuleFederationPluginV1Options);
+  constructor(
+    options:
+      ModuleFederationPluginV1Options | EnhancedModuleFederationPluginV1Options,
+  ) {
+    this._options = options;
+  }
 
   apply(compiler: Compiler) {
     const { _options: options } = this;
