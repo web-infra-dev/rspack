@@ -23,8 +23,7 @@ var __webpack_exports__ = (__webpack_exec__("./index.js"));
 (self["rspackChunk"] = self["rspackChunk"] || []).push([["wasm_wasm"], {
 "./module.js"(module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.a(module, async function (__rspack_load_async_deps, __rspack_async_done) { try {
-__webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {
+__webpack_require__.D(__webpack_exports__, {
   getNumber: () => (getNumber),
   result: () => (result)
 });
@@ -44,8 +43,7 @@ __rspack_async_done();
 },
 "./module2.js"(module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.a(module, async function (__rspack_load_async_deps, __rspack_async_done) { try {
-__webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {
+__webpack_require__.D(__webpack_exports__, {
   getNumber: () => (getNumber)
 });
 /* import */ var _wasm_wasm__rspack_import_0 = __webpack_require__("./wasm.wasm");

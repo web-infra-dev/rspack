@@ -1689,17 +1689,17 @@ impl Module for ConcatenatedModule {
         .await?;
 
       if !matches!(should_skip_render_definitions, Some(true)) {
-        if should_add_esm_flag {
+        let runtime_global = if should_add_esm_flag {
           result.add(RawStringSource::from_static("// ESM COMPAT FLAG\n"));
-          result.add(RawStringSource::from(
-            runtime_template.define_es_module_flag_statement(self.get_exports_argument()),
-          ));
-        }
+          RuntimeGlobals::DEFINE_ESM_EXPORTS
+        } else {
+          RuntimeGlobals::DEFINE_PROPERTY_GETTERS
+        };
 
         result.add(RawStringSource::from_static("\n// EXPORTS\n"));
         result.add(RawStringSource::from(format!(
           "{}({}, {{{}\n}});\n",
-          runtime_template.render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS),
+          runtime_template.render_runtime_globals(&runtime_global),
           runtime_template.render_exports_argument(exports_argument),
           definitions.join(",")
         )));
@@ -1787,26 +1787,25 @@ impl Module for ConcatenatedModule {
       }
       // https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/optimize/ConcatenatedModule.js#L1539
       let name = name_space_name.expect("should have name_space_name");
-      let define_getters = if !ns_obj.is_empty() {
+      let namespace_init = if ns_obj.is_empty() {
+        format!(
+          "{}({});\n",
+          runtime_template.render_runtime_globals(&RuntimeGlobals::MAKE_NAMESPACE_OBJECT),
+          name,
+        )
+      } else {
         format!(
           "{}({}, {{ {} }});\n",
-          runtime_template.render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS),
+          runtime_template.render_runtime_globals(&RuntimeGlobals::DEFINE_ESM_EXPORTS),
           name,
           ns_obj.join(",")
         )
-      } else {
-        String::new()
       };
 
       namespace_object_sources.insert(
         module_info_id,
         format!(
-          "// NAMESPACE OBJECT: {}\nvar {} = {{}};\n{}({});\n{}\n",
-          module_readable_identifier,
-          name,
-          runtime_template.render_runtime_globals(&RuntimeGlobals::MAKE_NAMESPACE_OBJECT),
-          name,
-          define_getters
+          "// NAMESPACE OBJECT: {module_readable_identifier}\nvar {name} = {{}};\n{namespace_init}\n"
         ),
       );
     }
