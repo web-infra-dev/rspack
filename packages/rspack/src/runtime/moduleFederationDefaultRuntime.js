@@ -59,10 +59,16 @@ export default function () {
         const facade = Object.create(external);
         Object.defineProperty(facade, 'init', {
           value: (shareScope, initScope, remoteEntryInitOptions) => {
-            if (arrayInitializedExternals.has(external)) {
-              return arrayInitializedExternals.get(external);
+            let initializedScopes = arrayInitializedExternals.get(external);
+            if (!initializedScopes) {
+              initializedScopes = new Map();
+              arrayInitializedExternals.set(external, initializedScopes);
             }
-            arrayInitializedExternals.set(external, undefined);
+            const scopesKey = JSON.stringify(shareScopes);
+            if (initializedScopes.has(scopesKey)) {
+              return initializedScopes.get(scopesKey);
+            }
+            initializedScopes.set(scopesKey, undefined);
             const result =
               remoteEntryInitOptions === undefined
                 ? init.call(
@@ -76,7 +82,7 @@ export default function () {
                     initScope,
                     remoteEntryInitOptions,
                   );
-            arrayInitializedExternals.set(external, result);
+            initializedScopes.set(scopesKey, result);
             return result;
           },
         });

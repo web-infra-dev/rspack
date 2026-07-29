@@ -77,14 +77,7 @@ impl ProvideSharedModule {
       &request
     );
     let identity_key = SharedIdentity::new(&share_scope, &name, layer.as_deref()).identifier_key();
-    let identifier = if layer.is_none() {
-      format!(
-        "provide shared module {} {name}@{version} = {request}",
-        share_scope.identifier_fragment()
-      )
-    } else {
-      format!("provide shared module [{identity_key}]@{version} = {request}")
-    };
+    let identifier = format!("provide shared module [{identity_key}]@{version} = {request}");
     Self {
       blocks: Vec::new(),
       dependencies: Vec::new(),
