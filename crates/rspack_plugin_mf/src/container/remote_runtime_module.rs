@@ -170,8 +170,10 @@ impl RuntimeModule for RemoteRuntimeModule {
 {remotes_loading_impl}
 "#,
       require_name = runtime_require_scope_name(runtime_template),
-      chunk_mapping = simd_json::to_string(&chunk_to_remotes_mapping).unwrap(),
-      id_to_remote_data_mapping = simd_json::to_string(&id_to_remote_data_mapping).unwrap(),
+      chunk_mapping =
+        simd_json::to_string(&chunk_to_remotes_mapping).expect("valid remote chunk mapping"),
+      id_to_remote_data_mapping =
+        simd_json::to_string(&id_to_remote_data_mapping).expect("valid remote data"),
       remotes_loading_impl = remotes_loading_impl,
     ))
   }

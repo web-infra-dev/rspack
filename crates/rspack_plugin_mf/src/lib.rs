@@ -180,7 +180,7 @@ mod utils {
   use serde::Serialize;
 
   pub fn json_stringify<T: ?Sized + Serialize>(v: &T) -> String {
-    simd_json::to_string(v).unwrap()
+    simd_json::to_string(v).expect("valid JSON")
   }
 
   pub fn module_identifier_namespace(runtime_mode: RuntimeMode) -> &'static str {
