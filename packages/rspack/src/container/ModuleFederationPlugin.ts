@@ -14,10 +14,7 @@ import {
   ModuleFederationManifestPlugin,
   type ModuleFederationManifestPluginOptions,
 } from './ModuleFederationManifestPlugin';
-import type {
-  ModuleFederationPluginV1BaseOptions,
-  ModuleFederationPluginV1Options,
-} from './ModuleFederationPluginV1';
+import type { ModuleFederationPluginV1BaseOptions } from './ModuleFederationPluginV1';
 import {
   type ModuleFederationRuntimeExperimentsOptions,
   ModuleFederationRuntimePlugin,
@@ -114,7 +111,14 @@ export class ModuleFederationPlugin {
       this._treeShakingSharedPlugin.apply(compiler);
     }
 
-    const asyncStartup = this._options.experiments?.asyncStartup ?? false;
+    const hasOrderedEagerConsume = getSharedOptions(this._options).some(
+      ([, config]) =>
+        config.eager === true &&
+        Array.isArray(config.shareScope ?? this._options.shareScope),
+    );
+    const asyncStartup =
+      this._options.experiments?.asyncStartup === true ||
+      hasOrderedEagerConsume;
     const runtimeExperiments: ModuleFederationRuntimeExperimentsOptions = {
       asyncStartup,
     };
@@ -156,7 +160,9 @@ export class ModuleFederationPlugin {
     );
 
     // Keep v1 options isolated from v2-only fields like `experiments`.
-    const v1Options: ModuleFederationPluginV1Options<true> = {
+    const v1Options: ModuleFederationPluginV1BaseOptions<true> & {
+      enhanced: true;
+    } = {
       name: this._options.name,
       exposes: this._options.exposes,
       filename: this._options.filename,
