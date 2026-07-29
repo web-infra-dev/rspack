@@ -332,11 +332,6 @@ pub struct ChunkLinkContext {
   all used symbols in current chunk
   */
   pub used_names: FxHashSet<Atom>,
-
-  /**
-  whether `__rspack_require` is exported by a runtime module instead of chunk exports
-  */
-  pub exports_require_via_runtime_module: bool,
 }
 
 impl ChunkLinkContext {
@@ -365,7 +360,6 @@ impl ChunkLinkContext {
       raw_import_stmts: Default::default(),
       module_external_namespace_imports: Default::default(),
       raw_star_exports: Default::default(),
-      exports_require_via_runtime_module: false,
     }
   }
 

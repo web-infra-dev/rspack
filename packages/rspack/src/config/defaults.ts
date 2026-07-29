@@ -277,7 +277,6 @@ const applyExperimentsDefaults = (
   D(experiments, 'futureDefaults', false);
   D(experiments, 'asyncWebAssembly', true);
   D(experiments, 'deferImport', false);
-  D(experiments, 'env', false);
   D(experiments, 'sourceImport', false);
 
   D(experiments, 'buildHttp', undefined);

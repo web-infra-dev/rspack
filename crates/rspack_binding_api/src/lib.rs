@@ -131,6 +131,7 @@ use crate::{
   error::{ErrorCode, RspackResultToNapiResultExt},
   fs_node::{HybridFileSystem, NodeFileSystem, ThreadsafeNodeFS},
   module::ModuleObject,
+  module_graph_connection::ModuleGraphConnectionWrapper,
   platform::RawCompilerPlatform,
   plugins::{
     JsCleanupPlugin, JsHooksAdapterPlugin, RegisterJsTapKind, RegisterJsTaps, buildtime_plugins,
@@ -528,6 +529,7 @@ impl JsCompiler {
     ChunkGroupWrapper::cleanup_last_compilation(compilation_id);
     DependencyWrapper::cleanup_last_compilation(compilation_id);
     AsyncDependenciesBlockWrapper::cleanup_last_compilation(compilation_id);
+    ModuleGraphConnectionWrapper::cleanup_last_compilation(compilation_id);
   }
 }
 

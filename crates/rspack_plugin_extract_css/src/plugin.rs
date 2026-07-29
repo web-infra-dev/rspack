@@ -49,6 +49,8 @@ pub static BASE_URI: &str = "rspack-css-extract://";
 pub static ABSOLUTE_PUBLIC_PATH: &str = "rspack-css-extract:///css-extract-plugin/";
 pub static AUTO_PUBLIC_PATH: &str = "__css_extract_public_path_auto__";
 pub static SINGLE_DOT_PATH_SEGMENT: &str = "__css_extract_single_dot_path_segment__";
+pub(crate) const MINI_CSS_CHUNK_FILENAME_EXPORT_GLOBAL: &str =
+  "__rspack_get_mini_css_chunk_filename";
 
 static STARTS_WITH_AT_IMPORT: &str = "@import url";
 
@@ -553,28 +555,32 @@ async fn runtime_requirement_in_tree(
 
     runtime_modules_to_add.push((
       *chunk_ukey,
-      Box::new(GetChunkFilenameRuntimeModule::new(
-        &compilation.runtime_template,
-        "css",
-        "mini-css",
-        SOURCE_TYPE[0],
-        global,
-        move |runtime_requirements| {
-          runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS)
-        },
-        move |chunk, compilation| {
-          chunk
-            .content_hash(&compilation.chunk_hashes_artifact)?
-            .contains_key(&SOURCE_TYPE[0])
-            .then(|| {
-              if chunk.can_be_initial(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey) {
-                filename.clone()
-              } else {
-                chunk_filename.clone()
-              }
-            })
-        },
-      )),
+      Box::new(
+        GetChunkFilenameRuntimeModule::new(
+          &compilation.runtime_template,
+          "css",
+          "mini-css",
+          SOURCE_TYPE[0],
+          global,
+          move |runtime_requirements| {
+            runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS)
+          },
+          move |chunk, compilation| {
+            chunk
+              .content_hash(&compilation.chunk_hashes_artifact)?
+              .contains_key(&SOURCE_TYPE[0])
+              .then(|| {
+                if chunk.can_be_initial(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
+                {
+                  filename.clone()
+                } else {
+                  chunk_filename.clone()
+                }
+              })
+          },
+        )
+        .with_rspack_export_global(MINI_CSS_CHUNK_FILENAME_EXPORT_GLOBAL),
+      ),
     ));
 
     runtime_modules_to_add.push((

@@ -27,7 +27,6 @@ use runtime_mode::RuntimeMode;
 pub struct Experiments {
   pub css: bool,
   pub defer_import: bool,
-  pub env: bool,
   pub source_import: bool,
   pub pure_functions: bool,
   pub runtime_mode: RuntimeMode,

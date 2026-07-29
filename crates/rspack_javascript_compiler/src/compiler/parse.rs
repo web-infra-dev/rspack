@@ -61,11 +61,12 @@ impl JavaScriptCompiler {
           .with_context(ast::Context::new(self.cm, Some(self.globals)))
       })
       .map_err(|errs| {
+        let source: Arc<str> = Arc::from(fm.src.as_ref());
         BatchErrors(
           errs
             .dedup_ecma_errors()
             .into_iter()
-            .map(|err| ecma_parse_error_deduped_to_rspack_error(err, fm.src.to_string()))
+            .map(|err| ecma_parse_error_deduped_to_rspack_error(err, source.clone()))
             .collect::<Vec<_>>(),
         )
       })
@@ -88,11 +89,12 @@ impl JavaScriptCompiler {
         )
       })
       .map_err(|errs| {
+        let source: Arc<str> = source.into();
         BatchErrors(
           errs
             .dedup_ecma_errors()
             .into_iter()
-            .map(|err| ecma_parse_error_deduped_to_rspack_error(err, source.to_string()))
+            .map(|err| ecma_parse_error_deduped_to_rspack_error(err, source.clone()))
             .collect::<Vec<_>>(),
         )
       })
@@ -111,11 +113,12 @@ impl JavaScriptCompiler {
     parse_with_lexer(lexer, is_module, false)
       .map(|(program, _)| program)
       .map_err(|errs| {
+        let source: Arc<str> = Arc::from(fm.src.as_ref());
         BatchErrors(
           errs
             .dedup_ecma_errors()
             .into_iter()
-            .map(|err| ecma_parse_error_deduped_to_rspack_error(err, fm.src.to_string()))
+            .map(|err| ecma_parse_error_deduped_to_rspack_error(err, source.clone()))
             .collect::<Vec<_>>(),
         )
       })

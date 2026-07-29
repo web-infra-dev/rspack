@@ -367,18 +367,18 @@ export default {
 
 ## optimization.nodeEnv
 
-<PropertyType
-  type="string | false"
-  defaultValueList={[{ defaultValue: 'false' }]}
-/>
+- **类型：** `string | false`
+- **默认值：** 由 [`mode`](/config/mode) 决定：
+  - [`production` 模式](/config/mode#production)：`'production'`
+  - [`development` 模式](/config/mode#development)：`'development'`
+  - [`none` 模式](/config/mode#none)：`false`
 
-Rspack 将 `process.env.NODE_ENV` 设置为给定的字符串。除非该值被明确设置为 `false`，否则 `optimization.nodeEnv` 将使用 [DefinePlugin](/plugins/webpack/define-plugin)。
-`optimization.nodeEnv` 的**默认值**为 [mode](/config/mode)，否则将设置为 `'production'`。
+`optimization.nodeEnv` 用于控制 Rspack 在编译时替换 `process.env.NODE_ENV` 所使用的值。Rspack 会通过 [DefinePlugin](/plugins/webpack/define-plugin) 完成该替换。
 
-可能的值：
+你也可以使用以下值覆盖由 `mode` 决定的默认行为：
 
-- 任意字符串：设置 `process.env.NODE_ENV` 的值。
-- false：不设置 `process.env.NODE_ENV` 的值。
+- 任意字符串：将 `process.env.NODE_ENV` 替换为指定的字符串。
+- `false`：禁用替换，保留代码中的 `process.env.NODE_ENV`。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -387,10 +387,6 @@ export default {
   },
 };
 ```
-
-:::tip
-当 [mode](/config/mode) 被设置为 `'none'` 时，`optimization.nodeEnv` 默认为 `false`。
-:::
 
 ## optimization.providedExports
 

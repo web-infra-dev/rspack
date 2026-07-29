@@ -149,6 +149,12 @@ export default {
 };
 ```
 
+:::note Child compiler 的缓存占用
+
+每个 child compiler 都会维护自己的一组持久化缓存版本，并独立应用 `maxVersions`。因此，创建 child compiler 的项目可能会保留额外的缓存数据，实际磁盘占用可能高于仅根据 root compiler 的 `maxVersions` 估算的大小。
+
+:::
+
 ### maxAge
 
 - **类型：** `number`（正整数，单位为秒）或 `Infinity`

@@ -1,32 +1,31 @@
 ```mjs title=main.mjs
-import { __rspack_context } from "./runtime.mjs";
-
+import { rspackRequire, moduleFactories, definePropertyGetters, makeNamespaceObject } from "./runtime.mjs";
 import * as __rspack_external_fs from "fs";
 import * as __rspack_external_path from "path";
-__rspack_context.m.add({
+moduleFactories.add({
 "./lib.js"
 /*!****************!*\
   !*** ./lib.js ***!
   \****************/
-(__unused_rspack_module, __rspack_exports, __rspack_context) {
-__rspack_context.N(__rspack_exports);
-/* import */ var fs__rspack_import_0 = __rspack_context.r(/*! fs */ "fs");
+(__unused_rspack_module, exports, rspackRequire) {
+makeNamespaceObject(exports);
+/* import */ var fs__rspack_import_0 = rspackRequire(/*! fs */ "fs");
 
 /* reexport */ var __rspack_reexport = {};
 /* reexport */ for( const __rspack_import_key in fs__rspack_import_0) if(["default","lib"].indexOf(__rspack_import_key) < 0) __rspack_reexport[__rspack_import_key] =() => fs__rspack_import_0[__rspack_import_key]
-/* reexport */ __rspack_context.d(__rspack_exports, __rspack_reexport);
-/* import */ var _lib2__rspack_import_1 = __rspack_context.r(/*! ./lib2 */ "./lib2.js");
+/* reexport */ definePropertyGetters(exports, __rspack_reexport);
+/* import */ var _lib2__rspack_import_1 = rspackRequire(/*! ./lib2 */ "./lib2.js");
 
 /* reexport */ var __rspack_reexport = {};
 /* reexport */ for( const __rspack_import_key in _lib2__rspack_import_1) if(["default","lib"].indexOf(__rspack_import_key) < 0) __rspack_reexport[__rspack_import_key] =() => _lib2__rspack_import_1[__rspack_import_key]
-/* reexport */ __rspack_context.d(__rspack_exports, __rspack_reexport);
+/* reexport */ definePropertyGetters(exports, __rspack_reexport);
 
 
 
 
 const lib = 42
 
-__rspack_context.d(__rspack_exports, {
+definePropertyGetters(exports, {
 }, {
   lib: lib
 });
@@ -37,21 +36,21 @@ __rspack_context.d(__rspack_exports, {
 /*!*****************!*\
   !*** ./lib2.js ***!
   \*****************/
-(__unused_rspack_module, __rspack_exports, __rspack_context) {
-__rspack_context.N(__rspack_exports);
-/* import */ var path__rspack_import_0 = __rspack_context.r(/*! path */ "path");
+(__unused_rspack_module, exports, rspackRequire) {
+makeNamespaceObject(exports);
+/* import */ var path__rspack_import_0 = rspackRequire(/*! path */ "path");
 
 /* reexport */ var __rspack_reexport = {};
 /* reexport */ for( const __rspack_import_key in path__rspack_import_0) if(["default","lib2"].indexOf(__rspack_import_key) < 0) __rspack_reexport[__rspack_import_key] =() => path__rspack_import_0[__rspack_import_key]
-/* reexport */ __rspack_context.d(__rspack_exports, __rspack_reexport);
-/* import */ var _lib3__rspack_import_1 = __rspack_context.r(/*! ./lib3 */ "./lib3.js");
+/* reexport */ definePropertyGetters(exports, __rspack_reexport);
+/* import */ var _lib3__rspack_import_1 = rspackRequire(/*! ./lib3 */ "./lib3.js");
 
 
 
 
 const lib2 = 42
 
-__rspack_context.d(__rspack_exports, {
+definePropertyGetters(exports, {
   fs: () => (/* reexport safe */ _lib3__rspack_import_1.fs),
   lib3: () => (/* reexport safe */ (/* inlined export _lib3__rspack_import_1 */42)),
   lib4: () => (/* reexport safe */ (/* inlined export _lib3__rspack_import_1 */24))
@@ -65,8 +64,8 @@ __rspack_context.d(__rspack_exports, {
 /*!*****************!*\
   !*** ./lib3.js ***!
   \*****************/
-(__unused_rspack_module, __rspack_exports, __rspack_context) {
-/* import */ var fs__rspack_import_0 = __rspack_context.r(/*! fs */ "fs");
+(__unused_rspack_module, exports, rspackRequire) {
+/* import */ var fs__rspack_import_0 = rspackRequire(/*! fs */ "fs");
 const lib3 = 42
 
 const lib_local = 24
@@ -74,7 +73,7 @@ const lib_local = 24
 
 
 
-__rspack_context.d(__rspack_exports, {
+definePropertyGetters(exports, {
   fs: () => (/* reexport module object */ fs__rspack_import_0)
 });
 
@@ -115,7 +114,7 @@ it('should re-export esm correctly', async () => {
 	expect(fs.readFile).toBe(readFile)
 })
 
-const lib_0 = __rspack_context.r("./lib.js");
+const lib_0 = rspackRequire("./lib.js");
 var lib_1 = lib_0.lib;
 var lib2_0 = lib_0.lib2;
 var fs_0 = lib_0.fs;
@@ -130,32 +129,31 @@ export * from "path";
 
 ```mjs title=runtime.mjs
 
-var __rspack_modules = {};
+var modules = {};
 // The module cache
-var __rspack_module_cache = {};
+var moduleCache = {};
 // The require function
-function __rspack_require(moduleId) {
+function rspackRequire(moduleId) {
 // Check if module is in cache
-var cachedModule = __rspack_module_cache[moduleId];
+var cachedModule = moduleCache[moduleId];
 if (cachedModule !== undefined) {
 return cachedModule.exports;
 }
 // Create a new module (and put it into the cache)
-var module = (__rspack_module_cache[moduleId] = {
+var module = (moduleCache[moduleId] = {
 exports: {}
 });
 // Execute the module function
-__rspack_modules[moduleId](module, module.exports, __rspack_context);
+modules[moduleId](module, module.exports, rspackRequire);
 
 // Return the exports of the module
 return module.exports;
 }
-var __rspack_context = {};
-__rspack_context.r = __rspack_require;
-// expose the modules object (__rspack_modules)
-__rspack_context.m = __rspack_modules;
+export { rspackRequire };
+// expose the modules object (modules)
+var moduleFactories = modules;
+export { moduleFactories };
 
-var moduleFactories=__rspack_modules;
 // rspack/runtime/define_property_getters
 var definePropertyGetters = (exports, getters, values) => {
 	var define = (defs, kind) => {
@@ -168,7 +166,7 @@ var definePropertyGetters = (exports, getters, values) => {
 	define(getters, "get");
 	define(values, "value");
 };;
-__rspack_context.d = definePropertyGetters;
+export { definePropertyGetters };
 // rspack/runtime/esm_register_module
 moduleFactories.add = function registerModules(modules) { Object.assign(moduleFactories, modules) }
 ;
@@ -182,8 +180,7 @@ var makeNamespaceObject = (exports) => {
 	}
 	Object.defineProperty(exports, '__esModule', { value: true });
 };;
-__rspack_context.N = makeNamespaceObject;
+export { makeNamespaceObject };
 
-export { __rspack_context };
 
 ```

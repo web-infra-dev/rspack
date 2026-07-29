@@ -2293,7 +2293,6 @@ export interface RawExperiments {
   useInputFileSystem?: false | Array<RegExp>
   css?: boolean
   deferImport: boolean
-  env: boolean
   sourceImport: boolean
   pureFunctions: boolean
   runtimeMode?: "webpack" | "rspack"

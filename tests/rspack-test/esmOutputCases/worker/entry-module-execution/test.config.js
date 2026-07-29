@@ -14,7 +14,7 @@ module.exports = {
 
     expect(esmSource).not.toContain('registerModules');
     expect(esmSource).not.toMatch(
-      /(?:__webpack_require__|__rspack_context\.r)\("\.\/worker\.js"\);/,
+      /(?:__webpack_require__|__rspack_context\.r|rspackRequire)\("\.\/worker\.js"\);/,
     );
     expect(esmSource).toMatch(/^#!\/usr\/bin\/env node\n"use client"\n/);
     expect(esmSource).toContain('globalThis.__workerEntryExecuted = true;');
@@ -25,7 +25,7 @@ module.exports = {
     );
 
     expect(commonJsSource).toMatch(
-      /(?:__webpack_require__|__rspack_context\.r)\("\.\/worker-cjs\.js"\);/,
+      /(?:__webpack_require__|__rspack_context\.r|rspackRequire)\("\.\/worker-cjs\.js"\);/,
     );
     expect(commonJsSource).toContain(
       'globalThis.__workerCommonJsEntryExecuted = true;',
@@ -37,7 +37,7 @@ module.exports = {
     );
 
     expect(asyncSource).toMatch(
-      /await (?:__webpack_require__\(__webpack_require__\.s|__rspack_context\.r\(__rspack_context\.s) = "\.\/worker-async\.js"\);/,
+      /await (?:__webpack_require__\(__webpack_require__\.s|__rspack_context\.r\(__rspack_context\.s|rspackRequire\(entryModuleId) = "\.\/worker-async\.js"\);/,
     );
     expect(asyncSource).toContain(
       'globalThis.__workerAsyncEntryExecuted = true;',

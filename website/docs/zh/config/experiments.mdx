@@ -146,36 +146,6 @@ import defer * as __rspack_external_jquery from 'jquery';
 
 :::
 
-## experiments.env
-
-<ApiMeta addedVersion="2.2.0" />
-
-- **类型：** `boolean`
-- **默认值：** `false`
-
-开启后，Rspack 会从 [`DefinePlugin`](/plugins/webpack/define-plugin)、[`EnvironmentPlugin`](/plugins/webpack/environment-plugin) 和 [`optimization.nodeEnv`](/config/optimization#optimizationnodeenv) 中收集 `import.meta.env` 的定义，并在编译时替换 `import.meta.env` 的引用：
-
-- 访问已定义的字段（如 `import.meta.env.MODE`）会被替换为对应的值。
-- 读取整个 `import.meta.env` 对象时，会被替换为包含所有已定义字段的对象字面量。
-- `typeof import.meta.env` 的值为 `'object'`。
-
-```js title="rspack.config.mjs"
-export default {
-  experiments: {
-    env: true,
-  },
-  plugins: [
-    new rspack.DefinePlugin({
-      'import.meta.env': {
-        MODE: JSON.stringify('production'),
-      },
-    }),
-  ],
-};
-```
-
-更多细节请参考 [DefinePlugin - import.meta.env](/plugins/webpack/define-plugin#importmetaenv)。可以通过 [`module.parser.javascript.importMeta.env`](/config/module-parser#javascriptimportmeta) 按模块禁用该求值行为。
-
 ## experiments.sourceImport
 
 <ApiMeta stability={Stability.Experimental} addedVersion="2.0.8" />

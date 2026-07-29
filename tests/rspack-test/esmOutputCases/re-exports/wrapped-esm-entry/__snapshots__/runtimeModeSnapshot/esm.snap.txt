@@ -1,20 +1,19 @@
 ```mjs title=main.mjs
-import { __rspack_context } from "./runtime.mjs";
-
+import { rspackRequire, moduleFactories, definePropertyGetters, makeNamespaceObject, esmModuleDecorator } from "./runtime.mjs";
 import * as __rspack_external_fs from "fs";
-__rspack_context.m.add({
+moduleFactories.add({
 "./index.js"
 /*!******************!*\
   !*** ./index.js ***!
   \******************/
-(module, __rspack_exports, __rspack_context) {
-__rspack_context.N(__rspack_exports);
-/* import */ var fs__rspack_import_0 = __rspack_context.r(/*! fs */ "fs");
+(module, exports, rspackRequire) {
+makeNamespaceObject(exports);
+/* import */ var fs__rspack_import_0 = rspackRequire(/*! fs */ "fs");
 
 /* reexport */ var __rspack_reexport = {};
 /* reexport */ for( const __rspack_import_key in fs__rspack_import_0) if(["r","named","default","fs","starExports","readFile"].indexOf(__rspack_import_key) < 0) __rspack_reexport[__rspack_import_key] =() => fs__rspack_import_0[__rspack_import_key]
-/* reexport */ __rspack_context.d(__rspack_exports, __rspack_reexport);
-/* module decorator */ module = __rspack_context.hmd(module);
+/* reexport */ definePropertyGetters(exports, __rspack_reexport);
+/* module decorator */ module = esmModuleDecorator(module);
 
 
 
@@ -38,7 +37,7 @@ it('should compile and import success', async () => {
 	expect(readFile).toBeDefined()
 })
 
-__rspack_context.d(__rspack_exports, {
+definePropertyGetters(exports, {
   fs: () => (/* reexport safe */ fs__rspack_import_0["default"]),
   named: () => (/* reexport safe */ (/* inlined export _lib__rspack_import_1 */42)),
   r: () => (/* reexport safe */ fs__rspack_import_0.readFile),
@@ -59,7 +58,7 @@ module.exports = __rspack_external_fs;
 
 },
 });
-const index = __rspack_context.r("./index.js");
+const index = rspackRequire("./index.js");
 var fs = index.fs;
 var named = index.named;
 var r = index.r;
@@ -73,33 +72,32 @@ export * from "fs";
 
 ```mjs title=runtime.mjs
 
-var __rspack_modules = {};
+var modules = {};
 // The module cache
-var __rspack_module_cache = {};
+var moduleCache = {};
 // The require function
-function __rspack_require(moduleId) {
+function rspackRequire(moduleId) {
 // Check if module is in cache
-var cachedModule = __rspack_module_cache[moduleId];
+var cachedModule = moduleCache[moduleId];
 if (cachedModule !== undefined) {
 return cachedModule.exports;
 }
 // Create a new module (and put it into the cache)
-var module = (__rspack_module_cache[moduleId] = {
+var module = (moduleCache[moduleId] = {
 id: moduleId,
 exports: {}
 });
 // Execute the module function
-__rspack_modules[moduleId](module, module.exports, __rspack_context);
+modules[moduleId](module, module.exports, rspackRequire);
 
 // Return the exports of the module
 return module.exports;
 }
-var __rspack_context = {};
-__rspack_context.r = __rspack_require;
-// expose the modules object (__rspack_modules)
-__rspack_context.m = __rspack_modules;
+export { rspackRequire };
+// expose the modules object (modules)
+var moduleFactories = modules;
+export { moduleFactories };
 
-var moduleFactories=__rspack_modules;
 // rspack/runtime/define_property_getters
 var definePropertyGetters = (exports, getters, values) => {
 	var define = (defs, kind) => {
@@ -112,7 +110,7 @@ var definePropertyGetters = (exports, getters, values) => {
 	define(getters, "get");
 	define(values, "value");
 };;
-__rspack_context.d = definePropertyGetters;
+export { definePropertyGetters };
 // rspack/runtime/esm_module_decorator
 var esmModuleDecorator = (module) => {
   module = Object.create(module);
@@ -125,7 +123,7 @@ var esmModuleDecorator = (module) => {
   });
   return module;
 };;
-__rspack_context.hmd = esmModuleDecorator;
+export { esmModuleDecorator };
 // rspack/runtime/esm_register_module
 moduleFactories.add = function registerModules(modules) { Object.assign(moduleFactories, modules) }
 ;
@@ -139,8 +137,7 @@ var makeNamespaceObject = (exports) => {
 	}
 	Object.defineProperty(exports, '__esModule', { value: true });
 };;
-__rspack_context.N = makeNamespaceObject;
+export { makeNamespaceObject };
 
-export { __rspack_context };
 
 ```

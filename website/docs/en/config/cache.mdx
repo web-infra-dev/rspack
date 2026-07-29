@@ -147,6 +147,12 @@ export default {
 };
 ```
 
+:::note Child compiler cache usage
+
+Each child compiler keeps its own persistent cache versions, with `maxVersions` applied independently. Projects that create child compilers may therefore retain additional cache data and use more disk space than the root compiler's `maxVersions` value alone suggests.
+
+:::
+
 ### maxAge
 
 - **Type:** `number` (positive integer, in seconds) or `Infinity`

@@ -316,7 +316,7 @@ For example, the above configuration means that the minimum size of javascript m
 
 #### splitChunks.cacheGroups.\{cacheGroup\}.minSizeReduction
 
-- **Type: ** `number | Record<string, number>`
+- **Type:** `number | Record<string, number>`
 - **Default:** `0`
 
 If there are several small modules in the build output, developers may not want to generate separate chunks for them even if their total size exceeds the `minSize` threshold. In this case, you can use the `minSizeReduction` parameter to set the minimum size reduction threshold required for module splitting.
