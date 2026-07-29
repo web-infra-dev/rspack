@@ -9,8 +9,9 @@ use rspack_core::{
   CodeGenerationRuntimeRequirementsWrite, Compilation, Context, DependenciesBlock, Dependency,
   DependencyId, DependencyType, ExportsArgument, FactoryMeta, GroupOptions, LibIdentOptions,
   Module, ModuleCodeGenerationContext, ModuleCodeTemplate, ModuleDependency, ModuleGraph,
-  ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType, StaticExportsDependency,
-  StaticExportsSpec, impl_module_meta_info, impl_source_map_config, module_update_hash,
+  ModuleIdentifier, ModuleLayer, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
+  StaticExportsDependency, StaticExportsSpec, impl_module_meta_info, impl_source_map_config,
+  module_update_hash,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
   runtime_mode::RuntimeMode,
 };
@@ -36,6 +37,7 @@ pub struct ContainerEntryModule {
   identifier: ModuleIdentifier,
   lib_ident: String,
   exposes: Vec<(String, ExposeOptions)>,
+  expose_layers: Vec<Option<ModuleLayer>>,
   share_scope: ShareScope,
   factory_meta: Option<FactoryMeta>,
   build_info: BuildInfo,
@@ -57,6 +59,25 @@ impl ContainerEntryModule {
     enhanced: bool,
     runtime_mode: RuntimeMode,
   ) -> Self {
+    let expose_layers = vec![None; exposes.len()];
+    Self::new_with_expose_layers(
+      name,
+      exposes,
+      expose_layers,
+      share_scope,
+      enhanced,
+      runtime_mode,
+    )
+  }
+
+  pub(crate) fn new_with_expose_layers(
+    name: String,
+    exposes: Vec<(String, ExposeOptions)>,
+    expose_layers: Vec<Option<ModuleLayer>>,
+    share_scope: ShareScope,
+    enhanced: bool,
+    runtime_mode: RuntimeMode,
+  ) -> Self {
     let namespace = module_identifier_namespace(runtime_mode);
     let lib_ident = format!("{namespace}/container/entry/{name}");
     Self {
@@ -65,10 +86,11 @@ impl ContainerEntryModule {
       identifier: ModuleIdentifier::from(format!(
         "container entry {} {}",
         share_scope.identifier_fragment(),
-        json_stringify(&exposes),
+        json_stringify(&(&exposes, &expose_layers)),
       )),
       lib_ident,
       exposes,
+      expose_layers,
       share_scope,
       factory_meta: None,
       build_info: BuildInfo {
@@ -107,6 +129,7 @@ impl ContainerEntryModule {
       identifier: ModuleIdentifier::from(format!("share container entry {identity_key}@{version}")),
       lib_ident,
       exposes: vec![],
+      expose_layers: vec![],
       share_scope,
       factory_meta: None,
       build_info: BuildInfo {
@@ -128,6 +151,10 @@ impl ContainerEntryModule {
 
   pub fn exposes(&self) -> &[(String, ExposeOptions)] {
     &self.exposes
+  }
+
+  pub fn expose_layers(&self) -> &[Option<ModuleLayer>] {
+    &self.expose_layers
   }
 
   pub fn name(&self) -> &str {
@@ -230,7 +257,7 @@ impl Module for ContainerEntryModule {
       }
     } else {
       // Container logic
-      for (name, options) in &self.exposes {
+      for (index, (name, options)) in self.exposes.iter().enumerate() {
         let mut block = AsyncDependenciesBlock::new(
           self.identifier,
           None,
@@ -242,7 +269,7 @@ impl Module for ContainerEntryModule {
               Box::new(ContainerExposedDependency::new(
                 name.clone(),
                 request.clone(),
-                options.layer.clone(),
+                self.expose_layers.get(index).cloned().flatten(),
               )) as Box<dyn Dependency>
             })
             .collect(),

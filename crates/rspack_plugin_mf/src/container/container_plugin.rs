@@ -32,7 +32,6 @@ pub struct ContainerPluginOptions {
 #[derive(Debug, Clone, Serialize)]
 pub struct ExposeOptions {
   pub name: Option<String>,
-  pub layer: Option<ModuleLayer>,
   pub import: Vec<String>,
 }
 
@@ -40,11 +39,22 @@ pub struct ExposeOptions {
 #[derive(Debug)]
 pub struct ContainerPlugin {
   options: ContainerPluginOptions,
+  expose_layers: Vec<Option<ModuleLayer>>,
 }
 
 impl ContainerPlugin {
   pub fn new(options: ContainerPluginOptions) -> Self {
-    Self::new_inner(options)
+    let expose_layers = vec![None; options.exposes.len()];
+    Self::new_inner(options, expose_layers)
+  }
+
+  pub fn new_with_expose_layers(
+    options: ContainerPluginOptions,
+    mut expose_layers: Vec<Option<ModuleLayer>>,
+  ) -> Self {
+    expose_layers.resize(options.exposes.len(), None);
+    expose_layers.truncate(options.exposes.len());
+    Self::new_inner(options, expose_layers)
   }
 }
 
@@ -67,9 +77,10 @@ async fn compilation(
 
 #[plugin_hook(CompilerMake for ContainerPlugin)]
 async fn make(&self, compilation: &mut Compilation) -> Result<()> {
-  let dep = ContainerEntryDependency::new(
+  let dep = ContainerEntryDependency::new_with_expose_layers(
     self.options.name.clone(),
     self.options.exposes.clone(),
+    self.expose_layers.clone(),
     self.options.share_scope.clone(),
     self.options.enhanced,
   );
@@ -136,6 +147,21 @@ async fn additional_tree_runtime_requirements(
     runtime_requirements.insert(RuntimeGlobals::STARTUP_CHUNK_DEPENDENCIES);
   }
   Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+  use super::ExposeOptions;
+
+  #[test]
+  fn expose_options_preserves_legacy_struct_literals() {
+    let options = ExposeOptions {
+      name: None,
+      import: vec!["./entry".to_string()],
+    };
+
+    assert_eq!(options.import, ["./entry"]);
+  }
 }
 
 #[plugin_hook(CompilationRuntimeRequirementInTree for ContainerPlugin)]
