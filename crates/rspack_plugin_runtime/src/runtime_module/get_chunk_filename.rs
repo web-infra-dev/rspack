@@ -3,9 +3,9 @@ use std::{cmp::Ordering, fmt};
 use itertools::Itertools;
 use rspack_cacheable::with::Unsupported;
 use rspack_core::{
-  Chunk, ChunkGraph, ChunkUkey, Compilation, Filename, PathData, RuntimeGlobals, RuntimeModule,
-  RuntimeModuleGenerateContext, RuntimeTemplate, SourceType, get_filename_without_hash_length,
-  has_hash_placeholder, impl_runtime_module,
+  Chunk, ChunkGraph, ChunkUkey, Compilation, Filename, PathData, RuntimeGlobals,
+  RuntimeGlobalsRenderMode, RuntimeModule, RuntimeModuleGenerateContext, RuntimeTemplate,
+  SourceType, get_filename_without_hash_length, has_hash_placeholder, impl_runtime_module,
 };
 use rspack_util::{
   fx_hash::{FxIndexMap, FxIndexSet},
@@ -25,6 +25,7 @@ pub struct GetChunkFilenameRuntimeModule {
   content_type: &'static str,
   source_type: SourceType,
   global: String,
+  rspack_export_global: Option<String>,
   #[cacheable(with=Unsupported)]
   all_chunks: GetChunkFilenameAllChunks,
   #[cacheable(with=Unsupported)]
@@ -65,9 +66,15 @@ impl GetChunkFilenameRuntimeModule {
       content_type,
       source_type,
       global,
+      None,
       Box::new(all_chunks),
       Box::new(filename_for_chunk),
     )
+  }
+
+  pub fn with_rspack_export_global(mut self, global: impl Into<String>) -> Self {
+    self.rspack_export_global = Some(global.into());
+    self
   }
 }
 
@@ -417,6 +424,16 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
       }
     }
 
+    let custom_global = if runtime_template.render_mode() == RuntimeGlobalsRenderMode::RspackExport
+    {
+      self
+        .rspack_export_global
+        .as_ref()
+        .map_or_else(|| self.global.clone(), |global| format!("var {global}"))
+    } else {
+      self.global.clone()
+    };
+
     let source = runtime_template.render(self.id(), Some(serde_json::json!({
       "_global": match self.source_type {
         SourceType::JavaScript => runtime_template
@@ -424,7 +441,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
         SourceType::Css => {
           runtime_template.render_runtime_global_definition(&RuntimeGlobals::GET_CHUNK_CSS_FILENAME)
         }
-        _ => self.global.clone(),
+        _ => custom_global,
       },
       "_static_urls": static_urls
                         .iter()

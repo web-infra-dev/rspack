@@ -131,6 +131,7 @@ use crate::{
   error::{ErrorCode, RspackResultToNapiResultExt},
   fs_node::{HybridFileSystem, NodeFileSystem, ThreadsafeNodeFS},
   module::ModuleObject,
+  module_graph_connection::ModuleGraphConnectionWrapper,
   platform::RawCompilerPlatform,
   plugins::{
     JsCleanupPlugin, JsHooksAdapterPlugin, RegisterJsTapKind, RegisterJsTaps, buildtime_plugins,
@@ -154,6 +155,8 @@ thread_local! {
   static COMPILER_REFERENCES: RefCell<FxHashMap<CompilerId, WeakReference<JsCompiler>>> = Default::default();
 }
 
+type EntryDependencyCacheKey = (String, String, Option<String>, Option<String>);
+
 #[js_function(1)]
 fn cleanup_revoked_modules(ctx: CallContext) -> Result<()> {
   let external = ctx.get::<&mut External<(CompilerId, Vec<ModuleIdentifier>)>>(0)?;
@@ -172,8 +175,8 @@ struct JsCompiler {
   // call drop manually to avoid unnecessary drop overhead in cli build
   compiler: ManuallyDrop<Compiler>,
   state: CompilerState,
-  include_dependencies_map: FxHashMap<String, FxHashMap<EntryOptions, BoxDependency>>,
-  entry_dependencies_map: FxHashMap<String, FxHashMap<EntryOptions, BoxDependency>>,
+  include_dependencies_map: FxHashMap<EntryDependencyCacheKey, BoxDependency>,
+  entry_dependencies_map: FxHashMap<EntryDependencyCacheKey, BoxDependency>,
   compiler_context: Arc<CompilerContext>,
   virtual_file_store: Option<Arc<RwLock<dyn VirtualFileStore>>>,
 }
@@ -528,6 +531,7 @@ impl JsCompiler {
     ChunkGroupWrapper::cleanup_last_compilation(compilation_id);
     DependencyWrapper::cleanup_last_compilation(compilation_id);
     AsyncDependenciesBlockWrapper::cleanup_last_compilation(compilation_id);
+    ModuleGraphConnectionWrapper::cleanup_last_compilation(compilation_id);
   }
 }
 

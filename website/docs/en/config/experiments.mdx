@@ -145,36 +145,6 @@ import defer * as __rspack_external_jquery from 'jquery';
 
 :::
 
-## experiments.env
-
-<ApiMeta addedVersion="2.2.0" />
-
-- **Type:** `boolean`
-- **Default:** `false`
-
-When enabled, Rspack collects `import.meta.env` definitions from [`DefinePlugin`](/plugins/webpack/define-plugin), [`EnvironmentPlugin`](/plugins/webpack/environment-plugin), and [`optimization.nodeEnv`](/config/optimization#optimizationnodeenv), and replaces `import.meta.env` references at compile time:
-
-- Accessing a defined field, such as `import.meta.env.MODE`, is replaced with its value.
-- Reading the whole `import.meta.env` object is replaced with an object literal containing all defined fields.
-- `typeof import.meta.env` evaluates to `'object'`.
-
-```js title="rspack.config.mjs"
-export default {
-  experiments: {
-    env: true,
-  },
-  plugins: [
-    new rspack.DefinePlugin({
-      'import.meta.env': {
-        MODE: JSON.stringify('production'),
-      },
-    }),
-  ],
-};
-```
-
-See [DefinePlugin - import.meta.env](/plugins/webpack/define-plugin#importmetaenv) for more details. Per-module evaluation can be disabled with [`module.parser.javascript.importMeta.env`](/config/module-parser#javascriptimportmeta).
-
 ## experiments.sourceImport
 
 <ApiMeta stability={Stability.Experimental} addedVersion="2.0.8" />

@@ -9,19 +9,16 @@ use rspack_error::{Result, TWithDiagnosticArray};
 use rspack_hash::RspackHashDigest;
 use rspack_loader_runner::{AdditionalData, ParseMeta, ResourceData};
 use rspack_sources::BoxSource;
-use rspack_util::{
-  ext::AsAny,
-  fx_hash::{FxHashMap, FxHashSet},
-  source_map::SourceMapKind,
-};
+use rspack_util::{ext::AsAny, source_map::SourceMapKind};
+use rustc_hash::{FxHashMap, FxHashSet};
 use swc_core::atoms::Atom;
 
 use crate::{
   AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BoxLoader, BoxModuleDependency,
-  BuildInfo, BuildMeta, ChunkGraph, CodeGenerationData, Compilation, CompilationId,
-  CompilerOptions, ConcatenationScope, Context, DependencyLocation, DependencyRange,
-  EvaluatedInlinableValue, FactoryMeta, GeneratorOptions, Module, ModuleCodeTemplate, ModuleGraph,
-  ModuleIdentifier, ModuleLayer, ModuleType, NormalModule, ParserOptions, RuntimeSpec, SourceType,
+  BuildInfo, BuildMeta, ChunkGraph, CodeGenerationData, Compilation, CompilerOptions,
+  ConcatenationScope, Context, DependencyLocation, DependencyRange, EvaluatedInlinableValue,
+  FactoryMeta, GeneratorOptions, Module, ModuleCodeTemplate, ModuleGraph, ModuleIdentifier,
+  ModuleLayer, ModuleType, NormalModule, ParserOptions, RuntimeSpec, SourceType,
 };
 
 #[derive(Debug)]
@@ -40,7 +37,6 @@ pub struct ParseContext<'a> {
   pub loaders: &'a [BoxLoader],
   pub resource_data: &'a ResourceData,
   pub compiler_options: &'a CompilerOptions,
-  pub compilation_id: CompilationId,
   pub additional_data: Option<AdditionalData>,
   pub factory_meta: Option<&'a FactoryMeta>,
   pub parse_meta: ParseMeta,

@@ -45,7 +45,7 @@ pub struct PersistentCacheOptions {
   /// Filesystem cache max age in seconds.
   #[cacheable(with=Skip)]
   pub max_age: u64,
-  /// Filesystem version count limit for the current storage directory.
+  /// Filesystem version count limit for the current compiler cache scope.
   #[cacheable(with=Skip)]
   pub max_versions: u32,
 }
@@ -85,6 +85,18 @@ impl PersistentCache {
     let option_bytes = codec
       .encode(option)
       .expect("should persistent cache options can be serialized");
+    // The scope identifies the compiler that owns a group of cache versions.
+    // Keep it independent of cache options: changing an option should create a
+    // new version in the same scope so maxVersions can retire the old version.
+    // compiler_path is empty for the root compiler and distinguishes child
+    // compilers by their name and index.
+    let version_scope = {
+      let mut hasher = DefaultHasher::new();
+      compiler_path.hash(&mut hasher);
+      hex::encode(hasher.finish().to_ne_bytes())
+    };
+    // The version hash identifies one cache-compatible configuration within
+    // the compiler scope.
     let version = {
       let mut hasher = DefaultHasher::new();
       compiler_path.hash(&mut hasher);
@@ -92,7 +104,7 @@ impl PersistentCache {
       rspack_pkg_version!().hash(&mut hasher);
       compiler_options.name.hash(&mut hasher);
       compiler_options.mode.hash(&mut hasher);
-      Version::new(hex::encode(hasher.finish().to_ne_bytes()))
+      Version::new(version_scope, hex::encode(hasher.finish().to_ne_bytes()))
     };
     let storage = create_storage(
       option.storage.clone(),

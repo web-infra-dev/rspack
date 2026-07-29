@@ -44,7 +44,7 @@ if (typeof document === "undefined") return;
 
 <%- var("extractCssLoadStylesheet") %> = function (chunkId, fetchPriority) {
 	return new Promise(function (resolve, reject) {
-		var href = <%- REQUIRE_SCOPE %>.miniCssF(chunkId);
+		var href = <%- _get_chunk_css_filename %>(chunkId);
 		var fullhref = <%- PUBLIC_PATH %> + href;
 		if (extractCssFindStylesheet(href, fullhref)) return resolve();
 		extractCssCreateStylesheet(chunkId, fullhref, null, resolve, reject, fetchPriority);

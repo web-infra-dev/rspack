@@ -21,7 +21,7 @@
 	applyHandlers.push(extractCssApplyHandler);
 	var seen = {};
 	chunkIds.forEach(function (chunkId) {
-		var href = <%- REQUIRE_SCOPE %>.miniCssF(chunkId);
+		var href = <%- _get_chunk_css_filename %>(chunkId);
 		if (!href) return;
 		var fullhref = <%- PUBLIC_PATH %> + href;
 		if (seen[fullhref]) return;

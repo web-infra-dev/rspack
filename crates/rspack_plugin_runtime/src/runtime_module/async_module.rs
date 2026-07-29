@@ -33,7 +33,7 @@ impl RuntimeModule for AsyncRuntimeModule {
   ) -> rspack_error::Result<String> {
     let runtime_template = context.runtime_template;
     let uses_lexical_runtime_globals = match runtime_template.render_mode() {
-      RuntimeGlobalsRenderMode::RspackLexical => true,
+      RuntimeGlobalsRenderMode::RspackLexical | RuntimeGlobalsRenderMode::RspackExport => true,
       RuntimeGlobalsRenderMode::Webpack | RuntimeGlobalsRenderMode::RspackContext => false,
     };
     runtime_template.render(
