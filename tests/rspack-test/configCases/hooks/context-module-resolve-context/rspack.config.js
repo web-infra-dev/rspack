@@ -15,12 +15,23 @@ class ContextModuleResolveContextPlugin {
               resolveData.context,
               path.join(__dirname, 'src'),
             );
+            if (resolveData.request.includes('after-source')) {
+              return;
+            }
             resolveData.context = path.join(__dirname, 'fixtures');
           },
         );
         contextModuleFactory.hooks.afterResolve.tap(
           pluginName,
           (resolveData) => {
+            if (resolveData.request.includes('after-source')) {
+              assert.strictEqual(
+                resolveData.context,
+                path.join(__dirname, 'src'),
+              );
+              resolveData.context = path.join(__dirname, 'fixtures');
+              return;
+            }
             assert.strictEqual(
               resolveData.context,
               path.join(__dirname, 'fixtures'),
