@@ -13,7 +13,7 @@ use serde::Serialize;
 use super::remote_module::RemoteModule;
 use crate::{
   ShareScope,
-  utils::{json_stringify, runtime_require_scope_name, runtime_require_scope_requirement},
+  utils::{runtime_require_scope_name, runtime_require_scope_requirement},
 };
 
 static REMOTES_LOADING_TEMPLATE: &str = include_str!("./remotesLoading.ejs");
@@ -170,14 +170,14 @@ impl RuntimeModule for RemoteRuntimeModule {
 {remotes_loading_impl}
 "#,
       require_name = runtime_require_scope_name(runtime_template),
-      chunk_mapping = json_stringify(&chunk_to_remotes_mapping),
-      id_to_remote_data_mapping = json_stringify(&id_to_remote_data_mapping),
+      chunk_mapping = simd_json::to_string(&chunk_to_remotes_mapping).unwrap(),
+      id_to_remote_data_mapping = simd_json::to_string(&id_to_remote_data_mapping).unwrap(),
       remotes_loading_impl = remotes_loading_impl,
     ))
   }
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 struct RemoteData<'a> {
   share_scope: ShareScopeField<'a>,
@@ -188,14 +188,14 @@ struct RemoteData<'a> {
   remote_info: Option<RemoteInfo<'a>>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 struct RemoteInfo<'a> {
   external_type: &'a str,
   name: &'a str,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Serialize)]
 #[serde(untagged)]
 enum ShareScopeField<'a> {
   Single(&'a str),

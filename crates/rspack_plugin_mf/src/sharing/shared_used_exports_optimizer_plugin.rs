@@ -48,6 +48,7 @@ fn share_scope_from_json(value: Option<&Value>) -> Option<Option<ShareScope>> {
   }
 }
 
+#[inline(always)]
 fn referenced_exports_for_output<'a>(
   shared_referenced_exports: &'a FxHashMap<SharedIdentity, FxHashSet<String>>,
   share_key: &str,
