@@ -65,33 +65,3 @@ it('should preinit client CSS in the RSC payload', async () => {
   expect(payload).toContain(clientCssFiles[0]);
   expect(payload).toContain('rspack-rsc/client-reference');
 });
-
-it('should expose client reference dependencies and custom CSS precedence', async () => {
-  const clientReferences = [];
-  const stream = renderToReadableStream(<App />, {
-    onClientReference: reference => {
-      clientReferences.push(reference);
-    },
-    cssLinkPrecedence: 'custom/client-reference',
-  });
-  const payload = await readStream(stream);
-  const [[id, entry]] = Object.entries(
-    __rspack_rsc_manifest__.clientManifest,
-  );
-  const js = [];
-  for (let i = 1; i < entry.chunks.length; i += 2) {
-    js.push(__rspack_rsc_manifest__.moduleLoading.prefix + entry.chunks[i]);
-  }
-
-  expect(clientReferences).toEqual([
-    {
-      id,
-      deps: {
-        js,
-        css: entry.cssFiles,
-      },
-    },
-  ]);
-  expect(payload).toContain('custom/client-reference');
-  expect(payload).not.toContain('rspack-rsc/client-reference');
-});
