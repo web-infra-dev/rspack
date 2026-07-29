@@ -4,7 +4,7 @@ use rspack_core::{
   DependencyType, FactorizeInfo, ModuleDependency, ResourceIdentifier,
 };
 
-use crate::{ExposeOptions, ShareScope};
+use crate::{ExposeOptions, ShareScope, SharedIdentity};
 
 #[cacheable]
 #[derive(Debug, Clone)]
@@ -15,6 +15,8 @@ pub struct ContainerEntryDependency {
   pub share_scope: ShareScope,
   pub request: Option<String>,
   pub version: Option<String>,
+  pub(crate) share_key: Option<String>,
+  pub(crate) layer: Option<String>,
   resource_identifier: ResourceIdentifier,
   pub(crate) enhanced: bool,
   dependency_type: DependencyType,
@@ -36,6 +38,8 @@ impl ContainerEntryDependency {
       share_scope,
       request: None,
       version: None,
+      share_key: None,
+      layer: None,
       resource_identifier,
       enhanced,
       dependency_type: DependencyType::ContainerEntry,
@@ -43,15 +47,30 @@ impl ContainerEntryDependency {
     }
   }
 
-  pub fn new_share_container_entry(name: String, request: String, version: String) -> Self {
-    let resource_identifier = format!("share-container-entry-{}", &name).into();
+  pub(crate) fn new_share_container_entry(
+    name: String,
+    request: String,
+    version: String,
+    share_scope: ShareScope,
+    share_key: String,
+    layer: Option<String>,
+  ) -> Self {
+    let shared_identity = SharedIdentity::new(&share_scope, &share_key, layer.as_deref());
+    let resource_identifier = format!(
+      "share-container-entry-{}-{}",
+      &name,
+      shared_identity.identifier_key()
+    )
+    .into();
     Self {
       id: DependencyId::new(),
       name,
       exposes: vec![],
-      share_scope: ShareScope::Multiple(vec![]),
+      share_scope,
       request: Some(request),
       version: Some(version),
+      share_key: Some(share_key),
+      layer,
       resource_identifier,
       enhanced: false,
       dependency_type: DependencyType::ShareContainerEntry,
@@ -72,6 +91,10 @@ impl Dependency for ContainerEntryDependency {
 
   fn dependency_type(&self) -> &DependencyType {
     &self.dependency_type
+  }
+
+  fn get_layer(&self) -> Option<&rspack_core::ModuleLayer> {
+    self.layer.as_ref()
   }
 
   fn resource_identifier(&self) -> Option<&str> {

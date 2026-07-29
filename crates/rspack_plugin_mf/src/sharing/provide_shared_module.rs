@@ -7,8 +7,9 @@ use rspack_core::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildContext,
   BuildInfo, BuildMeta, BuildResult, CodeGenerationResult, Compilation, Context, DependenciesBlock,
   DependencyId, FactoryMeta, LibIdentOptions, Module, ModuleCodeGenerationContext, ModuleGraph,
-  ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType, impl_module_meta_info,
-  impl_source_map_config, module_update_hash, rspack_sources::BoxSource, runtime_mode::RuntimeMode,
+  ModuleIdentifier, ModuleLayer, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
+  impl_module_meta_info, impl_source_map_config, module_update_hash, rspack_sources::BoxSource,
+  runtime_mode::RuntimeMode,
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::{RspackHashDigest, RspackHasher};
@@ -21,7 +22,7 @@ use super::{
     CodeGenerationDataShareInit, DataInitInfo, ProvideSharedInfo, ShareInitData,
   },
 };
-use crate::{ConsumeVersion, ShareScope, utils::module_identifier_namespace};
+use crate::{ConsumeVersion, ShareScope, SharedIdentity, utils::module_identifier_namespace};
 
 #[impl_source_map_config]
 #[cacheable]
@@ -40,6 +41,7 @@ pub struct ProvideSharedModule {
   singleton: Option<bool>,
   required_version: Option<ConsumeVersion>,
   strict_version: Option<bool>,
+  layer: Option<String>,
   tree_shaking_mode: Option<String>,
   factory_meta: Option<FactoryMeta>,
   build_info: BuildInfo,
@@ -57,21 +59,35 @@ impl ProvideSharedModule {
     singleton: Option<bool>,
     required_version: Option<ConsumeVersion>,
     strict_version: Option<bool>,
+    layer: Option<String>,
     tree_shaking_mode: Option<String>,
     runtime_mode: RuntimeMode,
   ) -> Self {
     let scopes_key = share_scope.key();
     let namespace = module_identifier_namespace(runtime_mode);
-    let identifier = format!(
-      "provide shared module ({}) {}@{} = {}",
-      &scopes_key, &name, &version, &request
+    let readable_identifier = format!(
+      "provide shared module ({}){} {}@{} = {}",
+      &scopes_key,
+      layer
+        .as_ref()
+        .map(|layer| format!(" ({layer})"))
+        .unwrap_or_default(),
+      &name,
+      &version,
+      &request
     );
+    let identity_key = SharedIdentity::new(&share_scope, &name, layer.as_deref()).identifier_key();
+    let identifier = format!("provide shared module [{identity_key}]@{version} = {request}");
     Self {
       blocks: Vec::new(),
       dependencies: Vec::new(),
       identifier: ModuleIdentifier::from(identifier.as_ref()),
-      lib_ident: format!("{namespace}/sharing/provide/{scopes_key}/{name}"),
-      readable_identifier: identifier,
+      lib_ident: if layer.is_none() && matches!(&share_scope, ShareScope::Single(_)) {
+        format!("{namespace}/sharing/provide/{scopes_key}/{name}")
+      } else {
+        format!("{namespace}/sharing/provide/{identity_key}")
+      },
+      readable_identifier,
       name,
       share_scope,
       version,
@@ -80,6 +96,7 @@ impl ProvideSharedModule {
       singleton,
       required_version,
       strict_version,
+      layer,
       tree_shaking_mode,
       factory_meta: None,
       build_info: BuildInfo {
@@ -93,6 +110,10 @@ impl ProvideSharedModule {
 
   pub fn share_key(&self) -> &str {
     &self.name
+  }
+
+  pub(crate) fn shared_identity(&self) -> SharedIdentity {
+    SharedIdentity::new(&self.share_scope, &self.name, self.layer.as_deref())
   }
 
   pub fn share_scope(&self) -> &ShareScope {
@@ -164,6 +185,10 @@ impl Module for ProvideSharedModule {
     Some(self.lib_ident.as_str().into())
   }
 
+  fn get_layer(&self) -> Option<&ModuleLayer> {
+    self.layer.as_ref()
+  }
+
   async fn build(
     mut self: Box<Self>,
     _build_context: BuildContext,
@@ -221,6 +246,7 @@ impl Module for ProvideSharedModule {
             singleton: self.singleton,
             strict_version: self.strict_version,
             required_version: self.required_version.clone(),
+            layer: self.layer.clone(),
             tree_shaking_mode: self.tree_shaking_mode.clone(),
           }),
         }],

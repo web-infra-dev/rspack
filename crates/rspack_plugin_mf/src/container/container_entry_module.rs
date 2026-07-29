@@ -24,7 +24,7 @@ use super::{
   container_exposed_dependency::ContainerExposedDependency, container_plugin::ExposeOptions,
 };
 use crate::{
-  ShareScope,
+  ShareScope, SharedIdentity,
   utils::{json_stringify, module_identifier_namespace, module_require_scope_name},
 };
 
@@ -44,6 +44,8 @@ pub struct ContainerEntryModule {
   enhanced: bool,
   request: Option<String>,
   version: Option<String>,
+  shared_share_key: Option<String>,
+  shared_layer: Option<String>,
   dependency_type: DependencyType,
   name: String,
 }
@@ -62,8 +64,8 @@ impl ContainerEntryModule {
       blocks: Vec::new(),
       dependencies: Vec::new(),
       identifier: ModuleIdentifier::from(format!(
-        "container entry ({}) {}",
-        share_scope.key(),
+        "container entry {} {}",
+        share_scope.identifier_fragment(),
         json_stringify(&exposes),
       )),
       lib_ident,
@@ -79,27 +81,34 @@ impl ContainerEntryModule {
       enhanced,
       request: None,
       version: None,
+      shared_share_key: None,
+      shared_layer: None,
       dependency_type: DependencyType::ContainerEntry,
       source_map_kind: SourceMapKind::empty(),
       name,
     }
   }
 
-  pub fn new_share_container_entry(
+  pub(crate) fn new_share_container_entry(
     name: String,
     request: String,
     version: String,
+    share_scope: ShareScope,
+    share_key: String,
+    layer: Option<String>,
     runtime_mode: RuntimeMode,
   ) -> Self {
     let namespace = module_identifier_namespace(runtime_mode);
-    let lib_ident = format!("{namespace}/share/container/{name}");
+    let shared_identity = SharedIdentity::new(&share_scope, &share_key, layer.as_deref());
+    let identity_key = shared_identity.identifier_key();
+    let lib_ident = format!("{namespace}/share/container/{identity_key}");
     Self {
       blocks: Vec::new(),
       dependencies: Vec::new(),
-      identifier: ModuleIdentifier::from(format!("share container entry {}@{}", &name, &version,)),
+      identifier: ModuleIdentifier::from(format!("share container entry {identity_key}@{version}")),
       lib_ident,
       exposes: vec![],
-      share_scope: ShareScope::Multiple(vec![]),
+      share_scope,
       factory_meta: None,
       build_info: BuildInfo {
         strict: true,
@@ -110,6 +119,8 @@ impl ContainerEntryModule {
       enhanced: false,
       request: Some(request),
       version: Some(version),
+      shared_share_key: Some(share_key),
+      shared_layer: layer,
       dependency_type: DependencyType::ShareContainerEntry,
       source_map_kind: SourceMapKind::empty(),
       name,
@@ -122,6 +133,12 @@ impl ContainerEntryModule {
 
   pub fn name(&self) -> &str {
     &self.name
+  }
+
+  pub(crate) fn shared_identity(&self) -> Option<SharedIdentity> {
+    self.shared_share_key.as_deref().map(|share_key| {
+      SharedIdentity::new(&self.share_scope, share_key, self.shared_layer.as_deref())
+    })
   }
 }
 
@@ -168,6 +185,10 @@ impl Module for ContainerEntryModule {
     } else {
       &ModuleType::JsDynamic
     }
+  }
+
+  fn get_layer(&self) -> Option<&rspack_core::ModuleLayer> {
+    self.shared_layer.as_ref()
   }
 
   fn source_types(&self, _module_graph: &ModuleGraph) -> &[SourceType] {
@@ -465,6 +486,34 @@ var init = function(shareScope, initScope) {{
 }
 
 impl_empty_diagnosable_trait!(ContainerEntryModule);
+
+#[cfg(test)]
+mod tests {
+  use rspack_core::runtime_mode::RuntimeMode;
+
+  use super::ContainerEntryModule;
+  use crate::{ShareScope, SharedIdentity};
+
+  #[test]
+  fn share_container_entry_retains_full_shared_identity() {
+    let identity = SharedIdentity::new(
+      &ShareScope::Single("scope".to_string()),
+      "pkg",
+      Some("server"),
+    );
+    let module = ContainerEntryModule::new_share_container_entry(
+      "pkg".to_string(),
+      "pkg".to_string(),
+      "1.0.0".to_string(),
+      identity.share_scope.clone(),
+      identity.share_key.clone(),
+      identity.layer.clone(),
+      RuntimeMode::Webpack,
+    );
+
+    assert_eq!(module.shared_identity(), Some(identity));
+  }
+}
 
 #[derive(Debug, Clone)]
 pub struct ExposeModuleMap(Vec<(String, String)>);
