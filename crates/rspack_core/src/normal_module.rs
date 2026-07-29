@@ -34,11 +34,25 @@ use crate::{
   ModuleLayer, ModuleType, OptimizationBailoutItem, OutputOptions, ParseContext, ParseResult,
   ParserAndGenerator, ParserOptions, Resolve, ResolvedModuleOptions, RspackLoaderRunnerPlugin,
   RunnerContext, RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, SourceType, contextify,
-  diagnostics::ModuleBuildError,
+  diagnostics::{ModuleBuildError, ModuleErrorsState},
   get_context, module_analyzed_side_effect_free, module_declared_side_effect_free,
   module_update_hash,
   utils::{SourceSizeCache, SourceSizeCacheSerde},
 };
+
+fn append_module_diagnostics(
+  diagnostics: &mut Vec<Diagnostic>,
+  additional_diagnostics: impl IntoIterator<Item = Diagnostic>,
+) {
+  let mut state = ModuleErrorsState::default();
+  let existing_diagnostics = std::mem::take(diagnostics);
+  for diagnostic in existing_diagnostics {
+    state.add_diagnostic(diagnostics, diagnostic);
+  }
+  for diagnostic in additional_diagnostics {
+    state.add_diagnostic(diagnostics, diagnostic);
+  }
+}
 
 #[cacheable]
 #[derive(Debug, Clone)]
@@ -465,7 +479,7 @@ impl Module for NormalModule {
         err,
         current_loader,
       )));
-      self.diagnostics.push(diagnostic);
+      self.add_diagnostic(diagnostic);
 
       self.build_info.hash =
         Some(self.init_build_hash(&build_context.compiler_options.output, &self.build_meta));
@@ -861,11 +875,11 @@ impl ModuleSourceMapConfig for NormalModule {
 
 impl Diagnosable for NormalModule {
   fn add_diagnostic(&mut self, diagnostic: Diagnostic) {
-    self.diagnostics.push(diagnostic);
+    append_module_diagnostics(&mut self.diagnostics, [diagnostic]);
   }
 
-  fn add_diagnostics(&mut self, mut diagnostics: Vec<Diagnostic>) {
-    self.diagnostics.append(&mut diagnostics);
+  fn add_diagnostics(&mut self, diagnostics: Vec<Diagnostic>) {
+    append_module_diagnostics(&mut self.diagnostics, diagnostics);
   }
 
   fn diagnostics(&self) -> Cow<'_, [Diagnostic]> {
@@ -902,5 +916,53 @@ impl NormalModule {
       return Ok(OriginalSource::new(content, self.request()).boxed());
     }
     Ok(RawStringSource::from(content.into_string_lossy()).boxed())
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+  use crate::diagnostics::MAX_ERRORS_PER_MODULE;
+
+  #[test]
+  fn module_errors_are_limited_but_warnings_are_preserved() {
+    let mut diagnostics = Vec::new();
+    append_module_diagnostics(
+      &mut diagnostics,
+      (0..MAX_ERRORS_PER_MODULE - 1)
+        .map(|i| Diagnostic::error("TestError".into(), format!("error {i}"))),
+    );
+
+    assert_eq!(
+      diagnostics.iter().filter(|d| d.is_error()).count(),
+      MAX_ERRORS_PER_MODULE - 1
+    );
+    assert!(
+      diagnostics
+        .iter()
+        .all(|d| d.code.as_deref() != Some("ModuleErrorsLimit"))
+    );
+
+    append_module_diagnostics(
+      &mut diagnostics,
+      [
+        Diagnostic::warn("TestWarning".into(), "warning".into()),
+        Diagnostic::error("TestError".into(), "extra error".into()),
+        Diagnostic::error("TestError".into(), "another extra error".into()),
+      ],
+    );
+
+    assert_eq!(
+      diagnostics.iter().filter(|d| d.is_error()).count(),
+      MAX_ERRORS_PER_MODULE
+    );
+    assert_eq!(diagnostics.iter().filter(|d| d.is_warn()).count(), 1);
+    assert_eq!(
+      diagnostics
+        .iter()
+        .filter(|d| d.code.as_deref() == Some("ModuleErrorsLimit"))
+        .count(),
+      1
+    );
   }
 }
