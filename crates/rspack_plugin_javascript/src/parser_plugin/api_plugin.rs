@@ -472,7 +472,14 @@ fn static_require_member_chain(
   assignment: Option<&AssignExpr>,
 ) -> Option<bool> {
   if parser.compiler_options.experiments.runtime_mode != ExperimentRuntimeMode::Rspack {
-    return None;
+    let is_intercept_module_execution_read = assignment.is_none()
+      && for_name == API_REQUIRE
+      && members.first().is_some_and(|property| {
+        RuntimeGlobals::INTERCEPT_MODULE_EXECUTION.property_name() == Some(property.as_ref())
+      });
+    if !is_intercept_module_execution_read {
+      return None;
+    }
   }
 
   if for_name == API_REQUIRE
@@ -764,9 +771,6 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
       return Some(true);
     }
 
-    if parser.compiler_options.experiments.runtime_mode != ExperimentRuntimeMode::Rspack {
-      return None;
-    }
     static_require_member_chain(
       parser,
       for_name,
@@ -786,9 +790,6 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
     _members_optionals: &[bool],
     member_ranges: &[Span],
   ) -> Option<bool> {
-    if parser.compiler_options.experiments.runtime_mode != ExperimentRuntimeMode::Rspack {
-      return None;
-    }
     let preserve_require_receiver =
       parser.parser_runtime_requirements.render_mode == RuntimeGlobalsRenderMode::RspackExport
         && for_name == API_REQUIRE
