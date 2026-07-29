@@ -45,6 +45,7 @@ it('preserves legacy IDs and analyzed/disabled identity parity', () => {
     expect.objectContaining({
       id: 'container:legacy',
       shareScope: 'custom',
+      version: '0',
     }),
   );
 

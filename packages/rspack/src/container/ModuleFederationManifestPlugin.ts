@@ -272,7 +272,11 @@ function collectManifestShared(
   const result = parsed.map(([key, config]) => {
     const name = config.shareKey || key;
     const version =
-      typeof config.version === 'string' ? config.version : undefined;
+      config.version === false
+        ? '0'
+        : typeof config.version === 'string'
+          ? config.version
+          : undefined;
     const requiredVersion =
       typeof config.requiredVersion === 'string'
         ? config.requiredVersion

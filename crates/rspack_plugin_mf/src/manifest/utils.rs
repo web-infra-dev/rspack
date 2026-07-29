@@ -334,21 +334,14 @@ pub fn collect_expose_requirements(
     let emit_structured_requirement = identity_count > 1
       || required_shared.layer.is_some()
       || required_shared.share_scope.is_some();
-    let has_exact_layer_match = issuer_layer.as_deref().is_some_and(|issuer_layer| {
-      expose_identities
-        .iter()
-        .any(|identity| identity.layer.as_deref() == Some(issuer_layer))
-    });
-
     for expose_identity in expose_identities {
-      if let Some(issuer_layer) = issuer_layer.as_deref() {
-        if has_exact_layer_match {
-          if expose_identity.layer.as_deref() != Some(issuer_layer) {
-            continue;
-          }
-        } else if expose_identity.layer.is_some() {
-          continue;
-        }
+      if let Some(issuer_layer) = issuer_layer.as_deref()
+        && expose_identity
+          .layer
+          .as_deref()
+          .is_some_and(|layer| layer != issuer_layer)
+      {
+        continue;
       }
       let Some(expose) = exposes_map.get_mut(expose_identity) else {
         continue;
@@ -499,22 +492,29 @@ mod tests {
       shared_identity.clone(),
       stats_shared("react", Some(ShareScope::Single("default".to_string()))),
     );
-    let expose_identity = ExposeIdentity::new("./entry", None);
-    let mut exposes_map = HashMap::from_iter([(
-      expose_identity.clone(),
-      StatsExpose {
-        path: "./entry".to_string(),
-        file: String::new(),
-        id: String::new(),
-        name: "entry".to_string(),
-        layer: None,
-        requires: Vec::new(),
-        required_shared: Vec::new(),
-        assets: StatsAssetsGroup::default(),
-      },
+    let expose_identity = ExposeIdentity::new("./fallback", None);
+    let layered_expose_identity = ExposeIdentity::new("./server", Some("server"));
+    let expose = |path: &str, layer: Option<&str>| StatsExpose {
+      path: path.to_string(),
+      file: String::new(),
+      id: String::new(),
+      name: path.trim_start_matches("./").to_string(),
+      layer: layer.map(str::to_string),
+      requires: Vec::new(),
+      required_shared: Vec::new(),
+      assets: StatsAssetsGroup::default(),
+    };
+    let mut exposes_map = HashMap::from_iter([
+      (expose_identity.clone(), expose("./fallback", None)),
+      (
+        layered_expose_identity.clone(),
+        expose("./server", Some("server")),
+      ),
+    ]);
+    let expose_identities_by_import = HashMap::from_iter([(
+      "entry".to_string(),
+      vec![expose_identity.clone(), layered_expose_identity.clone()],
     )]);
-    let expose_identities_by_import =
-      HashMap::from_iter([("entry".to_string(), vec![expose_identity.clone()])]);
 
     collect_expose_requirements(
       &mut shared_map,
@@ -529,5 +529,11 @@ mod tests {
     );
 
     assert_eq!(exposes_map[&expose_identity].requires, ["react"]);
+    assert_eq!(exposes_map[&layered_expose_identity].requires, ["react"]);
+    assert_eq!(
+      shared_map[&SharedIdentity::new(&ShareScope::Single("default".to_string()), "react", None,)]
+        .usedIn,
+      ["./fallback", "./server"]
+    );
   }
 }

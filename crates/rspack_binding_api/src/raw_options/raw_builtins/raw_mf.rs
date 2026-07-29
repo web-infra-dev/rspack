@@ -38,18 +38,24 @@ pub struct RawContainerPluginOptions {
   pub enhanced: bool,
 }
 
-impl From<RawContainerPluginOptions> for ContainerPluginOptions {
-  fn from(value: RawContainerPluginOptions) -> Self {
-    let share_scope = into_share_scope(value.share_scope);
-    Self {
-      name: value.name,
+impl RawContainerPluginOptions {
+  pub fn into_options(self) -> (ContainerPluginOptions, Vec<Option<String>>) {
+    let share_scope = into_share_scope(self.share_scope);
+    let expose_layers = self
+      .exposes
+      .iter()
+      .map(|expose| expose.layer.clone())
+      .collect();
+    let options = ContainerPluginOptions {
+      name: self.name,
       share_scope,
-      library: value.library.into(),
-      runtime: value.runtime.map(|r| JsEntryRuntimeWrapper(r).into()),
-      filename: value.filename.map(|f| f.into()),
-      exposes: value.exposes.into_iter().map(|e| e.into()).collect(),
-      enhanced: value.enhanced,
-    }
+      library: self.library.into(),
+      runtime: self.runtime.map(|r| JsEntryRuntimeWrapper(r).into()),
+      filename: self.filename.map(|f| f.into()),
+      exposes: self.exposes.into_iter().map(|e| e.into()).collect(),
+      enhanced: self.enhanced,
+    };
+    (options, expose_layers)
   }
 }
 
@@ -68,7 +74,6 @@ impl From<RawExposeOptions> for (String, ExposeOptions) {
       value.key,
       ExposeOptions {
         name: value.name,
-        layer: value.layer,
         import: value.import,
       },
     )

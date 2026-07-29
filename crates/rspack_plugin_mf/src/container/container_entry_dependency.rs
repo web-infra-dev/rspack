@@ -12,6 +12,7 @@ pub struct ContainerEntryDependency {
   id: DependencyId,
   pub name: String,
   pub exposes: Vec<(String, ExposeOptions)>,
+  pub(crate) expose_layers: Vec<Option<rspack_core::ModuleLayer>>,
   pub share_scope: ShareScope,
   pub request: Option<String>,
   pub version: Option<String>,
@@ -30,11 +31,23 @@ impl ContainerEntryDependency {
     share_scope: ShareScope,
     enhanced: bool,
   ) -> Self {
+    let expose_layers = vec![None; exposes.len()];
+    Self::new_with_expose_layers(name, exposes, expose_layers, share_scope, enhanced)
+  }
+
+  pub(crate) fn new_with_expose_layers(
+    name: String,
+    exposes: Vec<(String, ExposeOptions)>,
+    expose_layers: Vec<Option<rspack_core::ModuleLayer>>,
+    share_scope: ShareScope,
+    enhanced: bool,
+  ) -> Self {
     let resource_identifier = format!("container-entry-{}", &name).into();
     Self {
       id: DependencyId::new(),
       name,
       exposes,
+      expose_layers,
       share_scope,
       request: None,
       version: None,
@@ -66,6 +79,7 @@ impl ContainerEntryDependency {
       id: DependencyId::new(),
       name,
       exposes: vec![],
+      expose_layers: vec![],
       share_scope,
       request: Some(request),
       version: Some(version),

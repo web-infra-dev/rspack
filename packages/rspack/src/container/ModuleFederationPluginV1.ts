@@ -35,7 +35,7 @@ export type ModuleFederationPluginV1Options<
     ? ModuleFederationPluginV1BaseOptions<false> & { enhanced?: false }
     : | (ModuleFederationPluginV1BaseOptions<false> & { enhanced?: false })
       | (ModuleFederationPluginV1BaseOptions<true> & { enhanced: true })
-      | (Omit<ModuleFederationPluginV1BaseOptions<boolean>, 'enhanced'> & {
+      | (Omit<ModuleFederationPluginV1BaseOptions<false>, 'enhanced'> & {
           enhanced: boolean;
         });
 

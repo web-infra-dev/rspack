@@ -34,7 +34,7 @@ const createConfig = (fileName, disableAssetsAnalyze) => ({
       },
       shared: {
         legacy: {
-          version: '1.0.0',
+          version: false,
           requiredVersion: false,
           shareScope: 'custom',
         },

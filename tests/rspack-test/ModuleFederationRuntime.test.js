@@ -146,6 +146,14 @@ function createRuntime({
 	};
 }
 
+async function waitForInitialConsume(runtimeRequire) {
+	for (let index = 0; index < 10; index++) {
+		if (typeof runtimeRequire.m.consume === 'function') return;
+		await Promise.resolve();
+	}
+	expect(runtimeRequire.m.consume).toBeTypeOf('function');
+}
+
 describe('module federation default runtime share scopes', () => {
 	it('preserves scalar custom-scope container initialization', () => {
 		const { initContainerCalls, instance, runtimeRequire, shareScopeMap } =
@@ -280,7 +288,7 @@ describe('module federation default runtime share scopes', () => {
 		expect(calls[0][2].shareScopeKeys).toEqual(['primary', 'secondary']);
 	});
 
-	it('initializes ordered scopes before installing initial consumes', () => {
+	it('initializes ordered scopes before installing initial consumes', async () => {
 		const calls = [];
 		const enhancedContainer = {
 			init(...args) {
@@ -299,7 +307,31 @@ describe('module federation default runtime share scopes', () => {
 		expect(calls).toHaveLength(1);
 		expect(calls[0][0]).toBe(shareScopeMap.primary);
 		expect(calls[0][2].shareScopeKeys).toEqual(['primary', 'secondary']);
-		expect(runtimeRequire.m.consume).toBeTypeOf('function');
+		await waitForInitialConsume(runtimeRequire);
+	});
+
+	it('waits for ordered scopes before installing initial consumes', async () => {
+		let resolveInit;
+		const initPromise = new Promise(resolve => {
+			resolveInit = resolve;
+		});
+		const enhancedContainer = {
+			init() {
+				return initPromise;
+			},
+		};
+		const { runtimeRequire } = createRuntime({
+			external: enhancedContainer,
+			consumeData: {
+				shareKey: 'react',
+				shareScope: ['primary', 'secondary'],
+			},
+			initialConsumes: ['consume'],
+		});
+
+		expect(runtimeRequire.m.consume).toBeUndefined();
+		resolveInit();
+		await waitForInitialConsume(runtimeRequire);
 	});
 
 	it('initializes a frozen legacy container without proxying its exports', async () => {

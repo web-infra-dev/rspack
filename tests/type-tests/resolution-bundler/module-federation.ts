@@ -84,6 +84,15 @@ const legacyV1Options: ModuleFederationPluginV1Options<false> = {
 };
 new rspack.container.ModuleFederationPluginV1(legacyV1Options);
 
+// @ts-expect-error Expose layers require enhanced: true.
+new rspack.container.ModuleFederationPluginV1({
+  name: 'legacy-v1-inferred',
+  enhanced: false,
+  exposes: {
+    './entry': { import: './index', layer: 'server' },
+  },
+});
+
 new rspack.container.ModuleFederationPluginV1({
   name: 'dynamic-v1',
   enhanced: dynamicEnhanced,
