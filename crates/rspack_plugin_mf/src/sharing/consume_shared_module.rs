@@ -55,6 +55,10 @@ impl ConsumeSharedModule {
     &self.options.share_scope
   }
 
+  pub(crate) fn required_version(&self) -> Option<&crate::ConsumeVersion> {
+    self.options.required_version.as_ref()
+  }
+
   pub fn new(context: Context, options: ConsumeOptions, runtime_mode: RuntimeMode) -> Self {
     let scopes_key = options.share_scope.key();
     let namespace = module_identifier_namespace(runtime_mode);
