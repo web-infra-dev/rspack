@@ -60,7 +60,7 @@ impl CssPlugin {
       return (vec![], None);
     };
 
-    let modules_list = modules.clone();
+    let modules_list = modules;
 
     // Get ordered list of modules per chunk group
 
@@ -121,12 +121,14 @@ impl CssPlugin {
 
     loop {
       let mut failed_modules: IdentifierSet = Default::default();
-      let list = modules_by_chunk_group[0].list.clone();
-      if list.is_empty() {
+      if modules_by_chunk_group[0].list.is_empty() {
         // done, everything empty
         break;
       }
-      let mut selected_module = *list.last().expect("list should not be empty");
+      let mut selected_module = *modules_by_chunk_group[0]
+        .list
+        .last()
+        .expect("list should not be empty");
       let mut has_failed = None;
       'outer: loop {
         for SortedModules { set, list } in &modules_by_chunk_group {
