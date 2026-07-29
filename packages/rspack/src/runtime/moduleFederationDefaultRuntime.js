@@ -518,6 +518,9 @@ export default function () {
     enableArrayRemoteShareScopes(runtimeRequire.federation.instance);
 
     if (runtimeRequire.consumesLoadingData?.initialConsumes) {
+      initializeConsumeShareScopes(
+        runtimeRequire.consumesLoadingData.initialConsumes,
+      );
       runtimeRequire.federation.bundlerRuntime.installInitialConsumes({
         webpackRequire: runtimeRequire,
         installedModules: consumesLoadinginstalledModules,

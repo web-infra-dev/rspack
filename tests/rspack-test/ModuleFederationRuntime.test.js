@@ -24,6 +24,7 @@ function createRuntime({
 	sharedFallback,
 	sharedFallbackVariants,
 	consumeData,
+	initialConsumes,
 	additionalInitScopes = [],
 	scopeToSharingDataMapping = {},
 } = {}) {
@@ -35,8 +36,10 @@ function createRuntime({
 	const runtimeRequire = () => external;
 	Object.assign(runtimeRequire, {
 		S: shareScopeMap,
+		c: {},
 		f: {},
 		I() {},
+		m: {},
 		federation: {},
 		initializeSharingData: {
 			scopeToSharingDataMapping,
@@ -57,6 +60,7 @@ function createRuntime({
 	if (consumeData) {
 		runtimeRequire.consumesLoadingData = {
 			chunkMapping: {},
+			initialConsumes,
 			moduleIdToConsumeDataMapping: { consume: consumeData },
 		};
 	}
@@ -91,6 +95,7 @@ function createRuntime({
 		initializeSharing(shareScope, options) {
 			return this.sharedHandler.initializeSharing(shareScope, options);
 		},
+		registerShared() {},
 	};
 	const localBundlerRuntime = {
 		...bundlerRuntime,
@@ -273,6 +278,28 @@ describe('module federation default runtime share scopes', () => {
 		expect(calls[0]).toHaveLength(3);
 		expect(calls[0][0]).toBe(shareScopeMap.primary);
 		expect(calls[0][2].shareScopeKeys).toEqual(['primary', 'secondary']);
+	});
+
+	it('initializes ordered scopes before installing initial consumes', () => {
+		const calls = [];
+		const enhancedContainer = {
+			init(...args) {
+				calls.push(args);
+			},
+		};
+		const { runtimeRequire, shareScopeMap } = createRuntime({
+			external: enhancedContainer,
+			consumeData: {
+				shareKey: 'react',
+				shareScope: ['primary', 'secondary'],
+			},
+			initialConsumes: ['consume'],
+		});
+
+		expect(calls).toHaveLength(1);
+		expect(calls[0][0]).toBe(shareScopeMap.primary);
+		expect(calls[0][2].shareScopeKeys).toEqual(['primary', 'secondary']);
+		expect(runtimeRequire.m.consume).toBeTypeOf('function');
 	});
 
 	it('initializes a frozen legacy container without proxying its exports', async () => {
