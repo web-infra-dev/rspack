@@ -16,6 +16,7 @@ module.exports = {
   plugins: [
     new ModuleFederationPlugin({
       name: 'relative_layered_host',
+      manifest: true,
     }),
     new ConsumeSharedPlugin({
       enhanced: true,
