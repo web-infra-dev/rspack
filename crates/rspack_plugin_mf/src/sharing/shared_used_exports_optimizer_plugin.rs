@@ -80,17 +80,17 @@ fn update_shared_exports(
       (share_key, share_scope, layer)
     };
     let identity = shared_identity_from_output(share_key, share_scope.as_ref(), layer);
-    let exports_set = shared_referenced_exports.get(&identity).or_else(|| {
-      if share_scope.is_none() && layer.is_none() {
-        referenced_exports_for_output(shared_referenced_exports, share_key)
-      } else {
-        None
-      }
-    });
-    let Some(exports_set) = exports_set else {
+    let mut exports = if let Some(exports_set) = shared_referenced_exports.get(&identity) {
+      exports_set.iter().cloned().collect::<Vec<_>>()
+    } else if share_scope.is_none() && layer.is_none() {
+      let Some(exports_set) = referenced_exports_for_output(shared_referenced_exports, share_key)
+      else {
+        continue;
+      };
+      exports_set.into_iter().collect()
+    } else {
       continue;
     };
-    let mut exports = exports_set.iter().cloned().collect::<Vec<_>>();
     exports.sort_unstable();
     let exports = exports.into_iter().map(Value::String).collect::<Vec<_>>();
     let shared = shared.as_object_mut()?;
