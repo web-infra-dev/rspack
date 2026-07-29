@@ -2,6 +2,7 @@ import rspack, {
   type ConsumesConfig,
   type ConsumeSharedPluginOptions,
   type ContainerPluginOptions,
+  type ExposesConfig,
   type ModuleFederationPluginV1Options,
 } from '@rspack/core';
 
@@ -59,10 +60,11 @@ const annotatedEnhancedContainer: ContainerPluginOptions = {
 new rspack.container.ContainerPlugin(annotatedEnhancedContainer);
 
 const dynamicEnhanced = Math.random() > 0.5;
+const reusableLegacyExpose: ExposesConfig = { import: './index' };
 new rspack.container.ContainerPlugin({
   name: 'dynamic-enhanced',
   enhanced: dynamicEnhanced,
-  exposes: { './entry': './index' },
+  exposes: { './entry': reusableLegacyExpose },
 });
 
 // @ts-expect-error Expose layers require the enhanced runtime gate.
@@ -81,3 +83,9 @@ const legacyV1Options: ModuleFederationPluginV1Options<false> = {
   },
 };
 new rspack.container.ModuleFederationPluginV1(legacyV1Options);
+
+new rspack.container.ModuleFederationPluginV1({
+  name: 'dynamic-v1',
+  enhanced: dynamicEnhanced,
+  exposes: { './entry': reusableLegacyExpose },
+});

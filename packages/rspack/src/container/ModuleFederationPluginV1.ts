@@ -35,7 +35,9 @@ export type ModuleFederationPluginV1Options<
     ? ModuleFederationPluginV1BaseOptions<false> & { enhanced?: false }
     : | (ModuleFederationPluginV1BaseOptions<false> & { enhanced?: false })
       | (ModuleFederationPluginV1BaseOptions<true> & { enhanced: true })
-      | (ModuleFederationPluginV1BaseOptions<false> & { enhanced: boolean });
+      | (Omit<ModuleFederationPluginV1BaseOptions<boolean>, 'enhanced'> & {
+          enhanced: boolean;
+        });
 
 export class ModuleFederationPluginV1<Enhanced extends boolean = boolean> {
   constructor(private _options: ModuleFederationPluginV1Options<Enhanced>) {}

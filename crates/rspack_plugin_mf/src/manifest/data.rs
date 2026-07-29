@@ -1,4 +1,4 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Clone, Default)]
 pub struct StatsAssetsGroup {
@@ -16,7 +16,7 @@ pub struct AssetsSplit {
   pub r#async: Vec<String>,
 }
 
-#[derive(Debug, Serialize, Clone, Default)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct StatsBuildInfo {
   #[serde(rename = "buildVersion")]
   pub build_version: String,
