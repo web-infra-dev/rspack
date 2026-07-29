@@ -2630,12 +2630,15 @@ export interface RawLimitChunkCountPluginOptions {
 export interface RawManifestExposeOption {
   path: string
   name: string
+  layer?: string
 }
 
 export interface RawManifestSharedOption {
   name: string
   version?: string
   requiredVersion?: string
+  shareScope?: string | Array<string>
+  layer?: string
   singleton?: boolean
 }
 

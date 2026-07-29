@@ -21,7 +21,7 @@ use super::{
   consume_shared_runtime_module::CodeGenerationDataConsumeShared,
 };
 use crate::{
-  ConsumeOptions, ShareScope, SharedIdentity,
+  ConsumeOptions, ConsumeVersion, ShareScope, SharedIdentity,
   utils::{json_stringify, module_identifier_namespace},
 };
 
@@ -53,6 +53,10 @@ impl ConsumeSharedModule {
 
   pub fn share_scope(&self) -> &ShareScope {
     &self.options.share_scope
+  }
+
+  pub(crate) fn required_version(&self) -> Option<&ConsumeVersion> {
+    self.options.required_version.as_ref()
   }
 
   pub fn new(context: Context, options: ConsumeOptions, runtime_mode: RuntimeMode) -> Self {

@@ -30,15 +30,25 @@ use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::fx_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use utils::{
-  collect_entry_files, collect_expose_requirements, compose_id_with_separator,
-  ensure_configured_remotes, ensure_shared_entry, filter_assets, is_hot_file,
-  parse_consume_shared_identifier, record_shared_usage, strip_ext,
+  ExposeIdentity, collect_entry_files, collect_expose_requirements, compose_id_with_separator,
+  compose_shared_id, ensure_configured_remotes, ensure_shared_entry, filter_assets,
+  finalize_shared_ids, is_hot_file, manifest_share_scope, record_shared_usage, strip_ext,
 };
 
 use crate::{
+  ConsumeSharedModule, ConsumeVersion, ProvideSharedModule, ShareScope, SharedIdentity,
   container::{container_entry_module::ContainerEntryModule, remote_module::RemoteModule},
-  sharing::provide_shared_module::ProvideSharedModule,
 };
+
+fn sort_small_by<T>(values: &mut [T], mut compare: impl FnMut(&T, &T) -> std::cmp::Ordering) {
+  for index in 1..values.len() {
+    let mut current = index;
+    while current > 0 && compare(&values[current - 1], &values[current]).is_gt() {
+      values.swap(current - 1, current);
+      current -= 1;
+    }
+  }
+}
 
 #[plugin]
 #[derive(Debug)]
@@ -217,7 +227,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     },
     r#type: None,
   };
-  let (exposes, shared, remote_list) = if self.options.disable_assets_analyze {
+  let (mut exposes, mut shared, remote_list) = if self.options.disable_assets_analyze {
     let exposes = self
       .options
       .exposes
@@ -229,7 +239,9 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           file: String::new(),
           id: compose_id_with_separator(&container_name, &expose_name),
           name: expose_name,
+          layer: expose.layer.clone(),
           requires: Vec::new(),
+          required_shared: Vec::new(),
           assets: StatsAssetsGroup::default(),
         }
       })
@@ -238,16 +250,23 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       .options
       .shared
       .iter()
-      .map(|shared| StatsShared {
-        id: compose_id_with_separator(&container_name, &shared.name),
-        name: shared.name.clone(),
-        version: shared.version.clone().unwrap_or_default(),
-        requiredVersion: shared.required_version.clone(),
-        // default singleton to true when not provided by user
-        singleton: shared.singleton.or(Some(true)),
-        assets: StatsAssetsGroup::default(),
-        usedIn: Vec::new(),
-        usedExports: Vec::new(),
+      .map(|shared| {
+        let identity =
+          SharedIdentity::new(&shared.share_scope, &shared.name, shared.layer.as_deref());
+        StatsShared {
+          id: compose_shared_id(&container_name, &identity),
+          identity_id: None,
+          name: shared.name.clone(),
+          version: shared.version.clone().unwrap_or_default(),
+          requiredVersion: shared.required_version.clone(),
+          layer: shared.layer.clone(),
+          share_scope: manifest_share_scope(&identity),
+          // default singleton to true when not provided by user
+          singleton: shared.singleton.or(Some(true)),
+          assets: StatsAssetsGroup::default(),
+          usedIn: Vec::new(),
+          usedExports: Vec::new(),
+        }
       })
       .collect::<Vec<_>>();
     let remote_list = self
@@ -284,16 +303,36 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         })
     };
 
-    let mut exposes_map: HashMap<String, StatsExpose> = HashMap::default();
-    let mut expose_chunk_keys: HashMap<String, rspack_core::ChunkUkey> = HashMap::default();
-    let mut expose_fallback_chunk_keys: HashMap<String, rspack_core::ChunkUkey> =
+    let mut exposes_map: HashMap<ExposeIdentity, StatsExpose> = HashMap::default();
+    let mut expose_imports: HashMap<ExposeIdentity, String> = HashMap::default();
+    let mut expose_identities_by_import: HashMap<String, Vec<ExposeIdentity>> = HashMap::default();
+    let mut expose_chunk_keys: HashMap<ExposeIdentity, rspack_core::ChunkUkey> = HashMap::default();
+    let mut expose_fallback_chunk_keys: HashMap<ExposeIdentity, rspack_core::ChunkUkey> =
       HashMap::default();
-    let mut shared_map: HashMap<String, StatsShared> = HashMap::default();
-    let mut shared_usage_links: Vec<(String, String)> = Vec::new();
-    let mut shared_module_targets: HashMap<String, IdentifierSet> = HashMap::default();
+    let mut shared_map: HashMap<SharedIdentity, StatsShared> = HashMap::default();
+    let mut shared_usage_links: Vec<(SharedIdentity, String, Option<String>)> = Vec::new();
+    let mut shared_module_targets: HashMap<SharedIdentity, IdentifierSet> = HashMap::default();
     let mut module_ids_by_name: HashMap<String, ModuleIdentifier> = HashMap::default();
     let mut remote_module_ids: Vec<ModuleIdentifier> = Vec::new();
     let mut container_entry_module: Option<ModuleIdentifier> = None;
+    let find_shared_option = |identity: &SharedIdentity| {
+      self
+        .options
+        .shared
+        .iter()
+        .find(|s| {
+          s.name == identity.share_key
+            && s.share_scope == identity.share_scope
+            && s.layer == identity.layer
+        })
+        .or_else(|| {
+          self.options.shared.iter().find(|s| {
+            s.name == identity.share_key
+              && s.share_scope == identity.share_scope
+              && s.layer.is_none()
+          })
+        })
+    };
     for (_, module) in module_graph.modules() {
       let module_identifier = module.identifier();
       if let Some(path) = module_source_path(module, compilation) {
@@ -335,14 +374,25 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           };
           let id_comp = compose_id_with_separator(&container_name, &expose_name);
           let expose_file_key = strip_ext(import);
-          exposes_map
+          let expose_layer = options.layer.as_ref().map(ToString::to_string);
+          let expose_identity = ExposeIdentity::new(expose_key, expose_layer.as_deref());
+          expose_imports.insert(expose_identity.clone(), expose_file_key.clone());
+          let expose_identities = expose_identities_by_import
             .entry(expose_file_key.clone())
+            .or_default();
+          if !expose_identities.contains(&expose_identity) {
+            expose_identities.push(expose_identity.clone());
+          }
+          exposes_map
+            .entry(expose_identity.clone())
             .or_insert(StatsExpose {
               path: expose_key.clone(),
               file: String::new(),
               id: id_comp,
               name: expose_name.clone(),
+              layer: expose_layer,
               requires: Vec::new(),
+              required_shared: Vec::new(),
               assets: StatsAssetsGroup::default(),
             });
 
@@ -381,7 +431,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
                 })
               })
             {
-              expose_chunk_keys.insert(expose_file_key.clone(), *chunk_key);
+              expose_chunk_keys.insert(expose_identity.clone(), *chunk_key);
             }
 
             if let Some(chunk_key) = chunk_group.chunks.iter().find(|chunk_key| {
@@ -392,7 +442,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
                 .and_then(|chunk| chunk.name())
                 .is_some()
             }) {
-              expose_fallback_chunk_keys.insert(expose_file_key, *chunk_key);
+              expose_fallback_chunk_keys.insert(expose_identity, *chunk_key);
             }
           }
         }
@@ -400,27 +450,21 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       }
 
       let module_type = module.module_type();
-      let identifier = module_identifier.to_string();
 
       if matches!(module_type, ModuleType::Remote) {
         remote_module_ids.push(module_identifier);
       }
 
       if matches!(module_type, ModuleType::ProvideShared) {
-        if let Some(provide_shared) = module
-          .as_ref()
-          .as_any()
-          .downcast_ref::<ProvideSharedModule>()
-        {
-          let pkg = provide_shared.share_key().to_string();
-          let entry = ensure_shared_entry(&mut shared_map, &container_name, &pkg);
-          if entry.version.is_empty()
-            && let Some(version) = provide_shared.version()
-          {
-            entry.version = version.to_string();
+        if let Some(provide) = module.as_any().downcast_ref::<ProvideSharedModule>() {
+          let identity = provide.shared_identity();
+          let ver = provide.manifest_version().to_string();
+          let entry = ensure_shared_entry(&mut shared_map, &identity, &container_name);
+          if entry.version.is_empty() {
+            entry.version = ver;
           }
           // overlay user-configured shared options (singleton/requiredVersion/version)
-          if let Some(opt) = self.options.shared.iter().find(|s| s.name == pkg) {
+          if let Some(opt) = find_shared_option(&identity) {
             if let Some(singleton) = opt.singleton {
               entry.singleton = Some(singleton);
             }
@@ -431,7 +475,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
               entry.version = cfg_ver;
             }
           }
-          let targets = shared_module_targets.entry(pkg.clone()).or_default();
+          let targets = shared_module_targets.entry(identity.clone()).or_default();
           for connection in module_graph.get_outgoing_connections(&module_identifier) {
             let referenced = *connection.module_identifier();
             if should_collect_module(&referenced) {
@@ -444,7 +488,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           }
           record_shared_usage(
             &mut shared_usage_links,
-            &pkg,
+            &identity,
             &module_identifier,
             module_graph,
             compilation,
@@ -454,8 +498,13 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       }
 
       if matches!(module_type, ModuleType::ConsumeShared)
-        && let Some((pkg, required)) = parse_consume_shared_identifier(&identifier)
+        && let Some(consume) = module.as_any().downcast_ref::<ConsumeSharedModule>()
       {
+        let identity = consume.shared_identity();
+        let required = match consume.required_version() {
+          Some(ConsumeVersion::Version(version)) => Some(version.clone()),
+          Some(ConsumeVersion::False) | None => None,
+        };
         let mut target_ids: IdentifierSet = IdentifierSet::default();
         for connection in module_graph.get_outgoing_connections(&module_identifier) {
           let module_id = *connection.module_identifier();
@@ -468,15 +517,15 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           }
         }
         shared_module_targets
-          .entry(pkg.clone())
+          .entry(identity.clone())
           .or_default()
           .extend(target_ids);
-        let entry = ensure_shared_entry(&mut shared_map, &container_name, &pkg);
+        let entry = ensure_shared_entry(&mut shared_map, &identity, &container_name);
         if entry.requiredVersion.is_none() && required.is_some() {
           entry.requiredVersion = required;
         }
         // overlay user-configured shared options
-        if let Some(opt) = self.options.shared.iter().find(|s| s.name == pkg) {
+        if let Some(opt) = find_shared_option(&identity) {
           if let Some(singleton) = opt.singleton {
             entry.singleton = Some(singleton);
           }
@@ -490,7 +539,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         }
         record_shared_usage(
           &mut shared_usage_links,
-          &pkg,
+          &identity,
           &module_identifier,
           module_graph,
           compilation,
@@ -498,13 +547,13 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       }
     }
 
-    let mut expose_module_paths: HashMap<String, String> = HashMap::default();
-    for expose_key in exposes_map.keys() {
-      if let Some(module_id) = module_ids_by_name.get(expose_key)
+    let mut expose_module_paths: HashMap<ExposeIdentity, String> = HashMap::default();
+    for (expose_identity, expose_import) in &expose_imports {
+      if let Some(module_id) = module_ids_by_name.get(expose_import)
         && let Some(module) = module_graph.module_by_identifier(module_id)
         && let Some(path) = module_source_path(module, compilation)
       {
-        expose_module_paths.insert(expose_key.clone(), path);
+        expose_module_paths.insert(expose_identity.clone(), path);
       }
     }
 
@@ -513,12 +562,14 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       &mut shared_map,
       &mut exposes_map,
       shared_usage_links_for_requirements,
+      &expose_identities_by_import,
       &expose_module_paths,
     );
     let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
-    let mut shared_chunk_map: HashMap<String, HashSet<rspack_core::ChunkUkey>> = HashMap::default();
-    for (pkg, module_ids) in &shared_module_targets {
-      let entry = shared_chunk_map.entry(pkg.clone()).or_default();
+    let mut shared_chunk_map: HashMap<SharedIdentity, HashSet<rspack_core::ChunkUkey>> =
+      HashMap::default();
+    for (identity, module_ids) in &shared_module_targets {
+      let entry = shared_chunk_map.entry(identity.clone()).or_default();
       for module_id in module_ids {
         for chunk_ukey in chunk_graph.get_module_chunks(*module_id).iter() {
           entry.insert(*chunk_ukey);
@@ -543,10 +594,11 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       }
     }
 
-    let mut aggregated_shared_assets: HashMap<String, StatsAssetsGroup> = HashMap::default();
-    for (pkg, chunk_ids) in shared_chunk_map {
+    let mut aggregated_shared_assets: HashMap<SharedIdentity, StatsAssetsGroup> =
+      HashMap::default();
+    for (identity, chunk_ids) in shared_chunk_map {
       let entry = aggregated_shared_assets
-        .entry(pkg)
+        .entry(identity)
         .or_insert_with(empty_assets_group);
       for chunk_ukey in chunk_ids {
         let chunk_assets = collect_assets_from_chunk(compilation, &chunk_ukey, &entry_point_names);
@@ -556,20 +608,23 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     }
 
     let mut shared_asset_files: HashSet<String> = HashSet::default();
-    for (pkg, mut assets) in aggregated_shared_assets {
+    for (identity, mut assets) in aggregated_shared_assets {
       normalize_assets_group(&mut assets);
       assets.js.r#async.clear();
       assets.css.r#async.clear();
       shared_asset_files.extend(assets.js.sync.iter().cloned());
       shared_asset_files.extend(assets.css.sync.iter().cloned());
-      if let Some(shared_entry) = shared_map.get_mut(&pkg) {
+      if let Some(shared_entry) = shared_map.get_mut(&identity) {
         shared_entry.assets = assets;
       }
     }
 
-    for (expose_file_key, expose) in exposes_map.iter_mut() {
+    for (expose_identity, expose) in exposes_map.iter_mut() {
+      let Some(expose_file_key) = expose_imports.get(expose_identity) else {
+        continue;
+      };
       let mut assets = None;
-      if let Some(chunk_key) = expose_chunk_keys.get(expose_file_key) {
+      if let Some(chunk_key) = expose_chunk_keys.get(expose_identity) {
         assets = Some(collect_assets_from_chunk(
           compilation,
           chunk_key,
@@ -594,7 +649,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         assets = collect_assets_for_module(compilation, module_id, &entry_files);
       }
       if assets.is_none()
-        && let Some(chunk_key) = expose_fallback_chunk_keys.get(expose_file_key)
+        && let Some(chunk_key) = expose_fallback_chunk_keys.get(expose_identity)
       {
         assets = Some(collect_assets_from_chunk(
           compilation,
@@ -603,7 +658,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         ));
       }
       let mut assets = assets.unwrap_or_else(empty_assets_group);
-      if let Some(path) = expose_module_paths.get(expose_file_key) {
+      if let Some(path) = expose_module_paths.get(expose_identity) {
         expose.file = path.clone();
       }
       // Remove main entry files from assets
@@ -695,7 +750,24 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       });
     }
 
-    let exposes = exposes_map.values().cloned().collect::<Vec<_>>();
+    let exposes = exposes_map
+      .into_values()
+      .map(|mut expose| {
+        expose.requires.sort_unstable();
+        sort_small_by(&mut expose.required_shared, |a, b| {
+          a.name
+            .cmp(&b.name)
+            .then_with(|| a.layer.cmp(&b.layer))
+            .then_with(|| {
+              a.share_scope
+                .as_ref()
+                .map(ShareScope::identifier_key)
+                .cmp(&b.share_scope.as_ref().map(ShareScope::identifier_key))
+            })
+        });
+        expose
+      })
+      .collect::<Vec<_>>();
     let shared = shared_map
       .into_values()
       .map(|mut v| {
@@ -706,6 +778,15 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       .collect::<Vec<_>>();
     (exposes, shared, remote_list)
   };
+  finalize_shared_ids(&mut shared, &container_name);
+  sort_small_by(&mut exposes, |a, b| {
+    a.id.cmp(&b.id).then_with(|| a.layer.cmp(&b.layer))
+  });
+  sort_small_by(&mut shared, |a, b| {
+    a.id
+      .cmp(&b.id)
+      .then_with(|| a.identity_id.cmp(&b.identity_id))
+  });
   // Ensure all configured remotes exist in stats, add missing with defaults
   let mut remote_list = remote_list;
   ensure_configured_remotes(
@@ -747,19 +828,29 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         id: e.id,
         name: e.name,
         path: e.path,
+        layer: e.layer,
+        required_shared: e.required_shared,
         assets: e.assets,
       })
       .collect(),
     shared: stats_root
       .shared
       .into_iter()
-      .map(|s| ManifestShared {
-        id: s.id,
-        name: s.name,
-        version: s.version,
-        requiredVersion: s.requiredVersion,
-        singleton: s.singleton,
-        assets: s.assets,
+      .map(|s| {
+        let used_exports = s.usedExports;
+        ManifestShared {
+          id: s.id,
+          identity_id: s.identity_id,
+          name: s.name,
+          version: s.version,
+          requiredVersion: s.requiredVersion,
+          layer: s.layer,
+          share_scope: s.share_scope,
+          singleton: s.singleton,
+          referenceExports: used_exports.clone(),
+          usedExports: used_exports,
+          assets: s.assets,
+        }
       })
       .collect(),
     remotes: remote_list
