@@ -4,14 +4,14 @@
     "create-draft-release-notes": {
       "source": "rstackjs/agent-skills",
       "sourceType": "github",
-      "skillPath": "skills/create-draft-release-notes/SKILL.md",
-      "computedHash": "cb32485c5a35e45acba920a690a14d10f878c92fbbd2312ec3d0ce4bf2012abc"
+      "skillPath": ".agents/skills/create-draft-release-notes/SKILL.md",
+      "computedHash": "1c07601e93b35361c92cd6f067ddba3c710c27e98fd42f7b11e74b446590d1a9"
     },
     "release-blog-writer": {
       "source": "rstackjs/agent-skills",
       "sourceType": "github",
-      "skillPath": "skills/release-blog-writer/SKILL.md",
-      "computedHash": "24bdde0407813d43e4f42336fa0d433f53e5c5c8a516f46acbc3505c557f68ea"
+      "skillPath": ".agents/skills/release-blog-writer/SKILL.md",
+      "computedHash": "982e423497efa0a1266e06e14f880264c791e22b33144ce283fcd38041a7e814"
     }
   }
 }
