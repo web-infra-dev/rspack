@@ -3,10 +3,26 @@ it("should preserve the resolve context through context module factory hooks", (
   expect(require(`./local/${name}`).default).toBe(42);
 });
 
+it("should relocate import.meta.webpackContext when beforeResolve changes context", () => {
+  const context = import.meta.webpackContext("./local", {
+    recursive: false,
+    regExp: /value\.js$/,
+  });
+  expect(context("./value.js").default).toBe(42);
+});
+
 it("should relocate import.meta.glob when a hook changes the resolve context", () => {
   const modules = import.meta.glob("./local/*.js", { eager: true });
   expect(Object.keys(modules)).toEqual(["./local/value.js"]);
   expect(modules["./local/value.js"].default).toBe(42);
+});
+
+it("should keep the webpackContext stable when afterResolve changes context", () => {
+  const context = import.meta.webpackContext("./after-source", {
+    recursive: false,
+    regExp: /value\.js$/,
+  });
+  expect(context("./value.js").default).toBe(44);
 });
 
 it("should keep the glob context stable when afterResolve changes context", () => {

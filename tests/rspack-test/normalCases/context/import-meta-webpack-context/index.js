@@ -25,3 +25,8 @@ it("should allow chunkName", function() {
 	});
 	expect(contextRequire("./two-three")).toBe(3);
 });
+
+it("should resolve a relative request from a nested importer", function() {
+	const contextRequire = require("./nested/context").default;
+	expect(contextRequire("./value")).toBe(5);
+});
