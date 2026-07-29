@@ -303,9 +303,9 @@ pub fn to_static(
   stylesheet: StyleSheet,
   options: ParserOptions<'static, 'static>,
 ) -> StyleSheet<'static, 'static> {
-  let sources = stylesheet.sources.clone();
-  let rules = stylesheet.rules.clone().into_owned();
-  let license_comments = stylesheet.license_comments.clone().into_owned();
+  let sources = stylesheet.sources;
+  let rules = stylesheet.rules.into_owned();
+  let license_comments = stylesheet.license_comments.into_owned();
 
   let mut stylesheet = StyleSheet::new(sources, rules, options);
   stylesheet.license_comments = license_comments;
