@@ -276,6 +276,7 @@ import { ContainerReferencePlugin } from './container/ContainerReferencePlugin';
 
 export type {
   ContainerPluginOptions,
+  EnhancedContainerPluginOptions,
   Exposes,
   ExposesConfig,
   ExposesItem,

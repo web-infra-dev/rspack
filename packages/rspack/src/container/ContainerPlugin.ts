@@ -25,14 +25,18 @@ export interface ContainerPluginOptions extends ContainerPluginBaseOptions<false
   enhanced?: boolean;
 }
 
+export interface EnhancedContainerPluginOptions extends ContainerPluginBaseOptions<true> {
+  enhanced: true;
+}
+
 type ContainerPluginConstructorOptions<Enhanced extends boolean = boolean> = [
   Enhanced,
 ] extends [true]
-  ? ContainerPluginBaseOptions<true> & { enhanced: true }
+  ? EnhancedContainerPluginOptions
   : [Enhanced] extends [false]
     ? ContainerPluginBaseOptions<false> & { enhanced?: false }
     : | (ContainerPluginBaseOptions<false> & { enhanced?: false })
-      | (ContainerPluginBaseOptions<true> & { enhanced: true })
+      | EnhancedContainerPluginOptions
       | (ContainerPluginBaseOptions<false> & { enhanced: boolean });
 export type Exposes<Enhanced extends boolean = false> =
   (ExposesItem | ExposesObject<Enhanced>)[] | ExposesObject<Enhanced>;

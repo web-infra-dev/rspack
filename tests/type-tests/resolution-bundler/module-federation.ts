@@ -2,6 +2,7 @@ import rspack, {
   type ConsumesConfig,
   type ConsumeSharedPluginOptions,
   type ContainerPluginOptions,
+  type EnhancedContainerPluginOptions,
   type ExposesConfig,
   type ModuleFederationPluginV1Options,
 } from '@rspack/core';
@@ -51,6 +52,15 @@ new rspack.container.ContainerPlugin({
     './entry': { import: './index', layer: 'server' },
   },
 });
+
+const reusableEnhancedContainer: EnhancedContainerPluginOptions = {
+  name: 'reusable-enhanced-container',
+  enhanced: true,
+  exposes: {
+    './entry': { import: './index', layer: 'server' },
+  },
+};
+new rspack.container.ContainerPlugin(reusableEnhancedContainer);
 
 interface ExtendedContainerOptions extends ContainerPluginOptions {
   customRuntimeFlag?: boolean;
