@@ -381,8 +381,8 @@ catalogs:
       specifier: ^0.18.0
       version: 0.18.0
     react-server-dom-rspack:
-      specifier: 0.0.2
-      version: 0.0.2
+      specifier: 0.1.0-canary-0280004e-20260417
+      version: 0.1.0-canary-0280004e-20260417
     rimraf:
       specifier: ^5.0.10
       version: 5.0.10
@@ -1238,7 +1238,7 @@ importers:
         version: 0.18.0
       react-server-dom-rspack:
         specifier: 'catalog:'
-        version: 0.0.2(@rspack/core@packages+rspack)(react-dom@19.2.8)(react@19.2.8)
+        version: 0.1.0-canary-0280004e-20260417(@rspack/core@packages+rspack)(react-dom@19.2.8)(react@19.2.8)
       rimraf:
         specifier: 'catalog:'
         version: 5.0.10
@@ -6550,13 +6550,13 @@ packages:
       react-dom:
         optional: true
 
-  react-server-dom-rspack@0.0.2:
-    resolution: {integrity: sha512-PowIm+Z65LkvC3yk4t3YrH2nMejwL361jiBT0BMW2bQCDUaNQknDHMPH0aTgMtJ9ZZ1Gc7KFgBvwB0itSzzELQ==}
+  react-server-dom-rspack@0.1.0-canary-0280004e-20260417:
+    resolution: {integrity: sha512-caOD/wR2kBHbdeNbO6v67C6AQMfyPZ61VCgxqePWBkFlxVrZ3PNRxrMYVpO0viFdKHGNKUnvxM9rzc9aunZ4PA==}
     engines: {node: '>=0.10.0'}
     peerDependencies:
       '@rspack/core': ^2.0.0-0
-      react: ^19.1.0
-      react-dom: ^19.1.0
+      react: ^19.3.0
+      react-dom: ^19.3.0
 
   react@19.2.8:
     resolution: {integrity: sha512-PWaYA1L/q9u2u7xYQi+Y3L3Yfnie7XyLeaJICV1MGD6LprsBxcAqGjYyr0eY3p+QdsA+x/Irkt4Qif8D63+Sbw==}
@@ -13172,7 +13172,7 @@ snapshots:
     optionalDependencies:
       react-dom: 19.2.8(react@19.2.8)
 
-  react-server-dom-rspack@0.0.2(@rspack/core@packages+rspack)(react-dom@19.2.8)(react@19.2.8):
+  react-server-dom-rspack@0.1.0-canary-0280004e-20260417(@rspack/core@packages+rspack)(react-dom@19.2.8)(react@19.2.8):
     dependencies:
       '@rspack/core': link:packages/rspack
       react: 19.2.8
