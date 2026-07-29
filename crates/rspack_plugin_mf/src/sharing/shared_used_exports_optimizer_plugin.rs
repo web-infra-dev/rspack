@@ -49,20 +49,20 @@ fn share_scope_from_json(value: Option<&Value>) -> Option<Option<ShareScope>> {
 }
 
 #[inline(always)]
-fn referenced_exports_for_output<'a>(
-  shared_referenced_exports: &'a FxHashMap<SharedIdentity, FxHashSet<String>>,
+fn referenced_exports_for_output(
+  shared_referenced_exports: &FxHashMap<SharedIdentity, FxHashSet<String>>,
   share_key: &str,
-) -> Option<&'a FxHashSet<String>> {
-  let mut matching = None;
+) -> Option<FxHashSet<String>> {
+  let mut matching = FxHashSet::default();
+  let mut found = false;
   for (identity, exports) in shared_referenced_exports {
     if identity.share_key != share_key {
       continue;
     }
-    if matching.replace(exports).is_some() {
-      return None;
-    }
+    found = true;
+    matching.extend(exports.iter().cloned());
   }
-  matching
+  found.then_some(matching)
 }
 
 fn update_shared_exports(
@@ -672,7 +672,7 @@ mod tests {
   }
 
   #[test]
-  fn output_without_identity_metadata_uses_an_unambiguous_shared_entry() {
+  fn output_without_identity_metadata_merges_shared_identity_exports() {
     let mut exports = FxHashMap::default();
     exports.insert(
       SharedIdentity::new(
@@ -683,15 +683,20 @@ mod tests {
       FxHashSet::from_iter(["use".to_string()]),
     );
 
-    assert!(referenced_exports_for_output(&exports, "react").is_some());
     exports.insert(
       SharedIdentity::new(
         &ShareScope::Single("other".to_string()),
         "react",
         Some("client"),
       ),
-      FxHashSet::default(),
+      FxHashSet::from_iter(["createElement".to_string()]),
     );
-    assert!(referenced_exports_for_output(&exports, "react").is_none());
+    assert_eq!(
+      referenced_exports_for_output(&exports, "react"),
+      Some(FxHashSet::from_iter([
+        "use".to_string(),
+        "createElement".to_string()
+      ]))
+    );
   }
 }
