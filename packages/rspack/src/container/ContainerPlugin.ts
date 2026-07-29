@@ -21,7 +21,11 @@ type ContainerPluginBaseOptions<Enhanced extends boolean> = {
   runtime?: EntryRuntime;
   shareScope?: ShareScope;
 };
-export type ContainerPluginOptions<Enhanced extends boolean = boolean> = [
+export interface ContainerPluginOptions extends ContainerPluginBaseOptions<false> {
+  enhanced?: boolean;
+}
+
+type ContainerPluginConstructorOptions<Enhanced extends boolean = boolean> = [
   Enhanced,
 ] extends [true]
   ? ContainerPluginBaseOptions<true> & { enhanced: true }
@@ -55,7 +59,7 @@ export class ContainerPlugin<
   name = BuiltinPluginName.ContainerPlugin;
   _options;
 
-  constructor(options: ContainerPluginOptions<Enhanced>) {
+  constructor(options: ContainerPluginConstructorOptions<Enhanced>) {
     super();
     const enhanced = options.enhanced ?? false;
     const shareScope = normalizeShareScope(

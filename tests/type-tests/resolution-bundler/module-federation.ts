@@ -52,12 +52,15 @@ new rspack.container.ContainerPlugin({
   },
 });
 
-const annotatedEnhancedContainer: ContainerPluginOptions = {
-  name: 'annotated-enhanced',
-  enhanced: true,
-  exposes: { './entry': { import: './index', layer: 'server' } },
+interface ExtendedContainerOptions extends ContainerPluginOptions {
+  customRuntimeFlag?: boolean;
+}
+const extendedContainer: ExtendedContainerOptions = {
+  name: 'extended-container',
+  exposes: { './entry': { import: './index' } },
+  customRuntimeFlag: true,
 };
-new rspack.container.ContainerPlugin(annotatedEnhancedContainer);
+new rspack.container.ContainerPlugin(extendedContainer);
 
 const dynamicEnhanced = Math.random() > 0.5;
 const reusableLegacyExpose: ExposesConfig = { import: './index' };
