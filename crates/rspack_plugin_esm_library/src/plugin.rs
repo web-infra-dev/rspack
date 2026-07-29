@@ -409,10 +409,19 @@ async fn additional_module_runtime_requirements(
 async fn additional_chunk_runtime_requirements(
   &self,
   _compilation: &Compilation,
-  _chunk_ukey: &ChunkUkey,
+  chunk_ukey: &ChunkUkey,
   runtime_requirements: &mut RuntimeGlobals,
   _runtime_modules: &mut Vec<Box<dyn RuntimeModule>>,
 ) -> Result<()> {
+  if let Some(chunk_link) = self.links.borrow().get(chunk_ukey)
+    && chunk_link
+      .required
+      .values()
+      .any(|interop| interop.default_access.is_some())
+  {
+    runtime_requirements.insert(RuntimeGlobals::COMPAT_GET_DEFAULT_EXPORT);
+  }
+
   // Add REQUIRE_SCOPE only when runtime_requirements actually contain globals
   // that live on the __rspack_require object (same check the runtime plugin
   // uses in handle_scope_globals). This avoids pulling in an empty
