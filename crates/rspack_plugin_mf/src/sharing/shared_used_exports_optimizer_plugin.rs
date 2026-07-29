@@ -27,6 +27,7 @@ use crate::{
   manifest::StatsRoot,
 };
 
+#[inline(always)]
 fn referenced_exports_for_output<'a>(
   shared_referenced_exports: &'a FxHashMap<SharedIdentity, FxHashSet<String>>,
   share_key: &str,
