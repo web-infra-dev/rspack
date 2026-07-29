@@ -62,6 +62,12 @@ impl ConsumeSharedModule {
   pub fn new(context: Context, options: ConsumeOptions, runtime_mode: RuntimeMode) -> Self {
     let scopes_key = options.share_scope.key();
     let namespace = module_identifier_namespace(runtime_mode);
+    let identity_key = SharedIdentity::new(
+      &options.share_scope,
+      &options.share_key,
+      options.layer.as_deref(),
+    )
+    .identifier_key();
     let readable_identifier = format!(
       "consume shared module ({}){} {}@{}{}{}{}{}",
       &scopes_key,
@@ -97,24 +103,7 @@ impl ConsumeSharedModule {
       },
     );
     let identifier = format!(
-      "consume shared module {}@{}{}{}{}{}",
-      if options.layer.is_none() {
-        format!(
-          "{} {}",
-          options.share_scope.identifier_fragment(),
-          options.share_key
-        )
-      } else {
-        format!(
-          "[{}]",
-          SharedIdentity::new(
-            &options.share_scope,
-            &options.share_key,
-            options.layer.as_deref()
-          )
-          .identifier_key()
-        )
-      },
+      "consume shared module [{identity_key}]@{}{}{}{}{}",
       options
         .required_version
         .as_ref()
@@ -140,12 +129,6 @@ impl ConsumeSharedModule {
         Default::default()
       },
     );
-    let identity_key = SharedIdentity::new(
-      &options.share_scope,
-      &options.share_key,
-      options.layer.as_deref(),
-    )
-    .identifier_key();
     Self {
       blocks: Vec::new(),
       dependencies: Vec::new(),
@@ -180,6 +163,49 @@ impl ConsumeSharedModule {
       build_meta: Default::default(),
       source_map_kind: SourceMapKind::empty(),
     }
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use rspack_collections::Identifiable;
+  use rspack_core::{Context, runtime_mode::RuntimeMode};
+
+  use super::ConsumeSharedModule;
+  use crate::{ConsumeOptions, ShareScope};
+
+  fn options(share_scope: &str, share_key: &str) -> ConsumeOptions {
+    ConsumeOptions {
+      request: None,
+      issuer_layer: None,
+      layer: None,
+      import: None,
+      import_resolved: None,
+      share_key: share_key.to_string(),
+      share_scope: ShareScope::Single(share_scope.to_string()),
+      required_version: None,
+      package_name: None,
+      strict_version: false,
+      singleton: false,
+      eager: false,
+      tree_shaking_mode: None,
+    }
+  }
+
+  #[test]
+  fn unlayered_consume_identifiers_are_collision_free() {
+    let first = ConsumeSharedModule::new(
+      Context::from(""),
+      options("a) b", "c"),
+      RuntimeMode::Webpack,
+    );
+    let second = ConsumeSharedModule::new(
+      Context::from(""),
+      options("a", "b) c"),
+      RuntimeMode::Webpack,
+    );
+
+    assert_ne!(first.identifier(), second.identifier());
   }
 }
 

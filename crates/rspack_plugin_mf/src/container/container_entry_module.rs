@@ -266,7 +266,7 @@ impl Module for ContainerEntryModule {
             .import
             .iter()
             .map(|request| {
-              Box::new(ContainerExposedDependency::new(
+              Box::new(ContainerExposedDependency::new_with_layer(
                 name.clone(),
                 request.clone(),
                 self.expose_layers.get(index).cloned().flatten(),

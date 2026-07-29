@@ -32,7 +32,11 @@ pub struct ContainerExposedDependency {
 }
 
 impl ContainerExposedDependency {
-  pub fn new(exposed_name: String, request: String, layer: Option<ModuleLayer>) -> Self {
+  pub fn new(exposed_name: String, request: String) -> Self {
+    Self::new_with_layer(exposed_name, request, None)
+  }
+
+  pub fn new_with_layer(exposed_name: String, request: String, layer: Option<ModuleLayer>) -> Self {
     let resource_identifier =
       exposed_resource_identifier(&exposed_name, &request, layer.as_deref()).into();
     Self {
@@ -111,12 +115,18 @@ impl AsDependencyCodeGeneration for ContainerExposedDependency {}
 
 #[cfg(test)]
 mod tests {
-  use super::exposed_resource_identifier;
+  use super::{ContainerExposedDependency, exposed_resource_identifier};
 
   #[test]
   fn exposed_resource_identifiers_are_collision_free() {
     let first = exposed_resource_identifier("./a", "b=c|layer=foo", None);
     let second = exposed_resource_identifier("./a=b", "c", Some("foo"));
     assert_ne!(first, second);
+  }
+
+  #[test]
+  fn two_argument_constructor_remains_available() {
+    let _constructor: fn(String, String) -> ContainerExposedDependency =
+      ContainerExposedDependency::new;
   }
 }
