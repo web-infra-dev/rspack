@@ -518,16 +518,22 @@ export default function () {
     enableArrayRemoteShareScopes(runtimeRequire.federation.instance);
 
     if (runtimeRequire.consumesLoadingData?.initialConsumes) {
-      initializeConsumeShareScopes(
+      const installInitialConsumes = () =>
+        runtimeRequire.federation.bundlerRuntime.installInitialConsumes({
+          webpackRequire: runtimeRequire,
+          installedModules: consumesLoadinginstalledModules,
+          initialConsumes: runtimeRequire.consumesLoadingData.initialConsumes,
+          moduleToHandlerMapping:
+            runtimeRequire.federation.consumesLoadingModuleToHandlerMapping,
+        });
+      const initPromises = initializeConsumeShareScopes(
         runtimeRequire.consumesLoadingData.initialConsumes,
       );
-      runtimeRequire.federation.bundlerRuntime.installInitialConsumes({
-        webpackRequire: runtimeRequire,
-        installedModules: consumesLoadinginstalledModules,
-        initialConsumes: runtimeRequire.consumesLoadingData.initialConsumes,
-        moduleToHandlerMapping:
-          runtimeRequire.federation.consumesLoadingModuleToHandlerMapping,
-      });
+      if (initPromises.length === 0) {
+        installInitialConsumes();
+      } else {
+        Promise.all(initPromises).then(installInitialConsumes);
+      }
     }
   }
 }
