@@ -2,9 +2,9 @@ use std::sync::LazyLock;
 
 use rspack_collections::Identifiable;
 use rspack_core::{
-  ChunkGraph, Compilation, DependenciesBlock, ModuleId, RuntimeGlobals, RuntimeModule,
-  RuntimeModuleGenerateContext, RuntimeModuleRuntimeRequirements, RuntimeModuleStage,
-  RuntimeTemplate, SourceType, impl_runtime_module,
+  ChunkGraph, Compilation, DependenciesBlock, ExternalModule, ModuleId, RuntimeGlobals,
+  RuntimeModule, RuntimeModuleGenerateContext, RuntimeModuleRuntimeRequirements,
+  RuntimeModuleStage, RuntimeTemplate, SourceType, extract_url_and_global, impl_runtime_module,
 };
 use rspack_plugin_runtime::extract_runtime_globals_from_ejs;
 use rustc_hash::FxHashMap;
@@ -13,7 +13,7 @@ use serde::Serialize;
 use super::remote_module::RemoteModule;
 use crate::{
   ShareScope,
-  utils::{json_stringify, runtime_require_scope_name, runtime_require_scope_requirement},
+  utils::{runtime_require_scope_name, runtime_require_scope_requirement},
 };
 
 static REMOTES_LOADING_TEMPLATE: &str = include_str!("./remotesLoading.ejs");
@@ -102,6 +102,27 @@ impl RuntimeModule for RemoteRuntimeModule {
         let external_module = module_graph
           .get_module_by_dependency_id(&dep)
           .expect("should have module");
+        let remote_info = if self.enhanced {
+          if let Some(external_module) = external_module.downcast_ref::<ExternalModule>() {
+            let external_type = external_module.get_external_type().as_str();
+            let name = if external_type == "script" {
+              match extract_url_and_global(external_module.get_request().primary()) {
+                Ok(url_and_global) => url_and_global.global,
+                Err(_) => "",
+              }
+            } else {
+              ""
+            };
+            Some(RemoteInfo {
+              external_type,
+              name,
+            })
+          } else {
+            None
+          }
+        } else {
+          None
+        };
         let external_module_id = ChunkGraph::get_module_id(
           &compilation.module_ids_artifact,
           external_module.identifier(),
@@ -115,6 +136,7 @@ impl RuntimeModule for RemoteRuntimeModule {
             name,
             external_module_id,
             remote_name: &m.remote_key,
+            remote_info,
           },
         );
       }
@@ -148,23 +170,34 @@ impl RuntimeModule for RemoteRuntimeModule {
 {remotes_loading_impl}
 "#,
       require_name = runtime_require_scope_name(runtime_template),
-      chunk_mapping = json_stringify(&chunk_to_remotes_mapping),
-      id_to_remote_data_mapping = json_stringify(&id_to_remote_data_mapping),
+      chunk_mapping =
+        simd_json::to_string(&chunk_to_remotes_mapping).expect("valid remote chunk mapping"),
+      id_to_remote_data_mapping =
+        simd_json::to_string(&id_to_remote_data_mapping).expect("valid remote data"),
       remotes_loading_impl = remotes_loading_impl,
     ))
   }
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 struct RemoteData<'a> {
   share_scope: ShareScopeField<'a>,
   name: &'a str,
   external_module_id: &'a ModuleId,
   remote_name: &'a str,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  remote_info: Option<RemoteInfo<'a>>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct RemoteInfo<'a> {
+  external_type: &'a str,
+  name: &'a str,
+}
+
+#[derive(Serialize)]
 #[serde(untagged)]
 enum ShareScopeField<'a> {
   Single(&'a str),
