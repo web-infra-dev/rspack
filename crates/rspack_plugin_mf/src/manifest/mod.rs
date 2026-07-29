@@ -306,7 +306,8 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     let mut exposes_map: HashMap<ExposeIdentity, StatsExpose> = HashMap::default();
     let mut expose_imports: HashMap<ExposeIdentity, String> = HashMap::default();
     let mut expose_identities_by_import: HashMap<String, Vec<ExposeIdentity>> = HashMap::default();
-    let mut expose_effective_layers: HashMap<ExposeIdentity, Option<String>> = HashMap::default();
+    let mut expose_effective_layers: HashMap<(ExposeIdentity, String), Option<String>> =
+      HashMap::default();
     let mut expose_chunk_keys: HashMap<ExposeIdentity, rspack_core::ChunkUkey> = HashMap::default();
     let mut expose_fallback_chunk_keys: HashMap<ExposeIdentity, rspack_core::ChunkUkey> =
       HashMap::default();
@@ -381,24 +382,32 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
             .cloned()
             .flatten();
           let expose_identity = ExposeIdentity::new(expose_key, expose_layer.as_deref());
-          let effective_layer = blocks
+          expose_imports.insert(expose_identity.clone(), expose_file_key.clone());
+          let expose_dependencies = blocks
             .get(index)
             .and_then(|block_id| module_graph.block_by_id(block_id))
-            .and_then(|block| {
-              block.get_dependencies().iter().find_map(|dependency_id| {
+            .map(|block| block.get_dependencies());
+          for (import_index, import) in options.import.iter().enumerate() {
+            if import.is_empty() {
+              continue;
+            }
+            let import_key = strip_ext(import);
+            let effective_layer = expose_dependencies
+              .and_then(|dependencies| dependencies.get(import_index))
+              .and_then(|dependency_id| {
                 module_graph
                   .module_identifier_by_dependency_id(dependency_id)
                   .and_then(|module_id| module_graph.module_by_identifier(module_id))
                   .and_then(|module| module.get_layer().cloned())
-              })
-            });
-          expose_effective_layers.insert(expose_identity.clone(), effective_layer);
-          expose_imports.insert(expose_identity.clone(), expose_file_key.clone());
-          let expose_identities = expose_identities_by_import
-            .entry(expose_file_key.clone())
-            .or_default();
-          if !expose_identities.contains(&expose_identity) {
-            expose_identities.push(expose_identity.clone());
+              });
+            expose_effective_layers.insert(
+              (expose_identity.clone(), import_key.clone()),
+              effective_layer,
+            );
+            let expose_identities = expose_identities_by_import.entry(import_key).or_default();
+            if !expose_identities.contains(&expose_identity) {
+              expose_identities.push(expose_identity.clone());
+            }
           }
           exposes_map
             .entry(expose_identity.clone())
