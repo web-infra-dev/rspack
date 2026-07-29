@@ -46,6 +46,10 @@ impl RuntimeModuleFromJs {
 
 #[async_trait::async_trait]
 impl RuntimeModule for RuntimeModuleFromJs {
+  fn runtime_module_variables() -> &'static [&'static str] {
+    &[]
+  }
+
   async fn generate(&self, _: &RuntimeModuleGenerateContext<'_>) -> rspack_error::Result<String> {
     let res = (self.generator)().await?;
     Ok(res)

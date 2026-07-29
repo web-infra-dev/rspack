@@ -1,6 +1,5 @@
 ```mjs title=main.mjs
-import { __rspack_context } from "./runtime.mjs";
-
+import { rspackRequire, createFakeNamespaceObject } from "./runtime.mjs";
 import { createRequire as __rspack_createRequire } from "node:module";
 const __rspack_createRequire_require = __rspack_createRequire(import.meta.url);
 // fs
@@ -25,7 +24,7 @@ const joinFn = Reflect.get(external_path_namespaceObject, "join");
 
 it("should deconflict concatenated namespace imports that match generated node-commonjs names", async () => {
   const mod = await import(/* webpackIgnore: true */ "./main.mjs");
-  const { createRequire } = await import("node:module").then(function(module) { return __rspack_context.t(module.createRequire(import.meta.url)("node:module"), 22) });
+  const { createRequire } = await import("node:module").then(function(module) { return createFakeNamespaceObject(module.createRequire(import.meta.url)("node:module"), 22) });
   const require = createRequire('<ROOT>/tests/rspack-test/esmOutputCases/externals/node-commonjs-namespace-name-collision-across-modules/index.js');
   const fs = require("fs");
   const path = require("path");
@@ -45,8 +44,8 @@ export { external_path_namespaceObject as pathNs, joinFn, readFile, readFileSync
 
 ```mjs title=runtime.mjs
 // The require scope
-var __rspack_require = {};
-var __rspack_context = {};
+var rspackRequire = {};
+export { rspackRequire };
 
 // rspack/runtime/create_fake_namespace_object
 var getProto = Object.getPrototypeOf ? (obj) => (Object.getPrototypeOf(obj)) : (obj) => (obj.__proto__);
@@ -75,7 +74,7 @@ var createFakeNamespaceObject = function(value, mode) {
 	definePropertyGetters(ns, def);
 	return ns;
 };;
-__rspack_context.t = createFakeNamespaceObject;
+export { createFakeNamespaceObject };
 // rspack/runtime/define_property_getters
 var definePropertyGetters = (exports, getters, values) => {
 	var define = (defs, kind) => {
@@ -99,6 +98,5 @@ var makeNamespaceObject = (exports) => {
 	Object.defineProperty(exports, '__esModule', { value: true });
 };;
 
-export { __rspack_context };
 
 ```

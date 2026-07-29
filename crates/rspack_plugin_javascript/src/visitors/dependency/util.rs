@@ -24,7 +24,6 @@ pub mod expr_name {
   pub const IMPORT_META: &str = "import.meta";
   pub const IMPORT_META_FILENAME: &str = "import.meta.filename";
   pub const IMPORT_META_DIRNAME: &str = "import.meta.dirname";
-  pub const IMPORT_META_ENV: &str = "import.meta.env";
   pub const IMPORT_META_URL: &str = "import.meta.url";
   pub const IMPORT_META_RESOLVE: &str = "import.meta.resolve";
   pub const IMPORT_META_VERSION: &str = "import.meta.webpack";

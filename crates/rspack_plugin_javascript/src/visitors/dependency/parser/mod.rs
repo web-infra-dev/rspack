@@ -22,13 +22,14 @@ use rspack_cacheable::{
 };
 use rspack_core::{
   ArcComputed, AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BuildInfo, BuildMeta,
-  CompilationId, CompilerOptions, DependencyId, DependencyLocation, DependencyRange, FactoryMeta,
-  ImportMeta, ImportMetaKnownProperties, JavascriptParserCommonjsExportsOption,
-  JavascriptParserOptions, ModuleIdentifier, ModuleLayer, ModuleType, ParseMeta,
-  ResolvedModuleOptions, ResourceData, SideEffectsBailoutItemWithSpan,
+  CompilerOptions, DependencyId, DependencyLocation, DependencyRange, FactoryMeta, ImportMeta,
+  ImportMetaKnownProperties, JavascriptParserCommonjsExportsOption, JavascriptParserOptions,
+  ModuleIdentifier, ModuleLayer, ModuleType, ParseMeta, ResolvedModuleOptions, ResourceData,
+  SideEffectsBailoutItemWithSpan,
 };
 use rspack_error::{Diagnostic, Result};
-use rspack_util::fx_hash::{FxHashMap, FxHashSet, FxIndexSet};
+use rspack_util::fx_hash::FxIndexSet;
+use rustc_hash::{FxHashMap, FxHashSet};
 use smallvec::SmallVec;
 use swc_atoms::Atom;
 use swc_experimental_allocator::{Allocator, CloneIn};
@@ -393,7 +394,6 @@ pub struct JavascriptParser<'parser> {
   pub build_info: &'parser mut BuildInfo,
   pub resource_data: &'parser ResourceData,
   pub(crate) compiler_options: &'parser CompilerOptions,
-  pub(crate) compilation_id: CompilationId,
   pub(crate) javascript_options: &'parser JavascriptParserOptions,
   pub parser_runtime_requirements: &'parser ParserRuntimeRequirementsData,
   pub module_type: &'parser ModuleType,
@@ -450,7 +450,6 @@ impl<'parser> JavascriptParser<'parser> {
     semicolons: &'parser mut FxHashSet<u32>,
     parser_plugins: &'parser mut Vec<BoxJavascriptParserPlugin>,
     parse_meta: ParseMeta,
-    compilation_id: CompilationId,
     parser_runtime_requirements: &'parser ParserRuntimeRequirementsData,
   ) -> Self {
     let warning_diagnostics: Vec<Diagnostic> = Vec::new();
@@ -490,7 +489,7 @@ impl<'parser> JavascriptParser<'parser> {
         },
       ));
       if import_meta.is_enabled() {
-        plugins.push(Box::new(parser_plugin::ImportMetaPlugin::new(import_meta)));
+        plugins.push(Box::new(parser_plugin::ImportMetaPlugin(import_meta)));
       } else {
         plugins.push(Box::new(parser_plugin::ImportMetaDisabledPlugin));
       }
@@ -594,7 +593,6 @@ impl<'parser> JavascriptParser<'parser> {
       build_meta,
       build_info,
       compiler_options,
-      compilation_id,
       module_type,
       module_layer,
       parser_exports_state,

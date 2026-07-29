@@ -8,9 +8,6 @@ const sourceUrl = pathToFileURL(
 if (!import.meta.UNKNOWN_PROPERTY) {
 	import.meta.UNKNOWN_PROPERTY = "runtime";
 }
-if (!import.meta.env) {
-	import.meta.env = { RUNTIME: "runtime" };
-}
 
 const { UNKNOWN_PROPERTY, url, webpack } = import.meta;
 
@@ -19,7 +16,6 @@ export default {
 	unknown: UNKNOWN_PROPERTY,
 	unknownOptional: import.meta.UNKNOWN_PROPERTY?.length,
 	missingOptional: import.meta.MISSING_PROPERTY?.length,
-	env: import.meta.env,
 	url,
 	webpack
 };

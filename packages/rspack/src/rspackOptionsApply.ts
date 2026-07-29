@@ -399,14 +399,9 @@ export class RspackOptionsApply {
       }
     }
     if (options.optimization.nodeEnv) {
-      const nodeEnv = JSON.stringify(options.optimization.nodeEnv);
-      const definitions: Record<string, string> = {
-        'process.env.NODE_ENV': nodeEnv,
-      };
-      if (options.experiments.env) {
-        definitions['import.meta.env.NODE_ENV'] = nodeEnv;
-      }
-      new DefinePlugin(definitions).apply(compiler);
+      new DefinePlugin({
+        'process.env.NODE_ENV': JSON.stringify(options.optimization.nodeEnv),
+      }).apply(compiler);
     }
     const { minimize, minimizer } = options.optimization;
     if (minimize && minimizer) {
