@@ -296,7 +296,13 @@ pub fn record_shared_usage(
         });
       if let Some(request) = maybe_request {
         let key = strip_ext(&strip_aggregate_suffix(&request));
-        shared_usage_links.push((identity.clone(), key, issuer_layer.clone()));
+        let connection_issuer_layer = connection
+          .original_module_identifier
+          .or(connection.resolved_original_module_identifier)
+          .and_then(|identifier| module_graph.module_by_identifier(&identifier))
+          .and_then(|module| module.get_layer().cloned())
+          .or_else(|| issuer_layer.clone());
+        shared_usage_links.push((identity.clone(), key, connection_issuer_layer));
       }
     }
   }
@@ -328,10 +334,21 @@ pub fn collect_expose_requirements(
     let emit_structured_requirement = identity_count > 1
       || required_shared.layer.is_some()
       || required_shared.share_scope.is_some();
+    let has_exact_layer_match = issuer_layer.as_deref().is_some_and(|issuer_layer| {
+      expose_identities
+        .iter()
+        .any(|identity| identity.layer.as_deref() == Some(issuer_layer))
+    });
 
     for expose_identity in expose_identities {
-      if issuer_layer.is_some() && expose_identity.layer != issuer_layer {
-        continue;
+      if let Some(issuer_layer) = issuer_layer.as_deref() {
+        if has_exact_layer_match {
+          if expose_identity.layer.as_deref() != Some(issuer_layer) {
+            continue;
+          }
+        } else if expose_identity.layer.is_some() {
+          continue;
+        }
       }
       let Some(expose) = exposes_map.get_mut(expose_identity) else {
         continue;
@@ -471,5 +488,46 @@ mod tests {
 
     assert_eq!(exposes_map[&client_expose].requires, ["react"]);
     assert!(exposes_map[&server_expose].requires.is_empty());
+  }
+
+  #[test]
+  fn unlayered_expose_accepts_a_rule_layered_issuer() {
+    let shared_identity =
+      SharedIdentity::new(&ShareScope::Single("default".to_string()), "react", None);
+    let mut shared_map = HashMap::default();
+    shared_map.insert(
+      shared_identity.clone(),
+      stats_shared("react", Some(ShareScope::Single("default".to_string()))),
+    );
+    let expose_identity = ExposeIdentity::new("./entry", None);
+    let mut exposes_map = HashMap::from_iter([(
+      expose_identity.clone(),
+      StatsExpose {
+        path: "./entry".to_string(),
+        file: String::new(),
+        id: String::new(),
+        name: "entry".to_string(),
+        layer: None,
+        requires: Vec::new(),
+        required_shared: Vec::new(),
+        assets: StatsAssetsGroup::default(),
+      },
+    )]);
+    let expose_identities_by_import =
+      HashMap::from_iter([("entry".to_string(), vec![expose_identity.clone()])]);
+
+    collect_expose_requirements(
+      &mut shared_map,
+      &mut exposes_map,
+      vec![(
+        shared_identity,
+        "entry".to_string(),
+        Some("server".to_string()),
+      )],
+      &expose_identities_by_import,
+      &HashMap::default(),
+    );
+
+    assert_eq!(exposes_map[&expose_identity].requires, ["react"]);
   }
 }

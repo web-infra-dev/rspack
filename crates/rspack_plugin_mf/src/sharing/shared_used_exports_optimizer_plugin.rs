@@ -79,12 +79,14 @@ fn update_shared_exports(
       let layer = shared.get("layer").and_then(Value::as_str);
       (share_key, share_scope, layer)
     };
-    let exports_set = if share_scope.is_some() || layer.is_some() {
-      let identity = shared_identity_from_output(share_key, share_scope.as_ref(), layer);
-      shared_referenced_exports.get(&identity)
-    } else {
-      referenced_exports_for_output(shared_referenced_exports, share_key)
-    };
+    let identity = shared_identity_from_output(share_key, share_scope.as_ref(), layer);
+    let exports_set = shared_referenced_exports.get(&identity).or_else(|| {
+      if share_scope.is_none() && layer.is_none() {
+        referenced_exports_for_output(shared_referenced_exports, share_key)
+      } else {
+        None
+      }
+    });
     let Some(exports_set) = exports_set else {
       continue;
     };
@@ -606,6 +608,32 @@ mod tests {
       serde_json::json!(["default", "named"])
     );
   }
+
+  #[test]
+  fn updates_default_unlayered_exports_by_exact_identity() {
+    let mut referenced_exports = FxHashMap::default();
+    referenced_exports.insert(
+      SharedIdentity::new(&ShareScope::Single("default".to_string()), "pkg", None),
+      FxHashSet::from_iter(["default-export".to_string()]),
+    );
+    referenced_exports.insert(
+      SharedIdentity::new(
+        &ShareScope::Single("custom".to_string()),
+        "pkg",
+        Some("server"),
+      ),
+      FxHashSet::from_iter(["server-export".to_string()]),
+    );
+    let content = r#"{"shared":[{"name":"pkg"}]}"#;
+
+    let updated = update_shared_exports(content, &referenced_exports, true).expect("updated");
+    let updated: serde_json::Value = serde_json::from_str(&updated).expect("valid json");
+    assert_eq!(
+      updated["shared"][0]["usedExports"],
+      serde_json::json!(["default-export"])
+    );
+  }
+
   #[test]
   fn optimizer_keeps_same_key_and_layer_separate_by_scope() {
     let plugin = SharedUsedExportsOptimizerPlugin::new(SharedUsedExportsOptimizerPluginOptions {
