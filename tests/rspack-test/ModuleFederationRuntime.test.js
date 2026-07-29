@@ -58,6 +58,7 @@ function createRuntime({
 		},
 	});
 	if (consumeData) {
+		runtimeRequire.f.consumes = () => {};
 		runtimeRequire.consumesLoadingData = {
 			chunkMapping: {},
 			initialConsumes,
@@ -99,6 +100,7 @@ function createRuntime({
 	};
 	const localBundlerRuntime = {
 		...bundlerRuntime,
+		consumes: () => {},
 		init: () => instance,
 		getSharedFallbackGetter: ({ shareKey }) => shareKey,
 		initContainerEntry: options => {
@@ -330,6 +332,11 @@ describe('module federation default runtime share scopes', () => {
 		});
 
 		expect(runtimeRequire.m.consume).toBeUndefined();
+		const startupPromises = [];
+		runtimeRequire.f.consumes('startup', startupPromises);
+		expect(startupPromises).toContain(
+			runtimeRequire.federation.initialConsumesInit,
+		);
 		resolveInit();
 		await waitForInitialConsume(runtimeRequire);
 	});
