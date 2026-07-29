@@ -2,7 +2,7 @@
 // The require scope
 var rspackRequire = {};
 
-var publicPath, hasOwnProperty, baseUri;
+var hasOwnProperty, baseUri;
 // rspack/runtime/get javascript chunk filename
 // This function allow to reference chunks
 var getChunkScriptFilename = (chunkId) => {

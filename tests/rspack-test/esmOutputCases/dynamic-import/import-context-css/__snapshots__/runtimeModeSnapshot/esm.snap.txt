@@ -127,7 +127,7 @@ export { rspackRequire };
 var moduleFactories = modules;
 export { moduleFactories };
 
-var publicPath, scriptNonce;
+var scriptNonce;
 // rspack/runtime/define_property_getters
 var definePropertyGetters = (exports, getters, values) => {
 	var define = (defs, kind) => {
