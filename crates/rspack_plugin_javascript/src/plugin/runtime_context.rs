@@ -167,7 +167,8 @@ var module = ({module_cache}[moduleId] = {{"#,
       || has_custom_runtime_module;
     let need_module_defer =
       runtime_requirements.contains(RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT);
-    let use_require = require_function || intercept_module_execution || module_used;
+    let use_require =
+      require_function || intercept_module_execution || (module_used && module_factories);
     let mut header: Vec<Cow<str>> = Vec::new();
     let mut startup: Vec<Cow<str>> = Vec::new();
     let mut allow_inline_startup = true;
