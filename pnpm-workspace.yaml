@@ -44,7 +44,7 @@ catalog:
   '@rsbuild/plugin-sass': '^2.0.1'
   '@rsbuild/plugin-tailwindcss': '^2.0.3'
   '@rslib/core': '1.0.0-beta.1'
-  '@rslint/core': '0.7.0'
+  '@rslint/core': '0.7.2'
   '@rspack/dev-server': '^2.1.0'
   '@rspack/lite-tapable': '1.1.2'
   '@rspack/plugin-preact-refresh': '2.0.1'
