@@ -211,7 +211,7 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
         }
       }
     }
-    reqs.sort_by(|a, b| a[0].cmp(&b[0]).then(a[1].cmp(&b[1])));
+    reqs.sort_unstable_by(|a, b| a[0].cmp(&b[0]).then(a[1].cmp(&b[1])));
     ordered_requests.insert(identity, reqs);
   }
 

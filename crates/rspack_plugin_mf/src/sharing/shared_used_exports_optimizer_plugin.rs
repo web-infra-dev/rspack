@@ -558,7 +558,6 @@ mod tests {
       serde_json::json!(["default", "named"])
     );
   }
-
   #[test]
   fn optimizer_keeps_same_key_and_layer_separate_by_scope() {
     let plugin = SharedUsedExportsOptimizerPlugin::new(SharedUsedExportsOptimizerPluginOptions {

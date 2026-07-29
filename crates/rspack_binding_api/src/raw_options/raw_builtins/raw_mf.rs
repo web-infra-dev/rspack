@@ -58,6 +58,7 @@ impl From<RawContainerPluginOptions> for ContainerPluginOptions {
 pub struct RawExposeOptions {
   pub key: String,
   pub name: Option<String>,
+  pub layer: Option<String>,
   pub import: Vec<String>,
 }
 
@@ -67,6 +68,7 @@ impl From<RawExposeOptions> for (String, ExposeOptions) {
       value.key,
       ExposeOptions {
         name: value.name,
+        layer: value.layer,
         import: value.import,
       },
     )

@@ -12,8 +12,10 @@ import {
   type Remotes,
 } from './ContainerReferencePlugin';
 
-export interface ModuleFederationPluginV1Options {
-  exposes?: Exposes;
+export interface ModuleFederationPluginV1BaseOptions<
+  Enhanced extends boolean = boolean,
+> {
+  exposes?: Exposes<Enhanced>;
   filename?: string;
   library?: LibraryOptions;
   name: string;
@@ -22,11 +24,23 @@ export interface ModuleFederationPluginV1Options {
   runtime?: EntryRuntime;
   shareScope?: ShareScope;
   shared?: Shared;
-  enhanced?: boolean;
+  enhanced?: Enhanced;
 }
 
-export class ModuleFederationPluginV1 {
-  constructor(private _options: ModuleFederationPluginV1Options) {}
+export type ModuleFederationPluginV1Options<
+  Enhanced extends boolean = boolean,
+> = [Enhanced] extends [true]
+  ? ModuleFederationPluginV1BaseOptions<true> & { enhanced: true }
+  : [Enhanced] extends [false]
+    ? ModuleFederationPluginV1BaseOptions<false> & { enhanced?: false }
+    : | (ModuleFederationPluginV1BaseOptions<false> & { enhanced?: false })
+      | (ModuleFederationPluginV1BaseOptions<true> & { enhanced: true })
+      | (Omit<ModuleFederationPluginV1BaseOptions<boolean>, 'enhanced'> & {
+          enhanced: boolean;
+        });
+
+export class ModuleFederationPluginV1<Enhanced extends boolean = boolean> {
+  constructor(private _options: ModuleFederationPluginV1Options<Enhanced>) {}
 
   apply(compiler: Compiler) {
     const { _options: options } = this;
