@@ -257,8 +257,7 @@ async fn runtime_requirements_in_tree(
           *chunk_ukey,
           GetChunkFilenameRuntimeModule::new(
             &compilation.runtime_template,
-            "javascript",
-            "javascript",
+            ("javascript", "javascript"),
             SourceType::JavaScript,
             runtime_template.render_runtime_globals(&RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME),
             |runtime_requirements| {
@@ -286,8 +285,7 @@ async fn runtime_requirements_in_tree(
           *chunk_ukey,
           GetChunkFilenameRuntimeModule::new(
             &compilation.runtime_template,
-            "css",
-            "css",
+            ("css", "css"),
             SourceType::Css,
             runtime_template.render_runtime_globals(&RuntimeGlobals::GET_CHUNK_CSS_FILENAME),
             |runtime_requirements| {

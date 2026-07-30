@@ -55,14 +55,14 @@ impl GetChunkFilenameRuntimeModule {
     T: Fn(&Chunk, &Compilation) -> Option<Filename> + Sync + Send + 'static,
   >(
     runtime_template: &RuntimeTemplate,
-    content_type: &'static str,
-    name: &'static str,
+    kind: (&'static str, &'static str),
     source_type: SourceType,
     global: String,
     all_chunks: F,
     filename_for_chunk: T,
     chunk_ukey: ChunkUkey,
   ) -> Self {
+    let (content_type, name) = kind;
     Self::with_name(
       runtime_template,
       &format!("get {name} chunk filename"),
