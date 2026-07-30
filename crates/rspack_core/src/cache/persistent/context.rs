@@ -20,13 +20,10 @@ const PATH_LOG_LIMIT: usize = 3;
 /// context for the next one.
 #[derive(Debug)]
 pub struct CacheContext {
-  /// Set when build dependencies have changed, meaning the cached data is
-  /// structurally stale.  Unlike `load_failed`, this flag persists across
-  /// builds in readonly mode because the cache cannot be rebuilt there.
-  invalid: bool,
   /// Per-build load gate.  Flipped to `true` on the first failed `load_*`
   /// call; all subsequent `load_*` calls become no-ops for this build.
-  /// Restored to `false` (or derived from `invalid`) by `reset`.
+  /// Cleared by `reset` for writable caches and kept sticky for readonly
+  /// caches, which cannot repair failed entries.
   load_failed: bool,
   /// When `true`, all `save_*` and scope `reset` calls to storage are skipped.
   ///
@@ -43,7 +40,6 @@ pub struct CacheContext {
 impl CacheContext {
   pub fn new(storage: BoxStorage, readonly: bool, logger: CompilationLogger) -> Self {
     Self {
-      invalid: false,
       load_failed: false,
       readonly,
       logger,
@@ -62,8 +58,8 @@ impl CacheContext {
     self.storage.cleanup_stale();
   }
 
-  /// Validates build dependencies and sets `invalid` + `load_failed` on
-  /// failure.  Resets the BUILD scope when invalid and not readonly.
+  /// Validates build dependencies and sets `load_failed` on failure. Resets
+  /// the BUILD scope when validation fails and the cache is not readonly.
   ///
   /// Normally called only once per compiler instance, guarded by the
   /// `initialized` flag in `PersistentCache::initialize`.
@@ -72,7 +68,6 @@ impl CacheContext {
     let start = self.logger().time("validate build dependencies");
     match build_deps.validate(&*self.storage).await {
       Ok(BuildDepsValidationResult::Valid { tracked_files }) => {
-        self.invalid = false;
         self.logger().info(format!(
           "build dependencies are valid ({tracked_files} tracked)"
         ));
@@ -81,7 +76,6 @@ impl CacheContext {
         modified_files,
         removed_files,
       }) => {
-        self.invalid = true;
         self.load_failed = true;
         let reason = format_path_changes(&modified_files, &removed_files);
         self.logger().warn(format!(
@@ -142,18 +136,18 @@ impl CacheContext {
       let mut removed_paths = ArcPathSet::default();
       let data = vec![
         snapshot
-          .calc_modified_paths(&*self.storage, SnapshotScope::FILE)
+          .calc_modified_paths_without_unchanged(&*self.storage, SnapshotScope::FILE)
           .await,
         snapshot
-          .calc_modified_paths(&*self.storage, SnapshotScope::CONTEXT)
+          .calc_modified_paths_without_unchanged(&*self.storage, SnapshotScope::CONTEXT)
           .await,
         snapshot
-          .calc_modified_paths(&*self.storage, SnapshotScope::MISSING)
+          .calc_modified_paths_without_unchanged(&*self.storage, SnapshotScope::MISSING)
           .await,
       ];
       for item in data {
         match item {
-          Ok((a, b, c, _)) => {
+          Ok((a, b, c)) => {
             is_hot_start = is_hot_start || a;
             modified_paths.extend(b);
             removed_paths.extend(c);
@@ -190,6 +184,19 @@ impl CacheContext {
       snapshot.reset(&mut *self.storage);
     }
     None
+  }
+
+  /// Clears dependency snapshots before a full rebuild without a recovered
+  /// make artifact.
+  ///
+  /// A cold compilation has no previous [`FileCounter`](crate::utils::FileCounter)
+  /// baseline, so it cannot report dependencies that disappeared from a
+  /// corrupted make artifact. Resetting here makes `save_snapshot` rewrite the
+  /// complete current dependency set instead of retaining stale keys.
+  pub fn reset_snapshot(&mut self, snapshot: &Snapshot) {
+    if !self.readonly {
+      snapshot.reset(&mut *self.storage);
+    }
   }
 
   /// Persists snapshot data for all three scopes. No-op in readonly mode.
@@ -298,19 +305,16 @@ impl CacheContext {
 
   /// Resets per-build state.
   ///
-  /// In non-readonly mode both flags are cleared; scope resets done during
-  /// this build ensure a clean slate next time.
+  /// In non-readonly mode the load-failure gate is cleared; scope resets done
+  /// during this build ensure a clean slate next time.
   ///
-  /// In readonly mode `invalid` is preserved (the cache is still stale and
-  /// cannot be rebuilt), so `load_failed` is derived from it — stale-cache
-  /// loads are skipped on the next build as well.  Transient errors
-  /// (`load_failed` without `invalid`) are cleared so the next build retries.
+  /// In readonly mode failures remain sticky for this compiler instance. The
+  /// cache cannot repair a corrupt structural artifact, and retrying later
+  /// scopes without successfully restoring meta can violate global ID
+  /// invariants. A new compiler instance will retry the cache from scratch.
   pub fn reset(&mut self) {
     if !self.readonly {
-      self.invalid = false;
       self.load_failed = false
-    } else {
-      self.load_failed = self.invalid;
     }
   }
 }
@@ -364,5 +368,68 @@ fn append_paths_group(output: &mut String, label: &str, paths: &ArcPathSet) {
   }
   if is_truncated {
     output.push_str("\n  - ...");
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use std::sync::Arc;
+
+  use rspack_fs::MemoryFileSystem;
+
+  use super::*;
+  use crate::{
+    CompilationLogging,
+    cache::persistent::{
+      codec::CacheCodec,
+      snapshot::SnapshotOptions,
+      storage::{MemoryStorage, Storage},
+    },
+  };
+
+  #[tokio::test]
+  async fn should_reset_dependency_snapshots_after_make_recovery_failure() {
+    let mut storage = MemoryStorage::default();
+    storage.set(
+      SnapshotScope::FILE.name(),
+      b"stale-file".to_vec(),
+      b"stale-strategy".to_vec(),
+    );
+    let snapshot = Snapshot::new(
+      SnapshotOptions::default(),
+      Arc::new(MemoryFileSystem::default()),
+      Arc::new(CacheCodec::new(None)),
+    );
+    let mut context = CacheContext::new(
+      Box::new(storage),
+      false,
+      CompilationLogger::new("test".to_string(), CompilationLogging::default()),
+    );
+
+    context.reset_snapshot(&snapshot);
+
+    assert!(
+      context
+        .storage
+        .load(SnapshotScope::FILE.name())
+        .await
+        .unwrap()
+        .is_empty()
+    );
+  }
+
+  #[test]
+  fn should_keep_readonly_load_failures_sticky() {
+    let storage = MemoryStorage::default();
+    let mut context = CacheContext::new(
+      Box::new(storage),
+      true,
+      CompilationLogger::new("test".to_string(), CompilationLogging::default()),
+    );
+    context.load_failed = true;
+
+    context.reset();
+
+    assert!(context.load_failed);
   }
 }

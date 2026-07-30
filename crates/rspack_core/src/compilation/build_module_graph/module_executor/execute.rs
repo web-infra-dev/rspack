@@ -395,10 +395,11 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
     let plugin_driver = compilation.plugin_driver.clone();
     process_modules_runtime_requirements(&mut compilation, modules.clone(), plugin_driver.clone())
       .await?;
+    let runtime_chunks = FxHashSet::from_iter([chunk_ukey]);
     process_chunks_runtime_requirements(
       &mut compilation,
-      FxHashSet::from_iter([chunk_ukey]),
-      FxHashSet::from_iter([chunk_ukey]),
+      &runtime_chunks,
+      &runtime_chunks,
       plugin_driver,
     )
     .await?;

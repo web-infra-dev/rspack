@@ -548,11 +548,13 @@ impl CodeSplitter {
       (affected_modules, removed_modules)
     } else {
       (
-        compilation
-          .get_module_graph()
-          .modules_keys()
-          .copied()
-          .collect(),
+        Arc::new(
+          compilation
+            .get_module_graph()
+            .modules_keys()
+            .copied()
+            .collect(),
+        ),
         Default::default(),
       )
     };
@@ -575,7 +577,7 @@ impl CodeSplitter {
       }
     }
 
-    for m in affected_modules {
+    for m in affected_modules.iter().copied() {
       for module_map in self.block_modules_runtime_map.values_mut() {
         module_map.remove(&DependenciesBlockIdentifier::Module(m));
       }

@@ -214,7 +214,7 @@ async fn finish_modules(
       modules.len(),
       module_graph.modules_len()
     ));
-    modules
+    modules.as_ref().clone()
   } else {
     module_graph.modules_keys().copied().collect()
   };

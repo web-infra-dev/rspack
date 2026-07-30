@@ -122,7 +122,11 @@ impl Snapshot {
     paths: impl Iterator<Item = ArcPath>,
   ) {
     for item in paths {
-      storage.remove(scope.name(), item.as_os_str().as_encoded_bytes())
+      let key = self
+        .codec
+        .encode(&item)
+        .expect("should encode snapshot path successfully");
+      storage.remove(scope.name(), &key)
     }
   }
 
@@ -133,14 +137,44 @@ impl Snapshot {
     storage: &dyn Storage,
     scope: SnapshotScope,
   ) -> Result<(bool, ArcPathSet, ArcPathSet, ArcPathSet)> {
+    self.calc_modified_paths_impl(storage, scope, true).await
+  }
+
+  /// Validate a snapshot without retaining unchanged paths.
+  ///
+  /// Normal dependency snapshots only need changed and deleted paths. Avoiding
+  /// the unchanged set saves an allocation and one hash-table insertion for
+  /// nearly every dependency on a typical warm restore.
+  pub async fn calc_modified_paths_without_unchanged(
+    &self,
+    storage: &dyn Storage,
+    scope: SnapshotScope,
+  ) -> Result<(bool, ArcPathSet, ArcPathSet)> {
+    let (is_hot_start, modified_paths, deleted_paths, _) =
+      self.calc_modified_paths_impl(storage, scope, false).await?;
+    Ok((is_hot_start, modified_paths, deleted_paths))
+  }
+
+  async fn calc_modified_paths_impl(
+    &self,
+    storage: &dyn Storage,
+    scope: SnapshotScope,
+    collect_unchanged: bool,
+  ) -> Result<(bool, ArcPathSet, ArcPathSet, ArcPathSet)> {
     let mut modified_path = ArcPathSet::default();
     let mut deleted_path = ArcPathSet::default();
-    let mut no_change_path = ArcPathSet::default();
     let helper = Arc::new(StrategyHelper::new(self.fs.clone(), self.options.clone()));
     let codec = self.codec.clone();
 
     let data = storage.load(scope.name()).await?;
-    let is_hot_start = !data.is_empty();
+    if data.is_empty() {
+      return Ok((false, modified_path, deleted_path, ArcPathSet::default()));
+    }
+    let mut no_change_path = if collect_unchanged {
+      ArcPathSet::with_capacity_and_hasher(data.len(), Default::default())
+    } else {
+      ArcPathSet::default()
+    };
     data
       .into_iter()
       .map(|(key, value)| {
@@ -163,12 +197,14 @@ impl Snapshot {
           deleted_path.insert(path);
         }
         ValidateResult::NoChanged => {
-          no_change_path.insert(path);
+          if collect_unchanged {
+            no_change_path.insert(path);
+          }
         }
       })
       .await?;
 
-    Ok((is_hot_start, modified_path, deleted_path, no_change_path))
+    Ok((true, modified_path, deleted_path, no_change_path))
   }
 }
 
@@ -291,5 +327,50 @@ mod tests {
     assert!(modified_paths.contains(&p!("/node_modules/project/file1")));
     assert!(modified_paths.contains(&p!("/node_modules/lib/file1")));
     assert_eq!(no_change_paths.len(), 1);
+  }
+
+  #[tokio::test]
+  async fn should_remove_portable_snapshot_from_another_project_root() {
+    let fs = Arc::new(MemoryFileSystem::default());
+    let mut storage = MemoryStorage::default();
+    let snapshot_a = Snapshot::new(
+      SnapshotOptions::default(),
+      fs.clone(),
+      Arc::new(CacheCodec::new(Some("/project-a".into()))),
+    );
+    let snapshot_b = Snapshot::new(
+      SnapshotOptions::default(),
+      fs.clone(),
+      Arc::new(CacheCodec::new(Some("/project-b".into()))),
+    );
+    let path_a = p!("/project-a/file.js");
+    let path_b = p!("/project-b/file.js");
+
+    fs.create_dir_all("/project-a".into()).await.unwrap();
+    fs.write("/project-a/file.js".into(), b"export {};".as_slice())
+      .await
+      .unwrap();
+    snapshot_a
+      .add(&mut storage, SnapshotScope::FILE, [path_a].into_iter())
+      .await;
+
+    let (is_hot_start, modified_paths, deleted_paths) = snapshot_a
+      .calc_modified_paths_without_unchanged(&storage, SnapshotScope::FILE)
+      .await
+      .unwrap();
+    assert!(is_hot_start);
+    assert!(modified_paths.is_empty());
+    assert!(deleted_paths.is_empty());
+
+    snapshot_b.remove(&mut storage, SnapshotScope::FILE, [path_b].into_iter());
+
+    let (is_hot_start, modified_paths, deleted_paths, no_change_paths) = snapshot_b
+      .calc_modified_paths(&storage, SnapshotScope::FILE)
+      .await
+      .unwrap();
+    assert!(!is_hot_start);
+    assert!(modified_paths.is_empty());
+    assert!(deleted_paths.is_empty());
+    assert!(no_change_paths.is_empty());
   }
 }

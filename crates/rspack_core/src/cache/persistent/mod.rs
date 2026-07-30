@@ -222,14 +222,19 @@ impl Cache for PersistentCache {
       return;
     }
 
-    if let Some(artifact) = self.ctx.load_occasion(&self.make_occasion).await {
-      *compilation.build_module_graph_artifact = artifact;
-      for (module, _) in compilation
-        .build_module_graph_artifact
-        .get_module_graph()
-        .modules()
-      {
-        compilation.exports_info_artifact.new_exports_info(*module);
+    match self.ctx.load_occasion(&self.make_occasion).await {
+      Some(artifact) => {
+        *compilation.build_module_graph_artifact = artifact;
+        for (module, _) in compilation
+          .build_module_graph_artifact
+          .get_module_graph()
+          .modules()
+        {
+          compilation.exports_info_artifact.new_exports_info(*module);
+        }
+      }
+      None => {
+        self.ctx.reset_snapshot(&self.snapshot);
       }
     }
   }

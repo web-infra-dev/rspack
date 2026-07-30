@@ -85,7 +85,7 @@ impl BuildChunkGraphArtifact {
       return false;
     }
 
-    for module in affected_modules {
+    for module in affected_modules.iter().copied() {
       let outgoings: Vec<ModuleIdentifier> = {
         let mut res = vec![];
         let mut active_modules = IdentifierIndexMap::<Vec<_>>::default();

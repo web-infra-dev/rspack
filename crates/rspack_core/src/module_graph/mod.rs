@@ -618,6 +618,11 @@ impl ModuleGraph {
     self.inner.dependencies.insert(*dependency.id(), dependency);
   }
 
+  #[inline]
+  pub(crate) fn has_dependency(&self, dependency_id: &DependencyId) -> bool {
+    self.inner.dependencies.get(dependency_id).is_some()
+  }
+
   /// Get a dependency by ID, panicking if not found.
   ///
   /// **PREFERRED METHOD**: Use this for ALL internal Rust code including:
