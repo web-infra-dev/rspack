@@ -66,6 +66,7 @@ impl SymbolRef {
 pub struct ExternalInterop {
   pub module: ModuleIdentifier,
   pub from_module: IdentifierSet,
+  pub set_entry_module_id: bool,
   pub required_symbol: Option<Atom>,
   pub default_access: Option<Atom>,
   pub default_exported: Option<Atom>,
@@ -169,6 +170,15 @@ impl ExternalInterop {
     let name = self.required_symbol.as_ref();
 
     let is_async = ModuleGraph::is_async(&compilation.async_modules_artifact, &self.module);
+    let module_id = ChunkGraph::get_module_id(&compilation.module_ids_artifact, self.module)
+      .unwrap_or_else(|| panic!("should set module id for {:?}", self.module));
+    let mut module_id_expr = rspack_util::json_stringify(module_id.as_str());
+    if self.set_entry_module_id {
+      module_id_expr = format!(
+        "{} = {module_id_expr}",
+        runtime_template.render_runtime_globals(&RuntimeGlobals::ENTRY_MODULE_ID)
+      );
+    }
 
     if let Some(name) = name {
       source.add(RawStringSource::from(format!(
@@ -176,11 +186,7 @@ impl ExternalInterop {
         "const {name} = {}{}({});\n",
         if is_async { "await " } else { "" },
         runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
-        rspack_util::json_stringify(
-          ChunkGraph::get_module_id(&compilation.module_ids_artifact, self.module)
-            .unwrap_or_else(|| panic!("should set module id for {:?}", self.module))
-            .as_str()
-        )
+        module_id_expr
       )));
 
       if let Some(namespace_object) = &self.namespace_object {
@@ -223,13 +229,10 @@ impl ExternalInterop {
       }
     } else {
       source.add(RawStringSource::from(format!(
-        "{}({});\n",
+        "{}{}({});\n",
+        if is_async { "await " } else { "" },
         runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
-        rspack_util::json_stringify(
-          ChunkGraph::get_module_id(&compilation.module_ids_artifact, self.module)
-            .unwrap_or_else(|| panic!("should set module id for {}", self.module))
-            .as_str()
-        )
+        module_id_expr
       )));
     }
 
@@ -329,11 +332,6 @@ pub struct ChunkLinkContext {
   all used symbols in current chunk
   */
   pub used_names: FxHashSet<Atom>,
-
-  /**
-  whether `__rspack_require` is exported by a runtime module instead of chunk exports
-  */
-  pub exports_require_via_runtime_module: bool,
 }
 
 impl ChunkLinkContext {
@@ -362,7 +360,6 @@ impl ChunkLinkContext {
       raw_import_stmts: Default::default(),
       module_external_namespace_imports: Default::default(),
       raw_star_exports: Default::default(),
-      exports_require_via_runtime_module: false,
     }
   }
 

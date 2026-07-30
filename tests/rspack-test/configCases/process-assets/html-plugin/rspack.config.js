@@ -152,6 +152,9 @@ class SriHashSupportPlugin {
       RealContentHashPlugin.getCompilationHooks(compilation).updateHash.tap(
         'sri-hash-support-plugin',
         (input, oldHash) => {
+          expect(Array.isArray(input)).toBe(true);
+          expect(input.every(Buffer.isBuffer)).toBe(true);
+          expect(typeof oldHash).toBe('string');
           if (/^sha512-.{88}$/.test(oldHash) && input.length === 1) {
             const hash = createHash('sha512');
             hash.update(input[0]);

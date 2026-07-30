@@ -30,6 +30,7 @@ use crate::{
 #[derive(Debug)]
 struct ParsedNewWorkerPath {
   pub range: (u32, u32),
+  pub range_request: Option<(u32, u32)>,
   pub value: String,
 }
 
@@ -99,6 +100,7 @@ fn add_dependencies(
     output_options.worker_public_path.clone(),
     span.into(),
     parsed_path.range.into(),
+    parsed_path.range_request.map(Into::into),
     need_new_url,
     url_mode,
   ));
@@ -146,6 +148,12 @@ fn add_dependencies(
       )
       .into(),
     )));
+  } else if options_range.is_none() && output_module {
+    let insert_position = first_arg.span().real_hi();
+    parser.add_presentational_dependency(Box::new(ConstDependency::new(
+      (insert_position, insert_position).into(),
+      ", { type: \"module\" }".into(),
+    )));
   }
 }
 
@@ -169,8 +177,14 @@ fn handle_worker<'a>(
     let path = if let Some(new_url_expr) = expr_box.as_new()
       && let Some((request, start, end)) = get_url_request(parser, new_url_expr)
     {
+      let range_request = new_url_expr.args.as_ref().and_then(|args| {
+        args
+          .get(1)
+          .map(|_| (args[0].span().real_lo(), args[0].span().real_hi()))
+      });
       ParsedNewWorkerPath {
         range: (start, end),
+        range_request,
         value: request,
       }
     } else if let Some(member_expr) = expr_box.as_member()
@@ -180,6 +194,7 @@ fn handle_worker<'a>(
       let span = member_expr.span();
       ParsedNewWorkerPath {
         range: (span.real_lo(), span.real_hi()),
+        range_request: None,
         value: Url::from_file_path(parser.resource_data.resource())
           .expect("should be a path")
           .to_string(),

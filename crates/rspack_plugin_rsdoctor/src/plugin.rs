@@ -519,6 +519,7 @@ async fn module_ids(
   &self,
   compilation: &Compilation,
   module_ids: &mut ModuleIdsArtifact,
+  _preserved_module_ids: &ModuleIdsArtifact,
   _diagnostics: &mut Vec<Diagnostic>,
 ) -> Result<()> {
   if !self.has_module_graph_feature(RsdoctorPluginModuleGraphFeature::ModuleIds) {
@@ -702,5 +703,9 @@ impl Plugin for RsdoctorPlugin {
 
   fn clear_cache(&self, id: CompilationId) {
     COMPILATION_HOOKS_MAP.remove(&id);
+    MODULE_UKEY_MAP.remove(&id);
+    ENTRYPOINT_UKEY_MAP.remove(&id);
+    JSON_MODULE_SIZE_MAP.remove(&id);
+    ACTIVE_EXPORT_USAGE_DEPENDENCY_MAP.remove(&id);
   }
 }

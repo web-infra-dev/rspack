@@ -1,4 +1,5 @@
 use concat_string::concat_string;
+use cow_utils::CowUtils;
 use itertools::Itertools;
 use rspack_core::{
   ArcComputed, ConstDependency, ContextDependency, ContextMode, ContextOptions, DependencyCategory,
@@ -6,7 +7,7 @@ use rspack_core::{
   RscModuleType, RuntimeGlobals, RuntimeRequirementsDependency, property_access,
 };
 use rspack_error::{Error, Severity};
-use rspack_util::SpanExt;
+use rspack_util::{SpanExt, json_stringify_str};
 use swc_atoms::Atom;
 use swc_experimental_ecma_ast::{
   AssignExpr, CallExpr, Expr, GetSpan, MemberExpr, MemberProp, MetaPropKind, OptChainBase,
@@ -19,8 +20,7 @@ use super::{
   api_plugin::{
     ImportMetaRuntimeApi, import_meta_runtime_api_assign, import_meta_runtime_api_call,
     import_meta_runtime_api_from_name, import_meta_runtime_api_from_property,
-    import_meta_runtime_api_member, is_simple_assign_op,
-    render_import_meta_runtime_api_destructuring,
+    import_meta_runtime_api_member, render_import_meta_runtime_api_destructuring,
   },
   import_meta_path::{
     get_import_meta_eval_value, get_import_meta_member_replacement, should_handle_import_meta_path,
@@ -38,6 +38,12 @@ use crate::{
     get_non_optional_member_chain_from_expr,
   },
 };
+
+fn single_quoted_string(value: &str) -> String {
+  let json = json_stringify_str(value);
+  let escaped = json[1..json.len() - 1].cow_replace('\'', "\\'");
+  concat_string!("'", escaped, "'")
+}
 
 fn create_import_meta_resolve_context_dependency(
   parser: &mut JavascriptParser,
@@ -252,7 +258,7 @@ impl ImportMetaBuiltinProperty {
     }
 
     let replacement = match self.property {
-      ImportMetaKnownProperties::URL => concat_string!("'", plugin.import_meta_url(parser), "'"),
+      ImportMetaKnownProperties::URL => single_quoted_string(&plugin.import_meta_url(parser)),
       ImportMetaKnownProperties::WEBPACK => plugin.import_meta_version(),
       ImportMetaKnownProperties::MAIN => plugin.import_meta_main(parser),
       ImportMetaKnownProperties::FILENAME | ImportMetaKnownProperties::DIRNAME => {
@@ -777,9 +783,11 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaPlugin {
     let handled = import_meta_runtime_api_assign(
       parser,
       span,
+      expr.right.span(),
+      expr.span(),
       api,
       full_assignment,
-      is_simple_assign_op(expr.op),
+      expr.op,
     );
     if handled.is_some() {
       parser.walk_expression(&expr.right);

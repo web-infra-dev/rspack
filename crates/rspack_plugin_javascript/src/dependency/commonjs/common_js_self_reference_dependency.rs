@@ -5,7 +5,7 @@ use rspack_cacheable::{
 use rspack_core::{
   AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
   DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, ExportsInfoArtifact,
-  ExtendedReferencedExport, FactorizeInfo, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
+  FactorizeInfo, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ReferencedExport,
   RuntimeSpec, TemplateContext, TemplateReplaceSource, UsedName, property_access_with_optional,
 };
 use swc_atoms::Atom;
@@ -73,17 +73,15 @@ impl Dependency for CommonJsSelfReferenceDependency {
     _module_graph_cache: &ModuleGraphCacheArtifact,
     _exports_info_artifact: &ExportsInfoArtifact,
     _runtime: Option<&RuntimeSpec>,
-  ) -> Vec<ExtendedReferencedExport> {
+  ) -> Vec<ReferencedExport> {
     if self.is_call {
       if self.names.is_empty() {
-        vec![ExtendedReferencedExport::Array(vec![])]
+        vec![ReferencedExport::default()]
       } else {
-        vec![ExtendedReferencedExport::Array(
-          self.names[0..self.names.len() - 1].to_vec(),
-        )]
+        vec![ReferencedExport::from(&self.names[0..self.names.len() - 1])]
       }
     } else {
-      vec![ExtendedReferencedExport::Array(self.names.clone())]
+      vec![ReferencedExport::from(self.names.as_slice())]
     }
   }
 

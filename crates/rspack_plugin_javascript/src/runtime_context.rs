@@ -1,14 +1,14 @@
 use std::sync::LazyLock;
 
 use rspack_core::{
-  ChunkKind, ChunkUkey, Compilation, RuntimeCodeTemplate, RuntimeGlobals, RuntimeProxyMetadata,
-  RuntimeVariable, SourceType, property_access, render_lexical_declarations,
+  ChunkKind, ChunkUkey, Compilation, RuntimeCodeTemplate, RuntimeGlobals, RuntimeGlobalsRenderMode,
+  RuntimeProxyMetadata, RuntimeVariable, SourceType, property_access, render_lexical_declarations,
   rspack_sources::{BoxSource, ConcatSource, RawStringSource, SourceExt},
   runtime_module_owned_define_fields,
 };
 use rspack_error::Result;
 
-use crate::runtime::render_runtime_module_sources;
+use crate::runtime::{RuntimeModuleSourceItem, render_runtime_module_sources};
 
 static HMR_RUNTIME_STATE_GLOBALS: LazyLock<RuntimeGlobals> = LazyLock::new(|| {
   RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS
@@ -25,6 +25,41 @@ static LIVE_BINDING_CONTEXT_GLOBALS: LazyLock<RuntimeGlobals> = LazyLock::new(||
     | RuntimeGlobals::INITIALIZE_SHARING
     | RuntimeGlobals::CURRENT_REMOTE_GET_SCOPE
 });
+
+static BOOTSTRAP_EXPORT_GLOBALS: LazyLock<RuntimeGlobals> = LazyLock::new(|| {
+  RuntimeGlobals::REQUIRE
+    | RuntimeGlobals::REQUIRE_SCOPE
+    | RuntimeGlobals::MODULE_FACTORIES
+    | RuntimeGlobals::MODULE_CACHE
+    | RuntimeGlobals::INTERCEPT_MODULE_EXECUTION
+});
+
+pub fn should_export_rspack_runtime_globals(
+  compilation: &Compilation,
+  chunk_ukey: &ChunkUkey,
+) -> bool {
+  let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
+  if chunk_graph.get_chunk_entry_modules(chunk_ukey).is_empty() {
+    return true;
+  }
+
+  let chunk = compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .expect_get(chunk_ukey);
+  let module_graph = compilation.get_module_graph();
+  chunk
+    .get_all_referenced_chunks(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
+    .into_iter()
+    .any(|referenced_chunk| {
+      referenced_chunk != *chunk_ukey
+        && chunk_graph.has_chunk_module_by_source_type(
+          &referenced_chunk,
+          SourceType::JavaScript,
+          module_graph,
+        )
+    })
+}
 
 fn filter_unused_module_runtime_bindings(
   mut fields: RuntimeGlobals,
@@ -59,6 +94,70 @@ fn filter_unused_module_runtime_bindings(
   fields
 }
 
+fn render_rspack_runtime_exports(
+  fields: RuntimeGlobals,
+  setter_fields: RuntimeGlobals,
+  should_export: bool,
+  runtime_template: &RuntimeCodeTemplate,
+  emitted_fields: &mut RuntimeGlobals,
+  emitted_setters: &mut RuntimeGlobals,
+) -> String {
+  let mut source = String::new();
+
+  if should_export {
+    for (_, runtime_global) in fields
+      .renderable_require_scope()
+      .difference(*BOOTSTRAP_EXPORT_GLOBALS)
+      .iter_names()
+    {
+      if emitted_fields.contains(runtime_global) {
+        continue;
+      }
+      emitted_fields.insert(runtime_global);
+      let specifier = runtime_template.render_runtime_globals(&runtime_global);
+      source.push_str(&format!("export {{ {specifier} }};\n"));
+    }
+  }
+
+  for (_, runtime_global) in setter_fields.renderable_require_scope().iter_names() {
+    if emitted_setters.contains(runtime_global) {
+      continue;
+    }
+    let Some(setter_name) = runtime_global.to_rspack_export_setter_name() else {
+      continue;
+    };
+    emitted_setters.insert(runtime_global);
+    let lexical_name = runtime_template.render_runtime_globals(&runtime_global);
+    source.push_str(&format!(
+      "function {setter_name}(value) {{ return {lexical_name} = value; }}\n"
+    ));
+    if should_export {
+      source.push_str(&format!("export {{ {setter_name} }};\n"));
+    }
+  }
+
+  source
+}
+
+fn render_runtime_context_accessors(
+  fields: RuntimeGlobals,
+  runtime_context: &str,
+  runtime_template: &RuntimeCodeTemplate,
+) -> String {
+  let mut source = String::new();
+  for (_, runtime_global) in fields.renderable_require_scope().iter_names() {
+    let Some(key) = runtime_global.rspack_context_property_name() else {
+      continue;
+    };
+    let lexical_name = runtime_template.render_runtime_globals(&runtime_global);
+    source.push_str(&format!(
+      "Object.defineProperty({runtime_context}, {}, {{ configurable: true, get: function() {{ return {lexical_name}; }}, set: function(value) {{ {lexical_name} = value; }} }});\n",
+      rspack_util::json_stringify(key),
+    ));
+  }
+  source
+}
+
 pub fn render_runtime_context_declaration(runtime_template: &RuntimeCodeTemplate) -> String {
   let runtime_context = runtime_template.render_runtime_variable(&RuntimeVariable::Context);
   format!("var {runtime_context}={{}};\n")
@@ -78,9 +177,24 @@ pub async fn render_runtime_chunk_runtime_modules(
   runtime_template: &RuntimeCodeTemplate,
 ) -> Result<BoxSource> {
   let runtime_module_sources = render_runtime_module_sources(compilation, chunk_ukey, true).await?;
+  Ok(render_runtime_chunk_runtime_modules_sync(
+    compilation,
+    chunk_ukey,
+    runtime_template,
+    runtime_module_sources,
+  ))
+}
+
+#[inline(never)]
+fn render_runtime_chunk_runtime_modules_sync(
+  compilation: &Compilation,
+  chunk_ukey: &ChunkUkey,
+  runtime_template: &RuntimeCodeTemplate,
+  runtime_module_sources: Vec<RuntimeModuleSourceItem>,
+) -> BoxSource {
   let mut sources = ConcatSource::default();
   if runtime_module_sources.is_empty() {
-    return Ok(sources.boxed());
+    return sources.boxed();
   }
   let metadata = compilation
     .runtime_proxy_metadata_artifact
@@ -96,6 +210,7 @@ pub async fn render_runtime_chunk_runtime_modules(
   let is_hmr_runtime = metadata
     .tree_runtime_requirements
     .contains(RuntimeGlobals::HMR_DOWNLOAD_MANIFEST);
+  let should_export_runtime_globals = should_export_rspack_runtime_globals(compilation, chunk_ukey);
   let mut hmr_state_keys = Vec::new();
   for runtime_module_id in compilation
     .build_chunk_graph_artifact
@@ -130,8 +245,8 @@ pub async fn render_runtime_chunk_runtime_modules(
       Some(format!(
         "typeof {module_cache} !== \"undefined\" ? {module_cache} : {{}}"
       ))
-    } else if runtime_global
-      .intersects(RuntimeGlobals::STARTUP | RuntimeGlobals::STARTUP_ENTRYPOINT)
+    } else if runtime_template.render_mode() == RuntimeGlobalsRenderMode::RspackContext
+      && runtime_global.intersects(RuntimeGlobals::STARTUP | RuntimeGlobals::STARTUP_ENTRYPOINT)
     {
       runtime_global
         .rspack_context_property_name()
@@ -151,6 +266,76 @@ pub async fn render_runtime_chunk_runtime_modules(
     metadata.tree_runtime_requirements,
     bootstrap_runtime_requirements,
   );
+  if runtime_template.render_mode() == RuntimeGlobalsRenderMode::RspackExport {
+    sources.add(RawStringSource::from(render_lexical_declarations(
+      lexical_fields
+        .difference(runtime_module_owned_define_fields(compilation, chunk_ukey))
+        .difference(*BOOTSTRAP_EXPORT_GLOBALS),
+      Some(&render_runtime_global),
+    )));
+    if is_hmr_runtime {
+      let require = runtime_template.render_runtime_variable(&RuntimeVariable::Require);
+      let modules = runtime_template.render_runtime_globals(&RuntimeGlobals::MODULE_FACTORIES);
+      let module_cache = runtime_template.render_runtime_variable(&RuntimeVariable::ModuleCache);
+      sources.add(RawStringSource::from(format!(
+        "var {runtime_context}={require};{runtime_context}.r={require};{runtime_context}.m={modules};{runtime_context}.c={module_cache};\n"
+      )));
+      sources.add(RawStringSource::from(render_runtime_context_accessors(
+        (metadata.context_fields() | metadata.context_setter_fields()).difference(
+          RuntimeGlobals::REQUIRE
+            | RuntimeGlobals::REQUIRE_SCOPE
+            | RuntimeGlobals::MODULE_FACTORIES
+            | RuntimeGlobals::MODULE_CACHE,
+        ),
+        &runtime_context,
+        runtime_template,
+      )));
+    }
+    if metadata
+      .lexical_fields()
+      .intersects(*HMR_RUNTIME_STATE_GLOBALS)
+    {
+      for key in &hmr_state_keys {
+        let state_expression = runtime_template.render_hmr_runtime_state_expression(key);
+        sources.add(RawStringSource::from(format!("var {state_expression};\n")));
+      }
+    }
+
+    let mut emitted_fields = RuntimeGlobals::default();
+    let mut emitted_setters = RuntimeGlobals::default();
+    let setters = metadata.context_setter_fields();
+    let mut remaining_setters = setters;
+    for (runtime_module_source, generated_requirements, context_requirements, _) in
+      runtime_module_sources
+    {
+      sources.add(runtime_module_source);
+      let mut context_fields = metadata.context_fields().intersection(context_requirements);
+      if is_hmr_runtime {
+        context_fields.insert(generated_requirements.renderable_require_scope());
+        context_fields.remove(RuntimeGlobals::REQUIRE | RuntimeGlobals::REQUIRE_SCOPE);
+      }
+      let context_setters = context_fields.intersection(setters);
+      remaining_setters.remove(context_setters);
+      sources.add(RawStringSource::from(render_rspack_runtime_exports(
+        context_fields,
+        context_setters,
+        should_export_runtime_globals,
+        runtime_template,
+        &mut emitted_fields,
+        &mut emitted_setters,
+      )));
+    }
+    sources.add(RawStringSource::from(render_rspack_runtime_exports(
+      remaining_setters,
+      remaining_setters,
+      should_export_runtime_globals,
+      runtime_template,
+      &mut emitted_fields,
+      &mut emitted_setters,
+    )));
+
+    return sources.boxed();
+  }
   wrapped_sources.add(RawStringSource::from(render_lexical_declarations(
     lexical_fields.difference(runtime_module_owned_define_fields(compilation, chunk_ukey)),
     Some(&render_runtime_global),
@@ -215,7 +400,7 @@ pub async fn render_runtime_chunk_runtime_modules(
     sources.add(wrapped_sources);
   }
 
-  Ok(sources.boxed())
+  sources.boxed()
 }
 
 pub async fn render_chunk_runtime_modules(
@@ -315,7 +500,7 @@ pub async fn render_hot_update_chunk_runtime_modules(
   }
   let metadata = runtime_context_current_chunk_metadata(compilation, chunk_ukey);
 
-  let runtime_context = runtime_template.render_runtime_variable(&RuntimeVariable::Context);
+  let runtime_context = runtime_template.render_runtime_argument();
   let mut hmr_state_keys = Vec::new();
   for runtime_module_id in compilation
     .build_chunk_graph_artifact
@@ -363,7 +548,13 @@ pub async fn render_hot_update_chunk_runtime_modules(
     .intersects(*HMR_RUNTIME_STATE_GLOBALS)
   {
     for key in &hmr_state_keys {
-      sources.add(RawStringSource::from(format!("var hmrS_{key};\n")));
+      let state_expression =
+        if runtime_template.render_mode() == RuntimeGlobalsRenderMode::RspackExport {
+          runtime_template.render_hmr_runtime_state_expression(key)
+        } else {
+          format!("hmrS_{key}")
+        };
+      sources.add(RawStringSource::from(format!("var {state_expression};\n")));
     }
   }
 

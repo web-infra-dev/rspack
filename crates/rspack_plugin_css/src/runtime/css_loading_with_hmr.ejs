@@ -1,6 +1,6 @@
-var cssOldTags = [];
-var cssNewTags = [];
-var cssApplyHandler = <%- basicFunction("options") %> {
+<%- var("cssOldTags") %> = [];
+<%- var("cssNewTags") %> = [];
+<%- var("cssApplyHandler") %> = <%- basicFunction("options") %> {
 	return {
 		dispose: <%- basicFunction("") %> { },
 		apply: <%- basicFunction("") %> {
@@ -17,11 +17,10 @@ var cssApplyHandler = <%- basicFunction("options") %> {
 		}
 	};
 };
-var cssInitialChunkIds = <%- _initial_chunk_ids %>;
-// the jsonp runtime's persistent installed-chunk state (webpack's
-// hmrRuntimeStatePrefix); a chunk is on this page when it recorded the
-// chunk as fully loaded (0)
-var cssChunkIsLoaded = <%- basicFunction("chunkId") %> {
+<%- var("cssInitialChunkIds") %> = <%- _initial_chunk_ids %>;
+// A chunk is present on this page only when the active JavaScript
+// chunk-loading runtime records it as fully loaded.
+<%- var("cssChunkIsLoaded") %> = <%- basicFunction("chunkId") %> {
 	return typeof <%- _js_state_expression %> !== "undefined" && <%- _js_state_expression %> && <%- _js_state_expression %>[chunkId] === 0;
 };
 <%- HMR_DOWNLOAD_UPDATE_HANDLERS %>.css = <%- basicFunction("chunkIds, removedChunks, removedModules, promises, applyHandlers, updatedModulesList, css") %> {

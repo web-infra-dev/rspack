@@ -9,6 +9,7 @@ use rspack_core::{
 use rspack_error::{Diagnostic, Severity};
 use rspack_util::{SpanExt, json_stringify_str};
 use swc_atoms::Atom;
+use swc_experimental_allocator::CloneIn;
 use swc_experimental_ecma_ast::{
   AssignExpr, AssignOp, CallExpr, Callee, Expr, ExprOrSpread, GetSpan, Ident, Lit, MemberExpr,
   MemberProp, NewExpr, Span, UnaryExpr, UnaryOp, VarDeclarator,
@@ -32,8 +33,8 @@ use crate::{
   magic_comment::try_extract_magic_comment,
   utils::eval::{self, BasicEvaluatedExpression},
   visitors::{
-    CallHooksName, ExportedVariableInfo, JavascriptParser, TagInfoData, VariableDeclaration,
-    VariableDeclarationKind, VariableInfo, VariableInfoFlags, context_reg_exp,
+    CallHooksName, ExportedVariableInfo, JavascriptParser, StatementPath, TagInfoData,
+    VariableDeclaration, VariableDeclarationKind, VariableInfo, VariableInfoFlags, context_reg_exp,
     create_context_dependency, create_traceable_error, expr_name, get_non_optional_part,
   },
 };
@@ -60,16 +61,18 @@ struct CreateRequireArgument {
 }
 
 #[derive(Default)]
-pub struct CreatedRequireReferencesState {
-  pending: rustc_hash::FxHashMap<Span, PendingCreatedRequire>,
+pub struct CreatedRequireReferencesState<'a> {
+  pending: rustc_hash::FxHashMap<Span, PendingCreatedRequire<'a>>,
   exported_locals: rustc_hash::FxHashSet<Atom>,
 }
 
-struct PendingCreatedRequire {
+struct PendingCreatedRequire<'a> {
   must_keep: bool,
   callee: DeferredCreateRequireCallee,
-  arg_span: Span,
-  arg_value: String,
+  // Deferred calls skip this expression until their keep/strip state is known.
+  argument: Expr<'a>,
+  statement_path: Vec<StatementPath>,
+  prev_statement: Option<StatementPath>,
 }
 
 struct DeferredCreateRequireCallee {
@@ -82,13 +85,14 @@ struct DeferredCreateRequireCallee {
   branch_guard: Option<DependencyBranchGuard>,
 }
 
-impl CreatedRequireReferencesState {
+impl<'a> CreatedRequireReferencesState<'a> {
   fn add_pending(
     &mut self,
     call_span: Span,
     callee: DeferredCreateRequireCallee,
-    arg_span: Span,
-    arg_value: String,
+    argument: Expr<'a>,
+    statement_path: Vec<StatementPath>,
+    prev_statement: Option<StatementPath>,
   ) {
     // Normal walk refreshes provisional pre-walk data after earlier references may mark it.
     let must_keep = self
@@ -100,8 +104,9 @@ impl CreatedRequireReferencesState {
       PendingCreatedRequire {
         must_keep,
         callee,
-        arg_span,
-        arg_value,
+        argument,
+        statement_path,
+        prev_statement,
       },
     );
   }
@@ -112,7 +117,7 @@ impl CreatedRequireReferencesState {
     }
   }
 
-  fn take_pending(&mut self) -> Vec<(Span, PendingCreatedRequire)> {
+  fn take_pending(&mut self) -> Vec<(Span, PendingCreatedRequire<'a>)> {
     let mut pending = std::mem::take(&mut self.pending)
       .into_iter()
       .collect::<Vec<_>>();
@@ -451,17 +456,17 @@ fn dirname(path: &str) -> Option<&str> {
 #[cold]
 #[inline(never)]
 fn evaluate_create_require_argument(parser: &mut JavascriptParser, arg: &Expr) -> Option<String> {
+  let evaluated = parser.evaluate_expression(arg);
+  if let Some(value) = evaluated.as_string() {
+    return Some(value);
+  }
+
   if let Some(member) = arg.as_member()
     && is_meta_url(parser, member)
   {
     return Url::from_file_path(parser.resource_data.resource())
       .ok()
       .map(|url| url.to_string());
-  }
-
-  let evaluated = parser.evaluate_expression(arg);
-  if let Some(value) = evaluated.as_string() {
-    return Some(value);
   }
 
   let new_expr = arg.as_new()?;
@@ -1071,29 +1076,21 @@ fn add_deferred_create_require_callee_dependency(
   );
 }
 
-fn keep_deferred_create_require_call(
-  parser: &mut JavascriptParser,
-  pending: PendingCreatedRequire,
+fn keep_deferred_create_require_call<'a>(
+  parser: &mut JavascriptParser<'a>,
+  pending: PendingCreatedRequire<'a>,
 ) {
   add_deferred_create_require_callee_dependency(parser, pending.callee);
-  if parser.compiler_options.output.module {
-    let import_meta_name = &parser.compiler_options.output.import_meta_name;
-    if import_meta_name != expr_name::IMPORT_META {
-      parser.add_presentational_dependency(Box::new(ConstDependency::new(
-        pending.arg_span.into(),
-        format!("{import_meta_name}.url").into(),
-      )));
-    }
-  } else {
-    parser.add_presentational_dependency(Box::new(ConstDependency::new(
-      pending.arg_span.into(),
-      json_stringify_str(&pending.arg_value).into(),
-    )));
-  }
+  // Let the regular parser plugins own children of a call that survives.
+  let statement_path = std::mem::replace(&mut parser.statement_path, pending.statement_path);
+  let prev_statement = std::mem::replace(&mut parser.prev_statement, pending.prev_statement);
+  parser.walk_expression(&pending.argument);
+  parser.statement_path = statement_path;
+  parser.prev_statement = prev_statement;
 }
 
-fn pre_tag_created_require_declarator(
-  parser: &mut JavascriptParser,
+fn pre_tag_created_require_declarator<'a>(
+  parser: &mut JavascriptParser<'a>,
   declarator: &VarDeclarator,
   declaration: VariableDeclaration<'_>,
 ) {
@@ -1124,7 +1121,7 @@ fn pre_tag_created_require_declarator(
     return;
   };
   let CreateRequireArgument {
-    value,
+    value: _,
     context,
     replace_argument: _,
   } = argument;
@@ -1140,18 +1137,21 @@ fn pre_tag_created_require_declarator(
       preserve_unhandled: true,
     }),
   );
+  let statement_path = parser.statement_path.clone();
+  let prev_statement = parser.prev_statement;
   parser.created_require_references.add_pending(
     call.span,
     deferred_callee,
-    call.args[0].expr.span(),
-    value,
+    call.args[0].expr.clone_in(parser.ast.allocator),
+    statement_path,
+    prev_statement,
   );
 }
 
 #[cold]
 #[inline(never)]
-fn tag_created_require_declarator(
-  parser: &mut JavascriptParser,
+fn tag_created_require_declarator<'a>(
+  parser: &mut JavascriptParser<'a>,
   binding: &Ident,
   call_span: Span,
   clear_call: bool,
@@ -1178,9 +1178,15 @@ fn tag_created_require_declarator(
     }),
   );
   if let Some(callee) = deferred_callee {
-    parser
-      .created_require_references
-      .add_pending(call_span, callee, args[0].expr.span(), value);
+    let statement_path = parser.statement_path.clone();
+    let prev_statement = parser.prev_statement;
+    parser.created_require_references.add_pending(
+      call_span,
+      callee,
+      args[0].expr.clone_in(parser.ast.allocator),
+      statement_path,
+      prev_statement,
+    );
   } else if clear_call {
     clear_create_require_call(parser, call_span);
   } else if replace_argument {
@@ -2671,7 +2677,10 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
       }
     }
 
-    for (call_span, pending) in parser.created_require_references.take_pending() {
+    let mut created_require_references = std::mem::take(&mut parser.created_require_references);
+    let pending_calls = created_require_references.take_pending();
+    parser.created_require_references = created_require_references;
+    for (call_span, pending) in pending_calls {
       if pending.must_keep {
         keep_deferred_create_require_call(parser, pending);
       } else {

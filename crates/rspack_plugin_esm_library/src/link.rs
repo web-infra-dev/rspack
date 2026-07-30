@@ -12,7 +12,8 @@ use rspack_core::{
   ConditionalInitFragment, DependencyType, ExportInfo, ExportMode, ExportProvided,
   ExportsInfoArtifact, ExportsType, FindTargetResult, ImportSpec, InitFragmentKey, ModuleGraph,
   ModuleGraphCacheArtifact, ModuleIdentifier, ModuleInfo, NAMESPACE_OBJECT_EXPORT, RuntimeGlobals,
-  SideEffectsStateArtifact, SourceType, URLStaticMode, UsageState, UsedName, UsedNameItem,
+  RuntimeGlobalsRenderMode, RuntimeTemplateRenderMode, RuntimeVariable, SideEffectsStateArtifact,
+  SourceType, URLStaticMode, UsageState, UsedName, UsedNameItem, all_runtime_module_variables,
   collect_ident, escape_name_atom_ref, find_new_name, find_target, get_cached_readable_identifier,
   get_module_directives, get_module_hashbang, property_access, property_name,
   reserved_names::RESERVED_NAMES_ATOM_SET, rspack_sources::ReplaceSource,
@@ -65,6 +66,12 @@ pub(crate) struct ExportsContext {
   exports: FxHashMap<Atom, FxIndexSet<Atom>>,
   exported_symbols: FxHashSet<Atom>,
   re_exports: FxIndexMap<ReExportFrom, FxHashMap<Atom, FxHashSet<Atom>>>,
+}
+
+struct DeconflictSymbolsContext<'a> {
+  runtime_module_used_names: &'a FxHashSet<Atom>,
+  escaped_names: &'a FxHashMap<Atom, Atom>,
+  escaped_identifiers: &'a FxHashMap<String, Vec<Atom>>,
 }
 
 enum ExternalImportBinding {
@@ -505,12 +512,6 @@ impl EsmLibraryPlugin {
       })
       .collect::<FxHashSet<_>>();
 
-    for runtime_chunk in &runtime_chunks_exporting_require_via_runtime_module {
-      link
-        .get_mut_unwrap(runtime_chunk)
-        .exports_require_via_runtime_module = true;
-    }
-
     let (escaped_name_entries, escaped_identifier_entries) = concate_modules_map
       .par_values()
       .map(|info| {
@@ -596,14 +597,20 @@ impl EsmLibraryPlugin {
       escaped_identifiers.insert(identifier, parts);
     }
 
+    let runtime_module_used_names = Self::collect_rspack_export_runtime_used_names(compilation);
+    let deconflict_context = DeconflictSymbolsContext {
+      runtime_module_used_names: &runtime_module_used_names,
+      escaped_names: &escaped_names,
+      escaped_identifiers: &escaped_identifiers,
+    };
+
     for chunk_link in link.values_mut() {
       self.deconflict_symbols(
         compilation,
         &mut concate_modules_map,
         &external_module_init_fragments,
         chunk_link,
-        &escaped_names,
-        &escaped_identifiers,
+        &deconflict_context,
       );
     }
 
@@ -949,20 +956,66 @@ var {} = {{}};
     }
   }
 
+  fn collect_rspack_export_runtime_used_names(compilation: &Compilation) -> FxHashSet<Atom> {
+    let mut used_names = FxHashSet::default();
+    let runtime_template = compilation
+      .runtime_template
+      .create_runtime_module_code_template();
+    if runtime_template.render_mode() != RuntimeGlobalsRenderMode::RspackExport {
+      return used_names;
+    }
+
+    used_names.extend(all_runtime_module_variables().map(Atom::from));
+
+    for (_, runtime_global) in RuntimeGlobals::all().iter_names() {
+      used_names.insert(
+        runtime_template
+          .render_runtime_globals(&runtime_global)
+          .into(),
+      );
+      if let Some(setter) = runtime_global.to_rspack_export_setter_name() {
+        used_names.insert(setter.into());
+      }
+    }
+
+    for runtime_variable in [
+      RuntimeVariable::Require,
+      RuntimeVariable::Context,
+      RuntimeVariable::Modules,
+      RuntimeVariable::ModuleCache,
+      RuntimeVariable::Module,
+      RuntimeVariable::Exports,
+      RuntimeVariable::StartupExec,
+    ] {
+      used_names.insert(
+        runtime_template
+          .render_runtime_variable(&runtime_variable)
+          .into(),
+      );
+    }
+
+    used_names
+  }
+
   fn deconflict_symbols(
     &self,
     compilation: &Compilation,
     concate_modules_map: &mut IdentifierIndexMap<ModuleInfo>,
     external_module_init_fragments: &IdentifierMap<ChunkInitFragments>,
     chunk_link: &mut ChunkLinkContext,
-    escaped_names: &FxHashMap<Atom, Atom>,
-    escaped_identifiers: &FxHashMap<String, Vec<Atom>>,
+    deconflict_context: &DeconflictSymbolsContext<'_>,
   ) {
     let context = &compilation.options.context;
+    let DeconflictSymbolsContext {
+      runtime_module_used_names,
+      escaped_names,
+      escaped_identifiers,
+    } = deconflict_context;
 
     let module_graph = compilation.get_module_graph();
 
     let mut all_used_names: FxHashSet<Atom> = RESERVED_NAMES_ATOM_SET.clone();
+    all_used_names.extend(runtime_module_used_names.iter().cloned());
     all_used_names.extend(chunk_link.hoisted_modules.iter().flat_map(|m| {
       let info = &concate_modules_map[m];
       info
@@ -1617,6 +1670,7 @@ var {} = {{}};
     let require_info: &mut ExternalInterop = required.entry(m).or_insert(ExternalInterop {
       module: m,
       from_module: Default::default(),
+      set_entry_module_id: false,
       required_symbol: None,
       default_access: None,
       default_exported: None,
@@ -2350,6 +2404,71 @@ var {} = {{}};
       }
     }
 
+    // Async entrypoints such as workers don't expose library exports, but their
+    // entry modules still need to execute when the entry chunk is loaded. The
+    // normal startup runtime is disabled for ESM library output, so explicitly
+    // execute entry modules that couldn't be scope hoisted.
+    for entrypoint_ukey in &compilation.build_chunk_graph_artifact.async_entrypoints {
+      let entrypoint = compilation
+        .build_chunk_graph_artifact
+        .chunk_group_by_ukey
+        .expect_get(entrypoint_ukey);
+      let entry_chunk_ukey = entrypoint.get_entrypoint_chunk();
+      let entry_imports = imports
+        .get_mut(&entry_chunk_ukey)
+        .unwrap_or_else(|| panic!("should set imports for chunk {entry_chunk_ukey:?}"));
+
+      for chunk_ukey in &entrypoint.chunks {
+        for (entry_module, module_entrypoint_ukey) in compilation
+          .build_chunk_graph_artifact
+          .chunk_graph
+          .get_chunk_entry_modules_with_chunk_group_iterable(chunk_ukey)
+        {
+          if module_entrypoint_ukey != entrypoint_ukey {
+            continue;
+          }
+
+          let code_generation_result = compilation.code_generation_results.get_one(entry_module);
+          if code_generation_result
+            .get(&SourceType::JavaScript)
+            .is_none()
+          {
+            continue;
+          }
+
+          // Rslib removes entry hashbangs and directives from the module source
+          // during parsing, so restore them at the top of the async entry chunk.
+          let hashbang = get_module_hashbang(module_graph, entry_module);
+          let directives = get_module_directives(module_graph, entry_module);
+
+          if let Some(hashbang) = &hashbang {
+            let entry_chunk_link = link.get_mut_unwrap(&entry_chunk_ukey);
+            entry_chunk_link.hashbang = Some(format!("{hashbang}\n"));
+          }
+
+          if let Some(directives) = directives {
+            let entry_chunk_link = link.get_mut_unwrap(&entry_chunk_ukey);
+            entry_chunk_link.directives = directives;
+          }
+
+          entry_imports.entry(*entry_module).or_default();
+
+          if concate_modules_map[entry_module].is_external() {
+            let require_info = Self::add_require(
+              *entry_module,
+              None,
+              None,
+              &mut FxHashSet::default(),
+              required.entry(*chunk_ukey).or_default(),
+            );
+            require_info.set_entry_module_id |= code_generation_result
+              .runtime_requirements
+              .contains(RuntimeGlobals::ENTRY_MODULE_ID);
+          }
+        }
+      }
+    }
+
     if let Some(root) = &self.preserve_modules {
       let preserve_entry_modules = compilation
         .entries
@@ -2567,6 +2686,9 @@ var {} = {{}};
         let info = &concate_modules_map[m];
         let runtime_requirements = info.get_runtime_requirements();
         if !runtime_requirements.is_empty() && runtime_chunk != *chunk {
+          if compilation.runtime_template.render_mode() == RuntimeTemplateRenderMode::RspackExport {
+            continue;
+          }
           let runtime_template = compilation.runtime_template.create_chunk_code_template();
           let require_symbol: Atom = runtime_template.render_runtime_argument().into();
           if !runtime_chunks_exporting_require_via_runtime_module.contains(&runtime_chunk) {

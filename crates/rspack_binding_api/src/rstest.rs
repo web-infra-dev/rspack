@@ -39,6 +39,9 @@ pub struct RawRstestPluginOptions {
   // Whether to handle global `rs` and `rstest` variables.
   // When false, only ESM imported variables are processed. Default is true.
   pub globals: Option<bool>,
+  /// Replaces each `import.meta.rstest` with
+  /// `globalThis['@rstest/core/import-meta'](<absolute source path>)`.
+  pub inject_import_meta_rstest_origin: Option<bool>,
   // When enabled, rewrite non-string-literal `import()` calls (template
   // literals, variables) to the configured callee and append the source
   // module's absolute path as an extra argument. The runtime uses it as the
@@ -86,6 +89,7 @@ impl From<RawRstestPluginOptions> for RstestPluginOptions {
       manual_mock_root: value.manual_mock_root,
       preserve_new_url: value.preserve_new_url.unwrap_or_default(),
       globals: value.globals.unwrap_or(true),
+      inject_import_meta_rstest_origin: value.inject_import_meta_rstest_origin.unwrap_or(false),
       inject_dynamic_import_origin,
       inject_require_resolve_origin,
     }

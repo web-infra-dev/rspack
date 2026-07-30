@@ -1,6 +1,8 @@
 ---
 name: release-blog-writer
 description: Write or revise release blog posts for product releases. Use when the user asks to draft, polish, restructure, or adapt a release announcement.
+metadata:
+  internal: true
 ---
 
 # Release blog writer

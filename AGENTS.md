@@ -88,7 +88,6 @@ Before running tests after code changes:
 - **Package manager**: pnpm (workspaces for monorepo)
 - **Rust**: `Cargo.toml` in each crate
 - **JavaScript**: `package.json` files
-- **Version check**: `pnpm run check-dependency-version`
 
 ## Performance
 

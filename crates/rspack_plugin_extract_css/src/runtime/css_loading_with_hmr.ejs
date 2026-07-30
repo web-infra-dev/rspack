@@ -1,6 +1,6 @@
-var extractCssOldTags = [];
-var extractCssNewTags = [];
-var extractCssApplyHandler = function (options) {
+<%- var("extractCssOldTags") %> = [];
+<%- var("extractCssNewTags") %> = [];
+<%- var("extractCssApplyHandler") %> = function (options) {
 	return {
 		dispose: function () {},
 		apply: function () {
@@ -14,11 +14,10 @@ var extractCssApplyHandler = function (options) {
 		}
 	}
 }
-var extractCssInitialChunkIds = <%- _initial_chunk_ids %>;
-// the jsonp runtime's persistent installed-chunk state (webpack's
-// hmrRuntimeStatePrefix); a chunk is on this page when it recorded the
-// chunk as fully loaded (0)
-var extractCssChunkIsLoaded = function (chunkId) {
+<%- var("extractCssInitialChunkIds") %> = <%- _initial_chunk_ids %>;
+// A chunk is present on this page only when the active JavaScript
+// chunk-loading runtime records it as fully loaded.
+<%- var("extractCssChunkIsLoaded") %> = function (chunkId) {
 	return typeof <%- _js_state_expression %> !== "undefined" && <%- _js_state_expression %> && <%- _js_state_expression %>[chunkId] === 0;
 };
 <%- HMR_DOWNLOAD_UPDATE_HANDLERS %>.miniCss = function (chunkIds, removedChunks, removedModules, promises, applyHandlers, updatedModulesList, css, miniCss) {
@@ -37,13 +36,13 @@ var extractCssChunkIsLoaded = function (chunkId) {
 	var cssChunkIds = (miniCss && miniCss.c) || [];
 	var seen = {};
 	cssRemovedChunkIds.forEach(function (chunkId) {
-		var href = <%- REQUIRE_SCOPE %>.miniCssF(chunkId);
+		var href = <%- _get_chunk_css_filename %>(chunkId);
 		if (!href) return;
 		var oldTag = extractCssFindStylesheet(href, <%- PUBLIC_PATH %> + href);
 		if (oldTag) extractCssOldTags.push(oldTag);
 	});
 	cssChunkIds.forEach(function (chunkId) {
-		var href = <%- REQUIRE_SCOPE %>.miniCssF(chunkId);
+		var href = <%- _get_chunk_css_filename %>(chunkId);
 		if (!href) return;
 		var fullhref = <%- PUBLIC_PATH %> + href;
 		if (seen[fullhref]) return;

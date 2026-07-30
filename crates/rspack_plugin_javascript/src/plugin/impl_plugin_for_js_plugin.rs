@@ -617,28 +617,34 @@ async fn render_manifest(
 
   let (source, _) = compilation
     .chunk_render_cache_artifact
-    .use_cache(compilation, chunk, &SourceType::JavaScript, || async {
-      let source = if let Some(source) = hooks
-        .render_chunk_content
-        .call(compilation, chunk_ukey, &mut asset_info, &runtime_template)
-        .await?
-      {
-        source.source
-      } else if is_hot_update {
-        self
-          .render_chunk(compilation, chunk_ukey, &output_path, &runtime_template)
+    .use_cache(
+      compilation,
+      chunk,
+      &SourceType::JavaScript,
+      &output_path,
+      || async {
+        let source = if let Some(source) = hooks
+          .render_chunk_content
+          .call(compilation, chunk_ukey, &mut asset_info, &runtime_template)
           .await?
-      } else if is_runtime_chunk {
-        self
-          .render_main(compilation, chunk_ukey, &output_path, &runtime_template)
-          .await?
-      } else {
-        self
-          .render_chunk(compilation, chunk_ukey, &output_path, &runtime_template)
-          .await?
-      };
-      Ok((CachedSource::new(source).boxed(), Vec::new()))
-    })
+        {
+          source.source
+        } else if is_hot_update {
+          self
+            .render_chunk(compilation, chunk_ukey, &output_path, &runtime_template)
+            .await?
+        } else if is_runtime_chunk {
+          self
+            .render_main(compilation, chunk_ukey, &output_path, &runtime_template)
+            .await?
+        } else {
+          self
+            .render_chunk(compilation, chunk_ukey, &output_path, &runtime_template)
+            .await?
+        };
+        Ok((CachedSource::new(source).boxed(), Vec::new()))
+      },
+    )
     .await?;
 
   manifest.push(RenderManifestEntry {

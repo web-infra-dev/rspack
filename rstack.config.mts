@@ -1,0 +1,63 @@
+import { define } from 'rstack';
+
+define.lint(async () => {
+  const { js, ts } = await import('rstack/lint');
+
+  return [
+    js.configs.recommended,
+    ts.configs.recommended,
+    {
+      // Global ignores — entry with only `ignores` excludes matching files from all rules
+      ignores: [
+        'packages/rspack/src/runtime/moduleFederationDefaultRuntime.js',
+        'xtask/benchmark/benches/fixtures/rspack_sources/**',
+        '**/tests/**',
+      ],
+    },
+    {
+      languageOptions: {
+        parserOptions: {
+          project: ['./packages/*/tsconfig.json'],
+        },
+      },
+      rules: {
+        '@typescript-eslint/no-explicit-any': 'off',
+        '@typescript-eslint/no-unused-vars': 'off',
+        '@typescript-eslint/no-this-alias': 'off',
+        '@typescript-eslint/ban-ts-comment': 'off',
+        '@typescript-eslint/no-empty-object-type': 'off',
+        '@typescript-eslint/no-unsafe-function-type': 'off',
+        '@typescript-eslint/no-wrapper-object-types': 'off',
+        '@typescript-eslint/require-await': 'error',
+        '@typescript-eslint/return-await': 'error',
+        '@typescript-eslint/default-param-last': 'error',
+        '@typescript-eslint/prefer-literal-enum-member': [
+          'error',
+          { allowBitwiseExpressions: true },
+        ],
+        '@typescript-eslint/no-require-imports': 'off',
+        '@typescript-eslint/triple-slash-reference': 'off',
+        'no-constant-binary-expression': 'off',
+        'no-control-regex': 'off',
+        'no-empty': 'off',
+        'no-prototype-builtins': 'off',
+        'prefer-spread': 'off',
+      },
+    },
+    {
+      files: ['**/*.d.ts'],
+      rules: {
+        'no-var': 'off',
+      },
+    },
+  ];
+});
+
+define.staged({
+  '*.rs': 'rustfmt',
+  '*.{ts,tsx,js,mjs,yaml,yml}':
+    'node ./node_modules/prettier/bin/prettier.cjs --write',
+  '*.toml': 'pnpm exec taplo format',
+  '*.{ts,tsx,js,cts,cjs,mts,mjs}': 'pnpm run lint:js',
+  'website/**/*': () => 'pnpm --dir website run check:spell',
+});

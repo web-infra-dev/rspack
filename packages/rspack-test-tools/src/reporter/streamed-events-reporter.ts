@@ -6,7 +6,7 @@ import type {
   TestFileInfo,
   TestResult,
   TestSuiteInfo,
-} from '@rstest/core';
+} from 'rstack/test';
 
 /**
  * Stream Rstest events to a file in real-time for inspecting how tests are executed.

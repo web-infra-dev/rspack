@@ -417,7 +417,7 @@ pub struct JavascriptParser<'parser> {
   pub(crate) destructuring_assignment_properties: DestructuringAssignmentPropertiesMap,
   pub(crate) dynamic_import_references: ImportsReferencesState,
   pub(crate) common_js_require_references: RequireReferencesState,
-  pub(crate) created_require_references: CreatedRequireReferencesState,
+  pub(crate) created_require_references: CreatedRequireReferencesState<'parser>,
   pub(crate) worker_index: u32,
   pub(crate) parser_exports_state: Option<bool>,
   pub(crate) local_modules: Vec<LocalModule>,
@@ -813,6 +813,12 @@ impl<'parser> JavascriptParser<'parser> {
 
   pub fn get_module_layer(&self) -> Option<&ModuleLayer> {
     self.module_layer
+  }
+
+  /// The source order assigned to the import declaration currently being
+  /// visited by `import_specifier` parser hooks.
+  pub fn current_esm_import_order(&self) -> i32 {
+    self.last_esm_import_order
   }
 
   pub fn get_variable_info(&mut self, name: &Atom) -> Option<&VariableInfo> {
