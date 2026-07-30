@@ -127,8 +127,8 @@ mod tests {
   use json::JsonValue;
   use rspack_cacheable::{cacheable, to_bytes, with::AsPreset};
   use rspack_core::{
-    DependencyId, DependencyParents, ExportNameOrSpec, Module, ModuleGraph, ModuleIdentifier,
-    RawModule, RuntimeGlobals,
+    DependencyId, DependencyParents, ExportNameOrSpec, Module, ModuleExt, ModuleGraph,
+    ModuleIdentifier, RawModule, RuntimeGlobals,
   };
   use rspack_hash::{HashFunction, RspackHash, RspackHasher};
 
@@ -141,6 +141,13 @@ mod tests {
     #[cacheable(with=AsPreset)]
     data: JsonValue,
     exports_depth: u32,
+  }
+
+  fn dependency(exports_depth: u32) -> JsonExportsDependency {
+    JsonExportsDependency {
+      id: DependencyId::from(1),
+      exports_depth,
+    }
   }
 
   fn export_names(exports: &[ExportNameOrSpec]) -> Vec<&str> {
@@ -187,7 +194,7 @@ mod tests {
 
   #[test]
   fn reads_custom_parser_data_from_the_attached_parent_module() {
-    let dependency = JsonExportsDependency::new(2);
+    let dependency = dependency(2);
     let parsed_data = json::parse(r#"{"custom":{"nested":true}}"#).unwrap();
     let identifier: ModuleIdentifier = "synthetic.json".into();
     let mut parent = RawModule::new(
@@ -206,7 +213,7 @@ mod tests {
         ..Default::default()
       },
     );
-    module_graph.add_module(Box::new(parent));
+    module_graph.add_module(parent.boxed());
 
     assert_eq!(dependency.data(&module_graph), &parsed_data);
 
@@ -223,12 +230,12 @@ mod tests {
   #[test]
   #[should_panic(expected = "JSON export dependency should have parent JSON module data")]
   fn requires_an_attached_parent_before_reading_module_data() {
-    JsonExportsDependency::new(2).data(&ModuleGraph::default());
+    dependency(2).data(&ModuleGraph::default());
   }
 
   #[test]
   fn archives_only_json_export_metadata_instead_of_cloning_the_json_value() {
-    let dependency = JsonExportsDependency::new(2);
+    let dependency = dependency(2);
     let legacy = LegacyJsonExportsDependency {
       id: dependency.id,
       data: json::object! { payload: "x".repeat(16 * 1024) },
