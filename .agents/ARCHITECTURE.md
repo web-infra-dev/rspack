@@ -10,7 +10,9 @@ Rspack is a high-performance JavaScript bundler written in Rust that maintains s
 
 ```text
 JavaScript/TypeScript Layer (@rspack/core, plugins, loaders)
-         ↓ NAPI (Node-API)
+         ↓
+Binding Layer (@rspack/binding, rspack_binding_api, rspack_napi)
+         ↓
 Rust Core Layer (rspack_core, compilation engine)
 ```
 
@@ -18,7 +20,11 @@ Rust Core Layer (rspack_core, compilation engine)
 
 1. **JavaScript/TypeScript Layer** (`packages/`): Webpack-compatible API, configuration, file system operations
 2. **Rust Core Layer** (`crates/`): Core compilation engine, module system, plugin/loader execution
-3. **Binding Layer**: NAPI bindings for Rust-JavaScript interop
+3. **Binding Layer** (`crates/node_binding`, `crates/rspack_binding_api`, `crates/rspack_napi`):
+   Node-API packaging, conversion, native-backed objects, JavaScript callbacks, and runtime support
+
+Binding-backed APIs have additional ownership, lifetime, object identity, and cross-thread
+constraints. Read [JavaScript Binding Guide](./BINDING.md) before changing them.
 
 ## Core Components
 
@@ -343,6 +349,8 @@ Source File → Loader Chain → Parsed AST → Dependency Extraction
 ## Resources
 
 - [Project Structure](../website/docs/en/contribute/development/project.md)
+- [JavaScript Binding Architecture](../website/docs/en/contribute/architecture/javascript-binding.md)
+- [JavaScript Binding Guide](./BINDING.md)
 - [Common Patterns](./COMMON_PATTERNS.md)
 - [Code Style](./CODE_STYLE.md)
 - [Plugin API Documentation](https://rspack.rs/api/plugin-api/)

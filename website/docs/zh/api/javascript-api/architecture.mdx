@@ -1,0 +1,197 @@
+---
+description: '了解 Rspack JavaScript API 的实现模型、生命周期规则和性能特征。'
+---
+
+# JavaScript API 架构
+
+Rspack 通过 `@rspack/core` 提供兼容 webpack 的 JavaScript API，而大部分编译工作运行在
+Rust 中，两层之间通过 Node-API binding 通信。
+
+本文记录会影响正确性和性能的实现细节。这些内容描述当前实现，不构成额外的 API 兼容性承诺。
+应用应该从 `@rspack/core` 导入 API；`@rspack/binding` 是内部包，不遵循 `@rspack/core`
+的公共兼容性约定。
+
+## 心智模型
+
+```mermaid
+flowchart LR
+  User["应用或插件"] --> Core["@rspack/core<br/>JavaScript facade"]
+  Core --> Binding["@rspack/binding<br/>Node-API 模块"]
+  Binding --> Rust["Rust compiler<br/>图和资源"]
+  Rust --> Bridge["线程安全回调桥"]
+  Bridge --> Hooks["JavaScript hooks、loaders、<br/>文件系统和回调"]
+  Hooks --> Rust
+```
+
+`@rspack/core` 不只是 native 函数的薄封装。它负责提供兼容 webpack 的对象模型、
+Tapable 风格的 hooks、配置规范化、source 适配器、文件系统适配器，以及部分纯
+JavaScript API。binding 保存 native compiler 状态，并向 JavaScript facade 暴露所需的
+操作和视图。
+
+## API 实现模型
+
+了解 API 属于哪种模型，有助于判断它的生命周期和调用成本。
+
+| 模型                     | 示例                                                          | 行为                                                              |
+| ------------------------ | ------------------------------------------------------------- | ----------------------------------------------------------------- |
+| JavaScript 管理的 facade | Hook 对象、日志工具、部分 cache API                           | 除非继续调用 binding-backed 对象，否则完全在 JavaScript 中运行    |
+| Native 操作              | `compiler.run()`、`compiler.close()`、resolver 和 SWC 操作    | 进入 Rust 一次，返回值、callback 或 Promise                       |
+| Native-backed 对象       | `Compilation`、`Module`、`Chunk`、`ModuleGraph`、`ChunkGraph` | JavaScript 对象保存 identity，访问时根据 native compiler 状态解析 |
+| 已物化的值               | 数组、Set、配置对象和部分 stats 数据                          | 访问时将 native 数据转换为 JavaScript 持有的数据                  |
+| 实时 adapter 或 Proxy    | `compilation.assets`、sources、文件系统                       | 每次属性访问或方法调用都可能进入 binding                          |
+| Rust 到 JavaScript 回调  | 插件 hooks、loaders、filename 函数、externals、文件系统       | Rust 调度 JavaScript 工作，并在编译依赖结果时等待其完成           |
+
+一个 API 可能组合多种模型。例如，`compilation.modules` 会物化一个新的 JavaScript
+`Set`，但其中的 `Module` 仍是 native-backed 对象。
+
+## Compiler 生命周期
+
+创建 `@rspack/core` 的 `Compiler` 不会立即创建 native compiler。Rspack 会先规范化配置并
+应用插件，第一次构建真正需要 native compiler 时才进行惰性创建。
+
+完成 native 初始化后：
+
+- 规范化配置和 builtin plugin 注册已经转换给 Rust；
+- JavaScript hook 注册函数已经连接到 native hook adapter；
+- 配置的文件系统和 resolver factory 已经包装成可跨语言调用的对象。
+
+不要依赖 native compiler 创建后对 `compiler.options` 的任意修改仍会反映到 Rust。应该在
+调用 `run()` 或 `watch()` 前完成配置和插件应用。
+
+一个 `Compiler` 同一时间只支持一个活跃 compilation。不要重叠调用 `run()` 和 `watch()`，
+也不要并发调用两次 `run()`。不再使用 compiler 时，应调用 `close()` 并等待 callback 完成。
+
+## Compilation 和对象生命周期
+
+每次构建，包括 watch rebuild，都会创建新的 `Compilation`。从 compilation 获取的很多对象
+是当前 native compilation 状态的视图，而不是脱离 native 状态的 JavaScript 快照。
+
+使用时遵守以下规则：
+
+- 将 `Compilation`、`Module`、`Chunk`、图对象、dependencies 和 blocks 视为
+  compilation-scoped 对象。
+- 除非 API 明确承诺更长的生命周期，否则不要保留 hook 中得到的 binding-backed 值，并在
+  hook 或 compilation 结束后继续访问。
+- 如果稍后需要数据，保存 identifier、name、path、hash 等稳定的 JavaScript 值，或者创建
+  用途明确的快照。
+- watch rebuild 时，从新的 `Compilation` 重新获取对象，不要复用上一次构建的对象。
+- 不要假设跨 compiler 或跨 compilation 的对象 identity 有意义。
+
+在 webpack 兼容性需要的地方，Rspack 会为部分 binding-backed 对象保持 JavaScript 对象
+identity。但该缓存不会延长底层 native 对象的生命周期；native 状态被移除后，继续访问可能失败。
+
+## Hook 和回调执行
+
+Rust compiler 可以在 JavaScript 主线程之外执行工作，但 JavaScript 回调必须回到对应的
+JavaScript 环境运行。Rspack 使用线程安全回调桥进行调度。
+
+Rust 执行到 JavaScript hook 时：
+
+1. Native hook adapter 检查是否注册了 JavaScript taps。
+2. 参数被转换为 JavaScript 值或 binding-backed 对象。
+3. 回调被调度到 JavaScript 环境。
+4. 如果编译依赖其结果，Rust 会等待返回值。
+5. 返回数据或错误再转换回 Rust。
+
+未使用的 hook 类型会被跳过，避免每次构建都支付回调注册和调用成本。应该在插件 `apply`
+阶段或文档指定的 compilation 初始化 hook 中注册 tap，并确保注册发生在对应生命周期节点之前。
+
+同步 tap 应尽快完成。Promise tap 可以执行异步工作，但对应编译阶段仍会等待 Promise。
+按 module 执行的 hook、loader、resolver callback 或 filename 函数可能运行数百乃至数千次，
+因此很小的 JavaScript 和数据转换成本也会累积。
+
+## 集合、getter 和 source
+
+看起来相似的 JavaScript 集合可能具有不同的行为：
+
+- `compilation.modules` 和 `compilation.builtModules` 会物化包含当前成员的 `Set`。继续读取
+  每个 module 的属性或调用方法仍可能跨 binding。
+- `compilation.chunks` 是缓存的只读集合，其中包含 native-backed chunk 对象。
+- named chunk 和 chunk group map 会在请求 key 或 value 时执行 native 查询。
+- `compilation.assets` 是 Proxy。枚举 key、读取 source、写入 source 和删除属性是不同的操作。
+- asset source 会在 binding 表示与 `webpack-sources` 之间适配。如果只需要文件名或 metadata，
+  不要读取 source 内容。
+- stats 转换可能遍历很大的 module graph 和 chunk graph。工具应该只请求实际需要的字段。
+
+不要只根据 JavaScript 语法推断复杂度。一个属性 getter 也可能执行 native graph 查询或物化集合。
+
+## 高效用法
+
+### 在热循环中只读取一次
+
+优先在一次遍历中提取需要的值：
+
+```js
+compilation.hooks.processAssets.tap('ExamplePlugin', () => {
+  const moduleIds = [];
+  for (const module of compilation.modules) {
+    moduleIds.push(module.identifier());
+  }
+
+  consumeModuleIds(moduleIds);
+});
+```
+
+避免在嵌套循环中反复创建相同集合，或重复访问相同的 native-backed getter：
+
+```js
+// 避免在热路径 hook 中使用这种写法。
+for (const chunk of compilation.chunks) {
+  for (const module of compilation.modules) {
+    inspect(chunk, module, compilation.moduleGraph);
+  }
+}
+```
+
+### 保留稳定值，而不是保留对象
+
+```js
+let lastBuildModuleIds = [];
+
+compiler.hooks.thisCompilation.tap('ExamplePlugin', (compilation) => {
+  compilation.hooks.finishModules.tap('ExamplePlugin', (modules) => {
+    lastBuildModuleIds = Array.from(modules, (module) => module.identifier());
+  });
+});
+```
+
+保留 identifier 比保留 `Module` 对象并在后续 rebuild 中访问更安全。
+
+### 减少 native 热路径中的 JavaScript 回调
+
+当 builtin loader 或 plugin 能满足需求时，优先使用 builtin 实现。确实需要 JavaScript 回调时：
+
+- 先执行成本低的过滤；
+- 在回调外缓存不可变的派生配置；
+- 避免重复转换 source；
+- API 支持批处理时合并操作；
+- 避免同步文件系统操作和 CPU 密集工作。
+
+## API 类型速查
+
+| API 类型                    | 主要实现模型                            | 重要注意事项                                           |
+| --------------------------- | --------------------------------------- | ------------------------------------------------------ |
+| Compiler 和 watching        | JavaScript 生命周期加 native 构建操作   | 每个 compiler 只能有一个活跃 compilation；显式关闭资源 |
+| Compilation 和 assets       | Native-backed 状态、Proxy 和物化集合    | 只在所属 compilation 中使用，避免不必要的 source 读取  |
+| Module graph 和 chunk graph | Native graph 查询                       | 重复 getter 和嵌套查询会放大 binding 开销              |
+| Plugin hooks                | Rust 到 JavaScript 回调                 | Hook 频率以及同步/异步行为决定成本                     |
+| Loader API                  | Module build 热路径中的 JavaScript 回调 | Native build 可能等待 loader 完成                      |
+| Resolver 和文件系统         | Native 操作，可接入 JavaScript adapter  | 自定义 JavaScript 实现会给 resolve 和 I/O 增加回调     |
+| Stats                       | 图遍历和 JavaScript 数据物化            | 只请求需要的字段                                       |
+| SWC API                     | 直接 native 操作                        | 异步方法返回 Promise；同步方法会阻塞调用者             |
+| Browser API                 | WASI binding 和浏览器 adapter           | 平台能力和性能与 Node.js native binding 不同           |
+
+## 排查生命周期和 binding 问题
+
+当错误提示 compilation、module 或 compiler 已不可用时，通常意味着 binding-backed 对象超出了
+支持的生命周期、保留了旧的 watch compilation，或者 compiler 已关闭或被垃圾回收。
+
+排查步骤：
+
+1. 确认对象由哪个 hook 和 compilation 产生。
+2. 检查对象是否在 `await`、callback、rebuild 或 `close()` 之后使用。
+3. 尝试将保留的对象替换为 identifier 或复制出的数据。
+4. 缩小示例，确认相关操作属于 JavaScript 管理、已物化值还是 binding-backed 对象。
+
+面向贡献者的实现细节请参阅
+[JavaScript binding 架构](/contribute/architecture/javascript-binding)。

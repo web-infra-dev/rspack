@@ -281,6 +281,18 @@ Only in major versions, carefully planned.
 - Avoid unnecessary allocations
 - Profile API calls
 
+### Binding API Performance
+
+- Classify each API as JavaScript-owned, an owned DTO, a native lookup, a live view, or a callback
+- Treat Rust-JavaScript crossings as explicit cost, especially in per-module and per-asset hooks
+- Prefer batch operations over repeated native-backed getters
+- Document whether collections are live, cached, or materialized
+- Define the owner, identity, valid lifetime, and revocation of every native-backed object
+- Do not expose borrowed Rust references through asynchronous JavaScript callbacks
+- Review both native and WASI conversion behavior
+
+See [JavaScript Binding Guide](./BINDING.md) for required invariants and change recipes.
+
 ### Optimization Opportunities
 
 - Batch operations when possible

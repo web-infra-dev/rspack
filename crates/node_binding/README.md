@@ -12,6 +12,9 @@ Private node binding crate for rspack.
 
 See [https://rspack.rs](https://rspack.rs) for details.
 
+For implementation details, see the
+[JavaScript binding architecture](../../website/docs/en/contribute/architecture/javascript-binding.md).
+
 ## Update Wasm binding
 
 The generation of `rspack.wasi-browser.js` and `rspack.wasi.js` is disabled by default because `@napi/cli` produces unstable output for these files. To update the Wasm bindings, add `wasm32-wasip1-threads` to the `napi.targets` field in `package.json` before building the project.

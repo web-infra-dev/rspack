@@ -47,6 +47,7 @@ ecma
 edusperoni
 elecmonkey
 elecmonkeyjs
+emnapi
 esbuild
 etags
 evanw
@@ -207,6 +208,7 @@ tiktok
 tokio
 Towhk
 Trae
+tsfn
 tsgo
 tsgolint
 tuchg
@@ -221,6 +223,8 @@ vant
 verkada
 viktoriialurie
 vize
+wasi
+WASI
 weapp
 webpack
 xcode
