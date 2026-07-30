@@ -22,7 +22,7 @@ use crate::{
   RuntimePluginHooks,
   runtime_module::{
     AmdDefineRuntimeModule, AmdOptionsRuntimeModule, AsyncRuntimeModule,
-    AutoPublicPathRuntimeModule, BaseUriRuntimeModule, ChunkFilenameKind, ChunkNameRuntimeModule,
+    AutoPublicPathRuntimeModule, BaseUriRuntimeModule, ChunkNameRuntimeModule,
     ChunkPrefetchPreloadFunctionRuntimeModule, CompatGetDefaultExportRuntimeModule,
     CreateFakeNamespaceObjectRuntimeModule, CreateScriptRuntimeModule,
     CreateScriptUrlRuntimeModule, DefinePropertyGettersRuntimeModule,
@@ -85,42 +85,9 @@ fn handle_dependency_globals(
 
 #[plugin]
 #[derive(Debug, Default)]
-pub struct RuntimePlugin {
-  chunk_filename_has_hash: FxDashMap<CompilationId, (bool, bool)>,
-}
+pub struct RuntimePlugin;
 
 impl RuntimePlugin {
-  fn chunk_filename_has_hash(&self, compilation: &Compilation) -> (bool, bool) {
-    *self
-      .chunk_filename_has_hash
-      .entry(compilation.id())
-      .or_insert_with(|| {
-        let output = &compilation.options.output;
-        let mut javascript =
-          output.filename.has_hash_placeholder() || output.chunk_filename.has_hash_placeholder();
-        let mut css = output.css_filename.has_hash_placeholder()
-          || output.css_chunk_filename.has_hash_placeholder();
-
-        for chunk in compilation
-          .build_chunk_graph_artifact
-          .chunk_by_ukey
-          .values()
-        {
-          javascript |= chunk
-            .filename_template()
-            .is_some_and(|filename| filename.has_hash_placeholder());
-          css |= chunk
-            .css_filename_template()
-            .is_some_and(|filename| filename.has_hash_placeholder());
-          if javascript && css {
-            break;
-          }
-        }
-
-        (javascript, css)
-      })
-  }
-
   pub fn get_compilation_hooks(id: CompilationId) -> ArcRuntimePluginHooks {
     if !COMPILATION_HOOKS_MAP.contains_key(&id) {
       COMPILATION_HOOKS_MAP.insert(id, Default::default());
@@ -290,11 +257,8 @@ async fn runtime_requirements_in_tree(
           *chunk_ukey,
           GetChunkFilenameRuntimeModule::new(
             &compilation.runtime_template,
-            ChunkFilenameKind {
-              content_type: "javascript",
-              runtime_module_name: "javascript",
-              needs_full_hash: self.chunk_filename_has_hash(compilation).0,
-            },
+            "javascript",
+            "javascript",
             SourceType::JavaScript,
             runtime_template.render_runtime_globals(&RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME),
             |runtime_requirements| {
@@ -322,11 +286,8 @@ async fn runtime_requirements_in_tree(
           *chunk_ukey,
           GetChunkFilenameRuntimeModule::new(
             &compilation.runtime_template,
-            ChunkFilenameKind {
-              content_type: "css",
-              runtime_module_name: "css",
-              needs_full_hash: self.chunk_filename_has_hash(compilation).1,
-            },
+            "css",
+            "css",
             SourceType::Css,
             runtime_template.render_runtime_globals(&RuntimeGlobals::GET_CHUNK_CSS_FILENAME),
             |runtime_requirements| {
@@ -581,6 +542,5 @@ impl Plugin for RuntimePlugin {
 
   fn clear_cache(&self, id: CompilationId) {
     COMPILATION_HOOKS_MAP.remove(&id);
-    self.chunk_filename_has_hash.remove(&id);
   }
 }

@@ -5,7 +5,7 @@ use rspack_cacheable::with::Unsupported;
 use rspack_core::{
   Chunk, ChunkGraph, ChunkUkey, Compilation, Filename, PathData, RuntimeGlobals,
   RuntimeGlobalsRenderMode, RuntimeModule, RuntimeModuleGenerateContext, RuntimeTemplate,
-  SourceType, get_filename_without_hash_length, impl_runtime_module,
+  SourceType, get_filename_without_hash_length, has_hash_placeholder, impl_runtime_module,
 };
 use rspack_util::{
   fx_hash::{FxIndexMap, FxIndexSet},
@@ -19,12 +19,6 @@ use crate::{get_chunk_runtime_requirements, runtime_module::unquoted_stringify};
 type GetChunkFilenameAllChunks = Box<dyn Fn(&RuntimeGlobals) -> bool + Sync + Send>;
 type GetFilenameForChunk = Box<dyn Fn(&Chunk, &Compilation) -> Option<Filename> + Sync + Send>;
 
-pub struct ChunkFilenameKind {
-  pub content_type: &'static str,
-  pub runtime_module_name: &'static str,
-  pub needs_full_hash: bool,
-}
-
 #[impl_runtime_module]
 pub struct GetChunkFilenameRuntimeModule {
   #[cacheable(with=Unsupported)]
@@ -37,7 +31,6 @@ pub struct GetChunkFilenameRuntimeModule {
   #[cacheable(with=Unsupported)]
   filename_for_chunk: GetFilenameForChunk,
   chunk_ukey: ChunkUkey,
-  needs_full_hash: bool,
 }
 
 impl fmt::Debug for GetChunkFilenameRuntimeModule {
@@ -50,7 +43,6 @@ impl fmt::Debug for GetChunkFilenameRuntimeModule {
       .field("global", &self.global)
       .field("all_chunks", &"...")
       .field("chunk_ukey", &self.chunk_ukey)
-      .field("needs_full_hash", &self.needs_full_hash)
       .finish()
   }
 }
@@ -63,7 +55,8 @@ impl GetChunkFilenameRuntimeModule {
     T: Fn(&Chunk, &Compilation) -> Option<Filename> + Sync + Send + 'static,
   >(
     runtime_template: &RuntimeTemplate,
-    kind: ChunkFilenameKind,
+    content_type: &'static str,
+    name: &'static str,
     source_type: SourceType,
     global: String,
     all_chunks: F,
@@ -72,15 +65,14 @@ impl GetChunkFilenameRuntimeModule {
   ) -> Self {
     Self::with_name(
       runtime_template,
-      &format!("get {} chunk filename", kind.runtime_module_name),
-      kind.content_type,
+      &format!("get {name} chunk filename"),
+      content_type,
       source_type,
       global,
       None,
       Box::new(all_chunks),
       Box::new(filename_for_chunk),
       chunk_ukey,
-      kind.needs_full_hash,
     )
   }
 
@@ -142,11 +134,15 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
 
   fn runtime_requirements(
     &self,
-    _compilation: &Compilation,
+    compilation: &Compilation,
   ) -> rspack_core::RuntimeModuleRuntimeRequirements {
     rspack_core::RuntimeModuleRuntimeRequirements {
       dependencies: {
-        if self.needs_full_hash {
+        if (self.source_type == SourceType::JavaScript
+          && has_hash_placeholder(compilation.options.output.chunk_filename.as_str()))
+          || (self.source_type == SourceType::Css
+            && has_hash_placeholder(compilation.options.output.css_chunk_filename.as_str()))
+        {
           RuntimeGlobals::GET_FULL_HASH
         } else {
           RuntimeGlobals::default()
