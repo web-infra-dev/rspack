@@ -4,7 +4,7 @@ use std::path::Path;
 use rspack_core::{
   ConstDependency, Context, ContextDependency, ContextMode, ContextModulePattern, ContextOptions,
   DependencyCategory, DependencyRange, DependencyType, ModuleType, ReferencedSpecifier,
-  RuntimeGlobals, RuntimeRequirementsDependency,
+  RuntimeGlobals, RuntimeRequirementsDependency, get_context,
 };
 use rspack_error::{Diagnostic, Severity};
 use rspack_util::{SpanExt, json_stringify_str};
@@ -35,8 +35,7 @@ use crate::{
   visitors::{
     CallHooksName, ExportedVariableInfo, JavascriptParser, StatementPath, TagInfoData,
     VariableDeclaration, VariableDeclarationKind, VariableInfo, VariableInfoFlags, context_reg_exp,
-    create_context_dependency, create_context_options, create_traceable_error, expr_name,
-    get_non_optional_part,
+    create_context_dependency, create_traceable_error, expr_name, get_non_optional_part,
   },
 };
 
@@ -1360,6 +1359,7 @@ fn create_commonjs_require_context_dependency(
   request_context: Option<rspack_core::Context>,
 ) -> CommonJsRequireContextDependency {
   let result = create_context_dependency(param, parser);
+  let request = result.request();
 
   let span = call_expr.span;
   let options = ContextOptions {
@@ -1367,11 +1367,13 @@ fn create_commonjs_require_context_dependency(
     recursive: true,
     pattern: context_reg_exp(&result.reg, "", None, parser).into(),
     category: DependencyCategory::CommonJS,
-    request: format!("{}{}{}", result.context, result.query, result.fragment),
+    request,
+    context: get_context(parser.resource_data).to_string(),
+    compiler_context: parser.compiler_options.context.to_string(),
     replaces: result.replaces,
     start: span.real_lo(),
     end: span.real_hi(),
-    ..create_context_options(parser)
+    ..Default::default()
   };
   let range = call_expr.span.into();
   let loc = parser
@@ -1403,6 +1405,7 @@ fn create_require_resolve_context_dependency(
   let end = range.end;
 
   let result = create_context_dependency(param, parser);
+  let request = result.request();
 
   let options = ContextOptions {
     mode: if weak {
@@ -1413,11 +1416,13 @@ fn create_require_resolve_context_dependency(
     recursive: true,
     pattern: context_reg_exp(&result.reg, "", None, parser).into(),
     category: DependencyCategory::CommonJS,
-    request: format!("{}{}{}", result.context, result.query, result.fragment),
+    request,
+    context: get_context(parser.resource_data).to_string(),
+    compiler_context: parser.compiler_options.context.to_string(),
     replaces: result.replaces,
     start,
     end,
-    ..create_context_options(parser)
+    ..Default::default()
   };
   RequireResolveContextDependency::new(options, range, parser.in_try, request_context)
 }
@@ -1883,9 +1888,11 @@ impl CommonJsImportsParserPlugin {
         recursive: true,
         pattern: ContextModulePattern::None,
         request: ".".to_string(),
+        context: get_context(parser.resource_data).to_string(),
+        compiler_context: parser.compiler_options.context.to_string(),
         start,
         end,
-        ..create_context_options(parser)
+        ..Default::default()
       },
       parser
         .to_dependency_location(DependencyRange::from(span))

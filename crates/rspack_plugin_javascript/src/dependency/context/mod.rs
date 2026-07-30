@@ -192,15 +192,15 @@ mod tests {
   #[test]
   fn context_dependency_identifier_uses_compiler_relative_context() {
     let options_a = ContextOptions {
+      request: "./local".into(),
       context: "/checkout-a/project/src/pages".into(),
       compiler_context: "/checkout-a/project".into(),
-      request: "./local".into(),
       ..Default::default()
     };
     let options_b = ContextOptions {
+      request: "./local".into(),
       context: "/checkout-b/project/src/pages".into(),
       compiler_context: "/checkout-b/project".into(),
-      request: "./local".into(),
       ..Default::default()
     };
 
@@ -213,9 +213,9 @@ mod tests {
   #[test]
   fn context_dependency_identifier_omits_the_compiler_context() {
     let options = ContextOptions {
+      request: "./local".into(),
       context: "/project".into(),
       compiler_context: "/project".into(),
-      request: "./local".into(),
       ..Default::default()
     };
 

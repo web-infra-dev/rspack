@@ -1,7 +1,7 @@
 use rspack_core::{
   AsyncDependenciesBlock, ChunkGroupOptions, ContextDependency, ContextNameSpaceObject,
   ContextOptions, DependencyCategory, DependencyRange, DependencyType, DynamicImportFetchPriority,
-  DynamicImportMode, GroupOptions, ImportAttributes, ReferencedSpecifier,
+  DynamicImportMode, GroupOptions, ImportAttributes, ReferencedSpecifier, get_context,
 };
 use rspack_error::{Error, Severity};
 use rspack_util::{SpanExt, swc::get_swc_comments};
@@ -22,7 +22,7 @@ use crate::{
   visitors::{
     ContextModuleScanResult, JavascriptParser, PatRef, Statement, TagInfoData, TopLevelScope,
     VariableDeclaration, VariableDeclarationKind, context_reg_exp, create_context_dependency,
-    create_context_options, create_traceable_error, get_non_optional_part, parse_order_string,
+    create_traceable_error, get_non_optional_part, parse_order_string,
   },
 };
 
@@ -464,14 +464,14 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
         return None;
       }
 
+      let result = create_context_dependency(&param, parser);
+      let request = result.request();
       let ContextModuleScanResult {
-        context,
         reg,
-        query,
-        fragment,
         replaces,
         critical,
-      } = create_context_dependency(&param, parser);
+        ..
+      } = result;
 
       let dyn_imported_span = dyn_imported.span();
       let reg_exp = context_reg_exp(&reg, "", Some(dyn_imported_span.into()), parser);
@@ -483,7 +483,9 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
           include,
           exclude,
           category: DependencyCategory::Esm,
-          request: format!("{context}{query}{fragment}"),
+          request,
+          context: get_context(parser.resource_data).to_string(),
+          compiler_context: parser.compiler_options.context.to_string(),
           namespace_object: if parser.build_meta.strict_esm_module() {
             ContextNameSpaceObject::Strict
           } else {
@@ -503,7 +505,6 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
           glob_exhaustive: false,
           attributes,
           phase: Some(phase),
-          ..create_context_options(parser)
         },
         import_call_span.into(),
         dyn_imported_span.into(),

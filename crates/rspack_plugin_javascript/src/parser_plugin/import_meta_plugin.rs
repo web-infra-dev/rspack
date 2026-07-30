@@ -4,7 +4,8 @@ use itertools::Itertools;
 use rspack_core::{
   ArcComputed, ConstDependency, ContextDependency, ContextMode, ContextOptions, DependencyCategory,
   DependencyRange, ImportMeta, ImportMetaKnownProperties, ResolvedModuleOptions, RscMeta,
-  RscModuleType, RuntimeGlobals, RuntimeRequirementsDependency, property_access, to_normal_comment,
+  RscModuleType, RuntimeGlobals, RuntimeRequirementsDependency, get_context, property_access,
+  to_normal_comment,
 };
 use rspack_error::{Error, Label, Severity};
 use rspack_util::{SpanExt, json_stringify_str};
@@ -34,9 +35,8 @@ use crate::{
   utils::eval::{self, BasicEvaluatedExpression},
   visitors::{
     AllowedMemberTypes, ExportedVariableInfo, ExprRef, JavascriptParser, MemberExpressionInfo,
-    RootName, context_reg_exp, create_context_dependency, create_context_options,
-    create_traceable_error, expr_name, get_non_optional_member_chain_from_expr,
-    member_property_to_atom,
+    RootName, context_reg_exp, create_context_dependency, create_traceable_error, expr_name,
+    get_non_optional_member_chain_from_expr, member_property_to_atom,
   },
 };
 
@@ -54,17 +54,20 @@ fn create_import_meta_resolve_context_dependency(
   let start = range.start;
   let end = range.end;
   let result = create_context_dependency(param, parser);
+  let request = result.request();
 
   let options = ContextOptions {
     mode: ContextMode::Sync,
     recursive: true,
     pattern: context_reg_exp(&result.reg, "", None, parser).into(),
     category: DependencyCategory::Esm,
-    request: format!("{}{}{}", result.context, result.query, result.fragment),
+    request,
+    context: get_context(parser.resource_data).to_string(),
+    compiler_context: parser.compiler_options.context.to_string(),
     replaces: result.replaces,
     start,
     end,
-    ..create_context_options(parser)
+    ..Default::default()
   };
   let mut dep = ImportMetaResolveContextDependency::new(options, range, parser.in_try);
   *dep.critical_mut() = result.critical;

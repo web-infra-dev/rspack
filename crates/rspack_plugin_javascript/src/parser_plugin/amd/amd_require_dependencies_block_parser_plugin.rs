@@ -5,6 +5,7 @@ use itertools::Itertools;
 use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, ContextDependency, ContextMode, ContextOptions,
   Dependency, DependencyCategory, DependencyRange, RuntimeGlobals, RuntimeRequirementsDependency,
+  get_context,
 };
 use rspack_error::{Error, Severity};
 use rspack_util::{SpanExt, atom::Atom};
@@ -23,8 +24,7 @@ use crate::{
   parser_plugin::require_ensure_dependencies_block_parse_plugin::GetFunctionExpression,
   utils::eval::BasicEvaluatedExpression,
   visitors::{
-    JavascriptParser, Statement, context_reg_exp, create_context_dependency,
-    create_context_options, create_traceable_error,
+    JavascriptParser, Statement, context_reg_exp, create_context_dependency, create_traceable_error,
   },
 };
 
@@ -171,17 +171,20 @@ impl AMDRequireDependenciesBlockParserPlugin {
     let param_range = param.range();
 
     let result = create_context_dependency(param, parser);
+    let request = result.request();
 
     let options = ContextOptions {
       mode: ContextMode::Sync,
       recursive: true,
       pattern: context_reg_exp(&result.reg, "", Some(call_span.into()), parser).into(),
       category: DependencyCategory::Amd,
-      request: format!("{}{}{}", result.context, result.query, result.fragment),
+      request,
+      context: get_context(parser.resource_data).to_string(),
+      compiler_context: parser.compiler_options.context.to_string(),
       replaces: result.replaces,
       start: call_span.real_lo(),
       end: call_span.real_hi(),
-      ..create_context_options(parser)
+      ..Default::default()
     };
     let mut dep = AMDRequireContextDependency::new(options, param_range.into(), parser.in_try);
     *dep.critical_mut() = result.critical;

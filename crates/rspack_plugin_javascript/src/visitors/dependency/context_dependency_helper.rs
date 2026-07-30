@@ -1,20 +1,13 @@
 use std::borrow::Cow;
 
+use concat_string::concat_string;
 use itertools::Itertools;
-use rspack_core::{ContextOptions, get_context, parse_resource};
+use rspack_core::parse_resource;
 use rspack_error::{Diagnostic, Severity};
 use rspack_util::{json_stringify_str, quote_meta};
 
 use super::create_traceable_error;
 use crate::utils::eval::{BasicEvaluatedExpression, TemplateStringKind};
-
-pub fn create_context_options(parser: &crate::visitors::JavascriptParser) -> ContextOptions {
-  ContextOptions {
-    context: get_context(parser.resource_data).to_string(),
-    compiler_context: parser.compiler_options.context.to_string(),
-    ..Default::default()
-  }
-}
 
 // Webpack will walk only the dynamic parts of evaluated expression in this function
 // but in our implementation, due to we can't easily implement setExpression for
@@ -241,6 +234,16 @@ pub struct ContextModuleScanResult {
   pub fragment: String,
   pub replaces: Vec<(String, u32, u32)>,
   pub critical: Option<Diagnostic>,
+}
+
+impl ContextModuleScanResult {
+  pub fn request(&self) -> String {
+    concat_string!(
+      self.context.as_str(),
+      self.query.as_str(),
+      self.fragment.as_str()
+    )
+  }
 }
 
 pub(super) fn split_context_from_prefix(prefix: String) -> (String, String) {

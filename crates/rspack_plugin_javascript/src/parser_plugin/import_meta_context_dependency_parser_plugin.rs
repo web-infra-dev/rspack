@@ -22,8 +22,8 @@ use crate::{
     },
   },
   visitors::{
-    JavascriptParser, clean_regexp_in_context_module, create_context_options,
-    default_context_reg_exp, expr_name, static_string_from_expr,
+    JavascriptParser, clean_regexp_in_context_module, default_context_reg_exp, expr_name,
+    static_string_from_expr,
   },
 };
 
@@ -309,10 +309,12 @@ fn create_import_meta_context_dependency(
       recursive,
       category: DependencyCategory::Esm,
       request,
+      context: get_context(parser.resource_data).to_string(),
+      compiler_context: parser.compiler_options.context.to_string(),
       mode,
       start: span.real_lo(),
       end: span.real_hi(),
-      ..create_context_options(parser)
+      ..Default::default()
     }
   } else {
     let span = node.span;
@@ -322,9 +324,11 @@ fn create_import_meta_context_dependency(
       pattern: clean_regexp_in_context_module(default_context_reg_exp(), None, parser).into(),
       category: DependencyCategory::Esm,
       request,
+      context: get_context(parser.resource_data).to_string(),
+      compiler_context: parser.compiler_options.context.to_string(),
       start: span.real_lo(),
       end: span.real_hi(),
-      ..create_context_options(parser)
+      ..Default::default()
     }
   };
   Some(ImportMetaContextDependency::new(
@@ -406,6 +410,7 @@ fn create_import_meta_glob_dependency(
     category: DependencyCategory::Esm,
     request: concat_string!(base_dir, glob_query),
     context,
+    compiler_context: parser.compiler_options.context.to_string(),
     namespace_object,
     mode,
     start: span.real_lo(),
@@ -413,7 +418,7 @@ fn create_import_meta_glob_dependency(
     referenced_specifiers,
     glob_import,
     glob_exhaustive,
-    ..create_context_options(parser)
+    ..Default::default()
   };
   Some(ImportMetaContextDependency::new_glob(
     context_options,
