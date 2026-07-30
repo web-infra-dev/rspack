@@ -1,4 +1,4 @@
-import { describe, expect, it } from '@rstest/core';
+import { describe, expect, it } from 'rstack/test';
 import { normalizeCommonOptions } from '../../src/utils/options';
 
 describe('normalizeCommonOptions --env parsing', () => {
