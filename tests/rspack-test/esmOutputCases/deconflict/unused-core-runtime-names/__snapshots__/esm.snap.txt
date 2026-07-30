@@ -1,0 +1,39 @@
+```mjs title=main.mjs
+// ./value.js
+function publicPath() {}
+const value = 42;
+
+// ./global.js
+globalThis.moduleCache = "global";
+
+function readGlobalModuleCache() {
+	return moduleCache;
+}
+
+// ./index.js
+
+
+
+function rspackRequire() {}
+function modules() {}
+function index_moduleCache() {}
+
+const actualNames = [
+	rspackRequire.name,
+	publicPath.name,
+	modules.name,
+];
+
+it("should not reserve core runtime names when no runtime is emitted", () => {
+	expect(actualNames).toEqual(["rspackRequire", "publicPath", "modules"]);
+	expect((/* inlined export .value */42)).toBe(42);
+
+	const globalModuleCache = readGlobalModuleCache();
+	delete globalThis.moduleCache;
+	expect(globalModuleCache).toBe("global");
+	expect(index_moduleCache.name).not.toBe("moduleCache");
+});
+
+export { actualNames };
+
+```

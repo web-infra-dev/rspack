@@ -24,9 +24,10 @@ use rspack_core::{
   rspack_sources::{ReplaceSource, Source},
 };
 use rspack_error::{Diagnostic, Result};
+use rspack_hash::{RspackHash, RspackHasher};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{
-  JavascriptModulesRenderChunkContent, JsPlugin, RenderSource,
+  JavascriptModulesChunkHash, JavascriptModulesRenderChunkContent, JsPlugin, RenderSource,
   dependency::ImportDependencyTemplate, parser_and_generator::JavaScriptParserAndGenerator,
 };
 use rspack_plugin_rslib::{
@@ -270,6 +271,9 @@ async fn compilation(
   hooks
     .render_chunk_content
     .tap(render_chunk_content::new(self));
+  hooks
+    .chunk_hash
+    .tap(runtime_free_name_overrides_chunk_hash::new(self));
   drop(hooks);
 
   compilation.set_dependency_template(
@@ -288,6 +292,40 @@ async fn compilation(
       template: worker_template,
     }),
   );
+  Ok(())
+}
+
+#[plugin_hook(JavascriptModulesChunkHash for EsmLibraryPlugin)]
+async fn runtime_free_name_overrides_chunk_hash(
+  &self,
+  compilation: &Compilation,
+  chunk_ukey: &ChunkUkey,
+  hasher: &mut RspackHasher,
+) -> Result<()> {
+  let links = self.links.borrow();
+  let Some(chunk_link) = links.get(chunk_ukey) else {
+    return Ok(());
+  };
+  let concatenated_modules_map = self.concatenated_modules_map.read().await;
+  let runtime_template = compilation.runtime_template.create_chunk_code_template();
+  let mut overrides = self
+    .runtime_free_name_overrides(
+      compilation,
+      chunk_ukey,
+      chunk_link,
+      &concatenated_modules_map,
+      &runtime_template,
+    )
+    .into_iter()
+    .collect::<Vec<_>>();
+  if overrides.is_empty() {
+    return Ok(());
+  }
+
+  overrides.sort_unstable();
+  "runtime free name overrides".hash(hasher);
+  overrides.hash(hasher);
+
   Ok(())
 }
 

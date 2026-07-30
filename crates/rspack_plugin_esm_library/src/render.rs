@@ -4,10 +4,13 @@ use std::{borrow::Cow, sync::Arc};
 
 use rspack_collections::IdentifierIndexSet;
 use rspack_core::{
-  AssetInfo, Chunk, ChunkGraph, ChunkGroup, ChunkRenderContext, ChunkUkey, Compilation,
-  ConcatenatedModuleInfo, InitFragment, ModuleIdentifier, PathData, PathInfo, RuntimeCodeTemplate,
-  RuntimeGlobals, RuntimeVariable, SourceType, export_name, get_js_chunk_filename_template,
-  get_undo_path, render_init_fragments,
+  AssetInfo, Chunk, ChunkGraph, ChunkGroup, ChunkRenderContext, ChunkUkey,
+  CodeGenerationRuntimeRequirementsWrite, Compilation, ConcatenatedModuleInfo,
+  ConstDependencyPreferredNames, InitFragment, ModuleIdentifier, ModuleInfo, PathData, PathInfo,
+  RuntimeCodeTemplate, RuntimeGlobals, RuntimeGlobalsRenderMode, RuntimeVariable, SourceType,
+  all_runtime_module_variables, export_name, get_js_chunk_filename_template, get_undo_path,
+  render_init_fragments,
+  reserved_names::RESERVED_NAMES_ATOM_SET,
   rspack_sources::{ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt},
 };
 use rspack_error::Result;
@@ -59,6 +62,167 @@ fn get_chunk(compilation: &Compilation, chunk_ukey: ChunkUkey) -> &Chunk {
 use crate::EsmLibraryPlugin;
 
 impl EsmLibraryPlugin {
+  pub(crate) fn runtime_free_name_overrides(
+    &self,
+    compilation: &Compilation,
+    chunk_ukey: &ChunkUkey,
+    chunk_link: &ChunkLinkContext,
+    concatenated_modules_map: &rspack_collections::IdentifierIndexMap<ModuleInfo>,
+    runtime_template: &RuntimeCodeTemplate,
+  ) -> FxHashMap<Atom, Atom> {
+    let mut overrides = FxHashMap::default();
+    if runtime_template.render_mode() != RuntimeGlobalsRenderMode::RspackExport
+      || !chunk_link.decl_modules.is_empty()
+      || chunk_link.hoisted_modules.is_empty()
+      || !chunk_link.raw_import_stmts.is_empty()
+      || !chunk_link.re_exports().is_empty()
+      || !chunk_link.raw_star_exports.is_empty()
+      || !chunk_link.required.is_empty()
+      || !chunk_link.needed_namespace_objects.is_empty()
+      || !chunk_link.namespace_object_sources.is_empty()
+      || !chunk_link.decl_before_exports.is_empty()
+      || !chunk_link.module_external_namespace_imports.is_empty()
+      || !chunk_link.init_fragments.is_empty()
+    {
+      return overrides;
+    }
+
+    if chunk_link
+      .imports
+      .iter()
+      .any(|(module, _)| !chunk_link.hoisted_modules.contains(module))
+      || chunk_link.refs.values().any(|reference| {
+        matches!(
+          reference,
+          Ref::Symbol(symbol_ref)
+            if !chunk_link.hoisted_modules.contains(&symbol_ref.module)
+        )
+      })
+    {
+      return overrides;
+    }
+    let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
+    let chunk_modules = chunk_graph.get_chunk_modules_identifier(chunk_ukey);
+    if chunk_modules.len() != chunk_link.hoisted_modules.len()
+      || chunk_modules
+        .iter()
+        .any(|module| !chunk_link.hoisted_modules.contains(module))
+      || chunk_graph.has_chunk_runtime_modules(chunk_ukey)
+    {
+      return overrides;
+    }
+
+    let mut runtime_requirements =
+      *ChunkGraph::get_chunk_runtime_requirements(compilation, chunk_ukey);
+    runtime_requirements.remove(RuntimeGlobals::STARTUP_NO_DEFAULT);
+    if !runtime_requirements.is_empty() {
+      return overrides;
+    }
+
+    let chunk = get_chunk(compilation, *chunk_ukey);
+    if chunk.has_runtime(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey) {
+      let mut tree_runtime_requirements =
+        *ChunkGraph::get_tree_runtime_requirements(compilation, chunk_ukey);
+      tree_runtime_requirements.remove(RuntimeGlobals::STARTUP_NO_DEFAULT);
+      if !tree_runtime_requirements.is_empty() {
+        return overrides;
+      }
+    }
+
+    let mut unavailable_names = RESERVED_NAMES_ATOM_SET.clone();
+    for module_identifier in &chunk_link.hoisted_modules {
+      let Some(ModuleInfo::Concatenated(info)) = concatenated_modules_map.get(module_identifier)
+      else {
+        return overrides;
+      };
+      if !info.runtime_requirements.is_empty()
+        || !info.runtime_requirements_write.is_empty()
+        || !info.chunk_init_fragments.is_empty()
+        || info.import_map.as_ref().is_some_and(|map| !map.is_empty())
+        || info.namespace_export_symbol.is_some()
+        || info.interop_namespace_object_used
+        || info.interop_namespace_object2_used
+        || info.interop_default_access_used
+      {
+        return overrides;
+      }
+
+      let code_generation_result = compilation
+        .code_generation_results
+        .get_one(module_identifier);
+      if code_generation_result
+        .data
+        .get::<CodeGenerationRuntimeRequirementsWrite>()
+        .is_some_and(|write| !write.runtime_requirements.is_empty())
+      {
+        return overrides;
+      }
+      let Some(scope) = code_generation_result.concatenation_scope.as_ref() else {
+        return overrides;
+      };
+      if !scope.dyn_refs.is_empty() || !scope.re_exports.is_empty() {
+        return overrides;
+      }
+
+      unavailable_names.extend(
+        info
+          .global_scope_ident
+          .iter()
+          .map(|ident| ident.id.sym.clone()),
+      );
+      unavailable_names.extend(info.all_used_names.iter().cloned());
+      for internal_name in info.internal_names.values() {
+        if !unavailable_names.insert(internal_name.clone()) {
+          return overrides;
+        }
+      }
+    }
+
+    let mut runtime_names = Self::collect_rspack_export_runtime_used_names(runtime_template);
+    for runtime_module_variable in all_runtime_module_variables() {
+      runtime_names.remove(&Atom::from(runtime_module_variable));
+    }
+    // `context` is handled by compatibility deconfliction, not this optimization.
+    runtime_names.remove(&Atom::from(
+      runtime_template.render_runtime_variable(&RuntimeVariable::Context),
+    ));
+    let mut candidates = Vec::new();
+    let mut preferred_name_counts = FxHashMap::default();
+    for module_identifier in &chunk_link.hoisted_modules {
+      let info = concatenated_modules_map[module_identifier].as_concatenated();
+      let scope = compilation
+        .code_generation_results
+        .get_one(module_identifier)
+        .concatenation_scope
+        .as_ref()
+        .expect("checked concatenation scope");
+      let preferred_names = scope.data.get::<ConstDependencyPreferredNames>();
+      for (original_name, internal_name) in &info.internal_names {
+        let preferred_name = preferred_names
+          .and_then(|names| names.0.get(original_name))
+          .unwrap_or(original_name);
+        if internal_name == preferred_name
+          || !runtime_names.contains(preferred_name)
+          || unavailable_names.contains(preferred_name)
+        {
+          continue;
+        }
+        candidates.push((internal_name.clone(), preferred_name.clone()));
+        *preferred_name_counts
+          .entry(preferred_name.clone())
+          .or_insert(0) += 1;
+      }
+    }
+
+    for (internal_name, preferred_name) in candidates {
+      if preferred_name_counts[&preferred_name] == 1 {
+        overrides.insert(internal_name, preferred_name);
+      }
+    }
+
+    overrides
+  }
+
   fn get_entrypoint(chunk_ukey: ChunkUkey, compilation: &Compilation) -> Option<&ChunkGroup> {
     let chunk = compilation
       .build_chunk_graph_artifact
@@ -127,6 +291,13 @@ impl EsmLibraryPlugin {
     let concatenated_modules_map = self.concatenated_modules_map.read().await;
 
     let chunk = get_chunk(compilation, *chunk_ukey);
+    let runtime_free_name_overrides = self.runtime_free_name_overrides(
+      compilation,
+      chunk_ukey,
+      chunk_link,
+      &concatenated_modules_map,
+      runtime_template,
+    );
     let runtime_chunk_ukey = Self::get_runtime_chunk(*chunk_ukey, compilation);
     let entry_chunk_ukey = Self::get_entry_chunk(*chunk_ukey, compilation);
     let is_separate_runtime_chunk =
@@ -328,7 +499,7 @@ var {} = {{}};
       if info.static_url_replacement {
         replace_static_url = true;
       }
-      let source = Self::render_module(info, chunk_link)?;
+      let source = Self::render_module(info, chunk_link, &runtime_free_name_overrides)?;
 
       if !matches!(compilation.options.output.pathinfo, PathInfo::Bool(false)) {
         render_source.add(RawStringSource::from(format!(
@@ -549,12 +720,20 @@ var {} = {{}};
     )?);
 
     let mut exports = chunk_link.exports().iter().collect::<Vec<_>>();
-    exports.sort_by(|a, b| a.0.cmp(b.0));
+    exports.sort_by(|a, b| {
+      runtime_free_name_overrides
+        .get(a.0)
+        .unwrap_or(a.0)
+        .cmp(runtime_free_name_overrides.get(b.0).unwrap_or(b.0))
+    });
     for decl_before_export in chunk_link.decl_before_exports.iter() {
       final_source.add(RawStringSource::from(decl_before_export.clone()));
     }
 
     for (raw_symbol, exports) in exports {
+      let raw_symbol = runtime_free_name_overrides
+        .get(raw_symbol)
+        .unwrap_or(raw_symbol);
       let mut exports = exports.iter().collect::<Vec<_>>();
       exports.sort_unstable();
       for exported_name in exports {
@@ -724,6 +903,7 @@ var {} = {{}};
   pub fn render_module(
     info: &ConcatenatedModuleInfo,
     chunk_link: &ChunkLinkContext,
+    runtime_free_name_overrides: &FxHashMap<Atom, Atom>,
   ) -> Result<ReplaceSource> {
     let Some(mut source) = info.source.clone() else {
       return Err(rspack_error::Error::error(format!(
@@ -737,7 +917,13 @@ var {} = {{}};
         && let Some(binding_ref) = chunk_link.refs.get(atom.as_str())
       {
         let final_name = match binding_ref {
-          Ref::Symbol(symbol_ref) => Cow::Owned(symbol_ref.render()),
+          Ref::Symbol(symbol_ref) => {
+            let mut symbol_ref = symbol_ref.clone();
+            if let Some(preferred_name) = runtime_free_name_overrides.get(&symbol_ref.symbol) {
+              symbol_ref.symbol = preferred_name.clone();
+            }
+            Cow::Owned(symbol_ref.render())
+          }
           Ref::Inline(inline) => Cow::Borrowed(inline),
         };
 
@@ -763,6 +949,9 @@ var {} = {{}};
       }
 
       if let Some(internal_name) = info.get_internal_name(&ident.id.sym) {
+        let internal_name = runtime_free_name_overrides
+          .get(internal_name)
+          .unwrap_or(internal_name);
         let name = if ident.shorthand {
           format!("{}: {}", &ident.id.sym, &internal_name)
         } else {

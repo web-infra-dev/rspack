@@ -1,4 +1,7 @@
-use rspack_core::{BoxDependencyTemplate, ConstDependency, ContextDependency, DependencyRange};
+use rspack_core::{
+  BoxDependencyTemplate, ConstDependency, ContextDependency, DependencyRange,
+  RuntimeGlobalsRenderMode,
+};
 use rspack_util::{SpanExt, itoa};
 use swc_atoms::Atom;
 use swc_experimental_ecma_ast::{CallExpr, GetSpan, Ident, Program, VarDeclarator};
@@ -17,6 +20,7 @@ pub struct NestedRequireData {
   update: bool,
   loc: DependencyRange,
   in_short_hand: bool,
+  is_top_level: bool,
 }
 
 pub struct CompatibilityPlugin;
@@ -65,6 +69,7 @@ impl CompatibilityPlugin {
     start: u32,
     end: u32,
   ) {
+    let is_top_level = parser.is_top_level_scope();
     parser.tag_variable(
       name,
       NESTED_IDENTIFIER_TAG,
@@ -73,8 +78,24 @@ impl CompatibilityPlugin {
         update: false,
         loc: DependencyRange::new(start, end),
         in_short_hand,
+        is_top_level,
       }),
     );
+  }
+
+  fn create_binding_dependency(
+    &self,
+    range: DependencyRange,
+    content: String,
+    generated_name: &str,
+    preferred_name: Option<&str>,
+  ) -> BoxDependencyTemplate {
+    let mut dependency = ConstDependency::new(range, content.into());
+    if let Some(preferred_name) = preferred_name {
+      dependency = dependency
+        .with_concatenation_scope_preferred_name(generated_name.into(), preferred_name.into());
+    }
+    Box::new(dependency)
   }
 }
 
@@ -213,12 +234,20 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CompatibilityPlugin {
       && (ident.id.sym.as_str() == parser.parser_runtime_requirements.exports
         || ident.id.sym.as_str() == self.nested_require_name(parser))
     {
+      let prefer_runtime_scope_name = parser.parser_runtime_requirements.render_mode
+        == RuntimeGlobalsRenderMode::RspackExport
+        && ident.id.sym.as_str() == self.nested_require_name(parser);
       let data = parser.get_tag_data_mut::<NestedRequireData>(
         &Atom::from(ident.id.sym.as_str()),
         NESTED_IDENTIFIER_TAG,
       )?;
       if !data.update {
-        let dep = Box::new(ConstDependency::new(data.loc, data.name.clone().into()));
+        let dep = self.create_binding_dependency(
+          data.loc,
+          data.name.clone(),
+          &data.name,
+          (prefer_runtime_scope_name && data.is_top_level).then_some(ident.id.sym.as_str()),
+        );
         data.update = true;
         parser.add_presentational_dependency(dep);
       }
@@ -235,26 +264,36 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CompatibilityPlugin {
     if for_name != NESTED_IDENTIFIER_TAG {
       return None;
     }
-    let tag_info = parser
-      .definitions_db
-      .expect_get_mut_tag_info(parser.current_tag_info?)
-      .data
-      .as_deref_mut()?;
-
-    let nested_require_data = NestedRequireData::downcast_mut(tag_info);
+    let prefer_runtime_scope_name = parser.parser_runtime_requirements.render_mode
+      == RuntimeGlobalsRenderMode::RspackExport
+      && ident.sym.as_str() == self.nested_require_name(parser);
+    let (name, binding) = {
+      let tag_info = parser
+        .definitions_db
+        .expect_get_mut_tag_info(parser.current_tag_info?)
+        .data
+        .as_deref_mut()?;
+      let data = NestedRequireData::downcast_mut(tag_info);
+      let binding = if data.update {
+        None
+      } else {
+        data.update = true;
+        Some((data.loc, data.in_short_hand, data.is_top_level))
+      };
+      (data.name.clone(), binding)
+    };
     let mut deps: Vec<BoxDependencyTemplate> = Vec::with_capacity(2);
-    let name = nested_require_data.name.clone();
-    if !nested_require_data.update {
-      let shorthand = nested_require_data.in_short_hand;
-      deps.push(Box::new(ConstDependency::new(
-        nested_require_data.loc,
+    if let Some((loc, shorthand, is_top_level)) = binding {
+      deps.push(self.create_binding_dependency(
+        loc,
         if shorthand {
-          format!("{}: {}", ident.sym, name).into()
+          format!("{}: {}", ident.sym, name)
         } else {
-          name.clone().into()
+          name.clone()
         },
-      )));
-      nested_require_data.update = true;
+        &name,
+        (prefer_runtime_scope_name && is_top_level).then_some(ident.sym.as_str()),
+      ));
     }
 
     deps.push(Box::new(ConstDependency::new(

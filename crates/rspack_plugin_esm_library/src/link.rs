@@ -11,13 +11,13 @@ use rspack_core::{
   ChunkUkey, CodeGenerationPublicPathAutoReplace, Compilation, ConcatenatedModuleIdent,
   ConditionalInitFragment, DependencyType, ExportInfo, ExportMode, ExportProvided,
   ExportsInfoArtifact, ExportsType, FindTargetResult, ImportSpec, InitFragmentKey, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleIdentifier, ModuleInfo, NAMESPACE_OBJECT_EXPORT, RuntimeGlobals,
-  RuntimeGlobalsRenderMode, RuntimeTemplateRenderMode, RuntimeVariable, SideEffectsStateArtifact,
-  SourceType, URLStaticMode, UsageState, UsedName, UsedNameItem, all_runtime_module_variables,
-  collect_ident, escape_name_atom_ref, find_new_name, find_target, get_cached_readable_identifier,
-  get_module_directives, get_module_hashbang, property_access, property_name,
-  reserved_names::RESERVED_NAMES_ATOM_SET, rspack_sources::ReplaceSource,
-  split_readable_identifier, to_normal_comment,
+  ModuleGraphCacheArtifact, ModuleIdentifier, ModuleInfo, NAMESPACE_OBJECT_EXPORT,
+  RuntimeCodeTemplate, RuntimeGlobals, RuntimeGlobalsRenderMode, RuntimeTemplateRenderMode,
+  RuntimeVariable, SideEffectsStateArtifact, SourceType, URLStaticMode, UsageState, UsedName,
+  UsedNameItem, all_runtime_module_variables, collect_ident, escape_name_atom_ref, find_new_name,
+  find_target, get_cached_readable_identifier, get_module_directives, get_module_hashbang,
+  property_access, property_name, reserved_names::RESERVED_NAMES_ATOM_SET,
+  rspack_sources::ReplaceSource, split_readable_identifier, to_normal_comment,
 };
 use rspack_error::{Diagnostic, Error, Result};
 use rspack_plugin_javascript::{
@@ -597,7 +597,12 @@ impl EsmLibraryPlugin {
       escaped_identifiers.insert(identifier, parts);
     }
 
-    let runtime_module_used_names = Self::collect_rspack_export_runtime_used_names(compilation);
+    let runtime_template = compilation
+      .runtime_template
+      .create_runtime_module_code_template();
+    let runtime_module_used_names =
+      Self::collect_rspack_export_runtime_used_names(&runtime_template);
+    drop(runtime_template);
     let deconflict_context = DeconflictSymbolsContext {
       runtime_module_used_names: &runtime_module_used_names,
       escaped_names: &escaped_names,
@@ -956,11 +961,10 @@ var {} = {{}};
     }
   }
 
-  fn collect_rspack_export_runtime_used_names(compilation: &Compilation) -> FxHashSet<Atom> {
+  pub(crate) fn collect_rspack_export_runtime_used_names(
+    runtime_template: &RuntimeCodeTemplate,
+  ) -> FxHashSet<Atom> {
     let mut used_names = FxHashSet::default();
-    let runtime_template = compilation
-      .runtime_template
-      .create_runtime_module_code_template();
     if runtime_template.render_mode() != RuntimeGlobalsRenderMode::RspackExport {
       return used_names;
     }
