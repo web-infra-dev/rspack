@@ -290,7 +290,6 @@ export const getNormalizedRspackOptions = (
             type: 'persistent',
             version: cache.version,
             maxAge: cache.maxAge,
-            maxVersions: cache.maxVersions,
             portable: cache.portable,
             readonly: cache.readonly,
             buildDependencies: nestedArray(cache.buildDependencies, (deps) =>
@@ -617,7 +616,6 @@ export type CacheNormalized =
       buildDependencies: string[];
       version?: string;
       maxAge?: number;
-      maxVersions?: number;
       snapshot: {
         immutablePaths?: (string | RegExp)[];
         unmanagedPaths?: (string | RegExp)[];

@@ -129,7 +129,6 @@ function getRawCache(cache: CacheNormalized): RawOptions['cache'] {
   return {
     ...cache,
     maxAge: toRawStorageLimit('cache.maxAge', cache.maxAge!),
-    maxVersions: toRawStorageLimit('cache.maxVersions', cache.maxVersions!),
     storage: {
       ...cache.storage,
       directory: cache.storage.directory!,

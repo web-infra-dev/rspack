@@ -272,24 +272,20 @@ Rspack also adds [`module.rules[].phase`](/config/module-rules#rulesphase), whic
 
 ### Automatic persistent cache cleanup \{#cache-cleanup}
 
-Rspack's persistent cache is isolated by version. When `cache.version`, cache-related configuration, or the Rspack version changes, Rspack creates a new cache version to avoid reusing an incompatible cache. During long-term development, frequent branch switching, or CI workflows that reuse the working directory, old cache versions may continue to accumulate and take up disk space.
+Rspack stores one persistent cache subdirectory for each compiler path. When `cache.version`, cache-related configuration, or the Rspack version changes, Rspack invalidates and overwrites that compiler's existing cache instead of retaining multiple versions.
 
-Rspack 2.1 adds an automatic cleanup mechanism for persistent cache. It uses `cache.maxAge` and `cache.maxVersions` to control old versions retained in the cache directory:
-
-- [`cache.maxAge`](/config/cache#maxage): the maximum time a cache version can remain unaccessed. The default value is `7 * 24 * 60 * 60` (7 days).
-- [`cache.maxVersions`](/config/cache#maxversions): the maximum number of cache versions retained in the current cache directory. The default value is `3`.
+Rspack 2.1 adds an automatic cleanup mechanism for persistent cache. [`cache.maxAge`](/config/cache#maxage) controls how long a compiler cache can remain unaccessed. The default value is `7 * 24 * 60 * 60` (7 days).
 
 ```js title="rspack.config.mjs"
 export default {
   cache: {
     type: 'persistent',
     maxAge: 7 * 24 * 60 * 60,
-    maxVersions: 3,
   },
 };
 ```
 
-When the number of cache versions exceeds the retention limit, or when versions have not been accessed for a long time, Rspack prioritizes cleaning up older and less recently accessed cache versions. This keeps recent reusable caches while preventing the persistent cache directory from growing without bound. For scenarios where you need to manage caches manually, set `maxAge` or `maxVersions` to `Infinity` to disable age-based or version-count-based cleanup respectively.
+When a compiler cache has not been accessed for longer than this limit, Rspack removes its subdirectory. Set `maxAge` to `Infinity` if cache cleanup is managed externally.
 
 ## Output optimization
 

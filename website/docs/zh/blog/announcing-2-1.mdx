@@ -272,24 +272,20 @@ const instance = await WebAssembly.instantiate(wasmModule);
 
 ### 自动清理持久化缓存 \{#cache-cleanup}
 
-Rspack 的持久化缓存按版本隔离。当 `cache.version`、缓存相关配置或 Rspack 版本变化时，Rspack 会创建新的缓存版本，避免复用不兼容的缓存。但在长期开发、频繁切换分支或 CI 复用工作目录时，旧缓存版本可能持续累积并占用磁盘空间。
+Rspack 会为每个 compiler path 保存一个持久化缓存子目录。当 `cache.version`、缓存相关配置或 Rspack 版本变化时，Rspack 会使该 compiler 的现有缓存失效并覆盖其内容，而不是保留多个版本。
 
-Rspack 2.1 为持久化缓存新增了自动清理机制，通过 `cache.maxAge` 和 `cache.maxVersions` 控制缓存目录中保留的旧版本：
-
-- [`cache.maxAge`](/config/cache#maxage)：缓存版本允许处于未访问状态的最长时间，默认值为 `7 * 24 * 60 * 60`（7 天）；
-- [`cache.maxVersions`](/config/cache#maxversions)：当前缓存目录最多保留的缓存版本数量，默认值为 `3`。
+Rspack 2.1 为持久化缓存新增了自动清理机制。[`cache.maxAge`](/config/cache#maxage) 用于控制 compiler 缓存允许处于未访问状态的最长时间，默认值为 `7 * 24 * 60 * 60`（7 天）。
 
 ```js title="rspack.config.mjs"
 export default {
   cache: {
     type: 'persistent',
     maxAge: 7 * 24 * 60 * 60,
-    maxVersions: 3,
   },
 };
 ```
 
-当缓存版本超过保留数量，或长时间没有被访问时，Rspack 会优先清理较旧、较少访问的缓存版本。这样可以在保留近期可复用缓存的同时，避免持久化缓存目录无限增长。对于需要完全手动管理缓存的场景，也可以将 `maxAge` 或 `maxVersions` 设置为 `Infinity`，分别关闭基于时间或版本数量的清理。
+当一份 compiler 缓存超过该时间未被访问时，Rspack 会删除对应的子目录。如果缓存由外部机制管理，可以将 `maxAge` 设置为 `Infinity`。
 
 ## 产物优化
 

@@ -24,7 +24,7 @@ use self::{
   context::CacheContext,
   occasion::{MakeOccasion, MetaOccasion, MinimizeOccasion, SourceMapDevToolPluginOccasion},
   snapshot::{Snapshot, SnapshotOptions},
-  storage::{StorageOptions, Version, create_storage},
+  storage::{CacheDirectory, StorageOptions, create_storage},
 };
 use super::Cache;
 use crate::{Compilation, CompilationLogger, CompilationLogging, CompilerOptions, Logger};
@@ -45,9 +45,6 @@ pub struct PersistentCacheOptions {
   /// Filesystem cache max age in seconds.
   #[cacheable(with=Skip)]
   pub max_age: u64,
-  /// Filesystem version count limit for the current compiler cache scope.
-  #[cacheable(with=Skip)]
-  pub max_versions: u32,
 }
 
 /// Persistent cache implementation
@@ -85,32 +82,28 @@ impl PersistentCache {
     let option_bytes = codec
       .encode(option)
       .expect("should persistent cache options can be serialized");
-    // The scope identifies the compiler that owns a group of cache versions.
-    // Keep it independent of cache options: changing an option should create a
-    // new version in the same scope so maxVersions can retire the old version.
-    // compiler_path is empty for the root compiler and distinguishes child
-    // compilers by their name and index.
-    let version_scope = {
+    // Each compiler path owns exactly one storage directory.
+    let cache_directory = {
       let mut hasher = DefaultHasher::new();
       compiler_path.hash(&mut hasher);
-      hex::encode(hasher.finish().to_ne_bytes())
+      CacheDirectory::new(hex::encode(hasher.finish().to_ne_bytes()))
     };
-    // The version hash identifies one cache-compatible configuration within
-    // the compiler scope.
-    let version = {
+    // Cache options, including cache.version, form a content compatibility
+    // marker. A mismatch invalidates and overwrites the compiler's cache
+    // instead of creating another storage directory.
+    let content_version = {
       let mut hasher = DefaultHasher::new();
       compiler_path.hash(&mut hasher);
       option_bytes.hash(&mut hasher);
       rspack_pkg_version!().hash(&mut hasher);
       compiler_options.name.hash(&mut hasher);
       compiler_options.mode.hash(&mut hasher);
-      Version::new(version_scope, hex::encode(hasher.finish().to_ne_bytes()))
+      hex::encode(hasher.finish().to_ne_bytes())
     };
     let storage = create_storage(
       option.storage.clone(),
-      version,
+      cache_directory,
       option.max_age,
-      option.max_versions,
       intermediate_filesystem,
     );
     let snapshot = Arc::new(Snapshot::new(
@@ -133,7 +126,7 @@ impl PersistentCache {
       ),
       snapshot,
       make_occasion: MakeOccasion::new(codec.clone()),
-      meta_occasion: MetaOccasion::new(codec.clone()),
+      meta_occasion: MetaOccasion::new(codec.clone(), content_version),
       minimize_occasion: MinimizeOccasion::new(codec.clone()),
       source_map_dev_tool_plugin_occasion: SourceMapDevToolPluginOccasion::new(codec),
     }
@@ -146,12 +139,11 @@ impl PersistentCache {
     self.initialized = true;
     self.ctx.cleanup_stale();
 
-    // build_deps is the first validation step. If it fails or the build
-    // dependencies have changed, only the BUILD scope is reset here; each
-    // subsequent occasion resets itself when it is skipped or fails.
+    // Build dependencies are validated before compilation artifacts are read.
     self.ctx.load_build_deps(&mut self.build_deps).await;
 
-    // meta: load or reset. make will handle itself in before_build_module_graph.
+    // Validate the content compatibility marker before snapshot or compilation
+    // artifacts are reused. Make handles itself in before_build_module_graph.
     self.ctx.load_occasion(&self.meta_occasion).await;
   }
 }

@@ -1,52 +1,71 @@
+mod cache_directory;
 mod db;
 mod meta;
 mod options;
 mod scope_fs;
 mod task_queue;
-mod version;
 
 use std::sync::{Arc, Mutex};
 
 use rustc_hash::FxHashMap as HashMap;
 
+pub use self::{cache_directory::CacheDirectory, options::FileSystemOptions};
 use self::{db::DB, meta::Meta, scope_fs::ScopeFileSystem, task_queue::TaskQueue};
-pub use self::{options::FileSystemOptions, version::Version};
-use crate::{Error, Result, Storage};
+use crate::{Result, Storage};
 
 /// Type alias for in-memory update changes: key -> optional_value
 type BucketChangesMap = HashMap<Vec<u8>, Option<Vec<u8>>>;
 
 const STALE_DIR_NAME: &str = "_stale";
 
-fn spawn_cleanup_stale_versions(stale_fs: ScopeFileSystem) {
-  tokio::spawn(async move {
-    stale_fs.ensure_exist().await?;
-
-    let stale_versions = stale_fs
-      .list_child()
-      .await
-      .unwrap_or_default()
-      .into_iter()
-      .filter(|child| Version::parse(child).is_some())
-      .map(|child| stale_fs.child_fs(child));
-
-    for stale_version in stale_versions {
-      let _ = stale_version.remove().await;
-    }
-
-    Ok::<_, Error>(())
-  });
+fn is_managed_cache_directory(value: &str) -> bool {
+  CacheDirectory::parse(value).is_some() || CacheDirectory::is_legacy_version(value)
 }
 
-async fn move_stale_versions(
+async fn cleanup_stale_directories(fs: ScopeFileSystem, stale_fs: ScopeFileSystem) -> Result<()> {
+  stale_fs.ensure_exist().await?;
+
+  // The previous multi-version layout used
+  // `rspack_v_<compiler-hash>_<version-hash>`. It is incompatible with the
+  // compiler-path-only layout and can be removed during migration.
+  let legacy_directories = fs
+    .list_child()
+    .await
+    .unwrap_or_default()
+    .into_iter()
+    .filter(|child| CacheDirectory::is_legacy_version(child));
+  for legacy_directory in legacy_directories {
+    let _ = ScopeFileSystem::move_to(&fs, &stale_fs, &legacy_directory).await;
+  }
+
+  let stale_directories = stale_fs
+    .list_child()
+    .await
+    .unwrap_or_default()
+    .into_iter()
+    .filter(|child| is_managed_cache_directory(child))
+    .map(|child| stale_fs.child_fs(child));
+
+  for stale_directory in stale_directories {
+    let _ = stale_directory.remove().await;
+  }
+
+  Ok(())
+}
+
+fn spawn_cleanup_stale_directories(fs: ScopeFileSystem, stale_fs: ScopeFileSystem) {
+  tokio::spawn(async move { cleanup_stale_directories(fs, stale_fs).await });
+}
+
+async fn move_stale_directories(
   fs: &ScopeFileSystem,
   stale_fs: &ScopeFileSystem,
-  stale_versions: Vec<Version>,
+  stale_directories: Vec<CacheDirectory>,
 ) -> Result<()> {
   stale_fs.ensure_exist().await?;
 
-  for version in stale_versions {
-    ScopeFileSystem::move_to(fs, stale_fs, version.as_str()).await?;
+  for directory in stale_directories {
+    ScopeFileSystem::move_to(fs, stale_fs, directory.as_str()).await?;
   }
   Ok(())
 }
@@ -54,9 +73,8 @@ async fn move_stale_versions(
 async fn refresh_metadata(
   fs: ScopeFileSystem,
   stale_fs: ScopeFileSystem,
-  version: Version,
+  cache_directory: CacheDirectory,
   expire: u64,
-  max_versions: u32,
   next_meta_refresh_time: Arc<Mutex<u64>>,
 ) {
   let now = Meta::current_timestamp();
@@ -70,9 +88,7 @@ async fn refresh_metadata(
     Err(error) if error.is_not_found() => Meta::default(),
     Err(_) => return,
   };
-  let Ok((stale_versions, next_refresh_time)) =
-    meta.refresh(&fs, &version, expire, max_versions).await
-  else {
+  let Ok((stale_directories, next_refresh_time)) = meta.refresh(&cache_directory, expire) else {
     return;
   };
   if meta.save(&fs).await.is_err() {
@@ -81,13 +97,13 @@ async fn refresh_metadata(
 
   // Persist metadata before renaming directories so concurrent refreshes can
   // recover even if stale cleanup is interrupted.
-  if move_stale_versions(&fs, &stale_fs, stale_versions)
+  if move_stale_directories(&fs, &stale_fs, stale_directories)
     .await
     .is_err()
   {
     return;
   }
-  spawn_cleanup_stale_versions(stale_fs);
+  spawn_cleanup_stale_directories(fs, stale_fs);
   *next_meta_refresh_time.lock().expect("should get lock") = next_refresh_time;
 }
 
@@ -115,7 +131,7 @@ impl FileSystemStorage {
     let fs = ScopeFileSystem::new(options.directory.clone(), options.fs.clone());
 
     Self {
-      db: DB::new(fs.child_fs(options.version.as_str())),
+      db: DB::new(fs.child_fs(options.cache_directory.as_str())),
       task_queue: TaskQueue::default(),
       updates: Default::default(),
       next_meta_refresh_time: Default::default(),
@@ -132,7 +148,7 @@ impl FileSystemStorage {
 #[async_trait::async_trait]
 impl Storage for FileSystemStorage {
   fn cleanup_stale(&self) {
-    spawn_cleanup_stale_versions(self.stale_fs());
+    spawn_cleanup_stale_directories(self.fs.clone(), self.stale_fs());
   }
 
   async fn load(&self, scope: &'static str) -> Result<Vec<(Vec<u8>, Vec<u8>)>> {
@@ -155,7 +171,7 @@ impl Storage for FileSystemStorage {
     let updates = std::mem::take(&mut self.updates);
 
     // Queue the write and metadata refresh together so cleanup observes the
-    // latest version without blocking `save()`.
+    // latest compiler cache without blocking `save()`.
     let db = self.db.clone();
     let changes = updates
       .into_iter()
@@ -164,9 +180,8 @@ impl Storage for FileSystemStorage {
     let max_pack_size = self.options.max_pack_size;
     let fs = self.fs.clone();
     let stale_fs = self.stale_fs();
-    let version = self.options.version.clone();
+    let cache_directory = self.options.cache_directory.clone();
     let expire = self.options.expire;
-    let max_versions = self.options.max_versions;
     let next_meta_refresh_time = self.next_meta_refresh_time.clone();
 
     self.task_queue.add_task(async move {
@@ -174,9 +189,8 @@ impl Storage for FileSystemStorage {
         refresh_metadata(
           fs,
           stale_fs,
-          version,
+          cache_directory,
           expire,
-          max_versions,
           next_meta_refresh_time,
         )
         .await;
@@ -201,5 +215,39 @@ impl Storage for FileSystemStorage {
   async fn scopes(&self) -> Result<Vec<String>> {
     let names = self.db.bucket_names().await?;
     Ok(names)
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::{Result, ScopeFileSystem, cleanup_stale_directories};
+
+  #[tokio::test]
+  async fn removes_legacy_version_directories() -> Result<()> {
+    let fs = ScopeFileSystem::new_memory_fs("/cache".into());
+    let stale_fs = fs.child_fs("_stale");
+    let legacy = "rspack_v_aaaaaaaaaaaaaaaa_0000000000000001";
+    let active = "rspack_v_0000000000000001";
+    let ordinary = "ordinary-directory";
+
+    fs.ensure_exist().await?;
+    fs.child_fs(legacy).ensure_exist().await?;
+    fs.child_fs(active).ensure_exist().await?;
+    fs.child_fs(ordinary).ensure_exist().await?;
+    stale_fs.child_fs(active).ensure_exist().await?;
+    stale_fs.child_fs(ordinary).ensure_exist().await?;
+
+    cleanup_stale_directories(fs.clone(), stale_fs.clone()).await?;
+
+    let root_children = fs.list_child().await?;
+    assert!(!root_children.iter().any(|child| child == legacy));
+    assert!(root_children.iter().any(|child| child == active));
+    assert!(root_children.iter().any(|child| child == ordinary));
+
+    let stale_children = stale_fs.list_child().await?;
+    assert!(!stale_children.iter().any(|child| child == active));
+    assert!(stale_children.iter().any(|child| child == ordinary));
+
+    Ok(())
   }
 }
