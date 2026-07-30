@@ -13,10 +13,10 @@ use swc_core::common::util::take::Take;
 use tracing::instrument;
 
 use crate::{
-  BoxDependency, CompilationId, ContextElementDependency, ContextModule, ContextModuleOptions,
-  ContextModulePattern, DependencyCategory, DependencyId, DependencyType, GlobMatchOptions,
-  ModuleExt, ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, OverrideStrict,
-  ResolveArgs, ResolveContextModuleDependencies, ResolveInnerOptions,
+  BoxDependency, CompilationId, ContextElementDependency, ContextMode, ContextModule,
+  ContextModuleOptions, ContextModulePattern, DependencyCategory, DependencyId, DependencyType,
+  GlobMatchOptions, ModuleExt, ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult,
+  OverrideStrict, ResolveArgs, ResolveContextModuleDependencies, ResolveInnerOptions,
   ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory, SharedPluginDriver,
   escape_glob_pattern, extract_glob_base_dir, glob_match_normalized_with_explicit_dot,
   normalize_path_separators, normalize_path_separators_for_path, resolve, unescape_glob_path,
@@ -560,12 +560,15 @@ fn push_context_element_dependency(
 
   dependencies.push(ContextElementDependency {
     id: DependencyId::new(),
+    weak: matches!(
+      options.context_options.mode,
+      ContextMode::AsyncWeak | ContextMode::Weak
+    ),
     request,
     user_request: exposed_user_request.to_string(),
     category: options.context_options.category,
     context: options.resource.clone().into(),
     layer: options.layer.clone(),
-    options: options.context_options.clone(),
     resource_identifier,
     attributes: options.context_options.attributes.clone(),
     referenced_specifiers: options.context_options.referenced_specifiers.clone(),
