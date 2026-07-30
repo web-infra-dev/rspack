@@ -127,11 +127,9 @@ Don't share the same cache (same `cache.version` and same `cache.storage.directo
 
 :::tip Persistent cache invalidation
 
-In addition to [buildDependencies](#builddependencies) validation and [version](#version), the persistent cache compatibility marker also includes the Rspack version, [`config.name`](/config/other-options#name), [`config.mode`](/config/mode#mode), and persistent cache options that affect cached content.
-
 Rspack stores one cache directory for each `compilerPath`, using its hash as
-the subdirectory name. Changing a compatibility marker invalidates and
-overwrites that compiler's existing cache; multiple versions do not coexist.
+the subdirectory name. Changing [version](#version) invalidates and overwrites
+that compiler's existing cache; multiple versions do not coexist.
 
 :::
 

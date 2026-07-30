@@ -126,9 +126,7 @@ export default {
 
 :::tip 持久化缓存失效
 
-除了 [buildDependencies](#builddependencies) 校验和 [version](#version) 外，持久化缓存兼容性标识还包含 Rspack 版本、[`config.name`](/config/other-options#name)、[`config.mode`](/config/mode#mode)，以及会影响缓存内容的持久化缓存配置。
-
-Rspack 会基于 `compilerPath` 的哈希拆分缓存子目录，每个 `compilerPath` 只保留一份缓存。兼容性标识变化时，Rspack 会使该 compiler 的现有缓存失效并覆盖其内容，不会保留多个版本。
+Rspack 会基于 `compilerPath` 的哈希拆分缓存子目录，每个 `compilerPath` 只保留一份缓存。[version](#version) 变化时，Rspack 会使该 compiler 的现有缓存失效并覆盖其内容，不会保留多个版本。
 
 :::
 

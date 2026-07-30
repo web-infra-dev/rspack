@@ -272,7 +272,7 @@ Rspack also adds [`module.rules[].phase`](/config/module-rules#rulesphase), whic
 
 ### Automatic persistent cache cleanup \{#cache-cleanup}
 
-Rspack stores one persistent cache subdirectory for each compiler path. When `cache.version`, cache-related configuration, or the Rspack version changes, Rspack invalidates and overwrites that compiler's existing cache instead of retaining multiple versions.
+Rspack stores one persistent cache subdirectory for each compiler path. When `cache.version` changes, Rspack invalidates and overwrites that compiler's existing cache instead of retaining multiple versions.
 
 Rspack 2.1 adds an automatic cleanup mechanism for persistent cache. [`cache.maxAge`](/config/cache#maxage) controls how long a compiler cache can remain unaccessed. The default value is `7 * 24 * 60 * 60` (7 days).
 

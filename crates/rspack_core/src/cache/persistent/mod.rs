@@ -10,13 +10,7 @@ use std::{
   sync::Arc,
 };
 
-use rspack_cacheable::{
-  cacheable,
-  utils::PortablePath,
-  with::{As, AsVec, Skip},
-};
 use rspack_fs::{IntermediateFileSystem, ReadableFileSystem};
-use rspack_workspace::rspack_pkg_version;
 
 use self::{
   build_dependencies::{BuildDeps, BuildDepsOptions},
@@ -31,19 +25,15 @@ use crate::{Compilation, CompilationLogger, CompilationLogging, CompilerOptions,
 
 const LOGGER_NAME: &str = "rspack.persistentCache";
 
-#[cacheable]
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone)]
 pub struct PersistentCacheOptions {
-  #[cacheable(with=AsVec<As<PortablePath>>)]
   pub build_dependencies: BuildDepsOptions,
   pub version: String,
   pub snapshot: SnapshotOptions,
   pub storage: StorageOptions,
   pub portable: bool,
-  #[cacheable(with=Skip)]
   pub readonly: bool,
   /// Filesystem cache max age in seconds.
-  #[cacheable(with=Skip)]
   pub max_age: u64,
 }
 
@@ -77,28 +67,11 @@ impl PersistentCache {
       None
     };
     let codec = Arc::new(CacheCodec::new(project_root));
-    // use codec.encode to transform the absolute path in option,
-    // it will ensure that same project in different directory have the same version.
-    let option_bytes = codec
-      .encode(option)
-      .expect("should persistent cache options can be serialized");
     // Each compiler path owns exactly one storage directory.
     let cache_directory = {
       let mut hasher = DefaultHasher::new();
       compiler_path.hash(&mut hasher);
       CacheDirectory::new(hex::encode(hasher.finish().to_ne_bytes()))
-    };
-    // Cache options, including cache.version, form a content compatibility
-    // marker. A mismatch invalidates and overwrites the compiler's cache
-    // instead of creating another storage directory.
-    let content_version = {
-      let mut hasher = DefaultHasher::new();
-      compiler_path.hash(&mut hasher);
-      option_bytes.hash(&mut hasher);
-      rspack_pkg_version!().hash(&mut hasher);
-      compiler_options.name.hash(&mut hasher);
-      compiler_options.mode.hash(&mut hasher);
-      hex::encode(hasher.finish().to_ne_bytes())
     };
     let storage = create_storage(
       option.storage.clone(),
@@ -126,7 +99,7 @@ impl PersistentCache {
       ),
       snapshot,
       make_occasion: MakeOccasion::new(codec.clone()),
-      meta_occasion: MetaOccasion::new(codec.clone(), content_version),
+      meta_occasion: MetaOccasion::new(codec.clone(), option.version.clone()),
       minimize_occasion: MinimizeOccasion::new(codec.clone()),
       source_map_dev_tool_plugin_occasion: SourceMapDevToolPluginOccasion::new(codec),
     }
@@ -142,8 +115,8 @@ impl PersistentCache {
     // Build dependencies are validated before compilation artifacts are read.
     self.ctx.load_build_deps(&mut self.build_deps).await;
 
-    // Validate the content compatibility marker before snapshot or compilation
-    // artifacts are reused. Make handles itself in before_build_module_graph.
+    // Validate the cache version before snapshot or compilation artifacts are
+    // reused. Make handles itself in before_build_module_graph.
     self.ctx.load_occasion(&self.meta_occasion).await;
   }
 }
