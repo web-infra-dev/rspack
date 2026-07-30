@@ -1,7 +1,4 @@
-use rspack_core::{
-  BoxDependencyTemplate, ConstDependency, ContextDependency, DependencyRange,
-  runtime_mode::RuntimeMode,
-};
+use rspack_core::{BoxDependencyTemplate, ConstDependency, ContextDependency, DependencyRange};
 use rspack_util::{SpanExt, itoa};
 use swc_atoms::Atom;
 use swc_experimental_ecma_ast::{CallExpr, GetSpan, Ident, Program, VarDeclarator};
@@ -26,11 +23,10 @@ pub struct CompatibilityPlugin;
 
 impl CompatibilityPlugin {
   fn nested_require_name<'a>(&self, parser: &'a JavascriptParser) -> &'a str {
-    if parser.compiler_options.experiments.runtime_mode == RuntimeMode::Rspack {
-      parser.parser_runtime_requirements.context.as_str()
-    } else {
-      parser.parser_runtime_requirements.require.as_str()
-    }
+    parser
+      .parser_runtime_requirements
+      .compatibility_runtime_scope
+      .as_str()
   }
 
   pub fn browserify_require_handler(
