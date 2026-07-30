@@ -732,13 +732,32 @@ impl JsCompilation {
     Ok(JsEntries::new(compilation))
   }
 
-  #[napi]
+  #[napi(ts_args_type = "chunk: Chunk, runtimeModule: JsAddingRuntimeModule")]
   pub fn add_runtime_module(
     &mut self,
+    env: &Env,
     chunk: &Chunk,
-    runtime_module: JsAddingRuntimeModule,
+    runtime_module: Unknown<'static>,
   ) -> napi::Result<()> {
     let compilation = self.as_mut()?;
+    let Some(mut compiler_reference) = COMPILER_REFERENCES.with(|ref_cell| {
+      let references = ref_cell.borrow();
+      references.get(&compilation.compiler_id()).cloned()
+    }) else {
+      return Err(napi::Error::new(
+        napi::Status::GenericFailure,
+        "Unable to addRuntimeModule now. The Compiler has been garbage collected by JavaScript.",
+      ));
+    };
+    let Some(js_compiler) = compiler_reference.get_mut() else {
+      return Err(napi::Error::new(
+        napi::Status::GenericFailure,
+        "Unable to addRuntimeModule now. The Compiler has been garbage collected by JavaScript.",
+      ));
+    };
+    let runtime_module = js_compiler.compiler_scoped_tsfn_manager.scope(|| unsafe {
+      JsAddingRuntimeModule::from_napi_value(env.raw(), runtime_module.raw())
+    })?;
 
     compilation
       .add_runtime_module(
