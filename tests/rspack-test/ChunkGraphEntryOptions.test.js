@@ -271,6 +271,65 @@ describe("incremental chunk graph entry roots", () => {
 		}
 	});
 
+	it("reuses an unchanged chunk graph when a global and named entry share a root", async () => {
+		const root = path.join(fixtureRoot, "duplicate-root");
+		fs.rmSync(root, { force: true, recursive: true });
+		write(
+			root,
+			"src/a.js",
+			"import './a-child'; globalThis.order.push('A');\n",
+		);
+		write(root, "src/a-child.js", "export const value = 'a';\n");
+		write(root, "src/leaf.js", "export const value = 'before';\n");
+		const compiler = rspack({
+			context: root,
+			mode: "development",
+			target: "node",
+			devtool: false,
+			cache: true,
+			incremental: true,
+			entry: {
+				keeper: { import: "./src/leaf.js" },
+				main: { import: "./src/a.js" },
+			},
+			output: { path: path.join(root, "dist"), filename: "[name].js" },
+			optimization: { minimize: false, splitChunks: false },
+			plugins: [
+				{
+					apply(compiler) {
+						compiler.hooks.make.tapPromise(
+							"duplicate-root-regression",
+							compilation => {
+								return new Promise((resolve, reject) => {
+									compilation.addEntry(
+										compiler.context,
+										rspack.EntryPlugin.createDependency("./src/a.js"),
+										{},
+										error => (error ? reject(error) : resolve()),
+									);
+								});
+							},
+						);
+					},
+				},
+			],
+		});
+
+		try {
+			await run(compiler);
+			const leaf = write(
+				root,
+				"src/leaf.js",
+				"export const value = 'after';\n",
+			);
+			const updated = await rebuild(compiler, [leaf]);
+
+			expect(codeSplittingMessages(updated)).toEqual([]);
+		} finally {
+			await close(compiler);
+		}
+	});
+
 	it.each([
 		["named", { name: "main" }],
 		["global", {}]

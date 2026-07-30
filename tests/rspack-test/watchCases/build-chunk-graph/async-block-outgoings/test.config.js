@@ -33,6 +33,15 @@ module.exports = {
       assert(rebuild, "inserting an async edge must rebuild the chunk graph");
     } else if (stepName === "6") {
       assert(rebuild, "removing an async edge must rebuild the chunk graph");
+    } else if (stepName === "7") {
+      assert(
+        !rebuild,
+        "editing a module with no outgoing edges must reuse the chunk graph",
+      );
+      assert(
+        !stats.includes("new module detected"),
+        "an existing terminal module must not be treated as a new module",
+      );
     } else {
       throw new Error(`Unexpected watch step: ${stepName}`);
     }

@@ -2,7 +2,11 @@ import { value, load, sync } from "./route";
 
 it("should preserve sync and async outgoings across rebuilds", async () => {
   expect(value).toBe(
-    WATCH_STEP === "0" ? "before:stable" : "after:stable",
+    WATCH_STEP === "0"
+      ? "before:stable"
+      : WATCH_STEP === "7"
+        ? "after:stable-updated"
+        : "after:stable",
   );
   expect(sync).toBe("first:second");
   expect(globalThis.__codesplit_side_effect__).toBe(true);
