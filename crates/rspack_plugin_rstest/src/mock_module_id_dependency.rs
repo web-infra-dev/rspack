@@ -6,7 +6,7 @@ use rspack_core::{
   RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
 
-use crate::import_dependency::module_id_rstest;
+use crate::{import_dependency::module_id_rstest, mock_resolved_info::MockResolvedInfo};
 
 #[cacheable]
 #[derive(Debug, Clone)]
@@ -20,6 +20,11 @@ pub struct MockModuleIdDependency {
   category: DependencyCategory,
   pub suffix: Option<String>,
   missing_module_fallback: Option<String>,
+  /// Build-resolved mock identity, rendered after `suffix`. Carried by the
+  /// synthetic-target dependency of the 1-arg auto-mock form (whose
+  /// `target_dep` is the FIRST dependency — the real mocked module, not the
+  /// `__mocks__` target this dependency resolves).
+  resolved_info: Option<MockResolvedInfo>,
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -42,6 +47,7 @@ impl MockModuleIdDependency {
       category,
       suffix,
       missing_module_fallback: None,
+      resolved_info: None,
     }
   }
 
@@ -56,6 +62,12 @@ impl MockModuleIdDependency {
 
   pub fn has_missing_module_fallback(&self) -> bool {
     self.missing_module_fallback.is_some()
+  }
+
+  /// Attach the build-resolved mock identity. See [`Self::resolved_info`].
+  pub fn with_resolved_info(mut self, info: Option<MockResolvedInfo>) -> Self {
+    self.resolved_info = info;
+    self
   }
 }
 
@@ -168,10 +180,20 @@ impl DependencyTemplate for MockModuleIdDependencyTemplate {
       )
     };
 
+    let resolved_info = MockResolvedInfo::render_trailing_arg(
+      dep.resolved_info.as_ref(),
+      code_generatable_context.compilation,
+    );
+
     source.replace(
       dep.range.start,
       dep.range.end,
-      format!("{}{}", module_id, dep.suffix.as_deref().unwrap_or("")),
+      format!(
+        "{}{}{}",
+        module_id,
+        dep.suffix.as_deref().unwrap_or(""),
+        resolved_info
+      ),
       None,
     );
   }

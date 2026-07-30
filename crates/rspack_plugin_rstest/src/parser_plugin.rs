@@ -1,6 +1,7 @@
 use camino::Utf8PathBuf;
 use rspack_core::{
-  AsyncDependenciesBlock, ConstDependency, DependencyRange, ImportAttributes, ImportPhase,
+  AsyncDependenciesBlock, ConstDependency, DependencyId, DependencyRange, ImportAttributes,
+  ImportPhase,
 };
 use rspack_plugin_javascript::{
   JavascriptParserPlugin,
@@ -24,6 +25,7 @@ use crate::{
   dynamic_import_origin_dependency::RstestDynamicImportOriginDependency,
   mock_method_dependency::{MockMethod, MockMethodDependency},
   mock_module_id_dependency::MockModuleIdDependency,
+  mock_resolved_info::MockResolvedInfo,
   module_path_name_dependency::{ModulePathNameDependency, NameType},
   require_resolve_origin_dependency::RstestRequireResolveOriginDependency,
 };
@@ -326,6 +328,20 @@ impl RstestParserPlugin {
     lit_str.map(|s| s.to_string())
   }
 
+  /// Build the `{o, r}` identity payload for a mocked target dependency.
+  /// Always emitted; @rstest/core requires it (older runtimes simply ignore
+  /// the extra trailing argument).
+  fn mock_resolved_info(
+    &self,
+    parser: &JavascriptParser,
+    target_dep: DependencyId,
+  ) -> Option<MockResolvedInfo> {
+    parser.resource_data.path().map(|path| MockResolvedInfo {
+      target_dep,
+      origin_path: path.as_str().to_string(),
+    })
+  }
+
   #[allow(clippy::too_many_arguments)]
   fn process_mock(
     &self,
@@ -354,8 +370,10 @@ impl RstestParserPlugin {
             },
             if has_b { Some(", ".to_string()) } else { None },
           );
+          let target_dep_id = dep.id;
           parser.add_dependency(Box::new(dep));
 
+          let request_arg_end = (!has_b).then(|| first_arg.span().real_hi());
           parser.add_presentational_dependency(Box::new(
             MockMethodDependency::new(
               call_expr.span().into(),
@@ -367,11 +385,12 @@ impl RstestParserPlugin {
             // has_b=false (1-arg `rs.unmock('X')`): append request after the id.
             // has_b=true (1-arg auto-mock): request rides the synthetic-target
             // suffix below instead — skip here to avoid a same-offset collision.
-            .with_request_arg_end(if has_b {
-              None
-            } else {
-              Some(first_arg.span().real_hi())
-            }),
+            // The resolved info always rides the same carrier as the request,
+            // so it is derived from `request_arg_end` rather than gated twice.
+            .with_request_arg_end(request_arg_end)
+            .with_resolved_info(
+              request_arg_end.and_then(|_| self.mock_resolved_info(parser, target_dep_id)),
+            ),
           ));
 
           if has_b {
@@ -395,7 +414,10 @@ impl RstestParserPlugin {
               // `__mocks__` file exists, fall back to Vitest-style automocking by
               // passing `{ mock: true }` to the runtime, equivalent to
               // `rs.mock('X', { mock: true })`.
-              .with_missing_module_fallback("{ mock: true }".to_string()),
+              .with_missing_module_fallback("{ mock: true }".to_string())
+              // Identity of the REAL mocked module (the first dependency), not
+              // the `__mocks__` target this synthetic dependency resolves.
+              .with_resolved_info(self.mock_resolved_info(parser, target_dep_id)),
             ));
           }
         }
@@ -425,6 +447,7 @@ impl RstestParserPlugin {
             None,
           );
 
+          let target_dep_id = module_dep.id;
           parser.add_presentational_dependency(Box::new(
             MockMethodDependency::new(
               call_expr.span().into(),
@@ -434,7 +457,8 @@ impl RstestParserPlugin {
               method,
             )
             // 2-arg `rs.mock('X', factory)`: append request after the factory.
-            .with_request_arg_end(Some(second_arg.span().real_hi())),
+            .with_request_arg_end(Some(second_arg.span().real_hi()))
+            .with_resolved_info(self.mock_resolved_info(parser, target_dep_id)),
           ));
           parser.add_dependency(Box::new(module_dep));
         } else {
