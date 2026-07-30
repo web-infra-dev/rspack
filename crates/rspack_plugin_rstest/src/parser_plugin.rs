@@ -15,7 +15,7 @@ use rspack_plugin_javascript::{
 use rspack_util::{SpanExt, atom::Atom, json_stringify_str, swc::get_swc_comments};
 use swc_experimental_ecma_ast::{
   CallExpr, Callee, GetSpan, Ident, IdentName, ImportDecl, ImportPhase as AstImportPhase,
-  MemberExpr, Span, UnaryExpr, VarDeclarator,
+  MemberExpr, MetaPropKind, OptChainBase, OptChainExpr, Span, UnaryExpr, VarDeclarator,
 };
 
 static RSTEST_MOCK_FIRST_ARG_TAG: &str = "strip the import call from the first arg of mock series";
@@ -33,6 +33,7 @@ const DIR_NAME: &str = "__dirname";
 const FILE_NAME: &str = "__filename";
 const IMPORT_META_DIRNAME: &str = "import.meta.dirname";
 const IMPORT_META_FILENAME: &str = "import.meta.filename";
+const IMPORT_META_RSTEST: &str = "import.meta.rstest";
 pub(crate) const MOCK_TARGET_REQUEST_PREFIX: &str = "\0rstest_mock_target:\0";
 
 #[derive(PartialEq)]
@@ -50,6 +51,9 @@ pub struct RstestParserPluginOptions {
   /// Whether to handle global `rs` and `rstest` variables.
   /// When false, only ESM imported variables are processed.
   pub globals: bool,
+  /// Whether to replace `import.meta.rstest` with the runtime resolver call
+  /// carrying the source module's absolute path.
+  pub inject_import_meta_rstest_origin: bool,
   /// Whether to rewrite non-string-literal `import()` calls with origin info.
   /// Pre-resolved at plugin construction — false here covers both "feature
   /// disabled" and "callee resolved to default `import`".
@@ -68,6 +72,7 @@ impl Default for RstestParserPluginOptions {
       import_meta_path_name: false,
       manual_mock_root: String::new(),
       globals: true,
+      inject_import_meta_rstest_origin: false,
       inject_dynamic_import_origin: false,
       inject_require_resolve_origin: false,
       commonjs_magic_comments: false,
@@ -152,6 +157,17 @@ impl RstestParserPlugin {
     // so preserve dependency collection for nested expressions in arguments.
     parser.walk_expr_or_spread(&call_expr.args);
     Some(true)
+  }
+
+  fn import_meta_rstest_expression(&self, parser: &JavascriptParser) -> Option<String> {
+    if !self.options.inject_import_meta_rstest_origin {
+      return None;
+    }
+    let resource_path = parser.resource_data.path()?;
+    Some(format!(
+      "globalThis['@rstest/core/import-meta']({})",
+      json_stringify_str(resource_path.as_str())
+    ))
   }
 
   fn process_require_actual(
@@ -1051,10 +1067,17 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for RstestParserPlugin {
 
   fn evaluate_typeof(
     &self,
-    _parser: &mut JavascriptParser<'p>,
+    parser: &mut JavascriptParser<'p>,
     expr: &'a UnaryExpr,
     for_name: &str,
   ) -> Option<utils::eval::BasicEvaluatedExpression<'a>> {
+    if for_name == IMPORT_META_RSTEST && self.import_meta_rstest_expression(parser).is_some() {
+      return Some(eval::BasicEvaluatedExpression::with_range(
+        expr.span.real_lo(),
+        expr.span.real_hi(),
+      ));
+    }
+
     if self.options.import_meta_path_name {
       let mut evaluated = None;
       if for_name == IMPORT_META_DIRNAME || for_name == IMPORT_META_FILENAME {
@@ -1075,6 +1098,10 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for RstestParserPlugin {
     start: u32,
     end: u32,
   ) -> Option<eval::BasicEvaluatedExpression<'p>> {
+    if for_name == IMPORT_META_RSTEST && self.import_meta_rstest_expression(parser).is_some() {
+      return Some(eval::BasicEvaluatedExpression::with_range(start, end));
+    }
+
     if self.options.inject_require_resolve_origin && for_name == expr_name::REQUIRE_RESOLVE {
       return Some(eval::evaluate_to_identifier(
         expr_name::REQUIRE_RESOLVE.into(),
@@ -1111,6 +1138,16 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for RstestParserPlugin {
     unary_expr: &UnaryExpr,
     for_name: &str,
   ) -> Option<bool> {
+    if for_name == IMPORT_META_RSTEST
+      && let Some(expression) = self.import_meta_rstest_expression(parser)
+    {
+      parser.add_presentational_dependency(Box::new(ConstDependency::new(
+        unary_expr.span().into(),
+        format!("typeof ({expression})").into(),
+      )));
+      return Some(true);
+    }
+
     if self.options.import_meta_path_name {
       if for_name == IMPORT_META_DIRNAME || for_name == IMPORT_META_FILENAME {
         parser.add_presentational_dependency(Box::new(ConstDependency::new(
@@ -1132,6 +1169,18 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for RstestParserPlugin {
     member_expr: &MemberExpr,
     for_name: &str,
   ) -> Option<bool> {
+    if for_name == IMPORT_META_RSTEST
+      && let Some(expression) = self.import_meta_rstest_expression(parser)
+    {
+      // TODO: Replace this Rstest-specific parser rewrite with
+      // DefinePlugin.runtimeValue once Rspack supports the webpack API.
+      parser.add_presentational_dependency(Box::new(ConstDependency::new(
+        member_expr.span().into(),
+        expression.into(),
+      )));
+      return Some(true);
+    }
+
     if self.options.import_meta_path_name {
       if for_name == IMPORT_META_DIRNAME {
         let result = self.process_import_meta(parser, ModulePathType::DirName);
@@ -1153,5 +1202,38 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for RstestParserPlugin {
     }
 
     None
+  }
+
+  fn optional_chaining(
+    &self,
+    parser: &mut JavascriptParser<'p>,
+    expr: &OptChainExpr,
+  ) -> Option<bool> {
+    if !self.options.inject_import_meta_rstest_origin {
+      return None;
+    }
+
+    let member = match &expr.base {
+      OptChainBase::Call(call) => call.callee.as_member()?,
+      OptChainBase::Member(member) => member.obj.as_member()?,
+    };
+    if !expr.optional
+      || !member
+        .obj
+        .as_meta_prop()
+        .is_some_and(|meta| meta.kind == MetaPropKind::ImportMeta)
+      || member
+        .prop
+        .as_ident()
+        .is_none_or(|property| property.sym != "rstest")
+    {
+      return None;
+    }
+
+    parser.add_presentational_dependency(Box::new(ConstDependency::new(
+      expr.span().into(),
+      "undefined".into(),
+    )));
+    Some(true)
   }
 }
