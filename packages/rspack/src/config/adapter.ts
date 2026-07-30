@@ -117,6 +117,8 @@ export const getRawOptions = (
 function getRawCache(cache: CacheNormalized): RawOptions['cache'] {
   if (cache === false) return false;
   if (cache.type === 'memory') return cache;
+  const rawCache = { ...cache };
+  delete rawCache.maxVersions;
   const toRawStorageLimit = (name: string, value: number) => {
     if (value === Infinity) return 0;
     if (!Number.isSafeInteger(value) || value < 1 || value > MAX_U32) {
@@ -127,7 +129,7 @@ function getRawCache(cache: CacheNormalized): RawOptions['cache'] {
     return value;
   };
   return {
-    ...cache,
+    ...rawCache,
     maxAge: toRawStorageLimit('cache.maxAge', cache.maxAge!),
     storage: {
       ...cache.storage,

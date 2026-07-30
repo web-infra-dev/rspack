@@ -274,6 +274,8 @@ const instance = await WebAssembly.instantiate(wasmModule);
 
 Rspack 会为每个 compiler path 保存一个持久化缓存子目录。当 `cache.version` 变化时，Rspack 会使该 compiler 的现有缓存失效并覆盖其内容，而不是保留多个版本。
 
+`cache.maxVersions` 仍会为向后兼容而被接受，但已弃用且不会产生任何作用。显式配置时，Rspack 会输出警告。
+
 Rspack 2.1 为持久化缓存新增了自动清理机制。[`cache.maxAge`](/config/cache#maxage) 用于控制 compiler 缓存允许处于未访问状态的最长时间，默认值为 `7 * 24 * 60 * 60`（7 天）。
 
 ```js title="rspack.config.mjs"

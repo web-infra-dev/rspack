@@ -12,6 +12,7 @@ import path from 'node:path';
 import type { HttpUriPluginOptions } from '../builtin-plugin';
 import type { Compilation } from '../Compilation';
 import type WebpackError from '../lib/WebpackError';
+import { deprecate } from '../util';
 import type {
   Amd,
   AssetModuleFilename,
@@ -285,11 +286,18 @@ export const getNormalizedRspackOptions = (
             type: 'memory',
           };
         case 'persistent': {
+          const hasMaxVersions = Object.hasOwn(cache, 'maxVersions');
+          if (hasMaxVersions) {
+            deprecate(
+              '`cache.maxVersions` is deprecated and has no effect. Rspack keeps only one persistent cache per compiler path.',
+            );
+          }
           const context = config.context || process.cwd();
           return {
             type: 'persistent',
             version: cache.version,
             maxAge: cache.maxAge,
+            ...(hasMaxVersions ? { maxVersions: cache.maxVersions } : {}),
             portable: cache.portable,
             readonly: cache.readonly,
             buildDependencies: nestedArray(cache.buildDependencies, (deps) =>
@@ -616,6 +624,7 @@ export type CacheNormalized =
       buildDependencies: string[];
       version?: string;
       maxAge?: number;
+      maxVersions?: number;
       snapshot: {
         immutablePaths?: (string | RegExp)[];
         unmanagedPaths?: (string | RegExp)[];

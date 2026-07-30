@@ -24,6 +24,7 @@ type CacheOptions =
       buildDependencies?: string[];
       version?: string;
       maxAge?: number;
+      maxVersions?: number;
       portable?: boolean;
       readonly?: boolean;
       snapshot?: {
@@ -129,6 +130,15 @@ export default {
 Rspack 会基于 `compilerPath` 的哈希拆分缓存子目录，每个 `compilerPath` 只保留一份缓存。[version](#version) 变化时，Rspack 会使该 compiler 的现有缓存失效并覆盖其内容，不会保留多个版本。
 
 :::
+
+### maxVersions
+
+<ApiMeta stability={Stability.Deprecated} />
+
+- **类型：** `number`
+- **默认值：** 未设置
+
+`cache.maxVersions` 仅为向后兼容而保留，但不会产生任何作用。Rspack 对每个 `compilerPath` 只保留一份持久化缓存。显式配置此选项时，Rspack 会输出弃用警告。
 
 ### maxAge
 

@@ -2093,6 +2093,11 @@ export type PersistentCacheOptions = {
    */
   maxAge?: number;
   /**
+   * @deprecated This option has no effect. Rspack keeps only one persistent
+   * cache per compiler path.
+   */
+  maxVersions?: number;
+  /**
    * Snapshot options for determining which files have been modified.
    */
   snapshot?: CacheSnapshotOptions;

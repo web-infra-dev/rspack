@@ -22,6 +22,7 @@ type CacheOptions =
       buildDependencies?: string[];
       version?: string;
       maxAge?: number;
+      maxVersions?: number;
       portable?: boolean;
       readonly?: boolean;
       snapshot?: {
@@ -132,6 +133,17 @@ the subdirectory name. Changing [version](#version) invalidates and overwrites
 that compiler's existing cache; multiple versions do not coexist.
 
 :::
+
+### maxVersions
+
+<ApiMeta stability={Stability.Deprecated} />
+
+- **Type:** `number`
+- **Default:** Not set
+
+`cache.maxVersions` is retained for backward compatibility but has no effect.
+Rspack keeps only one persistent cache per `compilerPath`. Explicitly
+configuring this option emits a deprecation warning.
 
 ### maxAge
 

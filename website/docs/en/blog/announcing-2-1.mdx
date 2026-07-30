@@ -274,6 +274,8 @@ Rspack also adds [`module.rules[].phase`](/config/module-rules#rulesphase), whic
 
 Rspack stores one persistent cache subdirectory for each compiler path. When `cache.version` changes, Rspack invalidates and overwrites that compiler's existing cache instead of retaining multiple versions.
 
+`cache.maxVersions` remains accepted for backward compatibility, but is deprecated and has no effect. Explicitly configuring it emits a warning.
+
 Rspack 2.1 adds an automatic cleanup mechanism for persistent cache. [`cache.maxAge`](/config/cache#maxage) controls how long a compiler cache can remain unaccessed. The default value is `7 * 24 * 60 * 60` (7 days).
 
 ```js title="rspack.config.mjs"
