@@ -123,17 +123,22 @@ impl Trigger {
 
     // A watched path that no longer exists on disk is a removal, regardless of
     // how the OS reported the event. macOS FSEvents reports an unlink as a
-    // rename (`ModifyKind::Name` → `Change`), so normalize a `Change` whose
-    // path is gone into a `Remove`, keeping the event kind consistent with
-    // inotify (which already reports `Remove`). Done before the stale-event
-    // filter below, which only applies to `Change`/`Create`.
-    let kind = if kind == FsEventKind::Change && !path.exists() {
+    // rename (`ModifyKind::Name` → `Change`), and a rapid create/delete in a
+    // context may arrive as a delayed `Create` for an unregistered child.
+    // Normalize either event whose path is gone into a `Remove`, keeping the
+    // event kind consistent with inotify (which already reports `Remove`). Do
+    // this before the stale-event filter below.
+    let finder = self.finder();
+    let kind = if (kind == FsEventKind::Change
+      || (kind == FsEventKind::Create && !finder.contains_path(path)))
+      && !path.exists()
+    {
       FsEventKind::Remove
     } else {
       kind
     };
 
-    let is_registered_file = self.path_manager.access().files().0.contains(path);
+    let is_registered_file = finder.files.contains(path);
 
     // Filter stale FSEvents: on macOS, FSEvents can deliver events for files
     // written before the watcher was created. Stat the file and compare mtime
@@ -146,9 +151,23 @@ impl Trigger {
       return;
     }
 
-    let finder = self.finder();
-    let associated_event = finder.find_associated_event(path, kind);
-    self.trigger_events(associated_event);
+    let associated_events = finder.find_associated_event(path, kind);
+    if associated_events.is_empty() {
+      return;
+    }
+
+    // Watchpack emits the concrete filesystem path to its undelayed listener,
+    // while compilation aggregation contains only registered dependencies.
+    // Keep those projections separate so context consumers can incrementally
+    // scan a new child without inflating `modifiedFiles` or duplicating parent
+    // callbacks.
+    self.trigger_events(
+      associated_events,
+      FsEvent {
+        path: path.clone(),
+        kind,
+      },
+    );
   }
   /// Helper to construct a `DependencyFinder` for the current path register state.
   fn finder(&self) -> DependencyFinder<'_> {
@@ -167,15 +186,16 @@ impl Trigger {
 
   /// Sends a group of file system events for the given path and event kind.
   /// If the event is successfully sent, it returns true; otherwise, it returns false.
-  fn trigger_events(&self, events: Vec<(ArcPath, FsEventKind)>) -> bool {
+  fn trigger_events(&self, events: Vec<(ArcPath, FsEventKind)>, undelayed: FsEvent) -> bool {
     self
       .tx
-      .send(
-        events
+      .send(EventBatch::Split {
+        aggregated: events
           .into_iter()
           .map(|(path, kind)| FsEvent { path, kind })
           .collect(),
-      )
+        undelayed,
+      })
       .is_ok()
   }
 }
@@ -238,5 +258,73 @@ mod tests {
     assert_eq!(associated_events.len(), 2);
     assert!(associated_events.contains(&(dir_0, FsEventKind::Change)));
     assert!(associated_events.contains(&(dir_1, FsEventKind::Change)));
+  }
+
+  #[test]
+  fn test_find_dependency_for_context_file_events() {
+    let temp_dir = tempfile::TempDir::new().unwrap();
+    let context = temp_dir.path().join("context");
+    let child = context.join("child.js");
+    let removed = context.join("removed.js");
+    let unrelated = temp_dir.path().join("unrelated.js");
+    std::fs::create_dir_all(&context).unwrap();
+    std::fs::write(&child, "export default true;").unwrap();
+    std::fs::write(&unrelated, "export default false;").unwrap();
+
+    let files = ArcPathDashSet::default();
+    let directories = ArcPathDashSet::default();
+    let missing = ArcPathDashSet::default();
+    let context = ArcPath::from(context);
+    let child = ArcPath::from(child);
+    let removed = ArcPath::from(removed);
+    let unrelated = ArcPath::from(unrelated);
+    directories.insert(context.clone());
+
+    let finder = DependencyFinder {
+      files: &files,
+      directories: &directories,
+      missing: &missing,
+    };
+    for kind in [
+      FsEventKind::Create,
+      FsEventKind::Change,
+      FsEventKind::Remove,
+    ] {
+      let associated_events = finder.find_associated_event(&child, kind);
+
+      assert_eq!(associated_events.len(), 1);
+      assert!(associated_events.contains(&(context.clone(), FsEventKind::Change)));
+    }
+
+    let associated_events = finder.find_associated_event(&removed, FsEventKind::Remove);
+    assert_eq!(associated_events.len(), 1);
+    assert!(associated_events.contains(&(context, FsEventKind::Change)));
+    assert!(
+      finder
+        .find_associated_event(&unrelated, FsEventKind::Create)
+        .is_empty()
+    );
+  }
+
+  #[test]
+  fn test_find_dependency_emits_removed_directory_once() {
+    let files = ArcPathDashSet::default();
+    let directories = ArcPathDashSet::default();
+    let missing = ArcPathDashSet::default();
+    let parent = ArcPath::from(Path::new("/path/a"));
+    let child = ArcPath::from(Path::new("/path/a/removed"));
+    directories.insert(parent.clone());
+    directories.insert(child.clone());
+
+    let finder = DependencyFinder {
+      files: &files,
+      directories: &directories,
+      missing: &missing,
+    };
+    let associated_events = finder.find_associated_event(&child, FsEventKind::Remove);
+
+    assert_eq!(associated_events.len(), 2);
+    assert!(associated_events.contains(&(child, FsEventKind::Remove)));
+    assert!(associated_events.contains(&(parent, FsEventKind::Change)));
   }
 }

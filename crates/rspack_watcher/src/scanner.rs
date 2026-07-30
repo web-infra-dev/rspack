@@ -110,7 +110,7 @@ fn scan_path_missing(
   if remove_event.is_empty() {
     return true;
   }
-  tx.send(remove_event).is_ok()
+  tx.send(remove_event.into()).is_ok()
 }
 
 fn scan_path_events(
@@ -129,7 +129,7 @@ fn scan_path_events(
   if events.is_empty() {
     return true;
   }
-  tx.send(events).is_ok()
+  tx.send(events.into()).is_ok()
 }
 
 /// Whether `path`'s current on-disk mtime is at or after `start_time`, using
@@ -180,7 +180,7 @@ mod tests {
     let collector = tokio::spawn(async move {
       let mut collected_events = Vec::new();
       while let Some(event) = _rx.recv().await {
-        collected_events.push(event);
+        collected_events.push(event.aggregated().to_vec());
       }
       collected_events
     });
@@ -251,9 +251,9 @@ mod tests {
 
     let mut changed_paths = HashSet::new();
     while let Some(batch) = rx.recv().await {
-      for ev in batch {
+      for ev in batch.aggregated() {
         if ev.kind == FsEventKind::Change {
-          changed_paths.insert(ev.path);
+          changed_paths.insert(ev.path.clone());
         }
       }
     }
@@ -301,8 +301,8 @@ mod tests {
 
     let mut event_paths = HashSet::new();
     while let Some(batch) = rx.recv().await {
-      for ev in batch {
-        event_paths.insert(ev.path);
+      for ev in batch.aggregated() {
+        event_paths.insert(ev.path.clone());
       }
     }
 

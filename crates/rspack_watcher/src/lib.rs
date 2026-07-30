@@ -10,16 +10,13 @@ mod trigger;
 use std::{
   future::Future,
   pin::Pin,
-  sync::{
-    Arc, Mutex,
-    atomic::{AtomicBool, Ordering},
-  },
+  sync::{Arc, Mutex},
   time::SystemTime,
 };
 
 use analyzer::{Analyzer, RecommendedAnalyzer};
 use disk_watcher::DiskWatcher;
-use executor::Executor;
+use executor::{Executor, PendingEvents};
 pub use ignored::FsWatcherIgnored;
 use paths::PathManager;
 use rspack_error::Result;
@@ -48,7 +45,28 @@ pub(crate) struct FsEvent {
   pub kind: FsEventKind,
 }
 
-pub(crate) type EventBatch = Vec<FsEvent>;
+pub(crate) enum EventBatch {
+  Shared(Vec<FsEvent>),
+  Split {
+    aggregated: Vec<FsEvent>,
+    undelayed: FsEvent,
+  },
+}
+
+impl EventBatch {
+  pub fn aggregated(&self) -> &[FsEvent] {
+    match self {
+      Self::Shared(events) => events,
+      Self::Split { aggregated, .. } => aggregated,
+    }
+  }
+}
+
+impl From<Vec<FsEvent>> for EventBatch {
+  fn from(events: Vec<FsEvent>) -> Self {
+    Self::Shared(events)
+  }
+}
 
 /// `EventAggregateHandler` is a trait for handling aggregated file system events.
 /// It provides methods to handle changes and deletions of files, as well as errors.
@@ -59,6 +77,18 @@ pub(crate) type EventBatch = Vec<FsEvent>;
 pub trait EventAggregateHandler {
   /// Handle a batch of file system events.
   fn on_event_handle(&self, _changed_files: HashSet<String>, _deleted_files: HashSet<String>);
+
+  /// Handle a versioned batch. Return `true` only when asynchronous delivery was
+  /// successfully queued; the caller must then acknowledge the generation.
+  fn on_event_handle_with_generation(
+    &self,
+    changed_files: HashSet<String>,
+    deleted_files: HashSet<String>,
+    _generation: u32,
+  ) -> bool {
+    self.on_event_handle(changed_files, deleted_files);
+    false
+  }
 
   /// Handle an error that occurs during file system watching.
   fn on_error(&self, _error: rspack_error::Error) {
@@ -112,8 +142,8 @@ enum WatcherOp {
 }
 
 pub struct FsWatcher {
-  paused: Arc<AtomicBool>,
   trigger: Arc<Mutex<Option<Arc<Trigger>>>>,
+  pending_events: PendingEvents,
   op_tx: mpsc::UnboundedSender<WatcherOp>,
 }
 
@@ -138,8 +168,8 @@ impl FsWatcher {
       options.poll_interval,
       trigger.clone(),
     );
-    let paused = Arc::new(AtomicBool::new(false));
-    let executor = Executor::new(rx, options.aggregate_timeout, Arc::clone(&paused));
+    let executor = Executor::new(rx, options.aggregate_timeout);
+    let pending_events = executor.pending_events();
     let scanner = Scanner::new(tx, Arc::clone(&path_manager));
     let trigger = Arc::new(Mutex::new(Some(trigger)));
 
@@ -153,8 +183,8 @@ impl FsWatcher {
     };
 
     Self {
-      paused,
       trigger,
+      pending_events,
       op_tx: spawn_owner_thread(inner),
     }
   }
@@ -228,9 +258,20 @@ impl FsWatcher {
 
   /// Pauses the file system watcher, stopping the execution of the event loop.
   pub fn pause(&self) -> Result<()> {
-    self.paused.store(true, Ordering::Relaxed);
+    self.pending_events.pause();
 
     Ok(())
+  }
+
+  /// Atomically pauses aggregate delivery and consumes its pending events.
+  /// Consumed events will not be delivered to that handler later.
+  pub fn take_pending_events(&self) -> (HashSet<String>, HashSet<String>, u32) {
+    self.pending_events.take()
+  }
+
+  /// Acknowledges asynchronous delivery of an aggregate generation.
+  pub fn acknowledge_pending_events(&self, generation: u32) {
+    self.pending_events.acknowledge(generation);
   }
 }
 

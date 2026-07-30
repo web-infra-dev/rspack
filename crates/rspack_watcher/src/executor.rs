@@ -1,7 +1,4 @@
-use std::sync::{
-  Arc,
-  atomic::{AtomicBool, Ordering},
-};
+use std::sync::{Arc, Mutex as SyncMutex, MutexGuard as SyncMutexGuard};
 
 use rspack_util::fx_hash::FxHashSet as HashSet;
 use tokio::sync::{
@@ -14,17 +11,150 @@ use crate::EventBatch;
 
 type ThreadSafetyReceiver<T> = ThreadSafety<UnboundedReceiver<T>>;
 type ThreadSafety<T> = Arc<Mutex<T>>;
+type PendingFiles = Arc<SyncMutex<FilesData>>;
+
+#[derive(Clone)]
+pub(crate) struct PendingEvents {
+  files_data: PendingFiles,
+  exec_aggregate_tx: UnboundedSender<ExecAggregateEvent>,
+}
+
+impl PendingEvents {
+  /// Pauses aggregate delivery. Raw events continue accumulating until resume.
+  pub fn pause(&self) {
+    lock_pending(&self.files_data).paused = true;
+  }
+
+  /// Atomically pauses aggregate delivery and consumes its pending events.
+  /// Consumed events will not be delivered to that handler later.
+  pub fn take(&self) -> (HashSet<String>, HashSet<String>, u32) {
+    let mut files = lock_pending(&self.files_data);
+    files.paused = true;
+    files.aggregate_scheduled = false;
+    let files = files.drain();
+    (files.changed, files.deleted, files.generation)
+  }
+
+  pub fn acknowledge(&self, generation: u32) {
+    let should_aggregate = {
+      let mut files = lock_pending(&self.files_data);
+      if files.acknowledge(generation) {
+        files.aggregate_scheduled = false;
+      }
+      files.schedule_if_needed()
+    };
+    if should_aggregate {
+      let _ = self.exec_aggregate_tx.send(ExecAggregateEvent::Execute);
+    }
+  }
+}
+
+#[derive(Clone, Debug)]
+struct AggregatedFiles {
+  changed: HashSet<String>,
+  deleted: HashSet<String>,
+  generation: u32,
+}
+
+impl AggregatedFiles {
+  fn merge(&mut self, changed: HashSet<String>, deleted: HashSet<String>) {
+    for path in changed {
+      self.deleted.remove(&path);
+      self.changed.insert(path);
+    }
+    for path in deleted {
+      self.changed.remove(&path);
+      self.deleted.insert(path);
+    }
+  }
+}
 
 #[derive(Debug, Default)]
 struct FilesData {
   changed: HashSet<String>,
   deleted: HashSet<String>,
+  in_flight: Option<AggregatedFiles>,
+  next_generation: u32,
+  aggregate_scheduled: bool,
+  paused: bool,
 }
 
 impl FilesData {
   fn is_empty(&self) -> bool {
     self.changed.is_empty() && self.deleted.is_empty()
   }
+
+  fn record(&mut self, path: String, kind: FsEventKind) {
+    match kind {
+      FsEventKind::Change | FsEventKind::Create => {
+        self.deleted.remove(&path);
+        self.changed.insert(path);
+      }
+      FsEventKind::Remove => {
+        self.changed.remove(&path);
+        self.deleted.insert(path);
+      }
+    }
+  }
+
+  fn next_generation(&mut self) -> u32 {
+    let generation = self.next_generation;
+    self.next_generation = self.next_generation.wrapping_add(1);
+    generation
+  }
+
+  fn claim(&mut self) -> AggregatedFiles {
+    let files = AggregatedFiles {
+      changed: std::mem::take(&mut self.changed),
+      deleted: std::mem::take(&mut self.deleted),
+      generation: self.next_generation(),
+    };
+    debug_assert!(self.in_flight.is_none());
+    self.in_flight = Some(files.clone());
+    files
+  }
+
+  fn drain(&mut self) -> AggregatedFiles {
+    let generation = self.next_generation();
+    let mut files = self.in_flight.take().unwrap_or_else(|| AggregatedFiles {
+      changed: Default::default(),
+      deleted: Default::default(),
+      generation,
+    });
+    files.generation = generation;
+    files.merge(
+      std::mem::take(&mut self.changed),
+      std::mem::take(&mut self.deleted),
+    );
+    files
+  }
+
+  fn acknowledge(&mut self, generation: u32) -> bool {
+    if self
+      .in_flight
+      .as_ref()
+      .is_some_and(|files| files.generation == generation)
+    {
+      self.in_flight = None;
+      true
+    } else {
+      false
+    }
+  }
+
+  fn schedule_if_needed(&mut self) -> bool {
+    if self.paused || self.aggregate_scheduled || self.in_flight.is_some() || self.is_empty() {
+      return false;
+    }
+    self.aggregate_scheduled = true;
+    true
+  }
+}
+
+fn lock_pending(files: &PendingFiles) -> SyncMutexGuard<'_, FilesData> {
+  files
+    .lock()
+    .expect("pending watcher events mutex should not be poisoned")
 }
 
 /// `WatcherExecutor` is responsible for managing the execution of file system event handlers,
@@ -34,13 +164,11 @@ impl FilesData {
 pub struct Executor {
   aggregate_timeout: u32,
   rx: ThreadSafetyReceiver<EventBatch>,
-  files_data: ThreadSafety<FilesData>,
+  files_data: PendingFiles,
   exec_aggregate_tx: UnboundedSender<ExecAggregateEvent>,
   exec_aggregate_rx: ThreadSafetyReceiver<ExecAggregateEvent>,
   exec_tx: UnboundedSender<ExecEvent>,
   exec_rx: ThreadSafetyReceiver<ExecEvent>,
-  paused: Arc<AtomicBool>,
-  aggregate_running: Arc<AtomicBool>,
   start_waiting: bool,
   execute_handle: Option<tokio::task::JoinHandle<()>>,
   execute_aggregate_handle: Option<tokio::task::JoinHandle<()>>,
@@ -66,20 +194,12 @@ enum ExecEvent {
 
 impl Executor {
   /// Create a new `WatcherExecutor` with the given receiver and optional aggregate timeout.
-  /// `paused` is shared with [`crate::FsWatcher`] so pausing stays a lock-free
-  /// synchronous operation.
-  pub fn new(
-    rx: UnboundedReceiver<EventBatch>,
-    aggregate_timeout: Option<u32>,
-    paused: Arc<AtomicBool>,
-  ) -> Self {
+  pub fn new(rx: UnboundedReceiver<EventBatch>, aggregate_timeout: Option<u32>) -> Self {
     let (exec_aggregate_tx, exec_aggregate_rx) = mpsc::unbounded_channel::<ExecAggregateEvent>();
     let (exec_tx, exec_rx) = mpsc::unbounded_channel::<ExecEvent>();
 
     Self {
       start_waiting: false,
-      aggregate_running: Arc::new(AtomicBool::new(false)),
-      paused,
       rx: Arc::new(Mutex::new(rx)),
       files_data: Default::default(),
       exec_aggregate_tx,
@@ -92,6 +212,12 @@ impl Executor {
     }
   }
 
+  pub(crate) fn pending_events(&self) -> PendingEvents {
+    PendingEvents {
+      files_data: Arc::clone(&self.files_data),
+      exec_aggregate_tx: self.exec_aggregate_tx.clone(),
+    }
+  }
   /// Abort all executor.
   async fn abort(&mut self) {
     if let Some(execute_aggregate_handle) = std::mem::take(&mut self.execute_aggregate_handle) {
@@ -102,7 +228,7 @@ impl Executor {
       if let Err(err) = execute_aggregate_handle.await {
         debug_assert!(err.is_cancelled());
       }
-      self.aggregate_running.store(false, Ordering::Relaxed);
+      lock_pending(&self.files_data).aggregate_scheduled = false;
     }
     if let Some(execute_handle) = std::mem::take(&mut self.execute_handle) {
       execute_handle.abort();
@@ -130,27 +256,18 @@ impl Executor {
       let rx = Arc::clone(&self.rx);
       let exec_aggregate_tx = self.exec_aggregate_tx.clone();
       let exec_tx = self.exec_tx.clone();
-      let paused = Arc::clone(&self.paused);
-      let aggregate_running = Arc::clone(&self.aggregate_running);
 
       let future = async move {
         while let Some(events) = rx.lock().await.recv().await {
-          for event in &events {
-            let path = event.path.to_string_lossy().to_string();
-            match event.kind {
-              FsEventKind::Change => {
-                files_data.lock().await.changed.insert(path);
-              }
-              FsEventKind::Remove => {
-                files_data.lock().await.deleted.insert(path);
-              }
-              FsEventKind::Create => {
-                files_data.lock().await.changed.insert(path);
-              }
+          let should_aggregate = {
+            let mut files_data = lock_pending(&files_data);
+            for event in events.aggregated() {
+              files_data.record(event.path.to_string_lossy().to_string(), event.kind);
             }
-          }
+            files_data.schedule_if_needed()
+          };
 
-          if !paused.load(Ordering::Relaxed) && !aggregate_running.load(Ordering::Relaxed) {
+          if should_aggregate {
             let _ = exec_aggregate_tx.send(ExecAggregateEvent::Execute);
           }
 
@@ -165,7 +282,6 @@ impl Executor {
       self.start_waiting = true;
     }
 
-    self.paused.store(false, Ordering::Relaxed);
     // abort the previous handlers if they exist
     self.abort().await;
 
@@ -176,7 +292,12 @@ impl Executor {
     // indefinitely — the event loop already processed them (added to files_data)
     // but skipped sending Execute because paused was true. No future OS event
     // will re-deliver them, so we must kick the aggregate task ourselves.
-    if !self.files_data.lock().await.is_empty() {
+    let should_aggregate = {
+      let mut files = lock_pending(&self.files_data);
+      files.paused = false;
+      files.schedule_if_needed()
+    };
+    if should_aggregate {
       let _ = self.exec_aggregate_tx.send(ExecAggregateEvent::Execute);
     }
   }
@@ -190,8 +311,8 @@ impl Executor {
       event_aggregate_handler,
       Arc::clone(&self.exec_aggregate_rx),
       Arc::clone(&self.files_data),
+      self.exec_aggregate_tx.clone(),
       self.aggregate_timeout as u64,
-      Arc::clone(&self.aggregate_running),
     ));
 
     self.execute_handle = Some(create_execute_task(
@@ -209,20 +330,26 @@ fn create_execute_task(
     while let Some(exec_event) = exec_rx.lock().await.recv().await {
       match exec_event {
         ExecEvent::Execute(batch_events) => {
-          for event in batch_events {
-            // Handle each event based on its kind
+          let handle_event = |event: crate::FsEvent| {
             let path = event.path.to_string_lossy().to_string();
             match event.kind {
               super::FsEventKind::Change | super::FsEventKind::Create => {
-                if event_handler.on_change(path).is_err() {
+                event_handler.on_change(path)
+              }
+              super::FsEventKind::Remove => event_handler.on_delete(path),
+            }
+          };
+
+          match batch_events {
+            EventBatch::Shared(events) => {
+              for event in events {
+                if handle_event(event).is_err() {
                   break;
                 }
               }
-              super::FsEventKind::Remove => {
-                if event_handler.on_delete(path).is_err() {
-                  break;
-                }
-              }
+            }
+            EventBatch::Split { undelayed, .. } => {
+              let _ = handle_event(undelayed);
             }
           }
         }
@@ -238,9 +365,9 @@ fn create_execute_task(
 fn create_execute_aggregate_task(
   event_handler: Box<dyn EventAggregateHandler + Send>,
   exec_aggregate_rx: ThreadSafetyReceiver<ExecAggregateEvent>,
-  files: ThreadSafety<FilesData>,
+  pending_files: PendingFiles,
+  exec_aggregate_tx: UnboundedSender<ExecAggregateEvent>,
   aggregate_timeout: u64,
-  running: Arc<AtomicBool>,
 ) -> tokio::task::JoinHandle<()> {
   let future = async move {
     loop {
@@ -255,23 +382,43 @@ fn create_execute_aggregate_task(
       };
 
       if let ExecAggregateEvent::Execute = aggregate_rx {
-        running.store(true, Ordering::Relaxed);
         // Wait for the aggregate timeout before executing the handler
         tokio::time::sleep(tokio::time::Duration::from_millis(aggregate_timeout)).await;
 
         // Get the files to process
         let files = {
-          let mut files = files.lock().await;
-          if files.is_empty() {
-            running.store(false, Ordering::Relaxed);
+          let mut files = lock_pending(&pending_files);
+          if files.paused {
+            files.aggregate_scheduled = false;
             continue;
           }
-          std::mem::take(&mut *files)
+          // A stale queued Execute must not replace a batch that is still
+          // waiting for the JS consumer to acknowledge or drain it.
+          if files.in_flight.is_some() {
+            continue;
+          }
+          if files.is_empty() {
+            files.aggregate_scheduled = false;
+            continue;
+          }
+          files.claim()
         };
 
         // Call the event handler with the changed and deleted files
-        event_handler.on_event_handle(files.changed, files.deleted);
-        running.store(false, Ordering::Relaxed);
+        let generation = files.generation;
+        let defer_acknowledgement =
+          event_handler.on_event_handle_with_generation(files.changed, files.deleted, generation);
+        if !defer_acknowledgement {
+          let should_aggregate = {
+            let mut files = lock_pending(&pending_files);
+            files.acknowledge(generation);
+            files.aggregate_scheduled = false;
+            files.schedule_if_needed()
+          };
+          if should_aggregate {
+            let _ = exec_aggregate_tx.send(ExecAggregateEvent::Execute);
+          }
+        }
       }
     }
   };
