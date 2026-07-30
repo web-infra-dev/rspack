@@ -597,14 +597,17 @@ impl EsmLibraryPlugin {
       escaped_identifiers.insert(identifier, parts);
     }
 
-    let runtime_module_used_names = Self::collect_rspack_export_runtime_used_names(compilation);
-    let deconflict_context = DeconflictSymbolsContext {
-      runtime_module_used_names: &runtime_module_used_names,
-      escaped_names: &escaped_names,
-      escaped_identifiers: &escaped_identifiers,
-    };
-
     for chunk_link in link.values_mut() {
+      let runtime_module_used_names = Self::collect_rspack_export_runtime_used_names(
+        compilation,
+        chunk_link,
+        &concate_modules_map,
+      );
+      let deconflict_context = DeconflictSymbolsContext {
+        runtime_module_used_names: &runtime_module_used_names,
+        escaped_names: &escaped_names,
+        escaped_identifiers: &escaped_identifiers,
+      };
       self.deconflict_symbols(
         compilation,
         &mut concate_modules_map,
@@ -956,7 +959,11 @@ var {} = {{}};
     }
   }
 
-  fn collect_rspack_export_runtime_used_names(compilation: &Compilation) -> FxHashSet<Atom> {
+  fn collect_rspack_export_runtime_used_names(
+    compilation: &Compilation,
+    chunk_link: &ChunkLinkContext,
+    concate_modules_map: &IdentifierIndexMap<ModuleInfo>,
+  ) -> FxHashSet<Atom> {
     let mut used_names = FxHashSet::default();
     let runtime_template = compilation
       .runtime_template
@@ -965,7 +972,34 @@ var {} = {{}};
       return used_names;
     }
 
+    let runtime_requirements = chunk_link
+      .decl_modules
+      .iter()
+      .chain(chunk_link.hoisted_modules.iter())
+      .fold(RuntimeGlobals::default(), |requirements, module| {
+        requirements | *concate_modules_map[module].get_runtime_requirements()
+      });
+
     used_names.extend(all_runtime_module_variables().map(Atom::from));
+
+    if runtime_requirements.is_empty()
+      && chunk_link.decl_modules.is_empty()
+      && compilation
+        .build_chunk_graph_artifact
+        .chunk_graph
+        .get_chunk_modules_identifier(&chunk_link.chunk)
+        .iter()
+        .all(|module| {
+          compilation
+            .get_module_graph()
+            .module_by_identifier(module)
+            .is_some_and(|module| {
+              module.build_meta().exports_type() == BuildMetaExportsType::Namespace
+            })
+        })
+    {
+      return used_names;
+    }
 
     for (_, runtime_global) in RuntimeGlobals::all().iter_names() {
       used_names.insert(
@@ -980,7 +1014,6 @@ var {} = {{}};
 
     for runtime_variable in [
       RuntimeVariable::Require,
-      RuntimeVariable::Context,
       RuntimeVariable::Modules,
       RuntimeVariable::ModuleCache,
       RuntimeVariable::Module,

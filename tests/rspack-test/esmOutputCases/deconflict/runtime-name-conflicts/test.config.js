@@ -1,0 +1,17 @@
+const fs = require("fs");
+const path = require("path");
+
+module.exports = {
+	afterExecute(options) {
+		if (!globalThis.__RSPACK_TEST_RUNTIME_MODE_RSPACK) return;
+
+		const source = fs.readFileSync(
+			path.join(options.output.path, "main.mjs"),
+			"utf-8",
+		);
+
+		expect(source).toContain("function context()");
+		expect(source).toContain("as exports");
+		expect(source).not.toContain("function __nested_rspack");
+	},
+};

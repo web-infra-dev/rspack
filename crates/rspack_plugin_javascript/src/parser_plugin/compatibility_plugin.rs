@@ -26,11 +26,13 @@ pub struct CompatibilityPlugin;
 
 impl CompatibilityPlugin {
   fn nested_require_name<'a>(&self, parser: &'a JavascriptParser) -> &'a str {
-    if parser.compiler_options.experiments.runtime_mode == RuntimeMode::Rspack {
-      parser.parser_runtime_requirements.context.as_str()
-    } else {
-      parser.parser_runtime_requirements.require.as_str()
-    }
+    parser.parser_runtime_requirements.require.as_str()
+  }
+
+  fn is_top_level_esm_binding(&self, parser: &JavascriptParser) -> bool {
+    parser.compiler_options.experiments.runtime_mode == RuntimeMode::Rspack
+      && parser.is_esm
+      && parser.is_top_level_scope()
   }
 
   pub fn browserify_require_handler(
@@ -106,6 +108,10 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CompatibilityPlugin {
   ) -> Option<bool> {
     let ident = decl.name.as_ident()?;
 
+    if self.is_top_level_esm_binding(parser) {
+      return None;
+    }
+
     if ident.id.sym.as_str() == self.nested_require_name(parser) {
       let span = ident.span();
       let start = span.real_lo();
@@ -147,6 +153,10 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CompatibilityPlugin {
     ident: &Ident,
     for_name: &str,
   ) -> Option<bool> {
+    if self.is_top_level_esm_binding(parser) {
+      return None;
+    }
+
     if for_name == parser.parser_runtime_requirements.exports {
       self.tag_nested_require_data(
         parser,
@@ -186,7 +196,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CompatibilityPlugin {
     let fn_decl = stmt.as_function_decl()?;
     let ident = fn_decl.ident()?;
     let name = &ident.sym;
-    if name.as_str() != self.nested_require_name(parser) {
+    if self.is_top_level_esm_binding(parser) || name.as_str() != self.nested_require_name(parser) {
       None
     } else {
       self.tag_nested_require_data(

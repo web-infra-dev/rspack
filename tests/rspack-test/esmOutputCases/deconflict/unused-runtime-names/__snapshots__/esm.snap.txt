@@ -1,0 +1,30 @@
+```mjs title=main.mjs
+// ./index.js
+function rspackRequire() {}
+function publicPath() {}
+function modules() {}
+function context() {}
+const index_exports = 42;
+
+const actualNames = [
+	rspackRequire.name,
+	publicPath.name,
+	modules.name,
+	context.name,
+];
+
+it("should not reserve runtime names when no runtime is emitted", () => {
+	expect(actualNames).toEqual([
+		"rspackRequire",
+		"publicPath",
+		"modules",
+		"context",
+	]);
+	expect(index_exports).toBe(42);
+	expect((/* inlined export .value */42)).toBe(42);
+});
+
+
+export { actualNames, context, index_exports as exports, modules, publicPath, rspackRequire };
+
+```
