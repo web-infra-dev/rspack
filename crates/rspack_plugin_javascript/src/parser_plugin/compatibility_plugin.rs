@@ -152,7 +152,9 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CompatibilityPlugin {
         ident.span().real_lo(),
         ident.span().real_hi(),
       );
-      return Some(true);
+      if !parser.is_top_level_scope() {
+        return Some(true);
+      }
     } else if for_name == self.nested_require_name(parser) {
       let span = ident.span();
       let start = span.real_lo();
