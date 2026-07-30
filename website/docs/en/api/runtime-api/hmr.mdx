@@ -311,6 +311,7 @@ The optional `options` object can include the following properties:
 - `ignoreUnaccepted` (boolean): Ignore changes made to unaccepted modules.
 - `ignoreDeclined` (boolean): Ignore changes made to declined modules.
 - `ignoreErrored` (boolean): Ignore errors thrown in accept handlers, error handlers and while reevaluating module.
+- `preserveDisposedModuleFactories` (boolean): Only keep factories for modules removed from the compilation readable until the current apply transaction settles. Defaults to `false` and is intended for activating modules through lazy compilation.
 - `onDeclined` (function(info)): Notifier for declined modules
 - `onUnaccepted` (function(info)): Notifier for unaccepted modules
 - `onAccepted` (function(info)): Notifier for accepted modules

@@ -1,0 +1,97 @@
+# Case preserve-disposed-module-factories: Step 2
+
+## Changed Files
+- module.js
+
+## Asset Files
+- Bundle: bundle.js
+- Manifest: main.LAST_HASH.hot-update.json, size: 36
+- Update: main.LAST_HASH.hot-update.js, size: 232
+
+## Manifest
+
+### main.LAST_HASH.hot-update.json
+
+```json
+{"c":["main"],"r":[],"m":["./b.js"]}
+```
+
+
+## Update
+
+
+### main.LAST_HASH.hot-update.js
+
+#### Changed Modules
+- ./module.js
+
+#### Changed Runtime Modules
+- webpack/runtime/get_full_hash
+
+#### Changed Content
+```js
+self["rspackHotUpdate"]("main", {
+"./module.js"(module) {
+module.exports = () => "current";
+
+
+},
+
+},function(__webpack_require__) {
+// webpack/runtime/get_full_hash
+(() => {
+__webpack_require__.h = () => ("CURRENT_HASH")
+})();
+
+}
+);
+```
+
+
+
+
+## Runtime
+### Status
+
+```txt
+check => prepare => dispose => apply => idle
+```
+
+
+
+### JavaScript
+
+#### Outdated
+
+Outdated Modules:
+- ./a.js
+- ./b.js
+- ./module.js
+
+
+Outdated Dependencies:
+```json
+{
+  "./index.js": [
+    "./module.js"
+  ]
+}
+```
+
+#### Updated
+
+Updated Modules:
+- ./a.js
+- ./b.js
+- ./module.js
+
+Updated Runtime:
+- `__webpack_require__.h`
+
+
+#### Callback
+
+Accepted Callback:
+- ./module.js
+
+Disposed Callback:
