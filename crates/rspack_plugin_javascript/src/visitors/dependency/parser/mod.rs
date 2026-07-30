@@ -815,6 +815,12 @@ impl<'parser> JavascriptParser<'parser> {
     self.module_layer
   }
 
+  /// The source order assigned to the import declaration currently being
+  /// visited by `import_specifier` parser hooks.
+  pub fn current_esm_import_order(&self) -> i32 {
+    self.last_esm_import_order
+  }
+
   pub fn get_variable_info(&mut self, name: &Atom) -> Option<&VariableInfo> {
     let id = self.definitions_db.get(self.definitions, name)?;
     Some(self.definitions_db.expect_get_variable(id))
