@@ -304,11 +304,50 @@
 	return internalApply(options);
 }
 
+<%- fn("finalizeModuleFactoryTransaction") %>(moduleFactoryTransaction) {
+	if (moduleFactoryTransaction.finalized) return;
+	moduleFactoryTransaction.finalized = true;
+	var finalizers = moduleFactoryTransaction.finalizers;
+	moduleFactoryTransaction.finalizers = [];
+	finalizers.forEach(function (finalize) {
+		finalize();
+	});
+}
+
 <%- fn("internalApply") %>(options) {
 	options = options || {};
+	if (!options.preserveDisposedModuleFactories) {
+		return internalApplyUpdate(options);
+	}
+
+	var moduleFactoryTransaction = {
+		finalizers: [],
+		finalized: false
+	};
+	var applyResult;
+	try {
+		applyResult = internalApplyUpdate(options, moduleFactoryTransaction);
+	} catch (error) {
+		finalizeModuleFactoryTransaction(moduleFactoryTransaction);
+		throw error;
+	}
+
+	return applyResult.then(
+		function (result) {
+			finalizeModuleFactoryTransaction(moduleFactoryTransaction);
+			return result;
+		},
+		function (error) {
+			finalizeModuleFactoryTransaction(moduleFactoryTransaction);
+			throw error;
+		}
+	);
+}
+
+<%- fn("internalApplyUpdate") %>(options, moduleFactoryTransaction) {
 	applyInvalidatedModules();
 	var results = currentUpdateApplyHandlers.map(function (handler) {
-		return handler(options);
+		return handler(options, moduleFactoryTransaction);
 	});
 	currentUpdateApplyHandlers = undefined;
 	var errors = results
@@ -350,13 +389,16 @@
 
 	return Promise.all([disposePromise, applyPromise]).then(function () {
 		if (error) {
+			if (moduleFactoryTransaction) {
+				finalizeModuleFactoryTransaction(moduleFactoryTransaction);
+			}
 			return setStatus("fail").then(function () {
 				throw error;
 			});
 		}
 
 		if (queuedInvalidatedModules) {
-			return internalApply(options).then(function (list) {
+			return internalApplyUpdate(options, moduleFactoryTransaction).then(function (list) {
 				outdatedModules.forEach(function (moduleId) {
 					if (list.indexOf(moduleId) < 0) list.push(moduleId);
 				});
@@ -364,6 +406,9 @@
 			});
 		}
 
+		if (moduleFactoryTransaction) {
+			finalizeModuleFactoryTransaction(moduleFactoryTransaction);
+		}
 		return setStatus("idle").then(function () {
 			return outdatedModules;
 		});
