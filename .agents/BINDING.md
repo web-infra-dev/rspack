@@ -47,18 +47,33 @@ the kind of value exposed to JavaScript:
   setter, or method call re-enters Rust and can occur after the target has been removed, dropped, or
   revoked.
 
-For an N-API class, the binding must validate or re-resolve the native target on every getter,
-setter, and method call before dereferencing it. If the target is no longer available, the
-operation must fail with a clear error, as access through a stale `Module` instance does today. A
-setter must additionally verify that mutation is allowed in the current compilation phase.
+For an N-API class, each getter, setter, and method must follow the class's explicit stale-target
+policy before dereferencing native data. Current binding classes do not share one generic policy:
+
+- `Compilation` JS Object deliberately stores the stable address of `Compiler.compilation`. Rebuild replaces
+  the `Compilation` value at that address, so every retained JavaScript `Compilation` wrapper for
+  the compiler accesses the latest native compilation. Its stored `CompilationId` is not currently
+  used as a stale-access check. This preserves compatibility with webpack plugins that continue
+  using a build's `Compilation` after `done`, when the next watch rebuild may already have started.
+- Wrappers that store an identifier, including module wrappers, may resolve that identifier against
+  the current compilation. An old wrapper can therefore expose the current matching object's data
+  instead of historical data. If the current target cannot be found, the API may fail according to
+  that wrapper's access policy.
+- Some callback-scoped wrappers also carry a direct pointer for access during the active hook or
+  loader. That pointer is not a cross-build fallback and must not be used after the callback's
+  supported execution window.
+- A class whose policy revokes access must fail with a clear error once its target is unavailable.
+
+A setter must additionally verify that mutation is allowed in the current compilation phase.
 
 - Every native-backed class needs a Rust owner, stable identity, valid access window, permitted
-  operations, and revocation rule.
-- Treat `Compilation`, `Module`, `Chunk`, graph objects, dependencies, and blocks as
-  compilation-scoped.
-- After a compilation rebuild, object removal, compiler close, or owner drop, fail with a
-  deterministic error. Never dereference a stale pointer or silently attach an old wrapper to a
-  different native object whose identifier was reused.
+  operations, and an explicit policy for rebuild, removal, compiler close, and owner drop.
+- Treat the underlying `Compilation`, `Module`, `Chunk`, graph, dependency, and block data as
+  compilation-scoped. A JavaScript wrapper may have a longer compatibility lifetime only when its
+  re-resolution behavior is deliberate and documented.
+- After a rebuild or target removal, follow the class's documented re-resolution or revocation
+  policy. Keep direct-pointer access inside its callback-scoped execution window. After compiler
+  close or owner drop, never dereference a dangling native pointer.
 - Prefer a plain owned object when the API only needs a snapshot. When live native behavior is
   required, prefer closure-based access that returns owned snapshots or identifiers.
 
