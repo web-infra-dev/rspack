@@ -1,8 +1,8 @@
 import { fileURLToPath } from 'node:url';
-import { defineConfig } from '@rslib/core';
+import { define } from 'rstack';
 import packageJson from './package.json' with { type: 'json' };
 
-export default defineConfig({
+define.lib({
   lib: [
     {
       format: 'esm',

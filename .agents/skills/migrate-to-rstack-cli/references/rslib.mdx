@@ -1,0 +1,29 @@
+# Rslib Migration
+
+Read this reference when the project uses `@rslib/core`, `rslib.config.*`, `rslib` commands, library build config, or Rslib type imports.
+
+## Steps
+
+1. Replace the `rslib` executable prefix with `rs lib`. Preserve supported arguments after `rs lib`.
+2. Rename or replace the `rslib.config.*` with `rstack.config.*`, then move its export into `define.lib`, replacing Rslib's `defineConfig()` wrapper and import. Preserve async functions, config parameters, plugins, and all options.
+3. Keep build plugins, but verify that Rsbuild plugin peer ranges support the core version installed through `rstack`. Upgrade incompatible plugins before migrating.
+4. Replace `@rslib/core/types` references with `rstack/types` where applicable.
+5. Replace custom `--config` paths with the migrated `rstack.config.*` path.
+6. Search for remaining direct `@rslib/core` imports. Remove the direct dependency only when no source or runtime API still needs it.
+7. Delete `rslib.config.*` after the migrated library commands load equivalent config.
+
+## Config Pattern
+
+```ts
+import { define } from 'rstack';
+
+define.lib({
+  lib: [{ dts: true }],
+});
+```
+
+If tests also use Rstest, read [rstest.mdx](rstest.mdx). `rs test` derives an Rslib test extension from `define.lib` unless `define.test` sets `extends`.
+
+## Validate
+
+Run every migrated library build from its directory and compare its outputs.

@@ -4,14 +4,14 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { type Edit, Lang, parse, type SgNode } from '@ast-grep/napi';
 import type { Kinds, TypesMap } from '@ast-grep/napi/types/staticTypes';
+import { define } from 'rstack';
 import {
-  defineConfig,
   type LibConfig,
   type RsbuildPlugin,
   type Rspack,
   rsbuild,
   rspack,
-} from '@rslib/core';
+} from 'rstack/lib';
 import packageJson from './package.json' with { type: 'json' };
 import prebundleConfig from './prebundle.config.js';
 
@@ -193,7 +193,7 @@ const removeDtsExportPlugin: RsbuildPlugin = {
   },
 };
 
-export default defineConfig({
+define.lib({
   plugins: [mfRuntimePlugin, codmodPlugin, removeDtsExportPlugin],
   lib: [
     merge(commonLibConfig, {

@@ -1,13 +1,15 @@
 ---
 name: create-draft-release-notes
 description: Create or update draft GitHub release notes, or output organized Markdown when draft creation is unavailable. Use for release notes, draft releases, release PR checks, npm staged publishing checks, and optional highlights.
+metadata:
+  internal: true
 ---
 
 # Create Draft Release Notes
 
 ## Overview
 
-Create a GitHub draft release when possible, organize the generated notes by conventional commit type, and save the organized body back to the draft. If `gh` cannot create or edit the draft, return the organized Markdown in the conversation with manual creation steps. Preserve each release note item exactly; only split accidentally joined bullets, move bullets into sections, and adjust headings. Add a top `## Highlights` section only when the user explicitly asks for highlights.
+Create a GitHub draft release when possible, organize the generated notes by conventional commit type, and save the organized body back to the draft. If `gh` cannot create or edit the draft, return the organized Markdown in the conversation with manual creation steps. Preserve each release note item exactly except stale release PRs; otherwise only split accidentally joined bullets, move bullets into sections, and adjust headings. Add a top `## Highlights` section only when the user explicitly asks for highlights.
 
 ## Security Notes
 
@@ -136,7 +138,7 @@ Use this when the user provides generated release note Markdown and only wants i
 node .agents/skills/create-draft-release-notes/scripts/create-draft-release-notes.mjs release-notes.md
 ```
 
-Omit the file path to read from stdin. Review that every original item still appears once and non-item sections remain.
+Omit the file path to read from stdin. Review that every retained item appears once and non-item sections remain.
 
 ## Optional Highlights Workflow
 
@@ -152,7 +154,7 @@ Write highlights before `## What's Changed`:
 - Use one `###` heading per highlight.
 - Keep each highlight to a short paragraph plus an optional fenced code example.
 - Include examples only when the API/configuration is clear.
-- Do not rewrite or reorder changelog items below `## What's Changed`.
+- Do not rewrite or reorder retained changelog items below `## What's Changed`.
 - Replace an existing top `## Highlights` block instead of adding another one.
 
 Example shape:
@@ -201,6 +203,8 @@ Keep each category in generated top-to-bottom order.
 
 ## Preservation Rules
 
+- Remove bullets that clearly identify a release PR for `$previous_tag` or an older published version, such as `release: v1.0.0` in `v1.0.1` notes; keep current-version and ambiguous items.
+- If anything is removed, list the original bullets verbatim for the user outside the release note body.
 - Do not rewrite bullet text, authors, URLs, PR numbers, package names, scopes, punctuation, or casing.
 - Do not drop comments, `**Full Changelog**`, or other non-item sections.
 - Do not add commentary to the release note itself, except for a requested `## Highlights` section.

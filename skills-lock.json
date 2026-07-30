@@ -4,14 +4,26 @@
     "create-draft-release-notes": {
       "source": "rstackjs/agent-skills",
       "sourceType": "github",
-      "skillPath": "skills/create-draft-release-notes/SKILL.md",
-      "computedHash": "cb32485c5a35e45acba920a690a14d10f878c92fbbd2312ec3d0ce4bf2012abc"
+      "skillPath": ".agents/skills/create-draft-release-notes/SKILL.md",
+      "computedHash": "1c07601e93b35361c92cd6f067ddba3c710c27e98fd42f7b11e74b446590d1a9"
+    },
+    "migrate-to-rstack-cli": {
+      "source": "rstackjs/rstack-cli",
+      "sourceType": "github",
+      "skillPath": ".agents/skills/migrate-to-rstack-cli/SKILL.md",
+      "computedHash": "e9423c03ff9177c0b32ad407cf8c51a8492993b86cd0b204a53ee199389d6b49"
     },
     "release-blog-writer": {
       "source": "rstackjs/agent-skills",
       "sourceType": "github",
-      "skillPath": "skills/release-blog-writer/SKILL.md",
-      "computedHash": "24bdde0407813d43e4f42336fa0d433f53e5c5c8a516f46acbc3505c557f68ea"
+      "skillPath": ".agents/skills/release-blog-writer/SKILL.md",
+      "computedHash": "982e423497efa0a1266e06e14f880264c791e22b33144ce283fcd38041a7e814"
+    },
+    "rstack-cli-best-practices": {
+      "source": "rstackjs/rstack-cli",
+      "sourceType": "github",
+      "skillPath": ".agents/skills/rstack-cli-best-practices/SKILL.md",
+      "computedHash": "57b2b9ddf2bceba987733139e0c9205b2999c10f5a668e95dc86c783e1fc1065"
     }
   }
 }
