@@ -491,7 +491,7 @@ export class NodeRunner implements ITestRunner {
     return (currentDirectory, modulePath, context = {}) => {
       if (!SourceTextModule) {
         throw new Error(
-          "Running this test requires '--experimental-vm-modules'.\nRun with 'node --experimental-vm-modules node_modules/@rstest/core/bin/rstest'.",
+          "Running this test requires '--experimental-vm-modules'.\nRun with 'node --experimental-vm-modules node_modules/rstack/bin/rs.js test'.",
         );
       }
       const _require = this.getRequire();

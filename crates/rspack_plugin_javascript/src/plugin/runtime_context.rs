@@ -152,7 +152,6 @@ var module = ({module_cache}[moduleId] = {{"#,
     let module_cache = runtime_requirements.contains(RuntimeGlobals::MODULE_CACHE);
     let intercept_module_execution =
       runtime_requirements.contains(RuntimeGlobals::INTERCEPT_MODULE_EXECUTION);
-    let module_used = runtime_requirements.contains(RuntimeGlobals::MODULE);
     let has_custom_runtime_module = compilation
       .build_chunk_graph_artifact
       .chunk_graph
@@ -167,6 +166,19 @@ var module = ({module_cache}[moduleId] = {{"#,
       || has_custom_runtime_module;
     let need_module_defer =
       runtime_requirements.contains(RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT);
+    let module_used = compilation
+      .build_chunk_graph_artifact
+      .chunk_graph
+      .get_chunk_entry_modules(chunk_ukey)
+      .iter()
+      .any(|module_identifier| {
+        ChunkGraph::get_module_runtime_requirements(
+          compilation,
+          *module_identifier,
+          chunk.runtime(),
+        )
+        .is_some_and(|requirements| requirements.contains(RuntimeGlobals::MODULE))
+      });
     let use_require = require_function || intercept_module_execution || module_used;
     let mut header: Vec<Cow<str>> = Vec::new();
     let mut startup: Vec<Cow<str>> = Vec::new();

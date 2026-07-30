@@ -111,8 +111,8 @@ use std::{
 use napi::{CallContext, bindgen_prelude::*};
 pub use raw_options::{CustomPluginBuilder, register_custom_plugin};
 use rspack_core::{
-  BoxDependency, Compilation, CompilerId, CompilerPlatform, EntryOptions, ModuleIdentifier,
-  PluginExt,
+  BoxDependency, Compilation, CompilationId, CompilerId, CompilerPlatform, EntryOptions,
+  ModuleIdentifier, PluginExt,
 };
 use rspack_error::Diagnostic;
 use rspack_fs::{IntermediateFileSystem, NativeFileSystem, ReadableFileSystem};
@@ -153,6 +153,62 @@ pub const EXPECTED_RSPACK_CORE_VERSION: &str = rspack_workspace::rspack_pkg_vers
 
 thread_local! {
   static COMPILER_REFERENCES: RefCell<FxHashMap<CompilerId, WeakReference<JsCompiler>>> = Default::default();
+}
+
+pub(crate) fn with_compilation<R>(
+  compilation_id: CompilationId,
+  f: impl FnOnce(&Compilation) -> napi::Result<R>,
+) -> napi::Result<R> {
+  let compiler_reference = COMPILER_REFERENCES.with(|ref_cell| {
+    let references = ref_cell.borrow();
+    references
+      .values()
+      .find(|reference| {
+        reference
+          .get()
+          .is_some_and(|compiler| compiler.compiler.compilation.id() == compilation_id)
+      })
+      .cloned()
+  });
+
+  let Some(compiler) = compiler_reference
+    .as_ref()
+    .and_then(|compiler_reference| compiler_reference.get())
+  else {
+    return Err(napi::Error::from_reason(format!(
+      "Unable to access compilation with id = {compilation_id:?} now. The Compilation has been removed on the Rust side or the Compiler has been garbage collected by JavaScript."
+    )));
+  };
+
+  f(&compiler.compiler.compilation)
+}
+
+pub(crate) fn with_compilation_mut<R>(
+  compilation_id: CompilationId,
+  f: impl FnOnce(&mut Compilation) -> napi::Result<R>,
+) -> napi::Result<R> {
+  let mut compiler_reference = COMPILER_REFERENCES.with(|ref_cell| {
+    let references = ref_cell.borrow();
+    references
+      .values()
+      .find(|reference| {
+        reference
+          .get()
+          .is_some_and(|compiler| compiler.compiler.compilation.id() == compilation_id)
+      })
+      .cloned()
+  });
+
+  let Some(compiler) = compiler_reference
+    .as_mut()
+    .and_then(|compiler_reference| compiler_reference.get_mut())
+  else {
+    return Err(napi::Error::from_reason(format!(
+      "Unable to access compilation with id = {compilation_id:?} now. The Compilation has been removed on the Rust side or the Compiler has been garbage collected by JavaScript."
+    )));
+  };
+
+  f(&mut compiler.compiler.compilation)
 }
 
 type EntryDependencyCacheKey = (String, String, Option<String>, Option<String>);

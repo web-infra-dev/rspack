@@ -1,7 +1,6 @@
-import path from 'node:path';
-import { defineConfig } from '@rsbuild/core';
+import { define } from 'rstack';
 
-export default defineConfig({
+define.app({
   source: {
     entry: {
       'basic-react': './cases/basic-react/index.js',
@@ -11,9 +10,6 @@ export default defineConfig({
     template({ entryName }) {
       return `./cases/${entryName}/index.html`;
     },
-  },
-  output: {
-    target: 'web',
   },
   server: {
     port: 8900,
