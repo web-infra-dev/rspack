@@ -1135,10 +1135,10 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for RstestParserPlugin {
         .obj
         .as_meta_prop()
         .is_some_and(|meta| meta.kind == MetaPropKind::ImportMeta)
-      || !member
+      || member
         .prop
         .as_ident()
-        .is_some_and(|property| property.sym == "rstest")
+        .is_none_or(|property| property.sym != "rstest")
     {
       return None;
     }
