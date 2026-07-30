@@ -30,17 +30,6 @@ impl CacheDirectory {
     Self::is_valid_hash(value)
   }
 
-  pub(crate) fn is_legacy_version(value: impl AsRef<str>) -> bool {
-    let Some(value) = value.as_ref().strip_prefix(Self::PREFIX) else {
-      return false;
-    };
-    let Some((compiler_hash, version_hash)) = value.split_once('_') else {
-      return false;
-    };
-
-    Self::is_valid_hash(compiler_hash) && Self::is_valid_hash(version_hash)
-  }
-
   pub fn as_str(&self) -> &str {
     &self.0
   }
@@ -84,18 +73,5 @@ mod tests {
       "rspack_v_aaaaaaaaaaaaaaaa_0000000000000001_extra"
     ));
     assert!(!CacheDirectory::is_valid("rspack_v_invalid"));
-  }
-
-  #[test]
-  fn recognizes_legacy_version_directories() {
-    assert!(CacheDirectory::is_legacy_version(
-      "rspack_v_aaaaaaaaaaaaaaaa_0000000000000001"
-    ));
-    assert!(!CacheDirectory::is_legacy_version(
-      "rspack_v_0000000000000001"
-    ));
-    assert!(!CacheDirectory::is_legacy_version(
-      "rspack_v_aaaaaaaaaaaaaaaa_0000000000000001_extra"
-    ));
   }
 }

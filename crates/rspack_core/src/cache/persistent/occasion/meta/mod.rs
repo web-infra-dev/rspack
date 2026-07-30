@@ -59,11 +59,15 @@ impl Occasion for MetaOccasion {
 
   #[tracing::instrument("Cache::Occasion::Meta::recovery", skip_all)]
   async fn recovery(&self, storage: &dyn Storage) -> Result<()> {
-    let scopes = storage.scopes().await?;
     let Some((_, value)) = storage.load(SCOPE).await?.pop() else {
-      if scopes
+      // Loading a missing scope may create an empty META bucket, while BUILD
+      // may exist before the first artifacts are saved. Any other scope cannot
+      // be checked against cache.version and is unsafe to reuse.
+      if storage
+        .scopes()
+        .await?
         .iter()
-        .any(|scope| scope != SnapshotScope::BUILD.name())
+        .any(|scope| scope != SCOPE && scope != SnapshotScope::BUILD.name())
       {
         return Err(error!("persistent cache version is missing"));
       }
