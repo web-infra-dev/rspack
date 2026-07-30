@@ -107,6 +107,39 @@ fn move_empty_non_initial_entrypoints(
   }
 
   for (chunk_ukey, module, group) in entrypoints {
+    // The replacement becomes the entrypoint chunk, so it also owns the async entry's output
+    // identity. Clear that identity from the old runtime chunk to avoid `[name]` collisions.
+    let name = {
+      let [Some(new_chunk), Some(old_chunk)] = compilation
+        .build_chunk_graph_artifact
+        .chunk_by_ukey
+        .get_many_mut([&new_chunk_ukey, &chunk_ukey])
+      else {
+        panic!("should have both chunks")
+      };
+
+      let name = old_chunk.name().map(ToOwned::to_owned);
+      let filename_template = old_chunk.filename_template().cloned();
+      if name.is_some() {
+        old_chunk.set_name(None);
+        old_chunk.set_filename_template(None);
+
+        if new_chunk.name().is_none() {
+          new_chunk.set_name(name.clone());
+          new_chunk.set_filename_template(filename_template);
+        }
+      }
+
+      name
+    };
+
+    if let Some(name) = name {
+      compilation
+        .build_chunk_graph_artifact
+        .named_chunks
+        .insert(name, new_chunk_ukey);
+    }
+
     compilation
       .build_chunk_graph_artifact
       .chunk_graph

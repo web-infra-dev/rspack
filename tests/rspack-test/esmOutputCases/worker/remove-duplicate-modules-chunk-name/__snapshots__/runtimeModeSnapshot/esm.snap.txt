@@ -1,0 +1,87 @@
+```mjs title=main.mjs
+export const __rspack_esm_id = "main";
+export const __rspack_esm_ids = ["main"];
+export const __rspack_modules = {
+"./index.js"
+/*!******************!*\
+  !*** ./index.js ***!
+  \******************/
+(__unused_rspack_module, __rspack_exports, __rspack_context) {
+__rspack_context.N(__rspack_exports);
+/* import */ var node_worker_threads__rspack_import_0 = __rspack_context.r(/*! node:worker_threads */ "node:worker_threads");
+/* import */ var node_worker_threads__rspack_import_0_default = /*#__PURE__*/__rspack_context.n(node_worker_threads__rspack_import_0);
+
+
+it("should preserve a duplicated worker entry name", async () => {
+	const worker = new node_worker_threads__rspack_import_0.Worker(
+		new URL(
+			/* webpackChunkName: "named-worker" */ /* worker import */__rspack_context.p + __rspack_context.u("named-worker"), __rspack_context.b
+		), { type: "module" }
+	);
+	let result;
+
+	try {
+		result = await new Promise((resolve, reject) => {
+			worker.on("message", resolve);
+			worker.on("error", reject);
+			worker.on("exit", code => {
+				reject(new Error(`Worker stopped before responding with exit code ${code}`));
+			});
+		});
+	} finally {
+		await worker.terminate();
+	}
+
+	expect(result).toBe("worker result");
+});
+
+
+},
+
+};
+import { __rspack_context } from './runtime.mjs';
+var __rspack_exec = function(moduleId) { return __rspack_context.r(__rspack_context.s = moduleId); }
+import * as __rspack_chunk_1 from './node_worker_threads.mjs';
+__rspack_context.C(__rspack_chunk_1);
+import * as __rspack_chunk_2 from './main.mjs';
+__rspack_context.C(__rspack_chunk_2);
+var __rspack_exports = __rspack_exec("./index.js");
+```
+
+```mjs title=named-worker.mjs
+export const __rspack_esm_id = "named-worker";
+export const __rspack_esm_ids = ["named-worker"];
+export const __rspack_modules = {
+"./lib.js"
+/*!****************!*\
+  !*** ./lib.js ***!
+  \****************/
+(__unused_rspack_module, __rspack_exports, __rspack_context) {
+__rspack_context.N(__rspack_exports);
+__rspack_context.d(__rspack_exports, {
+  "default": () => (__rspack_default_export)
+});
+/* import */ var node_worker_threads__rspack_import_0 = __rspack_context.r(/*! node:worker_threads */ "node:worker_threads");
+/* import */ var node_worker_threads__rspack_import_0_default = /*#__PURE__*/__rspack_context.n(node_worker_threads__rspack_import_0);
+
+
+const namedWorkerModuleMarker = "worker result";
+
+if (node_worker_threads__rspack_import_0.parentPort) node_worker_threads__rspack_import_0.parentPort.postMessage(namedWorkerModuleMarker);
+
+/* export default */ const __rspack_default_export = ("lib");
+
+
+},
+
+};
+import { __rspack_context } from './0.mjs';
+var __rspack_exec = function(moduleId) { return __rspack_context.r(__rspack_context.s = moduleId); }
+import * as __rspack_chunk_1 from './node_worker_threads.mjs';
+__rspack_context.C(__rspack_chunk_1);
+import * as __rspack_chunk_2 from './named-worker.mjs';
+__rspack_context.C(__rspack_chunk_2);
+var __rspack_exports = __rspack_exec("./lib.js");var __rspack_exportsdefault = __rspack_exports["default"];
+export { __rspack_exportsdefault as default };
+
+```
