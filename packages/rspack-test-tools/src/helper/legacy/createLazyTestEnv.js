@@ -118,7 +118,7 @@ export function createLazyTestEnv(globalTimeout = 2000, nameSuffix = '') {
         );
       });
     },
-    /** @type {import('@rstest/core').Expect} */
+    /** @type {import('rstack/test').Expect} */
     expect,
     rstest,
   };
