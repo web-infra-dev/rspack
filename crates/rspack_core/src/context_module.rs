@@ -1435,7 +1435,7 @@ impl Module for ContextModule {
     if self.options.context_options.glob_exhaustive {
       id += " globExhaustive";
     }
-    append_context_identifier(&mut id, &self.options.context_options, " resolveContext: ");
+    append_context_identifier(&mut id, &self.options.context_options, " context: ");
     Some(Cow::Owned(id))
   }
 
@@ -1646,7 +1646,7 @@ fn create_identifier(options: &ContextModuleOptions, resource: Option<&str>) -> 
   if options.context_options.glob_exhaustive {
     id += "|globExhaustive";
   }
-  append_context_identifier(&mut id, &options.context_options, "|resolveContext: ");
+  append_context_identifier(&mut id, &options.context_options, "|context: ");
 
   if let Some(GroupOptions::ChunkGroup(group)) = &options.context_options.group_options {
     if let Some(chunk_name) = &group.name {
@@ -1698,7 +1698,10 @@ fn append_context_identifier(id: &mut String, options: &ContextOptions, prefix: 
 
 #[cfg(test)]
 mod tests {
-  use super::context_identifier;
+  use super::{
+    ContextModuleOptions, ContextModulePattern, ContextOptions, ContextTypePrefix,
+    context_identifier, create_identifier,
+  };
 
   #[test]
   fn context_identifier_omits_the_compiler_context() {
@@ -1707,5 +1710,28 @@ mod tests {
       context_identifier("/project", "/project/src/pages"),
       Some("./src/pages".to_string())
     );
+  }
+
+  #[test]
+  fn glob_identifier_labels_the_relative_base_as_context() {
+    let options = ContextModuleOptions {
+      addon: String::new(),
+      resource: "/project/src/pages".into(),
+      resource_query: String::new(),
+      resource_fragment: String::new(),
+      context_options: ContextOptions {
+        pattern: ContextModulePattern::Glob(vec!["./*.js".into()]),
+        context: "/project/src/pages".into(),
+        compiler_context: "/project".into(),
+        ..Default::default()
+      },
+      layer: None,
+      resolve_options: None,
+      type_prefix: ContextTypePrefix::Normal,
+    };
+
+    let identifier = create_identifier(&options, None);
+    assert!(identifier.as_str().contains("|context: ./src/pages"));
+    assert!(!identifier.as_str().contains("resolveContext"));
   }
 }
