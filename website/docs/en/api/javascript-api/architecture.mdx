@@ -9,11 +9,10 @@ The data of an ordinary JavaScript object is stored directly in the JavaScript e
 JavaScript can read the `name` property of `{ name: 'main' }` without calling into Rust.
 
 Objects such as `Compilation`, `Module`, `Chunk`, and graph objects work differently in Rspack.
-They have corresponding JavaScript objects, but most of their compilation data is stored in Rust.
-The JavaScript object usually stores only an identifier or internal handle that can locate the Rust
-data. When a plugin reads certain getters or calls certain methods, Rspack accesses Rust through the
-Node-API binding and converts the result back into a JavaScript value. These objects are called
-**native-backed objects**.
+Most of their compilation data is stored in Rust. The JavaScript object usually stores only an
+identifier or internal handle that can locate the Rust data. When a plugin reads certain getters or
+calls certain methods, Rspack accesses Rust through the Node-API binding and converts the result
+back into a JavaScript value. These objects are called **native-backed objects**.
 
 ```text
 Ordinary JavaScript object
@@ -23,7 +22,7 @@ Ordinary JavaScript object
 
 Native-backed object
 
-  Read getter          JavaScript wrapper             Node-API binding
+  Read getter          JavaScript object              Node-API binding
   or call method ────> (identifier / internal handle) ────> (cross-runtime access)
                                                               │
                                                               ▼
@@ -48,17 +47,16 @@ A native-backed object can also contain both kinds of properties:
 - getters and methods may access Rust on every call to retrieve current compilation data or perform
   an operation.
 
-The continued existence of the JavaScript object does not prove that it still represents the data
-from the build in which it was created. After a rebuild, a getter or method may resolve against the
-latest Rust compilation, or it may throw if its target no longer exists. The behavior depends on
-the kind of native-backed object, as described below.
+The continued existence of the JavaScript object does not mean that it still represents the data it
+was created with. After a rebuild, a getter or method may retrieve data from the latest Rust
+compilation, or it may throw because its target no longer exists.
 
 This implementation model has two direct consequences:
 
 1. **Lifetime:** The reliable meaning of a native-backed object is usually limited to the compiler,
    compilation, or hook execution scope that produced it.
 2. **Performance:** Reading a getter or calling a method may convert data between JavaScript and
-   Rust. Repeating the same access in a hot loop can accumulate significant cost.
+   Rust. Repeating the same access in a loop can accumulate significant cost.
 
 If data is needed later, extract strings, numbers, or ordinary JavaScript objects while the build
 that the native-backed object represents is still active instead of retaining the object itself.
@@ -74,7 +72,7 @@ and passed to Rust:
 
 - normalized options and builtin plugins;
 - registration functions that connect JavaScript hooks to the native hook adapter;
-- file-system and resolver-factory wrappers used for cross-language calls.
+- file systems and resolver factories used for cross-language calls.
 
 Do not assume that arbitrary changes to `compiler.options` will still be synchronized to Rust after
 the native compiler has been created. Apply plugins and finish configuration before the first call
@@ -92,10 +90,6 @@ compiler's **current** native compilation. Getters and methods on the old object
 or modify the latest build instead of throwing. Keeping that object does not preserve the previous
 build.
 
-Objects obtained from a `Compilation`, such as `Module` and `Chunk`, may also be resolved again
-against the current native compilation. If a matching target still exists, an old wrapper may
-expose its current data; if it has been removed, the access may throw.
-
 In watch mode, use the `Compilation` and native-backed objects provided to the current build's
 hooks. If historical data is required, copy it into ordinary JavaScript values during the
 corresponding build.
@@ -112,9 +106,6 @@ Every build, including each watch rebuild, creates a new `Compilation`. Objects 
 JavaScript. Reading some properties or calling some methods still requires Rspack to retrieve data
 from the current Rust compilation through Node-API.
 
-These objects look like ordinary JavaScript objects, but they are not snapshots of the build that
-produced them. Their meaning is reliable only while that build is active.
-
 Follow these rules:
 
 - Use a `Compilation` and its `Module`, `Chunk`, graph, dependency, and block objects only in hooks
@@ -125,13 +116,6 @@ Follow these rules:
   names, paths, and hashes, or convert the data into an ordinary JavaScript object.
 - After a watch rebuild, obtain objects again from the new `Compilation` instead of reusing objects
   saved from the previous build.
-- Do not rely on JavaScript reference equality across different compilers or builds.
-
-The JavaScript `Compilation` is a special compatibility case: all wrappers created by one compiler
-access that compiler's current native compilation. Other native-backed wrappers may use an
-identifier to find a matching object in the current compilation. Consequently, retaining a wrapper
-across rebuilds does not provide a historical snapshot: it may expose data from the latest build or
-throw if the target can no longer be found.
 
 ## Hook and callback execution
 
@@ -181,7 +165,46 @@ conversion while making better use of Rspack's parallelism.
 
 ## Efficient usage
 
-### Read once in hot loops
+### Read only the assets you need
+
+`compilation.assets` looks like an ordinary JavaScript object, but its asset contents are provided
+on demand by the native compilation. `Object.keys(assets)` retrieves only asset names. Rspack
+retrieves the corresponding `Source` from Rust through the binding only when `assets[name]` is read.
+
+If only some assets are needed, the following pattern is inefficient:
+
+```js title="Inefficient"
+compilation.hooks.processAssets.tap('ExamplePlugin', (assets) => {
+  for (const [name, source] of Object.entries(assets)) {
+    if (name.endsWith('.js')) {
+      consumeJavaScriptAsset(name, source);
+    }
+  }
+});
+```
+
+`Object.entries(assets)` reads the `Source` of every asset before the loop starts. Even if the loop
+uses only a few assets, this causes unnecessary cross-language communication and memory usage.
+
+Use `Object.keys()` to filter asset names first, then read only the required sources:
+
+```js title="Recommended"
+compilation.hooks.processAssets.tap('ExamplePlugin', (assets) => {
+  for (const name of Object.keys(assets)) {
+    if (!name.endsWith('.js')) {
+      continue;
+    }
+
+    const source = assets[name];
+    consumeJavaScriptAsset(name, source);
+  }
+});
+```
+
+If every asset is needed, using `Object.entries()` or `Object.values()` does not introduce unused
+reads.
+
+### Read once in a loop
 
 Read and retain data obtained from Rust during a single pass:
 
