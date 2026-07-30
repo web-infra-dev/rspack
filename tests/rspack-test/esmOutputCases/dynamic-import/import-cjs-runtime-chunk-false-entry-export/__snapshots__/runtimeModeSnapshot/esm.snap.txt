@@ -7,7 +7,7 @@ moduleFactories.add({
 /*!********************!*\
   !*** ./dynamic.js ***!
   \********************/
-(__unused_rspack_module, exports, rspackRequire) {
+(__unused_rspack_module, exports) {
 const shared = rspackRequire(/*! ./shared */ "./shared.js");
 
 exports.value = shared.base + 41;

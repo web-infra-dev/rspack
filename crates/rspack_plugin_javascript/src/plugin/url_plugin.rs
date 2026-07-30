@@ -1,10 +1,12 @@
+#![allow(clippy::too_many_arguments)]
+
 use concat_string::concat_string;
 use rspack_core::{
   ChunkInitFragments, ChunkUkey, CodeGenerationDataFilename, Compilation, CompilationParams,
   CompilerCompilation, DependencyId, JavascriptParserUrl, Module, ModuleType,
   NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, PathData, Plugin, PublicPath,
-  RuntimeCodeTemplate, RuntimeSpec, SourceType, URLStaticMode, get_js_chunk_filename_template,
-  get_undo_path,
+  RuntimeCodeTemplate, RuntimeGlobals, RuntimeSpec, SourceType, URLStaticMode,
+  get_js_chunk_filename_template, get_undo_path,
   rspack_sources::{BoxSource, ReplaceSource, SourceExt},
 };
 use rspack_error::Result;
@@ -196,6 +198,7 @@ async fn render_module_content(
   chunk_ukey: &ChunkUkey,
   module: &dyn Module,
   render_source: &mut RenderSource,
+  _runtime_requirements: &mut RuntimeGlobals,
   _init_fragments: &mut ChunkInitFragments,
   _runtime_template: &RuntimeCodeTemplate,
 ) -> Result<()> {

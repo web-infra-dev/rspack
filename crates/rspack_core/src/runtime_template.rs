@@ -362,7 +362,7 @@ impl RuntimeTemplate {
     RuntimeCodeTemplate::new(
       self.compiler_options.clone(),
       self.render_mode.runtime_module_render_mode(),
-      self.dojang.clone(),
+      Some(self.dojang.clone()),
     )
   }
 
@@ -371,7 +371,7 @@ impl RuntimeTemplate {
     RuntimeCodeTemplate::new(
       self.compiler_options.clone(),
       self.render_mode.chunk_render_mode(),
-      self.dojang.clone(),
+      None,
     )
   }
 }
@@ -868,11 +868,17 @@ impl ModuleCodeTemplate {
   }
 
   pub fn render_runtime_scope(&self) -> String {
-    let render_mode = match self.runtime_globals_render_mode {
-      RuntimeGlobalsRenderMode::Webpack => RuntimeGlobalsRenderMode::Webpack,
-      _ => RuntimeGlobalsRenderMode::RspackContext,
-    };
-    get_runtime_globals_render_map(render_mode).render(&RuntimeGlobals::REQUIRE_SCOPE)
+    match self.runtime_globals_render_mode {
+      RuntimeGlobalsRenderMode::Webpack => {
+        WEBPACK_RUNTIME_GLOBALS.render(&RuntimeGlobals::REQUIRE_SCOPE)
+      }
+      RuntimeGlobalsRenderMode::RspackExport => {
+        self.runtime_globals.render(&RuntimeGlobals::REQUIRE)
+      }
+      RuntimeGlobalsRenderMode::RspackContext | RuntimeGlobalsRenderMode::RspackLexical => {
+        RSPACK_CONTEXT_RUNTIME_GLOBALS.render(&RuntimeGlobals::REQUIRE_SCOPE)
+      }
+    }
   }
 
   pub fn define_es_module_flag_statement(&mut self, exports_argument: ExportsArgument) -> String {
@@ -1823,14 +1829,22 @@ pub struct RuntimeCodeTemplate {
   compiler_options: Arc<CompilerOptions>,
   render_mode: RuntimeGlobalsRenderMode,
   runtime_globals: Arc<RuntimeGlobalsRenderMap>,
-  dojang: Arc<Dojang>,
+  dojang: Option<Arc<Dojang>>,
+}
+
+impl Debug for RuntimeCodeTemplate {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    f.debug_struct("RuntimeCodeTemplate")
+      .field("render_mode", &self.render_mode)
+      .finish_non_exhaustive()
+  }
 }
 
 impl RuntimeCodeTemplate {
   fn new(
     compiler_options: Arc<CompilerOptions>,
     render_mode: RuntimeGlobalsRenderMode,
-    dojang: Arc<Dojang>,
+    dojang: Option<Arc<Dojang>>,
   ) -> Self {
     Self {
       compiler_options,
@@ -1897,6 +1911,26 @@ impl RuntimeCodeTemplate {
     "this".to_string()
   }
 
+  pub fn basic_function(&self, args: &str, body: &str) -> String {
+    if self
+      .compiler_options
+      .output
+      .environment
+      .supports_arrow_function()
+    {
+      format!(
+        r#"({args}) => {{
+{body}
+}}"#
+      )
+    } else {
+      format!(
+        r#"function({args}) {{
+{body}
+}}"#
+      )
+    }
+  }
   pub fn render(&self, key: &str, params: Option<serde_json::Value>) -> Result<String, Error> {
     let mut render_params = Value::Object(Default::default());
 
@@ -1924,12 +1958,16 @@ impl RuntimeCodeTemplate {
       }
     }
 
-    if let Some((executer, file_content)) = self.dojang.templates.get(key) {
+    let dojang = self
+      .dojang
+      .as_ref()
+      .expect("chunk code templates cannot render runtime module templates");
+    if let Some((executer, file_content)) = dojang.templates.get(key) {
       executer
         .render(
           &mut Context::new(render_params),
-          &self.dojang.templates,
-          &self.dojang.functions,
+          &dojang.templates,
+          &dojang.functions,
           file_content,
           #[cfg_attr(
             dylint_lib = "rspack_collection_hasher",
@@ -1944,27 +1982,6 @@ impl RuntimeCodeTemplate {
         })
     } else {
       Err(error!("Runtime module: Template {key} is not found"))
-    }
-  }
-
-  pub fn basic_function(&self, args: &str, body: &str) -> String {
-    if self
-      .compiler_options
-      .output
-      .environment
-      .supports_arrow_function()
-    {
-      format!(
-        r#"({args}) => {{
-{body}
-}}"#
-      )
-    } else {
-      format!(
-        r#"function({args}) {{
-{body}
-}}"#
-      )
     }
   }
 }

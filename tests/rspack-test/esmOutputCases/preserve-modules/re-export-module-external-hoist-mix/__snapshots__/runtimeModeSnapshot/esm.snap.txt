@@ -132,7 +132,7 @@ moduleFactories.add({
 /*!************************!*\
   !*** ./src/wrapped.js ***!
   \************************/
-(module, exports, rspackRequire) {
+(module, exports) {
 /* import */ var fs__rspack_import_0 = rspackRequire(/*! fs */ "fs?2159");
 /* module decorator */ module = esmModuleDecorator(module);
 
