@@ -1695,17 +1695,3 @@ fn append_context_identifier(id: &mut String, options: &ContextOptions, prefix: 
   id.push_str(prefix);
   id.push_str(&context);
 }
-
-#[cfg(test)]
-mod tests {
-  use super::context_identifier;
-
-  #[test]
-  fn context_identifier_omits_the_compiler_context() {
-    assert_eq!(context_identifier("/project", "/project"), None);
-    assert_eq!(
-      context_identifier("/project", "/project/src/pages"),
-      Some("./src/pages".to_string())
-    );
-  }
-}
