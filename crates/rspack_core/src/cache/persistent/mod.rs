@@ -4,6 +4,7 @@ pub mod context;
 pub mod occasion;
 pub mod snapshot;
 pub mod storage;
+pub mod validation;
 
 use std::{
   hash::{DefaultHasher, Hash, Hasher},
@@ -17,9 +18,10 @@ use self::{
   build_dependencies::{BuildDeps, BuildDepsOptions},
   codec::CacheCodec,
   context::CacheContext,
-  occasion::{MakeOccasion, MetaOccasion, MinimizeOccasion, SourceMapDevToolPluginOccasion},
+  occasion::{MakeOccasion, MinimizeOccasion, SourceMapDevToolPluginOccasion},
   snapshot::{Snapshot, SnapshotOptions},
   storage::{CacheDirectory, StorageOptions, create_storage},
+  validation::CacheValidation,
 };
 use super::Cache;
 use crate::{Compilation, CompilationLogger, CompilationLogging, CompilerOptions, Logger};
@@ -45,10 +47,9 @@ pub struct PersistentCache {
   initialized: bool,
 
   ctx: CacheContext,
-  build_deps: BuildDeps,
+  validation: CacheValidation,
   snapshot: Arc<Snapshot>,
   make_occasion: MakeOccasion,
-  meta_occasion: MetaOccasion,
   minimize_occasion: MinimizeOccasion,
   source_map_dev_tool_plugin_occasion: SourceMapDevToolPluginOccasion,
 }
@@ -93,17 +94,17 @@ impl PersistentCache {
         option.readonly,
         CompilationLogger::new(LOGGER_NAME.to_string(), compilation_logging),
       ),
-      build_deps: BuildDeps::new(
-        &option.build_dependencies,
-        input_filesystem,
-        snapshot.clone(),
+      validation: CacheValidation::new(
+        codec.clone(),
+        format!("{}|{}", rspack_pkg_version!(), option.version),
+        BuildDeps::new(
+          &option.build_dependencies,
+          input_filesystem,
+          snapshot.clone(),
+        ),
       ),
       snapshot,
       make_occasion: MakeOccasion::new(codec.clone()),
-      meta_occasion: MetaOccasion::new(
-        codec.clone(),
-        format!("{}|{}", rspack_pkg_version!(), option.version),
-      ),
       minimize_occasion: MinimizeOccasion::new(codec.clone()),
       source_map_dev_tool_plugin_occasion: SourceMapDevToolPluginOccasion::new(codec),
     }
@@ -116,10 +117,7 @@ impl PersistentCache {
     self.initialized = true;
     self.ctx.cleanup_stale();
 
-    self
-      .ctx
-      .validate(&mut self.build_deps, &self.meta_occasion)
-      .await;
+    self.ctx.validate(&mut self.validation).await;
   }
 }
 
@@ -146,8 +144,7 @@ impl Cache for PersistentCache {
   }
 
   async fn after_compile(&mut self, compilation: &Compilation) {
-    // save meta
-    self.ctx.save_occasion(&self.meta_occasion, &());
+    self.ctx.save_validation(&self.validation);
 
     // save snapshot
     let (_, file_added, file_updated, file_removed) = compilation.file_dependencies();
@@ -175,7 +172,7 @@ impl Cache for PersistentCache {
     self
       .ctx
       .save_build_deps(
-        &mut self.build_deps,
+        &mut self.validation,
         build_added.chain(build_updated).cloned(),
       )
       .await;

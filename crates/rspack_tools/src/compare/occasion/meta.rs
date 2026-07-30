@@ -1,6 +1,6 @@
 use rspack_cacheable::{cacheable, from_bytes};
-pub use rspack_core::cache::persistent::occasion::meta::SCOPE;
 use rspack_core::cache::persistent::storage::Storage;
+pub use rspack_core::cache::persistent::validation::SCOPE;
 use rspack_error::Result;
 
 use crate::debug_info::DebugInfo;

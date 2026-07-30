@@ -1,14 +1,14 @@
-use std::fmt::Write as _;
+use std::{fmt::Write as _, time::Duration};
 
 use rspack_paths::{ArcPath, ArcPathSet};
 
 use super::{
-  build_dependencies::{BuildDeps, BuildDepsValidationResult},
-  occasion::{MetaOccasion, Occasion},
+  occasion::Occasion,
   snapshot::{Snapshot, SnapshotScope},
   storage::BoxStorage,
+  validation::{CacheValidation, CacheValidationResult},
 };
-use crate::{CompilationLogger, Logger};
+use crate::{CompilationLogger, LogType, Logger};
 
 const PATH_LOG_LIMIT: usize = 3;
 
@@ -70,58 +70,76 @@ impl CacheContext {
   /// compiler cache is reset so a scope that is not used by the invalidating
   /// build cannot survive and be reused later.
   #[tracing::instrument("Cache::Context::validate", skip_all)]
-  pub async fn validate(&mut self, build_deps: &mut BuildDeps, meta_occasion: &MetaOccasion) {
-    let start = self.logger().time("validate build dependencies");
-    match build_deps.validate(&*self.storage).await {
-      Ok(BuildDepsValidationResult::Valid { tracked_files }) => {
+  pub async fn validate(&mut self, validation: &mut CacheValidation) {
+    let report = validation.validate(&*self.storage).await;
+    match report.result {
+      CacheValidationResult::Valid { tracked_files } => {
         self.logger().info(format!(
           "build dependencies are valid ({tracked_files} tracked)"
         ));
+        self.log_duration(
+          "validate build dependencies",
+          report
+            .build_dependencies_duration
+            .expect("build dependencies should have been validated"),
+        );
+
+        self
+          .logger()
+          .info("meta persistent cache recovery succeeded");
+        self.log_duration(read_occasion_timing_label("meta"), report.version_duration);
       }
-      Ok(BuildDepsValidationResult::Invalid {
+      CacheValidationResult::InvalidVersion { message } => {
+        self
+          .logger()
+          .warn(format!("meta persistent cache recovery failed: {message}"));
+        self.log_duration(read_occasion_timing_label("meta"), report.version_duration);
+        self.invalidate();
+      }
+      CacheValidationResult::InvalidBuildDependencies {
         modified_files,
         removed_files,
-      }) => {
+      } => {
         let reason = format_path_changes(&modified_files, &removed_files);
         self.logger().warn(format!(
           "persistent cache invalidated because build dependencies changed:\n{reason}"
         ));
-        self.logger().time_end(start);
+        self.log_duration(
+          "validate build dependencies",
+          report
+            .build_dependencies_duration
+            .expect("build dependencies should have been validated"),
+        );
         self.invalidate();
-        return;
       }
-      Err(err) => {
+      CacheValidationResult::VersionError(error) => {
         self
           .logger()
-          .warn(format!("build dependencies validation failed: {err}"));
-        self.logger().time_end(start);
+          .warn(format!("meta persistent cache recovery failed: {error}"));
+        self.log_duration(read_occasion_timing_label("meta"), report.version_duration);
         self.invalidate();
-        return;
+      }
+      CacheValidationResult::BuildDependenciesError(error) => {
+        self
+          .logger()
+          .warn(format!("build dependencies validation failed: {error}"));
+        self.log_duration(
+          "validate build dependencies",
+          report
+            .build_dependencies_duration
+            .expect("build dependencies should have been validated"),
+        );
+        self.invalidate();
       }
     }
-    self.logger().time_end(start);
+  }
 
-    let start = self
-      .logger()
-      .time(read_occasion_timing_label(meta_occasion.name()));
-    match meta_occasion.recovery(&*self.storage).await {
-      Ok(()) => {
-        self.logger().info(format!(
-          "{} persistent cache recovery succeeded",
-          meta_occasion.name()
-        ));
-      }
-      Err(err) => {
-        self.logger().warn(format!(
-          "{} persistent cache recovery failed: {err}",
-          meta_occasion.name()
-        ));
-        self.logger().time_end(start);
-        self.invalidate();
-        return;
-      }
-    }
-    self.logger().time_end(start);
+  fn log_duration(&self, label: &'static str, duration: Duration) {
+    self.logger().raw(LogType::Time {
+      label,
+      secs: duration.as_secs(),
+      subsec_nanos: duration.subsec_nanos(),
+    });
   }
 
   fn invalidate(&mut self) {
@@ -140,7 +158,7 @@ impl CacheContext {
   #[tracing::instrument("Cache::Context::save_build_deps", skip_all)]
   pub async fn save_build_deps(
     &mut self,
-    build_deps: &mut BuildDeps,
+    validation: &mut CacheValidation,
     added: impl Iterator<Item = ArcPath>,
   ) {
     if self.readonly {
@@ -151,7 +169,20 @@ impl CacheContext {
       .logger()
       .time("write build dependencies to persistent cache");
     let logger = self.logger().clone();
-    build_deps.add(&mut *self.storage, added, logger).await;
+    validation
+      .add_build_dependencies(&mut *self.storage, added, logger)
+      .await;
+    self.logger().time_end(start);
+  }
+
+  /// Persists compatibility metadata. No-op in readonly mode.
+  pub fn save_validation(&mut self, validation: &CacheValidation) {
+    if self.readonly {
+      return;
+    }
+
+    let start = self.logger().time("write meta to persistent cache");
+    validation.save(&mut *self.storage);
     self.logger().time_end(start);
   }
 
@@ -410,26 +441,27 @@ mod tests {
     cache::persistent::{
       build_dependencies::BuildDeps,
       codec::CacheCodec,
-      occasion::{MetaOccasion, Occasion},
       snapshot::{Snapshot, SnapshotOptions},
       storage::{MemoryStorage, Storage},
+      validation::CacheValidation,
     },
   };
 
-  fn create_cache_parts(
+  fn create_validation(
     fs: Arc<MemoryFileSystem>,
     build_dependencies: Vec<PathBuf>,
     version: &str,
-  ) -> (BuildDeps, MetaOccasion) {
+  ) -> CacheValidation {
     let codec = Arc::new(CacheCodec::new(None));
     let snapshot = Arc::new(Snapshot::new(
       SnapshotOptions::default(),
       fs.clone(),
       codec.clone(),
     ));
-    (
+    CacheValidation::new(
+      codec,
+      version.to_string(),
       BuildDeps::new(&build_dependencies, fs, snapshot),
-      MetaOccasion::new(codec, version.to_string()),
     )
   }
 
@@ -448,14 +480,14 @@ mod tests {
   async fn version_mismatch_resets_the_whole_cache() {
     within_compiler_context_for_testing(async {
       let fs = Arc::new(MemoryFileSystem::default());
-      let (mut build_deps, old_meta) = create_cache_parts(fs.clone(), vec![], "v1");
-      let (_, current_meta) = create_cache_parts(fs, vec![], "v2");
+      let old_validation = create_validation(fs.clone(), vec![], "v1");
+      let mut current_validation = create_validation(fs, vec![], "v2");
       let mut storage = MemoryStorage::default();
-      old_meta.save(&mut storage, &());
+      old_validation.save(&mut storage);
       storage.set("unused_scope", b"key".to_vec(), b"stale".to_vec());
 
       let mut context = create_context(storage, false);
-      context.validate(&mut build_deps, &current_meta).await;
+      context.validate(&mut current_validation).await;
 
       assert!(
         context
@@ -482,10 +514,10 @@ mod tests {
         .await
         .expect("should write build dependency");
       let options = vec![PathBuf::from("/rspack.config.js")];
-      let (mut initial_build_deps, _) = create_cache_parts(fs.clone(), options.clone(), "v1");
+      let mut initial_validation = create_validation(fs.clone(), options.clone(), "v1");
       let mut storage = MemoryStorage::default();
-      initial_build_deps
-        .add(
+      initial_validation
+        .add_build_dependencies(
           &mut storage,
           std::iter::empty(),
           CompilationLogger::new(
@@ -494,6 +526,7 @@ mod tests {
           ),
         )
         .await;
+      initial_validation.save(&mut storage);
       storage.set("unused_scope", b"key".to_vec(), b"stale".to_vec());
 
       fs.write(
@@ -502,10 +535,10 @@ mod tests {
       )
       .await
       .expect("should update build dependency");
-      let (mut build_deps, current_meta) = create_cache_parts(fs, options, "v1");
+      let mut current_validation = create_validation(fs, options, "v1");
 
       let mut context = create_context(storage, false);
-      context.validate(&mut build_deps, &current_meta).await;
+      context.validate(&mut current_validation).await;
 
       assert!(
         context
@@ -525,13 +558,13 @@ mod tests {
   async fn readonly_invalidation_persists_across_builds() {
     within_compiler_context_for_testing(async {
       let fs = Arc::new(MemoryFileSystem::default());
-      let (mut build_deps, old_meta) = create_cache_parts(fs.clone(), vec![], "v1");
-      let (_, current_meta) = create_cache_parts(fs, vec![], "v2");
+      let old_validation = create_validation(fs.clone(), vec![], "v1");
+      let mut current_validation = create_validation(fs, vec![], "v2");
       let mut storage = MemoryStorage::default();
-      old_meta.save(&mut storage, &());
+      old_validation.save(&mut storage);
 
       let mut context = create_context(storage, true);
-      context.validate(&mut build_deps, &current_meta).await;
+      context.validate(&mut current_validation).await;
       context.reset();
 
       assert!(
