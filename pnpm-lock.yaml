@@ -68,9 +68,6 @@ catalogs:
     '@prefresh/utils':
       specifier: 1.2.1
       version: 1.2.1
-    '@rsbuild/core':
-      specifier: 2.1.8
-      version: 2.1.8
     '@rsbuild/plugin-node-polyfill':
       specifier: ^1.4.6
       version: 1.4.6
@@ -80,9 +77,6 @@ catalogs:
     '@rsbuild/plugin-tailwindcss':
       specifier: ^2.0.3
       version: 2.0.3
-    '@rslib/core':
-      specifier: 1.0.0-beta.1
-      version: 1.0.0-beta.1
     '@rspack/dev-server':
       specifier: ^2.1.0
       version: 2.1.0
@@ -703,9 +697,9 @@ importers:
         specifier: 'catalog:'
         version: 2.1.3
     devDependencies:
-      '@rslib/core':
+      rstack:
         specifier: 'catalog:'
-        version: 1.0.0-beta.1(@microsoft/api-extractor@7.58.12)(@module-federation/runtime-tools@2.8.0)(core-js@3.49.0)(typescript@6.0.3)
+        version: 0.2.0(@microsoft/api-extractor@7.58.12)(@module-federation/runtime-tools@2.8.0)(@rspress/core@2.0.18)(core-js@3.49.0)(jiti@2.7.0)(jsdom@26.1.0)(typescript@6.0.3)
       typescript:
         specifier: 'catalog:'
         version: 6.0.3
@@ -725,9 +719,6 @@ importers:
       '@rsbuild/plugin-node-polyfill':
         specifier: 'catalog:'
         version: 1.4.6(@rsbuild/core@2.1.8)
-      '@rslib/core':
-        specifier: 'catalog:'
-        version: 1.0.0-beta.1(@microsoft/api-extractor@7.58.12)(@module-federation/runtime-tools@2.8.0)(core-js@3.49.0)(typescript@6.0.3)
       '@rspack/lite-tapable':
         specifier: 'catalog:'
         version: 1.1.2
@@ -761,6 +752,9 @@ importers:
       prebundle:
         specifier: 'catalog:'
         version: 1.6.5(typescript@6.0.3)
+      rstack:
+        specifier: 'catalog:'
+        version: 0.2.0(@microsoft/api-extractor@7.58.12)(@module-federation/runtime-tools@2.8.0)(@rspress/core@2.0.18)(core-js@3.49.0)(jiti@2.7.0)(jsdom@26.1.0)(typescript@6.0.3)
       tinypool:
         specifier: 'catalog:'
         version: 2.1.0
@@ -806,9 +800,6 @@ importers:
       '@microsoft/api-extractor':
         specifier: 'catalog:'
         version: 7.58.12(@types/node@26.1.1)
-      '@rslib/core':
-        specifier: 'catalog:'
-        version: 1.0.0-beta.1(@microsoft/api-extractor@7.58.12)(@module-federation/runtime-tools@2.8.0)(core-js@3.49.0)(typescript@6.0.3)
       '@rspack/core':
         specifier: workspace:*
         version: link:../rspack
@@ -845,6 +836,9 @@ importers:
       rspack-merge:
         specifier: 'catalog:'
         version: 1.0.1
+      rstack:
+        specifier: 'catalog:'
+        version: 0.2.0(@microsoft/api-extractor@7.58.12)(@module-federation/runtime-tools@2.8.0)(@rspress/core@2.0.18)(core-js@3.49.0)(jiti@2.7.0)(jsdom@26.1.0)(typescript@6.0.3)
       typescript:
         specifier: 'catalog:'
         version: 6.0.3
@@ -915,9 +909,6 @@ importers:
         specifier: 'catalog:'
         version: 3.5.1(patch_hash=edd7c720efbda4112ce993316326133bd6b80ff93727e6604cf45bcfb355f561)
     devDependencies:
-      '@rslib/core':
-        specifier: 'catalog:'
-        version: 1.0.0-beta.1(@microsoft/api-extractor@7.58.12)(@module-federation/runtime-tools@2.8.0)(core-js@3.49.0)(typescript@6.0.3)
       '@rspack/core':
         specifier: workspace:*
         version: link:../rspack
@@ -933,6 +924,9 @@ importers:
       '@types/jsdom':
         specifier: 'catalog:'
         version: 21.1.7
+      rstack:
+        specifier: 'catalog:'
+        version: 0.2.0(@microsoft/api-extractor@7.58.12)(@module-federation/runtime-tools@2.8.0)(@rspress/core@2.0.18)(core-js@3.49.0)(jiti@2.7.0)(jsdom@26.1.0)(typescript@6.0.3)
       typescript:
         specifier: 'catalog:'
         version: 6.0.3
@@ -1044,12 +1038,12 @@ importers:
       '@playwright/test':
         specifier: 'catalog:'
         version: 1.60.0
-      '@rsbuild/core':
-        specifier: 'catalog:'
-        version: 2.1.8(@module-federation/runtime-tools@2.8.0)(core-js@3.49.0)
       '@rspack/browser':
         specifier: workspace:*
         version: link:../../packages/rspack-browser
+      rstack:
+        specifier: 'catalog:'
+        version: 0.2.0(@microsoft/api-extractor@7.58.12)(@module-federation/runtime-tools@2.8.0)(@rspress/core@2.0.18)(core-js@3.49.0)(jiti@2.7.0)(jsdom@26.1.0)(typescript@6.0.3)
       typescript:
         specifier: 'catalog:'
         version: 6.0.3

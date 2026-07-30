@@ -33,8 +33,8 @@
     "rstest.d.ts"
   ],
   "scripts": {
-    "build": "rslib",
-    "dev": "rslib -w"
+    "build": "rs lib",
+    "dev": "rs lib -w"
   },
   "dependencies": {
     "@babel/generator": "catalog:",
@@ -60,12 +60,12 @@
     "webpack-sources": "catalog:"
   },
   "devDependencies": {
-    "@rslib/core": "catalog:",
     "@rspack/core": "workspace:*",
     "@types/babel__generator": "catalog:",
     "@types/babel__traverse": "catalog:",
     "@types/fs-extra": "catalog:",
     "@types/jsdom": "catalog:",
+    "rstack": "catalog:",
     "typescript": "catalog:"
   },
   "peerDependencies": {
