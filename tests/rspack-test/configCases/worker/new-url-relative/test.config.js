@@ -52,21 +52,42 @@ module.exports = {
 				);
 			} else {
 				expect(workerUrl).toBe(testCase.url);
-				const output = execFileSync(
-					process.execPath,
-					[
-						"--input-type=module",
-						"--eval",
-						`const types = []; globalThis.Worker = class { constructor(_url, options) { types.push(options.type); } }; ${source}; console.log(JSON.stringify(types));`
+			}
+
+			const output = execFileSync(
+				process.execPath,
+				[
+					...(testCase.runtime ? [] : ["--input-type=module"]),
+					"--eval",
+					`const types = []; const sharedOptions = []; globalThis.Worker = class { constructor(_url, options) { types.push(options?.type); } }; globalThis.SharedWorker = class { constructor(_url, options) { sharedOptions.push(options); } }; ${source}; console.log(JSON.stringify({ types, sharedOptions, evaluationCount: globalThis.__sharedWorkerOptionsEvaluationCount }));`
+				],
+				{ encoding: "utf8" }
+			);
+			const result = JSON.parse(output);
+			if (testCase.runtime) {
+				expect(result).toEqual({
+					types: [null, null, null, null],
+					sharedOptions: [
+						"string-literal",
+						{ name: "object-literal" },
+						"string-variable",
+						{ name: "object-variable" },
+						"string-expression"
 					],
-					{ encoding: "utf8" }
-				);
-				expect(JSON.parse(output)).toEqual([
-					"module",
-					"module",
-					"module",
-					"module"
-				]);
+					evaluationCount: 1
+				});
+			} else {
+				expect(result).toEqual({
+					types: ["module", "module", "module", "module"],
+					sharedOptions: [
+						{ name: "string-literal", type: "module" },
+						{ name: "object-literal", type: "module" },
+						{ name: "string-variable", type: "module" },
+						{ name: "object-variable", type: "module" },
+						{ name: "string-expression", type: "module" }
+					],
+					evaluationCount: 1
+				});
 			}
 
 			expect(

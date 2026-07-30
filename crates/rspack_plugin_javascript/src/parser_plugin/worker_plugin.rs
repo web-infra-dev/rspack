@@ -38,6 +38,14 @@ struct ParsedNewWorkerPath {
 struct ParsedNewWorkerOptions {
   pub range: Option<(u32, u32)>,
   pub name: Option<String>,
+  pub kind: ParsedNewWorkerOptionsKind,
+}
+
+#[derive(Debug, Clone, Copy)]
+enum ParsedNewWorkerOptionsKind {
+  Object,
+  String,
+  Unknown,
 }
 
 #[derive(Debug)]
@@ -51,10 +59,18 @@ fn parse_new_worker_options(arg: &ExprOrSpread) -> ParsedNewWorkerOptions {
   let name = obj
     .and_then(|obj| get_literal_str_by_obj_prop(obj, "name"))
     .map(|str| str.value.to_string_lossy().into());
+  let kind = if obj.is_some() {
+    ParsedNewWorkerOptionsKind::Object
+  } else if arg.expr.as_lit().and_then(|lit| lit.as_str()).is_some() {
+    ParsedNewWorkerOptionsKind::String
+  } else {
+    ParsedNewWorkerOptionsKind::Unknown
+  };
   let span = arg.span();
   ParsedNewWorkerOptions {
     range: Some((span.real_lo(), span.real_hi())),
     name,
+    kind,
   }
 }
 
@@ -82,6 +98,7 @@ fn add_dependencies(
   parsed_options: Option<ParsedNewWorkerOptions>,
   need_new_url: bool,
   url_mode: Option<JavascriptParserWorkerUrl>,
+  is_shared_worker: bool,
 ) {
   let output_options = &parser.compiler_options.output;
   let mut hasher = RspackHasher::from(output_options);
@@ -93,6 +110,7 @@ fn add_dependencies(
     .rendered(output_options.hash_digest_length)
     .to_owned();
   let options_range = parsed_options.as_ref().and_then(|options| options.range);
+  let options_kind = parsed_options.as_ref().map(|options| options.kind);
   let name = parsed_options.and_then(|options| options.name);
   let output_module = output_options.module;
   let dep = Box::new(WorkerDependency::new(
@@ -132,21 +150,47 @@ fn add_dependencies(
   }
 
   if let Some(options_range) = options_range {
+    if is_shared_worker
+      && matches!(options_kind, Some(ParsedNewWorkerOptionsKind::String))
+      && !output_module
+    {
+      return;
+    }
+    let worker_type = if output_module {
+      "\"module\""
+    } else {
+      "undefined"
+    };
+    let (prefix, suffix) = match (is_shared_worker, options_kind) {
+      (true, Some(ParsedNewWorkerOptionsKind::String)) => {
+        ("{ name: ".to_string(), format!(", type: {worker_type} }}"))
+      }
+      (true, Some(ParsedNewWorkerOptionsKind::Unknown)) => {
+        let string_options = if output_module {
+          format!("{{ name: options, type: {worker_type} }}")
+        } else {
+          "options".to_string()
+        };
+        (
+          format!(
+            "(function(options) {{ return typeof options === \"string\" ? {string_options} : \
+             Object.assign({{}}, options, {{ type: {worker_type} }}); }})("
+          ),
+          ")".to_string(),
+        )
+      }
+      _ => (
+        "Object.assign({}, ".to_string(),
+        format!(", {{ type: {worker_type} }})"),
+      ),
+    };
     parser.add_presentational_dependency(Box::new(ConstDependency::new(
       (options_range.0, options_range.0).into(),
-      "Object.assign({}, ".into(),
+      prefix.into(),
     )));
     parser.add_presentational_dependency(Box::new(ConstDependency::new(
       (options_range.1, options_range.1).into(),
-      format!(
-        ", {{ type: {} }})",
-        if output_module {
-          "\"module\""
-        } else {
-          "undefined"
-        }
-      )
-      .into(),
+      suffix.into(),
     )));
   } else if options_range.is_none() && output_module {
     let insert_position = first_arg.span().real_hi();
@@ -239,6 +283,7 @@ fn handle_worker<'a>(
         options = Some(ParsedNewWorkerOptions {
           range: None,
           name: Some(name),
+          kind: ParsedNewWorkerOptionsKind::Unknown,
         });
       }
     }
@@ -445,6 +490,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for WorkerPlugin {
             parsed_options,
             need_new_url,
             self.url_mode,
+            false,
           );
           if let Some(callee) = call_expr.callee.as_expr() {
             parser.walk_expression(callee);
@@ -486,6 +532,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for WorkerPlugin {
               parsed_options,
               need_new_url,
               self.url_mode,
+              false,
             );
             if let Some(callee) = call_expr.callee.as_expr() {
               parser.walk_expression(callee);
@@ -512,6 +559,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for WorkerPlugin {
           parsed_options,
           need_new_url,
           self.url_mode,
+          false,
         );
         if let Some(callee) = call_expr.callee.as_expr() {
           parser.walk_expression(callee);
@@ -554,6 +602,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for WorkerPlugin {
               parsed_options,
               need_new_url,
               self.url_mode,
+              false,
             );
             parser.walk_expression(&new_expr.callee);
             if let Some(args) = &new_expr.args
@@ -582,6 +631,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for WorkerPlugin {
           parsed_options,
           need_new_url,
           self.url_mode,
+          for_name == "SharedWorker",
         );
         parser.walk_expression(&new_expr.callee);
         if let Some(args) = &new_expr.args
