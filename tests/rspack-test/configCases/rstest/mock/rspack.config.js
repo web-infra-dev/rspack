@@ -265,4 +265,10 @@ module.exports = [
       'rstack/test': 'commonjs rstack/test',
     },
   },
+  {
+    ...rstestEntry('./hoisted-rstack-reexport.js'),
+    externals: {
+      'rstack/test': 'commonjs rstack/test',
+    },
+  },
 ];
