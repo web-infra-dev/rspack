@@ -1,7 +1,7 @@
 import { fileURLToPath } from 'node:url';
-import { defineConfig } from '@rslib/core';
+import { define } from 'rstack';
 
-export default defineConfig({
+define.lib({
   lib: [
     {
       format: 'cjs',

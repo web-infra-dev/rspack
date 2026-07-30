@@ -1,0 +1,35 @@
+# Rsbuild Migration
+
+Read this reference when the project uses `@rsbuild/core`, `rsbuild.config.*`, `rsbuild` commands, Rsbuild client types, or `@rsbuild/core/types`.
+
+## Steps
+
+1. Replace `rsbuild dev`, `rsbuild build`, and `rsbuild preview` with `rs dev`, `rs build`, and `rs preview`. Preserve supported arguments after the new command.
+2. Move the old config export into `define.app`, replacing Rsbuild's `defineConfig()` wrapper and import. Preserve async functions, config parameters, plugins, and all options.
+3. Replace custom `--config` paths with the migrated `rstack.config.*` path.
+4. Replace Rsbuild client and type references:
+   - `/// <reference types="@rsbuild/core/types" />` to `/// <reference types="rstack/types" />`
+   - `"types": ["@rsbuild/core/types"]` to `"types": ["rstack/types"]`
+   - Type-only imports from `@rsbuild/core/types` to `rstack/types`
+5. Keep Rsbuild plugins such as `@rsbuild/plugin-react` and `@rsbuild/plugin-vue`, but verify that their peer ranges support the `@rsbuild/core` version installed through `rstack`. Upgrade incompatible plugins before migrating; retaining an older direct core does not make Rstack use it.
+6. Search for remaining direct `@rsbuild/core` imports. Remove the direct dependency when no source or runtime API still needs it.
+7. Delete `rsbuild.config.*` after the migrated app commands load equivalent config.
+
+## Config Pattern
+
+```ts
+import { define } from 'rstack';
+
+define.app(async () => {
+  const { pluginReact } = await import('@rsbuild/plugin-react');
+  return {
+    plugins: [pluginReact()],
+  };
+});
+```
+
+If tests also use Rstest, read [rstest.mdx](rstest.mdx). `rs test` derives an Rsbuild test extension from `define.app` unless `define.test` sets `extends`.
+
+## Validate
+
+Run the migrated app build script. Smoke-test dev or preview when those scripts changed or their behavior is material.

@@ -1,10 +1,14 @@
 import fs from 'node:fs/promises';
+import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import vm from 'node:vm';
 import { pluginNodePolyfill } from '@rsbuild/plugin-node-polyfill';
-import { defineConfig, type RsbuildPlugin, rspack } from '@rslib/core';
+import { define } from 'rstack';
+import { type RsbuildPlugin, rspack } from 'rstack/lib';
 import packageJson from './package.json' with { type: 'json' };
+
+const require = createRequire(import.meta.url);
 
 const bindingDir = path.resolve('../../crates/node_binding');
 const distDir = path.resolve('../rspack-browser/dist');
@@ -38,7 +42,7 @@ const removeCreateRequirePlugin: RsbuildPlugin = {
   },
 };
 
-export default defineConfig({
+define.lib({
   lib: [
     {
       format: 'esm',
@@ -253,7 +257,10 @@ function replaceDtsPlugin(): RsbuildPlugin {
 async function getModuleFederationRuntimeCode() {
   const { swc } = rspack.experiments;
   const runtime = await fs.readFile(
-    path.resolve(__dirname, 'src/runtime/moduleFederationDefaultRuntime.js'),
+    path.resolve(
+      import.meta.dirname,
+      'src/runtime/moduleFederationDefaultRuntime.js',
+    ),
     'utf-8',
   );
 

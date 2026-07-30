@@ -32,12 +32,7 @@ runs:
           NPM_PREFIX=$(cygpath -u "$(npm config get prefix)")
           export PATH="$NPM_PREFIX:$PATH"
         fi
-        PNPM_VERSION=$(node -p "require('./package.json').packageManager.replace('pnpm@', '')")
-        if [[ "${{ inputs.node-version }}" == 20* ]]; then
-          npm install -g "@pnpm/exe@$PNPM_VERSION" --force
-        else
-          npm install -g corepack@0.31.0 --force
-          echo "Corepack version: $(corepack --version)"
-          corepack enable
-        fi
+        npm install -g corepack@0.31.0 --force
+        echo "Corepack version: $(corepack --version)"
+        corepack enable
         pnpm --version
