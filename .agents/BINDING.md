@@ -9,16 +9,10 @@ Use this guide for changes involving any of these paths:
 - JavaScript hooks, loaders, file-system callbacks, or native-backed graph objects
 
 Read the contributor-facing
-[`JavaScript binding architecture`](../website/docs/en/contribute/architecture/javascript-binding.md)
-for the full current design and
-[`JavaScript binding design debt`](../website/docs/en/contribute/architecture/javascript-binding-design-debt.md)
-before changing ownership or lifetimes.
+[`JavaScript API architecture`](../website/docs/en/api/javascript-api/architecture.mdx)
+for the full current design before changing ownership or lifetimes.
 
 ## Scope
-
-`@rspack/core` is the public JavaScript API. `@rspack/binding` is a private implementation package.
-Do not expose `@rspack/binding` as a supported user entry point, even when its generated
-declarations export a class or function.
 
 The binding has two directions:
 
@@ -34,51 +28,173 @@ native/WASI behavior have been considered.
 
 ### Public and internal boundaries
 
-- Preserve webpack-compatible behavior in `packages/rspack` unless a documented Rspack difference is
-  intentional.
-- Keep compatibility-only JavaScript behavior out of `rspack_core`.
-- Keep the standalone `@rspack/binding` surface private and non-SemVer.
-- Do not re-export an internal binding type publicly without reviewing its runtime behavior and
-  lifetime.
+Preserve webpack-compatible behavior in `packages/rspack` unless a documented Rspack difference is intentional.
 
-### Lifetimes and ownership
+### Lifetimes, ownership, and asynchronous access
 
-- Every native-backed object needs an owner, stable identity, valid access window, and revocation
-  rule.
-- A JavaScript cache preserves object identity; it does not extend the Rust object's lifetime.
+Rust's lifetime and borrowing rules stop at the Node-API boundary. The lifetime model depends on
+the kind of value exposed to JavaScript:
+
+- A plain N-API object, such as an owned `#[napi(object)]` struct containing strings, numbers, arrays,
+  or other owned values, is materialized as an ordinary JavaScript object. It is a snapshot owned by
+  JavaScript after conversion. Dropping the Rust value used to create it does not invalidate normal
+  JavaScript property access, and changing the JavaScript object does not mutate the original Rust
+  value unless another binding call explicitly reads it back.
+- An N-API class instance has different semantics. Node-API keeps the Rust wrapper associated with
+  the JavaScript object alive, but that wrapper may contain only an identifier, weak owner
+  reference, or pointer to a `Compilation`, `Module`, or another separately owned native value.
+  Keeping the JavaScript object alive does not necessarily keep that target alive. Each getter,
+  setter, or method call re-enters Rust and can occur after the target has been removed, dropped, or
+  revoked.
+
+For an N-API class, the binding must validate or re-resolve the native target on every getter,
+setter, and method call before dereferencing it. If the target is no longer available, the
+operation must fail with a clear error, as access through a stale `Module` instance does today. A
+setter must additionally verify that mutation is allowed in the current compilation phase.
+
+- Every native-backed class needs a Rust owner, stable identity, valid access window, permitted
+  operations, and revocation rule.
 - Treat `Compilation`, `Module`, `Chunk`, graph objects, dependencies, and blocks as
-  compilation-scoped unless a stronger contract is proven.
-- Old watch compilations must never resolve to the latest compilation merely because an identifier
-  or slot was reused.
-- Do not send a borrowed Rust reference through an asynchronous thread-safe function.
-- Values queued to JavaScript must be owned or represented by a validated, revocable handle.
-- Do not add `unsafe impl Send` or `unsafe impl Sync` to a wrapper without documenting the owner,
-  transfer path, exclusivity, revocation, and proof that queued conversion cannot outlive them.
-- Do not create `&mut` access from an originally shared reference.
-- Prefer closure-based access that returns owned values; do not return fabricated `'static`
-  references.
+  compilation-scoped.
+- After a compilation rebuild, object removal, compiler close, or owner drop, fail with a
+  deterministic error. Never dereference a stale pointer or silently attach an old wrapper to a
+  different native object whose identifier was reused.
+- Prefer a plain owned object when the API only needs a snapshot. When live native behavior is
+  required, prefer closure-based access that returns owned snapshots or identifiers.
 
-### Threads and callbacks
+Rspack deliberately does not emulate Rust's shared and exclusive borrow checking for native-backed
+JavaScript classes. Checking every getter, mutation, and callback would add overhead to hot APIs and
+would not match the object model expected by webpack-compatible plugins. The current contract
+instead relies on hook phases and loader conventions: read and mutate binding-backed class
+instances only while the Rspack-invoked hook or loader is active, and only through operations valid
+for that phase. Being inside the access window is necessary, but does not make every mutation valid
+in every hook.
 
-- JavaScript values may only be accessed in their JavaScript environment.
-- Rust worker tasks call JavaScript through `rspack_napi` thread-safe function abstractions.
-- A thread-safe function queue can be non-blocking while the native compilation still waits for its
-  result.
-- Promise hooks must convert both synchronous throws and asynchronous rejection.
-- Sync JavaScript APIs block the caller and must not hide unbounded work.
-- Follow the repository concurrency rules: use `rayon` for synchronous CPU parallelism and
-  `rspack_parallel` for async compilation orchestration. Do not introduce binding-local Tokio or
-  Rayon mixing in core workflows.
+The execution window depends on how Rspack invokes JavaScript:
+
+- A synchronous tap is active until its callback returns.
+- A Promise tap is active until the Promise returned by the tap settles; the native hook bridge
+  awaits that Promise.
+- A synchronous loader is active until it returns. An asynchronous loader remains active until its
+  returned Promise settles or the callback obtained from `this.async()` is called; the native
+  loader scheduler awaits the JavaScript loader runner.
+- A timer, microtask, event listener, or Promise that is scheduled but not returned or otherwise
+  connected to one of those completion mechanisms is detached work. It must not retain and later
+  access native-backed class instances from the completed invocation.
+
+For example, this code lets a native-backed `Module` class instance escape the hook that supplied
+it:
+
+```js
+compilation.hooks.buildModule.tap('Plugin', (module) => {
+  setTimeout(() => {
+    module.identifier();
+  }, 0);
+});
+```
+
+Capture an owned value before returning instead:
+
+```js
+compilation.hooks.buildModule.tap('Plugin', (module) => {
+  const identifier = module.identifier();
+  setTimeout(() => consume(identifier), 0);
+});
+```
+
+`setTimeout` is not inherently invalid. It is supported when the surrounding asynchronous API
+keeps the invocation open. For example, this loader does not finish until `callback` is called:
+
+```js
+module.exports = function loader(source) {
+  const callback = this.async();
+
+  setTimeout(() => {
+    this.addDependency('generated-dependency.js');
+    callback(null, source);
+  }, 0);
+};
+```
+
+### Compiler-scoped thread-safe functions
+
+A Node-API thread-safe function (TSFN) keeps a strong reference to its JavaScript callback. The
+callback closure can in turn retain arbitrary JavaScript objects, preventing them from being
+garbage-collected while the TSFN is alive. If those captured objects retain a `Compiler`,
+`Compilation`, or another object that leads back to the native compiler, a cross-runtime ownership
+cycle is formed:
+
+```text
+Rust Compiler -> TSFN -> JavaScript callback closure
+      ^                         |
+      |                         v
+native binding <- JS Compiler or Compilation
+```
+
+JavaScript GC cannot see that releasing the Rust-owned TSFN would break the cycle,
+while Rust cannot drop the compiler because it is still reachable from JavaScript. The compiler,
+its compilation data, the callback, and everything captured by the callback can therefore remain
+alive indefinitely.
+
+`CompilerScopedTsFnHandle`, implemented in `compiler_scoped_tsfn.rs`, gives every compiler-owned
+TSFN an explicit release boundary:
+
+- `JsCompiler` owns one `CompilerScopedTsFnManager`.
+- Raw options, built-in plugins, and hook registration callbacks are converted inside
+  `CompilerScopedTsFnManager::scope`. The scope uses thread-local context because `FromNapiValue`
+  cannot receive the owning compiler as additional conversion context.
+- Each handle stores an `Arc<AtomicRefCell<Option<ThreadsafeFunction>>>`. Handle clones share the
+  same slot. The manager registers a releaser that replaces the option with `None`, which drops the
+  TSFN and its strong reference to the JavaScript callback for every clone at once.
+- `JsCompiler::close` waits until in-flight build or rebuild work is idle before closing the native
+  compiler, because that work may still need its callbacks. The close Promise releases the manager
+  in `finally`; manager `Drop` performs the same release as a fallback.
+- Calling a released handle fails with the compiler-closed error rather than invoking JavaScript
+  after close.
+
+All callbacks owned for the compiler lifetime must use `CompilerScopedTsFnHandle` rather than keep
+an independent raw `ThreadsafeFunction`. After `compiler.close()` settles, no registered TSFN may
+retain its JavaScript closure. Keeping another raw TSFN clone or strong function reference outside
+the manager defeats this guarantee and can reintroduce the memory leak.
 
 ### Performance
 
-- Treat every Rust/JavaScript crossing as observable cost in hot hooks.
-- Avoid per-element callbacks and repeated property getters when an owned batch can be returned.
-- Do not add locks to normal Rust graph traversal to simplify a rarely used JavaScript callback.
-  Pay synchronization at the binding boundary where possible.
-- Decide whether a collection is live, cached, or materialized; document that decision.
-- Avoid converting sources or stats fields that the caller did not request.
-- Preserve skip and cache behavior for hook registration unless benchmarks justify a change.
+Binding performance is often dominated by how much data is converted and how many Node-API
+operations are needed to construct the JavaScript result. Apply these two optimizations first:
+
+1. **Choose eager properties and lazy getters by access pattern.** For a large native structure,
+   expose expensive or rarely used fields through getters instead of converting the entire
+   structure eagerly. A field that JavaScript never reads should incur no conversion cost.
+   Conversely, if a field is likely to be read and its value is immutable in Rspack, convert it
+   once while constructing the class instance and define it as an own JavaScript data property,
+   for example with `Property::with_value`. This avoids a getter call, native-target validation,
+   and repeated conversion on the common path. It also leaves JavaScript with an owned value that
+   remains readable after the native target is revoked. Use a getter when the field is expensive
+   and cold, or when it must reflect live native state.
+
+   Keep laziness coarse-grained: when a getter returns a collection, convert that collection as one
+   batch rather than introducing one Rust-to-JavaScript call per element. Decide whether each
+   getter returns a live view, a newly materialized snapshot, or a cached snapshot, and document its
+   invalidation behavior. Because a getter re-enters Rust, native-backed class lifetime and
+   revocation rules still apply.
+
+2. **Use JSON for large plain data objects.** For a large, JSON-compatible struct with no native
+   identity or behavior, the fastest transfer path is generally:
+
+   ```text
+   Rust value -> JSON string -> one Node-API string transfer -> JSON.parse in JavaScript
+   ```
+
+   This avoids constructing a large object graph through many individual Node-API property and
+   value conversions. Use direct N-API conversion for small objects, and benchmark when the
+   threshold matters: serialization, parsing, and the temporary string also have costs. Do not use
+   this path when the API must preserve `undefined`, `BigInt`, functions, symbols, cyclic
+   references, prototypes, class identity, typed binary data, or other values that JSON cannot
+   represent faithfully.
+
+Treat every Rust/JavaScript crossing as observable cost in a hot hook. Batch at a meaningful API
+boundary, avoid per-element callbacks, and do not eagerly convert data merely because it is
+available on the Rust side.
 
 ### Generated files
 
@@ -105,188 +221,40 @@ native/WASI behavior have been considered.
 | Source conversion         | `packages/rspack/src/util/source.ts`    | `crates/rspack_binding_api/src/source.rs`              |
 | Async runtime or TSFN     | `crates/rspack_napi/src/runtime.rs`     | `threadsafe_function.rs`, `compiler_scoped_tsfn.rs`    |
 | Binding package/types     | `crates/node_binding/`                  | build script, generated declarations, WASI wrappers    |
-| Raw options               | `packages/rspack/src/config/adapter.ts` | `crates/rspack_binding_api/src/raw_options/`           |
+| Rspack options            | `packages/rspack/src/config/adapter.ts` | `crates/rspack_binding_api/src/raw_options/`           |
 
-## Current execution model
+### N-API class property placement
 
-### Compiler creation
+N-API can expose the same JavaScript property syntax through descriptors in two different places.
+The placement is observable and should be chosen as part of the API contract:
 
-The public JavaScript `Compiler` is created first. Native creation is lazy in
-`Compiler.#getInstance()`:
+| Mechanism                                         | Descriptor location       | JavaScript behavior                                                                 |
+| ------------------------------------------------- | ------------------------- | ----------------------------------------------------------------------------------- |
+| `#[napi(getter)]` and `#[napi(setter)]`           | Class template/prototype  | Shared by instances, inherited through the prototype chain, and not an own property |
+| `Object::define_properties` after `into_instance` | Individual class instance | Created for each instance and reported as an own property                           |
 
-1. Check core/binding version compatibility.
-2. Convert normalized options into `RawOptions`.
-3. Attach JavaScript function and virtual-file references.
-4. Create hook register functions.
-5. Wrap file systems and resolver factory.
-6. Construct native `JsCompiler`.
+Prototype accessors are the conventional choice for class behavior. They avoid installing the same
+descriptor on every instance, but `Object.hasOwn(instance, name)` returns `false`, and
+`console.log(instance)` normally does not show inherited properties. This can make important
+user-facing state difficult to discover while inspecting or debugging an object.
 
-The JavaScript compiler keeps `RawOptions` alive because the native side intentionally avoids
-turning that object into an accidental strong reference cycle.
+`Object::define_properties` allows the binding to install data or accessor descriptors directly on
+the class instance. Own properties can appear in `console.log(instance)` and property enumeration
+when their descriptor attributes make them enumerable. They are appropriate when own-property
+behavior, inspection UX, or per-instance descriptor values are part of the API.
 
-The native `JsCompiler` owns a `ManuallyDrop<Compiler>`, compiler-scoped thread-safe functions,
-caches, compiler context, and virtual file store. Explicit `close()` is the normal cleanup path.
-`unsafeFastDrop` is internal and only valid when process exit will reclaim all state.
+Descriptor location is independent of how the value is produced:
 
-### Hook bridge
+- `Property::with_getter` and `Property::with_setter` create accessors. Whether they are installed
+  on the prototype or the instance, each access enters Rust and must follow native lifetime,
+  revocation, and mutation rules.
+- `Property::with_value` creates a data property from a value converted during instance
+  construction. It is suitable for immutable, frequently accessed state that should remain owned
+  and readable on the JavaScript side without another native call.
 
-The hook path is split:
-
-```text
-public Hook
-  -> packages/rspack/src/taps/* register function
-  -> RegisterJsTapKind
-  -> Rust hook interceptor
-  -> ThreadsafeJsTap
-  -> public Hook invocation
-```
-
-`JsHooksAdapterPlugin` must install every native interceptor. The interceptor asks JavaScript for
-taps by stage range. Frequently invoked hooks can cache the returned tap list. Hook kinds not used
-by JavaScript can be skipped through the non-skippable register set.
-
-When changing a hook, verify:
-
-- the public hook exists and has the correct Tapable type;
-- the JavaScript tap adapter converts arguments and results;
-- `RegisterJsTapKind` contains the hook;
-- the Rust register definition has the correct argument, return, Promise, cache, and skip settings;
-- `JsHooksAdapterPlugin` installs it;
-- cache invalidation handles taps added across the compiler lifecycle;
-- errors preserve the hook context.
-
-### Compilation identity
-
-Rust uses `JsCompilationWrapper` to cache a native `JsCompilation` per `CompilationId`. JavaScript
-uses `Compiler.#bindingCompilationMap` to cache the public `Compilation` facade per native instance.
-
-Do not collapse these two layers casually. They preserve different identities:
-
-```text
-Rust compilation identity -> native binding identity -> public facade identity
-```
-
-Current wrappers include pointer-based access and depend on cleanup. Any change must test old
-compilations, watch rebuilds, compiler close, garbage collection, and parallel compilers.
-
-### Module identity
-
-`ModuleObject` is the Rust-to-JavaScript conversion type. It preserves one JavaScript module
-instance per `(CompilerId, ModuleIdentifier)`.
-
-Normal access resolves the module identifier in the active compilation. Some build and loader
-callbacks currently use a raw pointer fallback while the module is outside `ModuleGraph`. This is
-active design debt, not a reusable pattern. Do not add another pointer-backed call site without an
-architecture review.
-
-Cleanup by revoked module identifiers and compiler identifier must continue to make stale objects
-fail rather than resolve a different module.
-
-## Classify an API before implementing it
-
-Choose one primary model:
-
-| Model                      | Use when                                          | Main review question                                    |
-| -------------------------- | ------------------------------------------------- | ------------------------------------------------------- |
-| JavaScript facade          | Compatibility behavior does not need native state | Can it remain completely outside the binding?           |
-| Owned DTO                  | The result is data, not identity                  | Is conversion bounded and are all fields needed?        |
-| Identifier lookup          | Native state has stable identity in an owner      | What invalidates the identifier?                        |
-| Native-backed live view    | Live identity and queries are required            | How is every access validated and revoked?              |
-| Snapshot plus patch        | Callback needs reads and limited mutation         | Can mutation be expressed explicitly?                   |
-| Callback-scoped capability | Off-owner live access is unavoidable              | How is capability, generation, and revocation enforced? |
-| JavaScript adapter         | User implementation must be called from Rust      | What is the call frequency and async behavior?          |
-
-Do not begin with `#[napi]` or a pointer. Begin with ownership and observable behavior.
-
-## Change playbooks
-
-### Add a binding-backed method
-
-1. Confirm the public API contract and webpack behavior.
-2. Decide the API model from the table above.
-3. Identify the Rust owner and invalidation point.
-4. Implement Rust conversion without returning borrowed references.
-5. Add or update the JavaScript facade.
-6. Test wrong compiler, old compilation, revoked object, and close behavior when relevant.
-7. Update user implementation notes if lifetime or cost is visible.
-
-### Add a hook
-
-1. Define the native hook and its Rust arguments.
-2. Add `RegisterJsTapKind`.
-3. Define the register/interceptor conversion.
-4. Install the interceptor in `JsHooksAdapterPlugin`.
-5. Add the JavaScript tap adapter.
-6. Decide `cache`, `skip`, sync, and Promise behavior explicitly.
-7. Test stage ordering, no-tap fast path, errors, repeated builds, and cleanup.
-
-### Add a callback in raw options
-
-1. Prefer an owned serializable option if possible.
-2. Store JavaScript references under compiler ownership.
-3. Pass owned callback arguments through a thread-safe function.
-4. Convert return values in the JavaScript environment.
-5. Release the reference on compiler close and environment cleanup.
-6. Measure frequency if the callback can run per module, dependency, chunk, or asset.
-
-### Change a native-backed wrapper
-
-Write an invariant comment or design note covering:
-
-- owner;
-- identity key;
-- access and mutation capability;
-- valid phases;
-- cross-thread representation;
-- revocation and ABA protection;
-- JavaScript instance caching;
-- behavior after close and rebuild.
-
-If the wrapper contains `NonNull`, a raw pointer, `WeakRef`, `Reference`, `External`, a manual
-lifetime, or unsafe `Send`/`Sync`, inspect every construction, conversion, update, and cleanup site.
-
-## Validation matrix
-
-Run builds before tests when code changes:
-
-```bash
-# Rust binding changes
-pnpm run build:binding:dev
-
-# JavaScript-only changes
-pnpm run build:js
-
-# Changes spanning both layers
-pnpm run build:cli:dev
-```
-
-Relevant tests:
-
-| Behavior                            | Location or command                                              |
-| ----------------------------------- | ---------------------------------------------------------------- |
-| Binding declaration type check      | `pnpm --filter @rspack/binding test`                             |
-| Compiler and Compilation API        | `tests/rspack-test/compilerCases/`                               |
-| Hook conversion and stages          | `tests/rspack-test/hookCases/`, `configCases/hooks/`             |
-| TSFN lifecycle and GC               | `compilerCases/fixtures/tsfn-lifecycle/`                         |
-| Binding garbage collection          | `configCases/binding-gc/`                                        |
-| Module and chunk graphs             | `configCases/module-graph/`, `configCases/chunk-graph/`          |
-| Loader concurrency and importModule | `configCases/loader-parallel/`, `loader-parallel-import-module/` |
-| Watch invalidation                  | `tests/rspack-test/watchCases/`                                  |
-| Native/WASI behavior                | binding native and WASI builds plus targeted browser tests       |
-
-Tests involving garbage collection or thread-safe function cleanup should run in a separate process
-when global state or `--expose-gc` is required.
-
-## Documentation contract
-
-When changing observable behavior:
-
-- update `website/docs/{en,zh}/api/javascript-api/architecture.mdx` for user-facing lifetime or cost;
-- update the relevant JavaScript API reference page;
-- update the contributor architecture when ownership, threading, or call paths change;
-- update the design-debt register when a compromise is added, changed, or removed;
-- write an ADR for an accepted long-lived architecture decision;
-- update this file only for AI routing, invariants, or modification recipes.
-
-Do not copy historical spike conclusions into current-state documentation until the implementation
-has landed.
+Rspack uses instance-level `define_properties` for N-API classes whose public state should be
+visible during ordinary object inspection; `Module` and its derived classes are one application of
+this general strategy. Use `#[napi(getter)]` or `#[napi(setter)]` when prototype semantics are
+intended. Do not move a property between the prototype and the instance as a mechanical refactor:
+it can change `console.log`, `Object.hasOwn`, `Object.keys`, inheritance, and
+`Object.getOwnPropertyDescriptor` results.

@@ -18,7 +18,7 @@ description: 'Rspack 项目结构指南，介绍 monorepo 中的 Rust crates、J
 - **`rspack_allocator`**: 使用 mimalloc 的内存分配器，用于优化内存分配性能（Linux/macOS）
 
 关于这些 crates 与 `@rspack/core` 之间的所有权、线程、hook bridge 和生命周期关系，请参阅
-[JavaScript binding 架构](/contribute/architecture/javascript-binding)。
+[JavaScript API 架构](/api/javascript-api/architecture)。
 
 ### 构建与绑定 Crates
 

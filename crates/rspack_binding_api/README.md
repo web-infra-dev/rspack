@@ -47,9 +47,3 @@ If you're a user of Rspack custom binding:
 
 - Do not depend on this crate directly
 - Use [`rspack_binding_builder`](https://crates.io/crates/rspack_binding_builder) to build your own binding
-
-## Architecture
-
-- [JavaScript binding architecture](../../website/docs/en/contribute/architecture/javascript-binding.md)
-- [JavaScript binding design debt](../../website/docs/en/contribute/architecture/javascript-binding-design-debt.md)
-- [AI-oriented binding guide](../../.agents/BINDING.md)

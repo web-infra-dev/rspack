@@ -1,6 +1,1 @@
-[
-  "javascript-binding",
-  "javascript-binding-design-debt",
-  "builtin-plugin",
-  "rspack-loader"
-]
+["builtin-plugin", "rspack-loader"]

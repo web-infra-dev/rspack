@@ -284,21 +284,6 @@ JavaScript object whose methods or properties resolve data from a live Rust comp
 Its JavaScript lifetime can be longer than the native data lifetime, so access requires validation
 and revocation.
 
-### Materialized Value
-
-JavaScript-owned data created by converting native state at one point in time. The value is detached
-from later native changes, although elements inside a collection may still be native-backed.
-
-### Thread-Safe Function (TSFN)
-
-Node-API mechanism used to schedule a JavaScript callback from a Rust worker task into the owning
-JavaScript environment.
-
-### Revocation
-
-Invalidation of a native-backed handle or cached JavaScript object after its native owner, module,
-or compilation is removed.
-
 ### Crate
 
 Rust package/library (equivalent to npm package in JavaScript).

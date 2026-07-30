@@ -23,9 +23,6 @@ Rust Core Layer (rspack_core, compilation engine)
 3. **Binding Layer** (`crates/node_binding`, `crates/rspack_binding_api`, `crates/rspack_napi`):
    Node-API packaging, conversion, native-backed objects, JavaScript callbacks, and runtime support
 
-Binding-backed APIs have additional ownership, lifetime, object identity, and cross-thread
-constraints. Read [JavaScript Binding Guide](./BINDING.md) before changing them.
-
 ## Core Components
 
 ### Compiler
@@ -349,7 +346,7 @@ Source File → Loader Chain → Parsed AST → Dependency Extraction
 ## Resources
 
 - [Project Structure](../website/docs/en/contribute/development/project.md)
-- [JavaScript Binding Architecture](../website/docs/en/contribute/architecture/javascript-binding.md)
+- [JavaScript API Architecture](../website/docs/en/api/javascript-api/architecture.mdx)
 - [JavaScript Binding Guide](./BINDING.md)
 - [Common Patterns](./COMMON_PATTERNS.md)
 - [Code Style](./CODE_STYLE.md)
