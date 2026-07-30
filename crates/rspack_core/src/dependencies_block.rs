@@ -118,9 +118,6 @@ impl AsyncDependenciesBlock {
       dependency_ids.push(*dep.id());
     }
 
-    if let Some(loc) = loc.as_ref() {
-      write!(id, "|loc={loc}").expect("write to String should not fail");
-    }
     if let Some(modifier) = modifier {
       id.push_str("|modifier=");
       id.push_str(modifier);
@@ -141,6 +138,17 @@ impl AsyncDependenciesBlock {
 
   pub fn identifier(&self) -> AsyncDependenciesBlockIdentifier {
     self.id
+  }
+
+  fn set_identifier_occurrence(
+    &mut self,
+    identifier: AsyncDependenciesBlockIdentifier,
+    occurrence: usize,
+  ) {
+    let mut id = String::with_capacity(identifier.0.as_str().len() + "|occurrence=".len() + 20);
+    id.push_str(identifier.0.as_str());
+    write!(id, "|occurrence={occurrence}").expect("write to String should not fail");
+    self.id = id.into();
   }
 
   pub fn set_group_options(&mut self, group_options: GroupOptions) {
@@ -209,6 +217,29 @@ impl AsyncDependenciesBlock {
       compilation,
       runtime,
     );
+  }
+}
+
+pub(crate) fn stabilize_async_block_identifiers(blocks: &mut [Box<AsyncDependenciesBlock>]) {
+  if blocks.len() < 2 {
+    return;
+  }
+
+  let mut occurrences = AsyncDependenciesBlockIdentifierMap::<usize>::default();
+  let mut identifiers = AsyncDependenciesBlockIdentifierSet::default();
+  for block in blocks {
+    let identifier = block.identifier();
+    let occurrence = occurrences.entry(identifier).or_default();
+    loop {
+      if *occurrence != 0 {
+        block.set_identifier_occurrence(identifier, *occurrence);
+      }
+      if identifiers.insert(block.identifier()) {
+        break;
+      }
+      *occurrence += 1;
+    }
+    *occurrence += 1;
   }
 }
 

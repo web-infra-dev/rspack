@@ -11,6 +11,7 @@ use crate::{
   CompilerId, CompilerOptions, DependencyParents, ModuleCodeTemplate, ResolverFactory,
   SharedPluginDriver,
   compilation::build_module_graph::{ForwardedIdSet, HasLazyDependencies, LazyDependencies},
+  dependencies_block::stabilize_async_block_identifiers,
   utils::{
     ResourceId,
     task_loop::{Task, TaskResult, TaskType},
@@ -171,7 +172,9 @@ impl Task<TaskContext> for BuildResultTask {
       }
       blocks
     };
-    let blocks = handle_block(build_result.dependencies, build_result.blocks, None);
+    let mut blocks = build_result.blocks;
+    stabilize_async_block_identifiers(&mut blocks);
+    let blocks = handle_block(build_result.dependencies, blocks, None);
     queue.extend(blocks);
 
     while let Some(mut block) = queue.pop_front() {
