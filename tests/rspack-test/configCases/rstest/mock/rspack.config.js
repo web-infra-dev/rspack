@@ -259,4 +259,10 @@ module.exports = [
       '@rstest/core': 'global @rstest/core',
     },
   },
+  {
+    ...rstestEntry('./hoisted-rstack.js'),
+    externals: {
+      'rstack/test': 'commonjs rstack/test',
+    },
+  },
 ];
