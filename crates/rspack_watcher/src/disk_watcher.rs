@@ -1,4 +1,4 @@
-use std::{sync::Arc, time::Duration};
+use std::{path::Path, sync::Arc, time::Duration};
 
 use notify::{Event, EventKind, RecommendedWatcher, Watcher, event::ModifyKind};
 use rspack_paths::ArcPath;
@@ -85,17 +85,20 @@ impl DiskWatcher {
   ) -> rspack_error::Result<()> {
     let new_patterns: HashSet<WatchPattern> = patterns.collect();
 
-    let new_paths = new_patterns.iter().map(|p| &p.path).collect::<HashSet<_>>();
-
-    // Collect stale paths that are no longer needed, then unwatch and remove them.
-    let stale_paths: HashSet<ArcPath> = self
+    // A changed recursive mode must be unwatched before it is registered again.
+    let stale_patterns: Vec<(ArcPath, bool)> = self
       .watch_patterns
       .iter()
-      .filter(|p| !new_paths.contains(&p.path))
-      .map(|p| p.path.clone())
+      .filter(|p| !new_patterns.contains(*p))
+      .map(|p| {
+        (
+          p.path.clone(),
+          matches!(p.mode, notify::RecursiveMode::Recursive),
+        )
+      })
       .collect();
 
-    for path in &stale_paths {
+    for (path, _) in &stale_patterns {
       if let Some(watcher) = &mut self.inner
         && let Err(e) = watcher.unwatch(path)
         && !matches!(e.kind, notify::ErrorKind::WatchNotFound)
@@ -104,9 +107,24 @@ impl DiskWatcher {
       }
     }
 
-    self
-      .watch_patterns
-      .retain(|p| !stale_paths.contains(&p.path));
+    // notify's inotify backend removes every descendant watch when a recursive
+    // parent is unwatched, so retained children must also be registered again.
+    let stale_paths: HashSet<&Path> = stale_patterns
+      .iter()
+      .map(|(path, _)| path.as_ref())
+      .collect();
+    let stale_recursive_paths: HashSet<&Path> = stale_patterns
+      .iter()
+      .filter_map(|(path, recursive)| recursive.then_some(path.as_ref()))
+      .collect();
+    self.watch_patterns.retain(|p| {
+      !stale_paths.contains(p.path.as_ref())
+        && !p
+          .path
+          .as_ref()
+          .ancestors()
+          .any(|path| stale_recursive_paths.contains(path))
+    });
 
     for pattern in new_patterns {
       if self.watch_patterns.contains(&pattern) {
@@ -133,13 +151,19 @@ impl DiskWatcher {
 
 #[cfg(test)]
 mod tests {
-  use std::sync::Arc;
+  use std::{
+    sync::Arc,
+    time::{Duration, Instant},
+  };
 
   use rspack_paths::ArcPath;
   use tokio::sync::mpsc;
 
   use super::*;
-  use crate::paths::PathManager;
+  use crate::{
+    analyzer::{Analyzer, RecommendedAnalyzer},
+    paths::PathManager,
+  };
 
   fn create_disk_watcher() -> DiskWatcher {
     let (tx, _rx) = mpsc::unbounded_channel();
@@ -206,5 +230,250 @@ mod tests {
     assert!(paths.contains(&ArcPath::from(dir_b)));
     assert!(paths.contains(&ArcPath::from(dir_c)));
     assert!(!paths.contains(&ArcPath::from(dir_a)));
+  }
+
+  #[test]
+  fn test_watch_replaces_recursive_mode_for_existing_path() {
+    let temp_dir = tempfile::TempDir::new().unwrap();
+    let dir = ArcPath::from(temp_dir.path().canonicalize().unwrap());
+    let mut watcher = create_disk_watcher();
+
+    watcher
+      .watch(std::iter::once(WatchPattern {
+        path: dir.clone(),
+        mode: notify::RecursiveMode::NonRecursive,
+      }))
+      .unwrap();
+    watcher
+      .watch(std::iter::once(WatchPattern {
+        path: dir.clone(),
+        mode: notify::RecursiveMode::Recursive,
+      }))
+      .unwrap();
+
+    assert_eq!(watcher.watch_patterns.len(), 1);
+    assert!(watcher.watch_patterns.contains(&WatchPattern {
+      path: dir.clone(),
+      mode: notify::RecursiveMode::Recursive,
+    }));
+
+    watcher
+      .watch(std::iter::once(WatchPattern {
+        path: dir.clone(),
+        mode: notify::RecursiveMode::NonRecursive,
+      }))
+      .unwrap();
+
+    assert_eq!(watcher.watch_patterns.len(), 1);
+    assert!(watcher.watch_patterns.contains(&WatchPattern {
+      path: dir,
+      mode: notify::RecursiveMode::NonRecursive,
+    }));
+  }
+
+  #[test]
+  fn test_many_stale_siblings_keep_retained_children_and_prefix_siblings() {
+    let root = std::path::PathBuf::from("/virtual-project");
+    let recursive_parent = root.join("package-1");
+    let retained_child = recursive_parent.join("retained");
+    let prefix_sibling = root.join("package-10").join("retained");
+    let retained_siblings = (0..1024)
+      .map(|index| root.join(format!("retained-{index}")))
+      .collect::<Vec<_>>();
+    let stale_siblings = (0..1024)
+      .map(|index| root.join(format!("stale-{index}")))
+      .collect::<Vec<_>>();
+
+    let pattern = |path, mode| WatchPattern {
+      path: ArcPath::from(path),
+      mode,
+    };
+    let mut watcher = create_disk_watcher();
+    watcher.inner = None;
+    watcher.watch_patterns =
+      std::iter::once(pattern(recursive_parent, notify::RecursiveMode::Recursive))
+        .chain(std::iter::once(pattern(
+          retained_child.clone(),
+          notify::RecursiveMode::NonRecursive,
+        )))
+        .chain(std::iter::once(pattern(
+          prefix_sibling.clone(),
+          notify::RecursiveMode::NonRecursive,
+        )))
+        .chain(
+          retained_siblings
+            .iter()
+            .cloned()
+            .map(|path| pattern(path, notify::RecursiveMode::NonRecursive)),
+        )
+        .chain(stale_siblings.into_iter().enumerate().map(|(index, path)| {
+          pattern(
+            path,
+            if index % 2 == 0 {
+              notify::RecursiveMode::Recursive
+            } else {
+              notify::RecursiveMode::NonRecursive
+            },
+          )
+        }))
+        .collect();
+
+    let expected: HashSet<WatchPattern> =
+      std::iter::once(pattern(retained_child, notify::RecursiveMode::NonRecursive))
+        .chain(std::iter::once(pattern(
+          prefix_sibling,
+          notify::RecursiveMode::NonRecursive,
+        )))
+        .chain(
+          retained_siblings
+            .into_iter()
+            .map(|path| pattern(path, notify::RecursiveMode::NonRecursive)),
+        )
+        .collect();
+
+    watcher
+      .watch(expected.iter().map(|pattern| WatchPattern {
+        path: pattern.path.clone(),
+        mode: pattern.mode,
+      }))
+      .unwrap();
+
+    assert_eq!(watcher.watch_patterns, expected);
+  }
+
+  #[test]
+  fn test_removing_recursive_parent_keeps_retained_child_observable() {
+    let temp_dir = tempfile::TempDir::new().unwrap();
+    let parent = temp_dir.path().canonicalize().unwrap();
+    let child = parent.join("child");
+    let file = child.join("file.txt");
+    std::fs::create_dir_all(&child).unwrap();
+    std::fs::write(&file, "before").unwrap();
+
+    let (tx, mut rx) = mpsc::unbounded_channel();
+    let path_manager = Arc::new(PathManager::default());
+    path_manager
+      .update(
+        (
+          std::iter::once(ArcPath::from(file.clone())),
+          std::iter::empty(),
+        ),
+        (std::iter::empty(), std::iter::empty()),
+        (std::iter::empty(), std::iter::empty()),
+      )
+      .unwrap();
+    let trigger = Arc::new(trigger::Trigger::new(path_manager, tx));
+    let mut watcher = DiskWatcher::new(false, None, trigger);
+
+    watcher
+      .watch(
+        [
+          WatchPattern {
+            path: ArcPath::from(parent),
+            mode: notify::RecursiveMode::Recursive,
+          },
+          WatchPattern {
+            path: ArcPath::from(child.clone()),
+            mode: notify::RecursiveMode::NonRecursive,
+          },
+        ]
+        .into_iter(),
+      )
+      .unwrap();
+    watcher
+      .watch(std::iter::once(WatchPattern {
+        path: ArcPath::from(child),
+        mode: notify::RecursiveMode::NonRecursive,
+      }))
+      .unwrap();
+
+    std::thread::sleep(Duration::from_millis(100));
+    while rx.try_recv().is_ok() {}
+    std::fs::write(&file, "after").unwrap();
+
+    let deadline = Instant::now() + Duration::from_secs(10);
+    let observed = loop {
+      if let Ok(events) = rx.try_recv()
+        && events
+          .aggregated()
+          .iter()
+          .any(|event| event.path.as_ref() == file)
+      {
+        break true;
+      }
+      if Instant::now() >= deadline {
+        break false;
+      }
+      std::thread::sleep(Duration::from_millis(10));
+    };
+
+    assert!(observed, "retained child was no longer watched");
+  }
+
+  #[test]
+  fn test_recursive_context_observes_file_in_new_grandchild() {
+    let temp_dir = tempfile::TempDir::new().unwrap();
+    let parent = temp_dir.path().canonicalize().unwrap();
+    let child = parent.join("child");
+    let existing = child.join("existing.txt");
+    std::fs::create_dir_all(&child).unwrap();
+    std::fs::write(&existing, "existing").unwrap();
+
+    let (tx, mut rx) = mpsc::unbounded_channel();
+    let path_manager = Arc::new(PathManager::default());
+    path_manager
+      .update(
+        (std::iter::once(ArcPath::from(existing)), std::iter::empty()),
+        (
+          std::iter::once(ArcPath::from(parent.clone())),
+          std::iter::empty(),
+        ),
+        (std::iter::empty(), std::iter::empty()),
+      )
+      .unwrap();
+    let trigger = Arc::new(trigger::Trigger::new(path_manager.clone(), tx));
+    let mut watcher = DiskWatcher::new(false, None, trigger);
+
+    watcher
+      .watch(std::iter::once(WatchPattern {
+        path: ArcPath::from(parent.clone()),
+        mode: notify::RecursiveMode::Recursive,
+      }))
+      .unwrap();
+    watcher
+      .watch(
+        RecommendedAnalyzer::default()
+          .analyze(path_manager.access())
+          .into_iter(),
+      )
+      .unwrap();
+
+    let grandchild = child.join("new");
+    std::thread::sleep(Duration::from_millis(100));
+    std::fs::create_dir(&grandchild).unwrap();
+    std::thread::sleep(Duration::from_millis(100));
+    while rx.try_recv().is_ok() {}
+    std::fs::write(grandchild.join("created.txt"), "created").unwrap();
+
+    let deadline = Instant::now() + Duration::from_secs(10);
+    let observed = loop {
+      if let Ok(events) = rx.try_recv()
+        && events
+          .aggregated()
+          .iter()
+          .any(|event| event.path.as_ref() == parent)
+      {
+        break true;
+      }
+      if Instant::now() >= deadline {
+        break false;
+      }
+      std::thread::sleep(Duration::from_millis(10));
+    };
+
+    assert!(
+      observed,
+      "recursive context did not watch the new grandchild"
+    );
   }
 }

@@ -9,6 +9,7 @@
  */
 
 import type { Callback } from '@rspack/lite-tapable';
+import type { WatchInvalidationKind } from './Compilation';
 import type { MultiCompiler } from './MultiCompiler';
 import asyncLib from './util/asyncLib';
 import type { Watching } from './Watching';
@@ -26,17 +27,25 @@ class MultiWatching {
     this.compiler = compiler;
   }
   invalidate(callback?: Callback<Error, void>) {
+    this.__internal__invalidate('normal', callback);
+  }
+
+  /** @internal Invalidates all child compilers with Rspack provenance. */
+  __internal__invalidate(
+    kind: WatchInvalidationKind,
+    callback?: Callback<Error, void>,
+  ) {
     if (callback) {
       asyncLib.each(
         this.watchings,
-        (watching, callback) => watching.invalidate(callback),
+        (watching, callback) => watching.__internal__invalidate(kind, callback),
         // cannot be resolved without assertion
         // Type 'Error | null | undefined' is not assignable to type 'Error | null'
         callback as (err: Error | null | undefined) => void,
       );
     } else {
       for (const watching of this.watchings) {
-        watching.invalidate();
+        watching.__internal__invalidate(kind);
       }
     }
   }
