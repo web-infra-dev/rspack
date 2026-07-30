@@ -9,10 +9,7 @@ use rspack_core::{
   FactoryMeta, LibIdentOptions, Module as _, ModuleIdentifier, RuntimeModuleCommon,
   RuntimeModuleStage, SourceType, internal,
 };
-use rspack_napi::{
-  OneShotInstanceRef, WeakRef, napi::bindgen_prelude::*, string::JsStringExt,
-  threadsafe_function::ThreadsafeFunction,
-};
+use rspack_napi::{OneShotInstanceRef, WeakRef, napi::bindgen_prelude::*, string::JsStringExt};
 use rspack_plugin_runtime::RuntimeModuleFromJs;
 use rustc_hash::FxHashMap;
 
@@ -23,6 +20,7 @@ use crate::{
   build_info::BuildInfo,
   chunk::ChunkWrapper,
   codegen_result::JsCodegenerationResults,
+  compiler_scoped_tsfn::CompilerScopedTsFnHandle,
   define_symbols,
   dependency::DependencyWrapper,
   modules::{ConcatenatedModule, ContextModule, ExternalModule, NormalModule},
@@ -803,7 +801,7 @@ pub struct JsRuntimeModuleArg {
   pub chunk: ChunkWrapper,
 }
 
-type GenerateFn = ThreadsafeFunction<(), String>;
+type GenerateFn = CompilerScopedTsFnHandle<(), String>;
 
 #[napi(object, object_to_js = false)]
 pub struct JsAddingRuntimeModule {
