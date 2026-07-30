@@ -45,6 +45,8 @@ pub struct BeforeResolveData {
   // cacheable
   pub recursive: bool,
   pub pattern: ContextModulePattern,
+  #[debug(skip)]
+  original_glob_request: Option<(String, bool)>,
 }
 
 #[derive(Clone)]
@@ -177,12 +179,34 @@ impl ContextModuleFactory {
       .as_context_dependency_mut()
       .expect("should be context dependency");
     let dependency_options = dependency.options();
+    let (request, recursive, original_glob_request) = match &dependency_options.pattern {
+      ContextModulePattern::Glob(patterns) => {
+        let compiled = compile_context_module_glob_request(
+          dependency.request(),
+          patterns,
+          data.context.as_str(),
+          &dependency_options.compiler_context,
+          dependency_options.recursive,
+        );
+        (
+          compiled.request.clone(),
+          compiled.recursive,
+          Some((compiled.request, compiled.recursive)),
+        )
+      }
+      _ => (
+        dependency.request().to_string(),
+        dependency_options.recursive,
+        None,
+      ),
+    };
 
     let before_resolve_data = BeforeResolveData {
       context: data.context.to_string(),
-      request: dependency.request().to_string(),
-      recursive: dependency_options.recursive,
+      request,
+      recursive,
       pattern: dependency_options.pattern.clone(),
+      original_glob_request,
       dependencies: data.dependencies.clone(),
     };
 
@@ -222,11 +246,15 @@ impl ContextModuleFactory {
     let dependency = data.dependencies[0]
       .as_context_dependency()
       .expect("should be context dependency");
-
-    let should_relocate_glob_request =
-      matches!(&before_resolve_data.pattern, ContextModulePattern::Glob(_))
-        && before_resolve_data.context != dependency.options().context
-        && before_resolve_data.request == dependency.request();
+    let hook_kept_glob_request = before_resolve_data
+      .original_glob_request
+      .as_ref()
+      .is_some_and(|(request, _)| before_resolve_data.request == *request);
+    let hook_kept_glob_recursive = before_resolve_data
+      .original_glob_request
+      .as_ref()
+      .is_some_and(|(_, recursive)| before_resolve_data.recursive == *recursive);
+    let hook_request = before_resolve_data.request.clone();
     let request = before_resolve_data.request;
     let (loader_request, mut specifier) = match request.rfind('!') {
       Some(idx) => {
@@ -286,15 +314,21 @@ impl ContextModuleFactory {
     };
 
     let context = before_resolve_data.context;
-    if should_relocate_glob_request
+    let mut recursive = before_resolve_data.recursive;
+    if hook_kept_glob_request
       && let ContextModulePattern::Glob(patterns) = &before_resolve_data.pattern
     {
-      specifier = resolve_context_module_glob_request(
+      let compiled = compile_context_module_glob_request(
         &specifier,
         patterns,
         &context,
         &dependency.options().compiler_context,
+        recursive,
       );
+      specifier = compiled.request;
+      if hook_kept_glob_recursive {
+        recursive = compiled.recursive;
+      }
     }
     let resolve_args = ResolveArgs {
       context: context.clone().into(),
@@ -316,7 +350,8 @@ impl ContextModuleFactory {
     let (module, context_module_options) = match resource_data {
       Ok(ResolveResult::Resource(resource)) => {
         let mut dependency_options = dependency.options().clone();
-        dependency_options.recursive = before_resolve_data.recursive;
+        dependency_options.request = hook_request.clone();
+        dependency_options.recursive = recursive;
         dependency_options.pattern = before_resolve_data.pattern.clone();
         dependency_options.context = context.clone();
 
@@ -341,7 +376,8 @@ impl ContextModuleFactory {
       Ok(ResolveResult::Ignored) => {
         // should create an empty context module when ignored
         let mut dependency_options = dependency.options().clone();
-        dependency_options.recursive = before_resolve_data.recursive;
+        dependency_options.request = hook_request;
+        dependency_options.recursive = recursive;
         dependency_options.pattern = before_resolve_data.pattern.clone();
         dependency_options.context = context;
 
@@ -587,30 +623,45 @@ struct ContextModuleGlobPattern {
 
 #[derive(Debug)]
 struct ResolvedContextModuleGlobPattern {
+  absolute_pattern: String,
   absolute_base: String,
   negative: bool,
 }
 
-fn resolve_context_module_glob_request(
+#[derive(Debug)]
+struct CompiledContextModuleGlobRequest {
+  request: String,
+  recursive: bool,
+}
+
+fn compile_context_module_glob_request(
   request: &str,
   patterns: &[String],
   context: &str,
   compiler_context: &str,
-) -> String {
+  fallback_recursive: bool,
+) -> CompiledContextModuleGlobRequest {
   let Some(parsed_request) = parse_resource(request) else {
-    return request.to_string();
+    return CompiledContextModuleGlobRequest {
+      request: request.to_string(),
+      recursive: fallback_recursive,
+    };
   };
   let resolved_patterns = patterns
     .iter()
     .map(|pattern| resolve_context_module_glob_pattern(pattern, context, compiler_context))
     .collect::<Vec<_>>();
   let Some(common_base) = common_context_module_glob_base(&resolved_patterns) else {
-    return request.to_string();
+    return CompiledContextModuleGlobRequest {
+      request: request.to_string(),
+      recursive: fallback_recursive,
+    };
   };
 
-  let mut request = common_base.to_string();
-  if !request.ends_with('/') {
-    request.push('/');
+  let recursive = glob_patterns_are_recursive(&resolved_patterns, &common_base);
+  let mut request = context_relative_glob_request(common_base.as_str(), context, false);
+  if request.ends_with("/.") {
+    request.pop();
   }
   if let Some(query) = parsed_request.query {
     request.push_str(&query);
@@ -618,7 +669,7 @@ fn resolve_context_module_glob_request(
   if let Some(fragment) = parsed_request.fragment {
     request.push_str(&fragment);
   }
-  request
+  CompiledContextModuleGlobRequest { request, recursive }
 }
 
 fn common_context_module_glob_base(
@@ -663,9 +714,27 @@ fn resolve_context_module_glob_pattern(
   let absolute_base = unescape_glob_path(extract_glob_base_dir(&absolute_pattern));
 
   ResolvedContextModuleGlobPattern {
+    absolute_pattern,
     absolute_base,
     negative: pattern.negative,
   }
+}
+
+fn glob_patterns_are_recursive(
+  patterns: &[ResolvedContextModuleGlobPattern],
+  common_base: &Utf8Path,
+) -> bool {
+  patterns
+    .iter()
+    .filter(|pattern| !pattern.negative)
+    .any(|pattern| {
+      pattern.absolute_pattern.contains("**")
+        || pattern
+          .absolute_pattern
+          .strip_prefix(common_base.as_str())
+          .unwrap_or(pattern.absolute_pattern.as_str())
+          .contains('/')
+    })
 }
 
 fn parse_context_module_glob_pattern(pattern: &str) -> ContextModuleGlobPattern {
@@ -898,8 +967,8 @@ fn alternative_requests(
 #[cfg(test)]
 mod tests {
   use super::{
-    common_context_module_glob_base, glob_user_request, parse_context_module_glob_pattern,
-    resolve_context_module_glob_pattern, resolve_context_module_glob_request,
+    common_context_module_glob_base, compile_context_module_glob_request, glob_user_request,
+    parse_context_module_glob_pattern, resolve_context_module_glob_pattern,
   };
 
   #[test]
@@ -995,13 +1064,28 @@ mod tests {
   }
 
   #[test]
-  fn relocates_glob_request_to_hook_updated_context() {
-    let request = resolve_context_module_glob_request(
-      "/project/src/local/?raw#fragment",
+  fn compiles_glob_scan_request_relative_to_context() {
+    let compiled = compile_context_module_glob_request(
+      ".?raw#fragment",
       &["./local/*.js".to_string()],
       "/project/fixtures",
       "/project",
+      true,
     );
-    assert_eq!(request, "/project/fixtures/local/?raw#fragment");
+    assert_eq!(compiled.request, "./local/?raw#fragment");
+    assert!(!compiled.recursive);
+  }
+
+  #[test]
+  fn compiles_mixed_glob_scan_request_relative_to_context() {
+    let compiled = compile_context_module_glob_request(
+      ".?raw",
+      &["/query/*.js".to_string(), "./other/*.js".to_string()],
+      "/project/src",
+      "/project",
+      true,
+    );
+    assert_eq!(compiled.request, "../?raw");
+    assert!(compiled.recursive);
   }
 }

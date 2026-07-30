@@ -1,10 +1,9 @@
 use concat_string::concat_string;
 use rspack_core::{
   ContextMode, ContextModulePattern, ContextNameSpaceObject, ContextOptions, DependencyCategory,
-  ReferencedSpecifier, escape_glob_pattern, extract_glob_base_dir, get_context,
-  normalize_path_separators, normalize_path_separators_for_path, unescape_glob_path,
+  ReferencedSpecifier, get_context, normalize_path_separators, normalize_path_separators_for_path,
 };
-use rspack_paths::{Utf8Path, Utf8PathBuf};
+use rspack_paths::Utf8Path;
 use rspack_regex::RspackRegex;
 use rspack_util::{SpanExt, identifier::relative_path_to_request, node_path::NodePath};
 use sugar_path::SugarPath;
@@ -132,62 +131,6 @@ fn join_import_meta_glob_fs_path(base: &str, path: &str) -> String {
   )
 }
 
-struct ResolvedContextModuleGlobPattern {
-  absolute_pattern: String,
-  absolute_base: String,
-  negative: bool,
-}
-
-fn resolve_glob_pattern(
-  pattern: &str,
-  context: &str,
-  compiler_context: &str,
-) -> ResolvedContextModuleGlobPattern {
-  let (pattern, negative) = if let Some(pattern) = pattern.strip_prefix('!') {
-    (pattern, true)
-  } else {
-    (pattern, false)
-  };
-  let pattern = normalize_path_separators(pattern);
-  let (base, pattern_to_join) =
-    import_meta_glob_path_parts(context, compiler_context, pattern.as_str());
-  let base = normalize_path_separators_for_path(base);
-  let escaped_base = escape_glob_pattern(&base);
-  let absolute_pattern = join_import_meta_glob_path(&escaped_base, pattern_to_join);
-  let absolute_base = unescape_glob_path(extract_glob_base_dir(&absolute_pattern));
-
-  ResolvedContextModuleGlobPattern {
-    absolute_pattern,
-    absolute_base,
-    negative,
-  }
-}
-
-fn common_glob_base_dir(patterns: &[ResolvedContextModuleGlobPattern], fallback: &str) -> String {
-  let mut positive_patterns = patterns.iter().filter(|pattern| !pattern.negative);
-  let Some(first) = positive_patterns.next() else {
-    return fallback.to_string();
-  };
-
-  let mut common_base = Utf8PathBuf::from(first.absolute_base.as_str());
-  for pattern in positive_patterns {
-    let base = Utf8Path::new(pattern.absolute_base.as_str());
-    while !base.starts_with(&common_base) {
-      let Some(parent) = common_base.parent() else {
-        return fallback.to_string();
-      };
-      common_base = parent.to_path_buf();
-    }
-  }
-
-  let common_base = common_base.as_str();
-  if common_base.ends_with('/') {
-    common_base.to_string()
-  } else {
-    concat_string!(common_base, "/")
-  }
-}
-
 fn resolve_import_meta_glob_context(
   context: &str,
   compiler_context: &str,
@@ -255,23 +198,6 @@ fn normalize_import_meta_glob_patterns(
   } else {
     patterns
   }
-}
-
-fn glob_patterns_are_recursive(
-  patterns: &[ResolvedContextModuleGlobPattern],
-  common_base_dir: &str,
-) -> bool {
-  patterns
-    .iter()
-    .filter(|pattern| !pattern.negative)
-    .any(|pattern| {
-      pattern.absolute_pattern.contains("**")
-        || pattern
-          .absolute_pattern
-          .strip_prefix(common_base_dir)
-          .unwrap_or(pattern.absolute_pattern.as_str())
-          .contains('/')
-    })
 }
 
 fn create_import_meta_context_dependency(
@@ -380,18 +306,6 @@ fn create_import_meta_glob_dependency(
     parser.compiler_options.context.as_str(),
     base.is_some(),
   );
-  let resolved_glob_patterns = glob_patterns
-    .iter()
-    .map(|pattern| {
-      resolve_glob_pattern(
-        pattern,
-        context.as_str(),
-        parser.compiler_options.context.as_str(),
-      )
-    })
-    .collect::<Vec<_>>();
-  let base_dir = common_glob_base_dir(&resolved_glob_patterns, context.as_str());
-  let recursive = glob_patterns_are_recursive(&resolved_glob_patterns, &base_dir);
 
   let referenced_specifiers = glob_import
     .as_ref()
@@ -406,9 +320,9 @@ fn create_import_meta_glob_dependency(
   let span = node.span;
   let context_options = ContextOptions {
     pattern: ContextModulePattern::Glob(glob_patterns),
-    recursive,
+    recursive: true,
     category: DependencyCategory::Esm,
-    request: concat_string!(base_dir, glob_query),
+    request: concat_string!(".", glob_query),
     context,
     compiler_context: parser.compiler_options.context.to_string(),
     namespace_object,

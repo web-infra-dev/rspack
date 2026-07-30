@@ -15,6 +15,10 @@ class ContextModuleResolveContextPlugin {
               resolveData.context,
               path.join(__dirname, 'src'),
             );
+            assert.strictEqual(
+              path.isAbsolute(resolveData.request.split(/[?#]/, 1)[0]),
+              false,
+            );
             if (resolveData.request.includes('after-source')) {
               return;
             }
