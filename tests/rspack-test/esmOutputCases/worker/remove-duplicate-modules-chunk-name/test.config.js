@@ -3,7 +3,12 @@ const path = require("path");
 
 module.exports = {
 	snapshotFileFilter(file) {
-		return file.endsWith("main.mjs") || file.endsWith("named-worker.mjs");
+		return (
+			file.endsWith("main.mjs") ||
+			file.endsWith("lib_js.mjs") ||
+			file.endsWith("named-worker-a.mjs") ||
+			file.endsWith("named-worker-b.mjs")
+		);
 	},
 	snapshotContent(content) {
 		return content.replace(/[ \t]+$/gm, "");
@@ -18,7 +23,8 @@ module.exports = {
 				.includes("namedWorkerModuleMarker")
 		);
 
-		expect(outputFiles).toContain("named-worker.mjs");
-		expect(filesWithWorkerModule).toEqual(["named-worker.mjs"]);
+		expect(outputFiles).toContain("named-worker-a.mjs");
+		expect(outputFiles).toContain("named-worker-b.mjs");
+		expect(filesWithWorkerModule).toHaveLength(1);
 	}
 };

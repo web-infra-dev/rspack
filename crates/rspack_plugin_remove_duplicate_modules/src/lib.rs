@@ -68,7 +68,7 @@ fn has_non_initial_entry_module(
   })
 }
 
-fn move_empty_non_initial_entrypoints(
+fn move_empty_anonymous_non_initial_entrypoints(
   compilation: &mut Compilation,
   chunks: &[ChunkUkey],
   modules: &[ModuleIdentifier],
@@ -84,6 +84,14 @@ fn move_empty_non_initial_entrypoints(
         .get_number_of_chunk_modules(chunk_ukey)
         != 0
     {
+      continue;
+    }
+
+    let chunk = compilation
+      .build_chunk_graph_artifact
+      .chunk_by_ukey
+      .expect_get(chunk_ukey);
+    if chunk.name().is_some() || chunk.filename_template().is_some() {
       continue;
     }
 
@@ -107,39 +115,6 @@ fn move_empty_non_initial_entrypoints(
   }
 
   for (chunk_ukey, module, group) in entrypoints {
-    // The replacement becomes the entrypoint chunk, so it also owns the async entry's output
-    // identity. Clear that identity from the old runtime chunk to avoid `[name]` collisions.
-    let name = {
-      let [Some(new_chunk), Some(old_chunk)] = compilation
-        .build_chunk_graph_artifact
-        .chunk_by_ukey
-        .get_many_mut([&new_chunk_ukey, &chunk_ukey])
-      else {
-        panic!("should have both chunks")
-      };
-
-      let name = old_chunk.name().map(ToOwned::to_owned);
-      let filename_template = old_chunk.filename_template().cloned();
-      if name.is_some() {
-        old_chunk.set_name(None);
-        old_chunk.set_filename_template(None);
-
-        if new_chunk.name().is_none() {
-          new_chunk.set_name(name.clone());
-          new_chunk.set_filename_template(filename_template);
-        }
-      }
-
-      name
-    };
-
-    if let Some(name) = name {
-      compilation
-        .build_chunk_graph_artifact
-        .named_chunks
-        .insert(name, new_chunk_ukey);
-    }
-
     compilation
       .build_chunk_graph_artifact
       .chunk_graph
@@ -320,10 +295,10 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
       }
     }
 
-    // Empty async entry chunks are not emitted by module output. Point the entrypoint at the
-    // shared module chunk while keeping its original runtime chunk.
+    // Anonymous entry chunks have no output identity to preserve and may not be emitted by
+    // module output. Named entry chunks stay in place as facades for the shared module chunk.
     if preserve_entry_chunks && compilation.options.output.module {
-      move_empty_non_initial_entrypoints(compilation, &chunks, &modules, new_chunk_ukey);
+      move_empty_anonymous_non_initial_entrypoints(compilation, &chunks, &modules, new_chunk_ukey);
     }
   }
 
