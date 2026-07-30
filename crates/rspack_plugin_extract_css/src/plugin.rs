@@ -25,7 +25,7 @@ use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{
   BoxJavascriptParserPlugin, parser_and_generator::JavaScriptParserAndGenerator,
 };
-use rspack_plugin_runtime::GetChunkFilenameRuntimeModule;
+use rspack_plugin_runtime::{ChunkFilenameKind, GetChunkFilenameRuntimeModule};
 use rustc_hash::{FxHashMap, FxHashSet};
 use ustr::Ustr;
 
@@ -550,6 +550,7 @@ async fn runtime_requirement_in_tree(
   if has_hot_update || runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS) {
     let filename = self.options.filename.clone();
     let chunk_filename = self.options.chunk_filename.clone();
+    let needs_full_hash = filename.has_hash_placeholder() || chunk_filename.has_hash_placeholder();
     let runtime_template = compilation.runtime_template.create_chunk_code_template();
     let global = format!("{}.miniCssF", runtime_template.render_runtime_argument());
 
@@ -558,8 +559,11 @@ async fn runtime_requirement_in_tree(
       Box::new(
         GetChunkFilenameRuntimeModule::new(
           &compilation.runtime_template,
-          "css",
-          "mini-css",
+          ChunkFilenameKind {
+            content_type: "css",
+            runtime_module_name: "mini-css",
+            needs_full_hash,
+          },
           SOURCE_TYPE[0],
           global,
           move |runtime_requirements| {
@@ -578,6 +582,7 @@ async fn runtime_requirement_in_tree(
                 }
               })
           },
+          *chunk_ukey,
         )
         .with_rspack_export_global(MINI_CSS_CHUNK_FILENAME_EXPORT_GLOBAL),
       ),

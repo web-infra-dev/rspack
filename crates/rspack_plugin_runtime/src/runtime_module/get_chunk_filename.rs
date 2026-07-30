@@ -5,7 +5,7 @@ use rspack_cacheable::with::Unsupported;
 use rspack_core::{
   Chunk, ChunkGraph, ChunkUkey, Compilation, Filename, PathData, RuntimeGlobals,
   RuntimeGlobalsRenderMode, RuntimeModule, RuntimeModuleGenerateContext, RuntimeTemplate,
-  SourceType, get_filename_without_hash_length, has_hash_placeholder, impl_runtime_module,
+  SourceType, get_filename_without_hash_length, impl_runtime_module,
 };
 use rspack_util::{
   fx_hash::{FxIndexMap, FxIndexSet},
@@ -19,6 +19,12 @@ use crate::{get_chunk_runtime_requirements, runtime_module::unquoted_stringify};
 type GetChunkFilenameAllChunks = Box<dyn Fn(&RuntimeGlobals) -> bool + Sync + Send>;
 type GetFilenameForChunk = Box<dyn Fn(&Chunk, &Compilation) -> Option<Filename> + Sync + Send>;
 
+pub struct ChunkFilenameKind {
+  pub content_type: &'static str,
+  pub runtime_module_name: &'static str,
+  pub needs_full_hash: bool,
+}
+
 #[impl_runtime_module]
 pub struct GetChunkFilenameRuntimeModule {
   #[cacheable(with=Unsupported)]
@@ -30,6 +36,8 @@ pub struct GetChunkFilenameRuntimeModule {
   all_chunks: GetChunkFilenameAllChunks,
   #[cacheable(with=Unsupported)]
   filename_for_chunk: GetFilenameForChunk,
+  chunk_ukey: ChunkUkey,
+  needs_full_hash: bool,
 }
 
 impl fmt::Debug for GetChunkFilenameRuntimeModule {
@@ -41,6 +49,8 @@ impl fmt::Debug for GetChunkFilenameRuntimeModule {
       .field("source_type", &self.source_type)
       .field("global", &self.global)
       .field("all_chunks", &"...")
+      .field("chunk_ukey", &self.chunk_ukey)
+      .field("needs_full_hash", &self.needs_full_hash)
       .finish()
   }
 }
@@ -53,28 +63,74 @@ impl GetChunkFilenameRuntimeModule {
     T: Fn(&Chunk, &Compilation) -> Option<Filename> + Sync + Send + 'static,
   >(
     runtime_template: &RuntimeTemplate,
-    content_type: &'static str,
-    name: &'static str,
+    kind: ChunkFilenameKind,
     source_type: SourceType,
     global: String,
     all_chunks: F,
     filename_for_chunk: T,
+    chunk_ukey: ChunkUkey,
   ) -> Self {
     Self::with_name(
       runtime_template,
-      &format!("get {name} chunk filename"),
-      content_type,
+      &format!("get {} chunk filename", kind.runtime_module_name),
+      kind.content_type,
       source_type,
       global,
       None,
       Box::new(all_chunks),
       Box::new(filename_for_chunk),
+      chunk_ukey,
+      kind.needs_full_hash,
     )
   }
 
   pub fn with_rspack_export_global(mut self, global: impl Into<String>) -> Self {
     self.rspack_export_global = Some(global.into());
     self
+  }
+
+  fn get_filename_chunks(&self, compilation: &Compilation) -> Option<FxIndexSet<ChunkUkey>> {
+    let chunk_ukey = self.chunk().unwrap_or(self.chunk_ukey);
+    compilation
+      .build_chunk_graph_artifact
+      .chunk_by_ukey
+      .get(&chunk_ukey)
+      .map(|chunk| {
+        let runtime_requirements = get_chunk_runtime_requirements(compilation, &chunk.ukey());
+        let mut chunks = if (self.all_chunks)(runtime_requirements) {
+          chunk
+            .get_all_referenced_chunks(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
+        } else {
+          let mut chunks =
+            chunk.get_all_async_chunks(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey);
+
+          if ChunkGraph::get_tree_runtime_requirements(compilation, &chunk.ukey())
+            .contains(RuntimeGlobals::ENSURE_CHUNK_INCLUDE_ENTRIES)
+          {
+            chunks.extend(
+              compilation
+                .build_chunk_graph_artifact
+                .chunk_graph
+                .get_runtime_chunk_dependent_chunks_iterable(
+                  &chunk.ukey(),
+                  &compilation.build_chunk_graph_artifact.chunk_by_ukey,
+                  &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
+                ),
+            );
+          }
+          chunks
+        };
+        for entrypoint in chunk.get_all_referenced_async_entrypoints(
+          &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
+        ) {
+          let entrypoint = compilation
+            .build_chunk_graph_artifact
+            .chunk_group_by_ukey
+            .expect_get(&entrypoint);
+          chunks.insert(entrypoint.get_entrypoint_chunk());
+        }
+        chunks
+      })
   }
 }
 
@@ -86,15 +142,11 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
 
   fn runtime_requirements(
     &self,
-    compilation: &Compilation,
+    _compilation: &Compilation,
   ) -> rspack_core::RuntimeModuleRuntimeRequirements {
     rspack_core::RuntimeModuleRuntimeRequirements {
       dependencies: {
-        if (self.source_type == SourceType::JavaScript
-          && has_hash_placeholder(compilation.options.output.chunk_filename.as_str()))
-          || (self.source_type == SourceType::Css
-            && has_hash_placeholder(compilation.options.output.css_chunk_filename.as_str()))
-        {
+        if self.needs_full_hash {
           RuntimeGlobals::GET_FULL_HASH
         } else {
           RuntimeGlobals::default()
@@ -128,49 +180,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
   ) -> rspack_error::Result<String> {
     let compilation = context.compilation;
     let runtime_template = context.runtime_template;
-    let chunks = self
-      .chunk()
-      .and_then(|chunk_ukey| {
-        compilation
-          .build_chunk_graph_artifact
-          .chunk_by_ukey
-          .get(&chunk_ukey)
-      })
-      .map(|chunk| {
-        let runtime_requirements = get_chunk_runtime_requirements(compilation, &chunk.ukey());
-        if (self.all_chunks)(runtime_requirements) {
-          chunk
-            .get_all_referenced_chunks(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
-        } else {
-          let mut chunks =
-            chunk.get_all_async_chunks(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey);
-
-          if ChunkGraph::get_tree_runtime_requirements(compilation, &chunk.ukey())
-            .contains(RuntimeGlobals::ENSURE_CHUNK_INCLUDE_ENTRIES)
-          {
-            chunks.extend(
-              compilation
-                .build_chunk_graph_artifact
-                .chunk_graph
-                .get_runtime_chunk_dependent_chunks_iterable(
-                  &chunk.ukey(),
-                  &compilation.build_chunk_graph_artifact.chunk_by_ukey,
-                  &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
-                ),
-            );
-          }
-          for entrypoint in chunk.get_all_referenced_async_entrypoints(
-            &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
-          ) {
-            let entrypoint = compilation
-              .build_chunk_graph_artifact
-              .chunk_group_by_ukey
-              .expect_get(&entrypoint);
-            chunks.insert(entrypoint.get_entrypoint_chunk());
-          }
-          chunks
-        }
-      });
+    let chunks = self.get_filename_chunks(compilation);
 
     let mut dynamic_filename: Option<String> = None;
     let mut max_chunk_set_size = 0;
