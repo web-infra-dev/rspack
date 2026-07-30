@@ -35,6 +35,8 @@ new SharedWorker(
 	"string-literal"
 );
 
+new SharedWorker(new URL("./worker.js", import.meta.url), "chat");
+
 new SharedWorker(
 	/* webpackChunkName: "shared-object-literal" */ new URL(
 		"./worker.js",

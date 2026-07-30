@@ -56,12 +56,17 @@ struct ParsedNewWorkerImportOptions {
 
 fn parse_new_worker_options(arg: &ExprOrSpread, is_shared_worker: bool) -> ParsedNewWorkerOptions {
   let obj = arg.expr.as_object();
-  let name = obj
-    .and_then(|obj| get_literal_str_by_obj_prop(obj, "name"))
-    .map(|str| str.value.to_string_lossy().into());
+  let string = arg.expr.as_lit().and_then(|lit| lit.as_str());
+  let name = if let Some(obj) = obj {
+    get_literal_str_by_obj_prop(obj, "name").map(|str| str.value.to_string_lossy().into())
+  } else if is_shared_worker {
+    string.map(|str| str.value.to_string_lossy().into())
+  } else {
+    None
+  };
   let kind = if obj.is_some() || !is_shared_worker {
     ParsedNewWorkerOptionsKind::Object
-  } else if arg.expr.as_lit().and_then(|lit| lit.as_str()).is_some() {
+  } else if string.is_some() {
     ParsedNewWorkerOptionsKind::SharedWorkerString
   } else {
     ParsedNewWorkerOptionsKind::SharedWorkerUnknown

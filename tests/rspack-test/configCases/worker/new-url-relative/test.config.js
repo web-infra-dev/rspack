@@ -6,26 +6,32 @@ const cases = [
 	{
 		filename: "non-esm.js",
 		chunkFilename: "non-esm-worker.bundle.js",
+		sharedWorkerChunkFilename: "non-esm-chat.bundle.js",
 		runtime: true
 	},
 	{
 		filename: "public-path.js",
 		chunkFilename: "public-path-worker.bundle.js",
+		sharedWorkerChunkFilename: "public-path-chat.bundle.js",
 		url: "/public/public-path-worker.bundle.js"
 	},
 	{
 		filename: "relative-public-path/main.js",
 		chunkFilename: "relative-public-path-worker.bundle.js",
+		sharedWorkerChunkFilename: "relative-public-path-chat.bundle.js",
 		url: "../assets/relative-public-path-worker.bundle.js"
 	},
 	{
 		filename: "worker-public-path.js",
 		chunkFilename: "worker-public-path-worker.bundle.js",
+		sharedWorkerChunkFilename: "worker-public-path-chat.bundle.js",
 		url: "/workers/worker-public-path-worker.bundle.js"
 	},
 	{
 		filename: "relative-worker-public-path/main.js",
 		chunkFilename: "relative-worker-public-path-worker.bundle.js",
+		sharedWorkerChunkFilename:
+			"relative-worker-public-path-chat.bundle.js",
 		url: "../workers/relative-worker-public-path-worker.bundle.js"
 	}
 ];
@@ -69,6 +75,7 @@ module.exports = {
 					types: [null, null, null, null],
 					sharedOptions: [
 						"string-literal",
+						"chat",
 						{ name: "object-literal" },
 						"string-variable",
 						{ name: "object-variable" },
@@ -81,6 +88,7 @@ module.exports = {
 					types: ["module", "module", "module", "module"],
 					sharedOptions: [
 						{ name: "string-literal", type: "module" },
+						{ name: "chat", type: "module" },
 						{ name: "object-literal", type: "module" },
 						{ name: "string-variable", type: "module" },
 						{ name: "object-variable", type: "module" },
@@ -92,6 +100,11 @@ module.exports = {
 
 			expect(
 				fs.existsSync(path.join(outputPath, testCase.chunkFilename))
+			).toBe(true);
+			expect(
+				fs.existsSync(
+					path.join(outputPath, testCase.sharedWorkerChunkFilename)
+				)
 			).toBe(true);
 		}
 	}
