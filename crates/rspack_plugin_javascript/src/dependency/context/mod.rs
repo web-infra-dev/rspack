@@ -1,7 +1,6 @@
 use rspack_core::{
   ContextDependency, ContextMode, ContextModulePattern, ContextOptions, DependencyRange,
-  GroupOptions, ResourceIdentifier, TemplateContext, TemplateReplaceSource,
-  resolve_context_identifier,
+  GroupOptions, ResourceIdentifier, TemplateContext, TemplateReplaceSource, context_identifier,
 };
 
 mod amd_require_context_dependency;
@@ -37,11 +36,10 @@ fn create_resource_identifier_for_context_dependency(
   context: Option<&str>,
   options: &ContextOptions,
 ) -> ResourceIdentifier {
-  let resolve_context = context
+  let context = context
     .filter(|context| !context.is_empty())
-    .unwrap_or(&options.resolve_context);
-  let resolve_context =
-    resolve_context_identifier(&options.context, resolve_context).unwrap_or_default();
+    .unwrap_or(&options.context);
+  let context = context_identifier(&options.compiler_context, context).unwrap_or_default();
   let request = &options.request;
   let recursive = options.recursive.to_string();
   let pattern = match &options.pattern {
@@ -107,7 +105,7 @@ fn create_resource_identifier_for_context_dependency(
   }
 
   let id = format!(
-    "context{resolve_context}|ctx request{request} {recursive} {pattern} {include} {exclude} {mode} {group_options} {referenced_exports} {glob_import} {glob_exhaustive}",
+    "context{context}|ctx request{request} {recursive} {pattern} {include} {exclude} {mode} {group_options} {referenced_exports} {glob_import} {glob_exhaustive}",
   );
   id.into()
 }
@@ -192,16 +190,16 @@ mod tests {
   use super::*;
 
   #[test]
-  fn context_dependency_identifier_uses_project_relative_resolve_context() {
+  fn context_dependency_identifier_uses_compiler_relative_context() {
     let options_a = ContextOptions {
-      context: "/checkout-a/project".into(),
-      resolve_context: "/checkout-a/project/src/pages".into(),
+      context: "/checkout-a/project/src/pages".into(),
+      compiler_context: "/checkout-a/project".into(),
       request: "./local".into(),
       ..Default::default()
     };
     let options_b = ContextOptions {
-      context: "/checkout-b/project".into(),
-      resolve_context: "/checkout-b/project/src/pages".into(),
+      context: "/checkout-b/project/src/pages".into(),
+      compiler_context: "/checkout-b/project".into(),
       request: "./local".into(),
       ..Default::default()
     };
@@ -213,10 +211,10 @@ mod tests {
   }
 
   #[test]
-  fn context_dependency_identifier_omits_the_project_context() {
+  fn context_dependency_identifier_omits_the_compiler_context() {
     let options = ContextOptions {
       context: "/project".into(),
-      resolve_context: "/project".into(),
+      compiler_context: "/project".into(),
       request: "./local".into(),
       ..Default::default()
     };

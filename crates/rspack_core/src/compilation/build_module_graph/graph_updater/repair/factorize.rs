@@ -47,7 +47,7 @@ impl Task<TaskContext> for FactorizeTask {
       context
     } else if let Some(context) = dependency
       .as_context_dependency()
-      .map(|dependency| dependency.options().resolve_context.as_str())
+      .map(|dependency| dependency.options().context.as_str())
       && !context.is_empty()
     {
       context

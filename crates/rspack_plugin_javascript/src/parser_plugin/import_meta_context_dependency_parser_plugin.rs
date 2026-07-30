@@ -365,14 +365,14 @@ fn create_import_meta_glob_dependency(
     .and_then(static_string_from_expr);
   let glob_exhaustive = glob_options
     .is_some_and(|obj| get_bool_by_obj_prop(obj, "exhaustive").is_some_and(|b| b.value));
-  let resolve_context = resolve_import_meta_glob_context(
+  let context = resolve_import_meta_glob_context(
     importer_context.as_str(),
     parser.compiler_options.context.as_str(),
     base.as_deref(),
   );
   let glob_patterns = normalize_import_meta_glob_patterns(
     raw_glob_patterns,
-    resolve_context.as_str(),
+    context.as_str(),
     parser.compiler_options.context.as_str(),
     base.is_some(),
   );
@@ -381,12 +381,12 @@ fn create_import_meta_glob_dependency(
     .map(|pattern| {
       resolve_glob_pattern(
         pattern,
-        resolve_context.as_str(),
+        context.as_str(),
         parser.compiler_options.context.as_str(),
       )
     })
     .collect::<Vec<_>>();
-  let base_dir = common_glob_base_dir(&resolved_glob_patterns, resolve_context.as_str());
+  let base_dir = common_glob_base_dir(&resolved_glob_patterns, context.as_str());
   let recursive = glob_patterns_are_recursive(&resolved_glob_patterns, &base_dir);
 
   let referenced_specifiers = glob_import
@@ -405,7 +405,7 @@ fn create_import_meta_glob_dependency(
     recursive,
     category: DependencyCategory::Esm,
     request: concat_string!(base_dir, glob_query),
-    resolve_context,
+    context,
     namespace_object,
     mode,
     start: span.real_lo(),

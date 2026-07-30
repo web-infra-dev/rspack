@@ -225,7 +225,7 @@ impl ContextModuleFactory {
 
     let should_relocate_glob_request =
       matches!(&before_resolve_data.pattern, ContextModulePattern::Glob(_))
-        && before_resolve_data.context != dependency.options().resolve_context
+        && before_resolve_data.context != dependency.options().context
         && before_resolve_data.request == dependency.request();
     let request = before_resolve_data.request;
     let (loader_request, mut specifier) = match request.rfind('!') {
@@ -285,19 +285,19 @@ impl ContextModuleFactory {
       None => (String::new(), request),
     };
 
-    let resolve_context = before_resolve_data.context;
+    let context = before_resolve_data.context;
     if should_relocate_glob_request
       && let ContextModulePattern::Glob(patterns) = &before_resolve_data.pattern
     {
       specifier = resolve_context_module_glob_request(
         &specifier,
         patterns,
-        &resolve_context,
-        &dependency.options().context,
+        &context,
+        &dependency.options().compiler_context,
       );
     }
     let resolve_args = ResolveArgs {
-      context: resolve_context.clone().into(),
+      context: context.clone().into(),
       importer: data.issuer_identifier.as_ref(),
       issuer: data.issuer.as_deref(),
       specifier: specifier.as_str(),
@@ -318,7 +318,7 @@ impl ContextModuleFactory {
         let mut dependency_options = dependency.options().clone();
         dependency_options.recursive = before_resolve_data.recursive;
         dependency_options.pattern = before_resolve_data.pattern.clone();
-        dependency_options.resolve_context = resolve_context.clone();
+        dependency_options.context = context.clone();
 
         let options = ContextModuleOptions {
           addon: loader_request.clone(),
@@ -343,7 +343,7 @@ impl ContextModuleFactory {
         let mut dependency_options = dependency.options().clone();
         dependency_options.recursive = before_resolve_data.recursive;
         dependency_options.pattern = before_resolve_data.pattern.clone();
-        dependency_options.resolve_context = resolve_context;
+        dependency_options.context = context;
 
         let options = ContextModuleOptions {
           addon: loader_request.clone(),
@@ -389,7 +389,7 @@ impl ContextModuleFactory {
     let after_resolve_data = AfterResolveData {
       compilation_id: data.compilation_id,
       resource: context_module_options.resource.clone(),
-      context: context_options.resolve_context.clone(),
+      context: context_options.context.clone(),
       dependencies: data.dependencies.clone(),
       request: context_options.request.clone(),
       pattern: context_options.pattern.clone(),
@@ -426,7 +426,7 @@ impl ContextModuleFactory {
         // `afterResolve.context` must not reinterpret the raw patterns after resolution, just as
         // it does not reinterpret a RegExp context pattern.
         if !matches!(&after_resolve_data.pattern, ContextModulePattern::Glob(_)) {
-          context_module_options.context_options.resolve_context = after_resolve_data.context;
+          context_module_options.context_options.context = after_resolve_data.context;
         }
         context_module_options.context_options.pattern = after_resolve_data.pattern.clone();
         context_module_options.context_options.recursive = after_resolve_data.recursive;
@@ -591,15 +591,15 @@ struct ResolvedContextModuleGlobPattern {
 fn resolve_context_module_glob_request(
   request: &str,
   patterns: &[String],
-  resolve_context: &str,
   context: &str,
+  compiler_context: &str,
 ) -> String {
   let Some(parsed_request) = parse_resource(request) else {
     return request.to_string();
   };
   let resolved_patterns = patterns
     .iter()
-    .map(|pattern| resolve_context_module_glob_pattern(pattern, resolve_context, context))
+    .map(|pattern| resolve_context_module_glob_pattern(pattern, context, compiler_context))
     .collect::<Vec<_>>();
   let Some(common_base) = common_context_module_glob_base(&resolved_patterns) else {
     return request.to_string();
@@ -635,20 +635,20 @@ fn common_context_module_glob_base(
 
 fn resolve_context_module_glob_pattern(
   pattern: &str,
-  resolve_context: &str,
   context: &str,
+  compiler_context: &str,
 ) -> ResolvedContextModuleGlobPattern {
   let pattern = parse_context_module_glob_pattern(pattern);
   let (base, pattern_to_join) = if pattern.root_relative {
     (
-      context,
+      compiler_context,
       pattern
         .pattern
         .strip_prefix('/')
         .unwrap_or(pattern.pattern.as_str()),
     )
   } else {
-    (resolve_context, pattern.pattern.as_str())
+    (context, pattern.pattern.as_str())
   };
   let base = normalize_path_separators_for_path(base);
   let escaped_base = escape_glob_pattern(&base);
@@ -696,8 +696,8 @@ fn is_non_exhaustive_import_meta_glob_skipped_dir(dirname: &str) -> bool {
 fn glob_user_request(
   patterns: &[ContextModuleGlobPattern],
   path: &str,
-  resolve_context: &str,
   context: &str,
+  compiler_context: &str,
   exhaustive: bool,
 ) -> Option<String> {
   let user_request = patterns
@@ -707,9 +707,9 @@ fn glob_user_request(
       let request = context_relative_glob_request(
         path,
         if pattern.root_relative {
-          context
+          compiler_context
         } else {
-          resolve_context
+          context
         },
         pattern.root_relative,
       );
@@ -723,9 +723,9 @@ fn glob_user_request(
       let request = context_relative_glob_request(
         path,
         if pattern.root_relative {
-          context
+          compiler_context
         } else {
-          resolve_context
+          context
         },
         pattern.root_relative,
       );
@@ -767,8 +767,8 @@ fn glob_pattern_matches(
 struct ContextModuleMatcher<'a> {
   pattern: &'a ContextModulePattern,
   glob_patterns: Option<Vec<ContextModuleGlobPattern>>,
-  resolve_context: &'a str,
   context: &'a str,
+  compiler_context: &'a str,
   glob_exhaustive: bool,
 }
 
@@ -783,8 +783,8 @@ impl<'a> ContextModuleMatcher<'a> {
           .map(|pattern| parse_context_module_glob_pattern(pattern))
           .collect()
       }),
-      resolve_context: &context_options.resolve_context,
       context: &context_options.context,
+      compiler_context: &context_options.compiler_context,
       glob_exhaustive: context_options.glob_exhaustive,
     }
   }
@@ -805,8 +805,8 @@ impl<'a> ContextModuleMatcher<'a> {
       return glob_user_request(
         patterns,
         resource_path,
-        self.resolve_context,
         self.context,
+        self.compiler_context,
         self.glob_exhaustive,
       );
     }
@@ -940,7 +940,7 @@ mod tests {
   }
 
   #[test]
-  fn matches_relative_and_negative_patterns_in_the_resolve_context() {
+  fn matches_relative_and_negative_patterns_in_the_context() {
     let patterns = ["./dir/*.js", "!**/bar.js"].map(parse_context_module_glob_pattern);
     assert_eq!(
       glob_user_request(
@@ -965,7 +965,7 @@ mod tests {
   }
 
   #[test]
-  fn matches_parent_and_project_relative_patterns_in_their_own_contexts() {
+  fn matches_parent_and_root_relative_patterns_in_their_own_contexts() {
     let parent = [parse_context_module_glob_pattern("../shared/*.js")];
     assert_eq!(
       glob_user_request(

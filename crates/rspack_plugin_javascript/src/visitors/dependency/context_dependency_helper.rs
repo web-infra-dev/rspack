@@ -10,8 +10,8 @@ use crate::utils::eval::{BasicEvaluatedExpression, TemplateStringKind};
 
 pub fn create_context_options(parser: &crate::visitors::JavascriptParser) -> ContextOptions {
   ContextOptions {
-    context: parser.compiler_options.context.to_string(),
-    resolve_context: get_context(parser.resource_data).to_string(),
+    context: get_context(parser.resource_data).to_string(),
+    compiler_context: parser.compiler_options.context.to_string(),
     ..Default::default()
   }
 }
