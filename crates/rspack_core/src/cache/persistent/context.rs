@@ -4,7 +4,7 @@ use rspack_paths::{ArcPath, ArcPathSet};
 
 use super::{
   build_dependencies::{BuildDeps, BuildDepsValidationResult},
-  occasion::Occasion,
+  occasion::{MetaOccasion, Occasion},
   snapshot::{Snapshot, SnapshotScope},
   storage::BoxStorage,
 };
@@ -20,15 +20,15 @@ const PATH_LOG_LIMIT: usize = 3;
 /// context for the next one.
 #[derive(Debug)]
 pub struct CacheContext {
-  /// Set when build dependencies have changed, meaning the cached data is
-  /// structurally stale.  Unlike `load_failed`, this flag persists across
+  /// Set when cache compatibility validation fails, meaning the cached data
+  /// is structurally stale. Unlike `load_failed`, this flag persists across
   /// builds in readonly mode because the cache cannot be rebuilt there.
   invalid: bool,
   /// Per-build load gate.  Flipped to `true` on the first failed `load_*`
   /// call; all subsequent `load_*` calls become no-ops for this build.
   /// Restored to `false` (or derived from `invalid`) by `reset`.
   load_failed: bool,
-  /// When `true`, all `save_*` and scope `reset` calls to storage are skipped.
+  /// When `true`, all `save_*` and storage reset calls are skipped.
   ///
   /// This is a user-configured option, distinct from `DB::readonly` in the
   /// storage layer.  Skipping at this level is cheaper: occasion serialisation
@@ -62,17 +62,18 @@ impl CacheContext {
     self.storage.cleanup_stale();
   }
 
-  /// Validates build dependencies and sets `invalid` + `load_failed` on
-  /// failure.  Resets the BUILD scope when invalid and not readonly.
+  /// Validates all compatibility inputs before any compilation artifact is
+  /// read.
   ///
-  /// Normally called only once per compiler instance, guarded by the
-  /// `initialized` flag in `PersistentCache::initialize`.
-  #[tracing::instrument("Cache::Context::load_build_deps", skip_all)]
-  pub async fn load_build_deps(&mut self, build_deps: &mut BuildDeps) {
+  /// Like webpack's pack validation, both build dependency changes and a
+  /// cache version mismatch enter the same invalidation path. The whole
+  /// compiler cache is reset so a scope that is not used by the invalidating
+  /// build cannot survive and be reused later.
+  #[tracing::instrument("Cache::Context::validate", skip_all)]
+  pub async fn validate(&mut self, build_deps: &mut BuildDeps, meta_occasion: &MetaOccasion) {
     let start = self.logger().time("validate build dependencies");
     match build_deps.validate(&*self.storage).await {
       Ok(BuildDepsValidationResult::Valid { tracked_files }) => {
-        self.invalid = false;
         self.logger().info(format!(
           "build dependencies are valid ({tracked_files} tracked)"
         ));
@@ -81,28 +82,57 @@ impl CacheContext {
         modified_files,
         removed_files,
       }) => {
-        self.invalid = true;
-        self.load_failed = true;
         let reason = format_path_changes(&modified_files, &removed_files);
         self.logger().warn(format!(
           "persistent cache invalidated because build dependencies changed:\n{reason}"
         ));
-        if self.readonly {
-          self
-            .logger()
-            .warn("persistent cache is readonly, stale entries will not be rewritten");
-        }
+        self.logger().time_end(start);
+        self.invalidate();
+        return;
       }
       Err(err) => {
-        self.load_failed = true;
         self
           .logger()
           .warn(format!("build dependencies validation failed: {err}"));
+        self.logger().time_end(start);
+        self.invalidate();
+        return;
       }
     }
     self.logger().time_end(start);
-    if self.load_failed && !self.readonly {
-      build_deps.reset(&mut *self.storage);
+
+    let start = self
+      .logger()
+      .time(read_occasion_timing_label(meta_occasion.name()));
+    match meta_occasion.recovery(&*self.storage).await {
+      Ok(()) => {
+        self.logger().info(format!(
+          "{} persistent cache recovery succeeded",
+          meta_occasion.name()
+        ));
+      }
+      Err(err) => {
+        self.logger().warn(format!(
+          "{} persistent cache recovery failed: {err}",
+          meta_occasion.name()
+        ));
+        self.logger().time_end(start);
+        self.invalidate();
+        return;
+      }
+    }
+    self.logger().time_end(start);
+  }
+
+  fn invalidate(&mut self) {
+    self.invalid = true;
+    self.load_failed = true;
+    if self.readonly {
+      self
+        .logger()
+        .warn("persistent cache is readonly, stale entries will not be rewritten");
+    } else {
+      self.storage.reset_all();
     }
   }
 
@@ -298,7 +328,7 @@ impl CacheContext {
 
   /// Resets per-build state.
   ///
-  /// In non-readonly mode both flags are cleared; scope resets done during
+  /// In non-readonly mode both flags are cleared; storage resets done during
   /// this build ensure a clean slate next time.
   ///
   /// In readonly mode `invalid` is preserved (the cache is still stale and
@@ -364,5 +394,157 @@ fn append_paths_group(output: &mut String, label: &str, paths: &ArcPathSet) {
   }
   if is_truncated {
     output.push_str("\n  - ...");
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use std::{path::PathBuf, sync::Arc};
+
+  use rspack_fs::{MemoryFileSystem, WritableFileSystem};
+  use rspack_tasks::within_compiler_context_for_testing;
+
+  use super::CacheContext;
+  use crate::{
+    CompilationLogger, CompilationLogging,
+    cache::persistent::{
+      build_dependencies::BuildDeps,
+      codec::CacheCodec,
+      occasion::{MetaOccasion, Occasion},
+      snapshot::{Snapshot, SnapshotOptions},
+      storage::{MemoryStorage, Storage},
+    },
+  };
+
+  fn create_cache_parts(
+    fs: Arc<MemoryFileSystem>,
+    build_dependencies: Vec<PathBuf>,
+    version: &str,
+  ) -> (BuildDeps, MetaOccasion) {
+    let codec = Arc::new(CacheCodec::new(None));
+    let snapshot = Arc::new(Snapshot::new(
+      SnapshotOptions::default(),
+      fs.clone(),
+      codec.clone(),
+    ));
+    (
+      BuildDeps::new(&build_dependencies, fs, snapshot),
+      MetaOccasion::new(codec, version.to_string()),
+    )
+  }
+
+  fn create_context(storage: MemoryStorage, readonly: bool) -> CacheContext {
+    CacheContext::new(
+      Box::new(storage),
+      readonly,
+      CompilationLogger::new(
+        "test.persistentCache".to_string(),
+        CompilationLogging::default(),
+      ),
+    )
+  }
+
+  #[tokio::test]
+  async fn version_mismatch_resets_the_whole_cache() {
+    within_compiler_context_for_testing(async {
+      let fs = Arc::new(MemoryFileSystem::default());
+      let (mut build_deps, old_meta) = create_cache_parts(fs.clone(), vec![], "v1");
+      let (_, current_meta) = create_cache_parts(fs, vec![], "v2");
+      let mut storage = MemoryStorage::default();
+      old_meta.save(&mut storage, &());
+      storage.set("unused_scope", b"key".to_vec(), b"stale".to_vec());
+
+      let mut context = create_context(storage, false);
+      context.validate(&mut build_deps, &current_meta).await;
+
+      assert!(
+        context
+          .storage
+          .scopes()
+          .await
+          .expect("should list storage scopes")
+          .is_empty()
+      );
+      assert!(context.invalid);
+      assert!(context.load_failed);
+    })
+    .await;
+  }
+
+  #[tokio::test]
+  async fn build_dependency_change_resets_the_whole_cache() {
+    within_compiler_context_for_testing(async {
+      let fs = Arc::new(MemoryFileSystem::default());
+      fs.create_dir_all("/".into())
+        .await
+        .expect("should create test root");
+      fs.write("/rspack.config.js".into(), b"module.exports = {}")
+        .await
+        .expect("should write build dependency");
+      let options = vec![PathBuf::from("/rspack.config.js")];
+      let (mut initial_build_deps, _) = create_cache_parts(fs.clone(), options.clone(), "v1");
+      let mut storage = MemoryStorage::default();
+      initial_build_deps
+        .add(
+          &mut storage,
+          std::iter::empty(),
+          CompilationLogger::new(
+            "test.persistentCache".to_string(),
+            CompilationLogging::default(),
+          ),
+        )
+        .await;
+      storage.set("unused_scope", b"key".to_vec(), b"stale".to_vec());
+
+      fs.write(
+        "/rspack.config.js".into(),
+        b"module.exports = { changed: true }",
+      )
+      .await
+      .expect("should update build dependency");
+      let (mut build_deps, current_meta) = create_cache_parts(fs, options, "v1");
+
+      let mut context = create_context(storage, false);
+      context.validate(&mut build_deps, &current_meta).await;
+
+      assert!(
+        context
+          .storage
+          .scopes()
+          .await
+          .expect("should list storage scopes")
+          .is_empty()
+      );
+      assert!(context.invalid);
+      assert!(context.load_failed);
+    })
+    .await;
+  }
+
+  #[tokio::test]
+  async fn readonly_invalidation_persists_across_builds() {
+    within_compiler_context_for_testing(async {
+      let fs = Arc::new(MemoryFileSystem::default());
+      let (mut build_deps, old_meta) = create_cache_parts(fs.clone(), vec![], "v1");
+      let (_, current_meta) = create_cache_parts(fs, vec![], "v2");
+      let mut storage = MemoryStorage::default();
+      old_meta.save(&mut storage, &());
+
+      let mut context = create_context(storage, true);
+      context.validate(&mut build_deps, &current_meta).await;
+      context.reset();
+
+      assert!(
+        !context
+          .storage
+          .scopes()
+          .await
+          .expect("should list storage scopes")
+          .is_empty()
+      );
+      assert!(context.invalid);
+      assert!(context.load_failed);
+    })
+    .await;
   }
 }

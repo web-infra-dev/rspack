@@ -116,12 +116,10 @@ impl PersistentCache {
     self.initialized = true;
     self.ctx.cleanup_stale();
 
-    // Build dependencies are validated before compilation artifacts are read.
-    self.ctx.load_build_deps(&mut self.build_deps).await;
-
-    // Validate the cache version before snapshot or compilation artifacts are
-    // reused. Make handles itself in before_build_module_graph.
-    self.ctx.load_occasion(&self.meta_occasion).await;
+    self
+      .ctx
+      .validate(&mut self.build_deps, &self.meta_occasion)
+      .await;
   }
 }
 

@@ -191,6 +191,16 @@ impl Storage for FileSystemStorage {
     });
   }
 
+  fn reset_all(&mut self) {
+    // A compatibility mismatch invalidates the whole compiler cache. Discard
+    // every pending write so no entry from the old cache can survive the reset.
+    self.updates.clear();
+    let db = self.db.clone();
+    self.task_queue.add_task(async move {
+      db.reset_all().await;
+    });
+  }
+
   async fn flush(&self) {
     self.task_queue.flush().await;
   }
@@ -203,7 +213,15 @@ impl Storage for FileSystemStorage {
 
 #[cfg(test)]
 mod tests {
-  use super::{Result, ScopeFileSystem, cleanup_stale_directories};
+  use std::sync::Arc;
+
+  use rspack_fs::MemoryFileSystem;
+
+  use super::{
+    CacheDirectory, FileSystemOptions, FileSystemStorage, Result, ScopeFileSystem,
+    cleanup_stale_directories,
+  };
+  use crate::Storage;
 
   #[tokio::test]
   async fn removes_stale_cache_directories() -> Result<()> {
@@ -220,6 +238,34 @@ mod tests {
     let stale_children = stale_fs.list_child().await?;
     assert!(!stale_children.iter().any(|child| child == stale));
     assert!(stale_children.iter().any(|child| child == ordinary));
+
+    Ok(())
+  }
+
+  #[tokio::test]
+  async fn reset_all_is_sequenced_before_the_next_save() -> Result<()> {
+    let mut storage = FileSystemStorage::new(FileSystemOptions {
+      directory: "/cache".into(),
+      cache_directory: CacheDirectory::new("0000000000000001"),
+      max_pack_size: 1024,
+      expire: 60,
+      fs: Arc::new(MemoryFileSystem::default()),
+    });
+
+    storage.set("old", b"key".to_vec(), b"value".to_vec());
+    storage.save();
+    storage.flush().await;
+    assert_eq!(storage.scopes().await?, vec!["old"]);
+
+    storage.set("pending", b"key".to_vec(), b"stale".to_vec());
+    storage.reset_all();
+    storage.set("new", b"key".to_vec(), b"value".to_vec());
+    storage.save();
+    storage.flush().await;
+
+    assert_eq!(storage.scopes().await?, vec!["new"]);
+    assert!(storage.load("old").await?.is_empty());
+    assert!(storage.load("pending").await?.is_empty());
 
     Ok(())
   }
