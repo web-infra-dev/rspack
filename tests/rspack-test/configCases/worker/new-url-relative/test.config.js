@@ -76,6 +76,7 @@ module.exports = {
 					sharedOptions: [
 						"string-literal",
 						"chat",
+						"s",
 						{ name: "object-literal" },
 						"string-variable",
 						{ name: "object-variable" },
@@ -89,6 +90,7 @@ module.exports = {
 					sharedOptions: [
 						{ name: "string-literal", type: "module" },
 						{ name: "chat", type: "module" },
+						{ name: "s", type: "module" },
 						{ name: "object-literal", type: "module" },
 						{ name: "string-variable", type: "module" },
 						{ name: "object-variable", type: "module" },

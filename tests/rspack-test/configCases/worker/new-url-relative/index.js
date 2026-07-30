@@ -38,6 +38,14 @@ new SharedWorker(
 new SharedWorker(new URL("./worker.js", import.meta.url), "chat");
 
 new SharedWorker(
+	/* webpackChunkName: "shared-spread-string" */ new URL(
+		"./worker.js",
+		import.meta.url
+	),
+	..."spread-string"
+);
+
+new SharedWorker(
 	/* webpackChunkName: "shared-object-literal" */ new URL(
 		"./worker.js",
 		import.meta.url
