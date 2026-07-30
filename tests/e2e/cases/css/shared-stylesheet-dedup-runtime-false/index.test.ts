@@ -1,9 +1,6 @@
 import { test, expect } from '@/fixtures';
 
-// The hot-update lists both the `style` and `main` chunks while the fixed
-// `filename` maps them to one stylesheet. Without de-duplication the handler
-// re-fetched it once per chunk and leaked one <link> per update.
-test('should keep a single stylesheet link when several updated chunks share it', async ({
+test('keeps the loader CSS reload fallback when the extracted runtime is disabled', async ({
   page,
   fileAction,
 }) => {
@@ -33,8 +30,6 @@ test('should keep a single stylesheet link when several updated chunks share it'
     await expect(links).toHaveCount(1);
   }
 
-  // The loader-level reload is debounced, so repeated edits expose a second
-  // owner even when a transient two-link state has already settled.
   expect(responses).toHaveLength(colors.length - 1);
   expect(new Set(responses).size).toBe(colors.length - 1);
   expect(responses.every((url) => url.includes('?'))).toBe(true);
