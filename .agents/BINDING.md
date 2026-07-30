@@ -157,6 +157,40 @@ an independent raw `ThreadsafeFunction`. After `compiler.close()` settles, no re
 retain its JavaScript closure. Keeping another raw TSFN clone or strong function reference outside
 the manager defeats this guarantee and can reintroduce the memory leak.
 
+#### Defer conversion of callback-bearing values
+
+The `#[napi]` macro normally runs `FromNapiValue` before entering the exported Rust method. This is
+too early for a callback-bearing argument when the owning compiler is discovered from another
+argument or from the `Compilation`: its TSFN would be created before
+`CompilerScopedTsFnManager::scope` is active.
+
+Use a two-phase conversion for values such as custom runtime modules that are attached after the
+compiler has been constructed:
+
+1. Accept the argument as an `Unknown` wrapper around the raw `napi_value`, and use
+   `ts_args_type` to keep the intended public TypeScript signature.
+2. Resolve the owning `JsCompiler` before converting the argument.
+3. Enter that compiler's `CompilerScopedTsFnManager::scope`, then explicitly call
+   `FromNapiValue::from_napi_value`.
+4. Store every callback in the converted value as a `CompilerScopedTsFnHandle`, never as a raw
+   `ThreadsafeFunction`.
+
+```rust
+#[napi(ts_args_type = "value: JsCallbackValue")]
+pub fn add_value<'a>(
+  &mut self,
+  env: &'a Env,
+  value: Unknown<'a>,
+) -> napi::Result<()> {
+  let value = js_compiler.compiler_scoped_tsfn_manager.scope(|| unsafe {
+    JsCallbackValue::from_napi_value(env.raw(), value.raw())
+  })?;
+
+  // Store `value`; its callback fields use `CompilerScopedTsFnHandle`.
+  Ok(())
+}
+```
+
 ### Performance
 
 Binding performance is often dominated by how much data is converted and how many Node-API
