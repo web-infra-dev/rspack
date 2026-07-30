@@ -11,6 +11,7 @@ use std::{
 };
 
 use rspack_fs::{IntermediateFileSystem, ReadableFileSystem};
+use rspack_workspace::rspack_pkg_version;
 
 use self::{
   build_dependencies::{BuildDeps, BuildDepsOptions},
@@ -99,7 +100,10 @@ impl PersistentCache {
       ),
       snapshot,
       make_occasion: MakeOccasion::new(codec.clone()),
-      meta_occasion: MetaOccasion::new(codec.clone(), option.version.clone()),
+      meta_occasion: MetaOccasion::new(
+        codec.clone(),
+        format!("{}|{}", rspack_pkg_version!(), option.version),
+      ),
       minimize_occasion: MinimizeOccasion::new(codec.clone()),
       source_map_dev_tool_plugin_occasion: SourceMapDevToolPluginOccasion::new(codec),
     }
