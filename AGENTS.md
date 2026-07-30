@@ -132,9 +132,6 @@ Before running tests after code changes:
 - **CLI**: `packages/rspack-cli/src/`
 - **Tests**: `tests/rspack-test/`
 
-Before modifying the JavaScript API, binding classes, native-backed objects, JavaScript hook bridge,
-loader bridge, or Node-API runtime, read [JavaScript Binding Guide](.agents/BINDING.md).
-
 ## Error handling
 
 - Use `rspack_error` crate for Rust errors

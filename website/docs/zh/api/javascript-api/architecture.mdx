@@ -17,32 +17,23 @@ Rspack 的 `Compilation`、`Module`、`Chunk` 和 graph 等对象有所不同。
 数据的标识或内部句柄；当插件读取某些 getter 或调用 method 时，Rspack 会通过 Node-API
 binding 访问 Rust，再把结果转换成 JavaScript 值。这类对象称为 **native-backed 对象**。
 
-```mermaid
-flowchart TB
-  subgraph NativeBacked["Native-backed 对象"]
-    direction LR
-    NativeCode["插件读取 getter<br/>或调用 method"]
-    Wrapper["JavaScript wrapper<br/>保存标识或内部句柄"]
-    Binding["Node-API binding"]
-    RustData["Rust Compiler / Compilation<br/>保存实际编译数据"]
-    Converted["转换后的<br/>JavaScript 值"]
+```text
+普通 JavaScript 对象
 
-    NativeCode --> Wrapper
-    Wrapper -->|"需要读取数据"| Binding
-    Binding --> RustData
-    RustData --> Binding
-    Binding --> Converted
-  end
+  读取属性 ──────> JavaScript 对象中的数据 ──────> 直接得到结果
 
-  subgraph JavaScriptOwned["普通 JavaScript 对象"]
-    direction LR
-    JsCode["插件读取属性"]
-    JsData["JavaScript 对象<br/>直接保存数据"]
-    JsResult["直接得到结果"]
 
-    JsCode --> JsData
-    JsData --> JsResult
-  end
+Native-backed 对象
+
+  读取 getter       JavaScript wrapper       Node-API binding
+  或调用 method ──> （标识 / 内部句柄） ──────> （跨语言访问）
+                                                    │
+                                                    ▼
+                                            Rust Compiler / Compilation
+                                            （实际编译数据）
+                                                    │
+                                                    ▼
+  得到 JavaScript 值 <────── 数据转换 <──────── Node-API binding
 ```
 
 两种对象看起来可能使用完全相同的 JavaScript 语法，但行为不同：
@@ -132,23 +123,12 @@ JavaScript 环境。
 同一个 JavaScript 环境中的用户代码由一个 JavaScript 线程执行。即使多个 Rust 线程
 同时触发回调，这些回调也需要先进入队列，再由 JavaScript 线程逐个执行：
 
-```mermaid
-flowchart LR
-  subgraph RustThreads["Rust 多线程并行执行"]
-    ThreadA["编译任务 A"]
-    ThreadB["编译任务 B"]
-    ThreadC["编译任务 C"]
-  end
+```text
+Rust 多线程并行执行                 JavaScript 单线程执行
 
-  Queue["跨线程回调队列"]
-  JsThread["单个 JavaScript 线程<br/>逐个执行回调"]
-  Resume["返回结果后<br/>对应 Rust 任务继续"]
-
-  ThreadA --> Queue
-  ThreadB --> Queue
-  ThreadC --> Queue
-  Queue --> JsThread
-  JsThread --> Resume
+  编译任务 A ─┐
+  编译任务 B ─┼─> 跨线程回调队列 ─> 逐个执行回调 ─> 返回结果 ─> 对应 Rust 任务继续
+  编译任务 C ─┘
 ```
 
 hook 和回调的成本不只有 Node-API 数据转换和线程调度。更重要的是，它们会形成一个

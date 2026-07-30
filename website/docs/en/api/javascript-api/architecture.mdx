@@ -19,32 +19,23 @@ data. When a plugin reads certain getters or calls certain methods, Rspack acces
 Node-API binding and converts the result back into a JavaScript value. These objects are called
 **native-backed objects**.
 
-```mermaid
-flowchart TB
-  subgraph NativeBacked["Native-backed object"]
-    direction LR
-    NativeCode["Plugin reads a getter<br/>or calls a method"]
-    Wrapper["JavaScript wrapper<br/>stores an identifier or internal handle"]
-    Binding["Node-API binding"]
-    RustData["Rust Compiler / Compilation<br/>stores the compilation data"]
-    Converted["Converted<br/>JavaScript value"]
+```text
+Ordinary JavaScript object
 
-    NativeCode --> Wrapper
-    Wrapper -->|"Needs data"| Binding
-    Binding --> RustData
-    RustData --> Binding
-    Binding --> Converted
-  end
+  Read property ──────> Data in JavaScript object ──────> Result available directly
 
-  subgraph JavaScriptOwned["Ordinary JavaScript object"]
-    direction LR
-    JsCode["Plugin reads a property"]
-    JsData["JavaScript object<br/>stores the data directly"]
-    JsResult["Result is available directly"]
 
-    JsCode --> JsData
-    JsData --> JsResult
-  end
+Native-backed object
+
+  Read getter          JavaScript wrapper             Node-API binding
+  or call method ────> (identifier / internal handle) ────> (cross-runtime access)
+                                                              │
+                                                              ▼
+                                                    Rust Compiler / Compilation
+                                                    (compilation data)
+                                                              │
+                                                              ▼
+  Receive JavaScript value <────── Convert data <──────── Node-API binding
 ```
 
 The two kinds of objects can use exactly the same JavaScript syntax while behaving differently:
@@ -147,23 +138,14 @@ User code in one JavaScript environment runs on one JavaScript thread. Even if m
 threads trigger callbacks at the same time, those callbacks enter a queue and are executed one by
 one on the JavaScript thread:
 
-```mermaid
-flowchart LR
-  subgraph RustThreads["Rust threads run in parallel"]
-    ThreadA["Compilation task A"]
-    ThreadB["Compilation task B"]
-    ThreadC["Compilation task C"]
-  end
+```text
+Rust threads run in parallel                 JavaScript runs on one thread
 
-  Queue["Cross-thread callback queue"]
-  JsThread["Single JavaScript thread<br/>runs callbacks one by one"]
-  Resume["The corresponding Rust task<br/>continues after a result is returned"]
-
-  ThreadA --> Queue
-  ThreadB --> Queue
-  ThreadC --> Queue
-  Queue --> JsThread
-  JsThread --> Resume
+  Compilation task A ─┐
+  Compilation task B ─┼─> Cross-thread callback queue ─> Run callbacks one by one
+  Compilation task C ─┘                                      │
+                                                             └─> Return result
+                                                                 └─> Corresponding Rust task continues
 ```
 
 The cost of hooks and callbacks is therefore not limited to Node-API conversion and thread
