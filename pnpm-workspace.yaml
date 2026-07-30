@@ -53,7 +53,6 @@ catalog:
   '@rspress/plugin-sitemap': '^2.0.18'
   '@rstack-dev/doc-ui': '1.14.7'
   '@rstackjs/load-config': '^0.1.2'
-  '@rstest/core': '^0.10.6'
   '@shikijs/transformers': '^4.3.1'
   '@swc/helpers': '0.5.23'
   '@swc/plugin-remove-console': '^12.9.0'

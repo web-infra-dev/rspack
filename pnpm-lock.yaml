@@ -110,9 +110,6 @@ catalogs:
     '@rstackjs/load-config':
       specifier: ^0.1.2
       version: 0.1.2
-    '@rstest/core':
-      specifier: ^0.10.6
-      version: 0.10.6
     '@shikijs/transformers':
       specifier: ^4.3.1
       version: 4.3.1
@@ -468,9 +465,6 @@ importers:
 
   .:
     devDependencies:
-      '@rstest/core':
-        specifier: 'catalog:'
-        version: 0.10.6(@module-federation/runtime-tools@2.8.0)(core-js@3.49.0)(jsdom@26.1.0)
       '@taplo/cli':
         specifier: 'catalog:'
         version: 0.7.0
@@ -1083,9 +1077,6 @@ importers:
       '@rspack/test-tools':
         specifier: workspace:*
         version: link:../../packages/rspack-test-tools
-      '@rstest/core':
-        specifier: 'catalog:'
-        version: 0.10.6(@module-federation/runtime-tools@2.8.0)(core-js@3.49.0)(jsdom@26.1.0)
       '@swc/helpers':
         specifier: 'catalog:'
         version: 0.5.23
@@ -1218,6 +1209,9 @@ importers:
       rimraf:
         specifier: 'catalog:'
         version: 5.0.10
+      rstack:
+        specifier: 'catalog:'
+        version: 0.2.0(@microsoft/api-extractor@7.58.12)(@module-federation/runtime-tools@2.8.0)(@rspress/core@2.0.18)(core-js@3.49.0)(jiti@2.7.0)(jsdom@26.1.0)(typescript@6.0.3)
       sass-loader:
         specifier: 'catalog:'
         version: 16.0.8(@rspack/core@packages+rspack)(sass-embedded@1.100.0)(sass@1.100.0)
@@ -1360,6 +1354,9 @@ importers:
       rspress-plugin-font-open-sans:
         specifier: 'catalog:'
         version: 1.0.4(@rspress/core@2.0.18)
+      rstack:
+        specifier: 'catalog:'
+        version: 0.2.0(@microsoft/api-extractor@7.58.12)(@module-federation/runtime-tools@2.8.0)(@rspress/core@2.0.18)(core-js@3.49.0)(jiti@2.7.0)(jsdom@26.1.0)(typescript@6.0.3)
       tailwindcss:
         specifier: 'catalog:'
         version: 4.3.3

@@ -7,10 +7,10 @@
   "author": "",
   "license": "ISC",
   "scripts": {
-    "test": "rstest",
-    "testu": "rstest -u",
-    "test:base": "rstest --project base",
-    "test:hot": "rstest --project hottest"
+    "test": "rs test",
+    "testu": "rs test -u",
+    "test:base": "rs test --project base",
+    "test:hot": "rs test --project hottest"
   },
   "devDependencies": {
     "@babel/core": "catalog:",
@@ -24,7 +24,6 @@
     "@rspack/plugin-preact-refresh": "catalog:",
     "@rspack/plugin-react-refresh": "catalog:",
     "@rspack/test-tools": "workspace:*",
-    "@rstest/core": "catalog:",
     "@swc/helpers": "catalog:",
     "@swc/plugin-remove-console": "catalog:",
     "@types/babel__generator": "catalog:",
@@ -69,6 +68,7 @@
     "react-refresh": "catalog:",
     "react-server-dom-rspack": "catalog:",
     "rimraf": "catalog:",
+    "rstack": "catalog:",
     "sass-loader": "catalog:",
     "source-map": "catalog:",
     "source-map-loader": "catalog:",

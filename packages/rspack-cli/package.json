@@ -31,7 +31,7 @@
     "build": "rs lib",
     "dev": "rs lib -w",
     "prepare": "prebundle",
-    "test": "rstest"
+    "test": "rs test"
   },
   "devDependencies": {
     "@discoveryjs/json-ext": "catalog:",
