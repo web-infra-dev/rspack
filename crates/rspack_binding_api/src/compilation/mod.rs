@@ -733,11 +733,11 @@ impl JsCompilation {
   }
 
   #[napi(ts_args_type = "chunk: Chunk, runtimeModule: JsAddingRuntimeModule")]
-  pub fn add_runtime_module(
+  pub fn add_runtime_module<'a>(
     &mut self,
-    env: &Env,
+    env: &'a Env,
     chunk: &Chunk,
-    runtime_module: Unknown<'static>,
+    runtime_module: Unknown<'a>,
   ) -> napi::Result<()> {
     let compilation = self.as_mut()?;
     let Some(mut compiler_reference) = COMPILER_REFERENCES.with(|ref_cell| {
