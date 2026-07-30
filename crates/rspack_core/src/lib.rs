@@ -32,6 +32,7 @@ pub use external_module::*;
 mod logger;
 pub use logger::*;
 pub mod cache;
+mod json_archive;
 mod normal_module;
 mod raw_module;
 pub use raw_module::*;
