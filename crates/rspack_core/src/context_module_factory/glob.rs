@@ -196,6 +196,14 @@ fn parse_context_module_glob_pattern(pattern: &str) -> ContextModuleGlobPattern 
   } else {
     relative_path_to_request(&pattern).into_owned()
   };
+  let matcher_pattern = Utf8Path::new(&matcher_pattern)
+    .node_normalize_posix()
+    .to_string();
+  let matcher_pattern = if root_relative {
+    matcher_pattern
+  } else {
+    relative_path_to_request(&matcher_pattern).into_owned()
+  };
   let pattern_base = unescape_glob_path(extract_glob_base_dir(&matcher_pattern));
 
   ContextModuleGlobPattern {
@@ -288,21 +296,23 @@ impl<'a> ContextModuleGlobMatcher<'a> {
       .iter()
       .filter(|pattern| !pattern.negative)
       .any(|pattern| {
-        let request = context_relative_glob_request(
-          path,
-          if pattern.root_relative {
-            self.compiler_context
-          } else {
-            self.context
-          },
-          pattern.root_relative,
-        );
-        let request = request.trim_end_matches('/').cow_to_lowercase();
+        let context = if pattern.root_relative {
+          self.compiler_context
+        } else {
+          self.context
+        };
         let pattern_base = pattern
           .pattern_base
-          .trim_end_matches('/')
-          .cow_to_lowercase();
-        pattern_base == request || pattern_base.starts_with(&format!("{request}/"))
+          .strip_prefix('/')
+          .unwrap_or(&pattern.pattern_base);
+        let pattern_base = Utf8Path::new(&normalize_path_separators_for_path(context))
+          .node_join_posix(pattern_base)
+          .node_normalize_posix()
+          .to_string();
+        let normalized_path = normalize_path_separators_for_path(path);
+        let path = normalized_path.trim_end_matches('/').cow_to_lowercase();
+        let pattern_base = pattern_base.trim_end_matches('/').cow_to_lowercase();
+        pattern_base == path || pattern_base.starts_with(&format!("{path}/"))
       })
   }
 }
@@ -323,12 +333,27 @@ fn glob_pattern_matches(
   exhaustive: bool,
   case_sensitive: bool,
 ) -> bool {
+  if !case_sensitive {
+    let pattern_value = pattern.pattern.cow_to_lowercase();
+    let path = normalized_path.cow_to_lowercase();
+    let pattern_base = pattern.pattern_base.cow_to_lowercase();
+    return glob_match_normalized_with_explicit_dot(
+      &pattern_value,
+      &path,
+      &pattern_base,
+      &GlobMatchOptions {
+        case_sensitive: true,
+        require_literal_leading_dot: !exhaustive,
+      },
+    );
+  }
+
   glob_match_normalized_with_explicit_dot(
     &pattern.pattern,
     normalized_path,
     &pattern.pattern_base,
     &GlobMatchOptions {
-      case_sensitive,
+      case_sensitive: true,
       require_literal_leading_dot: !exhaustive,
     },
   )
