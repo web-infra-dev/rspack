@@ -1,22 +1,22 @@
-var path = require("path");
-var webpack = require("@rspack/core");
+var path = require('path');
+var webpack = require('@rspack/core');
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
-	entry: ["."],
-	output: {
-		filename: "dll.js",
-		chunkFilename: "[id].dll.js",
-		library: { type: "commonjs2" }
-	},
-	plugins: [
-		new webpack.DllPlugin({
-			path: path.resolve(
-				__dirname,
-				"../../../js/config/dll-plugin-context/manifest0.json"
-			),
-			// Context modules only land in the manifest when entryOnly is false.
-			entryOnly: false
-		})
-	]
+  entry: ['.'],
+  output: {
+    filename: 'dll.js',
+    chunkFilename: '[id].dll.js',
+    library: { type: 'commonjs2' },
+  },
+  plugins: [
+    new webpack.DllPlugin({
+      path: path.resolve(
+        __dirname,
+        '../../../js/config/dll-plugin-context/manifest0.json',
+      ),
+      // Context modules only land in the manifest when entryOnly is false.
+      entryOnly: false,
+    }),
+  ],
 };

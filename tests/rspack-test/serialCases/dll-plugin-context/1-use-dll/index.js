@@ -1,8 +1,18 @@
 import { hello, loadWidget } from "dll/index";
+import {
+	hello as camelHello,
+	loadWidget as camelLoadWidget
+} from "camel-dll/index";
 
-it("should consume a DLL that includes a context module", async function () {
+it("should consume a DLL manifest that includes a context module", async function () {
 	expect(hello).toBe("hello");
 	const mod = await loadWidget("a");
+	expect(mod.default).toBe("a");
+});
+
+it("should consume a camelCase DLL manifest that includes a context module", async function () {
+	expect(camelHello).toBe("hello");
+	const mod = await camelLoadWidget("a");
 	expect(mod.default).toBe("a");
 });
 
