@@ -4313,7 +4313,6 @@ dependencies = [
  "indexmap",
  "rspack_cacheable",
  "rspack_resolver",
- "rustc-hash",
  "ustr-fxhash",
 ]
 
@@ -5237,7 +5236,7 @@ dependencies = [
 [[package]]
 name = "rspack_resolver"
 version = "0.9.4"
-source = "git+https://github.com/rstackjs/rspack-resolver.git?branch=refactor%2Finterned-ustr-path#a22c34605b893907262ec38dfd69f365f0a72a83"
+source = "git+https://github.com/rstackjs/rspack-resolver.git?branch=refactor%2Finterned-ustr-path#b2d20c9b6be631caef0662f4ecf3bd4ac1897b9b"
 dependencies = [
  "arc-swap",
  "async-trait",
