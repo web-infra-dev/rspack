@@ -24,42 +24,15 @@ pub enum ChunkKind {
 
 pub type ChunkContentHash = HashMap<SourceType, RspackHashDigest>;
 
-/// The CSS parts of `content_hash` before the chunk-hash salt is applied, so
-/// they only change when the emitted stylesheet actually changes. `None` when
-/// the chunk has no CSS of that kind. Used by HMR to compute the manifest
-/// `css` (native css runtime) and `miniCss` (CssExtractRspackPlugin) fields,
-/// which are kept apart so an update of one runtime's CSS never makes the
-/// other runtime fetch a stylesheet it does not own.
-#[derive(Debug, Clone, PartialEq, Eq, Default)]
-pub struct ChunkCssHashes {
-  pub css: Option<RspackHashDigest>,
-  pub mini_css: Option<RspackHashDigest>,
-}
-
-impl ChunkCssHashes {
-  pub fn is_empty(&self) -> bool {
-    self.css.is_none() && self.mini_css.is_none()
-  }
-}
-
 #[derive(Debug, PartialEq, Eq)]
 pub struct ChunkHashesResult {
   hash: RspackHashDigest,
   content_hash: ChunkContentHash,
-  css_hashes: ChunkCssHashes,
 }
 
 impl ChunkHashesResult {
-  pub fn new(
-    hash: RspackHashDigest,
-    content_hash: ChunkContentHash,
-    css_hashes: ChunkCssHashes,
-  ) -> Self {
-    Self {
-      hash,
-      content_hash,
-      css_hashes,
-    }
+  pub fn new(hash: RspackHashDigest, content_hash: ChunkContentHash) -> Self {
+    Self { hash, content_hash }
   }
 
   pub fn hash(&self) -> &RspackHashDigest {
@@ -68,10 +41,6 @@ impl ChunkHashesResult {
 
   pub fn content_hash(&self) -> &ChunkContentHash {
     &self.content_hash
-  }
-
-  pub fn css_hashes(&self) -> &ChunkCssHashes {
-    &self.css_hashes
   }
 }
 
@@ -320,26 +289,13 @@ impl Chunk {
       .map(|hash| hash.rendered(len))
   }
 
-  pub fn css_hashes<'a>(
-    &self,
-    chunk_hashes_results: &'a ChunkHashesArtifact,
-  ) -> Option<&'a ChunkCssHashes> {
-    chunk_hashes_results
-      .get(&self.ukey)
-      .map(|result| result.css_hashes())
-  }
-
   pub fn set_hashes(
     &self,
     chunk_hashes_results: &mut ChunkHashesArtifact,
     chunk_hash: RspackHashDigest,
     content_hash: ChunkContentHash,
-    css_hashes: ChunkCssHashes,
   ) -> bool {
-    chunk_hashes_results.set_hashes(
-      self.ukey,
-      ChunkHashesResult::new(chunk_hash, content_hash, css_hashes),
-    )
+    chunk_hashes_results.set_hashes(self.ukey, ChunkHashesResult::new(chunk_hash, content_hash))
   }
 
   pub fn rendered(&self) -> bool {
