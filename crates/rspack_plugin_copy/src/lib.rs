@@ -18,14 +18,12 @@ use rspack_core::{
   escape_glob_pattern, find_files_by_glob,
   rspack_sources::{BoxSource, RawBufferSource, SourceExt},
 };
-use rspack_error::{Diagnostic, Error, Result, error};
+use rspack_error::{Diagnostic, Error, Result, ToStringResultToRspackResultExt};
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHashDigest, RspackHasher};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rspack_util::fx_hash::FxDashSet;
 use sugar_path::SugarPath;
-#[cfg(not(target_family = "wasm"))]
-use tokio::task::spawn_blocking;
 
 #[derive(Debug)]
 pub struct CopyRspackPluginOptions {
@@ -281,17 +279,6 @@ impl CopyRspackPlugin {
     // TODO cache
 
     logger.debug(format!("reading '{absolute_filename}'..."));
-    // TODO inputFileSystem
-
-    #[cfg(not(target_family = "wasm"))]
-    let data = {
-      let fs = compilation.input_filesystem.clone();
-      let path = absolute_filename.clone();
-      spawn_blocking(move || fs.read_sync(&path))
-        .await
-        .map_err(|e| error!("{e}, spawn task failed"))?
-    };
-    #[cfg(target_family = "wasm")]
     let data = compilation.input_filesystem.read(&absolute_filename).await;
 
     let source_vec = match data {
@@ -544,23 +531,50 @@ impl CopyRspackPlugin {
 
         let output_path = &compilation.options.output.path;
 
-        let copied_result = join_all(entries.into_iter().map(|entry| async {
-          Self::analyze_every_entry(
-            entry,
-            pattern,
-            &context,
-            output_path,
-            from_type,
-            file_dependencies,
-            diagnostics.clone(),
-            compilation,
-            logger,
-            index,
-          )
-          .await
-        }))
+        let copied_result = rspack_parallel::scope::<_, Result<_>>(|token| {
+          entries.into_iter().for_each(|entry| {
+            // SAFETY: await immediately and trust caller to poll future entirely
+            let s = unsafe {
+              token.used((
+                pattern,
+                &context,
+                output_path,
+                file_dependencies,
+                diagnostics.clone(),
+                compilation,
+                logger,
+              ))
+            };
+            s.spawn(
+              move |(
+                pattern,
+                context,
+                output_path,
+                file_dependencies,
+                diagnostics,
+                compilation,
+                logger,
+              )| async move {
+                Self::analyze_every_entry(
+                  entry,
+                  pattern,
+                  context,
+                  output_path,
+                  from_type,
+                  file_dependencies,
+                  diagnostics,
+                  compilation,
+                  logger,
+                  index,
+                )
+                .await
+              },
+            );
+          });
+        })
         .await
         .into_iter()
+        .map(|result| result.to_rspack_result().and_then(|result| result))
         .collect::<Result<Vec<_>>>()?;
 
         if copied_result.is_empty() {

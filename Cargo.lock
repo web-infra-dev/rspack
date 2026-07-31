@@ -4393,11 +4393,11 @@ dependencies = [
  "rspack_error",
  "rspack_hash",
  "rspack_hook",
+ "rspack_parallel",
  "rspack_paths",
  "rspack_util",
  "rustc-hash",
  "sugar_path",
- "tokio",
  "tracing",
 ]
 
