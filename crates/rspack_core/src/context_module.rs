@@ -181,10 +181,9 @@ pub struct ContextOptions {
   pub category: DependencyCategory,
   /// The context request passed to the resolver.
   pub request: String,
-  /// The base directory used to resolve relative context requests and glob patterns. It has the
-  /// same meaning as `ContextModuleFactory` hook data's `context`: the importer directory by
-  /// default, but it may be changed by options such as `import.meta.glob`'s `base` or by factory
-  /// hooks.
+  /// The base directory used to resolve relative context requests. For glob patterns, this is the
+  /// parser-derived request context (the importer directory or the explicit `base`) and remains
+  /// the matching coordinate even when context module factory hooks relocate the scan request.
   pub context: String,
   /// The compiler `options.context`. Root-relative glob patterns are resolved from this directory.
   /// This value is stable for the lifetime of a compilation and must not be changed by context

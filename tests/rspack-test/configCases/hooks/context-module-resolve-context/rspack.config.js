@@ -19,21 +19,83 @@ class ContextModuleResolveContextPlugin {
               path.isAbsolute(resolveData.request.split(/[?#]/, 1)[0]),
               false,
             );
-            if (resolveData.request.includes('after-source')) {
+            if (
+              resolveData.request.includes('after-source') ||
+              resolveData.request.includes('after-resource-override')
+            ) {
+              return;
+            }
+            if (resolveData.request.includes('request-override')) {
+              resolveData.context = path.join(__dirname, 'fixtures');
+              resolveData.request = '../src/request-override';
+              resolveData.recursive = true;
+              return;
+            }
+            if (resolveData.request.includes('../shared')) {
+              resolveData.context = path.join(__dirname, 'fixtures', 'nested');
+              resolveData.recursive = false;
               return;
             }
             resolveData.context = path.join(__dirname, 'fixtures');
           },
         );
+        contextModuleFactory.hooks.beforeResolve.tap(
+          `${pluginName}-observer`,
+          (resolveData) => {
+            if (resolveData.request.includes('../src/request-override')) {
+              assert.strictEqual(
+                resolveData.context,
+                path.join(__dirname, 'fixtures'),
+              );
+              assert.strictEqual(resolveData.recursive, true);
+              return;
+            }
+            if (resolveData.request.includes('../shared')) {
+              assert.strictEqual(
+                resolveData.context,
+                path.join(__dirname, 'fixtures', 'nested'),
+              );
+              assert.strictEqual(resolveData.recursive, false);
+            }
+          },
+        );
         contextModuleFactory.hooks.afterResolve.tap(
           pluginName,
           (resolveData) => {
+            if (resolveData.request.includes('after-resource-override')) {
+              assert.strictEqual(
+                resolveData.context,
+                path.join(__dirname, 'src'),
+              );
+              resolveData.resource = path.join(
+                __dirname,
+                'fixtures',
+                'after-resource',
+              );
+              return;
+            }
             if (resolveData.request.includes('after-source')) {
               assert.strictEqual(
                 resolveData.context,
                 path.join(__dirname, 'src'),
               );
               resolveData.context = path.join(__dirname, 'fixtures');
+              return;
+            }
+            if (resolveData.request.includes('../src/request-override')) {
+              assert.strictEqual(
+                resolveData.context,
+                path.join(__dirname, 'fixtures'),
+              );
+              assert.strictEqual(resolveData.recursive, true);
+              return;
+            }
+            if (resolveData.request.includes('../shared')) {
+              assert.strictEqual(
+                resolveData.context,
+                path.join(__dirname, 'fixtures', 'nested'),
+              );
+              assert.strictEqual(resolveData.recursive, false);
               return;
             }
             assert.strictEqual(

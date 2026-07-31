@@ -44,8 +44,6 @@ pub struct BeforeResolveData {
   // cacheable
   pub recursive: bool,
   pub pattern: ContextModulePattern,
-  #[debug(skip)]
-  original_glob_request: Option<(String, bool)>,
 }
 
 #[derive(Clone)]
@@ -99,6 +97,11 @@ pub struct ContextModuleFactory {
   resolve_dependencies: ResolveContextModuleDependencies,
 }
 
+struct ContextModuleAfterResolveInput {
+  options: ContextModuleOptions,
+  resolve_context: String,
+}
+
 #[async_trait::async_trait]
 impl ModuleFactory for ContextModuleFactory {
   #[instrument("context_module_factory:create", skip_all)]
@@ -106,10 +109,10 @@ impl ModuleFactory for ContextModuleFactory {
     match self.before_resolve(data).await? {
       BeforeResolveResult::Ignored => return Ok(ModuleFactoryResult::default()),
       BeforeResolveResult::Data(before_resolve_result) => {
-        let (factorize_result, context_module_options) =
+        let (factorize_result, after_resolve_input) =
           self.resolve(data, before_resolve_result).await?;
-        if let Some(context_module_options) = context_module_options
-          && let Some(factorize_result) = self.after_resolve(data, context_module_options).await?
+        if let Some(after_resolve_input) = after_resolve_input
+          && let Some(factorize_result) = self.after_resolve(data, after_resolve_input).await?
         {
           return Ok(factorize_result);
         }
@@ -178,7 +181,7 @@ impl ContextModuleFactory {
       .as_context_dependency_mut()
       .expect("should be context dependency");
     let dependency_options = dependency.options();
-    let (request, recursive, original_glob_request) = match &dependency_options.pattern {
+    let (request, recursive) = match &dependency_options.pattern {
       ContextModulePattern::Glob(patterns) => {
         let compiled = compile_context_module_glob_request(
           dependency.request(),
@@ -187,16 +190,11 @@ impl ContextModuleFactory {
           &dependency_options.compiler_context,
           dependency_options.recursive,
         );
-        (
-          compiled.request.clone(),
-          compiled.recursive,
-          Some((compiled.request, compiled.recursive)),
-        )
+        (compiled.request, compiled.recursive)
       }
       _ => (
         dependency.request().to_string(),
         dependency_options.recursive,
-        None,
       ),
     };
 
@@ -205,7 +203,6 @@ impl ContextModuleFactory {
       request,
       recursive,
       pattern: dependency_options.pattern.clone(),
-      original_glob_request,
       dependencies: data.dependencies.clone(),
     };
 
@@ -239,23 +236,15 @@ impl ContextModuleFactory {
     &self,
     data: &mut ModuleFactoryCreateData,
     before_resolve_data: Box<BeforeResolveData>,
-  ) -> Result<(ModuleFactoryResult, Option<ContextModuleOptions>)> {
+  ) -> Result<(ModuleFactoryResult, Option<ContextModuleAfterResolveInput>)> {
     let plugin_driver = &self.plugin_driver;
     let strict = self.global_override_strict();
     let dependency = data.dependencies[0]
       .as_context_dependency()
       .expect("should be context dependency");
-    let hook_kept_glob_request = before_resolve_data
-      .original_glob_request
-      .as_ref()
-      .is_some_and(|(request, _)| before_resolve_data.request == *request);
-    let hook_kept_glob_recursive = before_resolve_data
-      .original_glob_request
-      .as_ref()
-      .is_some_and(|(_, recursive)| before_resolve_data.recursive == *recursive);
     let hook_request = before_resolve_data.request.clone();
     let request = before_resolve_data.request;
-    let (loader_request, mut specifier) = match request.rfind('!') {
+    let (loader_request, specifier) = match request.rfind('!') {
       Some(idx) => {
         let mut loaders_prefix = String::new();
         let mut i = 0;
@@ -313,22 +302,8 @@ impl ContextModuleFactory {
     };
 
     let context = before_resolve_data.context;
-    let mut recursive = before_resolve_data.recursive;
-    if hook_kept_glob_request
-      && let ContextModulePattern::Glob(patterns) = &before_resolve_data.pattern
-    {
-      let compiled = compile_context_module_glob_request(
-        &specifier,
-        patterns,
-        &context,
-        &dependency.options().compiler_context,
-        recursive,
-      );
-      specifier = compiled.request;
-      if hook_kept_glob_recursive {
-        recursive = compiled.recursive;
-      }
-    }
+    let recursive = before_resolve_data.recursive;
+    let is_glob = matches!(&before_resolve_data.pattern, ContextModulePattern::Glob(_));
     let resolve_args = ResolveArgs {
       context: context.clone().into(),
       importer: data.issuer_identifier.as_ref(),
@@ -352,7 +327,9 @@ impl ContextModuleFactory {
         dependency_options.request = hook_request.clone();
         dependency_options.recursive = recursive;
         dependency_options.pattern = before_resolve_data.pattern.clone();
-        dependency_options.context = context.clone();
+        if !is_glob {
+          dependency_options.context = context.clone();
+        }
 
         let options = ContextModuleOptions {
           addon: loader_request.clone(),
@@ -378,7 +355,9 @@ impl ContextModuleFactory {
         dependency_options.request = hook_request;
         dependency_options.recursive = recursive;
         dependency_options.pattern = before_resolve_data.pattern.clone();
-        dependency_options.context = context;
+        if !is_glob {
+          dependency_options.context = context.clone();
+        }
 
         let options = ContextModuleOptions {
           addon: loader_request.clone(),
@@ -412,19 +391,30 @@ impl ContextModuleFactory {
     let module_factory_result = ModuleFactoryResult {
       module: Some(module),
     };
-    Ok((module_factory_result, context_module_options))
+    Ok((
+      module_factory_result,
+      context_module_options.map(|options| ContextModuleAfterResolveInput {
+        options,
+        resolve_context: context,
+      }),
+    ))
   }
 
   async fn after_resolve(
     &self,
     data: &mut ModuleFactoryCreateData,
-    mut context_module_options: ContextModuleOptions,
+    input: ContextModuleAfterResolveInput,
   ) -> Result<Option<ModuleFactoryResult>> {
+    let ContextModuleAfterResolveInput {
+      mut options,
+      resolve_context,
+    } = input;
+    let context_module_options = &mut options;
     let context_options = &context_module_options.context_options;
     let after_resolve_data = AfterResolveData {
       compilation_id: data.compilation_id,
       resource: context_module_options.resource.clone(),
-      context: context_options.context.clone(),
+      context: resolve_context,
       dependencies: data.dependencies.clone(),
       request: context_options.request.clone(),
       pattern: context_options.pattern.clone(),
@@ -457,9 +447,6 @@ impl ContextModuleFactory {
         }
 
         context_module_options.resource = after_resolve_data.resource;
-        // A glob's relative coordinate is finalized before the resource is resolved. Changing
-        // `afterResolve.context` must not reinterpret the raw patterns after resolution, just as
-        // it does not reinterpret a RegExp context pattern.
         if !matches!(&after_resolve_data.pattern, ContextModulePattern::Glob(_)) {
           context_module_options.context_options.context = after_resolve_data.context;
         }
