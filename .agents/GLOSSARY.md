@@ -278,6 +278,12 @@ Stable API for building native Node.js addons, used for Rust-JavaScript interop.
 
 Layer connecting Rust code to JavaScript/TypeScript, typically via NAPI.
 
+### Native-Backed Object
+
+JavaScript object whose methods or properties resolve data from a live Rust compiler or compilation.
+Its JavaScript lifetime can be longer than the native data lifetime, so access requires validation
+and revocation.
+
 ### Crate
 
 Rust package/library (equivalent to npm package in JavaScript).
