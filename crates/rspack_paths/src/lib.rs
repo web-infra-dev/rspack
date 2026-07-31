@@ -15,7 +15,7 @@ use indexmap::IndexSet;
 use rspack_cacheable::{
   ContextGuard, Error as CacheableError, cacheable,
   utils::PortablePath,
-  with::{Custom, CustomConverter},
+  with::{AsConverter, Custom, CustomConverter},
 };
 pub use rspack_resolver::{ToUstrPath, UstrPath, UstrPathSet};
 use rustc_hash::FxHasher;
@@ -157,6 +157,30 @@ impl From<UstrPath> for ArcPath {
   }
 }
 
+/// Wire format for the foreign `UstrPath`.
+///
+/// Both `UstrPath` (rspack_resolver) and `AsConverter`/`PortablePath`
+/// (rspack_cacheable) are foreign, so the orphan rule needs a type owned by
+/// this crate to carry the impl.
+///
+/// The payload is the same `PortablePath` that `ArcPath` writes, so moving a
+/// field between `ArcPath` and `UstrPath` leaves the persistent-cache format
+/// unchanged.
+#[cacheable]
+pub struct CacheableUstrPath(PortablePath);
+
+impl AsConverter<UstrPath> for CacheableUstrPath {
+  fn serialize(data: &UstrPath, guard: &ContextGuard) -> Result<Self, CacheableError> {
+    Ok(Self(PortablePath::new(
+      data.as_std_path(),
+      guard.project_root(),
+    )))
+  }
+  fn deserialize(self, guard: &ContextGuard) -> Result<UstrPath, CacheableError> {
+    Ok(PathBuf::from(self.0.into_path_string(guard.project_root())).into())
+  }
+}
+
 impl CustomConverter for ArcPath {
   type Target = PortablePath;
   fn serialize(&self, guard: &ContextGuard) -> Result<Self::Target, CacheableError> {
@@ -189,13 +213,25 @@ pub type ArcPathSet = HashSet<ArcPath, BuildHasherDefault<IdentityHasher>>;
 /// here only costs a `write_u64` instead of hashing the full absolute path.
 pub type ArcResolverPathSet = UstrPathSet;
 
+/// A `HashMap` keyed by the 8-byte interned `UstrPath`. Used by the long-lived
+/// dependency bookkeeping, where an owned `Arc<Path>` per entry is what drives
+/// peak memory on large monorepos.
+pub type UstrPathMap<V> = HashMap<UstrPath, V, BuildHasherDefault<IdentityHasher>>;
+
 /// A standard `DashMap` using `ArcPath` as the key type with a custom `Hasher`
 /// that just uses the precomputed hash for speed instead of calculating it.
 pub type ArcPathDashMap<V> = DashMap<ArcPath, V, BuildHasherDefault<IdentityHasher>>;
 
+/// A `DashMap` keyed by the 8-byte interned `UstrPath`.
+pub type UstrPathDashMap<V> = DashMap<UstrPath, V, BuildHasherDefault<IdentityHasher>>;
+
 /// A standard `DashSet` using `ArcPath` as the key type with a custom `Hasher`
 /// that just uses the precomputed hash for speed instead of calculating it.
 pub type ArcPathDashSet = DashSet<ArcPath, BuildHasherDefault<IdentityHasher>>;
+
+/// An `IndexSet` keyed by the 8-byte interned `UstrPath`, for the long-lived
+/// dependency bookkeeping on `Compilation`.
+pub type UstrPathIndexSet = IndexSet<UstrPath, BuildHasherDefault<IdentityHasher>>;
 
 /// A standard `IndexSet` using `ArcPath` as the key type with a custom `Hasher`
 /// that just uses the precomputed hash for speed instead of calculating it.

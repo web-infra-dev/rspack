@@ -6,7 +6,7 @@ use rspack_core::{
 };
 use rspack_error::{Diagnostic, Error, Result};
 use rspack_javascript_compiler::JavaScriptCompiler;
-use rspack_paths::{Utf8Path, Utf8PathBuf};
+use rspack_paths::{UstrPath, Utf8Path, Utf8PathBuf};
 use rspack_util::{identifier::absolute_to_request, node_path::NodePath};
 use rustc_hash::FxHashSet as HashSet;
 use swc_core::{
@@ -114,13 +114,13 @@ pub(crate) async fn complete_isolated_dts_outputs(
         resolve_dependencies
           .file_dependencies
           .into_iter()
-          .map(Into::into),
+          .map(UstrPath::from),
       );
       compilation.missing_dependencies.extend(
         resolve_dependencies
           .missing_dependencies
           .into_iter()
-          .map(Into::into),
+          .map(UstrPath::from),
       );
       let Ok(ResolveResult::Resource(resource)) = result else {
         continue;

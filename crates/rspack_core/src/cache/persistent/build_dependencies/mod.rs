@@ -4,7 +4,7 @@ use std::{collections::VecDeque, path::PathBuf, sync::Arc};
 
 use rspack_error::Result;
 use rspack_fs::ReadableFileSystem;
-use rspack_paths::{ArcPath, ArcPathSet, AssertUtf8};
+use rspack_paths::{UstrPath, UstrPathSet};
 use rustc_hash::FxHashSet as HashSet;
 
 use self::helper::{Helper, is_node_package_path};
@@ -24,8 +24,8 @@ pub enum BuildDepsValidationResult {
     tracked_files: usize,
   },
   Invalid {
-    modified_files: ArcPathSet,
-    removed_files: ArcPathSet,
+    modified_files: UstrPathSet,
+    removed_files: UstrPathSet,
   },
 }
 
@@ -35,11 +35,11 @@ pub struct BuildDeps {
   /// The build dependencies has been added to snapshot.
   ///
   /// This field is used to avoid adding duplicate build dependencies to the snapshot.
-  added: ArcPathSet,
+  added: UstrPathSet,
   /// The pending dependencies.
   ///
   /// The next time the add method is called, this path will be additionally added.
-  pending: ArcPathSet,
+  pending: UstrPathSet,
   /// The snapshot which is used to save build dependencies.
   snapshot: Arc<Snapshot>,
   fs: Arc<dyn ReadableFileSystem>,
@@ -53,7 +53,7 @@ impl BuildDeps {
   ) -> Self {
     Self {
       added: Default::default(),
-      pending: options.iter().map(|v| ArcPath::from(v.as_path())).collect(),
+      pending: options.iter().map(|v| UstrPath::from(v.as_path())).collect(),
       snapshot,
       fs,
     }
@@ -70,7 +70,7 @@ impl BuildDeps {
   pub async fn add(
     &mut self,
     storage: &mut dyn Storage,
-    data: impl Iterator<Item = ArcPath>,
+    data: impl Iterator<Item = UstrPath>,
     logger: CompilationLogger,
   ) {
     let mut helper = Helper::new(self.fs.clone(), logger);
@@ -83,12 +83,12 @@ impl BuildDeps {
         continue;
       }
       new_deps.insert(current.clone());
-      if is_node_package_path(&current) {
+      if is_node_package_path(current.as_std_path()) {
         // node package path skip recursive search.
         continue;
       }
-      if let Some(children) = helper.resolve(current.assert_utf8()).await {
-        queue.extend(children.iter().map(|item| item.as_path().into()));
+      if let Some(children) = helper.resolve(current.as_utf8_path()).await {
+        queue.extend(children.iter().map(|item| UstrPath::from(item.as_path())));
       }
     }
 

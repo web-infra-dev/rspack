@@ -1,4 +1,7 @@
-use rspack_cacheable::{cacheable, cacheable_dyn};
+use rspack_cacheable::{
+  cacheable, cacheable_dyn,
+  with::{As, AsVec},
+};
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   AffectType, AsContextDependency, AsDependencyCodeGeneration, ConnectionState, Dependency,
@@ -6,7 +9,7 @@ use rspack_core::{
   ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleLayer, ResourceIdentifier,
   SideEffectsStateArtifact,
 };
-use rspack_paths::ArcPathSet;
+use rspack_paths::{CacheableUstrPath, UstrPathSet};
 
 #[cacheable]
 #[derive(Debug, Clone)]
@@ -28,10 +31,14 @@ pub struct CssDependency {
   range: DependencyRange,
   resource_identifier: ResourceIdentifier,
   pub(crate) cacheable: bool,
-  pub(crate) file_dependencies: ArcPathSet,
-  pub(crate) context_dependencies: ArcPathSet,
-  pub(crate) missing_dependencies: ArcPathSet,
-  pub(crate) build_dependencies: ArcPathSet,
+  #[cacheable(with=AsVec<As<CacheableUstrPath>>)]
+  pub(crate) file_dependencies: UstrPathSet,
+  #[cacheable(with=AsVec<As<CacheableUstrPath>>)]
+  pub(crate) context_dependencies: UstrPathSet,
+  #[cacheable(with=AsVec<As<CacheableUstrPath>>)]
+  pub(crate) missing_dependencies: UstrPathSet,
+  #[cacheable(with=AsVec<As<CacheableUstrPath>>)]
+  pub(crate) build_dependencies: UstrPathSet,
   factorize_info: FactorizeInfo,
 }
 
@@ -49,10 +56,10 @@ impl CssDependency {
     identifier_index: u32,
     range: DependencyRange,
     cacheable: bool,
-    file_dependencies: ArcPathSet,
-    context_dependencies: ArcPathSet,
-    missing_dependencies: ArcPathSet,
-    build_dependencies: ArcPathSet,
+    file_dependencies: UstrPathSet,
+    context_dependencies: UstrPathSet,
+    missing_dependencies: UstrPathSet,
+    build_dependencies: UstrPathSet,
   ) -> Self {
     let resource_identifier = format!("css-module-{}-{}", &identifier, identifier_index).into();
     Self {

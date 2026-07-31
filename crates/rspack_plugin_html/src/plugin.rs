@@ -6,6 +6,7 @@ use std::{
 
 use atomic_refcell::AtomicRefCell;
 use cow_utils::CowUtils;
+use rspack_paths::UstrPath;
 use rspack_core::{Compilation, CompilationId, CompilationProcessAssets, Filename, Plugin};
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
@@ -221,7 +222,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       Ok(content) => {
         compilation
           .file_dependencies
-          .extend(content.2.into_iter().map(Into::into));
+          .extend(content.2.into_iter().map(UstrPath::from));
         (content.0, content.1)
       }
       Err(err) => {

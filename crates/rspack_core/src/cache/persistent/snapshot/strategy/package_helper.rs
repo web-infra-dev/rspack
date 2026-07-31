@@ -1,14 +1,14 @@
 use std::sync::Arc;
 
 use rspack_fs::ReadableFileSystem;
-use rspack_paths::{ArcPath, ArcPathDashMap, AssertUtf8};
+use rspack_paths::{UstrPath, UstrPathDashMap};
 use simd_json::prelude::{ValueAsScalar, ValueObjectAccess};
 
 /// A helper for finding package.json versions in directory hierarchies.
 #[derive(Debug)]
 pub struct PackageHelper {
   fs: Arc<dyn ReadableFileSystem>,
-  version_cache: ArcPathDashMap<Option<String>>,
+  version_cache: UstrPathDashMap<Option<String>>,
 }
 
 impl PackageHelper {
@@ -22,13 +22,13 @@ impl PackageHelper {
 
   /// Finds the package.json version for the given path by traversing up the directory tree.
   #[async_recursion::async_recursion]
-  pub async fn package_version(&self, path: &ArcPath) -> Option<String> {
+  pub async fn package_version(&self, path: &UstrPath) -> Option<String> {
     if let Some(version) = self.version_cache.get(path) {
       return version.clone();
     }
 
     let mut res = None;
-    if let Ok(mut content) = self.fs.read(&path.join("package.json").assert_utf8()).await
+    if let Ok(mut content) = self.fs.read(&path.as_utf8_path().join("package.json")).await
       && let Ok(package_json) = simd_json::to_borrowed_value(&mut content)
       && let Some(version) = package_json.get("version").and_then(|v| v.as_str())
     {
@@ -38,7 +38,7 @@ impl PackageHelper {
     if res.is_none()
       && let Some(p) = path.parent()
     {
-      res = self.package_version(&ArcPath::from(p)).await;
+      res = self.package_version(&UstrPath::from(p)).await;
     }
 
     self.version_cache.insert(path.into(), res.clone());
@@ -51,7 +51,7 @@ mod tests {
   use std::sync::Arc;
 
   use rspack_fs::{MemoryFileSystem, WritableFileSystem};
-  use rspack_paths::ArcPath;
+  use rspack_paths::UstrPath;
 
   use super::PackageHelper;
 
@@ -69,13 +69,13 @@ mod tests {
     let helper = PackageHelper::new(fs.clone());
     assert_eq!(
       helper
-        .package_version(&ArcPath::from("/packages/p1/file.js"))
+        .package_version(&UstrPath::from("/packages/p1/file.js"))
         .await,
       Some("1.2.0".into())
     );
     assert_eq!(
       helper
-        .package_version(&ArcPath::from("/packages/p2/file.js"))
+        .package_version(&UstrPath::from("/packages/p2/file.js"))
         .await,
       None
     );

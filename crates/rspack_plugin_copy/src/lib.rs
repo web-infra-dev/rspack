@@ -21,7 +21,7 @@ use rspack_core::{
 use rspack_error::{Diagnostic, Error, Result};
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHashDigest, RspackHasher};
 use rspack_hook::{plugin, plugin_hook};
-use rspack_paths::{Utf8Path, Utf8PathBuf};
+use rspack_paths::{Utf8Path, Utf8PathBuf, UstrPath};
 use rspack_util::fx_hash::FxDashSet;
 use sugar_path::SugarPath;
 
@@ -637,10 +637,10 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let start = logger.time("emit assets");
   compilation
     .file_dependencies
-    .extend(file_dependencies.into_iter().map(Into::into));
+    .extend(file_dependencies.into_iter().map(UstrPath::from));
   compilation
     .context_dependencies
-    .extend(context_dependencies.into_iter().map(Into::into));
+    .extend(context_dependencies.into_iter().map(UstrPath::from));
   compilation.extend_diagnostics(std::mem::take(
     diagnostics
       .lock()

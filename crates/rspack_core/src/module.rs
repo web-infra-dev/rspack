@@ -9,13 +9,13 @@ use async_trait::async_trait;
 use json::JsonValue;
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
-  with::{AsInner, AsInnerConverter, AsMap, AsOption, AsPreset, AsVec},
+  with::{As, AsInner, AsInnerConverter, AsMap, AsOption, AsPreset, AsVec},
 };
 use rspack_collections::{Identifiable, Identifier, IdentifierMap, IdentifierSet};
 use rspack_error::{Diagnosable, Result};
 use rspack_fs::ReadableFileSystem;
 use rspack_hash::{RspackHash, RspackHashDigest, RspackHasher, write_u64_hex};
-use rspack_paths::ArcPathSet;
+use rspack_paths::{UstrPathSet, CacheableUstrPath};
 use rspack_sources::BoxSource;
 use rspack_util::{
   atom::Atom,
@@ -267,10 +267,17 @@ pub struct BuildInfo {
   pub strict: bool,
   pub module_argument: ModuleArgument,
   pub exports_argument: ExportsArgument,
-  pub file_dependencies: ArcPathSet,
-  pub context_dependencies: ArcPathSet,
-  pub missing_dependencies: ArcPathSet,
-  pub build_dependencies: ArcPathSet,
+  // UstrPath is foreign, so unlike ArcPath it cannot carry
+  // `#[cacheable(with=Custom)]` on its own definition; each field spells the
+  // conversion out. The payload is the same PortablePath ArcPath wrote.
+  #[cacheable(with=AsVec<As<CacheableUstrPath>>)]
+  pub file_dependencies: UstrPathSet,
+  #[cacheable(with=AsVec<As<CacheableUstrPath>>)]
+  pub context_dependencies: UstrPathSet,
+  #[cacheable(with=AsVec<As<CacheableUstrPath>>)]
+  pub missing_dependencies: UstrPathSet,
+  #[cacheable(with=AsVec<As<CacheableUstrPath>>)]
+  pub build_dependencies: UstrPathSet,
   pub value_dependencies: HashMap<String, String>,
   #[cacheable(with=AsVec<AsPreset>)]
   pub esm_named_exports: HashSet<Atom>,
@@ -308,10 +315,10 @@ impl Default for BuildInfo {
       strict: false,
       module_argument: Default::default(),
       exports_argument: Default::default(),
-      file_dependencies: ArcPathSet::default(),
-      context_dependencies: ArcPathSet::default(),
-      missing_dependencies: ArcPathSet::default(),
-      build_dependencies: ArcPathSet::default(),
+      file_dependencies: UstrPathSet::default(),
+      context_dependencies: UstrPathSet::default(),
+      missing_dependencies: UstrPathSet::default(),
+      build_dependencies: UstrPathSet::default(),
       value_dependencies: HashMap::default(),
       esm_named_exports: HashSet::default(),
       all_star_exports: Vec::default(),

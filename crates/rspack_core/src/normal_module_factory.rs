@@ -950,8 +950,8 @@ module.exports = "data:,";
             return Ok(Some(ModuleFactoryResult::new_with_module(raw_module)));
           }
           Err(err) => {
-            data.file_dependencies = file_dependencies.into_iter().map(Into::into).collect();
-            data.missing_dependencies = missing_dependencies.into_iter().map(Into::into).collect();
+            data.file_dependencies = file_dependencies;
+            data.missing_dependencies = missing_dependencies;
             return Err(err);
           }
         }
@@ -1180,8 +1180,8 @@ module.exports = "data:,";
       .call(data, &create_data, &mut module)
       .await?;
 
-    data.file_dependencies = file_dependencies.into_iter().map(Into::into).collect();
-    data.missing_dependencies = missing_dependencies.into_iter().map(Into::into).collect();
+    data.file_dependencies = file_dependencies;
+    data.missing_dependencies = missing_dependencies;
 
     Ok(Some(ModuleFactoryResult::new_with_module(module)))
   }

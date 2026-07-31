@@ -7,7 +7,7 @@ use std::sync::Arc;
 use rspack_error::Result;
 use rspack_fs::ReadableFileSystem;
 use rspack_parallel::TryFutureConsumer;
-use rspack_paths::{ArcPath, ArcPathSet};
+use rspack_paths::{UstrPath, UstrPathSet};
 
 use self::strategy::{StrategyHelper, ValidateResult};
 pub use self::{
@@ -45,10 +45,10 @@ impl Snapshot {
   async fn calc_strategy(
     options: &Arc<SnapshotOptions>,
     helper: &Arc<StrategyHelper>,
-    path: &ArcPath,
+    path: &UstrPath,
     scope: SnapshotScope,
   ) -> Option<Strategy> {
-    let path_str = path.to_string_lossy();
+    let path_str = path.as_str();
     if options.is_immutable_path(&path_str) {
       return None;
     }
@@ -89,7 +89,7 @@ impl Snapshot {
     &self,
     storage: &mut dyn Storage,
     scope: SnapshotScope,
-    paths: impl Iterator<Item = ArcPath>,
+    paths: impl Iterator<Item = UstrPath>,
   ) {
     let helper = Arc::new(StrategyHelper::new(self.fs.clone(), self.options.clone()));
     let codec = self.codec.clone();
@@ -102,7 +102,7 @@ impl Snapshot {
         async move {
           let strategy = Self::calc_strategy(&options, &helper, &path, scope).await?;
           Some((
-            codec.encode(&path).expect("should encode success"),
+            codec.encode(&path.as_str().to_string()).expect("should encode success"),
             codec.encode(&strategy).expect("should encode success"),
           ))
         }
@@ -119,7 +119,7 @@ impl Snapshot {
     &self,
     storage: &mut dyn Storage,
     scope: SnapshotScope,
-    paths: impl Iterator<Item = ArcPath>,
+    paths: impl Iterator<Item = UstrPath>,
   ) {
     for item in paths {
       storage.remove(scope.name(), item.as_os_str().as_encoded_bytes())
@@ -132,10 +132,10 @@ impl Snapshot {
     &self,
     storage: &dyn Storage,
     scope: SnapshotScope,
-  ) -> Result<(bool, ArcPathSet, ArcPathSet, ArcPathSet)> {
-    let mut modified_path = ArcPathSet::default();
-    let mut deleted_path = ArcPathSet::default();
-    let mut no_change_path = ArcPathSet::default();
+  ) -> Result<(bool, UstrPathSet, UstrPathSet, UstrPathSet)> {
+    let mut modified_path = UstrPathSet::default();
+    let mut deleted_path = UstrPathSet::default();
+    let mut no_change_path = UstrPathSet::default();
     let helper = Arc::new(StrategyHelper::new(self.fs.clone(), self.options.clone()));
     let codec = self.codec.clone();
 
@@ -147,7 +147,7 @@ impl Snapshot {
         let helper = helper.clone();
         let codec = codec.clone();
         async move {
-          let path = codec.decode::<ArcPath>(&key)?;
+          let path = UstrPath::new(&codec.decode::<String>(&key)?);
           let validate = match codec.decode::<Strategy>(&value) {
             Ok(strategy) => helper.validate(&path, &strategy).await,
             Err(_) => ValidateResult::Modified,
@@ -186,7 +186,7 @@ mod tests {
 
   macro_rules! p {
     ($tt:tt) => {
-      ArcPath::from(std::path::Path::new($tt))
+      UstrPath::from(std::path::Path::new($tt))
     };
   }
 

@@ -20,7 +20,7 @@ impl JsDependencies {
       .compilation
       .file_dependencies()
       .0
-      .map(|i| i.to_string_lossy().to_string())
+      .map(|i| i.as_str().to_string())
       .collect()
   }
   #[napi(getter)]
@@ -29,7 +29,7 @@ impl JsDependencies {
       .compilation
       .file_dependencies()
       .1
-      .map(|i| i.to_string_lossy().to_string())
+      .map(|i| i.as_str().to_string())
       .collect()
   }
   #[napi(getter)]
@@ -38,7 +38,7 @@ impl JsDependencies {
       .compilation
       .file_dependencies()
       .3
-      .map(|i| i.to_string_lossy().to_string())
+      .map(|i| i.as_str().to_string())
       .collect()
   }
 
@@ -48,7 +48,7 @@ impl JsDependencies {
       .compilation
       .context_dependencies()
       .0
-      .map(|i| i.to_string_lossy().to_string())
+      .map(|i| i.as_str().to_string())
       .collect()
   }
   #[napi(getter)]
@@ -57,7 +57,7 @@ impl JsDependencies {
       .compilation
       .context_dependencies()
       .1
-      .map(|i| i.to_string_lossy().to_string())
+      .map(|i| i.as_str().to_string())
       .collect()
   }
   #[napi(getter)]
@@ -66,7 +66,7 @@ impl JsDependencies {
       .compilation
       .context_dependencies()
       .3
-      .map(|i| i.to_string_lossy().to_string())
+      .map(|i| i.as_str().to_string())
       .collect()
   }
 
@@ -76,7 +76,7 @@ impl JsDependencies {
       .compilation
       .missing_dependencies()
       .0
-      .map(|i| i.to_string_lossy().to_string())
+      .map(|i| i.as_str().to_string())
       .collect()
   }
   #[napi(getter)]
@@ -85,7 +85,7 @@ impl JsDependencies {
       .compilation
       .missing_dependencies()
       .1
-      .map(|i| i.to_string_lossy().to_string())
+      .map(|i| i.as_str().to_string())
       .collect()
   }
   #[napi(getter)]
@@ -94,7 +94,7 @@ impl JsDependencies {
       .compilation
       .missing_dependencies()
       .3
-      .map(|i| i.to_string_lossy().to_string())
+      .map(|i| i.as_str().to_string())
       .collect()
   }
 
@@ -104,7 +104,7 @@ impl JsDependencies {
       .compilation
       .build_dependencies()
       .0
-      .map(|i| i.to_string_lossy().to_string())
+      .map(|i| i.as_str().to_string())
       .collect()
   }
   #[napi(getter)]
@@ -113,7 +113,7 @@ impl JsDependencies {
       .compilation
       .build_dependencies()
       .1
-      .map(|i| i.to_string_lossy().to_string())
+      .map(|i| i.as_str().to_string())
       .collect()
   }
   #[napi(getter)]
@@ -122,7 +122,7 @@ impl JsDependencies {
       .compilation
       .build_dependencies()
       .3
-      .map(|i| i.to_string_lossy().to_string())
+      .map(|i| i.as_str().to_string())
       .collect()
   }
 }

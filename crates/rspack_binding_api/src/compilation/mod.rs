@@ -13,6 +13,7 @@ use diagnostics::Diagnostics;
 use entries::JsEntries;
 use napi_derive::napi;
 use rspack_collections::IdentifierSet;
+use rspack_paths::UstrPath;
 use rspack_core::{
   BindingCell, BoxDependency, Compilation, CompilationId, EntryOptions, ExportsInfoArtifact,
   FactorizeInfo, ModuleIdentifier, OptimizationBailoutItem, Reflector, rspack_sources::BoxSource,
@@ -577,7 +578,7 @@ impl JsCompilation {
 
     compilation
       .file_dependencies
-      .extend(deps.into_iter().map(|s| Path::new(&s).into()));
+      .extend(deps.into_iter().map(|s| UstrPath::from(Path::new(&s))));
     Ok(())
   }
 
@@ -587,7 +588,7 @@ impl JsCompilation {
 
     compilation
       .context_dependencies
-      .extend(deps.into_iter().map(|s| Path::new(&s).into()));
+      .extend(deps.into_iter().map(|s| UstrPath::from(Path::new(&s))));
     Ok(())
   }
 
@@ -597,7 +598,7 @@ impl JsCompilation {
 
     compilation
       .missing_dependencies
-      .extend(deps.into_iter().map(|s| Path::new(&s).into()));
+      .extend(deps.into_iter().map(|s| UstrPath::from(Path::new(&s))));
     Ok(())
   }
 
@@ -607,7 +608,7 @@ impl JsCompilation {
 
     compilation
       .build_dependencies
-      .extend(deps.into_iter().map(|s| Path::new(&s).into()));
+      .extend(deps.into_iter().map(|s| UstrPath::from(Path::new(&s))));
     Ok(())
   }
 
@@ -698,22 +699,22 @@ impl JsCompilation {
           file_dependencies: res
             .file_dependencies
             .into_iter()
-            .map(|d| d.to_string_lossy().to_string())
+            .map(|d| d.as_str().to_string())
             .collect(),
           context_dependencies: res
             .context_dependencies
             .into_iter()
-            .map(|d| d.to_string_lossy().to_string())
+            .map(|d| d.as_str().to_string())
             .collect(),
           build_dependencies: res
             .build_dependencies
             .into_iter()
-            .map(|d| d.to_string_lossy().to_string())
+            .map(|d| d.as_str().to_string())
             .collect(),
           missing_dependencies: res
             .missing_dependencies
             .into_iter()
-            .map(|d| d.to_string_lossy().to_string())
+            .map(|d| d.as_str().to_string())
             .collect(),
           id: res.id,
           error: res.error,

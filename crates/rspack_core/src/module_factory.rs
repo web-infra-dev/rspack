@@ -1,7 +1,7 @@
 use std::{fmt::Debug, sync::Arc};
 
 use rspack_error::{Diagnostic, Result};
-use rspack_paths::{ArcPath, ArcPathSet};
+use rspack_paths::{UstrPath, UstrPathSet};
 
 use crate::{
   BoxDependency, BoxModule, CompilationId, CompilerId, CompilerOptions, Context, ModuleIdentifier,
@@ -22,28 +22,28 @@ pub struct ModuleFactoryCreateData {
   pub issuer_layer: Option<ModuleLayer>,
   pub resolver_factory: Arc<ResolverFactory>,
 
-  pub file_dependencies: ArcPathSet,
-  pub context_dependencies: ArcPathSet,
-  pub missing_dependencies: ArcPathSet,
+  pub file_dependencies: UstrPathSet,
+  pub context_dependencies: UstrPathSet,
+  pub missing_dependencies: UstrPathSet,
   pub diagnostics: Vec<Diagnostic>,
 }
 
 impl ModuleFactoryCreateData {
-  pub fn add_file_dependency<F: Into<ArcPath>>(&mut self, file: F) {
+  pub fn add_file_dependency<F: Into<UstrPath>>(&mut self, file: F) {
     self.file_dependencies.insert(file.into());
   }
 
-  pub fn add_file_dependencies<F: Into<ArcPath>>(&mut self, files: impl IntoIterator<Item = F>) {
+  pub fn add_file_dependencies<F: Into<UstrPath>>(&mut self, files: impl IntoIterator<Item = F>) {
     self
       .file_dependencies
       .extend(files.into_iter().map(Into::into));
   }
 
-  pub fn add_context_dependency<F: Into<ArcPath>>(&mut self, context: F) {
+  pub fn add_context_dependency<F: Into<UstrPath>>(&mut self, context: F) {
     self.context_dependencies.insert(context.into());
   }
 
-  pub fn add_context_dependencies<F: Into<ArcPath>>(
+  pub fn add_context_dependencies<F: Into<UstrPath>>(
     &mut self,
     contexts: impl IntoIterator<Item = F>,
   ) {
@@ -52,11 +52,11 @@ impl ModuleFactoryCreateData {
       .extend(contexts.into_iter().map(Into::into));
   }
 
-  pub fn add_missing_dependency<F: Into<ArcPath>>(&mut self, missing: F) {
+  pub fn add_missing_dependency<F: Into<UstrPath>>(&mut self, missing: F) {
     self.missing_dependencies.insert(missing.into());
   }
 
-  pub fn add_missing_dependencies<F: Into<ArcPath>>(
+  pub fn add_missing_dependencies<F: Into<UstrPath>>(
     &mut self,
     missing: impl IntoIterator<Item = F>,
   ) {

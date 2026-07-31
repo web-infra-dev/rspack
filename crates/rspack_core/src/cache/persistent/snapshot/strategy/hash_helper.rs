@@ -4,7 +4,7 @@ use std::{
 };
 
 use rspack_fs::{FileMetadata, ReadableFileSystem};
-use rspack_paths::{ArcPath, ArcPathDashMap, AssertUtf8};
+use rspack_paths::{UstrPath, UstrPathDashMap};
 use rustc_hash::FxHasher;
 
 use super::{PackageHelper, SnapshotOptions};
@@ -29,9 +29,9 @@ pub struct HashHelper {
   fs: Arc<dyn ReadableFileSystem>,
   snapshot_options: Arc<SnapshotOptions>,
   package_helper: Arc<PackageHelper>,
-  file_cache: ArcPathDashMap<Option<ContentHash>>,
-  dir_cache: ArcPathDashMap<Option<ContentHash>>,
-  timestamp_hash_cache: ArcPathDashMap<Option<TimestampHash>>,
+  file_cache: UstrPathDashMap<Option<ContentHash>>,
+  dir_cache: UstrPathDashMap<Option<ContentHash>>,
+  timestamp_hash_cache: UstrPathDashMap<Option<TimestampHash>>,
 }
 
 impl HashHelper {
@@ -64,14 +64,14 @@ impl HashHelper {
   /// Returns None if the file does not exist.
   async fn inner_file_hash(
     &self,
-    path: &ArcPath,
+    path: &UstrPath,
     metadata: Option<FileMetadata>,
   ) -> Option<ContentHash> {
     if let Some(hash) = self.file_cache.get(path) {
       return hash.clone();
     }
 
-    let utf8_path = path.assert_utf8();
+    let utf8_path = path.as_utf8_path();
     let metadata = if let Some(m) = metadata {
       m
     } else {
@@ -102,18 +102,18 @@ impl HashHelper {
   }
 
   /// Get file content hash.
-  pub async fn file_hash(&self, path: &ArcPath) -> Option<ContentHash> {
+  pub async fn file_hash(&self, path: &UstrPath) -> Option<ContentHash> {
     self.inner_file_hash(path, None).await
   }
 
   /// Get directory content hash recursively.
   #[async_recursion::async_recursion]
-  pub async fn dir_hash(&self, path: &ArcPath) -> Option<ContentHash> {
+  pub async fn dir_hash(&self, path: &UstrPath) -> Option<ContentHash> {
     if let Some(hash) = self.dir_cache.get(path) {
       return hash.clone();
     }
 
-    let utf8_path = path.assert_utf8();
+    let utf8_path = path.as_utf8_path();
     let Ok(metadata) = self.fs.metadata(utf8_path).await else {
       self.dir_cache.insert(path.into(), None);
       return None;
@@ -124,8 +124,8 @@ impl HashHelper {
         let mut hasher = FxHasher::default();
         children.sort();
         for item in children {
-          let child_path = ArcPath::from(path.join(item));
-          let child_path_str = child_path.to_string_lossy();
+          let child_path = UstrPath::from(path.join(item));
+          let child_path_str = child_path.as_str();
           if self.snapshot_options.is_immutable_path(&child_path_str) {
             continue;
           }
@@ -159,12 +159,12 @@ impl HashHelper {
   /// This matches webpack's context timestamp behavior: directory snapshots
   /// hash child names and each child's timestamp or nested timestamp hash.
   #[async_recursion::async_recursion]
-  pub async fn dir_timestamp_hash(&self, path: &ArcPath) -> Option<TimestampHash> {
+  pub async fn dir_timestamp_hash(&self, path: &UstrPath) -> Option<TimestampHash> {
     if let Some(timestamp_hash) = self.timestamp_hash_cache.get(path) {
       return timestamp_hash.clone();
     }
 
-    let utf8_path = path.assert_utf8();
+    let utf8_path = path.as_utf8_path();
     let Ok(metadata) = self.fs.metadata(utf8_path).await else {
       self.timestamp_hash_cache.insert(path.into(), None);
       return None;
@@ -179,8 +179,8 @@ impl HashHelper {
 
       let mut hasher = FxHasher::default();
       for item in children {
-        let child_path = ArcPath::from(path.join(&item));
-        let child_path_str = child_path.to_string_lossy();
+        let child_path = UstrPath::from(path.join(&item));
+        let child_path_str = child_path.as_str();
         if self.snapshot_options.is_immutable_path(&child_path_str) {
           continue;
         }
@@ -229,7 +229,7 @@ mod tests {
   use std::sync::Arc;
 
   use rspack_fs::{MemoryFileSystem, WritableFileSystem};
-  use rspack_paths::ArcPath;
+  use rspack_paths::UstrPath;
 
   use super::{
     super::super::super::snapshot::PathMatcher, HashHelper, PackageHelper, SnapshotOptions,
@@ -256,27 +256,27 @@ mod tests {
     let helper = new_helper(fs.clone());
     assert!(
       helper
-        .file_hash(&ArcPath::from("/not_exist.js"))
+        .file_hash(&UstrPath::from("/not_exist.js"))
         .await
         .is_none()
     );
     // check directory
-    let hash0 = helper.file_hash(&ArcPath::from("/")).await.unwrap();
+    let hash0 = helper.file_hash(&UstrPath::from("/")).await.unwrap();
     assert_eq!(hash0.hash, 0);
 
-    let hash1 = helper.file_hash(&ArcPath::from("/hash.js")).await.unwrap();
+    let hash1 = helper.file_hash(&UstrPath::from("/hash.js")).await.unwrap();
 
     std::thread::sleep(std::time::Duration::from_millis(100));
     // do nothing
     let helper = new_helper(fs.clone());
-    let hash2 = helper.file_hash(&ArcPath::from("/hash.js")).await.unwrap();
+    let hash2 = helper.file_hash(&UstrPath::from("/hash.js")).await.unwrap();
     assert_eq!(hash1.hash, hash2.hash);
     assert_eq!(hash1.mtime, hash2.mtime);
 
     // same content
     let helper = new_helper(fs.clone());
     fs.write("/hash.js".into(), "abc".as_bytes()).await.unwrap();
-    let hash3 = helper.file_hash(&ArcPath::from("/hash.js")).await.unwrap();
+    let hash3 = helper.file_hash(&UstrPath::from("/hash.js")).await.unwrap();
     assert_eq!(hash1.hash, hash3.hash);
     assert!(hash1.mtime < hash3.mtime);
 
@@ -285,7 +285,7 @@ mod tests {
     fs.write("/hash.js".into(), "abcd".as_bytes())
       .await
       .unwrap();
-    let hash4 = helper.file_hash(&ArcPath::from("/hash.js")).await.unwrap();
+    let hash4 = helper.file_hash(&UstrPath::from("/hash.js")).await.unwrap();
     assert_ne!(hash1.hash, hash4.hash);
     assert!(hash1.mtime < hash4.mtime);
   }
@@ -315,14 +315,14 @@ mod tests {
     .unwrap();
 
     let helper = new_helper(fs.clone());
-    let hash1 = helper.dir_hash(&ArcPath::from("/")).await.unwrap();
+    let hash1 = helper.dir_hash(&UstrPath::from("/")).await.unwrap();
     assert_eq!(hash1.mtime, 0);
 
     std::thread::sleep(std::time::Duration::from_millis(100));
 
     // do nothing
     let helper = new_helper(fs.clone());
-    let hash2 = helper.dir_hash(&ArcPath::from("/")).await.unwrap();
+    let hash2 = helper.dir_hash(&UstrPath::from("/")).await.unwrap();
     assert_eq!(hash1.hash, hash2.hash);
     assert_eq!(hash2.mtime, 0);
 
@@ -350,21 +350,21 @@ mod tests {
     )
     .await
     .unwrap();
-    let hash3 = helper.dir_hash(&ArcPath::from("/")).await.unwrap();
+    let hash3 = helper.dir_hash(&UstrPath::from("/")).await.unwrap();
     assert_eq!(hash2.hash, hash3.hash);
     assert_eq!(hash3.mtime, 0);
 
     // update file content
     let helper = new_helper(fs.clone());
     fs.write("/a/a2.js".into(), "a2a".as_bytes()).await.unwrap();
-    let hash4 = helper.dir_hash(&ArcPath::from("/")).await.unwrap();
+    let hash4 = helper.dir_hash(&UstrPath::from("/")).await.unwrap();
     assert_ne!(hash3.hash, hash4.hash);
     assert_eq!(hash4.mtime, 0);
 
     // node_modules lib test
     let helper = new_helper(fs.clone());
     let hash1 = helper
-      .dir_hash(&ArcPath::from("/node_modules/lib/"))
+      .dir_hash(&UstrPath::from("/node_modules/lib/"))
       .await
       .unwrap();
 
@@ -377,7 +377,7 @@ mod tests {
     .await
     .unwrap();
     let hash2 = helper
-      .dir_hash(&ArcPath::from("/node_modules/lib/"))
+      .dir_hash(&UstrPath::from("/node_modules/lib/"))
       .await
       .unwrap();
     assert_eq!(hash1.hash, hash2.hash);
@@ -391,7 +391,7 @@ mod tests {
     .await
     .unwrap();
     let hash2 = helper
-      .dir_hash(&ArcPath::from("/node_modules/lib/"))
+      .dir_hash(&UstrPath::from("/node_modules/lib/"))
       .await
       .unwrap();
     assert_ne!(hash1.hash, hash2.hash);

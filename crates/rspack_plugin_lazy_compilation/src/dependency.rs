@@ -1,19 +1,25 @@
-use rspack_cacheable::{cacheable, cacheable_dyn};
+use rspack_cacheable::{
+  cacheable, cacheable_dyn,
+  with::{As, AsVec},
+};
 use rspack_core::{
   AsContextDependency, AsDependencyCodeGeneration, Dependency, DependencyCategory, DependencyId,
   DependencyType, FactorizeInfo, ModuleDependency,
 };
 use rspack_error::Diagnostic;
-use rspack_paths::ArcPathSet;
+use rspack_paths::{CacheableUstrPath, UstrPathSet};
 
 #[cacheable]
 #[derive(Debug, Clone)]
 pub struct DependencyOptions {
   pub request: String,
 
-  pub file_dependencies: ArcPathSet,
-  pub context_dependencies: ArcPathSet,
-  pub missing_dependencies: ArcPathSet,
+  #[cacheable(with=AsVec<As<CacheableUstrPath>>)]
+  pub file_dependencies: UstrPathSet,
+  #[cacheable(with=AsVec<As<CacheableUstrPath>>)]
+  pub context_dependencies: UstrPathSet,
+  #[cacheable(with=AsVec<As<CacheableUstrPath>>)]
+  pub missing_dependencies: UstrPathSet,
   pub diagnostics: Vec<Diagnostic>,
 }
 

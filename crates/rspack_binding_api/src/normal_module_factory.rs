@@ -104,17 +104,17 @@ impl JsResolveData {
       file_dependencies: data
         .file_dependencies
         .iter()
-        .map(|item| item.to_string_lossy().into_owned())
+        .map(|item| item.as_str().to_string())
         .collect::<Vec<_>>(),
       context_dependencies: data
         .context_dependencies
         .iter()
-        .map(|item| item.to_string_lossy().into_owned())
+        .map(|item| item.as_str().to_string())
         .collect::<Vec<_>>(),
       missing_dependencies: data
         .missing_dependencies
         .iter()
-        .map(|item| item.to_string_lossy().into_owned())
+        .map(|item| item.as_str().to_string())
         .collect::<Vec<_>>(),
       create_data: create_data.map(|create_data| JsCreateData {
         request: create_data.request.clone(),

@@ -1,6 +1,6 @@
 use std::fmt::Write as _;
 
-use rspack_paths::{ArcPath, ArcPathSet};
+use rspack_paths::{UstrPath, UstrPathSet};
 
 use super::{
   build_dependencies::{BuildDeps, BuildDepsValidationResult},
@@ -111,7 +111,7 @@ impl CacheContext {
   pub async fn save_build_deps(
     &mut self,
     build_deps: &mut BuildDeps,
-    added: impl Iterator<Item = ArcPath>,
+    added: impl Iterator<Item = UstrPath>,
   ) {
     if self.readonly {
       return;
@@ -134,12 +134,12 @@ impl CacheContext {
   pub async fn load_snapshot(
     &mut self,
     snapshot: &Snapshot,
-  ) -> Option<(bool, ArcPathSet, ArcPathSet)> {
+  ) -> Option<(bool, UstrPathSet, UstrPathSet)> {
     if !self.load_failed {
       let start = self.logger().time("read snapshot from persistent cache");
       let mut is_hot_start = false;
-      let mut modified_paths = ArcPathSet::default();
-      let mut removed_paths = ArcPathSet::default();
+      let mut modified_paths = UstrPathSet::default();
+      let mut removed_paths = UstrPathSet::default();
       let data = vec![
         snapshot
           .calc_modified_paths(&*self.storage, SnapshotScope::FILE)
@@ -197,9 +197,9 @@ impl CacheContext {
   pub async fn save_snapshot(
     &mut self,
     snapshot: &Snapshot,
-    file_deps: (impl Iterator<Item = ArcPath>, impl Iterator<Item = ArcPath>),
-    context_deps: (impl Iterator<Item = ArcPath>, impl Iterator<Item = ArcPath>),
-    missing_deps: (impl Iterator<Item = ArcPath>, impl Iterator<Item = ArcPath>),
+    file_deps: (impl Iterator<Item = UstrPath>, impl Iterator<Item = UstrPath>),
+    context_deps: (impl Iterator<Item = UstrPath>, impl Iterator<Item = UstrPath>),
+    missing_deps: (impl Iterator<Item = UstrPath>, impl Iterator<Item = UstrPath>),
   ) {
     if self.readonly {
       return;
@@ -335,7 +335,7 @@ fn write_occasion_timing_label(name: &'static str) -> &'static str {
   }
 }
 
-fn format_path_changes(modified_paths: &ArcPathSet, removed_paths: &ArcPathSet) -> String {
+fn format_path_changes(modified_paths: &UstrPathSet, removed_paths: &UstrPathSet) -> String {
   let mut changes = String::new();
   if !modified_paths.is_empty() {
     append_paths_group(&mut changes, "modified paths", modified_paths);
@@ -349,7 +349,7 @@ fn format_path_changes(modified_paths: &ArcPathSet, removed_paths: &ArcPathSet) 
   changes
 }
 
-fn append_paths_group(output: &mut String, label: &str, paths: &ArcPathSet) {
+fn append_paths_group(output: &mut String, label: &str, paths: &UstrPathSet) {
   let mut paths = paths
     .iter()
     .map(|path| path.as_ref())
