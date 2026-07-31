@@ -46,6 +46,10 @@ impl SRIHashVariableRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for SRIHashVariableRuntimeModule {
+  fn runtime_module_variables() -> &'static [&'static str] {
+    &[]
+  }
+
   async fn generate(&self, context: &RuntimeModuleGenerateContext<'_>) -> Result<String> {
     let compilation = context.compilation;
     let Some(chunk) = self

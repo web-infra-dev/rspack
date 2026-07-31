@@ -111,8 +111,8 @@ use std::{
 use napi::{CallContext, bindgen_prelude::*};
 pub use raw_options::{CustomPluginBuilder, register_custom_plugin};
 use rspack_core::{
-  BoxDependency, Compilation, CompilerId, CompilerPlatform, EntryOptions, ModuleIdentifier,
-  PluginExt,
+  BoxDependency, Compilation, CompilationId, CompilerId, CompilerPlatform, EntryOptions,
+  ModuleIdentifier, PluginExt,
 };
 use rspack_error::Diagnostic;
 use rspack_fs::{IntermediateFileSystem, NativeFileSystem, ReadableFileSystem};
@@ -131,6 +131,7 @@ use crate::{
   error::{ErrorCode, RspackResultToNapiResultExt},
   fs_node::{HybridFileSystem, NodeFileSystem, ThreadsafeNodeFS},
   module::ModuleObject,
+  module_graph_connection::ModuleGraphConnectionWrapper,
   platform::RawCompilerPlatform,
   plugins::{
     JsCleanupPlugin, JsHooksAdapterPlugin, RegisterJsTapKind, RegisterJsTaps, buildtime_plugins,
@@ -154,6 +155,64 @@ thread_local! {
   static COMPILER_REFERENCES: RefCell<FxHashMap<CompilerId, WeakReference<JsCompiler>>> = Default::default();
 }
 
+pub(crate) fn with_compilation<R>(
+  compilation_id: CompilationId,
+  f: impl FnOnce(&Compilation) -> napi::Result<R>,
+) -> napi::Result<R> {
+  let compiler_reference = COMPILER_REFERENCES.with(|ref_cell| {
+    let references = ref_cell.borrow();
+    references
+      .values()
+      .find(|reference| {
+        reference
+          .get()
+          .is_some_and(|compiler| compiler.compiler.compilation.id() == compilation_id)
+      })
+      .cloned()
+  });
+
+  let Some(compiler) = compiler_reference
+    .as_ref()
+    .and_then(|compiler_reference| compiler_reference.get())
+  else {
+    return Err(napi::Error::from_reason(format!(
+      "Unable to access compilation with id = {compilation_id:?} now. The Compilation has been removed on the Rust side or the Compiler has been garbage collected by JavaScript."
+    )));
+  };
+
+  f(&compiler.compiler.compilation)
+}
+
+pub(crate) fn with_compilation_mut<R>(
+  compilation_id: CompilationId,
+  f: impl FnOnce(&mut Compilation) -> napi::Result<R>,
+) -> napi::Result<R> {
+  let mut compiler_reference = COMPILER_REFERENCES.with(|ref_cell| {
+    let references = ref_cell.borrow();
+    references
+      .values()
+      .find(|reference| {
+        reference
+          .get()
+          .is_some_and(|compiler| compiler.compiler.compilation.id() == compilation_id)
+      })
+      .cloned()
+  });
+
+  let Some(compiler) = compiler_reference
+    .as_mut()
+    .and_then(|compiler_reference| compiler_reference.get_mut())
+  else {
+    return Err(napi::Error::from_reason(format!(
+      "Unable to access compilation with id = {compilation_id:?} now. The Compilation has been removed on the Rust side or the Compiler has been garbage collected by JavaScript."
+    )));
+  };
+
+  f(&mut compiler.compiler.compilation)
+}
+
+type EntryDependencyCacheKey = (String, String, Option<String>, Option<String>);
+
 #[js_function(1)]
 fn cleanup_revoked_modules(ctx: CallContext) -> Result<()> {
   let external = ctx.get::<&mut External<(CompilerId, Vec<ModuleIdentifier>)>>(0)?;
@@ -172,8 +231,8 @@ struct JsCompiler {
   // call drop manually to avoid unnecessary drop overhead in cli build
   compiler: ManuallyDrop<Compiler>,
   state: CompilerState,
-  include_dependencies_map: FxHashMap<String, FxHashMap<EntryOptions, BoxDependency>>,
-  entry_dependencies_map: FxHashMap<String, FxHashMap<EntryOptions, BoxDependency>>,
+  include_dependencies_map: FxHashMap<EntryDependencyCacheKey, BoxDependency>,
+  entry_dependencies_map: FxHashMap<EntryDependencyCacheKey, BoxDependency>,
   compiler_context: Arc<CompilerContext>,
   virtual_file_store: Option<Arc<RwLock<dyn VirtualFileStore>>>,
 }
@@ -528,6 +587,7 @@ impl JsCompiler {
     ChunkGroupWrapper::cleanup_last_compilation(compilation_id);
     DependencyWrapper::cleanup_last_compilation(compilation_id);
     AsyncDependenciesBlockWrapper::cleanup_last_compilation(compilation_id);
+    ModuleGraphConnectionWrapper::cleanup_last_compilation(compilation_id);
   }
 }
 

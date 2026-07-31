@@ -28,6 +28,10 @@ impl GetMainFilenameRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for GetMainFilenameRuntimeModule {
+  fn runtime_module_variables() -> &'static [&'static str] {
+    &[]
+  }
+
   fn runtime_requirements(
     &self,
     compilation: &Compilation,

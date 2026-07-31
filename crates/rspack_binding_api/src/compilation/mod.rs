@@ -732,13 +732,32 @@ impl JsCompilation {
     Ok(JsEntries::new(compilation))
   }
 
-  #[napi]
-  pub fn add_runtime_module(
+  #[napi(ts_args_type = "chunk: Chunk, runtimeModule: JsAddingRuntimeModule")]
+  pub fn add_runtime_module<'a>(
     &mut self,
+    env: &'a Env,
     chunk: &Chunk,
-    runtime_module: JsAddingRuntimeModule,
+    runtime_module: Unknown<'a>,
   ) -> napi::Result<()> {
     let compilation = self.as_mut()?;
+    let Some(mut compiler_reference) = COMPILER_REFERENCES.with(|ref_cell| {
+      let references = ref_cell.borrow();
+      references.get(&compilation.compiler_id()).cloned()
+    }) else {
+      return Err(napi::Error::new(
+        napi::Status::GenericFailure,
+        "Unable to addRuntimeModule now. The Compiler has been garbage collected by JavaScript.",
+      ));
+    };
+    let Some(js_compiler) = compiler_reference.get_mut() else {
+      return Err(napi::Error::new(
+        napi::Status::GenericFailure,
+        "Unable to addRuntimeModule now. The Compiler has been garbage collected by JavaScript.",
+      ));
+    };
+    let runtime_module = js_compiler.compiler_scoped_tsfn_manager.scope(|| unsafe {
+      JsAddingRuntimeModule::from_napi_value(env.raw(), runtime_module.raw())
+    })?;
 
     compilation
       .add_runtime_module(
@@ -802,20 +821,19 @@ impl JsCompilation {
             Some(js_opts) => js_opts.into(),
             None => EntryOptions::default(),
           };
-          let dependency = if let Some(map) = entry_dependencies_map.get(&js_dependency.request)
-            && let Some(dependency) = map.get(&options)
-          {
+          let cache_key = (
+            js_context.clone(),
+            js_dependency.request.clone(),
+            options.name.clone(),
+            layer.clone(),
+          );
+          let dependency = if let Some(dependency) = entry_dependencies_map.get(&cache_key) {
             js_dependency.dependency_id = Some(*dependency.id());
             dependency.clone()
           } else {
-            let dependency = js_dependency.resolve(js_context.into(), layer)?;
-            if let Some(map) = entry_dependencies_map.get_mut(&js_dependency.request) {
-              map.insert(options.clone(), dependency.clone());
-            } else {
-              let mut map = FxHashMap::default();
-              map.insert(options.clone(), dependency.clone());
-              entry_dependencies_map.insert(js_dependency.request.clone(), map);
-            }
+            let dependency =
+              js_dependency.resolve(js_context.into(), layer, options.name.is_none())?;
+            entry_dependencies_map.insert(cache_key, dependency.clone());
             dependency
           };
           Ok((dependency, options))
@@ -906,20 +924,18 @@ impl JsCompilation {
             Some(js_opts) => js_opts.into(),
             None => EntryOptions::default(),
           };
-          let dependency = if let Some(map) = include_dependencies_map.get(&js_dependency.request)
-            && let Some(dependency) = map.get(&options)
-          {
+          let cache_key = (
+            js_context.clone(),
+            js_dependency.request.clone(),
+            options.name.clone(),
+            layer.clone(),
+          );
+          let dependency = if let Some(dependency) = include_dependencies_map.get(&cache_key) {
             js_dependency.dependency_id = Some(*dependency.id());
             dependency.clone()
           } else {
-            let dependency = js_dependency.resolve(js_context.into(), layer)?;
-            if let Some(map) = include_dependencies_map.get_mut(&js_dependency.request) {
-              map.insert(options.clone(), dependency.clone());
-            } else {
-              let mut map = FxHashMap::default();
-              map.insert(options.clone(), dependency.clone());
-              include_dependencies_map.insert(js_dependency.request.clone(), map);
-            }
+            let dependency = js_dependency.resolve(js_context.into(), layer, true)?;
+            include_dependencies_map.insert(cache_key, dependency.clone());
             dependency
           };
           Ok((dependency, options))

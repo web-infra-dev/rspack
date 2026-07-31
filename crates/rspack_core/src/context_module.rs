@@ -34,8 +34,8 @@ use crate::{
   ImportAttributes, ImportPhase, LibIdentOptions, Module, ModuleArgument,
   ModuleCodeGenerationContext, ModuleCodeTemplate, ModuleGraph, ModuleId, ModuleIdsArtifact,
   ModuleLayer, ModuleType, RealDependencyLocation, ReferencedSpecifier, Resolve, RuntimeGlobals,
-  RuntimeSpec, SourceType, contextify, get_exports_type_with_strict, get_outgoing_async_modules,
-  impl_module_meta_info, module_update_hash, property_access, to_path,
+  RuntimeGlobalsRenderMode, RuntimeSpec, SourceType, contextify, get_exports_type_with_strict,
+  get_outgoing_async_modules, impl_module_meta_info, module_update_hash, property_access, to_path,
 };
 
 static CHUNK_NAME_INDEX_PLACEHOLDER: &str = "[index]";
@@ -424,19 +424,18 @@ impl ContextModule {
           runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
         )
       } else {
-        format!(
-          "{}(id, {}{})",
-          runtime_template.render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT),
-          bit,
-          if async_module { " | 16" } else { "" },
+        Self::render_create_fake_namespace_object(
+          runtime_template,
+          format!("{bit}{}", if async_module { " | 16" } else { "" }),
         )
       }
     } else {
-      format!(
-        "{}(id, {}{})",
-        runtime_template.render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT),
-        fake_map_data_expr,
-        if async_module { " | 16" } else { "" },
+      Self::render_create_fake_namespace_object(
+        runtime_template,
+        format!(
+          "{fake_map_data_expr}{}",
+          if async_module { " | 16" } else { "" }
+        ),
       )
     };
 
@@ -460,6 +459,20 @@ impl ContextModule {
     }
 
     source
+  }
+
+  fn render_create_fake_namespace_object(
+    runtime_template: &mut ModuleCodeTemplate,
+    mode: String,
+  ) -> String {
+    let create_fake_namespace_object =
+      runtime_template.render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT);
+    if runtime_template.render_mode() == RuntimeGlobalsRenderMode::RspackExport {
+      let require = runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE);
+      format!("{create_fake_namespace_object}.call({require}, id, {mode})")
+    } else {
+      format!("{create_fake_namespace_object}(id, {mode})")
+    }
   }
 
   fn get_user_request_map<'a>(

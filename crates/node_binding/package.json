@@ -1,6 +1,6 @@
 {
   "name": "@rspack/binding",
-  "version": "2.1.5",
+  "version": "2.1.7",
   "license": "MIT",
   "description": "Node binding for rspack",
   "main": "binding.js",
@@ -33,12 +33,12 @@
   "bugs": "https://github.com/web-infra-dev/rspack/issues",
   "repository": "web-infra-dev/rspack",
   "devDependencies": {
-    "@emnapi/core": "1.11.2",
-    "@emnapi/runtime": "1.11.2",
-    "@napi-rs/cli": "3.7.4",
-    "@napi-rs/wasm-runtime": "1.1.6",
-    "@types/node": "^20.19.43",
-    "emnapi": "1.11.2",
+    "@emnapi/core": "catalog:",
+    "@emnapi/runtime": "catalog:",
+    "@napi-rs/cli": "catalog:",
+    "@napi-rs/wasm-runtime": "catalog:",
+    "@types/node": "catalog:",
+    "emnapi": "catalog:",
     "typescript": "catalog:"
   },
   "napi": {

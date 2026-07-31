@@ -54,6 +54,7 @@ pub struct RstestPluginOptions {
   pub manual_mock_root: String,
   pub preserve_new_url: Vec<String>,
   pub globals: bool,
+  pub inject_import_meta_rstest_origin: bool,
   pub inject_dynamic_import_origin: Option<RstestDynamicImportOriginOptions>,
   pub inject_require_resolve_origin: Option<RstestRequireResolveOriginOptions>,
 }
@@ -449,6 +450,7 @@ async fn nmf_parser(
         import_meta_path_name: self.options.import_meta_path_name,
         manual_mock_root: self.options.manual_mock_root.clone(),
         globals: self.options.globals,
+        inject_import_meta_rstest_origin: self.options.inject_import_meta_rstest_origin,
         inject_dynamic_import_origin,
         inject_require_resolve_origin,
         commonjs_magic_comments,
@@ -701,6 +703,7 @@ impl Plugin for RstestPlugin {
       .tap(compilation_stage_9999::new(self));
 
     if self.options.module_path_name
+      || self.options.inject_import_meta_rstest_origin
       || self.options.inject_dynamic_import_origin.is_some()
       || self.options.inject_require_resolve_origin.is_some()
     {

@@ -1,5 +1,5 @@
-var cssLoadingUniqueName = "<%- _unique_name %>";
-function handleCssComposes(exports, composes) {
+<%- var("cssLoadingUniqueName") %> = "<%- _unique_name %>";
+<%- fn("handleCssComposes") %>(exports, composes) {
 	for (var i = 0; i < composes.length; i += 3) {
 		var moduleId = composes[i];
 		var composeFrom = composes[i + 1];
@@ -8,8 +8,8 @@ function handleCssComposes(exports, composes) {
 		exports[moduleId] = exports[moduleId] + " " + composedId
 	}
 }
-var loadingAttribute = "data-rspack-loading";
-var cssLoadStylesheet = <%- basicFunction("chunkId, url, done, hmr, fetchPriority") %> {
+<%- var("loadingAttribute") %> = "data-rspack-loading";
+<%- var("cssLoadStylesheet") %> = <%- basicFunction("chunkId, url, done, hmr, fetchPriority") %> {
 	var link,
 		needAttach,
 		key = "chunk-" + chunkId;
