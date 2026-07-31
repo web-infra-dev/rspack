@@ -45,6 +45,30 @@ Rspack 的配置是基于 webpack 的设计实现的，以此你能够非常轻�
 }
 ```
 
+## 移除不支持的 CLI 参数
+
+Rspack CLI 不支持部分 webpack CLI 参数，例如 `--progress`、`--color`、`--bail` 和 `--output-pathinfo`。保留这些参数会在读取配置前报 `Unknown option`。
+
+迁移时，应从构建命令中删除这些不支持的参数；如果仍需保留对应行为，请改用 Rspack 配置：
+
+```diff title="package.json"
+{
+  "scripts": {
+-   "build": "webpack --mode production --progress --color",
++   "build": "rspack --mode production",
+  }
+}
+```
+
+```js title="rspack.config.mjs"
+export default {
+  stats: {
+    // 对应 webpack CLI 的 --color
+    colors: true,
+  },
+};
+```
+
 ## 修改配置
 
 将 `webpack.config.js` 文件重命名为 `rspack.config.js`。
