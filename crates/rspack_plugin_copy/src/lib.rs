@@ -18,12 +18,14 @@ use rspack_core::{
   escape_glob_pattern, find_files_by_glob,
   rspack_sources::{BoxSource, RawBufferSource, SourceExt},
 };
-use rspack_error::{Diagnostic, Error, Result};
+use rspack_error::{Diagnostic, Error, Result, error};
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHashDigest, RspackHasher};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rspack_util::fx_hash::FxDashSet;
 use sugar_path::SugarPath;
+#[cfg(not(target_family = "wasm"))]
+use tokio::task::spawn_blocking;
 
 #[derive(Debug)]
 pub struct CopyRspackPluginOptions {
@@ -281,6 +283,15 @@ impl CopyRspackPlugin {
     logger.debug(format!("reading '{absolute_filename}'..."));
     // TODO inputFileSystem
 
+    #[cfg(not(target_family = "wasm"))]
+    let data = {
+      let fs = compilation.input_filesystem.clone();
+      let path = absolute_filename.clone();
+      spawn_blocking(move || fs.read_sync(&path))
+        .await
+        .map_err(|e| error!("{e}, spawn task failed"))?
+    };
+    #[cfg(target_family = "wasm")]
     let data = compilation.input_filesystem.read(&absolute_filename).await;
 
     let source_vec = match data {
@@ -299,9 +310,8 @@ impl CopyRspackPlugin {
       }
     };
 
-    let mut source = RawBufferSource::from(source_vec.clone()).boxed();
-
-    if let Some(transformer) = &pattern.transform_fn {
+    let source = if let Some(transformer) = &pattern.transform_fn {
+      let mut source = RawBufferSource::from(source_vec.clone()).boxed();
       logger.debug(format!("transforming content for '{absolute_filename}'..."));
       // TODO: support cache in the future.
       handle_transform(
@@ -311,8 +321,11 @@ impl CopyRspackPlugin {
         &mut source,
         diagnostics,
       )
-      .await
-    }
+      .await;
+      source
+    } else {
+      RawBufferSource::from(source_vec).boxed()
+    };
 
     let filename = if matches!(&to_type, ToType::Template) {
       logger.log(format!(

@@ -21,6 +21,7 @@ rspack_paths = { workspace = true }
 rspack_util  = { workspace = true }
 rustc-hash   = { workspace = true }
 sugar_path   = { workspace = true }
+tokio        = { workspace = true, features = ["rt"] }
 tracing      = { workspace = true }
 
 [package.metadata.cargo-shear]
