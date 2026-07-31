@@ -5237,8 +5237,7 @@ dependencies = [
 [[package]]
 name = "rspack_resolver"
 version = "0.9.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "adde60ec77d32748df78a55b3ac103d98c1f08c038cc0b3df8020243bda46117"
+source = "git+https://github.com/rstackjs/rspack-resolver.git?branch=refactor%2Finterned-ustr-path#a22c34605b893907262ec38dfd69f365f0a72a83"
 dependencies = [
  "arc-swap",
  "async-trait",
@@ -5257,6 +5256,7 @@ dependencies = [
  "thiserror 2.0.18",
  "tokio",
  "tracing",
+ "ustr-fxhash",
 ]
 
 [[package]]

@@ -82,12 +82,12 @@ impl JsResolver {
             resolve_request.file_dependencies = resolve_dependencies
               .file_dependencies
               .drain()
-              .map(|path| path.to_string_lossy().into_owned())
+              .map(|path| path.as_str().to_owned())
               .collect();
             resolve_request.missing_dependencies = resolve_dependencies
               .missing_dependencies
               .drain()
-              .map(|path| path.to_string_lossy().into_owned())
+              .map(|path| path.as_str().to_owned())
               .collect();
             Ok(match simd_json::to_string(&resolve_request) {
               Ok(json) => Either::<String, ()>::A(json),

@@ -152,7 +152,7 @@ impl Resolver {
         fragment: r.fragment().unwrap_or_default().to_string(),
         description_data: r
           .package_json()
-          .map(|d| DescriptionData::new(d.directory().to_path_buf(), Arc::clone(d.raw_json()))),
+          .map(|d| DescriptionData::new(d.directory().as_std_path().to_path_buf(), Arc::clone(d.raw_json()))),
       })),
       Err(rspack_resolver::ResolveError::Ignored(_)) => Ok(ResolveResult::Ignored),
       Err(error) => Err(ResolveInnerError::RspackResolver(error)),
@@ -188,7 +188,7 @@ impl Resolver {
         fragment: r.fragment().unwrap_or_default().to_string(),
         description_data: r
           .package_json()
-          .map(|d| DescriptionData::new(d.directory().to_path_buf(), Arc::clone(d.raw_json()))),
+          .map(|d| DescriptionData::new(d.directory().as_std_path().to_path_buf(), Arc::clone(d.raw_json()))),
       })),
       Err(rspack_resolver::ResolveError::Ignored(_)) => Ok(ResolveResult::Ignored),
       Err(error) => Err(ResolveInnerError::RspackResolver(error)),

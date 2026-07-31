@@ -17,7 +17,7 @@ use rspack_cacheable::{
   utils::PortablePath,
   with::{Custom, CustomConverter},
 };
-pub use rspack_resolver::ResolverPath;
+pub use rspack_resolver::{ToUstrPath, UstrPath, UstrPathSet};
 use rustc_hash::FxHasher;
 pub use ustr::IdentityHasher;
 
@@ -144,13 +144,16 @@ impl From<&str> for ArcPath {
   }
 }
 
-impl From<ResolverPath> for ArcPath {
+impl From<UstrPath> for ArcPath {
   /// Zero-cost conversion: reuses the resolver's precomputed `FxHash` and the
   /// existing `Arc<Path>`. Safe because `rspack_paths::hash_path` and the hash
   /// scheme in `rspack_resolver` are kept identical.
-  fn from(value: ResolverPath) -> Self {
-    let hash = value.precomputed_hash();
-    ArcPath::from_parts(hash, value.into_arc())
+  fn from(value: UstrPath) -> Self {
+    // PROBE-ONLY: materializes an Arc per conversion, which is exactly the
+    // allocation this whole change exists to remove. Here only so the crate
+    // compiles and downstream errors become visible; replaced when ArcPath
+    // itself becomes UstrPath.
+    ArcPath::new(Arc::from(value.as_std_path()))
   }
 }
 
@@ -184,7 +187,7 @@ pub type ArcPathSet = HashSet<ArcPath, BuildHasherDefault<IdentityHasher>>;
 /// A `HashSet<ResolverPath, IdentityHasher>` that preserves the `FxHash`
 /// precomputed inside `rspack_resolver`. Inserting and looking up entries
 /// here only costs a `write_u64` instead of hashing the full absolute path.
-pub type ArcResolverPathSet = HashSet<ResolverPath, BuildHasherDefault<IdentityHasher>>;
+pub type ArcResolverPathSet = UstrPathSet;
 
 /// A standard `DashMap` using `ArcPath` as the key type with a custom `Hasher`
 /// that just uses the precomputed hash for speed instead of calculating it.
