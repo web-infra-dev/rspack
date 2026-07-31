@@ -1,29 +1,36 @@
 ```mjs title=main.mjs
 import { rspackRequire, moduleFactories } from "./runtime.mjs";
 moduleFactories.add({
-"./index.js"
-/*!******************!*\
-  !*** ./index.js ***!
-  \******************/
-() {
-it('should has connection to lib only in closure', () => {
-	const { foo } = rspackRequire(/*! ./lib */ "./lib.js")
-	expect(foo()).toBe(42)
-})
+"./require.cjs"
+/*!*********************!*\
+  !*** ./require.cjs ***!
+  \*********************/
+(module) {
+const __nested_rspack_require_6_19__ = rspackRequire(/*! ./value.cjs */ "./value.cjs");
+
+module.exports = __nested_rspack_require_6_19__;
 
 
 },
-"./lib.js"
-/*!****************!*\
-  !*** ./lib.js ***!
-  \****************/
-(__unused_rspack_module, exports) {
-exports.foo = () => 42
+"./value.cjs"
+/*!*******************!*\
+  !*** ./value.cjs ***!
+  \*******************/
+(module) {
+module.exports = 42;
 
 
 },
 });
-rspackRequire("./index.js");
+// ./index.js
+rspackRequire("./require.cjs");
+
+
+const value = rspackRequire("./require.cjs");
+
+it("should avoid a CJS rspackRequire factory parameter conflict", () => {
+	expect(value).toBe(42);
+});
 
 export {};
 

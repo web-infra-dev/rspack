@@ -141,7 +141,7 @@ moduleFactories.add({
 /*!************************!*\
   !*** ./src/wrapped.js ***!
   \************************/
-(module, exports, rspackRequire) {
+(module, exports) {
 /* import */ var node_events__rspack_import_0 = rspackRequire(/*! node:events */ "node:events?df85");
 /* module decorator */ module = esmModuleDecorator(module);
 

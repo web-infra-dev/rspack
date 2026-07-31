@@ -7,7 +7,7 @@ moduleFactories.add({
 /*!****************!*\
   !*** ./lib.js ***!
   \****************/
-(__unused_rspack_module, exports, rspackRequire) {
+(__unused_rspack_module, exports) {
 makeNamespaceObject(exports);
 /* import */ var fs__rspack_import_0 = rspackRequire(/*! fs */ "fs");
 
@@ -36,7 +36,7 @@ definePropertyGetters(exports, {
 /*!*****************!*\
   !*** ./lib2.js ***!
   \*****************/
-(__unused_rspack_module, exports, rspackRequire) {
+(__unused_rspack_module, exports) {
 makeNamespaceObject(exports);
 /* import */ var path__rspack_import_0 = rspackRequire(/*! path */ "path");
 
@@ -64,7 +64,7 @@ definePropertyGetters(exports, {
 /*!*****************!*\
   !*** ./lib3.js ***!
   \*****************/
-(__unused_rspack_module, exports, rspackRequire) {
+(__unused_rspack_module, exports) {
 /* import */ var fs__rspack_import_0 = rspackRequire(/*! fs */ "fs");
 const lib3 = 42
 

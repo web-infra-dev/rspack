@@ -801,7 +801,6 @@ impl JsPlugin {
         {
           rendered_module = source.clone();
         };
-
         chunk_init_fragments.extend(fragments);
         chunk_init_fragments.extend(additional_fragments);
         let inner_strict = !all_strict && m.build_info().strict;

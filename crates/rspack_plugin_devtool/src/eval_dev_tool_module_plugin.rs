@@ -1,3 +1,5 @@
+#![allow(clippy::too_many_arguments)]
+
 use std::borrow::Cow;
 
 use cow_utils::CowUtils;
@@ -85,9 +87,13 @@ async fn render_module_content(
   chunk_ukey: &ChunkUkey,
   module: &dyn Module,
   render_source: &mut RenderSource,
+  runtime_requirements: &mut RuntimeGlobals,
   _init_fragments: &mut ChunkInitFragments,
   runtime_template: &RuntimeCodeTemplate,
 ) -> Result<()> {
+  if compilation.options.output.trusted_types.is_some() {
+    runtime_requirements.insert(RuntimeGlobals::CREATE_SCRIPT);
+  }
   let origin_source = render_source.source.clone();
   if let Some(cached_source) = self.cache.get(&origin_source) {
     render_source.source = cached_source.value().clone();
