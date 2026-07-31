@@ -6,9 +6,7 @@ Rspack 通过 `@rspack/core` 提供兼容 webpack 的 JavaScript API，而大部
 
 普通 JavaScript 对象的数据直接保存在 JavaScript 引擎中。例如读取 `{ name: 'main' }` 的 `name` 属性时，JavaScript 可以直接得到结果，不需要调用 Rust。
 
-Rspack 的 `Compilation`、`Module`、`Chunk` 和 graph 等对象有所不同。它们的编译数据主要保存在 Rust 中，
-JavaScript 对象通常只保存用于找到 Rust 数据的标识或内部句柄；当插件读取某些 getter 或调用 method 时，
-Rspack 会通过 Node-API binding 访问 Rust，再把结果转换成 JavaScript 值。这类对象称为 **native-backed 对象**。
+Rspack 的 `Compilation`、`Module`、`Chunk` 和 graph 等对象有所不同。它们的编译数据主要保存在 Rust 中，JavaScript 对象通常只保存用于找到 Rust 数据的标识或内部句柄；当插件读取某些 getter 或调用 method 时，Rspack 会通过 Node-API binding 访问 Rust，再把结果转换成 JavaScript 值。这类对象称为 **native-backed 对象**。
 
 ```text
 普通 JavaScript 对象
@@ -36,30 +34,23 @@ Native-backed 对象
 | 普通 JavaScript 对象 | JavaScript 内存 | 直接读取，不经过 binding                 | 只要对象仍被引用，数据通常就存在    |
 | Native-backed 对象   | 主要位于 Rust   | 可能通过 Node-API binding 读取或修改数据 | 受对应 compiler 或 compilation 限制 |
 
-一个 native-backed 对象也可以同时包含两类属性：
+一个 native-backed 对象可以同时包含两类属性：
 
 - 字符串、数字等不可变数据可能在创建对象时就复制到 JavaScript，之后读取不需要访问 Rust；
 - getter 和 method 可能在每次调用时访问 Rust，以获得当前编译数据或执行操作。
 
-因此，不能只根据 JavaScript 对象是否仍然存在，判断它仍持有创建时的数据。
-rebuild 后，getter 或 method 可能会从最新的 Rust compilation 重新获取数据，也可能因为目标
-已经不存在而报错。
+不能只根据 JavaScript 对象是否仍然存在，判断它仍持有创建时的数据。rebuild 后，getter 或 method 可能会从最新的 Rust compilation 重新获取数据，也可能因为目标已经不存在而报错。
 
 这种实现方式带来两个直接影响：
 
-1. **生命周期：**native-backed 对象的含义通常只有在产生它的 compiler、compilation 或
-   hook 执行范围内才是可靠的。
-2. **性能：**读取 getter 或调用 method 可能发生 JavaScript 和 Rust 之间的数据转换。在循环
-   中重复访问同一属性，成本会累积。
+1. **生命周期：**native-backed 对象的含义通常只有在产生它的 compiler、compilation 或 hook 执行范围内才是可靠的。
+2. **性能：**读取 getter 或调用 method 可能发生 JavaScript 和 Rust 之间的数据转换。在循环中重复访问同一属性，成本会累积。
 
-如果需要在之后使用数据，应在 native-backed 对象所表示的构建仍然活跃时，提取字符串、数字
-或普通 JavaScript 对象，而不是长期保存这个对象。
+如果需要在之后使用数据，应在 native-backed 对象所表示的构建仍然活跃时，提取字符串、数字或普通 JavaScript 对象，而不是长期保存这个对象。
 
 ## Compiler 生命周期
 
-创建 `@rspack/core` 的 `Compiler` 时，Rspack 不会立即创建对应的 native compiler。配置规范化
-和插件 `apply` 首先在 JavaScript 侧完成；直到第一次调用 `run()`、`watch()` 等构建 API 时，
-Rspack 才会按需创建 Rust compiler。
+创建 `@rspack/core` 的 `Compiler` 时，Rspack 不会立即创建对应的 native compiler。配置规范化和插件 `apply` 首先在 JavaScript 侧完成；直到第一次调用 `run()`、`watch()` 等构建 API 时，Rspack 才会按需创建 Rust compiler。
 
 native compiler 创建完成后，下面这些信息已经固定并传递到 Rust：
 
@@ -67,17 +58,12 @@ native compiler 创建完成后，下面这些信息已经固定并传递到 Rus
 - JavaScript hook 与 native hook adapter 之间的注册函数；
 - 用于跨语言调用的文件系统和 resolver factory
 
-因此，不要假设 native compiler 创建后，对 `compiler.options` 的任意修改仍会同步到 Rust。
-配置修改和插件应用应在第一次调用 `run()` 或 `watch()` 前完成。
+不要假设 native compiler 创建后，对 `compiler.options` 的任意修改仍会同步到 Rust。配置修改和插件应用应在第一次调用 `run()` 或 `watch()` 前完成。
 
 :::warning 与 webpack 对象模型的差异
-同一个 `Compiler` 实例在任意时刻只存在一个活跃的 native `Compilation`。每次构建，包括
-watch rebuild，都会替换这个 native compilation。
+同一个 `Compiler` 实例在任意时刻只存在一个活跃的 native `Compilation`。每次构建，包括 watch rebuild，都会替换这个 native compilation。
 
-在开发模式下，一些 webpack 插件会在一次构建的 `done` hook 结束后，继续使用该构建的 JavaScript `Compilation`。
-这些后续操作执行时，watch rebuild 可能已经开始，从而出现插件持有上一次构建 `Compilation` 的竞态。
-为了兼容这种常见写法，Rspack 将所有 JavaScript `Compilation` 都作为 compiler **当前** native compilation 的视图。
-因此，旧对象上的 getter 和 method 可能会读取或修改最新一次构建，而不是报错。但保留这个对象并不能保留上一次构建的数据。
+在开发模式下，一些 webpack 插件会在一次构建的 `done` hook 结束后，继续使用该构建的 JavaScript `Compilation`。这些后续操作执行时，watch rebuild 可能已经开始，从而出现插件持有上一次构建 `Compilation` 的竞态。为了兼容这种常见写法，Rspack 将所有 JavaScript `Compilation` 都作为 compiler **当前** native compilation 的视图。因此，旧对象上的 getter 和 method 可能会读取或修改最新一次构建，而不是报错。但保留这个对象并不能保留上一次构建的数据。
 
 watch 模式下，应使用当前构建 hook 提供的 `Compilation` 和 native-backed 对象。如果需要保存历史数据，应在对应构建期间将其复制为普通 JavaScript 值。
 :::
@@ -86,8 +72,7 @@ watch 模式下，应使用当前构建 hook 提供的 `Compilation` 和 native-
 
 ## Compilation 和对象生命周期
 
-每次构建，包括 watch rebuild，都会创建新的 `Compilation`。从 `Compilation` 获取的 `Module`、`Chunk` 和 graph 等对象，并不会把全部数据复制到 JavaScript。
-读取其中一些属性或调用方法时，Rspack 仍需要通过 N-API 从当前 Rust compilation 获取数据。
+每次构建，包括 watch rebuild，都会创建新的 `Compilation`。从 `Compilation` 获取的 `Module`、`Chunk` 和 graph 等对象，并不会把全部数据复制到 JavaScript。读取其中一些属性或调用方法时，Rspack 仍需要通过 N-API 从当前 Rust compilation 获取数据。
 
 建议遵守以下规则：
 
@@ -98,11 +83,9 @@ watch 模式下，应使用当前构建 hook 提供的 `Compilation` 和 native-
 
 ## Hook 和回调执行
 
-Rust compiler 可以使用多个线程，同时执行多个彼此独立的编译任务。
-但是，JavaScript hook、loader 和其他回调不能直接在这些 Rust 线程上运行，它们必须被调度回创建 Rspack compiler 的 JavaScript 环境。
+Rust compiler 可以使用多个线程，同时执行多个彼此独立的编译任务。但是，JavaScript hook、loader 和其他回调不能直接在这些 Rust 线程上运行，它们必须被调度回创建 Rspack compiler 的 JavaScript 环境。
 
-同一个 JavaScript 环境中的用户代码由一个 JavaScript 线程执行。
-即使多个 Rust 线程同时触发回调，这些回调也需要先进入队列，再由 JavaScript 线程逐个执行：
+同一个 JavaScript 环境中的用户代码由一个 JavaScript 线程执行。即使多个 Rust 线程同时触发回调，这些回调也需要先进入队列，再由 JavaScript 线程逐个执行：
 
 ```text
 Rust 多线程并行执行                 JavaScript 单线程执行
@@ -112,14 +95,11 @@ Rust 多线程并行执行                 JavaScript 单线程执行
   编译任务 C ─┘
 ```
 
-hook 和回调的成本不只有 Node-API 数据转换和线程调度。更重要的是，它们会形成一个**串行执行点**：原本可以并行运行的多个 Rust 任务，可能同时等待 JavaScript 队列。
-回调越频繁、执行时间越长，Rust 并行带来的收益就越容易被抵消。回调之前和之后的 Rust 工作仍然可以并行，但依赖 JavaScript 结果的这一段会受到单线程吞吐量限制。
+hook 和回调的成本不只有 Node-API 数据转换和线程调度。更重要的是，它们会形成一个**串行执行点**：原本可以并行运行的多个 Rust 任务，可能同时等待 JavaScript 队列。回调越频繁、执行时间越长，Rust 并行带来的收益就越容易被抵消。回调之前和之后的 Rust 工作仍然可以并行，但依赖 JavaScript 结果的这一段会受到单线程吞吐量限制。
 
 ### Loader 为什么尤其容易成为瓶颈
 
-Rspack 可以同时处理多个文件，但 JavaScript loader 需要在 JavaScript 线程上执行。
-当多个文件同时等待 loader 处理时，对应的 JavaScript loader 会排队；等待 loader 结果的 Rust 编译任务也会停在这里。
-因此，针对每个文件调用的 JavaScript loader 越重、调用次数越多，整体构建就越接近串行执行。
+Rspack 可以同时处理多个文件，但 JavaScript loader 需要在 JavaScript 线程上执行。当多个文件同时等待 loader 处理时，对应的 JavaScript loader 会排队；等待 loader 结果的 Rust 编译任务也会停在这里。因此，针对每个文件调用的 JavaScript loader 越重、调用次数越多，整体构建就越接近串行执行。
 
 如果功能相同，应优先使用 Rspack 的 builtin loader。例如：
 
@@ -134,8 +114,7 @@ Builtin loader 可以在 Rust 侧执行，减少 JavaScript 排队和跨语言�
 
 ### 只读取需要的资源
 
-`compilation.assets` 看起来像普通 JavaScript 对象，但它的资源内容由 native compilation 按需提供。
-`Object.keys(assets)` 只获取资源名称；读取 `assets[name]` 时，Rspack 才会通过 binding 从 Rust 获取对应的 `Source`。
+`compilation.assets` 看起来像普通 JavaScript 对象，但它的资源内容由 native compilation 按需提供。`Object.keys(assets)` 只获取资源名称；读取 `assets[name]` 时，Rspack 才会通过 binding 从 Rust 获取对应的 `Source`。
 
 如果只需要部分资源，下面的写法效率较低：
 
