@@ -46,6 +46,30 @@ Update your build scripts to use Rspack instead of webpack, see [CLI](/api/cli) 
 }
 ```
 
+## Remove unsupported CLI options
+
+Rspack CLI does not support some webpack CLI options, including `--progress`, `--color`, `--bail`, and `--output-pathinfo`. Keeping these options causes an `Unknown option` error before the configuration is loaded.
+
+During migration, remove these unsupported options from the build command. If you still need the corresponding behavior, use the Rspack configuration instead:
+
+```diff title="package.json"
+{
+  "scripts": {
+-   "build": "webpack --mode production --progress --color",
++   "build": "rspack --mode production",
+  }
+}
+```
+
+```js title="rspack.config.mjs"
+export default {
+  stats: {
+    // Equivalent to webpack CLI's --color
+    colors: true,
+  },
+};
+```
+
 ## Updating configuration
 
 Rename the `webpack.config.js` file to `rspack.config.js`.
