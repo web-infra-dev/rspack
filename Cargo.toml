@@ -581,3 +581,9 @@ regex_creation_in_loops = "warn"
 # regex
 invalid_regex = "warn"
 trivial_regex = "warn"
+
+# Unreleased interned-UstrPath resolver. Tracks rstackjs/rspack-resolver#290;
+# remove once that lands and is published. Pinned to the branch rather than a
+# local path so remote environments (devbox, CI) can build this too.
+[patch.crates-io]
+rspack_resolver = { git = "https://github.com/rstackjs/rspack-resolver.git", branch = "refactor/interned-ustr-path" }
