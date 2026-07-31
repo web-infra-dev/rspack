@@ -196,6 +196,8 @@ swcjsminimizerplugin
 swcjsminimizerrspackplugin
 swcpack
 swcrc
+swwind
+swwind233
 sxzz
 systemjs
 tailwind

@@ -1,6 +1,6 @@
 {
   "name": "@rspack/core",
-  "version": "2.1.5",
+  "version": "2.1.7",
   "webpackVersion": "5.75.0",
   "license": "MIT",
   "description": "Fast Rust-based bundler for the web with a modernized webpack API",
@@ -22,9 +22,9 @@
   },
   "scripts": {
     "prepare": "prebundle && node ./move-tinypool.js",
-    "build": "rslib build",
-    "build:browser": "rslib build -c rslib.browser.config.ts",
-    "dev": "rslib build --watch"
+    "build": "rs lib",
+    "build:browser": "rs lib -c rstack.browser.config.ts",
+    "dev": "rs lib --watch"
   },
   "files": [
     "dist",
@@ -46,7 +46,6 @@
     "@ast-grep/napi": "catalog:",
     "@napi-rs/wasm-runtime": "catalog:",
     "@rsbuild/plugin-node-polyfill": "catalog:",
-    "@rslib/core": "catalog:",
     "@rspack/lite-tapable": "catalog:",
     "@swc/types": "catalog:",
     "@types/node": "catalog:",
@@ -58,6 +57,7 @@
     "memfs": "catalog:",
     "open": "catalog:",
     "prebundle": "catalog:",
+    "rstack": "catalog:",
     "tinypool": "catalog:",
     "typescript": "catalog:",
     "watchpack": "catalog:",

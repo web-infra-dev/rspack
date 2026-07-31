@@ -867,6 +867,14 @@ impl ModuleCodeTemplate {
     self.runtime_globals.render(runtime_globals)
   }
 
+  pub fn render_runtime_scope(&self) -> String {
+    let render_mode = match self.runtime_globals_render_mode {
+      RuntimeGlobalsRenderMode::Webpack => RuntimeGlobalsRenderMode::Webpack,
+      _ => RuntimeGlobalsRenderMode::RspackContext,
+    };
+    get_runtime_globals_render_map(render_mode).render(&RuntimeGlobals::REQUIRE_SCOPE)
+  }
+
   pub fn define_es_module_flag_statement(&mut self, exports_argument: ExportsArgument) -> String {
     format!(
       "{}({});\n",

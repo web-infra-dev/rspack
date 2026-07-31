@@ -1,8 +1,3 @@
-use std::{
-  borrow::Cow,
-  sync::atomic::{AtomicBool, Ordering},
-};
-
 use concat_string::concat_string;
 use cow_utils::CowUtils;
 use itertools::Itertools;
@@ -36,18 +31,11 @@ use crate::{
     IMPORT_META_RSC_BINDING, ImportMetaResolveContextDependency, ImportMetaResolveDependency,
     ImportMetaResolveHeaderDependency, ImportMetaRscDependency,
   },
-  parser_plugin::define_plugin::utils::gen_const_dep,
-  plugin::env_plugin::{
-    add_import_meta_env_value_dependency, import_meta_env_definitions_string_with_properties,
-    import_meta_env_key, import_meta_env_typeof_definition, is_import_meta_env_member,
-    is_import_meta_env_name, render_import_meta_env_definitions,
-    render_import_meta_env_expression_info, render_import_meta_env_member_chain,
-  },
   utils::eval::{self, BasicEvaluatedExpression},
   visitors::{
-    AllowedMemberTypes, ExportedVariableInfo, ExprRef, ExpressionExpressionInfo, JavascriptParser,
-    MemberExpressionInfo, RootName, context_reg_exp, create_context_dependency,
-    create_traceable_error, expr_name, get_non_optional_member_chain_from_expr,
+    AllowedMemberTypes, ExportedVariableInfo, ExprRef, JavascriptParser, MemberExpressionInfo,
+    RootName, context_reg_exp, create_context_dependency, create_traceable_error, expr_name,
+    get_non_optional_member_chain_from_expr,
   },
 };
 
@@ -122,11 +110,6 @@ static IMPORT_META_BUILTIN_PROPERTIES: &[ImportMetaBuiltinProperty] = &[
     type_of: "string",
   },
   ImportMetaBuiltinProperty {
-    name: expr_name::IMPORT_META_ENV,
-    property: ImportMetaKnownProperties::ENV,
-    type_of: "object",
-  },
-  ImportMetaBuiltinProperty {
     name: expr_name::IMPORT_META_RSPACK_RSC,
     property: ImportMetaKnownProperties::RSPACK_RSC,
     type_of: "object",
@@ -160,7 +143,6 @@ impl ImportMetaBuiltinProperty {
       ImportMetaKnownProperties::RESOLVE => {
         parser.javascript_options.import_meta_resolve == Some(true)
       }
-      ImportMetaKnownProperties::ENV => plugin.import_meta_env_enabled(parser),
       ImportMetaKnownProperties::RSPACK_RSC => is_rsc_layer(parser),
       _ => true,
     }
@@ -202,13 +184,6 @@ impl ImportMetaBuiltinProperty {
         end,
       )),
       ImportMetaKnownProperties::WEBPACK => Some(eval::evaluate_to_number(5_f64, start, end)),
-      ImportMetaKnownProperties::ENV => {
-        add_import_meta_env_value_dependency(parser);
-        let mut evaluated = BasicEvaluatedExpression::with_range(start, end);
-        evaluated.set_truthy();
-        evaluated.set_side_effects(false);
-        Some(evaluated)
-      }
       ImportMetaKnownProperties::FILENAME | ImportMetaKnownProperties::DIRNAME => {
         get_import_meta_eval_value(parser, self.property)
           .map(|value| eval::evaluate_to_string(value, start, end))
@@ -225,9 +200,6 @@ impl ImportMetaBuiltinProperty {
     unary_expr: &UnaryExpr,
   ) -> Option<bool> {
     let type_of = self.evaluate_typeof(plugin, parser)?;
-    if self.property == ImportMetaKnownProperties::ENV {
-      add_import_meta_env_value_dependency(parser);
-    }
     parser.add_presentational_dependency(Box::new(ConstDependency::new(
       unary_expr.span().into(),
       concat_string!("'", type_of, "'").into(),
@@ -261,22 +233,6 @@ impl ImportMetaBuiltinProperty {
         ": ",
         plugin.import_meta_main(parser)
       )),
-      ImportMetaKnownProperties::ENV => {
-        let properties = parser
-          .destructuring_assignment_properties
-          .get(&span)
-          .and_then(|properties| properties.iter().find(|property| property.id == "env"))
-          .and_then(|property| property.pattern.clone());
-        add_import_meta_env_value_dependency(parser);
-        Some(concat_string!(
-          property,
-          ": ",
-          import_meta_env_definitions_string_with_properties(
-            parser.compilation_id,
-            properties.as_ref(),
-          )
-        ))
-      }
       ImportMetaKnownProperties::FILENAME | ImportMetaKnownProperties::DIRNAME => {
         get_import_meta_member_replacement(parser, self.property)
           .map(|value| concat_string!(property, ": ", value))
@@ -305,18 +261,6 @@ impl ImportMetaBuiltinProperty {
       ImportMetaKnownProperties::URL => single_quoted_string(&plugin.import_meta_url(parser)),
       ImportMetaKnownProperties::WEBPACK => plugin.import_meta_version(),
       ImportMetaKnownProperties::MAIN => plugin.import_meta_main(parser),
-      ImportMetaKnownProperties::ENV => {
-        let properties = parser
-          .destructuring_assignment_properties
-          .get(&member_expr.span())
-          .cloned();
-        add_import_meta_env_value_dependency(parser);
-        render_import_meta_env_definitions(
-          parser,
-          member_expr.span().real_lo(),
-          properties.as_ref(),
-        )
-      }
       ImportMetaKnownProperties::FILENAME | ImportMetaKnownProperties::DIRNAME => {
         get_import_meta_member_replacement(parser, self.property)?
       }
@@ -328,22 +272,10 @@ impl ImportMetaBuiltinProperty {
       _ => unreachable!("unexpected import.meta builtin property"),
     };
 
-    if self.property == ImportMetaKnownProperties::ENV {
-      for dependency in gen_const_dep(
-        parser,
-        Cow::Owned(replacement),
-        self.name,
-        member_expr.span().real_lo(),
-        member_expr.span().real_hi(),
-      ) {
-        parser.add_presentational_dependency(dependency);
-      }
-    } else {
-      parser.add_presentational_dependency(Box::new(ConstDependency::new(
-        member_expr.span().into(),
-        replacement.into(),
-      )));
-    }
+    parser.add_presentational_dependency(Box::new(ConstDependency::new(
+      member_expr.span().into(),
+      replacement.into(),
+    )));
     Some(true)
   }
 
@@ -355,29 +287,17 @@ impl ImportMetaBuiltinProperty {
     match self.property {
       // dirname/filename may be preserved at runtime based on node options, so don't fold them to undefined.
       ImportMetaKnownProperties::FILENAME | ImportMetaKnownProperties::DIRNAME => true,
-      ImportMetaKnownProperties::ENV
-      | ImportMetaKnownProperties::MAIN
-      | ImportMetaKnownProperties::RSPACK_RSC => self.enabled(plugin, parser),
+      ImportMetaKnownProperties::MAIN | ImportMetaKnownProperties::RSPACK_RSC => {
+        self.enabled(plugin, parser)
+      }
       _ => false,
     }
   }
 }
 
-pub struct ImportMetaPlugin {
-  import_meta: ArcComputed<ResolvedModuleOptions, ImportMeta>,
-  recurse_env: AtomicBool,
-  recurse_env_typeof: AtomicBool,
-}
+pub struct ImportMetaPlugin(pub(crate) ArcComputed<ResolvedModuleOptions, ImportMeta>);
 
 impl ImportMetaPlugin {
-  pub(crate) fn new(import_meta: ArcComputed<ResolvedModuleOptions, ImportMeta>) -> Self {
-    Self {
-      import_meta,
-      recurse_env: AtomicBool::new(false),
-      recurse_env_typeof: AtomicBool::new(false),
-    }
-  }
-
   fn known_property_from_name(name: &str) -> Option<ImportMetaKnownProperties> {
     if let Some(property) = ImportMetaBuiltinProperty::from_name(name) {
       return Some(property.property);
@@ -388,102 +308,20 @@ impl ImportMetaPlugin {
     None
   }
 
-  fn preserve_property(&self, parser: &JavascriptParser, property: Option<&str>) -> bool {
-    match self.import_meta.as_ref() {
+  fn preserve_property(&self, property: Option<&str>) -> bool {
+    match self.0.as_ref() {
       ImportMeta::PreserveUnknown => true,
       ImportMeta::Granular(_) => property.is_none_or(|property| {
         let name = concat_string!(expr_name::IMPORT_META, ".", property);
-        Self::known_property_from_name(&name).is_none_or(|property| {
-          (property == ImportMetaKnownProperties::ENV && !parser.compiler_options.experiments.env)
-            || !self.known_property_enabled(property)
-        })
+        Self::known_property_from_name(&name)
+          .is_none_or(|property| !self.known_property_enabled(property))
       }),
       ImportMeta::Enabled | ImportMeta::Disabled => false,
     }
   }
 
   fn known_property_enabled(&self, property: ImportMetaKnownProperties) -> bool {
-    self.import_meta.is_known_property_enabled(property)
-  }
-
-  fn import_meta_env_enabled(&self, parser: &JavascriptParser) -> bool {
-    parser.compiler_options.experiments.env
-      && self.known_property_enabled(ImportMetaKnownProperties::ENV)
-  }
-
-  fn evaluate_import_meta_env_identifier<'p>(
-    &self,
-    parser: &mut JavascriptParser<'p>,
-    for_name: &str,
-    member_expr_info: Option<&ExpressionExpressionInfo>,
-    start: u32,
-    end: u32,
-  ) -> Option<BasicEvaluatedExpression<'p>> {
-    import_meta_env_key(for_name)?;
-    if !self.import_meta_env_enabled(parser) {
-      return None;
-    }
-
-    add_import_meta_env_value_dependency(parser);
-    let Some(code) =
-      member_expr_info.and_then(|info| render_import_meta_env_expression_info(parser, info, start))
-    else {
-      return Some(eval::evaluate_to_undefined(start, end));
-    };
-    if self.recurse_env.swap(true, Ordering::Acquire) {
-      return None;
-    }
-    let evaluated = parser
-      .evaluate(code, "ImportMetaPlugin")
-      .map(|mut evaluated| {
-        evaluated.set_range(start, end);
-        evaluated
-      });
-    self.recurse_env.store(false, Ordering::Release);
-    evaluated
-  }
-
-  fn evaluate_import_meta_env_typeof<'p>(
-    &self,
-    parser: &mut JavascriptParser<'p>,
-    for_name: &str,
-    member_expr_info: Option<&ExpressionExpressionInfo>,
-    start: u32,
-    end: u32,
-  ) -> Option<BasicEvaluatedExpression<'p>> {
-    if !is_import_meta_env_name(for_name) {
-      return None;
-    }
-    if !self.import_meta_env_enabled(parser) {
-      return None;
-    }
-
-    add_import_meta_env_value_dependency(parser);
-    let code = if let Some(code) = import_meta_env_typeof_definition(parser, for_name) {
-      code
-    } else {
-      let Some(code) = member_expr_info
-        .and_then(|info| render_import_meta_env_expression_info(parser, info, start))
-      else {
-        return Some(eval::evaluate_to_string(
-          "undefined".to_string(),
-          start,
-          end,
-        ));
-      };
-      concat_string!("typeof (", code, ")")
-    };
-    if self.recurse_env_typeof.swap(true, Ordering::Acquire) {
-      return None;
-    }
-    let evaluated = parser
-      .evaluate(code, "ImportMetaPlugin")
-      .map(|mut evaluated| {
-        evaluated.set_range(start, end);
-        evaluated
-      });
-    self.recurse_env_typeof.store(false, Ordering::Release);
-    evaluated
+    self.0.is_known_property_enabled(property)
   }
 
   fn runtime_api_enabled(&self, api: &ImportMetaRuntimeApi) -> bool {
@@ -518,12 +356,8 @@ impl ImportMetaPlugin {
     )
   }
 
-  fn import_meta_unknown_property(
-    &self,
-    parser: &JavascriptParser,
-    members: &Vec<String>,
-  ) -> String {
-    if self.preserve_property(parser, members.first().map(|property| property.as_str())) {
+  fn import_meta_unknown_property(&self, members: &Vec<String>) -> String {
+    if self.preserve_property(members.first().map(|property| property.as_str())) {
       concat_string!("import.meta", property_access(members, 0))
     } else {
       concat_string!(
@@ -650,31 +484,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaPlugin {
     parser: &mut JavascriptParser<'p>,
     expr: &'a UnaryExpr<'a>,
     for_name: &str,
-  ) -> Option<eval::BasicEvaluatedExpression<'a>>
-  where
-    'p: 'a,
-  {
-    let member_expr_info = if is_import_meta_env_name(for_name) {
-      parser
-        .get_member_expression_info_from_expr(&expr.arg, AllowedMemberTypes::Expression)
-        .and_then(|info| match info {
-          MemberExpressionInfo::Expression(info) => Some(info),
-          MemberExpressionInfo::Call(_) => None,
-        })
-    } else {
-      None
-    };
-    if let Some(mut evaluated) = self.evaluate_import_meta_env_typeof(
-      parser,
-      for_name,
-      member_expr_info.as_ref(),
-      expr.arg.span().real_lo(),
-      expr.arg.span().real_hi(),
-    ) {
-      evaluated.set_range(expr.span.real_lo(), expr.span.real_hi());
-      return Some(evaluated);
-    }
-
+  ) -> Option<eval::BasicEvaluatedExpression<'a>> {
     let mut evaluated = None;
     if for_name == expr_name::IMPORT_META {
       evaluated = Some("object".to_string());
@@ -699,7 +509,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaPlugin {
       && member_expr
         .prop
         .as_ident()
-        .map(|ident| !self.preserve_property(parser, Some(ident.sym.as_ref())))
+        .map(|ident| !self.preserve_property(Some(ident.sym.as_ref())))
         .or_else(|| {
           member_expr
             .prop
@@ -707,7 +517,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaPlugin {
             .and_then(|computed| computed.expr.as_lit())
             .and_then(|lit| lit.as_str())
             .and_then(|str_lit| str_lit.value.as_str())
-            .map(|value| !self.preserve_property(parser, Some(value)))
+            .map(|value| !self.preserve_property(Some(value)))
         })
         .unwrap_or(false)
     {
@@ -720,16 +530,12 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaPlugin {
     &self,
     parser: &mut JavascriptParser<'p>,
     for_name: &str,
-    member_expr_info: Option<&ExpressionExpressionInfo>,
+    _member_expr_info: Option<&crate::visitors::ExpressionExpressionInfo>,
     start: u32,
     end: u32,
   ) -> Option<eval::BasicEvaluatedExpression<'p>> {
-    self
-      .evaluate_import_meta_env_identifier(parser, for_name, member_expr_info, start, end)
-      .or_else(|| {
-        ImportMetaBuiltinProperty::from_name(for_name)?
-          .evaluate_identifier(self, parser, start, end)
-      })
+    let property = ImportMetaBuiltinProperty::from_name(for_name)?;
+    property.evaluate_identifier(self, parser, start, end)
   }
 
   fn evaluate(
@@ -749,7 +555,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaPlugin {
           .is_some_and(|property| property.skip_undefined_evaluation(self, parser))
           || import_meta_runtime_api_from_property(ident.sym.as_ref())
             .is_some_and(|api| self.runtime_api_enabled(api))
-          || self.preserve_property(parser, Some(ident.sym.as_ref()))
+          || self.preserve_property(Some(ident.sym.as_ref()))
         {
           return None;
         }
@@ -766,7 +572,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaPlugin {
               .is_some_and(|property| property.skip_undefined_evaluation(self, parser))
               || import_meta_runtime_api_from_property(value)
                 .is_some_and(|api| self.runtime_api_enabled(api))
-              || self.preserve_property(parser, Some(value))
+              || self.preserve_property(Some(value))
           })
         {
           return None;
@@ -793,29 +599,6 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaPlugin {
         Some(true)
       }
       _ => {
-        if is_import_meta_env_name(for_name) && self.import_meta_env_enabled(parser) {
-          let member_expr_info = parser
-            .get_member_expression_info_from_expr(&unary_expr.arg, AllowedMemberTypes::Expression)
-            .and_then(|info| match info {
-              MemberExpressionInfo::Expression(info) => Some(info),
-              MemberExpressionInfo::Call(_) => None,
-            });
-          let evaluated = self.evaluate_import_meta_env_typeof(
-            parser,
-            for_name,
-            member_expr_info.as_ref(),
-            unary_expr.arg.span().real_lo(),
-            unary_expr.arg.span().real_hi(),
-          )?;
-          if !evaluated.is_string() {
-            return None;
-          }
-          parser.add_presentational_dependency(Box::new(ConstDependency::new(
-            unary_expr.span().into(),
-            rspack_util::json_stringify_str(evaluated.string()).into(),
-          )));
-          return Some(true);
-        }
         if let Some(property) = ImportMetaBuiltinProperty::from_name(for_name) {
           return property.add_typeof_dependency(self, parser, unary_expr);
         }
@@ -834,15 +617,10 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaPlugin {
 
   fn can_collect_destructuring_assignment_properties(
     &self,
-    parser: &mut JavascriptParser<'p>,
+    _parser: &mut JavascriptParser<'p>,
     expr: &Expr,
   ) -> Option<bool> {
     if expr.is_meta_prop() {
-      return Some(true);
-    }
-    if self.import_meta_env_enabled(parser)
-      && expr.as_member().is_some_and(is_import_meta_env_member)
-    {
       return Some(true);
     }
     None
@@ -882,8 +660,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaPlugin {
               content.push('[');
               content.push_str(&rspack_util::json_stringify_str(&prop.id));
               content.push_str("]: ");
-              content
-                .push_str(&self.import_meta_unknown_property(parser, &vec![prop.id.to_string()]));
+              content.push_str(&self.import_meta_unknown_property(&vec![prop.id.to_string()]));
             }
           } else if let Some(api) = import_meta_runtime_api_from_property(prop.id.as_ref()) {
             if self.runtime_api_enabled(api)
@@ -894,27 +671,20 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaPlugin {
               content.push('[');
               content.push_str(&rspack_util::json_stringify_str(&prop.id));
               content.push_str("]: ");
-              content
-                .push_str(&self.import_meta_unknown_property(parser, &vec![prop.id.to_string()]));
+              content.push_str(&self.import_meta_unknown_property(&vec![prop.id.to_string()]));
             }
           } else {
             content.push('[');
             content.push_str(&rspack_util::json_stringify_str(&prop.id));
             content.push_str("]: ");
-            content
-              .push_str(&self.import_meta_unknown_property(parser, &vec![prop.id.to_string()]));
+            content.push_str(&self.import_meta_unknown_property(&vec![prop.id.to_string()]));
           }
         }
         content.push_str("})");
-        for dependency in gen_const_dep(
-          parser,
-          Cow::Owned(content),
-          "",
-          span.real_lo(),
-          span.real_hi(),
-        ) {
-          parser.add_presentational_dependency(dependency);
-        }
+        parser.add_presentational_dependency(Box::new(ConstDependency::new(
+          span.into(),
+          content.into(),
+        )));
         Some(true)
       } else {
         // import.meta
@@ -950,14 +720,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaPlugin {
     member_expr: &MemberExpr,
     for_name: &str,
   ) -> Option<bool> {
-    let property = ImportMetaBuiltinProperty::from_name(for_name).or_else(|| {
-      if is_import_meta_env_member(member_expr) {
-        ImportMetaBuiltinProperty::from_name(expr_name::IMPORT_META_ENV)
-      } else {
-        None
-      }
-    });
-    if let Some(property) = property
+    if let Some(property) = ImportMetaBuiltinProperty::from_name(for_name)
       && let Some(handled) = property.member(self, parser, member_expr)
     {
       Some(handled)
@@ -968,44 +731,6 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaPlugin {
     } else {
       None
     }
-  }
-
-  fn member_chain(
-    &self,
-    parser: &mut JavascriptParser<'p>,
-    expr: &MemberExpr,
-    for_name: &str,
-    members: &[swc_atoms::Atom],
-    members_optionals: &[bool],
-    _member_ranges: &[Span],
-  ) -> Option<bool> {
-    let env_property = ImportMetaBuiltinProperty::from_name(expr_name::IMPORT_META_ENV)
-      .expect("import.meta.env should be a known property");
-    if !env_property.enabled(self, parser)
-      || for_name != expr_name::IMPORT_META
-      || members.first().is_none_or(|member| member != "env")
-    {
-      return None;
-    }
-
-    add_import_meta_env_value_dependency(parser);
-    let replacement = render_import_meta_env_member_chain(
-      parser,
-      members,
-      members_optionals,
-      expr.span().real_lo(),
-    )
-    .unwrap_or_else(|| "undefined".to_string());
-    for dependency in gen_const_dep(
-      parser,
-      Cow::Owned(replacement),
-      "",
-      expr.span().real_lo(),
-      expr.span().real_hi(),
-    ) {
-      parser.add_presentational_dependency(dependency);
-    }
-    Some(true)
   }
 
   fn call(
@@ -1091,7 +816,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaPlugin {
     }
 
     let first_property = info.members.first()?;
-    if self.preserve_property(parser, Some(first_property.as_str())) {
+    if self.preserve_property(Some(first_property.as_str())) {
       return None;
     }
 
@@ -1128,7 +853,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaPlugin {
     match root_info {
       ExportedVariableInfo::Name(root) => {
         if root == expr_name::IMPORT_META {
-          if matches!(self.import_meta.as_ref(), ImportMeta::PreserveUnknown) {
+          if matches!(self.0.as_ref(), ImportMeta::PreserveUnknown) {
             return Some(true);
           }
           let members = parser
@@ -1138,40 +863,8 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaPlugin {
               _ => None,
             });
 
-          let env_property = ImportMetaBuiltinProperty::from_name(expr_name::IMPORT_META_ENV)
-            .expect("import.meta.env should be a known property");
-          if env_property.enabled(self, parser)
-            && let Some(members) = &members
-            && members
-              .members
-              .first()
-              .is_some_and(|member| member == "env")
-          {
-            add_import_meta_env_value_dependency(parser);
-            let replacement = render_import_meta_env_member_chain(
-              parser,
-              &members.members,
-              &members.members_optionals,
-              expr.span().real_lo(),
-            )
-            .unwrap_or_else(|| "undefined".to_string());
-            for dependency in gen_const_dep(
-              parser,
-              Cow::Owned(replacement),
-              "",
-              expr.span().real_lo(),
-              expr.span().real_hi(),
-            ) {
-              parser.add_presentational_dependency(dependency);
-            }
-            return Some(true);
-          }
-
           let dep = if let Some(members) = members {
-            if self.preserve_property(
-              parser,
-              members.members.first().map(|property| property.as_str()),
-            ) {
+            if self.preserve_property(members.members.first().map(|property| property.as_str())) {
               return Some(true);
             }
             if members.members.get(1).is_some()
@@ -1186,7 +879,6 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaPlugin {
                 expr.span().into(),
                 self
                   .import_meta_unknown_property(
-                    parser,
                     &members.members.iter().map(|x| x.to_string()).collect_vec(),
                   )
                   .into(),

@@ -221,4 +221,9 @@ impl Plugin for SubresourceIntegrityPlugin {
       .tap(handle_runtime::new(self));
     Ok(())
   }
+
+  fn clear_cache(&self, id: CompilationId) {
+    COMPILATION_INTEGRITY_MAP.remove(&id);
+    COMPILATION_CONTEXT_MAP.remove(&id);
+  }
 }

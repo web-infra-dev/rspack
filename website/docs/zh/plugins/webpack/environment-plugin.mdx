@@ -101,23 +101,6 @@ if ('false') {
 }
 ```
 
-### `import.meta.env`
-
-当启用 [`experiments.env`](/config/experiments#experimentsenv) 时，`EnvironmentPlugin` 除了定义 `process.env.*` 外，还会将每个环境变量定义到 `import.meta.env.*` 下：
-
-```js
-new rspack.EnvironmentPlugin(['NODE_ENV']);
-```
-
-这等同于以下 `DefinePlugin` 的使用方式：
-
-```js
-new rspack.DefinePlugin({
-  'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV),
-  'import.meta.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV),
-});
-```
-
 ### Git 版本
 
 下面的 `EnvironmentPlugin` 配置提供了对应于仓库最后一次 Git 提交的 `process.env.GIT_VERSION`（例如 "v5.4.0-2-g25139f57f"）和 `process.env.GIT_AUTHOR_DATE`（例如 "2020-11-04T12:25:16+01:00"）：
