@@ -25,12 +25,12 @@ struct ResolvedContextModuleGlobPattern {
 }
 
 #[derive(Debug)]
-pub(super) struct CompiledContextModuleGlobRequest {
-  pub(super) request: String,
-  pub(super) recursive: bool,
+pub struct CompiledContextModuleGlobRequest {
+  pub request: String,
+  pub recursive: bool,
 }
 
-pub(super) fn compile_context_module_glob_request(
+pub fn compile_context_module_glob_request(
   request: &str,
   patterns: &[String],
   context: &str,

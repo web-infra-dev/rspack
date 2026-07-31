@@ -10,7 +10,8 @@ use rspack_paths::{Utf8Path, Utf8PathBuf};
 use swc_core::common::util::take::Take;
 use tracing::instrument;
 
-use self::glob::{ContextModuleGlobMatcher, compile_context_module_glob_request};
+use self::glob::ContextModuleGlobMatcher;
+pub use self::glob::{CompiledContextModuleGlobRequest, compile_context_module_glob_request};
 use crate::{
   BoxDependency, CompilationId, ContextElementDependency, ContextMode, ContextModule,
   ContextModuleOptions, ContextModulePattern, DependencyCategory, DependencyId, DependencyType,
@@ -181,27 +182,11 @@ impl ContextModuleFactory {
       .as_context_dependency_mut()
       .expect("should be context dependency");
     let dependency_options = dependency.options();
-    let (request, recursive) = match &dependency_options.pattern {
-      ContextModulePattern::Glob(patterns) => {
-        let compiled = compile_context_module_glob_request(
-          dependency.request(),
-          patterns,
-          data.context.as_str(),
-          &dependency_options.compiler_context,
-          dependency_options.recursive,
-        );
-        (compiled.request, compiled.recursive)
-      }
-      _ => (
-        dependency.request().to_string(),
-        dependency_options.recursive,
-      ),
-    };
 
     let before_resolve_data = BeforeResolveData {
       context: data.context.to_string(),
-      request,
-      recursive,
+      request: dependency.request().to_string(),
+      recursive: dependency_options.recursive,
       pattern: dependency_options.pattern.clone(),
       dependencies: data.dependencies.clone(),
     };

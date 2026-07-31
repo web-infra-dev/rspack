@@ -1,7 +1,8 @@
 use concat_string::concat_string;
 use rspack_core::{
   ContextMode, ContextModulePattern, ContextNameSpaceObject, ContextOptions, DependencyCategory,
-  ReferencedSpecifier, get_context, normalize_path_separators, normalize_path_separators_for_path,
+  ReferencedSpecifier, compile_context_module_glob_request, get_context, normalize_path_separators,
+  normalize_path_separators_for_path,
 };
 use rspack_paths::Utf8Path;
 use rspack_regex::RspackRegex;
@@ -306,6 +307,13 @@ fn create_import_meta_glob_dependency(
     parser.compiler_options.context.as_str(),
     base.is_some(),
   );
+  let compiled = compile_context_module_glob_request(
+    &concat_string!(".", glob_query),
+    &glob_patterns,
+    context.as_str(),
+    parser.compiler_options.context.as_str(),
+    true,
+  );
 
   let referenced_specifiers = glob_import
     .as_ref()
@@ -320,9 +328,9 @@ fn create_import_meta_glob_dependency(
   let span = node.span;
   let context_options = ContextOptions {
     pattern: ContextModulePattern::Glob(glob_patterns),
-    recursive: true,
+    recursive: compiled.recursive,
     category: DependencyCategory::Esm,
-    request: concat_string!(".", glob_query),
+    request: compiled.request,
     context,
     compiler_context: parser.compiler_options.context.to_string(),
     namespace_object,
