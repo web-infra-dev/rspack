@@ -8,7 +8,7 @@
 - Bundle: lazy.chunk.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 60
 - Update: lazy.LAST_HASH.hot-update.js, size: 1223
-- Update: main.LAST_HASH.hot-update.js, size: 6533
+- Update: main.LAST_HASH.hot-update.js, size: 6485
 
 ## Manifest
 
@@ -209,9 +209,8 @@ var extractCssApplyHandler = function (options) {
 	}
 }
 var extractCssInitialChunkIds = {"main": 1,};
-// the jsonp runtime's persistent installed-chunk state (webpack's
-// hmrRuntimeStatePrefix); a chunk is on this page when it recorded the
-// chunk as fully loaded (0)
+// A chunk is present on this page only when the active JavaScript
+// chunk-loading runtime records it as fully loaded.
 var extractCssChunkIsLoaded = function (chunkId) {
 	return typeof __webpack_require__.hmrS_jsonp !== "undefined" && __webpack_require__.hmrS_jsonp && __webpack_require__.hmrS_jsonp[chunkId] === 0;
 };
