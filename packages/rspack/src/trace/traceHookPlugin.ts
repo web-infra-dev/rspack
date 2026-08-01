@@ -1,21 +1,11 @@
 // adjust from webpack's ProfilingPlugin https://github.com/webpack/webpack/blob/dec18718be5dfba28f067fb3827dd620a1f33667/lib/debug/ProfilingPlugin.js#L1
+import type { FullTap, TapFunction } from '@rspack/lite-tapable';
 import type { Compiler } from '../exports';
 import { JavaScriptTracer } from '.';
 
 const PLUGIN_NAME = 'TraceHookPlugin';
 // needs same as rust plugin side
 const PLUGIN_PROCESS_NAME = 'Plugin Analysis';
-type FullTap = Tap & {
-  type: 'sync' | 'async' | 'promise';
-  fn: Function;
-};
-type Tap = TapOptions & {
-  name: string;
-};
-type TapOptions = {
-  before?: string;
-  stage?: number;
-};
 // This plugin is used to trace the execution of various hooks in the build process.
 const makeInterceptorFor =
   (compilerName: string, tracer: typeof JavaScriptTracer) =>
@@ -53,8 +43,8 @@ const makeNewTraceTapFn = (
   compilerName: string,
   hookName: string,
   tracer: typeof JavaScriptTracer,
-  { name: pluginName, type, fn }: { name: string; type: string; fn: Function },
-) => {
+  { name: pluginName, type, fn }: Pick<FullTap, 'name' | 'type' | 'fn'>,
+): TapFunction => {
   switch (type) {
     case 'promise':
       return (...args: any[]) => {
