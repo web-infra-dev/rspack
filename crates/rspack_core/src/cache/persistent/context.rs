@@ -72,22 +72,18 @@ impl CacheContext {
   #[tracing::instrument("Cache::Context::validate", skip_all)]
   pub async fn validate(&mut self, validation: &mut CacheValidation) {
     let report = validation.validate(&*self.storage).await;
-    // Keep build dependency diagnostics ahead of metadata diagnostics for
-    // compatibility, while CacheValidation still checks the version first.
-    if let Some(tracked_files) = report.tracked_files {
-      self.logger().info(format!(
-        "build dependencies are valid ({tracked_files} tracked)"
-      ));
-      self.log_duration(
-        "validate build dependencies",
-        report
-          .build_dependencies_duration
-          .expect("build dependencies should have been validated"),
-      );
-    }
-
     match report.result {
-      CacheValidationResult::Valid => {
+      CacheValidationResult::Valid { tracked_files } => {
+        self.logger().info(format!(
+          "build dependencies are valid ({tracked_files} tracked)"
+        ));
+        self.log_duration(
+          "validate build dependencies",
+          report
+            .build_dependencies_duration
+            .expect("build dependencies should have been validated"),
+        );
+
         self
           .logger()
           .info("meta persistent cache recovery succeeded");

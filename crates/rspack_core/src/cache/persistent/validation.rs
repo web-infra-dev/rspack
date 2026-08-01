@@ -26,7 +26,9 @@ struct Meta {
 
 #[derive(Debug)]
 pub enum CacheValidationResult {
-  Valid,
+  Valid {
+    tracked_files: usize,
+  },
   InvalidVersion {
     message: &'static str,
   },
@@ -41,15 +43,8 @@ pub enum CacheValidationResult {
 #[derive(Debug)]
 pub struct CacheValidationReport {
   pub result: CacheValidationResult,
-  pub tracked_files: Option<usize>,
   pub version_duration: Duration,
   pub build_dependencies_duration: Option<Duration>,
-}
-
-enum VersionValidationResult {
-  Valid(Option<Meta>),
-  Invalid { message: &'static str },
-  Error(Error),
 }
 
 /// Owns every input that determines whether persistent cache artifacts are
@@ -76,41 +71,77 @@ impl CacheValidation {
 
   pub async fn validate(&mut self, storage: &dyn Storage) -> CacheValidationReport {
     let version_start = Instant::now();
-    let version_result = self.validate_version(storage).await;
+    let meta = match self.load_meta(storage).await {
+      Ok(meta) => meta,
+      Err(error) => {
+        return CacheValidationReport {
+          result: CacheValidationResult::VersionError(error),
+          version_duration: version_start.elapsed(),
+          build_dependencies_duration: None,
+        };
+      }
+    };
+
+    if let Some(meta) = &meta
+      && meta.version != self.version
+    {
+      return CacheValidationReport {
+        result: CacheValidationResult::InvalidVersion {
+          message: "persistent cache version does not match",
+        },
+        version_duration: version_start.elapsed(),
+        build_dependencies_duration: None,
+      };
+    }
+
+    if meta.is_none() {
+      let scopes = match storage.scopes().await {
+        Ok(scopes) => scopes,
+        Err(error) => {
+          return CacheValidationReport {
+            result: CacheValidationResult::VersionError(error.into()),
+            version_duration: version_start.elapsed(),
+            build_dependencies_duration: None,
+          };
+        }
+      };
+      // Loading a missing scope may create an empty META bucket, while BUILD
+      // may exist before the first artifacts are saved. Any other scope cannot
+      // be checked against cache.version and is unsafe to reuse.
+      if scopes
+        .iter()
+        .any(|scope| scope != SCOPE && scope != SnapshotScope::BUILD.name())
+      {
+        return CacheValidationReport {
+          result: CacheValidationResult::InvalidVersion {
+            message: "persistent cache version is missing",
+          },
+          version_duration: version_start.elapsed(),
+          build_dependencies_duration: None,
+        };
+      }
+    }
     let version_duration = version_start.elapsed();
 
     let build_dependencies_start = Instant::now();
-    let (result, tracked_files) = match self.build_dependencies.validate(storage).await {
+    let result = match self.build_dependencies.validate(storage).await {
       Ok(BuildDepsValidationResult::Valid { tracked_files }) => {
-        let result = match version_result {
-          VersionValidationResult::Valid(meta) => {
-            if let Some(meta) = meta {
-              Self::restore_meta(meta);
-            }
-            CacheValidationResult::Valid
-          }
-          VersionValidationResult::Invalid { message } => {
-            CacheValidationResult::InvalidVersion { message }
-          }
-          VersionValidationResult::Error(error) => CacheValidationResult::VersionError(error),
-        };
-        (result, Some(tracked_files))
+        if let Some(meta) = meta {
+          Self::restore_meta(meta);
+        }
+        CacheValidationResult::Valid { tracked_files }
       }
       Ok(BuildDepsValidationResult::Invalid {
         modified_files,
         removed_files,
-      }) => (
-        CacheValidationResult::InvalidBuildDependencies {
-          modified_files,
-          removed_files,
-        },
-        None,
-      ),
-      Err(error) => (CacheValidationResult::BuildDependenciesError(error), None),
+      }) => CacheValidationResult::InvalidBuildDependencies {
+        modified_files,
+        removed_files,
+      },
+      Err(error) => CacheValidationResult::BuildDependenciesError(error),
     };
     CacheValidationReport {
       result,
-      tracked_files,
       version_duration,
       build_dependencies_duration: Some(build_dependencies_start.elapsed()),
     }
@@ -144,41 +175,6 @@ impl CacheValidation {
     self.codec.decode(&value).map(Some)
   }
 
-  async fn validate_version(&self, storage: &dyn Storage) -> VersionValidationResult {
-    let meta = match self.load_meta(storage).await {
-      Ok(meta) => meta,
-      Err(error) => return VersionValidationResult::Error(error),
-    };
-
-    if let Some(meta) = &meta
-      && meta.version != self.version
-    {
-      return VersionValidationResult::Invalid {
-        message: "persistent cache version does not match",
-      };
-    }
-
-    if meta.is_none() {
-      let scopes = match storage.scopes().await {
-        Ok(scopes) => scopes,
-        Err(error) => return VersionValidationResult::Error(error.into()),
-      };
-      // Loading a missing scope may create an empty META bucket, while BUILD
-      // may exist before the first artifacts are saved. Any other scope cannot
-      // be checked against cache.version and is unsafe to reuse.
-      if scopes
-        .iter()
-        .any(|scope| scope != SCOPE && scope != SnapshotScope::BUILD.name())
-      {
-        return VersionValidationResult::Invalid {
-          message: "persistent cache version is missing",
-        };
-      }
-    }
-
-    VersionValidationResult::Valid(meta)
-  }
-
   fn restore_meta(meta: Meta) {
     if get_current_dependency_id() != 0 {
       panic!("The global dependency id generator is not 0 when the persistent cache is restored.");
@@ -198,8 +194,8 @@ mod tests {
   use crate::cache::persistent::{
     build_dependencies::BuildDeps,
     codec::CacheCodec,
-    snapshot::{Snapshot, SnapshotOptions},
-    storage::MemoryStorage,
+    snapshot::{Snapshot, SnapshotOptions, SnapshotScope},
+    storage::{MemoryStorage, Storage},
   };
 
   fn create_validation(fs: Arc<MemoryFileSystem>, version: &str) -> CacheValidation {
@@ -218,23 +214,31 @@ mod tests {
   }
 
   #[tokio::test]
-  async fn reports_build_dependency_validation_for_version_mismatch() {
+  async fn checks_version_before_decoding_build_dependencies() {
     within_compiler_context_for_testing(async {
       let fs = Arc::new(MemoryFileSystem::default());
       let old_validation = create_validation(fs.clone(), "v1");
       let mut current_validation = create_validation(fs.clone(), "v2");
+      let mut matching_validation = create_validation(fs, "v1");
       let mut storage = MemoryStorage::default();
       old_validation.save(&mut storage);
+      storage.set(
+        SnapshotScope::BUILD.name(),
+        b"invalid".to_vec(),
+        b"invalid".to_vec(),
+      );
 
-      let report = current_validation.validate(&storage).await;
       assert!(matches!(
-        report.result,
+        current_validation.validate(&storage).await.result,
         CacheValidationResult::InvalidVersion {
           message: "persistent cache version does not match"
         }
       ));
-      assert_eq!(report.tracked_files, Some(0));
-      assert!(report.build_dependencies_duration.is_some());
+      assert!(matches!(
+        matching_validation.validate(&storage).await.result,
+        CacheValidationResult::BuildDependenciesError(_)
+          | CacheValidationResult::InvalidBuildDependencies { .. }
+      ));
     })
     .await;
   }
