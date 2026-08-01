@@ -1805,7 +1805,15 @@ impl DependencyTemplate for ESMExportImportedSpecifierDependencyTemplate {
     if let Some(scope) = concatenation_scope
       && can_handle_in_concatenation_scope
     {
-      source.replace(dep.range.start, dep.range.end, String::new(), None);
+      // `export default namespace` has a separate ConstDependency that removes the
+      // export prefix. Keep its unused expression so an overlapping
+      // PureExpressionDependency still has an operand to wrap.
+      let keep_unused_default_namespace_expression = matches!(&mode, ExportMode::Unused(_))
+        && dep.name.as_ref().is_some_and(|name| name == "default")
+        && dep.get_ids(module_graph).is_empty();
+      if !keep_unused_default_namespace_expression {
+        source.replace(dep.range.start, dep.range.end, String::new(), None);
+      }
       scope.remove_original_range(dep.range);
 
       let create_reference = |scope: &mut rspack_core::ConcatenationScope, ids: Vec<Atom>| {
