@@ -191,14 +191,14 @@ const instance = await WebAssembly.instantiate(wasmModule);
 ## experiments.fasterModuleConcatenation
 
 - **类型：** `boolean`
-- **默认值：** `false`
+- **默认值：** `true`
 
-启用更快的模块合并实现。该实现会复用模块解析阶段收集的标识符信息，避免在合并模块的代码生成阶段再次解析内部模块源码。
+控制默认启用的更快模块合并实现。该实现会复用模块解析阶段收集的标识符信息，避免在合并模块的代码生成阶段再次解析内部模块源码。将其设为 `false` 可回退到旧实现。
 
 ```js title="rspack.config.mjs"
 export default {
   experiments: {
-    fasterModuleConcatenation: true,
+    fasterModuleConcatenation: false,
   },
 };
 ```

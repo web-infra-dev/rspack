@@ -188,16 +188,18 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
         .as_ref()
         .and_then(|info| info.exported_enums.get(local_id).cloned());
       let variable = CompatibilityPlugin::update_nested_binding_declaration(parser, local_id);
+      let (value, value_is_generated) = if let Some(variable) = variable {
+        (variable.into(), true)
+      } else {
+        (local_id.clone(), false)
+      };
 
       let range = DependencyRange::from(statement.span());
       let loc = parser.to_dependency_location(range);
       Box::new(ESMExportSpecifierDependency::new(
         export_name.clone(),
-        if let Some(variable) = variable {
-          variable
-        } else {
-          local_id.clone()
-        },
+        value,
+        value_is_generated,
         const_value,
         enum_value,
         statement.span().into(),

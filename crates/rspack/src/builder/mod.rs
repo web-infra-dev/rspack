@@ -3774,7 +3774,7 @@ impl ExperimentsBuilder {
       css: d!(self.css, false),
       defer_import: d!(self.defer_import, false),
       source_import: d!(self.source_import, false),
-      faster_module_concatenation: d!(self.faster_module_concatenation, false),
+      faster_module_concatenation: d!(self.faster_module_concatenation, true),
       pure_functions: d!(self.pure_functions, _production),
       runtime_mode: d!(self.runtime_mode, RuntimeMode::Webpack),
     })

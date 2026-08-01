@@ -1750,7 +1750,7 @@ CompilerOptions {
         css: false,
         defer_import: false,
         source_import: false,
-        faster_module_concatenation: false,
+        faster_module_concatenation: true,
         pure_functions: false,
         runtime_mode: Webpack,
     },

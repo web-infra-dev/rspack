@@ -23,6 +23,7 @@ pub struct ESMExportSpecifierDependency {
   name: Atom,
   #[cacheable(with=AsPreset)]
   value: Atom, // id
+  value_is_generated: bool,
   const_value: Option<ConstValue>,
   enum_value: Option<TSEnumValue>,
 }
@@ -31,6 +32,7 @@ impl ESMExportSpecifierDependency {
   pub fn new(
     name: Atom,
     value: Atom,
+    value_is_generated: bool,
     const_value: Option<ConstValue>,
     enum_value: Option<TSEnumValue>,
     range: DependencyRange,
@@ -39,6 +41,7 @@ impl ESMExportSpecifierDependency {
     Self {
       name,
       value,
+      value_is_generated,
       const_value,
       enum_value,
       range,
@@ -175,7 +178,12 @@ impl DependencyTemplate for ESMExportSpecifierDependencyTemplate {
       ..
     } = code_generatable_context;
     if let Some(scope) = concatenation_scope {
-      scope.register_export(dep.name.clone(), dep.value.to_string());
+      let value = if dep.value_is_generated {
+        scope.get_or_create_generated_top_level_symbol(dep.value.as_ref())
+      } else {
+        dep.value.clone()
+      };
+      scope.register_export(dep.name.clone(), value.to_string());
       return;
     }
     let module_graph = compilation.get_module_graph();

@@ -11,6 +11,9 @@ module.exports = {
     expect(mainSource).toContain(
       'new URL("./worker.mjs", import.meta.url)',
     );
+    expect(mainSource).toContain('function index_createWorker()');
+    expect(mainSource).toContain('return createWorker();');
+    expect(mainSource).not.toContain('__rspack_module_ref');
 
     const workerSource = fs.readFileSync(
       path.join(options.output.path, 'worker.mjs'),

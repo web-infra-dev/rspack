@@ -190,14 +190,14 @@ For a normal WebAssembly import, Rspack instantiates the module and exposes its 
 ## experiments.fasterModuleConcatenation
 
 - **Type:** `boolean`
-- **Default:** `false`
+- **Default:** `true`
 
-Enables a faster module concatenation implementation. It reuses identifier information collected while parsing modules, avoiding an additional parse of inner-module sources during concatenated-module code generation.
+Controls the faster module concatenation implementation, which is enabled by default. It reuses identifier information collected while parsing modules, avoiding an additional parse of inner-module sources during concatenated-module code generation. Set it to `false` to fall back to the legacy implementation.
 
 ```js title="rspack.config.mjs"
 export default {
   experiments: {
-    fasterModuleConcatenation: true,
+    fasterModuleConcatenation: false,
   },
 };
 ```

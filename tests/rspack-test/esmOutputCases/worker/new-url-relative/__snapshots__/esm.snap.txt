@@ -1,14 +1,25 @@
 ```mjs title=main.mjs
 
 
-// ./index.js
+// ./other.js
 function createWorker() {
+  return 'other';
+}
+
+// ./index.js
+
+
+function callOtherWorker() {
+  return createWorker();
+}
+
+function index_createWorker() {
   return new Worker(
     /* webpackChunkName: "worker" */ new URL("./worker.mjs", import.meta.url), { type: "module" },
   );
 }
 
-export { createWorker };
+export { callOtherWorker, index_createWorker as createWorker };
 
 ```
 

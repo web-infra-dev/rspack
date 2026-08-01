@@ -3,7 +3,7 @@ module.exports = {
 	description: "experiments.fasterModuleConcatenation",
 	options: () => ({
 		experiments: {
-			fasterModuleConcatenation: true
+			fasterModuleConcatenation: false
 		}
 	}),
 	diff: e =>
@@ -12,7 +12,7 @@ module.exports = {
 			+ Received
 
 			@@ ... @@
-			-     "fasterModuleConcatenation": false,
-			+     "fasterModuleConcatenation": true,
+			-     "fasterModuleConcatenation": true,
+			+     "fasterModuleConcatenation": false,
 		`)
 };

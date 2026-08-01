@@ -3120,7 +3120,7 @@ export type Experiments = {
   futureDefaults?: boolean;
   /**
    * Enable the faster module concatenation implementation.
-   * @default false
+   * @default true
    */
   fasterModuleConcatenation?: boolean;
   /**
