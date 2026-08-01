@@ -111,8 +111,8 @@ export default {
 export default {
 - cache: {
 -   buildDependencies: {
--     config: [__filename, path.join(import.meta.dirname, 'package.json')],
--     ts: [path.join(import.meta.dirname, 'tsconfig.json')]
+-     config: [__filename, path.join(__dirname, 'package.json')],
+-     ts: [path.join(__dirname, 'tsconfig.json')]
 -   }
 - },
 + cache: {
@@ -148,8 +148,8 @@ export default {
 ```diff title="rspack.config.mjs"
 export default {
 - snapshot: {
--   immutablePaths: [path.join(import.meta.dirname, 'constant')],
--   managedPaths: [path.join(import.meta.dirname, 'node_modules')],
+-   immutablePaths: [path.join(__dirname, 'constant')],
+-   managedPaths: [path.join(__dirname, 'node_modules')],
 -   unmanagedPaths: []
 - },
 + cache: {
@@ -168,7 +168,7 @@ export default {
 ```diff title="rspack.config.mjs"
 export default {
 - cache: {
--   cacheDirectory: path.join(import.meta.dirname, 'node_modules/.cache/test')
+-   cacheDirectory: path.join(__dirname, 'node_modules/.cache/test')
 - },
 + cache: {
 +   type: 'persistent',
