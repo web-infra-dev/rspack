@@ -119,8 +119,8 @@ export default {
 +   type: 'persistent',
 +   buildDependencies: [
 +     __filename,
-+     path.join(__dirname, 'package.json'),
-+     path.join(__dirname, 'tsconfig.json')
++     path.join(import.meta.dirname, 'package.json'),
++     path.join(import.meta.dirname, 'tsconfig.json')
 +   ]
 + },
 };
@@ -155,8 +155,8 @@ export default {
 + cache: {
 +   type: 'persistent',
 +   snapshot: {
-+     immutablePaths: [path.join(__dirname, 'constant')],
-+     managedPaths: [path.join(__dirname, 'node_modules')],
++     immutablePaths: [path.join(import.meta.dirname, 'constant')],
++     managedPaths: [path.join(import.meta.dirname, 'node_modules')],
 +     unmanagedPaths: []
 +   }
 + },
@@ -174,7 +174,7 @@ export default {
 +   type: 'persistent',
 +   storage: {
 +     type: 'filesystem',
-+     directory: path.join(__dirname, 'node_modules/.cache/test')
++     directory: path.join(import.meta.dirname, 'node_modules/.cache/test')
 +   }
 + },
 };
@@ -255,6 +255,19 @@ Rspack supports most of the webpack community plugins and also offers alternativ
 
 Check [Plugin compat](/guide/compatibility/plugin) for more information on Rspack's compatibility with popular webpack community plugins.
 
+Some webpack ecosystem packages, such as [`webpack-node-externals`](https://www.npmjs.com/package/webpack-node-externals) and [`node-polyfill-webpack-plugin`](https://www.npmjs.com/package/node-polyfill-webpack-plugin), require newer versions for Rspack compatibility. Before reusing a community package, upgrade it to the latest version, as older versions may rely on incompatible webpack APIs.
+
+### unplugin
+
+Some [unplugin](/guide/features/plugin#unplugin) packages provide separate entry points for each bundler. When a `/rspack` entry is available, use it instead of `/webpack` so the plugin selects the Rspack adapter:
+
+```diff title="rspack.config.mjs"
+- import AutoImport from 'unplugin-auto-import/webpack';
+- import Components from 'unplugin-vue-components/webpack';
++ import AutoImport from 'unplugin-auto-import/rspack';
++ import Components from 'unplugin-vue-components/rspack';
+```
+
 ### copy-webpack-plugin
 
 Use [rspack.CopyRspackPlugin](/plugins/rspack/copy-rspack-plugin) instead of [copy-webpack-plugin](https://github.com/webpack/copy-webpack-plugin):
@@ -305,15 +318,16 @@ module.exports = {
 
 ### tsconfig-paths-webpack-plugin
 
-Use [resolve.tsConfig](/config/resolve#resolvetsconfig) option instead of [tsconfig-paths-webpack-plugin](https://github.com/dividab/tsconfig-paths-webpack-plugin):
+Rspack does not support webpack's `resolve.plugins` option. Use [resolve.tsConfig](/config/resolve#resolvetsconfig) option instead of [tsconfig-paths-webpack-plugin](https://github.com/dividab/tsconfig-paths-webpack-plugin):
 
-```js title="rspack.config.js"
-const TsconfigPathsPlugin = require('tsconfig-paths-webpack-plugin'); // [!code --]
+```diff title="rspack.config.mjs"
+-import TsconfigPathsPlugin from 'tsconfig-paths-webpack-plugin';
++import path from 'node:path';
 
-module.exports = {
+ export default {
   resolve: {
-    plugins: [new TsconfigPathsPlugin({})], // [!code --]
-    tsConfig: {}, // [!code ++]
+-    plugins: [new TsconfigPathsPlugin()],
++    tsConfig: path.resolve(import.meta.dirname, 'tsconfig.json'),
   },
 };
 ```

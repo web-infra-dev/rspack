@@ -117,8 +117,8 @@ export default {
 +   type: 'persistent',
 +   buildDependencies: [
 +     __filename,
-+     path.join(__dirname, 'package.json'),
-+     path.join(__dirname, 'tsconfig.json')
++     path.join(import.meta.dirname, 'package.json'),
++     path.join(import.meta.dirname, 'tsconfig.json')
 +   ]
 + },
 };
@@ -153,8 +153,8 @@ export default {
 + cache: {
 +   type: 'persistent',
 +   snapshot: {
-+     immutablePaths: [path.join(__dirname, 'constant')],
-+     managedPaths: [path.join(__dirname, 'node_modules')],
++     immutablePaths: [path.join(import.meta.dirname, 'constant')],
++     managedPaths: [path.join(import.meta.dirname, 'node_modules')],
 +     unmanagedPaths: []
 +   }
 + },
@@ -172,7 +172,7 @@ export default {
 +   type: 'persistent',
 +   storage: {
 +     type: 'filesystem',
-+     directory: path.join(__dirname, 'node_modules/.cache/test')
++     directory: path.join(import.meta.dirname, 'node_modules/.cache/test')
 +   }
 + },
 };
@@ -253,6 +253,19 @@ Rspack 支持大部分 webpack 社区插件，并为暂不支持的插件提供�
 
 查看 [Plugin 兼容](/guide/compatibility/plugin) 以了解 Rspack 对 webpack 常见社区插件的兼容情况。
 
+部分 webpack 生态包需要升级到较新版本才能兼容 Rspack，例如 [`webpack-node-externals`](https://www.npmjs.com/package/webpack-node-externals) 和 [`node-polyfill-webpack-plugin`](https://www.npmjs.com/package/node-polyfill-webpack-plugin)。复用社区包前，建议升级到最新版本，因为旧版本可能依赖不兼容的 webpack API。
+
+### unplugin
+
+部分 [unplugin](/guide/features/plugin#unplugin) 包会为不同构建工具提供独立入口。如果提供了 `/rspack` 入口，请使用它代替 `/webpack`，以选择 Rspack 适配层：
+
+```diff title="rspack.config.mjs"
+- import AutoImport from 'unplugin-auto-import/webpack';
+- import Components from 'unplugin-vue-components/webpack';
++ import AutoImport from 'unplugin-auto-import/rspack';
++ import Components from 'unplugin-vue-components/rspack';
+```
+
 ### copy-webpack-plugin
 
 使用 [rspack.CopyRspackPlugin](/plugins/rspack/copy-rspack-plugin) 代替 [copy-webpack-plugin](https://github.com/webpack/copy-webpack-plugin)：
@@ -303,15 +316,16 @@ module.exports = {
 
 ### tsconfig-paths-webpack-plugin
 
-使用 [resolve.tsConfig](/config/resolve#resolvetsconfig) 选项代替 [tsconfig-paths-webpack-plugin](https://github.com/dividab/tsconfig-paths-webpack-plugin)：
+Rspack 不支持 webpack 的 `resolve.plugins` 选项。使用 [resolve.tsConfig](/config/resolve#resolvetsconfig) 选项代替 [tsconfig-paths-webpack-plugin](https://github.com/dividab/tsconfig-paths-webpack-plugin)：
 
-```js title="rspack.config.js"
-const TsconfigPathsPlugin = require('tsconfig-paths-webpack-plugin'); // [!code --]
+```diff title="rspack.config.mjs"
+-import TsconfigPathsPlugin from 'tsconfig-paths-webpack-plugin';
++import path from 'node:path';
 
-module.exports = {
+ export default {
   resolve: {
-    plugins: [new TsconfigPathsPlugin({})], // [!code --]
-    tsConfig: {}, // [!code ++]
+-    plugins: [new TsconfigPathsPlugin()],
++    tsConfig: path.resolve(import.meta.dirname, 'tsconfig.json'),
   },
 };
 ```
