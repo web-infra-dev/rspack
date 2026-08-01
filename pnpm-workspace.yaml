@@ -43,7 +43,7 @@ catalog:
   '@rsbuild/plugin-sass': '^2.0.1'
   '@rsbuild/plugin-tailwindcss': '^2.0.3'
   '@rspack/dev-server': '^2.1.0'
-  '@rspack/lite-tapable': '1.1.4'
+  '@rspack/lite-tapable': '1.1.5'
   '@rspack/plugin-preact-refresh': '2.0.1'
   '@rspack/plugin-react-refresh': '^2.0.2'
   '@rspress/core': '^2.0.19'

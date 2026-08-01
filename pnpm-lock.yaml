@@ -81,8 +81,8 @@ catalogs:
       specifier: ^2.1.0
       version: 2.1.0
     '@rspack/lite-tapable':
-      specifier: 1.1.4
-      version: 1.1.4
+      specifier: 1.1.5
+      version: 1.1.5
     '@rspack/plugin-preact-refresh':
       specifier: 2.0.1
       version: 2.0.1
@@ -715,7 +715,7 @@ importers:
         version: 1.4.6(@rsbuild/core@2.1.8)
       '@rspack/lite-tapable':
         specifier: 'catalog:'
-        version: 1.1.4
+        version: 1.1.5
       '@swc/types':
         specifier: 'catalog:'
         version: 0.1.27
@@ -775,7 +775,7 @@ importers:
         version: 1.1.6(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)
       '@rspack/lite-tapable':
         specifier: 'catalog:'
-        version: 1.1.4
+        version: 1.1.5
       '@swc/types':
         specifier: 'catalog:'
         version: 0.1.27
@@ -3212,11 +3212,11 @@ packages:
       selfsigned:
         optional: true
 
-  '@rspack/lite-tapable@1.1.2':
-    resolution: {integrity: sha512-1OnyWChLGE46YzWyjlmYJssOu/Y0STAnnr2ueKPqDCYTf63GJMs0mxNnCul4dNiVqHYPKv3/fxrTY3IpqoVwZQ==}
-
   '@rspack/lite-tapable@1.1.4':
     resolution: {integrity: sha512-ZXl+NUVMkLCmi5aLXgM9I8EQ4/UH4tfhQHuZhwKSR8MUOVT1q/LuFs8No4B0UZ512WGruEUhq4FjW3yheKvIhg==}
+
+  '@rspack/lite-tapable@1.1.5':
+    resolution: {integrity: sha512-uzB782zJbFTM3ta+e2Glikx36dca/6Y+DXyvFN+wb0Tx5ItIW+g03A0t3amP3LGzPHSkb0k81VHCm4jxLQwfag==}
 
   '@rspack/plugin-preact-refresh@2.0.1':
     resolution: {integrity: sha512-tQ3WRBVaJ5JVy4jQHaYpYqeQrPStc7WrIJlVMrY/2mJMe5D1Ma4EO6K7J0v4Zx3HZMoJ1xeaqfCI9E8UHFE9yQ==}
@@ -9330,9 +9330,9 @@ snapshots:
       '@rspack/core': link:packages/rspack
       '@rspack/dev-middleware': 2.0.3(@rspack/core@packages+rspack)
 
-  '@rspack/lite-tapable@1.1.2': {}
-
   '@rspack/lite-tapable@1.1.4': {}
+
+  '@rspack/lite-tapable@1.1.5': {}
 
   '@rspack/plugin-preact-refresh@2.0.1(@prefresh/core@1.5.10)(@prefresh/utils@1.2.1)(@rspack/core@packages+rspack)':
     dependencies:
@@ -11458,7 +11458,7 @@ snapshots:
 
   html-rspack-plugin@6.1.9(@rspack/core@packages+rspack):
     dependencies:
-      '@rspack/lite-tapable': 1.1.2
+      '@rspack/lite-tapable': 1.1.4
     optionalDependencies:
       '@rspack/core': link:packages/rspack
 
@@ -13281,7 +13281,7 @@ snapshots:
 
   rspack-vue-loader@17.6.1(@rspack/core@packages+rspack)(vue@3.5.40):
     dependencies:
-      '@rspack/lite-tapable': 1.1.2
+      '@rspack/lite-tapable': 1.1.4
       chalk: 4.1.2
     optionalDependencies:
       '@rspack/core': link:packages/rspack
@@ -13780,7 +13780,7 @@ snapshots:
 
   ts-checker-rspack-plugin@1.5.3(@rspack/core@packages+rspack)(typescript@6.0.3):
     dependencies:
-      '@rspack/lite-tapable': 1.1.2
+      '@rspack/lite-tapable': 1.1.4
       chokidar: 3.6.0
       memfs: 4.64.0
       picocolors: 1.1.1
