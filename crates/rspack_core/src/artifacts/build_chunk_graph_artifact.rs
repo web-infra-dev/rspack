@@ -32,7 +32,7 @@ pub struct BuildChunkGraphArtifact {
   pub(crate) code_splitter: CodeSplitter,
   pub module_idx: IdentifierMap<(u32, u32)>,
   global_include_modules: Vec<ModuleIdentifier>,
-  entry_include_modules: FxIndexMap<String, Vec<ModuleIdentifier>>,
+  entry_include_modules: Vec<(String, Vec<ModuleIdentifier>)>,
 }
 
 impl BuildChunkGraphArtifact {
@@ -230,7 +230,7 @@ impl BuildChunkGraphArtifact {
           .copied()
           .map(DependenciesBlockIdentifier::AsyncDependenciesBlock),
       ) {
-        let outgoings = prepared_connections_by_block
+        let mut outgoings = prepared_connections_by_block
           .remove(&block)
           .unwrap_or_default()
           .into_iter()
@@ -248,7 +248,7 @@ impl BuildChunkGraphArtifact {
             .is_not_false()
           })
           .map(|connection| connection.module)
-          .collect::<Vec<_>>();
+          .peekable();
 
         let mut previous_modules = IdentifierIndexMap::default();
         let mut miss_in_previous = true;
@@ -273,7 +273,7 @@ impl BuildChunkGraphArtifact {
 
         if miss_in_previous
           && !(matches!(block, DependenciesBlockIdentifier::Module(_))
-            && outgoings.is_empty()
+            && outgoings.peek().is_none()
             && self.chunk_graph.try_get_module_chunks(&module).is_some())
         {
           logger.log("new module detected, rebuilding chunk graph");
@@ -374,10 +374,7 @@ fn refresh_async_chunk_group_origins(compilation: &mut Compilation) {
 
 fn collect_entry_include_modules(
   compilation: &Compilation,
-) -> (
-  Vec<ModuleIdentifier>,
-  FxIndexMap<String, Vec<ModuleIdentifier>>,
-) {
+) -> (Vec<ModuleIdentifier>, Vec<(String, Vec<ModuleIdentifier>)>) {
   let module_graph = compilation.get_module_graph();
   let mut global_includes = compilation
     .global_entry
@@ -490,9 +487,10 @@ fn refresh_entrypoint_options(compilation: &mut Compilation) {
     let ChunkGroupKind::Entrypoint { options, .. } = &mut entrypoint.kind else {
       unreachable!("cached entrypoint should have entrypoint options");
     };
-    **options = entry.options.clone();
+    options.filename.clone_from(&entry.options.filename);
+    options.public_path.clone_from(&entry.options.public_path);
 
-    let filename = entry.options.filename.clone();
+    let filename = options.filename.clone();
     requires_full_chunk_assets |= filename
       .as_ref()
       .is_some_and(Filename::has_hash_placeholder);

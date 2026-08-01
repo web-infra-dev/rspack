@@ -10,13 +10,14 @@ use std::{
 use cow_utils::CowUtils;
 use derive_more::Debug;
 use fast_glob::glob_match;
-use futures::future::{BoxFuture, join_all};
+use futures::{StreamExt, future::BoxFuture, stream::FuturesOrdered};
 use regex::Regex;
 use rspack_core::{
   AssetInfo, AssetInfoRelated, Compilation, CompilationAsset, CompilationLogger,
   CompilationProcessAssets, Filename, GlobMatchOptions, Logger, PathData, Plugin,
-  escape_glob_pattern, find_files_by_glob,
+  escape_glob_pattern, extract_glob_base_dir, find_files_by_glob,
   rspack_sources::{BoxSource, RawBufferSource, SourceExt},
+  unescape_glob_path,
 };
 use rspack_error::{Diagnostic, Error, Result};
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHashDigest, RspackHasher};
@@ -24,6 +25,10 @@ use rspack_hook::{plugin, plugin_hook};
 use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rspack_util::fx_hash::FxDashSet;
 use sugar_path::SugarPath;
+
+mod pattern_cache;
+
+use pattern_cache::CachedPatternResult;
 
 #[derive(Debug)]
 pub struct CopyRspackPluginOptions {
@@ -119,14 +124,22 @@ pub struct RunPatternResult {
   pub source: BoxSource,
   pub info: Option<Info>,
   pub force: bool,
-  pub priority: i32,
-  pub pattern_index: usize,
 }
 
 #[plugin]
 #[derive(Debug)]
 pub struct CopyRspackPlugin {
   pub patterns: Vec<CopyPattern>,
+  pattern_cache: Mutex<Vec<Option<CachedPatternResult>>>,
+}
+
+struct PendingPattern<'a> {
+  index: usize,
+  pattern: &'a CopyPattern,
+  cacheable: bool,
+  file_dependencies: FxDashSet<PathBuf>,
+  context_dependencies: FxDashSet<PathBuf>,
+  diagnostics: Arc<Mutex<Vec<Diagnostic>>>,
 }
 
 static TEMPLATE_RE: LazyLock<Regex> =
@@ -142,7 +155,16 @@ fn normalize_glob_path_separators(path: &str) -> Cow<'_, str> {
 
 impl CopyRspackPlugin {
   pub fn new(patterns: Vec<CopyPattern>) -> Self {
-    Self::new_inner(patterns)
+    let pattern_cache = Mutex::new(vec![None; patterns.len()]);
+    Self::new_inner(patterns, pattern_cache)
+  }
+
+  fn is_cacheable(pattern: &CopyPattern) -> bool {
+    pattern.transform_fn.is_none()
+      && !matches!(pattern.to, Some(ToOption::Fn(_)))
+      && !pattern.copy_permissions.unwrap_or(false)
+      && !matches!(pattern.to_type, Some(ToType::Template))
+      && !matches!(pattern.to, Some(ToOption::String(ref to)) if TEMPLATE_RE.is_match(to))
   }
 
   fn get_content_hash(
@@ -167,20 +189,11 @@ impl CopyRspackPlugin {
     diagnostics: Arc<Mutex<Vec<Diagnostic>>>,
     compilation: &Compilation,
     logger: &CompilationLogger,
-    pattern_index: usize,
   ) -> Result<Option<RunPatternResult>> {
     // Exclude directories
     if entry.is_dir() {
       return Ok(None);
     }
-    if let Some(ignore) = &pattern.glob_options.ignore
-      && ignore
-        .iter()
-        .any(|ignore| glob_match(ignore.as_bytes(), entry.as_str().as_bytes()))
-    {
-      return Ok(None);
-    }
-
     let from = entry;
 
     logger.debug(format!("found '{from}'"));
@@ -299,11 +312,9 @@ impl CopyRspackPlugin {
       }
     };
 
-    let mut source = RawBufferSource::from(source_vec.clone()).boxed();
-
-    if let Some(transformer) = &pattern.transform_fn {
+    let source = if let Some(transformer) = &pattern.transform_fn {
+      let mut source = RawBufferSource::from(source_vec.clone()).boxed();
       logger.debug(format!("transforming content for '{absolute_filename}'..."));
-      // TODO: support cache in the future.
       handle_transform(
         transformer,
         source_vec,
@@ -311,8 +322,11 @@ impl CopyRspackPlugin {
         &mut source,
         diagnostics,
       )
-      .await
-    }
+      .await;
+      source
+    } else {
+      RawBufferSource::from(source_vec).boxed()
+    };
 
     let filename = if matches!(&to_type, ToType::Template) {
       logger.log(format!(
@@ -353,20 +367,17 @@ impl CopyRspackPlugin {
       source,
       info: pattern.info.clone(),
       force: pattern.force,
-      priority: pattern.priority,
-      pattern_index,
     }))
   }
 
-  async fn run_patter(
+  async fn run_pattern(
     compilation: &Compilation,
     pattern: &CopyPattern,
-    index: usize,
     file_dependencies: &FxDashSet<PathBuf>,
     context_dependencies: &FxDashSet<PathBuf>,
     diagnostics: Arc<Mutex<Vec<Diagnostic>>>,
     logger: &CompilationLogger,
-  ) -> Result<Option<Vec<Option<RunPatternResult>>>> {
+  ) -> Result<Option<Vec<RunPatternResult>>> {
     let orig_from = &pattern.from;
     let normalized_orig_from = Utf8PathBuf::from(orig_from);
 
@@ -414,11 +425,6 @@ impl CopyRspackPlugin {
     // Enable copy files starts with dot
     let mut dot_enable = pattern.glob_options.dot;
 
-    /*
-     * If input is a glob query like `/a/b/**/*.js`, we need to add common directory
-     * to context_dependencies
-     */
-    let mut need_add_context_to_dependency = false;
     let glob_query = match from_type {
       FromType::Dir => {
         logger.debug(format!("added '{abs_from}' as a context dependency"));
@@ -451,7 +457,6 @@ impl CopyRspackPlugin {
         escape_glob_pattern(&from)
       }
       FromType::Glob => {
-        need_add_context_to_dependency = true;
         let mut glob_query = if Path::new(orig_from).is_absolute() {
           orig_from.into()
         } else {
@@ -470,6 +475,11 @@ impl CopyRspackPlugin {
       }
     };
 
+    if matches!(from_type, FromType::Glob) {
+      let glob_base_dir = unescape_glob_path(extract_glob_base_dir(&glob_query));
+      context_dependencies.insert(PathBuf::from(glob_base_dir).normalize().into_owned());
+    }
+
     logger.log(format!("begin globbing '{glob_query}'..."));
 
     let glob_match_options = GlobMatchOptions {
@@ -485,32 +495,14 @@ impl CopyRspackPlugin {
     .await;
 
     match glob_entries {
-      Ok(entries) => {
-        let entries: Vec<_> = entries
-          .into_iter()
-          .filter(|entry| {
-            if let Some(filters) = &pattern.glob_options.ignore {
-              // If filters length is 0, exist is true by default
-              filters
-                .iter()
-                .all(|filter| !glob_match(filter.as_bytes(), entry.as_str().as_bytes()))
-            } else {
-              true
-            }
+      Ok(mut entries) => {
+        entries.retain(|entry| {
+          pattern.glob_options.ignore.as_ref().is_none_or(|filters| {
+            filters
+              .iter()
+              .all(|filter| !glob_match(filter.as_bytes(), entry.as_str().as_bytes()))
           })
-          .collect();
-
-        if need_add_context_to_dependency
-          && let Some(common_dir) = get_closest_common_parent_dir(
-            &entries.iter().map(|it| it.as_path()).collect::<Vec<_>>(),
-          )
-        {
-          // The glob common dir is derived from glob-matched entries, which keep
-          // the pattern's raw shape (e.g. a leading `./`, and `/` separators on
-          // Windows). Normalize it so the registered context dependency matches
-          // the native, normalized paths used everywhere else in the dep graph.
-          context_dependencies.insert(common_dir.into_std_path_buf().normalize().into_owned());
-        }
+        });
 
         if entries.is_empty() {
           if pattern.no_error_on_missing {
@@ -527,28 +519,31 @@ impl CopyRspackPlugin {
               "CopyRspackPlugin Error".into(),
               format!("unable to locate '{glob_query}' glob"),
             ));
+          return Ok(None);
         }
 
         let output_path = &compilation.options.output.path;
 
-        let copied_result = join_all(entries.into_iter().map(|entry| async {
-          Self::analyze_every_entry(
-            entry,
-            pattern,
-            &context,
-            output_path,
-            from_type,
-            file_dependencies,
-            diagnostics.clone(),
-            compilation,
-            logger,
-            index,
-          )
+        let copied_result = entries
+          .into_iter()
+          .map(|entry| {
+            Self::analyze_every_entry(
+              entry,
+              pattern,
+              &context,
+              output_path,
+              from_type,
+              file_dependencies,
+              diagnostics.clone(),
+              compilation,
+              logger,
+            )
+          })
+          .collect::<FuturesOrdered<_>>()
+          .collect::<Vec<_>>()
           .await
-        }))
-        .await
-        .into_iter()
-        .collect::<Result<Vec<_>>>()?;
+          .into_iter()
+          .collect::<Result<Vec<_>>>()?;
 
         if copied_result.is_empty() {
           if pattern.no_error_on_missing {
@@ -566,7 +561,7 @@ impl CopyRspackPlugin {
           return Ok(None);
         }
 
-        Ok(Some(copied_result))
+        Ok(Some(copied_result.into_iter().flatten().collect()))
       }
       Err(e) => {
         if pattern.no_error_on_missing {
@@ -598,41 +593,186 @@ impl CopyRspackPlugin {
       }
     }
   }
+
+  fn emit_pattern_results(
+    &self,
+    compilation: &mut Compilation,
+    results_by_pattern: Vec<Option<Vec<RunPatternResult>>>,
+  ) -> Vec<(Utf8PathBuf, Utf8PathBuf)> {
+    let mut ordered_patterns = results_by_pattern
+      .into_iter()
+      .enumerate()
+      .collect::<Vec<_>>();
+    ordered_patterns.sort_unstable_by_key(|(index, _)| (self.patterns[*index].priority, *index));
+
+    let mut permission_copies = Vec::new();
+    for (index, results) in ordered_patterns {
+      let copy_permissions = self.patterns[index].copy_permissions.unwrap_or(false);
+      for result in results.into_iter().flatten() {
+        let permission_copy = copy_permissions.then(|| {
+          (
+            result.absolute_filename.clone(),
+            compilation.options.output.path.join(&result.filename),
+          )
+        });
+
+        if let Some(exist_asset) = compilation.assets_mut().get_mut(&result.filename) {
+          if !result.force {
+            continue;
+          }
+          exist_asset.set_source(Some(Arc::new(result.source)));
+          if let Some(info) = result.info {
+            set_info(&mut exist_asset.info, info);
+          }
+          exist_asset.info.source_filename = Some(result.source_filename.to_string());
+          exist_asset.info.copied = Some(true);
+        } else {
+          let mut asset_info = AssetInfo {
+            source_filename: Some(result.source_filename.to_string()),
+            copied: Some(true),
+            ..Default::default()
+          };
+
+          if let Some(info) = result.info {
+            set_info(&mut asset_info, info);
+          }
+
+          compilation.emit_asset(
+            result.filename,
+            CompilationAsset::new(Some(Arc::new(result.source)), asset_info),
+          );
+        }
+
+        if let Some(permission_copy) = permission_copy {
+          permission_copies.push(permission_copy);
+        }
+      }
+    }
+
+    permission_copies
+  }
 }
 
 #[plugin_hook(CompilationProcessAssets for CopyRspackPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_ADDITIONAL)]
 async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let logger = compilation.get_logger("rspack.CopyRspackPlugin");
   let start = logger.time("run pattern");
-  let file_dependencies = FxDashSet::default();
-  let context_dependencies = FxDashSet::default();
-  let diagnostics = Arc::new(Mutex::new(Vec::new()));
+  let mut file_dependencies = Vec::new();
+  let mut context_dependencies = Vec::new();
+  let mut diagnostics = Vec::new();
+  let cache_counter = logger.cache("copy pattern cache");
 
-  let mut copied_result: Vec<(i32, RunPatternResult)> =
-    join_all(self.patterns.iter().enumerate().map(|(index, pattern)| {
-      CopyRspackPlugin::run_patter(
-        compilation,
-        pattern,
+  let mut results_by_pattern = vec![None; self.patterns.len()];
+  let mut pending_patterns = Vec::new();
+  {
+    let mut pattern_cache = self
+      .pattern_cache
+      .lock()
+      .expect("failed to obtain lock of `pattern_cache`");
+    pattern_cache.resize_with(self.patterns.len(), || None);
+
+    for (index, pattern) in self.patterns.iter().enumerate() {
+      let cacheable = CopyRspackPlugin::is_cacheable(pattern);
+      let cached = &mut pattern_cache[index];
+
+      if cacheable
+        && (compilation.is_lazy_watch_rebuild
+          || !compilation.modified_files.is_empty()
+          || !compilation.removed_files.is_empty())
+        && let Some(cached) = cached.as_ref()
+        && !cached.is_invalidated(
+          compilation
+            .modified_files
+            .iter()
+            .chain(compilation.removed_files.iter())
+            .map(|changed| changed.as_ref()),
+        )
+      {
+        cache_counter.hit();
+        file_dependencies.extend(cached.file_dependencies.iter().cloned());
+        context_dependencies.extend(cached.context_dependencies.iter().cloned());
+        results_by_pattern[index] = Some(cached.results.clone());
+        continue;
+      }
+
+      cache_counter.miss();
+      *cached = None;
+      pending_patterns.push(PendingPattern {
         index,
-        &file_dependencies,
-        &context_dependencies,
-        diagnostics.clone(),
+        pattern,
+        cacheable,
+        file_dependencies: FxDashSet::default(),
+        context_dependencies: FxDashSet::default(),
+        diagnostics: Arc::new(Mutex::new(Vec::new())),
+      });
+    }
+  }
+  logger.cache_end(cache_counter);
+  let pending_results = pending_patterns
+    .iter()
+    .map(|pending| {
+      CopyRspackPlugin::run_pattern(
+        compilation,
+        pending.pattern,
+        &pending.file_dependencies,
+        &pending.context_dependencies,
+        pending.diagnostics.clone(),
         &logger,
       )
-    }))
-    .await
-    .into_iter()
-    .collect::<Result<Vec<_>>>()?
-    .into_iter()
-    .flatten()
-    .flat_map(|item| {
-      item
-        .into_iter()
-        .flatten()
-        .map(|item| (item.priority, item))
-        .collect::<Vec<_>>()
     })
-    .collect();
+    .collect::<FuturesOrdered<_>>()
+    .collect::<Vec<_>>()
+    .await;
+
+  let mut first_error = None;
+  if !pending_patterns.is_empty() {
+    let mut pattern_cache = self
+      .pattern_cache
+      .lock()
+      .expect("failed to obtain lock of `pattern_cache`");
+    for (pending, results) in pending_patterns.into_iter().zip(pending_results) {
+      let results = match results {
+        Ok(results) => results,
+        Err(error) => {
+          if first_error.is_none() {
+            first_error = Some(error);
+          }
+          continue;
+        }
+      };
+      let pattern_file_dependencies = pending.file_dependencies.into_iter().collect::<Vec<_>>();
+      let pattern_context_dependencies =
+        pending.context_dependencies.into_iter().collect::<Vec<_>>();
+      let pattern_diagnostics = std::mem::take(
+        pending
+          .diagnostics
+          .lock()
+          .expect("failed to obtain lock of `pattern_diagnostics`")
+          .deref_mut(),
+      );
+      let has_diagnostics = !pattern_diagnostics.is_empty();
+      file_dependencies.extend(pattern_file_dependencies.iter().cloned());
+      context_dependencies.extend(pattern_context_dependencies.iter().cloned());
+      diagnostics.extend(pattern_diagnostics);
+
+      if pending.cacheable
+        && !has_diagnostics
+        && let Some(results) = results.as_ref()
+      {
+        pattern_cache[pending.index] = Some(CachedPatternResult {
+          results: results.clone(),
+          file_dependencies: pattern_file_dependencies,
+          context_dependencies: pattern_context_dependencies,
+        });
+      }
+
+      results_by_pattern[pending.index] = results;
+    }
+  }
+  if let Some(error) = first_error {
+    return Err(error);
+  }
+
   logger.time_end(start);
 
   let start = logger.time("emit assets");
@@ -642,60 +782,14 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   compilation
     .context_dependencies
     .extend(context_dependencies.into_iter().map(Into::into));
-  compilation.extend_diagnostics(std::mem::take(
-    diagnostics
-      .lock()
-      .expect("failed to obtain lock of `diagnostics`")
-      .deref_mut(),
-  ));
+  compilation.extend_diagnostics(diagnostics);
 
-  copied_result.sort_unstable_by_key(|a| a.0);
-
-  // Keep track of source to destination file mappings for permission copying
-  let mut permission_copies = Vec::new();
-
-  copied_result.into_iter().for_each(|(_priority, result)| {
-    let source_path = result.absolute_filename.clone();
-    let dest_path = compilation.options.output.path.join(&result.filename);
-
-    if let Some(exist_asset) = compilation.assets_mut().get_mut(&result.filename) {
-      if !result.force {
-        return;
-      }
-      exist_asset.set_source(Some(Arc::new(result.source)));
-      if let Some(info) = result.info {
-        set_info(&mut exist_asset.info, info);
-      }
-      exist_asset.info.source_filename = Some(result.source_filename.to_string());
-      exist_asset.info.copied = Some(true);
-    } else {
-      let mut asset_info = AssetInfo {
-        source_filename: Some(result.source_filename.to_string()),
-        copied: Some(true),
-        ..Default::default()
-      };
-
-      if let Some(info) = result.info {
-        set_info(&mut asset_info, info);
-      }
-
-      compilation.emit_asset(
-        result.filename,
-        CompilationAsset::new(Some(Arc::new(result.source)), asset_info),
-      );
-    }
-
-    // Store the paths for permission copying along with the pattern index
-    permission_copies.push((result.pattern_index, source_path, dest_path));
-  });
+  let permission_copies = self.emit_pattern_results(compilation, results_by_pattern);
   logger.time_end(start);
 
   // Handle permission copying after all assets are emitted
-  for (pattern_index, source_path, dest_path) in permission_copies.iter() {
-    if let Some(pattern) = self.patterns.get(*pattern_index)
-      && pattern.copy_permissions.unwrap_or(false)
-      && let Ok(Some(permissions)) = compilation.input_filesystem.permissions(source_path).await
-    {
+  for (source_path, dest_path) in permission_copies.iter() {
+    if let Ok(Some(permissions)) = compilation.input_filesystem.permissions(source_path).await {
       // Make sure the output directory exists
       if let Some(parent) = dest_path.parent() {
         compilation
@@ -742,26 +836,6 @@ impl Plugin for CopyRspackPlugin {
       .tap(process_assets::new(self));
     Ok(())
   }
-}
-
-fn get_closest_common_parent_dir(paths: &[&Utf8Path]) -> Option<Utf8PathBuf> {
-  // If there are no matching files, return `None`.
-  if paths.is_empty() {
-    return None;
-  }
-
-  // Get the first file path and use it as the initial value for the common parent directory.
-  let mut parent_dir: Utf8PathBuf = paths[0].parent()?.to_path_buf();
-
-  // Iterate over the remaining file paths, updating the common parent directory as necessary.
-  for path in paths.iter().skip(1) {
-    // Find the common parent directory between the current file path and the previous common parent directory.
-    while !path.starts_with(&parent_dir) {
-      parent_dir = parent_dir.parent()?.into();
-    }
-  }
-
-  Some(parent_dir)
 }
 
 fn set_info(target: &mut AssetInfo, info: Info) {
