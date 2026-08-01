@@ -17,7 +17,7 @@ use rspack_workspace::rspack_pkg_version;
 use self::{
   build_dependencies::{BuildDeps, BuildDepsOptions},
   codec::CacheCodec,
-  context::CacheContext,
+  context::{CacheContext, LoadedSnapshotPaths},
   occasion::{MakeOccasion, MinimizeOccasion, SourceMapDevToolPluginOccasion},
   snapshot::{Snapshot, SnapshotOptions},
   storage::{CacheDirectory, StorageOptions, create_storage},
@@ -49,6 +49,7 @@ pub struct PersistentCache {
   ctx: CacheContext,
   validation: CacheValidation,
   snapshot: Arc<Snapshot>,
+  loaded_snapshot_paths: Option<LoadedSnapshotPaths>,
   make_occasion: MakeOccasion,
   minimize_occasion: MinimizeOccasion,
   source_map_dev_tool_plugin_occasion: SourceMapDevToolPluginOccasion,
@@ -104,6 +105,7 @@ impl PersistentCache {
         ),
       ),
       snapshot,
+      loaded_snapshot_paths: None,
       make_occasion: MakeOccasion::new(codec.clone()),
       minimize_occasion: MinimizeOccasion::new(codec.clone()),
       source_map_dev_tool_plugin_occasion: SourceMapDevToolPluginOccasion::new(codec),
@@ -126,17 +128,19 @@ impl Cache for PersistentCache {
   async fn before_compile(&mut self, compilation: &mut Compilation) -> bool {
     self.ctx.logger().info("persistent cache enabled");
     self.initialize().await;
+    self.loaded_snapshot_paths = None;
 
     if compilation.is_rebuild {
       return false;
     }
     // rebuild will pass modified_files and removed_files from js side,
     // so only calculate them when build.
-    if let Some((is_hot_start, modified_paths, removed_paths)) =
+    if let Some((is_hot_start, modified_paths, removed_paths, loaded_paths)) =
       self.ctx.load_snapshot(&self.snapshot).await
     {
       compilation.modified_files.extend(modified_paths);
       compilation.removed_files.extend(removed_paths);
+      self.loaded_snapshot_paths = Some(loaded_paths);
       return is_hot_start;
     }
 
@@ -186,7 +190,30 @@ impl Cache for PersistentCache {
       return;
     }
 
+    let loaded_snapshot_paths = self.loaded_snapshot_paths.take();
     if let Some(cache_item) = self.ctx.load_occasion(&self.make_occasion).await {
+      if let Some(loaded) = loaded_snapshot_paths {
+        let mut missing = self
+          .snapshot
+          .find_missing_paths(cache_item.file_dependencies.files(), &loaded.file);
+        missing.extend(
+          self
+            .snapshot
+            .find_missing_paths(cache_item.context_dependencies.files(), &loaded.context),
+        );
+        missing.extend(
+          self
+            .snapshot
+            .find_missing_paths(cache_item.missing_dependencies.files(), &loaded.missing),
+        );
+        if !missing.is_empty() {
+          self.ctx.logger().warn(format!(
+            "persistent cache snapshot is missing records for {} paths; rebuilding affected modules",
+            missing.len()
+          ));
+          compilation.modified_files.extend(missing);
+        }
+      }
       *compilation.build_module_graph_artifact = cache_item;
       for (module, _) in compilation
         .build_module_graph_artifact
