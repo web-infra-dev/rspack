@@ -32,11 +32,15 @@ rspack_core                           = { workspace = true, features = ["codspee
 rspack_error                          = { workspace = true }
 rspack_fs                             = { workspace = true }
 rspack_hash                           = { workspace = true }
+rspack_paths                          = { workspace = true }
+rspack_plugin_copy                    = { workspace = true }
+rspack_plugin_hmr                     = { workspace = true }
 rspack_plugin_javascript              = { workspace = true }
 rspack_plugin_split_chunks            = { workspace = true }
 rspack_regex                          = { workspace = true }
 rspack_sources                        = { workspace = true }
 rspack_tasks                          = { workspace = true }
+rspack_watcher                        = { workspace = true }
 rustc-hash                            = { workspace = true }
 serde_json                            = { workspace = true }
 swc_experimental_allocator            = { workspace = true }
