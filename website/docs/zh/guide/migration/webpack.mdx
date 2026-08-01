@@ -14,6 +14,12 @@ Rspack 的配置是基于 webpack 的设计实现的，以此你能够非常轻�
 - 对于使用 [create-react-app](https://create-react-app.dev/) 或 [CRACO](https://craco.js.org/) 的项目，可以参考 [迁移 Create React App](/guide/migration/cra)。
 - 对于使用 [Vue CLI](https://cli.vuejs.org/zh/) 的项目，可以参考 [Rsbuild - 从 Vue CLI 迁移](https://rsbuild.rs/zh/guide/migration/vue-cli)。
 
+## 检查 Node.js 版本
+
+迁移前，请确保所有构建环境使用 Rspack 支持的 Node.js 版本。`@rspack/core@2` 要求 Node.js `^20.19.0 || >=22.12.0`。
+
+请确保本地开发、CI 和部署构建环境使用一致的 Node.js 版本，并按需更新 `.nvmrc`、Volta 配置和构建镜像等版本设置。
+
 ## 安装 Rspack
 
 在你的项目目录下安装 Rspack：
@@ -24,10 +30,7 @@ Rspack 的配置是基于 webpack 的设计实现的，以此你能够非常轻�
 
 - 未使用 `webpack-cli` 时，不需要安装 `@rspack/cli`
 - 未使用 `webpack-dev-server` 时，不需要安装 `@rspack/dev-server`
-
-现在你可以移除项目中 webpack 相关的依赖了：
-
-<PackageManagerTabs command="remove webpack webpack-cli webpack-dev-server" />
+- `@rspack/core` 和 `@rspack/cli` 应使用相同版本。`@rspack/dev-server` 的版本可能不同，无需保持一致。
 
 ## 修改 package.json
 
@@ -529,6 +532,31 @@ module.exports = {
  };
 ```
 
+### vue-loader
+
+对于 Vue 3 项目，请将 `vue-loader` 替换为 [`rspack-vue-loader`](/guide/tech/vue#vue-3)，并同步更新插件导入和 loader 名称：
+
+```diff title="rspack.config.mjs"
+-import { VueLoaderPlugin } from 'vue-loader';
++import { VueLoaderPlugin } from 'rspack-vue-loader';
+
+export default {
+  plugins: [new VueLoaderPlugin()],
+  module: {
+    rules: [
+      {
+        test: /\.vue$/,
+-       loader: 'vue-loader',
++       loader: 'rspack-vue-loader',
++       options: {
++         experimentalInlineMatchResource: true,
++       },
+      },
+    ],
+  },
+};
+```
+
 ## 常见 webpack 库替换
 
 迁移 webpack 生态中的配套库时，下面这些非插件类包通常需要替换：
@@ -543,3 +571,11 @@ module.exports = {
 | `webpack-merge`          | [`rspack-merge`](https://github.com/rstackjs/rspack-merge)                    | 合并 Rspack 配置。              |
 
 > 对于插件类包，请查看 [Plugin 兼容](/guide/compatibility/plugin)。
+
+## 移除 webpack 依赖
+
+使用 Rspack 构建成功后，请检查 loader、插件或自定义构建脚本是否仍导入 `webpack` 或 `webpack/lib/*`。
+
+如果仍存在相关导入，请暂时保留 `webpack` 作为兼容依赖。替换相关依赖或确认不再需要后，再移除 webpack 相关依赖：
+
+<PackageManagerTabs command="remove webpack webpack-cli webpack-dev-server" />
