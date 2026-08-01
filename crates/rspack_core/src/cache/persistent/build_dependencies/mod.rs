@@ -27,6 +27,8 @@ pub enum BuildDepsValidationResult {
     modified_files: ArcPathSet,
     removed_files: ArcPathSet,
   },
+  /// The snapshot is missing while the rest of the cache is present.
+  Missing,
 }
 
 /// Build dependencies manager
@@ -102,7 +104,7 @@ impl BuildDeps {
   ///
   /// If any build dependencies have changed, this method will return an invalid result.
   pub async fn validate(&mut self, storage: &dyn Storage) -> Result<BuildDepsValidationResult> {
-    let (_, modified_files, removed_files, no_changed_files) = self
+    let (is_hot_start, modified_files, removed_files, no_changed_files) = self
       .snapshot
       .calc_modified_paths(storage, SnapshotScope::BUILD)
       .await?;
@@ -113,6 +115,12 @@ impl BuildDeps {
         removed_files,
       });
     }
+
+    // An empty BUILD scope with the rest of the cache present means the snapshot was lost.
+    if !is_hot_start && !self.pending.is_empty() && !storage.scopes().await?.is_empty() {
+      return Ok(BuildDepsValidationResult::Missing);
+    }
+
     let tracked_files = no_changed_files.len();
     self.added = no_changed_files;
     Ok(BuildDepsValidationResult::Valid { tracked_files })
@@ -230,5 +238,56 @@ mod test {
     assert_eq!(warn_count(&logging, "test"), 0);
     let data = storage.load(scope).await.expect("should load success");
     assert_eq!(data.len(), 10);
+  }
+
+  #[tokio::test]
+  async fn missing_build_deps_snapshot_invalidates() {
+    let scope = SnapshotScope::BUILD.name();
+    let fs = Arc::new(MemoryFileSystem::default());
+    fs.create_dir_all("/".into()).await.unwrap();
+    fs.write("/index.js".into(), r#"console.log('index')"#.as_bytes())
+      .await
+      .unwrap();
+
+    let options = vec![PathBuf::from("/index.js")];
+    let codec = Arc::new(CacheCodec::new(None));
+    let snapshot = Arc::new(Snapshot::new(SnapshotOptions::default(), fs.clone(), codec));
+
+    // First build with no cache yet: an empty scope must stay valid.
+    let mut storage = MemoryStorage::default();
+    let mut build_deps = BuildDeps::new(&options, fs.clone(), snapshot.clone());
+    let validate_result = build_deps
+      .validate(&storage)
+      .await
+      .expect("should validate success");
+    assert!(matches!(
+      validate_result,
+      BuildDepsValidationResult::Valid { .. }
+    ));
+
+    // Populate the build dependencies snapshot.
+    let (logger, _logging) = test_logger("test");
+    build_deps
+      .add(&mut storage, vec![].into_iter(), logger)
+      .await;
+    assert!(!storage.load(scope).await.unwrap().is_empty());
+
+    // Simulate a cache whose build snapshot was lost while other scopes remain.
+    storage.reset(scope);
+    storage.set(
+      "make",
+      "key".as_bytes().to_vec(),
+      "value".as_bytes().to_vec(),
+    );
+
+    let mut build_deps = BuildDeps::new(&options, fs.clone(), snapshot.clone());
+    let validate_result = build_deps
+      .validate(&storage)
+      .await
+      .expect("should validate success");
+    assert!(matches!(
+      validate_result,
+      BuildDepsValidationResult::Missing
+    ));
   }
 }
