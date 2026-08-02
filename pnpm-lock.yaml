@@ -300,8 +300,8 @@ catalogs:
       specifier: ^4.18.1
       version: 4.18.1
     markdown-to-jsx:
-      specifier: ^9.9.0
-      version: 9.9.0
+      specifier: ^9.10.1
+      version: 9.10.1
     memfs:
       specifier: 4.64.0
       version: 4.64.0
@@ -1289,7 +1289,7 @@ importers:
         version: 1.14.7(@rspress/core@2.0.19)
       markdown-to-jsx:
         specifier: 'catalog:'
-        version: 9.9.0(react@19.2.8)(vue@3.5.40)
+        version: 9.10.1(react@19.2.8)(vue@3.5.40)
       mermaid:
         specifier: 'catalog:'
         version: 11.16.0
@@ -5580,8 +5580,8 @@ packages:
   markdown-table@3.0.4:
     resolution: {integrity: sha512-wiYz4+JrLyb/DqW2hkFJxP7Vd7JuTDm77fvbM8VfEQdmSMqcImWeeRbHwZjBjIFki/VaMK2BhFi7oUUZeM5bqw==}
 
-  markdown-to-jsx@9.9.0:
-    resolution: {integrity: sha512-3YRQuriODgdMr9EeY//Ya/104p978bY0nOwmc85IGxHixqOlhNDgq7IJTsLOdmFxjMFKJ6bVzUav30wWVJZOJQ==}
+  markdown-to-jsx@9.10.1:
+    resolution: {integrity: sha512-/fVJ8tKefGDQP40IONtD8O39V0sP0KkJmgkkFH1RBmPWKgnS6ljcOyUZ/ahEnQ3a3GsNZynM8KTR6b1n/6gFaQ==}
     engines: {node: '>= 18'}
     peerDependencies:
       react: '>= 16.0.0'
@@ -11822,7 +11822,7 @@ snapshots:
 
   markdown-table@3.0.4: {}
 
-  markdown-to-jsx@9.9.0(react@19.2.8)(vue@3.5.40):
+  markdown-to-jsx@9.10.1(react@19.2.8)(vue@3.5.40):
     optionalDependencies:
       react: 19.2.8
       vue: 3.5.40(typescript@6.0.3)
