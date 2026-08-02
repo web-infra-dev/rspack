@@ -146,7 +146,7 @@ catalog:
   'rstack': '^0.2.0'
   'sass-loader': '^16.0.8'
   'semver': '^7.8.5'
-  'source-map': '^0.7.6'
+  'source-map': '^0.8.0'
   'source-map-loader': '^5.0.0'
   'style-loader': '^4.0.0'
   'tailwindcss': '^4.3.3'
