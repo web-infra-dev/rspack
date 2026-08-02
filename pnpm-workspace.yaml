@@ -112,7 +112,7 @@ catalog:
   'jsdom': '^26.1.0'
   'json-loader': '^0.5.7'
   'json5': '^2.2.3'
-  'less': '4.6.7'
+  'less': '4.8.1'
   'less-loader': '^12.3.3'
   'lodash': '^4.18.1'
   'lodash-es': '^4.18.1'
