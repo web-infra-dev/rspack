@@ -15,6 +15,12 @@ For projects not using webpack 5, there are other migration guides that can be r
 - For projects using create-react-app or CRACO, you can refer to [Migrating Create React App](/guide/migration/cra).
 - For projects using Vue CLI, you can refer to [Rsbuild - Migrating from Vue CLI](https://rsbuild.rs/guide/migration/vue-cli).
 
+## Checking the Node.js version
+
+Before migrating, make sure that all build environments use a Node.js version supported by Rspack. `@rspack/core@2` requires Node.js `^20.19.0 || >=22.12.0`.
+
+Keep the Node.js version consistent across local development, CI, and deployment builds. Update version settings such as `.nvmrc`, Volta configuration, and build images as needed.
+
 ## Installing Rspack
 
 Install Rspack in your project directory:
@@ -25,10 +31,7 @@ Both `@rspack/cli` and `@rspack/dev-server` are optional dependencies:
 
 - If you are not using `webpack-cli`, no need to install `@rspack/cli`.
 - If you are not using `webpack-dev-server`, no need to install `@rspack/dev-server`.
-
-Now you can remove the webpack-related dependencies from your project:
-
-<PackageManagerTabs command="remove webpack webpack-cli webpack-dev-server" />
+- Use the same version of `@rspack/core` and `@rspack/cli`. The version of `@rspack/dev-server` may differ and does not need to match.
 
 ## Updating package.json
 
@@ -44,6 +47,30 @@ Update your build scripts to use Rspack instead of webpack, see [CLI](/api/cli) 
 +   "preview": "rspack preview",
   }
 }
+```
+
+## Remove unsupported CLI options
+
+Rspack CLI does not support some webpack CLI options, including `--progress`, `--color`, `--bail`, and `--output-pathinfo`. Keeping these options causes an `Unknown option` error before the configuration is loaded.
+
+During migration, remove these unsupported options from the build command. If you still need the corresponding behavior, use the Rspack configuration instead:
+
+```diff title="package.json"
+{
+  "scripts": {
+-   "build": "webpack --mode production --progress --color",
++   "build": "rspack --mode production",
+  }
+}
+```
+
+```js title="rspack.config.mjs"
+export default {
+  stats: {
+    // Equivalent to webpack CLI's --color
+    colors: true,
+  },
+};
 ```
 
 ## Updating configuration
@@ -92,8 +119,8 @@ export default {
 +   type: 'persistent',
 +   buildDependencies: [
 +     __filename,
-+     path.join(__dirname, 'package.json'),
-+     path.join(__dirname, 'tsconfig.json')
++     path.join(import.meta.dirname, 'package.json'),
++     path.join(import.meta.dirname, 'tsconfig.json')
 +   ]
 + },
 };
@@ -128,8 +155,8 @@ export default {
 + cache: {
 +   type: 'persistent',
 +   snapshot: {
-+     immutablePaths: [path.join(__dirname, 'constant')],
-+     managedPaths: [path.join(__dirname, 'node_modules')],
++     immutablePaths: [path.join(import.meta.dirname, 'constant')],
++     managedPaths: [path.join(import.meta.dirname, 'node_modules')],
 +     unmanagedPaths: []
 +   }
 + },
@@ -147,7 +174,7 @@ export default {
 +   type: 'persistent',
 +   storage: {
 +     type: 'filesystem',
-+     directory: path.join(__dirname, 'node_modules/.cache/test')
++     directory: path.join(import.meta.dirname, 'node_modules/.cache/test')
 +   }
 + },
 };
@@ -228,6 +255,19 @@ Rspack supports most of the webpack community plugins and also offers alternativ
 
 Check [Plugin compat](/guide/compatibility/plugin) for more information on Rspack's compatibility with popular webpack community plugins.
 
+Some webpack ecosystem packages, such as [`webpack-node-externals`](https://www.npmjs.com/package/webpack-node-externals) and [`node-polyfill-webpack-plugin`](https://www.npmjs.com/package/node-polyfill-webpack-plugin), require newer versions for Rspack compatibility. Before reusing a community package, upgrade it to the latest version, as older versions may rely on incompatible webpack APIs.
+
+### unplugin
+
+Some [unplugin](/guide/features/plugin#unplugin) packages provide separate entry points for each bundler. When a `/rspack` entry is available, use it instead of `/webpack` so the plugin selects the Rspack adapter:
+
+```diff title="rspack.config.mjs"
+- import AutoImport from 'unplugin-auto-import/webpack';
+- import Components from 'unplugin-vue-components/webpack';
++ import AutoImport from 'unplugin-auto-import/rspack';
++ import Components from 'unplugin-vue-components/rspack';
+```
+
 ### copy-webpack-plugin
 
 Use [rspack.CopyRspackPlugin](/plugins/rspack/copy-rspack-plugin) instead of [copy-webpack-plugin](https://github.com/webpack/copy-webpack-plugin):
@@ -278,15 +318,16 @@ module.exports = {
 
 ### tsconfig-paths-webpack-plugin
 
-Use [resolve.tsConfig](/config/resolve#resolvetsconfig) option instead of [tsconfig-paths-webpack-plugin](https://github.com/dividab/tsconfig-paths-webpack-plugin):
+Rspack does not support webpack's `resolve.plugins` option. Use [resolve.tsConfig](/config/resolve#resolvetsconfig) option instead of [tsconfig-paths-webpack-plugin](https://github.com/dividab/tsconfig-paths-webpack-plugin):
 
-```js title="rspack.config.js"
-const TsconfigPathsPlugin = require('tsconfig-paths-webpack-plugin'); // [!code --]
+```diff title="rspack.config.mjs"
+-import TsconfigPathsPlugin from 'tsconfig-paths-webpack-plugin';
++import path from 'node:path';
 
-module.exports = {
+ export default {
   resolve: {
-    plugins: [new TsconfigPathsPlugin({})], // [!code --]
-    tsConfig: {}, // [!code ++]
+-    plugins: [new TsconfigPathsPlugin()],
++    tsConfig: path.resolve(import.meta.dirname, 'tsconfig.json'),
   },
 };
 ```
@@ -507,6 +548,31 @@ Migrate [raw-loader](https://github.com/webpack-contrib/raw-loader) to [Asset Mo
  };
 ```
 
+### vue-loader
+
+For Vue 3 projects, replace `vue-loader` with [`rspack-vue-loader`](/guide/tech/vue#vue-3), and update both the plugin import and loader name:
+
+```diff title="rspack.config.mjs"
+-import { VueLoaderPlugin } from 'vue-loader';
++import { VueLoaderPlugin } from 'rspack-vue-loader';
+
+export default {
+  plugins: [new VueLoaderPlugin()],
+  module: {
+    rules: [
+      {
+        test: /\.vue$/,
+-       loader: 'vue-loader',
++       loader: 'rspack-vue-loader',
++       options: {
++         experimentalInlineMatchResource: true,
++       },
+      },
+    ],
+  },
+};
+```
+
 ## Common webpack package replacements
 
 When migrating webpack ecosystem packages, the following non-plugin packages usually need to be replaced.
@@ -521,3 +587,11 @@ When migrating webpack ecosystem packages, the following non-plugin packages usu
 | `webpack-merge`          | [`rspack-merge`](https://github.com/rstackjs/rspack-merge)                    | Rspack configuration merging.          |
 
 > For plugin packages, see [Plugin compatibility](/guide/compatibility/plugin).
+
+## Removing webpack dependencies
+
+After successfully building your project with Rspack, check whether any loaders, plugins, or custom build scripts still import `webpack` or `webpack/lib/*`.
+
+If imports remain, keep `webpack` temporarily as a compatibility dependency. Remove webpack-related dependencies after they have been replaced or verified as unnecessary:
+
+<PackageManagerTabs command="remove webpack webpack-cli webpack-dev-server" />

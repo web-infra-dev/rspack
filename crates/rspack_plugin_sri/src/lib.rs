@@ -17,7 +17,7 @@ use html::{alter_asset_tag_groups, before_asset_tag_generation};
 pub use integrity::SubresourceIntegrityHashFunction;
 use rspack_core::{
   ChunkLoading, ChunkLoadingType, Compilation, CompilationId, CompilationParams,
-  CompilerThisCompilation, CrossOriginLoading, Plugin,
+  CompilerThisCompilation, CrossOriginLoading, Plugin, RuntimeGlobals,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
@@ -119,11 +119,17 @@ async fn handle_compilation(
   compilation: &mut Compilation,
   _params: &mut CompilationParams,
 ) -> Result<()> {
+  let runtime_require_name = {
+    let runtime_template = compilation
+      .runtime_template
+      .create_runtime_module_code_template();
+    runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
+  };
   let ctx = SRICompilationContext {
     fs: compilation.output_filesystem.clone(),
     output_path: compilation.options.output.path.clone(),
     cross_origin_loading: compilation.options.output.cross_origin_loading.clone(),
-    runtime_template: compilation.runtime_template.create_module_code_template(),
+    runtime_require_name,
   };
   SubresourceIntegrityPlugin::set_compilation_sri_context(compilation.id(), ctx);
 

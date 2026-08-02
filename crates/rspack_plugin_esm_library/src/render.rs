@@ -716,7 +716,6 @@ var {} = {{}};
     } else {
       final_source
     };
-
     Ok(Some(RenderSource {
       source: final_source,
     }))

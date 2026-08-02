@@ -70,7 +70,6 @@ export { rspackRequire };
 var moduleFactories = modules;
 export { moduleFactories };
 
-var publicPath, scriptNonce;
 // rspack/runtime/esm_register_module
 moduleFactories.add = function registerModules(modules) { Object.assign(moduleFactories, modules) }
 ;

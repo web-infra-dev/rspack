@@ -1,8 +1,8 @@
 use rayon::prelude::*;
 use rspack_core::{
   ChunkGraph, ChunkInitFragments, ChunkKind, ChunkUkey, CodeGenerationPublicPathAutoReplace,
-  Compilation, Module, RuntimeCodeTemplate, RuntimeGlobals, RuntimeModuleGenerateContext,
-  SourceType,
+  Compilation, Module, RuntimeCodeTemplate, RuntimeGlobals, RuntimeGlobalsRenderMode,
+  RuntimeModuleGenerateContext, SourceType,
   chunk_graph_chunk::ChunkIdSet,
   get_undo_path, render_runtime_module_source,
   rspack_sources::{
@@ -136,6 +136,7 @@ pub async fn render_module(
     Some(fragments) => fragments.clone(),
     None => ChunkInitFragments::default(),
   };
+  let mut render_runtime_requirements = code_gen_result.runtime_requirements;
 
   let mut render_source = if code_gen_result
     .data
@@ -191,6 +192,7 @@ pub async fn render_module(
       chunk_ukey,
       module,
       &mut render_source,
+      &mut render_runtime_requirements,
       &mut module_chunk_init_fragments,
       runtime_template,
     )
@@ -214,21 +216,16 @@ pub async fn render_module(
 
       let need_module = runtime_requirements.is_some_and(|r| r.contains(RuntimeGlobals::MODULE));
       let need_exports = runtime_requirements.is_some_and(|r| r.contains(RuntimeGlobals::EXPORTS));
-      let need_require = runtime_requirements.is_some_and(|r| {
-        r.contains(RuntimeGlobals::REQUIRE)
-          || r.contains(RuntimeGlobals::REQUIRE_SCOPE)
-          || (compilation.options.experiments.runtime_mode == RuntimeMode::Rspack
-            && !r.renderable_require_scope().is_empty())
-      });
-      let need_require = if need_require {
-        render_source
-          .source
-          .source()
-          .into_string_lossy()
-          .contains(&runtime_template.render_runtime_argument())
-      } else {
-        need_require
-      };
+      let need_require = runtime_template.render_mode() != RuntimeGlobalsRenderMode::RspackExport
+        && (render_runtime_requirements.contains(RuntimeGlobals::REQUIRE)
+          || render_runtime_requirements.contains(RuntimeGlobals::REQUIRE_SCOPE)
+          || !render_runtime_requirements
+            .renderable_require_scope()
+            .is_empty());
+      let module_runtime_scope = compilation
+        .runtime_template
+        .create_module_code_template()
+        .render_runtime_scope();
 
       let mut args = Vec::new();
       if need_module || need_exports || need_require {
@@ -250,7 +247,7 @@ pub async fn render_module(
         });
       }
       if need_require {
-        args.push(runtime_template.render_runtime_argument());
+        args.push(module_runtime_scope);
       }
 
       let mut container_sources = ConcatSource::default();

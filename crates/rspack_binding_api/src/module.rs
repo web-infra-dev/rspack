@@ -860,8 +860,10 @@ impl From<JsBuildMeta> for BuildMeta {
       raw_default_object.map(|raw_default_object| match raw_default_object.as_str() {
         "false" => BuildMetaDefaultObject::False,
         "redirect" => BuildMetaDefaultObject::Redirect,
-        "redirect-warn" => BuildMetaDefaultObject::RedirectWarn,
-        _ => unreachable!(),
+        // Accept webpack/kebab form and the camelCase form previously written by
+        // `#[serde(rename_all = "camelCase")]` on BuildMetaDefaultObject (#15010).
+        "redirect-warn" | "redirectWarn" => BuildMetaDefaultObject::RedirectWarn,
+        other => panic!("Unexpected buildMeta.defaultObject value: {other}"),
       });
 
     let exports_type = raw_exports_type
