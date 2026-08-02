@@ -402,8 +402,8 @@ catalogs:
       specifier: ^4.3.3
       version: 4.3.3
     terser:
-      specifier: 5.48.0
-      version: 5.48.0
+      specifier: 5.49.0
+      version: 5.49.0
     terser-webpack-plugin:
       specifier: ^5.6.1
       version: 5.6.1
@@ -1226,7 +1226,7 @@ importers:
         version: 4.0.0
       terser:
         specifier: 'catalog:'
-        version: 5.48.0
+        version: 5.49.0
       terser-webpack-plugin:
         specifier: 'catalog:'
         version: 5.6.1(postcss@8.5.22)
@@ -7021,11 +7021,6 @@ packages:
         optional: true
       uglify-js:
         optional: true
-
-  terser@5.48.0:
-    resolution: {integrity: sha512-J/9An6vs9Us6wKRriSFXBWdRZapREHqFzdNUKk0pmu804EMR6dr6winwo7e5JDxN4xahxQsuysyYFwlwj4XN/Q==}
-    engines: {node: '>=10'}
-    hasBin: true
 
   terser@5.49.0:
     resolution: {integrity: sha512-SNiDnXyHSrxVcIOtVbULzcTmniUiwcV7Nwdyj1twVubeTmbjoa8p69KKDpfkdoOavuM4/GRm1+ykI8qqnavHoA==}
@@ -13578,13 +13573,6 @@ snapshots:
       terser: 5.49.0
     optionalDependencies:
       postcss: 8.5.22
-
-  terser@5.48.0:
-    dependencies:
-      '@jridgewell/source-map': 0.3.11
-      acorn: 8.17.0
-      commander: 2.20.3
-      source-map-support: 0.5.21
 
   terser@5.49.0:
     dependencies:
