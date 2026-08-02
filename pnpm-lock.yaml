@@ -8,8 +8,8 @@ settings:
 catalogs:
   chalk5:
     chalk:
-      specifier: ^5.6.2
-      version: 5.6.2
+      specifier: ^6.0.0
+      version: 6.0.0
   default:
     '@actions/core':
       specifier: 3.0.1
@@ -180,8 +180,8 @@ catalogs:
       specifier: ~2.2.1
       version: 2.2.1
     chalk:
-      specifier: ^4.1.2
-      version: 4.1.2
+      specifier: ^6.0.0
+      version: 6.0.0
     coffee-loader:
       specifier: ^1.0.1
       version: 1.0.1
@@ -853,7 +853,7 @@ importers:
         version: 7.29.7
       chalk:
         specifier: 'catalog:'
-        version: 4.1.2
+        version: 6.0.0
       cross-env:
         specifier: 'catalog:'
         version: 10.1.0
@@ -938,7 +938,7 @@ importers:
         version: 11.0.4
       chalk:
         specifier: catalog:chalk5
-        version: 5.6.2
+        version: 6.0.0
       fs-extra:
         specifier: 'catalog:'
         version: 11.4.0
@@ -4095,6 +4095,10 @@ packages:
   chalk@5.6.2:
     resolution: {integrity: sha512-7NzBL0rN6fMUW+f7A6Io4h40qQlG+xGmtMxfbnH/K7TAtt8JQWVQK+6g0UXKMeVJoyV5EkkNsErQ8pVD3bLHbA==}
     engines: {node: ^12.17.0 || ^14.13 || >=16.0.0}
+
+  chalk@6.0.0:
+    resolution: {integrity: sha512-2uNTXIuTTxk7ciZgAU1BQcgnchcG0xXnrs6jzkQfj9SsRa9M2s5zE8WT96hS6KmG4MzWHSrvH43DF1m4XRkrFg==}
+    engines: {node: '>=22'}
 
   character-entities-html4@2.1.0:
     resolution: {integrity: sha512-1v7fgQRj6hnSwFpq1Eu0ynr/CDEw0rXo2B61qXrLNdHZmPKgb7fqS1a2JwF0rISo9q77jDI8VMEHoApn8qDoZA==}
@@ -10211,6 +10215,8 @@ snapshots:
       supports-color: 7.2.0
 
   chalk@5.6.2: {}
+
+  chalk@6.0.0: {}
 
   character-entities-html4@2.1.0: {}
 
