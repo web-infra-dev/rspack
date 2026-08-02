@@ -130,7 +130,6 @@
       "description": "Keep major and minor npm dependency updates in separate PRs from patch updates.",
       "groupName": "patch npm dependencies",
       "matchManagers": ["npm"],
-      "matchDepTypes": ["dependencies", "devDependencies"],
       "matchUpdateTypes": ["patch"],
       "matchPackageNames": [
         "!webpack{/,}**",
