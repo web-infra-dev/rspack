@@ -6,10 +6,6 @@ settings:
   excludeLinksFromLockfile: false
 
 catalogs:
-  chalk5:
-    chalk:
-      specifier: ^6.0.0
-      version: 6.0.0
   default:
     '@actions/core':
       specifier: 3.0.1
@@ -937,7 +933,7 @@ importers:
         specifier: 'catalog:'
         version: 11.0.4
       chalk:
-        specifier: catalog:chalk5
+        specifier: 'catalog:'
         version: 6.0.0
       fs-extra:
         specifier: 'catalog:'

@@ -168,8 +168,6 @@ catalog:
   'zx': '8.8.5'
 
 catalogs:
-  chalk5:
-    'chalk': '^6.0.0'
   tailwindcss3:
     'tailwindcss': '^3.4.19'
   typescript7:
