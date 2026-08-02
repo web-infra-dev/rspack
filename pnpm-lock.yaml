@@ -390,8 +390,8 @@ catalogs:
       specifier: ^7.8.5
       version: 7.8.5
     source-map:
-      specifier: ^0.7.6
-      version: 0.7.6
+      specifier: ^0.8.0
+      version: 0.8.0
     source-map-loader:
       specifier: ^5.0.0
       version: 5.0.0
@@ -892,7 +892,7 @@ importers:
         version: 1.0.1
       source-map:
         specifier: 'catalog:'
-        version: 0.7.6
+        version: 0.8.0
       terser-webpack-plugin:
         specifier: 'catalog:'
         version: 5.6.1(postcss@8.5.22)
@@ -1217,7 +1217,7 @@ importers:
         version: 16.0.8(@rspack/core@packages+rspack)(sass-embedded@1.100.0)(sass@1.100.0)
       source-map:
         specifier: 'catalog:'
-        version: 0.7.6
+        version: 0.8.0
       source-map-loader:
         specifier: 'catalog:'
         version: 5.0.0
@@ -6869,6 +6869,10 @@ packages:
 
   source-map@0.7.6:
     resolution: {integrity: sha512-i5uvt8C3ikiWeNZSVZNWcfZPItFQOsYTUAOkcUPGd8DqDy1uOUikjt5dG+uRlwyvR108Fb9DOd4GvXfT0N2/uQ==}
+    engines: {node: '>= 12'}
+
+  source-map@0.8.0:
+    resolution: {integrity: sha512-d8EqvL+k/SOXCreS/SUzg2ciyHqBBLcN/yuRjFsbvVhHTE2pgei7oAhmPM7kWFbkX6OSMQfUq4KbkF3au9lhYQ==}
     engines: {node: '>= 12'}
 
   space-separated-tokens@2.0.2:
@@ -13434,6 +13438,8 @@ snapshots:
   source-map@0.6.1: {}
 
   source-map@0.7.6: {}
+
+  source-map@0.8.0: {}
 
   space-separated-tokens@2.0.2: {}
 
