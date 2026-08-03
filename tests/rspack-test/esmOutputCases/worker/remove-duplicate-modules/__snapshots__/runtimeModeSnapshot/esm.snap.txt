@@ -15,14 +15,14 @@ export default lib;
 ```
 
 ```mjs title=main.mjs
-import { __rspack_context } from "./runtime0.mjs";
+import { rspackRequire, publicPath, getChunkScriptFilename, baseUri } from "./runtime0.mjs";
 import { external_node_worker_threads_namespaceObject } from "./node_worker_threads.mjs";
 
 // ./index.js
 
 
 it("should keep a duplicated worker entry executable", async () => {
-	const worker = new external_node_worker_threads_namespaceObject.Worker(new URL(/* worker import */__rspack_context.p + __rspack_context.u("lib_js"), __rspack_context.b), { type: "module" });
+	const worker = new external_node_worker_threads_namespaceObject.Worker(new URL(/* worker import */publicPath + getChunkScriptFilename("lib_js"), baseUri), { type: "module" });
 	let result;
 
 	try {
@@ -55,10 +55,10 @@ export { external_node_worker_threads_namespaceObject };
 
 ```mjs title=runtime0.mjs
 // The require scope
-var __rspack_require = {};
-var __rspack_context = {};
+var rspackRequire = {};
+export { rspackRequire };
 
-var publicPath, hasOwnProperty, baseUri;
+var hasOwnProperty, baseUri;
 // rspack/runtime/get javascript chunk filename
 // This function allow to reference chunks
 var getChunkScriptFilename = (chunkId) => {
@@ -67,10 +67,10 @@ var getChunkScriptFilename = (chunkId) => {
   // return url for filenames based on template
   return "" + chunkId + ".mjs"
 };
-__rspack_context.u = getChunkScriptFilename;
+export { getChunkScriptFilename };
 // rspack/runtime/public_path
 var publicPath = "";;
-__rspack_context.p = publicPath;
+export { publicPath };
 // rspack/runtime/module_chunk_loading
 baseUri = new URL("./", import.meta.url);;
 
@@ -84,9 +84,8 @@ baseUri = new URL("./", import.meta.url);;
 // no HMR
 // no HMR manifest
 ;
-__rspack_context.b = baseUri;
+export { baseUri };
 
-export { __rspack_context };
 
 ```
 
