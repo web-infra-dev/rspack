@@ -19,6 +19,7 @@ type CacheOptions =
   | { type: 'memory' }
   | {
       type: 'persistent';
+      name?: string;
       buildDependencies?: string[];
       version?: string;
       maxAge?: number;
@@ -33,6 +34,7 @@ type CacheOptions =
       storage?: {
         type: 'filesystem';
         directory?: string;
+        location?: string;
       };
     };
 ```
@@ -69,6 +71,22 @@ Set `cache` to `{ type: 'persistent' }` to enable persistent cache. Persistent c
 export default {
   cache: {
     type: 'persistent',
+  },
+};
+```
+
+### name
+
+- **Type:** `string`
+- **Default:** `<config.name || 'default'>-<mode>`
+
+`cache.name` names a persistent cache. Different names create coexisting caches. In multi-compiler mode, the compiler index is appended to the default name so each compiler gets a unique cache.
+
+```js title="rspack.config.mjs"
+export default {
+  cache: {
+    type: 'persistent',
+    name: 'client-development',
   },
 };
 ```
@@ -120,7 +138,7 @@ export default {
 ```
 
 :::warning
-Don't share the same cache (same `cache.version` and same `cache.storage.directory`) between builds with different configurations. Doing so may cause incorrect cache hits.
+Don't share the same cache (same `cache.version` and same `cache.storage.location`) between builds with different configurations. Doing so may cause incorrect cache hits.
 :::
 
 :::tip Persistent cache invalidation
@@ -296,7 +314,7 @@ export default {
 
 ### storage
 
-- **Type:** `{ type: 'filesystem'; directory?: string }`
+- **Type:** `{ type: 'filesystem'; directory?: string; location?: string }`
 
 Configure cache storage. Currently only filesystem storage is supported.
 
@@ -318,38 +336,43 @@ export default {
 
 Use `type` to configure the cache storage type. Currently only filesystem storage is supported.
 
+#### storage.directory
+
+- **Type:** `string`
+- **Default:** `node_modules/.cache/rspack`
+
+`cache.storage.directory` is the base directory for persistent caches, matching the semantics of webpack's `cache.cacheDirectory`. Relative paths are resolved from [`config.context`](/config/context).
+
 ```js title="rspack.config.mjs"
 export default {
   cache: {
     type: 'persistent',
     storage: {
       type: 'filesystem',
-    },
-  },
-};
-```
-
-#### storage.directory
-
-- **Type:** `string`
-- **Default:** `node_modules/.cache/rspack/<mode>` or `node_modules/.cache/rspack/<name>-<mode>`
-
-Use `directory` to configure the cache directory. The default directory is resolved from [`config.context`](/config/context), [`config.name`](/config/other-options#name), [`config.mode`](/config/mode#mode), and the multi-compiler index. In multi-compiler mode, later compilers append `-<index>` to avoid sharing the same directory.
-
-```js title="rspack.config.mjs"
-export default {
-  cache: {
-    type: 'persistent',
-    storage: {
       directory: '.rspack-cache',
     },
   },
 };
 ```
 
-:::tip
-Configure different [`config.name`](/config/other-options#name) values for different compilers so they use different `cache.storage.directory` values and avoid cache conflicts.
-:::
+#### storage.location
+
+- **Type:** `string`
+- **Default:** `<storage.directory>/<cache.name>`
+
+`cache.storage.location` is the directory where cache data is stored, matching the semantics of webpack's `cache.cacheLocation`. Set it when the complete cache path should not be derived from `cache.storage.directory` and `cache.name`. Relative paths are resolved from [`config.context`](/config/context).
+
+```js title="rspack.config.mjs"
+export default {
+  cache: {
+    type: 'persistent',
+    storage: {
+      type: 'filesystem',
+      location: '.rspack-cache/client',
+    },
+  },
+};
+```
 
 ### Inspect persistent cache logs
 

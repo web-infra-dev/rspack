@@ -2061,10 +2061,15 @@ export type CacheStorageOptions = {
    */
   type: 'filesystem';
   /**
-   * Cache directory path.
-   * @default 'node_modules/.cache/rspack/<name>-<mode>-<compilerIndex>'
+   * Base directory for the cache.
+   * @default 'node_modules/.cache/rspack'
    */
   directory?: string;
+  /**
+   * Location of the cache data.
+   * @default '<directory>/<cache.name>'
+   */
+  location?: string;
 };
 
 /**
@@ -2075,6 +2080,11 @@ export type PersistentCacheOptions = {
    * Cache type.
    */
   type: 'persistent';
+  /**
+   * Name for the cache. Different names create coexisting caches.
+   * @default '<config.name || "default">-<mode>'
+   */
+  name?: string;
   /**
    * An array of files containing build dependencies, Rspack will use the hash of each of these files to invalidate the persistent cache.
    * @default []
