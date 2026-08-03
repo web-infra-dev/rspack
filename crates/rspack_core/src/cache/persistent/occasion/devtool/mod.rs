@@ -1,7 +1,7 @@
 use std::{borrow::Cow, sync::Arc};
 
 use rayon::prelude::*;
-use rspack_cacheable::cacheable;
+use rspack_cacheable::{cacheable, utils::OwnedOrRef};
 use rspack_error::Result;
 use rspack_sources::{
   BoxSource, CachedSource, ConcatSource, OriginalSource, RawBufferSource, RawStringSource,
@@ -18,13 +18,13 @@ use crate::{CompilationAsset, RayonConsumer};
 pub const SCOPE: &str = "occasion_source_map_dev_tool_plugin";
 
 #[cacheable]
-struct Entry {
-  source_map: CachedSourceMap,
+struct Entry<'a> {
+  source_map: OwnedOrRef<'a, CachedSourceMap>,
 }
 
 /// Compact source map data cached by `SourceMapDevToolPlugin`.
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug, PartialEq, Eq)]
 struct CachedSourceMap {
   mappings: String,
   sources: Vec<String>,
@@ -370,7 +370,7 @@ impl Occasion for SourceMapDevToolPluginOccasion {
         };
         let source_map = artifact.entries.get(key)?.as_ref()?;
         let storage_entry = Entry {
-          source_map: source_map.clone(),
+          source_map: source_map.into(),
         };
         match self.codec.encode(&storage_entry) {
           Ok(bytes) => Some((key_bytes, bytes)),
@@ -406,7 +406,7 @@ impl Occasion for SourceMapDevToolPluginOccasion {
           }
         };
         match self.codec.decode::<Entry>(&value) {
-          Ok(entry) => Ok((key, Some(entry.source_map))),
+          Ok(entry) => Ok((key, Some(entry.source_map.into_owned()))),
           Err(err) => {
             tracing::warn!("source map persistent cache decode failed: {:?}", err);
             Err(key_bytes)
