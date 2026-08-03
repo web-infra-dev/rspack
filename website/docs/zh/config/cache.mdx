@@ -359,10 +359,30 @@ export default {
 
 #### storage.location
 
+<ApiMeta addedVersion="2.2.0" />
+
 - **类型：** `string`
 - **默认值：** `<storage.directory>/<cache.name>`
 
-`cache.storage.location` 是实际存储缓存数据的目录，语义与 webpack 的 `cache.cacheLocation` 一致。如果完整缓存路径不应由 `cache.storage.directory` 和 `cache.name` 推导，可以直接设置该选项。相对路径会基于 [`config.context`](/config/context) 解析。
+`cache.storage.location` 是 Rspack 实际读写缓存数据的完整路径，语义与 webpack 的 `cache.cacheLocation` 一致。未设置时，Rspack 会根据 `cache.storage.directory` 和 `cache.name` 推导该路径。相对路径会基于 [`config.context`](/config/context) 解析。
+
+```js title="rspack.config.mjs"
+export default {
+  context: '/project',
+  cache: {
+    type: 'persistent',
+    name: 'client',
+    storage: {
+      type: 'filesystem',
+      directory: '.rspack-cache',
+    },
+  },
+};
+
+// cache.storage.location 的默认值为 '/project/.rspack-cache/client'。
+```
+
+如需覆盖推导出的路径，可以显式设置 `storage.location`：
 
 ```js title="rspack.config.mjs"
 export default {
@@ -370,7 +390,7 @@ export default {
     type: 'persistent',
     storage: {
       type: 'filesystem',
-      location: '.rspack-cache/client',
+      location: '.custom-cache/client',
     },
   },
 };

@@ -357,10 +357,30 @@ export default {
 
 #### storage.location
 
+<ApiMeta addedVersion="2.2.0" />
+
 - **Type:** `string`
 - **Default:** `<storage.directory>/<cache.name>`
 
-`cache.storage.location` is the directory where cache data is stored, matching the semantics of webpack's `cache.cacheLocation`. Set it when the complete cache path should not be derived from `cache.storage.directory` and `cache.name`. Relative paths are resolved from [`config.context`](/config/context).
+`cache.storage.location` is the complete path where Rspack reads and writes cache data, matching the semantics of webpack's `cache.cacheLocation`. When omitted, Rspack derives it from `cache.storage.directory` and `cache.name`. Relative paths are resolved from [`config.context`](/config/context).
+
+```js title="rspack.config.mjs"
+export default {
+  context: '/project',
+  cache: {
+    type: 'persistent',
+    name: 'client',
+    storage: {
+      type: 'filesystem',
+      directory: '.rspack-cache',
+    },
+  },
+};
+
+// cache.storage.location defaults to '/project/.rspack-cache/client'.
+```
+
+Set `storage.location` explicitly to override the derived path:
 
 ```js title="rspack.config.mjs"
 export default {
@@ -368,7 +388,7 @@ export default {
     type: 'persistent',
     storage: {
       type: 'filesystem',
-      location: '.rspack-cache/client',
+      location: '.custom-cache/client',
     },
   },
 };
