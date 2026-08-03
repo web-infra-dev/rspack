@@ -232,8 +232,8 @@ const applyCacheDefaults = (
     case 'persistent':
       F(cache, 'name', () => {
         const cacheName = name ? `${name}-${mode}` : mode;
-        return compilerIndex !== undefined
-          ? `${cacheName}__compiler${compilerIndex + 1}__`
+        return compilerIndex !== undefined && compilerIndex > 0
+          ? `${cacheName}-${compilerIndex}`
           : cacheName;
       });
       D(cache.storage, 'type', 'filesystem');
