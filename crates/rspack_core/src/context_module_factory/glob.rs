@@ -216,6 +216,7 @@ fn parse_context_module_glob_pattern(pattern: &str) -> ContextModuleGlobPattern 
 
 pub(super) struct ContextModuleGlobMatcher<'a> {
   patterns: Vec<ContextModuleGlobPattern>,
+  positive_pattern_bases: Vec<String>,
   context: &'a str,
   compiler_context: &'a str,
   exhaustive: bool,
@@ -230,9 +231,25 @@ impl<'a> ContextModuleGlobMatcher<'a> {
       .glob_patterns()?
       .iter()
       .map(|pattern| parse_context_module_glob_pattern(pattern))
-      .collect();
+      .collect::<Vec<_>>();
+    let positive_pattern_bases = if context_options.glob_case_sensitive {
+      Vec::new()
+    } else {
+      patterns
+        .iter()
+        .filter(|pattern| !pattern.negative)
+        .map(|pattern| {
+          absolute_context_module_glob_pattern_base(
+            pattern,
+            &context_options.context,
+            &context_options.compiler_context,
+          )
+        })
+        .collect()
+    };
     Some(Self {
       patterns,
+      positive_pattern_bases,
       context: &context_options.context,
       compiler_context: &context_options.compiler_context,
       exhaustive: context_options.glob_exhaustive,
@@ -286,35 +303,67 @@ impl<'a> ContextModuleGlobMatcher<'a> {
     Some(user_request)
   }
 
+  pub(super) fn should_visit_dir(&self, path: &str) -> bool {
+    if self.case_sensitive {
+      return true;
+    }
+
+    let path = normalize_case_insensitive_path(path);
+    self.positive_pattern_bases.iter().any(|pattern_base| {
+      is_same_or_descendant(pattern_base, &path) || is_same_or_descendant(&path, pattern_base)
+    })
+  }
+
   pub(super) fn should_visit_skipped_dir(&self, path: &str) -> bool {
     if self.case_sensitive {
       return false;
     }
 
+    let path = normalize_case_insensitive_path(path);
     self
-      .patterns
+      .positive_pattern_bases
       .iter()
-      .filter(|pattern| !pattern.negative)
-      .any(|pattern| {
-        let context = if pattern.root_relative {
-          self.compiler_context
-        } else {
-          self.context
-        };
-        let pattern_base = pattern
-          .pattern_base
-          .strip_prefix('/')
-          .unwrap_or(&pattern.pattern_base);
-        let pattern_base = Utf8Path::new(&normalize_path_separators_for_path(context))
-          .node_join_posix(pattern_base)
-          .node_normalize_posix()
-          .to_string();
-        let normalized_path = normalize_path_separators_for_path(path);
-        let path = normalized_path.trim_end_matches('/').cow_to_lowercase();
-        let pattern_base = pattern_base.trim_end_matches('/').cow_to_lowercase();
-        pattern_base == path || pattern_base.starts_with(&format!("{path}/"))
-      })
+      .any(|pattern_base| is_same_or_descendant(pattern_base, &path))
   }
+}
+
+fn absolute_context_module_glob_pattern_base(
+  pattern: &ContextModuleGlobPattern,
+  context: &str,
+  compiler_context: &str,
+) -> String {
+  let context = if pattern.root_relative {
+    compiler_context
+  } else {
+    context
+  };
+  let pattern_base = pattern
+    .pattern_base
+    .strip_prefix('/')
+    .unwrap_or(&pattern.pattern_base);
+  let pattern_base = Utf8Path::new(&normalize_path_separators_for_path(context))
+    .node_join_posix(pattern_base)
+    .node_normalize_posix()
+    .to_string();
+  normalize_case_insensitive_path(&pattern_base)
+}
+
+fn normalize_case_insensitive_path(path: &str) -> String {
+  let normalized_path = normalize_path_separators_for_path(path);
+  let path = normalized_path.trim_end_matches('/');
+  if path.is_empty() {
+    "/".to_string()
+  } else {
+    path.cow_to_lowercase().into_owned()
+  }
+}
+
+fn is_same_or_descendant(path: &str, base: &str) -> bool {
+  path == base
+    || (base == "/" && path.starts_with('/'))
+    || path
+      .strip_prefix(base)
+      .is_some_and(|suffix| suffix.starts_with('/'))
 }
 
 fn context_relative_glob_request(path: &str, context: &str, root_relative: bool) -> String {
