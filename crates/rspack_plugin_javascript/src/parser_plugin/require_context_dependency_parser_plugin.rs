@@ -80,7 +80,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for RequireContextDependencyParserPl
           category: DependencyCategory::CommonJS,
           request: request_expr.string().clone(),
           context: get_context(parser.resource_data).to_string(),
-          compiler_context: parser.compiler_options.context.to_string(),
+          compiler_context: parser.compiler_options.context.clone(),
           start: expr.span().real_lo(),
           end: expr.span().real_hi(),
           ..Default::default()

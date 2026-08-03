@@ -485,7 +485,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
           category: DependencyCategory::Esm,
           request,
           context: get_context(parser.resource_data).to_string(),
-          compiler_context: parser.compiler_options.context.to_string(),
+          compiler_context: parser.compiler_options.context.clone(),
           namespace_object: if parser.build_meta.strict_esm_module() {
             ContextNameSpaceObject::Strict
           } else {

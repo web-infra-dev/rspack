@@ -63,7 +63,7 @@ fn create_import_meta_resolve_context_dependency(
     category: DependencyCategory::Esm,
     request,
     context: get_context(parser.resource_data).to_string(),
-    compiler_context: parser.compiler_options.context.to_string(),
+    compiler_context: parser.compiler_options.context.clone(),
     replaces: result.replaces,
     start,
     end,

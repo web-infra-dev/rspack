@@ -249,7 +249,7 @@ impl AMDDefineDependencyParserPlugin {
       category: DependencyCategory::Amd,
       request,
       context: get_context(parser.resource_data).to_string(),
-      compiler_context: parser.compiler_options.context.to_string(),
+      compiler_context: parser.compiler_options.context.clone(),
       replaces: result.replaces,
       start: call_span.real_lo(),
       end: call_span.real_hi(),

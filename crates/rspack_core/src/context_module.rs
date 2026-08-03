@@ -28,7 +28,7 @@ use rustc_hash::FxHashMap as HashMap;
 use crate::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildContext,
   BuildInfo, BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, BuildResult, ChunkGraph,
-  ChunkGroupOptions, CodeGenerationResult, Compilation, ContextElementDependency,
+  ChunkGroupOptions, CodeGenerationResult, Compilation, Context, ContextElementDependency,
   DependenciesBlock, Dependency, DependencyCategory, DependencyId, DependencyLocation,
   DynamicImportMode, ExportsType, FactoryMeta, FakeNamespaceObjectMode, GroupOptions,
   ImportAttributes, ImportPhase, LibIdentOptions, Module, ModuleArgument,
@@ -188,7 +188,7 @@ pub struct ContextOptions {
   /// The compiler `options.context`. Root-relative glob patterns are resolved from this directory.
   /// This value is stable for the lifetime of a compilation and must not be changed by context
   /// module factory hooks.
-  pub compiler_context: String,
+  pub compiler_context: Context,
   pub namespace_object: ContextNameSpaceObject,
   pub group_options: Option<GroupOptions>,
   pub replaces: Vec<(String, u32, u32)>,
@@ -213,7 +213,7 @@ impl Default for ContextOptions {
       category: DependencyCategory::Unknown,
       request: String::new(),
       context: String::new(),
-      compiler_context: String::new(),
+      compiler_context: Context::default(),
       namespace_object: ContextNameSpaceObject::Unset,
       group_options: None,
       replaces: Vec::new(),

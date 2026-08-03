@@ -203,7 +203,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for URLPlugin {
       category: DependencyCategory::Url,
       request,
       context: get_context(parser.resource_data).to_string(),
-      compiler_context: parser.compiler_options.context.to_string(),
+      compiler_context: parser.compiler_options.context.clone(),
       replaces: result.replaces,
       start: expr.span().real_lo(),
       end: expr.span().real_hi(),
