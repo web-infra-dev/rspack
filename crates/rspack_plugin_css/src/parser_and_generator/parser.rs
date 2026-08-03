@@ -14,7 +14,7 @@ use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, Severity, TWith
 use rustc_hash::{FxHashMap, FxHashSet};
 use smol_str::SmolStr;
 
-use super::{REGEX_CUSTOM_PROPERTY_IDENT, REGEX_IS_COMMENTS, is_css_module};
+use super::{REGEX_CUSTOM_PROPERTY_IDENT, is_css_module};
 use crate::{
   dependency::{
     CssComposeDependency, CssExportDependency, CssIcssSymbolDependency, CssIcssSymbolValue,
@@ -761,7 +761,7 @@ impl<'context> CssModuleParser<'context> {
         Ok(())
       }
       css_module_lexer::Dependency::ICSSExportValue { prop, value } => {
-        self.handle_icss_export_value(prop, value);
+        self.handle_icss_export_value(prop, value.as_ref());
         Ok(())
       }
       css_module_lexer::Dependency::ICSSImportFrom { path } => {
@@ -1532,8 +1532,7 @@ impl<'context> CssModuleParser<'context> {
   fn handle_icss_export_value(&mut self, prop: &str, value: &str) {
     let convention = self.convention();
     let convention_names = export_locals_convention(prop, convention);
-    let value = REGEX_IS_COMMENTS.replace_all(value, "");
-    let definition = self.resolve_icss_definition(value.as_ref());
+    let definition = self.resolve_icss_definition(value);
     self
       .icss_definitions
       .insert(prop.to_string(), definition.clone());

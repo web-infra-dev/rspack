@@ -110,13 +110,13 @@ colorValue-v3 {
 :root { --XzKrP9: var(--color); }
 
 
-:root { --XzKrP9:; }
+:root { --XzKrP9: ; }
 
 
-:root { --XzKrP9:; }
+:root { --XzKrP9:   ; }
 
 
-:root { --XzKrP9:; }
+:root { --XzKrP9: /* comment */; }
 
 
 ._9Xx8z_ {
@@ -132,51 +132,60 @@ colorValue-v3 {
 
 
 .XzKrP9 {
-	color: blue-v5;
+	color: /* test */red/* test */;
 }
 
 
 .XzKrP9 {
-	color: blue-v6;
+	color: /* test *//* test */red/* test */;
 }
 
 
 ._53YyBY { box-shadow: 0 11px 15px -7px rgba(0,0,0,.2),0 24px 38px 3px rgba(0,0,0,.14); }
 
 
-._53YyBY { box-shadow: coolShadow-v3; }
+._53YyBY { box-shadow: 0 11px 15px -7px rgba(0,0,0,.2),0 24px 38px 3px rgba(0,0,0,.14); }
 
 
-._53YyBY { box-shadow: coolShadow-v4; }
+._53YyBY { box-shadow: /* test */   0 11px 15px -7px rgba(0,0,0,.2),0 24px 38px 3px rgba(0,0,0,.14); }
 
 
-._53YyBY { box-shadow: coolShadow-v5; }
+._53YyBY { box-shadow: /* test */0 11px 15px -7px rgba(0,0,0,.2),0 24px 38px 3px rgba(0,0,0,.14); }
 
 
-._53YyBY { box-shadow: coolShadow-v6; }
+._53YyBY { box-shadow: 0 11px 15px -7px rgba(0,0,0,.2),0 24px 38px 3px rgba(0,0,0,.14); }
 
 
-._53YyBY { box-shadow: coolShadow-v7; }
+._53YyBY { box-shadow: /* test */0 11px 15px -7px rgba(0,0,0,.2),0 24px 38px 3px rgba(0,0,0,.14); }
 
 
-._53YyBY { color: test-v1; }
+._53YyBY { color: blue; }
 
 
-._53YyBY { color: test-v2; }
+._53YyBY { color: blue; }
 
 
-._53YyBY { color: my-name-q; }
+._53YyBY { color: red; }
 
 
 .XzKrP9 {
-	color: multiline-v1;
+	color: /*
+	multiline
+	comment
+*/red/*
+	multiline
+	comment
+*/;
 }
 
 
-._53YyBY { color: red-v3; }
+._53YyBY { color: blue; }
 
 
-:root { --XzKrP9:; }
+:root { --XzKrP9: /*
+	multiline
+	comment
+*/; }
 
 
 :root {

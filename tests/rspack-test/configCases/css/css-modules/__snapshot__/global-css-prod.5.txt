@@ -110,13 +110,13 @@ colorValue-v3 {
 :root { --color: var(--color); }
 
 
-:root { --color:; }
+:root { --color: ; }
 
 
-:root { --color:; }
+:root { --color:   ; }
 
 
-:root { --color:; }
+:root { --color: /* comment */; }
 
 
 .override {
@@ -132,51 +132,60 @@ colorValue-v3 {
 
 
 .color {
-	color: blue-v5;
+	color: /* test */red/* test */;
 }
 
 
 .color {
-	color: blue-v6;
+	color: /* test *//* test */red/* test */;
 }
 
 
 .foo { box-shadow: 0 11px 15px -7px rgba(0,0,0,.2),0 24px 38px 3px rgba(0,0,0,.14); }
 
 
-.foo { box-shadow: coolShadow-v3; }
+.foo { box-shadow: 0 11px 15px -7px rgba(0,0,0,.2),0 24px 38px 3px rgba(0,0,0,.14); }
 
 
-.foo { box-shadow: coolShadow-v4; }
+.foo { box-shadow: /* test */   0 11px 15px -7px rgba(0,0,0,.2),0 24px 38px 3px rgba(0,0,0,.14); }
 
 
-.foo { box-shadow: coolShadow-v5; }
+.foo { box-shadow: /* test */0 11px 15px -7px rgba(0,0,0,.2),0 24px 38px 3px rgba(0,0,0,.14); }
 
 
-.foo { box-shadow: coolShadow-v6; }
+.foo { box-shadow: 0 11px 15px -7px rgba(0,0,0,.2),0 24px 38px 3px rgba(0,0,0,.14); }
 
 
-.foo { box-shadow: coolShadow-v7; }
+.foo { box-shadow: /* test */0 11px 15px -7px rgba(0,0,0,.2),0 24px 38px 3px rgba(0,0,0,.14); }
 
 
-.foo { color: test-v1; }
+.foo { color: blue; }
 
 
-.foo { color: test-v2; }
+.foo { color: blue; }
 
 
-.foo { color: my-name-q; }
+.foo { color: red; }
 
 
 .color {
-	color: multiline-v1;
+	color: /*
+	multiline
+	comment
+*/red/*
+	multiline
+	comment
+*/;
 }
 
 
-.foo { color: red-v3; }
+.foo { color: blue; }
 
 
-:root { --color:; }
+:root { --color: /*
+	multiline
+	comment
+*/; }
 
 
 :root {

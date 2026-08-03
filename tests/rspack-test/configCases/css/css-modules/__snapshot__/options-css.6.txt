@@ -110,13 +110,13 @@ colorValue-v3 {
 :root { --my-app-at-rule-value_module_css-color: var(--color); }
 
 
-:root { --my-app-at-rule-value_module_css-color:; }
+:root { --my-app-at-rule-value_module_css-color: ; }
 
 
-:root { --my-app-at-rule-value_module_css-color:; }
+:root { --my-app-at-rule-value_module_css-color:   ; }
 
 
-:root { --my-app-at-rule-value_module_css-color:; }
+:root { --my-app-at-rule-value_module_css-color: /* comment */; }
 
 
 .my-app-at-rule-value_module_css-override {
@@ -132,51 +132,60 @@ colorValue-v3 {
 
 
 .my-app-at-rule-value_module_css-color {
-	color: blue-v5;
+	color: /* test */red/* test */;
 }
 
 
 .my-app-at-rule-value_module_css-color {
-	color: blue-v6;
+	color: /* test *//* test */red/* test */;
 }
 
 
 .my-app-at-rule-value_module_css-foo { box-shadow: 0 11px 15px -7px rgba(0,0,0,.2),0 24px 38px 3px rgba(0,0,0,.14); }
 
 
-.my-app-at-rule-value_module_css-foo { box-shadow: coolShadow-v3; }
+.my-app-at-rule-value_module_css-foo { box-shadow: 0 11px 15px -7px rgba(0,0,0,.2),0 24px 38px 3px rgba(0,0,0,.14); }
 
 
-.my-app-at-rule-value_module_css-foo { box-shadow: coolShadow-v4; }
+.my-app-at-rule-value_module_css-foo { box-shadow: /* test */   0 11px 15px -7px rgba(0,0,0,.2),0 24px 38px 3px rgba(0,0,0,.14); }
 
 
-.my-app-at-rule-value_module_css-foo { box-shadow: coolShadow-v5; }
+.my-app-at-rule-value_module_css-foo { box-shadow: /* test */0 11px 15px -7px rgba(0,0,0,.2),0 24px 38px 3px rgba(0,0,0,.14); }
 
 
-.my-app-at-rule-value_module_css-foo { box-shadow: coolShadow-v6; }
+.my-app-at-rule-value_module_css-foo { box-shadow: 0 11px 15px -7px rgba(0,0,0,.2),0 24px 38px 3px rgba(0,0,0,.14); }
 
 
-.my-app-at-rule-value_module_css-foo { box-shadow: coolShadow-v7; }
+.my-app-at-rule-value_module_css-foo { box-shadow: /* test */0 11px 15px -7px rgba(0,0,0,.2),0 24px 38px 3px rgba(0,0,0,.14); }
 
 
-.my-app-at-rule-value_module_css-foo { color: test-v1; }
+.my-app-at-rule-value_module_css-foo { color: blue; }
 
 
-.my-app-at-rule-value_module_css-foo { color: test-v2; }
+.my-app-at-rule-value_module_css-foo { color: blue; }
 
 
-.my-app-at-rule-value_module_css-foo { color: my-name-q; }
+.my-app-at-rule-value_module_css-foo { color: red; }
 
 
 .my-app-at-rule-value_module_css-color {
-	color: multiline-v1;
+	color: /*
+	multiline
+	comment
+*/red/*
+	multiline
+	comment
+*/;
 }
 
 
-.my-app-at-rule-value_module_css-foo { color: red-v3; }
+.my-app-at-rule-value_module_css-foo { color: blue; }
 
 
-:root { --my-app-at-rule-value_module_css-color:; }
+:root { --my-app-at-rule-value_module_css-color: /*
+	multiline
+	comment
+*/; }
 
 
 :root {
