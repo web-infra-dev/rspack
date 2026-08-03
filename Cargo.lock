@@ -1114,7 +1114,7 @@ dependencies = [
 [[package]]
 name = "css-module-lexer"
 version = "0.1.0"
-source = "git+https://github.com/intellild/css-module-lexer.git?rev=9c829a840fd378e9bcbedce93368aaa4f8e6b7f7#9c829a840fd378e9bcbedce93368aaa4f8e6b7f7"
+source = "git+https://github.com/intellild/css-module-lexer.git?rev=e88e9a587ed0e59bf561c0b736f1803ca149becc#e88e9a587ed0e59bf561c0b736f1803ca149becc"
 dependencies = [
  "smallvec",
 ]
