@@ -134,6 +134,7 @@ function getRawCache(cache: CacheNormalized): RawOptions['cache'] {
     maxVersions: toRawStorageLimit('cache.maxVersions', cache.maxVersions!),
     storage: {
       type: cache.storage.type,
+      // Raw `directory` expects the final cache path; normalized `directory` is only the base.
       directory: cache.storage.location!,
     },
     snapshot: {
