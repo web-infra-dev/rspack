@@ -78,7 +78,7 @@ export default {
 ### name
 
 - **Type:** `string`
-- **Default:** `<config.name || 'default'>-<mode>`
+- **Default:** `<config.name>-<mode>` when `config.name` is set, otherwise `<mode>`
 
 `cache.name` names a persistent cache. Different names create coexisting caches. In multi-compiler mode, the compiler index is appended to the default name so each compiler gets a unique cache.
 

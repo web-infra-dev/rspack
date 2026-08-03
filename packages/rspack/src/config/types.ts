@@ -2082,7 +2082,7 @@ export type PersistentCacheOptions = {
   type: 'persistent';
   /**
    * Name for the cache. Different names create coexisting caches.
-   * @default '<config.name || "default">-<mode>'
+   * @default '<config.name>-<mode>' when config.name is set, otherwise '<mode>'
    */
   name?: string;
   /**

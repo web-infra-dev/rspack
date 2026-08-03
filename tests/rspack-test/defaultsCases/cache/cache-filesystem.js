@@ -13,7 +13,7 @@ module.exports = {
 			+     "buildDependencies": Array [],
 			+     "maxAge": 604800,
 			+     "maxVersions": 3,
-			+     "name": "default-none",
+			+     "name": "none",
 			+     "portable": false,
 			+     "readonly": false,
 			+     "snapshot": Object {
@@ -25,7 +25,7 @@ module.exports = {
 			+     },
 			+     "storage": Object {
 			+       "directory": "<cwd>/node_modules/.cache/rspack",
-			+       "location": "<cwd>/node_modules/.cache/rspack/default-none",
+			+       "location": "<cwd>/node_modules/.cache/rspack/none",
 			+       "type": "filesystem",
 			+     },
 			+     "type": "persistent",

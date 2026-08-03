@@ -13,7 +13,7 @@ module.exports = {
 			+     "buildDependencies": Array [],
 			+     "maxAge": 604800,
 			+     "maxVersions": 3,
-			+     "name": "default-development",
+			+     "name": "development",
 			+     "portable": false,
 			+     "readonly": false,
 			+     "snapshot": Object {
@@ -25,7 +25,7 @@ module.exports = {
 			+     },
 			+     "storage": Object {
 			+       "directory": "<cwd>/node_modules/.cache/rspack",
-			+       "location": "<cwd>/node_modules/.cache/rspack/default-development",
+			+       "location": "<cwd>/node_modules/.cache/rspack/development",
 			+       "type": "filesystem",
 			+     },
 			+     "type": "persistent",

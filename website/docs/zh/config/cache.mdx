@@ -80,7 +80,7 @@ export default {
 ### name
 
 - **类型：** `string`
-- **默认值：** `<config.name || 'default'>-<mode>`
+- **默认值：** 设置 `config.name` 时为 `<config.name>-<mode>`，否则为 `<mode>`
 
 `cache.name` 用于命名持久化缓存。不同的名称会创建可同时存在的缓存。在 multi compiler 模式下，默认名称会追加 compiler index，确保每个 compiler 使用独立缓存。
 

@@ -60,7 +60,7 @@ import type {
 
 const ERROR_PREFIX = 'Invalid Rspack configuration:';
 const DEFAULT_FILESYSTEM_CACHE_MAX_AGE_SECONDS = 7 * 24 * 60 * 60;
-const DEFAULT_CACHE_NAME = 'default';
+const DEFAULT_CACHE_NAME = '';
 
 export const applyRspackOptionsDefaults = (
   options: RspackOptionsNormalized,
@@ -105,8 +105,8 @@ export const applyRspackOptionsDefaults = (
   );
   applyCacheDefaults(options.cache!, {
     context: options.context!,
-    name: options.name,
-    mode: options.mode,
+    name: options.name || DEFAULT_CACHE_NAME,
+    mode: options.mode || 'production',
     compilerIndex,
   });
 
@@ -220,8 +220,8 @@ const applyCacheDefaults = (
     compilerIndex,
   }: {
     context: string;
-    name?: Name;
-    mode?: Mode;
+    name: Name;
+    mode: Mode;
     compilerIndex?: number;
   },
 ) => {
@@ -231,7 +231,7 @@ const applyCacheDefaults = (
       break;
     case 'persistent':
       F(cache, 'name', () => {
-        const cacheName = `${name || DEFAULT_CACHE_NAME}-${mode || 'production'}`;
+        const cacheName = name ? `${name}-${mode}` : mode;
         return compilerIndex !== undefined
           ? `${cacheName}__compiler${compilerIndex + 1}__`
           : cacheName;
