@@ -8,13 +8,7 @@ use swc_core::{
 
 const RSC_SERVER_MODULE: &str = "react-server-dom-rspack/server";
 const REGISTER_CLIENT_REFERENCE: &str = "registerClientReference";
-const REACT_MODULE: &str = "react";
-const REACT_BINDING: &str = "React";
-const REACT_FRAGMENT: &str = "Fragment";
-const REACT_CREATE_ELEMENT: &str = "createElement";
-const CSS_RESOURCES_BINDING: &str = "resources";
-const CLIENT_REF_BINDING_PREFIX: &str = "Ref";
-const API_RSC_MANIFEST: &str = "__rspack_rsc_manifest__";
+const DYNAMIC_EXPORT_BINDING_PREFIX: &str = "__rspack_export_";
 
 /// Replaces a `"use client"` module on the RSC server layer with client
 /// reference proxy exports.
@@ -24,51 +18,35 @@ const API_RSC_MANIFEST: &str = "__rspack_rsc_manifest__";
 ///
 /// ```text
 /// import { registerClientReference } from "react-server-dom-rspack/server";
-/// import * as React from "react";
 ///
-/// const resources = (__rspack_rsc_manifest__.clientManifest?.[resource]?.cssFiles ?? [])
-///   .map(href => React.createElement("link", {
-///     ...__rspack_rsc_manifest__.cssLinkProps,
-///     key: href,
-///     rel: "stylesheet",
-///     href
-///   }));
-///
-/// const Ref1 = registerClientReference(function() { throw new Error(...); }, resource, "default");
-/// export default resources.length
-///   ? props => React.createElement(React.Fragment, null, resources, React.createElement(Ref1, props))
-///   : Ref1;
-///
-/// const Ref2 = registerClientReference(function() { throw new Error(...); }, resource, "Button");
-/// export const Button = resources.length
-///   ? props => React.createElement(React.Fragment, null, resources, React.createElement(Ref2, props))
-///   : Ref2;
+/// export default registerClientReference(
+///   function() { throw new Error(...); },
+///   resource,
+///   "default"
+/// );
+/// export const Button = registerClientReference(
+///   function() { throw new Error(...); },
+///   resource,
+///   "Button"
+/// );
 /// ```
 ///
-/// CJS modules use the same proxy declarations, but import through `require`
-/// and assign to `module.exports` / `exports[exportName]`:
+/// CJS modules import through `require` and assign the references directly to
+/// `module.exports` / `exports[exportName]`:
 ///
 /// ```text
 /// const { registerClientReference } = require("react-server-dom-rspack/server");
-/// const React = require("react");
 ///
-/// const resources = (__rspack_rsc_manifest__.clientManifest?.[resource]?.cssFiles ?? [])
-///   .map(href => React.createElement("link", {
-///     ...__rspack_rsc_manifest__.cssLinkProps,
-///     key: href,
-///     rel: "stylesheet",
-///     href
-///   }));
-///
-/// const Ref1 = registerClientReference(function() { throw new Error(...); }, resource, "default");
-/// module.exports = resources.length
-///   ? props => React.createElement(React.Fragment, null, resources, React.createElement(Ref1, props))
-///   : Ref1;
-///
-/// const Ref2 = registerClientReference(function() { throw new Error(...); }, resource, "Button");
-/// exports["Button"] = resources.length
-///   ? props => React.createElement(React.Fragment, null, resources, React.createElement(Ref2, props))
-///   : Ref2;
+/// module.exports = registerClientReference(
+///   function() { throw new Error(...); },
+///   resource,
+///   "default"
+/// );
+/// exports["Button"] = registerClientReference(
+///   function() { throw new Error(...); },
+///   resource,
+///   "Button"
+/// );
 /// ```
 ///
 /// Returns `false` for `export *` client refs, so the caller can keep the
@@ -121,52 +99,27 @@ fn to_client_ref_module(
   register_client_reference_decl: ModuleItem,
   is_cjs: bool,
 ) -> Vec<ModuleItem> {
-  let mut bindings = BindingNameAllocator::new(client_refs);
-  let resources_name = bindings.claim_available(CSS_RESOURCES_BINDING);
-  let react_name = bindings.claim_available(REACT_BINDING);
-
-  let mut items = Vec::with_capacity(client_refs.len() * 2 + 3);
+  let mut items = Vec::with_capacity(client_refs.len() + 1);
   items.push(register_client_reference_decl);
-  items.push(react_decl(&react_name, is_cjs));
-  items.push(css_resources_decl(resource, &resources_name, &react_name));
-  items.extend(client_exports(
-    resource,
-    client_refs,
-    &resources_name,
-    &react_name,
-    &mut bindings,
-    is_cjs,
-  ));
+  items.extend(client_exports(resource, client_refs, is_cjs));
   items
 }
 
-fn client_exports(
-  resource: &str,
-  client_refs: &[Wtf8Atom],
-  resources_name: &str,
-  react_name: &str,
-  bindings: &mut BindingNameAllocator,
-  is_cjs: bool,
-) -> Vec<ModuleItem> {
+fn client_exports(resource: &str, client_refs: &[Wtf8Atom], is_cjs: bool) -> Vec<ModuleItem> {
   let call_error = client_reference_call_error(resource);
-  let mut items = Vec::with_capacity(client_refs.len() * 2);
+  let mut items = Vec::with_capacity(client_refs.len());
+  let mut dynamic_export_count = 0;
 
   for export_name in client_refs
     .iter()
     .filter_map(|client_ref| client_ref.as_str())
   {
-    let ref_name = bindings.next_ref_name();
-    items.push(client_reference_decl(
-      resource,
+    let reference = register_client_reference_expr(resource, export_name, &call_error);
+    items.extend(client_export_decls(
       export_name,
-      &ref_name,
-      &call_error,
-    ));
-    items.push(client_export_decl(
-      export_name,
-      &ref_name,
-      resources_name,
-      react_name,
+      reference,
+      client_refs,
+      &mut dynamic_export_count,
       is_cjs,
     ));
   }
@@ -174,25 +127,36 @@ fn client_exports(
   items
 }
 
-fn client_export_decl(
+fn client_export_decls(
   export_name: &str,
-  ref_name: &str,
-  resources_name: &str,
-  react_name: &str,
+  reference: Expr,
+  client_refs: &[Wtf8Atom],
+  dynamic_export_count: &mut usize,
   is_cjs: bool,
-) -> ModuleItem {
-  let export_expr = client_export_expr(ref_name, resources_name, react_name);
-
+) -> Vec<ModuleItem> {
   match (is_cjs, export_name) {
-    (false, "default") => {
-      ModuleItem::ModuleDecl(ModuleDecl::ExportDefaultExpr(ExportDefaultExpr {
+    (false, "default") => vec![ModuleItem::ModuleDecl(ModuleDecl::ExportDefaultExpr(
+      ExportDefaultExpr {
         span: DUMMY_SP,
-        expr: Box::new(export_expr),
-      }))
+        expr: Box::new(reference),
+      },
+    ))],
+    (true, "default") => vec![assign_member_stmt("module", "exports", reference)],
+    (false, ident) if Ident::verify_symbol(ident).is_ok() => {
+      vec![export_const_decl(ident, reference)]
     }
-    (true, "default") => assign_member_stmt("module", "exports", export_expr),
-    (false, ident) => export_const_decl(ident, export_expr),
-    (true, ident) => assign_computed_member_stmt("exports", str_expr(ident), export_expr),
+    (false, export_name) => {
+      let local_name = next_dynamic_export_binding(client_refs, dynamic_export_count);
+      vec![
+        const_decl(&local_name, reference),
+        export_named_decl(&local_name, export_name),
+      ]
+    }
+    (true, ident) => vec![assign_computed_member_stmt(
+      "exports",
+      str_expr(ident),
+      reference,
+    )],
   }
 }
 
@@ -206,127 +170,20 @@ fn client_reference_call_error(resource: &str) -> String {
   )
 }
 
-fn client_reference_decl(
-  resource: &str,
-  export_name: &str,
-  ref_name: &str,
-  call_error: &str,
-) -> ModuleItem {
-  const_decl(
-    ref_name,
-    register_client_reference_expr(resource, export_name, call_error),
-  )
-}
-
-struct BindingNameAllocator<'a> {
-  client_refs: &'a [Wtf8Atom],
-  reserved_names: Vec<String>,
-  ref_count: usize,
-}
-
-impl<'a> BindingNameAllocator<'a> {
-  fn new(client_refs: &'a [Wtf8Atom]) -> Self {
-    Self {
-      client_refs,
-      reserved_names: Vec::new(),
-      ref_count: 0,
-    }
-  }
-
-  fn claim_available(&mut self, base: &str) -> String {
-    let mut suffix = 0;
-    loop {
-      let name = if suffix == 0 {
-        base.to_string()
-      } else {
-        format!("{base}{suffix}")
-      };
-
-      if self.is_available(&name) {
-        self.reserved_names.push(name.clone());
-        return name;
-      }
-
-      suffix += 1;
-    }
-  }
-
-  fn next_ref_name(&mut self) -> String {
-    loop {
-      self.ref_count += 1;
-      let name = format!("{CLIENT_REF_BINDING_PREFIX}{}", self.ref_count);
-
-      if self.is_available(&name) {
-        self.reserved_names.push(name.clone());
-        return name;
-      }
-    }
-  }
-
-  fn is_available(&self, name: &str) -> bool {
-    !self
-      .reserved_names
+fn next_dynamic_export_binding(
+  client_refs: &[Wtf8Atom],
+  dynamic_export_count: &mut usize,
+) -> String {
+  loop {
+    *dynamic_export_count += 1;
+    let name = format!("{DYNAMIC_EXPORT_BINDING_PREFIX}{dynamic_export_count}__");
+    if !client_refs
       .iter()
-      .any(|reserved_name| reserved_name == name)
-      && !self
-        .client_refs
-        .iter()
-        .any(|client_ref| client_ref.as_str() == Some(name))
+      .any(|client_ref| client_ref.as_str() == Some(name.as_str()))
+    {
+      return name;
+    }
   }
-}
-
-fn css_resources_decl(resource: &str, resources_name: &str, react_name: &str) -> ModuleItem {
-  const_decl(
-    resources_name,
-    call_expr(
-      member_expr(
-        nullish_coalescing(client_css_files_expr(resource), empty_array_expr()),
-        "map",
-      ),
-      vec![css_resource_mapper(react_name)],
-      DUMMY_SP,
-    ),
-  )
-}
-
-fn empty_array_expr() -> Expr {
-  Expr::Array(ArrayLit {
-    span: DUMMY_SP,
-    elems: vec![],
-  })
-}
-
-fn client_css_files_expr(resource: &str) -> Expr {
-  opt_chain_member_expr(
-    opt_chain_computed_member_expr(client_manifest_expr(), str_expr(resource)),
-    "cssFiles",
-  )
-}
-
-fn client_manifest_expr() -> Expr {
-  member_expr(ident_expr(API_RSC_MANIFEST), "clientManifest")
-}
-
-fn css_resource_mapper(react_name: &str) -> Expr {
-  Expr::Fn(FnExpr {
-    ident: None,
-    function: Box::new(Function {
-      params: vec![Param {
-        span: DUMMY_SP,
-        decorators: vec![],
-        pat: Pat::Ident(ident_name("href").into()),
-      }],
-      body: Some(BlockStmt {
-        span: DUMMY_SP,
-        stmts: vec![Stmt::Return(ReturnStmt {
-          span: DUMMY_SP,
-          arg: Some(Box::new(react_link_element(react_name))),
-        })],
-        ..Default::default()
-      }),
-      ..Default::default()
-    }),
-  })
 }
 
 fn register_client_reference_expr(resource: &str, export_name: &str, call_error: &str) -> Expr {
@@ -364,100 +221,6 @@ fn throw_error_function(call_error: &str) -> Expr {
   })
 }
 
-fn client_export_expr(ref_name: &str, resources_name: &str, react_name: &str) -> Expr {
-  Expr::Cond(CondExpr {
-    span: DUMMY_SP,
-    test: Box::new(member_expr(ident_expr(resources_name), "length")),
-    cons: Box::new(client_wrapper_arrow(ref_name, resources_name, react_name)),
-    alt: Box::new(ident_expr(ref_name)),
-  })
-}
-
-fn client_wrapper_arrow(ref_name: &str, resources_name: &str, react_name: &str) -> Expr {
-  arrow_expr(
-    &["props"],
-    react_fragment_with_resources(ref_name, resources_name, react_name),
-  )
-}
-
-fn react_fragment_with_resources(ref_name: &str, resources_name: &str, react_name: &str) -> Expr {
-  react_create_element_call(
-    react_name,
-    member_expr(ident_expr(react_name), REACT_FRAGMENT),
-    null_expr(),
-    vec![
-      ident_expr(resources_name),
-      react_create_element_call(
-        react_name,
-        ident_expr(ref_name),
-        ident_expr("props"),
-        vec![],
-      ),
-    ],
-  )
-}
-
-fn react_link_element(react_name: &str) -> Expr {
-  react_create_element_call(react_name, str_expr("link"), link_props_expr(), vec![])
-}
-
-fn link_props_expr() -> Expr {
-  object_expr(vec![
-    spread_prop(member_expr(ident_expr(API_RSC_MANIFEST), "cssLinkProps")),
-    key_value_prop("key", ident_expr("href")),
-    key_value_prop("rel", str_expr("stylesheet")),
-    key_value_prop("href", ident_expr("href")),
-  ])
-}
-
-fn object_expr(props: Vec<PropOrSpread>) -> Expr {
-  Expr::Object(ObjectLit {
-    span: DUMMY_SP,
-    props,
-  })
-}
-
-fn key_value_prop(name: &str, value: Expr) -> PropOrSpread {
-  PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
-    key: PropName::Ident(ident_name(name)),
-    value: Box::new(value),
-  })))
-}
-
-fn spread_prop(expr: Expr) -> PropOrSpread {
-  PropOrSpread::Spread(SpreadElement {
-    dot3_token: DUMMY_SP,
-    expr: Box::new(expr),
-  })
-}
-
-fn react_create_element_call(
-  react_name: &str,
-  element: Expr,
-  props: Expr,
-  children: Vec<Expr>,
-) -> Expr {
-  let mut args = vec![element, props];
-  args.extend(children);
-  call_expr(
-    member_expr(ident_expr(react_name), REACT_CREATE_ELEMENT),
-    args,
-    DUMMY_SP,
-  )
-}
-
-fn null_expr() -> Expr {
-  Expr::Lit(Lit::Null(Null { span: DUMMY_SP }))
-}
-
-fn react_decl(name: &str, is_cjs: bool) -> ModuleItem {
-  if is_cjs {
-    const_decl(name, require_call(REACT_MODULE))
-  } else {
-    import_namespace(REACT_MODULE, name)
-  }
-}
-
 fn import_named(source: &str, names: &[&str]) -> ModuleItem {
   ModuleItem::ModuleDecl(ModuleDecl::Import(ImportDecl {
     span: DUMMY_SP,
@@ -472,24 +235,6 @@ fn import_named(source: &str, names: &[&str]) -> ModuleItem {
         })
       })
       .collect(),
-    src: Box::new(Str {
-      span: DUMMY_SP,
-      value: Wtf8Atom::from(source),
-      raw: None,
-    }),
-    type_only: false,
-    with: None,
-    phase: Default::default(),
-  }))
-}
-
-fn import_namespace(source: &str, name: &str) -> ModuleItem {
-  ModuleItem::ModuleDecl(ModuleDecl::Import(ImportDecl {
-    span: DUMMY_SP,
-    specifiers: vec![ImportSpecifier::Namespace(ImportStarAsSpecifier {
-      span: DUMMY_SP,
-      local: ident(name),
-    })],
     src: Box::new(Str {
       span: DUMMY_SP,
       value: Wtf8Atom::from(source),
@@ -560,6 +305,25 @@ fn export_const_decl(name: &str, init: Expr) -> ModuleItem {
   }))
 }
 
+fn export_named_decl(local_name: &str, export_name: &str) -> ModuleItem {
+  ModuleItem::ModuleDecl(ModuleDecl::ExportNamed(NamedExport {
+    span: DUMMY_SP,
+    specifiers: vec![ExportSpecifier::Named(ExportNamedSpecifier {
+      span: DUMMY_SP,
+      orig: ModuleExportName::Ident(ident(local_name)),
+      exported: Some(ModuleExportName::Str(Str {
+        span: DUMMY_SP,
+        value: Wtf8Atom::from(export_name),
+        raw: None,
+      })),
+      is_type_only: false,
+    })],
+    src: None,
+    type_only: false,
+    with: None,
+  }))
+}
+
 fn assign_member_stmt(obj: &str, prop: &str, right: Expr) -> ModuleItem {
   ModuleItem::Stmt(Stmt::Expr(ExprStmt {
     span: DUMMY_SP,
@@ -591,53 +355,12 @@ fn require_call(source: &str) -> Expr {
   call_expr(ident_expr("require"), vec![str_expr(source)], DUMMY_SP)
 }
 
-fn arrow_expr(params: &[&str], body: Expr) -> Expr {
-  Expr::Arrow(ArrowExpr {
-    span: DUMMY_SP,
-    ctxt: SyntaxContext::empty(),
-    params: params
-      .iter()
-      .map(|name| Pat::Ident(ident_name(name).into()))
-      .collect(),
-    body: Box::new(BlockStmtOrExpr::Expr(Box::new(body))),
-    is_async: false,
-    is_generator: false,
-    type_params: None,
-    return_type: None,
-  })
-}
-
 fn call_expr(callee: Expr, args: Vec<Expr>, span: Span) -> Expr {
   Expr::Call(CallExpr {
     span,
     callee: callee.as_callee(),
     args: args.into_iter().map(expr_arg).collect(),
     ..Default::default()
-  })
-}
-
-fn nullish_coalescing(left: Expr, right: Expr) -> Expr {
-  Expr::Bin(BinExpr {
-    span: DUMMY_SP,
-    op: BinaryOp::NullishCoalescing,
-    left: Box::new(left),
-    right: Box::new(right),
-  })
-}
-
-fn opt_chain_computed_member_expr(obj: Expr, prop: Expr) -> Expr {
-  opt_chain_member(computed_member(obj, prop))
-}
-
-fn opt_chain_member_expr(obj: Expr, prop: &str) -> Expr {
-  opt_chain_member(member_expr_inner(obj, prop))
-}
-
-fn opt_chain_member(member: MemberExpr) -> Expr {
-  Expr::OptChain(OptChainExpr {
-    span: DUMMY_SP,
-    base: Box::new(OptChainBase::Member(member)),
-    optional: true,
   })
 }
 
@@ -650,10 +373,6 @@ fn computed_member(obj: Expr, prop: Expr) -> MemberExpr {
       expr: Box::new(prop),
     }),
   }
-}
-
-fn member_expr(obj: Expr, prop: &str) -> Expr {
-  Expr::Member(member_expr_inner(obj, prop))
 }
 
 fn member(obj: &str, prop: &str) -> MemberExpr {
