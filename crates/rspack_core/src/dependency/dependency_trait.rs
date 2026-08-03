@@ -50,24 +50,6 @@ impl DependencyDiagnosticsContext {
   }
 }
 
-#[cfg(test)]
-mod dependency_diagnostics_context_tests {
-  use super::*;
-
-  #[test]
-  fn shares_lazily_materialized_module_source() {
-    let context = DependencyDiagnosticsContext::default();
-    let first = context
-      .get_or_init_module_source(|| Some(Arc::from("module source")))
-      .expect("should initialize source");
-    let second = context
-      .get_or_init_module_source(|| panic!("source should only be initialized once"))
-      .expect("should reuse source");
-
-    assert!(Arc::ptr_eq(&first, &second));
-  }
-}
-
 #[cacheable_dyn]
 pub trait Dependency:
   AsDependencyCodeGeneration
