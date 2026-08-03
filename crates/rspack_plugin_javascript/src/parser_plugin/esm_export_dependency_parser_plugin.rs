@@ -19,7 +19,7 @@ use crate::{
     ESMExportImportedSpecifierDependency, ESMExportSpecifierDependency,
     ESMImportSideEffectDependency,
   },
-  parser_plugin::compatibility_plugin::{NESTED_IDENTIFIER_TAG, NestedRequireData},
+  parser_plugin::compatibility_plugin::CompatibilityPlugin,
   utils::object_properties::get_attributes,
   visitors::{
     ExportDefaultDeclaration, ExportDefaultExpression, ExportImport, ExportLocal, JavascriptParser,
@@ -187,9 +187,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
         .collected_typescript_info
         .as_ref()
         .and_then(|info| info.exported_enums.get(local_id).cloned());
-      let variable = parser
-        .get_tag_data::<NestedRequireData>(local_id, NESTED_IDENTIFIER_TAG)
-        .map(|data| data.name.clone());
+      let variable = CompatibilityPlugin::update_nested_binding_declaration(parser, local_id);
 
       let range = DependencyRange::from(statement.span());
       let loc = parser.to_dependency_location(range);

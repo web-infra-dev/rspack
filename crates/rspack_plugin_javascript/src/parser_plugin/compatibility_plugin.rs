@@ -76,6 +76,34 @@ impl CompatibilityPlugin {
       }),
     );
   }
+
+  /// Materialize the declaration replacement before an export records the nested name.
+  /// A non-self-referential function would not otherwise visit the identifier hook.
+  pub(crate) fn update_nested_binding_declaration(
+    parser: &mut JavascriptParser,
+    name: &Atom,
+  ) -> Option<Atom> {
+    let (nested_name, dep) = {
+      let data = parser.get_tag_data_mut::<NestedRequireData>(name, NESTED_IDENTIFIER_TAG)?;
+      let nested_name = Atom::from(data.name.as_str());
+      let content = if data.in_short_hand {
+        format!("{name}: {}", data.name).into()
+      } else {
+        data.name.clone().into()
+      };
+      let dep = if data.update {
+        None
+      } else {
+        Some(ConstDependency::new(data.loc, content))
+      };
+      data.update = true;
+      (nested_name, dep)
+    };
+    if let Some(dep) = dep {
+      parser.add_presentational_dependency(Box::new(dep));
+    }
+    Some(nested_name)
+  }
 }
 
 #[rspack_macros::implemented_javascript_parser_hooks]
