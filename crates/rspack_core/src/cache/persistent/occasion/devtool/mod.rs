@@ -279,17 +279,21 @@ impl SourceMapDevToolPluginCacheArtifact {
       }
     });
 
-    for (filename, asset, source_map) in items {
-      let Some(source) = asset.get_source() else {
-        continue;
-      };
-      let Some(cache_key) = CacheKey::new(filename, &asset.info.version) else {
-        continue;
-      };
-      let Some(source_map) = create_cached_source_map(source.as_ref(), source_map) else {
-        continue;
-      };
+    let cached_source_maps = items
+      .into_iter()
+      .filter_map(|(filename, asset, source_map)| {
+        let source = asset.get_source()?;
+        let cache_key = CacheKey::new(filename, &asset.info.version)?;
+        Some((cache_key, source.as_ref(), source_map))
+      })
+      .collect::<Vec<_>>()
+      .into_par_iter()
+      .filter_map(|(cache_key, source, source_map)| {
+        create_cached_source_map(source, source_map).map(|source_map| (cache_key, source_map))
+      })
+      .collect::<Vec<_>>();
 
+    for (cache_key, source_map) in cached_source_maps {
       match self.entries.entry(cache_key) {
         std::collections::hash_map::Entry::Occupied(mut occupied) => {
           occupied.insert(Some(source_map));
