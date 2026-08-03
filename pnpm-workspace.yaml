@@ -76,7 +76,7 @@ catalog:
   'bundle-loader': '^0.5.6'
   'cac': '^7.0.0'
   'case-police': '~2.2.1'
-  'chalk': '^4.1.2'
+  'chalk': '^6.0.0'
   'coffee-loader': '^1.0.1'
   'coffeescript': '^2.7.0'
   'commander': '14.0.3'
@@ -168,8 +168,6 @@ catalog:
   'zx': '8.8.5'
 
 catalogs:
-  chalk5:
-    'chalk': '^5.6.2'
   tailwindcss3:
     'tailwindcss': '^3.4.19'
   typescript7:
