@@ -411,7 +411,7 @@ impl ImportMetaPlugin {
         })
         .join(".");
       concat_string!(
-        "Accessing unknown property '",
+        "Accessing unknown `import.meta` property '",
         property,
         "' is replaced with undefined."
       )
