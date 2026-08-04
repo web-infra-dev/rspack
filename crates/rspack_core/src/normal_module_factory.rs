@@ -12,13 +12,14 @@ use crate::{
   AssetInlineGeneratorOptions, AssetResourceGeneratorOptions, BoxLoader, BoxModule,
   CompilerOptions, Context, CssAutoOrModuleParserOptions, CssModuleGeneratorOptions,
   CssModuleParserOptions, Dependency, DependencyCategory, DependencyType, FactoryMeta, FuncUseCtx,
-  GeneratorOptions, MatchContext, ModuleExt, ModuleFactory, ModuleFactoryCreateData,
-  ModuleFactoryResult, ModuleIdentifier, ModuleLayer, ModuleRuleEffect, ModuleRuleEnforce,
-  ModuleRuleUse, ModuleRuleUseLoader, ModuleType, NormalModule, ParserAndGenerator, ParserOptions,
-  ParserOptionsMap, RawModule, Resolve, ResolveArgs, ResolveOptionsWithDependencyType,
-  ResolveResult, ResolvedModuleOptions, ResolvedModuleOptionsCacheKey, Resolver, ResolverFactory,
-  ResourceData, ResourceParsedData, RunnerContext, RuntimeGlobals, SharedPluginDriver,
-  diagnostics::EmptyDependency, module_rules_matcher, parse_resource, resolve,
+  GeneratorOptions, INTERNAL_CACHE_LOADER_IDENTIFIER, MatchContext, ModuleExt, ModuleFactory,
+  ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, ModuleLayer, ModuleRuleEffect,
+  ModuleRuleEnforce, ModuleRuleUse, ModuleRuleUseLoader, ModuleType, NormalModule,
+  ParserAndGenerator, ParserOptions, ParserOptionsMap, RawModule, Resolve, ResolveArgs,
+  ResolveOptionsWithDependencyType, ResolveResult, ResolvedModuleOptions,
+  ResolvedModuleOptionsCacheKey, Resolver, ResolverFactory, ResourceData, ResourceParsedData,
+  RunnerContext, RuntimeGlobals, SharedPluginDriver, diagnostics::EmptyDependency,
+  loader::CacheLoader, module_rules_matcher, parse_resource, resolve,
   stringify_loaders_and_resource,
 };
 
@@ -853,6 +854,7 @@ impl NormalModuleFactory {
                 .get(ident)
                 .map(|object| object.to_string())
             }),
+            cache: false,
           }
         }));
         scheme = get_scheme(unresolved_resource);
@@ -1049,14 +1051,18 @@ module.exports = "data:,";
       );
 
       for l in post_loaders {
-        all_loaders
-          .push(resolve_each(plugin_driver, &self.options.context, &loader_resolver, &l).await?)
+        all_loaders.extend(
+          resolve_each_with_cache(plugin_driver, &self.options.context, &loader_resolver, &l)
+            .await?,
+        )
       }
 
       let mut resolved_normal_loaders = vec![];
       for l in normal_loaders {
-        resolved_normal_loaders
-          .push(resolve_each(plugin_driver, &self.options.context, &loader_resolver, &l).await?)
+        resolved_normal_loaders.extend(
+          resolve_each_with_cache(plugin_driver, &self.options.context, &loader_resolver, &l)
+            .await?,
+        )
       }
 
       if match_resource_data.is_some() {
@@ -1068,8 +1074,10 @@ module.exports = "data:,";
       }
 
       for l in pre_loaders {
-        all_loaders
-          .push(resolve_each(plugin_driver, &self.options.context, &loader_resolver, &l).await?)
+        all_loaders.extend(
+          resolve_each_with_cache(plugin_driver, &self.options.context, &loader_resolver, &l)
+            .await?,
+        )
       }
 
       all_loaders
@@ -1344,12 +1352,31 @@ async fn resolve_each(
   loader_resolver: &Resolver,
   l: &ModuleRuleUseLoader,
 ) -> Result<Arc<dyn Loader<RunnerContext>>> {
+  if l.loader.starts_with(INTERNAL_CACHE_LOADER_IDENTIFIER) {
+    return Err(error!(
+      "{INTERNAL_CACHE_LOADER_IDENTIFIER} is internal; enable Rule.use.cache instead"
+    ));
+  }
   plugin_driver
     .normal_module_factory_hooks
     .resolve_loader
     .call(context, loader_resolver, l)
     .await?
     .ok_or_else(|| error!("Unable to resolve loader {}", l.loader))
+}
+
+async fn resolve_each_with_cache(
+  plugin_driver: &SharedPluginDriver,
+  context: &Context,
+  loader_resolver: &Resolver,
+  loader: &ModuleRuleUseLoader,
+) -> Result<Vec<BoxLoader>> {
+  let resolved_loader = resolve_each(plugin_driver, context, loader_resolver, loader).await?;
+  if !loader.cache || !plugin_driver.options.experiments.loader_cache {
+    return Ok(vec![resolved_loader]);
+  }
+
+  Ok(vec![Arc::new(CacheLoader), resolved_loader])
 }
 
 #[derive(Debug)]

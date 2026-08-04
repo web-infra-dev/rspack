@@ -7,7 +7,7 @@ use rspack_util::fx_hash::FxDashMap;
 use crate::{
   ApplyContext, BoxedParserAndGeneratorBuilder, CompilationHooks, CompilationId, CompilerHooks,
   CompilerOptions, ConcatenatedModuleHooks, ContextModuleFactoryHooks, ModuleType,
-  NormalModuleFactoryHooks, NormalModuleHooks, Plugin, ResolverFactory,
+  NormalModuleFactoryHooks, NormalModuleHooks, Plugin, ResolverFactory, loader::LoaderCacheService,
 };
 
 #[derive(Debug)]
@@ -15,6 +15,7 @@ pub struct PluginDriver {
   pub(crate) options: Arc<CompilerOptions>,
   pub plugins: Vec<Box<dyn Plugin>>,
   pub resolver_factory: Arc<ResolverFactory>,
+  pub(crate) loader_cache_service: Arc<LoaderCacheService>,
   #[debug(skip)]
   pub registered_parser_and_generator_builder:
     FxDashMap<ModuleType, BoxedParserAndGeneratorBuilder>,
@@ -33,6 +34,20 @@ impl PluginDriver {
     options: Arc<CompilerOptions>,
     plugins: Vec<Box<dyn Plugin>>,
     resolver_factory: Arc<ResolverFactory>,
+  ) -> Arc<Self> {
+    Self::new_with_loader_cache(
+      options,
+      plugins,
+      resolver_factory,
+      Arc::new(LoaderCacheService::memory_only()),
+    )
+  }
+
+  pub(crate) fn new_with_loader_cache(
+    options: Arc<CompilerOptions>,
+    plugins: Vec<Box<dyn Plugin>>,
+    resolver_factory: Arc<ResolverFactory>,
+    loader_cache_service: Arc<LoaderCacheService>,
   ) -> Arc<Self> {
     let mut compiler_hooks = Default::default();
     let mut compilation_hooks = Default::default();
@@ -61,6 +76,7 @@ impl PluginDriver {
       options: options.clone(),
       plugins,
       resolver_factory,
+      loader_cache_service,
       registered_parser_and_generator_builder,
       diagnostics: Arc::new(Mutex::new(vec![])),
       compiler_hooks,

@@ -638,6 +638,7 @@ export type CacheNormalized =
     };
 
 export interface ExperimentsNormalized {
+  loaderCache?: boolean;
   asyncWebAssembly?: boolean;
   css?: boolean;
   futureDefaults?: boolean;

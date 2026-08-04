@@ -1747,6 +1747,7 @@ CompilerOptions {
     },
     cache: Disabled,
     experiments: Experiments {
+        loader_cache: false,
         css: false,
         defer_import: false,
         source_import: false,

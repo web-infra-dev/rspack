@@ -875,6 +875,11 @@ export type RuleSetLoaderWithOptions = {
    */
   parallel?: boolean | { maxWorkers?: number };
 
+  /**
+   * Cache this loader and all loaders after it in memory while the resource is unchanged.
+   */
+  cache?: boolean;
+
   options?: RuleSetLoaderOptions;
 };
 
@@ -3087,6 +3092,11 @@ export type UseInputFileSystem = false | RegExp[];
  * Experimental features configuration.
  */
 export type Experiments = {
+  /**
+   * Enable loader result caching for rule use entries with `cache: true`.
+   * @default false
+   */
+  loaderCache?: boolean;
   /**
    * Enable async WebAssembly.
    * Support the new WebAssembly according to the [updated specification](https://github.com/WebAssembly/esm-integration), it makes a WebAssembly module an async module.

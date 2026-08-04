@@ -2287,6 +2287,7 @@ export interface RawEvalDevToolModulePluginOptions {
 }
 
 export interface RawExperiments {
+  loaderCache: boolean
   useInputFileSystem?: false | Array<RegExp>
   css?: boolean
   deferImport: boolean
@@ -2737,6 +2738,7 @@ export interface RawModuleRule {
 export interface RawModuleRuleUse {
   loader: string
   options?: string
+  cache: boolean
 }
 
 export interface RawNodeOption {

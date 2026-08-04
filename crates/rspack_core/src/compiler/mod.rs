@@ -18,7 +18,7 @@ use crate::{
   BoxPlugin, CleanOptions, Compilation, CompilationAsset, CompilationLogging, CompilerOptions,
   CompilerPlatform, ContextModuleFactory, Filename, KeepPattern, NormalModuleFactory, PluginDriver,
   ResolverFactory, SharedPluginDriver,
-  cache::{Cache, new_cache},
+  cache::{Cache, new_cache_with_loader_cache},
   compilation::build_module_graph::ModuleExecutor,
   fast_set, include_hash,
   incremental::{Incremental, IncrementalPasses},
@@ -151,15 +151,24 @@ impl Compiler {
 
     let options = Arc::new(options);
     let compilation_logging: CompilationLogging = Default::default();
-    let plugin_driver = PluginDriver::new(options.clone(), plugins, resolver_factory.clone());
-    let buildtime_plugin_driver =
-      PluginDriver::new(options.clone(), buildtime_plugins, resolver_factory.clone());
-    let cache = new_cache(
+    let (cache, loader_cache_service) = new_cache_with_loader_cache(
       &compiler_path,
       options.clone(),
       input_filesystem.clone(),
       intermediate_filesystem.clone(),
       compilation_logging.clone(),
+    );
+    let plugin_driver = PluginDriver::new_with_loader_cache(
+      options.clone(),
+      plugins,
+      resolver_factory.clone(),
+      loader_cache_service,
+    );
+    let buildtime_plugin_driver = PluginDriver::new_with_loader_cache(
+      options.clone(),
+      buildtime_plugins,
+      resolver_factory.clone(),
+      plugin_driver.loader_cache_service.clone(),
     );
     let incremental = Incremental::new_cold(options.incremental);
     let module_executor = ModuleExecutor::default();

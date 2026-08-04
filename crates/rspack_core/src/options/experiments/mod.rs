@@ -25,6 +25,7 @@ use runtime_mode::RuntimeMode;
 
 #[derive(Debug)]
 pub struct Experiments {
+  pub loader_cache: bool,
   pub css: bool,
   pub defer_import: bool,
   pub source_import: bool,
