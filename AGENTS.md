@@ -143,6 +143,7 @@ Before running tests after code changes:
 This project includes comprehensive documentation designed for AI assistants and large language models. All AI-friendly documentation is located in the `.agents/` directory:
 
 - **[Architecture Guide](.agents/ARCHITECTURE.md)** - High-level architecture overview, core components, compilation pipeline, and system design
+- **[`rspack_sources` Architecture](.agents/RSPACK_SOURCES.md)** - Source composition, source-map streaming, UTF-8/UTF-16 position invariants, ownership, caching, and performance rules; read before changing or heavily using `crates/rspack_sources`
 - **[JavaScript Binding Guide](.agents/BINDING.md)** - Binding ownership, lifetimes, hook bridging, performance rules, file map, and validation
 - **[API Design](.agents/API_DESIGN.md)** - API design principles, patterns, versioning strategy, and compatibility guidelines
 - **[Code Style](.agents/CODE_STYLE.md)** - Coding standards and conventions for Rust and TypeScript/JavaScript
