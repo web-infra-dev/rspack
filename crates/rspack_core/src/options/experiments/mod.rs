@@ -29,5 +29,6 @@ pub struct Experiments {
   pub defer_import: bool,
   pub source_import: bool,
   pub pure_functions: bool,
+  pub builtin_pure_globals: bool,
   pub runtime_mode: RuntimeMode,
 }

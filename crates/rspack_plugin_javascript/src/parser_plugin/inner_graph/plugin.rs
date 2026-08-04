@@ -437,6 +437,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InnerGraphParserPlugin {
       && is_pure_class(
         parser,
         self.analyze_pure_annotation,
+        false,
         class_decl.class(),
         parser.ast.comments,
         None,
@@ -473,6 +474,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InnerGraphParserPlugin {
         && is_pure_class(
           parser,
           self.analyze_pure_annotation,
+          false,
           &class_expr.class,
           parser.ast.comments,
           None,
@@ -487,6 +489,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InnerGraphParserPlugin {
         && is_pure_function(
           parser,
           self.analyze_pure_annotation,
+          false,
           &fn_expr.function,
           parser.ast.comments,
           None,
@@ -508,6 +511,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InnerGraphParserPlugin {
       && is_pure_expression(
         parser,
         self.analyze_pure_annotation,
+        false,
         &default_expr.expr,
         parser.ast.comments,
         Some(&mut callees),
@@ -557,6 +561,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InnerGraphParserPlugin {
         && is_pure_class(
           parser,
           self.analyze_pure_annotation,
+          false,
           &init.as_class().expect("should be class").class,
           parser.ast.comments,
           None,
@@ -571,6 +576,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InnerGraphParserPlugin {
       } else if is_pure_expression(
         parser,
         self.analyze_pure_annotation,
+        false,
         init,
         parser.ast.comments,
         Some(&mut callees),
@@ -670,6 +676,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InnerGraphParserPlugin {
     let is_pure_super_class = is_pure_expression(
       parser,
       self.analyze_pure_annotation,
+      false,
       super_class,
       parser.ast.comments,
       None,
@@ -758,6 +765,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InnerGraphParserPlugin {
     let pure_member = is_pure_class_member(
       parser,
       self.analyze_pure_annotation,
+      false,
       element,
       parser.ast.comments,
       None,

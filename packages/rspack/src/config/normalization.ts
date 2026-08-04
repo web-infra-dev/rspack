@@ -647,6 +647,7 @@ export interface ExperimentsNormalized {
   deferImport?: boolean;
   sourceImport?: boolean;
   pureFunctions?: boolean;
+  builtinPureGlobals?: boolean;
   runtimeMode?: 'webpack' | 'rspack';
 }
 
