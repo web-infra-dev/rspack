@@ -1,0 +1,73 @@
+```mjs title=async.mjs
+import { definePropertyGetters, makeNamespaceObject } from "./runtime.mjs";
+var __esm = (fn, result) => function __init() {
+	if (fn) {
+		var value = fn(fn = 0);
+		result = value && typeof value.then === "function" ? value.then(value => result = value) : value;
+	}
+	return result;
+};
+// NAMESPACE OBJECT: ./async.js
+var async_namespaceObject = {};
+makeNamespaceObject(async_namespaceObject);
+definePropertyGetters(async_namespaceObject, {
+  value: () => (value)
+});
+
+
+// ./async.js
+var value;
+var async_init = /*#__PURE__*/ __esm(() => {
+( value = () => 42);
+});
+
+export { async_init, async_namespaceObject, value };
+
+```
+
+```mjs title=main.mjs
+// ./index.js
+function cb(v) {
+  return v
+}
+
+const mod = await import("./async.mjs").then(m => (m.async_init(), m.async_namespaceObject))
+const {value: value} = cb(mod);
+
+it('should have correct value', () => {
+  expect(value()).toBe(42);
+})
+
+export {};
+
+```
+
+```mjs title=runtime.mjs
+
+// rspack/runtime/define_property_getters
+var definePropertyGetters = (exports, getters, values) => {
+	var define = (defs, kind) => {
+		for(var key in defs) {
+			if(hasOwnProperty(defs, key) && !hasOwnProperty(exports, key)) {
+				Object.defineProperty(exports, key, { enumerable: true, [kind]: defs[key] });
+			}
+		}
+	};
+	define(getters, "get");
+	define(values, "value");
+};;
+export { definePropertyGetters };
+// rspack/runtime/has_own_property
+var hasOwnProperty = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop));
+// rspack/runtime/make_namespace_object
+// define __esModule on exports
+var makeNamespaceObject = (exports) => {
+	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+	}
+	Object.defineProperty(exports, '__esModule', { value: true });
+};;
+export { makeNamespaceObject };
+
+
+```

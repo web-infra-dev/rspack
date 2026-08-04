@@ -41,7 +41,7 @@ it("should avoid duplicating short reexport paths across entries", async () => {
   expect(globalThis.__reexport_shortpaths_count__).toBe(1);
 });
 
-export default main;
+export { main as default };
 
 ```
 
@@ -53,7 +53,7 @@ import "./dep1_js.mjs";
 
 /* export default */ const other = ("other");
 
-export default other;
+export { other as default };
 
 ```
 
@@ -65,6 +65,6 @@ import "./dep2_js.mjs";
 
 /* export default */ const third = ("third");
 
-export default third;
+export { third as default };
 
 ```

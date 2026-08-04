@@ -1,29 +1,34 @@
 ```mjs title=main.mjs
 import { __webpack_require__ } from "./runtime.mjs";
+import { readFile, writeFile } from "fs";
 
-import * as __rspack_external_fs from "fs";
-__webpack_require__.add({
-"./cjs.js"
-/*!****************!*\
-  !*** ./cjs.js ***!
-  \****************/
-(__unused_rspack_module, __unused_rspack___webpack_exports__, __webpack_require__) {
-/* import */ var _use_other__rspack_import_0 = __webpack_require__(/*! ./use-other */ "./use-other.js");
-/* import */ var _use_other__rspack_import_0_default = /*#__PURE__*/__webpack_require__.n(_use_other__rspack_import_0);
+var __esm = (fn, result) => function __init() {
+	if (fn) {
+		var value = fn(fn = 0);
+		result = value && typeof value.then === "function" ? value.then(value => result = value) : value;
+	}
+	return result;
+};
+var __commonJS = (factory, flags, id, isEntry, module) => function __require() {
+	if (module !== undefined) {
+		return module.exports;
+	}
+	module = { exports: {} };
+	if (isEntry) module.isEntry = true;
+	if (flags & 1) module.id = id;
+	if (flags & 2) module.loaded = false;
+	if (flags & 4) factory.call(module.exports, module, module.exports, undefined);
+	else factory(module, module.exports, undefined);
+	if (flags & 2) module.loaded = true;
+	return module.exports;
+};
+var require_index = /*#__PURE__*/ __commonJS(function(module, __webpack_exports__) {
 
-
-// use export readFile
-console.log.bind((__webpack_require__(/*! fs */ "fs")/* .readFile */.readFile))
-
-
-},
-"./index.js"
 /*!******************!*\
   !*** ./index.js ***!
   \******************/
-(module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
-/* import */ var _cjs__rspack_import_0 = __webpack_require__(/*! ./cjs */ "./cjs.js");
+/* import */ var _cjs__rspack_import_0 = (cjs_init(), cjs_namespaceObject);
 /* module decorator */ module = __webpack_require__.hmd(module);
 
 
@@ -32,73 +37,75 @@ __webpack_require__.r(__webpack_exports__);
 // access module so entry is not scope hoisted
 console.log.bind(module)
 
+}, 1, "./index.js");
 
-},
-"./use-other.js"
+var require_use_other = /*#__PURE__*/ __commonJS(function(module, exports) {
+
 /*!**********************!*\
   !*** ./use-other.js ***!
   \**********************/
-(__unused_rspack_module, __unused_rspack_exports, __webpack_require__) {
 // use export writeFile
-console.log.bind((__webpack_require__(/*! fs */ "fs")/* .writeFile */.writeFile))
+console.log.bind((external_fs_namespaceObject/* .writeFile */.writeFile))
+
+}, 0, "./use-other.js");
+
+// NAMESPACE OBJECT: ./cjs.js
+var cjs_namespaceObject = {};
+__webpack_require__.r(cjs_namespaceObject);
 
 
-},
-"fs"
-/*!*********************!*\
-  !*** external "fs" ***!
-  \*********************/
-(module) {
-
-module.exports = __rspack_external_fs;
-
-
-},
+// NAMESPACE OBJECT: external "fs"
+var external_fs_namespaceObject_0 = {};
+__webpack_require__.r(external_fs_namespaceObject_0);
+__webpack_require__.d(external_fs_namespaceObject_0, {
+  readFile: () => (readFile)
 });
-__webpack_require__("./index.js");
+var external_fs_namespaceObject_0_starExports = external_fs_namespaceObject_0;
+Object.keys(external_fs_namespaceObject_0_starExports).forEach(function(key) {
+  if (key !== "default" && key !== "__esModule") {
+    __webpack_require__.d(external_fs_namespaceObject_0, { [key]: function() { return external_fs_namespaceObject_0_starExports[key]; } });
+  }
+});
+
+
+// NAMESPACE OBJECT: external "fs"
+var external_fs_namespaceObject = {};
+__webpack_require__.r(external_fs_namespaceObject);
+__webpack_require__.d(external_fs_namespaceObject, {
+  writeFile: () => (writeFile)
+});
+var external_fs_namespaceObject_starExports = external_fs_namespaceObject;
+Object.keys(external_fs_namespaceObject_starExports).forEach(function(key) {
+  if (key !== "default" && key !== "__esModule") {
+    __webpack_require__.d(external_fs_namespaceObject, { [key]: function() { return external_fs_namespaceObject_starExports[key]; } });
+  }
+});
+
+
+// fs?a79d
+
+// fs?2255
+
+// ./cjs.js
+var cjs_init = /*#__PURE__*/ __esm(() => {
+require_use_other();
+
+
+// use export readFile
+console.log.bind((external_fs_namespaceObject_0/* .readFile */.readFile))
+
+});
+
+require_index();
 
 export {};
 
 ```
 
 ```mjs title=runtime.mjs
+// The require scope
+var __webpack_require__ = {};
 
-var __webpack_modules__ = {};
-// The module cache
-var __webpack_module_cache__ = {};
-// The require function
-function __webpack_require__(moduleId) {
-// Check if module is in cache
-var cachedModule = __webpack_module_cache__[moduleId];
-if (cachedModule !== undefined) {
-return cachedModule.exports;
-}
-// Create a new module (and put it into the cache)
-var module = (__webpack_module_cache__[moduleId] = {
-id: moduleId,
-exports: {}
-});
-// Execute the module function
-__webpack_modules__[moduleId](module, module.exports, __webpack_require__);
-
-// Return the exports of the module
-return module.exports;
-}
-// expose the modules object (__webpack_modules__)
-__webpack_require__.m = __webpack_modules__;
-
-// webpack/runtime/compat_get_default_export
-(() => {
-// getDefaultExport function for compatibility with non-ESM modules
-__webpack_require__.n = (module) => {
-	var getter = module && module.__esModule ?
-		() => (module['default']) :
-		() => (module);
-	__webpack_require__.d(getter, { a: getter });
-	return getter;
-};
-
-})();
 // webpack/runtime/define_property_getters
 (() => {
 __webpack_require__.d = (exports, getters, values) => {
@@ -126,11 +133,6 @@ __webpack_require__.hmd = (module) => {
   });
   return module;
 };
-})();
-// webpack/runtime/esm_register_module
-(() => {
-__webpack_require__.add = function registerModules(modules) { Object.assign(__webpack_require__.m, modules) }
-
 })();
 // webpack/runtime/has_own_property
 (() => {

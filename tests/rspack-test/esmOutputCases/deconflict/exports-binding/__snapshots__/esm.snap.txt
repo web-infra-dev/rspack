@@ -1,21 +1,31 @@
 ```mjs title=main.mjs
 import { __webpack_require__ } from "./runtime.mjs";
+var __commonJS = (factory, flags, id, isEntry, module) => function __require() {
+	if (module !== undefined) {
+		return module.exports;
+	}
+	module = { exports: {} };
+	if (isEntry) module.isEntry = true;
+	if (flags & 1) module.id = id;
+	if (flags & 2) module.loaded = false;
+	if (flags & 4) factory.call(module.exports, module, module.exports, undefined);
+	else factory(module, module.exports, undefined);
+	if (flags & 2) module.loaded = true;
+	return module.exports;
+};
+var require_wrapped = /*#__PURE__*/ __commonJS(function(module, __webpack_exports__) {
 
-__webpack_require__.add({
-"./wrapped.js"
 /*!********************!*\
   !*** ./wrapped.js ***!
   \********************/
-(module, __unused_rspack___webpack_exports__, __webpack_require__) {
 /* module decorator */ module = __webpack_require__.hmd(module);
 const exports = 44;
 
 // Accessing module prevents this module from being scope hoisted.
 console.log.bind(module);
 
+}, 1, "./wrapped.js");
 
-},
-});
 // ./before-export.js
 var before_export_exports = 43;
 
@@ -39,30 +49,8 @@ export { before_export_exports as beforeExport, index_exports as exports, index_
 ```
 
 ```mjs title=runtime.mjs
-
-var __webpack_modules__ = {};
-// The module cache
-var __webpack_module_cache__ = {};
-// The require function
-function __webpack_require__(moduleId) {
-// Check if module is in cache
-var cachedModule = __webpack_module_cache__[moduleId];
-if (cachedModule !== undefined) {
-return cachedModule.exports;
-}
-// Create a new module (and put it into the cache)
-var module = (__webpack_module_cache__[moduleId] = {
-id: moduleId,
-exports: {}
-});
-// Execute the module function
-__webpack_modules__[moduleId](module, module.exports, __webpack_require__);
-
-// Return the exports of the module
-return module.exports;
-}
-// expose the modules object (__webpack_modules__)
-__webpack_require__.m = __webpack_modules__;
+// The require scope
+var __webpack_require__ = {};
 
 // webpack/runtime/esm_module_decorator
 (() => {
@@ -77,11 +65,6 @@ __webpack_require__.hmd = (module) => {
   });
   return module;
 };
-})();
-// webpack/runtime/esm_register_module
-(() => {
-__webpack_require__.add = function registerModules(modules) { Object.assign(__webpack_require__.m, modules) }
-
 })();
 
 export { __webpack_require__ };

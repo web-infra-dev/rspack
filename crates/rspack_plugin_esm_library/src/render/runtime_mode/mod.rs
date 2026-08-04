@@ -9,7 +9,6 @@ use rspack_core::{
   RuntimeGlobalsRenderMode, RuntimeVariable, render_imports,
   rspack_sources::{ConcatSource, RawStringSource},
 };
-use rspack_plugin_javascript::JsPlugin;
 use rspack_util::{atom::Atom, fx_hash::FxIndexSet};
 
 use self::{
@@ -55,8 +54,6 @@ pub(super) struct RuntimeRenderContext<'a> {
 }
 
 pub(super) trait RuntimeModeRenderer: Sync {
-  fn render_module_registration_ident(&self, runtime_template: &RuntimeCodeTemplate) -> String;
-
   fn render_runtime_imports(&self, context: RuntimeImportRenderContext<'_>) -> ConcatSource;
 
   fn render_direct_runtime_export(
@@ -251,25 +248,32 @@ fn render_raw_import_stmts(
 }
 
 fn render_runtime_prelude(context: RuntimeRenderContext<'_>) -> ConcatSource {
-  let require_function = context
-    .runtime_requirements
-    .contains(RuntimeGlobals::REQUIRE);
   let module_cache = context
     .runtime_requirements
     .contains(RuntimeGlobals::MODULE_CACHE);
-  let intercept_module_execution = context
-    .runtime_requirements
-    .contains(RuntimeGlobals::INTERCEPT_MODULE_EXECUTION);
-  let module_used = context
-    .runtime_requirements
-    .contains(RuntimeGlobals::MODULE);
-  let require_scope_used = context
-    .runtime_requirements
-    .contains(RuntimeGlobals::REQUIRE_SCOPE);
-  let use_require = require_function || intercept_module_execution || module_used;
+  let require_scope_used =
+    if context.runtime_template.render_mode() == RuntimeGlobalsRenderMode::RspackExport {
+      context
+        .runtime_requirements
+        .intersects(RuntimeGlobals::REQUIRE | RuntimeGlobals::INTERCEPT_MODULE_EXECUTION)
+    } else {
+      context
+        .runtime_requirements
+        .intersects(RuntimeGlobals::REQUIRE_SCOPE | RuntimeGlobals::INTERCEPT_MODULE_EXECUTION)
+        || !context
+          .runtime_requirements
+          .renderable_require_scope()
+          .difference(
+            RuntimeGlobals::REQUIRE
+              | RuntimeGlobals::MODULE_FACTORIES
+              | RuntimeGlobals::MODULE_FACTORIES_ADD_ONLY
+              | RuntimeGlobals::MODULE_CACHE,
+          )
+          .is_empty()
+    };
   let mut source = ConcatSource::default();
 
-  if use_require || module_cache {
+  if module_cache {
     source.add(RawStringSource::from(format!(
       r#"// The module cache
 var {} = {{}};
@@ -280,29 +284,7 @@ var {} = {{}};
     )));
   }
 
-  if use_require {
-    let require = context
-      .runtime_template
-      .render_runtime_variable(&RuntimeVariable::Require);
-    source.add(RawStringSource::from(format!(
-      r#"// The require function
-function {require}(moduleId) {{
-"#,
-    )));
-    source.add(RawStringSource::from(
-      JsPlugin::render_require(
-        context.chunk_ukey,
-        context.compilation,
-        context.runtime_template,
-      )
-      .join("\n"),
-    ));
-    source.add(RawStringSource::from_static(
-      r#"
-}
-"#,
-    ));
-  } else if require_scope_used {
+  if require_scope_used {
     let require = context
       .runtime_template
       .render_runtime_variable(&RuntimeVariable::Require);

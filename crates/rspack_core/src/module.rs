@@ -285,6 +285,9 @@ pub struct BuildInfo {
   #[cacheable(with=AsOption<AsVec<AsPreset>>)]
   pub top_level_declarations: Option<HashSet<Atom>>,
   pub module_concatenation_bailout: Option<String>,
+  /// Whether parsing encountered `import.meta.main`. Modern-module uses this
+  /// to mark an entry's local wrapper without consulting a module registry.
+  pub uses_import_meta_main: bool,
   pub assets: BindingCell<HashMap<String, CompilationAsset>>,
   pub module: bool,
   pub inline_exports: bool,
@@ -322,6 +325,7 @@ impl Default for BuildInfo {
       side_effects_free: None,
       top_level_declarations: None,
       module_concatenation_bailout: None,
+      uses_import_meta_main: false,
       assets: Default::default(),
       module: false,
       inline_exports: false,

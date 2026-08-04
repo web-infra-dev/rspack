@@ -16,9 +16,6 @@ export { ns1 } from "./shared_js.mjs";
 ```
 
 ```mjs title=runtime.mjs
-// The require scope
-var rspackRequire = {};
-export { rspackRequire };
 
 // rspack/runtime/define_property_getters
 var definePropertyGetters = (exports, getters, values) => {
@@ -49,13 +46,14 @@ export { makeNamespaceObject };
 ```
 
 ```mjs title=shared_js.mjs
-import { rspackRequire, definePropertyGetters, makeNamespaceObject } from "./runtime.mjs";
+import { definePropertyGetters, makeNamespaceObject } from "./runtime.mjs";
 // NAMESPACE OBJECT: ./shared.js
 var shared_namespaceObject = {};
 makeNamespaceObject(shared_namespaceObject);
-definePropertyGetters(shared_namespaceObject, { 
+definePropertyGetters(shared_namespaceObject, {
   a: () => (a),
-  b: () => (b) });
+  b: () => (b)
+});
 
 
 // ./shared.js

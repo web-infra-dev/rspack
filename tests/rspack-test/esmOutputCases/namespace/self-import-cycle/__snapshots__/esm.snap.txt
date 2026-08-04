@@ -3,9 +3,10 @@ import { __webpack_require__ } from "./runtime.mjs";
 // NAMESPACE OBJECT: ./index.js
 var index_namespaceObject = {};
 __webpack_require__.r(index_namespaceObject);
-__webpack_require__.d(index_namespaceObject, { 
+__webpack_require__.d(index_namespaceObject, {
   keys: () => (keys),
-  p: () => (p) });
+  p: () => (p)
+});
 
 
 // ./index.js

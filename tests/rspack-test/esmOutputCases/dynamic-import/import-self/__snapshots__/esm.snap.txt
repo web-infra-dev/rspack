@@ -5,7 +5,7 @@
 const conflict = 42;
 
 it('should have access to the value from the same file', async () => {
-	const { conflict: c } = await import("./value.mjs")
+	const { conflict: c } = await import("./value.mjs").then(m => (m.value_init(), m.value_namespaceObject))
 
 	expect(conflict).toBe(42)
 	expect(c).toBe(24)
@@ -15,10 +15,67 @@ export {};
 
 ```
 
-```mjs title=value.mjs
-// ./value.js
-const conflict = 24
+```mjs title=runtime.mjs
+// The require scope
+var __webpack_require__ = {};
 
-export { conflict };
+// webpack/runtime/define_property_getters
+(() => {
+__webpack_require__.d = (exports, getters, values) => {
+	var define = (defs, kind) => {
+		for(var key in defs) {
+			if(__webpack_require__.o(defs, key) && !__webpack_require__.o(exports, key)) {
+				Object.defineProperty(exports, key, { enumerable: true, [kind]: defs[key] });
+			}
+		}
+	};
+	define(getters, "get");
+	define(values, "value");
+};
+})();
+// webpack/runtime/has_own_property
+(() => {
+__webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
+})();
+// webpack/runtime/make_namespace_object
+(() => {
+// define __esModule on exports
+__webpack_require__.r = (exports) => {
+	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+	}
+	Object.defineProperty(exports, '__esModule', { value: true });
+};
+})();
+
+export { __webpack_require__ };
+
+```
+
+```mjs title=value.mjs
+import { __webpack_require__ } from "./runtime.mjs";
+var __esm = (fn, result) => function __init() {
+	if (fn) {
+		var value = fn(fn = 0);
+		result = value && typeof value.then === "function" ? value.then(value => result = value) : value;
+	}
+	return result;
+};
+// NAMESPACE OBJECT: ./value.js
+var value_namespaceObject = {};
+__webpack_require__.r(value_namespaceObject);
+__webpack_require__.d(value_namespaceObject, {
+  conflict: () => (conflict)
+});
+
+
+// ./value.js
+var conflict;
+var value_init = /*#__PURE__*/ __esm(() => {
+( conflict = 24);
+
+});
+
+export { conflict, value_init, value_namespaceObject };
 
 ```

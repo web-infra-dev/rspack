@@ -16,7 +16,10 @@ mod provide_dependency;
 
 use std::fmt::Write as _;
 
-use rspack_core::{DependencyCategory, ImportAttributes, ImportPhase, ResourceIdentifier};
+use rspack_core::{
+  DependencyCategory, DependencyId, ExportsType, FakeNamespaceObjectMode, ImportAttributes,
+  ImportPhase, ResourceIdentifier, TemplateContext, get_exports_type,
+};
 
 pub use self::{
   esm_compatibility_dependency::{ESMCompatibilityDependency, ESMCompatibilityDependencyTemplate},
@@ -91,6 +94,45 @@ pub fn create_resource_identifier_for_esm_dependency(
   let len = attrs.len();
   push_esm_resource_identifier_attributes(&mut ident, attrs.into_iter(), len);
   ident.into()
+}
+
+fn get_dynamic_import_exports_type(
+  code_generatable_context: &TemplateContext,
+  dependency: &DependencyId,
+) -> ExportsType {
+  get_exports_type(
+    code_generatable_context.compilation.get_module_graph(),
+    &code_generatable_context
+      .compilation
+      .module_graph_cache_artifact,
+    &code_generatable_context.compilation.exports_info_artifact,
+    dependency,
+    &code_generatable_context.module.identifier(),
+  )
+}
+
+/// Returns the value-based fake namespace mode used after a modern-module
+/// relocation has already evaluated the target. In particular, the mode does
+/// not include `MODULE_ID` because the helper receives a value, not a module
+/// identifier to dispatch through the runtime registry.
+fn get_value_fake_namespace_object_mode(
+  exports_type: ExportsType,
+) -> Option<FakeNamespaceObjectMode> {
+  if matches!(exports_type, ExportsType::Namespace) {
+    return None;
+  }
+
+  let mut mode = FakeNamespaceObjectMode::PROMISE_LIKE;
+  if matches!(exports_type, ExportsType::Dynamic) {
+    mode |= FakeNamespaceObjectMode::RETURN_VALUE;
+  }
+  if matches!(
+    exports_type,
+    ExportsType::DefaultWithNamed | ExportsType::Dynamic
+  ) {
+    mode |= FakeNamespaceObjectMode::MERGE_PROPERTIES;
+  }
+  Some(mode)
 }
 
 fn push_esm_resource_identifier_attributes<'a>(

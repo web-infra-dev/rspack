@@ -8,7 +8,8 @@ use rayon::{iter::Either, prelude::*};
 use rspack_collections::{IdentifierIndexMap, IdentifierIndexSet, IdentifierMap};
 use rspack_core::{
   BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, ChunkInitFragments, ChunkRenderContext,
-  ChunkUkey, CodeGenerationPublicPathAutoReplace, Compilation, ConcatenatedModuleIdent,
+  ChunkUkey, CodeGenerationModuleReferenceKind, CodeGenerationModuleReferences,
+  CodeGenerationPublicPathAutoReplace, Compilation, ConcatenatedModuleIdent,
   ConditionalInitFragment, DependencyType, ExportInfo, ExportMode, ExportProvided,
   ExportsInfoArtifact, ExportsType, FindTargetResult, ImportSpec, InitFragmentKey, ModuleGraph,
   ModuleGraphCacheArtifact, ModuleIdentifier, ModuleInfo, NAMESPACE_OBJECT_EXPORT, RuntimeGlobals,
@@ -23,7 +24,6 @@ use rspack_error::{Diagnostic, Error, Result};
 use rspack_plugin_javascript::{
   JsPlugin, RenderSource, dependency::ESMExportImportedSpecifierDependency,
 };
-use rspack_plugin_runtime::should_export_webpack_require_for_module_chunk_loading;
 use rspack_util::{
   SpanExt,
   atom::Atom,
@@ -37,7 +37,16 @@ use swc_experimental_ecma_semantic::resolver::resolver;
 
 use crate::{
   EsmLibraryPlugin,
-  chunk_link::{ChunkLinkContext, ExternalInterop, RawImportSource, ReExportFrom, Ref, SymbolRef},
+  chunk_link::{
+    ChunkLinkContext, ModuleEvaluation, RawImportSource, ReExportFrom, Ref, SymbolRef,
+    WrappedInterop,
+  },
+  evaluation::{
+    is_chunk_loading_evaluation_edge, module_dependencies, starts_initializer_evaluation,
+  },
+  initializer::analyze_initializer,
+  is_css_only_module,
+  runtime::without_module_loader_runtime_globals,
 };
 
 pub(crate) trait GetMut<K, V> {
@@ -239,7 +248,7 @@ impl EsmLibraryPlugin {
     }
   }
 
-  fn assign_external_candidate_name(
+  fn assign_wrapped_candidate_name(
     readable_identifier: &str,
     candidate_used_names: &mut FxHashSet<Atom>,
     escaped_identifiers: &FxHashMap<String, Vec<Atom>>,
@@ -322,6 +331,36 @@ impl EsmLibraryPlugin {
       already_exported_names.insert(exported.clone());
       already_exported_names.get(&exported).cloned()
     }
+  }
+
+  fn add_link_export(chunk_link: &mut ChunkLinkContext, local: Atom, exported: Atom) -> Atom {
+    if let Some(existing) = chunk_link
+      .exports()
+      .get(&local)
+      .and_then(|names| names.first())
+    {
+      return existing.clone();
+    }
+
+    let exported = if chunk_link.exported_symbols.contains(&exported) {
+      let mut index = 0;
+      loop {
+        let candidate = Atom::new(format!("{exported}_{index}"));
+        if !chunk_link.exported_symbols.contains(&candidate) {
+          break candidate;
+        }
+        index += 1;
+      }
+    } else {
+      exported
+    };
+    chunk_link.exported_symbols.insert(exported.clone());
+    chunk_link
+      .exports_mut()
+      .entry(local)
+      .or_default()
+      .insert(exported.clone());
+    exported
   }
 
   // // orig_chunk
@@ -462,7 +501,7 @@ impl EsmLibraryPlugin {
           .chunk_graph
           .get_chunk_modules_identifier(ukey);
 
-        let mut decl_modules = IdentifierIndexSet::default();
+        let mut wrapped_modules = IdentifierIndexSet::default();
         let mut hoisted_modules = IdentifierIndexSet::default();
 
         for m in modules.iter() {
@@ -482,14 +521,14 @@ impl EsmLibraryPlugin {
           if matches!(info, ModuleInfo::Concatenated(_)) {
             hoisted_modules.insert(*m);
           } else {
-            decl_modules.insert(*m);
+            wrapped_modules.insert(*m);
           }
         }
 
         // sort by module identifier to get better gzip size, as similar identifiers
         // means more probably they are in the same directory, and the code is more
         // likely to be similar.
-        decl_modules.sort_unstable();
+        wrapped_modules.sort_unstable();
 
         // sort scope-hoisted modules based on the post order index
         hoisted_modules.sort_by(|m1, m2| {
@@ -498,19 +537,11 @@ impl EsmLibraryPlugin {
           m1_index.cmp(&m2_index)
         });
 
-        let chunk_link = ChunkLinkContext::new(*ukey, hoisted_modules, decl_modules);
+        let chunk_link = ChunkLinkContext::new(*ukey, hoisted_modules, wrapped_modules);
 
         (*ukey, chunk_link)
       })
       .collect();
-
-    let runtime_chunks_exporting_require_via_runtime_module = link
-      .keys()
-      .copied()
-      .filter(|chunk_ukey| {
-        should_export_webpack_require_for_module_chunk_loading(chunk_ukey, compilation)
-      })
-      .collect::<FxHashSet<_>>();
 
     let (escaped_name_entries, escaped_identifier_entries) = concate_modules_map
       .par_values()
@@ -532,7 +563,10 @@ impl EsmLibraryPlugin {
               1 + import_sources,
             )
           }
-          ModuleInfo::External(_) => (0, 1),
+          ModuleInfo::Wrapped(_) => (0, 1),
+          ModuleInfo::External(_) => {
+            unreachable!("external module info is not used by the modern-module linker")
+          }
         };
         let mut escaped_names =
           FxHashMap::with_capacity_and_hasher(name_capacity, Default::default());
@@ -571,7 +605,10 @@ impl EsmLibraryPlugin {
               }
             }
           }
-          ModuleInfo::External(_) => (),
+          ModuleInfo::Wrapped(_) => (),
+          ModuleInfo::External(_) => {
+            unreachable!("external module info is not used by the modern-module linker")
+          }
         }
         (
           escaped_names.into_iter().collect::<Vec<_>>(),
@@ -619,17 +656,29 @@ impl EsmLibraryPlugin {
     diagnostics.extend(self.link_imports_and_exports(
       compilation,
       &mut link,
-      &runtime_chunks_exporting_require_via_runtime_module,
       &mut concate_modules_map,
       &mut needed_namespace_objects_by_ukey,
       &escaped_identifiers,
     ));
 
+    // Namespace objects are materialized after the main linking pass. Keep a
+    // stable lookup from each target chunk's local binding to its public ESM
+    // export so namespace getters can register a real cross-chunk import.
+    let chunk_symbol_exports = link
+      .iter()
+      .flat_map(|(chunk, chunk_link)| {
+        chunk_link.exports().iter().filter_map(|(local, exports)| {
+          exports
+            .iter()
+            .min()
+            .map(|exported| ((*chunk, local.clone()), exported.clone()))
+        })
+      })
+      .collect::<FxHashMap<_, _>>();
+
     let mut namespace_object_sources: IdentifierMap<String> = IdentifierMap::default();
     let mut namespace_re_export_star_cache = IdentifierMap::default();
-    for (ukey, mut needed_namespace_objects) in needed_namespace_objects_by_ukey {
-      let chunk_link = link.get_mut_unwrap(&ukey);
-
+    for (_ukey, mut needed_namespace_objects) in needed_namespace_objects_by_ukey {
       // webpack require iterate the needed_namespace_objects and mutate `needed_namespace_objects`
       // at the same time, https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ConcatenatedModule.js#L1514
       // Process the insertion-ordered set as a worklist. Newly discovered namespace objects are
@@ -647,6 +696,8 @@ impl EsmLibraryPlugin {
             .copied()
             .expect("index is within the current worklist");
           let module_info_id = &module_info_id;
+          let owner_chunk = Self::get_module_chunk(*module_info_id, compilation)?;
+          let chunk_link = link.get_mut_unwrap(&owner_chunk);
 
           let module_info = concate_modules_map[module_info_id].as_concatenated();
           let mut runtime_template = compilation.runtime_template.create_module_code_template();
@@ -686,7 +737,7 @@ impl EsmLibraryPlugin {
 
             if let Some(UsedNameItem::Str(used_name)) = export_info.get_used_name(None, None) {
               let Some(mut binding) = Self::get_binding(
-                None,
+                Some(*module_info_id),
                 compilation.get_module_graph(),
                 &compilation.module_graph_cache_artifact,
                 &compilation.exports_info_artifact,
@@ -707,7 +758,7 @@ impl EsmLibraryPlugin {
 
               if let Ref::Symbol(symbol_binding) = &mut binding {
                 let target_info = concate_modules_map.get(&symbol_binding.module);
-                if matches!(target_info, Some(ModuleInfo::External(_))) {
+                if matches!(target_info, Some(ModuleInfo::Wrapped(_))) {
                   chunk_link.imports.entry(symbol_binding.module).or_default();
                 } else if symbol_binding.ids.is_empty()
                   && matches!(target_info, Some(ModuleInfo::Concatenated(_)))
@@ -732,7 +783,12 @@ impl EsmLibraryPlugin {
                             &symbol_binding.symbol,
                           )
                         }
-                        ModuleInfo::External(_) => None,
+                        ModuleInfo::Wrapped(_) => None,
+                        ModuleInfo::External(_) => {
+                          unreachable!(
+                            "external module info is not used by the modern-module linker"
+                          )
+                        }
                       })
                     else {
                       continue;
@@ -790,6 +846,26 @@ impl EsmLibraryPlugin {
                       }
                       symbol_binding.symbol = local_name;
                     }
+                  } else if let Ok(target_chunk) =
+                    Self::get_module_chunk(symbol_binding.module, compilation)
+                    && target_chunk != owner_chunk
+                    && let Some(exported) =
+                      chunk_symbol_exports.get(&(target_chunk, symbol_binding.symbol.clone()))
+                  {
+                    let target_imports =
+                      chunk_link.imports.entry(symbol_binding.module).or_default();
+                    if let Some(existing_local) = target_imports.get(exported) {
+                      symbol_binding.symbol = existing_local.clone();
+                    } else {
+                      let local_name = if chunk_link.used_names.contains(&symbol_binding.symbol) {
+                        find_new_name(symbol_binding.symbol.as_str(), &chunk_link.used_names, &[])
+                      } else {
+                        symbol_binding.symbol.clone()
+                      };
+                      chunk_link.used_names.insert(local_name.clone());
+                      target_imports.insert(exported.clone(), local_name.clone());
+                      symbol_binding.symbol = local_name;
+                    }
                   }
                 }
               }
@@ -820,7 +896,7 @@ impl EsmLibraryPlugin {
               .strict_esm_module();
 
             Self::get_binding(
-              None,
+              Some(*module_info_id),
               module_graph,
               &compilation.module_graph_cache_artifact,
               &compilation.exports_info_artifact,
@@ -863,7 +939,7 @@ Object.keys({}).forEach(function(key) {{
           };
           let define_getters = if !ns_obj.is_empty() {
             format!(
-              "{}({}, {{ {} }});\n",
+              "{}({}, {{{}\n}});\n",
               runtime_template.render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS),
               name,
               ns_obj.join(",")
@@ -927,6 +1003,84 @@ var {} = {{}};
       let chunk = Self::get_module_chunk(module, compilation)?;
       let chunk_link = link.get_mut_unwrap(&chunk);
       chunk_link.namespace_object_sources.insert(module, source);
+    }
+
+    // Namespace object materialization can discover wrapped re-export targets
+    // after the main symbol-linking pass. Finalize those access plans only
+    // after the namespace worklist is exhausted, so every generated access is
+    // backed by a direct initializer symbol rather than a module-id lookup.
+    let late_initializer_uses = link
+      .iter()
+      .flat_map(|(source_chunk, chunk_link)| {
+        chunk_link.required.iter().filter_map(|(target, interop)| {
+          (interop.evaluation.is_none()
+            && !chunk_link.module_initializers.contains_key(target)
+            && concate_modules_map
+              .get(target)
+              .is_some_and(|info| info.initializer_name().is_some()))
+          .then_some((*source_chunk, *target))
+        })
+      })
+      .collect::<Vec<_>>();
+
+    for (source_chunk, target) in late_initializer_uses {
+      let target_chunk = Self::get_module_chunk(target, compilation)?;
+      let initializer = concate_modules_map[&target]
+        .initializer_name()
+        .cloned()
+        .expect("late initializer target should have an initializer name");
+      let local = if source_chunk == target_chunk {
+        initializer
+      } else {
+        let exported =
+          if let Some(exported) = link[&target_chunk].module_initializer_exports.get(&target) {
+            exported.clone()
+          } else {
+            let target_link = link.get_mut_unwrap(&target_chunk);
+            let exported =
+              Self::add_link_export(target_link, initializer.clone(), initializer.clone());
+            target_link
+              .module_initializer_exports
+              .insert(target, exported.clone());
+            exported
+          };
+        let source_link = link.get_mut_unwrap(&source_chunk);
+        let local = if source_link.used_names.contains(&initializer) {
+          find_new_name(&initializer, &source_link.used_names, &[])
+        } else {
+          initializer
+        };
+        source_link.used_names.insert(local.clone());
+        source_link
+          .imports
+          .entry(target)
+          .or_default()
+          .insert(exported, local.clone());
+        local
+      };
+      link
+        .get_mut_unwrap(&source_chunk)
+        .module_initializers
+        .insert(target, local);
+    }
+
+    for chunk_link in link.values_mut() {
+      for (target, interop) in &mut chunk_link.required {
+        if interop.evaluation.is_some() {
+          continue;
+        }
+        if let Some(initializer) = chunk_link.module_initializers.get(target) {
+          interop.evaluation = Some(ModuleEvaluation::Initializer(initializer.clone()));
+        } else if let Some(value) = chunk_link.hoisted_namespaces.get(target) {
+          interop.evaluation = Some(ModuleEvaluation::Direct(value.clone()));
+        } else if compilation
+          .get_module_graph()
+          .module_by_identifier(target)
+          .is_some_and(|module| is_css_only_module(module.as_ref(), compilation.get_module_graph()))
+        {
+          interop.evaluation = Some(ModuleEvaluation::Direct("undefined".into()));
+        }
+      }
     }
 
     let mut links = self.links.borrow_mut();
@@ -1038,7 +1192,7 @@ var {} = {{}};
       for id in chunk_link
         .hoisted_modules
         .iter()
-        .chain(chunk_link.decl_modules.iter())
+        .chain(chunk_link.wrapped_modules.iter())
       {
         if let Some(ns_name) = ns_map.get(id) {
           all_used_names.insert(ns_name.clone());
@@ -1047,15 +1201,18 @@ var {} = {{}};
     }
 
     let mut module_external_init_fragment_groups = vec![&chunk_link.init_fragments];
-    for id in &chunk_link.decl_modules {
+    for id in &chunk_link.wrapped_modules {
       match &concate_modules_map[id] {
         ModuleInfo::Concatenated(info) => {
           module_external_init_fragment_groups.push(&info.chunk_init_fragments);
         }
-        ModuleInfo::External(info) => {
+        ModuleInfo::Wrapped(info) => {
           if let Some(init_fragments) = external_module_init_fragments.get(&info.module) {
             module_external_init_fragment_groups.push(init_fragments);
           }
+        }
+        ModuleInfo::External(_) => {
+          unreachable!("external module info is not used by the modern-module linker")
         }
       }
     }
@@ -1064,10 +1221,13 @@ var {} = {{}};
         ModuleInfo::Concatenated(info) => {
           module_external_init_fragment_groups.push(&info.chunk_init_fragments);
         }
-        ModuleInfo::External(info) => {
+        ModuleInfo::Wrapped(info) => {
           if let Some(init_fragments) = external_module_init_fragments.get(&info.module) {
             module_external_init_fragment_groups.push(init_fragments);
           }
+        }
+        ModuleInfo::External(_) => {
+          unreachable!("external module info is not used by the modern-module linker")
         }
       }
     }
@@ -1085,7 +1245,7 @@ var {} = {{}};
     for id in chunk_link
       .hoisted_modules
       .iter()
-      .chain(chunk_link.decl_modules.iter())
+      .chain(chunk_link.wrapped_modules.iter())
     {
       let module = module_graph
         .module_by_identifier(id)
@@ -1320,104 +1480,183 @@ var {} = {{}};
       }
     }
 
-    // Build a targeted set for external module name deconfliction:
+    // Build a targeted set for wrapped initializer name deconfliction:
     // Start from chunk_link.used_names (cross-chunk accumulated names) and add
     // names that will actually be emitted at the chunk top level. We intentionally
     // avoid using all_used_names directly because it also contains transient
     // binding_to_ref keys (e.g. `cjs`, `foo`) that are rewritten during rendering
-    // and should not block external module names.
-    let mut emitted_external_used_names = chunk_link.used_names.clone();
+    // and should not block wrapped initializer names.
+    let mut emitted_top_level_used_names = chunk_link.used_names.clone();
     for module in chunk_link
       .hoisted_modules
       .iter()
-      .chain(chunk_link.decl_modules.iter())
+      .chain(chunk_link.wrapped_modules.iter())
     {
       match &concate_modules_map[module] {
         ModuleInfo::Concatenated(info) => {
+          if let Some(name) = info
+            .initializer
+            .as_ref()
+            .and_then(|initializer| initializer.name.as_ref())
+          {
+            emitted_top_level_used_names.insert(name.clone());
+          }
           if let Some(name) = &info.namespace_object_name {
-            emitted_external_used_names.insert(name.clone());
+            emitted_top_level_used_names.insert(name.clone());
           }
           if info.interop_namespace_object_used
             && let Some(name) = &info.interop_namespace_object_name
           {
-            emitted_external_used_names.insert(name.clone());
+            emitted_top_level_used_names.insert(name.clone());
           }
           if info.interop_namespace_object2_used
             && let Some(name) = &info.interop_namespace_object2_name
           {
-            emitted_external_used_names.insert(name.clone());
+            emitted_top_level_used_names.insert(name.clone());
           }
           if info.interop_default_access_used
             && let Some(name) = &info.interop_default_access_name
           {
-            emitted_external_used_names.insert(name.clone());
+            emitted_top_level_used_names.insert(name.clone());
           }
         }
-        ModuleInfo::External(info) => {
+        ModuleInfo::Wrapped(info) => {
+          if let Some(name) = &info.initializer_name {
+            emitted_top_level_used_names.insert(name.clone());
+          }
           if info.interop_namespace_object_used
             && let Some(name) = &info.interop_namespace_object_name
           {
-            emitted_external_used_names.insert(name.clone());
+            emitted_top_level_used_names.insert(name.clone());
           }
           if info.interop_namespace_object2_used
             && let Some(name) = &info.interop_namespace_object2_name
           {
-            emitted_external_used_names.insert(name.clone());
+            emitted_top_level_used_names.insert(name.clone());
           }
           if info.interop_default_access_used
             && let Some(name) = &info.interop_default_access_name
           {
-            emitted_external_used_names.insert(name.clone());
+            emitted_top_level_used_names.insert(name.clone());
           }
           if info.deferred
             && let Some(name) = &info.deferred_name
           {
-            emitted_external_used_names.insert(name.clone());
+            emitted_top_level_used_names.insert(name.clone());
           }
           if info.deferred_namespace_object_used
             && let Some(name) = &info.deferred_namespace_object_name
           {
-            emitted_external_used_names.insert(name.clone());
+            emitted_top_level_used_names.insert(name.clone());
           }
+        }
+        ModuleInfo::External(_) => {
+          unreachable!("external module info is not used by the modern-module linker")
         }
       }
     }
     for import_spec in chunk_link.raw_import_stmts.values() {
       if let Some(ns) = &import_spec.ns_import {
-        emitted_external_used_names.insert(ns.clone());
+        emitted_top_level_used_names.insert(ns.clone());
       }
       for atom in import_spec.atoms.values() {
-        emitted_external_used_names.insert(atom.clone());
+        emitted_top_level_used_names.insert(atom.clone());
       }
       if let Some(default_import) = &import_spec.default_import {
-        emitted_external_used_names.insert(default_import.clone());
+        emitted_top_level_used_names.insert(default_import.clone());
       }
     }
 
-    let mut external_candidate_used_names = emitted_external_used_names.clone();
-    for external_module in chunk_link.decl_modules.iter() {
-      let ModuleInfo::External(info) = &mut concate_modules_map[external_module] else {
-        unreachable!("should be un-scope-hoisted module");
+    let mut wrapped_candidate_used_names = emitted_top_level_used_names.clone();
+    if !chunk_link.wrapped_modules.is_empty() && chunk_link.commonjs_helper.is_none() {
+      let helper = find_new_name("__commonJS", &wrapped_candidate_used_names, &[]);
+      wrapped_candidate_used_names.insert(helper.clone());
+      chunk_link.commonjs_helper = Some(helper);
+    }
+    for wrapped_module in chunk_link.wrapped_modules.iter() {
+      let ModuleInfo::Wrapped(info) = &mut concate_modules_map[wrapped_module] else {
+        unreachable!("wrapped module set must only contain wrapped module info");
       };
 
       if info.name.is_none() {
         let readable_identifier = get_cached_readable_identifier(
-          external_module,
+          wrapped_module,
           module_graph,
           &compilation.module_static_cache,
           context,
         );
 
-        let name = Self::assign_external_candidate_name(
+        let name = Self::assign_wrapped_candidate_name(
           &readable_identifier,
-          &mut external_candidate_used_names,
+          &mut wrapped_candidate_used_names,
           escaped_identifiers,
         );
         info.name = Some(name);
       }
+
+      if info.initializer_name.is_none() {
+        let base = format!(
+          "require_{}",
+          info
+            .name
+            .as_ref()
+            .expect("wrapped module should have a name")
+        );
+        let name = find_new_name(&base, &wrapped_candidate_used_names, &[]);
+        wrapped_candidate_used_names.insert(name.clone());
+        info.initializer_name = Some(name);
+      }
+    }
+    all_used_names.extend(wrapped_candidate_used_names);
+
+    let has_esm_initializers = chunk_link.hoisted_modules.iter().any(|module| {
+      concate_modules_map[module]
+        .as_concatenated()
+        .initializer
+        .is_some()
+    });
+    if has_esm_initializers && chunk_link.esm_helper.is_none() {
+      let helper = find_new_name("__esm", &all_used_names, &[]);
+      all_used_names.insert(helper.clone());
+      chunk_link.esm_helper = Some(helper);
+    }
+    let has_async_esm_initializers = chunk_link.hoisted_modules.iter().any(|module| {
+      concate_modules_map[module]
+        .as_concatenated()
+        .initializer
+        .is_some()
+        && ModuleGraph::is_async(&compilation.async_modules_artifact, module)
+    });
+    if has_async_esm_initializers && chunk_link.async_dependency_temp.is_none() {
+      let temp = find_new_name("__rspack_async_dependency", &all_used_names, &[]);
+      all_used_names.insert(temp.clone());
+      chunk_link.async_dependency_temp = Some(temp);
+    }
+    for module in &chunk_link.hoisted_modules {
+      let ModuleInfo::Concatenated(info) = &mut concate_modules_map[module] else {
+        unreachable!("hoisted module set must only contain concatenated module info");
+      };
+      let Some(initializer) = &mut info.initializer else {
+        continue;
+      };
+      if initializer.name.is_some() {
+        continue;
+      }
+      let readable_identifier = get_cached_readable_identifier(
+        module,
+        module_graph,
+        &compilation.module_static_cache,
+        context,
+      );
+      let name = find_new_name(
+        "init",
+        &all_used_names,
+        &escaped_identifiers[&readable_identifier],
+      );
+      all_used_names.insert(name.clone());
+      initializer.name = Some(name);
     }
 
-    all_used_names.extend(emitted_external_used_names);
     chunk_link.used_names = all_used_names;
   }
 
@@ -1453,24 +1692,8 @@ var {} = {{}};
             let module_graph = compilation.get_module_graph();
 
             match info {
-              rspack_core::ModuleInfo::External(mut external_module_info) => {
+              rspack_core::ModuleInfo::Wrapped(wrapped_module_info) => {
                 let codegen_res = compilation.code_generation_results.get(&id, None);
-                let has_javascript_source = compilation
-                  .code_generation_results
-                  .get(&id, None)
-                  .get(&SourceType::JavaScript)
-                  .is_some();
-                let used_in_chunk = !compilation
-                  .build_chunk_graph_artifact
-                  .chunk_graph
-                  .get_module_chunks(id)
-                  .is_empty();
-                if has_javascript_source && used_in_chunk {
-                  // we use __rspack_require.add({...}) to register modules
-                  external_module_info
-                    .runtime_requirements
-                    .insert(RuntimeGlobals::REQUIRE | RuntimeGlobals::MODULE_FACTORIES);
-                }
                 let mut chunk_init_fragments = codegen_res
                   .data
                   .get::<ChunkInitFragments>()
@@ -1478,7 +1701,7 @@ var {} = {{}};
                   .unwrap_or_default();
                 chunk_init_fragments.extend(codegen_res.chunk_init_fragments.clone());
                 Ok((
-                  ModuleInfo::External(external_module_info),
+                  ModuleInfo::Wrapped(wrapped_module_info),
                   if chunk_init_fragments.is_empty() {
                     None
                   } else {
@@ -1569,6 +1792,12 @@ var {} = {{}};
                 let semantic = resolver(&program);
                 let ids = collect_ident(&allocator, &program);
 
+                if let Some(initializer) = &mut concate_info.initializer {
+                  let name = initializer.name.take();
+                  *initializer = analyze_initializer(&program, &semantic);
+                  initializer.name = name;
+                }
+
                 concate_info.module_ctxt = SyntaxContext::from_u32(semantic.top_level_scope_id().raw());
                 concate_info.global_ctxt = SyntaxContext::from_u32(semantic.unresolved_scope_id().raw());
 
@@ -1638,6 +1867,9 @@ var {} = {{}};
                 }
                 Ok((ModuleInfo::Concatenated(concate_info), None))
               }
+              rspack_core::ModuleInfo::External(_) => {
+                unreachable!("external module info is not used by the modern-module linker")
+              }
             }
           },
         )
@@ -1667,12 +1899,12 @@ var {} = {{}};
     from: Option<ModuleIdentifier>,
     symbol: Option<Atom>,
     all_used_names: &mut FxHashSet<Atom>,
-    required: &'a mut IdentifierIndexMap<ExternalInterop>,
-  ) -> &'a mut ExternalInterop {
-    let require_info: &mut ExternalInterop = required.entry(m).or_insert(ExternalInterop {
+    required: &'a mut IdentifierIndexMap<WrappedInterop>,
+  ) -> &'a mut WrappedInterop {
+    let require_info: &mut WrappedInterop = required.entry(m).or_insert(WrappedInterop {
       module: m,
+      evaluation: None,
       from_module: Default::default(),
-      set_entry_module_id: false,
       required_symbol: None,
       default_access: None,
       default_exported: None,
@@ -1830,7 +2062,7 @@ var {} = {{}};
     entry_chunk: ChunkUkey,
     link: &mut FxHashMap<ChunkUkey, ChunkLinkContext>,
     exports: &mut FxHashMap<ChunkUkey, ExportsContext>,
-    required: &mut IdentifierIndexMap<ExternalInterop>,
+    required: &mut IdentifierIndexMap<WrappedInterop>,
     strict_current_chunk: bool,
     allow_rename: bool,
   ) {
@@ -1864,7 +2096,7 @@ var {} = {{}};
           );
         }
       }
-      ModuleInfo::External(info) => {
+      ModuleInfo::Wrapped(info) => {
         info.interop_default_access_used = true;
 
         let chunk_link = link.get_mut_unwrap(&entry_chunk);
@@ -1885,6 +2117,9 @@ var {} = {{}};
           exports,
           !allow_rename,
         );
+      }
+      ModuleInfo::External(_) => {
+        unreachable!("external module info is not used by the modern-module linker")
       }
     }
   }
@@ -1960,7 +2195,7 @@ var {} = {{}};
     entry_chunk: ChunkUkey,
     compilation: &Compilation,
     concate_modules_map: &mut IdentifierIndexMap<ModuleInfo>,
-    required: &mut IdentifierIndexMap<ExternalInterop>,
+    required: &mut IdentifierIndexMap<WrappedInterop>,
     link: &mut FxHashMap<ChunkUkey, ChunkLinkContext>,
     needed_namespace_objects: &mut IdentifierIndexSet,
     entry_imports: &mut IdentifierIndexMap<FxHashMap<Atom, Atom>>,
@@ -2078,7 +2313,7 @@ var {} = {{}};
             let ref_info = &mut concate_modules_map[&symbol_binding.module];
 
             match ref_info {
-              ModuleInfo::External(_) => {
+              ModuleInfo::Wrapped(_) => {
                 // import the ref chunk
                 entry_imports.entry(symbol_binding.module).or_default();
 
@@ -2158,6 +2393,9 @@ var {} = {{}};
                     !allow_rename,
                   );
                 }
+              }
+              ModuleInfo::External(_) => {
+                unreachable!("external module info is not used by the modern-module linker")
               }
             }
           }
@@ -2273,7 +2511,7 @@ var {} = {{}};
         .insert(START_EXPORTS.clone());
     }
 
-    if concate_modules_map[&entry_module].is_external() {
+    if concate_modules_map[&entry_module].is_wrapped() {
       // execute
       Self::add_require(
         entry_module,
@@ -2291,7 +2529,6 @@ var {} = {{}};
     &self,
     compilation: &Compilation,
     link: &mut FxHashMap<ChunkUkey, ChunkLinkContext>,
-    runtime_chunks_exporting_require_via_runtime_module: &FxHashSet<ChunkUkey>,
     concate_modules_map: &mut IdentifierIndexMap<ModuleInfo>,
     needed_namespace_objects_by_ukey: &mut FxHashMap<ChunkUkey, IdentifierIndexSet>,
     escaped_identifiers: &FxHashMap<String, Vec<Atom>>,
@@ -2322,8 +2559,13 @@ var {} = {{}};
       .map(|chunk| (*chunk, Default::default()))
       .collect::<FxHashMap<ChunkUkey, IdentifierIndexMap<FxHashMap<Atom, Atom>>>>();
 
-    // const symbol = __rspack_require(module);
-    let mut required = FxHashMap::<ChunkUkey, IdentifierIndexMap<ExternalInterop>>::default();
+    // Namespace generation may already have requested module access. Move all
+    // requests into the single linking worklist so every access receives the
+    // same evaluation plan and the final write-back cannot discard requests.
+    let mut required = link
+      .iter_mut()
+      .map(|(chunk, chunk_link)| (*chunk, std::mem::take(&mut chunk_link.required)))
+      .collect::<FxHashMap<ChunkUkey, IdentifierIndexMap<WrappedInterop>>>();
 
     // link entry direct exports
     for (entry_name, entrypoint_ukey) in compilation.build_chunk_graph_artifact.entrypoints.iter() {
@@ -2455,17 +2697,14 @@ var {} = {{}};
 
           entry_imports.entry(*entry_module).or_default();
 
-          if concate_modules_map[entry_module].is_external() {
-            let require_info = Self::add_require(
+          if concate_modules_map[entry_module].is_wrapped() {
+            Self::add_require(
               *entry_module,
               None,
               None,
               &mut FxHashSet::default(),
               required.entry(*chunk_ukey).or_default(),
             );
-            require_info.set_entry_module_id |= code_generation_result
-              .runtime_requirements
-              .contains(RuntimeGlobals::ENTRY_MODULE_ID);
           }
         }
       }
@@ -2681,27 +2920,26 @@ var {} = {{}};
 
       // check if needs runtime
       for m in chunk_link
-        .decl_modules
+        .wrapped_modules
         .iter()
         .chain(chunk_link.hoisted_modules.iter())
       {
         let info = &concate_modules_map[m];
-        let runtime_requirements = info.get_runtime_requirements();
+        let runtime_requirements =
+          without_module_loader_runtime_globals(*info.get_runtime_requirements());
         if !runtime_requirements.is_empty() && runtime_chunk != *chunk {
           if compilation.runtime_template.render_mode() == RuntimeTemplateRenderMode::RspackExport {
             continue;
           }
           let runtime_template = compilation.runtime_template.create_chunk_code_template();
           let require_symbol: Atom = runtime_template.render_runtime_argument().into();
-          if !runtime_chunks_exporting_require_via_runtime_module.contains(&runtime_chunk) {
-            Self::add_chunk_export(
-              runtime_chunk,
-              require_symbol.clone(),
-              require_symbol.clone(),
-              &mut exports,
-              true,
-            );
-          }
+          Self::add_chunk_export(
+            runtime_chunk,
+            require_symbol.clone(),
+            require_symbol.clone(),
+            &mut exports,
+            true,
+          );
           chunk_link.raw_import_stmts.insert(
             RawImportSource::Chunk(runtime_chunk),
             ImportSpec {
@@ -2783,7 +3021,13 @@ var {} = {{}};
           //ensure chunk
           chunk_imports.entry(ref_module).or_default();
 
-          if outgoing_module_info.is_external() {
+          // A deferred ESM edge only links the target initializer. Rendering
+          // it through `required` would execute the target at chunk startup.
+          if dep.get_phase().is_defer() {
+            continue;
+          }
+
+          if outgoing_module_info.is_wrapped() {
             if ChunkGraph::get_module_id(&compilation.module_ids_artifact, ref_module).is_none() {
               // if module don't contains id, it no need to be required
               // it's a hack for css-extract's css module
@@ -2883,7 +3127,7 @@ var {} = {{}};
           }
         };
         let info = &concate_modules_map[&m];
-        let from_external = matches!(info, ModuleInfo::External(_));
+        let from_wrapped = matches!(info, ModuleInfo::Wrapped(_));
         let needs_import_chunk = ref_chunk != *chunk;
 
         if needs_import_chunk {
@@ -2891,7 +3135,7 @@ var {} = {{}};
           chunk_imports.entry(m).or_default();
         }
 
-        if needs_import_chunk && !from_external {
+        if needs_import_chunk && !from_wrapped {
           let readable_identifier = get_cached_readable_identifier(
             &m,
             module_graph,
@@ -2942,7 +3186,7 @@ var {} = {{}};
       chunk_link.refs = refs;
 
       // ensure imports external module
-      for m in &chunk_link.decl_modules {
+      for m in &chunk_link.wrapped_modules {
         let module = module_graph
           .module_by_identifier(m)
           .expect("should have module");
@@ -2965,6 +3209,426 @@ var {} = {{}};
 
           let ref_module = conn.module_identifier();
           chunk_imports.entry(*ref_module).or_default();
+        }
+      }
+    }
+
+    // Link evaluation initializers as ordinary ESM symbols. Representation is
+    // independent: both a CommonJS factory (`require_foo`) and a scope-hoisted
+    // body (`init_foo`) can own an initializer. Static users import it directly
+    // across chunks; dynamic users access the exported symbol from `import()`.
+    let mut initializer_uses = Vec::<(ChunkUkey, ModuleIdentifier)>::new();
+    let mut hoisted_namespace_uses = Vec::<(ChunkUkey, ModuleIdentifier)>::new();
+    let mut chunk_loading_initializer_uses = FxHashSet::default();
+    for (chunk, chunk_link) in link.iter() {
+      for module_id in &chunk_link.wrapped_modules {
+        initializer_uses.push((*chunk, *module_id));
+      }
+
+      for module_id in chunk_link
+        .wrapped_modules
+        .iter()
+        .chain(chunk_link.hoisted_modules.iter())
+      {
+        let module = module_graph
+          .module_by_identifier(module_id)
+          .expect("linked module should exist");
+        for dependency_id in module_dependencies(module.as_ref(), module_graph) {
+          let dependency = module_graph.dependency_by_id(&dependency_id);
+          let Some(connection) = module_graph.connection_by_dependency_id(&dependency_id) else {
+            continue;
+          };
+          let target = *connection.module_identifier();
+          if is_chunk_loading_evaluation_edge(module.as_ref(), dependency.dependency_type()) {
+            chunk_loading_initializer_uses.insert((*chunk, target));
+            if matches!(
+              dependency.dependency_type(),
+              DependencyType::DynamicImport
+                | DependencyType::DynamicImportEager
+                | DependencyType::DynamicImportWeak
+                | DependencyType::ContextElement(rspack_core::ContextTypePrefix::Import)
+            ) && concate_modules_map.get(&target).is_some_and(|info| {
+              matches!(info, ModuleInfo::Concatenated(_)) && info.initializer_name().is_some()
+            }) && Self::get_module_chunk(target, compilation).ok() == Some(*chunk)
+            {
+              hoisted_namespace_uses.push((*chunk, target));
+            }
+            continue;
+          }
+          if !connection.is_target_active(
+            module_graph,
+            None,
+            &compilation.module_graph_cache_artifact,
+            &compilation
+              .build_module_graph_artifact
+              .side_effects_state_artifact,
+            &compilation.exports_info_artifact,
+          ) {
+            continue;
+          }
+          if compilation
+            .code_generation_results
+            .get_one(&target)
+            .get(&SourceType::JavaScript)
+            .is_some()
+          {
+            match concate_modules_map.get(&target) {
+              Some(ModuleInfo::Concatenated(info)) if info.initializer.is_some() => {
+                initializer_uses.push((*chunk, target));
+                if chunk_link.wrapped_modules.contains(module_id)
+                  || starts_initializer_evaluation(dependency.dependency_type())
+                  || dependency.get_phase().is_defer()
+                {
+                  hoisted_namespace_uses.push((*chunk, target));
+                }
+              }
+              Some(info) if info.initializer_name().is_some() => {
+                initializer_uses.push((*chunk, target));
+              }
+              Some(ModuleInfo::Concatenated(_))
+                if chunk_link.wrapped_modules.contains(module_id)
+                  || matches!(
+                    dependency.dependency_type(),
+                    DependencyType::CjsRequire
+                      | DependencyType::CjsFullRequire
+                      | DependencyType::CjsExportRequire
+                      | DependencyType::AmdRequireItem
+                      | DependencyType::RequireEnsureItem
+                      | DependencyType::ContextElement(rspack_core::ContextTypePrefix::Normal)
+                  ) =>
+              {
+                hoisted_namespace_uses.push((*chunk, target));
+              }
+              _ => {}
+            }
+          }
+        }
+      }
+
+      if let Some(chunk_required) = required.get(chunk) {
+        initializer_uses.extend(chunk_required.keys().filter_map(|target| {
+          (!chunk_loading_initializer_uses.contains(&(*chunk, *target))
+            && concate_modules_map
+              .get(target)
+              .is_some_and(|info| info.initializer_name().is_some()))
+          .then_some((*chunk, *target))
+        }));
+        hoisted_namespace_uses.extend(chunk_required.keys().filter_map(|target| {
+          matches!(
+            concate_modules_map.get(target),
+            Some(ModuleInfo::Concatenated(info)) if info.initializer.is_none()
+          )
+          .then_some((*chunk, *target))
+        }));
+      }
+    }
+    // Typed relocations can introduce transitive initializer references that
+    // are not represented by a direct dependency edge (notably the async
+    // prerequisites of `import defer`). Link those records as normal static
+    // symbols before rendering replaces their markers.
+    for (chunk, chunk_link) in link.iter() {
+      for module_id in chunk_link
+        .wrapped_modules
+        .iter()
+        .chain(chunk_link.hoisted_modules.iter())
+      {
+        let Some(references) = compilation
+          .code_generation_results
+          .get(module_id, None)
+          .data
+          .get::<CodeGenerationModuleReferences>()
+        else {
+          continue;
+        };
+        for reference in references.iter().filter(|reference| {
+          matches!(
+            reference.kind,
+            CodeGenerationModuleReferenceKind::Value
+              | CodeGenerationModuleReferenceKind::LazyValue
+              | CodeGenerationModuleReferenceKind::LazyInitializer
+          )
+        }) {
+          let target = reference.module;
+          if compilation
+            .code_generation_results
+            .get_one(&target)
+            .get(&SourceType::JavaScript)
+            .is_none()
+          {
+            continue;
+          }
+          match concate_modules_map.get(&target) {
+            Some(info) if info.initializer_name().is_some() => {
+              initializer_uses.push((*chunk, target));
+              if reference.kind != CodeGenerationModuleReferenceKind::LazyInitializer
+                && matches!(info, ModuleInfo::Concatenated(_))
+              {
+                hoisted_namespace_uses.push((*chunk, target));
+              }
+            }
+            Some(ModuleInfo::Concatenated(_)) => {
+              hoisted_namespace_uses.push((*chunk, target));
+            }
+            _ => {}
+          }
+        }
+      }
+    }
+
+    initializer_uses.sort_unstable();
+    initializer_uses.dedup();
+    hoisted_namespace_uses.sort_unstable();
+    hoisted_namespace_uses.dedup();
+
+    for (source_chunk, target) in hoisted_namespace_uses {
+      let target_chunk = match Self::get_module_chunk(target, compilation) {
+        Ok(chunk) => chunk,
+        Err(error) => {
+          errors.push(error.into());
+          continue;
+        }
+      };
+      let namespace = concate_modules_map[&target]
+        .as_concatenated()
+        .namespace_object_name
+        .clone()
+        .expect("hoisted module should have a namespace name");
+      needed_namespace_objects_by_ukey
+        .entry(target_chunk)
+        .or_default()
+        .insert(target);
+
+      let local = if source_chunk == target_chunk {
+        namespace
+      } else {
+        let exported = Self::add_chunk_export(
+          target_chunk,
+          namespace.clone(),
+          namespace.clone(),
+          &mut exports,
+          false,
+        )
+        .expect("hoisted namespace export should succeed");
+        let source_link = link.get_mut_unwrap(&source_chunk);
+        let local = if source_link.used_names.contains(&namespace) {
+          find_new_name(&namespace, &source_link.used_names, &[])
+        } else {
+          namespace
+        };
+        source_link.used_names.insert(local.clone());
+        imports
+          .get_mut_unwrap(&source_chunk)
+          .entry(target)
+          .or_default()
+          .insert(exported, local.clone());
+        local
+      };
+      link
+        .get_mut_unwrap(&source_chunk)
+        .hoisted_namespaces
+        .insert(target, local);
+    }
+
+    let mut initializer_namespace_targets = self
+      .all_dyn_targets
+      .borrow()
+      .iter()
+      .copied()
+      .collect::<IdentifierIndexSet>();
+    for (_, module) in module_graph.modules() {
+      for dependency_id in module_dependencies(module.as_ref(), module_graph) {
+        let dependency = module_graph.dependency_by_id(&dependency_id);
+        if !matches!(
+          dependency.dependency_type(),
+          DependencyType::ContextElement(rspack_core::ContextTypePrefix::Import)
+        ) {
+          continue;
+        }
+        if let Some(target) = module_graph.module_identifier_by_dependency_id(&dependency_id) {
+          initializer_namespace_targets.insert(*target);
+        }
+      }
+    }
+
+    let mut initializer_export_targets = initializer_uses
+      .iter()
+      .filter_map(|(source_chunk, target)| {
+        let target_chunk = Self::get_module_chunk(*target, compilation).ok()?;
+        (target_chunk != *source_chunk).then_some(*target)
+      })
+      .collect::<IdentifierIndexSet>();
+    for (source_chunk, chunk_link) in link.iter() {
+      for module_id in chunk_link
+        .wrapped_modules
+        .iter()
+        .chain(chunk_link.hoisted_modules.iter())
+      {
+        let Some(references) = compilation
+          .code_generation_results
+          .get(module_id, None)
+          .data
+          .get::<CodeGenerationModuleReferences>()
+        else {
+          continue;
+        };
+        initializer_export_targets.extend(references.iter().filter_map(|reference| {
+          if !matches!(
+            reference.kind,
+            CodeGenerationModuleReferenceKind::ImportedValue
+              | CodeGenerationModuleReferenceKind::ImportedLazyValue
+              | CodeGenerationModuleReferenceKind::AsyncValue
+              | CodeGenerationModuleReferenceKind::AsyncInitializer
+              | CodeGenerationModuleReferenceKind::AsyncLazyValue
+          ) {
+            return None;
+          }
+          let target_chunk = Self::get_module_chunk(reference.module, compilation).ok()?;
+          (target_chunk != *source_chunk
+            && concate_modules_map
+              .get(&reference.module)
+              .is_some_and(|info| info.initializer_name().is_some()))
+          .then_some(reference.module)
+        }));
+      }
+    }
+    initializer_export_targets.extend(
+      initializer_namespace_targets
+        .iter()
+        .filter(|target| {
+          concate_modules_map
+            .get(*target)
+            .is_some_and(|info| info.initializer_name().is_some())
+        })
+        .copied(),
+    );
+    for (chunk, chunk_link) in link.iter() {
+      if compilation
+        .build_chunk_graph_artifact
+        .chunk_graph
+        .get_chunk_entry_modules(chunk)
+        .is_empty()
+      {
+        initializer_export_targets.extend(chunk_link.wrapped_modules.iter().copied());
+        initializer_export_targets.extend(
+          chunk_link
+            .hoisted_modules
+            .iter()
+            .filter(|module| concate_modules_map[*module].initializer_name().is_some())
+            .copied(),
+        );
+      }
+    }
+
+    let mut initializer_exports = IdentifierMap::<Atom>::default();
+    for target in initializer_export_targets {
+      let target_chunk = match Self::get_module_chunk(target, compilation) {
+        Ok(chunk) => chunk,
+        Err(error) => {
+          errors.push(error.into());
+          continue;
+        }
+      };
+      let initializer = concate_modules_map[&target]
+        .initializer_name()
+        .cloned()
+        .expect("initializer-backed module should have an initializer name");
+      let exported = Self::add_chunk_export(
+        target_chunk,
+        initializer.clone(),
+        initializer,
+        &mut exports,
+        false,
+      )
+      .expect("non-strict wrapped initializer export should succeed");
+      initializer_exports.insert(target, exported.clone());
+      link
+        .get_mut_unwrap(&target_chunk)
+        .module_initializer_exports
+        .insert(target, exported);
+      if matches!(concate_modules_map[&target], ModuleInfo::Concatenated(_)) {
+        let target_link = link.get_mut_unwrap(&target_chunk);
+        target_link.hoisted_initializers.insert(target);
+        if initializer_namespace_targets.contains(&target) {
+          let namespace = concate_modules_map[&target]
+            .as_concatenated()
+            .namespace_object_name
+            .clone()
+            .expect("dynamic initializer target should have a namespace name");
+          needed_namespace_objects_by_ukey
+            .entry(target_chunk)
+            .or_default()
+            .insert(target);
+          let namespace_export = Self::add_chunk_export(
+            target_chunk,
+            namespace.clone(),
+            namespace,
+            &mut exports,
+            false,
+          )
+          .expect("dynamic initializer namespace export should succeed");
+          target_link
+            .initializer_namespace_exports
+            .insert(target, namespace_export);
+        }
+      }
+    }
+
+    for (source_chunk, target) in initializer_uses {
+      let target_chunk = match Self::get_module_chunk(target, compilation) {
+        Ok(chunk) => chunk,
+        Err(error) => {
+          errors.push(error.into());
+          continue;
+        }
+      };
+      let initializer = concate_modules_map[&target]
+        .initializer_name()
+        .cloned()
+        .expect("initializer-backed module should have an initializer name");
+      let local = if target_chunk == source_chunk {
+        initializer
+      } else {
+        let chunk_link = link.get_mut_unwrap(&source_chunk);
+        let local = if chunk_link.used_names.contains(&initializer) {
+          find_new_name(&initializer, &chunk_link.used_names, &[])
+        } else {
+          initializer
+        };
+        chunk_link.used_names.insert(local.clone());
+        imports
+          .get_mut_unwrap(&source_chunk)
+          .entry(target)
+          .or_default()
+          .insert(initializer_exports[&target].clone(), local.clone());
+        local
+      };
+      link
+        .get_mut_unwrap(&source_chunk)
+        .module_initializers
+        .insert(target, local);
+    }
+
+    for (chunk, chunk_required) in &mut required {
+      let chunk_link = link.get(chunk).expect("required chunk should be linked");
+      for (target, interop) in chunk_required {
+        if let Some(initializer) = chunk_link.module_initializers.get(target) {
+          interop.evaluation = Some(ModuleEvaluation::Initializer(initializer.clone()));
+        } else if let Some(value) = chunk_link.hoisted_namespaces.get(target) {
+          interop.evaluation = Some(ModuleEvaluation::Direct(value.clone()));
+        } else if compilation
+          .get_module_graph()
+          .module_by_identifier(target)
+          .is_some_and(|module| is_css_only_module(module.as_ref(), compilation.get_module_graph()))
+        {
+          interop.evaluation = Some(ModuleEvaluation::Direct("undefined".into()));
+        } else {
+          errors.push(
+            rspack_error::error!(
+              "unlinked modern-module evaluation target {target:?} in {chunk:?}: {:?}; interop={interop:?}",
+              concate_modules_map.get(target),
+            )
+            .into(),
+          );
         }
       }
     }
@@ -3119,7 +3783,7 @@ var {} = {{}};
     strict_esm_module: bool,
     asi_safe: Option<bool>,
     already_visited: &mut FxHashSet<ExportInfo>,
-    required: &mut IdentifierIndexMap<ExternalInterop>,
+    required: &mut IdentifierIndexMap<WrappedInterop>,
     all_used_names: &mut FxHashSet<Atom>,
   ) -> Option<Ref> {
     let module = mg
@@ -3141,7 +3805,7 @@ var {} = {{}};
         ExportsType::DefaultOnly => {
           info.set_interop_namespace_object2_used(true);
           let symbol = match info {
-            ModuleInfo::External(info) => {
+            ModuleInfo::Wrapped(info) => {
               let required_info = Self::add_require(
                 *info_id,
                 from,
@@ -3155,6 +3819,9 @@ var {} = {{}};
               .interop_namespace_object2_name
               .clone()
               .expect("should already set interop namespace"),
+            ModuleInfo::External(_) => {
+              unreachable!("external module info is not used by the modern-module linker")
+            }
           };
 
           return Some(Ref::Symbol(SymbolRef::new(
@@ -3167,7 +3834,7 @@ var {} = {{}};
         ExportsType::DefaultWithNamed => {
           info.set_interop_namespace_object_used(true);
           let symbol = match info {
-            ModuleInfo::External(external_info) => {
+            ModuleInfo::Wrapped(external_info) => {
               let required_info = Self::add_require(
                 *info_id,
                 from,
@@ -3181,6 +3848,9 @@ var {} = {{}};
               .interop_namespace_object_name
               .clone()
               .expect("should already set interop namespace"),
+            ModuleInfo::External(_) => {
+              unreachable!("external module info is not used by the modern-module linker")
+            }
           };
 
           return Some(Ref::Symbol(SymbolRef::new(
@@ -3222,7 +3892,7 @@ var {} = {{}};
             // shadowing the previous immutable ref to avoid violating rustc borrow rules
             info.set_interop_default_access_used(true);
             let symbol = match info {
-              ModuleInfo::External(info) => {
+              ModuleInfo::Wrapped(info) => {
                 let required_info = Self::add_require(
                   *info_id,
                   from,
@@ -3236,6 +3906,9 @@ var {} = {{}};
                 .interop_default_access_name
                 .clone()
                 .expect("should already set interop namespace"),
+              ModuleInfo::External(_) => {
+                unreachable!("external module info is not used by the modern-module linker")
+              }
             };
 
             export_name = export_name[1..].to_vec();
@@ -3297,7 +3970,7 @@ var {} = {{}};
             Arc::new(move |binding| normal_render(binding, as_call, call_context, asi_safe)),
           )));
         }
-        ModuleInfo::External(info) => {
+        ModuleInfo::Wrapped(info) => {
           return Some(Ref::Symbol(SymbolRef::new(
             info.module,
             Self::add_require(
@@ -3313,6 +3986,9 @@ var {} = {{}};
             vec![],
             Arc::new(move |binding| normal_render(binding, as_call, call_context, asi_safe)),
           )));
+        }
+        ModuleInfo::External(_) => {
+          unreachable!("external module info is not used by the modern-module linker")
         }
       }
     }
@@ -3487,7 +4163,7 @@ var {} = {{}};
 
         None
       }
-      ModuleInfo::External(info) => {
+      ModuleInfo::Wrapped(info) => {
         if let Some(used_name) =
           exports_info.get_used_name(exports_info_artifact, None, &export_name)
         {
@@ -3514,6 +4190,9 @@ var {} = {{}};
         } else {
           Some(Ref::Inline("/* unused export */ undefined".into()))
         }
+      }
+      ModuleInfo::External(_) => {
+        unreachable!("external module info is not used by the modern-module linker")
       }
     }
   }
@@ -3903,7 +4582,7 @@ mod tests {
   }
 
   #[test]
-  fn external_candidate_name_does_not_claim_chunk_top_level_name() {
+  fn wrapped_candidate_name_does_not_claim_chunk_top_level_name() {
     let module = ModuleIdentifier::from("test_module");
     let mut candidate_used_names = FxHashSet::default();
     let mut chunk_used_names = FxHashSet::default();
@@ -3911,7 +4590,7 @@ mod tests {
     let escaped_identifiers =
       FxHashMap::from_iter([("./lib.js".to_string(), vec![Atom::from("lib")])]);
 
-    let candidate = EsmLibraryPlugin::assign_external_candidate_name(
+    let candidate = EsmLibraryPlugin::assign_wrapped_candidate_name(
       "./lib.js",
       &mut candidate_used_names,
       &escaped_identifiers,

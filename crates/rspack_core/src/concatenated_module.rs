@@ -46,14 +46,14 @@ use crate::{
   CodeGenerationPublicPathAutoReplace, CodeGenerationResult,
   CodeGenerationRuntimeRequirementsWrite, Compilation, ConcatenatedModuleIdent, ConcatenationScope,
   ConditionalInitFragment, ConnectionState, Context, DEFAULT_EXPORT, DEFAULT_EXPORT_ATOM,
-  DependenciesBlock, DependencyId, DependencyType, ExportInfo, ExportProvided, ExportsArgument,
-  ExportsInfoArtifact, ExportsType, FactoryMeta, ImportedByDeferModulesArtifact, InitFragment,
-  InitFragmentStage, LibIdentOptions, Module, ModuleArgument, ModuleCodeGenerationContext,
-  ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, ModuleLayer,
-  ModuleStaticCache, ModuleType, NAMESPACE_OBJECT_EXPORT, ParserOptions, Resolve, RuntimeCondition,
-  RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, SourceType, URLStaticMode, UsageState,
-  UsedName, UsedNameItem, escape_identifier, fast_set, filter_runtime, find_target,
-  get_runtime_key, impl_source_map_config, merge_runtime_condition,
+  DependenciesBlock, DependencyId, DependencyRange, DependencyType, ExportInfo, ExportProvided,
+  ExportsArgument, ExportsInfoArtifact, ExportsType, FactoryMeta, ImportedByDeferModulesArtifact,
+  InitFragment, InitFragmentStage, LibIdentOptions, Module, ModuleArgument,
+  ModuleCodeGenerationContext, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection,
+  ModuleIdentifier, ModuleLayer, ModuleStaticCache, ModuleType, NAMESPACE_OBJECT_EXPORT,
+  ParserOptions, Resolve, RuntimeCondition, RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact,
+  SourceType, URLStaticMode, UsageState, UsedName, UsedNameItem, escape_identifier, fast_set,
+  filter_runtime, find_target, get_runtime_key, impl_source_map_config, merge_runtime_condition,
   merge_runtime_condition_non_false, module_update_hash, property_access, property_name,
   render_make_deferred_namespace_mode_from_exports_type,
   reserved_names::RESERVED_NAMES_ATOM_SET,
@@ -316,8 +316,47 @@ pub struct ConcatenatedModuleInfo {
   pub all_used_names: HashSet<Atom>,
   pub binding_to_ref: FxIndexMap<(Atom, SyntaxContext), Vec<ConcatenatedModuleIdent>>,
 
+  /// Evaluation is independent from representation in modern-module output.
+  ///
+  /// `Some` means that this module is still scope-hoisted, but its executable
+  /// body is guarded by a lazy initializer. Declarations that participate in
+  /// ESM live bindings stay in the surrounding chunk scope.
+  pub initializer: Option<ConcatenatedModuleInitializer>,
+
   pub public_path_auto_replacement: Option<bool>,
   pub static_url_replacement: bool,
+}
+
+/// Render plan for an initializer-backed scope-hoisted module.
+///
+/// The ranges refer to the generated module source before identifier
+/// deconfliction. The modern-module renderer translates them to generated
+/// offsets after applying the normal concatenation replacements, which keeps
+/// the original source map intact.
+#[derive(Debug, Clone, Default)]
+pub struct ConcatenatedModuleInitializer {
+  pub name: Option<Atom>,
+  pub bindings: Vec<Atom>,
+  pub function_declarations: Vec<DependencyRange>,
+  pub variable_declarations: Vec<InitializerVariableDeclaration>,
+  pub class_declarations: Vec<InitializerClassDeclaration>,
+}
+
+#[derive(Debug, Clone)]
+pub struct InitializerVariableDeclaration {
+  /// Range occupied by the declaration keyword and following trivia.
+  pub prefix: DependencyRange,
+  /// End of the declaration, used to close the assignment expression when
+  /// this declaration appears as a statement.
+  pub end: u32,
+  pub in_for_head: bool,
+}
+
+#[derive(Debug, Clone)]
+pub struct InitializerClassDeclaration {
+  pub start: u32,
+  pub end: u32,
+  pub binding: Atom,
 }
 
 impl ConcatenatedModuleInfo {
@@ -400,6 +439,40 @@ impl ExternalModuleInfo {
   }
 }
 
+/// A module that cannot be merged into the surrounding modern-module scope.
+///
+/// Unlike an external module in a regular [`ConcatenatedModule`], a wrapped
+/// module is still emitted by the current chunk. Its initializer is linked by
+/// symbol, so loading it never goes through the module-id dispatcher.
+#[derive(Debug, Clone)]
+pub struct WrappedModuleInfo {
+  info: ExternalModuleInfo,
+  pub initializer_name: Option<Atom>,
+}
+
+impl WrappedModuleInfo {
+  pub fn new(index: usize, module: ModuleIdentifier) -> Self {
+    Self {
+      info: ExternalModuleInfo::new(index, module),
+      initializer_name: None,
+    }
+  }
+}
+
+impl std::ops::Deref for WrappedModuleInfo {
+  type Target = ExternalModuleInfo;
+
+  fn deref(&self) -> &Self::Target {
+    &self.info
+  }
+}
+
+impl std::ops::DerefMut for WrappedModuleInfo {
+  fn deref_mut(&mut self) -> &mut Self::Target {
+    &mut self.info
+  }
+}
+
 #[derive(Debug, Clone)]
 struct ConcatenatedImport {
   connection: Arc<ModuleGraphConnection>,
@@ -416,12 +489,17 @@ struct MergedConcatenatedImport {
 #[derive(Debug, Clone)]
 pub enum ModuleInfo {
   External(ExternalModuleInfo),
+  Wrapped(WrappedModuleInfo),
   Concatenated(Box<ConcatenatedModuleInfo>),
 }
 
 impl ModuleInfo {
   pub fn is_external(&self) -> bool {
     matches!(self, ModuleInfo::External(_))
+  }
+
+  pub fn is_wrapped(&self) -> bool {
+    matches!(self, ModuleInfo::Wrapped(_))
   }
 
   pub fn try_as_concatenated_mut(&mut self) -> Option<&mut ConcatenatedModuleInfo> {
@@ -434,6 +512,14 @@ impl ModuleInfo {
 
   pub fn try_as_external(&self) -> Option<&ExternalModuleInfo> {
     if let Self::External(v) = self {
+      Some(v)
+    } else {
+      None
+    }
+  }
+
+  pub fn try_as_wrapped(&self) -> Option<&WrappedModuleInfo> {
+    if let Self::Wrapped(v) = self {
       Some(v)
     } else {
       None
@@ -465,6 +551,14 @@ impl ModuleInfo {
     }
   }
 
+  pub fn as_wrapped(&self) -> &WrappedModuleInfo {
+    if let Self::Wrapped(v) = self {
+      v
+    } else {
+      panic!("should convert as wrapped module info")
+    }
+  }
+
   pub fn as_concatenated(&self) -> &ConcatenatedModuleInfo {
     if let Self::Concatenated(v) = self {
       v
@@ -476,6 +570,7 @@ impl ModuleInfo {
   pub fn id(&self) -> ModuleIdentifier {
     match self {
       ModuleInfo::External(e) => e.module,
+      ModuleInfo::Wrapped(w) => w.module,
       ModuleInfo::Concatenated(c) => c.module,
     }
   }
@@ -483,6 +578,7 @@ impl ModuleInfo {
   pub fn set_interop_namespace_object_used(&mut self, v: bool) {
     match self {
       ModuleInfo::External(e) => e.interop_namespace_object_used = v,
+      ModuleInfo::Wrapped(w) => w.interop_namespace_object_used = v,
       ModuleInfo::Concatenated(c) => c.interop_namespace_object_used = v,
     }
   }
@@ -490,6 +586,7 @@ impl ModuleInfo {
   pub fn set_interop_namespace_object_name(&mut self, v: Option<Atom>) {
     match self {
       ModuleInfo::External(e) => e.interop_namespace_object_name = v,
+      ModuleInfo::Wrapped(w) => w.interop_namespace_object_name = v,
       ModuleInfo::Concatenated(c) => c.interop_namespace_object_name = v,
     }
   }
@@ -497,6 +594,7 @@ impl ModuleInfo {
   pub fn set_interop_namespace_object2_used(&mut self, v: bool) {
     match self {
       ModuleInfo::External(e) => e.interop_namespace_object2_used = v,
+      ModuleInfo::Wrapped(w) => w.interop_namespace_object2_used = v,
       ModuleInfo::Concatenated(c) => c.interop_namespace_object2_used = v,
     }
   }
@@ -504,6 +602,7 @@ impl ModuleInfo {
   pub fn set_interop_namespace_object2_name(&mut self, v: Option<Atom>) {
     match self {
       ModuleInfo::External(e) => e.interop_namespace_object2_name = v,
+      ModuleInfo::Wrapped(w) => w.interop_namespace_object2_name = v,
       ModuleInfo::Concatenated(c) => c.interop_namespace_object2_name = v,
     }
   }
@@ -511,6 +610,7 @@ impl ModuleInfo {
   pub fn set_deferred_namespace_object_used(&mut self, v: bool) {
     match self {
       ModuleInfo::External(e) => e.deferred_namespace_object_used = v,
+      ModuleInfo::Wrapped(w) => w.deferred_namespace_object_used = v,
       ModuleInfo::Concatenated(_) => unreachable!(),
     }
   }
@@ -518,6 +618,7 @@ impl ModuleInfo {
   pub fn get_interop_namespace_object_used(&self) -> bool {
     match self {
       ModuleInfo::External(e) => e.interop_namespace_object_used,
+      ModuleInfo::Wrapped(w) => w.interop_namespace_object_used,
       ModuleInfo::Concatenated(c) => c.interop_namespace_object_used,
     }
   }
@@ -525,6 +626,7 @@ impl ModuleInfo {
   pub fn get_interop_namespace_object_name(&self) -> Option<&Atom> {
     match self {
       ModuleInfo::External(e) => e.interop_namespace_object_name.as_ref(),
+      ModuleInfo::Wrapped(w) => w.interop_namespace_object_name.as_ref(),
       ModuleInfo::Concatenated(c) => c.interop_namespace_object_name.as_ref(),
     }
   }
@@ -532,6 +634,7 @@ impl ModuleInfo {
   pub fn get_interop_namespace_object2_used(&self) -> bool {
     match self {
       ModuleInfo::External(e) => e.interop_namespace_object2_used,
+      ModuleInfo::Wrapped(w) => w.interop_namespace_object2_used,
       ModuleInfo::Concatenated(c) => c.interop_namespace_object2_used,
     }
   }
@@ -539,6 +642,7 @@ impl ModuleInfo {
   pub fn get_interop_namespace_object2_name(&self) -> Option<&Atom> {
     match self {
       ModuleInfo::External(e) => e.interop_namespace_object2_name.as_ref(),
+      ModuleInfo::Wrapped(w) => w.interop_namespace_object2_name.as_ref(),
       ModuleInfo::Concatenated(c) => c.interop_namespace_object2_name.as_ref(),
     }
   }
@@ -546,6 +650,7 @@ impl ModuleInfo {
   pub fn get_interop_default_access_name(&self) -> Option<&Atom> {
     match self {
       ModuleInfo::External(e) => e.interop_default_access_name.as_ref(),
+      ModuleInfo::Wrapped(w) => w.interop_default_access_name.as_ref(),
       ModuleInfo::Concatenated(c) => c.interop_default_access_name.as_ref(),
     }
   }
@@ -553,6 +658,7 @@ impl ModuleInfo {
   pub fn get_interop_default_access_used(&self) -> bool {
     match self {
       ModuleInfo::External(e) => e.interop_default_access_used,
+      ModuleInfo::Wrapped(w) => w.interop_default_access_used,
       ModuleInfo::Concatenated(c) => c.interop_default_access_used,
     }
   }
@@ -560,6 +666,7 @@ impl ModuleInfo {
   pub fn get_deferred_namespace_object_name(&self) -> Option<&Atom> {
     match self {
       ModuleInfo::External(e) => e.deferred_namespace_object_name.as_ref(),
+      ModuleInfo::Wrapped(w) => w.deferred_namespace_object_name.as_ref(),
       ModuleInfo::Concatenated(_) => unreachable!(),
     }
   }
@@ -567,6 +674,7 @@ impl ModuleInfo {
   pub fn set_interop_default_access_used(&mut self, v: bool) {
     match self {
       ModuleInfo::External(e) => e.interop_default_access_used = v,
+      ModuleInfo::Wrapped(w) => w.interop_default_access_used = v,
       ModuleInfo::Concatenated(c) => c.interop_default_access_used = v,
     }
   }
@@ -574,6 +682,7 @@ impl ModuleInfo {
   pub fn set_interop_default_access_name(&mut self, v: Option<Atom>) {
     match self {
       ModuleInfo::External(e) => e.interop_default_access_name = v,
+      ModuleInfo::Wrapped(w) => w.interop_default_access_name = v,
       ModuleInfo::Concatenated(c) => c.interop_default_access_name = v,
     }
   }
@@ -581,7 +690,27 @@ impl ModuleInfo {
   pub fn get_runtime_requirements(&self) -> &RuntimeGlobals {
     match self {
       ModuleInfo::External(e) => &e.runtime_requirements,
+      ModuleInfo::Wrapped(w) => &w.runtime_requirements,
       ModuleInfo::Concatenated(c) => &c.runtime_requirements,
+    }
+  }
+
+  pub fn initializer_name(&self) -> Option<&Atom> {
+    match self {
+      ModuleInfo::External(_) => None,
+      ModuleInfo::Wrapped(info) => info.initializer_name.as_ref(),
+      ModuleInfo::Concatenated(info) => info
+        .initializer
+        .as_ref()
+        .and_then(|initializer| initializer.name.as_ref()),
+    }
+  }
+
+  pub fn has_initializer(&self) -> bool {
+    match self {
+      ModuleInfo::External(_) => false,
+      ModuleInfo::Wrapped(_) => true,
+      ModuleInfo::Concatenated(info) => info.initializer.is_some(),
     }
   }
 }
@@ -590,6 +719,7 @@ impl ModuleInfo {
   pub fn index(&self) -> usize {
     match self {
       ModuleInfo::External(e) => e.index,
+      ModuleInfo::Wrapped(w) => w.index,
       ModuleInfo::Concatenated(c) => c.index,
     }
   }
@@ -1120,6 +1250,9 @@ impl Module for ConcatenatedModule {
             )
           }
           ModuleInfo::External(_) => (0, 1),
+          ModuleInfo::Wrapped(_) => {
+            unreachable!("wrapped module info is only used by the modern-module linker")
+          }
         };
         let mut escaped_names =
           HashMap::with_capacity_and_hasher(name_capacity, Default::default());
@@ -1161,6 +1294,9 @@ impl Module for ConcatenatedModule {
             }
           }
           ModuleInfo::External(_) => (),
+          ModuleInfo::Wrapped(_) => {
+            unreachable!("wrapped module info is only used by the modern-module linker")
+          }
         }
         (
           escaped_names.into_iter().collect::<Vec<_>>(),
@@ -1409,6 +1545,9 @@ impl Module for ConcatenatedModule {
             info.deferred_namespace_object_name = Some(external_name_interop.clone());
             top_level_declarations.insert(external_name_interop.clone());
           }
+        }
+        ModuleInfo::Wrapped(_) => {
+          unreachable!("wrapped module info is only used by the modern-module linker")
         }
       }
       // Handle additional logic based on module build meta
@@ -1962,6 +2101,9 @@ impl Module for ConcatenatedModule {
                 .expect("should have deferred_name"),
             )));
           }
+        }
+        ModuleInfo::Wrapped(_) => {
+          unreachable!("wrapped module info is only used by the modern-module linker")
         }
       }
 
@@ -3080,6 +3222,9 @@ impl ConcatenatedModule {
             comment: None,
           }));
         }
+        ModuleInfo::Wrapped(_) => {
+          unreachable!("wrapped module info is only used by the modern-module linker")
+        }
       }
     }
 
@@ -3348,6 +3493,9 @@ impl ConcatenatedModule {
           })
         };
         FinalBindingResult::from_binding(binding)
+      }
+      ModuleInfo::Wrapped(_) => {
+        unreachable!("wrapped module info is only used by the modern-module linker")
       }
     }
   }

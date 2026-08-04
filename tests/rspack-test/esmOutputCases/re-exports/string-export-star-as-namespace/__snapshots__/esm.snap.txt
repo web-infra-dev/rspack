@@ -3,9 +3,10 @@ import { __webpack_require__ } from "./runtime.mjs";
 // NAMESPACE OBJECT: ./foo.js
 var foo_namespaceObject = {};
 __webpack_require__.r(foo_namespaceObject);
-__webpack_require__.d(foo_namespaceObject, { 
+__webpack_require__.d(foo_namespaceObject, {
   named: () => (named),
-  "some import": () => (someImport) });
+  "some import": () => (someImport)
+});
 
 
 // ./foo.js

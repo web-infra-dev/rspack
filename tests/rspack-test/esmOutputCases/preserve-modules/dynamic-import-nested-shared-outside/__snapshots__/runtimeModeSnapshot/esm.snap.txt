@@ -1,0 +1,147 @@
+```mjs title=feature/index.mjs
+import { definePropertyGetters, makeNamespaceObject } from "../runtime.mjs";
+import { util, util_init } from "../shared/util.mjs";
+
+var __esm = (fn, result) => function __init() {
+	if (fn) {
+		var value = fn(fn = 0);
+		result = value && typeof value.then === "function" ? value.then(value => result = value) : value;
+	}
+	return result;
+};
+// NAMESPACE OBJECT: ./src/feature/index.js
+var feature_namespaceObject = {};
+makeNamespaceObject(feature_namespaceObject);
+definePropertyGetters(feature_namespaceObject, {
+  answer: () => ((/* inlined export .answer */42)),
+  "default": () => (src_feature)
+});
+
+
+// ./src/feature/index.js
+var feature, src_feature;
+var feature_init = /*#__PURE__*/ __esm(() => {
+	util_init();
+
+
+( feature = () => `feature:${util}`);
+
+
+/* export default */ ( src_feature = (feature));;
+
+});
+
+var feature_answer = (/* inlined export .answer */42);
+export { feature_answer as answer, feature_init, feature_namespaceObject, src_feature as default };
+
+```
+
+```mjs title=index.mjs
+import { label } from "./label.mjs";
+
+// ./src/index.js
+
+
+it('should preserve nested dynamic import modules and shared outside chunks', async () => {
+	expect(label).toBe('entry:outside')
+
+	const feature = await import("./feature/index.mjs").then(m => (m.feature_init(), m.feature_namespaceObject))
+
+	expect(feature.default()).toBe('feature:util:outside')
+	expect(feature.answer).toBe(42)
+})
+
+export {};
+
+```
+
+```mjs title=label.mjs
+import { dep_init, outside } from "./outside_dep_js.mjs";
+
+// ./src/label.js
+	dep_init();
+
+
+const label = `entry:${outside}`
+
+export { label };
+
+```
+
+```mjs title=outside_dep_js.mjs
+var __esm = (fn, result) => function __init() {
+	if (fn) {
+		var value = fn(fn = 0);
+		result = value && typeof value.then === "function" ? value.then(value => result = value) : value;
+	}
+	return result;
+};
+// ./outside/dep.js
+var outside;
+var dep_init = /*#__PURE__*/ __esm(() => {
+( outside = 'outside');
+
+
+
+});
+
+export { dep_init, outside };
+
+```
+
+```mjs title=runtime.mjs
+
+// rspack/runtime/define_property_getters
+var definePropertyGetters = (exports, getters, values) => {
+	var define = (defs, kind) => {
+		for(var key in defs) {
+			if(hasOwnProperty(defs, key) && !hasOwnProperty(exports, key)) {
+				Object.defineProperty(exports, key, { enumerable: true, [kind]: defs[key] });
+			}
+		}
+	};
+	define(getters, "get");
+	define(values, "value");
+};;
+export { definePropertyGetters };
+// rspack/runtime/has_own_property
+var hasOwnProperty = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop));
+// rspack/runtime/make_namespace_object
+// define __esModule on exports
+var makeNamespaceObject = (exports) => {
+	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+	}
+	Object.defineProperty(exports, '__esModule', { value: true });
+};;
+export { makeNamespaceObject };
+
+
+```
+
+```mjs title=shared/util.mjs
+import { dep_init, outside } from "../outside_dep_js.mjs";
+
+var __esm = (fn, result) => function __init() {
+	if (fn) {
+		var value = fn(fn = 0);
+		result = value && typeof value.then === "function" ? value.then(value => result = value) : value;
+	}
+	return result;
+};
+// ./src/shared/util.js
+var util, answer;
+var util_init = /*#__PURE__*/ __esm(() => {
+	dep_init();
+
+
+( util = `util:${outside}`);
+( answer = 42);
+
+
+
+});
+
+export { answer, util, util_init };
+
+```

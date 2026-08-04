@@ -1,6 +1,7 @@
 use rspack_core::{
-  ContextDependency, ContextMode, ContextModulePattern, ContextOptions, DependencyRange,
-  GroupOptions, ResourceIdentifier, TemplateContext, TemplateReplaceSource,
+  CodeGenerationModuleReferenceKind, ContextDependency, ContextMode, ContextModulePattern,
+  ContextOptions, DependencyRange, GroupOptions, ResourceIdentifier, TemplateContext,
+  TemplateReplaceSource,
 };
 
 mod amd_require_context_dependency;
@@ -114,6 +115,13 @@ fn context_dependency_template_as_require_call(
   range: &DependencyRange,
   value_range: Option<&DependencyRange>,
 ) {
+  let relocation = code_generatable_context
+    .is_modern_module_output()
+    .then(|| {
+      code_generatable_context
+        .create_module_relocation(*dep.id(), CodeGenerationModuleReferenceKind::Value)
+    })
+    .flatten();
   let TemplateContext {
     compilation,
     runtime_template,
@@ -121,7 +129,8 @@ fn context_dependency_template_as_require_call(
   } = code_generatable_context;
   let id = dep.id();
 
-  let mut expr = runtime_template.module_raw(compilation, id, dep.request(), false);
+  let mut expr = relocation
+    .unwrap_or_else(|| runtime_template.module_raw(compilation, id, dep.request(), false));
 
   if compilation
     .get_module_graph()
@@ -146,6 +155,13 @@ fn context_dependency_template_as_id(
   code_generatable_context: &mut TemplateContext,
   range: &DependencyRange,
 ) {
+  let relocation = code_generatable_context
+    .is_modern_module_output()
+    .then(|| {
+      code_generatable_context
+        .create_module_relocation(*dep.id(), CodeGenerationModuleReferenceKind::Value)
+    })
+    .flatten();
   let TemplateContext {
     compilation,
     runtime_template,
@@ -153,12 +169,14 @@ fn context_dependency_template_as_id(
   } = code_generatable_context;
   let id = dep.id();
 
-  let expr = runtime_template.module_raw(
-    compilation,
-    id,
-    dep.request(),
-    dep.options().mode == ContextMode::Weak,
-  );
+  let expr = relocation.unwrap_or_else(|| {
+    runtime_template.module_raw(
+      compilation,
+      id,
+      dep.request(),
+      dep.options().mode == ContextMode::Weak,
+    )
+  });
 
   if compilation
     .get_module_graph()

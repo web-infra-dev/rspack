@@ -1,0 +1,98 @@
+```mjs title=app.mjs
+import { definePropertyGetters, makeNamespaceObject } from "./runtime.mjs";
+var __esm = (fn, result) => function __init() {
+	if (fn) {
+		var value = fn(fn = 0);
+		result = value && typeof value.then === "function" ? value.then(value => result = value) : value;
+	}
+	return result;
+};
+// NAMESPACE OBJECT: ./src/app.js
+var app_namespaceObject = {};
+makeNamespaceObject(app_namespaceObject);
+definePropertyGetters(app_namespaceObject, {
+  value: () => (value)
+});
+
+
+// ./src/app.js
+var value;
+var app_init = /*#__PURE__*/ __esm(() => {
+( value = 1);
+
+});
+
+export { app_init, app_namespaceObject, value };
+
+```
+
+```mjs title=lib.mjs
+import { definePropertyGetters, makeNamespaceObject } from "./runtime.mjs";
+var __esm = (fn, result) => function __init() {
+	if (fn) {
+		var value = fn(fn = 0);
+		result = value && typeof value.then === "function" ? value.then(value => result = value) : value;
+	}
+	return result;
+};
+// NAMESPACE OBJECT: ./lib/index.js
+var lib_namespaceObject = {};
+makeNamespaceObject(lib_namespaceObject);
+definePropertyGetters(lib_namespaceObject, {
+  value: () => (value)
+});
+
+
+// ./lib/index.js
+var value;
+var lib_init = /*#__PURE__*/ __esm(() => {
+( value = 2);
+
+});
+
+export { lib_init, lib_namespaceObject, value };
+
+```
+
+```mjs title=main.mjs
+// ./index.js
+it('should assign short names to dynamic import chunks', async () => {
+	const app = await import("./app.mjs").then(m => (m.app_init(), m.app_namespaceObject))
+	const lib = await import("./lib.mjs").then(m => (m.lib_init(), m.lib_namespaceObject))
+	expect(app.value).toBe(1)
+	expect(lib.value).toBe(2)
+})
+
+export {};
+
+```
+
+```mjs title=runtime.mjs
+
+// rspack/runtime/define_property_getters
+var definePropertyGetters = (exports, getters, values) => {
+	var define = (defs, kind) => {
+		for(var key in defs) {
+			if(hasOwnProperty(defs, key) && !hasOwnProperty(exports, key)) {
+				Object.defineProperty(exports, key, { enumerable: true, [kind]: defs[key] });
+			}
+		}
+	};
+	define(getters, "get");
+	define(values, "value");
+};;
+export { definePropertyGetters };
+// rspack/runtime/has_own_property
+var hasOwnProperty = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop));
+// rspack/runtime/make_namespace_object
+// define __esModule on exports
+var makeNamespaceObject = (exports) => {
+	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+	}
+	Object.defineProperty(exports, '__esModule', { value: true });
+};;
+export { makeNamespaceObject };
+
+
+```

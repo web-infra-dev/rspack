@@ -3,7 +3,7 @@ use rspack_core::{
   RuntimeTemplate, RuntimeVariable, impl_runtime_module,
 };
 
-use crate::get_chunk_runtime_requirements;
+use crate::{get_chunk_runtime_requirements, is_modern_module_library_chunk};
 
 static MAKE_OPTIMIZED_DEFERRED_NAMESPACE_OBJECT_TEMPLATE: &str =
   include_str!("runtime/make_optimized_deferred_namespace_object.ejs");
@@ -41,11 +41,13 @@ impl RuntimeModule for MakeOptimizedDeferredNamespaceObjectRuntimeModule {
     let runtime_template = context.runtime_template;
     let has_async = get_chunk_runtime_requirements(compilation, &self.chunk_ukey)
       .contains(RuntimeGlobals::ASYNC_MODULE);
+    let uses_direct_initializers = is_modern_module_library_chunk(&self.chunk_ukey, compilation);
     let source = runtime_template.render(
       self.id(),
       Some(serde_json::json!({
         "_module_cache": runtime_template.render_runtime_variable(&RuntimeVariable::ModuleCache),
         "_has_async": has_async,
+        "_uses_direct_initializers": uses_direct_initializers,
       })),
     )?;
 
@@ -55,14 +57,18 @@ impl RuntimeModule for MakeOptimizedDeferredNamespaceObjectRuntimeModule {
     &self,
     compilation: &Compilation,
   ) -> rspack_core::RuntimeModuleRuntimeRequirements {
-    let mut dependencies = RuntimeGlobals::REQUIRE;
+    let uses_direct_initializers = is_modern_module_library_chunk(&self.chunk_ukey, compilation);
+    let mut dependencies = RuntimeGlobals::default();
+    if !uses_direct_initializers {
+      dependencies.insert(RuntimeGlobals::REQUIRE);
+    }
     if get_chunk_runtime_requirements(compilation, &self.chunk_ukey)
       .contains(RuntimeGlobals::ASYNC_MODULE)
     {
-      dependencies.insert(
-        RuntimeGlobals::ASYNC_MODULE_EXPORT_SYMBOL
-          | RuntimeGlobals::DEFERRED_MODULES_ASYNC_TRANSITIVE_DEPENDENCIES_SYMBOL,
-      );
+      dependencies.insert(RuntimeGlobals::DEFERRED_MODULES_ASYNC_TRANSITIVE_DEPENDENCIES_SYMBOL);
+      if !uses_direct_initializers {
+        dependencies.insert(RuntimeGlobals::ASYNC_MODULE_EXPORT_SYMBOL);
+      }
     }
     rspack_core::RuntimeModuleRuntimeRequirements {
       dependencies,

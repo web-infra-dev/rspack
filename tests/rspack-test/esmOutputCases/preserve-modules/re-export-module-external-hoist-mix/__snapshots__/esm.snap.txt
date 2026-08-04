@@ -1,21 +1,27 @@
 ```mjs title=fs-fs.mjs
 import { __webpack_require__ } from "./runtime.mjs";
+import { readFile as readFile_0, readFileSync as readFileSync_0 } from "fs";
 
-import * as __rspack_external_fs from "fs";
-__webpack_require__.add({
-"fs?2159"
-/*!*********************!*\
-  !*** external "fs" ***!
-  \*********************/
-(module) {
-
-module.exports = __rspack_external_fs;
-
-
-},
+// NAMESPACE OBJECT: external "fs"
+var external_fs_namespaceObject_0 = {};
+__webpack_require__.r(external_fs_namespaceObject_0);
+__webpack_require__.d(external_fs_namespaceObject_0, {
+  readFile: () => (readFile_0),
+  readFileSync: () => (readFileSync_0)
 });
+var external_fs_namespaceObject_0_starExports = external_fs_namespaceObject_0;
+Object.keys(external_fs_namespaceObject_0_starExports).forEach(function(key) {
+  if (key !== "default" && key !== "__esModule") {
+    __webpack_require__.d(external_fs_namespaceObject_0, { [key]: function() { return external_fs_namespaceObject_0_starExports[key]; } });
+  }
+});
+
+
 // fs?82ef
 
+// fs?2159
+
+export { external_fs_namespaceObject_0 };
 export { readFile as readFileHoisted, readFileSync as readFileSyncHoisted } from "fs";
 
 ```
@@ -30,13 +36,12 @@ export { readFileHoisted, readFileSyncHoisted } from "./fs-fs.mjs";
 ```
 
 ```mjs title=index.mjs
-import { __webpack_require__ } from "./runtime.mjs";
-import "./wrapped.mjs";
+import { require_wrapped } from "./wrapped.mjs";
 import "./hoisted.mjs";
 import { readFileSyncHoisted as readFileSync, readFileHoisted as readFile } from "./fs-fs.mjs";
 
 // ./src/index.js
-const wrapped_0 = __webpack_require__("./src/wrapped.js");
+const wrapped_0 = require_wrapped();
 
 
 
@@ -62,30 +67,8 @@ export {};
 ```
 
 ```mjs title=runtime.mjs
-
-var __webpack_modules__ = {};
-// The module cache
-var __webpack_module_cache__ = {};
-// The require function
-function __webpack_require__(moduleId) {
-// Check if module is in cache
-var cachedModule = __webpack_module_cache__[moduleId];
-if (cachedModule !== undefined) {
-return cachedModule.exports;
-}
-// Create a new module (and put it into the cache)
-var module = (__webpack_module_cache__[moduleId] = {
-id: moduleId,
-exports: {}
-});
-// Execute the module function
-__webpack_modules__[moduleId](module, module.exports, __webpack_require__);
-
-// Return the exports of the module
-return module.exports;
-}
-// expose the modules object (__webpack_modules__)
-__webpack_require__.m = __webpack_modules__;
+// The require scope
+var __webpack_require__ = {};
 
 // webpack/runtime/define_property_getters
 (() => {
@@ -115,14 +98,19 @@ __webpack_require__.hmd = (module) => {
   return module;
 };
 })();
-// webpack/runtime/esm_register_module
-(() => {
-__webpack_require__.add = function registerModules(modules) { Object.assign(__webpack_require__.m, modules) }
-
-})();
 // webpack/runtime/has_own_property
 (() => {
 __webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
+})();
+// webpack/runtime/make_namespace_object
+(() => {
+// define __esModule on exports
+__webpack_require__.r = (exports) => {
+	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+	}
+	Object.defineProperty(exports, '__esModule', { value: true });
+};
 })();
 
 export { __webpack_require__ };
@@ -131,15 +119,27 @@ export { __webpack_require__ };
 
 ```mjs title=wrapped.mjs
 import { __webpack_require__ } from "./runtime.mjs";
-import "./fs-fs.mjs";
+import { external_fs_namespaceObject_0 } from "./fs-fs.mjs";
 
-__webpack_require__.add({
-"./src/wrapped.js"
+var __commonJS = (factory, flags, id, isEntry, module) => function __require() {
+	if (module !== undefined) {
+		return module.exports;
+	}
+	module = { exports: {} };
+	if (isEntry) module.isEntry = true;
+	if (flags & 1) module.id = id;
+	if (flags & 2) module.loaded = false;
+	if (flags & 4) factory.call(module.exports, module, module.exports, undefined);
+	else factory(module, module.exports, undefined);
+	if (flags & 2) module.loaded = true;
+	return module.exports;
+};
+var require_wrapped = /*#__PURE__*/ __commonJS(function(module, __webpack_exports__) {
+
 /*!************************!*\
   !*** ./src/wrapped.js ***!
   \************************/
-(module, __webpack_exports__, __webpack_require__) {
-/* import */ var fs__rspack_import_0 = __webpack_require__(/*! fs */ "fs?2159");
+/* import */ var fs__rspack_import_0 = external_fs_namespaceObject_0;
 /* module decorator */ module = __webpack_require__.hmd(module);
 
 
@@ -150,13 +150,12 @@ __webpack_require__.d(__webpack_exports__, {
   Z: () => (/* reexport safe */ fs__rspack_import_0.readFileSync)
 });
 
+}, 1, "./src/wrapped.js");
 
-},
-});
-const wrapped = __webpack_require__("./src/wrapped.js");
-var Z = wrapped.Z;
-var E = wrapped.E;
+const wrapped_0 = require_wrapped();
+var Z = wrapped_0.Z;
+var E = wrapped_0.E;
 
-export { E as readFileWrapped, Z as readFileSyncWrapped };
+export { E as readFileWrapped, Z as readFileSyncWrapped, require_wrapped };
 
 ```

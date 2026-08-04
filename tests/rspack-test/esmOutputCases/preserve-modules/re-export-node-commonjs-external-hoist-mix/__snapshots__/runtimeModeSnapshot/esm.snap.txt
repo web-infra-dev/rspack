@@ -1,45 +1,30 @@
 ```mjs title=fs.mjs
-import { rspackRequire, moduleFactories } from "./runtime.mjs";
 import { createRequire as __rspack_createRequire } from "node:module";
 const __rspack_createRequire_require = __rspack_createRequire(import.meta.url);
-moduleFactories.add({
-"fs"
-/*!*********************!*\
-  !*** external "fs" ***!
-  \*********************/
-(module) {
-module.exports = __rspack_createRequire_require("fs");
-
-},
-});
-export {};
+// fs
+const external_fs_namespaceObject = __rspack_createRequire_require("fs");
+var readFileHoisted = external_fs_namespaceObject.readFile;
+var readFileSyncHoisted = external_fs_namespaceObject.readFileSync;
+export { external_fs_namespaceObject, readFileHoisted, readFileSyncHoisted };
 
 ```
 
 ```mjs title=hoisted.mjs
-import { rspackRequire } from "./runtime.mjs";
-import "./fs.mjs";
 
 // ./src/hoisted.js
 
 
-const external_fs_ = rspackRequire("fs");
-var readFile = external_fs_.readFile;
-var readFileSync = external_fs_.readFileSync;
-
-export { readFile as readFileHoisted, readFileSync as readFileSyncHoisted };
+export { readFileHoisted, readFileSyncHoisted } from "./fs.mjs";
 
 ```
 
 ```mjs title=index.mjs
-import { rspackRequire } from "./runtime.mjs";
-import "./wrapped.mjs";
-import "./fs.mjs";
+import { require_wrapped } from "./wrapped.mjs";
 import "./hoisted.mjs";
+import { external_fs_namespaceObject } from "./fs.mjs";
 
 // ./src/index.js
-const wrapped_0 = rspackRequire("./src/wrapped.js");
-const external_fs_ = rspackRequire("fs");
+const wrapped_0 = require_wrapped();
 
 
 
@@ -48,8 +33,8 @@ it('should preserve node-commonjs externals reexports for hoisted and wrapped mo
 	const require = createRequire('<ROOT>/tests/rspack-test/esmOutputCases/preserve-modules/re-export-node-commonjs-external-hoist-mix/src/index.js')
 	const fs = require('fs')
 
-	expect(external_fs_.readFileSync).toBe(fs.readFileSync)
-	expect(external_fs_.readFile).toBe(fs.readFile)
+	expect(external_fs_namespaceObject.readFileSync).toBe(fs.readFileSync)
+	expect(external_fs_namespaceObject.readFile).toBe(fs.readFile)
 	expect(wrapped_0.Z).toBe(fs.readFileSync)
 	expect(wrapped_0.E).toBe(fs.readFile)
 
@@ -67,32 +52,6 @@ export {};
 ```
 
 ```mjs title=runtime.mjs
-
-var modules = {};
-// The module cache
-var moduleCache = {};
-// The require function
-function rspackRequire(moduleId) {
-// Check if module is in cache
-var cachedModule = moduleCache[moduleId];
-if (cachedModule !== undefined) {
-return cachedModule.exports;
-}
-// Create a new module (and put it into the cache)
-var module = (moduleCache[moduleId] = {
-id: moduleId,
-exports: {}
-});
-// Execute the module function
-modules[moduleId](module, module.exports, rspackRequire);
-
-// Return the exports of the module
-return module.exports;
-}
-export { rspackRequire };
-// expose the modules object (modules)
-var moduleFactories = modules;
-export { moduleFactories };
 
 // rspack/runtime/compat_get_default_export
 // getDefaultExport function for compatibility with non-ESM modules
@@ -131,9 +90,6 @@ var esmModuleDecorator = (module) => {
   return module;
 };;
 export { esmModuleDecorator };
-// rspack/runtime/esm_register_module
-moduleFactories.add = function registerModules(modules) { Object.assign(moduleFactories, modules) }
-;
 // rspack/runtime/has_own_property
 var hasOwnProperty = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop));
 
@@ -141,16 +97,28 @@ var hasOwnProperty = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, p
 ```
 
 ```mjs title=wrapped.mjs
-import { rspackRequire, moduleFactories, definePropertyGetters, compatGetDefaultExport, esmModuleDecorator } from "./runtime.mjs";
-import "./fs.mjs";
+import { definePropertyGetters, compatGetDefaultExport, esmModuleDecorator } from "./runtime.mjs";
+import { external_fs_namespaceObject } from "./fs.mjs";
 
-moduleFactories.add({
-"./src/wrapped.js"
+var __commonJS = (factory, flags, id, isEntry, module) => function __require() {
+	if (module !== undefined) {
+		return module.exports;
+	}
+	module = { exports: {} };
+	if (isEntry) module.isEntry = true;
+	if (flags & 1) module.id = id;
+	if (flags & 2) module.loaded = false;
+	if (flags & 4) factory.call(module.exports, module, module.exports, undefined);
+	else factory(module, module.exports, undefined);
+	if (flags & 2) module.loaded = true;
+	return module.exports;
+};
+var require_wrapped = /*#__PURE__*/ __commonJS(function(module, exports) {
+
 /*!************************!*\
   !*** ./src/wrapped.js ***!
   \************************/
-(module, exports) {
-/* import */ var fs__rspack_import_0 = rspackRequire(/*! fs */ "fs");
+/* import */ var fs__rspack_import_0 = external_fs_namespaceObject;
 /* import */ var fs__rspack_import_0_default = /*#__PURE__*/compatGetDefaultExport(fs__rspack_import_0);
 /* module decorator */ module = esmModuleDecorator(module);
 
@@ -162,13 +130,12 @@ definePropertyGetters(exports, {
   Z: () => (/* reexport safe */ fs__rspack_import_0.readFileSync)
 });
 
+}, 1, "./src/wrapped.js");
 
-},
-});
-const wrapped = rspackRequire("./src/wrapped.js");
-var Z = wrapped.Z;
-var E = wrapped.E;
+const wrapped_0 = require_wrapped();
+var Z = wrapped_0.Z;
+var E = wrapped_0.E;
 
-export { E as readFileWrapped, Z as readFileSyncWrapped };
+export { E as readFileWrapped, Z as readFileSyncWrapped, require_wrapped };
 
 ```

@@ -36,6 +36,7 @@ use crate::{
 pub struct RuntimeTemplate {
   compiler_options: Arc<CompilerOptions>,
   render_mode: RuntimeTemplateRenderMode,
+  is_module_execution: bool,
   dojang: Arc<Dojang>,
 }
 
@@ -211,17 +212,18 @@ impl Debug for RuntimeTemplate {
 impl RuntimeTemplate {
   pub fn new(compiler_options: Arc<CompilerOptions>) -> Self {
     let render_mode = RuntimeTemplateRenderMode::from_options(&compiler_options);
-    Self::with_render_mode(compiler_options, render_mode)
+    Self::with_render_mode(compiler_options, render_mode, false)
   }
 
   pub(crate) fn for_module_execution(compiler_options: Arc<CompilerOptions>) -> Self {
     let render_mode = RuntimeTemplateRenderMode::for_module_execution(&compiler_options);
-    Self::with_render_mode(compiler_options, render_mode)
+    Self::with_render_mode(compiler_options, render_mode, true)
   }
 
   fn with_render_mode(
     compiler_options: Arc<CompilerOptions>,
     render_mode: RuntimeTemplateRenderMode,
+    is_module_execution: bool,
   ) -> Self {
     let runtime_globals = get_runtime_globals_render_map(render_mode.runtime_module_render_mode());
     let mut dojang = Dojang::new();
@@ -310,6 +312,7 @@ impl RuntimeTemplate {
     Self {
       compiler_options,
       render_mode,
+      is_module_execution,
       dojang: Arc::new(dojang),
     }
   }
@@ -354,6 +357,7 @@ impl RuntimeTemplate {
     ModuleCodeTemplate::new(
       self.compiler_options.clone(),
       self.render_mode.module_render_mode(),
+      self.is_module_execution,
     )
   }
 
@@ -769,15 +773,15 @@ pub fn get_exports_type_with_strict(
     )
 }
 
-pub fn get_outgoing_async_modules(
+pub fn get_outgoing_async_module_identifiers(
   compilation: &Compilation,
   module: &dyn Module,
-) -> FxIndexSet<ModuleId> {
+) -> FxIndexSet<ModuleIdentifier> {
   fn helper(
     compilation: &Compilation,
     mg: &ModuleGraph,
     module: &dyn Module,
-    set: &mut FxIndexSet<ModuleId>,
+    set: &mut FxIndexSet<ModuleIdentifier>,
     visited: &mut IdentifierSet,
   ) {
     let module_identifier = module.identifier();
@@ -788,11 +792,7 @@ pub fn get_outgoing_async_modules(
       return;
     }
     if module.build_meta().has_top_level_await() {
-      set.insert(
-        ChunkGraph::get_module_id(&compilation.module_ids_artifact, module_identifier)
-          .expect("should have module_id")
-          .clone(),
-      );
+      set.insert(module_identifier);
     } else {
       for (module, connections) in mg.get_outcoming_connections_by_module(&module_identifier) {
         let is_esm = connections.iter().any(|connection| {
@@ -829,10 +829,25 @@ pub fn get_outgoing_async_modules(
   set
 }
 
+pub fn get_outgoing_async_modules(
+  compilation: &Compilation,
+  module: &dyn Module,
+) -> FxIndexSet<ModuleId> {
+  get_outgoing_async_module_identifiers(compilation, module)
+    .into_iter()
+    .map(|module| {
+      ChunkGraph::get_module_id(&compilation.module_ids_artifact, module)
+        .expect("async module should have a module id")
+        .clone()
+    })
+    .collect()
+}
+
 #[derive(Debug)]
 pub struct ModuleCodeTemplate {
   compiler_options: Arc<CompilerOptions>,
   runtime_globals_render_mode: RuntimeGlobalsRenderMode,
+  is_module_execution: bool,
   runtime_globals: Arc<RuntimeGlobalsRenderMap>,
   runtime_requirements: RuntimeGlobals,
 }
@@ -841,12 +856,54 @@ impl ModuleCodeTemplate {
   fn new(
     compiler_options: Arc<CompilerOptions>,
     runtime_globals_render_mode: RuntimeGlobalsRenderMode,
+    is_module_execution: bool,
   ) -> Self {
     Self {
       compiler_options,
       runtime_globals_render_mode,
+      is_module_execution,
       runtime_globals: get_runtime_globals_render_map(runtime_globals_render_mode),
       runtime_requirements: RuntimeGlobals::default(),
+    }
+  }
+
+  /// Whether this template is producing code that will be evaluated by the
+  /// build-time module executor instead of emitted into a final chunk.
+  pub fn is_module_execution(&self) -> bool {
+    self.is_module_execution
+  }
+
+  /// Whether dependency templates may emit module-reference relocation
+  /// records for the modern-module chunk renderer to consume.
+  pub fn supports_module_relocations(&self) -> bool {
+    !self.is_module_execution
+      && self.compiler_options.output.module
+      && self
+        .compiler_options
+        .output
+        .enabled_library_types
+        .as_ref()
+        .is_some_and(|types| {
+          types
+            .iter()
+            .any(|library_type| library_type == "modern-module")
+        })
+  }
+
+  /// Render the callable `require` value exposed by compatibility APIs such
+  /// as AMD factories and `require.ensure` callbacks.
+  ///
+  /// Modern-module rewrites every statically understood module access to a
+  /// typed initializer relocation. The remaining callable therefore must not
+  /// fall back to the removed module-id dispatcher. Keeping a throwing
+  /// function preserves the observable API shape and gives opaque uses a
+  /// deterministic error instead of accidentally calling the runtime scope
+  /// object.
+  pub fn render_compatibility_require(&mut self) -> String {
+    if self.supports_module_relocations() {
+      "function __rspack_static_require__(request) { var e = new Error(\"Cannot find module '\" + request + \"'\"); e.code = 'MODULE_NOT_FOUND'; throw e; }".to_string()
+    } else {
+      self.render_runtime_globals(&RuntimeGlobals::REQUIRE)
     }
   }
 
@@ -1560,8 +1617,13 @@ impl ModuleCodeTemplate {
         )
         .boxed(),
       );
-      let module_id =
-        ChunkGraph::get_module_id(&compilation.module_ids_artifact, target_module_identifier);
+      let loader = if self.supports_module_relocations() {
+        format!("() => {import_var}.a")
+      } else {
+        let module_id =
+          ChunkGraph::get_module_id(&compilation.module_ids_artifact, target_module_identifier);
+        json_stringify(&module_id)
+      };
       let mode = render_make_deferred_namespace_mode_from_exports_type(exports_type);
       format!(
         "/*#__PURE__*/ {}({import_var}_deferred_namespace_cache || ({import_var}_deferred_namespace_cache = {}({}, {})))",
@@ -1571,7 +1633,7 @@ impl ModuleCodeTemplate {
           None => "Object",
         },
         self.render_runtime_globals(&RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT),
-        json_stringify(&module_id),
+        loader,
         mode,
       )
     } else {

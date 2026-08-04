@@ -1,4 +1,5 @@
-<%- define(MAKE_DEFERRED_NAMESPACE_OBJECT) %> = <%- basicFunction("moduleId, mode") %> {
+<%- define(MAKE_DEFERRED_NAMESPACE_OBJECT) %> = <% if (_uses_direct_initializers) { %><%- basicFunction("load, mode") %><% } else { %><%- basicFunction("moduleId, mode") %><% } %> {
+  <% if (!_uses_direct_initializers) { %>
   var cachedModule = <%- _module_cache %>[moduleId];
   if (cachedModule && cachedModule.error === undefined) {
     var exports = cachedModule.exports;
@@ -8,12 +9,14 @@
     if (mode & 8) return exports;
     return <%- CREATE_FAKE_NAMESPACE_OBJECT %>(exports, mode);
   }
+  <% } %>
   var init = <%- basicFunction("") %> {
-    ns = <%- REQUIRE %>(moduleId);
+    ns = <% if (_uses_direct_initializers) { %>load()<% } else { %><%- REQUIRE %>(moduleId)<% } %>;
     <% if (_has_async) { %>
-    if (<%- ASYNC_MODULE_EXPORT_SYMBOL %> in ns) ns = ns[<%- ASYNC_MODULE_EXPORT_SYMBOL %>];
+    <% if (!_uses_direct_initializers) { %>if (<%- ASYNC_MODULE_EXPORT_SYMBOL %> in ns) ns = ns[<%- ASYNC_MODULE_EXPORT_SYMBOL %>];<% } %>
     <% } %>
     init = null;
+    <% if (!_uses_direct_initializers) { %>
     if (mode & 8 || mode & 4 && ns.__esModule && typeof ns === 'object') {
       delete handler.defineProperty;
       delete handler.deleteProperty;
@@ -25,8 +28,13 @@
     } else {
       ns = <%- CREATE_FAKE_NAMESPACE_OBJECT %>(ns, mode);
     }
+    <% } else { %>
+    if (!(mode & 8 || mode & 4 && ns.__esModule && typeof ns === 'object')) {
+      ns = <%- CREATE_FAKE_NAMESPACE_OBJECT %>(ns, mode);
+    }
+    <% } %>
   };
-  var ns = __rspack_deferred_exports[moduleId] || (__rspack_deferred_exports[moduleId] = { __proto__: null });
+  var ns = <% if (_uses_direct_initializers) { %>{ __proto__: null }<% } else { %>__rspack_deferred_exports[moduleId] || (__rspack_deferred_exports[moduleId] = { __proto__: null })<% } %>;
   var handler = {
     __proto__: null,
     get: <%- basicFunction("_, name") %> {
@@ -54,8 +62,8 @@
     },
     getOwnPropertyDescriptor: <%- basicFunction("_, name") %> {
     	switch (name) {
-    		case "__esModule": return { value: true, configurable: !(mode & 8) };
-    		case Symbol.toStringTag: return { value: "Deferred Module", configurable: !(mode & 8) };
+		case "__esModule": return { value: true, configurable: <% if (_uses_direct_initializers) { %>true<% } else { %>!(mode & 8)<% } %> };
+		case Symbol.toStringTag: return { value: "Deferred Module", configurable: <% if (_uses_direct_initializers) { %>true<% } else { %>!(mode & 8)<% } %> };
     		case "then": return undefined;
     	}
     	if (init) init();
@@ -63,6 +71,7 @@
     	if (mode & 2 && name == "default" && !desc) {
     		desc = { value: ns, configurable: true };
     	}
+		<% if (_uses_direct_initializers) { %>if (desc && !desc.configurable) desc = Object.assign({}, desc, { configurable: true });<% } %>
     	return desc;
     },
     defineProperty: <%- basicFunction("_, name") %> {
@@ -71,6 +80,7 @@
     },
     deleteProperty: <%- returningFunction("false", "") %>,
     set: <%- returningFunction("false", "") %>,
+	<% if (_uses_direct_initializers) { %>preventExtensions: <%- returningFunction("false", "") %>,<% } %>
   };
   return new Proxy(ns, handler);
 }

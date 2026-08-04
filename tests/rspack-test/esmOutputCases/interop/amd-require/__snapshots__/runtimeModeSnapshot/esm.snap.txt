@@ -1,0 +1,123 @@
+```mjs title=main.mjs
+import { ensureChunk } from "./runtime.mjs";
+import { require_value } from "./value.mjs";
+
+var __commonJS = (factory, flags, id, isEntry, module) => function __require() {
+	if (module !== undefined) {
+		return module.exports;
+	}
+	module = { exports: {} };
+	if (isEntry) module.isEntry = true;
+	if (flags & 1) module.id = id;
+	if (flags & 2) module.loaded = false;
+	if (flags & 4) factory.call(module.exports, module, module.exports, undefined);
+	else factory(module, module.exports, undefined);
+	if (flags & 2) module.loaded = true;
+	return module.exports;
+};
+var require_index = /*#__PURE__*/ __commonJS(function(module, exports) {
+
+/*!******************!*\
+  !*** ./index.js ***!
+  \******************/
+var __rspack_amd_deps, __rspack_amd_exports;it("should initialize AMD dependencies without a module dispatcher", () =>
+	new Promise((resolve, reject) => {
+		ensureChunk(/*! AMD require */ "value").then(function() { var __rspack_amd_require_deps = [require_value()]; ((value) => {
+				expect(value).toBe(42);
+				resolve();
+			}).apply(null, __rspack_amd_require_deps);})['catch'](reject.bind(this));
+	}));
+
+it("should expose a callable AMD require without a module dispatcher", () =>
+	new Promise((resolve) => {
+		!(__rspack_amd_deps = [function __rspack_static_require__(request) { var e = new Error("Cannot find module '" + request + "'"); e.code = 'MODULE_NOT_FOUND'; throw e; }], __rspack_amd_exports = ((localRequire) => {
+			expect("function").toBe("function");
+			expect(require_sync_value()).toBe(43);
+			resolve();
+		}).apply(exports, __rspack_amd_deps),
+		__rspack_amd_exports !== undefined && (module.exports = __rspack_amd_exports));
+	}));
+
+}, 0, "./index.js");
+
+var require_sync_value = /*#__PURE__*/ __commonJS(function(module, exports) {
+
+/*!***********************!*\
+  !*** ./sync-value.js ***!
+  \***********************/
+module.exports = 43;
+
+}, 0, "./sync-value.js");
+
+require_index();
+
+export {};
+
+```
+
+```mjs title=runtime.mjs
+
+// rspack/runtime/esm_ensure_chunk
+var ensureChunkHandlers = {};
+var ensureChunk = function(chunkId, fetchPriority) {
+	return Promise.all(Object.keys(ensureChunkHandlers).reduce(function(promises, key) {
+		ensureChunkHandlers[key](chunkId, promises, fetchPriority);
+		return promises;
+	}, []));
+};
+;
+export { ensureChunk };
+// rspack/runtime/esm_chunk_loading
+var esmInstalledChunks = {};
+var esmChunkMap = {
+"value": function() { return import("./value.mjs"); }
+};
+ensureChunkHandlers.j = function(chunkId, promises) {
+	var installedChunkData = esmInstalledChunks[chunkId];
+	if(installedChunkData === 0) return;
+	if(installedChunkData) {
+		promises.push(installedChunkData);
+		return;
+	}
+	var loadChunk = esmChunkMap[chunkId];
+	if(!loadChunk) return;
+	var promise = loadChunk().then(function() {
+		esmInstalledChunks[chunkId] = 0;
+	}, function(error) {
+		delete esmInstalledChunks[chunkId];
+		throw error;
+	});
+	esmInstalledChunks[chunkId] = promise;
+	promises.push(promise);
+};
+;
+
+
+```
+
+```mjs title=value.mjs
+var __commonJS = (factory, flags, id, isEntry, module) => function __require() {
+	if (module !== undefined) {
+		return module.exports;
+	}
+	module = { exports: {} };
+	if (isEntry) module.isEntry = true;
+	if (flags & 1) module.id = id;
+	if (flags & 2) module.loaded = false;
+	if (flags & 4) factory.call(module.exports, module, module.exports, undefined);
+	else factory(module, module.exports, undefined);
+	if (flags & 2) module.loaded = true;
+	return module.exports;
+};
+var require_value = /*#__PURE__*/ __commonJS(function(module, exports) {
+
+/*!******************!*\
+  !*** ./value.js ***!
+  \******************/
+module.exports = 42;
+
+}, 0, "./value.js");
+
+export { require_value };
+
+```

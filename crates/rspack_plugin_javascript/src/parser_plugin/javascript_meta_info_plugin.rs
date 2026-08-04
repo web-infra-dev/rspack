@@ -1,6 +1,6 @@
 use rspack_util::atom::Atom;
 use rustc_hash::FxHashSet;
-use swc_experimental_ecma_ast::CallExpr;
+use swc_experimental_ecma_ast::{CallExpr, Ident};
 
 use super::{
   JavascriptParserPlugin,
@@ -12,6 +12,22 @@ pub struct JavascriptMetaInfoPlugin;
 
 #[rspack_macros::implemented_javascript_parser_hooks]
 impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for JavascriptMetaInfoPlugin {
+  fn identifier(
+    &self,
+    parser: &mut JavascriptParser<'p>,
+    _identifier: &Ident,
+    for_name: &str,
+  ) -> Option<bool> {
+    if for_name == "arguments" && parser.is_top_level_this() {
+      parser
+        .build_info
+        .module_concatenation_bailout
+        .get_or_insert_with(|| "CommonJS arguments".into());
+    }
+
+    None
+  }
+
   fn call(
     &self,
     parser: &mut JavascriptParser<'p>,

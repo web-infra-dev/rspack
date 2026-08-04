@@ -50,31 +50,8 @@ export { createAsyncWorker, createCommonJsWorker, createWorker };
 ```
 
 ```mjs title=worker-async.mjs
-
-var __webpack_modules__ = {};
-// The module cache
-var __webpack_module_cache__ = {};
-// The require function
-function __webpack_require__(moduleId) {
-// Check if module is in cache
-var cachedModule = __webpack_module_cache__[moduleId];
-if (cachedModule !== undefined) {
-return cachedModule.exports;
-}
-// Create a new module (and put it into the cache)
-var module = (__webpack_module_cache__[moduleId] = {
-exports: {}
-});
-// Execute the module function
-__webpack_modules__[moduleId](module, module.exports, __webpack_require__);
-
-// Return the exports of the module
-return module.exports;
-}
-// expose the modules object (__webpack_modules__)
-__webpack_require__.m = __webpack_modules__;
-// expose the module cache
-__webpack_require__.c = __webpack_module_cache__;
+// The require scope
+var __webpack_require__ = {};
 
 // webpack/runtime/async_module
 (() => {
@@ -85,12 +62,8 @@ var rspackError = hasSymbol ? Symbol("rspack error") : "__rspack_error";
 var rspackDone = hasSymbol ? Symbol("rspack done") : "__rspack_done";
 var rspackDefer = __webpack_require__.zS = hasSymbol ? Symbol("rspack defer") : "__rspack_defer";
 __webpack_require__.zT = (asyncDeps) => {
-	var hasUnresolvedAsyncSubgraph = asyncDeps.some((id) => {
-		var cache = __webpack_module_cache__[id];
-		return !cache || cache[rspackDone] === false;
-	});
-	if (hasUnresolvedAsyncSubgraph) {
-		return ({ then(onFulfilled, onRejected) { return Promise.all(asyncDeps.map(__webpack_require__)).then(onFulfilled, onRejected) } });
+	if (asyncDeps.length) {
+		return ({ then(onFulfilled, onRejected) { return Promise.all(asyncDeps.map((initialize) => { return initialize(); })).then(onFulfilled, onRejected) } });
 	}
 }
 var resolveQueue = (queue) => {
@@ -190,11 +163,6 @@ __webpack_require__.d = (exports, getters, values) => {
 	define(values, "value");
 };
 })();
-// webpack/runtime/esm_register_module
-(() => {
-__webpack_require__.add = function registerModules(modules) { Object.assign(__webpack_require__.m, modules) }
-
-})();
 // webpack/runtime/has_own_property
 (() => {
 __webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
@@ -210,18 +178,30 @@ __webpack_require__.r = (exports) => {
 };
 })();
 
-__webpack_require__.add({
-"./worker-async.js"
+var __commonJS = (factory, flags, id, isEntry, module) => function __require() {
+	if (module !== undefined) {
+		return module.exports;
+	}
+	module = { exports: {} };
+	if (isEntry) module.isEntry = true;
+	if (flags & 1) module.id = id;
+	if (flags & 2) module.loaded = false;
+	if (flags & 4) factory.call(module.exports, module, module.exports, undefined);
+	else factory(module, module.exports, undefined);
+	if (flags & 2) module.loaded = true;
+	return module.exports;
+};
+var require_worker_async = /*#__PURE__*/ __commonJS(function(module, __webpack_exports__) {
+
 /*!*************************!*\
   !*** ./worker-async.js ***!
   \*************************/
-(module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.a(module, async function (__rspack_load_async_deps, __rspack_async_done) { try {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   "default": () => (__rspack_default_export)
 });
-if ((__webpack_require__.c[__webpack_require__.s] === module)) {
+if ((module.isEntry === true)) {
   globalThis.__workerIsMain = true;
 }
 
@@ -237,10 +217,9 @@ globalThis.__workerAsyncEntryExecuted = true;
 
 __rspack_async_done();
 } catch(e) { __rspack_async_done(e); } }, 1);
+}, 0, "./worker-async.js", true);
 
-},
-});
-await __webpack_require__(__webpack_require__.s = "./worker-async.js");
+await require_worker_async();
 
 export {};
 
@@ -248,49 +227,32 @@ export {};
 
 ```mjs title=worker-cjs.mjs
 
-var __webpack_modules__ = {};
-// The module cache
-var __webpack_module_cache__ = {};
-// The require function
-function __webpack_require__(moduleId) {
-// Check if module is in cache
-var cachedModule = __webpack_module_cache__[moduleId];
-if (cachedModule !== undefined) {
-return cachedModule.exports;
-}
-// Create a new module (and put it into the cache)
-var module = (__webpack_module_cache__[moduleId] = {
-exports: {}
-});
-// Execute the module function
-__webpack_modules__[moduleId](module, module.exports, __webpack_require__);
 
-// Return the exports of the module
-return module.exports;
-}
-// expose the modules object (__webpack_modules__)
-__webpack_require__.m = __webpack_modules__;
+var __commonJS = (factory, flags, id, isEntry, module) => function __require() {
+	if (module !== undefined) {
+		return module.exports;
+	}
+	module = { exports: {} };
+	if (isEntry) module.isEntry = true;
+	if (flags & 1) module.id = id;
+	if (flags & 2) module.loaded = false;
+	if (flags & 4) factory.call(module.exports, module, module.exports, undefined);
+	else factory(module, module.exports, undefined);
+	if (flags & 2) module.loaded = true;
+	return module.exports;
+};
+var require_worker_cjs = /*#__PURE__*/ __commonJS(function(module, exports) {
 
-// webpack/runtime/esm_register_module
-(() => {
-__webpack_require__.add = function registerModules(modules) { Object.assign(__webpack_require__.m, modules) }
-
-})();
-
-__webpack_require__.add({
-"./worker-cjs.js"
 /*!***********************!*\
   !*** ./worker-cjs.js ***!
   \***********************/
-(module) {
 module.exports = 'worker-cjs';
 
 globalThis.__workerCommonJsEntryExecuted = true;
 
+}, 0, "./worker-cjs.js");
 
-},
-});
-__webpack_require__("./worker-cjs.js");
+require_worker_cjs();
 
 export {};
 
@@ -301,13 +263,24 @@ export {};
 "use client"
 
 
+var __esm = (fn, result) => function __init() {
+	if (fn) {
+		var value = fn(fn = 0);
+		result = value && typeof value.then === "function" ? value.then(value => result = value) : value;
+	}
+	return result;
+};
 // ./worker.js
+var worker;
+var worker_init = /*#__PURE__*/ __esm(() => {
 //
 
 
-/* export default */ const worker = ('worker');
+/* export default */ ( worker = ('worker'));;
 
 globalThis.__workerEntryExecuted = true;
+
+});
 
 export {};
 

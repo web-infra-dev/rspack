@@ -7,50 +7,27 @@ use rspack_util::json_stringify_str;
 
 const ESM_CHUNK_LOADING_RUNTIME_MODULE_VARIABLES: &[&str] = &["esmInstalledChunks", "esmChunkMap"];
 
-#[impl_runtime_module]
-#[derive(Debug)]
-pub(crate) struct EsmRegisterModuleRuntimeModule {}
-
-impl EsmRegisterModuleRuntimeModule {
-  pub(crate) fn new(runtime_template: &RuntimeTemplate) -> Self {
-    Self::with_default(runtime_template)
+/// Remove runtime capabilities that belonged to the module-id dispatcher.
+/// `REQUIRE_SCOPE` is only meaningful when another runtime helper still uses
+/// the shared scope object (for example `DEFINE_PROPERTY_GETTERS`).
+pub(crate) fn without_module_loader_runtime_globals(
+  mut requirements: RuntimeGlobals,
+) -> RuntimeGlobals {
+  requirements.remove(
+    RuntimeGlobals::REQUIRE
+      | RuntimeGlobals::MODULE_FACTORIES
+      | RuntimeGlobals::MODULE_FACTORIES_ADD_ONLY
+      | RuntimeGlobals::MODULE_CACHE
+      | RuntimeGlobals::MODULE,
+  );
+  if requirements
+    .renderable_require_scope()
+    .difference(RuntimeGlobals::REQUIRE_SCOPE)
+    .is_empty()
+  {
+    requirements.remove(RuntimeGlobals::REQUIRE_SCOPE);
   }
-}
-
-#[async_trait::async_trait]
-impl RuntimeModule for EsmRegisterModuleRuntimeModule {
-  fn runtime_module_variables() -> &'static [&'static str] {
-    &[]
-  }
-
-  fn runtime_requirements(
-    &self,
-    _compilation: &Compilation,
-  ) -> rspack_core::RuntimeModuleRuntimeRequirements {
-    rspack_core::RuntimeModuleRuntimeRequirements {
-      dependencies: RuntimeGlobals::MODULE_FACTORIES | RuntimeGlobals::REQUIRE,
-      ..Default::default()
-    }
-  }
-
-  async fn generate(
-    &self,
-    context: &RuntimeModuleGenerateContext<'_>,
-  ) -> rspack_error::Result<String> {
-    let module_factories = context
-      .runtime_template
-      .render_runtime_globals(&RuntimeGlobals::MODULE_FACTORIES);
-    let register_modules = if context.runtime_template.render_mode().is_legacy() {
-      context
-        .runtime_template
-        .render_runtime_globals(&RuntimeGlobals::REQUIRE)
-    } else {
-      module_factories.clone()
-    };
-    Ok(format!(
-      "{register_modules}.add = function registerModules(modules) {{ Object.assign({module_factories}, modules) }}\n"
-    ))
-  }
+  requirements
 }
 
 #[impl_runtime_module]

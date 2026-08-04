@@ -1,126 +1,148 @@
 ```mjs title=a.mjs
-import { rspackRequire, moduleFactories, definePropertyGetters, makeNamespaceObject } from "./runtime.mjs";
-import "./shared-chunk.mjs";
+import { definePropertyGetters, makeNamespaceObject } from "./runtime.mjs";
+import { shared_init, value } from "./shared-chunk.mjs";
 
-moduleFactories.add({
-"./modules/a.js"
-/*!**********************!*\
-  !*** ./modules/a.js ***!
-  \**********************/
-(__unused_rspack_module, exports) {
-makeNamespaceObject(exports);
-/* import */ var _shared__rspack_import_0 = rspackRequire(/*! ../shared */ "./shared.js");
-
-
-/* export default */ const __rspack_default_export = (_shared__rspack_import_0/* .value */.U);
-
-definePropertyGetters(exports, {
-}, {
-  "default": __rspack_default_export
+var __esm = (fn, result) => function __init() {
+	if (fn) {
+		var value = fn(fn = 0);
+		result = value && typeof value.then === "function" ? value.then(value => result = value) : value;
+	}
+	return result;
+};
+// NAMESPACE OBJECT: ./modules/a.js
+var a_namespaceObject = {};
+makeNamespaceObject(a_namespaceObject);
+definePropertyGetters(a_namespaceObject, {
+  "default": () => (a)
 });
 
 
-},
+// ./modules/a.js
+var a;
+var a_init = /*#__PURE__*/ __esm(() => {
+	shared_init();
+
+
+/* export default */ ( a = (value));;
+
 });
-export {};
+
+export { a_init, a_namespaceObject };
 
 ```
 
 ```mjs title=b.mjs
-import { rspackRequire, moduleFactories, definePropertyGetters, makeNamespaceObject } from "./runtime.mjs";
-import "./shared-chunk.mjs";
+import { definePropertyGetters, makeNamespaceObject } from "./runtime.mjs";
+import { shared_init, value } from "./shared-chunk.mjs";
 
-moduleFactories.add({
-"./modules/b.js"
-/*!**********************!*\
-  !*** ./modules/b.js ***!
-  \**********************/
-(__unused_rspack_module, exports) {
-makeNamespaceObject(exports);
-/* import */ var _shared__rspack_import_0 = rspackRequire(/*! ../shared */ "./shared.js");
-
-
-/* export default */ const __rspack_default_export = (_shared__rspack_import_0/* .value */.U + 1);
-
-definePropertyGetters(exports, {
-}, {
-  "default": __rspack_default_export
+var __esm = (fn, result) => function __init() {
+	if (fn) {
+		var value = fn(fn = 0);
+		result = value && typeof value.then === "function" ? value.then(value => result = value) : value;
+	}
+	return result;
+};
+// NAMESPACE OBJECT: ./modules/b.js
+var b_namespaceObject = {};
+makeNamespaceObject(b_namespaceObject);
+definePropertyGetters(b_namespaceObject, {
+  "default": () => (b)
 });
 
 
-},
+// ./modules/b.js
+var b;
+var b_init = /*#__PURE__*/ __esm(() => {
+	shared_init();
+
+
+/* export default */ ( b = (value + 1));;
+
 });
-export {};
+
+export { b_init, b_namespaceObject };
 
 ```
 
 ```mjs title=main.mjs
-import { rspackRequire, ensureChunk, hasOwnProperty, moduleFactories } from "./runtime.mjs";
-moduleFactories.add({
-"./modules lazy recursive ^\\.\\/.*\\.js$ referencedExports: default"
+import { hasOwnProperty } from "./runtime.mjs";
+var __commonJS = (factory, flags, id, isEntry, module) => function __require() {
+	if (module !== undefined) {
+		return module.exports;
+	}
+	module = { exports: {} };
+	if (isEntry) module.isEntry = true;
+	if (flags & 1) module.id = id;
+	if (flags & 2) module.loaded = false;
+	if (flags & 4) factory.call(module.exports, module, module.exports, undefined);
+	else factory(module, module.exports, undefined);
+	if (flags & 2) module.loaded = true;
+	return module.exports;
+};
+var require__referencedExports_default_groupOptions_namespace_object_importPhase_evaluation = /*#__PURE__*/ __commonJS(function(module, exports) {
+
 /*!**************************************************************************************************************************!*\
   !*** ./modules|lazy|/^\.\/.*\.js$/|referencedExports: default|groupOptions: {}|namespace object|importPhase: evaluation ***!
   \**************************************************************************************************************************/
-(module) {
-var map = {
-  "./a.js": [
-    "./modules/a.js",
-    [
-      "shared-chunk",
-      0,
-      "a"
-    ]
-  ],
-  "./b.js": [
-    "./modules/b.js",
-    [
-      "shared-chunk",
-      0,
-      "b"
-    ]
-  ]
-};
-function __rspack_async_context(req) {
-  if(!hasOwnProperty(map, req)) {
-    return Promise.resolve().then(() => {
-var e = new Error("Cannot find module '" + req + "'");
-e.code = 'MODULE_NOT_FOUND';
-throw e;
-});
+function __rspack_context_load(id) {
+  switch (id) {
+		case "./modules/a.js": return import("./a.mjs").then(m => (m.a_init(), m.a_namespaceObject));
+		case "./modules/b.js": return import("./b.mjs").then(m => (m.b_init(), m.b_namespaceObject));
+    default: throw new Error("Unknown context module '" + id + "'");
   }
-
-  var ids = map[req], id = ids[0];
-  return Promise.all(ids[1].map(function(chunkId) { return ensureChunk(chunkId); })).then(() => (rspackRequire(id)));
 }
 
+var map = {
+  "./a.js": "./modules/a.js",
+  "./b.js": "./modules/b.js"
+};
+
+function __rspack_async_context(req) {
+  if(!hasOwnProperty(map, req)) {
+    return Promise.resolve().then(function() {
+      var e = new Error("Cannot find module '" + req + "'");
+      e.code = 'MODULE_NOT_FOUND';
+      throw e;
+    });
+  }
+  var id = map[req];
+  return __rspack_context_load(id);
+}
 __rspack_async_context.keys = () => (Object.keys(map));
 __rspack_async_context.id = "./modules lazy recursive ^\\.\\/.*\\.js$ referencedExports: default";
 module.exports = __rspack_async_context;
 
+}, 0, "./modules lazy recursive ^\\.\\/.*\\.js$ referencedExports: default");
 
-},
-"./modules lazy ./modules/*.js"
+var require__js_namespace_object = /*#__PURE__*/ __commonJS(function(module, exports) {
+
 /*!*******************************************************************!*\
   !*** ./modules|lazy|nonrecursive|./modules/*.js|namespace object ***!
   \*******************************************************************/
-(module) {
+function __rspack_context_load(id) {
+  switch (id) {
+		case "./modules/a.js": return import("./a.mjs").then(m => (m.a_init(), m.a_namespaceObject));
+		case "./modules/b.js": return import("./b.mjs").then(m => (m.b_init(), m.b_namespaceObject));
+    default: throw new Error("Unknown context module '" + id + "'");
+  }
+}
+
 
 module.exports = {
 
-  "./modules/a.js": function() { return Promise.all(/*! esm */ [ensureChunk("shared-chunk"), ensureChunk(0), ensureChunk("a")]).then(rspackRequire.bind(rspackRequire, /*! ./modules/a.js */ "./modules/a.js")); },
+  "./modules/a.js": function() { return __rspack_context_load("./modules/a.js"); },
 
-  "./modules/b.js": function() { return Promise.all(/*! esm */ [ensureChunk("shared-chunk"), ensureChunk(0), ensureChunk("b")]).then(rspackRequire.bind(rspackRequire, /*! ./modules/b.js */ "./modules/b.js")); }
+  "./modules/b.js": function() { return __rspack_context_load("./modules/b.js"); }
 };
 
+}, 0, "./modules lazy ./modules/*.js");
 
-},
-});
 // ./index.js
 it("should wrap multi chunk context ensure calls", async () => {
-	const modules = rspackRequire(/*! ./modules/ */ "./modules lazy ./modules/*.js");
+	const modules = require__js_namespace_object();
 	const value = await modules["./modules/a.js"]();
 	const name = "b";
-	const dynamicValue = await rspackRequire(/*! ./modules */ "./modules lazy recursive ^\\.\\/.*\\.js$ referencedExports: default")(`./${name}.js`);
+	const dynamicValue = await require__referencedExports_default_groupOptions_namespace_object_importPhase_evaluation()(`./${name}.js`);
 
 	expect(value.default).toBe(42);
 	expect(dynamicValue.default).toBe(43);
@@ -136,31 +158,6 @@ export {};
 
 ```mjs title=runtime.mjs
 
-var modules = {};
-// The module cache
-var moduleCache = {};
-// The require function
-function rspackRequire(moduleId) {
-// Check if module is in cache
-var cachedModule = moduleCache[moduleId];
-if (cachedModule !== undefined) {
-return cachedModule.exports;
-}
-// Create a new module (and put it into the cache)
-var module = (moduleCache[moduleId] = {
-exports: {}
-});
-// Execute the module function
-modules[moduleId](module, module.exports, rspackRequire);
-
-// Return the exports of the module
-return module.exports;
-}
-export { rspackRequire };
-// expose the modules object (modules)
-var moduleFactories = modules;
-export { moduleFactories };
-
 // rspack/runtime/define_property_getters
 var definePropertyGetters = (exports, getters, values) => {
 	var define = (defs, kind) => {
@@ -174,19 +171,6 @@ var definePropertyGetters = (exports, getters, values) => {
 	define(values, "value");
 };;
 export { definePropertyGetters };
-// rspack/runtime/esm_ensure_chunk
-var ensureChunkHandlers = {};
-var ensureChunk = function(chunkId, fetchPriority) {
-	return Promise.all(Object.keys(ensureChunkHandlers).reduce(function(promises, key) {
-		ensureChunkHandlers[key](chunkId, promises, fetchPriority);
-		return promises;
-	}, []));
-};
-;
-export { ensureChunk };
-// rspack/runtime/esm_register_module
-moduleFactories.add = function registerModules(modules) { Object.assign(moduleFactories, modules) }
-;
 // rspack/runtime/has_own_property
 var hasOwnProperty = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop));
 export { hasOwnProperty };
@@ -199,54 +183,25 @@ var makeNamespaceObject = (exports) => {
 	Object.defineProperty(exports, '__esModule', { value: true });
 };;
 export { makeNamespaceObject };
-// rspack/runtime/esm_chunk_loading
-var esmInstalledChunks = {};
-var esmChunkMap = {
-"a": function() { return import("./a.mjs"); },
-"b": function() { return import("./b.mjs"); },
-"shared-chunk": function() { return import("./shared-chunk.mjs"); }
-};
-ensureChunkHandlers.j = function(chunkId, promises) {
-	var installedChunkData = esmInstalledChunks[chunkId];
-	if(installedChunkData === 0) return;
-	if(installedChunkData) {
-		promises.push(installedChunkData);
-		return;
-	}
-	var loadChunk = esmChunkMap[chunkId];
-	if(!loadChunk) return;
-	var promise = loadChunk().then(function() {
-		esmInstalledChunks[chunkId] = 0;
-	}, function(error) {
-		delete esmInstalledChunks[chunkId];
-		throw error;
-	});
-	esmInstalledChunks[chunkId] = promise;
-	promises.push(promise);
-};
-;
 
 
 ```
 
 ```mjs title=shared-chunk.mjs
-import { rspackRequire, moduleFactories, definePropertyGetters } from "./runtime.mjs";
-moduleFactories.add({
-"./shared.js"
-/*!*******************!*\
-  !*** ./shared.js ***!
-  \*******************/
-(__unused_rspack_module, exports) {
-const value = globalThis.__rspack_test_value || 42;
+var __esm = (fn, result) => function __init() {
+	if (fn) {
+		var value = fn(fn = 0);
+		result = value && typeof value.then === "function" ? value.then(value => result = value) : value;
+	}
+	return result;
+};
+// ./shared.js
+var value;
+var shared_init = /*#__PURE__*/ __esm(() => {
+( value = globalThis.__rspack_test_value || 42);;
 
-definePropertyGetters(exports, {
-}, {
-  U: value
 });
 
-
-},
-});
-export {};
+export { shared_init, value };
 
 ```

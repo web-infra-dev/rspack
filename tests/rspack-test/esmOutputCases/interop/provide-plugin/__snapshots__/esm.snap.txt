@@ -1,0 +1,32 @@
+```mjs title=main.mjs
+var __commonJS = (factory, flags, id, isEntry, module) => function __require() {
+	if (module !== undefined) {
+		return module.exports;
+	}
+	module = { exports: {} };
+	if (isEntry) module.isEntry = true;
+	if (flags & 1) module.id = id;
+	if (flags & 2) module.loaded = false;
+	if (flags & 4) factory.call(module.exports, module, module.exports, undefined);
+	else factory(module, module.exports, undefined);
+	if (flags & 2) module.loaded = true;
+	return module.exports;
+};
+var require_provided = /*#__PURE__*/ __commonJS(function(module, exports) {
+
+/*!*********************!*\
+  !*** ./provided.js ***!
+  \*********************/
+module.exports = { answer: 42 };
+
+}, 0, "./provided.js");
+
+// ./index.js
+/* provided dependency */ var provided = require_provided();
+it("should load provided dependencies through their initializer", () => {
+	expect(provided.answer).toBe(42);
+});
+
+export {};
+
+```

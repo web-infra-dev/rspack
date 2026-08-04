@@ -446,13 +446,16 @@ impl ESMImportSpecifierDependencyTemplate {
     connection: Option<&ModuleGraphConnection>,
     code_generatable_context: &mut TemplateContext,
   ) -> String {
+    let use_concatenation_reference =
+      !(dep.phase.is_defer() && code_generatable_context.is_modern_module_output());
     let TemplateContext {
       compilation,
       concatenation_scope,
       runtime,
       ..
     } = code_generatable_context;
-    if let Some(scope) = concatenation_scope
+    if use_concatenation_reference
+      && let Some(scope) = concatenation_scope
       && let Some(con) = connection
       && scope.is_module_in_scope(con.module_identifier())
     {

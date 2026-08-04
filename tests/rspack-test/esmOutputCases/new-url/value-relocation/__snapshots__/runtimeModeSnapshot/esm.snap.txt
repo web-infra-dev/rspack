@@ -1,0 +1,38 @@
+```mjs title=main.mjs
+import { publicPath, baseUri } from "./runtime.mjs";
+// ./asset.txt
+const asset_namespaceObject = publicPath + "fc4025c177fc1fe9.txt";
+// ./index.js
+const asset = new URL(/* asset import */asset_namespaceObject, baseUri);
+
+it("should use the asset module value without a module dispatcher", () => {
+	expect(asset.href).toMatch(/\.txt$/);
+});
+
+export {};
+
+```
+
+```mjs title=runtime.mjs
+
+var baseUri;
+// rspack/runtime/public_path
+var publicPath = "";;
+export { publicPath };
+// rspack/runtime/module_chunk_loading
+baseUri = new URL("./", import.meta.url);;
+
+      // object to store loaded and loading chunks
+      // undefined = chunk not loaded, null = chunk preloaded/prefetched
+      // [resolve, Promise] = chunk loading, 0 = chunk loaded
+      var moduleInstalledChunks = {"runtime": 0,};
+      // no install chunk// no chunk on demand loading
+// no external install chunk
+// no on chunks loaded
+// no HMR
+// no HMR manifest
+;
+export { baseUri };
+
+
+```

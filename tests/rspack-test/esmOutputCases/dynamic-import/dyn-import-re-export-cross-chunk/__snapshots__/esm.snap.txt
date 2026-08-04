@@ -5,7 +5,7 @@
 it('should dynamically import module that re-exports from cross-chunk module', async () => {
 	expect((/* inlined export .value */42)).toBe(42)
 
-	const mod = await import("./wrapper.mjs")
+	const mod = await import("./wrapper.mjs").then(m => (m.wrapper_init(), m.wrapper_namespaceObject))
 	expect(mod.value).toBe(42)
 	expect(mod.helper()).toBe(1)
 })
@@ -14,22 +14,92 @@ export {};
 
 ```
 
-```mjs title=shared-chunk.mjs
-// ./shared.js
-const value = 42
-const helper = () => 1
+```mjs title=runtime.mjs
+// The require scope
+var __webpack_require__ = {};
 
-export { helper };
+// webpack/runtime/define_property_getters
+(() => {
+__webpack_require__.d = (exports, getters, values) => {
+	var define = (defs, kind) => {
+		for(var key in defs) {
+			if(__webpack_require__.o(defs, key) && !__webpack_require__.o(exports, key)) {
+				Object.defineProperty(exports, key, { enumerable: true, [kind]: defs[key] });
+			}
+		}
+	};
+	define(getters, "get");
+	define(values, "value");
+};
+})();
+// webpack/runtime/has_own_property
+(() => {
+__webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
+})();
+// webpack/runtime/make_namespace_object
+(() => {
+// define __esModule on exports
+__webpack_require__.r = (exports) => {
+	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+	}
+	Object.defineProperty(exports, '__esModule', { value: true });
+};
+})();
+
+export { __webpack_require__ };
+
+```
+
+```mjs title=shared-chunk.mjs
+var __esm = (fn, result) => function __init() {
+	if (fn) {
+		var value = fn(fn = 0);
+		result = value && typeof value.then === "function" ? value.then(value => result = value) : value;
+	}
+	return result;
+};
+// ./shared.js
+var value, helper;
+var shared_init = /*#__PURE__*/ __esm(() => {
+( value = 42);
+( helper = () => 1);
+
+});
+
+export { helper, shared_init };
 
 ```
 
 ```mjs title=wrapper.mjs
+import { __webpack_require__ } from "./runtime.mjs";
+import { shared_init, helper } from "./shared-chunk.mjs";
+
+var __esm = (fn, result) => function __init() {
+	if (fn) {
+		var value = fn(fn = 0);
+		result = value && typeof value.then === "function" ? value.then(value => result = value) : value;
+	}
+	return result;
+};
+// NAMESPACE OBJECT: ./wrapper.js
+var wrapper_namespaceObject = {};
+__webpack_require__.r(wrapper_namespaceObject);
+__webpack_require__.d(wrapper_namespaceObject, {
+  helper: () => (helper),
+  value: () => ((/* inlined export .value */42))
+});
+
 
 // ./wrapper.js
+var wrapper_init = /*#__PURE__*/ __esm(() => {
+	shared_init();
 
+
+});
 
 var wrapper_value = (/* inlined export .value */42);
-export { wrapper_value as value };
+export { wrapper_init, wrapper_namespaceObject, wrapper_value as value };
 export { helper } from "./shared-chunk.mjs";
 
 ```

@@ -1687,6 +1687,8 @@ impl CommonJsImportsParserPlugin {
     span: Span,
     param: &BasicEvaluatedExpression,
     request_context: Option<Context>,
+    replace_call: bool,
+    as_constructor: bool,
   ) -> Option<bool> {
     param.is_string().then(|| {
       let (start, end) = param.range();
@@ -1724,6 +1726,9 @@ impl CommonJsImportsParserPlugin {
       };
       if let Some(referenced_specifiers) = referenced_specifiers {
         dep.set_referenced_specifiers(referenced_specifiers);
+      }
+      if replace_call {
+        dep.set_call_replacement(as_constructor);
       }
       let dep_idx = parser.next_dependency_idx();
       if let Some(require_references) = parser.common_js_require_references.get_require_mut(&span) {
@@ -1790,6 +1795,7 @@ impl CommonJsImportsParserPlugin {
   ) -> Option<bool> {
     let callee = expr.callee()?;
     let args = expr.args()?;
+    let as_constructor = matches!(&expr, CallOrNewExpr::New(_));
 
     if args.len() != 1 {
       return None;
@@ -1820,7 +1826,14 @@ impl CommonJsImportsParserPlugin {
       let mut is_expression = false;
       for p in param.options() {
         if self
-          .process_require_item(parser, expr.span(), p, request_context.clone())
+          .process_require_item(
+            parser,
+            expr.span(),
+            p,
+            request_context.clone(),
+            false,
+            false,
+          )
           .is_none()
         {
           is_expression = true;
@@ -1829,7 +1842,9 @@ impl CommonJsImportsParserPlugin {
       if !is_expression {
         let range: DependencyRange = callee.span().into();
         let loc = parser.to_dependency_location(range);
-        parser.add_presentational_dependency(Box::new(RequireHeaderDependency::new(range, loc)));
+        parser.add_presentational_dependency(Box::new(RequireHeaderDependency::conditional(
+          range, loc,
+        )));
         return Some(true);
       }
     }
@@ -1852,15 +1867,27 @@ impl CommonJsImportsParserPlugin {
     }
 
     if self
-      .process_require_item(parser, expr.span(), &param, request_context.clone())
-      .is_none()
-      && let CallOrNewExpr::Call(call_expr) = expr
+      .process_require_item(
+        parser,
+        expr.span(),
+        &param,
+        request_context.clone(),
+        true,
+        as_constructor,
+      )
+      .is_some()
     {
+      let range: DependencyRange = callee.span().into();
+      let loc = parser.to_dependency_location(range);
+      parser.add_presentational_dependency(Box::new(RequireHeaderDependency::new(range, loc)));
+    } else if let CallOrNewExpr::Call(call_expr) = expr {
       self.process_require_context(parser, call_expr, &param, request_context);
     } else {
       let range: DependencyRange = callee.span().into();
       let loc = parser.to_dependency_location(range);
-      parser.add_presentational_dependency(Box::new(RequireHeaderDependency::new(range, loc)));
+      parser.add_presentational_dependency(Box::new(RequireHeaderDependency::compatibility(
+        range, loc,
+      )));
     }
     Some(true)
   }

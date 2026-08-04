@@ -119,9 +119,8 @@ impl AMDRequireDependenciesBlockParserPlugin {
       let range = param.range();
 
       if param_str == "require" {
-        let dep = Box::new(RuntimeRequirementsDependency::new(
+        let dep = Box::new(RuntimeRequirementsDependency::compatibility_require(
           range.into(),
-          RuntimeGlobals::REQUIRE,
         ));
         parser.add_presentational_dependency(dep);
       } else if param_str == "module" {

@@ -8,14 +8,15 @@ export { duplicatePackage } from "./rules/duplicate-package/index.mjs";
 ```
 
 ```mjs title=rules/duplicate-package/index.mjs
-import { rspackRequire, definePropertyGetters, makeNamespaceObject } from "../../runtime.mjs";
+import { definePropertyGetters, makeNamespaceObject } from "../../runtime.mjs";
 import { types_namespaceObject } from "./types.mjs";
 
 // NAMESPACE OBJECT: ./src/rules/duplicate-package/index.js
 var duplicate_package_namespaceObject = {};
 makeNamespaceObject(duplicate_package_namespaceObject);
-definePropertyGetters(duplicate_package_namespaceObject, { 
-  value: () => (value) });
+definePropertyGetters(duplicate_package_namespaceObject, {
+  value: () => (value)
+});
 
 
 // ./src/rules/duplicate-package/index.js
@@ -30,12 +31,13 @@ export { duplicate_package_namespaceObject as duplicatePackage, value };
 ```
 
 ```mjs title=rules/duplicate-package/types.mjs
-import { rspackRequire, definePropertyGetters, makeNamespaceObject } from "../../runtime.mjs";
+import { definePropertyGetters, makeNamespaceObject } from "../../runtime.mjs";
 // NAMESPACE OBJECT: ./src/rules/duplicate-package/types.js
 var types_namespaceObject = {};
 makeNamespaceObject(types_namespaceObject);
-definePropertyGetters(types_namespaceObject, { 
-  J: () => (CheckVersionMap) });
+definePropertyGetters(types_namespaceObject, {
+  J: () => (CheckVersionMap)
+});
 
 
 // ./src/rules/duplicate-package/types.js
@@ -48,9 +50,6 @@ export { CheckVersionMap, types_namespaceObject };
 ```
 
 ```mjs title=runtime.mjs
-// The require scope
-var rspackRequire = {};
-export { rspackRequire };
 
 // rspack/runtime/define_property_getters
 var definePropertyGetters = (exports, getters, values) => {

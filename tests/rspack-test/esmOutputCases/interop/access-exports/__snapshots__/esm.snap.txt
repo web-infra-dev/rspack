@@ -1,57 +1,46 @@
 ```mjs title=main.mjs
 import { __webpack_require__ } from "./runtime.mjs";
+var __commonJS = (factory, flags, id, isEntry, module) => function __require() {
+	if (module !== undefined) {
+		return module.exports;
+	}
+	module = { exports: {} };
+	if (isEntry) module.isEntry = true;
+	if (flags & 1) module.id = id;
+	if (flags & 2) module.loaded = false;
+	if (flags & 4) factory.call(module.exports, module, module.exports, undefined);
+	else factory(module, module.exports, undefined);
+	if (flags & 2) module.loaded = true;
+	return module.exports;
+};
+var require_cjs = /*#__PURE__*/ __commonJS(function(module, exports) {
 
-__webpack_require__.add({
-"./cjs.js"
 /*!****************!*\
   !*** ./cjs.js ***!
   \****************/
-(__unused_rspack_module, exports) {
 function def(o) {
   o.__esModule = true;
   o.default = 42;
 }
 
 def(exports)
+}, 0, "./cjs.js");
 
-},
-});
 // ./index.js
-const cjs = __webpack_require__("./cjs.js");
-var cjs_default = /*#__PURE__*/__webpack_require__.n(cjs);
+const cjs_0 = require_cjs();
+var cjs_0_default = /*#__PURE__*/__webpack_require__.n(cjs_0);
 
 
 it('should have correct runtime interop', () => {
-  expect((cjs_default())).toBe(42)
+  expect((cjs_0_default())).toBe(42)
 })
 export {};
 
 ```
 
 ```mjs title=runtime.mjs
-
-var __webpack_modules__ = {};
-// The module cache
-var __webpack_module_cache__ = {};
-// The require function
-function __webpack_require__(moduleId) {
-// Check if module is in cache
-var cachedModule = __webpack_module_cache__[moduleId];
-if (cachedModule !== undefined) {
-return cachedModule.exports;
-}
-// Create a new module (and put it into the cache)
-var module = (__webpack_module_cache__[moduleId] = {
-exports: {}
-});
-// Execute the module function
-__webpack_modules__[moduleId](module, module.exports, __webpack_require__);
-
-// Return the exports of the module
-return module.exports;
-}
-// expose the modules object (__webpack_modules__)
-__webpack_require__.m = __webpack_modules__;
+// The require scope
+var __webpack_require__ = {};
 
 // webpack/runtime/compat_get_default_export
 (() => {
@@ -78,11 +67,6 @@ __webpack_require__.d = (exports, getters, values) => {
 	define(getters, "get");
 	define(values, "value");
 };
-})();
-// webpack/runtime/esm_register_module
-(() => {
-__webpack_require__.add = function registerModules(modules) { Object.assign(__webpack_require__.m, modules) }
-
 })();
 // webpack/runtime/has_own_property
 (() => {

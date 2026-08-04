@@ -15,19 +15,20 @@ module.exports = {
 		);
 		if (globalThis.__RSPACK_TEST_RUNTIME_MODE_RSPACK) {
 			expect(entry).toContain(
-				'import { rspackRequire, createFakeNamespaceObject } from "./runtime.mjs";'
+				'import { createFakeNamespaceObject } from "./runtime.mjs";'
 			);
 			expect(entry).toContain(
 				'createFakeNamespaceObject(module.createRequire(import.meta.url)("node:stream"), 22)'
 			);
-			expect(runtime).toContain("export { rspackRequire");
+			expect(runtime).not.toContain("rspackRequire");
 			expect(runtime).toContain("createFakeNamespaceObject");
-			expect(runtime.match(/var moduleFactories/g)).toHaveLength(1);
+			expect(runtime).not.toContain("moduleFactories");
 			expect(entry).not.toContain("export { rspackRequire");
 			expect(entry).not.toContain("as rspackRequire");
 			expect(dynamic).toContain(
-				'import { rspackRequire, moduleFactories, compatGetDefaultExport } from "./runtime.mjs";'
+				'import { compatGetDefaultExport } from "./runtime.mjs";'
 			);
+			expect(dynamic).toContain("require_shared()");
 		} else {
 			expect(entry).toContain(
 				'import { __webpack_require__ } from "./runtime.mjs";'
@@ -41,6 +42,8 @@ module.exports = {
 			expect(dynamic).toContain(
 				'import { __webpack_require__ } from "./runtime.mjs";'
 			);
+			expect(runtime).not.toContain("__webpack_modules__");
+			expect(runtime).not.toContain("__webpack_module_cache__");
 		}
 		expect(entry).toContain("Promise.all");
 		expect(entry).toContain('import("./dynamic.mjs")');

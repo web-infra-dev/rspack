@@ -3,8 +3,9 @@ import { __webpack_require__ } from "./runtime.mjs";
 // NAMESPACE OBJECT: ./util.js
 var util_namespaceObject = {};
 __webpack_require__.r(util_namespaceObject);
-__webpack_require__.d(util_namespaceObject, { 
-  foo: () => (foo) });
+__webpack_require__.d(util_namespaceObject, {
+  foo: () => (foo)
+});
 
 
 // ./util.js

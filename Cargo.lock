@@ -4678,6 +4678,7 @@ dependencies = [
  "either",
  "fast-glob",
  "form_urlencoded",
+ "hex",
  "indexmap",
  "itertools 0.14.0",
  "memchr",

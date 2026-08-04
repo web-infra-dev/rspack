@@ -1,0 +1,101 @@
+```mjs title=main.mjs
+import { __webpack_require__ } from "./runtime.mjs";
+var __commonJS = (factory, flags, id, isEntry, module) => function __require() {
+	if (module !== undefined) {
+		return module.exports;
+	}
+	module = { exports: {} };
+	if (isEntry) module.isEntry = true;
+	if (flags & 1) module.id = id;
+	if (flags & 2) module.loaded = false;
+	if (flags & 4) factory.call(module.exports, module, module.exports, undefined);
+	else factory(module, module.exports, undefined);
+	if (flags & 2) module.loaded = true;
+	return module.exports;
+};
+var require_wrapped = /*#__PURE__*/ __commonJS(function(module, exports) {
+
+/*!********************!*\
+  !*** ./wrapped.js ***!
+  \********************/
+
+
+module.exports = { value: 42 };
+
+}, 0, "./wrapped.js");
+
+// ./foo.js
+var __RSPACK_CJS_EXPORT_value__;
+var __RSPACK_CJS_EXPORT_setValue__;
+var __RSPACK_CJS_EXPORT_getValue__;
+var __rspack_unused_export;
+
+
+__RSPACK_CJS_EXPORT_value__ = 1;
+__RSPACK_CJS_EXPORT_setValue__ = function setValue(value) {
+	__RSPACK_CJS_EXPORT_value__ = value;
+};
+__RSPACK_CJS_EXPORT_getValue__ = function getValue() {
+	return __RSPACK_CJS_EXPORT_value__;
+};
+__rspack_unused_export = "unused";
+
+// ./index.js
+const wrapped_0 = require_wrapped();
+var wrapped_0_default = /*#__PURE__*/__webpack_require__.n(wrapped_0);
+
+
+
+it("should hoist analyzable CommonJS and wrap the rest", () => {
+	expect(__RSPACK_CJS_EXPORT_value__).toBe(1);
+	expect(__RSPACK_CJS_EXPORT_getValue__()).toBe(1);
+
+	__RSPACK_CJS_EXPORT_setValue__(2);
+
+	expect(__RSPACK_CJS_EXPORT_value__).toBe(2);
+	expect(__RSPACK_CJS_EXPORT_getValue__()).toBe(2);
+	expect((wrapped_0_default()).value).toBe(42);
+});
+
+export {};
+
+```
+
+```mjs title=runtime.mjs
+// The require scope
+var __webpack_require__ = {};
+
+// webpack/runtime/compat_get_default_export
+(() => {
+// getDefaultExport function for compatibility with non-ESM modules
+__webpack_require__.n = (module) => {
+	var getter = module && module.__esModule ?
+		() => (module['default']) :
+		() => (module);
+	__webpack_require__.d(getter, { a: getter });
+	return getter;
+};
+
+})();
+// webpack/runtime/define_property_getters
+(() => {
+__webpack_require__.d = (exports, getters, values) => {
+	var define = (defs, kind) => {
+		for(var key in defs) {
+			if(__webpack_require__.o(defs, key) && !__webpack_require__.o(exports, key)) {
+				Object.defineProperty(exports, key, { enumerable: true, [kind]: defs[key] });
+			}
+		}
+	};
+	define(getters, "get");
+	define(values, "value");
+};
+})();
+// webpack/runtime/has_own_property
+(() => {
+__webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
+})();
+
+export { __webpack_require__ };
+
+```

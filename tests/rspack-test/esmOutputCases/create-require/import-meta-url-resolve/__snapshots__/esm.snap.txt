@@ -1,22 +1,32 @@
 ```mjs title=main.mjs
 import { __webpack_require__ } from "./runtime.mjs";
-
 import {fileURLToPath as __rspack_fileURLToPath} from "node:url";
 import {dirname as __rspack_dirname} from "node:path";
 var __rspack_import_meta_dirname__ = __rspack_dirname(__rspack_fileURLToPath(import.meta.url));
 import { createRequire as __rspack_createRequire } from "node:module";
 const __rspack_createRequire_require = __rspack_createRequire(import.meta.url);
-__webpack_require__.add({
-"./libCssExtractLoader.js"
+var __commonJS = (factory, flags, id, isEntry, module) => function __require() {
+	if (module !== undefined) {
+		return module.exports;
+	}
+	module = { exports: {} };
+	if (isEntry) module.isEntry = true;
+	if (flags & 1) module.id = id;
+	if (flags & 2) module.loaded = false;
+	if (flags & 4) factory.call(module.exports, module, module.exports, undefined);
+	else factory(module, module.exports, undefined);
+	if (flags & 2) module.loaded = true;
+	return module.exports;
+};
+var require_libCssExtractLoader = /*#__PURE__*/ __commonJS(function(module, exports) {
+
 /*!********************************!*\
   !*** ./libCssExtractLoader.js ***!
   \********************************/
-(module) {
 module.exports = "loader";
 
+}, 0, "./libCssExtractLoader.js");
 
-},
-});
 // node:module
 const external_node_module_namespaceObject = __rspack_createRequire_require("node:module");
 
@@ -63,7 +73,7 @@ function getNestedRequire() {
 
 
 function load() {
-	return __webpack_require__(/*! ./libCssExtractLoader.js */ "./libCssExtractLoader.js");
+	return require_libCssExtractLoader();
 }
 
 const pre_declared_require_call_req = /* createRequire() */ undefined;
@@ -90,7 +100,7 @@ const requireAsValue = (0,external_node_module_namespaceObject.createRequire)('<
 
 const identity = value => value;
 
-const index_value = __webpack_require__(/*! ./libCssExtractLoader.js */ "./libCssExtractLoader.js");
+const index_value = require_libCssExtractLoader();
 const loader = /*require.resolve*/(/*! ./libCssExtractLoader.js */ "./libCssExtractLoader.js");
 const unknownMember = requireWithUnknownMember.unknown;
 const requireAsValueType = typeof identity(requireAsValue);
@@ -126,29 +136,8 @@ export { index_value as value, loader, requireAsValueType, unknownMember };
 ```
 
 ```mjs title=runtime.mjs
-
-var __webpack_modules__ = {};
-// The module cache
-var __webpack_module_cache__ = {};
-// The require function
-function __webpack_require__(moduleId) {
-// Check if module is in cache
-var cachedModule = __webpack_module_cache__[moduleId];
-if (cachedModule !== undefined) {
-return cachedModule.exports;
-}
-// Create a new module (and put it into the cache)
-var module = (__webpack_module_cache__[moduleId] = {
-exports: {}
-});
-// Execute the module function
-__webpack_modules__[moduleId](module, module.exports, __webpack_require__);
-
-// Return the exports of the module
-return module.exports;
-}
-// expose the modules object (__webpack_modules__)
-__webpack_require__.m = __webpack_modules__;
+// The require scope
+var __webpack_require__ = {};
 
 // webpack/runtime/compat_get_default_export
 (() => {
@@ -175,11 +164,6 @@ __webpack_require__.d = (exports, getters, values) => {
 	define(getters, "get");
 	define(values, "value");
 };
-})();
-// webpack/runtime/esm_register_module
-(() => {
-__webpack_require__.add = function registerModules(modules) { Object.assign(__webpack_require__.m, modules) }
-
 })();
 // webpack/runtime/has_own_property
 (() => {

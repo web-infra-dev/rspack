@@ -1,9 +1,9 @@
 ```mjs title=main.mjs
 // ./index.js
 it('should handle three modules in one chunk with conflicting exports', async () => {
-	const a = await import("./merged.mjs").then(m => m.a_namespaceObject)
-	const b = await import("./merged.mjs").then(m => m.b_namespaceObject)
-	const c = await import("./merged.mjs").then(m => m.c_namespaceObject)
+	const a = await import("./merged.mjs").then(m => (m.a_init(), m.a_namespaceObject))
+	const b = await import("./merged.mjs").then(m => (m.b_init(), m.b_namespaceObject))
+	const c = await import("./merged.mjs").then(m => (m.c_init(), m.c_namespaceObject))
 
 	expect(a).toHaveProperty('default', 'a')
 	expect(a).toHaveProperty('name', 'module-a')
@@ -24,49 +24,71 @@ export {};
 
 ```mjs title=merged.mjs
 import { __webpack_require__ } from "./runtime.mjs";
+var __esm = (fn, result) => function __init() {
+	if (fn) {
+		var value = fn(fn = 0);
+		result = value && typeof value.then === "function" ? value.then(value => result = value) : value;
+	}
+	return result;
+};
 // NAMESPACE OBJECT: ./a.js
 var a_namespaceObject = {};
 __webpack_require__.r(a_namespaceObject);
-__webpack_require__.d(a_namespaceObject, { 
+__webpack_require__.d(a_namespaceObject, {
   "default": () => (a),
   id: () => (id),
-  name: () => (a_name) });
+  name: () => (a_name)
+});
 
 
 // NAMESPACE OBJECT: ./b.js
 var b_namespaceObject = {};
 __webpack_require__.r(b_namespaceObject);
-__webpack_require__.d(b_namespaceObject, { 
+__webpack_require__.d(b_namespaceObject, {
   "default": () => (b),
   id: () => (b_id),
-  name: () => (b_name) });
+  name: () => (b_name)
+});
 
 
 // NAMESPACE OBJECT: ./c.js
 var c_namespaceObject = {};
 __webpack_require__.r(c_namespaceObject);
-__webpack_require__.d(c_namespaceObject, { 
+__webpack_require__.d(c_namespaceObject, {
   "default": () => (c),
   id: () => (c_id),
-  name: () => (c_name) });
+  name: () => (c_name)
+});
 
 
 // ./a.js
-/* export default */ const a = ('a');
-const a_name = 'module-a';
-const id = 1;
+var a, a_name, id;
+var a_init = /*#__PURE__*/ __esm(() => {
+/* export default */ ( a = ('a'));;
+( a_name = 'module-a');;
+( id = 1);;
+
+});
 
 // ./b.js
-/* export default */ const b = ('b');
-const b_name = 'module-b';
-const b_id = 2;
+var b, b_name, b_id;
+var b_init = /*#__PURE__*/ __esm(() => {
+/* export default */ ( b = ('b'));;
+( b_name = 'module-b');;
+( b_id = 2);;
+
+});
 
 // ./c.js
-/* export default */ const c = ('c');
-const c_name = 'module-c';
-const c_id = 3;
+var c, c_name, c_id;
+var c_init = /*#__PURE__*/ __esm(() => {
+/* export default */ ( c = ('c'));;
+( c_name = 'module-c');;
+( c_id = 3);;
 
-export { a_namespaceObject, b_namespaceObject, c_namespaceObject };
+});
+
+export { a_init, a_namespaceObject, b_init, b_namespaceObject, c_init, c_namespaceObject };
 
 ```
 

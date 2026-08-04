@@ -2,15 +2,17 @@ use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   AsContextDependency, AwaitDependenciesInitFragment, BuildMetaDefaultObject, ChunkGraph,
-  ConditionalInitFragment, ConnectionState, Dependency, DependencyCategory,
-  DependencyCodeGeneration, DependencyCondition, DependencyConditionFn,
+  CodeGenerationModuleReferenceKind, ConditionalInitFragment, ConnectionState, Dependency,
+  DependencyCategory, DependencyCodeGeneration, DependencyCondition, DependencyConditionFn,
   DependencyDiagnosticsContext, DependencyId, DependencyLocation, DependencyRange,
   DependencyTemplate, DependencyTemplateType, DependencyType, ExportProvided, ExportsInfoArtifact,
   ExportsType, FactorizeInfo, ForwardId, ImportAttributes, ImportPhase, InitFragmentExt,
   InitFragmentKey, InitFragmentStage, LazyUntil, ModuleDependency, ModuleGraph,
   ModuleGraphCacheArtifact, ModuleIdentifier, ProvidedExports, ReferencedExport,
-  ResourceIdentifier, RuntimeCondition, RuntimeSpec, SideEffectsStateArtifact, SourceType,
-  TemplateContext, TemplateReplaceSource, TypeReexportPresenceMode, filter_runtime,
+  ResourceIdentifier, RuntimeCondition, RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact,
+  SourceType, TemplateContext, TemplateReplaceSource, TypeReexportPresenceMode, filter_runtime,
+  get_exports_type, get_outgoing_async_module_identifiers,
+  render_make_deferred_namespace_mode_from_exports_type,
 };
 use rspack_error::{Diagnostic, Error, Severity};
 use swc_atoms::Atom;
@@ -115,6 +117,85 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
   phase: ImportPhase,
   code_generatable_context: &mut TemplateContext,
 ) {
+  let should_skip = {
+    let TemplateContext {
+      compilation,
+      runtime,
+      ..
+    } = code_generatable_context;
+    // Only available when module factorization is successful.
+    let module_graph = compilation.get_module_graph();
+    let module_graph_cache = &compilation.module_graph_cache_artifact;
+    let connection = module_graph.connection_by_dependency_id(module_dependency.id());
+    let is_target_active = if let Some(con) = connection {
+      con.is_target_active(
+        module_graph,
+        *runtime,
+        module_graph_cache,
+        &compilation
+          .build_module_graph_artifact
+          .side_effects_state_artifact,
+        &compilation.exports_info_artifact,
+      )
+    } else {
+      true
+    };
+    let target_module = module_graph.get_module_by_dependency_id(module_dependency.id());
+    !is_target_active
+      || (module_dependency.weak()
+        && (target_module.is_none()
+          || target_module.is_some_and(|target_module| {
+            ChunkGraph::get_module_id(&compilation.module_ids_artifact, target_module.identifier())
+              .is_none()
+          })))
+  };
+  if should_skip {
+    return;
+  }
+
+  let (is_modern_deferred, deferred_async_modules) = {
+    let compilation = code_generatable_context.compilation;
+    let target_module = compilation
+      .get_module_graph()
+      .get_module_by_dependency_id(module_dependency.id());
+    let is_modern_deferred = code_generatable_context.is_modern_module_output()
+      && phase.is_defer()
+      && target_module.is_some_and(|module| !module.build_meta().has_top_level_await());
+    let deferred_async_modules = if is_modern_deferred {
+      target_module
+        .map(|module| {
+          get_outgoing_async_module_identifiers(compilation, module.as_ref())
+            .into_iter()
+            .collect::<Vec<_>>()
+        })
+        .unwrap_or_default()
+    } else {
+      Vec::new()
+    };
+    (is_modern_deferred, deferred_async_modules)
+  };
+  let module_reference = code_generatable_context
+    .is_modern_module_output()
+    .then(|| {
+      code_generatable_context.create_module_relocation(
+        *module_dependency.id(),
+        if is_modern_deferred {
+          CodeGenerationModuleReferenceKind::LazyValue
+        } else {
+          CodeGenerationModuleReferenceKind::Value
+        },
+      )
+    })
+    .flatten();
+  let deferred_async_references = deferred_async_modules
+    .into_iter()
+    .map(|module| {
+      code_generatable_context.create_module_relocation_for_module(
+        module,
+        CodeGenerationModuleReferenceKind::LazyInitializer,
+      )
+    })
+    .collect::<Vec<_>>();
   let TemplateContext {
     compilation,
     module,
@@ -122,42 +203,9 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
     runtime_template,
     ..
   } = code_generatable_context;
-  // Only available when module factorization is successful.
   let module_graph = compilation.get_module_graph();
   let module_graph_cache = &compilation.module_graph_cache_artifact;
-  let connection = module_graph.connection_by_dependency_id(module_dependency.id());
-  let is_target_active = if let Some(con) = connection {
-    con.is_target_active(
-      module_graph,
-      *runtime,
-      module_graph_cache,
-      &compilation
-        .build_module_graph_artifact
-        .side_effects_state_artifact,
-      &compilation.exports_info_artifact,
-    )
-  } else {
-    true
-  };
-  // Bailout only if the module does exist and not active.
-  if !is_target_active {
-    return;
-  }
-
   let target_module = module_graph.get_module_by_dependency_id(module_dependency.id());
-  if module_dependency.weak() {
-    // lazy
-    if target_module.is_none() {
-      return;
-    }
-    // weak
-    if let Some(target_module) = target_module
-      && ChunkGraph::get_module_id(&compilation.module_ids_artifact, target_module.identifier())
-        .is_none()
-    {
-      return;
-    }
-  }
 
   let runtime_condition = if module_dependency.weak() {
     RuntimeCondition::Boolean(false)
@@ -185,15 +233,53 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
     phase,
     *runtime,
   );
-  let content: (String, String) = runtime_template.import_statement(
-    *module,
-    compilation,
-    module_dependency.id(),
-    &import_var,
-    module_dependency.request(),
-    phase,
-    false,
-  );
+  let content: (String, String) = if let Some(module_reference) = module_reference {
+    let exports_type = get_exports_type(
+      module_graph,
+      &compilation.module_graph_cache_artifact,
+      &compilation.exports_info_artifact,
+      module_dependency.id(),
+      &module.identifier(),
+    );
+    if is_modern_deferred {
+      let mode = render_make_deferred_namespace_mode_from_exports_type(exports_type);
+      let async_dependencies_wait = if deferred_async_references.is_empty() {
+        String::new()
+      } else {
+        format!(
+          "await Promise.all([{}].map(initialize => initialize()));\n",
+          deferred_async_references.join(", ")
+        )
+      };
+      let import_content = format!(
+        "/* deferred import */ var {import_var} = /*#__PURE__*/{}({module_reference}, {mode});\n{async_dependencies_wait}",
+        runtime_template
+          .render_runtime_globals(&RuntimeGlobals::MAKE_OPTIMIZED_DEFERRED_NAMESPACE_OBJECT),
+      );
+      (import_content, String::new())
+    } else {
+      let import_content = format!("/* import */ var {import_var} = {module_reference};\n");
+      let compatibility = matches!(exports_type, ExportsType::Dynamic)
+        .then(|| {
+          format!(
+            "/* import */ var {import_var}_default = /*#__PURE__*/{}({import_var});\n",
+            runtime_template.render_runtime_globals(&RuntimeGlobals::COMPAT_GET_DEFAULT_EXPORT),
+          )
+        })
+        .unwrap_or_default();
+      (import_content, compatibility)
+    }
+  } else {
+    runtime_template.import_statement(
+      *module,
+      compilation,
+      module_dependency.id(),
+      &import_var,
+      module_dependency.request(),
+      phase,
+      false,
+    )
+  };
   let TemplateContext {
     init_fragments,
     compilation,
@@ -252,7 +338,9 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
       None,
       runtime_condition.clone(),
     )));
-    init_fragments.push(AwaitDependenciesInitFragment::new_single(import_var).boxed());
+    if !is_modern_deferred {
+      init_fragments.push(AwaitDependenciesInitFragment::new_single(import_var).boxed());
+    }
     init_fragments.push(Box::new(ConditionalInitFragment::new(
       content.1,
       InitFragmentStage::StageAsyncESMImports,

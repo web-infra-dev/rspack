@@ -1,19 +1,28 @@
 ```mjs title=main.mjs
-import { __webpack_require__ } from "./runtime.mjs";
-
 import { createRequire as __rspack_createRequire } from "node:module";
 const __rspack_createRequire_require = __rspack_createRequire(import.meta.url);
-__webpack_require__.add({
-"./defined-context/dependency.cjs"
+var __commonJS = (factory, flags, id, isEntry, module) => function __require() {
+	if (module !== undefined) {
+		return module.exports;
+	}
+	module = { exports: {} };
+	if (isEntry) module.isEntry = true;
+	if (flags & 1) module.id = id;
+	if (flags & 2) module.loaded = false;
+	if (flags & 4) factory.call(module.exports, module, module.exports, undefined);
+	else factory(module, module.exports, undefined);
+	if (flags & 2) module.loaded = true;
+	return module.exports;
+};
+var require_dependency = /*#__PURE__*/ __commonJS(function(module, exports) {
+
 /*!****************************************!*\
   !*** ./defined-context/dependency.cjs ***!
   \****************************************/
-(module) {
 module.exports = "defined context";
 
+}, 0, "./defined-context/dependency.cjs");
 
-},
-});
 // node:module
 const external_node_module_namespaceObject = __rspack_createRequire_require("node:module");
 // ./mixed.js
@@ -21,7 +30,7 @@ const external_node_module_namespaceObject = __rspack_createRequire_require("nod
 
 const req = (0,external_node_module_namespaceObject.createRequire)("<ROOT>/tests/rspack-test/esmOutputCases/create-require/import-meta-url-define/defined-context/index.js");
 
-const bundledValue = __webpack_require__(/*! ./dependency.cjs */ "./defined-context/dependency.cjs");
+const bundledValue = require_dependency();
 const unknownValue = req.unknown;
 
 // ./index.js
@@ -37,40 +46,5 @@ it("should align parsed require context with the preserved DefinePlugin argument
 });
 
 export {};
-
-```
-
-```mjs title=runtime.mjs
-
-var __webpack_modules__ = {};
-// The module cache
-var __webpack_module_cache__ = {};
-// The require function
-function __webpack_require__(moduleId) {
-// Check if module is in cache
-var cachedModule = __webpack_module_cache__[moduleId];
-if (cachedModule !== undefined) {
-return cachedModule.exports;
-}
-// Create a new module (and put it into the cache)
-var module = (__webpack_module_cache__[moduleId] = {
-exports: {}
-});
-// Execute the module function
-__webpack_modules__[moduleId](module, module.exports, __webpack_require__);
-
-// Return the exports of the module
-return module.exports;
-}
-// expose the modules object (__webpack_modules__)
-__webpack_require__.m = __webpack_modules__;
-
-// webpack/runtime/esm_register_module
-(() => {
-__webpack_require__.add = function registerModules(modules) { Object.assign(__webpack_require__.m, modules) }
-
-})();
-
-export { __webpack_require__ };
 
 ```

@@ -2,8 +2,8 @@ use std::{borrow::Cow, sync::Arc};
 
 use rspack_collections::{IdentifierIndexMap, IdentifierIndexSet, IdentifierMap, IdentifierSet};
 use rspack_core::{
-  BoxChunkInitFragment, ChunkGraph, ChunkUkey, Compilation, ImportSpec, ModuleGraph,
-  ModuleIdentifier, RuntimeCodeTemplate, RuntimeGlobals, find_new_name,
+  BoxChunkInitFragment, ChunkUkey, Compilation, ImportSpec, ModuleGraph, ModuleIdentifier,
+  RuntimeCodeTemplate, RuntimeGlobals, find_new_name,
   rspack_sources::{ConcatSource, RawStringSource},
 };
 use rspack_util::fx_hash::{FxHashMap, FxHashSet, FxIndexMap, FxIndexSet};
@@ -63,10 +63,18 @@ impl SymbolRef {
 }
 
 #[derive(Debug, Clone)]
-pub struct ExternalInterop {
+pub enum ModuleEvaluation {
+  Direct(Atom),
+  Initializer(Atom),
+}
+
+#[derive(Debug, Clone)]
+pub struct WrappedInterop {
   pub module: ModuleIdentifier,
+  /// How this chunk obtains the module value. This is deliberately separate
+  /// from whether the target's code is scope-hoisted or factory-wrapped.
+  pub evaluation: Option<ModuleEvaluation>,
   pub from_module: IdentifierSet,
-  pub set_entry_module_id: bool,
   pub required_symbol: Option<Atom>,
   pub default_access: Option<Atom>,
   pub default_exported: Option<Atom>,
@@ -102,7 +110,7 @@ fn get_or_create_interop_name(
   new_name
 }
 
-impl ExternalInterop {
+impl WrappedInterop {
   pub fn namespace(&mut self, used_names: &mut FxHashSet<Atom>) -> Atom {
     get_or_create_interop_name(
       &mut self.required_symbol,
@@ -166,32 +174,61 @@ impl ExternalInterop {
     compilation: &Compilation,
     runtime_template: &RuntimeCodeTemplate,
   ) -> ConcatSource {
+    self.render_with_mode(compilation, runtime_template, true)
+  }
+
+  pub fn render_assignments(
+    &self,
+    compilation: &Compilation,
+    runtime_template: &RuntimeCodeTemplate,
+  ) -> ConcatSource {
+    self.render_with_mode(compilation, runtime_template, false)
+  }
+
+  pub fn declaration_names(&self) -> impl Iterator<Item = &Atom> {
+    self
+      .required_symbol
+      .iter()
+      .chain(self.namespace_object.iter())
+      .chain(self.namespace_object2.iter())
+      .chain(self.default_access.iter())
+      .chain(self.default_exported.iter())
+      .chain(self.property_access.values())
+  }
+
+  fn render_with_mode(
+    &self,
+    compilation: &Compilation,
+    runtime_template: &RuntimeCodeTemplate,
+    declarations: bool,
+  ) -> ConcatSource {
     let mut source = ConcatSource::default();
     let name = self.required_symbol.as_ref();
+    let evaluation = self.evaluation.as_ref().unwrap_or_else(|| {
+      panic!(
+        "module interop {:?} from {:?} should have a linked evaluation plan; required_symbol={:?}",
+        self.module, self.from_module, self.required_symbol
+      )
+    });
 
     let is_async = ModuleGraph::is_async(&compilation.async_modules_artifact, &self.module);
-    let module_id = ChunkGraph::get_module_id(&compilation.module_ids_artifact, self.module)
-      .unwrap_or_else(|| panic!("should set module id for {:?}", self.module));
-    let mut module_id_expr = rspack_util::json_stringify(module_id.as_str());
-    if self.set_entry_module_id {
-      module_id_expr = format!(
-        "{} = {module_id_expr}",
-        runtime_template.render_runtime_globals(&RuntimeGlobals::ENTRY_MODULE_ID)
-      );
-    }
+    let (value, await_value) = match evaluation {
+      ModuleEvaluation::Direct(value) => (value.to_string(), false),
+      ModuleEvaluation::Initializer(initializer) => (format!("{initializer}()"), is_async),
+    };
 
     if let Some(name) = name {
       source.add(RawStringSource::from(format!(
         // this render only happens at top level scope of the chunk
-        "const {name} = {}{}({});\n",
-        if is_async { "await " } else { "" },
-        runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
-        module_id_expr
+        "{}{name} = {}{value};\n",
+        if declarations { "const " } else { "" },
+        if await_value { "await " } else { "" },
       )));
 
       if let Some(namespace_object) = &self.namespace_object {
         source.add(RawStringSource::from(format!(
-          "var {} = /*#__PURE__*/{}({}, 2);\n",
+          "{}{} = /*#__PURE__*/{}({}, 2);\n",
+          if declarations { "var " } else { "" },
           namespace_object,
           runtime_template.render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT),
           name
@@ -200,7 +237,8 @@ impl ExternalInterop {
 
       if let Some(namespace_object) = &self.namespace_object2 {
         source.add(RawStringSource::from(format!(
-          "var {} = /*#__PURE__*/{}({});\n",
+          "{}{} = /*#__PURE__*/{}({});\n",
+          if declarations { "var " } else { "" },
           namespace_object,
           runtime_template.render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT),
           name
@@ -209,7 +247,8 @@ impl ExternalInterop {
 
       if let Some(default_access) = &self.default_access {
         source.add(RawStringSource::from(format!(
-          "var {} = /*#__PURE__*/{}({});\n",
+          "{}{} = /*#__PURE__*/{}({});\n",
+          if declarations { "var " } else { "" },
           default_access,
           runtime_template.render_runtime_globals(&RuntimeGlobals::COMPAT_GET_DEFAULT_EXPORT),
           name
@@ -217,23 +256,25 @@ impl ExternalInterop {
 
         if let Some(default_exported_symbol) = &self.default_exported {
           source.add(RawStringSource::from(format!(
-            "var {default_exported_symbol} = {default_access}();\n",
+            "{}{default_exported_symbol} = {default_access}();\n",
+            if declarations { "var " } else { "" },
           )));
         }
       }
 
       for (s, local) in &self.property_access {
         source.add(RawStringSource::from(format!(
-          "var {local} = {name}.{s};\n"
+          "{}{local} = {name}.{s};\n",
+          if declarations { "var " } else { "" },
         )));
       }
     } else {
-      source.add(RawStringSource::from(format!(
-        "{}{}({});\n",
-        if is_async { "await " } else { "" },
-        runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
-        module_id_expr
-      )));
+      if matches!(evaluation, ModuleEvaluation::Initializer(_)) {
+        source.add(RawStringSource::from(format!(
+          "{}{value};\n",
+          if await_value { "await " } else { "" },
+        )));
+      }
     }
 
     source
@@ -298,7 +339,7 @@ pub struct ChunkLinkContext {
   /**
   `const symbol = __rspack_require(module_id)`
   */
-  pub required: IdentifierIndexMap<ExternalInterop>,
+  pub required: IdentifierIndexMap<WrappedInterop>,
 
   /**
   which module needs namespace objects
@@ -321,7 +362,32 @@ pub struct ChunkLinkContext {
   /**
   modules that needs wrapper
   */
-  pub decl_modules: IdentifierIndexSet,
+  pub wrapped_modules: IdentifierIndexSet,
+
+  /** Direct initializer declarations and imported aliases visible in this chunk. */
+  pub module_initializers: IdentifierMap<Atom>,
+
+  /** ESM export name for each initializer declared by this chunk. */
+  pub module_initializer_exports: IdentifierMap<Atom>,
+
+  /** Initializers whose body is scope-hoisted instead of a CommonJS factory. */
+  pub hoisted_initializers: IdentifierIndexSet,
+
+  /** Optional namespace export returned after a cross-chunk hoisted initializer runs. */
+  pub initializer_namespace_exports: IdentifierMap<Atom>,
+
+  /** Namespace bindings used by wrapped factories to reference hoisted modules. */
+  pub hoisted_namespaces: IdentifierMap<Atom>,
+
+  /// Shared esbuild-style helper used to create wrapped initializers.
+  pub commonjs_helper: Option<Atom>,
+
+  /// Shared esbuild-style helper used to guard scope-hoisted module bodies.
+  pub esm_helper: Option<Atom>,
+
+  /// Deconflicted scratch binding used by async initializers to avoid an
+  /// `await` once a dependency initializer has already settled.
+  pub async_dependency_temp: Option<Atom>,
 
   /**
   modules that needs wrapper
@@ -338,12 +404,20 @@ impl ChunkLinkContext {
   pub fn new(
     chunk_ukey: ChunkUkey,
     hoisted_modules: IdentifierIndexSet,
-    decl_modules: IdentifierIndexSet,
+    wrapped_modules: IdentifierIndexSet,
   ) -> Self {
     ChunkLinkContext {
       chunk: chunk_ukey,
       hoisted_modules,
-      decl_modules,
+      wrapped_modules,
+      module_initializers: Default::default(),
+      module_initializer_exports: Default::default(),
+      hoisted_initializers: Default::default(),
+      initializer_namespace_exports: Default::default(),
+      hoisted_namespaces: Default::default(),
+      commonjs_helper: None,
+      esm_helper: None,
+      async_dependency_temp: None,
       decl_before_exports: Default::default(),
       exports: Default::default(),
       re_exports: Default::default(),

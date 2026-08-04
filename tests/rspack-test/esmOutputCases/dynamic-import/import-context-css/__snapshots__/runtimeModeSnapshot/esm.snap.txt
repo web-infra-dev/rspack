@@ -10,81 +10,106 @@
 ```
 
 ```mjs title=a.mjs
-import { rspackRequire, moduleFactories, definePropertyGetters, makeNamespaceObject } from "./runtime.mjs";
-moduleFactories.add({
-"./modules/a.js"
-/*!**********************!*\
-  !*** ./modules/a.js ***!
-  \**********************/
-(__unused_rspack_module, exports) {
-makeNamespaceObject(exports);
-
-
-/* export default */ const __rspack_default_export = ("a");
-
-definePropertyGetters(exports, {
-}, {
-  "default": __rspack_default_export
+import { definePropertyGetters, makeNamespaceObject } from "./runtime.mjs";
+var __esm = (fn, result) => function __init() {
+	if (fn) {
+		var value = fn(fn = 0);
+		result = value && typeof value.then === "function" ? value.then(value => result = value) : value;
+	}
+	return result;
+};
+// NAMESPACE OBJECT: ./modules/a.js
+var a_namespaceObject = {};
+makeNamespaceObject(a_namespaceObject);
+definePropertyGetters(a_namespaceObject, {
+  "default": () => (a)
 });
 
 
-},
+// ./modules/a.js
+var a;
+var a_init = /*#__PURE__*/ __esm(() => {
+
+
+/* export default */ ( a = ("a"));;
+
 });
+
+export { a_init, a_namespaceObject };
 
 ```
 
 ```mjs title=main.mjs
-import { rspackRequire, ensureChunk, hasOwnProperty, moduleFactories } from "./runtime.mjs";
-moduleFactories.add({
-"./modules lazy recursive ^\\.\\/.*\\.js$ referencedExports: default"
+import { hasOwnProperty } from "./runtime.mjs";
+var __commonJS = (factory, flags, id, isEntry, module) => function __require() {
+	if (module !== undefined) {
+		return module.exports;
+	}
+	module = { exports: {} };
+	if (isEntry) module.isEntry = true;
+	if (flags & 1) module.id = id;
+	if (flags & 2) module.loaded = false;
+	if (flags & 4) factory.call(module.exports, module, module.exports, undefined);
+	else factory(module, module.exports, undefined);
+	if (flags & 2) module.loaded = true;
+	return module.exports;
+};
+var require__referencedExports_default_groupOptions_fetchPriority_high_namespace_object_importPhase_evaluation = /*#__PURE__*/ __commonJS(function(module, exports) {
+
 /*!**********************************************************************************************************************************************!*\
   !*** ./modules|lazy|/^\.\/.*\.js$/|referencedExports: default|groupOptions: {fetchPriority: high,}|namespace object|importPhase: evaluation ***!
   \**********************************************************************************************************************************************/
-(module) {
-var map = {
-  "./a.js": [
-    "./modules/a.js",
-    [
-      "a"
-    ]
-  ]
-};
-function __rspack_async_context(req) {
-  if(!hasOwnProperty(map, req)) {
-    return Promise.resolve().then(() => {
-var e = new Error("Cannot find module '" + req + "'");
-e.code = 'MODULE_NOT_FOUND';
-throw e;
-});
+function __rspack_context_load(id) {
+  switch (id) {
+		case "./modules/a.js": return import("./a.mjs").then(m => (m.a_init(), m.a_namespaceObject));
+    default: throw new Error("Unknown context module '" + id + "'");
   }
-
-  var ids = map[req], id = ids[0];
-  return ensureChunk(ids[1][0], "high").then(() => (rspackRequire(id)));
 }
 
+var map = {
+  "./a.js": "./modules/a.js"
+};
+
+function __rspack_async_context(req) {
+  if(!hasOwnProperty(map, req)) {
+    return Promise.resolve().then(function() {
+      var e = new Error("Cannot find module '" + req + "'");
+      e.code = 'MODULE_NOT_FOUND';
+      throw e;
+    });
+  }
+  var id = map[req];
+  return __rspack_context_load(id);
+}
 __rspack_async_context.keys = () => (Object.keys(map));
 __rspack_async_context.id = "./modules lazy recursive ^\\.\\/.*\\.js$ referencedExports: default";
 module.exports = __rspack_async_context;
 
+}, 0, "./modules lazy recursive ^\\.\\/.*\\.js$ referencedExports: default");
 
-},
-"./modules lazy ./modules/*.js"
+var require__js_namespace_object = /*#__PURE__*/ __commonJS(function(module, exports) {
+
 /*!*******************************************************************!*\
   !*** ./modules|lazy|nonrecursive|./modules/*.js|namespace object ***!
   \*******************************************************************/
-(module) {
+function __rspack_context_load(id) {
+  switch (id) {
+		case "./modules/a.js": return import("./a.mjs").then(m => (m.a_init(), m.a_namespaceObject));
+    default: throw new Error("Unknown context module '" + id + "'");
+  }
+}
+
 
 module.exports = {
 
-  "./modules/a.js": function() { return ensureChunk(/*! esm */ "a").then(rspackRequire.bind(rspackRequire, /*! ./modules/a.js */ "./modules/a.js")); }
+  "./modules/a.js": function() { return __rspack_context_load("./modules/a.js"); }
 };
 
+}, 0, "./modules lazy ./modules/*.js");
 
-},
-});
 // ./index.js
 it("should support css loading in import.meta.glob target", async () => {
-	const modules = rspackRequire(/*! ./modules/ */ "./modules lazy ./modules/*.js");
+	const modules = require__js_namespace_object();
 	const value = await modules["./modules/a.js"]();
 
 	expect(value.default).toBe("a");
@@ -92,7 +117,7 @@ it("should support css loading in import.meta.glob target", async () => {
 
 it("should preserve fetch priority for css loading", async () => {
 	const name = "a";
-	const value = await rspackRequire(/*! ./modules */ "./modules lazy recursive ^\\.\\/.*\\.js$ referencedExports: default")(`./${name}.js`);
+	const value = await require__referencedExports_default_groupOptions_fetchPriority_high_namespace_object_importPhase_evaluation()(`./${name}.js`);
 
 	expect(value.default).toBe("a");
 });
@@ -102,32 +127,6 @@ it("should preserve fetch priority for css loading", async () => {
 
 ```mjs title=runtime.mjs
 
-var modules = {};
-// The module cache
-var moduleCache = {};
-// The require function
-function rspackRequire(moduleId) {
-// Check if module is in cache
-var cachedModule = moduleCache[moduleId];
-if (cachedModule !== undefined) {
-return cachedModule.exports;
-}
-// Create a new module (and put it into the cache)
-var module = (moduleCache[moduleId] = {
-exports: {}
-});
-// Execute the module function
-modules[moduleId](module, module.exports, rspackRequire);
-
-// Return the exports of the module
-return module.exports;
-}
-export { rspackRequire };
-// expose the modules object (modules)
-var moduleFactories = modules;
-export { moduleFactories };
-
-var scriptNonce;
 // rspack/runtime/define_property_getters
 var definePropertyGetters = (exports, getters, values) => {
 	var define = (defs, kind) => {
@@ -141,35 +140,6 @@ var definePropertyGetters = (exports, getters, values) => {
 	define(values, "value");
 };;
 export { definePropertyGetters };
-// rspack/runtime/esm_ensure_chunk
-var ensureChunkHandlers = {};
-var ensureChunk = function(chunkId, fetchPriority) {
-	return Promise.all(Object.keys(ensureChunkHandlers).reduce(function(promises, key) {
-		ensureChunkHandlers[key](chunkId, promises, fetchPriority);
-		return promises;
-	}, []));
-};
-;
-export { ensureChunk };
-// rspack/runtime/esm_register_module
-moduleFactories.add = function registerModules(modules) { Object.assign(moduleFactories, modules) }
-;
-// rspack/runtime/get javascript chunk filename
-// This function allow to reference chunks
-var getChunkScriptFilename = (chunkId) => {
-  // return url for filenames not based on template
-
-  // return url for filenames based on template
-  return "" + chunkId + ".mjs"
-};
-// rspack/runtime/get mini-css chunk filename
-// This function allow to reference chunks
-var __rspack_get_mini_css_chunk_filename = (chunkId) => {
-  // return url for filenames not based on template
-
-  // return url for filenames based on template
-  return "" + chunkId + ".css"
-};
 // rspack/runtime/has_own_property
 var hasOwnProperty = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop));
 export { hasOwnProperty };
@@ -182,148 +152,6 @@ var makeNamespaceObject = (exports) => {
 	Object.defineProperty(exports, '__esModule', { value: true });
 };;
 export { makeNamespaceObject };
-// rspack/runtime/auto_public_path
-var scriptUrl;
-
-if (typeof import.meta.url === "string") scriptUrl = import.meta.url
-
-// When supporting browsers where an automatic publicPath is not supported you must specify an output.publicPath manually via configuration",
-// or pass an empty string ("") and set the __webpack_public_path__ variable from your code to use your own logic.',
-if (!scriptUrl) throw new Error("Automatic publicPath is not supported in this browser");
-scriptUrl = scriptUrl.replace(/^blob:/, "").replace(/#.*$/, "").replace(/\?.*$/, "").replace(/\/[^\/]+$/, "/");
-
-var publicPath = scriptUrl;
-;
-export { publicPath };
-// rspack/runtime/css loading
-(() => {
-if (typeof document === "undefined") return;
-var extractCssCreateStylesheet = function (
-	chunkId, fullhref, oldTag, resolve, reject, fetchPriority
-) {
-	var linkTag = document.createElement("link");
-
-linkTag.rel = "stylesheet";
-
-linkTag.type = "text/css";
-
-if (scriptNonce) {
-  linkTag.nonce = scriptNonce;
-}
-linkTag.href = fullhref;
-
-if (fetchPriority) {
-  linkTag.setAttribute("fetchpriority", fetchPriority);
-}
-
-
-
-	var onLinkComplete = function (event) {
-		// avoid mem leaks.
-		linkTag.onerror = linkTag.onload = null;
-		if (event.type === 'load') {
-			resolve();
-		} else {
-			var errorType = event && (event.type === 'load' ? 'missing' : event.type);
-			var realHref = event && event.target && event.target.href || fullhref;
-			var err = new Error("Loading CSS chunk " + chunkId + " failed.\\n(" + realHref + ")");
-			err.code = "CSS_CHUNK_LOAD_FAILED";
-			err.type = errorType;
-			err.request = realHref;
-			if (linkTag.parentNode) linkTag.parentNode.removeChild(linkTag)
-			reject(err);
-		}
-	}
-	linkTag.onerror = linkTag.onload = onLinkComplete;
-	if (oldTag) {
-            oldTag.parentNode.insertBefore(linkTag, oldTag.nextSibling);
-          } else {
-            document.head.appendChild(linkTag);
-          }
-	return linkTag;
-}
-var extractCssFindStylesheet = function (href, fullhref) {
-	var existingLinkTags = document.getElementsByTagName("link");
-	for (var i = 0; i < existingLinkTags.length; i++) {
-		var tag = existingLinkTags[i];
-		var dataHref = tag.getAttribute("data-href") || tag.getAttribute("href");
-		if (dataHref) {
-			dataHref = dataHref.split('?')[0]
-		}
-		if (tag.rel === "stylesheet" && (dataHref === href || dataHref === fullhref)) return tag;
-	}
-
-	var existingStyleTags = document.getElementsByTagName("style");
-	for (var i = 0; i < existingStyleTags.length; i++) {
-		var tag = existingStyleTags[i];
-		var dataHref = tag.getAttribute("data-href");
-		if (dataHref === href || dataHref === fullhref) return tag;
-	}
-}
-
-var extractCssLoadStylesheet = function (chunkId, fetchPriority) {
-	return new Promise(function (resolve, reject) {
-		var href = __rspack_get_mini_css_chunk_filename(chunkId);
-		var fullhref = publicPath + href;
-		if (extractCssFindStylesheet(href, fullhref)) return resolve();
-		extractCssCreateStylesheet(chunkId, fullhref, null, resolve, reject, fetchPriority);
-	})
-}
-
-// object to store loaded CSS chunks
-var installedCssChunks = {
-	"runtime": 0,
-
-};
-
-ensureChunkHandlers.miniCss = function (chunkId, promises, fetchPriority) {
-	var cssChunks = {
-"a": 1,
-
-};
-	if (installedCssChunks[chunkId]) promises.push(installedCssChunks[chunkId])
-	else if (installedCssChunks[chunkId] !== 0 && cssChunks[chunkId])
-		promises.push(
-			installedCssChunks[chunkId] = extractCssLoadStylesheet(chunkId, fetchPriority).then(
-				function () {
-					installedCssChunks[chunkId] = 0;
-				},
-				function (e) {
-					delete installedCssChunks[chunkId];
-					throw e;
-				}
-			)
-		)
-}
-
-// no hmr
-// no prefetch
-// no preload
-})();
-// rspack/runtime/esm_chunk_loading
-var esmInstalledChunks = {};
-var esmChunkMap = {
-"a": function() { return import("./a.mjs"); }
-};
-ensureChunkHandlers.j = function(chunkId, promises) {
-	var installedChunkData = esmInstalledChunks[chunkId];
-	if(installedChunkData === 0) return;
-	if(installedChunkData) {
-		promises.push(installedChunkData);
-		return;
-	}
-	var loadChunk = esmChunkMap[chunkId];
-	if(!loadChunk) return;
-	var promise = loadChunk().then(function() {
-		esmInstalledChunks[chunkId] = 0;
-	}, function(error) {
-		delete esmInstalledChunks[chunkId];
-		throw error;
-	});
-	esmInstalledChunks[chunkId] = promise;
-	promises.push(promise);
-};
-;
 
 
 ```

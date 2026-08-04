@@ -24,8 +24,9 @@ module.exports = {
       'utf-8',
     );
 
-    expect(commonJsSource).toMatch(
-      /(?:__webpack_require__|__rspack_context\.r|rspackRequire)\("\.\/worker-cjs\.js"\);/,
+    expect(commonJsSource).toContain('require_worker_cjs();');
+    expect(commonJsSource).not.toMatch(
+      /(?:__webpack_require__|__rspack_context\.r|rspackRequire)\("\.\/worker-cjs\.js"\)/,
     );
     expect(commonJsSource).toContain(
       'globalThis.__workerCommonJsEntryExecuted = true;',
@@ -36,9 +37,10 @@ module.exports = {
       'utf-8',
     );
 
-    expect(asyncSource).toMatch(
-      /await (?:__webpack_require__\(__webpack_require__\.s|__rspack_context\.r\(__rspack_context\.s|rspackRequire\(entryModuleId) = "\.\/worker-async\.js"\);/,
-    );
+    expect(asyncSource).toContain('await require_worker_async();');
+    expect(asyncSource).not.toContain('__webpack_module_cache__');
+    expect(asyncSource).not.toContain('moduleCache[');
+    expect(asyncSource).not.toContain('moduleFactories');
     expect(asyncSource).toContain(
       'globalThis.__workerAsyncEntryExecuted = true;',
     );

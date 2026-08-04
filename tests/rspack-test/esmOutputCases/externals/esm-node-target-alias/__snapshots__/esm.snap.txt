@@ -1,51 +1,49 @@
 ```mjs title=main.mjs
 import { resolve } from "node:path";
 import { parse } from "node:url";
-import { __webpack_require__ } from "./runtime.mjs";
 
 import { createRequire as __rspack_createRequire } from "node:module";
 const __rspack_createRequire_require = __rspack_createRequire(import.meta.url);
-__webpack_require__.add({
-"node:fs?435f"
-/*!****************************!*\
-  !*** external "node:path" ***!
-  \****************************/
-(module) {
-module.exports = __rspack_createRequire_require("node:path");
+var __commonJS = (factory, flags, id, isEntry, module) => function __require() {
+	if (module !== undefined) {
+		return module.exports;
+	}
+	module = { exports: {} };
+	if (isEntry) module.isEntry = true;
+	if (flags & 1) module.id = id;
+	if (flags & 2) module.loaded = false;
+	if (flags & 4) factory.call(module.exports, module, module.exports, undefined);
+	else factory(module, module.exports, undefined);
+	if (flags & 2) module.loaded = true;
+	return module.exports;
+};
+var require_cjs_consumer = /*#__PURE__*/ __commonJS(function(module, exports) {
 
-},
-"node:url?b4ec"
-/*!***************************!*\
-  !*** external "node:url" ***!
-  \***************************/
-(module) {
-module.exports = __rspack_createRequire_require("node:url");
-
-},
-"./cjs-consumer.cjs"
 /*!**************************!*\
   !*** ./cjs-consumer.cjs ***!
   \**************************/
-(__unused_rspack_module, exports, __webpack_require__) {
 // CJS require of "module" type external — should be downgraded to node-commonjs
-const nodePath = __webpack_require__(/*! node:fs */ "node:fs?435f");
+const nodePath = external_node_path_namespaceObject_0;
 exports.n = nodePath.resolve;
 
 // CJS require of "module-import" type external — should also be downgraded
-const nodeUrl = __webpack_require__(/*! node:url */ "node:url?b4ec");
+const nodeUrl = external_node_url_namespaceObject_0;
 exports.g = nodeUrl.parse;
 
+}, 0, "./cjs-consumer.cjs");
 
-},
-});
 // node:fs?16c7
 
 // node:url?e0e4
 
+// node:fs?435f
+const external_node_path_namespaceObject_0 = __rspack_createRequire_require("node:path");
+// node:url?b4ec
+const external_node_url_namespaceObject_0 = __rspack_createRequire_require("node:url");
 // ./index.js
-const cjs_consumer = __webpack_require__("./cjs-consumer.cjs");
-var g = cjs_consumer.g;
-var n = cjs_consumer.n;
+const cjs_consumer_0 = require_cjs_consumer();
+var g = cjs_consumer_0.g;
+var n = cjs_consumer_0.n;
 
 
 
@@ -64,51 +62,16 @@ it("should use aliased external request with correct external type", async () =>
 	expect(main.parse).toBe(nodeUrl.parse);
 
 	// CJS require of "module" external — downgraded to node-commonjs
-	expect(cjs_consumer.n).toBe(nodePath.resolve);
+	expect(cjs_consumer_0.n).toBe(nodePath.resolve);
 	expect(main.cjsResolve).toBe(nodePath.resolve);
 
 	// CJS require of "module-import" external — downgraded to node-commonjs
-	expect(cjs_consumer.g).toBe(nodeUrl.parse);
+	expect(cjs_consumer_0.g).toBe(nodeUrl.parse);
 	expect(main.cjsParse).toBe(nodeUrl.parse);
 });
 
 
 
 export { g as cjsParse, n as cjsResolve, parse, resolve };
-
-```
-
-```mjs title=runtime.mjs
-
-var __webpack_modules__ = {};
-// The module cache
-var __webpack_module_cache__ = {};
-// The require function
-function __webpack_require__(moduleId) {
-// Check if module is in cache
-var cachedModule = __webpack_module_cache__[moduleId];
-if (cachedModule !== undefined) {
-return cachedModule.exports;
-}
-// Create a new module (and put it into the cache)
-var module = (__webpack_module_cache__[moduleId] = {
-exports: {}
-});
-// Execute the module function
-__webpack_modules__[moduleId](module, module.exports, __webpack_require__);
-
-// Return the exports of the module
-return module.exports;
-}
-// expose the modules object (__webpack_modules__)
-__webpack_require__.m = __webpack_modules__;
-
-// webpack/runtime/esm_register_module
-(() => {
-__webpack_require__.add = function registerModules(modules) { Object.assign(__webpack_require__.m, modules) }
-
-})();
-
-export { __webpack_require__ };
 
 ```

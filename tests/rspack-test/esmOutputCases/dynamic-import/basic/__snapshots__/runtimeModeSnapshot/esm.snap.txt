@@ -1,43 +1,73 @@
 ```mjs title=dynamic.mjs
-// ./dynamic.js
-/* export default */ const dynamic = (42);
+import { definePropertyGetters, makeNamespaceObject } from "./runtime.mjs";
+var __esm = (fn, result) => function __init() {
+	if (fn) {
+		var value = fn(fn = 0);
+		result = value && typeof value.then === "function" ? value.then(value => result = value) : value;
+	}
+	return result;
+};
+// NAMESPACE OBJECT: ./dynamic.js
+var dynamic_namespaceObject = {};
+makeNamespaceObject(dynamic_namespaceObject);
+definePropertyGetters(dynamic_namespaceObject, {
+  "default": () => (dynamic)
+});
 
-export default dynamic;
+
+// ./dynamic.js
+var dynamic;
+var dynamic_init = /*#__PURE__*/ __esm(() => {
+/* export default */ ( dynamic = (42));;
+
+});
+
+export { dynamic as default, dynamic_init, dynamic_namespaceObject };
 
 ```
 
 ```mjs title=main.mjs
-import { rspackRequire, definePropertyGetters, makeNamespaceObject } from "./runtime.mjs";
+import { definePropertyGetters, makeNamespaceObject } from "./runtime.mjs";
+var __esm = (fn, result) => function __init() {
+	if (fn) {
+		var value = fn(fn = 0);
+		result = value && typeof value.then === "function" ? value.then(value => result = value) : value;
+	}
+	return result;
+};
 // NAMESPACE OBJECT: ./dynamic.js?1
 var dynamic1_namespaceObject = {};
 makeNamespaceObject(dynamic1_namespaceObject);
-definePropertyGetters(dynamic1_namespaceObject, { 
-  "default": () => (dynamic1) });
+definePropertyGetters(dynamic1_namespaceObject, {
+  "default": () => (dynamic1)
+});
 
 
 // ./dynamic.js?1
-/* export default */ const dynamic1 = (42);
+var dynamic1;
+var dynamic1_init = /*#__PURE__*/ __esm(() => {
+/* export default */ ( dynamic1 = (42));;
+
+});
 
 // ./index.js
+	dynamic1_init();
 
 
 it('should support dynamic import', async () => {
-	const value = await import("./dynamic.mjs")
-	const value2 = await Promise.resolve(dynamic1_namespaceObject)
+	const value = await import("./dynamic.mjs").then(m => (m.dynamic_init(), m.dynamic_namespaceObject))
+	const value2 = await Promise.resolve().then(() => (dynamic1_init(), dynamic1_namespaceObject))
 
 	expect(value.default).toBe(42)
 	expect(dynamic1).toBe(42)
 	expect(value2.default).toBe(42)
 })
 
-export {};
+export { dynamic1_init, dynamic1_namespaceObject };
 
 ```
 
 ```mjs title=runtime.mjs
-// The require scope
-var rspackRequire = {};
-export { rspackRequire };
 
 // rspack/runtime/define_property_getters
 var definePropertyGetters = (exports, getters, values) => {

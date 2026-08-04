@@ -340,6 +340,26 @@ impl ImportMetaPlugin {
 
   fn import_meta_main(&self, parser: &mut JavascriptParser) -> String {
     parser.build_info.module_concatenation_bailout = Some("import.meta.main".into());
+    parser.build_info.uses_import_meta_main = true;
+    if parser.compiler_options.output.module
+      && parser
+        .compiler_options
+        .output
+        .enabled_library_types
+        .as_ref()
+        .is_some_and(|types| types.iter().any(|ty| ty == "modern-module"))
+    {
+      parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::add_only(
+        RuntimeGlobals::MODULE,
+      )));
+      return concat_string!(
+        "(",
+        parser
+          .parser_runtime_requirements
+          .module_argument(&parser.build_info.module_argument),
+        ".isEntry === true)"
+      );
+    }
     parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::add_only(
       RuntimeGlobals::MODULE_CACHE | RuntimeGlobals::ENTRY_MODULE_ID | RuntimeGlobals::MODULE,
     )));

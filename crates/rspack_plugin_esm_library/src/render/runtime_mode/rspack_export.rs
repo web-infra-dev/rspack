@@ -1,5 +1,5 @@
 use rspack_core::{
-  CodeGenerationRuntimeRequirementsWrite, RuntimeCodeTemplate, RuntimeGlobals, RuntimeVariable,
+  CodeGenerationRuntimeRequirementsWrite, RuntimeGlobals, RuntimeVariable,
   rspack_sources::{ConcatSource, RawStringSource},
 };
 use rspack_plugin_javascript::runtime::should_export_rspack_runtime_globals;
@@ -17,7 +17,7 @@ fn render_runtime_global_specifiers(context: RuntimeImportRenderContext<'_>) -> 
   let mut specifiers = FxIndexSet::default();
   if context
     .runtime_requirements
-    .intersects(RuntimeGlobals::REQUIRE | RuntimeGlobals::REQUIRE_SCOPE)
+    .contains(RuntimeGlobals::REQUIRE)
   {
     specifiers.insert(
       context
@@ -70,10 +70,6 @@ fn render_runtime_global_specifiers(context: RuntimeImportRenderContext<'_>) -> 
 }
 
 impl RuntimeModeRenderer for RspackExportRuntimeRenderer {
-  fn render_module_registration_ident(&self, runtime_template: &RuntimeCodeTemplate) -> String {
-    runtime_template.render_runtime_globals(&RuntimeGlobals::MODULE_FACTORIES)
-  }
-
   fn render_runtime_imports(&self, context: RuntimeImportRenderContext<'_>) -> ConcatSource {
     let runtime_import_idents = render_runtime_global_specifiers(context);
     let mut runtime_import_match_idents = runtime_import_idents.clone();
@@ -124,12 +120,9 @@ impl RuntimeModeRenderer for RspackExportRuntimeRenderer {
     let mut source = render_runtime_prelude(context);
     let should_export_runtime_globals =
       should_export_rspack_runtime_globals(context.compilation, context.chunk_ukey);
-    let use_require = context.runtime_requirements.intersects(
-      RuntimeGlobals::REQUIRE
-        | RuntimeGlobals::REQUIRE_SCOPE
-        | RuntimeGlobals::INTERCEPT_MODULE_EXECUTION
-        | RuntimeGlobals::MODULE,
-    );
+    let use_require = context
+      .runtime_requirements
+      .intersects(RuntimeGlobals::REQUIRE | RuntimeGlobals::INTERCEPT_MODULE_EXECUTION);
     if context.should_export_require && use_require {
       let require = context
         .runtime_template

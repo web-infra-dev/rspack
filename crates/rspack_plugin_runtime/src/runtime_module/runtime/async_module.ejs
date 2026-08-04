@@ -7,6 +7,9 @@
 <% if (_uses_lexical_runtime_globals) { %><%- define(DEFERRED_MODULES_ASYNC_TRANSITIVE_DEPENDENCIES_SYMBOL) %> = hasSymbol ? Symbol("rspack defer") : "__rspack_defer";
 <%- var("rspackDefer") %> = <%- DEFERRED_MODULES_ASYNC_TRANSITIVE_DEPENDENCIES_SYMBOL %>;<% } else { %><%- var("rspackDefer") %> = <%- define(DEFERRED_MODULES_ASYNC_TRANSITIVE_DEPENDENCIES_SYMBOL) %> = hasSymbol ? Symbol("rspack defer") : "__rspack_defer";<% } %>
 <%- define(DEFERRED_MODULES_ASYNC_TRANSITIVE_DEPENDENCIES) %> = <%- basicFunction("asyncDeps") %> {
+	<% if (_uses_direct_initializers) { %>if (asyncDeps.length) {
+		return ({ then(onFulfilled, onRejected) { return Promise.all(asyncDeps.map(<%- basicFunction("initialize") %> { return initialize(); })).then(onFulfilled, onRejected) } });
+	}<% } else { %>
 	var hasUnresolvedAsyncSubgraph = asyncDeps.some((id) => {
 		var cache = <%- _module_cache %>[id];
 		return !cache || cache[rspackDone] === false;
@@ -14,6 +17,7 @@
 	if (hasUnresolvedAsyncSubgraph) {
 		return ({ then(onFulfilled, onRejected) { return Promise.all(asyncDeps.map(<%- REQUIRE %>)).then(onFulfilled, onRejected) } });
 	}
+	<% } %>
 }
 <%- var("resolveQueue") %> = <%- basicFunction("queue") %> {
 	if (queue && queue.d < 1) {

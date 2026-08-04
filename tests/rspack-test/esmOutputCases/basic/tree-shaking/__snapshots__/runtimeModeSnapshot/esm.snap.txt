@@ -1,28 +1,34 @@
 ```mjs title=main.mjs
-import { rspackRequire, moduleFactories, makeNamespaceObject, compatGetDefaultExport, esmModuleDecorator } from "./runtime.mjs";
-import * as __rspack_external_fs from "fs";
-moduleFactories.add({
-"./cjs.js"
-/*!****************!*\
-  !*** ./cjs.js ***!
-  \****************/
-() {
-/* import */ var _use_other__rspack_import_0 = rspackRequire(/*! ./use-other */ "./use-other.js");
-/* import */ var _use_other__rspack_import_0_default = /*#__PURE__*/compatGetDefaultExport(_use_other__rspack_import_0);
+import { definePropertyGetters, makeNamespaceObject, esmModuleDecorator } from "./runtime.mjs";
+import { readFile, writeFile } from "fs";
 
+var __esm = (fn, result) => function __init() {
+	if (fn) {
+		var value = fn(fn = 0);
+		result = value && typeof value.then === "function" ? value.then(value => result = value) : value;
+	}
+	return result;
+};
+var __commonJS = (factory, flags, id, isEntry, module) => function __require() {
+	if (module !== undefined) {
+		return module.exports;
+	}
+	module = { exports: {} };
+	if (isEntry) module.isEntry = true;
+	if (flags & 1) module.id = id;
+	if (flags & 2) module.loaded = false;
+	if (flags & 4) factory.call(module.exports, module, module.exports, undefined);
+	else factory(module, module.exports, undefined);
+	if (flags & 2) module.loaded = true;
+	return module.exports;
+};
+var require_index = /*#__PURE__*/ __commonJS(function(module, exports) {
 
-// use export readFile
-console.log.bind((rspackRequire(/*! fs */ "fs")/* .readFile */.readFile))
-
-
-},
-"./index.js"
 /*!******************!*\
   !*** ./index.js ***!
   \******************/
-(module, exports) {
 makeNamespaceObject(exports);
-/* import */ var _cjs__rspack_import_0 = rspackRequire(/*! ./cjs */ "./cjs.js");
+/* import */ var _cjs__rspack_import_0 = (cjs_init(), cjs_namespaceObject);
 /* module decorator */ module = esmModuleDecorator(module);
 
 
@@ -31,30 +37,66 @@ makeNamespaceObject(exports);
 // access module so entry is not scope hoisted
 console.log.bind(module)
 
+}, 1, "./index.js");
 
-},
-"./use-other.js"
+var require_use_other = /*#__PURE__*/ __commonJS(function(module, exports) {
+
 /*!**********************!*\
   !*** ./use-other.js ***!
   \**********************/
-() {
 // use export writeFile
-console.log.bind((rspackRequire(/*! fs */ "fs")/* .writeFile */.writeFile))
+console.log.bind((external_fs_namespaceObject/* .writeFile */.writeFile))
+
+}, 0, "./use-other.js");
+
+// NAMESPACE OBJECT: ./cjs.js
+var cjs_namespaceObject = {};
+makeNamespaceObject(cjs_namespaceObject);
 
 
-},
-"fs"
-/*!*********************!*\
-  !*** external "fs" ***!
-  \*********************/
-(module) {
-
-module.exports = __rspack_external_fs;
-
-
-},
+// NAMESPACE OBJECT: external "fs"
+var external_fs_namespaceObject_0 = {};
+makeNamespaceObject(external_fs_namespaceObject_0);
+definePropertyGetters(external_fs_namespaceObject_0, {
+  readFile: () => (readFile)
 });
-rspackRequire("./index.js");
+var external_fs_namespaceObject_0_starExports = external_fs_namespaceObject_0;
+Object.keys(external_fs_namespaceObject_0_starExports).forEach(function(key) {
+  if (key !== "default" && key !== "__esModule") {
+    definePropertyGetters(external_fs_namespaceObject_0, { [key]: function() { return external_fs_namespaceObject_0_starExports[key]; } });
+  }
+});
+
+
+// NAMESPACE OBJECT: external "fs"
+var external_fs_namespaceObject = {};
+makeNamespaceObject(external_fs_namespaceObject);
+definePropertyGetters(external_fs_namespaceObject, {
+  writeFile: () => (writeFile)
+});
+var external_fs_namespaceObject_starExports = external_fs_namespaceObject;
+Object.keys(external_fs_namespaceObject_starExports).forEach(function(key) {
+  if (key !== "default" && key !== "__esModule") {
+    definePropertyGetters(external_fs_namespaceObject, { [key]: function() { return external_fs_namespaceObject_starExports[key]; } });
+  }
+});
+
+
+// fs?a79d
+
+// fs?2255
+
+// ./cjs.js
+var cjs_init = /*#__PURE__*/ __esm(() => {
+require_use_other();
+
+
+// use export readFile
+console.log.bind((external_fs_namespaceObject_0/* .readFile */.readFile))
+
+});
+
+require_index();
 
 export {};
 
@@ -62,43 +104,6 @@ export {};
 
 ```mjs title=runtime.mjs
 
-var modules = {};
-// The module cache
-var moduleCache = {};
-// The require function
-function rspackRequire(moduleId) {
-// Check if module is in cache
-var cachedModule = moduleCache[moduleId];
-if (cachedModule !== undefined) {
-return cachedModule.exports;
-}
-// Create a new module (and put it into the cache)
-var module = (moduleCache[moduleId] = {
-id: moduleId,
-exports: {}
-});
-// Execute the module function
-modules[moduleId](module, module.exports, rspackRequire);
-
-// Return the exports of the module
-return module.exports;
-}
-export { rspackRequire };
-// expose the modules object (modules)
-var moduleFactories = modules;
-export { moduleFactories };
-
-// rspack/runtime/compat_get_default_export
-// getDefaultExport function for compatibility with non-ESM modules
-var compatGetDefaultExport = (module) => {
-	var getter = module && module.__esModule ?
-		() => (module['default']) :
-		() => (module);
-	definePropertyGetters(getter, { a: getter });
-	return getter;
-};
-;
-export { compatGetDefaultExport };
 // rspack/runtime/define_property_getters
 var definePropertyGetters = (exports, getters, values) => {
 	var define = (defs, kind) => {
@@ -111,6 +116,7 @@ var definePropertyGetters = (exports, getters, values) => {
 	define(getters, "get");
 	define(values, "value");
 };;
+export { definePropertyGetters };
 // rspack/runtime/esm_module_decorator
 var esmModuleDecorator = (module) => {
   module = Object.create(module);
@@ -124,9 +130,6 @@ var esmModuleDecorator = (module) => {
   return module;
 };;
 export { esmModuleDecorator };
-// rspack/runtime/esm_register_module
-moduleFactories.add = function registerModules(modules) { Object.assign(moduleFactories, modules) }
-;
 // rspack/runtime/has_own_property
 var hasOwnProperty = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop));
 // rspack/runtime/make_namespace_object
