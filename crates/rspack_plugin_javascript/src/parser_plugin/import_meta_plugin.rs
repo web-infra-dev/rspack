@@ -356,22 +356,29 @@ impl ImportMetaPlugin {
     )
   }
 
-  fn import_meta_unknown_property(&self, members: &[String]) -> String {
-    if self.preserve_property(members.first().map(|property| property.as_str())) {
-      concat_string!("import.meta", property_access(members, 0))
+  fn import_meta_unknown_property(&self, members: &[Atom]) -> String {
+    if self.preserve_property(members.first().map(Atom::as_ref)) {
+      concat_string!(
+        "import.meta",
+        property_access(members.iter().map(Atom::as_ref), 0)
+      )
     } else {
       let comment = to_normal_comment(&concat_string!(
         "unsupported import.meta.",
-        members.join(".")
+        members.iter().join(".")
       ));
-      concat_string!(comment, " undefined", property_access(members, 1))
+      concat_string!(
+        comment,
+        " undefined",
+        property_access(members.iter().map(Atom::as_ref), 1)
+      )
     }
   }
 
   fn warn_import_meta_unknown_property(
     &self,
     parser: &mut JavascriptParser,
-    members: &[String],
+    members: &[Atom],
     span: Span,
   ) {
     if !matches!(self.0.as_ref(), ImportMeta::Enabled)
@@ -564,7 +571,11 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaPlugin {
     {
       evaluated = Some("undefined".to_string());
       if Self::known_property_from_name(for_name).is_none() {
-        self.warn_import_meta_unknown_property(parser, &[property.to_string()], member_expr.span());
+        self.warn_import_meta_unknown_property(
+          parser,
+          std::slice::from_ref(&property),
+          member_expr.span(),
+        );
       }
     }
     evaluated.map(|e| eval::evaluate_to_string(e, expr.span.real_lo(), expr.span.real_hi()))
@@ -606,7 +617,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaPlugin {
         let span = member.span();
         let name = concat_string!(expr_name::IMPORT_META, ".", ident.sym);
         if Self::known_property_from_name(&name).is_none() {
-          self.warn_import_meta_unknown_property(parser, &[ident.sym.to_string()], span);
+          self.warn_import_meta_unknown_property(parser, &[Atom::from(ident.sym.as_str())], span);
         }
         return Some(eval::evaluate_to_undefined(span.real_lo(), span.real_hi()));
       }
@@ -625,7 +636,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaPlugin {
         let span = member.span();
         let name = concat_string!(expr_name::IMPORT_META, ".", property.as_ref());
         if Self::known_property_from_name(&name).is_none() {
-          self.warn_import_meta_unknown_property(parser, &[property.to_string()], span);
+          self.warn_import_meta_unknown_property(parser, std::slice::from_ref(&property), span);
         }
         return Some(eval::evaluate_to_undefined(span.real_lo(), span.real_hi()));
       }
@@ -709,7 +720,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaPlugin {
               content.push('[');
               content.push_str(&rspack_util::json_stringify_str(&prop.id));
               content.push_str("]: ");
-              content.push_str(&self.import_meta_unknown_property(&[prop.id.to_string()]));
+              content.push_str(&self.import_meta_unknown_property(std::slice::from_ref(&prop.id)));
             }
           } else if let Some(api) = import_meta_runtime_api_from_property(prop.id.as_ref()) {
             if self.runtime_api_enabled(api)
@@ -720,15 +731,15 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaPlugin {
               content.push('[');
               content.push_str(&rspack_util::json_stringify_str(&prop.id));
               content.push_str("]: ");
-              content.push_str(&self.import_meta_unknown_property(&[prop.id.to_string()]));
+              content.push_str(&self.import_meta_unknown_property(std::slice::from_ref(&prop.id)));
             }
           } else {
-            let members = vec![prop.id.to_string()];
-            self.warn_import_meta_unknown_property(parser, &members, span);
+            let members = std::slice::from_ref(&prop.id);
+            self.warn_import_meta_unknown_property(parser, members, span);
             content.push('[');
             content.push_str(&rspack_util::json_stringify_str(&prop.id));
             content.push_str("]: ");
-            content.push_str(&self.import_meta_unknown_property(&members));
+            content.push_str(&self.import_meta_unknown_property(members));
           }
         }
         content.push_str("})");
@@ -925,15 +936,11 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaPlugin {
             )));
             return Some(true);
           };
-          if self.preserve_property(members.members.first().map(|property| property.as_str())) {
+          if self.preserve_property(members.members.first().map(Atom::as_ref)) {
             return Some(true);
           }
-          let unknown_members = members
-            .members
-            .iter()
-            .map(|member| member.to_string())
-            .collect_vec();
-          self.warn_import_meta_unknown_property(parser, &unknown_members, expr.span());
+          let unknown_members = members.members.as_slice();
+          self.warn_import_meta_unknown_property(parser, unknown_members, expr.span());
           let dep = if members.members.get(1).is_some()
             && members
               .members_optionals
@@ -944,7 +951,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaPlugin {
           } else {
             ConstDependency::new(
               expr.span().into(),
-              self.import_meta_unknown_property(&unknown_members).into(),
+              self.import_meta_unknown_property(unknown_members).into(),
             )
           };
 
