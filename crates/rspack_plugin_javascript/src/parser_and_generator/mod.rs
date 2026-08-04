@@ -43,6 +43,7 @@ pub struct ParserRuntimeRequirementsData {
   pub rspack_module: String,
   pub exports: String,
   pub require: String,
+  pub compatibility_runtime_scope: String,
   pub require_regex: &'static LazyLock<Regex>,
   pub module_cache: String,
   pub entry_module_id: String,
@@ -110,6 +111,7 @@ impl ParserRuntimeRequirementsData {
   pub fn new(runtime_template: &ModuleCodeTemplate) -> Self {
     let require_name =
       runtime_template.render_runtime_globals_without_adding(&RuntimeGlobals::REQUIRE);
+    let compatibility_runtime_scope = runtime_template.render_runtime_scope();
     let module_name =
       runtime_template.render_runtime_globals_without_adding(&RuntimeGlobals::MODULE);
     let exports_name =
@@ -128,6 +130,7 @@ impl ParserRuntimeRequirementsData {
       rspack_module: rspack_module_name,
       exports: exports_name,
       require: require_name,
+      compatibility_runtime_scope,
       module_cache: module_cache_name,
       entry_module_id: entry_module_id_name,
     }

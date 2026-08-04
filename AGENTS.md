@@ -126,6 +126,9 @@ Before running tests after code changes:
 - **Rust core**: `crates/rspack_core/`
 - **Plugins**: `crates/rspack_plugin_*/`
 - **JavaScript API**: `packages/rspack/src/`
+- **JavaScript binding API**: `crates/rspack_binding_api/`
+- **Node-API support**: `crates/rspack_napi/`
+- **Generated binding package**: `crates/node_binding/`
 - **CLI**: `packages/rspack-cli/src/`
 - **Tests**: `tests/rspack-test/`
 
@@ -140,6 +143,7 @@ Before running tests after code changes:
 This project includes comprehensive documentation designed for AI assistants and large language models. All AI-friendly documentation is located in the `.agents/` directory:
 
 - **[Architecture Guide](.agents/ARCHITECTURE.md)** - High-level architecture overview, core components, compilation pipeline, and system design
+- **[JavaScript Binding Guide](.agents/BINDING.md)** - Binding ownership, lifetimes, hook bridging, performance rules, file map, and validation
 - **[API Design](.agents/API_DESIGN.md)** - API design principles, patterns, versioning strategy, and compatibility guidelines
 - **[Code Style](.agents/CODE_STYLE.md)** - Coding standards and conventions for Rust and TypeScript/JavaScript
 - **[Common Patterns](.agents/COMMON_PATTERNS.md)** - Common code patterns, templates, and best practices for plugin/loader development

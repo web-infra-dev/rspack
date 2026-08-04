@@ -18,7 +18,7 @@ use rspack_core::{
   escape_glob_pattern, find_files_by_glob,
   rspack_sources::{BoxSource, RawBufferSource, SourceExt},
 };
-use rspack_error::{Diagnostic, Error, Result};
+use rspack_error::{Diagnostic, Error, Result, ToStringResultToRspackResultExt};
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHashDigest, RspackHasher};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_paths::{Utf8Path, Utf8PathBuf};
@@ -279,8 +279,6 @@ impl CopyRspackPlugin {
     // TODO cache
 
     logger.debug(format!("reading '{absolute_filename}'..."));
-    // TODO inputFileSystem
-
     let data = compilation.input_filesystem.read(&absolute_filename).await;
 
     let source_vec = match data {
@@ -299,9 +297,8 @@ impl CopyRspackPlugin {
       }
     };
 
-    let mut source = RawBufferSource::from(source_vec.clone()).boxed();
-
-    if let Some(transformer) = &pattern.transform_fn {
+    let source = if let Some(transformer) = &pattern.transform_fn {
+      let mut source = RawBufferSource::from(source_vec.clone()).boxed();
       logger.debug(format!("transforming content for '{absolute_filename}'..."));
       // TODO: support cache in the future.
       handle_transform(
@@ -311,8 +308,11 @@ impl CopyRspackPlugin {
         &mut source,
         diagnostics,
       )
-      .await
-    }
+      .await;
+      source
+    } else {
+      RawBufferSource::from(source_vec).boxed()
+    };
 
     let filename = if matches!(&to_type, ToType::Template) {
       logger.log(format!(
@@ -344,6 +344,7 @@ impl CopyRspackPlugin {
     } else {
       filename.as_str().normalize().to_string_lossy().to_string()
     };
+    let filename = normalize_glob_path_separators(&filename).into_owned();
 
     Ok(Some(RunPatternResult {
       source_filename,
@@ -530,23 +531,50 @@ impl CopyRspackPlugin {
 
         let output_path = &compilation.options.output.path;
 
-        let copied_result = join_all(entries.into_iter().map(|entry| async {
-          Self::analyze_every_entry(
-            entry,
-            pattern,
-            &context,
-            output_path,
-            from_type,
-            file_dependencies,
-            diagnostics.clone(),
-            compilation,
-            logger,
-            index,
-          )
-          .await
-        }))
+        let copied_result = rspack_parallel::scope::<_, Result<_>>(|token| {
+          entries.into_iter().for_each(|entry| {
+            // SAFETY: await immediately and trust caller to poll future entirely
+            let s = unsafe {
+              token.used((
+                pattern,
+                &context,
+                output_path,
+                file_dependencies,
+                diagnostics.clone(),
+                compilation,
+                logger,
+              ))
+            };
+            s.spawn(
+              move |(
+                pattern,
+                context,
+                output_path,
+                file_dependencies,
+                diagnostics,
+                compilation,
+                logger,
+              )| async move {
+                Self::analyze_every_entry(
+                  entry,
+                  pattern,
+                  context,
+                  output_path,
+                  from_type,
+                  file_dependencies,
+                  diagnostics,
+                  compilation,
+                  logger,
+                  index,
+                )
+                .await
+              },
+            );
+          });
+        })
         .await
         .into_iter()
+        .map(|result| result.to_rspack_result().and_then(|result| result))
         .collect::<Result<Vec<_>>>()?;
 
         if copied_result.is_empty() {

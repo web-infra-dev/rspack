@@ -5,13 +5,14 @@ use rspack_cacheable::{
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   AsContextDependency, ConnectionState, Dependency, DependencyCategory, DependencyCodeGeneration,
-  DependencyCondition, DependencyConditionFn, DependencyId, DependencyLocation, DependencyRange,
-  DependencyTemplate, DependencyTemplateType, DependencyType, ExportPresenceMode, ExportProvided,
-  ExportsInfoArtifact, ExportsType, FactorizeInfo, ForwardId, ImportAttributes, ImportPhase,
-  JavascriptParserOptions, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
-  ModuleGraphConnection, ModuleReferenceOptions, ReferencedExport, ResourceIdentifier, RuntimeSpec,
-  SideEffectsStateArtifact, TemplateContext, TemplateReplaceSource, UsedByExports, UsedName,
-  create_exports_object_referenced, property_access, to_normal_comment,
+  DependencyCondition, DependencyConditionFn, DependencyDiagnosticsContext, DependencyId,
+  DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
+  ExportPresenceMode, ExportProvided, ExportsInfoArtifact, ExportsType, FactorizeInfo, ForwardId,
+  ImportAttributes, ImportPhase, JavascriptParserOptions, ModuleDependency, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleReferenceOptions, ReferencedExport,
+  ResourceIdentifier, RuntimeSpec, SideEffectsStateArtifact, TemplateContext,
+  TemplateReplaceSource, UsedByExports, UsedName, create_exports_object_referenced,
+  property_access, to_normal_comment,
 };
 use rspack_error::Diagnostic;
 use rspack_hash::{RspackHash, RspackHasher};
@@ -239,6 +240,21 @@ impl Dependency for ESMImportSpecifierDependency {
     module_graph_cache: &ModuleGraphCacheArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
   ) -> Option<Vec<Diagnostic>> {
+    self.get_diagnostics_with_context(
+      module_graph,
+      module_graph_cache,
+      exports_info_artifact,
+      &DependencyDiagnosticsContext::default(),
+    )
+  }
+
+  fn get_diagnostics_with_context(
+    &self,
+    module_graph: &ModuleGraph,
+    module_graph_cache: &ModuleGraphCacheArtifact,
+    exports_info_artifact: &ExportsInfoArtifact,
+    diagnostics_context: &DependencyDiagnosticsContext,
+  ) -> Option<Vec<Diagnostic>> {
     let module = module_graph.get_parent_module(&self.id)?;
     let module = module_graph.module_by_identifier(module)?;
     let should_error = self
@@ -260,6 +276,7 @@ impl Dependency for ESMImportSpecifierDependency {
       &self.name,
       false,
       should_error,
+      diagnostics_context,
     ) {
       return Some(vec![diagnostic]);
     }
