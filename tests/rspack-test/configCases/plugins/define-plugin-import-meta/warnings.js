@@ -1,9 +1,9 @@
 module.exports = [
-	[/Unknown `import.meta` property `env` replaced with undefined\./],
+	[/Accessing unknown property 'env' is replaced with undefined\./],
 	[
 		{
 			message:
-				/Unknown `import.meta` property `unknownProperty` replaced with undefined\.[\s\S]*if \(FOO\)/
+				/Accessing unknown property 'unknownProperty' is replaced with undefined\.[\s\S]*if \(FOO\)/
 		}
 	]
 ];

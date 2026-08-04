@@ -56,6 +56,7 @@ it("should return undefined for unknown property", () => {
 	expect(import.meta[/url/mi]).toBeUndefined();
 	expect(import.meta["line\nbreak"]).toBeUndefined();
 	expect(import.meta["tick`mark"]).toBeUndefined();
+	expect(import.meta["quote'mark"]).toBeUndefined();
 	expect(import.meta["*/"]).toBeUndefined();
 	let computedAccesses = 0;
 	const getUnknownProperty = () => {

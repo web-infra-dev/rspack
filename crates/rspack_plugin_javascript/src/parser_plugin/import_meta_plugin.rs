@@ -401,8 +401,8 @@ impl ImportMetaPlugin {
         .map(|member| {
           let mut escaped = String::with_capacity(member.len());
           for ch in member.chars() {
-            if ch == '`' {
-              escaped.push_str("\\`");
+            if ch == '\'' {
+              escaped.push_str("\\'");
             } else {
               escaped.extend(ch.escape_debug());
             }
@@ -411,9 +411,9 @@ impl ImportMetaPlugin {
         })
         .join(".");
       concat_string!(
-        "Unknown `import.meta` property `",
+        "Accessing unknown property '",
         property,
-        "` replaced with undefined."
+        "' is replaced with undefined."
       )
     };
     let range = parser

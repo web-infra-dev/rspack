@@ -1,6 +1,6 @@
 WARNING in ./index.js
   ⚠ Module parse warning:
-  ╰─▶   ⚠ Unknown `import.meta` property `hot` replaced with undefined.
+  ╰─▶   ⚠ Accessing unknown property 'hot' is replaced with undefined.
            ╭─[468:24]
        466 │             return routeModule;
        467 │         } catch (error) {
