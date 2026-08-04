@@ -4,20 +4,14 @@ import { readFile } from "fs";
 
 export * from "fs";
 export * from "path";
-var __commonJS = (factory, flags, id, isEntry, module) => function __require() {
-	if (module !== undefined) {
-		return module.exports;
+var __cjs = (factory, module) => function __require() {
+	if (module === undefined) {
+		module = { exports: {} };
+		factory.call(module.exports, module, module.exports);
 	}
-	module = { exports: {} };
-	if (isEntry) module.isEntry = true;
-	if (flags & 1) module.id = id;
-	if (flags & 2) module.loaded = false;
-	if (flags & 4) factory.call(module.exports, module, module.exports, undefined);
-	else factory(module, module.exports, undefined);
-	if (flags & 2) module.loaded = true;
 	return module.exports;
 };
-var require_dynamic_exports = /*#__PURE__*/ __commonJS(function(module, exports) {
+var require_dynamic_exports = /*#__PURE__*/ __cjs(function(module, exports) {
 
 /*!****************************!*\
   !*** ./dynamic-exports.js ***!
@@ -28,9 +22,9 @@ const def = (o) => {
 
 def(exports)
 
-}, 0, "./dynamic-exports.js");
+});
 
-var require_runtime_decide = /*#__PURE__*/ __commonJS(function(module, exports) {
+var require_runtime_decide = /*#__PURE__*/ __cjs(function(module, exports) {
 
 /*!***************************!*\
   !*** ./runtime-decide.js ***!
@@ -45,7 +39,7 @@ if(hasOwnProperty(fs__rspack_import_1, "readFile")) definePropertyGetters(export
 // side effects
 console.log.bind()
 
-}, 0, "./runtime-decide.js");
+});
 
 // NAMESPACE OBJECT: external "fs"
 var external_fs_namespaceObject = {};

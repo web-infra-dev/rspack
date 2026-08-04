@@ -1,11 +1,14 @@
-import { __webpack_require__ } from "./runtime~0.js";
-
-__webpack_require__.add({
-917(module) {
+var __cjs = (factory, module) => function __require() {
+	if (module === undefined) {
+		module = { exports: {} };
+		factory.call(module.exports, module, module.exports);
+	}
+	return module.exports;
+};
+var require_b = /*#__PURE__*/ __cjs(function(module, exports) {
 module.exports = 'b'
-
-},
 });
-__webpack_require__("917");
+
+require_b();
 
 export {};

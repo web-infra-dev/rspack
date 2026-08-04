@@ -18,7 +18,11 @@ pub(crate) fn without_module_loader_runtime_globals(
       | RuntimeGlobals::MODULE_FACTORIES
       | RuntimeGlobals::MODULE_FACTORIES_ADD_ONLY
       | RuntimeGlobals::MODULE_CACHE
-      | RuntimeGlobals::MODULE,
+      | RuntimeGlobals::MODULE
+      | RuntimeGlobals::MODULE_ID
+      | RuntimeGlobals::MODULE_LOADED
+      | RuntimeGlobals::THIS_AS_EXPORTS
+      | RuntimeGlobals::INTERCEPT_MODULE_EXECUTION,
   );
   if requirements
     .renderable_require_scope()

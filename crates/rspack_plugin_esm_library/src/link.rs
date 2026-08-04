@@ -38,8 +38,8 @@ use swc_experimental_ecma_semantic::resolver::resolver;
 use crate::{
   EsmLibraryPlugin,
   chunk_link::{
-    ChunkLinkContext, ModuleEvaluation, RawImportSource, ReExportFrom, Ref, SymbolRef,
-    WrappedInterop,
+    ChunkLinkContext, CjsWrapperPlan, EsmWrapperPlan, ModuleEvaluation, RawImportSource,
+    ReExportFrom, Ref, SymbolRef, WrappedInterop,
   },
   evaluation::{
     is_chunk_loading_evaluation_edge, module_dependencies, starts_initializer_evaluation,
@@ -1568,10 +1568,14 @@ var {} = {{}};
     }
 
     let mut wrapped_candidate_used_names = emitted_top_level_used_names.clone();
-    if !chunk_link.wrapped_modules.is_empty() && chunk_link.commonjs_helper.is_none() {
-      let helper = find_new_name("__commonJS", &wrapped_candidate_used_names, &[]);
+    if !chunk_link.wrapped_modules.is_empty() && chunk_link.wrapped_runtime.cjs.is_none() {
+      let helper = find_new_name("__cjs", &wrapped_candidate_used_names, &[]);
       wrapped_candidate_used_names.insert(helper.clone());
-      chunk_link.commonjs_helper = Some(helper);
+
+      chunk_link.wrapped_runtime.cjs = Some(CjsWrapperPlan {
+        helper,
+        strict_error_handling: compilation.options.output.strict_module_error_handling,
+      });
     }
     for wrapped_module in chunk_link.wrapped_modules.iter() {
       let ModuleInfo::Wrapped(info) = &mut concate_modules_map[wrapped_module] else {
@@ -1615,10 +1619,10 @@ var {} = {{}};
         .initializer
         .is_some()
     });
-    if has_esm_initializers && chunk_link.esm_helper.is_none() {
+    if has_esm_initializers && chunk_link.wrapped_runtime.esm.is_none() {
       let helper = find_new_name("__esm", &all_used_names, &[]);
       all_used_names.insert(helper.clone());
-      chunk_link.esm_helper = Some(helper);
+      chunk_link.wrapped_runtime.esm = Some(EsmWrapperPlan { helper });
     }
     let has_async_esm_initializers = chunk_link.hoisted_modules.iter().any(|module| {
       concate_modules_map[module]
@@ -3373,6 +3377,26 @@ var {} = {{}};
           }
         }
       }
+    }
+
+    // Entry modules with a lazy evaluation boundary must initialize even when
+    // no other module creates an evaluation edge to them. Record this in the
+    // same link-time access plan used by ordinary references so rendering only
+    // has to invoke the linked initializer.
+    for chunk in link.keys() {
+      initializer_uses.extend(
+        compilation
+          .build_chunk_graph_artifact
+          .chunk_graph
+          .get_chunk_entry_modules(chunk)
+          .into_iter()
+          .filter(|module| {
+            concate_modules_map
+              .get(module)
+              .is_some_and(|info| info.initializer_name().is_some())
+          })
+          .map(|module| (*chunk, module)),
+      );
     }
 
     initializer_uses.sort_unstable();

@@ -1,0 +1,80 @@
+```mjs title=main.mjs
+import { __webpack_require__ } from "./runtime.mjs";
+var __cjs = (factory, module) => function __require() {
+	if (module !== undefined) {
+		if (module.error !== undefined) throw module.error;
+		return module.exports;
+	}
+	module = { exports: {} };
+	try {
+		factory.call(module.exports, module, module.exports);
+	} catch (error) {
+		module.error = error;
+		throw error;
+	}
+	return module.exports;
+};
+var require_index = /*#__PURE__*/ __cjs(function(module, exports) {
+
+/*!******************!*\
+  !*** ./index.js ***!
+  \******************/
+const load = () => require_throwing();
+
+it("caches and rethrows a wrapped CommonJS error", () => {
+	let first;
+	let second;
+	try {
+		load();
+	} catch (error) {
+		first = error;
+	}
+	try {
+		load();
+	} catch (error) {
+		second = error;
+	}
+
+	expect(first).toBeInstanceOf(Error);
+	expect(second).toBe(first);
+	expect(globalThis.__strictCjsExecutions).toBe(1);
+});
+
+});
+
+var require_throwing = /*#__PURE__*/ __cjs(function(module, exports) {
+
+/*!**********************!*\
+  !*** ./throwing.cjs ***!
+  \**********************/
+/* module decorator */ module = __webpack_require__.nmd(module);
+// Accessing the module object keeps this case behind a wrapper boundary.
+module.forceWrapper = true;
+globalThis.__strictCjsExecutions =
+	(globalThis.__strictCjsExecutions || 0) + 1;
+throw new Error("wrapped CommonJS failure");
+
+});
+
+require_index();
+
+export {};
+
+```
+
+```mjs title=runtime.mjs
+// The require scope
+var __webpack_require__ = {};
+
+// webpack/runtime/node_module_decorator
+(() => {
+__webpack_require__.nmd = (module) => {
+  module.paths = [];
+  if (!module.children) module.children = [];
+  return module;
+};
+})();
+
+export { __webpack_require__ };
+
+```

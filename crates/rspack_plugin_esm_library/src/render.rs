@@ -29,7 +29,7 @@ use self::{
   runtime_mode::{RuntimeImportRenderContext, RuntimeRenderContext, renderer_for},
 };
 use crate::{
-  chunk_link::{ChunkLinkContext, ReExportFrom, Ref},
+  chunk_link::{ChunkLinkContext, CjsWrapperPlan, ReExportFrom, Ref},
   initializer::render_initializer,
   is_css_only_module,
   plugin::RSPACK_ESM_RUNTIME_CHUNK,
@@ -67,83 +67,47 @@ fn chunk_uses_explicit_runtime_scope(compilation: &Compilation, chunk_ukey: &Chu
     })
 }
 
-const WRAPPED_MODULE_ID: u8 = 1 << 0;
-const WRAPPED_MODULE_LOADED: u8 = 1 << 1;
-const WRAPPED_THIS_AS_EXPORTS: u8 = 1 << 2;
-
-fn render_wrapped_helper(
-  compilation: &Compilation,
-  chunk_link: &ChunkLinkContext,
-  runtime_template: &RuntimeCodeTemplate,
-  runtime_requirements: RuntimeGlobals,
-) -> RawStringSource {
-  let helper = chunk_link
-    .commonjs_helper
-    .as_ref()
-    .expect("chunk with wrapped modules should have a helper name");
-  let strict_errors = compilation.options.output.strict_module_error_handling;
-  let intercept = runtime_requirements.contains(RuntimeGlobals::INTERCEPT_MODULE_EXECUTION);
-  let runtime = if intercept {
-    runtime_template.render_runtime_argument()
-  } else {
-    "undefined".to_string()
-  };
-
-  let mut source = format!(
-    "var {helper} = (factory, flags, id, isEntry, module) => function __require() {{\n\
-     \tif (module !== undefined) {{\n"
-  );
-  if strict_errors {
-    source.push_str("\t\tif (module.error !== undefined) throw module.error;\n");
-  }
-  source.push_str(
-    "\t\treturn module.exports;\n\
-     \t}\n\
-     \tmodule = { exports: {} };\n\
-     \tif (isEntry) module.isEntry = true;\n\
-     \tif (flags & 1) module.id = id;\n\
-     \tif (flags & 2) module.loaded = false;\n",
-  );
-
-  if strict_errors {
-    source.push_str("\ttry {\n");
-  }
-  let execution_indent = if strict_errors { "\t\t" } else { "\t" };
-  if intercept {
-    source.push_str(&format!(
-      "{execution_indent}var execOptions = {{ id: id, module: module, factory: factory, require: {runtime}, context: Object.create({runtime}) }};\n\
-       {execution_indent}{}.forEach(function(handler) {{ handler(execOptions); }});\n\
-       {execution_indent}module = execOptions.module;\n\
-       {execution_indent}execOptions.factory.call(module.exports, module, module.exports, execOptions.require);\n",
-      runtime_template.render_runtime_globals(&RuntimeGlobals::INTERCEPT_MODULE_EXECUTION)
-    ));
-  } else {
-    source.push_str(&format!(
-      "{execution_indent}if (flags & 4) factory.call(module.exports, module, module.exports, {runtime});\n\
-       {execution_indent}else factory(module, module.exports, {runtime});\n"
-    ));
-  }
-  if strict_errors {
-    source.push_str(
-      "\t} catch (error) {\n\
+fn render_cjs_wrapper(plan: &CjsWrapperPlan) -> RawStringSource {
+  let helper = &plan.helper;
+  let invoke_factory = "factory.call(module.exports, module, module.exports);";
+  let source = if plan.strict_error_handling {
+    format!(
+      "var {helper} = (factory, module) => function __require() {{\n\
+       \tif (module !== undefined) {{\n\
+       \t\tif (module.error !== undefined) throw module.error;\n\
+       \t\treturn module.exports;\n\
+       \t}}\n\
+       \tmodule = {{ exports: {{}} }};\n\
+       \ttry {{\n\
+       \t\t{invoke_factory}\n\
+       \t}} catch (error) {{\n\
        \t\tmodule.error = error;\n\
        \t\tthrow error;\n\
-       \t}\n",
-    );
-  }
-  source.push_str(
-    "\tif (flags & 2) module.loaded = true;\n\
-     \treturn module.exports;\n\
-     };\n",
-  );
+       \t}}\n\
+       \treturn module.exports;\n\
+       }};\n"
+    )
+  } else {
+    format!(
+      "var {helper} = (factory, module) => function __require() {{\n\
+       \tif (module === undefined) {{\n\
+       \t\tmodule = {{ exports: {{}} }};\n\
+       \t\t{invoke_factory}\n\
+       \t}}\n\
+       \treturn module.exports;\n\
+       }};\n"
+    )
+  };
   RawStringSource::from(source)
 }
 
-fn render_esm_helper(chunk_link: &ChunkLinkContext) -> RawStringSource {
-  let helper = chunk_link
-    .esm_helper
+fn render_esm_wrapper(chunk_link: &ChunkLinkContext) -> RawStringSource {
+  let helper = &chunk_link
+    .wrapped_runtime
+    .esm
     .as_ref()
-    .expect("chunk with scope-hoisted initializers should have an ESM helper name");
+    .expect("chunk with scope-hoisted initializers should have an ESM wrapper")
+    .helper;
   RawStringSource::from(format!(
     "var {helper} = (fn, result) => function __init() {{\n\
      \tif (fn) {{\n\
@@ -355,8 +319,8 @@ impl EsmLibraryPlugin {
     // shared helper owns each module's cache in the initializer closure.
     let mut decl_source = ConcatSource::default();
 
-    if chunk_link.esm_helper.is_some() {
-      decl_source.add(render_esm_helper(chunk_link));
+    if chunk_link.wrapped_runtime.esm.is_some() {
+      decl_source.add(render_esm_wrapper(chunk_link));
     }
 
     let lazy_only_required = chunk_link
@@ -397,12 +361,12 @@ impl EsmLibraryPlugin {
 
     if !chunk_link.wrapped_modules.is_empty() {
       let hooks = JsPlugin::get_compilation_hooks(compilation.id());
-      decl_source.add(render_wrapped_helper(
-        compilation,
-        chunk_link,
-        module_runtime_template,
-        runtime_requirements,
-      ));
+      let cjs_plan = chunk_link
+        .wrapped_runtime
+        .cjs
+        .as_ref()
+        .expect("chunk with wrapped modules should have a CJS wrapper plan");
+      decl_source.add(render_cjs_wrapper(cjs_plan));
       for m in chunk_link.wrapped_modules.iter() {
         let module = module_graph
           .module_by_identifier(m)
@@ -452,50 +416,17 @@ impl EsmLibraryPlugin {
           .initializer_name
           .as_ref()
           .expect("wrapped module should have an initializer name");
-        let module_runtime_requirements =
-          ChunkGraph::get_module_runtime_requirements(compilation, *m, chunk.runtime())
-            .copied()
-            .unwrap_or_default();
-        let mut flags = 0;
-        if module_runtime_requirements.contains(RuntimeGlobals::MODULE_ID) {
-          flags |= WRAPPED_MODULE_ID;
-        }
-        if module_runtime_requirements.contains(RuntimeGlobals::MODULE_LOADED) {
-          flags |= WRAPPED_MODULE_LOADED;
-        }
-        if module_runtime_requirements.contains(RuntimeGlobals::THIS_AS_EXPORTS) {
-          flags |= WRAPPED_THIS_AS_EXPORTS;
-        }
-        let module_id = ChunkGraph::get_module_id(&compilation.module_ids_artifact, *m)
-          .expect("wrapped module should have a module id");
         let module_argument =
           module_runtime_template.render_module_argument(module.get_module_argument());
         let exports_argument =
           module_runtime_template.render_exports_argument(module.get_exports_argument());
-        let entry_marker = if module.build_info().uses_import_meta_main
-          && compilation
-            .build_chunk_graph_artifact
-            .chunk_graph
-            .get_chunk_entry_modules(chunk_ukey)
-            .contains(m)
-        {
-          ", true"
-        } else {
-          ""
-        };
+        let helper = &cjs_plan.helper;
 
         decl_source.add(RawStringSource::from(format!(
-          "var {initializer} = /*#__PURE__*/ {helper}(function({module_argument}, {exports_argument}) {{\n",
-          helper = chunk_link
-            .commonjs_helper
-            .as_ref()
-            .expect("wrapped helper should exist")
+          "var {initializer} = /*#__PURE__*/ {helper}(function({module_argument}, {exports_argument}) {{\n"
         )));
         decl_source.add(module_source);
-        decl_source.add(RawStringSource::from(format!(
-          "\n}}, {flags}, {}{entry_marker});\n\n",
-          rspack_util::json_stringify(module_id.as_str()),
-        )));
+        decl_source.add(RawStringSource::from_static("\n});\n\n"));
       }
     }
 
@@ -658,10 +589,12 @@ impl EsmLibraryPlugin {
         module_source.add(render_initializer(
           info,
           source,
-          chunk_link
-            .esm_helper
+          &chunk_link
+            .wrapped_runtime
+            .esm
             .as_ref()
-            .expect("initializer-backed module should have an ESM helper"),
+            .expect("initializer-backed module should have an ESM wrapper")
+            .helper,
           dependency_initializers,
           rspack_core::ModuleGraph::is_async(&compilation.async_modules_artifact, m),
         ));

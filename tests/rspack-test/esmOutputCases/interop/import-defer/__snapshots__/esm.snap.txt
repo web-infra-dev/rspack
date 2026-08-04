@@ -222,20 +222,14 @@ var __esm = (fn, result) => function __init() {
 	}
 	return result;
 };
-var __commonJS = (factory, flags, id, isEntry, module) => function __require() {
-	if (module !== undefined) {
-		return module.exports;
+var __cjs = (factory, module) => function __require() {
+	if (module === undefined) {
+		module = { exports: {} };
+		factory.call(module.exports, module, module.exports);
 	}
-	module = { exports: {} };
-	if (isEntry) module.isEntry = true;
-	if (flags & 1) module.id = id;
-	if (flags & 2) module.loaded = false;
-	if (flags & 4) factory.call(module.exports, module, module.exports, undefined);
-	else factory(module, module.exports, undefined);
-	if (flags & 2) module.loaded = true;
 	return module.exports;
 };
-var require__referencedExports_value_groupOptions_namespace_object_importPhase_defer = /*#__PURE__*/ __commonJS(function(module, exports) {
+var require__referencedExports_value_groupOptions_namespace_object_importPhase_defer = /*#__PURE__*/ __cjs(function(module, exports) {
 
 /*!***************************************************************************************************************!*\
   !*** ./context|lazy|/^\.\/.*$/|referencedExports: value|groupOptions: {}|namespace object|importPhase: defer ***!
@@ -276,9 +270,9 @@ __rspack_async_context.keys = () => (Object.keys(map));
 __rspack_async_context.id = "./context lazy recursive ^\\.\\/.*$ referencedExports: value";
 module.exports = __rspack_async_context;
 
-}, 0, "./context lazy recursive ^\\.\\/.*$ referencedExports: value");
+});
 
-var require_deferred_cjs = /*#__PURE__*/ __commonJS(function(module, exports) {
+var require_deferred_cjs = /*#__PURE__*/ __cjs(function(module, exports) {
 
 /*!**************************!*\
   !*** ./deferred-cjs.cjs ***!
@@ -287,7 +281,7 @@ globalThis.__modern_module_defer_events__.push("cjs");
 
 module.exports = { value: 2 };
 
-}, 0, "./deferred-cjs.cjs");
+});
 
 // NAMESPACE OBJECT: ./deferred-async-parent.js
 var deferred_async_parent_namespaceObject = {};

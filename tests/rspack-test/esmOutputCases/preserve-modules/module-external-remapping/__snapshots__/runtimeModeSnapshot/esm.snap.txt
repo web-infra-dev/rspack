@@ -93,11 +93,12 @@ var esmModuleDecorator = (module) => {
   Object.defineProperty(module, 'exports', {
       enumerable: true,
       set: () => {
-          throw new Error('ES Modules may not assign module.exports or exports.*, Use ESM export syntax, instead: ' + module.id);
+          throw new Error('ES Modules may not assign module.exports or exports.*, Use ESM export syntax instead.');
       }
   });
   return module;
-};;
+};
+;
 export { esmModuleDecorator };
 // rspack/runtime/has_own_property
 var hasOwnProperty = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop));
@@ -118,20 +119,14 @@ export { makeNamespaceObject };
 import { definePropertyGetters, esmModuleDecorator } from "./runtime.mjs";
 import { external_node_events_namespaceObject_0 } from "./node_events-node_events.mjs";
 
-var __commonJS = (factory, flags, id, isEntry, module) => function __require() {
-	if (module !== undefined) {
-		return module.exports;
+var __cjs = (factory, module) => function __require() {
+	if (module === undefined) {
+		module = { exports: {} };
+		factory.call(module.exports, module, module.exports);
 	}
-	module = { exports: {} };
-	if (isEntry) module.isEntry = true;
-	if (flags & 1) module.id = id;
-	if (flags & 2) module.loaded = false;
-	if (flags & 4) factory.call(module.exports, module, module.exports, undefined);
-	else factory(module, module.exports, undefined);
-	if (flags & 2) module.loaded = true;
 	return module.exports;
 };
-var require_wrapped = /*#__PURE__*/ __commonJS(function(module, exports) {
+var require_wrapped = /*#__PURE__*/ __cjs(function(module, exports) {
 
 /*!************************!*\
   !*** ./src/wrapped.js ***!
@@ -147,7 +142,7 @@ definePropertyGetters(exports, {
   b: () => (/* reexport safe */ node_events__rspack_import_0.b)
 });
 
-}, 1, "./src/wrapped.js");
+});
 
 const wrapped_0 = require_wrapped();
 var a = wrapped_0.a;

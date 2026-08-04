@@ -1,18 +1,12 @@
 ```mjs title=main.mjs
-var __commonJS = (factory, flags, id, isEntry, module) => function __require() {
-	if (module !== undefined) {
-		return module.exports;
+var __cjs = (factory, module) => function __require() {
+	if (module === undefined) {
+		module = { exports: {} };
+		factory.call(module.exports, module, module.exports);
 	}
-	module = { exports: {} };
-	if (isEntry) module.isEntry = true;
-	if (flags & 1) module.id = id;
-	if (flags & 2) module.loaded = false;
-	if (flags & 4) factory.call(module.exports, module, module.exports, undefined);
-	else factory(module, module.exports, undefined);
-	if (flags & 2) module.loaded = true;
 	return module.exports;
 };
-var require_a = /*#__PURE__*/ __commonJS(function(module, exports) {
+var require_a = /*#__PURE__*/ __cjs(function(module, exports) {
 
 /*!***************!*\
   !*** ./a.cjs ***!
@@ -20,9 +14,9 @@ var require_a = /*#__PURE__*/ __commonJS(function(module, exports) {
 exports.U = 'from-a';
 exports.G = 100;
 
-}, 0, "./a.cjs");
+});
 
-var require_b = /*#__PURE__*/ __commonJS(function(module, exports) {
+var require_b = /*#__PURE__*/ __cjs(function(module, exports) {
 
 /*!***************!*\
   !*** ./b.cjs ***!
@@ -30,7 +24,7 @@ var require_b = /*#__PURE__*/ __commonJS(function(module, exports) {
 exports.U = 'from-b';
 exports.N = 200;
 
-}, 0, "./b.cjs");
+});
 
 // ./index.js
 const a_0 = require_a();

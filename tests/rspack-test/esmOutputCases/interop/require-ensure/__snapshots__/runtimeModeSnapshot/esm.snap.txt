@@ -57,27 +57,21 @@ ensureChunkHandlers.j = function(chunkId, promises) {
 ```
 
 ```mjs title=value.mjs
-var __commonJS = (factory, flags, id, isEntry, module) => function __require() {
-	if (module !== undefined) {
-		return module.exports;
+var __cjs = (factory, module) => function __require() {
+	if (module === undefined) {
+		module = { exports: {} };
+		factory.call(module.exports, module, module.exports);
 	}
-	module = { exports: {} };
-	if (isEntry) module.isEntry = true;
-	if (flags & 1) module.id = id;
-	if (flags & 2) module.loaded = false;
-	if (flags & 4) factory.call(module.exports, module, module.exports, undefined);
-	else factory(module, module.exports, undefined);
-	if (flags & 2) module.loaded = true;
 	return module.exports;
 };
-var require_value = /*#__PURE__*/ __commonJS(function(module, exports) {
+var require_value = /*#__PURE__*/ __cjs(function(module, exports) {
 
 /*!******************!*\
   !*** ./value.js ***!
   \******************/
 module.exports = 44;
 
-}, 0, "./value.js");
+});
 
 export { require_value };
 

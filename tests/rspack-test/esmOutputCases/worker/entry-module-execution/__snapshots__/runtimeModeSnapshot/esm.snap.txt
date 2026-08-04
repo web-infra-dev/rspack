@@ -44,150 +44,33 @@ export { createAsyncWorker, createCommonJsWorker, createWorker };
 
 ```mjs title=worker-async.mjs
 
-// rspack/runtime/async_module
-var hasSymbol = typeof Symbol === "function";
-var rspackQueues = hasSymbol ? Symbol("rspack queues") : "__rspack_queues";
-var asyncModuleExportSymbol = hasSymbol ? Symbol("rspack exports") : "exports";
-var rspackExports = asyncModuleExportSymbol;
-var rspackError = hasSymbol ? Symbol("rspack error") : "__rspack_error";
-var rspackDone = hasSymbol ? Symbol("rspack done") : "__rspack_done";
-var deferredModulesAsyncTransitiveDependenciesSymbol = hasSymbol ? Symbol("rspack defer") : "__rspack_defer";
-var rspackDefer = deferredModulesAsyncTransitiveDependenciesSymbol;
-var deferredModulesAsyncTransitiveDependencies = (asyncDeps) => {
-	if (asyncDeps.length) {
-		return ({ then(onFulfilled, onRejected) { return Promise.all(asyncDeps.map((initialize) => { return initialize(); })).then(onFulfilled, onRejected) } });
-	}
-}
-var resolveQueue = (queue) => {
-	if (queue && queue.d < 1) {
-		queue.d = 1;
-	queue.forEach((fn) => (fn.r--));
-		queue.forEach((fn) => (fn.r-- ? fn.r++ : fn()));
-	}
-}
-var wrapDeps = (deps) => {
-	return deps.map((dep) => {
-		if (dep !== null && typeof dep === "object") {
-			if(!dep[rspackQueues] && dep[rspackDefer]) {
-				var asyncDeps = deferredModulesAsyncTransitiveDependencies(dep[rspackDefer]);
-				if (asyncDeps) {
-					var d = dep;
-					dep = {
-						then(onFulfilled, onRejected) {
-							asyncDeps.then(() => (onFulfilled(d)), onRejected);
-						}
-					};
-				} else return dep;
-			}
-			if (dep[rspackQueues]) return dep;
-			if (dep.then) {
-				var queue = [];
-				queue.d = 0;
-				dep.then((r) => {
-					obj[rspackExports] = r;
-					resolveQueue(queue);
-				},(e) => {
-					obj[rspackError] = e;
-					resolveQueue(queue);
-				});
-				var obj = {};
-				obj[rspackDefer] = false;
-				obj[rspackQueues] = (fn) => (fn(queue));
-				return obj;
-			}
-		}
-		var ret = {};
-		ret[rspackQueues] = () => {};
-		ret[rspackExports] = dep;
-		return ret;
-	});
-};
-var asyncModule = (module, body, hasAwait) => {
-	var queue;
-	hasAwait && ((queue = []).d = -1);
-	var depQueues = new Set();
-	var exports = module.exports;
-	var currentDeps;
-	var outerResolve;
-	var reject;
-	var promise = new Promise((resolve, rej) => {
-		reject = rej;
-		outerResolve = resolve;
-	});
-	promise[rspackExports] = exports;
-	promise[rspackQueues] = (fn) => { queue && fn(queue), depQueues.forEach(fn), promise["catch"](() => {}); };
-	module.exports = promise;
-	var handle = (deps) => {
-		currentDeps = wrapDeps(deps);
-		var fn;
-		var getResult = () => {
-			return currentDeps.map((d) => {
-				if(d[rspackDefer]) return d;
-				if (d[rspackError]) throw d[rspackError];
-				return d[rspackExports];
-			});
-		}
-		var promise = new Promise((resolve) => {
-			fn = () => (resolve(getResult));
-			fn.r = 0;
-			var fnQueue = (q) => (q !== queue && !depQueues.has(q) && (depQueues.add(q), q && !q.d && (fn.r++, q.push(fn))));
-			currentDeps.map((dep) => (dep[rspackDefer] || dep[rspackQueues](fnQueue)));
-		});
-		return fn.r ? promise : getResult();
-	};
-	var done = (err) => ((err ? reject(promise[rspackError] = err) : outerResolve(exports)), resolveQueue(queue), promise[rspackDone] = true);
-	body(handle, done);
-	queue && queue.d < 0 && (queue.d = 0);
-};
-;
-// rspack/runtime/define_property_getters
-var definePropertyGetters = (exports, getters, values) => {
-	var define = (defs, kind) => {
-		for(var key in defs) {
-			if(hasOwnProperty(defs, key) && !hasOwnProperty(exports, key)) {
-				Object.defineProperty(exports, key, { enumerable: true, [kind]: defs[key] });
-			}
-		}
-	};
-	define(getters, "get");
-	define(values, "value");
-};;
-// rspack/runtime/has_own_property
-var hasOwnProperty = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop));
-// rspack/runtime/make_namespace_object
-// define __esModule on exports
-var makeNamespaceObject = (exports) => {
-	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
-		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
-	}
-	Object.defineProperty(exports, '__esModule', { value: true });
-};;
 
-var __commonJS = (factory, flags, id, isEntry, module) => function __require() {
-	if (module !== undefined) {
-		return module.exports;
+var __esm = (fn, result) => function __init() {
+	if (fn) {
+		var value = fn(fn = 0);
+		result = value && typeof value.then === "function" ? value.then(value => result = value) : value;
 	}
-	module = { exports: {} };
-	if (isEntry) module.isEntry = true;
-	if (flags & 1) module.id = id;
-	if (flags & 2) module.loaded = false;
-	if (flags & 4) factory.call(module.exports, module, module.exports, undefined);
-	else factory(module, module.exports, undefined);
-	if (flags & 2) module.loaded = true;
-	return module.exports;
+	return result;
 };
-var require_worker_async = /*#__PURE__*/ __commonJS(function(module, exports) {
+// ./worker-child.js
+var childIsMain;
+var worker_child_init = /*#__PURE__*/ __esm(() => {
+( childIsMain = false);;
 
-/*!*************************!*\
-  !*** ./worker-async.js ***!
-  \*************************/
-asyncModule(module, async function (__rspack_load_async_deps, __rspack_async_done) { try {
-makeNamespaceObject(exports);
-definePropertyGetters(exports, {
-  "default": () => (__rspack_default_export)
 });
-if ((module.isEntry === true)) {
+
+// ./worker-async.js
+var worker_async;
+var worker_async_init = /*#__PURE__*/ __esm(async () => {
+	worker_child_init();
+
+
+if (true) {
   globalThis.__workerIsMain = true;
+}
+
+if (childIsMain) {
+  throw new Error("an imported module must not be marked as the entry");
 }
 
 await Promise.resolve();
@@ -196,16 +79,13 @@ if (!globalThis.__workerIsMain) {
   throw new Error('worker entry should be the main module');
 }
 
-/* export default */ const __rspack_default_export = ('worker-async');
+/* export default */ ( worker_async = ('worker-async'));;
 
 globalThis.__workerAsyncEntryExecuted = true;
 
-__rspack_async_done();
-} catch(e) { __rspack_async_done(e); } }, 1);
-}, 0, "./worker-async.js", true);
+});
 
-await require_worker_async();
-
+await worker_async_init();
 export {};
 
 ```
@@ -213,29 +93,27 @@ export {};
 ```mjs title=worker-cjs.mjs
 
 
-var __commonJS = (factory, flags, id, isEntry, module) => function __require() {
-	if (module !== undefined) {
-		return module.exports;
+var __cjs = (factory, module) => function __require() {
+	if (module === undefined) {
+		module = { exports: {} };
+		factory.call(module.exports, module, module.exports);
 	}
-	module = { exports: {} };
-	if (isEntry) module.isEntry = true;
-	if (flags & 1) module.id = id;
-	if (flags & 2) module.loaded = false;
-	if (flags & 4) factory.call(module.exports, module, module.exports, undefined);
-	else factory(module, module.exports, undefined);
-	if (flags & 2) module.loaded = true;
 	return module.exports;
 };
-var require_worker_cjs = /*#__PURE__*/ __commonJS(function(module, exports) {
+var require_worker_cjs = /*#__PURE__*/ __cjs(function(module, exports) {
 
 /*!***********************!*\
   !*** ./worker-cjs.js ***!
   \***********************/
 module.exports = 'worker-cjs';
 
+if (!true) {
+  throw new Error('wrapped CommonJS worker entry should be the main module');
+}
+
 globalThis.__workerCommonJsEntryExecuted = true;
 
-}, 0, "./worker-cjs.js");
+});
 
 require_worker_cjs();
 
@@ -267,6 +145,7 @@ globalThis.__workerEntryExecuted = true;
 
 });
 
+worker_init();
 export {};
 
 ```

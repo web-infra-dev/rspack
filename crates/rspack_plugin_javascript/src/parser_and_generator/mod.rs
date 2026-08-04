@@ -698,9 +698,20 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
   fn get_concatenation_bailout_reason(
     &self,
     module: &dyn rspack_core::Module,
-    mg: &ModuleGraph,
+    _mg: &ModuleGraph,
     _cg: &ChunkGraph,
   ) -> Option<Cow<'static, str>> {
-    self.get_concatenation_bailout_reason_with_commonjs(module, mg, false)
+    // Keep the standard concatenation contract unchanged. Modern-module uses
+    // `get_concatenation_bailout_reason_with_commonjs` directly when it builds
+    // its own hoisted/wrapped execution plan.
+    if !Self::is_esm_concatenation_candidate(module) {
+      return Some("Module is not an ECMAScript module".into());
+    }
+
+    module
+      .build_info()
+      .module_concatenation_bailout
+      .as_deref()
+      .map(|bailout| format!("Module uses {bailout}").into())
   }
 }

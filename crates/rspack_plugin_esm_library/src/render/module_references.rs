@@ -275,6 +275,12 @@ pub(super) fn relocate_module_references(
 
   for reference in references.iter() {
     let value = match reference.kind {
+      CodeGenerationModuleReferenceKind::EntryValue => compilation
+        .build_chunk_graph_artifact
+        .chunk_graph
+        .get_chunk_entry_modules(&current_chunk)
+        .contains(&reference.module)
+        .to_string(),
       CodeGenerationModuleReferenceKind::Value => {
         local_module_value(reference.module, compilation, chunk_link, module_infos)?
       }

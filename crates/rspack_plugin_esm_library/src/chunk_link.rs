@@ -69,6 +69,27 @@ pub enum ModuleEvaluation {
 }
 
 #[derive(Debug, Clone)]
+pub struct CjsWrapperPlan {
+  pub helper: Atom,
+  pub strict_error_handling: bool,
+}
+
+#[derive(Debug, Clone)]
+pub struct EsmWrapperPlan {
+  pub helper: Atom,
+}
+
+/// Chunk-local wrapper capabilities selected during linking.
+///
+/// Rendering consumes this plan without rediscovering module runtime
+/// requirements or output options.
+#[derive(Debug, Clone, Default)]
+pub struct WrappedRuntimePlan {
+  pub cjs: Option<CjsWrapperPlan>,
+  pub esm: Option<EsmWrapperPlan>,
+}
+
+#[derive(Debug, Clone)]
 pub struct WrappedInterop {
   pub module: ModuleIdentifier,
   /// How this chunk obtains the module value. This is deliberately separate
@@ -379,11 +400,8 @@ pub struct ChunkLinkContext {
   /** Namespace bindings used by wrapped factories to reference hoisted modules. */
   pub hoisted_namespaces: IdentifierMap<Atom>,
 
-  /// Shared esbuild-style helper used to create wrapped initializers.
-  pub commonjs_helper: Option<Atom>,
-
-  /// Shared esbuild-style helper used to guard scope-hoisted module bodies.
-  pub esm_helper: Option<Atom>,
+  /// Helpers needed to preserve lazy CJS and ESM evaluation boundaries.
+  pub wrapped_runtime: WrappedRuntimePlan,
 
   /// Deconflicted scratch binding used by async initializers to avoid an
   /// `await` once a dependency initializer has already settled.
@@ -415,8 +433,7 @@ impl ChunkLinkContext {
       hoisted_initializers: Default::default(),
       initializer_namespace_exports: Default::default(),
       hoisted_namespaces: Default::default(),
-      commonjs_helper: None,
-      esm_helper: None,
+      wrapped_runtime: Default::default(),
       async_dependency_temp: None,
       decl_before_exports: Default::default(),
       exports: Default::default(),

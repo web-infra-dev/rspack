@@ -255,11 +255,11 @@ fn render_runtime_prelude(context: RuntimeRenderContext<'_>) -> ConcatSource {
     if context.runtime_template.render_mode() == RuntimeGlobalsRenderMode::RspackExport {
       context
         .runtime_requirements
-        .intersects(RuntimeGlobals::REQUIRE | RuntimeGlobals::INTERCEPT_MODULE_EXECUTION)
+        .contains(RuntimeGlobals::REQUIRE)
     } else {
       context
         .runtime_requirements
-        .intersects(RuntimeGlobals::REQUIRE_SCOPE | RuntimeGlobals::INTERCEPT_MODULE_EXECUTION)
+        .contains(RuntimeGlobals::REQUIRE_SCOPE)
         || !context
           .runtime_requirements
           .renderable_require_scope()
@@ -318,10 +318,7 @@ fn render_runtime_global_definition(
       ))
     }
   } else {
-    debug_assert_eq!(runtime_global, RuntimeGlobals::INTERCEPT_MODULE_EXECUTION);
-    RawStringSource::from(format!(
-      "// expose the module execution interceptor\n{definition} = [];\n"
-    ))
+    unreachable!("unsupported runtime global definition: {runtime_global:?}")
   }
 }
 
@@ -333,7 +330,6 @@ fn render_runtime_global_definitions(
   for runtime_global in [
     RuntimeGlobals::MODULE_FACTORIES,
     RuntimeGlobals::MODULE_CACHE,
-    RuntimeGlobals::INTERCEPT_MODULE_EXECUTION,
   ] {
     if !context.runtime_requirements.contains(runtime_global) {
       continue;

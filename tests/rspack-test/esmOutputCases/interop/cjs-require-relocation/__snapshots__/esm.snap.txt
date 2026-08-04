@@ -1,18 +1,12 @@
 ```mjs title=main.mjs
-var __commonJS = (factory, flags, id, isEntry, module) => function __require() {
-	if (module !== undefined) {
-		return module.exports;
+var __cjs = (factory, module) => function __require() {
+	if (module === undefined) {
+		module = { exports: {} };
+		factory.call(module.exports, module, module.exports);
 	}
-	module = { exports: {} };
-	if (isEntry) module.isEntry = true;
-	if (flags & 1) module.id = id;
-	if (flags & 2) module.loaded = false;
-	if (flags & 4) factory.call(module.exports, module, module.exports, undefined);
-	else factory(module, module.exports, undefined);
-	if (flags & 2) module.loaded = true;
 	return module.exports;
 };
-var require_index = /*#__PURE__*/ __commonJS(function(module, exports) {
+var require_index = /*#__PURE__*/ __cjs(function(module, exports) {
 
 /*!******************!*\
   !*** ./index.js ***!
@@ -51,34 +45,34 @@ it("should preserve new require constructor return semantics", () => {
 	expect(constructedConditionalPrimitive).toEqual({});
 });
 
-}, 0, "./index.js");
+});
 
-var require_object = /*#__PURE__*/ __commonJS(function(module, exports) {
+var require_object = /*#__PURE__*/ __cjs(function(module, exports) {
 
 /*!********************!*\
   !*** ./object.cjs ***!
   \********************/
 module.exports = { value: 45 };
 
-}, 0, "./object.cjs");
+});
 
-var require_other_object = /*#__PURE__*/ __commonJS(function(module, exports) {
+var require_other_object = /*#__PURE__*/ __cjs(function(module, exports) {
 
 /*!**************************!*\
   !*** ./other-object.cjs ***!
   \**************************/
 module.exports = { value: 46 };
 
-}, 0, "./other-object.cjs");
+});
 
-var require_primitive = /*#__PURE__*/ __commonJS(function(module, exports) {
+var require_primitive = /*#__PURE__*/ __cjs(function(module, exports) {
 
 /*!***********************!*\
   !*** ./primitive.cjs ***!
   \***********************/
 module.exports = 47;
 
-}, 0, "./primitive.cjs");
+});
 
 require_index();
 

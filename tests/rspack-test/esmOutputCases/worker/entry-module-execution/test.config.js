@@ -17,6 +17,7 @@ module.exports = {
       /(?:__webpack_require__|__rspack_context\.r|rspackRequire)\("\.\/worker\.js"\);/,
     );
     expect(esmSource).toMatch(/^#!\/usr\/bin\/env node\n"use client"\n/);
+    expect(esmSource).toContain('worker_init();');
     expect(esmSource).toContain('globalThis.__workerEntryExecuted = true;');
 
     const commonJsSource = fs.readFileSync(
@@ -31,13 +32,14 @@ module.exports = {
     expect(commonJsSource).toContain(
       'globalThis.__workerCommonJsEntryExecuted = true;',
     );
+    expect(commonJsSource).toContain('if (!true)');
 
     const asyncSource = fs.readFileSync(
       path.join(options.output.path, 'worker-async.mjs'),
       'utf-8',
     );
 
-    expect(asyncSource).toContain('await require_worker_async();');
+    expect(asyncSource).toContain('await worker_async_init();');
     expect(asyncSource).not.toContain('__webpack_module_cache__');
     expect(asyncSource).not.toContain('moduleCache[');
     expect(asyncSource).not.toContain('moduleFactories');
@@ -45,6 +47,9 @@ module.exports = {
       'globalThis.__workerAsyncEntryExecuted = true;',
     );
 
+    execFileSync(process.execPath, [
+      path.join(options.output.path, 'worker-cjs.mjs'),
+    ]);
     execFileSync(process.execPath, [
       path.join(options.output.path, 'worker-async.mjs'),
     ]);

@@ -122,7 +122,7 @@ impl RuntimeModeRenderer for RspackExportRuntimeRenderer {
       should_export_rspack_runtime_globals(context.compilation, context.chunk_ukey);
     let use_require = context
       .runtime_requirements
-      .intersects(RuntimeGlobals::REQUIRE | RuntimeGlobals::INTERCEPT_MODULE_EXECUTION);
+      .contains(RuntimeGlobals::REQUIRE);
     if context.should_export_require && use_require {
       let require = context
         .runtime_template

@@ -8,6 +8,7 @@ mod esm_import_specifier_dependency;
 mod external_module_dependency;
 mod import_dependency;
 mod import_eager_dependency;
+mod import_meta_main_dependency;
 mod import_meta_resolve_dependency;
 mod import_meta_resolve_header_dependency;
 mod import_meta_rsc_dependency;
@@ -44,6 +45,7 @@ pub use self::{
   external_module_dependency::{ExternalModuleDependency, ExternalModuleDependencyTemplate},
   import_dependency::{ImportDependency, ImportDependencyTemplate},
   import_eager_dependency::{ImportEagerDependency, ImportEagerDependencyTemplate},
+  import_meta_main_dependency::{ImportMetaMainDependency, ImportMetaMainDependencyTemplate},
   import_meta_resolve_dependency::{
     ImportMetaResolveDependency, ImportMetaResolveDependencyTemplate,
   },

@@ -1,0 +1,76 @@
+```mjs title=main.mjs
+import { nodeModuleDecorator } from "./runtime.mjs";
+var __cjs = (factory, module) => function __require() {
+	if (module !== undefined) {
+		if (module.error !== undefined) throw module.error;
+		return module.exports;
+	}
+	module = { exports: {} };
+	try {
+		factory.call(module.exports, module, module.exports);
+	} catch (error) {
+		module.error = error;
+		throw error;
+	}
+	return module.exports;
+};
+var require_index = /*#__PURE__*/ __cjs(function(module, exports) {
+
+/*!******************!*\
+  !*** ./index.js ***!
+  \******************/
+const load = () => require_throwing();
+
+it("caches and rethrows a wrapped CommonJS error", () => {
+	let first;
+	let second;
+	try {
+		load();
+	} catch (error) {
+		first = error;
+	}
+	try {
+		load();
+	} catch (error) {
+		second = error;
+	}
+
+	expect(first).toBeInstanceOf(Error);
+	expect(second).toBe(first);
+	expect(globalThis.__strictCjsExecutions).toBe(1);
+});
+
+});
+
+var require_throwing = /*#__PURE__*/ __cjs(function(module, exports) {
+
+/*!**********************!*\
+  !*** ./throwing.cjs ***!
+  \**********************/
+/* module decorator */ module = nodeModuleDecorator(module);
+// Accessing the module object keeps this case behind a wrapper boundary.
+module.forceWrapper = true;
+globalThis.__strictCjsExecutions =
+	(globalThis.__strictCjsExecutions || 0) + 1;
+throw new Error("wrapped CommonJS failure");
+
+});
+
+require_index();
+
+export {};
+
+```
+
+```mjs title=runtime.mjs
+
+// rspack/runtime/node_module_decorator
+var nodeModuleDecorator = (module) => {
+  module.paths = [];
+  if (!module.children) module.children = [];
+  return module;
+};;
+export { nodeModuleDecorator };
+
+
+```

@@ -1,37 +1,31 @@
 ```mjs title=main.mjs
 import { __webpack_require__ } from "./runtime.mjs";
-var __commonJS = (factory, flags, id, isEntry, module) => function __require() {
-	if (module !== undefined) {
-		return module.exports;
+var __cjs = (factory, module) => function __require() {
+	if (module === undefined) {
+		module = { exports: {} };
+		factory.call(module.exports, module, module.exports);
 	}
-	module = { exports: {} };
-	if (isEntry) module.isEntry = true;
-	if (flags & 1) module.id = id;
-	if (flags & 2) module.loaded = false;
-	if (flags & 4) factory.call(module.exports, module, module.exports, undefined);
-	else factory(module, module.exports, undefined);
-	if (flags & 2) module.loaded = true;
 	return module.exports;
 };
-var require_a = /*#__PURE__*/ __commonJS(function(module, exports) {
+var require_a = /*#__PURE__*/ __cjs(function(module, exports) {
 
 /*!**********************!*\
   !*** ./modules/a.js ***!
   \**********************/
 module.exports = { value: "a" };
 
-}, 0, "./modules/a.js");
+});
 
-var require_b = /*#__PURE__*/ __commonJS(function(module, exports) {
+var require_b = /*#__PURE__*/ __cjs(function(module, exports) {
 
 /*!**********************!*\
   !*** ./modules/b.js ***!
   \**********************/
 module.exports = { value: "b" };
 
-}, 0, "./modules/b.js");
+});
 
-var require_ = /*#__PURE__*/ __commonJS(function(module, exports) {
+var require_ = /*#__PURE__*/ __cjs(function(module, exports) {
 
 /*!********************************************!*\
   !*** ./modules|eager|nonrecursive|/\.js$/ ***!
@@ -71,9 +65,9 @@ __rspack_async_context.resolve = __rspack_async_context_resolve;
 __rspack_async_context.id = "./modules eager \\.js$";
 module.exports = __rspack_async_context;
 
-}, 0, "./modules eager \\.js$");
+});
 
-var require__js$ = /*#__PURE__*/ __commonJS(function(module, exports) {
+var require__js$ = /*#__PURE__*/ __cjs(function(module, exports) {
 
 /*!*******************************************!*\
   !*** ./modules|sync|nonrecursive|/\.js$/ ***!
@@ -109,9 +103,9 @@ __rspack_context_module.resolve = __rspack_context_module_resolve;
 module.exports = __rspack_context_module;
 __rspack_context_module.id = "./modules sync \\.js$";
 
-}, 0, "./modules sync \\.js$");
+});
 
-var require_modules_weak_nonrecursive__js$ = /*#__PURE__*/ __commonJS(function(module, exports) {
+var require_modules_weak_nonrecursive__js$ = /*#__PURE__*/ __cjs(function(module, exports) {
 
 /*!*******************************************!*\
   !*** ./modules|weak|nonrecursive|/\.js$/ ***!
@@ -158,7 +152,7 @@ __rspack_context_module.resolve = __rspack_context_module_resolve;
 __rspack_context_module.id = "./modules weak \\.js$";
 module.exports = __rspack_context_module;
 
-}, 0, "./modules weak \\.js$");
+});
 
 // ./index.js
 const context = require__js$();

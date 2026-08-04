@@ -100,6 +100,11 @@ pub struct CodeGenerationExportsFinalNames {
 /// How a generated relocation consumes a module evaluation boundary.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, rspack_hash::RspackHash)]
 pub enum CodeGenerationModuleReferenceKind {
+  /// Yield whether the target is an entry module of the rendered chunk.
+  ///
+  /// This lets `import.meta.main` remain a compile-time relocation instead of
+  /// storing entry metadata on a synthetic CommonJS module object.
+  EntryValue,
   /// Evaluate the target and yield its CommonJS exports or ESM namespace.
   Value,
   /// Evaluate the target through a constructible identity function.
@@ -138,6 +143,7 @@ pub enum CodeGenerationModuleReferenceKind {
 impl CodeGenerationModuleReferenceKind {
   fn marker_tag(self) -> &'static str {
     match self {
+      Self::EntryValue => "entry_value",
       Self::Value => "value",
       Self::ConstructorValue => "constructor",
       Self::LazyValue => "lazy_value",
@@ -165,6 +171,16 @@ pub struct CodeGenerationModuleReferences {
 }
 
 impl CodeGenerationModuleReferences {
+  pub fn marker_for(module: ModuleIdentifier, kind: CodeGenerationModuleReferenceKind) -> String {
+    let mut module_hasher = RspackHasher::new(&HashFunction::Xxhash64);
+    RspackHash::hash(&module, &mut module_hasher);
+    format!(
+      "__rspack_module_relocation_{:016x}_{}__",
+      module_hasher.finish(),
+      kind.marker_tag()
+    )
+  }
+
   fn add_inner(
     &mut self,
     module: ModuleIdentifier,
@@ -177,13 +193,7 @@ impl CodeGenerationModuleReferences {
     {
       return reference.marker.clone();
     }
-    let mut module_hasher = RspackHasher::new(&HashFunction::Xxhash64);
-    RspackHash::hash(&module, &mut module_hasher);
-    let marker = format!(
-      "__rspack_module_relocation_{:016x}_{}__",
-      module_hasher.finish(),
-      kind.marker_tag()
-    );
+    let marker = Self::marker_for(module, kind);
     self.references.push(CodeGenerationModuleReference {
       marker: marker.clone(),
       module,
@@ -227,6 +237,7 @@ mod module_reference_tests {
     let value = first.add(module, CodeGenerationModuleReferenceKind::Value);
     let duplicate = first.add(module, CodeGenerationModuleReferenceKind::Value);
     let lazy = first.add(module, CodeGenerationModuleReferenceKind::LazyValue);
+    let entry = first.add(module, CodeGenerationModuleReferenceKind::EntryValue);
 
     let mut second = CodeGenerationModuleReferences::default();
     let rebuilt = second.add(module, CodeGenerationModuleReferenceKind::Value);
@@ -234,6 +245,14 @@ mod module_reference_tests {
     assert_eq!(value, duplicate);
     assert_eq!(value, rebuilt);
     assert_ne!(value, lazy);
+    assert_ne!(value, entry);
+    assert_eq!(
+      entry,
+      CodeGenerationModuleReferences::marker_for(
+        module,
+        CodeGenerationModuleReferenceKind::EntryValue
+      )
+    );
   }
 
   #[test]

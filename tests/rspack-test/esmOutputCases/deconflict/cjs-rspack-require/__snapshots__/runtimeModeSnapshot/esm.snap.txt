@@ -1,18 +1,12 @@
 ```mjs title=main.mjs
-var __commonJS = (factory, flags, id, isEntry, module) => function __require() {
-	if (module !== undefined) {
-		return module.exports;
+var __cjs = (factory, module) => function __require() {
+	if (module === undefined) {
+		module = { exports: {} };
+		factory.call(module.exports, module, module.exports);
 	}
-	module = { exports: {} };
-	if (isEntry) module.isEntry = true;
-	if (flags & 1) module.id = id;
-	if (flags & 2) module.loaded = false;
-	if (flags & 4) factory.call(module.exports, module, module.exports, undefined);
-	else factory(module, module.exports, undefined);
-	if (flags & 2) module.loaded = true;
 	return module.exports;
 };
-var require_require = /*#__PURE__*/ __commonJS(function(module, exports) {
+var require_require = /*#__PURE__*/ __cjs(function(module, exports) {
 
 /*!*********************!*\
   !*** ./require.cjs ***!
@@ -21,16 +15,16 @@ const __nested_rspack_require_6_19__ = require_value();
 
 module.exports = __nested_rspack_require_6_19__;
 
-}, 0, "./require.cjs");
+});
 
-var require_value = /*#__PURE__*/ __commonJS(function(module, exports) {
+var require_value = /*#__PURE__*/ __cjs(function(module, exports) {
 
 /*!*******************!*\
   !*** ./value.cjs ***!
   \*******************/
 module.exports = 42;
 
-}, 0, "./value.cjs");
+});
 
 // ./index.js
 require_require();

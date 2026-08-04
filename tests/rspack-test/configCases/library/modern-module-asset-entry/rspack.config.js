@@ -48,9 +48,10 @@ module.exports = {
                 jsContent,
               );
             assert(preseveImport);
-            const hasExports = /export\sdefault\simg_namespaceObject/.test(
-              jsContent,
-            );
+            const hasExports =
+              /export\s*\{\s*img_namespaceObject\s+as\s+default\s*\}/.test(
+                jsContent,
+              );
             assert(hasExports);
           });
         });

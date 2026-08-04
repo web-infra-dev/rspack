@@ -20,7 +20,6 @@ rspack_hook                = { workspace = true }
 rspack_parallel            = { workspace = true }
 rspack_plugin_javascript   = { workspace = true }
 rspack_plugin_rslib        = { workspace = true }
-rspack_plugin_runtime      = { workspace = true }
 rspack_plugin_split_chunks = { workspace = true }
 rspack_util                = { workspace = true }
 
