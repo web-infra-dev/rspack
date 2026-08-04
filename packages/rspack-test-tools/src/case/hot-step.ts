@@ -186,6 +186,10 @@ function createHotStepProcessor(
           manifest.c?.sort();
           manifest.r?.sort();
           manifest.m?.sort();
+          manifest.css?.c?.sort();
+          manifest.css?.r?.sort();
+          manifest.miniCss?.c?.sort();
+          manifest.miniCss?.r?.sort();
           hotUpdateManifest.push({
             name: renderName,
             content: JSON.stringify(manifest),
