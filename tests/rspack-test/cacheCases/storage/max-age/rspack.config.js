@@ -3,7 +3,7 @@ const path = require('node:path');
 
 const cacheDir = path.join(__dirname, 'node_modules/.cache/max-age');
 // Change cache.version between restarts to create multiple persistent cache
-// versions under the same storage directory.
+// versions under the same cache location.
 const cacheVersions = ['v1', 'v2', 'v3'];
 let buildIndex = 0;
 let expiredGeneration;
@@ -46,7 +46,7 @@ module.exports = {
     maxAge: 1,
     storage: {
       type: 'filesystem',
-      directory: cacheDir,
+      location: cacheDir,
     },
   },
   plugins: [

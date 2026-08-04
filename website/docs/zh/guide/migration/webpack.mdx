@@ -124,22 +124,7 @@ export default {
 };
 ```
 
-3. 将 webpack 的 `cache.name` 和 `cache.version` 合并到 Rspack [`cache.version`](/config/cache#version)。
-
-Rspack 没有单独的 `cache.name` 配置。缓存实例会通过 `cache.version` 和 [`cache.storage.directory`](/config/cache#storagedirectory) 隔离。
-
-```diff title="rspack.config.mjs"
-export default {
-- cache: {
--   name: `${config.name}-${config.mode}-${otherFlags}`,
--   version: appVersion
-- },
-+ cache: {
-+   type: 'persistent',
-+   version: `${config.name}-${config.mode}-${otherFlags}-${appVersion}`
-+ },
-};
-```
+3. webpack 的 [`cache.name`](/config/cache#name) 和 [`cache.version`](/config/cache#version) 可以保持不变。Rspack 使用相同的 `cache.name` 语义创建可同时存在的缓存。
 
 4. 将 webpack 顶层的 `snapshot` 配置移动到 Rspack [`cache.snapshot`](/config/cache#snapshot)。
 
@@ -161,18 +146,21 @@ export default {
 };
 ```
 
-5. 将 webpack 的 `cache.cacheDirectory` 移动到 Rspack [`cache.storage.directory`](/config/cache#storagedirectory)。
+5. 将 webpack 的 `cache.cacheDirectory` 移动到 Rspack [`cache.storage.directory`](/config/cache#storagedirectory)，并将 webpack 的 `cache.cacheLocation` 移动到 Rspack [`cache.storage.location`](/config/cache#storagelocation)。它们的配置名称不同，但语义一致。Rspack 同样会将 `storage.location` 默认设置为 `storage.directory/cache.name`。
 
 ```diff title="rspack.config.mjs"
 export default {
 - cache: {
--   cacheDirectory: path.join(__dirname, 'node_modules/.cache/test')
+-   type: 'filesystem',
+-   cacheDirectory: path.join(__dirname, 'node_modules/.cache/test'),
+-   cacheLocation: path.join(__dirname, 'node_modules/.cache/test/client')
 - },
 + cache: {
 +   type: 'persistent',
 +   storage: {
 +     type: 'filesystem',
-+     directory: path.join(import.meta.dirname, 'node_modules/.cache/test')
++     directory: path.join(import.meta.dirname, 'node_modules/.cache/test'),
++     location: path.join(import.meta.dirname, 'node_modules/.cache/test/client')
 +   }
 + },
 };
@@ -202,12 +190,8 @@ function transform(webpackConfig, rspackConfig) {
     webpackConfig.cache.buildDependencies || {},
   ).flat();
 
-  const version = [webpackConfig.cache.name, webpackConfig.cache.version]
-    .filter(Boolean)
-    .join('-');
-  if (version) {
-    rspackConfig.cache.version = version;
-  }
+  rspackConfig.cache.name = webpackConfig.cache.name;
+  rspackConfig.cache.version = webpackConfig.cache.version;
 
   rspackConfig.cache.snapshot = {
     immutablePaths: webpackConfig.snapshot?.immutablePaths,
@@ -215,12 +199,11 @@ function transform(webpackConfig, rspackConfig) {
     unmanagedPaths: webpackConfig.snapshot?.unmanagedPaths,
   };
 
-  if (webpackConfig.cache.cacheDirectory) {
-    rspackConfig.cache.storage = {
-      type: 'filesystem',
-      directory: webpackConfig.cache.cacheDirectory,
-    };
-  }
+  rspackConfig.cache.storage = {
+    type: 'filesystem',
+    directory: webpackConfig.cache.cacheDirectory,
+    location: webpackConfig.cache.cacheLocation,
+  };
 }
 ```
 
