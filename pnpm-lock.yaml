@@ -17,29 +17,29 @@ catalogs:
       specifier: ^7.29.7
       version: 7.29.7
     '@babel/generator':
-      specifier: 7.29.7
-      version: 7.29.7
+      specifier: 7.29.8
+      version: 7.29.8
     '@babel/parser':
-      specifier: 7.29.7
-      version: 7.29.7
+      specifier: 7.29.8
+      version: 7.29.8
     '@babel/preset-react':
       specifier: ^7.29.7
       version: 7.29.7
     '@babel/traverse':
-      specifier: 7.29.7
-      version: 7.29.7
+      specifier: 7.29.8
+      version: 7.29.8
     '@babel/types':
-      specifier: 7.29.7
-      version: 7.29.7
+      specifier: 7.29.8
+      version: 7.29.8
     '@discoveryjs/json-ext':
       specifier: ^1.1.0
       version: 1.1.0
     '@emnapi/core':
-      specifier: 1.11.2
-      version: 1.11.2
+      specifier: 1.11.3
+      version: 1.11.3
     '@emnapi/runtime':
-      specifier: 1.11.2
-      version: 1.11.2
+      specifier: 1.11.3
+      version: 1.11.3
     '@iarna/toml':
       specifier: ^3.0.0
       version: 3.0.0
@@ -89,17 +89,17 @@ catalogs:
       specifier: ^2.0.19
       version: 2.0.19
     '@rspress/plugin-algolia':
-      specifier: ^2.0.18
-      version: 2.0.18
+      specifier: ^2.0.19
+      version: 2.0.19
     '@rspress/plugin-client-redirects':
-      specifier: ^2.0.18
-      version: 2.0.18
+      specifier: ^2.0.19
+      version: 2.0.19
     '@rspress/plugin-rss':
-      specifier: ^2.0.18
-      version: 2.0.18
+      specifier: ^2.0.19
+      version: 2.0.19
     '@rspress/plugin-sitemap':
-      specifier: ^2.0.18
-      version: 2.0.18
+      specifier: ^2.0.19
+      version: 2.0.19
     '@rstack-dev/doc-ui':
       specifier: 1.14.7
       version: 1.14.7
@@ -113,11 +113,11 @@ catalogs:
       specifier: 0.5.23
       version: 0.5.23
     '@swc/plugin-remove-console':
-      specifier: ^12.9.0
+      specifier: ^12.15.0
       version: 12.15.0
     '@swc/types':
-      specifier: 0.1.27
-      version: 0.1.27
+      specifier: 0.1.28
+      version: 0.1.28
     '@taplo/cli':
       specifier: ^0.7.0
       version: 0.7.0
@@ -137,11 +137,11 @@ catalogs:
       specifier: ^20.19.43
       version: 20.19.43
     '@types/react':
-      specifier: ^19.2.17
-      version: 19.2.17
+      specifier: ^19.2.18
+      version: 19.2.18
     '@types/react-dom':
-      specifier: ^19.2.3
-      version: 19.2.3
+      specifier: ^19.2.4
+      version: 19.2.4
     '@types/semver':
       specifier: ^7.7.1
       version: 7.7.1
@@ -218,11 +218,11 @@ catalogs:
       specifier: 8.0.4
       version: 8.0.4
     emnapi:
-      specifier: 1.11.2
-      version: 1.11.2
+      specifier: 1.11.3
+      version: 1.11.3
     enhanced-resolve:
-      specifier: 5.24.3
-      version: 5.24.3
+      specifier: 5.24.5
+      version: 5.24.5
     es5-ext:
       specifier: ^0.10.64
       version: 0.10.64
@@ -248,8 +248,8 @@ catalogs:
       specifier: ^11.1.0
       version: 11.1.0
     heading-case:
-      specifier: ^1.1.3
-      version: 1.1.3
+      specifier: ^1.1.4
+      version: 1.1.4
     html-loader:
       specifier: ^5.1.0
       version: 5.1.0
@@ -320,8 +320,8 @@ catalogs:
       specifier: 0.6.0
       version: 0.6.0
     postcss:
-      specifier: ^8.5.22
-      version: 8.5.22
+      specifier: ^8.5.25
+      version: 8.5.25
     postcss-loader:
       specifier: ^8.2.1
       version: 8.2.1
@@ -329,8 +329,8 @@ catalogs:
       specifier: ^6.1.0
       version: 6.1.0
     preact:
-      specifier: ^10.29.7
-      version: 10.29.7
+      specifier: ^10.29.8
+      version: 10.29.8
     prebundle:
       specifier: ^1.6.5
       version: 1.6.5
@@ -356,8 +356,8 @@ catalogs:
       specifier: ^0.18.0
       version: 0.18.0
     react-server-dom-rspack:
-      specifier: 0.0.2
-      version: 0.0.2
+      specifier: 0.0.3
+      version: 0.0.3
     rimraf:
       specifier: ^5.0.10
       version: 5.0.10
@@ -478,7 +478,7 @@ importers:
         version: 10.1.0
       heading-case:
         specifier: 'catalog:'
-        version: 1.1.3
+        version: 1.1.4
       prettier:
         specifier: 'catalog:'
         version: 3.9.6
@@ -508,22 +508,22 @@ importers:
     devDependencies:
       '@emnapi/core':
         specifier: 'catalog:'
-        version: 1.11.2
+        version: 1.11.3
       '@emnapi/runtime':
         specifier: 'catalog:'
-        version: 1.11.2
+        version: 1.11.3
       '@napi-rs/cli':
         specifier: 'catalog:'
-        version: 3.7.4(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)(@types/node@20.19.43)(node-addon-api@7.1.1)
+        version: 3.7.4(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@types/node@20.19.43)(node-addon-api@7.1.1)
       '@napi-rs/wasm-runtime':
         specifier: 'catalog:'
-        version: 1.1.6(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)
+        version: 1.1.6(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)
       '@types/node':
         specifier: 'catalog:'
         version: 20.19.43
       emnapi:
         specifier: 'catalog:'
-        version: 1.11.2(node-addon-api@7.1.1)
+        version: 1.11.3(node-addon-api@7.1.1)
       typescript:
         specifier: 'catalog:'
         version: 6.0.3
@@ -569,19 +569,19 @@ importers:
     devDependencies:
       '@emnapi/core':
         specifier: 'catalog:'
-        version: 1.11.2
+        version: 1.11.3
       '@emnapi/runtime':
         specifier: 'catalog:'
-        version: 1.11.2
+        version: 1.11.3
       '@napi-rs/cli':
         specifier: 'catalog:'
-        version: 3.7.4(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)(@types/node@26.1.1)(node-addon-api@7.1.1)
+        version: 3.7.4(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@types/node@26.1.1)(node-addon-api@7.1.1)
       '@napi-rs/wasm-runtime':
         specifier: 'catalog:'
-        version: 1.1.6(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)
+        version: 1.1.6(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)
       emnapi:
         specifier: 'catalog:'
-        version: 1.11.2(node-addon-api@7.1.1)
+        version: 1.11.3(node-addon-api@7.1.1)
       typescript:
         specifier: 'catalog:'
         version: 6.0.3
@@ -621,10 +621,10 @@ importers:
         version: 2.0.2(@rspack/core@packages+rspack)(react-refresh@0.18.0)
       '@types/react':
         specifier: 'catalog:'
-        version: 19.2.17
+        version: 19.2.18
       '@types/react-dom':
         specifier: 'catalog:'
-        version: 19.2.3(@types/react@19.2.17)
+        version: 19.2.4(@types/react@19.2.18)
       react-refresh:
         specifier: 'catalog:'
         version: 0.18.0
@@ -667,13 +667,13 @@ importers:
     dependencies:
       '@emnapi/core':
         specifier: 'catalog:'
-        version: 1.11.2
+        version: 1.11.3
       '@emnapi/runtime':
         specifier: 'catalog:'
-        version: 1.11.2
+        version: 1.11.3
       '@napi-rs/wasm-runtime':
         specifier: 'catalog:'
-        version: 1.1.6(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)
+        version: 1.1.6(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)
 
   npm/win32-arm64-msvc: {}
 
@@ -705,7 +705,7 @@ importers:
         version: 0.45.0
       '@napi-rs/wasm-runtime':
         specifier: 'catalog:'
-        version: 1.1.6(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)
+        version: 1.1.6(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)
       '@rsbuild/plugin-node-polyfill':
         specifier: 'catalog:'
         version: 1.4.6(@rsbuild/core@2.1.8)
@@ -714,7 +714,7 @@ importers:
         version: 1.1.5
       '@swc/types':
         specifier: 'catalog:'
-        version: 0.1.27
+        version: 0.1.28
       '@types/node':
         specifier: 'catalog:'
         version: 20.19.43
@@ -729,7 +729,7 @@ importers:
         version: 4.0.3
       enhanced-resolve:
         specifier: 'catalog:'
-        version: 5.24.3
+        version: 5.24.5
       http-proxy-middleware:
         specifier: 'catalog:'
         version: 4.2.0
@@ -762,19 +762,19 @@ importers:
     dependencies:
       '@emnapi/core':
         specifier: 'catalog:'
-        version: 1.11.2
+        version: 1.11.3
       '@emnapi/runtime':
         specifier: 'catalog:'
-        version: 1.11.2
+        version: 1.11.3
       '@napi-rs/wasm-runtime':
         specifier: 'catalog:'
-        version: 1.1.6(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)
+        version: 1.1.6(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)
       '@rspack/lite-tapable':
         specifier: 'catalog:'
         version: 1.1.5
       '@swc/types':
         specifier: 'catalog:'
-        version: 0.1.27
+        version: 0.1.28
       memfs:
         specifier: 'catalog:'
         version: 4.64.0
@@ -837,16 +837,16 @@ importers:
     dependencies:
       '@babel/generator':
         specifier: 'catalog:'
-        version: 7.29.7
+        version: 7.29.8
       '@babel/parser':
         specifier: 'catalog:'
-        version: 7.29.7
+        version: 7.29.8
       '@babel/traverse':
         specifier: 'catalog:'
-        version: 7.29.7
+        version: 7.29.8
       '@babel/types':
         specifier: 'catalog:'
-        version: 7.29.7
+        version: 7.29.8
       chalk:
         specifier: 'catalog:'
         version: 6.0.0
@@ -891,7 +891,7 @@ importers:
         version: 0.8.0
       terser-webpack-plugin:
         specifier: 'catalog:'
-        version: 5.6.1(postcss@8.5.22)
+        version: 5.6.1(postcss@8.5.25)
       wast-loader:
         specifier: 'catalog:'
         version: 1.14.1
@@ -994,10 +994,10 @@ importers:
         version: 11.4.0
       postcss:
         specifier: 'catalog:'
-        version: 8.5.22
+        version: 8.5.25
       postcss-loader:
         specifier: 'catalog:'
-        version: 8.2.1(@rspack/core@packages+rspack)(postcss@8.5.22)(typescript@6.0.3)
+        version: 8.2.1(@rspack/core@packages+rspack)(postcss@8.5.25)(typescript@6.0.3)
       react:
         specifier: 'catalog:'
         version: 19.2.8
@@ -1051,7 +1051,7 @@ importers:
         version: 2.8.1
       '@prefresh/core':
         specifier: 'catalog:'
-        version: 1.5.10(preact@10.29.7)
+        version: 1.5.10(preact@10.29.8)
       '@prefresh/utils':
         specifier: 'catalog:'
         version: 1.2.1
@@ -1093,13 +1093,13 @@ importers:
         version: 21.1.7
       '@types/react':
         specifier: 'catalog:'
-        version: 19.2.17
+        version: 19.2.18
       '@types/react-dom':
         specifier: 'catalog:'
-        version: 19.2.3(@types/react@19.2.17)
+        version: 19.2.4(@types/react@19.2.18)
       '@webdiscus/pug-loader':
         specifier: 'catalog:'
-        version: 2.11.1(enhanced-resolve@5.24.3)
+        version: 2.11.1(enhanced-resolve@5.24.5)
       acorn:
         specifier: 'catalog:'
         version: 8.17.0
@@ -1177,13 +1177,13 @@ importers:
         version: 4.1.0
       postcss-loader:
         specifier: 'catalog:'
-        version: 8.2.1(@rspack/core@packages+rspack)(postcss@8.5.22)(typescript@6.0.3)
+        version: 8.2.1(@rspack/core@packages+rspack)(postcss@8.5.25)(typescript@6.0.3)
       postcss-pxtorem:
         specifier: 'catalog:'
-        version: 6.1.0(postcss@8.5.22)
+        version: 6.1.0(postcss@8.5.25)
       preact:
         specifier: 'catalog:'
-        version: 10.29.7
+        version: 10.29.8
       prop-types:
         specifier: 'catalog:'
         version: 15.8.1
@@ -1201,7 +1201,7 @@ importers:
         version: 0.18.0
       react-server-dom-rspack:
         specifier: 'catalog:'
-        version: 0.0.2(@rspack/core@packages+rspack)(react-dom@19.2.8)(react@19.2.8)
+        version: 0.0.3(@rspack/core@packages+rspack)(react-dom@19.2.8)(react@19.2.8)
       rimraf:
         specifier: 'catalog:'
         version: 5.0.10
@@ -1225,7 +1225,7 @@ importers:
         version: 5.49.0
       terser-webpack-plugin:
         specifier: 'catalog:'
-        version: 5.6.1(postcss@8.5.22)
+        version: 5.6.1(postcss@8.5.25)
       toml:
         specifier: 'catalog:'
         version: 4.3.0
@@ -1310,16 +1310,16 @@ importers:
         version: 2.0.19(@module-federation/runtime-tools@2.8.1)(@rspack/core@2.1.7)(core-js@3.49.0)(micromark-util-types@2.0.2)(micromark@4.0.2)
       '@rspress/plugin-algolia':
         specifier: 'catalog:'
-        version: 2.0.18(@rspress/core@2.0.19)(@types/react@19.2.17)(react-dom@19.2.8)(react@19.2.8)
+        version: 2.0.19(@rspress/core@2.0.19)(@types/react@19.2.18)(react-dom@19.2.8)(react@19.2.8)
       '@rspress/plugin-client-redirects':
         specifier: 'catalog:'
-        version: 2.0.18(@rspress/core@2.0.19)
+        version: 2.0.19(@rspress/core@2.0.19)
       '@rspress/plugin-rss':
         specifier: 'catalog:'
-        version: 2.0.18(@rspress/core@2.0.19)
+        version: 2.0.19(@rspress/core@2.0.19)
       '@rspress/plugin-sitemap':
         specifier: 'catalog:'
-        version: 2.0.18(@rspress/core@2.0.19)
+        version: 2.0.19(@rspress/core@2.0.19)
       '@shikijs/transformers':
         specifier: 'catalog:'
         version: 4.3.1
@@ -1328,7 +1328,7 @@ importers:
         version: 20.19.43
       '@types/react':
         specifier: 'catalog:'
-        version: 19.2.17
+        version: 19.2.18
       '@types/semver':
         specifier: 'catalog:'
         version: 7.7.1
@@ -1538,6 +1538,10 @@ packages:
     resolution: {integrity: sha512-DkXD5OJQaAQIdZ1bt3UZdEnHAn9Imd3IVBdX03UFe+ony9Ojw5pzr9YVKGDY1jt+Gcn/FnGkNf8r+Vj5NOJWtQ==}
     engines: {node: '>=6.9.0'}
 
+  '@babel/generator@7.29.8':
+    resolution: {integrity: sha512-gZbepsdh3WDtgZKWL+vTPh71LSBrm/Y4/QDZBVCcYfmeTEEuoOYwlSy+G1StfJg+/Zy550u/3TATbm7qDbbMtg==}
+    engines: {node: '>=6.9.0'}
+
   '@babel/helper-annotate-as-pure@7.29.7':
     resolution: {integrity: sha512-OoK6239jHPuSQOoS0kfTVKn0b/rVTk0seKq4Gd2UMLtmOVLjDC0ki3e+c90Trqv2gMfvJFqkiljrr568+qddiw==}
     engines: {node: '>=6.9.0'}
@@ -1585,6 +1589,11 @@ packages:
     engines: {node: '>=6.0.0'}
     hasBin: true
 
+  '@babel/parser@7.29.8':
+    resolution: {integrity: sha512-E8lTAYNB1KW+FH+VGJuZM1ioAx2E6oVlvQFRrf5P8ZZmsiJXYAD9vTFV7yyEURNzgh1dFqMZuO6tUwcARbqFCA==}
+    engines: {node: '>=6.0.0'}
+    hasBin: true
+
   '@babel/plugin-syntax-jsx@7.29.7':
     resolution: {integrity: sha512-TSu8+mHCoEaaCDEZ0I3+6mvTBYR4PCxQwf2z9/r5Tbztv6NaLR3B9thGTTxX2WGuGHJqRiAbKPeGTJ5XWXVg6A==}
     engines: {node: '>=6.9.0'}
@@ -1629,8 +1638,16 @@ packages:
     resolution: {integrity: sha512-EhlfNQtZ+NK22w5BM61ciuiq1m58ed33Wr1Xan//ZRTy6hgjnwyCffRYwzsGXdASJSUJ1guZILsErh1eQcl+zw==}
     engines: {node: '>=6.9.0'}
 
+  '@babel/traverse@7.29.8':
+    resolution: {integrity: sha512-I5z7H3bf/41ktsNVLtpN0wAa336HkqIHQ5BuPLEhTkt1jVSyZpeNKIzTgEWmlxjdg81R0IgUCcaE+Ok3NvrfZg==}
+    engines: {node: '>=6.9.0'}
+
   '@babel/types@7.29.7':
     resolution: {integrity: sha512-4zBIxpPzowiZpusoFkyGVwakdRJUyuH5PxQ/PrqghfdFWWasvnCdPfQXHrenDai+gyLARulZjZowCOj6fjT4pA==}
+    engines: {node: '>=6.9.0'}
+
+  '@babel/types@7.29.8':
+    resolution: {integrity: sha512-Vj1jF3cPfxg7OAfoI7QnVKLoILlm2JF9pnVHrX8qx7AHMiYWT+NDAA7jChlNgRS4WTLc/fD1lXLmPixluj+3Gg==}
     engines: {node: '>=6.9.0'}
 
   '@braintree/sanitize-url@7.1.2':
@@ -1945,11 +1962,20 @@ packages:
   '@emnapi/core@1.11.2':
     resolution: {integrity: sha512-TC8MkTuZUtcTSiFeuC0ksCh9QIJ5+F21MvZ4Wn4ORfYaFJ/0dsiudv5tVkejgwZlwQ39jL9WWDe2lz8x0WglOA==}
 
+  '@emnapi/core@1.11.3':
+    resolution: {integrity: sha512-zLpS5asjEb7lq8jYLq37N6XKaE41DIexlY1rF/z4/tIl3wo13Sqm28fRyfIsKZD+NZ8mM5RoKkpW/rBcuoSZSg==}
+
   '@emnapi/runtime@1.11.2':
     resolution: {integrity: sha512-kyOl3X0DuTiT1h2ft8r2fYO8JYtU9a9Xis/zBSiGArNaagCOWx90N1k2wxp18czFDH+OgcWGb5ZP/XMt3dcyPA==}
 
+  '@emnapi/runtime@1.11.3':
+    resolution: {integrity: sha512-Xz4Tpyki7XyrpbUK1jR1AhdAdaXyhhY4lZ3neLodmhpuWfy2PAQN5B46sAiU4liOXGLkHypn/qU+jvfWSCYYLA==}
+
   '@emnapi/wasi-threads@1.2.2':
     resolution: {integrity: sha512-c95qOXkHdydNKhscBTebqEC1CVAZpyqOfVfBzQ1qgzyl3gfeldUjIggDbIZgDKsHLgnsM+igH7TJ/eAasaVuMA==}
+
+  '@emnapi/wasi-threads@1.2.3':
+    resolution: {integrity: sha512-ELEBe8PsLvvJ6QMr0zLt8ffvOHW/dc1m3CEzNMg7aJUv3bMaoDtw2TXyDAwkYBuroxxuHEwhRTLJSe5sya547g==}
 
   '@epic-web/invariant@1.0.0':
     resolution: {integrity: sha512-lrTPqgvfFQtR/eY/qkIzp98OGdNJu0m5ji3q/nJI8v3SXkRKEnWiOxMmbvcSoAIzv/cGiuvRy57k4suKQSAdwA==}
@@ -3190,28 +3216,28 @@ packages:
     engines: {node: ^20.19.0 || >=22.12.0}
     hasBin: true
 
-  '@rspress/plugin-algolia@2.0.18':
-    resolution: {integrity: sha512-ldOBLWdP/MhgqODb2RxVh97d52T4nKUzqtVrRqQMd55JQLnZogTdy18utT0k96ANbTk7SLxMbW9E9MwDhFEN+A==}
+  '@rspress/plugin-algolia@2.0.19':
+    resolution: {integrity: sha512-EvlRMrTsJw0blMY80G82VZqEMWumh5oBMsNBZKoIuIF4JaqTintsoqOT5iAzsvtv/7Eq9ZYp0nT+v1MnZMRnbw==}
     engines: {node: ^20.19.0 || >=22.12.0}
     peerDependencies:
       '@rspress/core': ^2.0.10
       react: '>=18.0.0'
       react-dom: '>=18.0.0'
 
-  '@rspress/plugin-client-redirects@2.0.18':
-    resolution: {integrity: sha512-q70ufN0S125kl0QlucO7JuiZ0WJaxFOtPPoGu7eWwam9fb+i4YsWnOWtAKSKGH4JP5+897mgpDPP+dmfl9DPCw==}
+  '@rspress/plugin-client-redirects@2.0.19':
+    resolution: {integrity: sha512-BUwgEyj8vCkU58cV3Gp97aTSnfGJm7aXh40K0Dot1BqsCQ8ekdsMuaLXrICROdP9/ctd4oALtLBkOE+PKTa4Sg==}
     engines: {node: ^20.19.0 || >=22.12.0}
     peerDependencies:
       '@rspress/core': ^2.0.10
 
-  '@rspress/plugin-rss@2.0.18':
-    resolution: {integrity: sha512-f2XaB+4MFAMoaLAScwJXf26mrCxoR+qm4IoAvzKfrtdXOEcyNWOqGUMKQqGgo1phTud3veWPYEfQTr75v4+N5w==}
+  '@rspress/plugin-rss@2.0.19':
+    resolution: {integrity: sha512-PgZzNLfYnDkkxWZYEVvCAt9WtjHl8W6hU/i8nnLaPruIDl+7v56Q2PcqyBz0S+AfstLmDBsAk1rK9FGT68ej2w==}
     engines: {node: ^20.19.0 || >=22.12.0}
     peerDependencies:
       '@rspress/core': ^2.0.10
 
-  '@rspress/plugin-sitemap@2.0.18':
-    resolution: {integrity: sha512-XfaXzZx+ASN9OMTc0fOvW8QmbmyCyDWkO8xJj4XF4E0YJtsu7j/65+v8/KXXdwpywOfUIQ6M94/meRTy2urNmQ==}
+  '@rspress/plugin-sitemap@2.0.19':
+    resolution: {integrity: sha512-9ydrpj9hmmXWKWKIXUqJ1UrfxSvfxhHZRBZLb5OkTlOuQBNAg6BpsrW1WHoJqJr7p+3zqlz7S/9HTzSA3+EYcA==}
     engines: {node: ^20.19.0 || >=22.12.0}
     peerDependencies:
       '@rspress/core': ^2.0.10
@@ -3329,8 +3355,8 @@ packages:
   '@swc/plugin-remove-console@12.15.0':
     resolution: {integrity: sha512-GlxFDOt8T91N6LtNfuSkLIn2FnJwc0ULI26OFtlSY+VNR4gtM9S5hyssmDRJua2gvFDDKnYhk2St38y7sUwLig==}
 
-  '@swc/types@0.1.27':
-    resolution: {integrity: sha512-K6h3iUlqeM946U4sXFYeahefR1YBbXJvko+hv8WS8/0BNJ4OHiHRywMnQUJCqkR7Y9+hqQ1TvEpiKqUhz7NEFg==}
+  '@swc/types@0.1.28':
+    resolution: {integrity: sha512-V6Mnml8v09QALx6K0elJ7o9K/MkVDtW3t6L+7Ou/JcWtb3xwId2AH4FeOceySd2JaO87IMw4+6vSZxLm34LPbw==}
 
   '@tailwindcss/node@4.3.3':
     resolution: {integrity: sha512-/T8IKEsf9VTU6tLjgC7+sv2mOPtQxzE2jMw7u4Tt40Tx+QSZxpzh95/H6cMKoja9XuW7iMdLJYBB0o9G1CaAgg==}
@@ -3589,13 +3615,16 @@ packages:
   '@types/node@26.1.1':
     resolution: {integrity: sha512-nxAkRSVkN1Y0JC1W8ky/fTfkGsMmcrRsbx+3XoZE+rMOX71kLYTV7fLXpqud1GpbpP5TuffXFqfX7fH2GgZREw==}
 
-  '@types/react-dom@19.2.3':
-    resolution: {integrity: sha512-jp2L/eY6fn+KgVVQAOqYItbF0VY/YApe5Mz2F0aykSO8gx31bYCZyvSeYxCHKvzHG5eZjc+zyaS5BrBWya2+kQ==}
+  '@types/react-dom@19.2.4':
+    resolution: {integrity: sha512-Bsc+QHgp+P/F02XDzNCY9jnZNCUuLki36KT7VKrTXXLdHf+vHMNZnW1rVu5DNW/rCK+fya3DATySbLM4yhtKUw==}
     peerDependencies:
       '@types/react': ^19.2.0
 
   '@types/react@19.2.17':
     resolution: {integrity: sha512-MXfmqaVPEVgkBT/aY0aGCkRWWtByiYQXo3xdQ8r5RzuFrPiRn8Gar2tQdXSUQ2GKV3bkXckek89V8wQBY2Q/Aw==}
+
+  '@types/react@19.2.18':
+    resolution: {integrity: sha512-AnzbBERsrLKtk2XSfTbYRLjQPdy116Sty4q+T+Bp3IC4l6jNBvreVPAHmpq9qhXQM7CXZPjLVmGMw9sy+hxQ3w==}
 
   '@types/semver@7.7.1':
     resolution: {integrity: sha512-FmgJfu+MOcQ370SD0ev7EI8TlCAfKYU+B4m5T3yXc1CiRN94g/SZPtsCkk506aUDtlMnFZvasDwHHUcZUEaYuA==}
@@ -4650,8 +4679,8 @@ packages:
   elliptic@6.6.1:
     resolution: {integrity: sha512-RaddvvMatK2LJHqFJ+YA4WysVN5Ita9E35botqIYspQ4TkRAlCicdzKOjlyv/1Za5RyTNn7di//eEV0uTAfe3g==}
 
-  emnapi@1.11.2:
-    resolution: {integrity: sha512-iMt/XQc69fFn2EvcU6tm14HmXKwyy0lnABugsQlqp6xFuZIUuO+ONVSg2mz+MTVF8WbC+bic65AvRXdoldALKg==}
+  emnapi@1.11.3:
+    resolution: {integrity: sha512-+/ZS90YK/rYfVOHtGLHkGffVsnmD/MAKaBHio+Y4XAtg75RLr4cveV/w0jTkUdLM1CcAlaRgG76mpIemWAlk0A==}
     peerDependencies:
       node-addon-api: '>= 6.1.0'
     peerDependenciesMeta:
@@ -4670,6 +4699,10 @@ packages:
 
   enhanced-resolve@5.24.3:
     resolution: {integrity: sha512-PwKooW9JUzh5chmYfHM3IQl5OkK2u2Nm011MgeZrss3JmFraUx/fqrf78kk8GUMYoibx/14MdwTl/1WKkG7TpQ==}
+    engines: {node: '>=10.13.0'}
+
+  enhanced-resolve@5.24.5:
+    resolution: {integrity: sha512-L1l8TNvomm6UVW5B253AGxQagSQr+vGwhMlrrfRS2qmhx46AMpMVJKQYLvWYbysTMY8VoicOvzHzoHMbyzB+4A==}
     engines: {node: '>=10.13.0'}
 
   entities@4.5.0:
@@ -5053,8 +5086,8 @@ packages:
   hastscript@9.0.1:
     resolution: {integrity: sha512-g7df9rMFX/SPi34tyGCyUBREQoKkapwdY/T04Qn9TDWfHhAYt4/I0gMVirzK5wEzeUqIjEB+LXC/ypb7Aqno5w==}
 
-  heading-case@1.1.3:
-    resolution: {integrity: sha512-YwTSvHDNLKDwoBjbzt4w3USGcnUnUK9fjKbb9jNoAOop/z1Ldpp+2k+VxrzRYOIlslg2Dq3nSttGQ7sIdEtWxw==}
+  heading-case@1.1.4:
+    resolution: {integrity: sha512-UwPg0xcqLrmd6kSW93kxjy4FMqcb0o97IoTUy+TMvjCF8mJvi6X0h733DEaJO/Ch9h9dOyv0I0ckGoSsuUp9KA==}
     hasBin: true
 
   hmac-drbg@1.0.1:
@@ -6228,12 +6261,16 @@ packages:
     resolution: {integrity: sha512-KBDEIpLrvpv16pp3K0Fw+UCoZfopFjjgeB+0tA/aaThfEE74kKDLrgg603YvOWJyg3+WYtyq3xYsQWsIyZlPqQ==}
     engines: {node: ^10 || ^12 || >=14}
 
+  postcss@8.5.25:
+    resolution: {integrity: sha512-DTPx3RWSSnWyzLxQnlH0rJP+EW5ekl16ZU4/psbIhA0e53kJfdgaN5vKM+xP7yJtXVu+nfdVFmlgFDEKAe4Pyw==}
+    engines: {node: ^10 || ^12 || >=14}
+
   powershell-utils@0.1.0:
     resolution: {integrity: sha512-dM0jVuXJPsDN6DvRpea484tCUaMiXWjuCn++HGTqUWzGDjv5tZkEZldAJ/UMlqRYGFrD/etByo4/xOuC/snX2A==}
     engines: {node: '>=20'}
 
-  preact@10.29.7:
-    resolution: {integrity: sha512-DCHYrK/B10yUD3ZjLfhZ3WIE/9Vf9VFUODcRE2dRomTYDpJk6z6L9wecSfhfE6M9ZTHUdyQkoC46arIDhEV84Q==}
+  preact@10.29.8:
+    resolution: {integrity: sha512-ej2aVZ+vZ8WO7tvlQWRM9N63A0KzF9q4mWJfDUHgYaIofWY9hu74QdnQrjoPMmZi2/nZ5gN0bJCQF49xQqx09Q==}
     peerDependencies:
       preact-render-to-string: '>=5'
     peerDependenciesMeta:
@@ -6393,8 +6430,8 @@ packages:
       react-dom:
         optional: true
 
-  react-server-dom-rspack@0.0.2:
-    resolution: {integrity: sha512-PowIm+Z65LkvC3yk4t3YrH2nMejwL361jiBT0BMW2bQCDUaNQknDHMPH0aTgMtJ9ZZ1Gc7KFgBvwB0itSzzELQ==}
+  react-server-dom-rspack@0.0.3:
+    resolution: {integrity: sha512-V+sf4LO12QdQ+Ao6xxweJqGKNU5wVBAGZmL4jkKbBIvJ5MaNo0TxndXXIVdDHQPXJrkzvBPiwbzaFDK2eOBLkg==}
     engines: {node: '>=0.10.0'}
     peerDependencies:
       '@rspack/core': ^2.0.0-0
@@ -7616,6 +7653,14 @@ snapshots:
       '@jridgewell/trace-mapping': 0.3.31
       jsesc: 3.1.0
 
+  '@babel/generator@7.29.8':
+    dependencies:
+      '@babel/parser': 7.29.8
+      '@babel/types': 7.29.8
+      '@jridgewell/gen-mapping': 0.3.13
+      '@jridgewell/trace-mapping': 0.3.31
+      jsesc: 3.1.0
+
   '@babel/helper-annotate-as-pure@7.29.7':
     dependencies:
       '@babel/types': 7.29.7
@@ -7662,6 +7707,10 @@ snapshots:
   '@babel/parser@7.29.7':
     dependencies:
       '@babel/types': 7.29.7
+
+  '@babel/parser@7.29.8':
+    dependencies:
+      '@babel/types': 7.29.8
 
   '@babel/plugin-syntax-jsx@7.29.7(@babel/core@7.29.7)':
     dependencies:
@@ -7727,7 +7776,24 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
+  '@babel/traverse@7.29.8':
+    dependencies:
+      '@babel/code-frame': 7.29.7
+      '@babel/generator': 7.29.8
+      '@babel/helper-globals': 7.29.7
+      '@babel/parser': 7.29.8
+      '@babel/template': 7.29.7
+      '@babel/types': 7.29.8
+      debug: 4.4.3
+    transitivePeerDependencies:
+      - supports-color
+
   '@babel/types@7.29.7':
+    dependencies:
+      '@babel/helper-string-parser': 7.29.7
+      '@babel/helper-validator-identifier': 7.29.7
+
+  '@babel/types@7.29.8':
     dependencies:
       '@babel/helper-string-parser': 7.29.7
       '@babel/helper-validator-identifier': 7.29.7
@@ -7982,21 +8048,21 @@ snapshots:
 
   '@discoveryjs/json-ext@1.1.0': {}
 
-  '@docsearch/core@4.6.3(@types/react@19.2.17)(react-dom@19.2.8)(react@19.2.8)':
+  '@docsearch/core@4.6.3(@types/react@19.2.18)(react-dom@19.2.8)(react@19.2.8)':
     optionalDependencies:
-      '@types/react': 19.2.17
+      '@types/react': 19.2.18
       react: 19.2.8
       react-dom: 19.2.8(react@19.2.8)
 
   '@docsearch/css@4.6.3': {}
 
-  '@docsearch/react@4.6.3(@types/react@19.2.17)(react-dom@19.2.8)(react@19.2.8)':
+  '@docsearch/react@4.6.3(@types/react@19.2.18)(react-dom@19.2.8)(react@19.2.8)':
     dependencies:
       '@algolia/autocomplete-core': 1.19.2
-      '@docsearch/core': 4.6.3(@types/react@19.2.17)(react-dom@19.2.8)(react@19.2.8)
+      '@docsearch/core': 4.6.3(@types/react@19.2.18)(react-dom@19.2.8)(react@19.2.8)
       '@docsearch/css': 4.6.3
     optionalDependencies:
-      '@types/react': 19.2.17
+      '@types/react': 19.2.18
       react: 19.2.8
       react-dom: 19.2.8(react@19.2.8)
     transitivePeerDependencies:
@@ -8007,12 +8073,28 @@ snapshots:
     dependencies:
       '@emnapi/wasi-threads': 1.2.2
       tslib: 2.8.1
+    optional: true
+
+  '@emnapi/core@1.11.3':
+    dependencies:
+      '@emnapi/wasi-threads': 1.2.3
+      tslib: 2.8.1
 
   '@emnapi/runtime@1.11.2':
     dependencies:
       tslib: 2.8.1
+    optional: true
+
+  '@emnapi/runtime@1.11.3':
+    dependencies:
+      tslib: 2.8.1
 
   '@emnapi/wasi-threads@1.2.2':
+    dependencies:
+      tslib: 2.8.1
+    optional: true
+
+  '@emnapi/wasi-threads@1.2.3':
     dependencies:
       tslib: 2.8.1
 
@@ -8562,22 +8644,22 @@ snapshots:
       '@module-federation/runtime': 2.8.1
       '@module-federation/sdk': 2.8.1
 
-  '@napi-rs/cli@3.7.4(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)(@types/node@20.19.43)(node-addon-api@7.1.1)':
+  '@napi-rs/cli@3.7.4(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@types/node@20.19.43)(node-addon-api@7.1.1)':
     dependencies:
       '@inquirer/prompts': 8.5.2(@types/node@20.19.43)
       '@napi-rs/cross-toolchain': 1.0.3
-      '@napi-rs/wasm-tools': 1.0.1(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)
+      '@napi-rs/wasm-tools': 1.0.1(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)
       '@octokit/rest': 22.0.1
       clipanion: 4.0.0-rc.4
       colorette: 2.0.20
-      emnapi: 1.11.2(node-addon-api@7.1.1)
+      emnapi: 1.11.3(node-addon-api@7.1.1)
       es-toolkit: 1.49.0
       js-yaml: 4.3.0
       obug: 2.1.4
       semver: 7.8.5
       typanion: 3.14.0
     optionalDependencies:
-      '@emnapi/runtime': 1.11.2
+      '@emnapi/runtime': 1.11.3
     transitivePeerDependencies:
       - '@emnapi/core'
       - '@napi-rs/cross-toolchain-arm64-target-aarch64'
@@ -8594,22 +8676,22 @@ snapshots:
       - node-addon-api
       - supports-color
 
-  '@napi-rs/cli@3.7.4(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)(@types/node@26.1.1)(node-addon-api@7.1.1)':
+  '@napi-rs/cli@3.7.4(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@types/node@26.1.1)(node-addon-api@7.1.1)':
     dependencies:
       '@inquirer/prompts': 8.5.2(@types/node@26.1.1)
       '@napi-rs/cross-toolchain': 1.0.3
-      '@napi-rs/wasm-tools': 1.0.1(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)
+      '@napi-rs/wasm-tools': 1.0.1(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)
       '@octokit/rest': 22.0.1
       clipanion: 4.0.0-rc.4
       colorette: 2.0.20
-      emnapi: 1.11.2(node-addon-api@7.1.1)
+      emnapi: 1.11.3(node-addon-api@7.1.1)
       es-toolkit: 1.49.0
       js-yaml: 4.3.0
       obug: 2.1.4
       semver: 7.8.5
       typanion: 3.14.0
     optionalDependencies:
-      '@emnapi/runtime': 1.11.2
+      '@emnapi/runtime': 1.11.3
     transitivePeerDependencies:
       - '@emnapi/core'
       - '@napi-rs/cross-toolchain-arm64-target-aarch64'
@@ -8785,6 +8867,13 @@ snapshots:
       '@emnapi/core': 1.11.2
       '@emnapi/runtime': 1.11.2
       '@tybys/wasm-util': 0.10.3
+    optional: true
+
+  '@napi-rs/wasm-runtime@1.1.6(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)':
+    dependencies:
+      '@emnapi/core': 1.11.3
+      '@emnapi/runtime': 1.11.3
+      '@tybys/wasm-util': 0.10.3
 
   '@napi-rs/wasm-tools-android-arm-eabi@1.0.1':
     optional: true
@@ -8813,9 +8902,9 @@ snapshots:
   '@napi-rs/wasm-tools-linux-x64-musl@1.0.1':
     optional: true
 
-  '@napi-rs/wasm-tools-wasm32-wasi@1.0.1(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)':
+  '@napi-rs/wasm-tools-wasm32-wasi@1.0.1(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)':
     dependencies:
-      '@napi-rs/wasm-runtime': 1.1.6(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)
+      '@napi-rs/wasm-runtime': 1.1.6(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)
     transitivePeerDependencies:
       - '@emnapi/core'
       - '@emnapi/runtime'
@@ -8830,7 +8919,7 @@ snapshots:
   '@napi-rs/wasm-tools-win32-x64-msvc@1.0.1':
     optional: true
 
-  '@napi-rs/wasm-tools@1.0.1(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)':
+  '@napi-rs/wasm-tools@1.0.1(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)':
     optionalDependencies:
       '@napi-rs/wasm-tools-android-arm-eabi': 1.0.1
       '@napi-rs/wasm-tools-android-arm64': 1.0.1
@@ -8841,7 +8930,7 @@ snapshots:
       '@napi-rs/wasm-tools-linux-arm64-musl': 1.0.1
       '@napi-rs/wasm-tools-linux-x64-gnu': 1.0.1
       '@napi-rs/wasm-tools-linux-x64-musl': 1.0.1
-      '@napi-rs/wasm-tools-wasm32-wasi': 1.0.1(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)
+      '@napi-rs/wasm-tools-wasm32-wasi': 1.0.1(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)
       '@napi-rs/wasm-tools-win32-arm64-msvc': 1.0.1
       '@napi-rs/wasm-tools-win32-ia32-msvc': 1.0.1
       '@napi-rs/wasm-tools-win32-x64-msvc': 1.0.1
@@ -8988,9 +9077,9 @@ snapshots:
     dependencies:
       playwright: 1.60.0
 
-  '@prefresh/core@1.5.10(preact@10.29.7)':
+  '@prefresh/core@1.5.10(preact@10.29.8)':
     dependencies:
-      preact: 10.29.7
+      preact: 10.29.8
 
   '@prefresh/utils@1.2.1': {}
 
@@ -9260,7 +9349,7 @@ snapshots:
 
   '@rspack/plugin-preact-refresh@2.0.1(@prefresh/core@1.5.10)(@prefresh/utils@1.2.1)(@rspack/core@packages+rspack)':
     dependencies:
-      '@prefresh/core': 1.5.10(preact@10.29.7)
+      '@prefresh/core': 1.5.10(preact@10.29.8)
       '@prefresh/utils': 1.2.1
     optionalDependencies:
       '@rspack/core': link:packages/rspack
@@ -9325,10 +9414,10 @@ snapshots:
       - micromark-util-types
       - supports-color
 
-  '@rspress/plugin-algolia@2.0.18(@rspress/core@2.0.19)(@types/react@19.2.17)(react-dom@19.2.8)(react@19.2.8)':
+  '@rspress/plugin-algolia@2.0.19(@rspress/core@2.0.19)(@types/react@19.2.18)(react-dom@19.2.8)(react@19.2.8)':
     dependencies:
       '@docsearch/css': 4.6.3
-      '@docsearch/react': 4.6.3(@types/react@19.2.17)(react-dom@19.2.8)(react@19.2.8)
+      '@docsearch/react': 4.6.3(@types/react@19.2.18)(react-dom@19.2.8)(react@19.2.8)
       '@rspress/core': 2.0.19(@module-federation/runtime-tools@2.8.1)(@rspack/core@2.1.7)(core-js@3.49.0)(micromark-util-types@2.0.2)(micromark@4.0.2)
       react: 19.2.8
       react-dom: 19.2.8(react@19.2.8)
@@ -9338,16 +9427,16 @@ snapshots:
       - algoliasearch
       - search-insights
 
-  '@rspress/plugin-client-redirects@2.0.18(@rspress/core@2.0.19)':
+  '@rspress/plugin-client-redirects@2.0.19(@rspress/core@2.0.19)':
     dependencies:
       '@rspress/core': 2.0.19(@module-federation/runtime-tools@2.8.1)(@rspack/core@2.1.7)(core-js@3.49.0)(micromark-util-types@2.0.2)(micromark@4.0.2)
 
-  '@rspress/plugin-rss@2.0.18(@rspress/core@2.0.19)':
+  '@rspress/plugin-rss@2.0.19(@rspress/core@2.0.19)':
     dependencies:
       '@rspress/core': 2.0.19(@module-federation/runtime-tools@2.8.1)(@rspack/core@2.1.7)(core-js@3.49.0)(micromark-util-types@2.0.2)(micromark@4.0.2)
       feed: 5.2.1
 
-  '@rspress/plugin-sitemap@2.0.18(@rspress/core@2.0.19)':
+  '@rspress/plugin-sitemap@2.0.19(@rspress/core@2.0.19)':
     dependencies:
       '@rspress/core': 2.0.19(@module-federation/runtime-tools@2.8.1)(@rspack/core@2.1.7)(core-js@3.49.0)(micromark-util-types@2.0.2)(micromark@4.0.2)
 
@@ -9524,7 +9613,7 @@ snapshots:
     dependencies:
       '@swc/counter': 0.1.3
 
-  '@swc/types@0.1.27':
+  '@swc/types@0.1.28':
     dependencies:
       '@swc/counter': 0.1.3
 
@@ -9608,11 +9697,11 @@ snapshots:
 
   '@types/babel__generator@7.27.0':
     dependencies:
-      '@babel/types': 7.29.7
+      '@babel/types': 7.29.8
 
   '@types/babel__traverse@7.28.0':
     dependencies:
-      '@babel/types': 7.29.7
+      '@babel/types': 7.29.8
 
   '@types/chai@5.2.3':
     dependencies:
@@ -9787,11 +9876,15 @@ snapshots:
     dependencies:
       undici-types: 8.3.0
 
-  '@types/react-dom@19.2.3(@types/react@19.2.17)':
+  '@types/react-dom@19.2.4(@types/react@19.2.18)':
     dependencies:
-      '@types/react': 19.2.17
+      '@types/react': 19.2.18
 
   '@types/react@19.2.17':
+    dependencies:
+      csstype: 3.2.3
+
+  '@types/react@19.2.18':
     dependencies:
       csstype: 3.2.3
 
@@ -9902,7 +9995,7 @@ snapshots:
       '@vue/shared': 3.5.40
       estree-walker: 2.0.2
       magic-string: 0.30.21
-      postcss: 8.5.22
+      postcss: 8.5.25
       source-map-js: 1.2.1
 
   '@vue/compiler-ssr@3.5.40':
@@ -9934,10 +10027,10 @@ snapshots:
 
   '@vue/shared@3.5.40': {}
 
-  '@webdiscus/pug-loader@2.11.1(enhanced-resolve@5.24.3)':
+  '@webdiscus/pug-loader@2.11.1(enhanced-resolve@5.24.5)':
     dependencies:
       ansis: 3.10.0
-      enhanced-resolve: 5.24.3
+      enhanced-resolve: 5.24.5
       parse5: 7.3.0
       pug: 3.0.4
       webpack-merge: 6.0.1
@@ -10543,12 +10636,12 @@ snapshots:
 
   css-loader@7.1.4(@rspack/core@packages+rspack):
     dependencies:
-      icss-utils: 5.1.0(postcss@8.5.22)
-      postcss: 8.5.22
-      postcss-modules-extract-imports: 3.1.0(postcss@8.5.22)
-      postcss-modules-local-by-default: 4.2.0(postcss@8.5.22)
-      postcss-modules-scope: 3.2.1(postcss@8.5.22)
-      postcss-modules-values: 4.0.0(postcss@8.5.22)
+      icss-utils: 5.1.0(postcss@8.5.25)
+      postcss: 8.5.25
+      postcss-modules-extract-imports: 3.1.0(postcss@8.5.25)
+      postcss-modules-local-by-default: 4.2.0(postcss@8.5.25)
+      postcss-modules-scope: 3.2.1(postcss@8.5.25)
+      postcss-modules-values: 4.0.0(postcss@8.5.25)
       postcss-value-parser: 4.2.0
       semver: 7.8.5
     optionalDependencies:
@@ -10870,7 +10963,7 @@ snapshots:
       minimalistic-assert: 1.0.1
       minimalistic-crypto-utils: 1.0.1
 
-  emnapi@1.11.2(node-addon-api@7.1.1):
+  emnapi@1.11.3(node-addon-api@7.1.1):
     optionalDependencies:
       node-addon-api: 7.1.1
 
@@ -10881,6 +10974,11 @@ snapshots:
   emojis-list@3.0.0: {}
 
   enhanced-resolve@5.24.3:
+    dependencies:
+      graceful-fs: 4.2.11
+      tapable: 2.3.3
+
+  enhanced-resolve@5.24.5:
     dependencies:
       graceful-fs: 4.2.11
       tapable: 2.3.3
@@ -11363,7 +11461,7 @@ snapshots:
       property-information: 7.2.0
       space-separated-tokens: 2.0.2
 
-  heading-case@1.1.3: {}
+  heading-case@1.1.4: {}
 
   hmac-drbg@1.0.1:
     dependencies:
@@ -11445,9 +11543,9 @@ snapshots:
     dependencies:
       safer-buffer: 2.1.2
 
-  icss-utils@5.1.0(postcss@8.5.22):
+  icss-utils@5.1.0(postcss@8.5.25):
     dependencies:
-      postcss: 8.5.22
+      postcss: 8.5.25
 
   ieee754@1.2.1: {}
 
@@ -12685,66 +12783,66 @@ snapshots:
 
   possible-typed-array-names@1.1.0: {}
 
-  postcss-import@15.1.0(postcss@8.5.22):
+  postcss-import@15.1.0(postcss@8.5.25):
     dependencies:
-      postcss: 8.5.22
+      postcss: 8.5.25
       postcss-value-parser: 4.2.0
       read-cache: 1.0.0
       resolve: 1.22.12
 
-  postcss-js@4.1.0(postcss@8.5.22):
+  postcss-js@4.1.0(postcss@8.5.25):
     dependencies:
       camelcase-css: 2.0.1
-      postcss: 8.5.22
+      postcss: 8.5.25
 
-  postcss-load-config@6.0.1(jiti@1.21.7)(postcss@8.5.22)(yaml@2.9.0):
+  postcss-load-config@6.0.1(jiti@1.21.7)(postcss@8.5.25)(yaml@2.9.0):
     dependencies:
       lilconfig: 3.1.3
     optionalDependencies:
       jiti: 1.21.7
-      postcss: 8.5.22
+      postcss: 8.5.25
       yaml: 2.9.0
 
-  postcss-loader@8.2.1(@rspack/core@packages+rspack)(postcss@8.5.22)(typescript@6.0.3):
+  postcss-loader@8.2.1(@rspack/core@packages+rspack)(postcss@8.5.25)(typescript@6.0.3):
     dependencies:
       cosmiconfig: 9.0.2(typescript@6.0.3)
       jiti: 2.7.0
-      postcss: 8.5.22
+      postcss: 8.5.25
       semver: 7.8.5
     optionalDependencies:
       '@rspack/core': link:packages/rspack
     transitivePeerDependencies:
       - typescript
 
-  postcss-modules-extract-imports@3.1.0(postcss@8.5.22):
+  postcss-modules-extract-imports@3.1.0(postcss@8.5.25):
     dependencies:
-      postcss: 8.5.22
+      postcss: 8.5.25
 
-  postcss-modules-local-by-default@4.2.0(postcss@8.5.22):
+  postcss-modules-local-by-default@4.2.0(postcss@8.5.25):
     dependencies:
-      icss-utils: 5.1.0(postcss@8.5.22)
-      postcss: 8.5.22
+      icss-utils: 5.1.0(postcss@8.5.25)
+      postcss: 8.5.25
       postcss-selector-parser: 7.1.4
       postcss-value-parser: 4.2.0
 
-  postcss-modules-scope@3.2.1(postcss@8.5.22):
+  postcss-modules-scope@3.2.1(postcss@8.5.25):
     dependencies:
-      postcss: 8.5.22
+      postcss: 8.5.25
       postcss-selector-parser: 7.1.4
 
-  postcss-modules-values@4.0.0(postcss@8.5.22):
+  postcss-modules-values@4.0.0(postcss@8.5.25):
     dependencies:
-      icss-utils: 5.1.0(postcss@8.5.22)
-      postcss: 8.5.22
+      icss-utils: 5.1.0(postcss@8.5.25)
+      postcss: 8.5.25
 
-  postcss-nested@6.2.0(postcss@8.5.22):
+  postcss-nested@6.2.0(postcss@8.5.25):
     dependencies:
-      postcss: 8.5.22
+      postcss: 8.5.25
       postcss-selector-parser: 6.1.4
 
-  postcss-pxtorem@6.1.0(postcss@8.5.22):
+  postcss-pxtorem@6.1.0(postcss@8.5.25):
     dependencies:
-      postcss: 8.5.22
+      postcss: 8.5.25
 
   postcss-selector-parser@6.1.4:
     dependencies:
@@ -12764,9 +12862,15 @@ snapshots:
       picocolors: 1.1.1
       source-map-js: 1.2.1
 
+  postcss@8.5.25:
+    dependencies:
+      nanoid: 3.3.16
+      picocolors: 1.1.1
+      source-map-js: 1.2.1
+
   powershell-utils@0.1.0: {}
 
-  preact@10.29.7: {}
+  preact@10.29.8: {}
 
   prebundle@1.6.5(typescript@6.0.3):
     dependencies:
@@ -12958,7 +13062,7 @@ snapshots:
     optionalDependencies:
       react-dom: 19.2.8(react@19.2.8)
 
-  react-server-dom-rspack@0.0.2(@rspack/core@packages+rspack)(react-dom@19.2.8)(react@19.2.8):
+  react-server-dom-rspack@0.0.3(@rspack/core@packages+rspack)(react-dom@19.2.8)(react@19.2.8):
     dependencies:
       '@rspack/core': link:packages/rspack
       react: 19.2.8
@@ -13628,11 +13732,11 @@ snapshots:
       normalize-path: 3.0.0
       object-hash: 3.0.0
       picocolors: 1.1.1
-      postcss: 8.5.22
-      postcss-import: 15.1.0(postcss@8.5.22)
-      postcss-js: 4.1.0(postcss@8.5.22)
-      postcss-load-config: 6.0.1(jiti@1.21.7)(postcss@8.5.22)(yaml@2.9.0)
-      postcss-nested: 6.2.0(postcss@8.5.22)
+      postcss: 8.5.25
+      postcss-import: 15.1.0(postcss@8.5.25)
+      postcss-js: 4.1.0(postcss@8.5.25)
+      postcss-load-config: 6.0.1(jiti@1.21.7)(postcss@8.5.25)(yaml@2.9.0)
+      postcss-nested: 6.2.0(postcss@8.5.25)
       postcss-selector-parser: 6.1.4
       resolve: 1.22.12
       sucrase: 3.35.1
@@ -13644,14 +13748,14 @@ snapshots:
 
   tapable@2.3.3: {}
 
-  terser-webpack-plugin@5.6.1(postcss@8.5.22):
+  terser-webpack-plugin@5.6.1(postcss@8.5.25):
     dependencies:
       '@jridgewell/trace-mapping': 0.3.31
       jest-worker: 27.5.1
       schema-utils: 4.3.3
       terser: 5.49.0
     optionalDependencies:
-      postcss: 8.5.22
+      postcss: 8.5.25
 
   terser@5.49.0:
     dependencies:
