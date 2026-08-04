@@ -91,7 +91,10 @@ pub fn render_chunk_loading_hmr_state_expression(
     ChunkLoading::Enable(ChunkLoadingType::ImportScripts) => "importScripts",
     ChunkLoading::Enable(ChunkLoadingType::Require) => "require",
     ChunkLoading::Enable(ChunkLoadingType::AsyncNode) => "readFileVm",
-    _ => "jsonp",
+    ChunkLoading::Enable(ChunkLoadingType::Jsonp) => "jsonp",
+    ChunkLoading::Enable(ChunkLoadingType::Custom(_)) => "custom",
+    // A Fallback value While Chunk loading disable, HMR throw Error in Browser.
+    ChunkLoading::Disable => "disable",
   };
   render_hmr_runtime_state_expression(runtime_template, key)
 }
