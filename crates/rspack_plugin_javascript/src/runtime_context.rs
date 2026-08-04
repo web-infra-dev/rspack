@@ -393,9 +393,9 @@ fn render_runtime_chunk_runtime_modules_sync(
     }
   }
   if isolate {
-    sources.add(RawStringSource::from("(function() {\n".to_string()));
+    sources.add(RawStringSource::from_static("(function() {\n"));
     sources.add(wrapped_sources);
-    sources.add(RawStringSource::from("\n}).call(this);\n".to_string()));
+    sources.add(RawStringSource::from_static("\n})();\n"));
   } else {
     sources.add(wrapped_sources);
   }
@@ -422,7 +422,7 @@ pub async fn render_chunk_runtime_modules(
     .tree_runtime_requirements
     .contains(RuntimeGlobals::HMR_DOWNLOAD_MANIFEST);
 
-  sources.add(RawStringSource::from("(function() {\n".to_string()));
+  sources.add(RawStringSource::from_static("(function() {\n"));
   let render_context_field = |runtime_global: RuntimeGlobals| {
     runtime_global
       .rspack_context_property_name()
@@ -483,7 +483,7 @@ pub async fn render_chunk_runtime_modules(
     }
   }
 
-  sources.add(RawStringSource::from("\n}).call(this);\n".to_string()));
+  sources.add(RawStringSource::from_static("\n})();\n"));
 
   Ok(sources.boxed())
 }
