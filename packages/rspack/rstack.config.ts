@@ -123,37 +123,20 @@ const codmodPlugin: RsbuildPlugin = {
      * Replaces `@rspack/binding` to code that reads env `RSPACK_BINDING` as the custom binding.
      */
     function replaceBinding(root: SgNode<TypesMap, Kinds>): Edit[] {
-      const edits: Edit[] = [];
-
-      // Pattern 1: let binding_namespaceObject = __rspack_createRequire_require("@rspack/binding");
-      const pattern1 = `let binding_namespaceObject = __rspack_createRequire_require("@rspack/binding");`;
-      const binding1 = root.find(pattern1);
-      if (binding1) {
-        edits.push(
-          binding1.replace(
-            `let binding_namespaceObject = __rspack_createRequire_require(process.env.RSPACK_BINDING ? process.env.RSPACK_BINDING : "@rspack/binding");`,
-          ),
-        );
-      }
-
-      // Pattern 2: let instanceBinding = Compiler_require('@rspack/binding');
-      const pattern2 = `let instanceBinding = Compiler_require('@rspack/binding');`;
-      const binding2 = root.find(pattern2);
-      if (binding2) {
-        edits.push(
-          binding2.replace(
-            `let instanceBinding = Compiler_require(process.env.RSPACK_BINDING ? process.env.RSPACK_BINDING : '@rspack/binding');`,
-          ),
-        );
-      }
-
-      if (edits.length === 0) {
+      const binding = root.find(
+        `__rspack_createRequire_require("@rspack/binding")`,
+      );
+      if (!binding) {
         throw new Error(
           'Cannot find any binding require statements to replace',
         );
       }
 
-      return edits;
+      return [
+        binding.replace(
+          `__rspack_createRequire_require(process.env.RSPACK_BINDING || "@rspack/binding")`,
+        ),
+      ];
     }
 
     api.onAfterBuild(() => {
@@ -194,6 +177,18 @@ const removeDtsExportPlugin: RsbuildPlugin = {
 };
 
 define.lib({
+  tools: {
+    rspack: {
+      module: {
+        parser: {
+          javascript: {
+            // TODO: Remove this override after upgrading Rslib, which enables the createRequire parser by default.
+            createRequire: true,
+          },
+        },
+      },
+    },
+  },
   plugins: [mfRuntimePlugin, codmodPlugin, removeDtsExportPlugin],
   lib: [
     merge(commonLibConfig, {
