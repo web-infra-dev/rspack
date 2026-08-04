@@ -134,7 +134,7 @@ const codmodPlugin: RsbuildPlugin = {
 
       return [
         binding.replace(
-          `__rspack_createRequire_require(process.env.RSPACK_BINDING ? process.env.RSPACK_BINDING : "@rspack/binding")`,
+          `__rspack_createRequire_require(process.env.RSPACK_BINDING || "@rspack/binding")`,
         ),
       ];
     }
