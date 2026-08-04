@@ -69,8 +69,8 @@ export default defineConfig<RspackOptions>({
               cache.storage = {
                 type: 'filesystem',
                 ...cache.storage,
-                //rewrite directory
-                directory: 'node_modules/.cache/incremental',
+                // Rewrite the complete cache location.
+                location: 'node_modules/.cache/incremental',
               };
             }
             return config;

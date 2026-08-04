@@ -3,7 +3,7 @@ const path = require('node:path');
 
 const cacheDir = path.join(__dirname, 'node_modules/.cache/max-versions');
 // Change cache.version between restarts to create multiple persistent cache
-// versions under the same storage directory.
+// versions under the same cache location.
 const cacheVersions = ['v1', 'v2', 'v3', 'v4'];
 let buildIndex = 0;
 let firstVersion;
@@ -42,7 +42,7 @@ module.exports = {
     maxVersions: 2,
     storage: {
       type: 'filesystem',
-      directory: cacheDir,
+      location: cacheDir,
     },
   },
   plugins: [
