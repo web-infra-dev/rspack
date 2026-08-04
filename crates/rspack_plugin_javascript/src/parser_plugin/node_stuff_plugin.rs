@@ -4,6 +4,7 @@ use rspack_core::{
   parse_resource,
 };
 use rspack_error::{Diagnostic, cyan, yellow};
+use rspack_util::SpanExt;
 use sugar_path::SugarPath;
 use swc_experimental_ecma_ast::{Expr, GetSpan, Ident, UnaryExpr};
 
@@ -237,6 +238,13 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for NodeStuffPlugin {
         NodeGlobalOption::True | NodeGlobalOption::Warn
       )
     {
+      if parser.in_short_hand {
+        let start = ident.span.real_lo();
+        parser.add_presentational_dependency(Box::new(ConstDependency::new(
+          (start, start).into(),
+          format!("{}: ", ident.sym).into(),
+        )));
+      }
       parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
         ident.span.into(),
         RuntimeGlobals::GLOBAL,
