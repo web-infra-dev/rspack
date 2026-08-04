@@ -1055,6 +1055,9 @@ importers:
       '@prefresh/utils':
         specifier: 'catalog:'
         version: 1.2.1
+      '@rspack/binding':
+        specifier: workspace:*
+        version: link:../../crates/node_binding
       '@rspack/binding-testing':
         specifier: workspace:*
         version: link:../../crates/rspack_binding_builder_testing
