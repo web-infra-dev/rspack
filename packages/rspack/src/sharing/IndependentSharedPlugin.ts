@@ -36,6 +36,7 @@ const filterPlugin = (plugin: Plugins[0], excludedPlugins: string[] = []) => {
     'TreeShakingSharedPlugin',
     'IndependentSharedPlugin',
     'ModuleFederationPlugin',
+    'RspackModuleFederationPlugin',
     'SharedUsedExportsOptimizerPlugin',
     'HtmlWebpackPlugin',
     'HtmlRspackPlugin',

@@ -2,6 +2,19 @@ const { container } = require('@rspack/core');
 
 const { ModuleFederationPlugin } = container;
 
+class RspackModuleFederationPlugin {
+  name = 'RspackModuleFederationPlugin';
+
+  apply(compiler) {
+    const outputPath = compiler.options.output?.path || '';
+    if (outputPath.includes('independent-packages')) {
+      throw new Error(
+        'RspackModuleFederationPlugin should not be applied to shared fallback compilers',
+      );
+    }
+  }
+}
+
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
   externals: {
@@ -19,6 +32,7 @@ module.exports = {
     chunkFilename: '[id].js',
   },
   plugins: [
+    new RspackModuleFederationPlugin(),
     new ModuleFederationPlugin({
       name: 'tree_shaking_share',
       manifest: true,
