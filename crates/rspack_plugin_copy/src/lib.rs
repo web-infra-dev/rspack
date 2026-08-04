@@ -13,7 +13,7 @@ use fast_glob::glob_match;
 use futures::{StreamExt, future::BoxFuture, stream::FuturesOrdered};
 use regex::Regex;
 use rspack_core::{
-  AssetInfo, AssetInfoRelated, Compilation, CompilationAsset, CompilationLogger,
+  AssetInfo, AssetInfoRelated, CacheOptions, Compilation, CompilationAsset, CompilationLogger,
   CompilationProcessAssets, Filename, GlobMatchOptions, Logger, PathData, Plugin,
   escape_glob_pattern, extract_glob_base_dir, find_files_by_glob,
   rspack_sources::{BoxSource, RawBufferSource, SourceExt},
@@ -707,6 +707,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let mut context_dependencies = Vec::new();
   let mut diagnostics = Vec::new();
   let cache_counter = logger.cache("copy pattern cache");
+  let pattern_cache_enabled = !matches!(&compilation.options.cache, CacheOptions::Disabled);
 
   let mut results_by_pattern = vec![None; self.patterns.len()];
   let mut pending_patterns = Vec::new();
@@ -718,7 +719,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     pattern_cache.resize_with(self.patterns.len(), || None);
 
     for (index, pattern) in self.patterns.iter().enumerate() {
-      let cacheable = CopyRspackPlugin::is_cacheable(pattern);
+      let cacheable = pattern_cache_enabled && CopyRspackPlugin::is_cacheable(pattern);
       let cached = &mut pattern_cache[index];
 
       if cacheable

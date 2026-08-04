@@ -144,5 +144,51 @@ function emptyRebuildCase() {
 	};
 }
 
+function disabledCacheCase() {
+	let root;
+	return {
+		description: "should not store pattern results when cache is disabled",
+		options(context) {
+			const project = createProject(
+				context,
+				"cache-disabled",
+				[{ from: "assets/source", to: "copied" }],
+				false
+			);
+			root = project.root;
+			write(root, "assets/source/one.txt", "copied\n");
+			return project.options;
+		},
+		compiler: useRealOutputFileSystem,
+		async build(_context, compiler) {
+			const initial = await compile(compiler);
+			expect(asset(initial, "copied/one.txt")).toBe("copied\n");
+
+			let entry = write(
+				root,
+				"src/index.js",
+				"module.exports = 'first change';\n"
+			);
+			let updated = await rebuild(compiler, [entry]);
+			expect(reusedPatterns(updated)).toBe(0);
+			expect(asset(updated, "copied/one.txt")).toBe("copied\n");
+
+			entry = write(
+				root,
+				"src/index.js",
+				"module.exports = 'second change';\n"
+			);
+			updated = await rebuild(compiler, [entry]);
+			expect(reusedPatterns(updated)).toBe(0);
+			expect(asset(updated, "copied/one.txt")).toBe("copied\n");
+		}
+	};
+}
+
 /** @type {import('@rspack/test-tools').TCompilerCaseConfig[]} */
-module.exports = [cacheablePatternsCase(), separateRunsCase(), emptyRebuildCase()];
+module.exports = [
+	cacheablePatternsCase(),
+	separateRunsCase(),
+	emptyRebuildCase(),
+	disabledCacheCase()
+];

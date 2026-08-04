@@ -15,7 +15,7 @@ function remove(root, filename) {
 	return file;
 }
 
-function createProject(context, name, patterns) {
+function createProject(context, name, patterns, cache = true) {
 	const root = context.getDist(name);
 	fs.rmSync(root, { recursive: true, force: true });
 	write(root, "src/index.js", "module.exports = 'initial';\n");
@@ -27,7 +27,7 @@ function createProject(context, name, patterns) {
 			mode: "development",
 			target: "node",
 			devtool: false,
-			cache: true,
+			cache,
 			incremental: true,
 			entry: "./src/index.js",
 			output: { path: path.join(root, "dist"), filename: "main.js" },
