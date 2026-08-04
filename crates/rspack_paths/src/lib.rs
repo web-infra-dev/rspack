@@ -1,9 +1,12 @@
+#[cfg(unix)]
+use std::os::unix::ffi::OsStrExt;
 use std::{
   collections::{HashMap, HashSet},
   fmt::Debug,
-  hash::BuildHasherDefault,
+  hash::{BuildHasherDefault, Hash, Hasher},
   ops::Deref,
   path::{Path, PathBuf},
+  sync::Arc,
 };
 
 pub use camino::{Utf8Component, Utf8Components, Utf8Path, Utf8PathBuf, Utf8Prefix};
@@ -15,6 +18,7 @@ use rspack_cacheable::{
   with::{Custom, CustomConverter},
 };
 pub use rspack_resolver::{ToUstrPath, UstrPath, UstrPathSet};
+use rustc_hash::FxHasher;
 pub use ustr::IdentityHasher;
 
 pub trait AssertUtf8 {
@@ -52,59 +56,79 @@ impl<'a> AssertUtf8 for &'a Path {
   }
 }
 
-/// An interned absolute path.
-///
-/// Backed by [`UstrPath`], so two `ArcPath`s naming the same path are the same
-/// 8-byte handle: equality is an integer compare and hashing is a `write_u64`
-/// of the hash the interner already computed. The name is kept for historical
-/// reasons — there is no longer an `Arc` involved.
 #[cacheable(with=Custom)]
-#[derive(Clone, PartialEq, Eq, Hash)]
-pub struct ArcPath(UstrPath);
+#[derive(Clone, PartialEq, Eq)]
+pub struct ArcPath {
+  path: Arc<Path>,
+  // Pre-calculating and caching the hash value upon creation, making hashing operations
+  // in collections virtually free.
+  hash: u64,
+}
 
 impl Debug for ArcPath {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    // Forward to `Path` rather than `UstrPath` so the rendering stays identical
-    // to the previous `Arc<Path>`-backed representation.
-    self.0.as_std_path().fmt(f)
+    self.path.fmt(f)
   }
 }
 
 impl ArcPath {
-  pub fn new<P: ToUstrPath + ?Sized>(path: &P) -> Self {
-    Self(path.to_ustr_path())
+  pub fn new(path: Arc<Path>) -> Self {
+    let hash = hash_path(&path);
+    Self { path, hash }
+  }
+
+  /// Build an `ArcPath` from a precomputed hash and an `Arc<Path>` without
+  /// rehashing. The caller MUST guarantee that `hash` equals [`hash_path`] of
+  /// `path`. Used at boundaries (e.g. consuming `rspack_resolver::UstrPath`)
+  /// where the same `FxHash` has already been computed upstream.
+  #[inline]
+  pub fn from_parts(hash: u64, path: Arc<Path>) -> Self {
+    Self { path, hash }
   }
 }
 
+/// Hash a path with `FxHasher` matching the bytes-on-unix optimization used by
+/// `rspack_resolver`. Keeping these in sync lets `ArcPath::from_parts` accept
+/// a hash precomputed inside the resolver without rehashing here.
+#[inline]
+pub fn hash_path(path: &Path) -> u64 {
+  let mut hasher = FxHasher::default();
+  #[cfg(unix)]
+  hasher.write(path.as_os_str().as_bytes());
+  #[cfg(not(unix))]
+  path.hash(&mut hasher);
+  hasher.finish()
+}
+
 impl Deref for ArcPath {
-  type Target = Path;
+  type Target = Arc<Path>;
 
   fn deref(&self) -> &Self::Target {
-    self.0.as_std_path()
+    &self.path
   }
 }
 
 impl AsRef<Path> for ArcPath {
   fn as_ref(&self) -> &Path {
-    self.0.as_std_path()
+    &self.path
   }
 }
 
 impl From<PathBuf> for ArcPath {
   fn from(value: PathBuf) -> Self {
-    ArcPath::new(value.as_path())
+    ArcPath::new(value.into())
   }
 }
 
 impl From<&Path> for ArcPath {
   fn from(value: &Path) -> Self {
-    ArcPath::new(value)
+    ArcPath::new(value.into())
   }
 }
 
 impl From<&Utf8Path> for ArcPath {
   fn from(value: &Utf8Path) -> Self {
-    ArcPath::new(value)
+    ArcPath::new(value.as_std_path().into())
   }
 }
 
@@ -116,30 +140,43 @@ impl From<&ArcPath> for ArcPath {
 
 impl From<&str> for ArcPath {
   fn from(value: &str) -> Self {
-    ArcPath::new(value)
+    ArcPath::new(<str as std::convert::AsRef<Path>>::as_ref(value).into())
   }
 }
 
 impl From<UstrPath> for ArcPath {
-  /// Free: both sides are the same interned 8-byte handle.
-  #[inline]
+  /// Materializes an `Arc` at the resolver boundary rather than carrying the
+  /// interned handle further in.
+  ///
+  /// Making `ArcPath` a newtype over `UstrPath` removes this allocation, and
+  /// was tried — it measured no better. Callgrind on the codspeed profile put
+  /// `module_graph_api` bit-identical either way, while
+  /// `concatenate_module_code_generation` moved from +0.24% to +2.82% cycles:
+  /// once path bytes live in the interner arena instead of a nearby `Arc`,
+  /// the same memcpys land on colder lines (LL misses +18%, which the cycle
+  /// estimate weights 100x). Keeping the `Arc` keeps path data next to the
+  /// data that reads it.
   fn from(value: UstrPath) -> Self {
-    Self(value)
+    ArcPath::new(Arc::from(value.as_std_path()))
   }
 }
 
 impl CustomConverter for ArcPath {
   type Target = PortablePath;
   fn serialize(&self, guard: &ContextGuard) -> Result<Self::Target, CacheableError> {
-    Ok(PortablePath::new(
-      self.0.as_std_path(),
-      guard.project_root(),
-    ))
+    Ok(PortablePath::new(&self.path, guard.project_root()))
   }
   fn deserialize(data: Self::Target, guard: &ContextGuard) -> Result<Self, CacheableError> {
     Ok(Self::from(PathBuf::from(
       data.into_path_string(guard.project_root()),
     )))
+  }
+}
+
+impl Hash for ArcPath {
+  #[inline]
+  fn hash<H: Hasher>(&self, state: &mut H) {
+    state.write_u64(self.hash);
   }
 }
 
