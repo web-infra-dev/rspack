@@ -63,7 +63,7 @@ const runCompiler = (context, cacheDirectory, version) =>
 				maxVersions: 2,
 				storage: {
 					type: "filesystem",
-					directory: cacheDirectory
+					location: cacheDirectory
 				}
 			},
 			plugins: [new ChildCompilersPlugin()]

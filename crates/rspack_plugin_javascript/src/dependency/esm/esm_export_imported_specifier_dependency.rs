@@ -9,10 +9,11 @@ use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   AsContextDependency, ChunkGraph, ConditionalInitFragment, ConnectionState, Dependency,
   DependencyCategory, DependencyCodeGeneration, DependencyCondition, DependencyConditionFn,
-  DependencyId, DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType,
-  DependencyType, DetermineExportAssignmentsKey, ESMExportBinding, ESMExportInitFragment,
-  ExportMode, ExportModeDynamicReexport, ExportModeEmptyStar, ExportModeFakeNamespaceObject,
-  ExportModeNormalReexport, ExportModeReexportDynamicDefault, ExportModeReexportNamedDefault,
+  DependencyDiagnosticsContext, DependencyId, DependencyLocation, DependencyRange,
+  DependencyTemplate, DependencyTemplateType, DependencyType, DetermineExportAssignmentsKey,
+  ESMExportBinding, ESMExportInitFragment, ExportMode, ExportModeDynamicReexport,
+  ExportModeEmptyStar, ExportModeFakeNamespaceObject, ExportModeNormalReexport,
+  ExportModeReexportDynamicDefault, ExportModeReexportNamedDefault,
   ExportModeReexportNamespaceObject, ExportModeReexportUndefined, ExportModeUnused,
   ExportNameOrSpec, ExportPresenceMode, ExportProvided, ExportSpec, ExportsInfoArtifact,
   ExportsInfoData, ExportsOfExportsSpec, ExportsSpec, ExportsType, FactorizeInfo, ForwardId,
@@ -1039,6 +1040,7 @@ impl ESMExportImportedSpecifierDependency {
     module_graph_cache: &ModuleGraphCacheArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
     should_error: bool,
+    diagnostics_context: &DependencyDiagnosticsContext,
   ) -> Option<Vec<Diagnostic>> {
     let create_error = |message: String| {
       let (severity, title) = if should_error {
@@ -1051,10 +1053,10 @@ impl ESMExportImportedSpecifierDependency {
         .expect("should have parent module for dependency");
       let mut error = if let Some(span) = self.range()
         && let Some(parent_module) = module_graph.module_by_identifier(parent_module_identifier)
-        && let Some(source) = parent_module.source()
+        && let Some(source) = diagnostics_context.module_source(parent_module.as_ref())
       {
-        Error::from_string(
-          Some(source.source().into_string_lossy().into_owned()),
+        Error::from_shared_source(
+          Some(source),
           span.start as usize,
           span.end as usize,
           title.to_string(),
@@ -1423,6 +1425,21 @@ impl Dependency for ESMExportImportedSpecifierDependency {
     module_graph_cache: &ModuleGraphCacheArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
   ) -> Option<Vec<Diagnostic>> {
+    self.get_diagnostics_with_context(
+      module_graph,
+      module_graph_cache,
+      exports_info_artifact,
+      &DependencyDiagnosticsContext::default(),
+    )
+  }
+
+  fn get_diagnostics_with_context(
+    &self,
+    module_graph: &ModuleGraph,
+    module_graph_cache: &ModuleGraphCacheArtifact,
+    exports_info_artifact: &ExportsInfoArtifact,
+    diagnostics_context: &DependencyDiagnosticsContext,
+  ) -> Option<Vec<Diagnostic>> {
     let module = module_graph.get_parent_module(&self.id)?;
     let module = module_graph.module_by_identifier(module)?;
     let ids = self.get_ids(module_graph);
@@ -1442,6 +1459,7 @@ impl Dependency for ESMExportImportedSpecifierDependency {
           name,
           true,
           should_error,
+          diagnostics_context,
         )
       {
         diagnostics.push(error);
@@ -1452,6 +1470,7 @@ impl Dependency for ESMExportImportedSpecifierDependency {
         module_graph_cache,
         exports_info_artifact,
         should_error,
+        diagnostics_context,
       ) {
         diagnostics.extend(errors);
       }

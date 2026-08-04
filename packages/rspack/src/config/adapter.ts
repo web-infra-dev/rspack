@@ -127,18 +127,23 @@ function getRawCache(cache: CacheNormalized): RawOptions['cache'] {
     return value;
   };
   return {
-    ...cache,
+    type: cache.type,
+    buildDependencies: cache.buildDependencies,
+    version: cache.version,
     maxAge: toRawStorageLimit('cache.maxAge', cache.maxAge!),
     maxVersions: toRawStorageLimit('cache.maxVersions', cache.maxVersions!),
     storage: {
-      ...cache.storage,
-      directory: cache.storage.directory!,
+      type: cache.storage.type,
+      // Raw `directory` expects the final cache path; normalized `directory` is only the base.
+      directory: cache.storage.location!,
     },
     snapshot: {
       immutablePaths: cache.snapshot.immutablePaths!,
       unmanagedPaths: cache.snapshot.unmanagedPaths!,
       managedPaths: cache.snapshot.managedPaths!,
     },
+    portable: cache.portable,
+    readonly: cache.readonly,
   };
 }
 

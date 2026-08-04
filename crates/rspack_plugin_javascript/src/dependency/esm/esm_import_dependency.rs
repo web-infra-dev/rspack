@@ -3,11 +3,12 @@ use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   AsContextDependency, AwaitDependenciesInitFragment, BuildMetaDefaultObject, ChunkGraph,
   ConditionalInitFragment, ConnectionState, Dependency, DependencyCategory,
-  DependencyCodeGeneration, DependencyCondition, DependencyConditionFn, DependencyId,
-  DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
-  ExportProvided, ExportsInfoArtifact, ExportsType, FactorizeInfo, ForwardId, ImportAttributes,
-  ImportPhase, InitFragmentExt, InitFragmentKey, InitFragmentStage, LazyUntil, ModuleDependency,
-  ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, ProvidedExports, ReferencedExport,
+  DependencyCodeGeneration, DependencyCondition, DependencyConditionFn,
+  DependencyDiagnosticsContext, DependencyId, DependencyLocation, DependencyRange,
+  DependencyTemplate, DependencyTemplateType, DependencyType, ExportProvided, ExportsInfoArtifact,
+  ExportsType, FactorizeInfo, ForwardId, ImportAttributes, ImportPhase, InitFragmentExt,
+  InitFragmentKey, InitFragmentStage, LazyUntil, ModuleDependency, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleIdentifier, ProvidedExports, ReferencedExport,
   ResourceIdentifier, RuntimeCondition, RuntimeSpec, SideEffectsStateArtifact, SourceType,
   TemplateContext, TemplateReplaceSource, TypeReexportPresenceMode, filter_runtime,
 };
@@ -282,6 +283,7 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
   name: &Atom,
   is_reexport: bool,
   should_error: bool,
+  diagnostics_context: &DependencyDiagnosticsContext,
 ) -> Option<Diagnostic> {
   let imported_module = module_graph.get_module_by_dependency_id(module_dependency.id())?;
   if imported_module.first_error().is_some() {
@@ -313,10 +315,10 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
       (Severity::Warning, "ESModulesLinkingWarning")
     };
     let mut error = if let Some(span) = module_dependency.range()
-      && let Some(source) = parent_module.source()
+      && let Some(source) = diagnostics_context.module_source(parent_module.as_ref())
     {
-      Error::from_string(
-        Some(source.source().into_string_lossy().into_owned()),
+      Error::from_shared_source(
+        Some(source),
         span.start as usize,
         span.end as usize,
         title.to_string(),

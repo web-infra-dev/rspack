@@ -2,7 +2,7 @@ import { rspackRequire, moduleFactories, definePropertyGetters, makeNamespaceObj
 import * as __rspack_external_external1_alias_dd38afe7 from "external1-alias";
 import * as __rspack_external_external2_alias_d6100a5a from "external2-alias";
 moduleFactories.add({
-42(__unused_rspack_module, exports, rspackRequire) {
+42(__unused_rspack_module, exports) {
 makeNamespaceObject(exports);
 /* import */ var external1__rspack_import_0 = rspackRequire(322);
 

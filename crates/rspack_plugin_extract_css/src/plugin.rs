@@ -558,8 +558,7 @@ async fn runtime_requirement_in_tree(
       Box::new(
         GetChunkFilenameRuntimeModule::new(
           &compilation.runtime_template,
-          "css",
-          "mini-css",
+          ("css", "mini-css"),
           SOURCE_TYPE[0],
           global,
           move |runtime_requirements| {
@@ -578,6 +577,7 @@ async fn runtime_requirement_in_tree(
                 }
               })
           },
+          *chunk_ukey,
         )
         .with_rspack_export_global(MINI_CSS_CHUNK_FILENAME_EXPORT_GLOBAL),
       ),

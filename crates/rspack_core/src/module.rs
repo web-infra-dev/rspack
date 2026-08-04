@@ -420,6 +420,9 @@ pub enum BuildMetaDefaultObject {
   #[default]
   False,
   Redirect,
+  // Must match webpack / Display (`redirect-warn`), not serde camelCase (`redirectWarn`).
+  // camelCase broke DllPlugin manifests consumed by DllReferencePlugin (see #15010).
+  #[serde(rename = "redirect-warn")]
   RedirectWarn,
 }
 
