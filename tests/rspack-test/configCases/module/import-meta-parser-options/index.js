@@ -2,6 +2,8 @@ import disabledFields from "./disabled-fields";
 import emptyOptions from "./empty-options";
 const fs = require("fs");
 
+import.meta.UNKNOWN_PROPERTY = "runtime";
+const preservedUnknownProperty = import.meta.UNKNOWN_PROPERTY;
 let preservedComputedAccesses = 0;
 const getPreservedProperty = () => {
 	preservedComputedAccesses++;
@@ -20,7 +22,8 @@ it("should treat an empty importMeta object like preserve-unknown", () => {
 	expect(emptyOptions.missingOptional).toBeUndefined();
 });
 
-it("should preserve computed import.meta properties for runtime evaluation", () => {
+it("should default to preserve-unknown for output modules", () => {
+	expect(preservedUnknownProperty).toBe("runtime");
 	expect(preservedComputedUrl).toBeTypeOf("string");
 	expect(preservedComputedAccesses).toBe(1);
 });

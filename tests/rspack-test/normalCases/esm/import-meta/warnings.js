@@ -30,7 +30,6 @@ module.exports = [
 	[/Accessing unknown `import.meta` property 'tick`mark' is replaced with undefined\./],
 	[/Accessing unknown `import.meta` property 'quote\\'mark' is replaced with undefined\./],
 	[/Accessing unknown `import.meta` property '\*\/' is replaced with undefined\./],
-	[/Dynamic `import.meta` property access may return undefined\./],
 	[
 		/Accessing unknown `import.meta` property 'other.other.other' is replaced with undefined\./
 	],

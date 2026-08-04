@@ -393,29 +393,25 @@ impl ImportMetaPlugin {
       return;
     }
 
-    let message = if members.is_empty() {
-      "Dynamic `import.meta` property access may return undefined.".to_string()
-    } else {
-      let property = members
-        .iter()
-        .map(|member| {
-          let mut escaped = String::with_capacity(member.len());
-          for ch in member.chars() {
-            if ch == '\'' {
-              escaped.push_str("\\'");
-            } else {
-              escaped.extend(ch.escape_debug());
-            }
+    let property = members
+      .iter()
+      .map(|member| {
+        let mut escaped = String::with_capacity(member.len());
+        for ch in member.chars() {
+          if ch == '\'' {
+            escaped.push_str("\\'");
+          } else {
+            escaped.extend(ch.escape_debug());
           }
-          escaped
-        })
-        .join(".");
-      concat_string!(
-        "Accessing unknown `import.meta` property '",
-        property,
-        "' is replaced with undefined."
-      )
-    };
+        }
+        escaped
+      })
+      .join(".");
+    let message = concat_string!(
+      "Accessing unknown `import.meta` property '",
+      property,
+      "' is replaced with undefined."
+    );
     let range = parser
       .evaluated_source_range
       .unwrap_or_else(|| DependencyRange::from(span));
@@ -929,7 +925,6 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaPlugin {
             if self.preserve_property(None) {
               return Some(true);
             }
-            self.warn_import_meta_unknown_property(parser, &[], expr.span());
             parser.add_presentational_dependency(Box::new(ConstDependency::new(
               expr.obj.span().into(),
               "({})".into(),
