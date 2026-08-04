@@ -194,7 +194,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
       Box::new(ESMExportSpecifierDependency::new(
         export_name.clone(),
         if let Some(variable) = variable {
-          variable.into()
+          variable
         } else {
           local_id.clone()
         },
