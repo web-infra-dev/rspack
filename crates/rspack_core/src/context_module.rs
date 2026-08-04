@@ -65,16 +65,6 @@ impl ContextMode {
   }
 }
 
-impl From<&str> for ContextMode {
-  fn from(value: &str) -> Self {
-    match try_convert_str_to_context_mode(value) {
-      Some(m) => m,
-      // TODO should give warning
-      _ => panic!("unknown context mode"),
-    }
-  }
-}
-
 impl From<DynamicImportMode> for ContextMode {
   fn from(value: DynamicImportMode) -> Self {
     match value {
@@ -86,6 +76,8 @@ impl From<DynamicImportMode> for ContextMode {
   }
 }
 
+/// Returns `None` for unknown context modes, callers are expected to emit a
+/// diagnostic (and pick a fallback) when this happens.
 pub fn try_convert_str_to_context_mode(s: &str) -> Option<ContextMode> {
   match s {
     "sync" => Some(ContextMode::Sync),
@@ -94,7 +86,6 @@ pub fn try_convert_str_to_context_mode(s: &str) -> Option<ContextMode> {
     "lazy" => Some(ContextMode::Lazy),
     "lazy-once" => Some(ContextMode::LazyOnce),
     "async-weak" => Some(ContextMode::AsyncWeak),
-    // TODO should give warning
     _ => None,
   }
 }

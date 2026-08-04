@@ -659,10 +659,12 @@ fn analyze_comments(
           }
         }
         RspackComment::Mode => {
-          if let Some(value) = expr_to_str(value) {
-            MagicCommentValue::String(value.into_owned())
+          if let Some(mode) = expr_to_str(value)
+            && matches!(mode.as_ref(), "lazy" | "lazy-once" | "eager" | "weak")
+          {
+            MagicCommentValue::String(mode.into_owned())
           } else {
-            push_parse_warning("a string");
+            push_parse_warning(r#""lazy", "lazy-once", "eager" or "weak""#);
             continue;
           }
         }
@@ -1103,6 +1105,19 @@ mod tests_extract_magic_comment_object {
         .contains("`webpackChunkName` is ignored")
     );
     assert!(warnings[1].message.contains("`rspackMode` is ignored"));
+  }
+
+  #[test]
+  fn test_unsupported_webpack_mode_value_is_dropped_with_warning() {
+    let (comments, warnings) = extract(r#"webpackMode: "unknown""#);
+
+    assert_eq!(comments.get_mode(), None);
+    assert_eq!(warnings.len(), 1);
+    assert!(
+      warnings[0]
+        .message
+        .contains(r#"`webpackMode` expected "lazy", "lazy-once", "eager" or "weak""#)
+    );
   }
 
   #[test]
