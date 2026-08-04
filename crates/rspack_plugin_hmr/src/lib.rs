@@ -1,20 +1,25 @@
 mod hot_module_replacement;
 
-use std::collections::hash_map;
+use std::{
+  collections::hash_map,
+  sync::{LazyLock, Mutex},
+};
 
+use atomic_refcell::AtomicRefCell;
 use hot_module_replacement::HotModuleReplacementRuntimeModule;
 use rspack_collections::IdentifierSet;
 use rspack_core::{
   AssetInfo, Chunk, ChunkGraph, ChunkKind, ChunkUkey, Compilation,
-  CompilationAdditionalTreeRuntimeRequirements, CompilationAsset, CompilationParams,
-  CompilationProcessAssets, CompilationRecords, CompilerCompilation, DependencyType, LoaderContext,
-  ModuleId, ModuleIdentifier, ModuleType, NormalModuleFactoryParser, NormalModuleLoader,
-  ParserAndGenerator, ParserOptions, PathData, Plugin, RunnerContext, RuntimeGlobals,
-  RuntimeModule, RuntimeModuleExt, RuntimeSpec,
-  chunk_graph_chunk::{ChunkId, ChunkIdSet},
+  CompilationAdditionalTreeRuntimeRequirements, CompilationAsset, CompilationContentHash,
+  CompilationParams, CompilationProcessAssets, CompilationRecords, CompilerCompilation,
+  DependencyType, LoaderContext, ModuleId, ModuleIdentifier, ModuleType, NormalModuleFactoryParser,
+  NormalModuleLoader, ParserAndGenerator, ParserOptions, PathData, Plugin, RunnerContext,
+  RuntimeGlobals, RuntimeModule, RuntimeModuleExt, RuntimeSpec, SourceType,
+  chunk_graph_chunk::{ChunkId, ChunkIdMap, ChunkIdSet},
   rspack_sources::{RawStringSource, SourceExt},
 };
 use rspack_error::{Diagnostic, Result};
+use rspack_hash::{RspackHashDigest, RspackHasher};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_css::parser_and_generator::CssParserAndGenerator;
 use rspack_plugin_javascript::{
@@ -25,9 +30,47 @@ use rspack_plugin_javascript::{
 };
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
+/// Safety with [atomic_refcell::AtomicRefCell]:
+///
+/// `previous_css_hashes` is only touched from the processAssets hook, which
+/// runs serially (each compiler owns its plugin instance and drives one
+/// compilation at a time). The content_hash tap runs concurrently across
+/// chunks, so `collected_css_hashes` uses a `Mutex` instead.
 #[plugin]
-#[derive(Debug, Default)]
-pub struct HotModuleReplacementPlugin;
+#[derive(Debug)]
+pub struct HotModuleReplacementPlugin {
+  // per-chunk css digests captured by the content_hash tap: the unsalted
+  // css-related entries the css plugins feed into the chunk content hash,
+  // i.e. derived from exactly the ordered module lists the css assets are
+  // rendered from; chunks-hashes is incremental, so entries only arrive for
+  // the chunks that were re-hashed this build
+  collected_css_hashes: Mutex<ChunkIdMap<ChunkCssHashes>>,
+  // the previous sealed build's per-chunk css digests: the old side of the
+  // diff, advanced on every build like `CompilationRecords`
+  previous_css_hashes: AtomicRefCell<ChunkIdMap<ChunkCssHashes>>,
+}
+
+impl Default for HotModuleReplacementPlugin {
+  fn default() -> Self {
+    Self::new_inner(Default::default(), Default::default())
+  }
+}
+
+/// Digests of a chunk's CSS content, split per consumer: `css` for the native
+/// css runtime, `mini_css` for CssExtractRspackPlugin, kept apart because
+/// each feeds its own HMR runtime. `None` means the chunk has no css of that
+/// kind.
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+struct ChunkCssHashes {
+  css: Option<RspackHashDigest>,
+  mini_css: Option<RspackHashDigest>,
+}
+
+impl ChunkCssHashes {
+  fn is_empty(&self) -> bool {
+    self.css.is_none() && self.mini_css.is_none()
+  }
+}
 
 #[plugin_hook(CompilerCompilation for HotModuleReplacementPlugin)]
 async fn compilation(
@@ -54,8 +97,85 @@ async fn compilation(
   Ok(())
 }
 
+// Runs after the css plugins' taps (their default stage is 0) filled the
+// css-related entries, and before the chunk-hash salt is applied to them, so
+// the digests change exactly when the chunk's css content does.
+#[plugin_hook(CompilationContentHash for HotModuleReplacementPlugin, stage = 100)]
+async fn content_hash(
+  &self,
+  compilation: &Compilation,
+  chunk_ukey: &ChunkUkey,
+  hashes: &mut HashMap<SourceType, RspackHasher>,
+) -> Result<()> {
+  // The content-hash key CssExtractRspackPlugin emits under.
+  static MINI_EXTRACT_CSS: LazyLock<SourceType> =
+    LazyLock::new(|| SourceType::Custom("css/mini-extract".into()));
+  let Some(chunk) = compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .get(chunk_ukey)
+  else {
+    return Ok(());
+  };
+  if chunk.kind() == ChunkKind::HotUpdate {
+    return Ok(());
+  }
+  let Some(chunk_id) = chunk.id() else {
+    return Ok(());
+  };
+  let output = &compilation.options.output;
+  let digest_of = |source_type: &SourceType| {
+    hashes
+      .get(source_type)
+      .map(|hasher| hasher.clone().digest(&output.hash_digest))
+  };
+  // the native css plugin writes a `SourceType::Css` entry for every chunk,
+  // so an empty digest means "no css"; the extract entry only exists when
+  // the chunk has extracted css
+  let empty_css_digest = RspackHasher::from(output).digest(&output.hash_digest);
+  let css_hashes = ChunkCssHashes {
+    css: digest_of(&SourceType::Css).filter(|digest| *digest != empty_css_digest),
+    mini_css: digest_of(&MINI_EXTRACT_CSS),
+  };
+  // empty entries are kept: with incremental chunks-hashes only re-hashed
+  // chunks arrive here, and a chunk that just lost its css must override its
+  // previous entry when the maps are merged
+  self
+    .collected_css_hashes
+    .lock()
+    .expect("should lock collected css hashes")
+    .insert(chunk_id.clone(), css_hashes);
+  Ok(())
+}
+
 #[plugin_hook(CompilationProcessAssets for HotModuleReplacementPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_ADDITIONAL)]
 async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
+  // Advance the css baseline on every sealed build, mirroring the lifecycle
+  // of `CompilationRecords`: merge this build's collected digests over the
+  // previous snapshot (only re-hashed chunks arrive) and prune chunks gone
+  // from this compilation.
+  let collected = std::mem::take(
+    &mut *self
+      .collected_css_hashes
+      .lock()
+      .expect("should lock collected css hashes"),
+  );
+  let mut current_css_hashes = self.previous_css_hashes.borrow().clone();
+  current_css_hashes.extend(collected);
+  let live_chunk_ids: ChunkIdSet = compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .values()
+    .filter(|chunk| chunk.kind() != ChunkKind::HotUpdate)
+    .filter_map(|chunk| chunk.id().cloned())
+    .collect();
+  current_css_hashes
+    .retain(|chunk_id, css_hashes| !css_hashes.is_empty() && live_chunk_ids.contains(chunk_id));
+  let old_chunk_css_hashes = std::mem::replace(
+    &mut *self.previous_css_hashes.borrow_mut(),
+    current_css_hashes.clone(),
+  );
+
   let Some(records) = compilation.records.take() else {
     return Ok(());
   };
@@ -177,9 +297,47 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       new_runtime = old_runtime.clone();
     }
 
+    let old_css_hashes = old_chunk_css_hashes.get(&chunk_id);
+    let new_css_hashes = current_chunk.and_then(|_| current_css_hashes.get(&chunk_id));
+    let css_update = CssUpdate::new(
+      old_css_hashes.and_then(|hashes| hashes.css.as_ref()),
+      new_css_hashes.and_then(|hashes| hashes.css.as_ref()),
+    );
+    let mini_css_update = CssUpdate::new(
+      old_css_hashes.and_then(|hashes| hashes.mini_css.as_ref()),
+      new_css_hashes.and_then(|hashes| hashes.mini_css.as_ref()),
+    );
+
     for removed in removed_from_runtime.iter() {
       if let Some(info) = hot_update_main_content_by_runtime.get_mut(removed) {
         info.removed_chunk_ids.insert(chunk_id.clone());
+        if old_css_hashes.is_some_and(|hashes| hashes.css.is_some()) {
+          info.css_removed_chunk_ids.insert(chunk_id.clone());
+        }
+        if old_css_hashes.is_some_and(|hashes| hashes.mini_css.is_some()) {
+          info.mini_css_removed_chunk_ids.insert(chunk_id.clone());
+        }
+      }
+    }
+
+    // Independent of whether the chunk carries updated js modules: a chunk
+    // holding only extracted css has no js update when its stylesheet changes.
+    if current_chunk.is_some() {
+      for runtime in new_runtime.iter() {
+        if let Some(info) = hot_update_main_content_by_runtime.get_mut(runtime) {
+          if css_update == CssUpdate::Removed {
+            info.css_removed_chunk_ids.insert(chunk_id.clone());
+          }
+          if mini_css_update == CssUpdate::Removed {
+            info.mini_css_removed_chunk_ids.insert(chunk_id.clone());
+          }
+          if css_update == CssUpdate::Changed {
+            info.css_updated_chunk_ids.insert(chunk_id.clone());
+          }
+          if mini_css_update == CssUpdate::Changed {
+            info.mini_css_updated_chunk_ids.insert(chunk_id.clone());
+          }
+        }
       }
     }
 
@@ -376,6 +534,18 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           .removed_chunk_ids
           .extend(content.removed_chunk_ids);
         old_content.removed_modules.extend(content.removed_modules);
+        old_content
+          .css_updated_chunk_ids
+          .extend(content.css_updated_chunk_ids);
+        old_content
+          .css_removed_chunk_ids
+          .extend(content.css_removed_chunk_ids);
+        old_content
+          .mini_css_updated_chunk_ids
+          .extend(content.mini_css_updated_chunk_ids);
+        old_content
+          .mini_css_removed_chunk_ids
+          .extend(content.mini_css_removed_chunk_ids);
         compilation.push_diagnostic(Diagnostic::warn(
           "HotModuleReplacementPlugin".to_string(),
           r#"The configured output.hotUpdateMainFilename doesn't lead to unique filenames per runtime and HMR update differs between runtimes.
@@ -397,12 +567,23 @@ To fix this, make sure to include [runtime] in the output.hotUpdateMainFilename 
       m.into_iter().collect()
     };
 
-    let manifest_content = serde_json::json!({
+    let mut manifest_json = serde_json::json!({
       "c": c,
       "r": r,
       "m": m,
-    })
-    .to_string();
+    });
+    if let Some(css) =
+      css_manifest_json(content.css_updated_chunk_ids, content.css_removed_chunk_ids)
+    {
+      manifest_json["css"] = css;
+    }
+    if let Some(mini_css) = css_manifest_json(
+      content.mini_css_updated_chunk_ids,
+      content.mini_css_removed_chunk_ids,
+    ) {
+      manifest_json["miniCss"] = mini_css;
+    }
+    let manifest_content = manifest_json.to_string();
 
     compilation.emit_asset(
       filename,
@@ -479,6 +660,10 @@ impl Plugin for HotModuleReplacementPlugin {
     ctx.compiler_hooks.compilation.tap(compilation::new(self));
     ctx
       .compilation_hooks
+      .content_hash
+      .tap(content_hash::new(self));
+    ctx
+      .compilation_hooks
       .process_assets
       .tap(process_assets::new(self));
     ctx
@@ -502,4 +687,41 @@ struct HotUpdateContent {
   updated_chunk_ids: ChunkIdSet,
   removed_chunk_ids: ChunkIdSet,
   removed_modules: HashSet<ModuleId>,
+  css_updated_chunk_ids: ChunkIdSet,
+  css_removed_chunk_ids: ChunkIdSet,
+  mini_css_updated_chunk_ids: ChunkIdSet,
+  mini_css_removed_chunk_ids: ChunkIdSet,
+}
+
+#[derive(Clone, Copy, PartialEq)]
+enum CssUpdate {
+  Changed,
+  Removed,
+  Unchanged,
+}
+
+impl CssUpdate {
+  fn new(old: Option<&RspackHashDigest>, new: Option<&RspackHashDigest>) -> Self {
+    match (old, new) {
+      (old, Some(new)) if old != Some(new) => Self::Changed,
+      (Some(_), None) => Self::Removed,
+      _ => Self::Unchanged,
+    }
+  }
+}
+
+fn css_manifest_json(updated: ChunkIdSet, removed: ChunkIdSet) -> Option<serde_json::Value> {
+  if updated.is_empty() && removed.is_empty() {
+    return None;
+  }
+  let mut css = serde_json::Map::new();
+  if !updated.is_empty() {
+    let c: Vec<ChunkId> = updated.into_iter().collect();
+    css.insert("c".to_string(), serde_json::json!(c));
+  }
+  if !removed.is_empty() {
+    let r: Vec<ChunkId> = removed.into_iter().collect();
+    css.insert("r".to_string(), serde_json::json!(r));
+  }
+  Some(serde_json::Value::Object(css))
 }

@@ -78,7 +78,7 @@ export default class NodeWatchFileSystem implements WatchFileSystem {
     }
 
     const oldWatcher = this.watcher;
-    const Watchpack = require('../compiled/watchpack/index.js');
+    const Watchpack = require('watchpack');
     this.watcher = new Watchpack(options);
 
     if (callbackUndelayed) {
