@@ -4313,6 +4313,7 @@ dependencies = [
  "indexmap",
  "rspack_cacheable",
  "rspack_resolver",
+ "rustc-hash",
  "ustr-fxhash",
 ]
 
