@@ -1,31 +1,45 @@
 use std::{borrow::Cow, sync::Arc};
 
 use rayon::prelude::*;
-use rspack_cacheable::{cacheable, utils::OwnedOrRef};
+use rspack_cacheable::{
+  cacheable,
+  with::{AsPreset, AsVec},
+};
 use rspack_error::Result;
 use rspack_sources::{
   BoxSource, CachedSource, ConcatSource, OriginalSource, RawBufferSource, RawStringSource,
-  ReplaceSource, Source, SourceMap, SourceMapSource,
+  ReplaceSource, Source, SourceExt, SourceMap, SourceMapSource,
 };
-use rustc_hash::FxHashMap;
+use rustc_hash::{FxHashMap, FxHashSet};
 
 use super::{
   super::{codec::CacheCodec, storage::Storage},
   Occasion,
 };
-use crate::{CompilationAsset, RayonConsumer};
+use crate::{AssetInfo, CompilationAsset, RayonConsumer};
 
 pub const SCOPE: &str = "occasion_source_map_dev_tool_plugin";
 
 #[cacheable]
-struct Entry<'a> {
-  source_map: OwnedOrRef<'a, SourceMapCacheData>,
+#[derive(Debug)]
+struct CacheEntry {
+  #[cacheable(with=AsVec<AsPreset>)]
+  append: Vec<BoxSource>,
+  source_map_asset: Option<SourceMapAssetCacheData>,
+}
+
+#[cacheable]
+#[derive(Debug)]
+struct SourceMapAssetCacheData {
+  filename: String,
+  source_map: SourceMapCacheData,
 }
 
 /// Compact source map data cached by `SourceMapDevToolPlugin`.
 #[cacheable]
 #[derive(Debug, PartialEq, Eq)]
 struct SourceMapCacheData {
+  file: Option<String>,
   mappings: String,
   sources: Vec<String>,
   names: Vec<String>,
@@ -157,30 +171,29 @@ fn restore_sources_content<'a>(source: &'a dyn Source, indices: &[u32]) -> Optio
   (request_index == requests.len()).then_some(contents)
 }
 
-fn restore_source_map(
-  source: BoxSource,
-  source_map_cache_data: SourceMapCacheData,
-) -> Option<SourceMap<'static>> {
-  let SourceMapCacheData {
-    mappings,
-    sources,
-    names,
-    source_root,
-    debug_id,
-    ignore_list,
-    source_content_indices,
-  } = source_map_cache_data;
-  SourceMap::with_source(source, move |source| {
-    let sources_content = restore_sources_content(source, &source_content_indices)?;
+fn restore_source_map(source: BoxSource, cache_entry: &CacheEntry) -> Option<SourceMap<'static>> {
+  SourceMap::with_source(source, |source| {
+    let SourceMapCacheData {
+      file,
+      mappings,
+      sources,
+      names,
+      source_root,
+      debug_id,
+      ignore_list,
+      source_content_indices,
+    } = &cache_entry.source_map_asset.as_ref()?.source_map;
+    let sources_content = restore_sources_content(source, source_content_indices)?;
     let mut source_map = SourceMap::new(
-      Cow::Owned(mappings),
-      sources.into_iter().map(Cow::Owned).collect(),
+      Cow::Owned(mappings.clone()),
+      sources.iter().cloned().map(Cow::Owned).collect(),
       sources_content.into_iter().map(Cow::Borrowed).collect(),
-      names.into_iter().map(Cow::Owned).collect(),
+      names.iter().cloned().map(Cow::Owned).collect(),
     );
-    source_map.set_source_root(source_root.map(Cow::Owned));
-    source_map.set_debug_id(debug_id.map(Cow::Owned));
-    source_map.set_ignore_list(ignore_list.map(Cow::Owned));
+    source_map.set_file(file.clone().map(Cow::Owned));
+    source_map.set_source_root(source_root.clone().map(Cow::Owned));
+    source_map.set_debug_id(debug_id.clone().map(Cow::Owned));
+    source_map.set_ignore_list(ignore_list.clone().map(Cow::Owned));
     Some(source_map)
   })
 }
@@ -191,6 +204,7 @@ fn create_source_map_cache_data(
 ) -> Option<SourceMapCacheData> {
   let source_content_indices = source_content_indices(source, source_map)?;
   Some(SourceMapCacheData {
+    file: source_map.file().map(ToString::to_string),
     mappings: source_map.mappings().to_string(),
     sources: source_map
       .sources()
@@ -209,22 +223,79 @@ fn create_source_map_cache_data(
   })
 }
 
+fn create_cache_entry(
+  source: &dyn Source,
+  append: &[BoxSource],
+  source_map: Option<(&str, &SourceMap<'static>)>,
+) -> Option<CacheEntry> {
+  let source_map_asset = match source_map {
+    Some((filename, source_map)) => Some(SourceMapAssetCacheData {
+      filename: filename.to_string(),
+      source_map: create_source_map_cache_data(source, source_map)?,
+    }),
+    None => None,
+  };
+  Some(CacheEntry {
+    append: append.to_vec(),
+    source_map_asset,
+  })
+}
+
+#[allow(clippy::type_complexity)]
+fn restore_cache_entry(
+  source: BoxSource,
+  asset_info: AssetInfo,
+  cache_entry: &CacheEntry,
+) -> Option<(
+  CompilationAsset,
+  Option<(String, SourceMap<'static>)>,
+  Vec<BoxSource>,
+)> {
+  let source_map = match cache_entry.source_map_asset.as_ref() {
+    Some(source_map) => Some((
+      source_map.filename.clone(),
+      restore_source_map(source.clone(), cache_entry)?,
+    )),
+    None => None,
+  };
+  let append = cache_entry.append.clone();
+  let source = if append.is_empty() {
+    source
+  } else {
+    let mut children = Vec::with_capacity(append.len() + 1);
+    children.push(source);
+    children.extend(append.iter().cloned());
+    ConcatSource::new(children).boxed()
+  };
+  Some((
+    CompilationAsset::new(Some(source), asset_info),
+    source_map,
+    append,
+  ))
+}
+
 #[derive(Debug, Default)]
 pub struct SourceMapDevToolPluginCacheArtifact {
-  entries: FxHashMap<CacheKey, Option<SourceMapCacheData>>,
+  entries: FxHashMap<CacheKey, Option<CacheEntry>>,
   pending_writes: Vec<CacheKey>,
   pending_removes: Vec<CacheKey>,
   pending_invalid_entry_keys: Vec<Vec<u8>>,
 }
 
 impl SourceMapDevToolPluginCacheArtifact {
-  /// Recover source maps after the current compilation assets are available.
-  /// Source-content restoration is CPU-bound and runs in parallel across
-  /// assets, while cache entry state is updated serially.
+  /// Recover mapped assets after the current compilation assets are available.
+  /// Source-content restoration is CPU-bound and runs in parallel across assets.
+  #[allow(clippy::type_complexity)]
   pub fn take<'a>(
     &mut self,
     items: impl IntoIterator<Item = (&'a str, &'a CompilationAsset)>,
-  ) -> Vec<Option<SourceMap<'static>>> {
+  ) -> Vec<
+    Option<(
+      CompilationAsset,
+      Option<(String, SourceMap<'static>)>,
+      Vec<BoxSource>,
+    )>,
+  > {
     // Memory cache reuses this artifact across rebuilds, so storage mutations
     // from the previous compilation must not be replayed after its save.
     self.pending_writes.clear();
@@ -235,15 +306,15 @@ impl SourceMapDevToolPluginCacheArtifact {
       .map(|(filename, asset)| {
         let source = asset.get_source()?.clone();
         let cache_key = CacheKey::new(filename, &asset.info.version)?;
-        let source_map_cache_data = self.entries.get_mut(&cache_key).and_then(Option::take)?;
-        Some((cache_key, source, source_map_cache_data))
+        let cache_entry = self.entries.get_mut(&cache_key).and_then(Option::take)?;
+        Some((cache_key, source, asset.get_info().clone(), cache_entry))
       })
       .collect::<Vec<_>>()
       .into_par_iter()
       .map(|item| {
-        item.map(|(cache_key, source, source_map_cache_data)| {
-          let source_map = restore_source_map(source, source_map_cache_data);
-          (cache_key, source_map)
+        item.map(|(cache_key, source, asset_info, cache_entry)| {
+          let mapped_asset = restore_cache_entry(source, asset_info, &cache_entry);
+          (cache_key, cache_entry, mapped_asset)
         })
       })
       .collect::<Vec<_>>();
@@ -251,8 +322,11 @@ impl SourceMapDevToolPluginCacheArtifact {
     recovered
       .into_iter()
       .map(|item| match item {
-        Some((_, Some(source_map))) => Some(source_map),
-        Some((cache_key, None)) => {
+        Some((cache_key, cache_entry, Some(mapped_asset))) => {
+          self.entries.insert(cache_key, Some(cache_entry));
+          Some(mapped_asset)
+        }
+        Some((cache_key, _, None)) => {
           self.entries.remove(&cache_key);
           self.pending_removes.push(cache_key);
           None
@@ -264,52 +338,54 @@ impl SourceMapDevToolPluginCacheArtifact {
 
   pub fn store<'a>(
     &mut self,
-    items: impl IntoIterator<Item = (&'a str, &'a CompilationAsset, &'a SourceMap<'static>)>,
+    items: impl IntoIterator<
+      Item = (
+        &'a str,
+        &'a CompilationAsset,
+        &'a [BoxSource],
+        Option<(&'a str, &'a SourceMap<'static>)>,
+      ),
+    >,
   ) {
-    // Entries that were recovered but not consumed by this compilation are
-    // stale. Keep consumed entries (`None`) so valid hits can be reinserted
-    // without rewriting their storage value.
-    let pending_removes = &mut self.pending_removes;
-    self.entries.retain(|key, entry| {
-      if entry.is_some() {
-        pending_removes.push(key.clone());
-        false
-      } else {
-        true
-      }
-    });
-
-    let source_map_cache_entries = items
+    let mut active_keys = FxHashSet::default();
+    let uncached_items = items
       .into_iter()
-      .filter_map(|(filename, asset, source_map)| {
+      .filter_map(|(filename, asset, append, source_map)| {
         let source = asset.get_source()?;
         let cache_key = CacheKey::new(filename, &asset.info.version)?;
-        Some((cache_key, source.as_ref(), source_map))
+        active_keys.insert(cache_key.clone());
+        if self
+          .entries
+          .get(&cache_key)
+          .and_then(Option::as_ref)
+          .is_some()
+        {
+          return None;
+        }
+        Some((cache_key, source.as_ref(), append, source_map))
       })
       .collect::<Vec<_>>()
       .into_par_iter()
-      .filter_map(|(cache_key, source, source_map)| {
-        create_source_map_cache_data(source, source_map).map(|source_map| (cache_key, source_map))
+      .filter_map(|(cache_key, source, append, source_map)| {
+        create_cache_entry(source, append, source_map).map(|cache_entry| (cache_key, cache_entry))
       })
       .collect::<Vec<_>>();
 
-    for (cache_key, source_map) in source_map_cache_entries {
+    for (cache_key, cache_entry) in uncached_items {
       match self.entries.entry(cache_key) {
-        std::collections::hash_map::Entry::Occupied(mut occupied) => {
-          occupied.insert(Some(source_map));
-        }
+        std::collections::hash_map::Entry::Occupied(_) => {}
         std::collections::hash_map::Entry::Vacant(vacant) => {
           let cache_key = vacant.key().clone();
-          vacant.insert(Some(source_map));
+          vacant.insert(Some(cache_entry));
           self.pending_writes.push(cache_key);
         }
       }
     }
 
-    // Consumed entries that were not reinserted are no longer cacheable.
+    // Entries not returned by this compilation are stale.
     let pending_removes = &mut self.pending_removes;
-    self.entries.retain(|key, entry| {
-      if entry.is_none() {
+    self.entries.retain(|key, _| {
+      if !active_keys.contains(key) {
         pending_removes.push(key.clone());
         false
       } else {
@@ -368,11 +444,8 @@ impl Occasion for SourceMapDevToolPluginOccasion {
             return None;
           }
         };
-        let source_map = artifact.entries.get(key)?.as_ref()?;
-        let storage_entry = Entry {
-          source_map: source_map.into(),
-        };
-        match self.codec.encode(&storage_entry) {
+        let cache_entry = artifact.entries.get(key)?.as_ref()?;
+        match self.codec.encode(cache_entry) {
           Ok(bytes) => Some((key_bytes, bytes)),
           Err(err) => {
             tracing::warn!("source map persistent cache encode failed: {:?}", err);
@@ -405,8 +478,8 @@ impl Occasion for SourceMapDevToolPluginOccasion {
             return Err(key_bytes);
           }
         };
-        match self.codec.decode::<Entry>(&value) {
-          Ok(entry) => Ok((key, Some(entry.source_map.into_owned()))),
+        match self.codec.decode::<CacheEntry>(&value) {
+          Ok(entry) => Ok((key, Some(entry))),
           Err(err) => {
             tracing::warn!("source map persistent cache decode failed: {:?}", err);
             Err(key_bytes)
