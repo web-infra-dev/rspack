@@ -15,6 +15,8 @@ module.exports = {
 		);
 		expect(source).toContain("// rspack/runtime/define_property_getters");
 		expect(source).toContain("// rspack/runtime/make_namespace_object");
+		expect(source).toContain("\n})();\n");
+		expect(source).not.toContain("}).call(this);");
 		expect(source).not.toMatch(
 			/__rspack_context\.r = __rspack_require;\n\nvar (?:hasOwnProperty|definePropertyGetters|makeNamespaceObject)/
 		);
