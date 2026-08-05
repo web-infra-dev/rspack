@@ -19,13 +19,13 @@ pub const SCOPE: &str = "occasion_source_map_dev_tool_plugin";
 
 #[cacheable]
 struct Entry<'a> {
-  source_map: OwnedOrRef<'a, CachedSourceMap>,
+  source_map: OwnedOrRef<'a, SourceMapCacheData>,
 }
 
 /// Compact source map data cached by `SourceMapDevToolPlugin`.
 #[cacheable]
 #[derive(Debug, PartialEq, Eq)]
-struct CachedSourceMap {
+struct SourceMapCacheData {
   mappings: String,
   sources: Vec<String>,
   names: Vec<String>,
@@ -159,9 +159,9 @@ fn restore_sources_content<'a>(source: &'a dyn Source, indices: &[u32]) -> Optio
 
 fn restore_source_map(
   source: BoxSource,
-  cached_source_map: CachedSourceMap,
+  source_map_cache_data: SourceMapCacheData,
 ) -> Option<SourceMap<'static>> {
-  let CachedSourceMap {
+  let SourceMapCacheData {
     mappings,
     sources,
     names,
@@ -169,7 +169,7 @@ fn restore_source_map(
     debug_id,
     ignore_list,
     source_content_indices,
-  } = cached_source_map;
+  } = source_map_cache_data;
   SourceMap::with_owner(source, move |source| {
     let sources_content = restore_sources_content(source, &source_content_indices)?;
     let mut source_map = SourceMap::new(
@@ -185,12 +185,12 @@ fn restore_source_map(
   })
 }
 
-fn create_cached_source_map(
+fn create_source_map_cache_data(
   source: &dyn Source,
   source_map: &SourceMap<'_>,
-) -> Option<CachedSourceMap> {
+) -> Option<SourceMapCacheData> {
   let source_content_indices = source_content_indices(source, source_map)?;
-  Some(CachedSourceMap {
+  Some(SourceMapCacheData {
     mappings: source_map.mappings().to_string(),
     sources: source_map
       .sources()
@@ -211,10 +211,10 @@ fn create_cached_source_map(
 
 #[derive(Debug, Default)]
 pub struct SourceMapDevToolPluginCacheArtifact {
-  entries: FxHashMap<CacheKey, Option<CachedSourceMap>>,
+  entries: FxHashMap<CacheKey, Option<SourceMapCacheData>>,
   pending_writes: Vec<CacheKey>,
   pending_removes: Vec<CacheKey>,
-  pending_raw_removes: Vec<Vec<u8>>,
+  pending_invalid_entry_keys: Vec<Vec<u8>>,
 }
 
 impl SourceMapDevToolPluginCacheArtifact {
@@ -235,14 +235,14 @@ impl SourceMapDevToolPluginCacheArtifact {
       .map(|(filename, asset)| {
         let source = asset.get_source()?.clone();
         let cache_key = CacheKey::new(filename, &asset.info.version)?;
-        let cached_source_map = self.entries.get_mut(&cache_key).and_then(Option::take)?;
-        Some((cache_key, source, cached_source_map))
+        let source_map_cache_data = self.entries.get_mut(&cache_key).and_then(Option::take)?;
+        Some((cache_key, source, source_map_cache_data))
       })
       .collect::<Vec<_>>()
       .into_par_iter()
       .map(|item| {
-        item.map(|(cache_key, source, cached_source_map)| {
-          let source_map = restore_source_map(source, cached_source_map);
+        item.map(|(cache_key, source, source_map_cache_data)| {
+          let source_map = restore_source_map(source, source_map_cache_data);
           (cache_key, source_map)
         })
       })
@@ -279,7 +279,7 @@ impl SourceMapDevToolPluginCacheArtifact {
       }
     });
 
-    let cached_source_maps = items
+    let source_map_cache_entries = items
       .into_iter()
       .filter_map(|(filename, asset, source_map)| {
         let source = asset.get_source()?;
@@ -289,11 +289,11 @@ impl SourceMapDevToolPluginCacheArtifact {
       .collect::<Vec<_>>()
       .into_par_iter()
       .filter_map(|(cache_key, source, source_map)| {
-        create_cached_source_map(source, source_map).map(|source_map| (cache_key, source_map))
+        create_source_map_cache_data(source, source_map).map(|source_map| (cache_key, source_map))
       })
       .collect::<Vec<_>>();
 
-    for (cache_key, source_map) in cached_source_maps {
+    for (cache_key, source_map) in source_map_cache_entries {
       match self.entries.entry(cache_key) {
         std::collections::hash_map::Entry::Occupied(mut occupied) => {
           occupied.insert(Some(source_map));
@@ -344,7 +344,7 @@ impl Occasion for SourceMapDevToolPluginOccasion {
 
   #[tracing::instrument(name = "Cache::Occasion::SourceMap::save", skip_all)]
   fn save(&self, storage: &mut dyn Storage, artifact: &SourceMapDevToolPluginCacheArtifact) {
-    for key in &artifact.pending_raw_removes {
+    for key in &artifact.pending_invalid_entry_keys {
       storage.remove(SCOPE, key);
     }
 
@@ -385,17 +385,17 @@ impl Occasion for SourceMapDevToolPluginOccasion {
       });
 
     tracing::debug!(
-      "saved {}, removed {}, and removed {} legacy source map persistent cache entries",
+      "saved {}, removed {}, and removed {} invalid source map persistent cache entries",
       artifact.pending_writes.len(),
       artifact.pending_removes.len(),
-      artifact.pending_raw_removes.len(),
+      artifact.pending_invalid_entry_keys.len(),
     );
   }
 
   #[tracing::instrument(name = "Cache::Occasion::SourceMap::recovery", skip_all)]
   async fn recovery(&self, storage: &dyn Storage) -> Result<SourceMapDevToolPluginCacheArtifact> {
     let items = storage.load(SCOPE).await?;
-    let (entries, pending_raw_removes) = items
+    let (entries, pending_invalid_entry_keys) = items
       .into_par_iter()
       .map(|(key_bytes, value)| {
         let key = match self.codec.decode::<CacheKey>(&key_bytes) {
@@ -419,15 +419,15 @@ impl Occasion for SourceMapDevToolPluginOccasion {
       });
 
     tracing::debug!(
-      "recovered {} source map persistent cache entries and scheduled {} legacy entries for removal",
+      "recovered {} source map persistent cache entries and scheduled {} invalid entries for removal",
       entries.len(),
-      pending_raw_removes.len(),
+      pending_invalid_entry_keys.len(),
     );
     Ok(SourceMapDevToolPluginCacheArtifact {
       entries,
       pending_writes: Vec::new(),
       pending_removes: Vec::new(),
-      pending_raw_removes,
+      pending_invalid_entry_keys,
     })
   }
 }
