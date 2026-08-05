@@ -72,6 +72,37 @@ fn atom_from_wtf8(value: swc_experimental_allocator::atom::Wtf8Atom<'_>) -> Atom
   Atom::from(value.as_wtf8().to_string_lossy().as_ref())
 }
 
+pub(crate) fn member_property_to_atom(expr: &Expr) -> Option<Atom> {
+  match expr {
+    Expr::Lit(lit) => Some(match &**lit {
+      Lit::Str(s) => atom_from_wtf8(s.value),
+      Lit::Bool(b) => Atom::from(if b.value { "true" } else { "false" }),
+      Lit::Null(_) => Atom::from("null"),
+      Lit::Num(n) => Atom::from(rspack_util::ryu_js::Buffer::new().format(n.value)),
+      Lit::BigInt(i) => Atom::from(i.value.as_str()),
+      Lit::Regex(r) => {
+        let mut flags = r.flags.as_str().chars().collect::<Vec<_>>();
+        flags.sort_unstable();
+        let mut property = String::with_capacity(r.exp.len() + flags.len() + 2);
+        property.push('/');
+        property.push_str(r.exp.as_str());
+        property.push('/');
+        property.extend(flags);
+        Atom::from(property)
+      }
+    }),
+    Expr::Tpl(tpl) if tpl.exprs.is_empty() && tpl.quasis.len() == 1 => {
+      let quasi = tpl.quasis.first()?;
+      Some(
+        quasi
+          .cooked
+          .map_or_else(|| Atom::from(quasi.raw.as_str()), atom_from_wtf8),
+      )
+    }
+    _ => None,
+  }
+}
+
 impl GetSpan for estree::Statement<'_> {
   fn span(&self) -> Span {
     self.span()
@@ -410,6 +441,7 @@ pub struct JavascriptParser<'parser> {
   pub(crate) in_short_hand: bool,
   pub(crate) in_tagged_template_tag: bool,
   pub(crate) member_expr_in_optional_chain: bool,
+  pub(crate) evaluated_source_range: Option<DependencyRange>,
   pub(crate) semicolons: &'parser mut FxHashSet<u32>,
   pub(crate) statement_path: Vec<StatementPath>,
   pub(crate) prev_statement: Option<StatementPath>,
@@ -597,6 +629,7 @@ impl<'parser> JavascriptParser<'parser> {
       worker_index: 0,
       module_identifier,
       member_expr_in_optional_chain: false,
+      evaluated_source_range: None,
       destructuring_assignment_properties: Default::default(),
       dynamic_import_references: Default::default(),
       common_js_require_references: Default::default(),
@@ -752,6 +785,27 @@ impl<'parser> JavascriptParser<'parser> {
 
   pub fn add_warning(&mut self, warning: Diagnostic) {
     self.warning_diagnostics.push(warning);
+  }
+
+  pub fn add_warning_once(&mut self, warning: Diagnostic) {
+    let is_duplicate = self.warning_diagnostics.iter().any(|existing| {
+      existing.message == warning.message
+        && match (&existing.labels, &warning.labels) {
+          (Some(existing), Some(incoming)) => {
+            existing.len() == incoming.len()
+              && existing.iter().zip(incoming).all(|(existing, incoming)| {
+                existing.name == incoming.name
+                  && existing.offset == incoming.offset
+                  && existing.len == incoming.len
+              })
+          }
+          (None, None) => true,
+          _ => false,
+        }
+    });
+    if !is_duplicate {
+      self.warning_diagnostics.push(warning);
+    }
   }
 
   pub fn add_warnings(&mut self, warnings: impl IntoIterator<Item = Diagnostic>) {
@@ -1187,16 +1241,8 @@ impl<'parser> JavascriptParser<'parser> {
       match object {
         ExprRef::Member(expr) => {
           if let Some(computed) = expr.prop.as_computed() {
-            let Expr::Lit(lit) = &computed.expr else {
+            let Some(value) = member_property_to_atom(&computed.expr) else {
               break;
-            };
-            let value = match &**lit {
-              Lit::Str(s) => atom_from_wtf8(s.value),
-              Lit::Bool(b) => Atom::from(if b.value { "true" } else { "false" }),
-              Lit::Null(_) => Atom::from("null"),
-              Lit::Num(n) => Atom::from(n.value.to_string().as_str()),
-              Lit::BigInt(i) => Atom::from(i.value.as_str()),
-              Lit::Regex(r) => Atom::from(r.exp.as_str()),
             };
             // Since members are not used across rspack javascript parser plugin,
             // we directly makes it atom here
@@ -1502,6 +1548,20 @@ impl<'parser> JavascriptParser<'parser> {
     error_title: T,
   ) -> Option<BasicEvaluatedExpression<'parser>> {
     eval::eval_source(self, source, error_title.to_string())
+  }
+
+  pub fn evaluate_with_range<T: Display>(
+    &mut self,
+    source: String,
+    error_title: T,
+    start: u32,
+    end: u32,
+  ) -> Option<BasicEvaluatedExpression<'parser>> {
+    let previous_range = self.evaluated_source_range;
+    self.evaluated_source_range = previous_range.or(Some(DependencyRange::new(start, end)));
+    let evaluated = eval::eval_source(self, source, error_title.to_string());
+    self.evaluated_source_range = previous_range;
+    evaluated
   }
 
   // same as `JavascriptParser._initializeEvaluating` in webpack
