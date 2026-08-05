@@ -83,8 +83,12 @@ module.exports = [{
 }, {
   description: "should route colliding lazy compilation prefixes exactly",
   options(testContext) {
-    return Array.from({ length: 11 }, (_, index) => {
-      const name = `compiler-${index}`;
+    const lazyCompilationPrefix = "/_rspack/lazy/trigger";
+    // Generated prefixes are `${lazyCompilationPrefix}__0` and `${lazyCompilationPrefix}__0__1`.
+    return [
+      { name: "compiler_1", prefix: lazyCompilationPrefix },
+      { name: "compiler_11", prefix: `${lazyCompilationPrefix}__0` }
+    ].map(({ name, prefix }) => {
       return {
         context,
         mode: "development",
@@ -92,7 +96,7 @@ module.exports = [{
         target: "web",
         devtool: false,
         entry: "./esm/a.js",
-        lazyCompilation: { entries: true, imports: false },
+        lazyCompilation: { entries: true, imports: false, prefix },
         output: {
           path: testContext.getDist(name),
           filename: "main.js",
@@ -134,7 +138,7 @@ module.exports = [{
     try {
       const initial = await nextBuild();
       expect(initial.error).toBeUndefined();
-      const bundle = initial.stats.stats[10].compilation
+      const bundle = initial.stats.stats[1].compilation
         .getAsset("main.js")
         .source.source()
         .toString();
@@ -147,7 +151,7 @@ module.exports = [{
           {
             body: [moduleId],
             method: "POST",
-            url: "/_rspack/lazy/trigger__10?source=test"
+            url: "/_rspack/lazy/trigger__0__1?source=test"
           },
           {
             end: resolve,
@@ -163,7 +167,7 @@ module.exports = [{
       const updated = await nextBuild();
       expect(updated.error).toBeUndefined();
       expect(updated.stats.stats.map(child => child.compilation.name)).toEqual([
-        "compiler-10"
+        "compiler_11"
       ]);
     } finally {
       await new Promise((resolve, reject) =>
