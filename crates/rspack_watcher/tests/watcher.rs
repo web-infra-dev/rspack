@@ -173,3 +173,36 @@ fn should_emit_remove_when_a_watched_file_is_deleted() {
     },
   );
 }
+
+#[test]
+fn should_watch_a_file_created_in_an_existing_context_child() {
+  let mut helper = h!(FsWatcherOptions {
+    aggregate_timeout: Some(100),
+    ..Default::default()
+  });
+  std::fs::create_dir_all(helper.join("assets/empty-child")).unwrap();
+
+  let rx = watch!(dirs @ helper, "assets");
+
+  helper.tick(|| {
+    helper.file("assets/empty-child/created.txt");
+  });
+
+  let context_change_events = c!();
+  helper.collect_events(
+    rx,
+    |_, _| {},
+    |changes, abort| {
+      changes.assert_changed(helper.join("assets"));
+      assert!(
+        !changes
+          .changed_files
+          .contains(helper.join("assets/empty-child/created.txt").as_str())
+      );
+      add!(context_change_events);
+      *abort = true;
+    },
+  );
+
+  assert!(load!(context_change_events) > 0);
+}
