@@ -5237,7 +5237,7 @@ dependencies = [
 [[package]]
 name = "rspack_resolver"
 version = "0.9.4"
-source = "git+https://github.com/rstackjs/rspack-resolver.git?branch=refactor%2Finterned-ustr-path#b2d20c9b6be631caef0662f4ecf3bd4ac1897b9b"
+source = "git+https://github.com/rstackjs/rspack-resolver.git?branch=refactor%2Finterned-ustr-path#704b58c25a56867d83311f525d2ad261abbb2f0d"
 dependencies = [
  "arc-swap",
  "async-trait",
@@ -5246,6 +5246,7 @@ dependencies = [
  "dashmap",
  "dunce",
  "futures",
+ "hashbrown 0.17.1",
  "indexmap",
  "json-strip-comments",
  "pnp",
@@ -5256,7 +5257,6 @@ dependencies = [
  "thiserror 2.0.18",
  "tokio",
  "tracing",
- "ustr-fxhash",
 ]
 
 [[package]]
