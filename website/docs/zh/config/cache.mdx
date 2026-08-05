@@ -128,7 +128,7 @@ export default {
 - **类型：** `string`
 - **默认值:** `""`
 
-`cache.version` 是写入持久化缓存 key 的额外版本字符串。可以通过修改它来手动隔离或使持久化缓存失效。
+`cache.version` 用于标识持久化缓存数据的格式。当它与已存储的版本不一致时，Rspack 不会复用现有缓存，并会在构建完成后覆盖其内容。当配置发生不兼容变更时，应更新该值。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -145,40 +145,25 @@ export default {
 
 :::tip 持久化缓存失效
 
-除了 [buildDependencies](#builddependencies) 校验和 [version](#version) 外，持久化缓存 key 还包含 Rspack 版本、[`config.name`](/config/other-options#name)、[`config.mode`](/config/mode#mode)，以及会影响缓存内容的持久化缓存配置。
-
-这些值发生变化时，Rspack 会隔离缓存，避免复用过期的持久化缓存数据。
+Rspack 会基于 `compilerPath` 的哈希拆分缓存子目录，每个 `compilerPath` 只保留一份缓存。[version](#version) 变化时，Rspack 会使该 compiler 的现有缓存失效并覆盖其内容，不会保留多个版本。
 
 :::
 
 ### maxVersions
 
-- **类型：** `number`（正整数）或 `Infinity`
-- **默认值：** `3`
+<ApiMeta stability={Stability.Deprecated} />
 
-控制当前缓存目录最多保留多少个缓存版本。超过限制时，Rspack 会优先删除较旧且未处于当前使用状态的缓存版本。设置为 `Infinity` 可禁用基于数量的清理。
+- **类型：** `number`
+- **默认值：** 未设置
 
-```js title="rspack.config.mjs"
-export default {
-  cache: {
-    type: 'persistent',
-    maxVersions: 10,
-  },
-};
-```
-
-:::note Child compiler 的缓存占用
-
-每个 child compiler 都会维护自己的一组持久化缓存版本，并独立应用 `maxVersions`。因此，创建 child compiler 的项目可能会保留额外的缓存数据，实际磁盘占用可能高于仅根据 root compiler 的 `maxVersions` 估算的大小。
-
-:::
+`cache.maxVersions` 仅为向后兼容而保留，但不会产生任何作用。Rspack 对每个 `compilerPath` 只保留一份持久化缓存。显式配置此选项时，Rspack 会输出弃用警告。
 
 ### maxAge
 
 - **类型：** `number`（正整数，单位为秒）或 `Infinity`
 - **默认值：** `7 * 24 * 60 * 60`（7 天）
 
-一份缓存数据在未被访问后允许保留的最长时间，单位为秒。清理时，Rspack 会删除超过 `maxAge` 时间未被访问的缓存数据。设置为 `Infinity` 可禁用基于时间的清理。
+一份 compiler 缓存在未被访问后允许保留的最长时间，单位为秒。清理时，Rspack 会删除超过 `maxAge` 时间未被访问的 compiler 缓存目录。设置为 `Infinity` 可禁用基于时间的清理。
 
 ```js title="rspack.config.mjs"
 export default {

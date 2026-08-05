@@ -1,14 +1,14 @@
-use std::fmt::Write as _;
+use std::{fmt::Write as _, time::Duration};
 
 use rspack_paths::{ArcPath, ArcPathSet};
 
 use super::{
-  build_dependencies::{BuildDeps, BuildDepsValidationResult},
   occasion::Occasion,
   snapshot::{Snapshot, SnapshotScope},
   storage::BoxStorage,
+  validation::{CacheValidation, CacheValidationResult},
 };
-use crate::{CompilationLogger, Logger};
+use crate::{CompilationLogger, LogType, Logger};
 
 const PATH_LOG_LIMIT: usize = 3;
 
@@ -20,15 +20,15 @@ const PATH_LOG_LIMIT: usize = 3;
 /// context for the next one.
 #[derive(Debug)]
 pub struct CacheContext {
-  /// Set when build dependencies have changed, meaning the cached data is
-  /// structurally stale.  Unlike `load_failed`, this flag persists across
+  /// Set when cache compatibility validation fails, meaning the cached data
+  /// is structurally stale. Unlike `load_failed`, this flag persists across
   /// builds in readonly mode because the cache cannot be rebuilt there.
   invalid: bool,
   /// Per-build load gate.  Flipped to `true` on the first failed `load_*`
   /// call; all subsequent `load_*` calls become no-ops for this build.
   /// Restored to `false` (or derived from `invalid`) by `reset`.
   load_failed: bool,
-  /// When `true`, all `save_*` and scope `reset` calls to storage are skipped.
+  /// When `true`, all `save_*` and storage reset calls are skipped.
   ///
   /// This is a user-configured option, distinct from `DB::readonly` in the
   /// storage layer.  Skipping at this level is cheaper: occasion serialisation
@@ -62,47 +62,95 @@ impl CacheContext {
     self.storage.cleanup_stale();
   }
 
-  /// Validates build dependencies and sets `invalid` + `load_failed` on
-  /// failure.  Resets the BUILD scope when invalid and not readonly.
+  /// Validates all compatibility inputs before any compilation artifact is
+  /// read.
   ///
-  /// Normally called only once per compiler instance, guarded by the
-  /// `initialized` flag in `PersistentCache::initialize`.
-  #[tracing::instrument("Cache::Context::load_build_deps", skip_all)]
-  pub async fn load_build_deps(&mut self, build_deps: &mut BuildDeps) {
-    let start = self.logger().time("validate build dependencies");
-    match build_deps.validate(&*self.storage).await {
-      Ok(BuildDepsValidationResult::Valid { tracked_files }) => {
-        self.invalid = false;
+  /// Like webpack's pack validation, both build dependency changes and a
+  /// cache version mismatch enter the same invalidation path. The whole
+  /// compiler cache is reset so a scope that is not used by the invalidating
+  /// build cannot survive and be reused later.
+  #[tracing::instrument("Cache::Context::validate", skip_all)]
+  pub async fn validate(&mut self, validation: &mut CacheValidation) {
+    let report = validation.validate(&*self.storage).await;
+    match report.result {
+      CacheValidationResult::Valid { tracked_files } => {
         self.logger().info(format!(
           "build dependencies are valid ({tracked_files} tracked)"
         ));
+        self.log_duration(
+          "validate build dependencies",
+          report
+            .build_dependencies_duration
+            .expect("build dependencies should have been validated"),
+        );
+
+        self
+          .logger()
+          .info("meta persistent cache recovery succeeded");
+        self.log_duration(read_occasion_timing_label("meta"), report.version_duration);
       }
-      Ok(BuildDepsValidationResult::Invalid {
+      CacheValidationResult::InvalidVersion { message } => {
+        self
+          .logger()
+          .warn(format!("meta persistent cache recovery failed: {message}"));
+        self.log_duration(read_occasion_timing_label("meta"), report.version_duration);
+        self.invalidate();
+      }
+      CacheValidationResult::InvalidBuildDependencies {
         modified_files,
         removed_files,
-      }) => {
-        self.invalid = true;
-        self.load_failed = true;
+      } => {
         let reason = format_path_changes(&modified_files, &removed_files);
         self.logger().warn(format!(
           "persistent cache invalidated because build dependencies changed:\n{reason}"
         ));
-        if self.readonly {
-          self
-            .logger()
-            .warn("persistent cache is readonly, stale entries will not be rewritten");
-        }
+        self.log_duration(
+          "validate build dependencies",
+          report
+            .build_dependencies_duration
+            .expect("build dependencies should have been validated"),
+        );
+        self.invalidate();
       }
-      Err(err) => {
-        self.load_failed = true;
+      CacheValidationResult::VersionError(error) => {
         self
           .logger()
-          .warn(format!("build dependencies validation failed: {err}"));
+          .warn(format!("meta persistent cache recovery failed: {error}"));
+        self.log_duration(read_occasion_timing_label("meta"), report.version_duration);
+        self.invalidate();
+      }
+      CacheValidationResult::BuildDependenciesError(error) => {
+        self
+          .logger()
+          .warn(format!("build dependencies validation failed: {error}"));
+        self.log_duration(
+          "validate build dependencies",
+          report
+            .build_dependencies_duration
+            .expect("build dependencies should have been validated"),
+        );
+        self.invalidate();
       }
     }
-    self.logger().time_end(start);
-    if self.load_failed && !self.readonly {
-      build_deps.reset(&mut *self.storage);
+  }
+
+  fn log_duration(&self, label: &'static str, duration: Duration) {
+    self.logger().raw(LogType::Time {
+      label,
+      secs: duration.as_secs(),
+      subsec_nanos: duration.subsec_nanos(),
+    });
+  }
+
+  fn invalidate(&mut self) {
+    self.invalid = true;
+    self.load_failed = true;
+    if self.readonly {
+      self
+        .logger()
+        .warn("persistent cache is readonly, stale entries will not be rewritten");
+    } else {
+      self.storage.reset_all();
     }
   }
 
@@ -110,7 +158,7 @@ impl CacheContext {
   #[tracing::instrument("Cache::Context::save_build_deps", skip_all)]
   pub async fn save_build_deps(
     &mut self,
-    build_deps: &mut BuildDeps,
+    validation: &mut CacheValidation,
     added: impl Iterator<Item = ArcPath>,
   ) {
     if self.readonly {
@@ -121,7 +169,20 @@ impl CacheContext {
       .logger()
       .time("write build dependencies to persistent cache");
     let logger = self.logger().clone();
-    build_deps.add(&mut *self.storage, added, logger).await;
+    validation
+      .add_build_dependencies(&mut *self.storage, added, logger)
+      .await;
+    self.logger().time_end(start);
+  }
+
+  /// Persists compatibility metadata. No-op in readonly mode.
+  pub fn save_validation(&mut self, validation: &CacheValidation) {
+    if self.readonly {
+      return;
+    }
+
+    let start = self.logger().time("write meta to persistent cache");
+    validation.save(&mut *self.storage);
     self.logger().time_end(start);
   }
 
@@ -298,7 +359,7 @@ impl CacheContext {
 
   /// Resets per-build state.
   ///
-  /// In non-readonly mode both flags are cleared; scope resets done during
+  /// In non-readonly mode both flags are cleared; storage resets done during
   /// this build ensure a clean slate next time.
   ///
   /// In readonly mode `invalid` is preserved (the cache is still stale and

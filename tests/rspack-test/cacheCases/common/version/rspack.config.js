@@ -1,6 +1,7 @@
 const path = require('path');
 
-let version = 1;
+const versions = ['v1', 'v2', 'v1'];
+let buildIndex = 0;
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
@@ -15,8 +16,10 @@ module.exports = {
     {
       apply(compiler) {
         compiler.hooks.beforeCompile.tap('Test Plugin', function () {
-          compiler.options.cache.version = String(version);
-          version++;
+          const version = versions[buildIndex++];
+          if (version) {
+            compiler.options.cache.version = version;
+          }
         });
       },
     },

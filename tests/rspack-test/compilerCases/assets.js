@@ -26,6 +26,22 @@ module.exports = [{
 		};
 	}
 }, {
+	description: "should cache the assets proxy per compilation",
+	options(context) {
+		return {
+			context: context.getSource(),
+			entry: "./d",
+			plugins: [{
+				apply(compiler) {
+					compiler.hooks.compilation.tap("Plugin", compilation => {
+						const map = compilation.assets;
+						expect(compilation.assets).toBe(map);
+					});
+				}
+			}]
+		};
+	}
+}, {
 	description: "should have error if the asset to be emitted is exist",
 	error: true,
 	options(context) {

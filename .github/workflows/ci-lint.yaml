@@ -28,7 +28,7 @@ jobs:
       - name: Lint js
         run: pnpm run lint-ci:js
 
-      - name: Prettier
+      - name: Format
         run: pnpm run format-ci:js
 
       - name: Website Spell Check
