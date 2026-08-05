@@ -71,6 +71,12 @@ pub trait Dependency:
     &DependencyType::Unknown
   }
 
+  /// Whether this dependency should be excluded when a global entry include is applied to an
+  /// async entrypoint.
+  fn skip_async_entrypoints(&self) -> bool {
+    false
+  }
+
   fn url_mode(&self) -> Option<JavascriptParserUrl> {
     None
   }
