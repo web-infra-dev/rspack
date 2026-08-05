@@ -13,6 +13,8 @@
   },
   "editor.formatOnSave": true,
   "editor.defaultFormatter": "esbenp.prettier-vscode",
+  // Temporary workaround until we switch to the Rstack VS Code extension.
+  "prettier.singleQuote": true,
   "[json]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
