@@ -259,13 +259,16 @@ impl<'context> CssModuleParser<'context> {
     let mode = self.mode();
     let deps_source_code = self.source_code.clone();
     let (deps, warnings) = css_module_lexer::collect_dependencies(&deps_source_code, mode);
-    let local_css_ident_declarations = self.collect_local_css_ident_declarations(&deps);
-    let module_hash_options = self.create_module_hash_options(&deps, &local_css_ident_declarations);
+    let local_css_ident_declarations =
+      self.collect_local_css_ident_declarations(deps.dependencies());
+    let module_hash_options =
+      self.create_module_hash_options(deps.dependencies(), &local_css_ident_declarations);
 
-    for dependency in deps {
+    for dependency in &deps {
       self
         .handle_dependency(
           dependency,
+          &deps,
           &module_hash_options,
           &local_css_ident_declarations,
         )
@@ -691,7 +694,8 @@ impl<'context> CssModuleParser<'context> {
 
   async fn handle_dependency<'source>(
     &mut self,
-    dependency: css_module_lexer::Dependency<'source>,
+    dependency: &css_module_lexer::Dependency<'source>,
+    dependency_context: &css_module_lexer::DependencyContext<'source>,
     module_hash_options: &LocalIdentModuleHashOptions<'_>,
     local_css_ident_declarations: &LocalCssIdentDeclarations,
   ) -> Result<()> {
@@ -700,7 +704,7 @@ impl<'context> CssModuleParser<'context> {
         request,
         range,
         kind,
-      } => self.handle_url(request, range, kind),
+      } => self.handle_url(request, *range, *kind),
       css_module_lexer::Dependency::Import {
         request,
         range,
@@ -709,18 +713,18 @@ impl<'context> CssModuleParser<'context> {
         layer,
       } => {
         self
-          .handle_import(request, range, media, supports, layer)
+          .handle_import(request, *range, *media, *supports, *layer)
           .await
       }
       css_module_lexer::Dependency::Replace { content, range } => {
-        let range = self.presentational_replace_range(content, range);
+        let range = self.presentational_replace_range(content, *range);
         self
           .presentational_dependencies
-          .push(Box::new(ConstDependency::new(range, content.into())));
+          .push(Box::new(ConstDependency::new(range, (*content).into())));
         Ok(())
       }
       css_module_lexer::Dependency::Charset { range, .. } => {
-        self.handle_charset(range);
+        self.handle_charset(*range);
         Ok(())
       }
       css_module_lexer::Dependency::LocalClass { name, range, .. }
@@ -736,7 +740,7 @@ impl<'context> CssModuleParser<'context> {
           .handle_optional_local_ident_usage(
             self.animation() && local_css_ident_declarations.has_keyframes(name),
             name,
-            range,
+            *range,
             module_hash_options,
           )
           .await
@@ -746,7 +750,7 @@ impl<'context> CssModuleParser<'context> {
           .handle_optional_local_ident_declaration(
             self.animation(),
             name,
-            range,
+            *range,
             module_hash_options,
           )
           .await
@@ -757,7 +761,15 @@ impl<'context> CssModuleParser<'context> {
         from,
         range,
       } => {
-        self.handle_composes(local_classes, names, from, range);
+        self.handle_composes(
+          dependency_context
+            .composes_local_classes(*local_classes)
+            .iter()
+            .copied(),
+          dependency_context.composes_names(*names).iter().copied(),
+          *from,
+          *range,
+        );
         Ok(())
       }
       css_module_lexer::Dependency::ICSSExportValue { prop, value } => {
@@ -774,14 +786,14 @@ impl<'context> CssModuleParser<'context> {
       }
       css_module_lexer::Dependency::ICSSImportUrl { name, range, .. } => {
         if let Some(request) = self.resolve_icss_import_url_request(name) {
-          self.handle_import(&request, range, None, None, None).await
+          self.handle_import(&request, *range, None, None, None).await
         } else {
-          self.add_invalid_bare_import_warning(&range);
+          self.add_invalid_bare_import_warning(range);
           Ok(())
         }
       }
       css_module_lexer::Dependency::ICSSSymbol { name, range } => {
-        self.handle_icss_symbol(name, range);
+        self.handle_icss_symbol(name, *range);
         Ok(())
       }
       css_module_lexer::Dependency::LocalCounterStyle { name, range, .. }
@@ -790,7 +802,7 @@ impl<'context> CssModuleParser<'context> {
           .handle_optional_local_ident_usage(
             self.custom_idents() && local_css_ident_declarations.has_custom_ident(name),
             name,
-            range,
+            *range,
             module_hash_options,
           )
           .await
@@ -801,7 +813,7 @@ impl<'context> CssModuleParser<'context> {
           .handle_optional_local_ident_declaration(
             self.custom_idents(),
             name,
-            range,
+            *range,
             module_hash_options,
           )
           .await
@@ -811,7 +823,7 @@ impl<'context> CssModuleParser<'context> {
           .handle_optional_local_ident_usage(
             self.container() && local_css_ident_declarations.has_container(name),
             name,
-            range,
+            *range,
             module_hash_options,
           )
           .await
@@ -821,7 +833,7 @@ impl<'context> CssModuleParser<'context> {
           .handle_optional_local_ident_declaration(
             self.container(),
             name,
-            range,
+            *range,
             module_hash_options,
           )
           .await
@@ -831,7 +843,7 @@ impl<'context> CssModuleParser<'context> {
           .handle_optional_local_dashed_ident_usage(
             self.function() && local_css_ident_declarations.has_function(name),
             name,
-            range,
+            *range,
             module_hash_options,
           )
           .await
@@ -841,7 +853,7 @@ impl<'context> CssModuleParser<'context> {
           .handle_optional_local_dashed_ident_declaration(
             self.function(),
             name,
-            range,
+            *range,
             module_hash_options,
           )
           .await
@@ -851,14 +863,14 @@ impl<'context> CssModuleParser<'context> {
           .handle_optional_local_ident_usage(
             self.grid() && local_css_ident_declarations.has_grid(name),
             name,
-            range,
+            *range,
             module_hash_options,
           )
           .await
       }
       css_module_lexer::Dependency::LocalGridDecl { name, range, .. } => {
         self
-          .handle_optional_local_ident_declaration(self.grid(), name, range, module_hash_options)
+          .handle_optional_local_ident_declaration(self.grid(), name, *range, module_hash_options)
           .await
       }
       css_module_lexer::Dependency::LocalVar { name, range, from } => {
@@ -866,8 +878,8 @@ impl<'context> CssModuleParser<'context> {
           .handle_optional_local_var_usage(
             self.dashed_idents(),
             name,
-            range,
-            from,
+            *range,
+            *from,
             module_hash_options,
             local_css_ident_declarations,
           )
@@ -879,7 +891,7 @@ impl<'context> CssModuleParser<'context> {
           .handle_optional_local_var_declaration(
             self.dashed_idents(),
             name,
-            range,
+            *range,
             module_hash_options,
           )
           .await

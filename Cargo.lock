@@ -1114,8 +1114,9 @@ dependencies = [
 [[package]]
 name = "css-module-lexer"
 version = "0.1.0"
-source = "git+https://github.com/intellild/css-module-lexer.git?rev=e88e9a587ed0e59bf561c0b736f1803ca149becc#e88e9a587ed0e59bf561c0b736f1803ca149becc"
+source = "git+https://github.com/intellild/css-module-lexer.git?rev=88028f0a72b5706b3abe91927ec47c8cf4568367#88028f0a72b5706b3abe91927ec47c8cf4568367"
 dependencies = [
+ "rustc-hash",
  "smallvec",
 ]
 
