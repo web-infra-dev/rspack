@@ -1,15 +1,14 @@
 use std::{borrow::Cow, sync::Arc};
 
+use cow_utils::CowUtils;
 use rayon::prelude::*;
-use rspack_cacheable::{
-  cacheable,
-  with::{AsPreset, AsVec},
-};
+use rspack_cacheable::cacheable;
 use rspack_error::Result;
 use rspack_sources::{
   BoxSource, CachedSource, ConcatSource, OriginalSource, RawBufferSource, RawStringSource,
   ReplaceSource, Source, SourceExt, SourceMap, SourceMapSource,
 };
+use rspack_util::base64;
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use super::{
@@ -23,15 +22,21 @@ pub const SCOPE: &str = "occasion_source_map_dev_tool_plugin";
 #[cacheable]
 #[derive(Debug)]
 struct CacheEntry {
-  #[cacheable(with=AsVec<AsPreset>)]
-  append: Vec<BoxSource>,
-  source_map_asset: Option<SourceMapAssetCacheData>,
+  comments: SourceMapComments,
+  source_map_asset: SourceMapAssetCacheData,
+}
+
+#[cacheable]
+#[derive(Debug, Clone, Default)]
+pub struct SourceMapComments {
+  pub debug_id_comment: Option<String>,
+  pub source_mapping_url_comment: String,
 }
 
 #[cacheable]
 #[derive(Debug)]
 struct SourceMapAssetCacheData {
-  filename: String,
+  filename: Option<String>,
   source_map: SourceMapCacheData,
 }
 
@@ -182,7 +187,7 @@ fn restore_source_map(source: BoxSource, cache_entry: &CacheEntry) -> Option<Sou
       debug_id,
       ignore_list,
       source_content_indices,
-    } = &cache_entry.source_map_asset.as_ref()?.source_map;
+    } = &cache_entry.source_map_asset.source_map;
     let sources_content = restore_sources_content(source, source_content_indices)?;
     let mut source_map = SourceMap::new(
       Cow::Owned(mappings.clone()),
@@ -225,20 +230,65 @@ fn create_source_map_cache_data(
 
 fn create_cache_entry(
   source: &dyn Source,
-  append: &[BoxSource],
-  source_map: Option<(&str, &SourceMap<'static>)>,
+  comments: &SourceMapComments,
+  source_map_filename: Option<&str>,
+  source_map: &SourceMap<'static>,
 ) -> Option<CacheEntry> {
-  let source_map_asset = match source_map {
-    Some((filename, source_map)) => Some(SourceMapAssetCacheData {
-      filename: filename.to_string(),
-      source_map: create_source_map_cache_data(source, source_map)?,
-    }),
-    None => None,
-  };
   Some(CacheEntry {
-    append: append.to_vec(),
-    source_map_asset,
+    comments: comments.clone(),
+    source_map_asset: SourceMapAssetCacheData {
+      filename: source_map_filename.map(ToString::to_string),
+      source_map: create_source_map_cache_data(source, source_map)?,
+    },
   })
+}
+
+fn render_inline_source_mapping_url_comment(
+  source_mapping_url_comment: &str,
+  source_map: &SourceMap<'_>,
+) -> String {
+  let source_map_json = source_map.to_json();
+  let base64 = base64::encode_to_string(source_map_json.as_bytes());
+  let source_map_url = format!("data:application/json;charset=utf-8;base64,{base64}");
+  source_mapping_url_comment
+    .cow_replace("[url]", &source_map_url)
+    .into_owned()
+}
+
+fn restore_asset_source(
+  source: BoxSource,
+  source_map: &SourceMap<'_>,
+  comments: &SourceMapComments,
+  is_inline: bool,
+) -> Option<BoxSource> {
+  if is_inline && comments.source_mapping_url_comment.is_empty() {
+    return None;
+  }
+  let source_mapping_url_comment = if comments.source_mapping_url_comment.is_empty() {
+    None
+  } else if is_inline {
+    Some(render_inline_source_mapping_url_comment(
+      &comments.source_mapping_url_comment,
+      source_map,
+    ))
+  } else {
+    Some(comments.source_mapping_url_comment.clone())
+  };
+  let comments_count = usize::from(comments.debug_id_comment.is_some())
+    + usize::from(source_mapping_url_comment.is_some());
+  if comments_count == 0 {
+    return Some(source);
+  }
+
+  let mut children = Vec::with_capacity(comments_count + 1);
+  children.push(source);
+  if let Some(debug_id_comment) = &comments.debug_id_comment {
+    children.push(RawStringSource::from(debug_id_comment.clone()).boxed());
+  }
+  if let Some(source_mapping_url_comment) = source_mapping_url_comment {
+    children.push(RawStringSource::from(source_mapping_url_comment).boxed());
+  }
+  Some(ConcatSource::new(children).boxed())
 }
 
 #[allow(clippy::type_complexity)]
@@ -248,29 +298,23 @@ fn restore_cache_entry(
   cache_entry: &CacheEntry,
 ) -> Option<(
   CompilationAsset,
-  Option<(String, SourceMap<'static>)>,
-  Vec<BoxSource>,
+  Option<String>,
+  SourceMap<'static>,
+  SourceMapComments,
 )> {
-  let source_map = match cache_entry.source_map_asset.as_ref() {
-    Some(source_map) => Some((
-      source_map.filename.clone(),
-      restore_source_map(source.clone(), cache_entry)?,
-    )),
-    None => None,
-  };
-  let append = cache_entry.append.clone();
-  let source = if append.is_empty() {
-    source
-  } else {
-    let mut children = Vec::with_capacity(append.len() + 1);
-    children.push(source);
-    children.extend(append.iter().cloned());
-    ConcatSource::new(children).boxed()
-  };
+  let source_map = restore_source_map(source.clone(), cache_entry)?;
+  let source_map_filename = cache_entry.source_map_asset.filename.clone();
+  let source = restore_asset_source(
+    source,
+    &source_map,
+    &cache_entry.comments,
+    source_map_filename.is_none(),
+  )?;
   Some((
     CompilationAsset::new(Some(source), asset_info),
+    source_map_filename,
     source_map,
-    append,
+    cache_entry.comments.clone(),
   ))
 }
 
@@ -292,8 +336,9 @@ impl SourceMapDevToolPluginCacheArtifact {
   ) -> Vec<
     Option<(
       CompilationAsset,
-      Option<(String, SourceMap<'static>)>,
-      Vec<BoxSource>,
+      Option<String>,
+      SourceMap<'static>,
+      SourceMapComments,
     )>,
   > {
     // Memory cache reuses this artifact across rebuilds, so storage mutations
@@ -342,33 +387,45 @@ impl SourceMapDevToolPluginCacheArtifact {
       Item = (
         &'a str,
         &'a CompilationAsset,
-        &'a [BoxSource],
-        Option<(&'a str, &'a SourceMap<'static>)>,
+        &'a SourceMapComments,
+        Option<&'a str>,
+        &'a SourceMap<'static>,
       ),
     >,
   ) {
     let mut active_keys = FxHashSet::default();
     let uncached_items = items
       .into_iter()
-      .filter_map(|(filename, asset, append, source_map)| {
-        let source = asset.get_source()?;
-        let cache_key = CacheKey::new(filename, &asset.info.version)?;
-        active_keys.insert(cache_key.clone());
-        if self
-          .entries
-          .get(&cache_key)
-          .and_then(Option::as_ref)
-          .is_some()
-        {
-          return None;
-        }
-        Some((cache_key, source.as_ref(), append, source_map))
-      })
+      .filter_map(
+        |(filename, asset, comments, source_map_filename, source_map)| {
+          let source = asset.get_source()?;
+          let cache_key = CacheKey::new(filename, &asset.info.version)?;
+          active_keys.insert(cache_key.clone());
+          if self
+            .entries
+            .get(&cache_key)
+            .and_then(Option::as_ref)
+            .is_some()
+          {
+            return None;
+          }
+          Some((
+            cache_key,
+            source.as_ref(),
+            comments,
+            source_map_filename,
+            source_map,
+          ))
+        },
+      )
       .collect::<Vec<_>>()
       .into_par_iter()
-      .filter_map(|(cache_key, source, append, source_map)| {
-        create_cache_entry(source, append, source_map).map(|cache_entry| (cache_key, cache_entry))
-      })
+      .filter_map(
+        |(cache_key, source, comments, source_map_filename, source_map)| {
+          create_cache_entry(source, comments, source_map_filename, source_map)
+            .map(|cache_entry| (cache_key, cache_entry))
+        },
+      )
       .collect::<Vec<_>>();
 
     for (cache_key, cache_entry) in uncached_items {
