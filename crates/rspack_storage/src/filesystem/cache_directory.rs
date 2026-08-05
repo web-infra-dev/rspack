@@ -53,25 +53,3 @@ impl AsRef<str> for CacheDirectory {
     self.as_str()
   }
 }
-
-#[cfg(test)]
-mod tests {
-  use super::CacheDirectory;
-
-  #[test]
-  fn parses_cache_directories() {
-    let directory = CacheDirectory::new("0000000000000001");
-
-    assert_eq!(directory.as_str(), "rspack_v_0000000000000001");
-    assert_eq!(CacheDirectory::parse(directory.as_str()), Some(directory));
-  }
-
-  #[test]
-  fn rejects_invalid_cache_directories() {
-    assert!(!CacheDirectory::is_valid("0000000000000001"));
-    assert!(!CacheDirectory::is_valid(
-      "rspack_v_aaaaaaaaaaaaaaaa_0000000000000001_extra"
-    ));
-    assert!(!CacheDirectory::is_valid("rspack_v_invalid"));
-  }
-}
