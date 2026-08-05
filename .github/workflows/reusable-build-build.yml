@@ -86,14 +86,11 @@ jobs:
         with:
           tool: cargo-zigbuild
 
-      # The `clang` on PATH may come from the Android NDK, whose LLVM lacks the
-      # PowerPC and SystemZ backends.
-      - name: Install clang for ppc64/s390x cross build
+      - name: Install clang with PowerPC and SystemZ backends
         if: ${{ inputs.target == 'powerpc64le-unknown-linux-gnu' || inputs.target == 's390x-unknown-linux-gnu' }}
         run: |
           sudo apt-get update
           sudo apt-get install -y clang-15
-          /usr/bin/clang-15 -print-targets
 
       # setup rust target for native runner
       - name: Setup Rust Target
