@@ -3,8 +3,7 @@ const path = require("node:path");
 const rspack = require("@rspack/core");
 
 const CHILD_COMPILER_NAMES = ["child-a", "child-b"];
-const VERSION_DIRECTORY_REGEXP =
-	/^rspack_v_([0-9a-f]{16})_[0-9a-f]{16}$/;
+const CACHE_DIRECTORY_REGEXP = /^rspack_v_[0-9a-f]{16}$/;
 
 class ChildCompilersPlugin {
 	apply(compiler) {
@@ -60,7 +59,6 @@ const runCompiler = (context, cacheDirectory, version) =>
 			cache: {
 				type: "persistent",
 				version,
-				maxVersions: 2,
 				storage: {
 					type: "filesystem",
 					location: cacheDirectory
@@ -81,23 +79,10 @@ const runCompiler = (context, cacheDirectory, version) =>
 		});
 	});
 
-const getVersionsByScope = cacheDirectory => {
-	const versionsByScope = new Map();
-	for (const entry of fs.readdirSync(cacheDirectory)) {
-		const match = VERSION_DIRECTORY_REGEXP.exec(entry);
-		if (!match) continue;
-
-		const versions = versionsByScope.get(match[1]) || [];
-		versions.push(entry);
-		versionsByScope.set(match[1], versions);
-	}
-	return versionsByScope;
-};
-
 /** @type {import("@rspack/test-tools").TCompilerCaseConfig} */
 module.exports = {
 	description:
-		"should retain maxVersions for the root and each named child compiler",
+		"should keep one persistent cache directory for each compiler path",
 	options(context) {
 		return {
 			context: context.getSource(),
@@ -105,21 +90,26 @@ module.exports = {
 		};
 	},
 	async build(context) {
-		const cacheDirectory = context.getDist("persistent-cache-child-compilers");
+		const cacheDirectory = context.getDist(
+			"persistent-cache-compiler-path"
+		);
 		fs.rmSync(cacheDirectory, { recursive: true, force: true });
 
-		for (const version of ["v1", "v2", "v3"]) {
-			await runCompiler(context, cacheDirectory, version);
-		}
+		await runCompiler(context, cacheDirectory, "v1");
+		await runCompiler(context, cacheDirectory, "v2");
 
-		context.setValue("versionsByScope", getVersionsByScope(cacheDirectory));
+		context.setValue(
+			"cacheDirectories",
+			fs
+				.readdirSync(cacheDirectory)
+				.filter(name => CACHE_DIRECTORY_REGEXP.test(name))
+				.sort()
+		);
 	},
 	check({ context }) {
-		const versionsByScope = context.getValue("versionsByScope");
+		const cacheDirectories = context.getValue("cacheDirectories");
 
-		expect(versionsByScope.size).toBe(1 + CHILD_COMPILER_NAMES.length);
-		expect(
-			Array.from(versionsByScope.values(), versions => versions.length)
-		).toEqual([2, 2, 2]);
+		expect(cacheDirectories).toHaveLength(1 + CHILD_COMPILER_NAMES.length);
+		expect(new Set(cacheDirectories).size).toBe(cacheDirectories.length);
 	}
 };

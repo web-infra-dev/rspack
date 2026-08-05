@@ -18,7 +18,6 @@ pub struct RawCacheOptionsPersistent {
   pub build_dependencies: Option<Vec<String>>,
   pub version: Option<String>,
   pub max_age: u32,
-  pub max_versions: u32,
   pub snapshot: Option<RawSnapshotOptions>,
   pub storage: Option<RawStorageOptions>,
   pub portable: Option<bool>,
@@ -43,7 +42,6 @@ impl TryFrom<RawCacheOptionsPersistent> for PersistentCacheOptions {
       portable: value.portable.unwrap_or_default(),
       readonly: value.readonly.unwrap_or_default(),
       max_age: value.max_age.into(),
-      max_versions: value.max_versions,
     })
   }
 }

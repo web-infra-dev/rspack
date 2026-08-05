@@ -10,7 +10,7 @@ mod memory;
 
 pub use self::{
   error::{Error, Result},
-  filesystem::{FileSystemOptions, FileSystemStorage, Version},
+  filesystem::{CacheDirectory, FileSystemOptions, FileSystemStorage},
   memory::MemoryStorage,
 };
 
@@ -50,6 +50,12 @@ pub trait Storage: std::fmt::Debug + Sync + Send {
   /// The clean is performed asynchronously in the background. Call [`Storage::flush`]
   /// to wait until all enqueued work has completed.
   fn reset(&mut self, scope: &'static str);
+
+  /// Resets all scopes owned by this storage.
+  ///
+  /// The clean is performed asynchronously in the background. Call [`Storage::flush`]
+  /// to wait until all enqueued work has completed.
+  fn reset_all(&mut self);
 
   /// Gets a list of all available scopes in the storage
   async fn scopes(&self) -> Result<Vec<String>>;

@@ -2091,7 +2091,8 @@ export type PersistentCacheOptions = {
    */
   buildDependencies?: string[];
   /**
-   * Cache version, different versions of caches are isolated from each other.
+   * Version of the cache data. Changing the version invalidates the existing
+   * cache and causes its content to be overwritten.
    * @default ""
    */
   version?: string;
@@ -2102,10 +2103,8 @@ export type PersistentCacheOptions = {
    */
   maxAge?: number;
   /**
-   * Maximum number of filesystem cache versions to retain in the cache
-   * directory. Must be an integer between 1 and 4294967295, or Infinity to
-   * disable version-based cleanup.
-   * @default 3
+   * @deprecated This option has no effect. Rspack keeps only one persistent
+   * cache per compiler path.
    */
   maxVersions?: number;
   /**
