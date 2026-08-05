@@ -243,6 +243,7 @@ export class Compilation {
   #errors?: RspackError[];
   #warnings?: RspackError[];
   #chunks?: ReadonlySet<Chunk>;
+  #assetsProxy?: Assets;
 
   hooks: Readonly<{
     processAssets: liteTapable.AsyncSeriesHook<Assets>;
@@ -479,7 +480,10 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
    * Get a map of all assets.
    */
   get assets(): Record<string, Source> {
-    return this.#createCachedAssets();
+    if (!this.#assetsProxy) {
+      this.#assetsProxy = this.#createAssetsProxy();
+    }
+    return this.#assetsProxy;
   }
 
   /**
@@ -560,7 +564,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
     return this.#inner.codeGenerationResults;
   }
 
-  #createCachedAssets() {
+  #createAssetsProxy() {
     return new Proxy(
       {},
       {
