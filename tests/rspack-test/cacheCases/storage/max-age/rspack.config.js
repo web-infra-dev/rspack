@@ -47,7 +47,7 @@ module.exports = {
     maxAge: 1,
     storage: {
       type: 'filesystem',
-      directory: cacheDir,
+      location: cacheDir,
     },
   },
   plugins: [

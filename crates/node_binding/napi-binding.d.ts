@@ -2996,6 +2996,11 @@ export interface RawRstestPluginOptions {
   manualMockRoot: string
   preserveNewUrl?: Array<string>
   globals?: boolean
+  /**
+   * Replaces each `import.meta.rstest` with
+   * `globalThis['@rstest/core/import-meta'](<absolute source path>)`.
+   */
+  injectImportMetaRstestOrigin?: boolean
 injectDynamicImportOrigin?: boolean | { functionName?: string }
 injectRequireResolveOrigin?: boolean | { functionName?: string }
 }

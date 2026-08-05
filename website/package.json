@@ -5,11 +5,11 @@
   "license": "MIT",
   "type": "module",
   "scripts": {
-    "build": "rspress build",
+    "build": "rs doc build",
     "check:spell": "cspell",
     "check:case": "case-police docs/**/*.{md,mdx}",
-    "dev": "rspress dev",
-    "preview": "rspress preview",
+    "dev": "rs doc",
+    "preview": "rs doc preview",
     "sort-projects-words": "node ./sortProjectWords.js"
   },
   "dependencies": {
@@ -38,6 +38,7 @@
     "rsbuild-plugin-google-analytics": "catalog:",
     "rsbuild-plugin-open-graph": "catalog:",
     "rspress-plugin-font-open-sans": "catalog:",
+    "rstack": "catalog:",
     "tailwindcss": "catalog:",
     "typescript": "catalog:"
   }

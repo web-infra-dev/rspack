@@ -17,14 +17,30 @@
 		}
 	};
 };
-<%- var("cssTextKeyOfLink") %> = <%- basicFunction("link") %> {
-	return Array.from(link.sheet.cssRules, <%- returningFunction("r.cssText", "r") %>).join();
+<%- var("cssInitialChunkIds") %> = <%- _initial_chunk_ids %>;
+// A chunk is present on this page only when the active JavaScript
+// chunk-loading runtime records it as fully loaded.
+<%- var("cssChunkIsLoaded") %> = <%- basicFunction("chunkId") %> {
+	return typeof <%- _js_state_expression %> !== "undefined" && <%- _js_state_expression %> && <%- _js_state_expression %>[chunkId] === 0;
 };
-<%- HMR_DOWNLOAD_UPDATE_HANDLERS %>.css = <%- basicFunction("chunkIds, removedChunks, removedModules, promises, applyHandlers, updatedModulesList") %> {
+<%- HMR_DOWNLOAD_UPDATE_HANDLERS %>.css = <%- basicFunction("chunkIds, removedChunks, removedModules, promises, applyHandlers, updatedModulesList, css") %> {
 	if (typeof document === 'undefined') return;
 	applyHandlers.push(cssApplyHandler);
+	// `css` is the hot-update manifest's css namespace (aligned with webpack):
+	// `css.c` lists the chunks whose CSS content actually changed and `css.r`
+	// the chunks whose CSS disappeared. Its absence means this update carries
+	// no CSS work at all — notably the runtime chunk is in `chunkIds` on every
+	// update (its full hash always changes) while its stylesheet rarely does.
+	var cssRemovedChunkIds = (css && css.r) || [];
+	var cssChunkIds = (css && css.c) || [];
 	var seen = {};
-	chunkIds.forEach(<%- basicFunction("chunkId") %> {
+	cssRemovedChunkIds.forEach(<%- basicFunction("chunkId") %> {
+		var filename = <%- GET_CHUNK_CSS_FILENAME %>(chunkId);
+		if (!filename) return;
+		var oldTag = cssLoadStylesheet(chunkId, <%- PUBLIC_PATH %> + filename);
+		if (oldTag) cssOldTags.push(oldTag);
+	});
+	cssChunkIds.forEach(<%- basicFunction("chunkId") %> {
 		var filename = <%- GET_CHUNK_CSS_FILENAME %>(chunkId);
 		if (!filename) return;
 		var url = <%- PUBLIC_PATH %> + filename;
@@ -33,7 +49,11 @@
 		}
 		seen[url] = true;
 		var oldTag = cssLoadStylesheet(chunkId, url);
-		if (!oldTag) return;
+		// The manifest is computed from the compilation and also lists chunks this
+		// page never loaded. A missing tag is legitimate only for a chunk that is
+		// actually on the page: an initial chunk gaining its first stylesheet, or
+		// a loaded async chunk whose stylesheet was removed by an earlier update.
+		if (!oldTag && !cssInitialChunkIds[chunkId] && !cssChunkIsLoaded(chunkId)) return;
 		promises.push(
 			new Promise(<%- basicFunction("resolve, reject") %> {
 				var link = cssLoadStylesheet(
@@ -57,15 +77,9 @@
 							error.request = realSrc;
 							reject(error);
 						} else {
-							try {
-								if (cssTextKeyOfLink(oldTag) == cssTextKeyOfLink(link)) {
-									if (link.parentNode) link.parentNode.removeChild(link);
-									return resolve();
-								}
-							} catch (e) {}
-							cssOldTags.push(oldTag);
-							cssNewTags.push(link);
 							link.sheet.disabled = true;
+							if (oldTag) cssOldTags.push(oldTag);
+							cssNewTags.push(link);
 							resolve();
 						}
 					},

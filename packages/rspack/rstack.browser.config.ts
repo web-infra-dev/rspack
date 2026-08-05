@@ -1,5 +1,4 @@
 import fs from 'node:fs/promises';
-import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import vm from 'node:vm';
@@ -8,8 +7,6 @@ import { define } from 'rstack';
 import { type RsbuildPlugin, rspack } from 'rstack/lib';
 import packageJson from './package.json' with { type: 'json' };
 
-const require = createRequire(import.meta.url);
-
 const bindingDir = path.resolve('../../crates/node_binding');
 const distDir = path.resolve('../rspack-browser/dist');
 
@@ -17,6 +14,7 @@ const MF_RUNTIME_CODE = await getModuleFederationRuntimeCode();
 
 // This plugin removes `createRequire` usages from the code,
 // since `createRequire` is not available in browser environment.
+// The `createRequire` parser skips dynamic calls, so this transform is still required.
 const removeCreateRequirePlugin: RsbuildPlugin = {
   name: 'remove-create-require',
   setup(api) {
@@ -133,29 +131,34 @@ define.lib({
       MF_RUNTIME_CODE: JSON.stringify(MF_RUNTIME_CODE),
     },
   },
-  resolve: {
-    alias: {
-      '../compiled/watchpack/index.js': path.dirname(
-        require.resolve('watchpack/package.json'),
-      ),
-    },
-  },
   tools: {
-    rspack: (config, { rspack }) => {
-      config.plugins.push(
-        new rspack.IgnorePlugin({
-          resourceRegExp: /(moduleFederationDefaultRuntime|inspector)/,
-        }),
-        new rspack.NormalModuleReplacementPlugin(
-          /src[/\\]loader-runner[/\\]service\.ts/,
-          path.resolve('./src/browser/service.ts'),
-        ),
-        new rspack.NormalModuleReplacementPlugin(
-          /src[/\\]builtin-plugin[/\\]lazy-compilation[/\\]middleware\.ts/,
-          path.resolve('./src/browser/middleware.ts'),
-        ),
-      );
-    },
+    rspack: [
+      {
+        module: {
+          parser: {
+            javascript: {
+              // TODO: Remove this override after upgrading Rslib, which enables the createRequire parser by default.
+              createRequire: true,
+            },
+          },
+        },
+      },
+      (config, { rspack }) => {
+        config.plugins.push(
+          new rspack.IgnorePlugin({
+            resourceRegExp: /(moduleFederationDefaultRuntime|inspector)/,
+          }),
+          new rspack.NormalModuleReplacementPlugin(
+            /src[/\\]loader-runner[/\\]service\.ts/,
+            path.resolve('./src/browser/service.ts'),
+          ),
+          new rspack.NormalModuleReplacementPlugin(
+            /src[/\\]builtin-plugin[/\\]lazy-compilation[/\\]middleware\.ts/,
+            path.resolve('./src/browser/middleware.ts'),
+          ),
+        );
+      },
+    ],
   },
 });
 

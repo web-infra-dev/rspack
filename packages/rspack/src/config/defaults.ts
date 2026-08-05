@@ -60,6 +60,7 @@ import type {
 
 const ERROR_PREFIX = 'Invalid Rspack configuration:';
 const DEFAULT_FILESYSTEM_CACHE_MAX_AGE_SECONDS = 7 * 24 * 60 * 60;
+const DEFAULT_CACHE_NAME = '';
 
 export const applyRspackOptionsDefaults = (
   options: RspackOptionsNormalized,
@@ -104,8 +105,8 @@ export const applyRspackOptionsDefaults = (
   );
   applyCacheDefaults(options.cache!, {
     context: options.context!,
-    name: options.name,
-    mode: options.mode,
+    name: options.name || DEFAULT_CACHE_NAME,
+    mode: options.mode || 'production',
     compilerIndex,
   });
 
@@ -219,8 +220,8 @@ const applyCacheDefaults = (
     compilerIndex,
   }: {
     context: string;
-    name?: Name;
-    mode?: Mode;
+    name: Name;
+    mode: Mode;
     compilerIndex?: number;
   },
 ) => {
@@ -229,21 +230,25 @@ const applyCacheDefaults = (
     case 'memory':
       break;
     case 'persistent':
+      F(cache, 'name', () => {
+        const cacheName = name ? `${name}-${mode}` : mode;
+        return compilerIndex !== undefined && compilerIndex > 0
+          ? `${cacheName}-${compilerIndex}`
+          : cacheName;
+      });
+      D(cache.storage, 'type', 'filesystem');
+      F(cache.storage, 'directory', () =>
+        path.resolve(context, 'node_modules/.cache/rspack'),
+      );
+      F(cache.storage, 'location', () =>
+        path.resolve(cache.storage.directory!, cache.name!),
+      );
       D(cache, 'version', '');
       D(cache, 'maxAge', DEFAULT_FILESYSTEM_CACHE_MAX_AGE_SECONDS);
       F(cache, 'buildDependencies', () => []);
       F(cache.snapshot, 'immutablePaths', () => []);
       F(cache.snapshot, 'unmanagedPaths', () => []);
       F(cache.snapshot, 'managedPaths', () => [/[\\/]node_modules[\\/][^.]/]);
-      D(cache.storage, 'type', 'filesystem');
-      F(cache.storage, 'directory', () => {
-        const modeName = mode || 'production';
-        const compilerName = name ? `${name}-${modeName}` : modeName;
-        const cacheName = compilerIndex
-          ? `${compilerName}-${compilerIndex}`
-          : compilerName;
-        return path.resolve(context, 'node_modules/.cache/rspack', cacheName);
-      });
       D(cache, 'portable', false);
       D(cache, 'readonly', false);
       break;

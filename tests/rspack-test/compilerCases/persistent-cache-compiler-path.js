@@ -61,7 +61,7 @@ const runCompiler = (context, cacheDirectory, version) =>
 				version,
 				storage: {
 					type: "filesystem",
-					directory: cacheDirectory
+					location: cacheDirectory
 				}
 			},
 			plugins: [new ChildCompilersPlugin()]

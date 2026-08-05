@@ -26,7 +26,7 @@ module.exports = __rspack_createRequire_require("node:url");
 /*!**************************!*\
   !*** ./cjs-consumer.cjs ***!
   \**************************/
-(__unused_rspack_module, exports, rspackRequire) {
+(__unused_rspack_module, exports) {
 // CJS require of "module" type external — should be downgraded to node-commonjs
 const nodePath = rspackRequire(/*! node:fs */ "node:fs?435f");
 exports.n = nodePath.resolve;

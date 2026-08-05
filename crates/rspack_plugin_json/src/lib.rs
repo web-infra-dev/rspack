@@ -17,7 +17,7 @@ use rspack_core::{
   ParseOption, ParserAndGenerator, ParserOptions, Plugin, RuntimeSpec, SourceType, UsageState,
   UsedNameItem,
   diagnostics::ModuleParseError,
-  rspack_sources::{BoxSource, OriginalSource, RawStringSource, Source, SourceExt},
+  rspack_sources::{BoxSource, RawStringSource, Source, SourceExt},
 };
 use rspack_error::{Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray, error};
 use rspack_util::{itoa, location::byte_line_column_to_offset};
@@ -230,11 +230,7 @@ impl ParserAndGenerator for JsonParserAndGenerator {
               .render_module_argument(ModuleArgument::Module)
           )
         };
-        if module.get_source_map_kind().enabled() {
-          Ok(OriginalSource::new(content, module.identifier().as_str()).boxed())
-        } else {
-          Ok(RawStringSource::from(content).boxed())
-        }
+        Ok(RawStringSource::from(content).boxed())
       }
       _ => panic!(
         "Unsupported source type: {:?}",

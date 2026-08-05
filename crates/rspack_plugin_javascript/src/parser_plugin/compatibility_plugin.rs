@@ -1,7 +1,4 @@
-use rspack_core::{
-  BoxDependencyTemplate, ConstDependency, ContextDependency, DependencyRange,
-  runtime_mode::RuntimeMode,
-};
+use rspack_core::{BoxDependencyTemplate, ConstDependency, ContextDependency, DependencyRange};
 use rspack_util::{SpanExt, itoa};
 use swc_atoms::Atom;
 use swc_experimental_ecma_ast::{CallExpr, GetSpan, Ident, Program, VarDeclarator};
@@ -26,11 +23,10 @@ pub struct CompatibilityPlugin;
 
 impl CompatibilityPlugin {
   fn nested_require_name<'a>(&self, parser: &'a JavascriptParser) -> &'a str {
-    if parser.compiler_options.experiments.runtime_mode == RuntimeMode::Rspack {
-      parser.parser_runtime_requirements.context.as_str()
-    } else {
-      parser.parser_runtime_requirements.require.as_str()
-    }
+    parser
+      .parser_runtime_requirements
+      .compatibility_runtime_scope
+      .as_str()
   }
 
   pub fn browserify_require_handler(
@@ -79,6 +75,34 @@ impl CompatibilityPlugin {
         in_short_hand,
       }),
     );
+  }
+
+  /// Materialize the declaration replacement before an export records the nested name.
+  /// A non-self-referential function would not otherwise visit the identifier hook.
+  pub(crate) fn update_nested_binding_declaration(
+    parser: &mut JavascriptParser,
+    name: &Atom,
+  ) -> Option<Atom> {
+    let (nested_name, dep) = {
+      let data = parser.get_tag_data_mut::<NestedRequireData>(name, NESTED_IDENTIFIER_TAG)?;
+      let nested_name = Atom::from(data.name.as_str());
+      let content = if data.in_short_hand {
+        format!("{name}: {}", data.name).into()
+      } else {
+        data.name.clone().into()
+      };
+      let dep = if data.update {
+        None
+      } else {
+        Some(ConstDependency::new(data.loc, content))
+      };
+      data.update = true;
+      (nested_name, dep)
+    };
+    if let Some(dep) = dep {
+      parser.add_presentational_dependency(Box::new(dep));
+    }
+    Some(nested_name)
   }
 }
 
@@ -156,7 +180,9 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CompatibilityPlugin {
         ident.span().real_lo(),
         ident.span().real_hi(),
       );
-      return Some(true);
+      if !parser.is_top_level_scope() {
+        return Some(true);
+      }
     } else if for_name == self.nested_require_name(parser) {
       let span = ident.span();
       let start = span.real_lo();

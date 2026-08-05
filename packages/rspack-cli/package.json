@@ -1,6 +1,6 @@
 {
   "name": "@rspack/cli",
-  "version": "2.1.7",
+  "version": "2.1.8",
   "description": "CLI for rspack",
   "homepage": "https://rspack.rs",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",
@@ -31,7 +31,7 @@
     "build": "rs lib",
     "dev": "rs lib -w",
     "prepare": "prebundle",
-    "test": "rstest"
+    "test": "rs test"
   },
   "devDependencies": {
     "@discoveryjs/json-ext": "catalog:",

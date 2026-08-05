@@ -1,7 +1,13 @@
 import path from 'node:path';
 
 import type { Filename, LoaderContext, LoaderDefinition } from '../..';
-import { PLUGIN_NAME, stringifyLocal, stringifyRequest } from './utils';
+import {
+  type CssExtractPluginData,
+  PLUGIN_NAME,
+  pluginSymbol,
+  stringifyLocal,
+  stringifyRequest,
+} from './utils';
 
 export const BASE_URI = 'rspack-css-extract://';
 export const MODULE_TYPE = 'css/mini-extract';
@@ -39,11 +45,20 @@ export function hotLoader(
   },
 ): string {
   const localsJsonString = JSON.stringify(JSON.stringify(context.locals));
+  const pluginData = (
+    context.loaderContext as unknown as Record<
+      symbol,
+      CssExtractPluginData | undefined
+    >
+  )[pluginSymbol];
+  // with `runtime: false` there is no hmrC.miniCss handler, so the injected
+  // timestamp stays as the only change signal for css-only edits
+  const changeSignal =
+    pluginData?.runtime === false ? `\n        // ${Date.now()}` : '';
   return `${content}
     if(module.hot) {
       (function() {
-        var localsJsonString = ${localsJsonString};
-        // ${Date.now()}
+        var localsJsonString = ${localsJsonString};${changeSignal}
         var cssReload = require(${stringifyRequest(
           context.loaderContext,
           path.join(import.meta.dirname, 'cssExtractHmr.js'),

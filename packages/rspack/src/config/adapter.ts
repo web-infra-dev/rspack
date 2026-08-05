@@ -117,8 +117,6 @@ export const getRawOptions = (
 function getRawCache(cache: CacheNormalized): RawOptions['cache'] {
   if (cache === false) return false;
   if (cache.type === 'memory') return cache;
-  const rawCache = { ...cache };
-  delete rawCache.maxVersions;
   const toRawStorageLimit = (name: string, value: number) => {
     if (value === Infinity) return 0;
     if (!Number.isSafeInteger(value) || value < 1 || value > MAX_U32) {
@@ -129,17 +127,22 @@ function getRawCache(cache: CacheNormalized): RawOptions['cache'] {
     return value;
   };
   return {
-    ...rawCache,
+    type: cache.type,
+    buildDependencies: cache.buildDependencies,
+    version: cache.version,
     maxAge: toRawStorageLimit('cache.maxAge', cache.maxAge!),
     storage: {
-      ...cache.storage,
-      directory: cache.storage.directory!,
+      type: cache.storage.type,
+      // Raw `directory` expects the final cache path; normalized `directory` is only the base.
+      directory: cache.storage.location!,
     },
     snapshot: {
       immutablePaths: cache.snapshot.immutablePaths!,
       unmanagedPaths: cache.snapshot.unmanagedPaths!,
       managedPaths: cache.snapshot.managedPaths!,
     },
+    portable: cache.portable,
+    readonly: cache.readonly,
   };
 }
 

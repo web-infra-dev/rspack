@@ -21,6 +21,7 @@ type CacheOptions =
     }
   | {
       type: 'persistent';
+      name?: string;
       buildDependencies?: string[];
       version?: string;
       maxAge?: number;
@@ -35,6 +36,7 @@ type CacheOptions =
       storage?: {
         type: 'filesystem';
         directory?: string;
+        location?: string;
       };
     };
 ```
@@ -71,6 +73,22 @@ export default {
 export default {
   cache: {
     type: 'persistent',
+  },
+};
+```
+
+### name
+
+- **类型：** `string`
+- **默认值：** 设置 `config.name` 时为 `<config.name>-<mode>`，否则为 `<mode>`
+
+`cache.name` 用于命名持久化缓存。不同的名称会创建可同时存在的缓存。在 multi compiler 模式下，第一个 compiler 保持默认名称，后续 compiler 追加从零开始的 index，例如 `-1`、`-2`。
+
+```js title="rspack.config.mjs"
+export default {
+  cache: {
+    type: 'persistent',
+    name: 'client-development',
   },
 };
 ```
@@ -122,7 +140,7 @@ export default {
 ```
 
 :::warning
-不要在不同配置之间共享同一份缓存（相同的 `cache.version` 和 `cache.storage.directory`），这样可能导致错误的缓存命中。
+不要在不同配置之间共享同一份缓存（相同的 `cache.version` 和 `cache.storage.location`），这样可能导致错误的缓存命中。
 :::
 
 :::tip 持久化缓存失效
@@ -283,7 +301,7 @@ export default {
 
 ### storage
 
-- **类型：** `{ type: 'filesystem'; directory?: string }`
+- **类型：** `{ type: 'filesystem'; directory?: string; location?: string }`
 
 配置缓存存储。目前仅支持文件系统存储。
 
@@ -305,38 +323,63 @@ export default {
 
 通过 `type` 设置缓存存储类型。目前仅支持文件系统存储。
 
+#### storage.directory
+
+- **类型：** `string`
+- **默认值：** `node_modules/.cache/rspack`
+
+`cache.storage.directory` 是持久化缓存的基础目录，语义与 webpack 的 `cache.cacheDirectory` 一致。相对路径会基于 [`config.context`](/config/context) 解析。
+
 ```js title="rspack.config.mjs"
 export default {
   cache: {
     type: 'persistent',
     storage: {
       type: 'filesystem',
-    },
-  },
-};
-```
-
-#### storage.directory
-
-- **类型：** `string`
-- **默认值：** `node_modules/.cache/rspack/<mode>` 或 `node_modules/.cache/rspack/<name>-<mode>`
-
-通过 `directory` 设置缓存目录。默认目录会基于 [`config.context`](/config/context)、[`config.name`](/config/other-options#name)、[`config.mode`](/config/mode#mode) 和 multi compiler 的 index 生成。在 multi compiler 模式下，后续 compiler 会追加 `-<index>` 以避免共享同一个目录。
-
-```js title="rspack.config.mjs"
-export default {
-  cache: {
-    type: 'persistent',
-    storage: {
       directory: '.rspack-cache',
     },
   },
 };
 ```
 
-:::tip
-不同 Compiler 应配置不同的 [`config.name`](/config/other-options#name) 以确保使用不同的 `cache.storage.directory`，以避免缓存冲突。
-:::
+#### storage.location
+
+<ApiMeta addedVersion="2.1.8" />
+
+- **类型：** `string`
+- **默认值：** `<storage.directory>/<cache.name>`
+
+`cache.storage.location` 是 Rspack 实际读写缓存数据的完整路径，语义与 webpack 的 `cache.cacheLocation` 一致。未设置时，Rspack 会根据 `cache.storage.directory` 和 `cache.name` 推导该路径。相对路径会基于 [`config.context`](/config/context) 解析。
+
+```js title="rspack.config.mjs"
+export default {
+  context: '/project',
+  cache: {
+    type: 'persistent',
+    name: 'client',
+    storage: {
+      type: 'filesystem',
+      directory: '.rspack-cache',
+    },
+  },
+};
+
+// cache.storage.location 的默认值为 '/project/.rspack-cache/client'。
+```
+
+如需覆盖推导出的路径，可以显式设置 `storage.location`：
+
+```js title="rspack.config.mjs"
+export default {
+  cache: {
+    type: 'persistent',
+    storage: {
+      type: 'filesystem',
+      location: '.custom-cache/client',
+    },
+  },
+};
+```
 
 ### 查看持久化缓存日志
 

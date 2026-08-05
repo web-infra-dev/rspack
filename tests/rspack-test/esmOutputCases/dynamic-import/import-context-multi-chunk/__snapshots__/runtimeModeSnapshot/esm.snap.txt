@@ -7,7 +7,7 @@ moduleFactories.add({
 /*!**********************!*\
   !*** ./modules/a.js ***!
   \**********************/
-(__unused_rspack_module, exports, rspackRequire) {
+(__unused_rspack_module, exports) {
 makeNamespaceObject(exports);
 /* import */ var _shared__rspack_import_0 = rspackRequire(/*! ../shared */ "./shared.js");
 
@@ -35,7 +35,7 @@ moduleFactories.add({
 /*!**********************!*\
   !*** ./modules/b.js ***!
   \**********************/
-(__unused_rspack_module, exports, rspackRequire) {
+(__unused_rspack_module, exports) {
 makeNamespaceObject(exports);
 /* import */ var _shared__rspack_import_0 = rspackRequire(/*! ../shared */ "./shared.js");
 
@@ -61,7 +61,7 @@ moduleFactories.add({
 /*!**************************************************************************************************************************!*\
   !*** ./modules|lazy|/^\.\/.*\.js$/|referencedExports: default|groupOptions: {}|namespace object|importPhase: evaluation ***!
   \**************************************************************************************************************************/
-(module, __unused_rspack_exports, rspackRequire) {
+(module) {
 var map = {
   "./a.js": [
     "./modules/a.js",
@@ -103,7 +103,7 @@ module.exports = __rspack_async_context;
 /*!*******************************************************************!*\
   !*** ./modules|lazy|nonrecursive|./modules/*.js|namespace object ***!
   \*******************************************************************/
-(module, __unused_rspack_exports, rspackRequire) {
+(module) {
 
 module.exports = {
 

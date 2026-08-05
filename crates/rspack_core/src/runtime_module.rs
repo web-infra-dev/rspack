@@ -45,7 +45,7 @@ pub fn runtime_module_owned_define_fields(
       let runtime_requirements = runtime_module.runtime_requirements(compilation);
       let define_fields = runtime_requirements
         .define
-        .difference(RuntimeGlobals::STARTUP | runtime_requirements.force_context);
+        .difference(RuntimeGlobals::STARTUP);
       fields | define_fields
     })
 }

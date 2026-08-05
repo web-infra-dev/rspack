@@ -8,10 +8,11 @@ use rspack_core::{
   Compilation, CompilationContentHash, CompilationId, CompilationParams, CompilationRenderManifest,
   CompilationRuntimeRequirementInTree, CompilerCompilation, CssBuildInfo, CssModuleRenderCondition,
   DependencyType, ManifestAssetType, Module, ModuleFactoryCreateData, ModuleGraph,
-  ModuleIdentifier, ModuleType, NormalModuleCreateData, NormalModuleFactoryAfterResolve,
-  NormalModuleFactoryModule, ParserAndGenerator, PathData, Plugin, PublicPath, RenderManifestEntry,
-  RuntimeGlobals, RuntimeModule, RuntimeModuleExt, SelfModuleFactory, SourceType,
-  css_module_render_conditions_identifier, get_css_chunk_filename_template, is_source_equal,
+  ModuleIdentifier, ModuleRule, ModuleType, NormalModuleCreateData,
+  NormalModuleFactoryAfterResolve, NormalModuleFactoryModule, ParserAndGenerator, PathData, Plugin,
+  PublicPath, RenderManifestEntry, RuntimeGlobals, RuntimeModule, RuntimeModuleExt,
+  SelfModuleFactory, SourceType, css_module_render_conditions_identifier,
+  get_css_chunk_filename_template, is_source_equal,
   rspack_sources::{BoxSource, CachedSource, ReplaceSource, Source, SourceExt},
 };
 use rspack_error::{Diagnostic, Result, ToStringResultToRspackResultExt};
@@ -409,6 +410,20 @@ async fn compilation(
   Ok(())
 }
 
+// Native CSS is configured through module rules (`type: "css*"`), so the runtime
+// chunk must carry the css hmr handler whenever such a rule exists, even before any
+// stylesheet is imported. Otherwise the first stylesheet added via HMR is emitted but
+// never requested, because the runtime baked at the initial build lacks `hmrC.css`.
+fn has_css_module_rule(rules: &[ModuleRule]) -> bool {
+  rules.iter().any(|rule| {
+    matches!(
+      rule.effect.r#type,
+      Some(ModuleType::Css | ModuleType::CssModule | ModuleType::CssAuto | ModuleType::CssGlobal)
+    ) || rule.one_of.as_deref().is_some_and(has_css_module_rule)
+      || rule.rules.as_deref().is_some_and(has_css_module_rule)
+  })
+}
+
 #[plugin_hook(CompilationRuntimeRequirementInTree for CssPlugin)]
 async fn runtime_requirements_in_tree(
   &self,
@@ -428,11 +443,23 @@ async fn runtime_requirements_in_tree(
     &ChunkLoading::Enable(ChunkLoadingType::Import),
     compilation,
   );
+  // A compilation configured for native css (via a `type: "css*"` module rule) but
+  // without any css module yet still needs the css hmr runtime baked into the initial
+  // chunk, so a stylesheet added by a later hot update can be requested. Once a css
+  // module exists the regular `HAS_CSS_MODULES` gating already covers this. The rule
+  // scan is only reached under HMR, so non-watch builds pay nothing.
+  let has_css_rule = all_runtime_requirements
+    .contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS)
+    && has_css_module_rule(&compilation.options.module.rules);
+  let hmr_needs_css_runtime =
+    has_css_rule && !all_runtime_requirements.contains(RuntimeGlobals::HAS_CSS_MODULES);
   let needs_css_loading_runtime = runtime_requirements.intersects(
     RuntimeGlobals::HAS_CSS_MODULES
       | RuntimeGlobals::CSS_INJECT_STYLE
       | RuntimeGlobals::CSS_STYLE_SHEET,
-  );
+  ) || (runtime_requirements
+    .contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS)
+    && has_css_rule);
 
   if !is_enabled_for_chunk
     && !runtime_requirements
@@ -448,10 +475,11 @@ async fn runtime_requirements_in_tree(
     ));
   }
 
-  if all_runtime_requirements.contains(RuntimeGlobals::HAS_CSS_MODULES)
+  if (all_runtime_requirements.contains(RuntimeGlobals::HAS_CSS_MODULES)
     && all_runtime_requirements.intersects(
       RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS | RuntimeGlobals::ENSURE_CHUNK_HANDLERS,
-    )
+    ))
+    || hmr_needs_css_runtime
   {
     runtime_requirements_mut.extend(CssLoadingRuntimeModule::get_runtime_requirements_basic());
   }
@@ -482,6 +510,7 @@ async fn runtime_requirements_in_tree(
 
   if all_runtime_requirements
     .contains(RuntimeGlobals::HAS_CSS_MODULES | RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS)
+    || hmr_needs_css_runtime
   {
     runtime_requirements_mut.extend(CssLoadingRuntimeModule::get_runtime_requirements_with_hmr());
   }
@@ -672,5 +701,9 @@ impl Plugin for CssPlugin {
     }
 
     Ok(())
+  }
+
+  fn clear_cache(&self, id: CompilationId) {
+    COMPILATION_HOOKS_MAP.remove(&id);
   }
 }
