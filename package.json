@@ -25,8 +25,8 @@
     "build:cli:release:browser": "pnpm --filter @rspack/binding build:release:browser && pnpm run build:js",
     "test:js": "pnpm -r run test",
     "format:rs": "cargo fmt --all",
-    "format:js": "prettier . --write && heading-case --write",
-    "format-ci:js": "prettier . --check && heading-case",
+    "format:js": "rs fmt && heading-case --write",
+    "format-ci:js": "rs fmt --check && heading-case",
     "format-ci:toml": "taplo format --check",
     "format:toml": "taplo format",
     "lint:js": "rs lint --fix",
@@ -63,7 +63,6 @@
     "commander": "catalog:",
     "cross-env": "catalog:",
     "heading-case": "catalog:",
-    "prettier": "catalog:",
     "rstack": "catalog:",
     "typescript": "catalog:",
     "zx": "catalog:"
