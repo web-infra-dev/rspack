@@ -456,12 +456,12 @@ impl<'a> SourceMap<'a> {
 
 impl SourceMap<'static> {
   /// Create a source map that can borrow from an owned [Source].
-  pub fn with_owner(
-    owner: BoxSource,
+  pub fn with_source(
+    source: BoxSource,
     create: impl for<'a> FnOnce(&'a dyn Source) -> Option<SourceMap<'a>>,
   ) -> Option<Self> {
-    let borrowed_owner = owner.clone();
-    create(borrowed_owner.as_ref()).map(|source_map| source_map.into_static(owner))
+    let borrowed_source = source.clone();
+    create(borrowed_source.as_ref()).map(|source_map| source_map.into_static(source))
   }
 
   /// Create a [SourceMap] from bytes.

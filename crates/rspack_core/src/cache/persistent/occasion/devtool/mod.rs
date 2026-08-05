@@ -170,7 +170,7 @@ fn restore_source_map(
     ignore_list,
     source_content_indices,
   } = source_map_cache_data;
-  SourceMap::with_owner(source, move |source| {
+  SourceMap::with_source(source, move |source| {
     let sources_content = restore_sources_content(source, &source_content_indices)?;
     let mut source_map = SourceMap::new(
       Cow::Owned(mappings),
