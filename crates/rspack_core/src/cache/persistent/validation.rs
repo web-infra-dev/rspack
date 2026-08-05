@@ -124,7 +124,11 @@ impl CacheValidation {
     let version_duration = version_start.elapsed();
 
     let build_dependencies_start = Instant::now();
-    let result = match self.build_dependencies.validate(storage).await {
+    let result = match self
+      .build_dependencies
+      .validate(storage, meta.is_some())
+      .await
+    {
       Ok(BuildDepsValidationResult::Valid { tracked_files }) => {
         if let Some(meta) = meta {
           Self::restore_meta(meta);
@@ -185,27 +189,33 @@ impl CacheValidation {
 
 #[cfg(test)]
 mod tests {
-  use std::sync::Arc;
+  use std::{path::PathBuf, sync::Arc};
 
-  use rspack_fs::MemoryFileSystem;
+  use rspack_fs::{MemoryFileSystem, WritableFileSystem};
   use rspack_tasks::within_compiler_context_for_testing;
 
   use super::{CacheValidation, CacheValidationResult};
-  use crate::cache::persistent::{
-    build_dependencies::BuildDeps,
-    codec::CacheCodec,
-    snapshot::{Snapshot, SnapshotOptions, SnapshotScope},
-    storage::{MemoryStorage, Storage},
+  use crate::{
+    CompilationLogger, CompilationLogging,
+    cache::persistent::{
+      build_dependencies::BuildDeps,
+      codec::CacheCodec,
+      snapshot::{Snapshot, SnapshotOptions, SnapshotScope},
+      storage::{MemoryStorage, Storage},
+    },
   };
 
-  fn create_validation(fs: Arc<MemoryFileSystem>, version: &str) -> CacheValidation {
+  fn create_validation(
+    fs: Arc<MemoryFileSystem>,
+    version: &str,
+    build_dependencies: Vec<PathBuf>,
+  ) -> CacheValidation {
     let codec = Arc::new(CacheCodec::new(None));
     let snapshot = Arc::new(Snapshot::new(
       SnapshotOptions::default(),
       fs.clone(),
       codec.clone(),
     ));
-    let build_dependencies = Vec::new();
     CacheValidation::new(
       codec,
       version.to_string(),
@@ -217,9 +227,9 @@ mod tests {
   async fn checks_version_before_decoding_build_dependencies() {
     within_compiler_context_for_testing(async {
       let fs = Arc::new(MemoryFileSystem::default());
-      let old_validation = create_validation(fs.clone(), "v1");
-      let mut current_validation = create_validation(fs.clone(), "v2");
-      let mut matching_validation = create_validation(fs, "v1");
+      let old_validation = create_validation(fs.clone(), "v1", Vec::new());
+      let mut current_validation = create_validation(fs.clone(), "v2", Vec::new());
+      let mut matching_validation = create_validation(fs, "v1", Vec::new());
       let mut storage = MemoryStorage::default();
       old_validation.save(&mut storage);
       storage.set(
@@ -238,6 +248,62 @@ mod tests {
         matching_validation.validate(&storage).await.result,
         CacheValidationResult::BuildDependenciesError(_)
           | CacheValidationResult::InvalidBuildDependencies { .. }
+      ));
+    })
+    .await;
+  }
+
+  #[tokio::test]
+  async fn invalidates_when_configured_build_dependency_is_added() {
+    within_compiler_context_for_testing(async {
+      let fs = Arc::new(MemoryFileSystem::default());
+      fs.create_dir_all("/configs".into()).await.unwrap();
+      fs.write("/configs/new.config.js".into(), b"export default {}")
+        .await
+        .unwrap();
+      let old_validation = create_validation(fs.clone(), "v1", Vec::new());
+      let mut current_validation =
+        create_validation(fs, "v1", vec![PathBuf::from("/configs/new.config.js")]);
+      let mut storage = MemoryStorage::default();
+      old_validation.save(&mut storage);
+
+      assert!(matches!(
+        current_validation.validate(&storage).await.result,
+        CacheValidationResult::InvalidBuildDependencies { .. }
+      ));
+    })
+    .await;
+  }
+
+  #[tokio::test]
+  async fn accepts_configured_build_dependency_on_cold_and_unchanged_cache() {
+    within_compiler_context_for_testing(async {
+      let fs = Arc::new(MemoryFileSystem::default());
+      fs.create_dir_all("/configs".into()).await.unwrap();
+      fs.write("/configs/rspack.config.js".into(), b"export default {}")
+        .await
+        .unwrap();
+      let build_dependencies = vec![PathBuf::from("/configs/rspack.config.js")];
+      let mut initial_validation = create_validation(fs.clone(), "v1", build_dependencies.clone());
+      let mut storage = MemoryStorage::default();
+
+      assert!(matches!(
+        initial_validation.validate(&storage).await.result,
+        CacheValidationResult::Valid { .. }
+      ));
+      initial_validation
+        .add_build_dependencies(
+          &mut storage,
+          std::iter::empty(),
+          CompilationLogger::new("test".to_string(), CompilationLogging::default()),
+        )
+        .await;
+      initial_validation.save(&mut storage);
+
+      let mut unchanged_validation = create_validation(fs, "v1", build_dependencies);
+      assert!(matches!(
+        unchanged_validation.validate(&storage).await.result,
+        CacheValidationResult::Valid { tracked_files: 1 }
       ));
     })
     .await;
