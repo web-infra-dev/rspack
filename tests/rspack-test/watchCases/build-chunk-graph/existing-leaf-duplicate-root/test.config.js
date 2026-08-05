@@ -3,8 +3,8 @@ function assert(condition, message) {
 }
 
 module.exports = {
-  findBundle() {
-    return "main.js";
+  findBundle(_, __, stepName) {
+    return stepName === "3" ? "renamed.js" : "main.js";
   },
   checkStats(stepName, _, stats) {
     if (stepName === "0") {
@@ -27,8 +27,17 @@ module.exports = {
         "changing a global entry root must rebuild the chunk graph",
       );
       assert(
-        stats.includes("entry modules change detected"),
+        stats.includes("entry data change detected"),
         "the changed global entry root must invalidate the cached chunk graph",
+      );
+    } else if (stepName === "3") {
+      assert(
+        stats.includes("<t> rebuild chunk graph"),
+        "changing entry options must rebuild the chunk graph",
+      );
+      assert(
+        stats.includes("entry data change detected"),
+        "changed entry options must invalidate the cached chunk graph",
       );
     } else {
       throw new Error(`Unexpected watch step: ${stepName}`);

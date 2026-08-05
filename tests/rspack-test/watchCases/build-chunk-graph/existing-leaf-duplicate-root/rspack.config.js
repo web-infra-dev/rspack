@@ -25,22 +25,32 @@ module.exports = {
       apply(compiler) {
         compiler.hooks.make.tapPromise(
           'duplicate-entry-root',
-          (compilation) =>
-            new Promise((resolve, reject) => {
-              const leafSource = fs.readFileSync(
-                path.resolve(compiler.context, 'leaf.js'),
-                'utf-8',
-              );
-              const globalEntry = leafSource.includes('use-as-global-entry')
-                ? './leaf.js'
-                : './index.js';
-              compilation.addEntry(
-                compiler.context,
-                rspack.EntryPlugin.createDependency(globalEntry),
-                {},
-                (error) => (error ? reject(error) : resolve()),
-              );
-            }),
+          async (compilation) => {
+            const leafSource = fs.readFileSync(
+              path.resolve(compiler.context, 'leaf.js'),
+              'utf-8',
+            );
+            const addEntry = (request, options) =>
+              new Promise((resolve, reject) => {
+                compilation.addEntry(
+                  compiler.context,
+                  rspack.EntryPlugin.createDependency(request),
+                  options,
+                  (error) => (error ? reject(error) : resolve()),
+                );
+              });
+            const globalEntry = leafSource.includes('use-as-global-entry')
+              ? './leaf.js'
+              : './index.js';
+
+            await addEntry(globalEntry, {});
+            await addEntry('./index.js', {
+              name: 'main',
+              filename: leafSource.includes('use-entry-filename')
+                ? 'renamed.js'
+                : 'main.js',
+            });
+          },
         );
       },
     },
