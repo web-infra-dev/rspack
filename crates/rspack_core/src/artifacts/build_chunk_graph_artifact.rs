@@ -15,6 +15,12 @@ use crate::{
   incremental::{IncrementalPasses, Mutation},
 };
 
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
+struct EntryModuleSnapshot {
+  dependencies: Vec<ModuleIdentifier>,
+  include_dependencies: Vec<ModuleIdentifier>,
+}
+
 #[derive(Debug, Default)]
 pub struct BuildChunkGraphArtifact {
   pub chunk_by_ukey: ChunkByUkey,
@@ -26,6 +32,7 @@ pub struct BuildChunkGraphArtifact {
   pub named_chunks: HashMap<String, ChunkUkey>,
   pub(crate) code_splitter: CodeSplitter,
   pub module_idx: IdentifierMap<(u32, u32)>,
+  entry_modules: FxIndexMap<String, EntryModuleSnapshot>,
 }
 
 impl BuildChunkGraphArtifact {
@@ -51,6 +58,11 @@ impl BuildChunkGraphArtifact {
         .keys(),
     ) {
       logger.log("entrypoints change detected, rebuilding chunk graph");
+      return false;
+    }
+
+    if self.entry_modules != Self::get_entry_modules(this_compilation) {
+      logger.log("entry modules change detected, rebuilding chunk graph");
       return false;
     }
 
@@ -180,6 +192,61 @@ impl BuildChunkGraphArtifact {
     true
   }
 
+  fn get_entry_modules(compilation: &Compilation) -> FxIndexMap<String, EntryModuleSnapshot> {
+    let module_graph = compilation.get_module_graph();
+    let global_dependencies = compilation
+      .global_entry
+      .dependencies
+      .iter()
+      .filter_map(|dep| module_graph.module_identifier_by_dependency_id(dep))
+      .copied()
+      .collect::<Vec<_>>();
+    let mut global_include_dependencies = compilation
+      .global_entry
+      .include_dependencies
+      .iter()
+      .filter_map(|dep| module_graph.module_identifier_by_dependency_id(dep))
+      .copied()
+      .collect::<Vec<_>>();
+    global_include_dependencies.sort_unstable();
+
+    compilation
+      .entries
+      .iter()
+      .map(|(name, entry)| {
+        let dependencies = global_dependencies
+          .iter()
+          .copied()
+          .chain(entry.dependencies.iter().filter_map(|dep| {
+            module_graph
+              .module_identifier_by_dependency_id(dep)
+              .copied()
+          }))
+          .collect();
+        let mut include_dependencies = entry
+          .include_dependencies
+          .iter()
+          .filter_map(|dep| module_graph.module_identifier_by_dependency_id(dep))
+          .copied()
+          .collect::<Vec<_>>();
+        include_dependencies.sort_unstable();
+        let include_dependencies = global_include_dependencies
+          .iter()
+          .copied()
+          .chain(include_dependencies)
+          .collect();
+
+        (
+          name.clone(),
+          EntryModuleSnapshot {
+            dependencies,
+            include_dependencies,
+          },
+        )
+      })
+      .collect()
+  }
+
   /// Reset cached chunks back to the initial render state.
   ///
   /// webpack creates fresh `Chunk` instances for every compilation, and
@@ -202,6 +269,7 @@ impl BuildChunkGraphArtifact {
     self.named_chunks.clear();
     self.set_code_splitter(Default::default());
     self.module_idx.clear();
+    self.entry_modules.clear();
   }
 }
 
@@ -249,6 +317,7 @@ where
   compilation.build_chunk_graph_artifact.reset_for_rebuild();
 
   let compilation = task(compilation).await?;
+  let entry_modules = BuildChunkGraphArtifact::get_entry_modules(compilation);
   let mg = compilation.get_module_graph();
   let mut map = IdentifierMap::default();
   for (mid, mgm) in mg.module_graph_modules() {
@@ -259,6 +328,7 @@ where
     map.insert(*mid, (pre, post));
   }
   compilation.build_chunk_graph_artifact.module_idx = map;
+  compilation.build_chunk_graph_artifact.entry_modules = entry_modules;
   Ok(())
 }
 
@@ -280,6 +350,7 @@ impl ArtifactExt for BuildChunkGraphArtifact {
       s.spawn(|_| {
         new.entrypoints.clone_from(&old.entrypoints);
         new.module_idx.clone_from(&old.module_idx);
+        new.entry_modules.clone_from(&old.entry_modules);
       });
     });
   }

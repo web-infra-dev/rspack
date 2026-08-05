@@ -1,4 +1,6 @@
 const rspack = require('@rspack/core');
+const fs = require('fs');
+const path = require('path');
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
@@ -25,9 +27,16 @@ module.exports = {
           'duplicate-entry-root',
           (compilation) =>
             new Promise((resolve, reject) => {
+              const leafSource = fs.readFileSync(
+                path.resolve(compiler.context, 'leaf.js'),
+                'utf-8',
+              );
+              const globalEntry = leafSource.includes('use-as-global-entry')
+                ? './leaf.js'
+                : './index.js';
               compilation.addEntry(
                 compiler.context,
-                rspack.EntryPlugin.createDependency('./index.js'),
+                rspack.EntryPlugin.createDependency(globalEntry),
                 {},
                 (error) => (error ? reject(error) : resolve()),
               );

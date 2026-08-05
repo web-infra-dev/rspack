@@ -21,6 +21,15 @@ module.exports = {
         !stats.includes("new module detected"),
         "an existing terminal module must not be treated as a new module",
       );
+    } else if (stepName === "2") {
+      assert(
+        stats.includes("<t> rebuild chunk graph"),
+        "changing a global entry root must rebuild the chunk graph",
+      );
+      assert(
+        stats.includes("entry modules change detected"),
+        "the changed global entry root must invalidate the cached chunk graph",
+      );
     } else {
       throw new Error(`Unexpected watch step: ${stepName}`);
     }
