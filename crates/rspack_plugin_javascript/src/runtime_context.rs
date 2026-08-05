@@ -34,6 +34,14 @@ static BOOTSTRAP_EXPORT_GLOBALS: LazyLock<RuntimeGlobals> = LazyLock::new(|| {
     | RuntimeGlobals::INTERCEPT_MODULE_EXECUTION
 });
 
+fn runtime_iife_end(runtime_requirements: RuntimeGlobals) -> &'static str {
+  if runtime_requirements.contains(RuntimeGlobals::GLOBAL) {
+    "\n}).call(this);\n"
+  } else {
+    "\n})();\n"
+  }
+}
+
 pub fn should_export_rspack_runtime_globals(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
@@ -393,9 +401,11 @@ fn render_runtime_chunk_runtime_modules_sync(
     }
   }
   if isolate {
-    sources.add(RawStringSource::from("(function() {\n".to_string()));
+    sources.add(RawStringSource::from_static("(function() {\n"));
     sources.add(wrapped_sources);
-    sources.add(RawStringSource::from("\n}).call(this);\n".to_string()));
+    sources.add(RawStringSource::from_static(runtime_iife_end(
+      metadata.tree_runtime_requirements,
+    )));
   } else {
     sources.add(wrapped_sources);
   }
@@ -422,7 +432,7 @@ pub async fn render_chunk_runtime_modules(
     .tree_runtime_requirements
     .contains(RuntimeGlobals::HMR_DOWNLOAD_MANIFEST);
 
-  sources.add(RawStringSource::from("(function() {\n".to_string()));
+  sources.add(RawStringSource::from_static("(function() {\n"));
   let render_context_field = |runtime_global: RuntimeGlobals| {
     runtime_global
       .rspack_context_property_name()
@@ -483,7 +493,9 @@ pub async fn render_chunk_runtime_modules(
     }
   }
 
-  sources.add(RawStringSource::from("\n}).call(this);\n".to_string()));
+  sources.add(RawStringSource::from_static(runtime_iife_end(
+    metadata.tree_runtime_requirements,
+  )));
 
   Ok(sources.boxed())
 }
