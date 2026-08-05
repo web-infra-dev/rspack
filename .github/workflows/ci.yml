@@ -165,6 +165,29 @@ jobs:
       profile: 'ci'
       runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
 
+  # TEMP: verify the clang-15 step on a GitHub-hosted runner too
+  build-ppc64-hosted:
+    name: Build ppc64 hosted
+    needs: [check-changed]
+    if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
+    uses: ./.github/workflows/reusable-build-build.yml
+    with:
+      target: powerpc64le-unknown-linux-gnu
+      profile: 'ci'
+      runner: '"ubuntu-22.04"'
+      binding_postfix: '-hosted'
+
+  build-s390x-hosted:
+    name: Build s390x hosted
+    needs: [check-changed]
+    if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
+    uses: ./.github/workflows/reusable-build-build.yml
+    with:
+      target: s390x-unknown-linux-gnu
+      profile: 'ci'
+      runner: '"ubuntu-22.04"'
+      binding_postfix: '-hosted'
+
   # TODO: Enable this job after Rspack portable cache is implemented.
   check-cache:
     name: Check Cache Portable
