@@ -152,6 +152,8 @@ perfetto
 Peschke
 pftrace
 pmmmwh
+powerpc64le
+ppc64
 proxied
 proxying
 px2rem
@@ -180,6 +182,7 @@ ruleoneof
 ruleparserdataurlcondition
 Rust
 rustup
+s390x
 samply
 samsung
 sanyuan

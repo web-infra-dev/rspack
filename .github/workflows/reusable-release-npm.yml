@@ -58,6 +58,12 @@ jobs:
           - target: riscv64gc-unknown-linux-musl
             runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
             test-runner: '"ubuntu-22.04"'
+          - target: powerpc64le-unknown-linux-gnu
+            runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
+            test-runner: '"ubuntu-22.04"'
+          - target: s390x-unknown-linux-gnu
+            runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
+            test-runner: '"ubuntu-22.04"'
           - target: i686-pc-windows-msvc
             runner: ${{ vars.WINDOWS_SELF_HOSTED_RUNNER_LABELS || '"windows-latest"' }}
             test-runner: '"windows-latest"'
