@@ -310,6 +310,16 @@ pub enum OriginalScopeIdentUpdate {
   NonShorthand(DependencyRange),
 }
 
+#[derive(Debug, Clone, Default)]
+pub struct FasterModuleConcatenationInfo {
+  pub rendered_init_fragments: Option<crate::RenderedInitFragments>,
+  pub original_scope_ident_updates: Vec<OriginalScopeIdentUpdate>,
+  pub generated_top_level_symbols: Vec<GeneratedTopLevelSymbol>,
+  pub added_scope_idents: Vec<AddedScopeIdent>,
+  pub added_used_names: Vec<Atom>,
+  pub module_reference_placeholders: Vec<String>,
+}
+
 struct PlaceholderReplacements<'a> {
   module_references: &'a [(String, String)],
   generated_symbols: &'a [GeneratedTopLevelSymbol],
@@ -342,7 +352,7 @@ impl PlaceholderReplacements<'_> {
 pub struct ConcatenatedModuleInfo {
   pub index: usize,
   pub module: ModuleIdentifier,
-  pub faster_module_concatenation: bool,
+  pub faster_concatenation_info: Option<Box<FasterModuleConcatenationInfo>>,
   pub namespace_export_symbol: Option<Atom>,
   pub chunk_init_fragments: ChunkInitFragments,
   pub module_ctxt: SyntaxContext,
@@ -367,12 +377,6 @@ pub struct ConcatenatedModuleInfo {
   pub idents: Vec<ConcatenatedModuleIdent>,
   pub all_used_names: HashSet<Atom>,
   pub binding_to_ref: FxIndexMap<(Atom, SyntaxContext), Vec<ConcatenatedModuleIdent>>,
-  pub rendered_init_fragments: Option<crate::RenderedInitFragments>,
-  pub original_scope_ident_updates: Vec<OriginalScopeIdentUpdate>,
-  pub generated_top_level_symbols: Vec<GeneratedTopLevelSymbol>,
-  pub added_scope_idents: Vec<AddedScopeIdent>,
-  pub added_used_names: Vec<Atom>,
-  pub module_reference_placeholders: Vec<String>,
 
   pub public_path_auto_replacement: Option<bool>,
   pub static_url_replacement: bool,
@@ -723,6 +727,10 @@ impl ConcatenatedModule {
     original_source: &str,
     module_info: &mut ConcatenatedModuleInfo,
   ) {
+    let faster_info = module_info
+      .faster_concatenation_info
+      .as_deref_mut()
+      .expect("should have faster concatenation info");
     let mut symbols = SmallVec::<[(&str, Atom); 8]>::new();
     let mut symbol_from_range = |range: DependencyRange| {
       let symbol = original_source
@@ -758,11 +766,11 @@ impl ConcatenatedModule {
       .collect();
     module_info
       .all_used_names
-      .extend(module_info.added_used_names.iter().cloned());
+      .extend(faster_info.added_used_names.iter().cloned());
 
-    if !module_info.module_reference_placeholders.is_empty() {
+    if !faster_info.module_reference_placeholders.is_empty() {
       let mut seen = HashSet::default();
-      module_info
+      faster_info
         .module_reference_placeholders
         .retain(|placeholder| seen.insert(placeholder.clone()));
     }
@@ -781,7 +789,7 @@ impl ConcatenatedModule {
         is_class_expr_with_ident: false,
       };
     let mut idents =
-      Vec::with_capacity(pending.idents.len() + module_info.added_scope_idents.len());
+      Vec::with_capacity(pending.idents.len() + faster_info.added_scope_idents.len());
     idents.extend(
       pending
         .idents
@@ -793,12 +801,12 @@ impl ConcatenatedModule {
             Self::is_ident_shorthand(
               ident.range,
               ident.shorthand,
-              &module_info.original_scope_ident_updates,
+              &faster_info.original_scope_ident_updates,
             ),
             module_info.module_ctxt,
           )
         })
-        .filter(|ident| !Self::is_ident_removed(ident, &module_info.original_scope_ident_updates)),
+        .filter(|ident| !Self::is_ident_removed(ident, &faster_info.original_scope_ident_updates)),
     );
     idents.extend(
       pending
@@ -811,15 +819,15 @@ impl ConcatenatedModule {
             Self::is_ident_shorthand(
               ident.range,
               ident.shorthand,
-              &module_info.original_scope_ident_updates,
+              &faster_info.original_scope_ident_updates,
             ),
             module_info.global_ctxt,
           )
         })
-        .filter(|ident| !Self::is_ident_removed(ident, &module_info.original_scope_ident_updates)),
+        .filter(|ident| !Self::is_ident_removed(ident, &faster_info.original_scope_ident_updates)),
     );
     idents.extend(
-      module_info
+      faster_info
         .added_scope_idents
         .iter()
         .map(|ident| ConcatenatedModuleIdent {
@@ -996,11 +1004,15 @@ impl ConcatenatedModule {
     module_reference_replacements: &[(String, String)],
     rendered_init_fragments_hasher: Option<&mut RspackHasher>,
   ) -> BoxSource {
+    let faster_info = info
+      .faster_concatenation_info
+      .as_deref_mut()
+      .expect("should have faster concatenation info");
     let source = info.source.take().expect("should have source");
-    let fragments = info.rendered_init_fragments.take();
+    let fragments = faster_info.rendered_init_fragments.take();
     let replacements = PlaceholderReplacements {
       module_references: module_reference_replacements,
-      generated_symbols: &info.generated_top_level_symbols,
+      generated_symbols: &faster_info.generated_top_level_symbols,
       internal_names: &info.internal_names,
     };
 
@@ -1520,7 +1532,12 @@ impl Module for ConcatenatedModule {
                 .sum::<usize>()
             });
             (
-              info.binding_to_ref.len() + imported_names + info.generated_top_level_symbols.len(),
+              info.binding_to_ref.len()
+                + imported_names
+                + info
+                  .faster_concatenation_info
+                  .as_deref()
+                  .map_or(0, |info| info.generated_top_level_symbols.len()),
               1 + import_sources,
             )
           }
@@ -1546,10 +1563,12 @@ impl Module for ConcatenatedModule {
                 .or_insert_with(|| escape_name_atom_ref(&id.0));
             }
 
-            for symbol in &info.generated_top_level_symbols {
-              escaped_names
-                .entry(symbol.preferred_name.clone())
-                .or_insert_with(|| escape_name_atom_ref(&symbol.preferred_name));
+            if let Some(faster_info) = info.faster_concatenation_info.as_deref() {
+              for symbol in &faster_info.generated_top_level_symbols {
+                escaped_names
+                  .entry(symbol.preferred_name.clone())
+                  .or_insert_with(|| escape_name_atom_ref(&symbol.preferred_name));
+              }
             }
 
             if let Some(import_map) = &info.import_map {
@@ -1660,53 +1679,49 @@ impl Module for ConcatenatedModule {
             }
           }
 
-          for symbol in info
-            .generated_top_level_symbols
-            .iter()
-            .filter(|_| info.faster_module_concatenation)
-          {
-            let final_name = if name_allocator.contains(&symbol.preferred_name) {
-              name_allocator.find_new_name(
-                escaped_names
-                  .get(&symbol.preferred_name)
-                  .expect("should have escaped name")
-                  .as_ref(),
-                escaped_identifiers
-                  .get(&readable_identifier)
-                  .expect("should have escaped identifier"),
-              )
-            } else {
-              name_allocator.insert(symbol.preferred_name.clone());
-              symbol.preferred_name.clone()
-            };
+          if let Some(faster_info) = info.faster_concatenation_info.as_deref() {
+            for symbol in &faster_info.generated_top_level_symbols {
+              let final_name = if name_allocator.contains(&symbol.preferred_name) {
+                name_allocator.find_new_name(
+                  escaped_names
+                    .get(&symbol.preferred_name)
+                    .expect("should have escaped name")
+                    .as_ref(),
+                  escaped_identifiers
+                    .get(&readable_identifier)
+                    .expect("should have escaped identifier"),
+                )
+              } else {
+                name_allocator.insert(symbol.preferred_name.clone());
+                symbol.preferred_name.clone()
+              };
 
-            info
-              .internal_names
-              .insert(symbol.placeholder.clone(), final_name.clone());
-            if symbol.preferred_name == *DEFAULT_EXPORT_ATOM {
               info
                 .internal_names
-                .insert(symbol.preferred_name.clone(), final_name.clone());
-            }
-            top_level_declarations.insert(final_name);
-          }
-
-          if info.faster_module_concatenation
-            && let Some(export_map) = &info.export_map
-          {
-            for export in export_map.values() {
-              let export = Atom::from(export.as_str());
-              if info.internal_names.contains_key(&export)
-                || !Self::is_plain_identifier_name(export.as_ref())
-                || ConcatenationScope::match_module_reference(export.as_ref()).is_some()
-              {
-                continue;
+                .insert(symbol.placeholder.clone(), final_name.clone());
+              if symbol.preferred_name == *DEFAULT_EXPORT_ATOM {
+                info
+                  .internal_names
+                  .insert(symbol.preferred_name.clone(), final_name.clone());
               }
+              top_level_declarations.insert(final_name);
+            }
 
-              info.internal_names.insert(export.clone(), export.clone());
-              top_level_declarations.insert(export.clone());
-              if !name_allocator.contains(&export) {
-                name_allocator.insert(export);
+            if let Some(export_map) = &info.export_map {
+              for export in export_map.values() {
+                let export = Atom::from(export.as_str());
+                if info.internal_names.contains_key(&export)
+                  || !Self::is_plain_identifier_name(export.as_ref())
+                  || ConcatenationScope::match_module_reference(export.as_ref()).is_some()
+                {
+                  continue;
+                }
+
+                info.internal_names.insert(export.clone(), export.clone());
+                top_level_declarations.insert(export.clone());
+                if !name_allocator.contains(&export) {
+                  name_allocator.insert(export);
+                }
               }
             }
           }
@@ -1957,8 +1972,10 @@ impl Module for ConcatenatedModule {
             ));
           }
         }
-        if info.faster_module_concatenation && refs.is_empty() {
-          for reference in info.module_reference_placeholders.iter() {
+        if refs.is_empty()
+          && let Some(faster_info) = info.faster_concatenation_info.as_deref()
+        {
+          for reference in &faster_info.module_reference_placeholders {
             let match_result =
               ConcatenationScope::match_module_reference(reference.trim_end_matches("._"));
             if let Some(match_info) = match_result {
@@ -2396,12 +2413,16 @@ impl Module for ConcatenatedModule {
           ));
 
           // https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/optimize/ConcatenatedModule.js#L1582
-          if info.faster_module_concatenation {
+          if info.faster_concatenation_info.is_some() {
             let module_reference_replacements = module_reference_replacements
               .get(&info.module)
               .map(Vec::as_slice)
               .unwrap_or_default();
-            let fragment_hasher = info.rendered_init_fragments.as_ref().map(|_| {
+            let has_rendered_init_fragments = info
+              .faster_concatenation_info
+              .as_deref()
+              .is_some_and(|info| info.rendered_init_fragments.is_some());
+            let fragment_hasher = has_rendered_init_fragments.then(|| {
               rendered_init_fragments_hasher
                 .get_or_insert_with(|| RspackHasher::new(&compilation.options.output.hash_function))
             });
@@ -3131,7 +3152,11 @@ impl ConcatenatedModule {
           .pending_concatenation_scope_info
           .as_deref()
           .unwrap_or(&empty_pending_scope_info);
-        module_info.rendered_init_fragments = codegen_res
+        module_info
+          .faster_concatenation_info
+          .as_deref_mut()
+          .expect("should have faster concatenation info")
+          .rendered_init_fragments = codegen_res
           .data
           .get::<CodeGenerationDataRenderedInitFragments>()
           .map(|fragments| crate::RenderedInitFragments {
@@ -3677,7 +3702,7 @@ impl ConcatenatedModule {
         if let Some(ref export_id) = export_id
           && let Some(direct_export) = info.export_map.as_ref().and_then(|map| map.get(export_id))
         {
-          if info.faster_module_concatenation
+          if info.faster_concatenation_info.is_some()
             && let Some(match_info) =
               ConcatenationScope::match_module_reference(direct_export.trim_end_matches("._"))
           {

@@ -56,7 +56,13 @@ impl ConcatenationScope {
     mut current_module: ConcatenatedModuleInfo,
     faster_module_concatenation: bool,
   ) -> Self {
-    current_module.faster_module_concatenation = faster_module_concatenation;
+    if faster_module_concatenation {
+      current_module
+        .faster_concatenation_info
+        .get_or_insert_default();
+    } else {
+      current_module.faster_concatenation_info = None;
+    }
     ConcatenationScope {
       concat_module_id,
       current_module,
@@ -69,7 +75,7 @@ impl ConcatenationScope {
   }
 
   pub fn is_faster_module_concatenation(&self) -> bool {
-    self.current_module.faster_module_concatenation
+    self.current_module.faster_concatenation_info.is_some()
   }
 
   pub fn is_module_in_scope(&self, module: &ModuleIdentifier) -> bool {
@@ -145,54 +151,48 @@ impl ConcatenationScope {
   }
 
   pub fn remove_original_range(&mut self, range: DependencyRange) {
-    if !self.is_faster_module_concatenation() {
+    let Some(info) = self.current_module.faster_concatenation_info.as_deref_mut() else {
       return;
-    }
-    self
-      .current_module
+    };
+    info
       .original_scope_ident_updates
       .push(OriginalScopeIdentUpdate::Remove(range));
   }
 
   pub fn set_original_range_non_shorthand(&mut self, range: DependencyRange) {
-    if !self.is_faster_module_concatenation() {
+    let Some(info) = self.current_module.faster_concatenation_info.as_deref_mut() else {
       return;
-    }
-    self
-      .current_module
+    };
+    info
       .original_scope_ident_updates
       .push(OriginalScopeIdentUpdate::NonShorthand(range));
   }
 
   pub fn add_scope_ident(&mut self, symbol: Atom, range: DependencyRange) {
-    if !self.is_faster_module_concatenation() {
+    let Some(info) = self.current_module.faster_concatenation_info.as_deref_mut() else {
       return;
-    }
-    self
-      .current_module
-      .added_scope_idents
-      .push(crate::AddedScopeIdent {
-        symbol,
-        range,
-        shorthand: false,
-        is_class_expr_with_ident: false,
-      });
+    };
+    info.added_scope_idents.push(crate::AddedScopeIdent {
+      symbol,
+      range,
+      shorthand: false,
+      is_class_expr_with_ident: false,
+    });
   }
 
   pub fn add_used_name(&mut self, symbol: Atom) {
-    if !self.is_faster_module_concatenation() {
+    let Some(info) = self.current_module.faster_concatenation_info.as_deref_mut() else {
       return;
-    }
-    self.current_module.added_used_names.push(symbol);
+    };
+    info.added_used_names.push(symbol);
   }
 
   pub fn get_or_create_generated_top_level_symbol(&mut self, preferred_name: &str) -> Atom {
     let preferred_name = Atom::from(preferred_name);
-    if !self.is_faster_module_concatenation() {
+    let Some(info) = self.current_module.faster_concatenation_info.as_deref_mut() else {
       return preferred_name;
-    }
-    if let Some(existing) = self
-      .current_module
+    };
+    if let Some(existing) = info
       .generated_top_level_symbols
       .iter()
       .find(|symbol| symbol.preferred_name == preferred_name)
@@ -205,10 +205,9 @@ impl ConcatenationScope {
     // regular identifier could otherwise be replaced inside user data.
     let placeholder = Atom::from(format!(
       "__rspack_symbol_{}__\0",
-      self.current_module.generated_top_level_symbols.len()
+      info.generated_top_level_symbols.len()
     ));
-    self
-      .current_module
+    info
       .generated_top_level_symbols
       .push(crate::GeneratedTopLevelSymbol {
         preferred_name,
@@ -254,11 +253,10 @@ impl ConcatenationScope {
       module_ref.push_str(if asi_safe { "_asiSafe1" } else { "_asiSafe0" });
     }
     module_ref.push_str("__._");
-    if track_placeholder && self.is_faster_module_concatenation() {
-      self
-        .current_module
-        .module_reference_placeholders
-        .push(module_ref.clone());
+    if track_placeholder
+      && let Some(info) = self.current_module.faster_concatenation_info.as_deref_mut()
+    {
+      info.module_reference_placeholders.push(module_ref.clone());
     }
     module_ref
   }
