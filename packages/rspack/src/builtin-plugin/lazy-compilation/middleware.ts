@@ -71,19 +71,19 @@ export const lazyCompilationMiddleware = (
       const prefix = options.prefix || LAZY_COMPILATION_PREFIX;
       options.prefix = `${prefix}__${i++}`;
       const activeModules = new Map<string, number>();
-      const pendingModules = new Set<string>();
+      const legacyModules = new Map<string, NodeJS.Timeout>();
 
       middlewareByCompiler.set(
         options.prefix,
         lazyCompilationMiddlewareInternal(
           c,
           activeModules,
-          pendingModules,
+          legacyModules,
           options.prefix,
         ),
       );
 
-      applyPlugin(c, options, activeModules, pendingModules);
+      applyPlugin(c, options, activeModules, legacyModules);
     }
 
     const keys = [...middlewareByCompiler.keys()];
@@ -104,19 +104,19 @@ export const lazyCompilationMiddleware = (
   }
 
   const activeModules = new Map<string, number>();
-  const pendingModules = new Set<string>();
+  const legacyModules = new Map<string, NodeJS.Timeout>();
 
   const options = {
     ...compiler.options.lazyCompilation,
   };
 
-  applyPlugin(compiler, options, activeModules, pendingModules);
+  applyPlugin(compiler, options, activeModules, legacyModules);
 
   const lazyCompilationPrefix = options.prefix || LAZY_COMPILATION_PREFIX;
   return lazyCompilationMiddlewareInternal(
     compiler,
     activeModules,
-    pendingModules,
+    legacyModules,
     lazyCompilationPrefix,
   );
 };
@@ -125,15 +125,14 @@ function applyPlugin(
   compiler: Compiler,
   options: LazyCompilationOptions,
   activeModules: Map<string, number>,
-  pendingModules: Set<string>,
+  legacyModules: Map<string, NodeJS.Timeout>,
 ) {
   const plugin = new BuiltinLazyCompilationPlugin(
     () => {
       const modules = new Set(activeModules.keys());
-      for (const key of pendingModules) {
+      for (const key of legacyModules.keys()) {
         modules.add(key);
       }
-      pendingModules.clear();
       return modules;
     },
     options.entries ?? true,
@@ -241,7 +240,7 @@ function readModuleIdsFromBody(
 const lazyCompilationMiddlewareInternal = (
   compiler: Compiler,
   activeModules: Map<string, number>,
-  pendingModules: Set<string>,
+  legacyModules: Map<string, NodeJS.Timeout>,
   lazyCompilationPrefix: string,
 ): DevServerMiddlewareHandler => {
   const logger = compiler.getInfrastructureLogger('LazyCompilation');
@@ -260,7 +259,7 @@ const lazyCompilationMiddlewareInternal = (
     }
     activeResponses.clear();
     activeModules.clear();
-    pendingModules.clear();
+    legacyModules.clear();
   });
 
   return async (
@@ -293,8 +292,28 @@ const lazyCompilationMiddlewareInternal = (
     if (!req.headers.accept?.includes('text/event-stream')) {
       let moduleActivated = false;
       for (const key of keys) {
-        const activated = activeModules.has(key) || pendingModules.has(key);
-        pendingModules.add(key);
+        const previousTimer = legacyModules.get(key);
+        const activated = activeModules.has(key) || previousTimer !== undefined;
+        if (previousTimer) {
+          clearTimeout(previousTimer);
+          idleTimers.delete(previousTimer);
+        }
+
+        const timer = setTimeout(() => {
+          idleTimers.delete(timer);
+          if (legacyModules.get(key) === timer) {
+            legacyModules.delete(key);
+            if (!activeModules.has(key)) {
+              logger.log(
+                `${key} is no longer in use. Next compilation will skip this module.`,
+              );
+            }
+          }
+        }, LAZY_COMPILATION_IDLE_TIMEOUT);
+        timer.unref?.();
+        idleTimers.add(timer);
+        legacyModules.set(key, timer);
+
         if (!activated) {
           logger.log(`${key} is now in use and will be compiled.`);
           moduleActivated = true;
@@ -323,7 +342,7 @@ const lazyCompilationMiddlewareInternal = (
           const oldValue = activeModules.get(key) || 0;
           if (oldValue <= 1) {
             activeModules.delete(key);
-            if (oldValue === 1) {
+            if (oldValue === 1 && !legacyModules.has(key)) {
               logger.log(
                 `${key} is no longer in use. Next compilation will skip this module.`,
               );
@@ -354,7 +373,7 @@ const lazyCompilationMiddlewareInternal = (
     for (const key of keys) {
       const oldValue = activeModules.get(key) || 0;
       activeModules.set(key, oldValue + 1);
-      if (oldValue === 0) {
+      if (oldValue === 0 && !legacyModules.has(key)) {
         logger.log(`${key} is now in use and will be compiled.`);
         moduleActivated = true;
       }

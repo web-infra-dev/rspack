@@ -28,15 +28,18 @@ export const activate = function (options) {
   var httpModule = urlBase.startsWith('https')
     ? require('https')
     : require('http');
+  var headers = {
+    'Content-Type': 'text/plain',
+  };
+  if (module.hot) {
+    headers.Accept = 'text/event-stream';
+  }
   var request = httpModule.request(
     urlBase,
     {
       method: 'POST',
       agent: false,
-      headers: {
-        Accept: 'text/event-stream',
-        'Content-Type': 'text/plain',
-      },
+      headers: headers,
     },
     function (res) {
       response = res;

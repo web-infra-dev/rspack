@@ -34,4 +34,34 @@ test('should not rebuild when an active module is reported again', async ({
 
   await new Promise((resolve) => setTimeout(resolve, 1000));
   expect(rspack.compiler.__buildCount).toBe(buildCount);
+
+  const legacyModule = `legacy-module-${Date.now()}`;
+  await page.evaluate(
+    async ({ url, legacyModule }) => {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: legacyModule,
+      });
+      await response.text();
+    },
+    { url: request.url, legacyModule },
+  );
+
+  await expect.poll(() => rspack.compiler.__buildCount).toBe(buildCount + 1);
+
+  await page.evaluate(
+    async ({ url, legacyModule }) => {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: legacyModule,
+      });
+      await response.text();
+    },
+    { url: request.url, legacyModule },
+  );
+
+  await new Promise((resolve) => setTimeout(resolve, 1000));
+  expect(rspack.compiler.__buildCount).toBe(buildCount + 1);
 });
