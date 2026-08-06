@@ -3,6 +3,9 @@ const path = require('path');
 /** @type {import('@rspack/core').Configuration} */
 module.exports = {
   entry: './src/index.js',
+  experiments: {
+    fasterModuleConcatenation: true,
+  },
   output: {
     library: {
       type: 'modern-module',

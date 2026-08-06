@@ -71,6 +71,7 @@ mod faster;
 
 pub(crate) use faster::populate_info_from_pending;
 use faster::render_concatenated_module_source;
+pub use faster::render_concatenation_source;
 
 pub const CONCATENATION_PLACEHOLDER_PREFIX: &str = "__rspack_";
 pub(crate) const GENERATED_TOP_LEVEL_SYMBOL_PREFIX: &str = "__rspack_generated_top_level_symbol_";
@@ -310,15 +311,20 @@ pub type ConcatenatedImportMap =
 
 /// A codegen-created top-level binding whose final name is assigned after all
 /// modules in the concatenation are known.
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct GeneratedTopLevelSymbol {
+  #[cacheable(with=AsPreset)]
   pub preferred_name: Atom,
+  #[cacheable(with=AsPreset)]
   pub placeholder: Atom,
   pub target: GeneratedTopLevelSymbolTarget,
   /// Make-time binding resolved from `original_range` for a rebound symbol.
+  #[cacheable(with=AsOption<AsPreset>)]
   pub resolved_binding: Option<Atom>,
 }
 
+#[cacheable]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum GeneratedTopLevelSymbolTarget {
   /// A new binding created during code generation.
@@ -330,8 +336,10 @@ pub enum GeneratedTopLevelSymbolTarget {
 
 /// Scope identifier supplied by dependency templates because it cannot be
 /// reconstructed from the make-time scope information alone.
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct AddedScopeIdent {
+  #[cacheable(with=AsPreset)]
   pub symbol: Atom,
   pub range: DependencyRange,
   pub shorthand: bool,
@@ -340,6 +348,7 @@ pub struct AddedScopeIdent {
 
 /// Dependency-template correction applied to an identifier collected during
 /// make, after codegen replacements have changed its syntax.
+#[cacheable]
 #[derive(Debug, Clone, Copy)]
 pub enum OriginalScopeIdentUpdate {
   Remove(DependencyRange),
@@ -348,15 +357,18 @@ pub enum OriginalScopeIdentUpdate {
 
 /// Incremental data needed to rebuild concatenation scope information without
 /// reparsing the generated module source.
+#[cacheable]
 #[derive(Debug, Clone, Default)]
 pub struct FasterModuleConcatenationInfo {
   /// Corrections to make-time identifiers caused by dependency replacements.
   pub original_scope_ident_updates: SmallVec<[OriginalScopeIdentUpdate; 4]>,
   /// Scope identifiers supplied by dependency templates in addition to the
   /// make-time collection.
+  #[cacheable(with=AsVec)]
   pub added_scope_idents: Vec<AddedScopeIdent>,
   /// Names introduced or referenced by generated code that must be reserved
   /// during global deconfliction.
+  #[cacheable(with=AsVec<AsPreset>)]
   pub added_used_names: Vec<Atom>,
 }
 

@@ -1,4 +1,7 @@
 module.exports = {
+  experiments: {
+    fasterModuleConcatenation: true,
+  },
   module: {
     parser: {
       javascript: {

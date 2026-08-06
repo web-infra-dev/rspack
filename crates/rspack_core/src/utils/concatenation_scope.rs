@@ -12,12 +12,12 @@ use swc_core::atoms::Atom;
 use swc_experimental_ecma_ast::{is_valid_continue, is_valid_start};
 
 use crate::{
-  DependencyRange, ModuleIdentifier,
+  DependencyRange, ModuleIdentifier, PendingConcatenationScopeInfo,
   concatenated_module::{
     ConcatenatedImportMap, ConcatenatedModuleInfo, FasterModuleConcatenationInfo,
-    GENERATED_TOP_LEVEL_SYMBOL_PREFIX, GeneratedTopLevelSymbolTarget,
+    GENERATED_TOP_LEVEL_SYMBOL_PREFIX, GeneratedTopLevelSymbol, GeneratedTopLevelSymbolTarget,
     MODULE_REFERENCE_PLACEHOLDER_PREFIX, MODULE_REFERENCE_PREFIX, MODULE_REFERENCE_SUFFIX,
-    ModuleInfo, OriginalScopeIdentUpdate,
+    ModuleInfo, OriginalScopeIdentUpdate, populate_info_from_pending,
   },
 };
 
@@ -211,6 +211,12 @@ pub struct CodeGenerationDataConcatenationScopeOutput {
   import_map: ConcatenatedImportMap,
   #[cacheable(with=AsMap<AsCacheable, AsMap<AsCacheable, AsCacheable>>)]
   refs: IdentifierIndexMap<FxIndexMap<String, ModuleReferenceOptions>>,
+  #[cacheable(with=AsOption<AsCacheable>)]
+  faster_module_concatenation_info: Option<FasterModuleConcatenationInfo>,
+  #[cacheable(with=AsVec)]
+  generated_top_level_symbols: Vec<GeneratedTopLevelSymbol>,
+  #[cacheable(with=AsMap<AsCacheable, AsCacheable>)]
+  module_references: FxIndexMap<String, ConcatenatedModuleReference>,
 }
 
 impl CodeGenerationDataConcatenationScopeOutput {
@@ -223,13 +229,38 @@ impl CodeGenerationDataConcatenationScopeOutput {
       .raw_export_map
       .clone_from(&self.raw_export_map);
     current_module.import_map.clone_from(&self.import_map);
+    current_module
+      .generated_top_level_symbols
+      .clone_from(&self.generated_top_level_symbols);
+    current_module
+      .module_references
+      .clone_from(&self.module_references);
   }
 
   pub fn refs(&self) -> &IdentifierIndexMap<FxIndexMap<String, ModuleReferenceOptions>> {
     &self.refs
   }
+
+  pub fn is_faster_module_concatenation(&self) -> bool {
+    self.faster_module_concatenation_info.is_some()
+  }
+
+  pub fn apply_scope_info(
+    &self,
+    pending: &PendingConcatenationScopeInfo,
+    original_source: &str,
+    current_module: &mut ConcatenatedModuleInfo,
+  ) {
+    self.apply_to(current_module);
+    let mut faster_info = self
+      .faster_module_concatenation_info
+      .clone()
+      .expect("should have faster module concatenation info");
+    populate_info_from_pending(pending, original_source, current_module, &mut faster_info);
+  }
 }
 
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct ConcatenatedModuleReference {
   pub module: ModuleIdentifier,
@@ -284,6 +315,14 @@ impl ConcatenationScope {
       raw_export_map: self.current_module.raw_export_map.take(),
       import_map: self.current_module.import_map.take(),
       refs: std::mem::take(&mut self.refs),
+      faster_module_concatenation_info: self
+        .faster_module_concatenation_info
+        .take()
+        .map(|info| *info),
+      generated_top_level_symbols: std::mem::take(
+        &mut self.current_module.generated_top_level_symbols,
+      ),
+      module_references: std::mem::take(&mut self.current_module.module_references),
     }
   }
 
@@ -394,7 +433,7 @@ impl ConcatenationScope {
   }
 
   pub fn set_original_range_non_shorthand(&mut self, range: DependencyRange) {
-    self.record_non_shorthand_source_edit(range, "");
+    self.record_non_shorthand_source_edit(range);
   }
 
   #[inline]
@@ -419,20 +458,13 @@ impl ConcatenationScope {
   }
 
   #[inline]
-  pub(crate) fn record_non_shorthand_source_edit(
-    &mut self,
-    range: DependencyRange,
-    generated_code: &str,
-  ) {
+  pub(crate) fn record_non_shorthand_source_edit(&mut self, range: DependencyRange) {
     let Some(info) = self.faster_module_concatenation_info.as_deref_mut() else {
       return;
     };
     info
       .original_scope_ident_updates
       .push(OriginalScopeIdentUpdate::NonShorthand(range));
-    if !generated_code.is_empty() {
-      add_used_names_from_generated_code(info, generated_code);
-    }
   }
 
   pub fn add_scope_ident(&mut self, symbol: Atom, range: DependencyRange) {

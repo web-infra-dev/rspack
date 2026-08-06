@@ -15,12 +15,13 @@ use rspack_core::{
   CompilationAfterCodeGeneration, CompilationConcatenationScope, CompilationFinishModules,
   CompilationOptimizeChunkModules, CompilationOptimizeChunks, CompilationOptimizeDependencies,
   CompilationParams, CompilationProcessAssets, CompilationRuntimeRequirementInTree,
-  CompilerCompilation, ConcatenatedModuleInfo, ConcatenationScope, DependencyType,
-  ExportsInfoArtifact, ExternalModuleInfo, GetTargetResult, JavascriptParserUrl, Logger,
-  ModuleFactoryCreateData, ModuleGraph, ModuleIdentifier, ModuleInfo, ModuleType,
+  CompilerCompilation, ConcatenatedModuleInfo, ConcatenationScope, ConcatenationScopeInfoMode,
+  DependencyType, ExportsInfoArtifact, ExternalModuleInfo, GetTargetResult, JavascriptParserUrl,
+  Logger, ModuleFactoryCreateData, ModuleGraph, ModuleIdentifier, ModuleInfo, ModuleType,
   NormalModuleFactoryAfterFactorize, NormalModuleFactoryParser, ParserAndGenerator, ParserOptions,
-  Plugin, REQUIRE_SCOPE_GLOBALS, RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule,
-  SideEffectsOptimizeArtifact, SideEffectsStateArtifact, get_target, is_esm_dep_like,
+  PendingConcatenationScopeInfo, Plugin, REQUIRE_SCOPE_GLOBALS, RuntimeCodeTemplate,
+  RuntimeGlobals, RuntimeModule, SideEffectsOptimizeArtifact, SideEffectsStateArtifact, get_target,
+  is_esm_dep_like,
   rspack_sources::{ReplaceSource, Source},
 };
 use rspack_error::{Diagnostic, Result};
@@ -342,7 +343,7 @@ async fn finish_modules(
 #[plugin_hook(CompilationConcatenationScope for EsmLibraryPlugin)]
 async fn concatenation_scope(
   &self,
-  _compilation: &Compilation,
+  compilation: &Compilation,
   module: ModuleIdentifier,
 ) -> Result<Option<ConcatenationScope>> {
   let modules_map = self.concatenated_modules_map_for_codegen.borrow();
@@ -359,6 +360,32 @@ async fn concatenation_scope(
     current_module.as_ref().clone(),
   );
   scope.enable_codegen_data_collection();
+  let can_use_faster_module_concatenation = compilation
+    .get_module_graph()
+    .module_by_identifier(&module)
+    .is_some_and(|module| {
+      matches!(
+        (
+          module.concatenation_scope_info_mode(),
+          module
+            .build_info()
+            .pending_concatenation_scope_info
+            .as_deref()
+        ),
+        (
+          ConcatenationScopeInfoMode::AnalyzeAtMake,
+          Some(PendingConcatenationScopeInfo::Analyzed(_))
+        ) | (
+          ConcatenationScopeInfoMode::GenerateAtCodegen,
+          Some(PendingConcatenationScopeInfo::Generated)
+        )
+      )
+    });
+  if compilation.options.experiments.faster_module_concatenation
+    && can_use_faster_module_concatenation
+  {
+    scope.enable_faster_module_concatenation();
+  }
   Ok(Some(scope))
 }
 

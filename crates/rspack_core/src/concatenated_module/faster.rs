@@ -18,7 +18,7 @@ use super::{
 };
 use crate::{
   ConcatenatedModuleIdent, ConcatenationScope, ConcatenationScopeIdentKind, DependencyRange,
-  PendingConcatenationScopeInfo, RenderedInitFragments,
+  ModuleIdentifier, PendingConcatenationScopeInfo, RenderedInitFragments,
 };
 
 type SeenIdent = (Atom, SyntaxContext, DependencyRange, bool, bool);
@@ -447,17 +447,18 @@ fn apply_placeholder_replacements_to_source(
   source
 }
 
-pub(super) fn render_concatenated_module_source(
-  info: &mut ConcatenatedModuleInfo,
+fn render_concatenation_source_inner(
+  source: ReplaceSource,
+  fragments: Option<RenderedInitFragments>,
   module_reference_replacements: &[(String, String)],
-  rendered_init_fragments_hasher: Option<&mut RspackHasher>,
+  generated_symbols: &[GeneratedTopLevelSymbol],
+  internal_names: &rustc_hash::FxHashMap<Atom, Atom>,
+  rendered_init_fragments_hasher: Option<(ModuleIdentifier, &mut RspackHasher)>,
 ) -> BoxSource {
-  let source = info.source.take().expect("should have source");
-  let fragments = info.rendered_init_fragments.take();
   let replacements = PlaceholderReplacements {
     module_references: module_reference_replacements,
-    generated_symbols: &info.generated_top_level_symbols,
-    internal_names: &info.internal_names,
+    generated_symbols,
+    internal_names,
   };
   if fragments.is_none() && replacements.is_empty() {
     return source.boxed();
@@ -471,8 +472,8 @@ pub(super) fn render_concatenated_module_source(
     let mut end = fragments.end;
     apply_placeholder_replacements(&mut start, &replacements);
     apply_placeholder_replacements(&mut end, &replacements);
-    if let Some(hasher) = rendered_init_fragments_hasher {
-      info.module.hash(hasher);
+    if let Some((module, hasher)) = rendered_init_fragments_hasher {
+      module.hash(hasher);
       RenderedInitFragments::hash_parts(&start, &end, hasher);
     }
     ConcatSource::new([
@@ -484,4 +485,42 @@ pub(super) fn render_concatenated_module_source(
   } else {
     rendered_source
   }
+}
+
+/// Renders a faster-concatenation source after its final binding names are
+/// known. Only generated replacement contents and init fragments may contain
+/// concatenation placeholders; the original source is intentionally not
+/// scanned or rewritten.
+pub fn render_concatenation_source(
+  source: ReplaceSource,
+  fragments: Option<RenderedInitFragments>,
+  module_reference_replacements: &[(String, String)],
+  generated_symbols: &[GeneratedTopLevelSymbol],
+  internal_names: &rustc_hash::FxHashMap<Atom, Atom>,
+) -> BoxSource {
+  render_concatenation_source_inner(
+    source,
+    fragments,
+    module_reference_replacements,
+    generated_symbols,
+    internal_names,
+    None,
+  )
+}
+
+pub(super) fn render_concatenated_module_source(
+  info: &mut ConcatenatedModuleInfo,
+  module_reference_replacements: &[(String, String)],
+  rendered_init_fragments_hasher: Option<&mut RspackHasher>,
+) -> BoxSource {
+  let source = info.source.take().expect("should have source");
+  let fragments = info.rendered_init_fragments.take();
+  render_concatenation_source_inner(
+    source,
+    fragments,
+    module_reference_replacements,
+    &info.generated_top_level_symbols,
+    &info.internal_names,
+    rendered_init_fragments_hasher.map(|hasher| (info.module, hasher)),
+  )
 }

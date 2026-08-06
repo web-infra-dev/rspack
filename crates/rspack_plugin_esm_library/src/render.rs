@@ -7,7 +7,8 @@ use rspack_core::{
   AssetInfo, Chunk, ChunkGraph, ChunkGroup, ChunkRenderContext, ChunkUkey,
   CodeGenerationDataPreservedAssetImport, Compilation, ConcatenatedModuleInfo, InitFragment,
   ModuleIdentifier, PathData, PathInfo, RuntimeCodeTemplate, RuntimeGlobals, RuntimeVariable,
-  SourceType, export_name, get_js_chunk_filename_template, get_undo_path, render_init_fragments,
+  SourceType, export_name, get_js_chunk_filename_template, get_undo_path,
+  render_concatenation_source, render_init_fragments,
   rspack_sources::{BoxSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt},
 };
 use rspack_error::Result;
@@ -774,7 +775,7 @@ var {} = {{}};
   pub fn render_module(
     info: &ConcatenatedModuleInfo,
     chunk_link: &ChunkLinkContext,
-  ) -> Result<ReplaceSource> {
+  ) -> Result<BoxSource> {
     let Some(mut source) = info.source.clone() else {
       return Err(rspack_error::Error::error(format!(
         "module: {} has no source",
@@ -813,6 +814,9 @@ var {} = {{}};
       }
 
       if let Some(internal_name) = info.get_internal_name(&ident.id.sym) {
+        if !ident.shorthand && internal_name == &ident.id.sym {
+          continue;
+        }
         let name = if ident.shorthand {
           format!("{}: {}", &ident.id.sym, &internal_name)
         } else {
@@ -822,7 +826,25 @@ var {} = {{}};
       }
     }
 
-    Ok(source)
+    let mut module_reference_replacements = Vec::with_capacity(info.module_references.len());
+    let module_reference_refs = chunk_link.module_reference_refs.get(&info.module);
+    for placeholder in info.module_references.keys() {
+      if let Some(binding_ref) = module_reference_refs.and_then(|refs| refs.get(placeholder)) {
+        let final_name = match binding_ref {
+          Ref::Symbol(symbol_ref) => symbol_ref.render(),
+          Ref::Inline(inline) => inline.clone(),
+        };
+        module_reference_replacements.push((placeholder.clone(), final_name));
+      }
+    }
+
+    Ok(render_concatenation_source(
+      source,
+      info.rendered_init_fragments.clone(),
+      &module_reference_replacements,
+      &info.generated_top_level_symbols,
+      &info.internal_names,
+    ))
   }
 
   pub fn render_external_required(

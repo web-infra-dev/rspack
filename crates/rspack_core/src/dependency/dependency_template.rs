@@ -282,7 +282,7 @@ impl<'a> TemplateReplaceSource<'a> {
     name: Option<String>,
   ) {
     if let Some(scope) = self.concatenation_scope.as_deref_mut() {
-      scope.record_non_shorthand_source_edit(original_range, &content);
+      scope.record_non_shorthand_source_edit(original_range);
     }
     self.source.insert(start, content, name);
   }

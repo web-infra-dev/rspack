@@ -1,11 +1,13 @@
 use std::future::Future;
 
 use async_trait::async_trait;
+use rspack_sources::SourceExt;
 
 use super::*;
 use crate::{
-  CacheValue, Etag, ModuleCodeGenerationContext, MultiItemCache, compilation::pass::PassExt,
-  get_runtime_key, logger::Logger,
+  CacheValue, ConcatenationCodeGenerationSource, Etag, ModuleCodeGenerationContext, MultiItemCache,
+  PendingConcatenationScopeInfo, SourceType, compilation::pass::PassExt, get_runtime_key,
+  logger::Logger,
 };
 
 const CODE_GENERATION_CACHE_NAME: &str = "Compilation/codeGeneration";
@@ -212,6 +214,38 @@ pub(crate) async fn code_generation_modules(
             };
             let mut codegen_result_builder =
               module.code_generation(&mut code_generation_context).await?;
+            let concatenation_source = code_generation_context.concatenation_source.take();
+            drop(code_generation_context);
+
+            if let Some(source) = concatenation_source {
+              let pending_scope_info = module
+                .build_info()
+                .pending_concatenation_scope_info
+                .as_deref()
+                .ok_or_else(|| {
+                  rspack_error::error!(
+                    "module {} entered faster module concatenation without pending concatenation scope info",
+                    module.identifier()
+                  )
+                })?;
+              let source_kind_matches = matches!(
+                (pending_scope_info, source.as_ref()),
+                (
+                  PendingConcatenationScopeInfo::Analyzed(_),
+                  ConcatenationCodeGenerationSource::Analyzed(_)
+                ) | (
+                  PendingConcatenationScopeInfo::Generated,
+                  ConcatenationCodeGenerationSource::Generated(_)
+                )
+              );
+              if !source_kind_matches {
+                return Err(rspack_error::error!(
+                  "module {} returned a concatenation source that does not match its pending scope info",
+                  module.identifier()
+                ));
+              }
+              codegen_result_builder.add(SourceType::JavaScript, (*source).into_source().boxed());
+            }
 
             if let Some(scope) = concatenation_scope.as_mut()
               && scope.is_codegen_data_collection_enabled()

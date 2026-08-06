@@ -329,6 +329,11 @@ pub struct ChunkLinkContext {
   pub refs: FxHashMap<String, Ref>,
 
   /**
+  module-local references emitted as structured concatenation placeholders
+  */
+  pub module_reference_refs: IdentifierMap<FxHashMap<String, Ref>>,
+
+  /**
   all used symbols in current chunk
   */
   pub used_names: FxHashSet<Atom>,
@@ -355,6 +360,7 @@ impl ChunkLinkContext {
       hashbang: None,
       directives: Default::default(),
       refs: Default::default(),
+      module_reference_refs: Default::default(),
       used_names: Default::default(),
       exported_symbols: Default::default(),
       raw_import_stmts: Default::default(),
