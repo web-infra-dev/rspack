@@ -37,9 +37,8 @@ fn create_resource_identifier_for_context_dependency(
   options: &ContextOptions,
 ) -> ResourceIdentifier {
   let context = context
-    .filter(|context| !context.is_empty())
-    .unwrap_or(&options.context);
-  let context = context_identifier(&options.compiler_context, context).unwrap_or_default();
+    .and_then(|context| context_identifier(&options.compiler_context, context))
+    .unwrap_or_default();
   let request = &options.request;
   let recursive = options.recursive.to_string();
   let pattern = match &options.pattern {
@@ -88,7 +87,7 @@ fn create_resource_identifier_for_context_dependency(
   let glob_case_sensitive = if options.glob_case_sensitive {
     ""
   } else {
-    "globCaseInsensitive"
+    " globCaseInsensitive"
   };
   let mut group_options = String::new();
 
@@ -110,7 +109,7 @@ fn create_resource_identifier_for_context_dependency(
   }
 
   let id = format!(
-    "context{context}|ctx request{request} {recursive} {pattern} {include} {exclude} {mode} {group_options} {referenced_exports} {glob_import} {glob_exhaustive} {glob_case_sensitive}",
+    "context{context}|ctx request{request} {recursive} {pattern} {include} {exclude} {mode} {group_options} {referenced_exports} {glob_import} {glob_exhaustive}{glob_case_sensitive}",
   );
   id.into()
 }
