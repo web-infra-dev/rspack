@@ -188,6 +188,21 @@ If the module being processed is not from the file system, such as a virtual mod
 
 The index in the loaders array of the current loader.
 
+## this.loaders
+
+- **Type:** `LoaderObject[]`
+
+`this.loaders` contains all loaders applied to the current module. Each item provides information such as the resolved `request`, `path`, `query`, and `options`.
+
+During the pitch phase, you can modify the array to adjust the loader chain. Use [this.loaderIndex](#thisloaderindex) to locate the current loader.
+
+```js title="loader.js"
+module.exports.pitch = function () {
+  const currentLoader = this.loaders[this.loaderIndex];
+  console.log(currentLoader.request);
+};
+```
+
 ## this.data
 
 - **Type:** `unknown`
@@ -563,6 +578,26 @@ The value depends on the loader configuration:
 - If the current loader has no options, but was invoked with a query string, this will be a string starting with `?`.
 
 Unlike [this.getOptions()](#thisgetoptions), the query-string form is not parsed. For example, `loader: './my-loader?s=foo+bar'` gives `this.query === '?s=foo+bar'`.
+
+## this.remainingRequest
+
+- **Type:** `string`
+
+`this.remainingRequest` consists of the loaders that follow the current loader in the chain and the current resource, joined with `!`.
+
+For example, consider the following loader chain:
+
+```text
+/path/to/loader1.js!/path/to/loader2.js!/path/to/resource.js
+```
+
+When Rspack runs `loader1.js`, `this.remainingRequest` is:
+
+```text
+/path/to/loader2.js!/path/to/resource.js
+```
+
+You can use it to create an inline request without invoking the current loader again. See [Inline matchResource](/api/loader-api/inline-match-resource) for an example.
 
 ## this.request
 

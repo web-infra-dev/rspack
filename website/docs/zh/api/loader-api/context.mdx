@@ -183,6 +183,21 @@ module.exports = function loader(source) {
 
 当前 loader 在 loaders 数组中的索引。
 
+## this.loaders
+
+- **类型：** `LoaderObject[]`
+
+`this.loaders` 包含应用于当前模块的所有 loader。每一项都提供解析后的 `request`、`path`、`query` 和 `options` 等信息。
+
+在 pitch 阶段可以修改这个数组，以调整 loader 链。可通过 [this.loaderIndex](#thisloaderindex) 定位当前 loader。
+
+```js title="loader.js"
+module.exports.pitch = function () {
+  const currentLoader = this.loaders[this.loaderIndex];
+  console.log(currentLoader.request);
+};
+```
+
 ## this.data
 
 - **类型：** `unknown`
@@ -554,6 +569,26 @@ module.exports = function loader(source) {
 - 如果当前 loader 没有选项，但是通过查询字符串调用，这将是一个以 `?` 开头的字符串。
 
 与 [this.getOptions()](#thisgetoptions) 不同，查询字符串形式在这里不会被解析。例如，`loader: './my-loader?s=foo+bar'` 时，`this.query === '?s=foo+bar'`。
+
+## this.remainingRequest
+
+- **类型：** `string`
+
+`this.remainingRequest` 由 loader 链中位于当前 loader 之后的所有 loader 和当前资源组成，各部分使用 `!` 连接。
+
+例如，假设 loader 链为：
+
+```text
+/path/to/loader1.js!/path/to/loader2.js!/path/to/resource.js
+```
+
+执行到 `loader1.js` 时，`this.remainingRequest` 为：
+
+```text
+/path/to/loader2.js!/path/to/resource.js
+```
+
+它通常用于构造内联请求，避免再次执行当前 loader。可以参考 [Inline matchResource](/api/loader-api/inline-match-resource) 中的示例。
 
 ## this.request
 
