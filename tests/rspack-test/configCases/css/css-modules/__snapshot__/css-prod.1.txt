@@ -943,31 +943,31 @@ div {
 .lLbnnH {
 	color: red;
 
-.atUlku {
+	.atUlku {
 		color: red;
 	}
 
-	:global .global-nested {
+	.global-nested {
 		color: red;
 	}
 
-	:local(.local-nested) {
+	.atUlku {
 		color: red;
 	}
 
-	:global(.global-nested) {
+	.global-nested {
 		color: red;
 	}
 
-	:local .local-nested, :global .global-nested-next {
+	.atUlku, .global-nested-next {
 		color: red;
 	}
 
-.atUlku, .global-nested-next {
+	.atUlku, .global-nested-next {
 		color: red;
 	}
 
-.foo, ._1z-NWQ {
+	.foo, ._1z-NWQ {
 		color: red;
 	}
 }
@@ -993,7 +993,7 @@ div {
 		color: red;
 	}
 
-.q-F86w {
+	.q-F86w {
 		color: blue;
 	}
 }
@@ -1085,13 +1085,13 @@ div {
 }
 
 .global-foo, ._1z-NWQ {
-.q-F86w       {
+	.q-F86w       {
 		color: blue;
 	}
 
 	@media screen {
-		:global .my-global-class-again,
-		:local .my-global-class-again {
+		.my-global-class-again,
+		.BUo87j {
 			color: red;
 		}
 	}
@@ -1116,27 +1116,27 @@ div {
 }
 
 .again-again-global {
-.again-again-global {
+	.again-again-global {
 		color: red;
 	}
 }
 
 :root {
-	--foo: red;
+	--MuV03G: red;
 }
 
 .again-again-global {
 	color: var(--MuV03G);
 
-.again-again-global {
-		color: var(--foo);
+	.again-again-global {
+		color: var(--MuV03G);
 	}
 }
 
 .again-again-global {
 	animation: slidein Xs;
 
-.again-again-global, .fcj_Kv, .Kgyaat.nested2.CkXfSe {
+	.again-again-global, .fcj_Kv, .Kgyaat.nested2.CkXfSe {
 		animation: sL-lKs Xs;
 	}
 
@@ -1228,11 +1228,11 @@ div {
 		color: red;
 	}
 
-./** test **/class {
+	./** test **/class {
 		color: red;
 	}
 
-./** test **/class {
+	./** test **/class {
 		color: red;
 	}
 }
@@ -1772,12 +1772,12 @@ div {
 @keyframes /**test**/MuV03G { /* ... */ }
 @keyframes/**test**/ MuV03G { /* ... */ }
 @keyframes /**test**/ MuV03G { /* ... */ }
-@keyframes /**test**//**test**/ foo { /* ... */ }
+@keyframes /**test**//**test**/ MuV03G { /* ... */ }
 @keyframes /**test**/ /**test**/ MuV03G { /* ... */ }
 @keyframes /**test**/ /**test**/MuV03G { /* ... */ }
-@keyframes /**test**//**test**/foo { /* ... */ }
-@keyframes/**test**//**test**/foo { /* ... */ }
-@keyframes/**test**//**test**/foo/**test**//**test**/{ /* ... */ }
+@keyframes /**test**//**test**/MuV03G { /* ... */ }
+@keyframes/**test**//**test**/MuV03G { /* ... */ }
+@keyframes/**test**//**test**/MuV03G/**test**//**test**/{ /* ... */ }
 @keyframes /**test**/ /**test**/ MuV03G /**test**/ /**test**/ { /* ... */ }
 
 ./**test**//**test**/class {
@@ -1944,7 +1944,7 @@ section {
 }
 
 .VR-ciu {
-	border-radius: if(style(--nxsxqh: sharp): 0px; else: revert-rule);
+	border-radius: if(style(--mode: sharp): 0px; else: revert-rule);
 }
 
 @color-profile --swop5c {
@@ -2022,34 +2022,34 @@ section {
 }
 
 .ZlysC1 {
-.class-no-space {
+	.class-no-space {
 		color: red;
 	}
 
-/** test **/.class {
+	/** test **/.class {
 		color: red;
 	}
 
-.fcj_Kv {
+	.fcj_Kv {
 		color: red;
 	}
 
-/** test **/.fcj_Kv {
+	/** test **/.fcj_Kv {
 		color: red;
 	}
 
-/** test **/#G-wEV1 {
+	/** test **/#G-wEV1 {
 		color: red;
 	}
 
-/** test **/{
+	/** test **/{
 		color: red;
 	}
 }
 
 /* nesting */
 
-.class{.fcj_Kv{}}
+.fcj_Kv{.fcj_Kv{}}
 .fcj_Kv{color:#fff5f5}
 .fcj_Kv{.fcj_Kv{color:#f1f1f1}}
 .fcj_Kv{--MuV03G:#fff5f5}
@@ -2059,7 +2059,7 @@ section {
 .fcj_Kv{--MuV03G:#fff5f5;.fcj_Kv{color:#f1f1f1}color:#f1f1f1;}
 .fcj_Kv{.fcj_Kv{color:#f1f1f1}--MuV03G:#fff5f5;color:#f1f1f1;}
 /* TODO fix, but this syntax is not used anywhere */
-.fcj_Kv{--_1z-NWQ:{1, 'string', .fcj_Kv, #UN_sHi, #QftMmH}}
+.fcj_Kv{--_1z-NWQ:{1, 'string', .class, #f1f1f1, #id}}
 .fcj_Kv{--vtps9y:[1, "string", .class, #f1f1f1, #id]}
 .fcj_Kv{--vtps9y:(1, "string", .class, #f1f1f1, #id)}
 
@@ -2183,7 +2183,7 @@ p:not(#Gonxc7) {
 	@media screen and (min-width: 900px) {
 		b_value: some-value;
 
-._1z-NWQ {
+		._1z-NWQ {
 			c_value: some-value;
 		}
 
@@ -2213,8 +2213,8 @@ p:not(#Gonxc7) {
 /* At-rules */
 
 @keyframes CcncgZ {}
-@keyframes JcBjON(local-keyframes) {}
-@keyframes WMBIQi(global-keyframes) {}
+@keyframes local(local-keyframes) {}
+@keyframes global(global-keyframes) {}
 /** Deprecated syntax */
 @keyframes El38Ni {}
 @keyframes local-keyframes-old-syntax {}
@@ -2229,7 +2229,7 @@ p:not(#Gonxc7) {
 	initial-value: 25%;
 }
 
-@keyframes JcBjON(progressAnimationLocal) {
+@keyframes local(progressAnimationLocal) {
 	to {
 		--k-jK33: 100%;
 	}
@@ -2252,10 +2252,10 @@ p:not(#Gonxc7) {
 	.Th20HR {
 		border: 5px solid black;
 	}
-.O4viXB {
+	.O4viXB {
 		color: red;
 	}
-.class-2 {
+	.class-2 {
 		color: blue;
 	}
 }

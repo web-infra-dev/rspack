@@ -21,7 +21,7 @@ Object {
   exportNameOtherNoSpaces: ER1nMu qa9TNZ beforeName DrrzNO,
   exportNameWeirdCharacters: dIkhNp _8nY0VE zmL5Of nP5iYu Klfr7O _8FGerM ertuMs BKgl3z,
   futureWmultiParams: HNWAAx,
-  global: WMBIQi,
+  global: undefined,
   hasWmultiParams: xfU8V7,
   ident: sKDVZf,
   inLocalGlobalScope: _pUr1t,

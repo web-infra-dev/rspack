@@ -1,6 +1,7 @@
 "use strict";
 
 const missingExportWarnings = Array.from({ length: 4 }).flatMap(() => [
+	/export \x27global\x27 \(imported as \x27style\x27\) was not found/,
 	/export \x27nested2\x27 \(imported as \x27style\x27\) was not found/,
 	/export \x27global-color\x27 \(imported as \x27style\x27\) was not found/,
 	/export \x27GLOBAL-COLOR\x27 \(imported as \x27style\x27\) was not found/

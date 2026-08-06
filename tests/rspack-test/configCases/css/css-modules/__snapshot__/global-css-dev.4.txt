@@ -899,31 +899,31 @@ div {
 .nested-with-local-pseudo {
 	color: red;
 
-.my-app-style_module_css-local-nested {
+	.my-app-style_module_css-local-nested {
 		color: red;
 	}
 
-	:global .global-nested {
+	.global-nested {
 		color: red;
 	}
 
-	:local(.local-nested) {
+	.my-app-style_module_css-local-nested {
 		color: red;
 	}
 
-	:global(.global-nested) {
+	.global-nested {
 		color: red;
 	}
 
-	:local .local-nested, :global .global-nested-next {
+	.my-app-style_module_css-local-nested, .global-nested-next {
 		color: red;
 	}
 
-.my-app-style_module_css-local-nested, .global-nested-next {
+	.my-app-style_module_css-local-nested, .global-nested-next {
 		color: red;
 	}
 
-.foo, .bar {
+	.foo, .bar {
 		color: red;
 	}
 }
@@ -949,7 +949,7 @@ div {
 		color: red;
 	}
 
-.my-app-style_module_css-local-in-global {
+	.my-app-style_module_css-local-in-global {
 		color: blue;
 	}
 }
@@ -1041,19 +1041,19 @@ div {
 }
 
 .global-foo, .my-app-style_module_css-bar {
-.my-app-style_module_css-local-in-global       {
+	.my-app-style_module_css-local-in-global       {
 		color: blue;
 	}
 
 	@media screen {
-		:global .my-global-class-again,
-		:local .my-global-class-again {
+		.my-global-class-again,
+		.my-app-style_module_css-my-global-class-again {
 			color: red;
 		}
 	}
 }
 
-.my-app-style_module_css-first-nested {
+.first-nested {
 	.first-nested-nested {
 		color: red;
 	}
@@ -1072,7 +1072,7 @@ div {
 }
 
 .again-again-global {
-.again-again-global {
+	.again-again-global {
 		color: red;
 	}
 }
@@ -1084,7 +1084,7 @@ div {
 .again-again-global {
 	color: var(--foo);
 
-.again-again-global {
+	.again-again-global {
 		color: var(--foo);
 	}
 }
@@ -1092,7 +1092,7 @@ div {
 .again-again-global {
 	animation: slidein Xs;
 
-.again-again-global, .class, .my-app-style_module_css-nested1.nested2.nested3 {
+	.again-again-global, .class, .my-app-style_module_css-nested1.nested2.nested3 {
 		animation: slidein Xs;
 	}
 
@@ -1184,16 +1184,16 @@ div {
 		color: red;
 	}
 
-./** test **/class {
+	./** test **/class {
 		color: red;
 	}
 
-./** test **/class {
+	./** test **/class {
 		color: red;
 	}
 }
 
-.my-app-style_module_css-foo {
+.foo {
 	color: red;
 	+ .bar + & { color: blue; }
 }
@@ -2000,27 +2000,27 @@ section {
 }
 
 .no-space {
-.class-no-space {
+	.class-no-space {
 		color: red;
 	}
 
-/** test **/.class {
+	/** test **/.class {
 		color: red;
 	}
 
-.my-app-style_module_css-class {
+	.my-app-style_module_css-class {
 		color: red;
 	}
 
-/** test **/.my-app-style_module_css-class {
+	/** test **/.my-app-style_module_css-class {
 		color: red;
 	}
 
-/** test **/#my-app-style_module_css-hash {
+	/** test **/#my-app-style_module_css-hash {
 		color: red;
 	}
 
-/** test **/{
+	/** test **/{
 		color: red;
 	}
 }
@@ -2161,7 +2161,7 @@ p:not(#my-app-style_module_css-main-paragraph) {
 	@media screen and (min-width: 900px) {
 		b_value: some-value;
 
-.my-app-style_module_css-bar {
+		.my-app-style_module_css-bar {
 			c_value: some-value;
 		}
 
@@ -2230,10 +2230,10 @@ p:not(#my-app-style_module_css-main-paragraph) {
 	.article-footer {
 		border: 5px solid black;
 	}
-.my-app-style_module_css-class-1 {
+	.my-app-style_module_css-class-1 {
 		color: red;
 	}
-.class-2 {
+	.class-2 {
 		color: blue;
 	}
 }

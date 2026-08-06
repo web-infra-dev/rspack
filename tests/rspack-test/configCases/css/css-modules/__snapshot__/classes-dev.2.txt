@@ -21,7 +21,7 @@ Object {
   exportNameOtherNoSpaces: my-app-style_module_css-exportNameOtherNoSpaces my-app-classes_modules_css-className beforeName my-app-style_module_css-className,
   exportNameWeirdCharacters: my-app-style_module_css-exportNameWeirdCharacters my-app-classes_modules_css-a my-app-classes_modules_css--b my-app-classes_modules_css-b- my-app-classes_modules_css---c my-app-classes_modules_css-c-- my-app-classes_modules_css-_d my-app-classes_modules_css-d%,
   futureWmultiParams: my-app-style_module_css-local14,
-  global: my-app-style_module_css-global,
+  global: undefined,
   hasWmultiParams: my-app-style_module_css-local11,
   ident: my-app-style_module_css-ident,
   inLocalGlobalScope: my-app-style_module_css-in-local-global-scope,

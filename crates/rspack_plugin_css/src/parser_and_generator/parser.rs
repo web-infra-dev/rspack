@@ -660,10 +660,18 @@ impl<'context> CssModuleParser<'context> {
       .iter()
       .rposition(|byte| *byte == b'\n')
       .map_or(0, |pos| pos + 1);
-
-    if bytes[line_start..start]
+    let line_end = bytes[end..]
       .iter()
-      .all(|byte| *byte == b' ' || *byte == b'\t')
+      .position(|byte| *byte == b'\r' || *byte == b'\n')
+      .map_or(bytes.len(), |pos| end + pos);
+    let replacement_removes_line = bytes[end..line_end]
+      .iter()
+      .all(|byte| *byte == b' ' || *byte == b'\t');
+
+    if replacement_removes_line
+      && bytes[line_start..start]
+        .iter()
+        .all(|byte| *byte == b' ' || *byte == b'\t')
     {
       start = line_start;
       if end < bytes.len() && bytes[end] == b'\r' {
@@ -708,12 +716,17 @@ impl<'context> CssModuleParser<'context> {
       css_module_lexer::Dependency::Import {
         request,
         range,
-        media,
-        supports,
-        layer,
+        attributes,
       } => {
+        let attributes = dependency_context.import_attributes(*attributes);
         self
-          .handle_import(request, *range, *media, *supports, *layer)
+          .handle_import(
+            request,
+            *range,
+            attributes.media(),
+            attributes.supports(),
+            attributes.layer(),
+          )
           .await
       }
       css_module_lexer::Dependency::Replace { content, range } => {

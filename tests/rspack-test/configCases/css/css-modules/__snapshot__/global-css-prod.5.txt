@@ -899,31 +899,31 @@ div {
 .nested-with-local-pseudo {
 	color: red;
 
-.atUlku {
+	.atUlku {
 		color: red;
 	}
 
-	:global .global-nested {
+	.global-nested {
 		color: red;
 	}
 
-	:local(.local-nested) {
+	.atUlku {
 		color: red;
 	}
 
-	:global(.global-nested) {
+	.global-nested {
 		color: red;
 	}
 
-	:local .local-nested, :global .global-nested-next {
+	.atUlku, .global-nested-next {
 		color: red;
 	}
 
-.atUlku, .global-nested-next {
+	.atUlku, .global-nested-next {
 		color: red;
 	}
 
-.foo, .bar {
+	.foo, .bar {
 		color: red;
 	}
 }
@@ -949,7 +949,7 @@ div {
 		color: red;
 	}
 
-.q-F86w {
+	.q-F86w {
 		color: blue;
 	}
 }
@@ -1041,19 +1041,19 @@ div {
 }
 
 .global-foo, ._1z-NWQ {
-.q-F86w       {
+	.q-F86w       {
 		color: blue;
 	}
 
 	@media screen {
-		:global .my-global-class-again,
-		:local .my-global-class-again {
+		.my-global-class-again,
+		.BUo87j {
 			color: red;
 		}
 	}
 }
 
-.G9pEhP {
+.first-nested {
 	.first-nested-nested {
 		color: red;
 	}
@@ -1072,7 +1072,7 @@ div {
 }
 
 .again-again-global {
-.again-again-global {
+	.again-again-global {
 		color: red;
 	}
 }
@@ -1084,7 +1084,7 @@ div {
 .again-again-global {
 	color: var(--foo);
 
-.again-again-global {
+	.again-again-global {
 		color: var(--foo);
 	}
 }
@@ -1092,7 +1092,7 @@ div {
 .again-again-global {
 	animation: slidein Xs;
 
-.again-again-global, .class, .Kgyaat.nested2.nested3 {
+	.again-again-global, .class, .Kgyaat.nested2.nested3 {
 		animation: slidein Xs;
 	}
 
@@ -1184,16 +1184,16 @@ div {
 		color: red;
 	}
 
-./** test **/class {
+	./** test **/class {
 		color: red;
 	}
 
-./** test **/class {
+	./** test **/class {
 		color: red;
 	}
 }
 
-.MuV03G {
+.foo {
 	color: red;
 	+ .bar + & { color: blue; }
 }
@@ -2000,27 +2000,27 @@ section {
 }
 
 .no-space {
-.class-no-space {
+	.class-no-space {
 		color: red;
 	}
 
-/** test **/.class {
+	/** test **/.class {
 		color: red;
 	}
 
-.fcj_Kv {
+	.fcj_Kv {
 		color: red;
 	}
 
-/** test **/.fcj_Kv {
+	/** test **/.fcj_Kv {
 		color: red;
 	}
 
-/** test **/#G-wEV1 {
+	/** test **/#G-wEV1 {
 		color: red;
 	}
 
-/** test **/{
+	/** test **/{
 		color: red;
 	}
 }
@@ -2161,7 +2161,7 @@ p:not(#Gonxc7) {
 	@media screen and (min-width: 900px) {
 		b_value: some-value;
 
-._1z-NWQ {
+		._1z-NWQ {
 			c_value: some-value;
 		}
 
@@ -2230,10 +2230,10 @@ p:not(#Gonxc7) {
 	.article-footer {
 		border: 5px solid black;
 	}
-.O4viXB {
+	.O4viXB {
 		color: red;
 	}
-.class-2 {
+	.class-2 {
 		color: blue;
 	}
 }

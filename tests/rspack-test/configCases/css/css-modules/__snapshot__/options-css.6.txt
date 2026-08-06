@@ -943,31 +943,31 @@ div {
 .my-app-style_module_css-nested-with-local-pseudo {
 	color: red;
 
-.my-app-style_module_css-local-nested {
+	.my-app-style_module_css-local-nested {
 		color: red;
 	}
 
-	:global .global-nested {
+	.global-nested {
 		color: red;
 	}
 
-	:local(.local-nested) {
+	.my-app-style_module_css-local-nested {
 		color: red;
 	}
 
-	:global(.global-nested) {
+	.global-nested {
 		color: red;
 	}
 
-	:local .local-nested, :global .global-nested-next {
+	.my-app-style_module_css-local-nested, .global-nested-next {
 		color: red;
 	}
 
-.my-app-style_module_css-local-nested, .global-nested-next {
+	.my-app-style_module_css-local-nested, .global-nested-next {
 		color: red;
 	}
 
-.foo, .my-app-style_module_css-bar {
+	.foo, .my-app-style_module_css-bar {
 		color: red;
 	}
 }
@@ -993,7 +993,7 @@ div {
 		color: red;
 	}
 
-.my-app-style_module_css-local-in-global {
+	.my-app-style_module_css-local-in-global {
 		color: blue;
 	}
 }
@@ -1085,13 +1085,13 @@ div {
 }
 
 .global-foo, .my-app-style_module_css-bar {
-.my-app-style_module_css-local-in-global       {
+	.my-app-style_module_css-local-in-global       {
 		color: blue;
 	}
 
 	@media screen {
-		:global .my-global-class-again,
-		:local .my-global-class-again {
+		.my-global-class-again,
+		.my-app-style_module_css-my-global-class-again {
 			color: red;
 		}
 	}
@@ -1116,7 +1116,7 @@ div {
 }
 
 .again-again-global {
-.again-again-global {
+	.again-again-global {
 		color: red;
 	}
 }
@@ -1128,7 +1128,7 @@ div {
 .again-again-global {
 	color: var(--foo);
 
-.again-again-global {
+	.again-again-global {
 		color: var(--foo);
 	}
 }
@@ -1136,7 +1136,7 @@ div {
 .again-again-global {
 	animation: slidein Xs;
 
-.again-again-global, .my-app-style_module_css-class, .my-app-style_module_css-nested1.nested2.my-app-style_module_css-nested3 {
+	.again-again-global, .my-app-style_module_css-class, .my-app-style_module_css-nested1.nested2.my-app-style_module_css-nested3 {
 		animation: slidein Xs;
 	}
 
@@ -1228,11 +1228,11 @@ div {
 		color: red;
 	}
 
-./** test **/class {
+	./** test **/class {
 		color: red;
 	}
 
-./** test **/class {
+	./** test **/class {
 		color: red;
 	}
 }
@@ -2022,34 +2022,34 @@ section {
 }
 
 .my-app-style_module_css-no-space {
-.class-no-space {
+	.class-no-space {
 		color: red;
 	}
 
-/** test **/.class {
+	/** test **/.class {
 		color: red;
 	}
 
-.my-app-style_module_css-class {
+	.my-app-style_module_css-class {
 		color: red;
 	}
 
-/** test **/.my-app-style_module_css-class {
+	/** test **/.my-app-style_module_css-class {
 		color: red;
 	}
 
-/** test **/#my-app-style_module_css-hash {
+	/** test **/#my-app-style_module_css-hash {
 		color: red;
 	}
 
-/** test **/{
+	/** test **/{
 		color: red;
 	}
 }
 
 /* nesting */
 
-.class{.my-app-style_module_css-class{}}
+.my-app-style_module_css-class{.my-app-style_module_css-class{}}
 .my-app-style_module_css-class{color:#fff5f5}
 .my-app-style_module_css-class{.my-app-style_module_css-class{color:#f1f1f1}}
 .my-app-style_module_css-class{--foo:#fff5f5}
@@ -2059,7 +2059,7 @@ section {
 .my-app-style_module_css-class{--foo:#fff5f5;.my-app-style_module_css-class{color:#f1f1f1}color:#f1f1f1;}
 .my-app-style_module_css-class{.my-app-style_module_css-class{color:#f1f1f1}--foo:#fff5f5;color:#f1f1f1;}
 /* TODO fix, but this syntax is not used anywhere */
-.my-app-style_module_css-class{--bar:{1, 'string', .my-app-style_module_css-class, #my-app-style_module_css-f1f1f1, #my-app-style_module_css-id}}
+.my-app-style_module_css-class{--bar:{1, 'string', .class, #f1f1f1, #id}}
 .my-app-style_module_css-class{--baz:[1, "string", .class, #f1f1f1, #id]}
 .my-app-style_module_css-class{--baz:(1, "string", .class, #f1f1f1, #id)}
 
@@ -2183,7 +2183,7 @@ p:not(#my-app-style_module_css-main-paragraph) {
 	@media screen and (min-width: 900px) {
 		b_value: some-value;
 
-.my-app-style_module_css-bar {
+		.my-app-style_module_css-bar {
 			c_value: some-value;
 		}
 
@@ -2252,10 +2252,10 @@ p:not(#my-app-style_module_css-main-paragraph) {
 	.my-app-style_module_css-article-footer {
 		border: 5px solid black;
 	}
-.my-app-style_module_css-class-1 {
+	.my-app-style_module_css-class-1 {
 		color: red;
 	}
-.class-2 {
+	.class-2 {
 		color: blue;
 	}
 }
