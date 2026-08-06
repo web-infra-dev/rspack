@@ -389,6 +389,65 @@ export default function loader(source) {
 
 访问 `compilation` 对象的 `inputFileSystem` 属性。
 
+## this.getContextDependencies()
+
+- **类型：**
+
+```ts
+function getContextDependencies(): string[];
+```
+
+返回 loader 当前作为上下文依赖监听的所有目录，其中包括通过 [this.addContextDependency()](#thisaddcontextdependency) 添加的目录。
+
+```js title="loader.mjs"
+export default function loader(source) {
+  const contextDependencies = this.getContextDependencies();
+  console.log(contextDependencies);
+
+  return source;
+}
+```
+
+## this.getDependencies()
+
+- **类型：**
+
+```ts
+function getDependencies(): string[];
+```
+
+返回 loader 当前作为依赖监听的所有文件，其中包括通过 [this.addDependency()](#thisadddependency) 或 [this.dependency()](#thisdependency) 添加的文件。
+
+```js title="loader.mjs"
+export default function loader(source) {
+  const dependencies = this.getDependencies();
+  console.log(dependencies);
+
+  return source;
+}
+```
+
+## this.getMissingDependencies()
+
+- **类型：**
+
+```ts
+function getMissingDependencies(): string[];
+```
+
+返回 loader 当前监听的所有尚不存在的文件路径，其中包括通过 [this.addMissingDependency()](#thisaddmissingdependency) 添加的路径。当这些文件被创建时，可能会触发重新构建。
+
+```js title="loader.mjs"
+export default function loader(source) {
+  const missingDependencies = this.getMissingDependencies();
+  console.log(missingDependencies);
+
+  return source;
+}
+```
+
+这三个方法都会返回一个新数组。修改返回的数组不会影响 loader 已注册的依赖。如需清空这三类依赖列表，请使用 [this.clearDependencies()](#thiscleardependencies)。
+
 ## this.getOptions()
 
 - **类型：**

@@ -398,6 +398,65 @@ export default function loader(source) {
 
 Access to the `compilation` object's `inputFileSystem` property.
 
+## this.getContextDependencies()
+
+- **Type:**
+
+```ts
+function getContextDependencies(): string[];
+```
+
+Returns all directories the loader currently watches as context dependencies, including directories added with [this.addContextDependency()](#thisaddcontextdependency).
+
+```js title="loader.mjs"
+export default function loader(source) {
+  const contextDependencies = this.getContextDependencies();
+  console.log(contextDependencies);
+
+  return source;
+}
+```
+
+## this.getDependencies()
+
+- **Type:**
+
+```ts
+function getDependencies(): string[];
+```
+
+Returns all files the loader currently watches as dependencies, including files added with [this.addDependency()](#thisadddependency) or [this.dependency()](#thisdependency).
+
+```js title="loader.mjs"
+export default function loader(source) {
+  const dependencies = this.getDependencies();
+  console.log(dependencies);
+
+  return source;
+}
+```
+
+## this.getMissingDependencies()
+
+- **Type:**
+
+```ts
+function getMissingDependencies(): string[];
+```
+
+Returns all paths to files that the loader is watching but that do not exist yet, including paths added with [this.addMissingDependency()](#thisaddmissingdependency). Creating one of these files may trigger a rebuild.
+
+```js title="loader.mjs"
+export default function loader(source) {
+  const missingDependencies = this.getMissingDependencies();
+  console.log(missingDependencies);
+
+  return source;
+}
+```
+
+Each method returns a new array. Modifying the returned array does not change the dependencies registered by the loader. To remove dependencies from these three lists, use [this.clearDependencies()](#thiscleardependencies).
+
 ## this.getOptions()
 
 - **Type:**
