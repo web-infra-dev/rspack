@@ -853,6 +853,7 @@ impl NormalModuleFactory {
                 .get(ident)
                 .map(|object| object.to_string())
             }),
+            cache: false,
           }
         }));
         scheme = get_scheme(unresolved_resource);
@@ -981,7 +982,9 @@ module.exports = "data:,";
         .await?
     };
     let mut resolved_inline_loaders = vec![];
+    let mut resolved_inline_loader_cache_flags = vec![];
     for l in inline_loaders {
+      resolved_inline_loader_cache_flags.push(l.cache);
       resolved_inline_loaders
         .push(resolve_each(plugin_driver, &data.context, &loader_resolver, &l).await?)
     }
@@ -999,7 +1002,7 @@ module.exports = "data:,";
       }
     };
 
-    let loaders: Vec<BoxLoader> = {
+    let (loaders, loader_cache_flags): (Vec<BoxLoader>, Vec<bool>) = {
       let mut pre_loaders: Vec<ModuleRuleUseLoader> = vec![];
       let mut post_loaders: Vec<ModuleRuleUseLoader> = vec![];
       let mut normal_loaders: Vec<ModuleRuleUseLoader> = vec![];
@@ -1047,32 +1050,41 @@ module.exports = "data:,";
           + normal_loaders.len()
           + resolved_inline_loaders.len(),
       );
+      let mut all_loader_cache_flags = Vec::with_capacity(all_loaders.capacity());
 
       for l in post_loaders {
+        all_loader_cache_flags.push(l.cache);
         all_loaders
           .push(resolve_each(plugin_driver, &self.options.context, &loader_resolver, &l).await?)
       }
 
       let mut resolved_normal_loaders = vec![];
+      let mut resolved_normal_loader_cache_flags = vec![];
       for l in normal_loaders {
+        resolved_normal_loader_cache_flags.push(l.cache);
         resolved_normal_loaders
           .push(resolve_each(plugin_driver, &self.options.context, &loader_resolver, &l).await?)
       }
 
       if match_resource_data.is_some() {
         all_loaders.extend(resolved_normal_loaders);
+        all_loader_cache_flags.extend(resolved_normal_loader_cache_flags);
         all_loaders.extend(resolved_inline_loaders);
+        all_loader_cache_flags.extend(resolved_inline_loader_cache_flags);
       } else {
         all_loaders.extend(resolved_inline_loaders);
+        all_loader_cache_flags.extend(resolved_inline_loader_cache_flags);
         all_loaders.extend(resolved_normal_loaders);
+        all_loader_cache_flags.extend(resolved_normal_loader_cache_flags);
       }
 
       for l in pre_loaders {
+        all_loader_cache_flags.push(l.cache);
         all_loaders
           .push(resolve_each(plugin_driver, &self.options.context, &loader_resolver, &l).await?)
       }
 
-      all_loaders
+      (all_loaders, all_loader_cache_flags)
     };
 
     let request = if !loaders.is_empty() {
@@ -1166,6 +1178,7 @@ module.exports = "data:,";
         resource_resolve_data,
         resolved_resolve_options,
         loaders,
+        loader_cache_flags,
         create_data.context.clone().map(|x| x.into()),
         resolved_extract_source_map,
         dependency_phase,

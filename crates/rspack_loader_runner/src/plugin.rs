@@ -22,6 +22,14 @@ pub trait LoaderRunnerPlugin: Send + Sync {
     Ok(())
   }
 
+  fn load_cache(&self, _context: &mut LoaderContext<Self::Context>) -> Result<bool> {
+    Ok(false)
+  }
+
+  fn store_cache(&self, _context: &LoaderContext<Self::Context>) -> Result<()> {
+    Ok(())
+  }
+
   async fn should_yield(&self, _context: &LoaderContext<Self::Context>) -> Result<bool> {
     Ok(false)
   }

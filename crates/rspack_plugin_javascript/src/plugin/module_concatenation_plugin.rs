@@ -1784,6 +1784,9 @@ async fn create_concatenated_module(
       rspack_core::BuildContext {
         compiler_id: compilation.compiler_id(),
         compilation_id: compilation.id(),
+        loader_cache: compilation.loader_cache.clone(),
+        modified_files: Arc::new(compilation.modified_files.clone()),
+        removed_files: Arc::new(compilation.removed_files.clone()),
         resolver_factory: compilation.resolver_factory.clone(),
         plugin_driver: compilation.plugin_driver.clone(),
         compiler_options: compilation.options.clone(),

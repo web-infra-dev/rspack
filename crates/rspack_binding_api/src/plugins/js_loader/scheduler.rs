@@ -7,7 +7,9 @@ use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_hook::plugin_hook;
 use rspack_loader_runner::State as LoaderState;
 
-use super::{JsLoaderContext, JsLoaderRspackPlugin, JsLoaderRspackPluginInner};
+use super::{
+  JsLoaderContext, JsLoaderRspackPlugin, JsLoaderRspackPluginInner, context::LoaderCacheGuard,
+};
 
 impl JsLoaderRspackPlugin {
   async fn update_loaders_without_pitch(&self, list: Vec<String>) {
@@ -61,8 +63,10 @@ pub(crate) async fn loader_yield(
     .await
     .to_rspack_result()?;
 
+  let js_context: JsLoaderContext = loader_context.try_into()?;
+  let _loader_cache_guard = LoaderCacheGuard::new(js_context.loader_cache);
   let new_cx = runner
-    .call_async(loader_context.try_into()?)
+    .call_async(js_context)
     .await
     .to_rspack_result()?
     .await

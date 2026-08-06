@@ -8,7 +8,7 @@ use super::{
 };
 use crate::{
   AsyncDependenciesBlock, BoxDependency, BoxModule, BuildContext, BuildResult, CompilationId,
-  CompilerId, CompilerOptions, DependencyParents, ModuleCodeTemplate, ResolverFactory,
+  CompilerId, CompilerOptions, DependencyParents, LoaderCache, ModuleCodeTemplate, ResolverFactory,
   SharedPluginDriver,
   compilation::build_module_graph::{ForwardedIdSet, HasLazyDependencies, LazyDependencies},
   utils::{
@@ -21,6 +21,9 @@ use crate::{
 pub struct BuildTask {
   pub compiler_id: CompilerId,
   pub compilation_id: CompilationId,
+  pub loader_cache: Arc<LoaderCache>,
+  pub modified_files: Arc<rspack_paths::ArcPathSet>,
+  pub removed_files: Arc<rspack_paths::ArcPathSet>,
   pub module: BoxModule,
   pub resolver_factory: Arc<ResolverFactory>,
   pub compiler_options: Arc<CompilerOptions>,
@@ -39,6 +42,9 @@ impl Task<TaskContext> for BuildTask {
     let Self {
       compiler_id,
       compilation_id,
+      loader_cache,
+      modified_files,
+      removed_files,
       compiler_options,
       resolver_factory,
       plugin_driver,
@@ -58,6 +64,9 @@ impl Task<TaskContext> for BuildTask {
       .build(
         BuildContext {
           compiler_id,
+          loader_cache,
+          modified_files,
+          removed_files,
           compilation_id,
           compiler_options: compiler_options.clone(),
           resolver_factory: resolver_factory.clone(),

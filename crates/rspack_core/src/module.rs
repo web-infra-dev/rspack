@@ -34,9 +34,9 @@ use crate::{
   CompilationAsset, CompilationId, CompilerId, CompilerOptions, ConcatenationScope,
   ConnectionState, Context, ContextModule, CssExportType, DependenciesBlock, DependencyId,
   ExportProvided, ExportsInfoArtifact, ExternalModule, Filename, GetTargetResult, ImportPhase,
-  ModuleCodeTemplate, ModuleGraph, ModuleGraphCacheArtifact, ModuleLayer, ModuleType, NormalModule,
-  OptimizationBailoutItem, RawModule, Resolve, ResolverFactory, RuntimeSpec, SelfModule,
-  SharedPluginDriver, SideEffectsStateArtifact, SourceType,
+  LoaderCache, ModuleCodeTemplate, ModuleGraph, ModuleGraphCacheArtifact, ModuleLayer, ModuleType,
+  NormalModule, OptimizationBailoutItem, RawModule, Resolve, ResolverFactory, RuntimeSpec,
+  SelfModule, SharedPluginDriver, SideEffectsStateArtifact, SourceType,
   concatenated_module::ConcatenatedModule, dependencies_block::dependencies_block_update_hash,
   get_target, value_cache_versions::ValueCacheVersions,
 };
@@ -44,6 +44,9 @@ use crate::{
 pub struct BuildContext {
   pub compiler_id: CompilerId,
   pub compilation_id: CompilationId,
+  pub loader_cache: Arc<LoaderCache>,
+  pub modified_files: Arc<ArcPathSet>,
+  pub removed_files: Arc<ArcPathSet>,
   pub compiler_options: Arc<CompilerOptions>,
   pub resolver_factory: Arc<ResolverFactory>,
   pub runtime_template: ModuleCodeTemplate,

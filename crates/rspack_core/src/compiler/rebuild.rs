@@ -29,6 +29,10 @@ impl Compiler {
     {
       Ok(_) => {
         self
+          .compilation
+          .loader_cache
+          .remove(&self.compilation.removed_files);
+        self
           .plugin_driver
           .compiler_hooks
           .done
@@ -94,6 +98,7 @@ impl Compiler {
         self.compiler_context.clone(),
       );
       next_compilation.hot_index = self.compilation.hot_index + 1;
+      next_compilation.loader_cache = self.compilation.loader_cache.clone();
 
       if next_compilation
         .incremental

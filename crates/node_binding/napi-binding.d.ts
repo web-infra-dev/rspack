@@ -509,6 +509,10 @@ export declare class VirtualFileStore {
 }
 export type JsVirtualFileStore = VirtualFileStore
 
+export declare function __internal__getLoaderCache(cacheId: number, loaderIndex: number): JsLoaderCacheEntry | null
+
+export declare function __internal__setLoaderCache(cacheId: number, loaderIndex: number, entry: JsLoaderCacheEntry): void
+
 export interface AssetInfoRelated {
   sourceMap?: string | null
 }
@@ -943,6 +947,17 @@ export interface JsLinkPreloadData {
   chunk: Chunk
 }
 
+export interface JsLoaderCacheEntry {
+  content: Buffer
+  sourceMap?: Buffer
+  utf8Hint: boolean
+  additionalData?: any
+  fileDependencies: Array<string>
+  contextDependencies: Array<string>
+  missingDependencies: Array<string>
+  buildDependencies: Array<string>
+}
+
 export interface JsLoaderContext {
   resource: string
   _module: Module
@@ -966,6 +981,7 @@ export interface JsLoaderContext {
    * - Some(true): `content` is a `UTF-8` encoded sequence
    */
   __internal__utf8Hint?: boolean
+  __internal__loaderCache: number
 }
 
 export interface JsLoaderItem {
@@ -975,6 +991,7 @@ export interface JsLoaderItem {
   normalExecuted: boolean
   pitchExecuted: boolean
   noPitch: boolean
+  cache: boolean
 }
 
 export declare enum JsLoaderState {
@@ -2736,6 +2753,7 @@ export interface RawModuleRule {
 export interface RawModuleRuleUse {
   loader: string
   options?: string
+  cache?: boolean
 }
 
 export interface RawNodeOption {

@@ -9,6 +9,8 @@
  */
 import querystring from 'node:querystring';
 import {
+  __internal__getLoaderCache,
+  __internal__setLoaderCache,
   formatDiagnostic,
   type JsLoaderContext,
   type JsLoaderItem,
@@ -84,6 +86,7 @@ export class LoaderObject {
   raw?: boolean | null;
   type?: 'module' | 'commonjs';
   parallel?: boolean | { maxWorkers?: number };
+  cache: boolean;
   /**
    * @internal This field is rspack internal. Do not edit.
    */
@@ -124,6 +127,7 @@ export class LoaderObject {
       loaderItem.type === ''
         ? undefined
         : (loaderItem.type as LoaderObject['type']);
+    this.cache = loaderItem.cache;
     if (this.options === null) this.query = '';
     else if (this.options === undefined) this.query = '';
     else if (typeof this.options === 'string') this.query = `?${this.options}`;
@@ -984,6 +988,38 @@ export async function runLoaders(
     return result;
   };
 
+  const getCachedLoaderResult = (loaderIndex: number) => {
+    const entry = __internal__getLoaderCache(
+      context.__internal__loaderCache,
+      loaderIndex,
+    );
+    if (!entry) return;
+    fileDependencies.push(...entry.fileDependencies);
+    contextDependencies.push(...entry.contextDependencies);
+    missingDependencies.push(...entry.missingDependencies);
+    buildDependencies.push(...entry.buildDependencies);
+    return entry;
+  };
+
+  const storeCachedLoaderResult = (
+    loaderIndex: number,
+    content: string | Buffer | null | undefined,
+    sourceMap: Buffer | undefined,
+    additionalData: any,
+  ) => {
+    if (!context.cacheable || isNil(content)) return;
+    __internal__setLoaderCache(context.__internal__loaderCache, loaderIndex, {
+      content: toBuffer(content),
+      sourceMap,
+      utf8Hint: typeof content === 'string',
+      additionalData: additionalData || undefined,
+      fileDependencies: fileDependencies.slice(),
+      contextDependencies: contextDependencies.slice(),
+      missingDependencies: missingDependencies.slice(),
+      buildDependencies: buildDependencies.slice(),
+    });
+  };
+
   try {
     switch (loaderState) {
       case JsLoaderState.Pitching: {
@@ -992,6 +1028,16 @@ export async function runLoaders(
             loaderContext.loaders[loaderContext.loaderIndex];
           const parallelism = enableParallelism(currentLoaderObject);
 
+          if (currentLoaderObject.cache && context.cacheable) {
+            const entry = getCachedLoaderResult(loaderContext.loaderIndex);
+            if (entry) {
+              context.content = entry.content;
+              context.__internal__utf8Hint = entry.utf8Hint;
+              context.sourceMap = entry.sourceMap;
+              context.additionalData = entry.additionalData;
+              break;
+            }
+          }
           if (currentLoaderObject.shouldYield()) break;
           if (currentLoaderObject.pitchExecuted) {
             loaderContext.loaderIndex += 1;
@@ -1020,6 +1066,14 @@ export async function runLoaders(
             context.content = isNil(content) ? null : toBuffer(content);
             context.sourceMap = serializeObject(sourceMap);
             context.additionalData = additionalData || undefined;
+            if (currentLoaderObject.cache) {
+              storeCachedLoaderResult(
+                loaderContext.loaderIndex,
+                context.content,
+                context.sourceMap,
+                context.additionalData,
+              );
+            }
             break;
           }
         }
@@ -1027,8 +1081,8 @@ export async function runLoaders(
         break;
       }
       case JsLoaderState.Normal: {
-        let content = context.content;
-        const rawSourceMap = context.sourceMap;
+        let content: string | Buffer | null = context.content;
+        let rawSourceMap = context.sourceMap;
         let sourceMap: string | object | undefined;
         let sourceMapParsed = false;
         let additionalData = context.additionalData;
@@ -1038,6 +1092,18 @@ export async function runLoaders(
             loaderContext.loaders[loaderContext.loaderIndex];
           const parallelism = enableParallelism(currentLoaderObject);
 
+          if (currentLoaderObject.cache && context.cacheable) {
+            const entry = getCachedLoaderResult(loaderContext.loaderIndex);
+            if (entry) {
+              content = entry.utf8Hint
+                ? entry.content.toString('utf-8')
+                : entry.content;
+              rawSourceMap = entry.sourceMap;
+              additionalData = entry.additionalData;
+              sourceMapParsed = false;
+              break;
+            }
+          }
           if (currentLoaderObject.shouldYield()) break;
           if (currentLoaderObject.normalExecuted) {
             loaderContext.loaderIndex--;
@@ -1051,7 +1117,19 @@ export async function runLoaders(
           if (!parallelism || !fn) {
             currentLoaderObject.normalExecuted = true;
           }
-          if (!fn) continue;
+          if (!fn) {
+            if (currentLoaderObject.cache) {
+              storeCachedLoaderResult(
+                loaderContext.loaderIndex,
+                content,
+                sourceMapParsed
+                  ? JsSourceMap.__to_binding(sourceMap)
+                  : rawSourceMap,
+                additionalData,
+              );
+            }
+            continue;
+          }
 
           // Parse source map lazily only when a JavaScript loader consumes it.
           if (!sourceMapParsed) {
@@ -1064,6 +1142,16 @@ export async function runLoaders(
             sourceMap,
             additionalData,
           ]);
+          if (currentLoaderObject.cache) {
+            storeCachedLoaderResult(
+              loaderContext.loaderIndex,
+              content,
+              sourceMapParsed
+                ? JsSourceMap.__to_binding(sourceMap)
+                : rawSourceMap,
+              additionalData,
+            );
+          }
         }
 
         context.content = isNil(content) ? null : toBuffer(content);

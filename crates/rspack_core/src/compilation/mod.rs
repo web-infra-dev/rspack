@@ -305,6 +305,7 @@ pub struct Compilation {
   in_finish_make: AtomicBool,
 
   pub modified_files: ArcPathSet,
+  pub loader_cache: Arc<crate::LoaderCache>,
   pub removed_files: ArcPathSet,
   pub build_module_graph_artifact: StealCell<BuildModuleGraphArtifact>,
   pub input_filesystem: Arc<dyn ReadableFileSystem>,
@@ -439,6 +440,7 @@ impl Compilation {
 
       build_module_graph_artifact: StealCell::new(BuildModuleGraphArtifact::new()),
       modified_files,
+      loader_cache: Default::default(),
       removed_files,
       input_filesystem,
 

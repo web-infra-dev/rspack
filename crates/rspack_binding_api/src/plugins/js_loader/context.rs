@@ -1,8 +1,16 @@
-use std::{ptr::NonNull, sync::Arc};
+use std::{
+  ptr::NonNull,
+  sync::{
+    Arc, LazyLock, RwLock,
+    atomic::{AtomicU32, Ordering},
+  },
+};
 
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
-use rspack_core::{LoaderContext, Module, RunnerContext};
+use rspack_core::{
+  AdditionalData, LoaderCacheContext, LoaderCacheEntry, LoaderContext, Module, RunnerContext,
+};
 use rspack_error::ToStringResultToRspackResultExt;
 use rspack_loader_runner::State as LoaderState;
 use rspack_napi::threadsafe_js_value_ref::ThreadsafeJsValueRef;
@@ -24,6 +32,7 @@ pub struct JsLoaderItem {
   pub pitch_executed: bool,
 
   pub no_pitch: bool,
+  pub cache: bool,
 }
 
 impl From<&rspack_loader_runner::LoaderItem<RunnerContext>> for JsLoaderItem {
@@ -37,6 +46,7 @@ impl From<&rspack_loader_runner::LoaderItem<RunnerContext>> for JsLoaderItem {
       pitch_executed: value.pitch_executed(),
 
       no_pitch: false,
+      cache: value.cache(),
     }
   }
 }
@@ -56,6 +66,7 @@ where
         pitch_executed: false,
         normal_executed: false,
         no_pitch: false,
+        cache: false,
       };
     }
     Self {
@@ -65,6 +76,7 @@ where
       pitch_executed: false,
       normal_executed: false,
       no_pitch: false,
+      cache: false,
     }
   }
 }
@@ -85,6 +97,161 @@ impl From<LoaderState> for JsLoaderState {
       LoaderState::Normal => JsLoaderState::Normal,
     }
   }
+}
+
+#[napi(object)]
+pub struct JsLoaderCacheEntry {
+  pub content: Buffer,
+  pub source_map: Option<Buffer>,
+  pub utf8_hint: bool,
+  #[napi(ts_type = "any")]
+  pub additional_data: Option<ThreadsafeJsValueRef<Unknown<'static>>>,
+  pub file_dependencies: Vec<String>,
+  pub context_dependencies: Vec<String>,
+  pub missing_dependencies: Vec<String>,
+  pub build_dependencies: Vec<String>,
+}
+
+impl From<Arc<LoaderCacheEntry>> for JsLoaderCacheEntry {
+  fn from(entry: Arc<LoaderCacheEntry>) -> Self {
+    Self {
+      utf8_hint: matches!(&entry.content, rspack_core::Content::String(_)),
+      content: entry.content.clone().into_bytes().into(),
+      source_map: entry
+        .source_map
+        .as_ref()
+        .map(|source_map| source_map.clone().into_bytes().into()),
+      additional_data: entry
+        .additional_data
+        .as_ref()
+        .and_then(|data| data.get::<ThreadsafeJsValueRef<Unknown>>())
+        .cloned(),
+      file_dependencies: entry
+        .file_dependencies
+        .iter()
+        .map(|path| path.to_string_lossy().into_owned())
+        .collect(),
+      context_dependencies: entry
+        .context_dependencies
+        .iter()
+        .map(|path| path.to_string_lossy().into_owned())
+        .collect(),
+      missing_dependencies: entry
+        .missing_dependencies
+        .iter()
+        .map(|path| path.to_string_lossy().into_owned())
+        .collect(),
+      build_dependencies: entry
+        .build_dependencies
+        .iter()
+        .map(|path| path.to_string_lossy().into_owned())
+        .collect(),
+    }
+  }
+}
+
+static NEXT_LOADER_CACHE_ID: AtomicU32 = AtomicU32::new(1);
+static LOADER_CACHE_CONTEXTS: LazyLock<RwLock<HashMap<u32, LoaderCacheContext>>> =
+  LazyLock::new(Default::default);
+
+fn register_loader_cache(cache: LoaderCacheContext) -> u32 {
+  let id = NEXT_LOADER_CACHE_ID.fetch_add(1, Ordering::Relaxed);
+  LOADER_CACHE_CONTEXTS
+    .write()
+    .expect("loader cache contexts should not be poisoned")
+    .insert(id, cache);
+  id
+}
+
+pub(crate) struct LoaderCacheGuard(u32);
+
+impl LoaderCacheGuard {
+  pub(crate) fn new(id: u32) -> Self {
+    Self(id)
+  }
+}
+
+impl Drop for LoaderCacheGuard {
+  fn drop(&mut self) {
+    if self.0 != 0 {
+      LOADER_CACHE_CONTEXTS
+        .write()
+        .expect("loader cache contexts should not be poisoned")
+        .remove(&self.0);
+    }
+  }
+}
+
+#[napi(js_name = "__internal__getLoaderCache")]
+pub fn get_loader_cache(cache_id: u32, loader_index: i32) -> Option<JsLoaderCacheEntry> {
+  LOADER_CACHE_CONTEXTS
+    .read()
+    .expect("loader cache contexts should not be poisoned")
+    .get(&cache_id)
+    .and_then(|cache| cache.get(loader_index))
+    .map(Into::into)
+}
+
+#[napi(js_name = "__internal__setLoaderCache")]
+pub fn set_loader_cache(
+  cache_id: u32,
+  loader_index: i32,
+  mut entry: JsLoaderCacheEntry,
+) -> napi::Result<()> {
+  let source_map = entry
+    .source_map
+    .map(Into::<Vec<u8>>::into)
+    .map(String::from_utf8)
+    .transpose()
+    .map_err(|error| napi::Error::from_reason(error.to_string()))?;
+  let content = if entry.utf8_hint {
+    String::from_utf8(Into::<Vec<u8>>::into(entry.content))
+      .map(Into::into)
+      .map_err(|error| napi::Error::from_reason(error.to_string()))?
+  } else {
+    Into::<Vec<u8>>::into(entry.content).into()
+  };
+  let additional_data = entry.additional_data.take().map(|data| {
+    let mut additional_data = AdditionalData::default();
+    additional_data.insert(data);
+    additional_data
+  });
+  let cache = LOADER_CACHE_CONTEXTS
+    .read()
+    .expect("loader cache contexts should not be poisoned")
+    .get(&cache_id)
+    .cloned();
+  if let Some(cache) = cache {
+    cache.insert(
+      loader_index,
+      LoaderCacheEntry {
+        content,
+        source_map,
+        additional_data,
+        file_dependencies: entry
+          .file_dependencies
+          .into_iter()
+          .map(Into::into)
+          .collect(),
+        context_dependencies: entry
+          .context_dependencies
+          .into_iter()
+          .map(Into::into)
+          .collect(),
+        missing_dependencies: entry
+          .missing_dependencies
+          .into_iter()
+          .map(Into::into)
+          .collect(),
+        build_dependencies: entry
+          .build_dependencies
+          .into_iter()
+          .map(Into::into)
+          .collect(),
+      },
+    );
+  }
+  Ok(())
 }
 
 #[napi(object)]
@@ -119,6 +286,8 @@ pub struct JsLoaderContext {
   /// - Some(true): `content` is a `UTF-8` encoded sequence
   #[napi(js_name = "__internal__utf8Hint")]
   pub utf8_hint: Option<bool>,
+  #[napi(js_name = "__internal__loaderCache")]
+  pub loader_cache: u32,
 }
 
 impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
@@ -179,6 +348,11 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
       loader_state: cx.state().into(),
       error: None,
       utf8_hint: None,
+      loader_cache: if cx.loader_items.iter().any(|loader| loader.cache()) {
+        register_loader_cache(cx.context.loader_cache.clone())
+      } else {
+        0
+      },
     })
   }
 }

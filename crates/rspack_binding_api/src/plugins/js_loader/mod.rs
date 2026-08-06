@@ -9,7 +9,7 @@ use std::{
   sync::{Arc, Mutex},
 };
 
-pub use context::{JsLoaderContext, JsLoaderItem};
+pub use context::{JsLoaderCacheEntry, JsLoaderContext, JsLoaderItem};
 use napi::{
   bindgen_prelude::*,
   sys::{napi_call_threadsafe_function, napi_threadsafe_function},
