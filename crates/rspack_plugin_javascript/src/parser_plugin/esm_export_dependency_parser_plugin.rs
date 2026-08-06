@@ -189,7 +189,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
         .and_then(|info| info.exported_enums.get(local_id).cloned());
       let variable = CompatibilityPlugin::update_nested_binding_declaration(parser, local_id);
       let (value, value_is_generated) = if let Some(variable) = variable {
-        (variable.into(), true)
+        (variable, true)
       } else {
         (local_id.clone(), false)
       };
