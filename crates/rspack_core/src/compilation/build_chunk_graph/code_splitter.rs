@@ -1397,6 +1397,9 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       }
     }
     for dep in &compilation.global_entry.include_dependencies {
+      if module_graph.dependency_by_id(dep).skip_async_entrypoints() {
+        continue;
+      }
       if let Some(module) = module_graph.module_identifier_by_dependency_id(dep) {
         self
           .queue
