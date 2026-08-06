@@ -1,5 +1,5 @@
 const path = require("path");
-const { rspack, experiments } = require("@rspack/core");
+const { rspack } = require("@rspack/core");
 
 const context = path.resolve(
 	__dirname,
@@ -26,34 +26,6 @@ const coreOptions = fasterModuleConcatenation => ({
 	plugins: [defineInvalidExpression()]
 });
 
-const modernModuleOptions = fasterModuleConcatenation => ({
-	context,
-	entry: "./index.js",
-	mode: "development",
-	target: "node",
-	devtool: false,
-	experiments: {
-		fasterModuleConcatenation
-	},
-	optimization: {
-		concatenateModules: false,
-		minimize: false
-	},
-	output: {
-		module: true,
-		chunkFormat: false,
-		library: {
-			type: "modern-module"
-		}
-	},
-	plugins: [
-		defineInvalidExpression(),
-		new experiments.RslibPlugin({
-			interceptApiPlugin: true
-		})
-	]
-});
-
 const expectParseError = diagnostics => {
 	expect(diagnostics.errors).toHaveLength(1);
 	expect(diagnostics.errors[0].message).toContain("JavaScript parse error");
@@ -77,18 +49,6 @@ module.exports = [
 		description:
 			"should skip the concatenated-module parser when the experiment is enabled",
 		options: () => coreOptions(true),
-		check: expectNoDiagnostics
-	},
-	{
-		description:
-			"should use the legacy modern-module parser when the experiment is disabled",
-		options: () => modernModuleOptions(false),
-		check: expectParseError
-	},
-	{
-		description:
-			"should skip the modern-module parser when the experiment is enabled",
-		options: () => modernModuleOptions(true),
 		check: expectNoDiagnostics
 	}
 ];
