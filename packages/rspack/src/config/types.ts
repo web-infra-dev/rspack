@@ -3120,6 +3120,11 @@ export type Experiments = {
    */
   futureDefaults?: boolean;
   /**
+   * Enable the experimental new cache implementation.
+   * @default false
+   */
+  newCache?: boolean;
+  /**
    * Enable loading of modules via HTTP/HTTPS requests.
    * @default false
    */

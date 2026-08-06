@@ -2289,6 +2289,7 @@ export interface RawEvalDevToolModulePluginOptions {
 export interface RawExperiments {
   useInputFileSystem?: false | Array<RegExp>
   css?: boolean
+  newCache: boolean
   deferImport: boolean
   sourceImport: boolean
   pureFunctions: boolean
