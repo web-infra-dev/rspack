@@ -8,8 +8,7 @@ use rayon::{iter::Either, prelude::*};
 use rspack_collections::{IdentifierIndexMap, IdentifierIndexSet, IdentifierMap};
 use rspack_core::{
   BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, ChunkInitFragments, ChunkRenderContext,
-  ChunkUkey, CodeGenerationDataRenderedInitFragments, CodeGenerationPublicPathAutoReplace,
-  Compilation, ConcatenatedModule, ConcatenatedModuleIdent, ConcatenationScope,
+  ChunkUkey, CodeGenerationPublicPathAutoReplace, Compilation, ConcatenatedModuleIdent,
   ConditionalInitFragment, DependencyType, ExportInfo, ExportMode, ExportProvided,
   ExportsInfoArtifact, ExportsType, FindTargetResult, ImportSpec, InitFragmentKey, ModuleGraph,
   ModuleGraphCacheArtifact, ModuleIdentifier, ModuleInfo, NAMESPACE_OBJECT_EXPORT, RuntimeGlobals,
@@ -529,7 +528,7 @@ impl EsmLibraryPlugin {
                 .sum::<usize>()
             });
             (
-              info.binding_to_ref.len() + imported_names + info.generated_top_level_symbols.len(),
+              info.binding_to_ref.len() + imported_names,
               1 + import_sources,
             )
           }
@@ -553,11 +552,6 @@ impl EsmLibraryPlugin {
               escaped_names
                 .entry(id.0.clone())
                 .or_insert_with(|| escape_name_atom_ref(&id.0));
-            }
-            for symbol in &info.generated_top_level_symbols {
-              escaped_names
-                .entry(symbol.preferred_name.clone())
-                .or_insert_with(|| escape_name_atom_ref(&symbol.preferred_name));
             }
 
             if let Some(import_map) = &info.import_map {
@@ -1242,30 +1236,6 @@ var {} = {{}};
           }
         }
 
-        for symbol in concate_info
-          .generated_top_level_symbols
-          .iter()
-          .filter(|_| concate_info.faster_module_concatenation)
-        {
-          let final_name = if all_used_names.contains(&symbol.preferred_name) {
-            find_new_name(
-              escaped_names
-                .get(&symbol.preferred_name)
-                .expect("should have escaped generated name")
-                .as_ref(),
-              &all_used_names,
-              &escaped_identifiers[&readable_identifier],
-            )
-          } else {
-            symbol.preferred_name.clone()
-          };
-          all_used_names.insert(final_name.clone());
-          internal_names.insert(symbol.placeholder.clone(), final_name.clone());
-          if symbol.preferred_name == *rspack_core::DEFAULT_EXPORT_ATOM {
-            internal_names.insert(symbol.preferred_name.clone(), final_name);
-          }
-        }
-
         concate_info.internal_names = internal_names;
 
         // Handle the name passed through by namespace_export_symbol
@@ -1553,141 +1523,96 @@ var {} = {{}};
                   .current_module
                   .clone();
 
-                let module = module_graph
+                let m = module_graph
                   .module_by_identifier(&id)
                   .expect("should have module");
-                if concate_info.faster_module_concatenation {
-                  let empty_pending_scope_info =
-                    rspack_core::PendingConcatenationScopeInfo::default();
-                  let pending_scope_info = module
-                    .build_info()
-                    .pending_concatenation_scope_info
-                    .as_deref()
-                    .unwrap_or(&empty_pending_scope_info);
-                  let original_source = if let Some(source) =
-                    js_source.as_any().downcast_ref::<ReplaceSource>()
-                  {
-                    source.inner().source().into_string_lossy()
-                  } else {
-                    js_source.source().into_string_lossy()
-                  };
-                  ConcatenatedModule::populate_info_from_pending(
-                    pending_scope_info,
-                    &original_source,
-                    &mut concate_info,
-                  );
-                  drop(original_source);
-                  concate_info.rendered_init_fragments = codegen_res
-                    .data
-                    .get::<CodeGenerationDataRenderedInitFragments>()
-                    .map(|fragments| rspack_core::RenderedInitFragments {
-                      start: fragments.start().to_string(),
-                      end: fragments.end().to_string(),
-                    })
-                    .filter(|fragments| {
-                      !fragments.start.is_empty() || !fragments.end.is_empty()
-                    });
-                } else {
-                  let jsx = module
-                    .as_ref()
-                    .as_normal_module()
-                    .and_then(|normal_module| normal_module.get_parser_options())
-                    .and_then(|options| {
-                      options
-                        .get_javascript()
-                        .and_then(|js_options| js_options.jsx)
-                    })
-                    .unwrap_or(false);
-                  let source_str = render_source
-                    .source
-                    .source()
-                    .into_string_lossy()
-                    .into_owned();
-                  let allocator = Allocator::new();
-                  let lexer = swc_experimental_ecma_parser::Lexer::new(
-                    &allocator,
-                    Syntax::Es(EsSyntax {
-                      jsx,
-                      ..Default::default()
-                    }),
-                    EsVersion::EsNext,
-                    StringSource::new(&source_str),
-                    None,
-                  );
-                  let mut parser = Parser::new_from(&allocator, lexer);
-                  let parsed_module = match parser.parse_module() {
-                    Ok(module) => module,
-                    Err(err) => {
-                      return Err(Error::from_string(
-                        Some(source_str.clone()),
-                        err.span().real_lo() as usize,
-                        err.span().real_hi() as usize,
-                        "JavaScript parse error:\n".to_string(),
-                        err.kind().msg().to_string(),
-                      ));
-                    }
-                  };
-                  let program = Program::Module(allocator.boxed(parsed_module));
-                  let semantic = resolver(&program);
-                  let ids = collect_ident(&allocator, &program);
-
-                  concate_info.module_ctxt =
-                    SyntaxContext::from_u32(semantic.top_level_scope_id().raw());
-                  concate_info.global_ctxt =
-                    SyntaxContext::from_u32(semantic.unresolved_scope_id().raw());
-
-                  let top_level_scope_id = semantic.top_level_scope_id();
-                  let mut all_used_names = FxHashSet::default();
-                  all_used_names.reserve(ids.len());
-                  concate_info.idents.reserve(ids.len());
-                  concate_info.global_scope_ident.reserve(ids.len());
-                  let mut binding_to_ref: FxIndexMap<
-                    (Atom, SyntaxContext),
-                    Vec<ConcatenatedModuleIdent>,
-                  > = Default::default();
-                  binding_to_ref.reserve(ids.len());
-
-                  for ident in ids {
-                    let scope = semantic.node_scope(&ident.id);
-                    let is_global =
-                      SyntaxContext::from_u32(scope.raw()) == concate_info.global_ctxt;
-                    let legacy = if is_global {
-                      let legacy = ident.to_legacy(&semantic);
-                      concate_info.global_scope_ident.push(legacy.clone());
-                      all_used_names.insert(legacy.id.sym.clone());
-                      Some(legacy)
-                    } else {
-                      None
-                    };
-                    if ident.is_class_expr_with_ident {
-                      all_used_names.insert(Atom::from(ident.id.sym.as_str()));
-                      continue;
-                    }
-                    if scope != top_level_scope_id {
-                      all_used_names.insert(Atom::from(ident.id.sym.as_str()));
-                    }
-                    let legacy = legacy.unwrap_or_else(|| ident.to_legacy(&semantic));
-                    concate_info.idents.push(legacy.clone());
-                    binding_to_ref
-                      .entry((legacy.id.sym.clone(), legacy.id.ctxt))
-                      .or_default()
-                      .push(legacy);
+                let jsx = m
+                  .as_ref()
+                  .as_normal_module()
+                  .and_then(|normal_module| normal_module.get_parser_options())
+                  .and_then(|options| {
+                    options
+                      .get_javascript()
+                      .and_then(|js_options| js_options.jsx)
+                  })
+                  .unwrap_or(false);
+                let source_str = render_source
+                  .source
+                  .source()
+                  .into_string_lossy()
+                  .into_owned();
+                let allocator = Allocator::new();
+                let lexer = swc_experimental_ecma_parser::Lexer::new(
+                  &allocator,
+                  Syntax::Es(EsSyntax {
+                    jsx,
+                    ..Default::default()
+                  }),
+                  EsVersion::EsNext,
+                  StringSource::new(&source_str),
+                  None,
+                );
+                let mut parser = Parser::new_from(&allocator, lexer);
+                let module = match parser.parse_module() {
+                  Ok(module) => module,
+                  Err(err) => {
+                    return Err(Error::from_string(
+                      Some(source_str.clone()),
+                      err.span().real_lo() as usize,
+                      err.span().real_hi() as usize,
+                      "JavaScript parse error:\n".to_string(),
+                      err.kind().msg().to_string(),
+                    ));
                   }
+                };
+                let program = Program::Module(allocator.boxed(module));
+                let semantic = resolver(&program);
+                let ids = collect_ident(&allocator, &program);
 
-                  concate_info.all_used_names = all_used_names;
-                  concate_info.binding_to_ref = binding_to_ref;
+                concate_info.module_ctxt = SyntaxContext::from_u32(semantic.top_level_scope_id().raw());
+                concate_info.global_ctxt = SyntaxContext::from_u32(semantic.unresolved_scope_id().raw());
+
+                let top_level_scope_id = semantic.top_level_scope_id();
+                let mut all_used_names = FxHashSet::default();
+                all_used_names.reserve(ids.len());
+                concate_info.idents.reserve(ids.len());
+                concate_info.global_scope_ident.reserve(ids.len());
+                let mut binding_to_ref: FxIndexMap<
+                  (Atom, SyntaxContext),
+                  Vec<ConcatenatedModuleIdent>,
+                > = Default::default();
+                binding_to_ref.reserve(ids.len());
+
+                for ident in ids {
+                  let scope = semantic.node_scope(&ident.id);
+                  let is_global = SyntaxContext::from_u32(scope.raw()) == concate_info.global_ctxt;
+                  let legacy = if is_global {
+                    let leg = ident.to_legacy(&semantic);
+                    concate_info.global_scope_ident.push(leg.clone());
+                    all_used_names.insert(leg.id.sym.clone());
+                    Some(leg)
+                  } else {
+                    None
+                  };
+                  if ident.is_class_expr_with_ident {
+                    all_used_names.insert(Atom::from(ident.id.sym.as_str()));
+                    continue;
+                  }
+                  if scope != top_level_scope_id {
+                    all_used_names.insert(Atom::from(ident.id.sym.as_str()));
+                  }
+                  let legacy = legacy.unwrap_or_else(|| ident.to_legacy(&semantic));
+                  concate_info.idents.push(legacy.clone());
+                  binding_to_ref
+                    .entry((legacy.id.sym.clone(), legacy.id.ctxt))
+                    .or_default()
+                    .push(legacy);
                 }
+
+                concate_info.all_used_names = all_used_names;
+                concate_info.binding_to_ref = binding_to_ref;
                 concate_info.has_ast = true;
-                concate_info.source = Some(if concate_info.faster_module_concatenation {
-                  render_source
-                    .source
-                    .as_any()
-                    .downcast_ref::<ReplaceSource>()
-                    .cloned()
-                    .unwrap_or_else(|| ReplaceSource::new(render_source.source.clone()))
-                } else {
-                  ReplaceSource::new(render_source.source.clone())
-                });
+                concate_info.source = Some(ReplaceSource::new(render_source.source.clone()));
                 concate_info.internal_source = Some(render_source.source.clone());
                 concate_info.runtime_requirements = runtime_requirements;
                 concate_info.chunk_init_fragments = codegen_res
@@ -3428,39 +3353,6 @@ var {} = {{}};
         if let Some(ref export_id) = export_id
           && let Some(direct_export) = info.export_map.as_ref().and_then(|map| map.get(export_id))
         {
-          if info.faster_module_concatenation
-            && let Some(match_info) =
-              ConcatenationScope::match_module_reference(direct_export.trim_end_matches("._"))
-          {
-            let referenced_info_id = module_to_info_map
-              .values()
-              .find(|candidate| candidate.index() == match_info.index)
-              .map(|candidate| candidate.id())
-              .expect("should have referenced info for module reference export");
-            let mut referenced_export_name = match_info
-              .ids
-              .into_iter()
-              .map(|item| Atom::from(item.as_str()))
-              .collect::<Vec<_>>();
-            referenced_export_name.extend(export_name.iter().skip(1).cloned());
-            return Self::get_binding(
-              from,
-              mg,
-              mg_cache,
-              exports_info_artifact,
-              &referenced_info_id,
-              referenced_export_name,
-              module_to_info_map,
-              needed_namespace_objects,
-              match_info.call,
-              call_context,
-              module.build_meta().strict_esm_module(),
-              match_info.asi_safe,
-              already_visited,
-              required,
-              all_used_names,
-            );
-          }
           if let Some(used_name) = used_name {
             match used_name {
               UsedName::Normal(used_name) => {
