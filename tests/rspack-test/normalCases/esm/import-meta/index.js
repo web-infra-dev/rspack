@@ -28,6 +28,7 @@ it('typeof import.meta.webpack === "number"', () => {
 it("should return correct import.meta.url", () => {
 	expect(import.meta.url).toBe(url);
 	expect(import.meta["url"]).toBe(url);
+	expect(import.meta[`url`]).toBe(url);
 	expect("my" + import.meta.url).toBe("my" + url);
 	if (import.meta.url.indexOf("index.js") === -1) require("fail");
 });
@@ -44,7 +45,37 @@ it("should return correct import.meta.webpack", () => {
 it("should return undefined for unknown property", () => {
 	expect(import.meta.other).toBe(undefined);
 	if (typeof import.meta.other !== "undefined") require("fail");
+	expect(typeof import.meta["computed-other"]).toBe("undefined");
+	expect(import.meta[`template-other`]).toBeUndefined();
+	expect(typeof import.meta[`template-typeof-other`]).toBe("undefined");
+	if (typeof import.meta[`template-condition`] !== "undefined") require("fail");
+	if (import.meta.condition) require("fail");
+	if (import.meta["computed-condition"]) require("fail");
+	expect(import.meta[0]).toBeUndefined();
+	expect(import.meta[1e-7]).toBeUndefined();
+	expect(import.meta[/url/mi]).toBeUndefined();
+	expect(import.meta["line\nbreak"]).toBeUndefined();
+	expect(import.meta["tick`mark"]).toBeUndefined();
+	expect(import.meta["quote'mark"]).toBeUndefined();
+	expect(import.meta["*/"]).toBeUndefined();
+	let computedAccesses = 0;
+	const getUnknownProperty = () => {
+		computedAccesses++;
+		return "unknown";
+	};
+	expect(import.meta[getUnknownProperty()]).toBeUndefined();
+	expect(computedAccesses).toBe(1);
 	expect(() => import.meta.other.other.other).toThrowError();
+});
+
+it("should not warn for known context properties", () => {
+	expect(typeof import.meta.glob).toBe("undefined");
+	expect(typeof import.meta.webpackContext).toBe("undefined");
+	expect(typeof import.meta[`glob`]).toBe("undefined");
+	expect(typeof import.meta[`webpackContext`]).toBe("undefined");
+	const { glob, webpackContext } = import.meta;
+	expect(glob).toBeUndefined();
+	expect(webpackContext).toBeUndefined();
 });
 
 it("should add warning on direct import.meta usage", () => {

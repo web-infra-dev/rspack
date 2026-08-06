@@ -5,7 +5,6 @@ module.exports = {
   context: __dirname,
   cache: {
     type: 'persistent',
-    maxVersions: 1,
     storage: {
       type: 'filesystem',
     },

@@ -1244,6 +1244,21 @@ impl JavascriptParser<'_> {
       }
     }
 
+    if expr.obj.is_meta_prop()
+      && let Some(root_name) = expr.obj.get_root_name()
+    {
+      let root_info = ExportedVariableInfo::Name(root_name);
+      if drive
+        .unhandled_expression_member_chain(self, &root_info, expr)
+        .unwrap_or_default()
+      {
+        if let MemberProp::Computed(computed) = &expr.prop {
+          self.walk_expression(&computed.expr);
+        }
+        return;
+      }
+    }
+
     // (await import(...)).a.b
     if let Some((call, members, await_expr)) = self.extract_await_import_member(expr) {
       if self.is_top_level_scope() {

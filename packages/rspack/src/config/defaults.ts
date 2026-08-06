@@ -245,7 +245,6 @@ const applyCacheDefaults = (
       );
       D(cache, 'version', '');
       D(cache, 'maxAge', DEFAULT_FILESYSTEM_CACHE_MAX_AGE_SECONDS);
-      D(cache, 'maxVersions', 3);
       F(cache, 'buildDependencies', () => []);
       F(cache.snapshot, 'immutablePaths', () => []);
       F(cache.snapshot, 'unmanagedPaths', () => []);

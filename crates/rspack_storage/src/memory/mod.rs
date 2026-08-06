@@ -45,6 +45,10 @@ impl Storage for MemoryStorage {
     self.inner.remove(scope);
   }
 
+  fn reset_all(&mut self) {
+    self.inner.clear();
+  }
+
   async fn scopes(&self) -> Result<Vec<String>> {
     Ok(self.inner.keys().cloned().collect())
   }
@@ -77,5 +81,10 @@ mod tests {
     storage.reset(scope);
     let arr = storage.load(scope).await.unwrap();
     assert_eq!(arr.len(), 0);
+
+    storage.set(scope, b"a".to_vec(), b"abc".to_vec());
+    storage.set("other", b"b".to_vec(), b"bcd".to_vec());
+    storage.reset_all();
+    assert!(storage.scopes().await.unwrap().is_empty());
   }
 }

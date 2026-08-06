@@ -16,6 +16,7 @@ use rspack_core::{
   NormalModuleLoader, ParserAndGenerator, ParserOptions, PathData, Plugin, RunnerContext,
   RuntimeGlobals, RuntimeModule, RuntimeModuleExt, RuntimeSpec, SourceType,
   chunk_graph_chunk::{ChunkId, ChunkIdMap, ChunkIdSet},
+  incremental::{IncrementalPasses, Mutation},
   rspack_sources::{RawStringSource, SourceExt},
 };
 use rspack_error::{Diagnostic, Result};
@@ -226,31 +227,44 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     .iter()
     .map(|(k, v)| (v.clone(), *k))
     .collect();
-  let mut completely_removed_modules: HashSet<ModuleId> = Default::default();
+  let current_chunk_ukeys: ChunkIdMap<ChunkUkey> = compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .iter()
+    .map(|(ukey, chunk)| (chunk.expect_id().clone(), *ukey))
+    .collect();
+  let completely_removed_modules: HashSet<ModuleId> = old_all_modules
+    .iter()
+    .filter(|(module_id, chunks)| !chunks.is_empty() && !all_module_ids.contains_key(*module_id))
+    .map(|(module_id, _)| module_id.clone())
+    .collect();
+  let changed_chunks = compilation
+    .incremental
+    .mutations_read(IncrementalPasses::CHUNK_ASSET)
+    .map(|mutations| {
+      mutations
+        .iter()
+        .filter_map(|mutation| match mutation {
+          Mutation::ChunkSetHashes { chunk } => Some(*chunk),
+          _ => None,
+        })
+        .collect::<HashSet<_>>()
+    });
 
   for (chunk_id, (old_runtime, old_module_ids)) in old_chunks {
-    let mut remaining_modules: HashSet<ModuleId> = Default::default();
-    for old_module_id in old_module_ids {
-      if !all_module_ids.contains_key(old_module_id) {
-        completely_removed_modules.insert(old_module_id.clone());
-      } else {
-        remaining_modules.insert(old_module_id.clone());
-      }
-    }
-
     let mut new_modules = vec![];
     let mut new_runtime_modules = vec![];
     let chunk_id = chunk_id.clone();
     let new_runtime: RuntimeSpec;
     let removed_from_runtime: RuntimeSpec;
 
-    let current_chunk = compilation
-      .build_chunk_graph_artifact
-      .chunk_by_ukey
-      .iter()
-      .find(|(_, chunk)| chunk.expect_id().eq(&chunk_id))
-      .map(|(_, chunk)| chunk);
-    let current_chunk_ukey = current_chunk.map(|c| c.ukey());
+    let current_chunk_ukey = current_chunk_ukeys.get(&chunk_id).copied();
+    let current_chunk = current_chunk_ukey.and_then(|ukey| {
+      compilation
+        .build_chunk_graph_artifact
+        .chunk_by_ukey
+        .get(&ukey)
+    });
 
     if let Some(current_chunk) = current_chunk {
       new_runtime = current_chunk
@@ -260,6 +274,14 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         .collect();
 
       if new_runtime.is_empty() {
+        continue;
+      }
+
+      if old_runtime == &new_runtime
+        && changed_chunks
+          .as_ref()
+          .is_some_and(|chunks| !chunks.contains(&current_chunk.ukey()))
+      {
         continue;
       }
 
@@ -342,12 +364,23 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       }
     }
 
-    for old_module_id in remaining_modules {
-      let module_identifier = all_module_ids
-        .get(&old_module_id)
-        .expect("should have module");
+    for old_module_id in old_module_ids {
+      let Some(module_identifier) = all_module_ids.get(old_module_id) else {
+        continue;
+      };
+      if removed_from_runtime.is_empty()
+        && current_chunk_ukey.is_some_and(|ukey| {
+          compilation
+            .build_chunk_graph_artifact
+            .chunk_graph
+            .is_module_in_chunk(module_identifier, ukey)
+        })
+      {
+        continue;
+      }
+
       let old_hashes = old_all_modules
-        .get(&old_module_id)
+        .get(old_module_id)
         .expect("should have module");
       let old_hash = old_hashes.get(&chunk_id);
       let runtimes = compilation

@@ -18,7 +18,6 @@ module.exports = {
 			+   "cache": Object {
 			+     "buildDependencies": Array [],
 			+     "maxAge": 604800,
-			+     "maxVersions": 3,
 			+     "name": "none",
 			+     "portable": false,
 			+     "readonly": false,

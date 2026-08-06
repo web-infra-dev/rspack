@@ -126,7 +126,10 @@ When resolving build dependencies, Rspack recursively traverses directories and 
 - **Type:** `string`
 - **Default:** `""`
 
-`cache.version` is an additional version string included in the persistent cache key. Use it to manually isolate or invalidate persistent cache data.
+`cache.version` identifies the format of the persistent cache data. When it
+differs from the stored version, Rspack does not reuse the existing cache and
+overwrites its content after the build. Update it when configuration changes
+make the existing cache incompatible.
 
 ```js title="rspack.config.mjs"
 export default {
@@ -143,40 +146,29 @@ Don't share the same cache (same `cache.version` and same `cache.storage.locatio
 
 :::tip Persistent cache invalidation
 
-In addition to [buildDependencies](#builddependencies) validation and [version](#version), the persistent cache key also includes the Rspack version, [`config.name`](/config/other-options#name), [`config.mode`](/config/mode#mode), and persistent cache options that affect cached content.
-
-Changing these values isolates the cache and avoids reusing stale persistent cache data.
+Rspack stores one cache directory for each `compilerPath`, using its hash as
+the subdirectory name. Changing [version](#version) invalidates and overwrites
+that compiler's existing cache; multiple versions do not coexist.
 
 :::
 
 ### maxVersions
 
-- **Type:** `number` (positive integer) or `Infinity`
-- **Default:** `3`
+<ApiMeta stability={Stability.Deprecated} />
 
-This is a version-count cleanup policy that controls how many cache versions can be retained in the current cache directory. When the number of versions exceeds the limit, Rspack removes old inactive versions. Set `maxVersions` to `Infinity` to disable version-based cleanup.
+- **Type:** `number`
+- **Default:** Not set
 
-```js title="rspack.config.mjs"
-export default {
-  cache: {
-    type: 'persistent',
-    maxVersions: 10,
-  },
-};
-```
-
-:::note Child compiler cache usage
-
-Each child compiler keeps its own persistent cache versions, with `maxVersions` applied independently. Projects that create child compilers may therefore retain additional cache data and use more disk space than the root compiler's `maxVersions` value alone suggests.
-
-:::
+`cache.maxVersions` is retained for backward compatibility but has no effect.
+Rspack keeps only one persistent cache per `compilerPath`. Explicitly
+configuring this option emits a deprecation warning.
 
 ### maxAge
 
 - **Type:** `number` (positive integer, in seconds) or `Infinity`
 - **Default:** `7 * 24 * 60 * 60` (7 days)
 
-The maximum time, in seconds, that a cache version can remain unused. During cleanup, Rspack removes cache versions that have not been accessed for longer than `maxAge`. Set `maxAge` to `Infinity` to disable age-based cleanup.
+The maximum time, in seconds, that a compiler cache can remain unused. During cleanup, Rspack removes compiler cache directories that have not been accessed for longer than `maxAge`. Set `maxAge` to `Infinity` to disable age-based cleanup.
 
 ```js title="rspack.config.mjs"
 export default {

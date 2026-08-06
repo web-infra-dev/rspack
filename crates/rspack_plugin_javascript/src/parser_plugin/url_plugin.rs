@@ -97,6 +97,7 @@ pub fn get_url_request(
 
 pub struct URLPlugin {
   pub mode: Option<JavascriptParserUrl>,
+  pub import_meta_url_enabled: bool,
 }
 
 #[rspack_macros::implemented_javascript_parser_hooks]
@@ -121,7 +122,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for URLPlugin {
     let magic_comment_options = try_extract_magic_comment(parser, expr.span, arg.span());
     match magic_comment_options.get_ignore_value() {
       Some(MagicCommentValue::Bool(true)) => {
-        if args.len() != 2 {
+        if args.len() != 2 || !self.import_meta_url_enabled {
           return None;
         }
         let arg2 = args.get(1)?;
