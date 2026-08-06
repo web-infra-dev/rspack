@@ -14,21 +14,38 @@ Latest 是最新的稳定版本，遵循 Semantic Versioning 语义化版本号�
 
 [全量发布工作流](https://github.com/web-infra-dev/rspack/actions/workflows/release.yml?query=is%3Asuccess) 会在每周二由 Rspack 维护者手动触发，并带有完整的 release notes。
 
-在发布过程中，会构建以下目标平台的二进制产物：
+在发布过程中，会构建以下二进制产物，并按照 [Node.js 平台列表](https://github.com/nodejs/node/blob/main/BUILDING.md#platform-list) 中对应运行平台的支持等级分组：
+
+**Tier 1**
 
 - x86_64-unknown-linux-gnu
 - aarch64-unknown-linux-gnu
-- riscv64gc-unknown-linux-gnu
+- x86_64-pc-windows-msvc
+- aarch64-apple-darwin
+
+**Tier 2**
+
 - powerpc64le-unknown-linux-gnu
 - s390x-unknown-linux-gnu
+- aarch64-pc-windows-msvc
+- x86_64-apple-darwin
+
+**Experimental**
+
 - x86_64-unknown-linux-musl
+- riscv64gc-unknown-linux-gnu
+
+**其他**
+
 - aarch64-unknown-linux-musl
 - riscv64gc-unknown-linux-musl
 - i686-pc-windows-msvc
-- x86_64-pc-windows-msvc
-- aarch64-pc-windows-msvc
-- x86_64-apple-darwin
-- aarch64-apple-darwin
+
+:::warning 低于 Tier 1 的平台
+
+对于这些平台，Rspack 只保证 binding 能够构建成功。CI 中只校验构建，不会在这些 target 上运行测试套件，因此 CI 通过并不能保证 Rspack 在这些平台上的行为正确。
+
+:::
 
 ### 发布步骤
 
