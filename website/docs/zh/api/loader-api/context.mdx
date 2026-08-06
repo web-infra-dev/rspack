@@ -11,6 +11,33 @@ import WebpackLicense from '@components/WebpackLicense';
 
 Loader 上下文表示 loader 内部可用的属性，这些属性在 loader 中通过 `this` 属性进行访问。
 
+## this.addBuildDependency()
+
+- **类型：**
+
+```ts
+function addBuildDependency(file: string): void;
+```
+
+添加一个文件作为 loader 结果的构建依赖。当构建依赖发生变化时，Rspack 会使持久化缓存失效。
+
+它适用于会影响 loader 行为或转换结果的文件，例如 loader 的配置文件。
+
+```js title="loader.js"
+const path = require('node:path');
+
+module.exports = function loader(source) {
+  this.addBuildDependency(
+    path.resolve(this.rootContext, 'custom-loader.config.js'),
+  );
+  return source;
+};
+```
+
+:::tip
+`this.addBuildDependency()` 不会将文件添加为 watch 依赖。如果文件变化时还应在 watch 模式下触发重新构建，请同时调用 [this.addDependency()](#thisadddependency)。
+:::
+
 ## this.addContextDependency()
 
 - **类型：**
