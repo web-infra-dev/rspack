@@ -2,81 +2,6 @@ import { createRequire } from 'node:module';
 
 var urlBase = decodeURIComponent(__resourceQuery.slice(1));
 var require = createRequire(import.meta.url);
-var compiling = new Set();
-var errorHandlers = new Set();
-
-/** @type {import("http").ClientRequest | undefined} */
-var pendingRequest;
-/** @type {boolean} */
-var hasPendingUpdate = false;
-
-function sendRequest() {
-  if (compiling.size === 0) {
-    hasPendingUpdate = false;
-    return;
-  }
-
-  var modules = Array.from(compiling);
-  var data = modules.join('\n');
-
-  var httpModule = urlBase.startsWith('https')
-    ? require('https')
-    : require('http');
-
-  var request = httpModule.request(
-    urlBase,
-    {
-      method: 'POST',
-      agent: false,
-      headers: {
-        'Content-Type': 'text/plain',
-      },
-    },
-    function (res) {
-      pendingRequest = undefined;
-      if (res.statusCode < 200 || res.statusCode >= 300) {
-        var error = new Error(
-          'Problem communicating active modules to the server: HTTP ' +
-            res.statusCode,
-        );
-        errorHandlers.forEach(function (onError) {
-          onError(error);
-        });
-      }
-      // Consume response data to free up memory
-      res.resume();
-      if (hasPendingUpdate) {
-        hasPendingUpdate = false;
-        sendRequest();
-      }
-    },
-  );
-
-  pendingRequest = request;
-
-  request.on('error', function (err) {
-    pendingRequest = undefined;
-    var error = new Error(
-      'Problem communicating active modules to the server: ' + err.message,
-    );
-    errorHandlers.forEach(function (onError) {
-      onError(error);
-    });
-  });
-
-  request.write(data);
-  request.end();
-}
-
-function sendActiveRequest() {
-  hasPendingUpdate = true;
-
-  // If no request is pending, start one
-  if (!pendingRequest) {
-    hasPendingUpdate = false;
-    sendRequest();
-  }
-}
 
 /**
  * @param {{ data: string, onError: (err: Error) => void, active: boolean, module: module }} options options
@@ -87,23 +12,64 @@ export const activate = function (options) {
   var onError = options.onError;
   var active = options.active;
   var module = options.module;
+  /** @type {import("http").IncomingMessage | undefined} */
+  var response;
+  var disposed = false;
 
-  errorHandlers.add(onError);
-
-  if (!compiling.has(data)) {
-    compiling.add(data);
-    sendActiveRequest();
+  function errorHandler(err) {
+    if (disposed) {
+      return;
+    }
+    err.message =
+      'Problem communicating active modules to the server: ' + err.message;
+    onError(err);
   }
 
-  if (!active && !module.hot) {
-    console.log(
-      'Hot Module Replacement is not enabled. Waiting for process restart...',
-    );
-  }
+  var httpModule = urlBase.startsWith('https')
+    ? require('https')
+    : require('http');
+  var request = httpModule.request(
+    urlBase,
+    {
+      method: 'POST',
+      agent: false,
+      headers: {
+        Accept: 'text/event-stream',
+        'Content-Type': 'text/plain',
+      },
+    },
+    function (res) {
+      response = res;
+      response.on('error', errorHandler);
+      response.resume();
+
+      if (res.statusCode < 200 || res.statusCode >= 300) {
+        onError(
+          new Error(
+            'Problem communicating active modules to the server: HTTP ' +
+              res.statusCode,
+          ),
+        );
+      }
+
+      if (!active && !module.hot) {
+        console.log(
+          'Hot Module Replacement is not enabled. Waiting for process restart...',
+        );
+      }
+    },
+  );
+
+  request.on('error', errorHandler);
+  request.write(data);
+  request.end();
 
   return function () {
-    errorHandlers.delete(onError);
-    compiling.delete(data);
-    sendActiveRequest();
+    disposed = true;
+    if (response) {
+      response.destroy();
+    } else {
+      request.destroy();
+    }
   };
 };

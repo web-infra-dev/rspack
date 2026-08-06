@@ -10,6 +10,8 @@ const require = createRequire(import.meta.url);
 
 export const LAZY_COMPILATION_PREFIX = '/_rspack/lazy/trigger';
 
+const LAZY_COMPILATION_IDLE_TIMEOUT = 120_000;
+
 const getDefaultClient = (compiler: Compiler): string =>
   require.resolve(
     `../hot/lazy-compilation-${
@@ -68,14 +70,20 @@ export const lazyCompilationMiddleware = (
 
       const prefix = options.prefix || LAZY_COMPILATION_PREFIX;
       options.prefix = `${prefix}__${i++}`;
-      const activeModules = new Set<string>();
+      const activeModules = new Map<string, number>();
+      const pendingModules = new Set<string>();
 
       middlewareByCompiler.set(
         options.prefix,
-        lazyCompilationMiddlewareInternal(c, activeModules, options.prefix),
+        lazyCompilationMiddlewareInternal(
+          c,
+          activeModules,
+          pendingModules,
+          options.prefix,
+        ),
       );
 
-      applyPlugin(c, options, activeModules);
+      applyPlugin(c, options, activeModules, pendingModules);
     }
 
     const keys = [...middlewareByCompiler.keys()];
@@ -95,18 +103,20 @@ export const lazyCompilationMiddleware = (
     return noop;
   }
 
-  const activeModules: Set<string> = new Set();
+  const activeModules = new Map<string, number>();
+  const pendingModules = new Set<string>();
 
   const options = {
     ...compiler.options.lazyCompilation,
   };
 
-  applyPlugin(compiler, options, activeModules);
+  applyPlugin(compiler, options, activeModules, pendingModules);
 
   const lazyCompilationPrefix = options.prefix || LAZY_COMPILATION_PREFIX;
   return lazyCompilationMiddlewareInternal(
     compiler,
     activeModules,
+    pendingModules,
     lazyCompilationPrefix,
   );
 };
@@ -114,13 +124,17 @@ export const lazyCompilationMiddleware = (
 function applyPlugin(
   compiler: Compiler,
   options: LazyCompilationOptions,
-  activeModules: Set<string>,
+  activeModules: Map<string, number>,
+  pendingModules: Set<string>,
 ) {
   const plugin = new BuiltinLazyCompilationPlugin(
     () => {
-      const res = new Set(activeModules);
-      activeModules.clear();
-      return res;
+      const modules = new Set(activeModules.keys());
+      for (const key of pendingModules) {
+        modules.add(key);
+      }
+      pendingModules.clear();
+      return modules;
     },
     options.entries ?? true,
     options.imports ?? true,
@@ -225,11 +239,29 @@ function readModuleIdsFromBody(
 }
 
 const lazyCompilationMiddlewareInternal = (
-  compiler: Compiler | MultiCompiler,
-  activeModules: Set<string>,
+  compiler: Compiler,
+  activeModules: Map<string, number>,
+  pendingModules: Set<string>,
   lazyCompilationPrefix: string,
 ): DevServerMiddlewareHandler => {
   const logger = compiler.getInfrastructureLogger('LazyCompilation');
+  const idleTimers = new Set<NodeJS.Timeout>();
+  const activeResponses = new Set<ServerResponse>();
+  let isClosing = false;
+
+  compiler.hooks.shutdown.tap('LazyCompilationMiddleware', () => {
+    isClosing = true;
+    for (const timer of idleTimers) {
+      clearTimeout(timer);
+    }
+    idleTimers.clear();
+    for (const response of activeResponses) {
+      response.destroy();
+    }
+    activeResponses.clear();
+    activeModules.clear();
+    pendingModules.clear();
+  });
 
   return async (
     req: IncomingMessage,
@@ -250,22 +282,86 @@ const lazyCompilationMiddlewareInternal = (
       return;
     }
 
-    const moduleActivated = [];
-    for (const key of modules) {
-      const activated = activeModules.has(key);
-      activeModules.add(key);
-      if (!activated) {
+    if (isClosing) {
+      res.writeHead(503);
+      res.end('Compiler is shutting down');
+      return;
+    }
+
+    const keys = new Set(modules);
+
+    if (!req.headers.accept?.includes('text/event-stream')) {
+      let moduleActivated = false;
+      for (const key of keys) {
+        const activated = activeModules.has(key) || pendingModules.has(key);
+        pendingModules.add(key);
+        if (!activated) {
+          logger.log(`${key} is now in use and will be compiled.`);
+          moduleActivated = true;
+        }
+      }
+
+      if (moduleActivated && compiler.watching) {
+        compiler.watching.invalidate();
+      }
+
+      res.writeHead(200);
+      res.end('\n');
+      return;
+    }
+
+    req.socket.on('close', () => {
+      if (isClosing) {
+        return;
+      }
+
+      // Keep recently disconnected clients active long enough to reconnect
+      // without turning an HMR update into another lazy activation rebuild.
+      const timer = setTimeout(() => {
+        idleTimers.delete(timer);
+        for (const key of keys) {
+          const oldValue = activeModules.get(key) || 0;
+          if (oldValue <= 1) {
+            activeModules.delete(key);
+            if (oldValue === 1) {
+              logger.log(
+                `${key} is no longer in use. Next compilation will skip this module.`,
+              );
+            }
+          } else {
+            activeModules.set(key, oldValue - 1);
+          }
+        }
+      }, LAZY_COMPILATION_IDLE_TIMEOUT);
+      timer.unref?.();
+      idleTimers.add(timer);
+    });
+
+    req.socket.setNoDelay?.(true);
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': '*',
+      'Access-Control-Allow-Headers': '*',
+    });
+    activeResponses.add(res);
+    res.on('close', () => {
+      activeResponses.delete(res);
+    });
+    res.write('\n');
+
+    let moduleActivated = false;
+    for (const key of keys) {
+      const oldValue = activeModules.get(key) || 0;
+      activeModules.set(key, oldValue + 1);
+      if (oldValue === 0) {
         logger.log(`${key} is now in use and will be compiled.`);
-        moduleActivated.push(key);
+        moduleActivated = true;
       }
     }
 
-    if (moduleActivated.length && compiler.watching) {
+    if (moduleActivated && compiler.watching) {
       compiler.watching.invalidate();
     }
-
-    res.writeHead(200);
-    res.write('\n');
-    res.end();
   };
 };
