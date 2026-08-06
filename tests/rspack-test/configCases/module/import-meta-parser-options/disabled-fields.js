@@ -14,6 +14,7 @@ export default {
 	filename: import.meta.filename,
 	globType: typeof import.meta.glob,
 	hotType: typeof import.meta.webpackHot,
+	ignoredUrl: new URL(/* rspackIgnore: true */ "external", import.meta.url),
 	main: import.meta.main,
 	sourceDirname,
 	sourceFilename,
