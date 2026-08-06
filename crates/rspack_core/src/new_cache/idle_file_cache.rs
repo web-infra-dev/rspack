@@ -3,10 +3,8 @@ use std::{
   time::{Duration, Instant},
 };
 
-use futures::future::join_all;
 use rspack_error::Result;
 use rspack_paths::Utf8PathBuf;
-use rustc_hash::FxHashMap as HashMap;
 use tokio::{
   sync::{mpsc, oneshot},
   time::Instant as TokioInstant,
@@ -17,63 +15,13 @@ use super::{CacheData, Etag, FileCacheStrategy};
 const DEFAULT_IDLE_TIMEOUT: Duration = Duration::from_secs(60);
 const DEFAULT_IDLE_TIMEOUT_FOR_INITIAL_STORE: Duration = Duration::from_secs(5);
 const DEFAULT_IDLE_TIMEOUT_AFTER_LARGE_CHANGES: Duration = Duration::from_secs(1);
-const MAX_IDLE_TASKS_PER_BATCH: usize = 100;
-
-#[derive(Debug)]
-struct PendingStore {
-  etag: Option<Etag>,
-  data: CacheData,
-}
-
-#[derive(Debug)]
-enum IdleTask {
-  Store {
-    identifier: String,
-    entry: PendingStore,
-  },
-  StoreBuildDependencies(Vec<Utf8PathBuf>),
-}
-
-#[derive(Debug, Default)]
-struct PendingIdleTasks {
-  stores: HashMap<String, PendingStore>,
-  build_dependencies: Option<Vec<Utf8PathBuf>>,
-}
-
-impl PendingIdleTasks {
-  fn is_empty(&self) -> bool {
-    self.stores.is_empty() && self.build_dependencies.is_none()
-  }
-
-  fn take_batch(&mut self) -> Vec<IdleTask> {
-    let mut tasks = Vec::with_capacity(MAX_IDLE_TASKS_PER_BATCH);
-
-    while tasks.len() < MAX_IDLE_TASKS_PER_BATCH {
-      let Some(identifier) = self.stores.keys().next().cloned() else {
-        break;
-      };
-      let entry = self
-        .stores
-        .remove(&identifier)
-        .expect("pending idle task should exist");
-      tasks.push(IdleTask::Store { identifier, entry });
-    }
-
-    if tasks.len() < MAX_IDLE_TASKS_PER_BATCH
-      && let Some(dependencies) = self.build_dependencies.take()
-    {
-      tasks.push(IdleTask::StoreBuildDependencies(dependencies));
-    }
-
-    tasks
-  }
-}
 
 #[derive(Debug)]
 enum Command {
   Store {
     identifier: String,
-    entry: PendingStore,
+    etag: Option<Etag>,
+    data: CacheData,
   },
   StoreBuildDependencies(Vec<Utf8PathBuf>),
   Restore {
@@ -87,40 +35,27 @@ enum Command {
   Shutdown(oneshot::Sender<Result<()>>),
 }
 
-#[derive(Debug, Default, Clone, Copy)]
-enum IdleState {
-  #[default]
-  Active,
-  Idle,
-  Waiting(TokioInstant),
-}
-
 struct BackgroundJob {
   strategy: FileCacheStrategy,
   command_receiver: mpsc::UnboundedReceiver<Command>,
-  pending_tasks: PendingIdleTasks,
-  idle_state: IdleState,
+  idle_deadline: Option<TokioInstant>,
   idle_timeout: Duration,
   idle_timeout_for_initial_store: Duration,
   idle_timeout_after_large_changes: Duration,
   time_spent_in_build: Duration,
-  time_spent_in_store: Duration,
   avg_time_spent_in_store: Option<Duration>,
 }
 
 impl BackgroundJob {
   async fn run(mut self) {
     loop {
-      let idle_deadline = match self.idle_state {
-        IdleState::Waiting(deadline) => Some(deadline),
-        IdleState::Active | IdleState::Idle => None,
-      };
+      let idle_deadline = self.idle_deadline;
 
       tokio::select! {
         biased;
         command = self.command_receiver.recv() => {
           let Some(command) = command else {
-            if !self.pending_tasks.is_empty() {
+            if self.strategy.has_pending_writes() {
               tracing::warn!("Idle file cache was dropped before shutdown with pending cache items");
             }
             return;
@@ -130,7 +65,7 @@ impl BackgroundJob {
           }
         }
         _ = wait_for_idle_deadline(idle_deadline) => {
-          self.idle_state = IdleState::Idle;
+          self.idle_deadline = None;
           self.process_idle_tasks().await;
         }
       }
@@ -139,20 +74,26 @@ impl BackgroundJob {
 
   async fn handle_command(&mut self, command: Command) -> bool {
     match command {
-      Command::Store { identifier, entry } => {
-        self.pending_tasks.stores.insert(identifier, entry);
-        self.schedule_pending_tasks();
+      Command::Store {
+        identifier,
+        etag,
+        data,
+      } => {
+        if let Err(error) = self.strategy.store(identifier, etag, data).await {
+          tracing::warn!("Storing file cache item failed: {error}");
+        }
       }
       Command::StoreBuildDependencies(dependencies) => {
-        self.pending_tasks.build_dependencies = Some(dependencies);
-        self.schedule_pending_tasks();
+        if let Err(error) = self.strategy.store_build_dependencies(dependencies).await {
+          tracing::warn!("Storing file cache build dependencies failed: {error}");
+        }
       }
       Command::Restore {
         identifier,
         etag,
         result,
       } => {
-        let _ = result.send(self.restore(identifier, etag).await);
+        let _ = result.send(self.strategy.restore(&identifier, etag.as_deref()).await);
       }
       Command::RecordBuildTime(build_time) => {
         self.time_spent_in_build = self
@@ -174,74 +115,27 @@ impl BackgroundJob {
         if is_large_change {
           timeout = timeout.min(self.idle_timeout_after_large_changes);
         }
-        self.idle_state = IdleState::Waiting(TokioInstant::now() + timeout);
+        self.idle_deadline = Some(TokioInstant::now() + timeout);
       }
       Command::EndIdle => {
-        self.idle_state = IdleState::Active;
+        self.idle_deadline = None;
       }
       Command::Shutdown(result) => {
-        self.idle_state = IdleState::Active;
-        let _ = result.send(self.flush_and_clear().await);
+        self.idle_deadline = None;
+        let _ = result.send(self.shutdown().await);
         return true;
       }
     }
     false
   }
 
-  fn schedule_pending_tasks(&mut self) {
-    if matches!(self.idle_state, IdleState::Idle) {
-      self.idle_state = IdleState::Waiting(TokioInstant::now());
-    }
-  }
-
-  async fn run_pending_tasks(&self, tasks: Vec<IdleTask>) -> Result<()> {
-    let strategy = &self.strategy;
-    let results = join_all(tasks.into_iter().map(|task| async move {
-      match task {
-        IdleTask::Store { identifier, entry } => {
-          strategy.store(identifier, entry.etag, entry.data).await
-        }
-        IdleTask::StoreBuildDependencies(dependencies) => {
-          strategy.store_build_dependencies(dependencies).await
-        }
-      }
-    }))
-    .await;
-
-    for result in results {
-      result?;
-    }
-    Ok(())
-  }
-
   async fn process_idle_tasks(&mut self) {
-    let tasks = self.pending_tasks.take_batch();
-    if tasks.is_empty() {
-      self.finish_idle_cycle().await;
-      return;
-    }
-
-    let start = Instant::now();
-    if let Err(error) = self.run_pending_tasks(tasks).await {
-      tracing::warn!("Background tasks during idle failed: {error}");
-    }
-    self.time_spent_in_store = self.time_spent_in_store.saturating_add(start.elapsed());
-
-    // Return to the command loop between batches. Its biased select gives
-    // EndIdle, Restore, and Shutdown priority over more background work.
-    if !matches!(self.idle_state, IdleState::Active) {
-      self.idle_state = IdleState::Waiting(TokioInstant::now());
-    }
-  }
-
-  async fn finish_idle_cycle(&mut self) {
     let start = Instant::now();
     if let Err(error) = self.strategy.after_all_stored().await {
       tracing::warn!("Finalizing idle file cache store failed: {error}");
       return;
     }
-    self.time_spent_in_store = self.time_spent_in_store.saturating_add(start.elapsed());
-    let time_spent_in_store = self.time_spent_in_store;
+    let time_spent_in_store = start.elapsed();
     self.avg_time_spent_in_store = Some(
       self
         .avg_time_spent_in_store
@@ -250,32 +144,12 @@ impl BackgroundJob {
         .mul_f64(0.9)
         .saturating_add(time_spent_in_store.mul_f64(0.1)),
     );
-    self.time_spent_in_store = Duration::ZERO;
     self.time_spent_in_build = Duration::ZERO;
   }
 
-  async fn restore(&mut self, identifier: String, etag: Option<Etag>) -> Result<Option<CacheData>> {
-    if let Some(pending) = self.pending_tasks.stores.remove(&identifier) {
-      let result = self
-        .strategy
-        .store(identifier.clone(), pending.etag, pending.data)
-        .await;
-      self.schedule_pending_tasks();
-      result?;
-    }
-    self.strategy.restore(&identifier, etag.as_deref()).await
-  }
-
-  async fn flush_and_clear(&mut self) -> Result<()> {
-    loop {
-      let tasks = self.pending_tasks.take_batch();
-      if tasks.is_empty() {
-        break;
-      }
-      self.run_pending_tasks(tasks).await?;
-    }
+  async fn shutdown(&mut self) -> Result<()> {
     self.strategy.after_all_stored().await?;
-    self.strategy.clear().await
+    self.strategy.shutdown().await
   }
 }
 
@@ -313,13 +187,11 @@ impl IdleFileCache {
       BackgroundJob {
         strategy,
         command_receiver,
-        pending_tasks: PendingIdleTasks::default(),
-        idle_state: IdleState::Active,
+        idle_deadline: None,
         idle_timeout,
         idle_timeout_for_initial_store: idle_timeout.min(idle_timeout_for_initial_store),
         idle_timeout_after_large_changes,
         time_spent_in_build: Duration::ZERO,
-        time_spent_in_store: Duration::ZERO,
         avg_time_spent_in_store: None,
       }
       .run(),
@@ -351,7 +223,8 @@ impl IdleFileCache {
   pub fn store(&self, identifier: impl Into<String>, etag: Option<Etag>, data: CacheData) {
     self.send(Command::Store {
       identifier: identifier.into(),
-      entry: PendingStore { etag, data },
+      etag,
+      data,
     });
   }
 
