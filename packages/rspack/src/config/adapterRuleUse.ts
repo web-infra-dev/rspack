@@ -322,8 +322,17 @@ export interface LoaderContext<OptionsType = {}> {
    * Removes all dependencies of the loader result.
    */
   clearDependencies(): void;
+  /**
+   * Get a copy of all files the loader currently watches as dependencies.
+   */
   getDependencies(): string[];
+  /**
+   * Get a copy of all directories the loader currently watches as context dependencies.
+   */
   getContextDependencies(): string[];
+  /**
+   * Get a copy of all paths to files that the loader is watching but that do not exist yet.
+   */
   getMissingDependencies(): string[];
   /**
    * Add a file as a build dependency of the loader result.
