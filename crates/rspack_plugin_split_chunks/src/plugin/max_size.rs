@@ -12,7 +12,7 @@ use std::{borrow::Cow, sync::LazyLock};
 use regex::Regex;
 use rspack_core::{
   BoxModule, ChunkUkey, Compilation, CompilerOptions, Module, ModuleIdentifier, SourceType,
-  incremental::Mutation,
+  incremental::Mutation, module_chunk_condition,
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_hash::{RspackHashDigest, RspackHasher};
@@ -626,9 +626,9 @@ impl SplitChunksPlugin {
       })
       .collect::<Vec<_>>();
 
-    infos_with_results.into_iter().for_each(|(info, results)| {
+    for (info, results) in infos_with_results {
       let last_index = results.len() - 1;
-      results.into_iter().enumerate().for_each(|(index, group)| {
+      for (index, group) in results.into_iter().enumerate() {
         let group_key = if let Some(key) = group.key {
           if self.hide_path_info {
             hash_filename(&key, &compilation.options)
@@ -703,36 +703,37 @@ impl SplitChunksPlugin {
             });
           }
 
-          group.nodes.iter().for_each(|module| {
+          for group_node in &group.nodes {
             compilation
               .build_chunk_graph_artifact
               .chunk_graph
               .add_chunk(new_part_ukey);
 
-            if let Some(module) = compilation.module_by_identifier(&module.module)
-              && module
-                .chunk_condition(&new_part_ukey, compilation)
+            if let Some(module) = compilation.module_by_identifier(&group_node.module) {
+              if module_chunk_condition(module.as_ref(), &new_part_ukey, compilation)
+                .await?
                 .is_some_and(|condition| !condition)
-            {
-              return;
+              {
+                continue;
+              }
             }
 
             // Add module to new chunk
             compilation
               .build_chunk_graph_artifact
               .chunk_graph
-              .connect_chunk_and_module(new_part_ukey, module.module);
+              .connect_chunk_and_module(new_part_ukey, group_node.module);
             // Remove module from used chunks
             compilation
               .build_chunk_graph_artifact
               .chunk_graph
-              .disconnect_chunk_and_module(&old_chunk, module.module)
-          })
+              .disconnect_chunk_and_module(&old_chunk, group_node.module)
+          }
         } else {
           chunk.set_name(name);
         }
-      })
-    });
+      }
+    }
     Ok(())
   }
 }

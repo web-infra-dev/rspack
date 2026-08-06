@@ -60,6 +60,7 @@ import {
   createCompilationHooksRegisters,
   createCompilerHooksRegisters,
   createContextModuleFactoryHooksRegisters,
+  createExternalModuleHooksRegisters,
   createHtmlPluginHooksRegisters,
   createJavaScriptModulesHooksRegisters,
   createNormalModuleFactoryHooksRegisters,
@@ -1008,6 +1009,11 @@ class Compiler {
         createMapTap,
       ),
       ...createContextModuleFactoryHooksRegisters(
+        getCompiler,
+        createTap,
+        createMapTap,
+      ),
+      ...createExternalModuleHooksRegisters(
         getCompiler,
         createTap,
         createMapTap,
