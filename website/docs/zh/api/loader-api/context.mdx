@@ -11,6 +11,33 @@ import WebpackLicense from '@components/WebpackLicense';
 
 Loader 上下文表示 loader 内部可用的属性，这些属性在 loader 中通过 `this` 属性进行访问。
 
+## this.addBuildDependency()
+
+- **类型：**
+
+```ts
+function addBuildDependency(file: string): void;
+```
+
+添加一个文件作为 loader 结果的构建依赖。当构建依赖发生变化时，Rspack 会使持久化缓存失效。
+
+它适用于会影响 loader 行为或转换结果的文件，例如 loader 的配置文件。
+
+```js title="loader.mjs"
+import path from 'node:path';
+
+export default function loader(source) {
+  this.addBuildDependency(
+    path.resolve(this.rootContext, 'custom-loader.config.js'),
+  );
+  return source;
+}
+```
+
+:::tip
+`this.addBuildDependency()` 不会将文件添加为 watch 依赖。如果文件变化时还应在 watch 模式下触发重新构建，请同时调用 [this.addDependency()](#thisadddependency)。
+:::
+
 ## this.addContextDependency()
 
 - **类型：**
@@ -23,13 +50,13 @@ function addContextDependency(directory: string): void;
 
 例如，添加 `src/static` 目录作为依赖，当目录中的文件发生变化时，会触发重新构建。
 
-```js title="loader.js"
-const path = require('node:path');
+```js title="loader.mjs"
+import path from 'node:path';
 
-module.exports = function loader(source) {
+export default function loader(source) {
   this.addContextDependency(path.resolve(this.rootContext, 'src/static'));
   return source;
-};
+}
 ```
 
 ## this.addDependency()
@@ -42,13 +69,13 @@ function addDependency(file: string): void;
 
 添加一个文件作为 loader 结果的依赖，使它们的任何变化可以被监听到。例如，`sass-loader`、`less-loader` 就使用了这个技巧，当导入的样式文件发生变化时就会重新编译。
 
-```js title="loader.js"
-const path = require('node:path');
+```js title="loader.mjs"
+import path from 'node:path';
 
-module.exports = function loader(source) {
+export default function loader(source) {
   this.addDependency(path.resolve(this.rootContext, 'src/styles/foo.scss'));
   return source;
-};
+}
 ```
 
 ## this.addMissingDependency()
@@ -61,15 +88,15 @@ function addMissingDependency(file: string): void;
 
 添加一个当前不存在的文件作为 loader 结果的依赖，使它们的创建和任何变化可以被监听到。例如，当该路径下新建了文件时，会触发重新构建。
 
-```js title="loader.js"
-const path = require('node:path');
+```js title="loader.mjs"
+import path from 'node:path';
 
-module.exports = function loader(source) {
+export default function loader(source) {
   this.addMissingDependency(
     path.resolve(this.rootContext, 'src/dynamic-file.json'),
   );
   return source;
-};
+}
 ```
 
 ## this.async()
@@ -90,11 +117,11 @@ function cacheable(flag: boolean = true): void;
 
 默认情况下，loader 的处理结果会被标记为可缓存。调用这个方法然后传入 `false`，可以关闭 loader 处理结果的缓存能力。
 
-```js title="loader.js"
-module.exports = function loader(source) {
+```js title="loader.mjs"
+export default function loader(source) {
   this.cacheable(false);
   return source;
-};
+}
 ```
 
 ## this.callback()
@@ -141,11 +168,11 @@ function clearDependencies(): void;
 
 例如，如果 loader 处理的是 `/project/src/components/Button.js`，那么 `this.context` 的值就是 `/project/src/components`。
 
-```js title="loader.js"
-module.exports = function loader(source) {
+```js title="loader.mjs"
+export default function loader(source) {
   console.log(this.context); // '/project/src/components'
   return source;
-};
+}
 ```
 
 如果被处理的是模块不是来自文件系统，例如虚拟模块，那么 `this.context` 的值为 `null`。
@@ -155,6 +182,21 @@ module.exports = function loader(source) {
 - **类型：** `number`
 
 当前 loader 在 loaders 数组中的索引。
+
+## this.loaders
+
+- **类型：** `LoaderObject[]`
+
+`this.loaders` 包含应用于当前模块的所有 loader。每一项都提供解析后的 `request`、`path`、`query` 和 `options` 等信息。
+
+在 pitch 阶段可以修改这个数组，以调整 loader 链。可通过 [this.loaderIndex](#thisloaderindex) 定位当前 loader。
+
+```js title="loader.mjs"
+export function pitch() {
+  const currentLoader = this.loaders[this.loaderIndex];
+  console.log(currentLoader.request);
+}
+```
 
 ## this.data
 
@@ -240,9 +282,9 @@ function emitDiagnostic(diagnostic: Diagnostic): void;
 
 当仅使用 `message` 和 `severity` 时，仅会打印基础的模块错误信息。
 
-```js title="loader.js"
+```js title="loader.mjs"
 /** @type {import("@rspack/core").LoaderDefinition} */
-module.exports = function () {
+export default function () {
   this.experiments.emitDiagnostic({
     message: '`React` is not defined',
     severity: 'error',
@@ -252,24 +294,24 @@ module.exports = function () {
     severity: 'warning',
   });
   return '';
-};
+}
 ```
 
 将会打印：
 
 ```
-ERROR in (./loader.js!)
+ERROR in (./loader.mjs!)
   × ModuleError: `React` is not defined
 
-WARNING in (./loader.js!)
+WARNING in (./loader.mjs!)
   ⚠ ModuleWarning: `React` is not defined
 ```
 
 - 打印代码片段：
 
-```js title="loader.js"
+```js title="loader.mjs"
 /** @type {import("@rspack/core").LoaderDefinition} */
-module.exports = function () {
+export default function () {
   this.experiments.emitDiagnostic({
     message: '`React` is not defined',
     severity: 'error',
@@ -282,7 +324,7 @@ module.exports = function () {
     file: './some-file.js',
   });
   return '';
-};
+}
 ```
 
 将会打印：
@@ -316,18 +358,18 @@ function emitFile(
 
 - 基础示例：
 
-```js title="loader.js"
-module.exports = function loader(source) {
+```js title="loader.mjs"
+export default function loader(source) {
   // 输出一个新文件，该文件将在产物目录中输出为 `foo.js`
   this.emitFile('foo.js', 'console.log("Hello, world!");');
   return source;
-};
+}
 ```
 
 - 带有 asset info 的示例：
 
-```js title="loader.js"
-module.exports = function loader(source) {
+```js title="loader.mjs"
+export default function loader(source) {
   this.emitFile(
     'foo.js',
     'console.log("Hello, world!");',
@@ -338,7 +380,7 @@ module.exports = function loader(source) {
   );
 
   return source;
-};
+}
 ```
 
 ## this.fs
@@ -346,6 +388,65 @@ module.exports = function loader(source) {
 - **类型：** `InputFileSystem`
 
 访问 `compilation` 对象的 `inputFileSystem` 属性。
+
+## this.getContextDependencies()
+
+- **类型：**
+
+```ts
+function getContextDependencies(): string[];
+```
+
+返回 loader 当前作为上下文依赖监听的所有目录，其中包括通过 [this.addContextDependency()](#thisaddcontextdependency) 添加的目录。
+
+```js title="loader.mjs"
+export default function loader(source) {
+  const contextDependencies = this.getContextDependencies();
+  console.log(contextDependencies);
+
+  return source;
+}
+```
+
+## this.getDependencies()
+
+- **类型：**
+
+```ts
+function getDependencies(): string[];
+```
+
+返回 loader 当前作为依赖监听的所有文件，其中包括通过 [this.addDependency()](#thisadddependency) 或 [this.dependency()](#thisdependency) 添加的文件。
+
+```js title="loader.mjs"
+export default function loader(source) {
+  const dependencies = this.getDependencies();
+  console.log(dependencies);
+
+  return source;
+}
+```
+
+## this.getMissingDependencies()
+
+- **类型：**
+
+```ts
+function getMissingDependencies(): string[];
+```
+
+返回 loader 当前监听的所有尚不存在的文件路径，其中包括通过 [this.addMissingDependency()](#thisaddmissingdependency) 添加的路径。当这些文件被创建时，可能会触发重新构建。
+
+```js title="loader.mjs"
+export default function loader(source) {
+  const missingDependencies = this.getMissingDependencies();
+  console.log(missingDependencies);
+
+  return source;
+}
+```
+
+这三个方法都会返回一个新数组。修改返回的数组不会影响 loader 已注册的依赖。如需清空这三类依赖列表，请使用 [this.clearDependencies()](#thiscleardependencies)。
 
 ## this.getOptions()
 
@@ -366,7 +467,7 @@ export default {
       {
         test: /\.txt$/,
         use: {
-          loader: './my-loader.js',
+          loader: './my-loader.mjs',
           options: {
             foo: 'bar',
           },
@@ -377,14 +478,14 @@ export default {
 };
 ```
 
-在 `my-loader.js` 中获取传入的选项：
+在 `my-loader.mjs` 中获取传入的选项：
 
-```js title="my-loader.js"
-module.exports = function myLoader(source) {
+```js title="my-loader.mjs"
+export default function myLoader(source) {
   const options = this.getOptions();
   console.log(options); // { foo: 'bar' }
   return source;
-};
+}
 ```
 
 :::tip
@@ -434,11 +535,11 @@ function getResolve(options: ResolveOptions): resolve;
 
 是否启用了 HMR。
 
-```js title="loader.js"
-module.exports = function (source) {
+```js title="loader.mjs"
+export default function (source) {
   console.log(this.hot); // true if HMR is enabled
   return source;
-};
+}
 ```
 
 ## this.importModule()
@@ -478,10 +579,10 @@ function importModule<T = any>(
 
 在没有提供回调函数时，`importModule` 会返回一个 Promise。
 
-```js title="loader.js"
-const path = require('node:path');
+```js title="loader.mjs"
+import path from 'node:path';
 
-module.exports = async function loader(source) {
+export default async function loader(source) {
   const modulePath = path.resolve(this.rootContext, 'some-module.ts');
   const moduleExports = await this.importModule(modulePath, {
     // 可选参数
@@ -489,15 +590,15 @@ module.exports = async function loader(source) {
 
   const result = someProcessing(source, moduleExports);
   return result;
-};
+}
 ```
 
 或者你可以传递一个回调函数给它。
 
-```js title="loader.js"
-const path = require('node:path');
+```js title="loader.mjs"
+import path from 'node:path';
 
-module.exports = function loader(source) {
+export default function loader(source) {
   const callback = this.async();
   const modulePath = path.resolve(this.rootContext, 'some-module.ts');
 
@@ -514,7 +615,7 @@ module.exports = function loader(source) {
       callback(null, result);
     },
   );
-};
+}
 ```
 
 ## this.query
@@ -528,13 +629,33 @@ module.exports = function loader(source) {
 
 与 [this.getOptions()](#thisgetoptions) 不同，查询字符串形式在这里不会被解析。例如，`loader: './my-loader?s=foo+bar'` 时，`this.query === '?s=foo+bar'`。
 
+## this.remainingRequest
+
+- **类型：** `string`
+
+`this.remainingRequest` 由 loader 链中位于当前 loader 之后的所有 loader 和当前资源组成，各部分使用 `!` 连接。
+
+例如，假设 loader 链为：
+
+```text
+/path/to/loader1.mjs!/path/to/loader2.mjs!/path/to/resource.js
+```
+
+执行到 `loader1.mjs` 时，`this.remainingRequest` 为：
+
+```text
+/path/to/loader2.mjs!/path/to/resource.js
+```
+
+它通常用于构造内联请求，避免再次执行当前 loader。可以参考 [Inline matchResource](/api/loader-api/inline-match-resource) 中的示例。
+
 ## this.request
 
 - **类型：** `string`
 
 解析后的 module specifier 字符串。
 
-例如，如果 `resource.js` 被 `loader1.js` 和 `loader2.js` 处理，那么 `this.request` 的值为 `/path/to/loader1.js!/path/to/loader2.js!/path/to/resource.js`。
+例如，如果 `resource.js` 被 `loader1.mjs` 和 `loader2.mjs` 处理，那么 `this.request` 的值为 `/path/to/loader1.mjs!/path/to/loader2.mjs!/path/to/resource.js`。
 
 ## this.resolve()
 
@@ -560,11 +681,11 @@ function resolve(
 
 当 Rspack 运行时读取 [mode](/config/mode) 的值，可能的值为：`'production'`、`'development'`、`'none'`。
 
-```js title="loader.js"
-module.exports = function loader(source) {
+```js title="loader.mjs"
+export default function loader(source) {
   console.log(this.mode); // 'production' or other values
   return source;
-};
+}
 ```
 
 ## this.target
@@ -573,11 +694,11 @@ module.exports = function loader(source) {
 
 当前编译的目标。对应 [`target`](/config/target) 配置项的值。
 
-```js title="loader.js"
-module.exports = function loader(source) {
+```js title="loader.mjs"
+export default function loader(source) {
   console.log(this.target); // 'web' or other values
   return source;
-};
+}
 ```
 
 ## this.utils
@@ -598,8 +719,8 @@ type Utils = {
 - `contextify`: 返回一个新的 request 字符串，尽可能避免使用绝对路径。
 - `createHash`: 基于提供的哈希函数返回一个新的 Hash 对象。
 
-```js title="loader.js"
-module.exports = function (content) {
+```js title="loader.mjs"
+export default function (content) {
   this.utils.contextify(
     this.context,
     this.utils.absolutify(this.context, './index.js'),
@@ -614,7 +735,7 @@ module.exports = function (content) {
   mainHash.digest('hex');
 
   return content;
-};
+}
 ```
 
 ## this.resource
@@ -623,11 +744,11 @@ module.exports = function (content) {
 
 当前模块的路径字符串。比如 `'/abc/resource.js?query#hash'`。
 
-```js title="loader.js"
-module.exports = function loader(source) {
+```js title="loader.mjs"
+export default function loader(source) {
   console.log(this.resource); // '/abc/resource.js?query#hash'
   return source;
-};
+}
 ```
 
 ## this.resourcePath
@@ -636,11 +757,11 @@ module.exports = function loader(source) {
 
 当前模块的路径字符串，不包括 query 和 fragment 参数。比如 `'/abc/resource.js?query#hash'` 中的 `'/abc/resource.js'`。
 
-```js title="loader.js"
-module.exports = function loader(source) {
+```js title="loader.mjs"
+export default function loader(source) {
   console.log(this.resourcePath); // '/abc/resource.js'
   return source;
-};
+}
 ```
 
 ## this.resourceQuery
@@ -649,11 +770,11 @@ module.exports = function loader(source) {
 
 当前模块的路径字符串的 query 参数。比如 `'/abc/resource.js?query#hash'` 中的 `'?query'`。
 
-```js title="loader.js"
-module.exports = function loader(source) {
+```js title="loader.mjs"
+export default function loader(source) {
   console.log(this.resourceQuery); // '?query'
   return source;
-};
+}
 ```
 
 ## this.resourceFragment
@@ -662,11 +783,11 @@ module.exports = function loader(source) {
 
 当前模块的路径字符串的 fragment 参数。比如 `'/abc/resource.js?query#hash'` 中的 `'#hash'`。
 
-```js title="loader.js"
-module.exports = function loader(source) {
+```js title="loader.mjs"
+export default function loader(source) {
   console.log(this.resourceFragment); // '#hash'
   return source;
-};
+}
 ```
 
 ## this.rootContext
@@ -675,11 +796,11 @@ module.exports = function loader(source) {
 
 Rspack config 中通过 [context](/config/context) 配置的基础路径。
 
-```js title="loader.js"
-module.exports = function loader(source) {
+```js title="loader.mjs"
+export default function loader(source) {
   console.log(this.rootContext); // /path/to/project
   return source;
-};
+}
 ```
 
 ## this.sourceMap

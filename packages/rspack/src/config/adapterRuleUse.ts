@@ -207,6 +207,10 @@ export interface LoaderContext<OptionsType = {}> {
    * The index in the loaders array of the current loader.
    */
   loaderIndex: number;
+  /**
+   * A request string consisting of the loaders that follow the current loader
+   * in the chain and the current resource, joined with `!`.
+   */
   remainingRequest: string;
   currentRequest: string;
   previousRequest: string;
@@ -217,22 +221,10 @@ export interface LoaderContext<OptionsType = {}> {
    */
   request: string;
   /**
-   * An array of all the loaders. It is writable in the pitch phase.
-   * loaders = [{request: string, path: string, query: string, module: function}]
-   *
-   * In the example:
-   * [
-   *   { request: "/abc/loader1.js?xyz",
-   *     path: "/abc/loader1.js",
-   *     query: "?xyz",
-   *     module: [Function]
-   *   },
-   *   { request: "/abc/node_modules/loader2/index.js",
-   *     path: "/abc/node_modules/loader2/index.js",
-   *     query: "",
-   *     module: [Function]
-   *   }
-   * ]
+   * An array containing all loaders applied to the current module. Each item
+   * provides information such as the resolved request, path, query, and
+   * options. The array can be modified during the pitch phase to adjust the
+   * loader chain.
    */
   loaders: LoaderObject[];
   /**
@@ -330,9 +322,22 @@ export interface LoaderContext<OptionsType = {}> {
    * Removes all dependencies of the loader result.
    */
   clearDependencies(): void;
+  /**
+   * Get a copy of all files the loader currently watches as dependencies.
+   */
   getDependencies(): string[];
+  /**
+   * Get a copy of all directories the loader currently watches as context dependencies.
+   */
   getContextDependencies(): string[];
+  /**
+   * Get a copy of all paths to files that the loader is watching but that do not exist yet.
+   */
   getMissingDependencies(): string[];
+  /**
+   * Add a file as a build dependency of the loader result.
+   * Build dependencies invalidate the persistent cache when they change.
+   */
   addBuildDependency(file: string): void;
   /**
    * Compile and execute a module at the build time.
