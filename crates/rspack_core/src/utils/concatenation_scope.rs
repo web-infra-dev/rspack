@@ -200,11 +200,10 @@ impl ConcatenationScope {
       return existing.placeholder.clone();
     }
 
-    // The sentinel is intentionally not a valid JavaScript identifier. Generated
-    // sources may contain arbitrary user strings (for example JSON values), so a
-    // regular identifier could otherwise be replaced inside user data.
+    // Use a verbose internal prefix to make collisions with user identifiers and
+    // generated data unlikely.
     let placeholder = Atom::from(format!(
-      "__rspack_symbol_{}__\0",
+      "__rspack_generated_top_level_symbol_{}__",
       info.generated_top_level_symbols.len()
     ));
     info

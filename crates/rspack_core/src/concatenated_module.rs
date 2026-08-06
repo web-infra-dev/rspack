@@ -927,16 +927,23 @@ impl ConcatenatedModule {
     replacements: &'a PlaceholderReplacements<'_>,
   ) -> Option<(usize, &'a str)> {
     let candidate = &source[start..];
-    let len = if candidate.starts_with("__rspack_module_ref") {
-      candidate.find("__._")? + "__._".len()
-    } else if candidate.starts_with("__rspack_symbol_") {
-      candidate.find('\0')? + 1
-    } else {
-      return None;
-    };
+    if candidate.starts_with("__rspack_module_ref") {
+      let len = candidate.find("__._")? + "__._".len();
+      return replacements
+        .get(&candidate[..len])
+        .map(|value| (start + len, value));
+    }
+
     replacements
-      .get(&candidate[..len])
-      .map(|value| (start + len, value))
+      .generated_symbols
+      .iter()
+      .find(|symbol| candidate.starts_with(symbol.placeholder.as_ref()))
+      .and_then(|symbol| {
+        replacements
+          .internal_names
+          .get(&symbol.placeholder)
+          .map(|value| (start + symbol.placeholder.len(), value.as_ref()))
+      })
   }
 
   fn apply_placeholder_replacements_to_source(
