@@ -1,14 +1,15 @@
 mod runtime_mode;
 
-use std::{borrow::Cow, sync::Arc};
+use std::{borrow::Cow, cmp::Reverse, sync::Arc};
 
+use cow_utils::CowUtils;
 use rspack_collections::IdentifierIndexSet;
 use rspack_core::{
-  AssetInfo, Chunk, ChunkGraph, ChunkGroup, ChunkRenderContext, ChunkUkey, Compilation,
-  ConcatenatedModuleInfo, InitFragment, ModuleIdentifier, PathData, PathInfo, RuntimeCodeTemplate,
-  RuntimeGlobals, RuntimeVariable, SourceType, export_name, get_js_chunk_filename_template,
-  get_undo_path, render_init_fragments,
-  rspack_sources::{ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt},
+  AssetInfo, CONCATENATION_PLACEHOLDER_PREFIX, Chunk, ChunkGraph, ChunkGroup, ChunkRenderContext,
+  ChunkUkey, Compilation, ConcatenatedModuleInfo, InitFragment, ModuleIdentifier, PathData,
+  PathInfo, RuntimeCodeTemplate, RuntimeGlobals, RuntimeVariable, SourceType, export_name,
+  get_js_chunk_filename_template, get_undo_path, render_init_fragments,
+  rspack_sources::{BoxSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt},
 };
 use rspack_error::Result;
 use rspack_plugin_javascript::{
@@ -724,7 +725,7 @@ var {} = {{}};
   pub fn render_module(
     info: &ConcatenatedModuleInfo,
     chunk_link: &ChunkLinkContext,
-  ) -> Result<ReplaceSource> {
+  ) -> Result<BoxSource> {
     let Some(mut source) = info.source.clone() else {
       return Err(rspack_error::Error::error(format!(
         "module: {} has no source",
@@ -763,6 +764,9 @@ var {} = {{}};
       }
 
       if let Some(internal_name) = info.get_internal_name(&ident.id.sym) {
+        if !ident.shorthand && internal_name == &ident.id.sym {
+          continue;
+        }
         let name = if ident.shorthand {
           format!("{}: {}", &ident.id.sym, &internal_name)
         } else {
@@ -772,7 +776,97 @@ var {} = {{}};
       }
     }
 
-    Ok(source)
+    if info.rendered_init_fragments.is_none()
+      && info.module_reference_placeholders.is_empty()
+      && info.generated_top_level_symbols.is_empty()
+    {
+      return Ok(source.boxed());
+    }
+
+    let mut placeholder_replacements = Vec::with_capacity(
+      info.module_reference_placeholders.len() + info.generated_top_level_symbols.len(),
+    );
+    for placeholder in &info.module_reference_placeholders {
+      if let Some(binding_ref) = chunk_link.refs.get(placeholder.trim_end_matches("._")) {
+        let final_name = match binding_ref {
+          Ref::Symbol(symbol_ref) => symbol_ref.render(),
+          Ref::Inline(inline) => inline.clone(),
+        };
+        placeholder_replacements.push((placeholder.clone(), final_name));
+      }
+    }
+    placeholder_replacements.extend(
+      info
+        .generated_top_level_symbols
+        .iter()
+        .filter_map(|symbol| {
+          info
+            .internal_names
+            .get(&symbol.placeholder)
+            .map(|name| (symbol.placeholder.to_string(), name.to_string()))
+        }),
+    );
+    placeholder_replacements.sort_by_key(|replacement| Reverse(replacement.0.len()));
+
+    let replace_placeholders = |mut content: String| {
+      for (placeholder, final_name) in &placeholder_replacements {
+        if content.contains(placeholder) {
+          content = content.cow_replace(placeholder, final_name).into_owned();
+        }
+      }
+      content
+    };
+
+    if !placeholder_replacements.is_empty() {
+      let mut rendered_offset = 0usize;
+      let mut rendered_replacements = Vec::new();
+      source.rope(&mut |chunk| {
+        let mut cursor = 0;
+        while let Some(offset) = chunk[cursor..].find(CONCATENATION_PLACEHOLDER_PREFIX) {
+          let start = cursor + offset;
+          if let Some((placeholder, final_name)) = placeholder_replacements
+            .iter()
+            .find(|(placeholder, _)| chunk[start..].starts_with(placeholder))
+          {
+            let end = start + placeholder.len();
+            rendered_replacements.push((
+              (rendered_offset + start) as u32,
+              (rendered_offset + end) as u32,
+              final_name.clone(),
+            ));
+            cursor = end;
+          } else {
+            cursor = start + CONCATENATION_PLACEHOLDER_PREFIX.len();
+          }
+        }
+        rendered_offset += chunk.len();
+      });
+
+      if !rendered_replacements.is_empty() {
+        let mut rendered_source = ReplaceSource::new(source);
+        for (start, end, final_name) in rendered_replacements {
+          rendered_source.replace(start, end, final_name, None);
+        }
+        source = rendered_source;
+      }
+    }
+
+    let Some(fragments) = &info.rendered_init_fragments else {
+      return Ok(source.boxed());
+    };
+    let mut result = ConcatSource::default();
+    if !fragments.start.is_empty() {
+      result.add(RawStringSource::from(replace_placeholders(
+        fragments.start.clone(),
+      )));
+    }
+    result.add(source);
+    if !fragments.end.is_empty() {
+      result.add(RawStringSource::from(replace_placeholders(
+        fragments.end.clone(),
+      )));
+    }
+    Ok(result.boxed())
   }
 
   pub fn render_external_required(
