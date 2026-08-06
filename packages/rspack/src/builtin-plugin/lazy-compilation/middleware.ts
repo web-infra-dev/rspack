@@ -80,7 +80,9 @@ export const lazyCompilationMiddleware = (
 
     const keys = [...middlewareByCompiler.keys()];
     return (req: IncomingMessage, res: ServerResponse, next: () => void) => {
-      const key = keys.find((key) => req.url?.startsWith(key));
+      const key = keys.find(
+        (key) => req.url === key || req.url?.startsWith(`${key}?`),
+      );
       if (!key) {
         return next?.();
       }
