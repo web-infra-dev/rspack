@@ -11,6 +11,33 @@ import WebpackLicense from '@components/WebpackLicense';
 
 The loader context represents the properties that are available inside of a loader assigned to the `this` property.
 
+## this.addBuildDependency()
+
+- **Type:**
+
+```ts
+function addBuildDependency(file: string): void;
+```
+
+Add a file as a build dependency of the loader result. Build dependencies are used to invalidate the persistent cache when they change.
+
+Use this for files that affect a loader's behavior or transformation result, such as a loader configuration file.
+
+```js title="loader.js"
+const path = require('node:path');
+
+module.exports = function loader(source) {
+  this.addBuildDependency(
+    path.resolve(this.rootContext, 'custom-loader.config.js'),
+  );
+  return source;
+};
+```
+
+:::tip
+`this.addBuildDependency()` does not make the file a watch dependency. If changes to the file should trigger a rebuild in watch mode, also call [this.addDependency()](#thisadddependency).
+:::
+
 ## this.addContextDependency()
 
 - **Type:**

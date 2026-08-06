@@ -333,6 +333,10 @@ export interface LoaderContext<OptionsType = {}> {
   getDependencies(): string[];
   getContextDependencies(): string[];
   getMissingDependencies(): string[];
+  /**
+   * Add a file as a build dependency of the loader result.
+   * Build dependencies invalidate the persistent cache when they change.
+   */
   addBuildDependency(file: string): void;
   /**
    * Compile and execute a module at the build time.
