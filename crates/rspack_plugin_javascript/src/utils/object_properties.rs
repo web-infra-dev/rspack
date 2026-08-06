@@ -36,7 +36,7 @@ pub fn get_value_by_obj_prop<'r, 'ast>(
   obj: &'r ObjectLit<'ast>,
   field: &str,
 ) -> Option<&'r Expr<'ast>> {
-  obj.props.iter().find_map(|p| {
+  obj.props.iter().rev().find_map(|p| {
     let prop = p.as_prop()?;
     let kv = prop.as_key_value()?;
     let matched = kv.key.as_ident().is_some_and(|key| key.sym == field)
@@ -445,6 +445,22 @@ mod get_tests {
     );
     assert_eq!(get_value_from_object::<bool>(object, &["missing"]), None);
     assert_eq!(get_value_from_object::<bool>(object, &[]), None);
+  }
+
+  #[test]
+  fn later_duplicate_properties_take_precedence() {
+    let allocator = Allocator::new();
+    let expr = parse_expr(
+      &allocator,
+      "{ enabled: false, enabled: true, nested: { value: 1, value: 2 } }",
+    );
+    let object = expr.as_object().unwrap();
+
+    assert_eq!(
+      get_value_from_object::<bool>(object, &["enabled"]),
+      Some(true)
+    );
+    assert_eq!(get_value::<f64>(&expr, &["nested", "value"]), Some(2.0));
   }
 
   #[test]
