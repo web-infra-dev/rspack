@@ -4,6 +4,7 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::{RspackHashDigest, RspackHasher};
+use rspack_hook::define_hook;
 use rspack_macros::impl_source_map_config;
 use rspack_util::{json_stringify_str, source_map::SourceMapKind};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet};
@@ -26,6 +27,12 @@ use crate::{
 static EXTERNAL_MODULE_JS_SOURCE_TYPES: &[SourceType] = &[SourceType::JavaScript];
 static EXTERNAL_MODULE_CSS_SOURCE_TYPES: &[SourceType] = &[SourceType::CssImport];
 static EXTERNAL_MODULE_CSS_URL_SOURCE_TYPES: &[SourceType] = &[SourceType::CssUrl];
+
+define_hook!(ExternalModuleChunkCondition: SeriesBail(
+  chunk_ukey: &ChunkUkey,
+  compilation: &Compilation
+) -> bool,tracing=false);
+
 #[cacheable]
 #[derive(Debug, Clone, Serialize)]
 #[serde(untagged)]
@@ -535,6 +542,28 @@ impl ExternalModule {
 
   pub fn resolve_external_type(&self) -> &str {
     resolve_external_type(self.external_type.as_str(), &self.dependency_meta)
+  }
+
+  async fn chunk_condition_with_hooks(
+    &self,
+    chunk_ukey: &ChunkUkey,
+    compilation: &Compilation,
+  ) -> Result<Option<bool>> {
+    if let Some(condition) = compilation
+      .plugin_driver
+      .compilation_hooks
+      .external_module_chunk_condition
+      .call(chunk_ukey, compilation)
+      .await?
+    {
+      return Ok(Some(condition));
+    }
+
+    Ok(<Self as Module>::chunk_condition(
+      self,
+      chunk_ukey,
+      compilation,
+    ))
   }
 
   pub fn set_external_type(&mut self, new_type: ExternalType) {
@@ -1097,7 +1126,12 @@ impl Module for ExternalModule {
     };
 
     match external_type {
-      "css-import" | "module" | "import" | "module-import" if !self.place_in_initial => Some(true),
+      "css-import" | "module" if !self.place_in_initial => Some(true),
+      "import" | "module-import"
+        if !self.place_in_initial && self.resolve_external_type() == "module" =>
+      {
+        Some(true)
+      }
       _ => Some(
         compilation
           .build_chunk_graph_artifact
@@ -1266,6 +1300,20 @@ impl Module for ExternalModule {
     is_optional.hash(&mut hasher);
     module_update_hash(self, &mut hasher, compilation, runtime);
     Ok(hasher.digest(&compilation.options.output.hash_digest))
+  }
+}
+
+pub async fn module_chunk_condition(
+  module: &dyn Module,
+  chunk_ukey: &ChunkUkey,
+  compilation: &Compilation,
+) -> Result<Option<bool>> {
+  if let Some(external_module) = module.as_external_module() {
+    external_module
+      .chunk_condition_with_hooks(chunk_ukey, compilation)
+      .await
+  } else {
+    Ok(module.chunk_condition(chunk_ukey, compilation))
   }
 }
 

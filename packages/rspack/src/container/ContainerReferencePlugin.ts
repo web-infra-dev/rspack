@@ -7,6 +7,7 @@ import {
   createBuiltinPlugin,
   RspackBuiltinPlugin,
 } from '../builtin-plugin/base';
+import { ExternalModule } from '../ExternalModule';
 import { ExternalsPlugin } from '../builtin-plugin/ExternalsPlugin';
 import type { Compiler } from '../Compiler';
 import type { ExternalsType } from '../config';
@@ -73,6 +74,13 @@ export class ContainerReferencePlugin extends RspackBuiltinPlugin {
   }
 
   raw(compiler: Compiler): BuiltinPlugin {
+    compiler.hooks.compilation.tap(this.name, (compilation) => {
+      ExternalModule.getCompilationHooks(compilation).chunkCondition.tap(
+        this.name,
+        (chunk, compilation) =>
+          compilation.chunkGraph.getNumberOfEntryModules(chunk) > 0,
+      );
+    });
     const { remoteType, remotes } = this._options;
     const bundlerName =
       compiler.options.experiments.runtimeMode === 'rspack'

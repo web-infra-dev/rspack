@@ -276,12 +276,14 @@ impl SplitChunksPlugin {
           );
         }
 
-        self.move_modules_to_new_chunk_and_remove_from_old_chunks(
-          &module_group,
-          new_chunk,
-          &used_chunks,
-          compilation,
-        );
+        self
+          .move_modules_to_new_chunk_and_remove_from_old_chunks(
+            &module_group,
+            new_chunk,
+            &used_chunks,
+            compilation,
+          )
+          .await?;
 
         self.split_from_original_chunks(&module_group, &used_chunks, new_chunk, compilation);
 
