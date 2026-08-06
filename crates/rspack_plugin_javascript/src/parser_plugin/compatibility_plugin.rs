@@ -83,6 +83,10 @@ impl CompatibilityPlugin {
     parser: &mut JavascriptParser,
     name: &Atom,
   ) -> Option<Atom> {
+    let faster_module_concatenation = parser
+      .compiler_options
+      .experiments
+      .faster_module_concatenation;
     let (nested_name, dep) = {
       let data = parser.get_tag_data_mut::<NestedRequireData>(name, NESTED_IDENTIFIER_TAG)?;
       let nested_name = Atom::from(data.name.as_str());
@@ -93,6 +97,12 @@ impl CompatibilityPlugin {
       };
       let dep = if data.update {
         None
+      } else if faster_module_concatenation {
+        Some(ConstDependency::new_with_concatenation_scope_identifier(
+          data.loc,
+          content,
+          data.name.clone().into(),
+        ))
       } else {
         Some(ConstDependency::new(data.loc, content))
       };
