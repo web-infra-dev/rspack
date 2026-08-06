@@ -19,7 +19,7 @@ description: '性能分析应基于包含调试信息的发布版本进行。这
 1. 构建带有调试信息的发布版本：
 
 ```sh
-just build release-debug
+pnpm build:binding:profiling
 ```
 
 2. 更改 `@rspack/core` 和 `@rspack/cli`，使用 `link` 协议链接到本地​​构建的 Rspack：
@@ -39,6 +39,85 @@ just build release-debug
 ```sh
 pnpm install
 ```
+
+## 使用 jemalloc 进行内存分析
+
+在支持的原生目标上，Rspack debug binding 默认使用带 heap profiling 能力的 jemalloc。只有通过 `_RJEM_MALLOC_CONF` 启用采样后才会输出 profile，因此 debug binding 在未配置该变量时仍可正常使用，不会产生 profile 文件。
+
+:::note
+非 Wasm、非 MSVC 的原生 debug binding（包括 Linux 和 macOS）默认启用 jemalloc profiling。Windows MSVC 和 Wasm 不支持该能力，会继续使用默认 allocator。Release binding 不受影响。设置 `SFTRACE` 或 `TRACY` 时，对应 profiler 的 allocator 优先，debug build 不会再默认启用 jemalloc。
+:::
+
+### 构建支持 profiling 的 binding
+
+构建 debug binding 和 JavaScript packages：
+
+```sh
+pnpm run build:binding:debug
+pnpm run build:js
+```
+
+Debug profile 会保留函数符号，可用于生成函数级内存分配图。如果需要更多源码级调试信息，同时希望保留 release 优化，可以显式构建带 jemalloc 的 profiling profile：
+
+```sh
+JEMALLOC_PROFILING=1 pnpm run build:binding:profiling
+```
+
+### 采集 heap profile
+
+先创建输出目录，再通过 jemalloc profiling 运行 Rspack。Native binding 文件名需要替换为当前平台生成的文件：
+
+```sh
+mkdir -p /tmp/rspack-jemalloc
+
+cd /path/to/project
+_RJEM_MALLOC_CONF='prof:true,prof_active:true,prof_final:true,lg_prof_sample:19,lg_prof_interval:26,prof_prefix:/tmp/rspack-jemalloc/rspack' \
+NAPI_RS_NATIVE_LIBRARY_PATH=/path/to/rspack/crates/node_binding/rspack.darwin-arm64.node \
+node /path/to/rspack/packages/rspack-cli/bin/rspack.js build
+```
+
+`tikv-jemallocator` 会为运行时配置变量添加前缀，因此需要使用 `_RJEM_MALLOC_CONF`，而不是 `MALLOC_CONF`。
+
+上述配置的含义如下：
+
+- `prof:true` 启用 heap profiling，必须在进程启动时设置。
+- `prof_active:true` 在进程启动后立即开始采样。
+- `prof_final:true` 在进程退出时输出最终的 `.f.heap` 文件。
+- `lg_prof_sample:19` 表示大约每 512 KiB 分配采样一次。减小该值可以获得更多细节，但会增加开销。
+- `lg_prof_interval:26` 表示大约每 64 MiB allocation activity 输出一个 `.i.heap` 文件。
+- `prof_prefix` 控制 profile 文件的输出位置。
+
+需要分析累计分配量时，可以添加 `prof_accum:true`。它会增加 profiler 自身的内存开销，因此只分析 live allocations 时应当省略。通常不要使用 `prof_gdump:true`，因为 high-water mark 的小幅增长就可能触发大量 dump，明显干扰测量结果。
+
+### 生成函数级内存分配图
+
+安装 jemalloc 5.x 提供的 `jeprof` 和 Graphviz。Rust 符号位于 Rspack 的 `.node` binding 中，因此 program 参数应当传入 `.node` 文件，而不是 Node.js 可执行文件：
+
+```sh
+jeprof --show_bytes --functions --exclude='_+rjem_' --svg \
+  /path/to/rspack/crates/node_binding/rspack.darwin-arm64.node \
+  /tmp/rspack-jemalloc/rspack.<pid>.<sequence>.heap \
+  > rspack-memory.svg
+```
+
+生成按累计调用路径排序的文本报告：
+
+```sh
+jeprof --show_bytes --functions --exclude='_+rjem_' --text --cum \
+  /path/to/rspack/crates/node_binding/rspack.darwin-arm64.node \
+  /tmp/rspack-jemalloc/rspack.<pid>.<sequence>.heap
+```
+
+如果采集时开启了 `prof_accum:true`，可以通过 `--alloc_space` 查看 build 期间发生的所有采样分配：
+
+```sh
+jeprof --alloc_space --show_bytes --functions --exclude='_+rjem_' --svg \
+  /path/to/rspack/crates/node_binding/rspack.darwin-arm64.node \
+  /tmp/rspack-jemalloc/rspack.<pid>.<sequence>.heap \
+  > rspack-alloc-space.svg
+```
+
+默认的 `inuse_space` 表示 dump 时仍然存活的分配；`alloc_space` 表示累计 allocation traffic，适合查找临时分配抖动，但它不是内存峰值。jemalloc 只覆盖 Rspack binding 的 Rust global allocator；Node.js、V8、原生库、内存映射和 profiler 元数据同样会计入进程 RSS。如果还需要整个进程的峰值 RSS，可以在 macOS 上使用 `/usr/bin/time -l`，在 Linux 上使用 `/usr/bin/time -v`。
 
 ## CPU profiling
 

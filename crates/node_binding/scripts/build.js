@@ -50,6 +50,14 @@ async function build() {
 			|| values.profile === "release-debug"
 			|| values.profile === "release-wasi"
 			|| values.profile === "profiling";
+		const target = process.env.RUST_TARGET;
+		const supportsJemallocProfiling = target
+			? !target.includes("windows-msvc") && !target.startsWith("wasm32")
+			: process.platform !== "win32";
+		const enableDefaultJemallocProfiling = values.profile === "release-debug"
+			&& supportsJemallocProfiling
+			&& !process.env.SFTRACE
+			&& !process.env.TRACY;
 
 		if (values.profile) {
 			args.push("--profile", values.profile);
@@ -87,6 +95,9 @@ async function build() {
 		}
 		if (process.env.TRACY) {
 			features.push("tracy-client");
+		}
+		if (process.env.JEMALLOC_PROFILING || enableDefaultJemallocProfiling) {
+			features.push("jemalloc-profiling");
 		}
 		if (values.profile === "release") {
 			features.push("info-level");

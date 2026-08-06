@@ -6,9 +6,18 @@ name              = "rspack_allocator"
 repository        = "https://github.com/web-infra-dev/rspack"
 version.workspace = true
 
+[features]
+jemalloc-profiling = ["dep:tikv-jemallocator"]
+
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
 sftrace-setup = { workspace = true, optional = true }
 tracy-client  = { workspace = true, optional = true }
+
+[target.'cfg(all(target_vendor = "apple", not(target_family = "wasm")))'.dependencies]
+tikv-jemallocator = { workspace = true, optional = true, features = ["profiling_libunwind"] }
+
+[target.'cfg(all(not(target_vendor = "apple"), not(target_family = "wasm"), not(target_env = "msvc")))'.dependencies]
+tikv-jemallocator = { workspace = true, optional = true, features = ["profiling"] }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 # Turned on `local_dynamic_tls` to avoid issue: https://github.com/microsoft/mimalloc/issues/147

@@ -38,6 +38,85 @@ pnpm build:binding:profiling
 pnpm install
 ```
 
+## Memory profiling with jemalloc
+
+Rspack's debug binding uses jemalloc with heap profiling support by default on supported native targets. Recording is disabled until it is enabled through `_RJEM_MALLOC_CONF`, so a debug binding can still be used normally without producing profile files.
+
+:::note
+jemalloc profiling is enabled by default for non-Wasm, non-MSVC native debug bindings, including Linux and macOS. Windows MSVC and Wasm debug bindings continue to use the default allocator because jemalloc profiling is not supported on those targets. Release bindings are not affected. When `SFTRACE` or `TRACY` is set, that profiler's allocator takes precedence and jemalloc is not enabled by default.
+:::
+
+### Build a profiling-capable binding
+
+Build the debug binding and JavaScript packages:
+
+```sh
+pnpm run build:binding:debug
+pnpm run build:js
+```
+
+The debug profile keeps function symbols, which is sufficient for function-level allocation graphs. To include more source-level debug information while retaining release optimizations, build the profiling profile explicitly with jemalloc:
+
+```sh
+JEMALLOC_PROFILING=1 pnpm run build:binding:profiling
+```
+
+### Collect heap profiles
+
+Create an output directory, then run Rspack with jemalloc profiling enabled. Use the native binding filename produced for your platform:
+
+```sh
+mkdir -p /tmp/rspack-jemalloc
+
+cd /path/to/project
+_RJEM_MALLOC_CONF='prof:true,prof_active:true,prof_final:true,lg_prof_sample:19,lg_prof_interval:26,prof_prefix:/tmp/rspack-jemalloc/rspack' \
+NAPI_RS_NATIVE_LIBRARY_PATH=/path/to/rspack/crates/node_binding/rspack.darwin-arm64.node \
+node /path/to/rspack/packages/rspack-cli/bin/rspack.js build
+```
+
+`tikv-jemallocator` prefixes its runtime configuration variable, so use `_RJEM_MALLOC_CONF` rather than `MALLOC_CONF`.
+
+The options above have the following effects:
+
+- `prof:true` enables heap profiling. It must be set when the process starts.
+- `prof_active:true` starts sampling immediately.
+- `prof_final:true` writes a final `.f.heap` file when the process exits.
+- `lg_prof_sample:19` samples approximately once per 512 KiB of allocations. Decrease it for more detail at the cost of additional overhead.
+- `lg_prof_interval:26` writes an interval `.i.heap` file after approximately every 64 MiB of allocation activity.
+- `prof_prefix` controls where profile files are written.
+
+Add `prof_accum:true` when cumulative allocation data is required. It increases profiler memory usage, so omit it when only live allocations are needed. Avoid `prof_gdump:true` for normal builds because a small increase in the high-water mark can produce many dumps and significantly perturb the measurement.
+
+### Generate function allocation graphs
+
+Install `jeprof` from jemalloc 5.x and Graphviz. Pass the Rspack `.node` binding, rather than the Node.js executable, as the program containing the Rust symbols:
+
+```sh
+jeprof --show_bytes --functions --exclude='_+rjem_' --svg \
+  /path/to/rspack/crates/node_binding/rspack.darwin-arm64.node \
+  /tmp/rspack-jemalloc/rspack.<pid>.<sequence>.heap \
+  > rspack-memory.svg
+```
+
+Generate a cumulative text report for easier hotspot comparison:
+
+```sh
+jeprof --show_bytes --functions --exclude='_+rjem_' --text --cum \
+  /path/to/rspack/crates/node_binding/rspack.darwin-arm64.node \
+  /tmp/rspack-jemalloc/rspack.<pid>.<sequence>.heap
+```
+
+When `prof_accum:true` was enabled, add `--alloc_space` to inspect all sampled allocations made during the build:
+
+```sh
+jeprof --alloc_space --show_bytes --functions --exclude='_+rjem_' --svg \
+  /path/to/rspack/crates/node_binding/rspack.darwin-arm64.node \
+  /tmp/rspack-jemalloc/rspack.<pid>.<sequence>.heap \
+  > rspack-alloc-space.svg
+```
+
+The default `inuse_space` view shows allocations that were live at the time of the dump. `alloc_space` shows cumulative allocation traffic and is useful for finding temporary allocation churn; it is not peak memory usage. jemalloc covers the Rust global allocator in the Rspack binding, while Node.js, V8, native libraries, memory mappings, and profiler metadata also contribute to process RSS. Use `/usr/bin/time -l` on macOS or `/usr/bin/time -v` on Linux when a whole-process peak RSS measurement is also required.
+
 ## CPU profiling
 
 ### Samply
