@@ -22,6 +22,23 @@ pub struct TemplateContext<'a, 'b, 'c> {
 }
 
 impl TemplateContext<'_, '_, '_> {
+  pub fn get_or_create_generated_top_level_symbol(
+    &mut self,
+    preferred_name: impl Into<String>,
+  ) -> String {
+    let preferred_name = preferred_name.into();
+    let Some(scope) = self
+      .concatenation_scope
+      .as_mut()
+      .filter(|scope| scope.is_faster_module_concatenation())
+    else {
+      return preferred_name;
+    };
+    scope
+      .get_or_create_generated_top_level_symbol(&preferred_name)
+      .to_string()
+  }
+
   pub fn chunk_init_fragments(&mut self) -> &mut ChunkInitFragments {
     let data_fragments = self.data.get::<ChunkInitFragments>();
     if data_fragments.is_some() {

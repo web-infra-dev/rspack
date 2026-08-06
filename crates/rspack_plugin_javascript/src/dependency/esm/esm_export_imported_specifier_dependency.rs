@@ -521,16 +521,7 @@ impl ESMExportImportedSpecifierDependency {
       self.phase,
       runtime,
     );
-    let import_var = ctxt
-      .concatenation_scope
-      .as_mut()
-      .filter(|scope| scope.is_faster_module_concatenation())
-      .map(|scope| {
-        scope
-          .get_or_create_generated_top_level_symbol(import_var.as_str())
-          .to_string()
-      })
-      .unwrap_or(import_var);
+    let import_var = ctxt.get_or_create_generated_top_level_symbol(import_var);
     match mode {
       ExportMode::Missing | ExportMode::LazyMake | ExportMode::EmptyStar(_) => {
         ctxt.init_fragments.push(
@@ -790,28 +781,9 @@ impl ESMExportImportedSpecifierDependency {
           let ignored = render_dynamic_reexport_excluded(&ignored);
           format!("/* reexport */ {reexport}({exports}, {import_var}, {ignored});\n")
         } else {
-          let (reexport_binding, import_key_binding) = ctxt
-            .concatenation_scope
-            .as_mut()
-            .filter(|scope| scope.is_faster_module_concatenation())
-            .map_or_else(
-              || {
-                (
-                  "__rspack_reexport".to_string(),
-                  "__rspack_import_key".to_string(),
-                )
-              },
-              |scope| {
-                (
-                  scope
-                    .get_or_create_generated_top_level_symbol("__rspack_reexport")
-                    .to_string(),
-                  scope
-                    .get_or_create_generated_top_level_symbol("__rspack_import_key")
-                    .to_string(),
-                )
-              },
-            );
+          let reexport_binding = ctxt.get_or_create_generated_top_level_symbol("__rspack_reexport");
+          let import_key_binding =
+            ctxt.get_or_create_generated_top_level_symbol("__rspack_import_key");
           let environment = compilation.options.output.environment;
           let supports_arrow_function = environment.supports_arrow_function();
           let supports_const = environment.supports_const();

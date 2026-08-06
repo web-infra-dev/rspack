@@ -155,18 +155,8 @@ impl DependencyTemplate for ImportMetaRscDependencyTemplate {
       .as_any()
       .downcast_ref::<ImportMetaRscDependency>()
       .expect("ImportMetaRscDependencyTemplate should only be used for ImportMetaRscDependency");
-    let rendered_binding = code_generatable_context
-      .concatenation_scope
-      .as_mut()
-      .filter(|scope| scope.is_faster_module_concatenation())
-      .map_or_else(
-        || IMPORT_META_RSC_BINDING.to_string(),
-        |scope| {
-          scope
-            .get_or_create_generated_top_level_symbol(IMPORT_META_RSC_BINDING)
-            .to_string()
-        },
-      );
+    let rendered_binding =
+      code_generatable_context.get_or_create_generated_top_level_symbol(IMPORT_META_RSC_BINDING);
 
     let TemplateContext {
       compilation,

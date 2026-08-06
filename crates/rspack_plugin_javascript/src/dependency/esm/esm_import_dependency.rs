@@ -115,13 +115,9 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
   phase: ImportPhase,
   code_generatable_context: &mut TemplateContext,
 ) {
-  let TemplateContext {
-    compilation,
-    module,
-    runtime,
-    runtime_template,
-    ..
-  } = code_generatable_context;
+  let compilation = code_generatable_context.compilation;
+  let module = code_generatable_context.module;
+  let runtime = code_generatable_context.runtime;
   // Only available when module factorization is successful.
   let module_graph = compilation.get_module_graph();
   let module_graph_cache = &compilation.module_graph_cache_artifact;
@@ -129,7 +125,7 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
   let is_target_active = if let Some(con) = connection {
     con.is_target_active(
       module_graph,
-      *runtime,
+      runtime,
       module_graph_cache,
       &compilation
         .build_module_graph_artifact
@@ -163,7 +159,7 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
     RuntimeCondition::Boolean(false)
   } else if let Some(connection) = module_graph.connection_by_dependency_id(module_dependency.id())
   {
-    filter_runtime(*runtime, |r| {
+    filter_runtime(runtime, |r| {
       connection.is_target_active(
         module_graph,
         r,
@@ -183,20 +179,12 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
     target_module,
     module_dependency.user_request(),
     phase,
-    *runtime,
+    runtime,
   );
-  let rendered_import_var = code_generatable_context
-    .concatenation_scope
-    .as_mut()
-    .filter(|scope| scope.is_faster_module_concatenation())
-    .map(|scope| {
-      scope
-        .get_or_create_generated_top_level_symbol(import_var.as_str())
-        .to_string()
-    })
-    .unwrap_or(import_var);
-  let content: (String, String) = runtime_template.import_statement(
-    *module,
+  let rendered_import_var =
+    code_generatable_context.get_or_create_generated_top_level_symbol(import_var);
+  let content: (String, String) = code_generatable_context.runtime_template.import_statement(
+    module,
     compilation,
     module_dependency.id(),
     &rendered_import_var,

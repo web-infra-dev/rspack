@@ -130,18 +130,7 @@ impl DependencyTemplate for CachedConstDependencyTemplate {
       .experiments
       .faster_module_concatenation;
     let rendered_identifier = if matches!(dep.place, CachedConstDependencyPlace::Module) {
-      code_generatable_context
-        .concatenation_scope
-        .as_mut()
-        .filter(|scope| scope.is_faster_module_concatenation())
-        .map_or_else(
-          || dep.identifier.to_string(),
-          |scope| {
-            scope
-              .get_or_create_generated_top_level_symbol(dep.identifier.as_ref())
-              .to_string()
-          },
-        )
+      code_generatable_context.get_or_create_generated_top_level_symbol(dep.identifier.to_string())
     } else {
       dep.identifier.to_string()
     };

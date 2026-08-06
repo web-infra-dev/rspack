@@ -159,18 +159,8 @@ impl DependencyTemplate for ProvideDependencyTemplate {
       .as_any()
       .downcast_ref::<ProvideDependency>()
       .expect("ProvideDependencyTemplate should only be used for ProvideDependency");
-    let rendered_identifier = code_generatable_context
-      .concatenation_scope
-      .as_mut()
-      .filter(|scope| scope.is_faster_module_concatenation())
-      .map_or_else(
-        || dep.identifier.clone(),
-        |scope| {
-          scope
-            .get_or_create_generated_top_level_symbol(&dep.identifier)
-            .to_string()
-        },
-      );
+    let rendered_identifier =
+      code_generatable_context.get_or_create_generated_top_level_symbol(dep.identifier.clone());
 
     let TemplateContext {
       compilation,
