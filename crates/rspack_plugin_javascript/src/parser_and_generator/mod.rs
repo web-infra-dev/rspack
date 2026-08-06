@@ -32,7 +32,10 @@ use swc_experimental_ecma_transforms_base::remove_paren::remove_paren;
 use crate::{
   BoxJavascriptParserPlugin,
   dependency::ESMCompatibilityDependency,
-  visitors::{ParsedJavaScriptAst, ScanDependenciesResult, scan_dependencies, semicolon},
+  visitors::{
+    ParsedJavaScriptAst, ScanDependenciesResult,
+    concatenate_scope_info::PendingConcatenationScopeInfoVisitor, scan_dependencies, semicolon,
+  },
 };
 
 #[derive(Debug)]
@@ -354,11 +357,14 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     remove_paren(&mut program, &allocator, Some(&mut comments));
     let semantic = resolver(&program);
     let mut semicolon_visitor = semicolon::InsertedSemicolons::new(&mut semicolons, &tokens);
-    if may_need_concatenation_scope {
-      semicolon_visitor = semicolon_visitor.with_concatenation_scope(&semantic);
-    }
     program.visit_with(&mut semicolon_visitor);
-    let concatenation_scope_snapshot = semicolon_visitor.into_concatenation_scope_snapshot();
+    let pending_concatenation_scope_info_visitor = if may_need_concatenation_scope {
+      let mut visitor = PendingConcatenationScopeInfoVisitor::new(&semantic);
+      program.visit_with(&mut visitor);
+      Some(visitor)
+    } else {
+      None
+    };
     let parsed_ast = ParsedJavaScriptAst {
       allocator: &allocator,
       comments: &comments,
@@ -394,24 +400,24 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       Ok(result) => result,
       Err(mut e) => {
         diagnostics.append(&mut e);
-        drop(concatenation_scope_snapshot);
+        drop(pending_concatenation_scope_info_visitor);
         return default_with_diagnostics(source, diagnostics);
       }
     };
     diagnostics.append(&mut warning_diagnostics);
     let mut side_effects_bailout = None;
 
-    let concatenation_scope_snapshot = if build_meta.esm()
+    let pending_concatenation_scope_info = if build_meta.esm()
       && (uses_esm_library
         || (compiler_options.optimization.concatenate_modules
           && build_info.module_concatenation_bailout.is_none()))
     {
-      concatenation_scope_snapshot.map(|snapshot| Box::new(snapshot.into_snapshot()))
+      pending_concatenation_scope_info_visitor.map(|visitor| Box::new(visitor.into_info()))
     } else {
-      drop(concatenation_scope_snapshot);
+      drop(pending_concatenation_scope_info_visitor);
       None
     };
-    build_info.concatenation_scope_snapshot = concatenation_scope_snapshot;
+    build_info.pending_concatenation_scope_info = pending_concatenation_scope_info;
 
     if compiler_options.optimization.side_effects.is_true() {
       let has_side_effects = side_effects_item.is_some();

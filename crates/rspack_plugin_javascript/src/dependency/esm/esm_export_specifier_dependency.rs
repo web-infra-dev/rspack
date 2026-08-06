@@ -178,12 +178,11 @@ impl DependencyTemplate for ESMExportSpecifierDependencyTemplate {
       ..
     } = code_generatable_context;
     if let Some(scope) = concatenation_scope {
-      let value = if dep.value_is_generated {
-        scope.get_or_create_generated_top_level_symbol(dep.value.as_ref())
+      if dep.value_is_generated {
+        scope.register_generated_export(dep.name.clone(), dep.value.as_ref());
       } else {
-        dep.value.clone()
-      };
-      scope.register_export(dep.name.clone(), value.to_string());
+        scope.register_export(dep.name.clone(), dep.value.to_string());
+      }
       return;
     }
     let module_graph = compilation.get_module_graph();

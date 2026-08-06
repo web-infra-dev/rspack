@@ -664,15 +664,8 @@ impl ParserAndGenerator for AssetParserAndGenerator {
         if import_mode.is_preserve() && parsed_asset_config.is_resource() {
           let is_module = compilation.options.output.module;
           if let Some(ref mut scope) = generate_context.concatenation_scope {
-            let namespace_export = if scope.is_faster_module_concatenation() {
-              let namespace_export =
-                scope.get_or_create_generated_top_level_symbol(NAMESPACE_OBJECT_EXPORT);
-              scope.register_namespace_export(namespace_export.as_ref());
-              Cow::Owned(namespace_export.to_string())
-            } else {
-              scope.register_namespace_export(NAMESPACE_OBJECT_EXPORT);
-              Cow::Borrowed(NAMESPACE_OBJECT_EXPORT)
-            };
+            let namespace_export =
+              scope.register_generated_namespace_export(NAMESPACE_OBJECT_EXPORT);
             if is_module {
               return Ok(
                 RawStringSource::from(format!(
@@ -704,15 +697,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
         };
 
         if let Some(ref mut scope) = generate_context.concatenation_scope {
-          let namespace_export = if scope.is_faster_module_concatenation() {
-            let namespace_export =
-              scope.get_or_create_generated_top_level_symbol(NAMESPACE_OBJECT_EXPORT);
-            scope.register_namespace_export(namespace_export.as_ref());
-            Cow::Owned(namespace_export.to_string())
-          } else {
-            scope.register_namespace_export(NAMESPACE_OBJECT_EXPORT);
-            Cow::Borrowed(NAMESPACE_OBJECT_EXPORT)
-          };
+          let namespace_export = scope.register_generated_namespace_export(NAMESPACE_OBJECT_EXPORT);
           let supports_const = compilation.options.output.environment.supports_const();
           let declaration_kind = if supports_const { "const" } else { "var" };
           Ok(

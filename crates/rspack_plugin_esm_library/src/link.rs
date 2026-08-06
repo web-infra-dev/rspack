@@ -1557,12 +1557,13 @@ var {} = {{}};
                   .module_by_identifier(&id)
                   .expect("should have module");
                 if concate_info.faster_module_concatenation {
-                  let empty_scope_snapshot = rspack_core::ConcatenationScopeSnapshot::default();
-                  let scope_snapshot = module
+                  let empty_pending_scope_info =
+                    rspack_core::PendingConcatenationScopeInfo::default();
+                  let pending_scope_info = module
                     .build_info()
-                    .concatenation_scope_snapshot
+                    .pending_concatenation_scope_info
                     .as_deref()
-                    .unwrap_or(&empty_scope_snapshot);
+                    .unwrap_or(&empty_pending_scope_info);
                   let original_source = if let Some(source) =
                     js_source.as_any().downcast_ref::<ReplaceSource>()
                   {
@@ -1570,8 +1571,8 @@ var {} = {{}};
                   } else {
                     js_source.source().into_string_lossy()
                   };
-                  ConcatenatedModule::populate_info_from_snapshot(
-                    scope_snapshot,
+                  ConcatenatedModule::populate_info_from_pending(
+                    pending_scope_info,
                     &original_source,
                     &mut concate_info,
                   );

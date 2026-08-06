@@ -38,7 +38,7 @@ use crate::{
   OptimizationBailoutItem, RawModule, Resolve, ResolverFactory, RuntimeSpec, SelfModule,
   SharedPluginDriver, SideEffectsStateArtifact, SourceType,
   concatenated_module::ConcatenatedModule, dependencies_block::dependencies_block_update_hash,
-  get_target, utils::ConcatenationScopeSnapshot, value_cache_versions::ValueCacheVersions,
+  get_target, utils::PendingConcatenationScopeInfo, value_cache_versions::ValueCacheVersions,
 };
 
 pub struct BuildContext {
@@ -284,7 +284,7 @@ pub struct BuildInfo {
   pub side_effects_free: Option<HashSet<Atom>>,
   #[cacheable(with=AsOption<AsVec<AsPreset>>)]
   pub top_level_declarations: Option<HashSet<Atom>>,
-  pub concatenation_scope_snapshot: Option<Box<ConcatenationScopeSnapshot>>,
+  pub pending_concatenation_scope_info: Option<Box<PendingConcatenationScopeInfo>>,
   pub module_concatenation_bailout: Option<String>,
   pub assets: BindingCell<HashMap<String, CompilationAsset>>,
   pub module: bool,
@@ -322,7 +322,7 @@ impl Default for BuildInfo {
       css: None,
       side_effects_free: None,
       top_level_declarations: None,
-      concatenation_scope_snapshot: None,
+      pending_concatenation_scope_info: None,
       module_concatenation_bailout: None,
       assets: Default::default(),
       module: false,

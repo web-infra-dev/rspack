@@ -76,6 +76,12 @@ impl ConcatenationScope {
     export_map.insert(export_name, symbol);
   }
 
+  pub fn register_generated_export(&mut self, export_name: Atom, preferred_name: &str) -> Atom {
+    let symbol = self.get_or_create_generated_top_level_symbol(preferred_name);
+    self.register_export(export_name, symbol.to_string());
+    symbol
+  }
+
   pub fn register_raw_export(&mut self, export_name: Atom, symbol: String) {
     let raw_export_map = self.current_module.raw_export_map.get_or_insert_default();
     raw_export_map.insert(export_name, symbol);
@@ -122,6 +128,12 @@ impl ConcatenationScope {
 
   pub fn register_namespace_export(&mut self, symbol: &str) {
     self.current_module.namespace_export_symbol = Some(symbol.into());
+  }
+
+  pub fn register_generated_namespace_export(&mut self, preferred_name: &str) -> Atom {
+    let symbol = self.get_or_create_generated_top_level_symbol(preferred_name);
+    self.register_namespace_export(symbol.as_ref());
+    symbol
   }
 
   pub fn remove_original_range(&mut self, range: DependencyRange) {

@@ -31,7 +31,7 @@ pub struct ConcatenationScopeIdent {
 
 #[cacheable]
 #[derive(Clone, Debug, Default)]
-pub struct ConcatenationScopeSnapshot {
+pub struct PendingConcatenationScopeInfo {
   pub module_ctxt: u32,
   pub global_ctxt: u32,
   pub idents: Vec<ConcatenationScopeIdent>,

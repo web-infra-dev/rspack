@@ -47,13 +47,13 @@ use crate::{
   CodeGenerationDataTopLevelDeclarations, CodeGenerationExportsFinalNames,
   CodeGenerationPublicPathAutoReplace, CodeGenerationResult,
   CodeGenerationRuntimeRequirementsWrite, Compilation, ConcatenatedModuleIdent, ConcatenationScope,
-  ConcatenationScopeIdentKind, ConcatenationScopeSnapshot, ConditionalInitFragment,
-  ConnectionState, Context, DEFAULT_EXPORT, DEFAULT_EXPORT_ATOM, DependenciesBlock, DependencyId,
-  DependencyRange, DependencyType, ExportInfo, ExportProvided, ExportsArgument,
-  ExportsInfoArtifact, ExportsType, FactoryMeta, ImportedByDeferModulesArtifact, InitFragment,
-  InitFragmentStage, LibIdentOptions, Module, ModuleArgument, ModuleCodeGenerationContext,
-  ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, ModuleLayer,
-  ModuleStaticCache, ModuleType, NAMESPACE_OBJECT_EXPORT, ParserOptions, Resolve, RuntimeCondition,
+  ConcatenationScopeIdentKind, ConditionalInitFragment, ConnectionState, Context, DEFAULT_EXPORT,
+  DEFAULT_EXPORT_ATOM, DependenciesBlock, DependencyId, DependencyRange, DependencyType,
+  ExportInfo, ExportProvided, ExportsArgument, ExportsInfoArtifact, ExportsType, FactoryMeta,
+  ImportedByDeferModulesArtifact, InitFragment, InitFragmentStage, LibIdentOptions, Module,
+  ModuleArgument, ModuleCodeGenerationContext, ModuleGraph, ModuleGraphCacheArtifact,
+  ModuleGraphConnection, ModuleIdentifier, ModuleLayer, ModuleStaticCache, ModuleType,
+  NAMESPACE_OBJECT_EXPORT, ParserOptions, PendingConcatenationScopeInfo, Resolve, RuntimeCondition,
   RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, SourceType, URLStaticMode, UsageState,
   UsedName, UsedNameItem, escape_identifier, fast_set, filter_runtime, find_target,
   get_runtime_key, impl_source_map_config, merge_runtime_condition,
@@ -718,8 +718,8 @@ impl ConcatenatedModule {
       })
   }
 
-  pub fn populate_info_from_snapshot(
-    snapshot: &ConcatenationScopeSnapshot,
+  pub fn populate_info_from_pending(
+    pending: &PendingConcatenationScopeInfo,
     original_source: &str,
     module_info: &mut ConcatenatedModuleInfo,
   ) {
@@ -740,12 +740,12 @@ impl ConcatenatedModule {
       symbols.push((symbol, interned.clone()));
       interned
     };
-    module_info.module_ctxt = SyntaxContext::from_u32(snapshot.module_ctxt);
-    module_info.global_ctxt = SyntaxContext::from_u32(snapshot.global_ctxt);
+    module_info.module_ctxt = SyntaxContext::from_u32(pending.module_ctxt);
+    module_info.global_ctxt = SyntaxContext::from_u32(pending.global_ctxt);
     module_info.idents.clear();
     module_info.global_scope_ident.clear();
     module_info.binding_to_ref.clear();
-    module_info.all_used_names = snapshot
+    module_info.all_used_names = pending
       .idents
       .iter()
       .filter(|ident| {
@@ -767,7 +767,7 @@ impl ConcatenatedModule {
         .retain(|placeholder| seen.insert(placeholder.clone()));
     }
 
-    let mut snapshot_ident_to_legacy =
+    let mut pending_ident_to_legacy =
       |range: DependencyRange, shorthand: bool, ctxt: SyntaxContext| ConcatenatedModuleIdent {
         id: swc_ecma_ast::Ident::new(
           symbol_from_range(range),
@@ -781,14 +781,14 @@ impl ConcatenatedModule {
         is_class_expr_with_ident: false,
       };
     let mut idents =
-      Vec::with_capacity(snapshot.idents.len() + module_info.added_scope_idents.len());
+      Vec::with_capacity(pending.idents.len() + module_info.added_scope_idents.len());
     idents.extend(
-      snapshot
+      pending
         .idents
         .iter()
         .filter(|ident| ident.kind == ConcatenationScopeIdentKind::TopLevel)
         .map(|ident| {
-          snapshot_ident_to_legacy(
+          pending_ident_to_legacy(
             ident.range,
             Self::is_ident_shorthand(
               ident.range,
@@ -801,12 +801,12 @@ impl ConcatenatedModule {
         .filter(|ident| !Self::is_ident_removed(ident, &module_info.original_scope_ident_updates)),
     );
     idents.extend(
-      snapshot
+      pending
         .idents
         .iter()
         .filter(|ident| ident.kind == ConcatenationScopeIdentKind::Global)
         .map(|ident| {
-          snapshot_ident_to_legacy(
+          pending_ident_to_legacy(
             ident.range,
             Self::is_ident_shorthand(
               ident.range,
@@ -3122,15 +3122,15 @@ impl ConcatenatedModule {
         .expect("should have javascript source");
       let mut module_info = concatenation_scope.current_module;
       let (result_source, internal_source) = if faster_module_concatenation {
-        // Non-JavaScript modules (for example JSON) do not have a JavaScript
-        // parser snapshot. Their generated top-level names are registered by
+        // Non-JavaScript modules (for example JSON) do not have pending
+        // JavaScript scope info. Their generated top-level names are registered by
         // dependency templates through the concatenation scope instead.
-        let empty_scope_snapshot = ConcatenationScopeSnapshot::default();
-        let scope_snapshot = module
+        let empty_pending_scope_info = PendingConcatenationScopeInfo::default();
+        let pending_scope_info = module
           .build_info()
-          .concatenation_scope_snapshot
+          .pending_concatenation_scope_info
           .as_deref()
-          .unwrap_or(&empty_scope_snapshot);
+          .unwrap_or(&empty_pending_scope_info);
         module_info.rendered_init_fragments = codegen_res
           .data
           .get::<CodeGenerationDataRenderedInitFragments>()
@@ -3141,7 +3141,7 @@ impl ConcatenatedModule {
           .filter(|fragments| !fragments.start.is_empty() || !fragments.end.is_empty());
         // JavaScript code generation already returns a ReplaceSource whose
         // coordinates are based on the make-time parser source. Keep that
-        // coordinate space so the snapshot spans can be applied directly. The
+        // coordinate space so the pending info spans can be applied directly. The
         // generated source is uniquely owned here, so recover it from the Arc
         // without cloning every dependency replacement.
         let result_source = if rendered_source.as_any().is::<ReplaceSource>() {
@@ -3152,7 +3152,7 @@ impl ConcatenatedModule {
           ReplaceSource::new(rendered_source)
         };
         let original_source = result_source.inner().source().into_string_lossy();
-        Self::populate_info_from_snapshot(scope_snapshot, &original_source, &mut module_info);
+        Self::populate_info_from_pending(pending_scope_info, &original_source, &mut module_info);
         drop(original_source);
         let internal_source = result_source.inner().clone();
         (result_source, internal_source)

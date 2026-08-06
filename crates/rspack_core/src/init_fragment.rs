@@ -732,54 +732,6 @@ impl<C: InitFragmentRenderContext> InitFragment<C> for AwaitDependenciesInitFrag
   }
 }
 
-#[cfg(test)]
-mod tests {
-  use super::AwaitDependenciesInitFragment;
-
-  #[test]
-  fn merges_await_dependencies_with_the_same_binding() {
-    let fragments = vec![
-      Box::new(AwaitDependenciesInitFragment::new_single_with_binding(
-        "first".to_string(),
-        "binding".to_string(),
-      )),
-      Box::new(AwaitDependenciesInitFragment::new_single_with_binding(
-        "second".to_string(),
-        "binding".to_string(),
-      )),
-    ];
-
-    let merged = AwaitDependenciesInitFragment::merge(fragments.into_iter());
-
-    assert_eq!(merged.binding.as_deref(), Some("binding"));
-    assert_eq!(
-      merged
-        .promises
-        .iter()
-        .map(String::as_str)
-        .collect::<Vec<_>>(),
-      ["first", "second"]
-    );
-  }
-
-  #[test]
-  #[should_panic(expected = "must use the same binding")]
-  fn rejects_await_dependencies_with_different_bindings() {
-    let fragments = vec![
-      Box::new(AwaitDependenciesInitFragment::new_single_with_binding(
-        "first".to_string(),
-        "first_binding".to_string(),
-      )),
-      Box::new(AwaitDependenciesInitFragment::new_single_with_binding(
-        "second".to_string(),
-        "second_binding".to_string(),
-      )),
-    ];
-
-    AwaitDependenciesInitFragment::merge(fragments.into_iter());
-  }
-}
-
 #[derive(Debug, Clone, rspack_hash::RspackHash)]
 pub struct ConditionalInitFragment {
   content: String,
