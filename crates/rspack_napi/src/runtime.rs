@@ -125,13 +125,18 @@ where
   with_runtime(|runtime| runtime.spawn(future))
 }
 
-fn with_runtime<R>(f: impl FnOnce(&tokio::runtime::Runtime) -> R) -> R {
+fn with_runtime<R>(f: impl FnOnce(&tokio::runtime::Handle) -> R) -> R {
   start_runtime();
-  let runtime = RUNTIME.read().expect("Read tokio runtime failed");
-  let runtime = runtime
+  // Runtime operations can re-enter through JavaScript callbacks, so release the lock before
+  // executing them instead of holding a read guard across block_on.
+  let handle = RUNTIME
+    .read()
+    .expect("Read tokio runtime failed")
     .as_ref()
-    .expect("Access tokio runtime failed after initialization");
-  f(runtime)
+    .expect("Access tokio runtime failed after initialization")
+    .handle()
+    .clone();
+  f(&handle)
 }
 
 fn start_runtime() {
