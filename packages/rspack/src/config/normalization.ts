@@ -648,6 +648,7 @@ export interface ExperimentsNormalized {
   asyncWebAssembly?: boolean;
   css?: boolean;
   futureDefaults?: boolean;
+  newCache?: boolean;
   buildHttp?: HttpUriPluginOptions;
   useInputFileSystem?: false | RegExp[];
   nativeWatcher?: boolean;
