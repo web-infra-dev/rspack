@@ -6,7 +6,6 @@ use std::{
 
 use futures::future::join_all;
 use rayon::prelude::*;
-use rspack_collections::IdentifierMap;
 use rspack_core::{
   ChunkByUkey, ChunkUkey, Compilation, ExportsInfoArtifact, Module, ModuleIdentifier,
   RuntimeKeyMap, UsageKey, get_runtime_key,
@@ -435,7 +434,6 @@ impl SplitChunksPlugin {
     combinator: &Combinator,
     all_modules: &[ModuleIdentifier],
     cache_groups: Vec<IndexedCacheGroup<'_>>,
-    removed_module_chunks: &IdentifierMap<FxHashSet<ChunkUkey>>,
     compilation: &Compilation,
     module_chunks: &ModuleChunks,
     chunk_index_map: &FxHashMap<ChunkUkey, u32>,
@@ -444,8 +442,8 @@ impl SplitChunksPlugin {
     let module_group_map: FxDashMap<ModuleGroupKey, ModuleGroup> = FxDashMap::default();
     let module_group_results = rspack_parallel::scope::<_, Result<_>>(|token| {
       all_modules.iter().enumerate().for_each(|(module_index, mid)| {
-        let s = unsafe { token.used((&cache_groups, module_index, mid, &module_graph, compilation, &module_group_map, &combinator, module_chunks, removed_module_chunks, chunk_index_map)) };
-        s.spawn(|(cache_groups, module_index, mid, module_graph, compilation, module_group_map, combinator, module_chunks, removed_module_chunks, chunk_index_map)| async move {
+        let s = unsafe { token.used((&cache_groups, module_index, mid, &module_graph, compilation, &module_group_map, &combinator, module_chunks, chunk_index_map)) };
+        s.spawn(|(cache_groups, module_index, mid, module_graph, compilation, module_group_map, combinator, module_chunks, chunk_index_map)| async move {
           let belong_to_chunks = module_chunks
             .get(module_index)
             .expect("should have module chunks");
@@ -453,12 +451,6 @@ impl SplitChunksPlugin {
             return Ok(());
           }
 
-          let removed_chunks = removed_module_chunks.get(mid);
-          if let Some(removed_chunks) = removed_chunks
-            && belong_to_chunks.iter().all(|c| removed_chunks.contains(c))
-          {
-            return Ok(());
-          }
           let module = module_graph.module_by_identifier(mid).expect("should have module").as_ref();
           let mut used_exports_combs = None;
           let mut non_used_exports_combs = None;
@@ -540,14 +532,6 @@ impl SplitChunksPlugin {
               if matches!(&cache_group.chunk_filter, ChunkFilter::All)
                 && matches!(&cache_group.name, ChunkNameGetter::Disabled)
               {
-                if let Some(removed_chunks) = removed_chunks
-                  && chunk_combination
-                    .iter()
-                    .any(|c| removed_chunks.contains(c))
-                {
-                  continue;
-                }
-
                 let mut module_group = {
                   module_group_map
                     .entry(ModuleGroupKey::Anonymous {
@@ -605,11 +589,6 @@ impl SplitChunksPlugin {
                 continue;
               }
 
-              if let Some(removed_chunks) = removed_chunks
-                && selected_chunks.iter().any(|c| removed_chunks.contains(c))
-              {
-                continue;
-              }
               merge_matched_item_into_module_group_map(
                 MatchedItem {
                   module,

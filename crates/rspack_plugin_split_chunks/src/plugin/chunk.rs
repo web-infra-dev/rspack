@@ -190,7 +190,7 @@ impl SplitChunksPlugin {
     }
   }
 
-  /// This de-duplicated each module fro other chunks, make sure there's only one copy of each module.
+  /// Moves eligible modules into `new_chunk` and returns the modules that were actually moved.
   // #[tracing::instrument(skip_all)]
   pub(crate) fn move_modules_to_new_chunk_and_remove_from_old_chunks(
     &self,
@@ -198,7 +198,7 @@ impl SplitChunksPlugin {
     new_chunk: ChunkUkey,
     original_chunks: &FxHashSet<ChunkUkey>,
     compilation: &mut Compilation,
-  ) {
+  ) -> Vec<ModuleIdentifier> {
     let modules = item
       .modules
       .iter()
@@ -226,6 +226,8 @@ impl SplitChunksPlugin {
       .build_chunk_graph_artifact
       .chunk_graph
       .connect_chunk_and_modules(new_chunk, &modules);
+
+    modules
   }
 
   /// Since the modules are moved into the `new_chunk`, we should
