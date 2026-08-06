@@ -1440,7 +1440,7 @@ impl Module for ConcatenatedModule {
         s.spawn(|(module, compilation, runtime, id, info)| async move {
           let concatenation_scope = if let ModuleInfo::Concatenated(info) = info {
             let info = info.as_ref();
-            Some(ConcatenationScope::new(
+            Some(ConcatenationScope::new_with_faster_module_concatenation(
               module.id,
               module_to_info_map.expect("should have module_to_info_map for concatenated module"),
               ConcatenatedModuleInfo {

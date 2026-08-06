@@ -45,6 +45,14 @@ impl ConcatenationScope {
   pub fn new(
     concat_module_id: ModuleIdentifier,
     modules_map: Arc<IdentifierIndexMap<ModuleInfo>>,
+    current_module: ConcatenatedModuleInfo,
+  ) -> Self {
+    Self::new_with_faster_module_concatenation(concat_module_id, modules_map, current_module, false)
+  }
+
+  pub fn new_with_faster_module_concatenation(
+    concat_module_id: ModuleIdentifier,
+    modules_map: Arc<IdentifierIndexMap<ModuleInfo>>,
     mut current_module: ConcatenatedModuleInfo,
     faster_module_concatenation: bool,
   ) -> Self {
@@ -368,7 +376,7 @@ mod tests {
     );
 
     (
-      ConcatenationScope::new(
+      ConcatenationScope::new_with_faster_module_concatenation(
         concat_module_id,
         Arc::new(modules_map),
         current_module,
