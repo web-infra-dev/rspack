@@ -97,6 +97,8 @@ jobs:
         node: ${{ fromJSON(
           inputs.target == 'wasm32-wasip1-threads'&& '[24]'
           || inputs.target == 'riscv64gc-unknown-linux-gnu' && '[22]'
+          || inputs.target == 'powerpc64le-unknown-linux-gnu' && '[22]'
+          || inputs.target == 's390x-unknown-linux-gnu' && '[22]'
           || contains(inputs.target, 'linux') && '[22, 24]'
           || '[22]') }}
     name: Test Node ${{ matrix.node }}

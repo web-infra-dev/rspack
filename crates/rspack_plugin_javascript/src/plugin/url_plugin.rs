@@ -3,9 +3,9 @@
 use concat_string::concat_string;
 use rspack_core::{
   ChunkInitFragments, ChunkUkey, CodeGenerationDataFilename, Compilation, CompilationParams,
-  CompilerCompilation, DependencyId, JavascriptParserUrl, Module, ModuleType,
-  NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, PathData, Plugin, PublicPath,
-  RuntimeCodeTemplate, RuntimeGlobals, RuntimeSpec, SourceType, URLStaticMode,
+  CompilerCompilation, DependencyId, ImportMetaKnownProperties, JavascriptParserUrl, Module,
+  ModuleType, NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, PathData, Plugin,
+  PublicPath, RuntimeCodeTemplate, RuntimeGlobals, RuntimeSpec, SourceType, URLStaticMode,
   get_js_chunk_filename_template, get_undo_path,
   rspack_sources::{BoxSource, ReplaceSource, SourceExt},
 };
@@ -184,6 +184,9 @@ async fn normal_module_factory_parser(
     if !matches!(options.url, Some(JavascriptParserUrl::Disable)) {
       parser.add_parser_plugin(Box::new(crate::parser_plugin::URLPlugin {
         mode: options.url,
+        import_meta_url_enabled: options
+          .import_meta()
+          .is_known_property_enabled(ImportMetaKnownProperties::URL),
       }));
     }
   }

@@ -19,6 +19,8 @@ Latest 是最新的稳定版本，遵循 Semantic Versioning 语义化版本号�
 - x86_64-unknown-linux-gnu
 - aarch64-unknown-linux-gnu
 - riscv64gc-unknown-linux-gnu
+- powerpc64le-unknown-linux-gnu
+- s390x-unknown-linux-gnu
 - x86_64-unknown-linux-musl
 - aarch64-unknown-linux-musl
 - riscv64gc-unknown-linux-musl

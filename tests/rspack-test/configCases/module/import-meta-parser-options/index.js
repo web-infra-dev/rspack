@@ -37,11 +37,15 @@ it("should preserve disabled import.meta fields for runtime evaluation", () => {
 	expect(disabledFields.contextType).toBe("undefined");
 	expect(disabledFields.globType).toBe("undefined");
 	expect(disabledFields.hotType).toBe("undefined");
+	expect(disabledFields.ignoredUrl.pathname.endsWith("external")).toBe(true);
 	expect(disabledFields.destructuredUrl).toBe(disabledFields.url);
 	expect(disabledFields.destructuredWebpack).toBeUndefined();
 
 	const source = fs.readFileSync(__filename, "utf-8");
 	const importMeta = ["import", "meta"].join(".");
+	expect(source).toContain(
+		`new URL(/* rspackIgnore: true */ "external", ${importMeta}.url)`
+	);
 	expect(source).toContain(`${importMeta}.url`);
 	expect(source).toContain(`${importMeta}.webpackContext`);
 	expect(source).toContain(`${importMeta}.glob`);
