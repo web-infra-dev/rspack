@@ -138,7 +138,7 @@ swc                 = { version = "70.0.0", default-features = false }
 swc_atoms           = { version = "9.0.3", default-features = false }
 swc_config          = { version = "5.0.0", default-features = false }
 swc_core            = { version = "72.0.0", default-features = false, features = ["parallel_rayon"] }
-swc_ecma_minifier   = { version = "57.0.0", default-features = false }
+swc_ecma_minifier   = { version = "57.0.1", default-features = false }
 swc_error_reporters = { version = "25.0.0", default-features = false }
 swc_html            = { version = "35.0.0", default-features = false }
 swc_html_minifier   = { version = "57.0.0", default-features = false }
