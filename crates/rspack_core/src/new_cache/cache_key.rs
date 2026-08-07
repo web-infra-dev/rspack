@@ -1,16 +1,10 @@
 use std::{fmt, ops::Deref, sync::Arc};
 
-use rspack_cacheable::cacheable;
-use rspack_util::fx_hash::BuildFxHasher;
-
-pub(super) type CacheKeyHasher = BuildFxHasher;
-
 /// Immutable, reference-counted cache identifier.
 ///
 /// Cloning a key only increments its reference count. The string is released
 /// when its last key is dropped.
-#[cacheable]
-#[derive(Clone, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[derive(Clone, Eq, Hash, PartialEq)]
 pub struct CacheKey(Arc<str>);
 
 impl CacheKey {

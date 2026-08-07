@@ -1,16 +1,13 @@
 use std::{any::Any, fmt, ops::Deref, sync::Arc};
 
-use rspack_cacheable::{cacheable, cacheable_dyn};
+use rspack_cacheable::{
+  __private::rkyv::{Archive, Deserialize, Serialize, bytecheck::CheckBytes},
+  Deserializer, Serializer, Validator, cacheable,
+};
+use rspack_error::Result;
 
 use super::etag::Etag;
-
-/// Actual data stored in [`CacheValue`].
-///
-/// Concrete data types must be cacheable, and their implementations must use
-/// `#[rspack_cacheable::cacheable_dyn]` so they can be restored through this
-/// trait object.
-#[cacheable_dyn]
-pub trait CacheValueData: Any + fmt::Debug + Send + Sync {}
+use crate::cache::persistent::codec::CacheCodec;
 
 /// Shared immutable cache value.
 ///
@@ -23,22 +20,12 @@ impl<T> CacheValue<T> {
     Self(Arc::new(value))
   }
 
-  pub fn from_arc(value: Arc<T>) -> Self {
-    Self(value)
-  }
-
   pub fn as_arc(&self) -> &Arc<T> {
     &self.0
   }
 
   pub fn into_arc(self) -> Arc<T> {
     self.0
-  }
-}
-
-impl<T: CacheValueData> CacheValue<T> {
-  pub(super) fn erase(self) -> ErasedCacheValue {
-    ErasedCacheValue(self.0)
   }
 }
 
@@ -64,32 +51,60 @@ impl<T> Deref for CacheValue<T> {
 
 impl<T> From<Arc<T>> for CacheValue<T> {
   fn from(value: Arc<T>) -> Self {
-    Self::from_arc(value)
+    Self(value)
   }
 }
 
+/// Internal marker automatically implemented for cacheable values.
+pub(crate) trait CacheValueData:
+  Any
+  + Send
+  + Sync
+  + Sized
+  + Archive<Archived: for<'a> CheckBytes<Validator<'a>> + Deserialize<Self, Deserializer>>
+  + for<'a> Serialize<Serializer<'a>>
+{
+}
+
+impl<T> CacheValueData for T
+where
+  T: Any + Send + Sync + Archive + for<'a> Serialize<Serializer<'a>>,
+  T::Archived: for<'a> CheckBytes<Validator<'a>> + Deserialize<T, Deserializer>,
+{
+}
+
+pub(super) type CacheValueEncoder = fn(&CacheEntry, &CacheCodec) -> Result<Vec<u8>>;
+pub(super) type CacheValueDecoder =
+  fn(&[u8], Option<&Etag>, &CacheCodec) -> Result<Option<ErasedCacheValue>>;
+
 /// Type-erased value used only inside the shared cache layers.
-///
-/// Serialization is performed by the filesystem strategy only when the
-/// background job processes idle writes.
-#[cacheable]
 #[derive(Clone)]
-pub(super) struct ErasedCacheValue(Arc<dyn CacheValueData>);
+pub(super) struct ErasedCacheValue(Arc<dyn Any + Send + Sync>);
 
 impl ErasedCacheValue {
-  pub(super) fn downcast<T: CacheValueData>(self) -> Option<CacheValue<T>> {
-    let value: Arc<dyn Any + Send + Sync> = self.0;
-    Arc::downcast(value).ok().map(CacheValue::from_arc)
+  fn new<T: Any + Send + Sync>(value: Arc<T>) -> Self {
+    Self(value)
+  }
+
+  pub(super) fn downcast<T: Any + Send + Sync>(self) -> Option<CacheValue<T>> {
+    Arc::downcast(self.0).ok().map(CacheValue::from)
   }
 }
 
 impl fmt::Debug for ErasedCacheValue {
   fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-    self.0.fmt(formatter)
+    formatter
+      .debug_struct("ErasedCacheValue")
+      .finish_non_exhaustive()
   }
 }
 
 #[cacheable]
+struct StoredCacheEntry<T> {
+  etag: Option<Etag>,
+  value: Arc<T>,
+}
+
 #[derive(Debug)]
 pub(super) struct CacheEntry {
   etag: Option<Etag>,
@@ -101,15 +116,50 @@ impl CacheEntry {
     Self { etag, value }
   }
 
-  pub(super) fn matches(&self, etag: &Option<Etag>) -> bool {
-    &self.etag == etag
+  pub(super) fn matches(&self, etag: Option<&Etag>) -> bool {
+    self.etag.as_ref() == etag
   }
 
   pub(super) fn value(&self) -> &ErasedCacheValue {
     &self.value
   }
+}
 
-  pub(super) fn into_value(self) -> ErasedCacheValue {
-    self.value
+impl<T: CacheValueData> CacheValue<T> {
+  pub(super) fn erase(self) -> ErasedCacheValue {
+    ErasedCacheValue::new(self.0)
   }
+
+  pub(super) fn encoder() -> CacheValueEncoder {
+    encode_cache_entry::<T>
+  }
+
+  pub(super) fn decoder() -> CacheValueDecoder {
+    decode_cache_entry::<T>
+  }
+}
+
+fn encode_cache_entry<T: CacheValueData>(
+  entry: &CacheEntry,
+  codec: &CacheCodec,
+) -> Result<Vec<u8>> {
+  let value = entry
+    .value
+    .0
+    .clone()
+    .downcast::<T>()
+    .map_err(|_| rspack_error::error!("Cache value type mismatch"))?;
+  codec.encode(&StoredCacheEntry {
+    etag: entry.etag.clone(),
+    value,
+  })
+}
+
+fn decode_cache_entry<T: CacheValueData>(
+  bytes: &[u8],
+  etag: Option<&Etag>,
+  codec: &CacheCodec,
+) -> Result<Option<ErasedCacheValue>> {
+  let entry = codec.decode::<StoredCacheEntry<T>>(bytes)?;
+  Ok((entry.etag.as_ref() == etag).then(|| ErasedCacheValue::new(entry.value)))
 }
