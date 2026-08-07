@@ -173,14 +173,11 @@ jobs:
       - name: Build aarch64-apple-darwin
         if: ${{ inputs.target == 'aarch64-apple-darwin' }}
         run: |
-          if [[ "${{ runner.environment == 'github-hosted' }}" == "true" ]]; then
-            # Github runner
-            sudo rm -Rf /Library/Developer/CommandLineTools/SDKs/*;
-          fi
           export CC=$(xcrun -f clang);
           export CXX=$(xcrun -f clang++);
           SYSROOT=$(xcrun --sdk macosx --show-sdk-path);
-          export CFLAGS="-isysroot $SYSROOT -isystem $SYSROOT/usr/include";
+          CLT_SYSROOT=$(DEVELOPER_DIR=/Library/Developer/CommandLineTools xcrun --sdk macosx --show-sdk-path);
+          export CFLAGS="-isysroot $SYSROOT -isystem $CLT_SYSROOT/usr/include";
           RUST_TARGET=${{ inputs.target }} pnpm build:binding:${{ inputs.profile }}
 
       # WASM
