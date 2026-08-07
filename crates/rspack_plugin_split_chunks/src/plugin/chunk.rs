@@ -203,13 +203,12 @@ impl SplitChunksPlugin {
   ) -> Result<()> {
     let mut modules = Vec::with_capacity(item.modules.len());
     for mid in &item.modules {
-      if let Some(module) = compilation.module_by_identifier(mid) {
-        if module_chunk_condition(module.as_ref(), &new_chunk, compilation)
+      if let Some(module) = compilation.module_by_identifier(mid)
+        && module_chunk_condition(module.as_ref(), &new_chunk, compilation)
           .await?
           .is_some_and(|condition| !condition)
-        {
-          continue;
-        }
+      {
+        continue;
       }
       modules.push(*mid);
     }

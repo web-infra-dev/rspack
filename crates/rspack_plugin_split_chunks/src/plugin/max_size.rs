@@ -709,13 +709,12 @@ impl SplitChunksPlugin {
               .chunk_graph
               .add_chunk(new_part_ukey);
 
-            if let Some(module) = compilation.module_by_identifier(&group_node.module) {
-              if module_chunk_condition(module.as_ref(), &new_part_ukey, compilation)
+            if let Some(module) = compilation.module_by_identifier(&group_node.module)
+              && module_chunk_condition(module.as_ref(), &new_part_ukey, compilation)
                 .await?
                 .is_some_and(|condition| !condition)
-              {
-                continue;
-              }
+            {
+              continue;
             }
 
             // Add module to new chunk
