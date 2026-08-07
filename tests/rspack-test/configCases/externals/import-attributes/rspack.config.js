@@ -46,32 +46,9 @@ module.exports = {
               const content = compilation
                 .getAsset('bundle0.mjs')
                 .source.source();
-              const esmImportSpecifier1 = content.match(
-                /import (.+) from "\.\/static-package\.json" with \{"type":"json"\};/,
+              expect(content.replace(/[ \t]+$/gm, '')).toMatchFileSnapshotSync(
+                path.join(__dirname, '__snapshots__', 'bundle0.mjs.txt'),
               );
-              const esmImportSpecifier2 = content.match(
-                /import (.+) from "\.\/static-package\.json";/,
-              );
-              expect(esmImportSpecifier1[1]).not.toBe(esmImportSpecifier2[1]);
-              const getDynamicImportTargetId = (variableName) => {
-                const line = content
-                  .split('\n')
-                  .find((line) =>
-                    line.includes(`const ${variableName} = await`),
-                  );
-                const target =
-                  line?.match(
-                    /\.e\(\/\* import\(\) \*\/ (?:"([^"]+)"|([0-9]+))\)/,
-                  ) ?? line?.match(/\.bind\([^,]+, (?:"([^"]+)"|([0-9]+))\)\)/);
-                return target?.[1] ?? target?.[2];
-              };
-              const dynamicPkgPureTargetId =
-                getDynamicImportTargetId('dynamicPkgPure');
-              const dynamicPkgStrTargetId =
-                getDynamicImportTargetId('dynamicPkgStr');
-              expect(dynamicPkgPureTargetId).toBeDefined();
-              expect(dynamicPkgStrTargetId).toBeDefined();
-              expect(dynamicPkgPureTargetId).not.toBe(dynamicPkgStrTargetId);
             },
           );
         });
