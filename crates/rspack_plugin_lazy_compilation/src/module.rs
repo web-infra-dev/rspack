@@ -207,7 +207,7 @@ impl Module for LazyCompilationProxyModule {
 
       blocks.push(Box::new(AsyncDependenciesBlock::new(
         self.identifier,
-        None,
+        blocks.len(),
         None,
         vec![Box::new(dep)],
         None,

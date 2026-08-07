@@ -438,10 +438,11 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
         }
         let range = DependencyRange::from(import_call_span);
         let loc = parser.to_dependency_location(range);
+        let block_idx = parser.next_block_idx();
         let mut block = AsyncDependenciesBlock::new(
           *parser.module_identifier,
+          block_idx,
           loc,
-          None,
           vec![Box::new(dep)],
           Some(param.string().clone()),
         );
@@ -451,7 +452,6 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
           chunk_prefetch,
           fetch_priority,
         )));
-        let block_idx = parser.next_block_idx();
         parser.add_block(Box::new(block));
         ImportDependencyLocator {
           block_idx: Some(block_idx),

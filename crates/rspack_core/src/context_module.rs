@@ -1439,8 +1439,8 @@ impl Module for ContextModule {
       ));
       let mut block = AsyncDependenciesBlock::new(
         (*self.identifier).into(),
+        blocks.len(),
         Some(loc),
-        None,
         context_element_dependencies
           .into_iter()
           .map(|dep| Box::new(dep) as Box<dyn Dependency>)
@@ -1485,8 +1485,8 @@ impl Module for ContextModule {
         let fetch_priority = group_options.and_then(|o| o.fetch_priority);
         let mut block = AsyncDependenciesBlock::new(
           (*self.identifier).into(),
+          blocks.len(),
           None,
-          Some(&context_element_dependency.user_request.clone()),
           vec![Box::new(context_element_dependency)],
           Some(self.options.context_options.request.clone()),
         );
