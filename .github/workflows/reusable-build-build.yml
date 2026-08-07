@@ -180,7 +180,7 @@ jobs:
           export CC=$(xcrun -f clang);
           export CXX=$(xcrun -f clang++);
           SYSROOT=$(xcrun --sdk macosx --show-sdk-path);
-          export CFLAGS="-isysroot $SYSROOT -isystem $SYSROOT";
+          export CFLAGS="-isysroot $SYSROOT -isystem $SYSROOT/usr/include";
           RUST_TARGET=${{ inputs.target }} pnpm build:binding:${{ inputs.profile }}
 
       # WASM
