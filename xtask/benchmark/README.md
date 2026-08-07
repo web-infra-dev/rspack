@@ -4,10 +4,9 @@ Rust benchmark cases live in `xtask/benchmark/cases` and `xtask/benchmark/stages
 The `rspack_sources` benchmarks live in their own `rspack_sources` benchmark
 target so CodSpeed builds and runs them in a separate binary, isolated from the
 allocator state left behind by the larger compilation benchmark suite.
-The CSS module lexer benchmarks use the Bootstrap and Tailwind fixtures in
-`benches/fixtures/css` and live in a separate `css` benchmark target.
 Walltime-only bundle benchmarks follow the same pattern and live in the
-separate `walltime` benchmark target.
+separate `walltime` benchmark target. This target includes a full CSS bundle
+benchmark using the Bootstrap and Tailwind fixtures in `benches/fixtures/css`.
 
 ## Prepare benchmark fixtures
 
@@ -20,13 +19,14 @@ pnpm run bench:prepare
 The prepare step also creates a local `threejs-10x` fixture by copying the
 upstream `threejs/src` input ten times. This larger input is registered only by
 the isolated `walltime` benchmark target, so regular simulation runs keep using
-the smaller default benchmark set. The `threejs-10x` walltime benchmark writes
-outputs through the native filesystem instead of the in-memory filesystem used
-by the regular bundle benchmarks. Rust benchmark concurrency is selected with
-`BENCH_MODE=simulation|walltime` (default: `simulation`). Walltime bundle
-benchmarks use `BENCH_MODE=walltime`, which caps machine-size-dependent
-parallelism at up to 16 threads for each of Tokio workers, Tokio blocking tasks,
-and Rayon.
+the smaller default benchmark set. It also copies the committed Bootstrap and
+Tailwind fixtures into a local `css` benchmark project. The `threejs-10x` and
+CSS walltime benchmarks write outputs through the native filesystem instead of
+the in-memory filesystem used by the regular bundle benchmarks. Rust benchmark
+concurrency is selected with `BENCH_MODE=simulation|walltime` (default:
+`simulation`). Walltime bundle benchmarks use `BENCH_MODE=walltime`, which caps
+machine-size-dependent parallelism at up to 16 threads for each of Tokio
+workers, Tokio blocking tasks, and Rayon.
 
 ## Run in CI mode
 
@@ -49,16 +49,10 @@ pnpm run build:bench
 The script expands to:
 
 ```bash
-cargo codspeed build -m simulation --profile codspeed -p rspack_benchmark --bench benches --bench css --bench rspack_sources
+cargo codspeed build -m simulation --profile codspeed -p rspack_benchmark --bench benches --bench rspack_sources
 ```
 
-This only builds the benchmark binaries for CodSpeed simulation mode. It does not execute measurements. All three simulation benchmark targets are selected in a single `cargo codspeed build` invocation so the later `cargo codspeed run` step can collect every benchmark suite.
-
-To build only the isolated CSS target:
-
-```bash
-pnpm run build:bench:css
-```
+This only builds the benchmark binaries for CodSpeed simulation mode. It does not execute measurements. Both benchmark targets are selected in a single `cargo codspeed build` invocation so the later `cargo codspeed run` step can collect both benchmark suites.
 
 To build only the isolated `rspack_sources` target:
 

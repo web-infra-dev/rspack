@@ -25,7 +25,6 @@ mimalloc = { workspace = true, features = ["v3"] }
 [dev-dependencies]
 # Make rust analyzer happy
 async-trait                           = { workspace = true }
-css-module-lexer                      = { workspace = true }
 rspack                                = { workspace = true, features = ["codspeed", "full"] }
 rspack_cacheable                      = { workspace = true }
 rspack_collections                    = { workspace = true }
@@ -49,10 +48,6 @@ swc_experimental_ecma_transforms_base = { workspace = true }
 [[bench]]
 harness = false
 name    = "benches"
-
-[[bench]]
-harness = false
-name    = "css"
 
 [[bench]]
 harness = false

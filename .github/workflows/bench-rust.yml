@@ -79,7 +79,7 @@ jobs:
           if [ -n "${{ inputs.bench_target }}" ]; then
             bench_args+=(--bench "${{ inputs.bench_target }}")
           else
-            bench_args+=(--bench benches --bench css --bench rspack_sources)
+            bench_args+=(--bench benches --bench rspack_sources)
           fi
           cargo codspeed build -m ${{ inputs.measurement }} --profile codspeed -p rspack_benchmark "${bench_args[@]}"
 
