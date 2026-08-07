@@ -1,6 +1,7 @@
-// The compiler integration is added after these foundational cache layers.
 #![allow(dead_code)]
 
+mod cache;
+mod cache_facade;
 mod cache_key;
 mod cache_value;
 mod etag;
@@ -8,6 +9,9 @@ mod file_cache_strategy;
 mod idle_file_cache;
 mod memory_cache;
 
+#[allow(unused_imports)]
+pub use cache::Cache;
+pub use cache_facade::{CacheFacade, ItemCacheFacade};
 pub use cache_key::CacheKey;
 pub use cache_value::CacheValue;
 pub use etag::Etag;
