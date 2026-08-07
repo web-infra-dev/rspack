@@ -1,39 +1,47 @@
 use std::{
-  collections::hash_map::DefaultHasher,
   fmt,
   hash::{Hash, Hasher},
 };
 
 use once_cell::sync::OnceCell;
+use rspack_cacheable::{
+  cacheable,
+  utils::PortablePath,
+  with::{As, AsVec},
+};
 use rspack_error::Result;
 use rspack_paths::Utf8PathBuf;
-use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
+use rustc_hash::{FxHashMap, FxHashSet};
 use turbo_persistence::{DbConfig, FamilyConfig, FamilyKind, SerialScheduler, TurboPersistence};
 
-use super::{CacheData, Etag};
+use super::{
+  CacheKey, Etag,
+  cache_value::{CacheEntry, ErasedCacheValue},
+};
+use crate::cache::persistent::codec::CacheCodec;
 
 const CACHE_FAMILY: usize = 0;
 const META_FAMILY: usize = 1;
 const FAMILY_COUNT: usize = 2;
 const BUILD_DEPENDENCIES_KEY: &[u8] = b"build-dependencies";
-const NO_ETAG: u32 = u32::MAX;
 
 type Database = TurboPersistence<SerialScheduler, FAMILY_COUNT>;
 
-#[derive(Debug, Clone)]
-struct CacheEntry {
-  etag: Option<Etag>,
-  data: CacheData,
+#[cacheable]
+struct StoredBuildDependencies {
+  #[cacheable(with=AsVec<As<PortablePath>>)]
+  dependencies: Vec<Utf8PathBuf>,
 }
 
 #[derive(Debug, Default)]
 struct PendingWrites {
-  entries: HashMap<String, CacheEntry>,
-  build_dependencies: HashSet<Utf8PathBuf>,
+  entries: FxHashMap<CacheKey, CacheEntry>,
+  build_dependencies: FxHashSet<Utf8PathBuf>,
 }
 
 /// Filesystem cache implementation scheduled by [`super::IdleFileCache`].
 pub struct FileCacheStrategy {
+  codec: CacheCodec,
   database: OnceCell<Database>,
   database_path: Utf8PathBuf,
   pending_writes: PendingWrites,
@@ -51,8 +59,14 @@ impl fmt::Debug for FileCacheStrategy {
 }
 
 impl FileCacheStrategy {
-  pub fn new(cache_location: Utf8PathBuf, version: &str, readonly: bool) -> Self {
+  pub fn new(
+    cache_location: Utf8PathBuf,
+    version: &str,
+    readonly: bool,
+    codec: CacheCodec,
+  ) -> Self {
     Self {
+      codec,
       database: OnceCell::new(),
       database_path: cache_location.join(version_directory(version)),
       pending_writes: PendingWrites::default(),
@@ -60,11 +74,11 @@ impl FileCacheStrategy {
     }
   }
 
-  pub async fn store(
+  pub(super) async fn store(
     &mut self,
-    identifier: String,
+    key: CacheKey,
     etag: Option<Etag>,
-    data: CacheData,
+    value: ErasedCacheValue,
   ) -> Result<()> {
     if self.readonly {
       return Ok(());
@@ -72,20 +86,25 @@ impl FileCacheStrategy {
     self
       .pending_writes
       .entries
-      .insert(identifier, CacheEntry { etag, data });
+      .insert(key, CacheEntry::new(etag, value));
     Ok(())
   }
 
-  pub async fn restore(&self, identifier: &str, etag: Option<&str>) -> Result<Option<CacheData>> {
-    if let Some(entry) = self.pending_writes.entries.get(identifier) {
-      return Ok((entry.etag.as_deref() == etag).then(|| entry.data.clone()));
+  pub(super) async fn restore(
+    &self,
+    key: CacheKey,
+    etag: Option<Etag>,
+  ) -> Result<Option<ErasedCacheValue>> {
+    if let Some(entry) = self.pending_writes.entries.get(&key) {
+      return Ok(entry.matches(&etag).then(|| entry.value().clone()));
     }
 
-    let key = identifier.as_bytes();
-    let Some(entry) = self.database()?.get(CACHE_FAMILY, &key)? else {
+    let database_key = key.as_bytes();
+    let Some(entry) = self.database()?.get(CACHE_FAMILY, &database_key)? else {
       return Ok(None);
     };
-    decode_cache_entry(&entry, etag)
+    let entry = self.codec.decode::<CacheEntry>(&entry)?;
+    Ok(entry.matches(&etag).then(|| entry.into_value()))
   }
 
   pub async fn store_build_dependencies(&mut self, dependencies: Vec<Utf8PathBuf>) -> Result<()> {
@@ -111,16 +130,16 @@ impl FileCacheStrategy {
     } else {
       let mut dependencies = self.load_build_dependencies()?;
       dependencies.extend(pending.build_dependencies.iter().cloned());
-      Some(encode_build_dependencies(&dependencies)?)
+      Some(self.encode_build_dependencies(dependencies)?)
     };
 
     let database = self.database()?;
     let batch = database.write_batch::<Vec<u8>>()?;
-    for (identifier, entry) in &pending.entries {
+    for (key, entry) in &pending.entries {
       batch.put(
         CACHE_FAMILY as u32,
-        identifier.as_bytes().to_vec(),
-        encode_cache_entry(entry)?.into(),
+        key.as_bytes().to_vec(),
+        self.codec.encode(entry)?.into(),
       )?;
     }
     if let Some(build_dependencies) = build_dependencies {
@@ -173,12 +192,24 @@ impl FileCacheStrategy {
     })
   }
 
-  fn load_build_dependencies(&self) -> Result<HashSet<Utf8PathBuf>> {
+  fn load_build_dependencies(&self) -> Result<FxHashSet<Utf8PathBuf>> {
     let key = BUILD_DEPENDENCIES_KEY;
     let Some(dependencies) = self.database()?.get(META_FAMILY, &key)? else {
-      return Ok(HashSet::default());
+      return Ok(FxHashSet::default());
     };
-    decode_build_dependencies(&dependencies)
+    Ok(
+      self
+        .codec
+        .decode::<StoredBuildDependencies>(&dependencies)?
+        .dependencies
+        .into_iter()
+        .collect(),
+    )
+  }
+
+  fn encode_build_dependencies(&self, dependencies: FxHashSet<Utf8PathBuf>) -> Result<Vec<u8>> {
+    let dependencies = dependencies.into_iter().collect::<Vec<_>>();
+    self.codec.encode(&StoredBuildDependencies { dependencies })
   }
 }
 
@@ -198,99 +229,7 @@ fn database_config() -> DbConfig<FAMILY_COUNT> {
 }
 
 fn version_directory(version: &str) -> String {
-  let mut hasher = DefaultHasher::new();
+  let mut hasher = rustc_hash::FxHasher::default();
   version.hash(&mut hasher);
   format!("{:016x}", hasher.finish())
-}
-
-fn encode_cache_entry(entry: &CacheEntry) -> Result<Vec<u8>> {
-  let etag_len = match &entry.etag {
-    Some(etag) => {
-      u32::try_from(etag.len()).map_err(|_| rspack_error::error!("File cache etag is too large"))?
-    }
-    None => NO_ETAG,
-  };
-  let mut bytes = Vec::with_capacity(
-    size_of::<u32>() + entry.etag.as_ref().map_or(0, |etag| etag.len()) + entry.data.len(),
-  );
-  bytes.extend_from_slice(&etag_len.to_le_bytes());
-  if let Some(etag) = &entry.etag {
-    bytes.extend_from_slice(etag.as_bytes());
-  }
-  bytes.extend_from_slice(&entry.data);
-  Ok(bytes)
-}
-
-fn decode_cache_entry(bytes: &[u8], etag: Option<&str>) -> Result<Option<CacheData>> {
-  let mut offset = 0;
-  let etag_len = read_u32(bytes, &mut offset)?;
-  let stored_etag = if etag_len == NO_ETAG {
-    None
-  } else {
-    let etag = take_bytes(bytes, &mut offset, etag_len as usize)?;
-    Some(
-      std::str::from_utf8(etag)
-        .map_err(|_| rspack_error::error!("File cache contains an invalid etag"))?,
-    )
-  };
-  if stored_etag != etag {
-    return Ok(None);
-  }
-  Ok(Some(bytes[offset..].into()))
-}
-
-fn encode_build_dependencies(dependencies: &HashSet<Utf8PathBuf>) -> Result<Vec<u8>> {
-  let count = u32::try_from(dependencies.len())
-    .map_err(|_| rspack_error::error!("Too many file cache build dependencies"))?;
-  let mut dependencies = dependencies.iter().collect::<Vec<_>>();
-  dependencies.sort_unstable();
-
-  let mut bytes = Vec::new();
-  bytes.extend_from_slice(&count.to_le_bytes());
-  for dependency in dependencies {
-    let dependency = dependency.as_str().as_bytes();
-    let len = u32::try_from(dependency.len())
-      .map_err(|_| rspack_error::error!("File cache build dependency path is too large"))?;
-    bytes.extend_from_slice(&len.to_le_bytes());
-    bytes.extend_from_slice(dependency);
-  }
-  Ok(bytes)
-}
-
-fn decode_build_dependencies(bytes: &[u8]) -> Result<HashSet<Utf8PathBuf>> {
-  let mut offset = 0;
-  let count = read_u32(bytes, &mut offset)?;
-  let mut dependencies = HashSet::default();
-  for _ in 0..count {
-    let len = read_u32(bytes, &mut offset)?;
-    let dependency = take_bytes(bytes, &mut offset, len as usize)?;
-    let dependency = std::str::from_utf8(dependency)
-      .map_err(|_| rspack_error::error!("File cache contains an invalid build dependency"))?;
-    dependencies.insert(dependency.into());
-  }
-  if offset != bytes.len() {
-    return Err(rspack_error::error!(
-      "File cache contains trailing build dependency data"
-    ));
-  }
-  Ok(dependencies)
-}
-
-fn read_u32(bytes: &[u8], offset: &mut usize) -> Result<u32> {
-  let bytes = take_bytes(bytes, offset, size_of::<u32>())?;
-  Ok(u32::from_le_bytes(
-    bytes
-      .try_into()
-      .expect("four bytes should convert to a u32"),
-  ))
-}
-
-fn take_bytes<'a>(bytes: &'a [u8], offset: &mut usize, len: usize) -> Result<&'a [u8]> {
-  let end = offset
-    .checked_add(len)
-    .filter(|end| *end <= bytes.len())
-    .ok_or_else(|| rspack_error::error!("File cache contains truncated data"))?;
-  let value = &bytes[*offset..end];
-  *offset = end;
-  Ok(value)
 }

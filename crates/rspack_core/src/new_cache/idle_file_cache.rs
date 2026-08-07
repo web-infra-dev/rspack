@@ -10,7 +10,10 @@ use tokio::{
   time::Instant as TokioInstant,
 };
 
-use super::{CacheData, Etag, FileCacheStrategy};
+use super::{
+  CacheKey, CacheValue, Etag, FileCacheStrategy,
+  cache_value::{CacheValueData, ErasedCacheValue},
+};
 
 const DEFAULT_IDLE_TIMEOUT: Duration = Duration::from_secs(60);
 const DEFAULT_IDLE_TIMEOUT_FOR_INITIAL_STORE: Duration = Duration::from_secs(5);
@@ -19,15 +22,15 @@ const DEFAULT_IDLE_TIMEOUT_AFTER_LARGE_CHANGES: Duration = Duration::from_secs(1
 #[derive(Debug)]
 enum Command {
   Store {
-    identifier: String,
+    key: CacheKey,
     etag: Option<Etag>,
-    data: CacheData,
+    value: ErasedCacheValue,
   },
   StoreBuildDependencies(Vec<Utf8PathBuf>),
   Restore {
-    identifier: String,
+    key: CacheKey,
     etag: Option<Etag>,
-    result: oneshot::Sender<Result<Option<CacheData>>>,
+    result: oneshot::Sender<Result<Option<ErasedCacheValue>>>,
   },
   RecordBuildTime(Duration),
   BeginIdle,
@@ -74,12 +77,8 @@ impl BackgroundJob {
 
   async fn handle_command(&mut self, command: Command) -> bool {
     match command {
-      Command::Store {
-        identifier,
-        etag,
-        data,
-      } => {
-        if let Err(error) = self.strategy.store(identifier, etag, data).await {
+      Command::Store { key, etag, value } => {
+        if let Err(error) = self.strategy.store(key, etag, value).await {
           tracing::warn!("Storing file cache item failed: {error}");
         }
       }
@@ -88,12 +87,8 @@ impl BackgroundJob {
           tracing::warn!("Storing file cache build dependencies failed: {error}");
         }
       }
-      Command::Restore {
-        identifier,
-        etag,
-        result,
-      } => {
-        let _ = result.send(self.strategy.restore(&identifier, etag.as_deref()).await);
+      Command::Restore { key, etag, result } => {
+        let _ = result.send(self.strategy.restore(key, etag).await);
       }
       Command::RecordBuildTime(build_time) => {
         self.time_spent_in_build = self
@@ -220,22 +215,25 @@ impl IdleFileCache {
       .map_err(|_| rspack_error::error!("Idle file cache background job has stopped"))?
   }
 
-  pub fn store(&self, identifier: impl Into<String>, etag: Option<Etag>, data: CacheData) {
+  pub fn store<T: CacheValueData>(&self, key: CacheKey, etag: Option<Etag>, value: CacheValue<T>) {
     self.send(Command::Store {
-      identifier: identifier.into(),
+      key,
       etag,
-      data,
+      value: value.erase(),
     });
   }
 
-  pub async fn restore(&self, identifier: &str, etag: Option<&str>) -> Result<Option<CacheData>> {
-    self
-      .request(|result| Command::Restore {
-        identifier: identifier.to_string(),
-        etag: etag.map(Into::into),
-        result,
-      })
-      .await
+  pub async fn restore<T: CacheValueData>(
+    &self,
+    key: CacheKey,
+    etag: Option<Etag>,
+  ) -> Result<Option<CacheValue<T>>> {
+    Ok(
+      self
+        .request(|result| Command::Restore { key, etag, result })
+        .await?
+        .and_then(ErasedCacheValue::downcast),
+    )
   }
 
   pub fn store_build_dependencies(&self, dependencies: Vec<Utf8PathBuf>) {
