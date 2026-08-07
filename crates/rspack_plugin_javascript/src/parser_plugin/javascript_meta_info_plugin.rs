@@ -19,6 +19,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for JavascriptMetaInfoPlugin {
     for_name: &str,
   ) -> Option<bool> {
     if for_name == "eval" {
+      parser.build_info.access_module_exports = true;
       parser.build_info.module_concatenation_bailout = Some("eval()".into());
       if let Some(top_level_symbol) = parser.inner_graph.get_top_level_symbol() {
         parser.inner_graph.add_usage(
