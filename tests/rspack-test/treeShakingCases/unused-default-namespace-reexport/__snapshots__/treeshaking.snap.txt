@@ -1,3 +1,0 @@
-```js title=main.js
-empty pure expression: false
-```

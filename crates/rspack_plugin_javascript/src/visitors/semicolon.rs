@@ -78,65 +78,65 @@ impl<'a> InsertedSemicolons<'a> {
   }
 }
 
-impl<'ast> Visit<'ast> for InsertedSemicolons<'_> {
-  fn visit_expr_stmt(&mut self, n: &ExprStmt<'ast>) {
+impl<'a> Visit<'a> for InsertedSemicolons<'_> {
+  fn visit_expr_stmt(&mut self, n: &ExprStmt<'a>) {
     self.post_semi(&n.span);
     n.visit_children_with(self)
   }
 
-  fn visit_var_decl(&mut self, n: &VarDecl<'ast>) {
+  fn visit_var_decl(&mut self, n: &VarDecl<'a>) {
     self.post_semi(&n.span);
     n.visit_children_with(self)
   }
 
-  fn visit_update_expr(&mut self, n: &UpdateExpr<'ast>) {
+  fn visit_update_expr(&mut self, n: &UpdateExpr<'a>) {
     self.semi(&n.span);
     n.visit_children_with(self)
   }
 
-  fn visit_continue_stmt(&mut self, n: &ContinueStmt<'ast>) {
+  fn visit_continue_stmt(&mut self, n: &ContinueStmt<'a>) {
     self.post_semi(&n.span);
     n.visit_children_with(self)
   }
 
-  fn visit_break_stmt(&mut self, n: &BreakStmt<'ast>) {
+  fn visit_break_stmt(&mut self, n: &BreakStmt<'a>) {
     self.post_semi(&n.span);
     n.visit_children_with(self)
   }
 
-  fn visit_return_stmt(&mut self, n: &ReturnStmt<'ast>) {
+  fn visit_return_stmt(&mut self, n: &ReturnStmt<'a>) {
     self.post_semi(&n.span);
     n.visit_children_with(self)
   }
 
-  fn visit_throw_stmt(&mut self, n: &ThrowStmt<'ast>) {
+  fn visit_throw_stmt(&mut self, n: &ThrowStmt<'a>) {
     self.post_semi(&n.span);
     n.visit_children_with(self)
   }
 
-  fn visit_yield_expr(&mut self, n: &YieldExpr<'ast>) {
+  fn visit_yield_expr(&mut self, n: &YieldExpr<'a>) {
     self.post_semi(&n.span);
     if let Some(arg) = &n.arg {
       arg.visit_children_with(self)
     }
   }
 
-  fn visit_import_decl(&mut self, n: &ImportDecl<'ast>) {
+  fn visit_import_decl(&mut self, n: &ImportDecl<'a>) {
     self.post_semi(&n.span);
     n.visit_children_with(self)
   }
 
-  fn visit_named_export(&mut self, n: &NamedExport<'ast>) {
+  fn visit_named_export(&mut self, n: &NamedExport<'a>) {
     self.post_semi(&n.span);
     n.visit_children_with(self)
   }
 
-  fn visit_export_default_expr(&mut self, n: &ExportDefaultExpr<'ast>) {
+  fn visit_export_default_expr(&mut self, n: &ExportDefaultExpr<'a>) {
     self.post_semi(&n.span);
     n.visit_children_with(self)
   }
 
-  fn visit_export_all(&mut self, n: &ExportAll<'ast>) {
+  fn visit_export_all(&mut self, n: &ExportAll<'a>) {
     self.post_semi(&n.span);
     n.visit_children_with(self)
   }
@@ -146,7 +146,7 @@ impl<'ast> Visit<'ast> for InsertedSemicolons<'_> {
     n.visit_children_with(self);
   }
 
-  fn visit_class_member(&mut self, n: &ClassMember<'ast>) {
+  fn visit_class_member(&mut self, n: &ClassMember<'a>) {
     match n {
       ClassMember::ClassProp(prop) => self.post_semi(&prop.span),
       ClassMember::PrivateProp(prop) => self.post_semi(&prop.span),

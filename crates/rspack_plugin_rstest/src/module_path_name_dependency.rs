@@ -21,18 +21,8 @@ pub struct ModulePathNameDependency {
 }
 
 impl ModulePathNameDependency {
-  pub fn new(r#type: NameType) -> Self {
-    Self {
-      r#type,
-      range: None,
-    }
-  }
-
-  pub fn new_with_range(r#type: NameType, range: DependencyRange) -> Self {
-    Self {
-      r#type,
-      range: Some(range),
-    }
+  pub fn new(r#type: NameType, range: Option<DependencyRange>) -> Self {
+    Self { r#type, range }
   }
 }
 
