@@ -568,13 +568,15 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InnerGraphParserPlugin {
           .inner_graph
           .class_with_top_level_symbol
           .insert(init.span(), v);
-      } else if is_pure_expression(
-        parser,
-        self.analyze_pure_annotation,
-        init,
-        parser.ast.comments,
-        Some(&mut callees),
-      ) {
+      } else if !init.is_class()
+        && is_pure_expression(
+          parser,
+          self.analyze_pure_annotation,
+          init,
+          parser.ast.comments,
+          Some(&mut callees),
+        )
+      {
         let v = Self::tag_top_level_symbol(parser, &name);
         for (symbol, span) in callees {
           v.add_depend_on(&mut parser.inner_graph, symbol, span);
