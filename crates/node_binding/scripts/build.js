@@ -54,8 +54,9 @@ async function build() {
 		const supportsJemallocProfiling = target
 			? !target.includes("windows-msvc")
 				&& !target.startsWith("wasm32")
+				&& !target.includes("apple")
 				&& !target.startsWith("s390x")
-			: process.platform !== "win32" && process.arch !== "s390x";
+			: process.platform !== "win32" && process.platform !== "darwin" && process.arch !== "s390x";
 		if (values.profile) {
 			args.push("--profile", values.profile);
 		}
