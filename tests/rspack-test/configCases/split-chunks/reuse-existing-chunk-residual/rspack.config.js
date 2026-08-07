@@ -47,7 +47,8 @@ module.exports = {
 
             expect(reusableChunk).toBeDefined();
             expect(lowerPriorityChunk).toBeNull();
-            expect(utilChunks).toEqual([reusableChunk]);
+            expect(utilChunks).toHaveLength(1);
+            expect(utilChunks).toContain(reusableChunk);
           });
         },
       );

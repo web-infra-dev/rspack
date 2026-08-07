@@ -1,3 +1,4 @@
 import beta from "./beta";
+import gamma from "./gamma";
 
-export default `B:${beta}`;
+export default `B:${beta}:${gamma}`;

@@ -9,7 +9,7 @@ module.exports = {
       minSize: 0,
       maxAsyncRequests: Infinity,
       cacheGroups: {
-        // Raise A1/A2 to two requests so namedGroup keeps only B1/B2.
+        // Raise A1/A2 to two requests so namedGroup keeps only B1/B2/C.
         preSplit: {
           test: /[\\/]prelude\.js$/,
           chunks: 'all',
@@ -23,6 +23,14 @@ module.exports = {
           minChunks: 2,
           maxAsyncRequests: 2,
           name: 'shared_named',
+          priority: 100,
+        },
+        // Alpha is not moved by namedGroup and must remain in this same-priority candidate.
+        samePriority: {
+          test: /[\\/](alpha|gamma)\.js$/,
+          chunks: 'all',
+          minChunks: 2,
+          name: 'same_priority',
           priority: 100,
         },
         default: {
@@ -51,14 +59,20 @@ module.exports = {
             );
 
           const sharedNamed = compilation.namedChunks.get('shared_named');
+          const samePriority = compilation.namedChunks.get('same_priority');
           const alphaChunks = chunksContaining('alpha');
           const betaChunks = chunksContaining('beta');
+          const gammaChunks = chunksContaining('gamma');
 
           expect(compilation.namedChunks.get('pre_split')).toBeDefined();
           expect(sharedNamed).toBeDefined();
+          expect(samePriority).toBeDefined();
           expect(alphaChunks).toHaveLength(1);
-          expect(alphaChunks).not.toContain(sharedNamed);
-          expect(betaChunks).toEqual([sharedNamed]);
+          expect(alphaChunks).toContain(samePriority);
+          expect(betaChunks).toHaveLength(1);
+          expect(betaChunks).toContain(sharedNamed);
+          expect(gammaChunks).toHaveLength(1);
+          expect(gammaChunks).toContain(samePriority);
         });
       });
     },

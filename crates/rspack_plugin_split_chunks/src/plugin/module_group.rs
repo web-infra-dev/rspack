@@ -6,6 +6,7 @@ use std::{
 
 use futures::future::join_all;
 use rayon::prelude::*;
+use rspack_collections::IdentifierSet;
 use rspack_core::{
   ChunkByUkey, ChunkUkey, Compilation, ExportsInfoArtifact, Module, ModuleIdentifier,
   RuntimeKeyMap, UsageKey, get_runtime_key,
@@ -628,7 +629,7 @@ impl SplitChunksPlugin {
   // #[tracing::instrument(skip_all)]
   pub(crate) fn remove_all_modules_from_other_module_groups(
     &self,
-    current_module_group: &ModuleGroup,
+    moved_modules: &IdentifierSet,
     module_group_map: &mut ModuleGroupMap,
     used_chunks: &FxHashSet<ChunkUkey>,
     compilation: &Compilation,
@@ -645,10 +646,10 @@ impl SplitChunksPlugin {
 
         let module_count = other_module_group.modules.len();
 
-        let duplicated_modules = if other_module_group.modules.len() > current_module_group.modules.len() {
-          current_module_group.modules.intersection(&other_module_group.modules).copied().collect::<Vec<_>>()
+        let duplicated_modules = if other_module_group.modules.len() > moved_modules.len() {
+          moved_modules.intersection(&other_module_group.modules).copied().collect::<Vec<_>>()
         } else {
-          other_module_group.modules.intersection(&current_module_group.modules).copied().collect::<Vec<_>>()
+          other_module_group.modules.intersection(moved_modules).copied().collect::<Vec<_>>()
         };
 
         for module in duplicated_modules {
@@ -668,7 +669,7 @@ impl SplitChunksPlugin {
         }
 
         tracing::trace!("other_module_group: {other_module_group:#?}");
-        tracing::trace!("item.modules: {:#?}", current_module_group.modules);
+        tracing::trace!("moved_modules: {moved_modules:#?}");
 
         // Since there are modules removed, make sure the rest of chunks are all used.
         other_module_group.chunks.retain(|c| {

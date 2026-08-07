@@ -310,7 +310,7 @@ impl SplitChunksPlugin {
         self.split_from_original_chunks(&module_group, &used_chunks, new_chunk, compilation);
 
         self.remove_all_modules_from_other_module_groups(
-          &module_group,
+          &moved_modules,
           &mut module_group_map,
           &used_chunks,
           compilation,
@@ -320,13 +320,24 @@ impl SplitChunksPlugin {
         if index != priority_len - 1 {
           // Only the chunks actually used by this split are unavailable to lower priorities.
           // `ensure_max_request_fit` may have removed chunks from `module_group.chunks`.
-          for module in moved_modules {
-            let removed_chunks = removed_module_chunks.entry(module).or_default();
+          for module in &moved_modules {
+            let removed_chunks = removed_module_chunks.entry(*module).or_default();
             removed_chunks.extend(used_chunks.iter().copied());
-            if is_reuse_existing_chunk {
-              // The reused destination was removed from `module_group.chunks`, but it is still a
-              // consumed original module-chunk edge and must not become a residual candidate.
-              removed_chunks.insert(new_chunk);
+          }
+          if is_reuse_existing_chunk {
+            // Moving from the reused destination is unnecessary, so it is absent from both
+            // `used_chunks` and possibly `moved_modules`. Record every module already present in
+            // the destination to keep that original edge unavailable to lower priorities.
+            let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
+            for module in module_group
+              .modules
+              .iter()
+              .filter(|module| chunk_graph.is_module_in_chunk(module, new_chunk))
+            {
+              removed_module_chunks
+                .entry(*module)
+                .or_default()
+                .insert(new_chunk);
             }
           }
         }

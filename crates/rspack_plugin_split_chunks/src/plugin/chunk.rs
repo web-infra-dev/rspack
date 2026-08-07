@@ -1,4 +1,5 @@
 use rayon::prelude::*;
+use rspack_collections::IdentifierSet;
 use rspack_core::{
   Chunk, ChunkSplitData, ChunkUkey, Compilation, ModuleIdentifier, incremental::Mutation,
 };
@@ -198,7 +199,7 @@ impl SplitChunksPlugin {
     new_chunk: ChunkUkey,
     original_chunks: &FxHashSet<ChunkUkey>,
     compilation: &mut Compilation,
-  ) -> Vec<ModuleIdentifier> {
+  ) -> IdentifierSet {
     let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
     let modules = item
       .modules
@@ -219,19 +220,20 @@ impl SplitChunksPlugin {
         true
       })
       .copied()
-      .collect::<Vec<_>>();
+      .collect::<IdentifierSet>();
 
     let chunks = original_chunks.iter().copied().collect::<Vec<_>>();
+    let module_identifiers = modules.iter().copied().collect::<Vec<_>>();
 
     compilation
       .build_chunk_graph_artifact
       .chunk_graph
-      .disconnect_chunks_and_modules(&chunks, &modules);
+      .disconnect_chunks_and_modules(&chunks, &module_identifiers);
 
     compilation
       .build_chunk_graph_artifact
       .chunk_graph
-      .connect_chunk_and_modules(new_chunk, &modules);
+      .connect_chunk_and_modules(new_chunk, &module_identifiers);
 
     modules
   }
