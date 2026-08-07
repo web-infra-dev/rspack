@@ -666,12 +666,11 @@ export default {
 
 ### javascript.createRequire
 
-<PropertyType
-  type="boolean | string"
-  defaultValueList={[{ defaultValue: 'false' }]}
-/>
+<PropertyType type="boolean | string" />
 
 控制 Rspack 是否解析来自 Node.js `module` 的 `createRequire()`，并将创建出的 `require` 函数转换为可静态分析的依赖上下文。
+
+对于兼容 Node.js 的 target，除非将 `javascript.requireResolve` 设置为 `false`，否则该选项默认为 `true`。对于其他 target，该选项默认为 `false`。
 
 当设置为 `true` 时，等价于 `"createRequire from module"`。对于这种默认形式，Rspack 会同时识别来自 `module` 和 `node:module` 的导入。
 
