@@ -1,0 +1,7 @@
+interface:
+  display_name: 'Rstack CLI Best Practices'
+  short_description: 'Apply best practices for the Rstack CLI'
+  default_prompt: 'Use $rstack-cli-best-practices to apply Rstack CLI best practices to the requested workflow or configuration.'
+
+policy:
+  allow_implicit_invocation: false
