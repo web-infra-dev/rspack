@@ -1,7 +1,9 @@
+use std::cmp::Reverse;
+
 use rspack_hash::{RspackHash, RspackHasher};
 use rspack_sources::{BoxSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt};
 use rspack_util::SpanExt;
-use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
+use rustc_hash::FxHashSet as HashSet;
 use smallvec::SmallVec;
 use swc_core::{
   atoms::Atom,
@@ -11,7 +13,6 @@ use swc_core::{
 
 use super::{
   CONCATENATION_PLACEHOLDER_PREFIX, ConcatenatedModuleInfo, FasterModuleConcatenationInfo,
-  GeneratedTopLevelSymbol, MODULE_REFERENCE_PREFIX, MODULE_REFERENCE_SUFFIX,
   OriginalScopeIdentUpdate,
 };
 use crate::{
@@ -19,32 +20,32 @@ use crate::{
   PendingConcatenationScopeInfo, RenderedInitFragments,
 };
 
-struct PlaceholderReplacements<'a> {
+type PlaceholderReplacement<'a> = (&'a str, &'a str);
+
+fn collect_placeholder_replacements<'a>(
+  info: &'a ConcatenatedModuleInfo,
   module_references: &'a [(String, String)],
-  generated_symbols: &'a [GeneratedTopLevelSymbol],
-  internal_names: &'a HashMap<Atom, Atom>,
-}
-
-impl PlaceholderReplacements<'_> {
-  fn is_empty(&self) -> bool {
-    self.module_references.is_empty() && self.generated_symbols.is_empty()
-  }
-
-  fn get<'a>(&'a self, placeholder: &str) -> Option<&'a str> {
-    self
-      .module_references
+) -> Vec<PlaceholderReplacement<'a>> {
+  let mut replacements =
+    Vec::with_capacity(module_references.len() + info.generated_top_level_symbols.len());
+  replacements.extend(
+    module_references
       .iter()
-      .find(|(candidate, _)| candidate == placeholder)
-      .map(|(_, name)| name.as_str())
-      .or_else(|| {
-        self
-          .generated_symbols
-          .iter()
-          .find(|symbol| symbol.placeholder == placeholder)
-          .and_then(|symbol| self.internal_names.get(&symbol.placeholder))
-          .map(Atom::as_str)
-      })
-  }
+      .map(|(placeholder, name)| (placeholder.as_str(), name.as_str())),
+  );
+  replacements.extend(
+    info
+      .generated_top_level_symbols
+      .iter()
+      .filter_map(|symbol| {
+        info
+          .internal_names
+          .get(&symbol.placeholder)
+          .map(|name| (symbol.placeholder.as_ref(), name.as_ref()))
+      }),
+  );
+  replacements.sort_unstable_by_key(|(placeholder, _)| Reverse(placeholder.len()));
+  replacements
 }
 
 pub(super) fn is_plain_identifier_name(name: &str) -> bool {
@@ -253,127 +254,81 @@ pub(crate) fn populate_info_from_pending(
   }
 }
 
-fn apply_placeholder_replacements(source: &mut String, replacements: &PlaceholderReplacements<'_>) {
-  if replacements.is_empty() || !source.contains(CONCATENATION_PLACEHOLDER_PREFIX) {
+fn scan_placeholder_replacements<'a>(
+  source: &str,
+  replacements: &[PlaceholderReplacement<'a>],
+  mut on_match: impl FnMut(usize, usize, &'a str),
+) {
+  if replacements.is_empty() {
     return;
   }
-  if let Some((end, value)) = find_placeholder_replacement(source, 0, replacements)
-    && end == source.len()
-  {
-    source.clear();
-    source.push_str(value);
-    return;
-  }
-  let mut output = String::with_capacity(source.len());
   let mut cursor = 0;
-  let mut changed = false;
   while let Some(offset) = source[cursor..].find(CONCATENATION_PLACEHOLDER_PREFIX) {
     let start = cursor + offset;
-    output.push_str(&source[cursor..start]);
-    if let Some((end, value)) = find_placeholder_replacement(source, start, replacements) {
-      output.push_str(value);
+    if let Some(&(placeholder, value)) = replacements
+      .iter()
+      .find(|(placeholder, _)| source[start..].starts_with(*placeholder))
+    {
+      let end = start + placeholder.len();
+      on_match(start, end, value);
       cursor = end;
-      changed = true;
     } else {
-      output.push_str(CONCATENATION_PLACEHOLDER_PREFIX);
       cursor = start + CONCATENATION_PLACEHOLDER_PREFIX.len();
     }
   }
-  if !changed {
+}
+
+fn apply_placeholder_replacements(
+  source: &mut String,
+  replacements: &[PlaceholderReplacement<'_>],
+) {
+  let mut matches = Vec::new();
+  scan_placeholder_replacements(source, replacements, |start, end, value| {
+    matches.push((start, end, value));
+  });
+  if matches.is_empty() {
     return;
+  }
+
+  let mut output = String::with_capacity(source.len());
+  let mut cursor = 0;
+  for (start, end, value) in matches {
+    output.push_str(&source[cursor..start]);
+    output.push_str(value);
+    cursor = end;
   }
   output.push_str(&source[cursor..]);
   *source = output;
 }
 
-fn find_placeholder_replacement<'a>(
-  source: &str,
-  start: usize,
-  replacements: &'a PlaceholderReplacements<'_>,
-) -> Option<(usize, &'a str)> {
-  let candidate = &source[start..];
-  if candidate.starts_with(MODULE_REFERENCE_PREFIX) {
-    let len = candidate.find(MODULE_REFERENCE_SUFFIX)? + MODULE_REFERENCE_SUFFIX.len();
-    return replacements
-      .get(&candidate[..len])
-      .map(|value| (start + len, value));
-  }
-
-  replacements
-    .generated_symbols
-    .iter()
-    .find(|symbol| candidate.starts_with(symbol.placeholder.as_ref()))
-    .and_then(|symbol| {
-      replacements
-        .internal_names
-        .get(&symbol.placeholder)
-        .map(|value| (start + symbol.placeholder.len(), value.as_ref()))
-    })
-}
-
 fn apply_placeholder_replacements_to_source(
   source: ReplaceSource,
-  replacements: &PlaceholderReplacements<'_>,
+  replacements: &[PlaceholderReplacement<'_>],
 ) -> ReplaceSource {
-  if replacements.is_empty() {
-    return source;
-  }
-  // JavaScript placeholders are emitted by dependency templates and live in
-  // replacement contents, each of which is emitted as one rope chunk. Apply
-  // their replacements in the rendered coordinate space by wrapping the
-  // original ReplaceSource.
-  if !source.replacements().is_empty() {
-    let mut rendered_offset = 0usize;
-    let mut rendered_replacements = Vec::new();
-    source.rope(&mut |chunk| {
-      let mut cursor = 0;
-      while let Some(offset) = chunk[cursor..].find(CONCATENATION_PLACEHOLDER_PREFIX) {
-        let start = cursor + offset;
-        if let Some((end, value)) = find_placeholder_replacement(chunk, start, replacements) {
-          rendered_replacements.push((
-            (rendered_offset + start) as u32,
-            (rendered_offset + end) as u32,
-            value.to_string(),
-          ));
-          cursor = end;
-        } else {
-          cursor = start + CONCATENATION_PLACEHOLDER_PREFIX.len();
-        }
-      }
-      rendered_offset += chunk.len();
+  // Placeholders are emitted atomically by generators and dependency
+  // templates, so each token is contained in one rope chunk. Apply all matches
+  // in rendered coordinates through one outer ReplaceSource.
+  let mut rendered_offset = 0usize;
+  let mut rendered_replacements = Vec::new();
+  source.rope(&mut |chunk| {
+    scan_placeholder_replacements(chunk, replacements, |start, end, value| {
+      rendered_replacements.push((
+        (rendered_offset + start) as u32,
+        (rendered_offset + end) as u32,
+        value,
+      ));
     });
-    if rendered_replacements.is_empty() {
-      return source;
-    }
-    let mut rendered_source = ReplaceSource::new(source);
-    for (start, end, value) in rendered_replacements {
-      rendered_source.replace(start, end, value, None);
-    }
-    return rendered_source;
-  }
+    rendered_offset += chunk.len();
+  });
 
-  // Replacement-free sources come from generators such as JSON and assets,
-  // where placeholders can be in the generated body.
-  let mut source = source;
-  let inner = source.inner().source().into_string_lossy();
-  if !inner.contains(CONCATENATION_PLACEHOLDER_PREFIX) {
+  if rendered_replacements.is_empty() {
     return source;
   }
-
-  // Keep the common no-placeholder path borrowed. Only materialize a String
-  // when generated code put a placeholder directly into the inner source.
-  let inner = inner.into_owned();
-  let mut cursor = 0;
-  while let Some(offset) = inner[cursor..].find(CONCATENATION_PLACEHOLDER_PREFIX) {
-    let start = cursor + offset;
-    if let Some((end, value)) = find_placeholder_replacement(&inner, start, replacements) {
-      source.replace(start as u32, end as u32, value.to_string(), None);
-      cursor = end;
-    } else {
-      cursor = start + CONCATENATION_PLACEHOLDER_PREFIX.len();
-    }
+  let mut rendered_source = ReplaceSource::new(source);
+  for (start, end, value) in rendered_replacements {
+    rendered_source.replace(start, end, value.to_string(), None);
   }
-  source
+  rendered_source
 }
 
 pub(super) fn render_concatenated_module_source(
@@ -383,11 +338,7 @@ pub(super) fn render_concatenated_module_source(
 ) -> BoxSource {
   let source = info.source.take().expect("should have source");
   let fragments = info.rendered_init_fragments.take();
-  let replacements = PlaceholderReplacements {
-    module_references: module_reference_replacements,
-    generated_symbols: &info.generated_top_level_symbols,
-    internal_names: &info.internal_names,
-  };
+  let replacements = collect_placeholder_replacements(info, module_reference_replacements);
   if fragments.is_none() && replacements.is_empty() {
     return source.boxed();
   }
