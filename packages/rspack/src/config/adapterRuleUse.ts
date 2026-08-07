@@ -170,15 +170,16 @@ export interface LoaderContext<OptionsType = {}> {
    */
   async(): LoaderContextCallback;
   /**
-   * A function that can be called synchronously or asynchronously in order to return multiple
-   * results. The expected arguments are:
+   * A function that can be called synchronously or asynchronously to return multiple results.
+   * The expected arguments are:
    *
-   * 1. The first parameter must be `Error` or `null`, which marks the current module as a
-   * compilation failure.
-   * 2. The second argument is a `string` or `Buffer`, which indicates the contents of the file
-   * after the module has been processed by the loader.
-   * 3. The third parameter is a source map that can be processed by the loader.
-   * 4. The fourth parameter is ignored by Rspack and can be anything (e.g. some metadata).
+   * 1. The first parameter is an `Error` when the loader fails, or `null` or `undefined` when it
+   * succeeds.
+   * 2. The second parameter is the transformed content as a `string` or `Buffer`. It can be
+   * omitted when reporting an error.
+   * 3. The third parameter is an optional source map as a `string` or `RawSourceMap`.
+   * 4. The fourth parameter is optional additional data. Rspack passes it as the third argument
+   * to the next loader in the chain.
    */
   callback: LoaderContextCallback;
   /**
@@ -326,7 +327,10 @@ export interface LoaderContext<OptionsType = {}> {
    */
   addMissingDependency(missing: string): void;
   /**
-   * Removes all dependencies of the loader result.
+   * Clears all file, context, and missing dependencies collected by the loader chain. Build
+   * dependencies are not cleared. This also resets `cacheable` to `true`, overriding any earlier
+   * call to `this.cacheable(false)`. Only use this method when the current loader will register
+   * every dependency required by the final result.
    */
   clearDependencies(): void;
   /**
