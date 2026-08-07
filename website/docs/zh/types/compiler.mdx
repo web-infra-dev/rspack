@@ -7,7 +7,7 @@ type Compiler = {
   outputFileSystem: OutputFileSystem | null;
   watchFileSystem: WatchFileSystem | null;
   options: RspackOptionsNormalized;
-  watching: Watching;
+  watching?: Watching;
   target: {
     esVersion?: number | null;
     targets?: Record<string, string> | null;
@@ -18,7 +18,13 @@ type Compiler = {
     watchOptions: Watchpack.WatchOptions,
     handler: liteTapable.Callback<Error, Stats>,
   ): Watching;
-  run(callback: liteTapable.Callback<Error, Stats>): void;
+  run(
+    callback: liteTapable.Callback<Error, Stats>,
+    options?: {
+      modifiedFiles?: ReadonlySet<string>;
+      removedFiles?: ReadonlySet<string>;
+    },
+  ): void;
   runAsChild(
     callback: (
       err?: null | Error,

@@ -110,7 +110,7 @@ updateAsset(
   source: Source | ((source: Source) => Source), // 变更后的产物内容 或 产物内容获取函数
   info?: // 变更后的产物信息 或 产物信息获取函数
     | AssetInfo
-    | ((assetInfo: AssetInfo) => AssetInfo)
+    | ((assetInfo: AssetInfo) => AssetInfo | undefined)
 ): void;
 ```
 
@@ -192,7 +192,7 @@ compiler.hooks.thisCompilation.tap('MyPlugin', (compilation) => {
 
 ```ts
 getAssets(): ReadonlyArray<{
-  filename: string; // 产物文件名
+  name: string; // 产物文件名
   source: Source; // 产物内容
   info: AssetInfo; // 产物信息
 }>;
@@ -236,9 +236,9 @@ compiler.hooks.compilation.tap('MyPlugin', (compilation) => {
 
 ```ts
 getAsset(
-  filename: string // 产物文件名
+  name: string // 产物文件名
 ): Readonly<{
-  filename: string; // 产物文件名
+  name: string; // 产物文件名
   source: Source; // 产物内容
   info: AssetInfo; // 产物信息
 }> | void;
