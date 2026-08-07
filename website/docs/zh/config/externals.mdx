@@ -538,10 +538,7 @@ async function foo() {
 export default {
   externalsType: 'module-import',
   externals: [
-    function (
-      { request, dependencyType },
-      callback
-    ) {
+    function ({ request, dependencyType }, callback) {
       if (dependencyType === 'commonjs') {
         return callback(null, `node-commonjs ${request}`);
       }

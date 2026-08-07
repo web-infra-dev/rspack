@@ -311,6 +311,8 @@ function uselessExecute(_code: string, runtime: CommonJsRuntime) {
 2. ModuleFederationPlugin 中设置的共享依赖，还需要在 BrowserHttpImportEsmPlugin 相应地配置 `external` 和指定版本号。如果你使用的是 `esm.sh` 作为 CDN，可以参考以下代码：
 
 ```js title="rspack.config.mjs"
+import { BrowserHttpImportEsmPlugin } from '@rspack/browser';
+
 new BrowserHttpImportEsmPlugin({
   domain: 'https://esm.sh',
   dependencyVersions: {
