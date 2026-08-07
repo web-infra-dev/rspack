@@ -125,6 +125,7 @@ impl CacheEntry {
   }
 }
 
+#[allow(private_bounds)]
 impl<T: CacheValueData> CacheValue<T> {
   pub(super) fn erase(self) -> ErasedCacheValue {
     ErasedCacheValue::new(self.0)
