@@ -557,8 +557,16 @@ async fn render_manifest(
     .build_chunk_graph_artifact
     .chunk_by_ukey
     .expect_get(chunk_ukey);
+  let filename_template = get_js_chunk_filename_template(
+    chunk,
+    &compilation.options.output,
+    &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
+  );
   if let Some(name) = chunk.name()
     && (name.contains('?') || name.contains('#'))
+    && filename_template
+      .template()
+      .is_some_and(|template| template.contains("[name]"))
   {
     diagnostics.push(Diagnostic::warn(
       "Invalid chunk name".to_string(),
@@ -594,11 +602,6 @@ async fn render_manifest(
   {
     return Ok(());
   }
-  let filename_template = get_js_chunk_filename_template(
-    chunk,
-    &compilation.options.output,
-    &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
-  );
   let mut asset_info = AssetInfo::default().with_asset_type(ManifestAssetType::JavaScript);
   asset_info.set_javascript_module(compilation.options.output.module);
   let output_path = compilation
