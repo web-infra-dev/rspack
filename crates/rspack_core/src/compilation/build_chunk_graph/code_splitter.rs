@@ -1574,6 +1574,13 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       ));
     let mut entrypoint: Option<ChunkGroupUkey> = None;
     let mut c: Option<ChunkGroupUkey> = None;
+    // Async entrypoints such as workers need their own chunk group even when regular async chunks
+    // are disabled.
+    let has_entry_options = compilation
+      .get_module_graph()
+      .block_by_id(&block_id)
+      .and_then(|block| block.get_group_options().and_then(|o| o.entry_options()))
+      .is_some();
 
     let cgi = if let Some(cgi) = cgi {
       let cgi = self
@@ -1592,7 +1599,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       }
 
       cgi.ukey
-    } else if !item_async_chunks || !item_chunk_loading {
+    } else if !has_entry_options && (!item_async_chunks || !item_chunk_loading) {
       self.queue.push(QueueAction::ProcessBlock(ProcessBlock {
         block: block_id.into(),
         module: module_id,
