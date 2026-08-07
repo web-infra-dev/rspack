@@ -29,7 +29,7 @@ export default {
   },
   plugins: [
     new rspack.container.ModuleFederationPlugin({
-      // options
+      name: 'app',
     }),
   ],
 };
@@ -45,9 +45,14 @@ export default {
 
 ### runtimePlugins
 
-- 类型：`string[]`
+- 类型：
+  ```ts
+  type RuntimePlugins =
+    | string[]
+    | [plugin: string, options: Record<string, unknown>][];
+  ```
 
-传入 Module Federation 1.5 运行时所需的插件，插件可以对 Module Federation 的行为与能力进行扩展。
+传入 Module Federation 1.5 运行时所需的插件，用于扩展 Module Federation 的行为与能力。可以传入一组模块路径；当插件需要配置时，也可以传入一组 `[模块路径, 配置]` 元组。
 
 ### name
 
@@ -75,7 +80,7 @@ export default {
 
 ### shareScope
 
-- 类型：`string`
+- 类型：`string | string[]`
 
 定义当前应用共享依赖的命名空间。通过在不同的应用之间配置命名空间，可以控制模块的共享行为，包括确定哪些模块在不同的应用之间是共享的。默认的命名空间为 `"default"`。
 
@@ -102,12 +107,13 @@ export default {
   type Remotes = (RemotesItem | RemotesObject)[] | RemotesObject;
   type RemotesItem = string;
   type RemotesItems = RemotesItem[];
+  type ShareScope = string | string[];
   interface RemotesObject {
     [k: string]: RemotesConfig | RemotesItem | RemotesItems;
   }
   interface RemotesConfig {
     external: RemotesItem | RemotesItems;
-    shareScope?: string;
+    shareScope?: ShareScope;
   }
   ```
 
@@ -137,6 +143,12 @@ export default {
   ```ts
   type Shared = (SharedItem | SharedObject)[] | SharedObject;
   type SharedItem = string;
+  type ShareScope = string | string[];
+  interface TreeShakingConfig {
+    usedExports?: string[];
+    mode?: 'server-calc' | 'runtime-infer';
+    filename?: string;
+  }
   interface SharedObject {
     [k: string]: SharedConfig | SharedItem;
   }
@@ -146,14 +158,11 @@ export default {
     packageName?: string;
     requiredVersion?: false | string;
     shareKey?: string;
-    shareScope?: string;
+    shareScope?: ShareScope;
     singleton?: boolean;
     strictVersion?: boolean;
     version?: false | string;
-    treeShaking?: {
-      mode: 'runtime-infer' | 'server-calc';
-      usedExports?: string[];
-    };
+    treeShaking?: TreeShakingConfig;
   }
   ```
 
@@ -175,6 +184,7 @@ export default {
   - mode：配置 treeshaking 的加载策略。
     - `runtime-infer`: 根据消费方的 `usedExports` 进行推断，如果提供方的 `usedExports` 符合当前消费方的 `usedExports`，那么就会使用提供方的 `shared`，否则会使用消费方自身的 `shared`，如果都不满足，就使用全量的。
     - `server-calc`: 根据服务端下发的 snapshot 来决定是否加载共享依赖。
+  - filename：自定义生成的 shared fallback 入口文件名。
 
 ### manifest
 
@@ -209,31 +219,31 @@ export default {
 
 - 类型：`boolean`
 - 是否必填：否
-- 默认值：`undefined`
+- 默认值：`true`
 
 此选项用于控制是否将共享模块中实际使用的导出信息注入到打包器的运行时中，以便进行更精确的依赖管理和优化。
 
 如果你使用的是 mode 为 'server-calc'，那么推荐将此选项设置为 `false`。
 
-### treeShakingDir
+### treeShakingSharedDir
 
 用于输出 tree shaking 共享 fallback 资源的目录。
 
 - 类型：`string`
 - 是否必填：否
-- 默认值：`undefined`
+- 默认值：`'independent-packages'`
 
 当启用共享依赖 tree shaking 功能时，Module Federation 会将未使用的共享模块导出拆分出来。该选项指定了这些 fallback 资源的输出目录。
 
 ### treeShakingSharedExcludePlugins
 
-配置在构建共享依赖 tree shaking/fallback 过程中需要排除的插件名称。
+配置在构建共享依赖 tree shaking/fallback 过程中需要额外排除的插件名称。
 
 - 类型：`string[]`
 - 是否必填：否
-- 默认值：`['HtmlWebpackPlugin','HtmlRspackPlugin']`
+- 默认值：`[]`
 
-允许用户指定一组插件名称，这些插件在构建共享依赖 tree shaking/fallback 过程 时将被忽略或不参与处理。
+Rspack 已默认排除 Module Federation、tree shaking 相关的辅助插件及常见 HTML 插件。可以通过此选项向排除列表中添加其他插件名称。
 
 ### treeShakingSharedPlugins
 

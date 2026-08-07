@@ -29,7 +29,7 @@ export default {
   },
   plugins: [
     new rspack.container.ModuleFederationPlugin({
-      // options
+      name: 'app',
     }),
   ],
 };
@@ -45,9 +45,14 @@ Provide a path as the implementation for Module Federation 1.5 runtime, which de
 
 ### runtimePlugins
 
-- Type: `string[]`
+- Type:
+  ```ts
+  type RuntimePlugins =
+    | string[]
+    | [plugin: string, options: Record<string, unknown>][];
+  ```
 
-Provide the plugin required to run Module Federation 1.5, which can extend the behavior and capabilities of Module Federation.
+Provide the plugins required to run Module Federation 1.5, which can extend its behavior and capabilities. Use an array of module paths, or an array of `[modulePath, options]` tuples when a plugin needs options.
 
 ### name
 
@@ -75,7 +80,7 @@ Define the output format of remote container entry. The default libraryType is "
 
 ### shareScope
 
-- Type: `string`
+- Type: `string | string[]`
 
 Define the namespace for shared dependencies in the current container. By configuring share scopes between different containers, the sharing behavior of modules can be controlled, including determining which modules are shared between different containers. The default share scope is `"default"`.
 
@@ -102,12 +107,13 @@ Defines how to load remote containers, defaulting to `"script"`, which loads via
   type Remotes = (RemotesItem | RemotesObject)[] | RemotesObject;
   type RemotesItem = string;
   type RemotesItems = RemotesItem[];
+  type ShareScope = string | string[];
   interface RemotesObject {
     [k: string]: RemotesConfig | RemotesItem | RemotesItems;
   }
   interface RemotesConfig {
     external: RemotesItem | RemotesItems;
-    shareScope?: string;
+    shareScope?: ShareScope;
   }
   ```
 
@@ -137,6 +143,12 @@ Define how local modules can be referenced by remote containers. The key is the 
   ```ts
   type Shared = (SharedItem | SharedObject)[] | SharedObject;
   type SharedItem = string;
+  type ShareScope = string | string[];
+  interface TreeShakingConfig {
+    usedExports?: string[];
+    mode?: 'server-calc' | 'runtime-infer';
+    filename?: string;
+  }
   interface SharedObject {
     [k: string]: SharedConfig | SharedItem;
   }
@@ -146,10 +158,11 @@ Define how local modules can be referenced by remote containers. The key is the 
     packageName?: string;
     requiredVersion?: false | string;
     shareKey?: string;
-    shareScope?: string;
+    shareScope?: ShareScope;
     singleton?: boolean;
     strictVersion?: boolean;
     version?: false | string;
+    treeShaking?: TreeShakingConfig;
   }
   ```
 
@@ -171,6 +184,7 @@ The SharedConfig can include the following sub-options:
   - mode: Configure the loading strategy for treeshaking.
     - `runtime-infer`: Infer based on the consumer's `usedExports`. If the provider's `usedExports` match the consumer's `usedExports`, the provider's `shared` will be used; otherwise, the consumer's own `shared` will be used. If neither condition is met, the full version is used.
     - `server-calc`: Decide whether to load shared dependencies based on the snapshot sent by the server.
+  - filename: Customize the filename of the generated shared fallback entry.
 
 ### manifest
 
@@ -207,31 +221,31 @@ Whether to inject the exports used by shared into the bundler runtime.
 
 - Type: `boolean`
 - Required: No
-- Default: `undefined`
+- Default: `true`
 
 This option is used to control whether to inject the actual used export information of shared modules into the bundler runtime for more precise dependency management and optimization.
 
 If you are using mode as 'server-calc', it is recommended to set this option to `false`.
 
-### treeShakingDir
+### treeShakingSharedDir
 
 Directory for outputting tree shaking shared fallback resources.
 
 - Type: `string`
 - Required: No
-- Default: `undefined`
+- Default: `'independent-packages'`
 
 When shared dependency tree shaking is enabled, Module Federation splits unused shared module exports. This option specifies the output directory for these fallback resources.
 
 ### treeShakingSharedExcludePlugins
 
-Configure plugin names to exclude during the shared dependency tree shaking/fallback build process.
+Configure additional plugin names to exclude during the shared dependency tree shaking/fallback build process.
 
 - Type: `string[]`
 - Required: No
-- Default: `['HtmlWebpackPlugin','HtmlRspackPlugin']`
+- Default: `[]`
 
-Allows users to specify a set of plugin names that will be ignored or not involved in processing during the shared dependency tree shaking/fallback build process.
+Rspack already excludes its Module Federation and tree-shaking helper plugins, as well as common HTML plugins. Use this option to add more plugin names to that exclusion list.
 
 ### treeShakingSharedPlugins
 
