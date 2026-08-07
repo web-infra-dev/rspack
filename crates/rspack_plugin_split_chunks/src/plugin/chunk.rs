@@ -1,5 +1,5 @@
 use rayon::prelude::*;
-use rspack_collections::IdentifierSet;
+use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   Chunk, ChunkSplitData, ChunkUkey, Compilation, ModuleIdentifier, incremental::Mutation,
 };
@@ -191,51 +191,65 @@ impl SplitChunksPlugin {
     }
   }
 
-  /// Moves eligible modules into `new_chunk` and returns the modules that were actually moved.
+  /// Returns the selected source chunks for modules that can move into `new_chunk`.
   // #[tracing::instrument(skip_all)]
-  pub(crate) fn move_modules_to_new_chunk_and_remove_from_old_chunks(
+  pub(crate) fn get_module_chunks_to_move(
     &self,
     item: &ModuleGroup,
     new_chunk: ChunkUkey,
     original_chunks: &FxHashSet<ChunkUkey>,
-    compilation: &mut Compilation,
-  ) -> IdentifierSet {
+    compilation: &Compilation,
+  ) -> IdentifierMap<FxHashSet<ChunkUkey>> {
     let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
-    let modules = item
+    item
       .modules
       .iter()
-      .filter(|mid| {
-        original_chunks
-          .iter()
-          .any(|chunk| chunk_graph.is_module_in_chunk(mid, *chunk))
-      })
-      .filter(|mid| {
+      .filter_map(|mid| {
+        let selected_chunks = item.module_chunks.get(mid)?;
         if let Some(module) = compilation.module_by_identifier(mid)
           && module
             .chunk_condition(&new_chunk, compilation)
             .is_some_and(|condition| !condition)
         {
-          return false;
+          return None;
         }
-        true
-      })
-      .copied()
-      .collect::<IdentifierSet>();
 
-    let chunks = original_chunks.iter().copied().collect::<Vec<_>>();
+        let chunks = original_chunks
+          .iter()
+          .filter(|chunk| {
+            selected_chunks.contains(chunk) && chunk_graph.is_module_in_chunk(mid, **chunk)
+          })
+          .copied()
+          .collect::<FxHashSet<_>>();
+        (!chunks.is_empty()).then_some((*mid, chunks))
+      })
+      .collect()
+  }
+
+  /// Moves `modules` into `new_chunk` and removes their selected source placements.
+  // #[tracing::instrument(skip_all)]
+  pub(crate) fn move_modules_to_new_chunk_and_remove_from_old_chunks(
+    &self,
+    modules: &IdentifierSet,
+    placed_module_chunks: &IdentifierMap<FxHashSet<ChunkUkey>>,
+    new_chunk: ChunkUkey,
+    compilation: &mut Compilation,
+  ) {
     let module_identifiers = modules.iter().copied().collect::<Vec<_>>();
 
-    compilation
-      .build_chunk_graph_artifact
-      .chunk_graph
-      .disconnect_chunks_and_modules(&chunks, &module_identifiers);
+    let chunk_graph = &mut compilation.build_chunk_graph_artifact.chunk_graph;
+    for module in modules {
+      let Some(chunks) = placed_module_chunks.get(module) else {
+        continue;
+      };
+      for chunk in chunks {
+        if *chunk != new_chunk {
+          chunk_graph.disconnect_chunk_and_module(chunk, *module);
+        }
+      }
+    }
 
-    compilation
-      .build_chunk_graph_artifact
-      .chunk_graph
-      .connect_chunk_and_modules(new_chunk, &module_identifiers);
-
-    modules
+    chunk_graph.connect_chunk_and_modules(new_chunk, &module_identifiers);
   }
 
   /// Since the modules are moved into the `new_chunk`, we should

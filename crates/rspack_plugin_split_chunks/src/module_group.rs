@@ -1,7 +1,7 @@
 use std::{cmp::Ordering, fmt};
 
 use derive_more::Debug;
-use rspack_collections::IdentifierSet;
+use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{ChunkUkey, ModuleIdentifier, SourceType};
 use rustc_hash::{FxHashMap, FxHashSet};
 
@@ -110,6 +110,9 @@ impl fmt::Display for ModuleGroupKey {
 #[derive(Debug)]
 pub(crate) struct ModuleGroup {
   pub modules: IdentifierSet,
+  /// The chunks selected for each module in this group.
+  #[debug(skip)]
+  pub module_chunks: IdentifierMap<FxHashSet<ChunkUkey>>,
   /// the real index used for mapping the ModuleGroup to corresponding CacheGroup
   pub cache_group_index: u32,
   pub cache_group_reuse_existing_chunk: bool,
@@ -132,6 +135,7 @@ impl ModuleGroup {
   pub fn new(chunk_name: Option<String>, cache_group_index: u32, cache_group: &CacheGroup) -> Self {
     Self {
       modules: Default::default(),
+      module_chunks: Default::default(),
       cache_group_index,
       cache_group_reuse_existing_chunk: cache_group.reuse_existing_chunk,
       sizes: Default::default(),
@@ -174,14 +178,31 @@ impl ModuleGroup {
     }
   }
 
-  pub fn add_module(&mut self, module: ModuleIdentifier) {
+  pub fn add_module(
+    &mut self,
+    module: ModuleIdentifier,
+    chunks: impl IntoIterator<Item = ChunkUkey>,
+  ) {
     self.modules.insert(module);
+    let module_chunks = self.module_chunks.entry(module).or_default();
+    for chunk in chunks {
+      module_chunks.insert(chunk);
+      self.chunks.insert(chunk);
+    }
   }
 
   pub fn remove_module(&mut self, module: ModuleIdentifier) {
     if self.modules.remove(&module) {
+      self.module_chunks.remove(&module);
       self.removed.push(module);
     }
+  }
+
+  pub fn rebuild_chunks(&mut self) {
+    self.chunks.clear();
+    self
+      .chunks
+      .extend(self.module_chunks.values().flatten().copied());
   }
 
   pub fn prepare_modules_for_sizes_and_compare(&mut self) {

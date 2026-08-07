@@ -25,6 +25,15 @@ module.exports = {
           priority: 100,
           reuseExistingChunk: true,
         },
+        // The reused destination is also claimed by highPriority, so this candidate must not move
+        // util back out at the same priority.
+        samePriority: {
+          test: /[\\/]util\.js$/,
+          chunks: 'all',
+          minChunks: 1,
+          name: 'same_priority',
+          priority: 100,
+        },
         lowerPriority: {
           test: /[\\/]util\.js$/,
           chunks: 'all',
@@ -49,6 +58,8 @@ module.exports = {
               const reusableChunk = compilation.namedChunks.get('ReusableUtil');
               const lowerPriorityChunk =
                 compilation.namedChunks.get('lower_util');
+              const samePriorityChunk =
+                compilation.namedChunks.get('same_priority');
               const utilChunks = Array.from(compilation.chunks).filter(
                 (chunk) =>
                   Array.from(
@@ -62,6 +73,7 @@ module.exports = {
               );
 
               expect(reusableChunk).toBeDefined();
+              expect(samePriorityChunk).toBeNull();
               expect(lowerPriorityChunk).toBeDefined();
               expect(utilChunks).toHaveLength(2);
               expect(utilChunks).toContain(reusableChunk);
