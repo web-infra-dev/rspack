@@ -321,10 +321,13 @@ impl SplitChunksPlugin {
           // Only the chunks actually used by this split are unavailable to lower priorities.
           // `ensure_max_request_fit` may have removed chunks from `module_group.chunks`.
           for module in moved_modules {
-            removed_module_chunks
-              .entry(module)
-              .or_default()
-              .extend(used_chunks.iter().copied());
+            let removed_chunks = removed_module_chunks.entry(module).or_default();
+            removed_chunks.extend(used_chunks.iter().copied());
+            if is_reuse_existing_chunk {
+              // The reused destination was removed from `module_group.chunks`, but it is still a
+              // consumed original module-chunk edge and must not become a residual candidate.
+              removed_chunks.insert(new_chunk);
+            }
           }
         }
       }
