@@ -1,4 +1,3 @@
-use dashmap::DashMap;
 use rspack_util::fx_hash::FxDashMap;
 
 use super::{
@@ -36,16 +35,16 @@ pub struct MemoryCache {
 impl MemoryCache {
   pub fn get<T: CacheValueData>(
     &self,
-    key: CacheKey,
-    etag: Option<Etag>,
+    key: &CacheKey,
+    etag: Option<&Etag>,
   ) -> MemoryCacheGetResult<T> {
-    let Some(entry) = self.entries.get(&key) else {
+    let Some(entry) = self.entries.get(key) else {
       return MemoryCacheGetResult::NotCached;
     };
     let Some(entry) = entry.value() else {
       return MemoryCacheGetResult::Miss;
     };
-    if entry.matches(&etag) {
+    if entry.matches(etag) {
       entry
         .value()
         .clone()

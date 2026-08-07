@@ -3,7 +3,7 @@ use std::{
   hash::{Hash, Hasher},
 };
 
-use once_cell::sync::OnceCell;
+use once_cell::unsync::OnceCell;
 use rspack_cacheable::{
   cacheable,
   utils::PortablePath,
@@ -16,7 +16,7 @@ use turbo_persistence::{DbConfig, FamilyConfig, FamilyKind, SerialScheduler, Tur
 
 use super::{
   CacheKey, Etag,
-  cache_value::{CacheEntry, ErasedCacheValue},
+  cache_value::{CacheEntry, CacheValueDecoder, CacheValueEncoder, ErasedCacheValue},
 };
 use crate::cache::persistent::codec::CacheCodec;
 
@@ -35,8 +35,14 @@ struct StoredBuildDependencies {
 
 #[derive(Debug, Default)]
 struct PendingWrites {
-  entries: FxHashMap<CacheKey, CacheEntry>,
+  entries: FxHashMap<CacheKey, PendingWrite>,
   build_dependencies: FxHashSet<Utf8PathBuf>,
+}
+
+#[derive(Debug)]
+struct PendingWrite {
+  entry: CacheEntry,
+  encoder: CacheValueEncoder,
 }
 
 /// Filesystem cache implementation scheduled by [`super::IdleFileCache`].
@@ -74,48 +80,55 @@ impl FileCacheStrategy {
     }
   }
 
-  pub(super) async fn store(
+  pub(super) fn store(
     &mut self,
     key: CacheKey,
     etag: Option<Etag>,
     value: ErasedCacheValue,
-  ) -> Result<()> {
+    encoder: CacheValueEncoder,
+  ) {
     if self.readonly {
-      return Ok(());
+      return;
     }
-    self
-      .pending_writes
-      .entries
-      .insert(key, CacheEntry::new(etag, value));
-    Ok(())
+    self.pending_writes.entries.insert(
+      key,
+      PendingWrite {
+        entry: CacheEntry::new(etag, value),
+        encoder,
+      },
+    );
   }
 
-  pub(super) async fn restore(
+  pub(super) fn restore(
     &self,
-    key: CacheKey,
-    etag: Option<Etag>,
+    key: &CacheKey,
+    etag: Option<&Etag>,
+    decoder: CacheValueDecoder,
   ) -> Result<Option<ErasedCacheValue>> {
-    if let Some(entry) = self.pending_writes.entries.get(&key) {
-      return Ok(entry.matches(&etag).then(|| entry.value().clone()));
+    if let Some(pending) = self.pending_writes.entries.get(key) {
+      return Ok(
+        pending
+          .entry
+          .matches(etag)
+          .then(|| pending.entry.value().clone()),
+      );
     }
 
     let database_key = key.as_bytes();
     let Some(entry) = self.database()?.get(CACHE_FAMILY, &database_key)? else {
       return Ok(None);
     };
-    let entry = self.codec.decode::<CacheEntry>(&entry)?;
-    Ok(entry.matches(&etag).then(|| entry.into_value()))
+    decoder(&entry, etag, &self.codec)
   }
 
-  pub async fn store_build_dependencies(&mut self, dependencies: Vec<Utf8PathBuf>) -> Result<()> {
+  pub fn store_build_dependencies(&mut self, dependencies: Vec<Utf8PathBuf>) {
     if self.readonly {
-      return Ok(());
+      return;
     }
     self.pending_writes.build_dependencies.extend(dependencies);
-    Ok(())
   }
 
-  pub async fn after_all_stored(&mut self) -> Result<()> {
+  pub fn after_all_stored(&mut self) -> Result<()> {
     if self.readonly {
       return Ok(());
     }
@@ -134,18 +147,18 @@ impl FileCacheStrategy {
     };
 
     let database = self.database()?;
-    let batch = database.write_batch::<Vec<u8>>()?;
-    for (key, entry) in &pending.entries {
+    let batch = database.write_batch::<&[u8]>()?;
+    for (key, pending) in &pending.entries {
       batch.put(
         CACHE_FAMILY as u32,
-        key.as_bytes().to_vec(),
-        self.codec.encode(entry)?.into(),
+        key.as_bytes(),
+        (pending.encoder)(&pending.entry, &self.codec)?.into(),
       )?;
     }
     if let Some(build_dependencies) = build_dependencies {
       batch.put(
         META_FAMILY as u32,
-        BUILD_DEPENDENCIES_KEY.to_vec(),
+        BUILD_DEPENDENCIES_KEY,
         build_dependencies.into(),
       )?;
     }
@@ -156,9 +169,8 @@ impl FileCacheStrategy {
     Ok(())
   }
 
-  pub async fn shutdown(&mut self) -> Result<()> {
-    self.pending_writes.entries.clear();
-    self.pending_writes.build_dependencies.clear();
+  pub fn shutdown(&mut self) -> Result<()> {
+    self.after_all_stored()?;
 
     if let Some(database) = self.database.get() {
       database.clear_cache();

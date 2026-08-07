@@ -4,7 +4,7 @@ use rspack_cacheable::cacheable;
 
 /// Immutable validation token associated with a cached value.
 #[cacheable]
-#[derive(Clone, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[derive(Clone, Eq, PartialEq)]
 pub struct Etag(Arc<str>);
 
 impl Etag {
