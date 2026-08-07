@@ -12,12 +12,13 @@ use rspack_cacheable::{
 use rspack_core::{
   ArcComputed, AsyncDependenciesBlockIdentifier, BuildMetaExportsType,
   COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY, ChunkGraph, CollectedTypeScriptInfo, Compilation,
-  DependenciesBlock, DependencyId, GenerateContext, ImportMeta, Module, ModuleArgument,
-  ModuleCodeTemplate, ModuleGraph, ModuleType, ParseContext, ParseResult, ParserAndGenerator,
-  ResolvedModuleOptions, RuntimeGlobals, RuntimeGlobalsRenderMode, RuntimeVariable,
-  SideEffectsBailoutItem, SourceType, TemplateContext, TemplateReplaceSource,
+  DependenciesBlock, DependencyId, DependencyType, GenerateContext, ImportMeta, Module,
+  ModuleArgument, ModuleCodeTemplate, ModuleGraph, ModuleType, ParseContext, ParseResult,
+  ParserAndGenerator, ResolvedModuleOptions, RuntimeGlobals, RuntimeGlobalsRenderMode,
+  RuntimeRequirementsDependency, RuntimeVariable, SideEffectsBailoutItem, SourceType,
+  TemplateContext, TemplateReplaceSource,
   diagnostics::map_box_diagnostics_to_module_parse_diagnostics,
-  remove_bom, render_init_fragments,
+  property_access, remove_bom, render_init_fragments,
   rspack_sources::{BoxSource, ReplaceSource, Source, SourceExt},
 };
 use rspack_error::{Diagnostic, Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
@@ -31,7 +32,10 @@ use swc_experimental_ecma_transforms_base::remove_paren::remove_paren;
 
 use crate::{
   BoxJavascriptParserPlugin,
-  dependency::ESMCompatibilityDependency,
+  dependency::{
+    CommonJsExportsDependency, CommonJsSelfReferenceDependency, ESMCompatibilityDependency,
+    ExportsBase, OBJECT_PROTOTYPE_METHODS,
+  },
   visitors::{ParsedJavaScriptAst, ScanDependenciesResult, scan_dependencies, semicolon},
 };
 
@@ -170,6 +174,198 @@ impl JavaScriptParserAndGenerator {
 
   pub fn add_parser_plugin(&mut self, parser_plugin: BoxJavascriptParserPlugin) {
     self.parser_plugins.push(parser_plugin);
+  }
+
+  fn is_esm_concatenation_candidate(module: &dyn Module) -> bool {
+    module.build_meta().exports_type() == BuildMetaExportsType::Namespace
+      && module
+        .get_presentational_dependencies()
+        .is_some_and(|deps| {
+          deps
+            .iter()
+            .any(|dep| dep.as_any().is::<ESMCompatibilityDependency>())
+        })
+  }
+
+  fn commonjs_concatenation_bailout_reason(
+    module: &dyn Module,
+    module_graph: &ModuleGraph,
+  ) -> Option<Cow<'static, str>> {
+    if !matches!(
+      module.build_meta().exports_type(),
+      BuildMetaExportsType::Default | BuildMetaExportsType::Flagged
+    ) {
+      return Some("Module is not an ECMAScript module".into());
+    }
+
+    if !module.build_info().strict {
+      return Some("Module is not in strict mode".into());
+    }
+
+    for dependency_id in module.get_dependencies() {
+      let dependency = module_graph.dependency_by_id(dependency_id);
+      if let Some(dependency) = dependency
+        .as_any()
+        .downcast_ref::<CommonJsExportsDependency>()
+      {
+        if !matches!(
+          dependency.base(),
+          ExportsBase::Exports | ExportsBase::ModuleExports
+        ) {
+          return Some(
+            format!(
+              "Module uses {} to define exports",
+              dependency.base().as_str()
+            )
+            .into(),
+          );
+        }
+        if dependency.names().is_empty() {
+          return Some("Module exports are used in an unsupported way".into());
+        }
+        if dependency
+          .names()
+          .first()
+          .is_some_and(|name| name.as_str() == "__proto__")
+        {
+          return Some(
+            format!("Module assigns to {}.__proto__", dependency.base().as_str()).into(),
+          );
+        }
+      } else if let Some(dependency) = dependency
+        .as_any()
+        .downcast_ref::<CommonJsSelfReferenceDependency>()
+      {
+        if !matches!(
+          dependency.base(),
+          ExportsBase::Exports | ExportsBase::ModuleExports
+        ) {
+          return Some(
+            format!(
+              "Module references its exports via {}",
+              dependency.base().as_str()
+            )
+            .into(),
+          );
+        }
+        if dependency.names().is_empty() {
+          return Some(format!("Module uses {} as a value", dependency.base().as_str()).into());
+        }
+        if dependency
+          .names()
+          .first()
+          .is_some_and(|name| OBJECT_PROTOTYPE_METHODS.contains(&name.as_str()))
+        {
+          return Some(
+            format!(
+              "Module references Object.prototype via {}{}",
+              dependency.base().as_str(),
+              property_access(dependency.names().iter(), 0)
+            )
+            .into(),
+          );
+        }
+        if dependency.is_call() && dependency.names().len() == 1 {
+          return Some(
+            format!(
+              "Module calls {}{} with its exports as call context",
+              dependency.base().as_str(),
+              property_access(dependency.names().iter(), 0)
+            )
+            .into(),
+          );
+        }
+      } else {
+        let is_supported = matches!(
+          dependency.dependency_type(),
+          DependencyType::CjsRequire
+            | DependencyType::CjsFullRequire
+            | DependencyType::RequireResolve
+            | DependencyType::DynamicImport
+            | DependencyType::DynamicImportEager
+            | DependencyType::DynamicImportWeak
+        ) || dependency.as_context_dependency().is_some();
+        if !is_supported {
+          return Some(
+            format!(
+              "Module uses an unsupported dependency ({})",
+              dependency.dependency_type()
+            )
+            .into(),
+          );
+        }
+      }
+    }
+
+    let incompatible_runtime_requirements = RuntimeGlobals::MODULE
+      | RuntimeGlobals::MODULE_ID
+      | RuntimeGlobals::MODULE_LOADED
+      | RuntimeGlobals::MODULE_CACHE
+      | RuntimeGlobals::EXPORTS
+      | RuntimeGlobals::THIS_AS_EXPORTS
+      | RuntimeGlobals::ESM_MODULE_DECORATOR
+      | RuntimeGlobals::NODE_MODULE_DECORATOR;
+    if let Some(dependencies) = module.get_presentational_dependencies() {
+      for dependency in dependencies {
+        let Some(dependency) = dependency
+          .as_any()
+          .downcast_ref::<RuntimeRequirementsDependency>()
+        else {
+          continue;
+        };
+        let incompatible = dependency
+          .runtime_requirements
+          .intersection(incompatible_runtime_requirements);
+        if !incompatible.is_empty() {
+          let requirement = [
+            (RuntimeGlobals::MODULE, "module"),
+            (RuntimeGlobals::MODULE_ID, "module.id"),
+            (RuntimeGlobals::MODULE_LOADED, "module.loaded"),
+            (RuntimeGlobals::MODULE_CACHE, "__webpack_module_cache__"),
+            (RuntimeGlobals::EXPORTS, "exports"),
+            (RuntimeGlobals::THIS_AS_EXPORTS, "this"),
+            (
+              RuntimeGlobals::ESM_MODULE_DECORATOR,
+              "__webpack_require__.hmd",
+            ),
+            (
+              RuntimeGlobals::NODE_MODULE_DECORATOR,
+              "__webpack_require__.nmd",
+            ),
+          ]
+          .into_iter()
+          .find_map(|(runtime_global, name)| incompatible.contains(runtime_global).then_some(name))
+          .unwrap_or("an incompatible runtime requirement");
+          return Some(format!("Module uses {requirement}").into());
+        }
+      }
+    }
+
+    None
+  }
+
+  pub fn get_concatenation_bailout_reason_with_commonjs(
+    &self,
+    module: &dyn Module,
+    module_graph: &ModuleGraph,
+    concatenate_commonjs_modules: bool,
+  ) -> Option<Cow<'static, str>> {
+    if !Self::is_esm_concatenation_candidate(module) {
+      let reason = if concatenate_commonjs_modules {
+        Self::commonjs_concatenation_bailout_reason(module, module_graph)
+      } else {
+        Some("Module is not an ECMAScript module".into())
+      };
+      if reason.is_some() {
+        return reason;
+      }
+    }
+
+    module
+      .build_info()
+      .module_concatenation_bailout
+      .as_deref()
+      .map(|bailout| format!("Module uses {bailout}").into())
   }
 
   fn source_block(
@@ -475,31 +671,9 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
   fn get_concatenation_bailout_reason(
     &self,
     module: &dyn rspack_core::Module,
-    _mg: &ModuleGraph,
+    mg: &ModuleGraph,
     _cg: &ChunkGraph,
   ) -> Option<Cow<'static, str>> {
-    // Only ES modules are valid for optimization
-    if module.build_meta().exports_type() != BuildMetaExportsType::Namespace {
-      return Some("Module is not an ECMAScript module".into());
-    }
-
-    if let Some(deps) = module.get_presentational_dependencies() {
-      if !deps.iter().any(|dep| {
-        // https://github.com/webpack/webpack/blob/b9fb99c63ca433b24233e0bbc9ce336b47872c08/lib/javascript/JavascriptGenerator.js#L65-L74
-        dep
-          .as_any()
-          .downcast_ref::<ESMCompatibilityDependency>()
-          .is_some()
-      }) {
-        return Some("Module is not an ECMAScript module".into());
-      }
-    } else {
-      return Some("Module is not an ECMAScript module".into());
-    }
-
-    if let Some(bailout) = module.build_info().module_concatenation_bailout.as_deref() {
-      return Some(format!("Module uses {bailout}").into());
-    }
-    None
+    self.get_concatenation_bailout_reason_with_commonjs(module, mg, false)
   }
 }

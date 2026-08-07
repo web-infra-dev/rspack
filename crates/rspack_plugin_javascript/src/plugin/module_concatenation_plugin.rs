@@ -27,6 +27,8 @@ use rspack_hook::{plugin, plugin_hook};
 use rspack_util::itoa;
 use rustc_hash::FxHashSet as HashSet;
 
+use crate::parser_and_generator::JavaScriptParserAndGenerator;
+
 fn format_bailout_reason(msg: &str) -> String {
   format!("ModuleConcatenation bailout: {msg}")
 }
@@ -291,9 +293,16 @@ impl ConcatConfiguration {
 }
 
 #[plugin]
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct ModuleConcatenationPlugin {
+  concatenate_commonjs_modules: bool,
   bailout_reason_map: IdentifierDashMap<Arc<Cow<'static, str>>>,
+}
+
+impl Default for ModuleConcatenationPlugin {
+  fn default() -> Self {
+    Self::new(true)
+  }
 }
 
 #[derive(Default)]
@@ -381,6 +390,10 @@ impl<T> RuntimeIdentifierCache<T> {
 }
 
 impl ModuleConcatenationPlugin {
+  pub fn new(concatenate_commonjs_modules: bool) -> Self {
+    Self::new_inner(concatenate_commonjs_modules, Default::default())
+  }
+
   fn format_bailout_warning(
     &self,
     module: ModuleIdentifier,
@@ -931,6 +944,7 @@ impl ModuleConcatenationPlugin {
       .module_graph_modules()
       .map(|(k, _)| *k)
       .collect();
+    let concatenate_commonjs_modules = self.concatenate_commonjs_modules;
     let res: Vec<_> = modules
       .into_par_iter()
       .map(|module_id| {
@@ -950,10 +964,29 @@ impl ModuleConcatenationPlugin {
           .module_by_identifier(&module_id)
           .expect("should have module");
 
-        if let Some(reason) = m.get_concatenation_bailout_reason(
-          module_graph,
-          &compilation.build_chunk_graph_artifact.chunk_graph,
-        ) {
+        let reason = m
+          .as_normal_module()
+          .and_then(|module| {
+            module
+              .parser_and_generator()
+              .downcast_ref::<JavaScriptParserAndGenerator>()
+          })
+          .map_or_else(
+            || {
+              m.get_concatenation_bailout_reason(
+                module_graph,
+                &compilation.build_chunk_graph_artifact.chunk_graph,
+              )
+            },
+            |parser_and_generator| {
+              parser_and_generator.get_concatenation_bailout_reason_with_commonjs(
+                m.as_ref(),
+                module_graph,
+                concatenate_commonjs_modules,
+              )
+            },
+          );
+        if let Some(reason) = reason {
           bailout_reason.push(reason);
           return (false, false, module_id, bailout_reason);
         }
@@ -970,6 +1003,14 @@ impl ModuleConcatenationPlugin {
         if number_of_module_chunks == 0 {
           bailout_reason.push("Module is not in any chunk".into());
           return (false, false, module_id, bailout_reason);
+        }
+
+        // CommonJS modules rely on the root's ESM export rendering and can only
+        // participate in concatenation as inner modules.
+        if m.module_type().is_js_like()
+          && m.build_meta().exports_type() != rspack_core::BuildMetaExportsType::Namespace
+        {
+          can_be_root = false;
         }
 
         let exports_info = compilation
@@ -1677,6 +1718,9 @@ impl CachedIncomingConnection {
     exports_info_artifact: &ExportsInfoArtifact,
   ) -> Self {
     let dep = module_graph.dependency_by_id(&connection.dependency_id);
+    let is_commonjs_self_reference =
+      matches!(dep.dependency_type(), DependencyType::CjsSelfReference)
+        && connection.original_module_identifier == Some(*connection.module_identifier());
     Self {
       connection: connection.clone(),
       active: connection.is_active(
@@ -1686,7 +1730,9 @@ impl CachedIncomingConnection {
         side_effects_state_artifact,
         exports_info_artifact,
       ),
-      is_esm: is_esm_dep_like(dep),
+      // CommonJS self references are rewritten inside the concatenated module
+      // and should not count as non-ESM importers.
+      is_esm: is_esm_dep_like(dep) || is_commonjs_self_reference,
     }
   }
 }

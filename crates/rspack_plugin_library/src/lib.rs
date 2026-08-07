@@ -25,6 +25,7 @@ pub fn enable_library_plugin(
   library_type: String,
   preserve_modules: Option<PathBuf>,
   split_chunks: Option<Vec<CacheGroup>>,
+  concatenate_commonjs_modules: bool,
   plugins: &mut Vec<BoxPlugin>,
 ) {
   let ns_object_used = library_type != "module";
@@ -128,7 +129,14 @@ pub fn enable_library_plugin(
       plugins.push(
         rspack_plugin_remove_duplicate_modules::RemoveDuplicateModulesPlugin::default().boxed(),
       );
-      plugins.push(EsmLibraryPlugin::new(preserve_modules, split_chunks).boxed());
+      plugins.push(
+        EsmLibraryPlugin::new_with_commonjs_modules(
+          preserve_modules,
+          split_chunks,
+          concatenate_commonjs_modules,
+        )
+        .boxed(),
+      );
     }
     "system" => {
       plugins.push(

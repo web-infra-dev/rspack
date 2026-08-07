@@ -10,7 +10,7 @@ use rspack_core::{
 };
 use swc_atoms::Atom;
 
-use super::ExportsBase;
+use super::{ExportsBase, common_js_exports_dependency::get_concatenated_export_access};
 
 #[cacheable]
 #[derive(Debug, Clone)]
@@ -42,6 +42,18 @@ impl CommonJsSelfReferenceDependency {
       is_call,
       factorize_info: Default::default(),
     }
+  }
+
+  pub fn base(&self) -> ExportsBase {
+    self.base
+  }
+
+  pub fn names(&self) -> &[Atom] {
+    &self.names
+  }
+
+  pub fn is_call(&self) -> bool {
+    self.is_call
   }
 }
 
@@ -141,6 +153,8 @@ impl DependencyTemplate for CommonJsSelfReferenceDependencyTemplate {
       module,
       runtime,
       runtime_template,
+      init_fragments,
+      concatenation_scope,
       ..
     } = code_generatable_context;
     let module_graph = compilation.get_module_graph();
@@ -158,6 +172,26 @@ impl DependencyTemplate for CommonJsSelfReferenceDependencyTemplate {
     } else {
       UsedName::Normal(dep.names.clone())
     };
+
+    if let Some(concatenation_scope) = concatenation_scope {
+      debug_assert!(
+        !dep.names.is_empty()
+          && matches!(dep.base, ExportsBase::Exports | ExportsBase::ModuleExports),
+        "unsupported CommonJS self reference in a concatenated module"
+      );
+      source.replace(
+        dep.range.start,
+        dep.range.end,
+        get_concatenated_export_access(
+          concatenation_scope,
+          init_fragments,
+          &dep.names,
+          property_access_with_optional(dep.names[1..].iter(), &dep.names_optionals[1..], 0),
+        ),
+        None,
+      );
+      return;
+    }
 
     let exports_argument = module.get_exports_argument();
     let module_argument = module.get_module_argument();

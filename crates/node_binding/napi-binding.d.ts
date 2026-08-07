@@ -2245,6 +2245,7 @@ export interface RawDynamicEntryPluginOptions {
 export interface RawEnableLibraryPluginOptions {
   libraryType: string
   preserveModules?: string
+  concatenateCommonJsModules: boolean
   splitChunks?: RawSplitChunksOptions
 }
 
@@ -2276,6 +2277,7 @@ export interface RawEnvironment {
 
 export interface RawEsmLibraryPlugin {
   preserveModules?: string
+  concatenateCommonJsModules: boolean
   splitChunks?: RawSplitChunksOptions
 }
 
