@@ -14,4 +14,13 @@ module.exports = {
       },
     ],
   },
+  plugins: [
+    (compiler) => {
+      compiler.hooks.afterCompile.tap('StableWarnings', (compilation) => {
+        compilation.warnings.sort((a, b) =>
+          a.message === b.message ? 0 : a.message > b.message ? 1 : -1,
+        );
+      });
+    },
+  ],
 };
