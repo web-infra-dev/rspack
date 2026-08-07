@@ -1,31 +1,6 @@
 #[global_allocator]
-#[cfg(all(
-  feature = "jemalloc-profiling",
-  not(any(
-    miri,
-    target_family = "wasm",
-    target_env = "msvc",
-    target_arch = "s390x",
-    feature = "sftrace-setup",
-    feature = "tracy-client"
-  ))
-))]
-static GLOBAL: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
-
-#[global_allocator]
 #[cfg(not(any(miri, target_family = "wasm")))]
-#[cfg(any(
-  all(
-    feature = "jemalloc-profiling",
-    any(target_env = "msvc", target_arch = "s390x"),
-    not(any(feature = "sftrace-setup", feature = "tracy-client"))
-  ),
-  not(any(
-    feature = "jemalloc-profiling",
-    feature = "sftrace-setup",
-    feature = "tracy-client"
-  ))
-))]
+#[cfg(not(any(feature = "sftrace-setup", feature = "tracy-client")))]
 static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 
 #[global_allocator]
