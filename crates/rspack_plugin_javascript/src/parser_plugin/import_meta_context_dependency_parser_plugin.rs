@@ -4,6 +4,7 @@ use rspack_core::{
   ReferencedSpecifier, compile_context_module_glob_request, get_context, normalize_path_separators,
   normalize_path_separators_for_path,
 };
+use rspack_error::{Error, Result, Severity};
 use rspack_macros::AstObject;
 use rspack_paths::Utf8Path;
 use rspack_regex::RspackRegex;
@@ -88,11 +89,11 @@ enum ImportMetaGlobQuery {
 }
 
 impl<'a> FromAstExpr<'a> for ImportMetaGlobQuery {
-  fn from_ast_expr(expr: &Expr<'a>) -> Option<Self> {
-    if let Some(query) = String::from_ast_expr(expr) {
-      return Some(Self::String(query));
+  fn from_ast_expr(expr: &Expr<'a>) -> Result<Option<Self>> {
+    if let Some(query) = String::from_ast_expr(expr)? {
+      return Ok(Some(Self::String(query)));
     }
-    Vec::<(String, ImportMetaGlobQueryValue)>::from_ast_expr(expr).map(Self::Record)
+    Ok(Vec::<(String, ImportMetaGlobQueryValue)>::from_ast_expr(expr)?.map(Self::Record))
   }
 }
 
@@ -104,15 +105,22 @@ enum ImportMetaGlobQueryValue {
 }
 
 impl FromAstExpr<'_> for ImportMetaGlobQueryValue {
-  fn from_ast_expr(expr: &Expr<'_>) -> Option<Self> {
-    if let Some(value) = String::from_ast_expr(expr) {
-      return Some(Self::String(value));
+  fn from_ast_expr(expr: &Expr<'_>) -> Result<Option<Self>> {
+    if let Some(value) = String::from_ast_expr(expr)? {
+      return Ok(Some(Self::String(value)));
     }
-    if let Some(value) = f64::from_ast_expr(expr) {
-      return Some(Self::Number(value));
+    if let Some(value) = f64::from_ast_expr(expr)? {
+      return Ok(Some(Self::Number(value)));
     }
-    bool::from_ast_expr(expr).map(Self::Bool)
+    Ok(bool::from_ast_expr(expr)?.map(Self::Bool))
   }
+}
+
+fn add_ast_object_warning(parser: &mut JavascriptParser, mut error: Error) {
+  error.severity = Severity::Warning;
+  error.src = Some(parser.source.to_string().into());
+  error.hide_stack = Some(true);
+  parser.add_warning(error.into());
 }
 
 impl ImportMetaGlobQuery {
@@ -273,9 +281,17 @@ fn create_import_meta_context_dependency(
   // TODO: should've used expression evaluation to handle cases like `abc${"efg"}`, etc.
   let request = static_string_from_expr(&dyn_imported.expr)?;
   let raw_options = node.args.get(1).and_then(|arg| arg.expr.as_object());
-  let options = raw_options
-    .map(ImportMetaWebpackContextOptions::from_ast_object)
-    .unwrap_or_default();
+  let options = match raw_options {
+    Some(raw_options) => {
+      let (options, diagnostics) =
+        ImportMetaWebpackContextOptions::from_ast_object_with_diagnostics(raw_options);
+      for diagnostic in diagnostics {
+        add_ast_object_warning(parser, diagnostic);
+      }
+      options
+    }
+    None => ImportMetaWebpackContextOptions::default(),
+  };
   let regexp_span = options.reg_exp.as_ref().and_then(|_| {
     raw_options
       .and_then(|options| get_from_object(options, &["regExp"]))
@@ -314,12 +330,17 @@ fn create_import_meta_glob_dependency(
   }
   let raw_glob_patterns = static_glob_patterns_from_expr(&dyn_imported.expr)?;
   let importer_context = get_context(parser.resource_data);
-  let options = node
-    .args
-    .get(1)
-    .and_then(|arg| arg.expr.as_object())
-    .map(ImportMetaGlobOptions::from_ast_object)
-    .unwrap_or_default();
+  let options = match node.args.get(1).and_then(|arg| arg.expr.as_object()) {
+    Some(raw_options) => {
+      let (options, diagnostics) =
+        ImportMetaGlobOptions::from_ast_object_with_diagnostics(raw_options);
+      for diagnostic in diagnostics {
+        add_ast_object_warning(parser, diagnostic);
+      }
+      options
+    }
+    None => ImportMetaGlobOptions::default(),
+  };
   let glob_query = options
     .query
     .as_ref()

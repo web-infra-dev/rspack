@@ -15,20 +15,25 @@
 //!   case_sensitive: bool,
 //! }
 //!
-//! let options = obj.map(GlobOptions::from_ast_object).unwrap_or_default();
+//! let options = obj
+//!   .map(GlobOptions::from_ast_object)
+//!   .transpose()?
+//!   .unwrap_or_default();
 //! ```
 //!
 //! This module provides the [`FromAstExpr`] trait the generated code uses to
 //! extract each field value, plus implementations for the common value
 //! shapes. Field types only need `FromAstExpr + Default`; an absent or
 //! statically unresolvable property always falls back to the field default,
-//! matching the previous hand-rolled behavior. Custom value shapes (enums,
+//! while conversion failures are preserved. Custom value shapes (enums,
 //! nested options objects) participate by implementing [`FromAstExpr`], and
 //! `Vec<(String, T)>` extracts records with unknown keys in source order.
 
 use rspack_core::ImportAttributes;
+use rspack_error::{Label, Result};
 use rspack_regex::RspackRegex;
-use swc_experimental_ecma_ast::{Bool, Expr, Lit, ObjectLit, PropName, Regex, Str};
+use rspack_util::SpanExt;
+use swc_experimental_ecma_ast::{Bool, Expr, GetSpan, Lit, ObjectLit, PropName, Regex, Str};
 
 use crate::visitors::static_string_from_expr;
 
@@ -119,8 +124,11 @@ pub fn get_from_object<'r, 'ast>(
 pub fn get_value_from_object<'r, 'ast, T: FromAstExpr<'ast>>(
   object: &'r ObjectLit<'ast>,
   path: &[&str],
-) -> Option<T> {
-  get_from_object(object, path).and_then(T::from_ast_expr)
+) -> Result<Option<T>> {
+  let Some(expr) = get_from_object(object, path) else {
+    return Ok(None);
+  };
+  extract_value(expr)
 }
 
 /// Look up a nested value in AST object literals by a key path, like
@@ -137,52 +145,75 @@ pub fn get<'r, 'ast>(expr: &'r Expr<'ast>, path: &[&str]) -> Option<&'r Expr<'as
 
 /// Look up a nested value by a key path and extract it as `T`, combining
 /// [`get`] with [`FromAstExpr`].
-pub fn get_value<'r, 'ast, T: FromAstExpr<'ast>>(expr: &'r Expr<'ast>, path: &[&str]) -> Option<T> {
-  get(expr, path).and_then(|expr| T::from_ast_expr(expr))
+pub fn get_value<'r, 'ast, T: FromAstExpr<'ast>>(
+  expr: &'r Expr<'ast>,
+  path: &[&str],
+) -> Result<Option<T>> {
+  let Some(expr) = get(expr, path) else {
+    return Ok(None);
+  };
+  extract_value(expr)
 }
 
-/// Extract a typed value from an AST expression, if the expression is a
-/// statically resolvable representation of the value.
+fn extract_value<'ast, T: FromAstExpr<'ast>>(expr: &Expr<'ast>) -> Result<Option<T>> {
+  T::from_ast_expr(expr).map_err(|mut error| {
+    if error.labels.is_none() {
+      let span = expr.span();
+      error.labels = Some(vec![Label {
+        name: None,
+        offset: span.real_lo() as usize,
+        len: span.real_hi().saturating_sub(span.real_lo()) as usize,
+      }]);
+    }
+    error
+  })
+}
+
+/// Extract a typed value from an AST expression.
+///
+/// `Ok(None)` means that the expression is not a statically resolvable
+/// representation of the requested type. `Err` preserves a conversion failure
+/// after the expression has been recognized as that type.
 pub trait FromAstExpr<'a>: Sized {
-  fn from_ast_expr(expr: &Expr<'a>) -> Option<Self>;
+  fn from_ast_expr(expr: &Expr<'a>) -> Result<Option<Self>>;
 }
 
 impl FromAstExpr<'_> for bool {
-  fn from_ast_expr(expr: &Expr<'_>) -> Option<Self> {
-    match expr.as_lit()? {
-      Lit::Bool(bool) => Some(bool.value),
+  fn from_ast_expr(expr: &Expr<'_>) -> Result<Option<Self>> {
+    Ok(match expr.as_lit() {
+      Some(Lit::Bool(bool)) => Some(bool.value),
       _ => None,
-    }
+    })
   }
 }
 
 impl FromAstExpr<'_> for String {
-  fn from_ast_expr(expr: &Expr<'_>) -> Option<Self> {
-    static_string_from_expr(expr)
+  fn from_ast_expr(expr: &Expr<'_>) -> Result<Option<Self>> {
+    Ok(static_string_from_expr(expr))
   }
 }
 
 impl FromAstExpr<'_> for f64 {
-  fn from_ast_expr(expr: &Expr<'_>) -> Option<Self> {
-    match expr.as_lit()? {
-      Lit::Num(num) => Some(num.value),
+  fn from_ast_expr(expr: &Expr<'_>) -> Result<Option<Self>> {
+    Ok(match expr.as_lit() {
+      Some(Lit::Num(num)) => Some(num.value),
       _ => None,
-    }
+    })
   }
 }
 
 impl<'a, T: FromAstExpr<'a>> FromAstExpr<'a> for Option<T> {
-  fn from_ast_expr(expr: &Expr<'a>) -> Option<Self> {
-    T::from_ast_expr(expr).map(Some)
+  fn from_ast_expr(expr: &Expr<'a>) -> Result<Option<Self>> {
+    T::from_ast_expr(expr).map(|value| value.map(Some))
   }
 }
 
 impl FromAstExpr<'_> for RspackRegex {
-  fn from_ast_expr(expr: &Expr<'_>) -> Option<Self> {
-    let Lit::Regex(regex) = expr.as_lit()? else {
-      return None;
+  fn from_ast_expr(expr: &Expr<'_>) -> Result<Option<Self>> {
+    let Some(Lit::Regex(regex)) = expr.as_lit() else {
+      return Ok(None);
     };
-    RspackRegex::with_flags(regex.exp.as_ref(), regex.flags.as_ref()).ok()
+    RspackRegex::with_flags(regex.exp.as_ref(), regex.flags.as_ref()).map(Some)
   }
 }
 
@@ -191,18 +222,26 @@ impl FromAstExpr<'_> for RspackRegex {
 /// statically resolvable and every value must extract as `T`, otherwise the
 /// whole extraction fails.
 impl<'a, T: FromAstExpr<'a>> FromAstExpr<'a> for Vec<(String, T)> {
-  fn from_ast_expr(expr: &Expr<'a>) -> Option<Self> {
-    let obj = expr.as_object()?;
+  fn from_ast_expr(expr: &Expr<'a>) -> Result<Option<Self>> {
+    let Some(obj) = expr.as_object() else {
+      return Ok(None);
+    };
     obj
       .props
       .iter()
-      .map(|prop| {
-        let kv = prop.as_prop().and_then(|prop| prop.as_key_value())?;
-        let key = static_prop_name(&kv.key)?;
-        let value = T::from_ast_expr(&kv.value)?;
-        Some((key, value))
+      .map(|prop| -> Result<Option<(String, T)>> {
+        let Some(kv) = prop.as_prop().and_then(|prop| prop.as_key_value()) else {
+          return Ok(None);
+        };
+        let Some(key) = static_prop_name(&kv.key) else {
+          return Ok(None);
+        };
+        let Some(value) = T::from_ast_expr(&kv.value)? else {
+          return Ok(None);
+        };
+        Ok(Some((key, value)))
       })
-      .collect()
+      .collect::<Result<Option<Vec<_>>>>()
   }
 }
 
@@ -272,7 +311,7 @@ mod tests {
   fn extracts_camel_case_fields_and_defaults() {
     let allocator = Allocator::new();
     let expr = parse_expr(&allocator, "{ eager: true, caseSensitive: false }");
-    let options = TestOptions::from_ast_object(expr.as_object().unwrap());
+    let options = TestOptions::from_ast_object(expr.as_object().unwrap()).unwrap();
     assert_eq!(
       options,
       TestOptions {
@@ -285,7 +324,7 @@ mod tests {
 
     let expr = parse_expr(&allocator, "{}");
     assert_eq!(
-      TestOptions::from_ast_object(expr.as_object().unwrap()),
+      TestOptions::from_ast_object(expr.as_object().unwrap()).unwrap(),
       TestOptions {
         skipped: true,
         ..Default::default()
@@ -301,7 +340,7 @@ mod tests {
       "{ eager: \"yes\", import: 1, caseSensitive: null }",
     );
     assert_eq!(
-      TestOptions::from_ast_object(expr.as_object().unwrap()),
+      TestOptions::from_ast_object(expr.as_object().unwrap()).unwrap(),
       TestOptions {
         skipped: true,
         ..Default::default()
@@ -309,7 +348,7 @@ mod tests {
     );
 
     let expr = parse_expr(&allocator, "true");
-    assert_eq!(TestOptions::from_ast_expr(&expr), None);
+    assert_eq!(TestOptions::from_ast_expr(&expr).unwrap(), None);
   }
 
   #[test]
@@ -317,7 +356,9 @@ mod tests {
     let allocator = Allocator::new();
     let expr = parse_expr(&allocator, "{ import: `default` }");
     assert_eq!(
-      TestOptions::from_ast_object(expr.as_object().unwrap()).import,
+      TestOptions::from_ast_object(expr.as_object().unwrap())
+        .unwrap()
+        .import,
       Some("default".to_string())
     );
   }
@@ -331,7 +372,7 @@ mod tests {
   fn extracts_nested_options_objects() {
     let allocator = Allocator::new();
     let expr = parse_expr(&allocator, "{ inner: { eager: true } }");
-    let options = TestOuter::from_ast_object(expr.as_object().unwrap());
+    let options = TestOuter::from_ast_object(expr.as_object().unwrap()).unwrap();
     assert_eq!(
       options.inner,
       Some(TestOptions {
@@ -346,7 +387,9 @@ mod tests {
   fn extracts_records_in_source_order() {
     let allocator = Allocator::new();
     let expr = parse_expr(&allocator, "{ b: '1', a: `2`, [\"c\"]: '3' }");
-    let record = Vec::<(String, String)>::from_ast_expr(&expr).unwrap();
+    let record = Vec::<(String, String)>::from_ast_expr(&expr)
+      .unwrap()
+      .unwrap();
     assert_eq!(
       record,
       vec![
@@ -361,13 +404,14 @@ mod tests {
   fn record_extraction_is_all_or_nothing() {
     let allocator = Allocator::new();
     let expr = parse_expr(&allocator, "{ a: '1', [Symbol()]: '2' }");
-    assert_eq!(Vec::<(String, String)>::from_ast_expr(&expr), None);
+    assert_eq!(Vec::<(String, String)>::from_ast_expr(&expr).unwrap(), None);
   }
 
   #[derive(Debug, Default, AstObject)]
   #[ast_object(rename_all = "camelCase")]
   struct TestRegexOptions {
     reg_exp: Option<RspackRegex>,
+    recursive: Option<bool>,
   }
 
   #[test]
@@ -375,6 +419,7 @@ mod tests {
     let allocator = Allocator::new();
     let expr = parse_expr(&allocator, "{ regExp: /abc/gi }");
     let regex = TestRegexOptions::from_ast_object(expr.as_object().unwrap())
+      .unwrap()
       .reg_exp
       .expect("expected a regex");
     assert_eq!(regex.source(), "abc");
@@ -383,8 +428,42 @@ mod tests {
     let expr = parse_expr(&allocator, "{ regExp: \"nope\" }");
     assert!(
       TestRegexOptions::from_ast_object(expr.as_object().unwrap())
+        .unwrap()
         .reg_exp
         .is_none()
+    );
+  }
+
+  #[test]
+  fn preserves_regex_conversion_errors() {
+    let allocator = Allocator::new();
+    let expr = parse_expr(
+      &allocator,
+      "{ regExp: /(?<name>a)|(?<name>b)/, recursive: false }",
+    );
+    let error = TestRegexOptions::from_ast_object(expr.as_object().unwrap())
+      .expect_err("regex conversion failures should not be treated as an absent option");
+
+    assert!(error.to_string().contains("/(?<name>a)|(?<name>b)/"));
+  }
+
+  #[test]
+  fn preserves_valid_fields_when_collecting_conversion_diagnostics() {
+    let allocator = Allocator::new();
+    let expr = parse_expr(
+      &allocator,
+      "{ regExp: /(?<name>a)|(?<name>b)/, recursive: false }",
+    );
+    let (options, diagnostics) =
+      TestRegexOptions::from_ast_object_with_diagnostics(expr.as_object().unwrap());
+
+    assert!(options.reg_exp.is_none());
+    assert_eq!(options.recursive, Some(false));
+    assert_eq!(diagnostics.len(), 1);
+    assert!(
+      diagnostics[0]
+        .to_string()
+        .contains("/(?<name>a)|(?<name>b)/")
     );
   }
 }
@@ -419,10 +498,13 @@ mod get_tests {
     let allocator = Allocator::new();
     let expr = parse_expr(&allocator, "{ a: { b: { c: 42 } } }");
     assert_eq!(
-      get_value_from_object::<f64>(expr.as_object().unwrap(), &["a"]),
+      get_value_from_object::<f64>(expr.as_object().unwrap(), &["a"]).unwrap(),
       None
     );
-    assert_eq!(get_value::<f64>(&expr, &["a", "b", "c"]), Some(42.0));
+    assert_eq!(
+      get_value::<f64>(&expr, &["a", "b", "c"]).unwrap(),
+      Some(42.0)
+    );
     assert!(get(&expr, &["a", "b"]).is_some_and(|expr| expr.as_object().is_some()));
     // An empty path is the identity.
     assert!(get(&expr, &[]).is_some());
@@ -436,15 +518,18 @@ mod get_tests {
 
     let dynamic_key = "enabled".to_string();
     assert_eq!(
-      get_value_from_object::<bool>(object, &[dynamic_key.as_str()]),
+      get_value_from_object::<bool>(object, &[dynamic_key.as_str()]).unwrap(),
       Some(true)
     );
     assert_eq!(
-      get_value_from_object::<String>(object, &["label"]),
+      get_value_from_object::<String>(object, &["label"]).unwrap(),
       Some("test".to_string())
     );
-    assert_eq!(get_value_from_object::<bool>(object, &["missing"]), None);
-    assert_eq!(get_value_from_object::<bool>(object, &[]), None);
+    assert_eq!(
+      get_value_from_object::<bool>(object, &["missing"]).unwrap(),
+      None
+    );
+    assert_eq!(get_value_from_object::<bool>(object, &[]).unwrap(), None);
   }
 
   #[test]
@@ -457,21 +542,24 @@ mod get_tests {
     let object = expr.as_object().unwrap();
 
     assert_eq!(
-      get_value_from_object::<bool>(object, &["enabled"]),
+      get_value_from_object::<bool>(object, &["enabled"]).unwrap(),
       Some(true)
     );
-    assert_eq!(get_value::<f64>(&expr, &["nested", "value"]), Some(2.0));
+    assert_eq!(
+      get_value::<f64>(&expr, &["nested", "value"]).unwrap(),
+      Some(2.0)
+    );
   }
 
   #[test]
   fn get_returns_none_for_missing_or_non_object_segments() {
     let allocator = Allocator::new();
     let expr = parse_expr(&allocator, "{ a: { b: 1 } }");
-    assert_eq!(get_value::<f64>(&expr, &["a", "x"]), None);
-    assert_eq!(get_value::<f64>(&expr, &["x"]), None);
+    assert_eq!(get_value::<f64>(&expr, &["a", "x"]).unwrap(), None);
+    assert_eq!(get_value::<f64>(&expr, &["x"]).unwrap(), None);
     // Intermediate value is not an object.
-    assert_eq!(get_value::<f64>(&expr, &["a", "b", "c"]), None);
+    assert_eq!(get_value::<f64>(&expr, &["a", "b", "c"]).unwrap(), None);
     // The leaf exists but does not match the requested type.
-    assert_eq!(get_value::<String>(&expr, &["a", "b"]), None);
+    assert_eq!(get_value::<String>(&expr, &["a", "b"]).unwrap(), None);
   }
 }

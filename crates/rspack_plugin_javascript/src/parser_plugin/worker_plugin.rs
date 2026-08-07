@@ -5,6 +5,7 @@ use rspack_core::{
   AsyncDependenciesBlock, ConstDependency, DependencyRange, EntryOptions, GroupOptions,
   JavascriptParserWorkerOptions, JavascriptParserWorkerUrl,
 };
+use rspack_error::Severity;
 use rspack_hash::{RspackHash, RspackHasher};
 use rspack_macros::AstObject;
 use rspack_util::SpanExt;
@@ -60,7 +61,11 @@ struct ParsedNewWorkerImportOptions {
   pub ignored: Option<bool>,
 }
 
-fn parse_new_worker_options(arg: &ExprOrSpread, is_shared_worker: bool) -> ParsedNewWorkerOptions {
+fn parse_new_worker_options(
+  parser: &mut JavascriptParser,
+  arg: &ExprOrSpread,
+  is_shared_worker: bool,
+) -> ParsedNewWorkerOptions {
   let obj = arg.expr.as_object();
   let string = if arg.spread.is_none() {
     arg.expr.as_lit().and_then(|lit| lit.as_str())
@@ -68,7 +73,14 @@ fn parse_new_worker_options(arg: &ExprOrSpread, is_shared_worker: bool) -> Parse
     None
   };
   let name = if let Some(obj) = obj {
-    NewWorkerOptions::from_ast_object(obj).name
+    let (options, diagnostics) = NewWorkerOptions::from_ast_object_with_diagnostics(obj);
+    for mut diagnostic in diagnostics {
+      diagnostic.severity = Severity::Warning;
+      diagnostic.src = Some(parser.source.to_string().into());
+      diagnostic.hide_stack = Some(true);
+      parser.add_warning(diagnostic.into());
+    }
+    options.name
   } else if is_shared_worker {
     string.map(|str| str.value.to_string_lossy().into())
   } else {
@@ -265,7 +277,7 @@ fn handle_worker<'a>(
     let mut options = args
       .get(1)
       // new Worker(new URL("worker.js"), options)
-      .map(|arg| parse_new_worker_options(arg, is_shared_worker));
+      .map(|arg| parse_new_worker_options(parser, arg, is_shared_worker));
 
     let import_options = expr_box
       .as_new()
