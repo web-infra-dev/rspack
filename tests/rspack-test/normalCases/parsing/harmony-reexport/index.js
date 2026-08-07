@@ -2,10 +2,10 @@ import { a, aUsed, aCanBeMangled, aProvided, aToStringProvided, obj, objUsed, ob
 
 if (a()) console.log("a", obj);
 
-it("should not allow mangle if some exports are unknown", () => {
+it("should allow mangle across an empty javascript/auto star reexport", () => {
 	expect(aUsed).toBe(true);
 	expect(aProvided).toBe(true);
-	expect(aCanBeMangled).toBe(false);
+	expect(aCanBeMangled).toBe(true);
 	expect(objUsed).toBe(true);
 	expect(objAProvided).toBe(undefined);
 	expect(aToStringProvided).toBe(undefined);
