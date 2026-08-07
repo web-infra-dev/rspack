@@ -5,8 +5,9 @@ use napi_derive::napi;
 use rspack_core::{CompilerId, Module};
 use rspack_hash::{HashDigest, HashFunction};
 use rspack_ids::{
-  DeterministicModuleIdsPluginOptions, HashedModuleIdsPluginOptions, ModuleFilterFn,
-  OccurrenceChunkIdsPluginOptions, SyncModuleIdsPluginMode, SyncModuleIdsPluginOptions,
+  CompactModuleIdsPluginOptions, DeterministicModuleIdsPluginOptions, HashedModuleIdsPluginOptions,
+  ModuleFilterFn, OccurrenceChunkIdsPluginOptions, SyncModuleIdsPluginMode,
+  SyncModuleIdsPluginOptions,
 };
 
 use crate::{
@@ -70,6 +71,20 @@ fn into_module_filter(test: RawModuleFilter) -> ModuleFilterFn {
       Box::pin(async move { Ok(test.call_with_sync(module).await?.unwrap_or(false)) })
     },
   )
+}
+
+#[derive(Debug)]
+#[napi(object, object_to_js = false)]
+pub struct RawCompactModuleIdsPluginOptions {
+  pub min_length: Option<u32>,
+}
+
+impl From<RawCompactModuleIdsPluginOptions> for CompactModuleIdsPluginOptions {
+  fn from(value: RawCompactModuleIdsPluginOptions) -> Self {
+    Self {
+      min_length: value.min_length.map(|n| n as usize),
+    }
+  }
 }
 
 #[derive(Debug)]

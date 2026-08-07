@@ -3458,6 +3458,11 @@ impl OptimizationOptionsBuilder {
           .plugins
           .push(BuiltinPluginOptions::DeterministicModuleIdsPlugin);
       }
+      "compact" => {
+        builder_context
+          .plugins
+          .push(BuiltinPluginOptions::CompactModuleIdsPlugin);
+      }
       "named" => {
         builder_context
           .plugins

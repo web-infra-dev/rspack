@@ -9,7 +9,7 @@ use rspack_core::{
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
-use rspack_ids::id_helpers::assign_deterministic_ids;
+use rspack_ids::id_helpers::assign_deterministic_ids_with_range_factor;
 use rspack_util::atom::Atom;
 use rustc_hash::{FxHashMap, FxHashSet};
 
@@ -318,7 +318,7 @@ fn mangle_exports_info(
     let used_names_len = used_names.len();
     let mut export_info_used_name =
       FxHashMap::with_capacity_and_hasher(mangleable_exports.len(), Default::default());
-    assign_deterministic_ids(
+    assign_deterministic_ids_with_range_factor(
       mangleable_exports,
       |e| e.name.as_str(),
       |a, b| compare_strings_numeric(a.name, b.name),
@@ -340,6 +340,7 @@ fn mangle_exports_info(
       NUMBER_OF_IDENTIFIER_CONTINUATION_CHARS as usize,
       used_names_len,
       0,
+      4,
     );
     for (export_info, name) in export_info_used_name {
       changes.push((export_info, UsedNameItem::Str(name.into())));

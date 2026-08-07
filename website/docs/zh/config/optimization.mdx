@@ -338,7 +338,7 @@ export default {
 ## optimization.moduleIds
 
 <PropertyType
-  type="false | 'natural' | 'named' | 'deterministic' | 'hashed'"
+  type="false | 'natural' | 'named' | 'deterministic' | 'compact' | 'hashed'"
   defaultValueList={[
     { defaultValue: "'deterministic'", mode: 'production' },
     { defaultValue: "'named'", mode: 'development' },
@@ -354,6 +354,7 @@ export default {
 | `natural`       | 根据模块加载的顺序使用自增数字作为模块 id。                                                                   |
 | `named`         | 使用有意义、方便调试的内容当作模块 id。                                                                       |
 | `deterministic` | 使用对模块标识符哈希后的数字当作模块 id，有益于长期缓存。默认使用 3 位数字。                                  |
+| `compact`       | 使用具有更密集标识符空间的稳定字母数字 id。等同于使用默认选项的 `CompactModuleIdsPlugin` 插件。               |
 | `hashed`        | 使用模块标识符的哈希值作为模块 id。等同于使用默认选项（md4、base64、4 字符）的 `HashedModuleIdsPlugin` 插件。 |
 | `false`         | 禁用 Rspack 内置的模块 id 算法，允许自定义插件提供模块 id。                                                   |
 
@@ -364,6 +365,8 @@ export default {
   },
 };
 ```
+
+`compact` 选项在保持长期稳定性的同时，使用字母开头、后续为字母数字的方式编码 id。更密集的 id 空间可以减少包含大量模块的产物中重复出现的模块 id 字节。该选项需要显式启用；生产模式仍默认使用 `deterministic`。
 
 ## optimization.nodeEnv
 

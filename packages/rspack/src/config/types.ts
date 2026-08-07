@@ -2800,7 +2800,8 @@ export type Optimization = {
    * Setting to `false` disables the built-in algorithm, allowing a custom plugin
    * (e.g. HashedModuleIdsPlugin) to provide module ids instead.
    */
-  moduleIds?: false | 'named' | 'natural' | 'deterministic' | 'hashed';
+  moduleIds?:
+    false | 'named' | 'natural' | 'deterministic' | 'compact' | 'hashed';
 
   /**
    * Which algorithm to use when choosing chunk ids.

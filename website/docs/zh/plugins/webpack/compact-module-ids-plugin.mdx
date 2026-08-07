@@ -1,0 +1,33 @@
+---
+description: '为模块分配紧凑且稳定的字母数字 id'
+---
+
+# CompactModuleIdsPlugin
+
+`CompactModuleIdsPlugin` 根据模块标识符分配稳定的字母数字 id。首字符使用 `a-zA-Z`，后续字符使用 `a-zA-Z0-9`。它会从配置的最短 hash 前缀开始，只延长前缀发生冲突的 id。
+
+`optimization.moduleIds: 'compact'` 内部会使用该插件。只有在需要自定义 compact id 生成行为时，才需要直接使用该插件。
+
+```js title="rspack.config.mjs"
+import rspack from '@rspack/core';
+
+export default {
+  optimization: {
+    moduleIds: false,
+  },
+  plugins: [
+    new rspack.ids.CompactModuleIdsPlugin({
+      minLength: 1,
+    }),
+  ],
+};
+```
+
+## 选项
+
+### minLength
+
+- **类型：** `number`
+- **默认值：** `1`
+
+编码后 id 的最小长度。如果 hash 前缀已经被使用，Rspack 会逐个字符延长该 id。如果完整 hash 仍然冲突，编译会失败并报告错误。
