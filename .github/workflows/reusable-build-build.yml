@@ -193,13 +193,22 @@ jobs:
           DISABLE_PLUGIN=1 RUST_TARGET=wasm32-wasip1-threads pnpm build:binding:${{ inputs.profile }}
           cp crates/node_binding/rspack.wasm32-wasi.wasm crates/node_binding/rspack.browser.wasm
 
+      - name: Setup binaryen
+        if: ${{ inputs.target == 'wasm32-wasip1-threads' && inputs.profile == 'release' }}
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/binaryen.tar.gz" \
+            "https://github.com/WebAssembly/binaryen/releases/download/version_${BINARYEN_VERSION}/binaryen-version_${BINARYEN_VERSION}-x86_64-linux.tar.gz"
+          tar xz -C "$RUNNER_TEMP" -f "$RUNNER_TEMP/binaryen.tar.gz" "binaryen-version_$BINARYEN_VERSION/bin/wasm-opt"
+          echo "$RUNNER_TEMP/binaryen-version_$BINARYEN_VERSION/bin" >> "$GITHUB_PATH"
+        env:
+          BINARYEN_VERSION: '131'
+
       # WASM Release (use profile = release-wasi) + wasm-opt
       # The wasi and browser variants are split into two parallel matrix jobs
       # (see reusable-release-npm.yml) and selected here via binding_postfix.
       - name: Build wasm32-wasip1-threads wasi variant (release-wasi) with linux
         if: ${{ inputs.target == 'wasm32-wasip1-threads' && inputs.profile == 'release' && inputs.binding_postfix == '' }}
         run: |
-          npm install -g binaryen
           pnpm --filter @rspack/binding build:release:wasm
           wasm-opt -Oz crates/node_binding/rspack.wasm32-wasi.wasm -o crates/node_binding/rspack.wasm32-wasi.optimized.wasm
           mv crates/node_binding/rspack.wasm32-wasi.optimized.wasm crates/node_binding/rspack.wasm32-wasi.wasm
@@ -207,7 +216,6 @@ jobs:
       - name: Build wasm32-wasip1-threads browser variant (release-wasi) with linux
         if: ${{ inputs.target == 'wasm32-wasip1-threads' && inputs.profile == 'release' && inputs.binding_postfix == '-browser' }}
         run: |
-          npm install -g binaryen
           pnpm --filter @rspack/binding build:release:browser
           wasm-opt -Oz crates/node_binding/rspack.browser.wasm -o crates/node_binding/rspack.browser.optimized.wasm
           mv crates/node_binding/rspack.browser.optimized.wasm crates/node_binding/rspack.browser.wasm
