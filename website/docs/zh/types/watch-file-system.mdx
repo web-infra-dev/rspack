@@ -1,34 +1,62 @@
 <>
 
 ```ts
-type WatchFileSystem = {
+type WatchDependencies = Iterable<string> & {
+  added?: Iterable<string>;
+  removed?: Iterable<string>;
+};
+
+type TimeInfoEntries = Map<string, FileSystemInfoEntry | 'ignore'>;
+
+type WatcherInfo = {
+  changes: Set<string>;
+  removals: Set<string>;
+  fileTimeInfoEntries: TimeInfoEntries;
+  contextTimeInfoEntries: TimeInfoEntries;
+};
+
+type Watcher = {
+  close(): void;
+  pause(): void;
+  getInfo(): WatcherInfo;
+};
+
+type WatchFileSystemEvents = {
+  change: [filename: string, mtime: number];
+  remove: [filename: string];
+  aggregated: [changes: Set<string>, removals: Set<string>];
+};
+
+interface WatchFileSystem {
   watch(
-    files: string[],
-    directories: string[],
-    missing: string[],
+    files: WatchDependencies,
+    directories: WatchDependencies,
+    missing: WatchDependencies,
     startTime: number,
     options: WatchOptions,
     callback: (
-      err: Error | null,
-      fileEntries: Map<string, FileSystemInfoEntry>,
-      contextEntries: Map<string, FileSystemInfoEntry>,
-      changes: Set<string>,
-      removals: Set<string>
-    ): void,
-    callbackUndelayed: ( // 首次变更立即触发
-      file: string,
-      time: number
-    ): void;
-  ): {
-    close(): void,
-    pause(): void,
-    getAggregatedChanges(): Set<string>,
-    getAggregatedRemovals(): Set<string>,
-    getFileTimeInfoEntries():  Map<string, FileSystemInfoEntry | "ignore">,
-    getContextTimeInfoEntries():  Map<string, FileSystemInfoEntry | "ignore">,
-    getInfo: WatcherInfo
-  }
-};
+      error: Error | null,
+      fileTimeInfoEntries: TimeInfoEntries,
+      contextTimeInfoEntries: TimeInfoEntries,
+      changedFiles: Set<string>,
+      removedFiles: Set<string>,
+    ) => void,
+    callbackUndelayed: (fileName: string, changeTime: number) => void,
+  ): Watcher;
+
+  on?<E extends keyof WatchFileSystemEvents>(
+    event: E,
+    listener: (...args: WatchFileSystemEvents[E]) => void,
+  ): this;
+  once?<E extends keyof WatchFileSystemEvents>(
+    event: E,
+    listener: (...args: WatchFileSystemEvents[E]) => void,
+  ): this;
+  emit?<E extends keyof WatchFileSystemEvents>(
+    event: E,
+    ...args: WatchFileSystemEvents[E]
+  ): boolean;
+}
 ```
 
 </>
