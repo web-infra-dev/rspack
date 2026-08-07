@@ -1,0 +1,99 @@
+name: Verify wasm-opt
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/workflows/verify-wasm-opt.yml'
+
+permissions:
+  contents: read
+
+env:
+  CARGO_INCREMENTAL: 0
+  BINARYEN_VERSION: '131'
+
+jobs:
+  verify:
+    name: Verify wasm-opt (wasm32-wasip1-threads, release)
+    runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') }}
+    timeout-minutes: 90
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          clean: ${{ runner.environment == 'github-hosted' }}
+
+      - name: Pnpm Setup
+        timeout-minutes: 5
+        uses: ./.github/actions/pnpm/setup
+
+      - name: Install Binding Dependencies
+        run: pnpm --filter @rspack/binding install --frozen-lockfile
+
+      - name: Install Rust Toolchain
+        uses: ./.github/actions/rustup
+        with:
+          key: verify-wasm-opt
+
+      - name: Setup Rust Target
+        run: rustup target add wasm32-wasip1-threads
+
+      - name: Run Cargo codegen
+        run: cargo codegen
+
+      - name: Trim paths
+        run: |
+          echo $'\n' >> .cargo/config.toml
+          echo 'trim-paths = true' >> .cargo/config.toml
+
+      - name: Build wasm32-wasip1-threads (release-wasi)
+        run: pnpm --filter @rspack/binding build:release:wasm
+
+      - name: Setup both wasm-opt builds
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/binaryen.tar.gz" \
+            "https://github.com/WebAssembly/binaryen/releases/download/version_${BINARYEN_VERSION}/binaryen-version_${BINARYEN_VERSION}-x86_64-linux.tar.gz"
+          tar xz -C "$RUNNER_TEMP" -f "$RUNNER_TEMP/binaryen.tar.gz" "binaryen-version_$BINARYEN_VERSION/bin/wasm-opt"
+          npm install "binaryen@$BINARYEN_VERSION.0.0" --no-save --prefix "$RUNNER_TEMP/js"
+          "$RUNNER_TEMP/binaryen-version_$BINARYEN_VERSION/bin/wasm-opt" --version
+          "$RUNNER_TEMP/js/node_modules/.bin/wasm-opt" --version
+
+      - name: Compare
+        run: |
+          IN=crates/node_binding/rspack.wasm32-wasi.wasm
+          NATIVE="$RUNNER_TEMP/binaryen-version_$BINARYEN_VERSION/bin/wasm-opt"
+          JS="$RUNNER_TEMP/js/node_modules/.bin/wasm-opt"
+          cat "$IN" > /dev/null
+
+          time_ms() {
+            local out=$1 bin=$2 t0 t1
+            t0=$(date +%s%N)
+            "$bin" -Oz "$IN" -o "$out"
+            t1=$(date +%s%N)
+            echo $(( (t1 - t0) / 1000000 ))
+          }
+
+          native_ms=$(time_ms "$RUNNER_TEMP/native.wasm" "$NATIVE")
+          js_ms=$(time_ms "$RUNNER_TEMP/js.wasm" "$JS")
+
+          native_sha=$(sha256sum "$RUNNER_TEMP/native.wasm" | cut -d' ' -f1)
+          js_sha=$(sha256sum "$RUNNER_TEMP/js.wasm" | cut -d' ' -f1)
+
+          {
+            echo "| | value |"
+            echo "|---|---|"
+            echo "| runner | \`$(hostname)\` |"
+            echo "| nproc | $(nproc) |"
+            echo "| input | $(stat -c%s "$IN") B |"
+            echo "| npm \`binaryen\` (JS) | ${js_ms} ms |"
+            echo "| upstream native | ${native_ms} ms |"
+            echo "| speedup | $(awk "BEGIN{printf \"%.1fx\", $js_ms/$native_ms}") |"
+            echo "| output size | $(stat -c%s "$RUNNER_TEMP/native.wasm") B |"
+            echo "| sha256 match | $([ "$native_sha" = "$js_sha" ] && echo yes || echo NO) |"
+          } | tee -a "$GITHUB_STEP_SUMMARY"
+
+          [ "$native_sha" = "$js_sha" ]
