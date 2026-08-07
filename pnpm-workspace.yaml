@@ -205,8 +205,7 @@ minimumReleaseAgeExclude:
   - 'rstack'
   - '@swc/*'
   - 'heading-case'
-  - '@rstackjs/create-toolkit'
-  - '@rstackjs/load-config'
+  - '@rstackjs/*'
 
 patchedDependencies:
   webpack-sources@3.5.1: patches/webpack-sources@3.5.1.patch
