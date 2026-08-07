@@ -42,15 +42,26 @@ pnpm install
 
 ## 内存分析
 
-内存分析器在 allocator 边界记录分配。Rspack 的常规 release binding 使用 mimalloc，而 `@rspack-debug/core` 和本地 `release-debug` binding 使用 system allocator。采集 Heaptrack 数据或动态注入 jemalloc 时，应使用 debug binding。
+内存分析器在 allocator 边界记录分配。Rspack 的常规 release 包使用 mimalloc，而 `@rspack-debug/core` 使用 system allocator。采集 Heaptrack 数据或动态注入 jemalloc 时，应使用 `@rspack-debug/core`。
 
-在本地 Rspack 仓库中执行以下命令构建 debug binding：
+在需要分析的项目中，按照[调试文档](/contribute/development/debugging#使用-rspack-debugcore)将 `@rspack/core` override 为相同版本的 `@rspack-debug/core`，然后重新安装依赖。例如，使用 pnpm 的项目依赖 `@rspack/core@2.1.0` 时：
 
-```sh
-pnpm build:binding:debug
+```json title="package.json"
+{
+  "pnpm": {
+    "overrides": {
+      "@rspack/core": "npm:@rspack-debug/core@2.1.0"
+    },
+    "peerDependencyRules": {
+      "allowAny": ["@rspack/*"]
+    }
+  }
+}
 ```
 
-分析现有项目时，按照[调试文档](/contribute/development/debugging#使用-rspack-debugcore)将 `@rspack/core` override 为相同版本的 `@rspack-debug/core`，然后重新安装依赖。
+```sh
+pnpm install
+```
 
 | 分析器             | 输出格式 | 分析工具                           | 适用场景                 |
 | ------------------ | -------- | ---------------------------------- | ------------------------ |
@@ -79,7 +90,7 @@ heaptrack_gui ./rspack-heaptrack.gz
 
 Heaptrack 退出时会打印实际的输出文件名。`--record-only` 可以避免自动打开 GUI，适合 WSL、容器和远程终端。
 
-debug binding 使用 system allocator，因此 Heaptrack 能够采集 Rspack 和 SWC 的分配。常规 release binding 使用 mimalloc，会绕过 system allocator 的拦截点，因此其中的 Rust 分配数据不完整。根据 Heaptrack 版本不同，GUI 可能显示以 `_R` 开头的 Rust v0 mangled 符号，而不是 demangle 后的名称；这只影响展示，不影响已记录的调用栈。如需生成 demangle 后的文本报告，可以安装 [`rustfilt`](https://github.com/luser/rustfilt) 并执行：
+`@rspack-debug/core` 使用 system allocator，因此 Heaptrack 能够采集 Rspack 和 SWC 的分配。常规 release 包使用 mimalloc，会绕过 system allocator 的拦截点，因此其中的 Rust 分配数据不完整。根据 Heaptrack 版本不同，GUI 可能显示以 `_R` 开头的 Rust v0 mangled 符号，而不是 demangle 后的名称；这只影响展示，不影响已记录的调用栈。如需生成 demangle 后的文本报告，可以安装 [`rustfilt`](https://github.com/luser/rustfilt) 并执行：
 
 ```sh
 heaptrack_print ./rspack-heaptrack.gz | rustfilt | less
@@ -158,14 +169,14 @@ samply record -- node --perf-prof --perf-basic-prof --interpreted-frames-native-
 - 命令执行完毕后会自动在 [Firefox profiler](https://profiler.firefox.com/) 打开分析结果，如下截图来自 [Samply profiler](https://profiler.firefox.com/public/5fkasm1wcddddas3amgys3eg6sbp70n82q6gn1g/calltree/?globalTrackOrder=0&symbolServer=http%3A%2F%2F127.0.0.1%3A3000%2F2fjyrylqc9ifil3s7ppsmbwm6lfd3p9gddnqgx1&thread=2&v=10)。
 
 :::warning
-Node.js 目前仅在 Linux 平台支持 `--perf-prof`，而 Samply 里的 JavaScript Profiling 依赖 `--perf-prof`的支持，如果你需要在其他平台使用 Samply 进行 JavaScript Profiling，可以选择使用 docker 里进行 profiling，或者可以基于 [node-perf-maps](https://github.com/tmm1/node/tree/v8-perf-maps) 自行在 macOS 平台编译 Node.js 用于 profiling。
+Node.js 目前仅在 Linux 平台支持 `--perf-prof`，而 Samply 里的 JavaScript Profiling 依赖 `--perf-prof`的支持，如果你需要在其他平台使用 Samply 进行 JavaScript Profiling，可以选择使用 docker 里进行 profiling，或者可以基于 [node-perf-maps](https://github.com/tmm1/node/tree/v8-perf-maps) 自行在 macOs 平台编译 Node.js 用于 profiling。
 :::
 
 #### JavaScript profiler
 
 Rspack 的 JavaScript 代码通常执行在 Node.js 线程里，选择 Node.js 线程查看 Node.js 侧的耗时分布。
 
-![JavaScript Profiling](https://assets.rspack.rs/rspack/assets/profiling-javascript.png)
+![Javascript Profiling](https://assets.rspack.rs/rspack/assets/profiling-javascript.png)
 
 #### Rust profiler
 
