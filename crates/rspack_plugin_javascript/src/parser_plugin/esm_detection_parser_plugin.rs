@@ -8,16 +8,16 @@ use super::JavascriptParserPlugin;
 use crate::{
   dependency::ESMCompatibilityDependency,
   utils::eval::BasicEvaluatedExpression,
-  visitors::{JavascriptParser, create_traceable_error},
+  visitors::{JavascriptParser, create_traceable_error_from_source},
 };
 
 impl JavascriptParser<'_> {
   fn throw_top_level_await_error(&mut self, msg: String, span: Span) {
     self.add_error(
-      create_traceable_error(
+      create_traceable_error_from_source(
         "JavaScript parse error".into(),
         msg,
-        self.source.to_string(),
+        self.diagnostic_source.clone(),
         span.into(),
       )
       .into(),

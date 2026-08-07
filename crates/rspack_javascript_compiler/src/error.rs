@@ -4,6 +4,7 @@ use std::{
 };
 
 use rspack_error::{BatchErrors, Error, Label, Severity, error};
+use rspack_sources::{BoxSource, RawStringSource, SourceExt};
 use rspack_util::SpanExt;
 use rustc_hash::{FxHashMap, FxHashSet as HashSet};
 use swc_core::common::{
@@ -52,9 +53,9 @@ pub trait DedupEcmaErrors {
 
 pub fn ecma_parse_error_deduped_to_rspack_error(
   EcmaError(message, span): EcmaError,
-  source: Arc<str>,
+  source: BoxSource,
 ) -> Error {
-  Error::from_shared_source(
+  Error::from_source(
     Some(source),
     span.real_lo() as usize,
     span.real_hi() as usize,
@@ -95,7 +96,7 @@ pub(crate) fn swc_diagnostics_to_rspack_error(
 fn swc_diagnostic_to_rspack_error(
   diagnostic: &SwcDiagnostic,
   source_map: &SourceMap,
-  source_cache: &mut FxHashMap<u32, Arc<str>>,
+  source_cache: &mut FxHashMap<u32, BoxSource>,
 ) -> Error {
   let mut message = diagnostic.message();
   let code = diagnostic.code.as_ref().map(|code| match code {
@@ -142,7 +143,7 @@ fn swc_diagnostic_to_rspack_error(
     error.src = Some(
       source_cache
         .entry(source_file.start_pos.0)
-        .or_insert_with(|| Arc::from(source_file.src.as_ref()))
+        .or_insert_with(|| RawStringSource::from(source_file.src.to_string()).boxed())
         .clone(),
     );
     if !labels.is_empty() {
@@ -168,7 +169,7 @@ fn swc_diagnostic_to_rspack_error(
 struct RspackErrorEmitter {
   tx: mpsc::Sender<Error>,
   source_map: Arc<SourceMap>,
-  source_cache: FxHashMap<u32, Arc<str>>,
+  source_cache: FxHashMap<u32, BoxSource>,
   title: String,
 }
 
@@ -182,11 +183,13 @@ impl Emitter for RspackErrorEmitter {
       let source = self
         .source_cache
         .entry(source_file_and_byte_pos.sf.start_pos.0)
-        .or_insert_with(|| Arc::from(source_file_and_byte_pos.sf.src.as_ref()))
+        .or_insert_with(|| {
+          RawStringSource::from(source_file_and_byte_pos.sf.src.to_string()).boxed()
+        })
         .clone();
       self
         .tx
-        .send(Error::from_shared_source(
+        .send(Error::from_source(
           Some(source),
           source_file_and_byte_pos.pos.0 as usize,
           source_file_and_byte_pos.pos.0 as usize,

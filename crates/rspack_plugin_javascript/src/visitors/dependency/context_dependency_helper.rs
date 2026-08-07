@@ -5,7 +5,7 @@ use rspack_core::parse_resource;
 use rspack_error::{Diagnostic, Severity};
 use rspack_util::{json_stringify_str, quote_meta};
 
-use super::create_traceable_error;
+use super::create_traceable_error_from_source;
 use crate::utils::eval::{BasicEvaluatedExpression, TemplateStringKind};
 
 // Webpack will walk only the dynamic parts of evaluated expression in this function
@@ -98,10 +98,10 @@ pub fn create_context_dependency(
     }
 
     if let Some(true) = parser.javascript_options.wrapped_context_critical {
-      let mut warn: Diagnostic = Diagnostic::from(create_traceable_error(
+      let mut warn: Diagnostic = Diagnostic::from(create_traceable_error_from_source(
         "Critical dependency".into(),
         "a part of the request of a dependency is an expression".to_string(),
-        parser.source.to_string(),
+        parser.diagnostic_source.clone(),
         param.range().into(),
       ));
       warn.severity = Severity::Warning;
@@ -170,10 +170,10 @@ pub fn create_context_dependency(
     }
 
     if let Some(true) = parser.javascript_options.wrapped_context_critical {
-      let mut warn: Diagnostic = Diagnostic::from(create_traceable_error(
+      let mut warn: Diagnostic = Diagnostic::from(create_traceable_error_from_source(
         "Critical dependency".into(),
         "a part of the request of a dependency is an expression".to_string(),
-        parser.source.to_string(),
+        parser.diagnostic_source.clone(),
         param.range().into(),
       ));
       warn.severity = Severity::Warning;
@@ -199,10 +199,10 @@ pub fn create_context_dependency(
     }
   } else {
     if let Some(true) = parser.javascript_options.expr_context_critical {
-      let mut warn: Diagnostic = Diagnostic::from(create_traceable_error(
+      let mut warn: Diagnostic = Diagnostic::from(create_traceable_error_from_source(
         "Critical dependency".into(),
         "the request of a dependency is an expression".to_string(),
-        parser.source.to_string(),
+        parser.diagnostic_source.clone(),
         param.range().into(),
       ));
       warn.severity = Severity::Warning;

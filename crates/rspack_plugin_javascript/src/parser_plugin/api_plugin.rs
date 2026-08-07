@@ -2,7 +2,7 @@ use concat_string::concat_string;
 use rspack_core::{
   ConstDependency, ImportMetaKnownProperties, ModuleArgument, RuntimeGlobals,
   RuntimeGlobalsRenderMode, RuntimeRequirementsDependency,
-  RuntimeRequirementsDependencyWriteOperation, property_access,
+  RuntimeRequirementsDependencyWriteOperation, property_access, rspack_sources::BoxSource,
   runtime_mode::RuntimeMode as ExperimentRuntimeMode,
 };
 use rspack_error::{Error, Severity};
@@ -18,22 +18,24 @@ use crate::{
   },
   parser_plugin::JavascriptParserPlugin,
   utils::eval::{self, BasicEvaluatedExpression},
-  visitors::{JavascriptParser, Statement, VariableDeclaration, create_traceable_error, expr_name},
+  visitors::{
+    JavascriptParser, Statement, VariableDeclaration, create_traceable_error_from_source, expr_name,
+  },
 };
 
 fn expression_not_supported(
-  source: &str,
+  source: BoxSource,
   name: &str,
   is_call: bool,
   expr_span: Span,
 ) -> (Error, Box<ConstDependency>) {
-  let mut error = create_traceable_error(
+  let mut error = create_traceable_error_from_source(
     "Unsupported feature".into(),
     format!(
       "{name}{} is not supported by Rspack.",
       if is_call { "()" } else { "" }
     ),
-    source.to_owned(),
+    source,
     expr_span.into(),
   );
   error.severity = Severity::Warning;
@@ -706,8 +708,12 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
       || for_name == "require.main.require"
       || for_name == "module.parent.require"
     {
-      let (warning, dep) =
-        expression_not_supported(parser.source, for_name, false, member_expr.span());
+      let (warning, dep) = expression_not_supported(
+        parser.diagnostic_source.clone(),
+        for_name,
+        false,
+        member_expr.span(),
+      );
       parser.add_warning(warning.into());
       parser.add_presentational_dependency(dep);
       return Some(true);
@@ -956,7 +962,12 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
       || for_name == "require.main.require"
       || for_name == "module.parent.require"
     {
-      let (warning, dep) = expression_not_supported(parser.source, for_name, true, call_expr.span);
+      let (warning, dep) = expression_not_supported(
+        parser.diagnostic_source.clone(),
+        for_name,
+        true,
+        call_expr.span,
+      );
       parser.add_warning(warning.into());
       parser.add_presentational_dependency(dep);
       return Some(true);

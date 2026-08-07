@@ -35,7 +35,8 @@ use crate::{
   visitors::{
     CallHooksName, ExportedVariableInfo, JavascriptParser, StatementPath, TagInfoData,
     VariableDeclaration, VariableDeclarationKind, VariableInfo, VariableInfoFlags, context_reg_exp,
-    create_context_dependency, create_traceable_error, expr_name, get_non_optional_part,
+    create_context_dependency, create_traceable_error_from_source, expr_name,
+    get_non_optional_part,
   },
 };
 
@@ -976,10 +977,10 @@ fn wrap_created_require_with_side_effects(parser: &mut JavascriptParser, span: S
 #[cold]
 #[inline(never)]
 fn add_create_require_warning(parser: &mut JavascriptParser, message: &str, span: Span) {
-  let mut error = create_traceable_error(
+  let mut error = create_traceable_error_from_source(
     "Unsupported feature".into(),
     message.to_string(),
-    parser.source.to_string(),
+    parser.diagnostic_source.clone(),
     span.into(),
   );
   error.severity = Severity::Warning;
@@ -1905,11 +1906,11 @@ impl CommonJsImportsParserPlugin {
     if let Some(true) = parser.javascript_options.unknown_context_critical
       && !is_renaming_require
     {
-      let mut error = create_traceable_error(
+      let mut error = create_traceable_error_from_source(
         "Critical dependency".into(),
         "require function is used in a way in which dependencies cannot be statically extracted"
           .to_string(),
-        parser.source.to_string(),
+        parser.diagnostic_source.clone(),
         span.into(),
       );
       error.severity = Severity::Warning;

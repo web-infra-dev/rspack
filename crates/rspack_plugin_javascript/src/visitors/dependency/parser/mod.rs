@@ -25,7 +25,7 @@ use rspack_core::{
   CompilerOptions, DependencyId, DependencyLocation, DependencyRange, FactoryMeta, ImportMeta,
   ImportMetaKnownProperties, JavascriptParserCommonjsExportsOption, JavascriptParserOptions,
   ModuleIdentifier, ModuleLayer, ModuleType, ParseMeta, ResolvedModuleOptions, ResourceData,
-  SideEffectsBailoutItemWithSpan,
+  SideEffectsBailoutItemWithSpan, rspack_sources::BoxSource,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_util::fx_hash::FxIndexSet;
@@ -418,6 +418,7 @@ pub struct JavascriptParser<'parser> {
   blocks: Vec<Box<AsyncDependenciesBlock>>,
   // ===== inputs =======
   pub(crate) source: &'parser str,
+  pub(crate) diagnostic_source: BoxSource,
   pub ast: &'parser ParsedJavaScriptAst<'parser>,
   pub parse_meta: ParseMeta,
   pub factory_meta: Option<&'parser FactoryMeta>,
@@ -467,6 +468,7 @@ impl<'parser> JavascriptParser<'parser> {
   #[allow(clippy::too_many_arguments)]
   pub fn new(
     source: &'parser str,
+    diagnostic_source: BoxSource,
     ast: &'parser ParsedJavaScriptAst<'parser>,
     compiler_options: &'parser CompilerOptions,
     javascript_options: &'parser JavascriptParserOptions,
@@ -604,6 +606,7 @@ impl<'parser> JavascriptParser<'parser> {
       ast,
       javascript_options,
       source,
+      diagnostic_source,
       errors,
       warning_diagnostics,
       dependencies,
@@ -814,6 +817,10 @@ impl<'parser> JavascriptParser<'parser> {
 
   pub fn source(&self) -> &str {
     self.source
+  }
+
+  pub fn diagnostic_source(&self) -> &BoxSource {
+    &self.diagnostic_source
   }
 
   pub fn is_top_level_scope(&self) -> bool {

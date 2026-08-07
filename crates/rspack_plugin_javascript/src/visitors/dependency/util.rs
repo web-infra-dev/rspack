@@ -1,6 +1,6 @@
 use std::sync::LazyLock;
 
-use rspack_core::DependencyRange;
+use rspack_core::{DependencyRange, rspack_sources::BoxSource};
 use rspack_error::{Diagnostic, Error, Severity};
 use rspack_regex::RspackRegex;
 use swc_atoms::Atom;
@@ -65,13 +65,13 @@ pub fn static_string_from_expr(expr: &Expr) -> Option<String> {
     })
 }
 
-pub fn create_traceable_error(
+pub fn create_traceable_error_from_source(
   title: String,
   message: String,
-  source: String,
+  source: BoxSource,
   span: DependencyRange,
 ) -> Error {
-  Error::from_string(
+  Error::from_source(
     Some(source),
     span.start as usize,
     span.end as usize,
@@ -105,10 +105,10 @@ pub fn clean_regexp_in_context_module(
 ) -> Option<RspackRegex> {
   if regexp.sticky() || regexp.global() {
     if let Some(error_span) = error_span {
-      let mut error = create_traceable_error(
+      let mut error = create_traceable_error_from_source(
         "Critical dependency".into(),
         "Contexts can't use RegExps with the 'g' or 'y' flags".to_string(),
-        parser.source.to_string(),
+        parser.diagnostic_source.clone(),
         error_span,
       );
       error.severity = Severity::Warning;

@@ -1,7 +1,11 @@
-use std::{fmt::Display, sync::Arc};
+use std::fmt::Display;
 
 use miette::{Diagnostic as MietteDiagnostic, LabeledSpan};
-use rspack_cacheable::cacheable;
+use rspack_cacheable::{
+  cacheable,
+  with::{AsOption, AsPreset},
+};
+use rspack_sources::{BoxSource, RawStringSource, SourceExt};
 
 /// Error severity. Defaults to [`Severity::Error`].
 #[cacheable]
@@ -35,7 +39,8 @@ pub struct ErrorData {
   /// Message.
   pub message: String,
   /// Source code.
-  pub src: Option<Arc<str>>,
+  #[cacheable(with=AsOption<AsPreset>)]
+  pub src: Option<BoxSource>,
   /// Labels displayed in source code.
   ///
   /// The source code block will be displayed only if both source code and labels exist.
@@ -106,11 +111,17 @@ impl Error {
     title: String,
     message: String,
   ) -> Self {
-    Self::from_shared_source(src.map(Into::into), start, end, title, message)
+    Self::from_source(
+      src.map(|source| RawStringSource::from(source).boxed()),
+      start,
+      end,
+      title,
+      message,
+    )
   }
 
-  pub fn from_shared_source(
-    src: Option<Arc<str>>,
+  pub fn from_source(
+    src: Option<BoxSource>,
     start: usize,
     end: usize,
     title: String,
@@ -194,7 +205,11 @@ impl MietteDiagnostic for Error {
   }
 
   fn source_code(&self) -> Option<&dyn miette::SourceCode> {
-    self.src.as_ref().map(|s| s as &dyn miette::SourceCode)
+    // A composite `BoxSource` has no stable flattened string to borrow here. Caching one on the
+    // error would retain a second full copy of the module source. Rspack's `Renderer` supplies a
+    // render-scoped `SourceCode` adapter instead, so its normal CLI and stats output keep snippets
+    // without extending the flattened source's lifetime.
+    None
   }
 
   fn labels(&self) -> Option<Box<dyn Iterator<Item = LabeledSpan> + '_>> {
@@ -249,6 +264,7 @@ impl From<anyhow::Error> for Error {
 #[cfg(test)]
 mod test {
   use owo_colors::with_override;
+  use rspack_sources::{RawStringSource, SourceExt};
 
   use super::{Error, ErrorData, Label};
   use crate::{Renderer, Severity};
@@ -259,7 +275,9 @@ mod test {
     let sub_err = Error(Box::new(ErrorData {
       severity: Severity::Warning,
       message: "An unexpected keyword.".into(),
-      src: Some("const a = { const };\nconst b = { var };".into()),
+      src: Some(
+        RawStringSource::from("const a = { const };\nconst b = { var };".to_string()).boxed(),
+      ),
       labels: Some(vec![
         Label {
           name: Some("keyword 1".into()),
@@ -282,7 +300,7 @@ mod test {
     let mid_err = Error(Box::new(ErrorData {
       severity: Severity::Error,
       message: "Can not parse current module.".into(),
-      src: Some("const a = { const };".into()),
+      src: Some(RawStringSource::from("const a = { const };".to_string()).boxed()),
       labels: Some(vec![Label {
         name: Some("parse failed".into()),
         offset: 0,

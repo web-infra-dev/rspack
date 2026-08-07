@@ -95,7 +95,7 @@ impl Task<TaskContext> for FactorizeTask {
         if let Some(s) = self.original_module_source {
           let has_source_code = e.src.is_some();
           if !has_source_code {
-            e.src = Some(s.source().into_string_lossy().into_owned().into());
+            e.src = Some(s);
           }
         }
         // Bail out if `options.bail` set to `true`,

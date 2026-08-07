@@ -15,6 +15,7 @@ rspack_cacheable   = { workspace = true }
 rspack_collections = { workspace = true }
 rspack_location    = { workspace = true }
 rspack_paths       = { workspace = true }
+rspack_sources     = { workspace = true }
 serde_json         = { workspace = true }
 termcolor          = { workspace = true }
 textwrap           = { workspace = true }

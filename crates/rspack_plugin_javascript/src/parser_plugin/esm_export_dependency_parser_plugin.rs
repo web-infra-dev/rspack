@@ -23,7 +23,7 @@ use crate::{
   utils::object_properties::get_attributes,
   visitors::{
     ExportDefaultDeclaration, ExportDefaultExpression, ExportImport, ExportLocal, JavascriptParser,
-    create_traceable_error,
+    create_traceable_error_from_source,
   },
 };
 
@@ -134,10 +134,10 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
       .insert(export_name.clone())
     {
       parser.add_error(
-        create_traceable_error(
+        create_traceable_error_from_source(
           "JavaScript parse error".into(),
           format!("Duplicate export of '{export_name}'"),
-          parser.source.to_string(),
+          parser.diagnostic_source.clone(),
           export_name_span.into(),
         )
         .into(),
@@ -228,10 +228,10 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
         .insert(export_name.clone())
       {
         parser.add_error(
-          create_traceable_error(
+          create_traceable_error_from_source(
             "JavaScript parse error".into(),
             format!("Duplicate export of '{export_name}'"),
-            parser.source.to_string(),
+            parser.diagnostic_source.clone(),
             export_name_span.expect("should exist").into(),
           )
           .into(),

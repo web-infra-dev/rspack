@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use rspack_error::BatchErrors;
+use rspack_sources::{RawStringSource, SourceExt};
 use swc_core::{
   base::config::IsModule,
   common::{
@@ -61,7 +62,7 @@ impl JavaScriptCompiler {
           .with_context(ast::Context::new(self.cm, Some(self.globals)))
       })
       .map_err(|errs| {
-        let source: Arc<str> = Arc::from(fm.src.as_ref());
+        let source = RawStringSource::from(fm.src.to_string()).boxed();
         BatchErrors(
           errs
             .dedup_ecma_errors()
@@ -89,7 +90,7 @@ impl JavaScriptCompiler {
         )
       })
       .map_err(|errs| {
-        let source: Arc<str> = source.into();
+        let source = RawStringSource::from(source).boxed();
         BatchErrors(
           errs
             .dedup_ecma_errors()
@@ -113,7 +114,7 @@ impl JavaScriptCompiler {
     parse_with_lexer(lexer, is_module, false)
       .map(|(program, _)| program)
       .map_err(|errs| {
-        let source: Arc<str> = Arc::from(fm.src.as_ref());
+        let source = RawStringSource::from(fm.src.to_string()).boxed();
         BatchErrors(
           errs
             .dedup_ecma_errors()

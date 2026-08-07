@@ -6,6 +6,7 @@ use rspack_core::{
   ArcComputed, AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BuildInfo, BuildMeta,
   CompilerOptions, FactoryMeta, ImportMeta, ModuleIdentifier, ModuleLayer, ModuleType, ParseMeta,
   ParserOptions, ResolvedModuleOptions, ResourceData, SideEffectsBailoutItemWithSpan,
+  rspack_sources::BoxSource,
 };
 use rspack_error::Diagnostic;
 use rustc_hash::FxHashSet;
@@ -45,6 +46,7 @@ pub struct ParsedJavaScriptAst<'ast> {
 #[allow(clippy::too_many_arguments)]
 pub fn scan_dependencies(
   source: &str,
+  diagnostic_source: BoxSource,
   ast: &ParsedJavaScriptAst<'_>,
   resource_data: &ResourceData,
   compiler_options: &CompilerOptions,
@@ -63,6 +65,7 @@ pub fn scan_dependencies(
 ) -> Result<ScanDependenciesResult, Vec<Diagnostic>> {
   let mut parser = JavascriptParser::new(
     source,
+    diagnostic_source,
     ast,
     compiler_options,
     module_parser_options

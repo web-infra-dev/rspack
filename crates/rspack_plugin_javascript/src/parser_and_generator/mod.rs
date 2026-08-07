@@ -55,11 +55,10 @@ static LEGACY_REQUIRE_REGEX: LazyLock<Regex> = LazyLock::new(|| {
 
 fn append_experimental_parse_errors(
   diagnostics: &mut Vec<Diagnostic>,
-  source: &str,
+  source: &BoxSource,
   errors: impl IntoIterator<Item = swc_experimental_ecma_parser::error::Error>,
 ) {
   let mut visited = HashSet::new();
-  let source: Arc<str> = source.into();
   diagnostics.extend(errors.into_iter().filter_map(|err| {
     let span = err.span();
     let message = err.kind().msg().to_string();
@@ -67,7 +66,7 @@ fn append_experimental_parse_errors(
       return None;
     }
     Some(
-      Error::from_shared_source(
+      Error::from_source(
         Some(source.clone()),
         span.start.saturating_sub(1) as usize,
         span.end.saturating_sub(1) as usize,
@@ -85,25 +84,26 @@ mod tests {
 
   #[test]
   fn parse_errors_share_source_code() {
-    let source = "'\\101';'\\102';";
+    let source_text = "'\\101';'\\102';";
+    let source = rspack_core::rspack_sources::RawStringSource::from(source_text).boxed();
     let allocator = Allocator::new();
     let lexer = Lexer::new(
       &allocator,
       Syntax::Es(EsSyntax::default()),
       EsVersion::EsNext,
-      StringSource::new(source),
+      StringSource::new(source_text),
       None,
     );
     let mut parser = Parser::new_from(&allocator, lexer);
     parser.parse_module().expect("should recover parse errors");
 
     let mut diagnostics = Vec::new();
-    append_experimental_parse_errors(&mut diagnostics, source, parser.take_errors());
+    append_experimental_parse_errors(&mut diagnostics, &source, parser.take_errors());
 
     assert_eq!(diagnostics.len(), 2);
     let first_source = diagnostics[0].src.as_ref().expect("should have source");
     let second_source = diagnostics[1].src.as_ref().expect("should have source");
-    assert_eq!(first_source.as_ptr(), second_source.as_ptr());
+    assert!(Arc::ptr_eq(first_source, second_source));
   }
 }
 
@@ -326,7 +326,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       Err(e) => {
         let mut errors = parser.take_errors();
         errors.push(e);
-        append_experimental_parse_errors(&mut diagnostics, &source_string, errors);
+        append_experimental_parse_errors(&mut diagnostics, &source, errors);
         return default_with_diagnostics(source, diagnostics);
       }
     };
@@ -335,7 +335,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     let tokens = parser.input_mut().iter.take();
     drop(parser);
     if !parse_errors.is_empty() {
-      append_experimental_parse_errors(&mut diagnostics, &source_string, parse_errors);
+      append_experimental_parse_errors(&mut diagnostics, &source, parse_errors);
       return default_with_diagnostics(source, diagnostics);
     }
 
@@ -362,6 +362,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       mut side_effects_item,
     } = match scan_dependencies(
       &source_string,
+      source.clone(),
       &parsed_ast,
       resource_data,
       compiler_options,

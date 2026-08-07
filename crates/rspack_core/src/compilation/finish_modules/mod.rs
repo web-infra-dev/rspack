@@ -3,8 +3,7 @@ use rspack_error::Result;
 
 use super::*;
 use crate::{
-  DependencyDiagnosticsContext, OptimizationBailoutItem, SideEffectsStateArtifact, cache::Cache,
-  logger::Logger, pass::PassExt,
+  OptimizationBailoutItem, SideEffectsStateArtifact, cache::Cache, logger::Logger, pass::PassExt,
 };
 
 pub struct FinishModulesPhasePass;
@@ -206,19 +205,13 @@ fn collect_dependencies_diagnostics(
       let mgm = module_graph
         .module_graph_module_by_identifier(module_identifier)
         .expect("should have mgm");
-      let diagnostics_context = DependencyDiagnosticsContext::default();
       let diagnostics = mgm
         .all_dependencies()
         .iter()
         .filter_map(|dependency_id| {
           let dependency = module_graph.dependency_by_id(dependency_id);
           dependency
-            .get_diagnostics_with_context(
-              module_graph,
-              module_graph_cache,
-              exports_info_artifact,
-              &diagnostics_context,
-            )
+            .get_diagnostics(module_graph, module_graph_cache, exports_info_artifact)
             .map(|diagnostics| {
               diagnostics.into_iter().map(|mut diagnostic| {
                 diagnostic.module_identifier = Some(*module_identifier);

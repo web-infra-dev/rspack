@@ -23,7 +23,8 @@ use crate::{
   parser_plugin::require_ensure_dependencies_block_parse_plugin::GetFunctionExpression,
   utils::eval::BasicEvaluatedExpression,
   visitors::{
-    JavascriptParser, Statement, context_reg_exp, create_context_dependency, create_traceable_error,
+    JavascriptParser, Statement, context_reg_exp, create_context_dependency,
+    create_traceable_error_from_source,
   },
 };
 
@@ -330,10 +331,10 @@ impl AMDRequireDependenciesBlockParserPlugin {
           call_expr.span.into(),
         ));
         parser.add_presentational_dependency(dep);
-        let mut error: Error = create_traceable_error(
+        let mut error: Error = create_traceable_error_from_source(
           "UnsupportedFeatureWarning".into(),
           "Cannot statically analyse 'require(…, …)'".into(),
-          parser.source.to_string(),
+          parser.diagnostic_source.clone(),
           call_expr.span.into(),
         );
         error.severity = Severity::Warning;

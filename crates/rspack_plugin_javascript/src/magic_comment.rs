@@ -1,7 +1,7 @@
 use std::{borrow::Cow, fmt, sync::LazyLock};
 
 use regex::Regex;
-use rspack_core::DependencyRange;
+use rspack_core::{DependencyRange, rspack_sources::BoxSource};
 use rspack_error::{Diagnostic, Error, Severity};
 use rspack_regex::RspackRegex;
 use rspack_util::SpanExt;
@@ -13,7 +13,7 @@ use swc_experimental_ecma_ast::{
 use swc_experimental_ecma_parser::{EsSyntax, Syntax, parse_file_as_expr};
 use swc_experimental_ecma_transforms_base::remove_paren::remove_paren;
 
-use crate::visitors::{JavascriptParser, create_traceable_error};
+use crate::visitors::{JavascriptParser, create_traceable_error_from_source};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum RspackComment {
@@ -92,18 +92,18 @@ impl RspackCommentMap {
   }
 
   fn push_conflict_warning(
-    source: &str,
+    source: &BoxSource,
     ignored_comment_name: impl fmt::Display,
     preferred_comment_name: impl fmt::Display,
     item: &MagicCommentItem,
     warning_diagnostics: &mut Vec<Diagnostic>,
   ) {
-    let mut error: Error = create_traceable_error(
+    let mut error: Error = create_traceable_error_from_source(
       "Magic comments conflict".into(),
       format!(
         "`{ignored_comment_name}` is ignored because `{preferred_comment_name}` is also specified. Prefer `{preferred_comment_name}`."
       ),
-      source.to_owned(),
+      source.clone(),
       item.span,
     );
     error.severity = Severity::Warning;
@@ -113,7 +113,7 @@ impl RspackCommentMap {
 
   fn insert_with_conflict_warning(
     &mut self,
-    source: &str,
+    source: &BoxSource,
     rspack_comment: RspackComment,
     item: MagicCommentItem,
     warning_diagnostics: &mut Vec<Diagnostic>,
@@ -250,17 +250,17 @@ impl RspackCommentMap {
 }
 
 fn push_magic_comment_parse_warning(
-  source: &str,
+  source: &BoxSource,
   comment_name: impl fmt::Display,
   comment_type: &str,
   received: &str,
   warning_diagnostics: &mut Vec<Diagnostic>,
   span: DependencyRange,
 ) {
-  let mut error: Error = create_traceable_error(
+  let mut error: Error = create_traceable_error_from_source(
     "Magic comments parse failed".into(),
     format!("`{comment_name}` expected {comment_type}, but received: {received}."),
-    source.to_owned(),
+    source.clone(),
     span,
   );
   error.severity = Severity::Warning;
@@ -279,7 +279,7 @@ pub fn try_extract_magic_comment(
   if let Some(comments) = parser.ast.comments.leading.get(&span.start) {
     analyze_comments(
       allocator,
-      parser.source,
+      &parser.diagnostic_source,
       comments,
       error_span,
       &mut warning_diagnostics,
@@ -289,7 +289,7 @@ pub fn try_extract_magic_comment(
   if let Some(comments) = parser.ast.comments.trailing.get(&span.end) {
     analyze_comments(
       allocator,
-      parser.source,
+      &parser.diagnostic_source,
       comments,
       error_span,
       &mut warning_diagnostics,
@@ -561,7 +561,7 @@ fn parse_magic_comment_name(name: &str) -> Option<(RspackComment, MagicCommentPr
 
 fn analyze_comments(
   allocator: &Allocator,
-  source: &str,
+  diagnostic_source: &BoxSource,
   comments: &[Comment],
   error_span: Span,
   warning_diagnostics: &mut Vec<Diagnostic>,
@@ -605,7 +605,7 @@ fn analyze_comments(
           .unwrap_or(error_span.into());
       let push_parse_warning = |comment_type| {
         push_magic_comment_parse_warning(
-          source,
+          diagnostic_source,
           item_name,
           comment_type,
           received,
@@ -716,13 +716,19 @@ fn analyze_comments(
         value,
         span: item_span,
       };
-      result.insert_with_conflict_warning(source, rspack_comment, item, warning_diagnostics);
+      result.insert_with_conflict_warning(
+        diagnostic_source,
+        rspack_comment,
+        item,
+        warning_diagnostics,
+      );
     }
   }
 }
 
 #[cfg(test)]
 mod tests_extract_magic_comment_object {
+  use rspack_core::rspack_sources::{RawStringSource, SourceExt};
   use swc_experimental_ecma_ast::DUMMY_SP;
 
   use super::*;
@@ -751,9 +757,10 @@ mod tests_extract_magic_comment_object {
     let mut result = RspackCommentMap::new();
     let mut warning_diagnostics = Vec::new();
     let allocator = Allocator::new();
+    let diagnostic_source = RawStringSource::from("").boxed();
     analyze_comments(
       &allocator,
-      "",
+      &diagnostic_source,
       &[Comment {
         kind: CommentKind::Block,
         span: DUMMY_SP,

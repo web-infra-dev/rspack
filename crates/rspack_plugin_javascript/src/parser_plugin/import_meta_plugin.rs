@@ -34,7 +34,7 @@ use crate::{
   utils::eval::{self, BasicEvaluatedExpression},
   visitors::{
     AllowedMemberTypes, ExportedVariableInfo, ExprRef, JavascriptParser, MemberExpressionInfo,
-    RootName, context_reg_exp, create_context_dependency, create_traceable_error, expr_name,
+    RootName, context_reg_exp, create_context_dependency, expr_name,
     get_non_optional_member_chain_from_expr, member_property_to_atom,
   },
 };
@@ -416,7 +416,7 @@ impl ImportMetaPlugin {
       .evaluated_source_range
       .unwrap_or_else(|| DependencyRange::from(span));
     let mut error = Error::warning(message);
-    error.src = Some(parser.source.to_string().into());
+    error.src = Some(parser.diagnostic_source.clone());
     error.labels = Some(vec![Label {
       name: None,
       offset: range.start as usize,
@@ -747,11 +747,13 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaPlugin {
       } else {
         // import.meta
         // warn when access import.meta directly
-        let mut error: Error = create_traceable_error(
+        let range = DependencyRange::from(span);
+        let mut error = Error::from_source(
+          Some(parser.diagnostic_source.clone()),
+          range.start as usize,
+          range.end as usize,
           "Critical dependency".into(),
           "Accessing import.meta directly is unsupported (only property access or destructuring is supported)".into(),
-          parser.source.to_string(),
-          span.into()
         );
         error.severity = Severity::Warning;
         parser.add_warning(error.into());

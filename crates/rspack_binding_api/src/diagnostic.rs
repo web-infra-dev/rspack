@@ -1,5 +1,8 @@
 use napi::bindgen_prelude::*;
-use rspack_core::DependencyLocation;
+use rspack_core::{
+  DependencyLocation,
+  rspack_sources::{RawStringSource, SourceExt},
+};
 use rspack_error::{Diagnostic, Error as RspackError, Label, Severity};
 use rspack_util::location::byte_line_column_to_offset;
 
@@ -87,7 +90,7 @@ pub fn format_diagnostic(diagnostic: JsDiagnostic) -> Result<External<Diagnostic
     }]);
   }
 
-  error.src = source_code.map(Into::into);
+  error.src = source_code.map(|source| RawStringSource::from(source).boxed());
 
   let mut diagnostic = Diagnostic::from(error);
   diagnostic.file = file.map(Into::into);

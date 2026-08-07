@@ -1,4 +1,5 @@
 use miette::SourceOffset;
+use rspack_sources::{RawStringSource, SourceExt};
 
 use crate::{
   Result,
@@ -33,7 +34,7 @@ impl<T> SerdeResultToRspackResultExt<T> for std::result::Result<T, serde_json::E
         offset: offset.offset(),
         len: 0,
       }]);
-      error.src = Some(content.into());
+      error.src = Some(RawStringSource::from(content).boxed());
       error
     })
   }

@@ -22,7 +22,7 @@ use crate::{
   visitors::{
     ContextModuleScanResult, JavascriptParser, PatRef, Statement, TagInfoData, TopLevelScope,
     VariableDeclaration, VariableDeclarationKind, context_reg_exp, create_context_dependency,
-    create_traceable_error, get_non_optional_part, parse_order_string,
+    create_traceable_error_from_source, get_non_optional_part, parse_order_string,
   },
 };
 
@@ -358,10 +358,10 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
       || referenced_fulfilled_ns_obj.is_some()
       || referenced_in_members.is_some();
     if is_statical && has_exports_magic_comment {
-      let mut error: Error = create_traceable_error(
+      let mut error: Error = create_traceable_error_from_source(
         "Useless magic comments".into(),
         "You don't need `webpackExports` if the usage of dynamic import is statically analyse-able. You can safely remove the `webpackExports` magic comment.".into(),
-        parser.source.to_string(),
+        parser.diagnostic_source.clone(),
         import_call_span.into(),
       );
       error.severity = Severity::Warning;

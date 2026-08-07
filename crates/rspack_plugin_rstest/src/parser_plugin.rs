@@ -10,7 +10,9 @@ use rspack_plugin_javascript::{
     self,
     eval::{self},
   },
-  visitors::{JavascriptParser, Statement, VariableDeclaration, create_traceable_error, expr_name},
+  visitors::{
+    JavascriptParser, Statement, VariableDeclaration, create_traceable_error_from_source, expr_name,
+  },
 };
 use rspack_util::{SpanExt, atom::Atom, json_stringify_str, swc::get_swc_comments};
 use swc_experimental_ecma_ast::{
@@ -209,10 +211,10 @@ impl RstestParserPlugin {
       }
       _ => {
         parser.add_error(
-          create_traceable_error(
+          create_traceable_error_from_source(
             "Invalid function call".into(),
             "`rs.requireActual` function expects 1 argument".into(),
-            parser.source().to_string(),
+            parser.diagnostic_source().clone(),
             call_expr.span.into(),
           )
           .into(),
@@ -268,10 +270,10 @@ impl RstestParserPlugin {
       }
       _ => {
         parser.add_error(
-          create_traceable_error(
+          create_traceable_error_from_source(
             "Invalid function call".into(),
             "`rs.importActual` function expects 1 argument".into(),
-            parser.source().to_string(),
+            parser.diagnostic_source().clone(),
             call_expr.span.into(),
           )
           .into(),
@@ -459,10 +461,10 @@ impl RstestParserPlugin {
           parser.add_dependency(Box::new(module_dep));
         } else {
           parser.add_error(
-            create_traceable_error(
+            create_traceable_error_from_source(
               "Invalid function call".into(),
               "`rs.mock` function expects a string literal as the first argument".into(),
-              parser.source().to_string(),
+              parser.diagnostic_source().clone(),
               call_expr.span.into(),
             )
             .into(),
@@ -471,10 +473,10 @@ impl RstestParserPlugin {
       }
       _ => {
         parser.add_error(
-          create_traceable_error(
+          create_traceable_error_from_source(
             "Invalid function call".into(),
             "`rs.mock` function expects 1 or 2 arguments".into(),
-            parser.source().to_string(),
+            parser.diagnostic_source().clone(),
             call_expr.span.into(),
           )
           .into(),
@@ -517,10 +519,10 @@ impl RstestParserPlugin {
       }
       _ => {
         parser.add_error(
-          create_traceable_error(
+          create_traceable_error_from_source(
             "Invalid function call".into(),
             "`rs.hoisted` function expects 1 argument".into(),
-            parser.source().to_string(),
+            parser.diagnostic_source().clone(),
             call_expr.span.into(),
           )
           .into(),
@@ -545,10 +547,10 @@ impl RstestParserPlugin {
       }
       _ => {
         parser.add_error(
-          create_traceable_error(
+          create_traceable_error_from_source(
             "Invalid function call".into(),
             "`rs.resetModules` function expects 0 arguments".into(),
-            parser.source().to_string(),
+            parser.diagnostic_source().clone(),
             call_expr.span.into(),
           )
           .into(),
@@ -636,10 +638,10 @@ impl RstestParserPlugin {
       }
       _ => {
         parser.add_error(
-          create_traceable_error(
+          create_traceable_error_from_source(
             "Invalid function call".into(),
             "`rs.importMock` or `rs.requireMock` function expects 1 argument".into(),
-            parser.source().to_string(),
+            parser.diagnostic_source().clone(),
             call_expr.span.into(),
           )
           .into(),
