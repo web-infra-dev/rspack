@@ -4,6 +4,8 @@ Rust benchmark cases live in `xtask/benchmark/cases` and `xtask/benchmark/stages
 The `rspack_sources` benchmarks live in their own `rspack_sources` benchmark
 target so CodSpeed builds and runs them in a separate binary, isolated from the
 allocator state left behind by the larger compilation benchmark suite.
+The CSS module lexer benchmarks use the Bootstrap and Tailwind fixtures in
+`benches/fixtures/css` and live in a separate `css` benchmark target.
 Walltime-only bundle benchmarks follow the same pattern and live in the
 separate `walltime` benchmark target.
 
@@ -47,10 +49,16 @@ pnpm run build:bench
 The script expands to:
 
 ```bash
-cargo codspeed build -m simulation --profile codspeed -p rspack_benchmark --bench benches --bench rspack_sources
+cargo codspeed build -m simulation --profile codspeed -p rspack_benchmark --bench benches --bench css --bench rspack_sources
 ```
 
-This only builds the benchmark binaries for CodSpeed simulation mode. It does not execute measurements. Both benchmark targets are selected in a single `cargo codspeed build` invocation so the later `cargo codspeed run` step can collect both benchmark suites.
+This only builds the benchmark binaries for CodSpeed simulation mode. It does not execute measurements. All three simulation benchmark targets are selected in a single `cargo codspeed build` invocation so the later `cargo codspeed run` step can collect every benchmark suite.
+
+To build only the isolated CSS target:
+
+```bash
+pnpm run build:bench:css
+```
 
 To build only the isolated `rspack_sources` target:
 
