@@ -24,7 +24,7 @@
     "dev": "rs lib -w"
   },
   "dependencies": {
-    "create-rstack": "catalog:"
+    "@rstackjs/create-toolkit": "catalog:"
   },
   "devDependencies": {
     "rstack": "catalog:",

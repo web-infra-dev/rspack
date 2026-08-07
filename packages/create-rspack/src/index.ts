@@ -8,7 +8,7 @@ import {
   type ESLintTemplateName,
   type RslintTemplateName,
   select,
-} from 'create-rstack';
+} from '@rstackjs/create-toolkit';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, '..');
