@@ -206,7 +206,6 @@ impl SplitChunksPlugin {
     original_chunks: &FxHashSet<ChunkUkey>,
     compilation: &Compilation,
   ) -> Result<ModuleChunkMap> {
-    let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
     if item.uses_shared_module_chunks() {
       debug_assert!(original_chunks.is_subset(&item.chunks));
       let chunks = original_chunks.clone();
@@ -240,7 +239,11 @@ impl SplitChunksPlugin {
       let chunks = original_chunks
         .iter()
         .filter(|chunk| {
-          selected_chunks.contains(chunk) && chunk_graph.is_module_in_chunk(mid, **chunk)
+          selected_chunks.contains(chunk)
+            && compilation
+              .build_chunk_graph_artifact
+              .chunk_graph
+              .is_module_in_chunk(mid, **chunk)
         })
         .copied()
         .collect::<FxHashSet<_>>();

@@ -70,14 +70,13 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
               if let Some(module) = compilation
                 .get_module_graph()
                 .module_by_identifier(module_id)
-              {
-                if matches!(
+                && matches!(
                   module_chunk_condition(module.as_ref(), chunk, compilation).await?,
                   Some(true)
-                ) {
-                  target_chunks.insert(*chunk);
-                  continue 'out;
-                }
+                )
+              {
+                target_chunks.insert(*chunk);
+                continue 'out;
               }
             }
             if chunk_group.is_initial() {
