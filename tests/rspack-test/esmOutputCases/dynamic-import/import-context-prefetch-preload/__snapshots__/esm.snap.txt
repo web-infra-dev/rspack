@@ -1,191 +1,205 @@
 ```mjs title=a.mjs
 import { __webpack_require__ } from "./runtime.mjs";
-
-__webpack_require__.add({
-"./modules/a.js"
-/*!**********************!*\
-  !*** ./modules/a.js ***!
-  \**********************/
-(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.r(__webpack_exports__);
-/* export default */ const __rspack_default_export = ("a");
-
-__webpack_require__.d(__webpack_exports__, {
-}, {
-  "default": __rspack_default_export
+var __esm = (fn, result) => function __init() {
+	if (fn) {
+		var value = fn(fn = 0);
+		result = value && typeof value.then === "function" ? value.then(value => result = value) : value;
+	}
+	return result;
+};
+// NAMESPACE OBJECT: ./modules/a.js
+var a_namespaceObject = {};
+__webpack_require__.r(a_namespaceObject);
+__webpack_require__.d(a_namespaceObject, {
+  "default": () => (a)
 });
 
 
-},
+// ./modules/a.js
+var a;
+var a_init = /*#__PURE__*/ __esm(() => {
+/* export default */ ( a = ("a"));;
+
 });
+
+export { a_init, a_namespaceObject };
 
 ```
 
 ```mjs title=b.mjs
 import { __webpack_require__ } from "./runtime.mjs";
-
-__webpack_require__.add({
-"./modules/b.js"
-/*!**********************!*\
-  !*** ./modules/b.js ***!
-  \**********************/
-(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.r(__webpack_exports__);
-import("./c.mjs").then(__webpack_require__.bind(__webpack_require__, /*! ./c */ "./modules/c.js"));
-
-/* export default */ const __rspack_default_export = ("b");
-
-__webpack_require__.d(__webpack_exports__, {
-}, {
-  "default": __rspack_default_export
+var __esm = (fn, result) => function __init() {
+	if (fn) {
+		var value = fn(fn = 0);
+		result = value && typeof value.then === "function" ? value.then(value => result = value) : value;
+	}
+	return result;
+};
+// NAMESPACE OBJECT: ./modules/b.js
+var b_namespaceObject = {};
+__webpack_require__.r(b_namespaceObject);
+__webpack_require__.d(b_namespaceObject, {
+  "default": () => (b)
 });
 
 
-},
+// ./modules/b.js
+var b;
+var b_init = /*#__PURE__*/ __esm(() => {
+import("./c.mjs").then(m => (m.c_init(), m.c_namespaceObject));
+
+/* export default */ ( b = ("b"));;
+
 });
+
+export { b_init, b_namespaceObject };
 
 ```
 
 ```mjs title=c.mjs
 import { __webpack_require__ } from "./runtime.mjs";
-
-__webpack_require__.add({
-"./modules/c.js"
-/*!**********************!*\
-  !*** ./modules/c.js ***!
-  \**********************/
-(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.r(__webpack_exports__);
-/* export default */ const __rspack_default_export = ("c");
-
-__webpack_require__.d(__webpack_exports__, {
-}, {
-  "default": __rspack_default_export
+var __esm = (fn, result) => function __init() {
+	if (fn) {
+		var value = fn(fn = 0);
+		result = value && typeof value.then === "function" ? value.then(value => result = value) : value;
+	}
+	return result;
+};
+// NAMESPACE OBJECT: ./modules/c.js
+var c_namespaceObject = {};
+__webpack_require__.r(c_namespaceObject);
+__webpack_require__.d(c_namespaceObject, {
+  "default": () => (c)
 });
 
 
-},
+// ./modules/c.js
+var c;
+var c_init = /*#__PURE__*/ __esm(() => {
+/* export default */ ( c = ("c"));;
+
 });
+
+export { c as default, c_init, c_namespaceObject };
 
 ```
 
 ```mjs title=main.mjs
 import { __webpack_require__ } from "./runtime.mjs";
+var __cjs = (factory, module) => function __require() {
+	if (module === undefined) {
+		module = { exports: {} };
+		factory.call(module.exports, module, module.exports);
+	}
+	return module.exports;
+};
+var require__referencedExports_default_groupOptions_prefetchOrder_0_namespace_object_importPhase_evaluation = /*#__PURE__*/ __cjs(function(module, exports) {
 
-__webpack_require__.add({
-"./modules lazy recursive ^\\.\\/.*\\.js$ referencedExports: default?32bc"
 /*!*******************************************************************************************************************************************!*\
   !*** ./modules|lazy|/^\.\/.*\.js$/|referencedExports: default|groupOptions: {prefetchOrder: 0,}|namespace object|importPhase: evaluation ***!
   \*******************************************************************************************************************************************/
-(module, __unused_rspack_exports, __webpack_require__) {
-var map = {
-  "./a.js": [
-    "./modules/a.js",
-    [
-      "a"
-    ]
-  ],
-  "./c.js": [
-    "./modules/c.js",
-    [
-      "c"
-    ]
-  ],
-  "./b.js": [
-    "./modules/b.js",
-    [
-      "b"
-    ]
-  ]
-};
-function __rspack_async_context(req) {
-  if(!__webpack_require__.o(map, req)) {
-    return Promise.resolve().then(() => {
-var e = new Error("Cannot find module '" + req + "'");
-e.code = 'MODULE_NOT_FOUND';
-throw e;
-});
+function __rspack_context_load(id) {
+  switch (id) {
+		case "./modules/a.js": return import("./a.mjs").then(m => (m.a_init(), m.a_namespaceObject));
+		case "./modules/b.js": return import("./b.mjs").then(m => (m.b_init(), m.b_namespaceObject));
+		case "./modules/c.js": return import("./c.mjs").then(m => (m.c_init(), m.c_namespaceObject));
+    default: throw new Error("Unknown context module '" + id + "'");
   }
-
-  var ids = map[req], id = ids[0];
-  return __webpack_require__.e(ids[1][0]).then(() => (__webpack_require__(id)));
 }
 
+var map = {
+  "./a.js": "./modules/a.js",
+  "./b.js": "./modules/b.js",
+  "./c.js": "./modules/c.js"
+};
+
+function __rspack_async_context(req) {
+  if(!__webpack_require__.o(map, req)) {
+    return Promise.resolve().then(function() {
+      var e = new Error("Cannot find module '" + req + "'");
+      e.code = 'MODULE_NOT_FOUND';
+      throw e;
+    });
+  }
+  var id = map[req];
+  return __rspack_context_load(id);
+}
 __rspack_async_context.keys = () => (Object.keys(map));
 __rspack_async_context.id = "./modules lazy recursive ^\\.\\/.*\\.js$ referencedExports: default?32bc";
 module.exports = __rspack_async_context;
 
+});
 
-},
-"./modules lazy recursive ^\\.\\/.*\\.js$ referencedExports: default?bdfa"
+var require__referencedExports_default_groupOptions_preloadOrder_0_namespace_object_importPhase_evaluation = /*#__PURE__*/ __cjs(function(module, exports) {
+
 /*!******************************************************************************************************************************************!*\
   !*** ./modules|lazy|/^\.\/.*\.js$/|referencedExports: default|groupOptions: {preloadOrder: 0,}|namespace object|importPhase: evaluation ***!
   \******************************************************************************************************************************************/
-(module, __unused_rspack_exports, __webpack_require__) {
-var map = {
-  "./a.js": [
-    "./modules/a.js",
-    [
-      "a"
-    ]
-  ],
-  "./c.js": [
-    "./modules/c.js",
-    [
-      "c"
-    ]
-  ],
-  "./b.js": [
-    "./modules/b.js",
-    [
-      "b"
-    ]
-  ]
-};
-function __rspack_async_context(req) {
-  if(!__webpack_require__.o(map, req)) {
-    return Promise.resolve().then(() => {
-var e = new Error("Cannot find module '" + req + "'");
-e.code = 'MODULE_NOT_FOUND';
-throw e;
-});
+function __rspack_context_load(id) {
+  switch (id) {
+		case "./modules/a.js": return import("./a.mjs").then(m => (m.a_init(), m.a_namespaceObject));
+		case "./modules/b.js": return import("./b.mjs").then(m => (m.b_init(), m.b_namespaceObject));
+		case "./modules/c.js": return import("./c.mjs").then(m => (m.c_init(), m.c_namespaceObject));
+    default: throw new Error("Unknown context module '" + id + "'");
   }
-
-  var ids = map[req], id = ids[0];
-  return __webpack_require__.e(ids[1][0]).then(() => (__webpack_require__(id)));
 }
 
+var map = {
+  "./a.js": "./modules/a.js",
+  "./b.js": "./modules/b.js",
+  "./c.js": "./modules/c.js"
+};
+
+function __rspack_async_context(req) {
+  if(!__webpack_require__.o(map, req)) {
+    return Promise.resolve().then(function() {
+      var e = new Error("Cannot find module '" + req + "'");
+      e.code = 'MODULE_NOT_FOUND';
+      throw e;
+    });
+  }
+  var id = map[req];
+  return __rspack_context_load(id);
+}
 __rspack_async_context.keys = () => (Object.keys(map));
 __rspack_async_context.id = "./modules lazy recursive ^\\.\\/.*\\.js$ referencedExports: default?bdfa";
 module.exports = __rspack_async_context;
 
+});
 
-},
-"./modules lazy ./modules/*.js"
+var require__js_namespace_object = /*#__PURE__*/ __cjs(function(module, exports) {
+
 /*!*******************************************************************!*\
   !*** ./modules|lazy|nonrecursive|./modules/*.js|namespace object ***!
   \*******************************************************************/
-(module, __unused_rspack_exports, __webpack_require__) {
+function __rspack_context_load(id) {
+  switch (id) {
+		case "./modules/a.js": return import("./a.mjs").then(m => (m.a_init(), m.a_namespaceObject));
+		case "./modules/b.js": return import("./b.mjs").then(m => (m.b_init(), m.b_namespaceObject));
+		case "./modules/c.js": return import("./c.mjs").then(m => (m.c_init(), m.c_namespaceObject));
+    default: throw new Error("Unknown context module '" + id + "'");
+  }
+}
+
 
 module.exports = {
 
-  "./modules/a.js": function() { return __webpack_require__.e(/*! esm */ "a").then(__webpack_require__.bind(__webpack_require__, /*! ./modules/a.js */ "./modules/a.js")); },
+  "./modules/a.js": function() { return __rspack_context_load("./modules/a.js"); },
 
-  "./modules/b.js": function() { return __webpack_require__.e(/*! esm */ "b").then(__webpack_require__.bind(__webpack_require__, /*! ./modules/b.js */ "./modules/b.js")); },
+  "./modules/b.js": function() { return __rspack_context_load("./modules/b.js"); },
 
-  "./modules/c.js": function() { return __webpack_require__.e(/*! esm */ "c").then(__webpack_require__.bind(__webpack_require__, /*! ./modules/c.js */ "./modules/c.js")); }
+  "./modules/c.js": function() { return __rspack_context_load("./modules/c.js"); }
 };
 
-
-},
 });
+
 // ./index.js
 it("should keep prefetch and preload handlers for context chunks", async () => {
-	const modules = __webpack_require__(/*! ./modules/ */ "./modules lazy ./modules/*.js");
+	const modules = require__js_namespace_object();
 	const prefetchName = "a";
 	const preloadName = "b";
-	const prefetchValue = await __webpack_require__(/*! ./modules */ "./modules lazy recursive ^\\.\\/.*\\.js$ referencedExports: default?32bc")(`./${prefetchName}.js`);
-	const preloadValue = await __webpack_require__(/*! ./modules */ "./modules lazy recursive ^\\.\\/.*\\.js$ referencedExports: default?bdfa")(`./${preloadName}.js`);
+	const prefetchValue = await require__referencedExports_default_groupOptions_prefetchOrder_0_namespace_object_importPhase_evaluation()(`./${prefetchName}.js`);
+	const preloadValue = await require__referencedExports_default_groupOptions_preloadOrder_0_namespace_object_importPhase_evaluation()(`./${preloadName}.js`);
 
 	expect(Object.keys(modules).sort()).toEqual([
 		"./modules/a.js",
@@ -200,29 +214,8 @@ it("should keep prefetch and preload handlers for context chunks", async () => {
 ```
 
 ```mjs title=runtime.mjs
-
-var __webpack_modules__ = {};
-// The module cache
-var __webpack_module_cache__ = {};
-// The require function
-function __webpack_require__(moduleId) {
-// Check if module is in cache
-var cachedModule = __webpack_module_cache__[moduleId];
-if (cachedModule !== undefined) {
-return cachedModule.exports;
-}
-// Create a new module (and put it into the cache)
-var module = (__webpack_module_cache__[moduleId] = {
-exports: {}
-});
-// Execute the module function
-__webpack_modules__[moduleId](module, module.exports, __webpack_require__);
-
-// Return the exports of the module
-return module.exports;
-}
-// expose the modules object (__webpack_modules__)
-__webpack_require__.m = __webpack_modules__;
+// The require scope
+var __webpack_require__ = {};
 
 // webpack/runtime/define_property_getters
 (() => {
@@ -247,11 +240,6 @@ __webpack_require__.e = function(chunkId, fetchPriority) {
 		return promises;
 	}, []));
 };
-
-})();
-// webpack/runtime/esm_register_module
-(() => {
-__webpack_require__.add = function registerModules(modules) { Object.assign(__webpack_require__.m, modules) }
 
 })();
 // webpack/runtime/get javascript chunk filename

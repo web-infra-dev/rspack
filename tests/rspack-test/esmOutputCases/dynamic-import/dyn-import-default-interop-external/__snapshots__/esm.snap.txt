@@ -1,7 +1,7 @@
 ```mjs title=main.mjs
 // ./index.js
 it('should dynamically import module with default interop from external', async () => {
-	const mod = await import("./wrapper.mjs")
+	const mod = await import("./wrapper.mjs").then(m => (m.wrapper_init(), m.wrapper_namespaceObject))
 	expect(mod.default).toBeDefined()
 	expect(mod.readFile).toBeDefined()
 	expect(mod.ns).toBeDefined()
@@ -11,20 +11,77 @@ export {};
 
 ```
 
+```mjs title=runtime.mjs
+// The require scope
+var __webpack_require__ = {};
+
+// webpack/runtime/define_property_getters
+(() => {
+__webpack_require__.d = (exports, getters, values) => {
+	var define = (defs, kind) => {
+		for(var key in defs) {
+			if(__webpack_require__.o(defs, key) && !__webpack_require__.o(exports, key)) {
+				Object.defineProperty(exports, key, { enumerable: true, [kind]: defs[key] });
+			}
+		}
+	};
+	define(getters, "get");
+	define(values, "value");
+};
+})();
+// webpack/runtime/has_own_property
+(() => {
+__webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
+})();
+// webpack/runtime/make_namespace_object
+(() => {
+// define __esModule on exports
+__webpack_require__.r = (exports) => {
+	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+	}
+	Object.defineProperty(exports, '__esModule', { value: true });
+};
+})();
+
+export { __webpack_require__ };
+
+```
+
 ```mjs title=wrapper.mjs
+import { __webpack_require__ } from "./runtime.mjs";
 import * as __rspack_external_fs from "fs";
+
+var __esm = (fn, result) => function __init() {
+	if (fn) {
+		var value = fn(fn = 0);
+		result = value && typeof value.then === "function" ? value.then(value => result = value) : value;
+	}
+	return result;
+};
+// NAMESPACE OBJECT: ./wrapper.js
+var wrapper_namespaceObject = {};
+__webpack_require__.r(wrapper_namespaceObject);
+__webpack_require__.d(wrapper_namespaceObject, {
+  "default": () => (__rspack_external_fs["default"]),
+  ns: () => (__rspack_external_fs),
+  readFile: () => (__rspack_external_fs.readFile)
+});
+
 
 // fs
 
 // ./wrapper.js
+var wrapper_init = /*#__PURE__*/ __esm(() => {
 
 
 ;
 
 
+});
+
 var default_0 = __rspack_external_fs["default"];
 var readFile = __rspack_external_fs.readFile;
-export { __rspack_external_fs as ns, readFile };
-export default default_0;
+export { __rspack_external_fs as ns, default_0 as default, readFile, wrapper_init, wrapper_namespaceObject };
 
 ```

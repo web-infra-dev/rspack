@@ -97,6 +97,187 @@ pub struct CodeGenerationExportsFinalNames {
   inner: HashMap<String, String>,
 }
 
+/// How a generated relocation consumes a module evaluation boundary.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, rspack_hash::RspackHash)]
+pub enum CodeGenerationModuleReferenceKind {
+  /// Yield whether the target is an entry module of the rendered chunk.
+  ///
+  /// This lets `import.meta.main` remain a compile-time relocation instead of
+  /// storing entry metadata on a synthetic CommonJS module object.
+  EntryValue,
+  /// Evaluate the target and yield its CommonJS exports or ESM namespace.
+  Value,
+  /// Evaluate the target through a constructible identity function.
+  ///
+  /// This preserves `new require(request)` for both object and primitive
+  /// exports without retaining a callable module-id dispatcher.
+  ConstructorValue,
+  /// Yield a zero-argument callback that performs `Value` loading.
+  LazyValue,
+  /// Yield a zero-argument callback that invokes only the target initializer
+  /// and preserves its promise result.
+  LazyInitializer,
+  /// Yield a callback that evaluates an initializer exported by an imported
+  /// chunk namespace.
+  ImportedValue,
+  /// Yield a callback that receives an imported chunk namespace and returns a
+  /// zero-argument initializer callback without evaluating the target.
+  ImportedLazyValue,
+  /// Yield a promise for the target value, importing its chunk and invoking
+  /// its exported initializer when it is not in the current chunk.
+  AsyncValue,
+  /// Yield a promise for completion of the target initializer without
+  /// materializing its module value.
+  AsyncInitializer,
+  /// Yield a promise for a zero-argument target initializer, importing its
+  /// chunk without evaluating the target when necessary.
+  AsyncLazyValue,
+  /// Yield a zero-argument callback for the target value when the weak target
+  /// is present in the current chunk, or `undefined` when it is unavailable.
+  ///
+  /// Unlike `LazyValue`, this must never create a cross-chunk import: doing so
+  /// would turn a weak dependency into a strong one.
+  WeakValue,
+}
+
+impl CodeGenerationModuleReferenceKind {
+  fn marker_tag(self) -> &'static str {
+    match self {
+      Self::EntryValue => "entry_value",
+      Self::Value => "value",
+      Self::ConstructorValue => "constructor",
+      Self::LazyValue => "lazy_value",
+      Self::LazyInitializer => "lazy_initializer",
+      Self::ImportedValue => "imported_value",
+      Self::ImportedLazyValue => "imported_lazy_value",
+      Self::AsyncValue => "async_value",
+      Self::AsyncInitializer => "async_initializer",
+      Self::AsyncLazyValue => "async_lazy_value",
+      Self::WeakValue => "weak_value",
+    }
+  }
+}
+
+#[derive(Clone, Debug, rspack_hash::RspackHash)]
+pub struct CodeGenerationModuleReference {
+  pub marker: String,
+  pub module: ModuleIdentifier,
+  pub kind: CodeGenerationModuleReferenceKind,
+}
+
+#[derive(Clone, Debug, Default, rspack_hash::RspackHash)]
+pub struct CodeGenerationModuleReferences {
+  references: Vec<CodeGenerationModuleReference>,
+}
+
+impl CodeGenerationModuleReferences {
+  pub fn marker_for(module: ModuleIdentifier, kind: CodeGenerationModuleReferenceKind) -> String {
+    let mut module_hasher = RspackHasher::new(&HashFunction::Xxhash64);
+    RspackHash::hash(&module, &mut module_hasher);
+    format!(
+      "__rspack_module_relocation_{:016x}_{}__",
+      module_hasher.finish(),
+      kind.marker_tag()
+    )
+  }
+
+  fn add_inner(
+    &mut self,
+    module: ModuleIdentifier,
+    kind: CodeGenerationModuleReferenceKind,
+  ) -> String {
+    if let Some(reference) = self
+      .references
+      .iter()
+      .find(|reference| reference.module == module && reference.kind == kind)
+    {
+      return reference.marker.clone();
+    }
+    let marker = Self::marker_for(module, kind);
+    self.references.push(CodeGenerationModuleReference {
+      marker: marker.clone(),
+      module,
+      kind,
+    });
+    marker
+  }
+
+  pub fn add(
+    &mut self,
+    module: ModuleIdentifier,
+    kind: CodeGenerationModuleReferenceKind,
+  ) -> String {
+    self.add_inner(module, kind)
+  }
+
+  pub fn iter(&self) -> impl Iterator<Item = &CodeGenerationModuleReference> {
+    self.references.iter()
+  }
+
+  pub fn needs_static_url_replacement(&self) -> bool {
+    self.references.iter().any(|reference| {
+      matches!(
+        reference.kind,
+        CodeGenerationModuleReferenceKind::AsyncValue
+          | CodeGenerationModuleReferenceKind::AsyncInitializer
+          | CodeGenerationModuleReferenceKind::AsyncLazyValue
+      )
+    })
+  }
+}
+
+#[cfg(test)]
+mod module_reference_tests {
+  use super::*;
+
+  #[test]
+  fn markers_are_stable_and_deduplicated_by_target_and_kind() {
+    let module = ModuleIdentifier::from("javascript/auto|./target.js");
+    let mut first = CodeGenerationModuleReferences::default();
+    let value = first.add(module, CodeGenerationModuleReferenceKind::Value);
+    let duplicate = first.add(module, CodeGenerationModuleReferenceKind::Value);
+    let lazy = first.add(module, CodeGenerationModuleReferenceKind::LazyValue);
+    let entry = first.add(module, CodeGenerationModuleReferenceKind::EntryValue);
+
+    let mut second = CodeGenerationModuleReferences::default();
+    let rebuilt = second.add(module, CodeGenerationModuleReferenceKind::Value);
+
+    assert_eq!(value, duplicate);
+    assert_eq!(value, rebuilt);
+    assert_ne!(value, lazy);
+    assert_ne!(value, entry);
+    assert_eq!(
+      entry,
+      CodeGenerationModuleReferences::marker_for(
+        module,
+        CodeGenerationModuleReferenceKind::EntryValue
+      )
+    );
+  }
+
+  #[test]
+  fn content_hash_tracks_the_relocation_target() {
+    fn hash(references: &CodeGenerationModuleReferences) -> u64 {
+      let mut hasher = RspackHasher::new(&HashFunction::Xxhash64);
+      RspackHash::hash(references, &mut hasher);
+      hasher.finish()
+    }
+
+    let mut first = CodeGenerationModuleReferences::default();
+    first.add(
+      ModuleIdentifier::from("javascript/auto|./first.js"),
+      CodeGenerationModuleReferenceKind::Value,
+    );
+    let mut second = CodeGenerationModuleReferences::default();
+    second.add(
+      ModuleIdentifier::from("javascript/auto|./second.js"),
+      CodeGenerationModuleReferenceKind::Value,
+    );
+
+    assert_ne!(hash(&first), hash(&second));
+  }
+}
+
 impl CodeGenerationExportsFinalNames {
   pub fn new(inner: HashMap<String, String>) -> Self {
     Self { inner }
@@ -168,6 +349,9 @@ impl CodeGenerationResult {
       source_type.hash(&mut hasher);
       std::hash::Hash::hash(source, &mut hasher);
     }
+    if let Some(references) = self.data.get::<CodeGenerationModuleReferences>() {
+      RspackHash::hash(references, &mut hasher);
+    }
     self.chunk_init_fragments.hash(&mut hasher);
     self.runtime_requirements.hash(&mut hasher);
     self.hash = Some(hasher.digest(hash_digest));
@@ -188,6 +372,9 @@ impl CodeGenerationResult {
     runtime_hash.hash(&mut hasher);
     for source_type in self.inner.as_ref().keys() {
       source_type.hash(&mut hasher);
+    }
+    if let Some(references) = self.data.get::<CodeGenerationModuleReferences>() {
+      RspackHash::hash(references, &mut hasher);
     }
     self.chunk_init_fragments.hash(&mut hasher);
     self.runtime_requirements.hash(&mut hasher);

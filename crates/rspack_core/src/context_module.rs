@@ -28,13 +28,14 @@ use rustc_hash::FxHashMap as HashMap;
 use crate::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildContext,
   BuildInfo, BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, BuildResult, ChunkGraph,
-  ChunkGroupOptions, CodeGenerationResult, Compilation, ContextElementDependency,
-  DependenciesBlock, Dependency, DependencyCategory, DependencyId, DependencyLocation,
-  DynamicImportMode, ExportsType, FactoryMeta, FakeNamespaceObjectMode, GroupOptions,
-  ImportAttributes, ImportPhase, LibIdentOptions, Module, ModuleArgument,
-  ModuleCodeGenerationContext, ModuleCodeTemplate, ModuleGraph, ModuleId, ModuleIdsArtifact,
-  ModuleLayer, ModuleType, RealDependencyLocation, ReferencedSpecifier, Resolve, RuntimeGlobals,
-  RuntimeGlobalsRenderMode, RuntimeSpec, SourceType, contextify, get_exports_type_with_strict,
+  ChunkGroupOptions, CodeGenerationModuleReferenceKind, CodeGenerationModuleReferences,
+  CodeGenerationResult, Compilation, ContextElementDependency, DependenciesBlock, Dependency,
+  DependencyCategory, DependencyId, DependencyLocation, DynamicImportMode, ExportsType,
+  FactoryMeta, FakeNamespaceObjectMode, GroupOptions, ImportAttributes, ImportPhase,
+  LibIdentOptions, Module, ModuleArgument, ModuleCodeGenerationContext, ModuleCodeTemplate,
+  ModuleGraph, ModuleId, ModuleIdsArtifact, ModuleLayer, ModuleType, RealDependencyLocation,
+  ReferencedSpecifier, Resolve, RuntimeGlobals, RuntimeGlobalsRenderMode, RuntimeSpec, SourceType,
+  contextify, get_exports_type_with_strict, get_outgoing_async_module_identifiers,
   get_outgoing_async_modules, impl_module_meta_info, module_update_hash, property_access, to_path,
 };
 
@@ -417,26 +418,73 @@ impl ContextModule {
     fake_map_data_expr: &str,
     runtime_template: &mut ModuleCodeTemplate,
   ) -> String {
-    let source = if let FakeMapValue::Bit(bit) = fake_map {
-      if *bit == FakeNamespaceObjectMode::NAMESPACE {
+    let relocatable = runtime_template.supports_module_relocations();
+    let module_value = if relocatable {
+      "__rspack_context_load(id)".to_string()
+    } else {
+      format!(
+        "{}(id)",
+        runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
+      )
+    };
+    let fake_mode = match fake_map {
+      FakeMapValue::Bit(bit) if *bit == FakeNamespaceObjectMode::NAMESPACE => None,
+      FakeMapValue::Bit(bit) => Some(bit.bits().to_string()),
+      FakeMapValue::Map(_) => Some(fake_map_data_expr.to_string()),
+    };
+    if async_deps.is_some() && relocatable {
+      let mode = fake_mode
+        .clone()
+        .unwrap_or_else(|| FakeNamespaceObjectMode::NAMESPACE.bits().to_string());
+      let mode = format!("({mode}) & ~{}", FakeNamespaceObjectMode::MODULE_ID.bits());
+      let make_deferred =
+        runtime_template.render_runtime_globals(&RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT);
+      let create_fake_namespace_object = fake_mode.is_some().then(|| {
+        runtime_template.render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT)
+      });
+      return if async_module {
+        let normal_value = create_fake_namespace_object.as_ref().map_or_else(
+          || "value".to_string(),
+          |create_fake_namespace_object| format!("{create_fake_namespace_object}(value, {mode})"),
+        );
         format!(
-          "{}(id)",
-          runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
+          "Promise.resolve({module_value}).then(plan => Promise.resolve(plan[1]).then(value => plan[0] ? {make_deferred}(value, {mode}) : {normal_value}))"
         )
+      } else {
+        let normal_value = create_fake_namespace_object.as_ref().map_or_else(
+          || "plan[1]".to_string(),
+          |create_fake_namespace_object| format!("{create_fake_namespace_object}(plan[1], {mode})"),
+        );
+        format!(
+          "(plan => plan[0] ? {make_deferred}(plan[1], {mode}) : {normal_value})({module_value})"
+        )
+      };
+    }
+    let source = if let Some(mode) = fake_mode {
+      let create_fake_namespace_object =
+        runtime_template.render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT);
+      if relocatable {
+        let mode = format!("({mode}) & ~{}", FakeNamespaceObjectMode::MODULE_ID.bits());
+        if async_module
+          && !matches!(
+            self.options.context_options.mode,
+            ContextMode::Sync | ContextMode::Weak
+          )
+        {
+          format!(
+            "Promise.resolve({module_value}).then(value => {create_fake_namespace_object}(value, {mode}))"
+          )
+        } else {
+          format!("{create_fake_namespace_object}({module_value}, {mode})")
+        }
       } else {
         Self::render_create_fake_namespace_object(
           runtime_template,
-          format!("{bit}{}", if async_module { " | 16" } else { "" }),
+          format!("{mode}{}", if async_module { " | 16" } else { "" }),
         )
       }
     } else {
-      Self::render_create_fake_namespace_object(
-        runtime_template,
-        format!(
-          "{fake_map_data_expr}{}",
-          if async_module { " | 16" } else { "" }
-        ),
-      )
+      module_value
     };
 
     if let Some(async_deps) = async_deps {
@@ -635,16 +683,34 @@ impl ContextModule {
 
         let mut entries = String::with_capacity(block_info.len() * 96);
         for (i, info) in block_info.iter().enumerate() {
-          let mut import_promise = runtime_template.module_namespace_promise(
-            compilation,
-            self.identifier,
-            &info.dep_id,
-            Some(&info.block_id),
-            &info.user_request,
-            DependencyCategory::Esm.as_str(),
-            false,
-            self.options.context_options.phase.unwrap_or_default(),
-          );
+          let mut import_promise = if runtime_template.supports_module_relocations() {
+            compilation
+              .get_module_graph()
+              .module_identifier_by_dependency_id(&info.dep_id)
+              .and_then(|module| {
+                ChunkGraph::get_module_id(&compilation.module_ids_artifact, *module)
+              })
+              .map_or_else(
+                || runtime_template.missing_module_promise(&info.user_request),
+                |module_id| {
+                  format!(
+                    "__rspack_context_load({})",
+                    json_stringify(module_id.as_str())
+                  )
+                },
+              )
+          } else {
+            runtime_template.module_namespace_promise(
+              compilation,
+              self.identifier,
+              &info.dep_id,
+              Some(&info.block_id),
+              &info.user_request,
+              DependencyCategory::Esm.as_str(),
+              false,
+              self.options.context_options.phase.unwrap_or_default(),
+            )
+          };
           if let Some(access) = self.get_glob_import_property_access() {
             import_promise = concat_string!(
               import_promise,
@@ -770,6 +836,9 @@ impl ContextModule {
     compilation: &Compilation,
     runtime_template: &mut ModuleCodeTemplate,
   ) -> String {
+    if runtime_template.supports_module_relocations() {
+      return self.get_lazy_source_with_module_relocations(compilation, runtime_template);
+    }
     let module_graph = compilation.get_module_graph();
     let blocks = self
       .get_blocks()
@@ -976,6 +1045,60 @@ impl ContextModule {
     }
   }
 
+  fn get_lazy_source_with_module_relocations(
+    &self,
+    compilation: &Compilation,
+    runtime_template: &mut ModuleCodeTemplate,
+  ) -> String {
+    let block_info = self.get_sorted_context_block_info(compilation);
+    let dependencies = block_info
+      .iter()
+      .map(|info| &info.dep_id)
+      .collect::<Vec<_>>();
+    let map = self.get_user_request_map(dependencies.iter().copied(), compilation);
+    let fake_map = self.get_fake_map(dependencies.iter().copied(), compilation);
+    let return_module_object = self.get_return_module_object_source(
+      &fake_map,
+      true,
+      self
+        .options
+        .context_options
+        .phase
+        .unwrap_or_default()
+        .is_defer()
+        .then(String::new),
+      "fakeMap[id]",
+      runtime_template,
+    );
+    let has_own_property =
+      runtime_template.render_runtime_globals(&RuntimeGlobals::HAS_OWN_PROPERTY);
+
+    formatdoc! {r#"
+      var map = {map};
+      {fake_map_init_statement}
+      function __rspack_async_context(req) {{
+        if(!{has_own_property}(map, req)) {{
+          return Promise.resolve().then(function() {{
+            var e = new Error("Cannot find module '" + req + "'");
+            e.code = 'MODULE_NOT_FOUND';
+            throw e;
+          }});
+        }}
+        var id = map[req];
+        return {return_module_object};
+      }}
+      __rspack_async_context.keys = {keys};
+      __rspack_async_context.id = {id};
+      {module}.exports = __rspack_async_context;
+    "#,
+      module = runtime_template.render_module_argument(ModuleArgument::Module),
+      map = json_stringify_pretty(&map),
+      fake_map_init_statement = self.get_fake_map_init_statement(&fake_map),
+      keys = runtime_template.returning_function("Object.keys(map)", ""),
+      id = json_stringify(self.get_module_id(&compilation.module_ids_artifact))
+    }
+  }
+
   fn get_lazy_once_source(
     &self,
     compilation: &Compilation,
@@ -1071,12 +1194,18 @@ impl ContextModule {
       "fakeMap[id]",
       runtime_template,
     );
-    let module_factories =
-      runtime_template.render_runtime_globals(&RuntimeGlobals::MODULE_FACTORIES);
+    let unavailable = if runtime_template.supports_module_relocations() {
+      "!__rspack_context_module_available(id)".to_string()
+    } else {
+      format!(
+        "!{}[id]",
+        runtime_template.render_runtime_globals(&RuntimeGlobals::MODULE_FACTORIES)
+      )
+    };
     let then_function = runtime_template.basic_function(
       "id",
       &formatdoc! {
-        r#"if(!{module_factories}[id]) {{
+        r#"if({unavailable}) {{
           var e = new Error("Module '" + req + "' ('" + id + "') is not available (weak dependency)");
           e.code = 'MODULE_NOT_FOUND';
           throw e;
@@ -1135,13 +1264,21 @@ impl ContextModule {
     let fake_map = self.get_fake_map(dependencies, compilation);
     let return_module_object =
       self.get_return_module_object_source(&fake_map, true, None, "fakeMap[id]", runtime_template);
+    let unavailable = if runtime_template.supports_module_relocations() {
+      "!__rspack_context_module_available(id)".to_string()
+    } else {
+      format!(
+        "!{}[id]",
+        runtime_template.render_runtime_globals(&RuntimeGlobals::MODULE_FACTORIES)
+      )
+    };
     formatdoc! {r#"
       var map = {map};
       {fake_map_init_statement}
 
       function __rspack_context_module(req) {{
         var id = __rspack_context_module_resolve(req);
-        if(!{module_factories}[id]) {{
+        if({unavailable}) {{
           var e = new Error("Module '" + req + "' ('" + id + "') is not available (weak dependency)");
           e.code = 'MODULE_NOT_FOUND';
           throw e;
@@ -1164,7 +1301,6 @@ impl ContextModule {
       module = runtime_template.render_module_argument(ModuleArgument::Module),
       map = json_stringify_pretty(&map),
       fake_map_init_statement = self.get_fake_map_init_statement(&fake_map),
-      module_factories = runtime_template.render_runtime_globals(&RuntimeGlobals::MODULE_FACTORIES),
       has_own_property = runtime_template.render_runtime_globals(&RuntimeGlobals::HAS_OWN_PROPERTY),
       keys = runtime_template.returning_function("Object.keys(map)", ""),
       id = json_stringify(self.get_module_id(&compilation.module_ids_artifact))
@@ -1275,6 +1411,105 @@ impl ContextModule {
       keys = runtime_template.returning_function("Object.keys(map)", ""),
       id = json_stringify(self.get_module_id(&compilation.module_ids_artifact))
     }
+  }
+
+  fn get_module_reference_loader(
+    &self,
+    dependencies: &[DependencyId],
+    compilation: &Compilation,
+    references: &mut CodeGenerationModuleReferences,
+  ) -> String {
+    let module_graph = compilation.get_module_graph();
+    let deferred_context = self
+      .options
+      .context_options
+      .phase
+      .unwrap_or_default()
+      .is_defer();
+    let async_context = matches!(
+      self.options.context_options.mode,
+      ContextMode::Lazy | ContextMode::LazyOnce
+    );
+    let mut targets = dependencies
+      .iter()
+      .filter_map(|dependency| {
+        let module = *module_graph.module_identifier_by_dependency_id(dependency)?;
+        let module_id =
+          ChunkGraph::get_module_id(&compilation.module_ids_artifact, module)?.to_string();
+        Some((module_id, module))
+      })
+      .collect::<Vec<_>>();
+    targets.sort_unstable_by(|a, b| a.0.cmp(&b.0));
+    targets.dedup_by(|a, b| a.0 == b.0);
+
+    let mut cases = String::new();
+    for (module_id, module) in &targets {
+      let target = module_graph
+        .module_by_identifier(module)
+        .expect("context dependency target should have a module");
+      let deferred = deferred_context && !target.build_meta().has_top_level_await();
+      let kind = match (async_context, deferred) {
+        (true, true) => CodeGenerationModuleReferenceKind::AsyncLazyValue,
+        (true, false) => CodeGenerationModuleReferenceKind::AsyncValue,
+        (false, true) => CodeGenerationModuleReferenceKind::LazyValue,
+        (false, false) => CodeGenerationModuleReferenceKind::Value,
+      };
+      let marker = references.add(*module, kind);
+      let async_initializers = deferred
+        .then(|| get_outgoing_async_module_identifiers(compilation, target.as_ref()))
+        .into_iter()
+        .flatten()
+        .map(|module| references.add(module, CodeGenerationModuleReferenceKind::AsyncInitializer))
+        .collect::<Vec<_>>();
+      let value = if async_initializers.is_empty() {
+        marker
+      } else {
+        format!(
+          "Promise.resolve({marker}).then(load => Promise.all([{}]).then(() => load))",
+          async_initializers.join(", ")
+        )
+      };
+      let value = if deferred_context {
+        format!("[{}, {value}]", u8::from(deferred))
+      } else {
+        value
+      };
+      writeln!(
+        cases,
+        "\t\tcase {}: return {value};",
+        json_stringify(module_id)
+      )
+      .expect("writing context module loader should succeed");
+    }
+
+    let availability = if matches!(
+      self.options.context_options.mode,
+      ContextMode::Weak | ContextMode::AsyncWeak
+    ) {
+      let available_cases = targets
+        .iter()
+        .map(|(module_id, _)| format!("case {}:", json_stringify(module_id)))
+        .join(" ");
+      formatdoc! {r#"
+        function __rspack_context_module_available(id) {{
+          switch (id) {{
+            {available_cases} return true;
+            default: return false;
+          }}
+        }}
+      "#}
+    } else {
+      String::new()
+    };
+
+    formatdoc! {r#"
+      function __rspack_context_load(id) {{
+        switch (id) {{
+      {cases}    default: throw new Error("Unknown context module '" + id + "'");
+        }}
+      }}
+      {availability}
+    "#}
   }
 
   fn get_source(&self, source_string: String, compilation: &Compilation) -> BoxSource {
@@ -1530,11 +1765,6 @@ impl Module for ContextModule {
       ..
     } = code_generation_context;
     let mut code_generation_result = CodeGenerationResult::default();
-    let source = self.get_source(
-      self.get_source_string(compilation, runtime_template),
-      compilation,
-    );
-    code_generation_result.add(SourceType::JavaScript, source);
     let mut all_deps = self.get_dependencies().to_vec();
     let module_graph = compilation.get_module_graph();
     for block in self.get_blocks() {
@@ -1543,6 +1773,16 @@ impl Module for ContextModule {
         .expect("should have block in ContextModule code_generation");
       all_deps.extend(block.get_dependencies());
     }
+
+    let mut source_string = self.get_source_string(compilation, runtime_template);
+    if runtime_template.supports_module_relocations() {
+      let mut references = CodeGenerationModuleReferences::default();
+      let loader = self.get_module_reference_loader(&all_deps, compilation, &mut references);
+      source_string.insert_str(0, &loader);
+      code_generation_result.data.insert(references);
+    }
+    let source = self.get_source(source_string, compilation);
+    code_generation_result.add(SourceType::JavaScript, source);
 
     Ok(code_generation_result)
   }

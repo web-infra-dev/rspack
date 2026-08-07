@@ -1,4 +1,5 @@
 use std::{
+  collections::VecDeque,
   path::PathBuf,
   sync::{Arc, LazyLock},
 };
@@ -6,21 +7,21 @@ use std::{
 use atomic_refcell::AtomicRefCell;
 use regex::Regex;
 use rspack_collections::{
-  Identifiable, Identifier, IdentifierIndexMap, IdentifierMap, IdentifierSet,
+  Identifiable, Identifier, IdentifierIndexMap, IdentifierIndexSet, IdentifierMap, IdentifierSet,
 };
 use rspack_core::{
-  ApplyContext, AssetInfo, AsyncModulesArtifact, BoxModule, BuildModuleGraphArtifact, ChunkUkey,
-  Compilation, CompilationAdditionalChunkRuntimeRequirements,
+  ApplyContext, AssetInfo, AsyncModulesArtifact, BoxModule, BuildModuleGraphArtifact,
+  ChunkGroupOrderKey, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
   CompilationAdditionalModuleRuntimeRequirements, CompilationAdditionalTreeRuntimeRequirements,
   CompilationAfterCodeGeneration, CompilationConcatenationScope, CompilationFinishModules,
   CompilationOptimizeChunkModules, CompilationOptimizeChunks, CompilationOptimizeDependencies,
   CompilationParams, CompilationProcessAssets, CompilationRuntimeRequirementInTree,
   CompilerCompilation, ConcatenatedModuleInfo, ConcatenationScope, DependencyType,
-  ExportsInfoArtifact, ExternalModuleInfo, GetTargetResult, Logger, ModuleFactoryCreateData,
-  ModuleGraph, ModuleIdentifier, ModuleInfo, ModuleType, NormalModuleFactoryAfterFactorize,
+  ExportsInfoArtifact, GetTargetResult, Logger, ModuleFactoryCreateData, ModuleGraph,
+  ModuleIdentifier, ModuleInfo, ModuleType, NormalModuleFactoryAfterFactorize,
   NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, Plugin, REQUIRE_SCOPE_GLOBALS,
   RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule, SideEffectsOptimizeArtifact,
-  SideEffectsStateArtifact, get_target, is_esm_dep_like,
+  SideEffectsStateArtifact, WrappedModuleInfo, get_target, is_esm_dep_like,
   rspack_sources::{ReplaceSource, Source},
 };
 use rspack_error::{Diagnostic, Result};
@@ -45,14 +46,13 @@ use crate::{
   chunk_link::ChunkLinkContext,
   dependency::dyn_import::DynamicImportDependencyTemplate,
   esm_lib_parser_plugin::EsmLibParserPlugin,
+  evaluation::{is_async_evaluation_edge, module_dependencies, starts_initializer_evaluation},
   optimize_chunks::{
     analyze_dyn_import_targets, assign_dyn_import_chunk_short_names, ensure_entry_exports,
     extract_tla_shared_modules, optimize_runtime_chunks,
   },
   preserve_modules::preserve_modules,
-  runtime::{
-    EsmChunkLoadingRuntimeModule, EsmEnsureChunkRuntimeModule, EsmRegisterModuleRuntimeModule,
-  },
+  runtime::{EsmChunkLoadingRuntimeModule, EsmEnsureChunkRuntimeModule},
 };
 
 pub static RSPACK_ESM_RUNTIME_CHUNK: &str = "RSPACK_ESM_RUNTIME";
@@ -112,36 +112,38 @@ impl EsmLibraryPlugin {
       // make sure all exports are provided
       let mut should_scope_hoisting = true;
 
-      if let Some(reason) = module.get_concatenation_bailout_reason(
-        module_graph,
-        &compilation.build_chunk_graph_artifact.chunk_graph,
-      ) {
+      let reason = module
+        .as_normal_module()
+        .and_then(|module| {
+          module
+            .parser_and_generator()
+            .downcast_ref::<JavaScriptParserAndGenerator>()
+        })
+        .map_or_else(
+          || {
+            module.get_concatenation_bailout_reason(
+              module_graph,
+              &compilation.build_chunk_graph_artifact.chunk_graph,
+            )
+          },
+          |parser_and_generator| {
+            parser_and_generator.get_concatenation_bailout_reason_with_commonjs(
+              module.as_ref(),
+              module_graph,
+              true,
+            )
+          },
+        );
+
+      if let Some(reason) = reason {
         logger.debug(format!(
           "module {module_identifier} has bailout reason: {reason}",
         ));
         should_scope_hoisting = false;
       }
-      // TODO: support config to disable scope hoisting for non strict module
-      //  else if !module.build_info().strict {
-      //   logger.debug(format!("module {module_identifier} is not strict module"));
-      //   should_scope_hoisting = false;
-      // }
-      else if module_graph
-        .get_incoming_connections(module_identifier)
-        .map(|conn| module_graph.dependency_by_id(&conn.dependency_id))
-        .any(|dep| {
-          !is_esm_dep_like(dep)
-            && !matches!(
-              dep.dependency_type(),
-              DependencyType::Entry | DependencyType::DynamicImport | DependencyType::NewWorker
-            )
-        })
-      {
-        logger.debug(format!(
-          "module {module_identifier} is referenced by non esm dependency"
-        ));
-        should_scope_hoisting = false;
-      }
+      // Evaluation mode is decided independently below. A CommonJS or lazy
+      // incoming edge no longer forces an otherwise analyzable module into a
+      // factory; it gives the scope-hoisted module an initializer instead.
 
       // if we reach here, check exports info
       if should_scope_hoisting {
@@ -187,64 +189,71 @@ impl EsmLibraryPlugin {
       } else {
         modules_map.insert(
           *module_identifier,
-          ModuleInfo::External(ExternalModuleInfo {
-            index: idx,
-            module: *module_identifier,
-            interop_namespace_object_used: false,
-            interop_namespace_object_name: None,
-            interop_namespace_object2_used: false,
-            interop_namespace_object2_name: None,
-            interop_default_access_used: false,
-            interop_default_access_name: None,
-            runtime_requirements: RuntimeGlobals::default(),
-            name: None,
-            deferred: false,
-            deferred_name: None,
-            deferred_namespace_object_name: None,
-            deferred_namespace_object_used: false,
-          }),
+          ModuleInfo::Wrapped(WrappedModuleInfo::new(idx, *module_identifier)),
         );
       }
     }
 
-    // we should mark all wrapped modules' children as wrapped
-    let mut visited = IdentifierSet::default();
-    let mut stack = modules_map
-      .iter()
-      .filter(|(_, info)| matches!(info, ModuleInfo::External(_)))
-      .map(|(id, _)| *id)
-      .collect::<Vec<_>>();
+    // Build lazy evaluation components. Wrapped factories, dynamic import
+    // targets and imperative CommonJS loads are execution boundaries. Their
+    // synchronous descendants need the same initializer protocol so no child
+    // side effect escapes to chunk evaluation time.
+    let mut roots = IdentifierIndexSet::default();
+    for (source, module) in module_graph.modules() {
+      let source_is_wrapped = modules_map.get(source).is_some_and(ModuleInfo::is_wrapped);
+      for dependency_id in module_dependencies(module.as_ref(), module_graph) {
+        let dependency = module_graph.dependency_by_id(&dependency_id);
+        let Some(target) = module_graph.module_identifier_by_dependency_id(&dependency_id) else {
+          continue;
+        };
+        let starts_deferred_evaluation = dependency.get_phase().is_defer()
+          && module_graph
+            .module_by_identifier(target)
+            .is_some_and(|module| !module.build_meta().has_top_level_await());
+        if source_is_wrapped && !is_async_evaluation_edge(dependency.dependency_type())
+          || starts_initializer_evaluation(dependency.dependency_type())
+          || starts_deferred_evaluation
+        {
+          roots.insert(*target);
+        }
+      }
+    }
 
-    while let Some(m) = stack.pop() {
-      if !visited.insert(m) {
+    let mut visited = IdentifierIndexSet::default();
+    let mut queue = roots.into_iter().collect::<VecDeque<_>>();
+    while let Some(module_identifier) = queue.pop_front() {
+      if !visited.insert(module_identifier) {
         continue;
       }
 
-      for dep in module_graph.get_outgoing_deps_in_order(&m) {
-        let Some(dep_module) = module_graph.module_identifier_by_dependency_id(dep) else {
-          continue;
-        };
+      // Native module externals are already represented by static imports.
+      // They have no local body to guard and must never acquire an initializer;
+      // doing so would manufacture a namespace object instead of using the
+      // binding emitted by their init fragments.
+      if module_graph
+        .module_by_identifier(&module_identifier)
+        .is_some_and(|module| module.as_external_module().is_some())
+      {
+        continue;
+      }
 
-        if let Some(info) = modules_map.get_mut(dep_module)
-          && let ModuleInfo::Concatenated(concate_info) = info
-        {
-          *info = ModuleInfo::External(ExternalModuleInfo {
-            index: concate_info.index,
-            module: concate_info.module,
-            interop_namespace_object_used: false,
-            interop_namespace_object_name: None,
-            interop_namespace_object2_used: false,
-            interop_namespace_object2_name: None,
-            interop_default_access_used: false,
-            interop_default_access_name: None,
-            name: None,
-            runtime_requirements: RuntimeGlobals::default(),
-            deferred: false,
-            deferred_name: None,
-            deferred_namespace_object_name: None,
-            deferred_namespace_object_used: false,
-          });
-          stack.push(*dep_module);
+      let Some(info) = modules_map.get_mut(&module_identifier) else {
+        continue;
+      };
+      if let ModuleInfo::Concatenated(info) = info {
+        info.initializer.get_or_insert_default();
+      }
+
+      let Some(module) = module_graph.module_by_identifier(&module_identifier) else {
+        continue;
+      };
+      for dependency_id in module_dependencies(module.as_ref(), module_graph) {
+        let dependency = module_graph.dependency_by_id(&dependency_id);
+        if is_async_evaluation_edge(dependency.dependency_type()) {
+          continue;
+        }
+        if let Some(target) = module_graph.module_identifier_by_dependency_id(&dependency_id) {
+          queue.push_back(*target);
         }
       }
     }
@@ -440,24 +449,13 @@ async fn additional_chunk_runtime_requirements(
 #[plugin_hook(CompilationRuntimeRequirementInTree for EsmLibraryPlugin)]
 async fn runtime_requirements_in_tree(
   &self,
-  compilation: &Compilation,
-  chunk_ukey: &ChunkUkey,
+  _compilation: &Compilation,
+  _chunk_ukey: &ChunkUkey,
   _all_runtime_requirements: &RuntimeGlobals,
-  runtime_requirements: &RuntimeGlobals,
+  _runtime_requirements: &RuntimeGlobals,
   _runtime_requirements_mut: &mut RuntimeGlobals,
-  runtime_modules_to_add: &mut Vec<(ChunkUkey, Box<dyn RuntimeModule>)>,
+  _runtime_modules_to_add: &mut Vec<(ChunkUkey, Box<dyn RuntimeModule>)>,
 ) -> Result<Option<()>> {
-  if runtime_requirements
-    .intersects(RuntimeGlobals::MODULE_FACTORIES | RuntimeGlobals::MODULE_FACTORIES_ADD_ONLY)
-  {
-    runtime_modules_to_add.push((
-      *chunk_ukey,
-      Box::new(EsmRegisterModuleRuntimeModule::new(
-        &compilation.runtime_template,
-      )),
-    ));
-  }
-
   Ok(None)
 }
 
@@ -465,11 +463,25 @@ async fn runtime_requirements_in_tree(
 async fn additional_tree_runtime_requirements(
   &self,
   compilation: &Compilation,
-  _chunk_ukey: &ChunkUkey,
+  chunk_ukey: &ChunkUkey,
   runtime_requirements: &mut RuntimeGlobals,
   runtime_modules: &mut Vec<Box<dyn RuntimeModule>>,
 ) -> Result<()> {
-  if runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK) {
+  let chunk = compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .expect_get(chunk_ukey);
+  let child_chunks_by_order = chunk.get_child_ids_by_orders_map(false, compilation, &|_, _| true);
+  let has_prefetch_or_preload_trigger = child_chunks_by_order.keys().any(|order| {
+    matches!(
+      order,
+      ChunkGroupOrderKey::Prefetch | ChunkGroupOrderKey::Preload
+    )
+  });
+  if has_prefetch_or_preload_trigger
+    || runtime_requirements
+      .intersects(RuntimeGlobals::ENSURE_CHUNK | RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
+  {
     runtime_requirements.remove(RuntimeGlobals::ENSURE_CHUNK);
     runtime_modules.push(Box::new(EsmEnsureChunkRuntimeModule::new(
       &compilation.runtime_template,
@@ -561,8 +573,10 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         }
         if js_files.is_empty() {
           return Err(rspack_error::error!(
-            "chunk {} should have at least one file",
-            chunk_id
+            "chunk {} should have at least one file (referenced by {}, chunk files: {:?})",
+            chunk_id,
+            asset_name,
+            chunk.files()
           ));
         }
         let chunk_path = output_path.join(js_files.first().expect("have at least one file"));
@@ -700,7 +714,7 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
   for (id, module) in mg.modules() {
     if module.as_external_module().is_some() {
       let id_str = id.as_str();
-      if modules_map[id].is_external()
+      if modules_map[id].is_wrapped()
         && let Some(pipe_pos) = id_str.rfind('|')
         && let Some(chunks) = cg.try_get_module_chunks(id)
         && !chunks.is_empty()

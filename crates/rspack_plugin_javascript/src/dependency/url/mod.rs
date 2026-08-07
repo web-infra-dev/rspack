@@ -139,6 +139,15 @@ impl DependencyTemplate for URLDependencyTemplate {
       .as_any()
       .downcast_ref::<URLDependency>()
       .expect("URLDependencyTemplate should be used for URLDependency");
+    let module_reference = (!matches!(dep.mode, Some(JavascriptParserUrl::NewUrlRelative))
+      && code_generatable_context.is_modern_module_output())
+    .then(|| {
+      code_generatable_context.create_module_relocation(
+        dep.id,
+        rspack_core::CodeGenerationModuleReferenceKind::Value,
+      )
+    })
+    .flatten();
     let TemplateContext {
       compilation,
       runtime_template,
@@ -147,14 +156,15 @@ impl DependencyTemplate for URLDependencyTemplate {
 
     match dep.mode {
       Some(JavascriptParserUrl::Relative) => {
+        let asset = module_reference.unwrap_or_else(|| {
+          runtime_template.module_raw(compilation, &dep.id, &dep.request, false)
+        });
         source.replace(
           dep.range.start,
           dep.range.end,
           format!(
-            "/* asset import */ new {}({}({}))",
+            "/* asset import */ new {}({asset})",
             runtime_template.render_runtime_globals(&RuntimeGlobals::RELATIVE_URL),
-            runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
-            runtime_template.module_id(compilation, &dep.id, &dep.request, false),
           ),
           None,
         );
@@ -178,13 +188,14 @@ impl DependencyTemplate for URLDependencyTemplate {
         );
       }
       _ => {
+        let asset = module_reference.unwrap_or_else(|| {
+          runtime_template.module_raw(compilation, &dep.id, &dep.request, false)
+        });
         source.replace(
           dep.range_url.start,
           dep.range_url.end,
           format!(
-            "/* asset import */{}({}), {}",
-            runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
-            runtime_template.module_id(compilation, &dep.id, &dep.request, false),
+            "/* asset import */{asset}, {}",
             runtime_template.render_runtime_globals(&RuntimeGlobals::BASE_URI)
           ),
           None,

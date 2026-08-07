@@ -129,7 +129,7 @@ impl DependencyTemplate for AMDRequireDependencyTemplate {
         ").bind(exports, {}, exports, module))['catch']({})",
         code_generatable_context
           .runtime_template
-          .render_runtime_globals(&RuntimeGlobals::REQUIRE),
+          .render_compatibility_require(),
         code_generatable_context
           .runtime_template
           .render_runtime_globals(&RuntimeGlobals::UNCAUGHT_ERROR_HANDLER),

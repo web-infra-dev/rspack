@@ -1,0 +1,98 @@
+```mjs title=main.mjs
+// ./index.js
+
+
+it('should dynamically import module that re-exports from cross-chunk module', async () => {
+	expect((/* inlined export .value */42)).toBe(42)
+
+	const mod = await import("./wrapper.mjs").then(m => (m.wrapper_init(), m.wrapper_namespaceObject))
+	expect(mod.value).toBe(42)
+	expect(mod.helper()).toBe(1)
+})
+
+export {};
+
+```
+
+```mjs title=runtime.mjs
+
+// rspack/runtime/define_property_getters
+var definePropertyGetters = (exports, getters, values) => {
+	var define = (defs, kind) => {
+		for(var key in defs) {
+			if(hasOwnProperty(defs, key) && !hasOwnProperty(exports, key)) {
+				Object.defineProperty(exports, key, { enumerable: true, [kind]: defs[key] });
+			}
+		}
+	};
+	define(getters, "get");
+	define(values, "value");
+};;
+export { definePropertyGetters };
+// rspack/runtime/has_own_property
+var hasOwnProperty = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop));
+// rspack/runtime/make_namespace_object
+// define __esModule on exports
+var makeNamespaceObject = (exports) => {
+	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+	}
+	Object.defineProperty(exports, '__esModule', { value: true });
+};;
+export { makeNamespaceObject };
+
+
+```
+
+```mjs title=shared-chunk.mjs
+var __esm = (fn, result) => function __init() {
+	if (fn) {
+		var value = fn(fn = 0);
+		result = value && typeof value.then === "function" ? value.then(value => result = value) : value;
+	}
+	return result;
+};
+// ./shared.js
+var value, helper;
+var shared_init = /*#__PURE__*/ __esm(() => {
+( value = 42);
+( helper = () => 1);
+
+});
+
+export { helper, shared_init };
+
+```
+
+```mjs title=wrapper.mjs
+import { definePropertyGetters, makeNamespaceObject } from "./runtime.mjs";
+import { shared_init, helper } from "./shared-chunk.mjs";
+
+var __esm = (fn, result) => function __init() {
+	if (fn) {
+		var value = fn(fn = 0);
+		result = value && typeof value.then === "function" ? value.then(value => result = value) : value;
+	}
+	return result;
+};
+// NAMESPACE OBJECT: ./wrapper.js
+var wrapper_namespaceObject = {};
+makeNamespaceObject(wrapper_namespaceObject);
+definePropertyGetters(wrapper_namespaceObject, {
+  helper: () => (helper),
+  value: () => ((/* inlined export .value */42))
+});
+
+
+// ./wrapper.js
+var wrapper_init = /*#__PURE__*/ __esm(() => {
+	shared_init();
+
+
+});
+
+var wrapper_value = (/* inlined export .value */42);
+export { wrapper_init, wrapper_namespaceObject, wrapper_value as value };
+export { helper } from "./shared-chunk.mjs";
+
+```

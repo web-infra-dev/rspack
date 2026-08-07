@@ -185,9 +185,8 @@ impl AMDDefineDependencyParserPlugin {
       let range = param.range();
 
       let dep: BoxDependencyTemplate = if param_str == "require" {
-        Box::new(RuntimeRequirementsDependency::new(
+        Box::new(RuntimeRequirementsDependency::compatibility_require(
           range.into(),
-          RuntimeGlobals::REQUIRE,
         ))
       } else if param_str == "exports" {
         Box::new(RuntimeRequirementsDependency::new(

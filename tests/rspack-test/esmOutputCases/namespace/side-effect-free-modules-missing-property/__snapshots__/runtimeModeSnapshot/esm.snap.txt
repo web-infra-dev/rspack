@@ -1,16 +1,21 @@
 ```mjs title=main.mjs
-import { rspackRequire, moduleFactories, makeNamespaceObject } from "./runtime.mjs";
-moduleFactories.add({
-"./foo/no-side-effects.cjs"
+import { makeNamespaceObject } from "./runtime.mjs";
+var __cjs = (factory, module) => function __require() {
+	if (module === undefined) {
+		module = { exports: {} };
+		factory.call(module.exports, module, module.exports);
+	}
+	return module.exports;
+};
+var require_no_side_effects = /*#__PURE__*/ __cjs(function(module, exports) {
+
 /*!*********************************!*\
   !*** ./foo/no-side-effects.cjs ***!
   \*********************************/
-() {
 console.log("cjs");
 
-
-},
 });
+
 // NAMESPACE OBJECT: ./foo/no-side-effects.js
 var no_side_effects_namespaceObject = {};
 makeNamespaceObject(no_side_effects_namespaceObject);
@@ -28,7 +33,7 @@ console.log("js");
 console.log("mjs");
 
 // ./index.js
-const no_side_effects = rspackRequire("./foo/no-side-effects.cjs");
+const no_side_effects_0 = require_no_side_effects();
 
 
 
@@ -36,7 +41,7 @@ const no_side_effects = rspackRequire("./foo/no-side-effects.cjs");
 it("should render missing namespace properties as undefined for side-effect-free modules", () => {
   expect(no_side_effects_namespaceObject.nope).toBeUndefined();
   expect(foo_no_side_effects_namespaceObject.nope).toBeUndefined();
-  expect(no_side_effects.nope).toBeUndefined();
+  expect(no_side_effects_0.nope).toBeUndefined();
 });
 
 export {};
@@ -45,34 +50,6 @@ export {};
 
 ```mjs title=runtime.mjs
 
-var modules = {};
-// The module cache
-var moduleCache = {};
-// The require function
-function rspackRequire(moduleId) {
-// Check if module is in cache
-var cachedModule = moduleCache[moduleId];
-if (cachedModule !== undefined) {
-return cachedModule.exports;
-}
-// Create a new module (and put it into the cache)
-var module = (moduleCache[moduleId] = {
-exports: {}
-});
-// Execute the module function
-modules[moduleId](module, module.exports, rspackRequire);
-
-// Return the exports of the module
-return module.exports;
-}
-export { rspackRequire };
-// expose the modules object (modules)
-var moduleFactories = modules;
-export { moduleFactories };
-
-// rspack/runtime/esm_register_module
-moduleFactories.add = function registerModules(modules) { Object.assign(moduleFactories, modules) }
-;
 // rspack/runtime/make_namespace_object
 // define __esModule on exports
 var makeNamespaceObject = (exports) => {

@@ -3,8 +3,8 @@
 it('should keep namespace when both conflicting exports are used', async () => {
 	// Both modules export `value` and both are used — real conflict.
 	// Namespace objects are required to disambiguate.
-	const { value: aValue, foo } = await import("./shared.mjs").then(m => m.a_namespaceObject)
-	const { value: bValue, bar } = await import("./shared.mjs").then(m => m.b_namespaceObject)
+	const { value: aValue, foo } = await import("./shared.mjs").then(m => (m.a_init(), m.a_namespaceObject))
+	const { value: bValue, bar } = await import("./shared.mjs").then(m => (m.b_init(), m.b_namespaceObject))
 
 	expect(aValue).toBe(1)
 	expect(bValue).toBe(2)
@@ -17,9 +17,6 @@ export {};
 ```
 
 ```mjs title=runtime.mjs
-// The require scope
-var rspackRequire = {};
-export { rspackRequire };
 
 // rspack/runtime/define_property_getters
 var definePropertyGetters = (exports, getters, values) => {
@@ -50,31 +47,48 @@ export { makeNamespaceObject };
 ```
 
 ```mjs title=shared.mjs
-import { rspackRequire, definePropertyGetters, makeNamespaceObject } from "./runtime.mjs";
+import { definePropertyGetters, makeNamespaceObject } from "./runtime.mjs";
+var __esm = (fn, result) => function __init() {
+	if (fn) {
+		var value = fn(fn = 0);
+		result = value && typeof value.then === "function" ? value.then(value => result = value) : value;
+	}
+	return result;
+};
 // NAMESPACE OBJECT: ./a.js
 var a_namespaceObject = {};
 makeNamespaceObject(a_namespaceObject);
-definePropertyGetters(a_namespaceObject, { 
+definePropertyGetters(a_namespaceObject, {
   foo: () => (foo),
-  value: () => (value) });
+  value: () => (value)
+});
 
 
 // NAMESPACE OBJECT: ./b.js
 var b_namespaceObject = {};
 makeNamespaceObject(b_namespaceObject);
-definePropertyGetters(b_namespaceObject, { 
+definePropertyGetters(b_namespaceObject, {
   bar: () => (bar),
-  value: () => (b_value) });
+  value: () => (b_value)
+});
 
 
 // ./a.js
-const value = 1;
-const foo = 'a-foo';
+var value, foo;
+var a_init = /*#__PURE__*/ __esm(() => {
+( value = 1);;
+( foo = 'a-foo');;
+
+});
 
 // ./b.js
-const b_value = 2;
-const bar = 'b-bar';
+var b_value, bar;
+var b_init = /*#__PURE__*/ __esm(() => {
+( b_value = 2);;
+( bar = 'b-bar');;
 
-export { a_namespaceObject, b_namespaceObject };
+});
+
+export { a_init, a_namespaceObject, b_init, b_namespaceObject };
 
 ```

@@ -1,8 +1,8 @@
 ```mjs title=main.mjs
 // ./index.js
 it("should avoid namespace and named binding collisions for duplicate externals", async () => {
-	const modA = await import("./shared.mjs").then(m => m.a_namespaceObject);
-	const modB = await import("./shared.mjs").then(m => m.b_namespaceObject);
+	const modA = await import("./shared.mjs").then(m => (m.a_init(), m.a_namespaceObject));
+	const modB = await import("./shared.mjs").then(m => (m.b_init(), m.b_namespaceObject));
 
 	expect(modA.resolve).toBeDefined();
 	expect(typeof modA.resolve.join).toBe("function");
@@ -15,9 +15,6 @@ export {};
 ```
 
 ```mjs title=runtime.mjs
-// The require scope
-var rspackRequire = {};
-export { rspackRequire };
 
 // rspack/runtime/define_property_getters
 var definePropertyGetters = (exports, getters, values) => {
@@ -48,39 +45,55 @@ export { makeNamespaceObject };
 ```
 
 ```mjs title=shared.mjs
-import { rspackRequire, definePropertyGetters, makeNamespaceObject } from "./runtime.mjs";
+import { definePropertyGetters, makeNamespaceObject } from "./runtime.mjs";
 import * as __rspack_external_path from "path";
 import { resolve } from "path";
 
+var __esm = (fn, result) => function __init() {
+	if (fn) {
+		var value = fn(fn = 0);
+		result = value && typeof value.then === "function" ? value.then(value => result = value) : value;
+	}
+	return result;
+};
 // NAMESPACE OBJECT: ./a.js
 var a_namespaceObject = {};
 makeNamespaceObject(a_namespaceObject);
-definePropertyGetters(a_namespaceObject, { 
-  resolve: () => (__rspack_external_path) });
+definePropertyGetters(a_namespaceObject, {
+  resolve: () => (__rspack_external_path)
+});
 
 
 // NAMESPACE OBJECT: ./b.js
 var b_namespaceObject = {};
 makeNamespaceObject(b_namespaceObject);
-definePropertyGetters(b_namespaceObject, { 
+definePropertyGetters(b_namespaceObject, {
   marker: () => (marker),
-  resolve: () => (resolve) });
+  resolve: () => (resolve)
+});
 
 
 // path?2d49
 
 // ./a.js
+var a_init = /*#__PURE__*/ __esm(() => {
 
 
 
+
+});
 
 // path?2b46
 
 // ./b.js
+var marker;
+var b_init = /*#__PURE__*/ __esm(() => {
 
 
-const marker = "b";
+( marker = "b");;
 
-export { a_namespaceObject, b_namespaceObject };
+});
+
+export { a_init, a_namespaceObject, b_init, b_namespaceObject };
 
 ```

@@ -411,7 +411,11 @@ async fn runtime_requirements_in_tree(
       RuntimeGlobals::ESM_MODULE_DECORATOR => {
         runtime_modules_to_add.push((
           *chunk_ukey,
-          ESMModuleDecoratorRuntimeModule::new(&compilation.runtime_template).boxed(),
+          ESMModuleDecoratorRuntimeModule::new(
+            &compilation.runtime_template,
+            !matches!(&library_type, Some(t) if t == "modern-module"),
+          )
+          .boxed(),
         ));
       }
       RuntimeGlobals::NODE_MODULE_DECORATOR => {

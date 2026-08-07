@@ -3,9 +3,10 @@ use std::{borrow::Cow, sync::Arc};
 use atomic_refcell::AtomicRefCell;
 use rspack_collections::IdentifierMap;
 use rspack_core::{
-  Dependency, DependencyId, DependencyTemplate, ExportsType, ExternalModule,
-  FakeNamespaceObjectMode, ModuleGraph, ModuleReferenceOptions, RuntimeGlobals, TemplateContext,
-  get_exports_type, property_access,
+  CodeGenerationModuleReferenceKind, Dependency, DependencyId, DependencyTemplate, ExportsType,
+  ExternalModule, FakeNamespaceObjectMode, ModuleReferenceOptions, RuntimeGlobals, TemplateContext,
+  get_exports_type, get_outgoing_async_module_identifiers, property_access,
+  render_make_deferred_namespace_mode_from_exports_type,
 };
 use rspack_plugin_javascript::dependency::ImportDependency;
 use rspack_plugin_rslib::dyn_import_external::render_dyn_import_external_module;
@@ -13,87 +14,86 @@ use rspack_util::atom::Atom;
 
 use crate::EsmLibraryPlugin;
 
-fn then_expr(
+fn initializer_then_expr(
   code_generatable_context: &mut TemplateContext,
   dep_id: &DependencyId,
-  request: &str,
+  import_promise: &str,
+  already_in_chunk: bool,
+  deferred: bool,
 ) -> String {
-  let TemplateContext {
-    compilation,
-    module,
-    runtime_template,
-    ..
-  } = code_generatable_context;
-  if compilation
-    .get_module_graph()
-    .module_identifier_by_dependency_id(dep_id)
-    .is_none()
-  {
-    return runtime_template.missing_module_promise(request);
+  let kind = if deferred {
+    if already_in_chunk {
+      CodeGenerationModuleReferenceKind::LazyValue
+    } else {
+      CodeGenerationModuleReferenceKind::ImportedLazyValue
+    }
+  } else if already_in_chunk {
+    CodeGenerationModuleReferenceKind::LazyValue
+  } else {
+    CodeGenerationModuleReferenceKind::ImportedValue
+  };
+  let initializer = code_generatable_context
+    .create_module_relocation(*dep_id, kind)
+    .expect("dynamic import target should have a module relocation");
+  let async_initializers = if deferred {
+    let module = code_generatable_context
+      .compilation
+      .get_module_graph()
+      .get_module_by_dependency_id(dep_id)
+      .expect("dynamic import target should have a module");
+    get_outgoing_async_module_identifiers(code_generatable_context.compilation, module.as_ref())
+      .into_iter()
+      .map(|module| {
+        code_generatable_context.create_module_relocation_for_module(
+          module,
+          CodeGenerationModuleReferenceKind::AsyncInitializer,
+        )
+      })
+      .collect::<Vec<_>>()
+  } else {
+    Vec::new()
+  };
+  let mut expression = if deferred && already_in_chunk {
+    format!("Promise.resolve({initializer})")
+  } else {
+    format!("{import_promise}.then({initializer})")
   };
 
   let exports_type = get_exports_type(
-    compilation.get_module_graph(),
-    &compilation.module_graph_cache_artifact,
-    &compilation.exports_info_artifact,
+    code_generatable_context.compilation.get_module_graph(),
+    &code_generatable_context
+      .compilation
+      .module_graph_cache_artifact,
+    &code_generatable_context.compilation.exports_info_artifact,
     dep_id,
-    &module.identifier(),
+    &code_generatable_context.module.identifier(),
   );
-  let module_id_expr = runtime_template.module_id(compilation, dep_id, request, false);
-
-  let mut fake_type = FakeNamespaceObjectMode::PROMISE_LIKE;
-  let mut appending;
-
-  match exports_type {
-    ExportsType::Namespace => {
-      appending = format!(
-        ".then({}.bind({}, {module_id_expr}))",
-        runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
-        runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
+  if deferred {
+    if !async_initializers.is_empty() {
+      expression = format!(
+        "{expression}.then(load => Promise.all([{}]).then(() => load))",
+        async_initializers.join(", ")
       );
     }
-    _ => {
-      if matches!(exports_type, ExportsType::Dynamic) {
-        fake_type |= FakeNamespaceObjectMode::RETURN_VALUE;
-      }
-      if matches!(
-        exports_type,
-        ExportsType::DefaultWithNamed | ExportsType::Dynamic
-      ) {
-        fake_type |= FakeNamespaceObjectMode::MERGE_PROPERTIES;
-      }
-      if ModuleGraph::is_async(
-        &compilation.async_modules_artifact,
-        compilation
-          .get_module_graph()
-          .module_identifier_by_dependency_id(dep_id)
-          .expect("should have module"),
-      ) {
-        appending = format!(
-          ".then({}.bind({}, {module_id_expr}))",
-          runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
-          runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
-        );
-        appending.push_str(
-          format!(
-            r#".then(function(m){{
- return {}(m, {fake_type})
-}})"#,
-            runtime_template.render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT)
-          )
-          .as_str(),
-        );
-      } else {
-        fake_type |= FakeNamespaceObjectMode::MODULE_ID;
-        appending = format!(
-          ".then({}.bind({}, {module_id_expr}, {fake_type}))",
-          runtime_template.render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT),
-          runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
-        );
-      }
-    }
+    let mode = render_make_deferred_namespace_mode_from_exports_type(exports_type);
+    let make_deferred = code_generatable_context
+      .runtime_template
+      .render_runtime_globals(&RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT);
+    expression.push_str(&format!(
+      ".then(load => /*#__PURE__*/{make_deferred}(load, {mode}))"
+    ));
+    return expression;
   }
-  appending
+  if !matches!(exports_type, ExportsType::Namespace) {
+    let fake_type = get_fake_namespace_object_mode(code_generatable_context, dep_id);
+    expression.push_str(&format!(
+      ".then(m => {}(m, {fake_type}))",
+      code_generatable_context
+        .runtime_template
+        .render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT)
+    ));
+  }
+  expression
 }
 
 fn get_fake_namespace_object_mode(
@@ -159,35 +159,99 @@ fn render_lazy_create_require_external_import(
   )
 }
 
+fn render_deferred_require_external_import(
+  make_deferred_namespace_object: &str,
+  request_expr: &str,
+  properties: &str,
+  mode: &str,
+) -> String {
+  format!(
+    "Promise.resolve(/*#__PURE__*/{make_deferred_namespace_object}(function() {{ return require({request_expr}){properties}; }}, {mode}))"
+  )
+}
+
+fn render_deferred_create_require_external_import(
+  code_generatable_context: &TemplateContext,
+  make_deferred_namespace_object: &str,
+  request_expr: &str,
+  properties: &str,
+  mode: &str,
+) -> String {
+  let need_prefix = code_generatable_context
+    .compilation
+    .options
+    .output
+    .environment
+    .supports_node_prefix_for_core_modules();
+  let import_meta_name = &code_generatable_context
+    .compilation
+    .options
+    .output
+    .import_meta_name;
+  let module_request =
+    rspack_util::json_stringify_str(if need_prefix { "node:module" } else { "module" });
+
+  format!(
+    "import({module_request}).then(function(module) {{ return /*#__PURE__*/{make_deferred_namespace_object}(function() {{ return module.createRequire({import_meta_name}.url)({request_expr}){properties}; }}, {mode}); }})"
+  )
+}
+
 fn render_lazy_commonjs_external_import(
   code_generatable_context: &mut TemplateContext,
   external_module: &ExternalModule,
   fake_type: FakeNamespaceObjectMode,
+  deferred_mode: Option<&str>,
 ) -> Option<String> {
   let request = external_module.get_request();
   let request_expr = rspack_util::json_stringify_str(request.primary());
   let properties = property_access(request.iter(), 1);
-  let create_fake_namespace_object = code_generatable_context
-    .runtime_template
-    .render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT);
+  let make_deferred_namespace_object = deferred_mode.map(|_| {
+    code_generatable_context
+      .runtime_template
+      .render_runtime_globals(&RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT)
+  });
 
   match external_module.resolve_external_type() {
     "commonjs" | "commonjs2" | "commonjs-module" | "commonjs-static" | "node-commonjs" => {
-      if code_generatable_context.compilation.options.output.module {
-        Some(render_lazy_create_require_external_import(
-          code_generatable_context,
-          &create_fake_namespace_object,
-          &request_expr,
-          &properties,
-          fake_type,
-        ))
+      if let (Some(mode), Some(make_deferred_namespace_object)) =
+        (deferred_mode, make_deferred_namespace_object)
+      {
+        if code_generatable_context.compilation.options.output.module {
+          Some(render_deferred_create_require_external_import(
+            code_generatable_context,
+            &make_deferred_namespace_object,
+            &request_expr,
+            &properties,
+            mode,
+          ))
+        } else {
+          Some(render_deferred_require_external_import(
+            &make_deferred_namespace_object,
+            &request_expr,
+            &properties,
+            mode,
+          ))
+        }
       } else {
-        Some(render_lazy_require_external_import(
-          &create_fake_namespace_object,
-          &request_expr,
-          &properties,
-          fake_type,
-        ))
+        let create_fake_namespace_object = code_generatable_context
+          .runtime_template
+          .render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT);
+        if code_generatable_context.compilation.options.output.module {
+          Some(render_lazy_create_require_external_import(
+            code_generatable_context,
+            &create_fake_namespace_object,
+            &request_expr,
+            &properties,
+            fake_type,
+          ))
+        } else {
+          Some(render_lazy_require_external_import(
+            &create_fake_namespace_object,
+            &request_expr,
+            &properties,
+            fake_type,
+          ))
+        }
       }
     }
     _ => None,
@@ -232,6 +296,8 @@ impl DynamicImportDependencyTemplate {
           .missing_module_promise(request),
       );
     };
+    let deferred =
+      import_dep.get_phase().is_defer() && !ref_module.build_meta().has_top_level_await();
 
     if let Some(external_module) = ref_module.as_external_module()
       && matches!(external_module.resolve_external_type(), "import" | "module")
@@ -243,10 +309,24 @@ impl DynamicImportDependencyTemplate {
       return None;
     }
     if let Some(external_module) = ref_module.as_external_module() {
+      let exports_type = get_exports_type(
+        module_graph,
+        &code_generatable_context
+          .compilation
+          .module_graph_cache_artifact,
+        &code_generatable_context.compilation.exports_info_artifact,
+        dep_id,
+        &code_generatable_context.module.identifier(),
+      );
       let fake_type = get_fake_namespace_object_mode(code_generatable_context, dep_id);
-      if let Some(external_import) =
-        render_lazy_commonjs_external_import(code_generatable_context, external_module, fake_type)
-      {
+      let deferred_mode =
+        deferred.then(|| render_make_deferred_namespace_mode_from_exports_type(exports_type));
+      if let Some(external_import) = render_lazy_commonjs_external_import(
+        code_generatable_context,
+        external_module,
+        fake_type,
+        deferred_mode.as_deref(),
+      ) {
         return Some(external_import);
       }
     }
@@ -318,11 +398,12 @@ impl DynamicImportDependencyTemplate {
     };
 
     let Some(concatenation_scope) = &mut code_generatable_context.concatenation_scope else {
-      // if we are not in a concatenation scope, then all its children are not scope hoisted as well
-      // we can safely use __rspack_require to fetch module
-      return Some(format!(
-        "{import_promise}{}",
-        then_expr(code_generatable_context, dep_id, request)
+      return Some(initializer_then_expr(
+        code_generatable_context,
+        dep_id,
+        &import_promise,
+        already_in_chunk,
+        deferred,
       ));
     };
 
@@ -330,11 +411,36 @@ impl DynamicImportDependencyTemplate {
       concatenation_scope.is_module_concatenated(&ref_module.identifier());
 
     if !is_ref_module_concatenated {
-      // if target is not in a concatenation scope, then all its children are not scope hoisted as well
-      // we can safely use __rspack_require to fetch module
-      return Some(format!(
-        "{import_promise}{}",
-        then_expr(code_generatable_context, dep_id, request)
+      return Some(initializer_then_expr(
+        code_generatable_context,
+        dep_id,
+        &import_promise,
+        already_in_chunk,
+        deferred,
+      ));
+    }
+
+    if concatenation_scope
+      .modules_map
+      .get(&ref_module.identifier())
+      .is_some_and(|info| info.has_initializer())
+    {
+      return Some(initializer_then_expr(
+        code_generatable_context,
+        dep_id,
+        &import_promise,
+        already_in_chunk,
+        deferred,
+      ));
+    }
+
+    if deferred {
+      return Some(initializer_then_expr(
+        code_generatable_context,
+        dep_id,
+        &import_promise,
+        already_in_chunk,
+        true,
       ));
     }
 

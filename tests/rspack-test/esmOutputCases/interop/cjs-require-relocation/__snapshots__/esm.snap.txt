@@ -1,0 +1,81 @@
+```mjs title=main.mjs
+var __cjs = (factory, module) => function __require() {
+	if (module === undefined) {
+		module = { exports: {} };
+		factory.call(module.exports, module, module.exports);
+	}
+	return module.exports;
+};
+var require_index = /*#__PURE__*/ __cjs(function(module, exports) {
+
+/*!******************!*\
+  !*** ./index.js ***!
+  \******************/
+const chooseObject = globalThis.__rspack_test_choose_object__ !== false;
+const choosePrimitive = globalThis.__rspack_test_choose_primitive__ === true;
+const __rspack_require_value__ = "user binding";
+
+const direct = require_object();
+const conditional = (function(value) { return value; })(
+	chooseObject ? require_object() : require_other_object(),
+);
+const conditionalOther = (function(value) { return value; })(
+	choosePrimitive ? require_object() : require_other_object(),
+);
+const constructedObject = new (function(value) { return value; })(require_object());
+const constructedPrimitive = new (function(value) { return value; })(require_primitive());
+const constructedConditionalObject = new (function(value) { return value; })(
+	chooseObject ? require_object() : require_other_object(),
+);
+const constructedConditionalPrimitive = new (function(value) { return value; })(
+	choosePrimitive ? require_object() : require_primitive(),
+);
+
+it("should relocate direct and conditional CommonJS requires", () => {
+	expect(__rspack_require_value__).toBe("user binding");
+	expect(direct).toEqual({ value: 45 });
+	expect(conditional).toBe(direct);
+	expect(conditionalOther).toEqual({ value: 46 });
+});
+
+it("should preserve new require constructor return semantics", () => {
+	expect(constructedObject).toBe(direct);
+	expect(constructedConditionalObject).toBe(direct);
+	expect(constructedPrimitive).toEqual({});
+	expect(constructedConditionalPrimitive).toEqual({});
+});
+
+});
+
+var require_object = /*#__PURE__*/ __cjs(function(module, exports) {
+
+/*!********************!*\
+  !*** ./object.cjs ***!
+  \********************/
+module.exports = { value: 45 };
+
+});
+
+var require_other_object = /*#__PURE__*/ __cjs(function(module, exports) {
+
+/*!**************************!*\
+  !*** ./other-object.cjs ***!
+  \**************************/
+module.exports = { value: 46 };
+
+});
+
+var require_primitive = /*#__PURE__*/ __cjs(function(module, exports) {
+
+/*!***********************!*\
+  !*** ./primitive.cjs ***!
+  \***********************/
+module.exports = 47;
+
+});
+
+require_index();
+
+export {};
+
+```

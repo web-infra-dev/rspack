@@ -4,13 +4,14 @@ use rspack_cacheable::{
   with::{AsPreset, AsVec},
 };
 use rspack_core::{
-  AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
-  DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, ExportNameOrSpec,
-  ExportProvided, ExportSpec, ExportsInfoArtifact, ExportsOfExportsSpec, ExportsSpec, ExportsType,
-  FactorizeInfo, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
-  Nullable, ReferencedExport, RuntimeSpec, TemplateContext, TemplateReplaceSource, UsageState,
-  UsedName, collect_referenced_export_items, create_exports_object_referenced,
-  create_no_exports_referenced, property_access, to_normal_comment,
+  AsContextDependency, CodeGenerationModuleReferenceKind, Dependency, DependencyCategory,
+  DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
+  DependencyTemplateType, DependencyType, ExportNameOrSpec, ExportProvided, ExportSpec,
+  ExportsInfoArtifact, ExportsOfExportsSpec, ExportsSpec, ExportsType, FactorizeInfo,
+  ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, Nullable,
+  ReferencedExport, RuntimeSpec, TemplateContext, TemplateReplaceSource, UsageState, UsedName,
+  collect_referenced_export_items, create_exports_object_referenced, create_no_exports_referenced,
+  property_access, to_normal_comment,
 };
 use rustc_hash::FxHashSet;
 use swc_atoms::Atom;
@@ -438,6 +439,14 @@ impl DependencyTemplate for CommonJsExportRequireDependencyTemplate {
       .downcast_ref::<CommonJsExportRequireDependency>()
       .expect("CommonJsExportRequireDependencyTemplate should only be used for CommonJsExportRequireDependency");
 
+    let module_reference = code_generatable_context
+      .is_modern_module_output()
+      .then(|| {
+        code_generatable_context
+          .create_module_relocation(dep.id, CodeGenerationModuleReferenceKind::Value)
+      })
+      .flatten();
+
     let TemplateContext {
       compilation,
       module,
@@ -473,7 +482,32 @@ impl DependencyTemplate for CommonJsExportRequireDependencyTemplate {
       unreachable!()
     };
 
-    let require_expr = if let Some(imported_module) = mg.get_module_by_dependency_id(&dep.id)
+    let require_expr = if let Some(module_reference) = module_reference {
+      if let Some(imported_module) = mg.get_module_by_dependency_id(&dep.id)
+        && let ids = dep.get_ids(mg)
+        && let Some(used_imported) = compilation
+          .exports_info_artifact
+          .get_exports_info_data(&imported_module.identifier())
+          .get_used_name(&compilation.exports_info_artifact, *runtime, ids)
+      {
+        match used_imported {
+          UsedName::Normal(used_imported) => format!(
+            "{module_reference}{}{}",
+            to_normal_comment(&property_access(ids, 0)),
+            property_access(used_imported, 0)
+          ),
+          UsedName::Inlined(inlined) => format!(
+            "({module_reference}, {})",
+            inlined.render(&to_normal_comment(&format!(
+              "inlined export {}",
+              property_access(ids, 0)
+            )))
+          ),
+        }
+      } else {
+        module_reference
+      }
+    } else if let Some(imported_module) = mg.get_module_by_dependency_id(&dep.id)
       && let ids = dep.get_ids(mg)
       && let Some(used_imported) = compilation
         .exports_info_artifact

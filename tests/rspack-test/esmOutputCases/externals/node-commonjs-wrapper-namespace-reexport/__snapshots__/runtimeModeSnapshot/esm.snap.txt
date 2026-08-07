@@ -1,12 +1,13 @@
 ```mjs title=main.mjs
-import { rspackRequire, definePropertyGetters, makeNamespaceObject, createFakeNamespaceObject } from "./runtime.mjs";
+import { definePropertyGetters, makeNamespaceObject, createFakeNamespaceObject } from "./runtime.mjs";
 import { createRequire as __rspack_createRequire } from "node:module";
 const __rspack_createRequire_require = __rspack_createRequire(import.meta.url);
 // NAMESPACE OBJECT: ./exports.js
 var exports_namespaceObject = {};
 makeNamespaceObject(exports_namespaceObject);
-definePropertyGetters(exports_namespaceObject, { 
-  sources: () => (index_js_namespaceObject) });
+definePropertyGetters(exports_namespaceObject, {
+  sources: () => (index_js_namespaceObject)
+});
 
 
 // webpack-sources
@@ -36,9 +37,6 @@ export { exports_namespaceObject as exportsNS, index_js_namespaceObject as sourc
 ```
 
 ```mjs title=runtime.mjs
-// The require scope
-var rspackRequire = {};
-export { rspackRequire };
 
 // rspack/runtime/create_fake_namespace_object
 var getProto = Object.getPrototypeOf ? (obj) => (Object.getPrototypeOf(obj)) : (obj) => (obj.__proto__);

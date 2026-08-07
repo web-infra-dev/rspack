@@ -1,8 +1,8 @@
 ```mjs title=main.mjs
 // ./index.js
 it('should not confuse default and named bindings for module externals in shared chunks', async () => {
-	const a = await import("./shared.mjs")
-	const b = await import("./shared.mjs")
+	const a = await import("./shared.mjs").then(m => (m.a_init(), m.a_namespaceObject))
+	const b = await import("./shared.mjs").then(m => (m.b_init(), m.b_namespaceObject))
 	const fs = await import(/* webpackIgnore: true */ 'fs')
 
 	expect(a.defaultImport).toBe(fs.default)
@@ -15,23 +15,93 @@ export {};
 
 ```
 
+```mjs title=runtime.mjs
+// The require scope
+var __webpack_require__ = {};
+
+// webpack/runtime/define_property_getters
+(() => {
+__webpack_require__.d = (exports, getters, values) => {
+	var define = (defs, kind) => {
+		for(var key in defs) {
+			if(__webpack_require__.o(defs, key) && !__webpack_require__.o(exports, key)) {
+				Object.defineProperty(exports, key, { enumerable: true, [kind]: defs[key] });
+			}
+		}
+	};
+	define(getters, "get");
+	define(values, "value");
+};
+})();
+// webpack/runtime/has_own_property
+(() => {
+__webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
+})();
+// webpack/runtime/make_namespace_object
+(() => {
+// define __esModule on exports
+__webpack_require__.r = (exports) => {
+	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+	}
+	Object.defineProperty(exports, '__esModule', { value: true });
+};
+})();
+
+export { __webpack_require__ };
+
+```
+
 ```mjs title=shared.mjs
+import { __webpack_require__ } from "./runtime.mjs";
 import fs, { readFile } from "fs";
+
+var __esm = (fn, result) => function __init() {
+	if (fn) {
+		var value = fn(fn = 0);
+		result = value && typeof value.then === "function" ? value.then(value => result = value) : value;
+	}
+	return result;
+};
+// NAMESPACE OBJECT: ./a.js
+var a_namespaceObject = {};
+__webpack_require__.r(a_namespaceObject);
+__webpack_require__.d(a_namespaceObject, {
+  defaultImport: () => (defaultImport)
+});
+
+
+// NAMESPACE OBJECT: ./b.js
+var b_namespaceObject = {};
+__webpack_require__.r(b_namespaceObject);
+__webpack_require__.d(b_namespaceObject, {
+  marker: () => (marker),
+  namedReadFile: () => (readFile)
+});
+
 
 // fs?2aa6
 
 // ./a.js
+var defaultImport;
+var a_init = /*#__PURE__*/ __esm(() => {
 
 
-const defaultImport = fs
+( defaultImport = fs);
+
+});
 
 // fs?f4d4
 
 // ./b.js
+var marker;
+var b_init = /*#__PURE__*/ __esm(() => {
 
 
-const marker = 'ok'
+( marker = 'ok');
 
-export { defaultImport, marker, readFile as namedReadFile };
+});
+
+export { a_init, a_namespaceObject, b_init, b_namespaceObject, defaultImport, marker, readFile as namedReadFile };
 
 ```

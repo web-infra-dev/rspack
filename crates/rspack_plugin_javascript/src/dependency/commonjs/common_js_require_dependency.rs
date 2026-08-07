@@ -3,12 +3,12 @@ use rspack_cacheable::{
   with::{AsCacheable, AsOption, AsVec},
 };
 use rspack_core::{
-  AsContextDependency, Context, Dependency, DependencyCategory, DependencyCodeGeneration,
-  DependencyCondition, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
-  DependencyTemplateType, DependencyType, ExportsInfoArtifact, FactorizeInfo, ModuleDependency,
-  ModuleGraph, ModuleGraphCacheArtifact, ReferencedExport, ReferencedSpecifier, ResourceIdentifier,
-  RuntimeSpec, TemplateContext, TemplateReplaceSource, create_exports_object_referenced,
-  create_referenced_exports_by_referenced_specifiers,
+  AsContextDependency, CodeGenerationModuleReferenceKind, Context, Dependency, DependencyCategory,
+  DependencyCodeGeneration, DependencyCondition, DependencyId, DependencyLocation, DependencyRange,
+  DependencyTemplate, DependencyTemplateType, DependencyType, ExportsInfoArtifact, FactorizeInfo,
+  ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ReferencedExport, ReferencedSpecifier,
+  ResourceIdentifier, RuntimeSpec, TemplateContext, TemplateReplaceSource,
+  create_exports_object_referenced, create_referenced_exports_by_referenced_specifiers,
 };
 
 use super::create_resource_identifier_for_contextual_commonjs_dependency;
@@ -22,6 +22,8 @@ pub struct CommonJsRequireDependency {
   optional: bool,
   range: DependencyRange,
   range_expr: Option<DependencyRange>,
+  replace_call: bool,
+  as_constructor: bool,
   loc: Option<DependencyLocation>,
   #[cacheable(with=AsOption<AsVec<AsCacheable>>)]
   referenced_specifiers: Option<Vec<ReferencedSpecifier>>,
@@ -46,6 +48,8 @@ impl CommonJsRequireDependency {
       optional,
       range,
       range_expr,
+      replace_call: false,
+      as_constructor: false,
       loc,
       referenced_specifiers: None,
       branch_guard: None,
@@ -84,6 +88,11 @@ impl CommonJsRequireDependency {
       return;
     }
     self.referenced_specifiers = Some(referenced_specifiers);
+  }
+
+  pub fn set_call_replacement(&mut self, as_constructor: bool) {
+    self.replace_call = true;
+    self.as_constructor = as_constructor;
   }
 
   pub fn set_branch_guard(&mut self, guard: DependencyBranchGuard) {
@@ -219,15 +228,35 @@ impl DependencyTemplate for CommonJsRequireDependencyTemplate {
         "CommonJsRequireDependencyTemplate should only be used for CommonJsRequireDependency",
       );
 
+    let is_modern_module_output = code_generatable_context.is_modern_module_output();
+    let module_reference = is_modern_module_output
+      .then(|| {
+        code_generatable_context.create_module_relocation(
+          dep.id,
+          if dep.as_constructor {
+            CodeGenerationModuleReferenceKind::ConstructorValue
+          } else {
+            CodeGenerationModuleReferenceKind::Value
+          },
+        )
+      })
+      .flatten();
+    let range = if is_modern_module_output && dep.replace_call {
+      dep.range_expr.unwrap_or(dep.range)
+    } else {
+      dep.range
+    };
     source.replace(
-      dep.range.start,
-      dep.range.end,
-      code_generatable_context.runtime_template.module_id(
-        code_generatable_context.compilation,
-        &dep.id,
-        &dep.request,
-        false,
-      ),
+      range.start,
+      range.end,
+      module_reference.unwrap_or_else(|| {
+        code_generatable_context.runtime_template.module_id(
+          code_generatable_context.compilation,
+          &dep.id,
+          &dep.request,
+          false,
+        )
+      }),
       None,
     );
   }

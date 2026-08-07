@@ -53,7 +53,7 @@ pub(super) fn create_resource_identifier_for_contextual_commonjs_dependency(
   identifier
 }
 
-static OBJECT_PROTOTYPE_METHODS: &[&str] = &[
+pub(crate) static OBJECT_PROTOTYPE_METHODS: &[&str] = &[
   "constructor",
   "__defineGetter__",
   "__defineSetter__",

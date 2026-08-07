@@ -1,0 +1,43 @@
+```mjs title=main.mjs
+import { __webpack_require__ } from "./runtime.mjs";
+
+// ./asset.txt
+const asset_namespaceObject = __webpack_require__.p + "fc4025c177fc1fe9.txt";
+// ./index.js
+const asset = new URL(/* asset import */asset_namespaceObject, __webpack_require__.b);
+
+it("should use the asset module value without a module dispatcher", () => {
+	expect(asset.href).toMatch(/\.txt$/);
+});
+
+export {};
+
+```
+
+```mjs title=runtime.mjs
+// The require scope
+var __webpack_require__ = {};
+
+// webpack/runtime/public_path
+(() => {
+__webpack_require__.p = "";
+})();
+// webpack/runtime/module_chunk_loading
+(() => {
+__webpack_require__.b = new URL("./", import.meta.url);;
+
+      // object to store loaded and loading chunks
+      // undefined = chunk not loaded, null = chunk preloaded/prefetched
+      // [resolve, Promise] = chunk loading, 0 = chunk loaded
+      var moduleInstalledChunks = {"runtime": 0,};
+      // no install chunk// no chunk on demand loading
+// no external install chunk
+// no on chunks loaded
+// no HMR
+// no HMR manifest
+
+})();
+
+export { __webpack_require__ };
+
+```

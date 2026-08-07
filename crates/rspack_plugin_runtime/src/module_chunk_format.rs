@@ -18,7 +18,7 @@ use rustc_hash::FxHashSet as HashSet;
 use super::update_hash_for_entry_startup;
 use crate::{
   get_all_chunks, get_chunk_output_name, get_relative_path, get_runtime_chunk_output_name,
-  runtime_chunk_has_hash,
+  is_modern_module_library_chunk, runtime_chunk_has_hash,
 };
 
 const PLUGIN_NAME: &str = "rspack.ModuleChunkFormatPlugin";
@@ -54,7 +54,9 @@ async fn additional_chunk_runtime_requirements(
     .chunk_by_ukey
     .expect_get(chunk_ukey);
 
-  if chunk.has_runtime(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey) {
+  if is_modern_module_library_chunk(chunk_ukey, compilation)
+    || chunk.has_runtime(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
+  {
     return Ok(());
   }
 

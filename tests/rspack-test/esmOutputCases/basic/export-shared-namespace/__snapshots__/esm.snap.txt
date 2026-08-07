@@ -57,9 +57,10 @@ import { __webpack_require__ } from "./runtime.mjs";
 // NAMESPACE OBJECT: ./shared.js
 var shared_namespaceObject = {};
 __webpack_require__.r(shared_namespaceObject);
-__webpack_require__.d(shared_namespaceObject, { 
+__webpack_require__.d(shared_namespaceObject, {
   a: () => (a),
-  b: () => (b) });
+  b: () => (b)
+});
 
 
 // ./shared.js

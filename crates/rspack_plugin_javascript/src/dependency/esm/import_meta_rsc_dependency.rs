@@ -156,6 +156,16 @@ impl DependencyTemplate for ImportMetaRscDependencyTemplate {
       .downcast_ref::<ImportMetaRscDependency>()
       .expect("ImportMetaRscDependencyTemplate should only be used for ImportMetaRscDependency");
 
+    let module_reference = code_generatable_context
+      .is_modern_module_output()
+      .then(|| {
+        code_generatable_context.create_module_relocation(
+          *dependency.id(),
+          rspack_core::CodeGenerationModuleReferenceKind::Value,
+        )
+      })
+      .flatten();
+
     let TemplateContext {
       compilation,
       init_fragments,
@@ -163,8 +173,9 @@ impl DependencyTemplate for ImportMetaRscDependencyTemplate {
       ..
     } = code_generatable_context;
     let rsc_manifest = runtime_template.render_runtime_globals(&RuntimeGlobals::RSC_MANIFEST);
-    let react =
-      runtime_template.module_raw(compilation, dependency.id(), dependency.request(), false);
+    let react = module_reference.unwrap_or_else(|| {
+      runtime_template.module_raw(compilation, dependency.id(), dependency.request(), false)
+    });
     let importer = json_stringify_str(&dependency.importer);
 
     init_fragments.push(Box::new(

@@ -2,9 +2,10 @@ use concat_string::concat_string;
 use cow_utils::CowUtils;
 use itertools::Itertools;
 use rspack_core::{
-  ArcComputed, ConstDependency, ContextDependency, ContextMode, ContextOptions, DependencyCategory,
-  DependencyRange, ImportMeta, ImportMetaKnownProperties, ResolvedModuleOptions, RscMeta,
-  RscModuleType, RuntimeGlobals, RuntimeRequirementsDependency, property_access, to_normal_comment,
+  ArcComputed, CodeGenerationModuleReferenceKind, CodeGenerationModuleReferences, ConstDependency,
+  ContextDependency, ContextMode, ContextOptions, DependencyCategory, DependencyRange, ImportMeta,
+  ImportMetaKnownProperties, ResolvedModuleOptions, RscMeta, RscModuleType, RuntimeGlobals,
+  RuntimeRequirementsDependency, property_access, to_normal_comment,
 };
 use rspack_error::{Error, Label, Severity};
 use rspack_util::{SpanExt, json_stringify_str};
@@ -28,8 +29,8 @@ use super::{
 };
 use crate::{
   dependency::{
-    IMPORT_META_RSC_BINDING, ImportMetaResolveContextDependency, ImportMetaResolveDependency,
-    ImportMetaResolveHeaderDependency, ImportMetaRscDependency,
+    IMPORT_META_RSC_BINDING, ImportMetaMainDependency, ImportMetaResolveContextDependency,
+    ImportMetaResolveDependency, ImportMetaResolveHeaderDependency, ImportMetaRscDependency,
   },
   utils::eval::{self, BasicEvaluatedExpression},
   visitors::{
@@ -339,6 +340,20 @@ impl ImportMetaPlugin {
   }
 
   fn import_meta_main(&self, parser: &mut JavascriptParser) -> String {
+    if parser.compiler_options.output.module
+      && parser
+        .compiler_options
+        .output
+        .enabled_library_types
+        .as_ref()
+        .is_some_and(|types| types.iter().any(|ty| ty == "modern-module"))
+    {
+      parser.add_presentational_dependency(Box::new(ImportMetaMainDependency));
+      return CodeGenerationModuleReferences::marker_for(
+        *parser.module_identifier,
+        CodeGenerationModuleReferenceKind::EntryValue,
+      );
+    }
     parser.build_info.module_concatenation_bailout = Some("import.meta.main".into());
     parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::add_only(
       RuntimeGlobals::MODULE_CACHE | RuntimeGlobals::ENTRY_MODULE_ID | RuntimeGlobals::MODULE,

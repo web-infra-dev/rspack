@@ -11,10 +11,6 @@ use super::{
 pub(super) struct RspackContextRuntimeRenderer;
 
 impl RuntimeModeRenderer for RspackContextRuntimeRenderer {
-  fn render_module_registration_ident(&self, runtime_template: &RuntimeCodeTemplate) -> String {
-    runtime_template.render_runtime_globals(&RuntimeGlobals::MODULE_FACTORIES)
-  }
-
   fn render_runtime_imports(&self, context: RuntimeImportRenderContext<'_>) -> ConcatSource {
     render_single_runtime_import(
       context,
@@ -43,7 +39,6 @@ impl RuntimeModeRenderer for RspackContextRuntimeRenderer {
     let should_render_runtime_context = context.runtime_requirements.intersects(
       RuntimeGlobals::MODULE_FACTORIES
         | RuntimeGlobals::MODULE_CACHE
-        | RuntimeGlobals::INTERCEPT_MODULE_EXECUTION
         | RuntimeGlobals::REQUIRE
         | RuntimeGlobals::REQUIRE_SCOPE
         | RuntimeGlobals::MODULE,

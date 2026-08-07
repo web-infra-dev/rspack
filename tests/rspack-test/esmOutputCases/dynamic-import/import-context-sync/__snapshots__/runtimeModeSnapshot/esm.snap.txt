@@ -1,0 +1,187 @@
+```mjs title=main.mjs
+import { hasOwnProperty } from "./runtime.mjs";
+var __cjs = (factory, module) => function __require() {
+	if (module === undefined) {
+		module = { exports: {} };
+		factory.call(module.exports, module, module.exports);
+	}
+	return module.exports;
+};
+var require_a = /*#__PURE__*/ __cjs(function(module, exports) {
+
+/*!**********************!*\
+  !*** ./modules/a.js ***!
+  \**********************/
+module.exports = { value: "a" };
+
+});
+
+var require_b = /*#__PURE__*/ __cjs(function(module, exports) {
+
+/*!**********************!*\
+  !*** ./modules/b.js ***!
+  \**********************/
+module.exports = { value: "b" };
+
+});
+
+var require_ = /*#__PURE__*/ __cjs(function(module, exports) {
+
+/*!********************************************!*\
+  !*** ./modules|eager|nonrecursive|/\.js$/ ***!
+  \********************************************/
+function __rspack_context_load(id) {
+  switch (id) {
+		case "./modules/a.js": return require_a();
+		case "./modules/b.js": return require_b();
+    default: throw new Error("Unknown context module '" + id + "'");
+  }
+}
+
+var map = {
+  "./a.js": "./modules/a.js",
+  "./b.js": "./modules/b.js"
+};
+
+
+
+function __rspack_async_context(req) {
+  return __rspack_async_context_resolve(req).then((id) => (__rspack_context_load(id)));
+}
+function __rspack_async_context_resolve(req) {
+  // Here Promise.resolve().then() is used instead of new Promise() to prevent
+  // uncaught exception popping up in devtools
+  return Promise.resolve().then(() => {
+if(!hasOwnProperty(map, req)) {
+  var e = new Error("Cannot find module '" + req + "'");
+  e.code = 'MODULE_NOT_FOUND';
+  throw e;
+}
+return map[req];
+});
+}
+__rspack_async_context.keys = () => (Object.keys(map));
+__rspack_async_context.resolve = __rspack_async_context_resolve;
+__rspack_async_context.id = "./modules eager \\.js$";
+module.exports = __rspack_async_context;
+
+});
+
+var require__js$ = /*#__PURE__*/ __cjs(function(module, exports) {
+
+/*!*******************************************!*\
+  !*** ./modules|sync|nonrecursive|/\.js$/ ***!
+  \*******************************************/
+function __rspack_context_load(id) {
+  switch (id) {
+		case "./modules/a.js": return require_a();
+		case "./modules/b.js": return require_b();
+    default: throw new Error("Unknown context module '" + id + "'");
+  }
+}
+
+var map = {
+  "./a.js": "./modules/a.js",
+  "./b.js": "./modules/b.js"
+};
+
+
+function __rspack_context_module(req) {
+  var id = __rspack_context_module_resolve(req);
+  return __rspack_context_load(id);
+}
+function __rspack_context_module_resolve(req) {
+  if(!hasOwnProperty(map, req)) {
+    var e = new Error("Cannot find module '" + req + "'");
+    e.code = 'MODULE_NOT_FOUND';
+    throw e;
+  }
+  return map[req];
+}
+__rspack_context_module.keys = () => (Object.keys(map));
+__rspack_context_module.resolve = __rspack_context_module_resolve;
+module.exports = __rspack_context_module;
+__rspack_context_module.id = "./modules sync \\.js$";
+
+});
+
+var require_modules_weak_nonrecursive__js$ = /*#__PURE__*/ __cjs(function(module, exports) {
+
+/*!*******************************************!*\
+  !*** ./modules|weak|nonrecursive|/\.js$/ ***!
+  \*******************************************/
+function __rspack_context_load(id) {
+  switch (id) {
+		case "./modules/a.js": return require_a();
+		case "./modules/b.js": return require_b();
+    default: throw new Error("Unknown context module '" + id + "'");
+  }
+}
+function __rspack_context_module_available(id) {
+  switch (id) {
+    case "./modules/a.js": case "./modules/b.js": return true;
+    default: return false;
+  }
+}
+
+var map = {
+  "./a.js": "./modules/a.js",
+  "./b.js": "./modules/b.js"
+};
+
+
+function __rspack_context_module(req) {
+  var id = __rspack_context_module_resolve(req);
+  if(!__rspack_context_module_available(id)) {
+    var e = new Error("Module '" + req + "' ('" + id + "') is not available (weak dependency)");
+    e.code = 'MODULE_NOT_FOUND';
+    throw e;
+  }
+  return __rspack_context_load(id);
+}
+function __rspack_context_module_resolve(req) {
+  if(!hasOwnProperty(map, req)) {
+    var e = new Error("Cannot find module '" + req + "'");
+    e.code = 'MODULE_NOT_FOUND';
+    throw e;
+  }
+  return map[req];
+}
+__rspack_context_module.keys = () => (Object.keys(map));
+__rspack_context_module.resolve = __rspack_context_module_resolve;
+__rspack_context_module.id = "./modules weak \\.js$";
+module.exports = __rspack_context_module;
+
+});
+
+// ./index.js
+const index_context = require__js$();
+const eagerContext = require_();
+const weakContext = require_modules_weak_nonrecursive__js$();
+
+it("should link a synchronous context through local initializers", () => {
+	expect(index_context.keys().sort()).toEqual(["./a.js", "./b.js"]);
+	expect(index_context.resolve("./a.js")).toContain("./modules/a.js");
+	expect(index_context("./a.js").value).toBe("a");
+	expect(index_context("./b.js").value).toBe("b");
+});
+
+it("should preserve resolve semantics for eager and weak contexts", async () => {
+	expect(await eagerContext.resolve("./a.js")).toContain("./modules/a.js");
+	expect((await eagerContext("./a.js")).value).toBe("a");
+	expect(weakContext.resolve("./b.js")).toContain("./modules/b.js");
+	expect(weakContext("./b.js").value).toBe("b");
+});
+
+export {};
+
+```
+
+```mjs title=runtime.mjs
+
+// rspack/runtime/has_own_property
+var hasOwnProperty = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop));
+export { hasOwnProperty };
+
+
+```

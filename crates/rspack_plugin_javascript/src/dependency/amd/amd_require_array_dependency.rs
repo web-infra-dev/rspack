@@ -5,8 +5,7 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AffectType, AsContextDependency, AsModuleDependency, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
-  DependencyTemplateType, DependencyType, ModuleDependency, RuntimeGlobals, TemplateContext,
-  TemplateReplaceSource,
+  DependencyTemplateType, DependencyType, ModuleDependency, TemplateContext, TemplateReplaceSource,
 };
 
 use super::amd_require_item_dependency::AMDRequireItemDependency;
@@ -80,7 +79,7 @@ impl AMDRequireArrayDependency {
     match dep {
       AMDRequireArrayItem::Require => code_generatable_context
         .runtime_template
-        .render_runtime_globals(&RuntimeGlobals::REQUIRE)
+        .render_compatibility_require()
         .into(),
       AMDRequireArrayItem::String(name) => name.into(),
       AMDRequireArrayItem::LocalModuleDependency {
@@ -92,15 +91,45 @@ impl AMDRequireArrayDependency {
           .dependency_by_id(dep_id)
           .downcast_ref::<AMDRequireItemDependency>()
           .expect("should have AMDRequireItemDependency");
-        code_generatable_context
-          .runtime_template
-          .module_raw(
-            code_generatable_context.compilation,
-            dep_id,
-            dep.request(),
-            dep.weak(),
-          )
-          .into()
+        if code_generatable_context.is_modern_module_output() {
+          let kind = if dep.weak() {
+            rspack_core::CodeGenerationModuleReferenceKind::WeakValue
+          } else {
+            rspack_core::CodeGenerationModuleReferenceKind::Value
+          };
+          let value = code_generatable_context
+            .create_module_relocation(*dep_id, kind)
+            .map_or_else(
+              || {
+                code_generatable_context
+                  .runtime_template
+                  .missing_module(dep.request())
+              },
+              |reference| {
+                if dep.weak() {
+                  format!(
+                    "(({reference}) || {})()",
+                    code_generatable_context
+                      .runtime_template
+                      .weak_error_function(dep.request())
+                  )
+                } else {
+                  reference
+                }
+              },
+            );
+          Cow::Owned(value)
+        } else {
+          code_generatable_context
+            .runtime_template
+            .module_raw(
+              code_generatable_context.compilation,
+              dep_id,
+              dep.request(),
+              dep.weak(),
+            )
+            .into()
+        }
       }
     }
   }

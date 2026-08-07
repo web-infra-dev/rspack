@@ -1,18 +1,22 @@
 ```mjs title=main.mjs
-import { rspackRequire, moduleFactories } from "./runtime.mjs";
 import { createRequire as __rspack_createRequire } from "node:module";
 const __rspack_createRequire_require = __rspack_createRequire(import.meta.url);
-moduleFactories.add({
-"./defined-context/dependency.cjs"
+var __cjs = (factory, module) => function __require() {
+	if (module === undefined) {
+		module = { exports: {} };
+		factory.call(module.exports, module, module.exports);
+	}
+	return module.exports;
+};
+var require_dependency = /*#__PURE__*/ __cjs(function(module, exports) {
+
 /*!****************************************!*\
   !*** ./defined-context/dependency.cjs ***!
   \****************************************/
-(module) {
 module.exports = "defined context";
 
-
-},
 });
+
 // node:module
 const external_node_module_namespaceObject = __rspack_createRequire_require("node:module");
 // ./mixed.js
@@ -20,7 +24,7 @@ const external_node_module_namespaceObject = __rspack_createRequire_require("nod
 
 const req = (0,external_node_module_namespaceObject.createRequire)("<ROOT>/tests/rspack-test/esmOutputCases/create-require/import-meta-url-define/defined-context/index.js");
 
-const bundledValue = rspackRequire(/*! ./dependency.cjs */ "./defined-context/dependency.cjs");
+const bundledValue = require_dependency();
 const unknownValue = req.unknown;
 
 // ./index.js
@@ -36,39 +40,5 @@ it("should align parsed require context with the preserved DefinePlugin argument
 });
 
 export {};
-
-```
-
-```mjs title=runtime.mjs
-
-var modules = {};
-// The module cache
-var moduleCache = {};
-// The require function
-function rspackRequire(moduleId) {
-// Check if module is in cache
-var cachedModule = moduleCache[moduleId];
-if (cachedModule !== undefined) {
-return cachedModule.exports;
-}
-// Create a new module (and put it into the cache)
-var module = (moduleCache[moduleId] = {
-exports: {}
-});
-// Execute the module function
-modules[moduleId](module, module.exports, rspackRequire);
-
-// Return the exports of the module
-return module.exports;
-}
-export { rspackRequire };
-// expose the modules object (modules)
-var moduleFactories = modules;
-export { moduleFactories };
-
-// rspack/runtime/esm_register_module
-moduleFactories.add = function registerModules(modules) { Object.assign(moduleFactories, modules) }
-;
-
 
 ```

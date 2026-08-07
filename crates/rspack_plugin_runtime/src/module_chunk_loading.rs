@@ -7,23 +7,12 @@ use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 
 use crate::{
+  is_modern_module_library_chunk,
   runtime_module::{
     ExportRequireRuntimeModule, ModuleChunkLoadingRuntimeModule, is_enabled_for_chunk,
   },
   should_export_webpack_require_for_module_chunk_loading,
 };
-
-fn is_modern_module_library_chunk(chunk_ukey: &ChunkUkey, compilation: &Compilation) -> bool {
-  let chunk = compilation
-    .build_chunk_graph_artifact
-    .chunk_by_ukey
-    .expect_get(chunk_ukey);
-  chunk
-    .get_entry_options(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
-    .and_then(|options| options.library.as_ref())
-    .or(compilation.options.output.library.as_ref())
-    .is_some_and(|library| library.library_type == "modern-module")
-}
 
 #[plugin]
 #[derive(Debug, Default)]
@@ -37,7 +26,9 @@ async fn additional_tree_runtime_requirements(
   runtime_requirements: &mut RuntimeGlobals,
   _additional_runtime_modules: &mut Vec<Box<dyn RuntimeModule>>,
 ) -> Result<()> {
-  if should_export_webpack_require_for_module_chunk_loading(chunk_ukey, compilation) {
+  if !is_modern_module_library_chunk(chunk_ukey, compilation)
+    && should_export_webpack_require_for_module_chunk_loading(chunk_ukey, compilation)
+  {
     runtime_requirements.insert(RuntimeGlobals::ASYNC_STARTUP);
   }
   Ok(())
@@ -72,7 +63,8 @@ async fn runtime_requirements_in_tree(
   // ESM library chunks are self-registering modules loaded by
   // rspack_plugin_esm_library. The generic module chunk loader expects
   // import() to return installChunk data, so it must not attach the JS handler.
-  let omit_on_demand_loading = is_modern_module_library_chunk(chunk_ukey, compilation)
+  let is_modern_module = is_modern_module_library_chunk(chunk_ukey, compilation);
+  let omit_on_demand_loading = is_modern_module
     && runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
     && !(runtime_requirements.contains(RuntimeGlobals::EXTERNAL_INSTALL_CHUNK)
       || should_export_webpack_require);
@@ -96,7 +88,9 @@ async fn runtime_requirements_in_tree(
   {
     runtime_modules_to_add.push((
       *chunk_ukey,
-      if omit_on_demand_loading {
+      if is_modern_module {
+        ModuleChunkLoadingRuntimeModule::for_modern_module(&compilation.runtime_template).boxed()
+      } else if omit_on_demand_loading {
         ModuleChunkLoadingRuntimeModule::without_on_demand_loading(&compilation.runtime_template)
           .boxed()
       } else {
@@ -116,9 +110,10 @@ async fn runtime_requirements_in_tree(
     return Ok(None);
   }
 
-  if all_runtime_requirements.contains(RuntimeGlobals::EXTERNAL_INSTALL_CHUNK)
-    || (all_runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
-      && !omit_on_demand_loading)
+  if !is_modern_module
+    && (all_runtime_requirements.contains(RuntimeGlobals::EXTERNAL_INSTALL_CHUNK)
+      || (all_runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
+        && !omit_on_demand_loading))
   {
     runtime_requirements_mut
       .extend(ModuleChunkLoadingRuntimeModule::get_runtime_requirements_basic());
@@ -137,7 +132,9 @@ async fn runtime_requirements_in_tree(
         .extend(ModuleChunkLoadingRuntimeModule::get_runtime_requirements_with_preload());
     }
   }
-  if all_runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS) {
+  if !is_modern_module
+    && all_runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS)
+  {
     runtime_requirements_mut
       .extend(ModuleChunkLoadingRuntimeModule::get_runtime_requirements_with_hmr());
     if compilation.options.experiments.runtime_mode
@@ -146,7 +143,7 @@ async fn runtime_requirements_in_tree(
       runtime_requirements_mut.insert(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
     }
   }
-  if all_runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_MANIFEST) {
+  if !is_modern_module && all_runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_MANIFEST) {
     runtime_requirements_mut
       .extend(ModuleChunkLoadingRuntimeModule::get_runtime_requirements_with_hmr_manifest());
   }

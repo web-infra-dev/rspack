@@ -13,10 +13,13 @@ module.exports = {
 
 		if (globalThis.__RSPACK_TEST_RUNTIME_MODE_RSPACK) {
 			expect(source).toContain(
-				"createFakeNamespaceObject.call(rspackRequire, id, 7 | 16)",
+				"Promise.resolve(__rspack_context_load(id)).then(value => createFakeNamespaceObject(value, (7) & ~1))",
 			);
 		} else {
-			expect(source).toContain("__webpack_require__.t(id, 7 | 16)");
+			expect(source).toContain(
+				"Promise.resolve(__rspack_context_load(id)).then(value => __webpack_require__.t(value, (7) & ~1))",
+			);
 		}
+		expect(source).not.toMatch(/(?:__webpack_require__|rspackRequire)\([^.)]/);
 	},
 };

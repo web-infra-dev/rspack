@@ -12,15 +12,15 @@ module.exports = {
 		);
 
 		if (globalThis.__RSPACK_TEST_RUNTIME_MODE_RSPACK) {
-			expect(source).toContain(
-				"createFakeNamespaceObject.call(rspackRequire,",
-			);
-			expect(source).toContain(
-				"createFakeNamespaceObject.call(rspackRequire, /*require.resolve*/(",
-			);
+			expect(source).toContain("createFakeNamespaceObject(m, 22)");
+			expect(source).toContain("createFakeNamespaceObject(((() => require_value())");
 		} else {
-			expect(source).toContain("__webpack_require__.t(");
-			expect(source).not.toContain("__webpack_require__.t.call(");
+			expect(source).toContain("__webpack_require__.t(m, 22)");
+			expect(source).toContain("__webpack_require__.t(((() => require_value())");
 		}
+		expect(source).toContain("(1) & ~1");
+		expect(source).not.toContain(".call(rspackRequire");
+		expect(source).not.toContain("moduleFactories");
+		expect(source).not.toContain("__webpack_require__.m[");
 	},
 };

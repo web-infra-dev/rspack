@@ -1,0 +1,92 @@
+```mjs title=main.mjs
+// ./index.js
+it('should skip namespace when tree-shaking removes one side of a conflict', async () => {
+	// Both modules export `value`, but only a.value is used.
+	// b.value is tree-shaken, so the conflict disappears.
+	const { value, foo } = await import("./shared.mjs").then(m => (m.a_init(), m.a_namespaceObject))
+	const { bar } = await import("./shared.mjs").then(m => (m.b_init(), m.b_namespaceObject))
+
+	expect(value).toBe(1)
+	expect(foo).toBe('a-foo')
+	expect(bar).toBe('b-bar')
+})
+
+export {};
+
+```
+
+```mjs title=runtime.mjs
+
+// rspack/runtime/define_property_getters
+var definePropertyGetters = (exports, getters, values) => {
+	var define = (defs, kind) => {
+		for(var key in defs) {
+			if(hasOwnProperty(defs, key) && !hasOwnProperty(exports, key)) {
+				Object.defineProperty(exports, key, { enumerable: true, [kind]: defs[key] });
+			}
+		}
+	};
+	define(getters, "get");
+	define(values, "value");
+};;
+export { definePropertyGetters };
+// rspack/runtime/has_own_property
+var hasOwnProperty = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop));
+// rspack/runtime/make_namespace_object
+// define __esModule on exports
+var makeNamespaceObject = (exports) => {
+	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+	}
+	Object.defineProperty(exports, '__esModule', { value: true });
+};;
+export { makeNamespaceObject };
+
+
+```
+
+```mjs title=shared.mjs
+import { definePropertyGetters, makeNamespaceObject } from "./runtime.mjs";
+var __esm = (fn, result) => function __init() {
+	if (fn) {
+		var value = fn(fn = 0);
+		result = value && typeof value.then === "function" ? value.then(value => result = value) : value;
+	}
+	return result;
+};
+// NAMESPACE OBJECT: ./a.js
+var a_namespaceObject = {};
+makeNamespaceObject(a_namespaceObject);
+definePropertyGetters(a_namespaceObject, {
+  foo: () => (foo),
+  value: () => (value)
+});
+
+
+// NAMESPACE OBJECT: ./b.js
+var b_namespaceObject = {};
+makeNamespaceObject(b_namespaceObject);
+definePropertyGetters(b_namespaceObject, {
+  bar: () => (bar)
+});
+
+
+// ./a.js
+var value, foo;
+var a_init = /*#__PURE__*/ __esm(() => {
+( value = 1);;
+( foo = 'a-foo');;
+
+});
+
+// ./b.js
+var b_value, bar;
+var b_init = /*#__PURE__*/ __esm(() => {
+( b_value = 2);;
+( bar = 'b-bar');;
+
+});
+
+export { a_init, a_namespaceObject, b_init, b_namespaceObject, bar, foo, value };
+
+```

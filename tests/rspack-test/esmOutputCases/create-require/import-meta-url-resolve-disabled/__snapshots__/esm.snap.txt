@@ -1,22 +1,25 @@
 ```mjs title=main.mjs
-import { __webpack_require__ } from "./runtime.mjs";
-
 import {fileURLToPath as __rspack_fileURLToPath} from "node:url";
 import {dirname as __rspack_dirname} from "node:path";
 var __rspack_import_meta_dirname__ = __rspack_dirname(__rspack_fileURLToPath(import.meta.url));
 import { createRequire as __rspack_createRequire } from "node:module";
 const __rspack_createRequire_require = __rspack_createRequire(import.meta.url);
-__webpack_require__.add({
-"./dep.js"
+var __cjs = (factory, module) => function __require() {
+	if (module === undefined) {
+		module = { exports: {} };
+		factory.call(module.exports, module, module.exports);
+	}
+	return module.exports;
+};
+var require_dep = /*#__PURE__*/ __cjs(function(module, exports) {
+
 /*!****************!*\
   !*** ./dep.js ***!
   \****************/
-(module) {
 module.exports = "dep";
 
-
-},
 });
+
 // node:module
 const external_node_module_namespaceObject = __rspack_createRequire_require("node:module");
 // ./only-require.js
@@ -24,7 +27,7 @@ const external_node_module_namespaceObject = __rspack_createRequire_require("nod
 
 const req = /* createRequire() */ undefined;
 
-const bundledValue = __webpack_require__(/*! ./dep.js */ "./dep.js");
+const bundledValue = require_dep();
 
 // ./preserve-import-meta.js
 
@@ -58,40 +61,5 @@ it("should delegate import.meta.url parsing when requireResolve is disabled", as
 });
 
 export { resolved };
-
-```
-
-```mjs title=runtime.mjs
-
-var __webpack_modules__ = {};
-// The module cache
-var __webpack_module_cache__ = {};
-// The require function
-function __webpack_require__(moduleId) {
-// Check if module is in cache
-var cachedModule = __webpack_module_cache__[moduleId];
-if (cachedModule !== undefined) {
-return cachedModule.exports;
-}
-// Create a new module (and put it into the cache)
-var module = (__webpack_module_cache__[moduleId] = {
-exports: {}
-});
-// Execute the module function
-__webpack_modules__[moduleId](module, module.exports, __webpack_require__);
-
-// Return the exports of the module
-return module.exports;
-}
-// expose the modules object (__webpack_modules__)
-__webpack_require__.m = __webpack_modules__;
-
-// webpack/runtime/esm_register_module
-(() => {
-__webpack_require__.add = function registerModules(modules) { Object.assign(__webpack_require__.m, modules) }
-
-})();
-
-export { __webpack_require__ };
 
 ```

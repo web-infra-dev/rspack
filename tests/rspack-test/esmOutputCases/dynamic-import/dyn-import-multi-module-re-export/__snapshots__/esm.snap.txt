@@ -1,21 +1,61 @@
 ```mjs title=ab-chunk.mjs
+import { __webpack_require__ } from "./runtime.mjs";
+import { readFile as readFile_0 } from "fs";
+import { join as join_0 } from "path";
+
+var __esm = (fn, result) => function __init() {
+	if (fn) {
+		var value = fn(fn = 0);
+		result = value && typeof value.then === "function" ? value.then(value => result = value) : value;
+	}
+	return result;
+};
+// NAMESPACE OBJECT: ./a.js
+var a_namespaceObject = {};
+__webpack_require__.r(a_namespaceObject);
+__webpack_require__.d(a_namespaceObject, {
+  readFile: () => (readFile_0),
+  value: () => ((/* inlined export .value */42))
+});
+
+
+// NAMESPACE OBJECT: ./b.js
+var b_namespaceObject = {};
+__webpack_require__.r(b_namespaceObject);
+__webpack_require__.d(b_namespaceObject, {
+  helper: () => (helper),
+  join: () => (join_0)
+});
+
+
 // fs
 
 // ./a.js
+var a_init = /*#__PURE__*/ __esm(() => {
 
 
+
+});
 
 // ./shared.js
-const value = 42
-const helper = () => 1
+var value, helper;
+var shared_init = /*#__PURE__*/ __esm(() => {
+( value = 42);
+( helper = () => 1);
+
+});
 
 // path
 
 // ./b.js
+var b_init = /*#__PURE__*/ __esm(() => {
+	shared_init();
 
 
 
-export { helper, value };
+});
+
+export { a_init, a_namespaceObject, b_init, b_namespaceObject, helper, shared_init, value };
 export { readFile } from "fs";
 export { join } from "path";
 
@@ -28,15 +68,52 @@ export { join } from "path";
 it('should dynamically import modules from multi-module chunk with mixed re-exports', async () => {
 	expect((/* inlined export .value */42)).toBe(42)
 
-	const modA = await import("./ab-chunk.mjs")
+	const modA = await import("./ab-chunk.mjs").then(m => (m.a_init(), m.a_namespaceObject))
 	expect(modA.value).toBe(42)
 	expect(modA.readFile).toBeDefined()
 
-	const modB = await import("./ab-chunk.mjs")
+	const modB = await import("./ab-chunk.mjs").then(m => (m.b_init(), m.b_namespaceObject))
 	expect(modB.helper()).toBe(1)
 	expect(modB.join).toBeDefined()
 })
 
 export {};
+
+```
+
+```mjs title=runtime.mjs
+// The require scope
+var __webpack_require__ = {};
+
+// webpack/runtime/define_property_getters
+(() => {
+__webpack_require__.d = (exports, getters, values) => {
+	var define = (defs, kind) => {
+		for(var key in defs) {
+			if(__webpack_require__.o(defs, key) && !__webpack_require__.o(exports, key)) {
+				Object.defineProperty(exports, key, { enumerable: true, [kind]: defs[key] });
+			}
+		}
+	};
+	define(getters, "get");
+	define(values, "value");
+};
+})();
+// webpack/runtime/has_own_property
+(() => {
+__webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
+})();
+// webpack/runtime/make_namespace_object
+(() => {
+// define __esModule on exports
+__webpack_require__.r = (exports) => {
+	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+	}
+	Object.defineProperty(exports, '__esModule', { value: true });
+};
+})();
+
+export { __webpack_require__ };
 
 ```

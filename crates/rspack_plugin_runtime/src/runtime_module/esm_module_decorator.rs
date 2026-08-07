@@ -5,11 +5,13 @@ use rspack_core::{
 
 #[impl_runtime_module]
 #[derive(Debug)]
-pub struct ESMModuleDecoratorRuntimeModule {}
+pub struct ESMModuleDecoratorRuntimeModule {
+  include_module_id: bool,
+}
 
 impl ESMModuleDecoratorRuntimeModule {
-  pub fn new(runtime_template: &RuntimeTemplate) -> Self {
-    Self::with_default(runtime_template)
+  pub fn new(runtime_template: &RuntimeTemplate, include_module_id: bool) -> Self {
+    Self::with_default(runtime_template, include_module_id)
   }
 }
 
@@ -40,7 +42,21 @@ impl RuntimeModule for ESMModuleDecoratorRuntimeModule {
     &self,
     context: &RuntimeModuleGenerateContext<'_>,
   ) -> rspack_error::Result<String> {
-    let source = context.runtime_template.render(self.id(), None)?;
+    let assignment_error = if self.include_module_id {
+      format!(
+        "'ES Modules may not assign module.exports or exports.*, Use ESM export syntax, instead: ' + {}",
+        context
+          .runtime_template
+          .render_runtime_globals(&RuntimeGlobals::MODULE_ID)
+      )
+    } else {
+      "'ES Modules may not assign module.exports or exports.*, Use ESM export syntax instead.'"
+        .to_string()
+    };
+    let source = context.runtime_template.render(
+      self.id(),
+      Some(serde_json::json!({ "_assignment_error": assignment_error })),
+    )?;
 
     Ok(source)
   }

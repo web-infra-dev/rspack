@@ -1,13 +1,14 @@
 ```mjs title=main.mjs
-import { rspackRequire, definePropertyGetters, makeNamespaceObject } from "./runtime.mjs";
+import { definePropertyGetters, makeNamespaceObject } from "./runtime.mjs";
 import * as __rspack_external_fs from "fs";
 
 // NAMESPACE OBJECT: ./reexport-external.js
 var reexport_external_namespaceObject = {};
 makeNamespaceObject(reexport_external_namespaceObject);
-definePropertyGetters(reexport_external_namespaceObject, { 
+definePropertyGetters(reexport_external_namespaceObject, {
   marker: () => (marker),
-  readFile: () => (readFile) });
+  readFile: () => (readFile)
+});
 var reexport_external_namespaceObject_starExports = __rspack_external_fs;
 Object.keys(reexport_external_namespaceObject_starExports).forEach(function(key) {
   if (key !== "default" && key !== "__esModule") {
@@ -40,9 +41,6 @@ export { reexport_external_namespaceObject as fsNs };
 ```
 
 ```mjs title=runtime.mjs
-// The require scope
-var rspackRequire = {};
-export { rspackRequire };
 
 // rspack/runtime/define_property_getters
 var definePropertyGetters = (exports, getters, values) => {

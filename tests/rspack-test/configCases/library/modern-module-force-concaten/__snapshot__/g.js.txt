@@ -1,17 +1,21 @@
 import { __webpack_require__ } from "./runtime~0.js";
-
-__webpack_require__.add({
-547(module) {
+var __cjs = (factory, module) => function __require() {
+	if (module === undefined) {
+		module = { exports: {} };
+		factory.call(module.exports, module, module.exports);
+	}
+	return module.exports;
+};
+var require_foo = /*#__PURE__*/ __cjs(function(module, exports) {
 module.exports = 'foo'
 
-
-},
 });
-const foo = __webpack_require__("547");
-var foo_default = /*#__PURE__*/__webpack_require__.n(foo);
-var foo_default_0 = foo_default();
+
+const foo_0 = require_foo();
+var foo_0_default = /*#__PURE__*/__webpack_require__.n(foo_0);
+var foo_0_default_0 = foo_0_default();
 
 
 
 
-export { foo_default_0 as foo };
+export { foo_0_default_0 as foo };

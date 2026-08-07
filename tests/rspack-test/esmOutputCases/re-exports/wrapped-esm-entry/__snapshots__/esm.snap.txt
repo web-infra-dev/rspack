@@ -1,15 +1,21 @@
 ```mjs title=main.mjs
 import { __webpack_require__ } from "./runtime.mjs";
-
 import * as __rspack_external_fs from "fs";
-__webpack_require__.add({
-"./index.js"
+
+var __cjs = (factory, module) => function __require() {
+	if (module === undefined) {
+		module = { exports: {} };
+		factory.call(module.exports, module, module.exports);
+	}
+	return module.exports;
+};
+var require_index = /*#__PURE__*/ __cjs(function(module, __webpack_exports__) {
+
 /*!******************!*\
   !*** ./index.js ***!
   \******************/
-(module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
-/* import */ var fs__rspack_import_0 = __webpack_require__(/*! fs */ "fs");
+/* import */ var fs__rspack_import_0 = __rspack_external_fs;
 
 /* reexport */ var __rspack_reexport = {};
 /* reexport */ for( const __rspack_import_key in fs__rspack_import_0) if(["r","named","default","fs","starExports","readFile"].indexOf(__rspack_import_key) < 0) __rspack_reexport[__rspack_import_key] =() => fs__rspack_import_0[__rspack_import_key]
@@ -46,25 +52,16 @@ __webpack_require__.d(__webpack_exports__, {
   starExports: () => (/* reexport safe */ (/* inlined export _lib2__rspack_import_2 */42))
 });
 
-
-},
-"fs"
-/*!*********************!*\
-  !*** external "fs" ***!
-  \*********************/
-(module) {
-
-module.exports = __rspack_external_fs;
-
-
-},
 });
-const index = __webpack_require__("./index.js");
-var fs = index.fs;
-var named = index.named;
-var r = index.r;
-var readFile = index.readFile;
-var starExports = index.starExports;
+
+// fs
+
+const index_0 = require_index();
+var fs = index_0.fs;
+var named = index_0.named;
+var r = index_0.r;
+var readFile = index_0.readFile;
+var starExports = index_0.starExports;
 
 export { fs, named, r, readFile, starExports };
 export * from "fs";
@@ -72,30 +69,8 @@ export * from "fs";
 ```
 
 ```mjs title=runtime.mjs
-
-var __webpack_modules__ = {};
-// The module cache
-var __webpack_module_cache__ = {};
-// The require function
-function __webpack_require__(moduleId) {
-// Check if module is in cache
-var cachedModule = __webpack_module_cache__[moduleId];
-if (cachedModule !== undefined) {
-return cachedModule.exports;
-}
-// Create a new module (and put it into the cache)
-var module = (__webpack_module_cache__[moduleId] = {
-id: moduleId,
-exports: {}
-});
-// Execute the module function
-__webpack_modules__[moduleId](module, module.exports, __webpack_require__);
-
-// Return the exports of the module
-return module.exports;
-}
-// expose the modules object (__webpack_modules__)
-__webpack_require__.m = __webpack_modules__;
+// The require scope
+var __webpack_require__ = {};
 
 // webpack/runtime/define_property_getters
 (() => {
@@ -119,15 +94,11 @@ __webpack_require__.hmd = (module) => {
   Object.defineProperty(module, 'exports', {
       enumerable: true,
       set: () => {
-          throw new Error('ES Modules may not assign module.exports or exports.*, Use ESM export syntax, instead: ' + module.id);
+          throw new Error('ES Modules may not assign module.exports or exports.*, Use ESM export syntax instead.');
       }
   });
   return module;
 };
-})();
-// webpack/runtime/esm_register_module
-(() => {
-__webpack_require__.add = function registerModules(modules) { Object.assign(__webpack_require__.m, modules) }
 
 })();
 // webpack/runtime/has_own_property

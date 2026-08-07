@@ -160,6 +160,16 @@ impl DependencyTemplate for ProvideDependencyTemplate {
       .downcast_ref::<ProvideDependency>()
       .expect("ProvideDependencyTemplate should only be used for ProvideDependency");
 
+    let module_reference = code_generatable_context
+      .is_modern_module_output()
+      .then(|| {
+        code_generatable_context.create_module_relocation(
+          dep.id,
+          rspack_core::CodeGenerationModuleReferenceKind::Value,
+        )
+      })
+      .flatten();
+
     let TemplateContext {
       compilation,
       runtime,
@@ -178,7 +188,9 @@ impl DependencyTemplate for ProvideDependencyTemplate {
       .get_exports_info_data(con.module_identifier());
     let used_name =
       exports_info.get_used_name(&compilation.exports_info_artifact, *runtime, &dep.ids);
-    let module_raw = runtime_template.module_raw(compilation, dep.id(), dep.request(), dep.weak());
+    let module_raw = module_reference.unwrap_or_else(|| {
+      runtime_template.module_raw(compilation, dep.id(), dep.request(), dep.weak())
+    });
     let provided_expr = match used_name {
       Some(UsedName::Normal(used_name)) => format!("{module_raw}{}", property_access(used_name, 0)),
       Some(UsedName::Inlined(inlined)) => format!(

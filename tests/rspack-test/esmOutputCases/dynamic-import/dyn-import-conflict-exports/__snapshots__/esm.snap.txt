@@ -1,33 +1,52 @@
 ```mjs title=ab-chunk.mjs
 import { __webpack_require__ } from "./runtime.mjs";
+var __esm = (fn, result) => function __init() {
+	if (fn) {
+		var value = fn(fn = 0);
+		result = value && typeof value.then === "function" ? value.then(value => result = value) : value;
+	}
+	return result;
+};
 // NAMESPACE OBJECT: ./a.js
 var a_namespaceObject = {};
 __webpack_require__.r(a_namespaceObject);
-__webpack_require__.d(a_namespaceObject, { 
-  value: () => (value) });
+__webpack_require__.d(a_namespaceObject, {
+  value: () => (value)
+});
 
 
 // NAMESPACE OBJECT: ./b.js
 var b_namespaceObject = {};
 __webpack_require__.r(b_namespaceObject);
-__webpack_require__.d(b_namespaceObject, { 
-  value: () => (b_value) });
+__webpack_require__.d(b_namespaceObject, {
+  value: () => (b_value)
+});
 
 
 // ./a.js
-const value = 1
+var value;
+var a_init = /*#__PURE__*/ __esm(() => {
+( value = 1);
+
+});
 
 // ./b.js
-const b_value = 2
+var b_value;
+var b_init = /*#__PURE__*/ __esm(() => {
+( b_value = 2);
 
-export { a_namespaceObject, b_namespaceObject, b_value, value };
+});
+
+export { a_init, a_namespaceObject, b_init, b_namespaceObject, b_value, value };
 
 ```
 
 ```mjs title=main.mjs
-import { value, b_value } from "./ab-chunk.mjs";
+import { a_init, b_init, value, b_value } from "./ab-chunk.mjs";
 
 // ./index.js
+	a_init();
+	b_init();
 
 
 
@@ -35,8 +54,8 @@ it('should handle conflicting exports from multi-module chunk', async () => {
 	expect(value).toBe(1)
 	expect(b_value).toBe(2)
 
-	const modA = await import("./ab-chunk.mjs").then(m => m.a_namespaceObject)
-	const modB = await import("./ab-chunk.mjs").then(m => m.b_namespaceObject)
+	const modA = await import("./ab-chunk.mjs").then(m => (m.a_init(), m.a_namespaceObject))
+	const modB = await import("./ab-chunk.mjs").then(m => (m.b_init(), m.b_namespaceObject))
 
 	expect(modA.value).toBe(1)
 	expect(modB.value).toBe(2)

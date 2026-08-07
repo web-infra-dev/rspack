@@ -7,8 +7,9 @@ use rspack_sources::ReplaceSource;
 use rspack_util::ext::AsAny;
 
 use crate::{
-  ChunkInitFragments, CodeGenerationData, Compilation, ConcatenationScope, DependencyType, Module,
-  ModuleCodeTemplate, ModuleInitFragments, RuntimeSpec,
+  ChunkInitFragments, CodeGenerationData, CodeGenerationModuleReferenceKind,
+  CodeGenerationModuleReferences, Compilation, ConcatenationScope, DependencyId, DependencyType,
+  Module, ModuleCodeTemplate, ModuleInitFragments, RuntimeSpec,
 };
 
 pub struct TemplateContext<'a, 'b, 'c> {
@@ -36,6 +37,46 @@ impl TemplateContext<'_, '_, '_> {
         .get_mut::<ChunkInitFragments>()
         .expect("should have chunk_init_fragments")
     }
+  }
+
+  pub fn is_modern_module_output(&self) -> bool {
+    self.runtime_template.supports_module_relocations()
+  }
+
+  pub fn create_module_relocation(
+    &mut self,
+    dependency: DependencyId,
+    kind: CodeGenerationModuleReferenceKind,
+  ) -> Option<String> {
+    let module = *self
+      .compilation
+      .get_module_graph()
+      .module_identifier_by_dependency_id(&dependency)?;
+    if !self.data.contains::<CodeGenerationModuleReferences>() {
+      self.data.insert(CodeGenerationModuleReferences::default());
+    }
+    Some(
+      self
+        .data
+        .get_mut::<CodeGenerationModuleReferences>()
+        .expect("module references were just inserted")
+        .add(module, kind),
+    )
+  }
+
+  pub fn create_module_relocation_for_module(
+    &mut self,
+    module: crate::ModuleIdentifier,
+    kind: CodeGenerationModuleReferenceKind,
+  ) -> String {
+    if !self.data.contains::<CodeGenerationModuleReferences>() {
+      self.data.insert(CodeGenerationModuleReferences::default());
+    }
+    self
+      .data
+      .get_mut::<CodeGenerationModuleReferences>()
+      .expect("module references were just inserted")
+      .add(module, kind)
   }
 }
 

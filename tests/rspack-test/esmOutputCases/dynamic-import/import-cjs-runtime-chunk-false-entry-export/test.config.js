@@ -14,15 +14,17 @@ module.exports = {
 		const dynamic = readAsset("dynamic.mjs");
 
 		expect(dynamic).not.toContain("__rspack_context");
-		expect(dynamic).toContain("moduleFactories.add");
-		expect(dynamic).toContain('rspackRequire(/*! ./shared */ "./shared.js")');
-		expect(dynamic).toContain("compatGetDefaultExport(dynamic)");
+		expect(dynamic).not.toContain("moduleFactories");
+		expect(dynamic).not.toContain("rspackRequire(");
+		expect(dynamic).toContain("require_shared()");
+		expect(dynamic).toContain("compatGetDefaultExport(dynamic_0)");
 
 		expect(entry).not.toContain("export { __rspack_context");
-		expect(entry).toContain("var modules = {};");
-		expect(entry).toContain("function rspackRequire(moduleId)");
+		expect(entry).not.toContain("moduleFactories");
+		expect(entry).not.toContain("function rspackRequire(moduleId)");
+		expect(entry).toContain("require_shared");
 		expect(entry).toContain(
-			'createFakeNamespaceObject.bind(rspackRequire, /*! ./dynamic */ "./dynamic.js", 19)'
+			'import("./dynamic.mjs").then(m => m.require_dynamic())'
 		);
 	}
 };

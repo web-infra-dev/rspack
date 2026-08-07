@@ -19,12 +19,25 @@ use rustc_hash::FxHashSet as HashSet;
 
 use crate::runtime_module::is_enabled_for_chunk;
 
+pub fn is_modern_module_library_chunk(chunk_ukey: &ChunkUkey, compilation: &Compilation) -> bool {
+  let chunk = compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .expect_get(chunk_ukey);
+  chunk
+    .get_entry_options(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
+    .and_then(|options| options.library.as_ref())
+    .or(compilation.options.output.library.as_ref())
+    .is_some_and(|library| library.library_type == "modern-module")
+}
+
 pub fn should_export_webpack_require_for_module_chunk_loading(
   chunk_ukey: &ChunkUkey,
   compilation: &Compilation,
 ) -> bool {
   let chunk_loading = ChunkLoading::Enable(ChunkLoadingType::Import);
-  is_enabled_for_chunk(chunk_ukey, &chunk_loading, compilation)
+  !is_modern_module_library_chunk(chunk_ukey, compilation)
+    && is_enabled_for_chunk(chunk_ukey, &chunk_loading, compilation)
     && compilation
       .build_chunk_graph_artifact
       .chunk_graph
