@@ -1,6 +1,5 @@
 aarch
 absolutify
-accum
 ahabhgk
 Akait
 alexander-akait
@@ -63,7 +62,6 @@ fetchcompileasyncwasmplugin
 fi3ework
 fnames
 funs
-gdump
 gengkun
 Hana
 HerringtonDarkholme
@@ -79,14 +77,9 @@ innovatively
 inottn
 intellild
 intlify
-inuse
 IWANABETHATGUY
 jantimon
 JavaScript
-jemalloc
-JEMALLOC
-jemallocator
-jeprof
 jerrykingxyz
 Jiahan
 jkzing
@@ -159,6 +152,8 @@ perfetto
 Peschke
 pftrace
 pmmmwh
+powerpc64le
+ppc64
 proxied
 proxying
 px2rem
@@ -169,8 +164,6 @@ recognise
 resolvepnp
 riscv
 riscv64gc
-rjem
-RJEM
 Rollup
 rome
 rsbuild
@@ -189,10 +182,10 @@ ruleoneof
 ruleparserdataurlcondition
 Rust
 rustup
+s390x
 samply
 samsung
 sanyuan
-SFTRACE
 Shenzhen
 shiki
 shikijs
@@ -215,7 +208,6 @@ tailwind
 tailwindcss
 Terser
 tiktok
-tikv
 tokio
 Towhk
 Trae
