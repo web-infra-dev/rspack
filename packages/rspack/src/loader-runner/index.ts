@@ -719,6 +719,7 @@ export async function runLoaders(
         ? loaderContext._module
         : undefined;
     const workerLoaderContext = {
+      version: loaderContext.version,
       hot: loaderContext.hot,
       context: loaderContext.context,
       resourcePath: loaderContext.resourcePath,
@@ -824,10 +825,14 @@ export async function runLoaders(
           }
           case RequestType.Resolve: {
             return new Promise((resolve, reject) => {
-              loaderContext.resolve(args[0], args[1], (err, result) => {
-                if (err) reject(err);
-                else resolve(result);
-              });
+              loaderContext.resolve(
+                args[0],
+                args[1],
+                (err, result, resolveRequest) => {
+                  if (err) reject(err);
+                  else resolve([result, resolveRequest]);
+                },
+              );
             });
           }
           case RequestType.GetResolve: {
@@ -835,16 +840,16 @@ export async function runLoaders(
               loaderContext.getResolve(args[0])(
                 args[1],
                 args[2],
-                (err, result) => {
+                (err, result, resolveRequest) => {
                   if (err) reject(err);
-                  else resolve(result);
+                  else resolve([result, resolveRequest]);
                 },
               );
             });
           }
           case RequestType.GetLogger: {
             const [type, name, arg] = args;
-            (loaderContext.getLogger(name) as any)[type](...arg);
+            (loaderContext.getLogger(name) as any)[type](...(arg ?? []));
             break;
           }
           case RequestType.EmitError: {

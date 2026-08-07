@@ -81,6 +81,11 @@ async function loaderImpl(
       sendRequest(RequestType.AddContextDependency, context),
     );
   };
+  loaderContext.addMissingDependency = function addMissingDependency(missing) {
+    pendingDependencyRequest.push(
+      sendRequest(RequestType.AddMissingDependency, missing),
+    );
+  };
   loaderContext.addBuildDependency = function addBuildDependency(file) {
     pendingDependencyRequest.push(
       sendRequest(RequestType.AddBuildDependency, file),
@@ -103,8 +108,8 @@ async function loaderImpl(
   };
   loaderContext.resolve = function resolve(context, request, callback) {
     sendRequest(RequestType.Resolve, context, request).then(
-      (result) => {
-        callback(null, result);
+      ([result, resolveRequest]) => {
+        callback(null, result, resolveRequest);
       },
       (err) => {
         callback(err);
@@ -116,7 +121,7 @@ async function loaderImpl(
       if (!callback) {
         return new Promise((resolve, reject) => {
           sendRequest(RequestType.GetResolve, options, context, request).then(
-            (result) => {
+            ([result]) => {
               resolve(result);
             },
             (err) => {
@@ -126,8 +131,8 @@ async function loaderImpl(
         });
       }
       sendRequest(RequestType.GetResolve, options, context, request).then(
-        (result) => {
-          callback(null, result);
+        ([result, resolveRequest]) => {
+          callback(null, result, resolveRequest);
         },
         (err) => {
           callback(err);
@@ -161,7 +166,7 @@ async function loaderImpl(
         sendRequest(RequestType.GetLogger, 'trace', name, ['Trace']);
       },
       clear() {
-        sendRequest(RequestType.GetLogger, 'clear', name);
+        sendRequest(RequestType.GetLogger, 'clear', name, []);
       },
       status(...args) {
         sendRequest(RequestType.GetLogger, 'status', name, args);
