@@ -521,7 +521,7 @@ impl ESMExportImportedSpecifierDependency {
       self.phase,
       runtime,
     );
-    let import_var = ctxt.get_or_create_generated_top_level_symbol(import_var);
+    let import_var = ctxt.ensure_generated_top_level_symbol(import_var);
     match mode {
       ExportMode::Missing | ExportMode::LazyMake | ExportMode::EmptyStar(_) => {
         ctxt.init_fragments.push(
@@ -781,9 +781,8 @@ impl ESMExportImportedSpecifierDependency {
           let ignored = render_dynamic_reexport_excluded(&ignored);
           format!("/* reexport */ {reexport}({exports}, {import_var}, {ignored});\n")
         } else {
-          let reexport_binding = ctxt.get_or_create_generated_top_level_symbol("__rspack_reexport");
-          let import_key_binding =
-            ctxt.get_or_create_generated_top_level_symbol("__rspack_import_key");
+          let reexport_binding = ctxt.ensure_generated_top_level_symbol("__rspack_reexport");
+          let import_key_binding = ctxt.ensure_generated_top_level_symbol("__rspack_import_key");
           let environment = compilation.options.output.environment;
           let supports_arrow_function = environment.supports_arrow_function();
           let supports_const = environment.supports_const();

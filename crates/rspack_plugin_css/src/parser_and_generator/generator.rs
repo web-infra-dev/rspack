@@ -763,7 +763,7 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     };
     if scope.is_faster_module_concatenation() {
       state.used_identifiers.insert(identifier.clone());
-      let symbol = scope.get_or_create_generated_top_level_symbol(&identifier);
+      let symbol = scope.ensure_generated_top_level_symbol(&identifier);
       scope.register_export(key.into(), symbol.to_string());
       let export_source = concat_string!("var ", symbol, " = ", content, ";\n");
       self.concat_source.add(RawStringSource::from(export_source));

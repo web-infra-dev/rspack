@@ -97,14 +97,12 @@ impl CompatibilityPlugin {
       };
       let dep = if data.update {
         None
-      } else if faster_module_concatenation {
-        Some(ConstDependency::new_with_concatenation_scope_identifier(
-          data.loc,
-          content,
-          data.name.clone().into(),
-        ))
       } else {
-        Some(ConstDependency::new(data.loc, content))
+        let mut dep = ConstDependency::new(data.loc, content);
+        if faster_module_concatenation {
+          dep.set_concatenation_scope_identifier(data.name.clone().into());
+        }
+        Some(dep)
       };
       data.update = true;
       (nested_name, dep)
@@ -260,15 +258,10 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CompatibilityPlugin {
         NESTED_IDENTIFIER_TAG,
       )?;
       if !data.update {
-        let dep = if faster_module_concatenation {
-          ConstDependency::new_with_concatenation_scope_identifier(
-            data.loc,
-            data.name.clone().into(),
-            data.name.clone().into(),
-          )
-        } else {
-          ConstDependency::new(data.loc, data.name.clone().into())
-        };
+        let mut dep = ConstDependency::new(data.loc, data.name.clone().into());
+        if faster_module_concatenation {
+          dep.set_concatenation_scope_identifier(data.name.clone().into());
+        }
         data.update = true;
         parser.add_presentational_dependency(Box::new(dep));
       }
@@ -305,15 +298,10 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CompatibilityPlugin {
       } else {
         name.clone().into()
       };
-      let dep = if faster_module_concatenation {
-        ConstDependency::new_with_concatenation_scope_identifier(
-          nested_require_data.loc,
-          content,
-          name.clone().into(),
-        )
-      } else {
-        ConstDependency::new(nested_require_data.loc, content)
-      };
+      let mut dep = ConstDependency::new(nested_require_data.loc, content);
+      if faster_module_concatenation {
+        dep.set_concatenation_scope_identifier(name.clone().into());
+      }
       deps.push(Box::new(dep));
       nested_require_data.update = true;
     }
@@ -323,15 +311,10 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CompatibilityPlugin {
     } else {
       name.clone().into()
     };
-    let dep = if faster_module_concatenation {
-      ConstDependency::new_with_concatenation_scope_identifier(
-        ident.span.into(),
-        content,
-        name.into(),
-      )
-    } else {
-      ConstDependency::new(ident.span.into(), content)
-    };
+    let mut dep = ConstDependency::new(ident.span.into(), content);
+    if faster_module_concatenation {
+      dep.set_concatenation_scope_identifier(name.into());
+    }
     deps.push(Box::new(dep));
     parser.add_presentational_dependencies(deps);
     Some(true)

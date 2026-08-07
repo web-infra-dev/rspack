@@ -63,11 +63,7 @@ impl DependencyTemplate for ModulePathNameDependencyTemplate {
     source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {
-    let TemplateContext {
-      module,
-      init_fragments,
-      ..
-    } = code_generatable_context;
+    let module = code_generatable_context.module;
 
     let m = module.as_normal_module();
     if let Some(m) = m {
@@ -80,18 +76,10 @@ impl DependencyTemplate for ModulePathNameDependencyTemplate {
 
       if dep.r#type == NameType::FileName {
         if let Some(resource_path) = resource_path {
-          let rendered_identifier = code_generatable_context
-            .concatenation_scope
-            .as_mut()
-            .filter(|scope| scope.is_faster_module_concatenation())
-            .and_then(|scope| {
-              dep.range.map(|range| {
-                scope.remove_original_range(range);
-                scope
-                  .get_or_create_generated_top_level_symbol("__filename")
-                  .to_string()
-              })
-            });
+          let rendered_identifier = dep.range.and_then(|range| {
+            code_generatable_context.remove_original_range(range);
+            code_generatable_context.ensure_generated_top_level_symbol_in_scope("__filename")
+          });
           let identifier = rendered_identifier.as_deref().unwrap_or("__filename");
           if let (Some(range), Some(rendered_identifier)) =
             (dep.range, rendered_identifier.as_ref())
@@ -109,24 +97,16 @@ impl DependencyTemplate for ModulePathNameDependencyTemplate {
             None,
           );
 
-          init_fragments.push(init.boxed());
+          code_generatable_context.init_fragments.push(init.boxed());
         }
       } else if dep.r#type == NameType::DirName
         && let Some(resource_path) = resource_path
         && let Some(parent_path) = resource_path.parent()
       {
-        let rendered_identifier = code_generatable_context
-          .concatenation_scope
-          .as_mut()
-          .filter(|scope| scope.is_faster_module_concatenation())
-          .and_then(|scope| {
-            dep.range.map(|range| {
-              scope.remove_original_range(range);
-              scope
-                .get_or_create_generated_top_level_symbol("__dirname")
-                .to_string()
-            })
-          });
+        let rendered_identifier = dep.range.and_then(|range| {
+          code_generatable_context.remove_original_range(range);
+          code_generatable_context.ensure_generated_top_level_symbol_in_scope("__dirname")
+        });
         let identifier = rendered_identifier.as_deref().unwrap_or("__dirname");
         if let (Some(range), Some(rendered_identifier)) = (dep.range, rendered_identifier.as_ref())
         {
@@ -145,7 +125,7 @@ impl DependencyTemplate for ModulePathNameDependencyTemplate {
           None,
         );
 
-        init_fragments.push(init.boxed());
+        code_generatable_context.init_fragments.push(init.boxed());
       }
     }
   }

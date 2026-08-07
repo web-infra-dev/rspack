@@ -11,11 +11,11 @@ use rspack_cacheable::{
 };
 use rspack_core::{
   ArcComputed, AsyncDependenciesBlockIdentifier, BuildMetaExportsType,
-  COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY, ChunkGraph, CodeGenerationDataRenderedInitFragments,
-  CollectedTypeScriptInfo, Compilation, DependenciesBlock, DependencyId, GenerateContext,
-  ImportMeta, Module, ModuleArgument, ModuleCodeTemplate, ModuleGraph, ModuleType, ParseContext,
-  ParseResult, ParserAndGenerator, ResolvedModuleOptions, RuntimeGlobals, RuntimeGlobalsRenderMode,
-  RuntimeVariable, SideEffectsBailoutItem, SourceType, TemplateContext, TemplateReplaceSource,
+  COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY, ChunkGraph, CollectedTypeScriptInfo, Compilation,
+  DependenciesBlock, DependencyId, GenerateContext, ImportMeta, Module, ModuleArgument,
+  ModuleCodeTemplate, ModuleGraph, ModuleType, ParseContext, ParseResult, ParserAndGenerator,
+  ResolvedModuleOptions, RuntimeGlobals, RuntimeGlobalsRenderMode, RuntimeVariable,
+  SideEffectsBailoutItem, SourceType, TemplateContext, TemplateReplaceSource,
   diagnostics::map_box_diagnostics_to_module_parse_diagnostics,
   remove_bom, render_init_fragments, render_init_fragments_to_strings,
   rspack_sources::{BoxSource, ReplaceSource, Source, SourceExt},
@@ -505,10 +505,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         let rendered_fragments =
           render_init_fragments_to_strings(init_fragments, generate_context)?;
         if !rendered_fragments.is_empty() {
-          let rspack_core::RenderedInitFragments { start, end } = rendered_fragments;
-          generate_context
-            .data
-            .insert(CodeGenerationDataRenderedInitFragments::new(start, end));
+          generate_context.data.insert(rendered_fragments);
         }
         generate_context.concatenation_scope = concatenation_scope;
         return Ok(source.boxed());

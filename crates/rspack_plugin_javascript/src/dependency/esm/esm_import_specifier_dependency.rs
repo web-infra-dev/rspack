@@ -516,7 +516,7 @@ impl ESMImportSpecifierDependencyTemplate {
         code_generatable_context.runtime,
       );
       let rendered_import_var =
-        code_generatable_context.get_or_create_generated_top_level_symbol(import_var);
+        code_generatable_context.ensure_generated_top_level_symbol(import_var);
       esm_import_dependency_apply(dep, dep.source_order, dep.phase, code_generatable_context);
       let TemplateContext {
         compilation,
@@ -555,13 +555,7 @@ impl ESMImportSpecifierDependencyTemplate {
     let Some(con) = connection else {
       return;
     };
-    if let Some(scope) = code_generatable_context
-      .concatenation_scope
-      .as_mut()
-      .filter(|scope| scope.is_faster_module_concatenation())
-    {
-      scope.remove_original_range(dep.range);
-    }
+    code_generatable_context.remove_original_range(dep.range);
     let TemplateContext {
       runtime,
       module: self_module,
@@ -709,13 +703,7 @@ impl DependencyTemplate for ESMImportSpecifierDependencyTemplate {
 
     let export_expr = self.get_code_for_ids(ids, dep, connection, code_generatable_context);
 
-    if let Some(scope) = code_generatable_context
-      .concatenation_scope
-      .as_mut()
-      .filter(|scope| scope.is_faster_module_concatenation())
-    {
-      scope.remove_original_range(dep.range);
-    }
+    code_generatable_context.remove_original_range(dep.range);
 
     if dep.shorthand {
       source.insert(dep.range.end, format!(": {export_expr}"), None);

@@ -70,13 +70,7 @@ impl DependencyTemplate for RequireResolveHeaderDependencyTemplate {
       .downcast_ref::<RequireResolveHeaderDependency>()
       .expect("RequireResolveHeaderDependencyTemplate should only be used for RequireResolveHeaderDependency");
 
-    if let Some(scope) = code_generatable_context
-      .concatenation_scope
-      .as_mut()
-      .filter(|scope| scope.is_faster_module_concatenation())
-    {
-      scope.remove_original_range(dep.range);
-    }
+    code_generatable_context.remove_original_range(dep.range);
     source.replace_static(dep.range.start, dep.range.end, "/*require.resolve*/", None);
   }
 }

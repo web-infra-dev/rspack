@@ -206,7 +206,7 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
             || DEFAULT_EXPORT.to_string(),
             |scope| {
               scope
-                .get_or_create_generated_top_level_symbol(DEFAULT_EXPORT)
+                .ensure_generated_top_level_symbol(DEFAULT_EXPORT)
                 .to_string()
             },
           );

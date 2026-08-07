@@ -14,7 +14,8 @@ use serde::Serialize;
 
 use crate::{
   ArtifactExt, AssetInfo, BindingCell, ChunkInitFragments, ConcatenationScope, ModuleIdentifier,
-  RuntimeGlobals, RuntimeSpec, RuntimeSpecMap, SourceType, incremental::IncrementalPasses,
+  RenderedInitFragments, RuntimeGlobals, RuntimeSpec, RuntimeSpecMap, SourceType,
+  incremental::IncrementalPasses,
 };
 
 #[derive(Clone, Debug)]
@@ -92,59 +93,23 @@ impl CodeGenerationDataTopLevelDeclarations {
   }
 }
 
-#[derive(Clone, Debug, Default)]
-pub struct CodeGenerationDataRenderedInitFragments {
-  start: String,
-  end: String,
-}
-
-impl CodeGenerationDataRenderedInitFragments {
-  pub fn new(start: String, end: String) -> Self {
-    Self { start, end }
-  }
-
-  pub fn start(&self) -> &str {
-    &self.start
-  }
-
-  pub fn end(&self) -> &str {
-    &self.end
-  }
-
-  pub fn is_empty(&self) -> bool {
-    self.start.is_empty() && self.end.is_empty()
-  }
-
-  pub(crate) fn hash_parts(start: &str, end: &str, state: &mut RspackHasher) {
-    state.write(b"CodeGenerationDataRenderedInitFragments");
-    state.write(&(start.len() as u64).to_be_bytes());
-    state.write(start.as_bytes());
-    state.write(&(end.len() as u64).to_be_bytes());
-    state.write(end.as_bytes());
-  }
-}
-
-impl RspackHash for CodeGenerationDataRenderedInitFragments {
-  fn hash(&self, state: &mut RspackHasher) {
-    Self::hash_parts(&self.start, &self.end, state);
-  }
-}
-
+/// Typed [`CodeGenerationData`] entry for the digest of rendered init fragments.
+///
+/// `CodeGenerationData` is keyed by `TypeId`, so the newtype keeps this digest
+/// distinct from other `RspackHashDigest` values stored as code generation data.
 #[derive(Clone, Debug)]
-pub struct CodeGenerationDataRenderedInitFragmentsDigest {
-  inner: RspackHashDigest,
-}
+pub struct RenderedInitFragmentsDigest(RspackHashDigest);
 
-impl CodeGenerationDataRenderedInitFragmentsDigest {
+impl RenderedInitFragmentsDigest {
   pub fn new(inner: RspackHashDigest) -> Self {
-    Self { inner }
+    Self(inner)
   }
 }
 
-impl RspackHash for CodeGenerationDataRenderedInitFragmentsDigest {
+impl RspackHash for RenderedInitFragmentsDigest {
   fn hash(&self, state: &mut RspackHasher) {
-    state.write(b"CodeGenerationDataRenderedInitFragmentsDigest");
-    self.inner.hash(state);
+    state.write(b"RenderedInitFragmentsDigest");
+    self.0.hash(state);
   }
 }
 
@@ -195,23 +160,6 @@ pub struct CodeGenerationResult {
 }
 
 impl CodeGenerationResult {
-  fn hash_rendered_init_fragments(&self, hasher: &mut RspackHasher) {
-    if let Some(fragments) = self.data.get::<CodeGenerationDataRenderedInitFragments>()
-      && !fragments.is_empty()
-    {
-      fragments.hash(hasher);
-    }
-  }
-
-  fn hash_rendered_init_fragments_digest(&self, hasher: &mut RspackHasher) {
-    if let Some(digest) = self
-      .data
-      .get::<CodeGenerationDataRenderedInitFragmentsDigest>()
-    {
-      digest.hash(hasher);
-    }
-  }
-
   pub fn with_javascript(mut self, generation_result: BoxSource) -> Self {
     self.inner.insert(SourceType::JavaScript, generation_result);
     self
@@ -235,70 +183,28 @@ impl CodeGenerationResult {
     hash_function: &HashFunction,
     hash_digest: &HashDigest,
     hash_salt: &HashSalt,
+    concatenated_module_hash: Option<&RspackHashDigest>,
   ) {
     let mut hasher = RspackHasher::with_salt(hash_function, hash_salt);
-    for (source_type, source) in self.inner.as_ref() {
-      source_type.hash(&mut hasher);
-      std::hash::Hash::hash(source, &mut hasher);
+    if let Some(concatenated_module_hash) = concatenated_module_hash {
+      concatenated_module_hash.hash(&mut hasher);
+      for source_type in self.inner.as_ref().keys() {
+        source_type.hash(&mut hasher);
+      }
+      if let Some(digest) = self.data.get::<RenderedInitFragmentsDigest>() {
+        digest.hash(&mut hasher);
+      }
+    } else {
+      for (source_type, source) in self.inner.as_ref() {
+        source_type.hash(&mut hasher);
+        std::hash::Hash::hash(source, &mut hasher);
+      }
+      if let Some(fragments) = self.data.get::<RenderedInitFragments>()
+        && !fragments.is_empty()
+      {
+        fragments.hash(&mut hasher);
+      }
     }
-    self.chunk_init_fragments.hash(&mut hasher);
-    self.runtime_requirements.hash(&mut hasher);
-    self.hash = Some(hasher.digest(hash_digest));
-  }
-
-  /// Hash a scoped normal-module result whose rendered init fragments are
-  /// carried as code generation data instead of being part of `inner`.
-  pub fn set_hash_with_rendered_init_fragments(
-    &mut self,
-    hash_function: &HashFunction,
-    hash_digest: &HashDigest,
-    hash_salt: &HashSalt,
-  ) {
-    let mut hasher = RspackHasher::with_salt(hash_function, hash_salt);
-    for (source_type, source) in self.inner.as_ref() {
-      source_type.hash(&mut hasher);
-      std::hash::Hash::hash(source, &mut hasher);
-    }
-    self.hash_rendered_init_fragments(&mut hasher);
-    self.chunk_init_fragments.hash(&mut hasher);
-    self.runtime_requirements.hash(&mut hasher);
-    self.hash = Some(hasher.digest(hash_digest));
-  }
-
-  /// Concatenated modules already encode the generated module bodies into
-  /// `ConcatenatedModule::get_runtime_hash`, so we can reuse that digest here
-  /// and only mix in codegen-specific metadata instead of hashing the large
-  /// concatenated source again.
-  pub fn set_hash_for_concatenated_module(
-    &mut self,
-    runtime_hash: &RspackHashDigest,
-    hash_function: &HashFunction,
-    hash_digest: &HashDigest,
-    hash_salt: &HashSalt,
-  ) {
-    let mut hasher = RspackHasher::with_salt(hash_function, hash_salt);
-    runtime_hash.hash(&mut hasher);
-    for source_type in self.inner.as_ref().keys() {
-      source_type.hash(&mut hasher);
-    }
-    self.chunk_init_fragments.hash(&mut hasher);
-    self.runtime_requirements.hash(&mut hasher);
-    self.hash = Some(hasher.digest(hash_digest));
-  }
-
-  pub fn set_hash_for_faster_concatenated_module(
-    &mut self,
-    runtime_hash: &RspackHashDigest,
-    hash_function: &HashFunction,
-    hash_digest: &HashDigest,
-    hash_salt: &HashSalt,
-  ) {
-    let mut hasher = RspackHasher::with_salt(hash_function, hash_salt);
-    runtime_hash.hash(&mut hasher);
-    for source_type in self.inner.as_ref().keys() {
-      source_type.hash(&mut hasher);
-    }
-    self.hash_rendered_init_fragments_digest(&mut hasher);
     self.chunk_init_fragments.hash(&mut hasher);
     self.runtime_requirements.hash(&mut hasher);
     self.hash = Some(hasher.digest(hash_digest));

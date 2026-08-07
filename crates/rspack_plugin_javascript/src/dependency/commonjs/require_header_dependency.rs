@@ -70,13 +70,7 @@ impl DependencyTemplate for RequireHeaderDependencyTemplate {
       .downcast_ref::<RequireHeaderDependency>()
       .expect("RequireHeaderDependencyTemplate should only be used for RequireHeaderDependency");
 
-    if let Some(scope) = code_generatable_context
-      .concatenation_scope
-      .as_mut()
-      .filter(|scope| scope.is_faster_module_concatenation())
-    {
-      scope.remove_original_range(dep.range);
-    }
+    code_generatable_context.remove_original_range(dep.range);
     let TemplateContext {
       runtime_template, ..
     } = code_generatable_context;

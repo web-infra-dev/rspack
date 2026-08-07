@@ -26,10 +26,9 @@ use rspack_util::{
   swc::join_atom,
 };
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
-use smallvec::SmallVec;
 use swc_core::{
   atoms::Atom,
-  common::{BytePos, Span, Spanned, SyntaxContext},
+  common::{BytePos, Spanned, SyntaxContext},
   ecma::visit::swc_ecma_ast,
 };
 use swc_experimental_allocator::{Allocator, CloneIn};
@@ -43,26 +42,35 @@ use crate::{
   AsyncDependenciesBlockIdentifier, BoxDependency, BoxDependencyTemplate, BoxModule,
   BoxModuleDependency, BuildContext, BuildInfo, BuildMeta, BuildMetaDefaultObject,
   BuildMetaExportsType, BuildResult, ChunkGraph, ChunkInitFragments, ChunkRenderContext,
-  CodeGenerationDataRenderedInitFragments, CodeGenerationDataRenderedInitFragmentsDigest,
   CodeGenerationDataTopLevelDeclarations, CodeGenerationExportsFinalNames,
   CodeGenerationPublicPathAutoReplace, CodeGenerationResult,
   CodeGenerationRuntimeRequirementsWrite, Compilation, ConcatenatedModuleIdent, ConcatenationScope,
-  ConcatenationScopeIdentKind, ConditionalInitFragment, ConnectionState, Context, DEFAULT_EXPORT,
-  DEFAULT_EXPORT_ATOM, DependenciesBlock, DependencyId, DependencyRange, DependencyType,
-  ExportInfo, ExportProvided, ExportsArgument, ExportsInfoArtifact, ExportsType, FactoryMeta,
-  ImportedByDeferModulesArtifact, InitFragment, InitFragmentStage, LibIdentOptions, Module,
-  ModuleArgument, ModuleCodeGenerationContext, ModuleGraph, ModuleGraphCacheArtifact,
-  ModuleGraphConnection, ModuleIdentifier, ModuleLayer, ModuleStaticCache, ModuleType,
-  NAMESPACE_OBJECT_EXPORT, ParserOptions, PendingConcatenationScopeInfo, Resolve, RuntimeCondition,
-  RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, SourceType, URLStaticMode, UsageState,
-  UsedName, UsedNameItem, escape_identifier, fast_set, filter_runtime, find_target,
-  get_runtime_key, impl_source_map_config, merge_runtime_condition,
+  ConditionalInitFragment, ConnectionState, Context, DEFAULT_EXPORT, DEFAULT_EXPORT_ATOM,
+  DependenciesBlock, DependencyId, DependencyRange, DependencyType, ExportInfo, ExportProvided,
+  ExportsArgument, ExportsInfoArtifact, ExportsType, FactoryMeta, ImportedByDeferModulesArtifact,
+  InitFragment, InitFragmentStage, LibIdentOptions, Module, ModuleArgument,
+  ModuleCodeGenerationContext, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection,
+  ModuleIdentifier, ModuleLayer, ModuleStaticCache, ModuleType, NAMESPACE_OBJECT_EXPORT,
+  ParserOptions, PendingConcatenationScopeInfo, RenderedInitFragments, RenderedInitFragmentsDigest,
+  Resolve, RuntimeCondition, RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, SourceType,
+  URLStaticMode, UsageState, UsedName, UsedNameItem, escape_identifier, fast_set, filter_runtime,
+  find_target, get_runtime_key, impl_source_map_config, merge_runtime_condition,
   merge_runtime_condition_non_false, module_update_hash, property_access, property_name,
   render_make_deferred_namespace_mode_from_exports_type,
   reserved_names::RESERVED_NAMES_ATOM_SET,
   subtract_runtime_condition, to_identifier_with_escaped, to_normal_comment,
   utils::{SourceSizeCache, SourceSizeCacheSerde},
 };
+
+mod faster;
+
+pub(crate) use faster::populate_info_from_pending;
+use faster::render_concatenated_module_source;
+
+pub const CONCATENATION_PLACEHOLDER_PREFIX: &str = "__rspack_";
+pub(crate) const GENERATED_TOP_LEVEL_SYMBOL_PREFIX: &str = "__rspack_generated_top_level_symbol_";
+pub(crate) const MODULE_REFERENCE_PREFIX: &str = "__rspack_module_ref";
+pub(crate) const MODULE_REFERENCE_SUFFIX: &str = "__._";
 
 type ExportsDefinitionArgs = Vec<(String, String)>;
 define_hook!(ConcatenatedModuleExportsDefinitions: SeriesBail(exports_definitions: &mut ExportsDefinitionArgs, is_entry_module: bool) -> bool);
@@ -290,12 +298,16 @@ pub struct ConcatenatedImportMapItem {
 pub type ConcatenatedImportMap =
   Option<FxIndexMap<(String, Option<String>), ConcatenatedImportMapItem>>;
 
+/// A codegen-created top-level binding whose final name is assigned after all
+/// modules in the concatenation are known.
 #[derive(Debug, Clone)]
 pub struct GeneratedTopLevelSymbol {
   pub preferred_name: Atom,
   pub placeholder: Atom,
 }
 
+/// Scope identifier supplied by dependency templates because it cannot be
+/// reconstructed from the make-time scope information alone.
 #[derive(Debug, Clone)]
 pub struct AddedScopeIdent {
   pub symbol: Atom,
@@ -304,55 +316,32 @@ pub struct AddedScopeIdent {
   pub is_class_expr_with_ident: bool,
 }
 
+/// Dependency-template correction applied to an identifier collected during
+/// make, after codegen replacements have changed its syntax.
 #[derive(Debug, Clone, Copy)]
 pub enum OriginalScopeIdentUpdate {
   Remove(DependencyRange),
   NonShorthand(DependencyRange),
 }
 
+/// Incremental data needed to rebuild concatenation scope information without
+/// reparsing the generated module source.
 #[derive(Debug, Clone, Default)]
 pub struct FasterModuleConcatenationInfo {
-  pub rendered_init_fragments: Option<crate::RenderedInitFragments>,
+  /// Corrections to make-time identifiers caused by dependency replacements.
   pub original_scope_ident_updates: Vec<OriginalScopeIdentUpdate>,
-  pub generated_top_level_symbols: Vec<GeneratedTopLevelSymbol>,
+  /// Scope identifiers supplied by dependency templates in addition to the
+  /// make-time collection.
   pub added_scope_idents: Vec<AddedScopeIdent>,
+  /// Names introduced or referenced by generated code that must be reserved
+  /// during global deconfliction.
   pub added_used_names: Vec<Atom>,
-  pub module_reference_placeholders: Vec<String>,
-}
-
-struct PlaceholderReplacements<'a> {
-  module_references: &'a [(String, String)],
-  generated_symbols: &'a [GeneratedTopLevelSymbol],
-  internal_names: &'a HashMap<Atom, Atom>,
-}
-
-impl PlaceholderReplacements<'_> {
-  fn is_empty(&self) -> bool {
-    self.module_references.is_empty() && self.generated_symbols.is_empty()
-  }
-
-  fn get<'a>(&'a self, placeholder: &str) -> Option<&'a str> {
-    self
-      .module_references
-      .iter()
-      .find(|(candidate, _)| candidate == placeholder)
-      .map(|(_, name)| name.as_str())
-      .or_else(|| {
-        self
-          .generated_symbols
-          .iter()
-          .find(|symbol| symbol.placeholder == placeholder)
-          .and_then(|symbol| self.internal_names.get(&symbol.placeholder))
-          .map(Atom::as_str)
-      })
-  }
 }
 
 #[derive(Debug, Clone, Default)]
 pub struct ConcatenatedModuleInfo {
   pub index: usize,
   pub module: ModuleIdentifier,
-  pub faster_concatenation_info: Option<Box<FasterModuleConcatenationInfo>>,
   pub namespace_export_symbol: Option<Atom>,
   pub chunk_init_fragments: ChunkInitFragments,
   pub module_ctxt: SyntaxContext,
@@ -377,6 +366,9 @@ pub struct ConcatenatedModuleInfo {
   pub idents: Vec<ConcatenatedModuleIdent>,
   pub all_used_names: HashSet<Atom>,
   pub binding_to_ref: FxIndexMap<(Atom, SyntaxContext), Vec<ConcatenatedModuleIdent>>,
+  pub rendered_init_fragments: Option<RenderedInitFragments>,
+  pub generated_top_level_symbols: Vec<GeneratedTopLevelSymbol>,
+  pub module_reference_placeholders: Vec<String>,
 
   pub public_path_auto_replacement: Option<bool>,
   pub static_url_replacement: bool,
@@ -684,367 +676,6 @@ pub struct ConcatenatedModule {
 
 #[allow(unused)]
 impl ConcatenatedModule {
-  fn is_plain_identifier_name(name: &str) -> bool {
-    let mut chars = name.chars();
-    let Some(first) = chars.next() else {
-      return false;
-    };
-    if !(first == '_' || first == '$' || first.is_ascii_alphabetic()) {
-      return false;
-    }
-    chars.all(|ch| ch == '_' || ch == '$' || ch.is_ascii_alphanumeric())
-  }
-
-  fn is_ident_removed(
-    ident: &ConcatenatedModuleIdent,
-    updates: &[OriginalScopeIdentUpdate],
-  ) -> bool {
-    if updates.is_empty() {
-      return false;
-    }
-    let span = ident.id.span();
-    let low = span.real_lo();
-    let high = span.real_hi();
-    updates.iter().any(|update| match update {
-      OriginalScopeIdentUpdate::Remove(range) => range.start <= low && high <= range.end,
-      OriginalScopeIdentUpdate::NonShorthand(_) => false,
-    })
-  }
-
-  fn is_ident_shorthand(
-    range: DependencyRange,
-    shorthand: bool,
-    updates: &[OriginalScopeIdentUpdate],
-  ) -> bool {
-    shorthand
-      && !updates.iter().any(|update| {
-        matches!(update, OriginalScopeIdentUpdate::NonShorthand(updated_range) if *updated_range == range)
-      })
-  }
-
-  pub fn populate_info_from_pending(
-    pending: &PendingConcatenationScopeInfo,
-    original_source: &str,
-    module_info: &mut ConcatenatedModuleInfo,
-  ) {
-    let faster_info = module_info
-      .faster_concatenation_info
-      .as_deref_mut()
-      .expect("should have faster concatenation info");
-    let mut symbols = SmallVec::<[(&str, Atom); 8]>::new();
-    let mut symbol_from_range = |range: DependencyRange| {
-      let symbol = original_source
-        .get(range.start as usize..range.end as usize)
-        .unwrap_or_else(|| {
-          panic!(
-            "concatenation scope symbol range {}..{} should be in the original source",
-            range.start, range.end
-          )
-        });
-      if let Some((_, interned)) = symbols.iter().find(|(candidate, _)| *candidate == symbol) {
-        return interned.clone();
-      }
-      let interned = Atom::from(symbol);
-      symbols.push((symbol, interned.clone()));
-      interned
-    };
-    module_info.module_ctxt = SyntaxContext::from_u32(pending.module_ctxt);
-    module_info.global_ctxt = SyntaxContext::from_u32(pending.global_ctxt);
-    module_info.idents.clear();
-    module_info.global_scope_ident.clear();
-    module_info.binding_to_ref.clear();
-    module_info.all_used_names = pending
-      .idents
-      .iter()
-      .filter(|ident| {
-        matches!(
-          ident.kind,
-          ConcatenationScopeIdentKind::Global | ConcatenationScopeIdentKind::UsedName
-        )
-      })
-      .map(|ident| symbol_from_range(ident.range))
-      .collect();
-    module_info
-      .all_used_names
-      .extend(faster_info.added_used_names.iter().cloned());
-
-    if !faster_info.module_reference_placeholders.is_empty() {
-      let mut seen = HashSet::default();
-      faster_info
-        .module_reference_placeholders
-        .retain(|placeholder| seen.insert(placeholder.clone()));
-    }
-
-    let mut pending_ident_to_legacy =
-      |range: DependencyRange, shorthand: bool, ctxt: SyntaxContext| ConcatenatedModuleIdent {
-        id: swc_ecma_ast::Ident::new(
-          symbol_from_range(range),
-          Span::new(
-            BytePos(range.start.saturating_add(1)),
-            BytePos(range.end.saturating_add(1)),
-          ),
-          ctxt,
-        ),
-        shorthand,
-        is_class_expr_with_ident: false,
-      };
-    let mut idents =
-      Vec::with_capacity(pending.idents.len() + faster_info.added_scope_idents.len());
-    idents.extend(
-      pending
-        .idents
-        .iter()
-        .filter(|ident| ident.kind == ConcatenationScopeIdentKind::TopLevel)
-        .map(|ident| {
-          pending_ident_to_legacy(
-            ident.range,
-            Self::is_ident_shorthand(
-              ident.range,
-              ident.shorthand,
-              &faster_info.original_scope_ident_updates,
-            ),
-            module_info.module_ctxt,
-          )
-        })
-        .filter(|ident| !Self::is_ident_removed(ident, &faster_info.original_scope_ident_updates)),
-    );
-    idents.extend(
-      pending
-        .idents
-        .iter()
-        .filter(|ident| ident.kind == ConcatenationScopeIdentKind::Global)
-        .map(|ident| {
-          pending_ident_to_legacy(
-            ident.range,
-            Self::is_ident_shorthand(
-              ident.range,
-              ident.shorthand,
-              &faster_info.original_scope_ident_updates,
-            ),
-            module_info.global_ctxt,
-          )
-        })
-        .filter(|ident| !Self::is_ident_removed(ident, &faster_info.original_scope_ident_updates)),
-    );
-    idents.extend(
-      faster_info
-        .added_scope_idents
-        .iter()
-        .map(|ident| ConcatenatedModuleIdent {
-          id: swc_ecma_ast::Ident::new(
-            ident.symbol.clone(),
-            Span::new(
-              BytePos(ident.range.start.saturating_add(1)),
-              BytePos(ident.range.end.saturating_add(1)),
-            ),
-            module_info.module_ctxt,
-          ),
-          shorthand: ident.shorthand,
-          is_class_expr_with_ident: ident.is_class_expr_with_ident,
-        }),
-    );
-
-    let mut seen = HashSet::default();
-    for ident in idents.into_iter().filter(|ident| {
-      seen.insert((
-        ident.id.sym.clone(),
-        ident.id.ctxt,
-        ident.id.span().real_lo(),
-        ident.id.span().real_hi(),
-        ident.shorthand,
-        ident.is_class_expr_with_ident,
-      ))
-    }) {
-      let ident = ident.clone();
-      let is_global = ident.id.ctxt == module_info.global_ctxt;
-      if is_global {
-        module_info.global_scope_ident.push(ident.clone());
-        module_info.all_used_names.insert(ident.id.sym.clone());
-      }
-      if ident.is_class_expr_with_ident {
-        module_info.all_used_names.insert(ident.id.sym.clone());
-        continue;
-      }
-      if ident.id.ctxt != module_info.module_ctxt {
-        module_info.all_used_names.insert(ident.id.sym.clone());
-      }
-      module_info
-        .binding_to_ref
-        .entry((ident.id.sym.clone(), ident.id.ctxt))
-        .or_default()
-        .push(ident.clone());
-      module_info.idents.push(ident);
-    }
-  }
-
-  fn apply_placeholder_replacements(
-    mut source: String,
-    replacements: &PlaceholderReplacements<'_>,
-  ) -> String {
-    Self::apply_placeholder_replacements_in_place(&mut source, replacements);
-    source
-  }
-
-  fn apply_placeholder_replacements_in_place(
-    source: &mut String,
-    replacements: &PlaceholderReplacements<'_>,
-  ) {
-    if replacements.is_empty() || !source.contains("__rspack_") {
-      return;
-    }
-    if let Some((end, value)) = Self::find_placeholder_replacement(source, 0, replacements)
-      && end == source.len()
-    {
-      source.clear();
-      source.push_str(value);
-      return;
-    }
-    let mut output = String::with_capacity(source.len());
-    let mut cursor = 0;
-    let mut changed = false;
-    while let Some(offset) = source[cursor..].find("__rspack_") {
-      let start = cursor + offset;
-      output.push_str(&source[cursor..start]);
-      if let Some((end, value)) = Self::find_placeholder_replacement(source, start, replacements) {
-        output.push_str(value);
-        cursor = end;
-        changed = true;
-      } else {
-        output.push_str("__rspack_");
-        cursor = start + "__rspack_".len();
-      }
-    }
-    if !changed {
-      return;
-    }
-    output.push_str(&source[cursor..]);
-    *source = output;
-  }
-
-  fn find_placeholder_replacement<'a>(
-    source: &str,
-    start: usize,
-    replacements: &'a PlaceholderReplacements<'_>,
-  ) -> Option<(usize, &'a str)> {
-    let candidate = &source[start..];
-    if candidate.starts_with("__rspack_module_ref") {
-      let len = candidate.find("__._")? + "__._".len();
-      return replacements
-        .get(&candidate[..len])
-        .map(|value| (start + len, value));
-    }
-
-    replacements
-      .generated_symbols
-      .iter()
-      .find(|symbol| candidate.starts_with(symbol.placeholder.as_ref()))
-      .and_then(|symbol| {
-        replacements
-          .internal_names
-          .get(&symbol.placeholder)
-          .map(|value| (start + symbol.placeholder.len(), value.as_ref()))
-      })
-  }
-
-  fn apply_placeholder_replacements_to_source(
-    mut source: ReplaceSource,
-    replacements: &PlaceholderReplacements<'_>,
-  ) -> ReplaceSource {
-    if replacements.is_empty() {
-      return source;
-    }
-    if replacements.generated_symbols.is_empty()
-      && let [(placeholder, value)] = replacements.module_references
-    {
-      let mut needs_general_replacement = false;
-      source.update_owned_replacement_contents(|content| {
-        if content == placeholder {
-          content.clear();
-          content.push_str(value);
-        } else if content.contains(placeholder) {
-          needs_general_replacement = true;
-        }
-      });
-      if !needs_general_replacement {
-        return source;
-      }
-    }
-    source.update_owned_replacement_contents(|content| {
-      Self::apply_placeholder_replacements_in_place(content, replacements)
-    });
-    source
-  }
-
-  fn replace_placeholders_in_inner_source(
-    mut source: ReplaceSource,
-    replacements: &PlaceholderReplacements<'_>,
-  ) -> ReplaceSource {
-    // JavaScript placeholders are emitted by dependency templates and live in
-    // replacement contents. Replacement-free sources come from generators
-    // such as JSON and assets, where placeholders can be in the generated body.
-    if !source.replacements().is_empty() {
-      return source;
-    }
-    let inner = source.inner().source().into_string_lossy();
-    if !inner.contains("__rspack_") {
-      return source;
-    }
-
-    // Keep the common no-placeholder path borrowed. Only materialize a String
-    // when generated code put a placeholder directly into the inner source.
-    let inner = inner.into_owned();
-    let mut cursor = 0;
-    while let Some(offset) = inner[cursor..].find("__rspack_") {
-      let start = cursor + offset;
-      if let Some((end, value)) = Self::find_placeholder_replacement(&inner, start, replacements) {
-        source.replace(start as u32, end as u32, value.to_string(), None);
-        cursor = end;
-      } else {
-        cursor = start + "__rspack_".len();
-      }
-    }
-    source
-  }
-
-  fn render_concatenated_module_source(
-    info: &mut ConcatenatedModuleInfo,
-    module_reference_replacements: &[(String, String)],
-    rendered_init_fragments_hasher: Option<&mut RspackHasher>,
-  ) -> BoxSource {
-    let faster_info = info
-      .faster_concatenation_info
-      .as_deref_mut()
-      .expect("should have faster concatenation info");
-    let source = info.source.take().expect("should have source");
-    let fragments = faster_info.rendered_init_fragments.take();
-    let replacements = PlaceholderReplacements {
-      module_references: module_reference_replacements,
-      generated_symbols: &faster_info.generated_top_level_symbols,
-      internal_names: &info.internal_names,
-    };
-
-    let rendered_source = Self::apply_placeholder_replacements_to_source(source, &replacements);
-    let rendered_source =
-      Self::replace_placeholders_in_inner_source(rendered_source, &replacements).boxed();
-
-    if let Some(fragments) = fragments {
-      let start = Self::apply_placeholder_replacements(fragments.start, &replacements);
-      let end = Self::apply_placeholder_replacements(fragments.end, &replacements);
-      if let Some(hasher) = rendered_init_fragments_hasher {
-        info.module.hash(hasher);
-        CodeGenerationDataRenderedInitFragments::hash_parts(&start, &end, hasher);
-      }
-      ConcatSource::new([
-        RawStringSource::from(start).boxed(),
-        rendered_source,
-        RawStringSource::from(end).boxed(),
-      ])
-      .boxed()
-    } else {
-      rendered_source
-    }
-  }
-
   pub fn new(
     id: ModuleIdentifier,
     root_module_ctxt: RootModuleContext,
@@ -1459,7 +1090,7 @@ impl Module for ConcatenatedModule {
         s.spawn(|(module, compilation, runtime, id, info)| async move {
           let concatenation_scope = if let ModuleInfo::Concatenated(info) = info {
             let info = info.as_ref();
-            Some(ConcatenationScope::new_with_faster_module_concatenation(
+            let mut scope = ConcatenationScope::new(
               module.id,
               module_to_info_map.expect("should have module_to_info_map for concatenated module"),
               ConcatenatedModuleInfo {
@@ -1467,8 +1098,11 @@ impl Module for ConcatenatedModule {
                 module: info.module,
                 ..Default::default()
               },
-              compilation.options.experiments.faster_module_concatenation,
-            ))
+            );
+            if compilation.options.experiments.faster_module_concatenation {
+              scope.enable_faster_module_concatenation();
+            }
+            Some(scope)
           } else {
             None
           };
@@ -1539,12 +1173,7 @@ impl Module for ConcatenatedModule {
                 .sum::<usize>()
             });
             (
-              info.binding_to_ref.len()
-                + imported_names
-                + info
-                  .faster_concatenation_info
-                  .as_deref()
-                  .map_or(0, |info| info.generated_top_level_symbols.len()),
+              info.binding_to_ref.len() + imported_names,
               1 + import_sources,
             )
           }
@@ -1565,17 +1194,14 @@ impl Module for ConcatenatedModule {
         match info {
           ModuleInfo::Concatenated(info) => {
             for (id, _) in info.binding_to_ref.iter() {
+              let name = info
+                .generated_top_level_symbols
+                .iter()
+                .find(|symbol| symbol.placeholder == id.0)
+                .map_or(&id.0, |symbol| &symbol.preferred_name);
               escaped_names
-                .entry(id.0.clone())
-                .or_insert_with(|| escape_name_atom_ref(&id.0));
-            }
-
-            if let Some(faster_info) = info.faster_concatenation_info.as_deref() {
-              for symbol in &faster_info.generated_top_level_symbols {
-                escaped_names
-                  .entry(symbol.preferred_name.clone())
-                  .or_insert_with(|| escape_name_atom_ref(&symbol.preferred_name));
-              }
+                .entry(name.clone())
+                .or_insert_with(|| escape_name_atom_ref(name));
             }
 
             if let Some(import_map) = &info.import_map {
@@ -1644,15 +1270,20 @@ impl Module for ConcatenatedModule {
         ModuleInfo::Concatenated(info) => {
           // Iterate over variables in moduleScope
           for (id, refs) in info.binding_to_ref.iter() {
-            let name = &id.0;
+            let binding_name = &id.0;
             let ctxt = id.1;
             if ctxt != info.module_ctxt {
               continue;
             }
+            let name = info
+              .generated_top_level_symbols
+              .iter()
+              .find(|symbol| symbol.placeholder == *binding_name)
+              .map_or(binding_name, |symbol| &symbol.preferred_name);
             // Check if the name is already used
-            if name_allocator.contains(name) {
+            let final_name = if name_allocator.contains(name) {
               // Find a new name and update references
-              let new_name = name_allocator.find_new_name(
+              name_allocator.find_new_name(
                 escaped_names
                   .get(name)
                   .expect("should have escaped name")
@@ -1660,75 +1291,33 @@ impl Module for ConcatenatedModule {
                 escaped_identifiers
                   .get(&readable_identifier)
                   .expect("should have escaped identifier"),
-              );
-              info.internal_names.insert(name.clone(), new_name.clone());
-              top_level_declarations.insert(new_name.clone());
+              )
+            } else {
+              // Handle the case when the name is not already used
+              name_allocator.insert(name.clone());
+              name.clone()
+            };
+            info
+              .internal_names
+              .insert(binding_name.clone(), final_name.clone());
+            if binding_name != name && name == &*DEFAULT_EXPORT_ATOM {
+              info.internal_names.insert(name.clone(), final_name.clone());
+            }
+            top_level_declarations.insert(final_name.clone());
 
+            if final_name != *binding_name && !refs.is_empty() {
               // Update source
               let source = info.source.as_mut().expect("should have source");
-
               for identifier in refs {
                 let span = identifier.id.span();
                 let low = span.real_lo();
                 let high = span.real_hi();
                 if identifier.shorthand {
-                  source.insert(high, format!(": {new_name}"), None);
+                  source.insert(high, format!(": {final_name}"), None);
                   continue;
                 }
 
-                source.replace(low, high, new_name.to_string(), None);
-              }
-            } else {
-              // Handle the case when the name is not already used
-              name_allocator.insert(name.clone());
-              info.internal_names.insert(name.clone(), name.clone());
-              top_level_declarations.insert(name.clone());
-            }
-          }
-
-          if let Some(faster_info) = info.faster_concatenation_info.as_deref() {
-            for symbol in &faster_info.generated_top_level_symbols {
-              let final_name = if name_allocator.contains(&symbol.preferred_name) {
-                name_allocator.find_new_name(
-                  escaped_names
-                    .get(&symbol.preferred_name)
-                    .expect("should have escaped name")
-                    .as_ref(),
-                  escaped_identifiers
-                    .get(&readable_identifier)
-                    .expect("should have escaped identifier"),
-                )
-              } else {
-                name_allocator.insert(symbol.preferred_name.clone());
-                symbol.preferred_name.clone()
-              };
-
-              info
-                .internal_names
-                .insert(symbol.placeholder.clone(), final_name.clone());
-              if symbol.preferred_name == *DEFAULT_EXPORT_ATOM {
-                info
-                  .internal_names
-                  .insert(symbol.preferred_name.clone(), final_name.clone());
-              }
-              top_level_declarations.insert(final_name);
-            }
-
-            if let Some(export_map) = &info.export_map {
-              for export in export_map.values() {
-                let export = Atom::from(export.as_str());
-                if info.internal_names.contains_key(&export)
-                  || !Self::is_plain_identifier_name(export.as_ref())
-                  || ConcatenationScope::match_module_reference(export.as_ref()).is_some()
-                {
-                  continue;
-                }
-
-                info.internal_names.insert(export.clone(), export.clone());
-                top_level_declarations.insert(export.clone());
-                if !name_allocator.contains(&export) {
-                  name_allocator.insert(export);
-                }
+                source.replace(low, high, final_name.to_string(), None);
               }
             }
           }
@@ -1979,10 +1568,8 @@ impl Module for ConcatenatedModule {
             ));
           }
         }
-        if refs.is_empty()
-          && let Some(faster_info) = info.faster_concatenation_info.as_deref()
-        {
-          for reference in &faster_info.module_reference_placeholders {
+        if refs.is_empty() {
+          for reference in &info.module_reference_placeholders {
             let match_result =
               ConcatenationScope::match_module_reference(reference.trim_end_matches("._"));
             if let Some(match_info) = match_result {
@@ -2420,27 +2007,19 @@ impl Module for ConcatenatedModule {
           ));
 
           // https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/optimize/ConcatenatedModule.js#L1582
-          if info.faster_concatenation_info.is_some() {
-            let module_reference_replacements = module_reference_replacements
-              .get(&info.module)
-              .map(Vec::as_slice)
-              .unwrap_or_default();
-            let has_rendered_init_fragments = info
-              .faster_concatenation_info
-              .as_deref()
-              .is_some_and(|info| info.rendered_init_fragments.is_some());
-            let fragment_hasher = has_rendered_init_fragments.then(|| {
-              rendered_init_fragments_hasher
-                .get_or_insert_with(|| RspackHasher::new(&compilation.options.output.hash_function))
-            });
-            result.add(Self::render_concatenated_module_source(
-              info,
-              module_reference_replacements,
-              fragment_hasher,
-            ));
-          } else {
-            result.add(info.source.take().expect("should have source"));
-          }
+          let module_reference_replacements = module_reference_replacements
+            .get(&info.module)
+            .map(Vec::as_slice)
+            .unwrap_or_default();
+          let fragment_hasher = info.rendered_init_fragments.is_some().then(|| {
+            rendered_init_fragments_hasher
+              .get_or_insert_with(|| RspackHasher::new(&compilation.options.output.hash_function))
+          });
+          result.add(render_concatenated_module_source(
+            info,
+            module_reference_replacements,
+            fragment_hasher,
+          ));
           chunk_init_fragments.extend(mem::take(&mut info.chunk_init_fragments));
 
           runtime_template
@@ -2548,7 +2127,7 @@ impl Module for ConcatenatedModule {
     if let Some(hasher) = rendered_init_fragments_hasher {
       code_generation_result
         .data
-        .insert(CodeGenerationDataRenderedInitFragmentsDigest::new(
+        .insert(RenderedInitFragmentsDigest::new(
           hasher.digest(&HashDigest::Hex),
         ));
     }
@@ -3143,134 +2722,134 @@ impl ConcatenatedModule {
         chunk_init_fragments.extend(fragments.iter().cloned());
       }
 
-      let concatenation_scope = concatenation_scope.expect("should have concatenation_scope");
-      let faster_module_concatenation = concatenation_scope.is_faster_module_concatenation();
+      let mut concatenation_scope = concatenation_scope.expect("should have concatenation_scope");
+      let faster_module_concatenation_info =
+        concatenation_scope.take_faster_module_concatenation_info();
       let rendered_source = inner
         .remove(&SourceType::JavaScript)
         .expect("should have javascript source");
       let mut module_info = concatenation_scope.current_module;
-      let (result_source, internal_source) = if faster_module_concatenation {
-        // Non-JavaScript modules (for example JSON) do not have pending
-        // JavaScript scope info. Their generated top-level names are registered by
-        // dependency templates through the concatenation scope instead.
-        let empty_pending_scope_info = PendingConcatenationScopeInfo::default();
-        let pending_scope_info = module
-          .build_info()
-          .pending_concatenation_scope_info
-          .as_deref()
-          .unwrap_or(&empty_pending_scope_info);
-        module_info
-          .faster_concatenation_info
-          .as_deref_mut()
-          .expect("should have faster concatenation info")
-          .rendered_init_fragments = codegen_res
-          .data
-          .get::<CodeGenerationDataRenderedInitFragments>()
-          .map(|fragments| crate::RenderedInitFragments {
-            start: fragments.start().to_string(),
-            end: fragments.end().to_string(),
-          })
-          .filter(|fragments| !fragments.start.is_empty() || !fragments.end.is_empty());
-        // JavaScript code generation already returns a ReplaceSource whose
-        // coordinates are based on the make-time parser source. Keep that
-        // coordinate space so the pending info spans can be applied directly. The
-        // generated source is uniquely owned here, so recover it from the Arc
-        // without cloning every dependency replacement.
-        let result_source = if rendered_source.as_any().is::<ReplaceSource>() {
-          let source = Arc::downcast::<ReplaceSource>(rendered_source.into_any_arc())
-            .expect("source type was checked above");
-          Arc::try_unwrap(source).unwrap_or_else(|source| source.as_ref().clone())
-        } else {
-          ReplaceSource::new(rendered_source)
-        };
-        let original_source = result_source.inner().source().into_string_lossy();
-        Self::populate_info_from_pending(pending_scope_info, &original_source, &mut module_info);
-        drop(original_source);
-        let internal_source = result_source.inner().clone();
-        (result_source, internal_source)
-      } else {
-        let source_code = rendered_source.source().into_string_lossy();
-        let jsx = module
-          .as_ref()
-          .as_normal_module()
-          .and_then(|normal_module| normal_module.get_parser_options())
-          .and_then(|options: &ParserOptions| {
-            options
-              .get_javascript()
-              .and_then(|js_options| js_options.jsx)
-          })
-          .unwrap_or(false);
-
-        let allocator = Allocator::new();
-        let lexer = swc_experimental_ecma_parser::Lexer::new(
-          &allocator,
-          Syntax::Es(EsSyntax {
-            jsx,
-            ..Default::default()
-          }),
-          EsVersion::EsNext,
-          StringSource::new(source_code.as_ref()),
-          None,
-        );
-        let mut parser = Parser::new_from(&allocator, lexer);
-        let parsed_module = match parser.parse_module() {
-          Ok(module) => module,
-          Err(err) => {
-            return Err(Error::from_string(
-              Some(source_code.into_owned()),
-              err.span().start.saturating_sub(1) as usize,
-              err.span().end.saturating_sub(1) as usize,
-              "JavaScript parse error:\n".to_string(),
-              err.kind().msg().to_string(),
-            ));
-          }
-        };
-        let program = Program::Module(allocator.boxed(parsed_module));
-        let semantic = resolver(&program);
-        let ids = collect_ident(&allocator, &program);
-
-        module_info.module_ctxt = SyntaxContext::from_u32(semantic.top_level_scope_id().raw());
-        module_info.global_ctxt = SyntaxContext::from_u32(semantic.unresolved_scope_id().raw());
-
-        let top_level_scope_id = semantic.top_level_scope_id();
-        let mut all_used_names = HashSet::default();
-        all_used_names.reserve(ids.len());
-        module_info.idents.reserve(ids.len());
-        module_info.global_scope_ident.reserve(ids.len());
-        let mut binding_to_ref: FxIndexMap<(Atom, SyntaxContext), Vec<ConcatenatedModuleIdent>> =
-          FxIndexMap::default();
-        binding_to_ref.reserve(ids.len());
-
-        for ident in ids {
-          let scope = semantic.node_scope(&ident.id);
-          let is_global = SyntaxContext::from_u32(scope.raw()) == module_info.global_ctxt;
-          let legacy = if is_global {
-            let legacy = ident.to_legacy(&semantic);
-            module_info.global_scope_ident.push(legacy.clone());
-            all_used_names.insert(legacy.id.sym.clone());
-            Some(legacy)
+      let (result_source, internal_source) =
+        if let Some(faster_module_concatenation_info) = faster_module_concatenation_info {
+          // Non-JavaScript modules (for example JSON) do not have pending
+          // JavaScript scope info. Their generated top-level names are registered by
+          // dependency templates through the concatenation scope instead.
+          let empty_pending_scope_info = PendingConcatenationScopeInfo::default();
+          let pending_scope_info = module
+            .build_info()
+            .pending_concatenation_scope_info
+            .as_deref()
+            .unwrap_or(&empty_pending_scope_info);
+          module_info.rendered_init_fragments = codegen_res
+            .data
+            .get::<RenderedInitFragments>()
+            .cloned()
+            .filter(|fragments| !fragments.is_empty());
+          // JavaScript code generation already returns a ReplaceSource whose
+          // coordinates are based on the make-time parser source. Keep that
+          // coordinate space so the pending info spans can be applied directly. The
+          // generated source is uniquely owned here, so recover it from the Arc
+          // without cloning every dependency replacement.
+          let result_source = if rendered_source.as_any().is::<ReplaceSource>() {
+            let source = Arc::downcast::<ReplaceSource>(rendered_source.into_any_arc())
+              .expect("source type was checked above");
+            Arc::try_unwrap(source).unwrap_or_else(|source| source.as_ref().clone())
           } else {
-            None
+            ReplaceSource::new(rendered_source)
           };
-          if ident.is_class_expr_with_ident {
-            all_used_names.insert(Atom::from(ident.id.sym.as_str()));
-            continue;
+          let original_source = result_source.inner().source().into_string_lossy();
+          populate_info_from_pending(
+            pending_scope_info,
+            &original_source,
+            &mut module_info,
+            &faster_module_concatenation_info,
+          );
+          drop(original_source);
+          let internal_source = result_source.inner().clone();
+          (result_source, internal_source)
+        } else {
+          let source_code = rendered_source.source().into_string_lossy();
+          let jsx = module
+            .as_ref()
+            .as_normal_module()
+            .and_then(|normal_module| normal_module.get_parser_options())
+            .and_then(|options: &ParserOptions| {
+              options
+                .get_javascript()
+                .and_then(|js_options| js_options.jsx)
+            })
+            .unwrap_or(false);
+
+          let allocator = Allocator::new();
+          let lexer = swc_experimental_ecma_parser::Lexer::new(
+            &allocator,
+            Syntax::Es(EsSyntax {
+              jsx,
+              ..Default::default()
+            }),
+            EsVersion::EsNext,
+            StringSource::new(source_code.as_ref()),
+            None,
+          );
+          let mut parser = Parser::new_from(&allocator, lexer);
+          let parsed_module = match parser.parse_module() {
+            Ok(module) => module,
+            Err(err) => {
+              return Err(Error::from_string(
+                Some(source_code.into_owned()),
+                err.span().start.saturating_sub(1) as usize,
+                err.span().end.saturating_sub(1) as usize,
+                "JavaScript parse error:\n".to_string(),
+                err.kind().msg().to_string(),
+              ));
+            }
+          };
+          let program = Program::Module(allocator.boxed(parsed_module));
+          let semantic = resolver(&program);
+          let ids = collect_ident(&allocator, &program);
+
+          module_info.module_ctxt = SyntaxContext::from_u32(semantic.top_level_scope_id().raw());
+          module_info.global_ctxt = SyntaxContext::from_u32(semantic.unresolved_scope_id().raw());
+
+          let top_level_scope_id = semantic.top_level_scope_id();
+          let mut all_used_names = HashSet::default();
+          all_used_names.reserve(ids.len());
+          module_info.idents.reserve(ids.len());
+          module_info.global_scope_ident.reserve(ids.len());
+          let mut binding_to_ref: FxIndexMap<(Atom, SyntaxContext), Vec<ConcatenatedModuleIdent>> =
+            FxIndexMap::default();
+          binding_to_ref.reserve(ids.len());
+
+          for ident in ids {
+            let scope = semantic.node_scope(&ident.id);
+            let is_global = SyntaxContext::from_u32(scope.raw()) == module_info.global_ctxt;
+            let legacy = if is_global {
+              let legacy = ident.to_legacy(&semantic);
+              module_info.global_scope_ident.push(legacy.clone());
+              all_used_names.insert(legacy.id.sym.clone());
+              Some(legacy)
+            } else {
+              None
+            };
+            if ident.is_class_expr_with_ident {
+              all_used_names.insert(Atom::from(ident.id.sym.as_str()));
+              continue;
+            }
+            if scope != top_level_scope_id {
+              all_used_names.insert(Atom::from(ident.id.sym.as_str()));
+            }
+            let legacy = legacy.unwrap_or_else(|| ident.to_legacy(&semantic));
+            module_info.idents.push(legacy.clone());
+            binding_to_ref
+              .entry((legacy.id.sym.clone(), legacy.id.ctxt))
+              .or_default()
+              .push(legacy);
           }
-          if scope != top_level_scope_id {
-            all_used_names.insert(Atom::from(ident.id.sym.as_str()));
-          }
-          let legacy = legacy.unwrap_or_else(|| ident.to_legacy(&semantic));
-          module_info.idents.push(legacy.clone());
-          binding_to_ref
-            .entry((legacy.id.sym.clone(), legacy.id.ctxt))
-            .or_default()
-            .push(legacy);
-        }
-        module_info.all_used_names = all_used_names;
-        module_info.binding_to_ref = binding_to_ref;
-        let result_source = ReplaceSource::new(rendered_source.clone());
-        (result_source, rendered_source)
-      };
+          module_info.all_used_names = all_used_names;
+          module_info.binding_to_ref = binding_to_ref;
+          let result_source = ReplaceSource::new(rendered_source.clone());
+          (result_source, rendered_source)
+        };
       module_info.internal_source = Some(internal_source);
       module_info.has_ast = true;
       module_info.runtime_requirements = runtime_requirements;
@@ -3709,7 +3288,10 @@ impl ConcatenatedModule {
         if let Some(ref export_id) = export_id
           && let Some(direct_export) = info.export_map.as_ref().and_then(|map| map.get(export_id))
         {
-          if info.faster_concatenation_info.is_some()
+          if info
+            .module_reference_placeholders
+            .iter()
+            .any(|placeholder| placeholder == direct_export)
             && let Some(match_info) =
               ConcatenationScope::match_module_reference(direct_export.trim_end_matches("._"))
           {

@@ -37,6 +37,20 @@ impl RenderedInitFragments {
   pub fn is_empty(&self) -> bool {
     self.start.is_empty() && self.end.is_empty()
   }
+
+  pub(crate) fn hash_parts(start: &str, end: &str, state: &mut RspackHasher) {
+    state.write(b"RenderedInitFragments");
+    state.write(&(start.len() as u64).to_be_bytes());
+    state.write(start.as_bytes());
+    state.write(&(end.len() as u64).to_be_bytes());
+    state.write(end.as_bytes());
+  }
+}
+
+impl RspackHash for RenderedInitFragments {
+  fn hash(&self, state: &mut RspackHasher) {
+    Self::hash_parts(&self.start, &self.end, state);
+  }
 }
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
@@ -458,9 +472,8 @@ impl NormalInitFragment {
     }
   }
 
-  pub fn with_top_level_decl_symbols(mut self, top_level_decl_symbols: Vec<Atom>) -> Self {
+  pub fn set_top_level_decl_symbols(&mut self, top_level_decl_symbols: Vec<Atom>) {
     self.top_level_decl_symbols = top_level_decl_symbols;
-    self
   }
 }
 

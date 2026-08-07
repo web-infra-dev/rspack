@@ -9,14 +9,16 @@ use rspack_util::{
 use swc_core::atoms::Atom;
 
 use crate::{
-  DependencyRange, ExportMode, ModuleIdentifier,
-  concatenated_module::{ConcatenatedModuleInfo, ModuleInfo, OriginalScopeIdentUpdate},
+  DependencyRange, ExportMode, ModuleIdentifier, PendingConcatenationScopeInfo,
+  concatenated_module::{
+    ConcatenatedModuleInfo, FasterModuleConcatenationInfo, GENERATED_TOP_LEVEL_SYMBOL_PREFIX,
+    MODULE_REFERENCE_PREFIX, MODULE_REFERENCE_SUFFIX, ModuleInfo, OriginalScopeIdentUpdate,
+  },
 };
 
 pub static DEFAULT_EXPORT_ATOM: LazyLock<Atom> = LazyLock::new(|| "__rspack_default_export".into());
 pub const NAMESPACE_OBJECT_EXPORT: &str = "__rspack_ns_object";
 pub const DEFAULT_EXPORT: &str = "__rspack_default_export";
-const MODULE_REFERENCE_PREFIX: &str = "__rspack_module_ref";
 const MODULE_REFERENCE_PROPERTY_ACCESS_SUFFIX: &str = "._";
 
 #[derive(Default, Debug, Clone)]
@@ -38,6 +40,7 @@ pub struct ConcatenationScope {
   pub refs: IdentifierIndexMap<FxIndexMap<String, ModuleReferenceOptions>>,
   pub dyn_refs: IdentifierIndexMap<FxIndexSet<(String, Atom)>>,
   pub re_exports: IdentifierIndexMap<Vec<ExportMode>>,
+  faster_module_concatenation_info: Option<Box<FasterModuleConcatenationInfo>>,
 }
 
 #[allow(unused)]
@@ -47,22 +50,6 @@ impl ConcatenationScope {
     modules_map: Arc<IdentifierIndexMap<ModuleInfo>>,
     current_module: ConcatenatedModuleInfo,
   ) -> Self {
-    Self::new_with_faster_module_concatenation(concat_module_id, modules_map, current_module, false)
-  }
-
-  pub fn new_with_faster_module_concatenation(
-    concat_module_id: ModuleIdentifier,
-    modules_map: Arc<IdentifierIndexMap<ModuleInfo>>,
-    mut current_module: ConcatenatedModuleInfo,
-    faster_module_concatenation: bool,
-  ) -> Self {
-    if faster_module_concatenation {
-      current_module
-        .faster_concatenation_info
-        .get_or_insert_default();
-    } else {
-      current_module.faster_concatenation_info = None;
-    }
     ConcatenationScope {
       concat_module_id,
       current_module,
@@ -71,11 +58,41 @@ impl ConcatenationScope {
       refs: IdentifierIndexMap::default(),
       dyn_refs: Default::default(),
       re_exports: Default::default(),
+      faster_module_concatenation_info: None,
     }
   }
 
+  pub fn enable_faster_module_concatenation(&mut self) {
+    self
+      .faster_module_concatenation_info
+      .get_or_insert_default();
+  }
+
+  pub(crate) fn take_faster_module_concatenation_info(
+    &mut self,
+  ) -> Option<Box<FasterModuleConcatenationInfo>> {
+    self.faster_module_concatenation_info.take()
+  }
+
   pub fn is_faster_module_concatenation(&self) -> bool {
-    self.current_module.faster_concatenation_info.is_some()
+    self.faster_module_concatenation_info.is_some()
+  }
+
+  pub fn current_module_with_scope_info(
+    &self,
+    pending: &PendingConcatenationScopeInfo,
+    original_source: &str,
+  ) -> ConcatenatedModuleInfo {
+    let mut current_module = self.current_module.clone();
+    if let Some(faster_info) = self.faster_module_concatenation_info.as_deref() {
+      crate::concatenated_module::populate_info_from_pending(
+        pending,
+        original_source,
+        &mut current_module,
+        faster_info,
+      );
+    }
+    current_module
   }
 
   pub fn is_module_in_scope(&self, module: &ModuleIdentifier) -> bool {
@@ -91,7 +108,7 @@ impl ConcatenationScope {
   }
 
   pub fn register_generated_export(&mut self, export_name: Atom, preferred_name: &str) -> Atom {
-    let symbol = self.get_or_create_generated_top_level_symbol(preferred_name);
+    let symbol = self.ensure_generated_top_level_symbol(preferred_name);
     self.register_export(export_name, symbol.to_string());
     symbol
   }
@@ -145,13 +162,13 @@ impl ConcatenationScope {
   }
 
   pub fn register_generated_namespace_export(&mut self, preferred_name: &str) -> Atom {
-    let symbol = self.get_or_create_generated_top_level_symbol(preferred_name);
+    let symbol = self.ensure_generated_top_level_symbol(preferred_name);
     self.register_namespace_export(symbol.as_ref());
     symbol
   }
 
   pub fn remove_original_range(&mut self, range: DependencyRange) {
-    let Some(info) = self.current_module.faster_concatenation_info.as_deref_mut() else {
+    let Some(info) = self.faster_module_concatenation_info.as_deref_mut() else {
       return;
     };
     info
@@ -160,7 +177,7 @@ impl ConcatenationScope {
   }
 
   pub fn set_original_range_non_shorthand(&mut self, range: DependencyRange) {
-    let Some(info) = self.current_module.faster_concatenation_info.as_deref_mut() else {
+    let Some(info) = self.faster_module_concatenation_info.as_deref_mut() else {
       return;
     };
     info
@@ -169,7 +186,7 @@ impl ConcatenationScope {
   }
 
   pub fn add_scope_ident(&mut self, symbol: Atom, range: DependencyRange) {
-    let Some(info) = self.current_module.faster_concatenation_info.as_deref_mut() else {
+    let Some(info) = self.faster_module_concatenation_info.as_deref_mut() else {
       return;
     };
     info.added_scope_idents.push(crate::AddedScopeIdent {
@@ -180,19 +197,33 @@ impl ConcatenationScope {
     });
   }
 
-  pub fn add_used_name(&mut self, symbol: Atom) {
-    let Some(info) = self.current_module.faster_concatenation_info.as_deref_mut() else {
+  pub fn add_used_names_from_generated_code(&mut self, code: &str) {
+    let Some(info) = self.faster_module_concatenation_info.as_deref_mut() else {
       return;
     };
-    info.added_used_names.push(symbol);
+    // The legacy codegen parse reserves names referenced by replacement code.
+    // Faster concatenation skips that parse, so conservatively collect every
+    // ASCII identifier-shaped token. False positives only reduce name reuse;
+    // missing a name could capture a generated global reference.
+    for candidate in code.split(|ch: char| !(ch == '_' || ch == '$' || ch.is_ascii_alphanumeric()))
+    {
+      let mut chars = candidate.chars();
+      if chars
+        .next()
+        .is_some_and(|ch| ch == '_' || ch == '$' || ch.is_ascii_alphabetic())
+      {
+        info.added_used_names.push(candidate.into());
+      }
+    }
   }
 
-  pub fn get_or_create_generated_top_level_symbol(&mut self, preferred_name: &str) -> Atom {
+  pub fn ensure_generated_top_level_symbol(&mut self, preferred_name: &str) -> Atom {
     let preferred_name = Atom::from(preferred_name);
-    let Some(info) = self.current_module.faster_concatenation_info.as_deref_mut() else {
+    if !self.is_faster_module_concatenation() {
       return preferred_name;
-    };
-    if let Some(existing) = info
+    }
+    if let Some(existing) = self
+      .current_module
       .generated_top_level_symbols
       .iter()
       .find(|symbol| symbol.preferred_name == preferred_name)
@@ -203,10 +234,11 @@ impl ConcatenationScope {
     // Use a verbose internal prefix to make collisions with user identifiers and
     // generated data unlikely.
     let placeholder = Atom::from(format!(
-      "__rspack_generated_top_level_symbol_{}__",
-      info.generated_top_level_symbols.len()
+      "{GENERATED_TOP_LEVEL_SYMBOL_PREFIX}{}__",
+      self.current_module.generated_top_level_symbols.len()
     ));
-    info
+    self
+      .current_module
       .generated_top_level_symbols
       .push(crate::GeneratedTopLevelSymbol {
         preferred_name,
@@ -235,7 +267,7 @@ impl ConcatenationScope {
     let mut index_buffer = itoa::Buffer::new();
     let index_str = index_buffer.format(info.index());
     let mut module_ref = String::with_capacity(index_str.len() + export_data.len() + 64);
-    module_ref.push_str("__rspack_module_ref");
+    module_ref.push_str(MODULE_REFERENCE_PREFIX);
     module_ref.push_str(index_str);
     module_ref.push('_');
     module_ref.push_str(&export_data);
@@ -251,11 +283,12 @@ impl ConcatenationScope {
     if let Some(asi_safe) = options.asi_safe {
       module_ref.push_str(if asi_safe { "_asiSafe1" } else { "_asiSafe0" });
     }
-    module_ref.push_str("__._");
-    if track_placeholder
-      && let Some(info) = self.current_module.faster_concatenation_info.as_deref_mut()
-    {
-      info.module_reference_placeholders.push(module_ref.clone());
+    module_ref.push_str(MODULE_REFERENCE_SUFFIX);
+    if track_placeholder && self.is_faster_module_concatenation() {
+      self
+        .current_module
+        .module_reference_placeholders
+        .push(module_ref.clone());
     }
     module_ref
   }
@@ -372,15 +405,10 @@ mod tests {
       ModuleInfo::External(ExternalModuleInfo::new(index, referenced_module_id)),
     );
 
-    (
-      ConcatenationScope::new_with_faster_module_concatenation(
-        concat_module_id,
-        Arc::new(modules_map),
-        current_module,
-        true,
-      ),
-      referenced_module_id,
-    )
+    let mut scope =
+      ConcatenationScope::new(concat_module_id, Arc::new(modules_map), current_module);
+    scope.enable_faster_module_concatenation();
+    (scope, referenced_module_id)
   }
 
   fn assert_module_reference_options_eq(

@@ -181,8 +181,7 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
     phase,
     runtime,
   );
-  let rendered_import_var =
-    code_generatable_context.get_or_create_generated_top_level_symbol(import_var);
+  let rendered_import_var = code_generatable_context.ensure_generated_top_level_symbol(import_var);
   let content: (String, String) = code_generatable_context.runtime_template.import_statement(
     module,
     compilation,
@@ -192,6 +191,12 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
     phase,
     false,
   );
+  let is_async_module = matches!(target_module, Some(target_module) if ModuleGraph::is_async(&compilation.async_modules_artifact, &target_module.identifier()));
+  let async_dependencies_binding = if is_async_module {
+    code_generatable_context.ensure_generated_top_level_symbol_in_scope("__rspack_async_deps")
+  } else {
+    None
+  };
   let TemplateContext {
     init_fragments,
     compilation,
@@ -240,17 +245,7 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
     emitted_modules.insert(target_module, merged_runtime_condition);
   }
 
-  let is_async_module = matches!(target_module, Some(target_module) if ModuleGraph::is_async(&compilation.async_modules_artifact, &target_module.identifier()));
   if is_async_module {
-    let async_dependencies_binding = code_generatable_context
-      .concatenation_scope
-      .as_mut()
-      .filter(|scope| scope.is_faster_module_concatenation())
-      .map(|scope| {
-        scope
-          .get_or_create_generated_top_level_symbol("__rspack_async_deps")
-          .to_string()
-      });
     init_fragments.push(Box::new(ConditionalInitFragment::new(
       content.0,
       InitFragmentStage::StageESMImports,
