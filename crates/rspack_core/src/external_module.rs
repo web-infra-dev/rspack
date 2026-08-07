@@ -1119,16 +1119,16 @@ impl Module for ExternalModule {
   }
 
   fn chunk_condition(&self, chunk_key: &ChunkUkey, compilation: &Compilation) -> Option<bool> {
+    let resolved_external_type = self.resolve_external_type();
     let external_type = if self.external_type == "modern-module" {
-      self.resolve_external_type()
+      resolved_external_type
     } else {
       self.external_type.as_str()
     };
 
     match external_type {
-      "css-import" | "module" if !self.place_in_initial => Some(true),
-      "import" | "module-import"
-        if !self.place_in_initial && self.resolve_external_type() == "module" =>
+      "css-import" | "module" | "import" | "module-import"
+        if !self.place_in_initial && resolved_external_type != "import" =>
       {
         Some(true)
       }
