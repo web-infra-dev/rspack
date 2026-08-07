@@ -3,40 +3,58 @@
 > 详见 [Cache 对象](/api/javascript-api/cache)
 
 ```ts
+type CallbackCache<T> = (error?: WebpackError | null, result?: T) => void;
+
 type CacheFacade = {
-  getChildCache(name: string): CacheFacade; // 创建子缓存对象
-  getItemCache(identifier, etag): ItemCacheFacade; // 获取单个项目的缓存对象
-  getLazyHashedEtag(obj: HashableObject): Etag; // 生成 Etag
-  mergeEtags(a: Etag, b: Etag): Etag; // 合并 Etag
-  get<T>( // 异步获取缓存数据，通过回调获取结果
+  // 返回一个以 `name` 为作用域的子缓存对象。
+  getChildCache(name: string): CacheFacade;
+
+  // 返回一个以 `identifier` 和 `etag` 为作用域的条目缓存对象。
+  getItemCache(identifier: string, etag: Etag | null): ItemCacheFacade;
+
+  // 为可哈希对象创建延迟计算的 ETag。
+  getLazyHashedEtag(obj: HashableObject): Etag;
+
+  // 将两个 ETag 合并为一个。
+  mergeEtags(a: Etag, b: Etag): Etag;
+
+  // 读取缓存值；缓存未命中时，回调中的结果为 `undefined`。
+  get<T>(
     identifier: string,
-    etag: Etag,
-    callback: (err: Error, result: T) => void,
+    etag: Etag | null,
+    callback: CallbackCache<T>,
   ): void;
-  getPromise<T>( // 异步获取缓存数据，通过 Promise 获取结果
+
+  // 读取缓存值；缓存未命中时，返回的 Promise 会 resolve 为 `undefined`。
+  getPromise<T>(identifier: string, etag: Etag | null): Promise<T | undefined>;
+
+  // 存储缓存值，并通过回调通知操作完成。
+  store<T>(
     identifier: string,
-    etag: Etag,
-  ): Promise<T>;
-  store<T>( // 异步存储缓存数据，通过回调获取结果
-    identifier: string,
-    etag: Etag,
+    etag: Etag | null,
     data: T,
-    callback: (err: Error) => void,
+    callback: CallbackCache<void>,
   ): void;
-  storePromise<T>( // 异步存储缓存数据，通过 Promise 获取结果
+
+  // 存储缓存值；写入完成后，返回的 Promise 会 resolve。
+  storePromise<T>(
     identifier: string,
-    etag: Etag,
+    etag: Etag | null,
     data: T,
   ): Promise<void>;
-  provide<T>( // 尝试获取缓存，不存在则生成并存储，通过回调获取结果
+
+  // 读取缓存值；缓存未命中时，调用回调式 `computer` 计算并存储结果。
+  provide<T>(
     identifier: string,
-    etag: Etag,
-    computer: () => T | Promise<T>,
-    callback: (err: Error, result: T) => void,
+    etag: Etag | null,
+    computer: (callback: CallbackCache<T>) => void,
+    callback: CallbackCache<T>,
   ): void;
-  providePromise<T>( // 尝试获取缓存，不存在则生成并存储，通过 Promise 获取结果
+
+  // 读取缓存值；缓存未命中时，调用 `computer` 计算并存储结果，再通过 Promise 返回该结果。
+  providePromise<T>(
     identifier: string,
-    etag: Etag,
+    etag: Etag | null,
     computer: () => T | Promise<T>,
   ): Promise<T>;
 };
