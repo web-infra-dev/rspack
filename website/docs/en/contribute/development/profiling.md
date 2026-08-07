@@ -88,7 +88,7 @@ heaptrack_gui ./rspack-heaptrack.gz
 
 The exact output filename is printed when Heaptrack exits. `--record-only` prevents Heaptrack from trying to open the GUI automatically, which is useful in WSL, containers, and remote shells.
 
-The system allocator used by `@rspack-debug/core` allows Heaptrack to capture Rspack and SWC allocations. The regular release package uses mimalloc and bypasses the system allocator hooks, so its Rust allocation data is incomplete. Depending on the Heaptrack version, the GUI may show Rust v0 symbol names beginning with `_R` instead of demangled names; this affects display only, not the recorded stacks. For a demangled text report, install [`rustfilt`](https://github.com/luser/rustfilt) and pipe the output through it:
+The system allocator used by `@rspack-debug/core` allows Heaptrack to capture allocations from the Rspack native binding. The regular release package uses mimalloc and bypasses the system allocator hooks, so its Rust allocation data is incomplete. Depending on the Heaptrack version, the GUI may show Rust v0 symbol names beginning with `_R` instead of demangled names; this affects display only, not the recorded stacks. For a demangled text report, install [`rustfilt`](https://github.com/luser/rustfilt) and pipe the output through it:
 
 ```sh
 heaptrack_print ./rspack-heaptrack.gz | rustfilt | less
