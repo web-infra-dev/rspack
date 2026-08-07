@@ -50,12 +50,7 @@ async function build() {
 			|| values.profile === "release-debug"
 			|| values.profile === "release-wasi"
 			|| values.profile === "profiling";
-		const target = process.env.RUST_TARGET;
-		const supportsJemallocProfiling = target
-			? !target.includes("windows-msvc")
-				&& !target.startsWith("wasm32")
-				&& !target.startsWith("s390x")
-			: process.platform !== "win32" && process.arch !== "s390x";
+
 		if (values.profile) {
 			args.push("--profile", values.profile);
 		}
@@ -92,9 +87,6 @@ async function build() {
 		}
 		if (process.env.TRACY) {
 			features.push("tracy-client");
-		}
-		if (supportsJemallocProfiling && process.env.JEMALLOC_PROFILING) {
-			features.push("jemalloc-profiling");
 		}
 		if (values.profile === "release") {
 			features.push("info-level");
