@@ -42,39 +42,50 @@ pnpm install
 
 ## 使用 jemalloc 进行内存分析
 
-在支持的原生目标上，Rspack debug binding 默认使用带 heap profiling 能力的 jemalloc。只有通过 `_RJEM_MALLOC_CONF` 启用采样后才会输出 profile，因此 debug binding 在未配置该变量时仍可正常使用，不会产生 profile 文件。
+在支持的原生平台上，`@rspack-debug/core` 默认使用带 heap profiling 能力的 jemalloc。只有通过 `_RJEM_MALLOC_CONF` 启用采样后才会输出 profile，因此 debug package 在未配置该变量时仍可正常使用，不会产生 profile 文件。
 
 :::note
-非 Wasm、非 MSVC 的原生 debug binding（包括 Linux 和 macOS）默认启用 jemalloc profiling。Windows MSVC 和 Wasm 不支持该能力，会继续使用默认 allocator。Release binding 不受影响。设置 `SFTRACE` 或 `TRACY` 时，对应 profiler 的 allocator 优先，debug build 不会再默认启用 jemalloc。
+Linux 和 macOS 上的 debug package 支持 jemalloc profiling。Windows MSVC 和 Wasm package 不支持该能力，会继续使用默认 allocator。常规的 `@rspack/core` package 不受影响。
 :::
 
-### 构建支持 profiling 的 binding
+### 安装 debug package
 
-构建 debug binding 和 JavaScript packages：
+在需要分析的项目中，通过 package manager override 将 `@rspack/core` 替换为 `@rspack-debug/core`。以 pnpm 为例：
 
-```sh
-pnpm run build:binding:debug
-pnpm run build:js
+```json title="package.json"
+{
+  "pnpm": {
+    "overrides": {
+      "@rspack/core": "npm:@rspack-debug/core@latest"
+    },
+    "peerDependencyRules": {
+      "allowAny": ["@rspack/*"]
+    }
+  }
+}
 ```
 
-Debug profile 会保留函数符号，可用于生成函数级内存分配图。如果需要更多源码级调试信息，同时希望保留 release 优化，可以显式构建带 jemalloc 的 profiling profile：
+添加 override 后重新安装项目依赖：
 
 ```sh
-JEMALLOC_PROFILING=1 pnpm run build:binding:profiling
+pnpm install
 ```
+
+如果正在排查特定版本的问题，请将 `latest` 替换为项目原本使用的 `@rspack/core` 版本。分析结束后应移除 override。
 
 ### 采集 heap profile
 
-先创建输出目录，再通过 jemalloc profiling 运行 Rspack。Native binding 文件名需要替换为当前平台生成的文件：
+先创建输出目录，再通过 jemalloc profiling 运行项目原本的构建命令。对于直接使用 Rspack CLI 的项目：
 
 ```sh
 mkdir -p /tmp/rspack-jemalloc
 
 cd /path/to/project
 _RJEM_MALLOC_CONF='prof:true,prof_active:true,prof_final:true,lg_prof_sample:19,lg_prof_interval:26,prof_prefix:/tmp/rspack-jemalloc/rspack' \
-NAPI_RS_NATIVE_LIBRARY_PATH=/path/to/rspack/crates/node_binding/rspack.darwin-arm64.node \
-node /path/to/rspack/packages/rspack-cli/bin/rspack.js build
+pnpm exec rspack build
 ```
+
+如果项目使用 Rsbuild 或其他基于 Rspack 的工具，请保留同一个环境变量，并运行该工具原本的构建命令。
 
 `tikv-jemallocator` 会为运行时配置变量添加前缀，因此需要使用 `_RJEM_MALLOC_CONF`，而不是 `MALLOC_CONF`。
 
@@ -91,11 +102,13 @@ node /path/to/rspack/packages/rspack-cli/bin/rspack.js build
 
 ### 生成函数级内存分配图
 
-安装 jemalloc 5.x 提供的 `jeprof` 和 Graphviz。Rust 符号位于 Rspack 的 `.node` binding 中，因此 program 参数应当传入 `.node` 文件，而不是 Node.js 可执行文件：
+安装 jemalloc 5.x 提供的 `jeprof` 和 Graphviz。先找到 `@rspack-debug/core` 实际加载的 native binding，再将该 `.node` 文件作为包含 Rust 符号的 program 参数传给 `jeprof`：
 
 ```sh
+RSPACK_BINDING=$(node -e 'require("@rspack/core"); const binding = Object.keys(require.cache).find(file => /rspack\..+\.node$/.test(file)); if (!binding) throw new Error("Rspack native binding not found"); process.stdout.write(binding)')
+
 jeprof --show_bytes --functions --exclude='_+rjem_' --svg \
-  /path/to/rspack/crates/node_binding/rspack.darwin-arm64.node \
+  "$RSPACK_BINDING" \
   /tmp/rspack-jemalloc/rspack.<pid>.<sequence>.heap \
   > rspack-memory.svg
 ```
@@ -104,7 +117,7 @@ jeprof --show_bytes --functions --exclude='_+rjem_' --svg \
 
 ```sh
 jeprof --show_bytes --functions --exclude='_+rjem_' --text --cum \
-  /path/to/rspack/crates/node_binding/rspack.darwin-arm64.node \
+  "$RSPACK_BINDING" \
   /tmp/rspack-jemalloc/rspack.<pid>.<sequence>.heap
 ```
 
@@ -112,7 +125,7 @@ jeprof --show_bytes --functions --exclude='_+rjem_' --text --cum \
 
 ```sh
 jeprof --alloc_space --show_bytes --functions --exclude='_+rjem_' --svg \
-  /path/to/rspack/crates/node_binding/rspack.darwin-arm64.node \
+  "$RSPACK_BINDING" \
   /tmp/rspack-jemalloc/rspack.<pid>.<sequence>.heap \
   > rspack-alloc-space.svg
 ```
