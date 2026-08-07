@@ -12,6 +12,7 @@ import type Hash from '../util/hash';
 import { parseResource } from '../util/identifier';
 import type { RspackOptionsNormalized } from './normalization';
 import type {
+  Environment,
   Mode,
   PublicPath,
   Resolve,
@@ -236,6 +237,12 @@ export interface LoaderContext<OptionsType = {}> {
    * The current compilation target. Passed from `target` configuration options.
    */
   target?: Target;
+  /**
+   * Describes the capabilities supported by the target environment. This is the effective value
+   * of `output.environment`: Rspack infers the capabilities from `target`, then applies the
+   * explicit settings from `output.environment`.
+   */
+  environment: Environment;
   /**
    * Whether HMR is enabled.
    */

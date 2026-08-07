@@ -701,6 +701,24 @@ export default function loader(source) {
 }
 ```
 
+## this.environment
+
+- **类型：** `Environment`
+
+描述目标运行环境支持的能力。该值是最终生效的 [`output.environment`](/config/output#outputenvironment)：Rspack 会根据 [`target`](/config/target) 自动判断目标环境支持的能力，再应用 `output.environment` 中的显式配置。
+
+loader 可以根据这些信息选择输出环境支持的语法。
+
+```js title="loader.mjs"
+export default function loader(source) {
+  if (this.environment.optionalChaining) {
+    console.log('Optional chaining is supported');
+  }
+
+  return source;
+}
+```
+
 ## this.utils
 
 - **类型：**
