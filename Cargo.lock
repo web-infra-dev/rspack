@@ -3676,7 +3676,6 @@ version = "0.101.8"
 dependencies = [
  "async-trait",
  "codspeed-criterion-compat",
- "css-module-lexer",
  "mimalloc",
  "rayon",
  "rspack",
