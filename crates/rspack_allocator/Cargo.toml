@@ -16,7 +16,7 @@ tracy-client  = { workspace = true, optional = true }
 [target.'cfg(all(target_vendor = "apple", not(target_family = "wasm")))'.dependencies]
 tikv-jemallocator = { workspace = true, optional = true, features = ["profiling_libunwind"] }
 
-[target.'cfg(all(not(target_vendor = "apple"), not(target_family = "wasm"), not(target_env = "msvc")))'.dependencies]
+[target.'cfg(all(not(target_vendor = "apple"), not(target_family = "wasm"), not(target_env = "msvc"), not(target_arch = "s390x")))'.dependencies]
 tikv-jemallocator = { workspace = true, optional = true, features = ["profiling"] }
 
 [target.'cfg(target_os = "linux")'.dependencies]

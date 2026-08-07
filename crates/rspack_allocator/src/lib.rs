@@ -5,6 +5,7 @@
     miri,
     target_family = "wasm",
     target_env = "msvc",
+    target_arch = "s390x",
     feature = "sftrace-setup",
     feature = "tracy-client"
   ))
@@ -16,7 +17,7 @@ static GLOBAL: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
 #[cfg(any(
   all(
     feature = "jemalloc-profiling",
-    target_env = "msvc",
+    any(target_env = "msvc", target_arch = "s390x"),
     not(any(feature = "sftrace-setup", feature = "tracy-client"))
   ),
   not(any(

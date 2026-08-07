@@ -45,7 +45,7 @@ pnpm install
 在支持的原生平台上，`@rspack-debug/core` 默认使用带 heap profiling 能力的 jemalloc。只有通过 `_RJEM_MALLOC_CONF` 启用采样后才会输出 profile，因此 debug package 在未配置该变量时仍可正常使用，不会产生 profile 文件。
 
 :::note
-Linux 和 macOS 上的 debug package 支持 jemalloc profiling。Windows MSVC 和 Wasm package 不支持该能力，会继续使用默认 allocator。常规的 `@rspack/core` package 不受影响。
+支持的 Linux 目标和 macOS 上的 debug package 支持 jemalloc profiling。Windows MSVC、s390x Linux 和 Wasm package 不支持该能力，会继续使用默认 allocator。常规的 `@rspack/core` package 不受影响。
 :::
 
 ### 安装 debug package

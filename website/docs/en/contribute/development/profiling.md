@@ -43,7 +43,7 @@ pnpm install
 The `@rspack-debug/core` package uses jemalloc with heap profiling support by default on supported native platforms. Recording is disabled until it is enabled through `_RJEM_MALLOC_CONF`, so the debug package can still be used normally without producing profile files.
 
 :::note
-jemalloc profiling is available in the debug package on Linux and macOS. Windows MSVC and Wasm packages continue to use the default allocator because jemalloc profiling is not supported on those targets. The regular `@rspack/core` package is not affected.
+jemalloc profiling is available in the debug package on supported Linux targets and macOS. Windows MSVC, s390x Linux, and Wasm packages continue to use the default allocator because jemalloc profiling is not supported on those targets. The regular `@rspack/core` package is not affected.
 :::
 
 ### Install the debug package
