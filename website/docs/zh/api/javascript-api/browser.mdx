@@ -311,19 +311,24 @@ function uselessExecute(_code: string, runtime: CommonJsRuntime) {
 2. ModuleFederationPlugin 中设置的共享依赖，还需要在 BrowserHttpImportEsmPlugin 相应地配置 `external` 和指定版本号。如果你使用的是 `esm.sh` 作为 CDN，可以参考以下代码：
 
 ```js title="rspack.config.mjs"
-new rspack.BrowserHttpImportEsmPlugin({
-  domain: "https://esm.sh",
+import { BrowserHttpImportEsmPlugin } from '@rspack/browser';
+
+new BrowserHttpImportEsmPlugin({
+  domain: 'https://esm.sh',
   dependencyVersions: {
-    "react": "19.1.1"
+    react: '19.1.1',
   },
   postprocess: (request) => {
     // 这里也设置 `react-dom` 的 `dev` 参数，因为你需要确保模块联邦的生产者项目和消费者项目使用相同模式的 `react` 和 `react-dom`。
-    if (request.packageName === "@module-federation/webpack-bundler-runtime" || request.packageName === "react-dom") {
-      request.url.searchParams.set("dev", "");
+    if (
+      request.packageName === '@module-federation/webpack-bundler-runtime' ||
+      request.packageName === 'react-dom'
+    ) {
+      request.url.searchParams.set('dev', '');
     }
-    request.url.searchParams.set("external", "react");
-  }
-}),
+    request.url.searchParams.set('external', 'react');
+  },
+});
 ```
 
 3. 所有 [ModuleFederationPlugin.shared](/plugins/webpack/module-federation-plugin#shared) 配置必须设置 `import: false`，即在线打包的消费者项目不能打包共享模块，共享模块必须由预先打包好的生产者项目提供。
