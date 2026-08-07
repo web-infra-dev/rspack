@@ -81,7 +81,7 @@ Before running tests after code changes:
 ### Adding tests
 
 - **Rust**: Do not add new Rust tests in ordinary changes, especially unit tests for small functions. Only add Rust test cases when they belong in a dedicated test crate; do not add inline `#[test]` functions or crate-local unit tests.
-- **JavaScript**: Do not create new `test.js` test entry files. Reuse an existing test entry and add coverage only by adding a case under the appropriate cases directory, such as `tests/rspack-test/{type}Cases/` (Normal, Config, Hot, Watch, StatsOutput, StatsAPI, Diagnostic, Hash, Compiler, Defaults, Error, Hook, TreeShaking, Builtin).
+- **JavaScript**: Do not create new top-level or suite-level `test.js` runner entry files. Reuse an existing runner and add coverage only by adding a case under the appropriate cases directory, such as `tests/rspack-test/{type}Cases/` (Normal, Config, Hot, Watch, StatsOutput, StatsAPI, Diagnostic, Hash, Compiler, Defaults, Error, Hook, TreeShaking, Builtin). Files required inside an individual case by an existing harness, such as `hookCases/**/test.js`, are allowed and are not new runner entry points.
 
 ## Dependency management
 
