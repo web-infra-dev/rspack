@@ -4,7 +4,7 @@ export type { RspackError } from '@rspack/binding';
 export type RspackSeverity = binding.JsRspackSeverity;
 
 export class NonErrorEmittedError extends Error {
-  constructor(error: unknown) {
+  constructor(error: Error) {
     super();
     this.name = 'NonErrorEmittedError';
     this.message = `(Emitted value instead of an instance of Error) ${error}`;

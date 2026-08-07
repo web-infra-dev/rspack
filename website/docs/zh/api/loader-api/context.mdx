@@ -229,10 +229,10 @@ function dependency(file: string): void;
 - **类型：**
 
 ```ts
-function emitError(error: Error | string): void;
+function emitError(error: Error): void;
 ```
 
-发出一个错误。如果传入字符串，Rspack 会将它包装为 `Error` 对象。
+发出一个错误。
 
 与在 loader 中 `throw` 和 `this.callback(err)` 不同，它不会将当前模块标记为编译失败，只会向 Rspack 的 Compilation 添加一个错误，并在本次编译结束后显示在命令行中。
 
@@ -241,10 +241,10 @@ function emitError(error: Error | string): void;
 - **类型：**
 
 ```ts
-function emitWarning(warning: Error | string): void;
+function emitWarning(warning: Error): void;
 ```
 
-发出一个警告。如果传入字符串，Rspack 会将它包装为 `Error` 对象。
+发出一个警告。
 
 ## this.experiments.emitDiagnostic()
 

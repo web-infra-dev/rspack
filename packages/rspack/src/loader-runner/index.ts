@@ -554,6 +554,8 @@ export async function runLoaders(
     );
   };
   loaderContext.rootContext = compiler.context;
+  // The public API intentionally accepts only Error instances. Keep these runtime checks for
+  // untyped JavaScript loaders that pass strings or other non-Error values.
   loaderContext.emitError = function emitError(e) {
     if (!(e instanceof Error)) {
       e = new NonErrorEmittedError(e);

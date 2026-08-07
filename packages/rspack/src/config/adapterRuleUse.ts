@@ -292,16 +292,15 @@ export interface LoaderContext<OptionsType = {}> {
    */
   getLogger(name?: string): Logger;
   /**
-   * Emit an error. Strings are wrapped in an `Error` object. Unlike `throw` and
-   * `this.callback(err)` in the loader, it does not mark the current module as a compilation
-   * failure. It adds an error to Rspack's Compilation and displays it on the command line at the
-   * end of this compilation.
+   * Emit an error. Unlike `throw` and `this.callback(err)` in the loader, it does not mark the
+   * current module as a compilation failure. It adds an error to Rspack's Compilation and displays
+   * it on the command line at the end of this compilation.
    */
-  emitError(error: Error | string): void;
+  emitError(error: Error): void;
   /**
-   * Emit a warning. Strings are wrapped in an `Error` object.
+   * Emit a warning.
    */
-  emitWarning(warning: Error | string): void;
+  emitWarning(warning: Error): void;
   /**
    * Emit a new file. This method allows you to create new files during the loader execution.
    */
