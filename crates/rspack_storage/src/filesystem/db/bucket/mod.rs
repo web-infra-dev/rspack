@@ -1,12 +1,14 @@
+mod codec;
 mod index;
 mod meta;
 mod pack;
 
-use pack::{PackGenerator, PackId, PackIdAlloc};
+use pack::{Pack, PackGenerator, PackId, PackIdAlloc};
+use rayon::prelude::*;
 use rspack_parallel::TryFutureConsumer;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
-use self::{meta::Meta, pack::Pack};
+use self::meta::Meta;
 use super::ScopeFileSystem;
 use crate::{Error, Result};
 
@@ -82,7 +84,10 @@ impl Bucket {
       .try_fut_consume(|pack| result.extend(pack.data()))
       .await?;
 
-    Ok(result)
+    result
+      .into_par_iter()
+      .map(|(key, value)| codec::decode(value).map(|value| (key, value)))
+      .collect()
   }
 
   /// Saves changes to disk, returning lists of added and removed files.
@@ -121,7 +126,14 @@ impl Bucket {
     }
     let hot_pack = std::mem::take(&mut self.hot_pack);
     pack_generator.extend(hot_pack.data());
-    pack_generator.extend(data.into_iter().filter_map(|(k, v)| v.map(|v| (k, v))));
+    let updates = data
+      .into_par_iter()
+      .filter_map(|(key, value)| value.map(|value| (key, value)))
+      .map_init(codec::Encoder::default, |encoder, (key, value)| {
+        (key, encoder.encode(value))
+      })
+      .collect::<Vec<_>>();
+    pack_generator.extend(updates);
     let (hot_pack, new_packs) = pack_generator.finish();
 
     // Alloc id for packs
@@ -253,6 +265,49 @@ mod test {
 
     assert_eq!(bucket.meta.cold_pack_indexes().len(), 4);
     assert_eq!(bucket.hot_pack.clone().data().len(), 1);
+
+    Ok(())
+  }
+
+  #[tokio::test]
+  #[cfg_attr(miri, ignore)]
+  async fn compressible_values_are_grouped_by_physical_size() -> Result<()> {
+    let fs = ScopeFileSystem::new_memory_fs("/compressed_bucket".into());
+    let mut bucket = Bucket::new(fs.clone()).await?;
+    let expected = (0..8)
+      .map(|index| {
+        (
+          format!("module-{index}").into_bytes(),
+          format!("deterministic synthetic module content {index};")
+            .repeat(512)
+            .into_bytes(),
+        )
+      })
+      .collect::<Vec<_>>();
+    let raw_value_bytes = expected.iter().map(|(_, value)| value.len()).sum::<usize>();
+    let updates = expected
+      .iter()
+      .cloned()
+      .map(|(key, value)| (key, Some(value)))
+      .collect();
+
+    bucket.save(None, updates, 4096).await?;
+
+    assert!(
+      bucket.meta.cold_pack_indexes().is_empty(),
+      "compressed values should fit together instead of each creating a cold pack"
+    );
+    let physical_pack = fs.read("0.pack").await?;
+    assert!(
+      physical_pack.len() < raw_value_bytes / 10,
+      "physical pack should be substantially smaller than its restored values"
+    );
+
+    let mut restored = Bucket::new(fs).await?.load_all().await?;
+    restored.sort_by(|left, right| left.0.cmp(&right.0));
+    let mut expected = expected;
+    expected.sort_by(|left, right| left.0.cmp(&right.0));
+    assert_eq!(restored, expected);
 
     Ok(())
   }
