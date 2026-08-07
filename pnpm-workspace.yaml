@@ -206,6 +206,8 @@ minimumReleaseAgeExclude:
   - '@swc/*'
   - 'heading-case'
   - '@rstackjs/*'
+  # Renovate security update: mermaid@11.16.1
+  - mermaid@11.16.1
 
 patchedDependencies:
   webpack-sources@3.5.1: patches/webpack-sources@3.5.1.patch
