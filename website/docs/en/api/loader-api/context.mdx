@@ -131,28 +131,31 @@ export default function loader(source) {
 - **Type:**
 
 ```ts
+interface AdditionalData {
+  [index: string]: any;
+}
+
 function callback(
-  err: Error | null,
-  content: string | Buffer,
-  sourceMap?: Rspack.RawSourceMap,
-  meta?: any,
+  err?: Error | null,
+  content?: string | Buffer,
+  sourceMap?: string | Rspack.RawSourceMap,
+  additionalData?: AdditionalData,
 ): void;
 ```
 
-A function that can be called synchronously or asynchronously in order to return multiple results. The expected arguments are:
+Call `this.callback()` to return a loader's results, either synchronously or asynchronously. Its arguments are:
 
-1. The first parameter must be `Error` or `null`, which marks the current module as a compilation failure.
-2. The second argument is a `string` or `Buffer`, which indicates the contents of the file after the module has been processed by the loader.
-3. The third parameter is a source map that can be processed by the loader.
-4. The fourth parameter is ignored by Rspack and can be anything (e.g. some metadata).
+1. `err`: An `Error` when the loader fails, or `null` or `undefined` when it succeeds.
+2. `content`: The transformed module content as a `string` or `Buffer`. It can be omitted when reporting an error.
+3. `sourceMap`: An optional source map as a `string` or `Rspack.RawSourceMap`.
+4. `additionalData`: Optional additional data. Rspack passes it as the third argument to the next loader in the chain.
 
 > See [Sync loader](/api/loader-api/writing-loaders#sync-loader) for more details.
 
 :::warning
 In case this function is called, you should return `undefined` to avoid ambiguous loader results.
 
-The value passed to `this.callback` will be passed to the next loader in the chain.
-The `sourceMap` and `meta` parameters are optional. If they are not passed, the next loader will not receive them.
+The `content`, `sourceMap`, and `additionalData` values are passed to the next loader in the chain.
 :::
 
 ## this.clearDependencies()
@@ -163,7 +166,9 @@ The `sourceMap` and `meta` parameters are optional. If they are not passed, the 
 function clearDependencies(): void;
 ```
 
-Removes all dependencies of the loader result.
+Clears all [file dependencies](#thisadddependency), [context dependencies](#thisaddcontextdependency), and [missing dependencies](#thisaddmissingdependency) collected by the loader chain. [Build dependencies](#thisaddbuilddependency) are not cleared. This also resets [`cacheable`](#thiscacheable) to `true`, overriding any earlier call to `this.cacheable(false)`.
+
+Only use this method when the current loader will register every dependency required by the final result.
 
 ## this.context
 
