@@ -79,7 +79,7 @@ Enable debug information of specified loggers such as plugins or loaders. Simila
 export default {
   infrastructureLogging: {
     level: 'info',
-    debug: ['MyPlugin', /MyPlugin/, (name) => name.contains('MyPlugin')],
+    debug: ['MyPlugin', /MyPlugin/, (name) => name.includes('MyPlugin')],
   },
 };
 ```
