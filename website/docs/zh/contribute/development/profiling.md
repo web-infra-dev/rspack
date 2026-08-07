@@ -19,7 +19,7 @@ description: '性能分析应基于包含调试信息的发布版本进行。这
 1. 构建带有调试信息的发布版本：
 
 ```sh
-pnpm build:binding:profiling
+just build release-debug
 ```
 
 2. 更改 `@rspack/core` 和 `@rspack/cli`，使用 `link` 协议链接到本地​​构建的 Rspack：
@@ -90,7 +90,7 @@ heaptrack_gui ./rspack-heaptrack.gz
 
 Heaptrack 退出时会打印实际的输出文件名。`--record-only` 可以避免自动打开 GUI，适合 WSL、容器和远程终端。
 
-`@rspack-debug/core` 使用 system allocator，因此 Heaptrack 能够采集 Rspack 和 SWC 的分配。常规 release 包使用 mimalloc，会绕过 system allocator 的拦截点，因此其中的 Rust 分配数据不完整。根据 Heaptrack 版本不同，GUI 可能显示以 `_R` 开头的 Rust v0 mangled 符号，而不是 demangle 后的名称；这只影响展示，不影响已记录的调用栈。如需生成 demangle 后的文本报告，可以安装 [`rustfilt`](https://github.com/luser/rustfilt) 并执行：
+`@rspack-debug/core` 使用 system allocator，因此 Heaptrack 能够采集 Rspack native binding 的内存分配。常规 release 包使用 mimalloc，会绕过 system allocator 的拦截点，因此其中的 Rust 分配数据不完整。根据 Heaptrack 版本不同，GUI 可能显示以 `_R` 开头的 Rust v0 mangled 符号，而不是 demangle 后的名称；这只影响展示，不影响已记录的调用栈。如需生成 demangle 后的文本报告，可以安装 [`rustfilt`](https://github.com/luser/rustfilt) 并执行：
 
 ```sh
 heaptrack_print ./rspack-heaptrack.gz | rustfilt | less
