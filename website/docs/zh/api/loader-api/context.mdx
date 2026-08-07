@@ -115,7 +115,9 @@ export default function loader(source) {
 function cacheable(flag: boolean = true): void;
 ```
 
-默认情况下，loader 的处理结果会被标记为可缓存。调用这个方法然后传入 `false`，可以关闭 loader 处理结果的缓存能力。
+默认情况下，当前模块经过整条 loader 链生成的最终构建结果可以被缓存。调用 `this.cacheable(false)` 会将该结果标记为不可缓存。
+
+设置后，后续 loader 即使调用 `this.cacheable(true)` 或 `this.cacheable()` 也无法重新启用缓存。只有 [`this.clearDependencies()`](#thiscleardependencies) 会重置这个状态。
 
 ```js title="loader.mjs"
 export default function loader(source) {
@@ -183,7 +185,7 @@ export default function loader(source) {
 }
 ```
 
-如果被处理的是模块不是来自文件系统，例如虚拟模块，那么 `this.context` 的值为 `null`。
+如果正在处理的模块没有资源路径，`this.context` 的值为 `null`。
 
 ## this.loaderIndex
 
@@ -227,10 +229,12 @@ function dependency(file: string): void;
 - **类型：**
 
 ```ts
-function emitError(err: Error): void;
+function emitError(error: Error): void;
 ```
 
-发出一个错误，与在 loader 中 `throw` 和 `this.callback(err)` 不同，它不会标记当前模块为编译失败，只会在 Rspack 的 Compilation 上添加一个错误，并在此次编译结束后显示在命令行中。
+发出一个错误。
+
+与在 loader 中 `throw` 和 `this.callback(err)` 不同，它不会将当前模块标记为编译失败，只会向 Rspack 的 Compilation 添加一个错误，并在本次编译结束后显示在命令行中。
 
 ## this.emitWarning()
 
@@ -280,15 +284,15 @@ interface Diagnostic {
 function emitDiagnostic(diagnostic: Diagnostic): void;
 ```
 
-格式化并输出一个诊断信息（错误或警告日志），支持显示模块路径、源代码片段和行列号。
+格式化并输出错误或警告诊断信息，支持显示模块路径、源代码片段和行列号。
 
 ::: info
-与在 loader 中 `throw` 和 `this.callback(err)` 不同，它不会标记当前模块为编译失败，只会在 Rspack 的 Compilation 上添加一个错误，并在此次编译结束后显示在命令行中。
+与在 loader 中 `throw` 和 `this.callback(err)` 不同，它不会将当前模块标记为编译失败，而是根据 `severity` 向 Rspack 的 Compilation 添加错误或警告，并在本次编译结束后显示在命令行中。
 :::
 
 - 基础示例：
 
-当仅使用 `message` 和 `severity` 时，仅会打印基础的模块错误信息。
+只提供 `message` 和 `severity` 时，仅会输出基本的诊断信息。
 
 ```js title="loader.mjs"
 /** @type {import("@rspack/core").LoaderDefinition} */
@@ -532,10 +536,37 @@ export default function myLoader(
 - **类型：**
 
 ```ts
-function getResolve(options: ResolveOptions): resolve;
+type ResolveFunction = {
+  (
+    context: string,
+    request: string,
+    callback: (
+      err: Error | null,
+      result?: string | false,
+      resolveRequest?: ResolveRequest,
+    ) => void,
+  ): void;
+  (context: string, request: string): Promise<string | false | undefined>;
+};
+
+function getResolve(options?: ResolveOptions): ResolveFunction;
 ```
 
-创建一个类似于 `this.resolve` 的解析函数。
+创建一个类似于 [`this.resolve()`](#thisresolve) 的解析函数。可以通过 `options` 自定义解析行为；省略时使用不带额外选项的普通解析器。
+
+返回的解析函数同时支持回调和 Promise 两种调用方式。不传回调函数时，它会返回 Promise。
+
+```js title="loader.mjs"
+export default async function loader(source) {
+  const resolve = this.getResolve({
+    extensions: ['.js', '.json'],
+  });
+  const result = await resolve(this.context, './dependency');
+
+  console.log(result);
+  return source;
+}
+```
 
 ## this.hot
 
@@ -657,11 +688,47 @@ export default function loader(source) {
 
 它通常用于构造内联请求，避免再次执行当前 loader。可以参考 [Inline matchResource](/api/loader-api/inline-match-resource) 中的示例。
 
+## this.currentRequest
+
+- **类型：** `string`
+
+`this.currentRequest` 由当前 loader、loader 链中位于它之后的所有 loader 和当前资源组成，各部分使用 `!` 连接。
+
+例如，假设 loader 链为：
+
+```text
+/path/to/loader1.mjs!/path/to/loader2.mjs!/path/to/resource.js
+```
+
+执行到 `loader2.mjs` 时，`this.currentRequest` 为：
+
+```text
+/path/to/loader2.mjs!/path/to/resource.js
+```
+
+## this.previousRequest
+
+- **类型：** `string`
+
+`this.previousRequest` 由 loader 链中位于当前 loader 之前的所有 loader 组成，各部分使用 `!` 连接。它不包含当前资源。
+
+例如，假设 loader 链为：
+
+```text
+/path/to/loader1.mjs!/path/to/loader2.mjs!/path/to/resource.js
+```
+
+执行到 `loader2.mjs` 时，`this.previousRequest` 为：
+
+```text
+/path/to/loader1.mjs
+```
+
 ## this.request
 
 - **类型：** `string`
 
-解析后的 module specifier 字符串。
+完整的请求字符串，由所有 loader 和当前资源组成，各部分使用 `!` 连接。
 
 例如，如果 `resource.js` 被 `loader1.mjs` 和 `loader2.mjs` 处理，那么 `this.request` 的值为 `/path/to/loader1.mjs!/path/to/loader2.mjs!/path/to/resource.js`。
 
@@ -673,7 +740,11 @@ export default function loader(source) {
 function resolve(
   context: string,
   request: string,
-  callback: (err: Error | null, result: string) => void,
+  callback: (
+    err: Error | null,
+    result?: string | false,
+    resolveRequest?: ResolveRequest,
+  ) => void,
 ): void;
 ```
 
@@ -681,26 +752,26 @@ function resolve(
 
 - `context` 必须是一个目录的绝对路径。此目录用作解析的起始位置。
 - `request` 是要被解析的模块标识符。
-- `callback` 是一个处理解析路径的回调函数。
+- `callback` 会接收错误、解析后的路径（请求被忽略时为 `false`），以及可选的解析详情。
 
 ## this.mode
 
-- **类型：** `Mode`
+- **类型：** `Mode | undefined`
 
-当 Rspack 运行时读取 [mode](/config/mode) 的值，可能的值为：`'production'`、`'development'`、`'none'`。
+[`mode`](/config/mode) 配置的值，可能为 `'production'`、`'development'`、`'none'` 或 `undefined`。如果没有配置 `mode`，`this.mode` 为 `undefined`，但 Rspack 仍会应用偏向生产环境的默认配置。
 
 ```js title="loader.mjs"
 export default function loader(source) {
-  console.log(this.mode); // 'production' or other values
+  console.log(this.mode); // 'production'、'development'、'none' 或 undefined
   return source;
 }
 ```
 
 ## this.target
 
-- **类型：** `Target`
+- **类型：** `Target | undefined`
 
-当前编译的目标。对应 [`target`](/config/target) 配置项的值。
+默认情况下，Rspack 会根据 [`target`](/config/target) 所描述的运行环境能力，为 loader 生成一个更简单的目标值。能够判断目标环境时，该值会是 `'web'`、`'node'`、`'nwjs'` 或 `'electron-main'` 等。因此，`this.target` 不一定与原始的 `target` 配置完全相同。
 
 ```js title="loader.mjs"
 export default function loader(source) {
@@ -713,7 +784,7 @@ export default function loader(source) {
 
 - **类型：** `Environment`
 
-描述目标运行环境支持的能力。该值是最终生效的 [`output.environment`](/config/output#outputenvironment)：Rspack 会根据 [`target`](/config/target) 自动判断目标环境支持的能力，再应用 `output.environment` 中的显式配置。
+描述目标运行环境支持的能力。默认情况下，该值是最终生效的 [`output.environment`](/config/output#outputenvironment)：Rspack 会根据 [`target`](/config/target) 判断目标环境支持的能力，再应用 `output.environment` 中的显式配置。
 
 loader 可以根据这些信息选择输出环境支持的语法。
 
