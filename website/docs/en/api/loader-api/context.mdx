@@ -712,6 +712,24 @@ export default function loader(source) {
 }
 ```
 
+## this.environment
+
+- **Type:** `Environment`
+
+Describes the capabilities supported by the target environment. This is the effective value of [`output.environment`](/config/output#outputenvironment): Rspack infers the capabilities from [`target`](/config/target), then applies the explicit settings from `output.environment`.
+
+A loader can use this information to choose syntax supported by the output environment.
+
+```js title="loader.mjs"
+export default function loader(source) {
+  if (this.environment.optionalChaining) {
+    console.log('Optional chaining is supported');
+  }
+
+  return source;
+}
+```
+
 ## this.utils
 
 - **Type:**
