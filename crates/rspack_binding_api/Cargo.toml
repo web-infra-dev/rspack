@@ -11,14 +11,13 @@ repository.workspace    = true
 version.workspace       = true
 
 [features]
-allocative         = ["rspack_util/allocative", "rspack_collections/allocative", "rspack_cacheable/allocative", "rspack_tracing_perfetto?/allocative"]
-browser            = []
-debug_tool         = ["rspack_core/debug_tool"]
-jemalloc-profiling = ["rspack_allocator/jemalloc-profiling"]
-perfetto           = ["dep:rspack_tracing_perfetto", "rspack_tracing/perfetto"]
-plugin             = ["rspack_loader_swc/plugin", "rspack_util/plugin"]
-sftrace-setup      = ["dep:sftrace-setup", "rspack_allocator/sftrace-setup"]
-tracy-client       = ["dep:tracy-client", "rspack_allocator/tracy-client"]
+allocative    = ["rspack_util/allocative", "rspack_collections/allocative", "rspack_cacheable/allocative", "rspack_tracing_perfetto?/allocative"]
+browser       = []
+debug_tool    = ["rspack_core/debug_tool"]
+perfetto      = ["dep:rspack_tracing_perfetto", "rspack_tracing/perfetto"]
+plugin        = ["rspack_loader_swc/plugin", "rspack_util/plugin"]
+sftrace-setup = ["dep:sftrace-setup", "rspack_allocator/sftrace-setup"]
+tracy-client  = ["dep:tracy-client", "rspack_allocator/tracy-client"]
 
 [dependencies]
 anyhow                    = { workspace = true }
