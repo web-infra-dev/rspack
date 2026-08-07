@@ -40,15 +40,26 @@ pnpm install
 
 ## Memory profiling
 
-Memory profilers observe allocations at the allocator boundary. The regular Rspack release binding uses mimalloc, while `@rspack-debug/core` and a local `release-debug` binding use the system allocator. Use the debug binding when collecting Heaptrack data or dynamically injecting jemalloc.
+Memory profilers observe allocations at the allocator boundary. The regular Rspack release package uses mimalloc, while `@rspack-debug/core` uses the system allocator. Use `@rspack-debug/core` when collecting Heaptrack data or dynamically injecting jemalloc.
 
-For a local Rspack checkout, build the debug binding with:
+In the project you want to profile, override `@rspack/core` with the same version of `@rspack-debug/core` as described in [Debugging](/contribute/development/debugging#using-rspack-debugcore), then reinstall the dependencies. For example, if the project uses `@rspack/core@2.1.0` with pnpm:
 
-```sh
-pnpm build:binding:debug
+```json title="package.json"
+{
+  "pnpm": {
+    "overrides": {
+      "@rspack/core": "npm:@rspack-debug/core@2.1.0"
+    },
+    "peerDependencyRules": {
+      "allowAny": ["@rspack/*"]
+    }
+  }
+}
 ```
 
-To profile an existing project, override `@rspack/core` with the matching version of `@rspack-debug/core` as described in [Debugging](/contribute/development/debugging#using-rspack-debugcore), and reinstall the dependencies.
+```sh
+pnpm install
+```
 
 | Profiler           | Output   | Analyzer                           | Best used for                                      |
 | ------------------ | -------- | ---------------------------------- | -------------------------------------------------- |
@@ -77,7 +88,7 @@ heaptrack_gui ./rspack-heaptrack.gz
 
 The exact output filename is printed when Heaptrack exits. `--record-only` prevents Heaptrack from trying to open the GUI automatically, which is useful in WSL, containers, and remote shells.
 
-The debug binding's system allocator allows Heaptrack to capture Rspack and SWC allocations. A regular release binding uses mimalloc and bypasses the system allocator hooks, so its Rust allocation data is incomplete. Depending on the Heaptrack version, the GUI may show Rust v0 symbol names beginning with `_R` instead of demangled names; this affects display only, not the recorded stacks. For a demangled text report, install [`rustfilt`](https://github.com/luser/rustfilt) and pipe the output through it:
+The system allocator used by `@rspack-debug/core` allows Heaptrack to capture Rspack and SWC allocations. The regular release package uses mimalloc and bypasses the system allocator hooks, so its Rust allocation data is incomplete. Depending on the Heaptrack version, the GUI may show Rust v0 symbol names beginning with `_R` instead of demangled names; this affects display only, not the recorded stacks. For a demangled text report, install [`rustfilt`](https://github.com/luser/rustfilt) and pipe the output through it:
 
 ```sh
 heaptrack_print ./rspack-heaptrack.gz | rustfilt | less
@@ -163,7 +174,7 @@ Node.js currently only supports `--perf-prof` on Linux platforms. JavaScript pro
 
 Rspack’s JavaScript typically runs in the Node.js thread. Select the Node.js thread to view the time distribution on the Node.js side.
 
-![JavaScript Profiling](https://assets.rspack.rs/rspack/assets/profiling-javascript.png)
+![Javascript Profiling](https://assets.rspack.rs/rspack/assets/profiling-javascript.png)
 
 #### Rust profiling
 
