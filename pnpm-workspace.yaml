@@ -36,7 +36,7 @@ catalog:
   '@module-federation/runtime-tools': '2.8.1'
   '@napi-rs/cli': '3.7.4'
   '@napi-rs/wasm-runtime': '1.1.6'
-  '@playwright/test': '1.60.0'
+  '@playwright/test': '1.62.1'
   '@prefresh/core': '1.5.10'
   '@prefresh/utils': '1.2.1'
   '@rsbuild/plugin-node-polyfill': '^1.4.6'
