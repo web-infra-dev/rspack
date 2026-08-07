@@ -120,7 +120,10 @@ impl ContextDependency for ImportMetaContextDependency {
   }
 
   fn get_context(&self) -> Option<&str> {
-    None
+    match self.kind {
+      ImportMetaContextDependencyKind::WebpackContext => None,
+      ImportMetaContextDependencyKind::Glob => Some(self.options.context.as_str()),
+    }
   }
 
   fn resource_identifier(&self) -> &str {
