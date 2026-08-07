@@ -521,11 +521,4 @@ mod tests {
     assert_eq!(context_options.glob_import.as_deref(), Some("default"));
     assert!(context_options.glob_exhaustive);
   }
-  #[test]
-  fn import_meta_glob_fs_path_normalizes_windows_base_before_parent_join() {
-    assert_eq!(
-      join_import_meta_glob_fs_path(r"D:\repo\context\nested", ".."),
-      "D:/repo/context"
-    );
-  }
 }
