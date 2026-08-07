@@ -115,9 +115,9 @@ Tells Rspack that this loader will be called asynchronously. Returns [this.callb
 function cacheable(flag: boolean = true): void;
 ```
 
-A function that sets the cacheable flag.
+By default, the final build result produced for the current module by the entire loader chain is cacheable. Calling `this.cacheable(false)` marks that result as non-cacheable.
 
-By default, the processing results of the loader are marked as cacheable. Calling this method and passing `false` turns off the loader's ability to cache processing results.
+Once a loader has called `this.cacheable(false)`, subsequent loaders cannot make the result cacheable again by calling `this.cacheable(true)` or `this.cacheable()`. Only [`this.clearDependencies()`](#thiscleardependencies) resets this state.
 
 ```js title="loader.mjs"
 export default function loader(source) {
@@ -185,7 +185,7 @@ export default function loader(source) {
 }
 ```
 
-If the module being processed is not from the file system, such as a virtual module, then the value of `this.context` is `null`.
+If the current module has no resource path, the value of `this.context` is `null`.
 
 ## this.loaderIndex
 
@@ -229,10 +229,10 @@ Alias of [this.addDependency()](#thisadddependency).
 - **Type:**
 
 ```ts
-function emitError(error: Error): void;
+function emitError(error: Error | string): void;
 ```
 
-Emit an error.
+Emit an error. If a string is passed, Rspack wraps it in an `Error` object.
 
 ::: info
 Unlike `throw` and `this.callback(err)` in the loader, it does not mark the current module as a compilation failure, it just adds an error to Rspack's Compilation and displays it on the command line at the end of this compilation.
@@ -243,10 +243,10 @@ Unlike `throw` and `this.callback(err)` in the loader, it does not mark the curr
 - **Type:**
 
 ```ts
-function emitWarning(warning: Error): void;
+function emitWarning(warning: Error | string): void;
 ```
 
-Emit a warning.
+Emit a warning. If a string is passed, Rspack wraps it in an `Error` object.
 
 ## this.experiments.emitDiagnostic()
 
@@ -286,15 +286,15 @@ interface Diagnostic {
 function emitDiagnostic(diagnostic: Diagnostic): void;
 ```
 
-Formats and emits a diagnostic message (error or warning log). Supports the display of module paths, source code snippets and line/column numbers.
+Formats and emits an error or warning diagnostic. Supports the display of module paths, source code snippets, and line/column numbers.
 
 ::: info
-Unlike `throw` and `this.callback(err)` in the loader, it does not mark the current module as a compilation failure, it just adds an error to Rspack's Compilation and displays it on the command line at the end of this compilation.
+Unlike `throw` and `this.callback(err)` in a loader, it does not mark the current module as a compilation failure. It adds an error or warning to Rspack's Compilation according to `severity`, then displays it on the command line at the end of the compilation.
 :::
 
 - Basic example:
 
-When only `message` and `severity` are provided, only the basic module error information will be printed.
+When only `message` and `severity` are provided, only the basic diagnostic information will be printed.
 
 ```js title="loader.mjs"
 /** @type {import("@rspack/core").LoaderDefinition} */
@@ -538,10 +538,37 @@ To provide the best performance, Rspack does not perform the schema validation. 
 - **Type:**
 
 ```ts
-function getResolve(options: ResolveOptions): resolve;
+type ResolveFunction = {
+  (
+    context: string,
+    request: string,
+    callback: (
+      err: Error | null,
+      result?: string | false,
+      resolveRequest?: ResolveRequest,
+    ) => void,
+  ): void;
+  (context: string, request: string): Promise<string | false | undefined>;
+};
+
+function getResolve(options?: ResolveOptions): ResolveFunction;
 ```
 
-Create a resolver like `this.resolve`.
+Creates a resolver like [`this.resolve()`](#thisresolve). Pass `options` to customize the resolver. If no options are provided, it uses the normal resolver without additional options.
+
+The returned resolver supports both callback and Promise forms. When no callback is passed, it returns a Promise.
+
+```js title="loader.mjs"
+export default async function loader(source) {
+  const resolve = this.getResolve({
+    extensions: ['.js', '.json'],
+  });
+  const result = await resolve(this.context, './dependency');
+
+  console.log(result);
+  return source;
+}
+```
 
 ## this.hot
 
@@ -663,11 +690,47 @@ When Rspack runs `loader1.mjs`, `this.remainingRequest` is:
 
 You can use it to create an inline request without invoking the current loader again. See [Inline matchResource](/api/loader-api/inline-match-resource) for an example.
 
+## this.currentRequest
+
+- **Type:** `string`
+
+`this.currentRequest` consists of the current loader, the loaders that follow it in the chain, and the current resource, joined with `!`.
+
+For example, consider the following loader chain:
+
+```text
+/path/to/loader1.mjs!/path/to/loader2.mjs!/path/to/resource.js
+```
+
+When Rspack runs `loader2.mjs`, `this.currentRequest` is:
+
+```text
+/path/to/loader2.mjs!/path/to/resource.js
+```
+
+## this.previousRequest
+
+- **Type:** `string`
+
+`this.previousRequest` consists of the loaders that precede the current loader, joined with `!`. It does not include the current resource.
+
+For example, consider the following loader chain:
+
+```text
+/path/to/loader1.mjs!/path/to/loader2.mjs!/path/to/resource.js
+```
+
+When Rspack runs `loader2.mjs`, `this.previousRequest` is:
+
+```text
+/path/to/loader1.mjs
+```
+
 ## this.request
 
 - **Type:** `string`
 
-The module specifier string after being resolved.
+The complete request string, consisting of all loaders and the current resource joined with `!`.
 
 For example, if a `resource.js` is processed by `loader1.mjs` and `loader2.mjs`, the value of `this.request` will be `/path/to/loader1.mjs!/path/to/loader2.mjs!/path/to/resource.js`.
 
@@ -679,7 +742,11 @@ For example, if a `resource.js` is processed by `loader1.mjs` and `loader2.mjs`,
 function resolve(
   context: string,
   request: string,
-  callback: (err: Error | null, result: string) => void,
+  callback: (
+    err: Error | null,
+    result?: string | false,
+    resolveRequest?: ResolveRequest,
+  ) => void,
 ): void;
 ```
 
@@ -687,28 +754,28 @@ Resolve a module specifier.
 
 - `context` must be the absolute path to a directory. This directory is used as the starting location for resolving.
 - `request` is the module specifier to be resolved.
-- `callback` is a callback function that gives the resolved path.
+- `callback` receives the error, the resolved path (or `false` when the request is ignored), and optional resolution details.
 
 ## this.mode
 
-- **Type:** `Mode`
+- **Type:** `Mode | undefined`
 
-The value of [`mode`](/config/mode) is read when Rspack is run.
+The value of the [`mode`](/config/mode) configuration.
 
-The possible values are: `'production'`, `'development'`, `'none'`
+The possible values are `'production'`, `'development'`, `'none'`, and `undefined`. If `mode` is not configured, `this.mode` is `undefined`, even though Rspack applies production-oriented defaults.
 
 ```js title="loader.mjs"
 export default function loader(source) {
-  console.log(this.mode); // 'production' or other values
+  console.log(this.mode); // 'production', 'development', 'none', or undefined
   return source;
 }
 ```
 
 ## this.target
 
-- **Type:** `Target`
+- **Type:** `Target | undefined`
 
-The current compilation target. Passed from [`target`](/config/target) configuration options.
+By default, this is a simplified target value derived from the [`target`](/config/target) configuration. When possible, Rspack maps the target's capabilities to a value such as `'web'`, `'node'`, `'nwjs'`, or `'electron-main'`. Therefore, `this.target` is not necessarily identical to the original `target` configuration.
 
 ```js title="loader.mjs"
 export default function loader(source) {
@@ -721,7 +788,7 @@ export default function loader(source) {
 
 - **Type:** `Environment`
 
-Describes the capabilities supported by the target environment. This is the effective value of [`output.environment`](/config/output#outputenvironment): Rspack infers the capabilities from [`target`](/config/target), then applies the explicit settings from `output.environment`.
+Describes the capabilities supported by the target environment. By default, this is the effective value of [`output.environment`](/config/output#outputenvironment): Rspack infers the capabilities from [`target`](/config/target), then applies the explicit settings from `output.environment`.
 
 A loader can use this information to choose syntax supported by the output environment.
 
@@ -789,7 +856,7 @@ export default function loader(source) {
 
 - **Type:** `string`
 
-The path string of the current module, excluding the query and fragment parameters. For example `'/abc/resource.js?query#hash'` in `'/abc/resource.js'`.
+The path string of the current module, excluding the query and fragment parameters. For example, the value is `'/abc/resource.js'` for `'/abc/resource.js?query#hash'`.
 
 ```js title="loader.mjs"
 export default function loader(source) {

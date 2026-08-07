@@ -120,6 +120,10 @@ export interface Diagnostic {
 }
 
 export interface LoaderExperiments {
+  /**
+   * Emit an error or warning diagnostic without marking the current module as a compilation
+   * failure.
+   */
   emitDiagnostic(diagnostic: Diagnostic): void;
 }
 
@@ -152,7 +156,7 @@ export interface LoaderContext<OptionsType = {}> {
   resource: string;
   /**
    * The path string of the current module, excluding the query and fragment parameters.
-   * @example `'/abc/resource.js?query#hash'` in `'/abc/resource.js'`.
+   * @example `'/abc/resource.js'` in `'/abc/resource.js?query#hash'`.
    */
   resourcePath: string;
   /**
@@ -183,10 +187,10 @@ export interface LoaderContext<OptionsType = {}> {
    */
   callback: LoaderContextCallback;
   /**
-   * A function that sets the cacheable flag.
-   * By default, the processing results of the loader are marked as cacheable.
-   * Calling this method and passing `false` turns off the loader's ability to
-   * cache processing results.
+   * By default, the final build result produced for the current module by the entire loader chain
+   * is cacheable. Passing `false` marks that result as non-cacheable. Calls from subsequent loaders
+   * with `true` or no argument do not make it cacheable again; only `this.clearDependencies()`
+   * resets this state.
    */
   cacheable(cacheable?: boolean): void;
   /**
@@ -203,6 +207,7 @@ export interface LoaderContext<OptionsType = {}> {
    * location of each processed module.
    * For example, if the loader is processing `/project/src/components/Button.js`,
    * then the value of `this.context` would be `/project/src/components`.
+   * The value is `null` when the current module has no resource path.
    */
   context: string | null;
   /**
@@ -214,12 +219,20 @@ export interface LoaderContext<OptionsType = {}> {
    * in the chain and the current resource, joined with `!`.
    */
   remainingRequest: string;
+  /**
+   * A request string consisting of the current loader, the loaders that follow it, and the current
+   * resource, joined with `!`.
+   */
   currentRequest: string;
+  /**
+   * A request string consisting of the loaders that precede the current loader, joined with `!`.
+   * It does not include the current resource.
+   */
   previousRequest: string;
   /**
-   * The module specifier string after being resolved.
-   * For example, if a `resource.js` is processed by `loader1.js` and `loader2.js`, the value of
-   * `this.request` will be `/path/to/loader1.js!/path/to/loader2.js!/path/to/resource.js`.
+   * The complete request string, consisting of all loaders and the current resource joined with
+   * `!`. For example, if a `resource.js` is processed by `loader1.js` and `loader2.js`, the value
+   * is `/path/to/loader1.js!/path/to/loader2.js!/path/to/resource.js`.
    */
   request: string;
   /**
@@ -230,18 +243,18 @@ export interface LoaderContext<OptionsType = {}> {
    */
   loaders: LoaderObject[];
   /**
-   * The value of `mode` is read when Rspack is run.
-   * The possible values are: `'production'`, `'development'`, `'none'`
+   * The value of the `mode` configuration. It is `undefined` when `mode` is not configured, even
+   * though Rspack applies production-oriented defaults in that case.
    */
   mode?: Mode;
   /**
-   * The current compilation target. Passed from `target` configuration options.
+   * A loader-facing target derived from the `target` configuration.
    */
   target?: Target;
   /**
-   * Describes the capabilities supported by the target environment. This is the effective value
-   * of `output.environment`: Rspack infers the capabilities from `target`, then applies the
-   * explicit settings from `output.environment`.
+   * Describes the capabilities supported by the target environment. By default, this is the
+   * effective value of `output.environment`: Rspack infers capabilities from `target`, then
+   * applies the explicit settings from `output.environment`.
    */
   environment: Environment;
   /**
@@ -251,7 +264,7 @@ export interface LoaderContext<OptionsType = {}> {
   /**
    * Get the options passed in by the loader's user.
    * @param schema To provide the best performance, Rspack does not perform the schema
-   * validation. If your loader requires schema validation, please call scheme-utils or
+   * validation. If your loader requires schema validation, please call schema-utils or
    * zod on your own.
    */
   getOptions(schema?: any): OptionsType;
@@ -260,42 +273,35 @@ export interface LoaderContext<OptionsType = {}> {
    * @param context The absolute path to a directory. This directory is used as the starting
    * location for resolving.
    * @param request The module specifier to be resolved.
-   * @param callback A callback function that gives the resolved path.
+   * @param callback Receives an error, the resolved path or `false`, and optional resolution
+   * details.
    */
-  resolve(
-    context: string,
-    request: string,
-    callback: (
-      arg0: null | Error,
-      arg1?: string | false,
-      arg2?: ResolveRequest,
-    ) => void,
-  ): void;
+  resolve(context: string, request: string, callback: ResolveCallback): void;
   /**
-   * Create a resolver like `this.resolve`.
+   * Create a resolver like `this.resolve`. When the returned resolver is called without a
+   * callback, it returns a Promise.
+   * @param options Optional options used to customize the resolver.
    */
   getResolve(
-    options: Resolve,
-  ):
-    | ((context: string, request: string, callback: ResolveCallback) => void)
-    | ((
-        context: string,
-        request: string,
-      ) => Promise<string | false | undefined>);
+    options?: Resolve,
+  ): ((context: string, request: string, callback: ResolveCallback) => void) &
+    ((context: string, request: string) => Promise<string | false | undefined>);
   /**
    * Get the logger of this compilation, through which messages can be logged.
+   * @param name An optional name for the logger.
    */
-  getLogger(name: string): Logger;
+  getLogger(name?: string): Logger;
   /**
-   * Emit an error. Unlike `throw` and `this.callback(err)` in the loader, it does not
-   * mark the current module as a compilation failure, it just adds an error to Rspack's
-   * Compilation and displays it on the command line at the end of this compilation.
+   * Emit an error. Strings are wrapped in an `Error` object. Unlike `throw` and
+   * `this.callback(err)` in the loader, it does not mark the current module as a compilation
+   * failure. It adds an error to Rspack's Compilation and displays it on the command line at the
+   * end of this compilation.
    */
-  emitError(error: Error): void;
+  emitError(error: Error | string): void;
   /**
-   * Emit a warning.
+   * Emit a warning. Strings are wrapped in an `Error` object.
    */
-  emitWarning(warning: Error): void;
+  emitWarning(warning: Error | string): void;
   /**
    * Emit a new file. This method allows you to create new files during the loader execution.
    */
