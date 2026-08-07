@@ -199,9 +199,15 @@ impl SplitChunksPlugin {
     original_chunks: &FxHashSet<ChunkUkey>,
     compilation: &mut Compilation,
   ) -> Vec<ModuleIdentifier> {
+    let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
     let modules = item
       .modules
       .iter()
+      .filter(|mid| {
+        original_chunks
+          .iter()
+          .any(|chunk| chunk_graph.is_module_in_chunk(mid, *chunk))
+      })
       .filter(|mid| {
         if let Some(module) = compilation.module_by_identifier(mid)
           && module
