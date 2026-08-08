@@ -67,6 +67,9 @@ export const applyRspackOptionsDefaults = (
   compilerIndex?: number,
 ) => {
   F(options, 'context', () => process.cwd());
+  if (options.context) {
+    options.context = path.resolve(options.context);
+  }
   F(options, 'target', () => {
     return getDefaultTarget(options.context!);
   });
