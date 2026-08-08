@@ -42,6 +42,7 @@ use rspack_core::{
   NormalModuleFactoryBeforeResolve, NormalModuleFactoryBeforeResolveHook,
   NormalModuleFactoryCreateModule, NormalModuleFactoryCreateModuleHook,
   NormalModuleFactoryFactorize, NormalModuleFactoryFactorizeHook, NormalModuleFactoryResolve,
+  NormalModuleFactoryResolveError, NormalModuleFactoryResolveErrorHook,
   NormalModuleFactoryResolveForScheme, NormalModuleFactoryResolveForSchemeHook,
   NormalModuleFactoryResolveHook, NormalModuleFactoryResolveResult, ResourceData, RuntimeGlobals,
   RuntimeModule, RuntimeModuleGenerateContext, Scheme,
@@ -96,8 +97,8 @@ use crate::{
   },
   module::{JsExecuteModuleArg, JsRuntimeModule, JsRuntimeModuleArg, ModuleObject},
   normal_module_factory::{
-    JsCreateData, JsNormalModuleFactoryCreateModuleArgs, JsResolveData, JsResolveForSchemeArgs,
-    JsResolveForSchemeOutput,
+    JsCreateData, JsNormalModuleFactoryCreateModuleArgs, JsResolveData, JsResolveErrorArgs,
+    JsResolveForSchemeArgs, JsResolveForSchemeOutput,
   },
   rsdoctor::{
     JsRsdoctorAssetPatch, JsRsdoctorChunkGraph, JsRsdoctorModuleGraph, JsRsdoctorModuleIdsPatch,
@@ -468,6 +469,7 @@ pub enum RegisterJsTapKind {
   NormalModuleFactoryBeforeResolve,
   NormalModuleFactoryFactorize,
   NormalModuleFactoryResolve,
+  NormalModuleFactoryResolveError,
   NormalModuleFactoryAfterResolve,
   NormalModuleFactoryCreateModule,
   NormalModuleFactoryResolveForScheme,
@@ -626,6 +628,10 @@ pub struct RegisterJsTaps {
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsResolveData) => Promise<JsResolveData>); stage: number; }>"
   )]
   pub register_normal_module_factory_resolve_taps: RegisterFunction,
+  #[napi(
+    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsResolveErrorArgs) => Promise<[boolean | undefined, JsResolveData]>); stage: number; }>"
+  )]
+  pub register_normal_module_factory_resolve_error_taps: RegisterFunction,
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsResolveForSchemeArgs) => Promise<[boolean | undefined, JsResolveForSchemeArgs]>); stage: number; }>"
   )]
@@ -933,6 +939,13 @@ define_register!(
   tap = NormalModuleFactoryResolveTap<JsResolveData, Promise<JsResolveData>> @ NormalModuleFactoryResolveHook,
   cache = true,
   kind = RegisterJsTapKind::NormalModuleFactoryResolve,
+  skip = true,
+);
+define_register!(
+  RegisterNormalModuleFactoryResolveErrorTaps,
+  tap = NormalModuleFactoryResolveErrorTap<JsResolveErrorArgs, Promise<(Option<bool>, JsResolveData)>> @ NormalModuleFactoryResolveErrorHook,
+  cache = true,
+  kind = RegisterJsTapKind::NormalModuleFactoryResolveError,
   skip = true,
 );
 define_register!(
@@ -1710,6 +1723,34 @@ impl NormalModuleFactoryResolve for NormalModuleFactoryResolveTap {
       Ok(resolve_data) => {
         resolve_data.update_nmf_data(data, None);
         Ok(None)
+      }
+      Err(err) => Err(err),
+    }
+  }
+
+  fn stage(&self) -> i32 {
+    self.stage
+  }
+}
+
+#[async_trait]
+impl NormalModuleFactoryResolveError for NormalModuleFactoryResolveErrorTap {
+  async fn run(
+    &self,
+    data: &mut ModuleFactoryCreateData,
+    error: &rspack_error::Error,
+  ) -> rspack_error::Result<Option<bool>> {
+    match self
+      .function
+      .call_with_promise(JsResolveErrorArgs {
+        resolve_data: JsResolveData::from_nmf_data(data, None),
+        error: error.into(),
+      })
+      .await
+    {
+      Ok((ret, resolve_data)) => {
+        resolve_data.update_nmf_data(data, None);
+        Ok(ret)
       }
       Err(err) => Err(err),
     }

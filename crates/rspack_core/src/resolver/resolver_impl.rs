@@ -13,6 +13,7 @@ use rspack_util::location::byte_line_column_to_offset;
 use super::{ResolveResult, Resource, boxfs::BoxFS};
 use crate::{
   Alias, AliasMap, DependencyCategory, Resolve, ResolveArgs, ResolveOptionsWithDependencyType,
+  diagnostics::MODULE_NOT_FOUND_ERROR_CODE,
 };
 
 #[derive(Debug, Default, Clone)]
@@ -336,6 +337,31 @@ fn to_rspack_resolver_options(
 }
 
 fn map_rspack_resolver_error(
+  error: rspack_resolver::ResolveError,
+  args: &ResolveArgs<'_>,
+) -> Error {
+  // Classify on the original resolver variant, before the mapping below loses
+  // that distinction. Only genuine "module could not be found" misses get the
+  // module-not-found code, which makes them recoverable through the
+  // `resolve_error` hook; recursion (cyclic aliases) and config/metadata
+  // errors must surface directly.
+  let is_module_not_found = matches!(
+    error,
+    rspack_resolver::ResolveError::NotFound(_)
+      | rspack_resolver::ResolveError::MatchedAliasNotFound(..)
+      | rspack_resolver::ResolveError::ExtensionAlias(..)
+  );
+  let mut mapped = map_rspack_resolver_error_untagged(error, args);
+  if is_module_not_found {
+    mapped.code = Some(MODULE_NOT_FOUND_ERROR_CODE.to_string());
+  }
+  mapped
+}
+
+/// Maps the resolver error to a displayable [`Error`] without assigning an
+/// error code; [`map_rspack_resolver_error`] tags module-not-found codes
+/// centrally based on the original resolver variant.
+fn map_rspack_resolver_error_untagged(
   error: rspack_resolver::ResolveError,
   args: &ResolveArgs<'_>,
 ) -> Error {
