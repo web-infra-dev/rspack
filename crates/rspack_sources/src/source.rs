@@ -429,13 +429,13 @@ impl<'a> SourceMap<'a> {
   }
 }
 
-impl SourceMap<'static> {
+impl<'a> SourceMap<'a> {
   /// Create a [SourceMap].
   pub fn new(
-    mappings: impl Into<Cow<'static, str>>,
-    sources: Vec<Cow<'static, str>>,
-    sources_content: Vec<Cow<'static, str>>,
-    names: Vec<Cow<'static, str>>,
+    mappings: impl Into<Cow<'a, str>>,
+    sources: Vec<Cow<'a, str>>,
+    sources_content: Vec<Cow<'a, str>>,
+    names: Vec<Cow<'a, str>>,
   ) -> Self {
     Self {
       owner: None,
@@ -451,6 +451,17 @@ impl SourceMap<'static> {
         ignore_list: None,
       },
     }
+  }
+}
+
+impl SourceMap<'static> {
+  /// Create a source map that can borrow from an owned [Source].
+  pub fn with_source(
+    source: BoxSource,
+    create: impl for<'a> FnOnce(&'a dyn Source) -> Option<SourceMap<'a>>,
+  ) -> Option<Self> {
+    let borrowed_source = source.clone();
+    create(borrowed_source.as_ref()).map(|source_map| source_map.into_static(source))
   }
 
   /// Create a [SourceMap] from bytes.
