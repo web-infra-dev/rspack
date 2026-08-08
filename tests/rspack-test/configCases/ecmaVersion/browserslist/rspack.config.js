@@ -17,7 +17,7 @@ module.exports = {
             dynamicImportInWorker: false,
             forOf: true,
             globalThis: true,
-            importMetaDirnameAndFilename: false,
+            importMetaDirnameAndFilename: true,
             logicalAssignment: true,
             methodShorthand: true,
             module: true,
