@@ -15,7 +15,12 @@ export default defineConfig<RspackOptions>({
   // Fail the build on CI if you accidentally left test.only in the source code.
   forbidOnly: !!process.env.CI,
   build: {
-    external: ['**/moduleFederationDefaultRuntime.js'],
+    external: [
+      '**/moduleFederationDefaultRuntime.js',
+      // Fixtures import @rspack/core as ESM, while copied configs require it.
+      // Let Node load both forms instead of caching Playwright's first transform.
+      '**/packages/rspack/dist/**',
+    ],
   },
   retries: 0,
 
