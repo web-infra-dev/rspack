@@ -5,7 +5,8 @@ The `rspack_sources` benchmarks live in their own `rspack_sources` benchmark
 target so CodSpeed builds and runs them in a separate binary, isolated from the
 allocator state left behind by the larger compilation benchmark suite.
 Walltime-only bundle benchmarks follow the same pattern and live in the
-separate `walltime` benchmark target.
+separate `walltime` benchmark target. This target includes a full CSS bundle
+benchmark using the Bootstrap and Tailwind fixtures in `benches/fixtures/css`.
 
 ## Prepare benchmark fixtures
 
@@ -18,13 +19,14 @@ pnpm run bench:prepare
 The prepare step also creates a local `threejs-10x` fixture by copying the
 upstream `threejs/src` input ten times. This larger input is registered only by
 the isolated `walltime` benchmark target, so regular simulation runs keep using
-the smaller default benchmark set. The `threejs-10x` walltime benchmark writes
-outputs through the native filesystem instead of the in-memory filesystem used
-by the regular bundle benchmarks. Rust benchmark concurrency is selected with
-`BENCH_MODE=simulation|walltime` (default: `simulation`). Walltime bundle
-benchmarks use `BENCH_MODE=walltime`, which caps machine-size-dependent
-parallelism at up to 16 threads for each of Tokio workers, Tokio blocking tasks,
-and Rayon.
+the smaller default benchmark set. It also copies the committed Bootstrap and
+Tailwind fixtures into a local `css` benchmark project. The `threejs-10x` and
+CSS walltime benchmarks write outputs through the native filesystem instead of
+the in-memory filesystem used by the regular bundle benchmarks. Rust benchmark
+concurrency is selected with `BENCH_MODE=simulation|walltime` (default:
+`simulation`). Walltime bundle benchmarks use `BENCH_MODE=walltime`, which caps
+machine-size-dependent parallelism at up to 16 threads for each of Tokio
+workers, Tokio blocking tasks, and Rayon.
 
 ## Run in CI mode
 
