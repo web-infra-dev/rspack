@@ -9,11 +9,18 @@ use tracing::instrument;
 
 use crate::{
   ArtifactExt, ChunkByUkey, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Compilation,
-  Logger, ModuleIdentifier,
+  EntryOptions, Logger, ModuleIdentifier,
   build_chunk_graph::code_splitter::{CodeSplitter, DependenciesBlockIdentifier},
   fast_set,
   incremental::{IncrementalPasses, Mutation},
 };
+
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
+struct EntrySnapshot {
+  dependencies: Vec<ModuleIdentifier>,
+  include_dependencies: Vec<ModuleIdentifier>,
+  options: EntryOptions,
+}
 
 #[derive(Debug, Default)]
 pub struct BuildChunkGraphArtifact {
@@ -26,6 +33,7 @@ pub struct BuildChunkGraphArtifact {
   pub named_chunks: HashMap<String, ChunkUkey>,
   pub(crate) code_splitter: CodeSplitter,
   pub module_idx: IdentifierMap<(u32, u32)>,
+  entry_snapshots: FxIndexMap<String, EntrySnapshot>,
 }
 
 impl BuildChunkGraphArtifact {
@@ -51,6 +59,11 @@ impl BuildChunkGraphArtifact {
         .keys(),
     ) {
       logger.log("entrypoints change detected, rebuilding chunk graph");
+      return false;
+    }
+
+    if self.entry_snapshots != Self::get_entry_snapshots(this_compilation) {
+      logger.log("entry data change detected, rebuilding chunk graph");
       return false;
     }
 
@@ -156,7 +169,9 @@ impl BuildChunkGraphArtifact {
         }
       });
 
-      if miss_in_previous {
+      if miss_in_previous
+        && !(outgoings.is_empty() && self.chunk_graph.try_get_module_chunks(&module).is_some())
+      {
         logger.log("new module detected, rebuilding chunk graph");
         return false;
       }
@@ -176,6 +191,62 @@ impl BuildChunkGraphArtifact {
     }
 
     true
+  }
+
+  fn get_entry_snapshots(compilation: &Compilation) -> FxIndexMap<String, EntrySnapshot> {
+    let module_graph = compilation.get_module_graph();
+    let global_dependencies = compilation
+      .global_entry
+      .dependencies
+      .iter()
+      .filter_map(|dep| module_graph.module_identifier_by_dependency_id(dep))
+      .copied()
+      .collect::<Vec<_>>();
+    let mut global_include_dependencies = compilation
+      .global_entry
+      .include_dependencies
+      .iter()
+      .filter_map(|dep| module_graph.module_identifier_by_dependency_id(dep))
+      .copied()
+      .collect::<Vec<_>>();
+    global_include_dependencies.sort_unstable();
+
+    compilation
+      .entries
+      .iter()
+      .map(|(name, entry)| {
+        let dependencies = global_dependencies
+          .iter()
+          .copied()
+          .chain(entry.dependencies.iter().filter_map(|dep| {
+            module_graph
+              .module_identifier_by_dependency_id(dep)
+              .copied()
+          }))
+          .collect();
+        let mut include_dependencies = entry
+          .include_dependencies
+          .iter()
+          .filter_map(|dep| module_graph.module_identifier_by_dependency_id(dep))
+          .copied()
+          .collect::<Vec<_>>();
+        include_dependencies.sort_unstable();
+        let include_dependencies = global_include_dependencies
+          .iter()
+          .copied()
+          .chain(include_dependencies)
+          .collect();
+
+        (
+          name.clone(),
+          EntrySnapshot {
+            dependencies,
+            include_dependencies,
+            options: entry.options.clone(),
+          },
+        )
+      })
+      .collect()
   }
 
   /// Reset cached chunks back to the initial render state.
@@ -200,6 +271,7 @@ impl BuildChunkGraphArtifact {
     self.named_chunks.clear();
     self.set_code_splitter(Default::default());
     self.module_idx.clear();
+    self.entry_snapshots.clear();
   }
 }
 
@@ -247,6 +319,7 @@ where
   compilation.build_chunk_graph_artifact.reset_for_rebuild();
 
   let compilation = task(compilation).await?;
+  let entry_snapshots = BuildChunkGraphArtifact::get_entry_snapshots(compilation);
   let mg = compilation.get_module_graph();
   let mut map = IdentifierMap::default();
   for (mid, mgm) in mg.module_graph_modules() {
@@ -257,6 +330,7 @@ where
     map.insert(*mid, (pre, post));
   }
   compilation.build_chunk_graph_artifact.module_idx = map;
+  compilation.build_chunk_graph_artifact.entry_snapshots = entry_snapshots;
   Ok(())
 }
 
@@ -278,6 +352,7 @@ impl ArtifactExt for BuildChunkGraphArtifact {
       s.spawn(|_| {
         new.entrypoints.clone_from(&old.entrypoints);
         new.module_idx.clone_from(&old.module_idx);
+        new.entry_snapshots.clone_from(&old.entry_snapshots);
       });
     });
   }
