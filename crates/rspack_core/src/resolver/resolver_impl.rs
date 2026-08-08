@@ -150,9 +150,12 @@ impl Resolver {
         path: r.path().to_path_buf().assert_utf8(),
         query: r.query().unwrap_or_default().to_string(),
         fragment: r.fragment().unwrap_or_default().to_string(),
-        description_data: r
-          .package_json()
-          .map(|d| DescriptionData::new(d.directory().to_path_buf(), Arc::clone(d.raw_json()))),
+        description_data: r.package_json().map(|d| {
+          DescriptionData::new(
+            d.directory().as_std_path().to_path_buf(),
+            Arc::clone(d.raw_json()),
+          )
+        }),
       })),
       Err(rspack_resolver::ResolveError::Ignored(_)) => Ok(ResolveResult::Ignored),
       Err(error) => Err(ResolveInnerError::RspackResolver(error)),
@@ -173,10 +176,10 @@ impl Resolver {
     let result = resolver
       .resolve_with_context(path, request, &mut context)
       .await;
-    // `context.{file,missing}_dependencies` is `FxHashSet<ResolverPath>`. We
+    // `context.{file,missing}_dependencies` holds `UstrPath` handles. We
     // re-bucket into the `IdentityHasher`-keyed `ArcResolverPathSet` so future
-    // lookups become a single `write_u64`. No path rehashing or `Arc<Path>`
-    // re-allocation happens here.
+    // lookups become a single `write_u64`. No path rehashing or allocation
+    // happens here.
     let dependencies = ResolveDependencies {
       file_dependencies: context.file_dependencies.into_iter().collect(),
       missing_dependencies: context.missing_dependencies.into_iter().collect(),
@@ -186,9 +189,12 @@ impl Resolver {
         path: r.path().to_path_buf().assert_utf8(),
         query: r.query().unwrap_or_default().to_string(),
         fragment: r.fragment().unwrap_or_default().to_string(),
-        description_data: r
-          .package_json()
-          .map(|d| DescriptionData::new(d.directory().to_path_buf(), Arc::clone(d.raw_json()))),
+        description_data: r.package_json().map(|d| {
+          DescriptionData::new(
+            d.directory().as_std_path().to_path_buf(),
+            Arc::clone(d.raw_json()),
+          )
+        }),
       })),
       Err(rspack_resolver::ResolveError::Ignored(_)) => Ok(ResolveResult::Ignored),
       Err(error) => Err(ResolveInnerError::RspackResolver(error)),

@@ -2,7 +2,7 @@ use std::{
   collections::{HashMap, HashSet},
   convert::From,
   fmt,
-  hash::BuildHasherDefault,
+  hash::{BuildHasherDefault, Hasher},
   ops::Deref,
 };
 
@@ -21,7 +21,41 @@ pub trait Identifiable {
   fn identifier(&self) -> Identifier;
 }
 
-pub type IdentifierHasher = ustr::IdentityHasher;
+/// Identity hasher for [Identifier] keys: `Ustr` already carries a precomputed
+/// `FxHash`, so hashing only has to move that `u64` through.
+///
+/// Deliberately defined here rather than re-exported from `ustr`. The codspeed
+/// profile builds with `lto = "off"`, and `ustr`'s version derives `Default`,
+/// leaving `default()` without `#[inline]` and so un-inlinable across crates —
+/// every `IdentifierMap` lookup then pays a real call to build a zero-sized
+/// hasher.
+#[derive(Debug, Clone, Copy)]
+pub struct IdentifierHasher {
+  hash: u64,
+}
+
+impl Default for IdentifierHasher {
+  #[inline]
+  fn default() -> Self {
+    Self { hash: 0 }
+  }
+}
+
+impl Hasher for IdentifierHasher {
+  /// Only an 8-byte write carries a precomputed hash; `Ustr` writes exactly
+  /// that. Anything else leaves the hash at 0, matching `ustr`'s behaviour.
+  #[inline]
+  fn write(&mut self, bytes: &[u8]) {
+    if let Ok(bytes) = <[u8; 8]>::try_from(bytes) {
+      self.hash = u64::from_ne_bytes(bytes);
+    }
+  }
+
+  #[inline]
+  fn finish(&self) -> u64 {
+    self.hash
+  }
+}
 
 /// A standard `HashMap` using `Ustr` as the key type with a custom `Hasher` that
 /// just uses the precomputed hash for speed instead of calculating it
@@ -110,5 +144,48 @@ impl CustomConverter for Identifier {
   }
   fn deserialize(data: Self::Target, guard: &ContextGuard) -> Result<Self, CacheableError> {
     Ok(Self::from(data.into_path_string(guard.project_root())))
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use std::hash::{BuildHasher, Hash};
+
+  use super::*;
+
+  /// `IdentifierMap` is only correct while hashing an [Identifier] reproduces
+  /// the `FxHash` the interner already computed — that is what makes lookups a
+  /// single `write_u64` instead of a walk over the string.
+  #[test]
+  fn hashing_yields_the_precomputed_hash() {
+    let id = Identifier::from("some/module/identifier.js");
+    let mut hasher = IdentifierHasher::default();
+    id.hash(&mut hasher);
+
+    assert_eq!(hasher.finish(), id.precomputed_hash());
+  }
+
+  #[test]
+  fn distinct_identifiers_hash_distinctly() {
+    let a = Identifier::from("a.js");
+    let b = Identifier::from("b.js");
+    let builder = BuildHasherDefault::<IdentifierHasher>::default();
+
+    assert_ne!(builder.hash_one(a), builder.hash_one(b));
+    assert_eq!(
+      builder.hash_one(a),
+      builder.hash_one(Identifier::from("a.js"))
+    );
+  }
+
+  #[test]
+  fn round_trips_through_an_identifier_map() {
+    let mut map = IdentifierMap::default();
+    let key = Identifier::from("entry.js");
+    map.insert(key, 42usize);
+
+    assert_eq!(map.get(&key), Some(&42));
+    assert_eq!(map.get(&Identifier::from("entry.js")), Some(&42));
+    assert_eq!(map.get(&Identifier::from("other.js")), None);
   }
 }

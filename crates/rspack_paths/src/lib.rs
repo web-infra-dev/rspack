@@ -17,7 +17,7 @@ use rspack_cacheable::{
   utils::PortablePath,
   with::{Custom, CustomConverter},
 };
-pub use rspack_resolver::ResolverPath;
+pub use rspack_resolver::{ResolverPath, ResolverPathSet, ToResolverPath};
 use rustc_hash::FxHasher;
 pub use ustr::IdentityHasher;
 
@@ -79,7 +79,7 @@ impl ArcPath {
 
   /// Build an `ArcPath` from a precomputed hash and an `Arc<Path>` without
   /// rehashing. The caller MUST guarantee that `hash` equals [`hash_path`] of
-  /// `path`. Used at boundaries (e.g. consuming `rspack_resolver::ResolverPath`)
+  /// `path`. Used at boundaries (e.g. consuming `rspack_resolver::UstrPath`)
   /// where the same `FxHash` has already been computed upstream.
   #[inline]
   pub fn from_parts(hash: u64, path: Arc<Path>) -> Self {
@@ -145,12 +145,18 @@ impl From<&str> for ArcPath {
 }
 
 impl From<ResolverPath> for ArcPath {
-  /// Zero-cost conversion: reuses the resolver's precomputed `FxHash` and the
-  /// existing `Arc<Path>`. Safe because `rspack_paths::hash_path` and the hash
-  /// scheme in `rspack_resolver` are kept identical.
+  /// Materializes an `Arc` at the resolver boundary rather than carrying the
+  /// interned handle further in.
+  ///
+  /// Making `ArcPath` a newtype over the interned path removes this
+  /// allocation, and was tried — it measured no better. Callgrind on the
+  /// codspeed profile put `module_graph_api` bit-identical either way, while
+  /// `concatenate_module_code_generation` moved from +0.24% to +2.82% cycles:
+  /// once path bytes live in the interner rather than in an `Arc` beside the
+  /// data that reads them, the same memcpys land on colder lines (LL misses
+  /// +18%, which the cycle estimate weights 100x).
   fn from(value: ResolverPath) -> Self {
-    let hash = value.precomputed_hash();
-    ArcPath::from_parts(hash, value.into_arc())
+    ArcPath::new(Arc::from(value.as_std_path()))
   }
 }
 
@@ -181,10 +187,10 @@ pub type ArcPathMap<V> = HashMap<ArcPath, V, BuildHasherDefault<IdentityHasher>>
 /// that just uses the precomputed hash for speed instead of calculating it.
 pub type ArcPathSet = HashSet<ArcPath, BuildHasherDefault<IdentityHasher>>;
 
-/// A `HashSet<ResolverPath, IdentityHasher>` that preserves the `FxHash`
-/// precomputed inside `rspack_resolver`. Inserting and looking up entries
-/// here only costs a `write_u64` instead of hashing the full absolute path.
-pub type ArcResolverPathSet = HashSet<ResolverPath, BuildHasherDefault<IdentityHasher>>;
+/// A `HashSet<ResolverPath, IdentityHasher>` that preserves the `FxHash` the
+/// interner stamped into the `ResolverPath` handle. Inserting and looking up
+/// entries here only costs a `write_u64` instead of hashing the full path.
+pub type ArcResolverPathSet = ResolverPathSet;
 
 /// A standard `DashMap` using `ArcPath` as the key type with a custom `Hasher`
 /// that just uses the precomputed hash for speed instead of calculating it.

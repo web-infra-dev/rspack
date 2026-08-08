@@ -5239,8 +5239,7 @@ dependencies = [
 [[package]]
 name = "rspack_resolver"
 version = "0.9.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "adde60ec77d32748df78a55b3ac103d98c1f08c038cc0b3df8020243bda46117"
+source = "git+https://github.com/rstackjs/rspack-resolver.git?branch=refactor%2Finterned-ustr-path#704b58c25a56867d83311f525d2ad261abbb2f0d"
 dependencies = [
  "arc-swap",
  "async-trait",
@@ -5249,6 +5248,7 @@ dependencies = [
  "dashmap",
  "dunce",
  "futures",
+ "hashbrown 0.17.1",
  "indexmap",
  "json-strip-comments",
  "pnp",
