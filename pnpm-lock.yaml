@@ -377,8 +377,8 @@ catalogs:
       specifier: 1.0.4
       version: 1.0.4
     rstack:
-      specifier: ^0.3.5
-      version: 0.3.5
+      specifier: ^0.4.0
+      version: 0.4.0
     sass-loader:
       specifier: ^16.0.8
       version: 16.0.8
@@ -481,7 +481,7 @@ importers:
         version: 1.1.4
       rstack:
         specifier: 'catalog:'
-        version: 0.3.5(@microsoft/api-extractor@7.58.12)(@module-federation/runtime-tools@2.8.2)(@rspress/core@2.0.19)(core-js@3.49.0)(jiti@2.7.0)(jsdom@26.1.0)(typescript@6.0.3)
+        version: 0.4.0(@microsoft/api-extractor@7.58.12)(@module-federation/runtime-tools@2.8.2)(@rspress/core@2.0.19)(core-js@3.49.0)(jiti@2.7.0)(jsdom@26.1.0)(typescript@6.0.3)
       typescript:
         specifier: 'catalog:'
         version: 6.0.3
@@ -696,7 +696,7 @@ importers:
     devDependencies:
       rstack:
         specifier: 'catalog:'
-        version: 0.3.5(@microsoft/api-extractor@7.58.12)(@module-federation/runtime-tools@2.8.2)(@rspress/core@2.0.19)(core-js@3.49.0)(jiti@2.7.0)(jsdom@26.1.0)(typescript@6.0.3)
+        version: 0.4.0(@microsoft/api-extractor@7.58.12)(@module-federation/runtime-tools@2.8.2)(@rspress/core@2.0.19)(core-js@3.49.0)(jiti@2.7.0)(jsdom@26.1.0)(typescript@6.0.3)
       typescript:
         specifier: 'catalog:'
         version: 6.0.3
@@ -751,7 +751,7 @@ importers:
         version: 1.6.5(typescript@6.0.3)
       rstack:
         specifier: 'catalog:'
-        version: 0.3.5(@microsoft/api-extractor@7.58.12)(@module-federation/runtime-tools@2.8.2)(@rspress/core@2.0.19)(core-js@3.49.0)(jiti@2.7.0)(jsdom@26.1.0)(typescript@6.0.3)
+        version: 0.4.0(@microsoft/api-extractor@7.58.12)(@module-federation/runtime-tools@2.8.2)(@rspress/core@2.0.19)(core-js@3.49.0)(jiti@2.7.0)(jsdom@26.1.0)(typescript@6.0.3)
       tinypool:
         specifier: 'catalog:'
         version: 2.1.0
@@ -835,7 +835,7 @@ importers:
         version: 1.0.1
       rstack:
         specifier: 'catalog:'
-        version: 0.3.5(@microsoft/api-extractor@7.58.12)(@module-federation/runtime-tools@2.8.2)(@rspress/core@2.0.19)(core-js@3.49.0)(jiti@2.7.0)(jsdom@26.1.0)(typescript@6.0.3)
+        version: 0.4.0(@microsoft/api-extractor@7.58.12)(@module-federation/runtime-tools@2.8.2)(@rspress/core@2.0.19)(core-js@3.49.0)(jiti@2.7.0)(jsdom@26.1.0)(typescript@6.0.3)
       typescript:
         specifier: 'catalog:'
         version: 6.0.3
@@ -923,7 +923,7 @@ importers:
         version: 21.1.7
       rstack:
         specifier: 'catalog:'
-        version: 0.3.5(@microsoft/api-extractor@7.58.12)(@module-federation/runtime-tools@2.8.2)(@rspress/core@2.0.19)(core-js@3.49.0)(jiti@2.7.0)(jsdom@26.1.0)(typescript@6.0.3)
+        version: 0.4.0(@microsoft/api-extractor@7.58.12)(@module-federation/runtime-tools@2.8.2)(@rspress/core@2.0.19)(core-js@3.49.0)(jiti@2.7.0)(jsdom@26.1.0)(typescript@6.0.3)
       typescript:
         specifier: 'catalog:'
         version: 6.0.3
@@ -1040,7 +1040,7 @@ importers:
         version: link:../../packages/rspack-browser
       rstack:
         specifier: 'catalog:'
-        version: 0.3.5(@microsoft/api-extractor@7.58.12)(@module-federation/runtime-tools@2.8.2)(@rspress/core@2.0.19)(core-js@3.49.0)(jiti@2.7.0)(jsdom@26.1.0)(typescript@6.0.3)
+        version: 0.4.0(@microsoft/api-extractor@7.58.12)(@module-federation/runtime-tools@2.8.2)(@rspress/core@2.0.19)(core-js@3.49.0)(jiti@2.7.0)(jsdom@26.1.0)(typescript@6.0.3)
       typescript:
         specifier: 'catalog:'
         version: 6.0.3
@@ -1214,7 +1214,7 @@ importers:
         version: 5.0.10
       rstack:
         specifier: 'catalog:'
-        version: 0.3.5(@microsoft/api-extractor@7.58.12)(@module-federation/runtime-tools@2.8.2)(@rspress/core@2.0.19)(core-js@3.49.0)(jiti@2.7.0)(jsdom@26.1.0)(typescript@6.0.3)
+        version: 0.4.0(@microsoft/api-extractor@7.58.12)(@module-federation/runtime-tools@2.8.2)(@rspress/core@2.0.19)(core-js@3.49.0)(jiti@2.7.0)(jsdom@26.1.0)(typescript@6.0.3)
       sass-loader:
         specifier: 'catalog:'
         version: 16.0.8(@rspack/core@packages+rspack)(sass-embedded@1.100.0)(sass@1.100.0)
@@ -1359,7 +1359,7 @@ importers:
         version: 1.0.4(@rspress/core@2.0.19)
       rstack:
         specifier: 'catalog:'
-        version: 0.3.5(@microsoft/api-extractor@7.58.12)(@module-federation/runtime-tools@2.8.2)(@rspress/core@2.0.19)(core-js@3.49.0)(jiti@2.7.0)(jsdom@26.1.0)(typescript@6.0.3)
+        version: 0.4.0(@microsoft/api-extractor@7.58.12)(@module-federation/runtime-tools@2.8.2)(@rspress/core@2.0.19)(core-js@3.49.0)(jiti@2.7.0)(jsdom@26.1.0)(typescript@6.0.3)
       tailwindcss:
         specifier: 'catalog:'
         version: 4.3.3
@@ -3028,8 +3028,8 @@ packages:
       '@rsbuild/core':
         optional: true
 
-  '@rslib/core@1.0.0-beta.1':
-    resolution: {integrity: sha512-HHPZ+wTUKT/3bEhw2y0JB0O62wMuljkSHVZelLbSGhBflCaUt+D3LohBcIxYW6bhzPbUp4gkJXo1pdTpxiuNLQ==}
+  '@rslib/core@1.0.0-beta.2':
+    resolution: {integrity: sha512-A0j3MBP8Kga8Qrh7znO2UKf00Sga37PJCiTGUqVVBHb+u58fNoGXZtFAgeH6qKjf5eU1wYt4WptXX/1blOAfRw==}
     engines: {node: ^20.19.0 || >=22.12.0}
     hasBin: true
     peerDependencies:
@@ -6686,8 +6686,8 @@ packages:
   rrweb-cssom@0.8.0:
     resolution: {integrity: sha512-guoltQEx+9aMf2gDZ0s62EcV8lsXR+0w8915TC3ITdn2YueuNjdAYh/levpU9nFaoChh9RUS5ZdQMrKfVEN9tw==}
 
-  rsbuild-plugin-dts@1.0.0-beta.1:
-    resolution: {integrity: sha512-hAEjOXhfIHR4erqjsqjRvA9Yqzc6Thry06tHheXDJUVwmR3VbN8BSMDC8kBZzyKdypDF0IJ98FmLQRiC194sMA==}
+  rsbuild-plugin-dts@1.0.0-beta.2:
+    resolution: {integrity: sha512-xOYa/kw/y29kKFFNjd+CIemlq+CB8E7LhqNkIzg7HT9dYNBVBpZvnnL6OEsOgjeuqzKpGSCRgZN/dDoVOk4VhQ==}
     engines: {node: ^20.19.0 || >=22.12.0}
     peerDependencies:
       '@microsoft/api-extractor': ^7
@@ -6737,8 +6737,8 @@ packages:
     peerDependencies:
       '@rspress/core': ^2.0.0
 
-  rstack@0.3.5:
-    resolution: {integrity: sha512-LsaQoH0LB4EbLcprtHXkjXEwIyrZOVs/bLkOsRvZoj0ma/NKt1NuZrsrBcCHn0lJpxQxBgakNCNQ4BGmHUM0JQ==}
+  rstack@0.4.0:
+    resolution: {integrity: sha512-D+UoBYDhmoWbvCMCfVEFQOe+wdrPPAZXYCUppDVy/KRGC8UOKruyjlTzh3IA9zCzGT7gVDziIQXBuhULmJJpgA==}
     engines: {node: '>=22.12.0'}
     hasBin: true
     peerDependencies:
@@ -9332,10 +9332,10 @@ snapshots:
       - '@rspack/core'
       - webpack
 
-  '@rslib/core@1.0.0-beta.1(@microsoft/api-extractor@7.58.12)(@module-federation/runtime-tools@2.8.2)(core-js@3.49.0)(typescript@6.0.3)':
+  '@rslib/core@1.0.0-beta.2(@microsoft/api-extractor@7.58.12)(@module-federation/runtime-tools@2.8.2)(core-js@3.49.0)(typescript@6.0.3)':
     dependencies:
       '@rsbuild/core': 2.1.10(@module-federation/runtime-tools@2.8.2)(core-js@3.49.0)
-      rsbuild-plugin-dts: 1.0.0-beta.1(@microsoft/api-extractor@7.58.12)(@rsbuild/core@2.1.10)(typescript@6.0.3)
+      rsbuild-plugin-dts: 1.0.0-beta.2(@microsoft/api-extractor@7.58.12)(@rsbuild/core@2.1.10)(typescript@6.0.3)
     optionalDependencies:
       '@microsoft/api-extractor': 7.58.12(@types/node@20.19.43)
       typescript: 6.0.3
@@ -13482,7 +13482,7 @@ snapshots:
 
   rrweb-cssom@0.8.0: {}
 
-  rsbuild-plugin-dts@1.0.0-beta.1(@microsoft/api-extractor@7.58.12)(@rsbuild/core@2.1.10)(typescript@6.0.3):
+  rsbuild-plugin-dts@1.0.0-beta.2(@microsoft/api-extractor@7.58.12)(@rsbuild/core@2.1.10)(typescript@6.0.3):
     dependencies:
       '@ast-grep/napi': 0.37.0
       '@rsbuild/core': 2.1.10(@module-federation/runtime-tools@2.8.2)(core-js@3.49.0)
@@ -13512,10 +13512,10 @@ snapshots:
     dependencies:
       '@rspress/core': 2.0.19(@module-federation/runtime-tools@2.8.2)(@rspack/core@2.1.8)(core-js@3.49.0)(micromark-util-types@2.0.2)(micromark@4.0.2)
 
-  rstack@0.3.5(@microsoft/api-extractor@7.58.12)(@module-federation/runtime-tools@2.8.2)(@rspress/core@2.0.19)(core-js@3.49.0)(jiti@2.7.0)(jsdom@26.1.0)(typescript@6.0.3):
+  rstack@0.4.0(@microsoft/api-extractor@7.58.12)(@module-federation/runtime-tools@2.8.2)(@rspress/core@2.0.19)(core-js@3.49.0)(jiti@2.7.0)(jsdom@26.1.0)(typescript@6.0.3):
     dependencies:
       '@rsbuild/core': 2.1.10(@module-federation/runtime-tools@2.8.2)(core-js@3.49.0)
-      '@rslib/core': 1.0.0-beta.1(@microsoft/api-extractor@7.58.12)(@module-federation/runtime-tools@2.8.2)(core-js@3.49.0)(typescript@6.0.3)
+      '@rslib/core': 1.0.0-beta.2(@microsoft/api-extractor@7.58.12)(@module-federation/runtime-tools@2.8.2)(core-js@3.49.0)(typescript@6.0.3)
       '@rslint/core': 0.7.3(jiti@2.7.0)
       '@rstest/core': 0.11.5(@module-federation/runtime-tools@2.8.2)(core-js@3.49.0)(jsdom@26.1.0)
       prettier: 3.9.6
