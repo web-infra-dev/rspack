@@ -48,8 +48,7 @@ export default {
 - 类型：
   ```ts
   type RuntimePlugins =
-    | string[]
-    | [plugin: string, options: Record<string, unknown>][];
+    string[] | [plugin: string, options: Record<string, unknown>][];
   ```
 
 传入 Module Federation 1.5 运行时所需的插件，用于扩展 Module Federation 的行为与能力。可以传入一组模块路径；当插件需要配置时，也可以传入一组 `[模块路径, 配置]` 元组。

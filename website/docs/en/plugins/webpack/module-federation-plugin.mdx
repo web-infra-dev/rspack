@@ -48,8 +48,7 @@ Provide a path as the implementation for Module Federation 1.5 runtime, which de
 - Type:
   ```ts
   type RuntimePlugins =
-    | string[]
-    | [plugin: string, options: Record<string, unknown>][];
+    string[] | [plugin: string, options: Record<string, unknown>][];
   ```
 
 Provide the plugins required to run Module Federation 1.5, which can extend its behavior and capabilities. Use an array of module paths, or an array of `[modulePath, options]` tuples when a plugin needs options.
