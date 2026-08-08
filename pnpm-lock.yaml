@@ -155,8 +155,8 @@ catalogs:
       specifier: ^2.11.1
       version: 2.11.1
     acorn:
-      specifier: ^8.17.0
-      version: 8.17.0
+      specifier: ^8.18.0
+      version: 8.18.0
     babel-loader:
       specifier: ^10.1.1
       version: 10.1.1
@@ -1109,7 +1109,7 @@ importers:
         version: 2.11.1(enhanced-resolve@5.24.5)
       acorn:
         specifier: 'catalog:'
-        version: 8.17.0
+        version: 8.18.0
       babel-loader:
         specifier: 'catalog:'
         version: 10.1.1(@babel/core@7.29.7)(@rspack/core@packages+rspack)
@@ -3917,11 +3917,6 @@ packages:
 
   acorn@7.4.1:
     resolution: {integrity: sha512-nQyp0o1/mNdbTO1PO6kHkwSrmgZ0MT/jCCpNiwbUjGoRN4dlBhqJtoQuCnEOKzgTVwg0ZWiCoQy6SxMebQVh8A==}
-    engines: {node: '>=0.4.0'}
-    hasBin: true
-
-  acorn@8.17.0:
-    resolution: {integrity: sha512-xRQbDb9BnwDafYNn6Vwl839DYVjqXYb1XVGtWAZ1kcDc6iwAL4hg3B1dZlRiuENFeO2H53gFG3in621AdERVAg==}
     engines: {node: '>=0.4.0'}
     hasBin: true
 
@@ -10209,8 +10204,6 @@ snapshots:
 
   acorn@7.4.1: {}
 
-  acorn@8.17.0: {}
-
   acorn@8.18.0: {}
 
   agent-base@7.1.4: {}
@@ -13933,7 +13926,7 @@ snapshots:
   terser@5.49.0:
     dependencies:
       '@jridgewell/source-map': 0.3.11
-      acorn: 8.17.0
+      acorn: 8.18.0
       commander: 2.20.3
       source-map-support: 0.5.21
 
