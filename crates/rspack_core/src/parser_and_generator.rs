@@ -50,6 +50,10 @@ pub struct ParseContext<'a> {
 pub struct CollectedTypeScriptInfo {
   #[cacheable(with=AsVec<AsPreset>)]
   pub type_exports: FxHashSet<Atom>,
+  #[cacheable(with=AsVec<AsPreset>)]
+  pub exports: FxHashSet<Atom>,
+  #[cacheable(with=AsVec<AsPreset>)]
+  pub imported_modules: FxHashSet<Atom>,
   #[cacheable(with=AsMap<AsPreset>)]
   pub exported_enums: FxHashMap<Atom, TSEnumValue>,
 }

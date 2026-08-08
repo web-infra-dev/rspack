@@ -18,6 +18,7 @@ define_symbols! {
   BUILD_INFO_CONTEXT_DEPENDENCIES_SYMBOL => "rspack.buildInfo.contextDependencies",
   BUILD_INFO_MISSING_DEPENDENCIES_SYMBOL => "rspack.buildInfo.missingDependencies",
   BUILD_INFO_BUILD_DEPENDENCIES_SYMBOL => "rspack.buildInfo.buildDependencies",
+  BUILD_INFO_COLLECTED_TYPESCRIPT_INFO_SYMBOL => "rspack.buildInfo.collectedTypeScriptInfo",
   COMMIT_CUSTOM_FIELDS_SYMBOL => "rspack.buildInfo.commitCustomFields",
 }
 
@@ -65,6 +66,7 @@ static KNOWN_BUILD_INFO_FIELD_NAMES: LazyLock<FxHashSet<&'static str>> = LazyLoc
     "contextDependencies",
     "missingDependencies",
     "buildDependencies",
+    "collectedTypeScriptInfo",
   ])
 });
 
@@ -248,6 +250,50 @@ fn create_known_private_properties(env: &Env, properties: &mut Vec<Property>) ->
               .iter()
               .map(|dependency| env_ref.create_string(dependency.to_string_lossy().as_ref()))
               .collect::<napi::Result<Vec<JsString>>>()
+          });
+          unsafe { ToNapiValue::to_napi_value(env.raw(), result) }
+        })
+        .with_property_attributes(PropertyAttributes::Configurable),
+    );
+    Ok::<(), napi::Error>(())
+  })?;
+
+  BUILD_INFO_COLLECTED_TYPESCRIPT_INFO_SYMBOL.with(|once_cell| {
+    #[allow(clippy::unwrap_used)]
+    let symbol = once_cell.get().unwrap();
+    properties.push(
+      Property::new()
+        .with_name(env, symbol)?
+        .with_getter_closure(|env, this| {
+          let wrapped_value = unsafe { KnownBuildInfo::from_napi_mut_ref(env.raw(), this.raw())? };
+          let env_ref = &env;
+          let result = wrapped_value.with_ref(|module| {
+            let Some(collected_typescript_info) = &module.build_info().collected_typescript_info
+            else {
+              return Ok(None);
+            };
+            let type_exports = collected_typescript_info
+              .type_exports
+              .iter()
+              .map(|export| env_ref.create_string(export.as_str()))
+              .collect::<napi::Result<Vec<JsString>>>()?;
+            let exports = collected_typescript_info
+              .exports
+              .iter()
+              .map(|export| env_ref.create_string(export.as_str()))
+              .collect::<napi::Result<Vec<JsString>>>()?;
+            let imported_modules = collected_typescript_info
+              .imported_modules
+              .iter()
+              .map(|request| env_ref.create_string(request.as_str()))
+              .collect::<napi::Result<Vec<JsString>>>()?;
+
+            let mut result = Object::new(env_ref)?;
+            result.set_named_property("typeExports", type_exports)?;
+            result.set_named_property("exports", exports)?;
+            result.set_named_property("importedModules", imported_modules)?;
+
+            Ok(Some(result))
           });
           unsafe { ToNapiValue::to_napi_value(env.raw(), result) }
         })
