@@ -488,9 +488,13 @@ async fn visit_dirs(
     options.context_options.recursive,
     skip_dotfiles,
     &mut |path, dirname| {
+      if is_import_meta_glob && !matcher.should_visit_dir(path.as_str()) {
+        return false;
+      }
       if is_import_meta_glob
         && !glob_exhaustive
         && is_non_exhaustive_import_meta_glob_skipped_dir(dirname)
+        && !matcher.should_visit_skipped_dir(path.as_str())
       {
         return false;
       }
@@ -626,6 +630,20 @@ impl<'a> ContextModuleMatcher<'a> {
     } else {
       None
     }
+  }
+
+  fn should_visit_skipped_dir(&self, path: &str) -> bool {
+    self
+      .glob
+      .as_ref()
+      .is_some_and(|glob| glob.should_visit_skipped_dir(path))
+  }
+
+  fn should_visit_dir(&self, path: &str) -> bool {
+    self
+      .glob
+      .as_ref()
+      .is_none_or(|glob| glob.should_visit_dir(path))
   }
 }
 
