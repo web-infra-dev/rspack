@@ -1965,6 +1965,9 @@ export interface RawCompilerPlatform {
 
 export interface RawConsumeOptions {
   key: string
+  request?: string
+  issuerLayer?: string
+  layer?: string
   import?: string
   importResolved?: string
   shareKey: string
@@ -2770,9 +2773,13 @@ export interface RawOptimizationOptions {
 }
 
 export interface RawOptimizeSharedConfig {
+  request?: string
+  issuerLayer?: string
   shareKey: string
+  shareScope?: string | Array<string>
   treeShaking: boolean
   usedExports?: Array<string>
+  layer?: string
 }
 
 export interface RawOptions {
@@ -2875,6 +2882,8 @@ export interface RawProgressPluginOptions {
 
 export interface RawProvideOptions {
   key: string
+  request?: string
+  layer?: string
   shareKey: string
   shareScope: string | Array<string>
   version?: string | false | undefined
@@ -3044,6 +3053,9 @@ export interface RawSharedContainerPluginOptions {
   name: string
   request: string
   version: string
+  shareKey?: string
+  shareScope?: string | Array<string>
+  layer?: string
   fileName?: string
   library: JsLibraryOptions
 }

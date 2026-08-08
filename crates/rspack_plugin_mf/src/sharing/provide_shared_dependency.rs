@@ -1,11 +1,11 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, AsDependencyCodeGeneration, Dependency, DependencyCategory, DependencyId,
-  DependencyType, FactorizeInfo, ModuleDependency, ResourceIdentifier,
+  DependencyType, FactorizeInfo, ModuleDependency, ModuleLayer, ResourceIdentifier,
 };
 
 use super::provide_shared_plugin::ProvideVersion;
-use crate::{ConsumeVersion, ShareScope};
+use crate::{ConsumeVersion, ShareScope, SharedIdentity, push_identifier_component};
 
 #[cacheable]
 #[derive(Debug, Clone)]
@@ -13,6 +13,7 @@ pub struct ProvideSharedDependency {
   id: DependencyId,
   request: String,
   pub share_scope: ShareScope,
+  pub layer: Option<ModuleLayer>,
   pub name: String,
   pub version: ProvideVersion,
   pub eager: bool,
@@ -35,21 +36,23 @@ impl ProvideSharedDependency {
     singleton: Option<bool>,
     required_version: Option<ConsumeVersion>,
     strict_version: Option<bool>,
+    layer: Option<ModuleLayer>,
     tree_shaking_mode: Option<String>,
   ) -> Self {
-    let resource_identifier = format!(
-      "provide module ({}) {} as {} @ {} {}",
-      share_scope.key(),
-      &request,
-      &name,
-      &version,
-      if eager { "eager" } else { Default::default() },
-    )
-    .into();
+    let mut resource_identifier = String::from("provide module ");
+    push_identifier_component(
+      &mut resource_identifier,
+      &SharedIdentity::new(&share_scope, &name, layer.as_deref()).identifier_key(),
+    );
+    push_identifier_component(&mut resource_identifier, &request);
+    push_identifier_component(&mut resource_identifier, &version.to_string());
+    resource_identifier.push(if eager { '1' } else { '0' });
+    let resource_identifier = resource_identifier.into();
     Self {
       id: DependencyId::new(),
       request,
       share_scope,
+      layer,
       name,
       version,
       eager,
@@ -80,6 +83,10 @@ impl Dependency for ProvideSharedDependency {
 
   fn category(&self) -> &DependencyCategory {
     &DependencyCategory::Esm
+  }
+
+  fn get_layer(&self) -> Option<&ModuleLayer> {
+    self.layer.as_ref()
   }
 
   fn resource_identifier(&self) -> Option<&str> {

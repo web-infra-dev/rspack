@@ -23,6 +23,7 @@ it("should report xreact shared assets in sync only", () => {
     const xreact = stats.shared.find(item => item.name === "xreact");
 		expect(xreact.singleton).toBe(true);
     expect(xreact).toBeDefined();
+    expect(xreact.version).toBe("0");
     expect(xreact.assets.css.sync).toEqual([]);
     expect(xreact.assets.css.async).toEqual([]);
     expect(xreact.assets.js.sync).toEqual(["node_modules_xreact_index_js.js"]);

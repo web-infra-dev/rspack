@@ -149,3 +149,20 @@ pub struct ManifestRoot {
   #[serde(default)]
   pub exposes: Vec<ManifestExpose>,
 }
+
+#[cfg(test)]
+mod tests {
+  use super::StatsRoot;
+
+  #[test]
+  fn public_stats_root_remains_deserializable() {
+    let root = serde_json::from_str::<StatsRoot>(
+      r#"{"id":"container","name":"container","metaData":{"name":"container","globalName":"container"}}"#,
+    )
+    .expect("valid stats");
+
+    assert!(root.shared.is_empty());
+    assert!(root.remotes.is_empty());
+    assert!(root.exposes.is_empty());
+  }
+}

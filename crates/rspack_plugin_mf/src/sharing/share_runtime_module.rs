@@ -87,6 +87,7 @@ impl RuntimeModule for ShareRuntimeModule {
       String,
       FxLinkedHashMap<DataInitStage, FxLinkedHashSet<DataInitInfo>>,
     > = FxHashMap::default();
+    let mut additional_init_scopes = FxLinkedHashSet::default();
     for c in
       chunk.get_all_referenced_chunks(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
     {
@@ -107,6 +108,15 @@ impl RuntimeModule for ShareRuntimeModule {
           continue;
         };
         for item in &data.items {
+          if let ShareScope::Multiple(scopes) = &item.share_scope {
+            additional_init_scopes.extend(scopes.iter().cloned());
+          }
+          if matches!(
+            &item.init,
+            DataInitInfo::ProvideSharedInfo(info) if info.layer.is_some()
+          ) {
+            additional_init_scopes.extend(item.share_scope.scopes().iter().cloned());
+          }
           for scope in item.share_scope.scopes() {
             let stages = init_per_scope.entry(scope.clone()).or_default();
             let list = stages
@@ -137,6 +147,10 @@ impl RuntimeModule for ShareRuntimeModule {
                 json_stringify(&info.tree_shaking_mode),
               );
               if self.enhanced {
+                if let Some(layer) = info.layer {
+                  stage += ", layer: ";
+                  stage += &json_stringify_str(&layer);
+                }
                 if let Some(singleton) = info.singleton {
                   stage += ", singleton: ";
                   stage += if singleton { "1" } else { "0" };
@@ -171,16 +185,25 @@ impl RuntimeModule for ShareRuntimeModule {
     } else {
       runtime_template.render(self.id().as_str(), None)?
     };
+    let additional_init_scopes = if self.enhanced && !additional_init_scopes.is_empty() {
+      format!(
+        ", additionalInitScopes: {}",
+        json_stringify(&additional_init_scopes.into_iter().collect::<Vec<_>>())
+      )
+    } else {
+      String::new()
+    };
     Ok(format!(
       r#"
 {share_scope_map} = {{}};
-{require_name}.initializeSharingData = {{ scopeToSharingDataMapping: {{ {scope_to_data_init} }}, uniqueName: {unique_name} }};
+{require_name}.initializeSharingData = {{ scopeToSharingDataMapping: {{ {scope_to_data_init} }}, uniqueName: {unique_name}{additional_init_scopes} }};
 {initialize_sharing_impl}
 "#,
       require_name = runtime_require_scope_name(runtime_template),
       share_scope_map = runtime_template.render_runtime_globals(&RuntimeGlobals::SHARE_SCOPE_MAP),
       scope_to_data_init = scope_to_data_init,
       unique_name = json_stringify_str(&compilation.options.output.unique_name),
+      additional_init_scopes = additional_init_scopes,
       initialize_sharing_impl = initialize_sharing_impl,
     ))
   }
@@ -215,5 +238,6 @@ pub struct ProvideSharedInfo {
   pub singleton: Option<bool>,
   pub required_version: Option<ConsumeVersion>,
   pub strict_version: Option<bool>,
+  pub layer: Option<String>,
   pub tree_shaking_mode: Option<String>,
 }
