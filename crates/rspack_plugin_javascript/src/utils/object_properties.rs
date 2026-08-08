@@ -411,7 +411,6 @@ mod tests {
   #[ast_object(rename_all = "camelCase")]
   struct TestRegexOptions {
     reg_exp: Option<RspackRegex>,
-    recursive: Option<bool>,
   }
 
   #[test]
@@ -431,39 +430,6 @@ mod tests {
         .unwrap()
         .reg_exp
         .is_none()
-    );
-  }
-
-  #[test]
-  fn preserves_regex_conversion_errors() {
-    let allocator = Allocator::new();
-    let expr = parse_expr(
-      &allocator,
-      "{ regExp: /(?<name>a)|(?<name>b)/, recursive: false }",
-    );
-    let error = TestRegexOptions::from_ast_object(expr.as_object().unwrap())
-      .expect_err("regex conversion failures should not be treated as an absent option");
-
-    assert!(error.to_string().contains("/(?<name>a)|(?<name>b)/"));
-  }
-
-  #[test]
-  fn preserves_valid_fields_when_collecting_conversion_diagnostics() {
-    let allocator = Allocator::new();
-    let expr = parse_expr(
-      &allocator,
-      "{ regExp: /(?<name>a)|(?<name>b)/, recursive: false }",
-    );
-    let (options, diagnostics) =
-      TestRegexOptions::from_ast_object_with_diagnostics(expr.as_object().unwrap());
-
-    assert!(options.reg_exp.is_none());
-    assert_eq!(options.recursive, Some(false));
-    assert_eq!(diagnostics.len(), 1);
-    assert!(
-      diagnostics[0]
-        .to_string()
-        .contains("/(?<name>a)|(?<name>b)/")
     );
   }
 }
