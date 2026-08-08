@@ -439,12 +439,12 @@ mod tests {
     let allocator = Allocator::new();
     let expr = parse_expr(
       &allocator,
-      "{ regExp: /(?<name>a)|(?<name>b)/, recursive: false }",
+      "{ regExp: /(?<name>a)(?<name>b)/, recursive: false }",
     );
     let error = TestRegexOptions::from_ast_object(expr.as_object().unwrap())
       .expect_err("regex conversion failures should not be treated as an absent option");
 
-    assert!(error.to_string().contains("/(?<name>a)|(?<name>b)/"));
+    assert!(error.to_string().contains("/(?<name>a)(?<name>b)/"));
   }
 
   #[test]
@@ -452,7 +452,7 @@ mod tests {
     let allocator = Allocator::new();
     let expr = parse_expr(
       &allocator,
-      "{ regExp: /(?<name>a)|(?<name>b)/, recursive: false }",
+      "{ regExp: /(?<name>a)(?<name>b)/, recursive: false }",
     );
     let (options, diagnostics) =
       TestRegexOptions::from_ast_object_with_diagnostics(expr.as_object().unwrap());
@@ -463,7 +463,7 @@ mod tests {
     assert!(
       diagnostics[0]
         .to_string()
-        .contains("/(?<name>a)|(?<name>b)/")
+        .contains("/(?<name>a)(?<name>b)/")
     );
   }
 }
