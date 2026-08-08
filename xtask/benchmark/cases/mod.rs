@@ -19,6 +19,7 @@ pub mod bundle_misc_development;
 pub mod bundle_misc_production_sourcemap;
 pub mod bundle_threejs_development;
 pub mod bundle_threejs_production_sourcemap;
+pub mod incremental_hmr;
 pub mod module_graph_api;
 pub mod persistent_cache_restore;
 pub mod persistent_cache_restore_after_single_file_change;
