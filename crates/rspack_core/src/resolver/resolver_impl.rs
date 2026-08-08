@@ -13,6 +13,7 @@ use rspack_util::location::byte_line_column_to_offset;
 use super::{ResolveResult, Resource, boxfs::BoxFS};
 use crate::{
   Alias, AliasMap, DependencyCategory, Resolve, ResolveArgs, ResolveOptionsWithDependencyType,
+  get_scheme,
 };
 
 #[derive(Debug, Default, Clone)]
@@ -137,6 +138,48 @@ impl Resolver {
   /// Return the options from the resolver
   pub fn options(&self) -> ResolveInnerOptions<'_> {
     ResolveInnerOptions::RspackResolver(self.resolver.options())
+  }
+
+  /// Resolve an alias target with a scheme after regular path resolution failed.
+  pub(crate) fn resolve_alias_to_scheme(&self, request: &str) -> Option<String> {
+    for (alias_key, alias_values) in &self.resolver.options().alias {
+      let (alias_key, is_exact) = alias_key
+        .strip_suffix('$')
+        .map_or((alias_key.as_str(), false), |key| (key, true));
+      let Some(tail) = request.strip_prefix(alias_key) else {
+        continue;
+      };
+      if !tail.is_empty() && (is_exact || (!tail.starts_with('/') && !tail.starts_with('\\'))) {
+        continue;
+      }
+
+      let mut should_stop = false;
+      for alias_value in alias_values {
+        let rspack_resolver::AliasValue::Path(alias_value) = alias_value else {
+          return None;
+        };
+        if request == alias_value
+          || request
+            .strip_prefix(alias_value)
+            .is_some_and(|tail| tail.starts_with('/') || tail.starts_with('\\'))
+        {
+          continue;
+        }
+
+        should_stop = true;
+        let mut aliased_request = String::with_capacity(alias_value.len() + tail.len());
+        aliased_request.push_str(alias_value);
+        aliased_request.extend(tail.chars().map(|c| if c == '\\' { '/' } else { c }));
+        if !get_scheme(&aliased_request).is_none() {
+          return Some(aliased_request);
+        }
+      }
+
+      if should_stop {
+        return None;
+      }
+    }
+    None
   }
 
   /// Resolve a specifier to a given path.
