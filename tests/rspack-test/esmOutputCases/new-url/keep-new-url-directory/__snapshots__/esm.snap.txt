@@ -1,0 +1,11 @@
+```mjs title=main.mjs
+// ./index.js
+// Directory references are not assets. `new URL(...)` should be kept as-is so
+// it resolves to a directory at runtime, matching Node/browsers.
+const dir = new URL('.', import.meta.url).href;
+const dirSlash = new URL('./', import.meta.url).href;
+const parentDir = new URL('..', import.meta.url).href;
+
+export { dir, dirSlash, parentDir };
+
+```
