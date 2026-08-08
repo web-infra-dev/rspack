@@ -1,13 +1,16 @@
 import http from 'node:http';
+import { createRequire } from 'node:module';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { test as base, expect } from '@playwright/test';
 import fs from 'fs-extra';
-import { type Compiler, type Configuration, rspack } from '@rspack/core';
+import type { Compiler, Configuration } from '@rspack/core';
 import { RspackDevServer } from '@rspack/dev-server';
-import { fileURLToPath } from 'node:url';
-import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
+// Copied configs also use require(). Playwright's synchronous loader caches
+// transforms by filename, so mixing ESM and CommonJS reuses the wrong output.
+const { rspack } = require('@rspack/core') as typeof import('@rspack/core');
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const tempDir = path.resolve(__dirname, '../../temp');
 
