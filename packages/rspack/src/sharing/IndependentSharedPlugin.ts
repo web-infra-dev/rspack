@@ -36,6 +36,10 @@ const filterPlugin = (plugin: Plugins[0], excludedPlugins: string[] = []) => {
     'TreeShakingSharedPlugin',
     'IndependentSharedPlugin',
     'ModuleFederationPlugin',
+    // The plugin instance created by `@module-federation/rspack` reports
+    // `name === 'RspackModuleFederationPlugin'`, so it must be excluded here
+    // too — otherwise each fallback child compiler re-applies MF and recurses.
+    'RspackModuleFederationPlugin',
     'SharedUsedExportsOptimizerPlugin',
     'HtmlWebpackPlugin',
     'HtmlRspackPlugin',

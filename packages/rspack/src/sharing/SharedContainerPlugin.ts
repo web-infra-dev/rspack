@@ -47,8 +47,14 @@ export class SharedContainerPlugin extends RspackBuiltinPlugin {
     this._options = {
       name: shareName,
       request: request,
+      // A `type: 'module'` library must not carry a `name` — the native
+      // binding rejects it ("Library name must be unset"), which silently
+      // no-ops the fallback compile. Only set the name for non-module types.
       library: (library
-        ? { ...library, name: this._globalName }
+        ? {
+            ...library,
+            ...(library.type === 'module' ? {} : { name: this._globalName }),
+          }
         : undefined) || {
         type: 'global',
         name: this._globalName,
