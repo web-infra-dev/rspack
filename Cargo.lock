@@ -381,16 +381,6 @@ dependencies = [
 
 [[package]]
 name = "browserslist-data"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3f42db7dd1800856ac32d4a08c2915de9a9a2a72ce1fdd86189daed368729fd4"
-dependencies = [
- "ahash 0.8.12",
- "chrono",
-]
-
-[[package]]
-name = "browserslist-data"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "77d121add86b74ceac9755a74ec3b4abc1f4935711aede468f26a36dc685dc80"
@@ -401,33 +391,16 @@ dependencies = [
 
 [[package]]
 name = "browserslist-rs"
-version = "0.19.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8dd48a6ca358df4f7000e3fb5f08738b1b91a0e5d5f862e2f77b2b14647547f5"
-dependencies = [
- "ahash 0.8.12",
- "browserslist-data 0.1.0",
- "chrono",
- "either",
- "itertools 0.13.0",
- "nom 7.1.3",
- "serde",
- "serde_json",
- "thiserror 1.0.69",
-]
-
-[[package]]
-name = "browserslist-rs"
 version = "0.20.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ec54e3c5c50eae1f8d771c7ffc311c1cc8e5e3c85b9fd87b557633bbe9b7cb01"
 dependencies = [
  "ahash 0.8.12",
- "browserslist-data 0.2.0",
+ "browserslist-data",
  "chrono",
  "either",
  "itertools 0.15.0",
- "nom 8.0.0",
+ "nom",
  "serde",
  "serde_json",
  "thiserror 1.0.69",
@@ -2299,15 +2272,6 @@ dependencies = [
 
 [[package]]
 name = "itertools"
-version = "0.13.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "413ee7dfc52ee1a4949ceeb7dbc8a33f2d6c088194d9f922fb8318faf1f01186"
-dependencies = [
- "either",
-]
-
-[[package]]
-name = "itertools"
 version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2b192c782037fadd9cfa75548310488aabdbf3d2da73885b31bd0abd03351285"
@@ -2670,12 +2634,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "minimal-lexical"
-version = "0.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "68354c5c6bd36d73ff3feceb05efa59b6acb7626617f4962be322a825e61f79a"
-
-[[package]]
 name = "miniz_oxide"
 version = "0.8.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2816,16 +2774,6 @@ name = "nohash-hasher"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2bf50223579dc7cdcfb3bfcacf7069ff68243f8c363f62ffa99cf000a6b9c451"
-
-[[package]]
-name = "nom"
-version = "7.1.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d273983c5a657a70a3e8f2a01329822f3b8c8172b73826411a55751e404a0a4a"
-dependencies = [
- "memchr",
- "minimal-lexical",
-]
 
 [[package]]
 name = "nom"
@@ -3241,7 +3189,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "413aea50b6c88e7f47da0b1efc078f19d1f9f86d38ba3b828f19e6fb29e715d8"
 dependencies = [
  "anyhow",
- "browserslist-rs 0.20.0",
+ "browserslist-rs",
  "dashmap",
  "from_variant",
  "once_cell",
@@ -3533,16 +3481,6 @@ name = "regex-syntax"
 version = "0.8.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d6f6ff9a378485b298a5286656da665ba74413d36db0979633275d2e708145d4"
-
-[[package]]
-name = "regress"
-version = "0.10.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2057b2325e68a893284d1538021ab90279adac1139957ca2a74426c6f118fb48"
-dependencies = [
- "hashbrown 0.16.1",
- "memchr",
-]
 
 [[package]]
 name = "regress"
@@ -3901,7 +3839,7 @@ dependencies = [
 name = "rspack_browserslist"
 version = "0.101.8"
 dependencies = [
- "browserslist-rs 0.19.0",
+ "browserslist-rs",
  "lightningcss",
  "regex",
 ]
@@ -4739,7 +4677,7 @@ dependencies = [
  "once_cell",
  "rayon",
  "regex",
- "regress 0.10.5",
+ "regress",
  "rspack_cacheable",
  "rspack_collections",
  "rspack_core",
@@ -5284,7 +5222,7 @@ dependencies = [
  "napi",
  "regex",
  "regex-syntax",
- "regress 0.10.5",
+ "regress",
  "rspack_cacheable",
  "rspack_error",
  "swc_core",
@@ -6099,7 +6037,7 @@ dependencies = [
  "indexmap",
  "once_cell",
  "regex",
- "regress 0.11.1",
+ "regress",
  "rustc-hash",
  "serde",
  "serde_json",
