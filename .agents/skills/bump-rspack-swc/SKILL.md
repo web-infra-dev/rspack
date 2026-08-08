@@ -17,7 +17,7 @@ Perform the upgrade end to end. Keep the patch focused, preserve unrelated work,
 - Keep existing `default-features`, feature lists, and unrelated dependency versions unchanged unless the new SWC release requires an adaptation.
 - Do not edit `crates/rspack_workspace/src/generated.rs` by hand. Generate it with `cargo codegen`.
 - Use official sources for release data: crates.io and `swc-project/swc` tags, commits, and pull requests.
-- Do not claim an SWC change fixes a Rspack issue without matching the failure mode and validating the fix when practical. Use “related” or “may fix” for weaker evidence.
+- Mention an upstream bug fix in the PR description only when it matches a Rspack issue's failure mode and the fix is validated when practical. Omit plausible, weak, or unverified bug connections instead of using “related” or “may fix”.
 - Use `pnpm run build:binding:dev` as the only validation command. Do not run tests or lint unless the user explicitly requests them.
 - Do not create the PR until the intended diff and required validation have been reviewed. If validation is incomplete or an important risk remains, explain it and open a draft only when the user still wants a PR.
 
@@ -61,13 +61,16 @@ Collect the complete commit list through the GitHub compare API or the exact tag
 
 For commits that reference a pull request, inspect that PR’s title, body, labels, and relevant files. Drop release bookkeeping, dependency noise, and merges with no user-visible impact. Classify the remaining changes as:
 
-- breaking or required Rspack adaptations;
-- parser, AST, resolver, codegen, source-map, transform, React compiler, TypeScript, minifier, plugin, HTML, performance, or correctness changes relevant to Rspack;
-- small fixes that can be combined into one concise sentence.
+- breaking changes that require a Rspack adaptation or materially affect a Rspack integration surface;
+- new features available through a Rspack integration surface;
+- performance improvements that plausibly benefit Rspack;
+- bug fixes that match a verified Rspack issue.
 
-For every breaking or notable item, link the upstream PR or commit and explain the concrete Rspack surface it affects. Search the Rspack checkout for changed SWC API names and behavior so the summary reflects actual integration points instead of repeating upstream titles.
+For every included item, link the upstream PR or commit and explain the concrete Rspack surface it affects. Search the Rspack checkout for changed SWC API names and behavior so the summary reflects actual integration points instead of repeating upstream titles. Omit changes with no meaningful Rspack impact. Do not add empty categories or state that there are no relevant changes.
 
-Search open and recent Rspack issues using the symptoms, syntax, transform names, and error text from notable SWC fixes. Read candidate issues and confirm the behavior matches from the available issue details, upstream fix, and local integration code. Do not run tests as part of this workflow. Record verified issue links for the PR; distinguish confirmed fixes from plausible connections.
+Search open and recent Rspack issues using the symptoms, syntax, transform names, and error text from notable SWC fixes. Read candidate issues and confirm the behavior matches from the available issue details, upstream fix, and local integration code. Do not run tests as part of this workflow. Record verified issue links for the PR.
+
+Keep issue correlation as an analysis step, not a reporting requirement. If no Rspack issue is verified, omit the bug fix and omit the related-links section entirely. Never list upstream bug fixes solely to summarize the SWC release.
 
 ## 4. Adapt and validate
 
@@ -100,12 +103,14 @@ Bumps `swc_core` from `OLD_VERSION` to `NEW_VERSION` and aligns the compatible S
 
 [Upstream tag comparison](COMPARE_URL)
 
-- **Rspack-relevant / breaking:** <only the important changes and required adaptations, with upstream links>
-- **Fixes:** <group small fixes into one sentence; call out verified Rspack bugs separately>
+- **Breaking:** <only Rspack-impacting breaking changes or required adaptations; omit when empty>
+- **Features:** <new capabilities available through Rspack; omit when empty>
+- **Performance:** <improvements likely to benefit Rspack; omit when empty>
+- **Fixes:** <only fixes matched to verified Rspack issues; omit when empty>
 
 ## Related links
 
-<Use `Fixes #NNNN` only for verified fixes; otherwise use `Related to #NNNN` or `N/A`.>
+<Include this section only when verified Rspack issue links exist. Use `Fixes #NNNN` only for confirmed fixes.>
 
 ## Checklist
 
@@ -117,4 +122,4 @@ Bumps `swc_core` from `OLD_VERSION` to `NEW_VERSION` and aligns the compatible S
 - `<exact command>`
 ```
 
-Include only useful changelog detail in the PR body; do not dump the raw commit list. Mark a checklist item complete only when true, and state why tests or docs are not required when that is not obvious. After creation, report the PR URL, exact version range, changed files, validation results, and any remaining risks.
+Include only useful changelog detail in the PR body; do not dump the raw commit list. Prefer omitting a low-confidence or low-impact item over making reviewers evaluate it. Remove empty optional bullets and sections from the final body. Mark a checklist item complete only when true, and state why tests or docs are not required when that is not obvious. After creation, report the PR URL, exact version range, changed files, validation results, and any remaining risks.
