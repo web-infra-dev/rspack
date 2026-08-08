@@ -1,5 +1,5 @@
 const contextRequire = import.meta.webpackContext(".", {
-	regExp: /(?<name>a)|(?<name>b)/,
+	regExp: /(?<name>a)(?<name>b)/,
 	recursive: false
 });
 
