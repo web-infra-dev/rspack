@@ -62,10 +62,11 @@ pub enum JavascriptParserPluginHook {
   Finish,
   IsPure,
   ImportMetaPropertyInDestructuring,
+  RerouteSpecifier,
 }
 
 impl JavascriptParserPluginHook {
-  pub const COUNT: usize = Self::ImportMetaPropertyInDestructuring as usize + 1;
+  pub const COUNT: usize = Self::RerouteSpecifier as usize + 1;
   pub const ALL_MASK: u64 = if Self::COUNT == u64::BITS as usize {
     u64::MAX
   } else {
@@ -127,6 +128,7 @@ impl JavascriptParserPluginHook {
     Self::Finish,
     Self::IsPure,
     Self::ImportMetaPropertyInDestructuring,
+    Self::RerouteSpecifier,
   ];
 
   pub const fn mask(self) -> u64 {
@@ -620,6 +622,22 @@ Please annotate your `impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ...` block
     _export_name: Option<&Atom>,
     _identifier_name: &Atom,
   ) -> Option<bool> {
+    None
+  }
+
+  /// Allows a plugin to reroute an ESM import or re-export specifier to a
+  /// different request before its dependency is constructed. This runs at every
+  /// specifier dependency creation site, receiving the first imported id (the
+  /// name being accessed) and the current request. Return `Some(new_request)`
+  /// to reroute, or `None` to leave the request unchanged. Rerouting recomputes
+  /// the dependency's `resource_identifier`, so a single source import can be
+  /// split across multiple target modules per specifier.
+  fn reroute_specifier(
+    &self,
+    _parser: &JavascriptParser<'p>,
+    _imported: Option<&Atom>,
+    _request: &Atom,
+  ) -> Option<Atom> {
     None
   }
 
