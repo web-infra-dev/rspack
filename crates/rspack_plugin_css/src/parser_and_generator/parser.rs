@@ -14,7 +14,7 @@ use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, Severity, TWith
 use rustc_hash::{FxHashMap, FxHashSet};
 use smol_str::SmolStr;
 
-use super::{REGEX_CUSTOM_PROPERTY_IDENT, REGEX_IS_COMMENTS, is_css_module};
+use super::{REGEX_CUSTOM_PROPERTY_IDENT, is_css_module};
 use crate::{
   dependency::{
     CssComposeDependency, CssExportDependency, CssIcssSymbolDependency, CssIcssSymbolValue,
@@ -259,13 +259,16 @@ impl<'context> CssModuleParser<'context> {
     let mode = self.mode();
     let deps_source_code = self.source_code.clone();
     let (deps, warnings) = css_module_lexer::collect_dependencies(&deps_source_code, mode);
-    let local_css_ident_declarations = self.collect_local_css_ident_declarations(&deps);
-    let module_hash_options = self.create_module_hash_options(&deps, &local_css_ident_declarations);
+    let local_css_ident_declarations =
+      self.collect_local_css_ident_declarations(deps.dependencies());
+    let module_hash_options =
+      self.create_module_hash_options(deps.dependencies(), &local_css_ident_declarations);
 
-    for dependency in deps {
+    for dependency in &deps {
       self
         .handle_dependency(
           dependency,
+          &deps,
           &module_hash_options,
           &local_css_ident_declarations,
         )
@@ -657,10 +660,18 @@ impl<'context> CssModuleParser<'context> {
       .iter()
       .rposition(|byte| *byte == b'\n')
       .map_or(0, |pos| pos + 1);
-
-    if bytes[line_start..start]
+    let line_end = bytes[end..]
       .iter()
-      .all(|byte| *byte == b' ' || *byte == b'\t')
+      .position(|byte| *byte == b'\r' || *byte == b'\n')
+      .map_or(bytes.len(), |pos| end + pos);
+    let replacement_removes_line = bytes[end..line_end]
+      .iter()
+      .all(|byte| *byte == b' ' || *byte == b'\t');
+
+    if replacement_removes_line
+      && bytes[line_start..start]
+        .iter()
+        .all(|byte| *byte == b' ' || *byte == b'\t')
     {
       start = line_start;
       if end < bytes.len() && bytes[end] == b'\r' {
@@ -674,9 +685,25 @@ impl<'context> CssModuleParser<'context> {
     (start as u32, end as u32).into()
   }
 
+  fn add_invalid_bare_import_warning(&mut self, range: &css_module_lexer::Range) {
+    let when = self
+      .source_code
+      .get(range.start as usize..range.end as usize)
+      .map_or("@import", str::trim);
+    let error = css_parsing_traceable_error(
+      &self.source_code,
+      range.start,
+      range.end,
+      format!("Expected URL in '{when}'"),
+      Severity::Warning,
+    );
+    self.diagnostics.push(error.into());
+  }
+
   async fn handle_dependency<'source>(
     &mut self,
-    dependency: css_module_lexer::Dependency<'source>,
+    dependency: &css_module_lexer::Dependency<'source>,
+    dependency_context: &css_module_lexer::DependencyContext<'source>,
     module_hash_options: &LocalIdentModuleHashOptions<'_>,
     local_css_ident_declarations: &LocalCssIdentDeclarations,
   ) -> Result<()> {
@@ -685,27 +712,32 @@ impl<'context> CssModuleParser<'context> {
         request,
         range,
         kind,
-      } => self.handle_url(request, range, kind),
+      } => self.handle_url(request, *range, *kind),
       css_module_lexer::Dependency::Import {
         request,
         range,
-        media,
-        supports,
-        layer,
+        attributes,
       } => {
+        let attributes = dependency_context.import_attributes(*attributes);
         self
-          .handle_import(request, range, media, supports, layer)
+          .handle_import(
+            request,
+            *range,
+            attributes.media(),
+            attributes.supports(),
+            attributes.layer(),
+          )
           .await
       }
       css_module_lexer::Dependency::Replace { content, range } => {
-        let range = self.presentational_replace_range(content, range);
+        let range = self.presentational_replace_range(content, *range);
         self
           .presentational_dependencies
-          .push(Box::new(ConstDependency::new(range, content.into())));
+          .push(Box::new(ConstDependency::new(range, (*content).into())));
         Ok(())
       }
       css_module_lexer::Dependency::Charset { range, .. } => {
-        self.handle_charset(range);
+        self.handle_charset(*range);
         Ok(())
       }
       css_module_lexer::Dependency::LocalClass { name, range, .. }
@@ -721,7 +753,7 @@ impl<'context> CssModuleParser<'context> {
           .handle_optional_local_ident_usage(
             self.animation() && local_css_ident_declarations.has_keyframes(name),
             name,
-            range,
+            *range,
             module_hash_options,
           )
           .await
@@ -731,7 +763,7 @@ impl<'context> CssModuleParser<'context> {
           .handle_optional_local_ident_declaration(
             self.animation(),
             name,
-            range,
+            *range,
             module_hash_options,
           )
           .await
@@ -742,11 +774,19 @@ impl<'context> CssModuleParser<'context> {
         from,
         range,
       } => {
-        self.handle_composes(local_classes, names, from, range);
+        self.handle_composes(
+          dependency_context
+            .composes_local_classes(*local_classes)
+            .iter()
+            .copied(),
+          dependency_context.composes_names(*names).iter().copied(),
+          *from,
+          *range,
+        );
         Ok(())
       }
       css_module_lexer::Dependency::ICSSExportValue { prop, value } => {
-        self.handle_icss_export_value(prop, value);
+        self.handle_icss_export_value(prop, value.as_ref());
         Ok(())
       }
       css_module_lexer::Dependency::ICSSImportFrom { path } => {
@@ -757,8 +797,16 @@ impl<'context> CssModuleParser<'context> {
         self.handle_icss_import_value(prop, value);
         Ok(())
       }
+      css_module_lexer::Dependency::ICSSImportUrl { name, range, .. } => {
+        if let Some(request) = self.resolve_icss_import_url_request(name) {
+          self.handle_import(&request, *range, None, None, None).await
+        } else {
+          self.add_invalid_bare_import_warning(range);
+          Ok(())
+        }
+      }
       css_module_lexer::Dependency::ICSSSymbol { name, range } => {
-        self.handle_icss_symbol(name, range);
+        self.handle_icss_symbol(name, *range);
         Ok(())
       }
       css_module_lexer::Dependency::LocalCounterStyle { name, range, .. }
@@ -767,7 +815,7 @@ impl<'context> CssModuleParser<'context> {
           .handle_optional_local_ident_usage(
             self.custom_idents() && local_css_ident_declarations.has_custom_ident(name),
             name,
-            range,
+            *range,
             module_hash_options,
           )
           .await
@@ -778,7 +826,7 @@ impl<'context> CssModuleParser<'context> {
           .handle_optional_local_ident_declaration(
             self.custom_idents(),
             name,
-            range,
+            *range,
             module_hash_options,
           )
           .await
@@ -788,7 +836,7 @@ impl<'context> CssModuleParser<'context> {
           .handle_optional_local_ident_usage(
             self.container() && local_css_ident_declarations.has_container(name),
             name,
-            range,
+            *range,
             module_hash_options,
           )
           .await
@@ -798,7 +846,7 @@ impl<'context> CssModuleParser<'context> {
           .handle_optional_local_ident_declaration(
             self.container(),
             name,
-            range,
+            *range,
             module_hash_options,
           )
           .await
@@ -808,7 +856,7 @@ impl<'context> CssModuleParser<'context> {
           .handle_optional_local_dashed_ident_usage(
             self.function() && local_css_ident_declarations.has_function(name),
             name,
-            range,
+            *range,
             module_hash_options,
           )
           .await
@@ -818,7 +866,7 @@ impl<'context> CssModuleParser<'context> {
           .handle_optional_local_dashed_ident_declaration(
             self.function(),
             name,
-            range,
+            *range,
             module_hash_options,
           )
           .await
@@ -828,14 +876,14 @@ impl<'context> CssModuleParser<'context> {
           .handle_optional_local_ident_usage(
             self.grid() && local_css_ident_declarations.has_grid(name),
             name,
-            range,
+            *range,
             module_hash_options,
           )
           .await
       }
       css_module_lexer::Dependency::LocalGridDecl { name, range, .. } => {
         self
-          .handle_optional_local_ident_declaration(self.grid(), name, range, module_hash_options)
+          .handle_optional_local_ident_declaration(self.grid(), name, *range, module_hash_options)
           .await
       }
       css_module_lexer::Dependency::LocalVar { name, range, from } => {
@@ -843,8 +891,8 @@ impl<'context> CssModuleParser<'context> {
           .handle_optional_local_var_usage(
             self.dashed_idents(),
             name,
-            range,
-            from,
+            *range,
+            *from,
             module_hash_options,
             local_css_ident_declarations,
           )
@@ -856,7 +904,7 @@ impl<'context> CssModuleParser<'context> {
           .handle_optional_local_var_declaration(
             self.dashed_idents(),
             name,
-            range,
+            *range,
             module_hash_options,
           )
           .await
@@ -1408,12 +1456,13 @@ impl<'context> CssModuleParser<'context> {
       .into_iter()
       .map(|s| unescape(s).to_string())
       .collect::<Vec<_>>();
+    let resolved_from = from.and_then(|from| {
+      let from = from.trim_matches(|c| c == '\'' || c == '"');
+      (from != "global").then(|| self.resolve_icss_import_request(from))
+    });
 
     let mut dep_id = None;
-    if let Some(from) = from
-      && from != "global"
-    {
-      let from = from.trim_matches(|c| c == '\'' || c == '"');
+    if let Some(from) = resolved_from.as_deref() {
       let dep = CssComposeDependency::new(
         from.to_string(),
         names.iter().map(|s| s.to_owned().into()).collect(),
@@ -1471,9 +1520,7 @@ impl<'context> CssModuleParser<'context> {
             .insert(CssExport {
               ident: convention_name.as_str().into(),
               orig_name: name.as_str().into(),
-              from: from
-                .filter(|f| *f != "global")
-                .map(|f| f.trim_matches(|c| c == '\'' || c == '"').into()),
+              from: resolved_from.as_deref().map(Into::into),
               id: dep_id,
             });
         }
@@ -1510,8 +1557,7 @@ impl<'context> CssModuleParser<'context> {
   fn handle_icss_export_value(&mut self, prop: &str, value: &str) {
     let convention = self.convention();
     let convention_names = export_locals_convention(prop, convention);
-    let value = REGEX_IS_COMMENTS.replace_all(value, "");
-    let definition = self.resolve_icss_definition(value.as_ref());
+    let definition = self.resolve_icss_definition(value);
     self
       .icss_definitions
       .insert(prop.to_string(), definition.clone());
@@ -1584,7 +1630,7 @@ impl<'context> CssModuleParser<'context> {
   }
 
   fn resolve_icss_import_request(&self, path: &str) -> String {
-    let path = path.trim_matches(|c| c == '\'' || c == '"');
+    let path = path.trim().trim_matches(|c| c == '\'' || c == '"');
     if let Some(IcssDefinition::Value(value)) = self.icss_definitions.get(path) {
       value.trim_matches(|c| c == '\'' || c == '"').to_string()
     } else if !path.starts_with('.')
@@ -1597,6 +1643,18 @@ impl<'context> CssModuleParser<'context> {
     } else {
       path.to_string()
     }
+  }
+
+  fn resolve_icss_import_url_request(&self, name: &str) -> Option<String> {
+    let name = name.trim().trim_matches(|c| c == '\'' || c == '"');
+    if !matches!(
+      self.icss_definitions.get(name),
+      Some(IcssDefinition::Value(_))
+    ) {
+      return None;
+    }
+    let request = self.resolve_icss_import_request(name);
+    (!request.trim().is_empty()).then_some(request)
   }
 
   fn update_css_exports_from_icss_definition(

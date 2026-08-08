@@ -772,13 +772,13 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     for CssExport {
       ident,
       from,
-      id: _,
+      id,
       orig_name: _,
     } in elements
     {
       let part = match from {
         None => self.render_local_css_export(ident),
-        Some(from_name) => self.render_standard_css_reexport(ident, from_name),
+        Some(from_name) => self.render_standard_css_reexport(ident, from_name, id.as_ref()),
       };
       push_joined(&mut content, &part, " + \" \" + ");
     }
@@ -791,27 +791,48 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     json_stringify_str(&ident)
   }
 
-  fn render_standard_css_reexport(&mut self, ident: &str, from_name: &str) -> String {
+  fn render_standard_css_reexport(
+    &mut self,
+    ident: &str,
+    from_name: &str,
+    id: Option<&DependencyId>,
+  ) -> String {
     let compilation = self.generate_context.compilation;
     let module_graph = compilation.get_module_graph();
-    let from = self
-      .module
-      .get_dependencies()
-      .iter()
-      .find_map(|id| {
-        let dependency = module_graph.dependency_by_id(id);
-        let request = dependency_request(dependency);
-        if let Some(request) = request
-          && request == from_name
-        {
-          return module_graph.module_graph_module_by_dependency_id(id);
-        }
-        None
+    let find_target_module =
+      |dep_id: &DependencyId| module_graph.get_module_by_dependency_id(dep_id);
+    let from = id
+      .and_then(find_target_module)
+      .or_else(|| {
+        self.module.get_dependencies().iter().find_map(|id| {
+          let dependency = module_graph.dependency_by_id(id);
+          let request = dependency_request(dependency);
+          if let Some(request) = request
+            && request == from_name
+          {
+            return find_target_module(id);
+          }
+          None
+        })
       })
-      .expect("should have css from module");
+      .unwrap_or_else(|| {
+        let dependency_requests = self
+          .module
+          .get_dependencies()
+          .iter()
+          .filter_map(|id| {
+            let dependency = module_graph.dependency_by_id(id);
+            dependency_request(dependency)
+          })
+          .collect::<Vec<_>>();
+        panic!(
+          "should have css from module: ident={ident}, from={from_name}, id={id:?}, dependency_requests={dependency_requests:?}"
+        );
+      });
 
-    let from_used_name = self.stringified_used_export_name(from.module_identifier, ident, true);
-    self.render_require_property_access(from.module_identifier, &from_used_name)
+    let from_identifier = from.identifier();
+    let from_used_name = self.stringified_used_export_name(from_identifier, ident, true);
+    self.render_require_property_access(from_identifier, &from_used_name)
   }
 
   fn render_concat_export_content<'b>(

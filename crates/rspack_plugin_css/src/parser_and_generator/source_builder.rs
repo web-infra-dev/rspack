@@ -198,7 +198,7 @@ mod tests {
     assert!(warnings.is_empty());
 
     deps
-      .into_iter()
+      .iter()
       .filter_map(|dep| match dep {
         css_module_lexer::Dependency::Import {
           media,

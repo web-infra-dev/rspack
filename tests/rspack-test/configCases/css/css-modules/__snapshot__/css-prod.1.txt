@@ -1,0 +1,2630 @@
+.sqLYns {
+	color: blue;
+}
+
+
+
+@media small {
+	abbr:hover {
+		color: limegreen;
+		transition-duration: Xs;
+	}
+}
+
+
+._53YyBY { color: red; }
+
+
+._53YyBY {
+	&.saKuCU { color: red; }
+}
+
+
+._53YyBY {
+	@media (min-width: 1024px) {
+		&.saKuCU { color: red; }
+	}
+}
+
+
+._53YyBY {
+	@media (min-width: 1024px) {
+		&.saKuCU {
+			@media (min-width: 1024px) {
+				color: red;
+			}
+		}
+	}
+}
+
+
+._53YyBY { height: 40px; height: 36px; }
+
+
+.sqw_Zm {
+	color: red;
+}
+
+
+#_X56p0 {
+	color: red;
+}
+
+
+.ut308C > .ut308C {
+	color: red;
+}
+
+
+colorValue-v3 {
+	color: .red;
+}
+
+
+.eZ0FPr {
+	color: blue;
+}
+
+
+._53YyBY { color: red; }
+
+
+._53YyBY { color: red; }
+.saKuCU { color: yellow }
+
+
+._53YyBY { color: blue; }
+
+
+.E3SnAT { color: red; }
+
+
+.E3SnAT { margin: calc(base * 2); }
+
+
+.E3SnAT { content: "test-a" "test-b"; }
+
+
+._53YyBY { color: var(--color); }
+
+
+._53YyBY {
+	color: var(--color);
+	background-color: #0f0;
+	border-top-color: #00ff00;
+	border-bottom-color: rgba(34, 12, 64, 0.3);
+	outline-color: hsla(220, 13.0%, 18.0%, 1);
+}
+
+
+._53YyBY { color: blue; }
+.saKuCU { color: red }
+
+
+._53YyBY { box-shadow: 0 11px 15px -7px rgba(0,0,0,.2),0 24px 38px 3px rgba(0,0,0,.14); }
+
+
+._53YyBY { color: color(red lightness(50%)); }
+
+
+:root { --XzKrP9: var(--color); }
+
+
+:root { --XzKrP9: ; }
+
+
+:root { --XzKrP9:   ; }
+
+
+:root { --XzKrP9: /* comment */; }
+
+
+._9Xx8z_ {
+	color: var(--color);
+}
+
+
+.ZGKnJ3 {
+	color: red;
+	color: red;
+	color: blue;
+}
+
+
+.XzKrP9 {
+	color: /* test */red/* test */;
+}
+
+
+.XzKrP9 {
+	color: /* test *//* test */red/* test */;
+}
+
+
+._53YyBY { box-shadow: 0 11px 15px -7px rgba(0,0,0,.2),0 24px 38px 3px rgba(0,0,0,.14); }
+
+
+._53YyBY { box-shadow: 0 11px 15px -7px rgba(0,0,0,.2),0 24px 38px 3px rgba(0,0,0,.14); }
+
+
+._53YyBY { box-shadow: /* test */   0 11px 15px -7px rgba(0,0,0,.2),0 24px 38px 3px rgba(0,0,0,.14); }
+
+
+._53YyBY { box-shadow: /* test */0 11px 15px -7px rgba(0,0,0,.2),0 24px 38px 3px rgba(0,0,0,.14); }
+
+
+._53YyBY { box-shadow: 0 11px 15px -7px rgba(0,0,0,.2),0 24px 38px 3px rgba(0,0,0,.14); }
+
+
+._53YyBY { box-shadow: /* test */0 11px 15px -7px rgba(0,0,0,.2),0 24px 38px 3px rgba(0,0,0,.14); }
+
+
+._53YyBY { color: blue; }
+
+
+._53YyBY { color: blue; }
+
+
+._53YyBY { color: red; }
+
+
+.XzKrP9 {
+	color: /*
+	multiline
+	comment
+*/red/*
+	multiline
+	comment
+*/;
+}
+
+
+._53YyBY { color: blue; }
+
+
+:root { --XzKrP9: /*
+	multiline
+	comment
+*/; }
+
+
+:root {
+	--v8l2al: brown;
+	---vxNcY: red;
+	--YiJ7g3: blue;
+	--Zx9jKU: yellow;
+	--hOUNtO: "reserved";
+	--pXpOo6: green;
+}
+
+.d5u7oo {
+	color: var(--v8l2al);
+}
+
+@property --h_0muZ {
+	syntax: "<color>";
+	inherits: false;
+	initial-value: #c0ffee;
+}
+
+@property --hOUNtO {
+	syntax: "<color>";
+	inherits: false;
+	initial-value: #c0ffee;
+}
+
+.d5u7oo {
+	color: var(--h_0muZ);
+}
+
+div {
+	background-color: var(--_7NC6Dq);
+}
+
+._3-voEU {
+	--_7NC6Dq: cornflowerblue;
+}
+
+.aoFJ7Q {
+	--_7NC6Dq: aquamarine;
+}
+
+
+.U-hya2 {
+	/* Red if --my-var is not defined */
+	color: var(---vxNcY, red);
+}
+
+._3-voEU {
+	/* pink if --my-var and --my-background are not defined */
+	color: var(---vxNcY, var(--YiJ7g3, pink));
+}
+
+.NVKUtX {
+	color: var(--hOUNtO);
+}
+
+.rPorbB {
+	color: var(--pXpOo6);
+}
+
+.KXTJ1G {
+	color: var(--my-global from global);
+}
+
+.fFr_cz {
+	color: var(--my-global from global, pink);
+}
+
+.jHi2f0 {
+	color: var(--my-global from global, var(--my-global-background from global));
+}
+
+._6QmWl6 {
+	color: var(--my-global from global, var(--my-global-background from global, pink));
+}
+
+.FhfLT4 {
+	color: var(--my-global from global, var(--YiJ7g3, pink));
+}
+
+.qK3PRy {
+	color: var(   --my-global   from   global,var(--YiJ7g3,pink));
+}
+
+._35GALq {
+	background: var(   --v8l2al   ,   var(   --YiJ7g3   ,   pink   )   )   , var(--my-global from   global);
+}
+
+._6RNvPx {
+	background: var(--v8l2al,var(--YiJ7g3,pink)),var(--my-global from global);
+}
+
+.Ei9epB {
+	color: var(--epeIq9 from "./var-function-export.modules.css");
+}
+
+.u9ypVT {
+	color: var(--v8l2al, var(--epeIq9 from "./var-function-export.modules.css"));
+}
+
+.aM7fgE {
+	color: var(--epeIq9 from "./var-function-export.modules.css",  var(--v8l2al));
+}
+
+.o8AOgO {
+	color: var(--epeIq9 from "./var-function-export.modules.css",  var(--tRilbX from "./var-function-export.modules.css"));
+}
+
+.G5AIHJ {
+	color: var(--_6UzX6O from "./var-function-export.modules.css");
+}
+
+._08zSUb {
+	color: var(--pXpOo6 from "./var-function-export.modules.css");
+}
+
+.IBxHpE {
+	color: var(--v8l2al from "./var-function-export.modules.css");
+}
+
+.i6lNVV {
+	color: var(--epeIq9 from "./var-function-export.modules.css", var(--my-global from global, var(--v8l2al, red)));
+}
+
+._4yrXDH {
+	color: var(--my-global from);
+}
+
+.f0uq6E {
+	color: var(--my-global from 1);
+}
+
+:root {
+	--I7bLGr: red;
+}
+
+.I7bLGr {
+	color: var(--I7bLGr from "./var-function-export.modules.css")
+}
+
+.ciGKnS {
+	--_9F1pJd: #fff;
+	--mFeb9j: #333;
+
+	.emLcm6 {
+		--V73G5J: var(--_9F1pJd);
+		--AgczGD: var(--mFeb9j);
+		color: var(--V73G5J);
+		background-color: var(--AgczGD);
+	}
+}
+
+.ZxcqV1 {
+	--R0ab9x: 20px;
+	padding: var(--R0ab9x);
+
+	._914CLC {
+		--_4fTXek: 10px;
+		margin-top: var(--_4fTXek);
+		padding-left: var(--R0ab9x); /* Accessing parent's variable */
+	}
+}
+
+@media (min-width: 768px) {
+	:root {
+		--RPrJ9k: 1.5rem;
+		--SRsOZR: 1.2;
+	}
+}
+
+.ZOaP7P {
+	padding: var(--RPrJ9k); /* This will be 1rem or 1.5rem based on screen size */
+}
+
+.EZi9jQ {
+	/* Dynamic font size based on screen size using the variable */
+	font-size: calc(1.2rem * var(--SRsOZR));
+	margin-bottom: calc(var(--RPrJ9k) / 2);
+}
+
+.c6re-u {
+	/* Using calc() to create a flexible layout */
+	width: calc(100% - (var(--RPrJ9k) * 2));
+}
+
+._woGFC {
+	/* Locally scoped variables (pseudo-private) */
+	--NByYvS: #e0f7fa; /* Default info color */
+	--_1-XrTx: #00796b;
+	--Kcnlov: "ℹ️";
+
+	padding: 1em;
+	background-color: var(--NByYvS);
+	color: var(--_1-XrTx);
+	border-left: 5px solid var(--_1-XrTx);
+}
+
+:root {
+	--jHRuli: #fff;
+	--c7f5ey: #ddd;
+	--_9LcYda: #333;
+	--dR3AWn: royalblue;
+}
+
+.JDBxT1 {
+	border: 1px solid var(--c7f5ey);
+	border-radius: 4px;
+	width: 100%;
+	max-width: 400px;
+
+	/* CSS Nesting starts here */
+	& .vTl8qC {
+		background: var(--jHRuli);
+		color: var(--_9LcYda);
+		border-bottom: 1px solid var(--c7f5ey);
+
+		&:last-child {
+			border-bottom: none;
+		}
+
+		& .zQWhAQ {
+			padding: 1rem;
+			cursor: pointer;
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+
+			&:hover {
+				background: color-mix(in srgb, var(--jHRuli) 90%, gray);
+			}
+		}
+
+		/* Override variables locally for a specific state (e.g., active item) */
+		&.Ew2643 {
+			--jHRuli: var(--dR3AWn); /* Nested override */
+			--_9LcYda: #fff; /* Nested override */
+
+			& .zQWhAQ {
+				font-weight: bold;
+			}
+		}
+	}
+
+	/* Define a complete alternate theme nested inside the container */
+	&.h0SUEG {
+		/* These variables are scoped only to elements within this specific container */
+		--jHRuli: #333;
+		--c7f5ey: #555;
+		--_9LcYda: #eee;
+		--dR3AWn: #2ecc71; /* A new accent color for the dark theme */
+	}
+}
+
+.WzW5MG {
+	/* Establish a container context for cqw units */
+	container-type: inline-size;
+	display: flex;
+	gap: 1rem;
+	padding: 1rem;
+	border: 1px solid #ccc;
+
+	/* Define default mobile variables */
+	--uvfIkC: 48px;
+	--_3g6I3v: 1rem;
+
+	& .CHXJ2V {
+		width: var(--uvfIkC);
+		height: var(--uvfIkC);
+		border-radius: 50%;
+		background: lightgray;
+	}
+
+	& .dbOdw5 {
+		font-size: var(--_3g6I3v);
+	}
+
+	/* Nested Container Query (Responsive override of variables) */
+	@container (min-width: 400px) {
+		/* Redefine variables when container is wide enough */
+		--uvfIkC: 10cqw; /* Dynamic size based on container width (10% of container) */
+		--_3g6I3v: 1.2rem;
+		gap: 1.5rem;
+	}
+}
+
+:root {
+	--IcAoPd: #007bff;
+	--_9F1pJd: var(--IcAoPd); /* --text-color now uses the value of --primary-color */
+	--qF6wPB: linear-gradient(to right, var(--IcAoPd), #6c757d);
+}
+
+.J8H7-W {
+	color: var(--_9F1pJd);
+	background: var(--qF6wPB);
+}
+
+.qa9TNZ {
+	color: red
+}
+
+.Smiuub {
+	color: green;
+}
+
+.G2XEl2 {
+	color: blue;
+}
+
+.HCmf56 {
+	color: yellow;
+}
+
+._8nY0VE {
+	color: red;
+}
+
+.zmL5Of {
+	color: red;
+}
+
+.nP5iYu {
+	color: red;
+}
+
+.Klfr7O {
+	color: red;
+}
+
+._8FGerM {
+	color: red;
+}
+
+.ertuMs {
+	color: red;
+}
+
+.BKgl3z {
+	color: tan;
+}
+
+:root {
+	--from-shared: --custom-shared;
+}
+
+@color-profile --custom-shared {
+	src: url(https://example.org/SWOP2006_Coated5v2.icc);
+}
+
+:local(.local-my-shared-class) {
+	color: red;
+}
+
+
+
+
+.fcj_Kv {
+	color: red;
+}
+
+.eyNyh9,
+.aq0M02 .global,
+.Fa7iPh {
+	color: green;
+}
+
+.global .dRwPBj {
+	color: yellow;
+}
+
+.qKCwoi.global.vbRLSe {
+	color: blue;
+}
+
+.HC8hYW div:not(._0zSAMd, ._65A7Ax, .mBJVk0) {
+    pointer-events: initial !important;
+}
+
+.VXzeqL :is(div.efaHmy.E_Co5V.qe4Fcn,
+    div.efaHmy.E_Co5V._0EgzW3,
+    div.GeLxAA.bvou1C,
+    div.GeLxAA.PyXYmb div.Et8NfR) {
+  max-height: 0;
+  margin: 0;
+  overflow: hidden;
+}
+
+.fjBiLM :matches(div.efaHmy.E_Co5V.qe4Fcn,
+    div.efaHmy.E_Co5V._0EgzW3,
+    div.GeLxAA.bvou1C,
+    div.GeLxAA.PyXYmb div.Et8NfR) {
+  max-height: 0;
+  margin: 0;
+  overflow: hidden;
+}
+
+.WUM6q8 :where(div.efaHmy.E_Co5V.qe4Fcn,
+    div.efaHmy.E_Co5V._0EgzW3,
+    div.GeLxAA.bvou1C,
+    div.GeLxAA.PyXYmb div.Et8NfR) {
+  max-height: 0;
+  margin: 0;
+  overflow: hidden;
+}
+
+.xfU8V7 div:has(._0zSAMd, ._65A7Ax, .mBJVk0) {
+    pointer-events: initial !important;
+}
+
+.c9A-Pa div:current(p, span) {
+	background-color: yellow;
+}
+
+.jMEOe7 div:past(p, span) {
+	display: none;
+}
+
+.HNWAAx div:future(p, span) {
+	background-color: yellow;
+}
+
+.Uu5Zsl div:-moz-any(ol, ul, menu, dir) {
+	list-style-type: square;
+}
+
+.W0G-5M li:-webkit-any(:first-child, :last-child) {
+	background-color: aquamarine;
+}
+
+.fjBiLM :matches(div.efaHmy.E_Co5V.qe4Fcn,
+    div.efaHmy.E_Co5V._0EgzW3,
+    div.GeLxAA.bvou1C,
+    div.GeLxAA.PyXYmb div.Et8NfR) {
+	max-height: 0;
+	margin: 0;
+	overflow: hidden;
+}
+
+.Kgyaat.nested2.CkXfSe {
+	color: pink;
+}
+
+#sKDVZf {
+	color: purple;
+}
+
+@keyframes T1C1Q4 {
+	0% {
+		left: var(--mL5jlW);
+		top: var(--fl-mfP);
+		color: var(--theme-color1);
+	}
+	100% {
+		left: var(--qpqq_w);
+		top: var(--l2XvJz);
+		color: var(--theme-color2);
+	}
+}
+
+@keyframes _2WPFIK {
+	0% {
+		left: 0;
+	}
+	100% {
+		left: 100px;
+	}
+}
+
+._4v9LUE {
+	animation-name: T1C1Q4;
+	animation: Xs ease-in Xs 2 reverse both paused T1C1Q4, _2WPFIK;
+	--mL5jlW: 0px;
+	--fl-mfP: 0px;
+	--qpqq_w: 10px;
+	--l2XvJz: 20px;
+}
+
+.Dkdw-k {
+	color: var(--_5itTTe);
+	--_5itTTe: red;
+}
+
+.gd80ly {
+	color: var(--global-color);
+	--global-color: red;
+}
+
+@media (min-width: 1600px) {
+	.Fy2EOT {
+		color: var(--_5itTTe);
+		--_5itTTe: green;
+	}
+}
+
+@media screen and (max-width: 600px) {
+	._8HHfxY {
+		color: var(--_5itTTe);
+		--_5itTTe: purple;
+	}
+}
+
+@supports (display: grid) {
+	.tOvYRI {
+		display: grid;
+	}
+}
+
+@supports not (display: grid) {
+  .QSHpwJ {
+    float: right;
+  }
+}
+
+@supports (display: flex) {
+  @media screen and (min-width: 900px) {
+    .RMXQVb {
+      display: flex;
+    }
+  }
+}
+
+@media screen and (min-width: 900px) {
+	@supports (display: flex) {
+    .S8ulXs {
+      display: flex;
+    }
+  }
+}
+
+@MEDIA screen and (min-width: 900px) {
+	@SUPPORTS (display: flex) {
+		.hd0-Lh {
+			display: flex;
+		}
+	}
+}
+
+.G5uMcD {
+	ANIMATION-NAME: _1zEV89;
+	ANIMATION: Xs ease-in Xs 2 reverse both paused _1zEV89, KwrpOo;
+	--mL5jlW: 0px;
+	--fl-mfP: 0px;
+	--qpqq_w: 10px;
+	--l2XvJz: 20px;
+}
+
+@KEYFRAMES _1zEV89 {
+	0% {
+		left: VAR(--mL5jlW);
+		top: VAR(--fl-mfP);
+		color: VAR(--theme-color1);
+	}
+	100% {
+		left: VAR(--qpqq_w);
+		top: VAR(--l2XvJz);
+		color: VAR(--theme-color2);
+	}
+}
+
+@KEYframes KwrpOo {
+	0% {
+		left: 0;
+	}
+	100% {
+		left: 100px;
+	}
+}
+
+.globalUpperCase .LJJZlA {
+	color: yellow;
+}
+
+.Ks_BHh {
+	color: VAR(--_odIAe);
+	--_odIAe: red;
+}
+
+.m2PA6x {
+	COLOR: VAR(--GLOBAR-COLOR);
+	--GLOBAR-COLOR: red;
+}
+
+@supports (top: env(safe-area-inset-top, 0)) {
+	.Q0GvKJ {
+		color: red;
+	}
+}
+
+._9cXp2R {
+	animation: Xs RI1Z9k;
+	-webkit-animation: Xs RI1Z9k;
+}
+
+._4xeVhB {
+	animation: RI1Z9k Xs;
+	-webkit-animation: RI1Z9k Xs;
+}
+
+.L6MAr_ {
+	animation-name: RI1Z9k;
+	-webkit-animation-name: RI1Z9k;
+}
+
+.kml5-V {
+	--Izh8-t: animationName;
+}
+
+@keyframes RI1Z9k {
+	0% {
+		background: white;
+	}
+	100% {
+		background: red;
+	}
+}
+
+@-webkit-keyframes RI1Z9k {
+	0% {
+		background: white;
+	}
+	100% {
+		background: red;
+	}
+}
+
+@-moz-keyframes FHOfDG {
+	0% {
+		background: white;
+	}
+	100% {
+		background: red;
+	}
+}
+
+@counter-style _tEP1J {
+	system: cyclic;
+	symbols: "\1F44D";
+	suffix: " ";
+}
+
+@font-feature-values Font One {
+	@styleset {
+		nice-style: 12;
+	}
+}
+
+/* At-rule for "nice-style" in Font Two */
+@font-feature-values Font Two {
+	@styleset {
+		nice-style: 4;
+	}
+}
+
+@property --_5_8BXF {
+	syntax: "<color>";
+	inherits: false;
+	initial-value: #c0ffee;
+}
+
+@property --yMmgtL {
+	initial-value: #c0ffee;
+	syntax: "<color>";
+	inherits: false;
+}
+
+@property --moXICl {
+	syntax: "<color>";
+	initial-value: #c0ffee;
+	inherits: false;
+}
+
+.fcj_Kv {
+	color: var(--_5_8BXF);
+}
+
+@layer utilities {
+	._6xbC0T {
+		padding: 0.5rem;
+	}
+
+	._0zWTgJ {
+		padding: 0.8rem;
+	}
+}
+
+.fcj_Kv {
+	color: red;
+
+	.O1fY6w {
+		color: red;
+	}
+
+	@media screen and (min-width: 200px) {
+		color: blue;
+
+		.r_GMyy {
+			color: blue;
+		}
+	}
+
+	@supports (display: flex) {
+		display: flex;
+
+		.E9SQvK {
+			display: flex;
+		}
+	}
+
+	@layer foo {
+		background: red;
+
+		.x_NTS1 {
+			background: red;
+		}
+	}
+
+	@container foo {
+		background: red;
+
+		.x_NTS1 {
+			background: red;
+		}
+	}
+}
+
+._1z-VC8 {
+	color: #fff;
+	opacity: 0.12;
+	padding: .5px;
+	unknown: :local(.test);
+	unknown2: :global(.test);
+	unknown3: local(.test);
+	unknown4: global(.test);
+	/* No one support it */
+	unknown5: :local .test;
+	unknown6: :global .test;
+	unknown7: .foo, .bar, #bar;
+}
+
+@unknown local(.local) global(.global) {
+	color: red;
+}
+
+@unknown :local(.local) :global(.global) {
+	color: red;
+}
+
+.rdJdfr {
+	.kPlUwF {
+		color: var(--_5itTTe);
+	}
+}
+
+.lLbnnH {
+	color: red;
+
+	.atUlku {
+		color: red;
+	}
+
+	.global-nested {
+		color: red;
+	}
+
+	.atUlku {
+		color: red;
+	}
+
+	.global-nested {
+		color: red;
+	}
+
+	.atUlku, .global-nested-next {
+		color: red;
+	}
+
+	.atUlku, .global-nested-next {
+		color: red;
+	}
+
+	.foo, ._1z-NWQ {
+		color: red;
+	}
+}
+
+#_1BaIIZ {
+	color: red;
+
+	#L985Oi {
+		color: red;
+	}
+}
+
+.fQ_A2B {
+	.fjBiLM div:has(.qe4Fcn, ._0EgzW3) {
+		max-height: 0;
+		margin: 0;
+		overflow: hidden;
+	}
+}
+
+.global-foo {
+	.qaYbrs {
+		color: red;
+	}
+
+	.q-F86w {
+		color: blue;
+	}
+}
+
+@unknown .class {
+	color: red;
+
+	.fcj_Kv {
+		color: red;
+	}
+}
+
+.class ._pUr1t,
+.class ._pUr1t,
+.hEbxEV .in-local-global-scope {
+	color: red;
+}
+
+@container (width > 400px) {
+	.BnmKrB {
+		font-size: 1.5em;
+	}
+}
+
+@container summary (min-width: 400px) {
+	@container (width > 400px) {
+		.UDBrku {
+			font-size: 1.5em;
+		}
+	}
+}
+
+:scope {
+	color: red;
+}
+
+.TqwJO7:-ms-input-placeholder {
+	--UMG0Bg: 1;
+	color: #4a5568;
+	color: rgba(74, 85, 104, var(--UMG0Bg));
+}
+.TqwJO7::-ms-input-placeholder {
+	--UMG0Bg: 1;
+	color: #4a5568;
+	color: rgba(74, 85, 104, var(--UMG0Bg));
+}
+.TqwJO7::placeholder {
+	--UMG0Bg: 1;
+	color: #4a5568;
+	color: rgba(74, 85, 104, var(--UMG0Bg));
+}
+
+:root {
+	--_0YMf4L: dark;
+}
+
+@media screen and (prefers-color-scheme: var(--_0YMf4L)) {
+	.vtps9y {
+		color: white;
+	}
+}
+
+@keyframes sL-lKs {
+	from {
+		margin-left: 100%;
+		width: 300%;
+	}
+
+	to {
+		margin-left: 0%;
+		width: 100%;
+	}
+}
+
+.fcj_Kv {
+	animation:
+		MuV03G var(--Izh8-t) Xs,
+		var(--Izh8-t) Xs,
+		Xs linear Xs infinite running sL-lKs,
+		Xs linear env(foo, var(--vtps9y)) infinite running sL-lKs;
+}
+
+:root {
+	--vtps9y: 10px;
+}
+
+.fcj_Kv {
+	bar: env(foo, var(--vtps9y));
+}
+
+.global-foo, ._1z-NWQ {
+	.q-F86w       {
+		color: blue;
+	}
+
+	@media screen {
+		.my-global-class-again,
+		.BUo87j {
+			color: red;
+		}
+	}
+}
+
+.G9pEhP {
+	.Jy44rx {
+		color: red;
+	}
+}
+
+.gLMYL6 {
+	@media screen {
+		.E41YWn {
+			color: red;
+		}
+	}
+}
+
+.again-global {
+	color:red;
+}
+
+.again-again-global {
+	.again-again-global {
+		color: red;
+	}
+}
+
+:root {
+	--MuV03G: red;
+}
+
+.again-again-global {
+	color: var(--MuV03G);
+
+	.again-again-global {
+		color: var(--MuV03G);
+	}
+}
+
+.again-again-global {
+	animation: slidein Xs;
+
+	.again-again-global, .fcj_Kv, .Kgyaat.nested2.CkXfSe {
+		animation: sL-lKs Xs;
+	}
+
+  .aq0M02 .global,
+	.Fa7iPh {
+		color: red;
+	}
+}
+
+@unknown var(--MuV03G) {
+	color: red;
+}
+
+.fcj_Kv {
+	.fcj_Kv {
+		.fcj_Kv {
+			.fcj_Kv {}
+		}
+	}
+}
+
+.fcj_Kv {
+	.fcj_Kv {
+		.fcj_Kv {
+			.fcj_Kv {
+				animation: sL-lKs Xs;
+			}
+		}
+	}
+}
+
+.fcj_Kv {
+	animation: sL-lKs Xs;
+	.fcj_Kv {
+		animation: sL-lKs Xs;
+		.fcj_Kv {
+			animation: sL-lKs Xs;
+			.fcj_Kv {
+				animation: sL-lKs Xs;
+			}
+		}
+	}
+}
+
+.zSepSy {
+	. global(.fcj_Kv) {
+		color: red;
+	}
+
+	: global(.fcj_Kv) {
+		color: red;
+	}
+
+	: global .fcj_Kv {
+		color: red;
+	}
+
+	: local(.fcj_Kv) {
+		color: red;
+	}
+
+	: local .fcj_Kv {
+		color: red;
+	}
+
+	# hash {
+		color: red;
+	}
+}
+
+.ggk3Zo {
+	:/** test */global(.fcj_Kv) {
+		color: red;
+	}
+
+	:/** test */global .fcj_Kv {
+		color: red;
+	}
+
+	:/** test */local(.fcj_Kv) {
+		color: red;
+	}
+
+	:/** test */local .fcj_Kv {
+		color: red;
+	}
+
+	./** test **/class {
+		color: red;
+	}
+
+	./** test **/class {
+		color: red;
+	}
+
+	./** test **/class {
+		color: red;
+	}
+}
+
+.MuV03G {
+	color: red;
+	+ ._1z-NWQ + & { color: blue; }
+}
+
+.s00WFi, #f9Yp9w {
+	&:hover > .vtps9y { color: red; }
+}
+
+.MuV03G {
+	& :is(._1z-NWQ, &.vtps9y) { color: red; }
+}
+
+.laFSfQ {
+	color: green;
+	& ._9cXp2R { color: blue; }
+	color: red;
+}
+
+.AuegIE {
+	color: blue;
+
+	@scope (& > ._6bVmqw) to (& > .X6Z1Cn) {
+		& .I-bkg0 {
+			color: red;
+		}
+	}
+}
+
+.AuegIE {
+	color: blue;
+
+	@scope (& > ._6bVmqw) to (& > .X6Z1Cn) {
+		.I-bkg0 {
+			color: red;
+		}
+	}
+
+	._9cXp2R {
+		color: red;
+	}
+}
+
+@scope (.b6OXwu) {
+	:scope { border-block-end: 1px solid white; }
+}
+
+.b6OXwu {
+	inline-size: 40ch;
+	aspect-ratio: 3/4;
+
+	@scope (&) {
+		:scope {
+			border: 1px solid white;
+		}
+	}
+}
+
+.MuV03G {
+	display: grid;
+
+	@media (orientation: landscape) {
+		._1z-NWQ {
+			grid-auto-flow: column;
+
+			@media (min-width > 1024px) {
+				.YqW6MX {
+					display: grid;
+				}
+
+				max-inline-size: 1024px;
+
+				.HhJlxP {
+					display: grid;
+				}
+			}
+		}
+	}
+}
+
+@counter-style _tEP1J {
+	system: cyclic;
+	symbols: "\1F44D";
+	suffix: " ";
+}
+
+ul {
+	list-style: _tEP1J;
+}
+
+@counter-style _XsAoSR {
+	fallback: thumbs;
+	system: extends thumbs;
+	speak-as: thumbs;
+}
+
+div {
+	list-style: inside;
+	list-style: outside;
+	list-style: upper-roman inside;
+	list-style: circle outside;
+	list-style: none disc;
+	list-style: none url(7bc91c245a8a10a4.png);
+	list-style: none;
+	list-style: none disc url(7bc91c245a8a10a4.png);
+	list-style: lower-alpha;
+	list-style: disc;
+	list-style: square;
+	list-style: url(7bc91c245a8a10a4.png);
+	list-style: georgian inside url(7bc91c245a8a10a4.png);
+	list-style: georgian outside url(7bc91c245a8a10a4.png);
+	/* type */
+	list-style: square;
+
+	/* image */
+	list-style: url(7bc91c245a8a10a4.png);
+
+	/* position */
+	list-style: inside;
+
+	/* two values */
+	list-style: georgian outside;
+	list-style: url(7bc91c245a8a10a4.png) inside;
+
+	/* three values */
+	list-style: lower-roman url(7bc91c245a8a10a4.png) outside;
+
+	/* Keyword value */
+	list-style: none;
+
+	/* Global values */
+	list-style: inherit;
+	list-style: initial;
+	list-style: revert;
+	list-style: revert-layer;
+	list-style: unset;
+
+	list-style-type: "★";
+
+	list-style-type: _XsAoSR;
+	list-style: _XsAoSR;
+}
+
+@container (width > 400px) and style(--responsive: true) {
+	.fcj_Kv {
+		font-size: 1.5em;
+	}
+}
+
+@container TzDBrZ (height > 30rem) {
+	p {
+		line-height: 1.6;
+	}
+}
+
+@container ltFW9R scroll-state(stuck: top) {
+	h2 {
+		background: purple;
+		color: white;
+	}
+}
+
+@container card (width > 400px), style(--responsive: true), scroll-state(stuck: top) {
+	h2 {
+		font-size: 1.5em;
+	}
+}
+
+@container (width > 400px) and (height > 400px) {
+	/* <stylesheet> */
+}
+
+@container (width > 400px) or (height > 400px) {
+	/* <stylesheet> */
+}
+
+@container not (width < 400px) {
+	/* <stylesheet> */
+}
+
+@container (min-width: 400px) {
+	/* … */
+}
+@container (orientation: landscape) and (width > 400px) {
+	/* … */
+}
+@container (15em <= block-size <= 30em) {
+	/* … */
+}
+
+.DQn4jI {
+	container-name: TzDBrZ;
+	container-type: inline-size;
+
+	container: none;
+	container: inherit;
+	container: ltFW9R / inline-size;
+	container: ltFW9R / size;
+	container: ltFW9R / scroll-state;
+	--tVQZ--: local(sticky-heading);
+
+	container: var(--tVQZ--);
+	--atROOo: small;
+	container-type: inline-size;
+}
+
+
+@container summary style(--cards: small) {
+	.b6OXwu {
+		border: thin solid silver;
+		border-radius: 0.5em;
+		padding: 1em;
+	}
+}
+
+/* At-rule for "nice-style" in Font One */
+@font-feature-values Font One {
+	@styleset {
+		nice-style: 12;
+	}
+}
+
+@font-palette-values r07wcT {
+	font-family: Bixa;
+}
+
+.eB2iHs {
+	font-palette: r07wcT;
+}
+
+@keyframes MuV03G { /* ... */ }
+@keyframes "foo" { /* ... */ }
+@keyframes { /* ... */ }
+@keyframes{ /* ... */ }
+
+@supports (display: flex) {
+	@media screen and (min-width: 900px) {
+		article {
+			display: flex;
+		}
+	}
+}
+
+@starting-style {
+	.fcj_Kv {
+		opacity: 0;
+		transform: scaleX(0);
+	}
+}
+
+.fcj_Kv {
+	opacity: 1;
+	transform: scaleX(1);
+
+	@starting-style {
+		opacity: 0;
+		transform: scaleX(0);
+	}
+}
+
+@scope (._5AeW6B) {
+	.fcj_Kv { opacity: 0; }
+
+	:scope .O4viXB { opacity: 0; }
+
+	& .fcj_Kv { opacity: 0; }
+}
+
+@position-try --custom-left {
+	position-area: left;
+	width: 100px;
+	margin: 0 10px 0 0;
+}
+
+@position-try --custom-bottom {
+	top: anchor(bottom);
+	justify-self: anchor-center;
+	margin: 10px 0 0 0;
+	position-area: none;
+}
+
+@position-try --custom-right {
+	left: calc(anchor(right) + 10px);
+	align-self: anchor-center;
+	width: 100px;
+	position-area: none;
+}
+
+@position-try --custom-bottom-right {
+	position-area: bottom right;
+	margin: 10px 0 0 10px;
+}
+
+.AlKGjH {
+	position: fixed;
+	position-anchor: --myAnchor;
+	position-area: top;
+	width: 200px;
+	margin: 0 0 10px 0;
+	position-try-fallbacks:
+		--custom-left, --custom-bottom,
+		--custom-right, --custom-bottom-right;
+}
+
+@page {
+	size: 8.5in 9in;
+	margin-top: 4in;
+}
+
+@color-profile --swop5c {
+	src: url(https://example.org/SWOP2006_Coated5v2.icc);
+}
+
+.inePMa {
+	background-color: color(--swop5c 0% 70% 20% 0%);
+}
+
+._0YMf4L {
+	test: (1, 2) [3, 4], { 1: 2};
+	._9cXp2R {
+		width: 200px;
+	}
+}
+
+._0YMf4L {
+	._0YMf4L {
+		width: 200px;
+	}
+}
+
+._0YMf4L {
+	width: 200px;
+
+	._0YMf4L {
+		width: 200px;
+	}
+}
+
+._0YMf4L {
+	width: 200px;
+
+	._0YMf4L {
+		._0YMf4L {
+			width: 200px;
+		}
+	}
+}
+
+._0YMf4L {
+	width: 200px;
+
+	._0YMf4L {
+		width: 200px;
+
+		._0YMf4L {
+			width: 200px;
+		}
+	}
+}
+
+._0YMf4L {
+	._0YMf4L {
+		width: 200px;
+
+		._0YMf4L {
+			width: 200px;
+		}
+	}
+}
+
+._0YMf4L {
+	._0YMf4L {
+		width: 200px;
+	}
+	width: 200px;
+}
+
+._0YMf4L {
+	._0YMf4L {
+		width: 200px;
+	}
+	._0YMf4L {
+		width: 200px;
+	}
+}
+
+._0YMf4L {
+	._0YMf4L {
+		width: 200px;
+	}
+	width: 200px;
+	._0YMf4L {
+		width: 200px;
+	}
+}
+
+#_0YMf4L {
+	c: 1;
+
+	#_0YMf4L {
+		c: 2;
+	}
+}
+
+@property --buCmmn {
+	syntax: "<percentage>";
+	inherits: true;
+	initial-value: 40%;
+}
+
+.ULIwdV {
+	display: flex;
+	height: 200px;
+	border: 1px dashed black;
+
+	/* set custom property values on parent */
+	--buCmmn: 20%;
+	--SSpMFc: orange;
+}
+
+.qBRhma {
+	width: var(--buCmmn);
+	height: var(--buCmmn);
+	background-color: var(--SSpMFc);
+}
+
+.oB0Q8j {
+	--buCmmn: initial;
+	--SSpMFc: inherit;
+}
+
+.kT0YRy {
+	/* invalid values */
+	--buCmmn: 1000px;
+	--SSpMFc: xyz;
+}
+
+@property invalid {
+	syntax: "<percentage>";
+	inherits: true;
+	initial-value: 40%;
+}
+@property{
+	syntax: "<percentage>";
+	inherits: true;
+	initial-value: 40%;
+}
+@property {
+	syntax: "<percentage>";
+	inherits: true;
+	initial-value: 40%;
+}
+
+@property --k-jK33 {
+	syntax: "<percentage>";
+	inherits: false;
+	initial-value: 25%;
+}
+
+._1z-NWQ {
+	display: inline-block;
+	--k-jK33: 25%;
+	width: 100%;
+	height: 5px;
+	background: linear-gradient(
+		to right,
+		#00d230 var(--k-jK33),
+		black var(--k-jK33)
+	);
+	animation: _0BNcUT Xs ease infinite;
+}
+
+@keyframes _0BNcUT {
+	to {
+		--k-jK33: 100%;
+	}
+}
+
+@keyframes "initial" { /* ... */ }
+@keyframes/**test**/"initial" { /* ... */ }
+@keyframes/**test**/"initial"/**test**/{ /* ... */ }
+@keyframes/**test**//**test**/"initial"/**test**//**test**/{ /* ... */ }
+@keyframes /**test**/ /**test**/ "initial" /**test**/ /**test**/ { /* ... */ }
+@keyframes "None" { /* ... */ }
+@property/**test**/--buCmmn {
+	syntax: "<percentage>";
+	inherits: true;
+	initial-value: 40%;
+}
+@property/**test**/--buCmmn/**test**/{
+	syntax: "<percentage>";
+	inherits: true;
+	initial-value: 40%;
+}
+@property /**test**/--buCmmn/**test**/ {
+	syntax: "<percentage>";
+	inherits: true;
+	initial-value: 40%;
+}
+@property /**test**/ --buCmmn /**test**/ {
+	syntax: "<percentage>";
+	inherits: true;
+	initial-value: 40%;
+}
+@property/**test**/ --buCmmn /**test**/{
+	syntax: "<percentage>";
+	inherits: true;
+	initial-value: 40%;
+}
+@property /**test**/ --buCmmn /**test**/ {
+	syntax: "<percentage>";
+	inherits: true;
+	initial-value: 40%;
+}
+div {
+	animation: Xs ease-in Xs 2 reverse both paused "initial", _2WPFIK;
+	animation-name: "initial";
+	animation-duration: Xs;
+}
+
+.c0B_i3 {
+	width: var(   --buCmmn   );
+	height: var(/**comment**/--buCmmn);
+	background-color: var( /**comment**/--SSpMFc);
+	background-color-1: var(/**comment**/ --SSpMFc);
+	background-color-2: var( /**comment**/ --SSpMFc);
+	background-color-3: var( /**comment**/ --SSpMFc /**comment**/ );
+	background-color-3: var( /**comment**/--SSpMFc/**comment**/ );
+	background-color-3: var(/**comment**/--SSpMFc/**comment**/);
+}
+
+@keyframes/**test**/MuV03G { /* ... */ }
+@keyframes /**test**/MuV03G { /* ... */ }
+@keyframes/**test**/ MuV03G { /* ... */ }
+@keyframes /**test**/ MuV03G { /* ... */ }
+@keyframes /**test**//**test**/ MuV03G { /* ... */ }
+@keyframes /**test**/ /**test**/ MuV03G { /* ... */ }
+@keyframes /**test**/ /**test**/MuV03G { /* ... */ }
+@keyframes /**test**//**test**/MuV03G { /* ... */ }
+@keyframes/**test**//**test**/MuV03G { /* ... */ }
+@keyframes/**test**//**test**/MuV03G/**test**//**test**/{ /* ... */ }
+@keyframes /**test**/ /**test**/ MuV03G /**test**/ /**test**/ { /* ... */ }
+
+./**test**//**test**/class {
+	background: red;
+}
+
+./**test**/ /**test**/class {
+	background: red;
+}
+
+.BG-v_q {
+	--xWZ2aM: black;
+	--djPUes: 10px;
+	--MuV03G: 10px;
+	--_1z-NWQ: calc(var(--MuV03G) + 10px);
+	--Soclk5: linear-gradient(to top, var(--xWZ2aM), white);
+	--vS5bup: "test";
+	--FX2gtr: yellow;
+	--_-6V3O3: red;
+	--_OOLac: red;
+	--YyhE-H: black;
+	-foo: calc(var(--_1z-NWQ) + 10px);
+	var: var(--xWZ2aM);
+	var1: var(--MuV03G);
+	var2: var(--djPUes);
+	content: " (" var(--vS5bup) ")";
+	var3: var(--xWZ2aM, blue);
+	var4: var(--FX2gtr,);
+	var5: var(--FX2gtr, initial);
+	var6: var(--FX2gtr, var(--_-6V3O3));
+	var7: var(--FX2gtr, var(--_-6V3O3, red));
+	var8: var(--unknown);
+	background-color: var(--_OOLac, var(--YyhE-H, white));
+}
+
+.WXQOB_ {
+	background-color: var(--_0YMf4L);
+	--_0YMf4L: red;
+}
+
+.DrrzNO {
+	border-radius: 12px;
+}
+
+.cUuIkP {
+	border-radius: 12px;
+}
+
+.tWOmVx {
+	border-radius: 12px;
+}
+
+._907JXd {
+	border: red;
+}
+
+.ER1nMu {
+}
+
+.global-class-name {
+	color: red;
+}
+
+.SaTzPi {
+	color: blue;
+}
+
+._29Rg_2 {
+	color: green;
+}
+
+.Zi-zuu {
+	composes: local-class-name global(global-class-name) local(other-local-class-name);
+}
+
+.MC78aU {
+	color: red;
+}
+
+.DYXsTP {
+}
+
+.KU-WbM {
+}
+
+.QLe971 {
+}
+
+.dIkhNp {
+}
+
+@function --Dif8fl(--color <color>, --alpha type(<number> | <percentage>)) returns <color> {
+	result: oklch(from var(--color) l c h / var(--alpha));
+}
+
+section {
+	--nqPdOA: #faa6ff;
+	background-color: --Dif8fl(var(--nqPdOA), 0.8);
+}
+
+@function --mlLu9U(--list <length>#, --x <length>) {
+	result: calc(max(var(--list)) + var(--x));
+}
+
+div {
+	width: --mlLu9U({1px, 7px, 2px}, 3px); /* 10px */
+}
+
+@function --cMEszn(--animation, --count) {
+	--oenVZF: Xs;
+	--rodwL7: linear;
+	result: var(--animation) var(--oenVZF) var(--count) var(--rodwL7);
+}
+
+div {
+	animation: --cMEszn(local(bounce), 2);
+}
+
+@function --_3v6IgN(--outer-arg) {
+	--_5RB8lu: 2;
+	result: --qSbqwI();
+}
+
+@function --qSbqwI() returns <number> {
+	result: calc(var(--outer-arg) + var(--_5RB8lu));
+}
+
+div {
+	z-index: --_3v6IgN(1); /* 3 */
+}
+
+@function --_84Ij92(--narrow, --wide) {
+	result: var(--wide);
+	@media (width < 700px) {
+		result: var(--narrow);
+	}
+}
+
+@function --_58pqnl(--narrow, --wide) {
+	result: if(media(width < 700px): var(--narrow) ; else: var(--wide));
+}
+
+@function --Dif8fl(--color, --alpha) {
+	result: oklch(from var(--color) l c h / var(--alpha));
+}
+
+@function --_7-lCv_(--color, --alpha) {
+	result: oklch(from var(--color) l c h / var(--alpha));
+}
+
+@function --transparent-global(--color, --alpha) {
+	result: oklch(from var(--color) l c h / var(--alpha));
+}
+
+section {
+	--nqPdOA: #faa6ff;
+	background-color: --Dif8fl(var(--nqPdOA), 0.8);
+	background-color: local(--transparent-local)(var(--nqPdOA), 0.8);
+	background-color: global(--transparent-global)(var(--nqPdOA), 0.8);
+}
+
+:root {
+	--nxsxqh: sharp;
+}
+
+.VR-ciu {
+	border-radius: if(style(--mode: sharp): 0px; else: revert-rule);
+}
+
+@color-profile --swop5c {
+	src: url(https://example.org/SWOP2006_Coated5v2.icc);
+}
+
+@color-profile local(--swop5c-local) {
+	src: url(https://example.org/SWOP2006_Coated5v2.icc);
+}
+
+@color-profile :local(--swop5c-local) {
+	src: url(https://example.org/SWOP2006_Coated5v2.icc);
+}
+
+@color-profile global(--swop5c) {
+	src: url(https://example.org/SWOP2006_Coated5v2.icc);
+}
+
+@color-profile :global(--swop5c) {
+	src: url(https://example.org/SWOP2006_Coated5v2.icc);
+}
+
+.fcj_Kv {
+	background-color: color(--swop5c 0% 70% 20% 0%);
+	background-color: color(local(--swop5c-local) 0% 70% 20% 0%);
+	background-color: color(:local(--swop5c-local) 0% 70% 20% 0%);
+	background-color: color(global(--swop5c) 0% 70% 20% 0%);
+	background-color: color(:global(--swop5c) 0% 70% 20% 0%);
+	background-color: color(--swop5c from global 0% 70% 20% 0%);
+	background-color: color(--from-shared from "./shared.css" 0% 70% 20% 0%);
+	background-color: color(local(--swop5c-local, "./shared.css") 0% 70% 20% 0%);
+	background-color: color(:local(--swop5c-local, "./shared.css") 0% 70% 20% 0%);
+}
+
+:root {
+	--WyszCT: #eee;
+}
+
+.ARY9tx {
+	color: var(--WyszCT);
+}
+
+/* Just nesting */
+.VVfDq1 {
+	--WyszCT: #fff;
+	--BkQxS1: #333;
+
+	._9d9NCT {
+		--CpJH01: var(--WyszCT);
+		--_5nVGoq: var(--BkQxS1);
+		color: var(--CpJH01);
+		background-color: var(--_5nVGoq);
+	}
+}
+
+/* A container context based on inline size */
+.DQn4jI {
+	--QU_xAs: blue;
+	container-type: inline-size;
+}
+
+/* Apply styles if the container is narrower than 650px */
+@container (width < 650px) and style(--themeColor: blue) {
+	.b6OXwu {
+		width: 50%;
+		background-color: lightgray;
+		font-size: 1em;
+	}
+}
+
+@keyframes zSepSy;
+
+._2fTIpl {
+	color: red;
+}
+
+.ZlysC1 {
+	.class-no-space {
+		color: red;
+	}
+
+	/** test **/.class {
+		color: red;
+	}
+
+	.fcj_Kv {
+		color: red;
+	}
+
+	/** test **/.fcj_Kv {
+		color: red;
+	}
+
+	/** test **/#G-wEV1 {
+		color: red;
+	}
+
+	/** test **/{
+		color: red;
+	}
+}
+
+/* nesting */
+
+.fcj_Kv{.fcj_Kv{}}
+.fcj_Kv{color:#fff5f5}
+.fcj_Kv{.fcj_Kv{color:#f1f1f1}}
+.fcj_Kv{--MuV03G:#fff5f5}
+.fcj_Kv{--MuV03G:#fff5f5;color:#f1f1f1}
+.fcj_Kv{--MuV03G:#fff5f5;color:#f1f1f1;}
+.fcj_Kv{--MuV03G:#fff5f5;color:#f1f1f1;.fcj_Kv{color:#f1f1f1}}
+.fcj_Kv{--MuV03G:#fff5f5;.fcj_Kv{color:#f1f1f1}color:#f1f1f1;}
+.fcj_Kv{.fcj_Kv{color:#f1f1f1}--MuV03G:#fff5f5;color:#f1f1f1;}
+/* TODO fix, but this syntax is not used anywhere */
+.fcj_Kv{--_1z-NWQ:{1, 'string', .class, #f1f1f1, #id}}
+.fcj_Kv{--vtps9y:[1, "string", .class, #f1f1f1, #id]}
+.fcj_Kv{--vtps9y:(1, "string", .class, #f1f1f1, #id)}
+
+/* Cases for `css/global` */
+
+.Ct9FyM {
+	color: red;
+}
+
+._9AWhNY {
+	color: red;
+}
+
+.my-global-local {
+	color: red;
+}
+
+.exxDbs.dEv5iQ {
+	color: red;
+}
+
+.r_0_Ht .SfYYeX {
+	color: red;
+}
+
+div:not(.sgjLxj) {
+	color: blue;
+}
+
+p:not(#Gonxc7) {
+	font-weight: bold;
+}
+
+.ULIwdV {
+	/* Styles for .container */
+	background-color: lightblue;
+
+	@media (min-width: 768px) {
+		/* Styles for .card on larger screens */
+		display: flex;
+		gap: 1rem;
+	}
+
+	@supports (display: grid) {
+		& .inePMa {
+			display: grid;
+			grid-template-columns: 1fr 1fr;
+		}
+	}
+
+	& .MQbo4Q {
+		/* Styles for .container.active */
+		border: 2px solid blue;
+	}
+
+	&.ttH5du {
+		/* Styles for .container.highlighted */
+		box-shadow: 0 0 5px yellow;
+	}
+
+	/* Nesting a descendant with multiple classes */
+	.qBRhma._0Jv2q0 {
+		/* Styles for .container .item.selected */
+		font-weight: bold;
+		color: darkgreen;
+	}
+}
+
+.pkehEe {
+	/* Styles for .container */
+	background-color: lightblue;
+
+	@media (min-width: 768px) {
+		/* Styles for .card on larger screens */
+		display: flex;
+		gap: 1rem;
+	}
+
+	@supports (display: grid) {
+		& .inePMa {
+			display: grid;
+			grid-template-columns: 1fr 1fr;
+		}
+	}
+
+	& .MQbo4Q {
+		/* Styles for .container.active */
+		border: 2px solid blue;
+	}
+
+	&.ttH5du {
+		/* Styles for .container.highlighted */
+		box-shadow: 0 0 5px yellow;
+	}
+
+	/* Nesting a descendant with multiple classes */
+	.qBRhma._0Jv2q0 {
+		/* Styles for .container .item.selected */
+		font-weight: bold;
+		color: darkgreen;
+	}
+}
+
+.SaTzPi {
+	color: red;
+}
+
+._1OO9fB .SaTzPi {
+	color: red;
+}
+
+.SaTzPi .UpcgIh {
+	color: red;
+}
+
+.MuV03G {
+	&.fcj_Kv {
+		a_value: some-value;
+	}
+
+	@media screen and (min-width: 900px) {
+		b_value: some-value;
+
+		._1z-NWQ {
+			c_value: some-value;
+		}
+
+		&.vtps9y {
+			c_value: some-value;
+		}
+	}
+}
+
+/* Composes */
+
+.fcj_Kv {
+	color: black;
+}
+
+._2qNGmq {
+	color: white;
+}
+
+.global-class-other {
+	color: red;
+}
+
+.X-AaD8 {
+}
+
+/* At-rules */
+
+@keyframes CcncgZ {}
+@keyframes local(local-keyframes) {}
+@keyframes global(global-keyframes) {}
+/** Deprecated syntax */
+@keyframes El38Ni {}
+@keyframes local-keyframes-old-syntax {}
+
+.MuV03G {
+	animation-name: CcncgZ, global(global-keyframes), local(local-keyframes);
+}
+
+@property local(--progress) {
+	syntax: "<percentage>";
+	inherits: false;
+	initial-value: 25%;
+}
+
+@keyframes local(progressAnimationLocal) {
+	to {
+		--k-jK33: 100%;
+	}
+}
+
+._1z-NWQ {
+	display: inline-block;
+	--k-jK33: 25%;
+	width: 100%;
+	height: 5px;
+	background: linear-gradient(
+		to right,
+		#00d230 var(local(--progress)),
+		black var(local(--progress))
+	);
+	animation: local(progressAnimationLocal) Xs ease infinite;
+}
+
+@scope (.ocraTB) to (.class) {
+	.Th20HR {
+		border: 5px solid black;
+	}
+	.O4viXB {
+		color: red;
+	}
+	.class-2 {
+		color: blue;
+	}
+}
+
+/** Custom properties */
+
+:root {
+	--ZzCkjE: red;
+	--ZHXFWW: red;
+	--C8-cWp: red;
+	--_6MUjKg:
+	red,
+	local(--local-foo-bar),
+	global(--global-foo-bar),
+		/** Deprecated syntax */
+	:local(--local-foo-bar),
+	:global(--global-foo-bar);
+}
+
+.fcj_Kv {
+	background-color:
+		var(--ZzCkjE),
+		var(local(--local-foo-bar)),
+		var(global(--global-foo-bar)),
+			/** Deprecated syntax */
+		var(:local(--local-foo-bar)),
+		var(:global(--global-foo-bar)),
+		var(--global-foo-bar from global),
+		var(--c3dlif from "./shared.css");
+}
+
+/** Custom local value */
+
+@unknown-rule local(unknown-at-rule) {}
+
+.fcj_Kv {
+	custom-name: local(unknown-at-rule);
+}
+
+.class {
+	--test-1: red;
+	color: var(--test-1);
+	animation-name: animation-name-test;
+	local-and-global: local(animation-name-test) global(animation-name-test)
+}
+
+/* GRID */
+
+.kPCGj5 {
+	grid: none;
+}
+
+.phGyst {
+	grid: "a" 100px "b" 1fr;
+}
+
+.R83ujV {
+	grid: [line-name1] "a" 100px [line-name2];
+}
+
+.L5ayLS {
+	grid: "a" 200px "b" min-content;
+}
+
+.YeXDdX {
+	grid: "a" minmax(100px, max-content) "b" 20%;
+}
+
+.sAXZPJ {
+	grid: 100px / 200px;
+}
+
+.PlA3-T {
+	grid: minmax(400px, min-content) / repeat(auto-fill, 50px);
+}
+
+.ZrG6xy {
+	grid: 200px / auto-flow;
+}
+
+.zaL5Di {
+	grid: 30% / auto-flow dense;
+}
+
+.J3CDdI {
+	grid: repeat(3, [line1 line2 line3] 200px) / auto-flow 300px;
+}
+
+.Kjw8Wl {
+	grid: [line1] minmax(20em, max-content) / auto-flow dense 40%;
+}
+
+.FxhPSy {
+	grid: auto-flow / 200px;
+}
+
+.Pe4qLu {
+	grid: auto-flow dense / 30%;
+}
+
+.bC-BTI {
+	grid: auto-flow 300px / repeat(3, [line1 line2 line3] 200px);
+}
+
+.Jqz1cd {
+	grid: auto-flow dense 40% / [line1] minmax(20em, max-content);
+}
+
+.w1hfXZ {
+	grid: inherit;
+	grid: initial;
+	grid: revert;
+	grid: revert-layer;
+	grid: unset;
+}
+
+._02Lawp {
+	grid-template-areas: 'P7-t6H qEBS78';
+}
+
+._9F93Sy {
+	grid-area: auto / auto / auto / auto;
+}
+
+.gUbKNg {
+	grid-area: some-grid-area;
+}
+
+.iGpIiD {
+	grid-area: some-grid-area / another-grid-area;
+}
+
+._5pC6hg {
+	grid-area: X some-grid-area / 2 another-grid-area;
+}
+
+.QbPsKS {
+	grid-area: span 3 / span some-grid-area;
+}
+
+/* Keyword value */
+._1RA1vy {
+	grid-row-start: auto;
+}
+
+/* <custom-ident> values */
+._2gxxpO {
+	grid-row-start: some-grid-area;
+}
+
+/* <integer> + <custom-ident> values */
+.mCzMLO {
+	grid-row-start: 2;
+}
+.o3mUp2 {
+	grid-row-start: some-grid-area 4;
+}
+
+/* span + <integer> + <custom-ident> values */
+.KMlLis {
+	grid-row-start: span 3;
+}
+._6vG98i {
+	grid-row-start: span some-grid-area;
+}
+.KBrCBj {
+	grid-row-start: X some-grid-area span;
+}
+
+/* Global values */
+.FmP-RL {
+	grid-row-start: inherit;
+}
+.EGZanP {
+	grid-row-start: initial;
+}
+.cmf46n {
+	grid-row-start: revert;
+}
+.zsAZ5p {
+	grid-row-start: revert-layer;
+}
+._8wEUYx {
+	grid-row-start: unset;
+}
+
+._5cZK2Y {
+	grid-template-areas:
+  "_9cXp2R _4xeVhB ."
+  "_9cXp2R   L6MAr_   kml5-V";
+}
+
+.OihVrl {
+	grid-template-rows: [line-name1] 100px [line-name2 line-name3];
+}
+
+._99pQOJ {
+	grid-template-rows:
+		[line-name1 line-name2] 100px
+		repeat(auto-fit, [line-name1] 300px) [line-name3];
+}
+
+._FGlcW {
+	grid-template-rows:
+		[line-name1] 100px [line-name2]
+		repeat(auto-fit, [line-name3 line-name4] 300px)
+		100px;
+}
+
+.WPYB5d {
+	grid-template-rows: max-content 1fr max-content;
+}
+
+.gIE6Xt {
+	grid-template:
+		[header-top] "_9cXp2R _9cXp2R _9cXp2R" [header-bottom]
+		[main-top] "_4xeVhB _4xeVhB _4xeVhB" 1fr [main-bottom]
+		/ auto 1fr auto;
+}
+
+.nhDcvK {
+	display: grid;
+	/* 1. Use repeat, auto-fit, and minmax for responsive columns.
+		 Columns will be at least 150px wide, growing to fill available space (1fr).
+		 Lines are named 'col-start' and 'col-end' for each track repetition. */
+	grid-template-columns: repeat(auto-fit, [col-start] minmax(150px, 1fr) [col-end]);
+
+	/* 2. Define explicit row heights and name key row lines. */
+	grid-template-rows: [header-start] 100px [header-end content-start] auto [content-end];
+
+	/* 3. Add gaps for spacing */
+	gap: 20px;
+
+	padding: 20px;
+	background-color: #f0f0f0;
+}
+
+.fcj_Kv {
+	grid-template-columns: repeat(auto-fit, [col-start] minmax(150px, 1fr) [col-end]);
+}
+
+.mL4yxz {
+	display: grid;
+	grid-template-columns: [main-start] 1fr [content-start] 1fr [content-end] 1fr [main-end];
+	grid-template-rows: [main-start] 100px [content-start] 100px [content-end] 100px [main-end];
+}
+
+.YP0k5x {
+	grid-column-start: main-start;
+	grid-row-start: main-start;
+	grid-row-end: main-end;
+}
+
+.sqoegN {
+	grid-column-start: content-end;
+	grid-row-start: main-start;
+	grid-row-end: content-end;
+}
+
+.t-e5Mr {
+	grid-column-start: content-start;
+	grid-row-start: main-start;
+}
+
+._b50ah {
+	grid-column-start: content-start;
+	grid-column-end: main-end;
+	grid-row-start: content-end;
+}
+
+.mL4yxz {
+	display: grid;
+	grid-template-columns: repeat(9, 1fr);
+	grid-auto-rows: minmax(100px, auto);
+	grid-template-areas:
+    "_6dL-oG _6dL-oG _6dL-oG _6dL-oG   _6dL-oG   _6dL-oG   _6dL-oG   _6dL-oG   _6dL-oG"
+    "v-icsw v-icsw v-icsw qEBS78 qEBS78 qEBS78 qEBS78 qEBS78 qEBS78"
+    "_8C1F5q _8C1F5q _8C1F5q _8C1F5q   _8C1F5q   _8C1F5q   _8C1F5q   _8C1F5q   _8C1F5q";
+}
+
+.inePMa {
+	grid-area: _6dL-oG;
+}
+
+.hZgAfl {
+	grid-area: _8C1F5q;
+}
+
+.I-bkg0 {
+	grid-area: qEBS78;
+}
+
+.ynZZj0 {
+	grid-area: v-icsw;
+}
+
+.mL4yxz > div._BKX_s {
+	z-index: 10;
+	grid-column: main-start / main-end;
+	grid-row: hd-start / ft-end;
+	border: 4px solid rgb(92 148 13);
+	background-color: rgb(92 148 13 / 40%);
+	color: rgb(92 148 13);
+	font-size: 150%;
+}
+
+.mL4yxz {
+	display: grid;
+	grid-template-columns: repeat(12, [col-start] 1fr);
+}
+
+.luFF3M {
+	grid-column: col-start / col-start 5;
+}
+
+._3VxcY5 {
+	grid-column: col-start 7 / span 3;
+}
+
+.mL4yxz {
+	grid-template-columns: repeat(4, [col1-start] 1fr [col2-start] 3fr);
+}
+
+.mL4yxz {
+	grid-template-columns: repeat(4, [col-start] 1fr [col-end]);
+}
+
+.mL4yxz {
+	grid-template-columns: [col-start] 1fr [col-end col-start] 1fr [col-end col-start] 1fr [col-end col-start] 1fr [col-end];
+}
+
+.d_ommv {
+	animation: none !important;
+	animation: my-name !important;
+	animation-name: none !important;
+	animation-name: my-name !important;
+
+	color: red !important;
+
+	container: ltFW9R / inline-size !d_ommv;
+	container-name: TzDBrZ !d_ommv;
+
+	grid-column: col-start / col-start 5 !important;
+	grid-area: some-grid-area !important;
+
+	list-style-type: extend-thumbs !important;
+	list-style: extend-thumbs !important;
+
+	fallback: thumbs !important;
+	system: extends thumbs !important;
+	speak-as: thumbs !important;
+}
+
+._8qpv2p {
+    color: red;
+}
+
+.class {
+    color: teal;
+}
+
+.IPVcc_{
+    color: red;
+    padding: var(--znqz6F);
+    --znqz6F: 10px;
+}
+
+.mrynNF {
+    color: green;
+    padding: var(--F7c89j);
+    --F7c89j: 10px;
+}
