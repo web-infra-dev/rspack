@@ -9,13 +9,13 @@
     "preview": "rspack preview"
   },
   "dependencies": {
-    "vue": "^3.5.40"
+    "vue": "^3.5.41"
   },
   "devDependencies": {
     "@rspack/cli": "workspace:*",
     "@rspack/core": "workspace:*",
     "@rspack/dev-server": "^2.2.0",
-    "rspack-vue-loader": "^17.6.1",
+    "rspack-vue-loader": "^17.6.2",
     "typescript": "^6.0.3"
   }
 }
