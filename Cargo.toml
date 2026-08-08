@@ -581,3 +581,8 @@ regex_creation_in_loops = "warn"
 # regex
 invalid_regex = "warn"
 trivial_regex = "warn"
+
+# Test rspack-resolver upgrading pnp to 0.12.11 before the crates.io release.
+# See https://github.com/rstackjs/rspack-resolver/pull/286
+[patch.crates-io]
+rspack_resolver = { git = "https://github.com/rstackjs/rspack-resolver.git", branch = "chore/upgrade-pnp-0.12.11" }
