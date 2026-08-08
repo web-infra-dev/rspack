@@ -51,6 +51,7 @@ futures             = { version = "0.3.32", default-features = false, features =
 hashlink            = { version = "0.11.0", default-features = false }
 heck                = { version = "0.5.0", default-features = false }
 hex                 = { version = "0.4.3", default-features = false, features = ["std"] }
+html-escape         = { version = "0.2.13", default-features = false }
 indexmap            = { version = "2.14.0", default-features = false }
 indicatif           = { version = "0.18.4", default-features = false }
 indoc               = { version = "2.0.7", default-features = false }
@@ -152,10 +153,9 @@ swc_experimental_ecma_semantic        = { version = "0.11.0", default-features =
 swc_experimental_ecma_transforms_base = { version = "0.11.0", default-features = false }
 swc_experimental_ecma_utils           = { version = "0.11.0", default-features = false }
 
-rspack_dojang = { version = "0.1.11", default-features = false }
-tracy-client  = { version = "=0.18.4", default-features = false, features = ["enable", "sampling", "demangle", "system-tracing"] }
-wasi-common   = { version = "36.0.10", default-features = false }
-wasmtime      = { version = "36.0.10", default-features = false }
+tracy-client = { version = "=0.18.4", default-features = false, features = ["enable", "sampling", "demangle", "system-tracing"] }
+wasi-common  = { version = "36.0.10", default-features = false }
+wasmtime     = { version = "36.0.10", default-features = false }
 
 
 # all rspack workspace dependencies
@@ -170,6 +170,7 @@ rspack_cacheable                       = { version = "=0.101.8", path = "crates/
 rspack_cacheable_macros                = { version = "=0.101.8", path = "crates/rspack_cacheable_macros", default-features = false }
 rspack_collections                     = { version = "=0.101.8", path = "crates/rspack_collections", default-features = false }
 rspack_core                            = { version = "=0.101.8", path = "crates/rspack_core", default-features = false }
+rspack_dojang                          = { version = "=0.101.8", path = "crates/rspack_dojang", default-features = false }
 rspack_error                           = { version = "=0.101.8", path = "crates/rspack_error", default-features = false }
 rspack_fs                              = { version = "=0.101.8", path = "crates/rspack_fs", default-features = false }
 rspack_hash                            = { version = "=0.101.8", path = "crates/rspack_hash", default-features = false }
