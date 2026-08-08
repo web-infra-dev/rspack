@@ -3746,6 +3746,12 @@ impl ExperimentsBuilder {
     self
   }
 
+  /// Set whether to enable pure function annotations and hints.
+  pub fn pure_functions(&mut self, pure_functions: bool) -> &mut Self {
+    self.pure_functions = Some(pure_functions);
+    self
+  }
+
   /// Build [`Experiments`] from options.
   ///
   /// [`Experiments`]: rspack_core::options::Experiments
@@ -3859,6 +3865,46 @@ mod test {
           .iter()
           .any(|plugin| matches!(plugin, BuiltinPluginOptions::SideEffectsFlagPlugin(false)))
       );
+    })
+  }
+
+  #[test]
+  fn pure_functions_defaults_follow_mode() {
+    within_compiler_context_for_testing_sync(|| {
+      let mut context: BuilderContext = Default::default();
+      let compiler_options = CompilerOptions::builder()
+        .target(vec!["web".to_string()])
+        .experiments(Experiments::builder().css(true))
+        .build(&mut context)
+        .unwrap();
+      assert!(compiler_options.experiments.pure_functions);
+
+      let mut context: BuilderContext = Default::default();
+      let compiler_options = CompilerOptions::builder()
+        .mode(Mode::Production)
+        .target(vec!["web".to_string()])
+        .experiments(Experiments::builder().css(true))
+        .build(&mut context)
+        .unwrap();
+      assert!(compiler_options.experiments.pure_functions);
+
+      let mut context: BuilderContext = Default::default();
+      let compiler_options = CompilerOptions::builder()
+        .mode(Mode::Development)
+        .target(vec!["web".to_string()])
+        .experiments(Experiments::builder().css(true))
+        .build(&mut context)
+        .unwrap();
+      assert!(!compiler_options.experiments.pure_functions);
+
+      let mut context: BuilderContext = Default::default();
+      let compiler_options = CompilerOptions::builder()
+        .mode(Mode::Development)
+        .target(vec!["web".to_string()])
+        .experiments(Experiments::builder().css(true).pure_functions(true))
+        .build(&mut context)
+        .unwrap();
+      assert!(compiler_options.experiments.pure_functions);
     })
   }
 
