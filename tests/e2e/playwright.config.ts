@@ -17,8 +17,8 @@ export default defineConfig<RspackOptions>({
   build: {
     external: [
       '**/moduleFederationDefaultRuntime.js',
-      // Fixtures import @rspack/core as ESM, while copied configs require it.
-      // Let Node load both forms instead of caching Playwright's first transform.
+      // E2E tests load @rspack/core through both import and require.
+      // Skip Playwright transforms and let Node load its dist files natively.
       '**/packages/rspack/dist/**',
     ],
   },
