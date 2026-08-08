@@ -950,9 +950,33 @@ module.exports = "data:,";
             return Ok(Some(ModuleFactoryResult::new_with_module(raw_module)));
           }
           Err(err) => {
-            data.file_dependencies = file_dependencies.into_iter().map(Into::into).collect();
-            data.missing_dependencies = missing_dependencies.into_iter().map(Into::into).collect();
-            return Err(err);
+            let resolver = plugin_driver
+              .resolver_factory
+              .get(ResolveOptionsWithDependencyType {
+                resolve_options: data
+                  .resolve_options
+                  .clone()
+                  .map(|r| Box::new(Arc::unwrap_or_clone(r))),
+                resolve_to_context: false,
+                dependency_category,
+              });
+            if let Some(aliased_resource) = resolver.resolve_alias_to_scheme(&resource) {
+              file_dependencies = Default::default();
+              missing_dependencies = Default::default();
+              let aliased_scheme = get_scheme(&aliased_resource);
+              let mut resource_data = ResourceData::new_with_resource(aliased_resource);
+              plugin_driver
+                .normal_module_factory_hooks
+                .resolve_for_scheme
+                .call(data, &mut resource_data, &aliased_scheme)
+                .await?;
+              resource_data
+            } else {
+              data.file_dependencies = file_dependencies.into_iter().map(Into::into).collect();
+              data.missing_dependencies =
+                missing_dependencies.into_iter().map(Into::into).collect();
+              return Err(err);
+            }
           }
         }
       }
