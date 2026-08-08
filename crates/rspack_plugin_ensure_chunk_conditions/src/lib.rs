@@ -1,4 +1,4 @@
-use rspack_core::{Compilation, CompilationOptimizeChunks, Logger, Plugin};
+use rspack_core::{Compilation, CompilationOptimizeChunks, Logger, Plugin, module_chunk_condition};
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
@@ -13,26 +13,25 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
   let logger = compilation.get_logger(self.name());
   let start = logger.time("ensure chunk conditions");
   let mut source_module_chunks = HashMap::default();
-  compilation
-    .get_module_graph()
-    .modules()
-    .for_each(|(module_id, module)| {
-      let source_chunks = compilation
-        .build_chunk_graph_artifact
-        .chunk_graph
-        .get_module_chunks(module.identifier())
-        .iter()
-        .filter_map(|chunk| {
-          if matches!(module.chunk_condition(chunk, compilation), Some(false)) {
-            return Some(chunk.to_owned());
-          }
-          None
-        })
-        .collect::<Vec<_>>();
-      if !source_chunks.is_empty() {
-        source_module_chunks.insert(*module_id, source_chunks);
+  for (module_id, module) in compilation.get_module_graph().modules() {
+    let module_chunks = compilation
+      .build_chunk_graph_artifact
+      .chunk_graph
+      .get_module_chunks(module.identifier())
+      .clone();
+    let mut source_chunks = Vec::new();
+    for chunk in module_chunks {
+      if matches!(
+        module_chunk_condition(module.as_ref(), &chunk, compilation).await?,
+        Some(false)
+      ) {
+        source_chunks.push(chunk);
       }
-    });
+    }
+    if !source_chunks.is_empty() {
+      source_module_chunks.insert(*module_id, source_chunks);
+    }
+  }
 
   let mut target_module_chunks = HashMap::default();
   let mut visited_chunk_group_keys = HashSet::default();
@@ -71,7 +70,10 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
               if let Some(module) = compilation
                 .get_module_graph()
                 .module_by_identifier(module_id)
-                && matches!(module.chunk_condition(chunk, compilation), Some(true))
+                && matches!(
+                  module_chunk_condition(module.as_ref(), chunk, compilation).await?,
+                  Some(true)
+                )
               {
                 target_chunks.insert(*chunk);
                 continue 'out;

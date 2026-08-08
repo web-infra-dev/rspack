@@ -1,5 +1,8 @@
 import binding from '@rspack/binding';
+import * as liteTapable from '@rspack/lite-tapable';
 import type { Source } from 'webpack-sources';
+import type { Chunk } from './Chunk';
+import { type Compilation, checkCompilation } from './Compilation';
 import { SourceAdapter } from './util/source';
 
 Object.defineProperty(binding.ExternalModule.prototype, 'identifier', {
@@ -33,4 +36,37 @@ Object.defineProperty(binding.ExternalModule.prototype, 'emitFile', {
   },
 });
 
-export { ExternalModule } from '@rspack/binding';
+export type ExternalModule = binding.ExternalModule;
+export type ExternalModuleCompilationHooks = {
+  chunkCondition: liteTapable.SyncBailHook<
+    [Chunk, Compilation],
+    boolean | undefined
+  >;
+};
+
+const ExternalModule =
+  binding.ExternalModule as typeof binding.ExternalModule & {
+    getCompilationHooks(
+      compilation: Compilation,
+    ): ExternalModuleCompilationHooks;
+  };
+
+const compilationHooksMap: WeakMap<
+  Compilation,
+  ExternalModuleCompilationHooks
+> = new WeakMap();
+
+ExternalModule.getCompilationHooks = (compilation: Compilation) => {
+  checkCompilation(compilation);
+
+  let hooks = compilationHooksMap.get(compilation);
+  if (hooks === undefined) {
+    hooks = {
+      chunkCondition: new liteTapable.SyncBailHook(['chunk', 'compilation']),
+    };
+    compilationHooksMap.set(compilation, hooks);
+  }
+  return hooks;
+};
+
+export { ExternalModule };

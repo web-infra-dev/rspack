@@ -1,7 +1,9 @@
 use rayon::prelude::*;
 use rspack_core::{
   Chunk, ChunkSplitData, ChunkUkey, Compilation, ModuleIdentifier, incremental::Mutation,
+  module_chunk_condition,
 };
+use rspack_error::Result;
 use rustc_hash::FxHashSet;
 
 use crate::{SplitChunksPlugin, common::ModuleChunks, module_group::ModuleGroup};
@@ -192,28 +194,24 @@ impl SplitChunksPlugin {
 
   /// This de-duplicated each module fro other chunks, make sure there's only one copy of each module.
   // #[tracing::instrument(skip_all)]
-  pub(crate) fn move_modules_to_new_chunk_and_remove_from_old_chunks(
+  pub(crate) async fn move_modules_to_new_chunk_and_remove_from_old_chunks(
     &self,
     item: &ModuleGroup,
     new_chunk: ChunkUkey,
     original_chunks: &FxHashSet<ChunkUkey>,
     compilation: &mut Compilation,
-  ) {
-    let modules = item
-      .modules
-      .iter()
-      .filter(|mid| {
-        if let Some(module) = compilation.module_by_identifier(mid)
-          && module
-            .chunk_condition(&new_chunk, compilation)
-            .is_some_and(|condition| !condition)
-        {
-          return false;
-        }
-        true
-      })
-      .copied()
-      .collect::<Vec<_>>();
+  ) -> Result<()> {
+    let mut modules = Vec::with_capacity(item.modules.len());
+    for mid in &item.modules {
+      if let Some(module) = compilation.module_by_identifier(mid)
+        && module_chunk_condition(module.as_ref(), &new_chunk, compilation)
+          .await?
+          .is_some_and(|condition| !condition)
+      {
+        continue;
+      }
+      modules.push(*mid);
+    }
 
     let chunks = original_chunks.iter().copied().collect::<Vec<_>>();
 
@@ -226,6 +224,7 @@ impl SplitChunksPlugin {
       .build_chunk_graph_artifact
       .chunk_graph
       .connect_chunk_and_modules(new_chunk, &modules);
+    Ok(())
   }
 
   /// Since the modules are moved into the `new_chunk`, we should
