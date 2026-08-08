@@ -1,0 +1,272 @@
+use std::{
+  sync::mpsc::{self, RecvTimeoutError},
+  thread,
+  time::{Duration, Instant},
+};
+
+use rspack_error::Result;
+use rspack_paths::Utf8PathBuf;
+use tokio::sync::oneshot;
+
+use super::{
+  CacheKey, CacheValue, Etag, FileCacheStrategy,
+  cache_value::{CacheValueData, CacheValueDecoder, CacheValueEncoder, ErasedCacheValue},
+};
+
+const DEFAULT_IDLE_TIMEOUT: Duration = Duration::from_secs(60);
+const DEFAULT_IDLE_TIMEOUT_FOR_INITIAL_STORE: Duration = Duration::from_secs(5);
+const DEFAULT_IDLE_TIMEOUT_AFTER_LARGE_CHANGES: Duration = Duration::from_secs(1);
+
+#[derive(Debug)]
+enum Command {
+  Store {
+    key: CacheKey,
+    etag: Option<Etag>,
+    value: ErasedCacheValue,
+    encoder: CacheValueEncoder,
+  },
+  StoreBuildDependencies(Vec<Utf8PathBuf>),
+  Restore {
+    key: CacheKey,
+    etag: Option<Etag>,
+    decoder: CacheValueDecoder,
+    result: oneshot::Sender<Result<Option<ErasedCacheValue>>>,
+  },
+  RecordBuildTime(Duration),
+  BeginIdle,
+  EndIdle,
+  Shutdown(oneshot::Sender<Result<()>>),
+}
+
+struct BackgroundJob {
+  strategy: FileCacheStrategy,
+  command_receiver: mpsc::Receiver<Command>,
+  idle_deadline: Option<Instant>,
+  idle_timeout: Duration,
+  idle_timeout_for_initial_store: Duration,
+  idle_timeout_after_large_changes: Duration,
+  time_spent_in_build: Duration,
+  avg_time_spent_in_store: Option<Duration>,
+}
+
+impl BackgroundJob {
+  fn run(mut self) {
+    loop {
+      let command = match self.idle_deadline {
+        Some(deadline) => self
+          .command_receiver
+          .recv_timeout(deadline.saturating_duration_since(Instant::now())),
+        None => self
+          .command_receiver
+          .recv()
+          .map_err(|_| RecvTimeoutError::Disconnected),
+      };
+
+      match command {
+        Ok(command) => {
+          if self.handle_command(command) {
+            return;
+          }
+        }
+        Err(RecvTimeoutError::Timeout) => {
+          self.idle_deadline = None;
+          self.process_idle_tasks();
+        }
+        Err(RecvTimeoutError::Disconnected) => {
+          if self.strategy.has_pending_writes() {
+            tracing::warn!("Idle file cache was dropped before shutdown with pending cache items");
+          }
+          return;
+        }
+      }
+    }
+  }
+
+  fn handle_command(&mut self, command: Command) -> bool {
+    match command {
+      Command::Store {
+        key,
+        etag,
+        value,
+        encoder,
+      } => {
+        self.strategy.store(key, etag, value, encoder);
+      }
+      Command::StoreBuildDependencies(dependencies) => {
+        self.strategy.store_build_dependencies(dependencies);
+      }
+      Command::Restore {
+        key,
+        etag,
+        decoder,
+        result,
+      } => {
+        let _ = result.send(self.strategy.restore(&key, etag.as_ref(), decoder));
+      }
+      Command::RecordBuildTime(build_time) => {
+        self.time_spent_in_build = self
+          .time_spent_in_build
+          .mul_f64(0.9)
+          .saturating_add(build_time);
+      }
+      Command::BeginIdle => {
+        let is_initial_store = self.avg_time_spent_in_store.is_none();
+        let is_large_change = self.time_spent_in_build
+          > self
+            .avg_time_spent_in_store
+            .unwrap_or_default()
+            .saturating_mul(2);
+        let mut timeout = self.idle_timeout;
+        if is_initial_store {
+          timeout = timeout.min(self.idle_timeout_for_initial_store);
+        }
+        if is_large_change {
+          timeout = timeout.min(self.idle_timeout_after_large_changes);
+        }
+        self.idle_deadline = Some(Instant::now() + timeout);
+      }
+      Command::EndIdle => {
+        self.idle_deadline = None;
+      }
+      Command::Shutdown(result) => {
+        self.idle_deadline = None;
+        let _ = result.send(self.strategy.shutdown());
+        return true;
+      }
+    }
+    false
+  }
+
+  fn process_idle_tasks(&mut self) {
+    let start = Instant::now();
+    if let Err(error) = self.strategy.after_all_stored() {
+      tracing::warn!("Finalizing idle file cache store failed: {error}");
+      return;
+    }
+    let time_spent_in_store = start.elapsed();
+    self.avg_time_spent_in_store = Some(
+      self
+        .avg_time_spent_in_store
+        .unwrap_or_default()
+        .max(time_spent_in_store)
+        .mul_f64(0.9)
+        .saturating_add(time_spent_in_store.mul_f64(0.1)),
+    );
+    self.time_spent_in_build = Duration::ZERO;
+  }
+}
+
+/// Runs filesystem cache operations in one persistent background job.
+#[derive(Debug)]
+pub struct IdleFileCache {
+  command_sender: mpsc::Sender<Command>,
+}
+
+impl IdleFileCache {
+  pub fn new(strategy: FileCacheStrategy) -> Self {
+    Self::with_timeouts(
+      strategy,
+      DEFAULT_IDLE_TIMEOUT,
+      DEFAULT_IDLE_TIMEOUT_FOR_INITIAL_STORE,
+      DEFAULT_IDLE_TIMEOUT_AFTER_LARGE_CHANGES,
+    )
+  }
+
+  pub fn with_timeouts(
+    strategy: FileCacheStrategy,
+    idle_timeout: Duration,
+    idle_timeout_for_initial_store: Duration,
+    idle_timeout_after_large_changes: Duration,
+  ) -> Self {
+    let (command_sender, command_receiver) = mpsc::channel();
+    let background_job = BackgroundJob {
+      strategy,
+      command_receiver,
+      idle_deadline: None,
+      idle_timeout,
+      idle_timeout_for_initial_store,
+      idle_timeout_after_large_changes,
+      time_spent_in_build: Duration::ZERO,
+      avg_time_spent_in_store: None,
+    };
+    let _ = thread::Builder::new()
+      .name("rspack-idle-file-cache".to_string())
+      .spawn(move || background_job.run())
+      .expect("failed to spawn idle file cache background thread");
+
+    Self { command_sender }
+  }
+
+  fn send(&self, command: Command) -> Result<()> {
+    self
+      .command_sender
+      .send(command)
+      .map_err(|_| rspack_error::error!("Idle file cache background job has stopped"))
+  }
+
+  async fn request<T>(
+    &self,
+    command: impl FnOnce(oneshot::Sender<Result<T>>) -> Command,
+  ) -> Result<T> {
+    let (result, result_receiver) = oneshot::channel();
+    self
+      .command_sender
+      .send(command(result))
+      .map_err(|_| rspack_error::error!("Idle file cache background job has stopped"))?;
+    result_receiver
+      .await
+      .map_err(|_| rspack_error::error!("Idle file cache background job has stopped"))?
+  }
+
+  pub fn store<T: CacheValueData>(
+    &self,
+    key: CacheKey,
+    etag: Option<Etag>,
+    value: CacheValue<T>,
+  ) -> Result<()> {
+    self.send(Command::Store {
+      key,
+      etag,
+      value: value.erase(),
+      encoder: CacheValue::<T>::encoder(),
+    })
+  }
+
+  pub async fn restore<T: CacheValueData>(
+    &self,
+    key: CacheKey,
+    etag: Option<Etag>,
+  ) -> Result<Option<CacheValue<T>>> {
+    Ok(
+      self
+        .request(|result| Command::Restore {
+          key,
+          etag,
+          decoder: CacheValue::<T>::decoder(),
+          result,
+        })
+        .await?
+        .and_then(ErasedCacheValue::downcast),
+    )
+  }
+
+  pub fn store_build_dependencies(&self, dependencies: Vec<Utf8PathBuf>) -> Result<()> {
+    self.send(Command::StoreBuildDependencies(dependencies))
+  }
+
+  pub fn record_build_time(&self, build_time: Duration) -> Result<()> {
+    self.send(Command::RecordBuildTime(build_time))
+  }
+
+  pub fn begin_idle(&self) -> Result<()> {
+    self.send(Command::BeginIdle)
+  }
+
+  pub fn end_idle(&self) -> Result<()> {
+    self.send(Command::EndIdle)
+  }
+
+  pub async fn shutdown(&self) -> Result<()> {
+    self.request(Command::Shutdown).await
+  }
+}
