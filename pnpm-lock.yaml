@@ -74,8 +74,8 @@ catalogs:
       specifier: ^2.0.3
       version: 2.0.3
     '@rspack/dev-server':
-      specifier: ^2.1.0
-      version: 2.1.0
+      specifier: ^2.2.0
+      version: 2.2.0
     '@rspack/lite-tapable':
       specifier: 1.1.5
       version: 1.1.5
@@ -301,6 +301,9 @@ catalogs:
     memfs:
       specifier: 4.64.0
       version: 4.64.0
+    mermaid:
+      specifier: ^11.16.0
+      version: 11.16.1
     mime-types:
       specifier: ^3.0.2
       version: 3.0.2
@@ -596,7 +599,7 @@ importers:
         version: link:../../packages/rspack
       '@rspack/dev-server':
         specifier: 'catalog:'
-        version: 2.1.0(@rspack/core@packages+rspack)
+        version: 2.2.0(@rspack/core@packages+rspack)
 
   examples/react:
     dependencies:
@@ -615,7 +618,7 @@ importers:
         version: link:../../packages/rspack
       '@rspack/dev-server':
         specifier: 'catalog:'
-        version: 2.1.0(@rspack/core@packages+rspack)
+        version: 2.2.0(@rspack/core@packages+rspack)
       '@rspack/plugin-react-refresh':
         specifier: 'catalog:'
         version: 2.0.2(@rspack/core@packages+rspack)(react-refresh@0.18.0)
@@ -642,7 +645,7 @@ importers:
         version: link:../../packages/rspack
       '@rspack/dev-server':
         specifier: 'catalog:'
-        version: 2.1.0(@rspack/core@packages+rspack)
+        version: 2.2.0(@rspack/core@packages+rspack)
       typescript:
         specifier: 'catalog:'
         version: 6.0.3
@@ -799,7 +802,7 @@ importers:
         version: link:../rspack
       '@rspack/dev-server':
         specifier: 'catalog:'
-        version: 2.1.0(@rspack/core@packages+rspack)
+        version: 2.2.0(@rspack/core@packages+rspack)
       '@rspack/test-tools':
         specifier: workspace:*
         version: link:../rspack-test-tools
@@ -974,7 +977,7 @@ importers:
         version: link:../../packages/rspack
       '@rspack/dev-server':
         specifier: 'catalog:'
-        version: 2.1.0(@rspack/core@packages+rspack)
+        version: 2.2.0(@rspack/core@packages+rspack)
       '@rspack/plugin-react-refresh':
         specifier: 'catalog:'
         version: 2.0.2(@rspack/core@packages+rspack)(react-refresh@0.18.0)
@@ -3270,8 +3273,8 @@ packages:
       '@rspack/core':
         optional: true
 
-  '@rspack/dev-server@2.1.0':
-    resolution: {integrity: sha512-WkCi6bWThVX5Ziv04srPaRoCoUY5FJolO4gqzE7xPO0XbXShsGnwn0vGD0DFfnYFcw9VSsxlmeCDV799lNYclA==}
+  '@rspack/dev-server@2.2.0':
+    resolution: {integrity: sha512-Bd0DNphOJ5/KAm3bFpUUZeP7O6jvVDNdXJEmlpsVZLfdSgjmrd6Ut/EHCBv95tmiwOQN0M41SdvlUU4f855HFA==}
     engines: {node: ^20.19.0 || >=22.12.0}
     peerDependencies:
       '@rspack/core': ^2.0.0
@@ -9611,7 +9614,7 @@ snapshots:
     optionalDependencies:
       '@rspack/core': link:packages/rspack
 
-  '@rspack/dev-server@2.1.0(@rspack/core@packages+rspack)':
+  '@rspack/dev-server@2.2.0(@rspack/core@packages+rspack)':
     dependencies:
       '@rspack/core': link:packages/rspack
       '@rspack/dev-middleware': 2.0.3(@rspack/core@packages+rspack)
