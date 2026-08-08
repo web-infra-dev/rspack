@@ -1,4 +1,6 @@
 const { createFsFromVolume, Volume } = require("memfs");
+const { lazyCompilationMiddleware } = require("@rspack/core");
+const path = require("node:path");
 const { start } = require("@rspack/test-tools/helper/legacy/deprecationTracking");
 let tracker = null;
 
@@ -41,6 +43,163 @@ module.exports = [{
           expect(compiler.watchMode).toBeFalsy();
           resolve();
         });
+      });
+    });
+  },
+}, {
+  description: "should consume paused Watchpack changes once",
+  options(context) {
+    return {
+      entry: "./c",
+      experiments: {
+        nativeWatcher: false,
+      },
+    };
+  },
+  async build(context, compiler) {
+    const entry = path.join(compiler.context, "c.js");
+    const watchFileSystem = compiler.watchFileSystem;
+    const callbackChanges = [];
+    const watcher = watchFileSystem.watch(
+      [entry],
+      [],
+      [],
+      Date.now(),
+      { aggregateTimeout: 1000 },
+      (_error, _fileTimes, _contextTimes, changes) =>
+        callbackChanges.push(changes),
+      () => {},
+    );
+
+    try {
+      const watchpack = watchFileSystem.watcher;
+      watchpack._onChange(entry, Date.now(), entry, "change");
+      expect(watcher.hasPendingEvents()).toBe(true);
+      expect(watcher.getInfo().changes).toEqual(new Set([entry]));
+      expect(watchpack.aggregateTimer).toBeDefined();
+      watchpack._onTimeout();
+      expect(callbackChanges).toEqual([new Set([entry])]);
+
+      watchpack._onChange(entry, Date.now(), entry, "change");
+      expect(watcher.hasPendingEvents()).toBe(true);
+      expect(watcher.getInfo().changes).toEqual(new Set([entry]));
+      expect(watcher.getInfo().changes).toEqual(new Set());
+      expect(watcher.hasPendingEvents()).toBe(false);
+    } finally {
+      watcher.close();
+    }
+  },
+}, {
+  description: "should snapshot lazy compilation invalidation provenance per watch cycle",
+  options(context) {
+    return {
+      entry: "./c",
+      lazyCompilation: {
+        entries: false,
+        imports: false,
+      },
+    };
+  },
+  async compiler(context, compiler) {
+    compiler.outputFileSystem = createFsFromVolume(new Volume());
+  },
+  async build(context, compiler) {
+    const cycles = [];
+    let coalesceNormalInvalidation = false;
+    let emitNormalFileChange;
+    let watching;
+    compiler.watchFileSystem = {
+      watch(
+        files,
+        dirs,
+        missing,
+        startTime,
+        options,
+        callback,
+        callbackUndelayed,
+      ) {
+        emitNormalFileChange = () => {
+          const file = path.join(compiler.context, "c.js");
+          callbackUndelayed(file, Date.now());
+          callback(null, new Map(), new Map(), new Set([file]), new Set());
+        };
+        return {
+          close() {},
+          getInfo() {
+            return {
+              changes: new Set(),
+              removals: new Set(),
+              fileTimeInfoEntries: new Map(),
+              contextTimeInfoEntries: new Map(),
+            };
+          },
+          pause() {},
+        };
+      },
+    };
+    compiler.hooks.thisCompilation.tap(
+      "test lazy invalidation provenance",
+      compilation => {
+        cycles.push(compilation.watchInvalidationKind);
+      },
+    );
+    compiler.hooks.make.tapAsync(
+      "coalesce normal invalidation",
+      (compilation, callback) => {
+        if (
+          coalesceNormalInvalidation &&
+          compilation.watchInvalidationKind === "lazy"
+        ) {
+          coalesceNormalInvalidation = false;
+          emitNormalFileChange();
+        }
+        callback();
+      },
+    );
+
+    const middleware = lazyCompilationMiddleware(compiler);
+    const activate = module =>
+      new Promise((resolve, reject) => {
+        middleware(
+          {
+            body: [module],
+            method: "POST",
+            url: "/_rspack/lazy/trigger",
+          },
+          {
+            end: resolve,
+            write() {},
+            writeHead(status) {
+              expect(status).toBe(200);
+            },
+          },
+          reject,
+        ).catch(reject);
+      });
+
+    return new Promise((resolve, reject) => {
+      let builds = 0;
+      watching = compiler.watch({}, err => {
+        if (err) return reject(err);
+        builds++;
+        if (builds === 1) {
+          setImmediate(() => activate("first-lazy-module").catch(reject));
+          return;
+        }
+        if (builds === 2) {
+          coalesceNormalInvalidation = true;
+          setImmediate(() => activate("coalesced-lazy-module").catch(reject));
+          return;
+        }
+        if (builds === 3) {
+          try {
+            expect(cycles).toEqual([undefined, "lazy", "lazy", "normal"]);
+          } catch (error) {
+            watching.close(() => reject(error));
+            return;
+          }
+          watching.close(error => (error ? reject(error) : resolve()));
+        }
       });
     });
   },

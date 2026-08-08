@@ -263,7 +263,7 @@ const lazyCompilationMiddlewareInternal = (
     }
 
     if (moduleActivated.length && compiler.watching) {
-      compiler.watching.invalidate();
+      compiler.watching.__internal__invalidate('lazy');
     }
 
     res.writeHead(200);

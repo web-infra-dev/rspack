@@ -340,7 +340,7 @@ export declare class JsCompiler {
   /** Build with the given option passed to the constructor */
   build(callback: (err: null | Error) => void): void
   /** Rebuild with the given option passed to the constructor */
-  rebuild(changed_files: string[], removed_files: string[], callback: (err: null | Error) => void): void
+  rebuild(changed_files: string[], removed_files: string[], callback: (err: null | Error) => void, is_lazy_watch_rebuild?: boolean): void
   close(): Promise<void>
   getVirtualFileStore(): VirtualFileStore | null
   getCompilerId(): ExternalObject<CompilerId>

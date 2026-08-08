@@ -189,9 +189,24 @@ export default class NodeWatchFileSystem implements WatchFileSystem {
         "Watcher.getContextTimeInfoEntries is deprecated in favor of Watcher.getInfo since that's more performant.",
         'DEP_WEBPACK_WATCHER_CONTEXT_TIME_INFO_ENTRIES',
       ),
+      hasPendingEvents: () => {
+        const watcher = this.watcher;
+        return Boolean(
+          watcher &&
+          (watcher.aggregatedChanges.size > 0 ||
+            watcher.aggregatedRemovals.size > 0),
+        );
+      },
       getInfo: () => {
-        const removals = this.watcher?.aggregatedRemovals ?? new Set();
-        const changes = this.watcher?.aggregatedChanges ?? new Set();
+        const watcher = this.watcher;
+        const { changes, removals } = watcher
+          ? watcher.paused
+            ? watcher.getAggregated()
+            : {
+                changes: watcher.aggregatedChanges,
+                removals: watcher.aggregatedRemovals,
+              }
+          : { changes: new Set<string>(), removals: new Set<string>() };
         if (this.inputFileSystem?.purge) {
           const fs = this.inputFileSystem;
           if (removals) {
