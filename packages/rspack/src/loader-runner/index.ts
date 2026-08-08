@@ -274,6 +274,11 @@ export async function runLoaders(
   loaderContext.loaders = context.loaderItems.map((item) => {
     return LoaderObject.__from_binding(item, compiler);
   });
+  for (const loader of loaderContext.loaders) {
+    if (loader.path && !loader.path.startsWith(BUILTIN_LOADER_PREFIX)) {
+      buildDependencies.push(loader.path);
+    }
+  }
 
   loaderContext.hot = context.hot;
   loaderContext.context = contextDirectory;
