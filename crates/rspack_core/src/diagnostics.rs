@@ -3,6 +3,40 @@ use rspack_error::{Diagnostic, Error, Label, dim};
 
 use crate::{BoxLoader, DependencyRange};
 
+pub const MAX_ERRORS_PER_MODULE: usize = 100;
+const MODULE_ERRORS_LIMIT_CODE: &str = "ModuleErrorsLimit";
+
+#[derive(Debug, Default)]
+pub(crate) struct ModuleErrorsState {
+  errors_count: usize,
+  reached_limit: bool,
+}
+
+impl ModuleErrorsState {
+  pub fn add_diagnostic(&mut self, diagnostics: &mut Vec<Diagnostic>, diagnostic: Diagnostic) {
+    if diagnostic.is_warn() {
+      diagnostics.push(diagnostic);
+    } else if !self.reached_limit {
+      if self.errors_count < MAX_ERRORS_PER_MODULE - 1 {
+        diagnostics.push(diagnostic);
+        self.errors_count += 1;
+      } else {
+        let diagnostic = if diagnostic.code.as_deref() == Some(MODULE_ERRORS_LIMIT_CODE) {
+          diagnostic
+        } else {
+          let module_identifier = diagnostic.module_identifier;
+          let mut diagnostic: Diagnostic = Error::from(ModuleErrorsLimitError).into();
+          diagnostic.module_identifier = module_identifier;
+          diagnostic
+        };
+        diagnostics.push(diagnostic);
+        self.errors_count += 1;
+        self.reached_limit = true;
+      }
+    }
+  }
+}
+
 ///////////////////// Module Factory /////////////////////
 
 #[derive(Debug)]
@@ -122,6 +156,20 @@ impl ModuleParseError {
       help,
       source,
     }
+  }
+}
+
+#[derive(Debug)]
+pub struct ModuleErrorsLimitError;
+
+impl From<ModuleErrorsLimitError> for Error {
+  fn from(_: ModuleErrorsLimitError) -> Error {
+    let mut error = Error::error(format!(
+      "Module has too many errors. Only the first {} errors are shown.",
+      MAX_ERRORS_PER_MODULE - 1
+    ));
+    error.code = Some(MODULE_ERRORS_LIMIT_CODE.into());
+    error
   }
 }
 

@@ -93,6 +93,7 @@ use crate::{
     BuildModuleGraphArtifact, ModuleExecutor, UpdateParam, update_module_graph,
   },
   compiler::{CompilationRecords, CompilerId},
+  diagnostics::ModuleErrorsState,
   get_runtime_key,
   incremental::{self, Incremental, IncrementalPasses, Mutation},
   is_source_equal, to_identifier,
@@ -233,6 +234,7 @@ pub struct Compilation {
   assets_related_in: HashMap<String, HashSet<String>>,
   pub emitted_assets: DashSet<String, BuildHasherDefault<FxHasher>>,
   diagnostics: Vec<Diagnostic>,
+  module_errors: IdentifierMap<ModuleErrorsState>,
   logging: CompilationLogging,
   pub plugin_driver: SharedPluginDriver,
   pub buildtime_plugin_driver: SharedPluginDriver,
@@ -381,6 +383,7 @@ impl Compilation {
       assets_related_in: Default::default(),
       emitted_assets: Default::default(),
       diagnostics: Default::default(),
+      module_errors: Default::default(),
       logging,
       plugin_driver,
       buildtime_plugin_driver,
@@ -952,11 +955,29 @@ impl Compilation {
   }
 
   pub fn push_diagnostic(&mut self, diagnostic: Diagnostic) {
-    self.diagnostics.push(diagnostic);
+    if diagnostic.is_error()
+      && let Some(module_identifier) = diagnostic.module_identifier
+    {
+      self
+        .module_errors
+        .entry(module_identifier)
+        .or_default()
+        .add_diagnostic(&mut self.diagnostics, diagnostic);
+    } else {
+      self.diagnostics.push(diagnostic);
+    }
   }
 
   pub fn extend_diagnostics(&mut self, diagnostics: impl IntoIterator<Item = Diagnostic>) {
-    self.diagnostics.extend(diagnostics);
+    for diagnostic in diagnostics {
+      self.push_diagnostic(diagnostic);
+    }
+  }
+
+  pub fn normalize_diagnostics(&mut self) {
+    let diagnostics = std::mem::take(&mut self.diagnostics);
+    self.module_errors.clear();
+    self.extend_diagnostics(diagnostics);
   }
 
   pub fn diagnostics(&self) -> &[Diagnostic] {

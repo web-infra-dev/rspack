@@ -16,7 +16,7 @@ use rspack_core::{
   ModuleCodeTemplate, ModuleGraph, ModuleType, ParseContext, ParseResult, ParserAndGenerator,
   ResolvedModuleOptions, RuntimeGlobals, RuntimeGlobalsRenderMode, RuntimeVariable,
   SideEffectsBailoutItem, SourceType, TemplateContext, TemplateReplaceSource,
-  diagnostics::map_box_diagnostics_to_module_parse_diagnostics,
+  diagnostics::{MAX_ERRORS_PER_MODULE, map_box_diagnostics_to_module_parse_diagnostics},
   remove_bom, render_init_fragments,
   rspack_sources::{BoxSource, ReplaceSource, Source, SourceExt},
 };
@@ -60,13 +60,13 @@ fn append_experimental_parse_errors(
 ) {
   let mut visited = HashSet::new();
   let source: Arc<str> = source.into();
-  diagnostics.extend(errors.into_iter().filter_map(|err| {
+  for err in errors {
     let span = err.span();
     let message = err.kind().msg().to_string();
     if !visited.insert((message.clone(), span)) {
-      return None;
+      continue;
     }
-    Some(
+    diagnostics.push(
       Error::from_shared_source(
         Some(source.clone()),
         span.start.saturating_sub(1) as usize,
@@ -75,8 +75,11 @@ fn append_experimental_parse_errors(
         message,
       )
       .into(),
-    )
-  }));
+    );
+    if visited.len() >= MAX_ERRORS_PER_MODULE {
+      break;
+    }
+  }
 }
 
 #[cfg(test)]
@@ -104,6 +107,26 @@ mod tests {
     let first_source = diagnostics[0].src.as_ref().expect("should have source");
     let second_source = diagnostics[1].src.as_ref().expect("should have source");
     assert_eq!(first_source.as_ptr(), second_source.as_ptr());
+  }
+
+  #[test]
+  fn parse_error_conversion_stops_after_module_limit_is_exceeded() {
+    let source = "'\\101';".repeat(MAX_ERRORS_PER_MODULE + 10);
+    let allocator = Allocator::new();
+    let lexer = Lexer::new(
+      &allocator,
+      Syntax::Es(EsSyntax::default()),
+      EsVersion::EsNext,
+      StringSource::new(&source),
+      None,
+    );
+    let mut parser = Parser::new_from(&allocator, lexer);
+    parser.parse_module().expect("should recover parse errors");
+
+    let mut diagnostics = Vec::new();
+    append_experimental_parse_errors(&mut diagnostics, &source, parser.take_errors());
+
+    assert_eq!(diagnostics.len(), MAX_ERRORS_PER_MODULE);
   }
 }
 
