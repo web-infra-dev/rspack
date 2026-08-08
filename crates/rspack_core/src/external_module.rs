@@ -88,9 +88,10 @@ fn get_namespace_object_export(
   runtime_template: &mut ModuleCodeTemplate,
 ) -> String {
   if let Some(concatenation_scope) = concatenation_scope {
-    concatenation_scope.register_namespace_export(NAMESPACE_OBJECT_EXPORT);
+    let namespace_export =
+      concatenation_scope.register_generated_namespace_export(NAMESPACE_OBJECT_EXPORT);
     format!(
-      "{} {NAMESPACE_OBJECT_EXPORT}",
+      "{} {namespace_export}",
       if supports_const { "const" } else { "var" }
     )
   } else {
@@ -601,29 +602,27 @@ impl ExternalModule {
           .supports_node_prefix_for_core_modules();
 
         if compilation.options.output.module {
-          chunk_init_fragments.push(
-            NormalInitFragment::new(
-              format!(
-                "import {{ createRequire as __rspack_createRequire }} from \"{}\";\n{} __rspack_createRequire_require = __rspack_createRequire({}.url);\n",
-                if need_prefix { "node:module" } else { "module" },
-                if compilation.options.output.environment.supports_const() {
-                  "const"
-                } else {
-                  "var"
-                },
-                compilation.options.output.import_meta_name
-              ),
-              InitFragmentStage::StageESMImports,
-              0,
-              InitFragmentKey::ModuleExternal("node-commonjs".to_string()),
-              None,
-            )
-            .with_top_level_decl_symbols(vec![
-              "__rspack_createRequire".into(),
-              "__rspack_createRequire_require".into(),
-            ])
-            .boxed(),
+          let mut fragment = NormalInitFragment::new(
+            format!(
+              "import {{ createRequire as __rspack_createRequire }} from \"{}\";\n{} __rspack_createRequire_require = __rspack_createRequire({}.url);\n",
+              if need_prefix { "node:module" } else { "module" },
+              if compilation.options.output.environment.supports_const() {
+                "const"
+              } else {
+                "var"
+              },
+              compilation.options.output.import_meta_name
+            ),
+            InitFragmentStage::StageESMImports,
+            0,
+            InitFragmentKey::ModuleExternal("node-commonjs".to_string()),
+            None,
           );
+          fragment.set_top_level_decl_symbols(vec![
+            "__rspack_createRequire".into(),
+            "__rspack_createRequire_require".into(),
+          ]);
+          chunk_init_fragments.push(fragment.boxed());
           let (request, specifiers) = if let Some(request) = request {
             (
               json_stringify_str(request.primary()),

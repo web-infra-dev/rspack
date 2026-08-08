@@ -7,8 +7,8 @@ use rspack_sources::ReplaceSource;
 use rspack_util::ext::AsAny;
 
 use crate::{
-  ChunkInitFragments, CodeGenerationData, Compilation, ConcatenationScope, DependencyType, Module,
-  ModuleCodeTemplate, ModuleInitFragments, RuntimeSpec,
+  ChunkInitFragments, CodeGenerationData, Compilation, ConcatenationScope, DependencyRange,
+  DependencyType, Module, ModuleCodeTemplate, ModuleInitFragments, RuntimeSpec,
 };
 
 pub struct TemplateContext<'a, 'b, 'c> {
@@ -22,6 +22,37 @@ pub struct TemplateContext<'a, 'b, 'c> {
 }
 
 impl TemplateContext<'_, '_, '_> {
+  pub fn faster_concatenation_scope(&mut self) -> Option<&mut ConcatenationScope> {
+    self
+      .concatenation_scope
+      .as_deref_mut()
+      .filter(|scope| scope.is_faster_module_concatenation())
+  }
+
+  pub fn ensure_generated_top_level_symbol(&mut self, preferred_name: impl Into<String>) -> String {
+    let preferred_name = preferred_name.into();
+    self
+      .ensure_generated_top_level_symbol_in_scope(&preferred_name)
+      .unwrap_or(preferred_name)
+  }
+
+  pub fn ensure_generated_top_level_symbol_in_scope(
+    &mut self,
+    preferred_name: &str,
+  ) -> Option<String> {
+    self.faster_concatenation_scope().map(|scope| {
+      scope
+        .ensure_generated_top_level_symbol(preferred_name)
+        .to_string()
+    })
+  }
+
+  pub fn remove_original_range(&mut self, range: DependencyRange) {
+    if let Some(scope) = self.faster_concatenation_scope() {
+      scope.remove_original_range(range);
+    }
+  }
+
   pub fn chunk_init_fragments(&mut self) -> &mut ChunkInitFragments {
     let data_fragments = self.data.get::<ChunkInitFragments>();
     if data_fragments.is_some() {

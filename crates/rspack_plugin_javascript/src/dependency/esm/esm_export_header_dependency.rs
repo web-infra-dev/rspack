@@ -76,7 +76,7 @@ impl DependencyTemplate for ESMExportHeaderDependencyTemplate {
     &self,
     dep: &dyn DependencyCodeGeneration,
     source: &mut TemplateReplaceSource,
-    _code_generatable_context: &mut TemplateContext,
+    code_generatable_context: &mut TemplateContext,
   ) {
     let dep = dep
       .as_any()
@@ -84,15 +84,13 @@ impl DependencyTemplate for ESMExportHeaderDependencyTemplate {
       .expect(
         "ESMExportHeaderDependencyTemplate should only be used for ESMExportHeaderDependency",
       );
-    source.replace_static(
-      dep.range.start,
-      if let Some(range) = &dep.range_decl {
-        range.start
-      } else {
-        dep.range.end
-      },
-      "",
-      None,
-    );
+    let replacement_end = if let Some(range) = &dep.range_decl {
+      range.start
+    } else {
+      dep.range.end
+    };
+    code_generatable_context
+      .remove_original_range(DependencyRange::new(dep.range.start, replacement_end));
+    source.replace_static(dep.range.start, replacement_end, "", None);
   }
 }

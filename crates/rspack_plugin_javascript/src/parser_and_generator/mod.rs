@@ -17,7 +17,7 @@ use rspack_core::{
   ResolvedModuleOptions, RuntimeGlobals, RuntimeGlobalsRenderMode, RuntimeVariable,
   SideEffectsBailoutItem, SourceType, TemplateContext, TemplateReplaceSource,
   diagnostics::map_box_diagnostics_to_module_parse_diagnostics,
-  remove_bom, render_init_fragments,
+  remove_bom, render_init_fragments, render_init_fragments_to_strings,
   rspack_sources::{BoxSource, ReplaceSource, Source, SourceExt},
 };
 use rspack_error::{Diagnostic, Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
@@ -32,7 +32,10 @@ use swc_experimental_ecma_transforms_base::remove_paren::remove_paren;
 use crate::{
   BoxJavascriptParserPlugin,
   dependency::ESMCompatibilityDependency,
-  visitors::{ParsedJavaScriptAst, ScanDependenciesResult, scan_dependencies, semicolon},
+  visitors::{
+    ParsedJavaScriptAst, ScanDependenciesResult,
+    concatenate_scope_info::PendingConcatenationScopeInfoVisitor, scan_dependencies, semicolon,
+  },
 };
 
 #[derive(Debug)]
@@ -339,13 +342,29 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       return default_with_diagnostics(source, diagnostics);
     }
 
+    let faster_module_concatenation = compiler_options.experiments.faster_module_concatenation;
+    let uses_esm_library = faster_module_concatenation
+      && compiler_options
+        .output
+        .enabled_library_types
+        .as_ref()
+        .is_some_and(|types| types.iter().any(|ty| ty == "modern-module"));
+    let may_need_concatenation_scope = faster_module_concatenation
+      && matches!(program, Program::Module(_))
+      && (uses_esm_library || compiler_options.optimization.concatenate_modules);
+
     let mut semicolons = Default::default();
     remove_paren(&mut program, &allocator, Some(&mut comments));
     let semantic = resolver(&program);
-    program.visit_with(&mut semicolon::InsertedSemicolons::new(
-      &mut semicolons,
-      &tokens,
-    ));
+    let mut semicolon_visitor = semicolon::InsertedSemicolons::new(&mut semicolons, &tokens);
+    program.visit_with(&mut semicolon_visitor);
+    let pending_concatenation_scope_info_visitor = if may_need_concatenation_scope {
+      let mut visitor = PendingConcatenationScopeInfoVisitor::new(&semantic);
+      program.visit_with(&mut visitor);
+      Some(visitor)
+    } else {
+      None
+    };
     let parsed_ast = ParsedJavaScriptAst {
       allocator: &allocator,
       comments: &comments,
@@ -381,11 +400,24 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       Ok(result) => result,
       Err(mut e) => {
         diagnostics.append(&mut e);
+        drop(pending_concatenation_scope_info_visitor);
         return default_with_diagnostics(source, diagnostics);
       }
     };
     diagnostics.append(&mut warning_diagnostics);
     let mut side_effects_bailout = None;
+
+    let pending_concatenation_scope_info = if build_meta.esm()
+      && (uses_esm_library
+        || (compiler_options.optimization.concatenate_modules
+          && build_info.module_concatenation_bailout.is_none()))
+    {
+      pending_concatenation_scope_info_visitor.map(|visitor| Box::new(visitor.into_info()))
+    } else {
+      drop(pending_concatenation_scope_info_visitor);
+      None
+    };
+    build_info.pending_concatenation_scope_info = pending_concatenation_scope_info;
 
     if compiler_options.optimization.side_effects.is_true() {
       let has_side_effects = side_effects_item.is_some();
@@ -428,41 +460,57 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       let mut source = ReplaceSource::new(source.clone());
       let compilation = generate_context.compilation;
       let mut init_fragments = vec![];
-      let mut context = TemplateContext {
-        compilation,
-        module,
-        init_fragments: &mut init_fragments,
-        runtime: generate_context.runtime,
-        concatenation_scope: generate_context.concatenation_scope.take(),
-        data: generate_context.data,
-        runtime_template: generate_context.runtime_template,
-      };
+      let (concatenation_scope, is_concatenated_codegen) = {
+        let mut context = TemplateContext {
+          compilation,
+          module,
+          init_fragments: &mut init_fragments,
+          runtime: generate_context.runtime,
+          concatenation_scope: generate_context.concatenation_scope.take(),
+          data: generate_context.data,
+          runtime_template: generate_context.runtime_template,
+        };
 
-      module.get_dependencies().iter().for_each(|dependency_id| {
-        self.source_dependency(compilation, dependency_id, &mut source, &mut context)
-      });
-
-      if let Some(dependencies) = module.get_presentational_dependencies() {
-        dependencies.iter().for_each(|dependency| {
-          if let Some(template) = dependency
-            .dependency_template()
-            .and_then(|template_type| compilation.get_dependency_template(template_type))
-          {
-            template.render(dependency.as_ref(), &mut source, &mut context)
-          } else {
-            panic!(
-              "Can not find dependency template of {:?}",
-              dependency.dependency_template()
-            );
-          }
+        module.get_dependencies().iter().for_each(|dependency_id| {
+          self.source_dependency(compilation, dependency_id, &mut source, &mut context)
         });
-      };
 
-      module
-        .get_blocks()
-        .iter()
-        .for_each(|block_id| self.source_block(compilation, block_id, &mut source, &mut context));
-      generate_context.concatenation_scope = context.concatenation_scope.take();
+        if let Some(dependencies) = module.get_presentational_dependencies() {
+          dependencies.iter().for_each(|dependency| {
+            if let Some(template) = dependency
+              .dependency_template()
+              .and_then(|template_type| compilation.get_dependency_template(template_type))
+            {
+              template.render(dependency.as_ref(), &mut source, &mut context)
+            } else {
+              panic!(
+                "Can not find dependency template of {:?}",
+                dependency.dependency_template()
+              );
+            }
+          });
+        };
+
+        module
+          .get_blocks()
+          .iter()
+          .for_each(|block_id| self.source_block(compilation, block_id, &mut source, &mut context));
+        let concatenation_scope = context.concatenation_scope.take();
+        let is_concatenated_codegen = concatenation_scope
+          .as_ref()
+          .is_some_and(|scope| scope.is_faster_module_concatenation());
+        (concatenation_scope, is_concatenated_codegen)
+      };
+      if is_concatenated_codegen {
+        let rendered_fragments =
+          render_init_fragments_to_strings(init_fragments, generate_context)?;
+        if !rendered_fragments.is_empty() {
+          generate_context.data.insert(rendered_fragments);
+        }
+        generate_context.concatenation_scope = concatenation_scope;
+        return Ok(source.boxed());
+      }
+      generate_context.concatenation_scope = concatenation_scope;
       render_init_fragments(source.boxed(), init_fragments, generate_context)
     } else {
       panic!(

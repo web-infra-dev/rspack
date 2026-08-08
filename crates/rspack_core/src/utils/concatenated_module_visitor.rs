@@ -1,13 +1,40 @@
+use rspack_cacheable::cacheable;
 use swc_core::ecma::{
   ast::{ClassExpr, Ident, ObjectPatProp, Prop},
   visit::{Visit, VisitWith, noop_visit_type},
 };
+
+use crate::DependencyRange;
 
 #[derive(Clone, Debug)]
 pub struct ConcatenatedModuleIdent {
   pub id: Ident,
   pub shorthand: bool,
   pub is_class_expr_with_ident: bool,
+}
+
+#[cacheable]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ConcatenationScopeIdentKind {
+  TopLevel,
+  Global,
+  UsedName,
+}
+
+#[cacheable]
+#[derive(Clone, Debug)]
+pub struct ConcatenationScopeIdent {
+  pub range: DependencyRange,
+  pub shorthand: bool,
+  pub kind: ConcatenationScopeIdentKind,
+}
+
+#[cacheable]
+#[derive(Clone, Debug, Default)]
+pub struct PendingConcatenationScopeInfo {
+  pub module_ctxt: u32,
+  pub global_ctxt: u32,
+  pub idents: Vec<ConcatenationScopeIdent>,
 }
 
 #[derive(Default)]

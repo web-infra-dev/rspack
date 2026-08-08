@@ -14,7 +14,8 @@ use serde::Serialize;
 
 use crate::{
   ArtifactExt, AssetInfo, BindingCell, ChunkInitFragments, ConcatenationScope, ModuleIdentifier,
-  RuntimeGlobals, RuntimeSpec, RuntimeSpecMap, SourceType, incremental::IncrementalPasses,
+  RenderedInitFragments, RuntimeGlobals, RuntimeSpec, RuntimeSpecMap, SourceType,
+  incremental::IncrementalPasses,
 };
 
 #[derive(Clone, Debug)]
@@ -92,6 +93,26 @@ impl CodeGenerationDataTopLevelDeclarations {
   }
 }
 
+/// Typed [`CodeGenerationData`] entry for the digest of rendered init fragments.
+///
+/// `CodeGenerationData` is keyed by `TypeId`, so the newtype keeps this digest
+/// distinct from other `RspackHashDigest` values stored as code generation data.
+#[derive(Clone, Debug)]
+pub struct RenderedInitFragmentsDigest(RspackHashDigest);
+
+impl RenderedInitFragmentsDigest {
+  pub fn new(inner: RspackHashDigest) -> Self {
+    Self(inner)
+  }
+}
+
+impl RspackHash for RenderedInitFragmentsDigest {
+  fn hash(&self, state: &mut RspackHasher) {
+    state.write(b"RenderedInitFragmentsDigest");
+    self.0.hash(state);
+  }
+}
+
 #[derive(Clone, Debug)]
 pub struct CodeGenerationExportsFinalNames {
   inner: HashMap<String, String>,
@@ -162,32 +183,27 @@ impl CodeGenerationResult {
     hash_function: &HashFunction,
     hash_digest: &HashDigest,
     hash_salt: &HashSalt,
+    concatenated_module_hash: Option<&RspackHashDigest>,
   ) {
     let mut hasher = RspackHasher::with_salt(hash_function, hash_salt);
-    for (source_type, source) in self.inner.as_ref() {
-      source_type.hash(&mut hasher);
-      std::hash::Hash::hash(source, &mut hasher);
-    }
-    self.chunk_init_fragments.hash(&mut hasher);
-    self.runtime_requirements.hash(&mut hasher);
-    self.hash = Some(hasher.digest(hash_digest));
-  }
-
-  /// Concatenated modules already encode the generated module bodies into
-  /// `ConcatenatedModule::get_runtime_hash`, so we can reuse that digest here
-  /// and only mix in codegen-specific metadata instead of hashing the large
-  /// concatenated source again.
-  pub fn set_hash_for_concatenated_module(
-    &mut self,
-    runtime_hash: &RspackHashDigest,
-    hash_function: &HashFunction,
-    hash_digest: &HashDigest,
-    hash_salt: &HashSalt,
-  ) {
-    let mut hasher = RspackHasher::with_salt(hash_function, hash_salt);
-    runtime_hash.hash(&mut hasher);
-    for source_type in self.inner.as_ref().keys() {
-      source_type.hash(&mut hasher);
+    if let Some(concatenated_module_hash) = concatenated_module_hash {
+      concatenated_module_hash.hash(&mut hasher);
+      for source_type in self.inner.as_ref().keys() {
+        source_type.hash(&mut hasher);
+      }
+      if let Some(digest) = self.data.get::<RenderedInitFragmentsDigest>() {
+        digest.hash(&mut hasher);
+      }
+    } else {
+      for (source_type, source) in self.inner.as_ref() {
+        source_type.hash(&mut hasher);
+        std::hash::Hash::hash(source, &mut hasher);
+      }
+      if let Some(fragments) = self.data.get::<RenderedInitFragments>()
+        && !fragments.is_empty()
+      {
+        fragments.hash(&mut hasher);
+      }
     }
     self.chunk_init_fragments.hash(&mut hasher);
     self.runtime_requirements.hash(&mut hasher);

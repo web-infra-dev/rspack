@@ -218,8 +218,8 @@ impl ParserAndGenerator for JsonParserAndGenerator {
           json_str.cow_replace("\"__proto__\":", "[\"__proto__\"]:")
         };
         let content = if let Some(scope) = concatenation_scope {
-          scope.register_namespace_export(NAMESPACE_OBJECT_EXPORT);
-          format!("var {NAMESPACE_OBJECT_EXPORT} = {json_expr}")
+          let namespace_export = scope.register_generated_namespace_export(NAMESPACE_OBJECT_EXPORT);
+          format!("var {namespace_export} = {json_expr}")
         } else {
           format!(
             r#"{}.exports = {json_expr}"#,
