@@ -91,6 +91,7 @@ create({
     'vue-ts',
   ],
   skipFiles: ['.npmignore'],
+  git: !process.argv.includes('--no-git'),
   getTemplateName,
   mapESLintTemplate,
   mapRslintTemplate,
