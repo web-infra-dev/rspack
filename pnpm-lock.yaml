@@ -287,8 +287,8 @@ catalogs:
       specifier: 4.8.1
       version: 4.8.1
     less-loader:
-      specifier: ^12.3.3
-      version: 12.3.3
+      specifier: ^13.0.0
+      version: 13.0.0
     lodash:
       specifier: ^4.18.1
       version: 4.18.1
@@ -1163,7 +1163,7 @@ importers:
         version: 4.8.1
       less-loader:
         specifier: 'catalog:'
-        version: 12.3.3(@rspack/core@packages+rspack)(less@4.8.1)
+        version: 13.0.0(@rspack/core@packages+rspack)(less@4.8.1)
       lodash:
         specifier: 'catalog:'
         version: 4.18.1
@@ -3649,6 +3649,9 @@ packages:
   '@types/jsonfile@6.1.4':
     resolution: {integrity: sha512-D5qGUYwjvnNNextdU59/+fI+spnwtTFmyQP0h+PfIOSkNfpU6AOICUOkm4i0OnSk+NyjdPJrxCDro0sJsWlRpQ==}
 
+  '@types/less@3.0.8':
+    resolution: {integrity: sha512-Gjm4+H9noDJgu5EdT3rUw5MhPBag46fiOy27BefvWkNL8mlZnKnCaVVVTLKj6RYXed9b62CPKnPav9govyQDzA==}
+
   '@types/mdast@4.0.4':
     resolution: {integrity: sha512-kGaNbPh1k7AFzgpud/gMdvIm5xuECykRR+JnWKQno9TAXVa6WIVCGTPvYGekIDL4uwCZQSYbUxNBSb1aUo79oA==}
 
@@ -5576,9 +5579,9 @@ packages:
   layout-base@2.0.1:
     resolution: {integrity: sha512-dp3s92+uNI1hWIpPGH3jK2kxE2lMjdXdr+DH8ynZHpd6PUlH6x6cbuXnoMmiNumznqaNO31xu9e79F0uuZ0JFg==}
 
-  less-loader@12.3.3:
-    resolution: {integrity: sha512-F0+ErFFDj3Pt+nVrCN6VlEGEzocv9s7x/aR9v2riI+WM83UAfTYBDBjGPJnT55lBLR6JSI4fmWblt+aA2JN6/w==}
-    engines: {node: '>= 18.12.0'}
+  less-loader@13.0.0:
+    resolution: {integrity: sha512-TIa8d6znKH634Mg+7OU3jevZT6KeOhh0amW+YeMPD0GM9buUn5Y7HvtyCR5pUDdLaFfqLA8AX5PTSIHMNSexEA==}
+    engines: {node: '>= 22.11.0'}
     peerDependencies:
       '@rspack/core': 0.x || ^1.0.0 || ^2.0.0-0
       less: ^3.5.0 || ^4.0.0
@@ -10034,6 +10037,8 @@ snapshots:
     dependencies:
       '@types/node': 26.1.1
 
+  '@types/less@3.0.8': {}
+
   '@types/mdast@4.0.4':
     dependencies:
       '@types/unist': 3.0.3
@@ -12003,8 +12008,9 @@ snapshots:
 
   layout-base@2.0.1: {}
 
-  less-loader@12.3.3(@rspack/core@packages+rspack)(less@4.8.1):
+  less-loader@13.0.0(@rspack/core@packages+rspack)(less@4.8.1):
     dependencies:
+      '@types/less': 3.0.8
       less: 4.8.1
     optionalDependencies:
       '@rspack/core': link:packages/rspack
