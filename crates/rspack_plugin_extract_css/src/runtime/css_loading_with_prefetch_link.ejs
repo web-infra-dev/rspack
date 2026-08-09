@@ -7,4 +7,7 @@ if (<%- weak(SCRIPT_NONCE) %>) {
 }
 link.rel = "prefetch";
 link.as = "style";
-link.href = <%- PUBLIC_PATH %> + <%- _get_chunk_css_filename %>(chunkId);
+// Prefer the fresh filename an intervening HMR update recorded for this not-yet-loaded
+// chunk over the stale `miniCssF` literal, so a hashed name is prefetched correctly.
+var extractCssPrefetchMiniCssFilenames = <%- weak(HMR_MINI_CSS_FILENAMES) %>;
+link.href = <%- PUBLIC_PATH %> + ((extractCssPrefetchMiniCssFilenames && extractCssPrefetchMiniCssFilenames[chunkId]) || <%- _get_chunk_css_filename %>(chunkId));

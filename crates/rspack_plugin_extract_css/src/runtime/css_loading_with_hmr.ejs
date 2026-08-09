@@ -34,20 +34,35 @@
 	 */
 	var cssRemovedChunkIds = (miniCss && miniCss.r) || [];
 	var cssChunkIds = (miniCss && miniCss.c) || [];
+	/**
+		`miniCss.f` maps each changed chunk to the filename this update actually emitted
+		for it. The build-time `miniCssF` literal can't reflect that filename once it is
+		content-hashed ([contenthash]) - it stays frozen at the initial-load name - so the
+		fresh entry is preferred and `miniCssF` kept only as the fallback for unhashed names.
+	 */
+	var cssFreshFilenames = (miniCss && miniCss.f) || {};
 	var seen = {};
 	cssRemovedChunkIds.forEach(function (chunkId) {
+		// Match by chunk identity first: a hashed tag's live href is whatever the latest
+		// update set it to, so href matching alone can miss it; the stale `miniCssF` href
+		// still matches an original, never-updated tag.
 		var href = <%- _get_chunk_css_filename %>(chunkId);
-		if (!href) return;
-		var oldTag = extractCssFindStylesheet(href, <%- PUBLIC_PATH %> + href);
+		var oldTag = extractCssFindStylesheet(href, <%- PUBLIC_PATH %> + href, chunkId);
 		if (oldTag) extractCssOldTags.push(oldTag);
 	});
 	cssChunkIds.forEach(function (chunkId) {
-		var href = <%- _get_chunk_css_filename %>(chunkId);
+		var staleHref = <%- _get_chunk_css_filename %>(chunkId);
+		var href = cssFreshFilenames[chunkId] || staleHref;
 		if (!href) return;
 		var fullhref = <%- PUBLIC_PATH %> + href;
 		if (seen[fullhref]) return;
 		seen[fullhref] = true;
-		var oldTag = extractCssFindStylesheet(href, fullhref);
+		// Find the installed tag by chunk identity first: once the href changes the tag
+		// this handler created can no longer be found by href, but it still carries its
+		// chunk id. The very first update has no such tag yet (the initial stylesheet was
+		// written into the HTML by HtmlRspackPlugin, untagged), so the stale `miniCssF`
+		// href is passed as the fallback, which still matches that original tag.
+		var oldTag = extractCssFindStylesheet(staleHref, <%- PUBLIC_PATH %> + staleHref, chunkId);
 		// The manifest is computed from the compilation and also lists chunks this
 		// page never loaded. A missing tag is legitimate only for a chunk that is
 		// actually on the page: an initial chunk gaining its first stylesheet, or

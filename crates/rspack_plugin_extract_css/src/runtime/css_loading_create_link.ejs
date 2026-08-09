@@ -1,5 +1,8 @@
 var linkTag = document.createElement("link");
 <%- _set_attributes %>
+// Tag the link with its chunk identity so a later HMR update can still find it after
+// its href changes (a hashed filename), when href-based lookup no longer matches.
+linkTag.setAttribute("data-webpack-chunk", extractCssUniquePrefix + chunkId);
 linkTag.rel = "stylesheet";
 <% if (_set_linktype != "") { %>
 linkTag.type = <%- _set_linktype %>;
