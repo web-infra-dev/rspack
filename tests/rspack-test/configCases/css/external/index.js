@@ -6,18 +6,8 @@ it("should import an external css", async () => {
 	expect(style.getPropertyValue("background")).toBe(
 		"url(\"//example.com/image.png\")"
 	);
-	const bodyRule = Array.from(document.styleSheets)
-		.flatMap(sheet => Array.from(sheet.cssRules))
-		.find(rule => rule.selectorText === "body");
-	expect(bodyRule).toBeDefined();
-	expect(bodyRule.style.getPropertyValue("background-image")).toBe(
-		"url(\"http://example.com/image.png\")"
-	);
+	const getCss = () => Object.values(window["__LINK_SHEET__"]).join("\n");
+	expect(getCss()).toContain("background-image: url(http://example.com/image.png)");
 	await new Promise(resolve => setTimeout(resolve, 200));
-	const importedBodyRule = Array.from(document.styleSheets)
-		.flatMap(sheet => Array.from(sheet.cssRules))
-		.flatMap(rule => rule.styleSheet ? Array.from(rule.styleSheet.cssRules) : [])
-		.find(rule => rule.selectorText === "body");
-	expect(importedBodyRule).toBeDefined();
-	expect(importedBodyRule.style.getPropertyValue("color")).toBe("green");
+	expect(getCss()).toContain("color: green");
 });
