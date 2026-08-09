@@ -1,0 +1,13 @@
+[package]
+name = "issue-15021-resolver-memory"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[workspace]
+
+[dependencies]
+libc = "0.2"
+resolver08 = { package = "rspack_resolver", version = "=0.8.0" }
+resolver09 = { package = "rspack_resolver", version = "=0.9.1" }
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
