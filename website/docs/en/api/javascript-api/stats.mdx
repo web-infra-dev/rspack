@@ -39,9 +39,10 @@ For complete and stable stats output, call these methods in `compiler.hooks.done
 
 ```js
 compiler.hooks.done.tap('MyPlugin', (stats) => {
-  const json = stats.toJson({ all: false, errors: true, warnings: true });
-  const text = stats.toString({ preset: 'errors-warnings' });
-  // consume json/text
+  const statsJson = stats.toJson({ all: false, errors: true, warnings: true });
+  const statsText = stats.toString({ preset: 'errors-warnings' });
+  console.log(statsJson.errors);
+  console.log(statsText);
 });
 ```
 
@@ -53,36 +54,70 @@ compiler.hooks.done.tap('MyPlugin', (stats) => {
 
 Can be used to check if there were errors while compiling.
 
+**Type:**
+
 ```ts
 hasErrors(): boolean;
+```
+
+Use the return value to handle compilation errors:
+
+```js
+if (stats.hasErrors()) {
+  console.error('Compilation failed');
+}
 ```
 
 ### hasWarnings
 
 Can be used to check if there were warnings while compiling.
 
+**Type:**
+
 ```ts
 hasWarnings(): boolean;
+```
+
+Use the return value to handle compilation warnings:
+
+```js
+if (stats.hasWarnings()) {
+  console.warn('Compilation completed with warnings');
+}
 ```
 
 ### toJson
 
 Return the compilation information in the form of a [Stats JSON](/api/javascript-api/stats-json) object. The [Stats configuration](/config/stats) can be a string (preset value) or an object for granular control:
 
-```js
-stats.toJson('minimal');
+**Type:**
+
+```ts
+toJson(options?: StatsValue): StatsCompilation;
 ```
 
+Use the `'minimal'` preset and print the number of errors:
+
 ```js
-stats.toJson({
+const statsJson = stats.toJson('minimal');
+console.log(statsJson.errorsCount);
+```
+
+Use an options object to select the fields to include, then print the compilation hash:
+
+```js
+const statsJson = stats.toJson({
   assets: false,
   hash: true,
 });
+console.log(statsJson.hash);
 ```
 
 ### toString
 
 Return the compilation information in the form of a formatted string (similar to the output of [CLI](/api/cli)).
+
+**Type:**
 
 ```ts
 toString(opts?: StatsValue): string;
@@ -138,13 +173,21 @@ Get the related compilation object.
 
 ### hash
 
-**Type:** `string`
+**Type:** `string | null`
 
 Get the hash of this compilation, same as [`Compilation.hash`](/api/javascript-api/compilation#hashfullhash).
 
+When using it as a string, check for `null` first:
+
+```js
+if (stats.hash !== null) {
+  console.log(stats.hash);
+}
+```
+
 ## MultiStats
 
-When using `MultiCompiler` to execute multiple compilation tasks, their compilation stats will be packaged as a `MultiStats` object, which provides similar methods and properties as `Stats`.
+When using `MultiCompiler` to run multiple compilation tasks, their results are packaged as a `MultiStats` object. It provides a combined hash and methods for checking, serializing, and formatting all child compilation results.
 
 ### hash
 
@@ -152,45 +195,94 @@ When using `MultiCompiler` to execute multiple compilation tasks, their compilat
 
 **Type:** `string`
 
-Get the unique hash after merging the hashes of all compilations.
+Get the hash formed by concatenating the hashes of all child compilations.
+
+Print the concatenated hash:
+
+```js
+console.log(multiStats.hash);
+```
 
 ### hasErrors
 
-Used to check if there are errors during the compilation period, and only if there are no errors in all compilations will it return `false`.
+Returns `true` if any child compilation has errors.
+
+**Type:**
 
 ```ts
 hasErrors(): boolean;
 ```
 
+Use the return value to handle errors across all child compilations:
+
+```js
+if (multiStats.hasErrors()) {
+  console.error('At least one compilation failed');
+}
+```
+
 ### hasWarnings
 
-Used to check if there are warnings during the compilation period, and only if there are no warnings in all compilations will it return `false`.
+Returns `true` if any child compilation has warnings.
+
+**Type:**
 
 ```ts
 hasWarnings(): boolean;
 ```
 
+Use the return value to handle warnings across all child compilations:
+
+```js
+if (multiStats.hasWarnings()) {
+  console.warn('At least one compilation completed with warnings');
+}
+```
+
 ### toJson
 
-According to the [stats configuration](/config/stats), generate all the [stats json](/api/javascript-api/stats-json) objects, wrap them in the `children` field, and also summarize the `errors` and `warnings`.
+Returns a `StatsCompilation` whose `children` array contains the [Stats JSON](/api/javascript-api/stats-json) for each child compilation. Fields enabled for every child, such as `errors` and `warnings`, are also aggregated at the top level.
+
+**Type:**
 
 ```ts
-toJson(options?: StatsValue): {
-  hash: string;
-  errorsCount: number;
-  warningsCount: number;
-  errors: StatsError[];
-  warnings: StatsError[];
-  children: StatsCompilation[];
-};
+toJson(options: boolean | StatsPresets | MultiStatsOptions): StatsCompilation;
+```
+
+Use one preset for every child compilation and inspect the number of results:
+
+```js
+const statsJson = multiStats.toJson('minimal');
+console.log(statsJson.children?.length);
+```
+
+`MultiStatsOptions` also supports a `children` option for configuring each child compilation individually. The following example prints the errors from the first child compilation:
+
+```js
+const statsJson = multiStats.toJson({
+  children: [
+    { all: false, errors: true },
+    { all: false, assets: true },
+  ],
+});
+console.log(statsJson.children?.[0]?.errors);
 ```
 
 ### toString
 
-Concatenate the stats output strings of all compilations according to the [stats configuration](/config/stats).
+Format each child compilation according to the [stats configuration](/config/stats), then concatenate the results into one string.
+
+**Type:**
 
 ```ts
-toString(options?: StatsValue): string;
+toString(options: boolean | StatsPresets | MultiStatsOptions): string;
+```
+
+Use one preset for every child compilation and print the combined output:
+
+```js
+const statsText = multiStats.toString('minimal');
+console.log(statsText);
 ```
 
 ## Stats factory
