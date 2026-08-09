@@ -196,7 +196,10 @@ export type TTestConfig = {
   checkSteps?: boolean;
   // Only valid for Watch tests
   ignoreNotFriendlyForIncrementalWarnings?: boolean;
-  resourceLoader?: (url: string, element: HTMLScriptElement) => Buffer | null;
+  resourceLoader?: (
+    url: string,
+    element: HTMLScriptElement,
+  ) => Buffer | null | undefined;
 };
 
 export type TTestFilter = (
