@@ -33,6 +33,7 @@ const FAKE_TEST_ROOT_HOST = 'https://test.cases/root/';
 
 export class WebRunner extends NodeRunner {
   private dom: JSDOM;
+  private pendingStylesheets = new Set<Promise<void>>();
   constructor(protected _webOptions: IWebRunnerOptions) {
     super(_webOptions);
 
@@ -57,6 +58,30 @@ export class WebRunner extends NodeRunner {
     );
 
     this.dom.window.console = console;
+    const head = this.dom.window.document.head;
+    const appendChild = head.appendChild.bind(head);
+    head.appendChild = ((node: Node) => {
+      if (
+        node instanceof this.dom.window.HTMLLinkElement &&
+        node.rel.split(/\s+/).includes('stylesheet')
+      ) {
+        // jsdom 30 loads stylesheets asynchronously. Track links added during
+        // test setup so their CSSOM is ready before the test body starts.
+        const loading = new Promise<void>((resolve) => {
+          const done = () => {
+            node.removeEventListener('load', done);
+            node.removeEventListener('error', done);
+            resolve();
+          };
+          node.addEventListener('load', done);
+          node.addEventListener('error', done);
+        });
+        this.pendingStylesheets.add(loading);
+        void loading.then(() => this.pendingStylesheets.delete(loading));
+      }
+      return appendChild(node);
+    }) as typeof head.appendChild;
+
     // compat with FakeDocument
     this.dom.window.eval(`
       var linkSheetDescriptor = Object.getOwnPropertyDescriptor(HTMLLinkElement.prototype, "sheet");
@@ -115,7 +140,7 @@ export class WebRunner extends NodeRunner {
       cssElement.href = file;
       cssElement.rel = 'stylesheet';
       this.dom.window.document.head.appendChild(cssElement);
-      return Promise.resolve();
+      return this.waitForStylesheets();
     }
     return super.run(file);
   }
@@ -126,6 +151,12 @@ export class WebRunner extends NodeRunner {
 
   protected log(message: string) {
     this._options.logs?.push(`[WebRunner] ${message}`);
+  }
+
+  private async waitForStylesheets() {
+    while (this.pendingStylesheets.size > 0) {
+      await Promise.all(this.pendingStylesheets);
+    }
   }
 
   protected createResourcesOptions(): ResourcesOptions {
@@ -343,6 +374,7 @@ export class WebRunner extends NodeRunner {
     ) => {
       return originIt(description, async (...args: any[]) => {
         try {
+          await this.waitForStylesheets();
           if (fn.length > 0) {
             return await new Promise<void>((resolve, reject) => {
               const done = (err?: Error) => (err ? reject(err) : resolve());
