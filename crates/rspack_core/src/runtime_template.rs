@@ -799,7 +799,7 @@ pub fn get_outgoing_async_modules(
           let dep = mg.dependency_by_id(&connection.dependency_id);
           matches!(
             dep.dependency_type(),
-            DependencyType::EsmImport | DependencyType::EsmExportImport
+            DependencyType::EsmImport | DependencyType::EsmExportImport | DependencyType::Provided
           )
         });
         if is_esm {
