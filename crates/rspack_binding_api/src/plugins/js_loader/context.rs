@@ -26,15 +26,18 @@ pub struct JsLoaderItem {
   pub no_pitch: bool,
 }
 
-impl From<&rspack_loader_runner::LoaderItem<RunnerContext>> for JsLoaderItem {
-  fn from(value: &rspack_loader_runner::LoaderItem<RunnerContext>) -> Self {
+impl JsLoaderItem {
+  fn from_parts(
+    value: &rspack_loader_runner::LoaderItem<RunnerContext>,
+    state: &rspack_loader_runner::LoaderItemState,
+  ) -> Self {
     JsLoaderItem {
       loader: value.request().to_string(),
       r#type: value.r#type().to_string(),
 
-      data: value.data().clone(),
-      normal_executed: value.normal_executed(),
-      pitch_executed: value.pitch_executed(),
+      data: state.data().clone(),
+      normal_executed: state.normal_executed(),
+      pitch_executed: state.pitch_executed(),
 
       no_pitch: false,
     }
@@ -134,8 +137,9 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
     let module = &cx.context.module;
 
     let execution_span = cx
-      .current_execution_span()
-      .expect("yielding requires a current loader-chain span");
+      .current_execution_chain()
+      .expect("yielding requires a current execution chain")
+      .range();
     Ok(JsLoaderContext {
       resource: cx.resource_data.resource().to_owned(),
       module: ModuleObject::with_ptr(
@@ -181,7 +185,12 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
         .map(|i| i.to_string_lossy().to_string())
         .collect(),
 
-      loader_items: cx.loader_items.iter().map(Into::into).collect(),
+      loader_items: cx
+        .loader_items
+        .iter()
+        .zip(cx.loader_item_states.iter())
+        .map(|(item, state)| JsLoaderItem::from_parts(item, state))
+        .collect(),
       loader_index: cx.loader_index,
       loader_chain_start: execution_span.start as i32,
       loader_chain_end: execution_span.end as i32,

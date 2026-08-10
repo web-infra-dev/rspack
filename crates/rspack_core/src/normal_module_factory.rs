@@ -12,7 +12,7 @@ use crate::{
   AssetInlineGeneratorOptions, AssetResourceGeneratorOptions, BoxLoader, BoxModule,
   CompilerOptions, Context, CssAutoOrModuleParserOptions, CssModuleGeneratorOptions,
   CssModuleParserOptions, Dependency, DependencyCategory, DependencyType, FactoryMeta, FuncUseCtx,
-  GeneratorOptions, MatchContext, ModuleExt, ModuleFactory, ModuleFactoryCreateData,
+  GeneratorOptions, Loaders, MatchContext, ModuleExt, ModuleFactory, ModuleFactoryCreateData,
   ModuleFactoryResult, ModuleIdentifier, ModuleLayer, ModuleRuleEffect, ModuleRuleEnforce,
   ModuleRuleUse, ModuleRuleUseLoader, ModuleType, NormalModule, ParserAndGenerator, ParserOptions,
   ParserOptionsMap, RawModule, Resolve, ResolveArgs, ResolveOptionsWithDependencyType,
@@ -1107,6 +1107,11 @@ module.exports = "data:,";
       .into_iter()
       .map(|resolved| (resolved.loader, resolved.options))
       .unzip();
+    let loaders = Arc::new(Loaders::new(
+      loaders,
+      loader_runner_options,
+      self.plugin_driver.loader_cache_service.clone(),
+    ));
 
     let resolved_module_type = self.calculate_module_type(match_module_type, &matched_module_rules);
     let resolved_module_layer =
@@ -1188,7 +1193,6 @@ module.exports = "data:,";
         resource_resolve_data,
         resolved_resolve_options,
         loaders,
-        loader_runner_options,
         create_data.context.clone().map(|x| x.into()),
         resolved_extract_source_map,
         dependency_phase,

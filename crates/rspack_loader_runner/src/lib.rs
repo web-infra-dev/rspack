@@ -9,16 +9,19 @@ mod runner;
 mod scheme;
 
 pub use chain::{
-  LoaderChain, LoaderChainCacheAction, LoaderChainCacheState, LoaderChainMergeReason,
+  CacheChainState, LoaderChain, LoaderChainCacheAction, LoaderChainCacheState, LoaderChainLocation,
   LoaderChainStrategy, LoaderExecutionKind, LoaderRunnerOptions, plan_loader_chains,
 };
 pub use content::{AdditionalData, Content, DescriptionData, ParseMeta, ResourceData};
 pub use context::{LoaderContext, State};
-pub use loader::{DisplayWithSuffix, Loader, LoaderItem, ResourceParsedData, parse_resource};
+pub use loader::{
+  DisplayWithSuffix, Loader, LoaderItem, LoaderItemState, ResourceParsedData, parse_resource,
+};
 pub use plugin::LoaderRunnerPlugin;
 pub use rspack_collections::{Identifiable, Identifier};
 pub use runner::{
-  LoaderResult, run_loaders, run_loaders_with_options, run_loaders_with_options_and_strategy,
+  LoaderResult, create_loader_items, run_loaders, run_loaders_with_options,
+  run_loaders_with_options_and_strategy, run_loaders_with_preplanned,
 };
 pub use scheme::{Scheme, get_scheme};
 

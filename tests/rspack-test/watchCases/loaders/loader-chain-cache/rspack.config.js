@@ -19,6 +19,10 @@ module.exports = {
             cache: true,
           },
           {
+            loader: 'builtin:test-passthrough-loader',
+            cache: true,
+          },
+          {
             loader: path.resolve(__dirname, 'loader.js'),
             options: { name: 'right' },
             parallel: { maxWorkers: 1 },

@@ -460,7 +460,10 @@ impl LoaderCacheService {
     let loader_files = file_stamps(&context.context, loader_paths).await;
     Some(LoaderCacheKey {
       compiler_scope: self.compiler_scope.clone(),
-      static_fingerprint: chain.static_fingerprint().to_owned(),
+      static_fingerprint: chain
+        .static_fingerprint()
+        .expect("loader cache service only accepts CacheChain")
+        .to_owned(),
       input_hash,
       loader_files,
     })

@@ -26,7 +26,6 @@ import { commitCustomFieldsToRust } from '../BuildInfo';
 import type { Compilation } from '../Compilation';
 import type { Compiler } from '../Compiler';
 import {
-  BUILTIN_LOADER_PREFIX,
   type Diagnostic,
   isUseSimpleSourceMap,
   isUseSourceMap,
@@ -755,7 +754,7 @@ export async function runLoaders(
         // in the worker thread.
         //
         // Aligns yielding strategy within the worker.
-        if (!item.parallel || item.request.startsWith(BUILTIN_LOADER_PREFIX)) {
+        if (!item.parallel) {
           options = undefined;
         }
         return {

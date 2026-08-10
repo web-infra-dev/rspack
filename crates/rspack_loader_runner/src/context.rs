@@ -1,4 +1,4 @@
-use std::{ops::Range, path::PathBuf, sync::Arc};
+use std::{path::PathBuf, sync::Arc};
 
 use derive_more::Debug;
 use rspack_error::Diagnostic;
@@ -7,8 +7,8 @@ use rspack_sources::SourceMap;
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
-  AdditionalData, Content, LoaderChain, LoaderItem, LoaderRunnerPlugin, ParseMeta, ResourceData,
-  loader::LoaderItemList,
+  AdditionalData, CacheChainState, Content, LoaderChain, LoaderChainLocation, LoaderItem,
+  LoaderItemState, LoaderRunnerPlugin, ParseMeta, ResourceData, loader::LoaderItemList,
 };
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -56,8 +56,11 @@ pub struct LoaderContext<Context: Send> {
   /// Loader States
   pub(crate) state: State,
   pub loader_index: i32,
-  pub loader_items: Vec<LoaderItem<Context>>,
-  pub(crate) loader_chains: Vec<LoaderChain>,
+  pub loader_items: Arc<[LoaderItem<Context>]>,
+  pub loader_item_states: Vec<LoaderItemState>,
+  pub(crate) loader_chains: Arc<[LoaderChain]>,
+  pub(crate) loader_chain_locations: Arc<[LoaderChainLocation]>,
+  pub(crate) cache_chain_states: Vec<Option<CacheChainState>>,
   #[debug(skip)]
   pub plugin: Option<Arc<dyn LoaderRunnerPlugin<Context = Context>>>,
 }
@@ -87,6 +90,34 @@ impl<Context: Send> LoaderContext<Context> {
     &self.loader_items[self.loader_index as usize]
   }
 
+  pub fn loader_item_state(&self, index: usize) -> &LoaderItemState {
+    &self.loader_item_states[index]
+  }
+
+  pub fn loader_item_state_mut(&mut self, index: usize) -> &mut LoaderItemState {
+    &mut self.loader_item_states[index]
+  }
+
+  pub fn current_loader_state(&self) -> &LoaderItemState {
+    self.loader_item_state(self.loader_index as usize)
+  }
+
+  pub fn current_loader_state_mut(&mut self) -> &mut LoaderItemState {
+    self.loader_item_state_mut(self.loader_index as usize)
+  }
+
+  pub fn set_current_loader_pitch_executed(&mut self) {
+    self.current_loader_state_mut().set_pitch_executed();
+  }
+
+  pub fn set_current_loader_normal_executed(&mut self) {
+    self.current_loader_state_mut().set_normal_executed();
+  }
+
+  pub fn set_current_loader_finish_called(&mut self) {
+    self.current_loader_state_mut().set_finish_called();
+  }
+
   pub fn loader_chains(&self) -> &[LoaderChain] {
     &self.loader_chains
   }
@@ -94,9 +125,9 @@ impl<Context: Send> LoaderContext<Context> {
   pub fn current_chain_index(&self) -> Option<usize> {
     let loader_index = usize::try_from(self.loader_index).ok()?;
     self
-      .loader_chains
-      .iter()
-      .position(|chain| chain.contains(loader_index))
+      .loader_chain_locations
+      .get(loader_index)
+      .map(LoaderChainLocation::root_index)
   }
 
   pub fn current_chain(&self) -> Option<&LoaderChain> {
@@ -105,21 +136,14 @@ impl<Context: Send> LoaderContext<Context> {
       .and_then(|index| self.loader_chains.get(index))
   }
 
-  /// Returns the maximal contiguous execution-runtime span around the current
-  /// loader, bounded by the current loader chain.
-  pub fn current_execution_span(&self) -> Option<Range<usize>> {
+  pub fn current_execution_chain(&self) -> Option<&LoaderChain> {
     let loader_index = usize::try_from(self.loader_index).ok()?;
-    let chain = self.current_chain()?;
-    let kind = self.loader_items.get(loader_index)?.execution_kind();
-    let mut start = loader_index;
-    let mut end = loader_index + 1;
-    while start > chain.start() && self.loader_items[start - 1].execution_kind() == kind {
-      start -= 1;
+    let location = self.loader_chain_locations.get(loader_index)?;
+    let root = self.loader_chains.get(location.root_index())?;
+    match location.child_index() {
+      Some(child_index) => root.children().get(child_index),
+      None => Some(root),
     }
-    while end < chain.end() && self.loader_items[end].execution_kind() == kind {
-      end += 1;
-    }
-    Some(start..end)
   }
 
   /// Emit a diagnostic, it can be a `warning` or `error`.
@@ -195,14 +219,14 @@ impl<Context: Send> LoaderContext<Context> {
 
   pub fn finish_with(&mut self, patch: impl Into<LoaderPatch>) {
     self.__finish_with(patch);
-    self.current_loader().set_finish_called();
+    self.set_current_loader_finish_called();
   }
 
   pub fn finish_with_empty(&mut self) {
     self.content = None;
     self.source_map = None;
     self.additional_data = None;
-    self.current_loader().set_finish_called();
+    self.set_current_loader_finish_called();
   }
 
   #[inline]

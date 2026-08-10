@@ -28,8 +28,6 @@ import {
 } from './service';
 import { convertArgs, runSyncOrAsync } from './utils';
 
-const BUILTIN_LOADER_PREFIX = 'builtin:';
-
 interface WorkerOptions {
   loaderContext: LoaderContext & {
     loaderChainStart: number;
@@ -456,15 +454,13 @@ async function loaderImpl(
     if (!currentLoaderObject?.parallel) {
       return true;
     }
-    if (currentLoaderObject?.request.startsWith(BUILTIN_LOADER_PREFIX)) {
-      return true;
-    }
     return false;
   };
 
   // Execute loader list until the current loader object is to yield to the main
-  // thread.  This happens if the loader is marked as non-parallel or if it is a
-  // builtin loader which belongs to the rust side.
+  // thread. This happens when the loader is marked as non-parallel. The
+  // factory-prepared execution chain guarantees that this range contains only
+  // JavaScript loaders.
   switch (loaderState) {
     case JsLoaderState.Pitching: {
       while (loaderContext.loaderIndex < loaderContext.loaderChainEnd) {

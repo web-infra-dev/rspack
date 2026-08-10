@@ -9,10 +9,14 @@ use rspack_loader_runner::{
 use rspack_sources::SourceMap;
 use rustc_hash::FxHashSet as HashSet;
 
-use crate::{LoaderCacheMissState, RunnerContext, SharedPluginDriver, utils::extract_source_map};
+use crate::{
+  LoaderCacheMissState, RunnerContext, SharedLoaderCacheService, SharedPluginDriver,
+  utils::extract_source_map,
+};
 
 pub struct RspackLoaderRunnerPlugin {
   pub plugin_driver: SharedPluginDriver,
+  pub(crate) loader_cache_service: SharedLoaderCacheService,
   pub extract_source_map: Option<bool>,
 }
 
@@ -132,7 +136,6 @@ impl LoaderRunnerPlugin for RspackLoaderRunnerPlugin {
   ) -> Result<LoaderChainCacheAction> {
     Ok(
       self
-        .plugin_driver
         .loader_cache_service
         .before_normal_chain(context, chain)
         .await,
@@ -149,7 +152,6 @@ impl LoaderRunnerPlugin for RspackLoaderRunnerPlugin {
       .downcast::<LoaderCacheMissState>()
       .expect("loader cache state should be created by LoaderCacheService");
     self
-      .plugin_driver
       .loader_cache_service
       .after_normal_chain(context, *state)
       .await;

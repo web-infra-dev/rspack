@@ -1,10 +1,10 @@
 use std::sync::Arc;
 
 pub use rspack_loader_runner::{
-  Content, Loader, LoaderChain, LoaderChainCacheAction, LoaderChainCacheState,
-  LoaderChainMergeReason, LoaderChainStrategy, LoaderContext, LoaderExecutionKind,
-  LoaderRunnerOptions, run_loaders, run_loaders_with_options,
-  run_loaders_with_options_and_strategy,
+  Content, Loader, LoaderChain, LoaderChainCacheAction, LoaderChainCacheState, LoaderChainLocation,
+  LoaderChainStrategy, LoaderContext, LoaderExecutionKind, LoaderItem, LoaderItemState,
+  LoaderRunnerOptions, create_loader_items, plan_loader_chains, run_loaders,
+  run_loaders_with_options, run_loaders_with_options_and_strategy, run_loaders_with_preplanned,
 };
 use rspack_util::source_map::SourceMapKind;
 

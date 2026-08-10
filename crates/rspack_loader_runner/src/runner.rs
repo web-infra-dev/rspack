@@ -8,10 +8,11 @@ use rustc_hash::FxHashSet as HashSet;
 use tracing::{Instrument, info_span};
 
 use crate::{
-  LoaderChainCacheAction, LoaderChainStrategy, LoaderRunnerOptions, ParseMeta,
+  CacheChainState, LoaderChainCacheAction, LoaderChainLocation, LoaderChainStrategy,
+  LoaderRunnerOptions, ParseMeta,
   content::{AdditionalData, Content, ResourceData},
   context::{LoaderContext, State},
-  loader::{Loader, LoaderItem},
+  loader::{Loader, LoaderItem, LoaderItemState},
   plan_loader_chains,
   plugin::LoaderRunnerPlugin,
 };
@@ -33,7 +34,7 @@ async fn run_pitch_chain<Context: Send>(
   resource: &str,
 ) -> Result<()> {
   let chain = cx
-    .current_chain()
+    .current_execution_chain()
     .cloned()
     .expect("pitching requires a current loader chain");
   let chain_end = chain.end() as i32;
@@ -43,8 +44,6 @@ async fn run_pitch_chain<Context: Send>(
     chain_len = chain.len(),
     chain_start = chain.start(),
     chain_end = chain.end(),
-    cache = chain.cache(),
-    merge_reason = ?chain.merge_reason(),
     execution_kind = ?chain.execution_kind(),
   );
 
@@ -58,12 +57,12 @@ async fn run_pitch_chain<Context: Send>(
         continue;
       }
 
-      if cx.current_loader().pitch_executed() {
+      if cx.current_loader_state().pitch_executed() {
         cx.loader_index += 1;
         continue;
       }
 
-      cx.current_loader().set_pitch_executed();
+      cx.set_current_loader_pitch_executed();
       let loader = cx.current_loader().loader().clone();
       let loader_span = info_span!("run_loader:pitch", resource);
       loader.pitch(cx).instrument(loader_span).await?;
@@ -92,15 +91,16 @@ async fn run_normal_chain<Context: Send>(
     chain_len = chain.len(),
     chain_start = chain.start(),
     chain_end = chain.end(),
-    cache = chain.cache(),
-    merge_reason = ?chain.merge_reason(),
     execution_kind = ?chain.execution_kind(),
   );
 
   // A pitch short-circuit may start the normal phase in the middle of a chain.
   // Such an execution does not represent the full chain and must not be cached.
   let executes_full_chain = cx.loader_index == chain.end() as i32 - 1;
-  let cache_action = if chain.cache()
+  let root_index = cx
+    .current_chain_index()
+    .expect("normal execution requires a current loader chain index");
+  let cache_action = if chain.is_cache()
     && executes_full_chain
     && let Some(plugin) = cx.plugin.clone()
   {
@@ -109,11 +109,24 @@ async fn run_normal_chain<Context: Send>(
     LoaderChainCacheAction::Disabled
   };
 
-  if matches!(cache_action, LoaderChainCacheAction::Hit) {
-    for loader in &cx.loader_items[chain.range()] {
-      loader.set_normal_executed();
-      loader.set_finish_called();
+  if chain.is_cache() {
+    cx.cache_chain_states[root_index] = Some(match cache_action {
+      LoaderChainCacheAction::Disabled => CacheChainState::Bypassed,
+      LoaderChainCacheAction::Hit => CacheChainState::Hit,
+      LoaderChainCacheAction::Miss(state) => CacheChainState::Miss(state),
+    });
+  }
+
+  if matches!(
+    cx.cache_chain_states[root_index],
+    Some(CacheChainState::Hit)
+  ) {
+    for loader_index in chain.range() {
+      let state = cx.loader_item_state_mut(loader_index);
+      state.set_normal_executed();
+      state.set_finish_called();
     }
+    cx.cache_chain_states[root_index] = Some(CacheChainState::Completed);
     cx.loader_index = chain_start - 1;
     return Ok(());
   }
@@ -125,16 +138,16 @@ async fn run_normal_chain<Context: Send>(
         continue;
       }
 
-      if cx.current_loader().normal_executed() {
+      if cx.current_loader_state().normal_executed() {
         cx.loader_index -= 1;
         continue;
       }
 
-      cx.current_loader().set_normal_executed();
+      cx.set_current_loader_normal_executed();
       let loader = cx.current_loader().loader().clone();
       let loader_span = info_span!("run_loader:normal", resource);
       loader.run(cx).instrument(loader_span).await?;
-      if !cx.current_loader().finish_called() {
+      if !cx.current_loader_state().finish_called() {
         // If nothing is returned from this loader, set every output to None to
         // match webpack loader-runner behavior.
         cx.finish_with_empty();
@@ -146,10 +159,17 @@ async fn run_normal_chain<Context: Send>(
   .await;
 
   result?;
-  if let LoaderChainCacheAction::Miss(state) = cache_action
-    && let Some(plugin) = cx.plugin.clone()
-  {
-    plugin.after_normal_chain(cx, &chain, state).await?;
+  match cx.cache_chain_states[root_index].take() {
+    Some(CacheChainState::Miss(state)) => {
+      if let Some(plugin) = cx.plugin.clone() {
+        plugin.after_normal_chain(cx, &chain, state).await?;
+      }
+      cx.cache_chain_states[root_index] = Some(CacheChainState::Completed);
+    }
+    Some(CacheChainState::Bypassed) => {
+      cx.cache_chain_states[root_index] = Some(CacheChainState::Completed);
+    }
+    state => cx.cache_chain_states[root_index] = state,
   }
   Ok(())
 }
@@ -189,8 +209,9 @@ You may need an additional plugin to handle "{scheme}:" URIs."#
 }
 
 fn create_loader_context<Context: Send>(
-  loader_items: Vec<LoaderItem<Context>>,
-  chain_strategy: LoaderChainStrategy,
+  loader_items: Arc<[LoaderItem<Context>]>,
+  loader_chains: Arc<[crate::LoaderChain]>,
+  loader_chain_locations: Arc<[LoaderChainLocation]>,
   resource_data: Arc<ResourceData>,
   plugin: Option<Arc<dyn LoaderRunnerPlugin<Context = Context>>>,
   context: Context,
@@ -202,7 +223,14 @@ fn create_loader_context<Context: Send>(
     file_dependencies.insert(resource_path.to_owned().into_std_path_buf());
   }
 
-  let loader_chains = plan_loader_chains(&loader_items, chain_strategy);
+  assert_eq!(loader_items.len(), loader_chain_locations.len());
+  let loader_item_states = (0..loader_items.len())
+    .map(|_| LoaderItemState::default())
+    .collect();
+  let cache_chain_states = loader_chains
+    .iter()
+    .map(|chain| chain.is_cache().then_some(CacheChainState::Pending))
+    .collect();
   LoaderContext {
     hot: false,
     cacheable: true,
@@ -218,11 +246,30 @@ fn create_loader_context<Context: Send>(
     state: State::Init,
     loader_index: 0,
     loader_items,
+    loader_item_states,
     loader_chains,
+    loader_chain_locations,
+    cache_chain_states,
     plugin,
     resource_data,
     diagnostics: vec![],
   }
+}
+
+pub fn create_loader_items<Context: Send>(
+  loaders: Vec<Arc<dyn Loader<Context>>>,
+  loader_options: Vec<LoaderRunnerOptions>,
+) -> Vec<LoaderItem<Context>> {
+  assert_eq!(
+    loaders.len(),
+    loader_options.len(),
+    "loader options must stay aligned with loaders"
+  );
+  loaders
+    .into_iter()
+    .zip(loader_options)
+    .map(|(loader, options)| LoaderItem::new(loader, options))
+    .collect()
 }
 
 #[tracing::instrument("LoaderRunner:run_loaders", skip_all, level = "trace")]
@@ -269,17 +316,37 @@ pub async fn run_loaders_with_options_and_strategy<Context: Send>(
   context: Context,
   fs: Arc<dyn ReadableFileSystem>,
 ) -> (LoaderResult<Context>, Option<Error>) {
-  assert_eq!(
-    loaders.len(),
-    loader_options.len(),
-    "loader options must stay aligned with loaders"
+  let loader_items = Arc::from(create_loader_items(loaders, loader_options));
+  let (loader_chains, loader_chain_locations) = plan_loader_chains(&loader_items, chain_strategy);
+  run_loaders_with_preplanned(
+    loader_items,
+    Arc::from(loader_chains),
+    Arc::from(loader_chain_locations),
+    resource_data,
+    plugin,
+    context,
+    fs,
+  )
+  .await
+}
+
+pub async fn run_loaders_with_preplanned<Context: Send>(
+  loader_items: Arc<[LoaderItem<Context>]>,
+  loader_chains: Arc<[crate::LoaderChain]>,
+  loader_chain_locations: Arc<[LoaderChainLocation]>,
+  resource_data: Arc<ResourceData>,
+  plugin: Option<Arc<dyn LoaderRunnerPlugin<Context = Context>>>,
+  context: Context,
+  fs: Arc<dyn ReadableFileSystem>,
+) -> (LoaderResult<Context>, Option<Error>) {
+  let mut cx = create_loader_context(
+    loader_items,
+    loader_chains,
+    loader_chain_locations,
+    resource_data,
+    plugin,
+    context,
   );
-  let loaders = loaders
-    .into_iter()
-    .zip(loader_options)
-    .map(|(loader, options)| LoaderItem::new(loader, options))
-    .collect::<Vec<LoaderItem<Context>>>();
-  let mut cx = create_loader_context(loaders, chain_strategy, resource_data, plugin, context);
   let result = run_loaders_impl(&mut cx, fs).await;
   (LoaderResult::new(cx), result.err())
 }
