@@ -216,10 +216,12 @@ impl ParserAndGenerator for CssParserAndGenerator {
     if self.exports_only {
       let is_root_only = !incoming_connections.is_empty()
         && incoming_connections.iter().all(|conn| {
-          module_graph
-            .dependency_by_id(&conn.dependency_id)
-            .dependency_type()
-            == &DependencyType::Entry
+          matches!(
+            module_graph
+              .dependency_by_id(&conn.dependency_id)
+              .dependency_type(),
+            DependencyType::Entry | DependencyType::NewUrl
+          )
         });
       return if is_root_only {
         CSS_MODULE_NO_SOURCE_TYPE_LIST
