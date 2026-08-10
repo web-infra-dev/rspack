@@ -353,7 +353,9 @@ struct SourceMapPositionConverter {
 
 struct SourceMapPositionState {
   file_start: BytePos,
+  line: u32,
   line_start: BytePos,
+  line_end: BytePos,
   pos: BytePos,
   column: u32,
 }
@@ -362,14 +364,33 @@ impl SourceMapPositionConverter {
   /// Converts SWC UTF-8 byte positions to source-map positions. The source map
   /// specification requires columns to use zero-based UTF-16 code units.
   fn convert(&mut self, file: &SourceFile, pos: BytePos) -> Option<(u32, u32)> {
-    let line = file.lookup_line(pos)? as u32;
-    let line_start = file.analyze().lines[line as usize];
+    let (line, line_start, line_end) = match &self.state {
+      Some(state)
+        if state.file_start == file.start_pos
+          && state.line_start <= pos
+          && pos < state.line_end =>
+      {
+        (state.line, state.line_start, state.line_end)
+      }
+      _ => {
+        let line = file.lookup_line(pos)?;
+        let (line_start, line_end) = file.line_bounds(line);
+        debug_assert!(
+          u32::try_from(line).is_ok(),
+          "{}: line index {line} exceeds u32::MAX",
+          file.name,
+        );
+        let line = line as u32;
+        (line, line_start, line_end)
+      }
+    };
     debug_assert!(
-      pos >= line_start,
-      "{}: bpos = {:?}; linebpos = {:?};",
+      line_start <= pos && pos < line_end,
+      "{}: bpos = {:?}; line bounds = {:?}..{:?};",
       file.name,
       pos,
       line_start,
+      line_end,
     );
 
     let (scan_start, column) = match &self.state {
@@ -378,6 +399,7 @@ impl SourceMapPositionConverter {
         line_start: state_line_start,
         pos: state_pos,
         column,
+        ..
       }) if *file_start == file.start_pos
         && *state_line_start == line_start
         && *state_pos <= pos =>
@@ -397,7 +419,9 @@ impl SourceMapPositionConverter {
 
     self.state = Some(SourceMapPositionState {
       file_start: file.start_pos,
+      line,
       line_start,
+      line_end,
       pos,
       column,
     });
