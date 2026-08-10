@@ -173,7 +173,7 @@ fn build_rspack_source_map(
   let mut cur_file: Option<Lrc<SourceFile>> = None;
   let mut cur_src_id = 0u32;
   let mut prev_dst_line = u32::MAX;
-  let mut utf16_column_state = Utf16ColumnState::default();
+  let mut position_converter = SourceMapPositionConverter::default();
 
   for (raw_pos, lc) in mappings {
     let pos = *raw_pos;
@@ -233,20 +233,7 @@ fn build_rspack_source_map(
       continue;
     }
 
-    let Some(line) = file.lookup_line(pos) else {
-      continue;
-    };
-    let line = line as u32;
-    let linebpos = file.analyze().lines[line as usize];
-    debug_assert!(
-      pos >= linebpos,
-      "{}: bpos = {:?}; linebpos = {:?};",
-      file.name,
-      pos,
-      linebpos,
-    );
-
-    let Some(original_column) = utf16_column_state.column(file, linebpos, pos) else {
+    let Some((original_line, original_column)) = position_converter.convert(file, pos) else {
       continue;
     };
 
@@ -259,7 +246,7 @@ fn build_rspack_source_map(
       generated_column: lc.col,
       original: Some(OriginalLocation {
         source_index: cur_src_id,
-        original_line: line + 1,
+        original_line,
         original_column,
         name_index,
       }),
@@ -359,29 +346,39 @@ fn ordered_cows(entries: FxHashMap<Cow<'_, str>, u32>) -> Vec<Cow<'static, str>>
   ordered
 }
 
-/// Tracks the last successfully converted position so mappings that move
-/// forward on the same line only scan the newly traversed source text.
 #[derive(Default)]
-enum Utf16ColumnState {
-  #[default]
-  Initial,
-  At {
-    file_start: BytePos,
-    line_start: BytePos,
-    pos: BytePos,
-    column: u32,
-  },
+struct SourceMapPositionConverter {
+  state: Option<SourceMapPositionState>,
 }
 
-impl Utf16ColumnState {
-  fn column(&mut self, file: &SourceFile, line_start: BytePos, pos: BytePos) -> Option<u32> {
-    let (scan_start, column) = match self {
-      Self::At {
+struct SourceMapPositionState {
+  file_start: BytePos,
+  line_start: BytePos,
+  pos: BytePos,
+  column: u32,
+}
+
+impl SourceMapPositionConverter {
+  /// Converts SWC UTF-8 byte positions to source-map positions. The source map
+  /// specification requires columns to use zero-based UTF-16 code units.
+  fn convert(&mut self, file: &SourceFile, pos: BytePos) -> Option<(u32, u32)> {
+    let line = file.lookup_line(pos)? as u32;
+    let line_start = file.analyze().lines[line as usize];
+    debug_assert!(
+      pos >= line_start,
+      "{}: bpos = {:?}; linebpos = {:?};",
+      file.name,
+      pos,
+      line_start,
+    );
+
+    let (scan_start, column) = match &self.state {
+      Some(SourceMapPositionState {
         file_start,
         line_start: state_line_start,
         pos: state_pos,
         column,
-      } if *file_start == file.start_pos
+      }) if *file_start == file.start_pos
         && *state_line_start == line_start
         && *state_pos <= pos =>
       {
@@ -398,13 +395,13 @@ impl Utf16ColumnState {
         .ok()?,
     )?;
 
-    *self = Self::At {
+    self.state = Some(SourceMapPositionState {
       file_start: file.start_pos,
       line_start,
       pos,
       column,
-    };
-    Some(column)
+    });
+    Some((line + 1, column))
   }
 }
 
