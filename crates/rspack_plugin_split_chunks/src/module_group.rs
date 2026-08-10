@@ -258,11 +258,26 @@ impl ModuleGroup {
   }
 
   pub fn remove_module(&mut self, module: ModuleIdentifier) {
-    if self.modules.remove(&module) {
-      if let ModuleGroupChunks::ByModule(module_chunks) = &mut self.module_chunks {
-        module_chunks.remove(&module);
+    self.remove_modules([module]);
+  }
+
+  pub fn remove_modules(&mut self, modules: impl IntoIterator<Item = ModuleIdentifier>) {
+    match &mut self.module_chunks {
+      ModuleGroupChunks::Shared(_) => {
+        for module in modules {
+          if self.modules.remove(&module) {
+            self.removed.push(module);
+          }
+        }
       }
-      self.removed.push(module);
+      ModuleGroupChunks::ByModule(module_chunks) => {
+        for module in modules {
+          if self.modules.remove(&module) {
+            module_chunks.remove(&module);
+            self.removed.push(module);
+          }
+        }
+      }
     }
   }
 

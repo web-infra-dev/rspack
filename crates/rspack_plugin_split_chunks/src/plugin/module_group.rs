@@ -647,9 +647,7 @@ impl SplitChunksPlugin {
             },
             Some(other_chunks),
           ) => {
-            if placed_chunks.is_disjoint(other_chunks) {
-              return None;
-            }
+            other_chunks.intersection(placed_chunks).next()?;
             if other_module_group.modules.len() > modules.len() {
               modules
                 .intersection(&other_module_group.modules)
@@ -683,9 +681,7 @@ impl SplitChunksPlugin {
           return None;
         }
 
-        for module in duplicated_modules {
-          other_module_group.remove_module(module);
-        }
+        other_module_group.remove_modules(duplicated_modules);
 
         if other_module_group.modules.is_empty() {
           tracing::trace!(
