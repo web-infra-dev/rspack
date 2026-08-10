@@ -72,14 +72,7 @@ pub enum Nullable<T> {
   Value(T),
 }
 
-impl ExportSpec {
-  pub fn new(name: String) -> Self {
-    Self {
-      name: Atom::from(name),
-      ..Default::default()
-    }
-  }
-}
+impl ExportSpec {}
 
 #[derive(Debug)]
 pub enum ExportNameOrSpec {

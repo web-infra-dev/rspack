@@ -4528,7 +4528,6 @@ dependencies = [
  "async-trait",
  "atomic_refcell",
  "cow-utils",
- "futures",
  "rayon",
  "regex",
  "rspack_cacheable",
@@ -4894,7 +4893,6 @@ dependencies = [
  "indexmap",
  "once_cell",
  "rayon",
- "regex",
  "rspack_core",
  "rspack_error",
  "rspack_hash",
@@ -4966,7 +4964,6 @@ name = "rspack_plugin_rsdoctor"
 version = "0.101.8"
 dependencies = [
  "atomic_refcell",
- "futures",
  "json",
  "rayon",
  "rspack_collections",
@@ -5395,7 +5392,6 @@ version = "0.101.8"
 dependencies = [
  "cow-utils",
  "dashmap",
- "fast-glob",
  "notify",
  "regex",
  "rspack_error",

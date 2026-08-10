@@ -60,20 +60,6 @@ impl ForwardedIdSet {
       Self::IdSet(set) => set.is_empty(),
     }
   }
-
-  pub fn contains(&self, id: &Atom) -> bool {
-    match self {
-      Self::All => true,
-      Self::IdSet(set) => set.contains(id),
-    }
-  }
-
-  pub fn remove(&mut self, id: &Atom) -> bool {
-    match self {
-      Self::All => true,
-      Self::IdSet(set) => set.remove(id),
-    }
-  }
 }
 
 pub enum LazyUntil {

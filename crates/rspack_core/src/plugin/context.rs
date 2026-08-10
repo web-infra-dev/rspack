@@ -32,10 +32,6 @@ impl<T, U> ArcComputed<T, U> {
     let computed = compute(&owner)? as *const U;
     Some(Self { owner, computed })
   }
-
-  pub fn owner(&self) -> &Arc<T> {
-    &self.owner
-  }
 }
 
 impl<T, U> Clone for ArcComputed<T, U> {

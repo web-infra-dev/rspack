@@ -83,11 +83,7 @@ pub struct SideEffectsBailoutItem {
   pub ty: String,
 }
 
-impl SideEffectsBailoutItem {
-  pub fn new(msg: String, ty: String) -> Self {
-    Self { msg, ty }
-  }
-}
+impl SideEffectsBailoutItem {}
 
 #[derive(Debug)]
 pub struct SideEffectsBailoutItemWithSpan {

@@ -29,31 +29,10 @@ pub struct ModuleFactoryCreateData {
 }
 
 impl ModuleFactoryCreateData {
-  pub fn add_file_dependency<F: Into<ArcPath>>(&mut self, file: F) {
-    self.file_dependencies.insert(file.into());
-  }
-
   pub fn add_file_dependencies<F: Into<ArcPath>>(&mut self, files: impl IntoIterator<Item = F>) {
     self
       .file_dependencies
       .extend(files.into_iter().map(Into::into));
-  }
-
-  pub fn add_context_dependency<F: Into<ArcPath>>(&mut self, context: F) {
-    self.context_dependencies.insert(context.into());
-  }
-
-  pub fn add_context_dependencies<F: Into<ArcPath>>(
-    &mut self,
-    contexts: impl IntoIterator<Item = F>,
-  ) {
-    self
-      .context_dependencies
-      .extend(contexts.into_iter().map(Into::into));
-  }
-
-  pub fn add_missing_dependency<F: Into<ArcPath>>(&mut self, missing: F) {
-    self.missing_dependencies.insert(missing.into());
   }
 
   pub fn add_missing_dependencies<F: Into<ArcPath>>(
@@ -76,11 +55,6 @@ impl ModuleFactoryResult {
     Self {
       module: Some(module),
     }
-  }
-
-  pub fn module(mut self, module: Option<BoxModule>) -> Self {
-    self.module = module;
-    self
   }
 }
 

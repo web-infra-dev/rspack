@@ -1,11 +1,8 @@
-use std::{hash::BuildHasherDefault, sync::Arc};
+use std::hash::BuildHasherDefault;
 
-use futures::future::BoxFuture;
 use rayon::{iter::Either, prelude::*};
 use rspack_collections::{IdentifierIndexSet, IdentifierSet};
-use rspack_core::{
-  BoxModule, Compilation, Filename, Module, ModuleGraph, ModuleIdentifier, SourceType,
-};
+use rspack_core::{Compilation, Filename, Module, ModuleGraph, ModuleIdentifier, SourceType};
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_plugin_split_chunks::{
   CacheGroup, CacheGroupTest, CacheGroupTestFnCtx, ChunkNameGetter, ChunkNameGetterFnCtx,
@@ -14,19 +11,6 @@ use rspack_plugin_split_chunks::{
 use rspack_util::fx_hash::FxHashMap as HashMap;
 
 use crate::EsmLibraryPlugin;
-
-pub type GetNameGetter = Either<
-  Option<String>,
-  Arc<
-    dyn for<'a> Fn(&'a BoxModule, &'a Compilation) -> BoxFuture<'static, Result<Option<String>>>
-      + Sync
-      + Send,
-  >,
->;
-pub type ModuleFilter =
-  Arc<dyn for<'a> Fn(&'a BoxModule, &'a Compilation) -> BoxFuture<'static, bool> + Sync + Send>;
-pub type ModuleTypeFilter =
-  Arc<dyn for<'a> Fn(&'a BoxModule, &'a Compilation) -> BoxFuture<'static, bool> + Sync + Send>;
 
 #[derive(Default)]
 struct MatchGroup {

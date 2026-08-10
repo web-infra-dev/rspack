@@ -33,7 +33,7 @@ use rspack_core::ImportAttributes;
 use rspack_error::{Label, Result};
 use rspack_regex::RspackRegex;
 use rspack_util::SpanExt;
-use swc_experimental_ecma_ast::{Bool, Expr, GetSpan, Lit, ObjectLit, PropName, Regex, Str};
+use swc_experimental_ecma_ast::{Expr, GetSpan, Lit, ObjectLit, PropName};
 
 use crate::visitors::static_string_from_expr;
 
@@ -51,36 +51,6 @@ pub fn get_value_by_obj_prop<'r, 'ast>(
         .is_some_and(|key| key.value.as_str() == Some(field));
     matched.then_some(&kv.value)
   })
-}
-
-pub fn get_literal_str_by_obj_prop<'r, 'ast>(
-  obj: &'r ObjectLit<'ast>,
-  field: &str,
-) -> Option<&'r Str<'ast>> {
-  let lit = get_value_by_obj_prop(obj, field).and_then(|e| e.as_lit())?;
-  match lit {
-    Lit::Str(str) => Some(str),
-    _ => None,
-  }
-}
-
-pub fn get_bool_by_obj_prop<'r, 'ast>(obj: &'r ObjectLit<'ast>, field: &str) -> Option<&'r Bool> {
-  let lit = get_value_by_obj_prop(obj, field).and_then(|e| e.as_lit())?;
-  match lit {
-    Lit::Bool(bool) => Some(bool),
-    _ => None,
-  }
-}
-
-pub fn get_regex_by_obj_prop<'r, 'ast>(
-  obj: &'r ObjectLit<'ast>,
-  field: &str,
-) -> Option<&'r Regex<'ast>> {
-  let lit = get_value_by_obj_prop(obj, field).and_then(|e| e.as_lit())?;
-  match lit {
-    Lit::Regex(regexp) => Some(regexp),
-    _ => None,
-  }
 }
 
 pub fn get_attributes(obj: &ObjectLit<'_>) -> ImportAttributes {

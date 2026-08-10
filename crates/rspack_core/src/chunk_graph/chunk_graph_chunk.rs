@@ -97,15 +97,6 @@ pub struct ChunkGraphChunk {
 }
 
 impl ChunkGraphChunk {
-  pub fn new() -> Self {
-    Self {
-      entry_modules: Default::default(),
-      modules: Default::default(),
-      runtime_modules: Default::default(),
-      source_types_by_module: Default::default(),
-    }
-  }
-
   pub fn modules(&self) -> &IdentifierSet {
     &self.modules
   }
@@ -525,52 +516,6 @@ impl ChunkGraph {
         }
       })
       .collect::<Vec<_>>()
-  }
-
-  pub fn get_chunk_modules_size(&self, chunk: &ChunkUkey, compilation: &Compilation) -> f64 {
-    let module_graph = &compilation.get_module_graph();
-    self
-      .get_chunk_modules(chunk, module_graph)
-      .iter()
-      .fold(0.0, |acc, m| {
-        acc
-          + m
-            .source_types(module_graph)
-            .iter()
-            .fold(0.0, |acc, t| acc + m.size(Some(t), Some(compilation)))
-      })
-  }
-
-  pub fn get_chunk_modules_sizes(
-    &self,
-    chunk: &ChunkUkey,
-    compilation: &Compilation,
-  ) -> FxHashMap<SourceType, f64> {
-    let mut sizes = FxHashMap::<SourceType, f64>::default();
-    let cgc = self.expect_chunk_graph_chunk(chunk);
-    let module_graph = &compilation.get_module_graph();
-    for identifier in &cgc.modules {
-      let module = module_graph.module_by_identifier(identifier);
-      if let Some(module) = module {
-        for source_type in module.source_types(module_graph) {
-          let size = module.size(Some(source_type), Some(compilation));
-          sizes
-            .entry(*source_type)
-            .and_modify(|s| *s += size)
-            .or_insert(size);
-        }
-      } else {
-        let runtime_module = compilation.runtime_modules.get(identifier);
-        if let Some(runtime_module) = runtime_module {
-          let size = runtime_module.size(Some(&SourceType::Runtime), Some(compilation));
-          sizes
-            .entry(SourceType::Runtime)
-            .and_modify(|s| *s += size)
-            .or_insert(size);
-        }
-      }
-    }
-    sizes
   }
 
   pub fn get_number_of_chunk_modules(&self, chunk: &ChunkUkey) -> usize {

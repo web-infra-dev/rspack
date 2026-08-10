@@ -72,63 +72,6 @@ impl JavascriptParserPluginHook {
     (1u64 << Self::COUNT) - 1
   };
 
-  pub const ALL: [Self; Self::COUNT] = [
-    Self::PreStatement,
-    Self::BlockPreStatement,
-    Self::TopLevelAwaitExpr,
-    Self::TopLevelForOfAwaitStmt,
-    Self::CanRename,
-    Self::Rename,
-    Self::Program,
-    Self::Statement,
-    Self::UnusedStatement,
-    Self::ModuleDeclaration,
-    Self::BlockPreModuleDeclaration,
-    Self::PreDeclarator,
-    Self::Evaluate,
-    Self::EvaluateTypeof,
-    Self::EvaluateCallExpression,
-    Self::EvaluateCallExpressionMember,
-    Self::EvaluateBinaryExpression,
-    Self::EvaluateIdentifier,
-    Self::CanCollectDestructuringAssignmentProperties,
-    Self::Pattern,
-    Self::Call,
-    Self::CallMemberChain,
-    Self::Member,
-    Self::MemberChain,
-    Self::UnhandledExpressionMemberChain,
-    Self::MemberChainOfCallMemberChain,
-    Self::CallMemberChainOfCallMemberChain,
-    Self::Typeof,
-    Self::ExpressionLogicalOperator,
-    Self::BinaryExpression,
-    Self::StatementIf,
-    Self::ClassExtendsExpression,
-    Self::ClassBodyElement,
-    Self::ClassBodyValue,
-    Self::Declarator,
-    Self::NewExpression,
-    Self::Identifier,
-    Self::This,
-    Self::Assign,
-    Self::AssignMemberChain,
-    Self::ImportCall,
-    Self::MetaProperty,
-    Self::Import,
-    Self::ImportSpecifier,
-    Self::ExportImport,
-    Self::Export,
-    Self::ExportImportSpecifier,
-    Self::ExportSpecifier,
-    Self::ExportExpression,
-    Self::OptionalChaining,
-    Self::ExpressionConditionalOperation,
-    Self::Finish,
-    Self::IsPure,
-    Self::ImportMetaPropertyInDestructuring,
-  ];
-
   pub const fn mask(self) -> u64 {
     1u64 << (self as u8)
   }
@@ -149,10 +92,6 @@ impl JavascriptParserPluginHooks {
 
   pub const fn all() -> Self {
     Self(JavascriptParserPluginHook::ALL_MASK)
-  }
-
-  pub const fn contains(self, hook: JavascriptParserPluginHook) -> bool {
-    self.0 & hook.mask() != 0
   }
 
   pub const fn bits(self) -> u64 {
