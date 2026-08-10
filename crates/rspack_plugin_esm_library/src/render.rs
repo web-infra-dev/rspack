@@ -214,6 +214,22 @@ impl EsmLibraryPlugin {
       .build_chunk_graph_artifact
       .chunk_by_ukey
       .expect_get(&chunk_ukey);
+
+    // A chunk can be both an entry chunk and a dynamic-import target of
+    // another entry. Prefer the entrypoint owned by this chunk before walking
+    // parent groups. Otherwise runtime lookup can select the importing entry's
+    // runtime while this chunk still renders its own entry runtime, causing
+    // imported runtime bindings to collide with local helper declarations.
+    for group_ukey in chunk.groups() {
+      let group = compilation
+        .build_chunk_graph_artifact
+        .chunk_group_by_ukey
+        .expect_get(group_ukey);
+      if group.kind.is_entrypoint() && group.get_entrypoint_chunk() == chunk_ukey {
+        return Some(group);
+      }
+    }
+
     let group = chunk.groups().iter().next()?;
     let group = compilation
       .build_chunk_graph_artifact
