@@ -165,11 +165,16 @@ impl ChunkGraph {
   #[napi(ts_args_type = "module: Module", ts_return_type = "Chunk[]")]
   pub fn get_module_chunks(&self, module: ModuleObjectRef) -> Result<Vec<ChunkWrapper>> {
     self.with_compilation(|compilation| {
+      let Some(chunks) = compilation
+        .build_chunk_graph_artifact
+        .chunk_graph
+        .try_get_module_chunks(&module.identifier)
+      else {
+        return Ok(vec![]);
+      };
+
       Ok(
-        compilation
-          .build_chunk_graph_artifact
-          .chunk_graph
-          .get_module_chunks(module.identifier)
+        chunks
           .iter()
           .map(|chunk| ChunkWrapper::new(*chunk, compilation))
           .collect(),
