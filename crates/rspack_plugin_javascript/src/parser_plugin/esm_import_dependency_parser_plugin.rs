@@ -176,8 +176,14 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMImportDependencyParserPlugin 
     let expr_span = expr.span;
     let range = DependencyRange::from(expr_span);
     let loc = parser.to_dependency_location(range);
+    let rerouted_source =
+      parser
+        .plugin_drive
+        .clone()
+        .reroute_specifier(parser, ids.first(), &source);
+    let rerouted_source = rerouted_source.unwrap_or(source);
     let mut dep = ESMImportSpecifierDependency::new(
-      source,
+      rerouted_source,
       name,
       source_order,
       parser.in_short_hand,
@@ -278,8 +284,14 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMImportDependencyParserPlugin 
       .cloned();
     let range = DependencyRange::from(ident.span);
     let loc = parser.to_dependency_location(range);
+    let rerouted_source =
+      parser
+        .plugin_drive
+        .clone()
+        .reroute_specifier(parser, settings.ids.first(), &settings.source);
+    let rerouted_source = rerouted_source.unwrap_or(settings.source);
     let dep = ESMImportSpecifierDependency::new(
-      settings.source,
+      rerouted_source,
       settings.name,
       settings.source_order,
       parser.in_short_hand,
@@ -346,8 +358,14 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMImportDependencyParserPlugin 
     let direct_import = members.is_empty();
     let range = DependencyRange::from(span);
     let ns_access = settings.namespace_import && !ids.is_empty();
+    let rerouted_source =
+      parser
+        .plugin_drive
+        .clone()
+        .reroute_specifier(parser, ids.first(), &settings.source);
+    let rerouted_source = rerouted_source.unwrap_or(settings.source);
     let mut dep = ESMImportSpecifierDependency::new(
-      settings.source,
+      rerouted_source,
       settings.name,
       settings.source_order,
       false,
@@ -422,8 +440,14 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMImportDependencyParserPlugin 
       .destructuring_assignment_properties
       .get(&member_expr.span())
       .cloned();
+    let rerouted_source =
+      parser
+        .plugin_drive
+        .clone()
+        .reroute_specifier(parser, ids.first(), &settings.source);
+    let rerouted_source = rerouted_source.unwrap_or(settings.source);
     let dep = ESMImportSpecifierDependency::new(
-      settings.source,
+      rerouted_source,
       settings.name,
       settings.source_order,
       false,

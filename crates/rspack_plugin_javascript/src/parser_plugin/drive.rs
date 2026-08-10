@@ -807,6 +807,24 @@ impl<'p: 'a, 'a> JavascriptParserPlugin<'p, 'a> for JavaScriptParserPluginDrive 
     None
   }
 
+  fn reroute_specifier(
+    &self,
+    parser: &JavascriptParser<'p>,
+    imported: Option<&Atom>,
+    request: &Atom,
+  ) -> Option<Atom> {
+    // Thread the request through each plugin so successive plugins observe the
+    // previous plugin's rewrite, mirroring sequential webpack plugin ordering.
+    let mut rerouted: Option<Atom> = None;
+    for plugin in self.plugins_for(JavascriptParserPluginHook::RerouteSpecifier) {
+      let current = rerouted.as_ref().unwrap_or(request);
+      if let Some(next) = plugin.reroute_specifier(parser, imported, current) {
+        rerouted = Some(next);
+      }
+    }
+    rerouted
+  }
+
   fn export_import(
     &self,
     parser: &mut JavascriptParser<'p>,

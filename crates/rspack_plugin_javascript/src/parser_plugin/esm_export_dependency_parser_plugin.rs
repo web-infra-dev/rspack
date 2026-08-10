@@ -156,8 +156,14 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
       }) {
       let range = DependencyRange::from(statement.span());
       let loc = parser.to_dependency_location(range);
+      let rerouted_source =
+        parser
+          .plugin_drive
+          .clone()
+          .reroute_specifier(parser, ids.first(), &source);
+      let rerouted_source = rerouted_source.unwrap_or(source);
       let mut dep = ESMExportImportedSpecifierDependency::new(
-        source,
+        rerouted_source,
         source_order,
         ids.into_vec(),
         Some(export_name.clone()),
@@ -241,8 +247,13 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
     } else {
       Some(parser.build_info.all_star_exports.clone())
     };
+    let rerouted_source = parser
+      .plugin_drive
+      .clone()
+      .reroute_specifier(parser, local_id, source)
+      .unwrap_or_else(|| source.clone());
     let mut dep = ESMExportImportedSpecifierDependency::new(
-      source.clone(),
+      rerouted_source,
       parser.last_esm_import_order,
       local_id.map(|id| vec![id.clone()]).unwrap_or_default(),
       export_name.cloned(),
