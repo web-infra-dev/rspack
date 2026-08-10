@@ -8,7 +8,15 @@ type PathData = {
   runtime?: string; // 关联 runtime，对应 [runtime]
   url?: string; // 路径信息，对应 [url]
   id?: string | number; // 产物的ID，对应 [id]
-  chunk?: Chunk; // 关联 chunk 信息，对应 [chunkhash]
+  chunk?: Chunk | ChunkPathData; // 关联 chunk 信息，对应 [chunkhash]
+  contentHashType?: string; // 内容哈希类型
+};
+
+type ChunkPathData = {
+  id?: string | number;
+  name?: string;
+  hash?: string;
+  contentHash?: Record<string, string> | string;
 };
 ```
 

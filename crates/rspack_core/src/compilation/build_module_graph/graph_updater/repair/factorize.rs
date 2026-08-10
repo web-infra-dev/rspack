@@ -45,6 +45,12 @@ impl Task<TaskContext> for FactorizeTask {
       && !context.is_empty()
     {
       context
+    } else if let Some(context) = dependency
+      .as_context_dependency()
+      .and_then(|dependency| crate::ContextDependency::get_context(dependency))
+      && !context.is_empty()
+    {
+      context
     } else if let Some(context) = &self.original_module_context
       && !context.is_empty()
     {
@@ -52,7 +58,7 @@ impl Task<TaskContext> for FactorizeTask {
     } else {
       &self.options.context
     }
-    .clone();
+    .into();
 
     let issuer_layer = dependency
       .get_layer()

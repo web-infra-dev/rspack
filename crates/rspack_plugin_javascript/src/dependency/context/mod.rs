@@ -1,6 +1,6 @@
 use rspack_core::{
   ContextDependency, ContextMode, ContextModulePattern, ContextOptions, DependencyRange,
-  GroupOptions, ResourceIdentifier, TemplateContext, TemplateReplaceSource,
+  GroupOptions, ResourceIdentifier, TemplateContext, TemplateReplaceSource, context_identifier,
 };
 
 mod amd_require_context_dependency;
@@ -36,7 +36,10 @@ fn create_resource_identifier_for_context_dependency(
   context: Option<&str>,
   options: &ContextOptions,
 ) -> ResourceIdentifier {
-  let context = context.unwrap_or_default();
+  let context = context
+    .filter(|context| !context.is_empty())
+    .unwrap_or(&options.context);
+  let context = context_identifier(&options.compiler_context, context).unwrap_or_default();
   let request = &options.request;
   let recursive = options.recursive.to_string();
   let pattern = match &options.pattern {

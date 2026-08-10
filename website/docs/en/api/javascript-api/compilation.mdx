@@ -110,7 +110,7 @@ updateAsset(
   source: Source | ((source: Source) => Source), // the new content or a function returns the new content
   info?:  // the new info or a function returns the new info
     | AssetInfo
-    | ((assetInfo: AssetInfo) => AssetInfo)
+    | ((assetInfo: AssetInfo) => AssetInfo | undefined)
 ): void;
 ```
 
@@ -192,7 +192,7 @@ Get the list of asset objects.
 
 ```ts
 getAssets(): ReadonlyArray<{
-  filename: string;
+  name: string;
   source: Source;
   info: AssetInfo;
 }>;
@@ -236,9 +236,9 @@ Get the asset object with the specified name.
 
 ```ts
 getAsset(
-  filename: string // filename of the getting asset
+  name: string // name of the asset
 ): Readonly<{
-  filename: string;
+  name: string;
   source: Source;
   info: AssetInfo;
 }> | void;

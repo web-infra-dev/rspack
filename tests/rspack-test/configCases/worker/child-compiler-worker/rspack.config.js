@@ -20,7 +20,11 @@ module.exports = {
         (compilation, callback) => {
           const childCompiler = compilation.createChildCompiler(
             'child-compiler-worker-test',
-            { filename: '__child-[name].js', publicPath: '' },
+            {
+              filename: '__child-[name].js',
+              publicPath: '',
+              asyncChunks: false,
+            },
             [
               new compiler.webpack.library.EnableLibraryPlugin('commonjs'),
               new compiler.webpack.EntryPlugin(

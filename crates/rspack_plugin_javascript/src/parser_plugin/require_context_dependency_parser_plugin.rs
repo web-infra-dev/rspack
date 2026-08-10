@@ -1,5 +1,5 @@
 use rspack_core::{
-  ContextMode, ContextOptions, DependencyCategory, try_convert_str_to_context_mode,
+  ContextMode, ContextOptions, DependencyCategory, get_context, try_convert_str_to_context_mode,
 };
 use rspack_regex::RspackRegex;
 use rspack_util::SpanExt;
@@ -79,7 +79,8 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for RequireContextDependencyParserPl
           pattern: reg_exp.into(),
           category: DependencyCategory::CommonJS,
           request: request_expr.string().clone(),
-          context: request_expr.string().clone(),
+          context: get_context(parser.resource_data).to_string(),
+          compiler_context: parser.compiler_options.context.clone(),
           start: expr.span().real_lo(),
           end: expr.span().real_hi(),
           ..Default::default()

@@ -61,7 +61,9 @@ define.lint(async () => {
         'no-control-regex': 'off',
         'no-empty': 'off',
         'no-prototype-builtins': 'off',
+        'no-useless-assignment': 'off',
         'prefer-spread': 'off',
+        'preserve-caught-error': 'off',
       },
     },
     {

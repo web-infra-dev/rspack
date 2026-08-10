@@ -69,12 +69,12 @@ it("should handle ICSS :import with exportType css-style-sheet", () => {
   const rules = Array.from(icssStylesheet.cssRules);
   const buttonRule = rules.find(rule => rule.selectorText && rule.selectorText.includes("sheet-button"));
   expect(buttonRule).toBeDefined();
-  expect(buttonRule.style["background-color"]).toBe("#007bff");
+  expect(buttonRule.style["background-color"]).toBe("rgb(0, 123, 255)");
   expect(buttonRule.style.color).toBe("white");
 
   const badgeRule = rules.find(rule => rule.selectorText && rule.selectorText.includes("sheet-badge"));
   expect(badgeRule).toBeDefined();
-  expect(badgeRule.style["background-color"]).toBe("#6c757d");
+  expect(badgeRule.style["background-color"]).toBe("rgb(108, 117, 125)");
   expect(badgeRule.style["border-radius"]).toBe("4px");
 });
 

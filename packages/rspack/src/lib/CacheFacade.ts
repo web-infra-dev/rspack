@@ -296,8 +296,8 @@ export class CacheFacade {
     identifier: string,
     etag: Etag | null,
     computer: () => Promise<T> | T,
-  ) {
-    const cacheEntry = await this.getPromise(identifier, etag);
+  ): Promise<T> {
+    const cacheEntry = await this.getPromise<T>(identifier, etag);
     if (cacheEntry !== undefined) return cacheEntry;
     const result = await computer();
     await this.storePromise(identifier, etag, result);

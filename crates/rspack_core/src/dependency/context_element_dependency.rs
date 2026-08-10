@@ -6,19 +6,18 @@ use rspack_util::json_stringify;
 
 use super::{AffectType, FactorizeInfo};
 use crate::{
-  AsContextDependency, AsDependencyCodeGeneration, Context, ContextMode, ContextNameSpaceObject,
-  ContextOptions, Dependency, DependencyCategory, DependencyId, DependencyType,
-  ExportsInfoArtifact, ImportAttributes, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
-  ModuleLayer, ReferencedExport, ReferencedSpecifier, ResourceIdentifier, RuntimeSpec,
-  create_exports_object_referenced, create_referenced_exports_by_referenced_specifiers,
+  AsContextDependency, AsDependencyCodeGeneration, Context, ContextNameSpaceObject, Dependency,
+  DependencyCategory, DependencyId, DependencyType, ExportsInfoArtifact, ImportAttributes,
+  ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleLayer, ReferencedExport,
+  ReferencedSpecifier, ResourceIdentifier, RuntimeSpec, create_exports_object_referenced,
+  create_referenced_exports_by_referenced_specifiers,
 };
 
 #[cacheable]
 #[derive(Debug, Clone)]
 pub struct ContextElementDependency {
   pub id: DependencyId,
-  // TODO remove this async dependency mark
-  pub options: ContextOptions,
+  pub weak: bool,
   pub request: String,
   pub user_request: String,
   pub category: DependencyCategory,
@@ -130,10 +129,7 @@ impl ModuleDependency for ContextElementDependency {
   }
 
   fn weak(&self) -> bool {
-    matches!(
-      self.options.mode,
-      ContextMode::AsyncWeak | ContextMode::Weak
-    )
+    self.weak
   }
 
   fn factorize_info(&self) -> &FactorizeInfo {

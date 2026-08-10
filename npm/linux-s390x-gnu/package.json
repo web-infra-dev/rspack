@@ -1,0 +1,29 @@
+{
+  "name": "@rspack/binding-linux-s390x-gnu",
+  "version": "2.1.5",
+  "license": "MIT",
+  "description": "Node binding for rspack",
+  "main": "rspack.linux-s390x-gnu.node",
+  "homepage": "https://rspack.rs",
+  "bugs": "https://github.com/web-infra-dev/rspack/issues",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/web-infra-dev/rspack",
+    "directory": "packages/rspack"
+  },
+  "publishConfig": {
+    "access": "public",
+    "os": [
+      "linux"
+    ],
+    "cpu": [
+      "s390x"
+    ],
+    "libc": [
+      "glibc"
+    ]
+  },
+  "files": [
+    "rspack.linux-s390x-gnu.node"
+  ]
+}

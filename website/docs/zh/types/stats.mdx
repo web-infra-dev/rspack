@@ -2,13 +2,13 @@
 
 ```ts
 type Stats = {
-  compilation: Compilation;
-  hash: Readonly<string | null>;
-  startTime?: number;
-  endTime?: number;
-  hasErrors(): bool;
-  hasWarnings(): bool;
-  toJson(opts?: StatsValue): StatsCompilation;
+  readonly compilation: Compilation;
+  readonly hash: string | null;
+  readonly startTime: number | undefined;
+  readonly endTime: number | undefined;
+  hasErrors(): boolean;
+  hasWarnings(): boolean;
+  toJson(opts?: StatsValue, forToString?: boolean): StatsCompilation;
   toString(opts?: StatsValue): string;
 };
 ```

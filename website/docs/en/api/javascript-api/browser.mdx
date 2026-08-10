@@ -306,19 +306,24 @@ When using ModuleFederationPlugin in the browser, please note the following:
 2. Shared modules set in ModuleFederationPlugin also need to be configured with `external` and specified versions in BrowserHttpImportEsmPlugin. If you're using `esm.sh` as CDN, you can refer to the following code:
 
 ```js title="rspack.config.mjs"
-new rspack.BrowserHttpImportEsmPlugin({
-  domain: "https://esm.sh",
+import { BrowserHttpImportEsmPlugin } from '@rspack/browser';
+
+new BrowserHttpImportEsmPlugin({
+  domain: 'https://esm.sh',
   dependencyVersions: {
-    "react": "19.1.1"
+    react: '19.1.1',
   },
   postprocess: (request) => {
     // Set the `dev` parameter for `react-dom` here as well, as you need to ensure that the provider and consumer projects use the same mode of `react` and `react-dom`.
-    if (request.packageName === "@module-federation/webpack-bundler-runtime" || request.packageName === "react-dom") {
-      request.url.searchParams.set("dev", "");
+    if (
+      request.packageName === '@module-federation/webpack-bundler-runtime' ||
+      request.packageName === 'react-dom'
+    ) {
+      request.url.searchParams.set('dev', '');
     }
-    request.url.searchParams.set("external", "react");
-  }
-}),
+    request.url.searchParams.set('external', 'react');
+  },
+});
 ```
 
 3. All [ModuleFederationPlugin.shared](/plugins/webpack/module-federation-plugin#shared) configurations must set `import: false`, meaning that consumer projects bundled online cannot bundle shared modules themselves; shared modules must be provided by pre-bundled provider projects.

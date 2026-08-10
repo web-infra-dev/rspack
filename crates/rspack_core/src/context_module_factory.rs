@@ -7,20 +7,21 @@ use rspack_fs::ReadableFileSystem;
 use rspack_hook::define_hook;
 use rspack_loader_runner::parse_resource;
 use rspack_paths::{Utf8Path, Utf8PathBuf};
-use rspack_util::node_path::NodePath;
 use swc_core::common::util::take::Take;
 use tracing::instrument;
 
+use self::glob::ContextModuleGlobMatcher;
+pub use self::glob::{CompiledContextModuleGlobRequest, compile_context_module_glob_request};
 use crate::{
-  BoxDependency, CompilationId, ContextElementDependency, ContextModule, ContextModuleOptions,
-  ContextModulePattern, DependencyCategory, DependencyId, DependencyType, GlobMatchOptions,
+  BoxDependency, CompilationId, ContextElementDependency, ContextMode, ContextModule,
+  ContextModuleOptions, ContextModulePattern, DependencyCategory, DependencyId, DependencyType,
   ModuleExt, ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, OverrideStrict,
   ResolveArgs, ResolveContextModuleDependencies, ResolveInnerOptions,
   ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory, SharedPluginDriver,
-  escape_glob_pattern, extract_glob_base_dir, glob_match_normalized_with_explicit_dot,
-  normalize_path_separators, normalize_path_separators_for_path, resolve, unescape_glob_path,
-  walk_dir,
+  resolve, walk_dir,
 };
+
+mod glob;
 
 #[derive(Debug)]
 pub enum BeforeResolveResult {
@@ -97,6 +98,11 @@ pub struct ContextModuleFactory {
   resolve_dependencies: ResolveContextModuleDependencies,
 }
 
+struct ContextModuleAfterResolveInput {
+  options: ContextModuleOptions,
+  resolve_context: String,
+}
+
 #[async_trait::async_trait]
 impl ModuleFactory for ContextModuleFactory {
   #[instrument("context_module_factory:create", skip_all)]
@@ -104,10 +110,10 @@ impl ModuleFactory for ContextModuleFactory {
     match self.before_resolve(data).await? {
       BeforeResolveResult::Ignored => return Ok(ModuleFactoryResult::default()),
       BeforeResolveResult::Data(before_resolve_result) => {
-        let (factorize_result, context_module_options) =
+        let (factorize_result, after_resolve_input) =
           self.resolve(data, before_resolve_result).await?;
-        if let Some(context_module_options) = context_module_options
-          && let Some(factorize_result) = self.after_resolve(data, context_module_options).await?
+        if let Some(after_resolve_input) = after_resolve_input
+          && let Some(factorize_result) = self.after_resolve(data, after_resolve_input).await?
         {
           return Ok(factorize_result);
         }
@@ -215,13 +221,13 @@ impl ContextModuleFactory {
     &self,
     data: &mut ModuleFactoryCreateData,
     before_resolve_data: Box<BeforeResolveData>,
-  ) -> Result<(ModuleFactoryResult, Option<ContextModuleOptions>)> {
+  ) -> Result<(ModuleFactoryResult, Option<ContextModuleAfterResolveInput>)> {
     let plugin_driver = &self.plugin_driver;
     let strict = self.global_override_strict();
     let dependency = data.dependencies[0]
       .as_context_dependency()
       .expect("should be context dependency");
-
+    let hook_request = before_resolve_data.request.clone();
     let request = before_resolve_data.request;
     let (loader_request, specifier) = match request.rfind('!') {
       Some(idx) => {
@@ -280,8 +286,11 @@ impl ContextModuleFactory {
       None => (String::new(), request),
     };
 
+    let context = before_resolve_data.context;
+    let recursive = before_resolve_data.recursive;
+    let is_glob = matches!(&before_resolve_data.pattern, ContextModulePattern::Glob(_));
     let resolve_args = ResolveArgs {
-      context: before_resolve_data.context.into(),
+      context: context.clone().into(),
       importer: data.issuer_identifier.as_ref(),
       issuer: data.issuer.as_deref(),
       specifier: specifier.as_str(),
@@ -300,8 +309,12 @@ impl ContextModuleFactory {
     let (module, context_module_options) = match resource_data {
       Ok(ResolveResult::Resource(resource)) => {
         let mut dependency_options = dependency.options().clone();
-        dependency_options.recursive = before_resolve_data.recursive;
+        dependency_options.request = hook_request.clone();
+        dependency_options.recursive = recursive;
         dependency_options.pattern = before_resolve_data.pattern.clone();
+        if !is_glob {
+          dependency_options.context = context.clone();
+        }
 
         let options = ContextModuleOptions {
           addon: loader_request.clone(),
@@ -324,8 +337,12 @@ impl ContextModuleFactory {
       Ok(ResolveResult::Ignored) => {
         // should create an empty context module when ignored
         let mut dependency_options = dependency.options().clone();
-        dependency_options.recursive = before_resolve_data.recursive;
+        dependency_options.request = hook_request;
+        dependency_options.recursive = recursive;
         dependency_options.pattern = before_resolve_data.pattern.clone();
+        if !is_glob {
+          dependency_options.context = context.clone();
+        }
 
         let options = ContextModuleOptions {
           addon: loader_request.clone(),
@@ -359,19 +376,30 @@ impl ContextModuleFactory {
     let module_factory_result = ModuleFactoryResult {
       module: Some(module),
     };
-    Ok((module_factory_result, context_module_options))
+    Ok((
+      module_factory_result,
+      context_module_options.map(|options| ContextModuleAfterResolveInput {
+        options,
+        resolve_context: context,
+      }),
+    ))
   }
 
   async fn after_resolve(
     &self,
     data: &mut ModuleFactoryCreateData,
-    mut context_module_options: ContextModuleOptions,
+    input: ContextModuleAfterResolveInput,
   ) -> Result<Option<ModuleFactoryResult>> {
+    let ContextModuleAfterResolveInput {
+      mut options,
+      resolve_context,
+    } = input;
+    let context_module_options = &mut options;
     let context_options = &context_module_options.context_options;
     let after_resolve_data = AfterResolveData {
       compilation_id: data.compilation_id,
       resource: context_module_options.resource.clone(),
-      context: context_options.context.clone(),
+      context: resolve_context,
       dependencies: data.dependencies.clone(),
       request: context_options.request.clone(),
       pattern: context_options.pattern.clone(),
@@ -404,7 +432,9 @@ impl ContextModuleFactory {
         }
 
         context_module_options.resource = after_resolve_data.resource;
-        context_module_options.context_options.context = after_resolve_data.context;
+        if !matches!(&after_resolve_data.pattern, ContextModulePattern::Glob(_)) {
+          context_module_options.context_options.context = after_resolve_data.context;
+        }
         context_module_options.context_options.pattern = after_resolve_data.pattern.clone();
         context_module_options.context_options.recursive = after_resolve_data.recursive;
 
@@ -444,25 +474,12 @@ async fn visit_dirs(
 ) -> Result<()> {
   let include = &options.context_options.include;
   let exclude = &options.context_options.exclude;
-  let matcher = ContextModuleMatcher::new(&options.context_options.pattern);
+  let matcher = ContextModuleMatcher::new(options);
   if matcher.is_empty() {
     return Ok(());
   }
-  let skip_dotfiles = !matches!(
-    options.context_options.pattern,
-    ContextModulePattern::Glob(_)
-  );
-  let resolved_glob_patterns =
-    if let ContextModulePattern::Glob(patterns) = &options.context_options.pattern {
-      Some(resolve_context_module_glob_patterns(
-        patterns,
-        &options.context_options.context,
-        ctx,
-      ))
-    } else {
-      None
-    };
-  let is_import_meta_glob = resolved_glob_patterns.is_some();
+  let is_import_meta_glob = matcher.is_glob();
+  let skip_dotfiles = !is_import_meta_glob;
   let glob_exhaustive = options.context_options.glob_exhaustive;
 
   walk_dir(
@@ -507,11 +524,11 @@ async fn visit_dirs(
         }
       };
 
-      if let Some(patterns) = &resolved_glob_patterns {
+      if is_import_meta_glob {
         // Keep import.meta.glob Vite-compatible: expose only filesystem-matched
         // paths, not resolver alternative requests like extensionless aliases.
         // Revisit this branch if import.meta.glob compatibility changes.
-        if let Some(user_request) = glob_user_request(patterns, path_str, glob_exhaustive)
+        if let Some(user_request) = matcher.match_request(&relative_path, path_str)
           && !dependencies.iter().any(|d| d.user_request == user_request)
         {
           push_context_element_dependency(dependencies, options, &relative_path, &user_request);
@@ -522,8 +539,8 @@ async fn visit_dirs(
           vec![AlternativeRequest::new(ctx.to_string(), relative_path)],
         );
         for r in &requests {
-          if matcher.matches(&r.request) {
-            push_context_element_dependency(dependencies, options, &r.request, &r.request);
+          if let Some(user_request) = matcher.match_request(&r.request, path_str) {
+            push_context_element_dependency(dependencies, options, &r.request, &user_request);
           }
         }
       }
@@ -550,12 +567,15 @@ fn push_context_element_dependency(
 
   dependencies.push(ContextElementDependency {
     id: DependencyId::new(),
+    weak: matches!(
+      options.context_options.mode,
+      ContextMode::AsyncWeak | ContextMode::Weak
+    ),
     request,
     user_request: exposed_user_request.to_string(),
     category: options.context_options.category,
     context: options.resource.clone().into(),
     layer: options.layer.clone(),
-    options: options.context_options.clone(),
     resource_identifier,
     attributes: options.context_options.attributes.clone(),
     referenced_specifiers: options.context_options.referenced_specifiers.clone(),
@@ -564,160 +584,47 @@ fn push_context_element_dependency(
   });
 }
 
-#[derive(Debug)]
-struct ResolvedContextModuleGlobPattern {
-  absolute_pattern: String,
-  base: String,
-  absolute_base: String,
-  negative: bool,
-}
-
-fn resolve_context_module_glob_patterns(
-  patterns: &[String],
-  context: &str,
-  common_base: &str,
-) -> Vec<ResolvedContextModuleGlobPattern> {
-  patterns
-    .iter()
-    .map(|pattern| resolve_context_module_glob_pattern(pattern, context, common_base))
-    .collect()
-}
-
-fn resolve_context_module_glob_pattern(
-  pattern: &str,
-  context: &str,
-  common_base: &str,
-) -> ResolvedContextModuleGlobPattern {
-  let (pattern, negative) = if let Some(pattern) = pattern.strip_prefix('!') {
-    (pattern, true)
-  } else {
-    (pattern, false)
-  };
-  let pattern = normalize_path_separators(pattern);
-  let (base, pattern_to_join) = if let Some(pattern_to_join) = pattern.strip_prefix('/') {
-    (
-      infer_glob_root_context(common_base, extract_glob_base_dir(&pattern)),
-      pattern_to_join,
-    )
-  } else {
-    (
-      if context.is_empty() {
-        common_base.to_string()
-      } else {
-        context.to_string()
-      },
-      pattern.as_str(),
-    )
-  };
-  let base = normalize_path_separators_for_path(&base);
-  let escaped_base = escape_glob_pattern(&base);
-  let absolute_pattern = Utf8Path::new(&escaped_base)
-    .node_join_posix(pattern_to_join)
-    .node_normalize_posix()
-    .to_string();
-  let absolute_pattern = normalize_path_separators(&absolute_pattern);
-  let base = extract_glob_base_dir(&pattern).to_string();
-  let absolute_base = unescape_glob_path(extract_glob_base_dir(&absolute_pattern));
-
-  ResolvedContextModuleGlobPattern {
-    absolute_pattern,
-    base,
-    absolute_base,
-    negative,
-  }
-}
-
-fn infer_glob_root_context(common_base: &str, pattern_base: &str) -> String {
-  let mut common_base = normalize_path_separators_for_path(common_base);
-  if !common_base.ends_with('/') {
-    common_base.push('/');
-  }
-  let pattern_base = pattern_base.trim_start_matches('/');
-  let mut matched_len = 0;
-  for idx in pattern_base
-    .char_indices()
-    .map(|(idx, _)| idx)
-    .chain(std::iter::once(pattern_base.len()))
-  {
-    if !pattern_base[..idx].ends_with('/') && idx != pattern_base.len() {
-      continue;
-    }
-    if common_base.ends_with(&pattern_base[..idx]) {
-      matched_len = idx;
-    }
-  }
-
-  common_base[..common_base.len() - matched_len].to_string()
-}
-
 fn is_non_exhaustive_import_meta_glob_skipped_dir(dirname: &str) -> bool {
   dirname == "node_modules" || dirname.starts_with('.')
 }
 
-fn glob_user_request(
-  patterns: &[ResolvedContextModuleGlobPattern],
-  path: &str,
-  exhaustive: bool,
-) -> Option<String> {
-  let normalized_path = normalize_path_separators_for_path(path);
-  let matched = patterns
-    .iter()
-    .filter(|pattern| !pattern.negative)
-    .find(|pattern| glob_pattern_matches(pattern, &normalized_path, exhaustive))?;
-
-  if patterns
-    .iter()
-    .filter(|pattern| pattern.negative)
-    .any(|pattern| glob_pattern_matches(pattern, &normalized_path, exhaustive))
-  {
-    return None;
-  }
-
-  let suffix = normalized_path
-    .strip_prefix(&matched.absolute_base)
-    .unwrap_or(normalized_path.as_str())
-    .trim_start_matches('/');
-  Some(
-    Utf8Path::new(&matched.base)
-      .node_join_posix(suffix)
-      .to_string(),
-  )
-}
-
-fn glob_pattern_matches(
-  pattern: &ResolvedContextModuleGlobPattern,
-  normalized_path: &str,
-  exhaustive: bool,
-) -> bool {
-  glob_match_normalized_with_explicit_dot(
-    &pattern.absolute_pattern,
-    normalized_path,
-    &pattern.absolute_base,
-    &GlobMatchOptions {
-      require_literal_leading_dot: !exhaustive,
-      ..Default::default()
-    },
-  )
-}
-
 struct ContextModuleMatcher<'a> {
   pattern: &'a ContextModulePattern,
+  glob: Option<ContextModuleGlobMatcher<'a>>,
 }
 
 impl<'a> ContextModuleMatcher<'a> {
-  fn new(pattern: &'a ContextModulePattern) -> Self {
-    Self { pattern }
+  fn new(options: &'a ContextModuleOptions) -> Self {
+    let context_options = &options.context_options;
+    Self {
+      pattern: &context_options.pattern,
+      glob: ContextModuleGlobMatcher::new(options),
+    }
   }
 
   fn is_empty(&self) -> bool {
-    !matches!(self.pattern, ContextModulePattern::Glob(_)) && self.pattern.is_empty()
+    match self.pattern {
+      ContextModulePattern::Glob(_) => self
+        .glob
+        .as_ref()
+        .is_none_or(ContextModuleGlobMatcher::is_empty),
+      _ => self.pattern.is_empty(),
+    }
   }
 
-  fn matches(&self, request: &str) -> bool {
+  fn is_glob(&self) -> bool {
+    self.glob.is_some()
+  }
+
+  fn match_request(&self, request: &str, resource_path: &str) -> Option<String> {
+    if let Some(glob) = &self.glob {
+      return glob.match_request(resource_path);
+    }
+
     if let Some(reg_exp) = self.pattern.reg_exp() {
-      reg_exp.test(request)
+      reg_exp.test(request).then(|| request.to_string())
     } else {
-      false
+      None
     }
   }
 }

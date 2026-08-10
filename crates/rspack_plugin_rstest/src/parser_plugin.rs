@@ -51,8 +51,8 @@ pub struct RstestParserPluginOptions {
   /// Whether to handle global `rs` and `rstest` variables.
   /// When false, only ESM imported variables are processed.
   pub globals: bool,
-  /// Whether to replace `import.meta.rstest` with the runtime resolver call
-  /// carrying the source module's absolute path.
+  /// Whether to replace `import.meta.rstest` with the optional runtime resolver
+  /// call carrying the source module's absolute path.
   pub inject_import_meta_rstest_origin: bool,
   /// Whether to rewrite non-string-literal `import()` calls with origin info.
   /// Pre-resolved at plugin construction — false here covers both "feature
@@ -165,7 +165,7 @@ impl RstestParserPlugin {
     }
     let resource_path = parser.resource_data.path()?;
     Some(format!(
-      "globalThis['@rstest/core/import-meta']({})",
+      "globalThis['@rstest/core/import-meta']?.({})",
       json_stringify_str(resource_path.as_str())
     ))
   }
