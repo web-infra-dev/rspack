@@ -187,6 +187,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for URLPlugin {
         InnerGraphParserPlugin::on_usage(parser, InnerGraphUsageOperation::URLDependency(dep_id));
         return Some(true);
       }
+
       let loc = parser.to_dependency_location(expr.span.into());
       let mut block = AsyncDependenciesBlock::new(
         *parser.module_identifier,

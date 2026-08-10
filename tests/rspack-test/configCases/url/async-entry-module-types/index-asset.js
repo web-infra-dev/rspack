@@ -1,1 +1,1 @@
-new URL("./target.png", import.meta.url);
+module.exports = new URL('./target.png', import.meta.url).href;

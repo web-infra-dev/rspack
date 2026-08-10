@@ -15,7 +15,7 @@ use rspack_hook::{plugin, plugin_hook};
 use crate::{
   JavascriptModulesRenderModuleContent, JsPlugin, RenderSource,
   dependency::{
-    URL_STATIC_EXPRESSION_RE, URL_STATIC_PLACEHOLDER, URL_STATIC_PLACEHOLDER_RE, URLDependency,
+    URL_STATIC_PLACEHOLDER, URL_STATIC_PLACEHOLDER_RE, URLDependency,
     WORKER_STATIC_URL_PLACEHOLDER, WORKER_STATIC_URL_PLACEHOLDER_RE, WorkerDependency,
   },
   parser_and_generator::JavaScriptParserAndGenerator,
@@ -152,9 +152,10 @@ async fn get_url_dependency_output_path(
     return Ok(None);
   };
   let chunk_ukey = entrypoint.get_entrypoint_chunk();
-  // Asset filenames are runtime-independent. An inner-graph-inactive URL dependency may not have
-  // a code generation result for its async entry runtime, while the same module still has one for
-  // another active URL dependency.
+
+  // Asset URLs and filenames are runtime-independent. An inner-graph-inactive URL dependency may
+  // not have a code generation result for its async entry runtime, while the same module can still
+  // have one for another active URL dependency.
   if let Some(codegen_result) = compilation
     .code_generation_results
     .try_get_one(module_identifier)
@@ -189,8 +190,7 @@ async fn get_url_dependency_output_path(
     }
   }
 
-  let module = module_graph.module_by_identifier(module_identifier);
-  let Some(module) = module else {
+  let Some(module) = module_graph.module_by_identifier(module_identifier) else {
     return Ok(None);
   };
   if module.identifier().as_str().starts_with("ignored|") {
@@ -241,18 +241,12 @@ pub async fn replace_static_url_placeholders(
   let mut replace_source = ReplaceSource::new(source);
   let module_graph = compilation.get_module_graph();
   let runtime_public_path = runtime_template.render_runtime_globals(&RuntimeGlobals::PUBLIC_PATH);
-  let expression_replacements = URL_STATIC_EXPRESSION_RE
-    .captures_iter(&content)
-    .map(|captures| {
-      let matched = captures.get(0).expect("should have a full match");
-      let dep_id = captures
-        .name("dep")
-        .expect("should have a dependency id")
-        .as_str();
-      (matched.start(), matched.end(), dep_id)
-    });
+  let replacements = URL_STATIC_PLACEHOLDER_RE
+    .find_iter(&content)
+    .map(|cap| (cap.start(), cap.end()));
 
-  for (start, end, dep_id) in expression_replacements {
+  for (start, end) in replacements {
+    let dep_id = &content[start + URL_STATIC_PLACEHOLDER.len()..end];
     let dep_id: DependencyId = dep_id
       .parse::<u32>()
       .unwrap_or_else(|_| panic!("should be valid dependency id \"{dep_id}\""))
@@ -265,26 +259,6 @@ pub async fn replace_static_url_placeholders(
     };
 
     replace_source.replace(start as u32, end as u32, output_value, None);
-  }
-
-  let replacements = URL_STATIC_PLACEHOLDER_RE
-    .find_iter(&content)
-    .map(|cap| (cap.start(), cap.end()));
-
-  for (start, end) in replacements {
-    let dep_id = &content[start + URL_STATIC_PLACEHOLDER.len()..end];
-    let dep_id: DependencyId = dep_id
-      .parse::<u32>()
-      .unwrap_or_else(|_| panic!("should be valid dependency id \"{dep_id}\""))
-      .into();
-    let Some(filename) =
-      get_url_dependency_output_path(compilation, &dep_id, output_path, &runtime_public_path)
-        .await?
-    else {
-      continue;
-    };
-
-    replace_source.replace(start as u32, end as u32, filename, None);
   }
 
   let worker_replacements = WORKER_STATIC_URL_PLACEHOLDER_RE

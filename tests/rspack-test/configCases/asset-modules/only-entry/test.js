@@ -100,9 +100,7 @@ it("should work", () => {
 			);
 			expect(Boolean(wasmEntryInJs)).toBe(false);
 
-			const wasmEntry = stats.assets.find(
-				a => a.name.endsWith(".wasm")
-			);
+			const wasmEntry = stats.assets.find(a => a.name.endsWith(".wasm"));
 			expect(Boolean(wasmEntry)).toBe(true);
 			break;
 		}
