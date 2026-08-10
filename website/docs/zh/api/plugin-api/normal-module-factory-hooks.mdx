@@ -3,6 +3,7 @@ description: 'NormalModuleFactory 被 Compiler 用来生成模块（NormalModule
 ---
 
 import ResolveDataType from '../../types/resolve-data.mdx';
+import { ApiMeta } from '@components/ApiMeta';
 import { Collapse, CollapsePanel } from '@components/Collapse';
 
 # NormalModuleFactory 钩子
@@ -112,6 +113,47 @@ compiler.hooks.compilation.tap(
 :::warning
 目前不支持返回模块实例和 `false`。
 :::
+
+## `resolveError`
+
+<ApiMeta addedVersion="2.2.0" specific={['Rspack']} />
+
+`AsyncSeriesBailHook<[ResolveData, Error]>`
+
+在模块请求解析失败时调用，例如请求的模块无法找到。通过这个钩子可以从解析失败中恢复：可以修改 `resolveData`（例如重写 `resolveData.request`），并返回 `{ retry: true }` 以使用修改后的数据重新解析一次。
+
+- 如果没有任何 tap 返回 `{ retry: true }`，则照常报告原始的解析错误。
+- 最多只会重试一次。如果重试后的解析仍然失败，将报告新的错误，且不会再次调用 `resolveError`。
+- 该钩子仅在普通路径解析出现模块未找到（module-not-found）错误时调用。对于其他解析错误（例如无效的 `package.json` 或违反 package `exports` 规则）、带有 scheme（URI）的模块标识符、loader 解析失败或其他类型的错误，不会调用该钩子。
+
+`error` 参数包含解析错误的信息，包括 `message`。
+
+```js
+compiler.hooks.compilation.tap(
+  'MyPlugin',
+  (compilation, { normalModuleFactory }) => {
+    normalModuleFactory.hooks.resolveError.tap(
+      'MyPlugin',
+      (resolveData, error) => {
+        console.log(error.message);
+        // 将失败的请求重定向到降级模块并重试
+        resolveData.request = './fallback-module';
+        return { retry: true };
+      },
+    );
+  },
+);
+```
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="ResolveData.ts"
+    key="ResolveData"
+  >
+    <ResolveDataType />
+  </CollapsePanel>
+</Collapse>
 
 ## `afterResolve`
 
