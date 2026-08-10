@@ -271,7 +271,11 @@ impl BuildChunkGraphArtifact {
           }
         }
 
-        if miss_in_previous {
+        if miss_in_previous
+          && !(matches!(block, DependenciesBlockIdentifier::Module(_))
+            && outgoings.is_empty()
+            && self.chunk_graph.try_get_module_chunks(&module).is_some())
+        {
           logger.log("new module detected, rebuilding chunk graph");
           return false;
         }
