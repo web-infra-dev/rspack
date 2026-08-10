@@ -6,7 +6,6 @@ use std::{
 
 use futures::future::join_all;
 use rayon::prelude::*;
-use rspack_collections::IdentifierMap;
 use rspack_core::{
   ChunkByUkey, ChunkUkey, Compilation, ExportsInfoArtifact, Module, ModuleIdentifier,
   RuntimeKeyMap, UsageKey, get_runtime_key,
@@ -19,7 +18,7 @@ use tracing::instrument;
 use super::ModuleGroupMap;
 use crate::{
   SplitChunksPlugin,
-  common::{ChunkFilter, ModuleChunks, ModuleSizes},
+  common::{ChunkFilter, ModuleChunkMap, ModuleChunks, ModuleSizes},
   min_size::remove_min_size_violating_modules,
   module_group::{IndexedCacheGroup, ModuleGroup, ModuleGroupKey, compare_entries},
   options::{
@@ -541,7 +540,7 @@ impl SplitChunksPlugin {
                     })
                     .or_insert_with(|| ModuleGroup::new(None, *cache_group_index, cache_group))
                 };
-                module_group.add_module(
+                module_group.add_module_with_shared_chunks(
                   module.identifier(),
                   chunk_combination.iter().copied(),
                 );
@@ -629,7 +628,7 @@ impl SplitChunksPlugin {
   // #[tracing::instrument(skip_all)]
   pub(crate) fn remove_all_modules_from_other_module_groups(
     &self,
-    placed_module_chunks: &IdentifierMap<FxHashSet<ChunkUkey>>,
+    placed_module_chunks: &ModuleChunkMap,
     module_group_map: &mut ModuleGroupMap,
     module_sizes: &ModuleSizes,
   ) {
@@ -644,7 +643,7 @@ impl SplitChunksPlugin {
             let Some(placed_chunks) = placed_module_chunks.get(module) else {
               return false;
             };
-            let Some(other_chunks) = other_module_group.module_chunks.get(module) else {
+            let Some(other_chunks) = other_module_group.get_module_chunks(module) else {
               return false;
             };
             placed_chunks.intersection(other_chunks).next().is_some()
@@ -749,6 +748,7 @@ async fn merge_matched_item_into_module_group_map(
       f(ctx).await?
     }
   };
+  let is_named = chunk_name.is_some();
   let key = if let Some(cache_group_name) = &chunk_name {
     ModuleGroupKey::Named {
       cache_group_index,
@@ -768,7 +768,18 @@ async fn merge_matched_item_into_module_group_map(
       .entry(key)
       .or_insert_with(|| ModuleGroup::new(chunk_name, cache_group_index, cache_group))
   };
-  module_group.add_module(module.identifier(), selected_chunks.iter().copied());
+  if is_named {
+    module_group.add_module(module.identifier(), selected_chunks.iter().copied());
+  } else {
+    match selected_chunks {
+      SelectedChunks::All(chunks) => {
+        module_group.add_module_with_shared_chunks(module.identifier(), chunks.iter().copied());
+      }
+      SelectedChunks::Filtered(chunks) => {
+        module_group.add_module_with_shared_chunks(module.identifier(), chunks.iter().copied());
+      }
+    }
+  }
 
   Ok(())
 }

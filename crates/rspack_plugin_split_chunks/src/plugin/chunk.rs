@@ -1,11 +1,14 @@
 use rayon::prelude::*;
-use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   Chunk, ChunkSplitData, ChunkUkey, Compilation, ModuleIdentifier, incremental::Mutation,
 };
 use rustc_hash::FxHashSet;
 
-use crate::{SplitChunksPlugin, common::ModuleChunks, module_group::ModuleGroup};
+use crate::{
+  SplitChunksPlugin,
+  common::{ModuleChunkMap, ModuleChunks},
+  module_group::ModuleGroup,
+};
 
 fn put_split_chunk_reason(
   chunk_reason: &mut Option<String>,
@@ -199,52 +202,88 @@ impl SplitChunksPlugin {
     new_chunk: ChunkUkey,
     original_chunks: &FxHashSet<ChunkUkey>,
     compilation: &Compilation,
-  ) -> IdentifierMap<FxHashSet<ChunkUkey>> {
+  ) -> ModuleChunkMap {
     let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
-    item
-      .modules
-      .iter()
-      .filter_map(|mid| {
-        let selected_chunks = item.module_chunks.get(mid)?;
-        if let Some(module) = compilation.module_by_identifier(mid)
-          && module
-            .chunk_condition(&new_chunk, compilation)
-            .is_some_and(|condition| !condition)
-        {
-          return None;
-        }
+    if item.uses_shared_module_chunks() {
+      debug_assert!(original_chunks.is_subset(&item.chunks));
+      let chunks = original_chunks.clone();
+      let modules = item
+        .modules
+        .iter()
+        .filter(|mid| {
+          compilation
+            .module_by_identifier(mid)
+            .and_then(|module| module.chunk_condition(&new_chunk, compilation))
+            != Some(false)
+        })
+        .copied()
+        .collect();
+      return ModuleChunkMap::Shared { modules, chunks };
+    }
 
-        let chunks = original_chunks
-          .iter()
-          .filter(|chunk| {
-            selected_chunks.contains(chunk) && chunk_graph.is_module_in_chunk(mid, **chunk)
-          })
-          .copied()
-          .collect::<FxHashSet<_>>();
-        (!chunks.is_empty()).then_some((*mid, chunks))
-      })
-      .collect()
+    ModuleChunkMap::ByModule(
+      item
+        .modules
+        .iter()
+        .filter_map(|mid| {
+          let selected_chunks = item.get_module_chunks(mid)?;
+          if let Some(module) = compilation.module_by_identifier(mid)
+            && module
+              .chunk_condition(&new_chunk, compilation)
+              .is_some_and(|condition| !condition)
+          {
+            return None;
+          }
+
+          let chunks = original_chunks
+            .iter()
+            .filter(|chunk| {
+              selected_chunks.contains(chunk) && chunk_graph.is_module_in_chunk(mid, **chunk)
+            })
+            .copied()
+            .collect::<FxHashSet<_>>();
+          (!chunks.is_empty()).then_some((*mid, chunks))
+        })
+        .collect(),
+    )
   }
 
   /// Moves `modules` into `new_chunk` and removes their selected source placements.
   // #[tracing::instrument(skip_all)]
   pub(crate) fn move_modules_to_new_chunk_and_remove_from_old_chunks(
     &self,
-    modules: &IdentifierSet,
-    placed_module_chunks: &IdentifierMap<FxHashSet<ChunkUkey>>,
+    placed_module_chunks: &ModuleChunkMap,
     new_chunk: ChunkUkey,
     compilation: &mut Compilation,
   ) {
-    let module_identifiers = modules.iter().copied().collect::<Vec<_>>();
-
     let chunk_graph = &mut compilation.build_chunk_graph_artifact.chunk_graph;
-    for module in modules {
-      let Some(chunks) = placed_module_chunks.get(module) else {
-        continue;
-      };
+    let module_count = match placed_module_chunks {
+      ModuleChunkMap::Shared { modules, .. } => modules.len(),
+      ModuleChunkMap::ByModule(module_chunks) => module_chunks.len(),
+    };
+    let mut module_identifiers = Vec::with_capacity(module_count);
+    let mut move_module = |module: &ModuleIdentifier, chunks: &FxHashSet<ChunkUkey>| {
+      let mut has_source_placement = false;
       for chunk in chunks {
         if *chunk != new_chunk {
+          has_source_placement = true;
           chunk_graph.disconnect_chunk_and_module(chunk, *module);
+        }
+      }
+      if has_source_placement {
+        module_identifiers.push(*module);
+      }
+    };
+
+    match placed_module_chunks {
+      ModuleChunkMap::Shared { modules, chunks } => {
+        for module in modules {
+          move_module(module, chunks);
+        }
+      }
+      ModuleChunkMap::ByModule(module_chunks) => {
+        for (module, chunks) in module_chunks {
+          move_module(module, chunks);
         }
       }
     }

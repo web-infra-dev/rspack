@@ -6,7 +6,7 @@ use std::{
 use derive_more::Debug;
 use futures::future::BoxFuture;
 use rayon::prelude::*;
-use rspack_collections::IdentifierMap;
+use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{ChunkUkey, Compilation, Module, ModuleIdentifier, SourceType};
 use rspack_error::Result;
 use rspack_regex::RspackRegex;
@@ -233,3 +233,46 @@ pub struct FallbackCacheGroup {
 
 pub type ModuleSizes = IdentifierMap<FxHashMap<SourceType, f64>>;
 pub(crate) type ModuleChunks = Vec<FxHashSet<ChunkUkey>>;
+
+#[derive(Debug)]
+pub(crate) enum ModuleChunkMap {
+  Shared {
+    modules: IdentifierSet,
+    chunks: FxHashSet<ChunkUkey>,
+  },
+  ByModule(IdentifierMap<FxHashSet<ChunkUkey>>),
+}
+
+impl ModuleChunkMap {
+  pub fn get(&self, module: &ModuleIdentifier) -> Option<&FxHashSet<ChunkUkey>> {
+    match self {
+      Self::Shared { modules, chunks } => modules.contains(module).then_some(chunks),
+      Self::ByModule(module_chunks) => module_chunks.get(module),
+    }
+  }
+
+  pub fn insert_chunk(&mut self, module: ModuleIdentifier, chunk: ChunkUkey) {
+    if let Self::Shared { modules, chunks } = self {
+      let mut module_chunks = modules
+        .iter()
+        .map(|module| (*module, chunks.clone()))
+        .collect::<IdentifierMap<_>>();
+      module_chunks.entry(module).or_default().insert(chunk);
+      *self = Self::ByModule(module_chunks);
+      return;
+    }
+    let Self::ByModule(module_chunks) = self else {
+      unreachable!();
+    };
+    module_chunks.entry(module).or_default().insert(chunk);
+  }
+
+  pub fn retain_modules(&mut self, modules_to_keep: &IdentifierSet) {
+    match self {
+      Self::Shared { modules, .. } => modules.retain(|module| modules_to_keep.contains(module)),
+      Self::ByModule(module_chunks) => {
+        module_chunks.retain(|module, _| modules_to_keep.contains(module));
+      }
+    }
+  }
+}

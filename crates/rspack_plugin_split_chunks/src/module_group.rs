@@ -108,11 +108,22 @@ impl fmt::Display for ModuleGroupKey {
 ///
 /// The original name of `ModuleGroup` is `ChunkInfoItem` borrowed from Webpack
 #[derive(Debug)]
+enum ModuleGroupChunks {
+  /// Anonymous groups are keyed by their exact chunk combination. `None` means the selected chunks
+  /// are still identical to `ModuleGroup::chunks`; a snapshot is created only if that union is
+  /// later mutated while choosing a reused destination.
+  Shared(Option<FxHashSet<ChunkUkey>>),
+  /// A named group can merge modules selected from different chunk combinations.
+  ByModule(IdentifierMap<FxHashSet<ChunkUkey>>),
+}
+
+#[derive(Debug)]
 pub(crate) struct ModuleGroup {
   pub modules: IdentifierSet,
-  /// The chunks selected for each module in this group.
+  /// The chunks selected for each module. Anonymous groups structurally share their exact chunk
+  /// combination instead of allocating one set per module.
   #[debug(skip)]
-  pub module_chunks: IdentifierMap<FxHashSet<ChunkUkey>>,
+  module_chunks: ModuleGroupChunks,
   /// the real index used for mapping the ModuleGroup to corresponding CacheGroup
   pub cache_group_index: u32,
   pub cache_group_reuse_existing_chunk: bool,
@@ -133,9 +144,14 @@ pub(crate) struct ModuleGroup {
 
 impl ModuleGroup {
   pub fn new(chunk_name: Option<String>, cache_group_index: u32, cache_group: &CacheGroup) -> Self {
+    let module_chunks = if chunk_name.is_some() {
+      ModuleGroupChunks::ByModule(Default::default())
+    } else {
+      ModuleGroupChunks::Shared(None)
+    };
     Self {
       modules: Default::default(),
-      module_chunks: Default::default(),
+      module_chunks,
       cache_group_index,
       cache_group_reuse_existing_chunk: cache_group.reuse_existing_chunk,
       sizes: Default::default(),
@@ -184,25 +200,72 @@ impl ModuleGroup {
     chunks: impl IntoIterator<Item = ChunkUkey>,
   ) {
     self.modules.insert(module);
-    let module_chunks = self.module_chunks.entry(module).or_default();
+    let ModuleGroupChunks::ByModule(module_chunks) = &mut self.module_chunks else {
+      unreachable!("add_module should only be used for named module groups");
+    };
+    let module_chunks = module_chunks.entry(module).or_default();
     for chunk in chunks {
       module_chunks.insert(chunk);
       self.chunks.insert(chunk);
     }
   }
 
+  pub fn add_module_with_shared_chunks(
+    &mut self,
+    module: ModuleIdentifier,
+    chunks: impl IntoIterator<Item = ChunkUkey>,
+  ) {
+    self.modules.insert(module);
+    let ModuleGroupChunks::Shared(shared_chunks) = &mut self.module_chunks else {
+      unreachable!("shared chunks should only be used for anonymous module groups");
+    };
+    if self.chunks.is_empty() {
+      debug_assert!(shared_chunks.is_none());
+      self.chunks.extend(chunks);
+    }
+  }
+
+  pub fn remove_group_chunk(&mut self, chunk: &ChunkUkey) {
+    if let ModuleGroupChunks::Shared(shared_chunks) = &mut self.module_chunks
+      && shared_chunks.is_none()
+    {
+      *shared_chunks = Some(self.chunks.clone());
+    }
+    self.chunks.remove(chunk);
+  }
+
+  pub fn get_module_chunks(&self, module: &ModuleIdentifier) -> Option<&FxHashSet<ChunkUkey>> {
+    if !self.modules.contains(module) {
+      return None;
+    }
+    match &self.module_chunks {
+      ModuleGroupChunks::Shared(Some(chunks)) => Some(chunks),
+      ModuleGroupChunks::Shared(None) => Some(&self.chunks),
+      ModuleGroupChunks::ByModule(module_chunks) => module_chunks.get(module),
+    }
+  }
+
+  pub fn uses_shared_module_chunks(&self) -> bool {
+    matches!(self.module_chunks, ModuleGroupChunks::Shared(_))
+  }
+
   pub fn remove_module(&mut self, module: ModuleIdentifier) {
     if self.modules.remove(&module) {
-      self.module_chunks.remove(&module);
+      if let ModuleGroupChunks::ByModule(module_chunks) = &mut self.module_chunks {
+        module_chunks.remove(&module);
+      }
       self.removed.push(module);
     }
   }
 
   pub fn rebuild_chunks(&mut self) {
+    let ModuleGroupChunks::ByModule(module_chunks) = &self.module_chunks else {
+      return;
+    };
     self.chunks.clear();
     self
       .chunks
-      .extend(self.module_chunks.values().flatten().copied());
+      .extend(module_chunks.values().flatten().copied());
   }
 
   pub fn prepare_modules_for_sizes_and_compare(&mut self) {

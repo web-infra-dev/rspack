@@ -10,7 +10,7 @@ use itertools::Itertools;
 use rayon::iter::{
   IndexedParallelIterator, IntoParallelRefIterator, IntoParallelRefMutIterator, ParallelIterator,
 };
-use rspack_collections::{IdentifierMap, IdentifierSet};
+use rspack_collections::IdentifierMap;
 use rspack_core::{ChunkUkey, Compilation, CompilationOptimizeChunks, Logger, Plugin};
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -20,7 +20,7 @@ use tracing::instrument;
 
 use crate::{
   CacheGroup, SplitChunkSizes,
-  common::FallbackCacheGroup,
+  common::{FallbackCacheGroup, ModuleChunkMap},
   get_module_sizes,
   module_group::{IndexedCacheGroup, ModuleGroup, ModuleGroupKey},
 };
@@ -240,7 +240,7 @@ impl SplitChunksPlugin {
         if is_reuse_existing_chunk {
           // The chunk is not new but created in code splitting. We need remove `new_chunk` since we would remove
           // modules in this `Chunk/ModuleGroup` from other chunks. Other chunks is stored in `ModuleGroup.chunks`.
-          module_group.chunks.remove(&new_chunk);
+          module_group.remove_group_chunk(&new_chunk);
         }
 
         // If the module group size exceeds enforceSizeThreshold, skip maxRequest constraints
@@ -259,13 +259,9 @@ impl SplitChunksPlugin {
         // `ensure_max_request_fit` can remove all source chunks for only some modules in a named
         // group. Track the exact original module-chunk edges that this split will consume instead
         // of treating the remaining modules and chunks as a cross product.
-        let mut used_chunks = used_chunks.into_owned();
+        let mut used_chunks = used_chunks;
         let mut placed_module_chunks =
           self.get_module_chunks_to_move(&module_group, new_chunk, &used_chunks, compilation);
-        let mut modules_to_move = placed_module_chunks
-          .keys()
-          .copied()
-          .collect::<IdentifierSet>();
         {
           let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
           if is_reuse_existing_chunk {
@@ -277,10 +273,7 @@ impl SplitChunksPlugin {
               .iter()
               .filter(|module| chunk_graph.is_module_in_chunk(module, new_chunk))
             {
-              placed_module_chunks
-                .entry(*module)
-                .or_default()
-                .insert(new_chunk);
+              placed_module_chunks.insert_chunk(*module, new_chunk);
             }
           }
         }
@@ -292,7 +285,7 @@ impl SplitChunksPlugin {
             let Some(placed_chunks) = placed_module_chunks.get(module) else {
               return true;
             };
-            let Some(selected_chunks) = module_group.module_chunks.get(module) else {
+            let Some(selected_chunks) = module_group.get_module_chunks(module) else {
               return true;
             };
             placed_chunks
@@ -303,45 +296,61 @@ impl SplitChunksPlugin {
           })
           .copied()
           .collect::<Vec<_>>();
-        for module in modules_without_placement {
-          module_group.remove_module(module);
-        }
+        if !modules_without_placement.is_empty() {
+          // End the borrow of `module_group.chunks` only on the slow path that mutates the group.
+          // The common path can keep using the original set without cloning it.
+          let used_chunks_owned = used_chunks.into_owned();
+          for module in modules_without_placement {
+            module_group.remove_module(module);
+          }
 
-        // Max-request pruning and chunk conditions can change the module subset, so size checks
-        // performed before selecting `used_chunks` are no longer sufficient.
-        if min_size::remove_min_size_violating_modules(
-          &module_group_key,
-          &mut module_group,
-          cache_group,
-          &module_sizes,
-        ) {
-          tracing::trace!(
-            "ModuleGroup({module_group_key}) is skipped after selecting its actual placements because it violates min_size {:#?}",
-            cache_group.min_size,
-          );
-          continue;
-        }
+          // Max-request pruning and chunk conditions can change the module subset, so size checks
+          // performed before selecting `used_chunks` are no longer sufficient.
+          if min_size::remove_min_size_violating_modules(
+            &module_group_key,
+            &mut module_group,
+            cache_group,
+            &module_sizes,
+          ) {
+            tracing::trace!(
+              "ModuleGroup({module_group_key}) is skipped after selecting its actual placements because it violates min_size {:#?}",
+              cache_group.min_size,
+            );
+            continue;
+          }
 
-        placed_module_chunks.retain(|module, _| module_group.modules.contains(module));
-        modules_to_move.retain(|module| module_group.modules.contains(module));
+          placed_module_chunks.retain_modules(&module_group.modules);
+          used_chunks = Cow::Owned(used_chunks_owned);
+        }
 
         // Keep a reused destination in `placed_module_chunks` for ownership cleanup, even when the
         // cache group's chunk filter did not select it. Such an excluded destination must not count
         // towards `minChunks` or the source chunks split into the destination.
-        let selected_placement_chunks = placed_module_chunks
-          .iter()
-          .flat_map(|(module, placed_chunks)| {
-            let selected_chunks = module_group
-              .module_chunks
-              .get(module)
-              .expect("should have selected module chunks");
-            placed_chunks
+        let selected_placement_chunks = match &placed_module_chunks {
+          ModuleChunkMap::Shared { chunks, .. } => Cow::Borrowed(chunks),
+          ModuleChunkMap::ByModule(module_chunks) => Cow::Owned(
+            module_chunks
               .iter()
-              .filter(|chunk| selected_chunks.contains(*chunk))
-              .copied()
-          })
-          .collect::<FxHashSet<_>>();
-        used_chunks.retain(|chunk| selected_placement_chunks.contains(chunk));
+              .flat_map(|(module, placed_chunks)| {
+                let selected_chunks = module_group
+                  .get_module_chunks(module)
+                  .expect("should have selected module chunks");
+                placed_chunks
+                  .iter()
+                  .filter(|chunk| selected_chunks.contains(*chunk))
+                  .copied()
+              })
+              .collect::<FxHashSet<_>>(),
+          ),
+        };
+        if used_chunks
+          .iter()
+          .any(|chunk| !selected_placement_chunks.contains(chunk))
+        {
+          used_chunks
+            .to_mut()
+            .retain(|chunk| selected_placement_chunks.contains(chunk));
+        }
 
         if selected_placement_chunks.len() < cache_group.min_chunks as usize {
           tracing::trace!(
@@ -396,7 +405,6 @@ impl SplitChunksPlugin {
         }
 
         self.move_modules_to_new_chunk_and_remove_from_old_chunks(
-          &modules_to_move,
           &placed_module_chunks,
           new_chunk,
           compilation,
@@ -411,11 +419,23 @@ impl SplitChunksPlugin {
         );
 
         if index != priority_len - 1 {
-          for (module, chunks) in &placed_module_chunks {
-            removed_module_chunks
-              .entry(*module)
-              .or_default()
-              .extend(chunks.iter().copied());
+          match &placed_module_chunks {
+            ModuleChunkMap::Shared { modules, chunks } => {
+              for module in modules {
+                removed_module_chunks
+                  .entry(*module)
+                  .or_default()
+                  .extend(chunks.iter().copied());
+              }
+            }
+            ModuleChunkMap::ByModule(module_chunks) => {
+              for (module, chunks) in module_chunks {
+                removed_module_chunks
+                  .entry(*module)
+                  .or_default()
+                  .extend(chunks.iter().copied());
+              }
+            }
           }
         }
       }
