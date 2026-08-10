@@ -1,5 +1,6 @@
 aarch
 absolutify
+accum
 ahabhgk
 Akait
 alexander-akait
@@ -37,6 +38,8 @@ cssextractrspackplugin
 dail
 darwin
 deconflict
+demangle
+demangled
 devongovett
 devserverdevmiddleware
 devserverhot
@@ -77,9 +80,13 @@ innovatively
 inottn
 intellild
 intlify
+inuse
 IWANABETHATGUY
 jantimon
 JavaScript
+jemalloc
+JEMALLOC
+jeprof
 jerrykingxyz
 Jiahan
 jkzing
@@ -89,6 +96,8 @@ jserfeng
 kaffi
 kuaishou
 Kyrylo
+ldconfig
+libjemalloc
 lightningcss
 Lingyu
 lingyucoder
@@ -181,6 +190,7 @@ ruid
 ruleoneof
 ruleparserdataurlcondition
 Rust
+rustfilt
 rustup
 s390x
 samply
