@@ -7,6 +7,6 @@ pub fn compiler() -> CompilerBuilder {
     project: "css",
     entry: "./index.js",
     swc_loader: false,
-    native_output_filesystem: true,
+    native_output_filesystem: false,
   })
 }
