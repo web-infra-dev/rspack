@@ -7,7 +7,7 @@
 ## Asset Files
 - Bundle: bundle.js
 - Bundle: target_js.js
-- Manifest: [runtime of style_css].LAST_HASH.hot-update.json, size: 33
+- Manifest: [runtime of style_css].LAST_HASH.hot-update.json, size: 59
 - Manifest: [runtime of target_js].LAST_HASH.hot-update.json, size: 33
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
 - Update: main.LAST_HASH.hot-update.js, size: 181
@@ -19,7 +19,7 @@
 ### [runtime of style_css].LAST_HASH.hot-update.json
 
 ```json
-{"c":["style_css"],"r":[],"m":[]}
+{"c":["style_css"],"r":[],"m":[],"css":{"c":["style_css"]}}
 ```
 
 
