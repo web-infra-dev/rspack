@@ -1,6 +1,6 @@
 use napi::{Either, bindgen_prelude::JsValuesTupleIntoVec};
 use rspack_core::{
-  AdditionalData, BUILTIN_LOADER_PREFIX, LoaderContext, NormalModuleLoaderShouldYield,
+  AdditionalData, LoaderContext, LoaderExecutionKind, NormalModuleLoaderShouldYield,
   NormalModuleLoaderStartYielding, RunnerContext,
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt};
@@ -29,19 +29,24 @@ pub(crate) async fn loader_should_yield(
     }
     LoaderState::Pitching => {
       let current_loader = loader_context.current_loader();
-      if current_loader.request().starts_with(BUILTIN_LOADER_PREFIX) {
+      if current_loader.execution_kind() != LoaderExecutionKind::JavaScript {
         Ok(Some(false))
       } else {
         let loaders_without_pitch = self.loaders_without_pitch.read().await;
-        let should_yield = !loaders_without_pitch.contains(current_loader.path().as_str());
+        let span = loader_context
+          .current_execution_span()
+          .expect("pitching requires a current loader-chain span");
+        let start = loader_context.loader_index as usize;
+        let should_yield = loader_context.loader_items[start..span.end]
+          .iter()
+          .any(|loader| {
+            !loader.pitch_executed() && !loaders_without_pitch.contains(loader.path().as_str())
+          });
         Ok(Some(should_yield))
       }
     }
     LoaderState::Normal => Ok(Some(
-      !loader_context
-        .current_loader()
-        .request()
-        .starts_with(BUILTIN_LOADER_PREFIX),
+      loader_context.current_loader().execution_kind() == LoaderExecutionKind::JavaScript,
     )),
   }
 }

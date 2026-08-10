@@ -31,7 +31,10 @@ import { convertArgs, runSyncOrAsync } from './utils';
 const BUILTIN_LOADER_PREFIX = 'builtin:';
 
 interface WorkerOptions {
-  loaderContext: LoaderContext;
+  loaderContext: LoaderContext & {
+    loaderChainStart: number;
+    loaderChainEnd: number;
+  };
   loaderState: JsLoaderState;
   args: any[];
 
@@ -464,7 +467,7 @@ async function loaderImpl(
   // builtin loader which belongs to the rust side.
   switch (loaderState) {
     case JsLoaderState.Pitching: {
-      while (loaderContext.loaderIndex < loaderContext.loaders.length) {
+      while (loaderContext.loaderIndex < loaderContext.loaderChainEnd) {
         const currentLoaderObject =
           loaderContext.loaders[loaderContext.loaderIndex];
         if (shouldYieldToMainThread(currentLoaderObject)) break;
@@ -493,7 +496,7 @@ async function loaderImpl(
       break;
     }
     case JsLoaderState.Normal: {
-      while (loaderContext.loaderIndex >= 0) {
+      while (loaderContext.loaderIndex >= loaderContext.loaderChainStart) {
         const currentLoaderObject =
           loaderContext.loaders[loaderContext.loaderIndex];
 

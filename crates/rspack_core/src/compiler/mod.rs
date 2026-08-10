@@ -151,9 +151,20 @@ impl Compiler {
 
     let options = Arc::new(options);
     let compilation_logging: CompilationLogging = Default::default();
-    let plugin_driver = PluginDriver::new(options.clone(), plugins, resolver_factory.clone());
-    let buildtime_plugin_driver =
-      PluginDriver::new(options.clone(), buildtime_plugins, resolver_factory.clone());
+    let plugin_driver = PluginDriver::new(
+      &compiler_path,
+      options.clone(),
+      plugins,
+      resolver_factory.clone(),
+      intermediate_filesystem.clone(),
+    );
+    let buildtime_plugin_driver = PluginDriver::new(
+      &compiler_path,
+      options.clone(),
+      buildtime_plugins,
+      resolver_factory.clone(),
+      intermediate_filesystem.clone(),
+    );
     let cache = new_cache(
       &compiler_path,
       options.clone(),

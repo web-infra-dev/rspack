@@ -755,6 +755,7 @@ type RuleSetLoaderWithOptions = {
   loader: string;
   options?: string | Record<string, any>;
   parallel?: boolean | { maxWorkers?: number };
+  cache?: boolean;
 };
 ```
 
@@ -837,6 +838,39 @@ export default {
   },
 };
 ```
+
+## rules[].use.cache
+
+- **Type:** `boolean`
+- **Default:** `false`
+
+Caches the normal-phase result of a loader when the compiler [cache](/config/cache) is enabled. Consecutive loaders with `cache: true` are executed and cached as one loader chain, so Rspack hashes the chain input only once. Pitch functions still run on every compilation.
+
+The cache key is based on the input source, the ordered loader identities, and canonicalized loader options. Loader files and dependencies registered through the loader context participate in invalidation. Calling `this.cacheable(false)` prevents the current result from being stored.
+
+```js title="rspack.config.mjs"
+export default {
+  cache: true,
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        use: [
+          {
+            loader: 'expensive-transform-loader',
+            options: { target: 'es2022' },
+            cache: true,
+          },
+        ],
+      },
+    ],
+  },
+};
+```
+
+`cache: true` is a purity declaration. Enable it only when the loader output is determined by its input source and options. A loader that depends on `resourcePath`, environment variables, time, or other implicit state must not enable it. Explicit dependencies should be registered with methods such as `this.addDependency()`.
+
+Options must be stably serializable. Functions, symbols, circular references, symbol keys, and unsupported class instances produce a configuration error. When a chain receives source-map or additional-data input that cannot be fingerprinted safely, Rspack conservatively bypasses its result cache.
 
 ## rules[].use.parallel
 

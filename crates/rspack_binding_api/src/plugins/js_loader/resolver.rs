@@ -6,8 +6,8 @@ use rspack_cacheable::{
 };
 use rspack_collections::Identifier;
 use rspack_core::{
-  BoxLoader, Context, Loader, ModuleRuleUseLoader, NormalModuleFactoryResolveLoader, ResolveResult,
-  Resolver, Resource, RunnerContext,
+  BoxLoader, Context, Loader, LoaderExecutionKind, ModuleRuleUseLoader,
+  NormalModuleFactoryResolveLoader, ResolveResult, Resolver, Resource, RunnerContext,
 };
 use rspack_error::Result;
 use rspack_hook::plugin_hook;
@@ -30,6 +30,10 @@ impl Loader<RunnerContext> for JsLoader {
 
   fn r#type(&self) -> Option<&str> {
     self.1.as_deref()
+  }
+
+  fn execution_kind(&self) -> LoaderExecutionKind {
+    LoaderExecutionKind::JavaScript
   }
 }
 

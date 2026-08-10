@@ -875,6 +875,17 @@ export type RuleSetLoaderWithOptions = {
    */
   parallel?: boolean | { maxWorkers?: number };
 
+  /**
+   * Cache the normal result of this loader. Consecutive cacheable loaders are
+   * executed and cached as one loader chain.
+   *
+   * A cached loader must produce its result only from the input source and its
+   * options. Loaders depending on implicit state such as time, environment
+   * variables or resourcePath should not enable this option.
+   * @default false
+   */
+  cache?: boolean;
+
   options?: RuleSetLoaderOptions;
 };
 

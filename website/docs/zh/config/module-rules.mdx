@@ -754,6 +754,7 @@ type RuleSetLoaderWithOptions = {
   loader: string;
   options?: string | Record<string, any>;
   parallel?: boolean | { maxWorkers?: number };
+  cache?: boolean;
 };
 ```
 
@@ -835,6 +836,39 @@ export default {
   },
 };
 ```
+
+## rules[].use.cache
+
+- **类型：** `boolean`
+- **默认值：** `false`
+
+当编译器[缓存](/config/cache)开启时，缓存 loader normal 阶段的执行结果。连续配置了 `cache: true` 的 loader 会作为一条 loader chain 执行和缓存，因此 Rspack 只需对 chain 的输入计算一次哈希。pitch 函数仍会在每次编译时执行。
+
+缓存 key 由输入源码、按顺序排列的 loader 标识以及规范化后的 loader options 组成。loader 文件和通过 loader context 注册的依赖都会参与失效判断。调用 `this.cacheable(false)` 会阻止本次结果写入缓存。
+
+```js title="rspack.config.mjs"
+export default {
+  cache: true,
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        use: [
+          {
+            loader: 'expensive-transform-loader',
+            options: { target: 'es2022' },
+            cache: true,
+          },
+        ],
+      },
+    ],
+  },
+};
+```
+
+`cache: true` 同时是一项纯度声明。只有当 loader 的输出完全由输入源码和 options 决定时才应启用它。依赖 `resourcePath`、环境变量、时间或其他隐式状态的 loader 不应启用此选项；显式依赖应通过 `this.addDependency()` 等方法注册。
+
+Options 必须能够稳定序列化。函数、symbol、循环引用、symbol key 和不支持的 class 实例会产生配置错误。当 chain 的输入包含无法安全生成 fingerprint 的 source map 或 additional data 时，Rspack 会保守地跳过该次结果缓存。
 
 ## rules[].use.parallel
 

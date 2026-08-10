@@ -1,4 +1,4 @@
-use std::{path::PathBuf, sync::Arc};
+use std::{ops::Range, path::PathBuf, sync::Arc};
 
 use derive_more::Debug;
 use rspack_error::Diagnostic;
@@ -7,7 +7,7 @@ use rspack_sources::SourceMap;
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
-  AdditionalData, Content, LoaderItem, LoaderRunnerPlugin, ParseMeta, ResourceData,
+  AdditionalData, Content, LoaderChain, LoaderItem, LoaderRunnerPlugin, ParseMeta, ResourceData,
   loader::LoaderItemList,
 };
 
@@ -57,6 +57,7 @@ pub struct LoaderContext<Context: Send> {
   pub(crate) state: State,
   pub loader_index: i32,
   pub loader_items: Vec<LoaderItem<Context>>,
+  pub(crate) loader_chains: Vec<LoaderChain>,
   #[debug(skip)]
   pub plugin: Option<Arc<dyn LoaderRunnerPlugin<Context = Context>>>,
 }
@@ -84,6 +85,41 @@ impl<Context: Send> LoaderContext<Context> {
   #[inline]
   pub fn current_loader(&self) -> &LoaderItem<Context> {
     &self.loader_items[self.loader_index as usize]
+  }
+
+  pub fn loader_chains(&self) -> &[LoaderChain] {
+    &self.loader_chains
+  }
+
+  pub fn current_chain_index(&self) -> Option<usize> {
+    let loader_index = usize::try_from(self.loader_index).ok()?;
+    self
+      .loader_chains
+      .iter()
+      .position(|chain| chain.contains(loader_index))
+  }
+
+  pub fn current_chain(&self) -> Option<&LoaderChain> {
+    self
+      .current_chain_index()
+      .and_then(|index| self.loader_chains.get(index))
+  }
+
+  /// Returns the maximal contiguous execution-runtime span around the current
+  /// loader, bounded by the current loader chain.
+  pub fn current_execution_span(&self) -> Option<Range<usize>> {
+    let loader_index = usize::try_from(self.loader_index).ok()?;
+    let chain = self.current_chain()?;
+    let kind = self.loader_items.get(loader_index)?.execution_kind();
+    let mut start = loader_index;
+    let mut end = loader_index + 1;
+    while start > chain.start() && self.loader_items[start - 1].execution_kind() == kind {
+      start -= 1;
+    }
+    while end < chain.end() && self.loader_items[end].execution_kind() == kind {
+      end += 1;
+    }
+    Some(start..end)
   }
 
   /// Emit a diagnostic, it can be a `warning` or `error`.

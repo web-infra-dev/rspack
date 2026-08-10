@@ -173,10 +173,6 @@ export class LoaderObject {
     this.loaderItem.noPitch = true;
   }
 
-  shouldYield() {
-    return this.request.startsWith(BUILTIN_LOADER_PREFIX);
-  }
-
   static __from_binding(
     loaderItem: JsLoaderItem,
     compiler: Compiler,
@@ -232,6 +228,8 @@ export async function runLoaders(
   context: JsLoaderContext,
 ): Promise<JsLoaderContext> {
   const loaderState = context.loaderState;
+  const loaderChainStart = context.loaderChainStart;
+  const loaderChainEnd = context.loaderChainEnd;
   const pitch = loaderState === JsLoaderState.Pitching;
 
   const { resource } = context;
@@ -749,6 +747,8 @@ export async function runLoaders(
       sourceMap: loaderContext.sourceMap,
       rootContext: loaderContext.rootContext,
       loaderIndex: loaderContext.loaderIndex,
+      loaderChainStart: context.loaderChainStart,
+      loaderChainEnd: context.loaderChainEnd,
       loaders: loaderContext.loaders.map((item) => {
         let options = item.options;
         // Do not pass options into worker, if it's not prepared to be executed
@@ -1011,12 +1011,11 @@ export async function runLoaders(
   try {
     switch (loaderState) {
       case JsLoaderState.Pitching: {
-        while (loaderContext.loaderIndex < loaderContext.loaders.length) {
+        while (loaderContext.loaderIndex < loaderChainEnd) {
           const currentLoaderObject =
             loaderContext.loaders[loaderContext.loaderIndex];
           const parallelism = enableParallelism(currentLoaderObject);
 
-          if (currentLoaderObject.shouldYield()) break;
           if (currentLoaderObject.pitchExecuted) {
             loaderContext.loaderIndex += 1;
             continue;
@@ -1057,12 +1056,11 @@ export async function runLoaders(
         let sourceMapParsed = false;
         let additionalData = context.additionalData;
 
-        while (loaderContext.loaderIndex >= 0) {
+        while (loaderContext.loaderIndex >= loaderChainStart) {
           const currentLoaderObject =
             loaderContext.loaders[loaderContext.loaderIndex];
           const parallelism = enableParallelism(currentLoaderObject);
 
-          if (currentLoaderObject.shouldYield()) break;
           if (currentLoaderObject.normalExecuted) {
             loaderContext.loaderIndex--;
             continue;

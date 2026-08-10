@@ -959,6 +959,12 @@ export interface JsLoaderContext {
   buildDependencies: Array<string>
   loaderItems: Array<JsLoaderItem>
   loaderIndex: number
+  /**
+   * Inclusive start and exclusive end of the current JavaScript execution
+   * span inside the loader chain.
+   */
+  loaderChainStart: number
+  loaderChainEnd: number
   loaderState: Readonly<JsLoaderState>
   __internal__error?: RspackError
   /**
@@ -2736,6 +2742,8 @@ export interface RawModuleRule {
 export interface RawModuleRuleUse {
   loader: string
   options?: string
+  cache: boolean
+  cacheKey: string
 }
 
 export interface RawNodeOption {

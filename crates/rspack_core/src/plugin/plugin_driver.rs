@@ -2,12 +2,13 @@ use std::sync::{Arc, Mutex};
 
 use derive_more::Debug;
 use rspack_error::Diagnostic;
+use rspack_fs::IntermediateFileSystem;
 use rspack_util::fx_hash::FxDashMap;
 
 use crate::{
   ApplyContext, BoxedParserAndGeneratorBuilder, CompilationHooks, CompilationId, CompilerHooks,
   CompilerOptions, ConcatenatedModuleHooks, ContextModuleFactoryHooks, ModuleType,
-  NormalModuleFactoryHooks, NormalModuleHooks, Plugin, ResolverFactory,
+  NormalModuleFactoryHooks, NormalModuleHooks, Plugin, ResolverFactory, SharedLoaderCacheService,
 };
 
 #[derive(Debug)]
@@ -15,6 +16,7 @@ pub struct PluginDriver {
   pub(crate) options: Arc<CompilerOptions>,
   pub plugins: Vec<Box<dyn Plugin>>,
   pub resolver_factory: Arc<ResolverFactory>,
+  pub(crate) loader_cache_service: SharedLoaderCacheService,
   #[debug(skip)]
   pub registered_parser_and_generator_builder:
     FxDashMap<ModuleType, BoxedParserAndGeneratorBuilder>,
@@ -30,9 +32,11 @@ pub struct PluginDriver {
 
 impl PluginDriver {
   pub fn new(
+    compiler_path: &str,
     options: Arc<CompilerOptions>,
     plugins: Vec<Box<dyn Plugin>>,
     resolver_factory: Arc<ResolverFactory>,
+    intermediate_filesystem: Arc<dyn IntermediateFileSystem>,
   ) -> Arc<Self> {
     let mut compiler_hooks = Default::default();
     let mut compilation_hooks = Default::default();
@@ -61,6 +65,11 @@ impl PluginDriver {
       options: options.clone(),
       plugins,
       resolver_factory,
+      loader_cache_service: Arc::new(crate::LoaderCacheService::new(
+        compiler_path,
+        &options,
+        intermediate_filesystem,
+      )),
       registered_parser_and_generator_builder,
       diagnostics: Arc::new(Mutex::new(vec![])),
       compiler_hooks,

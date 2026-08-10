@@ -15,7 +15,7 @@ use rspack_error::Result;
 use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rspack_util::identifier::strip_zero_width_space_for_fragment;
 
-use super::LoaderContext;
+use super::{LoaderContext, LoaderExecutionKind, LoaderRunnerOptions};
 
 #[derive(Debug)]
 pub struct LoaderItem<Context: Send> {
@@ -48,11 +48,29 @@ pub struct LoaderItem<Context: Send> {
   /// This flag is used to align with webpack's behavior:
   /// If nothing is modified in the loader, the loader will reset the content, source map, and additional data.
   finish_called: AtomicBool,
+  cache: bool,
+  cache_key: String,
+  execution_kind: LoaderExecutionKind,
 }
 
 impl<C: Send> LoaderItem<C> {
   pub fn loader(&self) -> &Arc<dyn Loader<C>> {
     &self.loader
+  }
+
+  #[inline]
+  pub fn cache(&self) -> bool {
+    self.cache
+  }
+
+  #[inline]
+  pub fn cache_key(&self) -> &str {
+    &self.cache_key
+  }
+
+  #[inline]
+  pub fn execution_kind(&self) -> LoaderExecutionKind {
+    self.execution_kind
   }
 
   #[inline]
@@ -201,11 +219,23 @@ where
   fn r#type(&self) -> Option<&str> {
     None
   }
+
+  /// Selects the runtime responsible for executing this loader.
+  fn execution_kind(&self) -> LoaderExecutionKind {
+    LoaderExecutionKind::Native
+  }
 }
 
 impl<C: Send> From<Arc<dyn Loader<C>>> for LoaderItem<C> {
   fn from(loader: Arc<dyn Loader<C>>) -> Self {
+    Self::new(loader, LoaderRunnerOptions::default())
+  }
+}
+
+impl<C: Send> LoaderItem<C> {
+  pub(crate) fn new(loader: Arc<dyn Loader<C>>, options: LoaderRunnerOptions) -> Self {
     let ident = &**loader.identifier();
+    let execution_kind = loader.execution_kind();
     if let Some(r#type) = loader.r#type() {
       let ResourceParsedData {
         path,
@@ -224,6 +254,9 @@ impl<C: Send> From<Arc<dyn Loader<C>>> for LoaderItem<C> {
         pitch_executed: AtomicBool::new(false),
         normal_executed: AtomicBool::new(false),
         finish_called: AtomicBool::new(false),
+        cache: options.cache,
+        cache_key: options.cache_key,
+        execution_kind,
       };
     }
     let ident = loader.identifier();
@@ -243,6 +276,9 @@ impl<C: Send> From<Arc<dyn Loader<C>>> for LoaderItem<C> {
       pitch_executed: AtomicBool::new(false),
       normal_executed: AtomicBool::new(false),
       finish_called: AtomicBool::new(false),
+      cache: options.cache,
+      cache_key: options.cache_key,
+      execution_kind,
     }
   }
 }

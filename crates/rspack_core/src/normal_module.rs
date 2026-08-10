@@ -16,7 +16,9 @@ use rspack_error::{Diagnosable, Diagnostic, Result, error};
 use rspack_fs::ReadableFileSystem;
 use rspack_hash::{RspackHash, RspackHashDigest, RspackHasher};
 use rspack_hook::define_hook;
-use rspack_loader_runner::{AdditionalData, Content, LoaderContext, ResourceData, run_loaders};
+use rspack_loader_runner::{
+  AdditionalData, Content, LoaderContext, ResourceData, run_loaders_with_options,
+};
 use rspack_sources::{
   BoxSource, CachedSource, OriginalSource, RawBufferSource, RawStringSource, SourceExt, SourceMap,
   SourceMapSource, WithoutOriginalOptions,
@@ -29,11 +31,12 @@ use crate::{
   AsyncDependenciesBlockIdentifier, BoxDependencyTemplate, BoxLoader, BoxModule,
   BoxModuleDependency, BuildContext, BuildInfo, BuildMeta, BuildResult, ChunkGraph,
   CodeGenerationResult, Compilation, ConnectionState, Context, DependenciesBlock, DependencyId,
-  FactoryMeta, GenerateContext, GeneratorOptions, ImportPhase, LibIdentOptions, Module,
-  ModuleCodeGenerationContext, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
-  ModuleLayer, ModuleType, OptimizationBailoutItem, OutputOptions, ParseContext, ParseResult,
-  ParserAndGenerator, ParserOptions, Resolve, ResolvedModuleOptions, RspackLoaderRunnerPlugin,
-  RunnerContext, RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, SourceType, contextify,
+  FactoryMeta, GenerateContext, GeneratorOptions, ImportPhase, LibIdentOptions,
+  LoaderRunnerOptions, Module, ModuleCodeGenerationContext, ModuleGraph, ModuleGraphCacheArtifact,
+  ModuleIdentifier, ModuleLayer, ModuleType, OptimizationBailoutItem, OutputOptions, ParseContext,
+  ParseResult, ParserAndGenerator, ParserOptions, Resolve, ResolvedModuleOptions,
+  RspackLoaderRunnerPlugin, RunnerContext, RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact,
+  SourceType, contextify,
   diagnostics::ModuleBuildError,
   get_context, module_analyzed_side_effect_free, module_declared_side_effect_free,
   module_update_hash,
@@ -119,6 +122,7 @@ pub struct NormalModule {
   /// Loaders for the module
   #[debug(skip)]
   loaders: Vec<BoxLoader>,
+  loader_runner_options: Vec<LoaderRunnerOptions>,
 
   /// Built source of this module (passed with loaders)
   #[cacheable(with=AsOption<AsPreset>)]
@@ -187,6 +191,7 @@ impl NormalModule {
     resource_data: Arc<ResourceData>,
     resolve_options: Option<Arc<Resolve>>,
     loaders: Vec<BoxLoader>,
+    loader_runner_options: Vec<LoaderRunnerOptions>,
     context: Option<Context>,
     extract_source_map: Option<bool>,
     import_phase: ImportPhase,
@@ -213,6 +218,7 @@ impl NormalModule {
       resource_data,
       resolve_options,
       loaders,
+      loader_runner_options,
       source: None,
       debug_id: DEBUG_ID.fetch_add(1, Ordering::Relaxed),
       extract_source_map,
@@ -412,8 +418,9 @@ impl Module for NormalModule {
     let compiler_options = build_context.compiler_options.clone();
     let resolver_factory = build_context.resolver_factory.clone();
     let fs = build_context.fs.clone();
-    let (mut loader_result, err) = run_loaders(
+    let (mut loader_result, err) = run_loaders_with_options(
       self.loaders.clone(),
+      self.loader_runner_options.clone(),
       self.resource_data.clone(),
       Some(plugin.clone()),
       RunnerContext {
@@ -421,6 +428,7 @@ impl Module for NormalModule {
         compilation_id,
         options: compiler_options,
         resolver_factory,
+        fs: fs.clone(),
         source_map_kind: self.source_map_kind,
         module: self,
       },

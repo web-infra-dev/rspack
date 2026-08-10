@@ -110,6 +110,10 @@ pub struct JsLoaderContext {
 
   pub loader_items: Vec<JsLoaderItem>,
   pub loader_index: i32,
+  /// Inclusive start and exclusive end of the current JavaScript execution
+  /// span inside the loader chain.
+  pub loader_chain_start: i32,
+  pub loader_chain_end: i32,
   #[napi(ts_type = "Readonly<JsLoaderState>")]
   pub loader_state: JsLoaderState,
   #[napi(js_name = "__internal__error")]
@@ -129,11 +133,14 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
   ) -> std::result::Result<Self, Self::Error> {
     let module = &cx.context.module;
 
-    #[allow(clippy::unwrap_used)]
+    let execution_span = cx
+      .current_execution_span()
+      .expect("yielding requires a current loader-chain span");
     Ok(JsLoaderContext {
       resource: cx.resource_data.resource().to_owned(),
       module: ModuleObject::with_ptr(
-        NonNull::new(module.as_ref() as *const dyn Module as *mut dyn Module).unwrap(),
+        NonNull::new(module.as_ref() as *const dyn Module as *mut dyn Module)
+          .expect("module reference should always produce a non-null pointer"),
         cx.context.compiler_id,
       ),
       hot: cx.hot,
@@ -176,6 +183,8 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
 
       loader_items: cx.loader_items.iter().map(Into::into).collect(),
       loader_index: cx.loader_index,
+      loader_chain_start: execution_span.start as i32,
+      loader_chain_end: execution_span.end as i32,
       loader_state: cx.state().into(),
       error: None,
       utf8_hint: None,
