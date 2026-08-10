@@ -11,7 +11,7 @@ use rspack_regex::RspackRegex;
 use rspack_util::{SpanExt, identifier::relative_path_to_request, node_path::NodePath};
 use sugar_path::SugarPath;
 use swc_atoms::Atom;
-use swc_experimental_ecma_ast::{CallExpr, Expr, GetSpan};
+use swc_experimental_ecma_ast::{CallExpr, Expr, GetSpan, ObjectLit};
 
 use super::JavascriptParserPlugin;
 use crate::{
@@ -21,8 +21,8 @@ use crate::{
     object_properties::{FromAstExpr, get_from_object},
   },
   visitors::{
-    JavascriptParser, clean_regexp_in_context_module, default_context_reg_exp, expr_name,
-    static_string_from_expr,
+    JavascriptParser, clean_regexp_in_context_module, create_traceable_error,
+    default_context_reg_exp, expr_name, static_string_from_expr,
   },
 };
 
@@ -143,6 +143,32 @@ impl ImportMetaGlobQuery {
   }
 }
 
+fn parse_import_meta_glob_case_sensitive(
+  glob_options: Option<&ObjectLit>,
+  parser: &mut JavascriptParser,
+) -> bool {
+  let Some(value) = glob_options.and_then(|object| get_from_object(object, &["caseSensitive"]))
+  else {
+    return true;
+  };
+
+  let evaluated = parser.evaluate_expression(value);
+  if evaluated.is_bool() {
+    return evaluated.bool();
+  }
+
+  let mut error: Error = create_traceable_error(
+    "Invalid import.meta.glob option".into(),
+    "import.meta.glob() 'caseSensitive' option must be a constant boolean (true or false), defaulting to true".into(),
+    parser.source.to_string(),
+    value.span().into(),
+  );
+  error.severity = Severity::Warning;
+  error.hide_stack = Some(true);
+  parser.add_warning(error.into());
+  true
+}
+
 fn static_glob_patterns_from_expr(expr: &Expr) -> Option<Vec<String>> {
   if let Some(pattern) = static_string_from_expr(expr) {
     return Some(vec![pattern]);
@@ -192,8 +218,9 @@ fn join_import_meta_glob_path(base: &str, path: &str) -> String {
 }
 
 fn join_import_meta_glob_fs_path(base: &str, path: &str) -> String {
+  let base = normalize_path_separators_for_path(base);
   normalize_path_separators_for_path(
-    Utf8Path::new(base)
+    Utf8Path::new(&base)
       .node_join_posix(path)
       .node_normalize_posix()
       .as_ref(),
@@ -330,7 +357,8 @@ fn create_import_meta_glob_dependency(
   }
   let raw_glob_patterns = static_glob_patterns_from_expr(&dyn_imported.expr)?;
   let importer_context = get_context(parser.resource_data);
-  let options = match node.args.get(1).and_then(|arg| arg.expr.as_object()) {
+  let glob_options = node.args.get(1).and_then(|arg| arg.expr.as_object());
+  let options = match glob_options {
     Some(raw_options) => {
       let (options, diagnostics) =
         ImportMetaGlobOptions::from_ast_object_with_diagnostics(raw_options);
@@ -346,6 +374,7 @@ fn create_import_meta_glob_dependency(
     .as_ref()
     .map_or_else(String::new, ImportMetaGlobQuery::to_query_string);
   let base = options.base.as_deref();
+  let glob_case_sensitive = parse_import_meta_glob_case_sensitive(glob_options, parser);
   let context = resolve_import_meta_glob_context(
     importer_context.as_str(),
     parser.compiler_options.context.as_str(),
@@ -363,6 +392,7 @@ fn create_import_meta_glob_dependency(
     context.as_str(),
     parser.compiler_options.context.as_str(),
     true,
+    glob_case_sensitive,
   );
 
   let referenced_specifiers = options
@@ -388,6 +418,7 @@ fn create_import_meta_glob_dependency(
     start: span.real_lo(),
     end: span.real_hi(),
     referenced_specifiers,
+    glob_case_sensitive,
     ..ContextOptions::from(&options)
   };
   Some(ImportMetaContextDependency::new_glob(
