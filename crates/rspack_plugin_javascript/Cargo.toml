@@ -15,6 +15,7 @@ cow-utils                             = { workspace = true }
 either                                = { workspace = true }
 fast-glob                             = { workspace = true }
 form_urlencoded                       = { workspace = true }
+hex                                   = { workspace = true }
 indexmap                              = { workspace = true }
 itertools                             = { workspace = true }
 memchr                                = { workspace = true }

@@ -1,11 +1,12 @@
 ```mjs title=main.mjs
-import { rspackRequire, definePropertyGetters, makeNamespaceObject } from "./runtime.mjs";
+import { definePropertyGetters, makeNamespaceObject } from "./runtime.mjs";
 // NAMESPACE OBJECT: ./foo.js
 var foo_namespaceObject = {};
 makeNamespaceObject(foo_namespaceObject);
-definePropertyGetters(foo_namespaceObject, { 
+definePropertyGetters(foo_namespaceObject, {
   foo: () => (foo),
-  ns: () => (foo_namespaceObject) });
+  ns: () => (foo_namespaceObject)
+});
 
 
 // ./foo.js
@@ -27,9 +28,6 @@ export { foo, foo_namespaceObject as ns };
 ```
 
 ```mjs title=runtime.mjs
-// The require scope
-var rspackRequire = {};
-export { rspackRequire };
 
 // rspack/runtime/define_property_getters
 var definePropertyGetters = (exports, getters, values) => {

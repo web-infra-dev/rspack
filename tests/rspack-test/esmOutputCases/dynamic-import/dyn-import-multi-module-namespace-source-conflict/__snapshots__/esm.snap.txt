@@ -1,8 +1,8 @@
 ```mjs title=main.mjs
 // ./index.js
 it("should avoid namespace binding collisions across different external sources", async () => {
-	const modA = await import("./shared.mjs");
-	const modB = await import("./shared.mjs");
+	const modA = await import("./shared.mjs").then(m => (m.a_init(), m.a_namespaceObject));
+	const modB = await import("./shared.mjs").then(m => (m.b_init(), m.b_namespaceObject));
 
 	expect(modA.fsNs).toBeDefined();
 	expect(modA.fsNs.readFile).toBeDefined();
@@ -14,24 +14,105 @@ export {};
 
 ```
 
+```mjs title=runtime.mjs
+// The require scope
+var __webpack_require__ = {};
+
+// webpack/runtime/define_property_getters
+(() => {
+__webpack_require__.d = (exports, getters, values) => {
+	var define = (defs, kind) => {
+		for(var key in defs) {
+			if(__webpack_require__.o(defs, key) && !__webpack_require__.o(exports, key)) {
+				Object.defineProperty(exports, key, { enumerable: true, [kind]: defs[key] });
+			}
+		}
+	};
+	define(getters, "get");
+	define(values, "value");
+};
+})();
+// webpack/runtime/has_own_property
+(() => {
+__webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
+})();
+// webpack/runtime/make_namespace_object
+(() => {
+// define __esModule on exports
+__webpack_require__.r = (exports) => {
+	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+	}
+	Object.defineProperty(exports, '__esModule', { value: true });
+};
+})();
+
+export { __webpack_require__ };
+
+```
+
 ```mjs title=shared.mjs
+import { __webpack_require__ } from "./runtime.mjs";
 import * as __rspack_external_fs from "fs";
 import * as __rspack_external_path from "path";
+
+var __esm = (fn, result) => function __init() {
+	if (fn) {
+		var value = fn(fn = 0);
+		result = value && typeof value.then === "function" ? value.then(value => result = value) : value;
+	}
+	return result;
+};
+// NAMESPACE OBJECT: ./a.js
+var a_namespaceObject = {};
+__webpack_require__.r(a_namespaceObject);
+var a_namespaceObject_esm = Object.create(null);
+if (typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+  Object.defineProperty(a_namespaceObject_esm, Symbol.toStringTag, { value: 'Module' });
+}
+var a_namespaceObject_getters = {
+  fsNs: () => (__rspack_external_fs)
+};
+__webpack_require__.d(a_namespaceObject, a_namespaceObject_getters);
+__webpack_require__.d(a_namespaceObject_esm, a_namespaceObject_getters);
+Object.preventExtensions(a_namespaceObject_esm);
+
+
+// NAMESPACE OBJECT: ./b.js
+var b_namespaceObject = {};
+__webpack_require__.r(b_namespaceObject);
+var b_namespaceObject_esm = Object.create(null);
+if (typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+  Object.defineProperty(b_namespaceObject_esm, Symbol.toStringTag, { value: 'Module' });
+}
+var b_namespaceObject_getters = {
+  pathNs: () => (__rspack_external_path)
+};
+__webpack_require__.d(b_namespaceObject, b_namespaceObject_getters);
+__webpack_require__.d(b_namespaceObject_esm, b_namespaceObject_getters);
+Object.preventExtensions(b_namespaceObject_esm);
+
 
 // fs
 
 // ./a.js
+var a_init = /*#__PURE__*/ __esm(() => {
 
 
 
+
+});
 
 // path
 
 // ./b.js
+var b_init = /*#__PURE__*/ __esm(() => {
 
 
 
 
-export { __rspack_external_fs as fsNs, __rspack_external_path as pathNs };
+});
+
+export { __rspack_external_fs as fsNs, __rspack_external_path as pathNs, a_init, a_namespaceObject_esm as a_namespaceObject, b_init, b_namespaceObject_esm as b_namespaceObject };
 
 ```

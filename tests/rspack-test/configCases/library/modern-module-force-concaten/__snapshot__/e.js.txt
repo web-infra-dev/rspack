@@ -1,18 +1,22 @@
 import { __webpack_require__ } from "./runtime~0.js";
-
-__webpack_require__.add({
-100(module) {
+var __cjs = (factory, module) => function __require() {
+	if (module === undefined) {
+		module = { exports: {} };
+		factory.call(module.exports, module, module.exports);
+	}
+	return module.exports;
+};
+var require_bar = /*#__PURE__*/ __cjs(function(module, exports) {
 module.exports = 'bar'
-
-},
 });
-const bar = __webpack_require__("100");
-var bar_default = /*#__PURE__*/__webpack_require__.n(bar);
-var bar_default_0 = bar_default();
+
+const bar_0 = require_bar();
+var bar_0_default = /*#__PURE__*/__webpack_require__.n(bar_0);
+var bar_0_default_0 = bar_0_default();
 
 
 
 
 
 var e_foo = (/* inlined export .foo */"foo");
-export { bar_default_0 as bar, e_foo as foo };
+export { bar_0_default_0 as bar, e_foo as foo };

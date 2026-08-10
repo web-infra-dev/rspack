@@ -1,9 +1,10 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  AsModuleDependency, ContextDependency, ContextOptions, Dependency, DependencyCategory,
-  DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
-  DependencyTemplateType, DependencyType, ExportsInfoArtifact, FactorizeInfo, ModuleGraph,
-  ModuleGraphCacheArtifact, ResourceIdentifier, TemplateContext, TemplateReplaceSource,
+  AsModuleDependency, CodeGenerationModuleReferenceKind, ContextDependency, ContextOptions,
+  Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId, DependencyRange,
+  DependencyTemplate, DependencyTemplateType, DependencyType, ExportsInfoArtifact, FactorizeInfo,
+  ModuleGraph, ModuleGraphCacheArtifact, ResourceIdentifier, TemplateContext,
+  TemplateReplaceSource,
 };
 use rspack_error::Diagnostic;
 
@@ -196,14 +197,22 @@ impl DependencyTemplate for ImportMetaContextDependencyTemplate {
       .downcast_ref::<ImportMetaContextDependency>()
       .expect("ImportMetaContextDependencyTemplate should be used for ImportMetaContextDependency");
 
+    let relocation = code_generatable_context
+      .is_modern_module_output()
+      .then(|| {
+        code_generatable_context
+          .create_module_relocation(dep.id, CodeGenerationModuleReferenceKind::Value)
+      })
+      .flatten();
     let TemplateContext {
       compilation,
       runtime_template,
       ..
     } = code_generatable_context;
 
-    let content =
-      runtime_template.module_raw(compilation, &dep.id, &dep.options.request, dep.optional);
+    let content = relocation.unwrap_or_else(|| {
+      runtime_template.module_raw(compilation, &dep.id, &dep.options.request, dep.optional)
+    });
     source.replace(dep.range.start, dep.range.end, content, None);
   }
 }

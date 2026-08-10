@@ -3,9 +3,10 @@ import { __webpack_require__ } from "./runtime.mjs";
 // NAMESPACE OBJECT: ./dep.js
 var dep_namespaceObject = {};
 __webpack_require__.r(dep_namespaceObject);
-__webpack_require__.d(dep_namespaceObject, { 
+__webpack_require__.d(dep_namespaceObject, {
   bar: () => (bar),
-  foo: () => (foo) });
+  foo: () => (foo)
+});
 
 
 // ./dep.js

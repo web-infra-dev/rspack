@@ -29,6 +29,7 @@ use rspack_plugin_javascript::{
   },
   parser_and_generator::JavaScriptParserAndGenerator,
 };
+use rspack_plugin_runtime::is_modern_module_library_chunk;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 /// Safety with [atomic_refcell::AtomicRefCell]:
@@ -674,10 +675,18 @@ async fn normal_module_factory_parser(
 async fn additional_tree_runtime_requirements(
   &self,
   compilation: &Compilation,
-  _chunk_ukey: &ChunkUkey,
+  chunk_ukey: &ChunkUkey,
   _runtime_requirements: &mut RuntimeGlobals,
   runtime_modules: &mut Vec<Box<dyn RuntimeModule>>,
 ) -> Result<()> {
+  // The webpack HMR runtime mutates a global module factory table and cache.
+  // Modern-module chunks use direct, closure-cached initializers instead, so
+  // that runtime is neither valid nor useful. A native ESM HMR protocol must
+  // update initializer bindings directly and is intentionally a separate
+  // implementation boundary.
+  if is_modern_module_library_chunk(chunk_ukey, compilation) {
+    return Ok(());
+  }
   runtime_modules
     .push(HotModuleReplacementRuntimeModule::new(&compilation.runtime_template).boxed());
 

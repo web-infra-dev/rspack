@@ -46,6 +46,7 @@ impl RspackHash for RuntimeRequirementsDependencyWriteInfo {
 pub enum RuntimeRequirementsDependencyMode {
   #[default]
   Normal,
+  CompatibilityRequire,
   Call,
   AddOnly,
   Write(Option<RuntimeRequirementsDependencyWriteInfo>),
@@ -71,6 +72,7 @@ impl RuntimeRequirementsDependencyMode {
   fn as_str(&self) -> &'static str {
     match self {
       RuntimeRequirementsDependencyMode::Normal => "normal",
+      RuntimeRequirementsDependencyMode::CompatibilityRequire => "compatibility-require",
       RuntimeRequirementsDependencyMode::Call => "call",
       RuntimeRequirementsDependencyMode::AddOnly => "add-only",
       RuntimeRequirementsDependencyMode::Write(_) => "write",
@@ -98,7 +100,8 @@ impl RspackHash for RuntimeRequirementsDependency {
         "range".hash(state);
         self.range.hash(state);
       }
-      RuntimeRequirementsDependencyMode::Call => {
+      RuntimeRequirementsDependencyMode::CompatibilityRequire
+      | RuntimeRequirementsDependencyMode::Call => {
         "range".hash(state);
         self.range.hash(state);
         "mode".hash(state);
@@ -145,6 +148,13 @@ impl RuntimeRequirementsDependency {
       range,
       runtime_requirements,
       mode: RuntimeRequirementsDependencyMode::Call,
+    }
+  }
+  pub fn compatibility_require(range: DependencyRange) -> Self {
+    Self {
+      range,
+      runtime_requirements: RuntimeGlobals::REQUIRE,
+      mode: RuntimeRequirementsDependencyMode::CompatibilityRequire,
     }
   }
   pub fn add_only(runtime_requirements: RuntimeGlobals) -> Self {
@@ -232,6 +242,17 @@ impl DependencyTemplate for RuntimeRequirementsDependencyTemplate {
         .runtime_template
         .runtime_requirements_mut()
         .insert(dep.runtime_requirements);
+      return;
+    }
+
+    if matches!(
+      &dep.mode,
+      RuntimeRequirementsDependencyMode::CompatibilityRequire
+    ) {
+      let content = code_generatable_context
+        .runtime_template
+        .render_compatibility_require();
+      source.replace(dep.range.start, dep.range.end, content, None);
       return;
     }
 

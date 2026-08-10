@@ -7,7 +7,7 @@ use rspack_core::{
   AffectType, AsContextDependency, AsModuleDependency, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
   DependencyTemplateType, DependencyType, ExportsArgument, ModuleArgument, ModuleCodeTemplate,
-  RuntimeGlobals, TemplateContext, TemplateReplaceSource,
+  TemplateContext, TemplateReplaceSource,
 };
 use rspack_util::{atom::Atom, json_stringify_str};
 
@@ -83,7 +83,7 @@ impl Branch {
         format!(
           "!(__rspack_amd_exports = (#).call({exports}, {require}, {exports}, {module}),
 		__rspack_amd_exports !== undefined && ({module}.exports = __rspack_amd_exports))",
-          require = runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
+          require = runtime_template.render_compatibility_require(),
           exports = runtime_template.render_exports_argument(ExportsArgument::Exports),
           module = runtime_template.render_module_argument(ModuleArgument::Module),
         )
@@ -96,7 +96,7 @@ impl Branch {
 		(__rspack_amd_factory.call({exports}, {require}, {exports}, {module})) :
 		__rspack_amd_factory),
 		__rspack_amd_exports !== undefined && ({module}.exports = __rspack_amd_exports))",
-          require = runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
+          require = runtime_template.render_compatibility_require(),
           exports = runtime_template.render_exports_argument(ExportsArgument::Exports),
           module = runtime_template.render_module_argument(ModuleArgument::Module),
         )
@@ -121,7 +121,7 @@ impl Branch {
           "!({var_name}module = {{ id: {module_id}, exports: {{}}, loaded: false }}, {var_name} = (#).call({var_name}module.exports, {require}, {var_name}module.exports, {var_name}module), {var_name}module.loaded = true, {var_name} === undefined && ({var_name} = {var_name}module.exports))",
           var_name = local_module_var,
           module_id = json_stringify_str(named_module),
-          require = runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
+          require = runtime_template.render_compatibility_require(),
         )
       }
       l_o if l_o == (Branch::L | Branch::O) => format!("!({local_module_var} = #)"),
@@ -130,7 +130,7 @@ impl Branch {
           "!({var_name}factory = (#), (typeof {var_name}factory === 'function' ? (({var_name}module = {{ id: {module_id}, exports: {{}}, loaded: false }}), ({var_name} = {var_name}factory.call({var_name}module.exports, {require}, {var_name}module.exports, {var_name}module)), ({var_name}module.loaded = true), {var_name} === undefined && ({var_name} = {var_name}module.exports)) : {var_name} = {var_name}factory))",
           var_name = local_module_var,
           module_id = json_stringify_str(named_module),
-          require = runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
+          require = runtime_template.render_compatibility_require(),
         )
       }
       l_a_f if l_a_f == (Branch::L | Branch::A | Branch::F) => format!("!(__rspack_amd_deps = #, {local_module_var} = (#).apply({local_module_var}exports = {{}}, __rspack_amd_deps), {local_module_var} === undefined && ({local_module_var} = {local_module_var}exports))"),

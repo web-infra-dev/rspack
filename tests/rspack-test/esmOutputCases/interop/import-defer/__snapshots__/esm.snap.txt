@@ -1,0 +1,697 @@
+```mjs title=a.mjs
+import { __webpack_require__ } from "./runtime.mjs";
+var __esm = (fn, result) => function __init() {
+	if (fn) {
+		var value = fn(fn = 0);
+		result = value && typeof value.then === "function" ? value.then(value => result = value) : value;
+	}
+	return result;
+};
+// NAMESPACE OBJECT: ./context/a.js
+var a_namespaceObject = {};
+__webpack_require__.r(a_namespaceObject);
+var a_namespaceObject_esm = Object.create(null);
+if (typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+  Object.defineProperty(a_namespaceObject_esm, Symbol.toStringTag, { value: 'Module' });
+}
+var a_namespaceObject_getters = {
+  value: () => (value)
+};
+__webpack_require__.d(a_namespaceObject, a_namespaceObject_getters);
+__webpack_require__.d(a_namespaceObject_esm, a_namespaceObject_getters);
+Object.preventExtensions(a_namespaceObject_esm);
+
+
+// ./context/a.js
+var value;
+var a_init = /*#__PURE__*/ __esm(() => {
+globalThis.__modern_module_defer_events__.push("context");
+
+( value = 5);;
+
+});
+
+export { a_init, a_namespaceObject_esm as a_namespaceObject };
+
+```
+
+```mjs title=async-dependency.mjs
+import { __webpack_require__ } from "./runtime.mjs";
+var __esm = (fn, result) => function __init() {
+	if (fn) {
+		var value = fn(fn = 0);
+		result = value && typeof value.then === "function" ? value.then(value => result = value) : value;
+	}
+	return result;
+};
+// NAMESPACE OBJECT: ./context/async-dependency.js
+var async_dependency_namespaceObject = {};
+__webpack_require__.r(async_dependency_namespaceObject);
+var async_dependency_namespaceObject_esm = Object.create(null);
+if (typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+  Object.defineProperty(async_dependency_namespaceObject_esm, Symbol.toStringTag, { value: 'Module' });
+}
+Object.preventExtensions(async_dependency_namespaceObject_esm);
+
+
+// ./context/async-dependency.js
+var dependency;
+var async_dependency_init = /*#__PURE__*/ __esm(async () => {
+await new Promise((resolve) => setTimeout(resolve, 10));
+globalThis.__modern_module_defer_events__.push("context-async-dependency");
+
+( dependency = 7);;
+
+});
+
+export { async_dependency_init, async_dependency_namespaceObject_esm as async_dependency_namespaceObject };
+
+```
+
+```mjs title=async-parent.mjs
+import { __webpack_require__ } from "./runtime.mjs";
+import { async_dependency_init } from "./async-dependency.mjs";
+
+var __esm = (fn, result) => function __init() {
+	if (fn) {
+		var value = fn(fn = 0);
+		result = value && typeof value.then === "function" ? value.then(value => result = value) : value;
+	}
+	return result;
+};
+// NAMESPACE OBJECT: ./context/async-parent.js
+var async_parent_namespaceObject = {};
+__webpack_require__.r(async_parent_namespaceObject);
+var async_parent_namespaceObject_esm = Object.create(null);
+if (typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+  Object.defineProperty(async_parent_namespaceObject_esm, Symbol.toStringTag, { value: 'Module' });
+}
+var async_parent_namespaceObject_getters = {
+  value: () => (value)
+};
+__webpack_require__.d(async_parent_namespaceObject, async_parent_namespaceObject_getters);
+__webpack_require__.d(async_parent_namespaceObject_esm, async_parent_namespaceObject_getters);
+Object.preventExtensions(async_parent_namespaceObject_esm);
+
+
+// ./context/async-parent.js
+var value;
+var async_parent_init = /*#__PURE__*/ __esm(async () => {
+	var __rspack_async_dependency;
+	if ((__rspack_async_dependency = async_dependency_init()) && typeof __rspack_async_dependency.then === "function") await __rspack_async_dependency;
+
+
+globalThis.__modern_module_defer_events__.push("context-async-parent");
+
+( value = (/* inlined export .dependency */7));;
+
+});
+
+export { async_parent_init, async_parent_namespaceObject_esm as async_parent_namespaceObject };
+
+```
+
+```mjs title=dynamic-async-dependency.mjs
+var __esm = (fn, result) => function __init() {
+	if (fn) {
+		var value = fn(fn = 0);
+		result = value && typeof value.then === "function" ? value.then(value => result = value) : value;
+	}
+	return result;
+};
+// ./dynamic-async-dependency.js
+var dependency;
+var dynamic_async_dependency_init = /*#__PURE__*/ __esm(async () => {
+await Promise.resolve();
+globalThis.__modern_module_defer_events__.push("dynamic-async-dependency");
+
+( dependency = 6);;
+
+});
+
+export { dynamic_async_dependency_init };
+
+```
+
+```mjs title=dynamic-async-parent.mjs
+import { __webpack_require__ } from "./runtime.mjs";
+import { dynamic_async_dependency_init } from "./dynamic-async-dependency.mjs";
+
+var __esm = (fn, result) => function __init() {
+	if (fn) {
+		var value = fn(fn = 0);
+		result = value && typeof value.then === "function" ? value.then(value => result = value) : value;
+	}
+	return result;
+};
+// NAMESPACE OBJECT: ./dynamic-async-parent.js
+var dynamic_async_parent_namespaceObject = {};
+__webpack_require__.r(dynamic_async_parent_namespaceObject);
+var dynamic_async_parent_namespaceObject_esm = Object.create(null);
+if (typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+  Object.defineProperty(dynamic_async_parent_namespaceObject_esm, Symbol.toStringTag, { value: 'Module' });
+}
+var dynamic_async_parent_namespaceObject_getters = {
+  value: () => (value)
+};
+__webpack_require__.d(dynamic_async_parent_namespaceObject, dynamic_async_parent_namespaceObject_getters);
+__webpack_require__.d(dynamic_async_parent_namespaceObject_esm, dynamic_async_parent_namespaceObject_getters);
+Object.preventExtensions(dynamic_async_parent_namespaceObject_esm);
+
+
+// ./dynamic-async-parent.js
+var value;
+var dynamic_async_parent_init = /*#__PURE__*/ __esm(async () => {
+	var __rspack_async_dependency;
+	if ((__rspack_async_dependency = dynamic_async_dependency_init()) && typeof __rspack_async_dependency.then === "function") await __rspack_async_dependency;
+
+
+globalThis.__modern_module_defer_events__.push("dynamic-async-parent");
+
+( value = (/* inlined export .dependency */6));;
+
+});
+
+export { dynamic_async_parent_init, dynamic_async_parent_namespaceObject_esm as dynamic_async_parent_namespaceObject, value };
+
+```
+
+```mjs title=dynamic-own-tla.mjs
+import { __webpack_require__ } from "./runtime.mjs";
+var __esm = (fn, result) => function __init() {
+	if (fn) {
+		var value = fn(fn = 0);
+		result = value && typeof value.then === "function" ? value.then(value => result = value) : value;
+	}
+	return result;
+};
+// NAMESPACE OBJECT: ./dynamic-own-tla.js
+var dynamic_own_tla_namespaceObject = {};
+__webpack_require__.r(dynamic_own_tla_namespaceObject);
+var dynamic_own_tla_namespaceObject_esm = Object.create(null);
+if (typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+  Object.defineProperty(dynamic_own_tla_namespaceObject_esm, Symbol.toStringTag, { value: 'Module' });
+}
+var dynamic_own_tla_namespaceObject_getters = {
+  value: () => (value)
+};
+__webpack_require__.d(dynamic_own_tla_namespaceObject, dynamic_own_tla_namespaceObject_getters);
+__webpack_require__.d(dynamic_own_tla_namespaceObject_esm, dynamic_own_tla_namespaceObject_getters);
+Object.preventExtensions(dynamic_own_tla_namespaceObject_esm);
+
+
+// ./dynamic-own-tla.js
+var value;
+var dynamic_own_tla_init = /*#__PURE__*/ __esm(async () => {
+await new Promise((resolve) => setTimeout(resolve, 10));
+globalThis.__modern_module_defer_events__.push("dynamic-own-tla");
+
+( value = 10);;
+
+});
+
+export { dynamic_own_tla_init, dynamic_own_tla_namespaceObject_esm as dynamic_own_tla_namespaceObject, value };
+
+```
+
+```mjs title=dynamic.mjs
+import { __webpack_require__ } from "./runtime.mjs";
+var __esm = (fn, result) => function __init() {
+	if (fn) {
+		var value = fn(fn = 0);
+		result = value && typeof value.then === "function" ? value.then(value => result = value) : value;
+	}
+	return result;
+};
+// NAMESPACE OBJECT: ./dynamic.js
+var dynamic_namespaceObject = {};
+__webpack_require__.r(dynamic_namespaceObject);
+var dynamic_namespaceObject_esm = Object.create(null);
+if (typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+  Object.defineProperty(dynamic_namespaceObject_esm, Symbol.toStringTag, { value: 'Module' });
+}
+var dynamic_namespaceObject_getters = {
+  value: () => (value)
+};
+__webpack_require__.d(dynamic_namespaceObject, dynamic_namespaceObject_getters);
+__webpack_require__.d(dynamic_namespaceObject_esm, dynamic_namespaceObject_getters);
+Object.preventExtensions(dynamic_namespaceObject_esm);
+
+
+// ./dynamic.js
+var value;
+var dynamic_init = /*#__PURE__*/ __esm(() => {
+globalThis.__modern_module_defer_events__.push("dynamic");
+
+( value = 4);;
+
+});
+
+export { dynamic_init, dynamic_namespaceObject_esm as dynamic_namespaceObject, value };
+
+```
+
+```mjs title=main.mjs
+import { __webpack_require__ } from "./runtime.mjs";
+import { events, state_reset, state_init, async_dependency_init } from "./static-async-dependency.mjs";
+
+var __esm = (fn, result) => function __init() {
+	if (fn) {
+		var value = fn(fn = 0);
+		result = value && typeof value.then === "function" ? value.then(value => result = value) : value;
+	}
+	return result;
+};
+var __cjs = (factory, module) => function __require() {
+	if (module === undefined) {
+		module = { exports: {} };
+		factory.call(module.exports, module, module.exports);
+	}
+	return module.exports;
+};
+var require__referencedExports_value_groupOptions_namespace_object_importPhase_defer = /*#__PURE__*/ __cjs(function(module, exports) {
+
+/*!***************************************************************************************************************!*\
+  !*** ./context|lazy|/^\.\/.*$/|referencedExports: value|groupOptions: {}|namespace object|importPhase: defer ***!
+  \***************************************************************************************************************/
+function __rspack_context_load(id) {
+  switch (id) {
+		case "./context/a.js": return [1, import("./a.mjs").then(m => () => (m.a_init(), m.a_namespaceObject))];
+		case "./context/async-dependency.js": return [0, import("./async-dependency.mjs").then(m => Promise.resolve(m.async_dependency_init()).then(() => m.async_dependency_namespaceObject))];
+		case "./context/async-parent.js": return [1, Promise.resolve(import("./async-parent.mjs").then(m => () => (m.async_parent_init(), m.async_parent_namespaceObject))).then(load => Promise.all([import("./async-dependency.mjs").then(m => m.async_dependency_init())]).then(() => load))];
+		case "./context/own-tla.js": return [0, import("./own-tla.mjs").then(m => Promise.resolve(m.own_tla_init()).then(() => m.own_tla_namespaceObject))];
+    default: throw new Error("Unknown context module '" + id + "'");
+  }
+}
+
+var map = {
+  "./a": "./context/a.js",
+  "./a.js": "./context/a.js",
+  "./async-dependency": "./context/async-dependency.js",
+  "./async-dependency.js": "./context/async-dependency.js",
+  "./async-parent": "./context/async-parent.js",
+  "./async-parent.js": "./context/async-parent.js",
+  "./own-tla": "./context/own-tla.js",
+  "./own-tla.js": "./context/own-tla.js"
+};
+
+function __rspack_async_context(req) {
+  if(!__webpack_require__.o(map, req)) {
+    return Promise.resolve().then(function() {
+      var e = new Error("Cannot find module '" + req + "'");
+      e.code = 'MODULE_NOT_FOUND';
+      throw e;
+    });
+  }
+  var id = map[req];
+  return Promise.resolve(__rspack_context_load(id)).then(plan => Promise.resolve(plan[1]).then(value => plan[0] ? __webpack_require__.z(value, (9) & ~1) : value));
+}
+__rspack_async_context.keys = () => (Object.keys(map));
+__rspack_async_context.id = "./context lazy recursive ^\\.\\/.*$ referencedExports: value";
+module.exports = __rspack_async_context;
+
+});
+
+var require_deferred_cjs = /*#__PURE__*/ __cjs(function(module, exports) {
+
+/*!**************************!*\
+  !*** ./deferred-cjs.cjs ***!
+  \**************************/
+globalThis.__modern_module_defer_events__.push("cjs");
+
+module.exports = { value: 2 };
+
+});
+
+// NAMESPACE OBJECT: ./deferred-async-parent.js
+var deferred_async_parent_namespaceObject = {};
+__webpack_require__.r(deferred_async_parent_namespaceObject);
+__webpack_require__.d(deferred_async_parent_namespaceObject, {
+  U: () => (deferred_async_parent_value)
+});
+
+
+// NAMESPACE OBJECT: ./deferred-esm.js
+var deferred_esm_namespaceObject = {};
+__webpack_require__.r(deferred_esm_namespaceObject);
+__webpack_require__.d(deferred_esm_namespaceObject, {
+  value: () => (value)
+});
+
+
+// NAMESPACE OBJECT: ./deferred-reexport-target.js
+var deferred_reexport_target_namespaceObject = {};
+__webpack_require__.r(deferred_reexport_target_namespaceObject);
+__webpack_require__.d(deferred_reexport_target_namespaceObject, {
+  U: () => (deferred_reexport_target_value)
+});
+
+
+// ./deferred-esm.js
+var value;
+var deferred_esm_init = /*#__PURE__*/ __esm(() => {
+globalThis.__modern_module_defer_events__.push("esm");
+
+( value = 1);;
+
+});
+
+// ./deferred-async-parent.js
+var deferred_async_parent_value;
+var deferred_async_parent_init = /*#__PURE__*/ __esm(async () => {
+	var __rspack_async_dependency;
+	if ((__rspack_async_dependency = async_dependency_init()) && typeof __rspack_async_dependency.then === "function") await __rspack_async_dependency;
+
+
+globalThis.__modern_module_defer_events__.push("async-parent");
+
+( deferred_async_parent_value = (/* inlined export .dependency */3));;
+
+});
+
+// ./deferred-reexport-target.js
+var deferred_reexport_target_value;
+var deferred_reexport_target_init = /*#__PURE__*/ __esm(() => {
+globalThis.__modern_module_defer_events__.push("reexport");
+
+( deferred_reexport_target_value = 8);;
+
+});
+
+// ./reexport.js
+var _deferred_reexport_target__rspack_DEFERRED_import_0_deferred_namespace_object = /*#__PURE__*/__webpack_require__.z(() => (deferred_reexport_target_init(), deferred_reexport_target_namespaceObject), 8);
+/* deferred import */ var _deferred_reexport_target__rspack_DEFERRED_import_0 = /*#__PURE__*/__webpack_require__.zO(() => (deferred_reexport_target_init(), deferred_reexport_target_namespaceObject), 8);
+
+
+
+
+// ./index.js
+	state_init();
+var _deferred_esm__rspack_DEFERRED_import_0_deferred_namespace_cache;
+/* deferred import */ var _deferred_esm__rspack_DEFERRED_import_0 = /*#__PURE__*/__webpack_require__.zO(() => (deferred_esm_init(), deferred_esm_namespaceObject), 8);
+/* deferred import */ var _deferred_cjs_cjs__rspack_DEFERRED_import_1 = /*#__PURE__*/__webpack_require__.zO(() => require_deferred_cjs(), 6);
+/* deferred import */ var _deferred_async_parent__rspack_DEFERRED_import_2 = /*#__PURE__*/__webpack_require__.zO(() => (deferred_async_parent_init(), deferred_async_parent_namespaceObject), 8);
+await Promise.all([() => async_dependency_init()].map(initialize => initialize()));
+
+
+
+
+
+
+it("should preserve lazy evaluation without a module dispatcher", async () => {
+	expect(events).toEqual(["async-dependency"]);
+	expect(Object.prototype.toString.call(/*#__PURE__*/ (_deferred_esm__rspack_DEFERRED_import_0_deferred_namespace_cache || (_deferred_esm__rspack_DEFERRED_import_0_deferred_namespace_cache = __webpack_require__.z(() => _deferred_esm__rspack_DEFERRED_import_0.a, 8))))).toBe(
+		"[object Deferred Module]",
+	);
+	expect(events).toEqual(["async-dependency"]);
+
+	expect(_deferred_esm__rspack_DEFERRED_import_0.a.value).toBe(1);
+	expect(_deferred_cjs_cjs__rspack_DEFERRED_import_1.a.value).toBe(2);
+	expect(_deferred_async_parent__rspack_DEFERRED_import_2.a/* .value */.U).toBe(3);
+	expect(_deferred_reexport_target__rspack_DEFERRED_import_0_deferred_namespace_object.U).toBe(8);
+	expect(events).toEqual([
+		"async-dependency",
+		"esm",
+		"cjs",
+		"async-parent",
+		"reexport",
+	]);
+
+	state_reset();
+	const dynamic = await import("./dynamic.mjs").then(m => () => (m.dynamic_init(), m.dynamic_namespaceObject)).then(load => /*#__PURE__*/__webpack_require__.z(load, 8));
+	expect(events).toEqual([]);
+	expect(dynamic.value).toBe(4);
+	expect(events).toEqual(["dynamic"]);
+
+	state_reset();
+	const dynamicAsync = await import("./dynamic-async-parent.mjs").then(m => () => (m.dynamic_async_parent_init(), m.dynamic_async_parent_namespaceObject)).then(load => Promise.all([import("./dynamic-async-dependency.mjs").then(m => m.dynamic_async_dependency_init())]).then(() => load)).then(load => /*#__PURE__*/__webpack_require__.z(load, 8));
+	expect(events).toEqual(["dynamic-async-dependency"]);
+	expect(dynamicAsync.value).toBe(6);
+	expect(events).toEqual([
+		"dynamic-async-dependency",
+		"dynamic-async-parent",
+	]);
+
+	state_reset();
+	const dynamicOwnTla = await import("./dynamic-own-tla.mjs").then(m => Promise.resolve(m.dynamic_own_tla_init()).then(() => m.dynamic_own_tla_namespaceObject));
+	expect(events).toEqual(["dynamic-own-tla"]);
+	expect(dynamicOwnTla.value).toBe(10);
+
+	state_reset();
+	const request = "a";
+	const context = await require__referencedExports_value_groupOptions_namespace_object_importPhase_defer()(`./${request}`);
+	expect(events).toEqual([]);
+	expect(context.value).toBe(5);
+	expect(events).toEqual(["context"]);
+
+	state_reset();
+	const asyncRequest = "async-parent";
+	const asyncContext = await require__referencedExports_value_groupOptions_namespace_object_importPhase_defer()(`./${asyncRequest}`);
+	expect(events).toEqual(["context-async-dependency"]);
+	expect(asyncContext.value).toBe(7);
+	expect(events).toEqual([
+		"context-async-dependency",
+		"context-async-parent",
+	]);
+
+	state_reset();
+	const ownTlaRequest = "own-tla";
+	const ownTlaContext = await require__referencedExports_value_groupOptions_namespace_object_importPhase_defer()(`./${ownTlaRequest}`);
+	expect(events).toEqual(["context-own-tla"]);
+	expect(ownTlaContext.value).toBe(11);
+
+	const loadExternal = () => import("node:module").then(function(module) { return /*#__PURE__*/__webpack_require__.z(function() { return module.createRequire(import.meta.url)("<TEST_ROOT>/esmOutputCases/interop/import-defer/deferred-external.cjs"); }, 6); });
+	expect(typeof loadExternal).toBe("function");
+});
+
+export {};
+
+```
+
+```mjs title=own-tla.mjs
+import { __webpack_require__ } from "./runtime.mjs";
+var __esm = (fn, result) => function __init() {
+	if (fn) {
+		var value = fn(fn = 0);
+		result = value && typeof value.then === "function" ? value.then(value => result = value) : value;
+	}
+	return result;
+};
+// NAMESPACE OBJECT: ./context/own-tla.js
+var own_tla_namespaceObject = {};
+__webpack_require__.r(own_tla_namespaceObject);
+var own_tla_namespaceObject_esm = Object.create(null);
+if (typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+  Object.defineProperty(own_tla_namespaceObject_esm, Symbol.toStringTag, { value: 'Module' });
+}
+var own_tla_namespaceObject_getters = {
+  value: () => (value)
+};
+__webpack_require__.d(own_tla_namespaceObject, own_tla_namespaceObject_getters);
+__webpack_require__.d(own_tla_namespaceObject_esm, own_tla_namespaceObject_getters);
+Object.preventExtensions(own_tla_namespaceObject_esm);
+
+
+// ./context/own-tla.js
+var value;
+var own_tla_init = /*#__PURE__*/ __esm(async () => {
+await new Promise((resolve) => setTimeout(resolve, 10));
+globalThis.__modern_module_defer_events__.push("context-own-tla");
+
+( value = 11);;
+
+});
+
+export { own_tla_init, own_tla_namespaceObject_esm as own_tla_namespaceObject };
+
+```
+
+```mjs title=runtime.mjs
+// The require scope
+var __webpack_require__ = {};
+
+// webpack/runtime/create_fake_namespace_object
+(() => {
+var getProto = Object.getPrototypeOf ? (obj) => (Object.getPrototypeOf(obj)) : (obj) => (obj.__proto__);
+var leafPrototypes;
+// create a fake namespace object
+// mode & 1: value is a module id, require it
+// mode & 2: merge all properties of value into the ns
+// mode & 4: return value when already ns object
+// mode & 16: return value when it's Promise-like
+// mode & 8|1: behave like require
+__webpack_require__.t = function(value, mode) {
+	if(mode & 1) value = this(value);
+	if(mode & 8) return value;
+	if(typeof value === 'object' && value) {
+		if((mode & 4) && value.__esModule) return value;
+		if((mode & 16) && typeof value.then === 'function') return value;
+	}
+	var ns = Object.create(null);
+  __webpack_require__.r(ns);
+	var def = {};
+	leafPrototypes = leafPrototypes || [null, getProto({}), getProto([]), getProto(getProto)];
+	for(var current = mode & 2 && value; (typeof current == 'object' || typeof current == 'function') && !~leafPrototypes.indexOf(current); current = getProto(current)) {
+		Object.getOwnPropertyNames(current).forEach((key) => { def[key] = () => (value[key]) });
+	}
+	def['default'] = () => (value);
+	__webpack_require__.d(ns, def);
+	return ns;
+};
+})();
+// webpack/runtime/define_property_getters
+(() => {
+__webpack_require__.d = (exports, getters, values) => {
+	var define = (defs, kind) => {
+		for(var key in defs) {
+			if(__webpack_require__.o(defs, key) && !__webpack_require__.o(exports, key)) {
+				Object.defineProperty(exports, key, { enumerable: true, [kind]: defs[key] });
+			}
+		}
+	};
+	define(getters, "get");
+	define(values, "value");
+};
+})();
+// webpack/runtime/has_own_property
+(() => {
+__webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
+})();
+// webpack/runtime/make_deferred_namespace_object
+(() => {
+__webpack_require__.z = (load, mode) => {
+
+  var init = () => {
+    ns = load();
+
+    init = null;
+
+    if (!(mode & 8 || mode & 4 && ns.__esModule && typeof ns === 'object')) {
+      ns = __webpack_require__.t(ns, mode);
+    }
+
+  };
+  var ns = { __proto__: null };
+  var handler = {
+    __proto__: null,
+    get: (_, name) => {
+      switch (name) {
+        case "__esModule": return true;
+        case Symbol.toStringTag: return "Deferred Module";
+        case "then": return undefined;
+      }
+      if (init) init();
+      return ns[name];
+    },
+    has: (_, name) => {
+	switch (name) {
+		case "__esModule":
+		case Symbol.toStringTag: return true;
+		case "then": return false;
+	}
+	if (init) init();
+	return name in ns;
+    },
+    ownKeys: (_) => {
+	if (init) init();
+	var keys = Reflect.ownKeys(ns).filter((x) => (x !== "then" && x !== Symbol.toStringTag)).concat([Symbol.toStringTag]);
+	return keys;
+    },
+    getOwnPropertyDescriptor: (_, name) => {
+	switch (name) {
+		case "__esModule": return { value: true, configurable: true };
+		case Symbol.toStringTag: return { value: "Deferred Module", configurable: true };
+		case "then": return undefined;
+	}
+	if (init) init();
+	var desc = Reflect.getOwnPropertyDescriptor(ns, name);
+	if (mode & 2 && name == "default" && !desc) {
+		desc = { value: ns, configurable: true };
+	}
+		if (desc && !desc.configurable) desc = Object.assign({}, desc, { configurable: true });
+	return desc;
+    },
+    defineProperty: (_, name) => {
+	if (init) init();
+	return false;
+    },
+    deleteProperty: () => (false),
+    set: () => (false),
+	preventExtensions: () => (false),
+  };
+  return new Proxy(ns, handler);
+}
+
+})();
+// webpack/runtime/make_namespace_object
+(() => {
+// define __esModule on exports
+__webpack_require__.r = (exports) => {
+	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+	}
+	Object.defineProperty(exports, '__esModule', { value: true });
+};
+})();
+// webpack/runtime/make_optimized_deferred_namespace_object
+(() => {
+__webpack_require__.zO = function(load, mode, asyncDeps) {
+
+
+	var obj = {
+		get a() {
+			var exports = load();
+
+			// if exportsType is "namespace" we can generate the most optimized code,
+			// on the second access, we can avoid trigger the getter.
+			// we can also do this if exportsType is "dynamic" and there is a "__esModule" property on it.
+			if (mode & 8 || (mode & 4 && exports.__esModule)) Object.defineProperty(this, "a", { value: exports });
+			return exports;
+		}
+	};
+
+	return obj;
+};
+
+})();
+
+export { __webpack_require__ };
+
+```
+
+```mjs title=static-async-dependency.mjs
+var __esm = (fn, result) => function __init() {
+	if (fn) {
+		var value = fn(fn = 0);
+		result = value && typeof value.then === "function" ? value.then(value => result = value) : value;
+	}
+	return result;
+};
+// ./state.js
+var events;
+function state_reset() {
+	events.length = 0;
+}
+var state_init = /*#__PURE__*/ __esm(() => {
+( events = (globalThis.__modern_module_defer_events__ = []));;
+
+
+
+});
+
+// ./async-dependency.js
+var dependency;
+var async_dependency_init = /*#__PURE__*/ __esm(async () => {
+	state_init();
+
+
+await Promise.resolve();
+globalThis.__modern_module_defer_events__.push("async-dependency");
+
+( dependency = 3);;
+
+});
+
+export { async_dependency_init, events, state_init, state_reset };
+
+```

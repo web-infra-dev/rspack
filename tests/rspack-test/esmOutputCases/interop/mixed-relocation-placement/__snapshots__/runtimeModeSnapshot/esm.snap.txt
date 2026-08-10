@@ -1,0 +1,64 @@
+```mjs title=main.mjs
+import { compatGetDefaultExport } from "./runtime.mjs";
+var __cjs = (factory, module) => function __require() {
+	if (module === undefined) {
+		module = { exports: {} };
+		factory.call(module.exports, module, module.exports);
+	}
+	return module.exports;
+};
+var require_shared = /*#__PURE__*/ __cjs(function(module, exports) {
+
+/*!*******************!*\
+  !*** ./shared.js ***!
+  \*******************/
+module.exports = { value: 42 };
+
+});
+
+// ./index.js
+const shared_0 = require_shared();
+var shared_0_default = /*#__PURE__*/compatGetDefaultExport(shared_0);
+
+
+const required = require_shared();
+
+it("should relocate ESM and CommonJS references to the same initializer", () => {
+	expect((shared_0_default())).toBe(required);
+	expect(required.value).toBe(42);
+});
+
+export {};
+
+```
+
+```mjs title=runtime.mjs
+
+// rspack/runtime/compat_get_default_export
+// getDefaultExport function for compatibility with non-ESM modules
+var compatGetDefaultExport = (module) => {
+	var getter = module && module.__esModule ?
+		() => (module['default']) :
+		() => (module);
+	definePropertyGetters(getter, { a: getter });
+	return getter;
+};
+;
+export { compatGetDefaultExport };
+// rspack/runtime/define_property_getters
+var definePropertyGetters = (exports, getters, values) => {
+	var define = (defs, kind) => {
+		for(var key in defs) {
+			if(hasOwnProperty(defs, key) && !hasOwnProperty(exports, key)) {
+				Object.defineProperty(exports, key, { enumerable: true, [kind]: defs[key] });
+			}
+		}
+	};
+	define(getters, "get");
+	define(values, "value");
+};;
+// rspack/runtime/has_own_property
+var hasOwnProperty = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop));
+
+
+```

@@ -3,15 +3,19 @@ use rspack_cacheable::{
   with::{AsCacheable, AsOption, AsPreset, AsVec},
 };
 use rspack_core::{
-  AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
-  DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, ExportsInfoArtifact,
-  FactorizeInfo, ImportAttributes, ImportPhase, ModuleDependency, ModuleGraphCacheArtifact,
-  ReferencedSpecifier, ResourceIdentifier, TemplateContext, TemplateReplaceSource,
-  create_exports_object_referenced, create_referenced_exports_by_referenced_specifiers,
+  AsContextDependency, CodeGenerationModuleReferenceKind, Dependency, DependencyCategory,
+  DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
+  DependencyTemplateType, DependencyType, ExportsInfoArtifact, FactorizeInfo, ImportAttributes,
+  ImportPhase, ModuleDependency, ModuleGraphCacheArtifact, ReferencedSpecifier, ResourceIdentifier,
+  RuntimeGlobals, TemplateContext, TemplateReplaceSource, create_exports_object_referenced,
+  create_referenced_exports_by_referenced_specifiers,
 };
 use swc_atoms::Atom;
 
-use super::create_resource_identifier_for_esm_dependency;
+use super::{
+  create_resource_identifier_for_esm_dependency, get_dynamic_import_exports_type,
+  get_value_fake_namespace_object_mode,
+};
 
 // Align with webpack's ImportWeakDependency:
 // https://github.com/webpack/webpack/blob/2944286213cf1b3697a1c8dd41ffd3f8ada99448/lib/dependencies/ImportWeakDependency.js
@@ -197,6 +201,44 @@ impl DependencyTemplate for ImportWeakDependencyTemplate {
       .expect("ImportWeakDependencyTemplate should only be used for ImportWeakDependency");
 
     let module_graph = code_generatable_context.compilation.get_module_graph();
+    if code_generatable_context.is_modern_module_output() {
+      let Some(loader) = code_generatable_context
+        .create_module_relocation(dep.id, CodeGenerationModuleReferenceKind::WeakValue)
+      else {
+        source.replace(
+          dep.range.start,
+          dep.range.end,
+          code_generatable_context
+            .runtime_template
+            .missing_module_promise(&dep.request),
+          None,
+        );
+        return;
+      };
+      let mut expression = format!(
+        r#"Promise.resolve({loader}).then(function(load) {{
+ if (!load) {{
+  var e = new Error('Module is not available (weak dependency), request is {}'); e.code = 'MODULE_NOT_FOUND'; throw e;
+ }}
+ return load();
+}})"#,
+        dep.request
+      );
+      if let Some(mode) = get_value_fake_namespace_object_mode(get_dynamic_import_exports_type(
+        code_generatable_context,
+        &dep.id,
+      )) {
+        expression.push_str(&format!(
+          ".then(function(m) {{ return {}(m, {mode}); }})",
+          code_generatable_context
+            .runtime_template
+            .render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT)
+        ));
+      }
+      source.replace(dep.range.start, dep.range.end, expression, None);
+      return;
+    }
+
     let block = module_graph.get_parent_block(&dep.id);
     source.replace(
       dep.range.start,

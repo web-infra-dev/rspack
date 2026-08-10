@@ -1,20 +1,60 @@
 ```mjs title=empty.mjs
+import { __webpack_require__ } from "./runtime.mjs";
+var __esm = (fn, result) => function __init() {
+	if (fn) {
+		var value = fn(fn = 0);
+		result = value && typeof value.then === "function" ? value.then(value => result = value) : value;
+	}
+	return result;
+};
+// NAMESPACE OBJECT: ./empty.js
+var empty_namespaceObject = {};
+__webpack_require__.r(empty_namespaceObject);
+var empty_namespaceObject_esm = Object.create(null);
+if (typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+  Object.defineProperty(empty_namespaceObject_esm, Symbol.toStringTag, { value: 'Module' });
+}
+Object.preventExtensions(empty_namespaceObject_esm);
+
+
 // ./empty.js
+var empty_init = /*#__PURE__*/ __esm(() => {
 
 
-export {};
+});
+
+export { empty_init, empty_namespaceObject_esm as empty_namespaceObject };
 
 ```
 
 ```mjs title=main.mjs
 // ./index.js
 it("should keep an empty async chunk as ESM", async () => {
-  const mod = await import("./empty.mjs");
+  const mod = await import("./empty.mjs").then(m => (m.empty_init(), m.empty_namespaceObject));
 
   expect(typeof mod).toBe("object");
   expect(Object.keys(mod).filter((key) => key !== "__esModule")).toHaveLength(0);
 });
 
 export {};
+
+```
+
+```mjs title=runtime.mjs
+// The require scope
+var __webpack_require__ = {};
+
+// webpack/runtime/make_namespace_object
+(() => {
+// define __esModule on exports
+__webpack_require__.r = (exports) => {
+	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+	}
+	Object.defineProperty(exports, '__esModule', { value: true });
+};
+})();
+
+export { __webpack_require__ };
 
 ```

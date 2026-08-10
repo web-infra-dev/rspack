@@ -106,7 +106,7 @@ impl DependencyTemplate for RequireEnsureDependencyTemplate {
           ").bind(null, {}))['catch'](",
           code_generatable_context
             .runtime_template
-            .render_runtime_globals(&RuntimeGlobals::REQUIRE)
+            .render_compatibility_require()
         ),
         None,
       );
@@ -119,7 +119,7 @@ impl DependencyTemplate for RequireEnsureDependencyTemplate {
           ").bind(null, {}))['catch']({})",
           code_generatable_context
             .runtime_template
-            .render_runtime_globals(&RuntimeGlobals::REQUIRE),
+            .render_compatibility_require(),
           code_generatable_context
             .runtime_template
             .render_runtime_globals(&RuntimeGlobals::UNCAUGHT_ERROR_HANDLER)

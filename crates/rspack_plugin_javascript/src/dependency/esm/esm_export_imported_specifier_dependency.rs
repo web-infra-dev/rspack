@@ -580,6 +580,7 @@ impl ESMExportImportedSpecifierDependency {
         ctxt.init_fragments.push(init_fragment);
       }
       ExportMode::ReexportNamespaceObject(mode) => {
+        let export_name = mode.name.clone();
         let exports_info = exports_info_artifact.get_exports_info_data(&module_identifier);
         let used_name = exports_info.get_used_name(
           exports_info_artifact,
@@ -602,13 +603,16 @@ impl ESMExportImportedSpecifierDependency {
           let (namespace_cache, namespace_expr) = self
             .get_reexport_deferred_namespace_object_fragments(
               ctxt,
+              export_name,
               key,
               &import_var,
               target_module.identifier(),
               exports_type,
             );
           ctxt.init_fragments.push(namespace_cache.boxed());
-          ctxt.init_fragments.push(namespace_expr.boxed());
+          if let Some(namespace_expr) = namespace_expr {
+            ctxt.init_fragments.push(namespace_expr.boxed());
+          }
           return;
         }
 
@@ -625,6 +629,7 @@ impl ESMExportImportedSpecifierDependency {
       }
       ExportMode::ReexportFakeNamespaceObject(mode) => {
         // TODO: reexport fake namespace object
+        let export_name = mode.name.clone();
         let exports_info = exports_info_artifact.get_exports_info_data(&module_identifier);
         let used_name = exports_info.get_used_name(
           exports_info_artifact,
@@ -647,13 +652,16 @@ impl ESMExportImportedSpecifierDependency {
           let (namespace_cache, namespace_expr) = self
             .get_reexport_deferred_namespace_object_fragments(
               ctxt,
+              export_name,
               key,
               &import_var,
               target_module.identifier(),
               exports_type,
             );
           ctxt.init_fragments.push(namespace_cache.boxed());
-          ctxt.init_fragments.push(namespace_expr.boxed());
+          if let Some(namespace_expr) = namespace_expr {
+            ctxt.init_fragments.push(namespace_expr.boxed());
+          }
           return;
         }
 
@@ -873,11 +881,20 @@ impl ESMExportImportedSpecifierDependency {
   fn get_reexport_deferred_namespace_object_fragments(
     &self,
     ctxt: &mut TemplateContext,
+    export_name: Atom,
     key: String,
     name: &str,
     target_module: ModuleIdentifier,
     exports_type: ExportsType,
-  ) -> (NormalInitFragment, ESMExportInitFragment) {
+  ) -> (NormalInitFragment, Option<ESMExportInitFragment>) {
+    let module_loader = ctxt.is_modern_module_output().then(|| {
+      ctxt
+        .create_module_relocation(
+          self.id,
+          rspack_core::CodeGenerationModuleReferenceKind::LazyValue,
+        )
+        .expect("deferred reexport target should have a module relocation")
+    });
     let TemplateContext {
       module,
       compilation,
@@ -888,11 +905,32 @@ impl ESMExportImportedSpecifierDependency {
       .circular_modules
       .is_circular_module(&module.identifier());
     let module_id = ChunkGraph::get_module_id(&compilation.module_ids_artifact, target_module);
+    let module_loader = module_loader.unwrap_or_else(|| rspack_util::json_stringify(&module_id));
     let mode = render_make_deferred_namespace_mode_from_exports_type(exports_type);
+    if let Some(scope) = &mut ctxt.concatenation_scope {
+      let binding = format!("{name}_deferred_namespace_object");
+      let declaration = format!(
+        "var {binding} = /*#__PURE__*/{}({}, {});\n",
+        runtime_template.render_runtime_globals(&RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT),
+        module_loader,
+        mode
+      );
+      scope.register_export(export_name, binding);
+      return (
+        NormalInitFragment::new(
+          declaration.clone(),
+          InitFragmentStage::StageConstants,
+          -1,
+          InitFragmentKey::ESMDeferImportNamespaceObjectFragment(declaration),
+          None,
+        ),
+        None,
+      );
+    }
     let value = format!(
       "/* reexport deferred namespace object */ {name}_deferred_namespace_cache || ({name}_deferred_namespace_cache = {}({}, {}))",
       runtime_template.render_runtime_globals(&RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT),
-      json_stringify(&module_id),
+      module_loader,
       mode
     );
     let export_map = vec![(key.into(), ESMExportBinding::Getter(value.into()))];
@@ -906,11 +944,11 @@ impl ESMExportImportedSpecifierDependency {
         InitFragmentKey::ESMDeferImportNamespaceObjectFragment(cache_var),
         None,
       ),
-      ESMExportInitFragment::new(
+      Some(ESMExportInitFragment::new(
         module.get_exports_argument(),
         export_map,
         is_circular_module,
-      ),
+      )),
     )
   }
 
@@ -1525,7 +1563,9 @@ impl Dependency for ESMExportImportedSpecifierDependency {
         );
         referenced_exports
           .into_iter()
-          .map(ReferencedExport::from)
+          .map(|referenced_export| {
+            ReferencedExport::from(referenced_export).with_can_inline(!self.phase.is_defer())
+          })
           .collect::<Vec<_>>()
       }
       ExportMode::NormalReexport(mode) => {
@@ -1546,7 +1586,9 @@ impl Dependency for ESMExportImportedSpecifierDependency {
         }
         referenced_exports
           .into_iter()
-          .map(ReferencedExport::from)
+          .map(|referenced_export| {
+            ReferencedExport::from(referenced_export).with_can_inline(!self.phase.is_defer())
+          })
           .collect::<Vec<_>>()
       }
     }
@@ -1720,6 +1762,7 @@ impl DependencyTemplate for ESMExportImportedSpecifierDependencyTemplate {
       .as_any()
       .downcast_ref::<ESMExportImportedSpecifierDependency>()
       .expect("ESMExportImportedSpecifierDependencyTemplate should only be used for ESMExportImportedSpecifierDependency");
+    let modern_defer = dep.phase.is_defer() && code_generatable_context.is_modern_module_output();
     let TemplateContext {
       compilation,
       runtime,
@@ -1737,7 +1780,9 @@ impl DependencyTemplate for ESMExportImportedSpecifierDependencyTemplate {
       exports_info_artifact,
     );
 
-    if let Some(scope) = concatenation_scope {
+    if let Some(scope) = concatenation_scope
+      && !modern_defer
+    {
       if let ExportMode::ReexportUndefined(mode) = mode {
         scope.register_raw_export(
           mode.name,

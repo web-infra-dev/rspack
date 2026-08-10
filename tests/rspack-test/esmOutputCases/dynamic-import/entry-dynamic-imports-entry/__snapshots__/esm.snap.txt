@@ -1,0 +1,114 @@
+```mjs title=b.mjs
+// The require scope
+var __webpack_require__ = {};
+
+// webpack/runtime/define_property_getters
+(() => {
+__webpack_require__.d = (exports, getters, values) => {
+	var define = (defs, kind) => {
+		for(var key in defs) {
+			if(__webpack_require__.o(defs, key) && !__webpack_require__.o(exports, key)) {
+				Object.defineProperty(exports, key, { enumerable: true, [kind]: defs[key] });
+			}
+		}
+	};
+	define(getters, "get");
+	define(values, "value");
+};
+})();
+// webpack/runtime/has_own_property
+(() => {
+__webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
+})();
+// webpack/runtime/make_namespace_object
+(() => {
+// define __esModule on exports
+__webpack_require__.r = (exports) => {
+	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+	}
+	Object.defineProperty(exports, '__esModule', { value: true });
+};
+})();
+
+var __esm = (fn, result) => function __init() {
+	if (fn) {
+		var value = fn(fn = 0);
+		result = value && typeof value.then === "function" ? value.then(value => result = value) : value;
+	}
+	return result;
+};
+// NAMESPACE OBJECT: ./entry-b.js
+var entry_b_namespaceObject = {};
+__webpack_require__.r(entry_b_namespaceObject);
+var entry_b_namespaceObject_esm = Object.create(null);
+if (typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+  Object.defineProperty(entry_b_namespaceObject_esm, Symbol.toStringTag, { value: 'Module' });
+}
+var entry_b_namespaceObject_getters = {
+  "default": () => (entry_b)
+};
+__webpack_require__.d(entry_b_namespaceObject, entry_b_namespaceObject_getters);
+__webpack_require__.d(entry_b_namespaceObject_esm, entry_b_namespaceObject_getters);
+Object.preventExtensions(entry_b_namespaceObject_esm);
+
+
+// ./entry-b.js
+var entry_b;
+var entry_b_init = /*#__PURE__*/ __esm(() => {
+/* export default */ ( entry_b = (1));;
+
+});
+
+entry_b_init();
+export { entry_b as default, entry_b_init, entry_b_namespaceObject_esm as entry_b_namespaceObject };
+
+```
+
+```mjs title=main.mjs
+// ./entry-a.js
+it("should dynamically import another entry", async () => {
+  const ns = await import("./b.mjs").then(m => (m.entry_b_init(), m.entry_b_namespaceObject));
+  expect(ns.default).toBe(1);
+});
+
+export {};
+
+```
+
+```mjs title=runtime.mjs
+// The require scope
+var __webpack_require__ = {};
+
+// webpack/runtime/define_property_getters
+(() => {
+__webpack_require__.d = (exports, getters, values) => {
+	var define = (defs, kind) => {
+		for(var key in defs) {
+			if(__webpack_require__.o(defs, key) && !__webpack_require__.o(exports, key)) {
+				Object.defineProperty(exports, key, { enumerable: true, [kind]: defs[key] });
+			}
+		}
+	};
+	define(getters, "get");
+	define(values, "value");
+};
+})();
+// webpack/runtime/has_own_property
+(() => {
+__webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
+})();
+// webpack/runtime/make_namespace_object
+(() => {
+// define __esModule on exports
+__webpack_require__.r = (exports) => {
+	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+	}
+	Object.defineProperty(exports, '__esModule', { value: true });
+};
+})();
+
+export {};
+
+```

@@ -5,7 +5,7 @@ use rspack_core::{
   RuntimeModuleGenerateContext, RuntimeTemplate, RuntimeVariable, impl_runtime_module,
 };
 
-use crate::extract_runtime_module_variables_from_ejs;
+use crate::{extract_runtime_module_variables_from_ejs, is_modern_module_library_chunk};
 
 static ASYNC_MODULE_TEMPLATE: &str = include_str!("runtime/async_module.ejs");
 static RUNTIME_MODULE_VARIABLES: LazyLock<Vec<&'static str>> =
@@ -36,11 +36,15 @@ impl RuntimeModule for AsyncRuntimeModule {
       RuntimeGlobalsRenderMode::RspackLexical | RuntimeGlobalsRenderMode::RspackExport => true,
       RuntimeGlobalsRenderMode::Webpack | RuntimeGlobalsRenderMode::RspackContext => false,
     };
+    let uses_direct_initializers = self
+      .chunk()
+      .is_some_and(|chunk| is_modern_module_library_chunk(&chunk, context.compilation));
     runtime_template.render(
       self.id(),
       Some(serde_json::json!({
         "_module_cache": runtime_template.render_runtime_variable(&RuntimeVariable::ModuleCache),
         "_uses_lexical_runtime_globals": uses_lexical_runtime_globals,
+        "_uses_direct_initializers": uses_direct_initializers,
       })),
     )
   }
@@ -50,10 +54,17 @@ impl RuntimeModule for AsyncRuntimeModule {
   }
   fn runtime_requirements(
     &self,
-    _compilation: &Compilation,
+    compilation: &Compilation,
   ) -> rspack_core::RuntimeModuleRuntimeRequirements {
+    let uses_direct_initializers = self
+      .chunk()
+      .is_some_and(|chunk| is_modern_module_library_chunk(&chunk, compilation));
     rspack_core::RuntimeModuleRuntimeRequirements {
-      dependencies: { RuntimeGlobals::REQUIRE | RuntimeGlobals::MODULE_CACHE },
+      dependencies: if uses_direct_initializers {
+        RuntimeGlobals::default()
+      } else {
+        RuntimeGlobals::REQUIRE | RuntimeGlobals::MODULE_CACHE
+      },
       define: {
         RuntimeGlobals::ASYNC_MODULE
           | RuntimeGlobals::ASYNC_MODULE_EXPORT_SYMBOL

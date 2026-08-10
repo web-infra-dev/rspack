@@ -6,8 +6,9 @@ const __rspack_createRequire_require = __rspack_createRequire(import.meta.url);
 // NAMESPACE OBJECT: ./exports.js
 var exports_namespaceObject = {};
 __webpack_require__.r(exports_namespaceObject);
-__webpack_require__.d(exports_namespaceObject, { 
-  sources: () => (index_js_namespaceObject) });
+__webpack_require__.d(exports_namespaceObject, {
+  sources: () => (index_js_namespaceObject)
+});
 
 
 // webpack-sources

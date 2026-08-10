@@ -1,0 +1,84 @@
+```mjs title=main.mjs
+import { __webpack_require__ } from "./runtime.mjs";
+import { require_value } from "./value.mjs";
+
+// ./index.js
+it("should expose a callable require.ensure callback without a dispatcher", () =>
+	new Promise((resolve, reject) => {
+		__webpack_require__.e(/*! require.ensure */ "value").then(((require) => {
+				expect('function').toBe("function");
+				expect(require_value()).toBe(44);
+				resolve();
+			}).bind(null, function __rspack_static_require__(request) { var e = new Error("Cannot find module '" + request + "'"); e.code = 'MODULE_NOT_FOUND'; throw e; }))['catch']((error) => reject(error));
+	}));
+
+export {};
+
+```
+
+```mjs title=runtime.mjs
+// The require scope
+var __webpack_require__ = {};
+
+// webpack/runtime/esm_ensure_chunk
+(() => {
+__webpack_require__.f = {};
+__webpack_require__.e = function(chunkId, fetchPriority) {
+	return Promise.all(Object.keys(__webpack_require__.f).reduce(function(promises, key) {
+		__webpack_require__.f[key](chunkId, promises, fetchPriority);
+		return promises;
+	}, []));
+};
+
+})();
+// webpack/runtime/esm_chunk_loading
+(() => {
+var esmInstalledChunks = {};
+var esmChunkMap = {
+"value": function() { return import("./value.mjs"); }
+};
+__webpack_require__.f.j = function(chunkId, promises) {
+	var installedChunkData = esmInstalledChunks[chunkId];
+	if(installedChunkData === 0) return;
+	if(installedChunkData) {
+		promises.push(installedChunkData);
+		return;
+	}
+	var loadChunk = esmChunkMap[chunkId];
+	if(!loadChunk) return;
+	var promise = loadChunk().then(function() {
+		esmInstalledChunks[chunkId] = 0;
+	}, function(error) {
+		delete esmInstalledChunks[chunkId];
+		throw error;
+	});
+	esmInstalledChunks[chunkId] = promise;
+	promises.push(promise);
+};
+
+})();
+
+export { __webpack_require__ };
+
+```
+
+```mjs title=value.mjs
+var __cjs = (factory, module) => function __require() {
+	if (module === undefined) {
+		module = { exports: {} };
+		factory.call(module.exports, module, module.exports);
+	}
+	return module.exports;
+};
+var require_value = /*#__PURE__*/ __cjs(function(module, exports) {
+
+/*!******************!*\
+  !*** ./value.js ***!
+  \******************/
+module.exports = 44;
+
+});
+
+export { require_value };
+
+```

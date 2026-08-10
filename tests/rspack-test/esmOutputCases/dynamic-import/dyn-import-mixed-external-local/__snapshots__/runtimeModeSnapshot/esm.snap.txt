@@ -1,0 +1,86 @@
+```mjs title=main.mjs
+// ./index.js
+it('should dynamically import module with mixed external re-exports and local exports', async () => {
+	const mod = await import("./wrapper.mjs").then(m => (m.wrapper_init(), m.wrapper_namespaceObject))
+	expect(mod.readFile).toBeDefined()
+	expect(mod.localValue).toBe(42)
+	expect(mod.localFn()).toBe('hello')
+})
+
+export {};
+
+```
+
+```mjs title=runtime.mjs
+
+// rspack/runtime/define_property_getters
+var definePropertyGetters = (exports, getters, values) => {
+	var define = (defs, kind) => {
+		for(var key in defs) {
+			if(hasOwnProperty(defs, key) && !hasOwnProperty(exports, key)) {
+				Object.defineProperty(exports, key, { enumerable: true, [kind]: defs[key] });
+			}
+		}
+	};
+	define(getters, "get");
+	define(values, "value");
+};;
+export { definePropertyGetters };
+// rspack/runtime/has_own_property
+var hasOwnProperty = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop));
+// rspack/runtime/make_namespace_object
+// define __esModule on exports
+var makeNamespaceObject = (exports) => {
+	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+	}
+	Object.defineProperty(exports, '__esModule', { value: true });
+};;
+export { makeNamespaceObject };
+
+
+```
+
+```mjs title=wrapper.mjs
+import { definePropertyGetters, makeNamespaceObject } from "./runtime.mjs";
+import { readFile as readFile_0 } from "fs";
+
+var __esm = (fn, result) => function __init() {
+	if (fn) {
+		var value = fn(fn = 0);
+		result = value && typeof value.then === "function" ? value.then(value => result = value) : value;
+	}
+	return result;
+};
+// NAMESPACE OBJECT: ./wrapper.js
+var wrapper_namespaceObject = {};
+makeNamespaceObject(wrapper_namespaceObject);
+var wrapper_namespaceObject_esm = Object.create(null);
+if (typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+  Object.defineProperty(wrapper_namespaceObject_esm, Symbol.toStringTag, { value: 'Module' });
+}
+var wrapper_namespaceObject_getters = {
+  localFn: () => (localFn),
+  localValue: () => (localValue),
+  readFile: () => (readFile_0)
+};
+definePropertyGetters(wrapper_namespaceObject, wrapper_namespaceObject_getters);
+definePropertyGetters(wrapper_namespaceObject_esm, wrapper_namespaceObject_getters);
+Object.preventExtensions(wrapper_namespaceObject_esm);
+
+
+// fs
+
+// ./wrapper.js
+var localValue, localFn;
+var wrapper_init = /*#__PURE__*/ __esm(() => {
+
+( localValue = 42);
+( localFn = () => 'hello');
+
+});
+
+export { localFn, localValue, wrapper_init, wrapper_namespaceObject_esm as wrapper_namespaceObject };
+export { readFile } from "fs";
+
+```

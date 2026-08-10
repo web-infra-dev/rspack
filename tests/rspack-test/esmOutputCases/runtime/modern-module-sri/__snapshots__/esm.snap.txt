@@ -1,6 +1,6 @@
 ```mjs title=main.mjs
 // ./index.js
-const value = import("./value.mjs");
+const value = import("./value.mjs").then(m => (m.value_init(), m.value_namespaceObject));
 
 export { value };
 
@@ -10,10 +10,38 @@ export { value };
 // The require scope
 var __webpack_require__ = {};
 
+// webpack/runtime/define_property_getters
+(() => {
+__webpack_require__.d = (exports, getters, values) => {
+	var define = (defs, kind) => {
+		for(var key in defs) {
+			if(__webpack_require__.o(defs, key) && !__webpack_require__.o(exports, key)) {
+				Object.defineProperty(exports, key, { enumerable: true, [kind]: defs[key] });
+			}
+		}
+	};
+	define(getters, "get");
+	define(values, "value");
+};
+})();
+// webpack/runtime/has_own_property
+(() => {
+__webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
+})();
+// webpack/runtime/make_namespace_object
+(() => {
+// define __esModule on exports
+__webpack_require__.r = (exports) => {
+	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+	}
+	Object.defineProperty(exports, '__esModule', { value: true });
+};
+})();
 // webpack/runtime/sri_hash_variable
 (() => {
 
-          __webpack_require__.sriHashes = {"value": "sha384-n/vSaOHnKSkGM5h7v+v8wRPJlDOhVXbgjK6iYxj8/sWl7re7g0lRNVYd7Gs6mPAy"};
+          __webpack_require__.sriHashes = {"value": "sha384-kUmujbarV1wpnWCHydMElBKIF4w0/F1O/F5zFclkwuSCCM964NzGzxIBroHTqLdq"};
           
 })();
 
@@ -22,9 +50,36 @@ export { __webpack_require__ };
 ```
 
 ```mjs title=value.mjs
-// ./value.js
-/* export default */ const value = (42);
+import { __webpack_require__ } from "./runtime.mjs";
+var __esm = (fn, result) => function __init() {
+	if (fn) {
+		var value = fn(fn = 0);
+		result = value && typeof value.then === "function" ? value.then(value => result = value) : value;
+	}
+	return result;
+};
+// NAMESPACE OBJECT: ./value.js
+var value_namespaceObject = {};
+__webpack_require__.r(value_namespaceObject);
+var value_namespaceObject_esm = Object.create(null);
+if (typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+  Object.defineProperty(value_namespaceObject_esm, Symbol.toStringTag, { value: 'Module' });
+}
+var value_namespaceObject_getters = {
+  "default": () => (value)
+};
+__webpack_require__.d(value_namespaceObject, value_namespaceObject_getters);
+__webpack_require__.d(value_namespaceObject_esm, value_namespaceObject_getters);
+Object.preventExtensions(value_namespaceObject_esm);
 
-export default value;
+
+// ./value.js
+var value;
+var value_init = /*#__PURE__*/ __esm(() => {
+/* export default */ ( value = (42));;
+
+});
+
+export { value as default, value_init, value_namespaceObject_esm as value_namespaceObject };
 
 ```

@@ -1,0 +1,55 @@
+```mjs title=main.mjs
+// ./index.js
+it('should handle dynamic import of side-effect-only module', async () => {
+	globalThis.__sideEffectExecuted = false;
+	await import("./side-effect.mjs").then(m => (m.side_effect_init(), m.side_effect_namespaceObject));
+	expect(globalThis.__sideEffectExecuted).toBe(true);
+});
+
+export {};
+
+```
+
+```mjs title=runtime.mjs
+
+// rspack/runtime/make_namespace_object
+// define __esModule on exports
+var makeNamespaceObject = (exports) => {
+	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+	}
+	Object.defineProperty(exports, '__esModule', { value: true });
+};;
+export { makeNamespaceObject };
+
+
+```
+
+```mjs title=side-effect.mjs
+import { makeNamespaceObject } from "./runtime.mjs";
+var __esm = (fn, result) => function __init() {
+	if (fn) {
+		var value = fn(fn = 0);
+		result = value && typeof value.then === "function" ? value.then(value => result = value) : value;
+	}
+	return result;
+};
+// NAMESPACE OBJECT: ./side-effect.js
+var side_effect_namespaceObject = {};
+makeNamespaceObject(side_effect_namespaceObject);
+var side_effect_namespaceObject_esm = Object.create(null);
+if (typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+  Object.defineProperty(side_effect_namespaceObject_esm, Symbol.toStringTag, { value: 'Module' });
+}
+Object.preventExtensions(side_effect_namespaceObject_esm);
+
+
+// ./side-effect.js
+var side_effect_init = /*#__PURE__*/ __esm(() => {
+globalThis.__sideEffectExecuted = true;
+
+});
+
+export { side_effect_init, side_effect_namespaceObject_esm as side_effect_namespaceObject };
+
+```

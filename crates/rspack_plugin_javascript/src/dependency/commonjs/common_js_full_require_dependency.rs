@@ -3,12 +3,12 @@ use rspack_cacheable::{
   with::{AsPreset, AsVec},
 };
 use rspack_core::{
-  AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
-  DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
-  ExportsInfoArtifact, ExportsType, FactorizeInfo, ModuleDependency, ModuleGraph,
-  ModuleGraphCacheArtifact, ReferencedExport, RuntimeGlobals, RuntimeSpec, TemplateContext,
-  TemplateReplaceSource, UsedName, create_exports_object_referenced, property_access,
-  to_normal_comment,
+  AsContextDependency, CodeGenerationModuleReferenceKind, Dependency, DependencyCategory,
+  DependencyCodeGeneration, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
+  DependencyTemplateType, DependencyType, ExportsInfoArtifact, ExportsType, FactorizeInfo,
+  ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ReferencedExport, RuntimeGlobals,
+  RuntimeSpec, TemplateContext, TemplateReplaceSource, UsedName, create_exports_object_referenced,
+  property_access, to_normal_comment,
 };
 use swc_atoms::Atom;
 
@@ -177,6 +177,13 @@ impl DependencyTemplate for CommonJsFullRequireDependencyTemplate {
       .downcast_ref::<CommonJsFullRequireDependency>()
       .expect("CommonJsFullRequireDependencyTemplate should only be used for CommonJsFullRequireDependency");
 
+    let module_reference = code_generatable_context
+      .is_modern_module_output()
+      .then(|| {
+        code_generatable_context
+          .create_module_relocation(dep.id, CodeGenerationModuleReferenceKind::Value)
+      })
+      .flatten();
     let TemplateContext {
       compilation,
       runtime,
@@ -184,6 +191,39 @@ impl DependencyTemplate for CommonJsFullRequireDependencyTemplate {
       ..
     } = code_generatable_context;
     let module_graph = compilation.get_module_graph();
+
+    if let Some(module_reference) = module_reference {
+      let mut expression = if let Some(imported_module) =
+        module_graph.module_graph_module_by_dependency_id(&dep.id)
+        && let Some(used) = {
+          let exports_info = compilation
+            .exports_info_artifact
+            .get_exports_info_data(&imported_module.module_identifier);
+          exports_info.get_used_name(&compilation.exports_info_artifact, *runtime, &dep.names)
+        } {
+        match used {
+          UsedName::Normal(used) => format!(
+            "{module_reference}{}{}",
+            to_normal_comment(&property_access(&dep.names, 0)),
+            property_access(used, 0)
+          ),
+          UsedName::Inlined(inlined) => format!(
+            "({module_reference}, {})",
+            inlined.render(&to_normal_comment(&format!(
+              "inlined export {}",
+              property_access(&dep.names, 0)
+            )))
+          ),
+        }
+      } else {
+        module_reference
+      };
+      if dep.asi_safe {
+        expression = format!("({expression})");
+      }
+      source.replace(dep.range.start, dep.range.end, expression, None);
+      return;
+    }
 
     let require_expr = if let Some(imported_module) =
       module_graph.module_graph_module_by_dependency_id(&dep.id)

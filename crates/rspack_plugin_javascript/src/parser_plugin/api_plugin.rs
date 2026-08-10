@@ -1,6 +1,6 @@
 use concat_string::concat_string;
 use rspack_core::{
-  ConstDependency, ImportMetaKnownProperties, ModuleArgument, RuntimeGlobals,
+  ConstDependency, ImportMetaKnownProperties, ModuleArgument, ModuleType, RuntimeGlobals,
   RuntimeGlobalsRenderMode, RuntimeRequirementsDependency,
   RuntimeRequirementsDependencyWriteOperation, property_access,
   runtime_mode::RuntimeMode as ExperimentRuntimeMode,
@@ -14,7 +14,8 @@ use swc_experimental_ecma_ast::{
 
 use crate::{
   dependency::{
-    ExportInfoDependency, IsIncludeDependency, ModuleArgumentDependency, RequireMainDependency,
+    CommonJsRequireDependency, ExportInfoDependency, IsIncludeDependency, ModuleArgumentDependency,
+    RequireMainDependency, RequireResolveDependency,
   },
   parser_plugin::JavascriptParserPlugin,
   utils::eval::{self, BasicEvaluatedExpression},
@@ -283,6 +284,16 @@ fn get_typeof_evaluate_of_api(sym: &str) -> Option<&'static str> {
   runtime_api_from_name(sym).and_then(|api| api.type_of)
 }
 
+fn is_modern_module_output(parser: &JavascriptParser) -> bool {
+  parser.compiler_options.output.module
+    && parser
+      .compiler_options
+      .output
+      .enabled_library_types
+      .as_ref()
+      .is_some_and(|types| types.iter().any(|ty| ty == "modern-module"))
+}
+
 pub(crate) fn import_meta_runtime_api_from_name(
   name: &str,
 ) -> Option<&'static ImportMetaRuntimeApi> {
@@ -542,6 +553,82 @@ fn static_require_member_chain(
   None
 }
 
+fn handle_fake_namespace_resolve_value(
+  parser: &mut JavascriptParser,
+  expr: &CallExpr,
+  for_name: &str,
+  members: &[Atom],
+  member_ranges: &[Span],
+) -> Option<bool> {
+  if !is_modern_module_output(parser)
+    || !matches!(
+      parser.module_type,
+      ModuleType::JsAuto | ModuleType::JsDynamic
+    )
+    || for_name != API_REQUIRE
+    || members.len() != 1
+    || members
+      .first()
+      .and_then(|property| RuntimeGlobals::from_rspack_context_property_name(property.as_ref()))
+      != Some(RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT)
+    || expr.args.len() != 2
+    || expr.args.iter().any(|argument| argument.spread.is_some())
+  {
+    return None;
+  }
+
+  let resolve_call = expr.args.first()?.expr.as_call()?;
+  if resolve_call.args.len() != 1 || resolve_call.args[0].spread.is_some() {
+    return None;
+  }
+  let resolve_callee = resolve_call.callee.as_expr()?;
+  let evaluated_callee = parser.evaluate_expression(resolve_callee);
+  if !evaluated_callee.is_identifier() {
+    return None;
+  }
+  let weak = match evaluated_callee.identifier().as_str() {
+    expr_name::REQUIRE_RESOLVE_WEAK => true,
+    expr_name::REQUIRE_RESOLVE
+      if !matches!(parser.javascript_options.require_resolve, Some(false)) =>
+    {
+      false
+    }
+    _ => return None,
+  };
+
+  let request = parser.evaluate_expression(&resolve_call.args[0].expr);
+  if !request.is_string() {
+    return None;
+  }
+
+  parser.add_dependency(Box::new(
+    RequireResolveDependency::new_for_namespace_object(
+      request.string().clone(),
+      resolve_call.span.into(),
+      weak,
+      parser.in_try,
+      expr.args[1].expr.span().into(),
+    ),
+  ));
+  parser.walk_expression(&expr.args[1].expr);
+
+  if parser.compiler_options.experiments.runtime_mode == ExperimentRuntimeMode::Rspack {
+    static_require_member_chain(
+      parser,
+      for_name,
+      members,
+      Some(member_ranges),
+      expr.callee.span(),
+      None,
+    );
+  } else {
+    parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::add_only(
+      RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT,
+    )));
+  }
+  Some(true)
+}
+
 #[rspack_macros::implemented_javascript_parser_hooks]
 impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
   fn r#typeof(
@@ -786,6 +873,11 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
     _members_optionals: &[bool],
     member_ranges: &[Span],
   ) -> Option<bool> {
+    if let Some(handled) =
+      handle_fake_namespace_resolve_value(parser, expr, for_name, members, member_ranges)
+    {
+      return Some(handled);
+    }
     if parser.compiler_options.experiments.runtime_mode != ExperimentRuntimeMode::Rspack {
       return None;
     }
@@ -937,6 +1029,28 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
           (call_expr.span.real_lo(), call_expr.span.real_hi()).into(),
           request.string().clone(),
         )));
+        return Some(true);
+      }
+    }
+
+    if for_name == API_REQUIRE
+      && is_modern_module_output(parser)
+      && call_expr.args.len() == 1
+      && call_expr.args[0].spread.is_none()
+    {
+      let request = parser.evaluate_expression(&call_expr.args[0].expr);
+      if request.is_string() {
+        let range = request.range().into();
+        let loc = parser.to_dependency_location(range);
+        let mut dependency = CommonJsRequireDependency::new(
+          request.string().clone(),
+          range,
+          Some(call_expr.span.into()),
+          parser.in_try,
+          loc,
+        );
+        dependency.set_call_replacement(false);
+        parser.add_dependency(Box::new(dependency));
         return Some(true);
       }
     }

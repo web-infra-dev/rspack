@@ -1,5 +1,5 @@
 ```mjs title=main.mjs
-import { rspackRequire, createFakeNamespaceObject } from "./runtime.mjs";
+import { createFakeNamespaceObject } from "./runtime.mjs";
 import { resolve } from "path";
 
 // path
@@ -30,9 +30,6 @@ export { readFileSync } from "fs";
 ```
 
 ```mjs title=runtime.mjs
-// The require scope
-var rspackRequire = {};
-export { rspackRequire };
 
 // rspack/runtime/create_fake_namespace_object
 var getProto = Object.getPrototypeOf ? (obj) => (Object.getPrototypeOf(obj)) : (obj) => (obj.__proto__);

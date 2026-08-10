@@ -1,0 +1,103 @@
+```mjs title=async.mjs
+import { definePropertyGetters, makeNamespaceObject } from "./runtime.mjs";
+import * as __rspack_external_fs from "fs";
+
+var __esm = (fn, result) => function __init() {
+	if (fn) {
+		var value = fn(fn = 0);
+		result = value && typeof value.then === "function" ? value.then(value => result = value) : value;
+	}
+	return result;
+};
+// NAMESPACE OBJECT: ./async.js
+var async_namespaceObject = {};
+makeNamespaceObject(async_namespaceObject);
+var async_namespaceObject_esm = Object.create(null);
+if (typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+  Object.defineProperty(async_namespaceObject_esm, Symbol.toStringTag, { value: 'Module' });
+}
+var async_namespaceObject_getters = {
+  ns: () => (__rspack_external_fs)
+};
+definePropertyGetters(async_namespaceObject, async_namespaceObject_getters);
+definePropertyGetters(async_namespaceObject_esm, async_namespaceObject_getters);
+Object.preventExtensions(async_namespaceObject_esm);
+
+
+// fs?3cf4
+
+// ./async.js
+var async_init = /*#__PURE__*/ __esm(() => {
+
+
+// access namespace
+console.log.bind(__rspack_external_fs)
+
+
+});
+
+export { __rspack_external_fs as ns, async_init, async_namespaceObject_esm as async_namespaceObject };
+
+```
+
+```mjs title=main.mjs
+import fs, { readFile } from "fs";
+
+// fs?771d
+
+// fs?5ccf
+
+// ./other.js
+
+/* export default */ const other = (fs);
+
+
+// fs?22cf
+
+// ./other2.js
+
+
+// ./index.js
+
+
+
+
+it('should render external correctly', async () => {
+  const {ns} = await import("./async.mjs").then(m => (m.async_init(), m.async_namespaceObject))
+
+  expect(fs).toBe(other).toBe(fs).toBe(ns.default)
+  expect(readFile).toBe(readFile).toBe(readFile).toBe(ns.readFile)
+})
+export {};
+
+```
+
+```mjs title=runtime.mjs
+
+// rspack/runtime/define_property_getters
+var definePropertyGetters = (exports, getters, values) => {
+	var define = (defs, kind) => {
+		for(var key in defs) {
+			if(hasOwnProperty(defs, key) && !hasOwnProperty(exports, key)) {
+				Object.defineProperty(exports, key, { enumerable: true, [kind]: defs[key] });
+			}
+		}
+	};
+	define(getters, "get");
+	define(values, "value");
+};;
+export { definePropertyGetters };
+// rspack/runtime/has_own_property
+var hasOwnProperty = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop));
+// rspack/runtime/make_namespace_object
+// define __esModule on exports
+var makeNamespaceObject = (exports) => {
+	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+	}
+	Object.defineProperty(exports, '__esModule', { value: true });
+};;
+export { makeNamespaceObject };
+
+
+```

@@ -1,44 +1,48 @@
 ```mjs title=dynamic.mjs
-import { rspackRequire, moduleFactories, compatGetDefaultExport } from "./runtime.mjs";
-moduleFactories.add({
-"./dynamic.js"
+import { compatGetDefaultExport } from "./runtime.mjs";
+var __cjs = (factory, module) => function __require() {
+	if (module === undefined) {
+		module = { exports: {} };
+		factory.call(module.exports, module, module.exports);
+	}
+	return module.exports;
+};
+var require_dynamic = /*#__PURE__*/ __cjs(function(module, exports) {
+
 /*!********************!*\
   !*** ./dynamic.js ***!
   \********************/
-(__unused_rspack_module, exports) {
-const shared = rspackRequire(/*! ./shared */ "./shared.js");
+const shared = require_shared();
 
 exports.value = shared.base + 41;
 
+});
 
-},
-"./shared.js"
+var require_shared = /*#__PURE__*/ __cjs(function(module, exports) {
+
 /*!*******************!*\
   !*** ./shared.js ***!
   \*******************/
-(__unused_rspack_module, exports) {
 exports.base = 1;
 
-
-},
 });
-const dynamic = rspackRequire("./dynamic.js");
-var dynamic_default = /*#__PURE__*/compatGetDefaultExport(dynamic);
-var dynamic_default_0 = dynamic_default();
-var value = dynamic.value;
 
-export { value };
-export default dynamic_default_0;
+const dynamic_0 = require_dynamic();
+var dynamic_0_default = /*#__PURE__*/compatGetDefaultExport(dynamic_0);
+var dynamic_0_default_0 = dynamic_0_default();
+var value = dynamic_0.value;
+
+export { dynamic_0_default_0 as default, require_dynamic, require_shared, value };
 
 ```
 
 ```mjs title=main.mjs
-import { rspackRequire, createFakeNamespaceObject } from "./runtime.mjs";
+import { createFakeNamespaceObject } from "./runtime.mjs";
 // ./index.js
 it("should split runtime for Promise.all with external and bundled async chunks", async () => {
 	const [stream, mod] = await Promise.all([
 		import("node:module").then(function(module) { return createFakeNamespaceObject(module.createRequire(import.meta.url)("node:stream"), 22) }),
-		import("./dynamic.mjs").then(createFakeNamespaceObject.bind(rspackRequire, /*! ./dynamic */ "./dynamic.js", 19)),
+		import("./dynamic.mjs").then(m => m.require_dynamic()).then(m => createFakeNamespaceObject(m, 18)),
 	]);
 
 	expect(stream.Readable).toBeDefined();
@@ -50,31 +54,6 @@ export {};
 ```
 
 ```mjs title=runtime.mjs
-
-var modules = {};
-// The module cache
-var moduleCache = {};
-// The require function
-function rspackRequire(moduleId) {
-// Check if module is in cache
-var cachedModule = moduleCache[moduleId];
-if (cachedModule !== undefined) {
-return cachedModule.exports;
-}
-// Create a new module (and put it into the cache)
-var module = (moduleCache[moduleId] = {
-exports: {}
-});
-// Execute the module function
-modules[moduleId](module, module.exports, rspackRequire);
-
-// Return the exports of the module
-return module.exports;
-}
-export { rspackRequire };
-// expose the modules object (modules)
-var moduleFactories = modules;
-export { moduleFactories };
 
 // rspack/runtime/compat_get_default_export
 // getDefaultExport function for compatibility with non-ESM modules
@@ -127,9 +106,6 @@ var definePropertyGetters = (exports, getters, values) => {
 	define(getters, "get");
 	define(values, "value");
 };;
-// rspack/runtime/esm_register_module
-moduleFactories.add = function registerModules(modules) { Object.assign(moduleFactories, modules) }
-;
 // rspack/runtime/has_own_property
 var hasOwnProperty = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop));
 // rspack/runtime/make_namespace_object

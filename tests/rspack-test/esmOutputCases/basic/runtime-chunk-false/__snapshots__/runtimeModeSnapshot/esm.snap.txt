@@ -1,49 +1,28 @@
 ```mjs title=main.mjs
 
-var modules = {};
-// The module cache
-var moduleCache = {};
-// The require function
-function rspackRequire(moduleId) {
-// Check if module is in cache
-var cachedModule = moduleCache[moduleId];
-if (cachedModule !== undefined) {
-return cachedModule.exports;
-}
-// Create a new module (and put it into the cache)
-var module = (moduleCache[moduleId] = {
-exports: {}
-});
-// Execute the module function
-modules[moduleId](module, module.exports, rspackRequire);
 
-// Return the exports of the module
-return module.exports;
-}
-// expose the modules object (modules)
-var moduleFactories = modules;
+var __cjs = (factory, module) => function __require() {
+	if (module === undefined) {
+		module = { exports: {} };
+		factory.call(module.exports, module, module.exports);
+	}
+	return module.exports;
+};
+var require_lib = /*#__PURE__*/ __cjs(function(module, exports) {
 
-// rspack/runtime/esm_register_module
-moduleFactories.add = function registerModules(modules) { Object.assign(moduleFactories, modules) }
-;
-
-moduleFactories.add({
-"./lib.js"
 /*!****************!*\
   !*** ./lib.js ***!
   \****************/
-(__unused_rspack_module, exports) {
 exports.U = 42
 
-
-},
 });
+
 // ./index.js
-const lib = rspackRequire("./lib.js");
+const lib_0 = require_lib();
 
 
 it('should have correct value', () => {
-  expect(lib.U).toBe(42)
+  expect(lib_0.U).toBe(42)
 })
 
 export {};

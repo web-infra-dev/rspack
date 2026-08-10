@@ -1,0 +1,72 @@
+```mjs title=main.mjs
+import { compatGetDefaultExport, nodeModuleDecorator } from "./runtime.mjs";
+var __cjs = (factory, module) => function __require() {
+	if (module === undefined) {
+		module = { exports: {} };
+		factory.call(module.exports, module, module.exports);
+	}
+	return module.exports;
+};
+var require_wrapped = /*#__PURE__*/ __cjs(function(module, exports) {
+
+/*!*********************!*\
+  !*** ./wrapped.cjs ***!
+  \*********************/
+/* module decorator */ module = nodeModuleDecorator(module);
+// Accessing the module object keeps this case behind a wrapper boundary.
+this.value = true;
+module.forceWrapper = true;
+module.exports = this.value;
+
+});
+
+// ./index.js
+const wrapped_0 = require_wrapped();
+var wrapped_0_default = /*#__PURE__*/compatGetDefaultExport(wrapped_0);
+
+
+it("preserves CommonJS top-level this in the minimal wrapper", () => {
+	expect((wrapped_0_default())).toBe(true);
+});
+
+export {};
+
+```
+
+```mjs title=runtime.mjs
+
+// rspack/runtime/compat_get_default_export
+// getDefaultExport function for compatibility with non-ESM modules
+var compatGetDefaultExport = (module) => {
+	var getter = module && module.__esModule ?
+		() => (module['default']) :
+		() => (module);
+	definePropertyGetters(getter, { a: getter });
+	return getter;
+};
+;
+export { compatGetDefaultExport };
+// rspack/runtime/define_property_getters
+var definePropertyGetters = (exports, getters, values) => {
+	var define = (defs, kind) => {
+		for(var key in defs) {
+			if(hasOwnProperty(defs, key) && !hasOwnProperty(exports, key)) {
+				Object.defineProperty(exports, key, { enumerable: true, [kind]: defs[key] });
+			}
+		}
+	};
+	define(getters, "get");
+	define(values, "value");
+};;
+// rspack/runtime/has_own_property
+var hasOwnProperty = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop));
+// rspack/runtime/node_module_decorator
+var nodeModuleDecorator = (module) => {
+  module.paths = [];
+  if (!module.children) module.children = [];
+  return module;
+};;
+export { nodeModuleDecorator };
+
+
+```

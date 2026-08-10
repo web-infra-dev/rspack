@@ -1,17 +1,45 @@
 ```mjs title=feature/index.mjs
-import { util } from "../shared/util.mjs";
+import { __webpack_require__ } from "../runtime.mjs";
+import { util, util_init } from "../shared/util.mjs";
+
+var __esm = (fn, result) => function __init() {
+	if (fn) {
+		var value = fn(fn = 0);
+		result = value && typeof value.then === "function" ? value.then(value => result = value) : value;
+	}
+	return result;
+};
+// NAMESPACE OBJECT: ./src/feature/index.js
+var feature_namespaceObject = {};
+__webpack_require__.r(feature_namespaceObject);
+var feature_namespaceObject_esm = Object.create(null);
+if (typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+  Object.defineProperty(feature_namespaceObject_esm, Symbol.toStringTag, { value: 'Module' });
+}
+var feature_namespaceObject_getters = {
+  answer: () => ((/* inlined export .answer */42)),
+  "default": () => (src_feature)
+};
+__webpack_require__.d(feature_namespaceObject, feature_namespaceObject_getters);
+__webpack_require__.d(feature_namespaceObject_esm, feature_namespaceObject_getters);
+Object.preventExtensions(feature_namespaceObject_esm);
+
 
 // ./src/feature/index.js
+var feature, src_feature;
+var feature_init = /*#__PURE__*/ __esm(() => {
+	util_init();
 
 
-const feature = () => `feature:${util}`
+( feature = () => `feature:${util}`);
 
 
-/* export default */ const src_feature = (feature);
+/* export default */ ( src_feature = (feature));;
+
+});
 
 var feature_answer = (/* inlined export .answer */42);
-export { feature_answer as answer };
-export default src_feature;
+export { feature_answer as answer, feature_init, feature_namespaceObject_esm as feature_namespaceObject, src_feature as default };
 
 ```
 
@@ -24,7 +52,7 @@ import { label } from "./label.mjs";
 it('should preserve nested dynamic import modules and shared outside chunks', async () => {
 	expect(label).toBe('entry:outside')
 
-	const feature = await import("./feature/index.mjs")
+	const feature = await import("./feature/index.mjs").then(m => (m.feature_init(), m.feature_namespaceObject))
 
 	expect(feature.default()).toBe('feature:util:outside')
 	expect(feature.answer).toBe(42)
@@ -35,9 +63,10 @@ export {};
 ```
 
 ```mjs title=label.mjs
-import { outside } from "./outside_dep_js.mjs";
+import { dep_init, outside } from "./outside_dep_js.mjs";
 
 // ./src/label.js
+	dep_init();
 
 
 const label = `entry:${outside}`
@@ -47,26 +76,86 @@ export { label };
 ```
 
 ```mjs title=outside_dep_js.mjs
+var __esm = (fn, result) => function __init() {
+	if (fn) {
+		var value = fn(fn = 0);
+		result = value && typeof value.then === "function" ? value.then(value => result = value) : value;
+	}
+	return result;
+};
 // ./outside/dep.js
-const outside = 'outside'
+var outside;
+var dep_init = /*#__PURE__*/ __esm(() => {
+( outside = 'outside');
 
 
 
-export { outside };
+});
+
+export { dep_init, outside };
+
+```
+
+```mjs title=runtime.mjs
+// The require scope
+var __webpack_require__ = {};
+
+// webpack/runtime/define_property_getters
+(() => {
+__webpack_require__.d = (exports, getters, values) => {
+	var define = (defs, kind) => {
+		for(var key in defs) {
+			if(__webpack_require__.o(defs, key) && !__webpack_require__.o(exports, key)) {
+				Object.defineProperty(exports, key, { enumerable: true, [kind]: defs[key] });
+			}
+		}
+	};
+	define(getters, "get");
+	define(values, "value");
+};
+})();
+// webpack/runtime/has_own_property
+(() => {
+__webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
+})();
+// webpack/runtime/make_namespace_object
+(() => {
+// define __esModule on exports
+__webpack_require__.r = (exports) => {
+	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+	}
+	Object.defineProperty(exports, '__esModule', { value: true });
+};
+})();
+
+export { __webpack_require__ };
 
 ```
 
 ```mjs title=shared/util.mjs
-import { outside } from "../outside_dep_js.mjs";
+import { dep_init, outside } from "../outside_dep_js.mjs";
 
+var __esm = (fn, result) => function __init() {
+	if (fn) {
+		var value = fn(fn = 0);
+		result = value && typeof value.then === "function" ? value.then(value => result = value) : value;
+	}
+	return result;
+};
 // ./src/shared/util.js
+var util, answer;
+var util_init = /*#__PURE__*/ __esm(() => {
+	dep_init();
 
 
-const util = `util:${outside}`
-const answer = 42
+( util = `util:${outside}`);
+( answer = 42);
 
 
 
-export { answer, util };
+});
+
+export { answer, util, util_init };
 
 ```

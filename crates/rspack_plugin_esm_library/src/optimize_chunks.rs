@@ -421,6 +421,12 @@ pub(crate) fn ensure_entry_exports(compilation: &mut Compilation) {
 /// This must run AFTER SplitChunksPlugin and RemoveDuplicateModulesPlugin
 /// to inspect the final chunk graph topology.
 pub(crate) fn optimize_runtime_chunks(compilation: &mut Compilation) {
+  // This runtime chunk is an implementation detail of modern-module chunk
+  // linking, not a user-configured entry chunk. Use `chunkFilename` so a
+  // literal entry `filename` remains valid when an async chunk needs shared
+  // runtime helpers.
+  let runtime_filename_template = compilation.options.output.chunk_filename.clone();
+
   // Phase 1: Collect entrypoints that need runtime splitting
   let entrypoints_to_split: Vec<ChunkGroupUkey> = compilation
     .entrypoints()
@@ -511,6 +517,7 @@ pub(crate) fn optimize_runtime_chunks(compilation: &mut Compilation) {
 
     new_chunk.set_runtime(entry_chunk.runtime().clone());
     new_chunk.add_id_name_hints("runtime".to_string());
+    new_chunk.set_filename_template(Some(runtime_filename_template.clone()));
     new_chunk.set_prevent_integration(true);
     new_chunk.add_group(entrypoint_ukey);
   }

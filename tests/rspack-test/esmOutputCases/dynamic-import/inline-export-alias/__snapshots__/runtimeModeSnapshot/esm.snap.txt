@@ -1,0 +1,87 @@
+```mjs title=foo.mjs
+import { definePropertyGetters, makeNamespaceObject } from "./runtime.mjs";
+var __esm = (fn, result) => function __init() {
+	if (fn) {
+		var value = fn(fn = 0);
+		result = value && typeof value.then === "function" ? value.then(value => result = value) : value;
+	}
+	return result;
+};
+// NAMESPACE OBJECT: ./foo.js
+var foo_namespaceObject = {};
+makeNamespaceObject(foo_namespaceObject);
+var foo_namespaceObject_esm = Object.create(null);
+if (typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+  Object.defineProperty(foo_namespaceObject_esm, Symbol.toStringTag, { value: 'Module' });
+}
+var foo_namespaceObject_getters = {
+  a: () => (x),
+  b: () => (x)
+};
+definePropertyGetters(foo_namespaceObject, foo_namespaceObject_getters);
+definePropertyGetters(foo_namespaceObject_esm, foo_namespaceObject_getters);
+Object.preventExtensions(foo_namespaceObject_esm);
+
+
+// ./foo.js
+var call, x;
+var foo_init = /*#__PURE__*/ __esm(() => {
+( call = value => {
+	globalThis.__inlineExportAlias = value;
+});;
+
+( x = 1);;
+
+call(x);
+
+
+
+});
+
+export { foo_init, foo_namespaceObject_esm as foo_namespaceObject, x as a, x as b };
+
+```
+
+```mjs title=main.mjs
+// ./index.js
+it('should preserve aliases for reused inline export bindings', async () => {
+	const mod = await import("./foo.mjs").then(m => (m.foo_init(), m.foo_namespaceObject));
+
+	expect(mod.a).toBe(1);
+	expect(mod.b).toBe(1);
+	expect(globalThis.__inlineExportAlias).toBe(1);
+});
+
+export {};
+
+```
+
+```mjs title=runtime.mjs
+
+// rspack/runtime/define_property_getters
+var definePropertyGetters = (exports, getters, values) => {
+	var define = (defs, kind) => {
+		for(var key in defs) {
+			if(hasOwnProperty(defs, key) && !hasOwnProperty(exports, key)) {
+				Object.defineProperty(exports, key, { enumerable: true, [kind]: defs[key] });
+			}
+		}
+	};
+	define(getters, "get");
+	define(values, "value");
+};;
+export { definePropertyGetters };
+// rspack/runtime/has_own_property
+var hasOwnProperty = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop));
+// rspack/runtime/make_namespace_object
+// define __esModule on exports
+var makeNamespaceObject = (exports) => {
+	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+	}
+	Object.defineProperty(exports, '__esModule', { value: true });
+};;
+export { makeNamespaceObject };
+
+
+```

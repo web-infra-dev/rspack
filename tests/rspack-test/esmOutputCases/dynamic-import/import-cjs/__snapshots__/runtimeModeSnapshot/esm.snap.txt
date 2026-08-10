@@ -1,45 +1,74 @@
 ```mjs title=dynamic.mjs
-import { rspackRequire, moduleFactories, compatGetDefaultExport } from "./runtime.mjs";
-moduleFactories.add({
-"./dynamic.js"
+import { compatGetDefaultExport } from "./runtime.mjs";
+var __cjs = (factory, module) => function __require() {
+	if (module === undefined) {
+		module = { exports: {} };
+		factory.call(module.exports, module, module.exports);
+	}
+	return module.exports;
+};
+var require_dynamic = /*#__PURE__*/ __cjs(function(module, exports) {
+
 /*!********************!*\
   !*** ./dynamic.js ***!
   \********************/
-(__unused_rspack_module, exports) {
 exports.value = 42
 
-
-},
 });
-const dynamic = rspackRequire("./dynamic.js");
-var dynamic_default = /*#__PURE__*/compatGetDefaultExport(dynamic);
-var dynamic_default_0 = dynamic_default();
-var value = dynamic.value;
 
-export { value };
-export default dynamic_default_0;
+const dynamic_0 = require_dynamic();
+var dynamic_0_default = /*#__PURE__*/compatGetDefaultExport(dynamic_0);
+var dynamic_0_default_0 = dynamic_0_default();
+var value = dynamic_0.value;
+
+export { dynamic_0_default_0 as default, require_dynamic, value };
 
 ```
 
 ```mjs title=esm.mjs
-import { rspackRequire } from "./runtime.mjs";
-import "./dynamic.mjs";
+import { definePropertyGetters, makeNamespaceObject } from "./runtime.mjs";
+import { require_dynamic } from "./dynamic.mjs";
+
+var __esm = (fn, result) => function __init() {
+	if (fn) {
+		var value = fn(fn = 0);
+		result = value && typeof value.then === "function" ? value.then(value => result = value) : value;
+	}
+	return result;
+};
+var dynamic, value;
+// NAMESPACE OBJECT: ./esm.js
+var esm_namespaceObject = {};
+makeNamespaceObject(esm_namespaceObject);
+var esm_namespaceObject_esm = Object.create(null);
+if (typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+  Object.defineProperty(esm_namespaceObject_esm, Symbol.toStringTag, { value: 'Module' });
+}
+var esm_namespaceObject_getters = {
+  value: () => (dynamic.value)
+};
+definePropertyGetters(esm_namespaceObject, esm_namespaceObject_getters);
+definePropertyGetters(esm_namespaceObject_esm, esm_namespaceObject_getters);
+Object.preventExtensions(esm_namespaceObject_esm);
+
 
 // ./esm.js
+var esm_init = /*#__PURE__*/ __esm(() => {
+dynamic = require_dynamic();
+value = dynamic.value;
 
-const dynamic = rspackRequire("./dynamic.js");
-var value = dynamic.value;
+});
 
-export { value };
+export { esm_init, esm_namespaceObject_esm as esm_namespaceObject, value };
 
 ```
 
 ```mjs title=main.mjs
-import { rspackRequire, createFakeNamespaceObject } from "./runtime.mjs";
+import { createFakeNamespaceObject } from "./runtime.mjs";
 // ./index.js
 it('should support dynamic import', async () => {
-	const mod = await import("./dynamic.mjs").then(createFakeNamespaceObject.bind(rspackRequire, /*! ./dynamic */ "./dynamic.js", 19))
-	const mod2 = await import("./esm.mjs")
+	const mod = await import("./dynamic.mjs").then(m => m.require_dynamic()).then(m => createFakeNamespaceObject(m, 18))
+	const mod2 = await import("./esm.mjs").then(m => (m.esm_init(), m.esm_namespaceObject))
 	expect(mod.value).toBe(42)
 	expect(mod2.value).toBe(42)
 })
@@ -51,31 +80,6 @@ export {};
 ```
 
 ```mjs title=runtime.mjs
-
-var modules = {};
-// The module cache
-var moduleCache = {};
-// The require function
-function rspackRequire(moduleId) {
-// Check if module is in cache
-var cachedModule = moduleCache[moduleId];
-if (cachedModule !== undefined) {
-return cachedModule.exports;
-}
-// Create a new module (and put it into the cache)
-var module = (moduleCache[moduleId] = {
-exports: {}
-});
-// Execute the module function
-modules[moduleId](module, module.exports, rspackRequire);
-
-// Return the exports of the module
-return module.exports;
-}
-export { rspackRequire };
-// expose the modules object (modules)
-var moduleFactories = modules;
-export { moduleFactories };
 
 // rspack/runtime/compat_get_default_export
 // getDefaultExport function for compatibility with non-ESM modules
@@ -128,9 +132,7 @@ var definePropertyGetters = (exports, getters, values) => {
 	define(getters, "get");
 	define(values, "value");
 };;
-// rspack/runtime/esm_register_module
-moduleFactories.add = function registerModules(modules) { Object.assign(moduleFactories, modules) }
-;
+export { definePropertyGetters };
 // rspack/runtime/has_own_property
 var hasOwnProperty = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop));
 // rspack/runtime/make_namespace_object
@@ -141,6 +143,7 @@ var makeNamespaceObject = (exports) => {
 	}
 	Object.defineProperty(exports, '__esModule', { value: true });
 };;
+export { makeNamespaceObject };
 
 
 ```

@@ -1,8 +1,8 @@
 ```mjs title=main.mjs
 // ./index.js
 it("should merge duplicate externals inside a dynamic multi-module chunk", async () => {
-	const modA = await import("./shared.mjs").then(m => m.a_namespaceObject);
-	const modB = await import("./shared.mjs").then(m => m.b_namespaceObject);
+	const modA = await import("./shared.mjs").then(m => (m.a_init(), m.a_namespaceObject));
+	const modB = await import("./shared.mjs").then(m => (m.b_init(), m.b_namespaceObject));
 
 	expect(modA.fsDefault).toBeDefined();
 	expect(modA.readFileSync).toBeDefined();
@@ -55,36 +55,66 @@ export { __webpack_require__ };
 import { __webpack_require__ } from "./runtime.mjs";
 import fs, { readFile, readFileSync } from "fs";
 
+var __esm = (fn, result) => function __init() {
+	if (fn) {
+		var value = fn(fn = 0);
+		result = value && typeof value.then === "function" ? value.then(value => result = value) : value;
+	}
+	return result;
+};
 // NAMESPACE OBJECT: ./a.js
 var a_namespaceObject = {};
 __webpack_require__.r(a_namespaceObject);
-__webpack_require__.d(a_namespaceObject, { 
+var a_namespaceObject_esm = Object.create(null);
+if (typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+  Object.defineProperty(a_namespaceObject_esm, Symbol.toStringTag, { value: 'Module' });
+}
+var a_namespaceObject_getters = {
   fsDefault: () => (fs),
   readFile: () => (readFile),
-  readFileSync: () => (readFileSync) });
+  readFileSync: () => (readFileSync)
+};
+__webpack_require__.d(a_namespaceObject, a_namespaceObject_getters);
+__webpack_require__.d(a_namespaceObject_esm, a_namespaceObject_getters);
+Object.preventExtensions(a_namespaceObject_esm);
 
 
 // NAMESPACE OBJECT: ./b.js
 var b_namespaceObject = {};
 __webpack_require__.r(b_namespaceObject);
-__webpack_require__.d(b_namespaceObject, { 
+var b_namespaceObject_esm = Object.create(null);
+if (typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+  Object.defineProperty(b_namespaceObject_esm, Symbol.toStringTag, { value: 'Module' });
+}
+var b_namespaceObject_getters = {
   marker: () => (marker),
-  readFile: () => (readFile) });
+  readFile: () => (readFile)
+};
+__webpack_require__.d(b_namespaceObject, b_namespaceObject_getters);
+__webpack_require__.d(b_namespaceObject_esm, b_namespaceObject_getters);
+Object.preventExtensions(b_namespaceObject_esm);
 
 
 // fs?2aa6
 
 // ./a.js
+var a_init = /*#__PURE__*/ __esm(() => {
 
 
+
+});
 
 // fs?f4d4
 
 // ./b.js
+var marker;
+var b_init = /*#__PURE__*/ __esm(() => {
 
 
-const marker = "b";
+( marker = "b");;
 
-export { a_namespaceObject, b_namespaceObject };
+});
+
+export { a_init, a_namespaceObject_esm as a_namespaceObject, b_init, b_namespaceObject_esm as b_namespaceObject };
 
 ```

@@ -1,71 +1,41 @@
 ```mjs title=main.mjs
-import { rspackRequire, moduleFactories } from "./runtime.mjs";
-moduleFactories.add({
-"./require.cjs"
+var __cjs = (factory, module) => function __require() {
+	if (module === undefined) {
+		module = { exports: {} };
+		factory.call(module.exports, module, module.exports);
+	}
+	return module.exports;
+};
+var require_require = /*#__PURE__*/ __cjs(function(module, exports) {
+
 /*!*********************!*\
   !*** ./require.cjs ***!
   \*********************/
-(module) {
-const __nested_rspack_require_6_19__ = rspackRequire(/*! ./value.cjs */ "./value.cjs");
+const __nested_rspack_require_6_19__ = require_value();
 
 module.exports = __nested_rspack_require_6_19__;
 
+});
 
-},
-"./value.cjs"
+var require_value = /*#__PURE__*/ __cjs(function(module, exports) {
+
 /*!*******************!*\
   !*** ./value.cjs ***!
   \*******************/
-(module) {
 module.exports = 42;
 
-
-},
 });
+
 // ./index.js
-rspackRequire("./require.cjs");
+require_require();
 
 
-const value = rspackRequire("./require.cjs");
+const value = require_require();
 
 it("should avoid a CJS rspackRequire factory parameter conflict", () => {
 	expect(value).toBe(42);
 });
 
 export {};
-
-```
-
-```mjs title=runtime.mjs
-
-var modules = {};
-// The module cache
-var moduleCache = {};
-// The require function
-function rspackRequire(moduleId) {
-// Check if module is in cache
-var cachedModule = moduleCache[moduleId];
-if (cachedModule !== undefined) {
-return cachedModule.exports;
-}
-// Create a new module (and put it into the cache)
-var module = (moduleCache[moduleId] = {
-exports: {}
-});
-// Execute the module function
-modules[moduleId](module, module.exports, rspackRequire);
-
-// Return the exports of the module
-return module.exports;
-}
-export { rspackRequire };
-// expose the modules object (modules)
-var moduleFactories = modules;
-export { moduleFactories };
-
-// rspack/runtime/esm_register_module
-moduleFactories.add = function registerModules(modules) { Object.assign(moduleFactories, modules) }
-;
-
 
 ```

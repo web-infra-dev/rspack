@@ -1,25 +1,30 @@
 ```mjs title=foo.mjs
-import { rspackRequire, moduleFactories, compatGetDefaultExport } from "./runtime.mjs";
-moduleFactories.add({
-"./foo.cjs"
+import { compatGetDefaultExport } from "./runtime.mjs";
+var __cjs = (factory, module) => function __require() {
+	if (module === undefined) {
+		module = { exports: {} };
+		factory.call(module.exports, module, module.exports);
+	}
+	return module.exports;
+};
+var require_foo = /*#__PURE__*/ __cjs(function(module, exports) {
+
 /*!*****************!*\
   !*** ./foo.cjs ***!
   \*****************/
-(module) {
 module.exports = 42;
 
-
-},
 });
-rspackRequire("./foo.cjs");
 
-export {};
+require_foo();
+
+export { require_foo };
 
 ```
 
 ```mjs title=main.mjs
-import { rspackRequire, compatGetDefaultExport } from "./runtime.mjs";
-import "./foo.mjs";
+import { compatGetDefaultExport } from "./runtime.mjs";
+import { require_foo } from "./foo.mjs";
 
 // ./index.js
 
@@ -31,7 +36,7 @@ it('should re-export a CommonJS default from another entry', async () => {
   expect(value).toBe(42);
 });
 
-const foo = rspackRequire("./foo.cjs");
+const foo = require_foo();
 var foo_default = /*#__PURE__*/compatGetDefaultExport(foo);
 var foo_default_0 = foo_default();
 
@@ -40,31 +45,6 @@ export { foo_default_0 as value };
 ```
 
 ```mjs title=runtime.mjs
-
-var modules = {};
-// The module cache
-var moduleCache = {};
-// The require function
-function rspackRequire(moduleId) {
-// Check if module is in cache
-var cachedModule = moduleCache[moduleId];
-if (cachedModule !== undefined) {
-return cachedModule.exports;
-}
-// Create a new module (and put it into the cache)
-var module = (moduleCache[moduleId] = {
-exports: {}
-});
-// Execute the module function
-modules[moduleId](module, module.exports, rspackRequire);
-
-// Return the exports of the module
-return module.exports;
-}
-export { rspackRequire };
-// expose the modules object (modules)
-var moduleFactories = modules;
-export { moduleFactories };
 
 // rspack/runtime/compat_get_default_export
 // getDefaultExport function for compatibility with non-ESM modules
@@ -89,9 +69,6 @@ var definePropertyGetters = (exports, getters, values) => {
 	define(getters, "get");
 	define(values, "value");
 };;
-// rspack/runtime/esm_register_module
-moduleFactories.add = function registerModules(modules) { Object.assign(moduleFactories, modules) }
-;
 // rspack/runtime/has_own_property
 var hasOwnProperty = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop));
 

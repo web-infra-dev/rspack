@@ -1,5 +1,5 @@
 ```mjs title=main.mjs
-import { rspackRequire, compatGetDefaultExport } from "./runtime.mjs";
+import { compatGetDefaultExport } from "./runtime.mjs";
 import {fileURLToPath as __rspack_fileURLToPath} from "node:url";
 import {dirname as __rspack_dirname} from "node:path";
 var __rspack_import_meta_dirname__ = __rspack_dirname(__rspack_fileURLToPath(import.meta.url));
@@ -22,8 +22,8 @@ it('should support dynamic import', async () => {
 	expect(content).toContain('// ./m1.js')
 	expect(content).toContain('// ./m2.js')
 
-	const value = await import("./shared.mjs").then(m => m.m1_namespaceObject)
-	const value2 = await import("./shared.mjs").then(m => m.m2_namespaceObject)
+	const value = await import("./shared.mjs").then(m => (m.m1_init(), m.m1_namespaceObject))
+	const value2 = await import("./shared.mjs").then(m => (m.m2_init(), m.m2_namespaceObject))
 
 	expect(value).toHaveProperty('default', 42)
 	expect(value).toHaveProperty('value', 1)
@@ -36,9 +36,6 @@ export {};
 ```
 
 ```mjs title=runtime.mjs
-// The require scope
-var rspackRequire = {};
-export { rspackRequire };
 
 // rspack/runtime/compat_get_default_export
 // getDefaultExport function for compatibility with non-ESM modules
@@ -80,31 +77,62 @@ export { makeNamespaceObject };
 ```
 
 ```mjs title=shared.mjs
-import { rspackRequire, definePropertyGetters, makeNamespaceObject } from "./runtime.mjs";
+import { definePropertyGetters, makeNamespaceObject } from "./runtime.mjs";
+var __esm = (fn, result) => function __init() {
+	if (fn) {
+		var value = fn(fn = 0);
+		result = value && typeof value.then === "function" ? value.then(value => result = value) : value;
+	}
+	return result;
+};
 // NAMESPACE OBJECT: ./m1.js
 var m1_namespaceObject = {};
 makeNamespaceObject(m1_namespaceObject);
-definePropertyGetters(m1_namespaceObject, { 
+var m1_namespaceObject_esm = Object.create(null);
+if (typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+  Object.defineProperty(m1_namespaceObject_esm, Symbol.toStringTag, { value: 'Module' });
+}
+var m1_namespaceObject_getters = {
   "default": () => (m1),
-  value: () => (value) });
+  value: () => (value)
+};
+definePropertyGetters(m1_namespaceObject, m1_namespaceObject_getters);
+definePropertyGetters(m1_namespaceObject_esm, m1_namespaceObject_getters);
+Object.preventExtensions(m1_namespaceObject_esm);
 
 
 // NAMESPACE OBJECT: ./m2.js
 var m2_namespaceObject = {};
 makeNamespaceObject(m2_namespaceObject);
-definePropertyGetters(m2_namespaceObject, { 
+var m2_namespaceObject_esm = Object.create(null);
+if (typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+  Object.defineProperty(m2_namespaceObject_esm, Symbol.toStringTag, { value: 'Module' });
+}
+var m2_namespaceObject_getters = {
   "default": () => (m2),
-  value: () => (m2_value) });
+  value: () => (m2_value)
+};
+definePropertyGetters(m2_namespaceObject, m2_namespaceObject_getters);
+definePropertyGetters(m2_namespaceObject_esm, m2_namespaceObject_getters);
+Object.preventExtensions(m2_namespaceObject_esm);
 
 
 // ./m1.js
-/* export default */ const m1 = (42);
-const value = 1
+var m1, value;
+var m1_init = /*#__PURE__*/ __esm(() => {
+/* export default */ ( m1 = (42));;
+( value = 1);
+
+});
 
 // ./m2.js
-/* export default */ const m2 = (42);
-const m2_value = 2
+var m2, m2_value;
+var m2_init = /*#__PURE__*/ __esm(() => {
+/* export default */ ( m2 = (42));;
+( m2_value = 2);
 
-export { m1_namespaceObject, m2_namespaceObject };
+});
+
+export { m1_init, m1_namespaceObject_esm as m1_namespaceObject, m2_init, m2_namespaceObject_esm as m2_namespaceObject };
 
 ```

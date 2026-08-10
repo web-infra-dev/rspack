@@ -1,17 +1,57 @@
 ```mjs title=foo.mjs
+import { __webpack_require__ } from "./runtime.mjs";
+var __esm = (fn, result) => function __init() {
+	if (fn) {
+		var value = fn(fn = 0);
+		result = value && typeof value.then === "function" ? value.then(value => result = value) : value;
+	}
+	return result;
+};
+// NAMESPACE OBJECT: ./foo.js
+var foo_namespaceObject = {};
+__webpack_require__.r(foo_namespaceObject);
+var foo_namespaceObject_esm = Object.create(null);
+if (typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+  Object.defineProperty(foo_namespaceObject_esm, Symbol.toStringTag, { value: 'Module' });
+}
+Object.preventExtensions(foo_namespaceObject_esm);
+
+
 // ./foo.js
+var foo_init = /*#__PURE__*/ __esm(() => {
 console.log.bind('foo')
 
-export {};
+});
+
+export { foo_init, foo_namespaceObject_esm as foo_namespaceObject };
 
 ```
 
 ```mjs title=main.mjs
 // ./index.js
 it('should import chunk', async () => {
-	await import("./foo.mjs")
+	await import("./foo.mjs").then(m => (m.foo_init(), m.foo_namespaceObject))
 })
 
 export {};
+
+```
+
+```mjs title=runtime.mjs
+// The require scope
+var __webpack_require__ = {};
+
+// webpack/runtime/make_namespace_object
+(() => {
+// define __esModule on exports
+__webpack_require__.r = (exports) => {
+	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+	}
+	Object.defineProperty(exports, '__esModule', { value: true });
+};
+})();
+
+export { __webpack_require__ };
 
 ```

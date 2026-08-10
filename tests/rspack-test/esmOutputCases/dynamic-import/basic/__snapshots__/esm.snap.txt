@@ -1,36 +1,83 @@
 ```mjs title=dynamic.mjs
-// ./dynamic.js
-/* export default */ const dynamic = (42);
+import { __webpack_require__ } from "./runtime.mjs";
+var __esm = (fn, result) => function __init() {
+	if (fn) {
+		var value = fn(fn = 0);
+		result = value && typeof value.then === "function" ? value.then(value => result = value) : value;
+	}
+	return result;
+};
+// NAMESPACE OBJECT: ./dynamic.js
+var dynamic_namespaceObject = {};
+__webpack_require__.r(dynamic_namespaceObject);
+var dynamic_namespaceObject_esm = Object.create(null);
+if (typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+  Object.defineProperty(dynamic_namespaceObject_esm, Symbol.toStringTag, { value: 'Module' });
+}
+var dynamic_namespaceObject_getters = {
+  "default": () => (dynamic)
+};
+__webpack_require__.d(dynamic_namespaceObject, dynamic_namespaceObject_getters);
+__webpack_require__.d(dynamic_namespaceObject_esm, dynamic_namespaceObject_getters);
+Object.preventExtensions(dynamic_namespaceObject_esm);
 
-export default dynamic;
+
+// ./dynamic.js
+var dynamic;
+var dynamic_init = /*#__PURE__*/ __esm(() => {
+/* export default */ ( dynamic = (42));;
+
+});
+
+export { dynamic as default, dynamic_init, dynamic_namespaceObject_esm as dynamic_namespaceObject };
 
 ```
 
 ```mjs title=main.mjs
 import { __webpack_require__ } from "./runtime.mjs";
+var __esm = (fn, result) => function __init() {
+	if (fn) {
+		var value = fn(fn = 0);
+		result = value && typeof value.then === "function" ? value.then(value => result = value) : value;
+	}
+	return result;
+};
 // NAMESPACE OBJECT: ./dynamic.js?1
 var dynamic1_namespaceObject = {};
 __webpack_require__.r(dynamic1_namespaceObject);
-__webpack_require__.d(dynamic1_namespaceObject, { 
-  "default": () => (dynamic1) });
+var dynamic1_namespaceObject_esm = Object.create(null);
+if (typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+  Object.defineProperty(dynamic1_namespaceObject_esm, Symbol.toStringTag, { value: 'Module' });
+}
+var dynamic1_namespaceObject_getters = {
+  "default": () => (dynamic1)
+};
+__webpack_require__.d(dynamic1_namespaceObject, dynamic1_namespaceObject_getters);
+__webpack_require__.d(dynamic1_namespaceObject_esm, dynamic1_namespaceObject_getters);
+Object.preventExtensions(dynamic1_namespaceObject_esm);
 
 
 // ./dynamic.js?1
-/* export default */ const dynamic1 = (42);
+var dynamic1;
+var dynamic1_init = /*#__PURE__*/ __esm(() => {
+/* export default */ ( dynamic1 = (42));;
+
+});
 
 // ./index.js
+	dynamic1_init();
 
 
 it('should support dynamic import', async () => {
-	const value = await import("./dynamic.mjs")
-	const value2 = await Promise.resolve(dynamic1_namespaceObject)
+	const value = await import("./dynamic.mjs").then(m => (m.dynamic_init(), m.dynamic_namespaceObject))
+	const value2 = await Promise.resolve().then(() => (dynamic1_init(), dynamic1_namespaceObject_esm))
 
 	expect(value.default).toBe(42)
 	expect(dynamic1).toBe(42)
 	expect(value2.default).toBe(42)
 })
 
-export {};
+export { dynamic1_init, dynamic1_namespaceObject_esm as dynamic1_namespaceObject };
 
 ```
 

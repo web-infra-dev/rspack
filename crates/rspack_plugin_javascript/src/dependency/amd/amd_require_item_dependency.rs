@@ -110,12 +110,41 @@ impl DependencyTemplate for AMDRequireItemDependencyTemplate {
       return;
     };
     // ModuleDependencyTemplateAsRequireId
-    let content = code_generatable_context.runtime_template.module_raw(
-      code_generatable_context.compilation,
-      &dep.id,
-      &dep.request,
-      dep.weak(),
-    );
+    let content = if code_generatable_context.is_modern_module_output() {
+      let kind = if dep.weak() {
+        rspack_core::CodeGenerationModuleReferenceKind::WeakValue
+      } else {
+        rspack_core::CodeGenerationModuleReferenceKind::Value
+      };
+      code_generatable_context
+        .create_module_relocation(dep.id, kind)
+        .map_or_else(
+          || {
+            code_generatable_context
+              .runtime_template
+              .missing_module(&dep.request)
+          },
+          |reference| {
+            if dep.weak() {
+              format!(
+                "(({reference}) || {})()",
+                code_generatable_context
+                  .runtime_template
+                  .weak_error_function(&dep.request)
+              )
+            } else {
+              reference
+            }
+          },
+        )
+    } else {
+      code_generatable_context.runtime_template.module_raw(
+        code_generatable_context.compilation,
+        &dep.id,
+        &dep.request,
+        dep.weak(),
+      )
+    };
     source.replace(range.start, range.end, content, None);
   }
 }

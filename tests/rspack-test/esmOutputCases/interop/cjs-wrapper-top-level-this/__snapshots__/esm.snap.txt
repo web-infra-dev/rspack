@@ -1,0 +1,81 @@
+```mjs title=main.mjs
+import { __webpack_require__ } from "./runtime.mjs";
+var __cjs = (factory, module) => function __require() {
+	if (module === undefined) {
+		module = { exports: {} };
+		factory.call(module.exports, module, module.exports);
+	}
+	return module.exports;
+};
+var require_wrapped = /*#__PURE__*/ __cjs(function(module, exports) {
+
+/*!*********************!*\
+  !*** ./wrapped.cjs ***!
+  \*********************/
+/* module decorator */ module = __webpack_require__.nmd(module);
+// Accessing the module object keeps this case behind a wrapper boundary.
+this.value = true;
+module.forceWrapper = true;
+module.exports = this.value;
+
+});
+
+// ./index.js
+const wrapped_0 = require_wrapped();
+var wrapped_0_default = /*#__PURE__*/__webpack_require__.n(wrapped_0);
+
+
+it("preserves CommonJS top-level this in the minimal wrapper", () => {
+	expect((wrapped_0_default())).toBe(true);
+});
+
+export {};
+
+```
+
+```mjs title=runtime.mjs
+// The require scope
+var __webpack_require__ = {};
+
+// webpack/runtime/compat_get_default_export
+(() => {
+// getDefaultExport function for compatibility with non-ESM modules
+__webpack_require__.n = (module) => {
+	var getter = module && module.__esModule ?
+		() => (module['default']) :
+		() => (module);
+	__webpack_require__.d(getter, { a: getter });
+	return getter;
+};
+
+})();
+// webpack/runtime/define_property_getters
+(() => {
+__webpack_require__.d = (exports, getters, values) => {
+	var define = (defs, kind) => {
+		for(var key in defs) {
+			if(__webpack_require__.o(defs, key) && !__webpack_require__.o(exports, key)) {
+				Object.defineProperty(exports, key, { enumerable: true, [kind]: defs[key] });
+			}
+		}
+	};
+	define(getters, "get");
+	define(values, "value");
+};
+})();
+// webpack/runtime/has_own_property
+(() => {
+__webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
+})();
+// webpack/runtime/node_module_decorator
+(() => {
+__webpack_require__.nmd = (module) => {
+  module.paths = [];
+  if (!module.children) module.children = [];
+  return module;
+};
+})();
+
+export { __webpack_require__ };
+
+```

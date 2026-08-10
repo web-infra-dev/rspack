@@ -3,7 +3,7 @@ export default 42
 ```
 
 ```mjs title=main.mjs
-import { rspackRequire, createFakeNamespaceObject } from "./runtime.mjs";
+import { createFakeNamespaceObject } from "./runtime.mjs";
 // ./foo.mjs
 import foo_namespaceObject from "./407a5f26e1107499.mjs";
 var foo_namespaceObject2 = /*#__PURE__*/createFakeNamespaceObject(foo_namespaceObject);
@@ -19,9 +19,6 @@ export {};
 ```
 
 ```mjs title=runtime.mjs
-// The require scope
-var rspackRequire = {};
-export { rspackRequire };
 
 // rspack/runtime/create_fake_namespace_object
 var getProto = Object.getPrototypeOf ? (obj) => (Object.getPrototypeOf(obj)) : (obj) => (obj.__proto__);

@@ -1,0 +1,87 @@
+```mjs title=main.mjs
+// ./index.js
+
+
+const local = 'index'
+const index_local = ''
+
+it('should have deconflicted symbol', async () => {
+	expect((/* inlined export .value */42)).toBe(42)
+	expect(local).toBe('index')
+	expect(index_local).toBe('')
+	const {value: v} = await import("./other.mjs").then(m => (m.other_init(), m.other_namespaceObject))
+	expect(v).toBe((/* inlined export .value */42))
+})
+
+export {};
+
+```
+
+```mjs title=other.mjs
+import { definePropertyGetters, makeNamespaceObject } from "./runtime.mjs";
+var __esm = (fn, result) => function __init() {
+	if (fn) {
+		var value = fn(fn = 0);
+		result = value && typeof value.then === "function" ? value.then(value => result = value) : value;
+	}
+	return result;
+};
+// NAMESPACE OBJECT: ./other.js
+var other_namespaceObject = {};
+makeNamespaceObject(other_namespaceObject);
+var other_namespaceObject_esm = Object.create(null);
+if (typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+  Object.defineProperty(other_namespaceObject_esm, Symbol.toStringTag, { value: 'Module' });
+}
+var other_namespaceObject_getters = {
+  value: () => (value)
+};
+definePropertyGetters(other_namespaceObject, other_namespaceObject_getters);
+definePropertyGetters(other_namespaceObject_esm, other_namespaceObject_getters);
+Object.preventExtensions(other_namespaceObject_esm);
+
+
+// ./other.js
+var local, value;
+var other_init = /*#__PURE__*/ __esm(() => {
+
+
+( local = 'other');
+
+( value = (/* inlined export .value */42));
+
+});
+
+export { other_init, other_namespaceObject_esm as other_namespaceObject, value };
+
+```
+
+```mjs title=runtime.mjs
+
+// rspack/runtime/define_property_getters
+var definePropertyGetters = (exports, getters, values) => {
+	var define = (defs, kind) => {
+		for(var key in defs) {
+			if(hasOwnProperty(defs, key) && !hasOwnProperty(exports, key)) {
+				Object.defineProperty(exports, key, { enumerable: true, [kind]: defs[key] });
+			}
+		}
+	};
+	define(getters, "get");
+	define(values, "value");
+};;
+export { definePropertyGetters };
+// rspack/runtime/has_own_property
+var hasOwnProperty = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop));
+// rspack/runtime/make_namespace_object
+// define __esModule on exports
+var makeNamespaceObject = (exports) => {
+	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+	}
+	Object.defineProperty(exports, '__esModule', { value: true });
+};;
+export { makeNamespaceObject };
+
+
+```

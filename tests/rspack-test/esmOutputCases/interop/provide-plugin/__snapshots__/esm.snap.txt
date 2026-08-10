@@ -1,0 +1,26 @@
+```mjs title=main.mjs
+var __cjs = (factory, module) => function __require() {
+	if (module === undefined) {
+		module = { exports: {} };
+		factory.call(module.exports, module, module.exports);
+	}
+	return module.exports;
+};
+var require_provided = /*#__PURE__*/ __cjs(function(module, exports) {
+
+/*!*********************!*\
+  !*** ./provided.js ***!
+  \*********************/
+module.exports = { answer: 42 };
+
+});
+
+// ./index.js
+/* provided dependency */ var provided = require_provided();
+it("should load provided dependencies through their initializer", () => {
+	expect(provided.answer).toBe(42);
+});
+
+export {};
+
+```

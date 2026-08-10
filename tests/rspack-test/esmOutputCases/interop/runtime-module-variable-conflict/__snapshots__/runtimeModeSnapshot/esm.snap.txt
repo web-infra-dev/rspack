@@ -4,8 +4,6 @@ export default 42;
 ```
 
 ```mjs title=main.mjs
-// The require scope
-var rspackRequire = {};
 
 // rspack/runtime/create_fake_namespace_object
 var getProto = Object.getPrototypeOf ? (obj) => (Object.getPrototypeOf(obj)) : (obj) => (obj.__proto__);

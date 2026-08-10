@@ -1,5 +1,5 @@
 ```mjs title=main.mjs
-import { rspackRequire, makeNamespaceObject } from "./runtime.mjs";
+import { makeNamespaceObject } from "./runtime.mjs";
 // NAMESPACE OBJECT: ./foo.js
 var foo_namespaceObject = {};
 makeNamespaceObject(foo_namespaceObject);
@@ -21,9 +21,6 @@ export {};
 ```
 
 ```mjs title=runtime.mjs
-// The require scope
-var rspackRequire = {};
-export { rspackRequire };
 
 // rspack/runtime/make_namespace_object
 // define __esModule on exports

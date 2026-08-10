@@ -1,13 +1,14 @@
-<%- define(MAKE_OPTIMIZED_DEFERRED_NAMESPACE_OBJECT) %> = function(moduleId, mode, asyncDeps) {
-	var r = <%- REQUIRE %>;
+<%- define(MAKE_OPTIMIZED_DEFERRED_NAMESPACE_OBJECT) %> = function(<% if (_uses_direct_initializers) { %>load<% } else { %>moduleId<% } %>, mode, asyncDeps) {
+	<% if (!_uses_direct_initializers) { %>var r = <%- REQUIRE %>;
+	<% } %>
 	<% if (_has_async) { %>
 	var isAsync = asyncDeps && asyncDeps.length;
 	<% } %>
 	var obj = {
 		get a() {
-			var exports = r(moduleId);
+			var exports = <% if (_uses_direct_initializers) { %>load()<% } else { %>r(moduleId)<% } %>;
 			<% if (_has_async) { %>
-			if (isAsync) exports = exports[<%- ASYNC_MODULE_EXPORT_SYMBOL %>];
+			<% if (!_uses_direct_initializers) { %>if (isAsync) exports = exports[<%- ASYNC_MODULE_EXPORT_SYMBOL %>];<% } %>
 			<% } %>
 			// if exportsType is "namespace" we can generate the most optimized code,
 			// on the second access, we can avoid trigger the getter.

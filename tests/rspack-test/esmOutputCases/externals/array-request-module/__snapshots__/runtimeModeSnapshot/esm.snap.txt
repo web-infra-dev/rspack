@@ -1,5 +1,5 @@
 ```mjs title=main.mjs
-import { rspackRequire, compatGetDefaultExport } from "./runtime.mjs";
+import { compatGetDefaultExport } from "./runtime.mjs";
 import * as __rspack_external_fs from "fs";
 
 // fs-promises
@@ -18,9 +18,6 @@ export {};
 ```
 
 ```mjs title=runtime.mjs
-// The require scope
-var rspackRequire = {};
-export { rspackRequire };
 
 // rspack/runtime/compat_get_default_export
 // getDefaultExport function for compatibility with non-ESM modules

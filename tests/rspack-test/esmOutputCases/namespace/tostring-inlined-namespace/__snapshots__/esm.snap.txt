@@ -3,8 +3,9 @@ import { __webpack_require__ } from "./runtime.mjs";
 // NAMESPACE OBJECT: ./foo.js
 var foo_namespaceObject = {};
 __webpack_require__.r(foo_namespaceObject);
-__webpack_require__.d(foo_namespaceObject, { 
-  bar: () => (bar) });
+__webpack_require__.d(foo_namespaceObject, {
+  bar: () => (bar)
+});
 
 
 // ./foo.js
@@ -29,7 +30,7 @@ it("should preserve module toStringTag on local namespace objects", async () => 
   });
 });
 
-export default index;
+export { index as default };
 
 ```
 

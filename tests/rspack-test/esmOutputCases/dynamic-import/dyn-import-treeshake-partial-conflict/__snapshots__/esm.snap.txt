@@ -3,8 +3,8 @@
 it('should skip namespace when tree-shaking removes one side of a conflict', async () => {
 	// Both modules export `value`, but only a.value is used.
 	// b.value is tree-shaken, so the conflict disappears.
-	const { value, foo } = await import("./shared.mjs")
-	const { bar } = await import("./shared.mjs")
+	const { value, foo } = await import("./shared.mjs").then(m => (m.a_init(), m.a_namespaceObject))
+	const { bar } = await import("./shared.mjs").then(m => (m.b_init(), m.b_namespaceObject))
 
 	expect(value).toBe(1)
 	expect(foo).toBe('a-foo')
@@ -15,15 +15,99 @@ export {};
 
 ```
 
+```mjs title=runtime.mjs
+// The require scope
+var __webpack_require__ = {};
+
+// webpack/runtime/define_property_getters
+(() => {
+__webpack_require__.d = (exports, getters, values) => {
+	var define = (defs, kind) => {
+		for(var key in defs) {
+			if(__webpack_require__.o(defs, key) && !__webpack_require__.o(exports, key)) {
+				Object.defineProperty(exports, key, { enumerable: true, [kind]: defs[key] });
+			}
+		}
+	};
+	define(getters, "get");
+	define(values, "value");
+};
+})();
+// webpack/runtime/has_own_property
+(() => {
+__webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
+})();
+// webpack/runtime/make_namespace_object
+(() => {
+// define __esModule on exports
+__webpack_require__.r = (exports) => {
+	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+	}
+	Object.defineProperty(exports, '__esModule', { value: true });
+};
+})();
+
+export { __webpack_require__ };
+
+```
+
 ```mjs title=shared.mjs
+import { __webpack_require__ } from "./runtime.mjs";
+var __esm = (fn, result) => function __init() {
+	if (fn) {
+		var value = fn(fn = 0);
+		result = value && typeof value.then === "function" ? value.then(value => result = value) : value;
+	}
+	return result;
+};
+// NAMESPACE OBJECT: ./a.js
+var a_namespaceObject = {};
+__webpack_require__.r(a_namespaceObject);
+var a_namespaceObject_esm = Object.create(null);
+if (typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+  Object.defineProperty(a_namespaceObject_esm, Symbol.toStringTag, { value: 'Module' });
+}
+var a_namespaceObject_getters = {
+  foo: () => (foo),
+  value: () => (value)
+};
+__webpack_require__.d(a_namespaceObject, a_namespaceObject_getters);
+__webpack_require__.d(a_namespaceObject_esm, a_namespaceObject_getters);
+Object.preventExtensions(a_namespaceObject_esm);
+
+
+// NAMESPACE OBJECT: ./b.js
+var b_namespaceObject = {};
+__webpack_require__.r(b_namespaceObject);
+var b_namespaceObject_esm = Object.create(null);
+if (typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+  Object.defineProperty(b_namespaceObject_esm, Symbol.toStringTag, { value: 'Module' });
+}
+var b_namespaceObject_getters = {
+  bar: () => (bar)
+};
+__webpack_require__.d(b_namespaceObject, b_namespaceObject_getters);
+__webpack_require__.d(b_namespaceObject_esm, b_namespaceObject_getters);
+Object.preventExtensions(b_namespaceObject_esm);
+
+
 // ./a.js
-const value = 1;
-const foo = 'a-foo';
+var value, foo;
+var a_init = /*#__PURE__*/ __esm(() => {
+( value = 1);;
+( foo = 'a-foo');;
+
+});
 
 // ./b.js
-const b_value = 2;
-const bar = 'b-bar';
+var b_value, bar;
+var b_init = /*#__PURE__*/ __esm(() => {
+( b_value = 2);;
+( bar = 'b-bar');;
 
-export { bar, foo, value };
+});
+
+export { a_init, a_namespaceObject_esm as a_namespaceObject, b_init, b_namespaceObject_esm as b_namespaceObject, bar, foo, value };
 
 ```

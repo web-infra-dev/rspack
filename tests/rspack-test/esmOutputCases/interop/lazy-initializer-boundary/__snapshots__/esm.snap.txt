@@ -1,0 +1,110 @@
+```mjs title=main.mjs
+import { __webpack_require__ } from "./runtime.mjs";
+var __esm = (fn, result) => function __init() {
+	if (fn) {
+		var value = fn(fn = 0);
+		result = value && typeof value.then === "function" ? value.then(value => result = value) : value;
+	}
+	return result;
+};
+var __cjs = (factory, module) => function __require() {
+	if (module === undefined) {
+		module = { exports: {} };
+		factory.call(module.exports, module, module.exports);
+	}
+	return module.exports;
+};
+var require_index = /*#__PURE__*/ __cjs(function(module, exports) {
+
+/*!******************!*\
+  !*** ./index.js ***!
+  \******************/
+function load() {
+	return require_wrapped();
+}
+
+it("keeps scope-hoisted dependencies behind a CommonJS initializer", () => {
+	expect(globalThis.__esmLazyEvaluationLog).toBeUndefined();
+
+	expect(load().value).toBe(42);
+	expect(globalThis.__esmLazyEvaluationLog).toEqual(["child", "wrapped"]);
+
+	expect(load().value).toBe(42);
+	expect(globalThis.__esmLazyEvaluationLog).toEqual(["child", "wrapped"]);
+});
+
+});
+
+var require_wrapped = /*#__PURE__*/ __cjs(function(module, exports) {
+
+/*!********************!*\
+  !*** ./wrapped.js ***!
+  \********************/
+const child = (child_init(), child_namespaceObject);
+
+eval("");
+globalThis.__esmLazyEvaluationLog.push("wrapped");
+module.exports = { value: child.value };
+
+});
+
+// NAMESPACE OBJECT: ./child.js
+var child_namespaceObject = {};
+__webpack_require__.r(child_namespaceObject);
+__webpack_require__.d(child_namespaceObject, {
+  value: () => (value)
+});
+
+
+// ./child.js
+var value;
+var child_init = /*#__PURE__*/ __esm(() => {
+globalThis.__esmLazyEvaluationLog ??= [];
+globalThis.__esmLazyEvaluationLog.push("child");
+
+( value = 42);;
+
+});
+
+require_index();
+
+export {};
+
+```
+
+```mjs title=runtime.mjs
+// The require scope
+var __webpack_require__ = {};
+
+// webpack/runtime/define_property_getters
+(() => {
+__webpack_require__.d = (exports, getters, values) => {
+	var define = (defs, kind) => {
+		for(var key in defs) {
+			if(__webpack_require__.o(defs, key) && !__webpack_require__.o(exports, key)) {
+				Object.defineProperty(exports, key, { enumerable: true, [kind]: defs[key] });
+			}
+		}
+	};
+	define(getters, "get");
+	define(values, "value");
+};
+})();
+// webpack/runtime/has_own_property
+(() => {
+__webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
+})();
+// webpack/runtime/make_namespace_object
+(() => {
+// define __esModule on exports
+__webpack_require__.r = (exports) => {
+	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+	}
+	Object.defineProperty(exports, '__esModule', { value: true });
+};
+})();
+
+export { __webpack_require__ };
+
+```
