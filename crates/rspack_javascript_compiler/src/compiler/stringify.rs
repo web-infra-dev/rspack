@@ -3,7 +3,7 @@ use std::{borrow::Cow, sync::Arc};
 use rspack_error::Result;
 use rspack_sources::{
   MapOptions, Mapping, ObjectPool, OriginalLocation, Source, SourceMap, SourceMapSource,
-  SourceMapSourceOptions, encode_mappings, utf8_column_to_utf16_column,
+  SourceMapSourceOptions, encode_mappings, utf16_len,
 };
 use rspack_util::source_map::SourceMapKind;
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -173,6 +173,7 @@ fn build_rspack_source_map(
   let mut cur_file: Option<Lrc<SourceFile>> = None;
   let mut cur_src_id = 0u32;
   let mut prev_dst_line = u32::MAX;
+  let mut utf16_column_state = Utf16ColumnState::default();
 
   for (raw_pos, lc) in mappings {
     let pos = *raw_pos;
@@ -245,7 +246,7 @@ fn build_rspack_source_map(
       linebpos,
     );
 
-    let Some(original_column) = source_file_utf16_column(file, linebpos, pos) else {
+    let Some(original_column) = utf16_column_state.column(file, linebpos, pos) else {
       continue;
     };
 
@@ -358,13 +359,53 @@ fn ordered_cows(entries: FxHashMap<Cow<'_, str>, u32>) -> Vec<Cow<'static, str>>
   ordered
 }
 
-fn source_file_utf16_column(file: &SourceFile, linebpos: BytePos, pos: BytePos) -> Option<u32> {
-  let line_start = linebpos.to_u32().checked_sub(file.start_pos.to_u32())? as usize;
-  let utf8_column = pos.to_u32().checked_sub(linebpos.to_u32())? as usize;
-  let line = file.src.get(line_start..)?;
-  utf8_column_to_utf16_column(line, utf8_column)?
-    .try_into()
-    .ok()
+/// Tracks the last successfully converted position so mappings that move
+/// forward on the same line only scan the newly traversed source text.
+#[derive(Default)]
+enum Utf16ColumnState {
+  #[default]
+  Initial,
+  At {
+    file_start: BytePos,
+    line_start: BytePos,
+    pos: BytePos,
+    column: u32,
+  },
+}
+
+impl Utf16ColumnState {
+  fn column(&mut self, file: &SourceFile, line_start: BytePos, pos: BytePos) -> Option<u32> {
+    let (scan_start, column) = match self {
+      Self::At {
+        file_start,
+        line_start: state_line_start,
+        pos: state_pos,
+        column,
+      } if *file_start == file.start_pos
+        && *state_line_start == line_start
+        && *state_pos <= pos =>
+      {
+        (*state_pos, *column)
+      }
+      _ => (line_start, 0),
+    };
+
+    let scan_start = scan_start.to_u32().checked_sub(file.start_pos.to_u32())? as usize;
+    let scan_end = pos.to_u32().checked_sub(file.start_pos.to_u32())? as usize;
+    let column = column.checked_add(
+      utf16_len(file.src.get(scan_start..scan_end)?)
+        .try_into()
+        .ok()?,
+    )?;
+
+    *self = Self::At {
+      file_start: file.start_pos,
+      line_start,
+      pos,
+      column,
+    };
+    Some(column)
+  }
 }
 
 struct IdentCollector {
