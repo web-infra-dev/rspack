@@ -333,10 +333,11 @@ impl SplitChunksPlugin {
           continue;
         }
 
-        if !Self::check_min_size_reduction(
-          module_group.get_sizes(&module_sizes),
+        if !Self::check_min_size_reduction_for_module_chunks(
+          &placed_module_chunks,
+          new_chunk,
+          &module_sizes,
           &cache_group.min_size_reduction,
-          placement_chunks.len(),
         ) {
           tracing::trace!(
             "ModuleGroup({module_group_key}) is skipped after selecting its actual placements because it violates min_size_reduction {:#?}",
