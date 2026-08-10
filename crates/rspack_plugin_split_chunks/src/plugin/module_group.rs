@@ -636,20 +636,48 @@ impl SplitChunksPlugin {
     let keys_of_invalid_group = module_group_map
       .par_iter_mut()
       .filter_map(|(key, other_module_group)| {
-        let duplicated_modules = other_module_group
-          .modules
-          .iter()
-          .filter(|module| {
-            let Some(placed_chunks) = placed_module_chunks.get(module) else {
-              return false;
-            };
-            let Some(other_chunks) = other_module_group.get_module_chunks(module) else {
-              return false;
-            };
-            placed_chunks.intersection(other_chunks).next().is_some()
-          })
-          .copied()
-          .collect::<Vec<_>>();
+        let duplicated_modules = match (
+          placed_module_chunks,
+          other_module_group.shared_module_chunks(),
+        ) {
+          (
+            ModuleChunkMap::Shared {
+              modules,
+              chunks: placed_chunks,
+            },
+            Some(other_chunks),
+          ) => {
+            if placed_chunks.is_disjoint(other_chunks) {
+              return None;
+            }
+            if other_module_group.modules.len() > modules.len() {
+              modules
+                .intersection(&other_module_group.modules)
+                .copied()
+                .collect::<Vec<_>>()
+            } else {
+              other_module_group
+                .modules
+                .intersection(modules)
+                .copied()
+                .collect::<Vec<_>>()
+            }
+          }
+          _ => other_module_group
+            .modules
+            .iter()
+            .filter(|module| {
+              let Some(placed_chunks) = placed_module_chunks.get(module) else {
+                return false;
+              };
+              let Some(other_chunks) = other_module_group.get_module_chunks(module) else {
+                return false;
+              };
+              placed_chunks.intersection(other_chunks).next().is_some()
+            })
+            .copied()
+            .collect::<Vec<_>>(),
+        };
 
         if duplicated_modules.is_empty() {
           return None;

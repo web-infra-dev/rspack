@@ -278,24 +278,49 @@ impl SplitChunksPlugin {
           }
         }
 
-        let modules_without_placement = module_group
-          .modules
-          .iter()
-          .filter(|module| {
-            let Some(placed_chunks) = placed_module_chunks.get(module) else {
-              return true;
-            };
-            let Some(selected_chunks) = module_group.get_module_chunks(module) else {
-              return true;
-            };
-            placed_chunks
-              .iter()
-              .filter(|chunk| selected_chunks.contains(*chunk))
-              .count()
-              < cache_group.min_chunks as usize
-          })
-          .copied()
-          .collect::<Vec<_>>();
+        let modules_without_placement = match &placed_module_chunks {
+          ModuleChunkMap::Shared { modules, chunks }
+            if module_group.uses_shared_module_chunks() =>
+          {
+            debug_assert!(modules.is_subset(&module_group.modules));
+            debug_assert!(
+              chunks.is_subset(
+                module_group
+                  .shared_module_chunks()
+                  .expect("should have shared module chunks")
+              )
+            );
+            if chunks.len() < cache_group.min_chunks as usize {
+              module_group.modules.iter().copied().collect::<Vec<_>>()
+            } else if modules.len() == module_group.modules.len() {
+              Vec::new()
+            } else {
+              module_group
+                .modules
+                .difference(modules)
+                .copied()
+                .collect::<Vec<_>>()
+            }
+          }
+          _ => module_group
+            .modules
+            .iter()
+            .filter(|module| {
+              let Some(placed_chunks) = placed_module_chunks.get(module) else {
+                return true;
+              };
+              let Some(selected_chunks) = module_group.get_module_chunks(module) else {
+                return true;
+              };
+              placed_chunks
+                .iter()
+                .filter(|chunk| selected_chunks.contains(*chunk))
+                .count()
+                < cache_group.min_chunks as usize
+            })
+            .copied()
+            .collect::<Vec<_>>(),
+        };
         if !modules_without_placement.is_empty() {
           // End the borrow of `module_group.chunks` only on the slow path that mutates the group.
           // The common path can keep using the original set without cloning it.

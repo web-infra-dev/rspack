@@ -249,6 +249,14 @@ impl ModuleGroup {
     matches!(self.module_chunks, ModuleGroupChunks::Shared(_))
   }
 
+  pub fn shared_module_chunks(&self) -> Option<&FxHashSet<ChunkUkey>> {
+    match &self.module_chunks {
+      ModuleGroupChunks::Shared(Some(chunks)) => Some(chunks),
+      ModuleGroupChunks::Shared(None) => Some(&self.chunks),
+      ModuleGroupChunks::ByModule(_) => None,
+    }
+  }
+
   pub fn remove_module(&mut self, module: ModuleIdentifier) {
     if self.modules.remove(&module) {
       if let ModuleGroupChunks::ByModule(module_chunks) = &mut self.module_chunks {

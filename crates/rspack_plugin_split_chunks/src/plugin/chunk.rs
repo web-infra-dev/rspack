@@ -257,10 +257,24 @@ impl SplitChunksPlugin {
     compilation: &mut Compilation,
   ) {
     let chunk_graph = &mut compilation.build_chunk_graph_artifact.chunk_graph;
-    let module_count = match placed_module_chunks {
-      ModuleChunkMap::Shared { modules, .. } => modules.len(),
-      ModuleChunkMap::ByModule(module_chunks) => module_chunks.len(),
+    if let ModuleChunkMap::Shared { modules, chunks } = placed_module_chunks {
+      let modules = modules.iter().copied().collect::<Vec<_>>();
+      let chunks = chunks
+        .iter()
+        .filter(|chunk| **chunk != new_chunk)
+        .copied()
+        .collect::<Vec<_>>();
+      if !chunks.is_empty() {
+        chunk_graph.disconnect_chunks_and_modules(&chunks, &modules);
+        chunk_graph.connect_chunk_and_modules(new_chunk, &modules);
+      }
+      return;
+    }
+
+    let ModuleChunkMap::ByModule(module_chunks) = placed_module_chunks else {
+      unreachable!();
     };
+    let module_count = module_chunks.len();
     let mut module_identifiers = Vec::with_capacity(module_count);
     let mut move_module = |module: &ModuleIdentifier, chunks: &FxHashSet<ChunkUkey>| {
       let mut has_source_placement = false;
@@ -275,17 +289,8 @@ impl SplitChunksPlugin {
       }
     };
 
-    match placed_module_chunks {
-      ModuleChunkMap::Shared { modules, chunks } => {
-        for module in modules {
-          move_module(module, chunks);
-        }
-      }
-      ModuleChunkMap::ByModule(module_chunks) => {
-        for (module, chunks) in module_chunks {
-          move_module(module, chunks);
-        }
-      }
+    for (module, chunks) in module_chunks {
+      move_module(module, chunks);
     }
 
     chunk_graph.connect_chunk_and_modules(new_chunk, &module_identifiers);
