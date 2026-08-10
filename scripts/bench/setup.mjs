@@ -131,4 +131,5 @@ async function cssBenchcase() {
 }
 
 await rspackBenchcases();
-await Promise.all([scaledThreejsBenchcase(), cssBenchcase()]);
+await scaledThreejsBenchcase();
+await cssBenchcase();
