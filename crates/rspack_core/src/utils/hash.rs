@@ -1,16 +1,6 @@
-use std::{
-  borrow::Cow,
-  collections::hash_map::DefaultHasher,
-  hash::{Hash, Hasher},
-};
+use std::borrow::Cow;
 
 use rustc_hash::FxHashSet as HashSet;
-
-pub fn calc_hash<T: Hash>(t: &T) -> u64 {
-  let mut s = DefaultHasher::new();
-  t.hash(&mut s);
-  s.finish()
-}
 
 pub struct ExtractedHashPattern {
   pub pattern: String,

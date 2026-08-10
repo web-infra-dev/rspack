@@ -46,13 +46,6 @@ impl Content {
     }
   }
 
-  pub fn as_bytes(&self) -> &[u8] {
-    match self {
-      Content::String(s) => s.as_bytes(),
-      Content::Buffer(b) => b,
-    }
-  }
-
   pub fn into_bytes(self) -> Vec<u8> {
     match self {
       Content::String(s) => s.into_bytes(),
@@ -62,10 +55,6 @@ impl Content {
 
   pub fn is_buffer(&self) -> bool {
     matches!(self, Content::Buffer(..))
-  }
-
-  pub fn is_string(&self) -> bool {
-    matches!(self, Content::String(..))
   }
 }
 

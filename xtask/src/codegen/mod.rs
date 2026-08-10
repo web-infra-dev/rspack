@@ -36,8 +36,6 @@ fn generate_workspace_versions(out_path: &str) -> Result<()> {
     cargo_toml::Manifest::from_str(&cargo_toml_content).expect("Should parse cargo toml");
   let workspace = manifest.workspace.unwrap();
 
-  let workspace_version = workspace.package.unwrap().version.unwrap();
-
   let swc_core_version = workspace
     .dependencies
     .get("swc_core")
@@ -73,11 +71,6 @@ pub const fn rspack_swc_core_version() -> &'static str {{
 /// The version of the JavaScript `@rspack/core` package.
 pub const fn rspack_pkg_version() -> &'static str {{
   "{rspack_version}"
-}}
-
-/// The version of the Rust workspace in the root `Cargo.toml` of the repository.
-pub const fn rspack_workspace_version() -> &'static str {{
-  "{workspace_version}"
 }}
 "#
   );

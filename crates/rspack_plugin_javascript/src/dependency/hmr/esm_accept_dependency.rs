@@ -29,10 +29,6 @@ impl ESMAcceptDependency {
       loc,
     }
   }
-
-  pub fn loc(&self) -> Option<DependencyLocation> {
-    self.loc.clone()
-  }
 }
 
 #[cacheable_dyn]

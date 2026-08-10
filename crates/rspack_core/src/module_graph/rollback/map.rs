@@ -136,19 +136,12 @@ where
   }
 
   #[inline]
+  #[allow(clippy::len_without_is_empty)]
   pub fn len(&self) -> usize {
     self.map.len()
   }
 
-  #[inline]
-  pub fn is_empty(&self) -> bool {
-    self.map.is_empty()
-  }
-
   // check the length of mutations for debug performance purpose
-  pub fn mutations_len(&self) -> usize {
-    self.undo_stack.len()
-  }
 }
 
 impl<'data, K, V, S> RayonIntoParallelRefIterator<'data> for RollbackMap<K, V, S>

@@ -11,15 +11,6 @@ where
   text.if_supports_color(Stdout, |t| t.dimmed())
 }
 
-/// Color the text red if the stream supports color.
-#[inline]
-pub fn red<T>(text: &T) -> impl Display + '_
-where
-  T: Display + OwoColorize,
-{
-  text.if_supports_color(Stdout, |t| t.red())
-}
-
 /// Color the text yellow if the stream supports color.
 #[inline]
 pub fn yellow<T>(text: &T) -> impl Display + '_

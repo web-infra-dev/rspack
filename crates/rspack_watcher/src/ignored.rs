@@ -1,7 +1,6 @@
 use std::{borrow::Cow, fmt::Debug};
 
 use cow_utils::CowUtils;
-use fast_glob::glob_match;
 use regex::Regex;
 use rspack_regex::RspackRegex;
 
@@ -29,20 +28,6 @@ impl Debug for FsWatcherIgnored {
 /// Smooth out the differences in the system, specifically for Windows
 fn normalize_path<'a>(path: &'a str) -> Cow<'a, str> {
   path.cow_replace("\\", "/")
-}
-
-impl FsWatcherIgnored {
-  pub fn should_be_ignored(&self, p: &str) -> bool {
-    match self {
-      FsWatcherIgnored::None => false,
-      FsWatcherIgnored::Path(path) => glob_match(path, normalize_path(p).as_bytes()),
-      FsWatcherIgnored::Paths(paths) => paths
-        .iter()
-        .any(|path| glob_match(path, normalize_path(p).as_bytes())),
-
-      FsWatcherIgnored::Regex(reg) => reg.test(&normalize_path(p)),
-    }
-  }
 }
 
 /// Faithful port of watchpack's `lib/util/globToRegExp.js` (specialized for

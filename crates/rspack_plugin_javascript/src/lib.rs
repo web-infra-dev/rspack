@@ -30,17 +30,7 @@ pub enum SourceMapsConfig {
   Str(String),
 }
 
-impl SourceMapsConfig {
-  pub fn enabled(&self) -> bool {
-    match *self {
-      SourceMapsConfig::Bool(b) => b,
-      SourceMapsConfig::Str(ref s) => {
-        assert_eq!(s, "inline", "Source map must be true, false or inline");
-        true
-      }
-    }
-  }
-}
+impl SourceMapsConfig {}
 
 #[derive(Debug)]
 pub enum IsModule {

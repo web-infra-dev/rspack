@@ -36,7 +36,6 @@ define_hook!(NormalModuleFactoryAfterFactorize: Series(data: &mut ModuleFactoryC
 
 pub enum NormalModuleFactoryResolveResult {
   Module(BoxModule),
-  Ignored,
 }
 
 #[derive(Debug)]
@@ -1306,26 +1305,8 @@ module.exports = "data:,";
       .call(data)
       .await?
     {
-      if let NormalModuleFactoryResolveResult::Module(result) = result {
-        return Ok(ModuleFactoryResult::new_with_module(result));
-      } else {
-        let ident = format!("{}/{}", &data.context, data.request);
-        let module_identifier = ModuleIdentifier::from(format!("ignored|{ident}"));
-
-        let mut raw_module = RawModule::new(
-          "/* (ignored) */".to_owned(),
-          module_identifier,
-          format!("{} (ignored)", data.request),
-          Default::default(),
-        )
-        .boxed();
-
-        raw_module.set_factory_meta(FactoryMeta {
-          side_effect_free: Some(true),
-        });
-
-        return Ok(ModuleFactoryResult::new_with_module(raw_module));
-      }
+      let NormalModuleFactoryResolveResult::Module(result) = result;
+      return Ok(ModuleFactoryResult::new_with_module(result));
     }
 
     if let Some(result) = self.resolve_normal_module(data).await? {

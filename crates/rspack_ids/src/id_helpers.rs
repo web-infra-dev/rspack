@@ -35,19 +35,6 @@ pub(crate) fn should_assign_module_id_without_chunk(module: &dyn Module) -> bool
 
 #[allow(clippy::type_complexity)]
 #[allow(clippy::collapsible_else_if)]
-pub fn get_used_module_ids_and_modules(
-  compilation: &Compilation,
-  filter: Option<Box<dyn Fn(&BoxModule) -> bool>>,
-) -> (FxHashSet<String>, Vec<ModuleIdentifier>) {
-  get_used_module_ids_and_modules_with_artifact(
-    compilation,
-    &compilation.module_ids_artifact,
-    filter,
-  )
-}
-
-#[allow(clippy::type_complexity)]
-#[allow(clippy::collapsible_else_if)]
 pub fn get_used_module_ids_and_modules_with_artifact(
   compilation: &Compilation,
   module_ids_artifact: &ModuleIdsArtifact,

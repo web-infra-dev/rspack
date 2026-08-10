@@ -7,7 +7,6 @@ use internal::try_get_module_graph_module_mut_by_identifier;
 use rayon::prelude::*;
 use rspack_collections::{IdentifierHasher, IdentifierMap};
 use rspack_error::Result;
-use rspack_hash::RspackHashDigest;
 use rustc_hash::FxHashMap as HashMap;
 use swc_core::ecma::atoms::Atom;
 
@@ -79,21 +78,8 @@ impl<'a> IncomingConnectionsByOriginModule<'a> {
     }
   }
 
-  pub fn non_modules(&self) -> &[&'a ModuleGraphConnection] {
-    &self.non_modules
-  }
-
   pub fn modules(&self) -> &IdentifierMap<Vec<&'a ModuleGraphConnection>> {
     &self.modules
-  }
-
-  pub fn into_parts(
-    self,
-  ) -> (
-    Vec<&'a ModuleGraphConnection>,
-    IdentifierMap<Vec<&'a ModuleGraphConnection>>,
-  ) {
-    (self.non_modules, self.modules)
   }
 }
 
@@ -486,46 +472,6 @@ impl ModuleGraph {
     let new_mgm = self.module_graph_module_by_identifier_mut(new_module);
     for dep_id in affected_incoming_connection {
       new_mgm.add_incoming_connection(dep_id);
-    }
-  }
-
-  pub fn copy_outgoing_module_connections<F>(
-    &mut self,
-    old_module: &ModuleIdentifier,
-    new_module: &ModuleIdentifier,
-    filter_connection: F,
-  ) where
-    F: Fn(&ModuleGraphConnection, &BoxDependency) -> bool,
-  {
-    if old_module == new_module {
-      return;
-    }
-
-    let old_mgm_connections = self
-      .module_graph_module_by_identifier(old_module)
-      .expect("should have mgm")
-      .outgoing_connections()
-      .clone();
-
-    // Outgoing connections
-    let mut affected_outgoing_connections = vec![];
-    for dep_id in old_mgm_connections {
-      let connection = self
-        .connection_by_dependency_id(&dep_id)
-        .expect("should have connection");
-      let dep = self.dependency_by_id(&dep_id);
-      if filter_connection(connection, dep) {
-        let con = self
-          .connection_by_dependency_id_mut(&dep_id)
-          .expect("should have connection");
-        con.original_module_identifier = Some(*new_module);
-        affected_outgoing_connections.push(dep_id);
-      }
-    }
-
-    let new_mgm = self.module_graph_module_by_identifier_mut(new_module);
-    for dep_id in affected_outgoing_connections {
-      new_mgm.add_outgoing_connection(dep_id);
     }
   }
 
@@ -956,12 +902,6 @@ impl ModuleGraph {
       })
       .into_iter()
       .flatten()
-  }
-
-  pub fn get_module_hash(&self, module_id: &ModuleIdentifier) -> Option<&RspackHashDigest> {
-    self
-      .module_by_identifier(module_id)
-      .and_then(|m| m.build_info().hash.as_ref())
   }
 
   /// We can't insert all sort of things into one hashmap like javascript, so we create different

@@ -60,12 +60,6 @@ impl Default for ExportsInfoData {
 }
 
 impl ExportsInfoData {
-  pub fn reset(&mut self) {
-    let id = self.id;
-    *self = ExportsInfoData::default();
-    self.id = id;
-  }
-
   pub fn id(&self) -> ExportsInfo {
     self.id
   }
