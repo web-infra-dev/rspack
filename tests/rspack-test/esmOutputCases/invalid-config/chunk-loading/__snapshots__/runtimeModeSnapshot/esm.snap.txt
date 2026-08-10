@@ -10,6 +10,11 @@ var __esm = (fn, result) => function __init() {
 // NAMESPACE OBJECT: ./foo.js
 var foo_namespaceObject = {};
 makeNamespaceObject(foo_namespaceObject);
+var foo_namespaceObject_esm = Object.create(null);
+if (typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+  Object.defineProperty(foo_namespaceObject_esm, Symbol.toStringTag, { value: 'Module' });
+}
+Object.preventExtensions(foo_namespaceObject_esm);
 
 
 // ./foo.js
@@ -18,7 +23,7 @@ console.log.bind('foo')
 
 });
 
-export { foo_init, foo_namespaceObject };
+export { foo_init, foo_namespaceObject_esm as foo_namespaceObject };
 
 ```
 

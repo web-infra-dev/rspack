@@ -64,9 +64,16 @@ var __esm = (fn, result) => function __init() {
 // NAMESPACE OBJECT: ./value.js
 var value_namespaceObject = {};
 __webpack_require__.r(value_namespaceObject);
-__webpack_require__.d(value_namespaceObject, {
+var value_namespaceObject_esm = Object.create(null);
+if (typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+  Object.defineProperty(value_namespaceObject_esm, Symbol.toStringTag, { value: 'Module' });
+}
+var value_namespaceObject_getters = {
   conflict: () => (conflict)
-});
+};
+__webpack_require__.d(value_namespaceObject, value_namespaceObject_getters);
+__webpack_require__.d(value_namespaceObject_esm, value_namespaceObject_getters);
+Object.preventExtensions(value_namespaceObject_esm);
 
 
 // ./value.js
@@ -76,6 +83,6 @@ var value_init = /*#__PURE__*/ __esm(() => {
 
 });
 
-export { conflict, value_init, value_namespaceObject };
+export { conflict, value_init, value_namespaceObject_esm as value_namespaceObject };
 
 ```

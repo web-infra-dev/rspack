@@ -10,6 +10,11 @@ var __esm = (fn, result) => function __init() {
 // NAMESPACE OBJECT: ./empty.js
 var empty_namespaceObject = {};
 makeNamespaceObject(empty_namespaceObject);
+var empty_namespaceObject_esm = Object.create(null);
+if (typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+  Object.defineProperty(empty_namespaceObject_esm, Symbol.toStringTag, { value: 'Module' });
+}
+Object.preventExtensions(empty_namespaceObject_esm);
 
 
 // ./empty.js
@@ -18,7 +23,7 @@ var empty_init = /*#__PURE__*/ __esm(() => {
 
 });
 
-export { empty_init, empty_namespaceObject };
+export { empty_init, empty_namespaceObject_esm as empty_namespaceObject };
 
 ```
 

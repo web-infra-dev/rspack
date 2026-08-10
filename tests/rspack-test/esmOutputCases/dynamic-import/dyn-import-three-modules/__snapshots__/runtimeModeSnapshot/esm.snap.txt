@@ -34,31 +34,52 @@ var __esm = (fn, result) => function __init() {
 // NAMESPACE OBJECT: ./a.js
 var a_namespaceObject = {};
 makeNamespaceObject(a_namespaceObject);
-definePropertyGetters(a_namespaceObject, {
+var a_namespaceObject_esm = Object.create(null);
+if (typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+  Object.defineProperty(a_namespaceObject_esm, Symbol.toStringTag, { value: 'Module' });
+}
+var a_namespaceObject_getters = {
   "default": () => (a),
   id: () => (id),
   name: () => (a_name)
-});
+};
+definePropertyGetters(a_namespaceObject, a_namespaceObject_getters);
+definePropertyGetters(a_namespaceObject_esm, a_namespaceObject_getters);
+Object.preventExtensions(a_namespaceObject_esm);
 
 
 // NAMESPACE OBJECT: ./b.js
 var b_namespaceObject = {};
 makeNamespaceObject(b_namespaceObject);
-definePropertyGetters(b_namespaceObject, {
+var b_namespaceObject_esm = Object.create(null);
+if (typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+  Object.defineProperty(b_namespaceObject_esm, Symbol.toStringTag, { value: 'Module' });
+}
+var b_namespaceObject_getters = {
   "default": () => (b),
   id: () => (b_id),
   name: () => (b_name)
-});
+};
+definePropertyGetters(b_namespaceObject, b_namespaceObject_getters);
+definePropertyGetters(b_namespaceObject_esm, b_namespaceObject_getters);
+Object.preventExtensions(b_namespaceObject_esm);
 
 
 // NAMESPACE OBJECT: ./c.js
 var c_namespaceObject = {};
 makeNamespaceObject(c_namespaceObject);
-definePropertyGetters(c_namespaceObject, {
+var c_namespaceObject_esm = Object.create(null);
+if (typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+  Object.defineProperty(c_namespaceObject_esm, Symbol.toStringTag, { value: 'Module' });
+}
+var c_namespaceObject_getters = {
   "default": () => (c),
   id: () => (c_id),
   name: () => (c_name)
-});
+};
+definePropertyGetters(c_namespaceObject, c_namespaceObject_getters);
+definePropertyGetters(c_namespaceObject_esm, c_namespaceObject_getters);
+Object.preventExtensions(c_namespaceObject_esm);
 
 
 // ./a.js
@@ -88,7 +109,7 @@ var c_init = /*#__PURE__*/ __esm(() => {
 
 });
 
-export { a_init, a_namespaceObject, b_init, b_namespaceObject, c_init, c_namespaceObject };
+export { a_init, a_namespaceObject_esm as a_namespaceObject, b_init, b_namespaceObject_esm as b_namespaceObject, c_init, c_namespaceObject_esm as c_namespaceObject };
 
 ```
 

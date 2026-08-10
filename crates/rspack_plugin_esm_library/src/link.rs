@@ -266,6 +266,24 @@ impl EsmLibraryPlugin {
     self.strict_export_chunks.borrow().contains(&chunk)
   }
 
+  fn ensure_esm_namespace_object(
+    chunk_link: &mut ChunkLinkContext,
+    module: ModuleIdentifier,
+    interop_namespace: &Atom,
+  ) -> Atom {
+    if let Some(namespace) = chunk_link.esm_namespace_objects.get(&module) {
+      return namespace.clone();
+    }
+
+    let base = format!("{interop_namespace}_esm");
+    let namespace = find_new_name(&base, &chunk_link.used_names, &[]);
+    chunk_link.used_names.insert(namespace.clone());
+    chunk_link
+      .esm_namespace_objects
+      .insert(module, namespace.clone());
+    namespace
+  }
+
   fn add_chunk_export(
     chunk: ChunkUkey,
     local: Atom,
@@ -878,6 +896,10 @@ impl EsmLibraryPlugin {
             }
           }
           let name = namespace_name.expect("should have name_space_name");
+          let esm_name = chunk_link
+            .esm_namespace_objects
+            .get(module_info_id)
+            .cloned();
           let star_re_export_binding = Self::resolve_single_star_re_export_target(
             *module_info_id,
             module_graph,
@@ -919,6 +941,12 @@ impl EsmLibraryPlugin {
               find_new_name(star_exports_base.as_str(), &chunk_link.used_names, &[]);
             chunk_link.used_names.insert(star_exports_name.clone());
 
+            let define_getters =
+              runtime_template.render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
+            let esm_define_getters = esm_name.as_ref().map_or_else(String::new, |esm_name| {
+              format!("{define_getters}({esm_name}, {star_exports_name});\n")
+            });
+
             format!(
               r#"var {} = {};
 Object.keys({}).forEach(function(key) {{
@@ -926,27 +954,48 @@ Object.keys({}).forEach(function(key) {{
     {}({}, {{ [key]: function() {{ return {}[key]; }} }});
   }}
 }});
-"#,
+{}"#,
               star_exports_name,
               binding.render(),
               star_exports_name,
-              runtime_template.render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS),
+              define_getters,
               name,
-              star_exports_name
+              star_exports_name,
+              esm_define_getters
             )
           } else {
             String::new()
           };
           let define_getters = if !ns_obj.is_empty() {
-            format!(
-              "{}({}, {{{}\n}});\n",
-              runtime_template.render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS),
-              name,
-              ns_obj.join(",")
-            )
+            let define_getters =
+              runtime_template.render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
+            if let Some(esm_name) = &esm_name {
+              let getters_base = format!("{name}_getters");
+              let getters_name = find_new_name(&getters_base, &chunk_link.used_names, &[]);
+              chunk_link.used_names.insert(getters_name.clone());
+              format!(
+                "var {getters_name} = {{{}\n}};\n{define_getters}({name}, {getters_name});\n{define_getters}({esm_name}, {getters_name});\n",
+                ns_obj.join(",")
+              )
+            } else {
+              format!("{define_getters}({name}, {{{}\n}});\n", ns_obj.join(","))
+            }
           } else {
             String::new()
           };
+
+          let esm_namespace_declaration = esm_name.as_ref().map_or_else(String::new, |esm_name| {
+            format!(
+              r#"var {esm_name} = Object.create(null);
+if (typeof Symbol !== 'undefined' && Symbol.toStringTag) {{
+  Object.defineProperty({esm_name}, Symbol.toStringTag, {{ value: 'Module' }});
+}}
+"#
+            )
+          });
+          let esm_namespace_finalize = esm_name.as_ref().map_or_else(String::new, |esm_name| {
+            format!("Object.preventExtensions({esm_name});\n")
+          });
 
           let namespace_object_source =
             if !define_getters.is_empty() || !star_re_export_getters.is_empty() {
@@ -954,27 +1003,31 @@ Object.keys({}).forEach(function(key) {{
                 r#"// NAMESPACE OBJECT: {}
 var {} = {{}};
 {}({});
-{}{}
+{}{}{}{}
 "#,
                 module_readable_identifier,
                 name,
                 runtime_template.render_runtime_globals(&RuntimeGlobals::MAKE_NAMESPACE_OBJECT),
                 name,
+                esm_namespace_declaration,
                 define_getters,
-                star_re_export_getters
+                star_re_export_getters,
+                esm_namespace_finalize
               )
             } else {
               format!(
                 r#"// NAMESPACE OBJECT: {}
 var {} = {{}};
 {}({});
-{}
+{}{}{}
 "#,
                 module_readable_identifier,
                 name,
                 runtime_template.render_runtime_globals(&RuntimeGlobals::MAKE_NAMESPACE_OBJECT),
                 name,
-                define_getters
+                esm_namespace_declaration,
+                define_getters,
+                esm_namespace_finalize
               )
             };
 
@@ -1798,7 +1851,7 @@ var {} = {{}};
 
                 if let Some(initializer) = &mut concate_info.initializer {
                   let name = initializer.name.take();
-                  *initializer = analyze_initializer(&program, &semantic);
+                  *initializer = analyze_initializer(&program, &semantic, &source_str);
                   initializer.name = name;
                 }
 
@@ -2885,9 +2938,22 @@ var {} = {{}};
           // Just export the namespace object itself.
           needed_namespace.insert(dyn_target);
 
+          let exported_namespace = if matches!(
+            &concate_modules_map[&dyn_target],
+            ModuleInfo::Concatenated(info) if info.namespace_export_symbol.is_none()
+          ) {
+            Self::ensure_esm_namespace_object(
+              link.get_mut_unwrap(&target_chunk),
+              dyn_target,
+              &ns_name,
+            )
+          } else {
+            ns_name.clone()
+          };
+
           Self::add_chunk_export(
             target_chunk,
-            ns_name.clone(),
+            exported_namespace,
             ns_name.clone(),
             &mut exports,
             false,
@@ -3578,13 +3644,22 @@ var {} = {{}};
             .namespace_object_name
             .clone()
             .expect("dynamic initializer target should have a namespace name");
+          let exported_namespace = if concate_modules_map[&target]
+            .as_concatenated()
+            .namespace_export_symbol
+            .is_none()
+          {
+            Self::ensure_esm_namespace_object(target_link, target, &namespace)
+          } else {
+            namespace.clone()
+          };
           needed_namespace_objects_by_ukey
             .entry(target_chunk)
             .or_default()
             .insert(target);
           let namespace_export = Self::add_chunk_export(
             target_chunk,
-            namespace.clone(),
+            exported_namespace,
             namespace,
             &mut exports,
             false,

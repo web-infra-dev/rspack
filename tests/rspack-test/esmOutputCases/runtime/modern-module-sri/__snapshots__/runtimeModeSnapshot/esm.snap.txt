@@ -34,7 +34,7 @@ var makeNamespaceObject = (exports) => {
 export { makeNamespaceObject };
 // rspack/runtime/sri_hash_variable
 
-          rspackRequire.sriHashes = {"value": "sha384-075aB7zzYofMNVGNURoGbz1lhWGP8+3g1Z/uX6qvf34zgFgyLEkA0CKRDhGIqzZ3"};
+          rspackRequire.sriHashes = {"value": "sha384-E7/vpzs1b2qd7SKFTZ+SCsnfLm3WF1+mrJdpCrG58mYhzXadqlGUuCI75k8xahDV"};
           ;
 
 
@@ -52,9 +52,16 @@ var __esm = (fn, result) => function __init() {
 // NAMESPACE OBJECT: ./value.js
 var value_namespaceObject = {};
 makeNamespaceObject(value_namespaceObject);
-definePropertyGetters(value_namespaceObject, {
+var value_namespaceObject_esm = Object.create(null);
+if (typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+  Object.defineProperty(value_namespaceObject_esm, Symbol.toStringTag, { value: 'Module' });
+}
+var value_namespaceObject_getters = {
   "default": () => (value)
-});
+};
+definePropertyGetters(value_namespaceObject, value_namespaceObject_getters);
+definePropertyGetters(value_namespaceObject_esm, value_namespaceObject_getters);
+Object.preventExtensions(value_namespaceObject_esm);
 
 
 // ./value.js
@@ -64,6 +71,6 @@ var value_init = /*#__PURE__*/ __esm(() => {
 
 });
 
-export { value as default, value_init, value_namespaceObject };
+export { value as default, value_init, value_namespaceObject_esm as value_namespaceObject };
 
 ```

@@ -1,0 +1,100 @@
+```mjs title=main.mjs
+// ./index.js
+it("returns an ESM namespace without the CommonJS interop marker", async () => {
+	const namespace = await import("./module.mjs").then(m => (m.module_init(), m.module_namespaceObject))
+
+	expect(namespace.default).toBe(42)
+	expect(namespace.__esModule).toBeUndefined()
+	expect(Object.getPrototypeOf(namespace)).toBeNull()
+	expect(Object.isExtensible(namespace)).toBe(false)
+	expect(Object.prototype.toString.call(namespace)).toBe("[object Module]")
+	expect(namespace.value).toBe(1)
+	namespace.increment()
+	expect(namespace.value).toBe(2)
+	expect(namespace.requireSeesEsModule()).toBe(true)
+})
+
+export {};
+
+```
+
+```mjs title=module.mjs
+import { __webpack_require__ } from "./runtime.mjs";
+var __esm = (fn, result) => function __init() {
+	if (fn) {
+		var value = fn(fn = 0);
+		result = value && typeof value.then === "function" ? value.then(value => result = value) : value;
+	}
+	return result;
+};
+// NAMESPACE OBJECT: ./module.js
+var module_namespaceObject = {};
+__webpack_require__.r(module_namespaceObject);
+var module_namespaceObject_esm = Object.create(null);
+if (typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+  Object.defineProperty(module_namespaceObject_esm, Symbol.toStringTag, { value: 'Module' });
+}
+var module_namespaceObject_getters = {
+  "default": () => (module_0),
+  increment: () => (increment),
+  requireSeesEsModule: () => (requireSeesEsModule),
+  value: () => (value)
+};
+__webpack_require__.d(module_namespaceObject, module_namespaceObject_getters);
+__webpack_require__.d(module_namespaceObject_esm, module_namespaceObject_getters);
+Object.preventExtensions(module_namespaceObject_esm);
+
+
+// ./module.js
+var value, module_self, increment, requireSeesEsModule, module_0;
+var module_init = /*#__PURE__*/ __esm(() => {
+( value = 1);;
+( module_self = (module_init(), module_namespaceObject));;
+
+
+( increment = () => value++);;
+( requireSeesEsModule = () => module_self.__esModule);;
+/* export default */ ;( module_0 = (42));;
+
+});
+
+export { increment, module_0 as default, module_init, module_namespaceObject_esm as module_namespaceObject, requireSeesEsModule, value };
+
+```
+
+```mjs title=runtime.mjs
+// The require scope
+var __webpack_require__ = {};
+
+// webpack/runtime/define_property_getters
+(() => {
+__webpack_require__.d = (exports, getters, values) => {
+	var define = (defs, kind) => {
+		for(var key in defs) {
+			if(__webpack_require__.o(defs, key) && !__webpack_require__.o(exports, key)) {
+				Object.defineProperty(exports, key, { enumerable: true, [kind]: defs[key] });
+			}
+		}
+	};
+	define(getters, "get");
+	define(values, "value");
+};
+})();
+// webpack/runtime/has_own_property
+(() => {
+__webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
+})();
+// webpack/runtime/make_namespace_object
+(() => {
+// define __esModule on exports
+__webpack_require__.r = (exports) => {
+	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+	}
+	Object.defineProperty(exports, '__esModule', { value: true });
+};
+})();
+
+export { __webpack_require__ };
+
+```

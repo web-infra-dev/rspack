@@ -10,9 +10,16 @@ var __esm = (fn, result) => function __init() {
 // NAMESPACE OBJECT: ./foo.js
 var foo_namespaceObject = {};
 __webpack_require__.r(foo_namespaceObject);
-__webpack_require__.d(foo_namespaceObject, {
+var foo_namespaceObject_esm = Object.create(null);
+if (typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+  Object.defineProperty(foo_namespaceObject_esm, Symbol.toStringTag, { value: 'Module' });
+}
+var foo_namespaceObject_getters = {
   value: () => ((/* inlined export .value */42))
-});
+};
+__webpack_require__.d(foo_namespaceObject, foo_namespaceObject_getters);
+__webpack_require__.d(foo_namespaceObject_esm, foo_namespaceObject_getters);
+Object.preventExtensions(foo_namespaceObject_esm);
 
 
 // ./foo.js
@@ -21,7 +28,7 @@ var foo_init = /*#__PURE__*/ __esm(() => {
 });
 
 var foo_value = (/* inlined export .value */42);
-export { foo_init, foo_namespaceObject, foo_value as value };
+export { foo_init, foo_namespaceObject_esm as foo_namespaceObject, foo_value as value };
 
 ```
 

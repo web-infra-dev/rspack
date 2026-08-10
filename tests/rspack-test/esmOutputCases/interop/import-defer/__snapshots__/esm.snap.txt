@@ -10,9 +10,16 @@ var __esm = (fn, result) => function __init() {
 // NAMESPACE OBJECT: ./context/a.js
 var a_namespaceObject = {};
 __webpack_require__.r(a_namespaceObject);
-__webpack_require__.d(a_namespaceObject, {
+var a_namespaceObject_esm = Object.create(null);
+if (typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+  Object.defineProperty(a_namespaceObject_esm, Symbol.toStringTag, { value: 'Module' });
+}
+var a_namespaceObject_getters = {
   value: () => (value)
-});
+};
+__webpack_require__.d(a_namespaceObject, a_namespaceObject_getters);
+__webpack_require__.d(a_namespaceObject_esm, a_namespaceObject_getters);
+Object.preventExtensions(a_namespaceObject_esm);
 
 
 // ./context/a.js
@@ -24,7 +31,7 @@ globalThis.__modern_module_defer_events__.push("context");
 
 });
 
-export { a_init, a_namespaceObject };
+export { a_init, a_namespaceObject_esm as a_namespaceObject };
 
 ```
 
@@ -40,6 +47,11 @@ var __esm = (fn, result) => function __init() {
 // NAMESPACE OBJECT: ./context/async-dependency.js
 var async_dependency_namespaceObject = {};
 __webpack_require__.r(async_dependency_namespaceObject);
+var async_dependency_namespaceObject_esm = Object.create(null);
+if (typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+  Object.defineProperty(async_dependency_namespaceObject_esm, Symbol.toStringTag, { value: 'Module' });
+}
+Object.preventExtensions(async_dependency_namespaceObject_esm);
 
 
 // ./context/async-dependency.js
@@ -52,7 +64,7 @@ globalThis.__modern_module_defer_events__.push("context-async-dependency");
 
 });
 
-export { async_dependency_init, async_dependency_namespaceObject };
+export { async_dependency_init, async_dependency_namespaceObject_esm as async_dependency_namespaceObject };
 
 ```
 
@@ -70,9 +82,16 @@ var __esm = (fn, result) => function __init() {
 // NAMESPACE OBJECT: ./context/async-parent.js
 var async_parent_namespaceObject = {};
 __webpack_require__.r(async_parent_namespaceObject);
-__webpack_require__.d(async_parent_namespaceObject, {
+var async_parent_namespaceObject_esm = Object.create(null);
+if (typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+  Object.defineProperty(async_parent_namespaceObject_esm, Symbol.toStringTag, { value: 'Module' });
+}
+var async_parent_namespaceObject_getters = {
   value: () => (value)
-});
+};
+__webpack_require__.d(async_parent_namespaceObject, async_parent_namespaceObject_getters);
+__webpack_require__.d(async_parent_namespaceObject_esm, async_parent_namespaceObject_getters);
+Object.preventExtensions(async_parent_namespaceObject_esm);
 
 
 // ./context/async-parent.js
@@ -88,7 +107,7 @@ globalThis.__modern_module_defer_events__.push("context-async-parent");
 
 });
 
-export { async_parent_init, async_parent_namespaceObject };
+export { async_parent_init, async_parent_namespaceObject_esm as async_parent_namespaceObject };
 
 ```
 
@@ -128,9 +147,16 @@ var __esm = (fn, result) => function __init() {
 // NAMESPACE OBJECT: ./dynamic-async-parent.js
 var dynamic_async_parent_namespaceObject = {};
 __webpack_require__.r(dynamic_async_parent_namespaceObject);
-__webpack_require__.d(dynamic_async_parent_namespaceObject, {
+var dynamic_async_parent_namespaceObject_esm = Object.create(null);
+if (typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+  Object.defineProperty(dynamic_async_parent_namespaceObject_esm, Symbol.toStringTag, { value: 'Module' });
+}
+var dynamic_async_parent_namespaceObject_getters = {
   value: () => (value)
-});
+};
+__webpack_require__.d(dynamic_async_parent_namespaceObject, dynamic_async_parent_namespaceObject_getters);
+__webpack_require__.d(dynamic_async_parent_namespaceObject_esm, dynamic_async_parent_namespaceObject_getters);
+Object.preventExtensions(dynamic_async_parent_namespaceObject_esm);
 
 
 // ./dynamic-async-parent.js
@@ -146,7 +172,7 @@ globalThis.__modern_module_defer_events__.push("dynamic-async-parent");
 
 });
 
-export { dynamic_async_parent_init, dynamic_async_parent_namespaceObject, value };
+export { dynamic_async_parent_init, dynamic_async_parent_namespaceObject_esm as dynamic_async_parent_namespaceObject, value };
 
 ```
 
@@ -162,9 +188,16 @@ var __esm = (fn, result) => function __init() {
 // NAMESPACE OBJECT: ./dynamic-own-tla.js
 var dynamic_own_tla_namespaceObject = {};
 __webpack_require__.r(dynamic_own_tla_namespaceObject);
-__webpack_require__.d(dynamic_own_tla_namespaceObject, {
+var dynamic_own_tla_namespaceObject_esm = Object.create(null);
+if (typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+  Object.defineProperty(dynamic_own_tla_namespaceObject_esm, Symbol.toStringTag, { value: 'Module' });
+}
+var dynamic_own_tla_namespaceObject_getters = {
   value: () => (value)
-});
+};
+__webpack_require__.d(dynamic_own_tla_namespaceObject, dynamic_own_tla_namespaceObject_getters);
+__webpack_require__.d(dynamic_own_tla_namespaceObject_esm, dynamic_own_tla_namespaceObject_getters);
+Object.preventExtensions(dynamic_own_tla_namespaceObject_esm);
 
 
 // ./dynamic-own-tla.js
@@ -177,7 +210,7 @@ globalThis.__modern_module_defer_events__.push("dynamic-own-tla");
 
 });
 
-export { dynamic_own_tla_init, dynamic_own_tla_namespaceObject, value };
+export { dynamic_own_tla_init, dynamic_own_tla_namespaceObject_esm as dynamic_own_tla_namespaceObject, value };
 
 ```
 
@@ -193,9 +226,16 @@ var __esm = (fn, result) => function __init() {
 // NAMESPACE OBJECT: ./dynamic.js
 var dynamic_namespaceObject = {};
 __webpack_require__.r(dynamic_namespaceObject);
-__webpack_require__.d(dynamic_namespaceObject, {
+var dynamic_namespaceObject_esm = Object.create(null);
+if (typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+  Object.defineProperty(dynamic_namespaceObject_esm, Symbol.toStringTag, { value: 'Module' });
+}
+var dynamic_namespaceObject_getters = {
   value: () => (value)
-});
+};
+__webpack_require__.d(dynamic_namespaceObject, dynamic_namespaceObject_getters);
+__webpack_require__.d(dynamic_namespaceObject_esm, dynamic_namespaceObject_getters);
+Object.preventExtensions(dynamic_namespaceObject_esm);
 
 
 // ./dynamic.js
@@ -207,7 +247,7 @@ globalThis.__modern_module_defer_events__.push("dynamic");
 
 });
 
-export { dynamic_init, dynamic_namespaceObject, value };
+export { dynamic_init, dynamic_namespaceObject_esm as dynamic_namespaceObject, value };
 
 ```
 
@@ -440,9 +480,16 @@ var __esm = (fn, result) => function __init() {
 // NAMESPACE OBJECT: ./context/own-tla.js
 var own_tla_namespaceObject = {};
 __webpack_require__.r(own_tla_namespaceObject);
-__webpack_require__.d(own_tla_namespaceObject, {
+var own_tla_namespaceObject_esm = Object.create(null);
+if (typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+  Object.defineProperty(own_tla_namespaceObject_esm, Symbol.toStringTag, { value: 'Module' });
+}
+var own_tla_namespaceObject_getters = {
   value: () => (value)
-});
+};
+__webpack_require__.d(own_tla_namespaceObject, own_tla_namespaceObject_getters);
+__webpack_require__.d(own_tla_namespaceObject_esm, own_tla_namespaceObject_getters);
+Object.preventExtensions(own_tla_namespaceObject_esm);
 
 
 // ./context/own-tla.js
@@ -455,7 +502,7 @@ globalThis.__modern_module_defer_events__.push("context-own-tla");
 
 });
 
-export { own_tla_init, own_tla_namespaceObject };
+export { own_tla_init, own_tla_namespaceObject_esm as own_tla_namespaceObject };
 
 ```
 

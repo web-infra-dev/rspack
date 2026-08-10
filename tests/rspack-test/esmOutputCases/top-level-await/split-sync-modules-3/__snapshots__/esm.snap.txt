@@ -12,9 +12,16 @@ var __esm = (fn, result) => function __init() {
 // NAMESPACE OBJECT: ./async1.js
 var async1_namespaceObject = {};
 __webpack_require__.r(async1_namespaceObject);
-__webpack_require__.d(async1_namespaceObject, {
+var async1_namespaceObject_esm = Object.create(null);
+if (typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+  Object.defineProperty(async1_namespaceObject_esm, Symbol.toStringTag, { value: 'Module' });
+}
+var async1_namespaceObject_getters = {
   value: () => (value)
-});
+};
+__webpack_require__.d(async1_namespaceObject, async1_namespaceObject_getters);
+__webpack_require__.d(async1_namespaceObject_esm, async1_namespaceObject_getters);
+Object.preventExtensions(async1_namespaceObject_esm);
 
 
 // ./async1.js
@@ -25,7 +32,7 @@ var async1_init = /*#__PURE__*/ __esm(() => {
 
 });
 
-export { async1_init, async1_namespaceObject };
+export { async1_init, async1_namespaceObject_esm as async1_namespaceObject };
 export { value } from "./lib_js.mjs";
 
 ```
@@ -44,9 +51,16 @@ var __esm = (fn, result) => function __init() {
 // NAMESPACE OBJECT: ./async2.js
 var async2_namespaceObject = {};
 __webpack_require__.r(async2_namespaceObject);
-__webpack_require__.d(async2_namespaceObject, {
+var async2_namespaceObject_esm = Object.create(null);
+if (typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+  Object.defineProperty(async2_namespaceObject_esm, Symbol.toStringTag, { value: 'Module' });
+}
+var async2_namespaceObject_getters = {
   value: () => (value)
-});
+};
+__webpack_require__.d(async2_namespaceObject, async2_namespaceObject_getters);
+__webpack_require__.d(async2_namespaceObject_esm, async2_namespaceObject_getters);
+Object.preventExtensions(async2_namespaceObject_esm);
 
 
 // ./async2.js
@@ -57,7 +71,7 @@ var async2_init = /*#__PURE__*/ __esm(() => {
 
 });
 
-export { async2_init, async2_namespaceObject };
+export { async2_init, async2_namespaceObject_esm as async2_namespaceObject };
 export { value } from "./lib_js.mjs";
 
 ```

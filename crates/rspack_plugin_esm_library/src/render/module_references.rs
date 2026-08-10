@@ -8,11 +8,29 @@ use rspack_util::fx_hash::FxHashMap;
 
 use crate::{EsmLibraryPlugin, chunk_link::ChunkLinkContext, is_css_only_module};
 
-fn local_module_value(
+fn local_namespace<'a>(
+  module: rspack_core::ModuleIdentifier,
+  chunk_link: &'a ChunkLinkContext,
+  fallback: Option<&'a rspack_util::atom::Atom>,
+  esm_namespace: bool,
+) -> Result<&'a rspack_util::atom::Atom> {
+  let namespace = if esm_namespace {
+    chunk_link.esm_namespace_objects.get(&module)
+  } else {
+    None
+  };
+  namespace
+    .or_else(|| chunk_link.hoisted_namespaces.get(&module))
+    .or(fallback)
+    .ok_or_else(|| error!("missing namespace for scope-hoisted module {module}"))
+}
+
+fn local_module_value_with_namespace(
   module: rspack_core::ModuleIdentifier,
   compilation: &Compilation,
   chunk_link: &ChunkLinkContext,
   module_infos: &IdentifierIndexMap<ModuleInfo>,
+  esm_namespace: bool,
 ) -> Result<String> {
   if let Some(target) = compilation.get_module_graph().module_by_identifier(&module)
     && is_css_only_module(target.as_ref(), compilation.get_module_graph())
@@ -29,11 +47,12 @@ fn local_module_value(
       .map(|initializer| format!("{initializer}()"))
       .ok_or_else(|| error!("missing initializer for wrapped module {module}")),
     ModuleInfo::Concatenated(info) => {
-      let namespace = chunk_link
-        .hoisted_namespaces
-        .get(&module)
-        .or(info.namespace_object_name.as_ref())
-        .ok_or_else(|| error!("missing namespace for scope-hoisted module {module}"))?;
+      let namespace = local_namespace(
+        module,
+        chunk_link,
+        info.namespace_object_name.as_ref(),
+        esm_namespace,
+      )?;
       Ok(chunk_link.module_initializers.get(&module).map_or_else(
         || namespace.to_string(),
         |initializer| format!("({initializer}(), {namespace})"),
@@ -43,6 +62,24 @@ fn local_module_value(
       "external module info is not used by modern-module rendering"
     )),
   }
+}
+
+fn local_module_value(
+  module: rspack_core::ModuleIdentifier,
+  compilation: &Compilation,
+  chunk_link: &ChunkLinkContext,
+  module_infos: &IdentifierIndexMap<ModuleInfo>,
+) -> Result<String> {
+  local_module_value_with_namespace(module, compilation, chunk_link, module_infos, false)
+}
+
+fn local_esm_module_value(
+  module: rspack_core::ModuleIdentifier,
+  compilation: &Compilation,
+  chunk_link: &ChunkLinkContext,
+  module_infos: &IdentifierIndexMap<ModuleInfo>,
+) -> Result<String> {
+  local_module_value_with_namespace(module, compilation, chunk_link, module_infos, true)
 }
 
 fn imported_module_value(
@@ -101,11 +138,12 @@ fn local_async_module_value(
       Ok(format!("Promise.resolve().then(() => {initializer}())"))
     }
     ModuleInfo::Concatenated(info) => {
-      let namespace = chunk_link
-        .hoisted_namespaces
-        .get(&module)
-        .or(info.namespace_object_name.as_ref())
-        .ok_or_else(|| error!("missing namespace for scope-hoisted module {module}"))?;
+      let namespace = local_namespace(
+        module,
+        chunk_link,
+        info.namespace_object_name.as_ref(),
+        true,
+      )?;
       Ok(chunk_link.module_initializers.get(&module).map_or_else(
         || format!("Promise.resolve({namespace})"),
         |initializer| {
@@ -171,7 +209,7 @@ fn async_module_value(
     }
     return Ok(format!(
       "Promise.resolve().then(() => {})",
-      local_module_value(module, compilation, chunk_link, module_infos)?
+      local_esm_module_value(module, compilation, chunk_link, module_infos)?
     ));
   }
   let target = compilation
@@ -229,7 +267,7 @@ fn async_module_loader(
   if target_chunk == current_chunk {
     return Ok(format!(
       "Promise.resolve(() => {})",
-      local_module_value(module, compilation, chunk_link, module_infos)?
+      local_esm_module_value(module, compilation, chunk_link, module_infos)?
     ));
   }
   let target = compilation
@@ -290,7 +328,7 @@ pub(super) fn relocate_module_references(
       ),
       CodeGenerationModuleReferenceKind::LazyValue => format!(
         "() => {}",
-        local_module_value(reference.module, compilation, chunk_link, module_infos)?
+        local_esm_module_value(reference.module, compilation, chunk_link, module_infos)?
       ),
       CodeGenerationModuleReferenceKind::LazyInitializer => {
         local_module_initializer(reference.module, chunk_link)?

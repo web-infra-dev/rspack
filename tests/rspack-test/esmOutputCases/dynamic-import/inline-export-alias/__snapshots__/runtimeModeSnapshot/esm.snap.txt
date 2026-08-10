@@ -10,10 +10,17 @@ var __esm = (fn, result) => function __init() {
 // NAMESPACE OBJECT: ./foo.js
 var foo_namespaceObject = {};
 makeNamespaceObject(foo_namespaceObject);
-definePropertyGetters(foo_namespaceObject, {
+var foo_namespaceObject_esm = Object.create(null);
+if (typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+  Object.defineProperty(foo_namespaceObject_esm, Symbol.toStringTag, { value: 'Module' });
+}
+var foo_namespaceObject_getters = {
   a: () => (x),
   b: () => (x)
-});
+};
+definePropertyGetters(foo_namespaceObject, foo_namespaceObject_getters);
+definePropertyGetters(foo_namespaceObject_esm, foo_namespaceObject_getters);
+Object.preventExtensions(foo_namespaceObject_esm);
 
 
 // ./foo.js
@@ -31,7 +38,7 @@ call(x);
 
 });
 
-export { foo_init, foo_namespaceObject, x as a, x as b };
+export { foo_init, foo_namespaceObject_esm as foo_namespaceObject, x as a, x as b };
 
 ```
 

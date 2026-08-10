@@ -12,10 +12,17 @@ var __esm = (fn, result) => function __init() {
 // NAMESPACE OBJECT: ./src/feature/index.js
 var feature_namespaceObject = {};
 __webpack_require__.r(feature_namespaceObject);
-__webpack_require__.d(feature_namespaceObject, {
+var feature_namespaceObject_esm = Object.create(null);
+if (typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+  Object.defineProperty(feature_namespaceObject_esm, Symbol.toStringTag, { value: 'Module' });
+}
+var feature_namespaceObject_getters = {
   answer: () => ((/* inlined export .answer */42)),
   "default": () => (src_feature)
-});
+};
+__webpack_require__.d(feature_namespaceObject, feature_namespaceObject_getters);
+__webpack_require__.d(feature_namespaceObject_esm, feature_namespaceObject_getters);
+Object.preventExtensions(feature_namespaceObject_esm);
 
 
 // ./src/feature/index.js
@@ -32,7 +39,7 @@ var feature_init = /*#__PURE__*/ __esm(() => {
 });
 
 var feature_answer = (/* inlined export .answer */42);
-export { feature_answer as answer, feature_init, feature_namespaceObject, src_feature as default };
+export { feature_answer as answer, feature_init, feature_namespaceObject_esm as feature_namespaceObject, src_feature as default };
 
 ```
 

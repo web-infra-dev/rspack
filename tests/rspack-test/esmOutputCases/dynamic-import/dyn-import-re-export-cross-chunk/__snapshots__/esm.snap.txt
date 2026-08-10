@@ -85,10 +85,17 @@ var __esm = (fn, result) => function __init() {
 // NAMESPACE OBJECT: ./wrapper.js
 var wrapper_namespaceObject = {};
 __webpack_require__.r(wrapper_namespaceObject);
-__webpack_require__.d(wrapper_namespaceObject, {
+var wrapper_namespaceObject_esm = Object.create(null);
+if (typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+  Object.defineProperty(wrapper_namespaceObject_esm, Symbol.toStringTag, { value: 'Module' });
+}
+var wrapper_namespaceObject_getters = {
   helper: () => (helper),
   value: () => ((/* inlined export .value */42))
-});
+};
+__webpack_require__.d(wrapper_namespaceObject, wrapper_namespaceObject_getters);
+__webpack_require__.d(wrapper_namespaceObject_esm, wrapper_namespaceObject_getters);
+Object.preventExtensions(wrapper_namespaceObject_esm);
 
 
 // ./wrapper.js
@@ -99,7 +106,7 @@ var wrapper_init = /*#__PURE__*/ __esm(() => {
 });
 
 var wrapper_value = (/* inlined export .value */42);
-export { wrapper_init, wrapper_namespaceObject, wrapper_value as value };
+export { wrapper_init, wrapper_namespaceObject_esm as wrapper_namespaceObject, wrapper_value as value };
 export { helper } from "./shared-chunk.mjs";
 
 ```

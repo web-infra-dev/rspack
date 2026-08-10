@@ -55,11 +55,18 @@ var __esm = (fn, result) => function __init() {
 // NAMESPACE OBJECT: ./wrapper.js
 var wrapper_namespaceObject = {};
 makeNamespaceObject(wrapper_namespaceObject);
-definePropertyGetters(wrapper_namespaceObject, {
+var wrapper_namespaceObject_esm = Object.create(null);
+if (typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+  Object.defineProperty(wrapper_namespaceObject_esm, Symbol.toStringTag, { value: 'Module' });
+}
+var wrapper_namespaceObject_getters = {
   "default": () => (__rspack_external_fs["default"]),
   ns: () => (__rspack_external_fs),
   readFile: () => (__rspack_external_fs.readFile)
-});
+};
+definePropertyGetters(wrapper_namespaceObject, wrapper_namespaceObject_getters);
+definePropertyGetters(wrapper_namespaceObject_esm, wrapper_namespaceObject_getters);
+Object.preventExtensions(wrapper_namespaceObject_esm);
 
 
 // fs
@@ -75,6 +82,6 @@ var wrapper_init = /*#__PURE__*/ __esm(() => {
 
 var default_0 = __rspack_external_fs["default"];
 var readFile = __rspack_external_fs.readFile;
-export { __rspack_external_fs as ns, default_0 as default, readFile, wrapper_init, wrapper_namespaceObject };
+export { __rspack_external_fs as ns, default_0 as default, readFile, wrapper_init, wrapper_namespaceObject_esm as wrapper_namespaceObject };
 
 ```

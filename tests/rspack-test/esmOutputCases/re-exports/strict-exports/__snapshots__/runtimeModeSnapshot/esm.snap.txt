@@ -13,6 +13,11 @@ var cjs;
 // NAMESPACE OBJECT: ./chunk.js
 var chunk_namespaceObject = {};
 makeNamespaceObject(chunk_namespaceObject);
+var chunk_namespaceObject_esm = Object.create(null);
+if (typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+  Object.defineProperty(chunk_namespaceObject_esm, Symbol.toStringTag, { value: 'Module' });
+}
+Object.preventExtensions(chunk_namespaceObject_esm);
 
 
 // ./chunk.js
@@ -25,7 +30,7 @@ cjs.p;
 
 });
 
-export { chunk_init, chunk_namespaceObject };
+export { chunk_init, chunk_namespaceObject_esm as chunk_namespaceObject };
 
 ```
 

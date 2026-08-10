@@ -40,9 +40,16 @@ var dynamic, value;
 // NAMESPACE OBJECT: ./esm.js
 var esm_namespaceObject = {};
 makeNamespaceObject(esm_namespaceObject);
-definePropertyGetters(esm_namespaceObject, {
+var esm_namespaceObject_esm = Object.create(null);
+if (typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+  Object.defineProperty(esm_namespaceObject_esm, Symbol.toStringTag, { value: 'Module' });
+}
+var esm_namespaceObject_getters = {
   value: () => (dynamic.value)
-});
+};
+definePropertyGetters(esm_namespaceObject, esm_namespaceObject_getters);
+definePropertyGetters(esm_namespaceObject_esm, esm_namespaceObject_getters);
+Object.preventExtensions(esm_namespaceObject_esm);
 
 
 // ./esm.js
@@ -52,7 +59,7 @@ value = dynamic.value;
 
 });
 
-export { esm_init, esm_namespaceObject, value };
+export { esm_init, esm_namespaceObject_esm as esm_namespaceObject, value };
 
 ```
 

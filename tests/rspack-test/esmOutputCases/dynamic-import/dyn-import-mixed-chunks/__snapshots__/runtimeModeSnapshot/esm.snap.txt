@@ -62,19 +62,33 @@ var __esm = (fn, result) => function __init() {
 // NAMESPACE OBJECT: ./m1.js
 var m1_namespaceObject = {};
 makeNamespaceObject(m1_namespaceObject);
-definePropertyGetters(m1_namespaceObject, {
+var m1_namespaceObject_esm = Object.create(null);
+if (typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+  Object.defineProperty(m1_namespaceObject_esm, Symbol.toStringTag, { value: 'Module' });
+}
+var m1_namespaceObject_getters = {
   "default": () => (m1),
   value: () => (value)
-});
+};
+definePropertyGetters(m1_namespaceObject, m1_namespaceObject_getters);
+definePropertyGetters(m1_namespaceObject_esm, m1_namespaceObject_getters);
+Object.preventExtensions(m1_namespaceObject_esm);
 
 
 // NAMESPACE OBJECT: ./m2.js
 var m2_namespaceObject = {};
 makeNamespaceObject(m2_namespaceObject);
-definePropertyGetters(m2_namespaceObject, {
+var m2_namespaceObject_esm = Object.create(null);
+if (typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+  Object.defineProperty(m2_namespaceObject_esm, Symbol.toStringTag, { value: 'Module' });
+}
+var m2_namespaceObject_getters = {
   "default": () => (m2),
   value: () => (m2_value)
-});
+};
+definePropertyGetters(m2_namespaceObject, m2_namespaceObject_getters);
+definePropertyGetters(m2_namespaceObject_esm, m2_namespaceObject_getters);
+Object.preventExtensions(m2_namespaceObject_esm);
 
 
 // ./m1.js
@@ -93,7 +107,7 @@ var m2_init = /*#__PURE__*/ __esm(() => {
 
 });
 
-export { m1_init, m1_namespaceObject, m2_init, m2_namespaceObject };
+export { m1_init, m1_namespaceObject_esm as m1_namespaceObject, m2_init, m2_namespaceObject_esm as m2_namespaceObject };
 
 ```
 
@@ -109,10 +123,17 @@ var __esm = (fn, result) => function __init() {
 // NAMESPACE OBJECT: ./solo.js
 var solo_namespaceObject = {};
 makeNamespaceObject(solo_namespaceObject);
-definePropertyGetters(solo_namespaceObject, {
+var solo_namespaceObject_esm = Object.create(null);
+if (typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+  Object.defineProperty(solo_namespaceObject_esm, Symbol.toStringTag, { value: 'Module' });
+}
+var solo_namespaceObject_getters = {
   "default": () => (solo),
   value: () => (value)
-});
+};
+definePropertyGetters(solo_namespaceObject, solo_namespaceObject_getters);
+definePropertyGetters(solo_namespaceObject_esm, solo_namespaceObject_getters);
+Object.preventExtensions(solo_namespaceObject_esm);
 
 
 // ./solo.js
@@ -123,6 +144,6 @@ var solo_init = /*#__PURE__*/ __esm(() => {
 
 });
 
-export { solo as default, solo_init, solo_namespaceObject, value };
+export { solo as default, solo_init, solo_namespaceObject_esm as solo_namespaceObject, value };
 
 ```

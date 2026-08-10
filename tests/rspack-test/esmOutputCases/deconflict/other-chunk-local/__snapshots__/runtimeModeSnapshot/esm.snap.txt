@@ -29,9 +29,16 @@ var __esm = (fn, result) => function __init() {
 // NAMESPACE OBJECT: ./other.js
 var other_namespaceObject = {};
 makeNamespaceObject(other_namespaceObject);
-definePropertyGetters(other_namespaceObject, {
+var other_namespaceObject_esm = Object.create(null);
+if (typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+  Object.defineProperty(other_namespaceObject_esm, Symbol.toStringTag, { value: 'Module' });
+}
+var other_namespaceObject_getters = {
   value: () => (value)
-});
+};
+definePropertyGetters(other_namespaceObject, other_namespaceObject_getters);
+definePropertyGetters(other_namespaceObject_esm, other_namespaceObject_getters);
+Object.preventExtensions(other_namespaceObject_esm);
 
 
 // ./other.js
@@ -45,7 +52,7 @@ var other_init = /*#__PURE__*/ __esm(() => {
 
 });
 
-export { other_init, other_namespaceObject, value };
+export { other_init, other_namespaceObject_esm as other_namespaceObject, value };
 
 ```
 

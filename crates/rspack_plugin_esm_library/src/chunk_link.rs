@@ -397,6 +397,9 @@ pub struct ChunkLinkContext {
   /** Optional namespace export returned after a cross-chunk hoisted initializer runs. */
   pub initializer_namespace_exports: IdentifierMap<Atom>,
 
+  /** Marker-free namespace views exposed through native ESM loading boundaries. */
+  pub esm_namespace_objects: IdentifierMap<Atom>,
+
   /** Namespace bindings used by wrapped factories to reference hoisted modules. */
   pub hoisted_namespaces: IdentifierMap<Atom>,
 
@@ -432,6 +435,7 @@ impl ChunkLinkContext {
       module_initializer_exports: Default::default(),
       hoisted_initializers: Default::default(),
       initializer_namespace_exports: Default::default(),
+      esm_namespace_objects: Default::default(),
       hoisted_namespaces: Default::default(),
       wrapped_runtime: Default::default(),
       async_dependency_temp: None,

@@ -96,19 +96,33 @@ var __esm = (fn, result) => function __init() {
 // NAMESPACE OBJECT: ./m1.js
 var m1_namespaceObject = {};
 __webpack_require__.r(m1_namespaceObject);
-__webpack_require__.d(m1_namespaceObject, {
+var m1_namespaceObject_esm = Object.create(null);
+if (typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+  Object.defineProperty(m1_namespaceObject_esm, Symbol.toStringTag, { value: 'Module' });
+}
+var m1_namespaceObject_getters = {
   "default": () => (m1),
   value: () => (value)
-});
+};
+__webpack_require__.d(m1_namespaceObject, m1_namespaceObject_getters);
+__webpack_require__.d(m1_namespaceObject_esm, m1_namespaceObject_getters);
+Object.preventExtensions(m1_namespaceObject_esm);
 
 
 // NAMESPACE OBJECT: ./m2.js
 var m2_namespaceObject = {};
 __webpack_require__.r(m2_namespaceObject);
-__webpack_require__.d(m2_namespaceObject, {
+var m2_namespaceObject_esm = Object.create(null);
+if (typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+  Object.defineProperty(m2_namespaceObject_esm, Symbol.toStringTag, { value: 'Module' });
+}
+var m2_namespaceObject_getters = {
   "default": () => (m2),
   value: () => (m2_value)
-});
+};
+__webpack_require__.d(m2_namespaceObject, m2_namespaceObject_getters);
+__webpack_require__.d(m2_namespaceObject_esm, m2_namespaceObject_getters);
+Object.preventExtensions(m2_namespaceObject_esm);
 
 
 // ./m1.js
@@ -127,6 +141,6 @@ var m2_init = /*#__PURE__*/ __esm(() => {
 
 });
 
-export { m1_init, m1_namespaceObject, m2_init, m2_namespaceObject };
+export { m1_init, m1_namespaceObject_esm as m1_namespaceObject, m2_init, m2_namespaceObject_esm as m2_namespaceObject };
 
 ```

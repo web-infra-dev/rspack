@@ -10,9 +10,16 @@ var __esm = (fn, result) => function __init() {
 // NAMESPACE OBJECT: ./src/app.js
 var app_namespaceObject = {};
 makeNamespaceObject(app_namespaceObject);
-definePropertyGetters(app_namespaceObject, {
+var app_namespaceObject_esm = Object.create(null);
+if (typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+  Object.defineProperty(app_namespaceObject_esm, Symbol.toStringTag, { value: 'Module' });
+}
+var app_namespaceObject_getters = {
   value: () => (value)
-});
+};
+definePropertyGetters(app_namespaceObject, app_namespaceObject_getters);
+definePropertyGetters(app_namespaceObject_esm, app_namespaceObject_getters);
+Object.preventExtensions(app_namespaceObject_esm);
 
 
 // ./src/app.js
@@ -22,7 +29,7 @@ var app_init = /*#__PURE__*/ __esm(() => {
 
 });
 
-export { app_init, app_namespaceObject, value };
+export { app_init, app_namespaceObject_esm as app_namespaceObject, value };
 
 ```
 
@@ -38,9 +45,16 @@ var __esm = (fn, result) => function __init() {
 // NAMESPACE OBJECT: ./lib/index.js
 var lib_namespaceObject = {};
 makeNamespaceObject(lib_namespaceObject);
-definePropertyGetters(lib_namespaceObject, {
+var lib_namespaceObject_esm = Object.create(null);
+if (typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+  Object.defineProperty(lib_namespaceObject_esm, Symbol.toStringTag, { value: 'Module' });
+}
+var lib_namespaceObject_getters = {
   value: () => (value)
-});
+};
+definePropertyGetters(lib_namespaceObject, lib_namespaceObject_getters);
+definePropertyGetters(lib_namespaceObject_esm, lib_namespaceObject_getters);
+Object.preventExtensions(lib_namespaceObject_esm);
 
 
 // ./lib/index.js
@@ -50,7 +64,7 @@ var lib_init = /*#__PURE__*/ __esm(() => {
 
 });
 
-export { lib_init, lib_namespaceObject, value };
+export { lib_init, lib_namespaceObject_esm as lib_namespaceObject, value };
 
 ```
 

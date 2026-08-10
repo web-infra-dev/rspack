@@ -1,0 +1,73 @@
+```mjs title=main.mjs
+import { __webpack_require__ } from "./runtime.mjs";
+var __esm = (fn, result) => function __init() {
+	if (fn) {
+		var value = fn(fn = 0);
+		result = value && typeof value.then === "function" ? value.then(value => result = value) : value;
+	}
+	return result;
+};
+// NAMESPACE OBJECT: ./index.js
+var index_namespaceObject = {};
+__webpack_require__.r(index_namespaceObject);
+__webpack_require__.d(index_namespaceObject, {
+  "default": () => (index)
+});
+
+
+// ./index.js
+var works, index_self, index;
+var index_init = /*#__PURE__*/ __esm(() => {
+( works);
+( index_self = (index_init(), index_namespaceObject));
+works = index_self.__esModule === true
+/* export default */ ;( index = (123));;
+
+it("keeps an ASI boundary before a rewritten default export", () => {
+	expect(works).toBe(true)
+	expect(index_self.default).toBe(123)
+})
+
+});
+
+index_init();
+export { index as default };
+
+```
+
+```mjs title=runtime.mjs
+// The require scope
+var __webpack_require__ = {};
+
+// webpack/runtime/define_property_getters
+(() => {
+__webpack_require__.d = (exports, getters, values) => {
+	var define = (defs, kind) => {
+		for(var key in defs) {
+			if(__webpack_require__.o(defs, key) && !__webpack_require__.o(exports, key)) {
+				Object.defineProperty(exports, key, { enumerable: true, [kind]: defs[key] });
+			}
+		}
+	};
+	define(getters, "get");
+	define(values, "value");
+};
+})();
+// webpack/runtime/has_own_property
+(() => {
+__webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
+})();
+// webpack/runtime/make_namespace_object
+(() => {
+// define __esModule on exports
+__webpack_require__.r = (exports) => {
+	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+	}
+	Object.defineProperty(exports, '__esModule', { value: true });
+};
+})();
+
+export { __webpack_require__ };
+
+```

@@ -350,6 +350,7 @@ pub struct InitializerVariableDeclaration {
   /// this declaration appears as a statement.
   pub end: u32,
   pub in_for_head: bool,
+  pub needs_asi_boundary: bool,
 }
 
 #[derive(Debug, Clone)]

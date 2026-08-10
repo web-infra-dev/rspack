@@ -10,9 +10,16 @@ var __esm = (fn, result) => function __init() {
 // NAMESPACE OBJECT: ./async.js
 var async_namespaceObject = {};
 __webpack_require__.r(async_namespaceObject);
-__webpack_require__.d(async_namespaceObject, {
+var async_namespaceObject_esm = Object.create(null);
+if (typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+  Object.defineProperty(async_namespaceObject_esm, Symbol.toStringTag, { value: 'Module' });
+}
+var async_namespaceObject_getters = {
   value: () => (value)
-});
+};
+__webpack_require__.d(async_namespaceObject, async_namespaceObject_getters);
+__webpack_require__.d(async_namespaceObject_esm, async_namespaceObject_getters);
+Object.preventExtensions(async_namespaceObject_esm);
 
 
 // ./async.js
@@ -21,7 +28,7 @@ var async_init = /*#__PURE__*/ __esm(() => {
 ( value = () => 42);
 });
 
-export { async_init, async_namespaceObject, value };
+export { async_init, async_namespaceObject_esm as async_namespaceObject, value };
 
 ```
 

@@ -37,6 +37,11 @@ var __esm = (fn, result) => function __init() {
 // NAMESPACE OBJECT: ./side-effect.js
 var side_effect_namespaceObject = {};
 makeNamespaceObject(side_effect_namespaceObject);
+var side_effect_namespaceObject_esm = Object.create(null);
+if (typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+  Object.defineProperty(side_effect_namespaceObject_esm, Symbol.toStringTag, { value: 'Module' });
+}
+Object.preventExtensions(side_effect_namespaceObject_esm);
 
 
 // ./side-effect.js
@@ -45,6 +50,6 @@ globalThis.__sideEffectExecuted = true;
 
 });
 
-export { side_effect_init, side_effect_namespaceObject };
+export { side_effect_init, side_effect_namespaceObject_esm as side_effect_namespaceObject };
 
 ```

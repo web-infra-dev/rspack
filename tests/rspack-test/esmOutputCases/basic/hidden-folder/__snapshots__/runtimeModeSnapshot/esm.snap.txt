@@ -10,9 +10,16 @@ var __esm = (fn, result) => function __init() {
 // NAMESPACE OBJECT: ./.hidden/index.js
 var _hidden_namespaceObject = {};
 makeNamespaceObject(_hidden_namespaceObject);
-definePropertyGetters(_hidden_namespaceObject, {
+var _hidden_namespaceObject_esm = Object.create(null);
+if (typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+  Object.defineProperty(_hidden_namespaceObject_esm, Symbol.toStringTag, { value: 'Module' });
+}
+var _hidden_namespaceObject_getters = {
   value: () => (value)
-});
+};
+definePropertyGetters(_hidden_namespaceObject, _hidden_namespaceObject_getters);
+definePropertyGetters(_hidden_namespaceObject_esm, _hidden_namespaceObject_getters);
+Object.preventExtensions(_hidden_namespaceObject_esm);
 
 
 // ./.hidden/index.js
@@ -21,7 +28,7 @@ var _hidden_init = /*#__PURE__*/ __esm(() => {
 ( value = () => 42);
 });
 
-export { _hidden_init, _hidden_namespaceObject, value };
+export { _hidden_init, _hidden_namespaceObject_esm as _hidden_namespaceObject, value };
 
 ```
 

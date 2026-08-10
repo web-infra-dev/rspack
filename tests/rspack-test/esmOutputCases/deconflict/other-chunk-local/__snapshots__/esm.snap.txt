@@ -29,9 +29,16 @@ var __esm = (fn, result) => function __init() {
 // NAMESPACE OBJECT: ./other.js
 var other_namespaceObject = {};
 __webpack_require__.r(other_namespaceObject);
-__webpack_require__.d(other_namespaceObject, {
+var other_namespaceObject_esm = Object.create(null);
+if (typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+  Object.defineProperty(other_namespaceObject_esm, Symbol.toStringTag, { value: 'Module' });
+}
+var other_namespaceObject_getters = {
   value: () => (value)
-});
+};
+__webpack_require__.d(other_namespaceObject, other_namespaceObject_getters);
+__webpack_require__.d(other_namespaceObject_esm, other_namespaceObject_getters);
+Object.preventExtensions(other_namespaceObject_esm);
 
 
 // ./other.js
@@ -45,7 +52,7 @@ var other_init = /*#__PURE__*/ __esm(() => {
 
 });
 
-export { other_init, other_namespaceObject, value };
+export { other_init, other_namespaceObject_esm as other_namespaceObject, value };
 
 ```
 

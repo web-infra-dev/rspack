@@ -62,6 +62,29 @@ fn collect_pattern_bindings<'a>(
   }
 }
 
+fn contains_only_trivia(source: &str) -> bool {
+  let bytes = source.as_bytes();
+  let mut cursor = 0;
+  while cursor < bytes.len() {
+    if bytes[cursor].is_ascii_whitespace() {
+      cursor += 1;
+    } else if bytes[cursor..].starts_with(b"//") {
+      cursor += 2;
+      while cursor < bytes.len() && !matches!(bytes[cursor], b'\n' | b'\r') {
+        cursor += 1;
+      }
+    } else if bytes[cursor..].starts_with(b"/*") {
+      let Some(end) = source[cursor + 2..].find("*/") else {
+        return false;
+      };
+      cursor += end + 4;
+    } else {
+      return false;
+    }
+  }
+  true
+}
+
 struct VariableAnalyzer<'a> {
   semantic: &'a Semantic,
   for_heads: &'a FxHashSet<u32>,
@@ -115,6 +138,7 @@ impl<'a> Visit<'a> for VariableAnalyzer<'_> {
         prefix: DependencyRange::new(start, start + keyword_len),
         end: assignment_end,
         in_for_head: self.for_heads.contains(&start),
+        needs_asi_boundary: false,
       });
     }
 
@@ -125,6 +149,7 @@ impl<'a> Visit<'a> for VariableAnalyzer<'_> {
 pub(super) fn analyze_initializer(
   program: &Program<'_>,
   semantic: &Semantic,
+  source: &str,
 ) -> ConcatenatedModuleInitializer {
   let mut for_head_collector = ForHeadCollector {
     declarations: FxHashSet::default(),
@@ -139,6 +164,28 @@ pub(super) fn analyze_initializer(
     declarations: Vec::new(),
   };
   program.visit_with(&mut variable_analyzer);
+
+  for index in 0..variable_analyzer.declarations.len() {
+    let (previous, current) = variable_analyzer.declarations.split_at_mut(index);
+    let current = &mut current[0];
+    if current.in_for_head {
+      continue;
+    }
+    let start = current.prefix.start as usize;
+    let prefix = source.get(..start).unwrap_or_default();
+    let follows_rewritten_declaration = previous
+      .iter()
+      .rev()
+      .find(|declaration| !declaration.in_for_head && declaration.end <= current.prefix.start)
+      .is_some_and(|declaration| {
+        source
+          .get(declaration.end as usize..start)
+          .is_some_and(contains_only_trivia)
+      });
+    current.needs_asi_boundary = !contains_only_trivia(prefix)
+      && !prefix.trim_end().ends_with(';')
+      && !follows_rewritten_declaration;
+  }
 
   let mut function_declarations = Vec::new();
   let mut class_declarations = Vec::new();
@@ -279,7 +326,14 @@ pub(super) fn render_initializer(
       if declaration.in_for_head {
         String::new()
       } else {
-        "(".to_string()
+        // A declaration establishes its own statement boundary. Preserve it
+        // when the preceding generated statement relies on ASI; otherwise the
+        // rewritten assignment could become a call on that statement's value.
+        if declaration.needs_asi_boundary {
+          ";(".to_string()
+        } else {
+          "(".to_string()
+        }
       },
       None,
     );

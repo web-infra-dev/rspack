@@ -12,9 +12,16 @@ var __esm = (fn, result) => function __init() {
 // NAMESPACE OBJECT: ./async.js
 var async_namespaceObject = {};
 makeNamespaceObject(async_namespaceObject);
-definePropertyGetters(async_namespaceObject, {
+var async_namespaceObject_esm = Object.create(null);
+if (typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+  Object.defineProperty(async_namespaceObject_esm, Symbol.toStringTag, { value: 'Module' });
+}
+var async_namespaceObject_getters = {
   ns: () => (__rspack_external_fs)
-});
+};
+definePropertyGetters(async_namespaceObject, async_namespaceObject_getters);
+definePropertyGetters(async_namespaceObject_esm, async_namespaceObject_getters);
+Object.preventExtensions(async_namespaceObject_esm);
 
 
 // fs?3cf4
@@ -29,7 +36,7 @@ console.log.bind(__rspack_external_fs)
 
 });
 
-export { __rspack_external_fs as ns, async_init, async_namespaceObject };
+export { __rspack_external_fs as ns, async_init, async_namespaceObject_esm as async_namespaceObject };
 
 ```
 
