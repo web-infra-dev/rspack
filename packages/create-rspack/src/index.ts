@@ -8,7 +8,7 @@ import {
   type ESLintTemplateName,
   type RslintTemplateName,
   select,
-} from 'create-rstack';
+} from '@rstackjs/create-toolkit';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, '..');
@@ -91,6 +91,7 @@ create({
     'vue-ts',
   ],
   skipFiles: ['.npmignore'],
+  git: !process.argv.includes('--no-git'),
   getTemplateName,
   mapESLintTemplate,
   mapRslintTemplate,

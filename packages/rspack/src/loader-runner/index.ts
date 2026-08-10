@@ -31,6 +31,7 @@ import {
   isUseSimpleSourceMap,
   isUseSourceMap,
   type LoaderContext,
+  type ResolveCallback,
 } from '../config/adapterRuleUse';
 import { NormalModule } from '../NormalModule';
 import type { ResolveContext } from '../Resolver';
@@ -511,7 +512,21 @@ export async function runLoaders(
   loaderContext.getResolve = function getResolve(options) {
     const resolver = getResolver();
     const child = options ? resolver.withOptions(options) : resolver;
-    return (context, request, callback) => {
+
+    function resolveWithOptions(
+      context: string,
+      request: string,
+      callback: ResolveCallback,
+    ): void;
+    function resolveWithOptions(
+      context: string,
+      request: string,
+    ): Promise<string | false | undefined>;
+    function resolveWithOptions(
+      context: string,
+      request: string,
+      callback?: ResolveCallback,
+    ) {
       if (callback) {
         child.resolve({}, context, request, getResolveContext(), callback);
         return;
@@ -529,7 +544,9 @@ export async function runLoaders(
           },
         );
       });
-    };
+    }
+
+    return resolveWithOptions;
   };
   loaderContext.getLogger = function getLogger(name) {
     return compiler._lastCompilation!.getLogger(
@@ -537,6 +554,8 @@ export async function runLoaders(
     );
   };
   loaderContext.rootContext = compiler.context;
+  // The public API intentionally accepts only Error instances. Keep these runtime checks for
+  // untyped JavaScript loaders that pass strings or other non-Error values.
   loaderContext.emitError = function emitError(e) {
     if (!(e instanceof Error)) {
       e = new NonErrorEmittedError(e);
@@ -719,6 +738,7 @@ export async function runLoaders(
         ? loaderContext._module
         : undefined;
     const workerLoaderContext = {
+      version: loaderContext.version,
       hot: loaderContext.hot,
       context: loaderContext.context,
       resourcePath: loaderContext.resourcePath,
@@ -824,10 +844,14 @@ export async function runLoaders(
           }
           case RequestType.Resolve: {
             return new Promise((resolve, reject) => {
-              loaderContext.resolve(args[0], args[1], (err, result) => {
-                if (err) reject(err);
-                else resolve(result);
-              });
+              loaderContext.resolve(
+                args[0],
+                args[1],
+                (err, result, resolveRequest) => {
+                  if (err) reject(err);
+                  else resolve([result, resolveRequest]);
+                },
+              );
             });
           }
           case RequestType.GetResolve: {
@@ -835,9 +859,9 @@ export async function runLoaders(
               loaderContext.getResolve(args[0])(
                 args[1],
                 args[2],
-                (err, result) => {
+                (err, result, resolveRequest) => {
                   if (err) reject(err);
-                  else resolve(result);
+                  else resolve([result, resolveRequest]);
                 },
               );
             });

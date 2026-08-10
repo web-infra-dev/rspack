@@ -556,12 +556,30 @@ async fn render_manifest(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
   manifest: &mut Vec<RenderManifestEntry>,
-  _diagnostics: &mut Vec<Diagnostic>,
+  diagnostics: &mut Vec<Diagnostic>,
 ) -> Result<()> {
   let chunk = compilation
     .build_chunk_graph_artifact
     .chunk_by_ukey
     .expect_get(chunk_ukey);
+  let filename_template = get_js_chunk_filename_template(
+    chunk,
+    &compilation.options.output,
+    &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
+  );
+  if let Some(name) = chunk.name()
+    && (name.contains('?') || name.contains('#'))
+    && filename_template
+      .template()
+      .is_some_and(|template| template.contains("[name]"))
+  {
+    diagnostics.push(Diagnostic::warn(
+      "Invalid chunk name".to_string(),
+      format!(
+        "Chunk name \"{name}\" contains '?' or '#', which can make the emitted filename differ from the URL requested by the runtime. Avoid these characters in chunk names."
+      ),
+    ));
+  }
   let runtime_template = compilation.runtime_template.create_chunk_code_template();
   let is_hot_update = matches!(chunk.kind(), ChunkKind::HotUpdate);
   let is_main_chunk = chunk.groups().iter().any(|group_ukey| {
@@ -589,11 +607,6 @@ async fn render_manifest(
   {
     return Ok(());
   }
-  let filename_template = get_js_chunk_filename_template(
-    chunk,
-    &compilation.options.output,
-    &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
-  );
   let mut asset_info = AssetInfo::default().with_asset_type(ManifestAssetType::JavaScript);
   asset_info.set_javascript_module(compilation.options.output.module);
   let output_path = compilation

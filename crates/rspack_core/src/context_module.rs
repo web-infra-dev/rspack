@@ -29,8 +29,8 @@ use crate::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildContext,
   BuildInfo, BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, BuildResult, ChunkGraph,
   ChunkGroupOptions, CodeGenerationModuleReferenceKind, CodeGenerationModuleReferences,
-  CodeGenerationResult, Compilation, ContextElementDependency, DependenciesBlock, Dependency,
-  DependencyCategory, DependencyId, DependencyLocation, DynamicImportMode, ExportsType,
+  CodeGenerationResult, Compilation, Context, ContextElementDependency, DependenciesBlock,
+  Dependency, DependencyCategory, DependencyId, DependencyLocation, DynamicImportMode, ExportsType,
   FactoryMeta, FakeNamespaceObjectMode, GroupOptions, ImportAttributes, ImportPhase,
   LibIdentOptions, Module, ModuleArgument, ModuleCodeGenerationContext, ModuleCodeTemplate,
   ModuleGraph, ModuleId, ModuleIdsArtifact, ModuleLayer, ModuleType, RealDependencyLocation,
@@ -180,8 +180,16 @@ pub struct ContextOptions {
   pub include: Option<RspackRegex>,
   pub exclude: Option<RspackRegex>,
   pub category: DependencyCategory,
+  /// The context request passed to the resolver.
   pub request: String,
+  /// The base directory used to resolve relative context requests. For glob patterns, this is the
+  /// parser-derived request context (the importer directory or the explicit `base`) and remains
+  /// the matching coordinate even when context module factory hooks relocate the scan request.
   pub context: String,
+  /// The compiler `options.context`. Root-relative glob patterns are resolved from this directory.
+  /// This value is stable for the lifetime of a compilation and must not be changed by context
+  /// module factory hooks.
+  pub compiler_context: Context,
   pub namespace_object: ContextNameSpaceObject,
   pub group_options: Option<GroupOptions>,
   pub replaces: Vec<(String, u32, u32)>,
@@ -191,6 +199,7 @@ pub struct ContextOptions {
   pub referenced_specifiers: Option<Vec<ReferencedSpecifier>>,
   pub glob_import: Option<String>,
   pub glob_exhaustive: bool,
+  pub glob_case_sensitive: bool,
   pub attributes: Option<ImportAttributes>,
   pub phase: Option<ImportPhase>,
 }
@@ -206,6 +215,7 @@ impl Default for ContextOptions {
       category: DependencyCategory::Unknown,
       request: String::new(),
       context: String::new(),
+      compiler_context: Context::default(),
       namespace_object: ContextNameSpaceObject::Unset,
       group_options: None,
       replaces: Vec::new(),
@@ -214,10 +224,23 @@ impl Default for ContextOptions {
       referenced_specifiers: None,
       glob_import: None,
       glob_exhaustive: false,
+      glob_case_sensitive: true,
       attributes: None,
       phase: None,
     }
   }
+}
+
+/// Returns the compiler-context-relative form of a context when it needs to be part of an
+/// identifier. The compiler context itself is implicit, so encoding it as `./.` would only change
+/// existing identifiers without distinguishing different resolution behavior.
+pub fn context_identifier(compiler_context: &str, context: &str) -> Option<String> {
+  if context.is_empty() {
+    return None;
+  }
+
+  let context = contextify(compiler_context, context);
+  (context != "./.").then_some(context)
 }
 
 #[cacheable]
@@ -1648,6 +1671,10 @@ impl Module for ContextModule {
     if self.options.context_options.glob_exhaustive {
       id += " globExhaustive";
     }
+    append_context_identifier(&mut id, &self.options.context_options, " context: ");
+    if !self.options.context_options.glob_case_sensitive {
+      id += " globCaseInsensitive";
+    }
     Some(Cow::Owned(id))
   }
 
@@ -1863,6 +1890,10 @@ fn create_identifier(options: &ContextModuleOptions, resource: Option<&str>) -> 
   if options.context_options.glob_exhaustive {
     id += "|globExhaustive";
   }
+  append_context_identifier(&mut id, &options.context_options, "|context: ");
+  if !options.context_options.glob_case_sensitive {
+    id += "|globCaseInsensitive";
+  }
 
   if let Some(GroupOptions::ChunkGroup(group)) = &options.context_options.group_options {
     if let Some(chunk_name) = &group.name {
@@ -1899,4 +1930,15 @@ fn create_identifier(options: &ContextModuleOptions, resource: Option<&str>) -> 
     id += layer;
   }
   id.into()
+}
+
+fn append_context_identifier(id: &mut String, options: &ContextOptions, prefix: &str) {
+  if !matches!(options.pattern, ContextModulePattern::Glob(_)) {
+    return;
+  }
+  let Some(context) = context_identifier(&options.compiler_context, &options.context) else {
+    return;
+  };
+  id.push_str(prefix);
+  id.push_str(&context);
 }

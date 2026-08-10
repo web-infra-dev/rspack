@@ -67,7 +67,7 @@ Before running tests after code changes:
 
 1. Create feature branch from `main`
 2. Implement in appropriate crate/package
-3. Add tests (Rust unit tests, JS integration tests)
+3. Add test coverage when needed, following the restrictions in [Adding tests](#adding-tests)
 4. Update docs if APIs change
 5. Run linters and tests: `pnpm run lint:js && pnpm run lint:rs && cargo lint && pnpm run test:unit && pnpm run test:rs`
 6. Format: `pnpm run format:rs && pnpm run format:js`
@@ -80,8 +80,8 @@ Before running tests after code changes:
 
 ### Adding tests
 
-- **Rust**: Add `#[test]` functions in same file or `tests/` directory
-- **JavaScript**: Add cases in `tests/rspack-test/{type}Cases/` (Normal, Config, Hot, Watch, StatsOutput, StatsAPI, Diagnostic, Hash, Compiler, Defaults, Error, Hook, TreeShaking, Builtin)
+- **Rust**: Do not add new Rust tests in ordinary changes, especially unit tests for small functions. Only add Rust test cases when they belong in a dedicated test crate; do not add inline `#[test]` functions or crate-local unit tests.
+- **JavaScript**: Do not create new top-level or suite-level `test.js` runner entry files. Reuse an existing runner and add coverage only by adding a case under the appropriate cases directory, such as `tests/rspack-test/{type}Cases/` (Normal, Config, Hot, Watch, StatsOutput, StatsAPI, Diagnostic, Hash, Compiler, Defaults, Error, Hook, TreeShaking, Builtin). Files required inside an individual case by an existing harness, such as `hookCases/**/test.js`, are allowed and are not new runner entry points.
 
 ## Dependency management
 
@@ -114,7 +114,7 @@ Before running tests after code changes:
 ## Contributing
 
 - Follow existing code patterns
-- Add tests for new features
+- Add test coverage for new features only under the restrictions in [Adding tests](#adding-tests)
 - Update docs when APIs change
 - Run linters before submitting
 - Use Conventional Commits in semver style: `type(scope): subject`

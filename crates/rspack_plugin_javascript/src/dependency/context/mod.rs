@@ -1,7 +1,7 @@
 use rspack_core::{
   CodeGenerationModuleReferenceKind, ContextDependency, ContextMode, ContextModulePattern,
   ContextOptions, DependencyRange, GroupOptions, ResourceIdentifier, TemplateContext,
-  TemplateReplaceSource,
+  TemplateReplaceSource, context_identifier,
 };
 
 mod amd_require_context_dependency;
@@ -37,7 +37,9 @@ fn create_resource_identifier_for_context_dependency(
   context: Option<&str>,
   options: &ContextOptions,
 ) -> ResourceIdentifier {
-  let context = context.unwrap_or_default();
+  let context = context
+    .and_then(|context| context_identifier(&options.compiler_context, context))
+    .unwrap_or_default();
   let request = &options.request;
   let recursive = options.recursive.to_string();
   let pattern = match &options.pattern {
@@ -83,6 +85,11 @@ fn create_resource_identifier_for_context_dependency(
   } else {
     ""
   };
+  let glob_case_sensitive = if options.glob_case_sensitive {
+    ""
+  } else {
+    " globCaseInsensitive"
+  };
   let mut group_options = String::new();
 
   if let Some(GroupOptions::ChunkGroup(group)) = &options.group_options {
@@ -103,7 +110,7 @@ fn create_resource_identifier_for_context_dependency(
   }
 
   let id = format!(
-    "context{context}|ctx request{request} {recursive} {pattern} {include} {exclude} {mode} {group_options} {referenced_exports} {glob_import} {glob_exhaustive}",
+    "context{context}|ctx request{request} {recursive} {pattern} {include} {exclude} {mode} {group_options} {referenced_exports} {glob_import} {glob_exhaustive}{glob_case_sensitive}",
   );
   id.into()
 }

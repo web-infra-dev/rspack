@@ -5,7 +5,7 @@ use rspack_core::{
   ArcComputed, CodeGenerationModuleReferenceKind, CodeGenerationModuleReferences, ConstDependency,
   ContextDependency, ContextMode, ContextOptions, DependencyCategory, DependencyRange, ImportMeta,
   ImportMetaKnownProperties, ResolvedModuleOptions, RscMeta, RscModuleType, RuntimeGlobals,
-  RuntimeRequirementsDependency, property_access, to_normal_comment,
+  RuntimeRequirementsDependency, get_context, property_access, to_normal_comment,
 };
 use rspack_error::{Error, Label, Severity};
 use rspack_util::{SpanExt, json_stringify_str};
@@ -54,14 +54,16 @@ fn create_import_meta_resolve_context_dependency(
   let start = range.start;
   let end = range.end;
   let result = create_context_dependency(param, parser);
+  let request = result.request();
 
   let options = ContextOptions {
     mode: ContextMode::Sync,
     recursive: true,
     pattern: context_reg_exp(&result.reg, "", None, parser).into(),
     category: DependencyCategory::Esm,
-    request: format!("{}{}{}", result.context, result.query, result.fragment),
-    context: result.context,
+    request,
+    context: get_context(parser.resource_data).to_string(),
+    compiler_context: parser.compiler_options.context.clone(),
     replaces: result.replaces,
     start,
     end,

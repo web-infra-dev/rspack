@@ -1,31 +1,173 @@
 use concat_string::concat_string;
 use rspack_core::{
   ContextMode, ContextModulePattern, ContextNameSpaceObject, ContextOptions, DependencyCategory,
-  ReferencedSpecifier, escape_glob_pattern, extract_glob_base_dir, get_context,
-  normalize_path_separators, normalize_path_separators_for_path, unescape_glob_path,
+  ReferencedSpecifier, compile_context_module_glob_request, get_context, normalize_path_separators,
+  normalize_path_separators_for_path,
 };
-use rspack_paths::{Utf8Path, Utf8PathBuf};
+use rspack_error::{Error, Result, Severity};
+use rspack_macros::AstObject;
+use rspack_paths::Utf8Path;
 use rspack_regex::RspackRegex;
 use rspack_util::{SpanExt, identifier::relative_path_to_request, node_path::NodePath};
 use sugar_path::SugarPath;
 use swc_atoms::Atom;
-use swc_experimental_ecma_ast::{CallExpr, Expr, GetSpan, Lit, PropName};
+use swc_experimental_ecma_ast::{CallExpr, Expr, GetSpan, ObjectLit};
 
 use super::JavascriptParserPlugin;
 use crate::{
   dependency::ImportMetaContextDependency,
   utils::{
     eval::{self, BasicEvaluatedExpression},
-    object_properties::{
-      get_bool_by_obj_prop, get_literal_str_by_obj_prop, get_regex_by_obj_prop,
-      get_value_by_obj_prop,
-    },
+    object_properties::{FromAstExpr, get_from_object},
   },
   visitors::{
-    JavascriptParser, clean_regexp_in_context_module, default_context_reg_exp, expr_name,
-    static_string_from_expr,
+    JavascriptParser, clean_regexp_in_context_module, create_traceable_error,
+    default_context_reg_exp, expr_name, static_string_from_expr,
   },
 };
+
+/// Options of `import.meta.webpackContext(request, options)`, mirroring the
+/// TypeScript declaration in `packages/rspack/module.d.ts`.
+#[derive(Debug, Default, AstObject)]
+#[ast_object(rename_all = "camelCase")]
+struct ImportMetaWebpackContextOptions {
+  reg_exp: Option<RspackRegex>,
+  include: Option<RspackRegex>,
+  exclude: Option<RspackRegex>,
+  mode: Option<String>,
+  /// Absent or unrecognized means `true`.
+  recursive: Option<bool>,
+}
+
+/// Options of `import.meta.glob(pattern, options)`, mirroring
+/// `Rspack.ImportMetaGlobOptions` in `packages/rspack/module.d.ts`.
+#[derive(Debug, Default, AstObject)]
+#[ast_object(rename_all = "camelCase")]
+struct ImportMetaGlobOptions {
+  eager: bool,
+  import: Option<String>,
+  query: Option<ImportMetaGlobQuery>,
+  base: Option<String>,
+  exhaustive: bool,
+}
+
+impl From<&ImportMetaWebpackContextOptions> for ContextOptions {
+  fn from(options: &ImportMetaWebpackContextOptions) -> Self {
+    Self {
+      pattern: options.reg_exp.clone().into(),
+      include: options.include.clone(),
+      exclude: options.exclude.clone(),
+      mode: options
+        .mode
+        .as_deref()
+        .map_or(ContextMode::Sync, ContextMode::from),
+      recursive: options.recursive.unwrap_or(true),
+      ..Default::default()
+    }
+  }
+}
+
+impl From<&ImportMetaGlobOptions> for ContextOptions {
+  fn from(options: &ImportMetaGlobOptions) -> Self {
+    Self {
+      mode: if options.eager {
+        ContextMode::Sync
+      } else {
+        ContextMode::Lazy
+      },
+      glob_import: options.import.clone(),
+      glob_exhaustive: options.exhaustive,
+      ..Default::default()
+    }
+  }
+}
+
+#[derive(Debug)]
+enum ImportMetaGlobQuery {
+  String(String),
+  Record(Vec<(String, ImportMetaGlobQueryValue)>),
+}
+
+impl<'a> FromAstExpr<'a> for ImportMetaGlobQuery {
+  fn from_ast_expr(expr: &Expr<'a>) -> Result<Option<Self>> {
+    if let Some(query) = String::from_ast_expr(expr)? {
+      return Ok(Some(Self::String(query)));
+    }
+    Ok(Vec::<(String, ImportMetaGlobQueryValue)>::from_ast_expr(expr)?.map(Self::Record))
+  }
+}
+
+#[derive(Debug)]
+enum ImportMetaGlobQueryValue {
+  String(String),
+  Number(f64),
+  Bool(bool),
+}
+
+impl FromAstExpr<'_> for ImportMetaGlobQueryValue {
+  fn from_ast_expr(expr: &Expr<'_>) -> Result<Option<Self>> {
+    if let Some(value) = String::from_ast_expr(expr)? {
+      return Ok(Some(Self::String(value)));
+    }
+    if let Some(value) = f64::from_ast_expr(expr)? {
+      return Ok(Some(Self::Number(value)));
+    }
+    Ok(bool::from_ast_expr(expr)?.map(Self::Bool))
+  }
+}
+
+fn add_ast_object_warning(parser: &mut JavascriptParser, mut error: Error) {
+  error.severity = Severity::Warning;
+  error.src = Some(parser.source.to_string().into());
+  error.hide_stack = Some(true);
+  parser.add_warning(error.into());
+}
+
+impl ImportMetaGlobQuery {
+  fn to_query_string(&self) -> String {
+    match self {
+      Self::String(query) => normalize_import_meta_glob_query(query.clone()),
+      Self::Record(entries) => {
+        let mut serializer = form_urlencoded::Serializer::new(String::new());
+        for (key, value) in entries {
+          let value = match value {
+            ImportMetaGlobQueryValue::String(value) => value.clone(),
+            ImportMetaGlobQueryValue::Number(value) => value.to_string(),
+            ImportMetaGlobQueryValue::Bool(value) => value.to_string(),
+          };
+          serializer.append_pair(key, &value);
+        }
+        normalize_import_meta_glob_query(serializer.finish())
+      }
+    }
+  }
+}
+
+fn parse_import_meta_glob_case_sensitive(
+  glob_options: Option<&ObjectLit>,
+  parser: &mut JavascriptParser,
+) -> bool {
+  let Some(value) = glob_options.and_then(|object| get_from_object(object, &["caseSensitive"]))
+  else {
+    return true;
+  };
+
+  let evaluated = parser.evaluate_expression(value);
+  if evaluated.is_bool() {
+    return evaluated.bool();
+  }
+
+  let mut error: Error = create_traceable_error(
+    "Invalid import.meta.glob option".into(),
+    "import.meta.glob() 'caseSensitive' option must be a constant boolean (true or false), defaulting to true".into(),
+    parser.source.to_string(),
+    value.span().into(),
+  );
+  error.severity = Severity::Warning;
+  error.hide_stack = Some(true);
+  parser.add_warning(error.into());
+  true
+}
 
 fn static_glob_patterns_from_expr(expr: &Expr) -> Option<Vec<String>> {
   if let Some(pattern) = static_string_from_expr(expr) {
@@ -54,54 +196,6 @@ fn normalize_import_meta_glob_query(query: String) -> String {
   }
 }
 
-fn static_import_meta_glob_query_from_expr(expr: &Expr) -> Option<String> {
-  if let Some(query) = static_string_from_expr(expr) {
-    return Some(normalize_import_meta_glob_query(query));
-  }
-
-  let query = expr.as_object()?;
-  let mut serializer = form_urlencoded::Serializer::new(String::new());
-  for prop in &query.props {
-    let kv = prop.as_prop().and_then(|prop| prop.as_key_value())?;
-    let key = static_import_meta_glob_query_key_from_prop_name(&kv.key)?;
-    let value = if let Some(value) = static_string_from_expr(&kv.value) {
-      value
-    } else {
-      match kv.value.as_lit()? {
-        Lit::Bool(bool) => bool.value.to_string(),
-        Lit::Num(num) => num.value.to_string(),
-        _ => return None,
-      }
-    };
-    serializer.append_pair(&key, &value);
-  }
-
-  Some(normalize_import_meta_glob_query(serializer.finish()))
-}
-
-fn static_import_meta_glob_query_key_from_prop_name(prop_name: &PropName) -> Option<String> {
-  match prop_name {
-    PropName::Ident(ident) => Some(ident.sym.to_string()),
-    PropName::Str(str) => Some(str.value.to_string_lossy().into_owned()),
-    PropName::Num(num) => Some(num.value.to_string()),
-    PropName::Computed(computed) => static_import_meta_glob_query_key_from_expr(&computed.expr),
-    _ => None,
-  }
-}
-
-fn static_import_meta_glob_query_key_from_expr(expr: &Expr) -> Option<String> {
-  if let Some(key) = static_string_from_expr(expr) {
-    return Some(key);
-  }
-
-  match expr.as_lit()? {
-    Lit::Num(num) => Some(num.value.to_string()),
-    Lit::Bool(bool) => Some(bool.value.to_string()),
-    Lit::Null(_) => Some("null".to_string()),
-    _ => None,
-  }
-}
-
 fn import_meta_glob_path_parts<'a>(
   context: &'a str,
   compiler_context: &'a str,
@@ -124,68 +218,13 @@ fn join_import_meta_glob_path(base: &str, path: &str) -> String {
 }
 
 fn join_import_meta_glob_fs_path(base: &str, path: &str) -> String {
+  let base = normalize_path_separators_for_path(base);
   normalize_path_separators_for_path(
-    Utf8Path::new(base)
+    Utf8Path::new(&base)
       .node_join_posix(path)
       .node_normalize_posix()
       .as_ref(),
   )
-}
-
-struct ResolvedContextModuleGlobPattern {
-  absolute_pattern: String,
-  absolute_base: String,
-  negative: bool,
-}
-
-fn resolve_glob_pattern(
-  pattern: &str,
-  context: &str,
-  compiler_context: &str,
-) -> ResolvedContextModuleGlobPattern {
-  let (pattern, negative) = if let Some(pattern) = pattern.strip_prefix('!') {
-    (pattern, true)
-  } else {
-    (pattern, false)
-  };
-  let pattern = normalize_path_separators(pattern);
-  let (base, pattern_to_join) =
-    import_meta_glob_path_parts(context, compiler_context, pattern.as_str());
-  let base = normalize_path_separators_for_path(base);
-  let escaped_base = escape_glob_pattern(&base);
-  let absolute_pattern = join_import_meta_glob_path(&escaped_base, pattern_to_join);
-  let absolute_base = unescape_glob_path(extract_glob_base_dir(&absolute_pattern));
-
-  ResolvedContextModuleGlobPattern {
-    absolute_pattern,
-    absolute_base,
-    negative,
-  }
-}
-
-fn common_glob_base_dir(patterns: &[ResolvedContextModuleGlobPattern], fallback: &str) -> String {
-  let mut positive_patterns = patterns.iter().filter(|pattern| !pattern.negative);
-  let Some(first) = positive_patterns.next() else {
-    return fallback.to_string();
-  };
-
-  let mut common_base = Utf8PathBuf::from(first.absolute_base.as_str());
-  for pattern in positive_patterns {
-    let base = Utf8Path::new(pattern.absolute_base.as_str());
-    while !base.starts_with(&common_base) {
-      let Some(parent) = common_base.parent() else {
-        return fallback.to_string();
-      };
-      common_base = parent.to_path_buf();
-    }
-  }
-
-  let common_base = common_base.as_str();
-  if common_base.ends_with('/') {
-    common_base.to_string()
-  } else {
-    concat_string!(common_base, "/")
-  }
 }
 
 fn resolve_import_meta_glob_context(
@@ -257,23 +296,6 @@ fn normalize_import_meta_glob_patterns(
   }
 }
 
-fn glob_patterns_are_recursive(
-  patterns: &[ResolvedContextModuleGlobPattern],
-  common_base_dir: &str,
-) -> bool {
-  patterns
-    .iter()
-    .filter(|pattern| !pattern.negative)
-    .any(|pattern| {
-      pattern.absolute_pattern.contains("**")
-        || pattern
-          .absolute_pattern
-          .strip_prefix(common_base_dir)
-          .unwrap_or(pattern.absolute_pattern.as_str())
-          .contains('/')
-    })
-}
-
 fn create_import_meta_context_dependency(
   node: &CallExpr,
   parser: &mut JavascriptParser,
@@ -284,50 +306,38 @@ fn create_import_meta_context_dependency(
     return None;
   }
   // TODO: should've used expression evaluation to handle cases like `abc${"efg"}`, etc.
-  let context = static_string_from_expr(&dyn_imported.expr)?;
-  let context_options = if let Some(obj) = node.args.get(1).and_then(|arg| arg.expr.as_object()) {
-    let regexp = get_regex_by_obj_prop(obj, "regExp");
-    let regexp_span = regexp.map(|r| r.span().into());
-    let regexp = regexp.map_or_else(default_context_reg_exp, |regexp| {
-      RspackRegex::with_flags(regexp.exp.as_str(), regexp.flags.as_str()).expect("reg failed")
-    });
-    let include = get_regex_by_obj_prop(obj, "include").map(|regexp| {
-      RspackRegex::with_flags(regexp.exp.as_str(), regexp.flags.as_str()).expect("reg failed")
-    });
-    let exclude = get_regex_by_obj_prop(obj, "exclude").map(|regexp| {
-      RspackRegex::with_flags(regexp.exp.as_str(), regexp.flags.as_str()).expect("reg failed")
-    });
-    let mode = get_literal_str_by_obj_prop(obj, "mode").map_or(ContextMode::Sync, |s| {
-      s.value.to_string_lossy().as_ref().into()
-    });
-    let recursive = get_bool_by_obj_prop(obj, "recursive").is_none_or(|bool| bool.value);
-    let span = node.span;
-    ContextOptions {
-      pattern: clean_regexp_in_context_module(regexp, regexp_span, parser).into(),
-      include,
-      exclude,
-      recursive,
-      category: DependencyCategory::Esm,
-      request: context.clone(),
-      context,
-      mode,
-      start: span.real_lo(),
-      end: span.real_hi(),
-      ..Default::default()
+  let request = static_string_from_expr(&dyn_imported.expr)?;
+  let raw_options = node.args.get(1).and_then(|arg| arg.expr.as_object());
+  let options = match raw_options {
+    Some(raw_options) => {
+      let (options, diagnostics) =
+        ImportMetaWebpackContextOptions::from_ast_object_with_diagnostics(raw_options);
+      for diagnostic in diagnostics {
+        add_ast_object_warning(parser, diagnostic);
+      }
+      options
     }
-  } else {
-    let span = node.span;
-    ContextOptions {
-      recursive: true,
-      mode: ContextMode::Sync,
-      pattern: clean_regexp_in_context_module(default_context_reg_exp(), None, parser).into(),
-      category: DependencyCategory::Esm,
-      request: context.clone(),
-      context,
-      start: span.real_lo(),
-      end: span.real_hi(),
-      ..Default::default()
-    }
+    None => ImportMetaWebpackContextOptions::default(),
+  };
+  let regexp_span = options.reg_exp.as_ref().and_then(|_| {
+    raw_options
+      .and_then(|options| get_from_object(options, &["regExp"]))
+      .map(|regexp| regexp.span().into())
+  });
+  let regexp = options
+    .reg_exp
+    .clone()
+    .unwrap_or_else(default_context_reg_exp);
+  let span = node.span;
+  let context_options = ContextOptions {
+    pattern: clean_regexp_in_context_module(regexp, regexp_span, parser).into(),
+    category: DependencyCategory::Esm,
+    request,
+    context: get_context(parser.resource_data).to_string(),
+    compiler_context: parser.compiler_options.context.clone(),
+    start: span.real_lo(),
+    end: span.real_hi(),
+    ..ContextOptions::from(&options)
   };
   Some(ImportMetaContextDependency::new(
     context_options,
@@ -348,29 +358,27 @@ fn create_import_meta_glob_dependency(
   let raw_glob_patterns = static_glob_patterns_from_expr(&dyn_imported.expr)?;
   let importer_context = get_context(parser.resource_data);
   let glob_options = node.args.get(1).and_then(|arg| arg.expr.as_object());
-  let mode = glob_options.map_or(ContextMode::Lazy, |obj| {
-    if get_bool_by_obj_prop(obj, "eager").is_some_and(|b| b.value) {
-      ContextMode::Sync
-    } else {
-      ContextMode::Lazy
+  let options = match glob_options {
+    Some(raw_options) => {
+      let (options, diagnostics) =
+        ImportMetaGlobOptions::from_ast_object_with_diagnostics(raw_options);
+      for diagnostic in diagnostics {
+        add_ast_object_warning(parser, diagnostic);
+      }
+      options
     }
-  });
-  let glob_import = glob_options
-    .and_then(|obj| get_literal_str_by_obj_prop(obj, "import"))
-    .map(|s| s.value.to_string_lossy().into_owned());
-  let glob_query = glob_options
-    .and_then(|obj| get_value_by_obj_prop(obj, "query"))
-    .and_then(static_import_meta_glob_query_from_expr)
-    .unwrap_or_default();
-  let base = glob_options
-    .and_then(|obj| get_value_by_obj_prop(obj, "base"))
-    .and_then(static_string_from_expr);
-  let glob_exhaustive = glob_options
-    .is_some_and(|obj| get_bool_by_obj_prop(obj, "exhaustive").is_some_and(|b| b.value));
+    None => ImportMetaGlobOptions::default(),
+  };
+  let glob_query = options
+    .query
+    .as_ref()
+    .map_or_else(String::new, ImportMetaGlobQuery::to_query_string);
+  let base = options.base.as_deref();
+  let glob_case_sensitive = parse_import_meta_glob_case_sensitive(glob_options, parser);
   let context = resolve_import_meta_glob_context(
     importer_context.as_str(),
     parser.compiler_options.context.as_str(),
-    base.as_deref(),
+    base,
   );
   let glob_patterns = normalize_import_meta_glob_patterns(
     raw_glob_patterns,
@@ -378,23 +386,20 @@ fn create_import_meta_glob_dependency(
     parser.compiler_options.context.as_str(),
     base.is_some(),
   );
-  let resolved_glob_patterns = glob_patterns
-    .iter()
-    .map(|pattern| {
-      resolve_glob_pattern(
-        pattern,
-        context.as_str(),
-        parser.compiler_options.context.as_str(),
-      )
-    })
-    .collect::<Vec<_>>();
-  let base_dir = common_glob_base_dir(&resolved_glob_patterns, context.as_str());
-  let recursive = glob_patterns_are_recursive(&resolved_glob_patterns, &base_dir);
+  let compiled = compile_context_module_glob_request(
+    &concat_string!(".", glob_query),
+    &glob_patterns,
+    context.as_str(),
+    parser.compiler_options.context.as_str(),
+    true,
+    glob_case_sensitive,
+  );
 
-  let referenced_specifiers = glob_import
-    .as_ref()
-    .filter(|import| import.as_str() != "*")
-    .map(|import| vec![ReferencedSpecifier::new(vec![Atom::from(import.as_str())])]);
+  let referenced_specifiers = options
+    .import
+    .as_deref()
+    .filter(|import| *import != "*")
+    .map(|import| vec![ReferencedSpecifier::new(vec![Atom::from(import)])]);
   let namespace_object = if parser.build_meta.strict_esm_module() {
     ContextNameSpaceObject::Strict
   } else {
@@ -404,18 +409,17 @@ fn create_import_meta_glob_dependency(
   let span = node.span;
   let context_options = ContextOptions {
     pattern: ContextModulePattern::Glob(glob_patterns),
-    recursive,
+    recursive: compiled.recursive,
     category: DependencyCategory::Esm,
-    request: concat_string!(base_dir, glob_query),
+    request: compiled.request,
     context,
+    compiler_context: parser.compiler_options.context.clone(),
     namespace_object,
-    mode,
     start: span.real_lo(),
     end: span.real_hi(),
     referenced_specifiers,
-    glob_import,
-    glob_exhaustive,
-    ..Default::default()
+    glob_case_sensitive,
+    ..ContextOptions::from(&options)
   };
   Some(ImportMetaContextDependency::new_glob(
     context_options,
@@ -478,5 +482,43 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaContextDependencyParse
     } else {
       None
     }
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn converts_webpack_context_options() {
+    let options = ImportMetaWebpackContextOptions {
+      reg_exp: Some(RspackRegex::with_flags("^\\./", "i").expect("valid regexp")),
+      include: Some(RspackRegex::new("include").expect("valid regexp")),
+      exclude: Some(RspackRegex::new("exclude").expect("valid regexp")),
+      mode: Some("lazy".to_string()),
+      recursive: Some(false),
+    };
+    let context_options = ContextOptions::from(&options);
+
+    assert_eq!(context_options.mode, ContextMode::Lazy);
+    assert!(!context_options.recursive);
+    assert_eq!(context_options.pattern.reg_exp(), options.reg_exp.as_ref());
+    assert_eq!(context_options.include, options.include);
+    assert_eq!(context_options.exclude, options.exclude);
+  }
+
+  #[test]
+  fn converts_glob_options() {
+    let options = ImportMetaGlobOptions {
+      eager: false,
+      import: Some("default".to_string()),
+      exhaustive: true,
+      ..Default::default()
+    };
+    let context_options = ContextOptions::from(&options);
+
+    assert_eq!(context_options.mode, ContextMode::Lazy);
+    assert_eq!(context_options.glob_import.as_deref(), Some("default"));
+    assert!(context_options.glob_exhaustive);
   }
 }

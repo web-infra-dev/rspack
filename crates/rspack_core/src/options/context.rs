@@ -130,7 +130,9 @@ fn dirname(path: &str) -> &str {
 }
 
 pub fn get_context(resource_data: &ResourceData) -> Context {
-  if let Some(resource_path) = resource_data.path() {
+  if let Some(context) = resource_data.context() {
+    context.into()
+  } else if let Some(resource_path) = resource_data.path() {
     dirname(resource_path.as_str()).into()
   } else if let Some(parsed) = parse_resource(resource_data.resource()) {
     dirname(parsed.path.as_str()).into()
@@ -149,4 +151,16 @@ fn dirname_data_uri() {
 fn dirname_non_ascii_path() {
   let d = dirname("C:/非常长的中文来测试宽字符溢出问题/src/index.js");
   assert_eq!(d, "C:/非常长的中文来测试宽字符溢出问题/src");
+}
+
+#[test]
+fn context_prefers_explicit_resource_context() {
+  let mut resource_data =
+    ResourceData::new_with_resource("http://test.rspack.rs/original/entry.js".into());
+  resource_data.set_context(Some("http://test.rspack.rs/redirected".into()));
+
+  assert_eq!(
+    get_context(&resource_data).as_str(),
+    "http://test.rspack.rs/redirected"
+  );
 }

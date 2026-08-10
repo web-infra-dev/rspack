@@ -4,7 +4,7 @@ use std::path::Path;
 use rspack_core::{
   ConstDependency, Context, ContextDependency, ContextMode, ContextModulePattern, ContextOptions,
   DependencyCategory, DependencyRange, DependencyType, ModuleType, ReferencedSpecifier,
-  RuntimeGlobals, RuntimeRequirementsDependency,
+  RuntimeGlobals, RuntimeRequirementsDependency, get_context,
 };
 use rspack_error::{Diagnostic, Severity};
 use rspack_util::{SpanExt, json_stringify_str};
@@ -1359,6 +1359,7 @@ fn create_commonjs_require_context_dependency(
   request_context: Option<rspack_core::Context>,
 ) -> CommonJsRequireContextDependency {
   let result = create_context_dependency(param, parser);
+  let request = result.request();
 
   let span = call_expr.span;
   let options = ContextOptions {
@@ -1366,8 +1367,9 @@ fn create_commonjs_require_context_dependency(
     recursive: true,
     pattern: context_reg_exp(&result.reg, "", None, parser).into(),
     category: DependencyCategory::CommonJS,
-    request: format!("{}{}{}", result.context, result.query, result.fragment),
-    context: result.context,
+    request,
+    context: get_context(parser.resource_data).to_string(),
+    compiler_context: parser.compiler_options.context.clone(),
     replaces: result.replaces,
     start: span.real_lo(),
     end: span.real_hi(),
@@ -1403,6 +1405,7 @@ fn create_require_resolve_context_dependency(
   let end = range.end;
 
   let result = create_context_dependency(param, parser);
+  let request = result.request();
 
   let options = ContextOptions {
     mode: if weak {
@@ -1413,8 +1416,9 @@ fn create_require_resolve_context_dependency(
     recursive: true,
     pattern: context_reg_exp(&result.reg, "", None, parser).into(),
     category: DependencyCategory::CommonJS,
-    request: format!("{}{}{}", result.context, result.query, result.fragment),
-    context: result.context,
+    request,
+    context: get_context(parser.resource_data).to_string(),
+    compiler_context: parser.compiler_options.context.clone(),
     replaces: result.replaces,
     start,
     end,
@@ -1911,7 +1915,8 @@ impl CommonJsImportsParserPlugin {
         recursive: true,
         pattern: ContextModulePattern::None,
         request: ".".to_string(),
-        context: ".".to_string(),
+        context: get_context(parser.resource_data).to_string(),
+        compiler_context: parser.compiler_options.context.clone(),
         start,
         end,
         ..Default::default()

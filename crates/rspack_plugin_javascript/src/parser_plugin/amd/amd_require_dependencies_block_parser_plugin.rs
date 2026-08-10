@@ -5,6 +5,7 @@ use itertools::Itertools;
 use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, ContextDependency, ContextMode, ContextOptions,
   Dependency, DependencyCategory, DependencyRange, RuntimeGlobals, RuntimeRequirementsDependency,
+  get_context,
 };
 use rspack_error::{Error, Severity};
 use rspack_util::{SpanExt, atom::Atom};
@@ -169,14 +170,16 @@ impl AMDRequireDependenciesBlockParserPlugin {
     let param_range = param.range();
 
     let result = create_context_dependency(param, parser);
+    let request = result.request();
 
     let options = ContextOptions {
       mode: ContextMode::Sync,
       recursive: true,
       pattern: context_reg_exp(&result.reg, "", Some(call_span.into()), parser).into(),
       category: DependencyCategory::Amd,
-      request: format!("{}{}{}", result.context, result.query, result.fragment),
-      context: result.context,
+      request,
+      context: get_context(parser.resource_data).to_string(),
+      compiler_context: parser.compiler_options.context.clone(),
       replaces: result.replaces,
       start: call_span.real_lo(),
       end: call_span.real_hi(),

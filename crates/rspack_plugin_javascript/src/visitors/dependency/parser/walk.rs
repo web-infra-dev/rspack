@@ -10,8 +10,8 @@ use swc_experimental_ecma_ast::{
   GetterProp, Ident, IdentName, IfStmt, JSXAttr, JSXAttrOrSpread, JSXAttrValue, JSXElement,
   JSXElementChild, JSXElementName, JSXExpr, JSXExprContainer, JSXFragment, JSXMemberExpr,
   JSXNamespacedName, JSXObject, KeyValueProp, LabeledStmt, MemberExpr, MemberProp, MetaPropExpr,
-  ModuleDecl, ModuleItem, NewExpr, ObjectLit, ObjectPat, ObjectPatProp, OptCall, OptChainExpr,
-  Param, Pat, Prop, PropName, PropOrSpread, RestPat, ReturnStmt, SeqExpr, SetterProp,
+  ModuleDecl, ModuleItem, NewExpr, ObjectLit, ObjectPat, ObjectPatProp, OptCall, OptChainBase,
+  OptChainExpr, Param, Pat, Prop, PropName, PropOrSpread, RestPat, ReturnStmt, SeqExpr, SetterProp,
   SimpleAssignTarget, Stmt, SwitchCase, SwitchStmt, TaggedTpl, ThisExpr, ThrowStmt, Tpl, TryStmt,
   UnaryExpr, UnaryOp, UpdateExpr, VarDeclOrExpr, WhileStmt, WithStmt, YieldExpr,
 };
@@ -1214,6 +1214,7 @@ impl JavascriptParser<'_> {
           self.walk_member_expression_with_expression_name(
             expr,
             &expr_info.name,
+            &expr_info.members,
             Some(|this: &mut Self| {
               drive.unhandled_expression_member_chain(this, &expr_info.root_info, expr)
             }),
@@ -1288,23 +1289,37 @@ impl JavascriptParser<'_> {
     &mut self,
     expr: &MemberExpr,
     name: &str,
+    members: &[Atom],
     on_unhandled: Option<F>,
   ) where
     F: FnOnce(&mut Self) -> Option<bool>,
   {
     let drive = self.plugin_drive.clone();
-    if let Some(member) = expr.obj.as_member()
-      && let Some(len) = member_prop_len(&expr.prop)
+    let member = match &expr.obj {
+      Expr::Member(member) => Some(&**member),
+      Expr::OptChain(chain) => match &chain.base {
+        OptChainBase::Member(member) => Some(&**member),
+        OptChainBase::Call(_) => None,
+      },
+      _ => None,
+    };
+    if let Some(member) = member
+      && let Some(property) = members.last()
     {
       let origin = name.len();
-      let name = &name[0..origin - 1 - len];
+      let name = &name[0..origin - 1 - property.len()];
       if name
         .call_hooks_name(self, |this, for_name| drive.member(this, member, for_name))
         .unwrap_or_default()
       {
         return;
       }
-      self.walk_member_expression_with_expression_name(member, name, on_unhandled);
+      self.walk_member_expression_with_expression_name(
+        member,
+        name,
+        &members[..members.len() - 1],
+        on_unhandled,
+      );
     } else if on_unhandled.is_none() {
       self.walk_expression(&expr.obj);
     } else if let Some(on_unhandled) = on_unhandled
@@ -2172,13 +2187,5 @@ impl JavascriptParser<'_> {
         };
       }
     });
-  }
-}
-
-fn member_prop_len(member_prop: &MemberProp) -> Option<usize> {
-  match member_prop {
-    MemberProp::Ident(ident) => Some(ident.sym.len()),
-    MemberProp::PrivateName(name) => Some(name.name.len() + 1),
-    MemberProp::Computed(_) => None,
   }
 }

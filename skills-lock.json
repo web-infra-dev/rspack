@@ -17,7 +17,7 @@
       "source": "rstackjs/rstack-cli",
       "sourceType": "github",
       "skillPath": ".agents/skills/rstack-cli-best-practices/SKILL.md",
-      "computedHash": "57b2b9ddf2bceba987733139e0c9205b2999c10f5a668e95dc86c783e1fc1065"
+      "computedHash": "1155646a5e06cf9f6e30a6393d2b261f63d611b6cc130f4da4f7083f579c189c"
     },
     "rstack-eco-ci-debug": {
       "source": "rstackjs/agent-skills",
