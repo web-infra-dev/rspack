@@ -1,0 +1,13 @@
+# Case new-url-entries: Step 0
+
+## Changed Files
+
+
+## Asset Files
+- Bundle: bundle.js
+- Bundle: target_js.js
+
+## Manifest
+
+
+## Update
