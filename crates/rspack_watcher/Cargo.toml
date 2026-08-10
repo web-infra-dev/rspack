@@ -9,7 +9,6 @@ version.workspace = true
 [dependencies]
 cow-utils    = { workspace = true }
 dashmap      = { workspace = true }
-fast-glob    = { workspace = true }
 notify       = { workspace = true, features = ["macos_fsevent"] }
 regex        = { workspace = true }
 rspack_error = { workspace = true }

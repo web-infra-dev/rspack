@@ -291,13 +291,6 @@ pub struct ContextModule {
 }
 
 impl ContextModule {
-  pub fn new(
-    resolve_dependencies: ResolveContextModuleDependencies,
-    options: ContextModuleOptions,
-  ) -> Self {
-    Self::new_with_strict(resolve_dependencies, options, None)
-  }
-
   pub(crate) fn new_with_strict(
     resolve_dependencies: ResolveContextModuleDependencies,
     options: ContextModuleOptions,

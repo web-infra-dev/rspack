@@ -255,25 +255,7 @@ pub struct StartTimeAggregate {
   label: &'static str,
 }
 
-impl StartTimeAggregate {
-  pub fn start(&self) -> StartTime {
-    StartTime {
-      label: self.label,
-      start: Instant::now(),
-    }
-  }
-
-  pub fn end(&mut self, start: StartTime) {
-    if start.label == self.label {
-      self.duration += start.elapsed();
-    } else {
-      panic!(
-        "label for StartTimeAggregate should be the same, expect: {}, actual: {}",
-        self.label, start.label
-      );
-    }
-  }
-}
+impl StartTimeAggregate {}
 
 #[derive(Debug)]
 pub struct CacheCount {

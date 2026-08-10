@@ -69,16 +69,8 @@ impl<Context: Send> LoaderContext<Context> {
     LoaderItemList(&self.loader_items[self.loader_index as usize + 1..])
   }
 
-  pub fn current_request(&self) -> LoaderItemList<'_, Context> {
-    LoaderItemList(&self.loader_items[self.loader_index as usize..])
-  }
-
   pub fn previous_request(&self) -> LoaderItemList<'_, Context> {
     LoaderItemList(&self.loader_items[..self.loader_index as usize])
-  }
-
-  pub fn request(&self) -> LoaderItemList<'_, Context> {
-    LoaderItemList(&self.loader_items[..])
   }
 
   #[inline]
@@ -89,10 +81,6 @@ impl<Context: Send> LoaderContext<Context> {
   /// Emit a diagnostic, it can be a `warning` or `error`.
   pub fn emit_diagnostic(&mut self, diagnostic: Diagnostic) {
     self.diagnostics.push(diagnostic)
-  }
-
-  pub fn resource_data(&self) -> &ResourceData {
-    &self.resource_data
   }
 
   /// The resource part of the request, including query and fragment.
@@ -111,12 +99,6 @@ impl<Context: Send> LoaderContext<Context> {
   /// E.g. query=1
   pub fn resource_query(&self) -> Option<&str> {
     self.resource_data.query()
-  }
-
-  /// The fragment of the request
-  /// E.g. some-fragment
-  pub fn resource_fragment(&self) -> Option<&str> {
-    self.resource_data.fragment()
   }
 
   pub fn content(&self) -> Option<&Content> {

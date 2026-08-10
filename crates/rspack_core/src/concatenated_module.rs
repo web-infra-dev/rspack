@@ -42,19 +42,19 @@ use crate::{
   AsyncDependenciesBlockIdentifier, BoxDependency, BoxDependencyTemplate, BoxModule,
   BoxModuleDependency, BuildContext, BuildInfo, BuildMeta, BuildMetaDefaultObject,
   BuildMetaExportsType, BuildResult, ChunkGraph, ChunkInitFragments, ChunkRenderContext,
-  CodeGenerationDataTopLevelDeclarations, CodeGenerationExportsFinalNames,
-  CodeGenerationPublicPathAutoReplace, CodeGenerationResult,
-  CodeGenerationRuntimeRequirementsWrite, Compilation, ConcatenatedModuleIdent, ConcatenationScope,
-  ConditionalInitFragment, ConnectionState, Context, DEFAULT_EXPORT, DEFAULT_EXPORT_ATOM,
-  DependenciesBlock, DependencyId, DependencyType, ExportInfo, ExportProvided, ExportsArgument,
-  ExportsInfoArtifact, ExportsType, FactoryMeta, ImportedByDeferModulesArtifact, InitFragment,
-  InitFragmentStage, LibIdentOptions, Module, ModuleArgument, ModuleCodeGenerationContext,
-  ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, ModuleLayer,
-  ModuleStaticCache, ModuleType, NAMESPACE_OBJECT_EXPORT, ParserOptions, Resolve, RuntimeCondition,
-  RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, SourceType, URLStaticMode, UsageState,
-  UsedName, UsedNameItem, escape_identifier, fast_set, filter_runtime, find_target,
-  get_runtime_key, impl_source_map_config, merge_runtime_condition,
-  merge_runtime_condition_non_false, module_update_hash, property_access, property_name,
+  CodeGenerationDataTopLevelDeclarations, CodeGenerationPublicPathAutoReplace,
+  CodeGenerationResult, CodeGenerationRuntimeRequirementsWrite, Compilation,
+  ConcatenatedModuleIdent, ConcatenationScope, ConditionalInitFragment, ConnectionState, Context,
+  DEFAULT_EXPORT, DEFAULT_EXPORT_ATOM, DependenciesBlock, DependencyId, DependencyType, ExportInfo,
+  ExportProvided, ExportsArgument, ExportsInfoArtifact, ExportsType, FactoryMeta,
+  ImportedByDeferModulesArtifact, InitFragment, InitFragmentStage, LibIdentOptions, Module,
+  ModuleArgument, ModuleCodeGenerationContext, ModuleGraph, ModuleGraphCacheArtifact,
+  ModuleGraphConnection, ModuleIdentifier, ModuleLayer, ModuleStaticCache, ModuleType,
+  NAMESPACE_OBJECT_EXPORT, ParserOptions, Resolve, RuntimeCondition, RuntimeGlobals, RuntimeSpec,
+  SideEffectsStateArtifact, SourceType, URLStaticMode, UsageState, UsedName, UsedNameItem,
+  escape_identifier, fast_set, filter_runtime, find_target, get_runtime_key,
+  impl_source_map_config, merge_runtime_condition, merge_runtime_condition_non_false,
+  module_update_hash, property_access, property_name,
   render_make_deferred_namespace_mode_from_exports_type,
   reserved_names::RESERVED_NAMES_ATOM_SET,
   subtract_runtime_condition, to_identifier_with_escaped, to_normal_comment,
@@ -2032,16 +2032,6 @@ impl Module for ConcatenatedModule {
         top_level_declarations,
       ));
 
-    if !exports_final_names.is_empty() {
-      let exports_final_names_map: HashMap<String, String> =
-        exports_final_names.into_iter().collect();
-
-      code_generation_result
-        .data
-        .insert(CodeGenerationExportsFinalNames::new(
-          exports_final_names_map,
-        ));
-    }
     Ok(code_generation_result)
   }
 
@@ -3509,28 +3499,6 @@ pub fn split_readable_identifier(extra_info: &str) -> Vec<Atom> {
     .collect();
   splitted_info.reverse();
   splitted_info
-}
-
-fn escaped_name(name: &str) -> Cow<'_, str> {
-  if name == DEFAULT_EXPORT {
-    return Cow::Borrowed("");
-  }
-  if name == NAMESPACE_OBJECT_EXPORT {
-    return Cow::Borrowed("namespaceObject");
-  }
-
-  escape_identifier(name)
-}
-
-pub fn escape_name(name: &str) -> String {
-  escaped_name(name).into_owned()
-}
-
-pub fn escape_name_atom(name: &str) -> Atom {
-  match escaped_name(name) {
-    Cow::Borrowed(name) => Atom::from(name),
-    Cow::Owned(name) => Atom::from(name),
-  }
 }
 
 pub fn escape_name_atom_ref(name: &Atom) -> Atom {

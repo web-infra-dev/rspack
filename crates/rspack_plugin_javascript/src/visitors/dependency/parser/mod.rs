@@ -339,10 +339,6 @@ impl Hash for DestructuringAssignmentProperties {
 }
 
 impl DestructuringAssignmentProperties {
-  pub fn new(properties: FxIndexSet<DestructuringAssignmentProperty>) -> Self {
-    Self { inner: properties }
-  }
-
   pub fn insert(&mut self, prop: DestructuringAssignmentProperty) -> bool {
     self.inner.insert(prop)
   }
@@ -1540,14 +1536,6 @@ impl<'parser> JavascriptParser<'parser> {
       None => BasicEvaluatedExpression::with_range(expr.span().real_lo(), expr.span().real_hi())
         .with_expression(Some(expr)),
     }
-  }
-
-  pub fn evaluate<T: Display>(
-    &mut self,
-    source: String,
-    error_title: T,
-  ) -> Option<BasicEvaluatedExpression<'parser>> {
-    eval::eval_source(self, source, error_title.to_string())
   }
 
   pub fn evaluate_with_range<T: Display>(

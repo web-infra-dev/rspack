@@ -122,10 +122,6 @@ impl RuntimeModuleCommon {
     self.chunk = Some(chunk);
   }
 
-  pub fn name(&self) -> Identifier {
-    self.id
-  }
-
   pub fn id(&self) -> &Identifier {
     &self.id
   }

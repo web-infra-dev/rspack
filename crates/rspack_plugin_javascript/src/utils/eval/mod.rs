@@ -5,7 +5,6 @@ mod eval_cond_expr;
 mod eval_lit_expr;
 mod eval_member_expr;
 mod eval_new_expr;
-mod eval_prop_name;
 mod eval_source;
 mod eval_tpl_expr;
 mod eval_unary_expr;
@@ -25,7 +24,6 @@ pub use self::{
   eval_lit_expr::{eval_bigint, eval_bool, eval_lit_expr, eval_number, eval_str},
   eval_member_expr::eval_member_expression,
   eval_new_expr::eval_new_expression,
-  eval_prop_name::eval_prop_name,
   eval_source::eval_source,
   eval_tpl_expr::{TemplateStringKind, eval_tagged_tpl_expression, eval_tpl_expression},
   eval_unary_expr::eval_unary_expression,
@@ -661,13 +659,6 @@ impl<'a> BasicEvaluatedExpression<'a> {
     match &self.payload {
       Payload::Identifier(identifier) => identifier.member_ranges.as_ref(),
       _ => panic!("make sure identifier exist"),
-    }
-  }
-
-  pub fn dependency(&self) -> &DependencyData {
-    match &self.payload {
-      Payload::Dependency(dep_data) => dep_data,
-      _ => panic!("make sure dependency exist"),
     }
   }
 

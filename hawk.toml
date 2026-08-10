@@ -1,0 +1,17 @@
+[[production]]
+package = "rspack_node"
+lib = "rspack_node"
+reason = "shipped Node-API native library"
+
+[[production]]
+package = "rspack_tools"
+bin = "rspack_tools"
+reason = "workspace developer tool"
+
+[[production]]
+package = "xtask"
+bin = "xtask"
+reason = "workspace maintenance tool"
+
+[[feature-profile]]
+name = "default"
