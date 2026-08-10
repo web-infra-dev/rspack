@@ -26,7 +26,7 @@ use crate::{
   fast_set, include_hash,
   incremental::{Incremental, IncrementalPasses},
   logger::Logger,
-  new_cache::{Cache, CacheFacade},
+  new_cache::{Cache, CacheFacade, create_cache},
   trim_dir,
 };
 
@@ -159,7 +159,11 @@ impl Compiler {
     let plugin_driver = PluginDriver::new(options.clone(), plugins, resolver_factory.clone());
     let buildtime_plugin_driver =
       PluginDriver::new(options.clone(), buildtime_plugins, resolver_factory.clone());
-    let new_cache = Cache::default();
+    let new_cache = create_cache(
+      options.clone(),
+      input_filesystem.clone(),
+      compilation_logging.clone(),
+    );
     let cache = create_legacy_cache(
       &compiler_path,
       options.clone(),
@@ -235,18 +239,10 @@ impl Compiler {
       Ok(())
     };
     let store_build_dependencies = if successful && self.new_cache.has_file_cache() {
-      let (dependencies, _, _, _) = self.compilation.build_dependencies();
-      dependencies
-        .map(|dependency| {
-          Utf8PathBuf::from_path_buf(dependency.to_path_buf()).map_err(|path| {
-            rspack_error::error!(
-              "Build dependency path is not valid UTF-8: {}",
-              path.display()
-            )
-          })
-        })
-        .collect::<Result<Vec<_>>>()
-        .and_then(|dependencies| self.new_cache.store_build_dependencies(dependencies))
+      let (build_dependencies, _, _, _) = self.compilation.build_dependencies();
+      self
+        .new_cache
+        .store_build_dependencies(build_dependencies.cloned().collect())
     } else {
       Ok(())
     };

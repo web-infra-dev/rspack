@@ -1,42 +1,29 @@
-use std::{
-  fmt,
-  hash::{Hash, Hasher},
-};
+use std::{fmt, sync::Arc};
 
 use once_cell::unsync::OnceCell;
-use rspack_cacheable::{
-  cacheable,
-  utils::PortablePath,
-  with::{As, AsVec},
-};
 use rspack_error::Result;
-use rspack_paths::Utf8PathBuf;
-use rustc_hash::{FxHashMap, FxHashSet};
+use rspack_paths::{ArcPathSet, Utf8PathBuf};
+use rustc_hash::FxHashMap;
 use turbo_persistence::{DbConfig, FamilyConfig, FamilyKind, SerialScheduler, TurboPersistence};
 
 use super::{
   CacheKey, Etag,
   cache_value::{CacheEntry, CacheValueDecoder, CacheValueEncoder, ErasedCacheValue},
+  snapshot::{BuildDeps, BuildDepsValidationResult, Snapshot},
 };
 use crate::cache::persistent::codec::CacheCodec;
 
 const CACHE_FAMILY: usize = 0;
-const META_FAMILY: usize = 1;
+const SNAPSHOT_FAMILY: usize = 1;
 const FAMILY_COUNT: usize = 2;
 const BUILD_DEPENDENCIES_KEY: &[u8] = b"build-dependencies";
 
 type Database = TurboPersistence<SerialScheduler, FAMILY_COUNT>;
 
-#[cacheable]
-struct StoredBuildDependencies {
-  #[cacheable(with=AsVec<As<PortablePath>>)]
-  dependencies: Vec<Utf8PathBuf>,
-}
-
 #[derive(Debug, Default)]
 struct PendingWrites {
   entries: FxHashMap<CacheKey, PendingWrite>,
-  build_dependencies: FxHashSet<Utf8PathBuf>,
+  build_dependencies: Option<ArcPathSet>,
 }
 
 #[derive(Debug)]
@@ -47,7 +34,9 @@ struct PendingWrite {
 
 /// Filesystem cache implementation scheduled by [`super::IdleFileCache`].
 pub struct FileCacheStrategy {
-  codec: CacheCodec,
+  codec: Arc<CacheCodec>,
+  snapshot: Snapshot,
+  build_deps: BuildDeps,
   database: OnceCell<Database>,
   database_path: Utf8PathBuf,
   pending_writes: PendingWrites,
@@ -67,17 +56,55 @@ impl fmt::Debug for FileCacheStrategy {
 impl FileCacheStrategy {
   pub fn new(
     cache_location: Utf8PathBuf,
-    version: &str,
     readonly: bool,
-    codec: CacheCodec,
+    codec: Arc<CacheCodec>,
+    snapshot: Snapshot,
+    build_deps: BuildDeps,
   ) -> Self {
     Self {
       codec,
+      snapshot,
+      build_deps,
       database: OnceCell::new(),
-      database_path: cache_location.join(version_directory(version)),
+      database_path: cache_location,
       pending_writes: PendingWrites::default(),
       readonly,
     }
+  }
+
+  /// Opens the current pack and validates its build dependencies once before
+  /// the background job starts serving commands.
+  pub async fn initialize(&mut self) -> Result<()> {
+    let build_snapshot = self
+      .database()?
+      .get(SNAPSHOT_FAMILY, &BUILD_DEPENDENCIES_KEY)?;
+    match self
+      .build_deps
+      .validate_snapshot(&self.codec, &self.snapshot, build_snapshot.as_deref())
+      .await
+    {
+      Ok(BuildDepsValidationResult::Valid { tracked_files }) => {
+        tracing::debug!(tracked_files, "Build dependencies snapshot is valid");
+      }
+      Ok(BuildDepsValidationResult::Invalid {
+        modified_files,
+        removed_files,
+      }) => {
+        tracing::info!(
+          modified_files = modified_files.len(),
+          removed_files = removed_files.len(),
+          "Creating a new persistent cache pack because build dependencies changed"
+        );
+        self.create_new_pack()?;
+      }
+      Err(error) => {
+        tracing::warn!(
+          "Creating a new persistent cache pack because build dependencies validation failed: {error}"
+        );
+        self.create_new_pack()?;
+      }
+    }
+    Ok(())
   }
 
   pub(super) fn store(
@@ -99,6 +126,17 @@ impl FileCacheStrategy {
     );
   }
 
+  pub fn store_build_dependencies(&mut self, dependencies: ArcPathSet) {
+    if self.readonly {
+      return;
+    }
+    self
+      .pending_writes
+      .build_dependencies
+      .get_or_insert_default()
+      .extend(dependencies);
+  }
+
   pub(super) fn restore(
     &self,
     key: &CacheKey,
@@ -114,63 +152,59 @@ impl FileCacheStrategy {
       );
     }
 
-    let database_key = key.as_bytes();
-    let Some(entry) = self.database()?.get(CACHE_FAMILY, &database_key)? else {
+    let Some(entry) = self.database()?.get(CACHE_FAMILY, &key.as_bytes())? else {
       return Ok(None);
     };
     decoder(&entry, etag, &self.codec)
   }
 
-  pub fn store_build_dependencies(&mut self, dependencies: Vec<Utf8PathBuf>) {
-    if self.readonly {
-      return;
-    }
-    self.pending_writes.build_dependencies.extend(dependencies);
-  }
-
-  pub fn after_all_stored(&mut self) -> Result<()> {
-    if self.readonly {
+  pub async fn after_all_stored(&mut self) -> Result<()> {
+    if self.readonly || !self.has_pending_writes() {
       return Ok(());
     }
 
-    let pending = &self.pending_writes;
-    if pending.entries.is_empty() && pending.build_dependencies.is_empty() {
-      return Ok(());
-    }
-
-    let build_dependencies = if pending.build_dependencies.is_empty() {
-      None
+    let build_snapshot = if let Some(dependencies) = &self.pending_writes.build_dependencies {
+      Some(
+        self
+          .build_deps
+          .create_snapshot(&self.codec, &self.snapshot, dependencies.iter().cloned())
+          .await?,
+      )
     } else {
-      let mut dependencies = self.load_build_dependencies()?;
-      dependencies.extend(pending.build_dependencies.iter().cloned());
-      Some(self.encode_build_dependencies(dependencies)?)
+      None
     };
+    let cache_entries = self
+      .pending_writes
+      .entries
+      .iter()
+      .map(|(key, pending)| Ok((key, (pending.encoder)(&pending.entry, &self.codec)?)))
+      .collect::<Result<Vec<_>>>()?;
+
+    if cache_entries.is_empty() && build_snapshot.is_none() {
+      return Ok(());
+    }
 
     let database = self.database()?;
     let batch = database.write_batch::<&[u8]>()?;
-    for (key, pending) in &pending.entries {
-      batch.put(
-        CACHE_FAMILY as u32,
-        key.as_bytes(),
-        (pending.encoder)(&pending.entry, &self.codec)?.into(),
-      )?;
+    for (key, value) in &cache_entries {
+      batch.put(CACHE_FAMILY as u32, key.as_bytes(), value.as_slice().into())?;
     }
-    if let Some(build_dependencies) = build_dependencies {
+    if let Some(build_snapshot) = &build_snapshot {
       batch.put(
-        META_FAMILY as u32,
+        SNAPSHOT_FAMILY as u32,
         BUILD_DEPENDENCIES_KEY,
-        build_dependencies.into(),
+        build_snapshot.as_slice().into(),
       )?;
     }
     database.commit_write_batch(batch)?;
 
     self.pending_writes.entries.clear();
-    self.pending_writes.build_dependencies.clear();
+    self.pending_writes.build_dependencies = None;
     Ok(())
   }
 
-  pub fn shutdown(&mut self) -> Result<()> {
-    self.after_all_stored()?;
+  pub async fn shutdown(&mut self) -> Result<()> {
+    self.after_all_stored().await?;
 
     if let Some(database) = self.database.get() {
       database.clear_cache();
@@ -179,8 +213,34 @@ impl FileCacheStrategy {
     Ok(())
   }
 
-  pub(super) fn has_pending_writes(&self) -> bool {
-    !self.pending_writes.entries.is_empty() || !self.pending_writes.build_dependencies.is_empty()
+  pub fn has_pending_writes(&self) -> bool {
+    !self.pending_writes.entries.is_empty() || self.pending_writes.build_dependencies.is_some()
+  }
+
+  fn create_new_pack(&mut self) -> Result<()> {
+    if let Some(database) = self.database.take() {
+      database.clear_cache();
+      database.shutdown()?;
+    }
+
+    let database = if self.readonly {
+      Database::empty_in_memory_with_config(database_config())
+    } else {
+      let path = self.database_path.as_std_path();
+      if path.is_dir() {
+        std::fs::remove_dir_all(path).map_err(|error| {
+          rspack_error::error!(
+            "Failed to remove invalid persistent cache pack {}: {error}",
+            path.display()
+          )
+        })?;
+      }
+      Database::open_with_config(path.to_path_buf(), database_config())?
+    };
+    if self.database.set(database).is_err() {
+      unreachable!("persistent cache database must be empty before creating a new pack");
+    }
+    Ok(())
   }
 
   fn database(&self) -> Result<&Database> {
@@ -203,26 +263,6 @@ impl FileCacheStrategy {
       }
     })
   }
-
-  fn load_build_dependencies(&self) -> Result<FxHashSet<Utf8PathBuf>> {
-    let key = BUILD_DEPENDENCIES_KEY;
-    let Some(dependencies) = self.database()?.get(META_FAMILY, &key)? else {
-      return Ok(FxHashSet::default());
-    };
-    Ok(
-      self
-        .codec
-        .decode::<StoredBuildDependencies>(&dependencies)?
-        .dependencies
-        .into_iter()
-        .collect(),
-    )
-  }
-
-  fn encode_build_dependencies(&self, dependencies: FxHashSet<Utf8PathBuf>) -> Result<Vec<u8>> {
-    let dependencies = dependencies.into_iter().collect::<Vec<_>>();
-    self.codec.encode(&StoredBuildDependencies { dependencies })
-  }
 }
 
 fn database_config() -> DbConfig<FAMILY_COUNT> {
@@ -233,15 +273,9 @@ fn database_config() -> DbConfig<FAMILY_COUNT> {
         kind: FamilyKind::SingleValue,
       },
       FamilyConfig {
-        name: "metadata",
+        name: "snapshot",
         kind: FamilyKind::SingleValue,
       },
     ],
   }
-}
-
-fn version_directory(version: &str) -> String {
-  let mut hasher = rustc_hash::FxHasher::default();
-  version.hash(&mut hasher);
-  format!("{:016x}", hasher.finish())
 }

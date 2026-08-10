@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 mod cache;
 mod cache_facade;
 mod cache_key;
@@ -8,15 +6,73 @@ mod etag;
 mod file_cache_strategy;
 mod idle_file_cache;
 mod memory_cache;
+mod snapshot;
 
-#[allow(unused_imports)]
+use std::sync::Arc;
+
 pub use cache::Cache;
 pub use cache_facade::{CacheFacade, ItemCacheFacade};
 pub use cache_key::CacheKey;
 pub use cache_value::CacheValue;
 pub use etag::Etag;
 pub use file_cache_strategy::FileCacheStrategy;
-#[allow(unused_imports)]
 pub use idle_file_cache::IdleFileCache;
-#[allow(unused_imports)]
 pub use memory_cache::{MemoryCache, MemoryCacheGetResult};
+use rspack_fs::ReadableFileSystem;
+
+use self::snapshot::{BuildDeps, Snapshot};
+use crate::{
+  CompilationLogger, CompilationLogging, CompilerOptions, cache::persistent::codec::CacheCodec,
+};
+
+pub fn create_cache(
+  compiler_options: Arc<CompilerOptions>,
+  input_filesystem: Arc<dyn ReadableFileSystem>,
+  compilation_logging: CompilationLogging,
+) -> Cache {
+  if !compiler_options.experiments.new_cache {
+    return Cache::new_disabled();
+  }
+
+  fn version_directory(version: &str) -> String {
+    use std::hash::{Hash, Hasher};
+    let mut hasher = rustc_hash::FxHasher::default();
+    version.hash(&mut hasher);
+    format!("{:016x}", hasher.finish())
+  }
+
+  let options = match &compiler_options.cache {
+    crate::CacheOptions::Disabled => return Cache::new_disabled(),
+    crate::CacheOptions::Memory { max_generations: _ } => {
+      return Cache::new(MemoryCache::default(), None);
+    }
+    crate::CacheOptions::Persistent(options) => options,
+  };
+
+  let project_root = if options.portable {
+    Some(compiler_options.context.as_path().to_path_buf())
+  } else {
+    None
+  };
+  let codec = Arc::new(CacheCodec::new(project_root));
+  let snapshot = Snapshot::new(options.snapshot.clone(), input_filesystem.clone());
+  let build_deps = BuildDeps::new(
+    &options.build_dependencies,
+    input_filesystem,
+    CompilationLogger::new("rspack.newCache".to_string(), compilation_logging),
+  );
+  let cache_location = match &options.storage {
+    crate::cache::persistent::storage::StorageOptions::FileSystem { directory } => {
+      directory.join(version_directory(rspack_workspace::rspack_pkg_version!()))
+    }
+  };
+  let idle_file_cache = IdleFileCache::new(FileCacheStrategy::new(
+    cache_location,
+    options.readonly,
+    codec,
+    snapshot,
+    build_deps,
+  ));
+
+  Cache::new(MemoryCache::default(), Some(idle_file_cache))
+}

@@ -1,12 +1,11 @@
-use std::{
-  sync::mpsc::{self, RecvTimeoutError},
-  thread,
-  time::{Duration, Instant},
-};
+use std::{thread, time::Duration};
 
 use rspack_error::Result;
-use rspack_paths::Utf8PathBuf;
-use tokio::sync::oneshot;
+use rspack_paths::ArcPathSet;
+use tokio::{
+  sync::{mpsc, oneshot},
+  time::{Instant, sleep_until},
+};
 
 use super::{
   CacheKey, CacheValue, Etag, FileCacheStrategy,
@@ -25,7 +24,7 @@ enum Command {
     value: ErasedCacheValue,
     encoder: CacheValueEncoder,
   },
-  StoreBuildDependencies(Vec<Utf8PathBuf>),
+  StoreBuildDependencies(ArcPathSet),
   Restore {
     key: CacheKey,
     etag: Option<Etag>,
@@ -40,7 +39,7 @@ enum Command {
 
 struct BackgroundJob {
   strategy: FileCacheStrategy,
-  command_receiver: mpsc::Receiver<Command>,
+  command_receiver: mpsc::UnboundedReceiver<Command>,
   idle_deadline: Option<Instant>,
   idle_timeout: Duration,
   idle_timeout_for_initial_store: Duration,
@@ -50,39 +49,40 @@ struct BackgroundJob {
 }
 
 impl BackgroundJob {
-  fn run(mut self) {
+  async fn run(mut self) {
+    if let Err(error) = self.strategy.initialize().await {
+      tracing::warn!("Initializing persistent cache background job failed: {error}");
+      return;
+    }
+
     loop {
-      let command = match self.idle_deadline {
-        Some(deadline) => self
-          .command_receiver
-          .recv_timeout(deadline.saturating_duration_since(Instant::now())),
-        None => self
-          .command_receiver
-          .recv()
-          .map_err(|_| RecvTimeoutError::Disconnected),
+      let command = if let Some(deadline) = self.idle_deadline {
+        tokio::select! {
+          biased;
+          command = self.command_receiver.recv() => command,
+          _ = sleep_until(deadline) => {
+            self.idle_deadline = None;
+            self.process_idle_tasks().await;
+            continue;
+          }
+        }
+      } else {
+        self.command_receiver.recv().await
       };
 
-      match command {
-        Ok(command) => {
-          if self.handle_command(command) {
-            return;
-          }
+      let Some(command) = command else {
+        if self.strategy.has_pending_writes() {
+          tracing::warn!("Idle file cache was dropped before shutdown with pending cache items");
         }
-        Err(RecvTimeoutError::Timeout) => {
-          self.idle_deadline = None;
-          self.process_idle_tasks();
-        }
-        Err(RecvTimeoutError::Disconnected) => {
-          if self.strategy.has_pending_writes() {
-            tracing::warn!("Idle file cache was dropped before shutdown with pending cache items");
-          }
-          return;
-        }
+        return;
+      };
+      if self.handle_command(command).await {
+        return;
       }
     }
   }
 
-  fn handle_command(&mut self, command: Command) -> bool {
+  async fn handle_command(&mut self, command: Command) -> bool {
     match command {
       Command::Store {
         key,
@@ -130,16 +130,16 @@ impl BackgroundJob {
       }
       Command::Shutdown(result) => {
         self.idle_deadline = None;
-        let _ = result.send(self.strategy.shutdown());
+        let _ = result.send(self.strategy.shutdown().await);
         return true;
       }
     }
     false
   }
 
-  fn process_idle_tasks(&mut self) {
+  async fn process_idle_tasks(&mut self) {
     let start = Instant::now();
-    if let Err(error) = self.strategy.after_all_stored() {
+    if let Err(error) = self.strategy.after_all_stored().await {
       tracing::warn!("Finalizing idle file cache store failed: {error}");
       return;
     }
@@ -159,7 +159,7 @@ impl BackgroundJob {
 /// Runs filesystem cache operations in one persistent background job.
 #[derive(Debug)]
 pub struct IdleFileCache {
-  command_sender: mpsc::Sender<Command>,
+  command_sender: mpsc::UnboundedSender<Command>,
 }
 
 impl IdleFileCache {
@@ -178,7 +178,7 @@ impl IdleFileCache {
     idle_timeout_for_initial_store: Duration,
     idle_timeout_after_large_changes: Duration,
   ) -> Self {
-    let (command_sender, command_receiver) = mpsc::channel();
+    let (command_sender, command_receiver) = mpsc::unbounded_channel();
     let background_job = BackgroundJob {
       strategy,
       command_receiver,
@@ -191,7 +191,13 @@ impl IdleFileCache {
     };
     let _ = thread::Builder::new()
       .name("rspack-idle-file-cache".to_string())
-      .spawn(move || background_job.run())
+      .spawn(move || {
+        let runtime = tokio::runtime::Builder::new_current_thread()
+          .enable_time()
+          .build()
+          .expect("failed to create idle file cache runtime");
+        runtime.block_on(background_job.run());
+      })
       .expect("failed to spawn idle file cache background thread");
 
     Self { command_sender }
@@ -209,10 +215,7 @@ impl IdleFileCache {
     command: impl FnOnce(oneshot::Sender<Result<T>>) -> Command,
   ) -> Result<T> {
     let (result, result_receiver) = oneshot::channel();
-    self
-      .command_sender
-      .send(command(result))
-      .map_err(|_| rspack_error::error!("Idle file cache background job has stopped"))?;
+    self.send(command(result))?;
     result_receiver
       .await
       .map_err(|_| rspack_error::error!("Idle file cache background job has stopped"))?
@@ -250,7 +253,7 @@ impl IdleFileCache {
     )
   }
 
-  pub fn store_build_dependencies(&self, dependencies: Vec<Utf8PathBuf>) -> Result<()> {
+  pub fn store_build_dependencies(&self, dependencies: ArcPathSet) -> Result<()> {
     self.send(Command::StoreBuildDependencies(dependencies))
   }
 
