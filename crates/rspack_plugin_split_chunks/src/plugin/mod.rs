@@ -289,9 +289,17 @@ impl SplitChunksPlugin {
           .modules
           .iter()
           .filter(|module| {
-            placed_module_chunks
-              .get(module)
-              .is_none_or(|chunks| chunks.len() < cache_group.min_chunks as usize)
+            let Some(placed_chunks) = placed_module_chunks.get(module) else {
+              return true;
+            };
+            let Some(selected_chunks) = module_group.module_chunks.get(module) else {
+              return true;
+            };
+            placed_chunks
+              .iter()
+              .filter(|chunk| selected_chunks.contains(*chunk))
+              .count()
+              < cache_group.min_chunks as usize
           })
           .copied()
           .collect::<Vec<_>>();
@@ -317,17 +325,28 @@ impl SplitChunksPlugin {
         placed_module_chunks.retain(|module, _| module_group.modules.contains(module));
         modules_to_move.retain(|module| module_group.modules.contains(module));
 
-        let placement_chunks = placed_module_chunks
-          .values()
-          .flatten()
-          .copied()
+        // Keep a reused destination in `placed_module_chunks` for ownership cleanup, even when the
+        // cache group's chunk filter did not select it. Such an excluded destination must not count
+        // towards `minChunks` or the source chunks split into the destination.
+        let selected_placement_chunks = placed_module_chunks
+          .iter()
+          .flat_map(|(module, placed_chunks)| {
+            let selected_chunks = module_group
+              .module_chunks
+              .get(module)
+              .expect("should have selected module chunks");
+            placed_chunks
+              .iter()
+              .filter(|chunk| selected_chunks.contains(*chunk))
+              .copied()
+          })
           .collect::<FxHashSet<_>>();
-        used_chunks.retain(|chunk| placement_chunks.contains(chunk));
+        used_chunks.retain(|chunk| selected_placement_chunks.contains(chunk));
 
-        if placement_chunks.len() < cache_group.min_chunks as usize {
+        if selected_placement_chunks.len() < cache_group.min_chunks as usize {
           tracing::trace!(
-            "ModuleGroup({module_group_key}) is skipped. Reason: placement_chunks.len()({:?}) < cache_group.min_chunks({:?})",
-            placement_chunks.len(),
+            "ModuleGroup({module_group_key}) is skipped. Reason: selected_placement_chunks.len()({:?}) < cache_group.min_chunks({:?})",
+            selected_placement_chunks.len(),
             cache_group.min_chunks
           );
           continue;
