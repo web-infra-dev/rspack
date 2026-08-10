@@ -3,12 +3,12 @@ use rspack_cacheable::{
   with::{AsPreset, AsVec},
 };
 use rspack_core::{
-  AsContextDependency, Compilation, Dependency, DependencyCategory, DependencyCodeGeneration,
-  DependencyId, DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType,
-  DependencyType, ExportsInfoArtifact, FactorizeInfo, InitFragmentKey, InitFragmentStage,
-  ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, NormalInitFragment, ReferencedExport,
-  RuntimeSpec, TemplateContext, TemplateReplaceSource, UsedName, create_exports_object_referenced,
-  property_access, to_normal_comment,
+  AsContextDependency, AwaitDependenciesInitFragment, Compilation, Dependency, DependencyCategory,
+  DependencyCodeGeneration, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
+  DependencyTemplateType, DependencyType, ExportsInfoArtifact, FactorizeInfo, InitFragmentKey,
+  InitFragmentStage, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, NormalInitFragment,
+  ReferencedExport, RuntimeSpec, TemplateContext, TemplateReplaceSource, UsedName,
+  create_exports_object_referenced, property_access, to_normal_comment,
 };
 use rspack_hash::{RspackHash, RspackHasher};
 use swc_atoms::Atom;
@@ -179,17 +179,38 @@ impl DependencyTemplate for ProvideDependencyTemplate {
     let used_name =
       exports_info.get_used_name(&compilation.exports_info_artifact, *runtime, &dep.ids);
     let module_raw = runtime_template.module_raw(compilation, dep.id(), dep.request(), dep.weak());
-    let provided_expr = match used_name {
-      Some(UsedName::Normal(used_name)) => format!("{module_raw}{}", property_access(used_name, 0)),
-      Some(UsedName::Inlined(inlined)) => format!(
-        "({}, {})",
-        module_raw,
-        inlined.render(&to_normal_comment(&format!(
+    let is_async =
+      ModuleGraph::is_async(&compilation.async_modules_artifact, con.module_identifier());
+    let (provided_expr, post_await_expr) = if is_async {
+      let post_await_expr = match used_name {
+        Some(UsedName::Normal(used_name)) => Some(format!(
+          "{}{}",
+          dep.identifier,
+          property_access(used_name, 0)
+        )),
+        Some(UsedName::Inlined(inlined)) => Some(inlined.render(&to_normal_comment(&format!(
           "inlined export {}",
           property_access(&dep.ids, 0)
-        )))
-      ),
-      None => module_raw,
+        )))),
+        None => None,
+      };
+      (module_raw, post_await_expr)
+    } else {
+      let provided_expr = match used_name {
+        Some(UsedName::Normal(used_name)) => {
+          format!("{module_raw}{}", property_access(used_name, 0))
+        }
+        Some(UsedName::Inlined(inlined)) => format!(
+          "({}, {})",
+          module_raw,
+          inlined.render(&to_normal_comment(&format!(
+            "inlined export {}",
+            property_access(&dep.ids, 0)
+          )))
+        ),
+        None => module_raw,
+      };
+      (provided_expr, None)
     };
 
     init_fragments.push(Box::new(
@@ -205,6 +226,20 @@ impl DependencyTemplate for ProvideDependencyTemplate {
       )
       .with_top_level_decl_symbols(vec![dep.identifier.clone().into()]),
     ));
+    if is_async {
+      init_fragments.push(Box::new(AwaitDependenciesInitFragment::new_single(
+        dep.identifier.clone(),
+      )));
+      if let Some(post_await_expr) = post_await_expr {
+        init_fragments.push(Box::new(NormalInitFragment::new(
+          format!("{} = {};\n", dep.identifier, post_await_expr),
+          InitFragmentStage::StageAsyncESMImports,
+          1,
+          InitFragmentKey::ModuleExternal(format!("provided async {}", dep.identifier)),
+          None,
+        )));
+      }
+    }
     source.replace(dep.range.start, dep.range.end, dep.identifier.clone(), None);
   }
 }
