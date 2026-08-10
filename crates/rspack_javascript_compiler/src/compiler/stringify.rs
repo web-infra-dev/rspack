@@ -3,14 +3,16 @@ use std::{borrow::Cow, sync::Arc};
 use rspack_error::Result;
 use rspack_sources::{
   MapOptions, Mapping, ObjectPool, OriginalLocation, Source, SourceMap, SourceMapSource,
-  SourceMapSourceOptions, encode_mappings, utf16_len,
+  SourceMapSourceOptions, encode_mappings,
 };
 use rspack_util::source_map::SourceMapKind;
 use rustc_hash::{FxHashMap, FxHashSet};
 use swc_core::{
   common::{
-    BytePos, FileName, LineCol, SourceFile, SourceMap as SwcSourceMap, comments::Comments,
-    source_map::SmallPos, sync::Lrc,
+    BytePos, FileName, LineCol, SourceFile, SourceMap as SwcSourceMap,
+    comments::Comments,
+    source_map::{MultiByteChar, SmallPos},
+    sync::Lrc,
   },
   ecma::{
     ast::{EsVersion, Ident, Program as SwcProgram},
@@ -357,7 +359,9 @@ struct SourceMapPositionState {
   line_start: BytePos,
   line_end: BytePos,
   pos: BytePos,
-  column: u32,
+  utf8_to_utf16_diff: u32,
+  line_utf8_to_utf16_diff: u32,
+  multibyte_index: usize,
 }
 
 impl SourceMapPositionConverter {
@@ -393,29 +397,45 @@ impl SourceMapPositionConverter {
       line_end,
     );
 
-    let (scan_start, column) = match &self.state {
-      Some(SourceMapPositionState {
-        file_start,
-        line_start: state_line_start,
-        pos: state_pos,
-        column,
-        ..
-      }) if *file_start == file.start_pos
-        && *state_line_start == line_start
-        && *state_pos <= pos =>
-      {
-        (*state_pos, *column)
+    let source_pos = pos.to_u32().checked_sub(file.start_pos.to_u32())? as usize;
+    if !file.src.is_char_boundary(source_pos) {
+      return None;
+    }
+
+    let multibyte_chars = &file.analyze().multibyte_chars;
+    let (mut state_pos, mut utf8_to_utf16_diff, mut multibyte_index) = match &self.state {
+      Some(state) if state.file_start == file.start_pos => {
+        (state.pos, state.utf8_to_utf16_diff, state.multibyte_index)
       }
-      _ => (line_start, 0),
+      _ => (file.start_pos, 0, 0),
     };
 
-    let scan_start = scan_start.to_u32().checked_sub(file.start_pos.to_u32())? as usize;
-    let scan_end = pos.to_u32().checked_sub(file.start_pos.to_u32())? as usize;
-    let column = column.checked_add(
-      utf16_len(file.src.get(scan_start..scan_end)?)
-        .try_into()
-        .ok()?,
+    let line_utf8_to_utf16_diff = match &self.state {
+      Some(state) if state.file_start == file.start_pos && state.line_start == line_start => {
+        state.line_utf8_to_utf16_diff
+      }
+      _ => {
+        Self::move_to(
+          multibyte_chars,
+          line_start,
+          &mut state_pos,
+          &mut utf8_to_utf16_diff,
+          &mut multibyte_index,
+        )?;
+        utf8_to_utf16_diff
+      }
+    };
+    Self::move_to(
+      multibyte_chars,
+      pos,
+      &mut state_pos,
+      &mut utf8_to_utf16_diff,
+      &mut multibyte_index,
     )?;
+
+    let byte_column = pos.to_u32().checked_sub(line_start.to_u32())?;
+    let column =
+      byte_column.checked_sub(utf8_to_utf16_diff.checked_sub(line_utf8_to_utf16_diff)?)?;
 
     self.state = Some(SourceMapPositionState {
       file_start: file.start_pos,
@@ -423,10 +443,55 @@ impl SourceMapPositionConverter {
       line_start,
       line_end,
       pos,
-      column,
+      utf8_to_utf16_diff,
+      line_utf8_to_utf16_diff,
+      multibyte_index,
     });
     Some((line + 1, column))
   }
+
+  fn move_to(
+    multibyte_chars: &[MultiByteChar],
+    target: BytePos,
+    pos: &mut BytePos,
+    utf8_to_utf16_diff: &mut u32,
+    multibyte_index: &mut usize,
+  ) -> Option<()> {
+    if *pos <= target {
+      while let Some(multibyte_char) = multibyte_chars.get(*multibyte_index) {
+        if multibyte_char.pos >= target {
+          break;
+        }
+        *utf8_to_utf16_diff =
+          utf8_to_utf16_diff.checked_add(multibyte_char.byte_to_char_diff() as u32)?;
+        *multibyte_index += 1;
+      }
+    } else {
+      while let Some(index) = multibyte_index.checked_sub(1) {
+        let multibyte_char = &multibyte_chars[index];
+        if multibyte_char.pos < target {
+          break;
+        }
+        *utf8_to_utf16_diff =
+          utf8_to_utf16_diff.checked_sub(multibyte_char.byte_to_char_diff() as u32)?;
+        *multibyte_index = index;
+      }
+    }
+    *pos = target;
+    Some(())
+  }
+}
+
+#[cfg(feature = "codspeed")]
+#[doc(hidden)]
+pub fn benchmark_source_map_position_conversion(file: &SourceFile, positions: &[BytePos]) -> u64 {
+  let mut converter = SourceMapPositionConverter::default();
+  positions.iter().fold(0, |checksum, &pos| {
+    let (line, column) = converter
+      .convert(file, pos)
+      .expect("benchmark positions should be valid");
+    checksum.wrapping_add((u64::from(line) << 32) | u64::from(column))
+  })
 }
 
 struct IdentCollector {
