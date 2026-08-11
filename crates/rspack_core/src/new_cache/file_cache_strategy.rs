@@ -83,7 +83,7 @@ impl FileCacheStrategy {
 
   /// Validates the current database's build dependencies once before the
   /// background job starts serving commands.
-  pub async fn validate_build_dependencies(&mut self) -> Result<()> {
+  pub async fn db_validation(&mut self) -> Result<()> {
     let validation = {
       let build_snapshot = self
         .database
