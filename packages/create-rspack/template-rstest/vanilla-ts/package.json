@@ -5,9 +5,9 @@
   },
   "devDependencies": {
     "@testing-library/dom": "^10.4.1",
-    "@testing-library/jest-dom": "^6.9.1",
-    "@rstest/adapter-rspack": "^0.10.6",
-    "@rstest/core": "^0.10.6",
-    "happy-dom": "^20.10.6"
+    "@testing-library/jest-dom": "^7.0.0",
+    "@rstest/adapter-rspack": "^0.11.6",
+    "@rstest/core": "^0.11.6",
+    "happy-dom": "^20.11.1"
   }
 }

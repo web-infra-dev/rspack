@@ -54,7 +54,11 @@ impl ImportMetaContextDependency {
     optional: bool,
     kind: ImportMetaContextDependencyKind,
   ) -> Self {
-    let resource_identifier = create_resource_identifier_for_context_dependency(None, &options);
+    let context = match kind {
+      ImportMetaContextDependencyKind::WebpackContext => None,
+      ImportMetaContextDependencyKind::Glob => Some(options.context.as_str()),
+    };
+    let resource_identifier = create_resource_identifier_for_context_dependency(context, &options);
     Self {
       options,
       range,
@@ -120,7 +124,10 @@ impl ContextDependency for ImportMetaContextDependency {
   }
 
   fn get_context(&self) -> Option<&str> {
-    None
+    match self.kind {
+      ImportMetaContextDependencyKind::WebpackContext => None,
+      ImportMetaContextDependencyKind::Glob => Some(self.options.context.as_str()),
+    }
   }
 
   fn resource_identifier(&self) -> &str {

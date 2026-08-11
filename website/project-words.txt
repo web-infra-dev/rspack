@@ -1,5 +1,6 @@
 aarch
 absolutify
+accum
 ahabhgk
 Akait
 alexander-akait
@@ -37,6 +38,8 @@ cssextractrspackplugin
 dail
 darwin
 deconflict
+demangle
+demangled
 devongovett
 devserverdevmiddleware
 devserverhot
@@ -47,6 +50,7 @@ ecma
 edusperoni
 elecmonkey
 elecmonkeyjs
+emnapi
 esbuild
 etags
 evanw
@@ -76,9 +80,13 @@ innovatively
 inottn
 intellild
 intlify
+inuse
 IWANABETHATGUY
 jantimon
 JavaScript
+jemalloc
+JEMALLOC
+jeprof
 jerrykingxyz
 Jiahan
 jkzing
@@ -88,6 +96,8 @@ jserfeng
 kaffi
 kuaishou
 Kyrylo
+ldconfig
+libjemalloc
 lightningcss
 Lingyu
 lingyucoder
@@ -151,6 +161,8 @@ perfetto
 Peschke
 pftrace
 pmmmwh
+powerpc64le
+ppc64
 proxied
 proxying
 px2rem
@@ -178,7 +190,9 @@ ruid
 ruleoneof
 ruleparserdataurlcondition
 Rust
+rustfilt
 rustup
+s390x
 samply
 samsung
 sanyuan
@@ -207,6 +221,7 @@ tiktok
 tokio
 Towhk
 Trae
+tsfn
 tsgo
 tsgolint
 tuchg
@@ -221,6 +236,8 @@ vant
 verkada
 viktoriialurie
 vize
+wasi
+WASI
 weapp
 webpack
 xcode

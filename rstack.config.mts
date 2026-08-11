@@ -1,5 +1,25 @@
 import { define } from 'rstack';
 
+define.fmt({
+  singleQuote: true,
+  ignorePatterns: [
+    // Tests
+    'tests/rspack-test/**/*',
+    '!tests/rspack-test/**/',
+    '!tests/rspack-test/**/rspack.config.*',
+    'packages/**/etc/**/*',
+    'tests/e2e/cases/make/rewrite-factorize-request/file.js',
+
+    // Benchmark fixtures
+    'xtask/benchmark/benches/fixtures/rspack_sources/**',
+
+    // Crates
+    'crates/**',
+    '!crates/**/',
+    '!crates/**/*.md',
+  ],
+});
+
 define.lint(async () => {
   const { js, ts } = await import('rstack/lint');
 
@@ -41,7 +61,9 @@ define.lint(async () => {
         'no-control-regex': 'off',
         'no-empty': 'off',
         'no-prototype-builtins': 'off',
+        'no-useless-assignment': 'off',
         'prefer-spread': 'off',
+        'preserve-caught-error': 'off',
       },
     },
     {
@@ -55,8 +77,7 @@ define.lint(async () => {
 
 define.staged({
   '*.rs': 'rustfmt',
-  '*.{ts,tsx,js,mjs,yaml,yml}':
-    'node ./node_modules/prettier/bin/prettier.cjs --write',
+  '*.{ts,tsx,js,mjs,yaml,yml}': 'rs fmt',
   '*.toml': 'pnpm exec taplo format',
   '*.{ts,tsx,js,cts,cjs,mts,mjs}': 'pnpm run lint:js',
   'website/**/*': () => 'pnpm --dir website run check:spell',

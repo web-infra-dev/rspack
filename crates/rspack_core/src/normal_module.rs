@@ -253,10 +253,6 @@ impl NormalModule {
     &self.user_request
   }
 
-  pub fn user_request_mut(&mut self) -> &mut String {
-    &mut self.user_request
-  }
-
   pub fn raw_request(&self) -> &str {
     &self.raw_request
   }
@@ -267,18 +263,6 @@ impl NormalModule {
 
   pub fn parser_and_generator(&self) -> &dyn ParserAndGenerator {
     &*self.parser_and_generator
-  }
-
-  pub fn parser_and_generator_mut(&mut self) -> &mut dyn ParserAndGenerator {
-    &mut *self.parser_and_generator
-  }
-
-  pub fn code_generation_dependencies(&self) -> &Option<Vec<BoxModuleDependency>> {
-    &self.code_generation_dependencies
-  }
-
-  pub fn presentational_dependencies(&self) -> &Option<Vec<BoxDependencyTemplate>> {
-    &self.presentational_dependencies
   }
 
   #[tracing::instrument(

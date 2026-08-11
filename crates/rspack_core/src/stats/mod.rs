@@ -147,10 +147,6 @@ impl<'compilation> Stats<'compilation> {
     self.artifact_fallback_flags.load(Ordering::Relaxed)
   }
 
-  pub fn take_artifact_fallback_flags(&self) -> u8 {
-    self.artifact_fallback_flags.swap(0, Ordering::Relaxed)
-  }
-
   pub fn artifact_fallback_names(flags: u8) -> Vec<&'static str> {
     let mut names = Vec::new();
     if flags & STATS_ARTIFACT_FALLBACK_EXPORTS_INFO != 0 {

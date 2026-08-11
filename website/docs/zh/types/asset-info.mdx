@@ -2,18 +2,21 @@
 
 ```ts
 type AssetInfo = {
-  immutable: boolean;
-  minimized: boolean;
-  fullhash: Array<string>;
-  chunkhash: Array<string>;
-  contenthash: Array<string>;
+  immutable?: boolean;
+  minimized?: boolean;
+  fullhash?: string | Array<string>;
+  chunkhash?: string | Array<string>;
+  contenthash?: string | Array<string>;
   sourceFilename?: string;
-  development: boolean;
-  hotModuleReplacement: boolean;
+  copied?: boolean;
+  development?: boolean;
+  hotModuleReplacement?: boolean;
   javascriptModule?: boolean;
-  related: JsAssetInfoRelated;
+  related?: AssetInfoRelated;
   cssUnusedIdents?: Array<string>;
-};
+  isOverSizeLimit?: boolean;
+  assetType?: string;
+} & Record<string, any>;
 ```
 
 </>

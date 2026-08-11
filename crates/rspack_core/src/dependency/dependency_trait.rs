@@ -1,4 +1,8 @@
-use std::{any::Any, fmt::Debug};
+use std::{
+  any::Any,
+  fmt::Debug,
+  sync::{Arc, OnceLock},
+};
 
 use dyn_clone::{DynClone, clone_trait_object};
 use rspack_cacheable::cacheable_dyn;
@@ -13,8 +17,9 @@ use super::{
 };
 use crate::{
   AsContextDependency, ConnectionState, Context, ExportsInfoArtifact, ForwardId, ImportAttributes,
-  ImportPhase, JavascriptParserUrl, LazyUntil, ModuleGraph, ModuleGraphCacheArtifact, ModuleLayer,
-  ReferencedExport, RuntimeSpec, SideEffectsStateArtifact, create_exports_object_referenced,
+  ImportPhase, JavascriptParserUrl, LazyUntil, Module, ModuleGraph, ModuleGraphCacheArtifact,
+  ModuleLayer, ReferencedExport, RuntimeSpec, SideEffectsStateArtifact,
+  create_exports_object_referenced,
 };
 
 #[derive(Debug, Clone, Copy)]
@@ -22,6 +27,27 @@ pub enum AffectType {
   True,
   False,
   Transitive,
+}
+
+/// Module-scoped state shared while collecting diagnostics from its dependencies.
+#[derive(Debug, Default)]
+pub struct DependencyDiagnosticsContext {
+  module_source: OnceLock<Option<Arc<str>>>,
+}
+
+impl DependencyDiagnosticsContext {
+  fn get_or_init_module_source(&self, init: impl FnOnce() -> Option<Arc<str>>) -> Option<Arc<str>> {
+    self.module_source.get_or_init(init).clone()
+  }
+
+  /// Lazily materialize the module source once and share it across its diagnostics.
+  pub fn module_source(&self, module: &dyn Module) -> Option<Arc<str>> {
+    self.get_or_init_module_source(|| {
+      module
+        .source()
+        .map(|source| source.source().into_string_lossy().into())
+    })
+  }
 }
 
 #[cacheable_dyn]
@@ -43,6 +69,12 @@ pub trait Dependency:
 
   fn dependency_type(&self) -> &DependencyType {
     &DependencyType::Unknown
+  }
+
+  /// Whether this dependency should be excluded when a global entry include is applied to an
+  /// async entrypoint.
+  fn skip_async_entrypoints(&self) -> bool {
+    false
   }
 
   fn url_mode(&self) -> Option<JavascriptParserUrl> {
@@ -110,6 +142,16 @@ pub trait Dependency:
     _exports_info_artifact: &ExportsInfoArtifact,
   ) -> Option<Vec<Diagnostic>> {
     None
+  }
+
+  fn get_diagnostics_with_context(
+    &self,
+    module_graph: &ModuleGraph,
+    module_graph_cache: &ModuleGraphCacheArtifact,
+    exports_info_artifact: &ExportsInfoArtifact,
+    _context: &DependencyDiagnosticsContext,
+  ) -> Option<Vec<Diagnostic>> {
+    self.get_diagnostics(module_graph, module_graph_cache, exports_info_artifact)
   }
 
   fn get_referenced_exports(

@@ -2061,10 +2061,15 @@ export type CacheStorageOptions = {
    */
   type: 'filesystem';
   /**
-   * Cache directory path.
-   * @default 'node_modules/.cache/rspack/<name>-<mode>-<compilerIndex>'
+   * Base directory for the cache.
+   * @default 'node_modules/.cache/rspack'
    */
   directory?: string;
+  /**
+   * Location of the cache data.
+   * @default '<directory>/<cache.name>'
+   */
+  location?: string;
 };
 
 /**
@@ -2076,12 +2081,18 @@ export type PersistentCacheOptions = {
    */
   type: 'persistent';
   /**
+   * Name for the cache. Different names create coexisting caches.
+   * @default '<config.name>-<mode>' when config.name is set, otherwise '<mode>'
+   */
+  name?: string;
+  /**
    * An array of files containing build dependencies, Rspack will use the hash of each of these files to invalidate the persistent cache.
    * @default []
    */
   buildDependencies?: string[];
   /**
-   * Cache version, different versions of caches are isolated from each other.
+   * Version of the cache data. Changing the version invalidates the existing
+   * cache and causes its content to be overwritten.
    * @default ""
    */
   version?: string;
@@ -2092,10 +2103,8 @@ export type PersistentCacheOptions = {
    */
   maxAge?: number;
   /**
-   * Maximum number of filesystem cache versions to retain in the cache
-   * directory. Must be an integer between 1 and 4294967295, or Infinity to
-   * disable version-based cleanup.
-   * @default 3
+   * @deprecated This option has no effect. Rspack keeps only one persistent
+   * cache per compiler path.
    */
   maxVersions?: number;
   /**

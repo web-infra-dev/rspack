@@ -40,8 +40,8 @@ jobs:
       code_changed: ${{ steps.filter.outputs.code_changed == 'true' }}
       document_changed: ${{ steps.filter.outputs.document_changed == 'true' }}
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
-      - uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: dorny/paths-filter@7b450fff21473bca461d4b92ce414b9d0420d706 # v4
         id: filter
         with:
           predicate-quantifier: 'every'
@@ -145,6 +145,26 @@ jobs:
       profile: 'ci'
       runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
 
+  build-ppc64:
+    name: Build ppc64
+    needs: [check-changed]
+    if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
+    uses: ./.github/workflows/reusable-build-build.yml
+    with:
+      target: powerpc64le-unknown-linux-gnu
+      profile: 'ci'
+      runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
+
+  build-s390x:
+    name: Build s390x
+    needs: [check-changed]
+    if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
+    uses: ./.github/workflows/reusable-build-build.yml
+    with:
+      target: s390x-unknown-linux-gnu
+      profile: 'ci'
+      runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
+
   # TODO: Enable this job after Rspack portable cache is implemented.
   check-cache:
     name: Check Cache Portable
@@ -153,7 +173,7 @@ jobs:
     runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') }}
     steps:
       - name: Checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - name: Install Rust Toolchain
         uses: ./.github/actions/rustup
         with:
@@ -187,6 +207,8 @@ jobs:
         test-mac,
         build-wasm,
         build-riscv64,
+        build-ppc64,
+        build-s390x,
         test-wasm,
         check-changed,
         size-limit,
@@ -200,13 +222,13 @@ jobs:
       - name: Test check
         if: ${{ needs.check-changed.outputs.code_changed == 'true'
           && github.event_name == 'pull_request'
-          && join(needs.*.result, ',')!='success,success,success,success,success,success,success,success,success,skipped' }}
+          && join(needs.*.result, ',')!='success,success,success,success,success,success,success,success,success,success,success,skipped' }}
         run: echo "Test Failed" && exit 1
 
       - name: Test check
         if: ${{ needs.check-changed.outputs.code_changed == 'true'
           && github.event_name != 'pull_request'
-          && join(needs.*.result, ',')!='success,success,success,success,success,success,success,success,skipped,skipped' }}
+          && join(needs.*.result, ',')!='success,success,success,success,success,success,success,success,success,success,skipped,skipped' }}
         run: echo "Test Failed" && exit 1
 
       - name: No check to Run test
@@ -242,7 +264,7 @@ jobs:
     if: ${{ needs.check-changed.outputs.code_changed == 'true' && github.event_name == 'push' && github.repository == 'web-infra-dev/rspack' }}
     runs-on: ${{ fromJSON(vars.CI_LINUX_MINI_RUNNER || '"ubuntu-latest"') }}
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Download binding artifact
         uses: ./.github/actions/artifact/download

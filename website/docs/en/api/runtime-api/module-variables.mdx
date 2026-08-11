@@ -236,6 +236,12 @@ interface ImportMetaGlobOptions<Eager extends boolean = boolean> {
    * Base path for resolving relative glob patterns and returned keys.
    */
   base?: string;
+  /**
+   * Match file paths case-sensitively.
+   *
+   * @default true
+   */
+  caseSensitive?: boolean;
 }
 
 function glob(
@@ -262,6 +268,7 @@ function glob(
   - `options.query`: Append a query to each matched module request. It can be a query string such as `'?raw'`, or an object that is serialized as a URL query string. The keys returned from `import.meta.glob()` do not include the query.
   - `options.exhaustive`: Search files inside `node_modules` and hidden paths. This is disabled by default because it can increase build time.
   - `options.base`: Base path for resolving relative glob patterns and returned keys. Absolute glob patterns are still resolved from the project root, while returned keys are made relative to `base`.
+  - `options.caseSensitive`: Whether to match file paths case-sensitively. When set to `false`, matching ignores case, while returned object keys preserve the filesystem's original casing. Defaults to `true`.
 
 - **Example:**
 

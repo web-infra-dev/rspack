@@ -1,3 +1,5 @@
+#![allow(clippy::too_many_arguments)]
+
 use std::{borrow::Cow, sync::Arc};
 
 use derive_more::Debug;
@@ -95,9 +97,13 @@ async fn render_module_content(
   chunk: &ChunkUkey,
   module: &dyn Module,
   render_source: &mut RenderSource,
+  runtime_requirements: &mut RuntimeGlobals,
   _init_fragments: &mut ChunkInitFragments,
   runtime_template: &RuntimeCodeTemplate,
 ) -> Result<()> {
+  if compilation.options.output.trusted_types.is_some() {
+    runtime_requirements.insert(RuntimeGlobals::CREATE_SCRIPT);
+  }
   let output_options = &compilation.options.output;
   let chunk = compilation
     .build_chunk_graph_artifact

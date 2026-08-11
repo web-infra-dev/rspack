@@ -2,19 +2,23 @@
 
 ```ts
 type Entrypoint = {
-  name?: Readonly<string>; // 名称
-  index?: Readonly<number>; // 索引序
-  chunks: ReadonlyArray<Chunk>; // 包含的 chunk 列表
-  origins: ReadonlyArray<{
+  readonly name: string | undefined; // 名称
+  readonly index: number | undefined; // 索引序
+  readonly chunks: Chunk[]; // 包含的 chunk 列表
+  readonly origins: Array<{
     // entrypoint 被引入的来源
     module?: Module;
     request?: string;
+    loc?: string | RealDependencyLocation;
   }>;
+  readonly childrenIterable: ChunkGroup[];
   isInitial(): boolean; // 是否在页面初始加载
-  getFiles(): ReadonlyArray<string>; // 关联的文件列表
-  getParents(): ReadonlyArray<ChunkGroup>; // 父 chunk group 列表
-  getRuntimeChunk(): Readonly<Chunk | null>; // 获取该 entrypoint 的 runtime chunk（runtime chunk 指包含 runtime 代码的 chunk。一般情况下 runtime chunk 和 entrypoint chunk 是同一个 chunk，只有在通过 dependOn 或 optimization.runtimeChunk 将 runtime 单独拆到一个 chunk 时才指向不同的 chunk）
-  getEntrypointChunk(): Readonly<Chunk | null>; // 获取该 entrypoint 的 entrypoint chunk（指包含 entry 模块的 chunk）
+  getFiles(): string[]; // 关联的文件列表
+  getParents(): ChunkGroup[]; // 父 chunk group 列表
+  getRuntimeChunk(): Chunk; // 获取该 entrypoint 的 runtime chunk（runtime chunk 指包含 runtime 代码的 chunk。一般情况下 runtime chunk 和 entrypoint chunk 是同一个 chunk，只有在通过 dependOn 或 optimization.runtimeChunk 将 runtime 单独拆到一个 chunk 时才指向不同的 chunk）
+  getEntrypointChunk(): Chunk; // 获取该 entrypoint 的 entrypoint chunk（指包含 entry 模块的 chunk）
+  getModulePreOrderIndex(module: Module): number | null;
+  getModulePostOrderIndex(module: Module): number | null;
 };
 ```
 

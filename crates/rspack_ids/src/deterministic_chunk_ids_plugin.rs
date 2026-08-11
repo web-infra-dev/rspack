@@ -18,11 +18,7 @@ pub struct DeterministicChunkIdsPlugin {
   pub context: Option<String>,
 }
 
-impl DeterministicChunkIdsPlugin {
-  pub fn new(delimiter: Option<String>, context: Option<String>) -> Self {
-    Self::new_inner(delimiter.unwrap_or_else(|| "~".to_string()), context)
-  }
-}
+impl DeterministicChunkIdsPlugin {}
 
 #[plugin_hook(CompilationChunkIds for DeterministicChunkIdsPlugin)]
 async fn chunk_ids(

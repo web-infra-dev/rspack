@@ -4,7 +4,6 @@ use std::{
 };
 
 use atomic_refcell::AtomicRefCell;
-use futures::future::BoxFuture;
 use rspack_collections::IdentifierMap;
 use rspack_core::{
   BuildModuleGraphArtifact, ChunkGroupUkey, Compilation, CompilationAfterCodeGeneration,
@@ -42,15 +41,6 @@ use crate::{
     collect_modules,
   },
 };
-
-pub type SendModuleGraph =
-  Arc<dyn Fn(RsdoctorModuleGraph) -> BoxFuture<'static, Result<()>> + Send + Sync>;
-pub type SendChunkGraph =
-  Arc<dyn Fn(RsdoctorChunkGraph) -> BoxFuture<'static, Result<()>> + Send + Sync>;
-pub type SendAssets =
-  Arc<dyn Fn(RsdoctorAssetPatch) -> BoxFuture<'static, Result<()>> + Send + Sync>;
-pub type SendModuleSources =
-  Arc<dyn Fn(RsdoctorModuleIdsPatch) -> BoxFuture<'static, Result<()>> + Send + Sync>;
 
 /// Safety with [atomic_refcell::AtomicRefCell]:
 ///

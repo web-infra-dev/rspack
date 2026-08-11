@@ -321,25 +321,15 @@ pub struct Compilation {
 
 impl Compilation {
   pub const OPTIMIZE_CHUNKS_STAGE_BASIC: i32 = -10;
-  pub const OPTIMIZE_CHUNKS_STAGE_DEFAULT: i32 = 0;
   pub const OPTIMIZE_CHUNKS_STAGE_ADVANCED: i32 = 10;
 
   pub const PROCESS_ASSETS_STAGE_ADDITIONAL: i32 = -2000;
-  pub const PROCESS_ASSETS_STAGE_PRE_PROCESS: i32 = -1000;
-  pub const PROCESS_ASSETS_STAGE_DERIVED: i32 = -200;
   pub const PROCESS_ASSETS_STAGE_ADDITIONS: i32 = -100;
-  pub const PROCESS_ASSETS_STAGE_OPTIMIZE: i32 = 100;
-  pub const PROCESS_ASSETS_STAGE_OPTIMIZE_COUNT: i32 = 200;
-  pub const PROCESS_ASSETS_STAGE_OPTIMIZE_COMPATIBILITY: i32 = 300;
   pub const PROCESS_ASSETS_STAGE_OPTIMIZE_SIZE: i32 = 400;
   pub const PROCESS_ASSETS_STAGE_DEV_TOOLING: i32 = 500;
   pub const PROCESS_ASSETS_STAGE_OPTIMIZE_INLINE: i32 = 700;
-  pub const PROCESS_ASSETS_STAGE_SUMMARIZE: i32 = 1000;
   pub const PROCESS_ASSETS_STAGE_OPTIMIZE_HASH: i32 = 2500;
   pub const PROCESS_ASSETS_STAGE_AFTER_OPTIMIZE_HASH: i32 = 2600;
-  pub const PROCESS_ASSETS_STAGE_OPTIMIZE_TRANSFER: i32 = 3000;
-  pub const PROCESS_ASSETS_STAGE_ANALYSE: i32 = 4000;
-  pub const PROCESS_ASSETS_STAGE_REPORT: i32 = 5000;
 
   #[allow(clippy::too_many_arguments)]
   pub fn new(
@@ -525,7 +515,7 @@ impl Compilation {
       .build_module_graph_artifact
       .context_dependencies
       .added_files()
-      .chain(&self.file_dependencies);
+      .chain(&self.context_dependencies);
     let updated_files = self
       .build_module_graph_artifact
       .context_dependencies
@@ -554,7 +544,7 @@ impl Compilation {
       .build_module_graph_artifact
       .missing_dependencies
       .added_files()
-      .chain(&self.file_dependencies);
+      .chain(&self.missing_dependencies);
     let updated_files = self
       .build_module_graph_artifact
       .missing_dependencies
@@ -583,7 +573,7 @@ impl Compilation {
       .build_module_graph_artifact
       .build_dependencies
       .added_files()
-      .chain(&self.file_dependencies);
+      .chain(&self.build_dependencies);
     let updated_files = self
       .build_module_graph_artifact
       .build_dependencies
@@ -1313,10 +1303,6 @@ impl CompilationAsset {
   pub fn get_info_mut(&mut self) -> &mut AssetInfo {
     &mut self.info
   }
-
-  pub fn set_info(&mut self, info: AssetInfo) {
-    self.info = BindingCell::from(info);
-  }
 }
 
 #[cacheable]
@@ -1502,22 +1488,6 @@ pub fn assign_depths<'a>(
       }
     }
   }
-}
-
-pub fn set_depth_if_lower(
-  module_id: ModuleIdentifier,
-  depth: usize,
-  assign_map: &mut IdentifierMap<usize>,
-) -> bool {
-  let Some(&cur_depth) = assign_map.get(&module_id) else {
-    assign_map.insert(module_id, depth);
-    return true;
-  };
-  if cur_depth > depth {
-    assign_map.insert(module_id, depth);
-    return true;
-  }
-  false
 }
 
 #[derive(Debug, Clone)]

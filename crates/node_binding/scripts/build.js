@@ -76,6 +76,9 @@ async function build() {
 		if (values.profile !== "release") {
 			features.push("perfetto");
 		}
+		if (values.profile === "release-debug") {
+			features.push("system-allocator");
+		}
 		args.push("--no-dts-cache");
 		if (process.env.SFTRACE) {
 			features.push("sftrace-setup");

@@ -4,17 +4,13 @@ pub mod context;
 pub mod occasion;
 pub mod snapshot;
 pub mod storage;
+pub mod validation;
 
 use std::{
   hash::{DefaultHasher, Hash, Hasher},
   sync::Arc,
 };
 
-use rspack_cacheable::{
-  cacheable,
-  utils::PortablePath,
-  with::{As, AsVec, Skip},
-};
 use rspack_fs::{IntermediateFileSystem, ReadableFileSystem};
 use rspack_workspace::rspack_pkg_version;
 
@@ -22,32 +18,26 @@ use self::{
   build_dependencies::{BuildDeps, BuildDepsOptions},
   codec::CacheCodec,
   context::CacheContext,
-  occasion::{MakeOccasion, MetaOccasion, MinimizeOccasion, SourceMapDevToolPluginOccasion},
+  occasion::{MakeOccasion, MinimizeOccasion, SourceMapDevToolPluginOccasion},
   snapshot::{Snapshot, SnapshotOptions},
-  storage::{StorageOptions, Version, create_storage},
+  storage::{CacheDirectory, StorageOptions, create_storage},
+  validation::CacheValidation,
 };
 use super::Cache;
 use crate::{Compilation, CompilationLogger, CompilationLogging, CompilerOptions, Logger};
 
 const LOGGER_NAME: &str = "rspack.persistentCache";
 
-#[cacheable]
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone)]
 pub struct PersistentCacheOptions {
-  #[cacheable(with=AsVec<As<PortablePath>>)]
   pub build_dependencies: BuildDepsOptions,
   pub version: String,
   pub snapshot: SnapshotOptions,
   pub storage: StorageOptions,
   pub portable: bool,
-  #[cacheable(with=Skip)]
   pub readonly: bool,
   /// Filesystem cache max age in seconds.
-  #[cacheable(with=Skip)]
   pub max_age: u64,
-  /// Filesystem version count limit for the current compiler cache scope.
-  #[cacheable(with=Skip)]
-  pub max_versions: u32,
 }
 
 /// Persistent cache implementation
@@ -57,10 +47,9 @@ pub struct PersistentCache {
   initialized: bool,
 
   ctx: CacheContext,
-  build_deps: BuildDeps,
+  validation: CacheValidation,
   snapshot: Arc<Snapshot>,
   make_occasion: MakeOccasion,
-  meta_occasion: MetaOccasion,
   minimize_occasion: MinimizeOccasion,
   source_map_dev_tool_plugin_occasion: SourceMapDevToolPluginOccasion,
 }
@@ -80,37 +69,16 @@ impl PersistentCache {
       None
     };
     let codec = Arc::new(CacheCodec::new(project_root));
-    // use codec.encode to transform the absolute path in option,
-    // it will ensure that same project in different directory have the same version.
-    let option_bytes = codec
-      .encode(option)
-      .expect("should persistent cache options can be serialized");
-    // The scope identifies the compiler that owns a group of cache versions.
-    // Keep it independent of cache options: changing an option should create a
-    // new version in the same scope so maxVersions can retire the old version.
-    // compiler_path is empty for the root compiler and distinguishes child
-    // compilers by their name and index.
-    let version_scope = {
+    // Each compiler path owns exactly one storage directory.
+    let cache_directory = {
       let mut hasher = DefaultHasher::new();
       compiler_path.hash(&mut hasher);
-      hex::encode(hasher.finish().to_ne_bytes())
-    };
-    // The version hash identifies one cache-compatible configuration within
-    // the compiler scope.
-    let version = {
-      let mut hasher = DefaultHasher::new();
-      compiler_path.hash(&mut hasher);
-      option_bytes.hash(&mut hasher);
-      rspack_pkg_version!().hash(&mut hasher);
-      compiler_options.name.hash(&mut hasher);
-      compiler_options.mode.hash(&mut hasher);
-      Version::new(version_scope, hex::encode(hasher.finish().to_ne_bytes()))
+      CacheDirectory::new(hex::encode(hasher.finish().to_ne_bytes()))
     };
     let storage = create_storage(
       option.storage.clone(),
-      version,
+      cache_directory,
       option.max_age,
-      option.max_versions,
       intermediate_filesystem,
     );
     let snapshot = Arc::new(Snapshot::new(
@@ -126,14 +94,17 @@ impl PersistentCache {
         option.readonly,
         CompilationLogger::new(LOGGER_NAME.to_string(), compilation_logging),
       ),
-      build_deps: BuildDeps::new(
-        &option.build_dependencies,
-        input_filesystem,
-        snapshot.clone(),
+      validation: CacheValidation::new(
+        codec.clone(),
+        format!("{}|{}", rspack_pkg_version!(), option.version),
+        BuildDeps::new(
+          &option.build_dependencies,
+          input_filesystem,
+          snapshot.clone(),
+        ),
       ),
       snapshot,
       make_occasion: MakeOccasion::new(codec.clone()),
-      meta_occasion: MetaOccasion::new(codec.clone()),
       minimize_occasion: MinimizeOccasion::new(codec.clone()),
       source_map_dev_tool_plugin_occasion: SourceMapDevToolPluginOccasion::new(codec),
     }
@@ -146,13 +117,7 @@ impl PersistentCache {
     self.initialized = true;
     self.ctx.cleanup_stale();
 
-    // build_deps is the first validation step. If it fails or the build
-    // dependencies have changed, only the BUILD scope is reset here; each
-    // subsequent occasion resets itself when it is skipped or fails.
-    self.ctx.load_build_deps(&mut self.build_deps).await;
-
-    // meta: load or reset. make will handle itself in before_build_module_graph.
-    self.ctx.load_occasion(&self.meta_occasion).await;
+    self.ctx.validate(&mut self.validation).await;
   }
 }
 
@@ -179,8 +144,7 @@ impl Cache for PersistentCache {
   }
 
   async fn after_compile(&mut self, compilation: &Compilation) {
-    // save meta
-    self.ctx.save_occasion(&self.meta_occasion, &());
+    self.ctx.save_validation(&self.validation);
 
     // save snapshot
     let (_, file_added, file_updated, file_removed) = compilation.file_dependencies();
@@ -208,7 +172,7 @@ impl Cache for PersistentCache {
     self
       .ctx
       .save_build_deps(
-        &mut self.build_deps,
+        &mut self.validation,
         build_added.chain(build_updated).cloned(),
       )
       .await;

@@ -1498,6 +1498,7 @@ var {} = {{}};
                 let mut render_source = RenderSource {
                   source: js_source.clone(),
                 };
+                let mut runtime_requirements = codegen_res.runtime_requirements;
 
                 let mut chunk_init_fragments = vec![];
                 hooks
@@ -1510,6 +1511,7 @@ var {} = {{}};
                       .expect("should have module")
                       .as_ref(),
                     &mut render_source,
+                    &mut runtime_requirements,
                     &mut chunk_init_fragments,
                     runtime_template,
                   )
@@ -1612,7 +1614,7 @@ var {} = {{}};
                 concate_info.has_ast = true;
                 concate_info.source = Some(ReplaceSource::new(render_source.source.clone()));
                 concate_info.internal_source = Some(render_source.source.clone());
-                concate_info.runtime_requirements = codegen_res.runtime_requirements;
+                concate_info.runtime_requirements = runtime_requirements;
                 concate_info.chunk_init_fragments = codegen_res
                   .data
                   .get::<ChunkInitFragments>()

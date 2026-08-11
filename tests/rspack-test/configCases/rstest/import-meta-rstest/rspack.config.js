@@ -6,10 +6,13 @@ const {
 /** @type {import("@rspack/core").Configuration} */
 module.exports = [
   {
-    entry: './src/index.js',
+    entry: {
+      importMetaRstest: './src/index.js',
+      withoutResolver: './src/imported.js',
+    },
     target: 'node',
     output: {
-      filename: 'importMetaRstest.js',
+      filename: '[name].js',
       library: {
         type: 'commonjs2',
       },

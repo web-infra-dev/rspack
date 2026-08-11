@@ -72,11 +72,6 @@ pub struct MemoryFileSystem {
 }
 
 impl MemoryFileSystem {
-  pub fn clear(&self) {
-    let mut files = self.files.lock().expect("should get lock");
-    files.clear();
-  }
-
   fn contains_dir(&self, dir: &Utf8Path) -> Result<bool> {
     let files = self.files.lock().expect("should get lock");
     if let Some(ft) = files.get(dir) {

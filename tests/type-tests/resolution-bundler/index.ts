@@ -69,6 +69,7 @@ const multiGlobModules = import.meta.glob<GlobModule>(
     },
     base: './base',
     exhaustive: true,
+    caseSensitive: false,
   },
 );
 multiGlobModules['./dir/foo.js'].default.toUpperCase();

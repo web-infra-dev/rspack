@@ -24,6 +24,7 @@ criterion_main!(
   cases::build_module_graph::case,
   cases::module_graph_api::case,
   cases::scan_dependencies::case,
+  cases::javascript_compiler_source_map::case,
   cases::bundle_basic_react_development::case,
   cases::bundle_basic_react_production_sourcemap::case,
   cases::bundle_misc_development::case,

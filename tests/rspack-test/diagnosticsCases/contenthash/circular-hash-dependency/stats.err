@@ -1,0 +1,2 @@
+ERROR in × Circular real content hash dependency between assets detected:
+  │  a.aaaaaaaa.js -> b.bbbbbbbb.js -> a.aaaaaaaa.js

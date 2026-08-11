@@ -180,16 +180,6 @@ impl RuntimeRequirementsDependency {
       )),
     }
   }
-  pub fn unsupported_require_property(
-    range: DependencyRange,
-    runtime_requirements: RuntimeGlobals,
-  ) -> Self {
-    Self {
-      range,
-      runtime_requirements,
-      mode: RuntimeRequirementsDependencyMode::UnsupportedRequireProperty,
-    }
-  }
 }
 
 #[derive(Debug, Default, Clone)]

@@ -4,7 +4,7 @@ mod snapshot;
 use std::{collections::VecDeque, sync::Arc};
 
 use rspack_core::cache::persistent::storage::{
-  BoxStorage, StorageOptions, Version, create_storage,
+  BoxStorage, CacheDirectory, StorageOptions, create_storage,
 };
 use rspack_error::{Result, error};
 use rspack_fs::{NativeFileSystem, ReadableFileSystem};
@@ -19,20 +19,20 @@ fn is_cache_scope(name: &str) -> bool {
   name == occasion::meta::SCOPE || name == occasion::make::SCOPE
 }
 
-fn has_version_scope(fs: &NativeFileSystem, path: &Utf8PathBuf) -> bool {
-  let Ok(versions) = fs.read_dir_sync(path.as_path()) else {
+fn has_cache_directory(fs: &NativeFileSystem, path: &Utf8PathBuf) -> bool {
+  let Ok(cache_directories) = fs.read_dir_sync(path.as_path()) else {
     return false;
   };
 
-  versions
+  cache_directories
     .into_iter()
-    .filter(|version| !version.starts_with(['.', '_']))
-    .map(|version| path.join(version))
-    .any(|version_path| {
-      fs.metadata_sync(&version_path)
+    .filter(|directory| !directory.starts_with(['.', '_']))
+    .map(|directory| path.join(directory))
+    .any(|cache_path| {
+      fs.metadata_sync(&cache_path)
         .is_ok_and(|metadata| metadata.is_directory)
         && fs
-          .read_dir_sync(&version_path)
+          .read_dir_sync(&cache_path)
           .is_ok_and(|scopes| scopes.iter().any(|scope| is_cache_scope(scope)))
     })
 }
@@ -40,7 +40,7 @@ fn has_version_scope(fs: &NativeFileSystem, path: &Utf8PathBuf) -> bool {
 fn is_storage_root(fs: &NativeFileSystem, path: &Utf8PathBuf) -> bool {
   fs.metadata_sync(&path.join(META_FILE_NAME))
     .is_ok_and(|metadata| metadata.is_file)
-    || has_version_scope(fs, path)
+    || has_cache_directory(fs, path)
 }
 
 pub fn find_relative_cache_path(root_path: &Utf8PathBuf) -> HashSet<String> {
@@ -86,26 +86,25 @@ fn join_relative_cache_path(root_path: &Utf8PathBuf, relative_path: &str) -> Utf
   }
 }
 
-/// Load all version storages from a directory path.
-/// Returns a HashMap where key is `<version>` and value is BoxStorage.
+/// Load all compiler-path-specific storages from a directory path.
+/// Returns a HashMap where the key is the compiler cache directory name.
 pub fn load_storages_from_path(path: &Utf8PathBuf) -> HashMap<String, BoxStorage> {
   let fs = Arc::new(NativeFileSystem::new(false));
   let mut storages = HashMap::default();
 
-  let Ok(versions) = fs.read_dir_sync(path.as_path()) else {
+  let Ok(cache_directories) = fs.read_dir_sync(path.as_path()) else {
     return storages;
   };
 
-  // Cache directories are laid out as `<version>`.
-  for version_name in versions {
-    if version_name.starts_with(['.', '_']) {
+  for cache_directory_name in cache_directories {
+    if cache_directory_name.starts_with(['.', '_']) {
       continue;
     }
-    let Some(version) = Version::parse(&version_name) else {
+    let Some(cache_directory) = CacheDirectory::parse(&cache_directory_name) else {
       continue;
     };
     if !fs
-      .metadata_sync(&path.join(&version_name))
+      .metadata_sync(&path.join(&cache_directory_name))
       .is_ok_and(|metadata| metadata.is_directory)
     {
       continue;
@@ -115,13 +114,12 @@ pub fn load_storages_from_path(path: &Utf8PathBuf) -> HashMap<String, BoxStorage
       StorageOptions::FileSystem {
         directory: path.clone(),
       },
-      version,
-      0,
+      cache_directory,
       0,
       fs.clone(),
     );
 
-    storages.insert(version_name, storage);
+    storages.insert(cache_directory_name, storage);
   }
 
   storages
@@ -154,19 +152,20 @@ pub async fn compare_cache_dir(path1: Utf8PathBuf, path2: Utf8PathBuf) -> Result
     let storages1 = load_storages_from_path(&cache_path1);
     let mut storages2 = load_storages_from_path(&cache_path2);
 
-    // Check if versions are identical
+    // Check if compiler cache directories are identical.
     ensure_iter_equal(
-      "Version directory",
+      "Compiler cache directory",
       storages1.keys(),
       storages2.keys(),
       &debug_info,
     )?;
 
-    // Compare storages for each version
-    for (version, storage1) in storages1 {
-      let cur_debug_info = debug_info.with_field("version", &version);
+    for (cache_directory, storage1) in storages1 {
+      let cur_debug_info = debug_info.with_field("cacheDirectory", &cache_directory);
 
-      let storage2 = storages2.remove(&version).expect("should have storage");
+      let storage2 = storages2
+        .remove(&cache_directory)
+        .expect("should have storage");
 
       compare_storage(storage1, storage2, cur_debug_info).await?;
     }

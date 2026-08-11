@@ -6,7 +6,6 @@ pub mod base64;
 pub mod comparators;
 #[cfg(feature = "debug_tool")]
 pub mod debug_tool;
-pub mod env;
 pub mod ext;
 pub mod fx_hash;
 pub mod identifier;

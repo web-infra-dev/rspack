@@ -45,7 +45,7 @@ pub fn runtime_module_owned_define_fields(
       let runtime_requirements = runtime_module.runtime_requirements(compilation);
       let define_fields = runtime_requirements
         .define
-        .difference(RuntimeGlobals::STARTUP | runtime_requirements.force_context);
+        .difference(RuntimeGlobals::STARTUP);
       fields | define_fields
     })
 }
@@ -120,10 +120,6 @@ impl RuntimeModuleCommon {
 
   pub fn attach(&mut self, chunk: ChunkUkey) {
     self.chunk = Some(chunk);
-  }
-
-  pub fn name(&self) -> Identifier {
-    self.id
   }
 
   pub fn id(&self) -> &Identifier {

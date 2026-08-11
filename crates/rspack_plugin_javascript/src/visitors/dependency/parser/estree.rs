@@ -69,17 +69,6 @@ impl ExportAllDeclaration<'_> {
     }
   }
 
-  pub fn source_span(&self) -> Span {
-    match self {
-      ExportAllDeclaration::All(all) => all.src.span(),
-      ExportAllDeclaration::NamedAll(all) => all
-        .src
-        .as_ref()
-        .expect("ExportAllDeclaration::NamedAll (export * as x from 'm') must have src")
-        .span(),
-    }
-  }
-
   pub fn exported_name_span(&self) -> Option<Span> {
     match self {
       ExportAllDeclaration::All(_) => None,
@@ -138,13 +127,6 @@ impl ExportNamedDeclaration<'_> {
     match self {
       Self::Decl(_) => None,
       Self::Specifiers(e) => e.src.as_ref().map(|s| wtf8_atom_to_atom(s.value)),
-    }
-  }
-
-  pub fn source_span(&self) -> Option<Span> {
-    match self {
-      ExportNamedDeclaration::Decl(_) => None,
-      ExportNamedDeclaration::Specifiers(e) => e.src.as_ref().map(|s| s.span()),
     }
   }
 
@@ -274,15 +256,6 @@ impl ExportImport<'_> {
       ExportImport::All(e) => e.source(),
       ExportImport::Named(e) => e
         .source()
-        .expect("ExportImport::Named (export { x } from 'm') should have src"),
-    }
-  }
-
-  pub fn source_span(&self) -> Span {
-    match self {
-      ExportImport::All(all) => all.source_span(),
-      ExportImport::Named(named) => named
-        .source_span()
         .expect("ExportImport::Named (export { x } from 'm') should have src"),
     }
   }

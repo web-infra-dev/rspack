@@ -1,6 +1,6 @@
 {
   "name": "@rspack/binding",
-  "version": "2.1.7",
+  "version": "2.1.8",
   "license": "MIT",
   "description": "Node binding for rspack",
   "main": "binding.js",
@@ -57,7 +57,9 @@
       "aarch64-unknown-linux-musl",
       "aarch64-pc-windows-msvc",
       "riscv64gc-unknown-linux-gnu",
-      "riscv64gc-unknown-linux-musl"
+      "riscv64gc-unknown-linux-musl",
+      "powerpc64le-unknown-linux-gnu",
+      "s390x-unknown-linux-gnu"
     ],
     "wasm": {
       "initialMemory": 16384,
@@ -76,6 +78,8 @@
     "@rspack/binding-linux-arm64-musl": "workspace:*",
     "@rspack/binding-linux-riscv64-gnu": "workspace:*",
     "@rspack/binding-linux-riscv64-musl": "workspace:*",
+    "@rspack/binding-linux-ppc64-gnu": "workspace:*",
+    "@rspack/binding-linux-s390x-gnu": "workspace:*",
     "@rspack/binding-linux-x64-gnu": "workspace:*",
     "@rspack/binding-linux-x64-musl": "workspace:*",
     "@rspack/binding-wasm32-wasi": "workspace:*",

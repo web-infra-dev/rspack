@@ -92,21 +92,6 @@ impl CodeGenerationDataTopLevelDeclarations {
   }
 }
 
-#[derive(Clone, Debug)]
-pub struct CodeGenerationExportsFinalNames {
-  inner: HashMap<String, String>,
-}
-
-impl CodeGenerationExportsFinalNames {
-  pub fn new(inner: HashMap<String, String>) -> Self {
-    Self { inner }
-  }
-
-  pub fn inner(&self) -> &HashMap<String, String> {
-    &self.inner
-  }
-}
-
 #[derive(Debug, Default, Clone)]
 pub struct CodeGenerationData {
   inner: anymap::Map<dyn CloneAny + Send + Sync>,
@@ -310,54 +295,6 @@ impl CodeGenerationResults {
           .and_then(|m| self.module_generation_result_map.get(m))
       })
       .unwrap_or_else(|| panic!("No code generation result for {module_identifier}"))
-  }
-
-  pub fn get_mut(
-    &mut self,
-    module_identifier: &ModuleIdentifier,
-    runtime: Option<&RuntimeSpec>,
-  ) -> &mut BindingCell<CodeGenerationResult> {
-    if let Some(entry) = self.map.get(module_identifier) {
-      if let Some(runtime) = runtime {
-        entry
-          .get(runtime)
-          .and_then(|m| {
-            self.module_generation_result_map.get_mut(m)
-          })
-          .unwrap_or_else(|| {
-            panic!(
-              "Failed to code generation result for {module_identifier} with runtime {runtime:?} \n {entry:?}"
-            )
-          })
-      } else {
-        if entry.size() > 1 {
-          let mut values = entry.values();
-          let results: FxHashSet<_> = entry.values().collect();
-          if results.len() > 1 {
-            panic!(
-              "No unique code generation entry for unspecified runtime for {module_identifier} ",
-            );
-          }
-
-          return values
-            .next()
-            .and_then(|m| self.module_generation_result_map.get_mut(m))
-            .unwrap_or_else(|| panic!("Expected value exists"));
-        }
-
-        entry
-          .values()
-          .next()
-          .and_then(|m| self.module_generation_result_map.get_mut(m))
-          .unwrap_or_else(|| panic!("Expected value exists"))
-      }
-    } else {
-      panic!(
-        "No code generation entry for {} (existing entries: {:?})",
-        module_identifier,
-        self.map.keys().collect::<Vec<_>>()
-      )
-    }
   }
 
   pub fn add(
