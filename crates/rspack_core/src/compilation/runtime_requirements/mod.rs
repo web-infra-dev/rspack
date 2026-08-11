@@ -212,7 +212,7 @@ pub async fn process_modules_runtime_requirements(
       })
       .for_each(|module| {
         let s = unsafe { token.used((compilation_ref, &plugin_driver)) };
-        s.spawn(Box::new(move |(compilation, plugin_driver)| {
+        s.spawn(move |(compilation, plugin_driver)| {
           Box::pin(async move {
             let mut map = RuntimeSpecMap::new();
             let runtimes = compilation
@@ -285,7 +285,7 @@ pub async fn process_modules_runtime_requirements(
             }
             Ok((module, map))
           })
-        }));
+        });
       });
   })
   .await

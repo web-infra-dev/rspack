@@ -208,7 +208,7 @@ async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
         .for_each(|(old_hash, asset_names)| {
           let s =
             unsafe { token.used((&hooks, &compilation, &batch_sources, old_hash, asset_names)) };
-          s.spawn(Box::new(
+          s.spawn(
             |(hooks, compilation, batch_sources, old_hash, mut asset_names)| {
               Box::pin(async move {
                 asset_names.sort_unstable();
@@ -239,7 +239,7 @@ async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
                 Ok((old_hash.clone(), new_hash))
               })
             },
-          ));
+          );
         });
     })
     .await

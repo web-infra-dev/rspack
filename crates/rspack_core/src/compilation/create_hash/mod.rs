@@ -175,13 +175,13 @@ pub async fn create_hash(
       })
       .for_each(|runtime_module_identifier| {
         let s = unsafe { token.used((compilation_ref, runtime_module_identifier)) };
-        s.spawn(Box::new(|(compilation, runtime_module_identifier)| {
+        s.spawn(|(compilation, runtime_module_identifier)| {
           Box::pin(async {
             let runtime_module = &compilation.runtime_modules[runtime_module_identifier];
             let digest = runtime_module.get_runtime_hash(compilation, None).await?;
             Ok((*runtime_module_identifier, digest))
           })
-        }));
+        });
       })
   })
   .await
@@ -201,12 +201,12 @@ pub async fn create_hash(
   let other_chunks_hash_results = rspack_parallel::scope::<_, Result<_>>(|token| {
     for chunk in other_chunks {
       let s = unsafe { token.used((compilation_ref, chunk, plugin_driver.clone())) };
-      s.spawn(Box::new(|(compilation, chunk, plugin_driver)| {
+      s.spawn(|(compilation, chunk, plugin_driver)| {
         Box::pin(async move {
           let hash_result = process_chunk_hash(compilation, *chunk, &plugin_driver).await?;
           Ok((*chunk, hash_result))
         })
-      }));
+      });
     }
   })
   .await
@@ -354,13 +354,13 @@ pub async fn create_hash(
         .get_chunk_runtime_modules_iterable(&runtime_chunk_ukey)
         .for_each(|runtime_module_identifier| {
           let s = unsafe { token.used((compilation_ref, runtime_module_identifier)) };
-          s.spawn(Box::new(|(compilation, runtime_module_identifier)| {
+          s.spawn(|(compilation, runtime_module_identifier)| {
             Box::pin(async {
               let runtime_module = &compilation.runtime_modules[runtime_module_identifier];
               let digest = runtime_module.get_runtime_hash(compilation, None).await?;
               Ok((*runtime_module_identifier, digest))
             })
-          }));
+          });
         })
     })
     .await
@@ -493,26 +493,24 @@ pub async fn runtime_modules_code_generation(compilation: &mut Compilation) -> R
       .iter()
       .for_each(|(runtime_module_identifier, runtime_module)| {
         let s = unsafe { token.used((compilation_ref, runtime_module_identifier, runtime_module)) };
-        s.spawn(Box::new(
-          |(compilation, runtime_module_identifier, runtime_module)| {
-            Box::pin(async {
-              let mut runtime_template = compilation.runtime_template.create_module_code_template();
-              let mut code_generation_context = ModuleCodeGenerationContext {
-                compilation,
-                runtime: None,
-                concatenation_scope: None,
-                runtime_template: &mut runtime_template,
-              };
-              let result = runtime_module
-                .code_generation(&mut code_generation_context)
-                .await?;
-              let source = result
-                .get(&SourceType::Runtime)
-                .expect("should have source");
-              Ok((*runtime_module_identifier, source.clone()))
-            })
-          },
-        ))
+        s.spawn(|(compilation, runtime_module_identifier, runtime_module)| {
+          Box::pin(async {
+            let mut runtime_template = compilation.runtime_template.create_module_code_template();
+            let mut code_generation_context = ModuleCodeGenerationContext {
+              compilation,
+              runtime: None,
+              concatenation_scope: None,
+              runtime_template: &mut runtime_template,
+            };
+            let result = runtime_module
+              .code_generation(&mut code_generation_context)
+              .await?;
+            let source = result
+              .get(&SourceType::Runtime)
+              .expect("should have source");
+            Ok((*runtime_module_identifier, source.clone()))
+          })
+        })
       })
   })
   .await

@@ -195,7 +195,7 @@ impl CssPlugin {
               hooks,
             ))
           };
-          s.spawn(Box::new(
+          s.spawn(
             |(compilation, chunk, module, cur_source, render_conditions, hooks)| {
               Box::pin(async move {
                 let mut post_module_container = {
@@ -230,7 +230,7 @@ impl CssPlugin {
                 ))
               })
             },
-          ));
+          );
         });
     })
     .await

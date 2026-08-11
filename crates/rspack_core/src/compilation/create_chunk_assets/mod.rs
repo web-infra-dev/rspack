@@ -122,7 +122,7 @@ pub async fn create_chunk_assets(
       // SAFETY: await immediately and trust caller to poll future entirely
       let s = unsafe { token.used((compilation_ref, &plugin_driver, chunk)) };
 
-      s.spawn(Box::new(|(this, plugin_driver, chunk)| {
+      s.spawn(|(this, plugin_driver, chunk)| {
         Box::pin(async {
           let mut manifests = Vec::new();
           let mut diagnostics = Vec::new();
@@ -140,7 +140,7 @@ pub async fn create_chunk_assets(
             },
           ))
         })
-      }));
+      });
     })
   })
   .await;

@@ -443,7 +443,7 @@ impl SplitChunksPlugin {
     let module_group_results = rspack_parallel::scope::<_, Result<_>>(|token| {
       all_modules.iter().enumerate().for_each(|(module_index, mid)| {
         let s = unsafe { token.used((&cache_groups, module_index, mid, &module_graph, compilation, &module_group_map, &combinator, module_chunks, chunk_index_map)) };
-        s.spawn(Box::new(|(cache_groups, module_index, mid, module_graph, compilation, module_group_map, combinator, module_chunks, chunk_index_map)| {
+        s.spawn(|(cache_groups, module_index, mid, module_graph, compilation, module_group_map, combinator, module_chunks, chunk_index_map)| {
           Box::pin(async move {
           let belong_to_chunks = module_chunks
             .get(module_index)
@@ -605,7 +605,7 @@ impl SplitChunksPlugin {
           }
             Ok(())
           })
-        }));
+        });
       })
     })
     .await

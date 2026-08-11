@@ -1088,7 +1088,7 @@ var {} = {{}};
             runtime_template,
           ))
         };
-        s.spawn(Box::new(
+        s.spawn(
           move |(
             compilation,
             chunk_ukey,
@@ -1112,7 +1112,7 @@ var {} = {{}};
               .await
             })
           },
-        ))
+        )
       });
     })
     .await

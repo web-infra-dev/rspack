@@ -565,7 +565,7 @@ impl CopyRspackPlugin {
                 logger,
               ))
             };
-            s.spawn(Box::new(
+            s.spawn(
               move |(
                 pattern,
                 context,
@@ -591,7 +591,7 @@ impl CopyRspackPlugin {
                   .await
                 })
               },
-            ));
+            );
           });
         })
         .await

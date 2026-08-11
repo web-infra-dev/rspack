@@ -1465,7 +1465,7 @@ impl ModuleConcatenationPlugin {
     let new_modules = rspack_parallel::scope::<_, Result<_>>(|token| {
       batch.into_iter().for_each(|config| {
         let s = unsafe { token.used(&*compilation) };
-        s.spawn(Box::new(move |compilation| {
+        s.spawn(move |compilation| {
           Box::pin(async move {
             let modules_set = config.get_modules();
             let new_module = create_concatenated_module(compilation, &config).await?;
@@ -1505,7 +1505,7 @@ impl ModuleConcatenationPlugin {
               config,
             ))
           })
-        }));
+        });
       });
     })
     .await

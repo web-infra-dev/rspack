@@ -145,7 +145,7 @@ async fn after_emit(&self, compilation: &mut Compilation) -> Result<()> {
       // SAFETY: await immediately and trust caller to poll future entirely
       let s = unsafe { token.used((&self, asset, name, max_asset_size)) };
 
-      s.spawn(Box::new(|(plugin, asset, name, max_asset_size)| {
+      s.spawn(|(plugin, asset, name, max_asset_size)| {
         Box::pin(async move {
           if !plugin.asset_filter(name, asset).await {
             return None;
@@ -157,7 +157,7 @@ async fn after_emit(&self, compilation: &mut Compilation) -> Result<()> {
           let is_over_size_limit = size > max_asset_size;
           Some((name.clone(), size, is_over_size_limit))
         })
-      }))
+      })
     })
   })
   .await

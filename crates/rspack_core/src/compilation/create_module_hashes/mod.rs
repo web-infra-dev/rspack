@@ -132,21 +132,19 @@ pub async fn create_module_hashes(
   let results = rspack_parallel::scope::<_, Result<_>>(|token| {
     for module_identifier in modules {
       let s = unsafe { token.used((compilation_ref, &mg, chunk_graph, chunk_by_ukey)) };
-      s.spawn(Box::new(
-        move |(compilation, mg, chunk_graph, chunk_by_ukey)| {
-          Box::pin(async move {
-            let mut hashes = RuntimeSpecMap::new();
-            let module = mg
-              .module_by_identifier(&module_identifier)
-              .expect("should have module");
-            for runtime in chunk_graph.get_module_runtimes_iter(module_identifier, chunk_by_ukey) {
-              let hash = module.get_runtime_hash(compilation, Some(runtime)).await?;
-              hashes.set(runtime.clone(), hash);
-            }
-            Ok((module_identifier, hashes))
-          })
-        },
-      ));
+      s.spawn(move |(compilation, mg, chunk_graph, chunk_by_ukey)| {
+        Box::pin(async move {
+          let mut hashes = RuntimeSpecMap::new();
+          let module = mg
+            .module_by_identifier(&module_identifier)
+            .expect("should have module");
+          for runtime in chunk_graph.get_module_runtimes_iter(module_identifier, chunk_by_ukey) {
+            let hash = module.get_runtime_hash(compilation, Some(runtime)).await?;
+            hashes.set(runtime.clone(), hash);
+          }
+          Ok((module_identifier, hashes))
+        })
+      });
     }
   })
   .await

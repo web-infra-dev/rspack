@@ -498,7 +498,7 @@ impl SplitChunksPlugin {
             &max_size_setting_map,
           ))
         };
-        s.spawn(Box::new(
+        s.spawn(
           move |(
             compilation,
             chunk,
@@ -577,7 +577,7 @@ impl SplitChunksPlugin {
               }))
             })
           },
-        ));
+        );
       });
     })
     .await

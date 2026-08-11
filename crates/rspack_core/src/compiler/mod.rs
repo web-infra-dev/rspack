@@ -404,9 +404,9 @@ impl Compiler {
           // SAFETY: await immediately and trust caller to poll future entirely
           let s = unsafe { token.used((&self, filename, asset, output_path)) };
 
-          s.spawn(Box::new(|(this, filename, asset, output_path)| {
+          s.spawn(|(this, filename, asset, output_path)| {
             Box::pin(this.emit_asset(output_path, filename, asset))
-          }));
+          });
         })
     })
     .await;

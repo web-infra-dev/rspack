@@ -45,7 +45,7 @@ pub async fn render_chunk_modules(
           runtime_template,
         ))
       };
-      s.spawn(Box::new(
+      s.spawn(
         |(compilation, chunk_ukey, module, all_strict, output_path, hooks, runtime_template)| {
           Box::pin(async move {
             render_module(
@@ -62,7 +62,7 @@ pub async fn render_chunk_modules(
             .map(|result| result.map(|(s, f, a)| (module.identifier(), s, f, a)))
           })
         },
-      ));
+      );
     });
   })
   .await
@@ -415,7 +415,7 @@ pub(crate) async fn render_runtime_module_sources(
       })
       .for_each(|(source, module)| {
         let s = unsafe { token.used((compilation, source, module)) };
-        s.spawn(Box::new(
+        s.spawn(
           move |(compilation, source, module)| {
             Box::pin(async move {
             if source.size() == 0 {
@@ -484,7 +484,7 @@ pub(crate) async fn render_runtime_module_sources(
               ))
             })
           },
-        ));
+        );
       })
   })
   .await

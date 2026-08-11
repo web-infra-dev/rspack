@@ -180,7 +180,7 @@ pub(crate) async fn split(groups: &[CacheGroup], compilation: &mut Compilation) 
     modules.iter().copied().for_each(|module_identifier| {
       // SAFETY: `groups` and `compilation` outlive the scope and are only read (not mutated) concurrently.
       let s = unsafe { token.used((groups, &*compilation)) };
-      s.spawn(Box::new(move |(groups, compilation)| {
+      s.spawn(move |(groups, compilation)| {
         Box::pin(async move {
           let module_graph = compilation.get_module_graph();
           let module: &dyn Module = module_graph
@@ -222,7 +222,7 @@ pub(crate) async fn split(groups: &[CacheGroup], compilation: &mut Compilation) 
           }
           Ok(None)
         })
-      }));
+      });
     });
   })
   .await;

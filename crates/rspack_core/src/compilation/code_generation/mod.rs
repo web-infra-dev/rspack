@@ -170,7 +170,7 @@ pub(crate) async fn code_generation_modules(
       // SAFETY: await immediately and trust caller to poll future entirely
       let s = unsafe { token.used((compilation_ref, &module_graph, cache_counter, job)) };
 
-      s.spawn(Box::new(|(this, module_graph, cache_counter, job)| {
+      s.spawn(|(this, module_graph, cache_counter, job)| {
         Box::pin(async move {
           let options = &this.options;
 
@@ -226,7 +226,7 @@ pub(crate) async fn code_generation_modules(
 
           (job.module, job.runtimes, codegen_res.map(Box::new))
         })
-      }))
+      })
     })
   })
   .await;

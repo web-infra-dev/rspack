@@ -3,7 +3,6 @@ use std::{cell::RefCell, future::Future, marker::PhantomData, pin::Pin};
 use tokio::task::{JoinError, JoinHandle};
 
 pub type ScopedFuture<'scope, O> = Pin<Box<dyn Future<Output = O> + Send + 'scope>>;
-pub type ScopedTask<'scope, T, O> = Box<dyn FnOnce(T) -> ScopedFuture<'scope, O> + Send + 'scope>;
 
 /// Scope Token
 pub struct Token<'scope, 'spawner, O> {
@@ -45,11 +44,11 @@ pub struct Spawner<'scope, 'spawner, T, O> {
 ///   for i in 0..list.len() {
 ///     let s = unsafe { token.used(&list) };
 ///
-///     s.spawn(Box::new(move |list| {
+///     s.spawn(move |list| {
 ///       Box::pin(async move {
 ///         &list[i];
 ///       })
-///     }));
+///     });
 ///   }
 /// })
 /// .await;
@@ -66,11 +65,11 @@ pub struct Spawner<'scope, 'spawner, T, O> {
 ///   for i in 0..list.len() {
 ///     let s = unsafe { token.used(&list) };
 ///
-///     s.spawn(Box::new(move |list| {
+///     s.spawn(move |list| {
 ///       Box::pin(async move {
 ///         &list[i];
 ///       })
-///     }));
+///     });
 ///   }
 /// })
 /// .await;
@@ -140,7 +139,7 @@ impl<'scope, 'spawner, O> Token<'scope, 'spawner, O> {
 
 impl<'scope, T, O> Spawner<'scope, '_, T, O> {
   /// Spawn task from used reference
-  pub fn spawn(self, f: ScopedTask<'scope, T, O>)
+  pub fn spawn(self, f: impl FnOnce(T) -> ScopedFuture<'scope, O>)
   where
     T: Send + Sync + 'scope,
     O: Send + 'static,

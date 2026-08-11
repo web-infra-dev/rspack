@@ -1033,7 +1033,7 @@ impl Module for ConcatenatedModule {
         let module_to_info_map =
           matches!(info, ModuleInfo::Concatenated(_)).then(|| arc_map.clone());
         let s = unsafe { token.used((&self, &compilation, runtime, id, info)) };
-        s.spawn(Box::new(|(module, compilation, runtime, id, info)| {
+        s.spawn(|(module, compilation, runtime, id, info)| {
           Box::pin(async move {
             let concatenation_scope = if let ModuleInfo::Concatenated(info) = info {
               let info = info.as_ref();
@@ -1054,7 +1054,7 @@ impl Module for ConcatenatedModule {
               .await?;
             Ok((*id, Box::new(updated_module_info)))
           })
-        }));
+        });
       })
     })
     .await
@@ -2070,7 +2070,7 @@ impl Module for ConcatenatedModule {
       concatenation_entries.into_iter().for_each(|job| {
         let s = unsafe { token.used((job, compilation, generation_runtime)) };
 
-        s.spawn(Box::new(|(job, compilation, generation_runtime)| {
+        s.spawn(|(job, compilation, generation_runtime)| {
           Box::pin(async move {
             match job {
               ConcatenationEntry::Concatenated(e) => {
@@ -2091,7 +2091,7 @@ impl Module for ConcatenatedModule {
               ),
             }
           })
-        }))
+        })
       })
     })
     .await

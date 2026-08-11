@@ -552,7 +552,7 @@ impl SourceMapDevToolPlugin {
                 &tls,
               ))
             };
-            s.spawn(Box::new(
+            s.spawn(
               |(plugin, compilation, file_to_chunk, output_path, template, tls)| {
                 Box::pin(async move {
                   let source_map = {
@@ -630,7 +630,7 @@ impl SourceMapDevToolPlugin {
                   Ok(Some((task, source_name_entries)))
                 })
               },
-            ));
+            );
           }
         })
         .await
@@ -667,7 +667,7 @@ impl SourceMapDevToolPlugin {
                 &tls,
               ))
             };
-            s.spawn(Box::new(
+            s.spawn(
               |(plugin, compilation, output_path, f, source, asset_filename, tls)| {
                 Box::pin(async move {
                   let source_map = {
@@ -728,7 +728,7 @@ impl SourceMapDevToolPlugin {
                   Ok(Some((task, source_name_entries)))
                 })
               },
-            ));
+            );
           }
         })
         .await
@@ -875,7 +875,7 @@ impl SourceMapDevToolPlugin {
               source_references,
             ))
           };
-          s.spawn(Box::new(
+          s.spawn(
             |(
               plugin,
               compilation,
@@ -902,7 +902,7 @@ impl SourceMapDevToolPlugin {
                 .await
               })
             },
-          ));
+          );
         },
       );
     })
