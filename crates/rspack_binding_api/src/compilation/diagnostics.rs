@@ -104,7 +104,8 @@ impl Diagnostics {
     }
 
     if index == len {
-      diagnostics.push(error.into_diagnostic(severity));
+      let diagnostic = error.into_diagnostic(severity);
+      compilation.push_diagnostic(diagnostic);
       return Ok(());
     }
 
@@ -118,6 +119,7 @@ impl Diagnostics {
         i += 1;
       }
     }
+    compilation.normalize_diagnostics();
 
     Ok(())
   }
@@ -188,6 +190,7 @@ impl Diagnostics {
     }
 
     *diagnostics = new_diagnostics;
+    compilation.normalize_diagnostics();
 
     removed
       .into_iter()
