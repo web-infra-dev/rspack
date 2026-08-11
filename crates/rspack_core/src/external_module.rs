@@ -540,7 +540,7 @@ impl ExternalModule {
     resolve_external_type(self.external_type.as_str(), &self.dependency_meta)
   }
 
-  async fn chunk_condition_with_hooks(
+  pub async fn chunk_condition_with_hooks(
     &self,
     chunk_ukey: &ChunkUkey,
     compilation: &Compilation,
@@ -1299,6 +1299,7 @@ impl Module for ExternalModule {
   }
 }
 
+#[inline]
 pub async fn module_chunk_condition(
   module: &dyn Module,
   chunk_ukey: &ChunkUkey,
