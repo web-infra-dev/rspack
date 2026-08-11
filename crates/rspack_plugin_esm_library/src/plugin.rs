@@ -132,11 +132,15 @@ impl EsmLibraryPlugin {
         .any(|dep| {
           !is_esm_dep_like(dep)
             && !matches!(
-              dep.dependency_type(),
-              DependencyType::Entry | DependencyType::DynamicImport | DependencyType::NewWorker
+              (dep.dependency_type(), dep.url_mode()),
+              (
+                DependencyType::Entry | DependencyType::DynamicImport | DependencyType::NewWorker,
+                _
+              ) | (
+                DependencyType::NewUrl,
+                Some(JavascriptParserUrl::NewUrlRelative)
+              )
             )
-            && !(matches!(dep.dependency_type(), DependencyType::NewUrl)
-              && matches!(dep.url_mode(), Some(JavascriptParserUrl::NewUrlRelative)))
         })
       {
         logger.debug(format!(
