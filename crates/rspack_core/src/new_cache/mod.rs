@@ -34,13 +34,6 @@ pub fn create_cache(
     return Cache::new_disabled();
   }
 
-  fn version_directory(version: &str) -> String {
-    use std::hash::{Hash, Hasher};
-    let mut hasher = rustc_hash::FxHasher::default();
-    version.hash(&mut hasher);
-    format!("{:016x}", hasher.finish())
-  }
-
   let options = match &compiler_options.cache {
     crate::CacheOptions::Disabled => return Cache::new_disabled(),
     crate::CacheOptions::Memory { max_generations: _ } => {
@@ -61,18 +54,27 @@ pub fn create_cache(
     input_filesystem,
     CompilationLogger::new("rspack.newCache".to_string(), compilation_logging),
   );
-  let cache_location = match &options.storage {
-    crate::cache::persistent::storage::StorageOptions::FileSystem { directory } => {
-      directory.join(version_directory(rspack_workspace::rspack_pkg_version!()))
-    }
+  let (base_path, database_path) = match &options.storage {
+    crate::cache::persistent::storage::StorageOptions::FileSystem { directory } => (
+      directory.clone(),
+      directory.join(rspack_workspace::rspack_pkg_version!()),
+    ),
   };
-  let idle_file_cache = IdleFileCache::new(FileCacheStrategy::new(
-    cache_location,
+  let strategy = match FileCacheStrategy::new(
+    base_path,
+    database_path,
     options.readonly,
     codec,
     snapshot,
     build_deps,
-  ));
+  ) {
+    Ok(strategy) => strategy,
+    Err(error) => {
+      tracing::warn!("Opening persistent cache database failed: {error}");
+      return Cache::new(MemoryCache::default(), None);
+    }
+  };
+  let idle_file_cache = IdleFileCache::new(strategy);
 
   Cache::new(MemoryCache::default(), Some(idle_file_cache))
 }

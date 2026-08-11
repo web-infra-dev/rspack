@@ -50,8 +50,8 @@ struct BackgroundJob {
 
 impl BackgroundJob {
   async fn run(mut self) {
-    if let Err(error) = self.strategy.initialize().await {
-      tracing::warn!("Initializing persistent cache background job failed: {error}");
+    if let Err(error) = self.strategy.validate_build_dependencies().await {
+      tracing::warn!("Validating persistent cache build dependencies failed: {error}");
       return;
     }
 
