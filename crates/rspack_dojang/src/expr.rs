@@ -438,7 +438,7 @@ fn check_2_char_op(s: &str) -> Option<Op> {
 }
 
 // Returns the operator priority; Lower number == Higher priority.
-// Used the precedance table at
+// Used the precedence table at
 //   https://en.cppreference.com/w/c/language/operator_precedence.
 pub fn operator_priority(op: &Op) -> u32 {
   match op {
@@ -964,7 +964,7 @@ fn parse_function() {
 }
 
 #[test]
-fn parse_braket() {
+fn parse_bracket() {
   let result = Parser::parse(r#"<% func(a[1][2]) + x %>"#);
   let expected_expr = Parser {
     parse_tree: vec![Action::Do(Tokens {
@@ -1076,7 +1076,7 @@ fn parse_tags_escaped() {
 }
 
 #[test]
-fn parse_multipe_expressions() {
+fn parse_multiple_expressions() {
   let result = Parser::parse(r#"<html><% a; b; c %><%= a; b %><%- a; b  %>"#);
   let expected_expr = Parser {
     parse_tree: vec![

@@ -243,7 +243,7 @@ impl ComputeExpr for Eval {
             let params = &function.params;
             if params.len() != function_to_run.param_num() {
               return Err(format!(
-                "# of function params mistmatch! {} takes {} params but provided {} params",
+                "# of function params mismatch! {} takes {} params but provided {} params",
                 function.name,
                 function_to_run.param_num(),
                 params.len()

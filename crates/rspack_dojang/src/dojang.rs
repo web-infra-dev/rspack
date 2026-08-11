@@ -79,7 +79,7 @@ impl Dojang {
   ///
   /// # Arguments
   ///
-  /// * `file_name` - Name of the template file. Template datas are identified by this name.
+  /// * `file_name` - Name of the template file. Template data is identified by this name.
   /// * `template` - Actual template data. Should be using EJS syntax.
   ///
   /// # Examples

@@ -35,7 +35,7 @@ impl Eval {
     expr.ops.insert(0, Op::ParenOpen);
 
     // Convert function calls into Operand::Function.
-    // The correspoding Expr::Function object will be stored at the map.
+    // The corresponding Expr::Function object will be stored at the map.
     let mut function_name_to_function = HashMap::new();
     Eval::handle_functions(&mut expr, &mut function_name_to_function)?;
 
@@ -256,7 +256,7 @@ fn get_tokens_belong_to_accessor(
       inst_index += 1;
     }
 
-    // Property accessor can be chanined.
+    // Property accessor can be chained.
     // (e.g obj[...][...][...])
     // In this case, entire [...][...][...] will be included.
     match ops.get(inst_index + 1) {

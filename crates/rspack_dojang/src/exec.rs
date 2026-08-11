@@ -58,7 +58,7 @@ impl Executer {
     // Every '{' for loops (for, while). This will be used by break and continue.
     let mut loop_opened = Vec::new();
 
-    // Mapping bewteen location of break/continue to the corresponding loop.
+    // Mapping between location of break/continue to the corresponding loop.
     let mut break_and_continue_pos = HashMap::new();
 
     while inst_index < insts.len() {

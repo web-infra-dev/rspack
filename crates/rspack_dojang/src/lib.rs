@@ -38,7 +38,7 @@
 //! ```
 //!
 //! Those template can be rendered by the either the name of the template file (when registered by
-//! `load`) or the name provided (when reigstered by `add`).
+//! `load`) or the name provided (when registered by `add`).
 //!
 //! To render the template, use `render` method of Dojang. You should provide the name of the
 //! template to render and the context to render. Context is simply a json data. Use serde_json to
@@ -78,7 +78,7 @@
 //! ```
 //!
 //! You have to choose add_function_* based on the number of parameters that the function has. We
-//! provde add_function_1 to add_function_4.
+//! provide add_function_1 to add_function_4.
 //!
 //! Also, the type of the function parameter must be non-reference, and should be one of i64, f64,
 //! u64, String, bool.
