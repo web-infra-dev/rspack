@@ -328,34 +328,13 @@ fn create_module_layer_filter(
   raw: RawModuleLayerFilter,
 ) -> rspack_plugin_split_chunks::ModuleLayerFilter {
   match raw {
-    Either3::A(regex) => Arc::new(move |layers| {
-      let regex = regex.clone();
-      Box::pin(async move {
-        Ok(
-          layers
-            .into_iter()
-            .map(|layer| layer.is_some_and(|layer| regex.test(&layer)))
-            .collect(),
-        )
-      })
-    }),
+    Either3::A(regex) => rspack_plugin_split_chunks::ModuleLayerFilter::RegExp(regex),
     Either3::B(js_str) => {
-      let test = js_str.into_string();
-      Arc::new(move |layers| {
-        let test = test.clone();
-        Box::pin(async move {
-          Ok(
-            layers
-              .into_iter()
-              .map(|layer| layer.map_or_else(|| test.is_empty(), |layer| layer.starts_with(&test)))
-              .collect(),
-          )
-        })
-      })
+      rspack_plugin_split_chunks::ModuleLayerFilter::String(js_str.into_string())
     }
-    Either3::C(f) => Arc::new(move |layers| {
+    Either3::C(f) => rspack_plugin_split_chunks::ModuleLayerFilter::Func(Arc::new(move |layers| {
       let f = f.clone();
       Box::pin(async move { f.call_with_sync(layers).await })
-    }),
+    })),
   }
 }

@@ -6,7 +6,7 @@ use rspack_core::{Compilation, Filename, Module, ModuleGraph, ModuleIdentifier, 
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_plugin_split_chunks::{
   CacheGroup, CacheGroupTest, CacheGroupTestFnCtx, ChunkNameGetter, ChunkNameGetterFnCtx,
-  ModuleSizes, SplitChunkSizes, get_module_sizes, min_size::ModulesContainer,
+  ModuleLayerFilter, ModuleSizes, SplitChunkSizes, get_module_sizes, min_size::ModulesContainer,
 };
 use rspack_util::fx_hash::FxHashMap as HashMap;
 
@@ -165,13 +165,20 @@ async fn matches_module_to_cache_group(
   }
 
   // match layer
-  if !(cache_group.layer)(vec![module.get_layer().map(ToString::to_string)])
-    .await
-    .to_rspack_result()
-    .unwrap_or_default()
-    .pop()
-    .unwrap_or(false)
-  {
+  let satisfied_layer = match &cache_group.layer {
+    ModuleLayerFilter::Func(_) => cache_group
+      .layer
+      .test_func_batch(vec![module.get_layer().map(ToString::to_string)])
+      .await
+      .to_rspack_result()
+      .unwrap_or_default()
+      .pop()
+      .unwrap_or(false),
+    _ => cache_group
+      .layer
+      .test_internal(module.get_layer().map(String::as_str)),
+  };
+  if !satisfied_layer {
     return Ok(false);
   }
 

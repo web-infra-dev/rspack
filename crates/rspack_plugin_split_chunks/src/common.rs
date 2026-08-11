@@ -77,15 +77,46 @@ impl ChunkFilter {
 }
 
 pub type ModuleTypeFilter = Arc<dyn Fn(&dyn Module) -> bool + Send + Sync>;
-pub type ModuleLayerFilter =
+pub type ModuleLayerFilterFunc =
   Arc<dyn Fn(Vec<Option<String>>) -> BoxFuture<'static, Result<Vec<bool>>> + Send + Sync>;
+
+#[derive(Clone)]
+pub enum ModuleLayerFilter {
+  Enabled,
+  String(String),
+  RegExp(RspackRegex),
+  Func(ModuleLayerFilterFunc),
+}
+
+impl ModuleLayerFilter {
+  pub fn is_func(&self) -> bool {
+    matches!(self, Self::Func(_))
+  }
+
+  pub fn test_internal(&self, layer: Option<&str>) -> bool {
+    match self {
+      Self::Enabled => true,
+      Self::String(test) => layer.map_or_else(|| test.is_empty(), |layer| layer.starts_with(test)),
+      Self::RegExp(regex) => layer.is_some_and(|layer| regex.test(layer)),
+      Self::Func(_) => panic!("ModuleLayerFilter is a function"),
+    }
+  }
+
+  pub async fn test_func_batch(&self, layers: Vec<Option<String>>) -> Result<Vec<bool>> {
+    if let Self::Func(func) = self {
+      func(layers).await
+    } else {
+      panic!("ModuleLayerFilter is not a function");
+    }
+  }
+}
 
 pub fn create_default_module_type_filter() -> ModuleTypeFilter {
   Arc::new(|_| true)
 }
 
 pub fn create_default_module_layer_filter() -> ModuleLayerFilter {
-  Arc::new(|layers| Box::pin(async move { Ok(vec![true; layers.len()]) }))
+  ModuleLayerFilter::Enabled
 }
 
 pub fn create_async_chunk_filter() -> ChunkFilter {
