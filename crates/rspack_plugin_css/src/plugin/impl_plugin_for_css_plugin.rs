@@ -195,40 +195,42 @@ impl CssPlugin {
               hooks,
             ))
           };
-          s.spawn(
-            |(compilation, chunk, module, cur_source, render_conditions, hooks)| async move {
-              let mut post_module_container = {
-                let mut builder = CssSourceBuilder::new(false, true, Default::default());
-                if builder.push_css_source(
-                  cur_source.clone(),
-                  &render_conditions,
-                  css_module_has_charset(module),
-                ) {
-                  builder.push_line();
-                }
-                CssModulesRenderSource {
-                  source: builder.into_source(),
-                }
-              };
+          s.spawn(Box::new(
+            |(compilation, chunk, module, cur_source, render_conditions, hooks)| {
+              Box::pin(async move {
+                let mut post_module_container = {
+                  let mut builder = CssSourceBuilder::new(false, true, Default::default());
+                  if builder.push_css_source(
+                    cur_source.clone(),
+                    &render_conditions,
+                    css_module_has_charset(module),
+                  ) {
+                    builder.push_line();
+                  }
+                  CssModulesRenderSource {
+                    source: builder.into_source(),
+                  }
+                };
 
-              let chunk_ukey = chunk.as_u32().into();
-              // Module package hooks may add module-specific decorations such as pathinfo.
-              // Deduplicate the undecorated source but emit the rendered source.
-              let source_before_hooks = post_module_container.source.clone();
-              hooks
-                .render_module_package
-                .call(compilation, &chunk_ukey, module, &mut post_module_container)
-                .await?;
+                let chunk_ukey = chunk.as_u32().into();
+                // Module package hooks may add module-specific decorations such as pathinfo.
+                // Deduplicate the undecorated source but emit the rendered source.
+                let source_before_hooks = post_module_container.source.clone();
+                hooks
+                  .render_module_package
+                  .call(compilation, &chunk_ukey, module, &mut post_module_container)
+                  .await?;
 
-              Ok((
-                module.identifier(),
-                CssModuleRenderSources {
-                  source_before_hooks,
-                  rendered_source: post_module_container.source,
-                },
-              ))
+                Ok((
+                  module.identifier(),
+                  CssModuleRenderSources {
+                    source_before_hooks,
+                    rendered_source: post_module_container.source,
+                  },
+                ))
+              })
             },
-          );
+          ));
         });
     })
     .await

@@ -1033,26 +1033,28 @@ impl Module for ConcatenatedModule {
         let module_to_info_map =
           matches!(info, ModuleInfo::Concatenated(_)).then(|| arc_map.clone());
         let s = unsafe { token.used((&self, &compilation, runtime, id, info)) };
-        s.spawn(|(module, compilation, runtime, id, info)| async move {
-          let concatenation_scope = if let ModuleInfo::Concatenated(info) = info {
-            let info = info.as_ref();
-            Some(ConcatenationScope::new(
-              module.id,
-              module_to_info_map.expect("should have module_to_info_map for concatenated module"),
-              ConcatenatedModuleInfo {
-                index: info.index,
-                module: info.module,
-                ..Default::default()
-              },
-            ))
-          } else {
-            None
-          };
-          let updated_module_info = module
-            .analyze_module(compilation, info, runtime, concatenation_scope)
-            .await?;
-          Ok((*id, Box::new(updated_module_info)))
-        });
+        s.spawn(Box::new(|(module, compilation, runtime, id, info)| {
+          Box::pin(async move {
+            let concatenation_scope = if let ModuleInfo::Concatenated(info) = info {
+              let info = info.as_ref();
+              Some(ConcatenationScope::new(
+                module.id,
+                module_to_info_map.expect("should have module_to_info_map for concatenated module"),
+                ConcatenatedModuleInfo {
+                  index: info.index,
+                  module: info.module,
+                  ..Default::default()
+                },
+              ))
+            } else {
+              None
+            };
+            let updated_module_info = module
+              .analyze_module(compilation, info, runtime, concatenation_scope)
+              .await?;
+            Ok((*id, Box::new(updated_module_info)))
+          })
+        }));
       })
     })
     .await
@@ -2068,26 +2070,28 @@ impl Module for ConcatenatedModule {
       concatenation_entries.into_iter().for_each(|job| {
         let s = unsafe { token.used((job, compilation, generation_runtime)) };
 
-        s.spawn(|(job, compilation, generation_runtime)| async move {
-          match job {
-            ConcatenationEntry::Concatenated(e) => {
-              let digest = compilation
-                .get_module_graph()
-                .module_by_identifier(&e.module)
-                .expect("should have module")
-                .get_runtime_hash(compilation, generation_runtime)
-                .await?;
-              Ok(Some(digest.encoded().to_string()))
+        s.spawn(Box::new(|(job, compilation, generation_runtime)| {
+          Box::pin(async move {
+            match job {
+              ConcatenationEntry::Concatenated(e) => {
+                let digest = compilation
+                  .get_module_graph()
+                  .module_by_identifier(&e.module)
+                  .expect("should have module")
+                  .get_runtime_hash(compilation, generation_runtime)
+                  .await?;
+                Ok(Some(digest.encoded().to_string()))
+              }
+              ConcatenationEntry::External(e) => Ok(
+                ChunkGraph::get_module_id(
+                  &compilation.module_ids_artifact,
+                  e.module(compilation.get_module_graph()),
+                )
+                .map(|id| id.to_string()),
+              ),
             }
-            ConcatenationEntry::External(e) => Ok(
-              ChunkGraph::get_module_id(
-                &compilation.module_ids_artifact,
-                e.module(compilation.get_module_graph()),
-              )
-              .map(|id| id.to_string()),
-            ),
-          }
-        })
+          })
+        }))
       })
     })
     .await

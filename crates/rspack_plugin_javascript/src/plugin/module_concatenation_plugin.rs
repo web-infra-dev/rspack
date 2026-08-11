@@ -1465,45 +1465,47 @@ impl ModuleConcatenationPlugin {
     let new_modules = rspack_parallel::scope::<_, Result<_>>(|token| {
       batch.into_iter().for_each(|config| {
         let s = unsafe { token.used(&*compilation) };
-        s.spawn(move |compilation| async move {
-          let modules_set = config.get_modules();
-          let new_module = create_concatenated_module(compilation, &config).await?;
-          let new_module_id = new_module.identifier();
-          let connections = prepare_concatenated_module_connections(
-            compilation,
-            &new_module_id,
-            modules_set,
-            |m, con, dep| {
-              con.original_module_identifier.as_ref() == Some(m)
-                && !(is_esm_dep_like(dep) && modules_set.contains(con.module_identifier()))
-            },
-          );
-          let (root_outgoings, root_incomings) = prepare_concatenated_root_module_connections(
-            compilation,
-            &config.root_module,
-            |m, c, dep| {
-              let other_module = if c.module_identifier() == m {
-                c.original_module_identifier
-              } else {
-                Some(*c.module_identifier())
-              };
-              let inner_connection = is_esm_dep_like(dep)
-                && if let Some(other_module) = other_module {
-                  modules_set.contains(&other_module)
+        s.spawn(Box::new(move |compilation| {
+          Box::pin(async move {
+            let modules_set = config.get_modules();
+            let new_module = create_concatenated_module(compilation, &config).await?;
+            let new_module_id = new_module.identifier();
+            let connections = prepare_concatenated_module_connections(
+              compilation,
+              &new_module_id,
+              modules_set,
+              |m, con, dep| {
+                con.original_module_identifier.as_ref() == Some(m)
+                  && !(is_esm_dep_like(dep) && modules_set.contains(con.module_identifier()))
+              },
+            );
+            let (root_outgoings, root_incomings) = prepare_concatenated_root_module_connections(
+              compilation,
+              &config.root_module,
+              |m, c, dep| {
+                let other_module = if c.module_identifier() == m {
+                  c.original_module_identifier
                 } else {
-                  false
+                  Some(*c.module_identifier())
                 };
-              !inner_connection
-            },
-          );
-          Ok((
-            new_module,
-            connections,
-            root_outgoings,
-            root_incomings,
-            config,
-          ))
-        });
+                let inner_connection = is_esm_dep_like(dep)
+                  && if let Some(other_module) = other_module {
+                    modules_set.contains(&other_module)
+                  } else {
+                    false
+                  };
+                !inner_connection
+              },
+            );
+            Ok((
+              new_module,
+              connections,
+              root_outgoings,
+              root_incomings,
+              config,
+            ))
+          })
+        }));
       });
     })
     .await

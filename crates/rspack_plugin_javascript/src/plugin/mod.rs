@@ -1088,7 +1088,7 @@ var {} = {{}};
             runtime_template,
           ))
         };
-        s.spawn(
+        s.spawn(Box::new(
           move |(
             compilation,
             chunk_ukey,
@@ -1097,20 +1097,22 @@ var {} = {{}};
             output_path,
             hooks,
             runtime_template,
-          )| async move {
-            render_module(
-              compilation,
-              chunk_ukey,
-              *module,
-              all_strict,
-              false,
-              output_path,
-              hooks,
-              runtime_template,
-            )
-            .await
+          )| {
+            Box::pin(async move {
+              render_module(
+                compilation,
+                chunk_ukey,
+                *module,
+                all_strict,
+                false,
+                output_path,
+                hooks,
+                runtime_template,
+              )
+              .await
+            })
           },
-        )
+        ))
       });
     })
     .await

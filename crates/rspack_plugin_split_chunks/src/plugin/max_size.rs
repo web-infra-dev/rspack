@@ -498,15 +498,16 @@ impl SplitChunksPlugin {
             &max_size_setting_map,
           ))
         };
-        s.spawn(
+        s.spawn(Box::new(
           move |(
             compilation,
             chunk,
             fallback_cache_group,
             chunk_group_db,
             max_size_setting_map,
-          )| async move {
-            let max_size_setting = max_size_setting_map.get(&chunk.ukey());
+          )| {
+            Box::pin(async move {
+              let max_size_setting = max_size_setting_map.get(&chunk.ukey());
             tracing::trace!(
               "max_size_setting : {max_size_setting:#?} for {:?}",
               chunk.ukey()
@@ -568,14 +569,15 @@ impl SplitChunksPlugin {
               allow_max_size.to_mut().combine_with(min_size, &f64::max);
             }
 
-            Ok(Some(ChunkWithSizeInfo {
-              allow_max_size: allow_max_size.into_owned(),
-              min_size: min_size.clone(),
-              chunk: chunk.ukey(),
-              automatic_name_delimiter: automatic_name_delimiter.clone(),
-            }))
+              Ok(Some(ChunkWithSizeInfo {
+                allow_max_size: allow_max_size.into_owned(),
+                min_size: min_size.clone(),
+                chunk: chunk.ukey(),
+                automatic_name_delimiter: automatic_name_delimiter.clone(),
+              }))
+            })
           },
-        );
+        ));
       });
     })
     .await

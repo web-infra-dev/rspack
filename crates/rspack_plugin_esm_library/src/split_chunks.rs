@@ -180,45 +180,49 @@ pub(crate) async fn split(groups: &[CacheGroup], compilation: &mut Compilation) 
     modules.iter().copied().for_each(|module_identifier| {
       // SAFETY: `groups` and `compilation` outlive the scope and are only read (not mutated) concurrently.
       let s = unsafe { token.used((groups, &*compilation)) };
-      s.spawn(move |(groups, compilation)| async move {
-        let module_graph = compilation.get_module_graph();
-        let module: &dyn Module = module_graph
-          .module_by_identifier(&module_identifier)
-          .expect("should have module")
-          .as_ref();
-        for (index, group) in groups.iter().enumerate() {
-          if !matches_module_to_cache_group(module, compilation, group).await? {
-            continue;
-          }
-
-          return Ok(match &group.name {
-            ChunkNameGetter::String(name) => Some((Either::Left(name.clone()), module_identifier)),
-            ChunkNameGetter::Disabled => Some((Either::Right(index), module_identifier)),
-            ChunkNameGetter::Fn(func) => {
-              let name_res = func(ChunkNameGetterFnCtx {
-                module,
-                compilation,
-                chunks: &compilation
-                  .build_chunk_graph_artifact
-                  .chunk_graph
-                  .get_module_chunks(module_identifier)
-                  .iter()
-                  .copied()
-                  .collect(),
-                cache_group_key: &group.key,
-              })
-              .await;
-
-              match name_res {
-                Ok(Some(name)) => Some((Either::Left(name), module_identifier)),
-                Ok(None) => Some((Either::Right(index), module_identifier)),
-                Err(err) => return Err(err),
-              }
+      s.spawn(Box::new(move |(groups, compilation)| {
+        Box::pin(async move {
+          let module_graph = compilation.get_module_graph();
+          let module: &dyn Module = module_graph
+            .module_by_identifier(&module_identifier)
+            .expect("should have module")
+            .as_ref();
+          for (index, group) in groups.iter().enumerate() {
+            if !matches_module_to_cache_group(module, compilation, group).await? {
+              continue;
             }
-          });
-        }
-        Ok(None)
-      });
+
+            return Ok(match &group.name {
+              ChunkNameGetter::String(name) => {
+                Some((Either::Left(name.clone()), module_identifier))
+              }
+              ChunkNameGetter::Disabled => Some((Either::Right(index), module_identifier)),
+              ChunkNameGetter::Fn(func) => {
+                let name_res = func(ChunkNameGetterFnCtx {
+                  module,
+                  compilation,
+                  chunks: &compilation
+                    .build_chunk_graph_artifact
+                    .chunk_graph
+                    .get_module_chunks(module_identifier)
+                    .iter()
+                    .copied()
+                    .collect(),
+                  cache_group_key: &group.key,
+                })
+                .await;
+
+                match name_res {
+                  Ok(Some(name)) => Some((Either::Left(name), module_identifier)),
+                  Ok(None) => Some((Either::Right(index), module_identifier)),
+                  Err(err) => return Err(err),
+                }
+              }
+            });
+          }
+          Ok(None)
+        })
+      }));
     });
   })
   .await;

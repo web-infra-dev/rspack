@@ -2,6 +2,9 @@ use std::{cell::RefCell, future::Future, marker::PhantomData, pin::Pin};
 
 use tokio::task::{JoinError, JoinHandle};
 
+pub type ScopedFuture<'scope, O> = Pin<Box<dyn Future<Output = O> + Send + 'scope>>;
+pub type ScopedTask<'scope, T, O> = Box<dyn FnOnce(T) -> ScopedFuture<'scope, O> + Send + 'scope>;
+
 /// Scope Token
 pub struct Token<'scope, 'spawner, O> {
   list: &'spawner RefCell<Vec<JoinHandle<O>>>,
@@ -42,9 +45,11 @@ pub struct Spawner<'scope, 'spawner, T, O> {
 ///   for i in 0..list.len() {
 ///     let s = unsafe { token.used(&list) };
 ///
-///     s.spawn(move |list| async move {
-///       &list[i];
-///     });
+///     s.spawn(Box::new(move |list| {
+///       Box::pin(async move {
+///         &list[i];
+///       })
+///     }));
 ///   }
 /// })
 /// .await;
@@ -61,9 +66,11 @@ pub struct Spawner<'scope, 'spawner, T, O> {
 ///   for i in 0..list.len() {
 ///     let s = unsafe { token.used(&list) };
 ///
-///     s.spawn(move |list| async move {
-///       &list[i];
-///     });
+///     s.spawn(Box::new(move |list| {
+///       Box::pin(async move {
+///         &list[i];
+///       })
+///     }));
 ///   }
 /// })
 /// .await;
@@ -133,23 +140,18 @@ impl<'scope, 'spawner, O> Token<'scope, 'spawner, O> {
 
 impl<'scope, T, O> Spawner<'scope, '_, T, O> {
   /// Spawn task from used reference
-  pub fn spawn<F, Fut>(self, f: F)
+  pub fn spawn(self, f: ScopedTask<'scope, T, O>)
   where
-    // TODO Use AsyncFnOnce
-    F: FnOnce(T) -> Fut + 'static,
-    Fut: Future<Output = O> + Send + 'scope,
     T: Send + Sync + 'scope,
     O: Send + 'static,
   {
     let fut = f(self.used);
-    let fut: Pin<Box<dyn Future<Output = O> + Send + 'scope>> = Box::pin(fut);
 
     // # Safety
     //
     // The safety guarantee here comes from `Token::used`.
     // The user needs to ensure that the task will done within used reference lifetime.
-    let fut: Pin<Box<dyn Future<Output = O> + Send + 'static>> =
-      unsafe { std::mem::transmute(fut) };
+    let fut: ScopedFuture<'static, O> = unsafe { std::mem::transmute(fut) };
 
     let j = rspack_tasks::spawn_in_compiler_context(fut);
     self.list.borrow_mut().push(j);

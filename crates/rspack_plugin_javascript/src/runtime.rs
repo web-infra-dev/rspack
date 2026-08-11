@@ -42,25 +42,27 @@ pub async fn render_chunk_modules(
           all_strict,
           output_path,
           hooks,
-          runtime_template
+          runtime_template,
         ))
       };
-      s.spawn(
-        |(compilation, chunk_ukey, module, all_strict, output_path, hooks, runtime_template)| async move {
-          render_module(
-            compilation,
-            chunk_ukey,
-            *module,
-            all_strict,
-            true,
-            output_path,
-            hooks,
-            runtime_template
-          )
-          .await
-          .map(|result| result.map(|(s, f, a)| (module.identifier(), s, f, a)))
+      s.spawn(Box::new(
+        |(compilation, chunk_ukey, module, all_strict, output_path, hooks, runtime_template)| {
+          Box::pin(async move {
+            render_module(
+              compilation,
+              chunk_ukey,
+              *module,
+              all_strict,
+              true,
+              output_path,
+              hooks,
+              runtime_template,
+            )
+            .await
+            .map(|result| result.map(|(s, f, a)| (module.identifier(), s, f, a)))
+          })
         },
-      );
+      ));
     });
   })
   .await
@@ -413,8 +415,9 @@ pub(crate) async fn render_runtime_module_sources(
       })
       .for_each(|(source, module)| {
         let s = unsafe { token.used((compilation, source, module)) };
-        s.spawn(
-          move |(compilation, source, module)| async move {
+        s.spawn(Box::new(
+          move |(compilation, source, module)| {
+            Box::pin(async move {
             if source.size() == 0 {
               return Ok((
                 ConcatSource::default().boxed(),
@@ -473,14 +476,15 @@ pub(crate) async fn render_runtime_module_sources(
               supports_arrow_function,
               matches!(runtime_mode, RuntimeMode::Rspack) && !should_isolate,
             );
-            Ok((
-              sources,
-              generated_requirements,
-              context_requirements,
-              needs_top_level,
-            ))
+              Ok((
+                sources,
+                generated_requirements,
+                context_requirements,
+                needs_top_level,
+              ))
+            })
           },
-        );
+        ));
       })
   })
   .await

@@ -170,61 +170,63 @@ pub(crate) async fn code_generation_modules(
       // SAFETY: await immediately and trust caller to poll future entirely
       let s = unsafe { token.used((compilation_ref, &module_graph, cache_counter, job)) };
 
-      s.spawn(|(this, module_graph, cache_counter, job)| async move {
-        let options = &this.options;
+      s.spawn(Box::new(|(this, module_graph, cache_counter, job)| {
+        Box::pin(async move {
+          let options = &this.options;
 
-        let module = module_graph
-          .module_by_identifier(&job.module)
-          .expect("should have module");
-        let (codegen_res, from_cache) = this
-          .code_generate_cache_artifact
-          .use_cache(&job, || async {
-            let mut runtime_template = this.runtime_template.create_module_code_template();
-            let mut code_generation_context = ModuleCodeGenerationContext {
-              compilation: this,
-              runtime: Some(&job.runtime),
-              concatenation_scope: job.scope.clone(),
-              runtime_template: &mut runtime_template,
-            };
+          let module = module_graph
+            .module_by_identifier(&job.module)
+            .expect("should have module");
+          let (codegen_res, from_cache) = this
+            .code_generate_cache_artifact
+            .use_cache(&job, || async {
+              let mut runtime_template = this.runtime_template.create_module_code_template();
+              let mut code_generation_context = ModuleCodeGenerationContext {
+                compilation: this,
+                runtime: Some(&job.runtime),
+                concatenation_scope: job.scope.clone(),
+                runtime_template: &mut runtime_template,
+              };
 
-            module
-              .code_generation(&mut code_generation_context)
-              .await
-              .map(|mut codegen_res| {
-                codegen_res
-                  .runtime_requirements
-                  .extend(*runtime_template.runtime_requirements());
-                if module.as_concatenated_module().is_some() {
-                  // Concatenated modules are special here: `job.hash` already
-                  // fingerprints the generated module bodies, so we only need
-                  // to fold in the remaining codegen metadata.
-                  codegen_res.set_hash_for_concatenated_module(
-                    &job.hash,
-                    &options.output.hash_function,
-                    &options.output.hash_digest,
-                    &options.output.hash_salt,
-                  );
-                } else {
-                  codegen_res.set_hash(
-                    &options.output.hash_function,
-                    &options.output.hash_digest,
-                    &options.output.hash_salt,
-                  );
-                }
-                codegen_res
-              })
-          })
-          .await;
-        if let Some(counter) = cache_counter {
-          if from_cache {
-            counter.hit();
-          } else {
-            counter.miss();
+              module
+                .code_generation(&mut code_generation_context)
+                .await
+                .map(|mut codegen_res| {
+                  codegen_res
+                    .runtime_requirements
+                    .extend(*runtime_template.runtime_requirements());
+                  if module.as_concatenated_module().is_some() {
+                    // Concatenated modules are special here: `job.hash` already
+                    // fingerprints the generated module bodies, so we only need
+                    // to fold in the remaining codegen metadata.
+                    codegen_res.set_hash_for_concatenated_module(
+                      &job.hash,
+                      &options.output.hash_function,
+                      &options.output.hash_digest,
+                      &options.output.hash_salt,
+                    );
+                  } else {
+                    codegen_res.set_hash(
+                      &options.output.hash_function,
+                      &options.output.hash_digest,
+                      &options.output.hash_salt,
+                    );
+                  }
+                  codegen_res
+                })
+            })
+            .await;
+          if let Some(counter) = cache_counter {
+            if from_cache {
+              counter.hit();
+            } else {
+              counter.miss();
+            }
           }
-        }
 
-        (job.module, job.runtimes, codegen_res.map(Box::new))
-      })
+          (job.module, job.runtimes, codegen_res.map(Box::new))
+        })
+      }))
     })
   })
   .await;

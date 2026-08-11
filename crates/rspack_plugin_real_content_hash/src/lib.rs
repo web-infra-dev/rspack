@@ -208,36 +208,38 @@ async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
         .for_each(|(old_hash, asset_names)| {
           let s =
             unsafe { token.used((&hooks, &compilation, &batch_sources, old_hash, asset_names)) };
-          s.spawn(
-            |(hooks, compilation, batch_sources, old_hash, mut asset_names)| async move {
-              asset_names.sort_unstable();
-              let mut asset_contents = asset_names
-                .iter()
-                .filter_map(|name| batch_sources.get(&(old_hash.as_str(), name)))
-                .cloned()
-                .collect::<Vec<_>>();
-              asset_contents.dedup();
-              let updated_hash = hooks
-                .borrow()
-                .update_hash
-                .call(compilation, &asset_contents, &old_hash)
-                .await?;
+          s.spawn(Box::new(
+            |(hooks, compilation, batch_sources, old_hash, mut asset_names)| {
+              Box::pin(async move {
+                asset_names.sort_unstable();
+                let mut asset_contents = asset_names
+                  .iter()
+                  .filter_map(|name| batch_sources.get(&(old_hash.as_str(), name)))
+                  .cloned()
+                  .collect::<Vec<_>>();
+                asset_contents.dedup();
+                let updated_hash = hooks
+                  .borrow()
+                  .update_hash
+                  .call(compilation, &asset_contents, &old_hash)
+                  .await?;
 
-              let new_hash = if let Some(new_hash) = updated_hash {
-                new_hash
-              } else {
-                let mut hasher = RspackHasher::from(&compilation.options.output);
-                for asset_content in asset_contents {
-                  hasher.write(&asset_content.buffer());
-                }
-                let new_hash = hasher.digest(&compilation.options.output.hash_digest);
+                let new_hash = if let Some(new_hash) = updated_hash {
+                  new_hash
+                } else {
+                  let mut hasher = RspackHasher::from(&compilation.options.output);
+                  for asset_content in asset_contents {
+                    hasher.write(&asset_content.buffer());
+                  }
+                  let new_hash = hasher.digest(&compilation.options.output.hash_digest);
 
-                new_hash.rendered(old_hash.len()).to_string()
-              };
+                  new_hash.rendered(old_hash.len()).to_string()
+                };
 
-              Ok((old_hash.clone(), new_hash))
+                Ok((old_hash.clone(), new_hash))
+              })
             },
-          );
+          ));
         });
     })
     .await

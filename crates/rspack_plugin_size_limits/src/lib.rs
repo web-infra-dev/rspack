@@ -145,17 +145,19 @@ async fn after_emit(&self, compilation: &mut Compilation) -> Result<()> {
       // SAFETY: await immediately and trust caller to poll future entirely
       let s = unsafe { token.used((&self, asset, name, max_asset_size)) };
 
-      s.spawn(|(plugin, asset, name, max_asset_size)| async move {
-        if !plugin.asset_filter(name, asset).await {
-          return None;
-        }
+      s.spawn(Box::new(|(plugin, asset, name, max_asset_size)| {
+        Box::pin(async move {
+          if !plugin.asset_filter(name, asset).await {
+            return None;
+          }
 
-        let source = asset.get_source()?;
+          let source = asset.get_source()?;
 
-        let size = source.size() as f64;
-        let is_over_size_limit = size > max_asset_size;
-        Some((name.clone(), size, is_over_size_limit))
-      })
+          let size = source.size() as f64;
+          let is_over_size_limit = size > max_asset_size;
+          Some((name.clone(), size, is_over_size_limit))
+        })
+      }))
     })
   })
   .await

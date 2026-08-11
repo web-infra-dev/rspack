@@ -565,7 +565,7 @@ impl CopyRspackPlugin {
                 logger,
               ))
             };
-            s.spawn(
+            s.spawn(Box::new(
               move |(
                 pattern,
                 context,
@@ -574,22 +574,24 @@ impl CopyRspackPlugin {
                 diagnostics,
                 compilation,
                 logger,
-              )| async move {
-                Self::analyze_every_entry(
-                  entry,
-                  pattern,
-                  context,
-                  output_path,
-                  from_type,
-                  file_dependencies,
-                  diagnostics,
-                  compilation,
-                  logger,
-                  index,
-                )
-                .await
+              )| {
+                Box::pin(async move {
+                  Self::analyze_every_entry(
+                    entry,
+                    pattern,
+                    context,
+                    output_path,
+                    from_type,
+                    file_dependencies,
+                    diagnostics,
+                    compilation,
+                    logger,
+                    index,
+                  )
+                  .await
+                })
               },
-            );
+            ));
           });
         })
         .await
