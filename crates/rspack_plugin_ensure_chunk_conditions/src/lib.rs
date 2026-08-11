@@ -17,15 +17,14 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
     let module_chunks = compilation
       .build_chunk_graph_artifact
       .chunk_graph
-      .get_module_chunks(module.identifier())
-      .clone();
+      .get_module_chunks(module.identifier());
     let mut source_chunks = Vec::new();
     for chunk in module_chunks {
       if matches!(
-        module_chunk_condition(module.as_ref(), &chunk, compilation).await?,
+        module_chunk_condition(module.as_ref(), chunk, compilation).await?,
         Some(false)
       ) {
-        source_chunks.push(chunk);
+        source_chunks.push(*chunk);
       }
     }
     if !source_chunks.is_empty() {
