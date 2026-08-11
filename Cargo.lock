@@ -4507,7 +4507,8 @@ dependencies = [
  "rspack_core",
  "rspack_error",
  "rspack_hook",
- "rustc-hash",
+ "rspack_parallel",
+ "rspack_util",
  "tracing",
 ]
 
