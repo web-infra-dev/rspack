@@ -418,6 +418,13 @@ impl JsCompiler {
     self.js_hooks_plugin.set_non_skippable_registers(kinds)
   }
 
+  #[napi]
+  pub fn set_register_js_tap_count(&self, kind: RegisterJsTapKind, tap_count: u32) {
+    self
+      .js_hooks_plugin
+      .set_register_js_tap_count(kind, tap_count as usize)
+  }
+
   /// Build with the given option passed to the constructor
   #[napi(ts_args_type = "callback: (err: null | Error) => void")]
   pub fn build(

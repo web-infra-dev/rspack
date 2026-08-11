@@ -3,7 +3,10 @@ use std::{
   hash::Hash,
   marker::PhantomData,
   ptr::NonNull,
-  sync::{Arc, RwLock},
+  sync::{
+    Arc, RwLock,
+    atomic::{AtomicUsize, Ordering},
+  },
 };
 
 use async_trait::async_trait;
@@ -49,7 +52,7 @@ use rspack_core::{
 };
 use rspack_error::Diagnostic;
 use rspack_hash::RspackHasher;
-use rspack_hook::{Hook, Interceptor};
+use rspack_hook::{Hook, JsTapRegister};
 use rspack_napi::threadsafe_function::DynThreadsafeFunction;
 use rspack_paths::Utf8PathBuf;
 use rspack_plugin_html::{
@@ -235,31 +238,13 @@ type RegisterFunction = CompilerScopedTsFnHandle<Vec<i32>, RegisterFunctionOutpu
 struct RegisterJsTapsInner {
   register: RegisterFunction,
   cache: RegisterJsTapsCache,
-  non_skippable_registers: Option<NonSkippableRegisters>,
-}
-
-impl Clone for RegisterJsTapsInner {
-  fn clone(&self) -> Self {
-    Self {
-      register: self.register.clone(),
-      cache: self.cache.clone(),
-      non_skippable_registers: self.non_skippable_registers.clone(),
-    }
-  }
+  tap_count: AtomicUsize,
+  always_active: bool,
 }
 
 enum RegisterJsTapsCache {
   NoCache,
-  Cache(Arc<RwLock<Option<RegisterFunctionOutput>>>),
-}
-
-impl Clone for RegisterJsTapsCache {
-  fn clone(&self) -> Self {
-    match self {
-      Self::NoCache => Self::NoCache,
-      Self::Cache(c) => Self::Cache(c.clone()),
-    }
-  }
+  Cache(RwLock<Option<RegisterFunctionOutput>>),
 }
 
 impl RegisterJsTapsCache {
@@ -273,21 +258,33 @@ impl RegisterJsTapsCache {
 }
 
 impl RegisterJsTapsInner {
-  pub fn new(
-    register: RegisterFunction,
-    non_skippable_registers: Option<NonSkippableRegisters>,
-    cache: bool,
-  ) -> Self {
+  pub fn new(register: RegisterFunction, cache: bool, always_active: bool) -> Self {
     Self {
       register,
       cache: RegisterJsTapsCache::new(cache),
-      non_skippable_registers,
+      tap_count: AtomicUsize::new(usize::from(always_active)),
+      always_active,
     }
+  }
+
+  fn tap_count(&self) -> usize {
+    self.tap_count.load(Ordering::Acquire)
+  }
+
+  fn set_tap_count(&self, tap_count: usize) {
+    self.tap_count.store(
+      if self.always_active {
+        tap_count.max(1)
+      } else {
+        tap_count
+      },
+      Ordering::Release,
+    );
   }
 
   pub async fn call_register(
     &self,
-    hook: &impl Hook,
+    used_stages: Vec<i32>,
   ) -> rspack_error::Result<RegisterFunctionOutput> {
     if let RegisterJsTapsCache::Cache(rw) = &self.cache {
       let cache = {
@@ -297,7 +294,7 @@ impl RegisterJsTapsInner {
       Ok(match cache {
         Some(js_taps) => js_taps,
         None => {
-          let js_taps = self.call_register_impl(hook).await?;
+          let js_taps = self.call_register_impl(used_stages).await?;
           {
             #[allow(clippy::unwrap_used)]
             let mut cache = rw.write().unwrap();
@@ -307,17 +304,15 @@ impl RegisterJsTapsInner {
         }
       })
     } else {
-      let js_taps = self.call_register_impl(hook).await?;
+      let js_taps = self.call_register_impl(used_stages).await?;
       Ok(js_taps)
     }
   }
 
   async fn call_register_impl(
     &self,
-    hook: &impl Hook,
+    used_stages: Vec<i32>,
   ) -> rspack_error::Result<RegisterFunctionOutput> {
-    let mut used_stages = Vec::from_iter(hook.used_stages());
-    used_stages.sort_unstable();
     self.register.call_with_sync(used_stages).await
   }
 
@@ -344,17 +339,17 @@ macro_rules! define_register {
   ($name:ident, tap = $tap_name:ident<$arg:ty, Promise<$promise_ret:ty>> @ $tap_hook:ty, cache = $cache:literal, kind = $kind:expr, skip = $skip:tt,) => {
     define_register!(@BASE_PROMISE $name, $tap_name<$arg, $promise_ret>, $cache);
     define_register!(@SKIP $name, $arg, Promise<$promise_ret>, $cache, $skip);
-    define_register!(@INTERCEPTOR $name, $tap_name, $tap_hook, $cache, $kind);
+    define_register!(@JS_TAP_REGISTER $name, $tap_name, $tap_hook);
   };
   ($name:ident, tap = $tap_name:ident<$arg:ty, $ret:ty> @ $tap_hook:ty, cache = $cache:literal, kind = $kind:expr, skip = $skip:tt,) => {
     define_register!(@BASE $name, $tap_name<$arg, $ret>, $cache);
     define_register!(@SKIP $name, $arg, $ret, $cache, $skip);
-    define_register!(@INTERCEPTOR $name, $tap_name, $tap_hook, $cache, $kind);
+    define_register!(@JS_TAP_REGISTER $name, $tap_name, $tap_hook);
   };
   (@BASE $name:ident, $tap_name:ident<$arg:ty, $ret:ty>, $cache:literal) => {
     #[derive(Clone)]
     pub struct $name {
-      inner: RegisterJsTapsInner,
+      inner: Arc<RegisterJsTapsInner>,
     }
 
     impl $name {
@@ -381,7 +376,7 @@ macro_rules! define_register {
   (@BASE_PROMISE $name:ident, $tap_name:ident<$arg:ty, $ret:ty>, $cache:literal) => {
     #[derive(Clone)]
     pub struct $name {
-      inner: RegisterJsTapsInner,
+      inner: Arc<RegisterJsTapsInner>,
     }
 
     impl $name {
@@ -407,36 +402,39 @@ macro_rules! define_register {
   };
   (@SKIP $name:ident, $arg:ty, $ret:ty, $cache:literal, $skip:literal) => {
     impl $name {
-      pub fn new(register: RegisterFunction, non_skippable_registers: NonSkippableRegisters) -> Self {
+      pub fn new(register: RegisterFunction) -> Self {
         Self {
-          inner: RegisterJsTapsInner::new(register, $skip.then_some(non_skippable_registers), $cache),
+          inner: Arc::new(RegisterJsTapsInner::new(register, $cache, !$skip)),
         }
+      }
+
+      pub fn set_tap_count(&self, tap_count: usize) {
+        self.inner.set_tap_count(tap_count);
       }
     }
   };
-  (@INTERCEPTOR $name:ident, $tap_name:ident, $tap_hook:ty, $cache:literal, $kind:expr) => {
-    #[async_trait]
-    impl Interceptor<$tap_hook> for $name {
-      async fn call(
-        &self,
-        hook: &$tap_hook,
-      ) -> rspack_error::Result<Vec<<$tap_hook as Hook>::Tap>> {
-        if let Some(non_skippable_registers) = &self.inner.non_skippable_registers && !non_skippable_registers.is_non_skippable(&$kind) {
-          return Ok(Vec::new());
-        }
-        let js_taps = self.inner.call_register(hook).await?;
-        let js_taps = js_taps
-          .iter()
-          .map(|t| Box::new($tap_name::new(t.clone())) as <$tap_hook as Hook>::Tap)
-          .collect();
-        Ok(js_taps)
+  (@JS_TAP_REGISTER $name:ident, $tap_name:ident, $tap_hook:ty) => {
+    impl $name {
+      pub fn into_js_tap_register(self) -> JsTapRegister {
+        JsTapRegister::new_async::<RegisterJsTapsInner, <$tap_hook as Hook>::Tap, _, _>(
+          self.inner,
+          RegisterJsTapsInner::tap_count,
+          |inner, used_stages| async move {
+            Ok(inner
+              .call_register(used_stages)
+              .await?
+              .iter()
+              .map(|tap| Box::new($tap_name::new(tap.clone())) as <$tap_hook as Hook>::Tap)
+              .collect())
+          },
+        )
       }
     }
   };
 }
 
 #[napi]
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RegisterJsTapKind {
   CompilerThisCompilation,
   CompilerCompilation,
@@ -492,18 +490,61 @@ pub enum RegisterJsTapKind {
   RsdoctorPluginAssets,
 }
 
-#[derive(Default, Clone)]
-pub struct NonSkippableRegisters(Arc<RwLock<Vec<RegisterJsTapKind>>>);
-
-impl NonSkippableRegisters {
-  pub fn set_non_skippable_registers(&self, kinds: Vec<RegisterJsTapKind>) {
-    let mut ks = self.0.write().expect("failed to write lock");
-    *ks = kinds;
-  }
-
-  pub fn is_non_skippable(&self, kind: &RegisterJsTapKind) -> bool {
-    self.0.read().expect("should lock").contains(kind)
-  }
+impl RegisterJsTapKind {
+  pub const ALL: &[Self] = &[
+    Self::CompilerThisCompilation,
+    Self::CompilerCompilation,
+    Self::CompilerMake,
+    Self::CompilerFinishMake,
+    Self::CompilerShouldEmit,
+    Self::CompilerEmit,
+    Self::CompilerAfterEmit,
+    Self::CompilerAssetEmitted,
+    Self::CompilationBuildModule,
+    Self::CompilationStillValidModule,
+    Self::CompilationSucceedModule,
+    Self::CompilationExecuteModule,
+    Self::CompilationFinishModules,
+    Self::CompilationOptimizeModules,
+    Self::CompilationAfterOptimizeModules,
+    Self::CompilationOptimizeTree,
+    Self::CompilationOptimizeChunkModules,
+    Self::CompilationBeforeModuleIds,
+    Self::CompilationAdditionalTreeRuntimeRequirements,
+    Self::CompilationRuntimeRequirementInTree,
+    Self::CompilationRuntimeModule,
+    Self::CompilationChunkHash,
+    Self::CompilationChunkAsset,
+    Self::CompilationProcessAssets,
+    Self::CompilationAfterProcessAssets,
+    Self::CompilationSeal,
+    Self::CompilationAfterSeal,
+    Self::NormalModuleFactoryBeforeResolve,
+    Self::NormalModuleFactoryFactorize,
+    Self::NormalModuleFactoryResolve,
+    Self::NormalModuleFactoryAfterResolve,
+    Self::NormalModuleFactoryCreateModule,
+    Self::NormalModuleFactoryResolveForScheme,
+    Self::ContextModuleFactoryBeforeResolve,
+    Self::ContextModuleFactoryAfterResolve,
+    Self::JavascriptModulesChunkHash,
+    Self::HtmlPluginBeforeAssetTagGeneration,
+    Self::HtmlPluginAlterAssetTags,
+    Self::HtmlPluginAlterAssetTagGroups,
+    Self::HtmlPluginAfterTemplateExecution,
+    Self::HtmlPluginBeforeEmit,
+    Self::HtmlPluginAfterEmit,
+    Self::RuntimePluginCreateScript,
+    Self::RuntimePluginCreateLink,
+    Self::RuntimePluginLinkPreload,
+    Self::RuntimePluginLinkPrefetch,
+    Self::RealContentHashPluginUpdateHash,
+    Self::RsdoctorPluginModuleGraph,
+    Self::RsdoctorPluginChunkGraph,
+    Self::RsdoctorPluginModuleIds,
+    Self::RsdoctorPluginModuleSources,
+    Self::RsdoctorPluginAssets,
+  ];
 }
 
 #[derive(Clone)]

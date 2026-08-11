@@ -129,6 +129,7 @@ impl DefineHookInput {
       .collect::<Result<Punctuated<&Ident, Comma>>>()?;
     let hook_name = Ident::new(&format!("{trait_name}Hook"), trait_name.span());
     let hook_name_lit_str = LitStr::new(&hook_name.to_string(), trait_name.span());
+    let empty_return = exec_kind.empty_return(&arg_names);
     let call_body = exec_kind.body(arg_names);
     let call_body = if tracing.is_none_or(|bool_lit| bool_lit.value) {
       let tracing_span_name = LitStr::new(&format!("hook:{trait_name}"), trait_name.span());
@@ -152,12 +153,20 @@ impl DefineHookInput {
     let call_fn = if is_async {
       quote! {
         async fn call #method_generics (&self, #args) -> #ret {
+          let call_mode = self.common.call_mode();
+          if matches!(call_mode, ::rspack_hook::HookCallMode::Empty) {
+            #empty_return
+          }
           #call_body
         }
       }
     } else {
       quote! {
         fn call #method_generics (&self, #args) -> #ret {
+          let call_mode = self.common.call_mode();
+          if matches!(call_mode, ::rspack_hook::HookCallMode::Empty) {
+            #empty_return
+          }
           #call_body
         }
       }
@@ -182,6 +191,18 @@ impl DefineHookInput {
 
         fn used_stages(&self) -> Vec<i32> {
           self.common.used_stages()
+        }
+
+        fn load_js_tap_register(&mut self, register: ::rspack_hook::JsTapRegister) -> ::rspack_hook::__macro_helper::Result<()> {
+          self.common.load_js_tap_register::<Self::Tap>(register)
+        }
+
+        fn has_js_taps(&self) -> bool {
+          self.common.has_js_taps()
+        }
+
+        fn is_empty(&self) -> bool {
+          self.common.is_empty()
         }
 
         fn intercept(&mut self, interceptor: impl ::rspack_hook::Interceptor<Self> + Send + Sync + 'static) {
@@ -218,6 +239,10 @@ impl DefineHookInput {
 
         pub fn is_empty(&self) -> bool {
           self.common.is_empty()
+        }
+
+        pub fn has_js_taps(&self) -> bool {
+          self.common.has_js_taps()
         }
       }
     })
@@ -273,17 +298,40 @@ impl ExecKind {
   }
 
   fn additional_taps(&self) -> TokenStream {
-    let call = if self.is_async() {
-      quote! { additional_taps.extend(interceptor.call(self).await?); }
+    let (call_interceptor, call_js_register) = if self.is_async() {
+      (
+        quote! { additional_taps.extend(interceptor.call(self).await?); },
+        quote! { self.common.call_js_tap_register().await? },
+      )
     } else {
-      quote! { additional_taps.extend(interceptor.call_blocking(self)?); }
+      (
+        quote! { additional_taps.extend(interceptor.call_blocking(self)?); },
+        quote! { self.common.call_js_tap_register_blocking()? },
+      )
     };
     quote! {
       let mut additional_taps = std::vec::Vec::new();
       for interceptor in self.interceptors.iter() {
-        #call
+        #call_interceptor
       }
+      additional_taps.extend(::rspack_hook::unerase_js_taps::<<Self as ::rspack_hook::Hook>::Tap>(#call_js_register)?);
       let additional_stages: std::vec::Vec<_> = additional_taps.iter().map(|tap| tap.stage()).collect();
+    }
+  }
+
+  fn empty_return(&self, args: &Punctuated<&Ident, Comma>) -> TokenStream {
+    match self {
+      Self::SeriesBail { .. } => quote! { return Ok(None); },
+      Self::SeriesWaterfall { .. } => {
+        let data_arg = args
+          .iter()
+          .copied()
+          .find(|arg| *arg == "data")
+          .or_else(|| args.first().copied())
+          .expect("waterfall hooks must have at least one argument");
+        quote! { return Ok(#data_arg); }
+      }
+      _ => quote! { return Ok(()); },
     }
   }
 
@@ -292,7 +340,7 @@ impl ExecKind {
     match self {
       Self::Series => {
         quote! {
-          if self.common.interceptor_count() == 0 {
+          if matches!(call_mode, ::rspack_hook::HookCallMode::RustTaps) {
             for tap in &self.taps {
               tap.run(#args).await?;
             }
@@ -312,7 +360,7 @@ impl ExecKind {
       }
       Self::Sync => {
         quote! {
-          if self.common.interceptor_count() == 0 {
+          if matches!(call_mode, ::rspack_hook::HookCallMode::RustTaps) {
             for tap in &self.taps {
               tap.run(#args)?;
             }
@@ -332,7 +380,7 @@ impl ExecKind {
       }
       Self::SeriesBail { .. } => {
         quote! {
-          if self.common.interceptor_count() == 0 {
+          if matches!(call_mode, ::rspack_hook::HookCallMode::RustTaps) {
             for tap in &self.taps {
               if let Some(res) = tap.run(#args).await? {
                 return Ok(Some(res));
@@ -374,7 +422,7 @@ impl ExecKind {
           .collect::<Vec<_>>();
         quote! {
           let mut data = #data_arg;
-          if self.common.interceptor_count() == 0 {
+          if matches!(call_mode, ::rspack_hook::HookCallMode::RustTaps) {
             for tap in &self.taps {
               data = tap.run(#(#tap_args),*).await?
             }
@@ -394,7 +442,7 @@ impl ExecKind {
       }
       Self::Parallel => {
         quote! {
-          if self.common.interceptor_count() == 0 {
+          if matches!(call_mode, ::rspack_hook::HookCallMode::RustTaps) {
             let futs: std::vec::Vec<_> = self.taps.iter().map(|t| t.run(#args)).collect();
             futures_concurrency::vec::TryJoin(futs).await?;
             return Ok(());
