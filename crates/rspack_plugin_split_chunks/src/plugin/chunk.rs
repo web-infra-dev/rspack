@@ -4,7 +4,11 @@ use rspack_core::{
 };
 use rustc_hash::FxHashSet;
 
-use crate::{SplitChunksPlugin, common::ModuleChunks, module_group::ModuleGroup};
+use crate::{
+  SplitChunksPlugin,
+  common::{ModuleChunkMap, ModuleChunks},
+  module_group::ModuleGroup,
+};
 
 fn put_split_chunk_reason(
   chunk_reason: &mut Option<String>,
@@ -190,42 +194,106 @@ impl SplitChunksPlugin {
     }
   }
 
-  /// This de-duplicated each module fro other chunks, make sure there's only one copy of each module.
+  /// Returns the selected source chunks for modules that can move into `new_chunk`.
   // #[tracing::instrument(skip_all)]
-  pub(crate) fn move_modules_to_new_chunk_and_remove_from_old_chunks(
+  pub(crate) fn get_module_chunks_to_move(
     &self,
     item: &ModuleGroup,
     new_chunk: ChunkUkey,
     original_chunks: &FxHashSet<ChunkUkey>,
+    compilation: &Compilation,
+  ) -> ModuleChunkMap {
+    let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
+    if item.uses_shared_module_chunks() {
+      debug_assert!(original_chunks.is_subset(&item.chunks));
+      let chunks = original_chunks.clone();
+      let modules = item
+        .modules
+        .iter()
+        .filter(|mid| {
+          compilation
+            .module_by_identifier(mid)
+            .and_then(|module| module.chunk_condition(&new_chunk, compilation))
+            != Some(false)
+        })
+        .copied()
+        .collect();
+      return ModuleChunkMap::Shared { modules, chunks };
+    }
+
+    ModuleChunkMap::ByModule(
+      item
+        .modules
+        .iter()
+        .filter_map(|mid| {
+          let selected_chunks = item.get_module_chunks(mid)?;
+          if let Some(module) = compilation.module_by_identifier(mid)
+            && module
+              .chunk_condition(&new_chunk, compilation)
+              .is_some_and(|condition| !condition)
+          {
+            return None;
+          }
+
+          let chunks = original_chunks
+            .iter()
+            .filter(|chunk| {
+              selected_chunks.contains(chunk) && chunk_graph.is_module_in_chunk(mid, **chunk)
+            })
+            .copied()
+            .collect::<FxHashSet<_>>();
+          (!chunks.is_empty()).then_some((*mid, chunks))
+        })
+        .collect(),
+    )
+  }
+
+  /// Moves `modules` into `new_chunk` and removes their selected source placements.
+  // #[tracing::instrument(skip_all)]
+  pub(crate) fn move_modules_to_new_chunk_and_remove_from_old_chunks(
+    &self,
+    placed_module_chunks: &ModuleChunkMap,
+    new_chunk: ChunkUkey,
     compilation: &mut Compilation,
   ) {
-    let modules = item
-      .modules
-      .iter()
-      .filter(|mid| {
-        if let Some(module) = compilation.module_by_identifier(mid)
-          && module
-            .chunk_condition(&new_chunk, compilation)
-            .is_some_and(|condition| !condition)
-        {
-          return false;
+    let chunk_graph = &mut compilation.build_chunk_graph_artifact.chunk_graph;
+    if let ModuleChunkMap::Shared { modules, chunks } = placed_module_chunks {
+      let modules = modules.iter().copied().collect::<Vec<_>>();
+      let chunks = chunks
+        .iter()
+        .filter(|chunk| **chunk != new_chunk)
+        .copied()
+        .collect::<Vec<_>>();
+      if !chunks.is_empty() {
+        chunk_graph.disconnect_chunks_and_modules(&chunks, &modules);
+        chunk_graph.connect_chunk_and_modules(new_chunk, &modules);
+      }
+      return;
+    }
+
+    let ModuleChunkMap::ByModule(module_chunks) = placed_module_chunks else {
+      unreachable!();
+    };
+    let module_count = module_chunks.len();
+    let mut module_identifiers = Vec::with_capacity(module_count);
+    let mut move_module = |module: &ModuleIdentifier, chunks: &FxHashSet<ChunkUkey>| {
+      let mut has_source_placement = false;
+      for chunk in chunks {
+        if *chunk != new_chunk {
+          has_source_placement = true;
+          chunk_graph.disconnect_chunk_and_module(chunk, *module);
         }
-        true
-      })
-      .copied()
-      .collect::<Vec<_>>();
+      }
+      if has_source_placement {
+        module_identifiers.push(*module);
+      }
+    };
 
-    let chunks = original_chunks.iter().copied().collect::<Vec<_>>();
+    for (module, chunks) in module_chunks {
+      move_module(module, chunks);
+    }
 
-    compilation
-      .build_chunk_graph_artifact
-      .chunk_graph
-      .disconnect_chunks_and_modules(&chunks, &modules);
-
-    compilation
-      .build_chunk_graph_artifact
-      .chunk_graph
-      .connect_chunk_and_modules(new_chunk, &modules);
+    chunk_graph.connect_chunk_and_modules(new_chunk, &module_identifiers);
   }
 
   /// Since the modules are moved into the `new_chunk`, we should
