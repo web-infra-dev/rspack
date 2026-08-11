@@ -62,10 +62,10 @@ fn append_experimental_parse_errors(
   let source: Arc<str> = source.into();
   diagnostics.extend(errors.into_iter().filter_map(|err| {
     let span = err.span();
-    let message = err.kind().msg().to_string();
-    if !visited.insert((message.clone(), span)) {
+    if !visited.insert((span.start, span.end)) {
       return None;
     }
+    let message = err.kind().msg().to_string();
     Some(
       Error::from_shared_source(
         Some(source.clone()),
