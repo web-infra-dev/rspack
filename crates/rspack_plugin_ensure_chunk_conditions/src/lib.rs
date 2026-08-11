@@ -4,6 +4,8 @@ use rspack_hook::{plugin, plugin_hook};
 use rspack_util::fx_hash::{FxDashMap, FxHashSet as HashSet};
 use tracing::info;
 
+const MODULES_PER_TASK: usize = 8;
+
 #[plugin]
 #[derive(Debug, Default)]
 pub struct EnsureChunkConditionsPlugin;
@@ -14,32 +16,38 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
   let start = logger.time("ensure chunk conditions");
   let source_module_chunks = FxDashMap::default();
   let compilation_ref = &*compilation;
+  let modules = compilation_ref
+    .get_module_graph()
+    .modules()
+    .map(|(module_id, module)| (*module_id, module.as_ref()))
+    .collect::<Vec<_>>();
   let source_module_chunk_results = rspack_parallel::scope::<_, Result<_>>(|token| {
-    for (module_id, module) in compilation_ref.get_module_graph().modules() {
-      let module_id = *module_id;
-      let s = unsafe { token.used((module.as_ref(), compilation_ref, &source_module_chunks)) };
+    for modules in modules.chunks(MODULES_PER_TASK) {
+      let s = unsafe { token.used((modules, compilation_ref, &source_module_chunks)) };
       s.spawn(
-        move |(module, compilation, source_module_chunks)| async move {
-          let external_module = module.as_external_module();
-          let module_chunks = compilation
-            .build_chunk_graph_artifact
-            .chunk_graph
-            .get_module_chunks(module.identifier());
-          let mut source_chunks = HashSet::default();
-          for chunk in module_chunks {
-            let condition = if let Some(external_module) = external_module {
-              external_module
-                .chunk_condition_with_hooks(chunk, compilation)
-                .await?
-            } else {
-              module.chunk_condition(chunk, compilation)
-            };
-            if matches!(condition, Some(false)) {
-              source_chunks.insert(*chunk);
+        move |(modules, compilation, source_module_chunks)| async move {
+          for &(module_id, module) in modules {
+            let external_module = module.as_external_module();
+            let module_chunks = compilation
+              .build_chunk_graph_artifact
+              .chunk_graph
+              .get_module_chunks(module.identifier());
+            let mut source_chunks = HashSet::default();
+            for chunk in module_chunks {
+              let condition = if let Some(external_module) = external_module {
+                external_module
+                  .chunk_condition_with_hooks(chunk, compilation)
+                  .await?
+              } else {
+                module.chunk_condition(chunk, compilation)
+              };
+              if matches!(condition, Some(false)) {
+                source_chunks.insert(*chunk);
+              }
             }
-          }
-          if !source_chunks.is_empty() {
-            source_module_chunks.insert(module_id, source_chunks);
+            if !source_chunks.is_empty() {
+              source_module_chunks.insert(module_id, source_chunks);
+            }
           }
           Ok(())
         },
