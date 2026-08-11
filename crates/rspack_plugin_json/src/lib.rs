@@ -138,10 +138,11 @@ impl ParserAndGenerator for JsonParserAndGenerator {
       }
     };
 
-    build_info.json_data = Some(data.clone());
+    let is_default_object = data.is_object() || data.is_array();
+    build_info.json_data = Some(data);
     build_info.strict = true;
     build_meta.set_exports_type(BuildMetaExportsType::Default);
-    build_meta.set_default_object(if data.is_object() || data.is_array() {
+    build_meta.set_default_object(if is_default_object {
       BuildMetaDefaultObject::RedirectWarn
     } else {
       BuildMetaDefaultObject::False
@@ -150,10 +151,7 @@ impl ParserAndGenerator for JsonParserAndGenerator {
     Ok(
       rspack_core::ParseResult {
         presentational_dependencies: vec![],
-        dependencies: vec![Box::new(JsonExportsDependency::new(
-          data,
-          self.exports_depth,
-        ))],
+        dependencies: vec![Box::new(JsonExportsDependency::new(self.exports_depth))],
         blocks: vec![],
         code_generation_dependencies: vec![],
         source: box_source,

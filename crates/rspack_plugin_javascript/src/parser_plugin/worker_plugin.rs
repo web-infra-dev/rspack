@@ -5,7 +5,9 @@ use rspack_core::{
   AsyncDependenciesBlock, ConstDependency, DependencyRange, EntryOptions, GroupOptions,
   JavascriptParserWorkerOptions, JavascriptParserWorkerUrl,
 };
+use rspack_error::Severity;
 use rspack_hash::{RspackHash, RspackHasher};
+use rspack_macros::AstObject;
 use rspack_util::SpanExt;
 use rustc_hash::{FxHashMap, FxHashSet};
 use swc_atoms::Atom;
@@ -23,7 +25,6 @@ use crate::{
   dependency::{CreateScriptUrlDependency, WorkerDependency},
   magic_comment::try_extract_magic_comment,
   parser_plugin::url_plugin::is_meta_url,
-  utils::object_properties::get_literal_str_by_obj_prop,
   visitors::{JavascriptParser, TagInfoData, VariableDeclaration},
 };
 
@@ -32,6 +33,12 @@ struct ParsedNewWorkerPath {
   pub range: (u32, u32),
   pub range_request: Option<(u32, u32)>,
   pub value: String,
+}
+
+/// Options of `new Worker(url, options)`.
+#[derive(Debug, Default, AstObject)]
+struct NewWorkerOptions {
+  name: Option<String>,
 }
 
 #[derive(Debug)]
@@ -54,7 +61,11 @@ struct ParsedNewWorkerImportOptions {
   pub ignored: Option<bool>,
 }
 
-fn parse_new_worker_options(arg: &ExprOrSpread, is_shared_worker: bool) -> ParsedNewWorkerOptions {
+fn parse_new_worker_options(
+  parser: &mut JavascriptParser,
+  arg: &ExprOrSpread,
+  is_shared_worker: bool,
+) -> ParsedNewWorkerOptions {
   let obj = arg.expr.as_object();
   let string = if arg.spread.is_none() {
     arg.expr.as_lit().and_then(|lit| lit.as_str())
@@ -62,7 +73,14 @@ fn parse_new_worker_options(arg: &ExprOrSpread, is_shared_worker: bool) -> Parse
     None
   };
   let name = if let Some(obj) = obj {
-    get_literal_str_by_obj_prop(obj, "name").map(|str| str.value.to_string_lossy().into())
+    let (options, diagnostics) = NewWorkerOptions::from_ast_object_with_diagnostics(obj);
+    for mut diagnostic in diagnostics {
+      diagnostic.severity = Severity::Warning;
+      diagnostic.src = Some(parser.source.to_string().into());
+      diagnostic.hide_stack = Some(true);
+      parser.add_warning(diagnostic.into());
+    }
+    options.name
   } else if is_shared_worker {
     string.map(|str| str.value.to_string_lossy().into())
   } else {
@@ -259,7 +277,7 @@ fn handle_worker<'a>(
     let mut options = args
       .get(1)
       // new Worker(new URL("worker.js"), options)
-      .map(|arg| parse_new_worker_options(arg, is_shared_worker));
+      .map(|arg| parse_new_worker_options(parser, arg, is_shared_worker));
 
     let import_options = expr_box
       .as_new()

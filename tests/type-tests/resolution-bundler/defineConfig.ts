@@ -1,4 +1,5 @@
 import { defineConfig } from '@rspack/cli';
+import type { MultiRspackOptions, RspackOptions } from '@rspack/core';
 
 defineConfig({
   mode: 'development',
@@ -44,8 +45,8 @@ defineConfig(async () => [
   },
 ]);
 
-// @ts-expect-error invalid mode
 defineConfig({
+  // @ts-expect-error invalid mode
   mode: 'invalid',
 });
 
@@ -58,3 +59,28 @@ defineConfig(() => ({
 defineConfig(async () => ({
   mode: 'invalid',
 }));
+
+const single: RspackOptions = defineConfig({
+  mode: 'development',
+});
+
+const multi: MultiRspackOptions = defineConfig([
+  {
+    mode: 'development',
+  },
+]);
+
+const syncResult: RspackOptions | MultiRspackOptions = defineConfig(() => ({
+  mode: 'development',
+}))({}, {});
+
+const asyncResult: Promise<RspackOptions | MultiRspackOptions> = defineConfig(
+  async () => ({
+    mode: 'development',
+  }),
+)({}, {});
+
+declare const dynamicConfig: RspackOptions | MultiRspackOptions;
+defineConfig(dynamicConfig);
+
+export { single, multi, syncResult, asyncResult };

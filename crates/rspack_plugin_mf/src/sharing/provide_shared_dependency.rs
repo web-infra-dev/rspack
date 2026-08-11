@@ -73,6 +73,11 @@ impl Dependency for ProvideSharedDependency {
     &DependencyType::ProvideSharedModule
   }
 
+  // Match webpack: global shared providers are applied to initial entrypoints only.
+  fn skip_async_entrypoints(&self) -> bool {
+    true
+  }
+
   fn category(&self) -> &DependencyCategory {
     &DependencyCategory::Esm
   }

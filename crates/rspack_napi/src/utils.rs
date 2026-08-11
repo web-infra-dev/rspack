@@ -1,5 +1,5 @@
 use napi::{
-  Env, JsValue,
+  JsValue,
   bindgen_prelude::{Array, FromNapiValue, JsObjectValue, Object, Unknown},
 };
 
@@ -23,26 +23,6 @@ pub fn object_assign(target: &mut Object, source: &Object) -> napi::Result<()> {
   }
 
   Ok(())
-}
-
-pub fn object_clone<'a>(env: &Env, object: &'a Object<'a>) -> napi::Result<Object<'a>> {
-  let mut new_object = Object::new(env)?;
-
-  let names = object.get_all_property_names(
-    napi::KeyCollectionMode::OwnOnly,
-    napi::KeyFilter::AllProperties,
-    napi::KeyConversion::KeepNumbers,
-  )?;
-  let names = Array::from_unknown(names.to_unknown())?;
-
-  for index in 0..names.len() {
-    if let Some(name) = names.get::<Unknown>(index)? {
-      let value = object.get_property::<Unknown, Unknown>(name)?;
-      new_object.set_property::<Unknown, Unknown>(name, value)?;
-    }
-  }
-
-  Ok(new_object)
 }
 
 pub fn unknown_to_json_value(value: Unknown) -> napi::Result<Option<serde_json::Value>> {

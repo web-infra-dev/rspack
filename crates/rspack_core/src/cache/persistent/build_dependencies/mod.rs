@@ -14,8 +14,6 @@ use super::{
 };
 use crate::CompilationLogger;
 
-pub const SCOPE: &str = "build_dependencies";
-
 pub type BuildDepsOptions = Vec<PathBuf>;
 
 #[derive(Debug)]

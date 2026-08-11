@@ -517,10 +517,6 @@ impl ExternalModule {
     &self.user_request
   }
 
-  pub fn user_request_mut(&mut self) -> &mut String {
-    &mut self.user_request
-  }
-
   pub fn set_id(&mut self, id: Identifier) {
     self.id = id;
   }

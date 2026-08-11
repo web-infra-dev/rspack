@@ -3,40 +3,58 @@
 > See [cache object](/api/javascript-api/cache) for more details.
 
 ```ts
+type CallbackCache<T> = (error?: WebpackError | null, result?: T) => void;
+
 type CacheFacade = {
-  getChildCache(name: string): CacheFacade; // create a named child cache object
-  getItemCache(identifier, etag): ItemCacheFacade; // create a cache object for an data item
-  getLazyHashedEtag(obj: HashableObject): Etag; // create a lazy computed etag
-  mergeEtags(a: Etag, b: Etag): Etag; // merge two etags
-  get<T>( // async data getter, callback by function
+  // Returns a child cache scoped by `name`.
+  getChildCache(name: string): CacheFacade;
+
+  // Returns an item cache scoped by `identifier` and `etag`.
+  getItemCache(identifier: string, etag: Etag | null): ItemCacheFacade;
+
+  // Creates a lazily computed ETag for a hashable object.
+  getLazyHashedEtag(obj: HashableObject): Etag;
+
+  // Combines two ETags into one.
+  mergeEtags(a: Etag, b: Etag): Etag;
+
+  // Reads a cached value; a cache miss yields `undefined` in the callback.
+  get<T>(
     identifier: string,
-    etag: Etag,
-    callback: (err: Error, result: T) => void,
+    etag: Etag | null,
+    callback: CallbackCache<T>,
   ): void;
-  getPromise<T>( // async data getter, callback by promise
+
+  // Reads a cached value; resolves to `undefined` on a cache miss.
+  getPromise<T>(identifier: string, etag: Etag | null): Promise<T | undefined>;
+
+  // Stores a value and reports completion through a callback.
+  store<T>(
     identifier: string,
-    etag: Etag,
-  ): Promise<T>;
-  store<T>( // async data setter, callback by function
-    identifier: string,
-    etag: Etag,
+    etag: Etag | null,
     data: T,
-    callback: (err: Error) => void,
+    callback: CallbackCache<void>,
   ): void;
-  storePromise<T>( // async data setter, callback by promise
+
+  // Stores a value and resolves when the write completes.
+  storePromise<T>(
     identifier: string,
-    etag: Etag,
+    etag: Etag | null,
     data: T,
   ): Promise<void>;
-  provide<T>( // try to get the data, use function to compute if not exists, callback by function
+
+  // Reads a cached value; on a miss, invokes the callback-based `computer` and stores its result.
+  provide<T>(
     identifier: string,
-    etag: Etag,
-    computer: () => T | Promise<T>,
-    callback: (err: Error, result: T) => void,
+    etag: Etag | null,
+    computer: (callback: CallbackCache<T>) => void,
+    callback: CallbackCache<T>,
   ): void;
-  providePromise<T>( // try to get the data, use function to compute if not exists, callback by function
+
+  // Reads a cached value; on a miss, invokes `computer`, stores its result, and resolves with it.
+  providePromise<T>(
     identifier: string,
-    etag: Etag,
+    etag: Etag | null,
     computer: () => T | Promise<T>,
   ): Promise<T>;
 };

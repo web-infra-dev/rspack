@@ -396,15 +396,19 @@ export type RspackConfigExport =
  */
 export function defineConfig<
   const Config extends RspackOptions | MultiRspackOptions,
->(config: (...args: Parameters<RspackConfigFn>) => Config): RspackConfigFn;
-export function defineConfig<
-  const Config extends RspackOptions | MultiRspackOptions,
+  const Definition extends
+    | Config
+    | ((...args: Parameters<RspackConfigFn>) => Config)
+    | ((...args: Parameters<RspackConfigFn>) => Promise<Config>),
 >(
-  config: (...args: Parameters<RspackConfigFn>) => Promise<Config>,
-): RspackConfigAsyncFn;
-export function defineConfig(config: RspackOptions): RspackOptions;
-export function defineConfig(config: MultiRspackOptions): MultiRspackOptions;
-export function defineConfig(config: RspackConfigExport): RspackConfigExport;
+  config: Definition,
+): Definition extends (...args: Parameters<RspackConfigFn>) => Promise<unknown>
+  ? RspackConfigAsyncFn
+  : Definition extends (...args: Parameters<RspackConfigFn>) => unknown
+    ? RspackConfigFn
+    : Definition extends readonly unknown[]
+      ? MultiRspackOptions
+      : RspackOptions;
 export function defineConfig(config: RspackConfigExport) {
   return config;
 }

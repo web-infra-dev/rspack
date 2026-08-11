@@ -1,0 +1,7 @@
+interface:
+  display_name: 'Rstack Ecosystem CI Debug'
+  short_description: 'Trace Rstack ecosystem CI regressions to their source'
+  default_prompt: 'Use $rstack-eco-ci-debug to investigate the requested Rstack ecosystem CI regression and identify its true source.'
+
+policy:
+  allow_implicit_invocation: false

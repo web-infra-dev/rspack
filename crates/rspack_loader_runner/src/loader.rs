@@ -71,11 +71,6 @@ impl<C: Send> LoaderItem<C> {
   }
 
   #[inline]
-  pub fn fragment(&self) -> Option<&str> {
-    self.fragment.as_deref()
-  }
-
-  #[inline]
   pub fn r#type(&self) -> &str {
     &self.r#type
   }

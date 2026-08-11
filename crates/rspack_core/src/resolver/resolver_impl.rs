@@ -25,8 +25,6 @@ pub struct ResolveDependencies {
   pub missing_dependencies: ArcResolverPathSet,
 }
 
-pub type ResolveContext = ResolveDependencies;
-
 /// Proxy to [nodejs_resolver::Error] or [rspack_resolver::ResolveError]
 #[derive(Debug)]
 pub enum ResolveInnerError {

@@ -135,10 +135,6 @@ impl ExportInfoData {
     }
   }
 
-  pub fn belongs_to(&self) -> &ExportsInfo {
-    &self.belongs_to
-  }
-
   pub fn name(&self) -> Option<&Atom> {
     self.name.as_ref()
   }

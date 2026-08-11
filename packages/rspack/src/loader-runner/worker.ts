@@ -5,6 +5,8 @@ import { type MessagePort, receiveMessageOnPort } from 'node:worker_threads';
 
 import { JsLoaderState, type NormalModule } from '@rspack/binding';
 import type { LoaderContext } from '../config';
+import type { ResolveCallback } from '../config/adapterRuleUse';
+import type { ResolveRequest } from '../Resolver';
 import * as swc from '../swc';
 import { cleverMerge } from '../util/cleverMerge';
 import { createHash } from '../util/createHash';
@@ -81,6 +83,11 @@ async function loaderImpl(
       sendRequest(RequestType.AddContextDependency, context),
     );
   };
+  loaderContext.addMissingDependency = function addMissingDependency(missing) {
+    pendingDependencyRequest.push(
+      sendRequest(RequestType.AddMissingDependency, missing),
+    );
+  };
   loaderContext.addBuildDependency = function addBuildDependency(file) {
     pendingDependencyRequest.push(
       sendRequest(RequestType.AddBuildDependency, file),
@@ -103,8 +110,8 @@ async function loaderImpl(
   };
   loaderContext.resolve = function resolve(context, request, callback) {
     sendRequest(RequestType.Resolve, context, request).then(
-      (result) => {
-        callback(null, result);
+      ([result, resolveRequest]) => {
+        callback(null, result, resolveRequest);
       },
       (err) => {
         callback(err);
@@ -112,11 +119,29 @@ async function loaderImpl(
     );
   };
   loaderContext.getResolve = function getResolve(options) {
-    return (context, request, callback) => {
+    function resolveWithOptions(
+      context: string,
+      request: string,
+      callback: ResolveCallback,
+    ): void;
+    function resolveWithOptions(
+      context: string,
+      request: string,
+    ): Promise<string | false | undefined>;
+    function resolveWithOptions(
+      context: string,
+      request: string,
+      callback?: ResolveCallback,
+    ) {
       if (!callback) {
-        return new Promise((resolve, reject) => {
-          sendRequest(RequestType.GetResolve, options, context, request).then(
-            (result) => {
+        return new Promise<string | false | undefined>((resolve, reject) => {
+          sendRequest<[string | false | undefined, ResolveRequest | undefined]>(
+            RequestType.GetResolve,
+            options,
+            context,
+            request,
+          ).then(
+            ([result]) => {
               resolve(result);
             },
             (err) => {
@@ -126,14 +151,16 @@ async function loaderImpl(
         });
       }
       sendRequest(RequestType.GetResolve, options, context, request).then(
-        (result) => {
-          callback(null, result);
+        ([result, resolveRequest]) => {
+          callback(null, result, resolveRequest);
         },
         (err) => {
           callback(err);
         },
       );
-    };
+    }
+
+    return resolveWithOptions;
   };
   loaderContext.getLogger = function getLogger(name) {
     return {
@@ -161,7 +188,7 @@ async function loaderImpl(
         sendRequest(RequestType.GetLogger, 'trace', name, ['Trace']);
       },
       clear() {
-        sendRequest(RequestType.GetLogger, 'clear', name);
+        sendRequest(RequestType.GetLogger, 'clear', name, []);
       },
       status(...args) {
         sendRequest(RequestType.GetLogger, 'status', name, args);

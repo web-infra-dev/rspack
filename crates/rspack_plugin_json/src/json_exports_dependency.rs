@@ -1,5 +1,5 @@
 use json::JsonValue;
-use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
+use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, AsModuleDependency, Compilation, Dependency, DependencyCodeGeneration,
   DependencyId, ExportNameOrSpec, ExportSpec, ExportsInfoArtifact, ExportsOfExportsSpec,
@@ -12,18 +12,23 @@ use rspack_util::itoa;
 #[derive(Debug, Clone)]
 pub struct JsonExportsDependency {
   id: DependencyId,
-  #[cacheable(with=AsPreset)]
-  data: JsonValue,
   exports_depth: u32,
 }
 
 impl JsonExportsDependency {
-  pub fn new(data: JsonValue, exports_depth: u32) -> Self {
+  pub fn new(exports_depth: u32) -> Self {
     Self {
-      data,
       id: DependencyId::new(),
       exports_depth,
     }
+  }
+
+  fn data<'a>(&self, module_graph: &'a ModuleGraph) -> &'a JsonValue {
+    module_graph
+      .get_parent_module(&self.id)
+      .and_then(|identifier| module_graph.module_by_identifier(identifier))
+      .and_then(|module| module.build_info().json_data.as_ref())
+      .expect("JSON export dependency should have parent JSON module data")
   }
 }
 
@@ -35,12 +40,12 @@ impl Dependency for JsonExportsDependency {
 
   fn get_exports(
     &self,
-    _mg: &ModuleGraph,
+    module_graph: &ModuleGraph,
     _mg_cache: &ModuleGraphCacheArtifact,
     _exports_info_artifact: &ExportsInfoArtifact,
   ) -> Option<ExportsSpec> {
     Some(ExportsSpec {
-      exports: get_exports_from_data(&self.data, self.exports_depth, 1)
+      exports: get_exports_from_data(self.data(module_graph), self.exports_depth, 1)
         .map_or(ExportsOfExportsSpec::NoExports, ExportsOfExportsSpec::Names),
       ..Default::default()
     })
@@ -59,10 +64,11 @@ impl DependencyCodeGeneration for JsonExportsDependency {
   fn update_hash(
     &self,
     hasher: &mut RspackHasher,
-    _compilation: &Compilation,
+    compilation: &Compilation,
     _runtime: Option<&RuntimeSpec>,
   ) {
-    self.data.to_string().hash(hasher);
+    let module_graph = compilation.get_module_graph();
+    self.data(module_graph).to_string().hash(hasher);
   }
 }
 

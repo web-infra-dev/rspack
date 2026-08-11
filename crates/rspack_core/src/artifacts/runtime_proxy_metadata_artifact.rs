@@ -73,13 +73,6 @@ impl RuntimeProxyMetadata {
     Self::renderable_fields(self.context_setter_fields)
   }
 
-  pub fn render_lexical_declarations(
-    &self,
-    render_runtime_global: Option<&dyn Fn(RuntimeGlobals) -> Option<String>>,
-  ) -> String {
-    render_lexical_declarations(self.lexical_fields(), render_runtime_global)
-  }
-
   pub fn render_context_setter_assignments(&self, runtime_context: &str) -> String {
     let mut source = String::new();
     for (_, runtime_global) in self.context_fields().iter_names() {

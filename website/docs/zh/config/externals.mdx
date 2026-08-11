@@ -536,18 +536,16 @@ async function foo() {
 
 ```js title="rspack.config.mjs"
 export default {
-  externalsType: "module-import",
+  externalsType: 'module-import',
   externals: [
-    function (
-      { request, dependencyType },
-      callback
-    ) {
-      if (dependencyType === "commonjs") {
+    function ({ request, dependencyType }, callback) {
+      if (dependencyType === 'commonjs') {
         return callback(null, `node-commonjs ${request}`);
       }
       callback();
     },
-  ]
+  ],
+};
 ```
 
 ### externalsType['modern-module']

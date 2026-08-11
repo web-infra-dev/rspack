@@ -15,27 +15,25 @@ import { Stability, ApiMeta } from '@components/ApiMeta';
 **选项**
 
 - `mfConfig`：`ModuleFederationPluginOptions`，传入模块联邦插件所需要的配置项。
-- `plugins`：额外插件列表，可在独立编译中复用。
 - `secondary`：是否在独立编译阶段执行二次摇树优化（二次摇树通常在部署平台确定了完整的依赖信息后重新触发的一次全新构建，提高共享依赖 tree shaking 命中的准确率）。
 
 **使用示例**
 
 ```js title="rspack.config.mjs"
-import { TreeShakingSharedPlugin } from '@rspack/core';
+import { sharing } from '@rspack/core';
 
 export default {
   plugins: [
-    new TreeShakingSharedPlugin({
+    new sharing.TreeShakingSharedPlugin({
       secondary: true,
       mfConfig: {
         name: 'app',
         shared: {
-          'lodash-es': { treeShaking: true },
+          'lodash-es': { treeShaking: { mode: 'server-calc' } },
         },
         library: { type: 'var', name: 'App' },
         manifest: true,
       },
-      plugins: [],
     }),
   ],
 };
@@ -45,4 +43,5 @@ export default {
 
 - 读取 `shared` 配置后标准化为 `[shareName, SharedConfig][]`。
 - 当 `secondary` 为 `false` 时，注册 `SharedUsedExportsOptimizerPlugin`，基于 stats 清单注入已用导出集合。
-- 对 `tree shaking` 的共享包触发独立编译，产出回写到 stats/manifest 中的 fallback 字段。
+- 仅当共享依赖启用了 `treeShaking` 且保留本地实现（即未设置 `import: false`）时，插件才会为它创建独立构建。
+- 启用 `mfConfig.manifest` 后，独立构建的产物信息会写入 stats 和 manifest，供运行时作为 fallback 加载。

@@ -15,17 +15,16 @@ import { Stability, ApiMeta } from '@components/ApiMeta';
 **Options**
 
 - `mfConfig`: `ModuleFederationPluginOptions`, configuration passed to the Module Federation plugin.
-- `plugins`: extra plugins reused during independent builds.
 - `secondary`: whether to perform a second tree-shake during independent builds (typically used when the deployment platform has determined complete dependency info and triggers a fresh build to improve tree-shake accuracy for shared dependencies).
 
 **Usage**
 
 ```js title="rspack.config.mjs"
-import { TreeShakingSharedPlugin } from '@rspack/core';
+import { sharing } from '@rspack/core';
 
 export default {
   plugins: [
-    new TreeShakingSharedPlugin({
+    new sharing.TreeShakingSharedPlugin({
       secondary: true,
       mfConfig: {
         name: 'app',
@@ -35,7 +34,6 @@ export default {
         library: { type: 'var', name: 'App' },
         manifest: true,
       },
-      plugins: [],
     }),
   ],
 };
@@ -45,4 +43,5 @@ export default {
 
 - Normalizes `shared` into `[shareName, SharedConfig][]`.
 - Registers `SharedUsedExportsOptimizerPlugin` when `secondary` is `false` to inject used-exports from the stats manifest.
-- Triggers independent compilation for shared entries with `tree shaking: true`, and writes the produced assets back to the `stats/manifest` (fallback fields).
+- Creates an independent build only for shared dependencies that enable `treeShaking` and retain a local implementation (that is, `import` is not `false`).
+- When `mfConfig.manifest` is enabled, records the independent build output in the stats and manifest files so the runtime can load it as a fallback.

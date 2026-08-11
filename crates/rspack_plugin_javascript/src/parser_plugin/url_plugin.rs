@@ -1,6 +1,6 @@
 use rspack_core::{
   ContextDependency, ContextMode, ContextOptions, DependencyCategory, JavascriptParserUrl,
-  RuntimeGlobals, RuntimeRequirementsDependency,
+  RuntimeGlobals, RuntimeRequirementsDependency, get_context,
 };
 use rspack_util::SpanExt;
 use swc_atoms::Atom;
@@ -193,6 +193,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for URLPlugin {
 
     let param = parser.evaluate_expression(&arg.expr);
     let result = create_context_dependency(&param, parser);
+    let request = result.request();
     let options = ContextOptions {
       mode: ContextMode::Sync,
       recursive: true,
@@ -200,8 +201,9 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for URLPlugin {
       include: magic_comment_options.get_include(),
       exclude: magic_comment_options.get_exclude(),
       category: DependencyCategory::Url,
-      request: format!("{}{}{}", result.context, result.query, result.fragment),
-      context: result.context,
+      request,
+      context: get_context(parser.resource_data).to_string(),
+      compiler_context: parser.compiler_options.context.clone(),
       replaces: result.replaces,
       start: expr.span().real_lo(),
       end: expr.span().real_hi(),

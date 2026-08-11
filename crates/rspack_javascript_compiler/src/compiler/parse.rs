@@ -72,34 +72,6 @@ impl JavaScriptCompiler {
       })
   }
 
-  pub fn parse_with_lexer(
-    self,
-    source: &str,
-    lexer: Lexer,
-    is_module: IsModule,
-    comments: Option<SingleThreadedComments>,
-    with_tokens: bool,
-  ) -> Result<(Ast, Option<Vec<TokenAndSpan>>), BatchErrors> {
-    parse_with_lexer(lexer, is_module, with_tokens)
-      .map(|(program, tokens)| {
-        (
-          Ast::new(program, self.cm.clone(), comments)
-            .with_context(ast::Context::new(self.cm.clone(), Some(self.globals))),
-          tokens,
-        )
-      })
-      .map_err(|errs| {
-        let source: Arc<str> = source.into();
-        BatchErrors(
-          errs
-            .dedup_ecma_errors()
-            .into_iter()
-            .map(|err| ecma_parse_error_deduped_to_rspack_error(err, source.clone()))
-            .collect::<Vec<_>>(),
-        )
-      })
-  }
-
   /// Parses JavaScript code from a source file into an [SwcProgram].
   pub fn parse_js(
     &self,

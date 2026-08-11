@@ -116,10 +116,6 @@ impl ESMImportSpecifierDependency {
       .map_or_else(|| self.ids.as_slice(), |meta| meta.ids.as_slice())
   }
 
-  pub fn name(&self) -> &Atom {
-    &self.name
-  }
-
   pub fn imported_name(&self) -> &Atom {
     self.ids.first().unwrap_or(&self.name)
   }

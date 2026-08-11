@@ -1907,10 +1907,6 @@ impl RuntimeCodeTemplate {
     }
   }
 
-  pub fn render_this_exports(&self) -> String {
-    "this".to_string()
-  }
-
   pub fn basic_function(&self, args: &str, body: &str) -> String {
     if self
       .compiler_options

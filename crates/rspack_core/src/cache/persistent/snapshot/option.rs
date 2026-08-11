@@ -90,16 +90,6 @@ impl SnapshotOptions {
     }
   }
 
-  pub fn with_context_dependencies_strategy(mut self, strategy: SnapshotStrategyOptions) -> Self {
-    self.context_dependencies = strategy;
-    self
-  }
-
-  pub fn with_dependencies_strategy(mut self, strategy: SnapshotStrategyOptions) -> Self {
-    self.dependencies = strategy;
-    self
-  }
-
   pub fn dependencies_strategy(&self) -> SnapshotStrategyOptions {
     self.dependencies
   }
