@@ -14,7 +14,6 @@ pub struct CacheFacade {
   name: Arc<str>,
 }
 
-#[allow(private_bounds)]
 impl CacheFacade {
   pub(crate) fn new(cache: Cache, name: impl Into<Arc<str>>) -> Self {
     Self {
@@ -68,7 +67,6 @@ pub struct ItemCacheFacade {
   etag: Option<Etag>,
 }
 
-#[allow(private_bounds)]
 impl ItemCacheFacade {
   pub async fn get<T: CacheValueData>(&self) -> Result<Option<CacheValue<T>>> {
     self.cache.get(self.key.clone(), self.etag.clone()).await

@@ -56,7 +56,7 @@ impl<T> From<Arc<T>> for CacheValue<T> {
 }
 
 /// Internal marker automatically implemented for cacheable values.
-pub(crate) trait CacheValueData:
+pub trait CacheValueData:
   Any
   + Send
   + Sync
@@ -125,7 +125,6 @@ impl CacheEntry {
   }
 }
 
-#[allow(private_bounds)]
 impl<T: CacheValueData> CacheValue<T> {
   pub(super) fn erase(self) -> ErasedCacheValue {
     ErasedCacheValue::new(self.0)

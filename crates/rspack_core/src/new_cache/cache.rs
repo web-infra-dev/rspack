@@ -19,7 +19,7 @@ struct CacheInner {
   idle_file_cache: Option<IdleFileCache>,
 }
 
-/// Cheaply clonable handle to the shared cache state.
+/// Cheaply cloneable handle to the shared cache state.
 #[derive(Debug, Clone)]
 pub struct Cache {
   inner: Arc<Option<CacheInner>>,
