@@ -1,4 +1,4 @@
-use rspack_core::{Compilation, CompilationOptimizeChunks, Logger, Plugin, module_chunk_condition};
+use rspack_core::{Compilation, CompilationOptimizeChunks, Logger, Plugin};
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
@@ -14,16 +14,21 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
   let start = logger.time("ensure chunk conditions");
   let mut source_module_chunks = HashMap::default();
   for (module_id, module) in compilation.get_module_graph().modules() {
+    let external_module = module.as_external_module();
     let module_chunks = compilation
       .build_chunk_graph_artifact
       .chunk_graph
       .get_module_chunks(module.identifier());
     let mut source_chunks = Vec::new();
     for chunk in module_chunks {
-      if matches!(
-        module_chunk_condition(module.as_ref(), chunk, compilation).await?,
-        Some(false)
-      ) {
+      let condition = if let Some(external_module) = external_module {
+        external_module
+          .chunk_condition_with_hooks(chunk, compilation)
+          .await?
+      } else {
+        module.chunk_condition(chunk, compilation)
+      };
+      if matches!(condition, Some(false)) {
         source_chunks.push(*chunk);
       }
     }
@@ -64,18 +69,24 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
             .get(chunk_group_key)
           {
             adjust_chunk_group_size += 1;
+            let module = compilation
+              .get_module_graph()
+              .module_by_identifier(module_id);
+            let external_module = module.and_then(|module| module.as_external_module());
             for chunk in &chunk_group.chunks {
               adjust_chunk_in_chunk_group_size += 1;
-              if let Some(module) = compilation
-                .get_module_graph()
-                .module_by_identifier(module_id)
-                && matches!(
-                  module_chunk_condition(module.as_ref(), chunk, compilation).await?,
-                  Some(true)
-                )
-              {
-                target_chunks.insert(*chunk);
-                continue 'out;
+              if let Some(module) = module {
+                let condition = if let Some(external_module) = external_module {
+                  external_module
+                    .chunk_condition_with_hooks(chunk, compilation)
+                    .await?
+                } else {
+                  module.chunk_condition(chunk, compilation)
+                };
+                if matches!(condition, Some(true)) {
+                  target_chunks.insert(*chunk);
+                  continue 'out;
+                }
               }
             }
             if chunk_group.is_initial() {
