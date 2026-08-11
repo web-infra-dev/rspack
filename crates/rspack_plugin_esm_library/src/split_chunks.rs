@@ -143,12 +143,14 @@ async fn matches_module_to_cache_group(
   let satisfied_test = match &cache_group.test {
     CacheGroupTest::String(str) => module.identifier().contains(str),
     CacheGroupTest::RegExp(regexp) => regexp.test(module.identifier().as_str()),
-    CacheGroupTest::Fn(f) => f(CacheGroupTestFnCtx {
+    CacheGroupTest::Fn(f) => f(vec![CacheGroupTestFnCtx {
       compilation,
       module,
-    })
+    }])
     .await
     .to_rspack_result()?
+    .pop()
+    .flatten()
     .unwrap_or(false),
     CacheGroupTest::Enabled => true,
   };
@@ -163,9 +165,11 @@ async fn matches_module_to_cache_group(
   }
 
   // match layer
-  if !(cache_group.layer)(module.get_layer().map(ToString::to_string))
+  if !(cache_group.layer)(vec![module.get_layer().map(ToString::to_string)])
     .await
     .to_rspack_result()
+    .unwrap_or_default()
+    .pop()
     .unwrap_or(false)
   {
     return Ok(false);
@@ -195,7 +199,7 @@ pub(crate) async fn split(groups: &[CacheGroup], compilation: &mut Compilation) 
             ChunkNameGetter::String(name) => Some((Either::Left(name.clone()), module_identifier)),
             ChunkNameGetter::Disabled => Some((Either::Right(index), module_identifier)),
             ChunkNameGetter::Fn(func) => {
-              let name_res = func(ChunkNameGetterFnCtx {
+              let name_res = func(vec![ChunkNameGetterFnCtx {
                 module,
                 compilation,
                 chunks: &compilation
@@ -206,12 +210,14 @@ pub(crate) async fn split(groups: &[CacheGroup], compilation: &mut Compilation) 
                   .copied()
                   .collect(),
                 cache_group_key: &group.key,
-              })
+              }])
               .await;
 
               match name_res {
-                Ok(Some(name)) => Some((Either::Left(name), module_identifier)),
-                Ok(None) => Some((Either::Right(index), module_identifier)),
+                Ok(mut names) => match names.pop().flatten() {
+                  Some(name) => Some((Either::Left(name), module_identifier)),
+                  None => Some((Either::Right(index), module_identifier)),
+                },
                 Err(err) => return Err(err),
               }
             }

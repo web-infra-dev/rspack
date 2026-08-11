@@ -1893,13 +1893,13 @@ export interface RawBundlerInfoPluginOptions {
 export interface RawCacheGroupOptions {
   key: string
   priority?: number
-  test?: RegExp | string | Function
+  test?: RegExp | string | ((contexts: JsCacheGroupTestCtx[]) => (boolean | undefined)[])
   filename?: JsFilename
   idHint?: string
   /** What kind of chunks should be selected. */
-  chunks?: RegExp | 'async' | 'initial' | 'all'
+  chunks?: RegExp | 'async' | 'initial' | 'all' | ((chunks: Chunk[]) => boolean[])
   type?: RegExp | string
-  layer?: RegExp | string | ((layer?: string) => boolean)
+  layer?: RegExp | string | ((layers: (string | undefined)[]) => boolean[])
   automaticNameDelimiter?: string
   minChunks?: number
   minSize?: number | RawSplitChunkSizes
@@ -1910,7 +1910,7 @@ export interface RawCacheGroupOptions {
   maxInitialSize?: number | RawSplitChunkSizes
   maxAsyncRequests?: number
   maxInitialRequests?: number
-  name?: string | false | Function
+  name?: string | false | ((contexts: JsChunkOptionNameCtx[]) => (string | undefined)[])
   reuseExistingChunk?: boolean
   enforce?: boolean
   usedExports?: boolean
@@ -3074,11 +3074,11 @@ export interface RawSplitChunkSizes {
 
 export interface RawSplitChunksOptions {
   fallbackCacheGroup?: RawFallbackCacheGroupOptions
-  name?: string | false | Function
+  name?: string | false | ((contexts: JsChunkOptionNameCtx[]) => (string | undefined)[])
   filename?: JsFilename
   cacheGroups?: Array<RawCacheGroupOptions>
   /** What kind of chunks should be selected. */
-  chunks?: RegExp | 'async' | 'initial' | 'all' | Function
+  chunks?: RegExp | 'async' | 'initial' | 'all' | ((chunks: Chunk[]) => boolean[])
   usedExports?: boolean
   automaticNameDelimiter?: string
   maxAsyncRequests?: number

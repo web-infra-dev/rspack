@@ -49,25 +49,26 @@ export function toRawSplitChunksOptions(
     }
 
     if (typeof name === 'function') {
-      return (ctx: Context) => {
-        if (typeof ctx.module === 'undefined') {
-          return name(undefined);
-        }
-        return name(ctx.module, getChunks(ctx.chunks), ctx.cacheGroupKey);
-      };
+      return (contexts: Context[]) =>
+        contexts.map((ctx) => {
+          if (typeof ctx.module === 'undefined') {
+            return name(undefined);
+          }
+          return name(ctx.module, ctx.chunks, ctx.cacheGroupKey);
+        });
     }
     return name;
   }
 
   function getTest(test: OptimizationSplitChunksCacheGroup['test']) {
     if (typeof test === 'function') {
-      return (ctx: JsCacheGroupTestCtx) => {
+      return (contexts: JsCacheGroupTestCtx[]) => {
         // chunk graph and module graph should all exist in the optimizeChunks stage
         const info = {
           moduleGraph: compiler._lastCompilation!.moduleGraph,
           chunkGraph: compiler._lastCompilation!.chunkGraph,
         };
-        return test(ctx.module, info);
+        return contexts.map((ctx) => test(ctx.module, info));
       };
     }
     return test;
@@ -75,9 +76,16 @@ export function toRawSplitChunksOptions(
 
   function getChunks(chunks: any) {
     if (typeof chunks === 'function') {
-      return (chunk: Chunk) => chunks(chunk);
+      return (items: Chunk[]) => items.map((chunk) => chunks(chunk));
     }
     return chunks;
+  }
+
+  function getLayer(layer: OptimizationSplitChunksCacheGroup['layer']) {
+    if (typeof layer === 'function') {
+      return (layers: (string | undefined)[]) => layers.map(layer);
+    }
+    return layer;
   }
 
   const {
@@ -106,6 +114,7 @@ export function toRawSplitChunksOptions(
           test,
           name,
           chunks,
+          layer,
           minSize,
           minSizeReduction,
           enforceSizeThreshold,
@@ -119,6 +128,7 @@ export function toRawSplitChunksOptions(
           test: getTest(test),
           name: getName(name),
           chunks: getChunks(chunks),
+          layer: getLayer(layer),
           minSize: JsSplitChunkSizes.__to_binding(minSize),
           minSizeReduction: JsSplitChunkSizes.__to_binding(minSizeReduction),
           enforceSizeThreshold:

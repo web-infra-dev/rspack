@@ -12,7 +12,7 @@ pub struct ChunkNameGetterFnCtx<'a> {
 }
 
 type ChunkNameGetterFn = Arc<
-  dyn for<'a> Fn(ChunkNameGetterFnCtx<'a>) -> BoxFuture<'static, Result<Option<String>>>
+  dyn for<'a> Fn(Vec<ChunkNameGetterFnCtx<'a>>) -> BoxFuture<'static, Result<Vec<Option<String>>>>
     + Sync
     + Send,
 >;

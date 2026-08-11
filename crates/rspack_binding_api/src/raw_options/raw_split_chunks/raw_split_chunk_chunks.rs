@@ -11,7 +11,8 @@ use crate::{
   chunk::ChunkWrapper, compiler_scoped_tsfn::CompilerScopedTsFnHandle as ThreadsafeFunction,
 };
 
-pub type Chunks<'a> = Either3<RspackRegex, JsString<'a>, ThreadsafeFunction<ChunkWrapper, bool>>;
+pub type Chunks<'a> =
+  Either3<RspackRegex, JsString<'a>, ThreadsafeFunction<Vec<ChunkWrapper>, Vec<bool>>>;
 
 pub fn create_chunks_filter(raw: Chunks) -> ChunkFilter {
   match raw {
@@ -20,10 +21,13 @@ pub fn create_chunks_filter(raw: Chunks) -> ChunkFilter {
       let js_str = js_str.into_string();
       create_chunk_filter_from_str(&js_str)
     }
-    Either3::C(f) => ChunkFilter::Func(Arc::new(move |chunk_ukey, compilation| {
+    Either3::C(f) => ChunkFilter::Func(Arc::new(move |chunk_ukeys, compilation| {
       let f = f.clone();
-      let chunk_wrapper = ChunkWrapper::new(*chunk_ukey, compilation);
-      Box::pin(async move { f.call_with_sync(chunk_wrapper).await })
+      let chunk_wrappers = chunk_ukeys
+        .into_iter()
+        .map(|chunk_ukey| ChunkWrapper::new(chunk_ukey, compilation))
+        .collect();
+      Box::pin(async move { f.call_with_sync(chunk_wrappers).await })
     })),
   }
 }

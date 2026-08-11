@@ -9,8 +9,11 @@ pub struct CacheGroupTestFnCtx<'a> {
   pub module: &'a dyn Module,
 }
 
-type CacheGroupTestFn =
-  Arc<dyn Fn(CacheGroupTestFnCtx<'_>) -> BoxFuture<'static, Result<Option<bool>>> + Send + Sync>;
+type CacheGroupTestFn = Arc<
+  dyn Fn(Vec<CacheGroupTestFnCtx<'_>>) -> BoxFuture<'static, Result<Vec<Option<bool>>>>
+    + Send
+    + Sync,
+>;
 
 #[derive(Clone)]
 pub enum CacheGroupTest {

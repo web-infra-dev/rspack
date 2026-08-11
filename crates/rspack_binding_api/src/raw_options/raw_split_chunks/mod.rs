@@ -26,17 +26,22 @@ use crate::{
   compiler_scoped_tsfn::CompilerScopedTsFnHandle as ThreadsafeFunction, filename::JsFilename,
 };
 
+pub type RawModuleLayerFilter<'a> =
+  Either3<RspackRegex, JsString<'a>, ThreadsafeFunction<Vec<Option<String>>, Vec<bool>>>;
+
 #[napi(object, object_to_js = false)]
 #[derive(Debug)]
 pub struct RawSplitChunksOptions<'a> {
   pub fallback_cache_group: Option<RawFallbackCacheGroupOptions<'a>>,
-  #[napi(ts_type = "string | false | Function")]
+  #[napi(
+    ts_type = "string | false | ((contexts: JsChunkOptionNameCtx[]) => (string | undefined)[])"
+  )]
   #[debug(skip)]
   pub name: Option<RawChunkOptionName>,
   pub filename: Option<JsFilename>,
   pub cache_groups: Option<Vec<RawCacheGroupOptions<'a>>>,
   /// What kind of chunks should be selected.
-  #[napi(ts_type = "RegExp | 'async' | 'initial' | 'all' | Function")]
+  #[napi(ts_type = "RegExp | 'async' | 'initial' | 'all' | ((chunks: Chunk[]) => boolean[])")]
   #[debug(skip)]
   pub chunks: Option<Chunks<'a>>,
   pub used_exports: Option<bool>,
@@ -64,22 +69,24 @@ pub struct RawCacheGroupOptions<'a> {
   pub priority: Option<i32>,
   // pub reuse_existing_chunk: Option<bool>,
   //   pub r#type: SizeType,
-  #[napi(ts_type = "RegExp | string | Function")]
+  #[napi(
+    ts_type = "RegExp | string | ((contexts: JsCacheGroupTestCtx[]) => (boolean | undefined)[])"
+  )]
   #[debug(skip)]
   pub test: Option<RawCacheGroupTest>,
   pub filename: Option<JsFilename>,
   //   pub enforce: bool,
   pub id_hint: Option<String>,
   /// What kind of chunks should be selected.
-  #[napi(ts_type = "RegExp | 'async' | 'initial' | 'all'")]
+  #[napi(ts_type = "RegExp | 'async' | 'initial' | 'all' | ((chunks: Chunk[]) => boolean[])")]
   #[debug(skip)]
   pub chunks: Option<Chunks<'a>>,
   #[napi(ts_type = "RegExp | string")]
   #[debug(skip)]
   pub r#type: Option<Either<RspackRegex, JsString<'a>>>,
-  #[napi(ts_type = "RegExp | string | ((layer?: string) => boolean)")]
+  #[napi(ts_type = "RegExp | string | ((layers: (string | undefined)[]) => boolean[])")]
   #[debug(skip)]
-  pub layer: Option<Either3<RspackRegex, JsString<'a>, ThreadsafeFunction<Option<String>, bool>>>,
+  pub layer: Option<RawModuleLayerFilter<'a>>,
   pub automatic_name_delimiter: Option<String>,
   //   pub max_async_requests: usize,
   //   pub max_initial_requests: usize,
@@ -95,7 +102,9 @@ pub struct RawCacheGroupOptions<'a> {
   pub max_initial_size: Option<Either<f64, RawSplitChunkSizes>>,
   pub max_async_requests: Option<f64>,
   pub max_initial_requests: Option<f64>,
-  #[napi(ts_type = "string | false | Function")]
+  #[napi(
+    ts_type = "string | false | ((contexts: JsChunkOptionNameCtx[]) => (string | undefined)[])"
+  )]
   #[debug(skip)]
   pub name: Option<RawChunkOptionName>,
   // used_exports: bool,
@@ -316,29 +325,37 @@ fn create_module_type_filter(
 }
 
 fn create_module_layer_filter(
-  raw: Either3<RspackRegex, JsString, ThreadsafeFunction<Option<String>, bool>>,
+  raw: RawModuleLayerFilter,
 ) -> rspack_plugin_split_chunks::ModuleLayerFilter {
   match raw {
-    Either3::A(regex) => Arc::new(move |layer| {
+    Either3::A(regex) => Arc::new(move |layers| {
       let regex = regex.clone();
-      Box::pin(async move { Ok(layer.map(|layer| regex.test(&layer)).unwrap_or_default()) })
+      Box::pin(async move {
+        Ok(
+          layers
+            .into_iter()
+            .map(|layer| layer.is_some_and(|layer| regex.test(&layer)))
+            .collect(),
+        )
+      })
     }),
     Either3::B(js_str) => {
       let test = js_str.into_string();
-      Arc::new(move |layer| {
+      Arc::new(move |layers| {
         let test = test.clone();
         Box::pin(async move {
-          Ok(if let Some(layer) = layer {
-            layer.starts_with(&test)
-          } else {
-            test.is_empty()
-          })
+          Ok(
+            layers
+              .into_iter()
+              .map(|layer| layer.map_or_else(|| test.is_empty(), |layer| layer.starts_with(&test)))
+              .collect(),
+          )
         })
       })
     }
-    Either3::C(f) => Arc::new(move |layer| {
+    Either3::C(f) => Arc::new(move |layers| {
       let f = f.clone();
-      Box::pin(async move { f.call_with_sync(layer).await })
+      Box::pin(async move { f.call_with_sync(layers).await })
     }),
   }
 }

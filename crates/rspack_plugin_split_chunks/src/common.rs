@@ -13,7 +13,7 @@ use rspack_regex::RspackRegex;
 use rustc_hash::{FxHashMap, FxHashSet};
 
 pub type ChunkFilterFunc =
-  Arc<dyn Fn(&ChunkUkey, &Compilation) -> BoxFuture<'static, Result<bool>> + Sync + Send>;
+  Arc<dyn Fn(Vec<ChunkUkey>, &Compilation) -> BoxFuture<'static, Result<Vec<bool>>> + Sync + Send>;
 
 #[derive(Clone)]
 pub enum ChunkFilter {
@@ -30,8 +30,18 @@ impl ChunkFilter {
   }
 
   pub async fn test_func(&self, chunk_ukey: &ChunkUkey, compilation: &Compilation) -> Result<bool> {
+    let mut results = self.test_func_batch(vec![*chunk_ukey], compilation).await?;
+    debug_assert_eq!(results.len(), 1);
+    Ok(results.pop().unwrap_or_default())
+  }
+
+  pub async fn test_func_batch(
+    &self,
+    chunk_ukeys: Vec<ChunkUkey>,
+    compilation: &Compilation,
+  ) -> Result<Vec<bool>> {
     if let ChunkFilter::Func(func) = self {
-      func(chunk_ukey, compilation).await
+      func(chunk_ukeys, compilation).await
     } else {
       panic!("ChunkFilter is not a function");
     }
@@ -68,14 +78,14 @@ impl ChunkFilter {
 
 pub type ModuleTypeFilter = Arc<dyn Fn(&dyn Module) -> bool + Send + Sync>;
 pub type ModuleLayerFilter =
-  Arc<dyn Fn(Option<String>) -> BoxFuture<'static, Result<bool>> + Send + Sync>;
+  Arc<dyn Fn(Vec<Option<String>>) -> BoxFuture<'static, Result<Vec<bool>>> + Send + Sync>;
 
 pub fn create_default_module_type_filter() -> ModuleTypeFilter {
   Arc::new(|_| true)
 }
 
 pub fn create_default_module_layer_filter() -> ModuleLayerFilter {
-  Arc::new(|_| Box::pin(async move { Ok(true) }))
+  Arc::new(|layers| Box::pin(async move { Ok(vec![true; layers.len()]) }))
 }
 
 pub fn create_async_chunk_filter() -> ChunkFilter {
