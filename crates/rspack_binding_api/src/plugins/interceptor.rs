@@ -52,7 +52,7 @@ use rspack_core::{
 };
 use rspack_error::Diagnostic;
 use rspack_hash::RspackHasher;
-use rspack_hook::{Hook, JsTapRegister};
+use rspack_hook::{Hook, Interceptor, JsTapRegister};
 use rspack_napi::threadsafe_function::DynThreadsafeFunction;
 use rspack_paths::Utf8PathBuf;
 use rspack_plugin_html::{
@@ -328,6 +328,12 @@ impl RegisterJsTapsInner {
   }
 }
 
+fn create_js_tap_register_is_empty(
+  inner: Arc<RegisterJsTapsInner>,
+) -> Box<dyn Fn() -> bool + Send + Sync> {
+  Box::new(move || inner.tap_count() == 0)
+}
+
 /// define js taps register
 /// cache: add cache for register function, used for `before_resolve` or `build_module`
 ///        which run register function multiple times for every module, cache will ensure
@@ -339,12 +345,12 @@ macro_rules! define_register {
   ($name:ident, tap = $tap_name:ident<$arg:ty, Promise<$promise_ret:ty>> @ $tap_hook:ty, cache = $cache:literal, kind = $kind:expr, skip = $skip:tt,) => {
     define_register!(@BASE_PROMISE $name, $tap_name<$arg, $promise_ret>, $cache);
     define_register!(@SKIP $name, $arg, Promise<$promise_ret>, $cache, $skip);
-    define_register!(@JS_TAP_REGISTER $name, $tap_name, $tap_hook);
+    define_register!(@INTERCEPTOR $name, $tap_name, $tap_hook);
   };
   ($name:ident, tap = $tap_name:ident<$arg:ty, $ret:ty> @ $tap_hook:ty, cache = $cache:literal, kind = $kind:expr, skip = $skip:tt,) => {
     define_register!(@BASE $name, $tap_name<$arg, $ret>, $cache);
     define_register!(@SKIP $name, $arg, $ret, $cache, $skip);
-    define_register!(@JS_TAP_REGISTER $name, $tap_name, $tap_hook);
+    define_register!(@INTERCEPTOR $name, $tap_name, $tap_hook);
   };
   (@BASE $name:ident, $tap_name:ident<$arg:ty, $ret:ty>, $cache:literal) => {
     #[derive(Clone)]
@@ -413,20 +419,33 @@ macro_rules! define_register {
       }
     }
   };
-  (@JS_TAP_REGISTER $name:ident, $tap_name:ident, $tap_hook:ty) => {
+  (@INTERCEPTOR $name:ident, $tap_name:ident, $tap_hook:ty) => {
+    #[async_trait]
+    impl Interceptor<$tap_hook> for $name {
+      async fn call(
+        &self,
+        hook: &$tap_hook,
+      ) -> rspack_error::Result<Vec<<$tap_hook as Hook>::Tap>> {
+        if self.inner.tap_count() == 0 {
+          return Ok(Vec::new());
+        }
+        Ok(self
+          .inner
+          .call_register(hook.used_stages())
+          .await?
+          .into_iter()
+          .map(|tap| Box::new($tap_name::new(tap)) as <$tap_hook as Hook>::Tap)
+          .collect())
+      }
+    }
+
     impl $name {
       pub fn into_js_tap_register(self) -> JsTapRegister {
-        JsTapRegister::new_async::<RegisterJsTapsInner, <$tap_hook as Hook>::Tap, _, _>(
-          self.inner,
-          RegisterJsTapsInner::tap_count,
-          |inner, used_stages| async move {
-            Ok(inner
-              .call_register(used_stages)
-              .await?
-              .iter()
-              .map(|tap| Box::new($tap_name::new(tap.clone())) as <$tap_hook as Hook>::Tap)
-              .collect())
-          },
+        let is_empty = create_js_tap_register_is_empty(self.inner.clone());
+        let interceptor: Box<dyn Interceptor<$tap_hook> + Send + Sync> = Box::new(self);
+        JsTapRegister::new(
+          is_empty,
+          Box::new(interceptor),
         )
       }
     }

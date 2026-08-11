@@ -184,7 +184,7 @@ mod js_tap_register {
     atomic::{AtomicUsize, Ordering},
   };
 
-  use rspack_hook::{Hook as _, JsTapRegister};
+  use rspack_hook::{Hook as _, Interceptor, JsTapRegister};
 
   use super::*;
 
@@ -208,15 +208,6 @@ mod js_tap_register {
     }
   }
 
-  struct OtherTap;
-
-  #[async_trait::async_trait]
-  impl Other for OtherTap {
-    async fn run(&self) -> Result<()> {
-      Ok(())
-    }
-  }
-
   struct AdditionalTaps;
 
   #[async_trait::async_trait]
@@ -232,6 +223,15 @@ mod js_tap_register {
     }
   }
 
+  struct OtherRegisterInterceptor;
+
+  #[async_trait::async_trait]
+  impl Interceptor<OtherHook> for OtherRegisterInterceptor {
+    async fn call(&self, _hook: &OtherHook) -> Result<Vec<<OtherHook as rspack_hook::Hook>::Tap>> {
+      Ok(Vec::new())
+    }
+  }
+
   #[derive(Default)]
   struct RegisterState {
     tap_count: AtomicUsize,
@@ -244,26 +244,40 @@ mod js_tap_register {
     }
   }
 
+  struct RegisterInterceptor {
+    state: Arc<RegisterState>,
+    stage: i32,
+  }
+
+  #[async_trait::async_trait]
+  impl Interceptor<RenderHook> for RegisterInterceptor {
+    async fn call(
+      &self,
+      _hook: &RenderHook,
+    ) -> Result<Vec<<RenderHook as rspack_hook::Hook>::Tap>> {
+      self.state.call_count.fetch_add(1, Ordering::Relaxed);
+      Ok(vec![Box::new(Tap {
+        label: "js",
+        stage: self.stage,
+      })])
+    }
+  }
+
+  fn create_register(state: Arc<RegisterState>, stage: i32) -> JsTapRegister {
+    let count_state = state.clone();
+    let interceptor: Box<dyn Interceptor<RenderHook> + Send + Sync> =
+      Box::new(RegisterInterceptor { state, stage });
+    JsTapRegister::new(
+      Box::new(move || count_state.tap_count() == 0),
+      Box::new(interceptor),
+    )
+  }
+
   #[tokio::test]
   async fn skips_empty_js_register_without_calling_it() -> Result<()> {
     let state = Arc::new(RegisterState::default());
     let mut hook = RenderHook::default();
-    hook.load_js_tap_register(JsTapRegister::new_async::<
-      RegisterState,
-      <RenderHook as rspack_hook::Hook>::Tap,
-      _,
-      _,
-    >(
-      state.clone(),
-      RegisterState::tap_count,
-      |state, _stages| async move {
-        state.call_count.fetch_add(1, Ordering::Relaxed);
-        Ok(vec![Box::new(Tap {
-          label: "js",
-          stage: 0,
-        }) as <RenderHook as rspack_hook::Hook>::Tap])
-      },
-    ))?;
+    hook.load_js_tap_register(create_register(state.clone(), 0))?;
 
     assert!(hook.is_empty());
     assert!(!hook.has_js_taps());
@@ -295,22 +309,7 @@ mod js_tap_register {
       stage: 5,
     });
     hook.intercept(AdditionalTaps);
-    hook.load_js_tap_register(JsTapRegister::new_async::<
-      RegisterState,
-      <RenderHook as rspack_hook::Hook>::Tap,
-      _,
-      _,
-    >(
-      state.clone(),
-      RegisterState::tap_count,
-      |state, _stages| async move {
-        state.call_count.fetch_add(1, Ordering::Relaxed);
-        Ok(vec![Box::new(Tap {
-          label: "js",
-          stage: 5,
-        }) as <RenderHook as rspack_hook::Hook>::Tap])
-      },
-    ))?;
+    hook.load_js_tap_register(create_register(state.clone(), 5))?;
 
     let mut source = String::new();
     hook.call(&mut source).await?;
@@ -327,22 +326,7 @@ mod js_tap_register {
       label: "rust",
       stage: 0,
     });
-    hook.load_js_tap_register(JsTapRegister::new_async::<
-      RegisterState,
-      <RenderHook as rspack_hook::Hook>::Tap,
-      _,
-      _,
-    >(
-      state.clone(),
-      RegisterState::tap_count,
-      |state, _stages| async move {
-        state.call_count.fetch_add(1, Ordering::Relaxed);
-        Ok(vec![Box::new(Tap {
-          label: "js",
-          stage: 0,
-        }) as <RenderHook as rspack_hook::Hook>::Tap])
-      },
-    ))?;
+    hook.load_js_tap_register(create_register(state.clone(), 0))?;
 
     let mut source = String::new();
     hook.call(&mut source).await?;
@@ -352,22 +336,14 @@ mod js_tap_register {
   }
 
   #[test]
-  fn rejects_a_register_for_another_hook_tap_type() {
-    let state = Arc::new(RegisterState::default());
-    let register =
-      JsTapRegister::new_async::<RegisterState, <OtherHook as rspack_hook::Hook>::Tap, _, _>(
-        state,
-        RegisterState::tap_count,
-        |_state, _stages| async move {
-          Ok(vec![
-            Box::new(OtherTap) as <OtherHook as rspack_hook::Hook>::Tap
-          ])
-        },
-      );
+  fn rejects_a_register_for_another_hook() {
+    let interceptor: Box<dyn Interceptor<OtherHook> + Send + Sync> =
+      Box::new(OtherRegisterInterceptor);
+    let register = JsTapRegister::new(Box::new(|| false), Box::new(interceptor));
 
     let error = RenderHook::default()
       .load_js_tap_register(register)
-      .expect_err("tap types should be validated when loading a register");
+      .expect_err("interceptor types should be validated when loading a register");
     assert!(error.to_string().contains("type does not match"));
   }
 }
@@ -378,7 +354,7 @@ mod blocking_js_tap_register {
     atomic::{AtomicUsize, Ordering},
   };
 
-  use rspack_hook::{Hook as _, JsTapRegister};
+  use rspack_hook::{Hook as _, Interceptor, JsTapRegister};
 
   use super::*;
 
@@ -401,17 +377,27 @@ mod blocking_js_tap_register {
     }
   }
 
+  struct RegisterInterceptor;
+
+  impl Interceptor<RenderHook> for RegisterInterceptor {
+    fn call_blocking(
+      &self,
+      _hook: &RenderHook,
+    ) -> Result<Vec<<RenderHook as rspack_hook::Hook>::Tap>> {
+      Ok(vec![Box::new(Tap)])
+    }
+  }
+
   #[test]
   fn supports_sync_hooks_without_calling_async_code() -> Result<()> {
     let state = Arc::new(RegisterState(AtomicUsize::new(1)));
     let mut hook = RenderHook::default();
-    hook.load_js_tap_register(JsTapRegister::new_blocking::<
-      RegisterState,
-      <RenderHook as rspack_hook::Hook>::Tap,
-      _,
-    >(state, RegisterState::tap_count, |_state, _stages| {
-      Ok(vec![Box::new(Tap) as <RenderHook as rspack_hook::Hook>::Tap])
-    }))?;
+    let count_state = state;
+    let interceptor: Box<dyn Interceptor<RenderHook> + Send + Sync> = Box::new(RegisterInterceptor);
+    hook.load_js_tap_register(JsTapRegister::new(
+      Box::new(move || count_state.tap_count() == 0),
+      Box::new(interceptor),
+    ))?;
 
     let mut source = String::new();
     hook.call(&mut source)?;

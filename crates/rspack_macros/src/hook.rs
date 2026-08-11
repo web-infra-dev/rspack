@@ -153,7 +153,7 @@ impl DefineHookInput {
     let call_fn = if is_async {
       quote! {
         async fn call #method_generics (&self, #args) -> #ret {
-          let call_mode = self.common.call_mode();
+          let call_mode = self.common.call_mode(self.has_js_taps());
           if matches!(call_mode, ::rspack_hook::HookCallMode::Empty) {
             #empty_return
           }
@@ -163,7 +163,7 @@ impl DefineHookInput {
     } else {
       quote! {
         fn call #method_generics (&self, #args) -> #ret {
-          let call_mode = self.common.call_mode();
+          let call_mode = self.common.call_mode(self.has_js_taps());
           if matches!(call_mode, ::rspack_hook::HookCallMode::Empty) {
             #empty_return
           }
@@ -184,6 +184,7 @@ impl DefineHookInput {
         common: ::rspack_hook::HookCommon,
         taps: Vec<Box<dyn #trait_name + Send + Sync>>,
         interceptors: Vec<Box<dyn ::rspack_hook::Interceptor<Self> + Send + Sync>>,
+        js_tap_register: Option<::rspack_hook::JsTapRegister>,
       }
 
       impl ::rspack_hook::Hook for #hook_name {
@@ -193,16 +194,31 @@ impl DefineHookInput {
           self.common.used_stages()
         }
 
-        fn load_js_tap_register(&mut self, register: ::rspack_hook::JsTapRegister) -> ::rspack_hook::__macro_helper::Result<()> {
-          self.common.load_js_tap_register::<Self::Tap>(register)
+        fn load_js_tap_register(&mut self, mut register: ::rspack_hook::JsTapRegister) -> ::rspack_hook::__macro_helper::Result<()> {
+          if self.js_tap_register.is_some() {
+            return Err(::rspack_hook::__macro_helper::error!(
+              "JS tap register for hook {} has already been loaded",
+              self.common.name()
+            ));
+          }
+          let interceptor = register
+            .take_interceptor()
+            .downcast::<Box<dyn ::rspack_hook::Interceptor<Self> + Send + Sync>>()
+            .map_err(|_| ::rspack_hook::__macro_helper::error!(
+              "JS tap register type does not match hook {}",
+              self.common.name()
+            ))?;
+          self.interceptors.push(*interceptor);
+          self.js_tap_register = Some(register);
+          Ok(())
         }
 
         fn has_js_taps(&self) -> bool {
-          self.common.has_js_taps()
+          self.js_tap_register.as_ref().is_some_and(|register| !register.is_empty())
         }
 
         fn is_empty(&self) -> bool {
-          self.common.is_empty()
+          self.common.is_empty(self.has_js_taps())
         }
 
         fn intercept(&mut self, interceptor: impl ::rspack_hook::Interceptor<Self> + Send + Sync + 'static) {
@@ -223,6 +239,7 @@ impl DefineHookInput {
             common: ::rspack_hook::HookCommon::new(#hook_name_lit_str),
             taps: Default::default(),
             interceptors: Default::default(),
+            js_tap_register: Default::default(),
           }
         }
       }
@@ -238,11 +255,11 @@ impl DefineHookInput {
         }
 
         pub fn is_empty(&self) -> bool {
-          self.common.is_empty()
+          self.common.is_empty(self.has_js_taps())
         }
 
         pub fn has_js_taps(&self) -> bool {
-          self.common.has_js_taps()
+          self.js_tap_register.as_ref().is_some_and(|register| !register.is_empty())
         }
       }
     })
@@ -298,23 +315,16 @@ impl ExecKind {
   }
 
   fn additional_taps(&self) -> TokenStream {
-    let (call_interceptor, call_js_register) = if self.is_async() {
-      (
-        quote! { additional_taps.extend(interceptor.call(self).await?); },
-        quote! { self.common.call_js_tap_register().await? },
-      )
+    let call_interceptor = if self.is_async() {
+      quote! { additional_taps.extend(interceptor.call(self).await?); }
     } else {
-      (
-        quote! { additional_taps.extend(interceptor.call_blocking(self)?); },
-        quote! { self.common.call_js_tap_register_blocking()? },
-      )
+      quote! { additional_taps.extend(interceptor.call_blocking(self)?); }
     };
     quote! {
       let mut additional_taps = std::vec::Vec::new();
       for interceptor in self.interceptors.iter() {
         #call_interceptor
       }
-      additional_taps.extend(::rspack_hook::unerase_js_taps::<<Self as ::rspack_hook::Hook>::Tap>(#call_js_register)?);
       let additional_stages: std::vec::Vec<_> = additional_taps.iter().map(|tap| tap.stage()).collect();
     }
   }

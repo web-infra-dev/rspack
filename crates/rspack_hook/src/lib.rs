@@ -1,149 +1,35 @@
-use std::{
-  any::{Any, TypeId},
-  future::Future,
-  pin::Pin,
-  sync::Arc,
-};
+use std::any::Any;
 
 use async_trait::async_trait;
-use rspack_error::{Result, error};
-
-type ErasedJsTapRegisterOwner = Arc<dyn Any + Send + Sync>;
-#[doc(hidden)]
-pub type ErasedJsTap = Box<dyn Any + Send + Sync>;
-type AsyncJsTapRegisterFn = Box<
-  dyn Fn(
-      ErasedJsTapRegisterOwner,
-      Vec<i32>,
-    ) -> Pin<Box<dyn Future<Output = Result<Vec<ErasedJsTap>>> + Send>>
-    + Send
-    + Sync,
->;
-type BlockingJsTapRegisterFn =
-  Box<dyn Fn(ErasedJsTapRegisterOwner, Vec<i32>) -> Result<Vec<ErasedJsTap>> + Send + Sync>;
-type LoadJsTapCountFn = Box<dyn Fn(&dyn Any) -> usize + Send + Sync>;
-
-enum JsTapRegisterFn {
-  Async(AsyncJsTapRegisterFn),
-  Blocking(BlockingJsTapRegisterFn),
-}
+use rspack_error::Result;
 
 pub struct JsTapRegister {
-  owner: ErasedJsTapRegisterOwner,
-  tap_type_id: TypeId,
-  load_tap_count: LoadJsTapCountFn,
-  function: JsTapRegisterFn,
+  is_empty: Box<dyn Fn() -> bool + Send + Sync>,
+  interceptor: Option<Box<dyn Any + Send + Sync>>,
 }
 
 impl JsTapRegister {
-  pub fn new_async<O, T, F, Fut>(
-    owner: Arc<O>,
-    load_tap_count: fn(&O) -> usize,
-    function: F,
-  ) -> Self
-  where
-    O: Any + Send + Sync,
-    T: Any + Send + Sync,
-    F: Fn(Arc<O>, Vec<i32>) -> Fut + Send + Sync + 'static,
-    Fut: Future<Output = Result<Vec<T>>> + Send + 'static,
-  {
+  pub fn new(
+    is_empty: Box<dyn Fn() -> bool + Send + Sync>,
+    interceptor: Box<dyn Any + Send + Sync>,
+  ) -> Self {
     Self {
-      owner,
-      tap_type_id: TypeId::of::<T>(),
-      load_tap_count: Box::new(move |owner| {
-        load_tap_count(
-          owner
-            .downcast_ref::<O>()
-            .expect("JsTapRegister owner type should match"),
-        )
-      }),
-      function: JsTapRegisterFn::Async(Box::new(move |owner, stages| {
-        let owner = Arc::downcast::<O>(owner).expect("JsTapRegister owner type should match");
-        let future = function(owner, stages);
-        Box::pin(async move {
-          Ok(
-            future
-              .await?
-              .into_iter()
-              .map(|tap| Box::new(tap) as ErasedJsTap)
-              .collect(),
-          )
-        })
-      })),
+      is_empty,
+      interceptor: Some(interceptor),
     }
   }
 
-  pub fn new_blocking<O, T, F>(owner: Arc<O>, load_tap_count: fn(&O) -> usize, function: F) -> Self
-  where
-    O: Any + Send + Sync,
-    T: Any + Send + Sync,
-    F: Fn(Arc<O>, Vec<i32>) -> Result<Vec<T>> + Send + Sync + 'static,
-  {
-    Self {
-      owner,
-      tap_type_id: TypeId::of::<T>(),
-      load_tap_count: Box::new(move |owner| {
-        load_tap_count(
-          owner
-            .downcast_ref::<O>()
-            .expect("JsTapRegister owner type should match"),
-        )
-      }),
-      function: JsTapRegisterFn::Blocking(Box::new(move |owner, stages| {
-        Ok(
-          function(
-            Arc::downcast::<O>(owner).expect("JsTapRegister owner type should match"),
-            stages,
-          )?
-          .into_iter()
-          .map(|tap| Box::new(tap) as ErasedJsTap)
-          .collect(),
-        )
-      })),
-    }
+  pub fn is_empty(&self) -> bool {
+    (self.is_empty)()
   }
 
-  fn tap_count(&self) -> usize {
-    (self.load_tap_count)(self.owner.as_ref())
+  #[doc(hidden)]
+  pub fn take_interceptor(&mut self) -> Box<dyn Any + Send + Sync> {
+    self
+      .interceptor
+      .take()
+      .expect("JS tap register interceptor should only be loaded once")
   }
-
-  fn is_empty(&self) -> bool {
-    self.tap_count() == 0
-  }
-
-  fn has_tap_type<T: Any>(&self) -> bool {
-    self.tap_type_id == TypeId::of::<T>()
-  }
-
-  async fn call(&self, stages: Vec<i32>) -> Result<Vec<ErasedJsTap>> {
-    match &self.function {
-      JsTapRegisterFn::Async(function) => function(self.owner.clone(), stages).await,
-      JsTapRegisterFn::Blocking(_) => Err(error!(
-        "blocking JS tap register cannot be called from an async hook"
-      )),
-    }
-  }
-
-  fn call_blocking(&self, stages: Vec<i32>) -> Result<Vec<ErasedJsTap>> {
-    match &self.function {
-      JsTapRegisterFn::Async(_) => Err(error!(
-        "async JS tap register cannot be called from a blocking hook"
-      )),
-      JsTapRegisterFn::Blocking(function) => function(self.owner.clone(), stages),
-    }
-  }
-}
-
-pub fn unerase_js_taps<T: Any>(taps: Vec<ErasedJsTap>) -> Result<Vec<T>> {
-  taps
-    .into_iter()
-    .map(|tap| {
-      tap
-        .downcast::<T>()
-        .map(|tap| *tap)
-        .map_err(|_| error!("JS tap register returned an unexpected tap type"))
-    })
-    .collect()
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -161,7 +47,6 @@ pub struct HookCommon {
   metadata: HookMetadata,
   tap_stages: Vec<i32>,
   interceptor_count: usize,
-  js_tap_register: Option<JsTapRegister>,
 }
 
 impl HookCommon {
@@ -170,7 +55,6 @@ impl HookCommon {
       metadata: HookMetadata { name },
       tap_stages: Vec::new(),
       interceptor_count: 0,
-      js_tap_register: None,
     }
   }
 
@@ -205,36 +89,11 @@ impl HookCommon {
     used_stages
   }
 
-  pub fn load_js_tap_register<T: Any>(&mut self, register: JsTapRegister) -> Result<()> {
-    if self.js_tap_register.is_some() {
-      return Err(error!(
-        "JS tap register for hook {} has already been loaded",
-        self.name()
-      ));
-    }
-    if !register.has_tap_type::<T>() {
-      return Err(error!(
-        "JS tap register type does not match hook {}",
-        self.name()
-      ));
-    }
-    self.js_tap_register = Some(register);
-    Ok(())
+  pub fn is_empty(&self, has_js_taps: bool) -> bool {
+    self.tap_stages.is_empty() && self.interceptor_count == 0 && !has_js_taps
   }
 
-  pub fn has_js_taps(&self) -> bool {
-    self
-      .js_tap_register
-      .as_ref()
-      .is_some_and(|register| !register.is_empty())
-  }
-
-  pub fn is_empty(&self) -> bool {
-    self.tap_stages.is_empty() && self.interceptor_count == 0 && !self.has_js_taps()
-  }
-
-  pub fn call_mode(&self) -> HookCallMode {
-    let has_js_taps = self.has_js_taps();
+  pub fn call_mode(&self, has_js_taps: bool) -> HookCallMode {
     if self.tap_stages.is_empty() && self.interceptor_count == 0 && !has_js_taps {
       HookCallMode::Empty
     } else if self.interceptor_count == 0 && !has_js_taps {
@@ -242,29 +101,6 @@ impl HookCommon {
     } else {
       HookCallMode::AdditionalTaps
     }
-  }
-
-  pub async fn call_js_tap_register(&self) -> Result<Vec<ErasedJsTap>> {
-    if !self.has_js_taps() {
-      return Ok(Vec::new());
-    }
-    self
-      .js_tap_register
-      .as_ref()
-      .expect("JS tap register should exist when JS taps are present")
-      .call(self.used_stages())
-      .await
-  }
-
-  pub fn call_js_tap_register_blocking(&self) -> Result<Vec<ErasedJsTap>> {
-    if !self.has_js_taps() {
-      return Ok(Vec::new());
-    }
-    self
-      .js_tap_register
-      .as_ref()
-      .expect("JS tap register should exist when JS taps are present")
-      .call_blocking(self.used_stages())
   }
 }
 
@@ -415,7 +251,7 @@ pub trait Hook {
 #[doc(hidden)]
 pub mod __macro_helper {
   pub use async_trait::async_trait;
-  pub use rspack_error::Result;
+  pub use rspack_error::{Result, error};
   pub use tracing;
 }
 
