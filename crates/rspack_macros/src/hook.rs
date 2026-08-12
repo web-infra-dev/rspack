@@ -184,7 +184,7 @@ impl DefineHookInput {
         common: ::rspack_hook::HookCommon,
         taps: Vec<Box<dyn #trait_name + Send + Sync>>,
         interceptors: Vec<Box<dyn ::rspack_hook::Interceptor<Self> + Send + Sync>>,
-        js_tap_register: Option<::rspack_hook::JsTapRegister>,
+        js_tap_register: Option<std::sync::Arc<dyn ::rspack_hook::JsTapRegister + Send + Sync>>,
       }
 
       impl ::rspack_hook::Hook for #hook_name {
@@ -194,21 +194,20 @@ impl DefineHookInput {
           self.common.used_stages()
         }
 
-        fn load_js_tap_register(&mut self, mut register: ::rspack_hook::JsTapRegister) -> ::rspack_hook::__macro_helper::Result<()> {
+        fn load_js_tap_register<R>(
+          &mut self,
+          register: std::sync::Arc<R>,
+        ) -> ::rspack_hook::__macro_helper::Result<()>
+        where
+          R: ::rspack_hook::JsTapRegister + ::rspack_hook::Interceptor<Self> + Send + Sync + 'static,
+        {
           if self.js_tap_register.is_some() {
             return Err(::rspack_hook::__macro_helper::error!(
               "JS tap register for hook {} has already been loaded",
               self.common.name()
             ));
           }
-          let interceptor = register
-            .take_interceptor()
-            .downcast::<Box<dyn ::rspack_hook::Interceptor<Self> + Send + Sync>>()
-            .map_err(|_| ::rspack_hook::__macro_helper::error!(
-              "JS tap register type does not match hook {}",
-              self.common.name()
-            ))?;
-          self.interceptors.push(*interceptor);
+          self.interceptors.push(Box::new(register.clone()));
           self.js_tap_register = Some(register);
           Ok(())
         }

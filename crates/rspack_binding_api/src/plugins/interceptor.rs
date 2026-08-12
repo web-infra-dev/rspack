@@ -235,7 +235,7 @@ type RegisterFunctionOutput = Vec<ThreadsafeJsTap>;
 // released by `clear_cache()`.
 type RegisterFunction = CompilerScopedTsFnHandle<Vec<i32>, RegisterFunctionOutput>;
 
-struct RegisterJsTapsInner {
+pub(crate) struct RegisterJsTapsInner {
   register: RegisterFunction,
   cache: RegisterJsTapsCache,
   tap_count: AtomicUsize,
@@ -328,10 +328,10 @@ impl RegisterJsTapsInner {
   }
 }
 
-fn create_js_tap_register_is_empty(
-  inner: Arc<RegisterJsTapsInner>,
-) -> Box<dyn Fn() -> bool + Send + Sync> {
-  Box::new(move || inner.tap_count() == 0)
+impl JsTapRegister for RegisterJsTapsInner {
+  fn is_empty(&self) -> bool {
+    self.tap_count() == 0
+  }
 }
 
 /// define js taps register
@@ -355,7 +355,7 @@ macro_rules! define_register {
   (@BASE $name:ident, $tap_name:ident<$arg:ty, $ret:ty>, $cache:literal) => {
     #[derive(Clone)]
     pub struct $name {
-      inner: Arc<RegisterJsTapsInner>,
+      pub(crate) inner: Arc<RegisterJsTapsInner>,
     }
 
     impl $name {
@@ -382,7 +382,7 @@ macro_rules! define_register {
   (@BASE_PROMISE $name:ident, $tap_name:ident<$arg:ty, $ret:ty>, $cache:literal) => {
     #[derive(Clone)]
     pub struct $name {
-      inner: Arc<RegisterJsTapsInner>,
+      pub(crate) inner: Arc<RegisterJsTapsInner>,
     }
 
     impl $name {
@@ -421,16 +421,15 @@ macro_rules! define_register {
   };
   (@INTERCEPTOR $name:ident, $tap_name:ident, $tap_hook:ty) => {
     #[async_trait]
-    impl Interceptor<$tap_hook> for $name {
+    impl Interceptor<$tap_hook> for RegisterJsTapsInner {
       async fn call(
         &self,
         hook: &$tap_hook,
       ) -> rspack_error::Result<Vec<<$tap_hook as Hook>::Tap>> {
-        if self.inner.tap_count() == 0 {
+        if self.tap_count() == 0 {
           return Ok(Vec::new());
         }
         Ok(self
-          .inner
           .call_register(hook.used_stages())
           .await?
           .into_iter()
@@ -439,16 +438,6 @@ macro_rules! define_register {
       }
     }
 
-    impl $name {
-      pub fn into_js_tap_register(self) -> JsTapRegister {
-        let is_empty = create_js_tap_register_is_empty(self.inner.clone());
-        let interceptor: Box<dyn Interceptor<$tap_hook> + Send + Sync> = Box::new(self);
-        JsTapRegister::new(
-          is_empty,
-          Box::new(interceptor),
-        )
-      }
-    }
   };
 }
 

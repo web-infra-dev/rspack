@@ -1,35 +1,8 @@
-use std::any::Any;
-
 use async_trait::async_trait;
 use rspack_error::Result;
 
-pub struct JsTapRegister {
-  is_empty: Box<dyn Fn() -> bool + Send + Sync>,
-  interceptor: Option<Box<dyn Any + Send + Sync>>,
-}
-
-impl JsTapRegister {
-  pub fn new(
-    is_empty: Box<dyn Fn() -> bool + Send + Sync>,
-    interceptor: Box<dyn Any + Send + Sync>,
-  ) -> Self {
-    Self {
-      is_empty,
-      interceptor: Some(interceptor),
-    }
-  }
-
-  pub fn is_empty(&self) -> bool {
-    (self.is_empty)()
-  }
-
-  #[doc(hidden)]
-  pub fn take_interceptor(&mut self) -> Box<dyn Any + Send + Sync> {
-    self
-      .interceptor
-      .take()
-      .expect("JS tap register interceptor should only be loaded once")
-  }
+pub trait JsTapRegister {
+  fn is_empty(&self) -> bool;
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -228,12 +201,30 @@ pub trait Interceptor<H: Hook> {
   }
 }
 
+#[async_trait]
+impl<H, T> Interceptor<H> for std::sync::Arc<T>
+where
+  H: Hook + Sync,
+  T: Interceptor<H> + Send + Sync,
+{
+  async fn call(&self, hook: &H) -> Result<Vec<H::Tap>> {
+    self.as_ref().call(hook).await
+  }
+
+  fn call_blocking(&self, hook: &H) -> Result<Vec<H::Tap>> {
+    self.as_ref().call_blocking(hook)
+  }
+}
+
 pub trait Hook {
   type Tap;
 
   fn used_stages(&self) -> Vec<i32>;
 
-  fn load_js_tap_register(&mut self, register: JsTapRegister) -> Result<()>;
+  fn load_js_tap_register<R>(&mut self, register: std::sync::Arc<R>) -> Result<()>
+  where
+    Self: Sized + Sync,
+    R: JsTapRegister + Interceptor<Self> + Send + Sync + 'static;
 
   fn has_js_taps(&self) -> bool;
 
