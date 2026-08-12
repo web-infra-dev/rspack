@@ -1,8 +1,8 @@
 use rayon::prelude::*;
 use rspack_core::{
   ChunkGraph, ChunkInitFragments, ChunkKind, ChunkUkey, CodeGenerationPublicPathAutoReplace,
-  Compilation, Module, RuntimeCodeTemplate, RuntimeGlobals, RuntimeGlobalsRenderMode,
-  RuntimeModuleGenerateContext, SourceType,
+  Compilation, InitFragmentExt, Module, NormalInitFragment, RuntimeCodeTemplate, RuntimeGlobals,
+  RuntimeGlobalsRenderMode, RuntimeModuleGenerateContext, SourceType,
   chunk_graph_chunk::ChunkIdSet,
   get_undo_path, render_runtime_module_source,
   rspack_sources::{
@@ -22,6 +22,25 @@ pub use crate::runtime_context::{
 use crate::{JavascriptModulesPluginHooks, RenderSource};
 
 pub const AUTO_PUBLIC_PATH_PLACEHOLDER: &str = "__RSPACK_PLUGIN_ASSET_AUTO_PUBLIC_PATH__";
+
+fn replace_auto_public_path_in_init_fragments(
+  init_fragments: &mut ChunkInitFragments,
+  relative: &str,
+) {
+  // Preserve-mode asset imports live in init fragments instead of the module source.
+  for init_fragment in init_fragments.iter_mut() {
+    let Ok(init_fragment_with_content) = init_fragment
+      .clone()
+      .into_any()
+      .downcast::<NormalInitFragment>()
+    else {
+      continue;
+    };
+    *init_fragment = init_fragment_with_content
+      .replace_content(AUTO_PUBLIC_PATH_PLACEHOLDER, relative)
+      .boxed();
+  }
+}
 
 pub async fn render_chunk_modules(
   compilation: &Compilation,
@@ -320,9 +339,24 @@ pub async fn render_module(
     render_source.source
   };
 
+  let mut chunk_init_fragments = code_gen_result.chunk_init_fragments.clone();
+  if code_gen_result
+    .data
+    .get::<CodeGenerationPublicPathAutoReplace>()
+    .is_some()
+  {
+    let relative = get_undo_path(
+      output_path,
+      compilation.options.output.path.to_string(),
+      true,
+    );
+    replace_auto_public_path_in_init_fragments(&mut chunk_init_fragments, &relative);
+    replace_auto_public_path_in_init_fragments(&mut module_chunk_init_fragments, &relative);
+  }
+
   Ok(Some((
     sources,
-    code_gen_result.chunk_init_fragments.clone(),
+    chunk_init_fragments,
     module_chunk_init_fragments,
   )))
 }

@@ -1,0 +1,4 @@
+```mjs title=main.mjs
+import __rspack_asset_1 from "./assets/value.asset.mjs";
+module.exports = __rspack_asset_1;
+```

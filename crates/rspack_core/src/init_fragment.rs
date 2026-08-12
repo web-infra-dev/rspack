@@ -475,6 +475,12 @@ impl NormalInitFragment {
   pub fn set_top_level_decl_symbols(&mut self, top_level_decl_symbols: Vec<Atom>) {
     self.top_level_decl_symbols = top_level_decl_symbols;
   }
+
+  pub fn replace_content(mut self, from: &str, to: &str) -> Self {
+    self.content = self.content.replace(from, to);
+    self.end_content = self.end_content.map(|content| content.replace(from, to));
+    self
+  }
 }
 
 impl<C> InitFragment<C> for NormalInitFragment {
