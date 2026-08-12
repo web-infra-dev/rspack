@@ -112,7 +112,7 @@ tokio               = { version = "1.53.1", default-features = false, features =
 tracing             = { version = "0.1.44", default-features = false, features = ["max_level_trace", "release_max_level_trace"] }
 tracing-subscriber  = { version = "0.3.23", default-features = false, features = ["fmt", "registry"] }
 trybuild            = { version = "1.0.116", default-features = false, features = ["diff"] }
-turbo-persistence   = { git = "https://github.com/vercel/next.js", rev = "f3edea1b06730ce507aeb1b10c8e4f652ca5540d" }
+turbo-persistence   = { package = "rspack-turbo-persistence", version = "0.1.0", default-features = false }
 twox-hash           = { version = "2.1.2", default-features = false }
 unicase             = { version = "2.9.0", default-features = false }
 unicode-width       = { version = "0.2.2", default-features = false }

@@ -3891,6 +3891,35 @@ dependencies = [
 ]
 
 [[package]]
+name = "rspack-turbo-persistence"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "38a6b89c4a40a7362e0919667a83e053d31561201e95dfc42dc9bb7228f44708"
+dependencies = [
+ "anyhow",
+ "bitfield",
+ "byteorder",
+ "crc32fast",
+ "dashmap",
+ "either",
+ "fs-err",
+ "jiff",
+ "lzzzz",
+ "memmap2",
+ "nohash-hasher",
+ "parking_lot",
+ "postcard",
+ "qfilter",
+ "quick_cache",
+ "rustc-hash",
+ "smallvec",
+ "thread_local",
+ "tracing",
+ "xxhash-rust",
+ "zerocopy 0.8.25",
+]
+
+[[package]]
 name = "rspack_allocator"
 version = "0.101.9"
 dependencies = [
@@ -4184,6 +4213,7 @@ dependencies = [
  "rayon",
  "regex",
  "rkyv 0.8.18",
+ "rspack-turbo-persistence",
  "rspack_cacheable",
  "rspack_collections",
  "rspack_dojang",
@@ -4221,7 +4251,6 @@ dependencies = [
  "swc_experimental_ecma_semantic",
  "tokio",
  "tracing",
- "turbo-persistence",
  "urlencoding",
  "ustr-fxhash",
  "winnow",
@@ -7883,34 +7912,6 @@ dependencies = [
  "target-triple",
  "termcolor",
  "toml 1.0.2+spec-1.1.0",
-]
-
-[[package]]
-name = "turbo-persistence"
-version = "0.1.0"
-source = "git+https://github.com/vercel/next.js?rev=f3edea1b06730ce507aeb1b10c8e4f652ca5540d#f3edea1b06730ce507aeb1b10c8e4f652ca5540d"
-dependencies = [
- "anyhow",
- "bitfield",
- "byteorder",
- "crc32fast",
- "dashmap",
- "either",
- "fs-err",
- "jiff",
- "lzzzz",
- "memmap2",
- "nohash-hasher",
- "parking_lot",
- "postcard",
- "qfilter",
- "quick_cache",
- "rustc-hash",
- "smallvec",
- "thread_local",
- "tracing",
- "xxhash-rust",
- "zerocopy 0.8.25",
 ]
 
 [[package]]
