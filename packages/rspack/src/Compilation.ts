@@ -230,9 +230,13 @@ export type NormalizedStatsOptions = KnownNormalizedStatsOptions &
   Record<string, any>;
 
 export const checkCompilation = (compilation: Compilation) => {
-  if (!(compilation instanceof Compilation)) {
+  if (
+    typeof compilation !== 'object' ||
+    compilation === null ||
+    !(binding.COMPILATION_HOOKS_MAP_SYMBOL in compilation)
+  ) {
     throw new TypeError(
-      `The 'compilation' argument must be an instance of Compilation. This usually occurs when multiple versions of "@rspack/core" are used, or when the code in "@rspack/core" is executed multiple times.`,
+      "The 'compilation' argument must be an instance of Compilation",
     );
   }
 };

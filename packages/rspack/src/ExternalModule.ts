@@ -2,7 +2,7 @@ import binding from '@rspack/binding';
 import * as liteTapable from '@rspack/lite-tapable';
 import type { Source } from 'webpack-sources';
 import type { Chunk } from './Chunk';
-import type { Compilation } from './Compilation';
+import { type Compilation, checkCompilation } from './Compilation';
 import { SourceAdapter } from './util/source';
 
 Object.defineProperty(binding.ExternalModule.prototype, 'identifier', {
@@ -52,11 +52,7 @@ const ExternalModule =
   };
 
 ExternalModule.getCompilationHooks = (compilation: Compilation) => {
-  if (!(binding.COMPILATION_HOOKS_MAP_SYMBOL in compilation)) {
-    throw new TypeError(
-      "The 'compilation' argument must be an instance of Compilation",
-    );
-  }
+  checkCompilation(compilation);
 
   const compilationHooksMap = compilation[
     binding.COMPILATION_HOOKS_MAP_SYMBOL
