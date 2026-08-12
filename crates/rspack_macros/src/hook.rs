@@ -153,7 +153,7 @@ impl DefineHookInput {
     let call_fn = if is_async {
       quote! {
         async fn call #method_generics (&self, #args) -> #ret {
-          let call_mode = self.common.call_mode(self.has_js_taps());
+          let call_mode = self.common.call_mode();
           if matches!(call_mode, ::rspack_hook::HookCallMode::Empty) {
             #empty_return
           }
@@ -163,7 +163,7 @@ impl DefineHookInput {
     } else {
       quote! {
         fn call #method_generics (&self, #args) -> #ret {
-          let call_mode = self.common.call_mode(self.has_js_taps());
+          let call_mode = self.common.call_mode();
           if matches!(call_mode, ::rspack_hook::HookCallMode::Empty) {
             #empty_return
           }
@@ -184,7 +184,6 @@ impl DefineHookInput {
         common: ::rspack_hook::HookCommon,
         taps: Vec<Box<dyn #trait_name + Send + Sync>>,
         interceptors: Vec<Box<dyn ::rspack_hook::Interceptor<Self> + Send + Sync>>,
-        js_tap_register: Option<std::sync::Arc<dyn ::rspack_hook::JsTapRegister + Send + Sync>>,
       }
 
       impl ::rspack_hook::Hook for #hook_name {
@@ -201,23 +200,17 @@ impl DefineHookInput {
         where
           R: ::rspack_hook::JsTapRegister + ::rspack_hook::Interceptor<Self> + Send + Sync + 'static,
         {
-          if self.js_tap_register.is_some() {
-            return Err(::rspack_hook::__macro_helper::error!(
-              "JS tap register for hook {} has already been loaded",
-              self.common.name()
-            ));
-          }
-          self.interceptors.push(Box::new(register.clone()));
-          self.js_tap_register = Some(register);
+          self.common.load_js_tap_register(register.clone())?;
+          self.interceptors.push(Box::new(register));
           Ok(())
         }
 
         fn has_js_taps(&self) -> bool {
-          self.js_tap_register.as_ref().is_some_and(|register| !register.is_empty())
+          self.common.has_js_taps()
         }
 
         fn is_empty(&self) -> bool {
-          self.common.is_empty(self.has_js_taps())
+          self.common.is_empty()
         }
 
         fn intercept(&mut self, interceptor: impl ::rspack_hook::Interceptor<Self> + Send + Sync + 'static) {
@@ -238,7 +231,6 @@ impl DefineHookInput {
             common: ::rspack_hook::HookCommon::new(#hook_name_lit_str),
             taps: Default::default(),
             interceptors: Default::default(),
-            js_tap_register: Default::default(),
           }
         }
       }
@@ -254,11 +246,11 @@ impl DefineHookInput {
         }
 
         pub fn is_empty(&self) -> bool {
-          self.common.is_empty(self.has_js_taps())
+          self.common.is_empty()
         }
 
         pub fn has_js_taps(&self) -> bool {
-          self.js_tap_register.as_ref().is_some_and(|register| !register.is_empty())
+          self.common.has_js_taps()
         }
       }
     })

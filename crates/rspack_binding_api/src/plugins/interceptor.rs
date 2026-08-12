@@ -355,7 +355,7 @@ macro_rules! define_register {
   (@BASE $name:ident, $tap_name:ident<$arg:ty, $ret:ty>, $cache:literal) => {
     #[derive(Clone)]
     pub struct $name {
-      pub(crate) inner: Arc<RegisterJsTapsInner>,
+      inner: Arc<RegisterJsTapsInner>,
     }
 
     impl $name {
@@ -382,7 +382,7 @@ macro_rules! define_register {
   (@BASE_PROMISE $name:ident, $tap_name:ident<$arg:ty, $ret:ty>, $cache:literal) => {
     #[derive(Clone)]
     pub struct $name {
-      pub(crate) inner: Arc<RegisterJsTapsInner>,
+      inner: Arc<RegisterJsTapsInner>,
     }
 
     impl $name {
@@ -420,6 +420,12 @@ macro_rules! define_register {
     }
   };
   (@INTERCEPTOR $name:ident, $tap_name:ident, $tap_hook:ty) => {
+    impl $name {
+      pub(crate) fn js_tap_register(&self) -> Arc<RegisterJsTapsInner> {
+        self.inner.clone()
+      }
+    }
+
     #[async_trait]
     impl Interceptor<$tap_hook> for RegisterJsTapsInner {
       async fn call(

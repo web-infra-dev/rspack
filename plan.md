@@ -12,41 +12,42 @@ JS hook 注册/移除 tap
        ↓ 一次 JS -> Rust 同步
 RegisterJsTapsInner
   AtomicUsize 保存 tap_count
-       ↓ Arc 共享同一个 inner
+       ↓ Register* 方法隐藏 Arc clone
 JsTapRegister
-  trait 只暴露 is_empty()
-       ↓ 仅 RegisterJsTapsInner 实现
-Hook
-  泛型 load_js_tap_register<RegisterJsTapsInner>
-  ├─ Arc 擦除为非泛型 JsTapRegister 状态字段
-  └─ Arc clone 放进原 interceptors 字段
+  非泛型 trait 只暴露 is_empty
+       ↓ Arc<dyn JsTapRegister> 存入非泛型 HookCommon
+load_js_tap_register<R>
+  在具体 Hook 边界要求 R: Interceptor<Self>
+  同一个 Arc<R> 延迟转换为当前 Hook 的 interceptor
        ↓
-hook.call
+Hook.call
+  通过原 interceptors 路径调用 register
+       ↓
   empty -> tracing/register 前直接返回
   rust only -> 直接执行 Rust taps
-  additional -> 执行原 interceptors，按 stage 合并 taps
+  additional -> 执行普通 interceptors 和 JS interceptor，按 stage 合并 taps
 ```
 
-## 1. `rspack_hook`：轻量 `JsTapRegister` trait
+## 1. `rspack_hook`：非泛型 `JsTapRegister` trait
 
 文件：`crates/rspack_hook/src/lib.rs`
 
-- `JsTapRegister` 是只包含 `is_empty()` 的非泛型 trait，不保存 executor、owner 或 tap payload。
-- 为 `Arc<T>` 复用 `Interceptor<H>` 调用；生产代码中的 `T` 只有 `RegisterJsTapsInner`。
-- 删除 erased owner/taps、闭包、`Any`、downcast 和 async/blocking register function 等第二套执行抽象。
-- `HookCommon` 只保存所有 hook 共享的 metadata、Rust tap stages 和普通 interceptor 数量。
-- `HookCommon::call_mode(has_js_taps)` 根据本地布尔状态返回 `Empty`、`RustTaps` 或 `AdditionalTaps`。
+- `JsTapRegister` 是 object-safe 的非泛型 trait，只暴露本地 `is_empty()`。
+- 非泛型 `HookCommon` 保存 `Arc<dyn JsTapRegister>`，统一管理重复加载、`has_js_taps()`、`is_empty()` 和 call mode。
+- 不使用闭包、`Any`、downcast 或手写函数指针表。
+- `HookCommon::call_mode()` 根据 Rust taps、普通 interceptors 和本地 JS tap 状态返回 `Empty`、`RustTaps` 或 `AdditionalTaps`。
 
-## 2. `define_hook!`：泛型加载，原 interceptor 路径执行
+## 2. `define_hook!`：在具体 Hook 边界延迟转换
 
 文件：`crates/rspack_macros/src/hook.rs`
 
-- 每个 hook 增加 `js_tap_register: Option<Arc<dyn JsTapRegister>>`，只用于保存 inner 所有权并查询状态。
-- `load_js_tap_register<R>` 要求 `R: JsTapRegister + Interceptor<Self>`；生产侧唯一 concrete `R` 是 `RegisterJsTapsInner`。
-- 加载时 clone 同一个 inner `Arc` 到现有 `interceptors`，但不增加普通 interceptor count；另一个 Arc handle 擦除为非泛型状态字段，不增加 inner allocation。
-- `has_js_taps()` 只调用 Rust trait 的 `is_empty()`。
+- 生成的 hook 不再增加独立的 JS register 字段；非泛型状态 Arc 由 `HookCommon` 保存。
+- `load_js_tap_register<R>` 在实际加载到具体 Hook 时要求 `R: JsTapRegister + Interceptor<Self>`。
+- 同一个 `Arc<R>` 一份擦除为非泛型状态 trait object，另一份在该 Hook 边界转为原 `Interceptor<Self>` trait object；不增加 inner allocation。
+- additional 路径完全复用原 interceptor 循环。
+- `has_js_taps()` 只读取 Rust 本地状态。
 - `call` 在 tracing span 和 interceptor/register 调用前计算 call mode；空 hook 直接返回对应空值。
-- additional taps 完全走现有 interceptor 循环和 stage merge，不生成 erased JS taps 的加载/还原代码。
+- JS taps 仍作为当前 hook 的具体 tap 返回，与普通 interceptor taps 走同一个 stage merge。
 
 ## 3. `RegisterJsTapsInner`：单层共享状态
 
@@ -62,15 +63,16 @@ hook.call
 - `set_tap_count` 是所有 JS 状态更新的唯一入口；`always_active` register 至少保持为 1。
 - 删除全局 `NonSkippableRegisters` 和独立的 `Arc<AtomicUsize>`。
 
-## 4. `define_register!`：复用原 interceptor
+## 4. `define_register!`：状态非泛型，执行延迟绑定 Hook
 
 文件：`crates/rspack_binding_api/src/plugins/interceptor.rs`
 
-- 只为 `RegisterJsTapsInner` 实现一次 `JsTapRegister`。
-- 宏为同一个 `RegisterJsTapsInner` 生成各具体 Hook 必需的 `Interceptor<具体 Hook>` 实现。
+- `RegisterJsTapsInner` 只实现一次非泛型 `JsTapRegister` 状态 trait。
+- 宏为 inner 生成各具体 Hook 必需的 `Interceptor<具体 Hook>`；转换只发生在 `load_js_tap_register<R>` 的具体 Hook 边界。
 - interceptor 首先读取 `tap_count`；0 时返回空 taps，否则调用已有 register/cache 逻辑并转换具体 tap。
-- adapter 调用点直接把各 `Register*` 内的 `Arc<RegisterJsTapsInner>` 传给 hook；删除 `into_js_tap_register`。
-- 不生成新的 async/blocking executor、owner/downcast、whole-vector downcast或逐 tap downcast。
+- `Register*::js_tap_register()` 只 clone 已有 inner Arc，隐藏 adapter 调用点的 `inner.clone()`，不创建新的 owner allocation。
+- adapter 只把 `js_tap_register()` 的结果传给 hook，不接触内部 Arc。
+- 不进行运行时 downcast，也不擦除或 downcast 每个 tap。
 
 ## 5. JS 状态同步
 
@@ -92,7 +94,7 @@ hook.call
   - JS tap 从 0 变为非 0 后，hook 能立即感知；
   - Rust taps、普通 interceptors、JS taps 按 stage 合并；
   - 只有 Rust taps 且 JS register 为空时走快速路径；
-  - 同步 hook 也能通过同一泛型加载接口运行 register interceptor。
+  - 同步 hook 也能通过同一延迟转换接口运行 register interceptor。
 - 运行 `cargo test -p rspack_macros_test --test hook`。
 - 运行 binding/macros test crate 的 clippy。
 - 运行 JS formatter 检查。
@@ -104,7 +106,9 @@ hook.call
 - [x] `RegisterJsTapsInner` 改为单层 `Arc`，内嵌 cache 和 count。
 - [x] 删除 `NonSkippableRegisters`。
 - [x] hook 空路径在 tracing/register 前返回。
-- [x] `JsTapRegister` 收敛为仅含本地状态检查的 trait，且仅由 `RegisterJsTapsInner` 实现。
-- [x] `define_register!` 复用原 `Interceptor` 执行路径。
-- [x] 完成最终测试和 CI profile 体积比较（stripped native binding `+20,472 bytes`，低于 50 KiB 阈值）。
-- [x] 更新 draft PR。
+- [x] `JsTapRegister` 和 `HookCommon` 保持非泛型，`HookCommon` 保存 `Arc<dyn JsTapRegister>`。
+- [x] 只在具体 Hook 的加载边界把同一个 inner Arc 转为 `Interceptor<Self>`。
+- [x] adapter 通过生成对象的方法隐藏 `inner.clone()`。
+- [x] 当前延迟转换实现通过 hook 测试、`-D warnings` clippy 和完整 CI profile binding 构建。
+- [x] 当前未提交实现 stripped native binding 为 `70,694,224` bytes：相对 merge-base `-28,680 bytes`，相对上一版 `-49,152 bytes`。
+- [ ] 用户确认后再提交、推送并更新 draft PR。

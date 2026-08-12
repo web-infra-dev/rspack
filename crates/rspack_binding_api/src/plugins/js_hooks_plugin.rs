@@ -90,71 +90,74 @@ impl Plugin for JsHooksAdapterPlugin {
 
   // #[tracing::instrument("js_hooks_adapter::apply", skip_all)]
   fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> rspack_error::Result<()> {
-    ctx
-      .compiler_hooks
-      .this_compilation
-      .load_js_tap_register(self.register_compiler_this_compilation_taps.inner.clone())?;
+    ctx.compiler_hooks.this_compilation.load_js_tap_register(
+      self
+        .register_compiler_this_compilation_taps
+        .js_tap_register(),
+    )?;
     ctx
       .compiler_hooks
       .compilation
-      .load_js_tap_register(self.register_compiler_compilation_taps.inner.clone())?;
+      .load_js_tap_register(self.register_compiler_compilation_taps.js_tap_register())?;
     ctx
       .compiler_hooks
       .make
-      .load_js_tap_register(self.register_compiler_make_taps.inner.clone())?;
+      .load_js_tap_register(self.register_compiler_make_taps.js_tap_register())?;
     ctx
       .compiler_hooks
       .finish_make
-      .load_js_tap_register(self.register_compiler_finish_make_taps.inner.clone())?;
+      .load_js_tap_register(self.register_compiler_finish_make_taps.js_tap_register())?;
     ctx
       .compiler_hooks
       .should_emit
-      .load_js_tap_register(self.register_compiler_should_emit_taps.inner.clone())?;
+      .load_js_tap_register(self.register_compiler_should_emit_taps.js_tap_register())?;
     ctx
       .compiler_hooks
       .emit
-      .load_js_tap_register(self.register_compiler_emit_taps.inner.clone())?;
+      .load_js_tap_register(self.register_compiler_emit_taps.js_tap_register())?;
     ctx
       .compiler_hooks
       .after_emit
-      .load_js_tap_register(self.register_compiler_after_emit_taps.inner.clone())?;
+      .load_js_tap_register(self.register_compiler_after_emit_taps.js_tap_register())?;
     ctx
       .compiler_hooks
       .asset_emitted
-      .load_js_tap_register(self.register_compiler_asset_emitted_taps.inner.clone())?;
-    ctx
-      .compilation_hooks
-      .build_module
-      .load_js_tap_register(self.register_compilation_build_module_taps.inner.clone())?;
+      .load_js_tap_register(self.register_compiler_asset_emitted_taps.js_tap_register())?;
+    ctx.compilation_hooks.build_module.load_js_tap_register(
+      self
+        .register_compilation_build_module_taps
+        .js_tap_register(),
+    )?;
     ctx
       .compilation_hooks
       .still_valid_module
       .load_js_tap_register(
         self
           .register_compilation_still_valid_module_taps
-          .inner
-          .clone(),
+          .js_tap_register(),
       )?;
-    ctx
-      .compilation_hooks
-      .succeed_module
-      .load_js_tap_register(self.register_compilation_succeed_module_taps.inner.clone())?;
-    ctx
-      .compilation_hooks
-      .execute_module
-      .load_js_tap_register(self.register_compilation_execute_module_taps.inner.clone())?;
-    ctx
-      .compilation_hooks
-      .finish_modules
-      .load_js_tap_register(self.register_compilation_finish_modules_taps.inner.clone())?;
+    ctx.compilation_hooks.succeed_module.load_js_tap_register(
+      self
+        .register_compilation_succeed_module_taps
+        .js_tap_register(),
+    )?;
+    ctx.compilation_hooks.execute_module.load_js_tap_register(
+      self
+        .register_compilation_execute_module_taps
+        .js_tap_register(),
+    )?;
+    ctx.compilation_hooks.finish_modules.load_js_tap_register(
+      self
+        .register_compilation_finish_modules_taps
+        .js_tap_register(),
+    )?;
     ctx
       .compilation_hooks
       .optimize_modules
       .load_js_tap_register(
         self
           .register_compilation_optimize_modules_taps
-          .inner
-          .clone(),
+          .js_tap_register(),
       )?;
     ctx
       .compilation_hooks
@@ -162,21 +165,20 @@ impl Plugin for JsHooksAdapterPlugin {
       .load_js_tap_register(
         self
           .register_compilation_after_optimize_modules_taps
-          .inner
-          .clone(),
+          .js_tap_register(),
       )?;
-    ctx
-      .compilation_hooks
-      .optimize_tree
-      .load_js_tap_register(self.register_compilation_optimize_tree_taps.inner.clone())?;
+    ctx.compilation_hooks.optimize_tree.load_js_tap_register(
+      self
+        .register_compilation_optimize_tree_taps
+        .js_tap_register(),
+    )?;
     ctx
       .compilation_hooks
       .optimize_chunk_modules
       .load_js_tap_register(
         self
           .register_compilation_optimize_chunk_modules_taps
-          .inner
-          .clone(),
+          .js_tap_register(),
       )?;
     ctx
       .compilation_hooks
@@ -184,8 +186,7 @@ impl Plugin for JsHooksAdapterPlugin {
       .load_js_tap_register(
         self
           .register_compilation_before_module_ids_taps
-          .inner
-          .clone(),
+          .js_tap_register(),
       )?;
     ctx
       .compilation_hooks
@@ -193,8 +194,7 @@ impl Plugin for JsHooksAdapterPlugin {
       .load_js_tap_register(
         self
           .register_compilation_additional_tree_runtime_requirements_taps
-          .inner
-          .clone(),
+          .js_tap_register(),
       )?;
     ctx
       .compilation_hooks
@@ -202,42 +202,42 @@ impl Plugin for JsHooksAdapterPlugin {
       .load_js_tap_register(
         self
           .register_compilation_runtime_requirement_in_tree_taps
-          .inner
-          .clone(),
+          .js_tap_register(),
       )?;
-    ctx
-      .compilation_hooks
-      .runtime_module
-      .load_js_tap_register(self.register_compilation_runtime_module_taps.inner.clone())?;
+    ctx.compilation_hooks.runtime_module.load_js_tap_register(
+      self
+        .register_compilation_runtime_module_taps
+        .js_tap_register(),
+    )?;
     ctx
       .compilation_hooks
       .chunk_hash
-      .load_js_tap_register(self.register_compilation_chunk_hash_taps.inner.clone())?;
+      .load_js_tap_register(self.register_compilation_chunk_hash_taps.js_tap_register())?;
     ctx
       .compilation_hooks
       .chunk_asset
-      .load_js_tap_register(self.register_compilation_chunk_asset_taps.inner.clone())?;
-    ctx
-      .compilation_hooks
-      .process_assets
-      .load_js_tap_register(self.register_compilation_process_assets_taps.inner.clone())?;
+      .load_js_tap_register(self.register_compilation_chunk_asset_taps.js_tap_register())?;
+    ctx.compilation_hooks.process_assets.load_js_tap_register(
+      self
+        .register_compilation_process_assets_taps
+        .js_tap_register(),
+    )?;
     ctx
       .compilation_hooks
       .after_process_assets
       .load_js_tap_register(
         self
           .register_compilation_after_process_assets_taps
-          .inner
-          .clone(),
+          .js_tap_register(),
       )?;
     ctx
       .compilation_hooks
       .seal
-      .load_js_tap_register(self.register_compilation_seal_taps.inner.clone())?;
+      .load_js_tap_register(self.register_compilation_seal_taps.js_tap_register())?;
     ctx
       .compilation_hooks
       .after_seal
-      .load_js_tap_register(self.register_compilation_after_seal_taps.inner.clone())?;
+      .load_js_tap_register(self.register_compilation_after_seal_taps.js_tap_register())?;
 
     ctx
       .normal_module_factory_hooks
@@ -245,8 +245,7 @@ impl Plugin for JsHooksAdapterPlugin {
       .load_js_tap_register(
         self
           .register_normal_module_factory_before_resolve_taps
-          .inner
-          .clone(),
+          .js_tap_register(),
       )?;
     ctx
       .normal_module_factory_hooks
@@ -254,8 +253,7 @@ impl Plugin for JsHooksAdapterPlugin {
       .load_js_tap_register(
         self
           .register_normal_module_factory_factorize_taps
-          .inner
-          .clone(),
+          .js_tap_register(),
       )?;
     ctx
       .normal_module_factory_hooks
@@ -263,8 +261,7 @@ impl Plugin for JsHooksAdapterPlugin {
       .load_js_tap_register(
         self
           .register_normal_module_factory_resolve_taps
-          .inner
-          .clone(),
+          .js_tap_register(),
       )?;
     ctx
       .normal_module_factory_hooks
@@ -272,8 +269,7 @@ impl Plugin for JsHooksAdapterPlugin {
       .load_js_tap_register(
         self
           .register_normal_module_factory_resolve_for_scheme_taps
-          .inner
-          .clone(),
+          .js_tap_register(),
       )?;
     ctx
       .normal_module_factory_hooks
@@ -281,8 +277,7 @@ impl Plugin for JsHooksAdapterPlugin {
       .load_js_tap_register(
         self
           .register_normal_module_factory_after_resolve_taps
-          .inner
-          .clone(),
+          .js_tap_register(),
       )?;
     ctx
       .normal_module_factory_hooks
@@ -290,8 +285,7 @@ impl Plugin for JsHooksAdapterPlugin {
       .load_js_tap_register(
         self
           .register_normal_module_factory_create_module_taps
-          .inner
-          .clone(),
+          .js_tap_register(),
       )?;
     ctx
       .context_module_factory_hooks
@@ -299,8 +293,7 @@ impl Plugin for JsHooksAdapterPlugin {
       .load_js_tap_register(
         self
           .register_context_module_factory_before_resolve_taps
-          .inner
-          .clone(),
+          .js_tap_register(),
       )?;
     ctx
       .context_module_factory_hooks
@@ -308,8 +301,7 @@ impl Plugin for JsHooksAdapterPlugin {
       .load_js_tap_register(
         self
           .register_context_module_factory_after_resolve_taps
-          .inner
-          .clone(),
+          .js_tap_register(),
       )?;
 
     ctx
@@ -459,8 +451,7 @@ async fn js_hooks_adapter_compilation(
   hooks.chunk_hash.load_js_tap_register(
     self
       .register_javascript_modules_chunk_hash_taps
-      .inner
-      .clone(),
+      .js_tap_register(),
   )?;
 
   Ok(())
@@ -477,33 +468,29 @@ async fn html_hooks_adapter_compilation(
   hooks.before_asset_tag_generation.load_js_tap_register(
     self
       .register_html_plugin_before_asset_tag_generation_taps
-      .inner
-      .clone(),
+      .js_tap_register(),
   )?;
   hooks.alter_asset_tags.load_js_tap_register(
     self
       .register_html_plugin_alter_asset_tags_taps
-      .inner
-      .clone(),
+      .js_tap_register(),
   )?;
   hooks.alter_asset_tag_groups.load_js_tap_register(
     self
       .register_html_plugin_alter_asset_tag_groups_taps
-      .inner
-      .clone(),
+      .js_tap_register(),
   )?;
   hooks.after_template_execution.load_js_tap_register(
     self
       .register_html_plugin_after_template_execution_taps
-      .inner
-      .clone(),
+      .js_tap_register(),
   )?;
   hooks
     .before_emit
-    .load_js_tap_register(self.register_html_plugin_before_emit_taps.inner.clone())?;
+    .load_js_tap_register(self.register_html_plugin_before_emit_taps.js_tap_register())?;
   hooks
     .after_emit
-    .load_js_tap_register(self.register_html_plugin_after_emit_taps.inner.clone())?;
+    .load_js_tap_register(self.register_html_plugin_after_emit_taps.js_tap_register())?;
 
   Ok(())
 }
@@ -519,20 +506,22 @@ async fn runtime_hooks_adapter_compilation(
   hooks.create_script.load_js_tap_register(
     self
       .register_runtime_plugin_create_script_taps
-      .inner
-      .clone(),
+      .js_tap_register(),
   )?;
-  hooks
-    .create_link
-    .load_js_tap_register(self.register_runtime_plugin_create_link_taps.inner.clone())?;
-  hooks
-    .link_preload
-    .load_js_tap_register(self.register_runtime_plugin_link_preload_taps.inner.clone())?;
+  hooks.create_link.load_js_tap_register(
+    self
+      .register_runtime_plugin_create_link_taps
+      .js_tap_register(),
+  )?;
+  hooks.link_preload.load_js_tap_register(
+    self
+      .register_runtime_plugin_link_preload_taps
+      .js_tap_register(),
+  )?;
   hooks.link_prefetch.load_js_tap_register(
     self
       .register_runtime_plugin_link_prefetch_taps
-      .inner
-      .clone(),
+      .js_tap_register(),
   )?;
   Ok(())
 }
@@ -548,23 +537,25 @@ async fn rsdoctor_hooks_adapter_compilation(
   hooks.module_graph.load_js_tap_register(
     self
       .register_rsdoctor_plugin_module_graph_taps
-      .inner
-      .clone(),
+      .js_tap_register(),
+  )?;
+  hooks.chunk_graph.load_js_tap_register(
+    self
+      .register_rsdoctor_plugin_chunk_graph_taps
+      .js_tap_register(),
   )?;
   hooks
-    .chunk_graph
-    .load_js_tap_register(self.register_rsdoctor_plugin_chunk_graph_taps.inner.clone())?;
-  hooks
     .assets
-    .load_js_tap_register(self.register_rsdoctor_plugin_assets_taps.inner.clone())?;
-  hooks
-    .module_ids
-    .load_js_tap_register(self.register_rsdoctor_plugin_module_ids_taps.inner.clone())?;
+    .load_js_tap_register(self.register_rsdoctor_plugin_assets_taps.js_tap_register())?;
+  hooks.module_ids.load_js_tap_register(
+    self
+      .register_rsdoctor_plugin_module_ids_taps
+      .js_tap_register(),
+  )?;
   hooks.module_sources.load_js_tap_register(
     self
       .register_rsdoctor_plugin_module_sources_taps
-      .inner
-      .clone(),
+      .js_tap_register(),
   )?;
 
   Ok(())
@@ -581,8 +572,7 @@ async fn real_content_hash_hooks_adapter_compilation(
   hooks.update_hash.load_js_tap_register(
     self
       .register_real_content_hash_plugin_update_hash_taps
-      .inner
-      .clone(),
+      .js_tap_register(),
   )?;
   Ok(())
 }

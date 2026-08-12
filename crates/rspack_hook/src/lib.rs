@@ -1,5 +1,7 @@
+use std::sync::Arc;
+
 use async_trait::async_trait;
-use rspack_error::Result;
+use rspack_error::{Result, error};
 
 pub trait JsTapRegister {
   fn is_empty(&self) -> bool;
@@ -20,6 +22,7 @@ pub struct HookCommon {
   metadata: HookMetadata,
   tap_stages: Vec<i32>,
   interceptor_count: usize,
+  js_tap_register: Option<Arc<dyn JsTapRegister + Send + Sync>>,
 }
 
 impl HookCommon {
@@ -28,6 +31,7 @@ impl HookCommon {
       metadata: HookMetadata { name },
       tap_stages: Vec::new(),
       interceptor_count: 0,
+      js_tap_register: None,
     }
   }
 
@@ -55,6 +59,27 @@ impl HookCommon {
     self.interceptor_count
   }
 
+  pub fn load_js_tap_register(
+    &mut self,
+    register: Arc<dyn JsTapRegister + Send + Sync>,
+  ) -> Result<()> {
+    if self.js_tap_register.is_some() {
+      return Err(error!(
+        "JS tap register for hook {} has already been loaded",
+        self.name()
+      ));
+    }
+    self.js_tap_register = Some(register);
+    Ok(())
+  }
+
+  pub fn has_js_taps(&self) -> bool {
+    self
+      .js_tap_register
+      .as_ref()
+      .is_some_and(|register| !register.is_empty())
+  }
+
   pub fn used_stages(&self) -> Vec<i32> {
     let mut used_stages = self.tap_stages.clone();
     // tap_stages is kept sorted by stage, so duplicate stages are adjacent.
@@ -62,11 +87,12 @@ impl HookCommon {
     used_stages
   }
 
-  pub fn is_empty(&self, has_js_taps: bool) -> bool {
-    self.tap_stages.is_empty() && self.interceptor_count == 0 && !has_js_taps
+  pub fn is_empty(&self) -> bool {
+    self.tap_stages.is_empty() && self.interceptor_count == 0 && !self.has_js_taps()
   }
 
-  pub fn call_mode(&self, has_js_taps: bool) -> HookCallMode {
+  pub fn call_mode(&self) -> HookCallMode {
+    let has_js_taps = self.has_js_taps();
     if self.tap_stages.is_empty() && self.interceptor_count == 0 && !has_js_taps {
       HookCallMode::Empty
     } else if self.interceptor_count == 0 && !has_js_taps {
@@ -202,7 +228,7 @@ pub trait Interceptor<H: Hook> {
 }
 
 #[async_trait]
-impl<H, T> Interceptor<H> for std::sync::Arc<T>
+impl<H, T> Interceptor<H> for Arc<T>
 where
   H: Hook + Sync,
   T: Interceptor<H> + Send + Sync,
@@ -221,7 +247,7 @@ pub trait Hook {
 
   fn used_stages(&self) -> Vec<i32>;
 
-  fn load_js_tap_register<R>(&mut self, register: std::sync::Arc<R>) -> Result<()>
+  fn load_js_tap_register<R>(&mut self, register: Arc<R>) -> Result<()>
   where
     Self: Sized + Sync,
     R: JsTapRegister + Interceptor<Self> + Send + Sync + 'static;
