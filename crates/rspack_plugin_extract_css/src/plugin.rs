@@ -13,7 +13,7 @@ use rspack_core::{
   CompilationRuntimeRequirementInTree, CompilerCompilation, DependencyType, Filename,
   ManifestAssetType, Module, ModuleGraph, ModuleIdentifier, ModuleType, NormalModuleFactoryParser,
   ParserAndGenerator, ParserOptions, PathData, Plugin, RenderManifestEntry, RuntimeGlobals,
-  RuntimeModule, SourceType, get_undo_path,
+  RuntimeModule, SourceType, get_undo_path, remove_bom_str,
   rspack_sources::{
     BoxSource, CachedSource, ConcatSource, RawStringSource, SourceExt, SourceMap, SourceMapSource,
     WithoutOriginalOptions,
@@ -411,7 +411,9 @@ despite it was not able to fulfill desired ordering with these modules:
     let mut external_source = ConcatSource::default();
 
     for module in used_modules {
-      let content = Cow::Borrowed(module.content.as_str());
+      // Loaders such as dart-sass prepend a BOM, which is only meaningful at the
+      // start of a file. Concatenated as-is it lands mid-chunk and breaks parsers.
+      let content = Cow::Borrowed(remove_bom_str(&module.content));
       let readable_identifier = module.readable_identifier(&compilation.options.context);
       let starts_with_at_import = content.starts_with(STARTS_WITH_AT_IMPORT);
 
