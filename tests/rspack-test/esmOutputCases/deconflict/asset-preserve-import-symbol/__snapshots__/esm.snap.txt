@@ -1,7 +1,7 @@
 ```mjs title=main.mjs
-import __rspack_asset_1 from "./assets/value.asset.mjs";
-module.exports = __rspack_asset_1;
-const index_rspack_asset_1 = 'application value'
-const shorthand = { __rspack_asset_1: index_rspack_asset_1 }
-export { index_rspack_asset_1 as applicationValue, shorthand, value_asset as assetValue };
+import __rspack_asset_6763b85de2fc2546 from "./assets/value.asset.mjs";
+module.exports = __rspack_asset_6763b85de2fc2546;
+const index_rspack_asset_6763b85de2fc2546 = 'application value'
+const shorthand = { __rspack_asset_6763b85de2fc2546: index_rspack_asset_6763b85de2fc2546 }
+export { index_rspack_asset_6763b85de2fc2546 as applicationValue, shorthand, value_asset as assetValue };
 ```

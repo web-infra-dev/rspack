@@ -1,10 +1,9 @@
 ```mjs title=main.mjs
-import __rspack_asset_1 from "./assets/same-name.asset.mjs";
-import __rspack_asset_2 from "./assets/same_name.asset.mjs";
-module.exports = __rspack_asset_1;
-module.exports = __rspack_asset_2;
-const index_rspack_asset_1 = 'first application value'
-const index_rspack_asset_2 = 'second application value'
-const applicationValues = { __rspack_asset_1: index_rspack_asset_1, __rspack_asset_2: index_rspack_asset_2 }
-export { applicationValues, index_rspack_asset_1 as firstApplicationValue, index_rspack_asset_2 as secondApplicationValue, same_name_asset as dashedAsset, same_name_asset_0 as underscoredAsset };
+import __rspack_asset_28d349827cf20a88 from "./assets/same-name.asset.mjs";
+import __rspack_asset_a1470a0d5a9b15a8 from "./assets/same_name.asset.mjs";
+module.exports = __rspack_asset_28d349827cf20a88;
+module.exports = __rspack_asset_a1470a0d5a9b15a8;
+const index_rspack_asset_28d349827cf20a88 = 'first application value'
+const index_rspack_asset_a1470a0d5a9b15a8 = 'second application value'
+export { applicationValues, index_rspack_asset_28d349827cf20a88 as firstApplicationValue, index_rspack_asset_a1470a0d5a9b15a8 as secondApplicationValue, same_name_asset as dashedAsset, same_name_asset_0 as underscoredAsset };
 ```

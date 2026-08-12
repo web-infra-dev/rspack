@@ -17,7 +17,7 @@ use rspack_core::{
   rspack_sources::{BoxSource, RawStringSource, ReplaceSource, SourceExt},
 };
 use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, error};
-use rspack_hash::{RspackHash, RspackHashDigest, RspackHasher};
+use rspack_hash::{HashDigest, HashFunction, RspackHash, RspackHashDigest, RspackHasher};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::{base64, fx_hash::FxHashSet, identifier::make_paths_relative};
 
@@ -72,6 +72,18 @@ fn render_concatenated_asset_source(
     None,
   );
   GeneratedSource::generated_concatenation(source)
+}
+
+fn asset_import_binding(module: &dyn Module, compilation: &Compilation) -> String {
+  // Module ids are part of the module graph hash used by the code generation cache. Deriving the
+  // binding from the id therefore keeps cached init fragments valid across incremental builds.
+  let module_id = ChunkGraph::get_module_id(&compilation.module_ids_artifact, module.identifier())
+    .expect("asset module should have a module id during code generation");
+  let mut hasher = RspackHasher::new(&HashFunction::Xxhash64);
+  hasher.write(module_id.as_str().as_bytes());
+  let digest = hasher.digest(&HashDigest::Hex);
+  let digest = digest.encoded();
+  format!("__rspack_asset_{digest}")
 }
 
 #[cacheable]
@@ -728,7 +740,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
             let module_index = module_graph
               .get_pre_order_index(&module.identifier())
               .unwrap_or_default();
-            let imported_symbol = format!("__rspack_asset_{module_index}");
+            let imported_symbol = asset_import_binding(module, compilation);
             // ESM imports must stay at chunk scope even when the asset itself is rendered in a
             // module factory. Reserving the binding also lets the modern-module linker rename
             // conflicting declarations from bundled modules.

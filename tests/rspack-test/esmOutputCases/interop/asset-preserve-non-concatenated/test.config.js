@@ -20,9 +20,11 @@ module.exports = {
     )
 
     expect(source).toContain(
-      'import __rspack_asset_1 from "./assets/value.asset.mjs";',
+      'import __rspack_asset_6763b85de2fc2546 from "./assets/value.asset.mjs";',
     )
-    expect(source).toContain('module.exports = __rspack_asset_1;')
+    expect(source).toContain(
+      'module.exports = __rspack_asset_6763b85de2fc2546;',
+    )
     expect(source).not.toMatch(/\brequire\(/)
   },
 }

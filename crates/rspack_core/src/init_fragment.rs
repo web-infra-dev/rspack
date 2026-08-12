@@ -5,6 +5,7 @@ use std::{
   sync::atomic::AtomicU32,
 };
 
+use cow_utils::CowUtils;
 use dyn_clone::{DynClone, clone_trait_object};
 use hashlink::LinkedHashSet;
 use indexmap::IndexMap;
@@ -477,8 +478,10 @@ impl NormalInitFragment {
   }
 
   pub fn replace_content(mut self, from: &str, to: &str) -> Self {
-    self.content = self.content.replace(from, to);
-    self.end_content = self.end_content.map(|content| content.replace(from, to));
+    self.content = self.content.cow_replace(from, to).into_owned();
+    self.end_content = self
+      .end_content
+      .map(|content| content.cow_replace(from, to).into_owned());
     self
   }
 }

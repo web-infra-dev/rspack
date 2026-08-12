@@ -19,22 +19,32 @@ module.exports = {
       'utf8',
     )
     const importedSymbols = Array.from(
-      source.matchAll(/^import (__rspack_asset_\d+) from /gm),
+      source.matchAll(/^import (__rspack_asset_[0-9a-f]+) from /gm),
       match => match[1],
     )
 
-    expect(importedSymbols).toEqual(['__rspack_asset_1', '__rspack_asset_2'])
+    expect(importedSymbols).toEqual([
+      '__rspack_asset_28d349827cf20a88',
+      '__rspack_asset_a1470a0d5a9b15a8',
+    ])
     expect(new Set(importedSymbols).size).toBe(importedSymbols.length)
-    expect(source).toContain('module.exports = __rspack_asset_1;')
-    expect(source).toContain('module.exports = __rspack_asset_2;')
     expect(source).toContain(
-      "const index_rspack_asset_1 = 'first application value'",
+      'module.exports = __rspack_asset_28d349827cf20a88;',
     )
     expect(source).toContain(
-      "const index_rspack_asset_2 = 'second application value'",
+      'module.exports = __rspack_asset_a1470a0d5a9b15a8;',
     )
     expect(source).toContain(
-      'const applicationValues = { __rspack_asset_1: index_rspack_asset_1, __rspack_asset_2: index_rspack_asset_2 }',
+      "const index_rspack_asset_28d349827cf20a88 = 'first application value'",
+    )
+    expect(source).toContain(
+      "const index_rspack_asset_a1470a0d5a9b15a8 = 'second application value'",
+    )
+    expect(source).toContain(
+      '__rspack_asset_28d349827cf20a88: index_rspack_asset_28d349827cf20a88,',
+    )
+    expect(source).toContain(
+      '__rspack_asset_a1470a0d5a9b15a8: index_rspack_asset_a1470a0d5a9b15a8,',
     )
     expect(source).not.toMatch(/\brequire\(/)
   },
