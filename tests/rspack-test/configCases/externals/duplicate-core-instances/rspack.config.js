@@ -3,6 +3,8 @@
 const assert = require('node:assert/strict');
 const { pathToFileURL } = require('node:url');
 const core = require('@rspack/core');
+const getExternalModuleCompilationHooks =
+  core.ExternalModule.getCompilationHooks;
 
 let duplicateCoreId = 0;
 
@@ -40,7 +42,7 @@ class ExternalModuleChunkConditionPlugin {
     compiler.hooks.compilation.tap(
       'ExternalModuleChunkConditionPlugin',
       (compilation) => {
-        core.ExternalModule.getCompilationHooks(compilation).chunkCondition.tap(
+        getExternalModuleCompilationHooks(compilation).chunkCondition.tap(
           'ExternalModuleChunkConditionPlugin',
           (chunk, compilation) =>
             compilation.chunkGraph.getNumberOfEntryModules(chunk) > 0,
