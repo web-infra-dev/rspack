@@ -10,6 +10,7 @@ export type {
   CompilationParams,
   LogEntry,
   PathData,
+  WatchInvalidationKind,
 } from './Compilation';
 export { Compilation } from './Compilation';
 export { Compiler, type CompilerHooks } from './Compiler';

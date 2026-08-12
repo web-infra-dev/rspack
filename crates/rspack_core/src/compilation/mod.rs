@@ -317,6 +317,8 @@ pub struct Compilation {
   ///
   /// Rebuild will include previous compilation data, so persistent cache will not recovery anything
   pub is_rebuild: bool,
+  /// Whether this rebuild was explicitly invalidated by lazy compilation.
+  pub is_lazy_watch_rebuild: bool,
   pub compiler_context: Arc<CompilerContext>,
 }
 
@@ -436,6 +438,7 @@ impl Compilation {
       intermediate_filesystem,
       output_filesystem,
       is_rebuild,
+      is_lazy_watch_rebuild: false,
       compiler_context,
     }
   }
