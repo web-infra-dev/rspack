@@ -1,13 +1,1 @@
-WARNING in ./index.js
-  ⚠ Module parse warning:
-  ╰─▶   ⚠ Accessing unknown `import.meta` property 'hot' is replaced with undefined.
-           ╭─[468:24]
-       466 │             return routeModule;
-       467 │         } catch (error) {
-       468 │             if (test && import.meta.hot) {
-           ·                         ───────────────
-       469 │                 require("fail36");
-       470 │             }
-           ╰────
-
-Rspack x.x.x compiled with 1 warning in X s
+Rspack x.x.x compiled successfully in X s
