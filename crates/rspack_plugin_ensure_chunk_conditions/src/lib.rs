@@ -49,6 +49,10 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
   for (module_id, chunk_keys) in &source_module_chunks {
     adjust_module_size += 1;
     let mut target_chunks = HashSet::default();
+    let module = compilation
+      .get_module_graph()
+      .module_by_identifier(module_id);
+    let external_module = module.and_then(|module| module.as_external_module());
     for chunk_key in chunk_keys {
       adjust_chunk_size += 1;
       if let Some(chunk) = compilation
@@ -69,10 +73,6 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
             .get(chunk_group_key)
           {
             adjust_chunk_group_size += 1;
-            let module = compilation
-              .get_module_graph()
-              .module_by_identifier(module_id);
-            let external_module = module.and_then(|module| module.as_external_module());
             for chunk in &chunk_group.chunks {
               adjust_chunk_in_chunk_group_size += 1;
               if let Some(module) = module {
