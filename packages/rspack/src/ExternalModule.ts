@@ -2,7 +2,7 @@ import binding from '@rspack/binding';
 import * as liteTapable from '@rspack/lite-tapable';
 import type { Source } from 'webpack-sources';
 import type { Chunk } from './Chunk';
-import { type Compilation, checkCompilation } from './Compilation';
+import type { Compilation } from './Compilation';
 import { SourceAdapter } from './util/source';
 
 Object.defineProperty(binding.ExternalModule.prototype, 'identifier', {
@@ -51,20 +51,25 @@ const ExternalModule =
     ): ExternalModuleCompilationHooks;
   };
 
-const compilationHooksMap: WeakMap<
-  Compilation,
-  ExternalModuleCompilationHooks
-> = new WeakMap();
-
 ExternalModule.getCompilationHooks = (compilation: Compilation) => {
-  checkCompilation(compilation);
+  if (!(binding.COMPILATION_HOOKS_MAP_SYMBOL in compilation)) {
+    throw new TypeError(
+      "The 'compilation' argument must be an instance of Compilation",
+    );
+  }
 
-  let hooks = compilationHooksMap.get(compilation);
+  const compilationHooksMap = compilation[
+    binding.COMPILATION_HOOKS_MAP_SYMBOL
+  ] as unknown as WeakMap<
+    typeof ExternalModule,
+    ExternalModuleCompilationHooks
+  >;
+  let hooks = compilationHooksMap.get(ExternalModule);
   if (hooks === undefined) {
     hooks = {
       chunkCondition: new liteTapable.SyncBailHook(['chunk', 'compilation']),
     };
-    compilationHooksMap.set(compilation, hooks);
+    compilationHooksMap.set(ExternalModule, hooks);
   }
   return hooks;
 };
