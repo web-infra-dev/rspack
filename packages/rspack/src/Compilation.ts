@@ -43,6 +43,7 @@ import WebpackError from './lib/WebpackError';
 import { Logger, LogType } from './logging/Logger';
 import type { Module } from './Module';
 import ModuleGraph from './ModuleGraph';
+import type { NormalModuleCompilationHooks } from './NormalModule';
 import type { NormalModuleFactory } from './NormalModuleFactory';
 import type { ResolverFactory } from './ResolverFactory';
 import type { RspackError } from './RspackError';
@@ -229,13 +230,9 @@ export type NormalizedStatsOptions = KnownNormalizedStatsOptions &
   Record<string, any>;
 
 export const checkCompilation = (compilation: Compilation) => {
-  if (
-    typeof compilation !== 'object' ||
-    compilation === null ||
-    !(binding.COMPILATION_HOOKS_MAP_SYMBOL in compilation)
-  ) {
+  if (!(compilation instanceof Compilation)) {
     throw new TypeError(
-      "The 'compilation' argument must be an instance of Compilation",
+      `The 'compilation' argument must be an instance of Compilation. This usually occurs when multiple versions of "@rspack/core" are used, or when the code in "@rspack/core" is executed multiple times.`,
     );
   }
 };
@@ -245,9 +242,9 @@ export const getOrCreateCompilationHooks = <T>(
   key: object,
   createHooks: () => T,
 ): T => {
-  checkCompilation(compilation);
-
-  const compilationHooksMap = compilation[binding.COMPILATION_HOOKS_MAP_SYMBOL];
+  const compilationHooksMap = compilation[
+    binding.COMPILATION_HOOKS_MAP_SYMBOL
+  ] as unknown as WeakMap<object, T>;
   let hooks = compilationHooksMap.get(key) as T | undefined;
   if (hooks === undefined) {
     hooks = createHooks();
@@ -336,7 +333,10 @@ export class Compilation {
   #addIncludeDispatcher: AddEntryItemDispatcher;
   #addEntryDispatcher: AddEntryItemDispatcher;
 
-  [binding.COMPILATION_HOOKS_MAP_SYMBOL]: WeakMap<object, unknown>;
+  [binding.COMPILATION_HOOKS_MAP_SYMBOL]: WeakMap<
+    Compilation,
+    NormalModuleCompilationHooks
+  >;
 
   constructor(compiler: Compiler, inner: JsCompilation) {
     this.#inner = inner;

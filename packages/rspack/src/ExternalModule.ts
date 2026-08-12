@@ -52,6 +52,12 @@ const ExternalModule =
   };
 
 ExternalModule.getCompilationHooks = (compilation: Compilation) => {
+  if (!(binding.COMPILATION_HOOKS_MAP_SYMBOL in compilation)) {
+    throw new TypeError(
+      "The 'compilation' argument must be an instance of Compilation",
+    );
+  }
+
   return getOrCreateCompilationHooks(compilation, ExternalModule, () => ({
     chunkCondition: new liteTapable.SyncBailHook(['chunk', 'compilation']),
   }));
