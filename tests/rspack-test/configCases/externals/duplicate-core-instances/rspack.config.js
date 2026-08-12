@@ -6,29 +6,32 @@ const core = require('@rspack/core');
 
 let duplicateCoreId = 0;
 
-class LoadDuplicateCorePlugin {
+class DuplicateCoreInstancesPlugin {
   apply(compiler) {
-    compiler.hooks.beforeRun.tapPromise('LoadDuplicateCorePlugin', async () => {
-      const duplicateCore = await import(
-        `${pathToFileURL(require.resolve('@rspack/core')).href}?duplicate-core-instance=${duplicateCoreId++}`
-      );
+    compiler.hooks.beforeRun.tapPromise(
+      'DuplicateCoreInstancesPlugin',
+      async () => {
+        const duplicateCore = await import(
+          `${pathToFileURL(require.resolve('@rspack/core')).href}?duplicate-core-instance=${duplicateCoreId++}`
+        );
 
-      assert.notStrictEqual(
-        core,
-        duplicateCore,
-        'JavaScript core should be evaluated twice',
-      );
-      assert.notStrictEqual(
-        core.Compilation,
-        duplicateCore.Compilation,
-        'Compilation should come from different JavaScript core instances',
-      );
-      assert.strictEqual(
-        core.ExternalModule,
-        duplicateCore.ExternalModule,
-        'ExternalModule should come from the same native binding',
-      );
-    });
+        assert.notStrictEqual(
+          core,
+          duplicateCore,
+          'JavaScript core should be evaluated twice',
+        );
+        assert.notStrictEqual(
+          core.Compilation,
+          duplicateCore.Compilation,
+          'Compilation should come from different JavaScript core instances',
+        );
+        assert.strictEqual(
+          core.ExternalModule,
+          duplicateCore.ExternalModule,
+          'ExternalModule should come from the same native binding',
+        );
+      },
+    );
   }
 }
 
@@ -50,9 +53,6 @@ class ExternalModuleChunkConditionPlugin {
 module.exports = {
   externals: { external: 'fs' },
   externalsType: 'module-import',
-  experiments: {
-    outputModule: true,
-  },
   output: {
     module: true,
     chunkFormat: 'module',
@@ -63,7 +63,7 @@ module.exports = {
     concatenateModules: false,
   },
   plugins: [
-    new LoadDuplicateCorePlugin(),
+    new DuplicateCoreInstancesPlugin(),
     new ExternalModuleChunkConditionPlugin(),
   ],
 };
