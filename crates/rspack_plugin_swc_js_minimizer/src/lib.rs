@@ -319,10 +319,8 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           }
           return Ok(());
         }
-        if new_cache_entry.is_some() || cache_key.is_some() {
-          if let Some(counter) = &minimize_cache_counter {
-            counter.miss();
-          }
+        if (new_cache_entry.is_some() || cache_key.is_some()) && let Some(counter) = &minimize_cache_counter {
+          counter.miss();
         }
         let input = original_source.source().into_string_lossy().into_owned();
         let object_pool = tls.get_or(ObjectPool::default);
