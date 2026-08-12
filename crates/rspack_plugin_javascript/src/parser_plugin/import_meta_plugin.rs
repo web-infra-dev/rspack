@@ -387,10 +387,14 @@ impl ImportMetaPlugin {
     if !matches!(self.0.as_ref(), ImportMeta::Enabled)
       || members.first().is_some_and(|property| {
         let name = concat_string!(expr_name::IMPORT_META, ".", property);
-        matches!(
-          name.as_str(),
-          expr_name::IMPORT_META_HOT | expr_name::IMPORT_META_CONTEXT | expr_name::IMPORT_META_GLOB
-        ) || Self::known_property_from_name(&name).is_some()
+        property == "hot"
+          || matches!(
+            name.as_str(),
+            expr_name::IMPORT_META_HOT
+              | expr_name::IMPORT_META_CONTEXT
+              | expr_name::IMPORT_META_GLOB
+          )
+          || Self::known_property_from_name(&name).is_some()
       })
     {
       return;
