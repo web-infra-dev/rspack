@@ -4,6 +4,7 @@
 //! cannot be ported over because it uses mocks on `pnpApi` provided by the runtime.
 
 use camino::Utf8Path;
+use cow_utils::CowUtils;
 
 use crate::{
   ResolveContext, ResolveError::NotFound, ResolveOptions, Resolver, ResolverPath, path::PathUtil,
@@ -308,9 +309,9 @@ async fn resolve_pnp_transitive_dep_from_global_cache() {
       r.full_path()
         .to_str()
         .expect("path should be UTF-8")
-        .replace('\\', "/")
-        .to_lowercase()
-        .to_string()
+        .cow_replace('\\', "/")
+        .cow_to_lowercase()
+        .into_owned()
     })
     .unwrap();
 

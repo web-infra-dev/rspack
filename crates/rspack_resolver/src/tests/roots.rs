@@ -88,7 +88,7 @@ async fn roots_fall_through() {
   let absolute_path = f.join("roots_fall_through/index.js");
   let specifier = absolute_path.to_str().expect("path should be UTF-8");
   let resolution = Resolver::new(ResolveOptions::default().with_root(&f))
-    .resolve(&f, &specifier)
+    .resolve(&f, specifier)
     .await;
   assert_eq!(
     resolution.map(super::super::resolution::Resolution::into_path_buf),

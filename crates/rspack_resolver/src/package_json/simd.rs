@@ -9,6 +9,7 @@ use std::{
 };
 
 use camino::Utf8Path;
+use cow_utils::CowUtils;
 use serde::de::{Deserialize, Deserializer, IgnoredAny, MapAccess, Visitor};
 use simd_json::{
   BorrowedValue, Error as SimdParseError, ObjectHasher,
@@ -183,7 +184,9 @@ impl From<SimdParseError> for ParseError {
   fn from(value: SimdParseError) -> Self {
     Self {
       index: value.index(),
-      message: format!("{:?}", value.error()).to_lowercase(),
+      message: format!("{:?}", value.error())
+        .cow_to_lowercase()
+        .into_owned(),
     }
   }
 }

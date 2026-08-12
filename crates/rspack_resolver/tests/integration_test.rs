@@ -7,7 +7,7 @@ use rspack_resolver::{
 };
 
 fn dir() -> PathBuf {
-  env::current_dir().unwrap()
+  env::current_dir().expect("current dir should be accessible")
 }
 
 async fn resolve(specifier: &str) -> Resolution {
@@ -15,7 +15,7 @@ async fn resolve(specifier: &str) -> Resolution {
   Resolver::new(ResolveOptions::default())
     .resolve(path, specifier)
     .await
-    .unwrap()
+    .expect("specifier should resolve")
 }
 
 #[tokio::test]
@@ -43,7 +43,7 @@ async fn package_json() {
   let package_json = resolution.package_json().unwrap();
   assert_eq!(package_json.name.as_ref().unwrap(), "name");
   assert_eq!(package_json.r#type, Some(ModuleType::Module));
-  assert!(matches!(package_json.side_effects, Some(_)));
+  assert!(package_json.side_effects.is_some());
 }
 
 #[cfg(feature = "package_json_raw_json_api")]

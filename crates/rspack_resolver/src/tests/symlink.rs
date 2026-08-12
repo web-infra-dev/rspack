@@ -141,9 +141,9 @@ async fn test() -> io::Result<()> {
       .map(|r| r.full_path());
     assert_eq!(filename, Ok(root.join("lib/index.js")), "{comment:?}");
 
-    let mut ctx = &mut Default::default();
+    let ctx = &mut Default::default();
     let resolved_path = resolver_without_symlinks
-      .resolve_with_context(&path, request, &mut ctx)
+      .resolve_with_context(&path, request, ctx)
       .await
       .map(|r| r.full_path());
     assert_eq!(resolved_path, Ok(path.join(request)));

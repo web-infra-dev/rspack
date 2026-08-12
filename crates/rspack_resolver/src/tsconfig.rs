@@ -1,6 +1,7 @@
 use std::{hash::BuildHasherDefault, sync::Arc};
 
 use camino::{Utf8Path, Utf8PathBuf};
+use cow_utils::CowUtils;
 use indexmap::{IndexMap, IndexSet};
 use rustc_hash::FxHasher;
 use serde::Deserialize;
@@ -223,10 +224,12 @@ impl TsConfig {
             paths
               .iter()
               .map(|path| {
-                path.replace(
-                  '*',
-                  &specifier[longest_prefix_length..specifier.len() - longest_suffix_length],
-                )
+                path
+                  .cow_replace(
+                    '*',
+                    &specifier[longest_prefix_length..specifier.len() - longest_suffix_length],
+                  )
+                  .into_owned()
               })
               .collect::<Vec<_>>()
           })

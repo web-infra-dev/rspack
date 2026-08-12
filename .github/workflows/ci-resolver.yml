@@ -112,11 +112,10 @@ jobs:
           save-if: true
           key: check-resolver
 
-      # The imported test sources are kept verbatim and are not linted, hence
-      # no `--all-targets` here (mirroring the crate's original repository);
-      # the shared rust test workflow excludes this crate from its clippy run.
+      # The shared rust test workflow lints the workspace with default
+      # features; this adds coverage for the crate's optional features.
       - name: Run Clippy
-        run: cargo clippy -p rspack_resolver --all-features --locked -- -D warnings
+        run: cargo clippy -p rspack_resolver --all-targets --all-features --locked -- -D warnings
 
       - name: Check wasm32
         run: |

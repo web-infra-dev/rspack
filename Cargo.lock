@@ -5267,6 +5267,7 @@ dependencies = [
  "camino",
  "cfg-if",
  "codspeed-criterion-compat",
+ "cow-utils",
  "dashmap",
  "document-features",
  "dunce",

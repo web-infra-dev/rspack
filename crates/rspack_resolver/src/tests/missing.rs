@@ -106,8 +106,12 @@ async fn alias_and_extensions() {
   });
 
   let mut ctx = ResolveContext::default();
-  let _ = resolver.resolve_with_context(&f, "@scope-js/package-name/dir/router", &mut ctx);
-  let _ = resolver.resolve_with_context(&f, "react-dom/client", &mut ctx);
+  let _ = resolver
+    .resolve_with_context(&f, "@scope-js/package-name/dir/router", &mut ctx)
+    .await;
+  let _ = resolver
+    .resolve_with_context(&f, "react-dom/client", &mut ctx)
+    .await;
 
   for path in ctx.file_dependencies {
     assert_eq!(path.as_path(), path.normalize(), "{path:?}");

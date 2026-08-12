@@ -43,7 +43,7 @@ async fn incorrect_description_file_2() {
     message: String::from("EOF while parsing a value at line 1 column 0"),
     line: 1,
     column: 0,
-    content: Some("".to_string()),
+    content: Some(String::new()),
   });
   assert!(matches!(resolution, Err(ResolveError::JSON(_))));
 }

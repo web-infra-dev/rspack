@@ -73,6 +73,7 @@ use std::{
 };
 
 use camino::{Utf8Component, Utf8Path, Utf8PathBuf};
+use cow_utils::CowUtils;
 use dashmap::DashSet;
 use futures::future::{BoxFuture, try_join_all};
 use rustc_hash::FxHashSet;
@@ -2095,7 +2096,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
               ));
             }
           } else {
-            Cow::Owned(target.replace('*', pattern_match))
+            target.cow_replace('*', pattern_match)
           }
         } else {
           Cow::Borrowed(target)

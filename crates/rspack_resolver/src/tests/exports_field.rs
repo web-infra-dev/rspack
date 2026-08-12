@@ -392,7 +392,7 @@ fn exports_field(value: simd_json::value::OwnedValue) -> package_json::JSONValue
 
 #[tokio::test]
 async fn test_cases() {
-  let test_cases = [
+  let test_cases = vec![
     TestCase {
       name: "sample #1",
       expect: Some(vec!["./dist/test/file.js"]),

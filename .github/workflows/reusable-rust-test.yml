@@ -60,10 +60,7 @@ jobs:
         run: cargo workspaces exec --ignore-private cargo check --lib --locked
 
       - name: Run Clippy
-        # rspack_resolver is linted (lib only, mirroring its original repository)
-        # in ci-resolver.yml; its imported test sources are kept verbatim and
-        # do not pass `--all-targets` linting.
-        run: cargo clippy --workspace --exclude rspack_resolver --all-targets --tests --locked -- -D warnings
+        run: cargo clippy --workspace --all-targets --tests --locked -- -D warnings
 
       - name: Run rustfmt
         run: cargo fmt --all -- --check
@@ -128,13 +125,13 @@ jobs:
           cargo test --workspace \
             --exclude rspack_binding_api \
             --exclude rspack_node \
-            --exclude rspack_resolver \
             --exclude rspack_binding_builder \
             --exclude rspack_binding_builder_macros \
             --exclude rspack_binding_builder_testing \
             --exclude rspack_binding_build \
             --exclude rspack_napi \
             --exclude rspack_watcher \
+            --exclude rspack_resolver \
             -- --nocapture
 
   rust_watcher_test:

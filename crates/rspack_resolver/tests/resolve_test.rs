@@ -3,7 +3,7 @@ use std::{env, path::PathBuf};
 use rspack_resolver::{ResolveError, ResolveOptions, Resolver};
 
 fn dir() -> PathBuf {
-  env::current_dir().unwrap()
+  env::current_dir().expect("current dir should be accessible")
 }
 
 #[tokio::test]

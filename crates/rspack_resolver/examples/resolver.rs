@@ -1,4 +1,4 @@
-///! See documentation at <https://docs.rs/rspack_resolver>
+//! See documentation at <https://docs.rs/rspack_resolver>
 use std::{env, path::PathBuf};
 
 use rspack_resolver::{AliasValue, ResolveOptions, Resolver};
@@ -41,9 +41,9 @@ async fn main() {
 
   let mut sorted_file_deps = ctx.file_dependencies.iter().collect::<Vec<_>>();
   sorted_file_deps.sort_by_key(|p| p.as_path());
-  println!("file_deps: {:#?}", sorted_file_deps);
+  println!("file_deps: {sorted_file_deps:#?}");
 
   let mut sorted_missing = ctx.missing_dependencies.iter().collect::<Vec<_>>();
   sorted_missing.sort_by_key(|p| p.as_path());
-  println!("missing_deps: {:#?}", sorted_missing);
+  println!("missing_deps: {sorted_missing:#?}");
 }

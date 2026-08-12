@@ -1,5 +1,0 @@
-# This crate keeps the clippy configuration it had in its original repository
-# (https://github.com/rstackjs/rspack-resolver). Clippy uses the nearest
-# configuration file, so this file shields the crate from the workspace-level
-# clippy.toml (disallowed methods, thresholds) that its imported sources and
-# tests were never written against.
