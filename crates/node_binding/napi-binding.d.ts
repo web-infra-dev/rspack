@@ -762,9 +762,12 @@ export interface JsChunkGroupOrigin {
   loc?: string | RealDependencyLocation
 }
 
-export interface JsChunkOptionNameCtx {
-  module: Module
+export interface JsChunkOptionNameBatch {
+  modules: Module[]
   chunks: Chunk[]
+  moduleIndices: Uint32Array
+  chunkOffsets: Uint32Array
+  chunkIndices: Uint32Array
   cacheGroupKey: string
 }
 
@@ -1910,7 +1913,7 @@ export interface RawCacheGroupOptions {
   maxInitialSize?: number | RawSplitChunkSizes
   maxAsyncRequests?: number
   maxInitialRequests?: number
-  name?: string | false | ((contexts: JsChunkOptionNameCtx[]) => (string | undefined)[])
+  name?: string | false | ((batch: JsChunkOptionNameBatch) => (string | undefined)[])
   reuseExistingChunk?: boolean
   enforce?: boolean
   usedExports?: boolean
@@ -3074,7 +3077,7 @@ export interface RawSplitChunkSizes {
 
 export interface RawSplitChunksOptions {
   fallbackCacheGroup?: RawFallbackCacheGroupOptions
-  name?: string | false | ((contexts: JsChunkOptionNameCtx[]) => (string | undefined)[])
+  name?: string | false | ((batch: JsChunkOptionNameBatch) => (string | undefined)[])
   filename?: JsFilename
   cacheGroups?: Array<RawCacheGroupOptions>
   /** What kind of chunks should be selected. */

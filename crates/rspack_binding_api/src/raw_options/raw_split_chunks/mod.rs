@@ -33,9 +33,7 @@ pub type RawModuleLayerFilter<'a> =
 #[derive(Debug)]
 pub struct RawSplitChunksOptions<'a> {
   pub fallback_cache_group: Option<RawFallbackCacheGroupOptions<'a>>,
-  #[napi(
-    ts_type = "string | false | ((contexts: JsChunkOptionNameCtx[]) => (string | undefined)[])"
-  )]
+  #[napi(ts_type = "string | false | ((batch: JsChunkOptionNameBatch) => (string | undefined)[])")]
   #[debug(skip)]
   pub name: Option<RawChunkOptionName>,
   pub filename: Option<JsFilename>,
@@ -102,9 +100,7 @@ pub struct RawCacheGroupOptions<'a> {
   pub max_initial_size: Option<Either<f64, RawSplitChunkSizes>>,
   pub max_async_requests: Option<f64>,
   pub max_initial_requests: Option<f64>,
-  #[napi(
-    ts_type = "string | false | ((contexts: JsChunkOptionNameCtx[]) => (string | undefined)[])"
-  )]
+  #[napi(ts_type = "string | false | ((batch: JsChunkOptionNameBatch) => (string | undefined)[])")]
   #[debug(skip)]
   pub name: Option<RawChunkOptionName>,
   // used_exports: bool,

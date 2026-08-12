@@ -4,6 +4,7 @@ const callbackStats = {
   chunks: { batches: 0, calls: 0, active: false },
   name: { batches: 0, calls: 0, active: false },
 };
+const nameChunkArrays = new Set();
 
 function trackCallback(kind) {
   const stats = callbackStats[kind];
@@ -40,6 +41,7 @@ class AssertBatchCallbacksPlugin {
         calls: 2,
         active: false,
       });
+      expect(nameChunkArrays.size).toBe(2);
     });
   }
 }
@@ -87,7 +89,12 @@ module.exports = {
             trackCallback('name');
             expect(Array.isArray(module)).toBe(false);
             expect(Array.isArray(chunks)).toBe(true);
+            expect(chunks.map((chunk) => chunk.name).sort()).toEqual([
+              'a',
+              'b',
+            ]);
             expect(cacheGroupKey).toBe('batch');
+            nameChunkArrays.add(chunks);
             return 'shared';
           },
         },

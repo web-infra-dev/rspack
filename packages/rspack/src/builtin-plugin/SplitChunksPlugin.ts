@@ -42,20 +42,45 @@ export function toRawSplitChunksOptions(
   }
 
   function getName(name: any) {
-    interface Context {
-      module: Module;
+    interface Batch {
+      modules: Module[];
       chunks: Chunk[];
+      moduleIndices: Uint32Array;
+      chunkOffsets: Uint32Array;
+      chunkIndices: Uint32Array;
       cacheGroupKey: string;
     }
 
     if (typeof name === 'function') {
-      return (contexts: Context[]) =>
-        contexts.map((ctx) => {
-          if (typeof ctx.module === 'undefined') {
-            return name(undefined);
+      return (batch: Batch) => {
+        const {
+          modules,
+          chunks,
+          moduleIndices,
+          chunkOffsets,
+          chunkIndices,
+          cacheGroupKey,
+        } = batch;
+        const results = new Array(moduleIndices.length);
+
+        for (let i = 0; i < moduleIndices.length; i++) {
+          const module = modules[moduleIndices[i]];
+          const start = chunkOffsets[i];
+          const end = chunkOffsets[i + 1];
+          const contextChunks = new Array<Chunk>(end - start);
+          for (let j = start; j < end; j++) {
+            contextChunks[j - start] = chunks[chunkIndices[j]];
           }
-          return name(ctx.module, ctx.chunks, ctx.cacheGroupKey);
-        });
+
+          if (typeof module === 'undefined') {
+            results[i] = name(undefined);
+          } else {
+            results[i] = name(module, contextChunks, cacheGroupKey);
+          }
+        }
+
+        return results;
+      };
     }
     return name;
   }
