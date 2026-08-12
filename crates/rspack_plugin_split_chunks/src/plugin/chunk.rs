@@ -1,7 +1,10 @@
 use rayon::prelude::*;
+use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   Chunk, ChunkSplitData, ChunkUkey, Compilation, ModuleIdentifier, incremental::Mutation,
+  module_chunk_condition,
 };
+use rspack_error::Result;
 use rustc_hash::FxHashSet;
 
 use crate::{
@@ -196,56 +199,59 @@ impl SplitChunksPlugin {
 
   /// Returns the selected source chunks for modules that can move into `new_chunk`.
   // #[tracing::instrument(skip_all)]
-  pub(crate) fn get_module_chunks_to_move(
+  pub(crate) async fn get_module_chunks_to_move(
     &self,
     item: &ModuleGroup,
     new_chunk: ChunkUkey,
     original_chunks: &FxHashSet<ChunkUkey>,
     compilation: &Compilation,
-  ) -> ModuleChunkMap {
-    let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
+  ) -> Result<ModuleChunkMap> {
     if item.uses_shared_module_chunks() {
       debug_assert!(original_chunks.is_subset(&item.chunks));
       let chunks = original_chunks.clone();
-      let modules = item
-        .modules
-        .iter()
-        .filter(|mid| {
-          compilation
-            .module_by_identifier(mid)
-            .and_then(|module| module.chunk_condition(&new_chunk, compilation))
-            != Some(false)
-        })
-        .copied()
-        .collect();
-      return ModuleChunkMap::Shared { modules, chunks };
+      let mut modules = IdentifierSet::default();
+      for mid in &item.modules {
+        if let Some(module) = compilation.module_by_identifier(mid)
+          && module_chunk_condition(module.as_ref(), &new_chunk, compilation)
+            .await?
+            .is_some_and(|condition| !condition)
+        {
+          continue;
+        }
+        modules.insert(*mid);
+      }
+      return Ok(ModuleChunkMap::Shared { modules, chunks });
     }
 
-    ModuleChunkMap::ByModule(
-      item
-        .modules
-        .iter()
-        .filter_map(|mid| {
-          let selected_chunks = item.get_module_chunks(mid)?;
-          if let Some(module) = compilation.module_by_identifier(mid)
-            && module
-              .chunk_condition(&new_chunk, compilation)
-              .is_some_and(|condition| !condition)
-          {
-            return None;
-          }
+    let mut module_chunks = IdentifierMap::default();
+    for mid in &item.modules {
+      let Some(selected_chunks) = item.get_module_chunks(mid) else {
+        continue;
+      };
+      if let Some(module) = compilation.module_by_identifier(mid)
+        && module_chunk_condition(module.as_ref(), &new_chunk, compilation)
+          .await?
+          .is_some_and(|condition| !condition)
+      {
+        continue;
+      }
 
-          let chunks = original_chunks
-            .iter()
-            .filter(|chunk| {
-              selected_chunks.contains(chunk) && chunk_graph.is_module_in_chunk(mid, **chunk)
-            })
-            .copied()
-            .collect::<FxHashSet<_>>();
-          (!chunks.is_empty()).then_some((*mid, chunks))
+      let chunks = original_chunks
+        .iter()
+        .filter(|chunk| {
+          selected_chunks.contains(chunk)
+            && compilation
+              .build_chunk_graph_artifact
+              .chunk_graph
+              .is_module_in_chunk(mid, **chunk)
         })
-        .collect(),
-    )
+        .copied()
+        .collect::<FxHashSet<_>>();
+      if !chunks.is_empty() {
+        module_chunks.insert(*mid, chunks);
+      }
+    }
+    Ok(ModuleChunkMap::ByModule(module_chunks))
   }
 
   /// Moves `modules` into `new_chunk` and removes their selected source placements.

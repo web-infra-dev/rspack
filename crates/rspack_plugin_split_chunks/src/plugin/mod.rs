@@ -260,8 +260,9 @@ impl SplitChunksPlugin {
         // group. Track the exact original module-chunk edges that this split will consume instead
         // of treating the remaining modules and chunks as a cross product.
         let mut used_chunks = used_chunks;
-        let mut placed_module_chunks =
-          self.get_module_chunks_to_move(&module_group, new_chunk, &used_chunks, compilation);
+        let mut placed_module_chunks = self
+          .get_module_chunks_to_move(&module_group, new_chunk, &used_chunks, compilation)
+          .await?;
         {
           let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
           if is_reuse_existing_chunk {
