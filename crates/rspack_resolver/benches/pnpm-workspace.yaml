@@ -1,0 +1,14 @@
+# benches is a standalone fixture project (not a member of the repo-root workspace).
+# Its dependencies are only ever resolved as paths by the resolver benchmarks;
+# the JS is never executed. Making benches its own workspace root lets these
+# settings apply to every `pnpm install` here — local and CI alike.
+#
+# ignoreScripts: assert no dependency/lifecycle script (e.g. postinstall) ever
+#   runs, keeping known-vulnerable transitive deps inert.
+# strictDepBuilds: don't fail the install over those intentionally-skipped builds.
+#
+# NOTE: `pnpm install --ignore-workspace` bypasses this file, so do not pass that
+# flag here — `cd benches && pnpm install` is enough.
+packages: []
+ignoreScripts: true
+strictDepBuilds: false
