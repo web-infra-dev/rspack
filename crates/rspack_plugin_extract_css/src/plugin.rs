@@ -13,7 +13,7 @@ use rspack_core::{
   CompilationRuntimeRequirementInTree, CompilerCompilation, DependencyType, Filename,
   ManifestAssetType, Module, ModuleGraph, ModuleIdentifier, ModuleType, NormalModuleFactoryParser,
   ParserAndGenerator, ParserOptions, PathData, Plugin, RenderManifestEntry, RuntimeGlobals,
-  RuntimeModule, SourceType, get_undo_path, remove_bom_str,
+  RuntimeModule, SourceType, get_undo_path, remove_bom, remove_bom_str,
   rspack_sources::{
     BoxSource, CachedSource, ConcatSource, RawStringSource, SourceExt, SourceMap, SourceMapSource,
     WithoutOriginalOptions,
@@ -411,11 +411,13 @@ despite it was not able to fulfill desired ordering with these modules:
     let mut external_source = ConcatSource::default();
 
     for module in used_modules {
-      // Loaders such as dart-sass prepend a BOM, which is only meaningful at the
-      // start of a file. Concatenated as-is it lands mid-chunk and breaks parsers.
-      let content = Cow::Borrowed(remove_bom_str(&module.content));
+      let content = Cow::Borrowed(module.content.as_str());
       let readable_identifier = module.readable_identifier(&compilation.options.context);
-      let starts_with_at_import = content.starts_with(STARTS_WITH_AT_IMPORT);
+      // Loaders such as dart-sass prepend a BOM, which is only meaningful at the
+      // start of a file. Concatenated as-is it lands mid-chunk and breaks parsers,
+      // so it is stripped below, through `remove_bom` where a source map has to
+      // keep following the content.
+      let starts_with_at_import = remove_bom_str(&content).starts_with(STARTS_WITH_AT_IMPORT);
 
       let header = self.options.pathinfo.then(|| {
         let req_str = readable_identifier.cow_replace("*/", "*_/");
@@ -432,8 +434,9 @@ despite it was not able to fulfill desired ordering with these modules:
         if let Some(header) = header {
           external_source.add(header);
         }
+        let content = remove_bom_str(&content);
         if let Some(media) = &module.media {
-          let new_content = MEDIA_RE.replace_all(content.as_ref(), media);
+          let new_content = MEDIA_RE.replace_all(content, media);
           external_source.add(RawStringSource::from(new_content.to_string() + "\n"));
         } else {
           external_source.add(RawStringSource::from(content.to_string() + "\n"));
@@ -485,13 +488,16 @@ despite it was not able to fulfill desired ordering with these modules:
         );
 
         if let Some(source_map) = &module.source_map {
-          source.add(SourceMapSource::new(WithoutOriginalOptions {
-            value: content.to_string(),
-            name: readable_identifier,
-            source_map: SourceMap::from_json(source_map.clone()).expect("invalid sourcemap"),
-          }))
+          source.add(remove_bom(
+            SourceMapSource::new(WithoutOriginalOptions {
+              value: content.to_string(),
+              name: readable_identifier,
+              source_map: SourceMap::from_json(source_map.clone()).expect("invalid sourcemap"),
+            })
+            .boxed(),
+          ))
         } else {
-          source.add(RawStringSource::from(content.to_string()));
+          source.add(RawStringSource::from(remove_bom_str(&content).to_string()));
         }
 
         source.add(RawStringSource::from_static("\n"));
