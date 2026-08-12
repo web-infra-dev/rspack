@@ -43,7 +43,6 @@ import WebpackError from './lib/WebpackError';
 import { Logger, LogType } from './logging/Logger';
 import type { Module } from './Module';
 import ModuleGraph from './ModuleGraph';
-import type { NormalModuleCompilationHooks } from './NormalModule';
 import type { NormalModuleFactory } from './NormalModuleFactory';
 import type { ResolverFactory } from './ResolverFactory';
 import type { RspackError } from './RspackError';
@@ -242,9 +241,7 @@ export const getOrCreateCompilationHooks = <T>(
   key: object,
   createHooks: () => T,
 ): T => {
-  const compilationHooksMap = compilation[
-    binding.COMPILATION_HOOKS_MAP_SYMBOL
-  ] as unknown as WeakMap<object, T>;
+  const compilationHooksMap = compilation[binding.COMPILATION_HOOKS_MAP_SYMBOL];
   let hooks = compilationHooksMap.get(key) as T | undefined;
   if (hooks === undefined) {
     hooks = createHooks();
@@ -333,10 +330,7 @@ export class Compilation {
   #addIncludeDispatcher: AddEntryItemDispatcher;
   #addEntryDispatcher: AddEntryItemDispatcher;
 
-  [binding.COMPILATION_HOOKS_MAP_SYMBOL]: WeakMap<
-    Compilation,
-    NormalModuleCompilationHooks
-  >;
+  [binding.COMPILATION_HOOKS_MAP_SYMBOL]: WeakMap<object, unknown>;
 
   constructor(compiler: Compiler, inner: JsCompilation) {
     this.#inner = inner;
