@@ -1,0 +1,21 @@
+[package]
+authors.workspace       = true
+categories.workspace    = true
+description             = "EJS-like HTML template engine for Rspack"
+documentation.workspace = true
+edition.workspace       = true
+homepage.workspace      = true
+license.workspace       = true
+name                    = "rspack_dojang"
+repository.workspace    = true
+version.workspace       = true
+
+[dependencies]
+html-escape = { workspace = true }
+serde_json  = { workspace = true }
+
+[lints]
+workspace = true
+
+[lib]
+doctest = false
