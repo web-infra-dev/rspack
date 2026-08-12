@@ -1,0 +1,8 @@
+version: 2
+
+# Manifests under these paths are resolver test/benchmark inputs
+# (packages are installed only to be path-resolved against, never executed).
+projectIgnorePaths:
+  - 'crates/rspack_resolver/benches/**'
+  - 'crates/rspack_resolver/fixtures/**'
+  - 'crates/rspack_resolver/pnpm-lock.yaml'
