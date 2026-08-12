@@ -5,6 +5,7 @@ use rspack_core::{
   ArcComputed, ConstDependency, ContextDependency, ContextMode, ContextOptions, DependencyCategory,
   DependencyRange, ImportMeta, ImportMetaKnownProperties, ResolvedModuleOptions, RscMeta,
   RscModuleType, RuntimeGlobals, RuntimeRequirementsDependency, get_context, property_access,
+  to_normal_comment,
 };
 use rspack_error::{Error, Severity};
 use rspack_util::{SpanExt, json_stringify_str};
@@ -35,7 +36,7 @@ use crate::{
   visitors::{
     AllowedMemberTypes, ExportedVariableInfo, ExprRef, JavascriptParser, MemberExpressionInfo,
     RootName, context_reg_exp, create_context_dependency, create_traceable_error, expr_name,
-    get_non_optional_member_chain_from_expr,
+    get_non_optional_member_chain_from_expr, member_property_to_atom,
   },
 };
 
@@ -358,15 +359,21 @@ impl ImportMetaPlugin {
     )
   }
 
-  fn import_meta_unknown_property(&self, members: &Vec<String>) -> String {
-    if self.preserve_property(members.first().map(|property| property.as_str())) {
-      concat_string!("import.meta", property_access(members, 0))
-    } else {
+  fn import_meta_unknown_property(&self, members: &[Atom]) -> String {
+    if self.preserve_property(members.first().map(Atom::as_ref)) {
       concat_string!(
-        "/* unsupported import.meta.",
-        members.join("."),
-        " */ undefined",
-        property_access(members, 1)
+        "import.meta",
+        property_access(members.iter().map(Atom::as_ref), 0)
+      )
+    } else {
+      let comment = to_normal_comment(&concat_string!(
+        "unsupported import.meta.",
+        members.iter().join(".")
+      ));
+      concat_string!(
+        comment,
+        " undefined",
+        property_access(members.iter().map(Atom::as_ref), 1)
       )
     }
   }
@@ -503,25 +510,12 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaPlugin {
       && meta_expr
         .get_root_name()
         .is_some_and(|name| name == expr_name::IMPORT_META)
-      && (match &member_expr.prop {
-        MemberProp::Ident(_) => true,
-        MemberProp::Computed(computed) => computed.expr.is_lit(),
-        _ => false,
+      && let Some(property) = (match &member_expr.prop {
+        MemberProp::Ident(ident) => Some(Atom::from(ident.sym.as_str())),
+        MemberProp::Computed(computed) => member_property_to_atom(&computed.expr),
+        _ => None,
       })
-      && member_expr
-        .prop
-        .as_ident()
-        .map(|ident| !self.preserve_property(Some(ident.sym.as_ref())))
-        .or_else(|| {
-          member_expr
-            .prop
-            .as_computed()
-            .and_then(|computed| computed.expr.as_lit())
-            .and_then(|lit| lit.as_str())
-            .and_then(|str_lit| str_lit.value.as_str())
-            .map(|value| !self.preserve_property(Some(value)))
-        })
-        .unwrap_or(false)
+      && !self.preserve_property(Some(property.as_ref()))
     {
       evaluated = Some("undefined".to_string())
     }
@@ -565,17 +559,14 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaPlugin {
         return Some(eval::evaluate_to_undefined(span.real_lo(), span.real_hi()));
       }
       if let Some(computed) = member.prop.as_computed()
-        && computed.expr.is_lit()
+        && let Some(property) = member_property_to_atom(&computed.expr)
       {
-        // Check for computed properties like import.meta["dirname"]
-        if let Some(str_lit) = computed.expr.as_lit().and_then(|lit| lit.as_str())
-          && str_lit.value.as_str().is_some_and(|value| {
-            ImportMetaBuiltinProperty::from_property(value)
-              .is_some_and(|property| property.skip_undefined_evaluation(self, parser))
-              || import_meta_runtime_api_from_property(value)
-                .is_some_and(|api| self.runtime_api_enabled(api))
-              || self.preserve_property(Some(value))
-          })
+        // Check for computed properties like import.meta["dirname"] and import.meta[`dirname`]
+        if ImportMetaBuiltinProperty::from_property(property.as_ref())
+          .is_some_and(|property| property.skip_undefined_evaluation(self, parser))
+          || import_meta_runtime_api_from_property(property.as_ref())
+            .is_some_and(|api| self.runtime_api_enabled(api))
+          || self.preserve_property(Some(property.as_ref()))
         {
           return None;
         }
@@ -662,7 +653,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaPlugin {
               content.push('[');
               content.push_str(&rspack_util::json_stringify_str(&prop.id));
               content.push_str("]: ");
-              content.push_str(&self.import_meta_unknown_property(&vec![prop.id.to_string()]));
+              content.push_str(&self.import_meta_unknown_property(std::slice::from_ref(&prop.id)));
             }
           } else if let Some(api) = import_meta_runtime_api_from_property(prop.id.as_ref()) {
             if self.runtime_api_enabled(api)
@@ -673,13 +664,13 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaPlugin {
               content.push('[');
               content.push_str(&rspack_util::json_stringify_str(&prop.id));
               content.push_str("]: ");
-              content.push_str(&self.import_meta_unknown_property(&vec![prop.id.to_string()]));
+              content.push_str(&self.import_meta_unknown_property(std::slice::from_ref(&prop.id)));
             }
           } else {
             content.push('[');
             content.push_str(&rspack_util::json_stringify_str(&prop.id));
             content.push_str("]: ");
-            content.push_str(&self.import_meta_unknown_property(&vec![prop.id.to_string()]));
+            content.push_str(&self.import_meta_unknown_property(std::slice::from_ref(&prop.id)));
           }
         }
         content.push_str("})");
@@ -865,29 +856,32 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaPlugin {
               _ => None,
             });
 
-          let dep = if let Some(members) = members {
-            if self.preserve_property(members.members.first().map(|property| property.as_str())) {
+          let Some(members) = members else {
+            if self.preserve_property(None) {
               return Some(true);
             }
-            if members.members.get(1).is_some()
-              && members
-                .members_optionals
-                .get(1)
-                .is_some_and(|optional| *optional)
-            {
-              ConstDependency::new(expr.span().into(), "undefined".into())
-            } else {
-              ConstDependency::new(
-                expr.span().into(),
-                self
-                  .import_meta_unknown_property(
-                    &members.members.iter().map(|x| x.to_string()).collect_vec(),
-                  )
-                  .into(),
-              )
-            }
-          } else {
+            parser.add_presentational_dependency(Box::new(ConstDependency::new(
+              expr.obj.span().into(),
+              "({})".into(),
+            )));
+            return Some(true);
+          };
+          if self.preserve_property(members.members.first().map(Atom::as_ref)) {
+            return Some(true);
+          }
+          let unknown_members = members.members.as_slice();
+          let dep = if members.members.get(1).is_some()
+            && members
+              .members_optionals
+              .get(1)
+              .is_some_and(|optional| *optional)
+          {
             ConstDependency::new(expr.span().into(), "undefined".into())
+          } else {
+            ConstDependency::new(
+              expr.span().into(),
+              self.import_meta_unknown_property(unknown_members).into(),
+            )
           };
 
           parser.add_presentational_dependency(Box::new(dep));

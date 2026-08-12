@@ -72,6 +72,37 @@ fn atom_from_wtf8(value: swc_experimental_allocator::atom::Wtf8Atom<'_>) -> Atom
   Atom::from(value.as_wtf8().to_string_lossy().as_ref())
 }
 
+pub(crate) fn member_property_to_atom(expr: &Expr) -> Option<Atom> {
+  match expr {
+    Expr::Lit(lit) => Some(match &**lit {
+      Lit::Str(s) => atom_from_wtf8(s.value),
+      Lit::Bool(b) => Atom::from(if b.value { "true" } else { "false" }),
+      Lit::Null(_) => Atom::from("null"),
+      Lit::Num(n) => Atom::from(rspack_util::ryu_js::Buffer::new().format(n.value)),
+      Lit::BigInt(i) => Atom::from(i.value.as_str()),
+      Lit::Regex(r) => {
+        let mut flags = r.flags.as_str().chars().collect::<Vec<_>>();
+        flags.sort_unstable();
+        let mut property = String::with_capacity(r.exp.len() + flags.len() + 2);
+        property.push('/');
+        property.push_str(r.exp.as_str());
+        property.push('/');
+        property.extend(flags);
+        Atom::from(property)
+      }
+    }),
+    Expr::Tpl(tpl) if tpl.exprs.is_empty() && tpl.quasis.len() == 1 => {
+      let quasi = tpl.quasis.first()?;
+      Some(
+        quasi
+          .cooked
+          .map_or_else(|| Atom::from(quasi.raw.as_str()), atom_from_wtf8),
+      )
+    }
+    _ => None,
+  }
+}
+
 impl GetSpan for estree::Statement<'_> {
   fn span(&self) -> Span {
     self.span()
@@ -1183,16 +1214,8 @@ impl<'parser> JavascriptParser<'parser> {
       match object {
         ExprRef::Member(expr) => {
           if let Some(computed) = expr.prop.as_computed() {
-            let Expr::Lit(lit) = &computed.expr else {
+            let Some(value) = member_property_to_atom(&computed.expr) else {
               break;
-            };
-            let value = match &**lit {
-              Lit::Str(s) => atom_from_wtf8(s.value),
-              Lit::Bool(b) => Atom::from(if b.value { "true" } else { "false" }),
-              Lit::Null(_) => Atom::from("null"),
-              Lit::Num(n) => Atom::from(n.value.to_string().as_str()),
-              Lit::BigInt(i) => Atom::from(i.value.as_str()),
-              Lit::Regex(r) => Atom::from(r.exp.as_str()),
             };
             // Since members are not used across rspack javascript parser plugin,
             // we directly makes it atom here
