@@ -11,6 +11,7 @@ define.fmt({
     'tests/e2e/cases/make/rewrite-factorize-request/file.js',
 
     // Benchmark fixtures
+    'xtask/benchmark/benches/fixtures/css/**',
     'xtask/benchmark/benches/fixtures/rspack_sources/**',
 
     // Crates
