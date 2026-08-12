@@ -39,7 +39,9 @@ const loadConfigByPath = async (
     );
   }
 
-  return normalizeContext(content);
+  return options.configLoader === 'native'
+    ? content
+    : normalizeContext(content);
 };
 
 const isConfigObject = (value: unknown): value is Record<string, unknown> =>
