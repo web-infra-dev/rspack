@@ -87,6 +87,7 @@ impl Compiler {
         Incremental::new_hot(self.options.incremental),
         Some(ModuleExecutor::default()),
         compilation_logging,
+        self.new_cache.clone(),
         modified_files,
         removed_files,
         self.input_filesystem.clone(),

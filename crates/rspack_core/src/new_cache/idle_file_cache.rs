@@ -1,4 +1,4 @@
-use std::{thread, time::Duration};
+use std::{sync::mpsc as sync_mpsc, thread, time::Duration};
 
 use rspack_error::Result;
 use rspack_paths::ArcPathSet;
@@ -29,7 +29,7 @@ enum Command {
     key: CacheKey,
     etag: Option<Etag>,
     decoder: CacheValueDecoder,
-    result: oneshot::Sender<Result<Option<ErasedCacheValue>>>,
+    result: sync_mpsc::SyncSender<Result<Option<ErasedCacheValue>>>,
   },
   RecordBuildTime(Duration),
   BeginIdle,
@@ -210,17 +210,6 @@ impl IdleFileCache {
       .map_err(|_| rspack_error::error!("Idle file cache background job has stopped"))
   }
 
-  async fn request<T>(
-    &self,
-    command: impl FnOnce(oneshot::Sender<Result<T>>) -> Command,
-  ) -> Result<T> {
-    let (result, result_receiver) = oneshot::channel();
-    self.send(command(result))?;
-    result_receiver
-      .await
-      .map_err(|_| rspack_error::error!("Idle file cache background job has stopped"))?
-  }
-
   pub fn store<T: CacheValueData>(
     &self,
     key: CacheKey,
@@ -235,20 +224,22 @@ impl IdleFileCache {
     })
   }
 
-  pub async fn restore<T: CacheValueData>(
+  pub fn restore<T: CacheValueData>(
     &self,
     key: CacheKey,
     etag: Option<Etag>,
   ) -> Result<Option<CacheValue<T>>> {
+    let (result, result_receiver) = sync_mpsc::sync_channel(1);
+    self.send(Command::Restore {
+      key,
+      etag,
+      decoder: CacheValue::<T>::decoder(),
+      result,
+    })?;
     Ok(
-      self
-        .request(|result| Command::Restore {
-          key,
-          etag,
-          decoder: CacheValue::<T>::decoder(),
-          result,
-        })
-        .await?
+      result_receiver
+        .recv()
+        .map_err(|_| rspack_error::error!("Idle file cache background job has stopped"))??
         .and_then(ErasedCacheValue::downcast),
     )
   }
@@ -270,6 +261,10 @@ impl IdleFileCache {
   }
 
   pub async fn shutdown(&self) -> Result<()> {
-    self.request(Command::Shutdown).await
+    let (result, result_receiver) = oneshot::channel();
+    self.send(Command::Shutdown(result))?;
+    result_receiver
+      .await
+      .map_err(|_| rspack_error::error!("Idle file cache background job has stopped"))?
   }
 }

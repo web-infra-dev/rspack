@@ -2,6 +2,7 @@ mod cache;
 mod cache_facade;
 mod cache_key;
 mod cache_value;
+mod db;
 mod etag;
 mod file_cache_strategy;
 mod idle_file_cache;
@@ -26,18 +27,19 @@ use crate::{
 };
 
 pub fn create_cache(
+  compiler_path: String,
   compiler_options: Arc<CompilerOptions>,
   input_filesystem: Arc<dyn ReadableFileSystem>,
   compilation_logging: CompilationLogging,
 ) -> Cache {
   if !compiler_options.experiments.new_cache {
-    return Cache::new_disabled();
+    return Cache::new_disabled(compiler_path);
   }
 
   let options = match &compiler_options.cache {
-    crate::CacheOptions::Disabled => return Cache::new_disabled(),
+    crate::CacheOptions::Disabled => return Cache::new_disabled(compiler_path),
     crate::CacheOptions::Memory { max_generations: _ } => {
-      return Cache::new(MemoryCache::default(), None);
+      return Cache::new(compiler_path, MemoryCache::default(), None);
     }
     crate::CacheOptions::Persistent(options) => options,
   };
@@ -71,10 +73,10 @@ pub fn create_cache(
     Ok(strategy) => strategy,
     Err(error) => {
       tracing::warn!("Opening persistent cache database failed: {error}");
-      return Cache::new(MemoryCache::default(), None);
+      return Cache::new(compiler_path, MemoryCache::default(), None);
     }
   };
   let idle_file_cache = IdleFileCache::new(strategy);
 
-  Cache::new(MemoryCache::default(), Some(idle_file_cache))
+  Cache::new(compiler_path, MemoryCache::default(), Some(idle_file_cache))
 }

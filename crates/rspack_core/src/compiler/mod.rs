@@ -160,6 +160,7 @@ impl Compiler {
     let buildtime_plugin_driver =
       PluginDriver::new(options.clone(), buildtime_plugins, resolver_factory.clone());
     let new_cache = create_cache(
+      compiler_path.clone(),
       options.clone(),
       input_filesystem.clone(),
       compilation_logging.clone(),
@@ -178,7 +179,6 @@ impl Compiler {
     let compiler_context = compiler_context.unwrap_or_else(|| Arc::new(CompilerContext::new()));
     Self {
       id,
-      compiler_path,
       options: options.clone(),
       compilation: Compilation::new(
         id,
@@ -192,6 +192,7 @@ impl Compiler {
         incremental,
         Some(module_executor),
         compilation_logging,
+        new_cache.clone(),
         Default::default(),
         Default::default(),
         input_filesystem.clone(),
@@ -200,6 +201,7 @@ impl Compiler {
         false,
         compiler_context.clone(),
       ),
+      compiler_path,
       output_filesystem,
       intermediate_filesystem,
       plugin_driver,
@@ -221,10 +223,7 @@ impl Compiler {
   }
 
   pub fn get_cache(&self, name: &str) -> CacheFacade {
-    let mut cache_name = String::with_capacity(self.compiler_path.len() + name.len());
-    cache_name.push_str(&self.compiler_path);
-    cache_name.push_str(name);
-    CacheFacade::new(self.new_cache.clone(), cache_name)
+    self.new_cache.facade(name)
   }
 
   fn end_idle(&self) -> Result<Instant> {
@@ -308,6 +307,7 @@ impl Compiler {
         Incremental::new_cold(self.options.incremental),
         Some(Default::default()),
         compilation_logging,
+        self.new_cache.clone(),
         Default::default(),
         Default::default(),
         self.input_filesystem.clone(),

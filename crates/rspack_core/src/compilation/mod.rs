@@ -95,7 +95,9 @@ use crate::{
   compiler::{CompilationRecords, CompilerId},
   get_runtime_key,
   incremental::{self, Incremental, IncrementalPasses, Mutation},
-  is_source_equal, to_identifier,
+  is_source_equal,
+  new_cache::{Cache, CacheFacade},
+  to_identifier,
 };
 
 define_hook!(CompilationAddEntry: Series(entry_name: Option<&str>, options: &mut EntryOptions));
@@ -235,6 +237,7 @@ pub struct Compilation {
   pub emitted_assets: DashSet<String, BuildHasherDefault<FxHasher>>,
   diagnostics: Vec<Diagnostic>,
   logging: CompilationLogging,
+  cache: Cache,
   pub plugin_driver: SharedPluginDriver,
   pub buildtime_plugin_driver: SharedPluginDriver,
   pub resolver_factory: Arc<ResolverFactory>,
@@ -345,6 +348,7 @@ impl Compilation {
     incremental: Incremental,
     module_executor: Option<ModuleExecutor>,
     logging: CompilationLogging,
+    cache: Cache,
     modified_files: ArcPathSet,
     removed_files: ArcPathSet,
     input_filesystem: Arc<dyn ReadableFileSystem>,
@@ -373,6 +377,7 @@ impl Compilation {
       emitted_assets: Default::default(),
       diagnostics: Default::default(),
       logging,
+      cache,
       plugin_driver,
       buildtime_plugin_driver,
       resolver_factory,
@@ -438,6 +443,10 @@ impl Compilation {
       is_rebuild,
       compiler_context,
     }
+  }
+
+  pub fn get_cache(&self, name: &str) -> CacheFacade {
+    self.cache.facade(name)
   }
 
   pub fn id(&self) -> CompilationId {

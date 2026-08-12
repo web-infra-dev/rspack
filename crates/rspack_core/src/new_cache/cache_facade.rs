@@ -37,12 +37,12 @@ impl CacheFacade {
     }
   }
 
-  pub async fn get<T: CacheValueData>(
+  pub fn get<T: CacheValueData>(
     &self,
     identifier: &str,
     etag: Option<Etag>,
   ) -> Result<Option<CacheValue<T>>> {
-    self.cache.get(self.key(identifier), etag).await
+    self.cache.get(self.key(identifier), etag)
   }
 
   pub fn store<T: CacheValueData>(
@@ -68,8 +68,8 @@ pub struct ItemCacheFacade {
 }
 
 impl ItemCacheFacade {
-  pub async fn get<T: CacheValueData>(&self) -> Result<Option<CacheValue<T>>> {
-    self.cache.get(self.key.clone(), self.etag.clone()).await
+  pub fn get<T: CacheValueData>(&self) -> Result<Option<CacheValue<T>>> {
+    self.cache.get(self.key.clone(), self.etag.clone())
   }
 
   pub fn store<T: CacheValueData>(&self, value: CacheValue<T>) -> Result<()> {

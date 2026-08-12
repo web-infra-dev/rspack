@@ -14,7 +14,7 @@ pub use compilation::{
   *,
 };
 pub use exports::*;
-pub use new_cache::{CacheFacade, CacheValue, Etag, ItemCacheFacade};
+pub use new_cache::{Cache, CacheFacade, CacheValue, Etag, ItemCacheFacade};
 pub use transient_cache::*;
 pub use value_cache_versions::ValueCacheVersions;
 mod dependencies_block;
