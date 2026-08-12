@@ -31,6 +31,17 @@ exports.U = (() => arguments.length)();
 
 
 },
+"./mutable-default.js"
+/*!****************************!*\
+  !*** ./mutable-default.js ***!
+  \****************************/
+(__unused_rspack_module, exports) {
+
+
+exports.value = 1;
+
+
+},
 "./prototype-read.js"
 /*!***************************!*\
   !*** ./prototype-read.js ***!
@@ -92,6 +103,8 @@ const delete_reference = __webpack_require__("./delete-reference.js");
 const tagged_template = __webpack_require__("./tagged-template.js");
 const prototype_read = __webpack_require__("./prototype-read.js");
 const prototype_setter = __webpack_require__("./prototype-setter.js");
+const mutable_default = __webpack_require__("./mutable-default.js");
+
 
 
 
@@ -110,6 +123,14 @@ it("should keep CommonJS factory and exports object semantics", () => {
 	expect((0,tagged_template.run)()).toBe(1);
 	expect(prototype_read.U).toBe("function");
 	expect(prototype_setter.U).toBe(42);
+	expect(mutable_default.value).toBe(1);
+	expect(mutable_default.value).toBe(1);
+	const mutate = (object) => {
+		object.value = 2;
+	};
+	mutate(mutable_default);
+	expect(mutable_default.value).toBe(2);
+	expect(mutable_default.value).toBe(2);
 });
 
 export {};

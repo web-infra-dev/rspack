@@ -33,7 +33,8 @@ use crate::{
   BoxJavascriptParserPlugin,
   dependency::{
     CommonJsExportsDependency, CommonJsSelfReferenceDependency, ESMCompatibilityDependency,
-    ExportsBase, OBJECT_PROTOTYPE_METHODS,
+    ESMExportImportedSpecifierDependency, ESMImportSpecifierDependency, ExportsBase,
+    OBJECT_PROTOTYPE_METHODS,
   },
   visitors::{ParsedJavaScriptAst, ScanDependenciesResult, scan_dependencies, semicolon},
 };
@@ -338,6 +339,41 @@ impl JavaScriptParserAndGenerator {
           return Some(format!("Module uses {requirement}").into());
         }
       }
+    }
+
+    let exports_type = module.build_meta().exports_type();
+    if module_graph
+      .get_incoming_connections(&module.identifier())
+      .any(|connection| {
+        let dependency = module_graph.dependency_by_id(&connection.dependency_id);
+        if matches!(
+          dependency.dependency_type(),
+          DependencyType::DynamicImport
+            | DependencyType::DynamicImportEager
+            | DependencyType::DynamicImportWeak
+        ) {
+          return true;
+        }
+
+        let ids = dependency
+          .as_any()
+          .downcast_ref::<ESMImportSpecifierDependency>()
+          .map(|dependency| dependency.get_ids(module_graph))
+          .or_else(|| {
+            dependency
+              .as_any()
+              .downcast_ref::<ESMExportImportedSpecifierDependency>()
+              .map(|dependency| dependency.get_ids(module_graph))
+          });
+
+        ids.is_some_and(|ids| {
+          ids.is_empty()
+            || (exports_type == BuildMetaExportsType::Default
+              && ids.first().is_some_and(|id| id.as_str() == "default"))
+        })
+      })
+    {
+      return Some("Module exports object is used by an importer".into());
     }
 
     None

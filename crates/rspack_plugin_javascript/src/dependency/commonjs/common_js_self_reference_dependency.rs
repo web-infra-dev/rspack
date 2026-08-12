@@ -183,6 +183,7 @@ impl DependencyTemplate for CommonJsSelfReferenceDependencyTemplate {
         dep.range.start,
         dep.range.end,
         get_concatenated_export_access(
+          module.as_ref(),
           concatenation_scope,
           init_fragments,
           &dep.names,

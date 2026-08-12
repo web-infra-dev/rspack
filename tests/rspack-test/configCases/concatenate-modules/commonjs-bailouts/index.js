@@ -6,6 +6,7 @@ import * as escaped from "./escaped";
 import * as exportRequire from "./export-require";
 import * as factoryArguments from "./factory-arguments";
 import * as moduleId from "./module-id";
+import mutableDefault, { value as mutableDefaultValue } from "./mutable-default";
 import * as prototypeRead from "./prototype-read";
 import * as prototypeSetter from "./prototype-setter";
 import * as reassign from "./reassign";
@@ -36,6 +37,14 @@ it("should keep unsupported CommonJS modules working", () => {
 	expect(taggedTemplate.run()).toBe(1);
 	expect(prototypeRead.value).toBe("function");
 	expect(prototypeSetter.value).toBe(42);
+	expect(mutableDefault.value).toBe(1);
+	expect(mutableDefaultValue).toBe(1);
+	const mutate = (object) => {
+		object.value = 2;
+	};
+	mutate(mutableDefault);
+	expect(mutableDefault.value).toBe(2);
+	expect(mutableDefaultValue).toBe(2);
 });
 
 it("should not concatenate any of the unsupported modules", () => {
@@ -91,5 +100,8 @@ it("should report a bailout reason for each unsupported module", () => {
 	);
 	expect(bailoutsOf("prototype-setter.js")).toContainEqual(
 		expect.stringContaining("assigns to exports.__proto__")
+	);
+	expect(bailoutsOf("mutable-default.js")).toContainEqual(
+		expect.stringContaining("exports object is used by an importer")
 	);
 });

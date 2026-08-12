@@ -1,30 +1,39 @@
 ```mjs title=main.mjs
 // ./foo.js
-var __RSPACK_CJS_EXPORT_value__;
+var __rspack_unused_export_0;
+var __RSPACK_CJS_EXPORT_value___0;
+var __RSPACK_CJS_EXPORT_local__;
+var __RSPACK_CJS_EXPORT_placeholder__;
 var __RSPACK_CJS_EXPORT_setValue__;
 var __RSPACK_CJS_EXPORT_getValue__;
-var __rspack_unused_export;
 
 
-__RSPACK_CJS_EXPORT_value__ = 1;
+const __RSPACK_CJS_EXPORT_value__ = 41;
+var __rspack_unused_export = 42;
+
+__rspack_unused_export_0 = "unused";
+__RSPACK_CJS_EXPORT_value___0 = 1;
+__RSPACK_CJS_EXPORT_local__ = __RSPACK_CJS_EXPORT_value__;
+__RSPACK_CJS_EXPORT_placeholder__ = __rspack_unused_export;
 __RSPACK_CJS_EXPORT_setValue__ = function setValue(value) {
-  __RSPACK_CJS_EXPORT_value__ = value;
+  __RSPACK_CJS_EXPORT_value___0 = value;
 };
 __RSPACK_CJS_EXPORT_getValue__ = function getValue() {
-  return __RSPACK_CJS_EXPORT_value__;
+  return __RSPACK_CJS_EXPORT_value___0;
 };
-__rspack_unused_export = "unused";
 
 // ./index.js
 
 
 it("should scope-hoist a statically analyzable CommonJS module", () => {
-  expect(__RSPACK_CJS_EXPORT_value__).toBe(1);
-  expect(__RSPACK_CJS_EXPORT_getValue__()).toBe(1);
+	expect(__RSPACK_CJS_EXPORT_value___0).toBe(1);
+	expect(__RSPACK_CJS_EXPORT_getValue__()).toBe(1);
+	expect(__RSPACK_CJS_EXPORT_local__).toBe(41);
+	expect(__RSPACK_CJS_EXPORT_placeholder__).toBe(42);
 
   __RSPACK_CJS_EXPORT_setValue__(2);
 
-  expect(__RSPACK_CJS_EXPORT_value__).toBe(2);
+  expect(__RSPACK_CJS_EXPORT_value___0).toBe(2);
   expect(__RSPACK_CJS_EXPORT_getValue__()).toBe(2);
 });
 

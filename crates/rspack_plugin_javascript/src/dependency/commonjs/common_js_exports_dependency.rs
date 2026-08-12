@@ -6,7 +6,7 @@ use rspack_core::{
   AsContextDependency, AsModuleDependency, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
   DependencyTemplateType, DependencyType, ExportNameOrSpec, ExportSpec, ExportsInfoArtifact,
-  ExportsOfExportsSpec, ExportsSpec, InitFragmentExt, InitFragmentKey, InitFragmentStage,
+  ExportsOfExportsSpec, ExportsSpec, InitFragmentExt, InitFragmentKey, InitFragmentStage, Module,
   ModuleGraph, ModuleGraphCacheArtifact, ModuleInitFragments, NormalInitFragment, TemplateContext,
   TemplateReplaceSource, UsedName, property_access, to_identifier,
 };
@@ -102,22 +102,34 @@ impl CommonJsExportsDependency {
 }
 
 pub(super) fn get_concatenated_export_access(
+  module: &dyn Module,
   concatenation_scope: &mut rspack_core::ConcatenationScope,
   init_fragments: &mut ModuleInitFragments<'_>,
   names: &[Atom],
   property_access_suffix: String,
 ) -> String {
   let name = names.first().expect("should have a CommonJS export name");
-  let identifier = to_identifier(name);
-  let symbol = if identifier == name.as_str() {
-    format!("__RSPACK_CJS_EXPORT_{name}__")
-  } else {
-    format!(
-      "__RSPACK_CJS_EXPORT_{}_{}__",
-      identifier,
-      hex::encode(name.as_bytes())
-    )
-  };
+  let symbol = concatenation_scope
+    .current_module
+    .export_map
+    .as_ref()
+    .and_then(|export_map| export_map.get(name))
+    .cloned()
+    .unwrap_or_else(|| {
+      let identifier = to_identifier(name);
+      let base = if identifier == name.as_str() {
+        format!("__RSPACK_CJS_EXPORT_{name}__")
+      } else {
+        format!(
+          "__RSPACK_CJS_EXPORT_{}_{}__",
+          identifier,
+          hex::encode(name.as_bytes())
+        )
+      };
+      let symbol = get_unique_concatenated_name(module, concatenation_scope, &base);
+      concatenation_scope.register_export(name.clone(), symbol.clone());
+      symbol
+    });
 
   init_fragments.push(
     NormalInitFragment::new(
@@ -129,8 +141,43 @@ pub(super) fn get_concatenated_export_access(
     )
     .boxed(),
   );
-  concatenation_scope.register_export(name.clone(), symbol.clone());
   format!("{symbol}{property_access_suffix}")
+}
+
+fn get_unique_concatenated_name(
+  module: &dyn Module,
+  concatenation_scope: &rspack_core::ConcatenationScope,
+  base: &str,
+) -> String {
+  let is_used = |candidate: &str| {
+    module
+      .build_info()
+      .top_level_declarations
+      .as_ref()
+      .is_some_and(|declarations| {
+        declarations
+          .iter()
+          .any(|declaration| declaration.as_str() == candidate)
+      })
+      || concatenation_scope
+        .current_module
+        .export_map
+        .as_ref()
+        .is_some_and(|export_map| export_map.values().any(|name| name == candidate))
+  };
+
+  if !is_used(base) {
+    return base.to_string();
+  }
+
+  for index in 0.. {
+    let candidate = format!("{base}_{index}");
+    if !is_used(&candidate) {
+      return candidate;
+    }
+  }
+
+  unreachable!("a unique CommonJS export name should always be available")
 }
 
 #[cacheable_dyn]
@@ -258,6 +305,7 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
           dep.range.start,
           dep.range.end,
           get_concatenated_export_access(
+            module.as_ref(),
             concatenation_scope,
             init_fragments,
             &dep.names,
@@ -266,7 +314,11 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
           None,
         );
       } else {
-        let placeholder_var = "__rspack_unused_export".to_string();
+        let placeholder_var = get_unique_concatenated_name(
+          module.as_ref(),
+          concatenation_scope,
+          "__rspack_unused_export",
+        );
         source.replace(
           dep.range.start,
           dep.range.end,

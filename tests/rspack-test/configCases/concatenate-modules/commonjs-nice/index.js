@@ -1,10 +1,14 @@
 import flaggedDefault, { value, getValue } from "./flagged";
 import { a, b, inc } from "./plain";
 import * as plainNs from "./plain";
-import plainDefault from "./plain";
 import { setValue, getValue as getLiveValue } from "./live";
 import { deep } from "./nested";
 import { "a-b" as ab } from "./weird-name";
+import {
+	value as collisionValue,
+	local as collisionLocal,
+	placeholder as collisionPlaceholder
+} from "./name-collision";
 
 it("should provide named and default exports of a __esModule-flagged module", () => {
 	expect(flaggedDefault).toBe("DEFAULT");
@@ -22,8 +26,6 @@ it("should provide exports of a plain CommonJS module", () => {
 it("should build a namespace object for whole-namespace usage", () => {
 	expect(plainNs.a).toBe(1);
 	expect(plainNs.b).toBe(2);
-	expect(plainDefault.a).toBe(1);
-	expect(plainDefault.b).toBe(2);
 });
 
 it("should keep live bindings for delayed export assignments", () => {
@@ -40,9 +42,15 @@ it("should support non-identifier export names", () => {
 	expect(ab).toBe("a-b-value");
 });
 
+it("should avoid generated CommonJS export name collisions", () => {
+	expect(collisionValue).toBe(1);
+	expect(collisionLocal).toBe(99);
+	expect(collisionPlaceholder).toBe(98);
+});
+
 it("should concatenate all CommonJS modules into the entry", () => {
 	const concatModules = __STATS__.modules.filter((m) => m.modules);
 	expect(concatModules.length).toBe(1);
-	// index.js + flagged.js + plain.js + live.js + nested.js + weird-name.js
-	expect(concatModules[0].modules.length).toBe(6);
+	// index.js + flagged.js + plain.js + live.js + nested.js + weird-name.js + name-collision.js
+	expect(concatModules[0].modules.length).toBe(7);
 });
