@@ -262,11 +262,9 @@ impl WalkData {
         define_record = define_record
           .with_on_evaluate_identifier(Box::new(move |record, parser, _ident, start, end| {
             parser
-              .evaluate_with_range(
+              .evaluate(
                 code_to_string(&record.code, None, None).into_owned(),
                 "DefinePlugin",
-                start,
-                end,
               )
               .map(|mut evaluated| {
                 evaluated.set_range(start, end);
@@ -298,7 +296,7 @@ impl WalkData {
             Cow::Owned(format!("typeof ({code})"))
           };
           parser
-            .evaluate_with_range(typeof_code.into_owned(), "DefinePlugin", start, end)
+            .evaluate(typeof_code.into_owned(), "DefinePlugin")
             .map(|mut evaluated| {
               evaluated.set_range(start, end);
               evaluated
@@ -312,7 +310,7 @@ impl WalkData {
             Cow::Owned(format!("typeof ({code})"))
           };
           parser
-            .evaluate_with_range(typeof_code.to_string(), "DefinePlugin", start, end)
+            .evaluate(typeof_code.to_string(), "DefinePlugin")
             .and_then(|evaluated| {
               if !evaluated.is_string() {
                 return None;
