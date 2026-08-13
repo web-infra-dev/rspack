@@ -63,7 +63,9 @@ ${tooMuch.map((item) => `${explain(item)}`).join('\n\n')}`);
   return diff.join('\n\n');
 };
 
-export function checkArrayExpectation(
+// Keep the promise-returning contract of this publicly exported legacy helper.
+// eslint-disable-next-line @typescript-eslint/require-await
+export async function checkArrayExpectation(
   testDirectory,
   object,
   kind,

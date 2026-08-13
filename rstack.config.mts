@@ -48,7 +48,6 @@ define.lint(async () => {
           $PATH: 'readonly',
           __prefresh_errors__: 'readonly',
           __prefresh_utils__: 'readonly',
-          error: 'readonly',
           fs: 'readonly',
           path: 'readonly',
           rstest: 'readonly',
