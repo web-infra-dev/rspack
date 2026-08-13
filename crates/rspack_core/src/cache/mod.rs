@@ -106,6 +106,10 @@ pub fn new_cache(
   intermediate_filesystem: Arc<dyn IntermediateFileSystem>,
   compilation_logging: CompilationLogging,
 ) -> Box<dyn Cache> {
+  if compiler_option.experiments.new_cache {
+    return Box::new(DisableCache);
+  }
+
   match &compiler_option.cache {
     CacheOptions::Disabled => Box::new(DisableCache),
     CacheOptions::Memory { .. } => Box::<MemoryCache>::default(),

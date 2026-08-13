@@ -732,6 +732,25 @@ __webpack_module__.id
 
 </Columns>
 
+### \_\_webpack_layer\_\_
+
+<ApiMeta specific={['Rspack', 'Webpack']} />
+
+Access the [layer](/guide/features/layer) of the current module. Its value is the configured layer name, or `null` when the module has no layer.
+
+Rspack replaces `__webpack_layer__` at compile time, allowing optimizers to remove unreachable layer-specific branches.
+
+<Columns>
+```js title=Source
+const currentLayer = __webpack_layer__;
+```
+
+```js title=Compiled
+const currentLayer = 'client';
+```
+
+</Columns>
+
 ### \_\_webpack_require\_\_
 
 <ApiMeta specific={['Rspack', 'Webpack']} />

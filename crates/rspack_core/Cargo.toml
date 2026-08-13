@@ -66,7 +66,7 @@ smallvec                   = { workspace = true }
 smol_str                   = { workspace = true }
 sugar_path                 = { workspace = true }
 swc_core                   = { workspace = true, features = ["__ecma", "__visit", "__utils", "__ecma_transforms", "ecma_ast", "ecma_parser", "ecma_codegen", "ecma_quote", "common_concurrent", "swc_ecma_ast", "ecma_transforms_react", "ecma_transforms_module", "swc_ecma_codegen", "swc_ecma_visit"] }
-tokio                      = { workspace = true, features = ["rt", "macros"] }
+tokio                      = { workspace = true, features = ["rt", "macros", "sync", "time"] }
 tracing                    = { workspace = true }
 urlencoding                = { workspace = true }
 ustr                       = { workspace = true }
@@ -76,6 +76,9 @@ swc_experimental_allocator     = { workspace = true }
 swc_experimental_ecma_ast      = { workspace = true }
 swc_experimental_ecma_parser   = { workspace = true }
 swc_experimental_ecma_semantic = { workspace = true }
+
+[target.'cfg(not(target_family = "wasm"))'.dependencies]
+turbo-persistence = { workspace = true }
 
 [dev-dependencies]
 pretty_assertions = { workspace = true }

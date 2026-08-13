@@ -733,6 +733,25 @@ __webpack_module__.id
 
 </Columns>
 
+### \_\_webpack_layer\_\_
+
+<ApiMeta specific={['Rspack', 'Webpack']} />
+
+访问当前模块的 [layer](/guide/features/layer)。它的值是配置的 layer 名称；如果模块未分配 layer，则为 `null`。
+
+Rspack 会在编译时替换 `__webpack_layer__`，使优化器能够移除不可达的特定 layer 分支。
+
+<Columns>
+```js title=源码
+const currentLayer = __webpack_layer__;
+```
+
+```js title=产物
+const currentLayer = 'client';
+```
+
+</Columns>
+
 ### \_\_webpack_require\_\_
 
 <ApiMeta specific={['Rspack', 'Webpack']} />

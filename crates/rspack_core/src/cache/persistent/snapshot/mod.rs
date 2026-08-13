@@ -9,7 +9,7 @@ use rspack_fs::ReadableFileSystem;
 use rspack_parallel::TryFutureConsumer;
 use rspack_paths::{ArcPath, ArcPathSet};
 
-use self::strategy::{StrategyHelper, ValidateResult};
+pub(crate) use self::strategy::{StrategyHelper, ValidateResult};
 pub use self::{
   option::{PathMatcher, SnapshotOptions, SnapshotStrategyOptions},
   scope::SnapshotScope,

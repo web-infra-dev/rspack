@@ -54,14 +54,18 @@ pub struct MinimizePersistentCacheArtifact {
   dirty_keys: Vec<MinimizeCacheKey>,
 }
 
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct CachedMinimizeEntry {
+  #[cacheable(with=AsPreset)]
   pub source: BoxSource,
   pub extracted_comments: Option<CachedExtractedComments>,
 }
 
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct CachedExtractedComments {
+  #[cacheable(with=AsPreset)]
   pub source: BoxSource,
   pub comments_file_name: String,
 }

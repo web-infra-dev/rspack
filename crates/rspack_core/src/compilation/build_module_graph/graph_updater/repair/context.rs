@@ -9,6 +9,7 @@ use crate::{
   Compilation, CompilationId, CompilerId, CompilerOptions, CompilerPlatform, DependencyTemplate,
   DependencyTemplateType, DependencyType, ExportsInfoArtifact, ModuleFactory, ResolverFactory,
   RuntimeTemplate, SharedPluginDriver, incremental::Incremental, module_graph::ModuleGraph,
+  new_cache::Cache,
 };
 
 #[derive(Debug)]
@@ -28,6 +29,7 @@ pub struct TaskContext {
   pub dependency_factories: HashMap<DependencyType, Arc<dyn ModuleFactory>>,
   pub dependency_templates: HashMap<DependencyTemplateType, Arc<dyn DependencyTemplate>>,
   pub runtime_template: RuntimeTemplate,
+  cache: Cache,
 
   pub artifact: BuildModuleGraphArtifact,
   pub exports_info_artifact: ExportsInfoArtifact,
@@ -54,6 +56,7 @@ impl TaskContext {
       intermediate_fs: compilation.intermediate_filesystem.clone(),
       output_fs: compilation.output_filesystem.clone(),
       runtime_template: RuntimeTemplate::new(compilation.options.clone()),
+      cache: compilation.cache.clone(),
       artifact,
       exports_info_artifact,
     }
@@ -81,6 +84,7 @@ impl TaskContext {
       Incremental::new_cold(self.compiler_options.incremental),
       None,
       Default::default(),
+      self.cache.clone(),
       Default::default(),
       Default::default(),
       self.fs.clone(),
