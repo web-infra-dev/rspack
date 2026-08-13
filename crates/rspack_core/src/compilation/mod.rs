@@ -461,6 +461,13 @@ impl Compilation {
     self.build_module_graph_artifact.get_module_graph()
   }
 
+  pub fn try_get_module_graph(&self) -> Option<&ModuleGraph> {
+    self
+      .build_module_graph_artifact
+      .try_read()
+      .map(|artifact| artifact.get_module_graph())
+  }
+
   // it will return None during make phase since mg is incomplete
   pub fn module_by_identifier(&self, identifier: &ModuleIdentifier) -> Option<&BoxModule> {
     if self.build_module_graph_artifact.is_stolen() {
