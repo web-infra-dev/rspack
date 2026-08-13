@@ -1,4 +1,4 @@
-use std::{any::Any, ops::Deref, path::Path, ptr::NonNull};
+use std::{any::Any, ops::Deref, path::Path};
 
 use rkyv::{
   de::{ErasedPtr, Pooling, PoolingState},
@@ -55,7 +55,7 @@ impl<'a> ContextGuard<'a> {
 
   pub fn add_to_pooling<P: Pooling<Error> + ?Sized>(&self, pooling: &mut P) -> Result<()> {
     unsafe {
-      let ctx_ptr = ErasedPtr::new(NonNull::new_unchecked(self as *const _ as *mut ()));
+      let ctx_ptr = ErasedPtr::new(self as *const _ as *mut ());
       pooling.start_pooling(CONTEXT_ADDR);
       pooling.finish_pooling(CONTEXT_ADDR, ctx_ptr, default_drop)
     }

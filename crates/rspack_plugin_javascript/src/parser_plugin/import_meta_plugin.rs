@@ -7,7 +7,7 @@ use rspack_core::{
   RscModuleType, RuntimeGlobals, RuntimeRequirementsDependency, get_context, property_access,
   to_normal_comment,
 };
-use rspack_error::{Error, Label, Severity};
+use rspack_error::{Error, Severity};
 use rspack_util::{SpanExt, json_stringify_str};
 use swc_atoms::Atom;
 use swc_experimental_ecma_ast::{
@@ -378,57 +378,6 @@ impl ImportMetaPlugin {
     }
   }
 
-  fn warn_import_meta_unknown_property(
-    &self,
-    parser: &mut JavascriptParser,
-    members: &[Atom],
-    span: Span,
-  ) {
-    if !matches!(self.0.as_ref(), ImportMeta::Enabled)
-      || members.first().is_some_and(|property| {
-        let name = concat_string!(expr_name::IMPORT_META, ".", property);
-        matches!(
-          name.as_str(),
-          expr_name::IMPORT_META_HOT | expr_name::IMPORT_META_CONTEXT | expr_name::IMPORT_META_GLOB
-        ) || Self::known_property_from_name(&name).is_some()
-      })
-    {
-      return;
-    }
-
-    let property = members
-      .iter()
-      .map(|member| {
-        let mut escaped = String::with_capacity(member.len());
-        for ch in member.chars() {
-          if ch == '\'' {
-            escaped.push_str("\\'");
-          } else {
-            escaped.extend(ch.escape_debug());
-          }
-        }
-        escaped
-      })
-      .join(".");
-    let message = concat_string!(
-      "Accessing unknown `import.meta` property '",
-      property,
-      "' is replaced with undefined."
-    );
-    let range = parser
-      .evaluated_source_range
-      .unwrap_or_else(|| DependencyRange::from(span));
-    let mut error = Error::warning(message);
-    error.src = Some(parser.source.to_string().into());
-    error.labels = Some(vec![Label {
-      name: None,
-      offset: range.start as usize,
-      len: range.end.saturating_sub(range.start) as usize,
-    }]);
-    error.hide_stack = Some(true);
-    parser.add_warning_once(error.into());
-  }
-
   fn process_import_meta_resolve(&self, parser: &mut JavascriptParser, call_expr: &CallExpr) {
     if call_expr.args.len() != 1 {
       return;
@@ -568,14 +517,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaPlugin {
       })
       && !self.preserve_property(Some(property.as_ref()))
     {
-      evaluated = Some("undefined".to_string());
-      if Self::known_property_from_name(for_name).is_none() {
-        self.warn_import_meta_unknown_property(
-          parser,
-          std::slice::from_ref(&property),
-          member_expr.span(),
-        );
-      }
+      evaluated = Some("undefined".to_string())
     }
     evaluated.map(|e| eval::evaluate_to_string(e, expr.span.real_lo(), expr.span.real_hi()))
   }
@@ -614,10 +556,6 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaPlugin {
           return None;
         }
         let span = member.span();
-        let name = concat_string!(expr_name::IMPORT_META, ".", ident.sym);
-        if Self::known_property_from_name(&name).is_none() {
-          self.warn_import_meta_unknown_property(parser, &[Atom::from(ident.sym.as_str())], span);
-        }
         return Some(eval::evaluate_to_undefined(span.real_lo(), span.real_hi()));
       }
       if let Some(computed) = member.prop.as_computed()
@@ -633,10 +571,6 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaPlugin {
           return None;
         }
         let span = member.span();
-        let name = concat_string!(expr_name::IMPORT_META, ".", property.as_ref());
-        if Self::known_property_from_name(&name).is_none() {
-          self.warn_import_meta_unknown_property(parser, std::slice::from_ref(&property), span);
-        }
         return Some(eval::evaluate_to_undefined(span.real_lo(), span.real_hi()));
       }
     }
@@ -733,12 +667,10 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaPlugin {
               content.push_str(&self.import_meta_unknown_property(std::slice::from_ref(&prop.id)));
             }
           } else {
-            let members = std::slice::from_ref(&prop.id);
-            self.warn_import_meta_unknown_property(parser, members, span);
             content.push('[');
             content.push_str(&rspack_util::json_stringify_str(&prop.id));
             content.push_str("]: ");
-            content.push_str(&self.import_meta_unknown_property(members));
+            content.push_str(&self.import_meta_unknown_property(std::slice::from_ref(&prop.id)));
           }
         }
         content.push_str("})");
@@ -938,7 +870,6 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaPlugin {
             return Some(true);
           }
           let unknown_members = members.members.as_slice();
-          self.warn_import_meta_unknown_property(parser, unknown_members, expr.span());
           let dep = if members.members.get(1).is_some()
             && members
               .members_optionals

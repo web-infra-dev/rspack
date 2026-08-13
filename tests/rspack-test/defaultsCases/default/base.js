@@ -24,6 +24,7 @@ module.exports = {
 			    buildHttp: undefined,
 			    deferImport: false,
 			    futureDefaults: false,
+			    newCache: false,
 			    pureFunctions: false,
 			    runtimeMode: webpack,
 			    sourceImport: false,

@@ -437,7 +437,6 @@ pub struct JavascriptParser<'parser> {
   pub(crate) in_short_hand: bool,
   pub(crate) in_tagged_template_tag: bool,
   pub(crate) member_expr_in_optional_chain: bool,
-  pub(crate) evaluated_source_range: Option<DependencyRange>,
   pub(crate) semicolons: &'parser mut FxHashSet<u32>,
   pub(crate) statement_path: Vec<StatementPath>,
   pub(crate) prev_statement: Option<StatementPath>,
@@ -625,7 +624,6 @@ impl<'parser> JavascriptParser<'parser> {
       worker_index: 0,
       module_identifier,
       member_expr_in_optional_chain: false,
-      evaluated_source_range: None,
       destructuring_assignment_properties: Default::default(),
       dynamic_import_references: Default::default(),
       common_js_require_references: Default::default(),
@@ -781,27 +779,6 @@ impl<'parser> JavascriptParser<'parser> {
 
   pub fn add_warning(&mut self, warning: Diagnostic) {
     self.warning_diagnostics.push(warning);
-  }
-
-  pub fn add_warning_once(&mut self, warning: Diagnostic) {
-    let is_duplicate = self.warning_diagnostics.iter().any(|existing| {
-      existing.message == warning.message
-        && match (&existing.labels, &warning.labels) {
-          (Some(existing), Some(incoming)) => {
-            existing.len() == incoming.len()
-              && existing.iter().zip(incoming).all(|(existing, incoming)| {
-                existing.name == incoming.name
-                  && existing.offset == incoming.offset
-                  && existing.len == incoming.len
-              })
-          }
-          (None, None) => true,
-          _ => false,
-        }
-    });
-    if !is_duplicate {
-      self.warning_diagnostics.push(warning);
-    }
   }
 
   pub fn add_warnings(&mut self, warnings: impl IntoIterator<Item = Diagnostic>) {
@@ -1538,18 +1515,12 @@ impl<'parser> JavascriptParser<'parser> {
     }
   }
 
-  pub fn evaluate_with_range<T: Display>(
+  pub fn evaluate<T: Display>(
     &mut self,
     source: String,
     error_title: T,
-    start: u32,
-    end: u32,
   ) -> Option<BasicEvaluatedExpression<'parser>> {
-    let previous_range = self.evaluated_source_range;
-    self.evaluated_source_range = previous_range.or(Some(DependencyRange::new(start, end)));
-    let evaluated = eval::eval_source(self, source, error_title.to_string());
-    self.evaluated_source_range = previous_range;
-    evaluated
+    eval::eval_source(self, source, error_title.to_string())
   }
 
   // same as `JavascriptParser._initializeEvaluating` in webpack

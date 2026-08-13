@@ -36,12 +36,13 @@ use rspack_core::{
   CompilerMakeHook, CompilerShouldEmit, CompilerShouldEmitHook, CompilerThisCompilation,
   CompilerThisCompilationHook, ContextModuleFactoryAfterResolve,
   ContextModuleFactoryAfterResolveHook, ContextModuleFactoryBeforeResolve,
-  ContextModuleFactoryBeforeResolveHook, ExecuteModuleId, Module, ModuleFactoryCreateData,
-  ModuleId, ModuleIdentifier, ModuleIdsArtifact, NormalModuleCreateData,
-  NormalModuleFactoryAfterResolve, NormalModuleFactoryAfterResolveHook,
-  NormalModuleFactoryBeforeResolve, NormalModuleFactoryBeforeResolveHook,
-  NormalModuleFactoryCreateModule, NormalModuleFactoryCreateModuleHook,
-  NormalModuleFactoryFactorize, NormalModuleFactoryFactorizeHook, NormalModuleFactoryResolve,
+  ContextModuleFactoryBeforeResolveHook, ExecuteModuleId, ExternalModuleChunkCondition,
+  ExternalModuleChunkConditionHook, Module, ModuleFactoryCreateData, ModuleId, ModuleIdentifier,
+  ModuleIdsArtifact, NormalModuleCreateData, NormalModuleFactoryAfterResolve,
+  NormalModuleFactoryAfterResolveHook, NormalModuleFactoryBeforeResolve,
+  NormalModuleFactoryBeforeResolveHook, NormalModuleFactoryCreateModule,
+  NormalModuleFactoryCreateModuleHook, NormalModuleFactoryFactorize,
+  NormalModuleFactoryFactorizeHook, NormalModuleFactoryResolve,
   NormalModuleFactoryResolveForScheme, NormalModuleFactoryResolveForSchemeHook,
   NormalModuleFactoryResolveHook, NormalModuleFactoryResolveResult, ResourceData, RuntimeGlobals,
   RuntimeModule, RuntimeModuleGenerateContext, Scheme,
@@ -473,6 +474,7 @@ pub enum RegisterJsTapKind {
   NormalModuleFactoryResolveForScheme,
   ContextModuleFactoryBeforeResolve,
   ContextModuleFactoryAfterResolve,
+  ExternalModuleChunkCondition,
   JavascriptModulesChunkHash,
   HtmlPluginBeforeAssetTagGeneration,
   HtmlPluginAlterAssetTags,
@@ -646,6 +648,10 @@ pub struct RegisterJsTaps {
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: false | JsContextModuleFactoryAfterResolveData) => Promise<false | JsContextModuleFactoryAfterResolveData>); stage: number; }>"
   )]
   pub register_context_module_factory_after_resolve_taps: RegisterFunction,
+  #[napi(
+    ts_type = "(stages: Array<number>) => Array<{ function: ((chunk: Chunk) => boolean | undefined); stage: number; }>"
+  )]
+  pub register_external_module_chunk_condition_taps: RegisterFunction,
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: Chunk) => Buffer); stage: number; }>"
   )]
@@ -973,6 +979,14 @@ define_register!(
   skip = true,
 );
 
+/* ExternalModule Hooks */
+define_register!(
+  RegisterExternalModuleChunkConditionTaps,
+  tap = ExternalModuleChunkConditionTap<ChunkWrapper, Option<bool>> @ ExternalModuleChunkConditionHook,
+  cache = true,
+  kind = RegisterJsTapKind::ExternalModuleChunkCondition,
+  skip = true,
+);
 /* JavascriptModules Hooks */
 define_register!(
   RegisterJavascriptModulesChunkHashTaps,
@@ -1840,6 +1854,23 @@ impl ContextModuleFactoryAfterResolve for ContextModuleFactoryAfterResolveTap {
   }
 }
 
+#[async_trait]
+impl ExternalModuleChunkCondition for ExternalModuleChunkConditionTap {
+  async fn run(
+    &self,
+    chunk_ukey: &ChunkUkey,
+    compilation: &Compilation,
+  ) -> rspack_error::Result<Option<bool>> {
+    self
+      .function
+      .call_with_sync(ChunkWrapper::new(*chunk_ukey, compilation))
+      .await
+  }
+
+  fn stage(&self) -> i32 {
+    self.stage
+  }
+}
 #[async_trait]
 impl JavascriptModulesChunkHash for JavascriptModulesChunkHashTap {
   async fn run(

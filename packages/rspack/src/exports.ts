@@ -28,7 +28,10 @@ export {
 export type { Chunk } from './Chunk';
 export { ConcatenatedModule } from './ConcatenatedModule';
 export { ContextModule } from './ContextModule';
-export { ExternalModule } from './ExternalModule';
+export {
+  ExternalModule,
+  type ExternalModuleCompilationHooks,
+} from './ExternalModule';
 export type { ResolveData, ResourceDataWithData } from './Module';
 export { Module } from './Module';
 export type { default as ModuleGraph } from './ModuleGraph';
