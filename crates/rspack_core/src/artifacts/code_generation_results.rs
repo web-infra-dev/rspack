@@ -97,6 +97,11 @@ impl CodeGenerationDataPreservedAssetImport {
   pub fn binding(&self) -> &Atom {
     &self.binding
   }
+
+  fn update_hash(&self, hasher: &mut RspackHasher) {
+    "preserved asset import".hash(hasher);
+    self.request.hash(hasher);
+  }
 }
 
 #[derive(Clone, Debug)]
@@ -221,6 +226,9 @@ impl CodeGenerationResult {
     }
     self.chunk_init_fragments.hash(&mut hasher);
     self.runtime_requirements.hash(&mut hasher);
+    if let Some(asset_import) = self.data.get::<CodeGenerationDataPreservedAssetImport>() {
+      asset_import.update_hash(&mut hasher);
+    }
     self.hash = Some(hasher.digest(hash_digest));
   }
 }
