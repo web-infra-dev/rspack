@@ -1,0 +1,3 @@
+packages:
+  - "fixtures/pnpm"
+  - "fixtures/pnpm-workspace/**"
