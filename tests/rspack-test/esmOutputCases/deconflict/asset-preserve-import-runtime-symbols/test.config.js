@@ -1,6 +1,19 @@
+const { parse } = require('acorn')
 const { execFileSync } = require('node:child_process')
 const fs = require('node:fs')
 const path = require('node:path')
+
+function expectUniqueImportBindings(source) {
+  const program = parse(source, {
+    ecmaVersion: 'latest',
+    sourceType: 'module',
+  })
+  const importBindings = program.body
+    .filter(statement => statement.type === 'ImportDeclaration')
+    .flatMap(statement => statement.specifiers.map(specifier => specifier.local.name))
+
+  expect(new Set(importBindings).size).toBe(importBindings.length)
+}
 
 module.exports = {
   snapshotFileFilter(file) {
@@ -21,6 +34,7 @@ module.exports = {
     const source = fs.readFileSync(outputFile, 'utf8')
 
     execFileSync(process.execPath, ['--check', outputFile])
+    expectUniqueImportBindings(source)
 
     const assetBindings = new Map(
       Array.from(

@@ -1,5 +1,18 @@
+const { parse } = require('acorn')
 const fs = require('node:fs')
 const path = require('node:path')
+
+function expectUniqueImportBindings(source) {
+  const program = parse(source, {
+    ecmaVersion: 'latest',
+    sourceType: 'module',
+  })
+  const importBindings = program.body
+    .filter(statement => statement.type === 'ImportDeclaration')
+    .flatMap(statement => statement.specifiers.map(specifier => specifier.local.name))
+
+  expect(new Set(importBindings).size).toBe(importBindings.length)
+}
 
 module.exports = {
   snapshotFileFilter(file) {
@@ -20,6 +33,7 @@ module.exports = {
       path.join(options.output.path, 'main.mjs'),
       'utf8',
     )
+    expectUniqueImportBindings(source)
     const importedSymbols = Array.from(
       source.matchAll(
         /^import ([A-Za-z_$][\w$]*) from "\.\/assets\/same[-_]name\.asset\.mjs";$/gm,

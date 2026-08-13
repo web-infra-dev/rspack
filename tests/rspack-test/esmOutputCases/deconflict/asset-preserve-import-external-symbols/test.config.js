@@ -1,6 +1,20 @@
+const { parse } = require('acorn')
 const { execFileSync } = require('node:child_process')
 const fs = require('node:fs')
 const path = require('node:path')
+
+function expectUniqueImportBindings(source) {
+  const program = parse(source, {
+    ecmaVersion: 'latest',
+    sourceType: 'module',
+  })
+  const importBindings = program.body
+    .filter(statement => statement.type === 'ImportDeclaration')
+    .flatMap(statement => statement.specifiers.map(specifier => specifier.local.name))
+
+  expect(new Set(importBindings).size).toBe(importBindings.length)
+  return importBindings
+}
 
 module.exports = {
   snapshotFileFilter(file) {
@@ -21,6 +35,7 @@ module.exports = {
     const source = fs.readFileSync(outputFile, 'utf8')
 
     execFileSync(process.execPath, ['--check', outputFile])
+    const allImportBindings = expectUniqueImportBindings(source)
 
     const readFileImport = source.match(
       /^import \{\s*readFile(?: as ([A-Za-z_$][\w$]*))?\s*\} from "fs";$/m,
@@ -55,12 +70,13 @@ module.exports = {
     expect(externalBindings.fileURLToPath).toBeDefined()
     expect(assetBindings.size).toBe(2)
 
-    const allImportBindings = [
-      helperBinding,
-      ...Object.values(externalBindings),
-      ...assetBindings.values(),
-    ]
-    expect(new Set(allImportBindings).size).toBe(allImportBindings.length)
+    expect(allImportBindings).toEqual(
+      expect.arrayContaining([
+        helperBinding,
+        ...Object.values(externalBindings),
+        ...assetBindings.values(),
+      ]),
+    )
 
     expect(assetBindings.get('readFile.mjs')).not.toBe(
       externalBindings.readFile,
