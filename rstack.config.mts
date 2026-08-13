@@ -95,8 +95,8 @@ define.lint(async () => {
 
 define.staged({
   '*.rs': 'rustfmt',
-  '*.{ts,tsx,js,mjs,yaml,yml}': 'rs fmt',
   '*.toml': 'pnpm exec taplo format',
-  '*.{ts,tsx,js,cts,cjs,mts,mjs}': 'pnpm run lint:js',
+  '*.{md,mdx,json,css,less,scss,yaml,yml}': 'rs fmt',
+  '*.{ts,tsx,js,cts,cjs,mts,mjs}': ['rs lint', 'rs fmt'],
   'website/**/*': () => 'pnpm --dir website run check:spell',
 });

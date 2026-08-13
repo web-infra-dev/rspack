@@ -69,7 +69,7 @@ Before running tests after code changes:
 2. Implement in appropriate crate/package
 3. Add test coverage when needed, following the restrictions in [Adding tests](#adding-tests)
 4. Update docs if APIs change
-5. Run linters and tests: `pnpm run lint:js && pnpm run lint:rs && cargo lint && pnpm run test:unit && pnpm run test:rs`
+5. Run checks and tests: `pnpm run lint:js && pnpm run lint:rs && cargo lint && pnpm run test:unit && pnpm run test:rs`
 6. Format: `pnpm run format:rs && pnpm run format:js`
 7. Create PR
 
