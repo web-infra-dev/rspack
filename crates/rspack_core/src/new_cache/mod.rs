@@ -38,8 +38,8 @@ pub fn create_cache(
 
   let options = match &compiler_options.cache {
     crate::CacheOptions::Disabled => return Cache::new_disabled(compiler_path),
-    crate::CacheOptions::Memory { max_generations: _ } => {
-      return Cache::new(compiler_path, MemoryCache::default(), None);
+    crate::CacheOptions::Memory { max_generations } => {
+      return Cache::new(compiler_path, MemoryCache::new(*max_generations), None);
     }
     crate::CacheOptions::Persistent(options) => options,
   };
