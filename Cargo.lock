@@ -3892,9 +3892,9 @@ dependencies = [
 
 [[package]]
 name = "rspack-turbo-persistence"
-version = "0.1.0"
+version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "38a6b89c4a40a7362e0919667a83e053d31561201e95dfc42dc9bb7228f44708"
+checksum = "be5bb8d1b648815f264b0503bbfdb6b763e8011f6636d45418c5446f7538635d"
 dependencies = [
  "anyhow",
  "bitfield",
@@ -7550,7 +7550,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "32497e9a4c7b38532efcdebeef879707aa9f794296a4f0244f6f69e9bc8574bd"
 dependencies = [
  "fastrand",
- "getrandom 0.3.2",
+ "getrandom 0.4.3",
  "once_cell",
  "rustix 1.1.4",
  "windows-sys 0.61.2",
