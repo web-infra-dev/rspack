@@ -1,6 +1,6 @@
 use rspack_util::atom::Atom;
 use rustc_hash::FxHashSet;
-use swc_experimental_ecma_ast::{CallExpr, Ident};
+use swc_experimental_ecma_ast::{AssignExpr, CallExpr, Ident, MemberExpr, Span};
 
 use super::{
   JavascriptParserPlugin,
@@ -9,6 +9,20 @@ use super::{
 use crate::visitors::JavascriptParser;
 
 pub struct JavascriptMetaInfoPlugin;
+
+fn bailout_on_object_prototype(parser: &mut JavascriptParser, for_name: &str, members: &[Atom]) {
+  let references_object_prototype = for_name == "Object.prototype"
+    || (for_name == "Object"
+      && members
+        .first()
+        .is_some_and(|member| member.as_str() == "prototype"));
+  if !parser.is_esm && references_object_prototype {
+    parser
+      .build_info
+      .module_concatenation_bailout
+      .get_or_insert_with(|| "Object.prototype access in CommonJS".into());
+  }
+}
 
 #[rspack_macros::implemented_javascript_parser_hooks]
 impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for JavascriptMetaInfoPlugin {
@@ -46,6 +60,41 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for JavascriptMetaInfoPlugin {
       }
     }
 
+    None
+  }
+
+  fn member(
+    &self,
+    parser: &mut JavascriptParser<'p>,
+    _member_expr: &MemberExpr,
+    for_name: &str,
+  ) -> Option<bool> {
+    bailout_on_object_prototype(parser, for_name, &[]);
+    None
+  }
+
+  fn member_chain(
+    &self,
+    parser: &mut JavascriptParser<'p>,
+    _member_expr: &MemberExpr,
+    for_name: &str,
+    members: &[Atom],
+    _members_optionals: &[bool],
+    _member_ranges: &[Span],
+  ) -> Option<bool> {
+    bailout_on_object_prototype(parser, for_name, members);
+    None
+  }
+
+  fn assign_member_chain(
+    &self,
+    parser: &mut JavascriptParser<'p>,
+    _assign_expr: &AssignExpr,
+    members: &[Atom],
+    _member_ranges: &[Span],
+    for_name: &str,
+  ) -> Option<bool> {
+    bailout_on_object_prototype(parser, for_name, members);
     None
   }
 

@@ -202,6 +202,23 @@ impl JavaScriptParserAndGenerator {
       return Some("Module is not in strict mode".into());
     }
 
+    let assigned_export_names = module
+      .get_dependencies()
+      .iter()
+      .filter_map(|dependency_id| {
+        let dependency = module_graph
+          .dependency_by_id(dependency_id)
+          .as_any()
+          .downcast_ref::<CommonJsExportsDependency>()?;
+        matches!(
+          dependency.base(),
+          ExportsBase::Exports | ExportsBase::ModuleExports
+        )
+        .then(|| dependency.names().first().cloned())
+        .flatten()
+      })
+      .collect::<HashSet<_>>();
+
     for dependency_id in module.get_dependencies() {
       let dependency = module_graph.dependency_by_id(dependency_id);
       if let Some(dependency) = dependency
@@ -259,6 +276,20 @@ impl JavaScriptParserAndGenerator {
           return Some(
             format!(
               "Module references Object.prototype via {}{}",
+              dependency.base().as_str(),
+              property_access(dependency.names().iter(), 0)
+            )
+            .into(),
+          );
+        }
+        if dependency
+          .names()
+          .first()
+          .is_some_and(|name| !assigned_export_names.contains(name))
+        {
+          return Some(
+            format!(
+              "Module references {}{}, which is not assigned by the module",
               dependency.base().as_str(),
               property_access(dependency.names().iter(), 0)
             )

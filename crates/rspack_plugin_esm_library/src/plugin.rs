@@ -1,4 +1,5 @@
 use std::{
+  borrow::Cow,
   path::PathBuf,
   sync::{Arc, LazyLock},
 };
@@ -128,28 +129,44 @@ impl EsmLibraryPlugin {
       // make sure all exports are provided
       let mut should_scope_hoisting = true;
 
-      let reason = module
-        .as_normal_module()
-        .and_then(|module| {
-          module
-            .parser_and_generator()
-            .downcast_ref::<JavaScriptParserAndGenerator>()
-        })
-        .map_or_else(
-          || {
-            module.get_concatenation_bailout_reason(
-              module_graph,
-              &compilation.build_chunk_graph_artifact.chunk_graph,
-            )
-          },
-          |parser_and_generator| {
-            parser_and_generator.get_concatenation_bailout_reason_with_commonjs(
-              module.as_ref(),
-              module_graph,
-              self.concatenate_commonjs_modules,
-            )
-          },
-        );
+      let is_commonjs_entry = module.module_type().is_js_like()
+        && module.build_meta().exports_type() != rspack_core::BuildMetaExportsType::Namespace
+        && module_graph
+          .get_incoming_connections(module_identifier)
+          .any(|connection| {
+            module_graph
+              .dependency_by_id(&connection.dependency_id)
+              .dependency_type()
+              == &DependencyType::Entry
+          });
+      let reason = if is_commonjs_entry {
+        Some(Cow::Borrowed(
+          "CommonJS entry modules cannot be scope hoisted",
+        ))
+      } else {
+        module
+          .as_normal_module()
+          .and_then(|module| {
+            module
+              .parser_and_generator()
+              .downcast_ref::<JavaScriptParserAndGenerator>()
+          })
+          .map_or_else(
+            || {
+              module.get_concatenation_bailout_reason(
+                module_graph,
+                &compilation.build_chunk_graph_artifact.chunk_graph,
+              )
+            },
+            |parser_and_generator| {
+              parser_and_generator.get_concatenation_bailout_reason_with_commonjs(
+                module.as_ref(),
+                module_graph,
+                self.concatenate_commonjs_modules,
+              )
+            },
+          )
+      };
 
       if let Some(reason) = reason {
         logger.debug(format!(

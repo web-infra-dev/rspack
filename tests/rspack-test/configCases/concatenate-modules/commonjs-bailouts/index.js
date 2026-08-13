@@ -8,7 +8,13 @@ import * as factoryArguments from "./factory-arguments";
 import * as moduleId from "./module-id";
 import mutableDefault, { value as mutableDefaultValue } from "./mutable-default";
 import * as prototypeRead from "./prototype-read";
+import * as prototypeCustomRead from "./prototype-custom-read";
+import {
+	toString as prototypeCustomSetterExport,
+	value as prototypeCustomSetterValue
+} from "./prototype-custom-setter";
 import * as prototypeSetter from "./prototype-setter";
+import * as prototypeUnknownRead from "./prototype-unknown-read";
 import * as reassign from "./reassign";
 import * as sloppy from "./sloppy";
 import * as taggedTemplate from "./tagged-template";
@@ -36,7 +42,11 @@ it("should keep unsupported CommonJS modules working", () => {
 	expect(deleteReference.read()).toBeUndefined();
 	expect(taggedTemplate.run()).toBe(1);
 	expect(prototypeRead.value).toBe("function");
+	expect(prototypeCustomRead.value).toBe(42);
+	expect(typeof prototypeCustomSetterExport).toBe("function");
+	expect(prototypeCustomSetterValue).toBe(42);
 	expect(prototypeSetter.value).toBe(42);
+	expect(prototypeUnknownRead.value).toBeUndefined();
 	expect(mutableDefault.value).toBe(1);
 	expect(mutableDefaultValue).toBe(1);
 	const mutate = (object) => {
@@ -98,8 +108,17 @@ it("should report a bailout reason for each unsupported module", () => {
 	expect(bailoutsOf("prototype-read.js")).toContainEqual(
 		expect.stringContaining("Object.prototype")
 	);
+	expect(bailoutsOf("prototype-custom-read.js")).toContainEqual(
+		expect.stringContaining("not assigned by the module")
+	);
+	expect(bailoutsOf("prototype-custom-setter.js")).toContainEqual(
+		expect.stringContaining("Object.prototype")
+	);
 	expect(bailoutsOf("prototype-setter.js")).toContainEqual(
 		expect.stringContaining("assigns to exports.__proto__")
+	);
+	expect(bailoutsOf("prototype-unknown-read.js")).toContainEqual(
+		expect.stringContaining("not assigned by the module")
 	);
 	expect(bailoutsOf("mutable-default.js")).toContainEqual(
 		expect.stringContaining("exports object is used by an importer")

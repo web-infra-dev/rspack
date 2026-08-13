@@ -9,7 +9,13 @@ import {
 } from "./delete-reference.js";
 import { run as runTaggedTemplate } from "./tagged-template.js";
 import { value as prototypeRead } from "./prototype-read.js";
+import { value as prototypeCustomRead } from "./prototype-custom-read.js";
+import {
+	toString as prototypeCustomSetterExport,
+	value as prototypeCustomSetterValue
+} from "./prototype-custom-setter.js";
 import { value as prototypeSetter } from "./prototype-setter.js";
+import { value as prototypeUnknownRead } from "./prototype-unknown-read.js";
 import mutableDefault, { value as mutableDefaultValue } from "./mutable-default.js";
 
 it("should keep CommonJS factory and exports object semantics", () => {
@@ -22,7 +28,11 @@ it("should keep CommonJS factory and exports object semantics", () => {
 	expect(readDeleteReference()).toBeUndefined();
 	expect(runTaggedTemplate()).toBe(1);
 	expect(prototypeRead).toBe("function");
+	expect(prototypeCustomRead).toBe(42);
+	expect(typeof prototypeCustomSetterExport).toBe("function");
+	expect(prototypeCustomSetterValue).toBe(42);
 	expect(prototypeSetter).toBe(42);
+	expect(prototypeUnknownRead).toBeUndefined();
 	expect(mutableDefault.value).toBe(1);
 	expect(mutableDefaultValue).toBe(1);
 	const mutate = (object) => {

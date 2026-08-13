@@ -10,6 +10,10 @@ module.exports = {
       import: './cjs.js',
       filename: 'cjsBundle.mjs',
     },
+    strictCjs: {
+      import: './strict-cjs.js',
+      filename: 'strictCjsBundle.mjs',
+    },
   },
   module: {
     rules: [
