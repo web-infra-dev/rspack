@@ -4,4 +4,3 @@ version: 2
 # installed only to be path-resolved against, never executed).
 projectIgnorePaths:
   - 'crates/rspack_resolver/fixtures/**'
-  - 'crates/rspack_resolver/pnpm-lock.yaml'

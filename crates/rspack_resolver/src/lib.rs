@@ -44,7 +44,18 @@
 //! ## Example
 //!
 //! ```rust,ignore
-#![doc = include_str!("../examples/resolver.rs")]
+//! use rspack_resolver::{ResolveOptions, Resolver};
+//!
+//! let options = ResolveOptions {
+//!   extensions: vec![".js".into(), ".ts".into()],
+//!   condition_names: vec!["node".into(), "import".into()],
+//!   ..ResolveOptions::default()
+//! };
+//!
+//! match Resolver::new(options).resolve(path, specifier).await {
+//!   Err(error) => println!("Error: {error}"),
+//!   Ok(resolution) => println!("Resolved: {:?}", resolution.full_path()),
+//! }
 //! ```
 
 mod alias_trie;

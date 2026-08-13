@@ -177,7 +177,7 @@ The options are aligned with [enhanced-resolve](https://github.com/webpack/enhan
 In the context of `@rspack/resolver`, the `tsconfig.references` option helps isolate the `paths` configurations of different TypeScript projects.
 This ensures that path aliases defined in one TypeScript project do not unintentionally affect the resolving behavior of another.
 
-Given the following [project](https://github.com/rstackjs/rspack-resolver/blob/main/examples/tsconfig_references) structure:
+Given the following project structure:
 
 ```txt
 ├── app

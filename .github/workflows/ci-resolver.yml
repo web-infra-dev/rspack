@@ -77,10 +77,10 @@ jobs:
 
       - name: Install fixtures
         shell: bash
-        working-directory: crates/rspack_resolver
+        working-directory: crates/rspack_resolver/fixtures
         run: |
-          pushd fixtures/pnp && yarn install && popd
-          pushd fixtures/pnp-global-cache-enabled && yarn install && popd
+          pushd pnp && yarn install && popd
+          pushd pnp-global-cache-enabled && yarn install && popd
           pnpm install
 
       # Compile test without debug info for reducing the CI cache size
