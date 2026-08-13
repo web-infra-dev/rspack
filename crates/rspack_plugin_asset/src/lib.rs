@@ -6,14 +6,14 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AssetBuildInfo, AssetGeneratorDataUrl, AssetGeneratorDataUrlFnCtx, AssetGeneratorImportMode,
   AssetInfo, AssetParserDataUrl, BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph,
-  ChunkInitFragments, ChunkUkey, CodeGenerationDataAssetInfo, CodeGenerationDataFilename,
-  CodeGenerationDataUrl, CodeGenerationPublicPathAutoReplace, Compilation,
-  CompilationRenderManifest, CompilerOptions, ConcatenationScope, ConcatenationScopeInfoMode,
-  DependencyType, Filename, GenerateContext, GeneratedSource, GeneratorOptions, InitFragmentExt,
-  InitFragmentKey, InitFragmentStage, JavascriptParserUrl, ManifestAssetType, Module,
-  ModuleArgument, ModuleGraph, NAMESPACE_OBJECT_EXPORT, NormalInitFragment, NormalModule,
-  ParseContext, ParserAndGenerator, ParserOptions, PathData, Plugin, PublicPath,
-  RenderManifestEntry, ResourceData, RuntimeGlobals, RuntimeSpec, SourceType,
+  ChunkUkey, CodeGenerationDataAssetInfo, CodeGenerationDataFilename,
+  CodeGenerationDataPreservedAssetImport, CodeGenerationDataUrl,
+  CodeGenerationPublicPathAutoReplace, Compilation, CompilationRenderManifest, CompilerOptions,
+  ConcatenationScope, ConcatenationScopeInfoMode, DependencyType, Filename, GenerateContext,
+  GeneratedSource, GeneratorOptions, JavascriptParserUrl, ManifestAssetType, Module,
+  ModuleArgument, ModuleGraph, NAMESPACE_OBJECT_EXPORT, NormalModule, ParseContext,
+  ParserAndGenerator, ParserOptions, PathData, Plugin, PublicPath, RenderManifestEntry,
+  ResourceData, RuntimeGlobals, RuntimeSpec, SourceType,
   rspack_sources::{BoxSource, RawStringSource, ReplaceSource, SourceExt},
 };
 use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, error};
@@ -76,7 +76,8 @@ fn render_concatenated_asset_source(
 
 fn asset_import_binding(module: &dyn Module, compilation: &Compilation) -> String {
   // Module ids are part of the module graph hash used by the code generation cache. Deriving the
-  // binding from the id therefore keeps cached init fragments valid across incremental builds.
+  // binding from the id therefore keeps cached module sources and import metadata in sync across
+  // incremental builds.
   let module_id = ChunkGraph::get_module_id(&compilation.module_ids_artifact, module.identifier())
     .expect("asset module should have a module id during code generation");
   let mut hasher = RspackHasher::new(&HashFunction::Xxhash64);
@@ -579,6 +580,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
 
     match generate_context.requested_source_type {
       SourceType::JavaScript | SourceType::CssUrl => {
+        let mut preserved_import_request = None;
         let exported_content = if parsed_asset_config.is_bytes() {
           let mut encoded_source = base64::encode_to_string(source.buffer());
           if generate_context.requested_source_type == SourceType::CssUrl {
@@ -643,9 +645,9 @@ impl ParserAndGenerator for AssetParserAndGenerator {
             generate_context
               .data
               .insert(CodeGenerationPublicPathAutoReplace(true));
-            rspack_util::json_stringify_str(&format!(
-              "{AUTO_PUBLIC_PATH_PLACEHOLDER}{original_filename}"
-            ))
+            let request = format!("{AUTO_PUBLIC_PATH_PLACEHOLDER}{original_filename}");
+            preserved_import_request = Some(request.clone());
+            rspack_util::json_stringify_str(&request)
           } else if let Some(public_path) =
             module_generator_options.and_then(|x| x.asset_public_path())
           {
@@ -736,35 +738,15 @@ impl ParserAndGenerator for AssetParserAndGenerator {
               );
             }
 
-            let module_graph = compilation.get_module_graph();
-            let module_index = module_graph
-              .get_pre_order_index(&module.identifier())
-              .unwrap_or_default();
             let imported_symbol = asset_import_binding(module, compilation);
-            // ESM imports must stay at chunk scope even when the asset itself is rendered in a
-            // module factory. Reserving the binding also lets the modern-module linker rename
-            // conflicting declarations from bundled modules.
-            let chunk_init_fragments =
-              if let Some(fragments) = generate_context.data.get_mut::<ChunkInitFragments>() {
-                fragments
-              } else {
-                generate_context.data.insert(ChunkInitFragments::default());
-                generate_context
-                  .data
-                  .get_mut::<ChunkInitFragments>()
-                  .expect("should have chunk init fragments")
-              };
-            chunk_init_fragments.push(
-              NormalInitFragment::new(
-                format!("import {imported_symbol} from {exported_content};\n"),
-                InitFragmentStage::StageESMImports,
-                module_index as i32,
-                InitFragmentKey::ModuleExternal(format!("asset-preserve|{}", module.identifier())),
-                None,
-              )
-              .with_top_level_decl_symbols(vec![imported_symbol.clone().into()])
-              .boxed(),
-            );
+            // Keep the import structured so modern-module can allocate it together with external
+            // imports instead of embedding an import declaration in an init fragment.
+            generate_context
+              .data
+              .insert(CodeGenerationDataPreservedAssetImport::new(
+                preserved_import_request.expect("preserved asset import should have a request"),
+                imported_symbol.clone().into(),
+              ));
             return Ok(
               RawStringSource::from(format!(
                 r#"{module}.exports = {imported_symbol};"#,

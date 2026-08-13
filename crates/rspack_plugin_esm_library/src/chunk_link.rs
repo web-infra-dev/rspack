@@ -296,6 +296,11 @@ pub struct ChunkLinkContext {
   pub module_external_namespace_imports: FxHashMap<RawImportSource, Atom>,
 
   /**
+  bindings for preserved asset imports rendered through raw_import_stmts
+   */
+  pub preserved_asset_imports: IdentifierMap<Atom>,
+
+  /**
   `const symbol = __rspack_require(module_id)`
   */
   pub required: IdentifierIndexMap<ExternalInterop>,
@@ -359,6 +364,7 @@ impl ChunkLinkContext {
       exported_symbols: Default::default(),
       raw_import_stmts: Default::default(),
       module_external_namespace_imports: Default::default(),
+      preserved_asset_imports: Default::default(),
       raw_star_exports: Default::default(),
     }
   }

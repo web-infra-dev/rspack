@@ -8,16 +8,16 @@ use rayon::{iter::Either, prelude::*};
 use rspack_collections::{IdentifierIndexMap, IdentifierIndexSet, IdentifierMap};
 use rspack_core::{
   BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, ChunkInitFragments, ChunkRenderContext,
-  ChunkUkey, CodeGenerationPublicPathAutoReplace, Compilation, ConcatenatedModuleIdent,
-  ConditionalInitFragment, DependencyType, ExportInfo, ExportMode, ExportProvided,
-  ExportsInfoArtifact, ExportsType, FindTargetResult, ImportSpec, InitFragmentKey, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleIdentifier, ModuleInfo, NAMESPACE_OBJECT_EXPORT, RuntimeGlobals,
-  RuntimeGlobalsRenderMode, RuntimeTemplateRenderMode, RuntimeVariable, SideEffectsStateArtifact,
-  SourceType, URLStaticMode, UsageState, UsedName, UsedNameItem, all_runtime_module_variables,
-  collect_ident, escape_name_atom_ref, find_new_name, find_target, get_cached_readable_identifier,
-  get_module_directives, get_module_hashbang, property_access, property_name,
-  reserved_names::RESERVED_NAMES_ATOM_SET, rspack_sources::ReplaceSource,
-  split_readable_identifier, to_normal_comment,
+  ChunkUkey, CodeGenerationDataPreservedAssetImport, CodeGenerationPublicPathAutoReplace,
+  Compilation, ConcatenatedModuleIdent, ConditionalInitFragment, DependencyType, ExportInfo,
+  ExportMode, ExportProvided, ExportsInfoArtifact, ExportsType, FindTargetResult, ImportSpec,
+  InitFragmentKey, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, ModuleInfo,
+  NAMESPACE_OBJECT_EXPORT, RuntimeGlobals, RuntimeGlobalsRenderMode, RuntimeTemplateRenderMode,
+  RuntimeVariable, SideEffectsStateArtifact, SourceType, URLStaticMode, UsageState, UsedName,
+  UsedNameItem, all_runtime_module_variables, collect_ident, escape_name_atom_ref, find_new_name,
+  find_target, get_cached_readable_identifier, get_module_directives, get_module_hashbang,
+  property_access, property_name, reserved_names::RESERVED_NAMES_ATOM_SET,
+  rspack_sources::ReplaceSource, split_readable_identifier, to_normal_comment,
 };
 use rspack_error::{Diagnostic, Error, Result};
 use rspack_plugin_javascript::{
@@ -251,6 +251,57 @@ impl EsmLibraryPlugin {
     );
     candidate_used_names.insert(name.clone());
     name
+  }
+
+  fn register_preserved_asset_imports(
+    compilation: &Compilation,
+    chunk_link: &mut ChunkLinkContext,
+    used_names: &mut FxHashSet<Atom>,
+    escaped_identifiers: &FxHashMap<String, Vec<Atom>>,
+  ) {
+    // Follow module externals: imports are owned by the chunk link context, so their bindings are
+    // allocated before bundled top-level declarations and participate in the same deconfliction.
+    let chunk = compilation
+      .build_chunk_graph_artifact
+      .chunk_by_ukey
+      .expect_get(&chunk_link.chunk);
+    let decl_modules = chunk_link.decl_modules.iter().copied().collect::<Vec<_>>();
+
+    for module in decl_modules {
+      let code_generation_result = compilation
+        .code_generation_results
+        .get(&module, Some(chunk.runtime()));
+      let Some(asset_import) = code_generation_result
+        .data
+        .get::<CodeGenerationDataPreservedAssetImport>()
+      else {
+        continue;
+      };
+
+      let source = RawImportSource::Source((asset_import.request().to_string(), None));
+      let binding = chunk_link
+        .raw_import_stmts
+        .get(&source)
+        .and_then(|import_spec| import_spec.default_import.clone())
+        .unwrap_or_else(|| {
+          let readable_identifier = get_cached_readable_identifier(
+            &module,
+            compilation.get_module_graph(),
+            &compilation.module_static_cache,
+            &compilation.options.context,
+          );
+          let binding = find_new_name("", used_names, &escaped_identifiers[&readable_identifier]);
+          chunk_link
+            .raw_import_stmts
+            .entry(source)
+            .or_default()
+            .default_import = Some(binding.clone());
+          binding
+        });
+
+      used_names.insert(binding.clone());
+      chunk_link.preserved_asset_imports.insert(module, binding);
+    }
   }
 
   fn strict_export_chunk(&self, chunk: ChunkUkey) -> bool {
@@ -1079,6 +1130,12 @@ var {} = {{}};
     Self::reserve_module_external_top_level_decls_in_render_order(
       module_external_init_fragment_groups.iter().copied(),
       &mut all_used_names,
+    );
+    Self::register_preserved_asset_imports(
+      compilation,
+      chunk_link,
+      &mut all_used_names,
+      escaped_identifiers,
     );
 
     // deconflict top level symbols

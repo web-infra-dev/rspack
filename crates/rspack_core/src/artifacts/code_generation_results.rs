@@ -78,6 +78,27 @@ impl CodeGenerationDataAssetInfo {
   }
 }
 
+/// Describes a chunk-level default import referenced by a non-concatenated asset module.
+#[derive(Clone, Debug)]
+pub struct CodeGenerationDataPreservedAssetImport {
+  request: String,
+  binding: Atom,
+}
+
+impl CodeGenerationDataPreservedAssetImport {
+  pub fn new(request: String, binding: Atom) -> Self {
+    Self { request, binding }
+  }
+
+  pub fn request(&self) -> &str {
+    &self.request
+  }
+
+  pub fn binding(&self) -> &Atom {
+    &self.binding
+  }
+}
+
 #[derive(Clone, Debug)]
 pub struct CodeGenerationDataTopLevelDeclarations {
   inner: FxHashSet<Atom>,

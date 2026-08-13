@@ -13,7 +13,7 @@ module.exports = {
     const source = fs.readFileSync(path.join(outputPath, 'main.mjs'), 'utf8')
     const imports = Array.from(
       source.matchAll(
-        /^import (__rspack_asset_[0-9a-f]+) from "\.\/assets\/([^"/]+\.asset\.mjs)";$/gm,
+        /^import ([A-Za-z_$][\w$]*) from "\.\/assets\/([^"/]+\.asset\.mjs)";$/gm,
       ),
       match => ({ symbol: match[1], asset: match[2] }),
     )

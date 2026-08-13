@@ -8,9 +8,7 @@ module.exports = {
   snapshotContent(content) {
     return content
       .split('\n')
-      .filter(line =>
-        /^(?:import|module\.exports|const|export ).*rspack_asset_/.test(line),
-      )
+      .filter(line => /^(?:import value_asset |module\.exports = value_asset;)/.test(line))
       .join('\n')
   },
   afterExecute(options) {
@@ -20,11 +18,9 @@ module.exports = {
     )
 
     expect(source).toContain(
-      'import __rspack_asset_6763b85de2fc2546 from "./assets/value.asset.mjs";',
+      'import value_asset from "./assets/value.asset.mjs";',
     )
-    expect(source).toContain(
-      'module.exports = __rspack_asset_6763b85de2fc2546;',
-    )
+    expect(source).toContain('module.exports = value_asset;')
     expect(source).not.toMatch(/\brequire\(/)
   },
 }

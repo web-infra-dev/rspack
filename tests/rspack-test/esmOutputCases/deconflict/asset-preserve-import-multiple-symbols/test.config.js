@@ -9,7 +9,9 @@ module.exports = {
     return content
       .split('\n')
       .filter(line =>
-        /^(?:import|module\.exports|const|export ).*rspack_asset_/.test(line),
+        /^(?:import same_name_asset|module\.exports = same_name_asset|const (?:index_)?same_name_asset|export )/.test(
+          line,
+        ),
       )
       .join('\n')
   },
@@ -19,32 +21,27 @@ module.exports = {
       'utf8',
     )
     const importedSymbols = Array.from(
-      source.matchAll(/^import (__rspack_asset_[0-9a-f]+) from /gm),
+      source.matchAll(
+        /^import ([A-Za-z_$][\w$]*) from "\.\/assets\/same[-_]name\.asset\.mjs";$/gm,
+      ),
       match => match[1],
     )
 
-    expect(importedSymbols).toEqual([
-      '__rspack_asset_28d349827cf20a88',
-      '__rspack_asset_a1470a0d5a9b15a8',
-    ])
+    expect(importedSymbols).toEqual(['same_name_asset', 'same_name_asset_0'])
     expect(new Set(importedSymbols).size).toBe(importedSymbols.length)
+    expect(source).toContain('module.exports = same_name_asset;')
+    expect(source).toContain('module.exports = same_name_asset_0;')
     expect(source).toContain(
-      'module.exports = __rspack_asset_28d349827cf20a88;',
+      "const index_same_name_asset = 'first application value'",
     )
     expect(source).toContain(
-      'module.exports = __rspack_asset_a1470a0d5a9b15a8;',
+      "const index_same_name_asset_0 = 'second application value'",
     )
     expect(source).toContain(
-      "const index_rspack_asset_28d349827cf20a88 = 'first application value'",
+      'same_name_asset: index_same_name_asset,',
     )
     expect(source).toContain(
-      "const index_rspack_asset_a1470a0d5a9b15a8 = 'second application value'",
-    )
-    expect(source).toContain(
-      '__rspack_asset_28d349827cf20a88: index_rspack_asset_28d349827cf20a88,',
-    )
-    expect(source).toContain(
-      '__rspack_asset_a1470a0d5a9b15a8: index_rspack_asset_a1470a0d5a9b15a8,',
+      'same_name_asset_0: index_same_name_asset_0,',
     )
     expect(source).not.toMatch(/\brequire\(/)
   },
