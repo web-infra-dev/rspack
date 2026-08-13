@@ -5,6 +5,7 @@ const callbackStats = {
   name: { batches: 0, calls: 0, active: false },
 };
 const nameChunkArrays = new Set();
+const nameModuleOrder = [];
 
 function trackCallback(kind) {
   const stats = callbackStats[kind];
@@ -23,25 +24,22 @@ class AssertBatchCallbacksPlugin {
     compiler.hooks.done.tap('AssertBatchCallbacksPlugin', () => {
       expect(callbackStats.layer).toEqual({
         batches: 1,
-        calls: 4,
+        calls: 7,
         active: false,
       });
       expect(callbackStats.test).toEqual({
         batches: 1,
-        calls: 4,
+        calls: 7,
         active: false,
       });
-      expect(callbackStats.chunks).toEqual({
-        batches: 1,
-        calls: 4,
-        active: false,
-      });
-      expect(callbackStats.name).toEqual({
-        batches: 1,
-        calls: 2,
-        active: false,
-      });
-      expect(nameChunkArrays.size).toBe(2);
+      expect(callbackStats.chunks.calls).toBe(16);
+      expect(callbackStats.chunks.batches).toBeLessThan(callbackStats.chunks.calls);
+      expect(callbackStats.chunks.active).toBe(false);
+      expect(callbackStats.name.calls).toBe(6);
+      expect(callbackStats.name.batches).toBeLessThan(callbackStats.name.calls);
+      expect(callbackStats.name.active).toBe(false);
+      expect(nameChunkArrays.size).toBe(6);
+      expect(new Set(nameModuleOrder.slice(0, 3)).size).toBe(3);
     });
   }
 }
@@ -56,6 +54,14 @@ module.exports = {
     },
     b: {
       import: './b',
+      layer: 'batch',
+    },
+    c: {
+      import: './c',
+      layer: 'batch',
+    },
+    d: {
+      import: './d',
       layer: 'batch',
     },
   },
@@ -78,7 +84,7 @@ module.exports = {
           test(module) {
             trackCallback('test');
             expect(Array.isArray(module)).toBe(false);
-            return /shared-[12]\.js/.test(module.identifier());
+            return /shared-[123]\.js/.test(module.identifier());
           },
           chunks(chunk) {
             trackCallback('chunks');
@@ -89,12 +95,12 @@ module.exports = {
             trackCallback('name');
             expect(Array.isArray(module)).toBe(false);
             expect(Array.isArray(chunks)).toBe(true);
-            expect(chunks.map((chunk) => chunk.name).sort()).toEqual([
-              'a',
-              'b',
-            ]);
+            expect(['a,b', 'a,b,c', 'a,b,c,d']).toContain(
+              chunks.map((chunk) => chunk.name).sort().join(','),
+            );
             expect(cacheGroupKey).toBe('batch');
             nameChunkArrays.add(chunks);
+            nameModuleOrder.push(module.identifier());
             return 'shared';
           },
         },

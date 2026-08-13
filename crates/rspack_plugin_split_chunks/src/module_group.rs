@@ -292,7 +292,17 @@ impl ModuleGroup {
   }
 
   pub fn prepare_modules_for_sizes_and_compare(&mut self) {
-    let modules = self.modules.iter().copied().collect::<Vec<_>>();
+    let mut modules = self.modules.iter().copied().collect::<Vec<_>>();
+    modules.sort_unstable_by_key(|module| (module.precomputed_hash(), *module));
+
+    // Module groups are populated concurrently, so preserving their HashSet layout makes the
+    // eventual ChunkGraph module iteration order depend on task scheduling. Rebuild the set from
+    // a stable order before groups are compared and consumed.
+    let mut stable_modules =
+      IdentifierSet::with_capacity_and_hasher(modules.len(), Default::default());
+    stable_modules.extend(modules.iter().copied());
+    self.modules = stable_modules;
+
     self.added = modules.clone();
     self.modules_for_compare.prepare(modules);
     self.removed.reserve(self.modules.len());

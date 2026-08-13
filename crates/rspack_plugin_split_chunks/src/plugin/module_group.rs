@@ -1876,6 +1876,7 @@ fn merge_matched_item_into_module_group(
   if is_named {
     module_group.add_module(module.identifier(), selected_chunks.iter().copied());
   } else {
-    module_group.add_module_with_shared_chunks(module.identifier(), selected_chunks.iter().copied());
+    module_group
+      .add_module_with_shared_chunks(module.identifier(), selected_chunks.iter().copied());
   }
 }
