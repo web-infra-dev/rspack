@@ -410,18 +410,40 @@ impl Module {
     enumerable = false
   )]
   pub fn original_source<'a>(&mut self, env: &'a Env) -> napi::Result<Either<Unknown<'a>, ()>> {
-    println!("original_source");
-    let module = self.as_mut()?;
+    let compiler_reference = COMPILER_REFERENCES.with(|ref_cell| {
+      let references = ref_cell.borrow();
+      references.get(&self.compiler_id).cloned()
+    });
+
+    let compilation = {
+      let Some(this) = compiler_reference
+        .as_ref()
+        .and_then(|compiler_reference| compiler_reference.get())
+      else {
+        return Err(self.compiler_garbage_collected_error());
+      };
+      &this.compiler.compilation
+    };
+
+    let module = {
+      if let Some(module) = compilation.module_by_identifier(&self.identifier) {
+        module.as_ref()
+      } else {
+        return Ok(Either::B(()));
+      }
+    };
+
     let Some(original_source) = module.source() else {
+      self.original_source_ref = None;
       return Ok(Either::B(()));
     };
+
     if let Some(OriginalSourceNapiRef {
       related_source,
       napi_ref,
     }) = &self.original_source_ref
     {
       if (related_source.ptr_eq(&Arc::downgrade(original_source))) {
-        println!("复用 original_source");
         return Ok(Either::A(ToNapiValue::into_unknown(napi_ref, env)?));
       }
     }

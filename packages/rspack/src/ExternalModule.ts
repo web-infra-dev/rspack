@@ -9,6 +9,7 @@ Object.defineProperty(binding.ExternalModule.prototype, 'identifier', {
   enumerable: true,
   configurable: true,
   value(this: binding.ExternalModule): string {
+    // @ts-expect-error
     return this[binding.MODULE_IDENTIFIER_SYMBOL];
   },
 });
