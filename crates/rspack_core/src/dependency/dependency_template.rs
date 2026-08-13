@@ -47,6 +47,12 @@ pub struct TemplateReplaceSource<'a> {
   concatenation_scope: Option<&'a mut ConcatenationScope>,
 }
 
+#[derive(Clone, Copy)]
+enum GeneratedCodeUsedNames {
+  Scan,
+  AlreadyTracked,
+}
+
 impl<'a> TemplateReplaceSource<'a> {
   pub fn new(
     source: &'a mut ReplaceSource,
@@ -87,20 +93,38 @@ impl<'a> TemplateReplaceSource<'a> {
     })
   }
 
-  fn record_edit(&mut self, start: u32, end: u32, content: &str) {
-    let Some(scope) = self.faster_concatenation_scope() else {
+  #[inline]
+  fn record_edit(
+    &mut self,
+    start: u32,
+    end: u32,
+    content: &str,
+    used_names: GeneratedCodeUsedNames,
+  ) {
+    let Some(scope) = self.concatenation_scope.as_deref_mut() else {
       return;
     };
-    if start != end {
-      scope.remove_original_range(DependencyRange::new(start, end));
-    }
-    if !content.is_empty() {
-      scope.add_used_names_from_generated_code(content);
-    }
+    scope.record_source_edit(
+      (start != end).then(|| DependencyRange::new(start, end)),
+      matches!(used_names, GeneratedCodeUsedNames::Scan).then_some(content),
+    );
   }
 
   pub fn replace(&mut self, start: u32, end: u32, content: String, name: Option<String>) {
-    self.record_edit(start, end, &content);
+    self.record_edit(start, end, &content, GeneratedCodeUsedNames::Scan);
+    self.source.replace(start, end, content, name);
+  }
+
+  /// Replaces source with code whose used names have already been recorded in
+  /// the concatenation scope.
+  pub fn replace_with_tracked_used_names(
+    &mut self,
+    start: u32,
+    end: u32,
+    content: String,
+    name: Option<String>,
+  ) {
+    self.record_edit(start, end, &content, GeneratedCodeUsedNames::AlreadyTracked);
     self.source.replace(start, end, content, name);
   }
 
@@ -111,7 +135,7 @@ impl<'a> TemplateReplaceSource<'a> {
     content: &'static str,
     name: Option<&'static str>,
   ) {
-    self.record_edit(start, end, content);
+    self.record_edit(start, end, content, GeneratedCodeUsedNames::Scan);
     self.source.replace_static(start, end, content, name);
   }
 
@@ -123,19 +147,19 @@ impl<'a> TemplateReplaceSource<'a> {
     name: Option<&'static str>,
     enforce: ReplacementEnforce,
   ) {
-    self.record_edit(start, end, content);
+    self.record_edit(start, end, content, GeneratedCodeUsedNames::Scan);
     self
       .source
       .replace_static_with_enforce(start, end, content, name, enforce);
   }
 
   pub fn insert(&mut self, start: u32, content: String, name: Option<String>) {
-    self.record_edit(start, start, &content);
+    self.record_edit(start, start, &content, GeneratedCodeUsedNames::Scan);
     self.source.insert(start, content, name);
   }
 
   pub fn insert_static(&mut self, start: u32, content: &'static str, name: Option<&'static str>) {
-    self.record_edit(start, start, content);
+    self.record_edit(start, start, content, GeneratedCodeUsedNames::Scan);
     self.source.insert_static(start, content, name);
   }
 
@@ -156,11 +180,46 @@ impl<'a> TemplateReplaceSource<'a> {
     content: String,
     name: Option<String>,
   ) {
-    if let Some(scope) = self.faster_concatenation_scope() {
-      scope.remove_original_range(shorthand_range);
-      if !content.is_empty() {
-        scope.add_used_names_from_generated_code(&content);
-      }
+    self.insert_shorthand_value_with_used_names(
+      start,
+      shorthand_range,
+      content,
+      name,
+      GeneratedCodeUsedNames::Scan,
+    );
+  }
+
+  /// Expands a shorthand using code whose used names have already been
+  /// recorded in the concatenation scope.
+  pub fn insert_shorthand_value_with_tracked_used_names(
+    &mut self,
+    start: u32,
+    shorthand_range: DependencyRange,
+    content: String,
+    name: Option<String>,
+  ) {
+    self.insert_shorthand_value_with_used_names(
+      start,
+      shorthand_range,
+      content,
+      name,
+      GeneratedCodeUsedNames::AlreadyTracked,
+    );
+  }
+
+  fn insert_shorthand_value_with_used_names(
+    &mut self,
+    start: u32,
+    shorthand_range: DependencyRange,
+    content: String,
+    name: Option<String>,
+    used_names: GeneratedCodeUsedNames,
+  ) {
+    if let Some(scope) = self.concatenation_scope.as_deref_mut() {
+      scope.record_source_edit(
+        Some(shorthand_range),
+        matches!(used_names, GeneratedCodeUsedNames::Scan).then_some(content.as_str()),
+      );
     }
     self.source.insert(start, content, name);
   }
@@ -174,11 +233,8 @@ impl<'a> TemplateReplaceSource<'a> {
     content: String,
     name: Option<String>,
   ) {
-    if let Some(scope) = self.faster_concatenation_scope() {
-      scope.set_original_range_non_shorthand(original_range);
-      if !content.is_empty() {
-        scope.add_used_names_from_generated_code(&content);
-      }
+    if let Some(scope) = self.concatenation_scope.as_deref_mut() {
+      scope.record_non_shorthand_source_edit(original_range, &content);
     }
     self.source.insert(start, content, name);
   }

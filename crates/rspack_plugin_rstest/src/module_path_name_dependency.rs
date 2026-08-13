@@ -73,7 +73,12 @@ impl DependencyTemplate for ModulePathNameDependencyTemplate {
           if let (Some(range), Some(rendered_identifier)) =
             (dep.range, rendered_identifier.as_ref())
           {
-            source.replace(range.start, range.end, rendered_identifier.clone(), None);
+            source.replace_with_tracked_used_names(
+              range.start,
+              range.end,
+              rendered_identifier.clone(),
+              None,
+            );
           }
           let init = NormalInitFragment::new(
             format!(
@@ -98,7 +103,12 @@ impl DependencyTemplate for ModulePathNameDependencyTemplate {
         let identifier = rendered_identifier.as_deref().unwrap_or("__dirname");
         if let (Some(range), Some(rendered_identifier)) = (dep.range, rendered_identifier.as_ref())
         {
-          source.replace(range.start, range.end, rendered_identifier.clone(), None);
+          source.replace_with_tracked_used_names(
+            range.start,
+            range.end,
+            rendered_identifier.clone(),
+            None,
+          );
         }
         // If the parent path is None, we use an empty string
         // to avoid issues with the path being undefined.

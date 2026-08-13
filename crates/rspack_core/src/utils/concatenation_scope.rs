@@ -22,6 +22,34 @@ pub const NAMESPACE_OBJECT_EXPORT: &str = "__rspack_ns_object";
 pub const DEFAULT_EXPORT: &str = "__rspack_default_export";
 const MODULE_REFERENCE_PROPERTY_ACCESS_SUFFIX: &str = "._";
 
+#[inline]
+fn is_ascii_identifier_continue(byte: u8) -> bool {
+  byte == b'_' || byte == b'$' || byte.is_ascii_alphanumeric()
+}
+
+fn add_used_names_from_generated_code(info: &mut FasterModuleConcatenationInfo, code: &str) {
+  // The legacy codegen parse reserves names referenced by replacement code.
+  // Faster concatenation skips that parse, so conservatively collect every
+  // ASCII identifier-shaped token. False positives only reduce name reuse;
+  // missing a name could capture a generated global reference.
+  let bytes = code.as_bytes();
+  let mut cursor = 0;
+  while cursor < bytes.len() {
+    while cursor < bytes.len() && !is_ascii_identifier_continue(bytes[cursor]) {
+      cursor += 1;
+    }
+    let start = cursor;
+    while cursor < bytes.len() && is_ascii_identifier_continue(bytes[cursor]) {
+      cursor += 1;
+    }
+    if start < cursor
+      && (bytes[start] == b'_' || bytes[start] == b'$' || bytes[start].is_ascii_alphabetic())
+    {
+      info.added_used_names.push(code[start..cursor].into());
+    }
+  }
+}
+
 #[derive(Default, Debug, Clone, PartialEq, Eq)]
 pub struct ModuleReferenceOptions {
   pub ids: Vec<Atom>,
@@ -92,11 +120,12 @@ impl ConcatenationScope {
   ) -> ConcatenatedModuleInfo {
     let mut current_module = self.current_module.clone();
     if let Some(faster_info) = self.faster_module_concatenation_info.as_deref() {
+      let mut faster_info = faster_info.clone();
       crate::concatenated_module::populate_info_from_pending(
         pending,
         original_source,
         &mut current_module,
-        faster_info,
+        &mut faster_info,
       );
     }
     current_module
@@ -175,21 +204,49 @@ impl ConcatenationScope {
   }
 
   pub fn remove_original_range(&mut self, range: DependencyRange) {
-    let Some(info) = self.faster_module_concatenation_info.as_deref_mut() else {
-      return;
-    };
-    info
-      .original_scope_ident_updates
-      .push(OriginalScopeIdentUpdate::Remove(range));
+    self.record_source_edit(Some(range), None);
   }
 
   pub fn set_original_range_non_shorthand(&mut self, range: DependencyRange) {
+    self.record_non_shorthand_source_edit(range, "");
+  }
+
+  #[inline]
+  pub(crate) fn record_source_edit(
+    &mut self,
+    removed_range: Option<DependencyRange>,
+    generated_code: Option<&str>,
+  ) {
+    let Some(info) = self.faster_module_concatenation_info.as_deref_mut() else {
+      return;
+    };
+    if let Some(range) = removed_range {
+      info
+        .original_scope_ident_updates
+        .push(OriginalScopeIdentUpdate::Remove(range));
+    }
+    if let Some(code) = generated_code
+      && !code.is_empty()
+    {
+      add_used_names_from_generated_code(info, code);
+    }
+  }
+
+  #[inline]
+  pub(crate) fn record_non_shorthand_source_edit(
+    &mut self,
+    range: DependencyRange,
+    generated_code: &str,
+  ) {
     let Some(info) = self.faster_module_concatenation_info.as_deref_mut() else {
       return;
     };
     info
       .original_scope_ident_updates
       .push(OriginalScopeIdentUpdate::NonShorthand(range));
+    if !generated_code.is_empty() {
+      add_used_names_from_generated_code(info, generated_code);
+    }
   }
 
   pub fn add_scope_ident(&mut self, symbol: Atom, range: DependencyRange) {
@@ -202,26 +259,6 @@ impl ConcatenationScope {
       shorthand: false,
       is_class_expr_with_ident: false,
     });
-  }
-
-  pub fn add_used_names_from_generated_code(&mut self, code: &str) {
-    let Some(info) = self.faster_module_concatenation_info.as_deref_mut() else {
-      return;
-    };
-    // The legacy codegen parse reserves names referenced by replacement code.
-    // Faster concatenation skips that parse, so conservatively collect every
-    // ASCII identifier-shaped token. False positives only reduce name reuse;
-    // missing a name could capture a generated global reference.
-    for candidate in code.split(|ch: char| !(ch == '_' || ch == '$' || ch.is_ascii_alphanumeric()))
-    {
-      let mut chars = candidate.chars();
-      if chars
-        .next()
-        .is_some_and(|ch| ch == '_' || ch == '$' || ch.is_ascii_alphabetic())
-      {
-        info.added_used_names.push(candidate.into());
-      }
-    }
   }
 
   pub fn ensure_generated_top_level_symbol(&mut self, preferred_name: &str) -> Atom {

@@ -26,6 +26,7 @@ use rspack_util::{
   swc::join_atom,
 };
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
+use smallvec::SmallVec;
 use swc_core::{
   atoms::Atom,
   common::{BytePos, Spanned, SyntaxContext},
@@ -331,7 +332,7 @@ pub enum OriginalScopeIdentUpdate {
 #[derive(Debug, Clone, Default)]
 pub struct FasterModuleConcatenationInfo {
   /// Corrections to make-time identifiers caused by dependency replacements.
-  pub original_scope_ident_updates: Vec<OriginalScopeIdentUpdate>,
+  pub original_scope_ident_updates: SmallVec<[OriginalScopeIdentUpdate; 4]>,
   /// Scope identifiers supplied by dependency templates in addition to the
   /// make-time collection.
   pub added_scope_idents: Vec<AddedScopeIdent>,
@@ -2711,7 +2712,7 @@ impl ConcatenatedModule {
         .remove(&SourceType::JavaScript)
         .expect("should have javascript source");
       let mut module_info = concatenation_scope.current_module;
-      let (result_source, internal_source) = if let Some(faster_module_concatenation_info) =
+      let (result_source, internal_source) = if let Some(mut faster_module_concatenation_info) =
         faster_module_concatenation_info
       {
         let pending_scope_info = module
@@ -2759,7 +2760,7 @@ impl ConcatenatedModule {
           pending_scope_info,
           &original_source,
           &mut module_info,
-          &faster_module_concatenation_info,
+          &mut faster_module_concatenation_info,
         );
         let internal_source = result_source.inner().clone();
         (result_source, internal_source)

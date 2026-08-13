@@ -176,7 +176,7 @@ pub(crate) fn populate_info_from_pending(
   pending: &PendingConcatenationScopeInfo,
   original_source: &str,
   module_info: &mut ConcatenatedModuleInfo,
-  faster_info: &FasterModuleConcatenationInfo,
+  faster_info: &mut FasterModuleConcatenationInfo,
 ) {
   let (module_ctxt, global_ctxt, pending_idents) = match pending {
     PendingConcatenationScopeInfo::Analyzed(info) => {
@@ -225,7 +225,7 @@ pub(crate) fn populate_info_from_pending(
   );
   module_info
     .all_used_names
-    .extend(faster_info.added_used_names.iter().cloned());
+    .extend(faster_info.added_used_names.drain(..));
 
   let mut removed_ranges = SmallVec::<[DependencyRange; 4]>::new();
   let mut non_shorthand_ranges = SmallVec::<[DependencyRange; 4]>::new();
@@ -277,12 +277,12 @@ pub(crate) fn populate_info_from_pending(
     );
   }
 
-  for ident in &faster_info.added_scope_idents {
+  for ident in faster_info.added_scope_idents.drain(..) {
     add_ident_to_module_info(
       module_info,
       ConcatenatedModuleIdent {
         id: swc_ecma_ast::Ident::new(
-          ident.symbol.clone(),
+          ident.symbol,
           Span::new(
             BytePos(ident.range.start.saturating_add(1)),
             BytePos(ident.range.end.saturating_add(1)),

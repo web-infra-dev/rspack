@@ -202,6 +202,11 @@ impl DependencyTemplate for ProvideDependencyTemplate {
     );
     fragment.set_top_level_decl_symbols(vec![dep.identifier.clone().into()]);
     init_fragments.push(Box::new(fragment));
-    source.replace(dep.range.start, dep.range.end, rendered_identifier, None);
+    source.replace_with_tracked_used_names(
+      dep.range.start,
+      dep.range.end,
+      rendered_identifier,
+      None,
+    );
   }
 }

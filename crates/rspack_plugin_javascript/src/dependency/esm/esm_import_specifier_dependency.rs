@@ -430,6 +430,11 @@ impl DependencyCodeGeneration for ESMImportSpecifierDependency {
 #[derive(Debug, Clone, Default)]
 pub struct ESMImportSpecifierDependencyTemplate;
 
+enum ImportExpression {
+  Generated(String),
+  Tracked(String),
+}
+
 impl ESMImportSpecifierDependencyTemplate {
   pub fn template_type() -> DependencyTemplateType {
     DependencyTemplateType::Dependency(DependencyType::EsmImportSpecifier)
@@ -442,7 +447,7 @@ impl ESMImportSpecifierDependencyTemplate {
     connection: Option<&ModuleGraphConnection>,
     source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
-  ) -> String {
+  ) -> ImportExpression {
     let TemplateContext {
       compilation,
       runtime,
@@ -452,7 +457,7 @@ impl ESMImportSpecifierDependencyTemplate {
       && let Some(con) = connection
       && scope.is_module_in_scope(con.module_identifier())
     {
-      if ids.is_empty() {
+      let expression = if ids.is_empty() {
         scope.create_module_reference(
           con.module_identifier(),
           ModuleReferenceOptions {
@@ -500,7 +505,8 @@ impl ESMImportSpecifierDependencyTemplate {
             ..Default::default()
           },
         )
-      }
+      };
+      ImportExpression::Tracked(expression)
     } else {
       let mg = code_generatable_context.compilation.get_module_graph();
       let target_module = mg.get_module_by_dependency_id(&dep.id);
@@ -527,7 +533,7 @@ impl ESMImportSpecifierDependencyTemplate {
         runtime_template,
         ..
       } = code_generatable_context;
-      runtime_template.export_from_import(
+      ImportExpression::Generated(runtime_template.export_from_import(
         compilation,
         init_fragments,
         module.identifier(),
@@ -541,7 +547,7 @@ impl ESMImportSpecifierDependencyTemplate {
         !dep.direct_import,
         Some(dep.shorthand || dep.asi_safe),
         dep.phase,
-      )
+      ))
     }
   }
 
@@ -643,12 +649,20 @@ impl ESMImportSpecifierDependencyTemplate {
           source,
           code_generatable_context,
         );
-        source.replace(
-          dep.range.start,
-          dep.range.end,
-          format!("{} in {code}", json_stringify_str(used_name.as_str())),
-          None,
-        )
+        match code {
+          ImportExpression::Generated(code) => source.replace(
+            dep.range.start,
+            dep.range.end,
+            format!("{} in {code}", json_stringify_str(used_name.as_str())),
+            None,
+          ),
+          ImportExpression::Tracked(code) => source.replace_with_tracked_used_names(
+            dep.range.start,
+            dep.range.end,
+            format!("{} in {code}", json_stringify_str(used_name.as_str())),
+            None,
+          ),
+        }
       }
     }
   }
@@ -705,10 +719,23 @@ impl DependencyTemplate for ESMImportSpecifierDependencyTemplate {
 
     let export_expr = self.get_code_for_ids(ids, dep, connection, source, code_generatable_context);
 
-    if dep.shorthand {
-      source.insert_shorthand_value(dep.range.end, dep.range, format!(": {export_expr}"), None);
-    } else {
-      source.replace(dep.range.start, dep.range.end, export_expr, None);
+    match (dep.shorthand, export_expr) {
+      (true, ImportExpression::Generated(export_expr)) => {
+        source.insert_shorthand_value(dep.range.end, dep.range, format!(": {export_expr}"), None)
+      }
+      (true, ImportExpression::Tracked(export_expr)) => source
+        .insert_shorthand_value_with_tracked_used_names(
+          dep.range.end,
+          dep.range,
+          format!(": {export_expr}"),
+          None,
+        ),
+      (false, ImportExpression::Generated(export_expr)) => {
+        source.replace(dep.range.start, dep.range.end, export_expr, None)
+      }
+      (false, ImportExpression::Tracked(export_expr)) => {
+        source.replace_with_tracked_used_names(dep.range.start, dep.range.end, export_expr, None)
+      }
     }
 
     let module_graph = code_generatable_context.compilation.get_module_graph();

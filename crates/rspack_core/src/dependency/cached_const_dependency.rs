@@ -169,7 +169,11 @@ impl DependencyTemplate for CachedConstDependencyTemplate {
     }
 
     if let Some(range) = dep.range {
-      source.replace(range.start, range.end, rendered_identifier, None);
+      if matches!(dep.place, CachedConstDependencyPlace::Module) {
+        source.replace_with_tracked_used_names(range.start, range.end, rendered_identifier, None);
+      } else {
+        source.replace(range.start, range.end, rendered_identifier, None);
+      }
     }
   }
 }

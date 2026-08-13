@@ -195,7 +195,7 @@ impl DependencyTemplate for ImportMetaRscDependencyTemplate {
     init_fragments.push(Box::new(fragment));
 
     if let Some(range) = dependency.range {
-      source.replace(range.start, range.end, rendered_binding, None);
+      source.replace_with_tracked_used_names(range.start, range.end, rendered_binding, None);
     }
   }
 }
