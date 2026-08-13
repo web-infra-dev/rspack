@@ -62,6 +62,7 @@
     "@typescript/native": "catalog:",
     "commander": "catalog:",
     "cross-env": "catalog:",
+    "globals": "catalog:",
     "heading-case": "catalog:",
     "rstack": "catalog:",
     "typescript": "catalog:",

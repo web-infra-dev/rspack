@@ -23,6 +23,7 @@ define.fmt({
 
 define.lint(async () => {
   const { js, ts } = await import('rstack/lint');
+  const { default: globals } = await import('globals');
 
   return [
     js.configs.recommended,
@@ -39,6 +40,20 @@ define.lint(async () => {
     },
     {
       languageOptions: {
+        globals: {
+          ...globals.browser,
+          ...globals.jest,
+          ...globals.node,
+          ...globals.rspack,
+          $: 'readonly',
+          $IMPORT_META_NAME: 'readonly',
+          $PATH: 'readonly',
+          __prefresh_errors__: 'readonly',
+          __prefresh_utils__: 'readonly',
+          fs: 'readonly',
+          path: 'readonly',
+          rstest: 'readonly',
+        },
         parserOptions: {
           project: ['./packages/*/tsconfig.json'],
         },
