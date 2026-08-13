@@ -63,7 +63,7 @@ ${tooMuch.map((item) => `${explain(item)}`).join('\n\n')}`);
   return diff.join('\n\n');
 };
 
-export async function checkArrayExpectation(
+export function checkArrayExpectation(
   testDirectory,
   object,
   kind,
