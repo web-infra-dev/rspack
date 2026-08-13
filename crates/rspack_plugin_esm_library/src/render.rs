@@ -24,7 +24,7 @@ use rspack_util::{
 
 use self::runtime_mode::{RuntimeImportRenderContext, RuntimeRenderContext, renderer_for};
 use crate::{
-  chunk_link::{ChunkLinkContext, ReExportFrom, Ref},
+  chunk_link::{ChunkLinkContext, RawImportSource, ReExportFrom, Ref},
   plugin::RSPACK_ESM_RUNTIME_CHUNK,
 };
 
@@ -225,9 +225,14 @@ impl EsmLibraryPlugin {
 
         let module_source = if let Some(asset_import) = preserved_asset_import {
           replace_auto_public_path = true;
-          let binding = chunk_link.preserved_asset_imports.get(m).ok_or_else(|| {
-            rspack_error::error!("missing preserved asset import binding for module {m}")
-          })?;
+          let source = RawImportSource::Source((asset_import.request().to_string(), None));
+          let binding = chunk_link
+            .raw_import_stmts
+            .get(&source)
+            .and_then(|import_spec| import_spec.default_import.as_ref())
+            .ok_or_else(|| {
+              rspack_error::error!("missing preserved asset import binding for module {m}")
+            })?;
           replace_preserved_asset_import_binding(
             module_source,
             asset_import.binding().as_str(),

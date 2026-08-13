@@ -340,8 +340,7 @@ impl EsmLibraryPlugin {
           binding
         });
 
-      used_names.insert(binding.clone());
-      chunk_link.preserved_asset_imports.insert(module, binding);
+      used_names.insert(binding);
     }
   }
 
