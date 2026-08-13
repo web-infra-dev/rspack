@@ -10,7 +10,7 @@ version.workspace = true
 [dependencies]
 criterion = { workspace = true }
 rayon     = { workspace = true }
-tokio     = { workspace = true, features = ["rt-multi-thread"] }
+tokio     = { workspace = true }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 # Keep benchmark allocator features aligned with rspack_allocator.

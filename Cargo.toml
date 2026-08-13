@@ -87,7 +87,6 @@ rayon               = { version = "1.12.0", default-features = false }
 regex               = { version = "1.12.4", default-features = false, features = ["perf"] }
 regex-syntax        = { version = "0.8.11", default-features = false, features = ["std"] }
 regress             = { version = "0.11.1", default-features = false, features = ["pattern"] }
-rspack_resolver     = { version = "=0.101.9", default-features = false, features = ["package_json_raw_json_api", "yarn_pnp"], path = "crates/rspack_resolver" }
 rustc-hash          = { version = "2.1.2", default-features = false }
 ryu-js              = { version = "1.0.2", default-features = false }
 scopeguard          = { version = "1.2.0", default-features = false }
@@ -241,6 +240,7 @@ rspack_plugin_swc_js_minimizer         = { version = "=0.101.9", path = "crates/
 rspack_plugin_wasm                     = { version = "=0.101.9", path = "crates/rspack_plugin_wasm", default-features = false }
 rspack_plugin_worker                   = { version = "=0.101.9", path = "crates/rspack_plugin_worker", default-features = false }
 rspack_regex                           = { version = "=0.101.9", path = "crates/rspack_regex", default-features = false }
+rspack_resolver                        = { version = "=0.101.9", path = "crates/rspack_resolver", default-features = false, features = ["package_json_raw_json_api", "yarn_pnp"] }
 rspack_sources                         = { version = "=0.101.9", path = "crates/rspack_sources", default-features = false, features = ["rspack_cacheable"] }
 rspack_storage                         = { version = "=0.101.9", path = "crates/rspack_storage", default-features = false }
 rspack_swc_plugin_import               = { version = "=0.101.9", path = "crates/swc_plugin_import", default-features = false }
