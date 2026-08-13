@@ -56,7 +56,7 @@ async fn styled_components() {
 async fn axios() {
   let dir = dir();
   let path = dir.join("fixtures/pnpm");
-  let module_path = dir.join("node_modules/.pnpm/axios@1.16.0/node_modules/axios");
+  let module_path = dir.join("fixtures/node_modules/.pnpm/axios@1.16.0/node_modules/axios");
   let specifier = "axios";
 
   // default
@@ -121,7 +121,7 @@ async fn ipaddr_js() {
   let dir = dir();
   let path = dir.join("fixtures/pnpm");
   let module_path =
-    dir.join("node_modules/.pnpm/ipaddr.js@2.2.0/node_modules/ipaddr.js/lib/ipaddr.js");
+    dir.join("fixtures/node_modules/.pnpm/ipaddr.js@2.2.0/node_modules/ipaddr.js/lib/ipaddr.js");
 
   let resolvers = [
     // with `extension_alias`
@@ -155,7 +155,7 @@ async fn decimal_js() {
   let dir = dir();
   let path = dir.join("fixtures/pnpm");
   let module_path =
-    dir.join("node_modules/.pnpm/decimal.js@10.4.3/node_modules/decimal.js/decimal.mjs");
+    dir.join("fixtures/node_modules/.pnpm/decimal.js@10.4.3/node_modules/decimal.js/decimal.mjs");
 
   let resolvers = [
     // with `extension_alias`
@@ -186,9 +186,9 @@ async fn decimal_js() {
 #[tokio::test]
 async fn decimal_js_from_mathjs() {
   let dir = dir();
-  let path = dir.join("node_modules/.pnpm/mathjs@15.2.0/node_modules/mathjs/lib/esm");
+  let path = dir.join("fixtures/node_modules/.pnpm/mathjs@15.2.0/node_modules/mathjs/lib/esm");
   let module_path =
-    dir.join("node_modules/.pnpm/decimal.js@10.4.3/node_modules/decimal.js/decimal.mjs");
+    dir.join("fixtures/node_modules/.pnpm/decimal.js@10.4.3/node_modules/decimal.js/decimal.mjs");
 
   let resolvers = [
     // with `extension_alias`

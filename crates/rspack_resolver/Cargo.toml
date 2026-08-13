@@ -4,7 +4,7 @@ categories           = ["development-tools"]
 description          = "ESM / CJS module resolution"
 edition              = "2021"
 homepage.workspace   = true
-include              = ["/src", "/examples"]
+include              = ["/src"]
 keywords             = ["node", "resolve", "cjs", "esm", "enhanced-resolve"]
 license.workspace    = true
 name                 = "rspack_resolver"
@@ -17,9 +17,6 @@ doctest = false
 
 [lints]
 workspace = true
-
-[[example]]
-name = "resolver"
 
 [dependencies]
 dashmap    = { workspace = true }
