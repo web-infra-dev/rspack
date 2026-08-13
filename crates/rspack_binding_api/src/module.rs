@@ -442,10 +442,9 @@ impl Module {
       related_source,
       napi_ref,
     }) = &self.original_source_ref
+      && (related_source.ptr_eq(&Arc::downgrade(original_source)))
     {
-      if (related_source.ptr_eq(&Arc::downgrade(original_source))) {
-        return Ok(Either::A(ToNapiValue::into_unknown(napi_ref, env)?));
-      }
+      return Ok(Either::A(ToNapiValue::into_unknown(napi_ref, env)?));
     }
 
     let binding = JsSourceToJs::try_from(original_source)?;
