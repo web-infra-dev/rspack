@@ -2,11 +2,11 @@ use std::{borrow::Cow, collections::VecDeque};
 
 use concat_string::concat_string;
 use rspack_core::{
-  BoxDependency, ChunkGraph, Context, CssBuildInfo, CssExport, CssExportType, CssExports,
-  CssModuleRenderCondition, DependencyCodeGeneration, DependencyId, DependencyType,
+  BoxDependency, ChunkGraph, ConcatenationScope, Context, CssBuildInfo, CssExport, CssExportType,
+  CssExports, CssModuleRenderCondition, DependencyCodeGeneration, DependencyId, DependencyType,
   ExportsArgument, GenerateContext, Module, ModuleArgument, ModuleIdentifier, ModuleInitFragments,
-  RESERVED_IDENTIFIER, RuntimeGlobals, SourceType, TemplateContext, UsageState, UsedNameItem,
-  css_module_render_conditions_identifier,
+  RESERVED_IDENTIFIER, RuntimeGlobals, SourceType, TemplateContext, TemplateReplaceSource,
+  UsageState, UsedNameItem, css_module_render_conditions_identifier,
   rspack_sources::{
     BoxSource, ConcatSource, OriginalSource, RawStringSource, ReplaceSource, Source, SourceExt,
   },
@@ -55,12 +55,14 @@ fn render_dependency_template(
   dependency: &dyn DependencyCodeGeneration,
   source: &mut ReplaceSource,
   context: &mut TemplateContext,
+  concatenation_scope: Option<&mut ConcatenationScope>,
 ) {
   if let Some(template) = dependency
     .dependency_template()
     .and_then(|template_type| context.compilation.get_dependency_template(template_type))
   {
-    template.render(dependency, source, context)
+    let mut source = TemplateReplaceSource::new(source, concatenation_scope);
+    template.render(dependency, &mut source, context)
   } else {
     panic!(
       "Can not find dependency template of {:?}",
@@ -296,12 +298,12 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     let mut source = ReplaceSource::new(self.source.clone());
     let compilation = self.generate_context.compilation;
     let mut init_fragments = ModuleInitFragments::default();
+    let mut concatenation_scope = self.generate_context.concatenation_scope.take();
     let mut context = TemplateContext {
       compilation,
       module: self.module,
       runtime: self.generate_context.runtime,
       init_fragments: &mut init_fragments,
-      concatenation_scope: self.generate_context.concatenation_scope.take(),
       data: self.generate_context.data,
       runtime_template: self.generate_context.runtime_template,
     };
@@ -311,17 +313,27 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
       let dep = module_graph.dependency_by_id(id);
 
       if let Some(dependency) = dep.as_dependency_code_generation() {
-        render_dependency_template(dependency, &mut source, &mut context);
+        render_dependency_template(
+          dependency,
+          &mut source,
+          &mut context,
+          concatenation_scope.as_deref_mut(),
+        );
       }
     });
 
     if let Some(dependencies) = self.module.get_presentational_dependencies() {
       dependencies.iter().for_each(|dependency| {
-        render_dependency_template(dependency.as_ref(), &mut source, &mut context);
+        render_dependency_template(
+          dependency.as_ref(),
+          &mut source,
+          &mut context,
+          concatenation_scope.as_deref_mut(),
+        );
       });
     };
 
-    self.generate_context.concatenation_scope = context.concatenation_scope.take();
+    self.generate_context.concatenation_scope = concatenation_scope;
 
     source.boxed()
   }

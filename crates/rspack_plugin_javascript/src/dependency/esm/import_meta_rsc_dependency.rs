@@ -155,8 +155,7 @@ impl DependencyTemplate for ImportMetaRscDependencyTemplate {
       .as_any()
       .downcast_ref::<ImportMetaRscDependency>()
       .expect("ImportMetaRscDependencyTemplate should only be used for ImportMetaRscDependency");
-    let rendered_binding =
-      code_generatable_context.ensure_generated_top_level_symbol(IMPORT_META_RSC_BINDING);
+    let rendered_binding = source.ensure_generated_top_level_symbol(IMPORT_META_RSC_BINDING);
 
     let TemplateContext {
       compilation,

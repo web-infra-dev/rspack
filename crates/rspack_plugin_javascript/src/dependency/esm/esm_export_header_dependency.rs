@@ -76,7 +76,7 @@ impl DependencyTemplate for ESMExportHeaderDependencyTemplate {
     &self,
     dep: &dyn DependencyCodeGeneration,
     source: &mut TemplateReplaceSource,
-    code_generatable_context: &mut TemplateContext,
+    _code_generatable_context: &mut TemplateContext,
   ) {
     let dep = dep
       .as_any()
@@ -89,8 +89,6 @@ impl DependencyTemplate for ESMExportHeaderDependencyTemplate {
     } else {
       dep.range.end
     };
-    code_generatable_context
-      .remove_original_range(DependencyRange::new(dep.range.start, replacement_end));
     source.replace_static(dep.range.start, replacement_end, "", None);
   }
 }

@@ -66,10 +66,9 @@ impl DependencyTemplate for ModulePathNameDependencyTemplate {
 
       if dep.r#type == NameType::FileName {
         if let Some(resource_path) = resource_path {
-          let rendered_identifier = dep.range.and_then(|range| {
-            code_generatable_context.remove_original_range(range);
-            code_generatable_context.ensure_generated_top_level_symbol_in_scope("__filename")
-          });
+          let rendered_identifier = dep
+            .range
+            .and_then(|_range| source.ensure_generated_top_level_symbol_in_scope("__filename"));
           let identifier = rendered_identifier.as_deref().unwrap_or("__filename");
           if let (Some(range), Some(rendered_identifier)) =
             (dep.range, rendered_identifier.as_ref())
@@ -93,10 +92,9 @@ impl DependencyTemplate for ModulePathNameDependencyTemplate {
         && let Some(resource_path) = resource_path
         && let Some(parent_path) = resource_path.parent()
       {
-        let rendered_identifier = dep.range.and_then(|range| {
-          code_generatable_context.remove_original_range(range);
-          code_generatable_context.ensure_generated_top_level_symbol_in_scope("__dirname")
-        });
+        let rendered_identifier = dep
+          .range
+          .and_then(|_range| source.ensure_generated_top_level_symbol_in_scope("__dirname"));
         let identifier = rendered_identifier.as_deref().unwrap_or("__dirname");
         if let (Some(range), Some(rendered_identifier)) = (dep.range, rendered_identifier.as_ref())
         {

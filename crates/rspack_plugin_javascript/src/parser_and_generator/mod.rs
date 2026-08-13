@@ -12,10 +12,10 @@ use rspack_cacheable::{
 use rspack_core::{
   ArcComputed, AsyncDependenciesBlockIdentifier, BuildMetaExportsType,
   COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY, ChunkGraph, CollectedTypeScriptInfo, Compilation,
-  DependenciesBlock, DependencyId, GenerateContext, ImportMeta, Module, ModuleArgument,
-  ModuleCodeTemplate, ModuleGraph, ModuleType, ParseContext, ParseResult, ParserAndGenerator,
-  ResolvedModuleOptions, RuntimeGlobals, RuntimeGlobalsRenderMode, RuntimeVariable,
-  SideEffectsBailoutItem, SourceType, TemplateContext, TemplateReplaceSource,
+  ConcatenationScope, DependenciesBlock, DependencyId, GenerateContext, ImportMeta, Module,
+  ModuleArgument, ModuleCodeTemplate, ModuleGraph, ModuleType, ParseContext, ParseResult,
+  ParserAndGenerator, ResolvedModuleOptions, RuntimeGlobals, RuntimeGlobalsRenderMode,
+  RuntimeVariable, SideEffectsBailoutItem, SourceType, TemplateContext, TemplateReplaceSource,
   diagnostics::map_box_diagnostics_to_module_parse_diagnostics,
   remove_bom, render_init_fragments, render_init_fragments_to_strings,
   rspack_sources::{BoxSource, ReplaceSource, Source, SourceExt},
@@ -179,8 +179,9 @@ impl JavaScriptParserAndGenerator {
     &self,
     compilation: &Compilation,
     block_id: &AsyncDependenciesBlockIdentifier,
-    source: &mut TemplateReplaceSource,
+    source: &mut ReplaceSource,
     context: &mut TemplateContext,
+    concatenation_scope: &mut Option<&mut ConcatenationScope>,
   ) {
     let module_graph = compilation.get_module_graph();
     let block = module_graph
@@ -188,20 +189,26 @@ impl JavaScriptParserAndGenerator {
       .expect("should have block");
     //    let block = block_id.expect_get(compilation);
     block.get_dependencies().iter().for_each(|dependency_id| {
-      self.source_dependency(compilation, dependency_id, source, context)
+      self.source_dependency(
+        compilation,
+        dependency_id,
+        source,
+        context,
+        concatenation_scope,
+      )
     });
-    block
-      .get_blocks()
-      .iter()
-      .for_each(|block_id| self.source_block(compilation, block_id, source, context));
+    block.get_blocks().iter().for_each(|block_id| {
+      self.source_block(compilation, block_id, source, context, concatenation_scope)
+    });
   }
 
   fn source_dependency(
     &self,
     compilation: &Compilation,
     dependency_id: &DependencyId,
-    source: &mut TemplateReplaceSource,
+    source: &mut ReplaceSource,
     context: &mut TemplateContext,
+    concatenation_scope: &mut Option<&mut ConcatenationScope>,
   ) {
     if let Some(dependency) = compilation
       .get_module_graph()
@@ -212,7 +219,8 @@ impl JavaScriptParserAndGenerator {
         .dependency_template()
         .and_then(|template_type| compilation.get_dependency_template(template_type))
       {
-        template.render(dependency, source, context)
+        let mut source = TemplateReplaceSource::new(source, concatenation_scope.as_deref_mut());
+        template.render(dependency, &mut source, context)
       } else {
         panic!(
           "Can not find dependency template of {:?}",
@@ -460,19 +468,25 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       let mut source = ReplaceSource::new(source.clone());
       let compilation = generate_context.compilation;
       let mut init_fragments = vec![];
-      let (concatenation_scope, is_concatenated_codegen) = {
+      let mut concatenation_scope = generate_context.concatenation_scope.take();
+      let is_concatenated_codegen = {
         let mut context = TemplateContext {
           compilation,
           module,
           init_fragments: &mut init_fragments,
           runtime: generate_context.runtime,
-          concatenation_scope: generate_context.concatenation_scope.take(),
           data: generate_context.data,
           runtime_template: generate_context.runtime_template,
         };
 
         module.get_dependencies().iter().for_each(|dependency_id| {
-          self.source_dependency(compilation, dependency_id, &mut source, &mut context)
+          self.source_dependency(
+            compilation,
+            dependency_id,
+            &mut source,
+            &mut context,
+            &mut concatenation_scope,
+          )
         });
 
         if let Some(dependencies) = module.get_presentational_dependencies() {
@@ -481,6 +495,8 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
               .dependency_template()
               .and_then(|template_type| compilation.get_dependency_template(template_type))
             {
+              let mut source =
+                TemplateReplaceSource::new(&mut source, concatenation_scope.as_deref_mut());
               template.render(dependency.as_ref(), &mut source, &mut context)
             } else {
               panic!(
@@ -491,15 +507,18 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
           });
         };
 
-        module
-          .get_blocks()
-          .iter()
-          .for_each(|block_id| self.source_block(compilation, block_id, &mut source, &mut context));
-        let concatenation_scope = context.concatenation_scope.take();
-        let is_concatenated_codegen = concatenation_scope
+        module.get_blocks().iter().for_each(|block_id| {
+          self.source_block(
+            compilation,
+            block_id,
+            &mut source,
+            &mut context,
+            &mut concatenation_scope,
+          )
+        });
+        concatenation_scope
           .as_ref()
-          .is_some_and(|scope| scope.is_faster_module_concatenation());
-        (concatenation_scope, is_concatenated_codegen)
+          .is_some_and(|scope| scope.is_faster_module_concatenation())
       };
       if is_concatenated_codegen {
         let rendered_fragments =

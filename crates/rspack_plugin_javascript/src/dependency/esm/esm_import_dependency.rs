@@ -113,6 +113,7 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
   module_dependency: &T,
   source_order: i32,
   phase: ImportPhase,
+  source: &mut TemplateReplaceSource,
   code_generatable_context: &mut TemplateContext,
 ) {
   let compilation = code_generatable_context.compilation;
@@ -181,7 +182,7 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
     phase,
     runtime,
   );
-  let rendered_import_var = code_generatable_context.ensure_generated_top_level_symbol(import_var);
+  let rendered_import_var = source.ensure_generated_top_level_symbol(import_var);
   let content: (String, String) = code_generatable_context.runtime_template.import_statement(
     module,
     compilation,
@@ -193,7 +194,7 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
   );
   let is_async_module = matches!(target_module, Some(target_module) if ModuleGraph::is_async(&compilation.async_modules_artifact, &target_module.identifier()));
   let async_dependencies_binding = if is_async_module {
-    code_generatable_context.ensure_generated_top_level_symbol_in_scope("__rspack_async_deps")
+    source.ensure_generated_top_level_symbol_in_scope("__rspack_async_deps")
   } else {
     None
   };
@@ -726,18 +727,14 @@ impl DependencyTemplate for ESMImportSideEffectDependencyTemplate {
   fn render(
     &self,
     dep: &dyn DependencyCodeGeneration,
-    _source: &mut TemplateReplaceSource,
+    source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {
     let dep = dep
       .as_any()
       .downcast_ref::<ESMImportSideEffectDependency>()
       .expect("ESMImportSideEffectDependencyTemplate should only be used for ESMImportSideEffectDependency");
-    let TemplateContext {
-      compilation,
-      concatenation_scope,
-      ..
-    } = code_generatable_context;
+    let compilation = code_generatable_context.compilation;
     let module_graph = compilation.get_module_graph();
 
     let module = module_graph.get_module_by_dependency_id(&dep.id);
@@ -756,11 +753,17 @@ impl DependencyTemplate for ESMImportSideEffectDependencyTemplate {
       }
     }
 
-    if let Some(scope) = concatenation_scope
+    if let Some(scope) = source.concatenation_scope()
       && module.is_some_and(|m| scope.is_module_in_scope(&m.identifier()))
     {
       return;
     }
-    esm_import_dependency_apply(dep, dep.source_order, dep.phase, code_generatable_context);
+    esm_import_dependency_apply(
+      dep,
+      dep.source_order,
+      dep.phase,
+      source,
+      code_generatable_context,
+    );
   }
 }

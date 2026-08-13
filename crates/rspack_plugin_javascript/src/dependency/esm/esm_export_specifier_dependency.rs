@@ -152,7 +152,7 @@ impl DependencyTemplate for ESMExportSpecifierDependencyTemplate {
   fn render(
     &self,
     dep: &dyn DependencyCodeGeneration,
-    _source: &mut TemplateReplaceSource,
+    source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {
     let dep = dep
@@ -166,10 +166,9 @@ impl DependencyTemplate for ESMExportSpecifierDependencyTemplate {
       compilation,
       module,
       runtime,
-      concatenation_scope,
       ..
     } = code_generatable_context;
-    if let Some(scope) = concatenation_scope {
+    if let Some(scope) = source.concatenation_scope() {
       if dep.value_is_generated {
         scope.register_generated_export(dep.name.clone(), dep.value.as_ref());
       } else {

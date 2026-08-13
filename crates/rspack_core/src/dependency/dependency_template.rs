@@ -3,7 +3,7 @@ use std::fmt::Debug;
 use dyn_clone::{DynClone, clone_trait_object};
 use rspack_cacheable::cacheable_dyn;
 use rspack_hash::RspackHasher;
-use rspack_sources::ReplaceSource;
+use rspack_sources::{ReplaceSource, ReplacementEnforce};
 use rspack_util::ext::AsAny;
 
 use crate::{
@@ -11,17 +11,57 @@ use crate::{
   DependencyType, Module, ModuleCodeTemplate, ModuleInitFragments, RuntimeSpec,
 };
 
-pub struct TemplateContext<'a, 'b, 'c> {
+pub struct TemplateContext<'a, 'b> {
   pub compilation: &'a Compilation,
   pub module: &'a dyn Module,
   pub init_fragments: &'a mut ModuleInitFragments<'b>,
   pub runtime: Option<&'a RuntimeSpec>,
-  pub concatenation_scope: Option<&'c mut ConcatenationScope>,
   pub data: &'a mut CodeGenerationData,
   pub runtime_template: &'a mut ModuleCodeTemplate,
 }
 
-impl TemplateContext<'_, '_, '_> {
+impl TemplateContext<'_, '_> {
+  pub fn chunk_init_fragments(&mut self) -> &mut ChunkInitFragments {
+    let data_fragments = self.data.get::<ChunkInitFragments>();
+    if data_fragments.is_some() {
+      self
+        .data
+        .get_mut::<ChunkInitFragments>()
+        .expect("should have chunk_init_fragments")
+    } else {
+      self.data.insert(ChunkInitFragments::default());
+      self
+        .data
+        .get_mut::<ChunkInitFragments>()
+        .expect("should have chunk_init_fragments")
+    }
+  }
+}
+
+/// The only source mutation entry point exposed to dependency templates.
+///
+/// Source edits and faster-concatenation scope updates are recorded together,
+/// so a template cannot mutate one while forgetting the other.
+pub struct TemplateReplaceSource<'a> {
+  source: &'a mut ReplaceSource,
+  concatenation_scope: Option<&'a mut ConcatenationScope>,
+}
+
+impl<'a> TemplateReplaceSource<'a> {
+  pub fn new(
+    source: &'a mut ReplaceSource,
+    concatenation_scope: Option<&'a mut ConcatenationScope>,
+  ) -> Self {
+    Self {
+      source,
+      concatenation_scope,
+    }
+  }
+
+  pub fn concatenation_scope(&mut self) -> Option<&mut ConcatenationScope> {
+    self.concatenation_scope.as_deref_mut()
+  }
+
   pub fn faster_concatenation_scope(&mut self) -> Option<&mut ConcatenationScope> {
     self
       .concatenation_scope
@@ -47,30 +87,102 @@ impl TemplateContext<'_, '_, '_> {
     })
   }
 
-  pub fn remove_original_range(&mut self, range: DependencyRange) {
+  fn record_edit(&mut self, start: u32, end: u32, content: &str) {
+    let Some(scope) = self.faster_concatenation_scope() else {
+      return;
+    };
+    if start != end {
+      scope.remove_original_range(DependencyRange::new(start, end));
+    }
+    if !content.is_empty() {
+      scope.add_used_names_from_generated_code(content);
+    }
+  }
+
+  pub fn replace(&mut self, start: u32, end: u32, content: String, name: Option<String>) {
+    self.record_edit(start, end, &content);
+    self.source.replace(start, end, content, name);
+  }
+
+  pub fn replace_static(
+    &mut self,
+    start: u32,
+    end: u32,
+    content: &'static str,
+    name: Option<&'static str>,
+  ) {
+    self.record_edit(start, end, content);
+    self.source.replace_static(start, end, content, name);
+  }
+
+  pub fn replace_static_with_enforce(
+    &mut self,
+    start: u32,
+    end: u32,
+    content: &'static str,
+    name: Option<&'static str>,
+    enforce: ReplacementEnforce,
+  ) {
+    self.record_edit(start, end, content);
+    self
+      .source
+      .replace_static_with_enforce(start, end, content, name, enforce);
+  }
+
+  pub fn insert(&mut self, start: u32, content: String, name: Option<String>) {
+    self.record_edit(start, start, &content);
+    self.source.insert(start, content, name);
+  }
+
+  pub fn insert_static(&mut self, start: u32, content: &'static str, name: Option<&'static str>) {
+    self.record_edit(start, start, content);
+    self.source.insert_static(start, content, name);
+  }
+
+  /// Ignores identifiers in a range even when this template intentionally
+  /// leaves the source edit to an overlapping dependency.
+  pub fn ignore_original_scope_range(&mut self, range: DependencyRange) {
     if let Some(scope) = self.faster_concatenation_scope() {
       scope.remove_original_range(range);
     }
   }
 
-  pub fn chunk_init_fragments(&mut self) -> &mut ChunkInitFragments {
-    let data_fragments = self.data.get::<ChunkInitFragments>();
-    if data_fragments.is_some() {
-      self
-        .data
-        .get_mut::<ChunkInitFragments>()
-        .expect("should have chunk_init_fragments")
-    } else {
-      self.data.insert(ChunkInitFragments::default());
-      self
-        .data
-        .get_mut::<ChunkInitFragments>()
-        .expect("should have chunk_init_fragments")
+  /// Expands an object shorthand into a key-value pair where the original
+  /// shorthand identifier is no longer an identifier reference.
+  pub fn insert_shorthand_value(
+    &mut self,
+    start: u32,
+    shorthand_range: DependencyRange,
+    content: String,
+    name: Option<String>,
+  ) {
+    if let Some(scope) = self.faster_concatenation_scope() {
+      scope.remove_original_range(shorthand_range);
+      if !content.is_empty() {
+        scope.add_used_names_from_generated_code(&content);
+      }
     }
+    self.source.insert(start, content, name);
+  }
+
+  /// Expands an object shorthand while preserving the original identifier as
+  /// the value or binding that still needs concatenation-time renaming.
+  pub fn insert_non_shorthand(
+    &mut self,
+    start: u32,
+    original_range: DependencyRange,
+    content: String,
+    name: Option<String>,
+  ) {
+    if let Some(scope) = self.faster_concatenation_scope() {
+      scope.set_original_range_non_shorthand(original_range);
+      if !content.is_empty() {
+        scope.add_used_names_from_generated_code(&content);
+      }
+    }
+    self.source.insert(start, content, name);
   }
 }
-
-pub type TemplateReplaceSource = ReplaceSource;
 
 clone_trait_object!(DependencyCodeGeneration);
 
@@ -114,7 +226,7 @@ pub trait DependencyTemplate: Debug + Sync + Send {
   fn render(
     &self,
     dep: &dyn DependencyCodeGeneration,
-    source: &mut ReplaceSource,
+    source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   );
 }

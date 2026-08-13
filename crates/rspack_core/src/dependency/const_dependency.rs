@@ -73,29 +73,26 @@ impl DependencyTemplate for ConstDependencyTemplate {
     &self,
     dep: &dyn DependencyCodeGeneration,
     source: &mut TemplateReplaceSource,
-    code_generatable_context: &mut TemplateContext,
+    _code_generatable_context: &mut TemplateContext,
   ) {
     let dep = dep
       .as_any()
       .downcast_ref::<ConstDependency>()
       .expect("ConstDependencyTemplate should be used for ConstDependency");
 
-    let rendered_content =
-      if let Some(scope) = code_generatable_context.faster_concatenation_scope() {
-        scope.remove_original_range(dep.range);
-        if let Some(identifier) = &dep.concatenation_scope_identifier {
-          let placeholder = scope.ensure_generated_top_level_symbol(identifier);
-          dep
-            .content
-            .cow_replace(identifier.as_ref(), placeholder.as_ref())
-            .into_owned()
-        } else {
-          scope.add_used_names_from_generated_code(&dep.content);
-          dep.content.to_string()
-        }
+    let rendered_content = if let Some(scope) = source.faster_concatenation_scope() {
+      if let Some(identifier) = &dep.concatenation_scope_identifier {
+        let placeholder = scope.ensure_generated_top_level_symbol(identifier);
+        dep
+          .content
+          .cow_replace(identifier.as_ref(), placeholder.as_ref())
+          .into_owned()
       } else {
         dep.content.to_string()
-      };
+      }
+    } else {
+      dep.content.to_string()
+    };
 
     source.replace(dep.range.start, dep.range.end, rendered_content, None);
   }

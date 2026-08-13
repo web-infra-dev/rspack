@@ -440,15 +440,15 @@ impl ESMImportSpecifierDependencyTemplate {
     ids: &[Atom],
     dep: &ESMImportSpecifierDependency,
     connection: Option<&ModuleGraphConnection>,
+    source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) -> String {
     let TemplateContext {
       compilation,
-      concatenation_scope,
       runtime,
       ..
     } = code_generatable_context;
-    if let Some(scope) = concatenation_scope
+    if let Some(scope) = source.concatenation_scope()
       && let Some(con) = connection
       && scope.is_module_in_scope(con.module_identifier())
     {
@@ -511,9 +511,14 @@ impl ESMImportSpecifierDependencyTemplate {
         dep.phase,
         code_generatable_context.runtime,
       );
-      let rendered_import_var =
-        code_generatable_context.ensure_generated_top_level_symbol(import_var);
-      esm_import_dependency_apply(dep, dep.source_order, dep.phase, code_generatable_context);
+      let rendered_import_var = source.ensure_generated_top_level_symbol(import_var);
+      esm_import_dependency_apply(
+        dep,
+        dep.source_order,
+        dep.phase,
+        source,
+        code_generatable_context,
+      );
       let TemplateContext {
         compilation,
         module,
@@ -551,7 +556,6 @@ impl ESMImportSpecifierDependencyTemplate {
     let Some(con) = connection else {
       return;
     };
-    code_generatable_context.remove_original_range(dep.range);
     let TemplateContext {
       runtime,
       module: self_module,
@@ -629,12 +633,14 @@ impl ESMImportSpecifierDependencyTemplate {
             UsedName::Inlined(_) => unreachable!("Inlined must be provided"),
           })
         else {
+          source.ignore_original_scope_range(dep.range);
           return;
         };
         let code = self.get_code_for_ids(
           &ids[..(ids.len() - 1)],
           dep,
           connection,
+          source,
           code_generatable_context,
         );
         source.replace(
@@ -697,12 +703,10 @@ impl DependencyTemplate for ESMImportSpecifierDependencyTemplate {
       );
     }
 
-    let export_expr = self.get_code_for_ids(ids, dep, connection, code_generatable_context);
-
-    code_generatable_context.remove_original_range(dep.range);
+    let export_expr = self.get_code_for_ids(ids, dep, connection, source, code_generatable_context);
 
     if dep.shorthand {
-      source.insert(dep.range.end, format!(": {export_expr}"), None);
+      source.insert_shorthand_value(dep.range.end, dep.range, format!(": {export_expr}"), None);
     } else {
       source.replace(dep.range.start, dep.range.end, export_expr, None);
     }
@@ -766,15 +770,13 @@ impl DependencyTemplate for ESMImportSpecifierDependencyTemplate {
 
         let comment = to_normal_comment(prop.id.as_str());
         let key = format!("{comment}{new_name}");
-        if let Some(scope) = code_generatable_context.faster_concatenation_scope() {
+        if source.faster_concatenation_scope().is_some() {
           if prop.shorthand {
             // Keep the original identifier as the local binding. Its make-time
             // scope info is still needed by concatenation to deconflict the
             // binding and all of its references.
-            scope.set_original_range_non_shorthand(prop.range);
-            source.insert(prop.range.start, format!("{key}: "), None);
+            source.insert_non_shorthand(prop.range.start, prop.range, format!("{key}: "), None);
           } else {
-            scope.remove_original_range(prop.range);
             source.replace(prop.range.start, prop.range.end, key, None);
           }
         } else {

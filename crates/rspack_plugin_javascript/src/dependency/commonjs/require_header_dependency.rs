@@ -70,7 +70,6 @@ impl DependencyTemplate for RequireHeaderDependencyTemplate {
       .downcast_ref::<RequireHeaderDependency>()
       .expect("RequireHeaderDependencyTemplate should only be used for RequireHeaderDependency");
 
-    code_generatable_context.remove_original_range(dep.range);
     let TemplateContext {
       runtime_template, ..
     } = code_generatable_context;

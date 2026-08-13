@@ -505,7 +505,12 @@ impl ESMExportImportedSpecifierDependency {
     None
   }
 
-  pub fn add_export_fragments(&self, ctxt: &mut TemplateContext, mode: ExportMode) {
+  pub fn add_export_fragments(
+    &self,
+    source: &mut TemplateReplaceSource,
+    ctxt: &mut TemplateContext,
+    mode: ExportMode,
+  ) {
     let module = ctxt.module;
     let runtime = ctxt.runtime;
     let compilation = ctxt.compilation;
@@ -521,7 +526,7 @@ impl ESMExportImportedSpecifierDependency {
       self.phase,
       runtime,
     );
-    let import_var = ctxt.ensure_generated_top_level_symbol(import_var);
+    let import_var = source.ensure_generated_top_level_symbol(import_var);
     match mode {
       ExportMode::Missing | ExportMode::LazyMake | ExportMode::EmptyStar(_) => {
         ctxt.init_fragments.push(
@@ -781,8 +786,8 @@ impl ESMExportImportedSpecifierDependency {
           let ignored = render_dynamic_reexport_excluded(&ignored);
           format!("/* reexport */ {reexport}({exports}, {import_var}, {ignored});\n")
         } else {
-          let reexport_binding = ctxt.ensure_generated_top_level_symbol("__rspack_reexport");
-          let import_key_binding = ctxt.ensure_generated_top_level_symbol("__rspack_import_key");
+          let reexport_binding = source.ensure_generated_top_level_symbol("__rspack_reexport");
+          let import_key_binding = source.ensure_generated_top_level_symbol("__rspack_import_key");
           let environment = compilation.options.output.environment;
           let supports_arrow_function = environment.supports_arrow_function();
           let supports_const = environment.supports_const();
@@ -1002,7 +1007,7 @@ impl ESMExportImportedSpecifierDependency {
 
   fn get_conditional_reexport_statement(
     &self,
-    ctxt: &mut TemplateContext<'_, '_, '_>,
+    ctxt: &mut TemplateContext<'_, '_>,
     key: Atom,
     name: &String,
     first_value_key: Atom,
@@ -1727,7 +1732,6 @@ impl DependencyTemplate for ESMExportImportedSpecifierDependencyTemplate {
     let TemplateContext {
       compilation,
       runtime,
-      concatenation_scope,
       ..
     } = code_generatable_context;
 
@@ -1741,12 +1745,12 @@ impl DependencyTemplate for ESMExportImportedSpecifierDependencyTemplate {
       exports_info_artifact,
     );
 
-    if concatenation_scope
-      .as_ref()
-      .is_some_and(|scope| !scope.is_faster_module_concatenation())
-    {
-      let scope = concatenation_scope
-        .as_mut()
+    let is_legacy_concatenation_scope = source
+      .concatenation_scope()
+      .is_some_and(|scope| !scope.is_faster_module_concatenation());
+    if is_legacy_concatenation_scope {
+      let scope = source
+        .concatenation_scope()
         .expect("concatenation scope was checked above");
       if let ExportMode::ReexportUndefined(mode) = mode {
         scope.register_raw_export(
@@ -1760,8 +1764,8 @@ impl DependencyTemplate for ESMExportImportedSpecifierDependencyTemplate {
     let target_module = module_graph
       .module_identifier_by_dependency_id(dep.id())
       .copied();
-    let can_use_concatenated_reference = concatenation_scope
-      .as_ref()
+    let can_use_concatenated_reference = source
+      .concatenation_scope()
       .zip(target_module.as_ref())
       .is_some_and(|(scope, target_module)| scope.is_module_in_scope(target_module));
     let can_handle_in_concatenation_scope = matches!(
@@ -1773,9 +1777,7 @@ impl DependencyTemplate for ESMExportImportedSpecifierDependencyTemplate {
         | ExportMode::ReexportUndefined(_)
     ) || can_use_concatenated_reference;
 
-    if let Some(scope) = concatenation_scope
-      && can_handle_in_concatenation_scope
-    {
+    if can_handle_in_concatenation_scope && source.concatenation_scope().is_some() {
       // `export default namespace` has a separate ConstDependency that removes the
       // export prefix. Keep its unused expression so an overlapping
       // PureExpressionDependency still has an operand to wrap.
@@ -1784,8 +1786,12 @@ impl DependencyTemplate for ESMExportImportedSpecifierDependencyTemplate {
         && dep.get_ids(module_graph).is_empty();
       if !keep_unused_default_namespace_expression {
         source.replace(dep.range.start, dep.range.end, String::new(), None);
+      } else {
+        source.ignore_original_scope_range(dep.range);
       }
-      scope.remove_original_range(dep.range);
+      let scope = source
+        .concatenation_scope()
+        .expect("concatenation scope was checked above");
 
       let create_reference = |scope: &mut rspack_core::ConcatenationScope, ids: Vec<Atom>| {
         target_module.map(|target_module| {
@@ -1854,8 +1860,14 @@ impl DependencyTemplate for ESMExportImportedSpecifierDependencyTemplate {
       mode,
       ExportMode::LazyMake | ExportMode::Unused(_) | ExportMode::EmptyStar(_)
     ) {
-      esm_import_dependency_apply(dep, dep.source_order, dep.phase, code_generatable_context);
-      dep.add_export_fragments(code_generatable_context, mode);
+      esm_import_dependency_apply(
+        dep,
+        dep.source_order,
+        dep.phase,
+        source,
+        code_generatable_context,
+      );
+      dep.add_export_fragments(source, code_generatable_context, mode);
     }
   }
 }

@@ -63,14 +63,13 @@ impl DependencyTemplate for RequireResolveHeaderDependencyTemplate {
     &self,
     dep: &dyn DependencyCodeGeneration,
     source: &mut TemplateReplaceSource,
-    code_generatable_context: &mut TemplateContext,
+    _code_generatable_context: &mut TemplateContext,
   ) {
     let dep = dep
       .as_any()
       .downcast_ref::<RequireResolveHeaderDependency>()
       .expect("RequireResolveHeaderDependencyTemplate should only be used for RequireResolveHeaderDependency");
 
-    code_generatable_context.remove_original_range(dep.range);
     source.replace_static(dep.range.start, dep.range.end, "/*require.resolve*/", None);
   }
 }

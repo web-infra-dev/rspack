@@ -182,7 +182,6 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
       runtime,
       module,
       init_fragments,
-      concatenation_scope,
       runtime_template,
       ..
     } = code_generatable_context;
@@ -196,20 +195,13 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
       let name = match declaration {
         DeclarationId::Id(id) => id.clone(),
         DeclarationId::Named(id) => {
-          if let Some(scope) = concatenation_scope.as_mut() {
+          if let Some(scope) = source.concatenation_scope() {
             scope.add_scope_ident(id.name.clone().into(), id.range);
           }
           id.name.clone()
         }
         DeclarationId::Func(func) => {
-          let generated_name = concatenation_scope.as_mut().map_or_else(
-            || DEFAULT_EXPORT.to_string(),
-            |scope| {
-              scope
-                .ensure_generated_top_level_symbol(DEFAULT_EXPORT)
-                .to_string()
-            },
-          );
+          let generated_name = source.ensure_generated_top_level_symbol(DEFAULT_EXPORT);
           source.replace(
             func.range.start,
             func.range.end,
@@ -220,7 +212,7 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
         }
       };
 
-      if let Some(scope) = concatenation_scope {
+      if let Some(scope) = source.concatenation_scope() {
         scope.register_export(JS_DEFAULT_KEYWORD.clone(), name);
       } else if let Some(used) = compilation
         .exports_info_artifact
@@ -258,7 +250,7 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
     } else {
       // 'var' is a little bit incorrect as TDZ is not correct, but we can't use 'const'
       let supports_const = compilation.options.output.environment.supports_const();
-      let content = if let Some(scope) = concatenation_scope {
+      let content = if let Some(scope) = source.concatenation_scope() {
         let generated_name =
           scope.register_generated_export(JS_DEFAULT_KEYWORD.clone(), DEFAULT_EXPORT);
         format!(

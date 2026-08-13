@@ -130,7 +130,7 @@ impl DependencyTemplate for CachedConstDependencyTemplate {
       .experiments
       .faster_module_concatenation;
     let rendered_identifier = if matches!(dep.place, CachedConstDependencyPlace::Module) {
-      code_generatable_context.ensure_generated_top_level_symbol(dep.identifier.to_string())
+      source.ensure_generated_top_level_symbol(dep.identifier.to_string())
     } else {
       dep.identifier.to_string()
     };
