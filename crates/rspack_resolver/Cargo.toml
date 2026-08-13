@@ -4,7 +4,7 @@ categories           = ["development-tools"]
 description          = "ESM / CJS module resolution"
 edition              = "2021"
 homepage.workspace   = true
-include              = ["/src", "/examples", "/benches", "!/benches/pnpm-lock.yaml", "!/benches/node_modules"]
+include              = ["/src", "/examples"]
 keywords             = ["node", "resolve", "cjs", "esm", "enhanced-resolve"]
 license.workspace    = true
 name                 = "rspack_resolver"
@@ -14,10 +14,6 @@ version.workspace    = true
 
 [lib]
 doctest = false
-
-[[bench]]
-harness = false
-name    = "resolver"
 
 [lints]
 workspace = true
@@ -57,22 +53,9 @@ tokio = { workspace = true, features = ["sync", "rt-multi-thread", "macros"] }
 tokio = { workspace = true, features = ["sync", "macros"] }
 
 [dev-dependencies]
-criterion = { workspace = true }
-
 normalize-path = { workspace = true }
-rayon          = { workspace = true }
 regex          = { workspace = true }
 vfs            = { workspace = true } # for testing with in memory file system
-
-# Benchmark allocator features kept aligned with rspack's `xtask/benchmark`.
-[target.'cfg(target_os = "linux")'.dev-dependencies]
-mimalloc = { workspace = true, features = ["local_dynamic_tls", "v3"] }
-
-[target.'cfg(target_os = "macos")'.dev-dependencies]
-mimalloc = { workspace = true, features = ["v3"] }
-
-[target.'cfg(all(not(target_os = "linux"), not(target_os = "macos"), not(target_family = "wasm")))'.dev-dependencies]
-mimalloc = { workspace = true, features = ["v3"] }
 
 [features]
 default = ["yarn_pnp"]
