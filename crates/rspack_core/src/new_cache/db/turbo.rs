@@ -5,12 +5,28 @@ use std::{
 
 use rspack_error::Result;
 use rspack_paths::Utf8PathBuf;
-use turbo_persistence::{DbConfig, FamilyConfig, FamilyKind, SerialScheduler, TurboPersistence};
+use turbo_persistence::{
+  CompactConfig, DbConfig, FamilyConfig, FamilyKind, SerialScheduler, TurboPersistence,
+};
 
 use super::DatabaseWrite;
 use crate::new_cache::db::DatabaseFamily;
 
 const STALE_DIRECTORY: &str = "_stale";
+const MB: u64 = 1024 * 1024;
+
+// Keep idle compaction selective and bounded. This follows Turbopack's
+// compaction thresholds, while limiting each call to one merge segment because
+// Rspack uses the serial scheduler.
+const COMPACT_CONFIG: CompactConfig = CompactConfig {
+  min_merge_count: 3,
+  optimal_merge_count: 8,
+  max_merge_count: 64,
+  max_merge_bytes: 512 * MB,
+  min_merge_duplication_bytes: 50 * MB,
+  optimal_merge_duplication_bytes: 100 * MB,
+  max_merge_segment_count: 1,
+};
 
 type Inner = TurboPersistence<SerialScheduler, { DatabaseFamily::COUNT }>;
 pub type DatabaseValue = turbo_persistence::ArcBytes;
@@ -56,6 +72,14 @@ impl Database {
       batch.put(write.family.index() as u32, write.key, write.value.into())?;
     }
     self.inner.commit_write_batch(batch)?;
+    Ok(())
+  }
+
+  pub fn compact(&self) -> Result<()> {
+    if self.readonly || self.inner.is_empty() {
+      return Ok(());
+    }
+    self.inner.compact(&COMPACT_CONFIG)?;
     Ok(())
   }
 
