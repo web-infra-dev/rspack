@@ -1,4 +1,5 @@
 const fs = require('node:fs');
+const { setTimeout: sleep } = require('node:timers/promises');
 
 /**
  * @param {import("@octokit/rest")} github
@@ -13,7 +14,9 @@ module.exports = async function action({ github, context, limit }) {
   let baseCommit;
   let baseSize;
   try {
-    ({ baseCommit, baseSize } = await findBaseCommit(github, context));
+    ({ baseCommit, baseSize } = context.payload.pull_request
+      ? await findBaseCommit(github, context)
+      : await waitForBaseCommit(github, context));
   } catch (e) {
     if (e instanceof PendingBinaryDataError) {
       await tryComment(
@@ -44,6 +47,12 @@ module.exports = async function action({ github, context, limit }) {
 const PER_PAGE = 30;
 const MAX_PAGES = 4;
 
+// The parent's own CI publishes its size about four minutes in, so a commit merged
+// right behind it can reach this job first. Observed window is one to two minutes;
+// ten leaves room for a slow build.
+const PENDING_POLL_INTERVAL_MS = 60_000;
+const PENDING_POLL_ATTEMPTS = 10;
+
 class PendingBinaryDataError extends Error {
   constructor(baseCommit, fallback) {
     super(
@@ -56,6 +65,35 @@ class PendingBinaryDataError extends Error {
   }
 }
 
+// A trunk push has no PR to comment on, so an unpublished baseline can only surface
+// as a red main — noise rather than a size problem. Wait for the parent's data instead
+// of failing on it, and if it never lands, compare against the nearest ancestor that
+// has data: that still measures real growth, it just spans more than one commit.
+async function waitForBaseCommit(github, context) {
+  let pending;
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await findBaseCommit(github, context);
+    } catch (e) {
+      if (!(e instanceof PendingBinaryDataError)) throw e;
+      pending = e;
+    }
+
+    if (attempt === PENDING_POLL_ATTEMPTS) break;
+    console.log(
+      `Base size data not published yet, retrying in ${PENDING_POLL_INTERVAL_MS / 1000}s (${attempt}/${PENDING_POLL_ATTEMPTS})`,
+    );
+    await sleep(PENDING_POLL_INTERVAL_MS);
+  }
+
+  if (!pending.fallback) throw pending;
+
+  console.log(
+    `Base data never arrived, comparing against ${pending.fallback.baseCommit.sha} instead`,
+  );
+  return pending.fallback;
+}
+
 // Baseline is the newest trunk commit already contained in the binding CI built,
 // not the fork point: PR CI builds from the merge ref, so head size already
 // includes that trunk tip. Walk trunk history skipping doc-only commits (they
@@ -65,11 +103,7 @@ class PendingBinaryDataError extends Error {
 // a rough number.
 async function findBaseCommit(github, context) {
   const { owner, repo } = context.repo;
-  const pr = context.payload.pull_request;
-  if (!pr) {
-    throw new Error('binary-limit action requires pull_request context');
-  }
-  const baseSha = await resolveBaseSha(github, owner, repo, context, pr);
+  const baseSha = await resolveBaseSha(github, owner, repo, context);
   console.log(`Base trunk commit: ${baseSha}`);
 
   let pendingBase = null;
@@ -125,14 +159,24 @@ async function findBaseCommit(github, context) {
 
 // Size data only exists for trunk commits, so the baseline must be a trunk commit
 // — the newest one the binding under test actually contains.
-async function resolveBaseSha(github, owner, repo, context, pr) {
-  const { data: mergeCommit } = await github.rest.repos.getCommit({
+async function resolveBaseSha(github, owner, repo, context) {
+  const pr = context.payload.pull_request;
+  const { data: commit } = await github.rest.repos.getCommit({
     owner,
     repo,
     ref: context.sha,
   });
-  const [base, head] = mergeCommit.parents ?? [];
-  if (mergeCommit.parents?.length !== 2 || head?.sha !== pr.head.sha) {
+  const [base, head] = commit.parents ?? [];
+
+  // A trunk push measures the pushed commit itself, so its own parent is the baseline.
+  if (!pr) {
+    if (!base) {
+      throw new Error(`Commit ${context.sha} has no parent to compare against`);
+    }
+    return base.sha;
+  }
+
+  if (commit.parents?.length !== 2 || head?.sha !== pr.head.sha) {
     console.log('context.sha is not a PR merge commit, using pr.base.sha');
     return pr.base.sha;
   }
@@ -184,7 +228,7 @@ async function resolveStack(github, owner, repo, pr) {
 }
 
 // A binding is built (and size data produced) only for commits touching non-doc
-// files, mirroring ecosystem-benchmark's `paths-ignore: ['**/*.md', 'website/**']`.
+// files, mirroring the `code_changed` filter in ci.yml that gates the binding build.
 async function triggersBinaryBuild(github, owner, repo, sha) {
   const { data: commit } = await github.rest.repos.getCommit({
     owner,
@@ -197,10 +241,19 @@ async function triggersBinaryBuild(github, owner, repo, sha) {
 }
 
 function isDocFile(filename) {
-  return filename.endsWith('.md') || filename.startsWith('website/');
+  return (
+    filename.endsWith('.md') ||
+    filename.endsWith('.mdx') ||
+    filename.startsWith('website/')
+  );
 }
 
 async function tryComment(github, context, comment) {
+  // A trunk push has no PR to comment on; it reports through the job status alone.
+  if (!context.payload.pull_request) {
+    console.log(comment);
+    return;
+  }
   try {
     await commentToPullRequest(github, context, comment);
   } catch (e) {
