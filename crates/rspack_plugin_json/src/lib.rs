@@ -12,10 +12,10 @@ use json::{
 };
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, ExportsInfoArtifact, ExportsInfoData,
-  GenerateContext, GeneratorOptions, Module, ModuleArgument, ModuleGraph, NAMESPACE_OBJECT_EXPORT,
-  ParseOption, ParserAndGenerator, ParserOptions, Plugin, RuntimeSpec, SourceType, UsageState,
-  UsedNameItem,
+  BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, ConcatenationScopeInfoMode,
+  ExportsInfoArtifact, ExportsInfoData, GenerateContext, GeneratorOptions, Module, ModuleArgument,
+  ModuleGraph, NAMESPACE_OBJECT_EXPORT, ParseOption, ParserAndGenerator, ParserOptions, Plugin,
+  RuntimeSpec, SourceType, UsageState, UsedNameItem,
   diagnostics::ModuleParseError,
   rspack_sources::{BoxSource, RawStringSource, ReplaceSource, Source, SourceExt},
 };
@@ -37,6 +37,10 @@ struct JsonParserAndGenerator {
 #[cacheable_dyn]
 #[async_trait::async_trait]
 impl ParserAndGenerator for JsonParserAndGenerator {
+  fn concatenation_scope_info_mode(&self) -> ConcatenationScopeInfoMode {
+    ConcatenationScopeInfoMode::GenerateAtCodegen
+  }
+
   fn source_types(&self, _module: &dyn Module, _module_graph: &ModuleGraph) -> &[SourceType] {
     &[SourceType::JavaScript]
   }

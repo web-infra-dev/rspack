@@ -30,11 +30,23 @@ pub struct ConcatenationScopeIdent {
 }
 
 #[cacheable]
-#[derive(Clone, Debug, Default)]
-pub struct PendingConcatenationScopeInfo {
+#[derive(Clone, Debug)]
+pub struct AnalyzedConcatenationScopeInfo {
   pub module_ctxt: u32,
   pub global_ctxt: u32,
   pub idents: Vec<ConcatenationScopeIdent>,
+}
+
+/// Make-time scope information required by faster module concatenation.
+///
+/// `Generated` is an explicit declaration that the module has no original
+/// JavaScript scope. Any bindings introduced by its generator must be
+/// registered through `ConcatenationScope` during code generation.
+#[cacheable]
+#[derive(Clone, Debug)]
+pub enum PendingConcatenationScopeInfo {
+  Analyzed(AnalyzedConcatenationScopeInfo),
+  Generated,
 }
 
 #[derive(Default)]

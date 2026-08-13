@@ -2711,133 +2711,141 @@ impl ConcatenatedModule {
         .remove(&SourceType::JavaScript)
         .expect("should have javascript source");
       let mut module_info = concatenation_scope.current_module;
-      let (result_source, internal_source) =
-        if let Some(faster_module_concatenation_info) = faster_module_concatenation_info {
-          // Non-JavaScript modules (for example JSON) do not have pending
-          // JavaScript scope info. Their generated top-level names are registered by
-          // dependency templates through the concatenation scope instead.
-          let empty_pending_scope_info = PendingConcatenationScopeInfo::default();
-          let pending_scope_info = module
+      let (result_source, internal_source) = if let Some(faster_module_concatenation_info) =
+        faster_module_concatenation_info
+      {
+        let pending_scope_info = module
             .build_info()
             .pending_concatenation_scope_info
-            .as_deref();
-          module_info.rendered_init_fragments = codegen_res
-            .data
-            .get::<RenderedInitFragments>()
-            .cloned()
-            .filter(|fragments| !fragments.is_empty());
-          // JavaScript code generation already returns a ReplaceSource whose
-          // coordinates are based on the make-time parser source. Keep that
-          // coordinate space so the pending info spans can be applied directly. The
-          // generated source is uniquely owned here, so recover it from the Arc
-          // without cloning every dependency replacement.
-          let result_source = if rendered_source.as_any().is::<ReplaceSource>() {
-            let source = Arc::downcast::<ReplaceSource>(rendered_source.into_any_arc())
-              .expect("source type was checked above");
-            Arc::try_unwrap(source).unwrap_or_else(|source| source.as_ref().clone())
-          } else {
-            ReplaceSource::new(rendered_source)
-          };
+            .as_deref()
+            .ok_or_else(|| {
+              rspack_error::error!(
+                "module {module_id} entered faster module concatenation without pending concatenation scope info"
+              )
+            })?;
+        module_info.rendered_init_fragments = codegen_res
+          .data
+          .get::<RenderedInitFragments>()
+          .cloned()
+          .filter(|fragments| !fragments.is_empty());
+        // JavaScript code generation already returns a ReplaceSource whose
+        // coordinates are based on the make-time parser source. Keep that
+        // coordinate space so the pending info spans can be applied directly. The
+        // generated source is uniquely owned here, so recover it from the Arc
+        // without cloning every dependency replacement.
+        let result_source = if rendered_source.as_any().is::<ReplaceSource>() {
+          let source = Arc::downcast::<ReplaceSource>(rendered_source.into_any_arc())
+            .expect("source type was checked above");
+          Arc::try_unwrap(source).unwrap_or_else(|source| source.as_ref().clone())
+        } else {
+          ReplaceSource::new(rendered_source)
+        };
+
+        let original_source = if matches!(
+          pending_scope_info,
+          PendingConcatenationScopeInfo::Analyzed(_)
+        ) {
           assert!(
-            pending_scope_info.is_none()
-              || module
-                .source()
-                .is_some_and(|source| Arc::ptr_eq(result_source.inner(), source)),
+            module
+              .source()
+              .is_some_and(|source| Arc::ptr_eq(result_source.inner(), source)),
             "generated ReplaceSource inner should preserve the normal module source"
           );
-          let original_source = result_source.inner().source().into_string_lossy();
-          populate_info_from_pending(
-            pending_scope_info.unwrap_or(&empty_pending_scope_info),
-            &original_source,
-            &mut module_info,
-            &faster_module_concatenation_info,
-          );
-          drop(original_source);
-          let internal_source = result_source.inner().clone();
-          (result_source, internal_source)
+          result_source.inner().source().into_string_lossy()
         } else {
-          let source_code = rendered_source.source().into_string_lossy();
-          let jsx = module
-            .as_ref()
-            .as_normal_module()
-            .and_then(|normal_module| normal_module.get_parser_options())
-            .and_then(|options: &ParserOptions| {
-              options
-                .get_javascript()
-                .and_then(|js_options| js_options.jsx)
-            })
-            .unwrap_or(false);
-
-          let allocator = Allocator::new();
-          let lexer = swc_experimental_ecma_parser::Lexer::new(
-            &allocator,
-            Syntax::Es(EsSyntax {
-              jsx,
-              ..Default::default()
-            }),
-            EsVersion::EsNext,
-            StringSource::new(source_code.as_ref()),
-            None,
-          );
-          let mut parser = Parser::new_from(&allocator, lexer);
-          let parsed_module = match parser.parse_module() {
-            Ok(module) => module,
-            Err(err) => {
-              return Err(Error::from_string(
-                Some(source_code.into_owned()),
-                err.span().start.saturating_sub(1) as usize,
-                err.span().end.saturating_sub(1) as usize,
-                "JavaScript parse error:\n".to_string(),
-                err.kind().msg().to_string(),
-              ));
-            }
-          };
-          let program = Program::Module(allocator.boxed(parsed_module));
-          let semantic = resolver(&program);
-          let ids = collect_ident(&allocator, &program);
-
-          module_info.module_ctxt = SyntaxContext::from_u32(semantic.top_level_scope_id().raw());
-          module_info.global_ctxt = SyntaxContext::from_u32(semantic.unresolved_scope_id().raw());
-
-          let top_level_scope_id = semantic.top_level_scope_id();
-          let mut all_used_names = HashSet::default();
-          all_used_names.reserve(ids.len());
-          module_info.idents.reserve(ids.len());
-          module_info.global_scope_ident.reserve(ids.len());
-          let mut binding_to_ref: FxIndexMap<(Atom, SyntaxContext), Vec<ConcatenatedModuleIdent>> =
-            FxIndexMap::default();
-          binding_to_ref.reserve(ids.len());
-
-          for ident in ids {
-            let scope = semantic.node_scope(&ident.id);
-            let is_global = SyntaxContext::from_u32(scope.raw()) == module_info.global_ctxt;
-            let legacy = if is_global {
-              let legacy = ident.to_legacy(&semantic);
-              module_info.global_scope_ident.push(legacy.clone());
-              all_used_names.insert(legacy.id.sym.clone());
-              Some(legacy)
-            } else {
-              None
-            };
-            if ident.is_class_expr_with_ident {
-              all_used_names.insert(Atom::from(ident.id.sym.as_str()));
-              continue;
-            }
-            if scope != top_level_scope_id {
-              all_used_names.insert(Atom::from(ident.id.sym.as_str()));
-            }
-            let legacy = legacy.unwrap_or_else(|| ident.to_legacy(&semantic));
-            module_info.idents.push(legacy.clone());
-            binding_to_ref
-              .entry((legacy.id.sym.clone(), legacy.id.ctxt))
-              .or_default()
-              .push(legacy);
-          }
-          module_info.all_used_names = all_used_names;
-          module_info.binding_to_ref = binding_to_ref;
-          let result_source = ReplaceSource::new(rendered_source.clone());
-          (result_source, rendered_source)
+          Cow::Borrowed("")
         };
+        populate_info_from_pending(
+          pending_scope_info,
+          &original_source,
+          &mut module_info,
+          &faster_module_concatenation_info,
+        );
+        let internal_source = result_source.inner().clone();
+        (result_source, internal_source)
+      } else {
+        let source_code = rendered_source.source().into_string_lossy();
+        let jsx = module
+          .as_ref()
+          .as_normal_module()
+          .and_then(|normal_module| normal_module.get_parser_options())
+          .and_then(|options: &ParserOptions| {
+            options
+              .get_javascript()
+              .and_then(|js_options| js_options.jsx)
+          })
+          .unwrap_or(false);
+
+        let allocator = Allocator::new();
+        let lexer = swc_experimental_ecma_parser::Lexer::new(
+          &allocator,
+          Syntax::Es(EsSyntax {
+            jsx,
+            ..Default::default()
+          }),
+          EsVersion::EsNext,
+          StringSource::new(source_code.as_ref()),
+          None,
+        );
+        let mut parser = Parser::new_from(&allocator, lexer);
+        let parsed_module = match parser.parse_module() {
+          Ok(module) => module,
+          Err(err) => {
+            return Err(Error::from_string(
+              Some(source_code.into_owned()),
+              err.span().start.saturating_sub(1) as usize,
+              err.span().end.saturating_sub(1) as usize,
+              "JavaScript parse error:\n".to_string(),
+              err.kind().msg().to_string(),
+            ));
+          }
+        };
+        let program = Program::Module(allocator.boxed(parsed_module));
+        let semantic = resolver(&program);
+        let ids = collect_ident(&allocator, &program);
+
+        module_info.module_ctxt = SyntaxContext::from_u32(semantic.top_level_scope_id().raw());
+        module_info.global_ctxt = SyntaxContext::from_u32(semantic.unresolved_scope_id().raw());
+
+        let top_level_scope_id = semantic.top_level_scope_id();
+        let mut all_used_names = HashSet::default();
+        all_used_names.reserve(ids.len());
+        module_info.idents.reserve(ids.len());
+        module_info.global_scope_ident.reserve(ids.len());
+        let mut binding_to_ref: FxIndexMap<(Atom, SyntaxContext), Vec<ConcatenatedModuleIdent>> =
+          FxIndexMap::default();
+        binding_to_ref.reserve(ids.len());
+
+        for ident in ids {
+          let scope = semantic.node_scope(&ident.id);
+          let is_global = SyntaxContext::from_u32(scope.raw()) == module_info.global_ctxt;
+          let legacy = if is_global {
+            let legacy = ident.to_legacy(&semantic);
+            module_info.global_scope_ident.push(legacy.clone());
+            all_used_names.insert(legacy.id.sym.clone());
+            Some(legacy)
+          } else {
+            None
+          };
+          if ident.is_class_expr_with_ident {
+            all_used_names.insert(Atom::from(ident.id.sym.as_str()));
+            continue;
+          }
+          if scope != top_level_scope_id {
+            all_used_names.insert(Atom::from(ident.id.sym.as_str()));
+          }
+          let legacy = legacy.unwrap_or_else(|| ident.to_legacy(&semantic));
+          module_info.idents.push(legacy.clone());
+          binding_to_ref
+            .entry((legacy.id.sym.clone(), legacy.id.ctxt))
+            .or_default()
+            .push(legacy);
+        }
+        module_info.all_used_names = all_used_names;
+        module_info.binding_to_ref = binding_to_ref;
+        let result_source = ReplaceSource::new(rendered_source.clone());
+        (result_source, rendered_source)
+      };
       module_info.internal_source = Some(internal_source);
       module_info.has_ast = true;
       module_info.runtime_requirements = runtime_requirements;

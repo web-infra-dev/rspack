@@ -8,8 +8,8 @@ use rspack_core::{
   AssetInfo, AssetParserDataUrl, BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph,
   ChunkUkey, CodeGenerationDataAssetInfo, CodeGenerationDataFilename, CodeGenerationDataUrl,
   CodeGenerationPublicPathAutoReplace, Compilation, CompilationRenderManifest, CompilerOptions,
-  ConcatenationScope, DependencyType, Filename, GenerateContext, GeneratorOptions,
-  JavascriptParserUrl, ManifestAssetType, Module, ModuleArgument, ModuleGraph,
+  ConcatenationScope, ConcatenationScopeInfoMode, DependencyType, Filename, GenerateContext,
+  GeneratorOptions, JavascriptParserUrl, ManifestAssetType, Module, ModuleArgument, ModuleGraph,
   NAMESPACE_OBJECT_EXPORT, NormalModule, ParseContext, ParserAndGenerator, ParserOptions, PathData,
   Plugin, PublicPath, RenderManifestEntry, ResourceData, RuntimeGlobals, RuntimeSpec, SourceType,
   rspack_sources::{BoxSource, RawStringSource, ReplaceSource, SourceExt},
@@ -355,6 +355,10 @@ const DEFAULT_MAX_SIZE: f64 = 8096.0;
 #[cacheable_dyn]
 #[async_trait::async_trait]
 impl ParserAndGenerator for AssetParserAndGenerator {
+  fn concatenation_scope_info_mode(&self) -> ConcatenationScopeInfoMode {
+    ConcatenationScopeInfoMode::GenerateAtCodegen
+  }
+
   fn source_types(&self, module: &dyn Module, module_graph: &ModuleGraph) -> &[SourceType] {
     let module_id = module.identifier();
     if self.emit

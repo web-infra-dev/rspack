@@ -12,9 +12,9 @@ use rspack_cacheable::{
 use rspack_core::{
   ArcComputed, AsyncDependenciesBlockIdentifier, BuildMetaExportsType,
   COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY, ChunkGraph, CollectedTypeScriptInfo, Compilation,
-  ConcatenationScope, DependenciesBlock, DependencyId, GenerateContext, ImportMeta, Module,
-  ModuleArgument, ModuleCodeTemplate, ModuleGraph, ModuleType, ParseContext, ParseResult,
-  ParserAndGenerator, ResolvedModuleOptions, RuntimeGlobals, RuntimeGlobalsRenderMode,
+  ConcatenationScope, ConcatenationScopeInfoMode, DependenciesBlock, DependencyId, GenerateContext,
+  ImportMeta, Module, ModuleArgument, ModuleCodeTemplate, ModuleGraph, ModuleType, ParseContext,
+  ParseResult, ParserAndGenerator, ResolvedModuleOptions, RuntimeGlobals, RuntimeGlobalsRenderMode,
   RuntimeVariable, SideEffectsBailoutItem, SourceType, TemplateContext, TemplateReplaceSource,
   diagnostics::map_box_diagnostics_to_module_parse_diagnostics,
   remove_bom, render_init_fragments, render_init_fragments_to_strings,
@@ -236,6 +236,10 @@ static SOURCE_TYPES: &[SourceType; 1] = &[SourceType::JavaScript];
 #[cacheable_dyn]
 #[async_trait::async_trait]
 impl ParserAndGenerator for JavaScriptParserAndGenerator {
+  fn concatenation_scope_info_mode(&self) -> ConcatenationScopeInfoMode {
+    ConcatenationScopeInfoMode::AnalyzeAtMake
+  }
+
   fn source_types(&self, _module: &dyn Module, _module_graph: &ModuleGraph) -> &[SourceType] {
     SOURCE_TYPES
   }

@@ -121,6 +121,18 @@ pub struct GenerateContext<'a> {
   pub concatenation_scope: Option<&'a mut ConcatenationScope>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ConcatenationScopeInfoMode {
+  /// Scope information is collected from the original JavaScript program
+  /// during make.
+  AnalyzeAtMake,
+  /// The module has no original JavaScript scope. Its generator must register
+  /// every generated binding through `ConcatenationScope`.
+  GenerateAtCodegen,
+  /// The parser and generator cannot participate in module concatenation.
+  Unsupported,
+}
+
 #[cacheable_dyn]
 #[async_trait::async_trait]
 pub trait ParserAndGenerator: Send + Sync + Debug + AsAny {
@@ -140,6 +152,8 @@ pub trait ParserAndGenerator: Send + Sync + Debug + AsAny {
     module: &dyn Module,
     generate_context: &mut GenerateContext,
   ) -> Result<BoxSource>;
+
+  fn concatenation_scope_info_mode(&self) -> ConcatenationScopeInfoMode;
 
   fn get_concatenation_bailout_reason(
     &self,

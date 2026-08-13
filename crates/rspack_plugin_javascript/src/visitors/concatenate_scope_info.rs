@@ -1,6 +1,6 @@
 use rspack_core::{
-  ConcatenationScopeIdent, ConcatenationScopeIdentKind, DependencyRange,
-  PendingConcatenationScopeInfo,
+  AnalyzedConcatenationScopeInfo, ConcatenationScopeIdent, ConcatenationScopeIdentKind,
+  DependencyRange, PendingConcatenationScopeInfo,
 };
 use rustc_hash::FxHashSet;
 use smallvec::SmallVec;
@@ -124,11 +124,11 @@ impl<'semantic, 'ast> PendingConcatenationScopeInfoVisitor<'semantic, 'ast> {
           kind: ConcatenationScopeIdentKind::UsedName,
         }),
     );
-    PendingConcatenationScopeInfo {
+    PendingConcatenationScopeInfo::Analyzed(AnalyzedConcatenationScopeInfo {
       module_ctxt: self.semantic.top_level_scope_id().raw(),
       global_ctxt: self.semantic.unresolved_scope_id().raw(),
       idents,
-    }
+    })
   }
 }
 

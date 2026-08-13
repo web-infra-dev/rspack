@@ -13,13 +13,14 @@ use serde::Serialize;
 use crate::{
   AsyncDependenciesBlockIdentifier, BoxModule, BuildContext, BuildInfo, BuildMeta,
   BuildMetaExportsType, BuildResult, ChunkGraph, ChunkInitFragments, ChunkUkey,
-  CodeGenerationDataUrl, CodeGenerationResult, Compilation, ConcatenationScope, Context,
-  DependenciesBlock, DependencyId, ExportProvided, ExternalType, FactoryMeta, ImportAttributes,
-  ImportPhase, InitFragmentExt, InitFragmentKey, InitFragmentStage, LibIdentOptions, Module,
-  ModuleArgument, ModuleCodeGenerationContext, ModuleCodeTemplate, ModuleGraph, ModuleType,
-  NAMESPACE_OBJECT_EXPORT, NormalInitFragment, RuntimeGlobals, RuntimeSpec, SourceType,
-  StaticExportsDependency, StaticExportsSpec, UsageState, UsedExports, UsedNameItem,
-  extract_url_and_global, impl_module_meta_info, module_update_hash, property_access,
+  CodeGenerationDataUrl, CodeGenerationResult, Compilation, ConcatenationScope,
+  ConcatenationScopeInfoMode, Context, DependenciesBlock, DependencyId, ExportProvided,
+  ExternalType, FactoryMeta, ImportAttributes, ImportPhase, InitFragmentExt, InitFragmentKey,
+  InitFragmentStage, LibIdentOptions, Module, ModuleArgument, ModuleCodeGenerationContext,
+  ModuleCodeTemplate, ModuleGraph, ModuleType, NAMESPACE_OBJECT_EXPORT, NormalInitFragment,
+  PendingConcatenationScopeInfo, RuntimeGlobals, RuntimeSpec, SourceType, StaticExportsDependency,
+  StaticExportsSpec, UsageState, UsedExports, UsedNameItem, extract_url_and_global,
+  impl_module_meta_info, module_update_hash, property_access,
   rspack_sources::{BoxSource, RawStringSource, ReplaceSource, SourceExt},
   to_identifier,
 };
@@ -1165,6 +1166,10 @@ impl DependenciesBlock for ExternalModule {
 impl Module for ExternalModule {
   impl_module_meta_info!();
 
+  fn concatenation_scope_info_mode(&self) -> ConcatenationScopeInfoMode {
+    ConcatenationScopeInfoMode::GenerateAtCodegen
+  }
+
   fn get_concatenation_bailout_reason(
     &self,
     _mg: &ModuleGraph,
@@ -1245,6 +1250,14 @@ impl Module for ExternalModule {
     _: Option<&Compilation>,
   ) -> Result<BuildResult> {
     self.build_info.module = build_context.compiler_options.output.module;
+    if build_context
+      .compiler_options
+      .experiments
+      .faster_module_concatenation
+    {
+      self.build_info.pending_concatenation_scope_info =
+        Some(Box::new(PendingConcatenationScopeInfo::Generated));
+    }
     let resolved_external_type = self.resolve_external_type();
     let request = match &self.request {
       ExternalRequest::Single(request) => Some(request),

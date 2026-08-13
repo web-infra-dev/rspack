@@ -32,13 +32,14 @@ use crate::{
   AsyncDependenciesBlock, BindingCell, BoxDependency, BoxDependencyTemplate, BoxModuleDependency,
   ChunkGraph, ChunkUkey, CodeGenerationResult, CollectedTypeScriptInfo, Compilation,
   CompilationAsset, CompilationId, CompilerId, CompilerOptions, ConcatenationScope,
-  ConnectionState, Context, ContextModule, CssExportType, DependenciesBlock, DependencyId,
-  ExportProvided, ExportsInfoArtifact, ExternalModule, Filename, GetTargetResult, ImportPhase,
-  ModuleCodeTemplate, ModuleGraph, ModuleGraphCacheArtifact, ModuleLayer, ModuleType, NormalModule,
-  OptimizationBailoutItem, RawModule, Resolve, ResolverFactory, RuntimeSpec, SelfModule,
-  SharedPluginDriver, SideEffectsStateArtifact, SourceType,
-  concatenated_module::ConcatenatedModule, dependencies_block::dependencies_block_update_hash,
-  get_target, utils::PendingConcatenationScopeInfo, value_cache_versions::ValueCacheVersions,
+  ConcatenationScopeInfoMode, ConnectionState, Context, ContextModule, CssExportType,
+  DependenciesBlock, DependencyId, ExportProvided, ExportsInfoArtifact, ExternalModule, Filename,
+  GetTargetResult, ImportPhase, ModuleCodeTemplate, ModuleGraph, ModuleGraphCacheArtifact,
+  ModuleLayer, ModuleType, NormalModule, OptimizationBailoutItem, RawModule, Resolve,
+  ResolverFactory, RuntimeSpec, SelfModule, SharedPluginDriver, SideEffectsStateArtifact,
+  SourceType, concatenated_module::ConcatenatedModule,
+  dependencies_block::dependencies_block_update_hash, get_target,
+  utils::PendingConcatenationScopeInfo, value_cache_versions::ValueCacheVersions,
 };
 
 pub struct BuildContext {
@@ -786,6 +787,10 @@ pub trait Module:
 
   fn get_presentational_dependencies(&self) -> Option<&[BoxDependencyTemplate]> {
     None
+  }
+
+  fn concatenation_scope_info_mode(&self) -> ConcatenationScopeInfoMode {
+    ConcatenationScopeInfoMode::Unsupported
   }
 
   fn get_concatenation_bailout_reason(

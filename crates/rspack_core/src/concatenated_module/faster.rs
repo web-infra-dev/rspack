@@ -178,6 +178,12 @@ pub(crate) fn populate_info_from_pending(
   module_info: &mut ConcatenatedModuleInfo,
   faster_info: &FasterModuleConcatenationInfo,
 ) {
+  let (module_ctxt, global_ctxt, pending_idents) = match pending {
+    PendingConcatenationScopeInfo::Analyzed(info) => {
+      (info.module_ctxt, info.global_ctxt, info.idents.as_slice())
+    }
+    PendingConcatenationScopeInfo::Generated => (0, 0, &[][..]),
+  };
   let mut symbols = SmallVec::<[(&str, Atom); 8]>::new();
   let mut symbol_from_range = |range: DependencyRange| {
     let symbol = original_source
@@ -195,28 +201,25 @@ pub(crate) fn populate_info_from_pending(
     symbols.push((symbol, interned.clone()));
     interned
   };
-  module_info.module_ctxt = SyntaxContext::from_u32(pending.module_ctxt);
-  module_info.global_ctxt = SyntaxContext::from_u32(pending.global_ctxt);
+  module_info.module_ctxt = SyntaxContext::from_u32(module_ctxt);
+  module_info.global_ctxt = SyntaxContext::from_u32(global_ctxt);
   module_info.idents.clear();
   module_info.global_scope_ident.clear();
   module_info.binding_to_ref.clear();
   module_info.all_used_names.clear();
   module_info.idents.reserve(
-    pending
-      .idents
+    pending_idents
       .len()
       .saturating_add(faster_info.added_scope_idents.len()),
   );
-  module_info.global_scope_ident.reserve(pending.idents.len());
+  module_info.global_scope_ident.reserve(pending_idents.len());
   module_info.binding_to_ref.reserve(
-    pending
-      .idents
+    pending_idents
       .len()
       .saturating_add(faster_info.added_scope_idents.len()),
   );
   module_info.all_used_names.reserve(
-    pending
-      .idents
+    pending_idents
       .len()
       .saturating_add(faster_info.added_used_names.len()),
   );
@@ -234,7 +237,7 @@ pub(crate) fn populate_info_from_pending(
   }
 
   let mut seen = SeenIdents::default();
-  for pending_ident in &pending.idents {
+  for pending_ident in pending_idents {
     let symbol = symbol_from_range(pending_ident.range);
     if pending_ident.kind == ConcatenationScopeIdentKind::UsedName {
       module_info.all_used_names.insert(symbol);

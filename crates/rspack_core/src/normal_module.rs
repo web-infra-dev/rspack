@@ -28,12 +28,13 @@ use tracing::{Instrument, info_span};
 use crate::{
   AsyncDependenciesBlockIdentifier, BoxDependencyTemplate, BoxLoader, BoxModule,
   BoxModuleDependency, BuildContext, BuildInfo, BuildMeta, BuildResult, ChunkGraph,
-  CodeGenerationResult, Compilation, ConnectionState, Context, DependenciesBlock, DependencyId,
-  FactoryMeta, GenerateContext, GeneratorOptions, ImportPhase, LibIdentOptions, Module,
-  ModuleCodeGenerationContext, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
-  ModuleLayer, ModuleType, OptimizationBailoutItem, OutputOptions, ParseContext, ParseResult,
-  ParserAndGenerator, ParserOptions, Resolve, ResolvedModuleOptions, RspackLoaderRunnerPlugin,
-  RunnerContext, RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, SourceType, contextify,
+  CodeGenerationResult, Compilation, ConcatenationScopeInfoMode, ConnectionState, Context,
+  DependenciesBlock, DependencyId, FactoryMeta, GenerateContext, GeneratorOptions, ImportPhase,
+  LibIdentOptions, Module, ModuleCodeGenerationContext, ModuleGraph, ModuleGraphCacheArtifact,
+  ModuleIdentifier, ModuleLayer, ModuleType, OptimizationBailoutItem, OutputOptions, ParseContext,
+  ParseResult, ParserAndGenerator, ParserOptions, PendingConcatenationScopeInfo, Resolve,
+  ResolvedModuleOptions, RspackLoaderRunnerPlugin, RunnerContext, RuntimeGlobals, RuntimeSpec,
+  SideEffectsStateArtifact, SourceType, contextify,
   diagnostics::ModuleBuildError,
   get_context, module_analyzed_side_effect_free, module_declared_side_effect_free,
   module_update_hash,
@@ -511,6 +512,17 @@ impl Module for NormalModule {
       .map(Into::into)
       .collect();
 
+    if build_context
+      .compiler_options
+      .experiments
+      .faster_module_concatenation
+      && self.parser_and_generator.concatenation_scope_info_mode()
+        == ConcatenationScopeInfoMode::GenerateAtCodegen
+    {
+      self.build_info.pending_concatenation_scope_info =
+        Some(Box::new(PendingConcatenationScopeInfo::Generated));
+    }
+
     if no_parse {
       self.parsed = false;
       self.source = Some(source);
@@ -806,6 +818,10 @@ impl Module for NormalModule {
     self
       .parser_and_generator
       .get_concatenation_bailout_reason(self, mg, cg)
+  }
+
+  fn concatenation_scope_info_mode(&self) -> ConcatenationScopeInfoMode {
+    self.parser_and_generator.concatenation_scope_info_mode()
   }
 
   fn factory_meta(&self) -> Option<&FactoryMeta> {
