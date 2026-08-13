@@ -34,6 +34,8 @@ define.lint(async () => {
         'packages/rspack/src/runtime/moduleFederationDefaultRuntime.js',
         'xtask/benchmark/benches/fixtures/rspack_sources/**',
         '**/tests/**',
+        // Imported resolver fixtures/examples contain intentionally odd JS
+        'crates/rspack_resolver/**',
       ],
     },
     {

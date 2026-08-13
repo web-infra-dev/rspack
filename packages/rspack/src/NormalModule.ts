@@ -10,6 +10,7 @@ Object.defineProperty(binding.NormalModule.prototype, 'identifier', {
   enumerable: true,
   configurable: true,
   value(this: binding.NormalModule): string {
+    // @ts-expect-error
     return this[binding.MODULE_IDENTIFIER_SYMBOL];
   },
 });

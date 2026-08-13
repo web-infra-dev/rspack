@@ -131,6 +131,7 @@ jobs:
             --exclude rspack_binding_build \
             --exclude rspack_napi \
             --exclude rspack_watcher \
+            --exclude rspack_resolver \
             -- --nocapture
 
   rust_watcher_test:

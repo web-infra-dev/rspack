@@ -10,7 +10,7 @@ disallowed-methods = [
   { path = "str::replace", reason = "To avoid memory allocation, use `cow_utils::CowUtils::replace` instead." },
   { path = "str::replacen", reason = "To avoid memory allocation, use `cow_utils::CowUtils::replacen` instead." },
   { path = "std::mem::forget", reason = "future::scope is unsafe when used with forget" },
-  { path = "futures::executor::block_on", reason = "block_on can cause deadlock easily" },
+  { path = "futures::executor::block_on", reason = "block_on can cause deadlock easily", allow-invalid = true },
   { path = "async_std::task::block_on", reason = "block_on can cause deadlock easily" },
   { path = "pollster::block_on", reason = "block_on can cause deadlock easily" },
   { path = "napi::tokio_runtime::block_on", reason = "block_on can cause deadlock easily", allow-invalid = true }

@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "paths": {
+      "foo": ["./mock_foo"],
+      "a": ["../component/src"]
+    }
+  },
+  "references": [
+    {
+      "name": "component",
+      "path": "../component"
+    }
+  ]
+}
