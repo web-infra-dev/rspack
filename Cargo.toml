@@ -20,6 +20,7 @@ libraries = [{ path = "linting/*" }]
 aho-corasick    = { version = "1.1.4", default-features = false }
 anyhow          = { version = "1.0.102", default-features = false, features = ["backtrace", "std"] }
 anymap          = { package = "anymap3", version = "1.0.1", default-features = false, features = ["std"] }
+arc-swap        = { version = "1.9.1", default-features = false }
 async-recursion = { version = "1.1.1", default-features = false }
 async-trait     = { version = "0.1.89", default-features = false }
 atomic_refcell  = { version = "0.1.14", default-features = false }
@@ -40,6 +41,7 @@ criterion = { package = "codspeed-criterion-compat", default-features = false, v
 css-module-lexer    = { version = "0.1.0", default-features = false }
 dashmap             = { version = "6.2.1", default-features = false }
 derive_more         = { version = "2.1.1", default-features = false }
+document-features   = { version = "0.2.12", default-features = false, features = ["default"] }
 dunce               = { version = "1.0.5", default-features = false }
 dyn-clone           = { version = "1.0.20", default-features = false }
 either              = { version = "1.16.0", default-features = false }
@@ -60,6 +62,7 @@ itertools           = { version = "0.14.0", default-features = false, features =
 itoa                = { version = "1.0.18", default-features = false }
 json                = { version = "0.12.4", default-features = false }
 json-escape-simd    = { version = "3.1.1", default-features = false }
+json-strip-comments = { version = "3.1.1", default-features = false }
 lightningcss        = { version = "1.0.0-alpha.71", default-features = false, features = ["serde"] }
 md4                 = { version = "0.10.2", default-features = false }
 memchr              = { version = "2.8.2", default-features = false }
@@ -67,6 +70,7 @@ micromegas-perfetto = { version = "0.9.0", default-features = false }
 miette              = { version = "7.6.0", default-features = false }
 mimalloc            = { version = "0.1.48", default-features = false }
 mime_guess          = { version = "2.0.5", default-features = false, features = ["rev-mappings"] }
+normalize-path      = { version = "0.2.1", default-features = false }
 notify              = { version = "8.2.0", default-features = false }
 num-bigint          = { version = "0.4.6", default-features = false }
 once_cell           = { version = "1.21.4", default-features = false }
@@ -84,7 +88,6 @@ rayon               = { version = "1.12.0", default-features = false }
 regex               = { version = "1.12.4", default-features = false, features = ["perf"] }
 regex-syntax        = { version = "0.8.11", default-features = false, features = ["std"] }
 regress             = { version = "0.11.1", default-features = false, features = ["pattern"] }
-rspack_resolver     = { version = "=0.10.0", default-features = false, features = ["package_json_raw_json_api", "yarn_pnp"] }
 rustc-hash          = { version = "2.1.2", default-features = false }
 ryu-js              = { version = "1.0.2", default-features = false }
 scopeguard          = { version = "1.2.0", default-features = false }
@@ -107,8 +110,9 @@ syn                 = { version = "2.0.117", default-features = false }
 tempfile            = { version = "3.27.0", default-features = false }
 termcolor           = { version = "1.4.1", default-features = false }
 textwrap            = { version = "0.16.1", default-features = false }
+thiserror           = { version = "2.0.18", default-features = false, features = ["std"] }
 thread_local        = { version = "1.1.9", default-features = false }
-tokio               = { version = "1.53.1", default-features = false, features = ["rt", "rt-multi-thread"] }
+tokio               = { version = "1.53.1", default-features = false, features = ["rt"] }
 tracing             = { version = "0.1.44", default-features = false, features = ["max_level_trace", "release_max_level_trace"] }
 tracing-subscriber  = { version = "0.3.23", default-features = false, features = ["fmt", "registry"] }
 trybuild            = { version = "1.0.116", default-features = false, features = ["diff"] }
@@ -119,6 +123,7 @@ unicode-width       = { version = "0.2.2", default-features = false }
 url                 = { version = "2.5.8", default-features = false }
 urlencoding         = { version = "2.1.3", default-features = false }
 ustr                = { package = "ustr-fxhash", version = "1.0.1", default-features = false }
+vfs                 = { version = "0.13.0", default-features = false }
 wasmparser          = { version = "0.236.1", default-features = false }
 winnow              = { version = "0.7.15", default-features = false, features = ["std", "simd"] }
 xxhash-rust         = { version = "0.8.15", default-features = false }
@@ -237,6 +242,7 @@ rspack_plugin_swc_js_minimizer         = { version = "=0.101.10", path = "crates
 rspack_plugin_wasm                     = { version = "=0.101.10", path = "crates/rspack_plugin_wasm", default-features = false }
 rspack_plugin_worker                   = { version = "=0.101.10", path = "crates/rspack_plugin_worker", default-features = false }
 rspack_regex                           = { version = "=0.101.10", path = "crates/rspack_regex", default-features = false }
+rspack_resolver                        = { version = "=0.101.10", path = "crates/rspack_resolver", default-features = false, features = ["package_json_raw_json_api", "yarn_pnp"] }
 rspack_sources                         = { version = "=0.101.10", path = "crates/rspack_sources", default-features = false, features = ["rspack_cacheable"] }
 rspack_storage                         = { version = "=0.101.10", path = "crates/rspack_storage", default-features = false }
 rspack_swc_plugin_import               = { version = "=0.101.10", path = "crates/swc_plugin_import", default-features = false }

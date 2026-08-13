@@ -1,0 +1,19 @@
+{
+  "name": "app",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "webpack -c webpack.config.js"
+  },
+  "keywords": [],
+  "author": "pshu",
+  "license": "MIT",
+  "packageManager": "pnpm@11.3.0",
+  "devDependencies": {
+    "tsconfig-paths-webpack-plugin": "^4.2.0",
+    "typescript": "^6.0.3",
+    "webpack": "^5.104.1",
+    "webpack-cli": "^7.0.3"
+  }
+}

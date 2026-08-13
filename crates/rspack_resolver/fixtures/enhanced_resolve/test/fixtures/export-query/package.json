@@ -1,0 +1,8 @@
+{
+  "name": "export-query",
+  "exports": {
+    "./add": "./add.js?query1?query2",
+    "./minus": "./minus.js?query?extra",
+    "./equal": "./equal.js?query"
+  }
+}
