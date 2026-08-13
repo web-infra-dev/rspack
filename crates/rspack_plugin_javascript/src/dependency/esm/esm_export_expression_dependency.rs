@@ -18,6 +18,20 @@ use crate::{ConstValue, parser_plugin::JS_DEFAULT_KEYWORD};
 pub enum DeclarationId {
   Id(String),
   Func(DeclarationInfo),
+  Named(NamedDeclarationInfo),
+}
+
+#[cacheable]
+#[derive(Debug, Clone)]
+pub struct NamedDeclarationInfo {
+  name: String,
+  range: DependencyRange,
+}
+
+impl NamedDeclarationInfo {
+  pub fn new(name: String, range: DependencyRange) -> Self {
+    Self { name, range }
+  }
 }
 
 #[cacheable]
@@ -180,20 +194,34 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
 
     if let Some(declaration) = &dep.declaration {
       let name = match declaration {
-        DeclarationId::Id(id) => id,
+        DeclarationId::Id(id) => id.clone(),
+        DeclarationId::Named(id) => {
+          if let Some(scope) = concatenation_scope.as_mut() {
+            scope.add_scope_ident(id.name.clone().into(), id.range);
+          }
+          id.name.clone()
+        }
         DeclarationId::Func(func) => {
+          let generated_name = concatenation_scope.as_mut().map_or_else(
+            || DEFAULT_EXPORT.to_string(),
+            |scope| {
+              scope
+                .ensure_generated_top_level_symbol(DEFAULT_EXPORT)
+                .to_string()
+            },
+          );
           source.replace(
             func.range.start,
             func.range.end,
-            format!("{}{}{}", func.prefix, DEFAULT_EXPORT, func.suffix),
+            format!("{}{}{}", func.prefix, generated_name, func.suffix),
             None,
           );
-          DEFAULT_EXPORT
+          generated_name
         }
       };
 
       if let Some(scope) = concatenation_scope {
-        scope.register_export(JS_DEFAULT_KEYWORD.clone(), name.to_string());
+        scope.register_export(JS_DEFAULT_KEYWORD.clone(), name);
       } else if let Some(used) = compilation
         .exports_info_artifact
         .get_exports_info_data(&module_identifier)
@@ -231,10 +259,12 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
       // 'var' is a little bit incorrect as TDZ is not correct, but we can't use 'const'
       let supports_const = compilation.options.output.environment.supports_const();
       let content = if let Some(scope) = concatenation_scope {
-        scope.register_export(JS_DEFAULT_KEYWORD.clone(), DEFAULT_EXPORT.to_string());
+        let generated_name =
+          scope.register_generated_export(JS_DEFAULT_KEYWORD.clone(), DEFAULT_EXPORT);
         format!(
-          "/* export default */ {} {DEFAULT_EXPORT} = ",
-          if supports_const { "const" } else { "var" }
+          "/* export default */ {} {} = ",
+          if supports_const { "const" } else { "var" },
+          generated_name
         )
       } else if let Some(used) = compilation
         .exports_info_artifact

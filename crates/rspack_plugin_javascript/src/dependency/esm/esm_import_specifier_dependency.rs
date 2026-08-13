@@ -511,6 +511,8 @@ impl ESMImportSpecifierDependencyTemplate {
         dep.phase,
         code_generatable_context.runtime,
       );
+      let rendered_import_var =
+        code_generatable_context.ensure_generated_top_level_symbol(import_var);
       esm_import_dependency_apply(dep, dep.source_order, dep.phase, code_generatable_context);
       let TemplateContext {
         compilation,
@@ -527,7 +529,7 @@ impl ESMImportSpecifierDependencyTemplate {
         *runtime,
         true,
         &dep.request,
-        &import_var,
+        &rendered_import_var,
         ids,
         &dep.id,
         dep.call,
@@ -549,6 +551,7 @@ impl ESMImportSpecifierDependencyTemplate {
     let Some(con) = connection else {
       return;
     };
+    code_generatable_context.remove_original_range(dep.range);
     let TemplateContext {
       runtime,
       module: self_module,
@@ -696,6 +699,8 @@ impl DependencyTemplate for ESMImportSpecifierDependencyTemplate {
 
     let export_expr = self.get_code_for_ids(ids, dep, connection, code_generatable_context);
 
+    code_generatable_context.remove_original_range(dep.range);
+
     if dep.shorthand {
       source.insert(dep.range.end, format!(": {export_expr}"), None);
     } else {
@@ -761,12 +766,25 @@ impl DependencyTemplate for ESMImportSpecifierDependencyTemplate {
 
         let comment = to_normal_comment(prop.id.as_str());
         let key = format!("{comment}{new_name}");
-        let content = if prop.shorthand {
-          format!("{key}: {}", prop.id)
+        if let Some(scope) = code_generatable_context.faster_concatenation_scope() {
+          if prop.shorthand {
+            // Keep the original identifier as the local binding. Its make-time
+            // scope info is still needed by concatenation to deconflict the
+            // binding and all of its references.
+            scope.set_original_range_non_shorthand(prop.range);
+            source.insert(prop.range.start, format!("{key}: "), None);
+          } else {
+            scope.remove_original_range(prop.range);
+            source.replace(prop.range.start, prop.range.end, key, None);
+          }
         } else {
-          key
-        };
-        source.replace(prop.range.start, prop.range.end, content, None);
+          let content = if prop.shorthand {
+            format!("{key}: {}", prop.id)
+          } else {
+            key
+          };
+          source.replace(prop.range.start, prop.range.end, content, None);
+        }
       });
     }
   }

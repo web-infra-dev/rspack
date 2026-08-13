@@ -87,6 +87,7 @@ pub(crate) struct CssModuleGenerator<'a, 'g> {
   css_inject_style: Option<String>,
   css_style_sheet: Option<String>,
   concat_source: ConcatSource,
+  generated_symbol_replacements: Vec<(u32, u32, String)>,
 }
 
 impl<'a, 'g> CssModuleGenerator<'a, 'g> {
@@ -119,6 +120,7 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
       css_inject_style: None,
       css_style_sheet: None,
       concat_source: Default::default(),
+      generated_symbol_replacements: Vec::new(),
     }
   }
 
@@ -211,15 +213,24 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
       }
     }
     let generated_source = self.concat_source.source().into_string_lossy().into_owned();
-    if self.module.get_source_map_kind().enabled() {
+    let source = if self.module.get_source_map_kind().enabled() {
       let source_name = css_javascript_source_map_module_name(
         self.module,
         &self.generate_context.compilation.options.context,
       );
-      Ok(OriginalSource::new(generated_source, source_name).boxed())
+      OriginalSource::new(generated_source, source_name).boxed()
     } else {
-      Ok(RawStringSource::from(generated_source).boxed())
+      RawStringSource::from(generated_source).boxed()
+    };
+    if self.generated_symbol_replacements.is_empty() {
+      return Ok(source);
     }
+
+    let mut source = ReplaceSource::new(source);
+    for (start, end, symbol) in self.generated_symbol_replacements {
+      source.replace(start, end, symbol, None);
+    }
+    Ok(source.boxed())
   }
 
   fn generate_js_exports(&mut self) -> Result<()> {
@@ -758,13 +769,26 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
       i += 1;
     }
 
-    let export_source = concat_string!("var ", identifier, " = ", content, ";\n");
-    self.concat_source.add(RawStringSource::from(export_source));
-    state.used_identifiers.insert(identifier.clone());
     let Some(ref mut scope) = self.generate_context.concatenation_scope else {
       unreachable!();
     };
-    scope.register_export(key.into(), identifier);
+    if scope.is_faster_module_concatenation() {
+      state.used_identifiers.insert(identifier.clone());
+      let symbol = scope.ensure_generated_top_level_symbol(&identifier);
+      scope.register_export(key.into(), symbol.to_string());
+      let start = self.concat_source.size() as u32 + "var ".len() as u32;
+      let end = start + identifier.len() as u32;
+      let export_source = concat_string!("var ", identifier, " = ", content, ";\n");
+      self.concat_source.add(RawStringSource::from(export_source));
+      self
+        .generated_symbol_replacements
+        .push((start, end, symbol.to_string()));
+    } else {
+      let export_source = concat_string!("var ", identifier, " = ", content, ";\n");
+      self.concat_source.add(RawStringSource::from(export_source));
+      state.used_identifiers.insert(identifier.clone());
+      scope.register_export(key.into(), identifier);
+    }
   }
 
   fn render_css_export_content(&mut self, elements: &FxIndexSet<CssExport>) -> String {

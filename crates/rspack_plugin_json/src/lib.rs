@@ -17,7 +17,7 @@ use rspack_core::{
   ParseOption, ParserAndGenerator, ParserOptions, Plugin, RuntimeSpec, SourceType, UsageState,
   UsedNameItem,
   diagnostics::ModuleParseError,
-  rspack_sources::{BoxSource, RawStringSource, Source, SourceExt},
+  rspack_sources::{BoxSource, RawStringSource, ReplaceSource, Source, SourceExt},
 };
 use rspack_error::{Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray, error};
 use rspack_util::{itoa, location::byte_line_column_to_offset};
@@ -217,18 +217,39 @@ impl ParserAndGenerator for JsonParserAndGenerator {
         } else {
           json_str.cow_replace("\"__proto__\":", "[\"__proto__\"]:")
         };
-        let content = if let Some(scope) = concatenation_scope {
-          scope.register_namespace_export(NAMESPACE_OBJECT_EXPORT);
-          format!("var {NAMESPACE_OBJECT_EXPORT} = {json_expr}")
-        } else {
-          format!(
+        if let Some(scope) = concatenation_scope {
+          let faster_module_concatenation = scope.is_faster_module_concatenation();
+          let namespace_export = scope.register_generated_namespace_export(NAMESPACE_OBJECT_EXPORT);
+          let rendered_namespace_export = if faster_module_concatenation {
+            NAMESPACE_OBJECT_EXPORT
+          } else {
+            namespace_export.as_ref()
+          };
+          let content = format!("var {rendered_namespace_export} = {json_expr}");
+          let source = RawStringSource::from(content);
+          if faster_module_concatenation {
+            let start = "var ".len() as u32;
+            let mut source = ReplaceSource::new(source);
+            source.replace(
+              start,
+              start + NAMESPACE_OBJECT_EXPORT.len() as u32,
+              namespace_export.to_string(),
+              None,
+            );
+            return Ok(source.boxed());
+          }
+          return Ok(source.boxed());
+        }
+
+        Ok(
+          RawStringSource::from(format!(
             r#"{}.exports = {json_expr}"#,
             generate_context
               .runtime_template
               .render_module_argument(ModuleArgument::Module)
-          )
-        };
-        Ok(RawStringSource::from(content).boxed())
+          ))
+          .boxed(),
+        )
       }
       _ => panic!(
         "Unsupported source type: {:?}",
