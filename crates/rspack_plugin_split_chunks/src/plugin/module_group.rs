@@ -6,7 +6,6 @@ use std::{
 
 use futures::future::join_all;
 use rayon::prelude::*;
-use rspack_collections::IdentifierMap;
 use rspack_core::{
   ChunkByUkey, ChunkUkey, Compilation, ExportsInfoArtifact, Module, ModuleIdentifier,
   RuntimeKeyMap, UsageKey, get_runtime_key,
@@ -19,7 +18,7 @@ use tracing::instrument;
 use super::ModuleGroupMap;
 use crate::{
   SplitChunksPlugin,
-  common::{ChunkFilter, ModuleChunks, ModuleSizes},
+  common::{ChunkFilter, ModuleChunkMap, ModuleChunks, ModuleSizes},
   min_size::remove_min_size_violating_modules,
   module_group::{IndexedCacheGroup, ModuleGroup, ModuleGroupKey, compare_entries},
   options::{
@@ -435,7 +434,6 @@ impl SplitChunksPlugin {
     combinator: &Combinator,
     all_modules: &[ModuleIdentifier],
     cache_groups: Vec<IndexedCacheGroup<'_>>,
-    removed_module_chunks: &IdentifierMap<FxHashSet<ChunkUkey>>,
     compilation: &Compilation,
     module_chunks: &ModuleChunks,
     chunk_index_map: &FxHashMap<ChunkUkey, u32>,
@@ -444,8 +442,8 @@ impl SplitChunksPlugin {
     let module_group_map: FxDashMap<ModuleGroupKey, ModuleGroup> = FxDashMap::default();
     let module_group_results = rspack_parallel::scope::<_, Result<_>>(|token| {
       all_modules.iter().enumerate().for_each(|(module_index, mid)| {
-        let s = unsafe { token.used((&cache_groups, module_index, mid, &module_graph, compilation, &module_group_map, &combinator, module_chunks, removed_module_chunks, chunk_index_map)) };
-        s.spawn(|(cache_groups, module_index, mid, module_graph, compilation, module_group_map, combinator, module_chunks, removed_module_chunks, chunk_index_map)| async move {
+        let s = unsafe { token.used((&cache_groups, module_index, mid, &module_graph, compilation, &module_group_map, &combinator, module_chunks, chunk_index_map)) };
+        s.spawn(|(cache_groups, module_index, mid, module_graph, compilation, module_group_map, combinator, module_chunks, chunk_index_map)| async move {
           let belong_to_chunks = module_chunks
             .get(module_index)
             .expect("should have module chunks");
@@ -453,12 +451,6 @@ impl SplitChunksPlugin {
             return Ok(());
           }
 
-          let removed_chunks = removed_module_chunks.get(mid);
-          if let Some(removed_chunks) = removed_chunks
-            && belong_to_chunks.iter().all(|c| removed_chunks.contains(c))
-          {
-            return Ok(());
-          }
           let module = module_graph.module_by_identifier(mid).expect("should have module").as_ref();
           let mut used_exports_combs = None;
           let mut non_used_exports_combs = None;
@@ -540,14 +532,6 @@ impl SplitChunksPlugin {
               if matches!(&cache_group.chunk_filter, ChunkFilter::All)
                 && matches!(&cache_group.name, ChunkNameGetter::Disabled)
               {
-                if let Some(removed_chunks) = removed_chunks
-                  && chunk_combination
-                    .iter()
-                    .any(|c| removed_chunks.contains(c))
-                {
-                  continue;
-                }
-
                 let mut module_group = {
                   module_group_map
                     .entry(ModuleGroupKey::Anonymous {
@@ -556,10 +540,10 @@ impl SplitChunksPlugin {
                     })
                     .or_insert_with(|| ModuleGroup::new(None, *cache_group_index, cache_group))
                 };
-                module_group.add_module(module.identifier());
-                if module_group.chunks.is_empty() {
-                  module_group.chunks.extend(chunk_combination.iter().copied());
-                }
+                module_group.add_module_with_shared_chunks(
+                  module.identifier(),
+                  chunk_combination.iter().copied(),
+                );
                 continue;
               }
 
@@ -605,11 +589,6 @@ impl SplitChunksPlugin {
                 continue;
               }
 
-              if let Some(removed_chunks) = removed_chunks
-                && selected_chunks.iter().any(|c| removed_chunks.contains(c))
-              {
-                continue;
-              }
               merge_matched_item_into_module_group_map(
                 MatchedItem {
                   module,
@@ -649,37 +628,60 @@ impl SplitChunksPlugin {
   // #[tracing::instrument(skip_all)]
   pub(crate) fn remove_all_modules_from_other_module_groups(
     &self,
-    current_module_group: &ModuleGroup,
+    placed_module_chunks: &ModuleChunkMap,
     module_group_map: &mut ModuleGroupMap,
-    used_chunks: &FxHashSet<ChunkUkey>,
-    compilation: &Compilation,
     module_sizes: &ModuleSizes,
   ) {
     // remove all modules from other entries and update size
     let keys_of_invalid_group = module_group_map
       .par_iter_mut()
       .filter_map(|(key, other_module_group)| {
-        other_module_group
-          .chunks
-          .intersection(used_chunks)
-          .next()?;
-
-        let module_count = other_module_group.modules.len();
-
-        let duplicated_modules = if other_module_group.modules.len() > current_module_group.modules.len() {
-          current_module_group.modules.intersection(&other_module_group.modules).copied().collect::<Vec<_>>()
-        } else {
-          other_module_group.modules.intersection(&current_module_group.modules).copied().collect::<Vec<_>>()
+        let duplicated_modules = match (
+          placed_module_chunks,
+          other_module_group.shared_module_chunks(),
+        ) {
+          (
+            ModuleChunkMap::Shared {
+              modules,
+              chunks: placed_chunks,
+            },
+            Some(other_chunks),
+          ) => {
+            other_chunks.intersection(placed_chunks).next()?;
+            if other_module_group.modules.len() > modules.len() {
+              modules
+                .intersection(&other_module_group.modules)
+                .copied()
+                .collect::<Vec<_>>()
+            } else {
+              other_module_group
+                .modules
+                .intersection(modules)
+                .copied()
+                .collect::<Vec<_>>()
+            }
+          }
+          _ => other_module_group
+            .modules
+            .iter()
+            .filter(|module| {
+              let Some(placed_chunks) = placed_module_chunks.get(module) else {
+                return false;
+              };
+              let Some(other_chunks) = other_module_group.get_module_chunks(module) else {
+                return false;
+              };
+              placed_chunks.intersection(other_chunks).next().is_some()
+            })
+            .copied()
+            .collect::<Vec<_>>(),
         };
 
-        for module in duplicated_modules {
-          other_module_group.remove_module(module);
-        }
-
-        if module_count == other_module_group.modules.len() {
-          // nothing is removed
+        if duplicated_modules.is_empty() {
           return None;
         }
+
+        other_module_group.remove_modules(duplicated_modules);
 
         if other_module_group.modules.is_empty() {
           tracing::trace!(
@@ -689,18 +691,23 @@ impl SplitChunksPlugin {
         }
 
         tracing::trace!("other_module_group: {other_module_group:#?}");
-        tracing::trace!("item.modules: {:#?}", current_module_group.modules);
-
-        // Since there are modules removed, make sure the rest of chunks are all used.
-        other_module_group.chunks.retain(|c| {
-          compilation.build_chunk_graph_artifact.chunk_graph
-            .is_any_module_in_chunk(other_module_group.modules.iter(), *c)
-        });
+        tracing::trace!("placed_module_chunks: {placed_module_chunks:#?}");
 
         let cache_group = other_module_group.get_cache_group(&self.cache_groups);
 
         // Since we removed some modules and chunks from the `other_module_group`. There are chances
         // that the `min_chunks` and `min_size` validation is not satisfied anymore.
+
+        // Validate `min_size` again
+        if remove_min_size_violating_modules(key, other_module_group, cache_group, module_sizes) {
+          tracing::trace!(
+            "{key} is deleted for violating min_size {:#?}",
+            cache_group.min_size,
+          );
+          return Some(key.clone());
+        }
+
+        other_module_group.rebuild_chunks();
 
         // Validate `min_chunks` again
         if other_module_group.chunks.len() < cache_group.min_chunks as usize {
@@ -708,15 +715,6 @@ impl SplitChunksPlugin {
             "{key} is deleted for each_module_group.chunks.len()({:?}) < cache_group.min_chunks({:?})",
             other_module_group.chunks.len(),
             cache_group.min_chunks
-          );
-          return Some(key.clone());
-        }
-
-        // Validate `min_size` again
-        if remove_min_size_violating_modules(key, other_module_group, cache_group, module_sizes) {
-          tracing::trace!(
-            "{key} is deleted for violating min_size {:#?}",
-            cache_group.min_size,
           );
           return Some(key.clone());
         }
@@ -774,7 +772,7 @@ async fn merge_matched_item_into_module_group_map(
       f(ctx).await?
     }
   };
-  let is_anonymous = chunk_name.is_none();
+  let is_named = chunk_name.is_some();
   let key = if let Some(cache_group_name) = &chunk_name {
     ModuleGroupKey::Named {
       cache_group_index,
@@ -794,11 +792,17 @@ async fn merge_matched_item_into_module_group_map(
       .entry(key)
       .or_insert_with(|| ModuleGroup::new(chunk_name, cache_group_index, cache_group))
   };
-  let should_extend_chunks = !(is_anonymous && matches!(&selected_chunks, SelectedChunks::All(_)))
-    || module_group.chunks.is_empty();
-  module_group.add_module(module.identifier());
-  if should_extend_chunks {
-    module_group.chunks.extend(selected_chunks.iter().copied());
+  if is_named {
+    module_group.add_module(module.identifier(), selected_chunks.iter().copied());
+  } else {
+    match selected_chunks {
+      SelectedChunks::All(chunks) => {
+        module_group.add_module_with_shared_chunks(module.identifier(), chunks.iter().copied());
+      }
+      SelectedChunks::Filtered(chunks) => {
+        module_group.add_module_with_shared_chunks(module.identifier(), chunks.iter().copied());
+      }
+    }
   }
 
   Ok(())

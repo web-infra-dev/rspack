@@ -85,13 +85,30 @@ export default {
 - `browserslist:/path/to/config` - 明确指定 browserslist 配置路径
 - `browserslist:/path/to/config:modern` - 明确指定 browserslist 的配置路径和环境
 
+### Baseline 查询 \{#baseline-queries}
+
+> Rspack >= v2.1.9 支持 Baseline 查询。
+
+你可以使用 Baseline 查询，根据 Baseline 特性集指定目标浏览器版本。例如，如需兼容所有被归类为 [Baseline 广泛可用的特性](https://web.dev/baseline)，可以配置：
+
+```js title="rspack.config.mjs"
+export default {
+  target: 'browserslist:baseline widely available',
+};
+```
+
+你还可以使用 `baseline 2024` 等年份查询，或 `baseline widely available on 2025-05-01` 等固定日期查询。
+
+:::tip
+更多信息请参考 [在 Browserslist 中使用 Baseline](https://web.dev/articles/use-baseline-with-browserslist)。
+:::
+
 ### 限制说明
 
 Rspack 使用的是 [browserslist-rs](https://github.com/browserslist/browserslist-rs)。这是 Browserslist 的一个 Rust 实现，目前尚未完全支持 Browserslist 的所有特性。
 
 当前不支持的功能：
 
-- Baseline 查询，例如 `baseline widely available`
 - 自定义使用率查询，例如 `> 0.5% in my stats`
 - 基于覆盖率的使用率查询，例如 `cover 99.5% in my stats`
 

@@ -118,14 +118,13 @@ Used for JavaScript API layer, CLI tools, and test infrastructure.
 **Linting:**
 
 - Rust: `cargo clippy`, `cargo check`
-- JavaScript/TypeScript: Rslint
+- JavaScript: Rslint
 - Type checking: TypeScript compiler
 
 **Formatting:**
 
 - Rust: `cargo fmt`
-- JavaScript/TypeScript: Prettier
-- TOML: taplo
+- JavaScript: `rs fmt`
 
 ## Debugging & Performance
 

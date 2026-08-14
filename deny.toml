@@ -23,13 +23,13 @@
 # dependencies not shared by any other crates, would be ignored, as the target
 # list here is effectively saying which targets you are building for.
 targets = [
-    # The triple can be any string, but only the target triples built in to
-    # rustc (as of 1.40) can be checked against actual config expressions
-    #"x86_64-unknown-linux-musl",
-    # You can also specify which target_features you promise are enabled for a
-    # particular target. target_features are currently not validated against
-    # the actual valid features supported by the target architecture.
-    #{ triple = "wasm32-unknown-unknown", features = ["atomics"] },
+  # The triple can be any string, but only the target triples built in to
+  # rustc (as of 1.40) can be checked against actual config expressions
+  #"x86_64-unknown-linux-musl",
+  # You can also specify which target_features you promise are enabled for a
+  # particular target. target_features are currently not validated against
+  # the actual valid features supported by the target architecture.
+  #{ triple = "wasm32-unknown-unknown", features = ["atomics"] },
 ]
 # When creating the dependency graph used as the source of truth when checks are
 # executed, this field can be used to prune crates from the graph, removing them
@@ -72,10 +72,10 @@ yanked = "warn"
 # A list of advisory IDs to ignore. Note that ignored advisories will still
 # output a note when they are encountered.
 ignore = [
-    #"RUSTSEC-0000-0000",
-    #{ id = "RUSTSEC-0000-0000", reason = "you can specify a reason the advisory is ignored" },
-    #"a-crate-that-is-yanked@0.1.1", # you can also ignore yanked crate versions if you wish
-    #{ crate = "a-crate-that-is-yanked@0.1.1", reason = "you can specify why you are ignoring the yanked crate" },
+  #"RUSTSEC-0000-0000",
+  #{ id = "RUSTSEC-0000-0000", reason = "you can specify a reason the advisory is ignored" },
+  #"a-crate-that-is-yanked@0.1.1", # you can also ignore yanked crate versions if you wish
+  #{ crate = "a-crate-that-is-yanked@0.1.1", reason = "you can specify why you are ignoring the yanked crate" },
 ]
 # If this is true, then cargo deny will use the git executable to fetch advisory database.
 # If this is false, then it uses a built-in git library.
@@ -114,9 +114,9 @@ confidence-threshold = 0.8
 # Allow 1 or more licenses on a per-crate basis, so that particular licenses
 # aren't accepted for every possible crate as with the normal allow list
 exceptions = [
-    # Each entry is the crate and version constraint, and its specific allow
-    # list
-    #{ allow = ["Zlib"], crate = "adler32" },
+  # Each entry is the crate and version constraint, and its specific allow
+  # list
+  #{ allow = ["Zlib"], crate = "adler32" },
 ]
 
 # Some crates don't have (easily) machine readable licensing information,
@@ -147,7 +147,7 @@ ignore = false
 # is only published to private registries, and ignore is true, the crate will
 # not have its license(s) checked
 registries = [
-    #"https://sekretz.com/registry
+  #"https://sekretz.com/registry
 ]
 
 # This section is considered when running `cargo deny check bans`.
@@ -174,16 +174,16 @@ workspace-default-features = "allow"
 external-default-features = "allow"
 # List of crates that are allowed. Use with care!
 allow = [
-    #"ansi_term@0.11.0",
-    #{ crate = "ansi_term@0.11.0", reason = "you can specify a reason it is allowed" },
+  #"ansi_term@0.11.0",
+  #{ crate = "ansi_term@0.11.0", reason = "you can specify a reason it is allowed" },
 ]
 # List of crates to deny
 deny = [
-    #"ansi_term@0.11.0",
-    #{ crate = "ansi_term@0.11.0", reason = "you can specify a reason it is banned" },
-    # Wrapper crates can optionally be specified to allow the crate when it
-    # is a direct dependency of the otherwise banned crate
-    #{ crate = "ansi_term@0.11.0", wrappers = ["this-crate-directly-depends-on-ansi_term"] },
+  #"ansi_term@0.11.0",
+  #{ crate = "ansi_term@0.11.0", reason = "you can specify a reason it is banned" },
+  # Wrapper crates can optionally be specified to allow the crate when it
+  # is a direct dependency of the otherwise banned crate
+  #{ crate = "ansi_term@0.11.0", wrappers = ["this-crate-directly-depends-on-ansi_term"] },
 ]
 
 # List of features to allow/deny
@@ -212,56 +212,56 @@ deny = [
 # Certain crates/versions that will be skipped when doing duplicate detection.
 # Certain crates/versions that will be skipped when doing duplicate detection.
 skip = [
-    { crate = "ahash", reason = "external dependency"},
-    { crate = "base64-simd", reason = "external dependency"},
-    { crate = "convert_case", reason = "external dependency"},
-    { crate = "getrandom", reason = "external dependency"},
-    { crate = "hashbrown", reason = "external dependency"},
-    { crate = "itertools", reason = "external dependency"},
-    { crate = "outref", reason = "external dependency"},
-    { crate = "ptr_meta", reason = "external dependency"},
-    { crate = "ptr_meta_derive", reason = "external dependency"},
-    { crate = "rkyv", reason = "FIXME: need to be fixed"},
-    { crate = "rkyv_derive", reason = "FIXME: need to be fixed"},
-    { crate = "syn", reason = "external dependency"},
-    { crate = "thiserror", reason = "external dependency"},
-    { crate = "thiserror-impl", reason = "external dependency"},
-    { crate = "unicode-width", reason = "external dependency"},
-    { crate = "wasi", reason = "external dependency"},
-    { crate = "windows-core", reason = "external dependency"},
-    { crate = "windows-targets", reason = "external dependency"},
-    { crate = "windows_aarch64_gnullvm", reason = "external dependency"},
-    { crate = "windows_aarch64_msvc", reason = "external dependency"},
-    { crate = "windows_i686_gnu", reason = "external dependency"},
-    { crate = "windows_i686_msvc", reason = "external dependency"},
-    { crate = "windows_x86_64_gnu", reason = "external dependency"},
-    { crate = "windows_x86_64_gnullvm", reason = "external dependency"},
-    { crate = "windows_x86_64_msvc", reason = "external dependency"},
-    { crate = "windows-sys", reason = "external dependency"},
-    { crate = "bitflags", reason = "external dependency"},
-    { crate = "foldhash", reason = "external dependency" },
-    { crate = "windows_i686_gnullvm", reason = "external dependency"},
-    { crate = "hermit-abi", reason = "external dependency"},
-    { crate = "supports-color", reason = "external dependency"},
-    { crate = "zerocopy", reason = "external dependency"},
-    { crate = "linux-raw-sys", reason = "external dependency"},
-    { crate = "rustix", reason = "external dependency"},
-    { crate = "ctor", reason = "external dependency"},
-    { crate = "windows-link", reason = "external dependency"},
+  { crate = "ahash", reason = "external dependency" },
+  { crate = "base64-simd", reason = "external dependency" },
+  { crate = "convert_case", reason = "external dependency" },
+  { crate = "getrandom", reason = "external dependency" },
+  { crate = "r-efi", reason = "external dependency" },
+  { crate = "hashbrown", reason = "external dependency" },
+  { crate = "itertools", reason = "external dependency" },
+  { crate = "outref", reason = "external dependency" },
+  { crate = "ptr_meta", reason = "external dependency" },
+  { crate = "ptr_meta_derive", reason = "external dependency" },
+  { crate = "rkyv", reason = "FIXME: need to be fixed" },
+  { crate = "rkyv_derive", reason = "FIXME: need to be fixed" },
+  { crate = "syn", reason = "external dependency" },
+  { crate = "thiserror", reason = "external dependency" },
+  { crate = "thiserror-impl", reason = "external dependency" },
+  { crate = "unicode-width", reason = "external dependency" },
+  { crate = "wasi", reason = "external dependency" },
+  { crate = "windows-core", reason = "external dependency" },
+  { crate = "windows-targets", reason = "external dependency" },
+  { crate = "windows_aarch64_gnullvm", reason = "external dependency" },
+  { crate = "windows_aarch64_msvc", reason = "external dependency" },
+  { crate = "windows_i686_gnu", reason = "external dependency" },
+  { crate = "windows_i686_msvc", reason = "external dependency" },
+  { crate = "windows_x86_64_gnu", reason = "external dependency" },
+  { crate = "windows_x86_64_gnullvm", reason = "external dependency" },
+  { crate = "windows_x86_64_msvc", reason = "external dependency" },
+  { crate = "windows-sys", reason = "external dependency" },
+  { crate = "bitflags", reason = "external dependency" },
+  { crate = "foldhash", reason = "external dependency" },
+  { crate = "windows_i686_gnullvm", reason = "external dependency" },
+  { crate = "hermit-abi", reason = "external dependency" },
+  { crate = "supports-color", reason = "external dependency" },
+  { crate = "linux-raw-sys", reason = "external dependency" },
+  { crate = "rustix", reason = "external dependency" },
+  { crate = "ctor", reason = "external dependency" },
+  { crate = "windows-link", reason = "external dependency" },
 ]
 # Similarly to `skip` allows you to skip certain crates during duplicate
 # detection. Unlike skip, it also includes the entire tree of transitive
 # dependencies starting at the specified crate, up to a certain depth, which is
 # by default infinite.
 skip-tree = [
-    #"ansi_term@0.11.0", # will be skipped along with _all_ of its direct and transitive dependencies
-    #{ crate = "ansi_term@0.11.0", depth = 20 },
+  #"ansi_term@0.11.0", # will be skipped along with _all_ of its direct and transitive dependencies
+  #{ crate = "ansi_term@0.11.0", depth = 20 },
 ]
 
 [bans.workspace-dependencies]
-duplicates = 'deny'
+duplicates                = 'deny'
 include-path-dependencies = true
-unused = "deny"
+unused                    = "deny"
 
 
 # This section is considered when running `cargo deny check sources`.

@@ -294,6 +294,21 @@ fn collect_top_level_directives_and_imports(module: &Module) -> DirectiveImportC
                   report_error(RSCErrorKind::ErrClientDirective(expr_stmt.span));
                 }
               }
+              Expr::Assign(AssignExpr {
+                op: AssignOp::Assign,
+                left:
+                  AssignTarget::Simple(SimpleAssignTarget::Member(MemberExpr {
+                    obj,
+                    prop: MemberProp::Ident(prop),
+                    ..
+                  })),
+                ..
+              }) if matches!(&**obj, Expr::Ident(obj) if &*obj.sym == "module")
+                && &*prop.sym == "exports" =>
+              {
+                export_names.push(Wtf8Atom::from("default"));
+                finished_directives = true;
+              }
               _ => {
                 // Other expression types.
                 finished_directives = true;

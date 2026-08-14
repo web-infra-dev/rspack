@@ -79,13 +79,13 @@ use crate::{
   CompilationLogger, CompilationLogging, CompilerOptions, CompilerPlatform, ConcatenationScope,
   DependenciesDiagnosticsArtifact, DependencyId, DependencyTemplate, DependencyTemplateType,
   DependencyType, Entry, EntryData, EntryOptions, EntryRuntime, Entrypoint, ExecuteModuleId,
-  ExportsInfoArtifact, Filename, ImportPhase, ImportVarMap, ImportedByDeferModulesArtifact,
-  ModuleFactory, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, ModuleIdsArtifact,
-  ModuleStaticCache, PathData, ProcessRuntimeRequirementsCacheArtifact, ReferencedExport,
-  ResolverFactory, RuntimeGlobals, RuntimeKeyMap, RuntimeMode, RuntimeModule,
-  RuntimeProxyMetadataArtifact, RuntimeSpec, RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver,
-  SideEffectsOptimizeArtifact, SideEffectsStateArtifact, SourceType, Stats, StatsContext,
-  StealCell, ValueCacheVersions,
+  ExportsInfoArtifact, ExternalModuleChunkConditionHook, Filename, ImportPhase, ImportVarMap,
+  ImportedByDeferModulesArtifact, ModuleFactory, ModuleGraph, ModuleGraphCacheArtifact,
+  ModuleIdentifier, ModuleIdsArtifact, ModuleStaticCache, PathData,
+  ProcessRuntimeRequirementsCacheArtifact, ReferencedExport, ResolverFactory, RuntimeGlobals,
+  RuntimeKeyMap, RuntimeMode, RuntimeModule, RuntimeProxyMetadataArtifact, RuntimeSpec,
+  RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver, SideEffectsOptimizeArtifact,
+  SideEffectsStateArtifact, SourceType, Stats, StatsContext, StealCell, ValueCacheVersions,
   cache::persistent::occasion::{
     devtool::SourceMapDevToolPluginCacheArtifact, minimize::MinimizePersistentCacheArtifact,
   },
@@ -95,7 +95,9 @@ use crate::{
   compiler::{CompilationRecords, CompilerId},
   get_runtime_key,
   incremental::{self, Incremental, IncrementalPasses, Mutation},
-  is_source_equal, to_identifier,
+  is_source_equal,
+  new_cache::{Cache, CacheFacade},
+  to_identifier,
 };
 
 define_hook!(CompilationAddEntry: Series(entry_name: Option<&str>, options: &mut EntryOptions));
@@ -155,6 +157,7 @@ pub struct CompilationHooks {
   pub succeed_module: CompilationSucceedModuleHook,
   pub execute_module: CompilationExecuteModuleHook,
   pub finish_modules: CompilationFinishModulesHook,
+  pub external_module_chunk_condition: ExternalModuleChunkConditionHook,
   pub dependency_referenced_exports: CompilationDependencyReferencedExportsHook,
   pub seal: CompilationSealHook,
   pub optimize_dependencies: CompilationOptimizeDependenciesHook,
@@ -234,6 +237,7 @@ pub struct Compilation {
   pub emitted_assets: DashSet<String, BuildHasherDefault<FxHasher>>,
   diagnostics: Vec<Diagnostic>,
   logging: CompilationLogging,
+  cache: Cache,
   pub plugin_driver: SharedPluginDriver,
   pub buildtime_plugin_driver: SharedPluginDriver,
   pub resolver_factory: Arc<ResolverFactory>,
@@ -344,6 +348,7 @@ impl Compilation {
     incremental: Incremental,
     module_executor: Option<ModuleExecutor>,
     logging: CompilationLogging,
+    cache: Cache,
     modified_files: ArcPathSet,
     removed_files: ArcPathSet,
     input_filesystem: Arc<dyn ReadableFileSystem>,
@@ -372,6 +377,7 @@ impl Compilation {
       emitted_assets: Default::default(),
       diagnostics: Default::default(),
       logging,
+      cache,
       plugin_driver,
       buildtime_plugin_driver,
       resolver_factory,
@@ -437,6 +443,10 @@ impl Compilation {
       is_rebuild,
       compiler_context,
     }
+  }
+
+  pub fn get_cache(&self, name: &str) -> CacheFacade {
+    self.cache.facade(name)
   }
 
   pub fn id(&self) -> CompilationId {

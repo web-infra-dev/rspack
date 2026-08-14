@@ -21,7 +21,8 @@ impl Compiler {
     changed_files: FxHashSet<String>,
     deleted_files: FxHashSet<String>,
   ) -> Result<()> {
-    match within_compiler_context(
+    let start = self.end_idle()?;
+    let result = match within_compiler_context(
       self.compiler_context.clone(),
       self.rebuild_inner(changed_files, deleted_files),
     )
@@ -33,19 +34,20 @@ impl Compiler {
           .compiler_hooks
           .done
           .call(&self.compilation)
-          .await?;
-        Ok(())
+          .await
       }
       Err(e) => {
-        self
+        let failed = self
           .plugin_driver
           .compiler_hooks
           .failed
           .call(&self.compilation)
-          .await?;
-        Err(e)
+          .await;
+        failed.and(Err(e))
       }
-    }
+    };
+    let cache_result = self.begin_idle(start, result.is_ok());
+    result.and(cache_result)
   }
 
   #[tracing::instrument("Compiler:rebuild", skip_all, fields(
@@ -85,6 +87,7 @@ impl Compiler {
         Incremental::new_hot(self.options.incremental),
         Some(ModuleExecutor::default()),
         compilation_logging,
+        self.new_cache.clone(),
         modified_files,
         removed_files,
         self.input_filesystem.clone(),

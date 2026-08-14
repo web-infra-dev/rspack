@@ -6,5 +6,6 @@
   "context-module-factory-hooks",
   "javascript-modules-plugin-hooks",
   "stats-hooks",
-  "runtime-plugin-hooks"
+  "runtime-plugin-hooks",
+  "external-module-hooks"
 ]

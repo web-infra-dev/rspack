@@ -68,16 +68,6 @@ it("should return undefined for unknown property", () => {
 	expect(() => import.meta.other.other.other).toThrowError();
 });
 
-it("should not warn for known context properties", () => {
-	expect(typeof import.meta.glob).toBe("undefined");
-	expect(typeof import.meta.webpackContext).toBe("undefined");
-	expect(typeof import.meta[`glob`]).toBe("undefined");
-	expect(typeof import.meta[`webpackContext`]).toBe("undefined");
-	const { glob, webpackContext } = import.meta;
-	expect(glob).toBeUndefined();
-	expect(webpackContext).toBeUndefined();
-});
-
 it("should add warning on direct import.meta usage", () => {
 	expect(Object.keys(import.meta)).toHaveLength(0);
 });

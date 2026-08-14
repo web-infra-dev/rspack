@@ -7,21 +7,44 @@ define.fmt({
     'tests/rspack-test/**/*',
     '!tests/rspack-test/**/',
     '!tests/rspack-test/**/rspack.config.*',
+    '!tests/rspack-test/**/*.toml',
     'packages/**/etc/**/*',
     'tests/e2e/cases/make/rewrite-factorize-request/file.js',
 
     // Benchmark fixtures
+    'xtask/benchmark/benches/fixtures/css/**',
     'xtask/benchmark/benches/fixtures/rspack_sources/**',
 
     // Crates
     'crates/**',
     '!crates/**/',
     '!crates/**/*.md',
+    '!crates/**/*.toml',
+  ],
+  overrides: [
+    {
+      files: '*.toml',
+      options: {
+        plugins: ['prettier-plugin-toml'],
+        printWidth: 120,
+        alignEntries: true,
+        arrayAutoExpand: false,
+        reorderKeys: true,
+        allowedBlankLines: 2,
+      },
+    },
+    {
+      files: ['clippy.toml', 'deny.toml'],
+      options: {
+        arrayAutoExpand: true,
+      },
+    },
   ],
 });
 
 define.lint(async () => {
   const { js, ts } = await import('rstack/lint');
+  const { default: globals } = await import('globals');
 
   return [
     js.configs.recommended,
@@ -32,10 +55,26 @@ define.lint(async () => {
         'packages/rspack/src/runtime/moduleFederationDefaultRuntime.js',
         'xtask/benchmark/benches/fixtures/rspack_sources/**',
         '**/tests/**',
+        // Imported resolver fixtures/examples contain intentionally odd JS
+        'crates/rspack_resolver/**',
       ],
     },
     {
       languageOptions: {
+        globals: {
+          ...globals.browser,
+          ...globals.jest,
+          ...globals.node,
+          ...globals.rspack,
+          $: 'readonly',
+          $IMPORT_META_NAME: 'readonly',
+          $PATH: 'readonly',
+          __prefresh_errors__: 'readonly',
+          __prefresh_utils__: 'readonly',
+          fs: 'readonly',
+          path: 'readonly',
+          rstest: 'readonly',
+        },
         parserOptions: {
           project: ['./packages/*/tsconfig.json'],
         },
@@ -77,8 +116,7 @@ define.lint(async () => {
 
 define.staged({
   '*.rs': 'rustfmt',
-  '*.{ts,tsx,js,mjs,yaml,yml}': 'rs fmt',
-  '*.toml': 'pnpm exec taplo format',
-  '*.{ts,tsx,js,cts,cjs,mts,mjs}': 'pnpm run lint:js',
+  '*.{md,mdx,json,css,less,scss,toml,yaml,yml}': 'rs fmt',
+  '*.{ts,tsx,js,cts,cjs,mts,mjs}': ['rs lint', 'rs fmt'],
   'website/**/*': () => 'pnpm --dir website run check:spell',
 });

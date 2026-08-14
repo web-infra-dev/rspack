@@ -1,0 +1,139 @@
+name: CI-Resolver
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+  merge_group:
+    types: [checks_requested]
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - 'crates/rspack_resolver/**'
+      - '.github/workflows/ci-resolver.yml'
+      - 'Cargo.lock'
+      - 'Cargo.toml'
+      - 'rust-toolchain.toml'
+    tags-ignore:
+      - '**'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: ${{ github.ref_name != 'main' }}
+
+permissions:
+  contents: read
+
+jobs:
+  check-changed:
+    runs-on: ${{ fromJSON(vars.CI_LINUX_MINI_RUNNER || '"ubuntu-latest"') }}
+    name: Check Resolver Changed
+    outputs:
+      changed: ${{ steps.filter.outputs.changed == 'true' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: dorny/paths-filter@7b450fff21473bca461d4b92ce414b9d0420d706 # v4
+        id: filter
+        with:
+          filters: |
+            changed:
+              - 'crates/rspack_resolver/**'
+              - '.github/workflows/ci-resolver.yml'
+              - 'Cargo.lock'
+              - 'Cargo.toml'
+              - 'rust-toolchain.toml'
+
+  test:
+    name: Resolver test
+    needs: [check-changed]
+    if: ${{ needs.check-changed.outputs.changed == 'true' }}
+    strategy:
+      fail-fast: false # run all tests even if some fail
+      matrix:
+        array:
+          - runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
+          - runner: ${{ '"windows-latest"' }}
+          - runner: ${{ '"macos-latest"' }}
+    runs-on: ${{ fromJSON(matrix.array.runner) }}
+    env:
+      RUST_BACKTRACE: 1
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Disable CPU hogs (Windows)
+        if: runner.os == 'Windows'
+        continue-on-error: true
+        uses: ./.github/actions/windows-disable-cpu-hogs
+
+      - name: Install Rust Toolchain
+        uses: ./.github/actions/rustup
+        with:
+          save-if: true
+          key: test-resolver-${{ matrix.array.runner }}
+
+      - name: Setup Node.js and Pnpm
+        uses: ./.github/actions/pnpm/setup
+
+      - name: Install fixtures
+        shell: bash
+        working-directory: crates/rspack_resolver/fixtures
+        run: |
+          pushd pnp && yarn install && popd
+          pushd pnp-global-cache-enabled && yarn install && popd
+          pnpm install
+
+      # Compile test without debug info for reducing the CI cache size
+      - name: Change profile.test
+        shell: bash
+        run: |
+          echo '[profile.test]' >> Cargo.toml
+          echo 'debug = false' >> Cargo.toml
+
+      - name: Run resolver test
+        run: cargo test -p rspack_resolver --all-features -- --nocapture
+        env:
+          RUST_MIN_STACK: 8388608
+
+      - name: Run resolver doc test
+        run: cargo test -p rspack_resolver --doc
+
+  check:
+    name: Resolver check
+    needs: [check-changed]
+    if: ${{ needs.check-changed.outputs.changed == 'true' }}
+    runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Install Rust Toolchain
+        uses: ./.github/actions/rustup
+        with:
+          save-if: true
+          key: check-resolver
+
+      # The shared rust test workflow lints the workspace with default
+      # features; this adds coverage for the crate's optional features.
+      - name: Run Clippy
+        run: cargo clippy -p rspack_resolver --all-targets --all-features --locked -- -D warnings
+
+      - name: Check wasm32
+        run: |
+          rustup target add wasm32-unknown-unknown
+          cargo check -p rspack_resolver --all-features --target wasm32-unknown-unknown --locked
+
+  resolver_required_check:
+    # this job is used as the required status check for branch protection;
+    # it succeeds directly when resolver files are unchanged.
+    name: Resolver Required Check
+    needs: [check-changed, test, check]
+    if: ${{ always() && !cancelled() }}
+    runs-on: ${{ fromJSON(vars.CI_LINUX_MINI_RUNNER || '"ubuntu-latest"') }}
+    steps:
+      - name: Log
+        run: echo ${{ join(needs.*.result, ',') }}
+      - name: Test check
+        if: ${{ needs.check-changed.outputs.changed == 'true' && (needs.test.result != 'success' || needs.check.result != 'success') }}
+        run: echo "Resolver CI Failed" && exit 1
+      - name: No check to run
+        run: echo "Success"

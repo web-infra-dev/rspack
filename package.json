@@ -1,6 +1,6 @@
 {
   "name": "monorepo",
-  "version": "2.1.8",
+  "version": "2.1.10",
   "license": "MIT",
   "description": "Fast Rust-based bundler for the web with a modernized webpack API",
   "private": true,
@@ -26,11 +26,7 @@
     "test:js": "pnpm -r run test",
     "format:rs": "cargo fmt --all",
     "format:js": "rs fmt && heading-case --write",
-    "format-ci:js": "rs fmt --check && heading-case",
-    "format-ci:toml": "taplo format --check",
-    "format:toml": "taplo format",
-    "lint:js": "rs lint --fix",
-    "lint-ci:js": "rs lint",
+    "lint:js": "rs check && heading-case",
     "lint:rs": "cargo check --workspace --all-targets --locked",
     "build:binding:dev": "pnpm --filter @rspack/binding run build:dev",
     "build:binding:debug": "pnpm --filter @rspack/binding run build:debug",
@@ -57,12 +53,13 @@
     "pnpm": "11.8.0"
   },
   "devDependencies": {
-    "@taplo/cli": "catalog:",
     "@types/node": "catalog:",
     "@typescript/native": "catalog:",
     "commander": "catalog:",
     "cross-env": "catalog:",
+    "globals": "catalog:",
     "heading-case": "catalog:",
+    "prettier-plugin-toml": "catalog:",
     "rstack": "catalog:",
     "typescript": "catalog:",
     "zx": "catalog:"

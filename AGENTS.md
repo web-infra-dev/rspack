@@ -58,7 +58,7 @@ Before running tests after code changes:
 ## Code quality
 
 - **Linting**: `pnpm run lint:js` (Rslint), `pnpm run lint:rs` (cargo check), `cargo lint` (Rust)
-- **Formatting**: `pnpm run format:rs` (cargo fmt), `pnpm run format:js` (rs fmt), `pnpm run format:toml` (taplo), `cargo fmt --all --check` (Rust)
+- **Formatting**: `pnpm run format:rs` (cargo fmt), `pnpm run format:js` (rs fmt), `cargo fmt --all --check` (Rust)
 - **Style**: snake_case for Rust, camelCase for JS/TS
 
 ## Common tasks
@@ -69,7 +69,7 @@ Before running tests after code changes:
 2. Implement in appropriate crate/package
 3. Add test coverage when needed, following the restrictions in [Adding tests](#adding-tests)
 4. Update docs if APIs change
-5. Run linters and tests: `pnpm run lint:js && pnpm run lint:rs && cargo lint && pnpm run test:unit && pnpm run test:rs`
+5. Run checks and tests: `pnpm run lint:js && pnpm run lint:rs && cargo lint && pnpm run test:unit && pnpm run test:rs`
 6. Format: `pnpm run format:rs && pnpm run format:js`
 7. Create PR
 

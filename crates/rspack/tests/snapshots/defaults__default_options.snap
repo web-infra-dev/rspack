@@ -1748,6 +1748,7 @@ CompilerOptions {
     cache: Disabled,
     experiments: Experiments {
         css: false,
+        new_cache: false,
         defer_import: false,
         source_import: false,
         pure_functions: false,

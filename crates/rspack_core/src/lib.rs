@@ -5,6 +5,7 @@ mod compilation;
 mod transient_cache;
 
 mod exports;
+mod new_cache;
 mod value_cache_versions;
 pub use artifacts::*;
 pub use binding::*;
@@ -13,6 +14,7 @@ pub use compilation::{
   *,
 };
 pub use exports::*;
+pub use new_cache::{Cache, CacheFacade, CacheValue, Etag, ItemCacheFacade};
 pub use transient_cache::*;
 pub use value_cache_versions::ValueCacheVersions;
 mod dependencies_block;

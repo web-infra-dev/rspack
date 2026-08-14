@@ -16,11 +16,11 @@ use rspack_core::{
   CompilationOptimizeChunkModules, CompilationOptimizeChunks, CompilationOptimizeDependencies,
   CompilationParams, CompilationProcessAssets, CompilationRuntimeRequirementInTree,
   CompilerCompilation, ConcatenatedModuleInfo, ConcatenationScope, DependencyType,
-  ExportsInfoArtifact, ExternalModuleInfo, GetTargetResult, Logger, ModuleFactoryCreateData,
-  ModuleGraph, ModuleIdentifier, ModuleInfo, ModuleType, NormalModuleFactoryAfterFactorize,
-  NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, Plugin, REQUIRE_SCOPE_GLOBALS,
-  RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule, SideEffectsOptimizeArtifact,
-  SideEffectsStateArtifact, get_target, is_esm_dep_like,
+  ExportsInfoArtifact, ExternalModuleInfo, GetTargetResult, JavascriptParserUrl, Logger,
+  ModuleFactoryCreateData, ModuleGraph, ModuleIdentifier, ModuleInfo, ModuleType,
+  NormalModuleFactoryAfterFactorize, NormalModuleFactoryParser, ParserAndGenerator, ParserOptions,
+  Plugin, REQUIRE_SCOPE_GLOBALS, RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule,
+  SideEffectsOptimizeArtifact, SideEffectsStateArtifact, get_target, is_esm_dep_like,
   rspack_sources::{ReplaceSource, Source},
 };
 use rspack_error::{Diagnostic, Result};
@@ -132,8 +132,14 @@ impl EsmLibraryPlugin {
         .any(|dep| {
           !is_esm_dep_like(dep)
             && !matches!(
-              dep.dependency_type(),
-              DependencyType::Entry | DependencyType::DynamicImport | DependencyType::NewWorker
+              (dep.dependency_type(), dep.url_mode()),
+              (
+                DependencyType::Entry | DependencyType::DynamicImport | DependencyType::NewWorker,
+                _
+              ) | (
+                DependencyType::NewUrl,
+                Some(JavascriptParserUrl::NewUrlRelative)
+              )
             )
         })
       {

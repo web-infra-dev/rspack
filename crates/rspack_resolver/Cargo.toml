@@ -1,0 +1,69 @@
+[package]
+authors.workspace    = true
+categories           = ["development-tools"]
+description          = "ESM / CJS module resolution"
+edition              = "2021"
+homepage.workspace   = true
+include              = ["/src"]
+keywords             = ["node", "resolve", "cjs", "esm", "enhanced-resolve"]
+license.workspace    = true
+name                 = "rspack_resolver"
+readme               = "README.md"
+repository.workspace = true
+version.workspace    = true
+
+[lib]
+doctest = false
+
+[lints]
+workspace = true
+
+[dependencies]
+dashmap    = { workspace = true }
+serde      = { workspace = true, features = ["derive"] }            # derive for Deserialize from package.json
+serde_json = { workspace = true, features = ["preserve_order"] }    # preserve_order: package_json.exports requires order such as `["require", "import", "default"]`
+tracing    = { workspace = true, features = ["attributes", "std"] }
+
+simd-json = { workspace = true }
+
+camino              = { workspace = true, features = ["serde1"] } # UTF-8 path types used for all internal path representations
+cfg-if              = { workspace = true }
+cow-utils           = { workspace = true }
+dunce               = { workspace = true }                        # Normalize Windows paths to the most compatible format, avoiding UNC where possible
+indexmap            = { workspace = true, features = ["serde"] }
+json-strip-comments = { workspace = true }
+rustc-hash          = { workspace = true, features = ["std"] }
+thiserror           = { workspace = true }
+
+pnp = { workspace = true, optional = true }
+
+arc-swap          = { workspace = true, optional = true }
+async-trait       = { workspace = true }
+document-features = { workspace = true, optional = true }
+futures           = { workspace = true }
+
+# tokio refuses `rt-multi-thread` on wasm32-unknown-unknown, so it must stay
+# out of the wasm feature set.
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+tokio = { workspace = true, features = ["sync", "rt-multi-thread", "macros"] }
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+tokio = { workspace = true, features = ["sync", "macros"] }
+
+[dev-dependencies]
+normalize-path = { workspace = true }
+regex          = { workspace = true }
+vfs            = { workspace = true } # for testing with in memory file system
+
+[features]
+default = ["yarn_pnp"]
+## Enables the [PackageJson::raw_json] API,
+## which returns the `package.json` with `serde_json::Value`.
+package_json_raw_json_api = []
+## [Yarn Plug'n'Play](https://yarnpkg.com/features/pnp)
+yarn_pnp = ["pnp", "arc-swap"]
+# For remove tracing calls in release build
+enable_instrument = []
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
