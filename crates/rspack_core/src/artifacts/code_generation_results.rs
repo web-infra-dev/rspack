@@ -167,7 +167,8 @@ impl CodeGenerationResult {
   }
 
   pub fn set_concatenation_source(&mut self, source: Box<ConcatenationCodeGenerationSource>) {
-    debug_assert!(self.concatenation_source.replace(source).is_none());
+    let previous = self.concatenation_source.replace(source);
+    debug_assert!(previous.is_none());
   }
 
   pub fn set_hash(
