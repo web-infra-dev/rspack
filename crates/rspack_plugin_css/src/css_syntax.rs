@@ -8,12 +8,6 @@ struct Escape {
   value: Option<char>,
 }
 
-/// Decode CSS escapes while retaining the original allocation-free fast path.
-///
-/// This follows CSS Syntax's "consume an escaped code point" algorithm. In
-/// URL mode, raw CSS whitespace at the edges is removed after escaped newline
-/// continuations have been consumed, without trimming whitespace produced by
-/// an escape such as `\20 `.
 fn decode_css_escapes(input: &str, trim_url_whitespace: bool) -> Cow<'_, str> {
   let first_escape_or_null = input.bytes().position(|byte| matches!(byte, b'\\' | b'\0'));
 
@@ -182,11 +176,6 @@ pub(crate) fn unescape_identifier(input: &str) -> Cow<'_, str> {
   decode_css_escapes(input, false)
 }
 
-/// Serialize an arbitrary string as a CSS identifier.
-///
-/// The serialization rules mirror the `cssparser` primitives used by Stylo
-/// and Lightning CSS: non-ASCII code points pass through, controls use hex
-/// escapes, and punctuation uses the shorter single-character escape.
 pub(crate) fn escape_identifier(input: &str) -> Cow<'_, str> {
   if !identifier_needs_escape(input) {
     return Cow::Borrowed(input);
