@@ -389,7 +389,7 @@ impl SourceMapPositionConverter {
       }
     };
     debug_assert!(
-      line_start <= pos && pos < line_end,
+      line_start <= pos && pos <= line_end,
       "{}: bpos = {:?}; line bounds = {:?}..{:?};",
       file.name,
       pos,

@@ -1357,30 +1357,30 @@ div {
 	list-style: upper-roman inside;
 	list-style: circle outside;
 	list-style: none disc;
-	list-style: none url(7bc91c245a8a10a4.png);
+	list-style: none url("7bc91c245a8a10a4.png");
 	list-style: none;
-	list-style: none disc url(7bc91c245a8a10a4.png);
+	list-style: none disc url("7bc91c245a8a10a4.png");
 	list-style: lower-alpha;
 	list-style: disc;
 	list-style: square;
-	list-style: url(7bc91c245a8a10a4.png);
-	list-style: georgian inside url(7bc91c245a8a10a4.png);
-	list-style: georgian outside url(7bc91c245a8a10a4.png);
+	list-style: url("7bc91c245a8a10a4.png");
+	list-style: georgian inside url("7bc91c245a8a10a4.png");
+	list-style: georgian outside url("7bc91c245a8a10a4.png");
 	/* type */
 	list-style: square;
 
 	/* image */
-	list-style: url(7bc91c245a8a10a4.png);
+	list-style: url("7bc91c245a8a10a4.png");
 
 	/* position */
 	list-style: inside;
 
 	/* two values */
 	list-style: georgian outside;
-	list-style: url(7bc91c245a8a10a4.png) inside;
+	list-style: url("7bc91c245a8a10a4.png") inside;
 
 	/* three values */
-	list-style: lower-roman url(7bc91c245a8a10a4.png) outside;
+	list-style: lower-roman url("7bc91c245a8a10a4.png") outside;
 
 	/* Keyword value */
 	list-style: none;
@@ -1565,7 +1565,7 @@ div {
 }
 
 @color-profile --swop5c {
-	src: url(https://example.org/SWOP2006_Coated5v2.icc);
+	src: url("https://example.org/SWOP2006_Coated5v2.icc");
 }
 
 .header {
@@ -1988,23 +1988,23 @@ section {
 }
 
 @color-profile --swop5c {
-	src: url(https://example.org/SWOP2006_Coated5v2.icc);
+	src: url("https://example.org/SWOP2006_Coated5v2.icc");
 }
 
 @color-profile local(--swop5c-local) {
-	src: url(https://example.org/SWOP2006_Coated5v2.icc);
+	src: url("https://example.org/SWOP2006_Coated5v2.icc");
 }
 
 @color-profile :local(--swop5c-local) {
-	src: url(https://example.org/SWOP2006_Coated5v2.icc);
+	src: url("https://example.org/SWOP2006_Coated5v2.icc");
 }
 
 @color-profile global(--swop5c) {
-	src: url(https://example.org/SWOP2006_Coated5v2.icc);
+	src: url("https://example.org/SWOP2006_Coated5v2.icc");
 }
 
 @color-profile :global(--swop5c) {
-	src: url(https://example.org/SWOP2006_Coated5v2.icc);
+	src: url("https://example.org/SWOP2006_Coated5v2.icc");
 }
 
 .class {
@@ -4051,30 +4051,30 @@ div {
 	list-style: upper-roman inside;
 	list-style: circle outside;
 	list-style: none disc;
-	list-style: none url(7bc91c245a8a10a4.png);
+	list-style: none url("7bc91c245a8a10a4.png");
 	list-style: none;
-	list-style: none disc url(7bc91c245a8a10a4.png);
+	list-style: none disc url("7bc91c245a8a10a4.png");
 	list-style: lower-alpha;
 	list-style: disc;
 	list-style: square;
-	list-style: url(7bc91c245a8a10a4.png);
-	list-style: georgian inside url(7bc91c245a8a10a4.png);
-	list-style: georgian outside url(7bc91c245a8a10a4.png);
+	list-style: url("7bc91c245a8a10a4.png");
+	list-style: georgian inside url("7bc91c245a8a10a4.png");
+	list-style: georgian outside url("7bc91c245a8a10a4.png");
 	/* type */
 	list-style: square;
 
 	/* image */
-	list-style: url(7bc91c245a8a10a4.png);
+	list-style: url("7bc91c245a8a10a4.png");
 
 	/* position */
 	list-style: inside;
 
 	/* two values */
 	list-style: georgian outside;
-	list-style: url(7bc91c245a8a10a4.png) inside;
+	list-style: url("7bc91c245a8a10a4.png") inside;
 
 	/* three values */
-	list-style: lower-roman url(7bc91c245a8a10a4.png) outside;
+	list-style: lower-roman url("7bc91c245a8a10a4.png") outside;
 
 	/* Keyword value */
 	list-style: none;
@@ -4259,7 +4259,7 @@ div {
 }
 
 @color-profile --swop5c {
-	src: url(https://example.org/SWOP2006_Coated5v2.icc);
+	src: url("https://example.org/SWOP2006_Coated5v2.icc");
 }
 
 .header {
@@ -4682,23 +4682,23 @@ section {
 }
 
 @color-profile --swop5c {
-	src: url(https://example.org/SWOP2006_Coated5v2.icc);
+	src: url("https://example.org/SWOP2006_Coated5v2.icc");
 }
 
 @color-profile local(--swop5c-local) {
-	src: url(https://example.org/SWOP2006_Coated5v2.icc);
+	src: url("https://example.org/SWOP2006_Coated5v2.icc");
 }
 
 @color-profile :local(--swop5c-local) {
-	src: url(https://example.org/SWOP2006_Coated5v2.icc);
+	src: url("https://example.org/SWOP2006_Coated5v2.icc");
 }
 
 @color-profile global(--swop5c) {
-	src: url(https://example.org/SWOP2006_Coated5v2.icc);
+	src: url("https://example.org/SWOP2006_Coated5v2.icc");
 }
 
 @color-profile :global(--swop5c) {
-	src: url(https://example.org/SWOP2006_Coated5v2.icc);
+	src: url("https://example.org/SWOP2006_Coated5v2.icc");
 }
 
 .class {
