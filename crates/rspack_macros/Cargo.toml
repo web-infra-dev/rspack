@@ -1,4 +1,3 @@
-
 [package]
 description       = "rspack macros"
 edition.workspace = true

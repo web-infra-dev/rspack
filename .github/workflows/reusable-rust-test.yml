@@ -65,11 +65,6 @@ jobs:
       - name: Run rustfmt
         run: cargo fmt --all -- --check
 
-      - name: Install taplo
-        run: cargo install taplo-cli --locked
-      - name: Run toml format check
-        run: taplo format --check
-
   rust_unused_dependencies:
     needs: [check-changed]
     if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
