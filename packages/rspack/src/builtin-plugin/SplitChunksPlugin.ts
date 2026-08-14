@@ -45,31 +45,24 @@ export function toRawSplitChunksOptions(
     interface Batch {
       modules: Module[];
       chunks: Chunk[];
-      moduleIndices: Uint32Array;
-      chunkOffsets: Uint32Array;
-      chunkIndices: Uint32Array;
+      chunkData: Uint32Array;
       cacheGroupKey: string;
     }
 
     if (typeof name === 'function') {
       return (batch: Batch) => {
-        const {
-          modules,
-          chunks,
-          moduleIndices,
-          chunkOffsets,
-          chunkIndices,
-          cacheGroupKey,
-        } = batch;
-        const results = new Array(moduleIndices.length);
+        const { modules, chunks, chunkData, cacheGroupKey } = batch;
+        const results = new Array(modules.length);
+        // The offset table is followed by indices into the deduplicated chunk array.
+        const chunkIndexStart = modules.length + 1;
 
-        for (let i = 0; i < moduleIndices.length; i++) {
-          const module = modules[moduleIndices[i]];
-          const start = chunkOffsets[i];
-          const end = chunkOffsets[i + 1];
+        for (let i = 0; i < modules.length; i++) {
+          const module = modules[i];
+          const start = chunkData[i];
+          const end = chunkData[i + 1];
           const contextChunks = new Array<Chunk>(end - start);
           for (let j = start; j < end; j++) {
-            contextChunks[j - start] = chunks[chunkIndices[j]];
+            contextChunks[j - start] = chunks[chunkData[chunkIndexStart + j]];
           }
 
           if (typeof module === 'undefined') {
@@ -87,13 +80,13 @@ export function toRawSplitChunksOptions(
 
   function getTest(test: OptimizationSplitChunksCacheGroup['test']) {
     if (typeof test === 'function') {
-      return (contexts: JsCacheGroupTestCtx[]) => {
+      return (ctx: JsCacheGroupTestCtx) => {
         // chunk graph and module graph should all exist in the optimizeChunks stage
         const info = {
           moduleGraph: compiler._lastCompilation!.moduleGraph,
           chunkGraph: compiler._lastCompilation!.chunkGraph,
         };
-        return contexts.map((ctx) => test(ctx.module, info));
+        return test(ctx.module, info);
       };
     }
     return test;
@@ -101,16 +94,9 @@ export function toRawSplitChunksOptions(
 
   function getChunks(chunks: any) {
     if (typeof chunks === 'function') {
-      return (items: Chunk[]) => items.map((chunk) => chunks(chunk));
+      return (chunk: Chunk) => chunks(chunk);
     }
     return chunks;
-  }
-
-  function getLayer(layer: OptimizationSplitChunksCacheGroup['layer']) {
-    if (typeof layer === 'function') {
-      return (layers: (string | undefined)[]) => layers.map(layer);
-    }
-    return layer;
   }
 
   const {
@@ -139,7 +125,6 @@ export function toRawSplitChunksOptions(
           test,
           name,
           chunks,
-          layer,
           minSize,
           minSizeReduction,
           enforceSizeThreshold,
@@ -153,7 +138,6 @@ export function toRawSplitChunksOptions(
           test: getTest(test),
           name: getName(name),
           chunks: getChunks(chunks),
-          layer: getLayer(layer),
           minSize: JsSplitChunkSizes.__to_binding(minSize),
           minSizeReduction: JsSplitChunkSizes.__to_binding(minSizeReduction),
           enforceSizeThreshold:

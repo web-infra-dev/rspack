@@ -6,7 +6,7 @@ use rspack_core::{Compilation, Filename, Module, ModuleGraph, ModuleIdentifier, 
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_plugin_split_chunks::{
   CacheGroup, CacheGroupTest, CacheGroupTestFnCtx, ChunkNameGetter, ChunkNameGetterFnCtx,
-  ModuleLayerFilter, ModuleSizes, SplitChunkSizes, get_module_sizes, min_size::ModulesContainer,
+  ModuleSizes, SplitChunkSizes, get_module_sizes, min_size::ModulesContainer,
 };
 use rspack_util::fx_hash::FxHashMap as HashMap;
 
@@ -143,14 +143,12 @@ async fn matches_module_to_cache_group(
   let satisfied_test = match &cache_group.test {
     CacheGroupTest::String(str) => module.identifier().contains(str),
     CacheGroupTest::RegExp(regexp) => regexp.test(module.identifier().as_str()),
-    CacheGroupTest::Fn(f) => f(vec![CacheGroupTestFnCtx {
+    CacheGroupTest::Fn(f) => f(CacheGroupTestFnCtx {
       compilation,
       module,
-    }])
+    })
     .await
     .to_rspack_result()?
-    .pop()
-    .flatten()
     .unwrap_or(false),
     CacheGroupTest::Enabled => true,
   };
@@ -165,20 +163,11 @@ async fn matches_module_to_cache_group(
   }
 
   // match layer
-  let satisfied_layer = match &cache_group.layer {
-    ModuleLayerFilter::Func(_) => cache_group
-      .layer
-      .test_func_batch(vec![module.get_layer().map(ToString::to_string)])
-      .await
-      .to_rspack_result()
-      .unwrap_or_default()
-      .pop()
-      .unwrap_or(false),
-    _ => cache_group
-      .layer
-      .test_internal(module.get_layer().map(String::as_str)),
-  };
-  if !satisfied_layer {
+  if !(cache_group.layer)(module.get_layer().map(ToString::to_string))
+    .await
+    .to_rspack_result()
+    .unwrap_or(false)
+  {
     return Ok(false);
   }
 
@@ -206,7 +195,7 @@ pub(crate) async fn split(groups: &[CacheGroup], compilation: &mut Compilation) 
             ChunkNameGetter::String(name) => Some((Either::Left(name.clone()), module_identifier)),
             ChunkNameGetter::Disabled => Some((Either::Right(index), module_identifier)),
             ChunkNameGetter::Fn(func) => {
-              let name_res = func(vec![ChunkNameGetterFnCtx {
+              let mut names = func(vec![ChunkNameGetterFnCtx {
                 module,
                 compilation,
                 chunks: &compilation
@@ -218,14 +207,11 @@ pub(crate) async fn split(groups: &[CacheGroup], compilation: &mut Compilation) 
                   .collect(),
                 cache_group_key: &group.key,
               }])
-              .await;
+              .await?;
 
-              match name_res {
-                Ok(mut names) => match names.pop().flatten() {
-                  Some(name) => Some((Either::Left(name), module_identifier)),
-                  None => Some((Either::Right(index), module_identifier)),
-                },
-                Err(err) => return Err(err),
+              match names.pop().flatten() {
+                Some(name) => Some((Either::Left(name), module_identifier)),
+                None => Some((Either::Right(index), module_identifier)),
               }
             }
           });

@@ -26,9 +26,6 @@ use crate::{
   compiler_scoped_tsfn::CompilerScopedTsFnHandle as ThreadsafeFunction, filename::JsFilename,
 };
 
-pub type RawModuleLayerFilter<'a> =
-  Either3<RspackRegex, JsString<'a>, ThreadsafeFunction<Vec<Option<String>>, Vec<bool>>>;
-
 #[napi(object, object_to_js = false)]
 #[derive(Debug)]
 pub struct RawSplitChunksOptions<'a> {
@@ -39,7 +36,7 @@ pub struct RawSplitChunksOptions<'a> {
   pub filename: Option<JsFilename>,
   pub cache_groups: Option<Vec<RawCacheGroupOptions<'a>>>,
   /// What kind of chunks should be selected.
-  #[napi(ts_type = "RegExp | 'async' | 'initial' | 'all' | ((chunks: Chunk[]) => boolean[])")]
+  #[napi(ts_type = "RegExp | 'async' | 'initial' | 'all' | Function")]
   #[debug(skip)]
   pub chunks: Option<Chunks<'a>>,
   pub used_exports: Option<bool>,
@@ -67,24 +64,22 @@ pub struct RawCacheGroupOptions<'a> {
   pub priority: Option<i32>,
   // pub reuse_existing_chunk: Option<bool>,
   //   pub r#type: SizeType,
-  #[napi(
-    ts_type = "RegExp | string | ((contexts: JsCacheGroupTestCtx[]) => (boolean | undefined)[])"
-  )]
+  #[napi(ts_type = "RegExp | string | Function")]
   #[debug(skip)]
   pub test: Option<RawCacheGroupTest>,
   pub filename: Option<JsFilename>,
   //   pub enforce: bool,
   pub id_hint: Option<String>,
   /// What kind of chunks should be selected.
-  #[napi(ts_type = "RegExp | 'async' | 'initial' | 'all' | ((chunks: Chunk[]) => boolean[])")]
+  #[napi(ts_type = "RegExp | 'async' | 'initial' | 'all'")]
   #[debug(skip)]
   pub chunks: Option<Chunks<'a>>,
   #[napi(ts_type = "RegExp | string")]
   #[debug(skip)]
   pub r#type: Option<Either<RspackRegex, JsString<'a>>>,
-  #[napi(ts_type = "RegExp | string | ((layers: (string | undefined)[]) => boolean[])")]
+  #[napi(ts_type = "RegExp | string | ((layer?: string) => boolean)")]
   #[debug(skip)]
-  pub layer: Option<RawModuleLayerFilter<'a>>,
+  pub layer: Option<Either3<RspackRegex, JsString<'a>, ThreadsafeFunction<Option<String>, bool>>>,
   pub automatic_name_delimiter: Option<String>,
   //   pub max_async_requests: usize,
   //   pub max_initial_requests: usize,
@@ -321,16 +316,29 @@ fn create_module_type_filter(
 }
 
 fn create_module_layer_filter(
-  raw: RawModuleLayerFilter,
+  raw: Either3<RspackRegex, JsString, ThreadsafeFunction<Option<String>, bool>>,
 ) -> rspack_plugin_split_chunks::ModuleLayerFilter {
   match raw {
-    Either3::A(regex) => rspack_plugin_split_chunks::ModuleLayerFilter::RegExp(regex),
+    Either3::A(regex) => Arc::new(move |layer| {
+      let regex = regex.clone();
+      Box::pin(async move { Ok(layer.map(|layer| regex.test(&layer)).unwrap_or_default()) })
+    }),
     Either3::B(js_str) => {
-      rspack_plugin_split_chunks::ModuleLayerFilter::String(js_str.into_string())
+      let test = js_str.into_string();
+      Arc::new(move |layer| {
+        let test = test.clone();
+        Box::pin(async move {
+          Ok(if let Some(layer) = layer {
+            layer.starts_with(&test)
+          } else {
+            test.is_empty()
+          })
+        })
+      })
     }
-    Either3::C(f) => rspack_plugin_split_chunks::ModuleLayerFilter::Func(Arc::new(move |layers| {
+    Either3::C(f) => Arc::new(move |layer| {
       let f = f.clone();
-      Box::pin(async move { f.call_with_sync(layers).await })
-    })),
+      Box::pin(async move { f.call_with_sync(layer).await })
+    }),
   }
 }

@@ -44,12 +44,3 @@ pub struct CacheGroup {
   pub automatic_name_delimiter: String,
   pub used_exports: bool,
 }
-
-impl CacheGroup {
-  pub(crate) fn has_js_callback(&self) -> bool {
-    matches!(self.test, CacheGroupTest::Fn(_))
-      || self.layer.is_func()
-      || self.chunk_filter.is_func()
-      || matches!(self.name, ChunkNameGetter::Fn(_))
-  }
-}

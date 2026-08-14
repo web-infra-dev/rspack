@@ -765,9 +765,7 @@ export interface JsChunkGroupOrigin {
 export interface JsChunkOptionNameBatch {
   modules: Module[]
   chunks: Chunk[]
-  moduleIndices: Uint32Array
-  chunkOffsets: Uint32Array
-  chunkIndices: Uint32Array
+  chunkData: Uint32Array
   cacheGroupKey: string
 }
 
@@ -1896,13 +1894,13 @@ export interface RawBundlerInfoPluginOptions {
 export interface RawCacheGroupOptions {
   key: string
   priority?: number
-  test?: RegExp | string | ((contexts: JsCacheGroupTestCtx[]) => (boolean | undefined)[])
+  test?: RegExp | string | Function
   filename?: JsFilename
   idHint?: string
   /** What kind of chunks should be selected. */
-  chunks?: RegExp | 'async' | 'initial' | 'all' | ((chunks: Chunk[]) => boolean[])
+  chunks?: RegExp | 'async' | 'initial' | 'all'
   type?: RegExp | string
-  layer?: RegExp | string | ((layers: (string | undefined)[]) => boolean[])
+  layer?: RegExp | string | ((layer?: string) => boolean)
   automaticNameDelimiter?: string
   minChunks?: number
   minSize?: number | RawSplitChunkSizes
@@ -3081,7 +3079,7 @@ export interface RawSplitChunksOptions {
   filename?: JsFilename
   cacheGroups?: Array<RawCacheGroupOptions>
   /** What kind of chunks should be selected. */
-  chunks?: RegExp | 'async' | 'initial' | 'all' | ((chunks: Chunk[]) => boolean[])
+  chunks?: RegExp | 'async' | 'initial' | 'all' | Function
   usedExports?: boolean
   automaticNameDelimiter?: string
   maxAsyncRequests?: number

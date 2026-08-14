@@ -4,7 +4,7 @@ const {
 } = require('@rspack/core');
 
 const moduleCount = 160;
-const observedModuleOrders = new Map();
+const observedOutputs = new Map();
 
 function createVirtualModules() {
   const modules = {};
@@ -30,35 +30,38 @@ it('loads entry ${entry}', () => {
   return modules;
 }
 
-class CompareChunkModuleOrderPlugin {
+class CompareChunkOutputPlugin {
   constructor(label) {
     this.label = label;
   }
 
   apply(compiler) {
     compiler.hooks.thisCompilation.tap(
-      'CompareChunkModuleOrderPlugin',
+      'CompareChunkOutputPlugin',
       (compilation) => {
         compilation.hooks.processAssets.tap(
           {
-            name: 'CompareChunkModuleOrderPlugin',
+            name: 'CompareChunkOutputPlugin',
             stage: Compilation.PROCESS_ASSETS_STAGE_SUMMARIZE,
           },
           () => {
-            const sharedChunk = [...compilation.chunks].find(
-              (chunk) => chunk.name === 'shared',
+            const output = new Map(
+              Object.entries(compilation.assets).map(([name, source]) => [
+                name,
+                Buffer.from(source.source()),
+              ]),
             );
-            expect(sharedChunk).toBeTruthy();
-            const moduleOrder = compilation.chunkGraph
-              .getChunkModules(sharedChunk)
-              .map((module) => module.identifier());
-            expect(moduleOrder).toHaveLength(moduleCount);
-            observedModuleOrders.set(this.label, moduleOrder);
+            observedOutputs.set(this.label, output);
 
-            if (observedModuleOrders.size === 2) {
-              expect(observedModuleOrders.get('batch')).toEqual(
-                observedModuleOrders.get('native'),
+            if (observedOutputs.size === 2) {
+              const nativeOutput = observedOutputs.get('native');
+              const batchOutput = observedOutputs.get('batch');
+              expect([...batchOutput.keys()].sort()).toEqual(
+                [...nativeOutput.keys()].sort(),
               );
+              for (const [name, source] of batchOutput) {
+                expect(source).toEqual(nativeOutput.get(name));
+              }
             }
           },
         );
@@ -90,6 +93,7 @@ function createConfig(label, name) {
           shared: {
             test: /shared-\d+\.js$/,
             minChunks: 2,
+            filename: 'shared.js',
             name,
           },
         },
@@ -97,13 +101,18 @@ function createConfig(label, name) {
     },
     plugins: [
       new VirtualModulesPlugin(createVirtualModules()),
-      new CompareChunkModuleOrderPlugin(label),
+      new CompareChunkOutputPlugin(label),
     ],
   };
 }
 
 /** @type {import('@rspack/core').Configuration[]} */
 module.exports = [
-  createConfig('native', 'shared'),
-  createConfig('batch', () => 'shared'),
+  createConfig('native', false),
+  createConfig('batch', (_module, chunks) => {
+    for (const chunk of chunks) {
+      void chunk.name;
+    }
+    return undefined;
+  }),
 ];

@@ -1,20 +1,18 @@
 const callbackStats = {
-  layer: { batches: 0, calls: 0, active: false },
-  test: { batches: 0, calls: 0, active: false },
-  chunks: { batches: 0, calls: 0, active: false },
-  name: { batches: 0, calls: 0, active: false },
+  batches: 0,
+  calls: 0,
+  active: false,
 };
 const nameChunkArrays = new Set();
 const nameModuleOrder = [];
 
-function trackCallback(kind) {
-  const stats = callbackStats[kind];
-  stats.calls++;
-  if (!stats.active) {
-    stats.active = true;
-    stats.batches++;
+function trackCallback() {
+  callbackStats.calls++;
+  if (!callbackStats.active) {
+    callbackStats.active = true;
+    callbackStats.batches++;
     queueMicrotask(() => {
-      stats.active = false;
+      callbackStats.active = false;
     });
   }
 }
@@ -22,22 +20,9 @@ function trackCallback(kind) {
 class AssertBatchCallbacksPlugin {
   apply(compiler) {
     compiler.hooks.done.tap('AssertBatchCallbacksPlugin', () => {
-      expect(callbackStats.layer).toEqual({
-        batches: 1,
-        calls: 7,
-        active: false,
-      });
-      expect(callbackStats.test).toEqual({
-        batches: 1,
-        calls: 7,
-        active: false,
-      });
-      expect(callbackStats.chunks.calls).toBe(16);
-      expect(callbackStats.chunks.batches).toBeLessThan(callbackStats.chunks.calls);
-      expect(callbackStats.chunks.active).toBe(false);
-      expect(callbackStats.name.calls).toBe(6);
-      expect(callbackStats.name.batches).toBeLessThan(callbackStats.name.calls);
-      expect(callbackStats.name.active).toBe(false);
+      expect(callbackStats.calls).toBe(6);
+      expect(callbackStats.batches).toBeLessThan(callbackStats.calls);
+      expect(callbackStats.active).toBe(false);
       expect(nameChunkArrays.size).toBe(6);
       expect(new Set(nameModuleOrder.slice(0, 3)).size).toBe(3);
     });
@@ -76,27 +61,18 @@ module.exports = {
       minChunks: 2,
       cacheGroups: {
         batch: {
-          layer(layer) {
-            trackCallback('layer');
-            expect(typeof layer).toBe('string');
-            return layer === 'batch';
-          },
-          test(module) {
-            trackCallback('test');
-            expect(Array.isArray(module)).toBe(false);
-            return /shared-[123]\.js/.test(module.identifier());
-          },
-          chunks(chunk) {
-            trackCallback('chunks');
-            expect(Array.isArray(chunk)).toBe(false);
-            return true;
-          },
+          layer: 'batch',
+          test: /shared-[123]\.js/,
+          chunks: 'all',
           name(module, chunks, cacheGroupKey) {
-            trackCallback('name');
+            trackCallback();
             expect(Array.isArray(module)).toBe(false);
             expect(Array.isArray(chunks)).toBe(true);
             expect(['a,b', 'a,b,c', 'a,b,c,d']).toContain(
-              chunks.map((chunk) => chunk.name).sort().join(','),
+              chunks
+                .map((chunk) => chunk.name)
+                .sort()
+                .join(','),
             );
             expect(cacheGroupKey).toBe('batch');
             nameChunkArrays.add(chunks);

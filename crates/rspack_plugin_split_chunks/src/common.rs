@@ -13,7 +13,7 @@ use rspack_regex::RspackRegex;
 use rustc_hash::{FxHashMap, FxHashSet};
 
 pub type ChunkFilterFunc =
-  Arc<dyn Fn(Vec<ChunkUkey>, &Compilation) -> BoxFuture<'static, Result<Vec<bool>>> + Sync + Send>;
+  Arc<dyn Fn(&ChunkUkey, &Compilation) -> BoxFuture<'static, Result<bool>> + Sync + Send>;
 
 #[derive(Clone)]
 pub enum ChunkFilter {
@@ -30,18 +30,8 @@ impl ChunkFilter {
   }
 
   pub async fn test_func(&self, chunk_ukey: &ChunkUkey, compilation: &Compilation) -> Result<bool> {
-    let mut results = self.test_func_batch(vec![*chunk_ukey], compilation).await?;
-    debug_assert_eq!(results.len(), 1);
-    Ok(results.pop().unwrap_or_default())
-  }
-
-  pub async fn test_func_batch(
-    &self,
-    chunk_ukeys: Vec<ChunkUkey>,
-    compilation: &Compilation,
-  ) -> Result<Vec<bool>> {
     if let ChunkFilter::Func(func) = self {
-      func(chunk_ukeys, compilation).await
+      func(chunk_ukey, compilation).await
     } else {
       panic!("ChunkFilter is not a function");
     }
@@ -77,46 +67,15 @@ impl ChunkFilter {
 }
 
 pub type ModuleTypeFilter = Arc<dyn Fn(&dyn Module) -> bool + Send + Sync>;
-pub type ModuleLayerFilterFunc =
-  Arc<dyn Fn(Vec<Option<String>>) -> BoxFuture<'static, Result<Vec<bool>>> + Send + Sync>;
-
-#[derive(Clone)]
-pub enum ModuleLayerFilter {
-  Enabled,
-  String(String),
-  RegExp(RspackRegex),
-  Func(ModuleLayerFilterFunc),
-}
-
-impl ModuleLayerFilter {
-  pub fn is_func(&self) -> bool {
-    matches!(self, Self::Func(_))
-  }
-
-  pub fn test_internal(&self, layer: Option<&str>) -> bool {
-    match self {
-      Self::Enabled => true,
-      Self::String(test) => layer.map_or_else(|| test.is_empty(), |layer| layer.starts_with(test)),
-      Self::RegExp(regex) => layer.is_some_and(|layer| regex.test(layer)),
-      Self::Func(_) => panic!("ModuleLayerFilter is a function"),
-    }
-  }
-
-  pub async fn test_func_batch(&self, layers: Vec<Option<String>>) -> Result<Vec<bool>> {
-    if let Self::Func(func) = self {
-      func(layers).await
-    } else {
-      panic!("ModuleLayerFilter is not a function");
-    }
-  }
-}
+pub type ModuleLayerFilter =
+  Arc<dyn Fn(Option<String>) -> BoxFuture<'static, Result<bool>> + Send + Sync>;
 
 pub fn create_default_module_type_filter() -> ModuleTypeFilter {
   Arc::new(|_| true)
 }
 
 pub fn create_default_module_layer_filter() -> ModuleLayerFilter {
-  ModuleLayerFilter::Enabled
+  Arc::new(|_| Box::pin(async move { Ok(true) }))
 }
 
 pub fn create_async_chunk_filter() -> ChunkFilter {

@@ -10,7 +10,7 @@ use crate::{
 };
 
 pub(super) type RawCacheGroupTest =
-  Either3<String, RspackRegex, ThreadsafeFunction<Vec<JsCacheGroupTestCtx>, Vec<Option<bool>>>>;
+  Either3<String, RspackRegex, ThreadsafeFunction<JsCacheGroupTestCtx, Option<bool>>>;
 
 #[napi(object, object_from_js = false)]
 pub struct JsCacheGroupTestCtx {
@@ -30,10 +30,10 @@ pub(super) fn normalize_raw_cache_group_test(raw: RawCacheGroupTest) -> CacheGro
   match raw {
     Either3::A(str) => CacheGroupTest::String(str),
     Either3::B(regexp) => CacheGroupTest::RegExp(regexp),
-    Either3::C(v) => CacheGroupTest::Fn(Arc::new(move |contexts| {
-      let contexts = contexts.into_iter().map(Into::into).collect();
+    Either3::C(v) => CacheGroupTest::Fn(Arc::new(move |ctx| {
+      let ctx = ctx.into();
       let v = v.clone();
-      Box::pin(async move { v.call_with_sync(contexts).await })
+      Box::pin(async move { v.call_with_sync(ctx).await })
     })),
   }
 }
