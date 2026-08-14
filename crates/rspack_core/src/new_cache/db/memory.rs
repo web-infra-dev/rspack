@@ -32,6 +32,10 @@ impl Database {
     Ok(())
   }
 
+  pub fn compact(&self) -> Result<()> {
+    Ok(())
+  }
+
   pub fn reset(&mut self) -> Result<()> {
     for family in &mut self.families {
       family.clear();

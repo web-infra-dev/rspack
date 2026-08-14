@@ -1,4 +1,12 @@
-use std::{sync::mpsc as sync_mpsc, thread, time::Duration};
+use std::{
+  sync::{
+    Arc,
+    atomic::{AtomicU64, Ordering},
+    mpsc as sync_mpsc,
+  },
+  thread,
+  time::Duration,
+};
 
 use rspack_error::Result;
 use rspack_paths::ArcPathSet;
@@ -32,15 +40,25 @@ enum Command {
     result: sync_mpsc::SyncSender<Result<Option<ErasedCacheValue>>>,
   },
   RecordBuildTime(Duration),
-  BeginIdle,
+  BeginIdle {
+    epoch: u64,
+  },
   EndIdle,
   Shutdown(oneshot::Sender<Result<()>>),
+}
+
+#[derive(Debug, Clone, Copy)]
+struct IdleDeadline {
+  at: Instant,
+  epoch: u64,
 }
 
 struct BackgroundJob {
   strategy: FileCacheStrategy,
   command_receiver: mpsc::UnboundedReceiver<Command>,
-  idle_deadline: Option<Instant>,
+  // A deadline remains valid only while this still matches its captured epoch.
+  idle_epoch: Arc<AtomicU64>,
+  idle_deadline: Option<IdleDeadline>,
   idle_timeout: Duration,
   idle_timeout_for_initial_store: Duration,
   idle_timeout_after_large_changes: Duration,
@@ -55,19 +73,27 @@ impl BackgroundJob {
       return;
     }
 
+    let idle_epoch = Arc::clone(&self.idle_epoch);
     loop {
-      let command = if let Some(deadline) = self.idle_deadline {
-        tokio::select! {
-          biased;
-          command = self.command_receiver.recv() => command,
-          _ = sleep_until(deadline) => {
-            self.idle_deadline = None;
-            self.process_idle_tasks().await;
-            continue;
+      let idle_deadline = self.idle_deadline;
+      let command = tokio::select! {
+        biased;
+        command = self.command_receiver.recv() => command,
+        epoch = async {
+          match idle_deadline {
+            Some(deadline) => {
+              sleep_until(deadline.at).await;
+              deadline.epoch
+            },
+            None => std::future::pending().await,
           }
+        } => {
+          self.idle_deadline = None;
+          self
+            .process_idle_tasks(|| idle_epoch.load(Ordering::Acquire) != epoch)
+            .await;
+          continue;
         }
-      } else {
-        self.command_receiver.recv().await
       };
 
       let Some(command) = command else {
@@ -109,21 +135,26 @@ impl BackgroundJob {
           .mul_f64(0.9)
           .saturating_add(build_time);
       }
-      Command::BeginIdle => {
-        let is_initial_store = self.avg_time_spent_in_store.is_none();
-        let is_large_change = self.time_spent_in_build
-          > self
-            .avg_time_spent_in_store
-            .unwrap_or_default()
-            .saturating_mul(2);
-        let mut timeout = self.idle_timeout;
-        if is_initial_store {
-          timeout = timeout.min(self.idle_timeout_for_initial_store);
+      Command::BeginIdle { epoch } => {
+        if self.idle_epoch.load(Ordering::Acquire) == epoch {
+          let is_initial_store = self.avg_time_spent_in_store.is_none();
+          let is_large_change = self.time_spent_in_build
+            > self
+              .avg_time_spent_in_store
+              .unwrap_or_default()
+              .saturating_mul(2);
+          let mut timeout = self.idle_timeout;
+          if is_initial_store {
+            timeout = timeout.min(self.idle_timeout_for_initial_store);
+          }
+          if is_large_change {
+            timeout = timeout.min(self.idle_timeout_after_large_changes);
+          }
+          self.idle_deadline = Some(IdleDeadline {
+            at: Instant::now() + timeout,
+            epoch,
+          });
         }
-        if is_large_change {
-          timeout = timeout.min(self.idle_timeout_after_large_changes);
-        }
-        self.idle_deadline = Some(Instant::now() + timeout);
       }
       Command::EndIdle => {
         self.idle_deadline = None;
@@ -137,9 +168,9 @@ impl BackgroundJob {
     false
   }
 
-  async fn process_idle_tasks(&mut self) {
+  async fn process_idle_tasks(&mut self, check_idle_ended: impl FnMut() -> bool) {
     let start = Instant::now();
-    if let Err(error) = self.strategy.after_all_stored().await {
+    if let Err(error) = self.strategy.after_all_stored(check_idle_ended).await {
       tracing::warn!("Finalizing idle file cache store failed: {error}");
       return;
     }
@@ -160,28 +191,27 @@ impl BackgroundJob {
 #[derive(Debug)]
 pub struct IdleFileCache {
   command_sender: mpsc::UnboundedSender<Command>,
+  idle_epoch: Arc<AtomicU64>,
 }
 
 impl IdleFileCache {
-  pub fn new(strategy: FileCacheStrategy) -> Self {
-    Self::with_timeouts(
-      strategy,
-      DEFAULT_IDLE_TIMEOUT,
-      DEFAULT_IDLE_TIMEOUT_FOR_INITIAL_STORE,
-      DEFAULT_IDLE_TIMEOUT_AFTER_LARGE_CHANGES,
-    )
-  }
-
-  pub fn with_timeouts(
+  pub fn new(
     strategy: FileCacheStrategy,
-    idle_timeout: Duration,
-    idle_timeout_for_initial_store: Duration,
-    idle_timeout_after_large_changes: Duration,
+    idle_timeout: Option<Duration>,
+    idle_timeout_for_initial_store: Option<Duration>,
+    idle_timeout_after_large_changes: Option<Duration>,
   ) -> Self {
+    let idle_timeout = idle_timeout.unwrap_or(DEFAULT_IDLE_TIMEOUT);
+    let idle_timeout_for_initial_store =
+      idle_timeout_for_initial_store.unwrap_or(DEFAULT_IDLE_TIMEOUT_FOR_INITIAL_STORE);
+    let idle_timeout_after_large_changes =
+      idle_timeout_after_large_changes.unwrap_or(DEFAULT_IDLE_TIMEOUT_AFTER_LARGE_CHANGES);
     let (command_sender, command_receiver) = mpsc::unbounded_channel();
+    let idle_epoch = Arc::new(AtomicU64::new(0));
     let background_job = BackgroundJob {
       strategy,
       command_receiver,
+      idle_epoch: Arc::clone(&idle_epoch),
       idle_deadline: None,
       idle_timeout,
       idle_timeout_for_initial_store,
@@ -200,7 +230,10 @@ impl IdleFileCache {
       })
       .expect("failed to spawn idle file cache background thread");
 
-    Self { command_sender }
+    Self {
+      command_sender,
+      idle_epoch,
+    }
   }
 
   fn send(&self, command: Command) -> Result<()> {
@@ -253,10 +286,13 @@ impl IdleFileCache {
   }
 
   pub fn begin_idle(&self) -> Result<()> {
-    self.send(Command::BeginIdle)
+    self.send(Command::BeginIdle {
+      epoch: self.idle_epoch.load(Ordering::Acquire),
+    })
   }
 
   pub fn end_idle(&self) -> Result<()> {
+    self.idle_epoch.fetch_add(1, Ordering::Release);
     self.send(Command::EndIdle)
   }
 
