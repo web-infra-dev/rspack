@@ -18,7 +18,7 @@ use crate::{
   BuildInfo, BuildMeta, ChunkGraph, CodeGenerationData, Compilation, CompilerOptions,
   ConcatenationScope, Context, DependencyLocation, DependencyRange, EvaluatedInlinableValue,
   FactoryMeta, GeneratorOptions, Module, ModuleCodeTemplate, ModuleGraph, ModuleIdentifier,
-  ModuleLayer, ModuleType, NormalModule, ParserOptions, RuntimeSpec, SourceType,
+  ModuleLayer, ModuleType, NormalModule, ParserOptions, RuntimeGlobals, RuntimeSpec, SourceType,
 };
 
 #[derive(Debug)]
@@ -130,6 +130,18 @@ impl GenerateContext<'_> {
   pub fn take_analyzed_concatenation_source(&mut self) -> Option<ReplaceSource> {
     self.analyzed_concatenation_source.take()
   }
+
+  /// Renders a runtime global and records the identifiers referenced by the
+  /// rendered expression for generated concatenation sources.
+  pub fn render_runtime_globals(&mut self, runtime_globals: &RuntimeGlobals) -> String {
+    let rendered = self
+      .runtime_template
+      .render_runtime_globals(runtime_globals);
+    if let Some(scope) = self.concatenation_scope.as_deref_mut() {
+      scope.register_used_names_from_generated_code(&rendered);
+    }
+    rendered
+  }
 }
 
 #[derive(Debug, Clone)]
@@ -180,7 +192,8 @@ pub enum ConcatenationScopeInfoMode {
   /// during make.
   AnalyzeAtMake,
   /// The module has no original JavaScript scope. Its generator must register
-  /// every generated binding through `ConcatenationScope`.
+  /// every generated binding and referenced identifier through
+  /// `ConcatenationScope`.
   GenerateAtCodegen,
   /// The parser and generator cannot participate in module concatenation.
   Unsupported,

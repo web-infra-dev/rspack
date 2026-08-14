@@ -577,9 +577,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
           } else {
             format!(
               "{}({})",
-              generate_context
-                .runtime_template
-                .render_runtime_globals(&RuntimeGlobals::TO_BINARY),
+              generate_context.render_runtime_globals(&RuntimeGlobals::TO_BINARY),
               rspack_util::json_stringify_str(&encoded_source)
             )
           }
@@ -658,9 +656,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
           } else {
             format!(
               r#"{} + "{}""#,
-              generate_context
-                .runtime_template
-                .render_runtime_globals(&RuntimeGlobals::PUBLIC_PATH),
+              generate_context.render_runtime_globals(&RuntimeGlobals::PUBLIC_PATH),
               original_filename
             )
           };
@@ -706,6 +702,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
             } else {
               let supports_const = compilation.options.output.environment.supports_const();
               let declaration_kind = if supports_const { "const" } else { "var" };
+              scope.register_used_name("require".into());
               return Ok(render_concatenated_asset_source(
                 scope,
                 &format!("{declaration_kind} "),

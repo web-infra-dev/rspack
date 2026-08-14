@@ -333,6 +333,20 @@ impl ConcatenationScope {
     symbol
   }
 
+  pub fn register_used_name(&mut self, name: Atom) {
+    let Some(info) = self.faster_module_concatenation_info.as_deref_mut() else {
+      return;
+    };
+    info.added_used_names.push(name);
+  }
+
+  pub fn register_used_names_from_generated_code(&mut self, code: &str) {
+    let Some(info) = self.faster_module_concatenation_info.as_deref_mut() else {
+      return;
+    };
+    add_used_names_from_generated_code(info, code);
+  }
+
   pub fn remove_original_range(&mut self, range: DependencyRange) {
     self.record_source_edit(Some(range), None);
   }

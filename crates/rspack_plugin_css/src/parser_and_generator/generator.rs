@@ -139,7 +139,6 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     self.css_inject_style.get_or_insert_with(|| {
       self
         .generate_context
-        .runtime_template
         .render_runtime_globals(&RuntimeGlobals::CSS_INJECT_STYLE)
     })
   }
@@ -148,7 +147,6 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     self.css_style_sheet.get_or_insert_with(|| {
       self
         .generate_context
-        .runtime_template
         .render_runtime_globals(&RuntimeGlobals::CSS_STYLE_SHEET)
     })
   }
@@ -470,7 +468,6 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     (
       self
         .generate_context
-        .runtime_template
         .render_runtime_globals(&RuntimeGlobals::REQUIRE),
       "(",
       ")",
@@ -495,7 +492,6 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     (
       self
         .generate_context
-        .runtime_template
         .render_runtime_globals(&RuntimeGlobals::MAKE_NAMESPACE_OBJECT),
       "(",
       ")",
@@ -745,6 +741,9 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
         .generate_context
         .runtime_template
         .define_es_module_flag_statement(exports_argument);
+      if let Some(scope) = self.generate_context.concatenation_scope.as_deref_mut() {
+        scope.register_used_names_from_generated_code(&esm_flag);
+      }
       self.concat_source.add(RawStringSource::from(esm_flag));
     }
 

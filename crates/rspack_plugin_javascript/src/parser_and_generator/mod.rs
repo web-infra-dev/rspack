@@ -530,6 +530,10 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       if is_concatenated_codegen {
         let rendered_fragments =
           render_init_fragments_to_strings(init_fragments, generate_context)?;
+        if let Some(scope) = concatenation_scope.as_deref_mut() {
+          scope.register_used_names_from_generated_code(&rendered_fragments.start);
+          scope.register_used_names_from_generated_code(&rendered_fragments.end);
+        }
         if !rendered_fragments.is_empty() {
           generate_context.data.insert(rendered_fragments);
         }

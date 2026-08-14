@@ -213,7 +213,8 @@ impl ParserAndGenerator for JsonParserAndGenerator {
         let is_js_object = final_json.is_object() || final_json.is_array();
         let final_json_string = stringify(final_json);
         let json_str = utils::escape_json(&final_json_string);
-        let json_expr = if self.json_parse && is_js_object && json_str.len() > 20 {
+        let use_json_parse = self.json_parse && is_js_object && json_str.len() > 20;
+        let json_expr = if use_json_parse {
           Cow::Owned(format!(
             "/*#__PURE__*/JSON.parse('{}')",
             json_str.cow_replace('\\', r"\\").cow_replace('\'', r"\'")
@@ -222,6 +223,9 @@ impl ParserAndGenerator for JsonParserAndGenerator {
           json_str.cow_replace("\"__proto__\":", "[\"__proto__\"]:")
         };
         if let Some(scope) = concatenation_scope {
+          if use_json_parse {
+            scope.register_used_name("JSON".into());
+          }
           let faster_module_concatenation = scope.is_faster_module_concatenation();
           let namespace_export = scope.register_generated_namespace_export(NAMESPACE_OBJECT_EXPORT);
           let rendered_namespace_export = if faster_module_concatenation {
