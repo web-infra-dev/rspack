@@ -41,17 +41,17 @@
 .my-app-at-rule-value_module_css-foo { height: 40px; height: 36px; }
 
 
-.my-app-at-rule-value_module_css-colorValue {
+.my-app-at-rule-value_module_css-colorValue-cls {
 	color: red;
 }
 
 
-#my-app-at-rule-value_module_css-colorValue-v1 {
+#my-app-at-rule-value_module_css-colorValue-v1-id {
 	color: red;
 }
 
 
-.my-app-at-rule-value_module_css-colorValue-v2 > .my-app-at-rule-value_module_css-colorValue-v2 {
+.my-app-at-rule-value_module_css-colorValue-v2-cls > .my-app-at-rule-value_module_css-colorValue-v2-cls {
 	color: red;
 }
 
@@ -119,7 +119,7 @@ colorValue-v3 {
 :root { --my-app-at-rule-value_module_css-color: /* comment */; }
 
 
-.my-app-at-rule-value_module_css-override {
+.my-app-at-rule-value_module_css-override-cls {
 	color: var(--color);
 }
 
@@ -131,12 +131,12 @@ colorValue-v3 {
 }
 
 
-.my-app-at-rule-value_module_css-color {
+.my-app-at-rule-value_module_css-color-cls {
 	color: /* test */red/* test */;
 }
 
 
-.my-app-at-rule-value_module_css-color {
+.my-app-at-rule-value_module_css-color-cls {
 	color: /* test *//* test */red/* test */;
 }
 
@@ -168,7 +168,7 @@ colorValue-v3 {
 .my-app-at-rule-value_module_css-foo { color: red; }
 
 
-.my-app-at-rule-value_module_css-color {
+.my-app-at-rule-value_module_css-color-cls {
 	color: /*
 	multiline
 	comment
@@ -324,7 +324,7 @@ div {
 	--my-app-var-function_module_css-not-override-class: red;
 }
 
-.my-app-var-function_module_css-not-override-class {
+.my-app-var-function_module_css-not-override-class-cls {
 	color: var(--my-app-var-function_module_css-not-override-class from "./var-function-export.modules.css")
 }
 
@@ -790,6 +790,10 @@ div {
 	-webkit-animation-name: my-app-style_module_css-animationName;
 }
 
+.my-app-style_module_css-animationTimeline {
+	animation: Xs auto my-app-style_module_css-animationName;
+}
+
 .my-app-style_module_css-d {
 	--my-app-style_module_css-animation-name: animationName;
 }
@@ -903,7 +907,7 @@ div {
 		}
 	}
 
-	@container foo {
+	@container foo-c {
 		background: red;
 
 		.my-app-style_module_css-nested-layer {
@@ -1047,10 +1051,10 @@ div {
 }
 
 :root {
-	--my-app-style_module_css-test: dark;
+	--my-app-style_module_css-test-prop: dark;
 }
 
-@media screen and (prefers-color-scheme: var(--my-app-style_module_css-test)) {
+@media screen and (prefers-color-scheme: var(--my-app-style_module_css-test-prop)) {
 	.my-app-style_module_css-baz {
 		color: white;
 	}
@@ -1070,18 +1074,18 @@ div {
 
 .my-app-style_module_css-class {
 	animation:
-		my-app-style_module_css-foo var(--my-app-style_module_css-animation-name) Xs,
+		foo var(--my-app-style_module_css-animation-name) Xs,
 		var(--my-app-style_module_css-animation-name) Xs,
 		Xs linear Xs infinite running my-app-style_module_css-slidein,
-		Xs linear env(foo, var(--my-app-style_module_css-baz)) infinite running my-app-style_module_css-slidein;
+		Xs linear env(foo, var(--my-app-style_module_css-baz-prop)) infinite running my-app-style_module_css-slidein;
 }
 
 :root {
-	--my-app-style_module_css-baz: 10px;
+	--my-app-style_module_css-baz-prop: 10px;
 }
 
 .my-app-style_module_css-class {
-	bar: env(foo, var(--my-app-style_module_css-baz));
+	bar: env(foo, var(--my-app-style_module_css-baz-prop));
 }
 
 .global-foo, .my-app-style_module_css-bar {
@@ -1122,14 +1126,14 @@ div {
 }
 
 :root {
-	--my-app-style_module_css-foo: red;
+	--my-app-style_module_css-foo-prop: red;
 }
 
 .again-again-global {
-	color: var(--my-app-style_module_css-foo);
+	color: var(--my-app-style_module_css-foo-prop);
 
 	.again-again-global {
-		color: var(--my-app-style_module_css-foo);
+		color: var(--my-app-style_module_css-foo-prop);
 	}
 }
 
@@ -1146,7 +1150,7 @@ div {
 	}
 }
 
-@unknown var(--my-app-style_module_css-foo) {
+@unknown var(--my-app-style_module_css-foo-prop) {
 	color: red;
 }
 
@@ -1339,30 +1343,30 @@ div {
 	list-style: upper-roman inside;
 	list-style: circle outside;
 	list-style: none disc;
-	list-style: none url("7bc91c245a8a10a4.png");
+	list-style: none url("c70fe6cc89bc50bd.png");
 	list-style: none;
-	list-style: none disc url("7bc91c245a8a10a4.png");
+	list-style: none disc url("c70fe6cc89bc50bd.png");
 	list-style: lower-alpha;
 	list-style: disc;
 	list-style: square;
-	list-style: url("7bc91c245a8a10a4.png");
-	list-style: georgian inside url("7bc91c245a8a10a4.png");
-	list-style: georgian outside url("7bc91c245a8a10a4.png");
+	list-style: url("c70fe6cc89bc50bd.png");
+	list-style: georgian inside url("c70fe6cc89bc50bd.png");
+	list-style: georgian outside url("c70fe6cc89bc50bd.png");
 	/* type */
 	list-style: square;
 
 	/* image */
-	list-style: url("7bc91c245a8a10a4.png");
+	list-style: url("c70fe6cc89bc50bd.png");
 
 	/* position */
 	list-style: inside;
 
 	/* two values */
 	list-style: georgian outside;
-	list-style: url("7bc91c245a8a10a4.png") inside;
+	list-style: url("c70fe6cc89bc50bd.png") inside;
 
 	/* three values */
-	list-style: lower-roman url("7bc91c245a8a10a4.png") outside;
+	list-style: lower-roman url("c70fe6cc89bc50bd.png") outside;
 
 	/* Keyword value */
 	list-style: none;
@@ -1399,7 +1403,7 @@ div {
 	}
 }
 
-@container card (width > 400px), style(--responsive: true), scroll-state(stuck: top) {
+@container card-c (width > 400px), style(--responsive: true), scroll-state(stuck: top) {
 	h2 {
 		font-size: 1.5em;
 	}
@@ -1467,8 +1471,8 @@ div {
 	font-palette: my-app-style_module_css-identifier;
 }
 
-@keyframes my-app-style_module_css-foo { /* ... */ }
-@keyframes "foo" { /* ... */ }
+@keyframes my-app-style_module_css-foo-kf { /* ... */ }
+@keyframes "foo-kf-str" { /* ... */ }
 @keyframes { /* ... */ }
 @keyframes{ /* ... */ }
 
@@ -1633,10 +1637,10 @@ div {
 	}
 }
 
-#my-app-style_module_css-test {
+#my-app-style_module_css-test-id {
 	c: 1;
 
-	#my-app-style_module_css-test {
+	#my-app-style_module_css-test-id {
 		c: 2;
 	}
 }
@@ -1768,17 +1772,17 @@ div {
 	background-color-3: var(/**comment**/--my-app-style_module_css-item-color/**comment**/);
 }
 
-@keyframes/**test**/my-app-style_module_css-foo { /* ... */ }
-@keyframes /**test**/my-app-style_module_css-foo { /* ... */ }
-@keyframes/**test**/ my-app-style_module_css-foo { /* ... */ }
-@keyframes /**test**/ my-app-style_module_css-foo { /* ... */ }
-@keyframes /**test**//**test**/ my-app-style_module_css-foo { /* ... */ }
-@keyframes /**test**/ /**test**/ my-app-style_module_css-foo { /* ... */ }
-@keyframes /**test**/ /**test**/my-app-style_module_css-foo { /* ... */ }
-@keyframes /**test**//**test**/my-app-style_module_css-foo { /* ... */ }
-@keyframes/**test**//**test**/my-app-style_module_css-foo { /* ... */ }
-@keyframes/**test**//**test**/my-app-style_module_css-foo/**test**//**test**/{ /* ... */ }
-@keyframes /**test**/ /**test**/ my-app-style_module_css-foo /**test**/ /**test**/ { /* ... */ }
+@keyframes/**test**/my-app-style_module_css-foo-kf2 { /* ... */ }
+@keyframes /**test**/my-app-style_module_css-foo-kf2 { /* ... */ }
+@keyframes/**test**/ my-app-style_module_css-foo-kf2 { /* ... */ }
+@keyframes /**test**/ my-app-style_module_css-foo-kf2 { /* ... */ }
+@keyframes /**test**//**test**/ my-app-style_module_css-foo-kf2 { /* ... */ }
+@keyframes /**test**/ /**test**/ my-app-style_module_css-foo-kf2 { /* ... */ }
+@keyframes /**test**/ /**test**/my-app-style_module_css-foo-kf2 { /* ... */ }
+@keyframes /**test**//**test**/my-app-style_module_css-foo-kf2 { /* ... */ }
+@keyframes/**test**//**test**/my-app-style_module_css-foo-kf2 { /* ... */ }
+@keyframes/**test**//**test**/my-app-style_module_css-foo-kf2/**test**//**test**/{ /* ... */ }
+@keyframes /**test**/ /**test**/ my-app-style_module_css-foo-kf2 /**test**/ /**test**/ { /* ... */ }
 
 ./**test**//**test**/class {
 	background: red;
@@ -1790,19 +1794,19 @@ div {
 
 .my-app-style_module_css-var {
 	--my-app-style_module_css-main-color: black;
-	--my-app-style_module_css-FOO: 10px;
-	--my-app-style_module_css-foo: 10px;
-	--my-app-style_module_css-bar: calc(var(--my-app-style_module_css-foo) + 10px);
+	--my-app-style_module_css-FOO-prop: 10px;
+	--my-app-style_module_css-foo-prop: 10px;
+	--my-app-style_module_css-bar-prop: calc(var(--my-app-style_module_css-foo-prop) + 10px);
 	--my-app-style_module_css-accent-background: linear-gradient(to top, var(--my-app-style_module_css-main-color), white);
 	--my-app-style_module_css-external-link: "test";
 	--my-app-style_module_css-custom-prop: yellow;
 	--my-app-style_module_css-default-value: red;
 	--my-app-style_module_css-main-bg-color: red;
 	--my-app-style_module_css-backup-bg-color: black;
-	-foo: calc(var(--my-app-style_module_css-bar) + 10px);
+	-foo: calc(var(--my-app-style_module_css-bar-prop) + 10px);
 	var: var(--my-app-style_module_css-main-color);
-	var1: var(--my-app-style_module_css-foo);
-	var2: var(--my-app-style_module_css-FOO);
+	var1: var(--my-app-style_module_css-foo-prop);
+	var2: var(--my-app-style_module_css-FOO-prop);
 	content: " (" var(--my-app-style_module_css-external-link) ")";
 	var3: var(--my-app-style_module_css-main-color, blue);
 	var4: var(--my-app-style_module_css-custom-prop,);
@@ -1814,8 +1818,8 @@ div {
 }
 
 .my-app-style_module_css-var-order {
-	background-color: var(--my-app-style_module_css-test);
-	--my-app-style_module_css-test: red;
+	background-color: var(--my-app-style_module_css-test-prop);
+	--my-app-style_module_css-test-prop: red;
 }
 
 .my-app-style_module_css-className {
@@ -1886,10 +1890,10 @@ div {
 	width: --my-app-style_module_css-max-plus-x({1px, 7px, 2px}, 3px); /* 10px */
 }
 
-@function --my-app-style_module_css-anim-Xs(--animation, --count) {
+@function --my-app-style_module_css-anim-Xs(--animation-prop, --count) {
 	--my-app-style_module_css-duration: Xs;
 	--my-app-style_module_css-easing: linear;
-	result: var(--animation) var(--my-app-style_module_css-duration) var(--count) var(--my-app-style_module_css-easing);
+	result: var(--animation-prop) var(--my-app-style_module_css-duration) var(--count) var(--my-app-style_module_css-easing);
 }
 
 div {
@@ -2015,7 +2019,7 @@ section {
 	}
 }
 
-@keyframes my-app-style_module_css-broken;
+@keyframes my-app-style_module_css-broken-kf;
 
 .my-app-style_module_css-class-name-after-broken-keyframes {
 	color: red;
@@ -2052,16 +2056,16 @@ section {
 .my-app-style_module_css-class{.my-app-style_module_css-class{}}
 .my-app-style_module_css-class{color:#fff5f5}
 .my-app-style_module_css-class{.my-app-style_module_css-class{color:#f1f1f1}}
-.my-app-style_module_css-class{--my-app-style_module_css-foo:#fff5f5}
-.my-app-style_module_css-class{--my-app-style_module_css-foo:#fff5f5;color:#f1f1f1}
-.my-app-style_module_css-class{--my-app-style_module_css-foo:#fff5f5;color:#f1f1f1;}
-.my-app-style_module_css-class{--my-app-style_module_css-foo:#fff5f5;color:#f1f1f1;.my-app-style_module_css-class{color:#f1f1f1}}
-.my-app-style_module_css-class{--my-app-style_module_css-foo:#fff5f5;.my-app-style_module_css-class{color:#f1f1f1}color:#f1f1f1;}
-.my-app-style_module_css-class{.my-app-style_module_css-class{color:#f1f1f1}--my-app-style_module_css-foo:#fff5f5;color:#f1f1f1;}
+.my-app-style_module_css-class{--my-app-style_module_css-foo-prop:#fff5f5}
+.my-app-style_module_css-class{--my-app-style_module_css-foo-prop:#fff5f5;color:#f1f1f1}
+.my-app-style_module_css-class{--my-app-style_module_css-foo-prop:#fff5f5;color:#f1f1f1;}
+.my-app-style_module_css-class{--my-app-style_module_css-foo-prop:#fff5f5;color:#f1f1f1;.my-app-style_module_css-class{color:#f1f1f1}}
+.my-app-style_module_css-class{--my-app-style_module_css-foo-prop:#fff5f5;.my-app-style_module_css-class{color:#f1f1f1}color:#f1f1f1;}
+.my-app-style_module_css-class{.my-app-style_module_css-class{color:#f1f1f1}--my-app-style_module_css-foo-prop:#fff5f5;color:#f1f1f1;}
 /* TODO fix, but this syntax is not used anywhere */
-.my-app-style_module_css-class{--my-app-style_module_css-bar:{1, 'string', .class, #f1f1f1, #id}}
-.my-app-style_module_css-class{--my-app-style_module_css-baz:[1, "string", .class, #f1f1f1, #id]}
-.my-app-style_module_css-class{--my-app-style_module_css-baz:(1, "string", .class, #f1f1f1, #id)}
+.my-app-style_module_css-class{--my-app-style_module_css-bar-prop:{1, 'string', .class, #f1f1f1, #id}}
+.my-app-style_module_css-class{--my-app-style_module_css-baz-prop:[1, "string", .class, #f1f1f1, #id]}
+.my-app-style_module_css-class{--my-app-style_module_css-baz-prop:(1, "string", .class, #f1f1f1, #id)}
 
 /* Cases for `css/global` */
 

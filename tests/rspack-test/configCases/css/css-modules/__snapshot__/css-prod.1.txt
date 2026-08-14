@@ -41,17 +41,17 @@
 ._53YyBY { height: 40px; height: 36px; }
 
 
-.sqw_Zm {
+.d4o-3Z {
 	color: red;
 }
 
 
-#_X56p0 {
+#n0aAP9 {
 	color: red;
 }
 
 
-.ut308C > .ut308C {
+.GVRuz9 > .GVRuz9 {
 	color: red;
 }
 
@@ -119,7 +119,7 @@ colorValue-v3 {
 :root { --XzKrP9: /* comment */; }
 
 
-._9Xx8z_ {
+.n_7la9 {
 	color: var(--color);
 }
 
@@ -131,12 +131,12 @@ colorValue-v3 {
 }
 
 
-.XzKrP9 {
+.B7HHX5 {
 	color: /* test */red/* test */;
 }
 
 
-.XzKrP9 {
+.B7HHX5 {
 	color: /* test *//* test */red/* test */;
 }
 
@@ -168,7 +168,7 @@ colorValue-v3 {
 ._53YyBY { color: red; }
 
 
-.XzKrP9 {
+.B7HHX5 {
 	color: /*
 	multiline
 	comment
@@ -324,7 +324,7 @@ div {
 	--I7bLGr: red;
 }
 
-.I7bLGr {
+._1D83RF {
 	color: var(--I7bLGr from "./var-function-export.modules.css")
 }
 
@@ -790,6 +790,10 @@ div {
 	-webkit-animation-name: RI1Z9k;
 }
 
+.K00pSt {
+	animation: Xs auto RI1Z9k;
+}
+
 .kml5-V {
 	--Izh8-t: animationName;
 }
@@ -903,7 +907,7 @@ div {
 		}
 	}
 
-	@container foo {
+	@container foo-c {
 		background: red;
 
 		.x_NTS1 {
@@ -1047,10 +1051,10 @@ div {
 }
 
 :root {
-	--_0YMf4L: dark;
+	--e5gXym: dark;
 }
 
-@media screen and (prefers-color-scheme: var(--_0YMf4L)) {
+@media screen and (prefers-color-scheme: var(--e5gXym)) {
 	.vtps9y {
 		color: white;
 	}
@@ -1070,18 +1074,18 @@ div {
 
 .fcj_Kv {
 	animation:
-		MuV03G var(--Izh8-t) Xs,
+		foo var(--Izh8-t) Xs,
 		var(--Izh8-t) Xs,
 		Xs linear Xs infinite running sL-lKs,
-		Xs linear env(foo, var(--vtps9y)) infinite running sL-lKs;
+		Xs linear env(foo, var(--bJx2mV)) infinite running sL-lKs;
 }
 
 :root {
-	--vtps9y: 10px;
+	--bJx2mV: 10px;
 }
 
 .fcj_Kv {
-	bar: env(foo, var(--vtps9y));
+	bar: env(foo, var(--bJx2mV));
 }
 
 .global-foo, ._1z-NWQ {
@@ -1122,14 +1126,14 @@ div {
 }
 
 :root {
-	--MuV03G: red;
+	--_1Yn-0i: red;
 }
 
 .again-again-global {
-	color: var(--MuV03G);
+	color: var(--_1Yn-0i);
 
 	.again-again-global {
-		color: var(--MuV03G);
+		color: var(--_1Yn-0i);
 	}
 }
 
@@ -1146,7 +1150,7 @@ div {
 	}
 }
 
-@unknown var(--MuV03G) {
+@unknown var(--_1Yn-0i) {
 	color: red;
 }
 
@@ -1339,30 +1343,30 @@ div {
 	list-style: upper-roman inside;
 	list-style: circle outside;
 	list-style: none disc;
-	list-style: none url("7bc91c245a8a10a4.png");
+	list-style: none url("c70fe6cc89bc50bd.png");
 	list-style: none;
-	list-style: none disc url("7bc91c245a8a10a4.png");
+	list-style: none disc url("c70fe6cc89bc50bd.png");
 	list-style: lower-alpha;
 	list-style: disc;
 	list-style: square;
-	list-style: url("7bc91c245a8a10a4.png");
-	list-style: georgian inside url("7bc91c245a8a10a4.png");
-	list-style: georgian outside url("7bc91c245a8a10a4.png");
+	list-style: url("c70fe6cc89bc50bd.png");
+	list-style: georgian inside url("c70fe6cc89bc50bd.png");
+	list-style: georgian outside url("c70fe6cc89bc50bd.png");
 	/* type */
 	list-style: square;
 
 	/* image */
-	list-style: url("7bc91c245a8a10a4.png");
+	list-style: url("c70fe6cc89bc50bd.png");
 
 	/* position */
 	list-style: inside;
 
 	/* two values */
 	list-style: georgian outside;
-	list-style: url("7bc91c245a8a10a4.png") inside;
+	list-style: url("c70fe6cc89bc50bd.png") inside;
 
 	/* three values */
-	list-style: lower-roman url("7bc91c245a8a10a4.png") outside;
+	list-style: lower-roman url("c70fe6cc89bc50bd.png") outside;
 
 	/* Keyword value */
 	list-style: none;
@@ -1399,7 +1403,7 @@ div {
 	}
 }
 
-@container card (width > 400px), style(--responsive: true), scroll-state(stuck: top) {
+@container card-c (width > 400px), style(--responsive: true), scroll-state(stuck: top) {
 	h2 {
 		font-size: 1.5em;
 	}
@@ -1467,8 +1471,8 @@ div {
 	font-palette: r07wcT;
 }
 
-@keyframes MuV03G { /* ... */ }
-@keyframes "foo" { /* ... */ }
+@keyframes _48kaEr { /* ... */ }
+@keyframes "foo-kf-str" { /* ... */ }
 @keyframes { /* ... */ }
 @keyframes{ /* ... */ }
 
@@ -1633,10 +1637,10 @@ div {
 	}
 }
 
-#_0YMf4L {
+#N5LCkG {
 	c: 1;
 
-	#_0YMf4L {
+	#N5LCkG {
 		c: 2;
 	}
 }
@@ -1768,17 +1772,17 @@ div {
 	background-color-3: var(/**comment**/--SSpMFc/**comment**/);
 }
 
-@keyframes/**test**/MuV03G { /* ... */ }
-@keyframes /**test**/MuV03G { /* ... */ }
-@keyframes/**test**/ MuV03G { /* ... */ }
-@keyframes /**test**/ MuV03G { /* ... */ }
-@keyframes /**test**//**test**/ MuV03G { /* ... */ }
-@keyframes /**test**/ /**test**/ MuV03G { /* ... */ }
-@keyframes /**test**/ /**test**/MuV03G { /* ... */ }
-@keyframes /**test**//**test**/MuV03G { /* ... */ }
-@keyframes/**test**//**test**/MuV03G { /* ... */ }
-@keyframes/**test**//**test**/MuV03G/**test**//**test**/{ /* ... */ }
-@keyframes /**test**/ /**test**/ MuV03G /**test**/ /**test**/ { /* ... */ }
+@keyframes/**test**/_04p16N { /* ... */ }
+@keyframes /**test**/_04p16N { /* ... */ }
+@keyframes/**test**/ _04p16N { /* ... */ }
+@keyframes /**test**/ _04p16N { /* ... */ }
+@keyframes /**test**//**test**/ _04p16N { /* ... */ }
+@keyframes /**test**/ /**test**/ _04p16N { /* ... */ }
+@keyframes /**test**/ /**test**/_04p16N { /* ... */ }
+@keyframes /**test**//**test**/_04p16N { /* ... */ }
+@keyframes/**test**//**test**/_04p16N { /* ... */ }
+@keyframes/**test**//**test**/_04p16N/**test**//**test**/{ /* ... */ }
+@keyframes /**test**/ /**test**/ _04p16N /**test**/ /**test**/ { /* ... */ }
 
 ./**test**//**test**/class {
 	background: red;
@@ -1790,19 +1794,19 @@ div {
 
 .BG-v_q {
 	--xWZ2aM: black;
-	--djPUes: 10px;
-	--MuV03G: 10px;
-	--_1z-NWQ: calc(var(--MuV03G) + 10px);
+	--bHejnv: 10px;
+	--_1Yn-0i: 10px;
+	--is-7Tm: calc(var(--_1Yn-0i) + 10px);
 	--Soclk5: linear-gradient(to top, var(--xWZ2aM), white);
 	--vS5bup: "test";
 	--FX2gtr: yellow;
 	--_-6V3O3: red;
 	--_OOLac: red;
 	--YyhE-H: black;
-	-foo: calc(var(--_1z-NWQ) + 10px);
+	-foo: calc(var(--is-7Tm) + 10px);
 	var: var(--xWZ2aM);
-	var1: var(--MuV03G);
-	var2: var(--djPUes);
+	var1: var(--_1Yn-0i);
+	var2: var(--bHejnv);
 	content: " (" var(--vS5bup) ")";
 	var3: var(--xWZ2aM, blue);
 	var4: var(--FX2gtr,);
@@ -1814,8 +1818,8 @@ div {
 }
 
 .WXQOB_ {
-	background-color: var(--_0YMf4L);
-	--_0YMf4L: red;
+	background-color: var(--e5gXym);
+	--e5gXym: red;
 }
 
 .DrrzNO {
@@ -1886,10 +1890,10 @@ div {
 	width: --mlLu9U({1px, 7px, 2px}, 3px); /* 10px */
 }
 
-@function --cMEszn(--animation, --count) {
+@function --cMEszn(--animation-prop, --count) {
 	--oenVZF: Xs;
 	--rodwL7: linear;
-	result: var(--animation) var(--oenVZF) var(--count) var(--rodwL7);
+	result: var(--animation-prop) var(--oenVZF) var(--count) var(--rodwL7);
 }
 
 div {
@@ -2015,7 +2019,7 @@ section {
 	}
 }
 
-@keyframes zSepSy;
+@keyframes bSIRp2;
 
 ._2fTIpl {
 	color: red;
@@ -2052,16 +2056,16 @@ section {
 .fcj_Kv{.fcj_Kv{}}
 .fcj_Kv{color:#fff5f5}
 .fcj_Kv{.fcj_Kv{color:#f1f1f1}}
-.fcj_Kv{--MuV03G:#fff5f5}
-.fcj_Kv{--MuV03G:#fff5f5;color:#f1f1f1}
-.fcj_Kv{--MuV03G:#fff5f5;color:#f1f1f1;}
-.fcj_Kv{--MuV03G:#fff5f5;color:#f1f1f1;.fcj_Kv{color:#f1f1f1}}
-.fcj_Kv{--MuV03G:#fff5f5;.fcj_Kv{color:#f1f1f1}color:#f1f1f1;}
-.fcj_Kv{.fcj_Kv{color:#f1f1f1}--MuV03G:#fff5f5;color:#f1f1f1;}
+.fcj_Kv{--_1Yn-0i:#fff5f5}
+.fcj_Kv{--_1Yn-0i:#fff5f5;color:#f1f1f1}
+.fcj_Kv{--_1Yn-0i:#fff5f5;color:#f1f1f1;}
+.fcj_Kv{--_1Yn-0i:#fff5f5;color:#f1f1f1;.fcj_Kv{color:#f1f1f1}}
+.fcj_Kv{--_1Yn-0i:#fff5f5;.fcj_Kv{color:#f1f1f1}color:#f1f1f1;}
+.fcj_Kv{.fcj_Kv{color:#f1f1f1}--_1Yn-0i:#fff5f5;color:#f1f1f1;}
 /* TODO fix, but this syntax is not used anywhere */
-.fcj_Kv{--_1z-NWQ:{1, 'string', .class, #f1f1f1, #id}}
-.fcj_Kv{--vtps9y:[1, "string", .class, #f1f1f1, #id]}
-.fcj_Kv{--vtps9y:(1, "string", .class, #f1f1f1, #id)}
+.fcj_Kv{--is-7Tm:{1, 'string', .class, #f1f1f1, #id}}
+.fcj_Kv{--bJx2mV:[1, "string", .class, #f1f1f1, #id]}
+.fcj_Kv{--bJx2mV:(1, "string", .class, #f1f1f1, #id)}
 
 /* Cases for `css/global` */
 
