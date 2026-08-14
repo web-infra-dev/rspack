@@ -245,8 +245,10 @@ pub(crate) fn populate_info_from_pending(
     let symbol = canonical_names
       .iter()
       .find(|canonical_name| canonical_name.range == pending_ident.range)
-      .map(|canonical_name| canonical_name.name.clone())
-      .unwrap_or_else(|| symbol_from_range(pending_ident.range));
+      .map_or_else(
+        || symbol_from_range(pending_ident.range),
+        |canonical_name| canonical_name.name.clone(),
+      );
     if pending_ident.kind == ConcatenationScopeIdentKind::UsedName {
       module_info.all_used_names.insert(symbol);
       continue;
@@ -322,8 +324,10 @@ pub(crate) fn populate_info_from_pending(
         let binding = canonical_names
           .iter()
           .find(|canonical_name| canonical_name.range == original_ident.range)
-          .map(|canonical_name| canonical_name.name.clone())
-          .unwrap_or_else(|| symbol_from_range(original_range));
+          .map_or_else(
+            || symbol_from_range(original_range),
+            |canonical_name| canonical_name.name.clone(),
+          );
         symbol.resolved_binding = Some(binding.clone());
         binding
       }
