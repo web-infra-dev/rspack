@@ -34,7 +34,7 @@ define.fmt({
       },
     },
     {
-      files: 'deny.toml',
+      files: ['clippy.toml', 'deny.toml'],
       options: {
         arrayAutoExpand: true,
       },
