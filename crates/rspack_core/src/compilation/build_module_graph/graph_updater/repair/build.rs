@@ -1,5 +1,6 @@
 use std::{collections::VecDeque, sync::Arc};
 
+use rspack_cacheable::cacheable;
 use rspack_fs::ReadableFileSystem;
 use rustc_hash::FxHashSet;
 
@@ -7,15 +8,58 @@ use super::{
   TaskContext, lazy::process_unlazy_dependencies, process_dependencies::ProcessDependenciesTask,
 };
 use crate::{
-  AsyncDependenciesBlock, BoxDependency, BoxModule, BuildContext, BuildResult, CompilationId,
-  CompilerId, CompilerOptions, DependencyParents, ModuleCodeTemplate, ResolverFactory,
-  SharedPluginDriver,
+  AsyncDependenciesBlock, BoxDependency, BoxModule, BuildContext, BuildResult, Cache, CacheValue,
+  CompilationId, CompilerId, CompilerOptions, DependencyParents, Module, ModuleCodeTemplate,
+  NormalModuleBuildState, OptimizationBailoutItem, ResolverFactory, SharedPluginDriver,
+  ValueCacheVersions,
   compilation::build_module_graph::{ForwardedIdSet, HasLazyDependencies, LazyDependencies},
+  new_cache::ModuleSnapshot,
   utils::{
     ResourceId,
     task_loop::{Task, TaskResult, TaskType},
   },
 };
+
+const MODULES_CACHE_NAMESPACE: &str = "Compilation/modules";
+
+#[cacheable]
+#[derive(Debug)]
+struct ModuleBuildCacheEntry {
+  state: NormalModuleBuildState,
+  dependencies: Vec<BoxDependency>,
+  blocks: Vec<Box<AsyncDependenciesBlock>>,
+  optimization_bailouts: Vec<OptimizationBailoutItem>,
+  snapshot: ModuleSnapshot,
+}
+
+impl ModuleBuildCacheEntry {
+  fn from_build_result(build_result: &BuildResult, snapshot: ModuleSnapshot) -> Option<Self> {
+    let module = build_result.module.as_normal_module()?;
+    module.build_info().cacheable.then(|| Self {
+      state: module.build_state(),
+      dependencies: build_result.dependencies.clone(),
+      blocks: build_result.blocks.clone(),
+      optimization_bailouts: build_result.optimization_bailouts.clone(),
+      snapshot,
+    })
+  }
+
+  fn restore(&self, module: &mut BoxModule) -> Option<()> {
+    module
+      .as_normal_module_mut()?
+      .restore_build_state(&self.state);
+    Some(())
+  }
+
+  fn build_result(&self, module: BoxModule) -> BuildResult {
+    BuildResult {
+      module,
+      dependencies: self.dependencies.clone(),
+      blocks: self.blocks.clone(),
+      optimization_bailouts: self.optimization_bailouts.clone(),
+    }
+  }
+}
 
 #[derive(Debug)]
 pub struct BuildTask {
@@ -27,6 +71,8 @@ pub struct BuildTask {
   pub runtime_template: ModuleCodeTemplate,
   pub plugin_driver: SharedPluginDriver,
   pub fs: Arc<dyn ReadableFileSystem>,
+  pub cache: Cache,
+  pub value_cache_versions: ValueCacheVersions,
   pub forwarded_ids: ForwardedIdSet,
 }
 
@@ -45,8 +91,49 @@ impl Task<TaskContext> for BuildTask {
       runtime_template,
       mut module,
       fs,
+      cache,
+      value_cache_versions,
       forwarded_ids,
     } = *self;
+
+    let module_cache = if cache.is_enabled() && module.as_normal_module().is_some() {
+      Some(
+        cache
+          .facade(MODULES_CACHE_NAMESPACE)
+          .get_item_cache(module.identifier().as_str(), None),
+      )
+    } else {
+      None
+    };
+
+    if let Some(module_cache) = &module_cache {
+      let entry = match module_cache.get::<ModuleBuildCacheEntry>() {
+        Ok(entry) => entry,
+        Err(error) => {
+          tracing::warn!("Restoring NormalModule build cache failed: {error}");
+          None
+        }
+      };
+      if let Some(entry) = entry
+        && !entry
+          .state
+          .has_value_dependencies_diff(&value_cache_versions)
+        && cache.validate_module_snapshot(&entry.snapshot).await
+        && entry.restore(&mut module).is_some()
+      {
+        plugin_driver
+          .compilation_hooks
+          .still_valid_module
+          .call(compiler_id, compilation_id, &mut module)
+          .await?;
+        return Ok(vec![Box::new(BuildResultTask {
+          build_result: Box::new(entry.build_result(module)),
+          plugin_driver,
+          forwarded_ids,
+          invoke_succeed_module: false,
+        })]);
+      }
+    }
 
     plugin_driver
       .compilation_hooks
@@ -69,11 +156,31 @@ impl Task<TaskContext> for BuildTask {
       )
       .await;
 
+    if let Ok(build_result) = &result
+      && let Some(module_cache) = module_cache
+    {
+      let build_info = build_result.module.build_info();
+      if let Some(snapshot) = cache
+        .create_module_snapshot(
+          build_info.file_dependencies.iter().cloned(),
+          build_info.context_dependencies.iter().cloned(),
+          build_info.missing_dependencies.iter().cloned(),
+        )
+        .await
+        && let Some(entry) = ModuleBuildCacheEntry::from_build_result(build_result, snapshot)
+      {
+        if let Err(error) = module_cache.store(CacheValue::new(entry)) {
+          tracing::warn!("Storing NormalModule build cache failed: {error}");
+        }
+      }
+    }
+
     result.map::<Vec<Box<dyn Task<TaskContext>>>, _>(|build_result| {
       vec![Box::new(BuildResultTask {
         build_result: Box::new(build_result),
         plugin_driver,
         forwarded_ids,
+        invoke_succeed_module: true,
       })]
     })
   }
@@ -84,6 +191,7 @@ struct BuildResultTask {
   pub build_result: Box<BuildResult>,
   pub plugin_driver: SharedPluginDriver,
   pub forwarded_ids: ForwardedIdSet,
+  pub invoke_succeed_module: bool,
 }
 
 #[async_trait::async_trait]
@@ -96,14 +204,17 @@ impl Task<TaskContext> for BuildResultTask {
       build_result,
       plugin_driver,
       mut forwarded_ids,
+      invoke_succeed_module,
     } = *self;
     let mut module = build_result.module;
 
-    plugin_driver
-      .compilation_hooks
-      .succeed_module
-      .call(context.compiler_id, context.compilation_id, &mut module)
-      .await?;
+    if invoke_succeed_module {
+      plugin_driver
+        .compilation_hooks
+        .succeed_module
+        .call(context.compiler_id, context.compilation_id, &mut module)
+        .await?;
+    }
 
     let build_info = module.build_info();
 
@@ -114,7 +225,7 @@ impl Task<TaskContext> for BuildResultTask {
         .insert(module.identifier());
     }
 
-    tracing::trace!("Module built: {}", module.identifier());
+    tracing::trace!("Module integrated: {}", module.identifier());
     context
       .artifact
       .module_graph
