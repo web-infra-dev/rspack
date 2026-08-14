@@ -140,7 +140,7 @@ inventory = { version = "0.3.17", default-features = false }
 rkyv      = { version = "=0.8.18", default-features = false, features = ["std", "bytecheck", "smallvec-1"] }
 
 # Must be pinned with the same swc versions
-pnp                 = { version = "0.12.9", default-features = false }
+pnp                 = { version = "0.12.11", default-features = false }
 swc                 = { version = "74.0.0", default-features = false }
 swc_atoms           = { version = "10.0.0", default-features = false }
 swc_config          = { version = "6.0.0", default-features = false }
@@ -325,9 +325,6 @@ opt-level = "s"
 opt-level = "s"
 
 [profile.release.package.pnp]
-opt-level = "s"
-
-[profile.release.package.fancy-regex]
 opt-level = "s"
 
 [profile.release.package.swc_ecma_loader]
