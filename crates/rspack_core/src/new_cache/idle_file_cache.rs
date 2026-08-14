@@ -23,6 +23,7 @@ use super::{
 const DEFAULT_IDLE_TIMEOUT: Duration = Duration::from_secs(60);
 const DEFAULT_IDLE_TIMEOUT_FOR_INITIAL_STORE: Duration = Duration::from_secs(5);
 const DEFAULT_IDLE_TIMEOUT_AFTER_LARGE_CHANGES: Duration = Duration::from_secs(1);
+const MAX_IDLE_COMPACTION_PASSES: usize = 10;
 
 #[derive(Debug)]
 enum Command {
@@ -170,7 +171,11 @@ impl BackgroundJob {
 
   async fn process_idle_tasks(&mut self, check_idle_ended: impl FnMut() -> bool) {
     let start = Instant::now();
-    if let Err(error) = self.strategy.after_all_stored(check_idle_ended).await {
+    if let Err(error) = self
+      .strategy
+      .after_all_stored(MAX_IDLE_COMPACTION_PASSES, check_idle_ended)
+      .await
+    {
       tracing::warn!("Finalizing idle file cache store failed: {error}");
       return;
     }

@@ -13,7 +13,6 @@ use super::{
 use crate::cache::persistent::codec::CacheCodec;
 
 const BUILD_DEPENDENCIES_KEY: &[u8] = b"build-dependencies";
-const MAX_IDLE_COMPACTION_PASSES: usize = 10;
 
 #[derive(Debug, Default)]
 struct PendingWrites {
@@ -157,6 +156,7 @@ impl FileCacheStrategy {
 
   pub(super) async fn after_all_stored(
     &mut self,
+    max_compaction_passes: usize,
     mut check_idle_ended: impl FnMut() -> bool,
   ) -> Result<()> {
     if self.readonly {
@@ -199,7 +199,7 @@ impl FileCacheStrategy {
       self.pending_writes.build_dependencies = None;
     }
 
-    for _ in 0..MAX_IDLE_COMPACTION_PASSES {
+    for _ in 0..max_compaction_passes {
       if check_idle_ended() {
         return Ok(());
       }
@@ -213,7 +213,7 @@ impl FileCacheStrategy {
   }
 
   pub async fn shutdown(&mut self) -> Result<()> {
-    self.after_all_stored(|| false).await?;
+    self.after_all_stored(1, || false).await?;
 
     self.database.shutdown()?;
     Ok(())
