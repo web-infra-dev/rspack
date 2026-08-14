@@ -13,8 +13,8 @@ use swc_core::{
 
 use super::{
   CONCATENATION_PLACEHOLDER_PREFIX, ConcatenatedModuleInfo, FasterModuleConcatenationInfo,
-  GENERATED_TOP_LEVEL_SYMBOL_PREFIX, GeneratedTopLevelSymbol, MODULE_REFERENCE_PLACEHOLDER_PREFIX,
-  MODULE_REFERENCE_SUFFIX, OriginalScopeIdentUpdate,
+  GENERATED_TOP_LEVEL_SYMBOL_PREFIX, GeneratedTopLevelSymbol, GeneratedTopLevelSymbolTarget,
+  MODULE_REFERENCE_PLACEHOLDER_PREFIX, MODULE_REFERENCE_SUFFIX, OriginalScopeIdentUpdate,
 };
 use crate::{
   ConcatenatedModuleIdent, ConcatenationScope, ConcatenationScopeIdentKind, DependencyRange,
@@ -105,10 +105,11 @@ impl PlaceholderReplacements<'_> {
       .generated_symbols
       .get(index)
       .filter(|symbol| symbol.placeholder == placeholder)?;
-    self
-      .internal_names
-      .get(&symbol.placeholder)
-      .map(Atom::as_str)
+    let binding = match symbol.target {
+      GeneratedTopLevelSymbolTarget::New => &symbol.placeholder,
+      GeneratedTopLevelSymbolTarget::Rebind { .. } => symbol.resolved_binding.as_ref()?,
+    };
+    self.internal_names.get(binding).map(Atom::as_str)
   }
 }
 
@@ -296,10 +297,26 @@ pub(crate) fn populate_info_from_pending(
     );
   }
 
-  for symbol in &module_info.generated_top_level_symbols {
+  for symbol in &mut module_info.generated_top_level_symbols {
+    let binding = match symbol.target {
+      GeneratedTopLevelSymbolTarget::New => symbol.placeholder.clone(),
+      GeneratedTopLevelSymbolTarget::Rebind { original_range } => {
+        assert!(
+          pending_idents.iter().any(|ident| {
+            ident.kind == ConcatenationScopeIdentKind::TopLevel && ident.range == original_range
+          }),
+          "rebound concatenation symbol range {}..{} should refer to a make-time top-level identifier",
+          original_range.start,
+          original_range.end
+        );
+        let binding = symbol_from_range(original_range);
+        symbol.resolved_binding = Some(binding.clone());
+        binding
+      }
+    };
     module_info
       .binding_to_ref
-      .entry((symbol.placeholder.clone(), module_info.module_ctxt))
+      .entry((binding, module_info.module_ctxt))
       .or_default();
   }
   if let Some(export_map) = &module_info.export_map {

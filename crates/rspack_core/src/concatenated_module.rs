@@ -308,6 +308,18 @@ pub type ConcatenatedImportMap =
 pub struct GeneratedTopLevelSymbol {
   pub preferred_name: Atom,
   pub placeholder: Atom,
+  pub target: GeneratedTopLevelSymbolTarget,
+  /// Make-time binding resolved from `original_range` for a rebound symbol.
+  pub resolved_binding: Option<Atom>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum GeneratedTopLevelSymbolTarget {
+  /// A new binding created during code generation.
+  New,
+  /// A declaration recreated during code generation that must stay bound to
+  /// the original make-time binding.
+  Rebind { original_range: DependencyRange },
 }
 
 /// Scope identifier supplied by dependency templates because it cannot be
@@ -1201,7 +1213,9 @@ impl Module for ConcatenatedModule {
               let name = info
                 .generated_top_level_symbols
                 .iter()
-                .find(|symbol| symbol.placeholder == id.0)
+                .find(|symbol| {
+                  symbol.target == GeneratedTopLevelSymbolTarget::New && symbol.placeholder == id.0
+                })
                 .map_or(&id.0, |symbol| &symbol.preferred_name);
               escaped_names
                 .entry(name.clone())
@@ -1282,7 +1296,10 @@ impl Module for ConcatenatedModule {
             let name = info
               .generated_top_level_symbols
               .iter()
-              .find(|symbol| symbol.placeholder == *binding_name)
+              .find(|symbol| {
+                symbol.target == GeneratedTopLevelSymbolTarget::New
+                  && symbol.placeholder == *binding_name
+              })
               .map_or(binding_name, |symbol| &symbol.preferred_name);
             // Check if the name is already used
             let final_name = if name_allocator.contains(name) {

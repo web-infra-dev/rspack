@@ -1,7 +1,7 @@
 use std::fmt::Debug;
 
 use dyn_clone::{DynClone, clone_trait_object};
-use rspack_cacheable::cacheable_dyn;
+use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_hash::RspackHasher;
 use rspack_sources::{ReplaceSource, ReplacementEnforce};
 use rspack_util::ext::AsAny;
@@ -18,6 +18,17 @@ pub struct TemplateContext<'a, 'b> {
   pub runtime: Option<&'a RuntimeSpec>,
   pub data: &'a mut CodeGenerationData,
   pub runtime_template: &'a mut ModuleCodeTemplate,
+}
+
+/// Maps an identifier emitted by generated code back to the make-time binding
+/// it redeclares.
+#[cacheable]
+#[derive(Debug, Clone, Copy, rspack_hash::RspackHash)]
+pub struct GeneratedCodeRebinding {
+  /// Identifier range in the original module source.
+  pub original_range: DependencyRange,
+  /// Identifier range relative to the generated replacement content.
+  pub generated_range: DependencyRange,
 }
 
 impl TemplateContext<'_, '_> {
@@ -113,6 +124,45 @@ impl<'a> TemplateReplaceSource<'a> {
   pub fn replace(&mut self, start: u32, end: u32, content: String, name: Option<String>) {
     self.record_edit(start, end, &content, GeneratedCodeUsedNames::Scan);
     self.source.replace(start, end, content, name);
+  }
+
+  /// Replaces source while preserving declarations that recreate existing
+  /// make-time bindings.
+  pub fn replace_with_rebindings(
+    &mut self,
+    start: u32,
+    end: u32,
+    mut content: String,
+    name: Option<String>,
+    rebindings: &[GeneratedCodeRebinding],
+  ) {
+    if let Some(scope) = self.faster_concatenation_scope() {
+      assert!(
+        rebindings
+          .windows(2)
+          .all(|pair| { pair[0].generated_range.end <= pair[1].generated_range.start }),
+        "generated code rebinding ranges should be sorted and non-overlapping"
+      );
+      for rebinding in rebindings.iter().rev() {
+        let generated_range = rebinding.generated_range;
+        let preferred_name = content
+          .get(generated_range.start as usize..generated_range.end as usize)
+          .unwrap_or_else(|| {
+            panic!(
+              "generated code rebinding range {}..{} should be in replacement content",
+              generated_range.start, generated_range.end
+            )
+          })
+          .to_string();
+        let placeholder =
+          scope.rebind_generated_top_level_symbol(&preferred_name, rebinding.original_range);
+        content.replace_range(
+          generated_range.start as usize..generated_range.end as usize,
+          placeholder.as_ref(),
+        );
+      }
+    }
+    self.replace(start, end, content, name);
   }
 
   /// Replaces source with code whose used names have already been recorded in

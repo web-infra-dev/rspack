@@ -1110,7 +1110,10 @@ if(typeof {global} !== "undefined") return resolve();
             .current_module
             .generated_top_level_symbols
             .iter()
-            .find(|symbol| symbol.preferred_name == NAMESPACE_OBJECT_EXPORT)
+            .find(|symbol| {
+              symbol.target == crate::GeneratedTopLevelSymbolTarget::New
+                && symbol.preferred_name == NAMESPACE_OBJECT_EXPORT
+            })
         })
         .flatten()
     });

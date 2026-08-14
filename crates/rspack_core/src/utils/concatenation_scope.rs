@@ -12,8 +12,8 @@ use crate::{
   DependencyRange, ExportMode, ModuleIdentifier, PendingConcatenationScopeInfo,
   concatenated_module::{
     ConcatenatedModuleInfo, FasterModuleConcatenationInfo, GENERATED_TOP_LEVEL_SYMBOL_PREFIX,
-    MODULE_REFERENCE_PLACEHOLDER_PREFIX, MODULE_REFERENCE_PREFIX, MODULE_REFERENCE_SUFFIX,
-    ModuleInfo, OriginalScopeIdentUpdate,
+    GeneratedTopLevelSymbolTarget, MODULE_REFERENCE_PLACEHOLDER_PREFIX, MODULE_REFERENCE_PREFIX,
+    MODULE_REFERENCE_SUFFIX, ModuleInfo, OriginalScopeIdentUpdate,
   },
 };
 
@@ -270,7 +270,10 @@ impl ConcatenationScope {
       .current_module
       .generated_top_level_symbols
       .iter()
-      .find(|symbol| symbol.preferred_name == preferred_name)
+      .find(|symbol| {
+        symbol.target == GeneratedTopLevelSymbolTarget::New
+          && symbol.preferred_name == preferred_name
+      })
     {
       return existing.placeholder.clone();
     }
@@ -287,6 +290,45 @@ impl ConcatenationScope {
       .push(crate::GeneratedTopLevelSymbol {
         preferred_name,
         placeholder: placeholder.clone(),
+        target: GeneratedTopLevelSymbolTarget::New,
+        resolved_binding: None,
+      });
+    placeholder
+  }
+
+  pub fn rebind_generated_top_level_symbol(
+    &mut self,
+    preferred_name: &str,
+    original_range: DependencyRange,
+  ) -> Atom {
+    let preferred_name = Atom::from(preferred_name);
+    if !self.is_faster_module_concatenation() {
+      return preferred_name;
+    }
+    if let Some(existing) = self
+      .current_module
+      .generated_top_level_symbols
+      .iter()
+      .find(|symbol| {
+        symbol.target == GeneratedTopLevelSymbolTarget::Rebind { original_range }
+          && symbol.preferred_name == preferred_name
+      })
+    {
+      return existing.placeholder.clone();
+    }
+
+    let placeholder = Atom::from(format!(
+      "{GENERATED_TOP_LEVEL_SYMBOL_PREFIX}{}__",
+      self.current_module.generated_top_level_symbols.len()
+    ));
+    self
+      .current_module
+      .generated_top_level_symbols
+      .push(crate::GeneratedTopLevelSymbol {
+        preferred_name,
+        placeholder: placeholder.clone(),
+        target: GeneratedTopLevelSymbolTarget::Rebind { original_range },
+        resolved_binding: None,
       });
     placeholder
   }

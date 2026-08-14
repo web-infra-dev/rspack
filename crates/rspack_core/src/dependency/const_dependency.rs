@@ -4,8 +4,8 @@ use rspack_hash::{RspackHash, RspackHasher};
 
 use super::DependencyRange;
 use crate::{
-  Compilation, DependencyCodeGeneration, DependencyTemplate, DependencyTemplateType, RuntimeSpec,
-  TemplateContext, TemplateReplaceSource,
+  Compilation, DependencyCodeGeneration, DependencyTemplate, DependencyTemplateType,
+  GeneratedCodeRebinding, RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
 
 #[cacheable]
@@ -17,6 +17,8 @@ pub struct ConstDependency {
   /// Identifier introduced by `content` that must participate in top-level
   /// deconfliction when faster module concatenation skips the codegen parse.
   pub concatenation_scope_identifier: Option<Box<str>>,
+  /// Generated declarations that recreate bindings from the replaced source.
+  pub generated_code_rebindings: Vec<GeneratedCodeRebinding>,
 }
 
 impl ConstDependency {
@@ -25,11 +27,24 @@ impl ConstDependency {
       range,
       content,
       concatenation_scope_identifier: None,
+      generated_code_rebindings: Vec::new(),
     }
   }
 
   pub fn set_concatenation_scope_identifier(&mut self, identifier: Box<str>) {
+    assert!(
+      self.generated_code_rebindings.is_empty(),
+      "a const dependency cannot create and rebind the same generated identifier"
+    );
     self.concatenation_scope_identifier = Some(identifier);
+  }
+
+  pub fn set_generated_code_rebindings(&mut self, rebindings: Vec<GeneratedCodeRebinding>) {
+    assert!(
+      self.concatenation_scope_identifier.is_none(),
+      "a const dependency cannot create and rebind the same generated identifier"
+    );
+    self.generated_code_rebindings = rebindings;
   }
 }
 
@@ -39,6 +54,10 @@ impl RspackHash for ConstDependency {
     state.write(b"|");
     self.content.hash(state);
     self.concatenation_scope_identifier.hash(state);
+    if !self.generated_code_rebindings.is_empty() {
+      state.write(b"|rebindings|");
+      self.generated_code_rebindings.hash(state);
+    }
   }
 }
 
@@ -94,6 +113,16 @@ impl DependencyTemplate for ConstDependencyTemplate {
       dep.content.to_string()
     };
 
-    source.replace(dep.range.start, dep.range.end, rendered_content, None);
+    if dep.generated_code_rebindings.is_empty() {
+      source.replace(dep.range.start, dep.range.end, rendered_content, None);
+    } else {
+      source.replace_with_rebindings(
+        dep.range.start,
+        dep.range.end,
+        rendered_content,
+        None,
+        &dep.generated_code_rebindings,
+      );
+    }
   }
 }
