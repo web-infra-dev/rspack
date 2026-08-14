@@ -160,8 +160,8 @@ swc_experimental_ecma_transforms_base = { version = "0.11.0", default-features =
 swc_experimental_ecma_utils           = { version = "0.11.0", default-features = false }
 
 tracy-client = { version = "=0.18.4", default-features = false, features = ["enable", "sampling", "demangle", "system-tracing"] }
-wasi-common  = { version = "36.0.10", default-features = false }
-wasmtime     = { version = "36.0.10", default-features = false }
+wasi-common  = { version = "36.0.13", default-features = false }
+wasmtime     = { version = "36.0.13", default-features = false }
 
 
 # all rspack workspace dependencies
