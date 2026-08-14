@@ -2,9 +2,9 @@ use std::borrow::Cow;
 
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  ChunkGraph, Compilation, ConcatenationScopeInfoMode, GenerateContext, Module, ModuleGraph,
-  NormalModule, ParseContext, ParseResult, ParserAndGenerator, RuntimeSpec, SourceType,
-  rspack_sources::BoxSource,
+  ChunkGraph, Compilation, ConcatenationScopeInfoMode, GenerateContext, GeneratedSource, Module,
+  ModuleGraph, NormalModule, ParseContext, ParseResult, ParserAndGenerator, RuntimeSpec,
+  SourceType, rspack_sources::BoxSource,
 };
 use rspack_error::{Result, TWithDiagnosticArray};
 use rspack_hash::RspackHashDigest;
@@ -65,7 +65,7 @@ impl ParserAndGenerator for RslibAssetParserAndGenerator {
     source: &BoxSource,
     module: &dyn Module,
     generate_context: &mut GenerateContext,
-  ) -> Result<BoxSource> {
+  ) -> Result<GeneratedSource> {
     self.0.generate(source, module, generate_context).await
   }
 

@@ -15,12 +15,12 @@ use crate::{
   BuildMetaExportsType, BuildResult, ChunkGraph, ChunkInitFragments, ChunkUkey,
   CodeGenerationDataUrl, CodeGenerationResult, Compilation, ConcatenationScope,
   ConcatenationScopeInfoMode, Context, DependenciesBlock, DependencyId, ExportProvided,
-  ExternalType, FactoryMeta, ImportAttributes, ImportPhase, InitFragmentExt, InitFragmentKey,
-  InitFragmentStage, LibIdentOptions, Module, ModuleArgument, ModuleCodeGenerationContext,
-  ModuleCodeTemplate, ModuleGraph, ModuleType, NAMESPACE_OBJECT_EXPORT, NormalInitFragment,
-  PendingConcatenationScopeInfo, RuntimeGlobals, RuntimeSpec, SourceType, StaticExportsDependency,
-  StaticExportsSpec, UsageState, UsedExports, UsedNameItem, extract_url_and_global,
-  impl_module_meta_info, module_update_hash, property_access,
+  ExternalType, FactoryMeta, GeneratedSource, ImportAttributes, ImportPhase, InitFragmentExt,
+  InitFragmentKey, InitFragmentStage, LibIdentOptions, Module, ModuleArgument,
+  ModuleCodeGenerationContext, ModuleCodeTemplate, ModuleGraph, ModuleType,
+  NAMESPACE_OBJECT_EXPORT, NormalInitFragment, PendingConcatenationScopeInfo, RuntimeGlobals,
+  RuntimeSpec, SourceType, StaticExportsDependency, StaticExportsSpec, UsageState, UsedExports,
+  UsedNameItem, extract_url_and_global, impl_module_meta_info, module_update_hash, property_access,
   rspack_sources::{BoxSource, RawStringSource, ReplaceSource, SourceExt},
   to_identifier,
 };
@@ -596,7 +596,7 @@ impl ExternalModule {
     runtime: Option<&RuntimeSpec>,
     mut concatenation_scope: Option<&mut ConcatenationScope>,
     runtime_template: &mut ModuleCodeTemplate,
-  ) -> Result<(BoxSource, ChunkInitFragments)> {
+  ) -> Result<(GeneratedSource, ChunkInitFragments)> {
     let mut chunk_init_fragments: ChunkInitFragments = Default::default();
     let supports_const = compilation.options.output.environment.supports_const();
     let resolved_external_type = self.resolve_external_type();
@@ -1100,9 +1100,11 @@ if(typeof {global} !== "undefined") return resolve();
         )
       }
     };
+    let faster_module_concatenation = concatenation_scope
+      .as_deref()
+      .is_some_and(|scope| scope.is_faster_module_concatenation());
     let generated_namespace_export = concatenation_scope.as_deref().and_then(|scope| {
-      scope
-        .is_faster_module_concatenation()
+      faster_module_concatenation
         .then(|| {
           scope
             .current_module
@@ -1113,7 +1115,13 @@ if(typeof {global} !== "undefined") return resolve();
         .flatten()
     });
     let Some(generated_namespace_export) = generated_namespace_export else {
-      return Ok((RawStringSource::from(source).boxed(), chunk_init_fragments));
+      let source = RawStringSource::from(source);
+      let source = if faster_module_concatenation {
+        GeneratedSource::generated_concatenation(ReplaceSource::new(source))
+      } else {
+        source.boxed().into()
+      };
+      return Ok((source, chunk_init_fragments));
     };
 
     let declaration_prefix = if supports_const { "const " } else { "var " };
@@ -1129,7 +1137,10 @@ if(typeof {global} !== "undefined") return resolve();
       generated_namespace_export.placeholder.to_string(),
       None,
     );
-    Ok((rendered_source.boxed(), chunk_init_fragments))
+    Ok((
+      GeneratedSource::generated_concatenation(rendered_source),
+      chunk_init_fragments,
+    ))
   }
 }
 
@@ -1328,15 +1339,31 @@ impl Module for ExternalModule {
     match self.external_type.as_str() {
       "asset" if request.is_some() => {
         let request = request.expect("request should be some");
-        cgr.add(
-          SourceType::JavaScript,
-          RawStringSource::from(format!(
-            "{}.exports = {};",
-            runtime_template.render_module_argument(ModuleArgument::Module),
-            rspack_util::json_stringify_str(request.primary())
-          ))
-          .boxed(),
-        );
+        if concatenation_scope.is_some() {
+          let (source, chunk_init_fragments) = self.get_source(
+            compilation,
+            Some(request),
+            external_type,
+            *runtime,
+            concatenation_scope.as_mut(),
+            runtime_template,
+          )?;
+          match source {
+            GeneratedSource::Source(source) => cgr.add(SourceType::JavaScript, source),
+            GeneratedSource::Concatenation(source) => cgr.set_concatenation_source(source),
+          }
+          cgr.chunk_init_fragments = chunk_init_fragments;
+        } else {
+          cgr.add(
+            SourceType::JavaScript,
+            RawStringSource::from(format!(
+              "{}.exports = {};",
+              runtime_template.render_module_argument(ModuleArgument::Module),
+              rspack_util::json_stringify_str(request.primary())
+            ))
+            .boxed(),
+          );
+        }
         cgr
           .data
           .insert(CodeGenerationDataUrl::new(request.primary().to_string()));
@@ -1361,7 +1388,10 @@ impl Module for ExternalModule {
           concatenation_scope.as_mut(),
           runtime_template,
         )?;
-        cgr.add(SourceType::JavaScript, source);
+        match source {
+          GeneratedSource::Source(source) => cgr.add(SourceType::JavaScript, source),
+          GeneratedSource::Concatenation(source) => cgr.set_concatenation_source(source),
+        }
         cgr.chunk_init_fragments = chunk_init_fragments;
       }
     };

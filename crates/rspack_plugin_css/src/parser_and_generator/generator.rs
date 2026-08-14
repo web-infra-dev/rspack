@@ -4,9 +4,9 @@ use concat_string::concat_string;
 use rspack_core::{
   BoxDependency, ChunkGraph, ConcatenationScope, Context, CssBuildInfo, CssExport, CssExportType,
   CssExports, CssModuleRenderCondition, DependencyCodeGeneration, DependencyId, DependencyType,
-  ExportsArgument, GenerateContext, Module, ModuleArgument, ModuleIdentifier, ModuleInitFragments,
-  RESERVED_IDENTIFIER, RuntimeGlobals, SourceType, TemplateContext, TemplateReplaceSource,
-  UsageState, UsedNameItem, css_module_render_conditions_identifier,
+  ExportsArgument, GenerateContext, GeneratedSource, Module, ModuleArgument, ModuleIdentifier,
+  ModuleInitFragments, RESERVED_IDENTIFIER, RuntimeGlobals, SourceType, TemplateContext,
+  TemplateReplaceSource, UsageState, UsedNameItem, css_module_render_conditions_identifier,
   rspack_sources::{
     BoxSource, ConcatSource, OriginalSource, RawStringSource, ReplaceSource, Source, SourceExt,
   },
@@ -188,7 +188,7 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     self.render_css_module_source()
   }
 
-  pub fn generate_javascript_source(mut self) -> Result<BoxSource> {
+  pub fn generate_javascript_source(mut self) -> Result<GeneratedSource> {
     match self.export_type {
       Some(CssExportType::Text) => {
         let css = self.css_text_expr_with_imports();
@@ -224,15 +224,24 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     } else {
       RawStringSource::from(generated_source).boxed()
     };
-    if self.generated_symbol_replacements.is_empty() {
-      return Ok(source);
+    let faster_module_concatenation = self
+      .generate_context
+      .concatenation_scope
+      .as_ref()
+      .is_some_and(|scope| scope.is_faster_module_concatenation());
+    if self.generated_symbol_replacements.is_empty() && !faster_module_concatenation {
+      return Ok(source.into());
     }
 
     let mut source = ReplaceSource::new(source);
     for (start, end, symbol) in self.generated_symbol_replacements {
       source.replace(start, end, symbol, None);
     }
-    Ok(source.boxed())
+    if faster_module_concatenation {
+      Ok(GeneratedSource::generated_concatenation(source))
+    } else {
+      Ok(source.boxed().into())
+    }
   }
 
   fn generate_js_exports(&mut self) -> Result<()> {

@@ -13,9 +13,10 @@ use rspack_core::{
   ArcComputed, AsyncDependenciesBlockIdentifier, BuildMetaExportsType,
   COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY, ChunkGraph, CollectedTypeScriptInfo, Compilation,
   ConcatenationScope, ConcatenationScopeInfoMode, DependenciesBlock, DependencyId, GenerateContext,
-  ImportMeta, Module, ModuleArgument, ModuleCodeTemplate, ModuleGraph, ModuleType, ParseContext,
-  ParseResult, ParserAndGenerator, ResolvedModuleOptions, RuntimeGlobals, RuntimeGlobalsRenderMode,
-  RuntimeVariable, SideEffectsBailoutItem, SourceType, TemplateContext, TemplateReplaceSource,
+  GeneratedSource, ImportMeta, Module, ModuleArgument, ModuleCodeTemplate, ModuleGraph, ModuleType,
+  ParseContext, ParseResult, ParserAndGenerator, ResolvedModuleOptions, RuntimeGlobals,
+  RuntimeGlobalsRenderMode, RuntimeVariable, SideEffectsBailoutItem, SourceType, TemplateContext,
+  TemplateReplaceSource,
   diagnostics::map_box_diagnostics_to_module_parse_diagnostics,
   remove_bom, render_init_fragments, render_init_fragments_to_strings,
   rspack_sources::{BoxSource, ReplaceSource, Source, SourceExt},
@@ -464,12 +465,14 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     source: &BoxSource,
     module: &dyn Module,
     generate_context: &mut GenerateContext,
-  ) -> Result<BoxSource> {
+  ) -> Result<GeneratedSource> {
     if matches!(
       generate_context.requested_source_type,
       SourceType::JavaScript
     ) {
-      let mut source = ReplaceSource::new(source.clone());
+      let mut source = generate_context
+        .take_analyzed_concatenation_source()
+        .unwrap_or_else(|| ReplaceSource::new(source.clone()));
       let compilation = generate_context.compilation;
       let mut init_fragments = vec![];
       let mut concatenation_scope = generate_context.concatenation_scope.take();
@@ -531,10 +534,10 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
           generate_context.data.insert(rendered_fragments);
         }
         generate_context.concatenation_scope = concatenation_scope;
-        return Ok(source.boxed());
+        return Ok(GeneratedSource::analyzed_concatenation(source));
       }
       generate_context.concatenation_scope = concatenation_scope;
-      render_init_fragments(source.boxed(), init_fragments, generate_context)
+      render_init_fragments(source.boxed(), init_fragments, generate_context).map(Into::into)
     } else {
       panic!(
         "Unsupported source type: {:?}",

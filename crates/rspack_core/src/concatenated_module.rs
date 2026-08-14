@@ -45,18 +45,19 @@ use crate::{
   BuildMetaExportsType, BuildResult, ChunkGraph, ChunkInitFragments, ChunkRenderContext,
   CodeGenerationDataTopLevelDeclarations, CodeGenerationPublicPathAutoReplace,
   CodeGenerationResult, CodeGenerationRuntimeRequirementsWrite, Compilation,
-  ConcatenatedModuleIdent, ConcatenatedModuleReference, ConcatenationScope,
-  ConditionalInitFragment, ConnectionState, Context, DEFAULT_EXPORT, DEFAULT_EXPORT_ATOM,
-  DependenciesBlock, DependencyId, DependencyRange, DependencyType, ExportInfo, ExportProvided,
-  ExportsArgument, ExportsInfoArtifact, ExportsType, FactoryMeta, ImportedByDeferModulesArtifact,
-  InitFragment, InitFragmentStage, LibIdentOptions, Module, ModuleArgument,
-  ModuleCodeGenerationContext, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection,
-  ModuleIdentifier, ModuleLayer, ModuleStaticCache, ModuleType, NAMESPACE_OBJECT_EXPORT,
-  ParserOptions, PendingConcatenationScopeInfo, RenderedInitFragments, RenderedInitFragmentsDigest,
-  Resolve, RuntimeCondition, RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, SourceType,
-  URLStaticMode, UsageState, UsedName, UsedNameItem, escape_identifier, fast_set, filter_runtime,
-  find_target, get_runtime_key, impl_source_map_config, merge_runtime_condition,
-  merge_runtime_condition_non_false, module_update_hash, property_access, property_name,
+  ConcatenatedModuleIdent, ConcatenatedModuleReference, ConcatenationCodeGenerationSource,
+  ConcatenationScope, ConditionalInitFragment, ConnectionState, Context, DEFAULT_EXPORT,
+  DEFAULT_EXPORT_ATOM, DependenciesBlock, DependencyId, DependencyRange, DependencyType,
+  ExportInfo, ExportProvided, ExportsArgument, ExportsInfoArtifact, ExportsType, FactoryMeta,
+  ImportedByDeferModulesArtifact, InitFragment, InitFragmentStage, LibIdentOptions, Module,
+  ModuleArgument, ModuleCodeGenerationContext, ModuleGraph, ModuleGraphCacheArtifact,
+  ModuleGraphConnection, ModuleIdentifier, ModuleLayer, ModuleStaticCache, ModuleType,
+  NAMESPACE_OBJECT_EXPORT, ParserOptions, PendingConcatenationScopeInfo, RenderedInitFragments,
+  RenderedInitFragmentsDigest, Resolve, RuntimeCondition, RuntimeGlobals, RuntimeSpec,
+  SideEffectsStateArtifact, SourceType, URLStaticMode, UsageState, UsedName, UsedNameItem,
+  escape_identifier, fast_set, filter_runtime, find_target, get_runtime_key,
+  impl_source_map_config, merge_runtime_condition, merge_runtime_condition_non_false,
+  module_update_hash, property_access, property_name,
   render_make_deferred_namespace_mode_from_exports_type,
   reserved_names::RESERVED_NAMES_ATOM_SET,
   subtract_runtime_condition, to_identifier_with_escaped, to_normal_comment,
@@ -2693,6 +2694,7 @@ impl ConcatenatedModule {
 
       let CodeGenerationResult {
         mut inner,
+        mut concatenation_source,
         mut chunk_init_fragments,
         mut runtime_requirements,
         concatenation_scope,
@@ -2708,9 +2710,6 @@ impl ConcatenatedModule {
       let mut concatenation_scope = concatenation_scope.expect("should have concatenation_scope");
       let faster_module_concatenation_info =
         concatenation_scope.take_faster_module_concatenation_info();
-      let rendered_source = inner
-        .remove(&SourceType::JavaScript)
-        .expect("should have javascript source");
       let mut module_info = concatenation_scope.current_module;
       let (result_source, internal_source) = if let Some(mut faster_module_concatenation_info) =
         faster_module_concatenation_info
@@ -2724,35 +2723,46 @@ impl ConcatenatedModule {
                 "module {module_id} entered faster module concatenation without pending concatenation scope info"
               )
             })?;
+        let concatenation_source = concatenation_source.take().ok_or_else(|| {
+          rspack_error::error!(
+            "module {module_id} entered faster module concatenation without an editable concatenation source"
+          )
+        })?;
+        let source_kind_matches = matches!(
+          (pending_scope_info, concatenation_source.as_ref()),
+          (
+            PendingConcatenationScopeInfo::Analyzed(_),
+            ConcatenationCodeGenerationSource::Analyzed(_)
+          ) | (
+            PendingConcatenationScopeInfo::Generated,
+            ConcatenationCodeGenerationSource::Generated(_)
+          )
+        );
+        if !source_kind_matches {
+          return Err(rspack_error::error!(
+            "module {module_id} returned a concatenation source that does not match its pending scope info"
+          ));
+        }
         module_info.rendered_init_fragments = codegen_res
           .data
           .get::<RenderedInitFragments>()
           .cloned()
           .filter(|fragments| !fragments.is_empty());
-        // JavaScript code generation already returns a ReplaceSource whose
-        // coordinates are based on the make-time parser source. Keep that
-        // coordinate space so the pending info spans can be applied directly. The
-        // generated source is uniquely owned here, so recover it from the Arc
-        // without cloning every dependency replacement.
-        let result_source = if rendered_source.as_any().is::<ReplaceSource>() {
-          let source = Arc::downcast::<ReplaceSource>(rendered_source.into_any_arc())
-            .expect("source type was checked above");
-          Arc::try_unwrap(source).unwrap_or_else(|source| source.as_ref().clone())
-        } else {
-          ReplaceSource::new(rendered_source)
-        };
+        let result_source = (*concatenation_source).into_source();
 
         let original_source = if matches!(
           pending_scope_info,
           PendingConcatenationScopeInfo::Analyzed(_)
         ) {
-          assert!(
-            module
-              .source()
-              .is_some_and(|source| Arc::ptr_eq(result_source.inner(), source)),
-            "generated ReplaceSource inner should preserve the normal module source"
-          );
-          result_source.inner().source().into_string_lossy()
+          module
+            .source()
+            .ok_or_else(|| {
+              rspack_error::error!(
+                "module {module_id} has analyzed concatenation scope info without a make-time source"
+              )
+            })?
+            .source()
+            .into_string_lossy()
         } else {
           Cow::Borrowed("")
         };
@@ -2765,6 +2775,9 @@ impl ConcatenatedModule {
         let internal_source = result_source.inner().clone();
         (result_source, internal_source)
       } else {
+        let rendered_source = inner
+          .remove(&SourceType::JavaScript)
+          .expect("should have javascript source");
         let source_code = rendered_source.source().into_string_lossy();
         let jsx = module
           .as_ref()

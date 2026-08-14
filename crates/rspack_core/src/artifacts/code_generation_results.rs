@@ -13,9 +13,9 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet};
 use serde::Serialize;
 
 use crate::{
-  ArtifactExt, AssetInfo, BindingCell, ChunkInitFragments, ConcatenationScope, ModuleIdentifier,
-  RenderedInitFragments, RuntimeGlobals, RuntimeSpec, RuntimeSpecMap, SourceType,
-  incremental::IncrementalPasses,
+  ArtifactExt, AssetInfo, BindingCell, ChunkInitFragments, ConcatenationCodeGenerationSource,
+  ConcatenationScope, ModuleIdentifier, RenderedInitFragments, RuntimeGlobals, RuntimeSpec,
+  RuntimeSpecMap, SourceType, incremental::IncrementalPasses,
 };
 
 #[derive(Clone, Debug)]
@@ -135,6 +135,9 @@ impl DerefMut for CodeGenerationData {
 #[derive(Debug, Default, Clone)]
 pub struct CodeGenerationResult {
   pub inner: BindingCell<HashMap<SourceType, BoxSource>>,
+  /// Editable JavaScript output used only while generating a concatenated
+  /// module. Keeping it typed avoids inferring mutability from `BoxSource`.
+  pub concatenation_source: Option<Box<ConcatenationCodeGenerationSource>>,
   /// [definition in webpack](https://github.com/webpack/webpack/blob/4b4ca3bb53f36a5b8fc6bc1bd976ed7af161bd80/lib/Module.js#L75)
   pub data: CodeGenerationData,
   pub chunk_init_fragments: ChunkInitFragments,
@@ -161,6 +164,10 @@ impl CodeGenerationResult {
   pub fn add(&mut self, source_type: SourceType, generation_result: BoxSource) {
     let result = self.inner.insert(source_type, generation_result);
     debug_assert!(result.is_none());
+  }
+
+  pub fn set_concatenation_source(&mut self, source: Box<ConcatenationCodeGenerationSource>) {
+    debug_assert!(self.concatenation_source.replace(source).is_none());
   }
 
   pub fn set_hash(

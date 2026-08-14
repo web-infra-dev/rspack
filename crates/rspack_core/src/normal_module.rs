@@ -18,8 +18,8 @@ use rspack_hash::{RspackHash, RspackHashDigest, RspackHasher};
 use rspack_hook::define_hook;
 use rspack_loader_runner::{AdditionalData, Content, LoaderContext, ResourceData, run_loaders};
 use rspack_sources::{
-  BoxSource, CachedSource, OriginalSource, RawBufferSource, RawStringSource, SourceExt, SourceMap,
-  SourceMapSource, WithoutOriginalOptions,
+  BoxSource, CachedSource, OriginalSource, RawBufferSource, RawStringSource, ReplaceSource,
+  SourceExt, SourceMap, SourceMapSource, WithoutOriginalOptions,
 };
 use rspack_util::source_map::{ModuleSourceMapConfig, SourceMapKind};
 use serde_json::json;
@@ -29,12 +29,12 @@ use crate::{
   AsyncDependenciesBlockIdentifier, BoxDependencyTemplate, BoxLoader, BoxModule,
   BoxModuleDependency, BuildContext, BuildInfo, BuildMeta, BuildResult, ChunkGraph,
   CodeGenerationResult, Compilation, ConcatenationScopeInfoMode, ConnectionState, Context,
-  DependenciesBlock, DependencyId, FactoryMeta, GenerateContext, GeneratorOptions, ImportPhase,
-  LibIdentOptions, Module, ModuleCodeGenerationContext, ModuleGraph, ModuleGraphCacheArtifact,
-  ModuleIdentifier, ModuleLayer, ModuleType, OptimizationBailoutItem, OutputOptions, ParseContext,
-  ParseResult, ParserAndGenerator, ParserOptions, PendingConcatenationScopeInfo, Resolve,
-  ResolvedModuleOptions, RspackLoaderRunnerPlugin, RunnerContext, RuntimeGlobals, RuntimeSpec,
-  SideEffectsStateArtifact, SourceType, contextify,
+  DependenciesBlock, DependencyId, FactoryMeta, GenerateContext, GeneratedSource, GeneratorOptions,
+  ImportPhase, LibIdentOptions, Module, ModuleCodeGenerationContext, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleIdentifier, ModuleLayer, ModuleType, OptimizationBailoutItem,
+  OutputOptions, ParseContext, ParseResult, ParserAndGenerator, ParserOptions,
+  PendingConcatenationScopeInfo, Resolve, ResolvedModuleOptions, RspackLoaderRunnerPlugin,
+  RunnerContext, RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, SourceType, contextify,
   diagnostics::ModuleBuildError,
   get_context, module_analyzed_side_effect_free, module_declared_side_effect_free,
   module_update_hash,
@@ -656,6 +656,15 @@ impl Module for NormalModule {
     let module_graph = compilation.get_module_graph();
     for source_type in self.source_types(module_graph) {
       let in_concatenation = concatenation_scope.is_some();
+      let faster_concatenation = concatenation_scope
+        .as_ref()
+        .is_some_and(|scope| scope.is_faster_module_concatenation());
+      let expects_concatenation_source =
+        faster_concatenation && *source_type == SourceType::JavaScript;
+      let analyzed_concatenation_source = (expects_concatenation_source
+        && self.parser_and_generator.concatenation_scope_info_mode()
+          == ConcatenationScopeInfoMode::AnalyzeAtMake)
+        .then(|| ReplaceSource::new(source.clone()));
       let generation_result = self
         .parser_and_generator
         .generate(
@@ -670,13 +679,33 @@ impl Module for NormalModule {
             module_generator_options: self.parser_and_generator_options.generator_options(),
             runtime: *runtime,
             concatenation_scope: concatenation_scope.as_mut(),
+            analyzed_concatenation_source,
           },
         )
         .await?;
-      if in_concatenation {
-        code_generation_result.add(*source_type, generation_result);
-      } else {
-        code_generation_result.add(*source_type, CachedSource::new(generation_result).boxed());
+      match (expects_concatenation_source, generation_result) {
+        (true, GeneratedSource::Concatenation(source)) => {
+          code_generation_result.set_concatenation_source(source);
+        }
+        (true, GeneratedSource::Source(_)) => {
+          return Err(error!(
+            "module {} entered faster module concatenation, but its generator returned an untyped JavaScript source",
+            self.identifier()
+          ));
+        }
+        (false, GeneratedSource::Concatenation(_)) => {
+          return Err(error!(
+            "module {} returned a faster concatenation source outside faster JavaScript concatenation",
+            self.identifier()
+          ));
+        }
+        (false, GeneratedSource::Source(source)) => {
+          if in_concatenation {
+            code_generation_result.add(*source_type, source);
+          } else {
+            code_generation_result.add(*source_type, CachedSource::new(source).boxed());
+          }
+        }
       }
     }
     code_generation_result.concatenation_scope = std::mem::take(concatenation_scope);

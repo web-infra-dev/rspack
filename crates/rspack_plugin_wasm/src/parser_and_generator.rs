@@ -4,8 +4,8 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::IdentifierIndexMap;
 use rspack_core::{
   BoxDependency, BuildMetaExportsType, ConcatenationScopeInfoMode, Dependency, DependencyId,
-  DependencyType, ExportsArgument, GenerateContext, ImportPhase, Module, ModuleArgument,
-  ModuleDependency, ModuleGraph, ModuleInitFragments, ParseContext, ParseResult,
+  DependencyType, ExportsArgument, GenerateContext, GeneratedSource, ImportPhase, Module,
+  ModuleArgument, ModuleDependency, ModuleGraph, ModuleInitFragments, ParseContext, ParseResult,
   ParserAndGenerator, RuntimeGlobals, SourceType, StaticExportsDependency, StaticExportsSpec,
   rspack_sources::{BoxSource, RawStringSource, Source, SourceExt},
 };
@@ -161,7 +161,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
     source: &BoxSource,
     module: &dyn Module,
     generate_context: &mut GenerateContext,
-  ) -> Result<BoxSource> {
+  ) -> Result<GeneratedSource> {
     let GenerateContext {
       compilation,
       runtime,
@@ -197,7 +197,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
             runtime_template.render_runtime_globals(&RuntimeGlobals::ASYNC_MODULE),
             runtime_template.render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS),
           ));
-          return Ok(source.boxed());
+          return Ok(source.boxed().into());
         }
 
         let mut dep_modules = IdentifierIndexMap::<DepModule>::default();
@@ -340,9 +340,9 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
           ))
         };
 
-        Ok(source.boxed())
+        Ok(source.boxed().into())
       }
-      _ => Ok(source.clone()),
+      _ => Ok(source.clone().into()),
     }
   }
 

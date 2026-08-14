@@ -13,9 +13,9 @@ use json::{
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, ConcatenationScopeInfoMode,
-  ExportsInfoArtifact, ExportsInfoData, GenerateContext, GeneratorOptions, Module, ModuleArgument,
-  ModuleGraph, NAMESPACE_OBJECT_EXPORT, ParseOption, ParserAndGenerator, ParserOptions, Plugin,
-  RuntimeSpec, SourceType, UsageState, UsedNameItem,
+  ExportsInfoArtifact, ExportsInfoData, GenerateContext, GeneratedSource, GeneratorOptions, Module,
+  ModuleArgument, ModuleGraph, NAMESPACE_OBJECT_EXPORT, ParseOption, ParserAndGenerator,
+  ParserOptions, Plugin, RuntimeSpec, SourceType, UsageState, UsedNameItem,
   diagnostics::ModuleParseError,
   rspack_sources::{BoxSource, RawStringSource, ReplaceSource, Source, SourceExt},
 };
@@ -172,7 +172,7 @@ impl ParserAndGenerator for JsonParserAndGenerator {
     _source: &BoxSource,
     module: &dyn rspack_core::Module,
     generate_context: &mut GenerateContext,
-  ) -> Result<BoxSource> {
+  ) -> Result<GeneratedSource> {
     let GenerateContext {
       compilation,
       runtime,
@@ -240,9 +240,9 @@ impl ParserAndGenerator for JsonParserAndGenerator {
               namespace_export.to_string(),
               None,
             );
-            return Ok(source.boxed());
+            return Ok(GeneratedSource::generated_concatenation(source));
           }
-          return Ok(source.boxed());
+          return Ok(source.boxed().into());
         }
 
         Ok(
@@ -252,7 +252,8 @@ impl ParserAndGenerator for JsonParserAndGenerator {
               .runtime_template
               .render_module_argument(ModuleArgument::Module)
           ))
-          .boxed(),
+          .boxed()
+          .into(),
         )
       }
       _ => panic!(
