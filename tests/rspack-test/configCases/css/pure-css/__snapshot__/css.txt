@@ -54,19 +54,19 @@ Array [
 
 @value colorValue: red;
 
-.colorValue {
+.colorValue-cls {
 	color: colorValue;
 }
 
 @value colorValue-v1: red;
 
-#colorValue-v1 {
+#colorValue-v1-id {
 	color: colorValue-v1;
 }
 
 @value colorValue-v2: red;
 
-.colorValue-v2 > .colorValue-v2 {
+.colorValue-v2-cls > .colorValue-v2-cls {
 	color: colorValue-v2;
 }
 
@@ -161,7 +161,7 @@ colorValue-v3 {
 @value override: blue;
 @value override: red;
 
-.override {
+.override-cls {
 	color: override;
 }
 
@@ -176,13 +176,13 @@ colorValue-v3 {
 
 @value/* test */blue-v5/* test */:/* test */red/* test */;
 
-.color {
+.color-cls {
 	color: blue-v5;
 }
 
 @value/* test */blue-v6/* test *//* test */red/* test */;
 
-.color {
+.color-cls {
 	color: blue-v6;
 }
 
@@ -236,7 +236,7 @@ colorValue-v3 {
 	comment
 */;
 
-.color {
+.color-cls {
 	color: multiline-v1;
 }
 
@@ -398,7 +398,7 @@ div {
 	--not-override-class: red;
 }
 
-.not-override-class {
+.not-override-class-cls {
 	color: var(--not-override-class from "./var-function-export.modules.css")
 }
 
@@ -808,6 +808,10 @@ div {
 	-webkit-animation-name: animationName;
 }
 
+.animationTimeline {
+	animation: Xs auto animationName;
+}
+
 .d {
 	--animation-name: animationName;
 }
@@ -921,7 +925,7 @@ div {
 		}
 	}
 
-	@container foo {
+	@container foo-c {
 		background: red;
 
 		.nested-layer {
@@ -1065,10 +1069,10 @@ div {
 }
 
 :root {
-	--test: dark;
+	--test-prop: dark;
 }
 
-@media screen and (prefers-color-scheme: var(--test)) {
+@media screen and (prefers-color-scheme: var(--test-prop)) {
 	.baz {
 		color: white;
 	}
@@ -1091,15 +1095,15 @@ div {
 		foo var(--animation-name) Xs,
 		var(--animation-name) Xs,
 		Xs linear Xs infinite running slidein,
-		Xs linear env(foo, var(--baz)) infinite running slidein;
+		Xs linear env(foo, var(--baz-prop)) infinite running slidein;
 }
 
 :root {
-	--baz: 10px;
+	--baz-prop: 10px;
 }
 
 .class {
-	bar: env(foo, var(--baz));
+	bar: env(foo, var(--baz-prop));
 }
 
 :global      .global-foo, :local        .bar {
@@ -1140,14 +1144,14 @@ div {
 }
 
 :root {
-	--foo: red;
+	--foo-prop: red;
 }
 
 :global .again-again-global {
-	color: var(--foo);
+	color: var(--foo-prop);
 
 	:global .again-again-global {
-		color: var(--foo);
+		color: var(--foo-prop);
 	}
 }
 
@@ -1164,7 +1168,7 @@ div {
 	}
 }
 
-@unknown var(--foo) {
+@unknown var(--foo-prop) {
 	color: red;
 }
 
@@ -1357,30 +1361,30 @@ div {
 	list-style: upper-roman inside;
 	list-style: circle outside;
 	list-style: none disc;
-	list-style: none url("7bc91c245a8a10a4.png");
+	list-style: none url("c70fe6cc89bc50bd.png");
 	list-style: none;
-	list-style: none disc url("7bc91c245a8a10a4.png");
+	list-style: none disc url("c70fe6cc89bc50bd.png");
 	list-style: lower-alpha;
 	list-style: disc;
 	list-style: square;
-	list-style: url("7bc91c245a8a10a4.png");
-	list-style: georgian inside url("7bc91c245a8a10a4.png");
-	list-style: georgian outside url("7bc91c245a8a10a4.png");
+	list-style: url("c70fe6cc89bc50bd.png");
+	list-style: georgian inside url("c70fe6cc89bc50bd.png");
+	list-style: georgian outside url("c70fe6cc89bc50bd.png");
 	/* type */
 	list-style: square;
 
 	/* image */
-	list-style: url("7bc91c245a8a10a4.png");
+	list-style: url("c70fe6cc89bc50bd.png");
 
 	/* position */
 	list-style: inside;
 
 	/* two values */
 	list-style: georgian outside;
-	list-style: url("7bc91c245a8a10a4.png") inside;
+	list-style: url("c70fe6cc89bc50bd.png") inside;
 
 	/* three values */
-	list-style: lower-roman url("7bc91c245a8a10a4.png") outside;
+	list-style: lower-roman url("c70fe6cc89bc50bd.png") outside;
 
 	/* Keyword value */
 	list-style: none;
@@ -1417,7 +1421,7 @@ div {
 	}
 }
 
-@container card (width > 400px), style(--responsive: true), scroll-state(stuck: top) {
+@container card-c (width > 400px), style(--responsive: true), scroll-state(stuck: top) {
 	h2 {
 		font-size: 1.5em;
 	}
@@ -1485,8 +1489,8 @@ div {
 	font-palette: --identifier;
 }
 
-@keyframes foo { /* ... */ }
-@keyframes "foo" { /* ... */ }
+@keyframes foo-kf { /* ... */ }
+@keyframes "foo-kf-str" { /* ... */ }
 @keyframes { /* ... */ }
 @keyframes{ /* ... */ }
 
@@ -1651,10 +1655,10 @@ div {
 	}
 }
 
-#test {
+#test-id {
 	c: 1;
 
-	#test {
+	#test-id {
 		c: 2;
 	}
 }
@@ -1786,17 +1790,17 @@ div {
 	background-color-3: var(/**comment**/--item-color/**comment**/);
 }
 
-@keyframes/**test**/foo { /* ... */ }
-@keyframes /**test**/foo { /* ... */ }
-@keyframes/**test**/ foo { /* ... */ }
-@keyframes /**test**/ foo { /* ... */ }
-@keyframes /**test**//**test**/ foo { /* ... */ }
-@keyframes /**test**/ /**test**/ foo { /* ... */ }
-@keyframes /**test**/ /**test**/foo { /* ... */ }
-@keyframes /**test**//**test**/foo { /* ... */ }
-@keyframes/**test**//**test**/foo { /* ... */ }
-@keyframes/**test**//**test**/foo/**test**//**test**/{ /* ... */ }
-@keyframes /**test**/ /**test**/ foo /**test**/ /**test**/ { /* ... */ }
+@keyframes/**test**/foo-kf2 { /* ... */ }
+@keyframes /**test**/foo-kf2 { /* ... */ }
+@keyframes/**test**/ foo-kf2 { /* ... */ }
+@keyframes /**test**/ foo-kf2 { /* ... */ }
+@keyframes /**test**//**test**/ foo-kf2 { /* ... */ }
+@keyframes /**test**/ /**test**/ foo-kf2 { /* ... */ }
+@keyframes /**test**/ /**test**/foo-kf2 { /* ... */ }
+@keyframes /**test**//**test**/foo-kf2 { /* ... */ }
+@keyframes/**test**//**test**/foo-kf2 { /* ... */ }
+@keyframes/**test**//**test**/foo-kf2/**test**//**test**/{ /* ... */ }
+@keyframes /**test**/ /**test**/ foo-kf2 /**test**/ /**test**/ { /* ... */ }
 
 ./**test**//**test**/class {
 	background: red;
@@ -1808,19 +1812,19 @@ div {
 
 .var {
 	--main-color: black;
-	--FOO: 10px;
-	--foo: 10px;
-	--bar: calc(var(--foo) + 10px);
+	--FOO-prop: 10px;
+	--foo-prop: 10px;
+	--bar-prop: calc(var(--foo-prop) + 10px);
 	--accent-background: linear-gradient(to top, var(--main-color), white);
 	--external-link: "test";
 	--custom-prop: yellow;
 	--default-value: red;
 	--main-bg-color: red;
 	--backup-bg-color: black;
-	-foo: calc(var(--bar) + 10px);
+	-foo: calc(var(--bar-prop) + 10px);
 	var: var(--main-color);
-	var1: var(--foo);
-	var2: var(--FOO);
+	var1: var(--foo-prop);
+	var2: var(--FOO-prop);
 	content: " (" var(--external-link) ")";
 	var3: var(--main-color, blue);
 	var4: var(--custom-prop,);
@@ -1832,8 +1836,8 @@ div {
 }
 
 .var-order {
-	background-color: var(--test);
-	--test: red;
+	background-color: var(--test-prop);
+	--test-prop: red;
 }
 
 .className {
@@ -1926,10 +1930,10 @@ div {
 	width: --max-plus-x({1px, 7px, 2px}, 3px); /* 10px */
 }
 
-@function --anim-Xs(--animation, --count) {
+@function --anim-Xs(--animation-prop, --count) {
 	--duration: Xs;
 	--easing: linear;
-	result: var(--animation) var(--duration) var(--count) var(--easing);
+	result: var(--animation-prop) var(--duration) var(--count) var(--easing);
 }
 
 div {
@@ -2055,7 +2059,7 @@ section {
 	}
 }
 
-@keyframes broken;
+@keyframes broken-kf;
 
 .class-name-after-broken-keyframes {
 	color: red;
@@ -2092,16 +2096,16 @@ section {
 .class{.class{}}
 .class{color:#fff5f5}
 .class{.class{color:#f1f1f1}}
-.class{--foo:#fff5f5}
-.class{--foo:#fff5f5;color:#f1f1f1}
-.class{--foo:#fff5f5;color:#f1f1f1;}
-.class{--foo:#fff5f5;color:#f1f1f1;.class{color:#f1f1f1}}
-.class{--foo:#fff5f5;.class{color:#f1f1f1}color:#f1f1f1;}
-.class{.class{color:#f1f1f1}--foo:#fff5f5;color:#f1f1f1;}
+.class{--foo-prop:#fff5f5}
+.class{--foo-prop:#fff5f5;color:#f1f1f1}
+.class{--foo-prop:#fff5f5;color:#f1f1f1;}
+.class{--foo-prop:#fff5f5;color:#f1f1f1;.class{color:#f1f1f1}}
+.class{--foo-prop:#fff5f5;.class{color:#f1f1f1}color:#f1f1f1;}
+.class{.class{color:#f1f1f1}--foo-prop:#fff5f5;color:#f1f1f1;}
 /* TODO fix, but this syntax is not used anywhere */
-.class{--bar:{1, 'string', .class, #f1f1f1, #id}}
-.class{--baz:[1, "string", .class, #f1f1f1, #id]}
-.class{--baz:(1, "string", .class, #f1f1f1, #id)}
+.class{--bar-prop:{1, 'string', .class, #f1f1f1, #id}}
+.class{--baz-prop:[1, "string", .class, #f1f1f1, #id]}
+.class{--baz-prop:(1, "string", .class, #f1f1f1, #id)}
 
 /* Cases for `css/global` */
 
@@ -2748,19 +2752,19 @@ p:not(:local(#main-paragraph)) {
 
 @value colorValue: red;
 
-.colorValue {
+.colorValue-cls {
 	color: colorValue;
 }
 
 @value colorValue-v1: red;
 
-#colorValue-v1 {
+#colorValue-v1-id {
 	color: colorValue-v1;
 }
 
 @value colorValue-v2: red;
 
-.colorValue-v2 > .colorValue-v2 {
+.colorValue-v2-cls > .colorValue-v2-cls {
 	color: colorValue-v2;
 }
 
@@ -2855,7 +2859,7 @@ colorValue-v3 {
 @value override: blue;
 @value override: red;
 
-.override {
+.override-cls {
 	color: override;
 }
 
@@ -2870,13 +2874,13 @@ colorValue-v3 {
 
 @value/* test */blue-v5/* test */:/* test */red/* test */;
 
-.color {
+.color-cls {
 	color: blue-v5;
 }
 
 @value/* test */blue-v6/* test *//* test */red/* test */;
 
-.color {
+.color-cls {
 	color: blue-v6;
 }
 
@@ -2930,7 +2934,7 @@ colorValue-v3 {
 	comment
 */;
 
-.color {
+.color-cls {
 	color: multiline-v1;
 }
 
@@ -3092,7 +3096,7 @@ div {
 	--not-override-class: red;
 }
 
-.not-override-class {
+.not-override-class-cls {
 	color: var(--not-override-class from "./var-function-export.modules.css")
 }
 
@@ -3502,6 +3506,10 @@ div {
 	-webkit-animation-name: animationName;
 }
 
+.animationTimeline {
+	animation: Xs auto animationName;
+}
+
 .d {
 	--animation-name: animationName;
 }
@@ -3615,7 +3623,7 @@ div {
 		}
 	}
 
-	@container foo {
+	@container foo-c {
 		background: red;
 
 		.nested-layer {
@@ -3759,10 +3767,10 @@ div {
 }
 
 :root {
-	--test: dark;
+	--test-prop: dark;
 }
 
-@media screen and (prefers-color-scheme: var(--test)) {
+@media screen and (prefers-color-scheme: var(--test-prop)) {
 	.baz {
 		color: white;
 	}
@@ -3785,15 +3793,15 @@ div {
 		foo var(--animation-name) Xs,
 		var(--animation-name) Xs,
 		Xs linear Xs infinite running slidein,
-		Xs linear env(foo, var(--baz)) infinite running slidein;
+		Xs linear env(foo, var(--baz-prop)) infinite running slidein;
 }
 
 :root {
-	--baz: 10px;
+	--baz-prop: 10px;
 }
 
 .class {
-	bar: env(foo, var(--baz));
+	bar: env(foo, var(--baz-prop));
 }
 
 :global      .global-foo, :local        .bar {
@@ -3834,14 +3842,14 @@ div {
 }
 
 :root {
-	--foo: red;
+	--foo-prop: red;
 }
 
 :global .again-again-global {
-	color: var(--foo);
+	color: var(--foo-prop);
 
 	:global .again-again-global {
-		color: var(--foo);
+		color: var(--foo-prop);
 	}
 }
 
@@ -3858,7 +3866,7 @@ div {
 	}
 }
 
-@unknown var(--foo) {
+@unknown var(--foo-prop) {
 	color: red;
 }
 
@@ -4051,30 +4059,30 @@ div {
 	list-style: upper-roman inside;
 	list-style: circle outside;
 	list-style: none disc;
-	list-style: none url("7bc91c245a8a10a4.png");
+	list-style: none url("c70fe6cc89bc50bd.png");
 	list-style: none;
-	list-style: none disc url("7bc91c245a8a10a4.png");
+	list-style: none disc url("c70fe6cc89bc50bd.png");
 	list-style: lower-alpha;
 	list-style: disc;
 	list-style: square;
-	list-style: url("7bc91c245a8a10a4.png");
-	list-style: georgian inside url("7bc91c245a8a10a4.png");
-	list-style: georgian outside url("7bc91c245a8a10a4.png");
+	list-style: url("c70fe6cc89bc50bd.png");
+	list-style: georgian inside url("c70fe6cc89bc50bd.png");
+	list-style: georgian outside url("c70fe6cc89bc50bd.png");
 	/* type */
 	list-style: square;
 
 	/* image */
-	list-style: url("7bc91c245a8a10a4.png");
+	list-style: url("c70fe6cc89bc50bd.png");
 
 	/* position */
 	list-style: inside;
 
 	/* two values */
 	list-style: georgian outside;
-	list-style: url("7bc91c245a8a10a4.png") inside;
+	list-style: url("c70fe6cc89bc50bd.png") inside;
 
 	/* three values */
-	list-style: lower-roman url("7bc91c245a8a10a4.png") outside;
+	list-style: lower-roman url("c70fe6cc89bc50bd.png") outside;
 
 	/* Keyword value */
 	list-style: none;
@@ -4111,7 +4119,7 @@ div {
 	}
 }
 
-@container card (width > 400px), style(--responsive: true), scroll-state(stuck: top) {
+@container card-c (width > 400px), style(--responsive: true), scroll-state(stuck: top) {
 	h2 {
 		font-size: 1.5em;
 	}
@@ -4179,8 +4187,8 @@ div {
 	font-palette: --identifier;
 }
 
-@keyframes foo { /* ... */ }
-@keyframes "foo" { /* ... */ }
+@keyframes foo-kf { /* ... */ }
+@keyframes "foo-kf-str" { /* ... */ }
 @keyframes { /* ... */ }
 @keyframes{ /* ... */ }
 
@@ -4345,10 +4353,10 @@ div {
 	}
 }
 
-#test {
+#test-id {
 	c: 1;
 
-	#test {
+	#test-id {
 		c: 2;
 	}
 }
@@ -4480,17 +4488,17 @@ div {
 	background-color-3: var(/**comment**/--item-color/**comment**/);
 }
 
-@keyframes/**test**/foo { /* ... */ }
-@keyframes /**test**/foo { /* ... */ }
-@keyframes/**test**/ foo { /* ... */ }
-@keyframes /**test**/ foo { /* ... */ }
-@keyframes /**test**//**test**/ foo { /* ... */ }
-@keyframes /**test**/ /**test**/ foo { /* ... */ }
-@keyframes /**test**/ /**test**/foo { /* ... */ }
-@keyframes /**test**//**test**/foo { /* ... */ }
-@keyframes/**test**//**test**/foo { /* ... */ }
-@keyframes/**test**//**test**/foo/**test**//**test**/{ /* ... */ }
-@keyframes /**test**/ /**test**/ foo /**test**/ /**test**/ { /* ... */ }
+@keyframes/**test**/foo-kf2 { /* ... */ }
+@keyframes /**test**/foo-kf2 { /* ... */ }
+@keyframes/**test**/ foo-kf2 { /* ... */ }
+@keyframes /**test**/ foo-kf2 { /* ... */ }
+@keyframes /**test**//**test**/ foo-kf2 { /* ... */ }
+@keyframes /**test**/ /**test**/ foo-kf2 { /* ... */ }
+@keyframes /**test**/ /**test**/foo-kf2 { /* ... */ }
+@keyframes /**test**//**test**/foo-kf2 { /* ... */ }
+@keyframes/**test**//**test**/foo-kf2 { /* ... */ }
+@keyframes/**test**//**test**/foo-kf2/**test**//**test**/{ /* ... */ }
+@keyframes /**test**/ /**test**/ foo-kf2 /**test**/ /**test**/ { /* ... */ }
 
 ./**test**//**test**/class {
 	background: red;
@@ -4502,19 +4510,19 @@ div {
 
 .var {
 	--main-color: black;
-	--FOO: 10px;
-	--foo: 10px;
-	--bar: calc(var(--foo) + 10px);
+	--FOO-prop: 10px;
+	--foo-prop: 10px;
+	--bar-prop: calc(var(--foo-prop) + 10px);
 	--accent-background: linear-gradient(to top, var(--main-color), white);
 	--external-link: "test";
 	--custom-prop: yellow;
 	--default-value: red;
 	--main-bg-color: red;
 	--backup-bg-color: black;
-	-foo: calc(var(--bar) + 10px);
+	-foo: calc(var(--bar-prop) + 10px);
 	var: var(--main-color);
-	var1: var(--foo);
-	var2: var(--FOO);
+	var1: var(--foo-prop);
+	var2: var(--FOO-prop);
 	content: " (" var(--external-link) ")";
 	var3: var(--main-color, blue);
 	var4: var(--custom-prop,);
@@ -4526,8 +4534,8 @@ div {
 }
 
 .var-order {
-	background-color: var(--test);
-	--test: red;
+	background-color: var(--test-prop);
+	--test-prop: red;
 }
 
 .className {
@@ -4620,10 +4628,10 @@ div {
 	width: --max-plus-x({1px, 7px, 2px}, 3px); /* 10px */
 }
 
-@function --anim-Xs(--animation, --count) {
+@function --anim-Xs(--animation-prop, --count) {
 	--duration: Xs;
 	--easing: linear;
-	result: var(--animation) var(--duration) var(--count) var(--easing);
+	result: var(--animation-prop) var(--duration) var(--count) var(--easing);
 }
 
 div {
@@ -4749,7 +4757,7 @@ section {
 	}
 }
 
-@keyframes broken;
+@keyframes broken-kf;
 
 .class-name-after-broken-keyframes {
 	color: red;
@@ -4786,16 +4794,16 @@ section {
 .class{.class{}}
 .class{color:#fff5f5}
 .class{.class{color:#f1f1f1}}
-.class{--foo:#fff5f5}
-.class{--foo:#fff5f5;color:#f1f1f1}
-.class{--foo:#fff5f5;color:#f1f1f1;}
-.class{--foo:#fff5f5;color:#f1f1f1;.class{color:#f1f1f1}}
-.class{--foo:#fff5f5;.class{color:#f1f1f1}color:#f1f1f1;}
-.class{.class{color:#f1f1f1}--foo:#fff5f5;color:#f1f1f1;}
+.class{--foo-prop:#fff5f5}
+.class{--foo-prop:#fff5f5;color:#f1f1f1}
+.class{--foo-prop:#fff5f5;color:#f1f1f1;}
+.class{--foo-prop:#fff5f5;color:#f1f1f1;.class{color:#f1f1f1}}
+.class{--foo-prop:#fff5f5;.class{color:#f1f1f1}color:#f1f1f1;}
+.class{.class{color:#f1f1f1}--foo-prop:#fff5f5;color:#f1f1f1;}
 /* TODO fix, but this syntax is not used anywhere */
-.class{--bar:{1, 'string', .class, #f1f1f1, #id}}
-.class{--baz:[1, "string", .class, #f1f1f1, #id]}
-.class{--baz:(1, "string", .class, #f1f1f1, #id)}
+.class{--bar-prop:{1, 'string', .class, #f1f1f1, #id}}
+.class{--baz-prop:[1, "string", .class, #f1f1f1, #id]}
+.class{--baz-prop:(1, "string", .class, #f1f1f1, #id)}
 
 /* Cases for `css/global` */
 
