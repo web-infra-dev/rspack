@@ -33,6 +33,12 @@ define.fmt({
         allowedBlankLines: 2,
       },
     },
+    {
+      files: 'deny.toml',
+      options: {
+        arrayAutoExpand: true,
+      },
+    },
   ],
 });
 
