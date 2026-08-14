@@ -25,7 +25,7 @@ export class SplitChunksPlugin extends RspackBuiltinPlugin {
   }
 
   raw(compiler: Compiler): BuiltinPlugin {
-    const rawOptions = toRawSplitChunksOptions(this.options, compiler);
+    const rawOptions = toRawSplitChunksOptions(this.options, compiler, true);
     if (rawOptions === undefined) {
       throw new Error('rawOptions should not be undefined');
     }
@@ -36,12 +36,39 @@ export class SplitChunksPlugin extends RspackBuiltinPlugin {
 export function toRawSplitChunksOptions(
   sc: false | OptimizationSplitChunksOptions,
   compiler: Compiler,
+  enableNameBatch = false,
 ): RawSplitChunksOptions | undefined {
   if (!sc) {
     return;
   }
 
   function getName(name: any) {
+    interface Context {
+      module: Module;
+      chunks: Chunk[];
+      cacheGroupKey: string;
+    }
+
+    if (typeof name === 'function') {
+      if (!enableNameBatch) {
+        return {
+          name: (ctx: Context) => {
+            if (typeof ctx.module === 'undefined') {
+              return name(undefined);
+            }
+            return name(ctx.module, getChunks(ctx.chunks), ctx.cacheGroupKey);
+          },
+        };
+      }
+
+      return {
+        nameBatch: getNameBatch(name),
+      };
+    }
+    return { name };
+  }
+
+  function getNameBatch(name: any) {
     interface Batch {
       modules: Module[];
       chunks: Chunk[];
@@ -49,33 +76,30 @@ export function toRawSplitChunksOptions(
       cacheGroupKey: string;
     }
 
-    if (typeof name === 'function') {
-      return (batch: Batch) => {
-        const { modules, chunks, chunkData, cacheGroupKey } = batch;
-        const results = new Array(modules.length);
-        // The offset table is followed by indices into the deduplicated chunk array.
-        const chunkIndexStart = modules.length + 1;
+    return (batch: Batch) => {
+      const { modules, chunks, chunkData, cacheGroupKey } = batch;
+      const results = new Array(modules.length);
+      // The offset table is followed by indices into the deduplicated chunk array.
+      const chunkIndexStart = modules.length + 1;
 
-        for (let i = 0; i < modules.length; i++) {
-          const module = modules[i];
-          const start = chunkData[i];
-          const end = chunkData[i + 1];
-          const contextChunks = new Array<Chunk>(end - start);
-          for (let j = start; j < end; j++) {
-            contextChunks[j - start] = chunks[chunkData[chunkIndexStart + j]];
-          }
-
-          if (typeof module === 'undefined') {
-            results[i] = name(undefined);
-          } else {
-            results[i] = name(module, contextChunks, cacheGroupKey);
-          }
+      for (let i = 0; i < modules.length; i++) {
+        const module = modules[i];
+        const start = chunkData[i];
+        const end = chunkData[i + 1];
+        const contextChunks = new Array<Chunk>(end - start);
+        for (let j = start; j < end; j++) {
+          contextChunks[j - start] = chunks[chunkData[chunkIndexStart + j]];
         }
 
-        return results;
-      };
-    }
-    return name;
+        if (typeof module === 'undefined') {
+          results[i] = name(undefined);
+        } else {
+          results[i] = name(module, contextChunks, cacheGroupKey);
+        }
+      }
+
+      return results;
+    };
   }
 
   function getTest(test: OptimizationSplitChunksCacheGroup['test']) {
@@ -115,7 +139,7 @@ export function toRawSplitChunksOptions(
   } = sc;
 
   return {
-    name: getName(name),
+    ...getName(name),
     chunks: getChunks(chunks),
     defaultSizeTypes: defaultSizeTypes || ['javascript', 'unknown'],
     cacheGroups: Object.entries(cacheGroups)
@@ -136,7 +160,7 @@ export function toRawSplitChunksOptions(
         const rawGroup: RawCacheGroupOptions = {
           key,
           test: getTest(test),
-          name: getName(name),
+          ...getName(name),
           chunks: getChunks(chunks),
           minSize: JsSplitChunkSizes.__to_binding(minSize),
           minSizeReduction: JsSplitChunkSizes.__to_binding(minSizeReduction),

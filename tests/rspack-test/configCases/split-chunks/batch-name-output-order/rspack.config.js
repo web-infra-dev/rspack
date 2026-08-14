@@ -112,9 +112,9 @@ function createConfig(label, name) {
 module.exports = [
   createConfig('native', false),
   createConfig('batch', (_module, chunks) => {
-    for (const chunk of chunks) {
-      void chunk.name;
-    }
+    expect(chunks.map((chunk) => chunk.name).sort()).toEqual(
+      [...entryNames].sort(),
+    );
     return undefined;
   }),
 ];

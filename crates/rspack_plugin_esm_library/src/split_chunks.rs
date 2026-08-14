@@ -195,7 +195,7 @@ pub(crate) async fn split(groups: &[CacheGroup], compilation: &mut Compilation) 
             ChunkNameGetter::String(name) => Some((Either::Left(name.clone()), module_identifier)),
             ChunkNameGetter::Disabled => Some((Either::Right(index), module_identifier)),
             ChunkNameGetter::Fn(func) => {
-              let mut names = func(vec![ChunkNameGetterFnCtx {
+              let name_res = func(ChunkNameGetterFnCtx {
                 module,
                 compilation,
                 chunks: &compilation
@@ -206,12 +206,13 @@ pub(crate) async fn split(groups: &[CacheGroup], compilation: &mut Compilation) 
                   .copied()
                   .collect(),
                 cache_group_key: &group.key,
-              }])
-              .await?;
+              })
+              .await;
 
-              match names.pop().flatten() {
-                Some(name) => Some((Either::Left(name), module_identifier)),
-                None => Some((Either::Right(index), module_identifier)),
+              match name_res {
+                Ok(Some(name)) => Some((Either::Left(name), module_identifier)),
+                Ok(None) => Some((Either::Right(index), module_identifier)),
+                Err(err) => return Err(err),
               }
             }
           });

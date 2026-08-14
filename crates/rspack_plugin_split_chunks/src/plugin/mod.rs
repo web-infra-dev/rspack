@@ -4,8 +4,9 @@ pub mod max_size;
 pub mod min_size;
 mod module_group;
 
-use std::{borrow::Cow, cmp::Ordering, fmt::Debug};
+use std::{borrow::Cow, cmp::Ordering, fmt::Debug, sync::Arc};
 
+use futures::future::BoxFuture;
 use itertools::Itertools;
 use rayon::iter::{
   IndexedParallelIterator, IntoParallelRefIterator, IntoParallelRefMutIterator, ParallelIterator,
@@ -23,9 +24,17 @@ use crate::{
   common::{FallbackCacheGroup, ModuleChunkMap},
   get_module_sizes,
   module_group::{IndexedCacheGroup, ModuleGroup, ModuleGroupKey},
+  options::chunk_name::ChunkNameGetterFnCtx,
 };
 
 type ModuleGroupMap = FxIndexMap<ModuleGroupKey, ModuleGroup>;
+
+#[doc(hidden)]
+pub type SplitChunksNameBatchFn = Arc<
+  dyn for<'a> Fn(Vec<ChunkNameGetterFnCtx<'a>>) -> BoxFuture<'static, Result<Vec<Option<String>>>>
+    + Sync
+    + Send,
+>;
 
 #[derive(Debug)]
 pub struct PluginOptions {
@@ -37,6 +46,7 @@ pub struct PluginOptions {
 #[plugin]
 pub struct SplitChunksPlugin {
   cache_groups: Box<[CacheGroup]>,
+  name_batch_getters: Option<Box<[Option<SplitChunksNameBatchFn>]>>,
   fallback_cache_group: FallbackCacheGroup,
   hide_path_info: bool,
 }
@@ -46,6 +56,30 @@ impl SplitChunksPlugin {
     tracing::debug!("Create `SplitChunksPlugin` with {:#?}", options);
     Self::new_inner(
       options.cache_groups.into(),
+      None,
+      options.fallback_cache_group,
+      options.hide_path_info.unwrap_or(false),
+    )
+  }
+
+  #[doc(hidden)]
+  pub fn new_with_name_batch_getters(
+    options: PluginOptions,
+    name_batch_getters: Vec<Option<SplitChunksNameBatchFn>>,
+  ) -> Self {
+    assert_eq!(
+      options.cache_groups.len(),
+      name_batch_getters.len(),
+      "name batch getters should align with cache groups"
+    );
+    let name_batch_getters = name_batch_getters
+      .iter()
+      .any(Option::is_some)
+      .then(|| name_batch_getters.into());
+    tracing::debug!("Create `SplitChunksPlugin` with {:#?}", options);
+    Self::new_inner(
+      options.cache_groups.into(),
+      name_batch_getters,
       options.fallback_cache_group,
       options.hide_path_info.unwrap_or(false),
     )

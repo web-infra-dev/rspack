@@ -769,6 +769,12 @@ export interface JsChunkOptionNameBatch {
   cacheGroupKey: string
 }
 
+export interface JsChunkOptionNameCtx {
+  module: Module
+  chunks: Chunk[]
+  cacheGroupKey: string
+}
+
 /**
  * File clean options
  *
@@ -1911,7 +1917,8 @@ export interface RawCacheGroupOptions {
   maxInitialSize?: number | RawSplitChunkSizes
   maxAsyncRequests?: number
   maxInitialRequests?: number
-  name?: string | false | ((batch: JsChunkOptionNameBatch) => (string | undefined)[])
+  name?: string | false | ((ctx: JsChunkOptionNameCtx) => string | undefined)
+  nameBatch?: ((batch: JsChunkOptionNameBatch) => (string | undefined)[])
   reuseExistingChunk?: boolean
   enforce?: boolean
   usedExports?: boolean
@@ -3075,7 +3082,8 @@ export interface RawSplitChunkSizes {
 
 export interface RawSplitChunksOptions {
   fallbackCacheGroup?: RawFallbackCacheGroupOptions
-  name?: string | false | ((batch: JsChunkOptionNameBatch) => (string | undefined)[])
+  name?: string | false | ((ctx: JsChunkOptionNameCtx) => string | undefined)
+  nameBatch?: ((batch: JsChunkOptionNameBatch) => (string | undefined)[])
   filename?: JsFilename
   cacheGroups?: Array<RawCacheGroupOptions>
   /** What kind of chunks should be selected. */

@@ -21,7 +21,7 @@ use tracing::instrument;
 
 use super::ModuleGroupMap;
 use crate::{
-  SplitChunksPlugin,
+  SplitChunksNameBatchFn, SplitChunksPlugin,
   common::{ChunkFilter, ModuleChunkMap, ModuleChunks, ModuleSizes},
   min_size::remove_min_size_violating_modules,
   module_group::{IndexedCacheGroup, ModuleGroup, ModuleGroupKey, compare_entries},
@@ -121,6 +121,7 @@ const JS_CHUNK_NAME_BATCH_SIZE: usize = 128;
 async fn process_name_requests(
   mut receiver: mpsc::UnboundedReceiver<PendingNameRequest>,
   cache_groups: &[IndexedCacheGroup<'_>],
+  name_batch_getters: &[Option<SplitChunksNameBatchFn>],
   compilation: &Compilation,
 ) -> Result<()> {
   let module_graph = compilation.get_module_graph();
@@ -144,10 +145,12 @@ async fn process_name_requests(
         run_end += 1;
       }
 
-      let cache_group = cache_groups[cache_group_position].cache_group;
-      let ChunkNameGetter::Fn(get_name) = &cache_group.name else {
-        unreachable!("pending name request should use a name callback")
-      };
+      let indexed_cache_group = &cache_groups[cache_group_position];
+      let cache_group = indexed_cache_group.cache_group;
+      let get_name = name_batch_getters
+        .get(indexed_cache_group.cache_group_index as usize)
+        .and_then(Option::as_ref)
+        .expect("pending name request should use a batch name callback");
       let contexts = requests[run_start..run_end]
         .iter()
         .map(|request| ChunkNameGetterFnCtx {
@@ -511,10 +514,15 @@ impl SplitChunksPlugin {
   ) -> Result<ModuleGroupMap> {
     let module_graph = compilation.get_module_graph();
     let module_group_map: FxDashMap<ModuleGroupKey, ModuleGroup> = FxDashMap::default();
-    let has_name_callback = cache_groups.iter().any(|indexed_cache_group| {
-      matches!(indexed_cache_group.cache_group.name, ChunkNameGetter::Fn(_))
+    let name_batch_getters = self.name_batch_getters.as_deref();
+    let has_name_batch_callback = name_batch_getters.is_some_and(|name_batch_getters| {
+      cache_groups.iter().any(|indexed_cache_group| {
+        name_batch_getters
+          .get(indexed_cache_group.cache_group_index as usize)
+          .is_some_and(Option::is_some)
+      })
     });
-    let (name_sender, name_receiver) = if has_name_callback {
+    let (name_sender, name_receiver) = if has_name_batch_callback {
       let (sender, receiver) = mpsc::unbounded();
       (Some(sender), Some(receiver))
     } else {
@@ -523,10 +531,20 @@ impl SplitChunksPlugin {
 
     let module_group_results = rspack_parallel::scope::<_, Result<_>>(|token| {
       if let Some(name_receiver) = name_receiver {
-        let coordinator = unsafe { token.used((name_receiver, &cache_groups, compilation)) };
-        coordinator.spawn(|(name_receiver, cache_groups, compilation)| async move {
-          process_name_requests(name_receiver, cache_groups, compilation).await
-        });
+        let coordinator = unsafe {
+          token.used((
+            name_receiver,
+            &cache_groups,
+            name_batch_getters.expect("should have batch name getters"),
+            compilation,
+          ))
+        };
+        coordinator.spawn(
+          |(name_receiver, cache_groups, name_batch_getters, compilation)| async move {
+            process_name_requests(name_receiver, cache_groups, name_batch_getters, compilation)
+              .await
+          },
+        );
       }
 
       all_modules
@@ -546,6 +564,7 @@ impl SplitChunksPlugin {
               module_chunks,
               chunk_index_map,
               name_sender,
+              name_batch_getters,
             ))
           };
           s.spawn(
@@ -560,6 +579,7 @@ impl SplitChunksPlugin {
               module_chunks,
               chunk_index_map,
               name_sender,
+              name_batch_getters,
             )| async move {
               let belong_to_chunks = module_chunks
                 .get(module_index)
@@ -577,6 +597,11 @@ impl SplitChunksPlugin {
 
               for (cache_group_position, indexed_cache_group) in cache_groups.iter().enumerate() {
                 let cache_group = indexed_cache_group.cache_group;
+                let has_name_batch_getter = name_batch_getters.is_some_and(|getters| {
+                  getters
+                    .get(indexed_cache_group.cache_group_index as usize)
+                    .is_some_and(Option::is_some)
+                });
                 if !(cache_group.r#type)(module)
                   || !(cache_group.layer)(module.get_layer().map(ToString::to_string)).await?
                 {
@@ -637,6 +662,7 @@ impl SplitChunksPlugin {
 
                   if matches!(&cache_group.chunk_filter, ChunkFilter::All)
                     && matches!(&cache_group.name, ChunkNameGetter::Disabled)
+                    && !has_name_batch_getter
                   {
                     let mut module_group = module_group_map
                       .entry(ModuleGroupKey::Anonymous {
@@ -683,29 +709,40 @@ impl SplitChunksPlugin {
                     continue;
                   }
 
-                  let chunk_name = match &cache_group.name {
-                    ChunkNameGetter::String(name) => Some(name.clone()),
-                    ChunkNameGetter::Disabled => None,
-                    ChunkNameGetter::Fn(_) => {
-                      let name_sender = name_sender
-                        .as_ref()
-                        .expect("name callback should have a batch coordinator");
-                      let (response, response_receiver) = oneshot::channel();
-                      if name_sender
-                        .unbounded_send(PendingNameRequest {
-                          module: module.identifier(),
-                          chunks: selected_chunks.iter().copied().collect(),
-                          cache_group_position,
-                          response: Some(response),
+                  let chunk_name = if has_name_batch_getter {
+                    let name_sender = name_sender
+                      .as_ref()
+                      .expect("name callback should have a batch coordinator");
+                    let (response, response_receiver) = oneshot::channel();
+                    if name_sender
+                      .unbounded_send(PendingNameRequest {
+                        module: module.identifier(),
+                        chunks: selected_chunks.iter().copied().collect(),
+                        cache_group_position,
+                        response: Some(response),
+                      })
+                      .is_err()
+                    {
+                      return Ok(());
+                    }
+                    let Ok(chunk_name) = response_receiver.await else {
+                      return Ok(());
+                    };
+                    chunk_name
+                  } else {
+                    match &cache_group.name {
+                      ChunkNameGetter::String(name) => Some(name.clone()),
+                      ChunkNameGetter::Disabled => None,
+                      ChunkNameGetter::Fn(get_name) => {
+                        let chunks = selected_chunks.iter().copied().collect::<Vec<_>>();
+                        get_name(ChunkNameGetterFnCtx {
+                          module,
+                          compilation,
+                          chunks: &chunks,
+                          cache_group_key: &cache_group.key,
                         })
-                        .is_err()
-                      {
-                        return Ok(());
+                        .await?
                       }
-                      let Ok(chunk_name) = response_receiver.await else {
-                        return Ok(());
-                      };
-                      chunk_name
                     }
                   };
 
