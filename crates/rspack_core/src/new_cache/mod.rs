@@ -78,7 +78,7 @@ pub fn create_cache(
       return Cache::new(compiler_path, MemoryCache::default(), None);
     }
   };
-  let idle_file_cache = IdleFileCache::new(strategy);
+  let idle_file_cache = IdleFileCache::new(strategy, None, None, None);
 
   Cache::new(compiler_path, MemoryCache::default(), Some(idle_file_cache))
 }
