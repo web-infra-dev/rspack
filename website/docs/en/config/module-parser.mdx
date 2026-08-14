@@ -1219,10 +1219,10 @@ import classes, { class1, class2 } from './index.module.css';
 - **Type:** `boolean`
 - **Default:** `true`
 
-Allow to enable/disables handling the CSS functions url.
+Controls whether Rspack handles the CSS `url()` function.
 
-When using `url: true`, Rspack will resolve the path in `url` function, the resolve file will be treated as an asset.
-When using `url: false`, Rspack will ignore the path in the `url` function, keep the content unchanged.
+When using `url: true`, Rspack will resolve the path in the `url()` function, and the resolved file will be treated as an asset.
+When using `url: false`, Rspack will ignore the path in the `url()` function and keep the content unchanged.
 
 ```js title="rspack.config.mjs"
 export default {

@@ -208,7 +208,7 @@ export default {
 In Rspack 0.x, we used the built-in `rspack.SwcCssMinimizerRspackPlugin` to compress CSS size.
 Now, we have removed it and replaced it with [rspack.LightningCssMinimizerRspackPlugin](/plugins/rspack/lightning-css-minimizer-rspack-plugin) to handle the same functionality.
 
-If you previously manually registered and configured `rspack.SwcCssMinimizerRspackPlugin`, you should to switch to `rspack.LightningCssMinimizerRspackPlugin`:
+If you previously manually registered and configured `rspack.SwcCssMinimizerRspackPlugin`, you should switch to `rspack.LightningCssMinimizerRspackPlugin`:
 
 ```diff
 import { rspack } from '@rspack/core';
