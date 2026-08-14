@@ -115,6 +115,7 @@ thread_local        = { version = "1.1.9", default-features = false }
 tokio               = { version = "1.53.1", default-features = false, features = ["rt"] }
 tracing             = { version = "0.1.44", default-features = false, features = ["max_level_trace", "release_max_level_trace"] }
 tracing-subscriber  = { version = "0.3.23", default-features = false, features = ["fmt", "registry"] }
+triomphe            = { version = "0.1.14", default-features = false, features = ["std"] }
 trybuild            = { version = "1.0.116", default-features = false, features = ["diff"] }
 turbo-persistence   = { package = "rspack-turbo-persistence", version = "0.1.1", default-features = false }
 twox-hash           = { version = "2.1.2", default-features = false }
@@ -182,6 +183,7 @@ rspack_fs                              = { version = "=0.101.10", path = "crates
 rspack_hash                            = { version = "=0.101.10", path = "crates/rspack_hash", default-features = false }
 rspack_hook                            = { version = "=0.101.10", path = "crates/rspack_hook", default-features = false }
 rspack_ids                             = { version = "=0.101.10", path = "crates/rspack_ids", default-features = false }
+rspack_intern                          = { version = "=0.101.10", path = "crates/rspack_intern", default-features = false }
 rspack_javascript_compiler             = { version = "=0.101.10", path = "crates/rspack_javascript_compiler", default-features = false }
 rspack_loader_lightningcss             = { version = "=0.101.10", path = "crates/rspack_loader_lightningcss", default-features = false }
 rspack_loader_preact_refresh           = { version = "=0.101.10", path = "crates/rspack_loader_preact_refresh", default-features = false }

@@ -4382,6 +4382,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "rspack_intern"
+version = "0.101.10"
+dependencies = [
+ "dashmap",
+ "rustc-hash",
+ "triomphe",
+]
+
+[[package]]
 name = "rspack_javascript_compiler"
 version = "0.101.10"
 dependencies = [
@@ -4602,6 +4611,7 @@ dependencies = [
  "dashmap",
  "indexmap",
  "rspack_cacheable",
+ "rspack_intern",
  "rspack_resolver",
  "rustc-hash",
  "ustr-fxhash",
