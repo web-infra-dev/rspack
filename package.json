@@ -26,8 +26,6 @@
     "test:js": "pnpm -r run test",
     "format:rs": "cargo fmt --all",
     "format:js": "rs fmt && heading-case --write",
-    "format-ci:toml": "taplo format --check",
-    "format:toml": "taplo format",
     "lint:js": "rs check && heading-case",
     "lint:rs": "cargo check --workspace --all-targets --locked",
     "build:binding:dev": "pnpm --filter @rspack/binding run build:dev",
@@ -55,13 +53,13 @@
     "pnpm": "11.8.0"
   },
   "devDependencies": {
-    "@taplo/cli": "catalog:",
     "@types/node": "catalog:",
     "@typescript/native": "catalog:",
     "commander": "catalog:",
     "cross-env": "catalog:",
     "globals": "catalog:",
     "heading-case": "catalog:",
+    "prettier-plugin-toml": "catalog:",
     "rstack": "catalog:",
     "typescript": "catalog:",
     "zx": "catalog:"

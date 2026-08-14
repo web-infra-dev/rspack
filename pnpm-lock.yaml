@@ -121,9 +121,6 @@ catalogs:
     '@swc/types':
       specifier: 0.1.28
       version: 0.1.28
-    '@taplo/cli':
-      specifier: ^0.7.0
-      version: 0.7.0
     '@types/babel__generator':
       specifier: 7.27.0
       version: 7.27.0
@@ -340,6 +337,9 @@ catalogs:
     prettier:
       specifier: 3.9.6
       version: 3.9.6
+    prettier-plugin-toml:
+      specifier: 2.0.6
+      version: 2.0.6
     pretty-format:
       specifier: 30.4.1
       version: 30.4.1
@@ -464,9 +464,6 @@ importers:
 
   .:
     devDependencies:
-      '@taplo/cli':
-        specifier: 'catalog:'
-        version: 0.7.0
       '@types/node':
         specifier: 'catalog:'
         version: 20.19.43
@@ -485,6 +482,9 @@ importers:
       heading-case:
         specifier: 'catalog:'
         version: 1.1.5
+      prettier-plugin-toml:
+        specifier: 'catalog:'
+        version: 2.0.6(prettier@3.9.6)
       rstack:
         specifier: 'catalog:'
         version: 0.6.0(@microsoft/api-extractor@7.58.12)(@module-federation/runtime-tools@2.8.2)(@rspress/core@2.0.19)(core-js@3.50.0)(jiti@2.7.0)(jsdom@30.0.1)(typescript@6.0.3)
@@ -3611,9 +3611,11 @@ packages:
       webpack:
         optional: true
 
-  '@taplo/cli@0.7.0':
-    resolution: {integrity: sha512-Ck3zFhQhIhi02Hl6T4ZmJsXdnJE+wXcJz5f8klxd4keRYgenMnip3JDPMGDRLbnC/2iGd8P0sBIQqI3KxfVjBg==}
-    hasBin: true
+  '@taplo/core@0.2.0':
+    resolution: {integrity: sha512-r8bl54Zj1In3QLkiW/ex694bVzpPJ9EhwqT9xkcUVODnVUGirdB1JTsmiIv0o1uwqZiwhi8xNnTOQBRQCpizrQ==}
+
+  '@taplo/lib@0.5.0':
+    resolution: {integrity: sha512-+xIqpQXJco3T+VGaTTwmhxLa51qpkQxCjRwezjFZgr+l21ExlywJFcDfTrNmL6lG6tqb0h8GyJKO3UPGPtSCWg==}
 
   '@tybys/wasm-util@0.10.3':
     resolution: {integrity: sha512-F3fo1MYrRJYL3zER0OUOmkutjr1Vp23m7OsSgp7nq4SP6OqX6C/56XFIPAl5bt3zaBRjmW7SGz3u/6LwFpYcOg==}
@@ -6512,6 +6514,12 @@ packages:
   prebundle@1.6.5:
     resolution: {integrity: sha512-UjtlqPAr5xggwXJwOuC/FjDFFrn/yoRCq4nXtAX5KwAlumYpBJGixpNQ7z/jZnfNaaxhGKbv06GZOY5L7lK2Vw==}
     hasBin: true
+
+  prettier-plugin-toml@2.0.6:
+    resolution: {integrity: sha512-12N/wBuHa9jd/KVy9pRP20NMKxQfQLMseQCt66lIbLaPLItvGUcSIryE1eZZMJ7loSws6Ig3M2Elc2EreNh76w==}
+    engines: {node: '>=16.0.0'}
+    peerDependencies:
+      prettier: ^3.0.3
 
   prettier@3.9.6:
     resolution: {integrity: sha512-OpN0zzVdiaiAhxpuuj5efpIS4sY9j7bY6uR5mnj5yPzGkdkjNKSJeUThPb60Jw29QuAZgA4o+/iB49kFiaBX6g==}
@@ -10018,7 +10026,11 @@ snapshots:
     optionalDependencies:
       '@rspack/core': 2.1.9(@module-federation/runtime-tools@2.8.2)(@swc/helpers@0.5.23)
 
-  '@taplo/cli@0.7.0': {}
+  '@taplo/core@0.2.0': {}
+
+  '@taplo/lib@0.5.0':
+    dependencies:
+      '@taplo/core': 0.2.0
 
   '@tybys/wasm-util@0.10.3':
     dependencies:
@@ -13256,6 +13268,11 @@ snapshots:
       terser: 5.49.0
     transitivePeerDependencies:
       - typescript
+
+  prettier-plugin-toml@2.0.6(prettier@3.9.6):
+    dependencies:
+      '@taplo/lib': 0.5.0
+      prettier: 3.9.6
 
   prettier@3.9.6: {}
 
