@@ -4,6 +4,13 @@ const {
 } = require('@rspack/core');
 
 const moduleCount = 160;
+const entryNames = [
+  'a',
+  'b',
+  'c',
+  'd',
+  ...Array.from({ length: 13 }, (_, index) => `entry-${index}`),
+];
 const observedOutputs = new Map();
 
 function createVirtualModules() {
@@ -20,7 +27,7 @@ function createVirtualModules() {
     { length: moduleCount },
     (_, index) => `value${index}`,
   ).join(' + ');
-  for (const entry of ['a', 'b', 'c', 'd']) {
+  for (const entry of entryNames) {
     modules[`${entry}.js`] = `${imports}
 it('loads entry ${entry}', () => {
   expect(${sum}).toBe(12720);
@@ -75,12 +82,7 @@ function createConfig(label, name) {
     name: label,
     mode: 'development',
     target: 'node',
-    entry: {
-      a: './a',
-      b: './b',
-      c: './c',
-      d: './d',
-    },
+    entry: Object.fromEntries(entryNames.map((entry) => [entry, `./${entry}`])),
     output: {
       filename: '[name].js',
     },
