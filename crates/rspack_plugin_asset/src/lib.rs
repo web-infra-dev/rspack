@@ -861,12 +861,12 @@ async fn render_manifest(
 
       let result = code_gen_result.get(&SourceType::Asset).map(|source| {
         let asset_filename = code_gen_result
-          .data
+          .data()
           .get::<CodeGenerationDataFilename>()
           .expect("should have filename for asset module")
           .filename();
         let asset_info = code_gen_result
-          .data
+          .data()
           .get::<CodeGenerationDataAssetInfo>()
           .expect("should have asset_info")
           .inner()

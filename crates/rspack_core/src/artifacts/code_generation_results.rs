@@ -1,22 +1,25 @@
-use std::{
-  collections::hash_map::Entry,
-  ops::{Deref, DerefMut},
-  sync::atomic::AtomicU32,
-};
+use std::{collections::hash_map::Entry, fmt::Debug, sync::Arc};
 
-use anymap::CloneAny;
+use dyn_clone::{DynClone, clone_trait_object};
+use rspack_cacheable::{
+  cacheable, cacheable_dyn,
+  with::{AsCacheable, AsInner, AsMap, AsPreset, AsVec},
+};
 use rspack_collections::IdentifierMap;
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHash, RspackHashDigest, RspackHasher};
 use rspack_sources::BoxSource;
-use rspack_util::atom::Atom;
+use rspack_util::{
+  atom::Atom,
+  ext::{AsAny, IntoAny},
+};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet};
-use serde::Serialize;
 
 use crate::{
   ArtifactExt, AssetInfo, BindingCell, ChunkInitFragments, ConcatenationScope, ModuleIdentifier,
   RuntimeGlobals, RuntimeSpec, RuntimeSpecMap, SourceType, incremental::IncrementalPasses,
 };
 
+#[cacheable]
 #[derive(Clone, Debug)]
 pub struct CodeGenerationDataUrl {
   inner: String,
@@ -33,12 +36,15 @@ impl CodeGenerationDataUrl {
 }
 
 // For performance, mark the js modules containing AUTO_PUBLIC_PATH_PLACEHOLDER
+#[cacheable]
 #[derive(Clone, Debug)]
 pub struct CodeGenerationPublicPathAutoReplace(pub bool);
 
+#[cacheable]
 #[derive(Clone, Debug)]
 pub struct URLStaticMode;
 
+#[cacheable]
 #[derive(Clone, Debug)]
 pub struct CodeGenerationDataFilename {
   filename: String,
@@ -62,6 +68,7 @@ impl CodeGenerationDataFilename {
   }
 }
 
+#[cacheable]
 #[derive(Clone, Debug)]
 pub struct CodeGenerationDataAssetInfo {
   inner: AssetInfo,
@@ -77,8 +84,10 @@ impl CodeGenerationDataAssetInfo {
   }
 }
 
+#[cacheable]
 #[derive(Clone, Debug)]
 pub struct CodeGenerationDataTopLevelDeclarations {
+  #[cacheable(with=AsVec<AsPreset>)]
   inner: FxHashSet<Atom>,
 }
 
@@ -92,53 +101,183 @@ impl CodeGenerationDataTopLevelDeclarations {
   }
 }
 
+#[cacheable_dyn]
+pub trait CodeGenerationDataItem: Debug + DynClone + AsAny + IntoAny + Send + Sync {}
+
+clone_trait_object!(CodeGenerationDataItem);
+
+#[cacheable]
 #[derive(Debug, Default, Clone)]
-pub struct CodeGenerationData {
-  inner: anymap::Map<dyn CloneAny + Send + Sync>,
+pub struct CodeGenerationDataChunkInitFragments {
+  inner: ChunkInitFragments,
 }
 
-impl Deref for CodeGenerationData {
-  type Target = anymap::Map<dyn CloneAny + Send + Sync>;
-
-  fn deref(&self) -> &Self::Target {
+impl CodeGenerationDataChunkInitFragments {
+  pub fn inner(&self) -> &ChunkInitFragments {
     &self.inner
   }
-}
 
-impl DerefMut for CodeGenerationData {
-  fn deref_mut(&mut self) -> &mut Self::Target {
+  pub fn inner_mut(&mut self) -> &mut ChunkInitFragments {
     &mut self.inner
   }
 }
 
+impl From<ChunkInitFragments> for CodeGenerationDataChunkInitFragments {
+  fn from(inner: ChunkInitFragments) -> Self {
+    Self { inner }
+  }
+}
+
+#[cacheable_dyn]
+impl CodeGenerationDataItem for CodeGenerationDataUrl {}
+
+#[cacheable_dyn]
+impl CodeGenerationDataItem for CodeGenerationPublicPathAutoReplace {}
+
+#[cacheable_dyn]
+impl CodeGenerationDataItem for URLStaticMode {}
+
+#[cacheable_dyn]
+impl CodeGenerationDataItem for CodeGenerationDataFilename {}
+
+#[cacheable_dyn]
+impl CodeGenerationDataItem for CodeGenerationDataAssetInfo {}
+
+#[cacheable_dyn]
+impl CodeGenerationDataItem for CodeGenerationDataTopLevelDeclarations {}
+
+#[cacheable_dyn]
+impl CodeGenerationDataItem for CodeGenerationDataChunkInitFragments {}
+
+#[cacheable]
 #[derive(Debug, Default, Clone)]
-pub struct CodeGenerationResult {
-  pub inner: BindingCell<HashMap<SourceType, BoxSource>>,
+pub struct CodeGenerationData {
+  inner: Vec<Box<dyn CodeGenerationDataItem>>,
+}
+
+impl CodeGenerationData {
+  pub fn insert<T: CodeGenerationDataItem + 'static>(&mut self, item: T) -> Option<T> {
+    if let Some(index) = self
+      .inner
+      .iter()
+      .position(|item| item.as_ref().as_any().is::<T>())
+    {
+      let old = std::mem::replace(&mut self.inner[index], Box::new(item));
+      old.into_any().downcast::<T>().ok().map(|item| *item)
+    } else {
+      self.inner.push(Box::new(item));
+      None
+    }
+  }
+
+  pub fn get<T: CodeGenerationDataItem + 'static>(&self) -> Option<&T> {
+    self
+      .inner
+      .iter()
+      .find_map(|item| item.as_ref().as_any().downcast_ref::<T>())
+  }
+
+  pub fn get_mut<T: CodeGenerationDataItem + 'static>(&mut self) -> Option<&mut T> {
+    self
+      .inner
+      .iter_mut()
+      .find_map(|item| item.as_mut().as_any_mut().downcast_mut::<T>())
+  }
+
+  pub fn contains<T: CodeGenerationDataItem + 'static>(&self) -> bool {
+    self.get::<T>().is_some()
+  }
+
+  pub fn len(&self) -> usize {
+    self.inner.len()
+  }
+
+  pub fn is_empty(&self) -> bool {
+    self.inner.is_empty()
+  }
+}
+
+#[cacheable]
+#[derive(Debug, Default)]
+struct CodeGenerationResultInner {
+  #[cacheable(with=AsInner<AsMap<AsCacheable, AsPreset>>)]
+  sources: BindingCell<HashMap<SourceType, BoxSource>>,
   /// [definition in webpack](https://github.com/webpack/webpack/blob/4b4ca3bb53f36a5b8fc6bc1bd976ed7af161bd80/lib/Module.js#L75)
-  pub data: CodeGenerationData,
-  pub chunk_init_fragments: ChunkInitFragments,
-  pub runtime_requirements: RuntimeGlobals,
-  pub hash: Option<RspackHashDigest>,
-  pub id: CodeGenResultId,
-  pub concatenation_scope: Option<ConcatenationScope>,
+  data: CodeGenerationData,
+  runtime_requirements: RuntimeGlobals,
+  hash: Option<RspackHashDigest>,
+}
+
+/// Immutable code generation output constructed by [`CodeGenerationResultBuilder`].
+#[cacheable]
+#[derive(Debug, Clone)]
+pub struct CodeGenerationResult {
+  value: Arc<CodeGenerationResultInner>,
 }
 
 impl CodeGenerationResult {
-  pub fn with_javascript(mut self, generation_result: BoxSource) -> Self {
-    self.inner.insert(SourceType::JavaScript, generation_result);
-    self
+  pub fn sources(&self) -> &HashMap<SourceType, BoxSource> {
+    &self.value.sources
   }
 
-  pub fn inner(&self) -> &HashMap<SourceType, BoxSource> {
-    &self.inner
+  pub fn sources_cell(&self) -> &BindingCell<HashMap<SourceType, BoxSource>> {
+    &self.value.sources
+  }
+
+  pub fn data(&self) -> &CodeGenerationData {
+    &self.value.data
+  }
+
+  pub fn runtime_requirements(&self) -> &RuntimeGlobals {
+    &self.value.runtime_requirements
+  }
+
+  pub fn hash(&self) -> Option<&RspackHashDigest> {
+    self.value.hash.as_ref()
   }
 
   pub fn get(&self, source_type: &SourceType) -> Option<&BoxSource> {
-    self.inner.get(source_type)
+    self.value.sources.get(source_type)
+  }
+
+  fn has_same_value(&self, other: &Self) -> bool {
+    Arc::ptr_eq(&self.value, &other.value)
+  }
+}
+
+/// Mutable state used to construct a [`CodeGenerationResult`].
+#[derive(Debug, Default)]
+pub struct CodeGenerationResultBuilder {
+  value: CodeGenerationResultInner,
+}
+
+impl CodeGenerationResultBuilder {
+  pub fn sources(&self) -> &HashMap<SourceType, BoxSource> {
+    &self.value.sources
+  }
+
+  pub fn data(&self) -> &CodeGenerationData {
+    &self.value.data
+  }
+
+  pub fn data_mut(&mut self) -> &mut CodeGenerationData {
+    &mut self.value.data
+  }
+
+  pub fn runtime_requirements(&self) -> &RuntimeGlobals {
+    &self.value.runtime_requirements
+  }
+
+  pub fn runtime_requirements_mut(&mut self) -> &mut RuntimeGlobals {
+    &mut self.value.runtime_requirements
+  }
+
+  pub fn get(&self, source_type: &SourceType) -> Option<&BoxSource> {
+    self.value.sources.get(source_type)
   }
 
   pub fn add(&mut self, source_type: SourceType, generation_result: BoxSource) {
-    let result = self.inner.insert(source_type, generation_result);
+    let result = self.value.sources.insert(source_type, generation_result);
     debug_assert!(result.is_none());
   }
 
@@ -149,13 +288,12 @@ impl CodeGenerationResult {
     hash_salt: &HashSalt,
   ) {
     let mut hasher = RspackHasher::with_salt(hash_function, hash_salt);
-    for (source_type, source) in self.inner.as_ref() {
+    for (source_type, source) in self.value.sources.as_ref() {
       source_type.hash(&mut hasher);
       std::hash::Hash::hash(source, &mut hasher);
     }
-    self.chunk_init_fragments.hash(&mut hasher);
-    self.runtime_requirements.hash(&mut hasher);
-    self.hash = Some(hasher.digest(hash_digest));
+    self.value.runtime_requirements.hash(&mut hasher);
+    self.value.hash = Some(hasher.digest(hash_digest));
   }
 
   /// Concatenated modules already encode the generated module bodies into
@@ -171,30 +309,23 @@ impl CodeGenerationResult {
   ) {
     let mut hasher = RspackHasher::with_salt(hash_function, hash_salt);
     runtime_hash.hash(&mut hasher);
-    for source_type in self.inner.as_ref().keys() {
+    for source_type in self.value.sources.as_ref().keys() {
       source_type.hash(&mut hasher);
     }
-    self.chunk_init_fragments.hash(&mut hasher);
-    self.runtime_requirements.hash(&mut hasher);
-    self.hash = Some(hasher.digest(hash_digest));
+    self.value.runtime_requirements.hash(&mut hasher);
+    self.value.hash = Some(hasher.digest(hash_digest));
+  }
+
+  pub fn build(self) -> CodeGenerationResult {
+    CodeGenerationResult {
+      value: Arc::new(self.value),
+    }
   }
 }
-
-#[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd, Serialize)]
-pub struct CodeGenResultId(u32);
-
-impl Default for CodeGenResultId {
-  fn default() -> Self {
-    Self(CODE_GEN_RESULT_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed))
-  }
-}
-
-pub static CODE_GEN_RESULT_ID: AtomicU32 = AtomicU32::new(0);
 
 #[derive(Debug, Default, Clone)]
 pub struct CodeGenerationResults {
-  module_generation_result_map: HashMap<CodeGenResultId, BindingCell<CodeGenerationResult>>,
-  map: IdentifierMap<RuntimeSpecMap<CodeGenResultId>>,
+  map: IdentifierMap<RuntimeSpecMap<BindingCell<CodeGenerationResult>>>,
 }
 
 impl ArtifactExt for CodeGenerationResults {
@@ -203,7 +334,7 @@ impl ArtifactExt for CodeGenerationResults {
 
 impl CodeGenerationResults {
   pub fn is_empty(&self) -> bool {
-    self.module_generation_result_map.is_empty() && self.map.is_empty()
+    self.map.is_empty()
   }
 
   pub fn insert(
@@ -212,21 +343,17 @@ impl CodeGenerationResults {
     codegen_res: CodeGenerationResult,
     runtimes: impl IntoIterator<Item = RuntimeSpec>,
   ) {
-    let codegen_res_id = codegen_res.id;
-    self
-      .module_generation_result_map
-      .insert(codegen_res_id, BindingCell::from(codegen_res));
     for runtime in runtimes {
-      self.add(module_identifier, runtime, codegen_res_id);
+      self.add(
+        module_identifier,
+        runtime,
+        BindingCell::from(codegen_res.clone()),
+      );
     }
   }
 
   pub fn remove(&mut self, module_identifier: &ModuleIdentifier) -> Option<()> {
-    let runtime_map = self.map.remove(module_identifier)?;
-    for result in runtime_map.values() {
-      self.module_generation_result_map.remove(result)?;
-    }
-    Some(())
+    self.map.remove(module_identifier).map(|_| ())
   }
 
   pub fn get(
@@ -236,37 +363,22 @@ impl CodeGenerationResults {
   ) -> &BindingCell<CodeGenerationResult> {
     if let Some(entry) = self.map.get(module_identifier) {
       if let Some(runtime) = runtime {
-        entry
-          .get(runtime)
-          .and_then(|m| {
-            self.module_generation_result_map.get(m)
-          })
-          .unwrap_or_else(|| {
-            panic!(
-              "Failed to code generation result for {module_identifier} with runtime {runtime:?} \n {entry:?}"
-            )
-          })
+        entry.get(runtime).unwrap_or_else(|| {
+          panic!(
+            "Failed to code generation result for {module_identifier} with runtime {runtime:?} \n {entry:?}"
+          )
+        })
       } else {
-        if entry.size() > 1 {
-          let mut values = entry.values();
-          let results: FxHashSet<_> = entry.values().collect();
-          if results.len() > 1 {
-            panic!(
-              "No unique code generation entry for unspecified runtime for {module_identifier} ",
-            );
-          }
-
-          return values
-            .next()
-            .and_then(|m| self.module_generation_result_map.get(m))
-            .unwrap_or_else(|| panic!("Expected value exists"));
-        }
-
-        entry
-          .values()
+        let mut values = entry.values();
+        let result = values
           .next()
-          .and_then(|m| self.module_generation_result_map.get(m))
-          .unwrap_or_else(|| panic!("Expected value exists"))
+          .unwrap_or_else(|| panic!("Expected value exists"));
+        if values.any(|other| !result.has_same_value(other)) {
+          panic!(
+            "No unique code generation entry for unspecified runtime for {module_identifier} ",
+          );
+        }
+        result
       }
     } else {
       panic!(
@@ -288,27 +400,22 @@ impl CodeGenerationResults {
     self
       .map
       .get(module_identifier)
-      .and_then(|entry| {
-        entry
-          .values()
-          .next()
-          .and_then(|m| self.module_generation_result_map.get(m))
-      })
+      .and_then(|entry| entry.values().next())
       .unwrap_or_else(|| panic!("No code generation result for {module_identifier}"))
   }
 
-  pub fn add(
+  fn add(
     &mut self,
     module_identifier: ModuleIdentifier,
     runtime: RuntimeSpec,
-    result: CodeGenResultId,
+    result: BindingCell<CodeGenerationResult>,
   ) {
     match self.map.entry(module_identifier) {
       Entry::Occupied(mut record) => {
         record.get_mut().set(runtime, result);
       }
       Entry::Vacant(record) => {
-        let mut spec_map = RuntimeSpecMap::default();
+        let mut spec_map = RuntimeSpecMap::new();
         spec_map.set(runtime, result);
         record.insert(spec_map);
       }
@@ -320,7 +427,7 @@ impl CodeGenerationResults {
     module_identifier: &ModuleIdentifier,
     runtime: Option<&RuntimeSpec>,
   ) -> RuntimeGlobals {
-    self.get(module_identifier, runtime).runtime_requirements
+    *self.get(module_identifier, runtime).runtime_requirements()
   }
 
   pub fn get_hash(
@@ -330,16 +437,11 @@ impl CodeGenerationResults {
   ) -> Option<&RspackHashDigest> {
     let code_generation_result = self.get(module_identifier, runtime);
 
-    code_generation_result.hash.as_ref()
+    code_generation_result.hash()
   }
 
-  pub fn inner(
-    &self,
-  ) -> (
-    &IdentifierMap<RuntimeSpecMap<CodeGenResultId>>,
-    &HashMap<CodeGenResultId, BindingCell<CodeGenerationResult>>,
-  ) {
-    (&self.map, &self.module_generation_result_map)
+  pub fn inner(&self) -> &IdentifierMap<RuntimeSpecMap<BindingCell<CodeGenerationResult>>> {
+    &self.map
   }
 }
 

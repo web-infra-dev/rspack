@@ -9,11 +9,11 @@ use rspack_cacheable::{
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildContext,
-  BuildInfo, BuildMeta, BuildMetaExportsType, BuildResult, CodeGenerationResult, Compilation,
-  Context, DependenciesBlock, Dependency, DependencyId, DependencyRange, FactoryMeta, ImportPhase,
-  LibIdentOptions, Module, ModuleCodeGenerationContext, ModuleGraph, ModuleIdentifier, ModuleLayer,
-  ModuleType, ReferencedSpecifier, RuntimeSpec, SourceType, contextify, impl_module_meta_info,
-  impl_source_map_config, module_update_hash,
+  BuildInfo, BuildMeta, BuildMetaExportsType, BuildResult, CodeGenerationResultBuilder,
+  Compilation, Context, DependenciesBlock, Dependency, DependencyId, DependencyRange, FactoryMeta,
+  ImportPhase, LibIdentOptions, Module, ModuleCodeGenerationContext, ModuleGraph, ModuleIdentifier,
+  ModuleLayer, ModuleType, ReferencedSpecifier, RuntimeSpec, SourceType, contextify,
+  impl_module_meta_info, impl_source_map_config, module_update_hash,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
@@ -390,11 +390,16 @@ impl Module for RscEntryModule {
   async fn code_generation(
     &self,
     code_generation_context: &mut ModuleCodeGenerationContext,
-  ) -> Result<CodeGenerationResult> {
+  ) -> Result<CodeGenerationResultBuilder> {
     let compilation = code_generation_context.compilation;
     let source = self.render_debug_comments(compilation);
 
-    Ok(CodeGenerationResult::default().with_javascript(RawStringSource::from(source).boxed()))
+    let mut code_generation_result = CodeGenerationResultBuilder::default();
+    code_generation_result.add(
+      SourceType::JavaScript,
+      RawStringSource::from(source).boxed(),
+    );
+    Ok(code_generation_result)
   }
 
   async fn get_runtime_hash(

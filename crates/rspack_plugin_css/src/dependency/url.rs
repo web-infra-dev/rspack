@@ -38,9 +38,9 @@ impl CssUrlDependency {
     // url points to asset modules, and asset modules should have same codegen results for all runtimes
     let code_gen_result = compilation.code_generation_results.get_one(identifier);
 
-    if let Some(url) = code_gen_result.data.get::<CodeGenerationDataUrl>() {
+    if let Some(url) = code_gen_result.data().get::<CodeGenerationDataUrl>() {
       Some(url.inner().to_string())
-    } else if let Some(data) = code_gen_result.data.get::<CodeGenerationDataFilename>() {
+    } else if let Some(data) = code_gen_result.data().get::<CodeGenerationDataFilename>() {
       let filename = data.filename();
       let public_path = data.public_path().cow_replace(
         "__RSPACK_PLUGIN_ASSET_AUTO_PUBLIC_PATH__",

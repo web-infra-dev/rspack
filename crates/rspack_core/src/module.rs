@@ -30,7 +30,7 @@ use swc_core::atoms::Wtf8Atom;
 
 use crate::{
   AsyncDependenciesBlock, BindingCell, BoxDependency, BoxDependencyTemplate, BoxModuleDependency,
-  ChunkGraph, ChunkUkey, CodeGenerationResult, CollectedTypeScriptInfo, Compilation,
+  ChunkGraph, ChunkUkey, CodeGenerationResultBuilder, CollectedTypeScriptInfo, Compilation,
   CompilationAsset, CompilationId, CompilerId, CompilerOptions, ConcatenationScope,
   ConnectionState, Context, ContextModule, CssExportType, DependenciesBlock, DependencyId,
   ExportProvided, ExportsInfoArtifact, ExternalModule, Filename, GetTargetResult, ImportPhase,
@@ -658,7 +658,7 @@ pub type ResourceIdentifier = Identifier;
 pub struct ModuleCodeGenerationContext<'a> {
   pub compilation: &'a Compilation,
   pub runtime: Option<&'a RuntimeSpec>,
-  pub concatenation_scope: Option<ConcatenationScope>,
+  pub concatenation_scope: Option<&'a mut ConcatenationScope>,
   pub runtime_template: &'a mut ModuleCodeTemplate,
 }
 
@@ -751,7 +751,7 @@ pub trait Module:
   async fn code_generation(
     &self,
     _code_generation_context: &mut ModuleCodeGenerationContext,
-  ) -> Result<CodeGenerationResult>;
+  ) -> Result<CodeGenerationResultBuilder>;
 
   /// Name matched against bundle-splitting conditions.
   fn name_for_condition(&self) -> Option<Box<str>> {
@@ -1156,9 +1156,9 @@ mod test {
 
   use super::{BoxModule, Module};
   use crate::{
-    AsyncDependenciesBlockIdentifier, BuildContext, BuildResult, CodeGenerationResult, Compilation,
-    Context, DependenciesBlock, DependencyId, ModuleCodeGenerationContext, ModuleExt, ModuleGraph,
-    ModuleType, RuntimeSpec, SourceType,
+    AsyncDependenciesBlockIdentifier, BuildContext, BuildResult, CodeGenerationResultBuilder,
+    Compilation, Context, DependenciesBlock, DependencyId, ModuleCodeGenerationContext, ModuleExt,
+    ModuleGraph, ModuleType, RuntimeSpec, SourceType,
   };
 
   #[cacheable]
@@ -1247,7 +1247,7 @@ mod test {
         async fn code_generation(
           &self,
           _code_generation_context: &mut ModuleCodeGenerationContext,
-        ) -> Result<CodeGenerationResult> {
+        ) -> Result<CodeGenerationResultBuilder> {
           unreachable!()
         }
 

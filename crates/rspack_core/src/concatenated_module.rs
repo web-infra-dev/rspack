@@ -41,20 +41,20 @@ use swc_experimental_ecma_semantic::resolver::{Semantic, resolver};
 use crate::{
   AsyncDependenciesBlockIdentifier, BoxDependency, BoxDependencyTemplate, BoxModule,
   BoxModuleDependency, BuildContext, BuildInfo, BuildMeta, BuildMetaDefaultObject,
-  BuildMetaExportsType, BuildResult, ChunkGraph, ChunkInitFragments, ChunkRenderContext,
-  CodeGenerationDataTopLevelDeclarations, CodeGenerationPublicPathAutoReplace,
-  CodeGenerationResult, CodeGenerationRuntimeRequirementsWrite, Compilation,
-  ConcatenatedModuleIdent, ConcatenationScope, ConditionalInitFragment, ConnectionState, Context,
-  DEFAULT_EXPORT, DEFAULT_EXPORT_ATOM, DependenciesBlock, DependencyId, DependencyType, ExportInfo,
-  ExportProvided, ExportsArgument, ExportsInfoArtifact, ExportsType, FactoryMeta,
-  ImportedByDeferModulesArtifact, InitFragment, InitFragmentStage, LibIdentOptions, Module,
-  ModuleArgument, ModuleCodeGenerationContext, ModuleGraph, ModuleGraphCacheArtifact,
-  ModuleGraphConnection, ModuleIdentifier, ModuleLayer, ModuleStaticCache, ModuleType,
-  NAMESPACE_OBJECT_EXPORT, ParserOptions, Resolve, RuntimeCondition, RuntimeGlobals, RuntimeSpec,
-  SideEffectsStateArtifact, SourceType, URLStaticMode, UsageState, UsedName, UsedNameItem,
-  escape_identifier, fast_set, filter_runtime, find_target, get_runtime_key,
-  impl_source_map_config, merge_runtime_condition, merge_runtime_condition_non_false,
-  module_update_hash, property_access, property_name,
+  BuildMetaExportsType, BuildResult, ChunkGraph, ChunkInitFragments,
+  CodeGenerationDataChunkInitFragments, CodeGenerationDataTopLevelDeclarations,
+  CodeGenerationPublicPathAutoReplace, CodeGenerationResultBuilder,
+  CodeGenerationRuntimeRequirementsWrite, Compilation, ConcatenatedModuleIdent, ConcatenationScope,
+  ConditionalInitFragment, ConnectionState, Context, DEFAULT_EXPORT, DEFAULT_EXPORT_ATOM,
+  DependenciesBlock, DependencyId, DependencyType, ExportInfo, ExportProvided, ExportsArgument,
+  ExportsInfoArtifact, ExportsType, FactoryMeta, ImportedByDeferModulesArtifact, InitFragment,
+  InitFragmentStage, LibIdentOptions, Module, ModuleArgument, ModuleCodeGenerationContext,
+  ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, ModuleLayer,
+  ModuleStaticCache, ModuleType, NAMESPACE_OBJECT_EXPORT, ParserOptions, Resolve, RuntimeCondition,
+  RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, SourceType, URLStaticMode, UsageState,
+  UsedName, UsedNameItem, escape_identifier, fast_set, filter_runtime, find_target,
+  get_runtime_key, impl_source_map_config, merge_runtime_condition,
+  merge_runtime_condition_non_false, module_update_hash, property_access, property_name,
   render_make_deferred_namespace_mode_from_exports_type,
   reserved_names::RESERVED_NAMES_ATOM_SET,
   subtract_runtime_condition, to_identifier_with_escaped, to_normal_comment,
@@ -983,7 +983,7 @@ impl Module for ConcatenatedModule {
   async fn code_generation(
     &self,
     code_generation_context: &mut ModuleCodeGenerationContext,
-  ) -> Result<CodeGenerationResult> {
+  ) -> Result<CodeGenerationResultBuilder> {
     let ModuleCodeGenerationContext {
       compilation,
       runtime_template,
@@ -1630,7 +1630,7 @@ impl Module for ConcatenatedModule {
 
     let mut result: ConcatSource = ConcatSource::default();
     let mut should_add_esm_flag = false;
-    let mut chunk_init_fragments: Vec<Box<dyn InitFragment<ChunkRenderContext>>> = Vec::new();
+    let mut chunk_init_fragments: Vec<Box<dyn InitFragment>> = Vec::new();
 
     for ((source, attr), import_spec) in import_stmts {
       let content = render_imports(&source, attr.as_deref(), &import_spec);
@@ -2006,28 +2006,34 @@ impl Module for ConcatenatedModule {
     // `module_to_info_map` can be large and expensive to tear down on the critical path.
     fast_set(&mut module_to_info_map, IdentifierIndexMap::default());
 
-    let mut code_generation_result = CodeGenerationResult::default();
+    let mut code_generation_result = CodeGenerationResultBuilder::default();
     code_generation_result.add(SourceType::JavaScript, CachedSource::new(result).boxed());
-    code_generation_result.chunk_init_fragments = chunk_init_fragments;
+    if !chunk_init_fragments.is_empty() {
+      code_generation_result
+        .data_mut()
+        .insert(CodeGenerationDataChunkInitFragments::from(
+          chunk_init_fragments,
+        ));
+    }
 
     if public_path_auto_replace {
       code_generation_result
-        .data
+        .data_mut()
         .insert(CodeGenerationPublicPathAutoReplace(true));
     }
 
     if static_url_replace {
-      code_generation_result.data.insert(URLStaticMode);
+      code_generation_result.data_mut().insert(URLStaticMode);
     }
 
     if !runtime_requirements_write.runtime_requirements.is_empty() {
       code_generation_result
-        .data
+        .data_mut()
         .insert(runtime_requirements_write);
     }
 
     code_generation_result
-      .data
+      .data_mut()
       .insert(CodeGenerationDataTopLevelDeclarations::new(
         top_level_declarations,
       ));
@@ -2559,7 +2565,7 @@ impl ConcatenatedModule {
     if let ModuleInfo::Concatenated(boxed_info) = info {
       let info = boxed_info.as_ref();
       let module_id = info.module;
-      let concatenation_scope =
+      let mut concatenation_scope =
         concatenation_scope.expect("should have concatenation scope for concatenated module");
 
       let module_graph = compilation.get_module_graph();
@@ -2571,28 +2577,23 @@ impl ConcatenatedModule {
       let mut code_generation_context = ModuleCodeGenerationContext {
         compilation,
         runtime,
-        concatenation_scope: Some(concatenation_scope),
+        concatenation_scope: Some(&mut concatenation_scope),
         runtime_template: &mut runtime_template,
       };
       let codegen_res = module.code_generation(&mut code_generation_context).await?;
 
-      let CodeGenerationResult {
-        mut inner,
-        mut chunk_init_fragments,
-        mut runtime_requirements,
-        concatenation_scope,
-        ..
-      } = codegen_res;
+      let chunk_init_fragments = codegen_res
+        .data()
+        .get::<CodeGenerationDataChunkInitFragments>()
+        .map(|fragments| fragments.inner().clone())
+        .unwrap_or_default();
+      let mut runtime_requirements = *codegen_res.runtime_requirements();
 
       runtime_requirements.extend(*runtime_template.runtime_requirements());
 
-      if let Some(fragments) = codegen_res.data.get::<ChunkInitFragments>() {
-        chunk_init_fragments.extend(fragments.iter().cloned());
-      }
-
-      let concatenation_scope = concatenation_scope.expect("should have concatenation_scope");
-      let source = inner
-        .remove(&SourceType::JavaScript)
+      let source = codegen_res
+        .get(&SourceType::JavaScript)
+        .cloned()
         .expect("should have javascript source");
       let source_code = source.source().into_string_lossy();
       let mut module_info = concatenation_scope.current_module;
@@ -2685,7 +2686,7 @@ impl ConcatenatedModule {
       module_info.has_ast = true;
       module_info.runtime_requirements = runtime_requirements;
       if let Some(runtime_requirements_write) = codegen_res
-        .data
+        .data()
         .get::<CodeGenerationRuntimeRequirementsWrite>()
       {
         module_info.runtime_requirements_write = runtime_requirements_write.runtime_requirements;
@@ -2694,12 +2695,12 @@ impl ConcatenatedModule {
       module_info.source = Some(result_source);
       module_info.chunk_init_fragments = chunk_init_fragments;
       if let Some(CodeGenerationPublicPathAutoReplace(true)) = codegen_res
-        .data
+        .data()
         .get::<CodeGenerationPublicPathAutoReplace>(
       ) {
         module_info.public_path_auto_replacement = Some(true);
       }
-      if codegen_res.data.contains::<URLStaticMode>() {
+      if codegen_res.data().contains::<URLStaticMode>() {
         module_info.static_url_replacement = true;
       }
       Ok(ModuleInfo::Concatenated(Box::new(module_info)))

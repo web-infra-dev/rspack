@@ -28,9 +28,9 @@ use tracing::{Instrument, info_span};
 use crate::{
   AsyncDependenciesBlockIdentifier, BoxDependencyTemplate, BoxLoader, BoxModule,
   BoxModuleDependency, BuildContext, BuildInfo, BuildMeta, BuildResult, ChunkGraph,
-  CodeGenerationResult, Compilation, ConnectionState, Context, DependenciesBlock, DependencyId,
-  FactoryMeta, GenerateContext, GeneratorOptions, ImportPhase, LibIdentOptions, Module,
-  ModuleCodeGenerationContext, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
+  CodeGenerationResultBuilder, Compilation, ConnectionState, Context, DependenciesBlock,
+  DependencyId, FactoryMeta, GenerateContext, GeneratorOptions, ImportPhase, LibIdentOptions,
+  Module, ModuleCodeGenerationContext, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
   ModuleLayer, ModuleType, OptimizationBailoutItem, OutputOptions, ParseContext, ParseResult,
   ParserAndGenerator, ParserOptions, Resolve, ResolvedModuleOptions, RspackLoaderRunnerPlugin,
   RunnerContext, RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, SourceType, contextify,
@@ -600,7 +600,7 @@ impl Module for NormalModule {
   async fn code_generation(
     &self,
     code_generation_context: &mut ModuleCodeGenerationContext,
-  ) -> Result<CodeGenerationResult> {
+  ) -> Result<CodeGenerationResultBuilder> {
     let ModuleCodeGenerationContext {
       compilation,
       runtime,
@@ -609,7 +609,7 @@ impl Module for NormalModule {
     } = code_generation_context;
 
     if let Some(error) = self.first_error() {
-      let mut code_generation_result = CodeGenerationResult::default();
+      let mut code_generation_result = CodeGenerationResultBuilder::default();
       let module_graph = compilation.get_module_graph();
 
       // If the module build failed and the module is able to emit JavaScript source,
@@ -623,7 +623,6 @@ impl Module for NormalModule {
           SourceType::JavaScript,
           RawStringSource::from(format!("throw new Error({});\n", json!(error))).boxed(),
         );
-        code_generation_result.concatenation_scope = std::mem::take(concatenation_scope);
       }
       return Ok(code_generation_result);
     }
@@ -634,7 +633,7 @@ impl Module for NormalModule {
       ));
     };
 
-    let mut code_generation_result = CodeGenerationResult::default();
+    let mut code_generation_result = CodeGenerationResultBuilder::default();
     if !self.parsed {
       runtime_template
         .runtime_requirements_mut()
@@ -652,12 +651,12 @@ impl Module for NormalModule {
           &mut GenerateContext {
             compilation,
             runtime_template,
-            data: &mut code_generation_result.data,
+            data: code_generation_result.data_mut(),
             requested_source_type: *source_type,
             module_parser_options: self.parser_and_generator_options.parser_options(),
             module_generator_options: self.parser_and_generator_options.generator_options(),
             runtime: *runtime,
-            concatenation_scope: concatenation_scope.as_mut(),
+            concatenation_scope: concatenation_scope.as_deref_mut(),
           },
         )
         .await?;
@@ -667,7 +666,6 @@ impl Module for NormalModule {
         code_generation_result.add(*source_type, CachedSource::new(generation_result).boxed());
       }
     }
-    code_generation_result.concatenation_scope = std::mem::take(concatenation_scope);
     Ok(code_generation_result)
   }
 

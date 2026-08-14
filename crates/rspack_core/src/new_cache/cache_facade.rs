@@ -77,6 +77,42 @@ impl ItemCacheFacade {
   }
 }
 
+/// A cache facade backed by multiple item caches.
+///
+/// Reads return the first available value. Stores write the value to every
+/// item, allowing equivalent cache entries to be addressed by multiple keys.
+#[derive(Debug, Clone)]
+pub struct MultiItemCache {
+  items: Vec<ItemCacheFacade>,
+}
+
+impl MultiItemCache {
+  pub fn new(items: impl IntoIterator<Item = ItemCacheFacade>) -> Self {
+    Self {
+      items: items.into_iter().collect(),
+    }
+  }
+
+  pub fn get<T: CacheValueData>(&self) -> Result<Option<CacheValue<T>>> {
+    for item in &self.items {
+      if let Some(value) = item.get()? {
+        return Ok(Some(value));
+      }
+    }
+    Ok(None)
+  }
+
+  pub fn store<T: CacheValueData>(&self, value: CacheValue<T>) -> Result<()> {
+    let Some((last, items)) = self.items.split_last() else {
+      return Ok(());
+    };
+    for item in items {
+      item.store(value.clone())?;
+    }
+    last.store(value)
+  }
+}
+
 fn join_name(prefix: &str, name: &str, with_separator: bool) -> Arc<str> {
   let mut result = String::with_capacity(prefix.len() + name.len() + usize::from(with_separator));
   result.push_str(prefix);

@@ -13,13 +13,14 @@ use serde::Serialize;
 use crate::{
   AsyncDependenciesBlockIdentifier, BoxModule, BuildContext, BuildInfo, BuildMeta,
   BuildMetaExportsType, BuildResult, ChunkGraph, ChunkInitFragments, ChunkUkey,
-  CodeGenerationDataUrl, CodeGenerationResult, Compilation, ConcatenationScope, Context,
-  DependenciesBlock, DependencyId, ExportProvided, ExternalType, FactoryMeta, ImportAttributes,
-  ImportPhase, InitFragmentExt, InitFragmentKey, InitFragmentStage, LibIdentOptions, Module,
-  ModuleArgument, ModuleCodeGenerationContext, ModuleCodeTemplate, ModuleGraph, ModuleType,
-  NAMESPACE_OBJECT_EXPORT, NormalInitFragment, RuntimeGlobals, RuntimeSpec, SourceType,
-  StaticExportsDependency, StaticExportsSpec, UsageState, UsedExports, UsedNameItem,
-  extract_url_and_global, impl_module_meta_info, module_update_hash, property_access,
+  CodeGenerationDataChunkInitFragments, CodeGenerationDataUrl, CodeGenerationResultBuilder,
+  Compilation, ConcatenationScope, Context, DependenciesBlock, DependencyId, ExportProvided,
+  ExternalType, FactoryMeta, ImportAttributes, ImportPhase, InitFragmentExt, InitFragmentKey,
+  InitFragmentStage, LibIdentOptions, Module, ModuleArgument, ModuleCodeGenerationContext,
+  ModuleCodeTemplate, ModuleGraph, ModuleType, NAMESPACE_OBJECT_EXPORT, NormalInitFragment,
+  RuntimeGlobals, RuntimeSpec, SourceType, StaticExportsDependency, StaticExportsSpec, UsageState,
+  UsedExports, UsedNameItem, extract_url_and_global, impl_module_meta_info, module_update_hash,
+  property_access,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
   to_identifier,
 };
@@ -1218,7 +1219,7 @@ impl Module for ExternalModule {
   async fn code_generation(
     &self,
     code_generation_context: &mut ModuleCodeGenerationContext,
-  ) -> Result<CodeGenerationResult> {
+  ) -> Result<CodeGenerationResultBuilder> {
     let ModuleCodeGenerationContext {
       compilation,
       runtime,
@@ -1226,7 +1227,7 @@ impl Module for ExternalModule {
       runtime_template,
     } = code_generation_context;
 
-    let mut cgr = CodeGenerationResult::default();
+    let mut cgr = CodeGenerationResultBuilder::default();
     let (request, external_type) = self.get_request_and_external_type();
     match self.external_type.as_str() {
       "asset" if request.is_some() => {
@@ -1241,7 +1242,7 @@ impl Module for ExternalModule {
           .boxed(),
         );
         cgr
-          .data
+          .data_mut()
           .insert(CodeGenerationDataUrl::new(request.primary().to_string()));
       }
       "css-import" if request.is_some() => {
@@ -1261,14 +1262,19 @@ impl Module for ExternalModule {
           request,
           external_type,
           *runtime,
-          concatenation_scope.as_mut(),
+          concatenation_scope.as_deref_mut(),
           runtime_template,
         )?;
         cgr.add(SourceType::JavaScript, source);
-        cgr.chunk_init_fragments = chunk_init_fragments;
+        if !chunk_init_fragments.is_empty() {
+          cgr
+            .data_mut()
+            .insert(CodeGenerationDataChunkInitFragments::from(
+              chunk_init_fragments,
+            ));
+        }
       }
     };
-    cgr.concatenation_scope = std::mem::take(concatenation_scope);
     Ok(cgr)
   }
 

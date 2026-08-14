@@ -1,8 +1,8 @@
 use rayon::prelude::*;
 use rspack_core::{
-  ChunkGraph, ChunkInitFragments, ChunkKind, ChunkUkey, CodeGenerationPublicPathAutoReplace,
-  Compilation, Module, RuntimeCodeTemplate, RuntimeGlobals, RuntimeGlobalsRenderMode,
-  RuntimeModuleGenerateContext, SourceType,
+  ChunkGraph, ChunkInitFragments, ChunkKind, ChunkUkey, CodeGenerationDataChunkInitFragments,
+  CodeGenerationPublicPathAutoReplace, Compilation, Module, RuntimeCodeTemplate, RuntimeGlobals,
+  RuntimeGlobalsRenderMode, RuntimeModuleGenerateContext, SourceType,
   chunk_graph_chunk::ChunkIdSet,
   get_undo_path, render_runtime_module_source,
   rspack_sources::{
@@ -58,7 +58,9 @@ pub async fn render_chunk_modules(
             runtime_template
           )
           .await
-          .map(|result| result.map(|(s, f, a)| (module.identifier(), s, f, a)))
+          .map(|result| {
+            result.map(|(source, fragments)| (module.identifier(), source, fragments))
+          })
         },
       );
     });
@@ -79,20 +81,19 @@ pub async fn render_chunk_modules(
     return Ok(None);
   }
 
-  module_code_array.sort_unstable_by_key(|(module_identifier, _, _, _)| *module_identifier);
+  module_code_array.sort_unstable_by_key(|(module_identifier, _, _)| *module_identifier);
 
   let chunk_init_fragments = module_code_array.iter().fold(
     ChunkInitFragments::default(),
-    |mut chunk_init_fragments, (_, _, fragments, additional_fragments)| {
+    |mut chunk_init_fragments, (_, _, fragments)| {
       chunk_init_fragments.extend((*fragments).clone());
-      chunk_init_fragments.extend(additional_fragments.clone());
       chunk_init_fragments
     },
   );
 
   let module_sources: Vec<_> = module_code_array
     .into_iter()
-    .map(|(_, source, _, _)| source)
+    .map(|(_, source, _)| source)
     .collect();
   let module_sources = module_sources
     .into_par_iter()
@@ -120,7 +121,7 @@ pub async fn render_module(
   output_path: &str,
   hooks: &JavascriptModulesPluginHooks,
   runtime_template: &RuntimeCodeTemplate,
-) -> Result<Option<(BoxSource, ChunkInitFragments, ChunkInitFragments)>> {
+) -> Result<Option<(BoxSource, ChunkInitFragments)>> {
   let chunk = compilation
     .build_chunk_graph_artifact
     .chunk_by_ukey
@@ -132,14 +133,15 @@ pub async fn render_module(
     return Ok(None);
   };
 
-  let mut module_chunk_init_fragments = match code_gen_result.data.get::<ChunkInitFragments>() {
-    Some(fragments) => fragments.clone(),
-    None => ChunkInitFragments::default(),
-  };
-  let mut render_runtime_requirements = code_gen_result.runtime_requirements;
+  let mut module_chunk_init_fragments = code_gen_result
+    .data()
+    .get::<CodeGenerationDataChunkInitFragments>()
+    .map(|fragments| fragments.inner().clone())
+    .unwrap_or_default();
+  let mut render_runtime_requirements = *code_gen_result.runtime_requirements();
 
   let mut render_source = if code_gen_result
-    .data
+    .data()
     .get::<CodeGenerationPublicPathAutoReplace>()
     .is_some()
   {
@@ -320,11 +322,7 @@ pub async fn render_module(
     render_source.source
   };
 
-  Ok(Some((
-    sources,
-    code_gen_result.chunk_init_fragments.clone(),
-    module_chunk_init_fragments,
-  )))
+  Ok(Some((sources, module_chunk_init_fragments)))
 }
 
 pub async fn render_chunk_runtime_modules(
