@@ -4676,6 +4676,7 @@ dependencies = [
  "concat-string",
  "cow-utils",
  "css-module-lexer",
+ "cssparser",
  "heck",
  "once_cell",
  "regex",

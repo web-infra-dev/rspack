@@ -182,7 +182,8 @@ pub(crate) fn escape_identifier(input: &str) -> Cow<'_, str> {
   }
 
   let mut output = String::with_capacity(input.len() + 2);
-  serialize_identifier(input, &mut output);
+  cssparser::serialize_identifier(input, &mut output)
+    .expect("writing CSS identifier to String should not fail");
   Cow::Owned(output)
 }
 
@@ -203,142 +204,13 @@ fn identifier_needs_escape(input: &str) -> bool {
   })
 }
 
-fn serialize_identifier(mut input: &str, output: &mut String) {
-  if input.is_empty() {
-    return;
-  }
-
-  if let Some(name) = input.strip_prefix("--") {
-    output.push_str("--");
-    serialize_name(name, output);
-    return;
-  }
-  if input == "-" {
-    output.push_str("\\-");
-    return;
-  }
-  if let Some(name) = input.strip_prefix('-') {
-    output.push('-');
-    input = name;
-  }
-  if let Some(digit @ b'0'..=b'9') = input.as_bytes().first().copied() {
-    push_hex_escape(output, digit);
-    input = &input[1..];
-  }
-  serialize_name(input, output);
-}
-
-fn serialize_name(input: &str, output: &mut String) {
-  let mut chunk_start = 0;
-  for (index, byte) in input.bytes().enumerate() {
-    let escape = match byte {
-      b'0'..=b'9' | b'A'..=b'Z' | b'a'..=b'z' | b'_' | b'-' => continue,
-      byte if !byte.is_ascii() => continue,
-      b'\0' => CssEscape::Replacement,
-      b'\x01'..=b'\x1F' | b'\x7F' => CssEscape::Hex,
-      _ => CssEscape::Character,
-    };
-    output.push_str(&input[chunk_start..index]);
-    push_escape(output, byte, escape);
-    chunk_start = index + 1;
-  }
-  output.push_str(&input[chunk_start..]);
-}
-
-#[derive(Clone, Copy)]
-enum CssEscape {
-  Character,
-  Hex,
-  Replacement,
-}
-
-fn push_escape(output: &mut String, byte: u8, escape: CssEscape) {
-  match escape {
-    CssEscape::Character => {
-      output.push('\\');
-      output.push(char::from(byte));
-    }
-    CssEscape::Hex => push_hex_escape(output, byte),
-    CssEscape::Replacement => output.push(REPLACEMENT_CHARACTER),
-  }
-}
-
-fn push_hex_escape(output: &mut String, byte: u8) {
-  const HEX_DIGITS: &[u8; 16] = b"0123456789abcdef";
-
-  output.push('\\');
-  if byte > 0x0F {
-    output.push(char::from(HEX_DIGITS[(byte >> 4) as usize]));
-  }
-  output.push(char::from(HEX_DIGITS[(byte & 0x0F) as usize]));
-  output.push(' ');
-}
-
-#[derive(Clone, Copy)]
-enum UrlSerialization {
-  Unquoted,
-  Quoted(u8),
-}
-
-/// Serialize a URL replacement as either an unquoted URL value or a CSS
-/// string, choosing the same compact representation as webpack while using
-/// CSS Syntax-compliant escaping for both forms.
+/// Serialize a URL replacement as a CSS string. Quote minimization is left to
+/// the CSS minimizer.
 pub(crate) fn serialize_url_value(input: &str) -> String {
-  let serialization = choose_url_serialization(input);
   let mut output = String::with_capacity(input.len() + 2);
-  if let UrlSerialization::Quoted(quote) = serialization {
-    output.push(char::from(quote));
-  }
-  serialize_url_contents(input, serialization, &mut output);
-  if let UrlSerialization::Quoted(quote) = serialization {
-    output.push(char::from(quote));
-  }
+  cssparser::serialize_string(input, &mut output)
+    .expect("writing CSS URL string to String should not fail");
   output
-}
-
-fn choose_url_serialization(input: &str) -> UrlSerialization {
-  let mut whitespace_or_brackets = 0;
-  let mut double_quotes = 0;
-  let mut single_quotes = 0;
-
-  for byte in input.bytes() {
-    match byte {
-      b'\t' | b'\n' | b' ' | b'(' | b')' => whitespace_or_brackets += 1,
-      b'"' => double_quotes += 1,
-      b'\'' => single_quotes += 1,
-      _ => {}
-    }
-  }
-
-  if whitespace_or_brackets < 2 {
-    UrlSerialization::Unquoted
-  } else if double_quotes <= single_quotes {
-    UrlSerialization::Quoted(b'"')
-  } else {
-    UrlSerialization::Quoted(b'\'')
-  }
-}
-
-fn serialize_url_contents(input: &str, serialization: UrlSerialization, output: &mut String) {
-  let mut chunk_start = 0;
-  for (index, byte) in input.bytes().enumerate() {
-    let escape = match byte {
-      b'\0' => CssEscape::Replacement,
-      b'\x01'..=b'\x1F' | b'\x7F' => CssEscape::Hex,
-      b'(' | b')' | b'"' | b'\'' | b'\\' if matches!(serialization, UrlSerialization::Unquoted) => {
-        CssEscape::Character
-      }
-      b'\\' => CssEscape::Character,
-      byte if matches!(serialization, UrlSerialization::Quoted(quote) if byte == quote) => {
-        CssEscape::Character
-      }
-      _ => continue,
-    };
-    output.push_str(&input[chunk_start..index]);
-    push_escape(output, byte, escape);
-    chunk_start = index + 1;
-  }
-  output.push_str(&input[chunk_start..]);
 }
 
 pub(crate) fn normalize_url(input: &str) -> Cow<'_, str> {
