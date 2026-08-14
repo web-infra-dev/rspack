@@ -1,6 +1,10 @@
 use std::sync::Arc;
 
-pub use rspack_loader_runner::{Content, Loader, LoaderContext, run_loaders};
+pub use rspack_loader_runner::{
+  Content, Loader, LoaderChain, LoaderContext, LoaderExecutionKind, LoaderItem, LoaderItemState,
+  LoaderRunnerPlan, create_loader_items, plan_loader_chains, run_loaders,
+  run_loaders_with_preplanned,
+};
 use rspack_util::source_map::SourceMapKind;
 
 use crate::{CompilationId, CompilerId, CompilerOptions, NormalModule, ResolverFactory};
