@@ -1,7 +1,10 @@
-use rspack_cacheable::cacheable;
-use swc_core::ecma::{
-  ast::{ClassExpr, Ident, ObjectPatProp, Prop},
-  visit::{Visit, VisitWith, noop_visit_type},
+use rspack_cacheable::{cacheable, with::AsPreset};
+use swc_core::{
+  atoms::Atom,
+  ecma::{
+    ast::{ClassExpr, Ident, ObjectPatProp, Prop},
+    visit::{Visit, VisitWith, noop_visit_type},
+  },
 };
 
 use crate::DependencyRange;
@@ -31,10 +34,19 @@ pub struct ConcatenationScopeIdent {
 
 #[cacheable]
 #[derive(Clone, Debug)]
+pub struct ConcatenationScopeCanonicalName {
+  pub range: DependencyRange,
+  #[cacheable(with=AsPreset)]
+  pub name: Atom,
+}
+
+#[cacheable]
+#[derive(Clone, Debug)]
 pub struct AnalyzedConcatenationScopeInfo {
   pub module_ctxt: u32,
   pub global_ctxt: u32,
   pub idents: Vec<ConcatenationScopeIdent>,
+  pub canonical_names: Vec<ConcatenationScopeCanonicalName>,
 }
 
 /// Make-time scope information required by faster module concatenation.

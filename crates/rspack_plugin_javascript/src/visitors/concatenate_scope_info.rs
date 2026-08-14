@@ -1,7 +1,8 @@
 use rspack_core::{
-  AnalyzedConcatenationScopeInfo, ConcatenationScopeIdent, ConcatenationScopeIdentKind,
-  DependencyRange, PendingConcatenationScopeInfo,
+  AnalyzedConcatenationScopeInfo, ConcatenationScopeCanonicalName, ConcatenationScopeIdent,
+  ConcatenationScopeIdentKind, DependencyRange, PendingConcatenationScopeInfo,
 };
+use rspack_util::atom::Atom;
 use rustc_hash::FxHashSet;
 use smallvec::SmallVec;
 use swc_experimental_allocator::atom::Atom as AstAtom;
@@ -55,6 +56,7 @@ pub(crate) struct PendingConcatenationScopeInfoVisitor<'semantic, 'ast> {
   global_idents: SmallVec<[PendingConcatenationScopeIdent; 4]>,
   used_name_set: UsedNames<'ast>,
   used_names: SmallVec<[(AstAtom<'ast>, DependencyRange); 8]>,
+  canonical_names: SmallVec<[ConcatenationScopeCanonicalName; 1]>,
 }
 
 impl<'semantic, 'ast> PendingConcatenationScopeInfoVisitor<'semantic, 'ast> {
@@ -65,6 +67,20 @@ impl<'semantic, 'ast> PendingConcatenationScopeInfoVisitor<'semantic, 'ast> {
       global_idents: SmallVec::new(),
       used_name_set: UsedNames::default(),
       used_names: SmallVec::new(),
+      canonical_names: SmallVec::new(),
+    }
+  }
+
+  #[inline]
+  fn add_canonical_name(&mut self, ident: &Ident<'ast>, range: DependencyRange) {
+    // An escape-spelled identifier is longer than its parser-canonical name.
+    // Persist the canonical form only for this uncommon case, keeping the
+    // common per-identifier metadata compact.
+    if (range.end - range.start) as usize != ident.sym.as_str().len() {
+      self.canonical_names.push(ConcatenationScopeCanonicalName {
+        range,
+        name: Atom::from(ident.sym.as_str()),
+      });
     }
   }
 
@@ -75,18 +91,18 @@ impl<'semantic, 'ast> PendingConcatenationScopeInfoVisitor<'semantic, 'ast> {
     }
     let scope = self.semantic.node_scope(ident);
     let range = ident.span.into();
+    let pending_ident = PendingConcatenationScopeIdent { range, shorthand };
     if scope == self.semantic.unresolved_scope_id() {
-      self
-        .global_idents
-        .push(PendingConcatenationScopeIdent { range, shorthand });
+      self.add_canonical_name(ident, range);
+      self.global_idents.push(pending_ident);
     } else if class_expr_with_ident || scope != self.semantic.top_level_scope_id() {
       if self.used_name_set.insert(ident.sym) {
+        self.add_canonical_name(ident, range);
         self.used_names.push((ident.sym, range));
       }
     } else {
-      self
-        .top_level_idents
-        .push(PendingConcatenationScopeIdent { range, shorthand });
+      self.add_canonical_name(ident, range);
+      self.top_level_idents.push(pending_ident);
     }
   }
 
@@ -128,6 +144,7 @@ impl<'semantic, 'ast> PendingConcatenationScopeInfoVisitor<'semantic, 'ast> {
       module_ctxt: self.semantic.top_level_scope_id().raw(),
       global_ctxt: self.semantic.unresolved_scope_id().raw(),
       idents,
+      canonical_names: self.canonical_names.into_vec(),
     })
   }
 }

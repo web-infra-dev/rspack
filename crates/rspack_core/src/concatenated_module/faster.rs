@@ -179,11 +179,14 @@ pub(crate) fn populate_info_from_pending(
   module_info: &mut ConcatenatedModuleInfo,
   faster_info: &mut FasterModuleConcatenationInfo,
 ) {
-  let (module_ctxt, global_ctxt, pending_idents) = match pending {
-    PendingConcatenationScopeInfo::Analyzed(info) => {
-      (info.module_ctxt, info.global_ctxt, info.idents.as_slice())
-    }
-    PendingConcatenationScopeInfo::Generated => (0, 0, &[][..]),
+  let (module_ctxt, global_ctxt, pending_idents, canonical_names) = match pending {
+    PendingConcatenationScopeInfo::Analyzed(info) => (
+      info.module_ctxt,
+      info.global_ctxt,
+      info.idents.as_slice(),
+      info.canonical_names.as_slice(),
+    ),
+    PendingConcatenationScopeInfo::Generated => (0, 0, &[][..], &[][..]),
   };
   let mut symbols = SmallVec::<[(&str, Atom); 8]>::new();
   let mut symbol_from_range = |range: DependencyRange| {
@@ -239,7 +242,11 @@ pub(crate) fn populate_info_from_pending(
 
   let mut seen = SeenIdents::default();
   for pending_ident in pending_idents {
-    let symbol = symbol_from_range(pending_ident.range);
+    let symbol = canonical_names
+      .iter()
+      .find(|canonical_name| canonical_name.range == pending_ident.range)
+      .map(|canonical_name| canonical_name.name.clone())
+      .unwrap_or_else(|| symbol_from_range(pending_ident.range));
     if pending_ident.kind == ConcatenationScopeIdentKind::UsedName {
       module_info.all_used_names.insert(symbol);
       continue;
@@ -301,15 +308,22 @@ pub(crate) fn populate_info_from_pending(
     let binding = match symbol.target {
       GeneratedTopLevelSymbolTarget::New => symbol.placeholder.clone(),
       GeneratedTopLevelSymbolTarget::Rebind { original_range } => {
-        assert!(
-          pending_idents.iter().any(|ident| {
+        let original_ident = pending_idents
+          .iter()
+          .find(|ident| {
             ident.kind == ConcatenationScopeIdentKind::TopLevel && ident.range == original_range
-          }),
-          "rebound concatenation symbol range {}..{} should refer to a make-time top-level identifier",
-          original_range.start,
-          original_range.end
-        );
-        let binding = symbol_from_range(original_range);
+          })
+          .unwrap_or_else(|| {
+            panic!(
+              "rebound concatenation symbol range {}..{} should refer to a make-time top-level identifier",
+              original_range.start, original_range.end
+            )
+          });
+        let binding = canonical_names
+          .iter()
+          .find(|canonical_name| canonical_name.range == original_ident.range)
+          .map(|canonical_name| canonical_name.name.clone())
+          .unwrap_or_else(|| symbol_from_range(original_range));
         symbol.resolved_binding = Some(binding.clone());
         binding
       }

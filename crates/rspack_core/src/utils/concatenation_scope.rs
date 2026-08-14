@@ -7,6 +7,7 @@ use rspack_util::{
   itoa,
 };
 use swc_core::atoms::Atom;
+use swc_experimental_ecma_ast::{is_valid_continue, is_valid_start};
 
 use crate::{
   DependencyRange, ExportMode, ModuleIdentifier, PendingConcatenationScopeInfo,
@@ -27,24 +28,153 @@ fn is_ascii_identifier_continue(byte: u8) -> bool {
   byte == b'_' || byte == b'$' || byte.is_ascii_alphanumeric()
 }
 
+#[inline]
+fn is_ascii_identifier_start(byte: u8) -> bool {
+  byte == b'_' || byte == b'$' || byte.is_ascii_alphabetic()
+}
+
+#[inline]
+fn hex_value(byte: u8) -> Option<u32> {
+  match byte {
+    b'0'..=b'9' => Some((byte - b'0') as u32),
+    b'a'..=b'f' => Some((byte - b'a' + 10) as u32),
+    b'A'..=b'F' => Some((byte - b'A' + 10) as u32),
+    _ => None,
+  }
+}
+
+fn parse_unicode_escape(code: &[u8], start: usize) -> Option<(char, usize)> {
+  if code.get(start..start + 2)? != b"\\u" {
+    return None;
+  }
+
+  let mut cursor = start + 2;
+  let mut value = 0u32;
+  if code.get(cursor) == Some(&b'{') {
+    cursor += 1;
+    let digits_start = cursor;
+    while let Some(digit) = code.get(cursor).and_then(|byte| hex_value(*byte)) {
+      if cursor - digits_start == 6 {
+        return None;
+      }
+      value = value.checked_mul(16)?.checked_add(digit)?;
+      cursor += 1;
+    }
+    if cursor == digits_start || code.get(cursor) != Some(&b'}') {
+      return None;
+    }
+    cursor += 1;
+  } else {
+    for _ in 0..4 {
+      value = value
+        .checked_mul(16)?
+        .checked_add(hex_value(*code.get(cursor)?)?)?;
+      cursor += 1;
+    }
+  }
+
+  char::from_u32(value).map(|character| (character, cursor))
+}
+
+/// Returns the end offset and, only when escapes were present, the decoded
+/// canonical identifier name.
+fn scan_generated_identifier(code: &str, start: usize) -> Option<(usize, Option<String>)> {
+  let bytes = code.as_bytes();
+  let mut cursor = start;
+  let mut canonical_name: Option<String> = None;
+  let mut is_start = true;
+
+  while cursor < bytes.len() {
+    let (character, end, escaped) = if bytes[cursor] == b'\\' {
+      let Some((character, end)) = parse_unicode_escape(bytes, cursor) else {
+        if is_start {
+          return None;
+        }
+        break;
+      };
+      (character, end, true)
+    } else {
+      let character = code[cursor..].chars().next()?;
+      (character, cursor + character.len_utf8(), false)
+    };
+    if if is_start {
+      !is_valid_start(character)
+    } else {
+      !is_valid_continue(character)
+    } {
+      break;
+    }
+
+    if escaped {
+      canonical_name
+        .get_or_insert_with(|| {
+          let mut name = String::with_capacity(end - start);
+          name.push_str(&code[start..cursor]);
+          name
+        })
+        .push(character);
+    } else if let Some(name) = &mut canonical_name {
+      name.push(character);
+    }
+    cursor = end;
+    is_start = false;
+  }
+
+  (cursor != start).then_some((cursor, canonical_name))
+}
+
 fn add_used_names_from_generated_code(info: &mut FasterModuleConcatenationInfo, code: &str) {
   // The legacy codegen parse reserves names referenced by replacement code.
   // Faster concatenation skips that parse, so conservatively collect every
-  // ASCII identifier-shaped token. False positives only reduce name reuse;
-  // missing a name could capture a generated global reference.
+  // identifier-shaped token. False positives only reduce name reuse; missing
+  // a name could capture a generated global reference.
   let bytes = code.as_bytes();
   let mut cursor = 0;
   while cursor < bytes.len() {
-    while cursor < bytes.len() && !is_ascii_identifier_continue(bytes[cursor]) {
+    while cursor < bytes.len()
+      && bytes[cursor].is_ascii()
+      && !is_ascii_identifier_continue(bytes[cursor])
+      && bytes[cursor] != b'\\'
+    {
       cursor += 1;
     }
+    if cursor == bytes.len() {
+      break;
+    }
+
+    if !bytes[cursor].is_ascii() || bytes[cursor] == b'\\' {
+      if let Some((end, canonical_name)) = scan_generated_identifier(code, cursor) {
+        let name = canonical_name.as_deref().unwrap_or(&code[cursor..end]);
+        info.added_used_names.push(name.into());
+        cursor = end;
+      } else {
+        cursor += if bytes[cursor].is_ascii() {
+          1
+        } else {
+          code[cursor..]
+            .chars()
+            .next()
+            .expect("cursor should be on a character boundary")
+            .len_utf8()
+        };
+      }
+      continue;
+    }
+
     let start = cursor;
     while cursor < bytes.len() && is_ascii_identifier_continue(bytes[cursor]) {
       cursor += 1;
     }
-    if start < cursor
-      && (bytes[start] == b'_' || bytes[start] == b'$' || bytes[start].is_ascii_alphabetic())
-    {
+    if !is_ascii_identifier_start(bytes[start]) {
+      continue;
+    }
+    if cursor < bytes.len() && (!bytes[cursor].is_ascii() || bytes[cursor] == b'\\') {
+      let (end, canonical_name) = scan_generated_identifier(code, start)
+        .expect("ASCII identifier start should produce an identifier");
+      let name = canonical_name.as_deref().unwrap_or(&code[start..end]);
+      info.added_used_names.push(name.into());
+      cursor = end;
+    } else {
       info.added_used_names.push(code[start..cursor].into());
     }
   }
