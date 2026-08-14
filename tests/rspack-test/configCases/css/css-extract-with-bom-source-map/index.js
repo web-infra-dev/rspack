@@ -7,7 +7,7 @@ const read = (name) =>
 	fs.readFileSync(path.resolve(__dirname, name), "utf-8");
 
 it("should strip the BOM without shifting source map columns", () => {
-	expect(read("bom.css")).not.toContain("﻿");
+	expect(read("bom.css")).not.toContain("\uFEFF");
 
 	// bom.css and main.css hold identical CSS, so stripping the BOM must leave
 	// the mappings identical too. Dropping it from the content alone would shift

@@ -16,7 +16,3 @@ pub fn remove_bom(source: Arc<dyn Source>) -> Arc<dyn Source> {
   replace_source.replace_static(0, 3, "", None);
   replace_source.boxed()
 }
-
-pub fn remove_bom_str(content: &str) -> &str {
-  content.strip_prefix('\u{feff}').unwrap_or(content)
-}
