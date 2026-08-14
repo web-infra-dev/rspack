@@ -28,6 +28,7 @@ criterion_main!(
   cases::bundle_basic_react_development::case,
   cases::bundle_basic_react_production_sourcemap::case,
   cases::bundle_css_development::case,
+  cases::bundle_css_modules_development::case,
   cases::bundle_css_production_sourcemap::case,
   cases::bundle_misc_development::case,
   cases::bundle_misc_production_sourcemap::case,

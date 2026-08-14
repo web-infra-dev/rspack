@@ -1,21 +1,519 @@
-@import "at-rule-value.module.css";
-@import "var-function.module.css";
+.value-in-class {
+	color: blue;
+}
+
+
+
+@media small {
+	abbr:hover {
+		color: limegreen;
+		transition-duration: Xs;
+	}
+}
+
+
+.foo { color: red; }
+
+
+.foo {
+	&.bar { color: red; }
+}
+
+
+.foo {
+	@media (min-width: 1024px) {
+		&.bar { color: red; }
+	}
+}
+
+
+.foo {
+	@media (min-width: 1024px) {
+		&.bar {
+			@media (min-width: 1024px) {
+				color: red;
+			}
+		}
+	}
+}
+
+
+.foo { height: 40px; height: 36px; }
+
+
+.colorValue {
+	color: red;
+}
+
+
+#colorValue-v1 {
+	color: red;
+}
+
+
+.colorValue-v2 > .colorValue-v2 {
+	color: red;
+}
+
+
+colorValue-v3 {
+	color: .red;
+}
+
+
+.export {
+	color: blue;
+}
+
+
+.foo { color: red; }
+
+
+.foo { color: red; }
+.bar { color: yellow }
+
+
+.foo { color: blue; }
+
+
+.class-a { color: red; }
+
+
+.class-a { margin: calc(base * 2); }
+
+
+.class-a { content: "test-a" "test-b"; }
+
+
+.foo { color: var(--color); }
+
+
+.foo {
+	color: var(--color);
+	background-color: #0f0;
+	border-top-color: #00ff00;
+	border-bottom-color: rgba(34, 12, 64, 0.3);
+	outline-color: hsla(220, 13.0%, 18.0%, 1);
+}
+
+
+.foo { color: blue; }
+.bar { color: red }
+
+
+.foo { box-shadow: 0 11px 15px -7px rgba(0,0,0,.2),0 24px 38px 3px rgba(0,0,0,.14); }
+
+
+.foo { color: color(red lightness(50%)); }
+
+
+:root { --color: var(--color); }
+
+
+:root { --color: ; }
+
+
+:root { --color:   ; }
+
+
+:root { --color: /* comment */; }
+
+
+.override {
+	color: var(--color);
+}
+
+
+.class {
+	color: red;
+	color: red;
+	color: blue;
+}
+
+
+.color {
+	color: /* test */red/* test */;
+}
+
+
+.color {
+	color: /* test *//* test */red/* test */;
+}
+
+
+.foo { box-shadow: 0 11px 15px -7px rgba(0,0,0,.2),0 24px 38px 3px rgba(0,0,0,.14); }
+
+
+.foo { box-shadow: 0 11px 15px -7px rgba(0,0,0,.2),0 24px 38px 3px rgba(0,0,0,.14); }
+
+
+.foo { box-shadow: /* test */   0 11px 15px -7px rgba(0,0,0,.2),0 24px 38px 3px rgba(0,0,0,.14); }
+
+
+.foo { box-shadow: /* test */0 11px 15px -7px rgba(0,0,0,.2),0 24px 38px 3px rgba(0,0,0,.14); }
+
+
+.foo { box-shadow: 0 11px 15px -7px rgba(0,0,0,.2),0 24px 38px 3px rgba(0,0,0,.14); }
+
+
+.foo { box-shadow: /* test */0 11px 15px -7px rgba(0,0,0,.2),0 24px 38px 3px rgba(0,0,0,.14); }
+
+
+.foo { color: blue; }
+
+
+.foo { color: blue; }
+
+
+.foo { color: red; }
+
+
+.color {
+	color: /*
+	multiline
+	comment
+*/red/*
+	multiline
+	comment
+*/;
+}
+
+
+.foo { color: blue; }
+
+
+:root { --color: /*
+	multiline
+	comment
+*/; }
+
+
+:root {
+	--main-bg-color: brown;
+	--my-var: red;
+	--my-background: blue;
+	--my-global: yellow;
+	--: "reserved";
+	--a: green;
+}
+
+.class {
+	color: var(--main-bg-color);
+}
+
+@property --h_0muZ {
+	syntax: "<color>";
+	inherits: false;
+	initial-value: #c0ffee;
+}
+
+@property --hOUNtO {
+	syntax: "<color>";
+	inherits: false;
+	initial-value: #c0ffee;
+}
+
+.class {
+	color: var(--logo-color);
+}
+
+div {
+	background-color: var(--box-color);
+}
+
+.two {
+	--box-color: cornflowerblue;
+}
+
+.three {
+	--box-color: aquamarine;
+}
+
+
+.one {
+	/* Red if --my-var is not defined */
+	color: var(--my-var, red);
+}
+
+.two {
+	/* pink if --my-var and --my-background are not defined */
+	color: var(--my-var, var(--my-background, pink));
+}
+
+.reserved {
+	color: var(--);
+}
+
+.green {
+	color: var(--a);
+}
+
+.global {
+	color: var(--my-global from global);
+}
+
+.global-and-default {
+	color: var(--my-global from global, pink);
+}
+
+.global-and-default-1 {
+	color: var(--my-global from global, var(--my-global-background from global));
+}
+
+.global-and-default-2 {
+	color: var(--my-global from global, var(--my-global-background from global, pink));
+}
+
+.global-and-default-3 {
+	color: var(--my-global from global, var(--my-background, pink));
+}
+
+.global-and-default-5 {
+	color: var(   --my-global   from   global,var(--my-background,pink));
+}
+
+.global-and-default-6 {
+	background: var(   --main-bg-color   ,   var(   --my-background   ,   pink   )   )   , var(--my-global from   global);
+}
+
+.global-and-default-7 {
+	background: var(--main-bg-color,var(--my-background,pink)),var(--my-global from global);
+}
+
+.from {
+	color: var(--my-var-u1 from "./var-function-export.modules.css");
+}
+
+.from-1 {
+	color: var(--main-bg-color, var(--my-var-u1 from "./var-function-export.modules.css"));
+}
+
+.from-2 {
+	color: var(--my-var-u1 from "./var-function-export.modules.css",  var(--main-bg-color));
+}
+
+.from-3 {
+	color: var(--my-var-u1 from "./var-function-export.modules.css",  var(--my-var-u2 from "./var-function-export.modules.css"));
+}
+
+.from-4 {
+	color: var(--1 from "./var-function-export.modules.css");
+}
+
+.from-5 {
+	color: var(----a from "./var-function-export.modules.css");
+}
+
+.from-6 {
+	color: var(--main-bg-color from "./var-function-export.modules.css");
+}
+
+.mixed {
+	color: var(--my-var-u1 from "./var-function-export.modules.css", var(--my-global from global, var(--main-bg-color, red)));
+}
+
+.broken {
+	color: var(--my-global from);
+}
+
+.broken-1 {
+	color: var(--my-global from 1);
+}
+
+:root {
+	--not-override-class: red;
+}
+
+.not-override-class {
+	color: var(--not-override-class from "./var-function-export.modules.css")
+}
+
+.theme-dark {
+	--text-color: #fff;
+	--bg-color: #333;
+
+	.button {
+		--button-color: var(--text-color);
+		--button-bg: var(--bg-color);
+		color: var(--button-color);
+		background-color: var(--button-bg);
+	}
+}
+
+.parent {
+	--parent-padding: 20px;
+	padding: var(--parent-padding);
+
+	.child {
+		--child-margin: 10px;
+		margin-top: var(--child-margin);
+		padding-left: var(--parent-padding); /* Accessing parent's variable */
+	}
+}
+
+@media (min-width: 768px) {
+	:root {
+		--base-padding: 1.5rem;
+		--font-scale: 1.2;
+	}
+}
+
+.container {
+	padding: var(--base-padding); /* This will be 1rem or 1.5rem based on screen size */
+}
+
+.item-title {
+	/* Dynamic font size based on screen size using the variable */
+	font-size: calc(1.2rem * var(--font-scale));
+	margin-bottom: calc(var(--base-padding) / 2);
+}
+
+.item-details {
+	/* Using calc() to create a flexible layout */
+	width: calc(100% - (var(--base-padding) * 2));
+}
+
+.banner {
+	/* Locally scoped variables (pseudo-private) */
+	--banner-bg: #e0f7fa; /* Default info color */
+	--banner-text: #00796b;
+	--banner-icon: "ℹ️";
+
+	padding: 1em;
+	background-color: var(--banner-bg);
+	color: var(--banner-text);
+	border-left: 5px solid var(--banner-text);
+}
+
+:root {
+	--accordion-bg: #fff;
+	--accordion-border: #ddd;
+	--accordion-text: #333;
+	--accordion-accent: royalblue;
+}
+
+.accordion-container {
+	border: 1px solid var(--accordion-border);
+	border-radius: 4px;
+	width: 100%;
+	max-width: 400px;
+
+	/* CSS Nesting starts here */
+	& .accordion-item {
+		background: var(--accordion-bg);
+		color: var(--accordion-text);
+		border-bottom: 1px solid var(--accordion-border);
+
+		&:last-child {
+			border-bottom: none;
+		}
+
+		& .accordion-header {
+			padding: 1rem;
+			cursor: pointer;
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+
+			&:hover {
+				background: color-mix(in srgb, var(--accordion-bg) 90%, gray);
+			}
+		}
+
+		/* Override variables locally for a specific state (e.g., active item) */
+		&.is-active {
+			--accordion-bg: var(--accordion-accent); /* Nested override */
+			--accordion-text: #fff; /* Nested override */
+
+			& .accordion-header {
+				font-weight: bold;
+			}
+		}
+	}
+
+	/* Define a complete alternate theme nested inside the container */
+	&.is-dark-theme {
+		/* These variables are scoped only to elements within this specific container */
+		--accordion-bg: #333;
+		--accordion-border: #555;
+		--accordion-text: #eee;
+		--accordion-accent: #2ecc71; /* A new accent color for the dark theme */
+	}
+}
+
+.media-object {
+	/* Establish a container context for cqw units */
+	container-type: inline-size;
+	display: flex;
+	gap: 1rem;
+	padding: 1rem;
+	border: 1px solid #ccc;
+
+	/* Define default mobile variables */
+	--avatar-size: 48px;
+	--text-size: 1rem;
+
+	& .avatar {
+		width: var(--avatar-size);
+		height: var(--avatar-size);
+		border-radius: 50%;
+		background: lightgray;
+	}
+
+	& .content {
+		font-size: var(--text-size);
+	}
+
+	/* Nested Container Query (Responsive override of variables) */
+	@container (min-width: 400px) {
+		/* Redefine variables when container is wide enough */
+		--avatar-size: 10cqw; /* Dynamic size based on container width (10% of container) */
+		--text-size: 1.2rem;
+		gap: 1.5rem;
+	}
+}
+
+:root {
+	--primary-color: #007bff;
+	--text-color: var(--primary-color); /* --text-color now uses the value of --primary-color */
+	--highlight-background: linear-gradient(to right, var(--primary-color), #6c757d);
+}
+
+.element {
+	color: var(--text-color);
+	background: var(--highlight-background);
+}
+
+:root {
+	--from-shared: --custom-shared;
+}
+
+@color-profile --custom-shared {
+	src: url(https://example.org/SWOP2006_Coated5v2.icc);
+}
+
+._0QESIz {
+	color: red;
+}
+
+
+
 
 .class {
 	color: red;
 }
 
 .local1,
-.local2 :global .global,
+.local2 .global,
 .local3 {
 	color: green;
 }
 
-:global .global :local .local4 {
+.global .dRwPBj {
 	color: yellow;
 }
 
-.local5:global(.global).local6 {
+.local5.global.local6 {
 	color: blue;
 }
 
@@ -83,7 +581,7 @@
 	overflow: hidden;
 }
 
-:global(:global(:local(.nested1)).nested2).nested3 {
+.Kgyaat.nested2.nested3 {
 	color: pink;
 }
 
@@ -115,7 +613,7 @@
 
 .animation {
 	animation-name: localkeyframes;
-	animation: 3s ease-in 1s 2 reverse both paused localkeyframes, localkeyframes2;
+	animation: Xs ease-in Xs 2 reverse both paused localkeyframes, localkeyframes2;
 	--pos1x: 0px;
 	--pos1y: 0px;
 	--pos2x: 10px;
@@ -127,7 +625,7 @@
 	--local-color: red;
 }
 
-.globalVars :global {
+.globalVars {
 	color: var(--global-color);
 	--global-color: red;
 }
@@ -184,7 +682,7 @@
 
 .animationUpperCase {
 	ANIMATION-NAME: localkeyframesUPPERCASE;
-	ANIMATION: 3s ease-in 1s 2 reverse both paused localkeyframesUPPERCASE, localkeyframes2UPPPERCASE;
+	ANIMATION: Xs ease-in Xs 2 reverse both paused localkeyframesUPPERCASE, localkeyframes2UPPPERCASE;
 	--pos1x: 0px;
 	--pos1y: 0px;
 	--pos2x: 10px;
@@ -213,7 +711,7 @@
 	}
 }
 
-:GLOBAL .globalUpperCase :LOCAL .localUpperCase {
+.globalUpperCase .LJJZlA {
 	color: yellow;
 }
 
@@ -222,7 +720,7 @@
 	--LOCAL-COLOR: red;
 }
 
-.globalVarsUpperCase :GLOBAL {
+.globalVarsUpperCase {
 	COLOR: VAR(--GLOBAR-COLOR);
 	--GLOBAR-COLOR: red;
 }
@@ -234,13 +732,13 @@
 }
 
 .a {
-	animation: 3s animationName;
-	-webkit-animation: 3s animationName;
+	animation: Xs animationName;
+	-webkit-animation: Xs animationName;
 }
 
 .b {
-	animation: animationName 3s;
-	-webkit-animation: animationName 3s;
+	animation: animationName Xs;
+	-webkit-animation: animationName Xs;
 }
 
 .c {
@@ -279,7 +777,7 @@
 	}
 }
 
-@counter-style thumbs {
+@counter-style _tEP1J {
 	system: cyclic;
 	symbols: "\1F44D";
 	suffix: " ";
@@ -298,19 +796,19 @@
 	}
 }
 
-@property --my-color {
+@property --_5_8BXF {
 	syntax: "<color>";
 	inherits: false;
 	initial-value: #c0ffee;
 }
 
-@property --my-color-1 {
+@property --yMmgtL {
 	initial-value: #c0ffee;
 	syntax: "<color>";
 	inherits: false;
 }
 
-@property --my-color-2 {
+@property --moXICl {
 	syntax: "<color>";
 	initial-value: #c0ffee;
 	inherits: false;
@@ -401,31 +899,31 @@
 .nested-with-local-pseudo {
 	color: red;
 
-	:local .local-nested {
+	.atUlku {
 		color: red;
 	}
 
-	:global .global-nested {
+	.global-nested {
 		color: red;
 	}
 
-	:local(.local-nested) {
+	.atUlku {
 		color: red;
 	}
 
-	:global(.global-nested) {
+	.global-nested {
 		color: red;
 	}
 
-	:local .local-nested, :global .global-nested-next {
+	.atUlku, .global-nested-next {
 		color: red;
 	}
 
-	:local(.local-nested), :global(.global-nested-next) {
+	.atUlku, .global-nested-next {
 		color: red;
 	}
 
-	:global .foo, .bar {
+	.foo, .bar {
 		color: red;
 	}
 }
@@ -446,12 +944,12 @@
 	}
 }
 
-:global .global-foo {
+.global-foo {
 	.nested-global {
 		color: red;
 	}
 
-	:local .local-in-global {
+	.q-F86w {
 		color: blue;
 	}
 }
@@ -464,9 +962,9 @@
 	}
 }
 
-:global .class :local .in-local-global-scope,
-:global .class :local .in-local-global-scope,
-:local .class-local-scope :global .in-local-global-scope {
+.class ._pUr1t,
+.class ._pUr1t,
+.hEbxEV .in-local-global-scope {
 	color: red;
 }
 
@@ -528,10 +1026,10 @@
 
 .class {
 	animation:
-		foo var(--animation-name) 3s,
-		var(--animation-name) 3s,
-		3s linear 1s infinite running slidein,
-		3s linear env(foo, var(--baz)) infinite running slidein;
+		foo var(--animation-name) Xs,
+		var(--animation-name) Xs,
+		Xs linear Xs infinite running slidein,
+		Xs linear env(foo, var(--baz)) infinite running slidein;
 }
 
 :root {
@@ -542,14 +1040,14 @@
 	bar: env(foo, var(--baz));
 }
 
-:global      .global-foo, :local        .bar {
-	:local      .local-in-global       {
+.global-foo, ._1z-NWQ {
+	.q-F86w       {
 		color: blue;
 	}
 
 	@media screen {
-		:global .my-global-class-again,
-		:local .my-global-class-again {
+		.my-global-class-again,
+		.BUo87j {
 			color: red;
 		}
 	}
@@ -569,12 +1067,12 @@
 	}
 }
 
-:global .again-global {
+.again-global {
 	color:red;
 }
 
-:global .again-again-global {
-	:global .again-again-global {
+.again-again-global {
+	.again-again-global {
 		color: red;
 	}
 }
@@ -583,22 +1081,22 @@
 	--foo: red;
 }
 
-:global .again-again-global {
+.again-again-global {
 	color: var(--foo);
 
-	:global .again-again-global {
+	.again-again-global {
 		color: var(--foo);
 	}
 }
 
-:global .again-again-global {
-	animation: slidein 3s;
+.again-again-global {
+	animation: slidein Xs;
 
-	:global .again-again-global, .class, :global(:global(:local(.nested1)).nested2).nested3 {
-		animation: slidein 3s;
+	.again-again-global, .class, .Kgyaat.nested2.nested3 {
+		animation: slidein Xs;
 	}
 
-  .local2 :global .global,
+  .local2 .global,
 	.local3 {
 		color: red;
 	}
@@ -620,20 +1118,20 @@
 	.class {
 		.class {
 			.class {
-				animation: slidein 3s;
+				animation: slidein Xs;
 			}
 		}
 	}
 }
 
 .class {
-	animation: slidein 3s;
+	animation: slidein Xs;
 	.class {
-		animation: slidein 3s;
+		animation: slidein Xs;
 		.class {
-			animation: slidein 3s;
+			animation: slidein Xs;
 			.class {
-				animation: slidein 3s;
+				animation: slidein Xs;
 			}
 		}
 	}
@@ -686,11 +1184,11 @@
 		color: red;
 	}
 
-	:local(./** test **/class) {
+	./** test **/class {
 		color: red;
 	}
 
-	:local ./** test **/class {
+	./** test **/class {
 		color: red;
 	}
 }
@@ -775,7 +1273,7 @@
 	}
 }
 
-@counter-style thumbs {
+@counter-style _tEP1J {
 	system: cyclic;
 	symbols: "\1F44D";
 	suffix: " ";
@@ -785,7 +1283,7 @@ ul {
 	list-style: thumbs;
 }
 
-@counter-style extend-thumbs {
+@counter-style _XsAoSR {
 	fallback: thumbs;
 	system: extends thumbs;
 	speak-as: thumbs;
@@ -797,30 +1295,30 @@ div {
 	list-style: upper-roman inside;
 	list-style: circle outside;
 	list-style: none disc;
-	list-style: none url(img/shape.png);
+	list-style: none url(7bc91c245a8a10a4.png);
 	list-style: none;
-	list-style: none disc url(img/shape.png);
+	list-style: none disc url(7bc91c245a8a10a4.png);
 	list-style: lower-alpha;
 	list-style: disc;
 	list-style: square;
-	list-style: url("./img/shape.png");
-	list-style: georgian inside url("./img/shape.png");
-	list-style: georgian outside url("./img/shape.png");
+	list-style: url(7bc91c245a8a10a4.png);
+	list-style: georgian inside url(7bc91c245a8a10a4.png);
+	list-style: georgian outside url(7bc91c245a8a10a4.png);
 	/* type */
 	list-style: square;
 
 	/* image */
-	list-style: url("./img/shape.png");
+	list-style: url(7bc91c245a8a10a4.png);
 
 	/* position */
 	list-style: inside;
 
 	/* two values */
 	list-style: georgian outside;
-	list-style: url("img/shape.png") inside;
+	list-style: url(7bc91c245a8a10a4.png) inside;
 
 	/* three values */
-	list-style: lower-roman url("img/shape.png") outside;
+	list-style: lower-roman url(7bc91c245a8a10a4.png) outside;
 
 	/* Keyword value */
 	list-style: none;
@@ -917,7 +1415,7 @@ div {
 	}
 }
 
-@font-palette-values --identifier {
+@font-palette-values r07wcT {
 	font-family: Bixa;
 }
 
@@ -1005,7 +1503,7 @@ div {
 }
 
 @color-profile --swop5c {
-	src: url("https://example.org/SWOP2006_Coated5v2.icc");
+	src: url(https://example.org/SWOP2006_Coated5v2.icc);
 }
 
 .header {
@@ -1099,7 +1597,7 @@ div {
 	}
 }
 
-@property --item-size {
+@property --buCmmn {
 	syntax: "<percentage>";
 	inherits: true;
 	initial-value: 40%;
@@ -1148,7 +1646,7 @@ div {
 	initial-value: 40%;
 }
 
-@property --progress {
+@property --k-jK33 {
 	syntax: "<percentage>";
 	inherits: false;
 	initial-value: 25%;
@@ -1164,7 +1662,7 @@ div {
 		#00d230 var(--progress),
 		black var(--progress)
 	);
-	animation: progressAnimation 2.5s ease infinite;
+	animation: progressAnimation Xs ease infinite;
 }
 
 @keyframes progressAnimation {
@@ -1179,40 +1677,40 @@ div {
 @keyframes/**test**//**test**/"initial"/**test**//**test**/{ /* ... */ }
 @keyframes /**test**/ /**test**/ "initial" /**test**/ /**test**/ { /* ... */ }
 @keyframes "None" { /* ... */ }
-@property/**test**/--item-size {
+@property/**test**/--buCmmn {
 	syntax: "<percentage>";
 	inherits: true;
 	initial-value: 40%;
 }
-@property/**test**/--item-size/**test**/{
+@property/**test**/--buCmmn/**test**/{
 	syntax: "<percentage>";
 	inherits: true;
 	initial-value: 40%;
 }
-@property /**test**/--item-size/**test**/ {
+@property /**test**/--buCmmn/**test**/ {
 	syntax: "<percentage>";
 	inherits: true;
 	initial-value: 40%;
 }
-@property /**test**/ --item-size /**test**/ {
+@property /**test**/ --buCmmn /**test**/ {
 	syntax: "<percentage>";
 	inherits: true;
 	initial-value: 40%;
 }
-@property/**test**/ --item-size /**test**/{
+@property/**test**/ --buCmmn /**test**/{
 	syntax: "<percentage>";
 	inherits: true;
 	initial-value: 40%;
 }
-@property /**test**/ --item-size /**test**/ {
+@property /**test**/ --buCmmn /**test**/ {
 	syntax: "<percentage>";
 	inherits: true;
 	initial-value: 40%;
 }
 div {
-	animation: 3s ease-in 1s 2 reverse both paused "initial", localkeyframes2;
+	animation: Xs ease-in Xs 2 reverse both paused "initial", localkeyframes2;
 	animation-name: "initial";
-	animation-duration: 2s;
+	animation-duration: Xs;
 }
 
 .item-1 {
@@ -1313,7 +1811,7 @@ div {
 	composes:className from"./classes.modules.css",beforeName from global,className;
 }
 
-:global(.global-class-name) {
+.global-class-name {
 	color: red;
 }
 
@@ -1366,14 +1864,14 @@ div {
 	width: --max-plus-x({1px, 7px, 2px}, 3px); /* 10px */
 }
 
-@function --anim-1s(--animation, --count) {
-	--duration: 1s;
+@function --anim-Xs(--animation, --count) {
+	--duration: Xs;
 	--easing: linear;
 	result: var(--animation) var(--duration) var(--count) var(--easing);
 }
 
 div {
-	animation: --anim-1s(local(bounce), 2);
+	animation: --anim-Xs(local(bounce), 2);
 }
 
 @function --outer(--outer-arg) {
@@ -1404,11 +1902,11 @@ div {
 	result: oklch(from var(--color) l c h / var(--alpha));
 }
 
-@function :local(--transparent-local)(--color, --alpha) {
+@function --_7-lCv_(--color, --alpha) {
 	result: oklch(from var(--color) l c h / var(--alpha));
 }
 
-@function :global(--transparent-global)(--color, --alpha) {
+@function --transparent-global(--color, --alpha) {
 	result: oklch(from var(--color) l c h / var(--alpha));
 }
 
@@ -1428,23 +1926,23 @@ section {
 }
 
 @color-profile --swop5c {
-	src: url("https://example.org/SWOP2006_Coated5v2.icc");
+	src: url(https://example.org/SWOP2006_Coated5v2.icc);
 }
 
 @color-profile local(--swop5c-local) {
-	src: url("https://example.org/SWOP2006_Coated5v2.icc");
+	src: url(https://example.org/SWOP2006_Coated5v2.icc);
 }
 
 @color-profile :local(--swop5c-local) {
-	src: url("https://example.org/SWOP2006_Coated5v2.icc");
+	src: url(https://example.org/SWOP2006_Coated5v2.icc);
 }
 
 @color-profile global(--swop5c) {
-	src: url("https://example.org/SWOP2006_Coated5v2.icc");
+	src: url(https://example.org/SWOP2006_Coated5v2.icc);
 }
 
 @color-profile :global(--swop5c) {
-	src: url("https://example.org/SWOP2006_Coated5v2.icc");
+	src: url(https://example.org/SWOP2006_Coated5v2.icc);
 }
 
 .class {
@@ -1502,27 +2000,27 @@ section {
 }
 
 .no-space {
-	:global.class-no-space {
+	.class-no-space {
 		color: red;
 	}
 
-	:global/** test **/.class {
+	/** test **/.class {
 		color: red;
 	}
 
-	:local.class {
+	.fcj_Kv {
 		color: red;
 	}
 
-	:local/** test **/.class {
+	/** test **/.fcj_Kv {
 		color: red;
 	}
 
-	:local/** test **/#hash {
+	/** test **/#G-wEV1 {
 		color: red;
 	}
 
-	:local/** test **/{
+	/** test **/{
 		color: red;
 	}
 }
@@ -1549,31 +2047,31 @@ section {
 	color: red;
 }
 
-:local(.my-simple-local) {
+._9AWhNY {
 	color: red;
 }
 
-:global(.my-global-local) {
+.my-global-local {
 	color: red;
 }
 
-:local(.multiple-first.multiple-second) {
+.exxDbs.dEv5iQ {
 	color: red;
 }
 
-:local(.multiple-first-with-space .multiple-second-with-space) {
+.r_0_Ht .SfYYeX {
 	color: red;
 }
 
-div:not(:local(.special)) {
+div:not(.sgjLxj) {
 	color: blue;
 }
 
-p:not(:local(#main-paragraph)) {
+p:not(#Gonxc7) {
 	font-weight: bold;
 }
 
-:local(.container) {
+.ULIwdV {
 	/* Styles for .container */
 	background-color: lightblue;
 
@@ -1584,13 +2082,13 @@ p:not(:local(#main-paragraph)) {
 	}
 
 	@supports (display: grid) {
-		& :local(.header) {
+		& .inePMa {
 			display: grid;
 			grid-template-columns: 1fr 1fr;
 		}
 	}
 
-	& :local(.active) {
+	& .MQbo4Q {
 		/* Styles for .container.active */
 		border: 2px solid blue;
 	}
@@ -1601,7 +2099,7 @@ p:not(:local(#main-paragraph)) {
 	}
 
 	/* Nesting a descendant with multiple classes */
-	.item:local(.selected) {
+	.item._0Jv2q0 {
 		/* Styles for .container .item.selected */
 		font-weight: bold;
 		color: darkgreen;
@@ -1643,31 +2141,31 @@ p:not(:local(#main-paragraph)) {
 	}
 }
 
-:local(.local-class-name) {
+.SaTzPi {
 	color: red;
 }
 
-.global-befor-local :local(.local-class-name) {
+.global-befor-local .SaTzPi {
 	color: red;
 }
 
-:local(.local-class-name) .global-after-local {
+.SaTzPi .global-after-local {
 	color: red;
 }
 
-:local(.foo) {
-	&:local(.class) {
+.MuV03G {
+	&.fcj_Kv {
 		a_value: some-value;
 	}
 
 	@media screen and (min-width: 900px) {
 		b_value: some-value;
 
-		:local(.bar) {
+		._1z-NWQ {
 			c_value: some-value;
 		}
 
-		&:local(.baz) {
+		&.vtps9y {
 			c_value: some-value;
 		}
 	}
@@ -1679,20 +2177,15 @@ p:not(:local(#main-paragraph)) {
 	color: black;
 }
 
-:local(.local-class) {
+._2qNGmq {
 	color: white;
 }
 
-:global(.global-class-other) {
+.global-class-other {
 	color: red;
 }
 
-:local(.class-with-composes) {
-	composes:
-		local-class,
-		global-class from global,
-		global-class-other from global,
-		local-my-shared-class from "./shared.css";
+.X-AaD8 {
 }
 
 /* At-rules */
@@ -1701,8 +2194,8 @@ p:not(:local(#main-paragraph)) {
 @keyframes local(local-keyframes) {}
 @keyframes global(global-keyframes) {}
 /** Deprecated syntax */
-@keyframes :local(local-keyframes-old-syntax) {}
-@keyframes :global(local-keyframes-old-syntax) {}
+@keyframes El38Ni {}
+@keyframes local-keyframes-old-syntax {}
 
 .foo {
 	animation-name: basic-keyframes, global(global-keyframes), local(local-keyframes);
@@ -1730,17 +2223,17 @@ p:not(:local(#main-paragraph)) {
 		#00d230 var(local(--progress)),
 		black var(local(--progress))
 	);
-	animation: local(progressAnimationLocal) 2.5s ease infinite;
+	animation: local(progressAnimationLocal) Xs ease infinite;
 }
 
-@scope (:local(.article-header)) to (:global(.class)) {
+@scope (.ocraTB) to (.class) {
 	.article-footer {
 		border: 5px solid black;
 	}
-	:local(.class-1) {
+	.O4viXB {
 		color: red;
 	}
-	:global(.class-2) {
+	.class-2 {
 		color: blue;
 	}
 }
@@ -1780,7 +2273,7 @@ p:not(:local(#main-paragraph)) {
 	custom-name: local(unknown-at-rule);
 }
 
-:global .class {
+.class {
 	--test-1: red;
 	color: var(--test-1);
 	animation-name: animation-name-test;
@@ -1874,7 +2367,7 @@ p:not(:local(#main-paragraph)) {
 }
 
 .grid-area3 {
-	grid-area: 4 some-grid-area / 2 another-grid-area;
+	grid-area: X some-grid-area / 2 another-grid-area;
 }
 
 .grid-area4 {
@@ -1907,7 +2400,7 @@ p:not(:local(#main-paragraph)) {
 	grid-row-start: span some-grid-area;
 }
 .grid-row-start6 {
-	grid-row-start: 5 some-grid-area span;
+	grid-row-start: X some-grid-area span;
 }
 
 /* Global values */
