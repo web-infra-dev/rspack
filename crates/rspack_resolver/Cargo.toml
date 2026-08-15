@@ -32,6 +32,9 @@ cow-utils           = { workspace = true }
 dunce               = { workspace = true }                        # Normalize Windows paths to the most compatible format, avoiding UNC where possible
 indexmap            = { workspace = true, features = ["serde"] }
 json-strip-comments = { workspace = true }
+rkyv                = { workspace = true }
+rspack_cacheable    = { workspace = true }
+rspack_paths        = { workspace = true }
 rustc-hash          = { workspace = true, features = ["std"] }
 thiserror           = { workspace = true }
 

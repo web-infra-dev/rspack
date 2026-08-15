@@ -1,6 +1,8 @@
 use std::ops::{Deref, DerefMut};
 
-use crate::{error::ResolveError, resolver_path::ResolverPath};
+use rspack_paths::ArcPath;
+
+use crate::error::ResolveError;
 
 #[derive(Debug, Default, Clone)]
 pub struct ResolveContext(ResolveContextImpl);
@@ -14,10 +16,10 @@ pub struct ResolveContextImpl {
   pub fragment: Option<String>,
 
   /// Files that were found on file system
-  pub file_dependencies: Option<Vec<ResolverPath>>,
+  pub file_dependencies: Option<Vec<ArcPath>>,
 
   /// Files that were not found on file system
-  pub missing_dependencies: Option<Vec<ResolverPath>>,
+  pub missing_dependencies: Option<Vec<ArcPath>>,
 
   /// The current resolving alias for bailing recursion alias.
   pub resolving_alias: Option<String>,
@@ -59,17 +61,17 @@ impl ResolveContext {
     self.missing_dependencies.replace(vec![]);
   }
 
-  // Accepts anything convertible to `ResolverPath`. The conversion (which
+  // Accepts anything convertible to `ArcPath`. The conversion (which
   // includes the `Arc<Path>` allocation for `&Path` / `PathBuf` callers, or
   // hash reuse for `&CachedPathImpl`) only runs inside the `Some` branch, so
   // `resolve()` calls without a context still pay zero.
-  pub fn add_file_dependency<P: Into<ResolverPath>>(&mut self, dep: P) {
+  pub fn add_file_dependency<P: Into<ArcPath>>(&mut self, dep: P) {
     if let Some(deps) = &mut self.file_dependencies {
       deps.push(dep.into());
     }
   }
 
-  pub fn add_missing_dependency<P: Into<ResolverPath>>(&mut self, dep: P) {
+  pub fn add_missing_dependency<P: Into<ArcPath>>(&mut self, dep: P) {
     if let Some(deps) = &mut self.missing_dependencies {
       deps.push(dep.into());
     }

@@ -3,7 +3,7 @@ use std::{
   path::{Path, PathBuf},
 };
 
-use rspack_paths::{ArcPath, ArcPathSet, IdentityHasher, ResolverPath, hash_path};
+use rspack_paths::{ArcPath, ArcPathSet, IdentityHasher, hash_path};
 
 /// Whether both handles point at the same interned allocation.
 fn same_allocation(a: &ArcPath, b: &ArcPath) -> bool {
@@ -43,14 +43,15 @@ fn identity_hashed_set_still_finds_entries() {
 }
 
 #[test]
-fn resolver_path_interns_into_the_same_object() {
-  // Also pins `rspack_paths::hash_path` to the resolver's hashing scheme: a mismatch would put
-  // the two in different shards and silently stop deduplicating.
-  let path = Path::new("/intern/resolver.js");
-  let from_path = ArcPath::from(path);
-  let from_resolver = ArcPath::from(ResolverPath::from(path));
+fn from_parts_interns_into_the_same_object() {
+  // `from_parts` is how `rspack_resolver` hands over a path it has already hashed. Feeding the
+  // precomputed hash has to land in the same shard as hashing here, or deduplication silently
+  // stops working.
+  let path = Path::new("/intern/from_parts.js");
+  let hashed_here = ArcPath::from(path);
+  let hashed_upstream = ArcPath::from_parts(hash_path(path), path);
 
-  assert!(same_allocation(&from_path, &from_resolver));
+  assert!(same_allocation(&hashed_here, &hashed_upstream));
 }
 
 #[test]

@@ -1,3 +1,10 @@
+//! `rspack_cacheable` support for [`AliasValue`].
+//!
+//! This lives here rather than in `rspack_cacheable` so that crate does not have to depend on
+//! the resolver: `rspack_paths` needs `rspack_cacheable`, and the resolver needs `rspack_paths`,
+//! so the reverse edge would close a cycle. Implementing `ArchiveWith<AliasValue>` is only legal
+//! in a crate owning one of the types involved, and `AliasValue` is ours.
+
 use rkyv::{
   Archive, Archived, Deserialize, Place, Portable, Resolver,
   bytecheck::{CheckBytes, StructCheckContext},
@@ -6,10 +13,9 @@ use rkyv::{
   ser::{Sharing, Writer},
   with::{ArchiveWith, DeserializeWith, SerializeWith},
 };
-use rspack_resolver::AliasValue;
+use rspack_cacheable::{ContextGuard, Error, utils::PortablePath, with::AsPreset};
 
-use super::AsPreset;
-use crate::{ContextGuard, Error, utils::PortablePath};
+use crate::AliasValue;
 
 pub struct ArchivedAliasValue {
   is_ignore: bool,

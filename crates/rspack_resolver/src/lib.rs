@@ -61,6 +61,7 @@
 mod alias_trie;
 mod builtins;
 mod cache;
+mod cacheable_alias;
 mod context;
 mod error;
 mod file_system;
@@ -68,7 +69,7 @@ mod options;
 mod package_json;
 mod path;
 mod resolution;
-mod resolver_path;
+
 mod specifier;
 mod tsconfig;
 
@@ -87,6 +88,9 @@ use camino::{Utf8Component, Utf8Path, Utf8PathBuf};
 use cow_utils::CowUtils;
 use dashmap::DashSet;
 use futures::future::{BoxFuture, try_join_all};
+// Resolved dependencies are reported as interned paths, so consumers do not have to convert or
+// rehash them; re-exported for anyone reading a `ResolveContext`.
+pub use rspack_paths::{ArcPath, ArcPathSet};
 use rustc_hash::FxHashSet;
 
 use crate::{
@@ -108,7 +112,6 @@ pub use crate::{
   },
   package_json::{JSONValue, ModuleType, PackageJson},
   resolution::Resolution,
-  resolver_path::ResolverPath,
 };
 
 type ResolveResult = Result<Option<CachedPath>, ResolveError>;
@@ -117,10 +120,10 @@ type ResolveResult = Result<Option<CachedPath>, ResolveError>;
 #[derive(Debug, Default, Clone)]
 pub struct ResolveContext {
   /// Files that were found on file system
-  pub file_dependencies: FxHashSet<ResolverPath>,
+  pub file_dependencies: ArcPathSet,
 
   /// Dependencies that were not found on file system
-  pub missing_dependencies: FxHashSet<ResolverPath>,
+  pub missing_dependencies: ArcPathSet,
 }
 
 /// Resolver with the current operating system as the file system
