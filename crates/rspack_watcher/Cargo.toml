@@ -23,6 +23,9 @@ tokio = { workspace = true, features = ["rt", "macros", "sync", "fs"] }
 
 [dev-dependencies]
 tempfile = { workspace = true }
+# The tests build a multi-threaded runtime; declare it rather than relying on some other crate
+# in the graph happening to turn the feature on.
+tokio = { workspace = true, features = ["rt-multi-thread"] }
 
 [lints]
 workspace = true
