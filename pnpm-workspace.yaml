@@ -154,7 +154,7 @@ catalog:
   'terser': '5.49.2'
   'terser-webpack-plugin': '^5.6.1'
   'tinypool': '^2.1.0'
-  'toml': '^4.3.0'
+  'toml': '^5.0.0'
   'ts-checker-rspack-plugin': '^1.6.1'
   'typescript': '^6.0.3'
   'url-loader': '^4.1.1'
