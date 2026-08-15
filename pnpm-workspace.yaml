@@ -88,7 +88,7 @@ catalog:
   'cspell-ban-words': '0.0.4'
   'css-loader': '^7.1.4'
   'date-fns': '^4.4.0'
-  'diff': '8.0.4'
+  'diff': '9.0.0'
   'emnapi': '1.11.3'
   'enhanced-resolve': '5.24.5'
   'es5-ext': '^0.10.64'

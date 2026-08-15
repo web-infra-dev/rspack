@@ -212,8 +212,8 @@ catalogs:
       specifier: ^4.4.0
       version: 4.4.0
     diff:
-      specifier: 8.0.4
-      version: 8.0.4
+      specifier: 9.0.0
+      version: 9.0.0
     emnapi:
       specifier: 1.11.3
       version: 1.11.3
@@ -499,7 +499,7 @@ importers:
     devDependencies:
       diff:
         specifier: 'catalog:'
-        version: 8.0.4
+        version: 9.0.0
       prettier:
         specifier: 'catalog:'
         version: 3.9.6
@@ -4868,6 +4868,10 @@ packages:
 
   diff@8.0.4:
     resolution: {integrity: sha512-DPi0FmjiSU5EvQV0++GFDOJ9ASQUVFh5kD+OzOnYdi7n3Wpm9hWWGfB/O2blfHcMVTL5WkQXSnRiK9makhrcnw==}
+    engines: {node: '>=0.3.1'}
+
+  diff@9.0.0:
+    resolution: {integrity: sha512-svtcdpS8CgJyqAjEQIXdb3OjhFVVYjzGAPO8WGCmRbrml64SPw/jJD4GoE98aR7r25A0XcgrK3F02yw9R/vhQw==}
     engines: {node: '>=0.3.1'}
 
   diffie-hellman@5.0.3:
@@ -11311,6 +11315,8 @@ snapshots:
   didyoumean@1.2.2: {}
 
   diff@8.0.4: {}
+
+  diff@9.0.0: {}
 
   diffie-hellman@5.0.3:
     dependencies:
