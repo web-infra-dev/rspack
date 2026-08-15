@@ -98,7 +98,7 @@ catalog:
   'file-loader': '^6.2.0'
   'filenamify': '4.3.0'
   'fs-extra': '^11.4.0'
-  'glob': '^11.1.0'
+  'glob': '^13.0.6'
   'globals': '^17.10.0'
   'heading-case': '^1.1.5'
   'html-loader': '^5.1.0'
