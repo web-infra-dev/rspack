@@ -145,7 +145,7 @@ catalog:
   'rspack-vue-loader': '^17.6.2'
   'rspress-plugin-font-open-sans': '1.0.4'
   'rstack': '^0.6.0'
-  'sass-loader': '^16.0.8'
+  'sass-loader': '^17.0.0'
   'semver': '^7.8.5'
   'source-map': '^0.8.0'
   'source-map-loader': '^5.0.0'
