@@ -32,7 +32,7 @@ rspack_fs                 = { workspace = true }
 rspack_hash               = { workspace = true }
 rspack_hook               = { workspace = true }
 rspack_napi               = { workspace = true }
-rspack_paths              = { workspace = true }
+rspack_paths              = { workspace = true, features = ["cacheable"] }
 rspack_plugin_esm_library = { workspace = true }
 rspack_plugin_html        = { workspace = true }
 rspack_plugin_javascript  = { workspace = true }

@@ -61,7 +61,6 @@
 mod alias_trie;
 mod builtins;
 mod cache;
-mod cacheable_alias;
 mod context;
 mod error;
 mod file_system;

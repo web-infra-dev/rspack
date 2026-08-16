@@ -22,7 +22,7 @@ json-escape-simd = { workspace = true }
 memchr           = { workspace = true }
 regex            = { workspace = true, features = ["pattern"] }
 rspack_cacheable = { workspace = true }
-rspack_paths     = { workspace = true }
+rspack_paths     = { workspace = true, features = ["cacheable"] }
 rustc-hash       = { workspace = true }
 ryu-js           = { workspace = true }
 serde            = { workspace = true }

@@ -1,21 +1,26 @@
-//! `rspack_cacheable` support for [`AliasValue`].
+//! `rspack_cacheable` support for [`AliasValue`], living next to the only field that asks for it.
 //!
-//! This lives here rather than in `rspack_cacheable` so that crate does not have to depend on
-//! the resolver: `rspack_paths` needs `rspack_cacheable`, and the resolver needs `rspack_paths`,
-//! so the reverse edge would close a cycle. Implementing `ArchiveWith<AliasValue>` is only legal
-//! in a crate owning one of the types involved, and `AliasValue` is ours.
+//! It cannot live in `rspack_cacheable`: that would make the crate depend on the resolver, while
+//! the resolver depends on `rspack_paths` which depends on `rspack_cacheable` — a cycle. Nor can
+//! it reuse `AsPreset` here, since implementing a foreign trait for a foreign type is not allowed.
+//! Hence the local [`AsAliasValue`] adapter.
 
-use rkyv::{
-  Archive, Archived, Deserialize, Place, Portable, Resolver,
-  bytecheck::{CheckBytes, StructCheckContext},
-  de::Pooling,
-  rancor::{Fallible, Trace},
-  ser::{Sharing, Writer},
-  with::{ArchiveWith, DeserializeWith, SerializeWith},
+use rspack_cacheable::{
+  __private::rkyv::{
+    Archive, Archived, Deserialize, Place, Portable, Resolver, Serialize,
+    bytecheck::{CheckBytes, StructCheckContext},
+    de::Pooling,
+    rancor::{Fallible, Trace},
+    ser::{Sharing, Writer},
+    with::{ArchiveWith, DeserializeWith, SerializeWith},
+  },
+  ContextGuard, Error,
+  utils::PortablePath,
 };
-use rspack_cacheable::{ContextGuard, Error, utils::PortablePath, with::AsPreset};
+use rspack_resolver::AliasValue;
 
-use crate::AliasValue;
+/// `with` adapter selecting this module's [`AliasValue`] serialization.
+pub struct AsAliasValue;
 
 pub struct ArchivedAliasValue {
   is_ignore: bool,
@@ -29,7 +34,7 @@ pub struct AliasValueResolver {
   path: PortablePath,
 }
 
-impl ArchiveWith<AliasValue> for AsPreset {
+impl ArchiveWith<AliasValue> for AsAliasValue {
   type Archived = ArchivedAliasValue;
   type Resolver = AliasValueResolver;
 
@@ -46,7 +51,7 @@ impl ArchiveWith<AliasValue> for AsPreset {
   }
 }
 
-impl<S> SerializeWith<AliasValue, S> for AsPreset
+impl<S> SerializeWith<AliasValue, S> for AsAliasValue
 where
   S: Fallible<Error = Error> + Writer + Sharing<Error> + ?Sized,
 {
@@ -60,7 +65,7 @@ where
     };
     let portable_path = PortablePath::new(path_str.as_ref(), guard.project_root());
     Ok(AliasValueResolver {
-      inner: rkyv::Serialize::serialize(&portable_path, serializer)?,
+      inner: Serialize::serialize(&portable_path, serializer)?,
       path: portable_path,
     })
   }
@@ -102,7 +107,7 @@ where
   }
 }
 
-impl<D> DeserializeWith<ArchivedAliasValue, AliasValue, D> for AsPreset
+impl<D> DeserializeWith<ArchivedAliasValue, AliasValue, D> for AsAliasValue
 where
   D: Fallible<Error = Error> + Pooling<Error> + ?Sized,
 {
@@ -117,5 +122,49 @@ where
       let guard = ContextGuard::pooling_guard(deserializer)?;
       AliasValue::Path(portable_path.into_path_string(guard.project_root()))
     })
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  // Moved here from `rspack_cacheable_test` along with the implementation.
+  use rspack_cacheable::{
+    enable_cacheable as cacheable, from_bytes, to_bytes,
+    with::{AsCacheable, AsOption, AsTuple2, AsVec},
+  };
+  use rspack_resolver::{Alias, AliasValue};
+
+  use super::AsAliasValue;
+
+  #[cacheable]
+  #[derive(Debug, Clone, Hash, PartialEq, Eq)]
+  struct ResolverOption {
+    #[cacheable(with=AsOption<AsVec<AsTuple2<AsCacheable, AsVec<AsAliasValue>>>>)]
+    alias: Option<Alias>,
+  }
+
+  #[test]
+  fn test_preset_rspack_resolver() {
+    let option = ResolverOption {
+      alias: Some(vec![
+        (
+          String::from("@"),
+          vec![AliasValue::Path(String::from("./src"))],
+        ),
+        (String::from("ignore"), vec![AliasValue::Ignore]),
+        (
+          String::from("components"),
+          vec![
+            AliasValue::Path(String::from("./components")),
+            AliasValue::Path(String::from("./src")),
+            AliasValue::Ignore,
+          ],
+        ),
+      ]),
+    };
+
+    let bytes = to_bytes(&option, &()).unwrap();
+    let new_option: ResolverOption = from_bytes(&bytes, &()).unwrap();
+    assert_eq!(option, new_option);
   }
 }

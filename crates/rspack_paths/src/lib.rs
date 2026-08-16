@@ -12,6 +12,7 @@ use std::{
 pub use camino::{Utf8Component, Utf8Components, Utf8Path, Utf8PathBuf, Utf8Prefix};
 use dashmap::{DashMap, DashSet};
 use indexmap::IndexSet;
+#[cfg(feature = "cacheable")]
 use rspack_cacheable::{
   ContextGuard, Error as CacheableError, cacheable,
   utils::PortablePath,
@@ -107,7 +108,7 @@ fn path_from_bytes(bytes: &[u8]) -> &Path {
 /// An interned path: equal paths share one allocation process-wide, so equality is a pointer
 /// comparison and each path is stored once. Hashing still uses the precomputed content hash
 /// (see [`Hash`] below).
-#[cacheable(with=Custom)]
+#[cfg_attr(feature = "cacheable", cacheable(with=Custom))]
 #[derive(Clone, PartialEq, Eq)]
 pub struct ArcPath(InternedSlice<PreHashedPath>);
 
@@ -217,6 +218,7 @@ impl From<&str> for ArcPath {
   }
 }
 
+#[cfg(feature = "cacheable")]
 impl CustomConverter for ArcPath {
   type Target = PortablePath;
   fn serialize(&self, guard: &ContextGuard) -> Result<Self::Target, CacheableError> {

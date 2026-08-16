@@ -32,7 +32,7 @@ rspack_hook                           = { workspace = true }
 rspack_ids                            = { workspace = true }
 rspack_macros                         = { workspace = true }
 rspack_parallel                       = { workspace = true }
-rspack_paths                          = { workspace = true }
+rspack_paths                          = { workspace = true, features = ["cacheable"] }
 rspack_regex                          = { workspace = true }
 rspack_util                           = { workspace = true }
 rustc-hash                            = { workspace = true }

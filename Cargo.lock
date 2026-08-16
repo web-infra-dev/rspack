@@ -5549,8 +5549,6 @@ dependencies = [
  "normalize-path",
  "pnp",
  "regex",
- "rkyv 0.8.18",
- "rspack_cacheable",
  "rspack_paths",
  "rustc-hash",
  "serde",

@@ -18,7 +18,7 @@ rspack_fs                  = { workspace = true }
 rspack_hash                = { workspace = true }
 rspack_hook                = { workspace = true }
 rspack_javascript_compiler = { workspace = true }
-rspack_paths               = { workspace = true }
+rspack_paths               = { workspace = true, features = ["cacheable"] }
 rspack_plugin_asset        = { workspace = true }
 rspack_plugin_externals    = { workspace = true }
 rspack_plugin_javascript   = { workspace = true }
