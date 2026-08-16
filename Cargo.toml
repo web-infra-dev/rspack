@@ -19,7 +19,7 @@ libraries = [{ path = "linting/*" }]
 [workspace.dependencies]
 aho-corasick    = { version = "1.1.4", default-features = false }
 anyhow          = { version = "1.0.102", default-features = false, features = ["backtrace", "std"] }
-anymap          = { package = "anymap3", version = "1.0.1", default-features = false, features = ["std"] }
+anymap          = { package = "anymap3", version = "1.1.0", default-features = false, features = ["std"] }
 arc-swap        = { version = "1.9.1", default-features = false }
 async-recursion = { version = "1.1.1", default-features = false }
 async-trait     = { version = "0.1.89", default-features = false }
