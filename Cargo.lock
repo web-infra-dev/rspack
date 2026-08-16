@@ -4188,7 +4188,6 @@ dependencies = [
  "lightningcss",
  "once_cell",
  "rspack_cacheable",
- "rspack_resolver",
  "rspack_sources",
  "rustc-hash",
  "serde_json",
