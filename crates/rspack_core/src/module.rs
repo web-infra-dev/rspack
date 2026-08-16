@@ -284,6 +284,9 @@ pub struct BuildInfo {
   pub side_effects_free: Option<HashSet<Atom>>,
   #[cacheable(with=AsOption<AsVec<AsPreset>>)]
   pub top_level_declarations: Option<HashSet<Atom>>,
+  /// Identifier names that resolve to the global scope in the original module source.
+  #[cacheable(with=AsVec<AsPreset>)]
+  pub unresolved_identifier_names: HashSet<Atom>,
   pub module_concatenation_bailout: Option<String>,
   pub assets: BindingCell<HashMap<String, CompilationAsset>>,
   pub module: bool,
@@ -321,6 +324,7 @@ impl Default for BuildInfo {
       css: None,
       side_effects_free: None,
       top_level_declarations: None,
+      unresolved_identifier_names: Default::default(),
       module_concatenation_bailout: None,
       assets: Default::default(),
       module: false,

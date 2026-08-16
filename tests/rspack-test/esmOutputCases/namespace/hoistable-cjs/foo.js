@@ -2,6 +2,7 @@
 
 const __RSPACK_CJS_EXPORT_value__ = 41;
 var __rspack_unused_export = 42;
+globalThis.__RSPACK_CJS_EXPORT_readGlobal__ = 43;
 
 exports.unused = "unused";
 exports.value = 1;
@@ -13,3 +14,4 @@ exports.setValue = function setValue(value) {
 exports.getValue = function getValue() {
   return exports.value;
 };
+exports.readGlobal = () => __RSPACK_CJS_EXPORT_readGlobal__;

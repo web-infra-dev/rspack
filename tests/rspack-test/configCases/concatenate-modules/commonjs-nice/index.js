@@ -7,7 +7,8 @@ import { "a-b" as ab } from "./weird-name";
 import {
 	value as collisionValue,
 	local as collisionLocal,
-	placeholder as collisionPlaceholder
+	placeholder as collisionPlaceholder,
+	readGlobal as collisionReadGlobal
 } from "./name-collision";
 
 it("should provide named and default exports of a __esModule-flagged module", () => {
@@ -46,6 +47,7 @@ it("should avoid generated CommonJS export name collisions", () => {
 	expect(collisionValue).toBe(1);
 	expect(collisionLocal).toBe(99);
 	expect(collisionPlaceholder).toBe(98);
+	expect(collisionReadGlobal()).toBe(97);
 });
 
 it("should concatenate all CommonJS modules into the entry", () => {

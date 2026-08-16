@@ -21,12 +21,13 @@ use rspack_core::{
 };
 use rspack_error::{Diagnostic, Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_util::fx_hash::FxHashSet;
+use swc_atoms::Atom;
 use swc_experimental_allocator::Allocator;
-use swc_experimental_ecma_ast::{Comments, EsVersion, Program, VisitWith};
+use swc_experimental_ecma_ast::{Comments, EsVersion, Ident, Program, Visit, VisitWith};
 use swc_experimental_ecma_parser::{
   EsSyntax, Lexer, Parser, StringSource, Syntax, unstable::Capturing,
 };
-use swc_experimental_ecma_semantic::resolver::resolver;
+use swc_experimental_ecma_semantic::resolver::{Semantic, resolver};
 use swc_experimental_ecma_transforms_base::remove_paren::remove_paren;
 
 use crate::{
@@ -56,6 +57,31 @@ pub struct ParserRuntimeRequirementsData {
 static LEGACY_REQUIRE_REGEX: LazyLock<Regex> = LazyLock::new(|| {
   Regex::new("__webpack_require__\\s*(!?\\.)").expect("should init `REQUIRE_FUNCTION_REGEX`")
 });
+
+fn collect_unresolved_identifier_names(
+  program: &Program<'_>,
+  semantic: &Semantic,
+) -> FxHashSet<Atom> {
+  struct UnresolvedIdentifierCollector<'a> {
+    semantic: &'a Semantic,
+    names: FxHashSet<Atom>,
+  }
+
+  impl<'ast> Visit<'ast> for UnresolvedIdentifierCollector<'_> {
+    fn visit_ident(&mut self, ident: &Ident<'ast>) {
+      if self.semantic.node_scope(ident) == self.semantic.unresolved_scope_id() {
+        self.names.insert(Atom::from(ident.sym.as_str()));
+      }
+    }
+  }
+
+  let mut collector = UnresolvedIdentifierCollector {
+    semantic,
+    names: FxHashSet::default(),
+  };
+  program.visit_with(&mut collector);
+  collector.names
+}
 
 fn append_experimental_parse_errors(
   diagnostics: &mut Vec<Diagnostic>,
@@ -604,6 +630,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     let mut semicolons = Default::default();
     remove_paren(&mut program, &allocator, Some(&mut comments));
     let semantic = resolver(&program);
+    build_info.unresolved_identifier_names.clear();
     program.visit_with(&mut semicolon::InsertedSemicolons::new(
       &mut semicolons,
       &tokens,
@@ -647,6 +674,25 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       }
     };
     diagnostics.append(&mut warning_diagnostics);
+
+    let may_be_concatenated = (build_info.strict
+      && matches!(
+        build_meta.exports_type(),
+        BuildMetaExportsType::Default | BuildMetaExportsType::Flagged
+      ))
+      || (build_meta.exports_type() == BuildMetaExportsType::Namespace
+        && presentational_dependencies
+          .iter()
+          .any(|dependency| dependency.as_any().is::<ESMCompatibilityDependency>()));
+    if may_be_concatenated
+      && dependencies
+        .iter()
+        .any(|dependency| dependency.as_any().is::<CommonJsExportsDependency>())
+    {
+      build_info.unresolved_identifier_names =
+        collect_unresolved_identifier_names(&program, &semantic);
+    }
+
     let mut side_effects_bailout = None;
 
     if compiler_options.optimization.side_effects.is_true() {

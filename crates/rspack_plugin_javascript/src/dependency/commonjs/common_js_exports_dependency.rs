@@ -159,6 +159,11 @@ fn get_unique_concatenated_name(
           .iter()
           .any(|declaration| declaration.as_str() == candidate)
       })
+      || module
+        .build_info()
+        .unresolved_identifier_names
+        .iter()
+        .any(|name| name.as_str() == candidate)
       || concatenation_scope
         .current_module
         .export_map
