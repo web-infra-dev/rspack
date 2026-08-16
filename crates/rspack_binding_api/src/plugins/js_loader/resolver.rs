@@ -33,7 +33,7 @@ impl Loader<RunnerContext> for JsLoader {
   }
 }
 
-// TODO: should be compiled with a different cfg
+#[cfg(feature = "test-loader")]
 pub fn get_builtin_test_loader(builtin: &str) -> Option<BoxLoader> {
   if builtin.starts_with(rspack_loader_testing::SIMPLE_ASYNC_LOADER_IDENTIFIER) {
     return Some(Arc::new(rspack_loader_testing::SimpleAsyncLoader));
@@ -70,6 +70,7 @@ pub(crate) async fn resolve_loader(
     Utf8Path::new(loader_request)
   };
 
+  #[cfg(feature = "test-loader")]
   if loader_request.starts_with("builtin:test") {
     return Ok(get_builtin_test_loader(loader_request));
   }

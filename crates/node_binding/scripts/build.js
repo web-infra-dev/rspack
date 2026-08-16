@@ -70,6 +70,10 @@ async function build() {
 			args.push("--no-default-features");
 			features.push("plugin");
 		}
+		// Internal test loaders should not ship in production artifacts.
+		if (!["release", "release-wasi"].includes(values.profile)) {
+			features.push("test-loader");
+		}
 		if (process.env.RSPACK_TARGET_BROWSER) {
 			features.push("browser")
 		}
