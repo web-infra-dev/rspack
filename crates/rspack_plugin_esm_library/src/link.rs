@@ -2315,6 +2315,7 @@ var {} = {{}};
     errors
   }
 
+  #[allow(clippy::too_many_arguments)]
   fn link_imports_and_exports(
     &self,
     compilation: &Compilation,

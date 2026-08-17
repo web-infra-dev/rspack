@@ -1794,16 +1794,17 @@ async fn compute_concatenated_module_codegen(
     let module = module_graph
       .module_by_identifier(&job.module)
       .expect("should have concatenated module");
+    let mut concatenation_scope = job.scope;
     let mut runtime_template = compilation.runtime_template.create_module_code_template();
     let mut code_generation_context = ModuleCodeGenerationContext {
       compilation,
       runtime: Some(&job.runtime),
-      concatenation_scope: job.scope.clone(),
+      concatenation_scope: concatenation_scope.as_mut(),
       runtime_template: &mut runtime_template,
     };
     let mut code_generation_result = module.code_generation(&mut code_generation_context).await?;
     code_generation_result
-      .runtime_requirements
+      .runtime_requirements_mut()
       .extend(*runtime_template.runtime_requirements());
     code_generation_result.set_hash_for_concatenated_module(
       &job.hash,
