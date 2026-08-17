@@ -6,7 +6,8 @@
 //! Hence the local [`AsAliasValue`] adapter.
 
 use rspack_cacheable::{
-  __private::rkyv::{
+  ContextGuard, Error,
+  rkyv::{
     Archive, Archived, Deserialize, Place, Portable, Resolver, Serialize,
     bytecheck::{CheckBytes, StructCheckContext},
     de::Pooling,
@@ -14,7 +15,6 @@ use rspack_cacheable::{
     ser::{Sharing, Writer},
     with::{ArchiveWith, DeserializeWith, SerializeWith},
   },
-  ContextGuard, Error,
   utils::PortablePath,
 };
 use rspack_resolver::AliasValue;
