@@ -301,8 +301,8 @@ strip    = "none"
 [profile.release.package]
 
 # React Compiler is an opt-in transform, but these crates contribute significantly to the
-# release binding size. `s` reduces that footprint while avoiding the substantial transform
-# slowdown observed with `z`.
+# release binding size. Keep inference, lowering, and reactive scopes at the release default
+# (`3`) because they are performance-sensitive; use `s` for the remaining crates.
 [profile.release.package.forked_react_compiler]
 opt-level = "s"
 
@@ -315,16 +315,7 @@ opt-level = "s"
 [profile.release.package.forked_react_compiler_hir]
 opt-level = "s"
 
-[profile.release.package.forked_react_compiler_inference]
-opt-level = "s"
-
-[profile.release.package.forked_react_compiler_lowering]
-opt-level = "s"
-
 [profile.release.package.forked_react_compiler_optimization]
-opt-level = "s"
-
-[profile.release.package.forked_react_compiler_reactive_scopes]
 opt-level = "s"
 
 [profile.release.package.forked_react_compiler_ssa]
