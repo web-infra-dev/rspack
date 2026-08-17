@@ -1,6 +1,6 @@
-use std::sync::Arc;
+use std::{marker::PhantomPinned, sync::Arc};
 
-use rspack_cacheable::cacheable;
+use rspack_cacheable::{cacheable, with::Skip};
 pub use rspack_util::ArcComputed;
 use rspack_util::fx_hash::FxDashMap;
 
@@ -129,6 +129,8 @@ pub struct ResolvedModuleOptions {
   cache_key: ResolvedModuleOptionsCacheKey,
   parser: Option<ParserOptions>,
   generator: Option<GeneratorOptions>,
+  #[cacheable(with=Skip)]
+  _pin: PhantomPinned,
 }
 
 impl ResolvedModuleOptions {
@@ -141,6 +143,7 @@ impl ResolvedModuleOptions {
       cache_key,
       parser,
       generator,
+      _pin: PhantomPinned,
     }
   }
 

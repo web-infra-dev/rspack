@@ -1,4 +1,4 @@
-use std::{fmt::Debug, path::PathBuf, sync::Arc};
+use std::{fmt::Debug, marker::PhantomPinned, path::PathBuf, sync::Arc};
 
 use rspack_error::{Diagnostic, Error, Result, error};
 use rspack_fs::ReadableFileSystem;
@@ -21,6 +21,7 @@ use crate::{
 pub struct LoaderRunnerData<Context: Send> {
   loader_items: Vec<LoaderItem<Context>>,
   loader_chains: Vec<LoaderChain>,
+  _pin: PhantomPinned,
 }
 
 impl<Context: Send> LoaderRunnerData<Context> {
@@ -30,6 +31,7 @@ impl<Context: Send> LoaderRunnerData<Context> {
     Self {
       loader_items,
       loader_chains,
+      _pin: PhantomPinned,
     }
   }
 }
