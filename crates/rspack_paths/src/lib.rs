@@ -84,7 +84,9 @@ impl SliceInternable for PreHashedPath {
     }
     #[cfg(not(unix))]
     {
-      path_from_bytes(a) == path_from_bytes(b)
+      // Identical bytes are identical paths, and that is what nearly every probe sees. Only
+      // spellings that differ but normalize to the same components pay for `Path::components`.
+      a == b || path_from_bytes(a) == path_from_bytes(b)
     }
   }
 
