@@ -98,10 +98,10 @@ does not create a third public storage mode.
 
 Rspack currently carries two implementations of the same Cache responsibility:
 
-| Backend        | Location                            | Selection                     |
-| -------------- | ----------------------------------- | ----------------------------- |
-| `legacy_cache` | `crates/rspack_core/src/cache/`     | `experiments.newCache: false` |
-| `new_cache`    | `crates/rspack_core/src/new_cache/` | `experiments.newCache: true`  |
+| Backend        | Location                            |
+| -------------- | ----------------------------------- |
+| `legacy_cache` | `crates/rspack_core/src/cache/`     |
+| `new_cache`    | `crates/rspack_core/src/new_cache/` |
 
 The backend selector is not another Incremental mode. Switching between `legacy_cache` and
 `new_cache` may change how cache entries are keyed, retained, serialized, or flushed, but it must not

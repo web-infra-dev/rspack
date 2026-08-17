@@ -3119,8 +3119,7 @@ export type Experiments = {
    */
   futureDefaults?: boolean;
   /**
-   * Select the experimental new Cache backend.
-   * This does not enable Cache or affect incremental compilation.
+   * Enable the experimental new cache implementation.
    * @default false
    */
   newCache?: boolean;

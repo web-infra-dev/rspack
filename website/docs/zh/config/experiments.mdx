@@ -203,26 +203,6 @@ export default {
 };
 ```
 
-## experiments.newCache
-
-- **类型：** `boolean`
-- **默认值：** `false`
-
-用于选择实验性的新版 Cache 后端。该选项不会启用 Cache，也不会影响增量编译：
-[`cache`](/config/cache) 控制是否启用 Cache，而 [`incremental`](/config/incremental)
-独立控制重建时是否复用 Artifact。
-
-- `false` 选择 legacy Cache 后端。
-- `true` 选择 new Cache 后端。
-
-```js title="rspack.config.mjs"
-export default {
-  experiments: {
-    newCache: true,
-  },
-};
-```
-
 ## experiments.nativeWatcher
 
 <ApiMeta addedVersion="1.4.7" />
