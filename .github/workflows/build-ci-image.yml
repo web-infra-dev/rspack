@@ -155,26 +155,48 @@ jobs:
             fi
           } >> "$GITHUB_STEP_SUMMARY"
 
-  # TEMPORARY: job-level `container:` needs a runner whose dockerd is already up.
-  # The standard labels start it lazily (see .github/actions/docker/run), so they
-  # fail with "Cannot connect to the Docker daemon" during Initialize containers.
-  # rspack-custom-container is the label provisioned for container jobs.
-  # Uses a public image so it does not depend on ci-linux being published yet.
-  verify-container-support:
-    name: Probe job-level container on self-hosted
+  # Proves the published image actually carries what CI expects, so a broken
+  # image is caught here rather than by every job that migrates onto it.
+  # Needs rspack-custom-container: the standard labels start dockerd lazily
+  # and fail with "Cannot connect to the Docker daemon" at Initialize containers.
+  smoke-test-image:
+    name: Smoke-test the ci-linux image
+    needs: [build]
+    if: github.event_name != 'pull_request'
     runs-on: rspack-custom-container
     container:
-      image: ubuntu:22.04
+      image: ghcr.io/web-infra-dev/rspack/ci-linux@sha256:34d893f475de0dcc91d81462f8a989bd36924d0b4ada82e513e1992f95baa197
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    defaults:
+      run:
+        shell: bash # container jobs default to `sh`, and the checks below need bash
     steps:
-      - name: Inside the container
-        run: |
-          cat /etc/os-release
-          echo "whoami: $(id)"
-          echo "pwd: $(pwd)"
-          nproc && free -g | head -2
-          df -h /
-
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
-      - name: Checkout landed
-        run: ls -la Cargo.toml rust-toolchain.toml
+      - name: Rust toolchain matches rust-toolchain.toml
+        run: |
+          expected=$(sed -n -E 's/^[ \t]*channel[ \t]*=[ \t]*"([^"]*)".*$/\1/p' rust-toolchain.toml)
+          echo "expected: $expected"
+          rustc -vV
+          rustup toolchain list
+          rustup toolchain list | grep -q "$expected" || { echo "::error::$expected missing"; exit 1; }
+
+      - name: Cargo tools present
+        run: |
+          for t in taplo cargo-deny cargo-shear cargo-workspaces cargo-codspeed cargo-zigbuild cargo-dylint dylint-link cargo-binstall; do
+            command -v "$t" >/dev/null || { echo "::error::$t missing"; exit 1; }
+            echo "ok: $t"
+          done
+
+      - name: Build tools present
+        run: |
+          node -v && pnpm -v
+          zig version && wasm-opt --version
+          clang --version | head -1
+          clang-15 --version | head -1
+          riscv64-linux-gnu-gcc --version | head -1
+
+      - name: Cross targets installed
+        run: rustup target list --installed
