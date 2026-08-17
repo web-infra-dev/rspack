@@ -1,4 +1,5 @@
 [package]
+autotests            = false
 description          = "Lexes CSS modules returning their dependencies metadata"
 edition.workspace    = true
 license.workspace    = true
@@ -21,3 +22,7 @@ workspace = true
 
 [lib]
 doctest = false
+
+[[test]]
+name = "test"
+path = "tests/test.rs"

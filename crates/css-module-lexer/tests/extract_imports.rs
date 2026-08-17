@@ -110,7 +110,7 @@ fn walk_graph(
   result.push(import.to_string());
 }
 
-fn topological_sort(
+pub(crate) fn topological_sort(
   graph: &LinkedHashMap<String, Vec<String>>,
   warnings: &mut Vec<Warning<'_>>,
 ) -> Vec<String> {
@@ -253,13 +253,13 @@ impl ExtractImports {
   }
 }
 
-fn test(input: &str, expected: &str) {
+pub(crate) fn test(input: &str, expected: &str) {
   let (actual, warnings) = ExtractImports.transform(input);
   assert!(warnings.is_empty(), "{}", &warnings[0]);
   similar_asserts::assert_eq!(expected, actual);
 }
 
-fn test_with_warning(input: &str, expected: &str, warning: &str) {
+pub(crate) fn test_with_warning(input: &str, expected: &str, warning: &str) {
   let (actual, warnings) = ExtractImports.transform(input);
   assert!(
     warnings[0].to_string().contains(warning),
@@ -268,7 +268,6 @@ fn test_with_warning(input: &str, expected: &str, warning: &str) {
   );
   similar_asserts::assert_eq!(expected, actual);
 }
-
 #[test]
 fn composing_globals() {
   test(
@@ -627,7 +626,6 @@ fn multiple_composes() {
         "#},
   );
 }
-
 #[test]
 fn nesting() {
   test_with_warning(

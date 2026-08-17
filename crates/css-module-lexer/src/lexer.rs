@@ -2052,5 +2052,5 @@ fn is_non_printable(c: u8) -> bool {
 }
 
 #[cfg(test)]
-#[path = "../tests/unit/lexer_tests.rs"]
+#[path = "../tests/lexer_tests.rs"]
 mod tests;
