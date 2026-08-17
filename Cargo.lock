@@ -4529,6 +4529,7 @@ dependencies = [
 name = "rspack_macros"
 version = "0.102.0-beta.1"
 dependencies = [
+ "heck",
  "proc-macro2",
  "quote",
  "syn 2.0.117",

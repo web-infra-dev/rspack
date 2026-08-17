@@ -14,7 +14,8 @@ use rspack_cacheable::{
   with::{AsPreset, Unsupported},
 };
 use rspack_error::ToStringResultToRspackResultExt;
-use rspack_hash::RspackHasher;
+use rspack_hash::{HashDigest, RspackHasher};
+use rspack_macros::StringEnum;
 use rspack_paths::Utf8PathBuf;
 use rspack_util::{MergeFrom, base64};
 use ustr::{IdentityHasher, Ustr};
@@ -35,7 +36,7 @@ type CompiledTemplateCache =
 
 static COMPILED_STRING_TEMPLATES: LazyLock<CompiledTemplateCache> = LazyLock::new(Default::default);
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, StringEnum)]
 #[repr(u8)]
 enum PlaceholderKind {
   File,
@@ -49,23 +50,22 @@ enum PlaceholderKind {
   Runtime,
   Url,
   Hash,
+  #[string_enum(rename = "fullhash")]
   FullHash,
+  #[string_enum(rename = "chunkhash")]
   ChunkHash,
+  #[string_enum(rename = "contenthash")]
   ContentHash,
+  #[string_enum(fallback)]
+  Unknown,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum HashEncoding {
-  Raw,
-  Base64,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy)]
 enum PlaceholderParameters {
   None,
   Hash {
     len: Option<u16>,
-    encoding: HashEncoding,
+    encoding: Option<HashDigest>,
   },
 }
 
@@ -121,7 +121,11 @@ impl CompiledStringTemplate {
         )));
       }
 
-      let raw = Ustr::from(token);
+      let raw = if token == kind.as_str() {
+        Ustr::from(kind.as_str())
+      } else {
+        Ustr::from(token)
+      };
       let id = if let Some(id) = placeholder_indices.get(&raw) {
         *id
       } else {
@@ -173,23 +177,10 @@ fn to_u16_range(start: usize, end: usize) -> Range<u16> {
 }
 
 fn parse_placeholder(token: &str) -> Option<(PlaceholderKind, PlaceholderParameters)> {
-  let kind = match token {
-    "file" => PlaceholderKind::File,
-    "base" => PlaceholderKind::Base,
-    "name" => PlaceholderKind::Name,
-    "path" => PlaceholderKind::Path,
-    "ext" => PlaceholderKind::Ext,
-    "query" => PlaceholderKind::Query,
-    "fragment" => PlaceholderKind::Fragment,
-    "id" => PlaceholderKind::Id,
-    "runtime" => PlaceholderKind::Runtime,
-    "url" => PlaceholderKind::Url,
-    "hash" => PlaceholderKind::Hash,
-    "fullhash" => PlaceholderKind::FullHash,
-    "chunkhash" => PlaceholderKind::ChunkHash,
-    "contenthash" => PlaceholderKind::ContentHash,
-    _ => return parse_hash_placeholder(token),
-  };
+  let kind = PlaceholderKind::from(token);
+  if kind == PlaceholderKind::Unknown {
+    return parse_hash_placeholder(token);
+  }
 
   let parameters = if matches!(
     kind,
@@ -200,7 +191,7 @@ fn parse_placeholder(token: &str) -> Option<(PlaceholderKind, PlaceholderParamet
   ) {
     PlaceholderParameters::Hash {
       len: None,
-      encoding: HashEncoding::Raw,
+      encoding: None,
     }
   } else {
     PlaceholderParameters::None
@@ -209,21 +200,27 @@ fn parse_placeholder(token: &str) -> Option<(PlaceholderKind, PlaceholderParamet
 }
 
 fn parse_hash_placeholder(token: &str) -> Option<(PlaceholderKind, PlaceholderParameters)> {
-  let (kind, parameters) = [
-    (PlaceholderKind::Hash, "hash:"),
-    (PlaceholderKind::FullHash, "fullhash:"),
-    (PlaceholderKind::ChunkHash, "chunkhash:"),
-    (PlaceholderKind::ContentHash, "contenthash:"),
-  ]
-  .into_iter()
-  .find_map(|(kind, prefix)| token.strip_prefix(prefix).map(|value| (kind, value)))?;
+  let (kind, parameters) = token.split_once(':')?;
+  let kind = PlaceholderKind::from(kind);
+  if !matches!(
+    kind,
+    PlaceholderKind::Hash
+      | PlaceholderKind::FullHash
+      | PlaceholderKind::ChunkHash
+      | PlaceholderKind::ContentHash
+  ) {
+    return None;
+  }
 
   let mut configs = parameters.split(':');
   let first = configs.next()?;
   let (len, encoding) = if first == "base64" {
-    (configs.next()?.parse::<usize>().ok()?, HashEncoding::Base64)
+    (
+      configs.next()?.parse::<usize>().ok()?,
+      Some(HashDigest::Base64),
+    )
   } else {
-    (first.parse::<usize>().ok()?, HashEncoding::Raw)
+    (first.parse::<usize>().ok()?, None)
   };
 
   Some((
@@ -766,6 +763,7 @@ fn render_placeholder(
       asset_info,
       output,
     ),
+    PlaceholderKind::Unknown => unreachable!("unknown placeholder kind cannot be rendered"),
   }
 }
 
@@ -835,8 +833,9 @@ fn try_render_hash(
   };
 
   let content: Cow<'_, str> = match encoding {
-    HashEncoding::Raw => hash.into(),
-    HashEncoding::Base64 => base64::encode_to_string(hash).into(),
+    None => hash.into(),
+    Some(HashDigest::Base64) => base64::encode_to_string(hash).into(),
+    Some(encoding) => unreachable!("unsupported filename hash encoding: {encoding:?}"),
   };
   let content = &content[..hash_len(&content, len)];
 
