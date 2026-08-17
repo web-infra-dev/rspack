@@ -729,11 +729,32 @@ export async function runLoaders(
     context.__internal__parseMeta[key] = value;
   };
 
+  const getWorkerLoaderSpan = () => {
+    let start = loaderContext.loaderIndex;
+    let end = start + 1;
+
+    if (loaderState === JsLoaderState.Pitching) {
+      while (end < loaderChainEnd && loaderContext.loaders[end]?.parallel) {
+        end++;
+      }
+    } else {
+      while (
+        start > loaderChainStart &&
+        loaderContext.loaders[start - 1]?.parallel
+      ) {
+        start--;
+      }
+    }
+
+    return { start, end };
+  };
+
   const getWorkerLoaderContext = () => {
     const normalModule =
       loaderContext._module instanceof NormalModule
         ? loaderContext._module
         : undefined;
+    const workerLoaderSpan = getWorkerLoaderSpan();
     const workerLoaderContext = {
       version: loaderContext.version,
       hot: loaderContext.hot,
@@ -746,8 +767,8 @@ export async function runLoaders(
       sourceMap: loaderContext.sourceMap,
       rootContext: loaderContext.rootContext,
       loaderIndex: loaderContext.loaderIndex,
-      loaderChainStart: context.loaderChainStart,
-      loaderChainEnd: context.loaderChainEnd,
+      loaderChainStart: workerLoaderSpan.start,
+      loaderChainEnd: workerLoaderSpan.end,
       loaders: loaderContext.loaders.map((item, index) => {
         let options = item.options;
         // Do not pass options into worker, if it's not prepared to be executed
@@ -756,8 +777,8 @@ export async function runLoaders(
         // Aligns yielding strategy within the worker.
         if (
           !item.parallel ||
-          index < loaderChainStart ||
-          index >= loaderChainEnd
+          index < workerLoaderSpan.start ||
+          index >= workerLoaderSpan.end
         ) {
           options = undefined;
         }
