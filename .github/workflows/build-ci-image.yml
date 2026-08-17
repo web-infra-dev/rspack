@@ -158,13 +158,14 @@ jobs:
             fi
           } >> "$GITHUB_STEP_SUMMARY"
 
-  # TEMPORARY: the repo has never used a job-level `container:`, and the
-  # self-hosted runners start dockerd lazily (see .github/actions/docker/run).
-  # This proves whether migrating real jobs onto the image is even possible,
-  # using a public image so it does not depend on ci-linux being published.
+  # TEMPORARY: job-level `container:` needs a runner whose dockerd is already up.
+  # The standard labels start it lazily (see .github/actions/docker/run), so they
+  # fail with "Cannot connect to the Docker daemon" during Initialize containers.
+  # rspack-custom-container is the label provisioned for container jobs.
+  # Uses a public image so it does not depend on ci-linux being published yet.
   verify-container-support:
     name: Probe job-level container on self-hosted
-    runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') }}
+    runs-on: rspack-custom-container
     container:
       image: ubuntu:22.04
     steps:
@@ -173,6 +174,7 @@ jobs:
           cat /etc/os-release
           echo "whoami: $(id)"
           echo "pwd: $(pwd)"
+          nproc && free -g | head -2
           df -h /
 
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
