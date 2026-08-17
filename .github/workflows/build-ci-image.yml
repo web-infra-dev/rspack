@@ -153,8 +153,12 @@ jobs:
               echo "> Not the default branch — the moving tags (\`latest\`, \`${{ steps.versions.outputs.rust_toolchain }}\` semantic) were withheld."
             fi
             echo
-            echo "Pin this digest in consumers:"
-            echo '```yaml'
-            echo "image: ${{ steps.meta.outputs.image }}@${{ steps.build.outputs.digest }}"
-            echo '```'
+            if [[ -n "${{ steps.build.outputs.digest }}" ]]; then
+              echo "Pin this digest in consumers:"
+              echo '```yaml'
+              echo "image: ${{ steps.meta.outputs.image }}@${{ steps.build.outputs.digest }}"
+              echo '```'
+            else
+              echo "_Build-only run — nothing was published, so there is no digest to pin._"
+            fi
           } >> "$GITHUB_STEP_SUMMARY"
