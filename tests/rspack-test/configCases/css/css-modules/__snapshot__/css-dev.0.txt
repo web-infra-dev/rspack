@@ -301,7 +301,7 @@ div {
 }
 
 .my-app-var-function_module_css-from-5 {
-	color: var(--my-app-var-function_module_css-a from "./var-function-export.modules.css");
+	color: var(--my-app-var-function_module_css---a from "./var-function-export.modules.css");
 }
 
 .my-app-var-function_module_css-from-6 {

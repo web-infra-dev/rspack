@@ -449,14 +449,8 @@ fn token_text(input: &str, token: Token) -> &str {
   Lexer::slice_range(input, &token.range).unwrap_or("")
 }
 
-fn is_css_keyword(name: &str, flags: TokenFlags, expected: &str) -> bool {
-  let mut normalized = [0; MAX_CSS_KEYWORD_LEN];
-  let name = if flags.has_escape() {
-    decode_css_keyword(name, &mut normalized)
-  } else {
-    lowercase_ascii_keyword(name, &mut normalized)
-  };
-  name == Some(expected)
+fn is_ascii_keyword(name: &str, expected: &str) -> bool {
+  name.eq_ignore_ascii_case(expected)
 }
 
 fn is_open_token(kind: TokenKind) -> bool {
@@ -2420,11 +2414,8 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
     let end = name_token.range.end;
     let next = stream.peek_significant_skipping_comments(true).token;
     let (from, from_is_global) = if next.kind == TokenKind::Ident
-      && is_css_keyword(
-        stream.slice(next.range.start, next.range.end)?,
-        next.flags,
-        "from",
-      ) {
+      && is_ascii_keyword(stream.slice(next.range.start, next.range.end)?, "from")
+    {
       stream.next_parser_token();
       let path_token = stream.peek_significant_skipping_comments(true).token;
       let path_start = path_token.range.start;
@@ -2442,7 +2433,7 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
       let path = stream.slice(path_start, path_end)?;
       (
         Some(path),
-        path_token.kind == TokenKind::Ident && is_css_keyword(path, path_token.flags, "global"),
+        path_token.kind == TokenKind::Ident && path == "global",
       )
     } else {
       (None, false)
@@ -2974,11 +2965,7 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
             };
             item_end = path_range.end;
             let from_is_global = path.kind == TokenKind::Ident
-              && is_css_keyword(
-                stream.slice(path_range.start, path_range.end)?,
-                path.flags,
-                "global",
-              );
+              && is_ascii_keyword(stream.slice(path_range.start, path_range.end)?, "global");
             self.dependency_context.push_composes(
               local_classes.iter().copied(),
               std::mem::take(&mut names),

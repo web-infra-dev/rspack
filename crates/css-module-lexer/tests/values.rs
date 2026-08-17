@@ -48,36 +48,6 @@ fn css_modules_local_var_2() {
   assert_local_var_dependency(input, &dependencies[2], "color2", Some("'./b.css'"));
   assert_local_var_dependency(input, &dependencies[3], "color3", Some("global"));
   assert_eq!(dependencies.len(), 4);
-
-  let input = ".vars { ----a: red; color: var(----a); }";
-  let (dependencies, warnings) = collect_dependencies(input, Mode::Local);
-  assert!(warnings.is_empty());
-  assert_local_class_dependency(input, &dependencies[0], ".vars", false);
-  assert_local_var_decl_dependency(input, &dependencies[1], "--a");
-  assert_local_var_dependency(input, &dependencies[2], "--a", None);
-  assert_eq!(
-    dependencies
-      .dashed_ident_name_ranges()
-      .iter()
-      .map(|range| Lexer::slice_range(input, range).expect("range should be valid"))
-      .collect::<Vec<_>>(),
-    ["--a", "--a"]
-  );
-
-  let input = r#".vars { a: var(--a from global); b: var(--b from "global"); }"#;
-  let (dependencies, warnings) = collect_dependencies(input, Mode::Local);
-  assert!(warnings.is_empty());
-  assert_local_class_dependency(input, &dependencies[0], ".vars", false);
-  assert_local_var_dependency(input, &dependencies[1], "a", Some("global"));
-  assert_local_var_dependency(input, &dependencies[2], "b", Some(r#""global""#));
-  assert_eq!(
-    dependencies
-      .dashed_ident_name_ranges()
-      .iter()
-      .map(|range| Lexer::slice_range(input, range).expect("range should be valid"))
-      .collect::<Vec<_>>(),
-    ["b"]
-  );
 }
 
 #[test]

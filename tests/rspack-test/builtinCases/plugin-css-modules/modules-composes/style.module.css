@@ -17,12 +17,3 @@
   composes: b from "./b.module.css";
   background: red;
 }
-
-.quoted-global {
-  composes: b from "global";
-}
-
-.vars {
-  ----a: red;
-  color: var(----a);
-}

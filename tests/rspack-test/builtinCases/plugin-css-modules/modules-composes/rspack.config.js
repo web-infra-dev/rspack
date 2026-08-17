@@ -1,12 +1,5 @@
-const path = require('path');
-
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
-  resolve: {
-    alias: {
-      global: path.resolve(__dirname, 'b.module.css'),
-    },
-  },
   module: {
     rules: [
       {
