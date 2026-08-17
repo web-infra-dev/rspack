@@ -41,6 +41,9 @@ jobs:
     outputs:
       image: ${{ steps.meta.outputs.image }}
       digest: ${{ steps.build.outputs.digest }}
+      rust_toolchain: ${{ steps.versions.outputs.rust_toolchain }}
+      node_version: ${{ steps.versions.outputs.node_version }}
+      pnpm_version: ${{ steps.versions.outputs.pnpm_version }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
@@ -175,12 +178,13 @@ jobs:
     defaults:
       run:
         shell: bash # container jobs default to `sh`, and the checks below need bash
+    # Deliberately uses no actions: these runners get 429-rate-limited pulling
+    # from codeload.github.com, and every version it checks is already an output
+    # of the build job, so there is nothing to check out.
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-
       - name: Rust toolchain matches rust-toolchain.toml
         run: |
-          expected=$(sed -n -E 's/^[ \t]*channel[ \t]*=[ \t]*"([^"]*)".*$/\1/p' rust-toolchain.toml)
+          expected='${{ needs.build.outputs.rust_toolchain }}'
           echo "expected: $expected"
           rustc -vV
           rustup toolchain list
@@ -195,6 +199,8 @@ jobs:
 
       - name: Build tools present
         run: |
+          node -v | grep -q "^v${{ needs.build.outputs.node_version }}\." || { echo "::error::node major mismatch"; exit 1; }
+          pnpm -v | grep -qx "${{ needs.build.outputs.pnpm_version }}" || { echo "::error::pnpm version mismatch"; exit 1; }
           node -v && pnpm -v
           zig version && wasm-opt --version
           clang --version | head -1
