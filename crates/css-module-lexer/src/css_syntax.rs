@@ -50,20 +50,27 @@ pub(crate) fn is_css_modules_pure_magic_comment(input: &str) -> bool {
   })
 }
 
-/// Whether a CSS identifier starts with two logical hyphens.
+/// Return the name after one logical `--` prefix from a dashed identifier.
 ///
 /// The common literal spelling exits immediately. Escaped prefixes are decoded
 /// only far enough to inspect the first two code points, without allocating.
-pub(crate) fn is_dashed_ident(input: &str) -> bool {
+pub(crate) fn dashed_ident_name(input: &str) -> Option<&str> {
+  let name_start = dashed_ident_name_start(input)?;
+  input.get(name_start..)
+}
+
+/// Return the byte offset after one logical `--` prefix.
+pub(crate) fn dashed_ident_name_start(input: &str) -> Option<usize> {
   if input.starts_with("--") {
-    return true;
+    return Some(2);
   }
   let bytes = input.as_bytes();
-  let Some((first, position)) = next_css_code_point(bytes, 0) else {
-    return false;
-  };
-  first == b'-' as u32
-    && next_css_code_point(bytes, position).is_some_and(|(second, _)| second == b'-' as u32)
+  let (first, position) = next_css_code_point(bytes, 0)?;
+  if first != b'-' as u32 {
+    return None;
+  }
+  let (second, position) = next_css_code_point(bytes, position)?;
+  (second == b'-' as u32).then_some(position)
 }
 
 fn next_css_code_point(input: &[u8], position: usize) -> Option<(u32, usize)> {

@@ -152,12 +152,14 @@ pub(crate) fn assert_local_var_dependency(
     name: actual_name,
     range,
     from: actual_from,
+    from_is_global,
   } = dependency
   else {
     panic!("unexpected dependency");
   };
   assert_eq!(*actual_name, name);
   assert_eq!(*actual_from, from);
+  assert_eq!(*from_is_global, from == Some("global"));
   assert_eq!(
     Lexer::slice_range(input, range).expect("test setup must produce the expected value"),
     format!("--{name}")
@@ -420,6 +422,7 @@ pub(crate) fn assert_composes_dependency(
     names: actual_names,
     from: actual_from,
     range,
+    ..
   } = dependency
   else {
     panic!("unexpected dependency");

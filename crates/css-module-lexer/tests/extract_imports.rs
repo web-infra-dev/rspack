@@ -140,11 +140,16 @@ impl ExtractImports {
         Dependency::LocalClass { .. } | Dependency::LocalId { .. } => {
           rule_index += 1;
         }
-        Dependency::Composes { names, from, .. } => {
+        Dependency::Composes {
+          names,
+          from,
+          from_is_global,
+          ..
+        } => {
           let names = dependencies.composes_names(*names);
           let mut composes_content = String::new();
           if let Some(from) = from {
-            if *from == "global" {
+            if *from_is_global {
               for i in 0..names.len() {
                 let name = names[i];
                 composes_content += "global(";

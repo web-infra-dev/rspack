@@ -51,6 +51,42 @@ fn css_modules_local_var_2() {
 }
 
 #[test]
+fn css_modules_local_var_preserves_additional_leading_hyphens() {
+  let input = ".vars { ----a: red; color: var(----a); }";
+  let (dependencies, warnings) = collect_dependencies(input, Mode::Local);
+  assert!(warnings.is_empty());
+  assert_local_class_dependency(input, &dependencies[0], ".vars", false);
+  assert_local_var_decl_dependency(input, &dependencies[1], "--a");
+  assert_local_var_dependency(input, &dependencies[2], "--a", None);
+  assert_eq!(
+    dependencies
+      .dashed_ident_name_ranges()
+      .iter()
+      .map(|range| Lexer::slice_range(input, range).expect("range should be valid"))
+      .collect::<Vec<_>>(),
+    ["--a", "--a"]
+  );
+}
+
+#[test]
+fn css_modules_local_var_distinguishes_global_keyword_from_request() {
+  let input = r#".vars { a: var(--a from global); b: var(--b from "global"); }"#;
+  let (dependencies, warnings) = collect_dependencies(input, Mode::Local);
+  assert!(warnings.is_empty());
+  assert_local_class_dependency(input, &dependencies[0], ".vars", false);
+  assert_local_var_dependency(input, &dependencies[1], "a", Some("global"));
+  assert_local_var_dependency(input, &dependencies[2], "b", Some(r#""global""#));
+  assert_eq!(
+    dependencies
+      .dashed_ident_name_ranges()
+      .iter()
+      .map(|range| Lexer::slice_range(input, range).expect("range should be valid"))
+      .collect::<Vec<_>>(),
+    ["b"]
+  );
+}
+
+#[test]
 fn css_modules_local_var_minified_1() {
   let input = "body{margin:0;font-family:var(--bs-body-font-family);}";
   let (dependencies, warnings) = collect_dependencies(input, Mode::Local);

@@ -57,6 +57,73 @@ fn css_modules_composes_1() {
 }
 
 #[test]
+fn css_modules_composes_distinguishes_global_keyword_from_requests() {
+  let input = indoc! {r#"
+        .exportName {
+            composes: lower from global, upper from GLOBAL, escaped from g\6c obal, quoted from "global";
+        }
+    "#};
+  let (dependencies, warnings) = collect_dependencies(input, Mode::Local);
+  assert!(warnings.is_empty());
+  assert_local_class_dependency(input, &dependencies[0], ".exportName", false);
+  assert_composes_dependency(
+    input,
+    &dependencies,
+    &dependencies[1],
+    "exportName",
+    "lower",
+    Some("global"),
+    "lower from global",
+  );
+  assert_composes_dependency(
+    input,
+    &dependencies,
+    &dependencies[2],
+    "exportName",
+    "upper",
+    Some("GLOBAL"),
+    "upper from GLOBAL",
+  );
+  assert_composes_dependency(
+    input,
+    &dependencies,
+    &dependencies[3],
+    "exportName",
+    "escaped",
+    Some(r"g\6c obal"),
+    r"escaped from g\6c obal",
+  );
+  let Dependency::Composes {
+    from,
+    from_is_global,
+    ..
+  } = &dependencies[4]
+  else {
+    panic!("unexpected dependency");
+  };
+  assert_eq!(*from, Some(r#""global""#));
+  assert!(!*from_is_global);
+  assert_composes_dependency(
+    input,
+    &dependencies,
+    &dependencies[4],
+    "exportName",
+    "quoted",
+    Some(r#""global""#),
+    r#"quoted from "global""#,
+  );
+  for dependency in &dependencies.dependencies()[1..4] {
+    assert!(matches!(
+      dependency,
+      Dependency::Composes {
+        from_is_global: true,
+        ..
+      }
+    ));
+  }
+}
+
+#[test]
 fn css_modules_composes_2() {
   let input = indoc! {r#"
         .duplicate {

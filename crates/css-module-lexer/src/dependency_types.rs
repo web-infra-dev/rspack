@@ -218,6 +218,8 @@ pub enum Dependency<'s> {
     name: &'s str,
     range: Range,
     from: Option<&'s str>,
+    /// Whether `from` is the unquoted `global` keyword rather than a request.
+    from_is_global: bool,
   },
   LocalVarDecl {
     name: &'s str,
@@ -279,6 +281,8 @@ pub enum Dependency<'s> {
     local_classes: DependencyListRange<&'s str>,
     names: DependencyListRange<&'s str>,
     from: Option<&'s str>,
+    /// Whether `from` is the unquoted `global` keyword rather than a request.
+    from_is_global: bool,
     range: Range,
   },
   ICSSImportFrom {
@@ -357,7 +361,7 @@ impl<'s> DependencyContext<'s> {
     &self.dependencies
   }
 
-  pub fn dashed_ident_occurrences(&self) -> &[Range] {
+  pub fn dashed_ident_name_ranges(&self) -> &[Range] {
     &self.dashed_ident_occurrences
   }
 
@@ -440,6 +444,7 @@ impl<'s> DependencyContext<'s> {
     local_classes: impl IntoIterator<Item = &'s str>,
     names: impl IntoIterator<Item = &'s str>,
     from: Option<&'s str>,
+    from_is_global: bool,
     range: Range,
   ) {
     let local_classes_start = self.composes_local_classes.len();
@@ -457,6 +462,7 @@ impl<'s> DependencyContext<'s> {
       local_classes,
       names,
       from,
+      from_is_global,
       range,
     });
   }

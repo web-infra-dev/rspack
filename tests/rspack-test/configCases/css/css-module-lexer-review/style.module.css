@@ -1,0 +1,12 @@
+.keyword {
+  composes: external from global;
+}
+
+.request {
+  composes: external from "global";
+}
+
+.vars {
+  ----a: red;
+  color: var(----a);
+}
