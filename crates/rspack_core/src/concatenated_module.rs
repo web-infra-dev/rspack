@@ -193,6 +193,43 @@ impl NameAllocator {
     self.used_names.insert(name);
   }
 
+  fn find_indexed_name(&mut self, module_index: usize, binding_index: usize) -> Atom {
+    let mut index_buffer = itoa::Buffer::new();
+    let mut base = String::with_capacity(24);
+    base.push_str("__m");
+    base.push_str(index_buffer.format(module_index));
+    base.push('_');
+    base.push_str(index_buffer.format(binding_index));
+
+    let base_atom = Atom::from(base.as_str());
+    if !self.used_names.contains(&base_atom) {
+      self.used_strings.insert(base);
+      let candidate = base_atom;
+      self.used_names.insert(candidate.clone());
+      return candidate;
+    }
+
+    let counter = self.suffix_counters.entry(base_atom).or_insert(0);
+    let mut i = *counter;
+    base.push('_');
+
+    loop {
+      let base_len = base.len();
+      base.push_str(index_buffer.format(i));
+
+      let candidate = Atom::from(base.as_str());
+      if !self.used_names.contains(&candidate) {
+        self.used_strings.insert(base);
+        self.used_names.insert(candidate.clone());
+        *counter = i + 1;
+        return candidate;
+      }
+
+      base.truncate(base_len);
+      i += 1;
+    }
+  }
+
   fn find_new_name(&mut self, old_name: &str, extra_info: &[Atom]) -> Atom {
     let mut name = old_name.to_string();
 
@@ -1095,6 +1132,7 @@ impl Module for ConcatenatedModule {
     // Prepare a ReplaceSource for the final source
     //
     let mut all_used_names: HashSet<Atom> = RESERVED_NAMES_ATOM_SET.clone();
+    let faster_module_concatenation = compilation.options.experiments.faster_module_concatenation;
 
     let arc_map = Arc::new(module_to_info_map);
 
@@ -1189,7 +1227,11 @@ impl Module for ConcatenatedModule {
                 .sum::<usize>()
             });
             (
-              info.binding_to_ref.len() + imported_names,
+              if faster_module_concatenation {
+                imported_names
+              } else {
+                info.binding_to_ref.len() + imported_names
+              },
               1 + import_sources,
             )
           }
@@ -1209,17 +1251,20 @@ impl Module for ConcatenatedModule {
 
         match info {
           ModuleInfo::Concatenated(info) => {
-            for (id, _) in info.binding_to_ref.iter() {
-              let name = info
-                .generated_top_level_symbols
-                .iter()
-                .find(|symbol| {
-                  symbol.target == GeneratedTopLevelSymbolTarget::New && symbol.placeholder == id.0
-                })
-                .map_or(&id.0, |symbol| &symbol.preferred_name);
-              escaped_names
-                .entry(name.clone())
-                .or_insert_with(|| escape_name_atom_ref(name));
+            if !faster_module_concatenation {
+              for (id, _) in info.binding_to_ref.iter() {
+                let name = info
+                  .generated_top_level_symbols
+                  .iter()
+                  .find(|symbol| {
+                    symbol.target == GeneratedTopLevelSymbolTarget::New
+                      && symbol.placeholder == id.0
+                  })
+                  .map_or(&id.0, |symbol| &symbol.preferred_name);
+                escaped_names
+                  .entry(name.clone())
+                  .or_insert_with(|| escape_name_atom_ref(name));
+              }
             }
 
             if let Some(import_map) = &info.import_map {
@@ -1287,7 +1332,7 @@ impl Module for ConcatenatedModule {
         // Handle concatenated type
         ModuleInfo::Concatenated(info) => {
           // Iterate over variables in moduleScope
-          for (id, refs) in info.binding_to_ref.iter() {
+          for (binding_index, (id, refs)) in info.binding_to_ref.iter().enumerate() {
             let binding_name = &id.0;
             let ctxt = id.1;
             if ctxt != info.module_ctxt {
@@ -1303,16 +1348,21 @@ impl Module for ConcatenatedModule {
               .map_or(binding_name, |symbol| &symbol.preferred_name);
             // Check if the name is already used
             let final_name = if name_allocator.contains(name) {
-              // Find a new name and update references
-              name_allocator.find_new_name(
-                escaped_names
-                  .get(name)
-                  .expect("should have escaped name")
-                  .as_ref(),
-                escaped_identifiers
-                  .get(&readable_identifier)
-                  .expect("should have escaped identifier"),
-              )
+              if faster_module_concatenation {
+                // Use stable module and binding indexes instead of constructing readable
+                // identifier candidates for conflicting module-scope bindings.
+                name_allocator.find_indexed_name(info.index, binding_index)
+              } else {
+                name_allocator.find_new_name(
+                  escaped_names
+                    .get(name)
+                    .expect("should have escaped name")
+                    .as_ref(),
+                  escaped_identifiers
+                    .get(&readable_identifier)
+                    .expect("should have escaped identifier"),
+                )
+              }
             } else {
               // Handle the case when the name is not already used
               name_allocator.insert(name.clone());
