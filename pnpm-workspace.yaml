@@ -56,7 +56,7 @@ catalog:
   '@rstackjs/load-config': '^0.1.2'
   '@shikijs/transformers': '^4.4.3'
   '@swc/helpers': '0.5.23'
-  '@swc/plugin-remove-console': '^12.15.0'
+  '@swc/plugin-remove-console': '^13.0.0'
   '@swc/types': '0.1.28'
   '@types/babel__generator': '7.27.0'
   '@types/babel__traverse': '7.28.0'
