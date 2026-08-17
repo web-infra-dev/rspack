@@ -4,7 +4,17 @@ Design and usage of the artifact system in Rspack's incremental compilation.
 
 ## Overview
 
-Artifacts are data structures that hold intermediate compilation results. They are designed to be recovered across rebuilds during incremental compilation, avoiding redundant recomputation when their associated compilation pass hasn't changed.
+Artifacts are data structures that hold intermediate compilation results. During incremental
+compilation, they can be recovered into the next compilation so the associated pass updates only
+the work affected by known mutations instead of recomputing all prior state.
+
+Artifacts belong to Incremental compilation, not to Cache. `Compiler::incremental_artifacts` owns
+the previous compilation state used for artifact recovery, independently from `cache` configuration
+and from the selected Cache backend. See [Cache and Incremental Compilation](./CACHE_AND_INCREMENTAL.md)
+for the complete ownership model.
+
+Use **cache entry** or **cache value** for data whose lifecycle is controlled by Cache keys,
+validation, storage, and eviction. Do not use Artifact as a generic synonym for cached data.
 
 ## Core Concepts
 
@@ -51,72 +61,79 @@ pub fn recover_artifact<T: ArtifactExt>(incremental: &Incremental, new: &mut T, 
 
 ## Artifact Types
 
-### Direct Artifacts
+### Representative Direct Artifacts
 
-Artifacts that directly implement `ArtifactExt`:
+Examples of artifacts that directly implement `ArtifactExt`:
 
 | Artifact                          | PASS                           | Description                     |
 | --------------------------------- | ------------------------------ | ------------------------------- |
-| `ModuleIdsArtifact`               | `MODULES_IDS`                  | Module ID mappings              |
-| `ChunkNamedIdArtifact`            | `CHUNKS_IDS`                   | Named chunk ID mappings         |
+| `ModuleIdsArtifact`               | `MODULE_IDS`                   | Module ID mappings              |
+| `ChunkNamedIdArtifact`            | `CHUNK_IDS`                    | Named chunk ID mappings         |
 | `CgmHashArtifact`                 | `MODULES_HASHES`               | Module hash data                |
 | `CgmRuntimeRequirementsArtifact`  | `MODULES_RUNTIME_REQUIREMENTS` | Module runtime requirements     |
 | `CgcRuntimeRequirementsArtifact`  | `CHUNKS_RUNTIME_REQUIREMENTS`  | Chunk runtime requirements      |
 | `ChunkHashesArtifact`             | `CHUNKS_HASHES`                | Chunk hash data                 |
-| `ChunkRenderArtifact`             | `CHUNKS_RENDER`                | Chunk render results            |
+| `ChunkRenderArtifact`             | `CHUNK_ASSET`                  | Chunk render results            |
 | `CodeGenerationResults`           | `MODULES_CODEGEN`              | Code generation results         |
-| `SideEffectsOptimizeArtifact`     | `SIDE_EFFECTS_OPTIMIZATION`    | Side effects optimization data  |
-| `AsyncModulesArtifact`            | `INFER_ASYNC_MODULES`          | Async modules information       |
-| `DependenciesDiagnosticsArtifact` | `DEPENDENCIES_DIAGNOSTICS`     | Dependencies diagnostics        |
+| `SideEffectsOptimizeArtifact`     | `OPTIMIZE_DEPENDENCIES`        | Side effects optimization data  |
+| `AsyncModulesArtifact`            | `FINISH_MODULES`               | Async modules information       |
+| `DependenciesDiagnosticsArtifact` | `FINISH_MODULES`               | Dependencies diagnostics        |
 | `ImportedByDeferModulesArtifact`  | `OPTIMIZE_CHUNK_MODULES`       | Deferred module import tracking |
 
-### Cache Artifacts
+### Generation-Aware Artifacts
 
-Artifacts with custom `recover` implementations that call `start_next_generation()`:
+The following historical `*CacheArtifact` types have custom `recover` implementations that call
+`start_next_generation()`:
 
 | Artifact                                  | PASS                           | Description                |
 | ----------------------------------------- | ------------------------------ | -------------------------- |
-| `ChunkRenderCacheArtifact`                | `CHUNKS_RENDER`                | Chunk render cache         |
+| `ChunkRenderCacheArtifact`                | `CHUNK_ASSET`                  | Chunk render cache         |
 | `CodeGenerateCacheArtifact`               | `MODULES_CODEGEN`              | Code generation cache      |
 | `ProcessRuntimeRequirementsCacheArtifact` | `MODULES_RUNTIME_REQUIREMENTS` | Runtime requirements cache |
+
+These are transitional co-located Cache structures, not the preferred shape for new Incremental
+artifacts. Their storage is influenced by Cache configuration even though they currently live on
+`Compilation` and move with Incremental artifacts. New Cache-owned state should live behind Cache
+abstractions instead of adding another `*CacheArtifact` type.
 
 ### Wrapper Types
 
 Wrapper types that delegate to the inner type's `PASS`:
 
-| Wrapper                 | Description                                   |
-| ----------------------- | --------------------------------------------- |
-| `DerefOption<T>`        | Optional artifact wrapper with deref support  |
-| `Arc<AtomicRefCell<T>>` | Shared artifact wrapper for concurrent access |
-| `BindingCell<T>`        | JS binding-aware wrapper (napi feature)       |
-| `Box<T>`                | Simple box wrapper (sys binding)              |
+| Wrapper          | Description                                    |
+| ---------------- | ---------------------------------------------- |
+| `StealCell<T>`   | Movable artifact wrapper used by `Compilation` |
+| `BindingCell<T>` | JS binding-aware wrapper (napi feature)        |
+| `Box<T>`         | Simple box wrapper (sys binding)               |
 
 ## Usage in Rebuild
 
-During rebuild, artifacts are recovered from the old compilation to the new compilation:
+During rebuild, `Compiler` moves the completed compilation into its independent
+`IncrementalArtifacts` holder:
 
 ```rust
-// In Compiler::rebuild_inner
-
-// Wrapped artifacts
-recover_artifact(
-  incremental,
-  &mut new_compilation.async_modules_artifact,
-  &mut self.compilation.async_modules_artifact,
-);
-recover_artifact(
-  incremental,
-  &mut new_compilation.code_generation_results,
-  &mut self.compilation.code_generation_results,
-);
-
-// Direct type artifacts
-recover_artifact(
-  incremental,
-  &mut new_compilation.module_ids_artifact,
-  &mut self.compilation.module_ids_artifact,
-);
+let old_compilation = std::mem::replace(&mut self.compilation, next_compilation);
+self
+  .incremental_artifacts
+  .store_previous_compilation(Box::new(old_compilation));
 ```
+
+The pass runner then recovers only the artifacts bound to the pass before executing it and captures
+special snapshots after a successful pass:
+
+```rust
+let incremental_passes = pass.incremental_passes();
+incremental_artifacts.recover(incremental_passes, compilation);
+pass.before_pass(compilation, cache).await;
+let result = pass.run_pass_with_cache(compilation, cache).await;
+if result.is_ok() {
+  incremental_artifacts.capture(incremental_passes, compilation);
+  pass.after_pass(compilation, cache).await;
+}
+```
+
+Artifact recovery and Cache hooks are deliberately separate operations. `cache: false` changes the
+Cache hooks but must not prevent `IncrementalArtifacts::recover` from running.
 
 ## Implementing a New Artifact
 
@@ -135,26 +152,32 @@ impl ArtifactExt for MyArtifact {
 }
 ```
 
-### Cache Artifact with Custom Recovery
+### Artifact with Custom Recovery
 
 ```rust
-impl ArtifactExt for MyCacheArtifact {
+impl ArtifactExt for MyArtifact {
   const PASS: IncrementalPasses = IncrementalPasses::MY_PASS;
 
-  fn recover(_incremental: &Incremental, new: &mut Self, old: &mut Self) {
-    *new = std::mem::take(old);
-    new.start_next_generation();
+  fn recover(incremental: &Incremental, new: &mut Self, old: &mut Self) {
+    if Self::should_recover(incremental) {
+      *new = std::mem::take(old);
+      new.prepare_for_rebuild();
+    }
   }
 }
 ```
 
+Custom recovery must preserve the `should_recover` gate so `incremental: false` cannot move prior
+compilation state into the new compilation.
+
 ### Wrapped Artifact
 
-For artifacts wrapped in `Arc<AtomicRefCell<T>>`, `DerefOption<T>`, or `BindingCell<T>`, the wrapper automatically delegates to the inner type's `PASS`.
+For artifacts wrapped in `StealCell<T>`, `BindingCell<T>`, or `Box<T>`, the wrapper delegates to the
+inner type's `PASS`.
 
 ```rust
 // In Compilation struct
-pub my_artifact: Arc<AtomicRefCell<MyArtifact>>,
+pub my_artifact: StealCell<MyArtifact>,
 
 // Recovery is automatic through the wrapper's ArtifactExt impl
 recover_artifact(
@@ -166,34 +189,22 @@ recover_artifact(
 
 ## Incremental Passes
 
-Incremental passes are bitflags that control which compilation phases are enabled:
-
-```rust
-bitflags! {
-  pub struct IncrementalPasses: u32 {
-    const MAKE = 0b0000_0001;
-    const MODULES_IDS = 0b0000_0010;
-    const CHUNKS_IDS = 0b0000_0100;
-    const MODULES_HASHES = 0b0000_1000;
-    const MODULES_CODEGEN = 0b0001_0000;
-    const MODULES_RUNTIME_REQUIREMENTS = 0b0010_0000;
-    const CHUNKS_RUNTIME_REQUIREMENTS = 0b0100_0000;
-    const CHUNKS_HASHES = 0b1000_0000;
-    const CHUNKS_RENDER = 0b0001_0000_0000;
-    // ... additional passes
-  }
-}
-```
+Incremental passes are bitflags that control which compilation phases may recover and reuse
+artifacts. The source of truth is `crates/rspack_core/src/incremental/mod.rs`; do not copy the bit
+values into documentation because the pass set evolves. Each `PassExt` declares its associated
+passes through `incremental_passes()`.
 
 ## Design Principles
 
-1. **Separation of Concerns**: Each artifact is associated with related incremental pass
+1. **Separation of Concerns**: Artifacts belong to Incremental, while cache entries belong to Cache
 2. **Automatic Recovery**: Wrapper types delegate recovery to inner types
-3. **Custom Recovery**: Cache artifacts can override `recover` for generation management
+3. **Custom Recovery**: Artifacts can override `recover` when swap semantics are insufficient, while preserving the Incremental gate
 4. **Type Safety**: The trait system ensures compile-time correctness
 5. **Performance**: `mem::swap` provides zero-copy artifact transfer
 
 ## File Locations
 
-- Rebuild logic: `crates/rspack_core/src/compiler/rebuild.rs`
+- Incremental artifact owner: `crates/rspack_core/src/artifacts/incremental_artifacts.rs`
+- Pass recovery wrapper: `crates/rspack_core/src/compilation/pass.rs`
+- Rebuild lifecycle: `crates/rspack_core/src/compiler/rebuild.rs`
 - Individual artifacts: `crates/rspack_core/src/artifacts/*.rs`

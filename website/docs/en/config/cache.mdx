@@ -11,6 +11,10 @@ import PropertyType from '@components/PropertyType';
 
 The `cache` option controls Rspack's caching strategy and lets Rspack reuse cached data across builds to improve build performance.
 
+When Cache is enabled, Rspack supports two storage modes: process-local Memory Cache and
+filesystem-backed Persistent Cache. Both store fine-grained computation results and are independent
+from [`incremental`](/config/incremental).
+
 - **Type:**
 
 ```ts
@@ -41,6 +45,26 @@ type CacheOptions =
 
 - **Default:** `{ type: 'memory' }` in development mode (equivalent to `true`), `false` in production mode and none mode
 
+## Relationship with incremental
+
+Cache and [`incremental`](/config/incremental) are orthogonal. Cache controls fine-grained entry
+lookup and storage; Incremental controls whether development rebuilds recover prior pass artifacts
+and update affected work from known mutations.
+
+- `cache: false` does not disable Incremental.
+- `incremental: false` does not disable Cache.
+- A filesystem Cache can accelerate a later one-shot build, but that is a Cache hit rather than an
+  incremental build.
+
+To disable both reuse mechanisms, set both options explicitly:
+
+```js title="rspack.config.mjs"
+export default {
+  cache: false,
+  incremental: false,
+};
+```
+
 ## Memory cache
 
 Set `cache` to `true` or `{ type: 'memory' }` to enable in-memory cache. Memory cache is kept only in the current compiler process and is useful for rebuilds, watch mode, and HMR.
@@ -65,7 +89,7 @@ export default {
 
 ## Persistent cache
 
-Set `cache` to `{ type: 'persistent' }` to enable persistent cache. Persistent cache stores cache data on disk so later build processes can reuse it.
+Set `cache` to `{ type: 'persistent' }` to enable filesystem-backed persistent cache. Persistent cache stores cache data on disk so later build processes can reuse it.
 
 ```js title="rspack.config.mjs"
 export default {
@@ -420,7 +444,12 @@ export default {
 
 ## Disable cache
 
-Set `cache` to `false` to disable both memory cache and persistent cache. Disabling cache is generally not recommended because it can make rebuilds during development significantly slower.
+Set `cache` to `false` to disable both memory cache and persistent cache. This does not disable
+[`incremental`](/config/incremental). If a workflow requires full rebuilds without artifact recovery,
+set `incremental: false` separately.
+
+Disabling cache is generally not recommended because computations that are not skipped by
+Incremental can no longer reuse fine-grained cache entries.
 
 ```js title="rspack.config.mjs"
 export default {

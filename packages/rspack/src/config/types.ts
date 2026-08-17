@@ -2988,7 +2988,7 @@ export type LazyCompilationOptions = {
 };
 
 /**
- * Options for incremental builds.
+ * Options for reusing prior pass artifacts during same-compiler rebuilds.
  */
 export type Incremental = {
   /**
@@ -3119,7 +3119,8 @@ export type Experiments = {
    */
   futureDefaults?: boolean;
   /**
-   * Enable the experimental new cache implementation.
+   * Select the experimental new Cache backend.
+   * This does not enable Cache or affect incremental compilation.
    * @default false
    */
   newCache?: boolean;
@@ -3430,7 +3431,8 @@ export type RspackOptions = {
   lazyCompilation?: boolean | LazyCompilationOptions;
 
   /**
-   * Enable incremental builds.
+   * Control artifact reuse during same-compiler rebuilds such as watch and HMR.
+   * This does not make standalone one-shot builds incremental.
    */
   incremental?: IncrementalPresets | Incremental;
 };

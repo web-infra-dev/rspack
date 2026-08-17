@@ -47,11 +47,11 @@ pub struct CacheValidationReport {
   pub build_dependencies_duration: Option<Duration>,
 }
 
-/// Owns every input that determines whether persistent cache artifacts are
+/// Owns every input that determines whether persistent cache entries are
 /// compatible with the current compiler.
 ///
 /// This mirrors webpack's PackContainer validation: the compatibility version
-/// is checked first, then the build dependency snapshot, and cached artifacts
+/// is checked first, then the build dependency snapshot, and cached entries
 /// are restored only when both checks succeed.
 #[derive(Debug)]
 pub struct CacheValidation {

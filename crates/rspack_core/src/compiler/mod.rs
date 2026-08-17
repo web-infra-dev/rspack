@@ -321,12 +321,7 @@ impl Compiler {
         self.compiler_context.clone(),
       ),
     );
-    let _is_hot = self.cache.before_compile(&mut self.compilation).await;
-    // TODO: disable it for now, enable it once persistent cache is added to all artifacts
-    // if is_hot {
-    //   // If it's a hot start, we can use incremental
-    //   self.compilation.incremental = Incremental::new_hot(self.options.incremental);
-    // }
+    self.cache.before_compile(&mut self.compilation).await;
 
     self.compile().await?;
     self.compile_done().await?;

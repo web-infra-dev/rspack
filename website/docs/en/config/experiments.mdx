@@ -202,6 +202,26 @@ export default {
 };
 ```
 
+## experiments.newCache
+
+- **Type:** `boolean`
+- **Default:** `false`
+
+Selects the experimental new Cache backend. This option does not enable Cache and does not affect
+Incremental compilation: [`cache`](/config/cache) controls whether Cache is enabled, while
+[`incremental`](/config/incremental) independently controls artifact reuse during rebuilds.
+
+- `false` selects the legacy Cache backend.
+- `true` selects the new Cache backend.
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    newCache: true,
+  },
+};
+```
+
 ## experiments.nativeWatcher
 
 <ApiMeta addedVersion="1.4.7" />

@@ -1,10 +1,17 @@
 ---
-description: 'Whether to enable incremental builds. When enabled, Rspack reuses unaffected intermediate results during rebuilds and HMR to reduce the work that must be recomputed.'
+description: 'Whether to reuse unaffected intermediate results during development rebuilds and HMR.'
 ---
 
 # Incremental
 
-`incremental` controls Rspack's incremental build capability. When enabled, Rspack reuses unaffected intermediate results during rebuilds and Hot Module Replacement (HMR), and only recalculates the stages and assets affected by the change.
+`incremental` controls whether Rspack reuses unaffected intermediate results between compilations in
+the same long-lived compiler. It is designed for development rebuilds, watch mode, and Hot Module
+Replacement (HMR), where Rspack knows which files changed and only needs to recalculate the affected
+stages and assets.
+
+Here, “development” describes the rebuild workflow, not `mode: 'development'`. A production-mode
+watch can also use Incremental. A standalone `rspack build` is a one-shot build with no previous
+compilation to update, so `incremental` does not make separate build invocations incremental.
 
 - **Type:** `boolean | 'none' | 'safe' | 'advance' | 'advance-silent' | Incremental`
 - **Default:** `'advance-silent'`
@@ -12,6 +19,29 @@ description: 'Whether to enable incremental builds. When enabled, Rspack reuses 
 :::tip
 Incremental artifacts are independent of [`cache`](/config/cache). Disabling cache does not disable incremental rebuilds during development, watch, or HMR.
 :::
+
+## Relationship with cache
+
+[`cache`](/config/cache) and `incremental` are independent options. Cache stores fine-grained
+computation results in memory or filesystem-backed persistent storage. Incremental recovers prior
+pass artifacts from the previous compilation, then updates affected work from known mutations.
+
+All four combinations are valid:
+
+| Cache | Incremental | Behavior                                                                                                                                        |
+| ----- | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| Off   | Off         | No state from a prior compilation or build is reused through Cache or Incremental; compilation-local optimizations may still apply.             |
+| On    | Off         | Artifact recovery is disabled, but individual computations can still use memory or persistent cache entries.                                    |
+| Off   | On          | Development rebuilds recover prior pass artifacts so unaffected portions can be reused, but no fine-grained cache entries are read or written.  |
+| On    | On          | Development rebuilds combine prior-artifact recovery with fine-grained cache hits. This is the normal high-performance development combination. |
+
+Cache “On” includes `cache: true`, `cache: { type: 'memory' }`, and
+`cache: { type: 'persistent' }`.
+
+Rspack Incremental has a similar optimization goal to webpack's
+[`cacheUnaffected`](https://webpack.js.org/configuration/cache/#cachecacheunaffected): avoid
+recomputing work that is unaffected by a change. Rspack applies the idea to multiple compilation
+stages and exposes it independently from Cache.
 
 ## Configuration
 
@@ -74,18 +104,9 @@ type Incremental = {
 
 ## Performance impact
 
-Incremental builds mainly improve rebuilds and HMR when reusable compilation state already exists. They do not make an initial build faster when no state can be reused.
+Incremental improves rebuilds and HMR when a previous compilation and a known change set are
+available. It does not make the initial compilation or a separate one-shot build incremental.
 
-When persistent cache is enabled and hit, Rspack can restore part of the compilation state from cache, so the build after startup can also benefit from incremental builds.
-
-The table below shows the results of incremental in different scenarios:
-
-| how to build | incremental speed up |
-| :----------: | :------------------: |
-|  hot build   |          ✅          |
-|  cold build  |          ❌          |
-|  hot start   |          ✅          |
-|  cold start  |          ❌          |
-| rebuild/HMR  |          ✅          |
-
-In the table, "hot" means reusable compilation state or persistent cache is available, while "cold" means no reusable state is available.
+Memory or persistent Cache may independently speed up computations during either an initial build or
+a rebuild. In particular, a filesystem Cache hit after process startup is Cache acceleration, not an
+incremental build.

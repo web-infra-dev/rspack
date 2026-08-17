@@ -11,6 +11,8 @@ import PropertyType from '@components/PropertyType';
 
 `cache` 选项用于控制 Rspack 的缓存策略，让 Rspack 可以在构建之间复用缓存数据以提升构建性能。
 
+Rspack 支持两种启用状态的 Cache 存储模式：进程内的 Memory Cache，以及基于文件系统的 Persistent Cache。两者都用于存储细粒度计算结果，并且与 [`incremental`](/config/incremental) 相互独立。
+
 - **类型：**
 
 ```ts
@@ -43,11 +45,28 @@ type CacheOptions =
 
 - **默认值：** development 模式为 `{ type: 'memory' }`（等价于 `true`），production 模式和 none 模式为 `false`
 
+## 与 Incremental 的关系
+
+Cache 和 [`incremental`](/config/incremental) 相互正交。Cache 控制细粒度 Cache entry 的读取和存储；Incremental 控制开发期重建是否恢复上一轮 pass 的 Artifact，并根据已知 mutations 更新受影响的工作。
+
+- `cache: false` 不会关闭 Incremental。
+- `incremental: false` 不会关闭 Cache。
+- FileSystem Cache 可以加速后续的一次性 build，但这属于 Cache 命中，而不是增量构建。
+
+如果需要同时关闭两种复用机制，应显式设置两个选项：
+
+```js title="rspack.config.mjs"
+export default {
+  cache: false,
+  incremental: false,
+};
+```
+
 ## 内存缓存
 
 将 `cache` 设置为 `true` 或 `{ type: 'memory' }` 可以启用内存缓存。内存缓存只保存在当前 compiler 进程中，主要用于 rebuild、watch 模式和 HMR。
 
-内存缓存不会将缓存数据写入磁盘，因此进程结束后缓存会被清空，也无法加速后续重新启动的全新构建。它更适合开发阶段的长时间运行场景，例如同一个 compiler 实例持续处理多次重构建。
+内存缓存不会将缓存数据写入磁盘，因此进程结束后缓存会被清空，也无法加速后续重新启动的全新构建。它更适合开发阶段的长时间运行场景，例如同一个 compiler 实例持续处理多次重建。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -67,7 +86,7 @@ export default {
 
 ## 持久化缓存
 
-将 `cache` 设置为 `{ type: 'persistent' }` 可以启用持久化缓存。持久化缓存会将缓存数据写入磁盘，以便后续构建进程复用。
+将 `cache` 设置为 `{ type: 'persistent' }` 可以启用基于文件系统的持久化缓存。持久化缓存会将缓存数据写入磁盘，以便后续构建进程复用。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -415,7 +434,9 @@ export default {
 
 ## 禁用缓存
 
-将 `cache` 设置为 `false` 可以同时禁用内存缓存和持久化缓存。通常不建议禁用缓存，因为这会导致开发阶段的重构建显著变慢。
+将 `cache` 设置为 `false` 可以同时禁用内存缓存和持久化缓存，但不会关闭 [`incremental`](/config/incremental)。如果工作流要求完整重构建且不恢复 Artifact，需要另外设置 `incremental: false`。
+
+通常不建议禁用缓存，因为未被 Incremental 跳过的计算将无法再复用细粒度 Cache entry。
 
 ```js title="rspack.config.mjs"
 export default {

@@ -1,17 +1,38 @@
 ---
-description: '控制是否启用增量构建；开启后，Rspack 会在重构建和 HMR 中复用未受影响的中间结果，减少需要重新计算的内容。'
+description: '控制是否在开发期重建和 HMR 中复用未受影响的中间结果。'
 ---
 
 # Incremental
 
-`incremental` 用于控制 Rspack 的增量构建能力。开启后，Rspack 会在重构建和热模块替换（HMR）过程中复用未受影响的中间结果，只重新计算受变更影响的阶段和产物，从而降低重构建和 HMR 的耗时。
+`incremental` 控制 Rspack 是否在同一个长生命周期 compiler 的多次 compilation 之间复用未受影响的中间结果。它面向开发期重建、watch 模式和热模块替换（HMR）：Rspack 已知发生变化的文件，因此只需重新计算受变更影响的阶段和产物。
+
+这里的“开发期”描述的是重建工作流，并不等同于 `mode: 'development'`；production 模式下的 watch 同样可以使用 Incremental。独立的 `rspack build` 是一次性构建，没有可供更新的上一次 compilation，因此 `incremental` 不会让多次独立的 build 命令变成增量构建。
 
 - **类型：** `boolean | 'none' | 'safe' | 'advance' | 'advance-silent' | Incremental`
 - **默认值：** `'advance-silent'`
 
 :::tip
-增量 Artifact 与 [`cache`](/config/cache) 相互独立。关闭缓存不会禁用开发、watch 或 HMR 场景中的增量重构建。
+增量 Artifact 与 [`cache`](/config/cache) 相互独立。关闭缓存不会禁用开发、watch 或 HMR 场景中的增量重建。
 :::
+
+## 与 Cache 的关系
+
+[`cache`](/config/cache) 和 `incremental` 是两个相互独立的配置。Cache 将细粒度的计算结果保存在内存或基于文件系统的持久化存储中；Incremental 则从同一个 compiler 的上一次 compilation 中恢复上一轮 pass 的 Artifact，再根据已知 mutations 更新受影响的工作。
+
+四种组合都有效：
+
+| Cache | Incremental | 行为                                                                                                       |
+| ----- | ----------- | ---------------------------------------------------------------------------------------------------------- |
+| 关闭  | 关闭        | 不通过 Cache 或 Incremental 复用上一次 compilation 或 build 的状态；compilation 内部的局部优化仍可能生效。 |
+| 开启  | 关闭        | 不恢复 Artifact，但具体计算仍然可以命中 Memory Cache 或 Persistent Cache。                                 |
+| 关闭  | 开启        | 开发期重建恢复上一轮 pass 的 Artifact，以复用其中未受影响的部分，但不会读取或写入细粒度 Cache entry。      |
+| 开启  | 开启        | 开发期重建同时使用上一轮 Artifact 恢复和细粒度 Cache 命中，是常规的高性能开发组合。                        |
+
+Cache “开启”包括 `cache: true`、`cache: { type: 'memory' }` 和
+`cache: { type: 'persistent' }`。
+
+Rspack Incremental 的优化目标与 webpack 的
+[`cacheUnaffected`](https://webpack.js.org/configuration/cache/#cachecacheunaffected) 类似：避免重新计算不受变更影响的工作。Rspack 将这一思路扩展到多个 compilation 阶段，并将其设计为独立于 Cache 的顶层能力。
 
 ## 配置方式
 
@@ -73,18 +94,6 @@ type Incremental = {
 
 ## 性能影响
 
-增量构建主要用于优化已有编译状态下的重构建和 HMR，对没有任何可复用状态的首次构建不会带来性能提升。
+Incremental 只会在存在上一次 compilation 和明确变更集合时加速重建与 HMR，不会让首次 compilation 或独立的一次性 build 变成增量构建。
 
-当启用并命中持久化缓存时，Rspack 可以从缓存中恢复部分构建状态，因此首次启动后的编译也可能受益于增量构建。
-
-下表概述了不同场景下增量构建的效果：
-
-|  构建方式  | 增量提速 |
-| :--------: | :------: |
-|   热构建   |    ✅    |
-|   冷构建   |    ❌    |
-|   热启动   |    ✅    |
-|   冷启动   |    ❌    |
-| 重构建/HMR |    ✅    |
-
-表中的“热”表示存在可复用的编译状态或持久化缓存，“冷”表示没有可复用状态。
+Memory Cache 或 Persistent Cache 可以独立加速首次构建和重建中的具体计算。尤其是进程启动后命中的 FileSystem Cache 属于 Cache 加速，而不是增量构建。
