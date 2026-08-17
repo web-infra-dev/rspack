@@ -73,13 +73,15 @@ enum PlaceholderParameters {
 struct PlaceholderData {
   kind: PlaceholderKind,
   parameters: PlaceholderParameters,
-  raw: Ustr,
 }
 
 #[derive(Debug, Clone)]
 enum StringTemplateSegment {
   Plain(Range<u16>),
-  Placeholder(PlaceholderId),
+  Placeholder {
+    id: PlaceholderId,
+    range: Range<u16>,
+  },
 }
 
 #[derive(Debug)]
@@ -131,15 +133,14 @@ impl CompiledStringTemplate {
       } else {
         let id = PlaceholderId::try_from(placeholder_data.len())
           .expect("filename template contains too many unique placeholders");
-        placeholder_data.push(PlaceholderData {
-          kind,
-          parameters,
-          raw,
-        });
+        placeholder_data.push(PlaceholderData { kind, parameters });
         placeholder_indices.insert(raw, id);
         id
       };
-      segments.push(StringTemplateSegment::Placeholder(id));
+      segments.push(StringTemplateSegment::Placeholder {
+        id,
+        range: to_u16_range(start, end + 1),
+      });
 
       cursor = end + 1;
       plain_start = cursor;
@@ -242,9 +243,7 @@ fn assert_template_len(template: &str) {
 
 fn intern_template(template: &str) -> Ustr {
   assert_template_len(template);
-  let template = Ustr::from(template);
-  get_or_compile(template);
-  template
+  Ustr::from(template)
 }
 
 fn get_or_compile(template: Ustr) -> Arc<CompiledStringTemplate> {
@@ -594,7 +593,7 @@ fn render_compiled_template(
       StringTemplateSegment::Plain(range) => {
         output.push_str(&template[usize::from(range.start)..usize::from(range.end)]);
       }
-      StringTemplateSegment::Placeholder(id) => {
+      StringTemplateSegment::Placeholder { id, range } => {
         let data = compiled
           .placeholder_data
           .get(usize::from(*id))
@@ -607,9 +606,7 @@ fn render_compiled_template(
           asset_info,
           output,
         ) {
-          output.push('[');
-          output.push_str(data.raw.as_str());
-          output.push(']');
+          output.push_str(&template[usize::from(range.start)..usize::from(range.end)]);
         }
       }
     }
