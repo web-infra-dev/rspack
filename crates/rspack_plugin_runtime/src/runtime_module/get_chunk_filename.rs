@@ -5,7 +5,7 @@ use rspack_cacheable::with::Unsupported;
 use rspack_core::{
   Chunk, ChunkGraph, ChunkUkey, Compilation, Filename, PathData, RuntimeGlobals,
   RuntimeGlobalsRenderMode, RuntimeModule, RuntimeModuleGenerateContext, RuntimeTemplate,
-  SourceType, get_filename_without_hash_length, has_hash_placeholder, impl_runtime_module,
+  SourceType, has_hash_placeholder, impl_runtime_module,
 };
 use rspack_util::{
   fx_hash::{FxIndexMap, FxIndexSet},
@@ -242,8 +242,14 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
           }
         })
         .collect::<FxIndexSet<ChunkUkey>>();
-      let (fake_filename, hash_len_map) =
-        get_filename_without_hash_length(&Filename::from(dynamic_filename.clone()));
+      let filename = Filename::from(dynamic_filename.clone());
+      let compiled = filename
+        .compiled()
+        .expect("dynamic filename is always a template");
+      let fake_filename = Filename::from(compiled.without_hash_length());
+      let chunk_hash_len = compiled.chunk_hash_len();
+      let content_hash_len = compiled.content_hash_len();
+      let full_hash_len = compiled.full_hash_len().or(compiled.hash_len());
 
       let chunk_id = "\" + chunkId + \"";
       let chunk_name = stringify_dynamic_chunk_map(
@@ -267,8 +273,8 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
               compilation.options.output.hash_digest_length,
             )
             .map(|hash| hash.to_string());
-          match hash_len_map.get("[chunkhash]") {
-            Some(hash_len) => hash.map(|s| s[..*hash_len].to_string()),
+          match chunk_hash_len {
+            Some(hash_len) => hash.map(|s| s[..hash_len].to_string()),
             None => hash,
           }
         },
@@ -282,21 +288,18 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
             &self.source_type,
             compilation.options.output.hash_digest_length,
           )
-          .map(|hash| match hash_len_map.get("[contenthash]") {
-            Some(hash_len) => hash[..*hash_len].to_string(),
+          .map(|hash| match content_hash_len {
+            Some(hash_len) => hash[..hash_len].to_string(),
             None => hash.to_string(),
           })
         },
         &chunks,
         &chunk_map,
       );
-      let full_hash = match hash_len_map
-        .get("[fullhash]")
-        .or(hash_len_map.get("[hash]"))
-      {
+      let full_hash = match full_hash_len {
         Some(hash_len) => {
           let mut hash_len_buffer = itoa::Buffer::new();
-          let hash_len_str = hash_len_buffer.format(*hash_len);
+          let hash_len_str = hash_len_buffer.format(hash_len);
           format!(
             "\" + {}().slice(0, {}) + \"",
             runtime_template.render_runtime_globals(&RuntimeGlobals::GET_FULL_HASH),
@@ -337,7 +340,20 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
         })
     {
       if let Some(chunk) = chunk_map.get(chunk_ukey) {
-        let (fake_filename, hash_len_map) = get_filename_without_hash_length(filename_template);
+        let compiled = filename_template.compiled();
+        let fake_filename = compiled.as_ref().map_or_else(
+          || filename_template.clone(),
+          |compiled| Filename::from(compiled.without_hash_length()),
+        );
+        let chunk_hash_len = compiled
+          .as_ref()
+          .and_then(|compiled| compiled.chunk_hash_len());
+        let content_hash_len = compiled
+          .as_ref()
+          .and_then(|compiled| compiled.content_hash_len());
+        let full_hash_len = compiled
+          .as_ref()
+          .and_then(|compiled| compiled.full_hash_len().or(compiled.hash_len()));
 
         let chunk_id = chunk
           .id()
@@ -355,8 +371,8 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
           )
           .map(|chunk_hash| {
             let hash = unquoted_stringify(chunk.id(), chunk_hash);
-            match hash_len_map.get("[chunkhash]") {
-              Some(hash_len) => hash[..*hash_len].to_string(),
+            match chunk_hash_len {
+              Some(hash_len) => hash[..hash_len].to_string(),
               None => hash,
             }
           });
@@ -368,18 +384,15 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
               chunk.id(),
               i.rendered(compilation.options.output.hash_digest_length),
             );
-            match hash_len_map.get("[contenthash]") {
-              Some(hash_len) => hash[..*hash_len].to_string(),
+            match content_hash_len {
+              Some(hash_len) => hash[..hash_len].to_string(),
               None => hash,
             }
           });
-        let full_hash = match hash_len_map
-          .get("[fullhash]")
-          .or(hash_len_map.get("[hash]"))
-        {
+        let full_hash = match full_hash_len {
           Some(hash_len) => {
             let mut hash_len_buffer = itoa::Buffer::new();
-            let hash_len_str = hash_len_buffer.format(*hash_len);
+            let hash_len_str = hash_len_buffer.format(hash_len);
             format!(
               "\" + {}().slice(0, {}) + \"",
               runtime_template.render_runtime_globals(&RuntimeGlobals::GET_FULL_HASH),

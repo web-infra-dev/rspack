@@ -24,7 +24,7 @@ use crate::{
   artifacts::IncrementalArtifacts,
   cache::{Cache as LegacyCache, new_cache as create_legacy_cache},
   compilation::build_module_graph::ModuleExecutor,
-  fast_set, include_hash,
+  fast_set,
   incremental::{Incremental, IncrementalPasses},
   logger::Logger,
   new_cache::{Cache, CacheFacade, create_cache},
@@ -496,9 +496,13 @@ impl Compiler {
       let mut immutable = asset.info.immutable.unwrap_or(false);
       if !query.is_empty() {
         immutable = immutable
-          && (include_hash(target_file, &asset.info.content_hash)
-            || include_hash(target_file, &asset.info.chunk_hash)
-            || include_hash(target_file, &asset.info.full_hash));
+          && asset
+            .info
+            .content_hash
+            .iter()
+            .chain(&asset.info.chunk_hash)
+            .chain(&asset.info.full_hash)
+            .any(|hash| target_file.contains(hash));
       }
 
       let stat = self

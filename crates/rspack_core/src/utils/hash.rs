@@ -1,32 +1,5 @@
 use std::borrow::Cow;
 
-use rustc_hash::FxHashSet as HashSet;
-
-pub struct ExtractedHashPattern {
-  pub pattern: String,
-  pub len: Option<usize>,
-}
-
-/// Extract `[hash]` or `[hash:8]` in the template
-pub fn extract_hash_pattern(pattern: &str, key: &str) -> Option<ExtractedHashPattern> {
-  let key_offset = key.len() - 1;
-  let start = pattern.find(&key[..key_offset])?;
-  let end = pattern[start + key_offset..].find(']')?;
-  let len = pattern[start + key_offset..start + key_offset + end]
-    .strip_prefix(':')
-    .and_then(|n| n.parse::<usize>().ok());
-
-  let pattern = &pattern[start..=start + key_offset + end];
-  Some(ExtractedHashPattern {
-    pattern: pattern.to_string(),
-    len,
-  })
-}
-
-pub fn include_hash(filename: &str, hashes: &HashSet<String>) -> bool {
-  hashes.iter().any(|hash| filename.contains(hash))
-}
-
 pub trait Replacer {
   fn get(&mut self, dst: &mut String, hash_len: Option<usize>, need_base64: bool);
 }

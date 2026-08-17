@@ -4,7 +4,7 @@ use std::{
   hash::{BuildHasherDefault, Hasher},
   ops::{Deref, Range},
   ptr,
-  sync::{Arc, LazyLock},
+  sync::{Arc, LazyLock, OnceLock},
 };
 
 use dashmap::DashMap;
@@ -22,16 +22,11 @@ use ustr::{IdentityHasher, Ustr};
 
 use crate::{AssetInfo, PathData, ResourceParsedData, parse_resource};
 
-pub static HASH_PLACEHOLDER: &str = "[hash]";
-pub static FULL_HASH_PLACEHOLDER: &str = "[fullhash]";
-pub static CHUNK_HASH_PLACEHOLDER: &str = "[chunkhash]";
-pub static CONTENT_HASH_PLACEHOLDER: &str = "[contenthash]";
-
 const MAX_TEMPLATE_LEN: usize = u16::MAX as usize;
 
 type PlaceholderId = u16;
 type CompiledTemplateCache =
-  DashMap<Ustr, Arc<CompiledStringTemplate>, BuildHasherDefault<IdentityHasher>>;
+  DashMap<Ustr, Arc<CompiledStringTemplate<'static>>, BuildHasherDefault<IdentityHasher>>;
 
 static COMPILED_STRING_TEMPLATES: LazyLock<CompiledTemplateCache> = LazyLock::new(Default::default);
 
@@ -84,15 +79,21 @@ enum StringTemplateSegment {
 }
 
 #[derive(Debug)]
-struct CompiledStringTemplate {
+pub struct CompiledStringTemplate<'template> {
+  template: &'template str,
   placeholder_data: Vec<PlaceholderData>,
   segments: Vec<StringTemplateSegment>,
   has_hash_placeholder: bool,
   has_content_hash_placeholder: bool,
+  hash_len: Option<u16>,
+  full_hash_len: Option<u16>,
+  chunk_hash_len: Option<u16>,
+  content_hash_len: Option<u16>,
+  template_without_hash_length: OnceLock<Cow<'template, str>>,
 }
 
-impl CompiledStringTemplate {
-  fn compile(template: &str) -> Self {
+impl<'template> CompiledStringTemplate<'template> {
+  fn compile(template: &'template str) -> Self {
     debug_assert!(template.len() <= MAX_TEMPLATE_LEN);
 
     let mut placeholder_data = Vec::new();
@@ -101,6 +102,10 @@ impl CompiledStringTemplate {
     let mut placeholder_start = None;
     let mut has_hash_placeholder = false;
     let mut has_content_hash_placeholder = false;
+    let mut hash_len = None;
+    let mut full_hash_len = None;
+    let mut chunk_hash_len = None;
+    let mut content_hash_len = None;
     let bytes = template.as_bytes();
 
     for index in memchr2_iter(b'[', b']', bytes) {
@@ -121,6 +126,15 @@ impl CompiledStringTemplate {
 
       has_hash_placeholder |= matches!(kind, PlaceholderKind::Hash | PlaceholderKind::FullHash);
       has_content_hash_placeholder |= kind == PlaceholderKind::ContentHash;
+      if let PlaceholderParameters::Hash { len: Some(len), .. } = parameters {
+        match kind {
+          PlaceholderKind::Hash => hash_len.get_or_insert(len),
+          PlaceholderKind::FullHash => full_hash_len.get_or_insert(len),
+          PlaceholderKind::ChunkHash => chunk_hash_len.get_or_insert(len),
+          PlaceholderKind::ContentHash => content_hash_len.get_or_insert(len),
+          _ => unreachable!("only hash placeholders have hash parameters"),
+        };
+      }
 
       if plain_start < start {
         segments.push(StringTemplateSegment::Plain(to_u16_range(
@@ -148,11 +162,81 @@ impl CompiledStringTemplate {
     }
 
     Self {
+      template,
       placeholder_data,
       segments,
       has_hash_placeholder,
       has_content_hash_placeholder,
+      hash_len,
+      full_hash_len,
+      chunk_hash_len,
+      content_hash_len,
+      template_without_hash_length: OnceLock::new(),
     }
+  }
+
+  fn build_template_without_hash_length(&self) -> String {
+    let mut output = String::with_capacity(self.template.len());
+
+    for segment in &self.segments {
+      match segment {
+        StringTemplateSegment::Plain(range) => {
+          output.push_str(&self.template[usize::from(range.start)..usize::from(range.end)]);
+        }
+        StringTemplateSegment::Placeholder { id, range } => {
+          let data = self
+            .placeholder_data
+            .get(usize::from(*id))
+            .expect("filename placeholder segment references missing side-table data");
+          if let PlaceholderParameters::Hash { .. } = data.parameters {
+            output.push('[');
+            output.push_str(data.kind.as_str());
+            output.push(']');
+          } else {
+            output.push_str(&self.template[usize::from(range.start)..usize::from(range.end)]);
+          }
+        }
+      }
+    }
+
+    output
+  }
+
+  pub fn template(&self) -> &'template str {
+    self.template
+  }
+
+  pub fn without_hash_length(&self) -> &str {
+    self
+      .template_without_hash_length
+      .get_or_init(|| {
+        if self.hash_len.is_none()
+          && self.full_hash_len.is_none()
+          && self.chunk_hash_len.is_none()
+          && self.content_hash_len.is_none()
+        {
+          Cow::Borrowed(self.template)
+        } else {
+          Cow::Owned(self.build_template_without_hash_length())
+        }
+      })
+      .as_ref()
+  }
+
+  pub fn hash_len(&self) -> Option<usize> {
+    self.hash_len.map(usize::from)
+  }
+
+  pub fn full_hash_len(&self) -> Option<usize> {
+    self.full_hash_len.map(usize::from)
+  }
+
+  pub fn chunk_hash_len(&self) -> Option<usize> {
+    self.chunk_hash_len.map(usize::from)
+  }
+
+  pub fn content_hash_len(&self) -> Option<usize> {
+    self.content_hash_len.map(usize::from)
   }
 }
 
@@ -230,7 +314,7 @@ fn intern_template(template: &str) -> Ustr {
   Ustr::from(template)
 }
 
-fn get_or_compile(template: Ustr) -> Arc<CompiledStringTemplate> {
+fn get_or_compile(template: Ustr) -> Arc<CompiledStringTemplate<'static>> {
   if let Some(compiled) = COMPILED_STRING_TEMPLATES.get(&template) {
     return Arc::clone(compiled.value());
   }
@@ -274,6 +358,13 @@ impl Filename {
     self.template().unwrap_or("")
   }
 
+  pub fn compiled(&self) -> Option<Arc<CompiledStringTemplate<'static>>> {
+    match self.0 {
+      FilenameKind::Template(template) => Some(get_or_compile(template)),
+      FilenameKind::Fn(_) => None,
+    }
+  }
+
   pub fn has_hash_placeholder(&self) -> bool {
     match self.0 {
       FilenameKind::Template(template) => get_or_compile(template).has_hash_placeholder,
@@ -304,7 +395,7 @@ impl Filename {
       FilenameKind::Template(template) => {
         let compiled = get_or_compile(*template);
         Ok(render_template(
-          template.as_str(),
+          compiled.template(),
           &compiled,
           options,
           asset_info,
@@ -314,7 +405,12 @@ impl Filename {
         let template = filename_fn.call(&options, asset_info.as_deref()).await?;
         assert_template_len(&template);
         let compiled = CompiledStringTemplate::compile(&template);
-        Ok(render_template(&template, &compiled, options, asset_info))
+        Ok(render_template(
+          compiled.template(),
+          &compiled,
+          options,
+          asset_info,
+        ))
       }
     }
   }
@@ -497,7 +593,7 @@ impl FileReplacements {
 
 fn render_template(
   template: &str,
-  compiled: &CompiledStringTemplate,
+  compiled: &CompiledStringTemplate<'_>,
   options: PathData<'_>,
   mut asset_info: Option<&mut AssetInfo>,
 ) -> String {
@@ -523,7 +619,7 @@ fn render_template(
 
 fn render_compiled_template(
   template: &str,
-  compiled: &CompiledStringTemplate,
+  compiled: &CompiledStringTemplate<'_>,
   options: PathData<'_>,
   file_replacements: &FileReplacements,
   asset_info: &mut Option<&mut AssetInfo>,
