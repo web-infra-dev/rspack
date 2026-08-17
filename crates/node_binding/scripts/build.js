@@ -19,6 +19,7 @@ const CARGO_SAFELY_EXIT_CODE = 0;
 const watch = process.argv.includes("--watch");
 
 const measureFresh = process.env.MEASURE_CARGO_FRESH === "1" && !watch;
+const isReleaseProfile = ["release", "release-wasi"].includes(values.profile);
 
 build().then((value) => {
 	// Regarding cargo's non-zero exit code as an error.
@@ -71,13 +72,13 @@ async function build() {
 			features.push("plugin");
 		}
 		// Internal test loaders should not ship in production artifacts.
-		if (!["release", "release-wasi"].includes(values.profile)) {
+		if (!isReleaseProfile) {
 			features.push("test-loader");
 		}
 		if (process.env.RSPACK_TARGET_BROWSER) {
 			features.push("browser")
 		}
-		if (!["release", "release-wasi"].includes(values.profile)) {
+		if (!isReleaseProfile) {
 			features.push("perfetto");
 		}
 		if (values.profile === "release-debug") {
@@ -95,7 +96,7 @@ async function build() {
 		if (process.env.TRACY) {
 			features.push("tracy-client");
 		}
-		if (values.profile === "release") {
+		if (isReleaseProfile) {
 			features.push("info-level");
 			rustflags.push("-Zlocation-detail=none");
 			if (process.env.RUST_TARGET && !process.env.RUST_TARGET.includes("windows-msvc")) {
