@@ -141,16 +141,16 @@ rkyv      = { version = "=0.8.18", default-features = false, features = ["std", 
 
 # Must be pinned with the same swc versions
 pnp                 = { version = "0.12.11", default-features = false }
-swc                 = { version = "74.0.0", default-features = false }
+swc                 = { version = "75.0.0", default-features = false }
 swc_atoms           = { version = "10.0.0", default-features = false }
 swc_config          = { version = "6.0.0", default-features = false }
-swc_core            = { version = "76.0.0", default-features = false, features = ["parallel_rayon"] }
-swc_ecma_minifier   = { version = "60.0.0", default-features = false }
-swc_error_reporters = { version = "27.0.0", default-features = false }
-swc_html            = { version = "37.0.0", default-features = false }
-swc_html_minifier   = { version = "60.0.0", default-features = false }
-swc_plugin_runner   = { version = "33.0.0", default-features = false }
-swc_typescript      = { version = "33.0.0", default-features = false }
+swc_core            = { version = "77.0.0", default-features = false, features = ["parallel_rayon"] }
+swc_ecma_minifier   = { version = "61.0.0", default-features = false }
+swc_error_reporters = { version = "28.0.0", default-features = false }
+swc_html            = { version = "38.0.0", default-features = false }
+swc_html_minifier   = { version = "61.0.0", default-features = false }
+swc_plugin_runner   = { version = "34.0.0", default-features = false }
+swc_typescript      = { version = "34.0.0", default-features = false }
 
 swc_experimental_allocator            = { version = "0.11.0", default-features = false }
 swc_experimental_ecma_ast             = { version = "0.11.0", default-features = false }
