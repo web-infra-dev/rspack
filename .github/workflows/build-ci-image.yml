@@ -10,6 +10,15 @@ on:
       - 'package.json'
       - '.github/workflows/ci-dylint.yaml'
       - '.github/workflows/build-ci-image.yml'
+  # Build-only, so a change to the image is proven to compile before it lands.
+  pull_request:
+    paths:
+      - 'docker/ci-linux/**'
+      - 'rust-toolchain.toml'
+      - '.nvmrc'
+      - 'package.json'
+      - '.github/workflows/ci-dylint.yaml'
+      - '.github/workflows/build-ci-image.yml'
   workflow_dispatch:
     inputs:
       push:
@@ -98,9 +107,8 @@ jobs:
 
       - uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
 
-      # `inputs.push` only exists on workflow_dispatch; a push event must always publish.
       - name: Login to ghcr.io
-        if: github.event_name != 'workflow_dispatch' || inputs.push
+        if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.push)
         uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
         with:
           registry: ghcr.io
@@ -112,7 +120,7 @@ jobs:
         uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
         with:
           context: docker/ci-linux
-          push: ${{ github.event_name != 'workflow_dispatch' || inputs.push }}
+          push: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.push) }}
           tags: ${{ steps.meta.outputs.tags }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
@@ -135,7 +143,7 @@ jobs:
             echo "| node | \`${{ steps.versions.outputs.node_version }}\` |"
             echo "| pnpm | \`${{ steps.versions.outputs.pnpm_version }}\` |"
             echo "| ref | \`$GITHUB_REF_NAME\` |"
-            echo "| pushed | \`${{ github.event_name != 'workflow_dispatch' || inputs.push }}\` |"
+            echo "| pushed | \`${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.push) }}\` |"
             echo
             echo "**Tags**"
             echo '```'
