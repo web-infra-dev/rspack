@@ -300,6 +300,48 @@ strip    = "none"
 
 [profile.release.package]
 
+# React Compiler is an opt-in transform, but these crates contribute significantly to the
+# release binding size. `s` reduces that footprint while avoiding the substantial transform
+# slowdown observed with `z`.
+[profile.release.package.forked_react_compiler]
+opt-level = "s"
+
+[profile.release.package.forked_react_compiler_ast]
+opt-level = "s"
+
+[profile.release.package.forked_react_compiler_diagnostics]
+opt-level = "s"
+
+[profile.release.package.forked_react_compiler_hir]
+opt-level = "s"
+
+[profile.release.package.forked_react_compiler_inference]
+opt-level = "s"
+
+[profile.release.package.forked_react_compiler_lowering]
+opt-level = "s"
+
+[profile.release.package.forked_react_compiler_optimization]
+opt-level = "s"
+
+[profile.release.package.forked_react_compiler_reactive_scopes]
+opt-level = "s"
+
+[profile.release.package.forked_react_compiler_ssa]
+opt-level = "s"
+
+[profile.release.package.forked_react_compiler_typeinference]
+opt-level = "s"
+
+[profile.release.package.forked_react_compiler_utils]
+opt-level = "s"
+
+[profile.release.package.forked_react_compiler_validation]
+opt-level = "s"
+
+[profile.release.package.swc_ecma_react_compiler]
+opt-level = "s"
+
 [profile.release.package.lightningcss]
 opt-level = "s"
 
