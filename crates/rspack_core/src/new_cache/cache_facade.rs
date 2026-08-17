@@ -87,6 +87,17 @@ fn join_name(prefix: &str, name: &str, with_separator: bool) -> Arc<str> {
   result.into()
 }
 
+fn join_memory_segment(prefix: &str, name: &str) -> Arc<str> {
+  let name_len = name.len().to_string();
+  let mut result = String::with_capacity(prefix.len() + name_len.len() + name.len() + 2);
+  result.push_str(prefix);
+  result.push('|');
+  result.push_str(&name_len);
+  result.push(':');
+  result.push_str(name);
+  result.into()
+}
+
 /// A namespaced view that deliberately accesses only new_cache's memory tier.
 #[derive(Debug, Clone)]
 pub struct MemoryCacheFacade {
@@ -105,14 +116,14 @@ impl MemoryCacheFacade {
   pub fn get_child_cache(&self, name: &str) -> Self {
     Self {
       cache: self.cache.clone(),
-      name: join_name(&self.name, name, true),
+      name: join_memory_segment(&self.name, name),
     }
   }
 
   pub fn get_item_cache(&self, identifier: &str, etag: Option<Etag>) -> MemoryItemCacheFacade {
     MemoryItemCacheFacade {
       cache: self.cache.clone(),
-      key: CacheKey::from(join_name(&self.name, identifier, true)),
+      key: CacheKey::from(join_memory_segment(&self.name, identifier)),
       etag,
     }
   }

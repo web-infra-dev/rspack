@@ -33,7 +33,7 @@ pub enum LoaderChain {
   },
 }
 
-pub struct LoaderChainCacheState(Box<dyn Any + Send>);
+pub struct LoaderChainCacheState(Box<dyn Any + Send + Sync>);
 
 impl std::fmt::Debug for LoaderChainCacheState {
   fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -42,11 +42,11 @@ impl std::fmt::Debug for LoaderChainCacheState {
 }
 
 impl LoaderChainCacheState {
-  pub fn new(value: impl Any + Send) -> Self {
+  pub fn new(value: impl Any + Send + Sync) -> Self {
     Self(Box::new(value))
   }
 
-  pub fn downcast<T: Any + Send>(self) -> std::result::Result<Box<T>, Self> {
+  pub fn downcast<T: Any + Send + Sync>(self) -> std::result::Result<Box<T>, Self> {
     match self.0.downcast::<T>() {
       Ok(value) => Ok(value),
       Err(value) => Err(Self(value)),

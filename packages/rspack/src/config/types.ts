@@ -876,7 +876,8 @@ export type RuleSetLoaderWithOptions = {
   parallel?: boolean | { maxWorkers?: number };
 
   /**
-   * Cache this loader together with adjacent cached loaders in memory.
+   * Cache this loader together with adjacent cached loaders in the memory tier
+   * of `experiments.newCache`.
    */
   cache?: boolean;
 

@@ -49,7 +49,7 @@ pub struct BuildContext {
   pub runtime_template: ModuleCodeTemplate,
   pub plugin_driver: SharedPluginDriver,
   pub fs: Arc<dyn ReadableFileSystem>,
-  pub loader_cache: new_cache::MemoryCacheFacade,
+  pub loader_cache: crate::new_cache::MemoryCacheFacade,
 }
 
 #[cacheable]

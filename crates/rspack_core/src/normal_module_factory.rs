@@ -1370,9 +1370,7 @@ impl ResolvedLoader {
   }
 }
 
-fn loader_cache_key(loader: &BoxLoader, options: &str) -> String {
-  let name = loader.identifier();
-  let name = name.as_str();
+fn loader_cache_key(name: &str, loader: &BoxLoader, options: &str) -> String {
   let version = loader
     .cache_version()
     .unwrap_or(rspack_workspace::rspack_pkg_version!());
@@ -1393,7 +1391,7 @@ async fn resolve_each_with_options(
   let resolved = resolve_each(plugin_driver, context, loader_resolver, loader).await?;
   let cache_key = loader
     .cache
-    .then(|| loader_cache_key(&resolved, &loader.cache_key))
+    .then(|| loader_cache_key(&loader.loader, &resolved, &loader.cache_key))
     .unwrap_or_default();
   Ok(ResolvedLoader {
     loader: resolved,

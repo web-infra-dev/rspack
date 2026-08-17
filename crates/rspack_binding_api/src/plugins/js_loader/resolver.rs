@@ -121,6 +121,8 @@ pub(crate) async fn resolve_loader(
         if let Some((name, version)) = package_version {
           Some(format!("package:{name}@{version}"))
         } else {
+          // V1 fingerprints only the resolved loader entry file. Files that
+          // the loader imports or requires are intentionally not included yet.
           let contents = resolver
             .inner_fs()
             .read(rspack_paths::Utf8Path::new(path))

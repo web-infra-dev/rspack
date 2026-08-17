@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 
+use rspack_collections::Identifiable;
 use rspack_hash::{HashFunction, RspackHasher};
 use rspack_loader_runner::{
   AdditionalData, Content, LoaderChain, LoaderChainCacheAction, LoaderChainCacheState,
@@ -9,7 +10,7 @@ use rspack_sources::SourceMap;
 use rustc_hash::FxHashSet;
 
 use crate::{
-  CompilationAsset, Module, RunnerContext,
+  Module, RunnerContext,
   new_cache::{CacheValue, Etag, MemoryItemCacheFacade},
 };
 
@@ -35,7 +36,6 @@ struct LoaderCacheEntry {
   missing_dependencies: DependencyDelta,
   build_dependencies: DependencyDelta,
   parse_meta: ParseMeta,
-  assets: Vec<(String, CompilationAsset)>,
   build_info_extras: JsonObjectDelta,
 }
 
@@ -46,8 +46,6 @@ pub(crate) struct LoaderCacheMissState {
   context_dependencies: FxHashSet<PathBuf>,
   missing_dependencies: FxHashSet<PathBuf>,
   build_dependencies: FxHashSet<PathBuf>,
-  parse_meta_keys: FxHashSet<String>,
-  asset_keys: FxHashSet<String>,
   build_info_extras: serde_json::Map<String, serde_json::Value>,
 }
 
@@ -121,6 +119,11 @@ pub(crate) fn before_normal_chain(
   let Some(etag) = input_etag(context) else {
     return LoaderChainCacheAction::Disabled;
   };
+  // parseMeta cannot be compared generically and emitted assets are observable
+  // side effects. A chain that starts after either value exists is not cached.
+  if !context.parse_meta.is_empty() || !context.context.module.build_info().assets.is_empty() {
+    return LoaderChainCacheAction::Disabled;
+  }
   let cache_key = chain
     .cache_key()
     .expect("loader cache only accepts CacheChain");
@@ -143,21 +146,13 @@ pub(crate) fn before_normal_chain(
     );
     replay_dependency_delta(&mut context.build_dependencies, &entry.build_dependencies);
     context.parse_meta.extend(entry.parse_meta.clone());
-    for (name, asset) in &entry.assets {
-      context
-        .context
-        .module
-        .build_info_mut()
-        .assets
-        .insert(name.clone(), asset.clone());
-    }
     replay_json_object_delta(
       &mut context.context.module.build_info_mut().extras,
       &entry.build_info_extras,
     );
     let source_map = entry
       .source_map
-      .as_deref()
+      .clone()
       .and_then(|source_map| SourceMap::from_json(source_map).ok());
     context.__finish_with((
       entry.content.clone(),
@@ -174,15 +169,6 @@ pub(crate) fn before_normal_chain(
     context_dependencies: context.context_dependencies.clone(),
     missing_dependencies: context.missing_dependencies.clone(),
     build_dependencies: context.build_dependencies.clone(),
-    parse_meta_keys: context.parse_meta.keys().cloned().collect(),
-    asset_keys: context
-      .context
-      .module
-      .build_info()
-      .assets
-      .keys()
-      .cloned()
-      .collect(),
     build_info_extras: context.context.module.build_info().extras.clone(),
   }))
 }
@@ -191,7 +177,10 @@ pub(crate) fn after_normal_chain(
   context: &LoaderContext<RunnerContext>,
   state: LoaderCacheMissState,
 ) {
-  if !context.cacheable || context.diagnostics.len() != state.diagnostics_len {
+  if !context.cacheable
+    || context.diagnostics.len() != state.diagnostics_len
+    || !context.context.module.build_info().assets.is_empty()
+  {
     return;
   }
 
@@ -213,21 +202,7 @@ pub(crate) fn after_normal_chain(
       &context.missing_dependencies,
     ),
     build_dependencies: dependency_delta(&state.build_dependencies, &context.build_dependencies),
-    parse_meta: context
-      .parse_meta
-      .iter()
-      .filter(|(key, _)| !state.parse_meta_keys.contains(*key))
-      .map(|(key, value)| (key.clone(), value.clone()))
-      .collect(),
-    assets: context
-      .context
-      .module
-      .build_info()
-      .assets
-      .iter()
-      .filter(|(key, _)| !state.asset_keys.contains(*key))
-      .map(|(key, value)| (key.clone(), value.clone()))
-      .collect(),
+    parse_meta: context.parse_meta.clone(),
     build_info_extras: json_object_delta(
       &state.build_info_extras,
       &context.context.module.build_info().extras,
