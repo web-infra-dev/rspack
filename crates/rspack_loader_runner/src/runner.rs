@@ -1,5 +1,11 @@
-use std::{fmt::Debug, marker::PhantomPinned, path::PathBuf, sync::Arc};
+use std::{
+  marker::PhantomPinned,
+  path::PathBuf,
+  sync::{Arc, OnceLock},
+};
 
+use derive_more::Debug;
+use rspack_cacheable::{cacheable, with::Skip};
 use rspack_error::{Diagnostic, Error, Result, error};
 use rspack_fs::ReadableFileSystem;
 use rspack_paths::Utf8PathBuf;
@@ -17,22 +23,57 @@ use crate::{
   plugin::LoaderRunnerPlugin,
 };
 
+#[cacheable]
 #[derive(Debug)]
-pub struct LoaderRunnerData<Context: Send> {
-  loader_items: Vec<LoaderItem<Context>>,
-  loader_chains: Vec<LoaderChain>,
+pub struct Loaders<Context: Send> {
+  #[debug(skip)]
+  loaders: Vec<Arc<dyn Loader<Context>>>,
+  #[cacheable(with=Skip)]
+  loader_items: OnceLock<Vec<LoaderItem<Context>>>,
+  #[cacheable(with=Skip)]
+  loader_chains: OnceLock<Vec<LoaderChain>>,
+  #[cacheable(with=Skip)]
   _pin: PhantomPinned,
 }
 
-impl<Context: Send> LoaderRunnerData<Context> {
+impl<Context: Send> Loaders<Context> {
   pub fn new(loaders: Vec<Arc<dyn Loader<Context>>>) -> Self {
-    let loader_items = loaders.into_iter().map(Into::into).collect::<Vec<_>>();
-    let loader_chains = plan_loader_chains(&loader_items);
     Self {
-      loader_items,
-      loader_chains,
+      loaders,
+      loader_items: OnceLock::new(),
+      loader_chains: OnceLock::new(),
       _pin: PhantomPinned,
     }
+  }
+
+  pub fn loaders(&self) -> &[Arc<dyn Loader<Context>>] {
+    &self.loaders
+  }
+
+  fn loader_items(&self) -> &Vec<LoaderItem<Context>> {
+    self
+      .loader_items
+      .get_or_init(|| self.loaders.iter().cloned().map(Into::into).collect())
+  }
+
+  fn loader_chains(&self) -> &Vec<LoaderChain> {
+    self
+      .loader_chains
+      .get_or_init(|| plan_loader_chains(self.loader_items()))
+  }
+
+  pub async fn run_loaders(
+    self: &Arc<Self>,
+    resource_data: Arc<ResourceData>,
+    plugin: Option<Arc<dyn LoaderRunnerPlugin<Context = Context>>>,
+    context: Context,
+    fs: Arc<dyn ReadableFileSystem>,
+  ) -> (LoaderResult<Context>, Option<Error>) {
+    let loader_items = ArcComputed::new(Arc::clone(self), Loaders::loader_items);
+    let loader_chains = ArcComputed::new(Arc::clone(self), Loaders::loader_chains);
+    let mut cx = create_loader_context(loader_items, loader_chains, resource_data, plugin, context);
+    let result = run_loaders_impl(&mut cx, fs).await;
+    (LoaderResult::new(cx), result.err())
   }
 }
 
@@ -176,7 +217,8 @@ You may need an additional plugin to handle "{scheme}:" URIs."#
 }
 
 fn create_loader_context<Context: Send>(
-  loader_data: Arc<LoaderRunnerData<Context>>,
+  loader_items: ArcComputed<Loaders<Context>, Vec<LoaderItem<Context>>>,
+  loader_chains: ArcComputed<Loaders<Context>, Vec<LoaderChain>>,
   resource_data: Arc<ResourceData>,
   plugin: Option<Arc<dyn LoaderRunnerPlugin<Context = Context>>>,
   context: Context,
@@ -188,7 +230,7 @@ fn create_loader_context<Context: Send>(
     file_dependencies.insert(resource_path.to_owned().into_std_path_buf());
   }
 
-  let loader_item_states = (0..loader_data.loader_items.len())
+  let loader_item_states = (0..loader_items.len())
     .map(|_| LoaderItemState::default())
     .collect();
   LoaderContext {
@@ -205,8 +247,8 @@ fn create_loader_context<Context: Send>(
     additional_data: None,
     state: State::Init,
     loader_index: 0,
-    loader_items: ArcComputed::new(Arc::clone(&loader_data), |data| &data.loader_items),
-    loader_chains: ArcComputed::new(loader_data, |data| &data.loader_chains),
+    loader_items,
+    loader_chains,
     loader_item_states,
     plugin,
     resource_data,
@@ -222,26 +264,9 @@ pub async fn run_loaders<Context: Send>(
   context: Context,
   fs: Arc<dyn ReadableFileSystem>,
 ) -> (LoaderResult<Context>, Option<Error>) {
-  run_loaders_with_data(
-    Arc::new(LoaderRunnerData::new(loaders)),
-    resource_data,
-    plugin,
-    context,
-    fs,
-  )
-  .await
-}
-
-pub async fn run_loaders_with_data<Context: Send>(
-  loader_data: Arc<LoaderRunnerData<Context>>,
-  resource_data: Arc<ResourceData>,
-  plugin: Option<Arc<dyn LoaderRunnerPlugin<Context = Context>>>,
-  context: Context,
-  fs: Arc<dyn ReadableFileSystem>,
-) -> (LoaderResult<Context>, Option<Error>) {
-  let mut cx = create_loader_context(loader_data, resource_data, plugin, context);
-  let result = run_loaders_impl(&mut cx, fs).await;
-  (LoaderResult::new(cx), result.err())
+  Arc::new(Loaders::new(loaders))
+    .run_loaders(resource_data, plugin, context, fs)
+    .await
 }
 
 async fn run_loaders_impl<Context: Send>(

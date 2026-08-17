@@ -8,8 +8,8 @@ use rspack_util::ArcComputed;
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
-  AdditionalData, Content, LoaderChain, LoaderItem, LoaderItemState, LoaderRunnerData,
-  LoaderRunnerPlugin, ParseMeta, ResourceData, loader::LoaderItemList,
+  AdditionalData, Content, LoaderChain, LoaderItem, LoaderItemState, LoaderRunnerPlugin, Loaders,
+  ParseMeta, ResourceData, loader::LoaderItemList,
 };
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -58,8 +58,8 @@ pub struct LoaderContext<Context: Send> {
   pub(crate) state: State,
   pub loader_index: i32,
   #[debug(skip)]
-  pub loader_items: ArcComputed<LoaderRunnerData<Context>, Vec<LoaderItem<Context>>>,
-  pub loader_chains: ArcComputed<LoaderRunnerData<Context>, Vec<LoaderChain>>,
+  pub loader_items: ArcComputed<Loaders<Context>, Vec<LoaderItem<Context>>>,
+  pub loader_chains: ArcComputed<Loaders<Context>, Vec<LoaderChain>>,
   pub loader_item_states: Vec<LoaderItemState>,
   #[debug(skip)]
   pub plugin: Option<Arc<dyn LoaderRunnerPlugin<Context = Context>>>,
