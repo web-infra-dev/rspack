@@ -62,6 +62,7 @@ impl<Context: Send> Loaders<Context> {
       .get_or_init(|| plan_loader_chains(self.loader_items()))
   }
 
+  #[tracing::instrument("LoaderRunner:run_loaders", skip_all, level = "trace")]
   pub async fn run_loaders(
     self: &Arc<Self>,
     resource_data: Arc<ResourceData>,
@@ -256,19 +257,6 @@ fn create_loader_context<Context: Send>(
   }
 }
 
-#[tracing::instrument("LoaderRunner:run_loaders", skip_all, level = "trace")]
-pub async fn run_loaders<Context: Send>(
-  loaders: Vec<Arc<dyn Loader<Context>>>,
-  resource_data: Arc<ResourceData>,
-  plugin: Option<Arc<dyn LoaderRunnerPlugin<Context = Context>>>,
-  context: Context,
-  fs: Arc<dyn ReadableFileSystem>,
-) -> (LoaderResult<Context>, Option<Error>) {
-  Arc::new(Loaders::new(loaders))
-    .run_loaders(resource_data, plugin, context, fs)
-    .await
-}
-
 async fn run_loaders_impl<Context: Send>(
   cx: &mut LoaderContext<Context>,
   fs: Arc<dyn ReadableFileSystem>,
@@ -382,7 +370,7 @@ mod test {
   use rspack_sources::SourceMap;
   use rustc_hash::FxHashSet as HashSet;
 
-  use super::{Loader, LoaderContext, ResourceData, run_loaders};
+  use super::{Loader, LoaderContext, Loaders, ResourceData};
   use crate::{AdditionalData, content::Content, plugin::LoaderRunnerPlugin};
 
   struct TestContentPlugin;
@@ -560,16 +548,16 @@ mod test {
 
     // Ignore error: Final loader didn't return a Buffer or String
     assert!(
-      run_loaders(
-        vec![p1, p2, c1, c2],
-        rs.clone(),
-        Some(Arc::new(TestContentPlugin)),
-        (),
-        Arc::new(NativeFileSystem::new(false))
-      )
-      .await
-      .1
-      .is_some()
+      Arc::new(Loaders::new(vec![p1, p2, c1, c2]))
+        .run_loaders(
+          rs.clone(),
+          Some(Arc::new(TestContentPlugin)),
+          (),
+          Arc::new(NativeFileSystem::new(false)),
+        )
+        .await
+        .1
+        .is_some()
     );
     IDENTS.with(|i| assert_eq!(*i.borrow(), &["pitch1", "pitch2", "normal2", "normal1"]));
     IDENTS.with(|i| i.borrow_mut().clear());
@@ -580,16 +568,16 @@ mod test {
 
     // Ignore error: Final loader didn't return a Buffer or String
     assert!(
-      run_loaders(
-        vec![p1, p2, p3],
-        rs.clone(),
-        Some(Arc::new(TestContentPlugin)),
-        (),
-        Arc::new(NativeFileSystem::new(false))
-      )
-      .await
-      .1
-      .is_some()
+      Arc::new(Loaders::new(vec![p1, p2, p3]))
+        .run_loaders(
+          rs.clone(),
+          Some(Arc::new(TestContentPlugin)),
+          (),
+          Arc::new(NativeFileSystem::new(false)),
+        )
+        .await
+        .1
+        .is_some()
     );
     IDENTS.with(|i| {
       // should not execute p3, as p2 pitched successfully.
@@ -653,8 +641,11 @@ mod test {
     ));
 
     assert!(
-      run_loaders(
-        vec![Arc::new(Normal) as Arc<dyn Loader>, Arc::new(Normal2)],
+      Arc::new(Loaders::new(vec![
+        Arc::new(Normal) as Arc<dyn Loader>,
+        Arc::new(Normal2),
+      ]))
+      .run_loaders(
         rs,
         Some(Arc::new(TestContentPlugin)),
         (),
@@ -710,16 +701,16 @@ mod test {
 
     // Ignore error: Final loader didn't return a Buffer or String
     assert!(
-      run_loaders(
-        vec![Arc::new(Normal2), Arc::new(Normal)],
-        rs,
-        Some(Arc::new(TestContentPlugin)),
-        (),
-        Arc::new(NativeFileSystem::new(false))
-      )
-      .await
-      .1
-      .is_some()
+      Arc::new(Loaders::new(vec![Arc::new(Normal2), Arc::new(Normal)]))
+        .run_loaders(
+          rs,
+          Some(Arc::new(TestContentPlugin)),
+          (),
+          Arc::new(NativeFileSystem::new(false)),
+        )
+        .await
+        .1
+        .is_some()
     );
   }
 }

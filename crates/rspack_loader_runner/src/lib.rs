@@ -16,7 +16,7 @@ pub use loader::{
 };
 pub use plugin::LoaderRunnerPlugin;
 pub use rspack_collections::{Identifiable, Identifier};
-pub use runner::{LoaderResult, Loaders, run_loaders};
+pub use runner::{LoaderResult, Loaders};
 pub use scheme::{Scheme, get_scheme};
 
 pub const BUILTIN_LOADER_PREFIX: &str = "builtin:";

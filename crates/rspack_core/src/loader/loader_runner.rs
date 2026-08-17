@@ -2,7 +2,6 @@ use std::sync::Arc;
 
 pub use rspack_loader_runner::{
   Content, Loader, LoaderChain, LoaderContext, LoaderExecutionKind, LoaderItem, LoaderItemState,
-  run_loaders,
 };
 use rspack_util::source_map::SourceMapKind;
 
