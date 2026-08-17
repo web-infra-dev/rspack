@@ -100,9 +100,6 @@ jobs:
             echo "release=$release"
           } >> "$GITHUB_OUTPUT"
 
-      - name: Disk before # TEMPORARY
-        run: df -h / && docker system df
-
       - uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
 
       - name: Login to ghcr.io
@@ -122,17 +119,12 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          no-cache: true # TEMPORARY: force a cold build to prove the disk headroom
           provenance: false
           build-args: |
             RUST_TOOLCHAIN=${{ steps.versions.outputs.rust_toolchain }}
             DYLINT_TOOLCHAIN=${{ steps.versions.outputs.dylint_toolchain }}
             NODE_VERSION=${{ steps.versions.outputs.node_version }}
             PNPM_VERSION=${{ steps.versions.outputs.pnpm_version }}
-
-      - name: Disk after # TEMPORARY
-        if: always()
-        run: df -h / && docker system df && docker buildx du --verbose | tail -5
 
       - name: Summary
         run: |
@@ -165,3 +157,25 @@ jobs:
               echo "_Build-only run — nothing was published, so there is no digest to pin._"
             fi
           } >> "$GITHUB_STEP_SUMMARY"
+
+  # TEMPORARY: the repo has never used a job-level `container:`, and the
+  # self-hosted runners start dockerd lazily (see .github/actions/docker/run).
+  # This proves whether migrating real jobs onto the image is even possible,
+  # using a public image so it does not depend on ci-linux being published.
+  verify-container-support:
+    name: Probe job-level container on self-hosted
+    runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') }}
+    container:
+      image: ubuntu:22.04
+    steps:
+      - name: Inside the container
+        run: |
+          cat /etc/os-release
+          echo "whoami: $(id)"
+          echo "pwd: $(pwd)"
+          df -h /
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Checkout landed
+        run: ls -la Cargo.toml rust-toolchain.toml
