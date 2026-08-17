@@ -9,6 +9,7 @@ use std::{
 };
 
 use dashmap::DashMap;
+use memchr::memchr2_iter;
 use rspack_cacheable::{
   cacheable,
   with::{AsPreset, Unsupported},
@@ -101,18 +102,22 @@ impl CompiledStringTemplate {
     let mut placeholder_data = Vec::new();
     let mut segments = Vec::new();
     let mut plain_start = 0;
-    let mut cursor = 0;
+    let mut placeholder_start = None;
+    let bytes = template.as_bytes();
 
-    while let Some(relative_start) = template[cursor..].find('[') {
-      let start = cursor + relative_start;
-      let Some(relative_end) = template[start + 1..].find(']') else {
-        break;
+    for index in memchr2_iter(b'[', b']', bytes) {
+      if bytes[index] == b'[' {
+        placeholder_start = Some(index);
+        continue;
+      }
+
+      let Some(start) = placeholder_start.take() else {
+        continue;
       };
-      let end = start + 1 + relative_end;
+      let end = index;
       let token = &template[start + 1..end];
 
       let Some((kind, parameters)) = parse_placeholder(token) else {
-        cursor = start + 1;
         continue;
       };
 
@@ -142,8 +147,7 @@ impl CompiledStringTemplate {
         range: to_u16_range(start, end + 1),
       });
 
-      cursor = end + 1;
-      plain_start = cursor;
+      plain_start = end + 1;
     }
 
     if plain_start < template.len() {
