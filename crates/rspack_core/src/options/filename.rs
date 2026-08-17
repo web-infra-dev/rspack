@@ -466,21 +466,15 @@ fn has_content_hash_placeholder_uncompiled(template: &str) -> bool {
   false
 }
 
-#[derive(Debug)]
-struct StagedReplacement {
-  value: String,
-  stage: i8,
-}
-
 #[derive(Debug, Default)]
 struct FileReplacements {
-  file: Option<StagedReplacement>,
-  base: Option<StagedReplacement>,
-  name: Option<StagedReplacement>,
-  path: Option<StagedReplacement>,
-  ext: Option<StagedReplacement>,
-  query: Option<StagedReplacement>,
-  fragment: Option<StagedReplacement>,
+  file: Option<String>,
+  base: Option<String>,
+  name: Option<String>,
+  path: Option<String>,
+  ext: Option<String>,
+  query: Option<String>,
+  fragment: Option<String>,
 }
 
 impl FileReplacements {
@@ -501,13 +495,13 @@ impl FileReplacements {
         .unwrap_or_default();
 
       return Self {
-        file: Some(staged("", 0)),
-        query: Some(staged("", 1)),
-        fragment: Some(staged("", 2)),
-        path: Some(staged("", 3)),
-        base: Some(staged(replacer.clone(), 4)),
-        name: Some(staged(replacer, 5)),
-        ext: Some(staged(ext, 6)),
+        file: Some(String::new()),
+        query: Some(String::new()),
+        fragment: Some(String::new()),
+        path: Some(String::new()),
+        base: Some(replacer.clone()),
+        name: Some(replacer),
+        ext: Some(ext),
       };
     }
 
@@ -534,21 +528,14 @@ impl FileReplacements {
       .unwrap_or_default();
 
     Self {
-      file: Some(staged(file.as_str(), 0)),
-      ext: Some(staged(ext, 1)),
-      base: base.map(|base| staged(base, 2)),
-      name: name.map(|name| staged(name, 3)),
-      path: Some(staged(path, 4)),
-      query: Some(staged(query.unwrap_or_default(), 5)),
-      fragment: Some(staged(fragment.unwrap_or_default(), 6)),
+      file: Some(file.as_str().to_owned()),
+      ext: Some(ext),
+      base,
+      name,
+      path: Some(path),
+      query: Some(query.unwrap_or_default()),
+      fragment: Some(fragment.unwrap_or_default()),
     }
-  }
-}
-
-fn staged(value: impl Into<String>, stage: i8) -> StagedReplacement {
-  StagedReplacement {
-    value: value.into(),
-    stage,
   }
 }
 
@@ -570,7 +557,6 @@ fn render_template(
   render_compiled_template(
     template,
     compiled,
-    -1,
     options,
     &file_replacements,
     &mut asset_info,
@@ -582,7 +568,6 @@ fn render_template(
 fn render_compiled_template(
   template: &str,
   compiled: &CompiledStringTemplate,
-  min_stage: i8,
   options: PathData<'_>,
   file_replacements: &FileReplacements,
   asset_info: &mut Option<&mut AssetInfo>,
@@ -598,14 +583,7 @@ fn render_compiled_template(
           .placeholder_data
           .get(usize::from(*id))
           .expect("filename placeholder segment references missing side-table data");
-        if !render_placeholder(
-          data,
-          min_stage,
-          options,
-          file_replacements,
-          asset_info,
-          output,
-        ) {
+        if !render_placeholder(data, options, file_replacements, asset_info, output) {
           output.push_str(&template[usize::from(range.start)..usize::from(range.end)]);
         }
       }
@@ -615,7 +593,6 @@ fn render_compiled_template(
 
 fn render_placeholder(
   data: &PlaceholderData,
-  min_stage: i8,
   options: PathData<'_>,
   file_replacements: &FileReplacements,
   asset_info: &mut Option<&mut AssetInfo>,
@@ -623,140 +600,39 @@ fn render_placeholder(
 ) -> bool {
   let kind = data.kind;
   match kind {
-    PlaceholderKind::File => try_render_staged(
-      file_replacements.file.as_ref(),
-      min_stage,
-      options,
-      file_replacements,
-      asset_info,
-      output,
-    ),
-    PlaceholderKind::Base => try_render_staged(
-      file_replacements.base.as_ref(),
-      min_stage,
-      options,
-      file_replacements,
-      asset_info,
-      output,
-    ),
+    PlaceholderKind::File => try_render_value(file_replacements.file.as_deref(), output),
+    PlaceholderKind::Base => try_render_value(file_replacements.base.as_deref(), output),
     PlaceholderKind::Name => {
-      try_render_staged(
-        file_replacements.name.as_ref(),
-        min_stage,
-        options,
-        file_replacements,
-        asset_info,
-        output,
-      ) || try_render_value(
-        options.chunk_name.or(options.chunk_id),
-        11,
-        min_stage,
-        options,
-        file_replacements,
-        asset_info,
-        output,
-      )
+      try_render_value(file_replacements.name.as_deref(), output)
+        || try_render_value(options.chunk_name.or(options.chunk_id), output)
     }
-    PlaceholderKind::Path => try_render_staged(
-      file_replacements.path.as_ref(),
-      min_stage,
-      options,
-      file_replacements,
-      asset_info,
-      output,
-    ),
-    PlaceholderKind::Ext => try_render_staged(
-      file_replacements.ext.as_ref(),
-      min_stage,
-      options,
-      file_replacements,
-      asset_info,
-      output,
-    ),
-    PlaceholderKind::Query => try_render_staged(
-      file_replacements.query.as_ref(),
-      min_stage,
-      options,
-      file_replacements,
-      asset_info,
-      output,
-    ),
-    PlaceholderKind::Fragment => try_render_staged(
-      file_replacements.fragment.as_ref(),
-      min_stage,
-      options,
-      file_replacements,
-      asset_info,
-      output,
-    ),
+    PlaceholderKind::Path => try_render_value(file_replacements.path.as_deref(), output),
+    PlaceholderKind::Ext => try_render_value(file_replacements.ext.as_deref(), output),
+    PlaceholderKind::Query => try_render_value(file_replacements.query.as_deref(), output),
+    PlaceholderKind::Fragment => try_render_value(file_replacements.fragment.as_deref(), output),
     PlaceholderKind::Id => try_render_value(
       options.id.or(options.chunk_id).or(options.module_id),
-      9,
-      min_stage,
-      options,
-      file_replacements,
-      asset_info,
       output,
     ),
-    PlaceholderKind::Runtime => try_render_value(
-      Some(options.runtime.unwrap_or("_")),
-      13,
-      min_stage,
-      options,
-      file_replacements,
-      asset_info,
-      output,
-    ),
-    PlaceholderKind::Url => try_render_value(
-      options.url,
-      14,
-      min_stage,
-      options,
-      file_replacements,
-      asset_info,
-      output,
-    ),
-    PlaceholderKind::Hash => try_render_hash(
-      options.hash,
-      7,
-      kind,
-      data.parameters,
-      min_stage,
-      options,
-      file_replacements,
-      asset_info,
-      output,
-    ),
-    PlaceholderKind::FullHash => try_render_hash(
-      options.hash,
-      8,
-      kind,
-      data.parameters,
-      min_stage,
-      options,
-      file_replacements,
-      asset_info,
-      output,
-    ),
+    PlaceholderKind::Runtime => try_render_value(Some(options.runtime.unwrap_or("_")), output),
+    PlaceholderKind::Url => try_render_value(options.url, output),
+    PlaceholderKind::Hash => {
+      try_render_hash(options.hash, kind, data.parameters, asset_info, output)
+    }
+    PlaceholderKind::FullHash => {
+      try_render_hash(options.hash, kind, data.parameters, asset_info, output)
+    }
     PlaceholderKind::ContentHash => try_render_hash(
       options.content_hash,
-      10,
       kind,
       data.parameters,
-      min_stage,
-      options,
-      file_replacements,
       asset_info,
       output,
     ),
     PlaceholderKind::ChunkHash => try_render_hash(
       options.chunk_hash,
-      12,
       kind,
       data.parameters,
-      min_stage,
-      options,
-      file_replacements,
       asset_info,
       output,
     ),
@@ -764,65 +640,22 @@ fn render_placeholder(
   }
 }
 
-fn try_render_staged(
-  replacement: Option<&StagedReplacement>,
-  min_stage: i8,
-  options: PathData<'_>,
-  file_replacements: &FileReplacements,
-  asset_info: &mut Option<&mut AssetInfo>,
-  output: &mut String,
-) -> bool {
-  let Some(replacement) = replacement.filter(|replacement| replacement.stage > min_stage) else {
+fn try_render_value(replacement: Option<&str>, output: &mut String) -> bool {
+  let Some(replacement) = replacement else {
     return false;
   };
-  push_replacement(
-    &replacement.value,
-    replacement.stage,
-    options,
-    file_replacements,
-    asset_info,
-    output,
-  );
+  output.push_str(replacement);
   true
 }
 
-#[allow(clippy::too_many_arguments)]
-fn try_render_value(
-  replacement: Option<&str>,
-  stage: i8,
-  min_stage: i8,
-  options: PathData<'_>,
-  file_replacements: &FileReplacements,
-  asset_info: &mut Option<&mut AssetInfo>,
-  output: &mut String,
-) -> bool {
-  let Some(replacement) = replacement.filter(|_| stage > min_stage) else {
-    return false;
-  };
-  push_replacement(
-    replacement,
-    stage,
-    options,
-    file_replacements,
-    asset_info,
-    output,
-  );
-  true
-}
-
-#[allow(clippy::too_many_arguments)]
 fn try_render_hash(
   hash: Option<&str>,
-  stage: i8,
   kind: PlaceholderKind,
   parameters: PlaceholderParameters,
-  min_stage: i8,
-  options: PathData<'_>,
-  file_replacements: &FileReplacements,
   asset_info: &mut Option<&mut AssetInfo>,
   output: &mut String,
 ) -> bool {
-  let Some(hash) = hash.filter(|_| stage > min_stage) else {
+  let Some(hash) = hash else {
     return false;
   };
   let PlaceholderParameters::Hash { len, encoding } = parameters else {
@@ -852,39 +685,8 @@ fn try_render_hash(
     }
   }
 
-  push_replacement(
-    content,
-    stage,
-    options,
-    file_replacements,
-    asset_info,
-    output,
-  );
+  output.push_str(content);
   true
-}
-
-fn push_replacement(
-  replacement: &str,
-  stage: i8,
-  options: PathData<'_>,
-  file_replacements: &FileReplacements,
-  asset_info: &mut Option<&mut AssetInfo>,
-  output: &mut String,
-) {
-  if replacement.contains('[') && replacement.len() <= MAX_TEMPLATE_LEN {
-    let compiled = CompiledStringTemplate::compile(replacement);
-    render_compiled_template(
-      replacement,
-      &compiled,
-      stage,
-      options,
-      file_replacements,
-      asset_info,
-      output,
-    );
-  } else {
-    output.push_str(replacement);
-  }
 }
 
 fn data_uri(mut input: &str) -> winnow::ModalResult<&str> {
