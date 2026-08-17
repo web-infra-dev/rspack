@@ -325,20 +325,23 @@ impl Filename {
     options: PathData<'_>,
     asset_info: Option<&mut AssetInfo>,
   ) -> rspack_error::Result<String> {
-    let template = match &self.0 {
-      FilenameKind::Template(template) => *template,
+    match &self.0 {
+      FilenameKind::Template(template) => {
+        let compiled = get_or_compile(*template);
+        Ok(render_template(
+          template.as_str(),
+          &compiled,
+          options,
+          asset_info,
+        ))
+      }
       FilenameKind::Fn(filename_fn) => {
         let template = filename_fn.call(&options, asset_info.as_deref()).await?;
-        intern_template(&template)
+        assert_template_len(&template);
+        let compiled = CompiledStringTemplate::compile(&template);
+        Ok(render_template(&template, &compiled, options, asset_info))
       }
-    };
-    let compiled = get_or_compile(template);
-    Ok(render_template(
-      template.as_str(),
-      &compiled,
-      options,
-      asset_info,
-    ))
+    }
   }
 }
 
