@@ -8,8 +8,11 @@ use crate::LoaderItem;
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct LoaderRunnerOptions {
   pub cache: bool,
-  /// Loader name, stable options and loader version/file hash.
-  pub cache_key: String,
+  /// Loader version or resolved entry file hash.
+  pub cache_version: String,
+  /// Stable serialization of the final loader options when it is already
+  /// available on the Rust side (for example, for native loaders).
+  pub options_cache_key: Option<String>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -22,7 +25,6 @@ pub enum LoaderExecutionKind {
 pub enum LoaderChain {
   CacheChain {
     range: Range<u8>,
-    cache_key: String,
     children: Vec<LoaderChain>,
   },
   JsExecutionChain {
@@ -110,13 +112,6 @@ impl LoaderChain {
     }
   }
 
-  pub fn cache_key(&self) -> Option<&str> {
-    match self {
-      Self::CacheChain { cache_key, .. } => Some(cache_key),
-      Self::JsExecutionChain { .. } | Self::NativeExecutionChain { .. } => None,
-    }
-  }
-
   fn execution_chain(&self, loader_index: usize) -> Option<&LoaderChain> {
     match self {
       Self::CacheChain { children, .. } => children
@@ -147,17 +142,6 @@ fn plan_execution_chains<Context: Send>(
   chains
 }
 
-fn cache_key<Context: Send>(loaders: &[LoaderItem<Context>], range: Range<usize>) -> String {
-  let mut key = String::new();
-  for loader in &loaders[range] {
-    let loader_key = loader.cache_key();
-    key.push_str(&loader_key.len().to_string());
-    key.push(':');
-    key.push_str(loader_key);
-  }
-  key
-}
-
 pub(crate) fn plan_loader_chains<Context: Send>(
   loaders: &[LoaderItem<Context>],
 ) -> Vec<LoaderChain> {
@@ -179,7 +163,6 @@ pub(crate) fn plan_loader_chains<Context: Send>(
       let range = index..end;
       chains.push(LoaderChain::CacheChain {
         range: index as u8..end as u8,
-        cache_key: cache_key(loaders, range.clone()),
         children: plan_execution_chains(loaders, range),
       });
       index = end;

@@ -145,6 +145,30 @@ impl<Context: Send> LoaderContext<Context> {
     execution_chain_at(self.current_root_chain()?, loader_index)
   }
 
+  /// Builds the cache key from the final per-run loader options. JavaScript
+  /// loader options are only resolved from their `??ident` references when
+  /// `Module::loaders` is materialized on the JavaScript side.
+  pub fn loader_chain_cache_key(&self, chain: &LoaderChain) -> Option<String> {
+    let mut chain_key = String::new();
+    for index in chain.range() {
+      let index = usize::from(index);
+      let loader = &self.loader_items()[index];
+      let options = self.loader_item_state(index).options_cache_key()?;
+      let name = loader.path().as_str();
+      let version = loader.cache_version();
+      let loader_key = format!(
+        "{}:{name}{}:{options}{}:{version}",
+        name.len(),
+        options.len(),
+        version.len()
+      );
+      chain_key.push_str(&loader_key.len().to_string());
+      chain_key.push(':');
+      chain_key.push_str(&loader_key);
+    }
+    Some(chain_key)
+  }
+
   /// Emit a diagnostic, it can be a `warning` or `error`.
   pub fn emit_diagnostic(&mut self, diagnostic: Diagnostic) {
     self.diagnostics.push(diagnostic)

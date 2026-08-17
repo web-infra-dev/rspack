@@ -2,7 +2,7 @@ use std::{borrow::Cow, collections::HashMap, ops::Deref, sync::Arc};
 
 use rspack_error::{Result, error};
 use rspack_hook::define_hook;
-use rspack_loader_runner::{Loader, LoaderRunnerOptions, Scheme, get_scheme};
+use rspack_loader_runner::{Loader, LoaderExecutionKind, LoaderRunnerOptions, Scheme, get_scheme};
 use rspack_paths::ArcResolverPathSet;
 use rspack_util::{MergeFrom, fx_hash::FxDashMap};
 use sugar_path::SugarPath;
@@ -853,7 +853,6 @@ impl NormalModuleFactory {
                 .map(|object| object.to_string())
             }),
             cache: false,
-            cache_key: String::new(),
           }
         }));
         scheme = get_scheme(unresolved_resource);
@@ -1104,7 +1103,7 @@ module.exports = "data:,";
     };
     let (loaders, loader_options): (Vec<_>, Vec<_>) = resolved_loaders
       .into_iter()
-      .map(|resolved| (resolved.loader, resolved.options))
+      .map(ResolvedLoader::into_parts)
       .unzip();
     let loaders = Arc::new(Loaders::with_options(loaders, loader_options));
 
@@ -1358,28 +1357,39 @@ async fn resolve_each(
 
 struct ResolvedLoader {
   loader: BoxLoader,
-  options: LoaderRunnerOptions,
+  cache: bool,
+  options: Option<String>,
 }
 
 impl ResolvedLoader {
   fn uncached(loader: BoxLoader) -> Self {
     Self {
       loader,
-      options: LoaderRunnerOptions::default(),
+      cache: false,
+      options: None,
     }
   }
-}
 
-fn loader_cache_key(name: &str, loader: &BoxLoader, options: &str) -> String {
-  let version = loader
-    .cache_version()
-    .unwrap_or(rspack_workspace::rspack_pkg_version!());
-  format!(
-    "{}:{name}{}:{options}{}:{version}",
-    name.len(),
-    options.len(),
-    version.len()
-  )
+  fn into_parts(self) -> (BoxLoader, LoaderRunnerOptions) {
+    let options = if self.cache {
+      LoaderRunnerOptions {
+        cache: true,
+        cache_version: self
+          .loader
+          .cache_version()
+          .unwrap_or(rspack_workspace::rspack_pkg_version!())
+          .to_owned(),
+        // Native loader options have already gone through their final adapter
+        // and are available here. JavaScript options are still represented by
+        // `??ident` and are fingerprinted when JS materializes Module::loaders.
+        options_cache_key: (self.loader.execution_kind() == LoaderExecutionKind::Native)
+          .then(|| self.options.unwrap_or_else(|| "undefined".to_owned())),
+      }
+    } else {
+      LoaderRunnerOptions::default()
+    };
+    (self.loader, options)
+  }
 }
 
 async fn resolve_each_with_options(
@@ -1389,16 +1399,10 @@ async fn resolve_each_with_options(
   loader: &ModuleRuleUseLoader,
 ) -> Result<ResolvedLoader> {
   let resolved = resolve_each(plugin_driver, context, loader_resolver, loader).await?;
-  let cache_key = loader
-    .cache
-    .then(|| loader_cache_key(&loader.loader, &resolved, &loader.cache_key))
-    .unwrap_or_default();
   Ok(ResolvedLoader {
     loader: resolved,
-    options: LoaderRunnerOptions {
-      cache: loader.cache,
-      cache_key,
-    },
+    cache: loader.cache,
+    options: loader.options.clone(),
   })
 }
 

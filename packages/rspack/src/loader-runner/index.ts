@@ -55,6 +55,7 @@ import { memoize } from '../util/memoize';
 import { ModuleError, ModuleWarning } from './ModuleError';
 import * as pool from './service';
 import { type HandleIncomingRequest, RequestType } from './service';
+import { stableSerializeLoaderOptions } from './stableSerializeLoaderOptions';
 import {
   convertArgs,
   extractLoaderName,
@@ -1124,6 +1125,18 @@ export async function runLoaders(
       default:
         throw new Error(`Unexpected loader runner state: ${loaderState}`);
     }
+
+    // Cache keys must use the effective options on the final Module::loaders
+    // objects, after `??ident` references have been resolved. Computing this
+    // in config adaptation would fingerprint an earlier representation.
+    loaderContext.loaders.forEach((item, index) => {
+      if (item.loaderItem.cache) {
+        item.loaderItem.optionsCacheKey = stableSerializeLoaderOptions(
+          item.options,
+          `Module.loaders[${index}].options`,
+        );
+      }
+    });
 
     // update loader state
     context.loaderItems = loaderContext.loaders.map((item) =>

@@ -203,13 +203,14 @@ pub(crate) fn before_normal_chain(
   if !context.parse_meta.is_empty() || !context.context.module.build_info().assets.is_empty() {
     return LoaderChainCacheAction::Disabled;
   }
-  let cache_key = chain
-    .cache_key()
-    .expect("loader cache only accepts CacheChain");
+  let Some(cache_key) = context.loader_chain_cache_key(chain) else {
+    return LoaderChainCacheAction::Disabled;
+  };
   let module_identifier = context.context.module.identifier();
   let cache = Arc::clone(&context.context.loader_cache);
 
-  if let Some(entry) = cache.get::<LoaderCacheEntry>(cache_key, module_identifier.as_str(), &etag) {
+  if let Some(entry) = cache.get::<LoaderCacheEntry>(&cache_key, module_identifier.as_str(), &etag)
+  {
     replay_dependency_delta(&mut context.file_dependencies, &entry.file_dependencies);
     replay_dependency_delta(
       &mut context.context_dependencies,
@@ -239,7 +240,7 @@ pub(crate) fn before_normal_chain(
 
   LoaderChainCacheAction::Miss(LoaderChainCacheState::new(LoaderCacheMissState {
     cache,
-    cache_key: cache_key.to_owned(),
+    cache_key,
     module_identifier: module_identifier.as_str().to_owned(),
     etag,
     diagnostics_len: context.diagnostics.len(),

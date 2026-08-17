@@ -1674,8 +1674,6 @@ pub struct ModuleRuleUseLoader {
   pub options: Option<String>,
   /// Cache this loader as part of a contiguous loader cache chain.
   pub cache: bool,
-  /// Stable serialization of the public loader options.
-  pub cache_key: String,
 }
 
 pub type FnUse =

@@ -38,6 +38,18 @@ pub(crate) async fn loader_should_yield(
           .expect("pitching requires a current execution chain")
           .range();
         let start = loader_context.loader_index as usize;
+        let end = usize::from(span.end);
+        // Cached JavaScript loader options only become concrete after JS
+        // resolves their `??ident` references into Module::loaders. Yield once
+        // even for loaders known not to export pitch so the normal-stage cache
+        // lookup never uses an options key from config adaptation.
+        if loader_context.loader_items()[start..end]
+          .iter()
+          .zip(&loader_context.loader_item_states[start..end])
+          .any(|(loader, state)| loader.cache() && state.options_cache_key().is_none())
+        {
+          return Ok(Some(true));
+        }
         let should_yield = loader_context.loader_items()[start..usize::from(span.end)]
           .iter()
           .enumerate()
@@ -157,6 +169,9 @@ pub(crate) fn merge_loader_context(
       }
       if from.pitch_executed {
         to.set_pitch_executed()
+      }
+      if let Some(cache_key) = from.options_cache_key {
+        to.set_options_cache_key(cache_key);
       }
       to.set_data(from.data);
     }

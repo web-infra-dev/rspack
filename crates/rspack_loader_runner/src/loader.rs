@@ -31,7 +31,8 @@ pub struct LoaderItem<Context: Send> {
   r#type: String,
   execution_kind: LoaderExecutionKind,
   cache: bool,
-  cache_key: String,
+  cache_version: String,
+  initial_options_cache_key: Option<String>,
 }
 
 #[derive(Debug, Default)]
@@ -42,6 +43,8 @@ pub struct LoaderItemState {
   normal_executed: bool,
   /// Whether loader was called with [LoaderContext::finish_with].
   finish_called: bool,
+  /// Stable serialization of the effective options used for this run.
+  options_cache_key: Option<String>,
 }
 
 impl<C: Send> LoaderItem<C> {
@@ -60,8 +63,13 @@ impl<C: Send> LoaderItem<C> {
   }
 
   #[inline]
-  pub fn cache_key(&self) -> &str {
-    &self.cache_key
+  pub fn cache_version(&self) -> &str {
+    &self.cache_version
+  }
+
+  #[inline]
+  pub(crate) fn initial_options_cache_key(&self) -> Option<&str> {
+    self.initial_options_cache_key.as_deref()
   }
 
   #[inline]
@@ -104,6 +112,14 @@ impl LoaderItemState {
 
   pub fn finish_called(&self) -> bool {
     self.finish_called
+  }
+
+  pub fn options_cache_key(&self) -> Option<&str> {
+    self.options_cache_key.as_deref()
+  }
+
+  pub fn set_options_cache_key(&mut self, cache_key: String) {
+    self.options_cache_key = Some(cache_key);
   }
 
   pub fn set_pitch_executed(&mut self) {
@@ -231,7 +247,8 @@ impl<C: Send> LoaderItem<C> {
         r#type: ty,
         execution_kind,
         cache: options.cache,
-        cache_key: options.cache_key,
+        cache_version: options.cache_version,
+        initial_options_cache_key: options.options_cache_key,
       };
     }
     let ident = loader.identifier();
@@ -249,7 +266,8 @@ impl<C: Send> LoaderItem<C> {
       r#type: String::default(),
       execution_kind,
       cache: options.cache,
-      cache_key: options.cache_key,
+      cache_version: options.cache_version,
+      initial_options_cache_key: options.options_cache_key,
     }
   }
 }

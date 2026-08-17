@@ -308,8 +308,15 @@ fn create_loader_context<Context: Send>(
     file_dependencies.insert(resource_path.to_owned().into_std_path_buf());
   }
 
-  let loader_item_states = (0..loader_items.len())
-    .map(|_| LoaderItemState::default())
+  let loader_item_states = loader_items
+    .iter()
+    .map(|loader| {
+      let mut state = LoaderItemState::default();
+      if let Some(cache_key) = loader.initial_options_cache_key() {
+        state.set_options_cache_key(cache_key.to_owned());
+      }
+      state
+    })
     .collect();
   let cache_chain_states = loader_chains
     .iter()

@@ -24,6 +24,11 @@ pub struct JsLoaderItem {
   pub pitch_executed: bool,
 
   pub no_pitch: bool,
+
+  /// Whether this loader participates in a loader cache chain.
+  pub cache: bool,
+  /// Stable serialization of the effective options for this run.
+  pub options_cache_key: Option<String>,
 }
 
 impl JsLoaderItem {
@@ -40,6 +45,8 @@ impl JsLoaderItem {
       pitch_executed: state.pitch_executed(),
 
       no_pitch: false,
+      cache: value.cache(),
+      options_cache_key: state.options_cache_key().map(ToOwned::to_owned),
     }
   }
 }
@@ -59,6 +66,8 @@ where
         pitch_executed: false,
         normal_executed: false,
         no_pitch: false,
+        cache: false,
+        options_cache_key: None,
       };
     }
     Self {
@@ -68,6 +77,8 @@ where
       pitch_executed: false,
       normal_executed: false,
       no_pitch: false,
+      cache: false,
+      options_cache_key: None,
     }
   }
 }
