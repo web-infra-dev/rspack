@@ -19,7 +19,7 @@ const CARGO_SAFELY_EXIT_CODE = 0;
 const watch = process.argv.includes("--watch");
 
 const measureFresh = process.env.MEASURE_CARGO_FRESH === "1" && !watch;
-const isReleaseProfile = ["release", "release-wasi"].includes(values.profile);
+const isReleaseProfile = values.profile === "release" || values.profile === "release-wasi";
 
 build().then((value) => {
 	// Regarding cargo's non-zero exit code as an error.
