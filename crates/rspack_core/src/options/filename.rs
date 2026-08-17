@@ -1,6 +1,5 @@
 use std::{
   borrow::Cow,
-  collections::HashMap,
   fmt::Debug,
   hash::{BuildHasherDefault, Hasher},
   ops::{Deref, Range},
@@ -31,7 +30,6 @@ pub static CONTENT_HASH_PLACEHOLDER: &str = "[contenthash]";
 const MAX_TEMPLATE_LEN: usize = u16::MAX as usize;
 
 type PlaceholderId = u16;
-type PlaceholderMap = HashMap<Ustr, PlaceholderId, BuildHasherDefault<IdentityHasher>>;
 type CompiledTemplateCache =
   DashMap<Ustr, Arc<CompiledStringTemplate>, BuildHasherDefault<IdentityHasher>>;
 
@@ -87,7 +85,6 @@ enum StringTemplateSegment {
 
 #[derive(Debug)]
 struct CompiledStringTemplate {
-  placeholder_indices: PlaceholderMap,
   placeholder_data: Vec<PlaceholderData>,
   segments: Vec<StringTemplateSegment>,
   has_hash_placeholder: bool,
@@ -98,7 +95,6 @@ impl CompiledStringTemplate {
   fn compile(template: &str) -> Self {
     debug_assert!(template.len() <= MAX_TEMPLATE_LEN);
 
-    let mut placeholder_indices = PlaceholderMap::default();
     let mut placeholder_data = Vec::new();
     let mut segments = Vec::new();
     let mut plain_start = 0;
@@ -128,20 +124,9 @@ impl CompiledStringTemplate {
         )));
       }
 
-      let raw = if token == kind.as_str() {
-        Ustr::from(kind.as_str())
-      } else {
-        Ustr::from(token)
-      };
-      let id = if let Some(id) = placeholder_indices.get(&raw) {
-        *id
-      } else {
-        let id = PlaceholderId::try_from(placeholder_data.len())
-          .expect("filename template contains too many unique placeholders");
-        placeholder_data.push(PlaceholderData { kind, parameters });
-        placeholder_indices.insert(raw, id);
-        id
-      };
+      let id = PlaceholderId::try_from(placeholder_data.len())
+        .expect("filename template contains too many placeholders");
+      placeholder_data.push(PlaceholderData { kind, parameters });
       segments.push(StringTemplateSegment::Placeholder {
         id,
         range: to_u16_range(start, end + 1),
@@ -158,7 +143,6 @@ impl CompiledStringTemplate {
     }
 
     Self {
-      placeholder_indices,
       placeholder_data,
       segments,
       has_hash_placeholder: has_hash_placeholder_uncompiled(template),
@@ -167,12 +151,7 @@ impl CompiledStringTemplate {
   }
 
   fn contains_kind(&self, kind: PlaceholderKind) -> bool {
-    self.placeholder_indices.values().any(|id| {
-      self
-        .placeholder_data
-        .get(usize::from(*id))
-        .is_some_and(|data| data.kind == kind)
-    })
+    self.placeholder_data.iter().any(|data| data.kind == kind)
   }
 }
 
