@@ -1,8 +1,7 @@
 use cow_utils::CowUtils;
 use rspack_core::{
   Compilation, PathData, RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule,
-  RuntimeModuleGenerateContext, RuntimeModuleStage, RuntimeTemplate,
-  get_filename_without_hash_length, impl_runtime_module,
+  RuntimeModuleGenerateContext, RuntimeModuleStage, RuntimeTemplate, impl_runtime_module,
 };
 use rspack_util::itoa;
 
@@ -187,17 +186,21 @@ async fn render_wasm_module_path(
   compilation: &rspack_core::Compilation,
   chunk_ukey: &rspack_core::ChunkUkey,
 ) -> rspack_error::Result<String> {
-  let (fake_filename, hash_len_map) =
-    get_filename_without_hash_length(&compilation.options.output.webassembly_module_filename);
+  let filename = &compilation.options.output.webassembly_module_filename;
+  let compiled = filename.compiled();
+  let fake_filename = compiled.as_ref().map_or_else(
+    || filename.clone(),
+    |compiled| rspack_core::Filename::from(compiled.without_hash_length()),
+  );
+  let hash_len = compiled
+    .as_ref()
+    .and_then(|compiled| compiled.content_hash_len().or(compiled.hash_len()));
 
   // Even use content hash when [hash] in webpack
-  let hash = match hash_len_map
-    .get("[contenthash]")
-    .or(hash_len_map.get("[hash]"))
-  {
+  let hash = match hash_len {
     Some(hash_len) => {
       let mut hash_len_buffer = itoa::Buffer::new();
-      let hash_len_str = hash_len_buffer.format(*hash_len);
+      let hash_len_str = hash_len_buffer.format(hash_len);
       format!("\" + wasmModuleHash.slice(0, {hash_len_str}) + \"")
     }
     None => "\" + wasmModuleHash + \"".to_string(),
