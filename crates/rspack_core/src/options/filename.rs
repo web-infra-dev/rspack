@@ -636,7 +636,7 @@ fn render_placeholder(
       asset_info,
       output,
     ),
-    PlaceholderKind::Unknown => unreachable!("unknown placeholder kind cannot be rendered"),
+    PlaceholderKind::Unknown => false,
   }
 }
 
