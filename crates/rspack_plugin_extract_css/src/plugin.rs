@@ -13,7 +13,7 @@ use rspack_core::{
   CompilationRuntimeRequirementInTree, CompilerCompilation, DependencyType, Filename,
   ManifestAssetType, Module, ModuleGraph, ModuleIdentifier, ModuleType, NormalModuleFactoryParser,
   ParserAndGenerator, ParserOptions, PathData, Plugin, RenderManifestEntry, RuntimeGlobals,
-  RuntimeModule, SourceType, get_undo_path,
+  RuntimeModule, SourceType, get_undo_path, remove_bom,
   rspack_sources::{
     BoxSource, CachedSource, ConcatSource, RawStringSource, SourceExt, SourceMap, SourceMapSource,
     WithoutOriginalOptions,
@@ -413,7 +413,11 @@ despite it was not able to fulfill desired ordering with these modules:
     for module in used_modules {
       let content = Cow::Borrowed(module.content.as_str());
       let readable_identifier = module.readable_identifier(&compilation.options.context);
-      let starts_with_at_import = content.starts_with(STARTS_WITH_AT_IMPORT);
+      // Loaders such as dart-sass prepend a BOM. It only carries meaning at the head
+      // of a file: left in place it hides the `@import url` prefix from the check
+      // below, and it lands mid-chunk, where it invalidates the rule after it.
+      let without_bom = content.strip_prefix('\u{feff}').unwrap_or(content.as_ref());
+      let starts_with_at_import = without_bom.starts_with(STARTS_WITH_AT_IMPORT);
 
       let header = self.options.pathinfo.then(|| {
         let req_str = readable_identifier.cow_replace("*/", "*_/");
@@ -431,10 +435,10 @@ despite it was not able to fulfill desired ordering with these modules:
           external_source.add(header);
         }
         if let Some(media) = &module.media {
-          let new_content = MEDIA_RE.replace_all(content.as_ref(), media);
+          let new_content = MEDIA_RE.replace_all(without_bom, media);
           external_source.add(RawStringSource::from(new_content.to_string() + "\n"));
         } else {
-          external_source.add(RawStringSource::from(content.to_string() + "\n"));
+          external_source.add(RawStringSource::from(without_bom.to_string() + "\n"));
         }
       } else {
         let mut need_supports = false;
@@ -482,15 +486,20 @@ despite it was not able to fulfill desired ordering with these modules:
             .unwrap_or(&undo_path),
         );
 
-        if let Some(source_map) = &module.source_map {
-          source.add(SourceMapSource::new(WithoutOriginalOptions {
+        let rendered: BoxSource = if let Some(source_map) = &module.source_map {
+          SourceMapSource::new(WithoutOriginalOptions {
             value: content.to_string(),
             name: readable_identifier,
             source_map: SourceMap::from_json(source_map.clone()).expect("invalid sourcemap"),
-          }))
+          })
+          .boxed()
         } else {
-          source.add(RawStringSource::from(content.to_string()));
-        }
+          RawStringSource::from(content.to_string()).boxed()
+        };
+
+        // Stripped on the rendered source rather than on `content`, so that the
+        // module's source map columns move along with the removed bytes.
+        source.add(remove_bom(rendered));
 
         source.add(RawStringSource::from_static("\n"));
 
