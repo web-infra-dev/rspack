@@ -48,10 +48,7 @@ fn css_modules_local_var_2() {
   assert_local_var_dependency(input, &dependencies[2], "color2", Some("'./b.css'"));
   assert_local_var_dependency(input, &dependencies[3], "color3", Some("global"));
   assert_eq!(dependencies.len(), 4);
-}
 
-#[test]
-fn css_modules_local_var_preserves_additional_leading_hyphens() {
   let input = ".vars { ----a: red; color: var(----a); }";
   let (dependencies, warnings) = collect_dependencies(input, Mode::Local);
   assert!(warnings.is_empty());
@@ -66,10 +63,7 @@ fn css_modules_local_var_preserves_additional_leading_hyphens() {
       .collect::<Vec<_>>(),
     ["--a", "--a"]
   );
-}
 
-#[test]
-fn css_modules_local_var_distinguishes_global_keyword_from_request() {
   let input = r#".vars { a: var(--a from global); b: var(--b from "global"); }"#;
   let (dependencies, warnings) = collect_dependencies(input, Mode::Local);
   assert!(warnings.is_empty());

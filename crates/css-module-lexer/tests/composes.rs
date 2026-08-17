@@ -54,10 +54,7 @@ fn css_modules_composes_1() {
     r#"composes: importName from "path/library.css", beforeName from global, importName secondImport from global, firstImport secondImport from "path/library.css";"#,
   );
   assert_eq!(dependencies.len(), 6);
-}
 
-#[test]
-fn css_modules_composes_distinguishes_global_keyword_from_requests() {
   let input = indoc! {r#"
         .exportName {
             composes: lower from global, upper from GLOBAL, escaped from g\6c obal, quoted from "global";
