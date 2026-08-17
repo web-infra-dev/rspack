@@ -1,4 +1,4 @@
-use std::{any::Any, sync::Arc};
+use std::sync::Arc;
 
 use rspack_error::Result;
 
@@ -85,66 +85,4 @@ fn join_name(prefix: &str, name: &str, with_separator: bool) -> Arc<str> {
   }
   result.push_str(name);
   result.into()
-}
-
-fn join_memory_segment(prefix: &str, name: &str) -> Arc<str> {
-  let name_len = name.len().to_string();
-  let mut result = String::with_capacity(prefix.len() + name_len.len() + name.len() + 2);
-  result.push_str(prefix);
-  result.push('|');
-  result.push_str(&name_len);
-  result.push(':');
-  result.push_str(name);
-  result.into()
-}
-
-/// A namespaced view that deliberately accesses only new_cache's memory tier.
-#[derive(Debug, Clone)]
-pub struct MemoryCacheFacade {
-  cache: Cache,
-  name: Arc<str>,
-}
-
-impl MemoryCacheFacade {
-  pub(crate) fn new(cache: Cache, name: impl Into<Arc<str>>) -> Self {
-    Self {
-      cache,
-      name: name.into(),
-    }
-  }
-
-  pub fn get_child_cache(&self, name: &str) -> Self {
-    Self {
-      cache: self.cache.clone(),
-      name: join_memory_segment(&self.name, name),
-    }
-  }
-
-  pub fn get_item_cache(&self, identifier: &str, etag: Option<Etag>) -> MemoryItemCacheFacade {
-    MemoryItemCacheFacade {
-      cache: self.cache.clone(),
-      key: CacheKey::from(join_memory_segment(&self.name, identifier)),
-      etag,
-    }
-  }
-}
-
-/// A fixed-key facade for values that must never reach persistent storage.
-#[derive(Debug, Clone)]
-pub struct MemoryItemCacheFacade {
-  cache: Cache,
-  key: CacheKey,
-  etag: Option<Etag>,
-}
-
-impl MemoryItemCacheFacade {
-  pub fn get<T: Any + Send + Sync>(&self) -> Option<CacheValue<T>> {
-    self.cache.get_memory(&self.key, self.etag.as_ref())
-  }
-
-  pub fn store<T: Any + Send + Sync>(&self, value: CacheValue<T>) {
-    self
-      .cache
-      .store_memory(self.key.clone(), self.etag.clone(), value)
-  }
 }

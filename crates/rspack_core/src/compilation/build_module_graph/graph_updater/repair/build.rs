@@ -8,10 +8,9 @@ use super::{
 };
 use crate::{
   AsyncDependenciesBlock, BoxDependency, BoxModule, BuildContext, BuildResult, CompilationId,
-  CompilerId, CompilerOptions, DependencyParents, ModuleCodeTemplate, ResolverFactory,
+  CompilerId, CompilerOptions, DependencyParents, LoaderCache, ModuleCodeTemplate, ResolverFactory,
   SharedPluginDriver,
   compilation::build_module_graph::{ForwardedIdSet, HasLazyDependencies, LazyDependencies},
-  new_cache::MemoryCacheFacade,
   utils::{
     ResourceId,
     task_loop::{Task, TaskResult, TaskType},
@@ -28,7 +27,7 @@ pub struct BuildTask {
   pub runtime_template: ModuleCodeTemplate,
   pub plugin_driver: SharedPluginDriver,
   pub fs: Arc<dyn ReadableFileSystem>,
-  pub loader_cache: MemoryCacheFacade,
+  pub loader_cache: Arc<LoaderCache>,
   pub forwarded_ids: ForwardedIdSet,
 }
 

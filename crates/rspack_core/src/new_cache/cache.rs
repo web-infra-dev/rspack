@@ -1,4 +1,4 @@
-use std::{any::Any, sync::Arc, time::Duration};
+use std::{sync::Arc, time::Duration};
 
 use rspack_error::Result;
 use rspack_paths::ArcPathSet;
@@ -62,36 +62,6 @@ impl Cache {
     cache_name.push_str(&self.inner.compiler_path);
     cache_name.push_str(name);
     CacheFacade::new(self.clone(), cache_name)
-  }
-
-  pub(crate) fn memory_facade(&self, name: &str) -> super::MemoryCacheFacade {
-    let mut cache_name = String::with_capacity(self.inner.compiler_path.len() + name.len());
-    cache_name.push_str(&self.inner.compiler_path);
-    cache_name.push_str(name);
-    super::MemoryCacheFacade::new(self.clone(), cache_name)
-  }
-
-  pub(super) fn get_memory<T: Any + Send + Sync>(
-    &self,
-    key: &CacheKey,
-    etag: Option<&Etag>,
-  ) -> Option<CacheValue<T>> {
-    let storage = self.inner.storage.as_ref()?;
-    match storage.memory_cache.get(key, etag) {
-      MemoryCacheGetResult::Hit(value) => Some(value),
-      MemoryCacheGetResult::Miss | MemoryCacheGetResult::NotCached => None,
-    }
-  }
-
-  pub(super) fn store_memory<T: Any + Send + Sync>(
-    &self,
-    key: CacheKey,
-    etag: Option<Etag>,
-    value: CacheValue<T>,
-  ) {
-    if let Some(storage) = &self.inner.storage {
-      storage.memory_cache.store(key, etag, value);
-    }
   }
 
   pub fn get<T: CacheValueData>(
