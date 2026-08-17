@@ -1,0 +1,152 @@
+name: Build CI Image
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docker/ci-linux/**'
+      - 'rust-toolchain.toml'
+      - '.nvmrc'
+      - 'package.json'
+      - '.github/workflows/ci-dylint.yaml'
+      - '.github/workflows/build-ci-image.yml'
+  workflow_dispatch:
+    inputs:
+      push:
+        description: 'Push to ghcr.io (uncheck to only build)'
+        type: boolean
+        default: true
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  IMAGE: ghcr.io/${{ github.repository }}/ci-linux
+
+jobs:
+  build:
+    name: Build and push ci-linux image
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      # Every version below has exactly one source of truth in the repo. Parsing
+      # them here keeps the image from drifting away from what CI actually uses.
+      - name: Resolve toolchain versions
+        id: versions
+        run: |
+          set -euo pipefail
+
+          # `|| true` keeps a no-match from tripping `set -e` before the check below reports which one failed.
+          rust_toolchain=$(sed -n -E 's/^[ \t]*channel[ \t]*=[ \t]*"([^"]*)".*$/\1/p' rust-toolchain.toml)
+          dylint_toolchain=$(grep -oE 'rustup toolchain install (nightly-[0-9-]+)' .github/workflows/ci-dylint.yaml | awk '{print $4}' || true)
+          node_version=$(tr -d '[:space:]' < .nvmrc)
+          pnpm_version=$(node -p "require('./package.json').packageManager.split('@')[1]" || true)
+
+          for pair in "rust_toolchain:$rust_toolchain" "dylint_toolchain:$dylint_toolchain" \
+                      "node_version:$node_version" "pnpm_version:$pnpm_version"; do
+            [[ -n "${pair#*:}" ]] || { echo "::error::failed to resolve ${pair%%:*}"; exit 1; }
+          done
+
+          {
+            echo "rust_toolchain=$rust_toolchain"
+            echo "dylint_toolchain=$dylint_toolchain"
+            echo "node_version=$node_version"
+            echo "pnpm_version=$pnpm_version"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Build tag list
+        id: meta
+        run: |
+          set -euo pipefail
+
+          # ghcr rejects uppercase; forks can have a mixed-case owner.
+          image="${IMAGE,,}"
+
+          # Dated off the commit, not the clock, so re-running a run reproduces the same tag.
+          version="$(git show -s --format=%cd --date=format:%Y%m%d HEAD)-${GITHUB_SHA::7}"
+          semantic="rust-${{ steps.versions.outputs.rust_toolchain }}-node${{ steps.versions.outputs.node_version }}"
+
+          # The version tag is immutable, so it is safe from any ref. The moving
+          # tags are withheld off the default branch to protect existing consumers.
+          tags=("$image:$version")
+          if [[ "$GITHUB_REF_NAME" == "${{ github.event.repository.default_branch }}" ]]; then
+            tags+=("$image:latest" "$image:$semantic")
+            release=true
+          else
+            release=false
+          fi
+
+          {
+            echo "tags<<EOF"
+            printf '%s\n' "${tags[@]}"
+            echo "EOF"
+            echo "version=$version"
+            echo "image=$image"
+            echo "release=$release"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Free disk space
+        uses: xc2/free-disk-space@fbe203b3788f2bebe2c835a15925da303eaa5efe # v1.0.0
+        with:
+          tool-cache: false
+
+      - uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
+
+      # `inputs.push` only exists on workflow_dispatch; a push event must always publish.
+      - name: Login to ghcr.io
+        if: github.event_name != 'workflow_dispatch' || inputs.push
+        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        id: build
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
+        with:
+          context: docker/ci-linux
+          push: ${{ github.event_name != 'workflow_dispatch' || inputs.push }}
+          tags: ${{ steps.meta.outputs.tags }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: false
+          build-args: |
+            RUST_TOOLCHAIN=${{ steps.versions.outputs.rust_toolchain }}
+            DYLINT_TOOLCHAIN=${{ steps.versions.outputs.dylint_toolchain }}
+            NODE_VERSION=${{ steps.versions.outputs.node_version }}
+            PNPM_VERSION=${{ steps.versions.outputs.pnpm_version }}
+
+      - name: Summary
+        run: |
+          {
+            echo "### ci-linux \`${{ steps.meta.outputs.version }}\`"
+            echo
+            echo "| key | value |"
+            echo "| --- | --- |"
+            echo "| rust | \`${{ steps.versions.outputs.rust_toolchain }}\` |"
+            echo "| dylint rust | \`${{ steps.versions.outputs.dylint_toolchain }}\` |"
+            echo "| node | \`${{ steps.versions.outputs.node_version }}\` |"
+            echo "| pnpm | \`${{ steps.versions.outputs.pnpm_version }}\` |"
+            echo "| ref | \`$GITHUB_REF_NAME\` |"
+            echo "| pushed | \`${{ github.event_name != 'workflow_dispatch' || inputs.push }}\` |"
+            echo
+            echo "**Tags**"
+            echo '```'
+            echo "${{ steps.meta.outputs.tags }}"
+            echo '```'
+            if [[ "${{ steps.meta.outputs.release }}" != "true" ]]; then
+              echo "> Not the default branch — the moving tags (\`latest\`, \`${{ steps.versions.outputs.rust_toolchain }}\` semantic) were withheld."
+            fi
+            echo
+            echo "Pin this digest in consumers:"
+            echo '```yaml'
+            echo "image: ${{ steps.meta.outputs.image }}@${{ steps.build.outputs.digest }}"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
