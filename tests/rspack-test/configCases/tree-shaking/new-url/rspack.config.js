@@ -5,7 +5,7 @@ module.exports = {
   module: {
     rules: [
       {
-        test: /\.svg$/,
+        test: /\.(?:svg|wasm)$/,
         type: 'asset/resource',
       },
     ],

@@ -7,8 +7,7 @@ it("should not shake the url import", () => {
 	a();
 	b();
 	const file = fs.readFileSync(__filename).toString();
-	// 4 = 1 time(for module id) + 2 time(referenced in another module + comment) + 1 time(in assertion) + 1 time(module info header)
-	expect(countSubstringOccurrences(file, "a.wasm")).toBe(3);
+	expect(fs.readdirSync(__dirname).some(file => file.endsWith(".wasm"))).toBe(true);
 	// 2 = 1 time(in comment) + 1 time(in assertion)
 	expect(countSubstringOccurrences(file, "worker import")).toBe(2);
 	expect(fs.existsSync(path.resolve(__dirname, "b_worker_js.js"))).toBe(true);

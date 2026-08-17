@@ -11,8 +11,9 @@ use tokio::sync::oneshot::Sender;
 use super::context::{ExecutorTaskContext, ImportModuleMeta};
 use crate::{
   Chunk, ChunkGraph, ChunkKind, ChunkUkey, CodeGenerationDataAssetInfo, CodeGenerationDataFilename,
-  CodeGenerationResult, Compilation, CompilationAsset, CompilationAssets, EntryOptions, Entrypoint,
-  FactorizeInfo, ModuleCodeGenerationContext, ModuleType, PublicPath, RuntimeSpec, SourceType,
+  CodeGenerationResult, Compilation, CompilationAsset, CompilationAssets, DependenciesBlock,
+  DependencyType, EntryOptions, Entrypoint, FactorizeInfo, ModuleCodeGenerationContext, ModuleType,
+  PublicPath, RuntimeSpec, SourceType,
   compilation::{
     code_generation::code_generation_modules,
     create_module_hashes::create_module_hashes,
@@ -302,6 +303,22 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
           && !modules.contains(c.module_identifier())
         {
           queue.push_back(*c.module_identifier());
+        }
+      }
+      // A new URL dependency is represented as an async entry in the output graph, but
+      // executeModule still needs its exported URL and emitted asset while running loaders.
+      // Follow only URL block dependencies here; dynamic imports and workers stay asynchronous.
+      for block_id in module.get_blocks() {
+        let block = mg.block_by_id_expect(block_id);
+        for dep_id in block.get_dependencies() {
+          if mg.dependency_by_id(dep_id).dependency_type() != &DependencyType::NewUrl {
+            continue;
+          }
+          if let Some(connection) = mg.connection_by_dependency_id(dep_id)
+            && !modules.contains(connection.module_identifier())
+          {
+            queue.push_back(*connection.module_identifier());
+          }
         }
       }
     }

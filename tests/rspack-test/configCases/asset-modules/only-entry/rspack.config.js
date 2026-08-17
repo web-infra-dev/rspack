@@ -11,6 +11,7 @@ const common = (i, options) => ({
     cssFilename: `${i}/[name].css`,
     cssChunkFilename: `${i}/[name].css`,
     assetModuleFilename: `${i}/[name][ext][query]`,
+    webassemblyModuleFilename: `${i}/[id].wasm`,
   },
   module: {
     rules: [
@@ -21,6 +22,10 @@ const common = (i, options) => ({
       {
         test: /\.css$/,
         type: 'css/auto',
+      },
+      {
+        test: /\.wasm$/,
+        type: 'webassembly/async',
       },
     ],
   },
@@ -115,6 +120,19 @@ module.exports = [
     entry: {
       'mixed-entry': {
         import: ['../_images/file.png', './entry.js'],
+      },
+    },
+  }),
+  common(7, {
+    experiments: {
+      asyncWebAssembly: true,
+    },
+    entry: {
+      'asset-entry': {
+        import: '../_images/file.png',
+      },
+      'wasm-entry': {
+        import: '../../rstest/new-url-wasm/test.wasm',
       },
     },
   }),

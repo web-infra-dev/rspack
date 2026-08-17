@@ -21,6 +21,7 @@ use crate::dependency::WasmImportDependency;
 pub struct AsyncWasmParserAndGenerator;
 
 pub(crate) static WASM_SOURCE_TYPE: &[SourceType; 2] = &[SourceType::Wasm, SourceType::JavaScript];
+pub(crate) static WASM_ONLY_SOURCE_TYPE: &[SourceType; 1] = &[SourceType::Wasm];
 const WASM_MAGIC_HEADER: &[u8; 4] = b"\0asm";
 
 #[derive(Debug)]
@@ -33,8 +34,22 @@ struct DepModule<'a> {
 #[cacheable_dyn]
 #[async_trait::async_trait]
 impl ParserAndGenerator for AsyncWasmParserAndGenerator {
-  fn source_types(&self, _module: &dyn Module, _module_graph: &ModuleGraph) -> &[SourceType] {
-    WASM_SOURCE_TYPE
+  fn source_types(&self, module: &dyn Module, module_graph: &ModuleGraph) -> &[SourceType] {
+    let is_entry_output_only = module_graph
+      .get_incoming_connections(&module.identifier())
+      .all(|connection| {
+        matches!(
+          module_graph
+            .dependency_by_id(&connection.dependency_id)
+            .dependency_type(),
+          DependencyType::Entry | DependencyType::NewUrl
+        )
+      });
+    if is_entry_output_only {
+      WASM_ONLY_SOURCE_TYPE
+    } else {
+      WASM_SOURCE_TYPE
+    }
   }
 
   async fn parse<'a>(
