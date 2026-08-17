@@ -100,10 +100,8 @@ jobs:
             echo "release=$release"
           } >> "$GITHUB_OUTPUT"
 
-      - name: Free disk space
-        uses: xc2/free-disk-space@fbe203b3788f2bebe2c835a15925da303eaa5efe # v1.0.0
-        with:
-          tool-cache: false
+      - name: Disk before # TEMPORARY
+        run: df -h / && docker system df
 
       - uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
 
@@ -124,12 +122,17 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          no-cache: true # TEMPORARY: force a cold build to prove the disk headroom
           provenance: false
           build-args: |
             RUST_TOOLCHAIN=${{ steps.versions.outputs.rust_toolchain }}
             DYLINT_TOOLCHAIN=${{ steps.versions.outputs.dylint_toolchain }}
             NODE_VERSION=${{ steps.versions.outputs.node_version }}
             PNPM_VERSION=${{ steps.versions.outputs.pnpm_version }}
+
+      - name: Disk after # TEMPORARY
+        if: always()
+        run: df -h / && docker system df && docker buildx du --verbose | tail -5
 
       - name: Summary
         run: |
