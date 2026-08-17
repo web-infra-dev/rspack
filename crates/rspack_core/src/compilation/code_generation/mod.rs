@@ -196,11 +196,7 @@ pub(crate) async fn code_generation_modules(
             .module_by_identifier(&job.module)
             .expect("should have module");
           let new_code_generation_cache = new_cache.map(|cache| {
-            let etag = Etag::from(format!(
-              "{}|{}",
-              job.hash.encoded(),
-              options.experiments.runtime_mode
-            ));
+            let etag = Etag::from(job.hash.encoded());
             MultiItemCache::new(job.runtimes.iter().map(|runtime| {
               cache.get_item_cache(
                 &format!("{}|{}", job.module, get_runtime_key(runtime)),

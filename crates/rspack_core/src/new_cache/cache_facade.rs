@@ -103,13 +103,10 @@ impl MultiItemCache {
   }
 
   pub fn store<T: CacheValueData>(&self, value: CacheValue<T>) -> Result<()> {
-    let Some((last, items)) = self.items.split_last() else {
-      return Ok(());
-    };
-    for item in items {
+    for item in &self.items {
       item.store(value.clone())?;
     }
-    last.store(value)
+    Ok(())
   }
 }
 
