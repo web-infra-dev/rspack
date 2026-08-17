@@ -1143,9 +1143,7 @@ dependencies = [
 
 [[package]]
 name = "css-module-lexer"
-version = "0.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f24b58d8805a0fbc00b383af342efd371e513239a61e2f958cf8e2a663dc6be5"
+version = "0.101.10"
 dependencies = [
  "bitflags 2.11.1",
  "rustc-hash",
