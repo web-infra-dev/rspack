@@ -49,7 +49,7 @@ use crate::{
 pub struct RawModuleRuleUse {
   pub loader: String,
   pub options: Option<String>,
-  pub cache: bool,
+  pub cache: Option<bool>,
 }
 
 #[rspack_napi_macros::tagged_union]
@@ -1022,7 +1022,7 @@ impl TryFrom<RawModuleRule> for ModuleRule {
           .map(|rule_use| ModuleRuleUseLoader {
             loader: rule_use.loader,
             options: rule_use.options,
-            cache: rule_use.cache,
+            cache: rule_use.cache.unwrap_or_default(),
           })
           .collect::<Vec<_>>();
         Ok::<ModuleRuleUse, rspack_error::Error>(ModuleRuleUse::Array(uses))
@@ -1037,7 +1037,7 @@ impl TryFrom<RawModuleRule> for ModuleRule {
                 .map(|rule_use| ModuleRuleUseLoader {
                   loader: rule_use.loader,
                   options: rule_use.options,
-                  cache: rule_use.cache,
+                  cache: rule_use.cache.unwrap_or_default(),
                 })
                 .collect::<Vec<_>>()
             })

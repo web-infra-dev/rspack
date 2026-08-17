@@ -1664,7 +1664,7 @@ pub struct FuncUseCtx {
   pub issuer_layer: Option<String>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct ModuleRuleUseLoader {
   /// Loader identifier with query and fragments
   /// Loader ident or query will be appended if it exists.
