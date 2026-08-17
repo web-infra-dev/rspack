@@ -11,9 +11,13 @@ bitflags   = { workspace = true }
 rustc-hash = { workspace = true, features = ["std"] }
 smallvec   = { workspace = true }
 
+[dev-dependencies]
+indoc           = { workspace = true }
+linked-hash-map = { workspace = true }
+similar-asserts = { workspace = true, features = ["unicode"] }
+
 [lints]
 workspace = true
 
 [lib]
 doctest = false
-test    = false

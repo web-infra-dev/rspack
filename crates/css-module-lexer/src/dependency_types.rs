@@ -653,3 +653,7 @@ impl Display for Warning<'_> {
     }
   }
 }
+
+#[cfg(test)]
+#[path = "../tests/unit/dependency_types_tests.rs"]
+mod tests;

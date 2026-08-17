@@ -2050,3 +2050,7 @@ fn is_name_start_byte(c: u8) -> bool {
 fn is_non_printable(c: u8) -> bool {
   matches!(c, 0x00..=0x08 | 0x0B | 0x0E..=0x1F | 0x7F)
 }
+
+#[cfg(test)]
+#[path = "../tests/unit/lexer_tests.rs"]
+mod tests;
