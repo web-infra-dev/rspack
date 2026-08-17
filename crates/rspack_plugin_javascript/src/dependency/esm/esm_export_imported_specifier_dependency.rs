@@ -527,7 +527,7 @@ impl ESMExportImportedSpecifierDependency {
             "/* empty/unused ESM star reexport */\n".to_string(),
             InitFragmentStage::StageESMExports,
             1,
-            InitFragmentKey::unique(),
+            InitFragmentKey::ESMEmptyReexport(import_var),
             None,
           )
           .boxed(),
@@ -538,7 +538,7 @@ impl ESMExportImportedSpecifierDependency {
           to_normal_comment(&format!("unused reexport {name}")),
           InitFragmentStage::StageESMExports,
           1,
-          InitFragmentKey::unique(),
+          InitFragmentKey::ESMUnusedReexport(import_var),
           None,
         )
         .boxed(),
@@ -785,7 +785,7 @@ impl ESMExportImportedSpecifierDependency {
           let mut content = format!(
             r"
 /* reexport */ var __rspack_reexport = {{}};
-/* reexport */ for( {} __rspack_import_key in {import_var}) ",
+/* reexport */ for({} __rspack_import_key in {import_var}) ",
             if supports_const { "const" } else { "var" }
           );
 
@@ -828,7 +828,7 @@ impl ESMExportImportedSpecifierDependency {
               InitFragmentStage::StageESMImports
             },
             self.source_order,
-            InitFragmentKey::unique(),
+            InitFragmentKey::ESMDynamicReexport(import_var),
             None,
           )
           .boxed(),

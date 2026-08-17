@@ -1,8 +1,7 @@
 use std::{
   collections::{BTreeMap, BTreeSet},
-  fmt::{Debug, Display, Formatter},
+  fmt::Debug,
   hash::BuildHasherDefault,
-  sync::atomic::AtomicU32,
 };
 
 use dyn_clone::{DynClone, clone_trait_object};
@@ -24,8 +23,6 @@ use crate::{
   merge_runtime, property_name,
 };
 
-static NEXT_INIT_FRAGMENT_KEY_UNIQUE_ID: AtomicU32 = AtomicU32::new(0);
-
 pub struct InitFragmentContents {
   pub start: String,
   pub end: Option<String>,
@@ -34,77 +31,21 @@ pub struct InitFragmentContents {
 #[cacheable]
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum InitFragmentKey {
-  Unique(u32),
   ESMImport(String),
-  ESMExportStar(String), // TODO: align with webpack and remove this
   ESMExports,
+  ESMEmptyReexport(String),
+  ESMUnusedReexport(String),
+  ESMFakeNamespaceObjectFragment(String),
+  ESMDeferImportNamespaceObjectFragment(String),
+  ESMDynamicReexport(String),
   CommonJsExports(String),
   ModuleExternal(String),
   ExternalModule(String),
   AwaitDependencies,
+  AsyncBoundary(String /* module_id */),
   ESMCompatibility,
   ModuleDecorator(String /* module_id */),
-  ESMFakeNamespaceObjectFragment(String),
-  ESMDeferImportNamespaceObjectFragment(String),
   Const(String),
-}
-
-impl InitFragmentKey {
-  pub fn unique() -> Self {
-    Self::Unique(
-      NEXT_INIT_FRAGMENT_KEY_UNIQUE_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed),
-    )
-  }
-}
-
-impl RspackHash for InitFragmentKey {
-  fn hash(&self, state: &mut RspackHasher) {
-    match self {
-      InitFragmentKey::Unique(id) => {
-        "unique".hash(state);
-        id.hash(state);
-      }
-      InitFragmentKey::ESMImport(value) => {
-        "esm-import".hash(state);
-        value.hash(state);
-      }
-      InitFragmentKey::ESMExportStar(value) => {
-        "esm-export-star".hash(state);
-        value.hash(state);
-      }
-      InitFragmentKey::ESMExports => "esm-exports".hash(state),
-      InitFragmentKey::CommonJsExports(value) => {
-        "commonjs-exports".hash(state);
-        value.hash(state);
-      }
-      InitFragmentKey::ModuleExternal(value) => {
-        "module-external".hash(state);
-        value.hash(state);
-      }
-      InitFragmentKey::ExternalModule(value) => {
-        "external-module".hash(state);
-        value.hash(state);
-      }
-      InitFragmentKey::AwaitDependencies => "await-dependencies".hash(state),
-      InitFragmentKey::ESMCompatibility => "esm-compatibility".hash(state),
-      InitFragmentKey::ModuleDecorator(value) => {
-        "module-decorator".hash(state);
-        value.hash(state);
-      }
-      InitFragmentKey::ESMFakeNamespaceObjectFragment(value) => {
-        "esm-fake-namespace-object".hash(state);
-        value.hash(state);
-      }
-      InitFragmentKey::ESMDeferImportNamespaceObjectFragment(value) => {
-        "esm-defer-import-namespace-object".hash(state);
-        value.hash(state);
-      }
-      InitFragmentKey::Const(value) => {
-        "const".hash(state);
-        value.hash(state);
-      }
-    }
-  }
 }
 
 impl InitFragmentKey {
@@ -191,13 +132,15 @@ impl InitFragmentKey {
       }
       InitFragmentKey::ESMFakeNamespaceObjectFragment(_)
       | InitFragmentKey::ESMDeferImportNamespaceObjectFragment(_)
-      | InitFragmentKey::ESMExportStar(_)
+      | InitFragmentKey::AsyncBoundary(_)
+      | InitFragmentKey::ESMEmptyReexport(_)
+      | InitFragmentKey::ESMUnusedReexport(_)
+      | InitFragmentKey::ESMDynamicReexport(_)
       | InitFragmentKey::ModuleExternal(_)
       | InitFragmentKey::ModuleDecorator(_)
       | InitFragmentKey::CommonJsExports(_)
       | InitFragmentKey::ESMCompatibility
-      | InitFragmentKey::Const(_) => first(fragments),
-      InitFragmentKey::Unique(_) => {
+      | InitFragmentKey::Const(_) => {
         debug_assert!(fragments.len() == 1, "fragment = {self:?}");
         first(fragments)
       }
@@ -218,7 +161,7 @@ pub trait InitFragmentRenderContext {
 }
 
 #[cacheable_dyn]
-pub trait InitFragment: IntoAny + RspackHash + DynClone + Debug + Sync + Send {
+pub trait InitFragment: IntoAny + DynClone + Debug + Sync + Send {
   /// getContent + getEndContent
   fn contents(
     self: Box<Self>,
@@ -258,32 +201,6 @@ pub enum InitFragmentStage {
   StageProvides,
   StageAsyncDependencies,
   StageAsyncESMImports,
-}
-
-impl RspackHash for InitFragmentStage {
-  fn hash(&self, state: &mut RspackHasher) {
-    self.as_str().hash(state);
-  }
-}
-
-impl InitFragmentStage {
-  fn as_str(self) -> &'static str {
-    match self {
-      InitFragmentStage::StageConstants => "constants",
-      InitFragmentStage::StageAsyncBoundary => "async-boundary",
-      InitFragmentStage::StageESMExports => "esm-exports",
-      InitFragmentStage::StageESMImports => "esm-imports",
-      InitFragmentStage::StageProvides => "provides",
-      InitFragmentStage::StageAsyncDependencies => "async-dependencies",
-      InitFragmentStage::StageAsyncESMImports => "async-esm-imports",
-    }
-  }
-}
-
-impl Display for InitFragmentStage {
-  fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-    f.write_str(self.as_str())
-  }
 }
 
 /// InitFragment.addToSource
@@ -369,7 +286,7 @@ impl InitFragmentRenderContext for ChunkRenderContext {
 }
 
 #[cacheable]
-#[derive(Debug, Clone, rspack_hash::RspackHash)]
+#[derive(Debug, Clone)]
 pub struct NormalInitFragment {
   content: String,
   stage: InitFragmentStage,
@@ -643,7 +560,7 @@ impl InitFragment for AwaitDependenciesInitFragment {
 }
 
 #[cacheable]
-#[derive(Debug, Clone, rspack_hash::RspackHash)]
+#[derive(Debug, Clone)]
 pub struct ConditionalInitFragment {
   content: String,
   stage: InitFragmentStage,
@@ -764,7 +681,7 @@ fn wrap_in_condition(condition: &str, source: &str) -> String {
 }
 
 #[cacheable]
-#[derive(Debug, Clone, rspack_hash::RspackHash)]
+#[derive(Debug, Clone)]
 pub struct ExternalModuleInitFragment {
   imported_module: String,
   // webpack also supports `ImportSpecifiers` but not ever used.
