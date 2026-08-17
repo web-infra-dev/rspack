@@ -166,11 +166,16 @@ fn push_request_to_absolute(context: &str, relative_path: &str, out: &mut String
 }
 
 pub fn make_paths_absolute(context: &str, identifier: &str) -> String {
+  let relative_segment_count = identifier
+    .split(['|', '!'])
+    .filter(|segment| segment.starts_with("./") || segment.starts_with("../"))
+    .count();
   let mut result = String::with_capacity(
     context
       .len()
-      .saturating_add(identifier.len())
-      .saturating_add(1),
+      .saturating_add(1)
+      .saturating_mul(relative_segment_count)
+      .saturating_add(identifier.len()),
   );
   let mut last = 0;
 
@@ -201,11 +206,20 @@ fn push_make_paths_relative(context: &str, identifier: &str, out: &mut String) {
 }
 
 pub fn make_paths_relative(context: &str, identifier: &str) -> String {
+  let absolute_segment_count = identifier
+    .split(['|', '!'])
+    .filter(|segment| segment.starts_with('/') || is_windows_absolute_path(segment))
+    .count();
+  let context_component_count = context
+    .split(WINDOWS_PATH_SEPARATOR)
+    .filter(|component| !component.is_empty())
+    .count();
   let mut result = String::with_capacity(
-    context
-      .len()
-      .saturating_add(identifier.len())
-      .saturating_add(2),
+    context_component_count
+      .saturating_mul(3)
+      .saturating_add(2)
+      .saturating_mul(absolute_segment_count)
+      .saturating_add(identifier.len()),
   );
   push_make_paths_relative(context, identifier, &mut result);
   result
