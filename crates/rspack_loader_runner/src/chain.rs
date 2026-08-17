@@ -15,6 +15,13 @@ pub enum LoaderChain {
 }
 
 impl LoaderChain {
+  pub(crate) fn new(range: Range<u8>, kind: LoaderExecutionKind) -> Self {
+    match kind {
+      LoaderExecutionKind::Native => Self::NativeExecutionChain { range },
+      LoaderExecutionKind::JavaScript => Self::JsExecutionChain { range },
+    }
+  }
+
   pub fn range(&self) -> Range<u8> {
     match self {
       Self::JsExecutionChain { range } | Self::NativeExecutionChain { range } => range.clone(),
@@ -41,14 +48,9 @@ impl LoaderChain {
   }
 }
 
-fn execution_chain(range: Range<u8>, kind: LoaderExecutionKind) -> LoaderChain {
-  match kind {
-    LoaderExecutionKind::Native => LoaderChain::NativeExecutionChain { range },
-    LoaderExecutionKind::JavaScript => LoaderChain::JsExecutionChain { range },
-  }
-}
-
-pub fn plan_loader_chains<Context: Send>(loaders: &[LoaderItem<Context>]) -> Vec<LoaderChain> {
+pub(crate) fn plan_loader_chains<Context: Send>(
+  loaders: &[LoaderItem<Context>],
+) -> Vec<LoaderChain> {
   debug_assert!(
     loaders.len() <= usize::from(u8::MAX),
     "loader chain supports at most {} loaders, got {}",
@@ -67,7 +69,7 @@ pub fn plan_loader_chains<Context: Send>(loaders: &[LoaderItem<Context>]) -> Vec
         end += 1;
       }
     }
-    chains.push(execution_chain(index as u8..end as u8, kind));
+    chains.push(LoaderChain::new(index as u8..end as u8, kind));
     index = end;
   }
 

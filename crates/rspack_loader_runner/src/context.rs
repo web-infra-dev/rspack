@@ -114,13 +114,9 @@ impl<Context: Send> LoaderContext<Context> {
     self.current_loader_state_mut().set_finish_called();
   }
 
-  pub fn loader_chains(&self) -> &[LoaderChain] {
-    &self.loader_chains
-  }
-
-  pub fn current_chain_index(&self) -> Option<usize> {
+  pub fn current_chain(&self) -> Option<&LoaderChain> {
     let loader_index = usize::try_from(self.loader_index).ok()?;
-    self
+    let index = self
       .loader_chains
       .binary_search_by(|chain| {
         if chain.end() <= loader_index {
@@ -131,17 +127,8 @@ impl<Context: Send> LoaderContext<Context> {
           Ordering::Equal
         }
       })
-      .ok()
-  }
-
-  pub fn current_chain(&self) -> Option<&LoaderChain> {
-    self
-      .current_chain_index()
-      .and_then(|index| self.loader_chains.get(index))
-  }
-
-  pub fn current_execution_chain(&self) -> Option<&LoaderChain> {
-    self.current_chain()
+      .ok()?;
+    self.loader_chains.get(index)
   }
 
   /// Emit a diagnostic, it can be a `warning` or `error`.

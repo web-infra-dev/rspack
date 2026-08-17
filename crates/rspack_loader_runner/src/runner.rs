@@ -16,10 +16,10 @@ use tracing::{Instrument, info_span};
 
 use crate::{
   LoaderChain, ParseMeta,
+  chain::plan_loader_chains,
   content::{AdditionalData, Content, ResourceData},
   context::{LoaderContext, State},
   loader::{Loader, LoaderItem, LoaderItemState},
-  plan_loader_chains,
   plugin::LoaderRunnerPlugin,
 };
 
@@ -95,7 +95,7 @@ async fn run_pitch_chain<Context: Send>(
   resource: &str,
 ) -> Result<()> {
   let chain = cx
-    .current_execution_chain()
+    .current_chain()
     .cloned()
     .expect("pitching requires a current loader chain");
   let chain_end = chain.end() as i32;

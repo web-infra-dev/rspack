@@ -137,7 +137,7 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
     let module = &cx.context.module;
 
     let execution_span = cx
-      .current_execution_chain()
+      .current_chain()
       .expect("yielding requires a current execution chain")
       .range();
     Ok(JsLoaderContext {

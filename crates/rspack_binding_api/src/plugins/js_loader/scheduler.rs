@@ -34,7 +34,7 @@ pub(crate) async fn loader_should_yield(
       } else {
         let loaders_without_pitch = self.loaders_without_pitch.read().await;
         let span = loader_context
-          .current_execution_chain()
+          .current_chain()
           .expect("pitching requires a current execution chain")
           .range();
         let start = loader_context.loader_index as usize;
