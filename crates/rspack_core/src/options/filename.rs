@@ -29,8 +29,7 @@ pub static CONTENT_HASH_PLACEHOLDER: &str = "[contenthash]";
 const MAX_TEMPLATE_LEN: usize = u16::MAX as usize;
 
 type PlaceholderId = u16;
-type PlaceholderKindId = u8;
-type PlaceholderMap = HashMap<Ustr, PlaceholderKindId, BuildHasherDefault<IdentityHasher>>;
+type PlaceholderMap = HashMap<Ustr, PlaceholderId, BuildHasherDefault<IdentityHasher>>;
 type CompiledTemplateCache =
   DashMap<Ustr, Arc<CompiledStringTemplate>, BuildHasherDefault<IdentityHasher>>;
 
@@ -55,47 +54,6 @@ enum PlaceholderKind {
   ContentHash,
 }
 
-impl PlaceholderKind {
-  fn name(self) -> &'static str {
-    match self {
-      Self::File => "file",
-      Self::Base => "base",
-      Self::Name => "name",
-      Self::Path => "path",
-      Self::Ext => "ext",
-      Self::Query => "query",
-      Self::Fragment => "fragment",
-      Self::Id => "id",
-      Self::Runtime => "runtime",
-      Self::Url => "url",
-      Self::Hash => "hash",
-      Self::FullHash => "fullhash",
-      Self::ChunkHash => "chunkhash",
-      Self::ContentHash => "contenthash",
-    }
-  }
-
-  fn from_id(id: PlaceholderKindId) -> Self {
-    match id {
-      id if id == Self::File as PlaceholderKindId => Self::File,
-      id if id == Self::Base as PlaceholderKindId => Self::Base,
-      id if id == Self::Name as PlaceholderKindId => Self::Name,
-      id if id == Self::Path as PlaceholderKindId => Self::Path,
-      id if id == Self::Ext as PlaceholderKindId => Self::Ext,
-      id if id == Self::Query as PlaceholderKindId => Self::Query,
-      id if id == Self::Fragment as PlaceholderKindId => Self::Fragment,
-      id if id == Self::Id as PlaceholderKindId => Self::Id,
-      id if id == Self::Runtime as PlaceholderKindId => Self::Runtime,
-      id if id == Self::Url as PlaceholderKindId => Self::Url,
-      id if id == Self::Hash as PlaceholderKindId => Self::Hash,
-      id if id == Self::FullHash as PlaceholderKindId => Self::FullHash,
-      id if id == Self::ChunkHash as PlaceholderKindId => Self::ChunkHash,
-      id if id == Self::ContentHash as PlaceholderKindId => Self::ContentHash,
-      _ => unreachable!("invalid filename placeholder kind id: {id}"),
-    }
-  }
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum HashEncoding {
   Raw,
@@ -113,9 +71,9 @@ enum PlaceholderParameters {
 
 #[derive(Debug, Clone)]
 struct PlaceholderData {
-  kind: PlaceholderKindId,
+  kind: PlaceholderKind,
   parameters: PlaceholderParameters,
-  raw: Range<u16>,
+  raw: Ustr,
 }
 
 #[derive(Debug, Clone)]
@@ -163,18 +121,21 @@ impl CompiledStringTemplate {
         )));
       }
 
-      let id = PlaceholderId::try_from(placeholder_data.len())
-        .expect("filename template contains too many placeholders");
-      let raw = to_u16_range(start, end + 1);
-      placeholder_data.push(PlaceholderData {
-        kind: kind as PlaceholderKindId,
-        parameters,
-        raw,
-      });
+      let raw = Ustr::from(token);
+      let id = if let Some(id) = placeholder_indices.get(&raw) {
+        *id
+      } else {
+        let id = PlaceholderId::try_from(placeholder_data.len())
+          .expect("filename template contains too many unique placeholders");
+        placeholder_data.push(PlaceholderData {
+          kind,
+          parameters,
+          raw,
+        });
+        placeholder_indices.insert(raw, id);
+        id
+      };
       segments.push(StringTemplateSegment::Placeholder(id));
-      placeholder_indices
-        .entry(Ustr::from(kind.name()))
-        .or_insert(kind as PlaceholderKindId);
 
       cursor = end + 1;
       plain_start = cursor;
@@ -194,6 +155,15 @@ impl CompiledStringTemplate {
       has_hash_placeholder: has_hash_placeholder_uncompiled(template),
       has_content_hash_placeholder: has_content_hash_placeholder_uncompiled(template),
     }
+  }
+
+  fn contains_kind(&self, kind: PlaceholderKind) -> bool {
+    self.placeholder_indices.values().any(|id| {
+      self
+        .placeholder_data
+        .get(usize::from(*id))
+        .is_some_and(|data| data.kind == kind)
+    })
   }
 }
 
@@ -329,12 +299,8 @@ impl Filename {
       FilenameKind::Template(template) => {
         let compiled = get_or_compile(template);
         compiled.has_hash_placeholder
-          || compiled
-            .placeholder_indices
-            .contains_key(&Ustr::from("hash"))
-          || compiled
-            .placeholder_indices
-            .contains_key(&Ustr::from("fullhash"))
+          || compiled.contains_kind(PlaceholderKind::Hash)
+          || compiled.contains_kind(PlaceholderKind::FullHash)
       }
       FilenameKind::Fn(_) => true,
     }
@@ -345,9 +311,7 @@ impl Filename {
       FilenameKind::Template(template) => {
         let compiled = get_or_compile(template);
         compiled.has_content_hash_placeholder
-          || compiled
-            .placeholder_indices
-            .contains_key(&Ustr::from("contenthash"))
+          || compiled.contains_kind(PlaceholderKind::ContentHash)
       }
       FilenameKind::Fn(_) => true,
     }
@@ -646,7 +610,9 @@ fn render_compiled_template(
           asset_info,
           output,
         ) {
-          output.push_str(&template[usize::from(data.raw.start)..usize::from(data.raw.end)]);
+          output.push('[');
+          output.push_str(data.raw.as_str());
+          output.push(']');
         }
       }
     }
@@ -661,7 +627,7 @@ fn render_placeholder(
   asset_info: &mut Option<&mut AssetInfo>,
   output: &mut String,
 ) -> bool {
-  let kind = PlaceholderKind::from_id(data.kind);
+  let kind = data.kind;
   match kind {
     PlaceholderKind::File => try_render_staged(
       file_replacements.file.as_ref(),
