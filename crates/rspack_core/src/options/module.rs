@@ -1672,6 +1672,8 @@ pub struct ModuleRuleUseLoader {
   /// Loader options
   /// This only exists if the loader is a built-in loader.
   pub options: Option<String>,
+  /// Whether the JavaScript loader should run in a worker.
+  pub parallel: bool,
 }
 
 pub type FnUse =
