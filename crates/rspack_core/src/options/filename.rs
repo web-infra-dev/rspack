@@ -99,6 +99,8 @@ impl CompiledStringTemplate {
     let mut segments = Vec::new();
     let mut plain_start = 0;
     let mut placeholder_start = None;
+    let mut has_hash_placeholder = false;
+    let mut has_content_hash_placeholder = false;
     let bytes = template.as_bytes();
 
     for index in memchr2_iter(b'[', b']', bytes) {
@@ -116,6 +118,9 @@ impl CompiledStringTemplate {
       let Some((kind, parameters)) = parse_placeholder(token) else {
         continue;
       };
+
+      has_hash_placeholder |= matches!(kind, PlaceholderKind::Hash | PlaceholderKind::FullHash);
+      has_content_hash_placeholder |= kind == PlaceholderKind::ContentHash;
 
       if plain_start < start {
         segments.push(StringTemplateSegment::Plain(to_u16_range(
@@ -145,13 +150,9 @@ impl CompiledStringTemplate {
     Self {
       placeholder_data,
       segments,
-      has_hash_placeholder: has_hash_placeholder_uncompiled(template),
-      has_content_hash_placeholder: has_content_hash_placeholder_uncompiled(template),
+      has_hash_placeholder,
+      has_content_hash_placeholder,
     }
-  }
-
-  fn contains_kind(&self, kind: PlaceholderKind) -> bool {
-    self.placeholder_data.iter().any(|data| data.kind == kind)
   }
 }
 
@@ -275,23 +276,14 @@ impl Filename {
 
   pub fn has_hash_placeholder(&self) -> bool {
     match self.0 {
-      FilenameKind::Template(template) => {
-        let compiled = get_or_compile(template);
-        compiled.has_hash_placeholder
-          || compiled.contains_kind(PlaceholderKind::Hash)
-          || compiled.contains_kind(PlaceholderKind::FullHash)
-      }
+      FilenameKind::Template(template) => get_or_compile(template).has_hash_placeholder,
       FilenameKind::Fn(_) => true,
     }
   }
 
   pub fn has_content_hash_placeholder(&self) -> bool {
     match self.0 {
-      FilenameKind::Template(template) => {
-        let compiled = get_or_compile(template);
-        compiled.has_content_hash_placeholder
-          || compiled.contains_kind(PlaceholderKind::ContentHash)
-      }
+      FilenameKind::Template(template) => get_or_compile(template).has_content_hash_placeholder,
       FilenameKind::Fn(_) => true,
     }
   }
@@ -425,31 +417,9 @@ pub fn has_hash_placeholder(template: &str) -> bool {
   compiled.has_hash_placeholder
 }
 
-fn has_hash_placeholder_uncompiled(template: &str) -> bool {
-  for key in [HASH_PLACEHOLDER, FULL_HASH_PLACEHOLDER] {
-    let offset = key.len() - 1;
-    if let Some(start) = template.find(&key[..offset])
-      && template[start + offset..].find(']').is_some()
-    {
-      return true;
-    }
-  }
-  false
-}
-
 pub fn has_content_hash_placeholder(template: &str) -> bool {
   let compiled = get_or_compile(intern_template(template));
   compiled.has_content_hash_placeholder
-}
-
-fn has_content_hash_placeholder_uncompiled(template: &str) -> bool {
-  let offset = CONTENT_HASH_PLACEHOLDER.len() - 1;
-  if let Some(start) = template.find(&CONTENT_HASH_PLACEHOLDER[..offset])
-    && template[start + offset..].find(']').is_some()
-  {
-    return true;
-  }
-  false
 }
 
 #[derive(Debug, Default)]
