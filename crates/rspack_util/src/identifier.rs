@@ -211,22 +211,9 @@ pub fn make_paths_absolute(context: &str, identifier: &str) -> String {
 
 pub fn make_paths_relative(context: &str, identifier: &str) -> String {
   let ranges = identifier_segment_ranges(identifier);
-  let absolute_segment_count = ranges
-    .iter()
-    .filter(|range| {
-      let segment = &identifier[range.start as usize..range.end as usize];
-      segment.starts_with('/') || is_windows_absolute_path(segment)
-    })
-    .count();
-  // Each context component can add `../`. Single-byte components separated by
-  // a path separator give the maximum possible component count for a given
-  // context length.
-  let context_component_upper_bound = context.len().saturating_add(1) / 2;
-  let absolute_segment_extra = context_component_upper_bound
-    .saturating_mul(3)
-    .saturating_add(2);
-  let result_capacity = absolute_segment_extra
-    .saturating_mul(absolute_segment_count)
+  let segment_capacity = context.len().saturating_mul(2).saturating_add(2);
+  let result_capacity = segment_capacity
+    .saturating_mul(ranges.len())
     .saturating_add(identifier.len());
   let mut result = String::with_capacity(result_capacity);
 
