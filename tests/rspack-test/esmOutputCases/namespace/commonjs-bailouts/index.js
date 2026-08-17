@@ -14,6 +14,14 @@ import {
 	toString as prototypeCustomSetterExport,
 	value as prototypeCustomSetterValue
 } from "./prototype-custom-setter.js";
+import {
+	valueOf as prototypeIndirectObjectSetterExport,
+	value as prototypeIndirectObjectSetterValue
+} from "./prototype-indirect-object-setter.js";
+import {
+	toLocaleString as prototypeIndirectReflectSetterExport,
+	value as prototypeIndirectReflectSetterValue
+} from "./prototype-indirect-reflect-setter.js";
 import { value as prototypeSetter } from "./prototype-setter.js";
 import { value as prototypeUnknownRead } from "./prototype-unknown-read.js";
 import mutableDefault, { value as mutableDefaultValue } from "./mutable-default.js";
@@ -31,6 +39,10 @@ it("should keep CommonJS factory and exports object semantics", () => {
 	expect(prototypeCustomRead).toBe(42);
 	expect(typeof prototypeCustomSetterExport).toBe("function");
 	expect(prototypeCustomSetterValue).toBe(42);
+	expect(typeof prototypeIndirectObjectSetterExport).toBe("function");
+	expect(prototypeIndirectObjectSetterValue).toBe(42);
+	expect(typeof prototypeIndirectReflectSetterExport).toBe("function");
+	expect(prototypeIndirectReflectSetterValue).toBe(42);
 	expect(prototypeSetter).toBe(42);
 	expect(prototypeUnknownRead).toBeUndefined();
 	expect(mutableDefault.value).toBe(1);

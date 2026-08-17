@@ -13,6 +13,14 @@ import {
 	toString as prototypeCustomSetterExport,
 	value as prototypeCustomSetterValue
 } from "./prototype-custom-setter";
+import {
+	valueOf as prototypeIndirectObjectSetterExport,
+	value as prototypeIndirectObjectSetterValue
+} from "./prototype-indirect-object-setter";
+import {
+	toLocaleString as prototypeIndirectReflectSetterExport,
+	value as prototypeIndirectReflectSetterValue
+} from "./prototype-indirect-reflect-setter";
 import * as prototypeSetter from "./prototype-setter";
 import * as prototypeUnknownRead from "./prototype-unknown-read";
 import * as reassign from "./reassign";
@@ -45,6 +53,10 @@ it("should keep unsupported CommonJS modules working", () => {
 	expect(prototypeCustomRead.value).toBe(42);
 	expect(typeof prototypeCustomSetterExport).toBe("function");
 	expect(prototypeCustomSetterValue).toBe(42);
+	expect(typeof prototypeIndirectObjectSetterExport).toBe("function");
+	expect(prototypeIndirectObjectSetterValue).toBe(42);
+	expect(typeof prototypeIndirectReflectSetterExport).toBe("function");
+	expect(prototypeIndirectReflectSetterValue).toBe(42);
 	expect(prototypeSetter.value).toBe(42);
 	expect(prototypeUnknownRead.value).toBeUndefined();
 	expect(mutableDefault.value).toBe(1);
@@ -112,6 +124,12 @@ it("should report a bailout reason for each unsupported module", () => {
 		expect.stringContaining("not assigned by the module")
 	);
 	expect(bailoutsOf("prototype-custom-setter.js")).toContainEqual(
+		expect.stringContaining("Object.prototype")
+	);
+	expect(bailoutsOf("prototype-indirect-object-setter.js")).toContainEqual(
+		expect.stringContaining("Object.prototype")
+	);
+	expect(bailoutsOf("prototype-indirect-reflect-setter.js")).toContainEqual(
 		expect.stringContaining("Object.prototype")
 	);
 	expect(bailoutsOf("prototype-setter.js")).toContainEqual(

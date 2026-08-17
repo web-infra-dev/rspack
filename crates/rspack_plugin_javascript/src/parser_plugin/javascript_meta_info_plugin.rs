@@ -15,7 +15,12 @@ fn bailout_on_object_prototype(parser: &mut JavascriptParser, for_name: &str, me
     || (for_name == "Object"
       && members
         .first()
-        .is_some_and(|member| member.as_str() == "prototype"));
+        .is_some_and(|member| member.as_str() == "prototype"))
+    || matches!(for_name, "Object.getPrototypeOf" | "Reflect.getPrototypeOf")
+    || (matches!(for_name, "Object" | "Reflect")
+      && members
+        .first()
+        .is_some_and(|member| member.as_str() == "getPrototypeOf"));
   if !parser.is_esm && references_object_prototype {
     parser
       .build_info
@@ -48,6 +53,8 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for JavascriptMetaInfoPlugin {
     _expr: &CallExpr<'_>,
     for_name: &str,
   ) -> Option<bool> {
+    bailout_on_object_prototype(parser, for_name, &[]);
+
     if for_name == "eval" {
       parser.build_info.module_concatenation_bailout = Some("eval()".into());
       if let Some(top_level_symbol) = parser.inner_graph.get_top_level_symbol() {
@@ -60,6 +67,19 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for JavascriptMetaInfoPlugin {
       }
     }
 
+    None
+  }
+
+  fn call_member_chain(
+    &self,
+    parser: &mut JavascriptParser<'p>,
+    _expr: &CallExpr<'_>,
+    for_name: &str,
+    members: &[Atom],
+    _members_optionals: &[bool],
+    _member_ranges: &[Span],
+  ) -> Option<bool> {
+    bailout_on_object_prototype(parser, for_name, members);
     None
   }
 

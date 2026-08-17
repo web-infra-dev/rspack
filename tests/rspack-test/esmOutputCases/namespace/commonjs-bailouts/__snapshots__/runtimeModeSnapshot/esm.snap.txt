@@ -79,6 +79,56 @@ Object.defineProperty(Object.prototype, "toString", originalToString);
 
 
 },
+"./prototype-indirect-object-setter.js"
+/*!*********************************************!*\
+  !*** ./prototype-indirect-object-setter.js ***!
+  \*********************************************/
+(__unused_rspack_module, exports) {
+
+
+let inheritedSetterValue;
+const objectPrototype = Object.getPrototypeOf({});
+const originalValueOf = Object.getOwnPropertyDescriptor(
+	objectPrototype,
+	"valueOf"
+);
+Object.defineProperty(objectPrototype, "valueOf", {
+	configurable: true,
+	set(value) {
+		inheritedSetterValue = value;
+	}
+});
+exports.valueOf = 42;
+exports.U = inheritedSetterValue;
+Object.defineProperty(objectPrototype, "valueOf", originalValueOf);
+
+
+},
+"./prototype-indirect-reflect-setter.js"
+/*!**********************************************!*\
+  !*** ./prototype-indirect-reflect-setter.js ***!
+  \**********************************************/
+(__unused_rspack_module, exports) {
+
+
+let inheritedSetterValue;
+const objectPrototype = Reflect.getPrototypeOf({});
+const originalToLocaleString = Object.getOwnPropertyDescriptor(
+	objectPrototype,
+	"toLocaleString"
+);
+Object.defineProperty(objectPrototype, "toLocaleString", {
+	configurable: true,
+	set(value) {
+		inheritedSetterValue = value;
+	}
+});
+exports.toLocaleString = 42;
+exports.U = inheritedSetterValue;
+Object.defineProperty(objectPrototype, "toLocaleString", originalToLocaleString);
+
+
+},
 "./prototype-read.js"
 /*!***************************!*\
   !*** ./prototype-read.js ***!
@@ -152,9 +202,13 @@ const tagged_template = __rspack_context.r("./tagged-template.js");
 const prototype_read = __rspack_context.r("./prototype-read.js");
 const prototype_custom_read = __rspack_context.r("./prototype-custom-read.js");
 const prototype_custom_setter = __rspack_context.r("./prototype-custom-setter.js");
+const prototype_indirect_object_setter = __rspack_context.r("./prototype-indirect-object-setter.js");
+const prototype_indirect_reflect_setter = __rspack_context.r("./prototype-indirect-reflect-setter.js");
 const prototype_setter = __rspack_context.r("./prototype-setter.js");
 const prototype_unknown_read = __rspack_context.r("./prototype-unknown-read.js");
 const mutable_default = __rspack_context.r("./mutable-default.js");
+
+
 
 
 
@@ -178,6 +232,10 @@ it("should keep CommonJS factory and exports object semantics", () => {
 	expect(prototype_custom_read.U).toBe(42);
 	expect(typeof prototype_custom_setter.toString).toBe("function");
 	expect(prototype_custom_setter.U).toBe(42);
+	expect(typeof prototype_indirect_object_setter.valueOf).toBe("function");
+	expect(prototype_indirect_object_setter.U).toBe(42);
+	expect(typeof prototype_indirect_reflect_setter.toLocaleString).toBe("function");
+	expect(prototype_indirect_reflect_setter.U).toBe(42);
 	expect(prototype_setter.U).toBe(42);
 	expect(prototype_unknown_read.U).toBeUndefined();
 	expect(mutable_default.value).toBe(1);
