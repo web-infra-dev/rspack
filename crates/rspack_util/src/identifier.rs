@@ -1,12 +1,15 @@
 use std::{
   borrow::Cow,
+  ops::Range,
   path::{Path, PathBuf},
   sync::LazyLock,
 };
 
 use concat_string::concat_string;
 use cow_utils::CowUtils;
+use memchr::memchr2_iter;
 use regex::Regex;
+use smallvec::SmallVec;
 use sugar_path::SugarPath;
 
 static WINDOWS_PATH_SEPARATOR: &[char] = &['/', '\\'];
@@ -165,49 +168,76 @@ fn push_request_to_absolute(context: &str, relative_path: &str, out: &mut String
   }
 }
 
-pub fn make_paths_absolute(context: &str, identifier: &str) -> String {
-  let mut result = String::with_capacity(
-    context
-      .len()
-      .saturating_add(identifier.len())
-      .saturating_add(1),
-  );
+fn identifier_segment_ranges(identifier: &str) -> SmallVec<[Range<u32>; 4]> {
+  let identifier_len =
+    u32::try_from(identifier.len()).expect("identifier length should fit into u32");
+  let mut ranges = SmallVec::new();
   let mut last = 0;
 
-  for (index, byte) in identifier.bytes().enumerate() {
-    if matches!(byte, b'|' | b'!') {
-      push_request_to_absolute(context, &identifier[last..index], &mut result);
-      result.push(byte as char);
-      last = index + 1;
+  for index in memchr2_iter(b'|', b'!', identifier.as_bytes()) {
+    ranges.push(last as u32..index as u32);
+    last = index + 1;
+  }
+  ranges.push(last as u32..identifier_len);
+  ranges
+}
+
+pub fn make_paths_absolute(context: &str, identifier: &str) -> String {
+  let ranges = identifier_segment_ranges(identifier);
+  let relative_segment_count = ranges
+    .iter()
+    .filter(|range| {
+      let segment = &identifier[range.start as usize..range.end as usize];
+      segment.starts_with("./") || segment.starts_with("../")
+    })
+    .count();
+  let result_capacity = context
+    .len()
+    .saturating_add(1)
+    .saturating_mul(relative_segment_count)
+    .saturating_add(identifier.len());
+  let mut result = String::with_capacity(result_capacity);
+
+  for range in ranges {
+    let start = range.start as usize;
+    let end = range.end as usize;
+    push_request_to_absolute(context, &identifier[start..end], &mut result);
+    if end < identifier.len() {
+      result.push(identifier.as_bytes()[end] as char);
     }
   }
-
-  push_request_to_absolute(context, &identifier[last..], &mut result);
   result
 }
 
-fn push_make_paths_relative(context: &str, identifier: &str, out: &mut String) {
-  let mut last = 0;
+pub fn make_paths_relative(context: &str, identifier: &str) -> String {
+  let ranges = identifier_segment_ranges(identifier);
+  let absolute_segment_count = ranges
+    .iter()
+    .filter(|range| {
+      let segment = &identifier[range.start as usize..range.end as usize];
+      segment.starts_with('/') || is_windows_absolute_path(segment)
+    })
+    .count();
+  // Each context component can add `../`. Single-byte components separated by
+  // a path separator give the maximum possible component count for a given
+  // context length.
+  let context_component_upper_bound = context.len().saturating_add(1) / 2;
+  let absolute_segment_extra = context_component_upper_bound
+    .saturating_mul(3)
+    .saturating_add(2);
+  let result_capacity = absolute_segment_extra
+    .saturating_mul(absolute_segment_count)
+    .saturating_add(identifier.len());
+  let mut result = String::with_capacity(result_capacity);
 
-  for (index, byte) in identifier.bytes().enumerate() {
-    if matches!(byte, b'|' | b'!') {
-      push_absolute_to_request(context, &identifier[last..index], out);
-      out.push(byte as char);
-      last = index + 1;
+  for range in ranges {
+    let start = range.start as usize;
+    let end = range.end as usize;
+    push_absolute_to_request(context, &identifier[start..end], &mut result);
+    if end < identifier.len() {
+      result.push(identifier.as_bytes()[end] as char);
     }
   }
-
-  push_absolute_to_request(context, &identifier[last..], out);
-}
-
-pub fn make_paths_relative(context: &str, identifier: &str) -> String {
-  let mut result = String::with_capacity(
-    context
-      .len()
-      .saturating_add(identifier.len())
-      .saturating_add(2),
-  );
-  push_make_paths_relative(context, identifier, &mut result);
   result
 }
 
