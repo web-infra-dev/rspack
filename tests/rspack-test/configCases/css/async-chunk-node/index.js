@@ -4,7 +4,7 @@ it("should allow to dynamic import a css module", async () => {
 			nsObj({
 				a: "a",
 				abc: "a b c",
-				comments: "abc      def",
+				comments: "abc/****/   /* hello world *//****/   def",
 				whitespace: "abc\n\tdef",
 				default: "default"
 			})
