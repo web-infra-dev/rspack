@@ -38,7 +38,6 @@ cow-utils       = { version = "0.1.3", default-features = false }
 
 criterion = { package = "codspeed-criterion-compat", default-features = false, version = "4.7.0", features = ["async_tokio"] }
 
-css-module-lexer    = { version = "=0.101.10", path = "crates/css-module-lexer", default-features = false }
 cssparser           = { version = "0.33.0", default-features = false }
 dashmap             = { version = "6.2.1", default-features = false }
 derive_more         = { version = "2.1.1", default-features = false }
@@ -166,6 +165,7 @@ wasmtime     = { version = "36.0.13", default-features = false }
 
 
 # all rspack workspace dependencies
+css-module-lexer                       = { version = "=0.101.10", path = "crates/css-module-lexer", default-features = false }
 rspack                                 = { version = "=0.101.10", path = "crates/rspack", default-features = false }
 rspack_allocator                       = { version = "=0.101.10", path = "crates/rspack_allocator", default-features = false }
 rspack_binding_api                     = { version = "=0.101.10", path = "crates/rspack_binding_api", default-features = false }
