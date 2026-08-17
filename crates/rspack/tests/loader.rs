@@ -28,6 +28,8 @@ async fn lightningcss() {
           options: Some(json!({
             "include": 1 // lower nesting syntax
           }).to_string()),
+          cache: false,
+          cache_key: String::new(),
         }]),
           ..Default::default()
         },
@@ -79,6 +81,8 @@ async fn swc() {
               }
             }
           }).to_string()),
+          cache: false,
+          cache_key: String::new(),
         }]),
           ..Default::default()
         },
@@ -114,7 +118,9 @@ async fn react_refresh() {
           r#use: ModuleRuleUse::Array(vec![
           ModuleRuleUseLoader {
             loader: "builtin:react-refresh-loader".to_string(),
-            options: None
+            options: None,
+            cache: false,
+            cache_key: String::new(),
           },
           ModuleRuleUseLoader {
           loader: "builtin:swc-loader".to_string(),
@@ -135,6 +141,8 @@ async fn react_refresh() {
               }
             }
           }).to_string()),
+          cache: false,
+          cache_key: String::new(),
         }]),
           ..Default::default()
         },
@@ -171,7 +179,9 @@ async fn preact_refresh() {
           r#use: ModuleRuleUse::Array(vec![
           ModuleRuleUseLoader {
             loader: "builtin:preact-refresh-loader".to_string(),
-            options: None
+            options: None,
+            cache: false,
+            cache_key: String::new(),
           },
           ModuleRuleUseLoader {
           loader: "builtin:swc-loader".to_string(),
@@ -192,6 +202,8 @@ async fn preact_refresh() {
               }
             }
           }).to_string()),
+          cache: false,
+          cache_key: String::new(),
         }]),
           ..Default::default()
         },

@@ -8,7 +8,7 @@ use rspack_error::Result;
 use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rspack_util::identifier::strip_zero_width_space_for_fragment;
 
-use super::{LoaderContext, LoaderExecutionKind};
+use super::{LoaderContext, LoaderExecutionKind, LoaderRunnerOptions};
 
 #[derive(Debug)]
 pub struct LoaderItem<Context: Send> {
@@ -30,6 +30,8 @@ pub struct LoaderItem<Context: Send> {
   fragment: Option<String>,
   r#type: String,
   execution_kind: LoaderExecutionKind,
+  cache: bool,
+  cache_key: String,
 }
 
 #[derive(Debug, Default)]
@@ -50,6 +52,16 @@ impl<C: Send> LoaderItem<C> {
   #[inline]
   pub fn execution_kind(&self) -> LoaderExecutionKind {
     self.execution_kind
+  }
+
+  #[inline]
+  pub fn cache(&self) -> bool {
+    self.cache
+  }
+
+  #[inline]
+  pub fn cache_key(&self) -> &str {
+    &self.cache_key
   }
 
   #[inline]
@@ -186,10 +198,21 @@ where
   fn execution_kind(&self) -> LoaderExecutionKind {
     LoaderExecutionKind::Native
   }
+
+  /// Version identity used by loader-chain caching.
+  fn cache_version(&self) -> Option<&str> {
+    None
+  }
 }
 
 impl<C: Send> From<Arc<dyn Loader<C>>> for LoaderItem<C> {
   fn from(loader: Arc<dyn Loader<C>>) -> Self {
+    Self::new(loader, LoaderRunnerOptions::default())
+  }
+}
+
+impl<C: Send> LoaderItem<C> {
+  pub(crate) fn new(loader: Arc<dyn Loader<C>>, options: LoaderRunnerOptions) -> Self {
     let ident = &**loader.identifier();
     let execution_kind = loader.execution_kind();
     if let Some(r#type) = loader.r#type() {
@@ -207,6 +230,8 @@ impl<C: Send> From<Arc<dyn Loader<C>>> for LoaderItem<C> {
         fragment,
         r#type: ty,
         execution_kind,
+        cache: options.cache,
+        cache_key: options.cache_key,
       };
     }
     let ident = loader.identifier();
@@ -223,6 +248,8 @@ impl<C: Send> From<Arc<dyn Loader<C>>> for LoaderItem<C> {
       fragment,
       r#type: String::default(),
       execution_kind,
+      cache: options.cache,
+      cache_key: options.cache_key,
     }
   }
 }

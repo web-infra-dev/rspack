@@ -8,7 +8,10 @@ mod plugin;
 mod runner;
 mod scheme;
 
-pub use chain::{LoaderChain, LoaderExecutionKind};
+pub use chain::{
+  LoaderChain, LoaderChainCacheAction, LoaderChainCacheState, LoaderExecutionKind,
+  LoaderRunnerOptions,
+};
 pub use content::{AdditionalData, Content, DescriptionData, ParseMeta, ResourceData};
 pub use context::{LoaderContext, State};
 pub use loader::{

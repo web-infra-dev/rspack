@@ -10,6 +10,7 @@ use rspack_core::{
   NormalModuleFactoryResolveLoader, ResolveResult, Resolver, Resource, RunnerContext,
 };
 use rspack_error::Result;
+use rspack_hash::{HashFunction, RspackHasher};
 use rspack_hook::plugin_hook;
 use rspack_paths::Utf8Path;
 
@@ -20,6 +21,7 @@ use super::{JsLoaderRspackPlugin, JsLoaderRspackPluginInner};
 pub struct JsLoader(
   pub Identifier,
   /* LoaderType */ #[cacheable(with=AsOption<AsRefStr>)] pub Option<Cow<'static, str>>,
+  pub Option<String>,
 );
 
 #[cacheable_dyn]
@@ -34,6 +36,10 @@ impl Loader<RunnerContext> for JsLoader {
 
   fn execution_kind(&self) -> LoaderExecutionKind {
     LoaderExecutionKind::JavaScript
+  }
+
+  fn cache_version(&self) -> Option<&str> {
+    self.2.as_deref()
   }
 }
 
@@ -73,6 +79,7 @@ pub(crate) async fn resolve_loader(
   } else {
     Utf8Path::new(loader_request)
   };
+  let is_package_request = !prev.is_absolute() && !prev.as_str().starts_with('.');
 
   #[cfg(feature = "test-loader")]
   if loader_request.starts_with("builtin:test") {
@@ -100,6 +107,32 @@ pub(crate) async fn resolve_loader(
       // Use `str::ends_with` instead of `Path::extension` to avoid unnecessary allocation
       let path = path.as_str();
 
+      let package_version = is_package_request
+        .then(|| description_data.as_ref())
+        .flatten()
+        .and_then(|data| {
+          let package = data.json();
+          Some((
+            package.get("name")?.as_str()?,
+            package.get("version")?.as_str()?,
+          ))
+        });
+      let cache_version = if l.cache {
+        if let Some((name, version)) = package_version {
+          Some(format!("package:{name}@{version}"))
+        } else {
+          let contents = resolver
+            .inner_fs()
+            .read(rspack_paths::Utf8Path::new(path))
+            .await?;
+          let mut hasher = RspackHasher::new(&HashFunction::Xxhash64);
+          hasher.write(&contents);
+          Some(format!("file:{:016x}", hasher.finish()))
+        }
+      } else {
+        None
+      };
+
       let r#type = if path.ends_with(".mjs") {
         Some(Cow::Borrowed("module"))
       } else if path.ends_with(".cjs") {
@@ -120,7 +153,11 @@ pub(crate) async fn resolve_loader(
       } else {
         format!("{path}{query}")
       };
-      Ok(Some(Arc::new(JsLoader(resource.into(), r#type))))
+      Ok(Some(Arc::new(JsLoader(
+        resource.into(),
+        r#type,
+        cache_version,
+      ))))
     }
     ResolveResult::Ignored => Ok(None),
   }

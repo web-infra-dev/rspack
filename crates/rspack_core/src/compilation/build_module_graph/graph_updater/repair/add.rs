@@ -123,6 +123,7 @@ impl Task<TaskContext> for AddTask {
       plugin_driver: context.plugin_driver.clone(),
       runtime_template: context.runtime_template.create_module_code_template(),
       fs: context.fs.clone(),
+      loader_cache: context.cache.memory_facade("LoaderChain"),
       forwarded_ids,
     })])
   }

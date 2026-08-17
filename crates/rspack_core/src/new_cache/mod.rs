@@ -12,7 +12,7 @@ mod snapshot;
 use std::sync::Arc;
 
 pub use cache::Cache;
-pub use cache_facade::{CacheFacade, ItemCacheFacade};
+pub use cache_facade::{CacheFacade, ItemCacheFacade, MemoryCacheFacade, MemoryItemCacheFacade};
 pub use cache_key::CacheKey;
 pub use cache_value::CacheValue;
 pub use etag::Etag;

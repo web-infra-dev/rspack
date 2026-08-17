@@ -11,6 +11,7 @@ use crate::{
   CompilerId, CompilerOptions, DependencyParents, ModuleCodeTemplate, ResolverFactory,
   SharedPluginDriver,
   compilation::build_module_graph::{ForwardedIdSet, HasLazyDependencies, LazyDependencies},
+  new_cache::MemoryCacheFacade,
   utils::{
     ResourceId,
     task_loop::{Task, TaskResult, TaskType},
@@ -27,6 +28,7 @@ pub struct BuildTask {
   pub runtime_template: ModuleCodeTemplate,
   pub plugin_driver: SharedPluginDriver,
   pub fs: Arc<dyn ReadableFileSystem>,
+  pub loader_cache: MemoryCacheFacade,
   pub forwarded_ids: ForwardedIdSet,
 }
 
@@ -45,6 +47,7 @@ impl Task<TaskContext> for BuildTask {
       runtime_template,
       mut module,
       fs,
+      loader_cache,
       forwarded_ids,
     } = *self;
 
@@ -64,6 +67,7 @@ impl Task<TaskContext> for BuildTask {
           plugin_driver: plugin_driver.clone(),
           runtime_template,
           fs: fs.clone(),
+          loader_cache,
         },
         None,
       )

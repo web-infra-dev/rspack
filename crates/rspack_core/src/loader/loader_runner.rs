@@ -1,9 +1,15 @@
 use std::sync::Arc;
 
-pub use rspack_loader_runner::{Content, Loader, LoaderContext, LoaderExecutionKind};
+pub use rspack_loader_runner::{
+  Content, Loader, LoaderChain, LoaderChainCacheAction, LoaderChainCacheState, LoaderContext,
+  LoaderExecutionKind, LoaderRunnerOptions,
+};
 use rspack_util::source_map::SourceMapKind;
 
-use crate::{CompilationId, CompilerId, CompilerOptions, NormalModule, ResolverFactory};
+use crate::{
+  CompilationId, CompilerId, CompilerOptions, NormalModule, ResolverFactory,
+  new_cache::MemoryCacheFacade,
+};
 
 #[derive(Debug)]
 pub struct RunnerContext {
@@ -13,6 +19,7 @@ pub struct RunnerContext {
   pub resolver_factory: Arc<ResolverFactory>,
   pub module: Box<NormalModule>,
   pub source_map_kind: SourceMapKind,
+  pub(crate) loader_cache: MemoryCacheFacade,
 }
 
 pub type Loaders = rspack_loader_runner::Loaders<RunnerContext>;
