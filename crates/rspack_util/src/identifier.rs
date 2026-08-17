@@ -1,15 +1,12 @@
 use std::{
   borrow::Cow,
-  ops::Range,
   path::{Path, PathBuf},
   sync::LazyLock,
 };
 
 use concat_string::concat_string;
 use cow_utils::CowUtils;
-use memchr::memchr2_iter;
 use regex::Regex;
-use smallvec::SmallVec;
 use sugar_path::SugarPath;
 
 static WINDOWS_PATH_SEPARATOR: &[char] = &['/', '\\'];
@@ -169,36 +166,28 @@ fn push_request_to_absolute(context: &str, relative_path: &str, out: &mut String
 }
 
 pub fn make_paths_absolute(context: &str, identifier: &str) -> String {
-  let identifier_len =
-    u32::try_from(identifier.len()).expect("identifier length should fit into u32");
-  let mut segment_ranges = SmallVec::<[Range<u32>; 4]>::new();
-  let mut result_capacity = identifier.len();
-  let relative_segment_extra = context.len().saturating_add(1);
+  let relative_segment_count = identifier
+    .split(['|', '!'])
+    .filter(|segment| segment.starts_with("./") || segment.starts_with("../"))
+    .count();
+  let mut result = String::with_capacity(
+    context
+      .len()
+      .saturating_add(1)
+      .saturating_mul(relative_segment_count)
+      .saturating_add(identifier.len()),
+  );
   let mut last = 0;
 
-  for index in memchr2_iter(b'|', b'!', identifier.as_bytes()) {
-    let segment = &identifier[last..index];
-    if segment.starts_with("./") || segment.starts_with("../") {
-      result_capacity = result_capacity.saturating_add(relative_segment_extra);
+  for (index, byte) in identifier.bytes().enumerate() {
+    if matches!(byte, b'|' | b'!') {
+      push_request_to_absolute(context, &identifier[last..index], &mut result);
+      result.push(byte as char);
+      last = index + 1;
     }
-    segment_ranges.push(last as u32..index as u32);
-    last = index + 1;
   }
-  let segment = &identifier[last..];
-  if segment.starts_with("./") || segment.starts_with("../") {
-    result_capacity = result_capacity.saturating_add(relative_segment_extra);
-  }
-  segment_ranges.push(last as u32..identifier_len);
 
-  let mut result = String::with_capacity(result_capacity);
-  for range in segment_ranges {
-    let start = range.start as usize;
-    let end = range.end as usize;
-    push_request_to_absolute(context, &identifier[start..end], &mut result);
-    if end < identifier.len() {
-      result.push(identifier.as_bytes()[end] as char);
-    }
-  }
+  push_request_to_absolute(context, &identifier[last..], &mut result);
   result
 }
 

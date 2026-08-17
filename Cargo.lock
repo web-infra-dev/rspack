@@ -5669,7 +5669,6 @@ dependencies = [
  "serde_json",
  "signal-hook",
  "simd-json",
- "smallvec",
  "sugar_path",
  "swc_core",
  "swc_experimental_ecma_ast",
