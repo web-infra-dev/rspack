@@ -4,11 +4,12 @@ use rspack_error::{Diagnostic, Error, Result, error};
 use rspack_fs::ReadableFileSystem;
 use rspack_paths::Utf8PathBuf;
 use rspack_sources::SourceMap;
+use rspack_util::ArcComputed;
 use rustc_hash::FxHashSet as HashSet;
 use tracing::{Instrument, info_span};
 
 use crate::{
-  LoaderChain, LoaderRunnerPlan, ParseMeta,
+  LoaderChain, ParseMeta,
   content::{AdditionalData, Content, ResourceData},
   context::{LoaderContext, State},
   loader::{Loader, LoaderItem, LoaderItemState},
@@ -16,18 +17,20 @@ use crate::{
   plugin::LoaderRunnerPlugin,
 };
 
-struct OwnedLoaderRunnerPlan<Context: Send> {
+#[derive(Debug)]
+pub struct LoaderRunnerData<Context: Send> {
   loader_items: Vec<LoaderItem<Context>>,
   loader_chains: Vec<LoaderChain>,
 }
 
-impl<Context: Send> LoaderRunnerPlan<Context> for OwnedLoaderRunnerPlan<Context> {
-  fn loader_items(&self) -> &[LoaderItem<Context>] {
-    &self.loader_items
-  }
-
-  fn loader_chains(&self) -> &[LoaderChain] {
-    &self.loader_chains
+impl<Context: Send> LoaderRunnerData<Context> {
+  pub fn new(loaders: Vec<Arc<dyn Loader<Context>>>) -> Self {
+    let loader_items = loaders.into_iter().map(Into::into).collect::<Vec<_>>();
+    let loader_chains = plan_loader_chains(&loader_items);
+    Self {
+      loader_items,
+      loader_chains,
+    }
   }
 }
 
@@ -171,7 +174,7 @@ You may need an additional plugin to handle "{scheme}:" URIs."#
 }
 
 fn create_loader_context<Context: Send>(
-  loader_plan: Arc<dyn LoaderRunnerPlan<Context>>,
+  loader_data: Arc<LoaderRunnerData<Context>>,
   resource_data: Arc<ResourceData>,
   plugin: Option<Arc<dyn LoaderRunnerPlugin<Context = Context>>>,
   context: Context,
@@ -183,7 +186,7 @@ fn create_loader_context<Context: Send>(
     file_dependencies.insert(resource_path.to_owned().into_std_path_buf());
   }
 
-  let loader_item_states = (0..loader_plan.loader_items().len())
+  let loader_item_states = (0..loader_data.loader_items.len())
     .map(|_| LoaderItemState::default())
     .collect();
   LoaderContext {
@@ -200,7 +203,8 @@ fn create_loader_context<Context: Send>(
     additional_data: None,
     state: State::Init,
     loader_index: 0,
-    loader_plan,
+    loader_items: ArcComputed::new(Arc::clone(&loader_data), |data| &data.loader_items),
+    loader_chains: ArcComputed::new(loader_data, |data| &data.loader_chains),
     loader_item_states,
     plugin,
     resource_data,
@@ -208,37 +212,32 @@ fn create_loader_context<Context: Send>(
   }
 }
 
-pub fn create_loader_items<Context: Send>(
-  loaders: Vec<Arc<dyn Loader<Context>>>,
-) -> Vec<LoaderItem<Context>> {
-  loaders.into_iter().map(Into::into).collect()
-}
-
 #[tracing::instrument("LoaderRunner:run_loaders", skip_all, level = "trace")]
-pub async fn run_loaders<Context: Send + 'static>(
+pub async fn run_loaders<Context: Send>(
   loaders: Vec<Arc<dyn Loader<Context>>>,
   resource_data: Arc<ResourceData>,
   plugin: Option<Arc<dyn LoaderRunnerPlugin<Context = Context>>>,
   context: Context,
   fs: Arc<dyn ReadableFileSystem>,
 ) -> (LoaderResult<Context>, Option<Error>) {
-  let loader_items = create_loader_items(loaders);
-  let loader_chains = plan_loader_chains(&loader_items);
-  let loader_plan = Arc::new(OwnedLoaderRunnerPlan {
-    loader_items,
-    loader_chains,
-  });
-  run_loaders_with_preplanned(loader_plan, resource_data, plugin, context, fs).await
+  run_loaders_with_data(
+    Arc::new(LoaderRunnerData::new(loaders)),
+    resource_data,
+    plugin,
+    context,
+    fs,
+  )
+  .await
 }
 
-pub async fn run_loaders_with_preplanned<Context: Send>(
-  loader_plan: Arc<dyn LoaderRunnerPlan<Context>>,
+pub async fn run_loaders_with_data<Context: Send>(
+  loader_data: Arc<LoaderRunnerData<Context>>,
   resource_data: Arc<ResourceData>,
   plugin: Option<Arc<dyn LoaderRunnerPlugin<Context = Context>>>,
   context: Context,
   fs: Arc<dyn ReadableFileSystem>,
 ) -> (LoaderResult<Context>, Option<Error>) {
-  let mut cx = create_loader_context(loader_plan, resource_data, plugin, context);
+  let mut cx = create_loader_context(loader_data, resource_data, plugin, context);
   let result = run_loaders_impl(&mut cx, fs).await;
   (LoaderResult::new(cx), result.err())
 }

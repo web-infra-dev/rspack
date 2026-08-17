@@ -36,7 +36,7 @@ use crate::{
   RunnerContext, RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, SourceType, contextify,
   diagnostics::ModuleBuildError,
   get_context, module_analyzed_side_effect_free, module_declared_side_effect_free,
-  module_update_hash, run_loaders_with_preplanned,
+  module_update_hash,
   utils::{SourceSizeCache, SourceSizeCacheSerde},
 };
 
@@ -396,22 +396,23 @@ impl Module for NormalModule {
     let compiler_options = build_context.compiler_options.clone();
     let resolver_factory = build_context.resolver_factory.clone();
     let fs = build_context.fs.clone();
-    let (mut loader_result, err) = run_loaders_with_preplanned(
-      self.loaders.clone(),
-      self.resource_data.clone(),
-      Some(plugin.clone()),
-      RunnerContext {
-        compiler_id,
-        compilation_id,
-        options: compiler_options,
-        resolver_factory,
-        source_map_kind: self.source_map_kind,
-        module: self,
-      },
-      fs,
-    )
-    .instrument(info_span!("NormalModule:run_loaders",))
-    .await;
+    let loaders = self.loaders.clone();
+    let (mut loader_result, err) = loaders
+      .run_loaders(
+        self.resource_data.clone(),
+        Some(plugin.clone()),
+        RunnerContext {
+          compiler_id,
+          compilation_id,
+          options: compiler_options,
+          resolver_factory,
+          source_map_kind: self.source_map_kind,
+          module: self,
+        },
+        fs,
+      )
+      .instrument(info_span!("NormalModule:run_loaders",))
+      .await;
     self = loader_result.context.module;
 
     if let Some(err) = err {

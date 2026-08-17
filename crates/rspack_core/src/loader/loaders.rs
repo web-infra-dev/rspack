@@ -1,12 +1,14 @@
-use std::sync::OnceLock;
+use std::sync::{Arc, OnceLock};
 
 use derive_more::Debug;
 use rspack_cacheable::{cacheable, with::Skip};
-
-use crate::{
-  BoxLoader, LoaderChain, LoaderItem, LoaderRunnerPlan, RunnerContext, create_loader_items,
-  plan_loader_chains,
+use rspack_error::Error;
+use rspack_fs::ReadableFileSystem;
+use rspack_loader_runner::{
+  LoaderResult, LoaderRunnerData, LoaderRunnerPlugin, ResourceData, run_loaders_with_data,
 };
+
+use crate::{BoxLoader, RunnerContext};
 
 /// Static loader metadata and its preassembled execution plan for one module.
 #[cacheable]
@@ -15,20 +17,14 @@ pub struct Loaders {
   #[debug(skip)]
   loaders: Vec<BoxLoader>,
   #[cacheable(with=Skip)]
-  loader_items: OnceLock<Vec<LoaderItem<RunnerContext>>>,
-  #[cacheable(with=Skip)]
-  loader_chains: OnceLock<Vec<LoaderChain>>,
+  loader_data: OnceLock<Arc<LoaderRunnerData<RunnerContext>>>,
 }
 
 impl Loaders {
   pub(crate) fn new(loaders: Vec<BoxLoader>) -> Self {
-    let loader_items = create_loader_items(loaders.clone());
-    let loader_chains = plan_loader_chains(&loader_items);
-
     Self {
       loaders,
-      loader_items: OnceLock::from(loader_items),
-      loader_chains: OnceLock::from(loader_chains),
+      loader_data: OnceLock::new(),
     }
   }
 
@@ -36,25 +32,24 @@ impl Loaders {
     &self.loaders
   }
 
-  fn loader_items(&self) -> &[LoaderItem<RunnerContext>] {
+  fn loader_data(&self) -> Arc<LoaderRunnerData<RunnerContext>> {
     self
-      .loader_items
-      .get_or_init(|| create_loader_items(self.loaders.clone()))
+      .loader_data
+      .get_or_init(|| {
+        Arc::new(LoaderRunnerData::new(
+          self.loaders.iter().cloned().collect(),
+        ))
+      })
+      .clone()
   }
 
-  fn loader_chains(&self) -> &[LoaderChain] {
-    self
-      .loader_chains
-      .get_or_init(|| plan_loader_chains(self.loader_items()))
-  }
-}
-
-impl LoaderRunnerPlan<RunnerContext> for Loaders {
-  fn loader_items(&self) -> &[LoaderItem<RunnerContext>] {
-    self.loader_items()
-  }
-
-  fn loader_chains(&self) -> &[LoaderChain] {
-    self.loader_chains()
+  pub async fn run_loaders(
+    &self,
+    resource_data: Arc<ResourceData>,
+    plugin: Option<Arc<dyn LoaderRunnerPlugin<Context = RunnerContext>>>,
+    context: RunnerContext,
+    fs: Arc<dyn ReadableFileSystem>,
+  ) -> (LoaderResult<RunnerContext>, Option<Error>) {
+    run_loaders_with_data(self.loader_data(), resource_data, plugin, context, fs).await
   }
 }

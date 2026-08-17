@@ -4,10 +4,11 @@ use derive_more::Debug;
 use rspack_error::Diagnostic;
 use rspack_paths::Utf8Path;
 use rspack_sources::SourceMap;
+use rspack_util::ArcComputed;
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
-  AdditionalData, Content, LoaderChain, LoaderItem, LoaderItemState, LoaderRunnerPlan,
+  AdditionalData, Content, LoaderChain, LoaderItem, LoaderItemState, LoaderRunnerData,
   LoaderRunnerPlugin, ParseMeta, ResourceData, loader::LoaderItemList,
 };
 
@@ -57,7 +58,8 @@ pub struct LoaderContext<Context: Send> {
   pub(crate) state: State,
   pub loader_index: i32,
   #[debug(skip)]
-  pub loader_plan: Arc<dyn LoaderRunnerPlan<Context>>,
+  pub loader_items: ArcComputed<LoaderRunnerData<Context>, Vec<LoaderItem<Context>>>,
+  pub loader_chains: ArcComputed<LoaderRunnerData<Context>, Vec<LoaderChain>>,
   pub loader_item_states: Vec<LoaderItemState>,
   #[debug(skip)]
   pub plugin: Option<Arc<dyn LoaderRunnerPlugin<Context = Context>>>,
@@ -65,7 +67,7 @@ pub struct LoaderContext<Context: Send> {
 
 impl<Context: Send> LoaderContext<Context> {
   pub fn loader_items(&self) -> &[LoaderItem<Context>] {
-    self.loader_plan.loader_items()
+    &self.loader_items
   }
 
   pub fn remaining_request(&self) -> LoaderItemList<'_, Context> {
@@ -113,14 +115,13 @@ impl<Context: Send> LoaderContext<Context> {
   }
 
   pub fn loader_chains(&self) -> &[LoaderChain] {
-    self.loader_plan.loader_chains()
+    &self.loader_chains
   }
 
   pub fn current_chain_index(&self) -> Option<usize> {
     let loader_index = usize::try_from(self.loader_index).ok()?;
     self
-      .loader_plan
-      .loader_chains()
+      .loader_chains
       .binary_search_by(|chain| {
         if chain.end() <= loader_index {
           Ordering::Less
@@ -136,7 +137,7 @@ impl<Context: Send> LoaderContext<Context> {
   pub fn current_chain(&self) -> Option<&LoaderChain> {
     self
       .current_chain_index()
-      .and_then(|index| self.loader_plan.loader_chains().get(index))
+      .and_then(|index| self.loader_chains.get(index))
   }
 
   pub fn current_execution_chain(&self) -> Option<&LoaderChain> {

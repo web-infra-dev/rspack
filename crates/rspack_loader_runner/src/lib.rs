@@ -8,7 +8,7 @@ mod plugin;
 mod runner;
 mod scheme;
 
-pub use chain::{LoaderChain, LoaderExecutionKind, LoaderRunnerPlan, plan_loader_chains};
+pub use chain::{LoaderChain, LoaderExecutionKind, plan_loader_chains};
 pub use content::{AdditionalData, Content, DescriptionData, ParseMeta, ResourceData};
 pub use context::{LoaderContext, State};
 pub use loader::{
@@ -16,7 +16,7 @@ pub use loader::{
 };
 pub use plugin::LoaderRunnerPlugin;
 pub use rspack_collections::{Identifiable, Identifier};
-pub use runner::{LoaderResult, create_loader_items, run_loaders, run_loaders_with_preplanned};
+pub use runner::{LoaderResult, LoaderRunnerData, run_loaders, run_loaders_with_data};
 pub use scheme::{Scheme, get_scheme};
 
 pub const BUILTIN_LOADER_PREFIX: &str = "builtin:";

@@ -748,13 +748,17 @@ export async function runLoaders(
       loaderIndex: loaderContext.loaderIndex,
       loaderChainStart: context.loaderChainStart,
       loaderChainEnd: context.loaderChainEnd,
-      loaders: loaderContext.loaders.map((item) => {
+      loaders: loaderContext.loaders.map((item, index) => {
         let options = item.options;
         // Do not pass options into worker, if it's not prepared to be executed
         // in the worker thread.
         //
         // Aligns yielding strategy within the worker.
-        if (!item.parallel) {
+        if (
+          !item.parallel ||
+          index < loaderChainStart ||
+          index >= loaderChainEnd
+        ) {
           options = undefined;
         }
         return {

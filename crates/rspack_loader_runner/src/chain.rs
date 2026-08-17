@@ -2,12 +2,6 @@ use std::ops::Range;
 
 use crate::LoaderItem;
 
-pub trait LoaderRunnerPlan<Context: Send>: Send + Sync {
-  fn loader_items(&self) -> &[LoaderItem<Context>];
-
-  fn loader_chains(&self) -> &[LoaderChain];
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LoaderExecutionKind {
   Native,
