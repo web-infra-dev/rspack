@@ -77,7 +77,7 @@ async function build() {
 		if (process.env.RSPACK_TARGET_BROWSER) {
 			features.push("browser")
 		}
-		if (values.profile !== "release") {
+		if (!["release", "release-wasi"].includes(values.profile)) {
 			features.push("perfetto");
 		}
 		if (values.profile === "release-debug") {
