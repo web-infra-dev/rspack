@@ -8,7 +8,11 @@ struct Scope;
 const WHITESPACE_MARKER: &str = "__CSS_MODULE_LEXER_WHITESPACE__";
 
 fn generate_local_name(name: &str) -> String {
-  format!("_input__{}", name)
+  format!("_input__{name}")
+}
+
+fn strip_whitespace_markers(value: &str) -> String {
+  value.split(WHITESPACE_MARKER).collect()
 }
 
 impl Scope {
@@ -20,7 +24,8 @@ impl Scope {
     for dependency in &dependencies {
       match dependency {
         Dependency::LocalClass { name, range, .. } => {
-          result += Lexer::slice_range(input, &Range::new(index, range.start)).unwrap();
+          result += Lexer::slice_range(input, &Range::new(index, range.start))
+            .expect("test setup must produce the expected value");
           let name = &name[1..];
           result += ".";
           let new_name = generate_local_name(name);
@@ -29,7 +34,8 @@ impl Scope {
           index = range.end;
         }
         Dependency::LocalId { name, range, .. } => {
-          result += Lexer::slice_range(input, &Range::new(index, range.start)).unwrap();
+          result += Lexer::slice_range(input, &Range::new(index, range.start))
+            .expect("test setup must produce the expected value");
           let name = &name[1..];
           result += "#";
           let new_name = generate_local_name(name);
@@ -38,14 +44,16 @@ impl Scope {
           index = range.end;
         }
         Dependency::LocalKeyframes { name, range } => {
-          result += Lexer::slice_range(input, &Range::new(index, range.start)).unwrap();
+          result += Lexer::slice_range(input, &Range::new(index, range.start))
+            .expect("test setup must produce the expected value");
           let new_name = generate_local_name(name);
           result += &new_name;
           exports.insert(name.to_string(), vec![new_name]);
           index = range.end;
         }
         Dependency::LocalKeyframesDecl { name, range } => {
-          result += Lexer::slice_range(input, &Range::new(index, range.start)).unwrap();
+          result += Lexer::slice_range(input, &Range::new(index, range.start))
+            .expect("test setup must produce the expected value");
           let new_name = generate_local_name(name);
           result += &new_name;
           exports.insert(name.to_string(), vec![new_name]);
@@ -71,19 +79,27 @@ impl Scope {
               let local_class = *local_class;
               if let Some(existing) = exports.get(name) {
                 let existing = existing.clone();
-                exports.get_mut(local_class).unwrap().extend(existing);
+                exports
+                  .get_mut(local_class)
+                  .expect("test setup must produce the expected value")
+                  .extend(existing);
               } else {
-                exports.get_mut(local_class).unwrap().push(new_name.clone());
+                exports
+                  .get_mut(local_class)
+                  .expect("test setup must produce the expected value")
+                  .push(new_name.clone());
               }
             }
           }
         }
         Dependency::Replace { content, range } => {
-          let original = Lexer::slice_range(input, range).unwrap();
+          let original =
+            Lexer::slice_range(input, range).expect("test setup must produce the expected value");
           if original.starts_with(":export") || original.starts_with(":import(") {
             continue;
           }
-          result += Lexer::slice_range(input, &Range::new(index, range.start)).unwrap();
+          result += Lexer::slice_range(input, &Range::new(index, range.start))
+            .expect("test setup must produce the expected value");
           result += content;
           index = range.end;
         }
@@ -92,7 +108,8 @@ impl Scope {
     }
     let len = input.len() as u32;
     if index != len {
-      result += Lexer::slice_range(input, &Range::new(index, len)).unwrap();
+      result += Lexer::slice_range(input, &Range::new(index, len))
+        .expect("test setup must produce the expected value");
     }
     if !exports.is_empty() {
       result += "\n:export {\n";
@@ -110,16 +127,16 @@ impl Scope {
 }
 
 fn test(input: &str, expected: &str) {
-  let input = input.replace(WHITESPACE_MARKER, "");
-  let expected = expected.replace(WHITESPACE_MARKER, "");
+  let input = strip_whitespace_markers(input);
+  let expected = strip_whitespace_markers(expected);
   let (actual, warnings) = Scope.transform(&input);
   assert!(warnings.is_empty(), "{}", &warnings[0]);
   similar_asserts::assert_eq!(expected, actual);
 }
 
 fn test_with_warning(input: &str, expected: &str, warning: &str) {
-  let input = input.replace(WHITESPACE_MARKER, "");
-  let expected = expected.replace(WHITESPACE_MARKER, "");
+  let input = strip_whitespace_markers(input);
+  let expected = strip_whitespace_markers(expected);
   let (actual, warnings) = Scope.transform(&input);
   assert!(
     warnings[0].to_string().contains(warning),

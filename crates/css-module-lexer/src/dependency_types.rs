@@ -44,7 +44,7 @@ impl<T> DependencyListRange<T> {
   pub(crate) fn from_bounds(start: usize, end: usize) -> Self {
     assert!(start <= end, "dependency list range is reversed");
     assert!(
-      end <= u32::MAX as usize,
+      u32::try_from(end).is_ok(),
       "dependency list storage is too large"
     );
     Self {
@@ -97,7 +97,7 @@ impl<T> Clone for DependencyIndex<T> {
 impl<T> DependencyIndex<T> {
   pub(crate) fn from_index(index: usize) -> Self {
     assert!(
-      index <= u32::MAX as usize,
+      u32::try_from(index).is_ok(),
       "dependency side table is too large"
     );
     Self {

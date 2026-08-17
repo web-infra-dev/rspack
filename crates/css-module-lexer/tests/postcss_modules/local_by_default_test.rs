@@ -34,29 +34,43 @@ impl LocalByDefault {
           if !explicit && local_alias.contains(&name[1..]) {
             continue;
           }
-          result += Lexer::slice_range(input, &Range::new(index, range.start)).unwrap();
-          add_local(&mut result, Lexer::slice_range(input, range).unwrap());
+          result += Lexer::slice_range(input, &Range::new(index, range.start))
+            .expect("test setup must produce the expected value");
+          add_local(
+            &mut result,
+            Lexer::slice_range(input, range).expect("test setup must produce the expected value"),
+          );
           index = range.end;
         }
         Dependency::LocalKeyframes { name, range } => {
           if local_alias.contains(*name) {
             continue;
           }
-          result += Lexer::slice_range(input, &Range::new(index, range.start)).unwrap();
-          add_local(&mut result, Lexer::slice_range(input, range).unwrap());
+          result += Lexer::slice_range(input, &Range::new(index, range.start))
+            .expect("test setup must produce the expected value");
+          add_local(
+            &mut result,
+            Lexer::slice_range(input, range).expect("test setup must produce the expected value"),
+          );
           index = range.end;
         }
         Dependency::LocalKeyframesDecl { range, .. } => {
-          result += Lexer::slice_range(input, &Range::new(index, range.start)).unwrap();
-          add_local(&mut result, Lexer::slice_range(input, range).unwrap());
+          result += Lexer::slice_range(input, &Range::new(index, range.start))
+            .expect("test setup must produce the expected value");
+          add_local(
+            &mut result,
+            Lexer::slice_range(input, range).expect("test setup must produce the expected value"),
+          );
           index = range.end;
         }
         Dependency::Replace { content, range } => {
-          let original = Lexer::slice_range(input, range).unwrap();
+          let original =
+            Lexer::slice_range(input, range).expect("test setup must produce the expected value");
           if original.starts_with(":export") || original.starts_with(":import(") {
             continue;
           }
-          result += Lexer::slice_range(input, &Range::new(index, range.start)).unwrap();
+          result += Lexer::slice_range(input, &Range::new(index, range.start))
+            .expect("test setup must produce the expected value");
           result += content;
           index = range.end;
         }
@@ -68,7 +82,8 @@ impl LocalByDefault {
     }
     let len = input.len() as u32;
     if index != len {
-      result += Lexer::slice_range(input, &Range::new(index, len)).unwrap();
+      result += Lexer::slice_range(input, &Range::new(index, len))
+        .expect("test setup must produce the expected value");
     }
     (result, warnings)
   }

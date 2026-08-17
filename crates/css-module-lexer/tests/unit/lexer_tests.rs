@@ -1,6 +1,6 @@
 use super::*;
 fn token_text(input: &str, token: Token) -> &str {
-  Lexer::slice_range(input, &token.range).unwrap()
+  Lexer::slice_range(input, &token.range).expect("test setup must produce the expected value")
 }
 
 #[test]
@@ -78,7 +78,8 @@ fn streaming_tokenizer_scans_escaped_url_content_as_one_token() {
   assert_eq!(token.kind, TokenKind::Url);
   assert_eq!(token_text(input, token), input);
   assert_eq!(
-    Lexer::slice_range(input, &token.value_range).unwrap(),
+    Lexer::slice_range(input, &token.value_range)
+      .expect("test setup must produce the expected value"),
     r"https:\2f\2fexample.com\2fimage.png"
   );
   assert_eq!(lexer.next_token().kind, TokenKind::Eof);

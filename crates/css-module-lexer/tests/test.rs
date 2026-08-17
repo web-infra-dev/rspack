@@ -9,7 +9,7 @@ use smallvec::SmallVec;
 
 fn assert_warning(input: &str, warning: &Warning, range_content: &str) {
   assert_eq!(
-    Lexer::slice_range(input, warning.range()).unwrap(),
+    Lexer::slice_range(input, warning.range()).expect("test setup must produce the expected value"),
     range_content
   );
 }
@@ -31,7 +31,10 @@ fn assert_url_dependency(
   };
   assert_eq!(*req, request);
   assert_eq!(*k, kind);
-  assert_eq!(Lexer::slice_range(input, range).unwrap(), range_content);
+  assert_eq!(
+    Lexer::slice_range(input, range).expect("test setup must produce the expected value"),
+    range_content
+  );
 }
 
 type ResolvedImport<'context, 's> = (&'s str, &'context Range, &'context ImportAttributes<'s>);
@@ -49,7 +52,10 @@ fn assert_import_dependency(
   assert_eq!(attributes.layer(), layer);
   assert_eq!(attributes.supports(), supports);
   assert_eq!(attributes.media(), media);
-  assert_eq!(Lexer::slice_range(input, range).unwrap(), range_content);
+  assert_eq!(
+    Lexer::slice_range(input, range).expect("test setup must produce the expected value"),
+    range_content
+  );
 }
 
 fn import_dependency<'context, 's>(
@@ -83,9 +89,12 @@ fn assert_icss_import_url_dependency(
     panic!("unexpected dependency");
   };
   assert_eq!(*actual_name, name);
-  assert_eq!(Lexer::slice_range(input, range).unwrap(), range_content);
   assert_eq!(
-    Lexer::slice_range(input, name_range).unwrap(),
+    Lexer::slice_range(input, range).expect("test setup must produce the expected value"),
+    range_content
+  );
+  assert_eq!(
+    Lexer::slice_range(input, name_range).expect("test setup must produce the expected value"),
     name_range_content
   );
 }
@@ -101,7 +110,10 @@ fn assert_local_class_dependency(input: &str, dependency: &Dependency, name: &st
   };
   assert_eq!(*actual_name, name);
   assert_eq!(*actual_explicit, explicit);
-  assert_eq!(Lexer::slice_range(input, range).unwrap(), name);
+  assert_eq!(
+    Lexer::slice_range(input, range).expect("test setup must produce the expected value"),
+    name
+  );
 }
 
 fn assert_local_id_dependency(input: &str, dependency: &Dependency, name: &str, explicit: bool) {
@@ -115,7 +127,10 @@ fn assert_local_id_dependency(input: &str, dependency: &Dependency, name: &str, 
   };
   assert_eq!(*actual_name, name);
   assert_eq!(*actual_explicit, explicit);
-  assert_eq!(Lexer::slice_range(input, range).unwrap(), name);
+  assert_eq!(
+    Lexer::slice_range(input, range).expect("test setup must produce the expected value"),
+    name
+  );
 }
 
 fn assert_local_var_dependency(
@@ -135,8 +150,8 @@ fn assert_local_var_dependency(
   assert_eq!(*actual_name, name);
   assert_eq!(*actual_from, from);
   assert_eq!(
-    Lexer::slice_range(input, range).unwrap(),
-    format!("--{}", name)
+    Lexer::slice_range(input, range).expect("test setup must produce the expected value"),
+    format!("--{name}")
   );
 }
 
@@ -150,8 +165,8 @@ fn assert_local_var_decl_dependency(input: &str, dependency: &Dependency, name: 
   };
   assert_eq!(*actual_name, name);
   assert_eq!(
-    Lexer::slice_range(input, range).unwrap(),
-    format!("--{}", name)
+    Lexer::slice_range(input, range).expect("test setup must produce the expected value"),
+    format!("--{name}")
   );
 }
 
@@ -165,8 +180,8 @@ fn assert_local_property_decl_dependency(input: &str, dependency: &Dependency, n
   };
   assert_eq!(*actual_name, name);
   assert_eq!(
-    Lexer::slice_range(input, range).unwrap(),
-    format!("--{}", name)
+    Lexer::slice_range(input, range).expect("test setup must produce the expected value"),
+    format!("--{name}")
   );
 }
 
@@ -179,7 +194,10 @@ fn assert_local_keyframes_decl_dependency(input: &str, dependency: &Dependency, 
     panic!("unexpected dependency");
   };
   assert_eq!(*actual_name, name);
-  assert_eq!(Lexer::slice_range(input, range).unwrap(), name);
+  assert_eq!(
+    Lexer::slice_range(input, range).expect("test setup must produce the expected value"),
+    name
+  );
 }
 
 fn assert_local_keyframes_dependency(input: &str, dependency: &Dependency, name: &str) {
@@ -191,7 +209,10 @@ fn assert_local_keyframes_dependency(input: &str, dependency: &Dependency, name:
     panic!("unexpected dependency");
   };
   assert_eq!(*actual_name, name);
-  assert_eq!(Lexer::slice_range(input, range).unwrap(), name);
+  assert_eq!(
+    Lexer::slice_range(input, range).expect("test setup must produce the expected value"),
+    name
+  );
 }
 
 fn assert_local_counter_style_decl_dependency(input: &str, dependency: &Dependency, name: &str) {
@@ -203,7 +224,10 @@ fn assert_local_counter_style_decl_dependency(input: &str, dependency: &Dependen
     panic!("unexpected dependency");
   };
   assert_eq!(*actual_name, name);
-  assert_eq!(Lexer::slice_range(input, range).unwrap(), name);
+  assert_eq!(
+    Lexer::slice_range(input, range).expect("test setup must produce the expected value"),
+    name
+  );
 }
 
 fn assert_local_counter_style_dependency(input: &str, dependency: &Dependency, name: &str) {
@@ -215,7 +239,10 @@ fn assert_local_counter_style_dependency(input: &str, dependency: &Dependency, n
     panic!("unexpected dependency");
   };
   assert_eq!(*actual_name, name);
-  assert_eq!(Lexer::slice_range(input, range).unwrap(), name);
+  assert_eq!(
+    Lexer::slice_range(input, range).expect("test setup must produce the expected value"),
+    name
+  );
 }
 
 fn assert_local_font_palette_decl_dependency(input: &str, dependency: &Dependency, name: &str) {
@@ -228,8 +255,8 @@ fn assert_local_font_palette_decl_dependency(input: &str, dependency: &Dependenc
   };
   assert_eq!(*actual_name, name);
   assert_eq!(
-    Lexer::slice_range(input, range).unwrap(),
-    format!("--{}", name)
+    Lexer::slice_range(input, range).expect("test setup must produce the expected value"),
+    format!("--{name}")
   );
 }
 
@@ -243,8 +270,8 @@ fn assert_local_font_palette_dependency(input: &str, dependency: &Dependency, na
   };
   assert_eq!(*actual_name, name);
   assert_eq!(
-    Lexer::slice_range(input, range).unwrap(),
-    format!("--{}", name)
+    Lexer::slice_range(input, range).expect("test setup must produce the expected value"),
+    format!("--{name}")
   );
 }
 
@@ -257,7 +284,10 @@ fn assert_local_container_dependency(input: &str, dependency: &Dependency, name:
     panic!("unexpected dependency");
   };
   assert_eq!(*actual_name, name);
-  assert_eq!(Lexer::slice_range(input, range).unwrap(), name);
+  assert_eq!(
+    Lexer::slice_range(input, range).expect("test setup must produce the expected value"),
+    name
+  );
 }
 
 fn assert_local_container_decl_dependency(input: &str, dependency: &Dependency, name: &str) {
@@ -269,7 +299,10 @@ fn assert_local_container_decl_dependency(input: &str, dependency: &Dependency, 
     panic!("unexpected dependency");
   };
   assert_eq!(*actual_name, name);
-  assert_eq!(Lexer::slice_range(input, range).unwrap(), name);
+  assert_eq!(
+    Lexer::slice_range(input, range).expect("test setup must produce the expected value"),
+    name
+  );
 }
 
 fn assert_local_function_dependency(input: &str, dependency: &Dependency, name: &str) {
@@ -282,8 +315,8 @@ fn assert_local_function_dependency(input: &str, dependency: &Dependency, name: 
   };
   assert_eq!(*actual_name, name);
   assert_eq!(
-    Lexer::slice_range(input, range).unwrap(),
-    format!("--{}", name)
+    Lexer::slice_range(input, range).expect("test setup must produce the expected value"),
+    format!("--{name}")
   );
 }
 
@@ -297,8 +330,8 @@ fn assert_local_function_decl_dependency(input: &str, dependency: &Dependency, n
   };
   assert_eq!(*actual_name, name);
   assert_eq!(
-    Lexer::slice_range(input, range).unwrap(),
-    format!("--{}", name)
+    Lexer::slice_range(input, range).expect("test setup must produce the expected value"),
+    format!("--{name}")
   );
 }
 
@@ -311,7 +344,10 @@ fn assert_local_grid_dependency(input: &str, dependency: &Dependency, name: &str
     panic!("unexpected dependency");
   };
   assert_eq!(*actual_name, name);
-  assert_eq!(Lexer::slice_range(input, range).unwrap(), name);
+  assert_eq!(
+    Lexer::slice_range(input, range).expect("test setup must produce the expected value"),
+    name
+  );
 }
 
 fn assert_local_grid_decl_dependency(input: &str, dependency: &Dependency, name: &str) {
@@ -323,7 +359,10 @@ fn assert_local_grid_decl_dependency(input: &str, dependency: &Dependency, name:
     panic!("unexpected dependency");
   };
   assert_eq!(*actual_name, name);
-  assert_eq!(Lexer::slice_range(input, range).unwrap(), name);
+  assert_eq!(
+    Lexer::slice_range(input, range).expect("test setup must produce the expected value"),
+    name
+  );
 }
 
 fn assert_composes_dependency(
@@ -350,7 +389,7 @@ fn assert_composes_dependency(
       .iter()
       .copied()
       .collect::<SmallVec<[&str; 2]>>(),
-    SmallVec::<[&str; 2]>::from_iter(local_classes.split(' '))
+    local_classes.split(' ').collect::<SmallVec<[&str; 2]>>()
   );
   assert_eq!(
     context
@@ -358,10 +397,13 @@ fn assert_composes_dependency(
       .iter()
       .copied()
       .collect::<SmallVec<[&str; 2]>>(),
-    SmallVec::<[&str; 2]>::from_iter(names.split(' '))
+    names.split(' ').collect::<SmallVec<[&str; 2]>>()
   );
   assert_eq!(*actual_from, from);
-  assert_eq!(Lexer::slice_range(input, range).unwrap(), range_content);
+  assert_eq!(
+    Lexer::slice_range(input, range).expect("test setup must produce the expected value"),
+    range_content
+  );
 }
 
 fn assert_replace_dependency(
@@ -378,7 +420,10 @@ fn assert_replace_dependency(
     panic!("unexpected dependency");
   };
   assert_eq!(*actual_content, content);
-  assert_eq!(Lexer::slice_range(input, range).unwrap(), range_content);
+  assert_eq!(
+    Lexer::slice_range(input, range).expect("test setup must produce the expected value"),
+    range_content
+  );
 }
 
 fn assert_charset_dependency(
@@ -395,7 +440,10 @@ fn assert_charset_dependency(
     panic!("unexpected dependency");
   };
   assert_eq!(*actual_value, value);
-  assert_eq!(Lexer::slice_range(input, range).unwrap(), range_content);
+  assert_eq!(
+    Lexer::slice_range(input, range).expect("test setup must produce the expected value"),
+    range_content
+  );
 }
 
 fn assert_icss_import_from_dependency(_input: &str, dependency: &Dependency, path: &str) {
@@ -453,7 +501,10 @@ fn assert_icss_symbol_dependency(
     panic!("unexpected dependency");
   };
   assert_eq!(*actual_name, name);
-  assert_eq!(Lexer::slice_range(input, range).unwrap(), range_content);
+  assert_eq!(
+    Lexer::slice_range(input, range).expect("test setup must produce the expected value"),
+    range_content
+  );
 }
 
 #[test]
@@ -524,7 +575,7 @@ fn dependency_css_module_names_preserve_css_escapes() {
   let declaration = dependencies
     .iter()
     .find(|dependency| matches!(dependency, Dependency::LocalKeyframesDecl { .. }))
-    .unwrap();
+    .expect("test setup must produce the expected value");
   let Dependency::LocalKeyframesDecl { name, range } = declaration else {
     unreachable!();
   };
@@ -533,7 +584,7 @@ fn dependency_css_module_names_preserve_css_escapes() {
   let usage = dependencies
     .iter()
     .find(|dependency| matches!(dependency, Dependency::LocalKeyframes { .. }))
-    .unwrap();
+    .expect("test setup must produce the expected value");
   let Dependency::LocalKeyframes { name, range } = usage else {
     unreachable!();
   };
@@ -546,7 +597,7 @@ fn dependency_css_module_names_preserve_css_escapes() {
   let declaration = dependencies
     .iter()
     .find(|dependency| matches!(dependency, Dependency::LocalVarDecl { .. }))
-    .unwrap();
+    .expect("test setup must produce the expected value");
   let Dependency::LocalVarDecl { name, range } = declaration else {
     unreachable!();
   };
@@ -555,7 +606,7 @@ fn dependency_css_module_names_preserve_css_escapes() {
   let usage = dependencies
     .iter()
     .find(|dependency| matches!(dependency, Dependency::LocalVar { .. }))
-    .unwrap();
+    .expect("test setup must produce the expected value");
   let Dependency::LocalVar { name, from, range } = usage else {
     unreachable!();
   };
@@ -572,7 +623,7 @@ fn dependency_composes_and_icss_strings_preserve_css_escapes() {
   let composes = dependencies
     .iter()
     .find(|dependency| matches!(dependency, Dependency::Composes { .. }))
-    .unwrap();
+    .expect("test setup must produce the expected value");
   let Dependency::Composes {
     local_classes,
     names,
@@ -602,7 +653,7 @@ fn dependency_composes_and_icss_strings_preserve_css_escapes() {
   let symbol = dependencies
     .iter()
     .find(|dependency| matches!(dependency, Dependency::ICSSSymbol { .. }))
-    .unwrap();
+    .expect("test setup must produce the expected value");
   assert_icss_symbol_dependency(input, symbol, r"l\6f cal", r"l\6f cal");
 
   let input = r":export { f\6f o: red; } .x { color: f\6f o; }";
@@ -611,12 +662,12 @@ fn dependency_composes_and_icss_strings_preserve_css_escapes() {
   let export = dependencies
     .iter()
     .find(|dependency| matches!(dependency, Dependency::ICSSExportValue { .. }))
-    .unwrap();
+    .expect("test setup must produce the expected value");
   assert_icss_export_value_dependency(input, export, r"f\6f o", "red");
   let symbol = dependencies
     .iter()
     .find(|dependency| matches!(dependency, Dependency::ICSSSymbol { .. }))
-    .unwrap();
+    .expect("test setup must produce the expected value");
   assert_icss_symbol_dependency(input, symbol, r"f\6f o", r"f\6f o");
 }
 
@@ -1277,7 +1328,8 @@ fn rspack_nested_comment_separated_modes_warn_in_source_order() {
   assert_eq!(
     warnings
       .iter()
-      .map(|warning| Lexer::slice_range(input, warning.range()).unwrap())
+      .map(|warning| Lexer::slice_range(input, warning.range())
+        .expect("test setup must produce the expected value"))
       .collect::<Vec<_>>(),
     [":global", ":global", ":local", ":local", ":local", ":local"]
   );
@@ -1491,7 +1543,7 @@ fn pure_mode_ignore_comment_does_not_affect_following_rule() {
   assert_eq!(warnings.len(), 1);
   assert!(
     Lexer::slice_range(input, warnings[0].range())
-      .unwrap()
+      .expect("test setup must produce the expected value")
       .contains(":global(.not-ignored)")
   );
 }
@@ -1524,7 +1576,7 @@ fn pure_mode_nested_ignore_comment_does_not_suppress_outer_rule() {
   assert_eq!(warnings.len(), 1);
   assert!(
     Lexer::slice_range(input, warnings[0].range())
-      .unwrap()
+      .expect("test setup must produce the expected value")
       .contains(":global(.foo)")
   );
 }
@@ -2831,7 +2883,8 @@ fn rspack_value_at_rule_only_bare_name_is_newly_broken() {
   assert_eq!(
     warnings
       .iter()
-      .map(|warning| Lexer::slice_range(input, warning.range()).unwrap())
+      .map(|warning| Lexer::slice_range(input, warning.range())
+        .expect("test setup must produce the expected value"))
       .collect::<Vec<_>>(),
     ["@value;", "@value test;"]
   );

@@ -331,12 +331,10 @@ impl BalancedItem {
     let mut normalized = [0; MAX_CSS_KEYWORD_LEN];
     let kind = if flags.has_escape() {
       decode_css_keyword(name, &mut normalized)
-        .map(BalancedItemKind::new)
-        .unwrap_or(BalancedItemKind::Other)
+        .map_or(BalancedItemKind::Other, BalancedItemKind::new)
     } else {
       lowercase_ascii_keyword(name, &mut normalized)
-        .map(BalancedItemKind::new)
-        .unwrap_or(BalancedItemKind::Other)
+        .map_or(BalancedItemKind::Other, BalancedItemKind::new)
     };
     Self {
       kind,
@@ -2228,7 +2226,9 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
           .is_some_and(trivia_only)
     });
     if import {
-      let (_, last) = parser.last_two().unwrap();
+      let (_, last) = parser
+        .last_two()
+        .expect("an import value must end with at least two tokens");
       let from = &parser.input[last.range.start as usize..last.range.end as usize];
       let item_end = parser.from_prev_end.unwrap_or(parser.item_end);
       parser.finish_item(&mut self.dependency_context, item_end);
@@ -2495,7 +2495,10 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
       } else if pseudo_name.kind == TokenKind::Ident {
         self.handle_pseudo_class(stream, pseudo_start, pseudo_end, pseudo_name.flags)?;
       }
-      let mode_data = self.mode_data.as_ref().unwrap();
+      let mode_data = self
+        .mode_data
+        .as_ref()
+        .expect("CSS Modules mode data must exist while parsing keyframes");
       if mode_data.is_pure_mode()
         && !mode_data.is_pure_check_disabled()
         && (pseudo.eq_ignore_ascii_case(":global(") || pseudo.eq_ignore_ascii_case(":global"))
@@ -2537,7 +2540,12 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
       return Some(());
     }
     let end = name_token.range.end;
-    if self.mode_data.as_ref().unwrap().is_current_local_mode() {
+    if self
+      .mode_data
+      .as_ref()
+      .expect("CSS Modules mode data must exist while parsing keyframes")
+      .is_current_local_mode()
+    {
       let name = stream.slice(start, end)?;
       self
         .dependency_context
@@ -2564,7 +2572,10 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
           content: "",
           range: Range::new(right_parenthesis.range.start, right_parenthesis.range.end),
         });
-      let mode_data = self.mode_data.as_mut().unwrap();
+      let mode_data = self
+        .mode_data
+        .as_mut()
+        .expect("CSS Modules mode data must exist while leaving a keyframes mode function");
       mode_data.inside_mode_function -= 1;
       self.balanced.pop_without_moda_data();
     }
@@ -2582,7 +2593,10 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
   }
 
   fn handle_local_keyframes_dependency(&mut self, lexer: &DependencyLexer<'s>) -> Option<()> {
-    let animation = self.in_animation_property.as_mut().unwrap();
+    let animation = self
+      .in_animation_property
+      .as_mut()
+      .expect("animation state must exist while handling an animation dependency");
     if let Some(range) = animation.take_rename(self.balanced.len()) {
       self
         .dependency_context
@@ -2647,7 +2661,12 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
     if is_reserved_container_query_ident(ident, name_token.flags) {
       return Some(());
     }
-    if self.mode_data.as_ref().unwrap().is_current_local_mode() {
+    if self
+      .mode_data
+      .as_ref()
+      .expect("CSS Modules mode data must exist while parsing a container")
+      .is_current_local_mode()
+    {
       self
         .dependency_context
         .push_dependency(Dependency::LocalContainer {
@@ -2675,7 +2694,10 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
       } else if pseudo_name.kind == TokenKind::Ident {
         self.handle_pseudo_class(stream, pseudo_start, pseudo_end, pseudo_name.flags)?;
       }
-      let mode_data = self.mode_data.as_ref().unwrap();
+      let mode_data = self
+        .mode_data
+        .as_ref()
+        .expect("CSS Modules mode data must exist while parsing a function");
       if mode_data.is_pure_mode()
         && !mode_data.is_pure_check_disabled()
         && (pseudo.eq_ignore_ascii_case(":global(") || pseudo.eq_ignore_ascii_case(":global"))
@@ -2726,7 +2748,12 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
       });
       return Some(());
     }
-    if self.mode_data.as_ref().unwrap().is_current_local_mode() {
+    if self
+      .mode_data
+      .as_ref()
+      .expect("CSS Modules mode data must exist while parsing a function")
+      .is_current_local_mode()
+    {
       self
         .dependency_context
         .push_dependency(Dependency::LocalFunctionDecl {
@@ -2753,7 +2780,10 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
           content: "",
           range: Range::new(right_parenthesis.range.start, right_parenthesis.range.end),
         });
-      let mode_data = self.mode_data.as_mut().unwrap();
+      let mode_data = self
+        .mode_data
+        .as_mut()
+        .expect("CSS Modules mode data must exist while leaving a function mode function");
       mode_data.inside_mode_function -= 1;
       self.balanced.pop_without_moda_data();
     }
@@ -2774,7 +2804,10 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
   }
 
   fn handle_local_counter_style_dependency(&mut self, lexer: &DependencyLexer<'s>) -> Option<()> {
-    let list_style = self.in_list_style_property.as_mut().unwrap();
+    let list_style = self
+      .in_list_style_property
+      .as_mut()
+      .expect("list-style state must exist while handling a counter-style dependency");
     if let Some(range) = list_style.take_rename(self.balanced.len()) {
       self
         .dependency_context
@@ -2787,7 +2820,10 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
   }
 
   fn handle_local_font_palette_dependency(&mut self, lexer: &DependencyLexer<'s>) -> Option<()> {
-    let font_palette = self.in_font_palette_property.as_mut().unwrap();
+    let font_palette = self
+      .in_font_palette_property
+      .as_mut()
+      .expect("font-palette state must exist while handling a font-palette dependency");
     if let Some(range) = font_palette.take_rename(self.balanced.len()) {
       self
         .dependency_context
@@ -3250,7 +3286,10 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
         }
       }
 
-      let mode_data = self.mode_data.as_mut().unwrap();
+      let mode_data = self
+        .mode_data
+        .as_mut()
+        .expect("CSS Modules mode data must exist while handling an at-rule");
       if can_contain_rules && self.block_nesting_level == 0 {
         mode_data.composes_local_classes.find_at_keyword();
       }
@@ -3531,7 +3570,10 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
       let mut function_end = last.range.end;
       if last.kind.is_mode_class() {
         self.balanced.pop_mode_pseudo_class(mode_data);
-        let popped = self.balanced.pop_without_moda_data().unwrap();
+        let popped = self
+          .balanced
+          .pop_without_moda_data()
+          .expect("a mode pseudo-class must have a preceding balanced item");
         debug_assert!(!matches!(
           popped.kind,
           BalancedItemKind::GlobalClass | BalancedItemKind::LocalClass
@@ -3626,8 +3668,7 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
           && self
             .balanced
             .last()
-            .map(|last| last.kind.is_mode_function())
-            .unwrap_or(false)
+            .is_some_and(|last| last.kind.is_mode_function())
           && ident.starts_with("--")
           && stream.peek_parser_token().token.kind == TokenKind::RightParenthesis
         {
@@ -3923,7 +3964,10 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
       self.balanced.update_property_mode(mode_data);
       self.balanced.pop_mode_pseudo_class(mode_data);
       if self.is_next_rule_prelude && self.block_nesting_level == 0 {
-        let mode_data = self.mode_data.as_mut().unwrap();
+        let mode_data = self
+          .mode_data
+          .as_mut()
+          .expect("CSS Modules mode data must exist while finishing a selector");
         mode_data.composes_local_classes.reset_to_initial();
       }
 
@@ -4169,7 +4213,10 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
     }
 
     if self.balanced.len() == 1 {
-      let last = self.balanced.last().unwrap();
+      let last = self
+        .balanced
+        .last()
+        .expect("a balanced item must exist when the stack length is one");
       let is_local_class = matches!(last.kind, BalancedItemKind::LocalClass);
       let is_global_class = matches!(last.kind, BalancedItemKind::GlobalClass);
       if is_local_class || is_global_class {

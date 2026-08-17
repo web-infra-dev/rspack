@@ -25,7 +25,8 @@ fn serialize_identifier(mut value: &str) -> String {
         '0'..='9' | 'A'..='Z' | 'a'..='z' | '_' | '-' => output.push(character),
         character if !character.is_ascii() => output.push(character),
         character if character.is_ascii_control() => {
-          write!(output, "\\{:x} ", character as u32).unwrap();
+          write!(output, "\\{:x} ", character as u32)
+            .expect("test setup must produce the expected value");
         }
         character => {
           output.push('\\');
@@ -49,7 +50,7 @@ fn serialize_identifier(mut value: &str) -> String {
     value = rest;
   }
   if let Some(digit @ '0'..='9') = value.chars().next() {
-    write!(output, "\\{:x} ", digit as u32).unwrap();
+    write!(output, "\\{:x} ", digit as u32).expect("test setup must produce the expected value");
     value = &value[digit.len_utf8()..];
   }
   serialize_name(value, &mut output);
@@ -162,10 +163,17 @@ impl ExtractImports {
                 if let Some(value) = values.get(name) {
                   composes_content += value;
                 } else {
-                  let value = format!(
-                    "i__imported_{}_{postfix}",
-                    name.replace(|c: char| !c.is_ascii_alphanumeric() && c != '_', "_")
-                  );
+                  let serialized_name = name
+                    .chars()
+                    .map(|character| {
+                      if character.is_ascii_alphanumeric() || character == '_' {
+                        character
+                      } else {
+                        '_'
+                      }
+                    })
+                    .collect::<String>();
+                  let value = format!("i__imported_{serialized_name}_{postfix}");
                   postfix += 1;
                   composes_content += value.as_ref();
                   values.insert(name.to_string(), value);
@@ -189,15 +197,18 @@ impl ExtractImports {
         Dependency::Replace { content, range } => {
           if !composes_contents.is_empty() {
             let composes_contents = std::mem::take(&mut composes_contents);
-            result += Lexer::slice_range(input, &Range::new(index, range.start)).unwrap();
+            result += Lexer::slice_range(input, &Range::new(index, range.start))
+              .expect("test setup must produce the expected value");
             result += "composes: ";
             result += &composes_contents.join(", ");
             result += ";";
             index = range.end;
           } else {
-            let original = Lexer::slice_range(input, range).unwrap();
+            let original =
+              Lexer::slice_range(input, range).expect("test setup must produce the expected value");
             if original.starts_with(":export") || original.starts_with(":import(") {
-              result += Lexer::slice_range(input, &Range::new(index, range.start)).unwrap();
+              result += Lexer::slice_range(input, &Range::new(index, range.start))
+                .expect("test setup must produce the expected value");
               result += content;
               index = range.end;
             }
@@ -209,7 +220,10 @@ impl ExtractImports {
           add_import_to_graph(path, rule_index, &mut graph, &mut visited, &mut siblings);
         }
         Dependency::ICSSImportValue { prop, value } => {
-          let (_, values) = imports.iter_mut().last().unwrap();
+          let (_, values) = imports
+            .iter_mut()
+            .last()
+            .expect("test setup must produce the expected value");
           values.insert(value.to_string(), prop.to_string());
         }
         _ => {}
@@ -217,7 +231,8 @@ impl ExtractImports {
     }
     let len = input.len() as u32;
     if index != len {
-      result += Lexer::slice_range(input, &Range::new(index, len)).unwrap();
+      result += Lexer::slice_range(input, &Range::new(index, len))
+        .expect("test setup must produce the expected value");
     }
     let order = topological_sort(&graph, &mut warnings);
     for import in order {

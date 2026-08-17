@@ -1127,7 +1127,7 @@ impl<'s, V: LexerVisitor> Lexer<'s, V> {
       let content_start = self.skip_white_space(open_end);
       if !matches!(
         self.value.get(content_start),
-        Some(&C_QUOTATION_MARK) | Some(&C_APOSTROPHE)
+        Some(&C_QUOTATION_MARK | &C_APOSTROPHE)
       ) {
         let (kind, end, value_start, value_end, url_flags) = self.scan_url(start, content_start);
         let mut flags = name_flags;
@@ -1271,10 +1271,7 @@ impl<'s, V: LexerVisitor> Lexer<'s, V> {
   #[inline]
   fn scan_number_end(&self, start: usize) -> usize {
     let mut end = start;
-    if matches!(
-      self.value.get(end),
-      Some(&C_PLUS_SIGN) | Some(&C_HYPHEN_MINUS)
-    ) {
+    if matches!(self.value.get(end), Some(&C_PLUS_SIGN | &C_HYPHEN_MINUS)) {
       end += 1;
     }
     while self.value.get(end).is_some_and(|byte| is_digit(*byte)) {
@@ -1288,12 +1285,12 @@ impl<'s, V: LexerVisitor> Lexer<'s, V> {
         end += 1;
       }
     }
-    if matches!(self.value.get(end), Some(&C_LOWER_E) | Some(&C_UPPER_E)) {
+    if matches!(self.value.get(end), Some(&C_LOWER_E | &C_UPPER_E)) {
       let exponent_start = end;
       let mut exponent_end = end + 1;
       if matches!(
         self.value.get(exponent_end),
-        Some(&C_PLUS_SIGN) | Some(&C_HYPHEN_MINUS)
+        Some(&C_PLUS_SIGN | &C_HYPHEN_MINUS)
       ) {
         exponent_end += 1;
       }
@@ -1661,7 +1658,10 @@ impl<'a, 's, V: LexerVisitor> TokenStream<'a, 's, V> {
       let item = self.read_significant(keep_comments);
       self.buffered.push_back(item);
     }
-    *self.buffered.front().unwrap()
+    *self
+      .buffered
+      .front()
+      .expect("peek must buffer an item before reading the front")
   }
 
   /// Peek the next parser token (folding comments into its leading trivia)
