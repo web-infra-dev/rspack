@@ -30,7 +30,6 @@ pub struct LoaderItem<Context: Send> {
   fragment: Option<String>,
   r#type: String,
   execution_kind: LoaderExecutionKind,
-  parallel: bool,
 }
 
 #[derive(Debug, Default)]
@@ -51,11 +50,6 @@ impl<C: Send> LoaderItem<C> {
   #[inline]
   pub fn execution_kind(&self) -> LoaderExecutionKind {
     self.execution_kind
-  }
-
-  #[inline]
-  pub fn parallel(&self) -> bool {
-    self.parallel
   }
 
   #[inline]
@@ -192,18 +186,12 @@ where
   fn execution_kind(&self) -> LoaderExecutionKind {
     LoaderExecutionKind::Native
   }
-
-  /// Whether this loader should execute in a worker when it is a JavaScript loader.
-  fn parallel(&self) -> bool {
-    false
-  }
 }
 
 impl<C: Send> From<Arc<dyn Loader<C>>> for LoaderItem<C> {
   fn from(loader: Arc<dyn Loader<C>>) -> Self {
     let ident = &**loader.identifier();
     let execution_kind = loader.execution_kind();
-    let parallel = loader.parallel();
     if let Some(r#type) = loader.r#type() {
       let ResourceParsedData {
         path,
@@ -219,7 +207,6 @@ impl<C: Send> From<Arc<dyn Loader<C>>> for LoaderItem<C> {
         fragment,
         r#type: ty,
         execution_kind,
-        parallel,
       };
     }
     let ident = loader.identifier();
@@ -236,7 +223,6 @@ impl<C: Send> From<Arc<dyn Loader<C>>> for LoaderItem<C> {
       fragment,
       r#type: String::default(),
       execution_kind,
-      parallel,
     }
   }
 }

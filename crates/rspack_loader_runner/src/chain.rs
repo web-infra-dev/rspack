@@ -10,14 +10,14 @@ pub enum LoaderExecutionKind {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum LoaderChain {
-  JsExecutionChain { range: Range<u8>, parallel: bool },
+  JsExecutionChain { range: Range<u8> },
   NativeExecutionChain { range: Range<u8> },
 }
 
 impl LoaderChain {
   pub fn range(&self) -> Range<u8> {
     match self {
-      Self::JsExecutionChain { range, .. } | Self::NativeExecutionChain { range } => range.clone(),
+      Self::JsExecutionChain { range } | Self::NativeExecutionChain { range } => range.clone(),
     }
   }
 
@@ -39,19 +39,12 @@ impl LoaderChain {
       Self::NativeExecutionChain { .. } => LoaderExecutionKind::Native,
     }
   }
-
-  pub fn parallel(&self) -> bool {
-    match self {
-      Self::JsExecutionChain { parallel, .. } => *parallel,
-      Self::NativeExecutionChain { .. } => false,
-    }
-  }
 }
 
-fn execution_chain(range: Range<u8>, kind: LoaderExecutionKind, parallel: bool) -> LoaderChain {
+fn execution_chain(range: Range<u8>, kind: LoaderExecutionKind) -> LoaderChain {
   match kind {
     LoaderExecutionKind::Native => LoaderChain::NativeExecutionChain { range },
-    LoaderExecutionKind::JavaScript => LoaderChain::JsExecutionChain { range, parallel },
+    LoaderExecutionKind::JavaScript => LoaderChain::JsExecutionChain { range },
   }
 }
 
@@ -67,17 +60,14 @@ pub fn plan_loader_chains<Context: Send>(loaders: &[LoaderItem<Context>]) -> Vec
 
   while index < loaders.len() {
     let kind = loaders[index].execution_kind();
-    let parallel = loaders[index].parallel();
     let mut end = index + 1;
     if kind == LoaderExecutionKind::JavaScript {
-      while end < loaders.len()
-        && loaders[end].execution_kind() == LoaderExecutionKind::JavaScript
-        && loaders[end].parallel() == parallel
+      while end < loaders.len() && loaders[end].execution_kind() == LoaderExecutionKind::JavaScript
       {
         end += 1;
       }
     }
-    chains.push(execution_chain(index as u8..end as u8, kind, parallel));
+    chains.push(execution_chain(index as u8..end as u8, kind));
     index = end;
   }
 
@@ -109,12 +99,6 @@ fn validate_loader_chain_plan<Context: Send>(
     );
     if kind == LoaderExecutionKind::Native {
       assert_eq!(range.len(), 1);
-    } else {
-      assert!(
-        loaders[range]
-          .iter()
-          .all(|loader| loader.parallel() == chain.parallel())
-      );
     }
   }
 

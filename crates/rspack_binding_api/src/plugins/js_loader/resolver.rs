@@ -20,7 +20,6 @@ use super::{JsLoaderRspackPlugin, JsLoaderRspackPluginInner};
 pub struct JsLoader(
   pub Identifier,
   /* LoaderType */ #[cacheable(with=AsOption<AsRefStr>)] pub Option<Cow<'static, str>>,
-  pub bool,
 );
 
 #[cacheable_dyn]
@@ -35,10 +34,6 @@ impl Loader<RunnerContext> for JsLoader {
 
   fn execution_kind(&self) -> LoaderExecutionKind {
     LoaderExecutionKind::JavaScript
-  }
-
-  fn parallel(&self) -> bool {
-    self.2
   }
 }
 
@@ -125,11 +120,7 @@ pub(crate) async fn resolve_loader(
       } else {
         format!("{path}{query}")
       };
-      Ok(Some(Arc::new(JsLoader(
-        resource.into(),
-        r#type,
-        l.parallel,
-      ))))
+      Ok(Some(Arc::new(JsLoader(resource.into(), r#type))))
     }
     ResolveResult::Ignored => Ok(None),
   }

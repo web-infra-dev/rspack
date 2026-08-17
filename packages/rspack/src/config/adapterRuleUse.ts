@@ -555,7 +555,6 @@ function createRawModuleRuleUsesImpl(
         isBuiltin,
       ),
       options: o,
-      parallel: !!use.parallel,
     };
   });
 }

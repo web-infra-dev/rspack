@@ -2750,7 +2750,6 @@ export interface RawModuleRule {
 export interface RawModuleRuleUse {
   loader: string
   options?: string
-  parallel: boolean
 }
 
 export interface RawNodeOption {
