@@ -284,8 +284,8 @@ catalogs:
       specifier: ^2.2.3
       version: 2.2.3
     less:
-      specifier: 4.8.1
-      version: 4.8.1
+      specifier: 4.9.0
+      version: 4.9.0
     less-loader:
       specifier: ^13.0.0
       version: 13.0.0
@@ -1166,10 +1166,10 @@ importers:
         version: 2.2.3
       less:
         specifier: 'catalog:'
-        version: 4.8.1
+        version: 4.9.0
       less-loader:
         specifier: 'catalog:'
-        version: 13.0.0(@rspack/core@packages+rspack)(less@4.8.1)
+        version: 13.0.0(@rspack/core@packages+rspack)(less@4.9.0)
       lodash:
         specifier: 'catalog:'
         version: 4.18.1
@@ -5692,8 +5692,8 @@ packages:
       webpack:
         optional: true
 
-  less@4.8.1:
-    resolution: {integrity: sha512-jQ3lRIo1aUtiWVYXZ7mk4+V4BjCGswF3IxTLJ+4RUta8ZiHh8lhkig2G8dya2eCcyR1dYUvzuV46EkJN8PSwww==}
+  less@4.9.0:
+    resolution: {integrity: sha512-umRhrCH7fCi8Uj2RcwKjJdvUORTjeWqkdKx0LbcZvjIwsAVsnIAGcxHaqowPeBFBjQuWOeC/bve0AlpFzF/+SQ==}
     engines: {node: '>=18'}
     hasBin: true
 
@@ -12154,14 +12154,14 @@ snapshots:
 
   layout-base@2.0.1: {}
 
-  less-loader@13.0.0(@rspack/core@packages+rspack)(less@4.8.1):
+  less-loader@13.0.0(@rspack/core@packages+rspack)(less@4.9.0):
     dependencies:
       '@types/less': 3.0.8
-      less: 4.8.1
+      less: 4.9.0
     optionalDependencies:
       '@rspack/core': link:packages/rspack
 
-  less@4.8.1:
+  less@4.9.0:
     dependencies:
       copy-anything: 3.0.5
       parse-node-version: 1.0.1
