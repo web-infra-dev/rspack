@@ -21,6 +21,7 @@ use crate::{
   BoxPlugin, CleanOptions, Compilation, CompilationAsset, CompilationLogging, CompilerOptions,
   CompilerPlatform, ContextModuleFactory, Filename, KeepPattern, NormalModuleFactory, PluginDriver,
   ResolverFactory, SharedPluginDriver,
+  artifacts::IncrementalArtifacts,
   cache::{Cache as LegacyCache, new_cache as create_legacy_cache},
   compilation::build_module_graph::ModuleExecutor,
   fast_set, include_hash,
@@ -100,6 +101,7 @@ pub struct Compiler {
   pub resolver_factory: Arc<ResolverFactory>,
   pub loader_resolver_factory: Arc<ResolverFactory>,
   pub cache: Box<dyn LegacyCache>,
+  incremental_artifacts: IncrementalArtifacts,
   new_cache: Cache,
   /// emitted asset versions
   /// the key of HashMap is filename, the value of HashMap is version
@@ -209,6 +211,7 @@ impl Compiler {
       resolver_factory,
       loader_resolver_factory,
       cache,
+      incremental_artifacts: IncrementalArtifacts::default(),
       new_cache,
       emitted_asset_versions: Default::default(),
       input_filesystem,
@@ -292,6 +295,7 @@ impl Compiler {
     let _guard = scopeguard::guard((), move |_| plugin_driver_clone.clear_cache(compilation_id));
     let compilation_logging = self.compilation.get_logging().clone();
     compilation_logging.clear();
+    self.incremental_artifacts.reset();
 
     fast_set(
       &mut self.compilation,
@@ -353,7 +357,11 @@ impl Compiler {
     let start = logger.time("seal compilation");
     self
       .compilation
-      .run_passes(self.plugin_driver.clone(), &mut *self.cache)
+      .run_passes_with_incremental_artifacts(
+        self.plugin_driver.clone(),
+        &mut self.incremental_artifacts,
+        &mut *self.cache,
+      )
       .await?;
     logger.time_end(start);
 

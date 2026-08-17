@@ -10,7 +10,7 @@ description: '控制是否启用增量构建；开启后，Rspack 会在重构�
 - **默认值：** `'advance-silent'`
 
 :::tip
-当 [`cache`](/config/cache) 被禁用时，Rspack 会关闭增量构建相关阶段。如果希望在开发、watch 或 HMR 场景使用增量构建，需要保持缓存开启。
+增量 Artifact 与 [`cache`](/config/cache) 相互独立。关闭缓存不会禁用开发、watch 或 HMR 场景中的增量重构建。
 :::
 
 ## 配置方式

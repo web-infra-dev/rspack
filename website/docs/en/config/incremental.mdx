@@ -10,7 +10,7 @@ description: 'Whether to enable incremental builds. When enabled, Rspack reuses 
 - **Default:** `'advance-silent'`
 
 :::tip
-When [`cache`](/config/cache) is disabled, Rspack disables the incremental build stages. Keep cache enabled if you want to use incremental builds during development, watch, or HMR.
+Incremental artifacts are independent of [`cache`](/config/cache). Disabling cache does not disable incremental rebuilds during development, watch, or HMR.
 :::
 
 ## Configuration
