@@ -5,6 +5,10 @@ name: Experiment Container Build
 # x86_64-unknown-linux-gnu path of reusable-build-build.yml with the steps the
 # image makes redundant removed. Compare against "Build Linux" in the same run.
 on:
+  # Self-limited paths: only runs when this experiment file itself changes.
+  pull_request:
+    paths:
+      - '.github/workflows/experiment-container-build.yml'
   workflow_dispatch:
     inputs:
       image:
@@ -22,7 +26,7 @@ jobs:
     runs-on: rspack-custom-container
     timeout-minutes: 60
     container:
-      image: ${{ inputs.image }}
+      image: ${{ inputs.image || 'ghcr.io/web-infra-dev/rspack/ci-linux:20260817-28d0f5c' }}
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
