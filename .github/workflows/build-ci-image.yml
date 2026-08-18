@@ -129,6 +129,12 @@ jobs:
             NODE_VERSION=${{ steps.versions.outputs.node_version }}
             PNPM_VERSION=${{ steps.versions.outputs.pnpm_version }}
 
+      - name: Image size
+        if: steps.build.outputs.digest != ''
+        run: |
+          docker buildx imagetools inspect "${{ steps.meta.outputs.image }}@${{ steps.build.outputs.digest }}" --raw \
+            | python3 -c "import json,sys; m=json.load(sys.stdin); L=m['layers']; t=sum(l['size'] for l in L); print(f'compressed {t/1024**3:.2f} GiB across {len(L)} layers'); print('largest (MiB):', ', '.join(f\"{l['size']/1024**2:.0f}\" for l in sorted(L,key=lambda x:-x['size'])[:6]))"
+
       - name: Summary
         run: |
           {
