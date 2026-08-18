@@ -38,9 +38,11 @@ jobs:
         run: |
           echo "runner.environment = ${{ runner.environment }}"
           echo "runner.os          = ${{ runner.os }}"
-          nproc && free -g | head -2
-          which node pnpm cargo rustc sccache || true
-          rustc -vV | head -3
+          nproc
+          free -g || true
+          which node pnpm cargo rustc || true
+          command -v sccache || echo 'sccache: not in image (cargo cache step installs it)'
+          rustc -vV
 
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
