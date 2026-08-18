@@ -18,20 +18,21 @@ use super::{JsLoaderRspackPlugin, JsLoaderRspackPluginInner};
 
 #[cacheable]
 #[derive(Debug)]
-pub struct JsLoader(
-  pub Identifier,
-  /* LoaderType */ #[cacheable(with=AsOption<AsRefStr>)] pub Option<Cow<'static, str>>,
-  pub Option<String>,
-);
+pub struct JsLoader {
+  pub identifier: Identifier,
+  #[cacheable(with=AsOption<AsRefStr>)]
+  pub loader_type: Option<Cow<'static, str>>,
+  pub cache_version: Option<String>,
+}
 
 #[cacheable_dyn]
 impl Loader<RunnerContext> for JsLoader {
   fn identifier(&self) -> Identifier {
-    self.0
+    self.identifier
   }
 
   fn r#type(&self) -> Option<&str> {
-    self.1.as_deref()
+    self.loader_type.as_deref()
   }
 
   fn execution_kind(&self) -> LoaderExecutionKind {
@@ -39,7 +40,7 @@ impl Loader<RunnerContext> for JsLoader {
   }
 
   fn cache_version(&self) -> Option<&str> {
-    self.2.as_deref()
+    self.cache_version.as_deref()
   }
 }
 
@@ -155,11 +156,11 @@ pub(crate) async fn resolve_loader(
       } else {
         format!("{path}{query}")
       };
-      Ok(Some(Arc::new(JsLoader(
-        resource.into(),
-        r#type,
+      Ok(Some(Arc::new(JsLoader {
+        identifier: resource.into(),
+        loader_type: r#type,
         cache_version,
-      ))))
+      })))
     }
     ResolveResult::Ignored => Ok(None),
   }
