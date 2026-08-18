@@ -64,7 +64,10 @@ impl LoaderCache {
     match self.storage.get(&identifier, Some(etag.clone())) {
       Ok(value) => value,
       Err(error) => {
-        tracing::warn!("Restoring loader cache entry failed: {error}");
+        tracing::debug!(
+          cache_identifier = %identifier,
+          "Restoring loader cache entry failed: {error}"
+        );
         None
       }
     }
@@ -79,7 +82,10 @@ impl LoaderCache {
   ) {
     let identifier = Self::cache_identifier(chain_key, module_identifier);
     if let Err(error) = self.storage.store(&identifier, Some(etag), value) {
-      tracing::warn!("Storing loader cache entry failed: {error}");
+      tracing::debug!(
+        cache_identifier = %identifier,
+        "Storing loader cache entry failed: {error}"
+      );
     }
   }
 }
@@ -286,11 +292,19 @@ pub(crate) fn after_normal_chain(
   context: &LoaderContext<RunnerContext>,
   state: LoaderCacheMissState,
 ) {
+  if !context.cacheable {
+    tracing::debug!(
+      cache_key = %state.cache_key,
+      module_identifier = %state.module_identifier,
+      "Skipping loader cache store because a loader called cacheable(false)"
+    );
+    return;
+  }
+
   // AdditionalData and ParseMeta are open, process-local type maps without a
   // stable serialization contract. Chains producing either value are left
   // uncached instead of leaking memory-only exceptions into the cache layer.
-  if !context.cacheable
-    || context.diagnostics.len() != state.diagnostics_len
+  if context.diagnostics.len() != state.diagnostics_len
     || !context.context.module.build_info().assets.is_empty()
     || context.additional_data().is_some()
     || !context.parse_meta.is_empty()
