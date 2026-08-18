@@ -6,13 +6,8 @@
 //! Equal values share one allocation, which makes equality a pointer comparison and keeps a
 //! single copy of each value in memory. A value is freed once its last handle is dropped.
 //!
-//! - [`Interned`] interns a sized value as an `Arc<T>`.
-//! - [`InternedSlice`] interns a header plus a slice in one allocation, behind a thin pointer.
+//! [`InternedSlice`] interns a header plus a slice in one allocation, behind a thin pointer.
 
-mod intern;
 mod slice;
 
-pub use self::{
-  intern::{InternStorage, Internable, Interned, impl_internable},
-  slice::{InternSliceStorage, InternedSlice, SliceInternable},
-};
+pub use self::slice::{InternSliceStorage, InternedSlice, SliceInternable};

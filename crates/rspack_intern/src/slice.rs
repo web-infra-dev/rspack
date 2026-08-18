@@ -3,10 +3,10 @@
 //! Ported from rust-analyzer (MIT OR Apache-2.0):
 //! <https://github.com/rust-lang/rust-analyzer/blob/baabc5825f3f6640e99fe32887bbeced640f825e/crates/intern/src/intern_slice.rs>
 //!
-//! Upstream supports GC mode only, so this is the non-GC variant: it carries the same
-//! drop-removal protocol as [`crate::Interned`].
+//! Upstream supports GC mode only, so this is the non-GC variant: a value is removed from the
+//! map once its last handle is dropped.
 //!
-//! [`InternedSlice`] is essentially `Interned<(Header, Box<[Item]>)>`, except that there is one
+//! [`InternedSlice`] is essentially an interned `(Header, Box<[Item]>)`, except that there is one
 //! allocation rather than two and the handle is a thin pointer. Interning takes the items by
 //! reference, so a value that is already interned costs no allocation at all.
 
@@ -136,7 +136,8 @@ impl<T: SliceInternable> PartialEq for InternedSlice<T> {
 impl<T: SliceInternable> Eq for InternedSlice<T> {}
 
 impl<T: SliceInternable> Hash for InternedSlice<T> {
-  /// `write_u64` rather than `write_usize`, for the reason given on [`crate::Interned`]'s `Hash`.
+  /// `write_u64` rather than `write_usize`: `ustr::IdentityHasher` only keeps 8-byte writes, and
+  /// `write_usize` is 4 bytes on wasm32, which would hash every value to the same bucket.
   #[inline]
   fn hash<H: Hasher>(&self, state: &mut H) {
     state.write_u64(self.arc.as_ptr().addr() as u64)
@@ -186,6 +187,15 @@ impl<T: SliceInternable> InternSliceStorage<T> {
       .map
       .get_or_init(|| DashMap::with_capacity_and_hasher(1024, FxBuildHasher))
   }
+
+  /// How many distinct values are currently interned.
+  pub fn len(&self) -> usize {
+    self.get().len()
+  }
+
+  pub fn is_empty(&self) -> bool {
+    self.len() == 0
+  }
 }
 
 pub trait SliceInternable: Sized + Send + Sync + 'static {
@@ -201,103 +211,4 @@ pub trait SliceInternable: Sized + Send + Sync + 'static {
   fn eq(a: &[Self::Item], b: &[Self::Item]) -> bool;
 
   fn storage() -> &'static InternSliceStorage<Self>;
-}
-
-#[cfg(test)]
-mod tests {
-  use super::*;
-
-  struct Bytes;
-
-  impl SliceInternable for Bytes {
-    type Header = u64;
-    type Item = u8;
-
-    fn hash(header: &u64, _items: &[u8]) -> u64 {
-      *header
-    }
-
-    fn eq(a: &[u8], b: &[u8]) -> bool {
-      a == b
-    }
-
-    fn storage() -> &'static InternSliceStorage<Self> {
-      static STORAGE: InternSliceStorage<Bytes> = InternSliceStorage::new();
-      &STORAGE
-    }
-  }
-
-  fn intern(items: &[u8]) -> InternedSlice<Bytes> {
-    InternedSlice::new(items.len() as u64, items)
-  }
-
-  fn map_len() -> usize {
-    Bytes::storage().get().len()
-  }
-
-  #[test]
-  fn smoke_test() {
-    let base = map_len();
-
-    let a = intern(b"aa");
-    let same_a = intern(b"aa");
-    let cloned_a = a.clone();
-    let b = intern(b"bb");
-
-    assert_eq!(map_len(), base + 2, "equal values share one entry");
-    assert_eq!(a, same_a);
-    assert_eq!(a.items(), b"aa");
-    assert_eq!(*a.header(), 2);
-    assert_ne!(a, b);
-
-    drop(same_a);
-    drop(cloned_a);
-    assert_eq!(map_len(), base + 2, "still held by `a`");
-
-    drop(a);
-    assert_eq!(map_len(), base + 1);
-    drop(b);
-    assert_eq!(map_len(), base);
-  }
-
-  #[test]
-  fn interning_races_with_dropping() {
-    // A hash that ignores the length, so unequal values collide and exercise the item comparison.
-    struct Colliding;
-
-    impl SliceInternable for Colliding {
-      type Header = u64;
-      type Item = u8;
-
-      fn hash(_header: &u64, _items: &[u8]) -> u64 {
-        0
-      }
-
-      fn eq(a: &[u8], b: &[u8]) -> bool {
-        a == b
-      }
-
-      fn storage() -> &'static InternSliceStorage<Self> {
-        static STORAGE: InternSliceStorage<Colliding> = InternSliceStorage::new();
-        &STORAGE
-      }
-    }
-
-    let storage = Colliding::storage().get();
-    assert_eq!(storage.len(), 0);
-
-    std::thread::scope(|scope| {
-      for _ in 0..8 {
-        scope.spawn(|| {
-          for i in 0..2000u32 {
-            let items = [(i % 16) as u8, 7];
-            let value = InternedSlice::<Colliding>::new(0, &items);
-            assert_eq!(value.items(), items);
-          }
-        });
-      }
-    });
-
-    assert_eq!(storage.len(), 0, "every value is freed once unreferenced");
-  }
 }
