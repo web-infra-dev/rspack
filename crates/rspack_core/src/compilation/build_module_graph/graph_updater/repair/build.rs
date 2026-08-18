@@ -27,6 +27,9 @@ const MODULES_CACHE_NAMESPACE: &str = "Compilation/modules";
 struct ModuleBuildCacheEntry {
   state: NormalModuleBuildState,
   dependencies: Vec<BoxDependency>,
+  // AsyncDependenciesBlock is recursive and large enough that keeping each
+  // block behind a pointer is intentional.
+  #[allow(clippy::vec_box)]
   blocks: Vec<Box<AsyncDependenciesBlock>>,
   optimization_bailouts: Vec<OptimizationBailoutItem>,
   snapshot: ModuleSnapshot,
@@ -168,10 +171,9 @@ impl Task<TaskContext> for BuildTask {
         )
         .await
         && let Some(entry) = ModuleBuildCacheEntry::from_build_result(build_result, snapshot)
+        && let Err(error) = module_cache.store(CacheValue::new(entry))
       {
-        if let Err(error) = module_cache.store(CacheValue::new(entry)) {
-          tracing::warn!("Storing NormalModule build cache failed: {error}");
-        }
+        tracing::warn!("Storing NormalModule build cache failed: {error}");
       }
     }
 
