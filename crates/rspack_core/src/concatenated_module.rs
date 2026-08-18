@@ -48,7 +48,7 @@ use crate::{
   DEFAULT_EXPORT, DEFAULT_EXPORT_ATOM, DependenciesBlock, DependencyId, DependencyType, ExportInfo,
   ExportProvided, ExportsArgument, ExportsInfoArtifact, ExportsType, FactoryMeta,
   ImportedByDeferModulesArtifact, InitFragment, InitFragmentStage, LibIdentOptions, Module,
-  ModuleArgument, ModuleCodeGenerationContext, ModuleGraph, ModuleGraphCacheArtifact,
+  ModuleArgument, ModuleCodeGenerationContext, ModuleGraph, ModuleGraphCache,
   ModuleGraphConnection, ModuleIdentifier, ModuleLayer, ModuleStaticCache, ModuleType,
   NAMESPACE_OBJECT_EXPORT, ParserOptions, Resolve, RuntimeCondition, RuntimeGlobals, RuntimeSpec,
   SideEffectsStateArtifact, SourceType, URLStaticMode, UsageState, UsedName, UsedNameItem,
@@ -1008,7 +1008,7 @@ impl Module for ConcatenatedModule {
 
     let (references_info, module_to_info_map) = self.get_modules_with_info(
       compilation.get_module_graph(),
-      &compilation.module_graph_cache_artifact,
+      &compilation.module_graph_cache,
       runtime,
       &compilation
         .build_module_graph_artifact
@@ -1510,7 +1510,7 @@ impl Module for ConcatenatedModule {
         {
           let final_name = Self::get_final_name(
             compilation.get_module_graph(),
-            &compilation.module_graph_cache_artifact,
+            &compilation.module_graph_cache,
             &compilation.exports_info_artifact,
             &compilation.module_static_cache,
             referenced_info_id,
@@ -1596,7 +1596,7 @@ impl Module for ConcatenatedModule {
       exports_map.insert(used_name.clone(), {
         let final_name = Self::get_final_name(
           compilation.get_module_graph(),
-          &compilation.module_graph_cache_artifact,
+          &compilation.module_graph_cache,
           &compilation.exports_info_artifact,
           &compilation.module_static_cache,
           &root_module_id,
@@ -1758,7 +1758,7 @@ impl Module for ConcatenatedModule {
         if let Some(UsedNameItem::Str(used_name)) = export_info.get_used_name(None, runtime) {
           let final_name = Self::get_final_name(
             compilation.get_module_graph(),
-            &compilation.module_graph_cache_artifact,
+            &compilation.module_graph_cache,
             &compilation.exports_info_artifact,
             &compilation.module_static_cache,
             &module_info_id,
@@ -1840,7 +1840,7 @@ impl Module for ConcatenatedModule {
         let loader = runtime_template.get_optimized_deferred_module(
           module.get_exports_type(
             module_graph,
-            &compilation.module_graph_cache_artifact,
+            &compilation.module_graph_cache,
             &compilation.exports_info_artifact,
             root_module.build_meta().strict_esm_module(),
           ),
@@ -1874,7 +1874,7 @@ impl Module for ConcatenatedModule {
             module_id,
             render_make_deferred_namespace_mode_from_exports_type(module.get_exports_type(
               module_graph,
-              &compilation.module_graph_cache_artifact,
+              &compilation.module_graph_cache,
               &compilation.exports_info_artifact,
               root_module.build_meta().strict_esm_module(),
             )),
@@ -2057,7 +2057,7 @@ impl Module for ConcatenatedModule {
     let concatenation_entries = self.create_concatenation_list(
       runtime,
       compilation.get_module_graph(),
-      &compilation.module_graph_cache_artifact,
+      &compilation.module_graph_cache,
       &compilation
         .build_module_graph_artifact
         .side_effects_state_artifact,
@@ -2146,7 +2146,7 @@ impl Module for ConcatenatedModule {
   fn get_side_effects_connection_state(
     &self,
     _module_graph: &ModuleGraph,
-    _module_graph_cache: &ModuleGraphCacheArtifact,
+    _module_graph_cache: &ModuleGraphCache,
     _side_effects_state_artifact: &SideEffectsStateArtifact,
     _module_chain: &mut IdentifierSet,
     _connection_state_cache: &mut IdentifierMap<ConnectionState>,
@@ -2170,7 +2170,7 @@ impl Diagnosable for ConcatenatedModule {
 }
 
 struct ConcatenationArtifacts<'a> {
-  mg_cache: &'a ModuleGraphCacheArtifact,
+  mg_cache: &'a ModuleGraphCache,
   side_effects_state_artifact: &'a SideEffectsStateArtifact,
   exports_info_artifact: &'a ExportsInfoArtifact,
 }
@@ -2180,7 +2180,7 @@ impl ConcatenatedModule {
   fn get_modules_with_info(
     &self,
     mg: &ModuleGraph,
-    mg_cache: &ModuleGraphCacheArtifact,
+    mg_cache: &ModuleGraphCache,
     runtime: Option<&RuntimeSpec>,
     side_effects_state_artifact: &SideEffectsStateArtifact,
     imported_by_defer_modules_artifact: &ImportedByDeferModulesArtifact,
@@ -2234,7 +2234,7 @@ impl ConcatenatedModule {
     &self,
     runtime: Option<&RuntimeSpec>,
     mg: &ModuleGraph,
-    mg_cache: &ModuleGraphCacheArtifact,
+    mg_cache: &ModuleGraphCache,
     side_effects_state_artifact: &SideEffectsStateArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
   ) -> Vec<ConcatenationEntry> {
@@ -2712,7 +2712,7 @@ impl ConcatenatedModule {
   #[allow(clippy::fn_params_excessive_bools)]
   fn get_final_name(
     module_graph: &ModuleGraph,
-    module_graph_cache: &ModuleGraphCacheArtifact,
+    module_graph_cache: &ModuleGraphCache,
     exports_info_artifact: &ExportsInfoArtifact,
     module_static_cache: &ModuleStaticCache,
     info: &ModuleIdentifier,
@@ -2832,7 +2832,7 @@ impl ConcatenatedModule {
   #[allow(clippy::too_many_arguments)]
   fn get_final_binding(
     mg: &ModuleGraph,
-    mg_cache: &ModuleGraphCacheArtifact,
+    mg_cache: &ModuleGraphCache,
     exports_info_artifact: &ExportsInfoArtifact,
     info_id: &ModuleIdentifier,
     mut export_name: Vec<Atom>,

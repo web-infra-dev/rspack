@@ -3,7 +3,7 @@ use rspack_core::{
   AsModuleDependency, Context, ContextDependency, ContextOptions, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
   DependencyTemplateType, DependencyType, ExportsInfoArtifact, FactorizeInfo, ModuleGraph,
-  ModuleGraphCacheArtifact, ReferencedSpecifier, ResourceIdentifier, TemplateContext,
+  ModuleGraphCache, ReferencedSpecifier, ResourceIdentifier, TemplateContext,
   TemplateReplaceSource,
 };
 use rspack_error::Diagnostic;
@@ -98,7 +98,7 @@ impl Dependency for CommonJsRequireContextDependency {
   fn get_diagnostics(
     &self,
     _module_graph: &ModuleGraph,
-    _module_graph_cache: &ModuleGraphCacheArtifact,
+    _module_graph_cache: &ModuleGraphCache,
     _exports_info_artifact: &ExportsInfoArtifact,
   ) -> Option<Vec<Diagnostic>> {
     if let Some(critical) = self.critical() {

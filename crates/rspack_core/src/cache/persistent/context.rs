@@ -62,7 +62,7 @@ impl CacheContext {
     self.storage.cleanup_stale();
   }
 
-  /// Validates all compatibility inputs before any compilation artifact is
+  /// Validates all compatibility inputs before any compilation cache item is
   /// read.
   ///
   /// Like webpack's pack validation, both build dependency changes and a
@@ -285,24 +285,24 @@ impl CacheContext {
     self.logger().time_end(start);
   }
 
-  /// Loads an occasion's artifact from storage.
+  /// Loads an occasion's cache item from storage.
   ///
   /// Returns `None` and resets the occasion's scope when the cache is
   /// invalid or recovery fails.
   #[tracing::instrument("Cache::Context::load_occasion", skip_all)]
-  pub async fn load_occasion<O: Occasion>(&mut self, occasion: &O) -> Option<O::Artifact> {
+  pub async fn load_occasion<O: Occasion>(&mut self, occasion: &O) -> Option<O::CacheItem> {
     if !self.load_failed {
       let start = self
         .logger()
         .time(read_occasion_timing_label(occasion.name()));
       match occasion.recovery(&*self.storage).await {
-        Ok(artifact) => {
+        Ok(cache_item) => {
           self.logger().info(format!(
             "{} persistent cache recovery succeeded",
             occasion.name()
           ));
           self.logger().time_end(start);
-          return Some(artifact);
+          return Some(cache_item);
         }
         Err(err) => {
           self.load_failed = true;
@@ -320,9 +320,9 @@ impl CacheContext {
     None
   }
 
-  /// Persists an occasion's artifact. No-op in readonly mode.
+  /// Persists an occasion's cache item. No-op in readonly mode.
   #[tracing::instrument("Cache::Context::save_occasion", skip_all)]
-  pub fn save_occasion<O: Occasion>(&mut self, occasion: &O, artifact: &O::Artifact) {
+  pub fn save_occasion<O: Occasion>(&mut self, occasion: &O, cache_item: &O::CacheItem) {
     if self.readonly {
       return;
     }
@@ -330,7 +330,7 @@ impl CacheContext {
     let start = self
       .logger()
       .time(write_occasion_timing_label(occasion.name()));
-    occasion.save(&mut *self.storage, artifact);
+    occasion.save(&mut *self.storage, cache_item);
     self.logger().time_end(start);
   }
 

@@ -11,7 +11,7 @@ use rspack_core::{
   ChunkUkey, CodeGenerationPublicPathAutoReplace, Compilation, ConcatenatedModuleIdent,
   ConditionalInitFragment, DependencyType, ExportInfo, ExportMode, ExportProvided,
   ExportsInfoArtifact, ExportsType, FindTargetResult, ImportSpec, InitFragmentKey, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleIdentifier, ModuleInfo, NAMESPACE_OBJECT_EXPORT, RuntimeGlobals,
+  ModuleGraphCache, ModuleIdentifier, ModuleInfo, NAMESPACE_OBJECT_EXPORT, RuntimeGlobals,
   RuntimeGlobalsRenderMode, RuntimeTemplateRenderMode, RuntimeVariable, SideEffectsStateArtifact,
   SourceType, URLStaticMode, UsageState, UsedName, UsedNameItem, all_runtime_module_variables,
   collect_ident, escape_name_atom_ref, find_new_name, find_target, get_cached_readable_identifier,
@@ -688,7 +688,7 @@ impl EsmLibraryPlugin {
               let Some(mut binding) = Self::get_binding(
                 None,
                 compilation.get_module_graph(),
-                &compilation.module_graph_cache_artifact,
+                &compilation.module_graph_cache,
                 &compilation.exports_info_artifact,
                 module_info_id,
                 vec![export_info.name().cloned().unwrap_or("".into())],
@@ -805,7 +805,7 @@ impl EsmLibraryPlugin {
           let star_re_export_binding = Self::resolve_single_star_re_export_target(
             *module_info_id,
             module_graph,
-            &compilation.module_graph_cache_artifact,
+            &compilation.module_graph_cache,
             &compilation
               .build_module_graph_artifact
               .side_effects_state_artifact,
@@ -822,7 +822,7 @@ impl EsmLibraryPlugin {
             Self::get_binding(
               None,
               module_graph,
-              &compilation.module_graph_cache_artifact,
+              &compilation.module_graph_cache,
               &compilation.exports_info_artifact,
               &target_module,
               vec![],
@@ -1706,7 +1706,7 @@ var {} = {{}};
   fn resolve_re_export_star_from_unknown(
     module_id: ModuleIdentifier,
     module_graph: &ModuleGraph,
-    module_graph_cache: &ModuleGraphCacheArtifact,
+    module_graph_cache: &ModuleGraphCache,
     side_effects_state_artifact: &SideEffectsStateArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
     collect_own_exports: bool,
@@ -1793,7 +1793,7 @@ var {} = {{}};
   fn resolve_single_star_re_export_target(
     module_id: ModuleIdentifier,
     module_graph: &ModuleGraph,
-    module_graph_cache: &ModuleGraphCacheArtifact,
+    module_graph_cache: &ModuleGraphCache,
     side_effects_state_artifact: &SideEffectsStateArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
     cache: &mut IdentifierMap<FxIndexSet<Either<Atom, ModuleIdentifier>>>,
@@ -1996,7 +1996,7 @@ var {} = {{}};
     Self::resolve_re_export_star_from_unknown(
       entry_module,
       module_graph,
-      &compilation.module_graph_cache_artifact,
+      &compilation.module_graph_cache,
       &compilation
         .build_module_graph_artifact
         .side_effects_state_artifact,
@@ -2021,7 +2021,7 @@ var {} = {{}};
 
     let exports_type = module.get_exports_type(
       module_graph,
-      &compilation.module_graph_cache_artifact,
+      &compilation.module_graph_cache,
       &compilation.exports_info_artifact,
       module.build_meta().strict_esm_module(),
     );
@@ -2049,7 +2049,7 @@ var {} = {{}};
         let Some(binding) = Self::get_binding(
           None,
           module_graph,
-          &compilation.module_graph_cache_artifact,
+          &compilation.module_graph_cache,
           &compilation.exports_info_artifact,
           &entry_module,
           vec![name.clone()],
@@ -2754,7 +2754,7 @@ var {} = {{}};
               && conn.is_target_active(
                 module_graph,
                 None,
-                &compilation.module_graph_cache_artifact,
+                &compilation.module_graph_cache,
                 &compilation
                   .build_module_graph_artifact
                   .side_effects_state_artifact,
@@ -2769,7 +2769,7 @@ var {} = {{}};
           if !conn.is_target_active(
             module_graph,
             None,
-            &compilation.module_graph_cache_artifact,
+            &compilation.module_graph_cache,
             &compilation
               .build_module_graph_artifact
               .side_effects_state_artifact,
@@ -2820,7 +2820,7 @@ var {} = {{}};
             let Some(binding) = Self::get_binding(
               Some(*m),
               module_graph,
-              &compilation.module_graph_cache_artifact,
+              &compilation.module_graph_cache,
               &compilation.exports_info_artifact,
               ref_module,
               options.ids.clone(),
@@ -2954,7 +2954,7 @@ var {} = {{}};
           if !conn.is_target_active(
             module_graph,
             None,
-            &compilation.module_graph_cache_artifact,
+            &compilation.module_graph_cache,
             &compilation
               .build_module_graph_artifact
               .side_effects_state_artifact,
@@ -3108,7 +3108,7 @@ var {} = {{}};
   fn get_binding(
     from: Option<ModuleIdentifier>,
     mg: &ModuleGraph,
-    mg_cache: &ModuleGraphCacheArtifact,
+    mg_cache: &ModuleGraphCache,
     exports_info_artifact: &ExportsInfoArtifact,
     info_id: &ModuleIdentifier,
     mut export_name: Vec<Atom>,

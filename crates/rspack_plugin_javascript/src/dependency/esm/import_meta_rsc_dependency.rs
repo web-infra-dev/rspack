@@ -2,7 +2,7 @@ use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
 use rspack_core::{
   AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
   DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
-  ExportsInfoArtifact, FactorizeInfo, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
+  ExportsInfoArtifact, FactorizeInfo, ModuleDependency, ModuleGraph, ModuleGraphCache,
   NormalInitFragment, ReferencedExport, RuntimeGlobals, RuntimeSpec, TemplateContext,
   TemplateReplaceSource, create_exports_object_referenced,
 };
@@ -73,7 +73,7 @@ impl Dependency for ImportMetaRscDependency {
   fn get_referenced_exports(
     &self,
     _module_graph: &ModuleGraph,
-    _module_graph_cache: &ModuleGraphCacheArtifact,
+    _module_graph_cache: &ModuleGraphCache,
     _exports_info_artifact: &ExportsInfoArtifact,
     _runtime: Option<&RuntimeSpec>,
   ) -> Vec<ReferencedExport> {

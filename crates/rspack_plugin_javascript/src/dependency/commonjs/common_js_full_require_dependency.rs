@@ -5,10 +5,9 @@ use rspack_cacheable::{
 use rspack_core::{
   AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
   DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
-  ExportsInfoArtifact, ExportsType, FactorizeInfo, ModuleDependency, ModuleGraph,
-  ModuleGraphCacheArtifact, ReferencedExport, RuntimeGlobals, RuntimeSpec, TemplateContext,
-  TemplateReplaceSource, UsedName, create_exports_object_referenced, property_access,
-  to_normal_comment,
+  ExportsInfoArtifact, ExportsType, FactorizeInfo, ModuleDependency, ModuleGraph, ModuleGraphCache,
+  ReferencedExport, RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource, UsedName,
+  create_exports_object_referenced, property_access, to_normal_comment,
 };
 use swc_atoms::Atom;
 
@@ -81,7 +80,7 @@ impl Dependency for CommonJsFullRequireDependency {
   fn get_referenced_exports(
     &self,
     module_graph: &ModuleGraph,
-    module_graph_cache: &ModuleGraphCacheArtifact,
+    module_graph_cache: &ModuleGraphCache,
     exports_info_artifact: &ExportsInfoArtifact,
     _runtime: Option<&RuntimeSpec>,
   ) -> Vec<ReferencedExport> {

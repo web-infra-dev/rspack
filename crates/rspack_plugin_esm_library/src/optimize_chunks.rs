@@ -128,7 +128,7 @@ pub(crate) fn extract_tla_shared_modules(compilation: &mut Compilation) -> bool 
         if !conn.is_target_active(
           module_graph,
           None,
-          &compilation.module_graph_cache_artifact,
+          &compilation.module_graph_cache,
           &compilation
             .build_module_graph_artifact
             .side_effects_state_artifact,
@@ -318,7 +318,7 @@ pub(crate) fn ensure_entry_exports(compilation: &mut Compilation) {
           m,
           None,
           module_graph,
-          &compilation.module_graph_cache_artifact,
+          &compilation.module_graph_cache,
           &compilation
             .build_module_graph_artifact
             .side_effects_state_artifact,
@@ -555,7 +555,7 @@ pub(crate) fn analyze_dyn_import_targets(
       if !conn.is_target_active(
         module_graph,
         None,
-        &compilation.module_graph_cache_artifact,
+        &compilation.module_graph_cache,
         &compilation
           .build_module_graph_artifact
           .side_effects_state_artifact,
@@ -864,7 +864,7 @@ pub(crate) fn assign_dyn_import_chunk_short_names(compilation: &mut Compilation)
       .get_chunk_root_modules(
         chunk_ukey,
         module_graph,
-        &compilation.module_graph_cache_artifact,
+        &compilation.module_graph_cache,
         &compilation
           .build_module_graph_artifact
           .side_effects_state_artifact,

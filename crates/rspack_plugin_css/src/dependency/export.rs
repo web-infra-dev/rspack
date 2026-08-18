@@ -38,7 +38,7 @@ impl Dependency for CssExportDependency {
   fn get_exports(
     &self,
     _mg: &rspack_core::ModuleGraph,
-    _mg_cache: &rspack_core::ModuleGraphCacheArtifact,
+    _mg_cache: &rspack_core::ModuleGraphCache,
     _exports_info_artifact: &ExportsInfoArtifact,
   ) -> Option<ExportsSpec> {
     Some(ExportsSpec {

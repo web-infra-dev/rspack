@@ -2,8 +2,8 @@ use rspack_cacheable::cacheable;
 use rspack_hash::RspackHasher;
 
 use crate::{
-  DependencyId, ExportsInfoArtifact, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
-  RuntimeSpec, SideEffectsStateArtifact,
+  DependencyId, ExportsInfoArtifact, ModuleGraph, ModuleGraphCache, ModuleIdentifier, RuntimeSpec,
+  SideEffectsStateArtifact,
 };
 
 #[cacheable]
@@ -61,7 +61,7 @@ impl ModuleGraphConnection {
     &self,
     module_graph: &ModuleGraph,
     runtime: Option<&RuntimeSpec>,
-    module_graph_cache: &ModuleGraphCacheArtifact,
+    module_graph_cache: &ModuleGraphCache,
     side_effects_state_artifact: &SideEffectsStateArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
   ) -> bool {
@@ -83,7 +83,7 @@ impl ModuleGraphConnection {
     &self,
     module_graph: &ModuleGraph,
     runtime: Option<&RuntimeSpec>,
-    module_graph_cache: &ModuleGraphCacheArtifact,
+    module_graph_cache: &ModuleGraphCache,
     side_effects_state_artifact: &SideEffectsStateArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
   ) -> bool {
@@ -103,7 +103,7 @@ impl ModuleGraphConnection {
     &self,
     module_graph: &ModuleGraph,
     runtime: Option<&RuntimeSpec>,
-    module_graph_cache: &ModuleGraphCacheArtifact,
+    module_graph_cache: &ModuleGraphCache,
     side_effects_state_artifact: &SideEffectsStateArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
   ) -> ConnectionState {

@@ -7,10 +7,10 @@ use rspack_core::{
   AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
   DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, ExportNameOrSpec,
   ExportProvided, ExportSpec, ExportsInfoArtifact, ExportsOfExportsSpec, ExportsSpec, ExportsType,
-  FactorizeInfo, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
-  Nullable, ReferencedExport, RuntimeSpec, TemplateContext, TemplateReplaceSource, UsageState,
-  UsedName, collect_referenced_export_items, create_exports_object_referenced,
-  create_no_exports_referenced, property_access, to_normal_comment,
+  FactorizeInfo, ModuleDependency, ModuleGraph, ModuleGraphCache, ModuleIdentifier, Nullable,
+  ReferencedExport, RuntimeSpec, TemplateContext, TemplateReplaceSource, UsageState, UsedName,
+  collect_referenced_export_items, create_exports_object_referenced, create_no_exports_referenced,
+  property_access, to_normal_comment,
 };
 use rustc_hash::FxHashSet;
 use swc_atoms::Atom;
@@ -66,7 +66,7 @@ impl CommonJsExportRequireDependency {
   fn get_star_reexports(
     &self,
     mg: &ModuleGraph,
-    mg_cache: &ModuleGraphCacheArtifact,
+    mg_cache: &ModuleGraphCache,
     exports_info_artifact: &ExportsInfoArtifact,
     runtime: Option<&RuntimeSpec>,
     imported_module: &ModuleIdentifier,
@@ -212,7 +212,7 @@ impl Dependency for CommonJsExportRequireDependency {
   fn get_exports(
     &self,
     mg: &ModuleGraph,
-    mg_cache: &ModuleGraphCacheArtifact,
+    mg_cache: &ModuleGraphCache,
     exports_info_artifact: &ExportsInfoArtifact,
   ) -> Option<ExportsSpec> {
     let ids = self.get_ids(mg);
@@ -300,7 +300,7 @@ impl Dependency for CommonJsExportRequireDependency {
   fn get_referenced_exports(
     &self,
     mg: &ModuleGraph,
-    _module_graph_cache: &ModuleGraphCacheArtifact,
+    _module_graph_cache: &ModuleGraphCache,
     exports_info_artifact: &ExportsInfoArtifact,
     runtime: Option<&RuntimeSpec>,
   ) -> Vec<ReferencedExport> {

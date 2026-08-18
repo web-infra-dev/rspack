@@ -117,8 +117,8 @@ impl IncrementalArtifacts {
       );
       recover_artifact(
         incremental,
-        &mut compilation.code_generate_cache_artifact,
-        &mut previous.code_generate_cache_artifact,
+        &mut compilation.code_generate_cache,
+        &mut previous.code_generate_cache,
       );
     }
 
@@ -130,8 +130,8 @@ impl IncrementalArtifacts {
       );
       recover_artifact(
         incremental,
-        &mut compilation.process_runtime_requirements_cache_artifact,
-        &mut previous.process_runtime_requirements_cache_artifact,
+        &mut compilation.process_runtime_requirements_cache,
+        &mut previous.process_runtime_requirements_cache,
       );
     }
 
@@ -164,8 +164,8 @@ impl IncrementalArtifacts {
       );
       recover_artifact(
         incremental,
-        &mut compilation.chunk_render_cache_artifact,
-        &mut previous.chunk_render_cache_artifact,
+        &mut compilation.chunk_render_cache,
+        &mut previous.chunk_render_cache,
       );
     }
   }

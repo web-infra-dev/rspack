@@ -14,7 +14,7 @@ use rspack_util::source_map::{ModuleSourceMapConfig, SourceMapKind};
 use crate::{
   BoxModule, BuildContext, BuildInfo, BuildMeta, BuildResult, CodeGenerationResult, Compilation,
   ConnectionState, Context, DependenciesBlock, DependencyId, FactoryMeta, Module,
-  ModuleCodeGenerationContext, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, ModuleType,
+  ModuleCodeGenerationContext, ModuleGraph, ModuleGraphCache, ModuleIdentifier, ModuleType,
   RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, SourceType,
   dependencies_block::AsyncDependenciesBlockIdentifier, impl_module_meta_info,
   module_declared_side_effect_free, module_update_hash,
@@ -157,7 +157,7 @@ impl Module for RawModule {
   fn get_side_effects_connection_state(
     &self,
     _module_graph: &ModuleGraph,
-    _module_graph_cache: &ModuleGraphCacheArtifact,
+    _module_graph_cache: &ModuleGraphCache,
     _side_effects_state_artifact: &SideEffectsStateArtifact,
     _module_chain: &mut IdentifierSet,
     _connection_state_cache: &mut IdentifierMap<ConnectionState>,

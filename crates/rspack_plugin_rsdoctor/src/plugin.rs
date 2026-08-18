@@ -237,13 +237,13 @@ async fn optimize_dependencies(
   let dependencies = collect_export_usage_dependencies(
     &modules,
     module_graph,
-    &compilation.module_graph_cache_artifact,
+    &compilation.module_graph_cache,
     exports_info_artifact,
   );
   let active_dependencies = collect_active_export_usage_dependencies(
     &dependencies,
     module_graph,
-    &compilation.module_graph_cache_artifact,
+    &compilation.module_graph_cache,
     &build_module_graph_artifact.side_effects_state_artifact,
     exports_info_artifact,
   );
@@ -462,7 +462,7 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
     &modules,
     &module_ukey_map,
     module_graph,
-    &compilation.module_graph_cache_artifact,
+    &compilation.module_graph_cache,
     &compilation
       .build_module_graph_artifact
       .side_effects_state_artifact,

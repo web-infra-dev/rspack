@@ -217,7 +217,7 @@ pub async fn process_modules_runtime_requirements(
             );
           for runtime in runtimes {
             let runtime_requirements = compilation
-              .process_runtime_requirements_cache_artifact
+              .process_runtime_requirements_cache
               .use_cache(module, runtime, compilation, || async {
                 let mut runtime_requirements = compilation
                   .code_generation_results

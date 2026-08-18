@@ -80,21 +80,21 @@ Examples of artifacts that directly implement `ArtifactExt`:
 | `DependenciesDiagnosticsArtifact` | `FINISH_MODULES`               | Dependencies diagnostics        |
 | `ImportedByDeferModulesArtifact`  | `OPTIMIZE_CHUNK_MODULES`       | Deferred module import tracking |
 
-### Generation-Aware Artifacts
+### Generation-Aware Caches
 
-The following historical `*CacheArtifact` types have custom `recover` implementations that call
+The following Cache types have custom `recover` implementations that call
 `start_next_generation()`:
 
-| Artifact                                  | PASS                           | Description                |
-| ----------------------------------------- | ------------------------------ | -------------------------- |
-| `ChunkRenderCacheArtifact`                | `CHUNK_ASSET`                  | Chunk render cache         |
-| `CodeGenerateCacheArtifact`               | `MODULES_CODEGEN`              | Code generation cache      |
-| `ProcessRuntimeRequirementsCacheArtifact` | `MODULES_RUNTIME_REQUIREMENTS` | Runtime requirements cache |
+| Cache                             | PASS                           | Description                |
+| --------------------------------- | ------------------------------ | -------------------------- |
+| `ChunkRenderCache`                | `CHUNK_ASSET`                  | Chunk render cache         |
+| `CodeGenerateCache`               | `MODULES_CODEGEN`              | Code generation cache      |
+| `ProcessRuntimeRequirementsCache` | `MODULES_RUNTIME_REQUIREMENTS` | Runtime requirements cache |
 
-These are transitional co-located Cache structures, not the preferred shape for new Incremental
-artifacts. Their storage is influenced by Cache configuration even though they currently live on
-`Compilation` and move with Incremental artifacts. New Cache-owned state should live behind Cache
-abstractions instead of adding another `*CacheArtifact` type.
+These are transitional co-located Cache structures, not Incremental artifacts. They currently
+implement `ArtifactExt` and move with `IncrementalArtifacts` only to reuse the pass-bound generation
+transition. Their memoized entries are still controlled by Cache configuration. New Cache-owned
+state should live behind Cache abstractions instead of adding another cache container here.
 
 ### Wrapper Types
 

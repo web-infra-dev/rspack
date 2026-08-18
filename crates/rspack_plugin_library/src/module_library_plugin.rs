@@ -85,7 +85,7 @@ async fn render_startup(
     .expect("should have build meta");
   let exports_type = boxed_module.get_exports_type(
     module_graph,
-    &compilation.module_graph_cache_artifact,
+    &compilation.module_graph_cache,
     &compilation.exports_info_artifact,
     boxed_module.build_info().strict,
   );

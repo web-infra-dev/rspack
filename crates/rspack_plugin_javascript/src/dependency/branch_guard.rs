@@ -2,7 +2,7 @@ use rspack_cacheable::{cacheable, with::AsCacheable};
 use rspack_core::{
   ConnectionState, Dependency, DependencyCondition, DependencyConditionFn, DependencyId,
   EvaluatedInlinableValue, ExportProvided, ExportsInfoArtifact, ExportsType, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleGraphConnection, RuntimeSpec, SideEffectsStateArtifact, UsedName,
+  ModuleGraphCache, ModuleGraphConnection, RuntimeSpec, SideEffectsStateArtifact, UsedName,
 };
 
 use super::{CommonJsRequireDependency, ESMImportSpecifierDependency, ImportDependency};
@@ -148,7 +148,7 @@ impl DependencyConditionFn for BranchGuardDependencyCondition {
     conn: &ModuleGraphConnection,
     runtime: Option<&RuntimeSpec>,
     module_graph: &ModuleGraph,
-    module_graph_cache: &ModuleGraphCacheArtifact,
+    module_graph_cache: &ModuleGraphCache,
     side_effects_state_artifact: &SideEffectsStateArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
   ) -> ConnectionState {
@@ -184,7 +184,7 @@ fn resolve_branch_guard(
   condition: &DependencyBranchGuard,
   runtime: Option<&RuntimeSpec>,
   module_graph: &ModuleGraph,
-  module_graph_cache: &ModuleGraphCacheArtifact,
+  module_graph_cache: &ModuleGraphCache,
   exports_info_artifact: &ExportsInfoArtifact,
 ) -> Option<bool> {
   resolve_dependency_data(
@@ -200,7 +200,7 @@ fn resolve_dependency_data(
   data: &DependencyData,
   runtime: Option<&RuntimeSpec>,
   module_graph: &ModuleGraph,
-  module_graph_cache: &ModuleGraphCacheArtifact,
+  module_graph_cache: &ModuleGraphCache,
   exports_info_artifact: &ExportsInfoArtifact,
 ) -> Option<bool> {
   match data {
@@ -274,7 +274,7 @@ fn resolve_esm_imported_boolean_guard(
   dependency_id: &DependencyId,
   runtime: Option<&RuntimeSpec>,
   module_graph: &ModuleGraph,
-  module_graph_cache: &ModuleGraphCacheArtifact,
+  module_graph_cache: &ModuleGraphCache,
   exports_info_artifact: &ExportsInfoArtifact,
 ) -> Option<bool> {
   let dependency = module_graph
@@ -312,7 +312,7 @@ fn resolve_esm_imported_in_operator_guard(
   dependency: &ESMImportSpecifierDependency,
   dependency_id: &DependencyId,
   module_graph: &ModuleGraph,
-  module_graph_cache: &ModuleGraphCacheArtifact,
+  module_graph_cache: &ModuleGraphCache,
   exports_info_artifact: &ExportsInfoArtifact,
 ) -> Option<bool> {
   let ids = dependency.get_ids(module_graph);

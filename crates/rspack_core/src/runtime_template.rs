@@ -21,10 +21,9 @@ use crate::{
   AsyncDependenciesBlockIdentifier, ChunkGraph, Compilation, CompilerOptions, DependenciesBlock,
   DependencyId, DependencyType, ExportsArgument, ExportsInfoArtifact, ExportsType,
   FakeNamespaceObjectMode, GenerateContext, ImportPhase, InitFragment, InitFragmentExt,
-  InitFragmentKey, InitFragmentStage, Module, ModuleArgument, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleId, ModuleIdentifier, NormalInitFragment, PathInfo,
-  RuntimeCondition, RuntimeGlobals, RuntimeSpec, UsedName, compile_boolean_matcher_from_lists,
-  contextify, property_access,
+  InitFragmentKey, InitFragmentStage, Module, ModuleArgument, ModuleGraph, ModuleGraphCache,
+  ModuleId, ModuleIdentifier, NormalInitFragment, PathInfo, RuntimeCondition, RuntimeGlobals,
+  RuntimeSpec, UsedName, compile_boolean_matcher_from_lists, contextify, property_access,
   runtime_globals::{
     RuntimeVariable, rspack_export_runtime_variable_name, rspack_runtime_variable_name,
     runtime_globals_to_string, runtime_variable_name,
@@ -730,7 +729,7 @@ pub fn render_make_deferred_namespace_mode_from_exports_type(exports_type: Expor
 
 pub fn get_exports_type(
   module_graph: &ModuleGraph,
-  module_graph_cache: &ModuleGraphCacheArtifact,
+  module_graph_cache: &ModuleGraphCache,
   exports_info_artifact: &ExportsInfoArtifact,
   id: &DependencyId,
   parent_module: &ModuleIdentifier,
@@ -750,7 +749,7 @@ pub fn get_exports_type(
 
 pub fn get_exports_type_with_strict(
   module_graph: &ModuleGraph,
-  module_graph_cache: &ModuleGraphCacheArtifact,
+  module_graph_cache: &ModuleGraphCache,
   exports_info_artifact: &ExportsInfoArtifact,
   id: &DependencyId,
   strict: bool,
@@ -1318,7 +1317,7 @@ impl ModuleCodeTemplate {
 
     let exports_type = get_exports_type(
       mg,
-      &compilation.module_graph_cache_artifact,
+      &compilation.module_graph_cache,
       &compilation.exports_info_artifact,
       id,
       &module.identifier(),
@@ -1373,7 +1372,7 @@ impl ModuleCodeTemplate {
 
     let exports_type = get_exports_type(
       mg,
-      &compilation.module_graph_cache_artifact,
+      &compilation.module_graph_cache,
       &compilation.exports_info_artifact,
       id,
       &module_id,
@@ -1607,7 +1606,7 @@ impl ModuleCodeTemplate {
     let promise = self.block_promise(block, compilation, message);
     let exports_type = get_exports_type(
       mg,
-      &compilation.module_graph_cache_artifact,
+      &compilation.module_graph_cache,
       &compilation.exports_info_artifact,
       dep_id,
       &module_id,

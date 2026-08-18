@@ -5,7 +5,7 @@ use rspack_cacheable::{
 use rspack_core::{
   AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
   DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, ExportsInfoArtifact,
-  FactorizeInfo, ImportAttributes, ImportPhase, ModuleDependency, ModuleGraphCacheArtifact,
+  FactorizeInfo, ImportAttributes, ImportPhase, ModuleDependency, ModuleGraphCache,
   ReferencedSpecifier, ResourceIdentifier, TemplateContext, TemplateReplaceSource,
   create_exports_object_referenced, create_referenced_exports_by_referenced_specifiers,
 };
@@ -97,7 +97,7 @@ impl Dependency for ImportEagerDependency {
   fn get_referenced_exports(
     &self,
     module_graph: &rspack_core::ModuleGraph,
-    module_graph_cache: &ModuleGraphCacheArtifact,
+    module_graph_cache: &ModuleGraphCache,
     exports_info_artifact: &ExportsInfoArtifact,
     _runtime: Option<&rspack_core::RuntimeSpec>,
   ) -> Vec<rspack_core::ReferencedExport> {

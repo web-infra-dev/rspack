@@ -629,7 +629,7 @@ async fn render_manifest(
   let hooks = hooks.read().await;
 
   let (source, _) = compilation
-    .chunk_render_cache_artifact
+    .chunk_render_cache
     .use_cache(
       compilation,
       chunk,

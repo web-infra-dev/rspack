@@ -8,7 +8,7 @@ use super::AffectType;
 use crate::{
   AsContextDependency, AsDependencyCodeGeneration, AsModuleDependency, Dependency, DependencyId,
   DependencyType, ExportNameOrSpec, ExportsInfoArtifact, ExportsOfExportsSpec, ExportsSpec,
-  ModuleGraph, ModuleGraphCacheArtifact,
+  ModuleGraph, ModuleGraphCache,
 };
 
 #[cacheable]
@@ -49,7 +49,7 @@ impl Dependency for StaticExportsDependency {
   fn get_exports(
     &self,
     _mg: &ModuleGraph,
-    _mg_cache: &ModuleGraphCacheArtifact,
+    _mg_cache: &ModuleGraphCache,
     _exports_info_artifact: &ExportsInfoArtifact,
   ) -> Option<ExportsSpec> {
     Some(ExportsSpec {

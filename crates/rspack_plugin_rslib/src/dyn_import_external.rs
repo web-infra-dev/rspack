@@ -107,11 +107,9 @@ pub fn cutout_star_re_export_externals(
         }
 
         let dep = mg.dependency_by_id(dep_id);
-        let Some(exports) = dep.get_exports(
-          mg,
-          &compilation.module_graph_cache_artifact,
-          exports_info_artifact,
-        ) else {
+        let Some(exports) =
+          dep.get_exports(mg, &compilation.module_graph_cache, exports_info_artifact)
+        else {
           return false;
         };
 

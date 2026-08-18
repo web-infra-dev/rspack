@@ -25,8 +25,8 @@ use crate::{
   BoxModule, BoxRuntimeModule, BuildChunkGraphArtifact, BuildModuleGraphArtifact, Chunk,
   ChunkGraph, ChunkGroupOrderKey, ChunkGroupUkey, ChunkHashesArtifact, ChunkUkey, Compilation,
   CompilationAssets, CompilationLogging, CompilerOptions, ExportsInfoArtifact, LogType,
-  ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, ModuleIdsArtifact,
-  OptimizationBailoutItem, ProvidedExports, RuntimeSpec, SourceType, StealCell, UsedExports,
+  ModuleGraph, ModuleGraphCache, ModuleIdentifier, ModuleIdsArtifact, OptimizationBailoutItem,
+  ProvidedExports, RuntimeSpec, SourceType, StealCell, UsedExports,
   compilation::build_module_graph::{ExecutedRuntimeModule, ModuleExecutor},
   rspack_sources::BoxSource,
 };
@@ -73,8 +73,8 @@ impl<'compilation> StatsContext<'compilation> {
     &self.0.exports_info_artifact
   }
 
-  fn module_graph_cache_artifact(&self) -> &'compilation StealCell<ModuleGraphCacheArtifact> {
-    &self.0.module_graph_cache_artifact
+  fn module_graph_cache(&self) -> &'compilation StealCell<ModuleGraphCache> {
+    &self.0.module_graph_cache
   }
 
   fn build_module_graph_artifact(&self) -> &'compilation StealCell<BuildModuleGraphArtifact> {
@@ -248,10 +248,9 @@ impl<'compilation> Stats<'compilation> {
     }
   }
 
-  fn try_module_graph_cache_artifact(&self) -> Option<&ModuleGraphCacheArtifact> {
-    if let Some(module_graph_cache_artifact) = self.context.module_graph_cache_artifact().try_read()
-    {
-      Some(module_graph_cache_artifact)
+  fn try_module_graph_cache(&self) -> Option<&ModuleGraphCache> {
+    if let Some(module_graph_cache) = self.context.module_graph_cache().try_read() {
+      Some(module_graph_cache)
     } else {
       self.mark_artifact_fallback(STATS_ARTIFACT_FALLBACK_MODULE_GRAPH_CACHE);
       None
@@ -471,7 +470,7 @@ impl Stats<'_> {
     let Some(build_module_graph_artifact) = self.try_build_module_graph_artifact() else {
       return Ok(f(vec![]));
     };
-    let Some(module_graph_cache) = self.try_module_graph_cache_artifact() else {
+    let Some(module_graph_cache) = self.try_module_graph_cache() else {
       return Ok(f(vec![]));
     };
     let Some(exports_info_artifact) = self.try_exports_info_artifact() else {
@@ -518,7 +517,7 @@ impl Stats<'_> {
     modules.extend(runtime_modules);
 
     let executor_module_graph = self.module_executor_module_graph();
-    let executor_module_graph_cache = ModuleGraphCacheArtifact::default();
+    let executor_module_graph_cache = ModuleGraphCache::default();
     if let Some(executor_module_graph) = executor_module_graph {
       let Some(executor_exports_info_artifact) = self.module_executor_exports_info_artifact()
       else {
@@ -578,7 +577,7 @@ impl Stats<'_> {
     else {
       return Ok(f(vec![]));
     };
-    let Some(module_graph_cache) = self.try_module_graph_cache_artifact() else {
+    let Some(module_graph_cache) = self.try_module_graph_cache() else {
       return Ok(f(vec![]));
     };
     let Some(exports_info_artifact) = self.try_exports_info_artifact() else {
@@ -1134,7 +1133,7 @@ impl Stats<'_> {
   fn get_module<'a>(
     &'a self,
     module_graph: &'a ModuleGraph,
-    module_graph_cache: &'a ModuleGraphCacheArtifact,
+    module_graph_cache: &'a ModuleGraphCache,
     exports_info_artifact: &'a ExportsInfoArtifact,
     build_module_graph_artifact: &'a BuildModuleGraphArtifact,
     module_ids_artifact: &'a ModuleIdsArtifact,

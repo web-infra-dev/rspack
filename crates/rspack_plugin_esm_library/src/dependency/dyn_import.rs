@@ -34,7 +34,7 @@ fn then_expr(
 
   let exports_type = get_exports_type(
     compilation.get_module_graph(),
-    &compilation.module_graph_cache_artifact,
+    &compilation.module_graph_cache,
     &compilation.exports_info_artifact,
     dep_id,
     &module.identifier(),
@@ -102,9 +102,7 @@ fn get_fake_namespace_object_mode(
 ) -> FakeNamespaceObjectMode {
   let exports_type = get_exports_type(
     code_generatable_context.compilation.get_module_graph(),
-    &code_generatable_context
-      .compilation
-      .module_graph_cache_artifact,
+    &code_generatable_context.compilation.module_graph_cache,
     &code_generatable_context.compilation.exports_info_artifact,
     dep_id,
     &code_generatable_context.module.identifier(),

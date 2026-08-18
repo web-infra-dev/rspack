@@ -171,7 +171,7 @@ pub(crate) async fn code_generation_modules(
           .module_by_identifier(&job.module)
           .expect("should have module");
         let (codegen_res, from_cache) = this
-          .code_generate_cache_artifact
+          .code_generate_cache
           .use_cache(&job, || async {
             let mut runtime_template = this.runtime_template.create_module_code_template();
             let mut code_generation_context = ModuleCodeGenerationContext {

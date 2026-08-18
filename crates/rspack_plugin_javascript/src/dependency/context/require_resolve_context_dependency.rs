@@ -3,8 +3,7 @@ use rspack_core::{
   AffectType, AsModuleDependency, Context, ContextDependency, ContextOptions, ContextTypePrefix,
   Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId, DependencyRange,
   DependencyTemplate, DependencyTemplateType, DependencyType, ExportsInfoArtifact, FactorizeInfo,
-  ModuleGraph, ModuleGraphCacheArtifact, ResourceIdentifier, TemplateContext,
-  TemplateReplaceSource,
+  ModuleGraph, ModuleGraphCache, ResourceIdentifier, TemplateContext, TemplateReplaceSource,
 };
 use rspack_error::Diagnostic;
 
@@ -76,7 +75,7 @@ impl Dependency for RequireResolveContextDependency {
   fn get_diagnostics(
     &self,
     _module_graph: &ModuleGraph,
-    _module_graph_cache: &ModuleGraphCacheArtifact,
+    _module_graph_cache: &ModuleGraphCache,
     _exports_info_artifact: &ExportsInfoArtifact,
   ) -> Option<Vec<Diagnostic>> {
     if let Some(critical) = self.critical() {

@@ -164,9 +164,9 @@ impl ModuleGraphConnection {
           }
           rspack_core::RuntimeSpec::new(set)
         });
-        let default_mgc: rspack_core::ModuleGraphCacheArtifact = Default::default();
+        let default_mgc: rspack_core::ModuleGraphCache = Default::default();
         let module_graph_cache = compilation
-          .module_graph_cache_artifact
+          .module_graph_cache
           .try_read()
           .unwrap_or(&default_mgc);
         let side_effects_state_artifact = &compilation

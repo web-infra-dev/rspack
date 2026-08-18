@@ -78,7 +78,7 @@ impl Dependency for CssComposeDependency {
   fn get_referenced_exports(
     &self,
     _module_graph: &rspack_core::ModuleGraph,
-    _module_graph_cache: &rspack_core::ModuleGraphCacheArtifact,
+    _module_graph_cache: &rspack_core::ModuleGraphCache,
     _exports_info_artifact: &ExportsInfoArtifact,
     _runtime: Option<&RuntimeSpec>,
   ) -> Vec<ReferencedExport> {

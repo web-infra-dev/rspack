@@ -17,11 +17,11 @@ struct ChunkRenderCacheEntry {
 }
 
 #[derive(Debug, Default)]
-pub struct ChunkRenderCacheArtifact {
+pub struct ChunkRenderCache {
   storage: Option<MemoryGCStorage<ChunkRenderCacheEntry>>,
 }
 
-impl ArtifactExt for ChunkRenderCacheArtifact {
+impl ArtifactExt for ChunkRenderCache {
   const PASS: IncrementalPasses = IncrementalPasses::CHUNK_ASSET;
 
   fn recover(_incremental: &Incremental, new: &mut Self, old: &mut Self) {
@@ -30,7 +30,7 @@ impl ArtifactExt for ChunkRenderCacheArtifact {
   }
 }
 
-impl ChunkRenderCacheArtifact {
+impl ChunkRenderCache {
   pub fn new(max_generations: u32) -> Self {
     Self {
       storage: Some(MemoryGCStorage::new(max_generations)),
@@ -54,7 +54,7 @@ impl ChunkRenderCacheArtifact {
     F: Future<Output = Result<(BoxSource, Vec<Diagnostic>)>>,
   {
     let Some(storage) = &self.storage else {
-      panic!("ChunkRenderCacheArtifact storage is not set");
+      panic!("ChunkRenderCache storage is not set");
     };
     let Some(content_hash) =
       chunk.content_hash_by_source_type(&compilation.chunk_hashes_artifact, source_type)

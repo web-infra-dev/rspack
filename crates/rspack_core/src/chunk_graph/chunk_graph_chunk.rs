@@ -15,7 +15,7 @@ use ustr::Ustr;
 
 use crate::{
   BoxModule, Chunk, ChunkByUkey, ChunkGraph, ChunkGraphModule, ChunkGroupByUkey, ChunkGroupUkey,
-  ChunkUkey, Compilation, ExportsInfoArtifact, Module, ModuleGraph, ModuleGraphCacheArtifact,
+  ChunkUkey, Compilation, ExportsInfoArtifact, Module, ModuleGraph, ModuleGraphCache,
   ModuleIdentifier, RuntimeGlobals, RuntimeModule, SideEffectsStateArtifact, SourceType,
   find_graph_roots, merge_runtime,
 };
@@ -677,7 +677,7 @@ impl ChunkGraph {
     &self,
     chunk: &ChunkUkey,
     module_graph: &ModuleGraph,
-    module_graph_cache: &ModuleGraphCacheArtifact,
+    module_graph_cache: &ModuleGraphCache,
     side_effects_state_artifact: &SideEffectsStateArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
   ) -> Vec<ModuleIdentifier> {
@@ -689,7 +689,7 @@ impl ChunkGraph {
         module: ModuleIdentifier,
         add_dependency: &mut dyn FnMut(ModuleIdentifier),
         module_graph: &ModuleGraph,
-        module_graph_cache: &ModuleGraphCacheArtifact,
+        module_graph_cache: &ModuleGraphCache,
         side_effects_state_artifact: &SideEffectsStateArtifact,
         exports_info_artifact: &ExportsInfoArtifact,
       ) {

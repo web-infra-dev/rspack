@@ -7,10 +7,10 @@ use rspack_core::{
   DependencyDiagnosticsContext, DependencyId, DependencyLocation, DependencyRange,
   DependencyTemplate, DependencyTemplateType, DependencyType, ExportProvided, ExportsInfoArtifact,
   ExportsType, FactorizeInfo, ForwardId, ImportAttributes, ImportPhase, InitFragmentExt,
-  InitFragmentKey, InitFragmentStage, LazyUntil, ModuleDependency, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleIdentifier, ProvidedExports, ReferencedExport,
-  ResourceIdentifier, RuntimeCondition, RuntimeSpec, SideEffectsStateArtifact, SourceType,
-  TemplateContext, TemplateReplaceSource, TypeReexportPresenceMode, filter_runtime,
+  InitFragmentKey, InitFragmentStage, LazyUntil, ModuleDependency, ModuleGraph, ModuleGraphCache,
+  ModuleIdentifier, ProvidedExports, ReferencedExport, ResourceIdentifier, RuntimeCondition,
+  RuntimeSpec, SideEffectsStateArtifact, SourceType, TemplateContext, TemplateReplaceSource,
+  TypeReexportPresenceMode, filter_runtime,
 };
 use rspack_error::{Diagnostic, Error, Severity};
 use swc_atoms::Atom;
@@ -124,7 +124,7 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
   } = code_generatable_context;
   // Only available when module factorization is successful.
   let module_graph = compilation.get_module_graph();
-  let module_graph_cache = &compilation.module_graph_cache_artifact;
+  let module_graph_cache = &compilation.module_graph_cache;
   let connection = module_graph.connection_by_dependency_id(module_dependency.id());
   let is_target_active = if let Some(con) = connection {
     con.is_target_active(
@@ -278,7 +278,7 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
   module_dependency: &T,
   ids: &[Atom],
   module_graph: &ModuleGraph,
-  module_graph_cache: &ModuleGraphCacheArtifact,
+  module_graph_cache: &ModuleGraphCache,
   exports_info_artifact: &ExportsInfoArtifact,
   name: &Atom,
   is_reexport: bool,
@@ -568,7 +568,7 @@ impl Dependency for ESMImportSideEffectDependency {
   fn get_module_evaluation_side_effects_state(
     &self,
     module_graph: &ModuleGraph,
-    module_graph_cache: &ModuleGraphCacheArtifact,
+    module_graph_cache: &ModuleGraphCache,
     side_effects_state_artifact: &SideEffectsStateArtifact,
     module_chain: &mut IdentifierSet,
     connection_state_cache: &mut IdentifierMap<ConnectionState>,
@@ -596,7 +596,7 @@ impl Dependency for ESMImportSideEffectDependency {
   fn get_referenced_exports(
     &self,
     _module_graph: &ModuleGraph,
-    _module_graph_cache: &ModuleGraphCacheArtifact,
+    _module_graph_cache: &ModuleGraphCache,
     _exports_info_artifact: &ExportsInfoArtifact,
     _runtime: Option<&RuntimeSpec>,
   ) -> Vec<ReferencedExport> {
@@ -667,7 +667,7 @@ impl DependencyConditionFn for ESMImportSideEffectDependencyCondition {
     conn: &rspack_core::ModuleGraphConnection,
     _runtime: Option<&RuntimeSpec>,
     module_graph: &ModuleGraph,
-    module_graph_cache: &ModuleGraphCacheArtifact,
+    module_graph_cache: &ModuleGraphCache,
     side_effects_state_artifact: &SideEffectsStateArtifact,
     _exports_info_artifact: &ExportsInfoArtifact,
   ) -> ConnectionState {

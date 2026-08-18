@@ -5,7 +5,7 @@ use rspack_cacheable::{
 use rspack_core::{
   AsContextDependency, AsDependencyCodeGeneration, Dependency, DependencyCategory, DependencyId,
   DependencyType, ExportsInfoArtifact, FactorizeInfo, ModuleDependency, ModuleGraph,
-  ModuleGraphCacheArtifact, ReferencedExport, ResourceIdentifier, RuntimeSpec,
+  ModuleGraphCache, ReferencedExport, ResourceIdentifier, RuntimeSpec,
   create_exports_object_referenced,
 };
 use rspack_util::fx_hash::FxIndexSet;
@@ -66,7 +66,7 @@ impl Dependency for ClientReferenceDependency {
   fn get_referenced_exports(
     &self,
     _module_graph: &ModuleGraph,
-    _module_graph_cache: &ModuleGraphCacheArtifact,
+    _module_graph_cache: &ModuleGraphCache,
     _exports_info_artifact: &ExportsInfoArtifact,
     _runtime: Option<&RuntimeSpec>,
   ) -> Vec<ReferencedExport> {

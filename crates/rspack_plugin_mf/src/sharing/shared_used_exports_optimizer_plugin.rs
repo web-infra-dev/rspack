@@ -444,7 +444,7 @@ fn dependency_referenced_exports(
     } else {
       final_exports = esm_dep.get_referenced_exports(
         module_graph,
-        &compilation.module_graph_cache_artifact,
+        &compilation.module_graph_cache,
         &compilation.exports_info_artifact,
         _runtime,
       );

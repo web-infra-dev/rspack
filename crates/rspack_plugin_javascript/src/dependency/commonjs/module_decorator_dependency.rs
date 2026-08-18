@@ -2,8 +2,8 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, ChunkGraph, Compilation, Dependency, DependencyCodeGeneration, DependencyId,
   DependencyTemplate, DependencyTemplateType, DependencyType, ExportsInfoArtifact, FactorizeInfo,
-  InitFragmentKey, InitFragmentStage, ModuleDependency, ModuleGraphCacheArtifact,
-  NormalInitFragment, RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource,
+  InitFragmentKey, InitFragmentStage, ModuleDependency, ModuleGraphCache, NormalInitFragment,
+  RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource,
   create_exports_object_referenced, create_no_exports_referenced,
 };
 use rspack_hash::{RspackHash, RspackHasher};
@@ -80,7 +80,7 @@ impl Dependency for ModuleDecoratorDependency {
   fn get_referenced_exports(
     &self,
     _module_graph: &rspack_core::ModuleGraph,
-    _module_graph_cache: &ModuleGraphCacheArtifact,
+    _module_graph_cache: &ModuleGraphCache,
     _exports_info_artifact: &ExportsInfoArtifact,
     _runtime: Option<&rspack_core::RuntimeSpec>,
   ) -> Vec<rspack_core::ReferencedExport> {

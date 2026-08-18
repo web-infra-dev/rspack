@@ -5,9 +5,9 @@ use rspack_core::{
   AsContextDependency, AsModuleDependency, DEFAULT_EXPORT, Dependency, DependencyCodeGeneration,
   DependencyId, DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType,
   DependencyType, ESMExportBinding, ESMExportInitFragment, ExportNameOrSpec, ExportSpec,
-  ExportsInfoArtifact, ExportsOfExportsSpec, ExportsSpec, ForwardId, ModuleGraph,
-  ModuleGraphCacheArtifact, SideEffectsStateArtifact, TemplateContext, TemplateReplaceSource,
-  UsedName, property_access, rspack_sources::ReplacementEnforce,
+  ExportsInfoArtifact, ExportsOfExportsSpec, ExportsSpec, ForwardId, ModuleGraph, ModuleGraphCache,
+  SideEffectsStateArtifact, TemplateContext, TemplateReplaceSource, UsedName, property_access,
+  rspack_sources::ReplacementEnforce,
 };
 use swc_atoms::Atom;
 
@@ -88,7 +88,7 @@ impl Dependency for ESMExportExpressionDependency {
   fn get_exports(
     &self,
     _mg: &ModuleGraph,
-    _mg_cache: &ModuleGraphCacheArtifact,
+    _mg_cache: &ModuleGraphCache,
     _exports_info_artifact: &ExportsInfoArtifact,
   ) -> Option<ExportsSpec> {
     Some(ExportsSpec {
@@ -113,7 +113,7 @@ impl Dependency for ESMExportExpressionDependency {
   fn get_module_evaluation_side_effects_state(
     &self,
     _module_graph: &rspack_core::ModuleGraph,
-    _module_graph_cache: &ModuleGraphCacheArtifact,
+    _module_graph_cache: &ModuleGraphCache,
     _side_effects_state_artifact: &SideEffectsStateArtifact,
     _module_chain: &mut IdentifierSet,
     _connection_state_cache: &mut IdentifierMap<rspack_core::ConnectionState>,

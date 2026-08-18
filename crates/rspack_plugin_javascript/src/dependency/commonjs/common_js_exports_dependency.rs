@@ -7,8 +7,8 @@ use rspack_core::{
   DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
   DependencyTemplateType, DependencyType, ExportNameOrSpec, ExportSpec, ExportsInfoArtifact,
   ExportsOfExportsSpec, ExportsSpec, InitFragmentExt, InitFragmentKey, InitFragmentStage,
-  ModuleGraph, ModuleGraphCacheArtifact, NormalInitFragment, TemplateContext,
-  TemplateReplaceSource, UsedName, property_access,
+  ModuleGraph, ModuleGraphCache, NormalInitFragment, TemplateContext, TemplateReplaceSource,
+  UsedName, property_access,
 };
 use rspack_util::json_stringify_str;
 use swc_atoms::Atom;
@@ -103,7 +103,7 @@ impl Dependency for CommonJsExportsDependency {
   fn get_exports(
     &self,
     _mg: &ModuleGraph,
-    _mg_cache: &ModuleGraphCacheArtifact,
+    _mg_cache: &ModuleGraphCache,
     _exports_info_artifact: &ExportsInfoArtifact,
   ) -> Option<ExportsSpec> {
     let name = self.names[0].clone();

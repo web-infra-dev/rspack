@@ -9,7 +9,7 @@ use rspack_core::{
   DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
   ExportPresenceMode, ExportProvided, ExportsInfoArtifact, ExportsType, FactorizeInfo, ForwardId,
   ImportAttributes, ImportPhase, JavascriptParserOptions, ModuleDependency, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleReferenceOptions, ReferencedExport,
+  ModuleGraphCache, ModuleGraphConnection, ModuleReferenceOptions, ReferencedExport,
   ResourceIdentifier, RuntimeSpec, SideEffectsStateArtifact, TemplateContext,
   TemplateReplaceSource, UsedByExports, UsedName, create_exports_object_referenced,
   property_access, to_normal_comment,
@@ -217,7 +217,7 @@ impl Dependency for ESMImportSpecifierDependency {
   fn get_module_evaluation_side_effects_state(
     &self,
     _module_graph: &ModuleGraph,
-    _module_graph_cache: &ModuleGraphCacheArtifact,
+    _module_graph_cache: &ModuleGraphCache,
     _side_effects_state_artifact: &SideEffectsStateArtifact,
     _module_chain: &mut IdentifierSet,
     _connection_state_cache: &mut IdentifierMap<ConnectionState>,
@@ -233,7 +233,7 @@ impl Dependency for ESMImportSpecifierDependency {
   fn get_diagnostics(
     &self,
     module_graph: &ModuleGraph,
-    module_graph_cache: &ModuleGraphCacheArtifact,
+    module_graph_cache: &ModuleGraphCache,
     exports_info_artifact: &ExportsInfoArtifact,
   ) -> Option<Vec<Diagnostic>> {
     self.get_diagnostics_with_context(
@@ -247,7 +247,7 @@ impl Dependency for ESMImportSpecifierDependency {
   fn get_diagnostics_with_context(
     &self,
     module_graph: &ModuleGraph,
-    module_graph_cache: &ModuleGraphCacheArtifact,
+    module_graph_cache: &ModuleGraphCache,
     exports_info_artifact: &ExportsInfoArtifact,
     diagnostics_context: &DependencyDiagnosticsContext,
   ) -> Option<Vec<Diagnostic>> {
@@ -282,7 +282,7 @@ impl Dependency for ESMImportSpecifierDependency {
   fn get_referenced_exports(
     &self,
     module_graph: &ModuleGraph,
-    module_graph_cache: &ModuleGraphCacheArtifact,
+    module_graph_cache: &ModuleGraphCache,
     exports_info_artifact: &ExportsInfoArtifact,
     _runtime: Option<&RuntimeSpec>,
   ) -> Vec<ReferencedExport> {
@@ -564,7 +564,7 @@ impl ESMImportSpecifierDependencyTemplate {
       .get_exports_info_data(con.module_identifier());
     let exports_type = module.get_exports_type(
       mg,
-      &compilation.module_graph_cache_artifact,
+      &compilation.module_graph_cache,
       &compilation.exports_info_artifact,
       self_module.build_meta().strict_esm_module(),
     );
@@ -668,7 +668,7 @@ impl DependencyTemplate for ESMImportSpecifierDependencyTemplate {
       && !con.is_target_active(
         module_graph,
         runtime,
-        &compilation.module_graph_cache_artifact,
+        &compilation.module_graph_cache,
         &compilation
           .build_module_graph_artifact
           .side_effects_state_artifact,
@@ -717,9 +717,7 @@ impl DependencyTemplate for ESMImportSpecifierDependencyTemplate {
           .expect("should have parent module");
         let exports_type = module.get_exports_type(
           module_graph,
-          &code_generatable_context
-            .compilation
-            .module_graph_cache_artifact,
+          &code_generatable_context.compilation.module_graph_cache,
           &code_generatable_context.compilation.exports_info_artifact,
           self_module.build_meta().strict_esm_module(),
         );
@@ -819,7 +817,7 @@ impl DependencyConditionFn for ESMImportSpecifierDependencyCondition {
     connection: &ModuleGraphConnection,
     runtime: Option<&RuntimeSpec>,
     module_graph: &ModuleGraph,
-    _module_graph_cache: &ModuleGraphCacheArtifact,
+    _module_graph_cache: &ModuleGraphCache,
     _side_effects_state_artifact: &SideEffectsStateArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
   ) -> bool {
@@ -841,7 +839,7 @@ impl DependencyConditionFn for ESMImportSpecifierDependencyCondition {
     connection: &ModuleGraphConnection,
     runtime: Option<&RuntimeSpec>,
     module_graph: &ModuleGraph,
-    _module_graph_cache: &ModuleGraphCacheArtifact,
+    _module_graph_cache: &ModuleGraphCache,
     _side_effects_state_artifact: &SideEffectsStateArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
   ) -> ConnectionState {

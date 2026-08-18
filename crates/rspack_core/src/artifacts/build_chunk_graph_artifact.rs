@@ -73,7 +73,7 @@ impl BuildChunkGraphArtifact {
     }
 
     let module_graph = this_compilation.get_module_graph();
-    let module_graph_cache = &this_compilation.module_graph_cache_artifact;
+    let module_graph_cache = &this_compilation.module_graph_cache;
     let affected_modules = mutations.get_affected_modules_with_module_graph(module_graph);
     let previous_modules_map = &this_compilation
       .build_chunk_graph_artifact

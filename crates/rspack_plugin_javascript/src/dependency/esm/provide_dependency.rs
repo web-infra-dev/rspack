@@ -6,7 +6,7 @@ use rspack_core::{
   AsContextDependency, Compilation, Dependency, DependencyCategory, DependencyCodeGeneration,
   DependencyId, DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType,
   DependencyType, ExportsInfoArtifact, FactorizeInfo, InitFragmentKey, InitFragmentStage,
-  ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, NormalInitFragment, ReferencedExport,
+  ModuleDependency, ModuleGraph, ModuleGraphCache, NormalInitFragment, ReferencedExport,
   RuntimeSpec, TemplateContext, TemplateReplaceSource, UsedName, create_exports_object_referenced,
   property_access, to_normal_comment,
 };
@@ -68,7 +68,7 @@ impl Dependency for ProvideDependency {
   fn get_referenced_exports(
     &self,
     _module_graph: &ModuleGraph,
-    _module_graph_cache: &ModuleGraphCacheArtifact,
+    _module_graph_cache: &ModuleGraphCache,
     _exports_info_artifact: &ExportsInfoArtifact,
     _runtime: Option<&RuntimeSpec>,
   ) -> Vec<ReferencedExport> {
