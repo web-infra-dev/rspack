@@ -8,7 +8,8 @@ use rustc_hash::FxHashSet as HashSet;
 use tracing::{Instrument, info_span};
 
 use crate::{
-  ParseMeta,
+  LoaderRunnerOptions, ParseMeta,
+  cache::{after_normal_loader, before_normal_loader},
   content::{AdditionalData, Content, ResourceData},
   context::{LoaderContext, State},
   loader::{Loader, LoaderItem},
@@ -103,9 +104,28 @@ pub async fn run_loaders<Context: Send>(
   context: Context,
   fs: Arc<dyn ReadableFileSystem>,
 ) -> (LoaderResult<Context>, Option<Error>) {
+  let loader_options = vec![LoaderRunnerOptions::default(); loaders.len()];
+  run_loaders_with_options(loaders, loader_options, resource_data, plugin, context, fs).await
+}
+
+#[tracing::instrument("LoaderRunner:run_loaders_with_options", skip_all, level = "trace")]
+pub async fn run_loaders_with_options<Context: Send>(
+  loaders: Vec<Arc<dyn Loader<Context>>>,
+  loader_options: Vec<LoaderRunnerOptions>,
+  resource_data: Arc<ResourceData>,
+  plugin: Option<Arc<dyn LoaderRunnerPlugin<Context = Context>>>,
+  context: Context,
+  fs: Arc<dyn ReadableFileSystem>,
+) -> (LoaderResult<Context>, Option<Error>) {
+  assert_eq!(
+    loaders.len(),
+    loader_options.len(),
+    "loader options must stay aligned with loaders"
+  );
   let loaders = loaders
     .into_iter()
-    .map(|i| i.into())
+    .zip(loader_options)
+    .map(|(loader, options)| LoaderItem::new(loader, options))
     .collect::<Vec<LoaderItem<Context>>>();
   let mut cx = create_loader_context(loaders, resource_data, plugin, context);
   let result = run_loaders_impl(&mut cx, fs).await;
@@ -180,6 +200,14 @@ async fn run_loaders_impl<Context: Send>(
           continue;
         }
 
+        let cache_action = before_normal_loader(cx).await?;
+        if cache_action.is_hit() {
+          cx.current_loader().set_normal_executed();
+          cx.current_loader().set_finish_called();
+          cx.loader_index -= 1;
+          continue;
+        }
+
         cx.current_loader().set_normal_executed();
         let loader = cx.current_loader().loader().clone();
 
@@ -191,6 +219,7 @@ async fn run_loaders_impl<Context: Send>(
           // This mocks the behavior of webpack loader-runner.
           cx.finish_with_empty();
         }
+        after_normal_loader(cx, cache_action).await?;
       }
       State::Finished => break,
     }

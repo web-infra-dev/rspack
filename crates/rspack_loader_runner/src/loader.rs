@@ -15,7 +15,7 @@ use rspack_error::Result;
 use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rspack_util::identifier::strip_zero_width_space_for_fragment;
 
-use super::LoaderContext;
+use super::{LoaderContext, LoaderRunnerOptions};
 
 #[derive(Debug)]
 pub struct LoaderItem<Context: Send> {
@@ -38,6 +38,8 @@ pub struct LoaderItem<Context: Send> {
   /// Data shared between pitching and normal
   data: serde_json::Value,
   r#type: String,
+  cache: bool,
+  cache_key: String,
   pitch_executed: AtomicBool,
   normal_executed: AtomicBool,
   /// Whether loader was called with [LoaderContext::finish_with].
@@ -73,6 +75,16 @@ impl<C: Send> LoaderItem<C> {
   #[inline]
   pub fn r#type(&self) -> &str {
     &self.r#type
+  }
+
+  #[inline]
+  pub fn cache(&self) -> bool {
+    self.cache
+  }
+
+  #[inline]
+  pub fn cache_key(&self) -> &str {
+    &self.cache_key
   }
 
   #[inline]
@@ -196,10 +208,21 @@ where
   fn r#type(&self) -> Option<&str> {
     None
   }
+
+  /// Version identity used by loader caching.
+  fn cache_version(&self) -> Option<&str> {
+    None
+  }
 }
 
 impl<C: Send> From<Arc<dyn Loader<C>>> for LoaderItem<C> {
   fn from(loader: Arc<dyn Loader<C>>) -> Self {
+    Self::new(loader, LoaderRunnerOptions::default())
+  }
+}
+
+impl<C: Send> LoaderItem<C> {
+  pub(crate) fn new(loader: Arc<dyn Loader<C>>, options: LoaderRunnerOptions) -> Self {
     let ident = &**loader.identifier();
     if let Some(r#type) = loader.r#type() {
       let ResourceParsedData {
@@ -216,6 +239,8 @@ impl<C: Send> From<Arc<dyn Loader<C>>> for LoaderItem<C> {
         fragment,
         data: serde_json::Value::Null,
         r#type: ty,
+        cache: options.cache,
+        cache_key: options.cache_key,
         pitch_executed: AtomicBool::new(false),
         normal_executed: AtomicBool::new(false),
         finish_called: AtomicBool::new(false),
@@ -235,6 +260,8 @@ impl<C: Send> From<Arc<dyn Loader<C>>> for LoaderItem<C> {
       fragment,
       data: serde_json::Value::Null,
       r#type: String::default(),
+      cache: options.cache,
+      cache_key: options.cache_key,
       pitch_executed: AtomicBool::new(false),
       normal_executed: AtomicBool::new(false),
       finish_called: AtomicBool::new(false),

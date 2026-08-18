@@ -2,12 +2,14 @@ use std::{ptr::NonNull, sync::Arc};
 
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
+use rspack_collections::Identifiable;
 use rspack_core::{LoaderContext, Module, RunnerContext};
 use rspack_error::ToStringResultToRspackResultExt;
 use rspack_loader_runner::State as LoaderState;
 use rspack_napi::threadsafe_js_value_ref::ThreadsafeJsValueRef;
 use rustc_hash::FxHashMap as HashMap;
 
+use super::cache::JsLoaderCacheObject;
 use crate::{error::RspackError, module::ModuleObject};
 
 #[napi(object)]
@@ -15,6 +17,8 @@ use crate::{error::RspackError, module::ModuleObject};
 pub struct JsLoaderItem {
   pub loader: String,
   pub r#type: String,
+  pub cache: bool,
+  pub cache_key: String,
 
   // data
   pub data: serde_json::Value,
@@ -31,6 +35,8 @@ impl From<&rspack_loader_runner::LoaderItem<RunnerContext>> for JsLoaderItem {
     JsLoaderItem {
       loader: value.request().to_string(),
       r#type: value.r#type().to_string(),
+      cache: value.cache(),
+      cache_key: value.cache_key().to_string(),
 
       data: value.data().clone(),
       normal_executed: value.normal_executed(),
@@ -53,6 +59,8 @@ where
         loader: ident.to_string(),
         data: serde_json::Value::Null,
         r#type: r#type.to_string(),
+        cache: false,
+        cache_key: String::new(),
         pitch_executed: false,
         normal_executed: false,
         no_pitch: false,
@@ -62,6 +70,8 @@ where
       loader: identifier.to_string(),
       data: serde_json::Value::Null,
       r#type: String::default(),
+      cache: false,
+      cache_key: String::new(),
       pitch_executed: false,
       normal_executed: false,
       no_pitch: false,
@@ -114,6 +124,8 @@ pub struct JsLoaderContext {
   pub loader_state: JsLoaderState,
   #[napi(js_name = "__internal__error")]
   pub error: Option<RspackError>,
+  #[napi(js_name = "__internal__loaderCache", ts_type = "JsLoaderCache")]
+  pub loader_cache: JsLoaderCacheObject,
 
   /// UTF-8 hint for `content`
   /// - Some(true): `content` is a `UTF-8` encoded sequence
@@ -178,6 +190,10 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
       loader_index: cx.loader_index,
       loader_state: cx.state().into(),
       error: None,
+      loader_cache: JsLoaderCacheObject::new(
+        cx.context.loader_cache().clone(),
+        module.identifier().to_string(),
+      ),
       utf8_hint: None,
     })
   }

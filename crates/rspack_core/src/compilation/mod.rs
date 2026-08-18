@@ -449,6 +449,10 @@ impl Compilation {
     self.cache.facade(name)
   }
 
+  pub fn get_memory_cache(&self, name: &str) -> crate::new_cache::MemoryCacheFacade {
+    self.cache.memory_facade(name)
+  }
+
   pub fn id(&self) -> CompilationId {
     self.id
   }

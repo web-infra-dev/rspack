@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use rspack_error::Result;
 
 use super::{TaskContext, build::BuildTask, lazy::process_unlazy_dependencies};
@@ -123,6 +125,7 @@ impl Task<TaskContext> for AddTask {
       plugin_driver: context.plugin_driver.clone(),
       runtime_template: context.runtime_template.create_module_code_template(),
       fs: context.fs.clone(),
+      loader_cache: Arc::clone(&context.loader_cache),
       forwarded_ids,
     })])
   }

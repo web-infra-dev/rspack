@@ -1,5 +1,6 @@
 #![feature(string_from_utf8_lossy_owned)]
 
+mod cache;
 mod content;
 mod context;
 mod loader;
@@ -12,7 +13,8 @@ pub use context::{LoaderContext, State};
 pub use loader::{DisplayWithSuffix, Loader, LoaderItem, ResourceParsedData, parse_resource};
 pub use plugin::LoaderRunnerPlugin;
 pub use rspack_collections::{Identifiable, Identifier};
-pub use runner::{LoaderResult, run_loaders};
+pub use runner::{LoaderResult, run_loaders, run_loaders_with_options};
 pub use scheme::{Scheme, get_scheme};
 
 pub const BUILTIN_LOADER_PREFIX: &str = "builtin:";
+pub use cache::{LoaderCacheAction, LoaderCacheState, LoaderRunnerOptions};

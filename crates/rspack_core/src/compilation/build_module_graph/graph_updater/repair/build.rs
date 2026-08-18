@@ -8,7 +8,7 @@ use super::{
 };
 use crate::{
   AsyncDependenciesBlock, BoxDependency, BoxModule, BuildContext, BuildResult, CompilationId,
-  CompilerId, CompilerOptions, DependencyParents, ModuleCodeTemplate, ResolverFactory,
+  CompilerId, CompilerOptions, DependencyParents, LoaderCache, ModuleCodeTemplate, ResolverFactory,
   SharedPluginDriver,
   compilation::build_module_graph::{ForwardedIdSet, HasLazyDependencies, LazyDependencies},
   utils::{
@@ -27,6 +27,7 @@ pub struct BuildTask {
   pub runtime_template: ModuleCodeTemplate,
   pub plugin_driver: SharedPluginDriver,
   pub fs: Arc<dyn ReadableFileSystem>,
+  pub loader_cache: Arc<LoaderCache>,
   pub forwarded_ids: ForwardedIdSet,
 }
 
@@ -45,6 +46,7 @@ impl Task<TaskContext> for BuildTask {
       runtime_template,
       mut module,
       fs,
+      loader_cache,
       forwarded_ids,
     } = *self;
 
@@ -64,6 +66,7 @@ impl Task<TaskContext> for BuildTask {
           plugin_driver: plugin_driver.clone(),
           runtime_template,
           fs: fs.clone(),
+          loader_cache,
         },
         None,
       )

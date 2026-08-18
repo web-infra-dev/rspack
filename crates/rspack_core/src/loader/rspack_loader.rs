@@ -2,11 +2,17 @@ use std::sync::Arc;
 
 use rspack_error::{Diagnostic, Result};
 use rspack_fs::ReadableFileSystem;
-use rspack_loader_runner::{Content, LoaderContext, LoaderRunnerPlugin, ResourceData};
+use rspack_loader_runner::{
+  Content, LoaderCacheAction, LoaderCacheState, LoaderContext, LoaderRunnerPlugin, ResourceData,
+};
 use rspack_sources::SourceMap;
 use rustc_hash::FxHashSet as HashSet;
 
-use crate::{RunnerContext, SharedPluginDriver, utils::extract_source_map};
+use crate::{
+  RunnerContext, SharedPluginDriver,
+  loader::loader_cache::{LoaderCacheMissState, after_normal_loader, before_normal_loader},
+  utils::extract_source_map,
+};
 
 pub struct RspackLoaderRunnerPlugin {
   pub plugin_driver: SharedPluginDriver,
@@ -120,5 +126,24 @@ impl LoaderRunnerPlugin for RspackLoaderRunnerPlugin {
       .loader_yield
       .call(context)
       .await
+  }
+
+  async fn before_normal_loader(
+    &self,
+    context: &mut LoaderContext<Self::Context>,
+  ) -> Result<LoaderCacheAction> {
+    Ok(before_normal_loader(context))
+  }
+
+  async fn after_normal_loader(
+    &self,
+    context: &mut LoaderContext<Self::Context>,
+    state: LoaderCacheState,
+  ) -> Result<()> {
+    let state = state
+      .downcast::<LoaderCacheMissState>()
+      .expect("rspack loader cache state should have the expected type");
+    after_normal_loader(context, *state);
+    Ok(())
   }
 }

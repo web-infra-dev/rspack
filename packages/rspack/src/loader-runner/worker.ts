@@ -8,6 +8,7 @@ import type { LoaderContext } from '../config';
 import type { ResolveCallback } from '../config/adapterRuleUse';
 import type { ResolveRequest } from '../Resolver';
 import * as swc from '../swc';
+import { isNil, serializeObject, toBuffer, toObject } from '../util';
 import { cleverMerge } from '../util/cleverMerge';
 import { createHash } from '../util/createHash';
 import { absolutify, contextify } from '../util/identifier';
@@ -503,12 +504,51 @@ async function loaderImpl(
           continue;
         }
 
+        if (currentLoaderObject.loaderItem.cache) {
+          waitForPendingRequest(pendingDependencyRequest);
+          const hit = await sendRequest(
+            RequestType.LoaderCacheGet,
+            loaderContext.loaderIndex,
+            currentLoaderObject.loaderItem.cacheKey,
+            isNil(args[0]) ? null : toBuffer(args[0]),
+            typeof args[0] === 'string',
+            serializeObject(args[1]),
+            args[2],
+          );
+          if (hit) {
+            currentLoaderObject.normalExecuted = true;
+            args = [
+              hit.contentIsString
+                ? hit.content && Buffer.from(hit.content).toString()
+                : hit.content && Buffer.from(hit.content),
+              hit.sourceMap ? toObject(Buffer.from(hit.sourceMap)) : undefined,
+              hit.additionalData,
+            ];
+            continue;
+          }
+        }
+
         await loadLoaderAsync(currentLoaderObject, loaderContext._compiler);
         const fn = currentLoaderObject.normal;
         currentLoaderObject.normalExecuted = true;
         if (!fn) continue;
+        const inputAdditionalData = args[2];
         convertArgs(args, !!currentLoaderObject.raw);
         args = (await runSyncOrAsync(fn, loaderContext, args)) || [];
+        if (currentLoaderObject.loaderItem.cache) {
+          waitForPendingRequest(pendingDependencyRequest);
+          await sendRequest(
+            RequestType.LoaderCacheStore,
+            loaderContext.loaderIndex,
+            currentLoaderObject.loaderItem.cacheKey,
+            isNil(args[0]) ? null : toBuffer(args[0]),
+            typeof args[0] === 'string',
+            serializeObject(args[1]),
+            args[2],
+          );
+        } else if (args[2] !== inputAdditionalData) {
+          await sendRequest(RequestType.LoaderCacheInvalidate);
+        }
       }
     }
   }
