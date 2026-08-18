@@ -12,7 +12,7 @@ use regex::Regex;
 use rspack_core::{
   BoxDependency, ChunkGraph, Compilation, CompilerOptions, CssExportType, CssExportsConvention,
   CssModuleGeneratorOptions, CssModuleRenderCondition, GeneratorOptions, ImportAttributes,
-  LocalIdentName, Module, ModuleType, NormalModuleCreateData, PathData, ReplaceAllPlaceholder,
+  LocalIdentName, Module, ModuleType, NormalModuleCreateData, PathData, PlaceholderKind,
   ResourceData,
 };
 use rspack_error::{Diagnostic, Error, Result, Severity};
@@ -495,11 +495,11 @@ struct LocalIdentNameRenderOptions<'a> {
   folder: &'a str,
 }
 
-fn render_hash(hash: &str, len: Option<usize>, need_base64: bool) -> String {
-  let content = if need_base64 {
-    base64::encode_to_string(hash)
-  } else {
-    hash.to_string()
+fn render_hash(hash: &str, len: Option<usize>, encoding: Option<HashDigest>) -> String {
+  let content = match encoding {
+    Some(HashDigest::Base64) => base64::encode_to_string(hash),
+    None => hash.to_string(),
+    Some(encoding) => unreachable!("unsupported local ident hash encoding: {encoding:?}"),
   };
   content[..len.unwrap_or(content.len()).min(content.len())].to_string()
 }
@@ -524,26 +524,36 @@ fn non_numeric_only_hash(hash: &str, hash_length: usize) -> String {
 
 impl LocalIdentNameRenderOptions<'_> {
   pub async fn render_local_ident_name(self, local_ident_name: &LocalIdentName) -> Result<String> {
-    let template = local_ident_name.template.template().map_or_else(
-      || local_ident_name.template.clone(),
-      |template| {
-        template
-          .replace_all_with_len("[fullhash]", |len, need_base64| {
-            render_hash(self.local_ident_hash, len, need_base64)
-          })
-          .into_owned()
-          .into()
-      },
-    );
-    let raw = template.render(self.path_data, None).await?;
-    let s: &str = raw.as_ref();
-
-    Ok(
-      s.cow_replace("[uniqueName]", self.unique_name)
-        .cow_replace("[local]", self.local)
-        .cow_replace("[folder]", self.folder)
-        .into_owned(),
-    )
+    local_ident_name
+      .template
+      .render_with(
+        self.path_data,
+        None,
+        |placeholder, output| match placeholder.kind() {
+          PlaceholderKind::FullHash => {
+            output.push_str(&render_hash(
+              self.local_ident_hash,
+              placeholder.hash_len(),
+              placeholder.hash_encoding(),
+            ));
+            true
+          }
+          PlaceholderKind::UniqueName => {
+            output.push_str(self.unique_name);
+            true
+          }
+          PlaceholderKind::Local => {
+            output.push_str(self.local);
+            true
+          }
+          PlaceholderKind::Folder => {
+            output.push_str(self.folder);
+            true
+          }
+          _ => false,
+        },
+      )
+      .await
   }
 }
 
