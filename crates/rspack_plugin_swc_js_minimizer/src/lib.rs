@@ -229,7 +229,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let new_cache = (compilation.options.experiments.new_cache
     && !matches!(&compilation.options.cache, CacheOptions::Disabled))
   .then(|| compilation.get_cache(PLUGIN_NAME));
-  let minimize_persistent_cache = compilation.minimize_persistent_cache_artifact.take();
+  let minimize_persistent_cache = compilation.minimize_persistent_cache.take();
   let legacy_cache_entries: Mutex<Vec<(MinimizeCacheKey, CachedMinimizeEntry)>> =
     Mutex::new(Vec::new());
   let logger = compilation.get_logger(PLUGIN_NAME);
@@ -546,7 +546,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     {
       cache.insert(key, entry);
     }
-    compilation.minimize_persistent_cache_artifact = Some(cache);
+    compilation.minimize_persistent_cache = Some(cache);
   }
 
   if let Some(counter) = minimize_cache_counter {

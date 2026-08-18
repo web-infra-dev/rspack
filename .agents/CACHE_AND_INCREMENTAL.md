@@ -141,10 +141,10 @@ Cache's restore and save hooks run independently around the pass. Consumers of t
 Some historical or transitional types do not yet follow the physical boundary. In particular,
 `CodeGenerateCacheArtifact`, `ProcessRuntimeRequirementsCacheArtifact`, and
 `ChunkRenderCacheArtifact` are stored on `Compilation` and moved by `IncrementalArtifacts`, while
-their generation-aware memoization is controlled by Cache configuration. Legacy persistent Cache
-also uses `Artifact` as a generic payload name in some APIs. These types are not a precedent for new
-code: ownership is determined by invalidation and reuse semantics, and Cache-owned state should move
-behind Cache abstractions.
+their generation-aware memoization is controlled by Cache configuration. These types are not a
+precedent for new code: ownership is determined by invalidation and reuse semantics, and Cache-owned
+state should move behind Cache abstractions. Legacy persistent Cache calls its generic payload a
+`CacheItem`, not an Artifact.
 
 ## Architectural Invariants
 
