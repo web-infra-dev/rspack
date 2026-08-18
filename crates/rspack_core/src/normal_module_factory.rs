@@ -2,7 +2,7 @@ use std::{borrow::Cow, collections::HashMap, ops::Deref, sync::Arc};
 
 use rspack_error::{Result, error};
 use rspack_hook::define_hook;
-use rspack_loader_runner::{Loader, Scheme, get_scheme};
+use rspack_loader_runner::{Loader, LoaderExecutionKind, LoaderRunnerOptions, Scheme, get_scheme};
 use rspack_paths::ArcResolverPathSet;
 use rspack_util::{MergeFrom, fx_hash::FxDashMap};
 use sugar_path::SugarPath;
@@ -852,6 +852,7 @@ impl NormalModuleFactory {
                 .get(ident)
                 .map(|object| object.to_string())
             }),
+            cache: false,
           }
         }));
         scheme = get_scheme(unresolved_resource);
@@ -998,7 +999,7 @@ module.exports = "data:,";
       }
     };
 
-    let loaders: Vec<BoxLoader> = {
+    let resolved_loaders: Vec<ResolvedLoader> = {
       let mut pre_loaders: Vec<ModuleRuleUseLoader> = vec![];
       let mut post_loaders: Vec<ModuleRuleUseLoader> = vec![];
       let mut normal_loaders: Vec<ModuleRuleUseLoader> = vec![];
@@ -1048,43 +1049,63 @@ module.exports = "data:,";
       );
 
       for l in post_loaders {
-        all_loaders
-          .push(resolve_each(plugin_driver, &self.options.context, &loader_resolver, &l).await?)
+        all_loaders.push(
+          resolve_each_with_options(plugin_driver, &self.options.context, &loader_resolver, &l)
+            .await?,
+        )
       }
 
       let mut resolved_normal_loaders = vec![];
       for l in normal_loaders {
-        resolved_normal_loaders
-          .push(resolve_each(plugin_driver, &self.options.context, &loader_resolver, &l).await?)
+        resolved_normal_loaders.push(
+          resolve_each_with_options(plugin_driver, &self.options.context, &loader_resolver, &l)
+            .await?,
+        )
       }
 
       if match_resource_data.is_some() {
         all_loaders.extend(resolved_normal_loaders);
-        all_loaders.extend(resolved_inline_loaders);
+        all_loaders.extend(
+          resolved_inline_loaders
+            .iter()
+            .cloned()
+            .map(ResolvedLoader::uncached),
+        );
       } else {
-        all_loaders.extend(resolved_inline_loaders);
+        all_loaders.extend(
+          resolved_inline_loaders
+            .iter()
+            .cloned()
+            .map(ResolvedLoader::uncached),
+        );
         all_loaders.extend(resolved_normal_loaders);
       }
 
       for l in pre_loaders {
-        all_loaders
-          .push(resolve_each(plugin_driver, &self.options.context, &loader_resolver, &l).await?)
+        all_loaders.push(
+          resolve_each_with_options(plugin_driver, &self.options.context, &loader_resolver, &l)
+            .await?,
+        )
       }
 
       all_loaders
     };
 
-    let request = if !loaders.is_empty() {
-      let s = loaders
+    let request = if !resolved_loaders.is_empty() {
+      let s = resolved_loaders
         .iter()
-        .map(|i| i.identifier().as_str())
+        .map(|i| i.loader.identifier().as_str())
         .collect::<Vec<_>>()
         .join("!");
       format!("{s}!{}", resource_data.resource())
     } else {
       resource_data.resource().to_owned()
     };
-    let loaders = Arc::new(Loaders::new(loaders));
+    let (loaders, loader_options): (Vec<_>, Vec<_>) = resolved_loaders
+      .into_iter()
+      .map(ResolvedLoader::into_parts)
+      .unzip();
+    let loaders = Arc::new(Loaders::with_options(loaders, loader_options));
 
     let resolved_module_type = self.calculate_module_type(match_module_type, &matched_module_rules);
     let resolved_module_layer =
@@ -1332,6 +1353,57 @@ async fn resolve_each(
     .call(context, loader_resolver, l)
     .await?
     .ok_or_else(|| error!("Unable to resolve loader {}", l.loader))
+}
+
+struct ResolvedLoader {
+  loader: BoxLoader,
+  cache: bool,
+  options: Option<String>,
+}
+
+impl ResolvedLoader {
+  fn uncached(loader: BoxLoader) -> Self {
+    Self {
+      loader,
+      cache: false,
+      options: None,
+    }
+  }
+
+  fn into_parts(self) -> (BoxLoader, LoaderRunnerOptions) {
+    let options = if self.cache {
+      LoaderRunnerOptions {
+        cache: true,
+        cache_version: self
+          .loader
+          .cache_version()
+          .unwrap_or(rspack_workspace::rspack_pkg_version!())
+          .to_owned(),
+        // Native loader options have already gone through their final adapter
+        // and are available here. JavaScript options are still represented by
+        // `??ident` and are fingerprinted when JS materializes Module::loaders.
+        options_cache_key: (self.loader.execution_kind() == LoaderExecutionKind::Native)
+          .then(|| self.options.unwrap_or_else(|| "undefined".to_owned())),
+      }
+    } else {
+      LoaderRunnerOptions::default()
+    };
+    (self.loader, options)
+  }
+}
+
+async fn resolve_each_with_options(
+  plugin_driver: &SharedPluginDriver,
+  context: &Context,
+  loader_resolver: &Resolver,
+  loader: &ModuleRuleUseLoader,
+) -> Result<ResolvedLoader> {
+  let resolved = resolve_each(plugin_driver, context, loader_resolver, loader).await?;
+  Ok(ResolvedLoader {
+    loader: resolved,
+    cache: loader.cache,
+    options: loader.options.clone(),
+  })
 }
 
 #[derive(Debug)]

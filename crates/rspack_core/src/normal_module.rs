@@ -407,6 +407,7 @@ impl Module for NormalModule {
           options: compiler_options,
           resolver_factory,
           source_map_kind: self.source_map_kind,
+          loader_cache: build_context.loader_cache.clone(),
           module: self,
         },
         fs,

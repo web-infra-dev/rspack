@@ -1664,7 +1664,7 @@ pub struct FuncUseCtx {
   pub issuer_layer: Option<String>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct ModuleRuleUseLoader {
   /// Loader identifier with query and fragments
   /// Loader ident or query will be appended if it exists.
@@ -1672,6 +1672,8 @@ pub struct ModuleRuleUseLoader {
   /// Loader options
   /// This only exists if the loader is a built-in loader.
   pub options: Option<String>,
+  /// Cache this loader as part of a contiguous loader cache chain.
+  pub cache: bool,
 }
 
 pub type FnUse =

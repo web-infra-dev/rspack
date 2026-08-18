@@ -555,6 +555,7 @@ function createRawModuleRuleUsesImpl(
         isBuiltin,
       ),
       options: o,
+      cache: use.cache,
     };
   });
 }

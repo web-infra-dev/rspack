@@ -9,7 +9,9 @@ use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
   AdditionalData, Content, LoaderChain, LoaderItem, LoaderItemState, LoaderRunnerPlugin, Loaders,
-  ParseMeta, ResourceData, loader::LoaderItemList,
+  ParseMeta, ResourceData,
+  chain::{CacheChainState, execution_chain_at},
+  loader::LoaderItemList,
 };
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -61,6 +63,8 @@ pub struct LoaderContext<Context: Send> {
   pub loader_items: ArcComputed<Loaders<Context>, Vec<LoaderItem<Context>>>,
   pub loader_chains: ArcComputed<Loaders<Context>, Vec<LoaderChain>>,
   pub loader_item_states: Vec<LoaderItemState>,
+  #[debug(skip)]
+  pub(crate) cache_chain_states: Vec<Option<CacheChainState>>,
   #[debug(skip)]
   pub plugin: Option<Arc<dyn LoaderRunnerPlugin<Context = Context>>>,
 }
@@ -114,9 +118,9 @@ impl<Context: Send> LoaderContext<Context> {
     self.current_loader_state_mut().set_finish_called();
   }
 
-  pub fn current_chain(&self) -> Option<&LoaderChain> {
+  pub(crate) fn current_root_chain_index(&self) -> Option<usize> {
     let loader_index = usize::try_from(self.loader_index).ok()?;
-    let index = self
+    self
       .loader_chains
       .binary_search_by(|chain| {
         if chain.end() <= loader_index {
@@ -127,8 +131,42 @@ impl<Context: Send> LoaderContext<Context> {
           Ordering::Equal
         }
       })
-      .ok()?;
-    self.loader_chains.get(index)
+      .ok()
+  }
+
+  pub(crate) fn current_root_chain(&self) -> Option<&LoaderChain> {
+    self
+      .current_root_chain_index()
+      .and_then(|index| self.loader_chains.get(index))
+  }
+
+  pub fn current_chain(&self) -> Option<&LoaderChain> {
+    let loader_index = usize::try_from(self.loader_index).ok()?;
+    execution_chain_at(self.current_root_chain()?, loader_index)
+  }
+
+  /// Builds the cache key from the final per-run loader options. JavaScript
+  /// loader options are only resolved from their `??ident` references when
+  /// `Module::loaders` is materialized on the JavaScript side.
+  pub fn loader_chain_cache_key(&self, chain: &LoaderChain) -> Option<String> {
+    let mut chain_key = String::new();
+    for index in chain.range() {
+      let index = usize::from(index);
+      let loader = &self.loader_items()[index];
+      let options = self.loader_item_state(index).options_cache_key()?;
+      let name = loader.path().as_str();
+      let version = loader.cache_version();
+      let loader_key = format!(
+        "{}:{name}{}:{options}{}:{version}",
+        name.len(),
+        options.len(),
+        version.len()
+      );
+      chain_key.push_str(&loader_key.len().to_string());
+      chain_key.push(':');
+      chain_key.push_str(&loader_key);
+    }
+    Some(chain_key)
   }
 
   /// Emit a diagnostic, it can be a `warning` or `error`.

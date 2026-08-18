@@ -34,9 +34,9 @@ use crate::{
   CompilationAsset, CompilationId, CompilerId, CompilerOptions, ConcatenationScope,
   ConnectionState, Context, ContextModule, CssExportType, DependenciesBlock, DependencyId,
   ExportProvided, ExportsInfoArtifact, ExternalModule, Filename, GetTargetResult, ImportPhase,
-  ModuleCodeTemplate, ModuleGraph, ModuleGraphCacheArtifact, ModuleLayer, ModuleType, NormalModule,
-  OptimizationBailoutItem, RawModule, Resolve, ResolverFactory, RuntimeSpec, SelfModule,
-  SharedPluginDriver, SideEffectsStateArtifact, SourceType,
+  LoaderCache, ModuleCodeTemplate, ModuleGraph, ModuleGraphCacheArtifact, ModuleLayer, ModuleType,
+  NormalModule, OptimizationBailoutItem, RawModule, Resolve, ResolverFactory, RuntimeSpec,
+  SelfModule, SharedPluginDriver, SideEffectsStateArtifact, SourceType,
   concatenated_module::ConcatenatedModule, dependencies_block::dependencies_block_update_hash,
   get_target, value_cache_versions::ValueCacheVersions,
 };
@@ -49,6 +49,7 @@ pub struct BuildContext {
   pub runtime_template: ModuleCodeTemplate,
   pub plugin_driver: SharedPluginDriver,
   pub fs: Arc<dyn ReadableFileSystem>,
+  pub loader_cache: Arc<LoaderCache>,
 }
 
 #[cacheable]

@@ -15,8 +15,8 @@ use rustc_hash::FxHashSet as HashSet;
 use tracing::{Instrument, info_span};
 
 use crate::{
-  LoaderChain, ParseMeta,
-  chain::plan_loader_chains,
+  LoaderChain, LoaderChainCacheAction, LoaderRunnerOptions, ParseMeta,
+  chain::{CacheChainState, plan_loader_chains},
   content::{AdditionalData, Content, ResourceData},
   context::{LoaderContext, State},
   loader::{Loader, LoaderItem, LoaderItemState},
@@ -28,6 +28,7 @@ use crate::{
 pub struct Loaders<Context: Send> {
   #[debug(skip)]
   loaders: Vec<Arc<dyn Loader<Context>>>,
+  loader_options: Vec<LoaderRunnerOptions>,
   #[cacheable(with=Skip)]
   loader_items: OnceLock<Vec<LoaderItem<Context>>>,
   #[cacheable(with=Skip)]
@@ -38,8 +39,22 @@ pub struct Loaders<Context: Send> {
 
 impl<Context: Send> Loaders<Context> {
   pub fn new(loaders: Vec<Arc<dyn Loader<Context>>>) -> Self {
+    let loader_options = vec![LoaderRunnerOptions::default(); loaders.len()];
+    Self::with_options(loaders, loader_options)
+  }
+
+  pub fn with_options(
+    loaders: Vec<Arc<dyn Loader<Context>>>,
+    loader_options: Vec<LoaderRunnerOptions>,
+  ) -> Self {
+    assert_eq!(
+      loaders.len(),
+      loader_options.len(),
+      "loader options must stay aligned with loaders"
+    );
     Self {
       loaders,
+      loader_options,
       loader_items: OnceLock::new(),
       loader_chains: OnceLock::new(),
       _pin: PhantomPinned,
@@ -51,9 +66,15 @@ impl<Context: Send> Loaders<Context> {
   }
 
   fn loader_items(&self) -> &Vec<LoaderItem<Context>> {
-    self
-      .loader_items
-      .get_or_init(|| self.loaders.iter().cloned().map(Into::into).collect())
+    self.loader_items.get_or_init(|| {
+      self
+        .loaders
+        .iter()
+        .cloned()
+        .zip(self.loader_options.iter().cloned())
+        .map(|(loader, options)| LoaderItem::new(loader, options))
+        .collect()
+    })
   }
 
   fn loader_chains(&self) -> &Vec<LoaderChain> {
@@ -131,7 +152,7 @@ async fn run_pitch_chain<Context: Send>(
         break;
       }
     }
-    Ok(())
+    Ok::<(), Error>(())
   }
   .instrument(span)
   .await
@@ -146,6 +167,13 @@ async fn run_normal_chain<Context: Send>(
     .cloned()
     .expect("normal execution requires a current loader chain");
   let chain_start = chain.start() as i32;
+  let root_index = cx
+    .current_root_chain_index()
+    .expect("normal execution requires a current root chain");
+  let root_chain = cx
+    .current_root_chain()
+    .cloned()
+    .expect("normal execution requires a current root chain");
   let span = info_span!(
     "run_loader_chain:normal",
     resource,
@@ -154,6 +182,39 @@ async fn run_normal_chain<Context: Send>(
     chain_end = chain.end(),
     execution_kind = ?chain.execution_kind(),
   );
+
+  if root_chain.is_cache()
+    && matches!(
+      cx.cache_chain_states[root_index],
+      Some(CacheChainState::Pending)
+    )
+  {
+    let executes_full_chain = cx.loader_index == root_chain.end() as i32 - 1;
+    let action = if executes_full_chain && let Some(plugin) = cx.plugin.clone() {
+      plugin.before_normal_chain(cx, &root_chain).await?
+    } else {
+      LoaderChainCacheAction::Disabled
+    };
+    cx.cache_chain_states[root_index] = Some(match action {
+      LoaderChainCacheAction::Disabled => CacheChainState::Bypassed,
+      LoaderChainCacheAction::Hit => CacheChainState::Hit,
+      LoaderChainCacheAction::Miss(state) => CacheChainState::Miss(state),
+    });
+  }
+
+  if matches!(
+    cx.cache_chain_states[root_index],
+    Some(CacheChainState::Hit)
+  ) {
+    for loader_index in root_chain.range() {
+      let state = cx.loader_item_state_mut(usize::from(loader_index));
+      state.set_normal_executed();
+      state.set_finish_called();
+    }
+    cx.cache_chain_states[root_index] = Some(CacheChainState::Completed);
+    cx.loader_index = root_chain.start() as i32 - 1;
+    return Ok(());
+  }
 
   async {
     while cx.loader_index >= chain_start {
@@ -177,10 +238,26 @@ async fn run_normal_chain<Context: Send>(
         cx.finish_with_empty();
       }
     }
-    Ok(())
+    Ok::<(), Error>(())
   }
   .instrument(span)
-  .await
+  .await?;
+
+  if root_chain.is_cache() && cx.loader_index < root_chain.start() as i32 {
+    match cx.cache_chain_states[root_index].take() {
+      Some(CacheChainState::Miss(state)) => {
+        if let Some(plugin) = cx.plugin.clone() {
+          plugin.after_normal_chain(cx, &root_chain, state).await?;
+        }
+        cx.cache_chain_states[root_index] = Some(CacheChainState::Completed);
+      }
+      Some(CacheChainState::Bypassed) => {
+        cx.cache_chain_states[root_index] = Some(CacheChainState::Completed);
+      }
+      state => cx.cache_chain_states[root_index] = state,
+    }
+  }
+  Ok(())
 }
 
 #[tracing::instrument("LoaderRunner:process_resource",
@@ -231,8 +308,19 @@ fn create_loader_context<Context: Send>(
     file_dependencies.insert(resource_path.to_owned().into_std_path_buf());
   }
 
-  let loader_item_states = (0..loader_items.len())
-    .map(|_| LoaderItemState::default())
+  let loader_item_states = loader_items
+    .iter()
+    .map(|loader| {
+      let mut state = LoaderItemState::default();
+      if let Some(cache_key) = loader.initial_options_cache_key() {
+        state.set_options_cache_key(cache_key.to_owned());
+      }
+      state
+    })
+    .collect();
+  let cache_chain_states = loader_chains
+    .iter()
+    .map(|chain| chain.is_cache().then_some(CacheChainState::Pending))
     .collect();
   LoaderContext {
     hot: false,
@@ -251,6 +339,7 @@ fn create_loader_context<Context: Send>(
     loader_items,
     loader_chains,
     loader_item_states,
+    cache_chain_states,
     plugin,
     resource_data,
     diagnostics: vec![],

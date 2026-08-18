@@ -77,6 +77,7 @@ pub fn basic_compiler_builder(options: BuilderOptions) -> CompilerBuilder {
               })
               .to_string(),
             ),
+            ..Default::default()
           }]),
           ..Default::default()
         },

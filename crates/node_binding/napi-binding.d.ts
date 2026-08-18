@@ -987,6 +987,10 @@ export interface JsLoaderItem {
   normalExecuted: boolean
   pitchExecuted: boolean
   noPitch: boolean
+  /** Whether this loader participates in a loader cache chain. */
+  cache: boolean
+  /** Stable serialization of the effective options for this run. */
+  optionsCacheKey?: string
 }
 
 export declare enum JsLoaderState {
@@ -2750,6 +2754,7 @@ export interface RawModuleRule {
 export interface RawModuleRuleUse {
   loader: string
   options?: string
+  cache?: boolean
 }
 
 export interface RawNodeOption {

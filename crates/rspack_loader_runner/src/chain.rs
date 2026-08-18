@@ -1,6 +1,19 @@
-use std::ops::Range;
+use std::{any::Any, ops::Range};
+
+use rspack_cacheable::cacheable;
 
 use crate::LoaderItem;
+
+#[cacheable]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct LoaderRunnerOptions {
+  pub cache: bool,
+  /// Loader version or resolved entry file hash.
+  pub cache_version: String,
+  /// Stable serialization of the final loader options when it is already
+  /// available on the Rust side (for example, for native loaders).
+  pub options_cache_key: Option<String>,
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LoaderExecutionKind {
@@ -10,12 +23,57 @@ pub enum LoaderExecutionKind {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum LoaderChain {
-  JsExecutionChain { range: Range<u8> },
-  NativeExecutionChain { range: Range<u8> },
+  CacheChain {
+    range: Range<u8>,
+    children: Vec<LoaderChain>,
+  },
+  JsExecutionChain {
+    range: Range<u8>,
+  },
+  NativeExecutionChain {
+    range: Range<u8>,
+  },
+}
+
+pub struct LoaderChainCacheState(Box<dyn Any + Send + Sync>);
+
+impl std::fmt::Debug for LoaderChainCacheState {
+  fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    formatter.write_str("LoaderChainCacheState(..)")
+  }
+}
+
+impl LoaderChainCacheState {
+  pub fn new(value: impl Any + Send + Sync) -> Self {
+    Self(Box::new(value))
+  }
+
+  pub fn downcast<T: Any + Send + Sync>(self) -> std::result::Result<Box<T>, Self> {
+    match self.0.downcast::<T>() {
+      Ok(value) => Ok(value),
+      Err(value) => Err(Self(value)),
+    }
+  }
+}
+
+#[derive(Debug)]
+pub enum LoaderChainCacheAction {
+  Disabled,
+  Hit,
+  Miss(LoaderChainCacheState),
+}
+
+#[derive(Debug)]
+pub(crate) enum CacheChainState {
+  Pending,
+  Bypassed,
+  Hit,
+  Miss(LoaderChainCacheState),
+  Completed,
 }
 
 impl LoaderChain {
-  pub(crate) fn new(range: Range<u8>, kind: LoaderExecutionKind) -> Self {
+  fn new(range: Range<u8>, kind: LoaderExecutionKind) -> Self {
     match kind {
       LoaderExecutionKind::Native => Self::NativeExecutionChain { range },
       LoaderExecutionKind::JavaScript => Self::JsExecutionChain { range },
@@ -24,7 +82,9 @@ impl LoaderChain {
 
   pub fn range(&self) -> Range<u8> {
     match self {
-      Self::JsExecutionChain { range } | Self::NativeExecutionChain { range } => range.clone(),
+      Self::CacheChain { range, .. }
+      | Self::JsExecutionChain { range }
+      | Self::NativeExecutionChain { range } => range.clone(),
     }
   }
 
@@ -40,12 +100,46 @@ impl LoaderChain {
     self.range().len()
   }
 
-  pub fn execution_kind(&self) -> LoaderExecutionKind {
+  pub fn is_cache(&self) -> bool {
+    matches!(self, Self::CacheChain { .. })
+  }
+
+  pub fn execution_kind(&self) -> Option<LoaderExecutionKind> {
     match self {
-      Self::JsExecutionChain { .. } => LoaderExecutionKind::JavaScript,
-      Self::NativeExecutionChain { .. } => LoaderExecutionKind::Native,
+      Self::CacheChain { .. } => None,
+      Self::JsExecutionChain { .. } => Some(LoaderExecutionKind::JavaScript),
+      Self::NativeExecutionChain { .. } => Some(LoaderExecutionKind::Native),
     }
   }
+
+  fn execution_chain(&self, loader_index: usize) -> Option<&LoaderChain> {
+    match self {
+      Self::CacheChain { children, .. } => children
+        .iter()
+        .find(|chain| chain.range().contains(&(loader_index as u8))),
+      Self::JsExecutionChain { .. } | Self::NativeExecutionChain { .. } => Some(self),
+    }
+  }
+}
+
+fn plan_execution_chains<Context: Send>(
+  loaders: &[LoaderItem<Context>],
+  range: Range<usize>,
+) -> Vec<LoaderChain> {
+  let mut chains = Vec::new();
+  let mut index = range.start;
+  while index < range.end {
+    let kind = loaders[index].execution_kind();
+    let mut end = index + 1;
+    if kind == LoaderExecutionKind::JavaScript {
+      while end < range.end && loaders[end].execution_kind() == LoaderExecutionKind::JavaScript {
+        end += 1;
+      }
+    }
+    chains.push(LoaderChain::new(index as u8..end as u8, kind));
+    index = end;
+  }
+  chains
 }
 
 pub(crate) fn plan_loader_chains<Context: Send>(
@@ -61,10 +155,26 @@ pub(crate) fn plan_loader_chains<Context: Send>(
   let mut index = 0;
 
   while index < loaders.len() {
+    if loaders[index].cache() {
+      let mut end = index + 1;
+      while end < loaders.len() && loaders[end].cache() {
+        end += 1;
+      }
+      let range = index..end;
+      chains.push(LoaderChain::CacheChain {
+        range: index as u8..end as u8,
+        children: plan_execution_chains(loaders, range),
+      });
+      index = end;
+      continue;
+    }
+
     let kind = loaders[index].execution_kind();
     let mut end = index + 1;
     if kind == LoaderExecutionKind::JavaScript {
-      while end < loaders.len() && loaders[end].execution_kind() == LoaderExecutionKind::JavaScript
+      while end < loaders.len()
+        && !loaders[end].cache()
+        && loaders[end].execution_kind() == LoaderExecutionKind::JavaScript
       {
         end += 1;
       }
@@ -93,16 +203,48 @@ fn validate_loader_chain_plan<Context: Send>(
     assert!(range.end <= loaders.len());
     next_start = range.end;
 
-    let kind = chain.execution_kind();
-    assert!(
-      loaders[range.clone()]
-        .iter()
-        .all(|loader| loader.execution_kind() == kind)
-    );
-    if kind == LoaderExecutionKind::Native {
-      assert_eq!(range.len(), 1);
+    match chain {
+      LoaderChain::CacheChain { children, .. } => {
+        assert!(loaders[range.clone()].iter().all(LoaderItem::cache));
+        assert!(!children.is_empty());
+        let mut next_child_start = range.start;
+        for child in children {
+          let child_range = child.range();
+          let child_range = usize::from(child_range.start)..usize::from(child_range.end);
+          assert_eq!(child_range.start, next_child_start);
+          assert!(child_range.end <= range.end);
+          next_child_start = child_range.end;
+          let kind = child
+            .execution_kind()
+            .expect("cache children must be execution chains");
+          assert!(
+            loaders[child_range]
+              .iter()
+              .all(|loader| loader.execution_kind() == kind)
+          );
+        }
+        assert_eq!(next_child_start, range.end);
+      }
+      LoaderChain::JsExecutionChain { .. } | LoaderChain::NativeExecutionChain { .. } => {
+        assert!(loaders[range.clone()].iter().all(|loader| !loader.cache()));
+        let kind = chain
+          .execution_kind()
+          .expect("execution chains must have an execution kind");
+        assert!(
+          loaders[range.clone()]
+            .iter()
+            .all(|loader| loader.execution_kind() == kind)
+        );
+        if kind == LoaderExecutionKind::Native {
+          assert_eq!(range.len(), 1);
+        }
+      }
     }
   }
 
   assert_eq!(next_start, loaders.len());
+}
+
+pub(crate) fn execution_chain_at(root: &LoaderChain, loader_index: usize) -> Option<&LoaderChain> {
+  root.execution_chain(loader_index)
 }

@@ -7,9 +7,9 @@ use rustc_hash::FxHashMap as HashMap;
 use super::BuildModuleGraphArtifact;
 use crate::{
   Compilation, CompilationId, CompilerId, CompilerOptions, CompilerPlatform, DependencyTemplate,
-  DependencyTemplateType, DependencyType, ExportsInfoArtifact, ModuleFactory, ResolverFactory,
-  RuntimeTemplate, SharedPluginDriver, incremental::Incremental, module_graph::ModuleGraph,
-  new_cache::Cache,
+  DependencyTemplateType, DependencyType, ExportsInfoArtifact, LoaderCache, ModuleFactory,
+  ResolverFactory, RuntimeTemplate, SharedPluginDriver, get_loader_cache, incremental::Incremental,
+  module_graph::ModuleGraph, new_cache::Cache,
 };
 
 #[derive(Debug)]
@@ -29,6 +29,7 @@ pub struct TaskContext {
   pub dependency_factories: HashMap<DependencyType, Arc<dyn ModuleFactory>>,
   pub dependency_templates: HashMap<DependencyTemplateType, Arc<dyn DependencyTemplate>>,
   pub runtime_template: RuntimeTemplate,
+  pub(crate) loader_cache: Arc<LoaderCache>,
   cache: Cache,
 
   pub artifact: BuildModuleGraphArtifact,
@@ -56,6 +57,7 @@ impl TaskContext {
       intermediate_fs: compilation.intermediate_filesystem.clone(),
       output_fs: compilation.output_filesystem.clone(),
       runtime_template: RuntimeTemplate::new(compilation.options.clone()),
+      loader_cache: get_loader_cache(compilation),
       cache: compilation.cache.clone(),
       artifact,
       exports_info_artifact,
