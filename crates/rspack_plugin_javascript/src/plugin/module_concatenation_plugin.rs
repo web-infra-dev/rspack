@@ -1788,7 +1788,7 @@ async fn create_concatenated_module(
         plugin_driver: compilation.plugin_driver.clone(),
         compiler_options: compilation.options.clone(),
         fs: compilation.input_filesystem.clone(),
-        loader_cache: compilation.get_memory_cache("LoaderChain"),
+        loader_cache: rspack_core::get_loader_cache(&compilation.options.context),
         runtime_template: compilation.runtime_template.create_module_code_template(),
       },
       Some(compilation),

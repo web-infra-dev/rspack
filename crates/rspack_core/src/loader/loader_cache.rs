@@ -1,4 +1,8 @@
-use std::path::PathBuf;
+use std::{
+  any::Any,
+  path::PathBuf,
+  sync::{Arc, LazyLock},
+};
 
 use rspack_collections::Identifiable;
 use rspack_hash::{HashFunction, RspackHasher};
@@ -6,13 +10,85 @@ use rspack_loader_runner::{
   AdditionalData, Content, LoaderChain, LoaderChainCacheAction, LoaderChainCacheState,
   LoaderContext, ParseMeta,
 };
+use rspack_paths::Utf8PathBuf;
 use rspack_sources::SourceMap;
+use rspack_util::fx_hash::FxDashMap;
 use rustc_hash::FxHashSet;
 
 use crate::{
-  Module, RunnerContext,
-  new_cache::{CacheValue, Etag, MemoryItemCacheFacade},
+  Context, Module, RunnerContext,
+  new_cache::{CacheKey, CacheValue, Etag, MemoryCache, MemoryCacheGetResult},
 };
+
+const LOADER_CACHE_DIRECTORY: &str = "node_modules/.cache/lodaer-cache";
+
+// Keep a strong process-wide owner so compilers using the same cache directory
+// always share exactly one LoaderCache instance.
+static LOADER_CACHES: LazyLock<FxDashMap<Utf8PathBuf, Arc<LoaderCache>>> =
+  LazyLock::new(FxDashMap::default);
+
+#[derive(Debug)]
+pub struct LoaderCache {
+  // V1 uses this directory as the cache instance identity only. The storage is
+  // still memory-only; a later persistent version can remain behind this type.
+  cache_directory: Utf8PathBuf,
+  storage: MemoryCache,
+}
+
+impl LoaderCache {
+  fn new(cache_directory: Utf8PathBuf) -> Self {
+    Self {
+      cache_directory,
+      storage: MemoryCache::default(),
+    }
+  }
+
+  fn cache_key(&self, chain_key: &str, module_identifier: &str) -> CacheKey {
+    fn push_segment(key: &mut String, segment: &str) {
+      key.push('|');
+      key.push_str(&segment.len().to_string());
+      key.push(':');
+      key.push_str(segment);
+    }
+
+    let mut key = self.cache_directory.as_str().to_owned();
+    push_segment(&mut key, chain_key);
+    push_segment(&mut key, module_identifier);
+    CacheKey::from(key)
+  }
+
+  fn get<T: Any + Send + Sync>(
+    &self,
+    chain_key: &str,
+    module_identifier: &str,
+    etag: &Etag,
+  ) -> Option<CacheValue<T>> {
+    let key = self.cache_key(chain_key, module_identifier);
+    match self.storage.get(&key, Some(etag)) {
+      MemoryCacheGetResult::Hit(value) => Some(value),
+      MemoryCacheGetResult::Miss | MemoryCacheGetResult::NotCached => None,
+    }
+  }
+
+  fn store<T: Any + Send + Sync>(
+    &self,
+    chain_key: &str,
+    module_identifier: &str,
+    etag: Etag,
+    value: CacheValue<T>,
+  ) {
+    let key = self.cache_key(chain_key, module_identifier);
+    self.storage.store(key, Some(etag), value);
+  }
+}
+
+pub fn get_loader_cache(context: &Context) -> Arc<LoaderCache> {
+  let cache_directory = context.as_path().join(LOADER_CACHE_DIRECTORY);
+  LOADER_CACHES
+    .entry(cache_directory.clone())
+    .or_insert_with(|| Arc::new(LoaderCache::new(cache_directory)))
+    .clone()
+}
 
 #[derive(Clone, Default)]
 struct DependencyDelta {
@@ -40,7 +116,10 @@ struct LoaderCacheEntry {
 }
 
 pub(crate) struct LoaderCacheMissState {
-  cache: MemoryItemCacheFacade,
+  cache: Arc<LoaderCache>,
+  cache_key: String,
+  module_identifier: String,
+  etag: Etag,
   diagnostics_len: usize,
   file_dependencies: FxHashSet<PathBuf>,
   context_dependencies: FxHashSet<PathBuf>,
@@ -128,13 +207,9 @@ pub(crate) fn before_normal_chain(
     .cache_key()
     .expect("loader cache only accepts CacheChain");
   let module_identifier = context.context.module.identifier();
-  let cache = context
-    .context
-    .loader_cache
-    .get_child_cache(cache_key)
-    .get_item_cache(module_identifier.as_str(), Some(etag));
+  let cache = Arc::clone(&context.context.loader_cache);
 
-  if let Some(entry) = cache.get::<LoaderCacheEntry>() {
+  if let Some(entry) = cache.get::<LoaderCacheEntry>(cache_key, module_identifier.as_str(), &etag) {
     replay_dependency_delta(&mut context.file_dependencies, &entry.file_dependencies);
     replay_dependency_delta(
       &mut context.context_dependencies,
@@ -164,6 +239,9 @@ pub(crate) fn before_normal_chain(
 
   LoaderChainCacheAction::Miss(LoaderChainCacheState::new(LoaderCacheMissState {
     cache,
+    cache_key: cache_key.to_owned(),
+    module_identifier: module_identifier.as_str().to_owned(),
+    etag,
     diagnostics_len: context.diagnostics.len(),
     file_dependencies: context.file_dependencies.clone(),
     context_dependencies: context.context_dependencies.clone(),
@@ -208,5 +286,10 @@ pub(crate) fn after_normal_chain(
       &context.context.module.build_info().extras,
     ),
   };
-  state.cache.store(CacheValue::new(entry));
+  state.cache.store(
+    &state.cache_key,
+    &state.module_identifier,
+    state.etag,
+    CacheValue::new(entry),
+  );
 }
