@@ -188,6 +188,23 @@ const instance = await WebAssembly.instantiate(wasmModule);
 普通 WebAssembly 导入会由 Rspack 实例化模块并暴露其导出；source phase 导入会返回编译后的 `WebAssembly.Module`，需要你的代码自行调用 `WebAssembly.instantiate`。
 :::
 
+## experiments.fasterModuleConcatenation
+
+<ApiMeta addedVersion="2.2.0" />
+
+- **类型：** `boolean`
+- **默认值：** `false`
+
+开启后可提升[模块拼接优化](/config/optimization#optimizationconcatenatemodules)的速度。
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    fasterModuleConcatenation: true,
+  },
+};
+```
+
 ## experiments.futureDefaults
 
 - **类型：** `boolean`

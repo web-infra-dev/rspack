@@ -15,6 +15,10 @@ import { createRunner } from './runner';
 
 const NORMAL_CASES_ROOT = path.resolve(__TEST_PATH__, 'normalCases');
 
+type TNormalCaseOptions = Partial<IBasicCaseCreatorOptions> & {
+  rspackOptions?: RspackOptions;
+};
+
 const createCaseOptions = (
   hot: boolean,
   mode?: 'development' | 'production',
@@ -22,7 +26,7 @@ const createCaseOptions = (
   return {
     clean: true,
     describe: false,
-    steps: ({ name }) => [
+    steps: ({ name, rspackOptions }) => [
       {
         config: async (context: ITestContext) => {
           const compiler = context.getCompiler();
@@ -38,6 +42,10 @@ const createCaseOptions = (
             name,
             ['rspack.config.js', 'webpack.config.js'],
             options,
+          );
+          mergeRspackOptions(
+            options,
+            rspackOptions as RspackOptions | undefined,
           );
           overrideOptions(context, options);
           compiler.setOptions(options);
@@ -68,8 +76,15 @@ const createCaseOptions = (
 };
 
 const creator = new BasicCaseCreator(createCaseOptions(false));
-export function createNormalCase(name: string, src: string, dist: string) {
-  creator.create(name, src, dist);
+export function createNormalCase(
+  name: string,
+  src: string,
+  dist: string,
+  rspackOptions?: RspackOptions,
+) {
+  creator.create(name, src, dist, undefined, {
+    rspackOptions,
+  } satisfies TNormalCaseOptions);
 }
 
 const hotCreator = new BasicCaseCreator(createCaseOptions(true));
@@ -241,6 +256,19 @@ function overrideOptions(context: ITestContext, options: RspackOptions) {
   if (!global.printLogger) {
     options.infrastructureLogging = {
       level: 'error',
+    };
+  }
+}
+
+function mergeRspackOptions(options: RspackOptions, override?: RspackOptions) {
+  if (!override) return;
+
+  const { experiments, ...rest } = override;
+  Object.assign(options, rest);
+  if (experiments) {
+    options.experiments = {
+      ...options.experiments,
+      ...experiments,
     };
   }
 }

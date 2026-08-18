@@ -11,9 +11,10 @@ use regex::Regex;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, Compilation,
-  CssAutoOrModuleParserOptions, CssBuildInfo, CssExportType, DependencyType, ExportsInfoArtifact,
-  GenerateContext, Module, ModuleGraph, ModuleIdentifier, NormalModule, ParseContext, ParseResult,
-  ParserAndGenerator, ParserOptions, ResolvedModuleOptions, RuntimeSpec, SourceType, UsageState,
+  ConcatenationScopeInfoMode, CssAutoOrModuleParserOptions, CssBuildInfo, CssExportType,
+  DependencyType, ExportsInfoArtifact, GenerateContext, GeneratedSource, Module, ModuleGraph,
+  ModuleIdentifier, NormalModule, ParseContext, ParseResult, ParserAndGenerator, ParserOptions,
+  ResolvedModuleOptions, RuntimeSpec, SourceType, UsageState,
   rspack_sources::{BoxSource, Source},
 };
 pub use rspack_core::{CssExport, CssExports};
@@ -188,6 +189,10 @@ pub fn get_unused_local_ident(
 #[cacheable_dyn]
 #[async_trait::async_trait]
 impl ParserAndGenerator for CssParserAndGenerator {
+  fn concatenation_scope_info_mode(&self) -> ConcatenationScopeInfoMode {
+    ConcatenationScopeInfoMode::GenerateAtCodegen
+  }
+
   fn source_types(&self, module: &dyn Module, module_graph: &ModuleGraph) -> &[SourceType] {
     let export_type = self.effective_export_type(module);
     if matches!(
@@ -277,7 +282,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
     source: &BoxSource,
     module: &dyn rspack_core::Module,
     generate_context: &mut GenerateContext,
-  ) -> Result<BoxSource> {
+  ) -> Result<GeneratedSource> {
     match generate_context.requested_source_type {
       SourceType::Css => Ok(
         CssModuleGenerator::new(
@@ -287,7 +292,8 @@ impl ParserAndGenerator for CssParserAndGenerator {
           self.hot,
           self.es_module,
         )
-        .generate_css_source(),
+        .generate_css_source()
+        .into(),
       ),
       SourceType::JavaScript => CssModuleGenerator::new(
         source.clone(),
