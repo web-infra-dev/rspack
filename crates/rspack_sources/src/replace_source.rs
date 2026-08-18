@@ -129,6 +129,14 @@ impl ReplaceSource {
     &self.replacements
   }
 
+  /// Rewrite replacement contents without changing their ranges or ordering.
+  /// The callback may update owned content in place or replace borrowed content.
+  pub fn rewrite_replacement_contents(&mut self, mut rewrite: impl FnMut(&mut Cow<'static, str>)) {
+    for replacement in &mut self.replacements {
+      rewrite(&mut replacement.content);
+    }
+  }
+
   /// Insert a content at start.
   pub fn insert(&mut self, start: u32, content: String, name: Option<String>) {
     self.replace(start, start, content, name)

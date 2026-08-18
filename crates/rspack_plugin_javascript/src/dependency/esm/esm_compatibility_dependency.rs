@@ -33,7 +33,7 @@ impl DependencyTemplate for ESMCompatibilityDependencyTemplate {
   fn render(
     &self,
     _dep: &dyn DependencyCodeGeneration,
-    _source: &mut TemplateReplaceSource,
+    source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {
     let TemplateContext {
@@ -41,11 +41,10 @@ impl DependencyTemplate for ESMCompatibilityDependencyTemplate {
       compilation,
       module,
       runtime,
-      concatenation_scope,
       runtime_template,
       ..
     } = code_generatable_context;
-    if concatenation_scope.is_some() {
+    if source.concatenation_scope().is_some() {
       return;
     }
     let module_graph = compilation.get_module_graph();

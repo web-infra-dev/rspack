@@ -23,6 +23,7 @@ module.exports = {
 			    asyncWebAssembly: true,
 			    buildHttp: undefined,
 			    deferImport: false,
+			    fasterModuleConcatenation: false,
 			    futureDefaults: false,
 			    newCache: false,
 			    pureFunctions: false,

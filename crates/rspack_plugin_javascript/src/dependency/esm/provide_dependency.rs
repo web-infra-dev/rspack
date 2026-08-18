@@ -159,6 +159,7 @@ impl DependencyTemplate for ProvideDependencyTemplate {
       .as_any()
       .downcast_ref::<ProvideDependency>()
       .expect("ProvideDependencyTemplate should only be used for ProvideDependency");
+    let rendered_identifier = source.ensure_generated_top_level_symbol(dep.identifier.clone());
 
     let TemplateContext {
       compilation,
@@ -192,19 +193,20 @@ impl DependencyTemplate for ProvideDependencyTemplate {
       None => module_raw,
     };
 
-    init_fragments.push(Box::new(
-      NormalInitFragment::new(
-        format!(
-          "/* provided dependency */ var {} = {};\n",
-          dep.identifier, provided_expr
-        ),
-        InitFragmentStage::StageProvides,
-        1,
-        InitFragmentKey::ModuleExternal(format!("provided {}", dep.identifier)),
-        None,
-      )
-      .with_top_level_decl_symbols(vec![dep.identifier.clone().into()]),
-    ));
-    source.replace(dep.range.start, dep.range.end, dep.identifier.clone(), None);
+    let mut fragment = NormalInitFragment::new(
+      format!("/* provided dependency */ var {rendered_identifier} = {provided_expr};\n"),
+      InitFragmentStage::StageProvides,
+      1,
+      InitFragmentKey::ModuleExternal(format!("provided {}", dep.identifier)),
+      None,
+    );
+    fragment.set_top_level_decl_symbols(vec![dep.identifier.clone().into()]);
+    init_fragments.push(Box::new(fragment));
+    source.replace_with_tracked_used_names(
+      dep.range.start,
+      dep.range.end,
+      rendered_identifier,
+      None,
+    );
   }
 }
