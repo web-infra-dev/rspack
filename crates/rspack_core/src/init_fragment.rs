@@ -867,6 +867,7 @@ pub struct ExternalModuleInitFragment {
   // webpack also supports `ImportSpecifiers` but not ever used.
   import_specifiers: BTreeMap<String, BTreeSet<String>>,
   default_import: Option<String>,
+  top_level_decl_symbols: Vec<Atom>,
   stage: InitFragmentStage,
   position: i32,
   key: InitFragmentKey,
@@ -897,22 +898,48 @@ impl ExternalModuleInitFragment {
       imported_module,
       default_import.clone().unwrap_or_else(|| "null".to_string()),
     ));
+    let top_level_decl_symbols =
+      Self::collect_top_level_decl_symbols(&self_import_specifiers, default_import.as_deref());
 
     Self {
       imported_module,
       import_specifiers: self_import_specifiers,
       default_import,
+      top_level_decl_symbols,
       stage,
       position,
       key,
     }
   }
 
+  fn collect_top_level_decl_symbols(
+    import_specifiers: &BTreeMap<String, BTreeSet<String>>,
+    default_import: Option<&str>,
+  ) -> Vec<Atom> {
+    let mut symbols = import_specifiers
+      .values()
+      .flatten()
+      .cloned()
+      .collect::<BTreeSet<_>>();
+    if let Some(default_import) = default_import {
+      symbols.insert(default_import.to_string());
+    }
+    symbols.into_iter().map(Atom::from).collect()
+  }
+
   pub fn merge(
     one: ExternalModuleInitFragment,
     other: ExternalModuleInitFragment,
   ) -> Box<ExternalModuleInitFragment> {
-    let mut import_specifiers = one.import_specifiers.clone();
+    let Self {
+      imported_module,
+      mut import_specifiers,
+      default_import,
+      stage,
+      position,
+      key,
+      ..
+    } = one;
     for (name, value) in other.import_specifiers {
       if let Some(set) = import_specifiers.get_mut(&name) {
         set.extend(value);
@@ -920,14 +947,17 @@ impl ExternalModuleInitFragment {
         import_specifiers.insert(name, value);
       }
     }
+    let top_level_decl_symbols =
+      Self::collect_top_level_decl_symbols(&import_specifiers, default_import.as_deref());
 
     Box::new(Self {
-      imported_module: one.imported_module,
+      imported_module,
       import_specifiers,
-      default_import: one.default_import,
-      stage: one.stage,
-      position: one.position,
-      key: one.key,
+      default_import,
+      top_level_decl_symbols,
+      stage,
+      position,
+      key,
     })
   }
 }
@@ -984,5 +1014,9 @@ impl<C: InitFragmentRenderContext> InitFragment<C> for ExternalModuleInitFragmen
 
   fn key(&self) -> &InitFragmentKey {
     &self.key
+  }
+
+  fn top_level_decl_symbols(&self) -> &[Atom] {
+    &self.top_level_decl_symbols
   }
 }

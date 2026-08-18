@@ -78,6 +78,32 @@ impl CodeGenerationDataAssetInfo {
   }
 }
 
+/// Describes a chunk-level default import referenced by a non-concatenated asset module.
+#[derive(Clone, Debug)]
+pub struct CodeGenerationDataPreservedAssetImport {
+  request: String,
+  binding: Atom,
+}
+
+impl CodeGenerationDataPreservedAssetImport {
+  pub fn new(request: String, binding: Atom) -> Self {
+    Self { request, binding }
+  }
+
+  pub fn request(&self) -> &str {
+    &self.request
+  }
+
+  pub fn binding(&self) -> &Atom {
+    &self.binding
+  }
+
+  fn update_hash(&self, hasher: &mut RspackHasher) {
+    "preserved asset import".hash(hasher);
+    self.request.hash(hasher);
+  }
+}
+
 #[derive(Clone, Debug)]
 pub struct CodeGenerationDataTopLevelDeclarations {
   inner: FxHashSet<Atom>,
@@ -200,6 +226,9 @@ impl CodeGenerationResult {
     }
     self.chunk_init_fragments.hash(&mut hasher);
     self.runtime_requirements.hash(&mut hasher);
+    if let Some(asset_import) = self.data.get::<CodeGenerationDataPreservedAssetImport>() {
+      asset_import.update_hash(&mut hasher);
+    }
     self.hash = Some(hasher.digest(hash_digest));
   }
 }
