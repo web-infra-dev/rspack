@@ -11,7 +11,9 @@ impl ValueCacheVersions {
   }
 
   pub fn insert(&mut self, key: String, value: String) {
-    Arc::make_mut(&mut self.0).insert(key, value);
+    Arc::get_mut(&mut self.0)
+      .expect("value cache versions must be mutated before being shared")
+      .insert(key, value);
   }
 
   pub fn has_diff(&self, value_dependencies: &HashMap<String, String>) -> bool {
