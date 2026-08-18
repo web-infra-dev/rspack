@@ -1608,6 +1608,7 @@ var {} = {{}};
                     compilation,
                     runtime: Some(runtime),
                     concatenation_scope: Some(&mut concatenation_scope),
+                    concatenation_source: None,
                     runtime_template: &mut module_runtime_template,
                   };
                   module.code_generation(&mut code_generation_context).await?

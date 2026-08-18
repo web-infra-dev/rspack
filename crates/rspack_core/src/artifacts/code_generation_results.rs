@@ -16,8 +16,8 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet};
 
 use crate::{
   ArchivedRenderedInitFragments, ArtifactExt, AssetInfo, BindingCell, ChunkInitFragments,
-  ConcatenationCodeGenerationSource, ConcatenationScope, ModuleIdentifier, RenderedInitFragments,
-  RuntimeGlobals, RuntimeSpec, RuntimeSpecMap, SourceType, incremental::IncrementalPasses,
+  ConcatenationScope, ModuleIdentifier, RenderedInitFragments, RuntimeGlobals, RuntimeSpec,
+  RuntimeSpecMap, SourceType, incremental::IncrementalPasses,
 };
 
 #[cacheable]
@@ -271,7 +271,6 @@ struct CodeGenerationResultInner {
   data: CodeGenerationData,
   runtime_requirements: RuntimeGlobals,
   hash: Option<RspackHashDigest>,
-  faster_module_concatenation: bool,
 }
 
 /// Immutable code generation output constructed by [`CodeGenerationResultBuilder`].
@@ -302,10 +301,6 @@ impl CodeGenerationResult {
     self.value.hash.as_ref()
   }
 
-  pub fn is_faster_module_concatenation(&self) -> bool {
-    self.value.faster_module_concatenation
-  }
-
   pub fn get(&self, source_type: &SourceType) -> Option<&BoxSource> {
     self.value.sources.get(source_type)
   }
@@ -319,9 +314,6 @@ impl CodeGenerationResult {
 #[derive(Debug, Default)]
 pub struct CodeGenerationResultBuilder {
   value: CodeGenerationResultInner,
-  /// Editable JavaScript output consumed while generating a concatenated module.
-  /// This is transient builder state and is never written to the code generation cache.
-  concatenation_source: Option<Box<ConcatenationCodeGenerationSource>>,
 }
 
 impl CodeGenerationResultBuilder {
@@ -354,71 +346,32 @@ impl CodeGenerationResultBuilder {
     debug_assert!(result.is_none());
   }
 
-  pub fn set_concatenation_source(&mut self, source: Box<ConcatenationCodeGenerationSource>) {
-    let previous = self.concatenation_source.replace(source);
-    debug_assert!(previous.is_none());
-  }
-
-  pub fn take_concatenation_source(&mut self) -> Option<Box<ConcatenationCodeGenerationSource>> {
-    self.concatenation_source.take()
-  }
-
-  pub fn set_faster_module_concatenation(&mut self, value: bool) {
-    self.value.faster_module_concatenation = value;
-  }
-
   pub fn set_hash(
     &mut self,
     hash_function: &HashFunction,
     hash_digest: &HashDigest,
     hash_salt: &HashSalt,
+    concatenated_module_hash: Option<&RspackHashDigest>,
   ) {
     let mut hasher = RspackHasher::with_salt(hash_function, hash_salt);
-    for (source_type, source) in self.value.sources.as_ref() {
-      source_type.hash(&mut hasher);
-      std::hash::Hash::hash(source, &mut hasher);
-    }
-    if let Some(fragments) = self.value.data.get::<RenderedInitFragments>()
-      && !fragments.is_empty()
-    {
-      fragments.hash(&mut hasher);
-    }
-    if let Some(fragments) = self
-      .value
-      .data
-      .get::<CodeGenerationDataChunkInitFragments>()
-    {
-      fragments.hash(&mut hasher);
-    }
-    self.value.runtime_requirements.hash(&mut hasher);
-    if let Some(asset_import) = self
-      .value
-      .data
-      .get::<CodeGenerationDataPreservedAssetImport>()
-    {
-      asset_import.update_hash(&mut hasher);
-    }
-    self.value.hash = Some(hasher.digest(hash_digest));
-  }
-
-  /// Concatenated modules already encode the generated module bodies into
-  /// `ConcatenatedModule::get_runtime_hash`, so we can reuse that digest here
-  /// and only mix in codegen-specific metadata instead of hashing the large
-  /// concatenated source again.
-  pub fn set_hash_for_concatenated_module(
-    &mut self,
-    runtime_hash: &RspackHashDigest,
-    hash_function: &HashFunction,
-    hash_digest: &HashDigest,
-    hash_salt: &HashSalt,
-  ) {
-    let mut hasher = RspackHasher::with_salt(hash_function, hash_salt);
-    runtime_hash.hash(&mut hasher);
-    for source_type in self.value.sources.as_ref().keys() {
-      source_type.hash(&mut hasher);
-    }
-    if let Some(digest) = self.value.data.get::<RenderedInitFragmentsDigest>() {
-      digest.hash(&mut hasher);
+    if let Some(concatenated_module_hash) = concatenated_module_hash {
+      concatenated_module_hash.hash(&mut hasher);
+      for source_type in self.value.sources.as_ref().keys() {
+        source_type.hash(&mut hasher);
+      }
+      if let Some(digest) = self.value.data.get::<RenderedInitFragmentsDigest>() {
+        digest.hash(&mut hasher);
+      }
+    } else {
+      for (source_type, source) in self.value.sources.as_ref() {
+        source_type.hash(&mut hasher);
+        std::hash::Hash::hash(source, &mut hasher);
+      }
+      if let Some(fragments) = self.value.data.get::<RenderedInitFragments>()
+        && !fragments.is_empty()
+      {
+        fragments.hash(&mut hasher);
+      }
     }
     if let Some(fragments) = self
       .value
@@ -439,10 +392,6 @@ impl CodeGenerationResultBuilder {
   }
 
   pub fn build(self) -> CodeGenerationResult {
-    assert!(
-      self.concatenation_source.is_none(),
-      "concatenation source must be consumed before building a cacheable code generation result"
-    );
     CodeGenerationResult {
       value: Arc::new(self.value),
     }

@@ -31,13 +31,13 @@ use swc_core::atoms::Wtf8Atom;
 use crate::{
   AsyncDependenciesBlock, BindingCell, BoxDependency, BoxDependencyTemplate, BoxModuleDependency,
   ChunkGraph, ChunkUkey, CodeGenerationResultBuilder, CollectedTypeScriptInfo, Compilation,
-  CompilationAsset, CompilationId, CompilerId, CompilerOptions, ConcatenationScope,
-  ConcatenationScopeInfoMode, ConnectionState, Context, ContextModule, CssExportType,
-  DependenciesBlock, DependencyId, ExportProvided, ExportsInfoArtifact, ExternalModule, Filename,
-  GetTargetResult, ImportPhase, ModuleCodeTemplate, ModuleGraph, ModuleGraphCacheArtifact,
-  ModuleLayer, ModuleType, NormalModule, OptimizationBailoutItem, RawModule, Resolve,
-  ResolverFactory, RuntimeSpec, SelfModule, SharedPluginDriver, SideEffectsStateArtifact,
-  SourceType, concatenated_module::ConcatenatedModule,
+  CompilationAsset, CompilationId, CompilerId, CompilerOptions, ConcatenationCodeGenerationSource,
+  ConcatenationScope, ConcatenationScopeInfoMode, ConnectionState, Context, ContextModule,
+  CssExportType, DependenciesBlock, DependencyId, ExportProvided, ExportsInfoArtifact,
+  ExternalModule, Filename, GetTargetResult, ImportPhase, ModuleCodeTemplate, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleLayer, ModuleType, NormalModule, OptimizationBailoutItem,
+  RawModule, Resolve, ResolverFactory, RuntimeSpec, SelfModule, SharedPluginDriver,
+  SideEffectsStateArtifact, SourceType, concatenated_module::ConcatenatedModule,
   dependencies_block::dependencies_block_update_hash, get_target,
   utils::PendingConcatenationScopeInfo, value_cache_versions::ValueCacheVersions,
 };
@@ -662,6 +662,9 @@ pub struct ModuleCodeGenerationContext<'a> {
   pub compilation: &'a Compilation,
   pub runtime: Option<&'a RuntimeSpec>,
   pub concatenation_scope: Option<&'a mut ConcatenationScope>,
+  /// Editable JavaScript output used only by faster module concatenation.
+  /// This transient value belongs to a single code generation call and is not cached.
+  pub concatenation_source: Option<Box<ConcatenationCodeGenerationSource>>,
   pub runtime_template: &'a mut ModuleCodeTemplate,
 }
 

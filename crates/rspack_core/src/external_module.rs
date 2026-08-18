@@ -1333,6 +1333,7 @@ impl Module for ExternalModule {
       compilation,
       runtime,
       concatenation_scope,
+      concatenation_source,
       runtime_template,
     } = code_generation_context;
 
@@ -1352,7 +1353,10 @@ impl Module for ExternalModule {
           )?;
           match source {
             GeneratedSource::Source(source) => cgr.add(SourceType::JavaScript, source),
-            GeneratedSource::Concatenation(source) => cgr.set_concatenation_source(source),
+            GeneratedSource::Concatenation(source) => {
+              let previous = concatenation_source.replace(source);
+              debug_assert!(previous.is_none());
+            }
           }
           if !chunk_init_fragments.is_empty() {
             cgr
@@ -1398,7 +1402,10 @@ impl Module for ExternalModule {
         )?;
         match source {
           GeneratedSource::Source(source) => cgr.add(SourceType::JavaScript, source),
-          GeneratedSource::Concatenation(source) => cgr.set_concatenation_source(source),
+          GeneratedSource::Concatenation(source) => {
+            let previous = concatenation_source.replace(source);
+            debug_assert!(previous.is_none());
+          }
         }
         if !chunk_init_fragments.is_empty() {
           cgr

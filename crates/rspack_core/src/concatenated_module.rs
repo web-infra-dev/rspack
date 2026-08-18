@@ -2711,9 +2711,12 @@ impl ConcatenatedModule {
         compilation,
         runtime,
         concatenation_scope: Some(&mut concatenation_scope),
+        concatenation_source: None,
         runtime_template: &mut runtime_template,
       };
-      let mut codegen_res = module.code_generation(&mut code_generation_context).await?;
+      let codegen_res = module.code_generation(&mut code_generation_context).await?;
+      let concatenation_source = code_generation_context.concatenation_source.take();
+      drop(code_generation_context);
 
       let chunk_init_fragments = codegen_res
         .data()
@@ -2739,7 +2742,7 @@ impl ConcatenatedModule {
                 "module {module_id} entered faster module concatenation without pending concatenation scope info"
               )
             })?;
-        let concatenation_source = codegen_res.take_concatenation_source().ok_or_else(|| {
+        let concatenation_source = concatenation_source.ok_or_else(|| {
           rspack_error::error!(
             "module {module_id} entered faster module concatenation without an editable concatenation source"
           )

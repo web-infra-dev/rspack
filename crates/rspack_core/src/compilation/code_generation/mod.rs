@@ -201,15 +201,13 @@ pub(crate) async fn code_generation_modules(
             }))
           });
           let mut concatenation_scope = job.scope.take();
-          let faster_module_concatenation = concatenation_scope
-            .as_ref()
-            .is_some_and(|scope| scope.is_faster_module_concatenation());
           let generator = async {
             let mut runtime_template = this.runtime_template.create_module_code_template();
             let mut code_generation_context = ModuleCodeGenerationContext {
               compilation: this,
               runtime: Some(&job.runtime),
               concatenation_scope: concatenation_scope.as_mut(),
+              concatenation_source: None,
               runtime_template: &mut runtime_template,
             };
 
@@ -220,24 +218,15 @@ pub(crate) async fn code_generation_modules(
                 codegen_result_builder
                   .runtime_requirements_mut()
                   .extend(*runtime_template.runtime_requirements());
-                codegen_result_builder.set_faster_module_concatenation(faster_module_concatenation);
-                if module.as_concatenated_module().is_some() {
-                  // Concatenated modules are special here: `job.hash` already
-                  // fingerprints the generated module bodies, so we only need
-                  // to fold in the remaining codegen metadata.
-                  codegen_result_builder.set_hash_for_concatenated_module(
-                    &job.hash,
-                    &options.output.hash_function,
-                    &options.output.hash_digest,
-                    &options.output.hash_salt,
-                  );
-                } else {
-                  codegen_result_builder.set_hash(
-                    &options.output.hash_function,
-                    &options.output.hash_digest,
-                    &options.output.hash_salt,
-                  );
-                }
+                codegen_result_builder.set_hash(
+                  &options.output.hash_function,
+                  &options.output.hash_digest,
+                  &options.output.hash_salt,
+                  module
+                    .as_concatenated_module()
+                    .is_some()
+                    .then_some(&job.hash),
+                );
                 codegen_result_builder.build()
               })
           };
@@ -280,6 +269,7 @@ pub(crate) async fn code_generation_modules(
           &compilation.options.output.hash_function,
           &compilation.options.output.hash_digest,
           &compilation.options.output.hash_salt,
+          None,
         );
         codegen_result_builder.build()
       }

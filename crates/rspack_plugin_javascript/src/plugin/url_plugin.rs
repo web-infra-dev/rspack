@@ -218,7 +218,7 @@ async fn render_module_content(
     // coordinate space. Defer static URL materialization to the final chunk
     // render so this hook does not wrap the module's ReplaceSource and shift
     // those spans.
-    if codegen_result.is_faster_module_concatenation() {
+    if compilation.options.experiments.faster_module_concatenation {
       return Ok(());
     }
     let output_path = get_chunk_output_path(compilation, *chunk_ukey).await?;

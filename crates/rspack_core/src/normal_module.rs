@@ -617,6 +617,7 @@ impl Module for NormalModule {
       compilation,
       runtime,
       concatenation_scope,
+      concatenation_source,
       runtime_template,
     } = code_generation_context;
 
@@ -684,7 +685,8 @@ impl Module for NormalModule {
         .await?;
       match (expects_concatenation_source, generation_result) {
         (true, GeneratedSource::Concatenation(source)) => {
-          code_generation_result.set_concatenation_source(source);
+          let previous = concatenation_source.replace(source);
+          debug_assert!(previous.is_none());
         }
         (true, GeneratedSource::Source(_)) => {
           return Err(error!(
