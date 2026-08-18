@@ -35,6 +35,14 @@ jobs:
     needs: [check-changed]
     if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
     runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS ||  '"ubuntu-22.04"') }}
+    env:
+      # sccache refuses to cache anything built with `-C incremental`, which cargo
+      # passes to every workspace crate because of `[profile.dev] incremental = true`.
+      CARGO_INCREMENTAL: 0
+      # `cargo clippy` runs as `sccache clippy-driver <RUSTC> <args>`; sccache only
+      # ignores the injected <RUSTC> when cargo passes it as the bare name
+      # (mozilla/sccache#2438), otherwise it is parsed as a second input file.
+      RUSTC: rustc
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
