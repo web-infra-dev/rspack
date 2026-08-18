@@ -147,7 +147,7 @@ impl Module for RemoteModule {
   fn get_exports_type(
     &self,
     _module_graph: &ModuleGraph,
-    _module_graph_cache: &rspack_core::ModuleGraphCache,
+    _module_graph_cache: &rspack_core::ModuleGraphCacheArtifact,
     _exports_info_artifact: &rspack_core::ExportsInfoArtifact,
     _strict: bool,
   ) -> ExportsType {

@@ -138,13 +138,13 @@ the pass runner asks `IncrementalArtifacts` to recover the artifacts bound to th
 Cache's restore and save hooks run independently around the pass. Consumers of the new Cache use
 `CacheFacade` instead; this path is also independent from Incremental recovery.
 
-Some transitional types do not yet follow the physical boundary. In particular,
-`CodeGenerateCache`, `ProcessRuntimeRequirementsCache`, and `ChunkRenderCache` are stored on
-`Compilation` and moved by `IncrementalArtifacts` to reuse the pass-bound generation transition,
-while their generation-aware memoization is controlled by Cache configuration. They remain Cache
-items, not Incremental artifacts. Legacy persistent Cache calls its generic payload a `CacheItem` for
-the same reason. These types are not a precedent for new code: ownership is determined by
-invalidation and reuse semantics, and Cache-owned state should move behind Cache abstractions.
+Some historical or transitional types do not yet follow the physical boundary. In particular,
+`CodeGenerateCacheArtifact`, `ProcessRuntimeRequirementsCacheArtifact`, and
+`ChunkRenderCacheArtifact` are stored on `Compilation` and moved by `IncrementalArtifacts`, while
+their generation-aware memoization is controlled by Cache configuration. These types are not a
+precedent for new code: ownership is determined by invalidation and reuse semantics, and Cache-owned
+state should move behind Cache abstractions. Legacy persistent Cache calls its generic payload a
+`CacheItem`, not an Artifact.
 
 ## Architectural Invariants
 
@@ -160,10 +160,10 @@ Changes to these systems must preserve the following rules:
 7. Tests that require full-rebuild behavior must set `incremental: false` explicitly instead of
    relying on `cache: false` as an indirect switch.
 
-Most pass-scoped Incremental state follows these rules today. The generation-aware Cache types
-described above are transitional Cache co-location, while `EMIT_ASSETS` still keeps emitted asset
-versions directly on `Compiler` instead of in an Incremental artifact. Neither exception should be
-used to introduce new Cache/Incremental coupling.
+Most pass-scoped Incremental state follows these rules today. The `*CacheArtifact` types described
+above are transitional Cache co-location, while `EMIT_ASSETS` still keeps emitted asset versions
+directly on `Compiler` instead of in an Incremental artifact. Neither exception should be used to
+introduce new Cache/Incremental coupling.
 
 ## Relevant Code
 

@@ -14,8 +14,8 @@ use rspack_collections::Identifier;
 use rspack_core::{
   BoxModule, Chunk, ChunkByUkey, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey,
   ChunkNamedIdArtifact, ChunkUkey, Compilation, CompilerId, ExportsInfoArtifact, Module,
-  ModuleGraph, ModuleGraphCache, ModuleIdentifier, ModuleIdsArtifact, SideEffectsStateArtifact,
-  compare_runtime,
+  ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, ModuleIdsArtifact,
+  SideEffectsStateArtifact, compare_runtime,
 };
 use rspack_error::Result;
 use rspack_util::{
@@ -334,7 +334,7 @@ pub fn get_short_chunk_name(
   context: &str,
   delimiter: &str,
   module_graph: &ModuleGraph,
-  module_graph_cache: &ModuleGraphCache,
+  module_graph_cache: &ModuleGraphCacheArtifact,
   side_effects_state_artifact: &SideEffectsStateArtifact,
   named_chunk_ids_artifact: &ChunkNamedIdArtifact,
   exports_info_artifact: &ExportsInfoArtifact,
@@ -401,7 +401,7 @@ pub fn get_long_chunk_name(
   context: &str,
   delimiter: &str,
   module_graph: &ModuleGraph,
-  module_graph_cache: &ModuleGraphCache,
+  module_graph_cache: &ModuleGraphCacheArtifact,
   side_effects_state_artifact: &SideEffectsStateArtifact,
   named_chunk_ids_artifact: &ChunkNamedIdArtifact,
   exports_info_artifact: &ExportsInfoArtifact,
@@ -451,7 +451,7 @@ pub fn get_full_chunk_name(
   chunk: &Chunk,
   chunk_graph: &ChunkGraph,
   module_graph: &ModuleGraph,
-  module_graph_cache: &ModuleGraphCache,
+  module_graph_cache: &ModuleGraphCacheArtifact,
   side_effects_state_artifact: &SideEffectsStateArtifact,
   context: &str,
   exports_info_artifact: &ExportsInfoArtifact,

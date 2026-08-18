@@ -20,7 +20,7 @@ impl PassExt for BuildChunkGraphPass {
 
   async fn run_pass(&self, compilation: &mut Compilation) -> Result<()> {
     let logger = compilation.get_logger("rspack.Compilation");
-    compilation.module_graph_cache.freeze();
+    compilation.module_graph_cache_artifact.freeze();
     use_code_splitting_cache(compilation, |compilation| async {
       let start = logger.time("rebuild chunk graph");
       build_chunk_graph(compilation)?;

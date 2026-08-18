@@ -12,7 +12,7 @@ use rspack_collections::{
 use rspack_core::{
   BoxDependency, BoxModule, ChunkUkey, Compilation, CompilationOptimizeChunkModules, DependencyId,
   DependencyType, ExportProvided, ExportsInfoArtifact, GetTargetResult,
-  ImportedByDeferModulesArtifact, LibIdentOptions, Logger, ModuleGraph, ModuleGraphCache,
+  ImportedByDeferModulesArtifact, LibIdentOptions, Logger, ModuleGraph, ModuleGraphCacheArtifact,
   ModuleGraphConnection, ModuleGraphModule, ModuleIdentifier, OptimizationBailoutItem, Plugin,
   ProvidedExports, RuntimeCondition, RuntimeSpec, RuntimeSpecMap, SideEffectsStateArtifact,
   SourceType,
@@ -303,7 +303,7 @@ pub struct RuntimeIdentifierCache<T> {
 }
 
 struct ModuleGraphArtifacts<'a> {
-  mg_cache: &'a ModuleGraphCache,
+  mg_cache: &'a ModuleGraphCacheArtifact,
   side_effects_state_artifact: &'a SideEffectsStateArtifact,
   exports_info_artifact: &'a ExportsInfoArtifact,
 }
@@ -319,7 +319,7 @@ struct ConcatenationSearchContext<'a> {
 impl ConcatenationSearchContext<'_> {
   fn module_graph_artifacts(&self) -> ModuleGraphArtifacts<'_> {
     ModuleGraphArtifacts {
-      mg_cache: &self.compilation.module_graph_cache,
+      mg_cache: &self.compilation.module_graph_cache_artifact,
       side_effects_state_artifact: &self
         .compilation
         .build_module_graph_artifact
@@ -1115,7 +1115,7 @@ impl ModuleConcatenationPlugin {
     let mut root_search_scratch = RootSearchScratch::default();
 
     let module_graph = compilation.get_module_graph();
-    let module_graph_cache = &compilation.module_graph_cache;
+    let module_graph_cache = &compilation.module_graph_cache_artifact;
     let cache_modules = relevant_modules
       .iter()
       .chain(possible_inners.iter())
@@ -1245,7 +1245,7 @@ impl ModuleConcatenationPlugin {
         .get(current_root)
         .expect("should have module");
       let module_graph = compilation.get_module_graph();
-      let module_graph_cache = &compilation.module_graph_cache;
+      let module_graph_cache = &compilation.module_graph_cache_artifact;
       let exports_info = compilation
         .exports_info_artifact
         .get_exports_info_data(current_root);
@@ -1672,7 +1672,7 @@ impl CachedIncomingConnection {
     connection: &ModuleGraphConnection,
     runtime: &RuntimeSpec,
     module_graph: &ModuleGraph,
-    module_graph_cache: &ModuleGraphCache,
+    module_graph_cache: &ModuleGraphCacheArtifact,
     side_effects_state_artifact: &SideEffectsStateArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
   ) -> Self {
@@ -1738,7 +1738,7 @@ async fn create_concatenated_module(
     context: Some(compilation.options.context.clone()),
     side_effect_connection_state: root_module.get_side_effects_connection_state(
       module_graph,
-      &compilation.module_graph_cache,
+      &compilation.module_graph_cache_artifact,
       &compilation
         .build_module_graph_artifact
         .side_effects_state_artifact,

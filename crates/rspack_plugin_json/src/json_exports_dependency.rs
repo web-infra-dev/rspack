@@ -3,7 +3,7 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, AsModuleDependency, Compilation, Dependency, DependencyCodeGeneration,
   DependencyId, ExportNameOrSpec, ExportSpec, ExportsInfoArtifact, ExportsOfExportsSpec,
-  ExportsSpec, ModuleGraph, ModuleGraphCache, RuntimeSpec,
+  ExportsSpec, ModuleGraph, ModuleGraphCacheArtifact, RuntimeSpec,
 };
 use rspack_hash::{RspackHash, RspackHasher};
 use rspack_util::itoa;
@@ -41,7 +41,7 @@ impl Dependency for JsonExportsDependency {
   fn get_exports(
     &self,
     module_graph: &ModuleGraph,
-    _mg_cache: &ModuleGraphCache,
+    _mg_cache: &ModuleGraphCacheArtifact,
     _exports_info_artifact: &ExportsInfoArtifact,
   ) -> Option<ExportsSpec> {
     Some(ExportsSpec {

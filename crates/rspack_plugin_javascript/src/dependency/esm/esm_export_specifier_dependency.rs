@@ -5,7 +5,7 @@ use rspack_core::{
   DependencyCodeGeneration, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
   DependencyTemplateType, DependencyType, ESMExportBinding, ESMExportInitFragment,
   ExportNameOrSpec, ExportSpec, ExportsInfoArtifact, ExportsOfExportsSpec, ExportsSpec, LazyUntil,
-  ModuleGraph, ModuleGraphCache, SideEffectsStateArtifact, TSEnumValue, TemplateContext,
+  ModuleGraph, ModuleGraphCacheArtifact, SideEffectsStateArtifact, TSEnumValue, TemplateContext,
   TemplateReplaceSource, UsedName,
 };
 use swc_atoms::Atom;
@@ -69,7 +69,7 @@ impl Dependency for ESMExportSpecifierDependency {
   fn get_exports(
     &self,
     _mg: &ModuleGraph,
-    _mg_cache: &ModuleGraphCache,
+    _mg_cache: &ModuleGraphCacheArtifact,
     _exports_info_artifact: &ExportsInfoArtifact,
   ) -> Option<ExportsSpec> {
     Some(ExportsSpec {
@@ -107,7 +107,7 @@ impl Dependency for ESMExportSpecifierDependency {
   fn get_module_evaluation_side_effects_state(
     &self,
     _module_graph: &rspack_core::ModuleGraph,
-    _module_graph_cache: &ModuleGraphCache,
+    _module_graph_cache: &ModuleGraphCacheArtifact,
     _side_effects_state_artifact: &SideEffectsStateArtifact,
     _module_chain: &mut IdentifierSet,
     _connection_state_cache: &mut IdentifierMap<rspack_core::ConnectionState>,

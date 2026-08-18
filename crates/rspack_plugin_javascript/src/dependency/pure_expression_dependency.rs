@@ -3,8 +3,9 @@ use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   AsContextDependency, AsModuleDependency, Compilation, ConnectionState, Dependency,
   DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
-  DependencyTemplateType, ModuleGraph, ModuleGraphCache, ModuleIdentifier, RuntimeCondition,
-  RuntimeSpec, SideEffectsStateArtifact, TemplateContext, TemplateReplaceSource, UsedByExports,
+  DependencyTemplateType, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
+  RuntimeCondition, RuntimeSpec, SideEffectsStateArtifact, TemplateContext, TemplateReplaceSource,
+  UsedByExports,
 };
 use rspack_hash::{RspackHash, RspackHasher};
 
@@ -60,7 +61,7 @@ impl Dependency for PureExpressionDependency {
   fn get_module_evaluation_side_effects_state(
     &self,
     _module_graph: &ModuleGraph,
-    _module_graph_cache: &ModuleGraphCache,
+    _module_graph_cache: &ModuleGraphCacheArtifact,
     _side_effects_state_artifact: &SideEffectsStateArtifact,
     _module_chain: &mut IdentifierSet,
     _connection_state_cache: &mut IdentifierMap<ConnectionState>,

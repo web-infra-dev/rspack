@@ -3,18 +3,20 @@ use rspack_collections::Identifier;
 use rspack_error::Result;
 
 use crate::{
-  ArtifactExt, CacheOptions, ChunkGraph, Compilation, CompilerOptions, MemoryGCStorage,
-  ModuleIdentifier, RuntimeGlobals, RuntimeSpec, get_runtime_key,
+  ArtifactExt, CacheOptions, CodeGenerationJob, CodeGenerationResult, CompilerOptions,
+  MemoryGCStorage,
   incremental::{Incremental, IncrementalPasses},
+  runtime_mode::RuntimeMode,
 };
 
 #[derive(Debug, Default)]
-pub struct ProcessRuntimeRequirementsCache {
-  storage: Option<MemoryGCStorage<RuntimeGlobals>>,
+pub struct CodeGenerateCacheArtifact {
+  storage: Option<MemoryGCStorage<CodeGenerationResult>>,
+  runtime_mode: RuntimeMode,
 }
 
-impl ArtifactExt for ProcessRuntimeRequirementsCache {
-  const PASS: IncrementalPasses = IncrementalPasses::MODULES_RUNTIME_REQUIREMENTS;
+impl ArtifactExt for CodeGenerateCacheArtifact {
+  const PASS: IncrementalPasses = IncrementalPasses::MODULES_CODEGEN;
 
   fn recover(_incremental: &Incremental, new: &mut Self, old: &mut Self) {
     *new = std::mem::take(old);
@@ -22,7 +24,7 @@ impl ArtifactExt for ProcessRuntimeRequirementsCache {
   }
 }
 
-impl ProcessRuntimeRequirementsCache {
+impl CodeGenerateCacheArtifact {
   pub fn new(options: &CompilerOptions) -> Self {
     Self {
       storage: match &options.cache {
@@ -30,6 +32,7 @@ impl ProcessRuntimeRequirementsCache {
         CacheOptions::Persistent(_) => Some(MemoryGCStorage::new(1)),
         CacheOptions::Disabled => None,
       },
+      runtime_mode: options.experiments.runtime_mode,
     }
   }
 
@@ -41,34 +44,34 @@ impl ProcessRuntimeRequirementsCache {
 
   pub async fn use_cache<G, F>(
     &self,
-    module: ModuleIdentifier,
-    runtime: &RuntimeSpec,
-    compilation: &Compilation,
+    job: &CodeGenerationJob,
     generator: G,
-  ) -> Result<RuntimeGlobals>
+  ) -> (Result<CodeGenerationResult>, bool)
   where
     G: FnOnce() -> F,
-    F: Future<Output = Result<RuntimeGlobals>>,
+    F: Future<Output = Result<CodeGenerationResult>>,
   {
     let Some(storage) = &self.storage else {
-      return generator().await;
+      let res = generator().await;
+      return (res, false);
     };
 
-    let hash = ChunkGraph::get_module_hash(compilation, module, runtime)
-      .expect("should have cgm hash in process_runtime_requirements");
     let cache_key = Identifier::from(format!(
       "{}|{}|{}",
-      module,
-      hash.encoded(),
-      get_runtime_key(runtime)
+      job.module,
+      job.hash.encoded(),
+      self.runtime_mode
     ));
-
     if let Some(value) = storage.get(&cache_key) {
-      Ok(value)
+      (Ok(value), true)
     } else {
-      let res = generator().await?;
-      storage.set(cache_key, res);
-      Ok(res)
+      match generator().await {
+        Ok(res) => {
+          storage.set(cache_key, res.clone());
+          (Ok(res), false)
+        }
+        Err(err) => (Err(err), false),
+      }
     }
   }
 }

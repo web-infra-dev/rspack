@@ -13,7 +13,7 @@ use swc_core::ecma::atoms::Atom;
 use crate::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, AsyncDependenciesBlockIdentifierMap,
   AsyncModulesArtifact, Compilation, DependenciesBlock, Dependency, ExportInfo,
-  ImportedByDeferModulesArtifact, ModuleGraphCache, RuntimeSpec, SideEffectsStateArtifact,
+  ImportedByDeferModulesArtifact, ModuleGraphCacheArtifact, RuntimeSpec, SideEffectsStateArtifact,
   UsedNameItem,
 };
 mod module;
@@ -225,7 +225,7 @@ impl ModuleGraph {
     module_id: &ModuleIdentifier,
     runtime: Option<&RuntimeSpec>,
     module_graph: &ModuleGraph,
-    module_graph_cache: &ModuleGraphCache,
+    module_graph_cache: &ModuleGraphCacheArtifact,
     side_effects_state_artifact: &SideEffectsStateArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
   ) -> IdentifierMap<Vec<&ModuleGraphConnection>> {
@@ -808,7 +808,7 @@ impl ModuleGraph {
   pub fn is_optional(
     &self,
     module_id: &ModuleIdentifier,
-    module_graph_cache: &ModuleGraphCache,
+    module_graph_cache: &ModuleGraphCacheArtifact,
     side_effects_state_artifact: &SideEffectsStateArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
   ) -> bool {
@@ -956,7 +956,7 @@ impl ModuleGraph {
     &self,
     connection: &ModuleGraphConnection,
     runtime: Option<&RuntimeSpec>,
-    module_graph_cache: &ModuleGraphCache,
+    module_graph_cache: &ModuleGraphCacheArtifact,
     side_effects_state_artifact: &SideEffectsStateArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
   ) -> ConnectionState {
@@ -979,7 +979,7 @@ impl ModuleGraph {
     &self,
     connection: &ModuleGraphConnection,
     runtime: Option<&RuntimeSpec>,
-    module_graph_cache: &ModuleGraphCache,
+    module_graph_cache: &ModuleGraphCacheArtifact,
     side_effects_state_artifact: &SideEffectsStateArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
   ) -> bool {

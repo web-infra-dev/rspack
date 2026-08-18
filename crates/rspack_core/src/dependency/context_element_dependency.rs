@@ -8,7 +8,7 @@ use super::{AffectType, FactorizeInfo};
 use crate::{
   AsContextDependency, AsDependencyCodeGeneration, Context, ContextNameSpaceObject, Dependency,
   DependencyCategory, DependencyId, DependencyType, ExportsInfoArtifact, ImportAttributes,
-  ModuleDependency, ModuleGraph, ModuleGraphCache, ModuleLayer, ReferencedExport,
+  ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleLayer, ReferencedExport,
   ReferencedSpecifier, ResourceIdentifier, RuntimeSpec, create_exports_object_referenced,
   create_referenced_exports_by_referenced_specifiers,
 };
@@ -78,7 +78,7 @@ impl Dependency for ContextElementDependency {
   fn get_referenced_exports(
     &self,
     module_graph: &ModuleGraph,
-    module_graph_cache: &ModuleGraphCache,
+    module_graph_cache: &ModuleGraphCacheArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
     _runtime: Option<&RuntimeSpec>,
   ) -> Vec<ReferencedExport> {

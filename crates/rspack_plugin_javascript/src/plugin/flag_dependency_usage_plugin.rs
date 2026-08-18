@@ -5,7 +5,7 @@ use rspack_collections::IdentifierMap;
 use rspack_core::{
   AsyncDependenciesBlockIdentifier, BuildMetaExportsType, CanInlineUse, Compilation,
   CompilationOptimizeDependencies, ConnectionState, DependenciesBlock, DependencyId, ExportsInfo,
-  ExportsInfoArtifact, ExportsInfoData, GroupOptions, ModuleGraph, ModuleGraphCache,
+  ExportsInfoArtifact, ExportsInfoData, GroupOptions, ModuleGraph, ModuleGraphCacheArtifact,
   ModuleIdentifier, Plugin, ReferencedExport, ReferencedExportFlags, ReferencedExportPath,
   RuntimeSpec, SideEffectsOptimizeArtifact, SideEffectsStateArtifact, UsageState,
   build_module_graph::BuildModuleGraphArtifact, get_entry_runtime, incremental::IncrementalPasses,
@@ -131,7 +131,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
         batch.push(task);
       }
 
-      self.compilation.module_graph_cache.freeze();
+      self.compilation.module_graph_cache_artifact.freeze();
       let compilation = self.compilation;
       let module_graph = self.build_module_graph_artifact.get_module_graph();
 
@@ -290,7 +290,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
         }
       }
 
-      self.compilation.module_graph_cache.unfreeze();
+      self.compilation.module_graph_cache_artifact.unfreeze();
 
       if q.is_empty() {
         break;
@@ -317,7 +317,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
       block_id,
       runtime,
       module_graph,
-      &compilation.module_graph_cache,
+      &compilation.module_graph_cache_artifact,
       side_effects_state_artifact,
       self.exports_info_artifact,
       global,
@@ -330,7 +330,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
       let referenced_exports_result = get_dependency_referenced_exports(
         dep_id,
         module_graph,
-        &compilation.module_graph_cache,
+        &compilation.module_graph_cache_artifact,
         self.exports_info_artifact,
         runtime,
       );
@@ -664,7 +664,7 @@ fn collect_active_dependencies(
   block_id: ModuleOrAsyncDependenciesBlock,
   runtime: Option<&RuntimeSpec>,
   module_graph: &ModuleGraph,
-  module_graph_cache: &ModuleGraphCache,
+  module_graph_cache: &ModuleGraphCacheArtifact,
   side_effects_state_artifact: &SideEffectsStateArtifact,
   exports_info_artifact: &ExportsInfoArtifact,
   global: bool,
@@ -741,7 +741,7 @@ fn collect_active_dependencies(
 fn get_dependency_referenced_exports(
   dep_id: DependencyId,
   module_graph: &ModuleGraph,
-  module_graph_cache: &ModuleGraphCache,
+  module_graph_cache: &ModuleGraphCacheArtifact,
   exports_info_artifact: &ExportsInfoArtifact,
   runtime: Option<&RuntimeSpec>,
 ) -> Option<Vec<ReferencedExport>> {

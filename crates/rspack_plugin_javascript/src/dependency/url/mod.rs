@@ -7,8 +7,8 @@ use rspack_core::{
   DependencyCategory, DependencyCodeGeneration, DependencyCondition, DependencyConditionFn,
   DependencyId, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
   ExportsInfoArtifact, FactorizeInfo, JavascriptParserUrl, ModuleDependency, ModuleGraph,
-  ModuleGraphCache, ModuleGraphConnection, RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact,
-  TemplateContext, TemplateReplaceSource, URLStaticMode, UsedByExports,
+  ModuleGraphCacheArtifact, ModuleGraphConnection, RuntimeGlobals, RuntimeSpec,
+  SideEffectsStateArtifact, TemplateContext, TemplateReplaceSource, URLStaticMode, UsedByExports,
 };
 use swc_atoms::Atom;
 
@@ -202,7 +202,7 @@ impl DependencyConditionFn for URLDependencyCondition {
     connection: &ModuleGraphConnection,
     runtime: Option<&RuntimeSpec>,
     module_graph: &ModuleGraph,
-    _module_graph_cache: &ModuleGraphCache,
+    _module_graph_cache: &ModuleGraphCacheArtifact,
     _side_effects_state_artifact: &SideEffectsStateArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
   ) -> ConnectionState {

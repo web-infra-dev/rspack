@@ -48,7 +48,7 @@ impl Dependency for CssLocalIdentDependency {
   fn get_exports(
     &self,
     _mg: &rspack_core::ModuleGraph,
-    _module_graph_cache: &rspack_core::ModuleGraphCache,
+    _module_graph_cache: &rspack_core::ModuleGraphCacheArtifact,
     _exports_info_artifact: &ExportsInfoArtifact,
   ) -> Option<ExportsSpec> {
     Some(ExportsSpec {

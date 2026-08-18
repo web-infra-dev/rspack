@@ -4,7 +4,7 @@ use rspack_core::{
   Chunk, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements, CompilationParams,
   CompilerCompilation, ExportsInfoArtifact, ExternalModule, ExternalRequest, Filename,
   LibraryAuxiliaryComment, LibraryCustomUmdObject, LibraryName, LibraryNonUmdObject,
-  LibraryOptions, LibraryType, ModuleGraph, ModuleGraphCache, PathData, Plugin,
+  LibraryOptions, LibraryType, ModuleGraph, ModuleGraphCacheArtifact, PathData, Plugin,
   RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule, SideEffectsStateArtifact, SourceType,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
 };
@@ -113,7 +113,7 @@ async fn render(
     .chunk_by_ukey
     .expect_get(chunk_ukey);
   let module_graph = compilation.get_module_graph();
-  let module_graph_cache = &compilation.module_graph_cache;
+  let module_graph_cache = &compilation.module_graph_cache_artifact;
   let modules = compilation
     .build_chunk_graph_artifact
     .chunk_graph
@@ -399,7 +399,7 @@ fn externals_require_array(
   external_type: &str,
   externals: &[&ExternalModule],
   module_graph: &ModuleGraph,
-  module_graph_cache: &ModuleGraphCache,
+  module_graph_cache: &ModuleGraphCacheArtifact,
   side_effects_state_artifact: &SideEffectsStateArtifact,
   exports_info_artifact: &ExportsInfoArtifact,
 ) -> Result<String> {

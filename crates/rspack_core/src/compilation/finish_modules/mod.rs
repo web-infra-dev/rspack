@@ -123,7 +123,7 @@ pub async fn finish_modules_inner(
     .await?;
 
   // https://github.com/webpack/webpack/blob/19ca74127f7668aaf60d59f4af8fcaee7924541a/lib/Compilation.js#L2988
-  compilation.module_graph_cache.freeze();
+  compilation.module_graph_cache_artifact.freeze();
   // Collect dependencies diagnostics at here to make sure:
   // 1. after finish_modules: has provide exports info
   // 2. before optimize dependencies: side effects free module hasn't been skipped
@@ -132,7 +132,7 @@ pub async fn finish_modules_inner(
     dependencies_diagnostics_artifact,
     exports_info_artifact,
   );
-  compilation.module_graph_cache.unfreeze();
+  compilation.module_graph_cache_artifact.unfreeze();
 
   // take make diagnostics
   let diagnostics = compilation.build_module_graph_artifact.diagnostics();
@@ -195,7 +195,7 @@ fn collect_dependencies_diagnostics(
   };
 
   let module_graph = build_module_graph_artifact.get_module_graph();
-  let module_graph_cache = &compilation.module_graph_cache;
+  let module_graph_cache = &compilation.module_graph_cache_artifact;
   let dependencies_diagnostics: DependenciesDiagnosticsArtifact = modules
     .par_iter()
     .map(|module_identifier| {

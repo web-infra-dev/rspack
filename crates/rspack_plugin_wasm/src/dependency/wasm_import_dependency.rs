@@ -2,7 +2,7 @@ use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
 use rspack_core::{
   AsContextDependency, AsDependencyCodeGeneration, Dependency, DependencyCategory, DependencyId,
   DependencyRange, DependencyType, ExportsInfoArtifact, FactorizeInfo, ModuleDependency,
-  ModuleGraph, ModuleGraphCache, ReferencedExport, RuntimeSpec,
+  ModuleGraph, ModuleGraphCacheArtifact, ReferencedExport, RuntimeSpec,
 };
 use swc_core::ecma::atoms::Atom;
 
@@ -53,7 +53,7 @@ impl Dependency for WasmImportDependency {
   fn get_referenced_exports(
     &self,
     _module_graph: &ModuleGraph,
-    _module_graph_cache: &ModuleGraphCache,
+    _module_graph_cache: &ModuleGraphCacheArtifact,
     _exports_info_artifact: &ExportsInfoArtifact,
     _runtime: Option<&RuntimeSpec>,
   ) -> Vec<ReferencedExport> {

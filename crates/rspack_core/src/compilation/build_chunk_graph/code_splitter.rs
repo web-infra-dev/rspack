@@ -21,7 +21,7 @@ use crate::{
   AsyncDependenciesBlockIdentifierSet, ChunkGroup, ChunkGroupKind, ChunkGroupOptions,
   ChunkGroupUkey, ChunkLoading, ChunkUkey, Compilation, ConnectionState, DependenciesBlock,
   DependencyId, DependencyLocation, EntryDependency, EntryRuntime, ExportsInfoArtifact,
-  GroupOptions, Logger, ModuleDependency, ModuleGraph, ModuleGraphCache, ModuleIdentifier,
+  GroupOptions, Logger, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
   RuntimeSpec, SideEffectsStateArtifact, SyntheticDependencyLocation, assign_depths,
   dependencies_block::AsyncDependenciesToInitialChunkError,
   get_entry_runtime,
@@ -340,7 +340,7 @@ fn get_active_state_of_connections(
   connections: &[DependencyId],
   runtime: Option<&RuntimeSpec>,
   module_graph: &ModuleGraph,
-  module_graph_cache: &ModuleGraphCache,
+  module_graph_cache: &ModuleGraphCacheArtifact,
   side_effects_state_artifact: &SideEffectsStateArtifact,
   exports_info_artifact: &ExportsInfoArtifact,
 ) -> ConnectionState {
@@ -2059,7 +2059,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
           .runtime
           .clone();
         let module_graph = compilation.get_module_graph();
-        let module_graph_cache = &compilation.module_graph_cache;
+        let module_graph_cache = &compilation.module_graph_cache_artifact;
         let exports_info_artifact = &compilation.exports_info_artifact;
         let side_effects_state_artifact = &compilation
           .build_module_graph_artifact
@@ -2609,7 +2609,7 @@ fn extract_block_modules(
         &connection.connections,
         runtime.as_deref(),
         compilation.get_module_graph(),
-        &compilation.module_graph_cache,
+        &compilation.module_graph_cache_artifact,
         &compilation
           .build_module_graph_artifact
           .side_effects_state_artifact,

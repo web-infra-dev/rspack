@@ -17,8 +17,9 @@ use super::{
 };
 use crate::{
   AsContextDependency, ConnectionState, Context, ExportsInfoArtifact, ForwardId, ImportAttributes,
-  ImportPhase, JavascriptParserUrl, LazyUntil, Module, ModuleGraph, ModuleGraphCache, ModuleLayer,
-  ReferencedExport, RuntimeSpec, SideEffectsStateArtifact, create_exports_object_referenced,
+  ImportPhase, JavascriptParserUrl, LazyUntil, Module, ModuleGraph, ModuleGraphCacheArtifact,
+  ModuleLayer, ReferencedExport, RuntimeSpec, SideEffectsStateArtifact,
+  create_exports_object_referenced,
 };
 
 #[derive(Debug, Clone, Copy)]
@@ -101,7 +102,7 @@ pub trait Dependency:
   fn get_exports(
     &self,
     _mg: &ModuleGraph,
-    _module_graph_cache: &ModuleGraphCache,
+    _module_graph_cache: &ModuleGraphCacheArtifact,
     _exports_info_artifact: &ExportsInfoArtifact,
   ) -> Option<ExportsSpec> {
     None
@@ -110,7 +111,7 @@ pub trait Dependency:
   fn get_module_evaluation_side_effects_state(
     &self,
     _module_graph: &ModuleGraph,
-    _module_graph_cache: &ModuleGraphCache,
+    _module_graph_cache: &ModuleGraphCacheArtifact,
     _side_effects_state_artifact: &SideEffectsStateArtifact,
     _module_chain: &mut IdentifierSet,
     _connection_state_cache: &mut IdentifierMap<ConnectionState>,
@@ -137,7 +138,7 @@ pub trait Dependency:
   fn get_diagnostics(
     &self,
     _module_graph: &ModuleGraph,
-    _module_graph_cache: &ModuleGraphCache,
+    _module_graph_cache: &ModuleGraphCacheArtifact,
     _exports_info_artifact: &ExportsInfoArtifact,
   ) -> Option<Vec<Diagnostic>> {
     None
@@ -146,7 +147,7 @@ pub trait Dependency:
   fn get_diagnostics_with_context(
     &self,
     module_graph: &ModuleGraph,
-    module_graph_cache: &ModuleGraphCache,
+    module_graph_cache: &ModuleGraphCacheArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
     _context: &DependencyDiagnosticsContext,
   ) -> Option<Vec<Diagnostic>> {
@@ -156,7 +157,7 @@ pub trait Dependency:
   fn get_referenced_exports(
     &self,
     _module_graph: &ModuleGraph,
-    _module_graph_cache: &ModuleGraphCache,
+    _module_graph_cache: &ModuleGraphCacheArtifact,
     _exports_info_artifact: &ExportsInfoArtifact,
     _runtime: Option<&RuntimeSpec>,
   ) -> Vec<ReferencedExport> {

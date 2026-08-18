@@ -442,7 +442,7 @@ var {} = {{}};
             allow_inline_startup = false;
           }
           if allow_inline_startup && {
-            let module_graph_cache = &compilation.module_graph_cache;
+            let module_graph_cache = &compilation.module_graph_cache_artifact;
             module_graph
               .get_incoming_connections_by_origin_module(module)
               .modules()

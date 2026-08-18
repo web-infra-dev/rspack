@@ -4,8 +4,8 @@ use rspack_core::{
   AsyncModulesArtifact, BuildMetaExportsType, Compilation, CompilationFinishModules, DependencyId,
   EvaluatedInlinableValue, ExportInfo, ExportInfoData, ExportNameOrSpec, ExportProvided,
   ExportsInfo, ExportsInfoArtifact, ExportsInfoData, ExportsOfExportsSpec, ExportsSpec,
-  GetTargetResult, Logger, ModuleGraph, ModuleGraphCache, ModuleGraphConnection, ModuleIdentifier,
-  Nullable, Plugin, SideEffectsStateArtifact, get_target,
+  GetTargetResult, Logger, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection,
+  ModuleIdentifier, Nullable, Plugin, SideEffectsStateArtifact, get_target,
   incremental::{self, IncrementalPasses},
 };
 use rspack_error::Result;
@@ -14,14 +14,14 @@ use swc_atoms::Atom;
 
 struct FlagDependencyExportsState<'a> {
   mg: &'a ModuleGraph,
-  mg_cache: &'a ModuleGraphCache,
+  mg_cache: &'a ModuleGraphCacheArtifact,
   exports_info_artifact: &'a mut ExportsInfoArtifact,
 }
 
 impl<'a> FlagDependencyExportsState<'a> {
   pub fn new(
     mg: &'a ModuleGraph,
-    mg_cache: &'a ModuleGraphCache,
+    mg_cache: &'a ModuleGraphCacheArtifact,
     exports_info_artifact: &'a mut ExportsInfoArtifact,
   ) -> Self {
     Self {
@@ -218,7 +218,7 @@ async fn finish_modules(
   } else {
     module_graph.modules_keys().copied().collect()
   };
-  let module_graph_cache = compilation.module_graph_cache.clone();
+  let module_graph_cache = compilation.module_graph_cache_artifact.clone();
 
   FlagDependencyExportsState::new(module_graph, &module_graph_cache, exports_info_artifact)
     .apply(modules);
@@ -247,7 +247,7 @@ impl Plugin for FlagDependencyExportsPlugin {
 fn collect_module_exports_specs(
   module_id: &ModuleIdentifier,
   mg: &ModuleGraph,
-  mg_cache: &ModuleGraphCache,
+  mg_cache: &ModuleGraphCacheArtifact,
   exports_info_artifact: &ExportsInfoArtifact,
 ) -> Option<(Vec<(DependencyId, ExportsSpec)>, bool)> {
   let mgm = mg.module_graph_module_by_identifier(module_id)?;

@@ -5,7 +5,7 @@ use rspack_collections::{Identifiable, IdentifierMap, IdentifierSet};
 use rspack_core::{
   BoxModule, ChunkGraph, Compilation, Context, Dependency, DependencyId, DependencyType,
   ExportInfoData, ExportMode, ExportProvided, ExportsInfoArtifact, Module, ModuleGraph,
-  ModuleGraphCache, ModuleIdsArtifact, ModuleType, OptimizationBailoutItem,
+  ModuleGraphCacheArtifact, ModuleIdsArtifact, ModuleType, OptimizationBailoutItem,
   SideEffectsStateArtifact, UsageState, UsedByExports, UsedByExportsCondition,
   collect_referenced_export_items,
   rspack_sources::{MapOptions, ObjectPool},
@@ -327,7 +327,7 @@ fn get_origin_exports(used_by_exports: Option<&UsedByExports>) -> Vec<Option<Vec
 fn get_esm_import_specifier_target_exports(
   dependency: &ESMImportSpecifierDependency,
   module_graph: &ModuleGraph,
-  module_graph_cache: &ModuleGraphCache,
+  module_graph_cache: &ModuleGraphCacheArtifact,
   exports_info_artifact: &ExportsInfoArtifact,
 ) -> Vec<Option<Vec<String>>> {
   dependency
@@ -367,7 +367,7 @@ fn cross_export_usage(
 fn dependency_export_usage(
   dependency: &dyn Dependency,
   module_graph: &ModuleGraph,
-  module_graph_cache: &ModuleGraphCache,
+  module_graph_cache: &ModuleGraphCacheArtifact,
   exports_info_artifact: &ExportsInfoArtifact,
 ) -> Option<DependencyExportUsage> {
   if let Some(dependency) = dependency.downcast_ref::<ESMImportSpecifierDependency>() {
@@ -401,7 +401,7 @@ fn dependency_export_usage(
 fn get_esm_export_imported_specifier_target_exports(
   dependency: &ESMExportImportedSpecifierDependency,
   module_graph: &ModuleGraph,
-  module_graph_cache: &ModuleGraphCache,
+  module_graph_cache: &ModuleGraphCacheArtifact,
   exports_info_artifact: &ExportsInfoArtifact,
 ) -> Vec<Option<Vec<String>>> {
   let ids = dependency.get_ids(module_graph);
@@ -522,7 +522,7 @@ fn map_referenced_target_exports(referenced_exports: Vec<Vec<&Atom>>) -> Vec<Opt
 fn get_esm_star_reexport_hidden_exports(
   dependency: &ESMExportImportedSpecifierDependency,
   module_graph: &ModuleGraph,
-  module_graph_cache: &ModuleGraphCache,
+  module_graph_cache: &ModuleGraphCacheArtifact,
   exports_info_artifact: &ExportsInfoArtifact,
 ) -> Option<HashSet<Atom>> {
   match dependency.get_mode(
@@ -549,7 +549,7 @@ fn get_esm_star_reexport_hidden_exports(
 fn get_esm_export_imported_specifier_exports(
   dependency: &ESMExportImportedSpecifierDependency,
   module_graph: &ModuleGraph,
-  module_graph_cache: &ModuleGraphCache,
+  module_graph_cache: &ModuleGraphCacheArtifact,
   exports_info_artifact: &ExportsInfoArtifact,
 ) -> DependencyExportUsage {
   if let Some(name) = &dependency.name {
@@ -622,7 +622,7 @@ fn get_esm_export_imported_specifier_exports(
 pub fn collect_export_usage_dependencies(
   modules: &IdentifierMap<&BoxModule>,
   module_graph: &ModuleGraph,
-  module_graph_cache: &ModuleGraphCache,
+  module_graph_cache: &ModuleGraphCacheArtifact,
   exports_info_artifact: &ExportsInfoArtifact,
 ) -> Vec<RsdoctorExportUsageDependency> {
   modules
@@ -706,7 +706,7 @@ fn dependency_has_impure_deferred_pure_checks(
 pub fn collect_active_export_usage_dependencies(
   candidates: &[RsdoctorExportUsageDependency],
   module_graph: &ModuleGraph,
-  module_graph_cache: &ModuleGraphCache,
+  module_graph_cache: &ModuleGraphCacheArtifact,
   side_effects_state_artifact: &SideEffectsStateArtifact,
   exports_info_artifact: &ExportsInfoArtifact,
 ) -> Vec<RsdoctorExportUsageDependency> {
@@ -822,7 +822,7 @@ pub fn collect_connections_only_imports(
   modules: &IdentifierMap<&BoxModule>,
   module_ukeys: &IdentifierMap<ModuleUkey>,
   module_graph: &ModuleGraph,
-  module_graph_cache: &ModuleGraphCache,
+  module_graph_cache: &ModuleGraphCacheArtifact,
   side_effects_state_artifact: &SideEffectsStateArtifact,
   exports_info_artifact: &ExportsInfoArtifact,
   module_ukey_to_info: &HashMap<ModuleUkey, (String, bool)>,

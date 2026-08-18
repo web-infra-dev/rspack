@@ -593,7 +593,7 @@ impl ExternalModule {
     let supports_const = compilation.options.output.environment.supports_const();
     let resolved_external_type = self.resolve_external_type();
     let module_graph = compilation.get_module_graph();
-    let module_graph_cache = &compilation.module_graph_cache;
+    let module_graph_cache = &compilation.module_graph_cache_artifact;
 
     let source = match resolved_external_type {
       "this" => format!(
@@ -1289,7 +1289,7 @@ impl Module for ExternalModule {
       .side_effects_state_artifact;
     let is_optional = compilation.get_module_graph().is_optional(
       &self.id,
-      &compilation.module_graph_cache,
+      &compilation.module_graph_cache_artifact,
       side_effects_state_artifact,
       &compilation.exports_info_artifact,
     );

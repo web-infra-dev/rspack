@@ -17,12 +17,12 @@ use crate::{
   ConcatenationEntry, ConnectionState, DependencyId, ExportInfo, ExportsType, ModuleIdentifier,
   RuntimeKey,
 };
-pub type ModuleGraphCache = Arc<ModuleGraphCacheInner>;
+pub type ModuleGraphCacheArtifact = Arc<ModuleGraphCacheArtifactInner>;
 
 /// This is a rust port of `ModuleGraph.cached` and `ModuleGraph.dependencyCacheProvide` in webpack.
 /// We use this to cache the result of functions with high computational overhead.
 #[derive(Debug, Default)]
-pub struct ModuleGraphCacheInner {
+pub struct ModuleGraphCacheArtifactInner {
   /// Webpack enables module graph caches by creating new cache maps and disable them by setting them to undefined.
   /// But in rust I think it's better to use a bool flag to avoid memory reallocation.
   freezed: AtomicBool,
@@ -34,7 +34,7 @@ pub struct ModuleGraphCacheInner {
   module_graph_hash_cache: ModuleGraphHashCache,
 }
 
-impl ModuleGraphCacheInner {
+impl ModuleGraphCacheArtifactInner {
   pub fn freeze(&self) {
     self.get_mode_cache.freeze();
     self.determine_export_assignments_cache.freeze();

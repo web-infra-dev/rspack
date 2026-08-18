@@ -11,7 +11,7 @@ use rspack_core::{
   AsContextDependency, Compilation, Dependency, DependencyCategory, DependencyCodeGeneration,
   DependencyId, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
   ExportsInfoArtifact, FactorizeInfo, JavascriptParserWorkerUrl, ModuleDependency, ModuleGraph,
-  ModuleGraphCache, ReferencedExport, RuntimeGlobals, RuntimeSpec, TemplateContext,
+  ModuleGraphCacheArtifact, ReferencedExport, RuntimeGlobals, RuntimeSpec, TemplateContext,
   TemplateReplaceSource, URLStaticMode,
 };
 use rspack_hash::{RspackHash, RspackHasher};
@@ -104,7 +104,7 @@ impl Dependency for WorkerDependency {
   fn get_referenced_exports(
     &self,
     _module_graph: &ModuleGraph,
-    _module_graph_cache: &ModuleGraphCache,
+    _module_graph_cache: &ModuleGraphCacheArtifact,
     _exports_info_artifact: &ExportsInfoArtifact,
     _runtime: Option<&RuntimeSpec>,
   ) -> Vec<ReferencedExport> {

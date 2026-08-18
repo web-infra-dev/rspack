@@ -48,7 +48,7 @@ use swc_core::ecma::atoms::Atom;
 
 use crate::{
   ConnectionState, EvaluatedInlinableValue, ExportsInfoArtifact, ExportsType, ModuleGraph,
-  ModuleGraphCache, ModuleGraphConnection, ModuleIdentifier, ReferencedExport, RuntimeSpec,
+  ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, ReferencedExport, RuntimeSpec,
   SideEffectsStateArtifact, create_exports_object_referenced,
 };
 
@@ -126,7 +126,7 @@ pub trait DependencyConditionFn: Sync + Send {
     conn: &ModuleGraphConnection,
     runtime: Option<&RuntimeSpec>,
     module_graph: &ModuleGraph,
-    module_graph_cache: &ModuleGraphCache,
+    module_graph_cache: &ModuleGraphCacheArtifact,
     side_effects_state_artifact: &SideEffectsStateArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
   ) -> ConnectionState;
@@ -136,7 +136,7 @@ pub trait DependencyConditionFn: Sync + Send {
     conn: &ModuleGraphConnection,
     runtime: Option<&RuntimeSpec>,
     module_graph: &ModuleGraph,
-    module_graph_cache: &ModuleGraphCache,
+    module_graph_cache: &ModuleGraphCacheArtifact,
     side_effects_state_artifact: &SideEffectsStateArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
   ) -> bool {
@@ -166,7 +166,7 @@ impl DependencyCondition {
     connection: &ModuleGraphConnection,
     runtime: Option<&RuntimeSpec>,
     mg: &ModuleGraph,
-    module_graph_cache: &ModuleGraphCache,
+    module_graph_cache: &ModuleGraphCacheArtifact,
     side_effects_state_artifact: &SideEffectsStateArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
   ) -> ConnectionState {
@@ -185,7 +185,7 @@ impl DependencyCondition {
     connection: &ModuleGraphConnection,
     runtime: Option<&RuntimeSpec>,
     mg: &ModuleGraph,
-    module_graph_cache: &ModuleGraphCache,
+    module_graph_cache: &ModuleGraphCacheArtifact,
     side_effects_state_artifact: &SideEffectsStateArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
   ) -> bool {

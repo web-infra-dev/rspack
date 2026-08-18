@@ -3,7 +3,7 @@ use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   AffectType, AsContextDependency, AsDependencyCodeGeneration, ConnectionState, Dependency,
   DependencyCategory, DependencyId, DependencyRange, DependencyType, FactorizeInfo,
-  ModuleDependency, ModuleGraph, ModuleGraphCache, ModuleLayer, ResourceIdentifier,
+  ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleLayer, ResourceIdentifier,
   SideEffectsStateArtifact,
 };
 use rspack_paths::ArcPathSet;
@@ -102,7 +102,7 @@ impl Dependency for CssDependency {
   fn get_module_evaluation_side_effects_state(
     &self,
     _module_graph: &ModuleGraph,
-    _module_graph_cache: &ModuleGraphCache,
+    _module_graph_cache: &ModuleGraphCacheArtifact,
     _side_effects_state_artifact: &SideEffectsStateArtifact,
     _module_chain: &mut IdentifierSet,
     _connection_state_cache: &mut IdentifierMap<ConnectionState>,

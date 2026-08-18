@@ -2,7 +2,7 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, Context, Dependency, DependencyCategory, DependencyCodeGeneration,
   DependencyId, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
-  ExportsInfoArtifact, FactorizeInfo, ModuleDependency, ModuleGraph, ModuleGraphCache,
+  ExportsInfoArtifact, FactorizeInfo, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
   ReferencedExport, ResourceIdentifier, RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
 
@@ -88,7 +88,7 @@ impl Dependency for RequireResolveDependency {
   fn get_referenced_exports(
     &self,
     _module_graph: &ModuleGraph,
-    _module_graph_cache: &ModuleGraphCache,
+    _module_graph_cache: &ModuleGraphCacheArtifact,
     _exports_info_artifact: &ExportsInfoArtifact,
     _runtime: Option<&RuntimeSpec>,
   ) -> Vec<ReferencedExport> {

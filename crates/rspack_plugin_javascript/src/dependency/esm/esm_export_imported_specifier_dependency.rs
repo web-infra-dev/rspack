@@ -18,7 +18,7 @@ use rspack_core::{
   ExportNameOrSpec, ExportPresenceMode, ExportProvided, ExportSpec, ExportsInfoArtifact,
   ExportsInfoData, ExportsOfExportsSpec, ExportsSpec, ExportsType, FactorizeInfo, ForwardId,
   ImportAttributes, ImportPhase, InitFragmentExt, InitFragmentKey, InitFragmentStage,
-  JavascriptParserOptions, LazyUntil, ModuleDependency, ModuleGraph, ModuleGraphCache,
+  JavascriptParserOptions, LazyUntil, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
   ModuleIdentifier, NormalInitFragment, NormalReexportItem, ReferencedExport, ResourceIdentifier,
   RuntimeCondition, RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, StarReexportsInfo,
   TemplateContext, TemplateReplaceSource, UsageState, UsedName, collect_referenced_export_items,
@@ -136,7 +136,7 @@ impl ESMExportImportedSpecifierDependency {
     &self,
     module_graph: &ModuleGraph,
     runtime: Option<&RuntimeSpec>,
-    module_graph_cache: &ModuleGraphCache,
+    module_graph_cache: &ModuleGraphCacheArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
   ) -> ExportMode {
     let key = (self.id, runtime.map(|r| get_runtime_key(r).clone()));
@@ -153,7 +153,7 @@ impl ESMExportImportedSpecifierDependency {
   fn get_mode_inner(
     &self,
     module_graph: &ModuleGraph,
-    module_graph_cache: &ModuleGraphCache,
+    module_graph_cache: &ModuleGraphCacheArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
     runtime: Option<&RuntimeSpec>,
   ) -> ExportMode {
@@ -315,7 +315,7 @@ impl ESMExportImportedSpecifierDependency {
   pub fn get_star_reexports(
     &self,
     module_graph: &ModuleGraph,
-    module_graph_cache: &ModuleGraphCache,
+    module_graph_cache: &ModuleGraphCacheArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
     runtime: Option<&RuntimeSpec>,
     exports_info: &ExportsInfoData,
@@ -452,7 +452,7 @@ impl ESMExportImportedSpecifierDependency {
   pub fn discover_active_exports_from_other_star_exports(
     &self,
     module_graph: &ModuleGraph,
-    module_graph_cache: &ModuleGraphCache,
+    module_graph_cache: &ModuleGraphCacheArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
   ) -> Option<DiscoverActiveExportsFromOtherStarExportsRet> {
     if let Some(other_star_exports) = &self.other_star_exports {
@@ -509,7 +509,7 @@ impl ESMExportImportedSpecifierDependency {
     let runtime = ctxt.runtime;
     let compilation = ctxt.compilation;
     let mg = &compilation.get_module_graph();
-    let mg_cache = &compilation.module_graph_cache;
+    let mg_cache = &compilation.module_graph_cache_artifact;
     let exports_info_artifact = &compilation.exports_info_artifact;
     let module_identifier = module.identifier();
     let target_module = mg.get_module_by_dependency_id(&self.id);
@@ -841,7 +841,7 @@ impl ESMExportImportedSpecifierDependency {
     &self,
     module_graph: &ModuleGraph,
     runtime: Option<&RuntimeSpec>,
-    module_graph_cache: &ModuleGraphCache,
+    module_graph_cache: &ModuleGraphCacheArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
   ) -> bool {
     let Some((_, dependencies)) = self.all_star_exports(module_graph) else {
@@ -1037,7 +1037,7 @@ impl ESMExportImportedSpecifierDependency {
     &self,
     ids: &[Atom],
     module_graph: &ModuleGraph,
-    module_graph_cache: &ModuleGraphCache,
+    module_graph_cache: &ModuleGraphCacheArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
     should_error: bool,
     diagnostics_context: &DependencyDiagnosticsContext,
@@ -1199,7 +1199,7 @@ impl DependencyCodeGeneration for ESMExportImportedSpecifierDependency {
     let ExportMode::NormalReexport(mode) = self.get_mode(
       module_graph,
       runtime,
-      &compilation.module_graph_cache,
+      &compilation.module_graph_cache_artifact,
       &compilation.exports_info_artifact,
     ) else {
       return;
@@ -1263,7 +1263,7 @@ impl Dependency for ESMExportImportedSpecifierDependency {
   fn get_exports(
     &self,
     mg: &ModuleGraph,
-    module_graph_cache: &ModuleGraphCache,
+    module_graph_cache: &ModuleGraphCacheArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
   ) -> Option<ExportsSpec> {
     let mode = self.get_mode(mg, None, module_graph_cache, exports_info_artifact);
@@ -1402,7 +1402,7 @@ impl Dependency for ESMExportImportedSpecifierDependency {
   fn get_module_evaluation_side_effects_state(
     &self,
     _module_graph: &ModuleGraph,
-    _module_graph_cache: &ModuleGraphCache,
+    _module_graph_cache: &ModuleGraphCacheArtifact,
     _side_effects_state_artifact: &SideEffectsStateArtifact,
     _module_chain: &mut IdentifierSet,
     _connection_state_cache: &mut IdentifierMap<ConnectionState>,
@@ -1422,7 +1422,7 @@ impl Dependency for ESMExportImportedSpecifierDependency {
   fn get_diagnostics(
     &self,
     module_graph: &ModuleGraph,
-    module_graph_cache: &ModuleGraphCache,
+    module_graph_cache: &ModuleGraphCacheArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
   ) -> Option<Vec<Diagnostic>> {
     self.get_diagnostics_with_context(
@@ -1436,7 +1436,7 @@ impl Dependency for ESMExportImportedSpecifierDependency {
   fn get_diagnostics_with_context(
     &self,
     module_graph: &ModuleGraph,
-    module_graph_cache: &ModuleGraphCache,
+    module_graph_cache: &ModuleGraphCacheArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
     diagnostics_context: &DependencyDiagnosticsContext,
   ) -> Option<Vec<Diagnostic>> {
@@ -1482,7 +1482,7 @@ impl Dependency for ESMExportImportedSpecifierDependency {
   fn get_referenced_exports(
     &self,
     module_graph: &ModuleGraph,
-    module_graph_cache: &ModuleGraphCache,
+    module_graph_cache: &ModuleGraphCacheArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
     runtime: Option<&RuntimeSpec>,
   ) -> Vec<ReferencedExport> {
@@ -1728,7 +1728,7 @@ impl DependencyTemplate for ESMExportImportedSpecifierDependencyTemplate {
     } = code_generatable_context;
 
     let module_graph = compilation.get_module_graph();
-    let module_graph_cache = &compilation.module_graph_cache;
+    let module_graph_cache = &compilation.module_graph_cache_artifact;
     let exports_info_artifact = &compilation.exports_info_artifact;
     let mode = dep.get_mode(
       module_graph,
@@ -1787,7 +1787,7 @@ impl DependencyConditionFn for ESMExportImportedSpecifierDependencyCondition {
     connection: &rspack_core::ModuleGraphConnection,
     runtime: Option<&RuntimeSpec>,
     module_graph: &ModuleGraph,
-    module_graph_cache: &ModuleGraphCache,
+    module_graph_cache: &ModuleGraphCacheArtifact,
     _side_effects_state_artifact: &SideEffectsStateArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
   ) -> ConnectionState {

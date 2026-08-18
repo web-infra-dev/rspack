@@ -260,7 +260,7 @@ async fn optimize_dependencies(
           *module_identifier,
           module.get_side_effects_connection_state(
             module_graph,
-            &compilation.module_graph_cache,
+            &compilation.module_graph_cache_artifact,
             side_effects_state_artifact,
             &mut Default::default(),
             &mut Default::default(),
