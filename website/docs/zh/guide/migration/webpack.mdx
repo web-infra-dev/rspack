@@ -86,9 +86,16 @@ Rspack 兼容 webpack 的绝大部分配置项，查阅 [配置 Rspack](/config/
 
 webpack 和 Rspack 的缓存配置结构并不完全相同。迁移时不建议直接复制 webpack 的 cache 配置，而应根据 Rspack 的 [cache 配置](/config/cache) 做对应调整。
 
-对于禁用缓存和内存缓存的场景，可以保留原有写法：`cache: false`、`cache: true` 和 `cache: { type: 'memory' }` 在 Rspack 中含义一致。
+仅就 Cache 存储而言，禁用缓存和内存缓存的写法可以直接映射到 Rspack：`cache: false`、
+`cache: true` 和 `cache: { type: 'memory' }`。
 
 如果 webpack 使用文件系统缓存，应迁移为 Rspack [持久化缓存](/config/cache#持久化缓存)，并按下面的字段映射进行调整。
+
+webpack 的 `cache.cacheUnaffected` 优化在概念上对应 Rspack 顶层的
+[`incremental`](/config/incremental) 选项。Rspack 中该选项与 Cache 相互独立，因此
+`cache: false` 不会禁用 Incremental。如需同时阻止两种机制复用跨 compilation 状态，还需要设置
+`incremental: false`。由于 Rspack Incremental 覆盖更多 compilation 阶段，并且有独立的默认值，
+迁移时应单独评估该选项，而不是把它当作 Cache 字段重命名。
 
 1. 将 webpack 的 `cache.type: 'filesystem'` 改为 Rspack 的 `cache.type: 'persistent'`。
 
@@ -166,7 +173,7 @@ export default {
 };
 ```
 
-下面是自动转换配置时对应的完整映射示例：
+下面的示例自动转换 Cache 存储配置；Incremental 应作为独立的迁移决策处理。
 
 ```js
 function transform(webpackConfig, rspackConfig) {

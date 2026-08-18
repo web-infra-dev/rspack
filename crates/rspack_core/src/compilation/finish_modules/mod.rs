@@ -3,8 +3,8 @@ use rspack_error::Result;
 
 use super::*;
 use crate::{
-  DependencyDiagnosticsContext, OptimizationBailoutItem, SideEffectsStateArtifact, cache::Cache,
-  logger::Logger, pass::PassExt,
+  DependencyDiagnosticsContext, OptimizationBailoutItem, SideEffectsStateArtifact, logger::Logger,
+  pass::PassExt,
 };
 
 pub struct FinishModulesPhasePass;
@@ -15,12 +15,8 @@ impl PassExt for FinishModulesPhasePass {
     "finish modules"
   }
 
-  async fn before_pass(&self, compilation: &mut Compilation, cache: &mut dyn Cache) {
-    cache.before_finish_modules(compilation).await;
-  }
-
-  async fn after_pass(&self, compilation: &mut Compilation, cache: &mut dyn Cache) {
-    cache.after_finish_modules(compilation).await;
+  fn incremental_passes(&self) -> IncrementalPasses {
+    IncrementalPasses::FINISH_MODULES
   }
 
   async fn run_pass(&self, compilation: &mut Compilation) -> Result<()> {

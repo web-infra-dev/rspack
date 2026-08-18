@@ -1,16 +1,17 @@
 use std::{
   borrow::Cow,
+  ops::Range,
   path::{Path, PathBuf},
   sync::LazyLock,
 };
 
 use concat_string::concat_string;
 use cow_utils::CowUtils;
+use memchr::memchr2_iter;
 use regex::Regex;
+use smallvec::SmallVec;
 use sugar_path::SugarPath;
 
-static SEGMENTS_SPLIT_REGEXP: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r"([|!])").expect("should be a valid regex"));
 static WINDOWS_PATH_SEPARATOR: &[char] = &['/', '\\'];
 
 /// # Example
@@ -41,7 +42,12 @@ pub fn absolute_to_request<'b>(context: &str, maybe_absolute_path: &'b str) -> C
     return Cow::Borrowed(maybe_absolute_path);
   }
 
-  let mut result = String::with_capacity(maybe_absolute_path.len());
+  let mut result = String::with_capacity(
+    context
+      .len()
+      .saturating_add(maybe_absolute_path.len())
+      .saturating_add(2),
+  );
   push_absolute_to_request(context, maybe_absolute_path, &mut result);
   Cow::Owned(result)
 }
@@ -138,7 +144,7 @@ pub fn push_absolute_to_request(context: &str, maybe_absolute_path: &str, out: &
   out.push_str(maybe_absolute_path);
 }
 
-fn request_to_absolute(context: &str, relative_path: &str) -> String {
+fn push_request_to_absolute(context: &str, relative_path: &str, out: &mut String) {
   if relative_path.starts_with("./") || relative_path.starts_with("../") {
     let relative_path = if relative_path.starts_with("./") {
       relative_path
@@ -147,39 +153,78 @@ fn request_to_absolute(context: &str, relative_path: &str) -> String {
     } else {
       relative_path
     };
-    Path::new(context)
-      .join(relative_path)
-      .to_string_lossy()
-      .to_string()
+
+    let mut absolute_path = PathBuf::with_capacity(
+      context
+        .len()
+        .saturating_add(relative_path.len())
+        .saturating_add(1),
+    );
+    absolute_path.push(context);
+    absolute_path.push(relative_path);
+    out.push_str(&absolute_path.to_string_lossy());
   } else {
-    PathBuf::from(relative_path).to_string_lossy().to_string()
+    out.push_str(relative_path);
   }
+}
+
+fn identifier_segment_ranges(identifier: &str) -> SmallVec<[Range<u32>; 4]> {
+  let identifier_len =
+    u32::try_from(identifier.len()).expect("identifier length should fit into u32");
+  let mut ranges = SmallVec::new();
+  let mut last = 0;
+
+  for index in memchr2_iter(b'|', b'!', identifier.as_bytes()) {
+    ranges.push(last as u32..index as u32);
+    last = index + 1;
+  }
+  ranges.push(last as u32..identifier_len);
+  ranges
 }
 
 pub fn make_paths_absolute(context: &str, identifier: &str) -> String {
-  split_keep(&SEGMENTS_SPLIT_REGEXP, identifier)
-    .into_iter()
-    .map(|str| request_to_absolute(context, str))
-    .collect()
-}
+  let ranges = identifier_segment_ranges(identifier);
+  let relative_segment_count = ranges
+    .iter()
+    .filter(|range| {
+      let segment = &identifier[range.start as usize..range.end as usize];
+      segment.starts_with("./") || segment.starts_with("../")
+    })
+    .count();
+  let result_capacity = context
+    .len()
+    .saturating_add(1)
+    .saturating_mul(relative_segment_count)
+    .saturating_add(identifier.len());
+  let mut result = String::with_capacity(result_capacity);
 
-fn push_make_paths_relative(context: &str, identifier: &str, out: &mut String) {
-  let mut last = 0;
-
-  for (index, byte) in identifier.bytes().enumerate() {
-    if matches!(byte, b'|' | b'!') {
-      push_absolute_to_request(context, &identifier[last..index], out);
-      out.push(byte as char);
-      last = index + 1;
+  for range in ranges {
+    let start = range.start as usize;
+    let end = range.end as usize;
+    push_request_to_absolute(context, &identifier[start..end], &mut result);
+    if end < identifier.len() {
+      result.push(identifier.as_bytes()[end] as char);
     }
   }
-
-  push_absolute_to_request(context, &identifier[last..], out);
+  result
 }
 
 pub fn make_paths_relative(context: &str, identifier: &str) -> String {
-  let mut result = String::with_capacity(identifier.len());
-  push_make_paths_relative(context, identifier, &mut result);
+  let ranges = identifier_segment_ranges(identifier);
+  let segment_capacity = context.len().saturating_mul(2).saturating_add(2);
+  let result_capacity = segment_capacity
+    .saturating_mul(ranges.len())
+    .saturating_add(identifier.len());
+  let mut result = String::with_capacity(result_capacity);
+
+  for range in ranges {
+    let start = range.start as usize;
+    let end = range.end as usize;
+    push_absolute_to_request(context, &identifier[start..end], &mut result);
+    if end < identifier.len() {
+      result.push(identifier.as_bytes()[end] as char);
+    }
+  }
   result
 }
 
@@ -189,22 +234,6 @@ pub fn strip_zero_width_space_for_fragment(s: &str) -> Cow<'_, str> {
 
 pub fn insert_zero_width_space_for_fragment(s: &str) -> Cow<'_, str> {
   s.cow_replace("#", "\u{200b}#")
-}
-
-fn split_keep<'a>(r: &Regex, text: &'a str) -> Vec<&'a str> {
-  let mut result = Vec::new();
-  let mut last = 0;
-  for (index, matched) in text.match_indices(r) {
-    if last != index {
-      result.push(&text[last..index]);
-    }
-    result.push(matched);
-    last = index + matched.len();
-  }
-  if last < text.len() {
-    result.push(&text[last..]);
-  }
-  result
 }
 
 static REQUEST_TO_ID_REGEX1: LazyLock<Regex> =

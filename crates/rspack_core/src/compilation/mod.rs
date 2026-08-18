@@ -87,7 +87,7 @@ use crate::{
   RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver, SideEffectsOptimizeArtifact,
   SideEffectsStateArtifact, SourceType, Stats, StatsContext, StealCell, ValueCacheVersions,
   cache::persistent::occasion::{
-    devtool::SourceMapDevToolPluginCacheArtifact, minimize::MinimizePersistentCacheArtifact,
+    devtool::SourceMapDevToolPluginCache, minimize::MinimizePersistentCache,
   },
   compilation::build_module_graph::{
     BuildModuleGraphArtifact, ModuleExecutor, UpdateParam, update_module_graph,
@@ -283,9 +283,9 @@ pub struct Compilation {
     StealCell<ProcessRuntimeRequirementsCacheArtifact>,
   pub imported_by_defer_modules_artifact: StealCell<ImportedByDeferModulesArtifact>,
 
-  pub minimize_persistent_cache_artifact: Option<MinimizePersistentCacheArtifact>,
+  pub minimize_persistent_cache: Option<MinimizePersistentCache>,
   pub use_source_map_dev_tool_plugin_cache: bool,
-  pub source_map_dev_tool_plugin_cache_artifact: Option<SourceMapDevToolPluginCacheArtifact>,
+  pub source_map_dev_tool_plugin_cache: Option<SourceMapDevToolPluginCache>,
 
   pub circular_modules: StealCell<CircularModulesInfo>,
   pub code_generated_modules: IdentifierSet,
@@ -412,9 +412,9 @@ impl Compilation {
       process_runtime_requirements_cache_artifact: StealCell::new(
         ProcessRuntimeRequirementsCacheArtifact::new(&options),
       ),
-      minimize_persistent_cache_artifact: None,
+      minimize_persistent_cache: None,
       use_source_map_dev_tool_plugin_cache: false,
-      source_map_dev_tool_plugin_cache_artifact: None,
+      source_map_dev_tool_plugin_cache: None,
       build_time_executed_modules: Default::default(),
       incremental,
       build_chunk_graph_artifact: Default::default(),

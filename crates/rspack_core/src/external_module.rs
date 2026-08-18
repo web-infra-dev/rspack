@@ -348,28 +348,28 @@ fn get_source_for_module_external(
   runtime: Option<&RuntimeSpec>,
   runtime_template: &mut ModuleCodeTemplate,
 ) -> (Option<String>, String, ChunkInitFragments) {
-  let chunk_init_fragments: ChunkInitFragments = vec![
-    NormalInitFragment::new(
-      module_external_import_statement(
-        module_and_specifiers,
-        ident,
-        &dependency_meta.attributes,
-        dependency_meta.phase,
-      ),
-      InitFragmentStage::StageESMImports,
-      0,
-      InitFragmentKey::ModuleExternal(module_external_fragment_key(
-        module_and_specifiers.primary(),
-        &dependency_meta.attributes,
-        dependency_meta.phase,
-      )),
-      None,
-    )
-    .boxed(),
-  ];
+  let external_module_id = format!("__rspack_external_{ident}");
+  let mut fragment = NormalInitFragment::new(
+    module_external_import_statement(
+      module_and_specifiers,
+      ident,
+      &dependency_meta.attributes,
+      dependency_meta.phase,
+    ),
+    InitFragmentStage::StageESMImports,
+    0,
+    InitFragmentKey::ModuleExternal(module_external_fragment_key(
+      module_and_specifiers.primary(),
+      &dependency_meta.attributes,
+      dependency_meta.phase,
+    )),
+    None,
+  );
+  fragment.set_top_level_decl_symbols(vec![external_module_id.clone().into()]);
+  let chunk_init_fragments: ChunkInitFragments = vec![fragment.boxed()];
 
   let base_access = format!(
-    "__rspack_external_{ident}{}",
+    "{external_module_id}{}",
     property_access(module_and_specifiers.iter(), 1)
   );
   let remapping = collect_module_external_remapping(exports_info_artifact, exports_info, runtime);
@@ -940,28 +940,27 @@ impl ExternalModule {
                       init.expect("remapped module external should render init fragments")
                     )
                   } else {
-                    chunk_init_fragments.push(
-                      NormalInitFragment::new(
-                        module_external_import_statement(
-                          request,
-                          id.as_ref(),
-                          &self.dependency_meta.attributes,
-                          self.dependency_meta.phase,
-                        ),
-                        InitFragmentStage::StageESMImports,
-                        module_graph
-                          .get_pre_order_index(&self.identifier())
-                          .map_or(0, |num| num as i32),
-                        InitFragmentKey::ModuleExternal(module_external_fragment_key(
-                          request.primary(),
-                          &self.dependency_meta.attributes,
-                          self.dependency_meta.phase,
-                        )),
-                        None,
-                      )
-                      .boxed(),
-                    );
                     let external_module_id = format!("__rspack_external_{id}");
+                    let mut fragment = NormalInitFragment::new(
+                      module_external_import_statement(
+                        request,
+                        id.as_ref(),
+                        &self.dependency_meta.attributes,
+                        self.dependency_meta.phase,
+                      ),
+                      InitFragmentStage::StageESMImports,
+                      module_graph
+                        .get_pre_order_index(&self.identifier())
+                        .map_or(0, |num| num as i32),
+                      InitFragmentKey::ModuleExternal(module_external_fragment_key(
+                        request.primary(),
+                        &self.dependency_meta.attributes,
+                        self.dependency_meta.phase,
+                      )),
+                      None,
+                    );
+                    fragment.set_top_level_decl_symbols(vec![external_module_id.clone().into()]);
+                    chunk_init_fragments.push(fragment.boxed());
                     let namespace_export_with_name = format!(
                       "{}{}{}",
                       NAMESPACE_OBJECT_EXPORT,

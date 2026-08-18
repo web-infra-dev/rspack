@@ -2988,7 +2988,7 @@ export type LazyCompilationOptions = {
 };
 
 /**
- * Options for incremental builds.
+ * Options for reusing prior pass artifacts during same-compiler rebuilds.
  */
 export type Incremental = {
   /**
@@ -3435,7 +3435,8 @@ export type RspackOptions = {
   lazyCompilation?: boolean | LazyCompilationOptions;
 
   /**
-   * Enable incremental builds.
+   * Control artifact reuse during same-compiler rebuilds such as watch and HMR.
+   * This does not make standalone one-shot builds incremental.
    */
   incremental?: IncrementalPresets | Incremental;
 };

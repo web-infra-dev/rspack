@@ -1,9 +1,7 @@
 use async_trait::async_trait;
 
 use super::*;
-use crate::{
-  ModuleCodeGenerationContext, cache::Cache, compilation::pass::PassExt, logger::Logger,
-};
+use crate::{ModuleCodeGenerationContext, compilation::pass::PassExt, logger::Logger};
 
 pub struct CodeGenerationPass;
 
@@ -13,16 +11,12 @@ impl PassExt for CodeGenerationPass {
     "code generation"
   }
 
-  async fn before_pass(&self, compilation: &mut Compilation, cache: &mut dyn Cache) {
-    cache.before_modules_codegen(compilation).await;
+  fn incremental_passes(&self) -> IncrementalPasses {
+    IncrementalPasses::MODULES_CODEGEN
   }
 
   async fn run_pass(&self, compilation: &mut Compilation) -> Result<()> {
     code_generation_pass_impl(compilation).await
-  }
-
-  async fn after_pass(&self, compilation: &mut Compilation, cache: &mut dyn Cache) {
-    cache.after_modules_codegen(compilation).await;
   }
 }
 
