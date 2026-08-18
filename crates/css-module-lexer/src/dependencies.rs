@@ -6,9 +6,9 @@ use smallvec::SmallVec;
 use crate::{
   HandleWarning, Lexer, Pos,
   css_syntax::{
-    MAX_CSS_KEYWORD_LEN, decode_css_keyword, is_css_modules_magic_comment,
-    is_css_modules_pure_magic_comment, is_css_space_byte, is_css_white_space_char, is_dashed_ident,
-    lowercase_ascii_keyword, strip_vendor_prefix, trim_css_whitespace,
+    MAX_CSS_KEYWORD_LEN, dashed_ident_name, dashed_ident_name_start, decode_css_keyword,
+    is_css_modules_magic_comment, is_css_modules_pure_magic_comment, is_css_space_byte,
+    is_css_white_space_char, lowercase_ascii_keyword, strip_vendor_prefix, trim_css_whitespace,
   },
   dependency_types::{
     Dependency, DependencyContext, Mode, Range, UrlRangeKind, ValueAtRuleImportItem, Warning,
@@ -48,8 +48,12 @@ impl DashedIdentCollector {
 impl LexerVisitor for DashedIdentCollector {
   #[inline(always)]
   fn visit_ident(&mut self, name: &str, range: Range) {
-    if self.enabled && is_dashed_ident(name) {
-      self.occurrences.push(range);
+    if self.enabled
+      && let Some(name_start) = dashed_ident_name_start(name)
+    {
+      self
+        .occurrences
+        .push(Range::new(range.start + name_start as Pos, range.end));
     }
   }
 }
@@ -443,6 +447,10 @@ fn trivia_only(input: &str) -> bool {
 
 fn token_text(input: &str, token: Token) -> &str {
   Lexer::slice_range(input, &token.range).unwrap_or("")
+}
+
+fn is_ascii_keyword(name: &str, expected: &str) -> bool {
+  name.eq_ignore_ascii_case(expected)
 }
 
 fn is_open_token(kind: TokenKind) -> bool {
@@ -1840,7 +1848,7 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
           self
             .dependency_context
             .push_dependency(Dependency::LocalVarDecl {
-              name: stream.lexer().slice(range.start + 2, range.end)?,
+              name: dashed_ident_name(stream.lexer().slice(range.start, range.end)?)?,
               range,
             });
         }
@@ -2388,9 +2396,13 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
   fn lex_local_var(&mut self, stream: &mut DependencyTokenStream<'_, 's>) -> Option<()> {
     let name_token = stream.next_parser_token().token;
     let start = name_token.range.start;
-    if name_token.kind != TokenKind::Ident
-      || !stream.slice(start, name_token.range.end)?.starts_with("--")
-    {
+    let raw_name = stream.slice(start, name_token.range.end)?;
+    let name = if name_token.kind == TokenKind::Ident {
+      dashed_ident_name(raw_name)
+    } else {
+      None
+    };
+    let Some(name) = name else {
       self.handle_warning.handle_warning(Warning {
         kind: WarningKind::Unexpected {
           message: "Expected starts with '--' during parsing of 'var()'",
@@ -2398,42 +2410,48 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
         range: Range::new(start, (start + 2).min(name_token.range.end)),
       });
       return Some(());
-    }
+    };
     let end = name_token.range.end;
     let next = stream.peek_significant_skipping_comments(true).token;
-    let from = if next.kind == TokenKind::Ident
-      && stream.slice(next.range.start, next.range.end)? == "from"
+    let (from, from_is_global) = if next.kind == TokenKind::Ident
+      && is_ascii_keyword(stream.slice(next.range.start, next.range.end)?, "from")
     {
       stream.next_parser_token();
-      let path = stream.peek_significant_skipping_comments(true).token;
-      let path_start = path.range.start;
-      let path_end = path.range.end;
-      if !matches!(path.kind, TokenKind::QuotedString | TokenKind::Ident) {
+      let path_token = stream.peek_significant_skipping_comments(true).token;
+      let path_start = path_token.range.start;
+      let path_end = path_token.range.end;
+      if !matches!(path_token.kind, TokenKind::QuotedString | TokenKind::Ident) {
         self.handle_warning.handle_warning(Warning {
           range: Range::new(path_start, path_end),
           kind: WarningKind::Unexpected {
-            message: "Expected string or ident during parsing of 'composes'",
+            message: "Expected string or ident during parsing of 'var()'",
           },
         });
         return Some(());
       }
       stream.next_parser_token();
-      Some(stream.slice(path_start, path_end)?)
+      let path = stream.slice(path_start, path_end)?;
+      (
+        Some(path),
+        path_token.kind == TokenKind::Ident && path == "global",
+      )
     } else {
-      None
+      (None, false)
     };
-    if from.is_some_and(|from| from.trim_matches(['\'', '"']) == "global") {
+    if from_is_global {
+      let name_start = dashed_ident_name_start(raw_name)?;
       stream
         .lexer_mut()
         .visitor_mut()
-        .discard_last(Range::new(start, end));
+        .discard_last(Range::new(start + name_start as Pos, end));
     }
     self
       .dependency_context
       .push_dependency(Dependency::LocalVar {
-        name: stream.slice(start + 2, end)?,
+        name,
         range: Range::new(start, end),
         from,
+        from_is_global,
       });
     Some(())
   }
@@ -2462,7 +2480,7 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
     self
       .dependency_context
       .push_dependency(local_decl_dependency(
-        stream.slice(start + 2, end)?,
+        dashed_ident_name(stream.slice(start, end)?)?,
         Range::new(start, end),
       ));
     let left_curly = stream.peek_significant_skipping_comments(true).token;
@@ -2757,7 +2775,7 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
       self
         .dependency_context
         .push_dependency(Dependency::LocalFunctionDecl {
-          name: stream.slice(start + 2, end)?,
+          name: dashed_ident_name(stream.slice(start, end)?)?,
           range: Range::new(start, end),
         });
     }
@@ -2828,7 +2846,7 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
       self
         .dependency_context
         .push_dependency(Dependency::LocalFontPalette {
-          name: lexer.slice(range.start + 2, range.end)?,
+          name: dashed_ident_name(lexer.slice(range.start, range.end)?)?,
           range,
         });
     }
@@ -2912,6 +2930,7 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
             local_classes.iter().copied(),
             std::iter::once(stream.slice(name_range.start, name_range.end)?),
             Some("global"),
+            true,
             Range::new(global_start, item_end),
           );
           delimiter = stream.peek_significant_skipping_comments(true).token;
@@ -2945,10 +2964,13 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
               path.range
             };
             item_end = path_range.end;
+            let from_is_global = path.kind == TokenKind::Ident
+              && is_ascii_keyword(stream.slice(path_range.start, path_range.end)?, "global");
             self.dependency_context.push_composes(
               local_classes.iter().copied(),
               std::mem::take(&mut names),
               Some(stream.slice(path_range.start, path_range.end)?),
+              from_is_global,
               Range::new(item_start, item_end),
             );
             has_from = true;
@@ -2992,6 +3014,7 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
             local_classes.iter().copied(),
             names,
             None,
+            false,
             Range::new(item_start, item_end),
           );
         }
@@ -3006,6 +3029,7 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
             local_classes.iter().copied(),
             names,
             None,
+            false,
             Range::new(item_start, item_end),
           );
         }
@@ -3020,6 +3044,7 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
             local_classes.iter().copied(),
             names,
             None,
+            false,
             Range::new(item_start, item_end),
           );
         }
@@ -3533,7 +3558,7 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
       self
         .dependency_context
         .push_dependency(Dependency::LocalFunction {
-          name: stream.slice(start + 2, end - 1)?,
+          name: dashed_ident_name(stream.slice(start, end - 1)?)?,
           range: Range::new(start, end - 1),
         });
     }
@@ -3675,7 +3700,7 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
           self
             .dependency_context
             .push_dependency(Dependency::LocalFunction {
-              name: stream.slice(start + 2, end)?,
+              name: dashed_ident_name(stream.slice(start, end)?)?,
               range: Range::new(start, end),
             });
           return Some(());

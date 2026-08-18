@@ -198,7 +198,7 @@ impl LocalCssIdentDeclarations {
   }
 
   fn has_var(&self, name: &str) -> bool {
-    self.vars.contains(&normalize_dashed_ident_name(name))
+    self.vars.contains(&normalize_ident_name(name))
   }
 }
 
@@ -211,11 +211,6 @@ fn is_custom_property_name(value: &str) -> bool {
 
 fn normalize_ident_name(name: &str) -> SmolStr {
   SmolStr::new(unescape_identifier(name).as_ref())
-}
-
-fn normalize_dashed_ident_name(name: &str) -> SmolStr {
-  let name = unescape_identifier(name);
-  SmolStr::new(name.strip_prefix("--").unwrap_or(&name))
 }
 
 impl<'context> CssModuleParser<'context> {
@@ -476,9 +471,18 @@ impl<'context> CssModuleParser<'context> {
             );
           }
         }
-        css_module_lexer::Dependency::LocalVar { name, from, .. }
-          if self.dashed_idents()
-            && self.should_handle_local_var_usage(name, *from, local_css_ident_declarations) =>
+        css_module_lexer::Dependency::LocalVar {
+          name,
+          from,
+          from_is_global,
+          ..
+        } if self.dashed_idents()
+          && self.should_handle_local_var_usage(
+            name,
+            *from,
+            *from_is_global,
+            local_css_ident_declarations,
+          ) =>
         {
           if let Some(convention) = convention {
             self.collect_export_dependency_name(
@@ -534,14 +538,14 @@ impl<'context> CssModuleParser<'context> {
       && self.dashed_idents()
       && let Some(convention) = convention
     {
-      for range in deps.dashed_ident_occurrences() {
+      for range in deps.dashed_ident_name_ranges() {
         let Some(name) = self
           .source_code
           .get(range.start as usize..range.end as usize)
         else {
           continue;
         };
-        let name = normalize_dashed_ident_name(name);
+        let name = normalize_ident_name(name);
         if !local_css_ident_declarations.vars.contains(&name) {
           continue;
         }
@@ -620,14 +624,17 @@ impl<'context> CssModuleParser<'context> {
         | css_module_lexer::Dependency::LocalPropertyDecl { name, .. }
           if self.dashed_idents() =>
         {
-          declarations.vars.insert(normalize_dashed_ident_name(name));
+          declarations.vars.insert(normalize_ident_name(name));
         }
         css_module_lexer::Dependency::ICSSExportValue { prop, .. }
         | css_module_lexer::Dependency::ICSSImportValue { prop, .. }
           if self.dashed_idents()
             && prop.strip_prefix("--").is_some_and(is_custom_property_name) =>
         {
-          declarations.vars.insert(normalize_dashed_ident_name(prop));
+          let name = prop
+            .strip_prefix("--")
+            .expect("custom property was checked above");
+          declarations.vars.insert(normalize_ident_name(name));
         }
         _ => {}
       }
@@ -640,10 +647,11 @@ impl<'context> CssModuleParser<'context> {
     &self,
     name: &str,
     from: Option<&str>,
+    from_is_global: bool,
     local_css_ident_declarations: &LocalCssIdentDeclarations,
   ) -> bool {
-    if let Some(from) = from {
-      return from.trim_matches(|c| c == '\'' || c == '"') != "global";
+    if from.is_some() {
+      return !from_is_global;
     }
 
     local_css_ident_declarations.has_var(name)
@@ -778,6 +786,7 @@ impl<'context> CssModuleParser<'context> {
         local_classes,
         names,
         from,
+        from_is_global,
         range,
       } => {
         self.handle_composes(
@@ -787,6 +796,7 @@ impl<'context> CssModuleParser<'context> {
             .copied(),
           dependency_context.composes_names(*names).iter().copied(),
           *from,
+          *from_is_global,
           *range,
         );
         Ok(())
@@ -892,13 +902,21 @@ impl<'context> CssModuleParser<'context> {
           .handle_optional_local_ident_declaration(self.grid(), name, *range, module_hash_options)
           .await
       }
-      css_module_lexer::Dependency::LocalVar { name, range, from } => {
+      css_module_lexer::Dependency::LocalVar {
+        name,
+        range,
+        from,
+        from_is_global,
+      } => {
+        if !self.dashed_idents() {
+          return Ok(());
+        }
         self
-          .handle_optional_local_var_usage(
-            self.dashed_idents(),
+          .handle_local_var_usage(
             name,
             *range,
             *from,
+            *from_is_global,
             module_hash_options,
             local_css_ident_declarations,
           )
@@ -1217,24 +1235,22 @@ impl<'context> CssModuleParser<'context> {
     name: &str,
     range: css_module_lexer::Range,
     from: Option<&str>,
+    from_is_global: bool,
     module_hash_options: &LocalIdentModuleHashOptions<'_>,
     local_css_ident_declarations: &LocalCssIdentDeclarations,
   ) -> Result<()> {
     let name = unescape_identifier(name);
-    let name = name.trim_start_matches("--");
 
-    if let Some(from) = from
-      && from.trim_matches(|c| c == '\'' || c == '"') == "global"
-    {
+    if from_is_global {
       return Ok(());
     }
 
-    if from.is_none() && !local_css_ident_declarations.vars.contains(name) {
+    if from.is_none() && !local_css_ident_declarations.vars.contains(name.as_ref()) {
       return Ok(());
     }
 
     self
-      .add_local_var_self_reference(name, range, module_hash_options)
+      .add_local_var_self_reference(name.as_ref(), range, module_hash_options)
       .await?;
     Ok(())
   }
@@ -1260,29 +1276,6 @@ impl<'context> CssModuleParser<'context> {
     Ok(())
   }
 
-  async fn handle_optional_local_var_usage(
-    &mut self,
-    enabled: bool,
-    name: &str,
-    range: css_module_lexer::Range,
-    from: Option<&str>,
-    module_hash_options: &LocalIdentModuleHashOptions<'_>,
-    local_css_ident_declarations: &LocalCssIdentDeclarations,
-  ) -> Result<()> {
-    if !enabled {
-      return Ok(());
-    }
-    self
-      .handle_local_var_usage(
-        name,
-        range,
-        from,
-        module_hash_options,
-        local_css_ident_declarations,
-      )
-      .await
-  }
-
   async fn handle_optional_local_dashed_ident_usage(
     &mut self,
     enabled: bool,
@@ -1306,14 +1299,13 @@ impl<'context> CssModuleParser<'context> {
     module_hash_options: &LocalIdentModuleHashOptions<'_>,
   ) -> Result<()> {
     let name = unescape_identifier(name);
-    let name = name.trim_start_matches("--");
     let (local_ident, convention_names) = self
-      .resolve_local_var_ident_and_update_exports(name, module_hash_options)
+      .resolve_local_var_ident_and_update_exports(name.as_ref(), module_hash_options)
       .await?;
 
     self
       .css_local_names
-      .insert(name.into(), local_ident.as_str().into());
+      .insert(name.as_ref().into(), local_ident.as_str().into());
 
     self
       .dependencies
@@ -1452,6 +1444,7 @@ impl<'context> CssModuleParser<'context> {
     local_classes: impl IntoIterator<Item = &'source str>,
     names: impl IntoIterator<Item = &'source str>,
     from: Option<&'source str>,
+    from_is_global: bool,
     range: css_module_lexer::Range,
   ) {
     let local_classes = local_classes
@@ -1462,10 +1455,11 @@ impl<'context> CssModuleParser<'context> {
       .into_iter()
       .map(|s| unescape_identifier(s).to_string())
       .collect::<Vec<_>>();
-    let resolved_from = from.and_then(|from| {
-      let from = from.trim_matches(|c| c == '\'' || c == '"');
-      (from != "global").then(|| self.resolve_icss_import_request(from))
-    });
+    let resolved_from = if from_is_global {
+      None
+    } else {
+      from.map(|from| self.resolve_icss_import_request(from))
+    };
 
     let mut dep_id = None;
     if let Some(from) = resolved_from.as_deref() {

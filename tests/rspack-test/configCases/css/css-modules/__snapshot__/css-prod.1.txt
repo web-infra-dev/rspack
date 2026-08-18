@@ -301,7 +301,7 @@ div {
 }
 
 ._08zSUb {
-	color: var(--pXpOo6 from "./var-function-export.modules.css");
+	color: var(--JW9_gK from "./var-function-export.modules.css");
 }
 
 .IBxHpE {

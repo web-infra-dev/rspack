@@ -100,7 +100,10 @@ fn dependency_css_module_names_preserve_css_escapes() {
     .iter()
     .find(|dependency| matches!(dependency, Dependency::LocalVar { .. }))
     .expect("test setup must produce the expected value");
-  let Dependency::LocalVar { name, from, range } = usage else {
+  let Dependency::LocalVar {
+    name, from, range, ..
+  } = usage
+  else {
     unreachable!();
   };
   assert_eq!(*name, r"v\61 r");
@@ -122,6 +125,7 @@ fn dependency_composes_and_icss_strings_preserve_css_escapes() {
     names,
     from,
     range,
+    ..
   } = composes
   else {
     unreachable!();

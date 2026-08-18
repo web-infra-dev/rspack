@@ -62,10 +62,10 @@ impl Scope {
         Dependency::Composes {
           local_classes,
           names,
-          from,
+          from_is_global,
           ..
         } => {
-          let is_global = *from == Some("global");
+          let is_global = *from_is_global;
           let names = dependencies.composes_names(*names);
           let local_classes = dependencies.composes_local_classes(*local_classes);
           for name in names {
