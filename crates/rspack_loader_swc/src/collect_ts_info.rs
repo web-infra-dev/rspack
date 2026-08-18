@@ -1,6 +1,6 @@
 use rspack_core::{CollectedTypeScriptInfo, EvaluatedInlinableValue, TSEnumValue};
 use rspack_swc_plugin_ts_collector::{
-  EnumMemberValue, ExportedEnumCollector, TypeExportsCollector,
+  EnumMemberValue, ExportedEnumCollector, ImportsExportsCollector, TypeExportsCollector,
 };
 use rustc_hash::FxHashMap;
 use swc::atoms::{Atom, Wtf8Atom};
@@ -16,6 +16,13 @@ pub fn collect_typescript_info(
   unresolved_ctxt: SyntaxContext,
   options: &CollectTypeScriptInfoOptions,
 ) -> CollectedTypeScriptInfo {
+  let mut exports = Default::default();
+  let mut imported_modules = Default::default();
+  program.visit_with(&mut ImportsExportsCollector::new(
+    &mut exports,
+    &mut imported_modules,
+  ));
+
   let mut type_exports = Default::default();
   if options.type_exports.unwrap_or_default() {
     program.visit_with(&mut TypeExportsCollector::new(&mut type_exports));
@@ -31,6 +38,8 @@ pub fn collect_typescript_info(
   }
   CollectedTypeScriptInfo {
     type_exports,
+    exports,
+    imported_modules,
     exported_enums: exported_enums
       .into_iter()
       .map(|(k, members)| {
