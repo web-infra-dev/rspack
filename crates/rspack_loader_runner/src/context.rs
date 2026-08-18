@@ -9,7 +9,9 @@ use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
   AdditionalData, Content, LoaderChain, LoaderItem, LoaderItemState, LoaderRunnerPlugin, Loaders,
-  ParseMeta, ResourceData, chain::CacheChainState, loader::LoaderItemList,
+  ParseMeta, ResourceData,
+  chain::{CacheChainState, LoaderChains},
+  loader::LoaderItemList,
 };
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -59,11 +61,8 @@ pub struct LoaderContext<Context: Send> {
   pub loader_index: i32,
   #[debug(skip)]
   pub loader_items: ArcComputed<Loaders<Context>, Vec<LoaderItem<Context>>>,
-  pub loader_chains: ArcComputed<Loaders<Context>, Vec<LoaderChain>>,
   #[debug(skip)]
-  pub(crate) root_chain_by_loader: ArcComputed<Loaders<Context>, Vec<u8>>,
-  #[debug(skip)]
-  pub(crate) execution_chain_by_loader: ArcComputed<Loaders<Context>, Vec<u16>>,
+  pub(crate) loader_chains: ArcComputed<Loaders<Context>, LoaderChains>,
   pub loader_item_states: Vec<LoaderItemState>,
   #[debug(skip)]
   pub(crate) cache_chain_states: Vec<Option<CacheChainState>>,
@@ -72,6 +71,10 @@ pub struct LoaderContext<Context: Send> {
 }
 
 impl<Context: Send> LoaderContext<Context> {
+  fn current_loader_index(&self) -> usize {
+    usize::try_from(self.loader_index).expect("current loader index should not be negative")
+  }
+
   pub fn loader_items(&self) -> &[LoaderItem<Context>] {
     &self.loader_items
   }
@@ -80,16 +83,16 @@ impl<Context: Send> LoaderContext<Context> {
     if self.loader_index >= self.loader_items().len() as i32 - 1 {
       return Default::default();
     }
-    LoaderItemList(&self.loader_items()[self.loader_index as usize + 1..])
+    LoaderItemList(&self.loader_items()[self.current_loader_index() + 1..])
   }
 
   pub fn previous_request(&self) -> LoaderItemList<'_, Context> {
-    LoaderItemList(&self.loader_items()[..self.loader_index as usize])
+    LoaderItemList(&self.loader_items()[..self.current_loader_index()])
   }
 
   #[inline]
   pub fn current_loader(&self) -> &LoaderItem<Context> {
-    &self.loader_items()[self.loader_index as usize]
+    &self.loader_items()[self.current_loader_index()]
   }
 
   pub fn loader_item_state(&self, index: usize) -> &LoaderItemState {
@@ -101,11 +104,11 @@ impl<Context: Send> LoaderContext<Context> {
   }
 
   pub fn current_loader_state(&self) -> &LoaderItemState {
-    self.loader_item_state(self.loader_index as usize)
+    self.loader_item_state(self.current_loader_index())
   }
 
   pub fn current_loader_state_mut(&mut self) -> &mut LoaderItemState {
-    self.loader_item_state_mut(self.loader_index as usize)
+    self.loader_item_state_mut(self.current_loader_index())
   }
 
   pub fn set_current_loader_pitch_executed(&mut self) {
@@ -122,23 +125,17 @@ impl<Context: Send> LoaderContext<Context> {
 
   pub(crate) fn current_root_chain_index(&self) -> Option<usize> {
     let loader_index = usize::try_from(self.loader_index).ok()?;
-    self
-      .root_chain_by_loader
-      .get(loader_index)
-      .copied()
-      .map(usize::from)
+    self.loader_chains.root_chain_index(loader_index)
   }
 
   pub(crate) fn current_root_chain(&self) -> Option<&LoaderChain> {
-    self
-      .current_root_chain_index()
-      .and_then(|index| self.loader_chains.get(index))
+    let loader_index = usize::try_from(self.loader_index).ok()?;
+    self.loader_chains.root_chain(loader_index)
   }
 
   pub fn current_chain(&self) -> Option<&LoaderChain> {
     let loader_index = usize::try_from(self.loader_index).ok()?;
-    let chain_index = *self.execution_chain_by_loader.get(loader_index)?;
-    self.loader_chains.get(usize::from(chain_index))
+    self.loader_chains.execution_chain(loader_index)
   }
 
   /// Builds the cache key from the final per-run loader options. JavaScript
@@ -146,8 +143,7 @@ impl<Context: Send> LoaderContext<Context> {
   /// `Module::loaders` is materialized on the JavaScript side.
   pub fn loader_chain_cache_key(&self, chain: &LoaderChain) -> Option<String> {
     let mut chain_key = String::new();
-    for index in chain.range() {
-      let index = usize::from(index);
+    for index in chain.loader_indices() {
       let loader = &self.loader_items()[index];
       let options = self.loader_item_state(index).options_cache_key()?;
       let name = loader.path().as_str();

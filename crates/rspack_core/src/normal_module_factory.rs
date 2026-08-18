@@ -1383,7 +1383,7 @@ impl ResolvedLoader {
         // and are available here. JavaScript options are still represented by
         // `??ident` and are fingerprinted when JS materializes Module::loaders.
         options_cache_key: (self.loader.execution_kind() == LoaderExecutionKind::Native)
-          .then(|| self.options.unwrap_or_else(|| "undefined".to_owned())),
+          .then(|| self.options.unwrap_or_default()),
       }
     } else {
       LoaderRunnerOptions::default()
