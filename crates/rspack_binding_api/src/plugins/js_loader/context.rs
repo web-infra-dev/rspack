@@ -2,12 +2,14 @@ use std::{ptr::NonNull, sync::Arc};
 
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
+use rspack_collections::Identifiable;
 use rspack_core::{LoaderContext, Module, RunnerContext};
 use rspack_error::ToStringResultToRspackResultExt;
 use rspack_loader_runner::State as LoaderState;
 use rspack_napi::threadsafe_js_value_ref::ThreadsafeJsValueRef;
 use rustc_hash::FxHashMap as HashMap;
 
+use super::cache::JsLoaderCacheObject;
 use crate::{error::RspackError, module::ModuleObject};
 
 #[napi(object)]
@@ -15,6 +17,8 @@ use crate::{error::RspackError, module::ModuleObject};
 pub struct JsLoaderItem {
   pub loader: String,
   pub r#type: String,
+  pub cache: bool,
+  pub cache_key: String,
 
   // data
   pub data: serde_json::Value,
@@ -26,18 +30,17 @@ pub struct JsLoaderItem {
   pub no_pitch: bool,
 }
 
-impl JsLoaderItem {
-  fn from_parts(
-    value: &rspack_loader_runner::LoaderItem<RunnerContext>,
-    state: &rspack_loader_runner::LoaderItemState,
-  ) -> Self {
+impl From<&rspack_loader_runner::LoaderItem<RunnerContext>> for JsLoaderItem {
+  fn from(value: &rspack_loader_runner::LoaderItem<RunnerContext>) -> Self {
     JsLoaderItem {
       loader: value.request().to_string(),
       r#type: value.r#type().to_string(),
+      cache: value.cache(),
+      cache_key: value.cache_key().to_string(),
 
-      data: state.data().clone(),
-      normal_executed: state.normal_executed(),
-      pitch_executed: state.pitch_executed(),
+      data: value.data().clone(),
+      normal_executed: value.normal_executed(),
+      pitch_executed: value.pitch_executed(),
 
       no_pitch: false,
     }
@@ -56,6 +59,8 @@ where
         loader: ident.to_string(),
         data: serde_json::Value::Null,
         r#type: r#type.to_string(),
+        cache: false,
+        cache_key: String::new(),
         pitch_executed: false,
         normal_executed: false,
         no_pitch: false,
@@ -65,6 +70,8 @@ where
       loader: identifier.to_string(),
       data: serde_json::Value::Null,
       r#type: String::default(),
+      cache: false,
+      cache_key: String::new(),
       pitch_executed: false,
       normal_executed: false,
       no_pitch: false,
@@ -113,14 +120,12 @@ pub struct JsLoaderContext {
 
   pub loader_items: Vec<JsLoaderItem>,
   pub loader_index: i32,
-  /// Inclusive start and exclusive end of the current JavaScript execution
-  /// span inside the loader chain.
-  pub loader_chain_start: i32,
-  pub loader_chain_end: i32,
   #[napi(ts_type = "Readonly<JsLoaderState>")]
   pub loader_state: JsLoaderState,
   #[napi(js_name = "__internal__error")]
   pub error: Option<RspackError>,
+  #[napi(js_name = "__internal__loaderCache", ts_type = "JsLoaderCache")]
+  pub loader_cache: JsLoaderCacheObject,
 
   /// UTF-8 hint for `content`
   /// - Some(true): `content` is a `UTF-8` encoded sequence
@@ -136,15 +141,11 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
   ) -> std::result::Result<Self, Self::Error> {
     let module = &cx.context.module;
 
-    let execution_span = cx
-      .current_chain()
-      .expect("yielding requires a current execution chain")
-      .range();
+    #[allow(clippy::unwrap_used)]
     Ok(JsLoaderContext {
       resource: cx.resource_data.resource().to_owned(),
       module: ModuleObject::with_ptr(
-        NonNull::new(module.as_ref() as *const dyn Module as *mut dyn Module)
-          .expect("module reference should always produce a non-null pointer"),
+        NonNull::new(module.as_ref() as *const dyn Module as *mut dyn Module).unwrap(),
         cx.context.compiler_id,
       ),
       hot: cx.hot,
@@ -185,17 +186,14 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
         .map(|i| i.to_string_lossy().to_string())
         .collect(),
 
-      loader_items: cx
-        .loader_items()
-        .iter()
-        .zip(cx.loader_item_states.iter())
-        .map(|(item, state)| JsLoaderItem::from_parts(item, state))
-        .collect(),
+      loader_items: cx.loader_items.iter().map(Into::into).collect(),
       loader_index: cx.loader_index,
-      loader_chain_start: execution_span.start as i32,
-      loader_chain_end: execution_span.end as i32,
       loader_state: cx.state().into(),
       error: None,
+      loader_cache: JsLoaderCacheObject::new(
+        cx.context.loader_cache().clone(),
+        module.identifier().to_string(),
+      ),
       utf8_hint: None,
     })
   }

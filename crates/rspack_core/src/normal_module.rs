@@ -16,7 +16,10 @@ use rspack_error::{Diagnosable, Diagnostic, Result, error};
 use rspack_fs::ReadableFileSystem;
 use rspack_hash::{RspackHash, RspackHashDigest, RspackHasher};
 use rspack_hook::define_hook;
-use rspack_loader_runner::{AdditionalData, Content, LoaderContext, ResourceData};
+use rspack_loader_runner::{
+  AdditionalData, Content, LoaderContext, LoaderRunnerOptions, ResourceData,
+  run_loaders_with_options,
+};
 use rspack_sources::{
   BoxSource, CachedSource, OriginalSource, RawBufferSource, RawStringSource, SourceExt, SourceMap,
   SourceMapSource, WithoutOriginalOptions,
@@ -29,7 +32,7 @@ use crate::{
   AsyncDependenciesBlockIdentifier, BoxDependencyTemplate, BoxLoader, BoxModule,
   BoxModuleDependency, BuildContext, BuildInfo, BuildMeta, BuildResult, ChunkGraph,
   CodeGenerationResult, Compilation, ConnectionState, Context, DependenciesBlock, DependencyId,
-  FactoryMeta, GenerateContext, GeneratorOptions, ImportPhase, LibIdentOptions, Loaders, Module,
+  FactoryMeta, GenerateContext, GeneratorOptions, ImportPhase, LibIdentOptions, Module,
   ModuleCodeGenerationContext, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
   ModuleLayer, ModuleType, OptimizationBailoutItem, OutputOptions, ParseContext, ParseResult,
   ParserAndGenerator, ParserOptions, Resolve, ResolvedModuleOptions, RspackLoaderRunnerPlugin,
@@ -118,7 +121,8 @@ pub struct NormalModule {
   resource_data: Arc<ResourceData>,
   /// Loaders for the module
   #[debug(skip)]
-  loaders: Arc<Loaders>,
+  loaders: Vec<BoxLoader>,
+  loader_options: Vec<LoaderRunnerOptions>,
 
   /// Built source of this module (passed with loaders)
   #[cacheable(with=AsOption<AsPreset>)]
@@ -186,7 +190,8 @@ impl NormalModule {
     match_resource: Option<ResourceData>,
     resource_data: Arc<ResourceData>,
     resolve_options: Option<Arc<Resolve>>,
-    loaders: Arc<Loaders>,
+    loaders: Vec<BoxLoader>,
+    loader_options: Vec<LoaderRunnerOptions>,
     context: Option<Context>,
     extract_source_map: Option<bool>,
     import_phase: ImportPhase,
@@ -213,6 +218,7 @@ impl NormalModule {
       resource_data,
       resolve_options,
       loaders,
+      loader_options,
       source: None,
       debug_id: DEBUG_ID.fetch_add(1, Ordering::Relaxed),
       extract_source_map,
@@ -258,7 +264,7 @@ impl NormalModule {
   }
 
   pub fn loaders(&self) -> &[BoxLoader] {
-    self.loaders.loaders()
+    &self.loaders
   }
 
   pub fn parser_and_generator(&self) -> &dyn ParserAndGenerator {
@@ -363,7 +369,7 @@ impl Module for NormalModule {
     perfetto.process_name = format!("Rspack Build Detail"),
     module.resource = self.resource_resolved_data().resource(),
     module.identifier = self.identifier().as_str(),
-    module.loaders = ?self.loaders.loaders().iter().map(|l| l.identifier().as_str()).collect::<Vec<_>>())
+    module.loaders = ?self.loaders.iter().map(|l| l.identifier().as_str()).collect::<Vec<_>>())
   )]
   async fn build(
     mut self: Box<Self>,
@@ -396,24 +402,24 @@ impl Module for NormalModule {
     let compiler_options = build_context.compiler_options.clone();
     let resolver_factory = build_context.resolver_factory.clone();
     let fs = build_context.fs.clone();
-    let loaders = self.loaders.clone();
-    let (mut loader_result, err) = loaders
-      .run_loaders(
-        self.resource_data.clone(),
-        Some(plugin.clone()),
-        RunnerContext {
-          compiler_id,
-          compilation_id,
-          options: compiler_options,
-          resolver_factory,
-          source_map_kind: self.source_map_kind,
-          loader_cache: build_context.loader_cache.clone(),
-          module: self,
-        },
-        fs,
-      )
-      .instrument(info_span!("NormalModule:run_loaders",))
-      .await;
+    let (mut loader_result, err) = run_loaders_with_options(
+      self.loaders.clone(),
+      self.loader_options.clone(),
+      self.resource_data.clone(),
+      Some(plugin.clone()),
+      RunnerContext {
+        compiler_id,
+        compilation_id,
+        options: compiler_options,
+        resolver_factory,
+        source_map_kind: self.source_map_kind,
+        loader_cache: build_context.loader_cache.clone(),
+        module: self,
+      },
+      fs,
+    )
+    .instrument(info_span!("NormalModule:run_loaders",))
+    .await;
     self = loader_result.context.module;
 
     if let Some(err) = err {
@@ -553,7 +559,7 @@ impl Module for NormalModule {
         module_user_request: &self.user_request,
         module_match_resource: self.match_resource.as_ref(),
         module_source_map_kind: self.source_map_kind,
-        loaders: self.loaders.loaders(),
+        loaders: &self.loaders,
         resource_data: &self.resource_data,
         compiler_options: &build_context.compiler_options,
         additional_data: loader_result.additional_data,

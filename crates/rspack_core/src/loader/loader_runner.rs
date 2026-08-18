@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
 pub use rspack_loader_runner::{
-  Content, Loader, LoaderChain, LoaderChainCacheAction, LoaderChainCacheState, LoaderContext,
-  LoaderExecutionKind, LoaderRunnerOptions,
+  Content, Loader, LoaderCacheAction, LoaderCacheState, LoaderContext, LoaderRunnerOptions,
+  run_loaders, run_loaders_with_options,
 };
 use rspack_util::source_map::SourceMapKind;
 
@@ -21,5 +21,11 @@ pub struct RunnerContext {
   pub(crate) loader_cache: Arc<LoaderCache>,
 }
 
-pub type Loaders = rspack_loader_runner::Loaders<RunnerContext>;
+impl RunnerContext {
+  #[doc(hidden)]
+  pub fn loader_cache(&self) -> &Arc<LoaderCache> {
+    &self.loader_cache
+  }
+}
+
 pub type BoxLoader = Arc<dyn for<'a> Loader<RunnerContext>>;

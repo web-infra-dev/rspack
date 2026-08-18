@@ -6,15 +6,14 @@ use rspack_cacheable::{
 };
 use rspack_collections::Identifier;
 use rspack_core::{
-  BoxLoader, Context, Loader, LoaderExecutionKind, ModuleRuleUseLoader,
-  NormalModuleFactoryResolveLoader, ResolveResult, Resolver, Resource, RunnerContext,
+  BoxLoader, Context, Loader, ModuleRuleUseLoader, NormalModuleFactoryResolveLoader, ResolveResult,
+  Resolver, Resource, RunnerContext,
 };
 use rspack_error::Result;
-use rspack_hash::{HashFunction, RspackHasher};
 use rspack_hook::plugin_hook;
 use rspack_paths::Utf8Path;
 
-use super::{JsLoaderRspackPlugin, JsLoaderRspackPluginInner};
+use super::{JsLoaderRspackPlugin, JsLoaderRspackPluginInner, cache::loader_cache_version};
 
 #[cacheable]
 #[derive(Debug)]
@@ -32,10 +31,6 @@ impl Loader<RunnerContext> for JsLoader {
 
   fn r#type(&self) -> Option<&str> {
     self.1.as_deref()
-  }
-
-  fn execution_kind(&self) -> LoaderExecutionKind {
-    LoaderExecutionKind::JavaScript
   }
 
   fn cache_version(&self) -> Option<&str> {
@@ -107,33 +102,14 @@ pub(crate) async fn resolve_loader(
       // Use `str::ends_with` instead of `Path::extension` to avoid unnecessary allocation
       let path = path.as_str();
 
-      let package_version = is_package_request
-        .then(|| description_data.as_ref())
-        .flatten()
-        .and_then(|data| {
-          let package = data.json();
-          Some((
-            package.get("name")?.as_str()?,
-            package.get("version")?.as_str()?,
-          ))
-        });
-      let cache_version = if l.cache {
-        if let Some((name, version)) = package_version {
-          Some(format!("package:{name}@{version}"))
-        } else {
-          // V1 fingerprints only the resolved loader entry file. Files that
-          // the loader imports or requires are intentionally not included yet.
-          let contents = resolver
-            .inner_fs()
-            .read(rspack_paths::Utf8Path::new(path))
-            .await?;
-          let mut hasher = RspackHasher::new(&HashFunction::Xxhash64);
-          hasher.write(&contents);
-          Some(format!("file:{:016x}", hasher.finish()))
-        }
-      } else {
-        None
-      };
+      let cache_version = loader_cache_version(
+        resolver,
+        Utf8Path::new(path),
+        is_package_request,
+        description_data.as_ref(),
+        l.cache,
+      )
+      .await?;
 
       let r#type = if path.ends_with(".mjs") {
         Some(Cow::Borrowed("module"))

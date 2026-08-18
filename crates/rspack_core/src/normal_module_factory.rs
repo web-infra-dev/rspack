@@ -12,14 +12,14 @@ use crate::{
   AssetInlineGeneratorOptions, AssetResourceGeneratorOptions, BoxLoader, BoxModule,
   CompilerOptions, Context, CssAutoOrModuleParserOptions, CssModuleGeneratorOptions,
   CssModuleParserOptions, Dependency, DependencyCategory, DependencyType, FactoryMeta, FuncUseCtx,
-  GeneratorOptions, Loaders, MatchContext, ModuleExt, ModuleFactory, ModuleFactoryCreateData,
+  GeneratorOptions, MatchContext, ModuleExt, ModuleFactory, ModuleFactoryCreateData,
   ModuleFactoryResult, ModuleIdentifier, ModuleLayer, ModuleRuleEffect, ModuleRuleEnforce,
   ModuleRuleUse, ModuleRuleUseLoader, ModuleType, NormalModule, ParserAndGenerator, ParserOptions,
   ParserOptionsMap, RawModule, Resolve, ResolveArgs, ResolveOptionsWithDependencyType,
   ResolveResult, ResolvedModuleOptions, ResolvedModuleOptionsCacheKey, Resolver, ResolverFactory,
   ResourceData, ResourceParsedData, RunnerContext, RuntimeGlobals, SharedPluginDriver,
-  diagnostics::EmptyDependency, module_rules_matcher, parse_resource, resolve,
-  stringify_loaders_and_resource,
+  diagnostics::EmptyDependency, loader::loader_cache::loader_cache_key, module_rules_matcher,
+  parse_resource, resolve, stringify_loaders_and_resource,
 };
 
 define_hook!(NormalModuleFactoryBeforeResolve: SeriesBail(data: &mut ModuleFactoryCreateData) -> bool,tracing=false);
@@ -1068,15 +1068,13 @@ module.exports = "data:,";
         all_loaders.extend(resolved_normal_loaders);
         all_loaders.extend(
           resolved_inline_loaders
-            .iter()
-            .cloned()
+            .into_iter()
             .map(ResolvedLoader::uncached),
         );
       } else {
         all_loaders.extend(
           resolved_inline_loaders
-            .iter()
-            .cloned()
+            .into_iter()
             .map(ResolvedLoader::uncached),
         );
         all_loaders.extend(resolved_normal_loaders);
@@ -1106,7 +1104,6 @@ module.exports = "data:,";
       .into_iter()
       .map(|resolved| (resolved.loader, resolved.options))
       .unzip();
-    let loaders = Arc::new(Loaders::with_options(loaders, loader_options));
 
     let resolved_module_type = self.calculate_module_type(match_module_type, &matched_module_rules);
     let resolved_module_layer =
@@ -1188,6 +1185,7 @@ module.exports = "data:,";
         resource_resolve_data,
         resolved_resolve_options,
         loaders,
+        loader_options,
         create_data.context.clone().map(|x| x.into()),
         resolved_extract_source_map,
         dependency_phase,
@@ -1370,18 +1368,6 @@ impl ResolvedLoader {
   }
 }
 
-fn loader_cache_key(name: &str, loader: &BoxLoader, options: &str) -> String {
-  let version = loader
-    .cache_version()
-    .unwrap_or(rspack_workspace::rspack_pkg_version!());
-  format!(
-    "{}:{name}{}:{options}{}:{version}",
-    name.len(),
-    options.len(),
-    version.len()
-  )
-}
-
 async fn resolve_each_with_options(
   plugin_driver: &SharedPluginDriver,
   context: &Context,
@@ -1389,10 +1375,11 @@ async fn resolve_each_with_options(
   loader: &ModuleRuleUseLoader,
 ) -> Result<ResolvedLoader> {
   let resolved = resolve_each(plugin_driver, context, loader_resolver, loader).await?;
-  let cache_key = loader
-    .cache
-    .then(|| loader_cache_key(&loader.loader, &resolved, &loader.cache_key))
-    .unwrap_or_default();
+  let cache_key = if loader.cache {
+    loader_cache_key(&loader.loader, &resolved, &loader.cache_key)
+  } else {
+    String::new()
+  };
   Ok(ResolvedLoader {
     loader: resolved,
     options: LoaderRunnerOptions {

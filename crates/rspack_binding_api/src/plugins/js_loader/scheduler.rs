@@ -1,6 +1,6 @@
 use napi::{Either, bindgen_prelude::JsValuesTupleIntoVec};
 use rspack_core::{
-  AdditionalData, LoaderContext, LoaderExecutionKind, NormalModuleLoaderShouldYield,
+  AdditionalData, BUILTIN_LOADER_PREFIX, LoaderContext, NormalModuleLoaderShouldYield,
   NormalModuleLoaderStartYielding, RunnerContext,
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt};
@@ -29,29 +29,19 @@ pub(crate) async fn loader_should_yield(
     }
     LoaderState::Pitching => {
       let current_loader = loader_context.current_loader();
-      if current_loader.execution_kind() != LoaderExecutionKind::JavaScript {
+      if current_loader.request().starts_with(BUILTIN_LOADER_PREFIX) {
         Ok(Some(false))
       } else {
         let loaders_without_pitch = self.loaders_without_pitch.read().await;
-        let span = loader_context
-          .current_chain()
-          .expect("pitching requires a current execution chain")
-          .range();
-        let start = loader_context.loader_index as usize;
-        let should_yield = loader_context.loader_items()[start..usize::from(span.end)]
-          .iter()
-          .enumerate()
-          .any(|(offset, loader)| {
-            !loader_context
-              .loader_item_state(start + offset)
-              .pitch_executed()
-              && !loaders_without_pitch.contains(loader.path().as_str())
-          });
+        let should_yield = !loaders_without_pitch.contains(current_loader.path().as_str());
         Ok(Some(should_yield))
       }
     }
     LoaderState::Normal => Ok(Some(
-      loader_context.current_loader().execution_kind() == LoaderExecutionKind::JavaScript,
+      !loader_context
+        .current_loader()
+        .request()
+        .starts_with(BUILTIN_LOADER_PREFIX),
     )),
   }
 }
@@ -146,21 +136,24 @@ pub(crate) fn merge_loader_context(
   });
   to.__finish_with((content, source_map, additional_data));
 
-  // update per-run loader status without mutating the shared loader metadata
-  for (index, from) in from.loader_items.drain(..).enumerate() {
-    if let Some(to) = to.loader_item_states.get_mut(index) {
+  // update loader status
+  to.loader_items = to
+    .loader_items
+    .drain(..)
+    .zip(from.loader_items.drain(..))
+    .map(|(mut to, from)| {
       if from.normal_executed {
-        to.set_normal_executed();
-        // A JavaScript normal loader that returned to Rust has completed even
-        // when it produced an empty result.
-        to.set_finish_called();
+        to.set_normal_executed()
       }
       if from.pitch_executed {
         to.set_pitch_executed()
       }
       to.set_data(from.data);
-    }
-  }
+      // JS loader should always be considered as finished
+      to.set_finish_called();
+      to
+    })
+    .collect();
   to.loader_index = from.loader_index;
   to.parse_meta.extend(
     from
@@ -177,7 +170,7 @@ fn collect_loaders_without_pitch(
   js_ctx: &JsLoaderContext,
 ) -> Vec<String> {
   let mut list = Vec::new();
-  for (js_loader_item, loader_item) in js_ctx.loader_items.iter().zip(ctx.loader_items().iter()) {
+  for (js_loader_item, loader_item) in js_ctx.loader_items.iter().zip(ctx.loader_items.iter()) {
     if js_loader_item.no_pitch {
       list.push(loader_item.path().to_string());
     }

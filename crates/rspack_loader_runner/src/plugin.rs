@@ -6,7 +6,7 @@ use rspack_sources::SourceMap;
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
-  LoaderChain, LoaderChainCacheAction, LoaderChainCacheState, LoaderContext,
+  LoaderCacheAction, LoaderCacheState, LoaderContext,
   content::{Content, ResourceData},
 };
 
@@ -30,19 +30,17 @@ pub trait LoaderRunnerPlugin: Send + Sync {
     Ok(())
   }
 
-  async fn before_normal_chain(
+  async fn before_normal_loader(
     &self,
     _context: &mut LoaderContext<Self::Context>,
-    _chain: &LoaderChain,
-  ) -> Result<LoaderChainCacheAction> {
-    Ok(LoaderChainCacheAction::Disabled)
+  ) -> Result<LoaderCacheAction> {
+    Ok(LoaderCacheAction::Disabled)
   }
 
-  async fn after_normal_chain(
+  async fn after_normal_loader(
     &self,
     _context: &mut LoaderContext<Self::Context>,
-    _chain: &LoaderChain,
-    _state: LoaderChainCacheState,
+    _state: LoaderCacheState,
   ) -> Result<()> {
     Ok(())
   }

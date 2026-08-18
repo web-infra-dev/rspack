@@ -1,6 +1,6 @@
 const value = require("./value");
 
-it("should cache a loader chain until the resource changes", () => {
+it("should cache each opted-in loader until its input changes", () => {
 	if (+WATCH_STEP < 3) {
 		expect(value).toEqual({
 			value: "initial",

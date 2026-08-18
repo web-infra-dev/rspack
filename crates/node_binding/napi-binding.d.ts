@@ -407,6 +407,11 @@ export declare class JsExportsInfo {
   getUsed(name: string | string[], runtime: string | string[] | undefined):  0 | 1 | 2 | 3 | 4
 }
 
+export declare class JsLoaderCache {
+  get(cacheKey: string, input: JsLoaderCacheData): JsLoaderCacheData | null
+  store(cacheKey: string, input: JsLoaderCacheData, output: JsLoaderCacheData): string | null
+}
+
 export declare class JsModuleGraph {
   getModule(dependency: Dependency): Module | null
   getResolvedModule(dependency: Dependency): Module | null
@@ -949,6 +954,21 @@ export interface JsLinkPreloadData {
   chunk: Chunk
 }
 
+export interface JsLoaderCacheData {
+  content: null | Buffer
+  contentIsString: boolean
+  sourceMap?: Buffer
+  additionalData?: any
+  additionalDataCacheKey?: string
+  fileDependencies: Array<string>
+  contextDependencies: Array<string>
+  missingDependencies: Array<string>
+  buildDependencies: Array<string>
+  parseMeta: Record<string, string>
+  cacheable: boolean
+  hasUnhandledSideEffects: boolean
+}
+
 export interface JsLoaderContext {
   resource: string
   _module: Module
@@ -965,14 +985,9 @@ export interface JsLoaderContext {
   buildDependencies: Array<string>
   loaderItems: Array<JsLoaderItem>
   loaderIndex: number
-  /**
-   * Inclusive start and exclusive end of the current JavaScript execution
-   * span inside the loader chain.
-   */
-  loaderChainStart: number
-  loaderChainEnd: number
   loaderState: Readonly<JsLoaderState>
   __internal__error?: RspackError
+  __internal__loaderCache: JsLoaderCache
   /**
    * UTF-8 hint for `content`
    * - Some(true): `content` is a `UTF-8` encoded sequence
@@ -983,6 +998,8 @@ export interface JsLoaderContext {
 export interface JsLoaderItem {
   loader: string
   type: string
+  cache: boolean
+  cacheKey: string
   data: any
   normalExecuted: boolean
   pitchExecuted: boolean

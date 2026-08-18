@@ -8,6 +8,7 @@ import type { LoaderContext } from '../config';
 import type { ResolveCallback } from '../config/adapterRuleUse';
 import type { ResolveRequest } from '../Resolver';
 import * as swc from '../swc';
+import { isNil, serializeObject, toBuffer, toObject } from '../util';
 import { cleverMerge } from '../util/cleverMerge';
 import { createHash } from '../util/createHash';
 import { absolutify, contextify } from '../util/identifier';
@@ -28,11 +29,10 @@ import {
 } from './service';
 import { convertArgs, runSyncOrAsync } from './utils';
 
+const BUILTIN_LOADER_PREFIX = 'builtin:';
+
 interface WorkerOptions {
-  loaderContext: LoaderContext & {
-    loaderChainStart: number;
-    loaderChainEnd: number;
-  };
+  loaderContext: LoaderContext;
   loaderState: JsLoaderState;
   args: any[];
 
@@ -454,16 +454,18 @@ async function loaderImpl(
     if (!currentLoaderObject?.parallel) {
       return true;
     }
+    if (currentLoaderObject?.request.startsWith(BUILTIN_LOADER_PREFIX)) {
+      return true;
+    }
     return false;
   };
 
   // Execute loader list until the current loader object is to yield to the main
-  // thread. This happens when the loader is marked as non-parallel. The
-  // factory-prepared execution chain guarantees that this range contains only
-  // JavaScript loaders.
+  // thread.  This happens if the loader is marked as non-parallel or if it is a
+  // builtin loader which belongs to the rust side.
   switch (loaderState) {
     case JsLoaderState.Pitching: {
-      while (loaderContext.loaderIndex < loaderContext.loaderChainEnd) {
+      while (loaderContext.loaderIndex < loaderContext.loaders.length) {
         const currentLoaderObject =
           loaderContext.loaders[loaderContext.loaderIndex];
         if (shouldYieldToMainThread(currentLoaderObject)) break;
@@ -492,7 +494,7 @@ async function loaderImpl(
       break;
     }
     case JsLoaderState.Normal: {
-      while (loaderContext.loaderIndex >= loaderContext.loaderChainStart) {
+      while (loaderContext.loaderIndex >= 0) {
         const currentLoaderObject =
           loaderContext.loaders[loaderContext.loaderIndex];
 
@@ -502,12 +504,51 @@ async function loaderImpl(
           continue;
         }
 
+        if (currentLoaderObject.loaderItem.cache) {
+          waitForPendingRequest(pendingDependencyRequest);
+          const hit = await sendRequest(
+            RequestType.LoaderCacheGet,
+            loaderContext.loaderIndex,
+            currentLoaderObject.loaderItem.cacheKey,
+            isNil(args[0]) ? null : toBuffer(args[0]),
+            typeof args[0] === 'string',
+            serializeObject(args[1]),
+            args[2],
+          );
+          if (hit) {
+            currentLoaderObject.normalExecuted = true;
+            args = [
+              hit.contentIsString
+                ? hit.content && Buffer.from(hit.content).toString()
+                : hit.content && Buffer.from(hit.content),
+              hit.sourceMap ? toObject(Buffer.from(hit.sourceMap)) : undefined,
+              hit.additionalData,
+            ];
+            continue;
+          }
+        }
+
         await loadLoaderAsync(currentLoaderObject, loaderContext._compiler);
         const fn = currentLoaderObject.normal;
         currentLoaderObject.normalExecuted = true;
         if (!fn) continue;
+        const inputAdditionalData = args[2];
         convertArgs(args, !!currentLoaderObject.raw);
         args = (await runSyncOrAsync(fn, loaderContext, args)) || [];
+        if (currentLoaderObject.loaderItem.cache) {
+          waitForPendingRequest(pendingDependencyRequest);
+          await sendRequest(
+            RequestType.LoaderCacheStore,
+            loaderContext.loaderIndex,
+            currentLoaderObject.loaderItem.cacheKey,
+            isNil(args[0]) ? null : toBuffer(args[0]),
+            typeof args[0] === 'string',
+            serializeObject(args[1]),
+            args[2],
+          );
+        } else if (args[2] !== inputAdditionalData) {
+          await sendRequest(RequestType.LoaderCacheInvalidate);
+        }
       }
     }
   }
