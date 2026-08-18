@@ -1,11 +1,15 @@
 use std::{
   any::Any,
-  sync::atomic::{AtomicU32, Ordering},
+  fmt,
+  sync::{
+    Arc,
+    atomic::{AtomicU32, Ordering},
+  },
 };
 
 use rspack_util::fx_hash::FxDashMap;
 
-use super::{CacheKey, CacheValue, Etag, cache_value::CacheEntry};
+use super::{CacheKey, CacheValue, Etag};
 
 /// Result of looking up an item in the memory cache.
 ///
@@ -31,7 +35,38 @@ impl<T> Clone for MemoryCacheGetResult<T> {
 #[derive(Debug)]
 enum MemoryCacheValue {
   Miss,
-  Hit(CacheEntry),
+  Hit(MemoryCacheHit),
+}
+
+struct MemoryCacheHit {
+  etag: Option<Etag>,
+  value: Arc<dyn Any + Send + Sync>,
+}
+
+impl MemoryCacheHit {
+  fn new<T: Any + Send + Sync>(etag: Option<Etag>, value: CacheValue<T>) -> Self {
+    Self {
+      etag,
+      value: value.into_arc(),
+    }
+  }
+
+  fn matches(&self, etag: Option<&Etag>) -> bool {
+    self.etag.as_ref() == etag
+  }
+
+  fn downcast<T: Any + Send + Sync>(&self) -> Option<CacheValue<T>> {
+    Arc::downcast(self.value.clone()).ok().map(CacheValue::from)
+  }
+}
+
+impl fmt::Debug for MemoryCacheHit {
+  fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+    formatter
+      .debug_struct("MemoryCacheHit")
+      .field("etag", &self.etag)
+      .finish_non_exhaustive()
+  }
 }
 
 #[derive(Debug)]
@@ -99,8 +134,6 @@ impl MemoryCache {
     };
     if entry.matches(etag) {
       entry
-        .value()
-        .clone()
         .downcast()
         .map_or(MemoryCacheGetResult::Miss, MemoryCacheGetResult::Hit)
     } else {
@@ -117,7 +150,7 @@ impl MemoryCache {
     self.entries.insert(
       key,
       MemoryCacheEntry::new(
-        MemoryCacheValue::Hit(CacheEntry::new(etag, value.erase_memory())),
+        MemoryCacheValue::Hit(MemoryCacheHit::new(etag, value)),
         self.max_generations,
       ),
     );
