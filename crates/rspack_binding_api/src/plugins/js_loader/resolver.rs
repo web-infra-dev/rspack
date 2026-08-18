@@ -1,5 +1,6 @@
 use std::{borrow::Cow, sync::Arc};
 
+use concat_string::concat_string;
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
   with::{AsOption, AsRefStr},
@@ -119,18 +120,18 @@ pub(crate) async fn resolve_loader(
           ))
         });
       let cache_version = if l.cache {
+        // TODO: Include transitive loader dependencies and files loaded through
+        // import/require when calculating the loader cache version.
         if let Some((name, version)) = package_version {
-          Some(format!("package:{name}@{version}"))
+          Some(concat_string!("package:", name, "@", version))
         } else {
-          // V1 fingerprints only the resolved loader entry file. Files that
-          // the loader imports or requires are intentionally not included yet.
           let contents = resolver
             .inner_fs()
             .read(rspack_paths::Utf8Path::new(path))
             .await?;
           let mut hasher = RspackHasher::new(&HashFunction::Xxhash64);
           hasher.write(&contents);
-          Some(format!("file:{:016x}", hasher.finish()))
+          Some(concat_string!("file:", format!("{:016x}", hasher.finish())))
         }
       } else {
         None
@@ -152,9 +153,9 @@ pub(crate) async fn resolve_loader(
       let resource = if let Some(rest) = rest
         && !rest.is_empty()
       {
-        format!("{path}{rest}")
+        concat_string!(path, rest)
       } else {
-        format!("{path}{query}")
+        concat_string!(path, query)
       };
       Ok(Some(Arc::new(JsLoader {
         identifier: resource.into(),

@@ -48,6 +48,7 @@ rspack_watcher            = { workspace = true }
 rspack_workspace          = { workspace = true }
 
 async-trait             = { workspace = true }
+concat-string           = { workspace = true }
 cow-utils               = { workspace = true }
 rspack_tracing          = { workspace = true }
 rspack_tracing_perfetto = { workspace = true, optional = true }
