@@ -87,7 +87,7 @@ if (module.hot) {
 This feature relies on `Promise` internally. If you use `import()` with legacy browsers, remember to shim `Promise` using a polyfill such as [core-js](https://github.com/zloirock/core-js), [es6-promise](https://github.com/stefanpenner/es6-promise) or [promise-polyfill](https://github.com/taylorhakes/promise-polyfill).
 :::
 
-#### Dynamic expressions in import()
+### Dynamic expressions in import()
 
 It is not possible to use a fully dynamic import statement, such as `import(foo)`. Because `foo` could potentially be any path to any file in your system or project.
 
@@ -103,7 +103,7 @@ import(`./locale/${language}.json`).then((module) => {
 });
 ```
 
-#### Magic comments
+### Magic comments in import() \{#magic-comments}
 
 <ApiMeta specific={['Rspack', 'Webpack']} />
 
@@ -111,6 +111,8 @@ Inline comments can specify chunk names, loading modes, and other import behavio
 
 :::tip
 Since Rspack 2.1.0, prefer the `rspack`-prefixed magic comments below. The equivalent `webpack`-prefixed comments remain supported for compatibility, for example `webpackIgnore` is equivalent to `rspackIgnore`.
+
+The examples below consistently use the `rspack` prefix. Replace it with the corresponding `webpack` prefix when webpack compatibility is required.
 :::
 
 ```js
@@ -135,9 +137,10 @@ import(
 );
 ```
 
-##### rspackIgnore / webpackIgnore \{#rspackignore}
+#### rspackIgnore \{#rspackignore}
 
 - **Type:** `boolean`
+- **webpack equivalent:** `webpackIgnore`
 
 When set to `true`, Rspack will skip analysis and bundling processing for the dynamic import. This results in:
 
@@ -149,14 +152,6 @@ This is particularly useful for dynamically loading ESM third-party libraries fr
 
 ```js
 import('https://esm.sh/react' /* rspackIgnore: true */).then((React) => {
-  console.log(React.version); // 19.0.0
-});
-```
-
-The equivalent `webpackIgnore` comment is also supported:
-
-```js
-import('https://esm.sh/react' /* webpackIgnore: true */).then((React) => {
   console.log(React.version); // 19.0.0
 });
 ```
@@ -174,9 +169,10 @@ const url2 = new URL(/* rspackIgnore: true */ './index.css', import.meta.url);
 const url3 = new URL(/* webpackIgnore: true */ './index.css', import.meta.url);
 ```
 
-##### rspackMode / webpackMode \{#rspackmode}
+#### rspackMode \{#rspackmode}
 
 - **Type:** `"eager" | "lazy" | "weak" | "lazy-once"`
+- **webpack equivalent:** `webpackMode`
 - **Default:** `'lazy'`
 
 Different modes for resolving dynamic imports can be specified. The following options are supported:
@@ -186,63 +182,159 @@ Different modes for resolving dynamic imports can be specified. The following op
 - `'eager'`: Generates no extra chunk. All modules are included in the current chunk and no additional network requests are made. A Promise is still returned but is already resolved. In contrast to a static import, the module isn't executed until the call to `import()` is made.
 - `'weak'`: Tries to load the module if the module function has already been loaded in some other way (e.g. another chunk imported it or a script containing the module was loaded). A Promise is still returned, but only successfully resolves if the chunks are already on the client. If the module is not available, the Promise is rejected. A network request will never be performed. This is useful for universal rendering when required chunks are always manually served in initial requests (embedded within the page), but not in cases where app navigation will trigger an import not initially served.
 
-##### rspackPrefetch / webpackPrefetch \{#rspackprefetch}
+For example, use `lazy-once` to put all possible locale modules into a single async chunk:
+
+```js
+const language = detectVisitorLanguage();
+const messages = await import(
+  /* rspackMode: "lazy-once" */
+  `./locales/${language}.js`
+);
+```
+
+#### rspackPrefetch \{#rspackprefetch}
 
 - **Type:**
   - `number`: chunk prefetch priority
   - `boolean`: `false` means not to prefetch, `true` means priority is `0`
+- **webpack equivalent:** `webpackPrefetch`
 
 Tells the browser that the resource is probably needed for some navigation in the future, see [Prefetching/Preloading modules](/guide/optimization/code-splitting#prefetchingpreloading-modules) for more details.
 
-##### rspackPreload / webpackPreload \{#rspackpreload}
+For example, the browser prefetches the editor chunk during idle time after the parent chunk loads:
+
+```js
+export function openEditor() {
+  return import(
+    /* rspackPrefetch: true */
+    './editor.js'
+  );
+}
+```
+
+You can also use a number to set the prefetch priority:
+
+```js
+import(/* rspackPrefetch: 10 */ './editor.js');
+```
+
+#### rspackPreload \{#rspackpreload}
 
 - **Type:**
   - `number`: chunk preload priority
   - `boolean`: `false` means not to preload, `true` means priority is `0`
+- **webpack equivalent:** `webpackPreload`
 
-Tells the browser that the resource might be needed during the current navigation, , see [Prefetching/Preloading modules](/guide/optimization/code-splitting#prefetchingpreloading-modules) for more details.
+Tells the browser that the resource might be needed during the current navigation. See [Prefetching/Preloading modules](/guide/optimization/code-splitting#prefetchingpreloading-modules) for more details.
 
-##### rspackChunkName / webpackChunkName \{#rspackchunkname}
+For example, preload a charting library in parallel with its parent chunk:
 
-- **Type:**: `string`
+```js
+export async function renderDashboard() {
+  const { renderChart } = await import(
+    /* rspackPreload: true */
+    './chart.js'
+  );
+
+  renderChart();
+}
+```
+
+#### rspackChunkName \{#rspackchunkname}
+
+- **Type:** `string`
+- **webpack equivalent:** `webpackChunkName`
 
 A name for the new chunk.
 
-##### rspackFetchPriority / webpackFetchPriority \{#rspackfetchpriority}
+```js
+const settings = await import(
+  /* rspackChunkName: "settings" */
+  './settings.js'
+);
+```
+
+The final filename is still determined by [`output.chunkFilename`](/config/output#outputchunkfilename).
+
+#### rspackFetchPriority \{#rspackfetchpriority}
 
 <ApiMeta addedVersion="1.0.0" />
 
-- **Type:**: `"low" | "high" | "auto"`
+- **Type:** `"low" | "high" | "auto"`
+- **webpack equivalent:** `webpackFetchPriority`
 
 Set [`fetchPriority`](https://developer.mozilla.org/en-US/docs/Web/API/HTMLImageElement/fetchPriority) for specific dynamic imports. It's also possible to set a global default value for all dynamic imports by using the `module.parser.javascript.dynamicImportFetchPriority` option.
 
-##### rspackInclude / webpackInclude \{#rspackinclude}
+For example, give a critical above-the-fold module a high fetch priority:
+
+```js
+const hero = await import(
+  /* rspackFetchPriority: "high" */
+  './hero.js'
+);
+```
+
+#### rspackInclude \{#rspackinclude}
 
 <ApiMeta addedVersion="1.0.0" />
 
-- **Type:**: `Regexp`
+- **Type:** `RegExp`
+- **webpack equivalent:** `webpackInclude`
 
 A regular expression that will be matched against during import resolution. Only modules that match **will be bundled**.
 
-##### rspackExclude / webpackExclude \{#rspackexclude}
+For example, include only `.json` files from the `./locales` directory in the dynamic import context:
+
+```js
+const messages = await import(
+  /* rspackInclude: /\.json$/ */
+  `./locales/${language}`
+);
+```
+
+#### rspackExclude \{#rspackexclude}
 
 <ApiMeta addedVersion="1.0.0" />
 
-- **Type:**: `Regexp`
+- **Type:** `RegExp`
+- **webpack equivalent:** `webpackExclude`
 
 A regular expression that will be matched against during import resolution. Any module that matches **will not be bundled**.
 
+For example, exclude test files from the `./locales` directory:
+
+```js
+const messages = await import(
+  /* rspackExclude: /\.test\.js$/ */
+  `./locales/${language}.js`
+);
+```
+
 :::info
-Note that `rspackInclude` and `rspackExclude` options do not interfere with the prefix. The equivalent `webpackInclude` and `webpackExclude` comments are also supported for compatibility. eg: `./locale`.
+`rspackInclude` and `rspackExclude` only filter candidate modules discovered under the static path prefix, such as `./locales`; they do not change that prefix. The equivalent `webpackInclude` and `webpackExclude` comments are also supported for compatibility.
 :::
 
-##### rspackExports / webpackExports \{#rspackexports}
+#### rspackExports \{#rspackexports}
 
 <ApiMeta addedVersion="1.0.0" />
 
-- **Type:**: `string | string[]`
+- **Type:** `string | string[]`
+- **webpack equivalent:** `webpackExports`
 
-Tells webpack to only bundle the specified exports of a dynamically `import()`ed module. It can decrease the output size of a chunk.
+Tells Rspack to only bundle the specified exports of a dynamically `import()`ed module. It can decrease the output size of a chunk.
+
+For example, explicitly declare the required exports when the imported namespace is passed to another function and Rspack cannot statically determine which exports it uses:
+
+```js
+const widget = await import(
+  /* rspackExports: ["render", "version"] */
+  './widget.js'
+);
+
+consumeWidget(widget);
+```
+
+When code directly accesses properties from the imported module or uses destructuring, Rspack can usually infer the used exports automatically, so `rspackExports` is unnecessary.
 
 ## CommonJS
 
