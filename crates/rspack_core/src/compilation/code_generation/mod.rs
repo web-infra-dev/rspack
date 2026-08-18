@@ -4,8 +4,8 @@ use async_trait::async_trait;
 
 use super::*;
 use crate::{
-  CacheValue, Etag, ModuleCodeGenerationContext, MultiItemCache, cache::Cache,
-  compilation::pass::PassExt, get_runtime_key, logger::Logger,
+  CacheValue, Etag, ModuleCodeGenerationContext, MultiItemCache, compilation::pass::PassExt,
+  get_runtime_key, logger::Logger,
 };
 
 const CODE_GENERATION_CACHE_NAME: &str = "Compilation/codeGeneration";
@@ -18,16 +18,12 @@ impl PassExt for CodeGenerationPass {
     "code generation"
   }
 
-  async fn before_pass(&self, compilation: &mut Compilation, cache: &mut dyn Cache) {
-    cache.before_modules_codegen(compilation).await;
+  fn incremental_passes(&self) -> IncrementalPasses {
+    IncrementalPasses::MODULES_CODEGEN
   }
 
   async fn run_pass(&self, compilation: &mut Compilation) -> Result<()> {
     code_generation_pass_impl(compilation).await
-  }
-
-  async fn after_pass(&self, compilation: &mut Compilation, cache: &mut dyn Cache) {
-    cache.after_modules_codegen(compilation).await;
   }
 }
 
@@ -205,6 +201,9 @@ pub(crate) async fn code_generation_modules(
             }))
           });
           let mut concatenation_scope = job.scope.take();
+          let faster_module_concatenation = concatenation_scope
+            .as_ref()
+            .is_some_and(|scope| scope.is_faster_module_concatenation());
           let generator = async {
             let mut runtime_template = this.runtime_template.create_module_code_template();
             let mut code_generation_context = ModuleCodeGenerationContext {
@@ -221,6 +220,7 @@ pub(crate) async fn code_generation_modules(
                 codegen_result_builder
                   .runtime_requirements_mut()
                   .extend(*runtime_template.runtime_requirements());
+                codegen_result_builder.set_faster_module_concatenation(faster_module_concatenation);
                 if module.as_concatenated_module().is_some() {
                   // Concatenated modules are special here: `job.hash` already
                   // fingerprints the generated module bodies, so we only need

@@ -8,17 +8,17 @@ use rayon::{iter::Either, prelude::*};
 use rspack_collections::{IdentifierIndexMap, IdentifierIndexSet, IdentifierMap};
 use rspack_core::{
   BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, ChunkInitFragments, ChunkRenderContext,
-  ChunkUkey, CodeGenerationDataChunkInitFragments, CodeGenerationPublicPathAutoReplace,
-  Compilation, ConcatenatedModuleIdent, ConcatenationScope, ConditionalInitFragment,
-  DependencyType, ExportInfo, ExportMode, ExportProvided, ExportsInfoArtifact, ExportsType,
-  FindTargetResult, ImportSpec, InitFragmentKey, ModuleCodeGenerationContext, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleIdentifier, ModuleInfo, NAMESPACE_OBJECT_EXPORT, RuntimeGlobals,
-  RuntimeGlobalsRenderMode, RuntimeTemplateRenderMode, RuntimeVariable, SideEffectsStateArtifact,
-  SourceType, URLStaticMode, UsageState, UsedName, UsedNameItem, all_runtime_module_variables,
-  collect_ident, escape_name_atom_ref, find_new_name, find_target, get_cached_readable_identifier,
-  get_module_directives, get_module_hashbang, property_access, property_name,
-  reserved_names::RESERVED_NAMES_ATOM_SET, rspack_sources::ReplaceSource,
-  split_readable_identifier, to_normal_comment,
+  ChunkUkey, CodeGenerationDataChunkInitFragments, CodeGenerationDataPreservedAssetImport,
+  CodeGenerationPublicPathAutoReplace, Compilation, ConcatenatedModuleIdent, ConcatenationScope,
+  ConditionalInitFragment, DependencyType, ExportInfo, ExportMode, ExportProvided,
+  ExportsInfoArtifact, ExportsType, FindTargetResult, ImportSpec, InitFragmentKey,
+  ModuleCodeGenerationContext, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, ModuleInfo,
+  NAMESPACE_OBJECT_EXPORT, RuntimeGlobals, RuntimeGlobalsRenderMode, RuntimeTemplateRenderMode,
+  RuntimeVariable, SideEffectsStateArtifact, SourceType, URLStaticMode, UsageState, UsedName,
+  UsedNameItem, all_runtime_module_variables, collect_ident, escape_name_atom_ref, find_new_name,
+  find_target, get_cached_readable_identifier, get_module_directives, get_module_hashbang,
+  property_access, property_name, reserved_names::RESERVED_NAMES_ATOM_SET,
+  rspack_sources::ReplaceSource, split_readable_identifier, to_normal_comment,
 };
 use rspack_error::{Diagnostic, Error, Result};
 use rspack_plugin_javascript::{
@@ -82,6 +82,49 @@ enum ExternalImportBinding {
 }
 
 impl EsmLibraryPlugin {
+  fn collect_init_fragments_in_render_order<'a>(
+    init_fragment_groups: impl IntoIterator<Item = &'a ChunkInitFragments>,
+  ) -> Vec<Box<dyn rspack_core::InitFragment>> {
+    let mut ordered_fragments = Vec::new();
+
+    for init_fragments in init_fragment_groups {
+      for init_fragment in init_fragments {
+        ordered_fragments.push((
+          init_fragment.stage(),
+          init_fragment.position(),
+          ordered_fragments.len(),
+          init_fragment.key().clone(),
+          init_fragment.clone(),
+        ));
+      }
+    }
+
+    ordered_fragments.sort_by(|a, b| {
+      let stage = a.0.cmp(&b.0);
+      if !stage.is_eq() {
+        return stage;
+      }
+      let position = a.1.cmp(&b.1);
+      if !position.is_eq() {
+        return position;
+      }
+      a.2.cmp(&b.2)
+    });
+
+    let mut keyed_fragments = FxIndexMap::default();
+    for (_, _, _, key, init_fragment) in ordered_fragments {
+      keyed_fragments
+        .entry(key)
+        .or_insert_with(Vec::new)
+        .push(init_fragment);
+    }
+
+    keyed_fragments
+      .into_iter()
+      .map(|(key, fragments)| key.merge_fragments(fragments))
+      .collect()
+  }
+
   fn module_external_fragment_content(
     init_fragment: Box<dyn rspack_core::InitFragment>,
   ) -> Option<String> {
@@ -222,20 +265,18 @@ impl EsmLibraryPlugin {
   }
 
   #[cfg(test)]
-  fn reserve_module_external_top_level_decls(
+  fn reserve_init_fragment_top_level_decls(
     init_fragments: &ChunkInitFragments,
     used_names: &mut FxHashSet<Atom>,
   ) {
-    Self::reserve_module_external_top_level_decls_in_render_order([init_fragments], used_names);
+    Self::reserve_init_fragment_top_level_decls_in_render_order([init_fragments], used_names);
   }
 
-  fn reserve_module_external_top_level_decls_in_render_order<'a>(
+  fn reserve_init_fragment_top_level_decls_in_render_order<'a>(
     init_fragment_groups: impl IntoIterator<Item = &'a ChunkInitFragments>,
     used_names: &mut FxHashSet<Atom>,
   ) {
-    for init_fragment in
-      Self::collect_module_external_fragments_in_render_order(init_fragment_groups)
-    {
+    for init_fragment in Self::collect_init_fragments_in_render_order(init_fragment_groups) {
       used_names.extend(init_fragment.top_level_decl_symbols().iter().cloned());
     }
   }
@@ -252,6 +293,56 @@ impl EsmLibraryPlugin {
     );
     candidate_used_names.insert(name.clone());
     name
+  }
+
+  fn register_preserved_asset_imports(
+    compilation: &Compilation,
+    chunk_link: &mut ChunkLinkContext,
+    used_names: &mut FxHashSet<Atom>,
+    escaped_identifiers: &FxHashMap<String, Vec<Atom>>,
+  ) {
+    // Follow module externals: imports are owned by the chunk link context, so their bindings are
+    // allocated before bundled top-level declarations and participate in the same deconfliction.
+    let chunk = compilation
+      .build_chunk_graph_artifact
+      .chunk_by_ukey
+      .expect_get(&chunk_link.chunk);
+    let decl_modules = chunk_link.decl_modules.iter().copied().collect::<Vec<_>>();
+
+    for module in decl_modules {
+      let code_generation_result = compilation
+        .code_generation_results
+        .get(&module, Some(chunk.runtime()));
+      let Some(asset_import) = code_generation_result
+        .data()
+        .get::<CodeGenerationDataPreservedAssetImport>()
+      else {
+        continue;
+      };
+
+      let source = RawImportSource::Source((asset_import.request().to_string(), None));
+      let binding = chunk_link
+        .raw_import_stmts
+        .get(&source)
+        .and_then(|import_spec| import_spec.default_import.clone())
+        .unwrap_or_else(|| {
+          let readable_identifier = get_cached_readable_identifier(
+            &module,
+            compilation.get_module_graph(),
+            &compilation.module_static_cache,
+            &compilation.options.context,
+          );
+          let binding = find_new_name("", used_names, &escaped_identifiers[&readable_identifier]);
+          chunk_link
+            .raw_import_stmts
+            .entry(source)
+            .or_default()
+            .default_import = Some(binding.clone());
+          binding
+        });
+
+      used_names.insert(binding);
+    }
   }
 
   fn strict_export_chunk(&self, chunk: ChunkUkey) -> bool {
@@ -1048,15 +1139,15 @@ var {} = {{}};
       }
     }
 
-    let mut module_external_init_fragment_groups = vec![&chunk_link.init_fragments];
+    let mut init_fragment_groups = vec![&chunk_link.init_fragments];
     for id in &chunk_link.decl_modules {
       match &concate_modules_map[id] {
         ModuleInfo::Concatenated(info) => {
-          module_external_init_fragment_groups.push(&info.chunk_init_fragments);
+          init_fragment_groups.push(&info.chunk_init_fragments);
         }
         ModuleInfo::External(info) => {
           if let Some(init_fragments) = external_module_init_fragments.get(&info.module) {
-            module_external_init_fragment_groups.push(init_fragments);
+            init_fragment_groups.push(init_fragments);
           }
         }
       }
@@ -1064,23 +1155,29 @@ var {} = {{}};
     for id in &chunk_link.hoisted_modules {
       match &concate_modules_map[id] {
         ModuleInfo::Concatenated(info) => {
-          module_external_init_fragment_groups.push(&info.chunk_init_fragments);
+          init_fragment_groups.push(&info.chunk_init_fragments);
         }
         ModuleInfo::External(info) => {
           if let Some(init_fragments) = external_module_init_fragments.get(&info.module) {
-            module_external_init_fragment_groups.push(init_fragments);
+            init_fragment_groups.push(init_fragments);
           }
         }
       }
     }
     Self::reserve_module_external_namespace_import_locals_in_render_order(
-      module_external_init_fragment_groups.iter().copied(),
+      init_fragment_groups.iter().copied(),
       &mut all_used_names,
       Some(&mut chunk_link.module_external_namespace_imports),
     );
-    Self::reserve_module_external_top_level_decls_in_render_order(
-      module_external_init_fragment_groups.iter().copied(),
+    Self::reserve_init_fragment_top_level_decls_in_render_order(
+      init_fragment_groups.iter().copied(),
       &mut all_used_names,
+    );
+    Self::register_preserved_asset_imports(
+      compilation,
+      chunk_link,
+      &mut all_used_names,
+      escaped_identifiers,
     );
 
     // deconflict top level symbols
@@ -3842,64 +3939,77 @@ mod tests {
   }
 
   #[test]
-  fn module_external_non_namespace_init_fragment_claims_top_level_decls() {
-    let init_fragments: ChunkInitFragments = vec![Box::new(rspack_core::NormalInitFragment::new(
+  fn import_init_fragments_claim_top_level_decls() {
+    let mut fragment = rspack_core::NormalInitFragment::new(
       "import { createRequire as __rspack_createRequire } from \"node:module\";\nconst __rspack_createRequire_require = __rspack_createRequire(import.meta.url);\n"
         .into(),
       rspack_core::InitFragmentStage::StageESMImports,
       0,
       InitFragmentKey::ModuleExternal("node-commonjs".into()),
       None,
-    )
-    .with_top_level_decl_symbols(vec![
+    );
+    fragment.set_top_level_decl_symbols(vec![
       "__rspack_createRequire".into(),
       "__rspack_createRequire_require".into(),
-    ]))];
+    ]);
+    let init_fragments: ChunkInitFragments = vec![
+      Box::new(fragment),
+      Box::new(rspack_core::ExternalModuleInitFragment::new(
+        "node:url".into(),
+        vec![("fileURLToPath".into(), "__rspack_fileURLToPath".into())],
+        Some("url".into()),
+        rspack_core::InitFragmentStage::StageConstants,
+        0,
+      )),
+      Box::new(rspack_core::ExternalModuleInitFragment::new(
+        "node:url".into(),
+        vec![("pathToFileURL".into(), "__rspack_pathToFileURL".into())],
+        Some("url".into()),
+        rspack_core::InitFragmentStage::StageConstants,
+        0,
+      )),
+    ];
     let mut chunk_used_names = FxHashSet::default();
 
-    EsmLibraryPlugin::reserve_module_external_top_level_decls(
-      &init_fragments,
-      &mut chunk_used_names,
-    );
+    EsmLibraryPlugin::reserve_init_fragment_top_level_decls(&init_fragments, &mut chunk_used_names);
 
     assert!(chunk_used_names.contains(&Atom::from("__rspack_createRequire")));
     assert!(chunk_used_names.contains(&Atom::from("__rspack_createRequire_require")));
+    assert!(chunk_used_names.contains(&Atom::from("__rspack_fileURLToPath")));
+    assert!(chunk_used_names.contains(&Atom::from("__rspack_pathToFileURL")));
+    assert!(chunk_used_names.contains(&Atom::from("url")));
   }
 
   #[test]
   fn module_external_top_level_decls_keep_first_rendered_fragment() {
-    let init_fragments: ChunkInitFragments = vec![
-      Box::new(rspack_core::NormalInitFragment::new(
-        "import { createRequire as __rspack_createRequire_1 } from \"node:module\";\nconst __rspack_createRequire_require_1 = __rspack_createRequire_1(import.meta.url);\n"
-          .into(),
-        rspack_core::InitFragmentStage::StageESMImports,
-        1,
-        InitFragmentKey::ModuleExternal("node-commonjs".into()),
-        None,
-      )
-      .with_top_level_decl_symbols(vec![
-        "__rspack_createRequire_1".into(),
-        "__rspack_createRequire_require_1".into(),
-      ])),
-      Box::new(rspack_core::NormalInitFragment::new(
-        "import { createRequire as __rspack_createRequire_0 } from \"node:module\";\nconst __rspack_createRequire_require_0 = __rspack_createRequire_0(import.meta.url);\n"
-          .into(),
-        rspack_core::InitFragmentStage::StageESMImports,
-        0,
-        InitFragmentKey::ModuleExternal("node-commonjs".into()),
-        None,
-      )
-      .with_top_level_decl_symbols(vec![
-        "__rspack_createRequire_0".into(),
-        "__rspack_createRequire_require_0".into(),
-      ])),
-    ];
+    let mut fragment_1 = rspack_core::NormalInitFragment::new(
+      "import { createRequire as __rspack_createRequire_1 } from \"node:module\";\nconst __rspack_createRequire_require_1 = __rspack_createRequire_1(import.meta.url);\n"
+        .into(),
+      rspack_core::InitFragmentStage::StageESMImports,
+      1,
+      InitFragmentKey::ModuleExternal("node-commonjs".into()),
+      None,
+    );
+    fragment_1.set_top_level_decl_symbols(vec![
+      "__rspack_createRequire_1".into(),
+      "__rspack_createRequire_require_1".into(),
+    ]);
+    let mut fragment_0 = rspack_core::NormalInitFragment::new(
+      "import { createRequire as __rspack_createRequire_0 } from \"node:module\";\nconst __rspack_createRequire_require_0 = __rspack_createRequire_0(import.meta.url);\n"
+        .into(),
+      rspack_core::InitFragmentStage::StageESMImports,
+      0,
+      InitFragmentKey::ModuleExternal("node-commonjs".into()),
+      None,
+    );
+    fragment_0.set_top_level_decl_symbols(vec![
+      "__rspack_createRequire_0".into(),
+      "__rspack_createRequire_require_0".into(),
+    ]);
+    let init_fragments: ChunkInitFragments = vec![Box::new(fragment_1), Box::new(fragment_0)];
     let mut chunk_used_names = FxHashSet::default();
 
-    EsmLibraryPlugin::reserve_module_external_top_level_decls(
-      &init_fragments,
-      &mut chunk_used_names,
-    );
+    EsmLibraryPlugin::reserve_init_fragment_top_level_decls(&init_fragments, &mut chunk_used_names);
 
     assert!(chunk_used_names.contains(&Atom::from("__rspack_createRequire_0")));
     assert!(chunk_used_names.contains(&Atom::from("__rspack_createRequire_require_0")));
@@ -3909,23 +4019,19 @@ mod tests {
 
   #[test]
   fn module_external_var_init_fragment_claims_top_level_decl() {
-    let init_fragments: ChunkInitFragments = vec![Box::new(
-      rspack_core::NormalInitFragment::new(
-        "/* provided dependency */ var provided_identifier = __webpack_require__(\"./dep\");\n"
-          .into(),
-        rspack_core::InitFragmentStage::StageProvides,
-        1,
-        InitFragmentKey::ModuleExternal("provided provided_identifier".into()),
-        None,
-      )
-      .with_top_level_decl_symbols(vec!["provided_identifier".into()]),
-    )];
+    let mut fragment = rspack_core::NormalInitFragment::new(
+      "/* provided dependency */ var provided_identifier = __webpack_require__(\"./dep\");\n"
+        .into(),
+      rspack_core::InitFragmentStage::StageProvides,
+      1,
+      InitFragmentKey::ModuleExternal("provided provided_identifier".into()),
+      None,
+    );
+    fragment.set_top_level_decl_symbols(vec!["provided_identifier".into()]);
+    let init_fragments: ChunkInitFragments = vec![Box::new(fragment)];
     let mut chunk_used_names = FxHashSet::default();
 
-    EsmLibraryPlugin::reserve_module_external_top_level_decls(
-      &init_fragments,
-      &mut chunk_used_names,
-    );
+    EsmLibraryPlugin::reserve_init_fragment_top_level_decls(&init_fragments, &mut chunk_used_names);
 
     assert!(chunk_used_names.contains(&Atom::from("provided_identifier")));
   }

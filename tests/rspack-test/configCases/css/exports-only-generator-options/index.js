@@ -9,7 +9,7 @@ it("should not have .css file", async () => {
 		const ns = nsObj({
 			a: "a",
 			abc: "a b c",
-			comments: "abc      def",
+			comments: "abc/****/   /* hello world *//****/   def",
 			whitespace: "abc\n\tdef",
 			default: "default"
 		});

@@ -7,7 +7,7 @@ use rspack_core::{
   TemplateContext, TemplateReplaceSource,
 };
 
-use crate::utils::{AUTO_PUBLIC_PATH_PLACEHOLDER, css_escape_string};
+use crate::{css_syntax::serialize_url_value, utils::AUTO_PUBLIC_PATH_PLACEHOLDER};
 
 #[cacheable]
 #[derive(Debug, Clone)]
@@ -132,7 +132,7 @@ impl DependencyTemplate for CssUrlDependencyTemplate {
       .module_graph_module_by_dependency_id(dep.id())
       && let Some(target_url) = dep.get_target_url(&mgm.module_identifier, compilation)
     {
-      let target_url = css_escape_string(&target_url);
+      let target_url = serialize_url_value(&target_url);
       let content = if dep.replace_function {
         format!("url({target_url})")
       } else {

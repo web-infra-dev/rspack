@@ -29,6 +29,33 @@ pub struct InitFragmentContents {
 }
 
 #[cacheable]
+#[derive(Debug, Clone, Default)]
+pub struct RenderedInitFragments {
+  pub start: String,
+  pub end: String,
+}
+
+impl RenderedInitFragments {
+  pub fn is_empty(&self) -> bool {
+    self.start.is_empty() && self.end.is_empty()
+  }
+
+  pub(crate) fn hash_parts(start: &str, end: &str, state: &mut RspackHasher) {
+    state.write(b"RenderedInitFragments");
+    state.write(&(start.len() as u64).to_be_bytes());
+    state.write(start.as_bytes());
+    state.write(&(end.len() as u64).to_be_bytes());
+    state.write(end.as_bytes());
+  }
+}
+
+impl RspackHash for RenderedInitFragments {
+  fn hash(&self, state: &mut RspackHasher) {
+    Self::hash_parts(&self.start, &self.end, state);
+  }
+}
+
+#[cacheable]
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum InitFragmentKey {
   ESMImport(String),
@@ -46,6 +73,64 @@ pub enum InitFragmentKey {
   ESMCompatibility,
   ModuleDecorator(String /* module_id */),
   Const(String),
+}
+
+impl RspackHash for InitFragmentKey {
+  fn hash(&self, state: &mut RspackHasher) {
+    match self {
+      Self::ESMImport(value) => {
+        "esm-import".hash(state);
+        value.hash(state);
+      }
+      Self::ESMExports => "esm-exports".hash(state),
+      Self::ESMEmptyReexport(value) => {
+        "esm-empty-reexport".hash(state);
+        value.hash(state);
+      }
+      Self::ESMUnusedReexport(value) => {
+        "esm-unused-reexport".hash(state);
+        value.hash(state);
+      }
+      Self::ESMFakeNamespaceObjectFragment(value) => {
+        "esm-fake-namespace-object".hash(state);
+        value.hash(state);
+      }
+      Self::ESMDeferImportNamespaceObjectFragment(value) => {
+        "esm-defer-import-namespace-object".hash(state);
+        value.hash(state);
+      }
+      Self::ESMDynamicReexport(value) => {
+        "esm-dynamic-reexport".hash(state);
+        value.hash(state);
+      }
+      Self::CommonJsExports(value) => {
+        "commonjs-exports".hash(state);
+        value.hash(state);
+      }
+      Self::ModuleExternal(value) => {
+        "module-external".hash(state);
+        value.hash(state);
+      }
+      Self::ExternalModule(value) => {
+        "external-module".hash(state);
+        value.hash(state);
+      }
+      Self::AwaitDependencies => "await-dependencies".hash(state),
+      Self::AsyncBoundary(value) => {
+        "async-boundary".hash(state);
+        value.hash(state);
+      }
+      Self::ESMCompatibility => "esm-compatibility".hash(state),
+      Self::ModuleDecorator(value) => {
+        "module-decorator".hash(state);
+        value.hash(state);
+      }
+      Self::Const(value) => {
+        "const".hash(state);
+        value.hash(state);
+      }
+    }
+  }
 }
 
 impl InitFragmentKey {
@@ -102,8 +187,15 @@ impl InitFragmentKey {
         ESMExportInitFragment::new(export_argument, export_map, is_circular_module).boxed()
       }
       InitFragmentKey::AwaitDependencies => {
-        let promises = fragments.into_iter().map(|f| f.into_any().downcast::<AwaitDependenciesInitFragment>().expect("fragment of InitFragmentKey::AwaitDependencies should be a AwaitDependenciesInitFragment")).flat_map(|f| f.promises).collect();
-        AwaitDependenciesInitFragment::new(promises).boxed()
+        let iter = fragments.into_iter().map(|fragment| {
+          fragment
+            .into_any()
+            .downcast::<AwaitDependenciesInitFragment>()
+            .expect(
+              "fragment of InitFragmentKey::AwaitDependencies should be a AwaitDependenciesInitFragment",
+            )
+        });
+        AwaitDependenciesInitFragment::merge(iter).boxed()
       }
       InitFragmentKey::ExternalModule(_) => {
         let mut iter = fragments.into_iter();
@@ -158,7 +250,7 @@ pub trait InitFragmentRenderContext {
 }
 
 #[cacheable_dyn]
-pub trait InitFragment: IntoAny + DynClone + Debug + Sync + Send {
+pub trait InitFragment: IntoAny + RspackHash + DynClone + Debug + Sync + Send {
   /// getContent + getEndContent
   fn contents(
     self: Box<Self>,
@@ -200,13 +292,77 @@ pub enum InitFragmentStage {
   StageAsyncESMImports,
 }
 
+impl RspackHash for InitFragmentStage {
+  fn hash(&self, state: &mut RspackHasher) {
+    match self {
+      Self::StageConstants => "constants",
+      Self::StageAsyncBoundary => "async-boundary",
+      Self::StageESMExports => "esm-exports",
+      Self::StageESMImports => "esm-imports",
+      Self::StageProvides => "provides",
+      Self::StageAsyncDependencies => "async-dependencies",
+      Self::StageAsyncESMImports => "async-esm-imports",
+    }
+    .hash(state);
+  }
+}
+
 /// InitFragment.addToSource
+pub fn render_init_fragments_to_strings(
+  mut fragments: Vec<BoxInitFragment>,
+  context: &mut dyn InitFragmentRenderContext,
+) -> Result<RenderedInitFragments> {
+  // here use sort_by_key because need keep order equal stage fragments
+  fragments.sort_by(|a, b| {
+    let stage = a.stage().cmp(&b.stage());
+    if !stage.is_eq() {
+      return stage;
+    }
+    a.position().cmp(&b.position())
+  });
+
+  let mut keyed_fragments: IndexMap<
+    InitFragmentKey,
+    Vec<BoxInitFragment>,
+    BuildHasherDefault<FxHasher>,
+  > = IndexMap::default();
+  for fragment in fragments {
+    let key = fragment.key();
+    if let Some(value) = keyed_fragments.get_mut(key) {
+      value.push(fragment);
+    } else {
+      keyed_fragments.insert(key.clone(), vec![fragment]);
+    }
+  }
+
+  let mut start = String::new();
+  let mut end_contents = vec![];
+
+  for (key, fragments) in keyed_fragments {
+    let f = key.merge_fragments(fragments);
+    let contents = f.contents(context)?;
+    start.push_str(&contents.start);
+    if let Some(end_content) = contents.end {
+      end_contents.push(end_content)
+    }
+  }
+
+  let mut end = String::new();
+  for content in end_contents.into_iter().rev() {
+    end.push_str(&content);
+  }
+
+  Ok(RenderedInitFragments { start, end })
+}
+
 pub fn render_init_fragments(
   source: BoxSource,
   mut fragments: Vec<BoxInitFragment>,
   context: &mut dyn InitFragmentRenderContext,
 ) -> Result<BoxSource> {
-  // here use sort_by_key because need keep order equal stage fragments
+  // Keep the legacy source structure: each merged start/end fragment remains
+  // a separate RawStringSource around the module body. The faster
+  // concatenation path uses render_init_fragments_to_strings instead.
   fragments.sort_by(|a, b| {
     let stage = a.stage().cmp(&b.stage());
     if !stage.is_eq() {
@@ -233,11 +389,11 @@ pub fn render_init_fragments(
   let mut concat_source = ConcatSource::default();
 
   for (key, fragments) in keyed_fragments {
-    let f = key.merge_fragments(fragments);
-    let contents = f.contents(context)?;
+    let fragment = key.merge_fragments(fragments);
+    let contents = fragment.contents(context)?;
     concat_source.add(RawStringSource::from(contents.start));
     if let Some(end_content) = contents.end {
-      end_contents.push(RawStringSource::from(end_content))
+      end_contents.push(RawStringSource::from(end_content));
     }
   }
 
@@ -283,7 +439,7 @@ impl InitFragmentRenderContext for ChunkRenderContext {
 }
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, rspack_hash::RspackHash)]
 pub struct NormalInitFragment {
   content: String,
   stage: InitFragmentStage,
@@ -312,9 +468,8 @@ impl NormalInitFragment {
     }
   }
 
-  pub fn with_top_level_decl_symbols(mut self, top_level_decl_symbols: Vec<Atom>) -> Self {
+  pub fn set_top_level_decl_symbols(&mut self, top_level_decl_symbols: Vec<Atom>) {
     self.top_level_decl_symbols = top_level_decl_symbols;
-    self
   }
 }
 
@@ -491,22 +646,67 @@ impl InitFragment for ESMExportInitFragment {
 pub struct AwaitDependenciesInitFragment {
   #[cacheable(with=AsVec)]
   promises: LinkedHashSet<String, BuildHasherDefault<FxHasher>>,
+  binding: Option<String>,
 }
 
 impl AwaitDependenciesInitFragment {
+  fn merge(mut fragments: impl Iterator<Item = Box<Self>>) -> Self {
+    let first = fragments
+      .next()
+      .expect("keyed_fragments should at least have one value");
+    let binding = first.binding.clone();
+    let mut promises = first.promises;
+    for fragment in fragments {
+      assert_eq!(
+        binding, fragment.binding,
+        "merged AwaitDependenciesInitFragments must use the same binding"
+      );
+      promises.extend(fragment.promises);
+    }
+    Self { promises, binding }
+  }
+
   pub fn new(promises: LinkedHashSet<String, BuildHasherDefault<FxHasher>>) -> Self {
-    Self { promises }
+    Self {
+      promises,
+      binding: None,
+    }
+  }
+
+  pub fn new_with_binding(
+    promises: LinkedHashSet<String, BuildHasherDefault<FxHasher>>,
+    binding: String,
+  ) -> Self {
+    Self {
+      promises,
+      binding: Some(binding),
+    }
   }
 
   pub fn new_single(promise: String) -> Self {
     let mut promises = LinkedHashSet::default();
     promises.insert(promise);
-    Self { promises }
+    Self {
+      promises,
+      binding: None,
+    }
+  }
+
+  pub fn new_single_with_binding(promise: String, binding: String) -> Self {
+    let mut promises = LinkedHashSet::default();
+    promises.insert(promise);
+    Self {
+      promises,
+      binding: Some(binding),
+    }
   }
 }
 
 impl RspackHash for AwaitDependenciesInitFragment {
   fn hash(&self, state: &mut RspackHasher) {
+    if let Some(binding) = &self.binding {
+      binding.hash(state);
+    }
     for promise in &self.promises {
       promise.hash(state);
     }
@@ -525,18 +725,20 @@ impl InitFragment for AwaitDependenciesInitFragment {
         end: None,
       })
     } else if self.promises.len() == 1 {
+      let binding = self.binding.as_deref().unwrap_or("__rspack_async_deps");
       let sep = self.promises.front().expect("at least have one");
       Ok(InitFragmentContents {
         start: format!(
-          "var __rspack_async_deps = __rspack_load_async_deps([{sep}]);\n{sep} = (__rspack_async_deps.then ? (await __rspack_async_deps)() : __rspack_async_deps)[0];"
+          "var {binding} = __rspack_load_async_deps([{sep}]);\n{sep} = ({binding}.then ? (await {binding})() : {binding})[0];"
         ),
         end: None,
       })
     } else {
+      let binding = self.binding.as_deref().unwrap_or("__rspack_async_deps");
       let sep = Vec::from_iter(self.promises).join(", ");
       Ok(InitFragmentContents {
         start: format!(
-          "var __rspack_async_deps = __rspack_load_async_deps([{sep}]);\n([{sep}] = __rspack_async_deps.then ? (await __rspack_async_deps)() : __rspack_async_deps);"
+          "var {binding} = __rspack_load_async_deps([{sep}]);\n([{sep}] = {binding}.then ? (await {binding})() : {binding});"
         ),
         end: None,
       })
@@ -557,7 +759,7 @@ impl InitFragment for AwaitDependenciesInitFragment {
 }
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, rspack_hash::RspackHash)]
 pub struct ConditionalInitFragment {
   content: String,
   stage: InitFragmentStage,
@@ -678,12 +880,14 @@ fn wrap_in_condition(condition: &str, source: &str) -> String {
 }
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, rspack_hash::RspackHash)]
 pub struct ExternalModuleInitFragment {
   imported_module: String,
   // webpack also supports `ImportSpecifiers` but not ever used.
   import_specifiers: BTreeMap<String, BTreeSet<String>>,
   default_import: Option<String>,
+  #[cacheable(with=AsVec<AsPreset>)]
+  top_level_decl_symbols: Vec<Atom>,
   stage: InitFragmentStage,
   position: i32,
   key: InitFragmentKey,
@@ -714,22 +918,48 @@ impl ExternalModuleInitFragment {
       imported_module,
       default_import.clone().unwrap_or_else(|| "null".to_string()),
     ));
+    let top_level_decl_symbols =
+      Self::collect_top_level_decl_symbols(&self_import_specifiers, default_import.as_deref());
 
     Self {
       imported_module,
       import_specifiers: self_import_specifiers,
       default_import,
+      top_level_decl_symbols,
       stage,
       position,
       key,
     }
   }
 
+  fn collect_top_level_decl_symbols(
+    import_specifiers: &BTreeMap<String, BTreeSet<String>>,
+    default_import: Option<&str>,
+  ) -> Vec<Atom> {
+    let mut symbols = import_specifiers
+      .values()
+      .flatten()
+      .cloned()
+      .collect::<BTreeSet<_>>();
+    if let Some(default_import) = default_import {
+      symbols.insert(default_import.to_string());
+    }
+    symbols.into_iter().map(Atom::from).collect()
+  }
+
   pub fn merge(
     one: ExternalModuleInitFragment,
     other: ExternalModuleInitFragment,
   ) -> Box<ExternalModuleInitFragment> {
-    let mut import_specifiers = one.import_specifiers.clone();
+    let Self {
+      imported_module,
+      mut import_specifiers,
+      default_import,
+      stage,
+      position,
+      key,
+      ..
+    } = one;
     for (name, value) in other.import_specifiers {
       if let Some(set) = import_specifiers.get_mut(&name) {
         set.extend(value);
@@ -737,14 +967,17 @@ impl ExternalModuleInitFragment {
         import_specifiers.insert(name, value);
       }
     }
+    let top_level_decl_symbols =
+      Self::collect_top_level_decl_symbols(&import_specifiers, default_import.as_deref());
 
     Box::new(Self {
-      imported_module: one.imported_module,
+      imported_module,
       import_specifiers,
-      default_import: one.default_import,
-      stage: one.stage,
-      position: one.position,
-      key: one.key,
+      default_import,
+      top_level_decl_symbols,
+      stage,
+      position,
+      key,
     })
   }
 }
@@ -805,5 +1038,9 @@ impl InitFragment for ExternalModuleInitFragment {
 
   fn key(&self) -> &InitFragmentKey {
     &self.key
+  }
+
+  fn top_level_decl_symbols(&self) -> &[Atom] {
+    &self.top_level_decl_symbols
   }
 }

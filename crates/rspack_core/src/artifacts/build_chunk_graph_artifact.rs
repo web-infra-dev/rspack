@@ -243,7 +243,8 @@ where
     return Ok(());
   }
 
-  // Cache is not used, clear recovered artifact to avoid stale chunk graph data.
+  // Incremental chunk graph reuse did not apply, so clear the recovered
+  // artifact to avoid stale data.
   compilation.build_chunk_graph_artifact.reset_for_rebuild();
 
   let compilation = task(compilation).await?;

@@ -60,8 +60,12 @@ module.exports = {
             expect(result.misses).toBe(0);
           }
           if (updateIndex === 2) {
-            expect(result.hits).toBeGreaterThan(0);
-            expect(result.misses).toBeGreaterThan(0);
+            // The incremental code generation pass only schedules the changed
+            // module. Unchanged modules reuse their recovered artifacts and do
+            // not need to query the code generation cache.
+            expect(result.hits).toBe(0);
+            expect(result.misses).toBe(1);
+            expect(result.total).toBe(1);
           }
 
           updateIndex++;

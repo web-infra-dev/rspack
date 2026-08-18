@@ -786,6 +786,7 @@ impl JsPlugin {
           m.as_ref(),
           all_strict,
           false,
+          true,
           output_path,
           &hooks,
           runtime_template,

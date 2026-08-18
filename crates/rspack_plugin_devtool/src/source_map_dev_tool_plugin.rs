@@ -13,7 +13,7 @@ use rspack_core::{
   AssetInfo, CacheCount, Chunk, ChunkUkey, Compilation, CompilationAsset, CompilationParams,
   CompilationProcessAssets, CompilerCompilation, Filename, Logger, ModuleIdentifier, PathData,
   Plugin,
-  cache::persistent::occasion::SourceMapDevToolPluginCacheArtifact,
+  cache::persistent::occasion::SourceMapDevToolPluginCache,
   has_content_hash_placeholder,
   rspack_sources::{
     BoxSource, ConcatSource, MapOptions, ObjectPool, RawBufferSource, RawStringSource, Source,
@@ -442,7 +442,7 @@ impl SourceMapDevToolPlugin {
     file_to_chunk: &HashMap<&str, &Chunk>,
     output_path: &Utf8Path,
     compilation_assets: Vec<(String, &CompilationAsset)>,
-    cache: Option<&mut SourceMapDevToolPluginCacheArtifact>,
+    cache: Option<&mut SourceMapDevToolPluginCache>,
     cache_counter: Option<&CacheCount>,
   ) -> Result<Vec<MappedAsset>> {
     let Some(cache) = cache else {
@@ -1198,7 +1198,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       .await?,
   );
 
-  let mut cache = compilation.source_map_dev_tool_plugin_cache_artifact.take();
+  let mut cache = compilation.source_map_dev_tool_plugin_cache.take();
   let cache_counter = if cache.is_some() {
     Some(logger.cache("source map persistent cache"))
   } else {
@@ -1225,7 +1225,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   logger.time_end(start);
 
   if let Some(cache) = cache {
-    compilation.source_map_dev_tool_plugin_cache_artifact = Some(cache);
+    compilation.source_map_dev_tool_plugin_cache = Some(cache);
   }
   if let Some(counter) = cache_counter {
     logger.cache_end(counter);

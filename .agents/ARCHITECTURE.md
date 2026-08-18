@@ -211,23 +211,29 @@ Determines how module paths resolve to actual files.
 - Module: `module-name` (from node_modules)
 - Alias: Custom alias mappings
 
-## Caching System
+## Cache and Incremental Compilation
 
-Multi-level caching for performance.
+Cache and Incremental are independent performance mechanisms:
 
-**Cache Levels:**
+- **Cache** stores fine-grained computation results. It supports process-local memory storage and
+  filesystem-backed persistent storage.
+- **Incremental** recovers prior pass artifacts during development rebuilds, watch mode, and HMR so
+  unaffected portions can be reused and affected work can be updated from known mutations.
 
-1. **Memory Cache**: In-memory for current build
-2. **Persistent Cache**: Disk-based across builds
-3. **Module Cache**: Cached module build results
-4. **Compilation Cache**: Cached compilation results
+The two options form orthogonal axes. Disabling Cache must not disable Incremental, and disabling
+Incremental must not disable Cache. This allows all four Cache on/off × Incremental on/off
+combinations.
 
-**Cache Invalidation:**
+Incremental does not make separate one-shot `rspack build` invocations incremental. Reuse across
+those invocations comes from filesystem Cache. Incremental is conceptually aligned with webpack's
+`cacheUnaffected` behavior, but Rspack exposes it independently from Cache.
 
-- File content changes
-- Configuration changes
-- Dependency changes
-- Manual cache clearing
+Rspack currently has two internal Cache backend implementations, `legacy_cache` and `new_cache`.
+Both implement Cache storage responsibilities and must remain independent from the compiler-owned
+Incremental artifacts.
+
+See [Cache and Incremental Compilation](./CACHE_AND_INCREMENTAL.md) for the configuration matrix,
+ownership model, backend boundary, and architectural invariants.
 
 ## File System Abstraction
 
@@ -273,9 +279,10 @@ Unified error system.
 
 ### Incremental Compilation
 
-- Only rebuilds changed modules
-- Uses dependency graph to determine affected modules
-- Caches unchanged modules
+- Targets development rebuilds, watch mode, and HMR in the same compiler lifecycle
+- Uses mutations and dependency relationships to determine affected work
+- Recovers prior pass artifacts and updates affected work from mutations independently from Cache
+- Does not provide incremental semantics across standalone one-shot builds
 
 ### Memory Management
 
@@ -348,6 +355,8 @@ Source File → Loader Chain → Parsed AST → Dependency Extraction
 - [Project Structure](../website/docs/en/contribute/development/project.md)
 - [JavaScript API Architecture](../website/docs/en/api/javascript-api/architecture.mdx)
 - [JavaScript Binding Guide](./BINDING.md)
+- [Cache and Incremental Compilation](./CACHE_AND_INCREMENTAL.md)
+- [Incremental Artifacts](./ARTIFACTS.md)
 - [Common Patterns](./COMMON_PATTERNS.md)
 - [Code Style](./CODE_STYLE.md)
 - [Plugin API Documentation](https://rspack.rs/api/plugin-api/)

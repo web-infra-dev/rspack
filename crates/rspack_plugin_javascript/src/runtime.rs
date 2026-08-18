@@ -1,8 +1,10 @@
+use cow_utils::CowUtils;
 use rayon::prelude::*;
 use rspack_core::{
   ChunkGraph, ChunkInitFragments, ChunkKind, ChunkUkey, CodeGenerationDataChunkInitFragments,
-  CodeGenerationPublicPathAutoReplace, Compilation, Module, RuntimeCodeTemplate, RuntimeGlobals,
-  RuntimeGlobalsRenderMode, RuntimeModuleGenerateContext, SourceType,
+  CodeGenerationDataPreservedAssetImport, CodeGenerationPublicPathAutoReplace, Compilation,
+  ExternalModuleInitFragment, InitFragmentExt, InitFragmentStage, Module, RuntimeCodeTemplate,
+  RuntimeGlobals, RuntimeGlobalsRenderMode, RuntimeModuleGenerateContext, SourceType,
   chunk_graph_chunk::ChunkIdSet,
   get_undo_path, render_runtime_module_source,
   rspack_sources::{
@@ -52,6 +54,7 @@ pub async fn render_chunk_modules(
             chunk_ukey,
             *module,
             all_strict,
+            true,
             true,
             output_path,
             hooks,
@@ -118,6 +121,7 @@ pub async fn render_module(
   module: &dyn Module,
   all_strict: bool,
   factory: bool,
+  render_preserved_asset_import_fragment: bool,
   output_path: &str,
   hooks: &JavascriptModulesPluginHooks,
   runtime_template: &RuntimeCodeTemplate,
@@ -138,6 +142,37 @@ pub async fn render_module(
     .get::<CodeGenerationDataChunkInitFragments>()
     .map(|fragments| fragments.inner().clone())
     .unwrap_or_default();
+  if render_preserved_asset_import_fragment
+    && let Some(asset_import) = code_gen_result
+      .data()
+      .get::<CodeGenerationDataPreservedAssetImport>()
+  {
+    // The normal JavaScript renderer has no chunk linker for raw imports. Use the same structured
+    // fragment as ExternalModuleDependency, after the final output-relative request is known.
+    let relative = get_undo_path(
+      output_path,
+      compilation.options.output.path.to_string(),
+      true,
+    );
+    let request = asset_import
+      .request()
+      .cow_replace(AUTO_PUBLIC_PATH_PLACEHOLDER, &relative)
+      .into_owned();
+    let position = compilation
+      .get_module_graph()
+      .get_pre_order_index(&module.identifier())
+      .map_or(0, |index| index as i32);
+    module_chunk_init_fragments.push(
+      ExternalModuleInitFragment::new(
+        request,
+        Vec::new(),
+        Some(asset_import.binding().to_string()),
+        InitFragmentStage::StageESMImports,
+        position,
+      )
+      .boxed(),
+    );
+  }
   let mut render_runtime_requirements = *code_gen_result.runtime_requirements();
 
   let mut render_source = if code_gen_result

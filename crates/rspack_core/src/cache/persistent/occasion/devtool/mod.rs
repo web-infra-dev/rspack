@@ -64,7 +64,7 @@ impl CacheKey {
 }
 
 #[derive(Debug, Default)]
-pub struct SourceMapDevToolPluginCacheArtifact {
+pub struct SourceMapDevToolPluginCache {
   entries: FxHashMap<CacheKey, Option<CacheEntry>>,
   pending_writes: Vec<CacheKey>,
   pending_removes: Vec<CacheKey>,
@@ -76,7 +76,7 @@ struct CacheEntry {
   pub source_map: Option<(String, BoxSource)>,
 }
 
-impl SourceMapDevToolPluginCacheArtifact {
+impl SourceMapDevToolPluginCache {
   fn cache_key(filename: &str, asset: &CompilationAsset) -> Option<CacheKey> {
     asset.get_source()?;
     CacheKey::new(filename, &asset.info.version)
@@ -214,7 +214,7 @@ impl SourceMapDevToolPluginOccasion {
 }
 
 impl Occasion for SourceMapDevToolPluginOccasion {
-  type Artifact = SourceMapDevToolPluginCacheArtifact;
+  type CacheItem = SourceMapDevToolPluginCache;
 
   fn name(&self) -> &'static str {
     "source map"
@@ -226,8 +226,8 @@ impl Occasion for SourceMapDevToolPluginOccasion {
   }
 
   #[tracing::instrument(name = "Cache::Occasion::SourceMap::save", skip_all)]
-  fn save(&self, storage: &mut dyn Storage, artifact: &SourceMapDevToolPluginCacheArtifact) {
-    for key in &artifact.pending_removes {
+  fn save(&self, storage: &mut dyn Storage, cache_item: &SourceMapDevToolPluginCache) {
+    for key in &cache_item.pending_removes {
       match self.codec.encode(key) {
         Ok(key) => storage.remove(SCOPE, &key),
         Err(err) => {
@@ -236,7 +236,7 @@ impl Occasion for SourceMapDevToolPluginOccasion {
       }
     }
 
-    artifact
+    cache_item
       .pending_writes
       .par_iter()
       .filter_map(|key| {
@@ -247,7 +247,7 @@ impl Occasion for SourceMapDevToolPluginOccasion {
             return None;
           }
         };
-        let entry = artifact.entries.get(key)?.as_ref()?;
+        let entry = cache_item.entries.get(key)?.as_ref()?;
         let storage_entry = Entry {
           append: entry.asset_append.clone(),
           source_map: entry
@@ -272,13 +272,13 @@ impl Occasion for SourceMapDevToolPluginOccasion {
 
     tracing::debug!(
       "saved {} and removed {} source map persistent cache entries",
-      artifact.pending_writes.len(),
-      artifact.pending_removes.len(),
+      cache_item.pending_writes.len(),
+      cache_item.pending_removes.len(),
     );
   }
 
   #[tracing::instrument(name = "Cache::Occasion::SourceMap::recovery", skip_all)]
-  async fn recovery(&self, storage: &dyn Storage) -> Result<SourceMapDevToolPluginCacheArtifact> {
+  async fn recovery(&self, storage: &dyn Storage) -> Result<SourceMapDevToolPluginCache> {
     let items = storage.load(SCOPE).await?;
     let entries = items
       .into_par_iter()
@@ -312,7 +312,7 @@ impl Occasion for SourceMapDevToolPluginOccasion {
       "recovered {} source map persistent cache entries",
       entries.len()
     );
-    Ok(SourceMapDevToolPluginCacheArtifact {
+    Ok(SourceMapDevToolPluginCache {
       entries,
       pending_writes: Vec::new(),
       pending_removes: Vec::new(),

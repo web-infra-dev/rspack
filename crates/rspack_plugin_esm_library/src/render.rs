@@ -4,11 +4,11 @@ use std::{borrow::Cow, sync::Arc};
 
 use rspack_collections::IdentifierIndexSet;
 use rspack_core::{
-  AssetInfo, Chunk, ChunkGraph, ChunkGroup, ChunkRenderContext, ChunkUkey, Compilation,
-  ConcatenatedModuleInfo, InitFragment, ModuleIdentifier, PathData, PathInfo, RuntimeCodeTemplate,
-  RuntimeGlobals, RuntimeVariable, SourceType, export_name, get_js_chunk_filename_template,
-  get_undo_path, render_init_fragments,
-  rspack_sources::{ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt},
+  AssetInfo, Chunk, ChunkGraph, ChunkGroup, ChunkRenderContext, ChunkUkey,
+  CodeGenerationDataPreservedAssetImport, Compilation, ConcatenatedModuleInfo, InitFragment,
+  ModuleIdentifier, PathData, PathInfo, RuntimeCodeTemplate, RuntimeGlobals, RuntimeVariable,
+  SourceType, export_name, get_js_chunk_filename_template, get_undo_path, render_init_fragments,
+  rspack_sources::{BoxSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt},
 };
 use rspack_error::Result;
 use rspack_plugin_javascript::{
@@ -24,7 +24,7 @@ use rspack_util::{
 
 use self::runtime_mode::{RuntimeImportRenderContext, RuntimeRenderContext, renderer_for};
 use crate::{
-  chunk_link::{ChunkLinkContext, ReExportFrom, Ref},
+  chunk_link::{ChunkLinkContext, RawImportSource, ReExportFrom, Ref},
   plugin::RSPACK_ESM_RUNTIME_CHUNK,
 };
 
@@ -46,6 +46,31 @@ fn is_css_only_module(
       .iter()
       .all(|t| matches!(t, SourceType::Css | SourceType::CssImport))
     || module.identifier().starts_with("css|")
+}
+
+fn replace_preserved_asset_import_binding(
+  source: BoxSource,
+  original_binding: &str,
+  final_binding: &str,
+) -> BoxSource {
+  if original_binding == final_binding {
+    return source;
+  }
+
+  let content = source.source().into_string_lossy();
+  let matches = content
+    .match_indices(original_binding)
+    .map(|(start, _)| (start as u32, (start + original_binding.len()) as u32))
+    .collect::<Vec<_>>();
+  if matches.is_empty() {
+    return source;
+  }
+
+  let mut source = ReplaceSource::new(source);
+  for (start, end) in matches {
+    source.replace(start, end, final_binding.to_string(), None);
+  }
+  source.boxed()
 }
 
 #[inline]
@@ -173,6 +198,12 @@ impl EsmLibraryPlugin {
         let module = module_graph
           .module_by_identifier(m)
           .expect("should have module");
+        let preserved_asset_import = compilation
+          .code_generation_results
+          .get(m, Some(chunk.runtime()))
+          .data()
+          .get::<CodeGenerationDataPreservedAssetImport>()
+          .cloned();
 
         let hooks = hooks.read().await;
         let Some((module_source, init_fragments)) = render_module(
@@ -181,6 +212,7 @@ impl EsmLibraryPlugin {
           module.as_ref(),
           true,
           true,
+          false,
           &output_path,
           &hooks,
           module_runtime_template,
@@ -190,6 +222,25 @@ impl EsmLibraryPlugin {
           continue;
         };
         drop(hooks);
+
+        let module_source = if let Some(asset_import) = preserved_asset_import {
+          replace_auto_public_path = true;
+          let source = RawImportSource::Source((asset_import.request().to_string(), None));
+          let binding = chunk_link
+            .raw_import_stmts
+            .get(&source)
+            .and_then(|import_spec| import_spec.default_import.as_ref())
+            .ok_or_else(|| {
+              rspack_error::error!("missing preserved asset import binding for module {m}")
+            })?;
+          replace_preserved_asset_import_binding(
+            module_source,
+            asset_import.binding().as_str(),
+            binding.as_str(),
+          )
+        } else {
+          module_source
+        };
 
         chunk_init_fragments.extend(init_fragments);
         decl_inner.add(module_source.clone());

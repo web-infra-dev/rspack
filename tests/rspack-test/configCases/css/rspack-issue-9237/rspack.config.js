@@ -16,7 +16,7 @@ class Plugin {
           compilation.updateAsset(cssFilename, (old) => {
             const oldSource = old.source().toString();
             expect(
-              oldSource.includes('url(../../static/svg/logo.svg)'),
+              oldSource.includes('url("../../static/svg/logo.svg")'),
             ).toBeTruthy();
             return old;
           });

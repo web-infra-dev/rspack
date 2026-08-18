@@ -16,6 +16,7 @@ pub mod build_module_graph;
 pub mod bundle_basic_react_development;
 pub mod bundle_basic_react_production_sourcemap;
 pub mod bundle_css_development;
+pub mod bundle_css_modules_development;
 pub mod bundle_css_production_sourcemap;
 pub mod bundle_misc_development;
 pub mod bundle_misc_production_sourcemap;

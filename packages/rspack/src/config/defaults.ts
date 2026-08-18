@@ -283,6 +283,7 @@ const applyExperimentsDefaults = (
   D(experiments, 'asyncWebAssembly', true);
   D(experiments, 'deferImport', false);
   D(experiments, 'sourceImport', false);
+  D(experiments, 'fasterModuleConcatenation', false);
 
   D(experiments, 'buildHttp', undefined);
   if (experiments.buildHttp && typeof experiments.buildHttp === 'object') {

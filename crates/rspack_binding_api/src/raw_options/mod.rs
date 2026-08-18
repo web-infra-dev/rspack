@@ -4,9 +4,8 @@ use napi::{
 };
 use napi_derive::napi;
 use rspack_core::{
-  CacheOptions, CompilerOptions, Context, Experiments, ModuleOptions, NodeDirnameOption,
-  NodeFilenameOption, NodeGlobalOption, NodeOption, OutputOptions, References,
-  incremental::{IncrementalOptions, IncrementalPasses},
+  CompilerOptions, Context, Experiments, ModuleOptions, NodeDirnameOption, NodeFilenameOption,
+  NodeGlobalOption, NodeOption, OutputOptions, References, incremental::IncrementalOptions,
 };
 use rspack_error::error;
 
@@ -83,16 +82,13 @@ impl TryFrom<RawOptions> for CompilerOptions {
     let module: ModuleOptions = value.module.try_into()?;
     let cache = normalize_raw_cache(value.cache)?;
     let experiments: Experiments = value.experiments.into();
-    let mut incremental: IncrementalOptions = match value.incremental {
+    let incremental: IncrementalOptions = match value.incremental {
       Some(value) => match value {
         WithFalse::True(value) => value.into(),
         WithFalse::False => IncrementalOptions::empty_passes(),
       },
       None => IncrementalOptions::empty_passes(),
     };
-    if let CacheOptions::Disabled = cache {
-      incremental.passes = IncrementalPasses::empty();
-    }
     let optimization = value.optimization.try_into()?;
     let stats = value.stats.into();
     let node = value

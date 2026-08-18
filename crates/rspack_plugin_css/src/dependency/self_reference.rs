@@ -7,7 +7,7 @@ use rspack_core::{
 };
 use rspack_util::atom::Atom;
 
-use crate::utils::{escape_css, replace_css_module_id_placeholder};
+use crate::{css_syntax::escape_identifier, utils::replace_css_module_id_placeholder};
 
 #[cacheable]
 #[derive(Debug, Clone)]
@@ -128,7 +128,7 @@ impl DependencyTemplate for CssSelfReferenceLocalIdentDependencyTemplate {
       source.replace(
         replace.range.start,
         replace.range.end,
-        escape_css(&local_ident).into_owned(),
+        escape_identifier(&local_ident).into_owned(),
         None,
       );
     }

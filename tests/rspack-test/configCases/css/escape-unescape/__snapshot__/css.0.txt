@@ -72,12 +72,12 @@ Array [
 
 .style_modules_css-♥ { background: lime; }
 .style_modules_css-© { background: lime; }
-.style_modules_css-\😍 { background: lime; }
+.style_modules_css-😍 { background: lime; }
 .style_modules_css-“‘’” { background: lime; }
 .style_modules_css-☺☃ { background: lime; }
 .style_modules_css-⌘⌥ { background: lime; }
-.style_modules_css-\𝄞♪♩♫♬ { background: lime; }
-.style_modules_css-\💩 { background: lime; }
+.style_modules_css-𝄞♪♩♫♬ { background: lime; }
+.style_modules_css-💩 { background: lime; }
 .style_modules_css-\? { background: lime; }
 .style_modules_css-\@ { background: lime; }
 .style_modules_css-\. { background: lime; }
