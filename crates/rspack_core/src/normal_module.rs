@@ -33,7 +33,8 @@ use crate::{
   Module, ModuleCodeGenerationContext, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
   ModuleLayer, ModuleType, OptimizationBailoutItem, OutputOptions, ParseContext, ParseResult,
   ParserAndGenerator, ParserOptions, Resolve, ResolvedModuleOptions, RspackLoaderRunnerPlugin,
-  RunnerContext, RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, SourceType, contextify,
+  RunnerContext, RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, SourceType,
+  ValueCacheVersions, contextify,
   diagnostics::ModuleBuildError,
   get_context, module_analyzed_side_effect_free, module_declared_side_effect_free,
   module_update_hash,
@@ -149,6 +150,29 @@ pub struct NormalModule {
   source_map_kind: SourceMapKind,
 }
 
+#[cacheable]
+#[derive(Debug)]
+pub(crate) struct NormalModuleBuildState {
+  #[cacheable(with=AsOption<AsPreset>)]
+  source: Option<BoxSource>,
+  diagnostics: Vec<Diagnostic>,
+  code_generation_dependencies: Option<Vec<BoxModuleDependency>>,
+  presentational_dependencies: Option<Vec<BoxDependencyTemplate>>,
+  build_info: BuildInfo,
+  build_meta: BuildMeta,
+  parsed: bool,
+  source_map_kind: SourceMapKind,
+}
+
+impl NormalModuleBuildState {
+  pub(crate) fn has_value_dependencies_diff(
+    &self,
+    value_cache_versions: &ValueCacheVersions,
+  ) -> bool {
+    value_cache_versions.has_diff(&self.build_info.value_dependencies)
+  }
+}
+
 static DEBUG_ID: AtomicUsize = AtomicUsize::new(1);
 
 impl NormalModule {
@@ -231,6 +255,37 @@ impl NormalModule {
 
   pub fn id(&self) -> ModuleIdentifier {
     self.id
+  }
+
+  pub(crate) fn build_state(&self) -> NormalModuleBuildState {
+    NormalModuleBuildState {
+      source: self.source.clone(),
+      diagnostics: self.diagnostics.clone(),
+      code_generation_dependencies: self.code_generation_dependencies.clone(),
+      presentational_dependencies: self.presentational_dependencies.clone(),
+      build_info: self.build_info.clone(),
+      build_meta: self.build_meta.clone(),
+      parsed: self.parsed,
+      source_map_kind: self.source_map_kind,
+    }
+  }
+
+  pub(crate) fn restore_build_state(&mut self, state: &NormalModuleBuildState) {
+    let import_phase = self.build_info.import_phase;
+    self.source.clone_from(&state.source);
+    self.diagnostics.clone_from(&state.diagnostics);
+    self
+      .code_generation_dependencies
+      .clone_from(&state.code_generation_dependencies);
+    self
+      .presentational_dependencies
+      .clone_from(&state.presentational_dependencies);
+    self.build_info.clone_from(&state.build_info);
+    self.build_info.import_phase = import_phase;
+    self.build_meta.clone_from(&state.build_meta);
+    self.parsed = state.parsed;
+    self.source_map_kind = state.source_map_kind;
+    self.cached_source_sizes = SourceSizeCache::default();
   }
 
   pub fn match_resource(&self) -> Option<&ResourceData> {
