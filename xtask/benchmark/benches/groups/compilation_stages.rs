@@ -1801,6 +1801,7 @@ async fn compute_concatenated_module_codegen(
       compilation,
       runtime: Some(&job.runtime),
       concatenation_scope: concatenation_scope.as_mut(),
+      concatenation_source: None,
       runtime_template: &mut runtime_template,
     };
     let mut code_generation_result = module.code_generation(&mut code_generation_context).await?;

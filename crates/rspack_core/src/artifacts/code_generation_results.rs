@@ -106,10 +106,12 @@ impl CodeGenerationDataPreservedAssetImport {
   pub fn binding(&self) -> &Atom {
     &self.binding
   }
+}
 
-  fn update_hash(&self, hasher: &mut RspackHasher) {
-    "preserved asset import".hash(hasher);
-    self.request.hash(hasher);
+impl RspackHash for CodeGenerationDataPreservedAssetImport {
+  fn hash(&self, state: &mut RspackHasher) {
+    "preserved asset import".hash(state);
+    self.request.hash(state);
   }
 }
 
@@ -131,7 +133,9 @@ impl CodeGenerationDataTopLevelDeclarations {
 }
 
 #[cacheable_dyn]
-pub trait CodeGenerationDataItem: Debug + DynClone + AsAny + IntoAny + Send + Sync {}
+pub trait CodeGenerationDataItem: Debug + DynClone + AsAny + IntoAny + Send + Sync {
+  fn update_hash(&self, _hasher: &mut RspackHasher) {}
+}
 
 clone_trait_object!(CodeGenerationDataItem);
 
@@ -200,19 +204,37 @@ impl CodeGenerationDataItem for CodeGenerationDataFilename {}
 impl CodeGenerationDataItem for CodeGenerationDataAssetInfo {}
 
 #[cacheable_dyn]
-impl CodeGenerationDataItem for CodeGenerationDataPreservedAssetImport {}
+impl CodeGenerationDataItem for CodeGenerationDataPreservedAssetImport {
+  fn update_hash(&self, hasher: &mut RspackHasher) {
+    RspackHash::hash(self, hasher);
+  }
+}
 
 #[cacheable_dyn]
 impl CodeGenerationDataItem for CodeGenerationDataTopLevelDeclarations {}
 
 #[cacheable_dyn]
-impl CodeGenerationDataItem for RenderedInitFragments {}
+impl CodeGenerationDataItem for RenderedInitFragments {
+  fn update_hash(&self, hasher: &mut RspackHasher) {
+    if !self.is_empty() {
+      RspackHash::hash(self, hasher);
+    }
+  }
+}
 
 #[cacheable_dyn]
-impl CodeGenerationDataItem for RenderedInitFragmentsDigest {}
+impl CodeGenerationDataItem for RenderedInitFragmentsDigest {
+  fn update_hash(&self, hasher: &mut RspackHasher) {
+    RspackHash::hash(self, hasher);
+  }
+}
 
 #[cacheable_dyn]
-impl CodeGenerationDataItem for CodeGenerationDataChunkInitFragments {}
+impl CodeGenerationDataItem for CodeGenerationDataChunkInitFragments {
+  fn update_hash(&self, hasher: &mut RspackHasher) {
+    RspackHash::hash(self, hasher);
+  }
+}
 
 #[cacheable]
 #[derive(Debug, Default, Clone)]
@@ -259,6 +281,12 @@ impl CodeGenerationData {
 
   pub fn is_empty(&self) -> bool {
     self.inner.is_empty()
+  }
+
+  pub fn update_hash(&self, hasher: &mut RspackHasher) {
+    for item in &self.inner {
+      item.update_hash(hasher);
+    }
   }
 }
 
@@ -359,35 +387,14 @@ impl CodeGenerationResultBuilder {
       for source_type in self.value.sources.as_ref().keys() {
         source_type.hash(&mut hasher);
       }
-      if let Some(digest) = self.value.data.get::<RenderedInitFragmentsDigest>() {
-        digest.hash(&mut hasher);
-      }
     } else {
       for (source_type, source) in self.value.sources.as_ref() {
         source_type.hash(&mut hasher);
         std::hash::Hash::hash(source, &mut hasher);
       }
-      if let Some(fragments) = self.value.data.get::<RenderedInitFragments>()
-        && !fragments.is_empty()
-      {
-        fragments.hash(&mut hasher);
-      }
     }
-    if let Some(fragments) = self
-      .value
-      .data
-      .get::<CodeGenerationDataChunkInitFragments>()
-    {
-      fragments.hash(&mut hasher);
-    }
+    self.value.data.update_hash(&mut hasher);
     self.value.runtime_requirements.hash(&mut hasher);
-    if let Some(asset_import) = self
-      .value
-      .data
-      .get::<CodeGenerationDataPreservedAssetImport>()
-    {
-      asset_import.update_hash(&mut hasher);
-    }
     self.value.hash = Some(hasher.digest(hash_digest));
   }
 
