@@ -434,7 +434,7 @@ export default {
 
 ## 禁用缓存
 
-将 `cache` 设置为 `false` 可以同时禁用内存缓存和持久化缓存，但不会关闭 [`incremental`](/config/incremental)。如果工作流要求完整重构建且不恢复 Artifact，需要另外设置 `incremental: false`。
+将 `cache` 设置为 `false` 可以同时禁用内存缓存和持久化缓存，但不会关闭 [`incremental`](/config/incremental)。如果工作流要求完整重建且不恢复 Artifact，需要另外设置 `incremental: false`。
 
 通常不建议禁用缓存，因为未被 Incremental 跳过的计算将无法再复用细粒度 Cache entry。
 

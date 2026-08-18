@@ -4,7 +4,7 @@ description: '控制是否在开发期重建和 HMR 中复用未受影响的中�
 
 # Incremental
 
-`incremental` 控制 Rspack 是否在同一个长生命周期 compiler 的多次 compilation 之间复用未受影响的中间结果。它面向开发期重建、watch 模式和热模块替换（HMR）：Rspack 已知发生变化的文件，因此只需重新计算受变更影响的阶段和产物。
+`incremental` 控制 Rspack 是否在同一个长生命周期 compiler 的多次 compilation 之间复用未受影响的中间结果。它面向开发期重建、watch 模式和热模块替换（HMR）：Rspack 已知发生变化的文件，因此可以避免重新计算未受影响的阶段和产物。
 
 这里的“开发期”描述的是重建工作流，并不等同于 `mode: 'development'`；production 模式下的 watch 同样可以使用 Incremental。独立的 `rspack build` 是一次性构建，没有可供更新的上一次 compilation，因此 `incremental` 不会让多次独立的 build 命令变成增量构建。
 
@@ -32,7 +32,7 @@ Cache “开启”包括 `cache: true`、`cache: { type: 'memory' }` 和
 `cache: { type: 'persistent' }`。
 
 Rspack Incremental 的优化目标与 webpack 的
-[`cacheUnaffected`](https://webpack.js.org/configuration/cache/#cachecacheunaffected) 类似：避免重新计算不受变更影响的工作。Rspack 将这一思路扩展到多个 compilation 阶段，并将其设计为独立于 Cache 的顶层能力。
+[`cacheUnaffected`](https://webpack.js.org/configuration/cache/#cachecacheunaffected) 类似：避免重新计算不受变更影响的工作。Rspack 将这一思路扩展到多个 compilation 阶段，并将其设计为独立于 Cache 的顶层能力。这是语义对齐，并不代表配置结构等价：webpack 要求 `cacheUnaffected` 与 Memory Cache 一起使用，而 Rspack 将 `incremental` 作为独立的顶层配置。
 
 ## 配置方式
 
@@ -58,6 +58,9 @@ export default {
 ```
 
 也可以通过对象形式配置 `incremental`，对每个构建阶段的增量能力进行细粒度控制。对象配置主要用于调试或临时规避问题，常规场景推荐使用预设值。
+
+使用对象配置时，省略的阶段选项默认值都是 `true`，`silent` 的默认值也是 `true`。例如，
+`{ modulesCodegen: false }` 只会关闭该阶段，其他 Incremental 阶段仍然保持开启。
 
 ```js title="rspack.config.mjs"
 export default {
