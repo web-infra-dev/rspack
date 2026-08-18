@@ -34,6 +34,10 @@ pub struct Loaders<Context: Send> {
   #[cacheable(with=Skip)]
   loader_chains: OnceLock<Vec<LoaderChain>>,
   #[cacheable(with=Skip)]
+  root_chain_by_loader: OnceLock<Vec<u8>>,
+  #[cacheable(with=Skip)]
+  execution_chain_by_loader: OnceLock<Vec<u16>>,
+  #[cacheable(with=Skip)]
   _pin: PhantomPinned,
 }
 
@@ -57,6 +61,8 @@ impl<Context: Send> Loaders<Context> {
       loader_options,
       loader_items: OnceLock::new(),
       loader_chains: OnceLock::new(),
+      root_chain_by_loader: OnceLock::new(),
+      execution_chain_by_loader: OnceLock::new(),
       _pin: PhantomPinned,
     }
   }
@@ -78,9 +84,38 @@ impl<Context: Send> Loaders<Context> {
   }
 
   fn loader_chains(&self) -> &Vec<LoaderChain> {
+    self.loader_chains.get_or_init(|| {
+      let (chains, root_chain_by_loader, execution_chain_by_loader) =
+        plan_loader_chains(self.loader_items());
+      assert!(
+        self.root_chain_by_loader.set(root_chain_by_loader).is_ok(),
+        "root loader chain index should only be initialized once"
+      );
+      assert!(
+        self
+          .execution_chain_by_loader
+          .set(execution_chain_by_loader)
+          .is_ok(),
+        "execution loader chain index should only be initialized once"
+      );
+      chains
+    })
+  }
+
+  fn root_chain_by_loader(&self) -> &Vec<u8> {
+    self.loader_chains();
     self
-      .loader_chains
-      .get_or_init(|| plan_loader_chains(self.loader_items()))
+      .root_chain_by_loader
+      .get()
+      .expect("loader chains should initialize the root chain index")
+  }
+
+  fn execution_chain_by_loader(&self) -> &Vec<u16> {
+    self.loader_chains();
+    self
+      .execution_chain_by_loader
+      .get()
+      .expect("loader chains should initialize the execution chain index")
   }
 
   #[tracing::instrument("LoaderRunner:run_loaders", skip_all, level = "trace")]
@@ -93,7 +128,18 @@ impl<Context: Send> Loaders<Context> {
   ) -> (LoaderResult<Context>, Option<Error>) {
     let loader_items = ArcComputed::new(Arc::clone(self), Loaders::loader_items);
     let loader_chains = ArcComputed::new(Arc::clone(self), Loaders::loader_chains);
-    let mut cx = create_loader_context(loader_items, loader_chains, resource_data, plugin, context);
+    let root_chain_by_loader = ArcComputed::new(Arc::clone(self), Loaders::root_chain_by_loader);
+    let execution_chain_by_loader =
+      ArcComputed::new(Arc::clone(self), Loaders::execution_chain_by_loader);
+    let mut cx = create_loader_context(
+      loader_items,
+      loader_chains,
+      root_chain_by_loader,
+      execution_chain_by_loader,
+      resource_data,
+      plugin,
+      context,
+    );
     let result = run_loaders_impl(&mut cx, fs).await;
     (LoaderResult::new(cx), result.err())
   }
@@ -297,6 +343,8 @@ You may need an additional plugin to handle "{scheme}:" URIs."#
 fn create_loader_context<Context: Send>(
   loader_items: ArcComputed<Loaders<Context>, Vec<LoaderItem<Context>>>,
   loader_chains: ArcComputed<Loaders<Context>, Vec<LoaderChain>>,
+  root_chain_by_loader: ArcComputed<Loaders<Context>, Vec<u8>>,
+  execution_chain_by_loader: ArcComputed<Loaders<Context>, Vec<u16>>,
   resource_data: Arc<ResourceData>,
   plugin: Option<Arc<dyn LoaderRunnerPlugin<Context = Context>>>,
   context: Context,
@@ -318,7 +366,10 @@ fn create_loader_context<Context: Send>(
       state
     })
     .collect();
-  let cache_chain_states = loader_chains
+  let root_chain_count = root_chain_by_loader
+    .last()
+    .map_or(0, |index| usize::from(*index) + 1);
+  let cache_chain_states = loader_chains[..root_chain_count]
     .iter()
     .map(|chain| chain.is_cache().then_some(CacheChainState::Pending))
     .collect();
@@ -338,6 +389,8 @@ fn create_loader_context<Context: Send>(
     loader_index: 0,
     loader_items,
     loader_chains,
+    root_chain_by_loader,
+    execution_chain_by_loader,
     loader_item_states,
     cache_chain_states,
     plugin,

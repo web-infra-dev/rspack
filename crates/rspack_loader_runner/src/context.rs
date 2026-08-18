@@ -1,4 +1,4 @@
-use std::{cmp::Ordering, path::PathBuf, sync::Arc};
+use std::{path::PathBuf, sync::Arc};
 
 use derive_more::Debug;
 use rspack_error::Diagnostic;
@@ -9,9 +9,7 @@ use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
   AdditionalData, Content, LoaderChain, LoaderItem, LoaderItemState, LoaderRunnerPlugin, Loaders,
-  ParseMeta, ResourceData,
-  chain::{CacheChainState, execution_chain_at},
-  loader::LoaderItemList,
+  ParseMeta, ResourceData, chain::CacheChainState, loader::LoaderItemList,
 };
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -62,6 +60,10 @@ pub struct LoaderContext<Context: Send> {
   #[debug(skip)]
   pub loader_items: ArcComputed<Loaders<Context>, Vec<LoaderItem<Context>>>,
   pub loader_chains: ArcComputed<Loaders<Context>, Vec<LoaderChain>>,
+  #[debug(skip)]
+  pub(crate) root_chain_by_loader: ArcComputed<Loaders<Context>, Vec<u8>>,
+  #[debug(skip)]
+  pub(crate) execution_chain_by_loader: ArcComputed<Loaders<Context>, Vec<u16>>,
   pub loader_item_states: Vec<LoaderItemState>,
   #[debug(skip)]
   pub(crate) cache_chain_states: Vec<Option<CacheChainState>>,
@@ -121,17 +123,10 @@ impl<Context: Send> LoaderContext<Context> {
   pub(crate) fn current_root_chain_index(&self) -> Option<usize> {
     let loader_index = usize::try_from(self.loader_index).ok()?;
     self
-      .loader_chains
-      .binary_search_by(|chain| {
-        if chain.end() <= loader_index {
-          Ordering::Less
-        } else if chain.start() > loader_index {
-          Ordering::Greater
-        } else {
-          Ordering::Equal
-        }
-      })
-      .ok()
+      .root_chain_by_loader
+      .get(loader_index)
+      .copied()
+      .map(usize::from)
   }
 
   pub(crate) fn current_root_chain(&self) -> Option<&LoaderChain> {
@@ -142,7 +137,8 @@ impl<Context: Send> LoaderContext<Context> {
 
   pub fn current_chain(&self) -> Option<&LoaderChain> {
     let loader_index = usize::try_from(self.loader_index).ok()?;
-    execution_chain_at(self.current_root_chain()?, loader_index)
+    let chain_index = *self.execution_chain_by_loader.get(loader_index)?;
+    self.loader_chains.get(usize::from(chain_index))
   }
 
   /// Builds the cache key from the final per-run loader options. JavaScript
