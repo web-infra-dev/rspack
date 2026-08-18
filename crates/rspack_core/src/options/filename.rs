@@ -23,6 +23,8 @@ use ustr::{IdentityHasher, Ustr};
 use crate::{AssetInfo, PathData, ResourceParsedData, parse_resource};
 
 const MAX_TEMPLATE_LEN: usize = u16::MAX as usize;
+const ESTIMATED_GROWTH_PER_PLACEHOLDER: usize = 16;
+const MAX_ESTIMATED_TEMPLATE_GROWTH: usize = 128;
 
 type PlaceholderId = u16;
 type CompiledTemplateCache =
@@ -605,7 +607,12 @@ fn render_template(
   }
 
   let file_replacements = FileReplacements::new(options);
-  let mut output = String::with_capacity(template.len());
+  let estimated_growth = compiled
+    .placeholder_data
+    .len()
+    .saturating_mul(ESTIMATED_GROWTH_PER_PLACEHOLDER)
+    .min(MAX_ESTIMATED_TEMPLATE_GROWTH);
+  let mut output = String::with_capacity(template.len().saturating_add(estimated_growth));
   render_compiled_template(
     template,
     compiled,
