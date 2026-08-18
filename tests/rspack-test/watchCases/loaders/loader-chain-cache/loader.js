@@ -4,7 +4,7 @@ const loaderRuns = {
 	right: 0
 };
 
-module.exports = function (source, sourceMap, additionalData) {
+module.exports = function (source, sourceMap) {
 	const { name } = this.getOptions();
 	if (name === "marked") {
 		this.addDependency(`${this.rootContext}/trigger.js`);
@@ -21,23 +21,10 @@ module.exports = function (source, sourceMap, additionalData) {
 				sources: ["value.js"],
 				names: [],
 				mappings: ""
-			},
-			{ right: true }
+			}
 		);
-		return;
-	}
-	if (name === "marked") {
-		this.callback(null, source, sourceMap, {
-			...additionalData,
-			marked: true
-		});
 		return;
 	}
 
-	return source
-		.replace("__SOURCE_MAP__", sourceMap?.version === 3)
-		.replace(
-			"__ADDITIONAL_DATA__",
-			additionalData?.right === true && additionalData?.marked === true
-		);
+	return source.replace("__SOURCE_MAP__", sourceMap?.version === 3);
 };

@@ -57,7 +57,7 @@ impl TaskContext {
       intermediate_fs: compilation.intermediate_filesystem.clone(),
       output_fs: compilation.output_filesystem.clone(),
       runtime_template: RuntimeTemplate::new(compilation.options.clone()),
-      loader_cache: get_loader_cache(&compilation.options.context),
+      loader_cache: get_loader_cache(compilation),
       cache: compilation.cache.clone(),
       artifact,
       exports_info_artifact,

@@ -7,8 +7,7 @@ it("should cache a loader chain until the resource changes", () => {
 			leftRuns: +WATCH_STEP + 1,
 			markedRuns: 1,
 			rightRuns: 1,
-			sourceMap: true,
-			additionalData: true
+			sourceMap: true
 		});
 	} else {
 		expect(value).toEqual({
@@ -16,8 +15,7 @@ it("should cache a loader chain until the resource changes", () => {
 			leftRuns: 4,
 			markedRuns: 2,
 			rightRuns: 2,
-			sourceMap: true,
-			additionalData: true
+			sourceMap: true
 		});
 	}
 });

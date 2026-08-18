@@ -1,14 +1,17 @@
 use std::{
-  any::Any,
   path::PathBuf,
   sync::{Arc, LazyLock},
 };
 
+use rspack_cacheable::{
+  cacheable,
+  utils::PortablePath,
+  with::{As, AsPreset, AsVec},
+};
 use rspack_collections::Identifiable;
 use rspack_hash::{HashFunction, RspackHasher};
 use rspack_loader_runner::{
-  AdditionalData, Content, LoaderChain, LoaderChainCacheAction, LoaderChainCacheState,
-  LoaderContext, ParseMeta,
+  Content, LoaderChain, LoaderChainCacheAction, LoaderChainCacheState, LoaderContext,
 };
 use rspack_paths::Utf8PathBuf;
 use rspack_sources::SourceMap;
@@ -16,8 +19,8 @@ use rspack_util::fx_hash::FxDashMap;
 use rustc_hash::FxHashSet;
 
 use crate::{
-  Context, Module, RunnerContext,
-  new_cache::{CacheKey, CacheValue, Etag, MemoryCache, MemoryCacheGetResult},
+  Compilation, Module, RunnerContext,
+  new_cache::{CacheFacade, CacheValue, Etag},
 };
 
 const LOADER_CACHE_DIRECTORY: &str = "node_modules/.cache/lodaer-cache";
@@ -29,21 +32,15 @@ static LOADER_CACHES: LazyLock<FxDashMap<Utf8PathBuf, Arc<LoaderCache>>> =
 
 #[derive(Debug)]
 pub struct LoaderCache {
-  // V1 uses this directory as the cache instance identity only. The storage is
-  // still memory-only; a later persistent version can remain behind this type.
-  cache_directory: Utf8PathBuf,
-  storage: MemoryCache,
+  storage: CacheFacade,
 }
 
 impl LoaderCache {
-  fn new(cache_directory: Utf8PathBuf) -> Self {
-    Self {
-      cache_directory,
-      storage: MemoryCache::default(),
-    }
+  fn new(storage: CacheFacade) -> Self {
+    Self { storage }
   }
 
-  fn cache_key(&self, chain_key: &str, module_identifier: &str) -> CacheKey {
+  fn cache_identifier(chain_key: &str, module_identifier: &str) -> String {
     fn push_segment(key: &mut String, segment: &str) {
       key.push('|');
       key.push_str(&segment.len().to_string());
@@ -51,67 +48,106 @@ impl LoaderCache {
       key.push_str(segment);
     }
 
-    let mut key = self.cache_directory.as_str().to_owned();
+    let mut key = String::new();
     push_segment(&mut key, chain_key);
     push_segment(&mut key, module_identifier);
-    CacheKey::from(key)
+    key
   }
 
-  fn get<T: Any + Send + Sync>(
+  fn get(
     &self,
     chain_key: &str,
     module_identifier: &str,
     etag: &Etag,
-  ) -> Option<CacheValue<T>> {
-    let key = self.cache_key(chain_key, module_identifier);
-    match self.storage.get(&key, Some(etag)) {
-      MemoryCacheGetResult::Hit(value) => Some(value),
-      MemoryCacheGetResult::Miss | MemoryCacheGetResult::NotCached => None,
+  ) -> Option<CacheValue<LoaderCacheEntry>> {
+    let identifier = Self::cache_identifier(chain_key, module_identifier);
+    match self.storage.get(&identifier, Some(etag.clone())) {
+      Ok(value) => value,
+      Err(error) => {
+        tracing::warn!("Restoring loader cache entry failed: {error}");
+        None
+      }
     }
   }
 
-  fn store<T: Any + Send + Sync>(
+  fn store(
     &self,
     chain_key: &str,
     module_identifier: &str,
     etag: Etag,
-    value: CacheValue<T>,
+    value: CacheValue<LoaderCacheEntry>,
   ) {
-    let key = self.cache_key(chain_key, module_identifier);
-    self.storage.store(key, Some(etag), value);
+    let identifier = Self::cache_identifier(chain_key, module_identifier);
+    if let Err(error) = self.storage.store(&identifier, Some(etag), value) {
+      tracing::warn!("Storing loader cache entry failed: {error}");
+    }
   }
 }
 
-pub fn get_loader_cache(context: &Context) -> Arc<LoaderCache> {
-  let cache_directory = context.as_path().join(LOADER_CACHE_DIRECTORY);
+pub fn get_loader_cache(compilation: &Compilation) -> Arc<LoaderCache> {
+  let cache_directory = compilation
+    .options
+    .context
+    .as_path()
+    .join(LOADER_CACHE_DIRECTORY);
   LOADER_CACHES
-    .entry(cache_directory.clone())
-    .or_insert_with(|| Arc::new(LoaderCache::new(cache_directory)))
+    .entry(cache_directory)
+    .or_insert_with(|| Arc::new(LoaderCache::new(compilation.get_cache("LoaderCache"))))
     .clone()
 }
 
+#[cacheable]
 #[derive(Clone, Default)]
 struct DependencyDelta {
+  #[cacheable(with=AsVec<As<PortablePath>>)]
   added: FxHashSet<PathBuf>,
+  #[cacheable(with=AsVec<As<PortablePath>>)]
   removed: FxHashSet<PathBuf>,
 }
 
+#[cacheable]
 #[derive(Clone, Default)]
 struct JsonObjectDelta {
+  #[cacheable(with=AsPreset)]
   upserted: serde_json::Map<String, serde_json::Value>,
+  #[cacheable(with=AsVec)]
   removed: FxHashSet<String>,
 }
 
+#[cacheable]
+#[derive(Clone)]
+enum LoaderCacheContent {
+  String(String),
+  Buffer(Vec<u8>),
+}
+
+impl From<&Content> for LoaderCacheContent {
+  fn from(value: &Content) -> Self {
+    match value {
+      Content::String(value) => Self::String(value.clone()),
+      Content::Buffer(value) => Self::Buffer(value.clone()),
+    }
+  }
+}
+
+impl From<LoaderCacheContent> for Content {
+  fn from(value: LoaderCacheContent) -> Self {
+    match value {
+      LoaderCacheContent::String(value) => Self::String(value),
+      LoaderCacheContent::Buffer(value) => Self::Buffer(value),
+    }
+  }
+}
+
+#[cacheable]
 #[derive(Clone)]
 struct LoaderCacheEntry {
-  content: Option<Content>,
+  content: Option<LoaderCacheContent>,
   source_map: Option<String>,
-  additional_data: Option<AdditionalData>,
   file_dependencies: DependencyDelta,
   context_dependencies: DependencyDelta,
   missing_dependencies: DependencyDelta,
   build_dependencies: DependencyDelta,
-  parse_meta: ParseMeta,
   build_info_extras: JsonObjectDelta,
 }
 
@@ -209,8 +245,7 @@ pub(crate) fn before_normal_chain(
   let module_identifier = context.context.module.identifier();
   let cache = Arc::clone(&context.context.loader_cache);
 
-  if let Some(entry) = cache.get::<LoaderCacheEntry>(&cache_key, module_identifier.as_str(), &etag)
-  {
+  if let Some(entry) = cache.get(&cache_key, module_identifier.as_str(), &etag) {
     replay_dependency_delta(&mut context.file_dependencies, &entry.file_dependencies);
     replay_dependency_delta(
       &mut context.context_dependencies,
@@ -221,7 +256,6 @@ pub(crate) fn before_normal_chain(
       &entry.missing_dependencies,
     );
     replay_dependency_delta(&mut context.build_dependencies, &entry.build_dependencies);
-    context.parse_meta.extend(entry.parse_meta.clone());
     replay_json_object_delta(
       &mut context.context.module.build_info_mut().extras,
       &entry.build_info_extras,
@@ -230,11 +264,7 @@ pub(crate) fn before_normal_chain(
       .source_map
       .clone()
       .and_then(|source_map| SourceMap::from_json(source_map).ok());
-    context.__finish_with((
-      entry.content.clone(),
-      source_map,
-      entry.additional_data.clone(),
-    ));
+    context.__finish_with((entry.content.clone().map(Content::from), source_map, None));
     return LoaderChainCacheAction::Hit;
   }
 
@@ -256,9 +286,14 @@ pub(crate) fn after_normal_chain(
   context: &LoaderContext<RunnerContext>,
   state: LoaderCacheMissState,
 ) {
+  // AdditionalData and ParseMeta are open, process-local type maps without a
+  // stable serialization contract. Chains producing either value are left
+  // uncached instead of leaking memory-only exceptions into the cache layer.
   if !context.cacheable
     || context.diagnostics.len() != state.diagnostics_len
     || !context.context.module.build_info().assets.is_empty()
+    || context.additional_data().is_some()
+    || !context.parse_meta.is_empty()
   {
     return;
   }
@@ -268,9 +303,8 @@ pub(crate) fn after_normal_chain(
   // contents are not part of the cache key yet. Loaders whose output depends
   // on an added dependency are therefore outside the supported scope for now.
   let entry = LoaderCacheEntry {
-    content: context.content().cloned(),
+    content: context.content().map(LoaderCacheContent::from),
     source_map: context.source_map().map(SourceMap::to_json),
-    additional_data: context.additional_data().cloned(),
     file_dependencies: dependency_delta(&state.file_dependencies, &context.file_dependencies),
     context_dependencies: dependency_delta(
       &state.context_dependencies,
@@ -281,7 +315,6 @@ pub(crate) fn after_normal_chain(
       &context.missing_dependencies,
     ),
     build_dependencies: dependency_delta(&state.build_dependencies, &context.build_dependencies),
-    parse_meta: context.parse_meta.clone(),
     build_info_extras: json_object_delta(
       &state.build_info_extras,
       &context.context.module.build_info().extras,
