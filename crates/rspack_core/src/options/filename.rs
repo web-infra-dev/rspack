@@ -34,7 +34,7 @@ static COMPILED_STRING_TEMPLATES: LazyLock<CompiledTemplateCache> = LazyLock::ne
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, StringEnum)]
 #[repr(u8)]
-enum PlaceholderKind {
+pub enum PlaceholderKind {
   File,
   Base,
   Name,
@@ -45,6 +45,10 @@ enum PlaceholderKind {
   Id,
   Runtime,
   Url,
+  #[string_enum(rename = "uniqueName")]
+  UniqueName,
+  Local,
+  Folder,
   Hash,
   #[string_enum(rename = "fullhash")]
   FullHash,
@@ -69,6 +73,32 @@ enum PlaceholderParameters {
 struct PlaceholderData {
   kind: PlaceholderKind,
   parameters: PlaceholderParameters,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct StringTemplatePlaceholder {
+  kind: PlaceholderKind,
+  parameters: PlaceholderParameters,
+}
+
+impl StringTemplatePlaceholder {
+  pub fn kind(self) -> PlaceholderKind {
+    self.kind
+  }
+
+  pub fn hash_len(self) -> Option<usize> {
+    match self.parameters {
+      PlaceholderParameters::Hash { len, .. } => len.map(usize::from),
+      PlaceholderParameters::None => None,
+    }
+  }
+
+  pub fn hash_encoding(self) -> Option<HashDigest> {
+    match self.parameters {
+      PlaceholderParameters::Hash { encoding, .. } => encoding,
+      PlaceholderParameters::None => None,
+    }
+  }
 }
 
 #[derive(Debug, Clone)]
@@ -240,6 +270,69 @@ impl<'template> CompiledStringTemplate<'template> {
   pub fn content_hash_len(&self) -> Option<usize> {
     self.content_hash_len.map(usize::from)
   }
+
+  pub fn render_with(
+    &self,
+    mut renderer: impl FnMut(StringTemplatePlaceholder, &mut String) -> bool,
+  ) -> String {
+    let estimated_growth = self
+      .placeholder_data
+      .len()
+      .saturating_mul(ESTIMATED_GROWTH_PER_PLACEHOLDER)
+      .min(MAX_ESTIMATED_TEMPLATE_GROWTH);
+    let mut output = String::with_capacity(self.template.len().saturating_add(estimated_growth));
+
+    for segment in &self.segments {
+      match segment {
+        StringTemplateSegment::Plain(range) => {
+          output.push_str(&self.template[usize::from(range.start)..usize::from(range.end)]);
+        }
+        StringTemplateSegment::Placeholder { id, range } => {
+          let data = self
+            .placeholder_data
+            .get(usize::from(*id))
+            .expect("filename placeholder segment references missing side-table data");
+          let start = usize::from(range.start);
+          let end = usize::from(range.end);
+          let placeholder = StringTemplatePlaceholder {
+            kind: data.kind,
+            parameters: data.parameters,
+          };
+          if !renderer(placeholder, &mut output) {
+            output.push_str(&self.template[start..end]);
+          }
+        }
+      }
+    }
+
+    output
+  }
+
+  pub fn render_with_path_data(
+    &self,
+    options: PathData<'_>,
+    mut asset_info: Option<&mut AssetInfo>,
+    mut renderer: impl FnMut(StringTemplatePlaceholder, &mut String) -> bool,
+  ) -> String {
+    if let Some(content_hash) = options.content_hash
+      && let Some(asset_info) = asset_info.as_deref_mut()
+    {
+      // Set version even when the template has no content hash placeholder.
+      asset_info.version = content_hash.to_string();
+    }
+
+    let file_replacements = FileReplacements::new(options);
+    self.render_with(|placeholder, output| {
+      renderer(placeholder, output)
+        || render_placeholder(
+          placeholder,
+          options,
+          &file_replacements,
+          &mut asset_info,
+          output,
+        )
+    })
+  }
 }
 
 fn to_u16_range(start: usize, end: usize) -> Range<u16> {
@@ -393,26 +486,25 @@ impl Filename {
     options: PathData<'_>,
     asset_info: Option<&mut AssetInfo>,
   ) -> rspack_error::Result<String> {
+    self.render_with(options, asset_info, |_, _| false).await
+  }
+
+  pub async fn render_with(
+    &self,
+    options: PathData<'_>,
+    asset_info: Option<&mut AssetInfo>,
+    renderer: impl FnMut(StringTemplatePlaceholder, &mut String) -> bool,
+  ) -> rspack_error::Result<String> {
     match &self.0 {
       FilenameKind::Template(template) => {
         let compiled = get_or_compile(*template);
-        Ok(render_template(
-          compiled.template(),
-          &compiled,
-          options,
-          asset_info,
-        ))
+        Ok(compiled.render_with_path_data(options, asset_info, renderer))
       }
       FilenameKind::Fn(filename_fn) => {
         let template = filename_fn.call(&options, asset_info.as_deref()).await?;
         assert_template_len(&template);
         let compiled = CompiledStringTemplate::compile(&template);
-        Ok(render_template(
-          compiled.template(),
-          &compiled,
-          options,
-          asset_info,
-        ))
+        Ok(compiled.render_with_path_data(options, asset_info, renderer))
       }
     }
   }
@@ -593,71 +685,14 @@ impl FileReplacements {
   }
 }
 
-fn render_template(
-  template: &str,
-  compiled: &CompiledStringTemplate<'_>,
-  options: PathData<'_>,
-  mut asset_info: Option<&mut AssetInfo>,
-) -> String {
-  if let Some(content_hash) = options.content_hash
-    && let Some(asset_info) = asset_info.as_deref_mut()
-  {
-    // Set version even when the template has no content hash placeholder.
-    asset_info.version = content_hash.to_string();
-  }
-
-  let file_replacements = FileReplacements::new(options);
-  let estimated_growth = compiled
-    .placeholder_data
-    .len()
-    .saturating_mul(ESTIMATED_GROWTH_PER_PLACEHOLDER)
-    .min(MAX_ESTIMATED_TEMPLATE_GROWTH);
-  let mut output = String::with_capacity(template.len().saturating_add(estimated_growth));
-  render_compiled_template(
-    template,
-    compiled,
-    options,
-    &file_replacements,
-    &mut asset_info,
-    &mut output,
-  );
-  output
-}
-
-fn render_compiled_template(
-  template: &str,
-  compiled: &CompiledStringTemplate<'_>,
-  options: PathData<'_>,
-  file_replacements: &FileReplacements,
-  asset_info: &mut Option<&mut AssetInfo>,
-  output: &mut String,
-) {
-  for segment in &compiled.segments {
-    match segment {
-      StringTemplateSegment::Plain(range) => {
-        output.push_str(&template[usize::from(range.start)..usize::from(range.end)]);
-      }
-      StringTemplateSegment::Placeholder { id, range } => {
-        let data = compiled
-          .placeholder_data
-          .get(usize::from(*id))
-          .expect("filename placeholder segment references missing side-table data");
-        if !render_placeholder(data, options, file_replacements, asset_info, output) {
-          output.push_str(&template[usize::from(range.start)..usize::from(range.end)]);
-        }
-      }
-    }
-  }
-}
-
 fn render_placeholder(
-  data: &PlaceholderData,
+  placeholder: StringTemplatePlaceholder,
   options: PathData<'_>,
   file_replacements: &FileReplacements,
   asset_info: &mut Option<&mut AssetInfo>,
   output: &mut String,
 ) -> bool {
-  let kind = data.kind;
+  let kind = placeholder.kind;
   match kind {
     PlaceholderKind::File => try_render_value(file_replacements.file.as_deref(), output),
     PlaceholderKind::Base => try_render_value(file_replacements.base.as_deref(), output),
@@ -675,23 +710,32 @@ fn render_placeholder(
     ),
     PlaceholderKind::Runtime => try_render_value(Some(options.runtime.unwrap_or("_")), output),
     PlaceholderKind::Url => try_render_value(options.url, output),
-    PlaceholderKind::Hash => {
-      try_render_hash(options.hash, kind, data.parameters, asset_info, output)
-    }
-    PlaceholderKind::FullHash => {
-      try_render_hash(options.hash, kind, data.parameters, asset_info, output)
-    }
+    PlaceholderKind::UniqueName | PlaceholderKind::Local | PlaceholderKind::Folder => false,
+    PlaceholderKind::Hash => try_render_hash(
+      options.hash,
+      kind,
+      placeholder.parameters,
+      asset_info,
+      output,
+    ),
+    PlaceholderKind::FullHash => try_render_hash(
+      options.hash,
+      kind,
+      placeholder.parameters,
+      asset_info,
+      output,
+    ),
     PlaceholderKind::ContentHash => try_render_hash(
       options.content_hash,
       kind,
-      data.parameters,
+      placeholder.parameters,
       asset_info,
       output,
     ),
     PlaceholderKind::ChunkHash => try_render_hash(
       options.chunk_hash,
       kind,
-      data.parameters,
+      placeholder.parameters,
       asset_info,
       output,
     ),
