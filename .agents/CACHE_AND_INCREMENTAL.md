@@ -175,4 +175,3 @@ introduce new Cache/Incremental coupling.
 - Pass recovery and legacy Cache hooks: `crates/rspack_core/src/compilation/pass.rs`
 - Rebuild lifecycle: `crates/rspack_core/src/compiler/rebuild.rs`
 - Artifact design: [`ARTIFACTS.md`](./ARTIFACTS.md)
-- Compilation-local caches: [`TRANSIENT_CACHE.md`](./TRANSIENT_CACHE.md)
