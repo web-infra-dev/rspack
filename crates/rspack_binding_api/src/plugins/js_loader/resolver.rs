@@ -120,8 +120,9 @@ pub(crate) async fn resolve_loader(
           ))
         });
       let cache_version = if l.cache {
-        // TODO: Include transitive loader dependencies and files loaded through
-        // import/require when calculating the loader cache version.
+        // Tradeoff: the cache version only covers the loader package version or
+        // resolved entry file. Transitive dependencies and files loaded through
+        // import/require are excluded to keep cache-key calculation inexpensive.
         if let Some((name, version)) = package_version {
           Some(concat_string!("package:", name, "@", version))
         } else {
