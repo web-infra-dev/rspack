@@ -1,6 +1,6 @@
 {
   "name": "@rspack/binding-linux-s390x-gnu",
-  "version": "2.2.0-beta.0",
+  "version": "2.2.0-beta.1",
   "license": "MIT",
   "description": "Node binding for rspack",
   "main": "rspack.linux-s390x-gnu.node",

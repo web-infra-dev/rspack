@@ -6,5 +6,5 @@ pub const fn rspack_swc_core_version() -> &'static str {
 
 /// The version of the JavaScript `@rspack/core` package.
 pub const fn rspack_pkg_version() -> &'static str {
-  "2.2.0-beta.0"
+  "2.2.0-beta.1"
 }
