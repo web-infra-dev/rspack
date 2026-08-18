@@ -37,7 +37,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for JavascriptMetaInfoPlugin {
     _identifier: &Ident,
     for_name: &str,
   ) -> Option<bool> {
-    if for_name == "arguments" && parser.is_top_level_this() {
+    if !parser.is_esm && for_name == "arguments" && parser.is_top_level_this() {
       parser
         .build_info
         .module_concatenation_bailout

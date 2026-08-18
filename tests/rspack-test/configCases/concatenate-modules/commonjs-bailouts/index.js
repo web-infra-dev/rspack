@@ -1,5 +1,6 @@
 import * as callContext from "./call-context";
 import * as callOnly from "./call-only";
+import { toString as compoundAssignmentToString } from "./compound-assignment";
 import * as deleteReference from "./delete-reference";
 import * as defineProperty from "./define-property";
 import * as escaped from "./escaped";
@@ -28,6 +29,7 @@ import * as sloppy from "./sloppy";
 import * as taggedTemplate from "./tagged-template";
 import * as thisExports from "./this-exports";
 import * as thisRead from "./this-read";
+import * as typeofFactoryArguments from "./typeof-factory-arguments";
 import * as topLevelReturn from "./top-level-return";
 
 it("should keep unsupported CommonJS modules working", () => {
@@ -36,6 +38,7 @@ it("should keep unsupported CommonJS modules working", () => {
 	expect(thisExports.t).toBe("this-export");
 	expect(callContext.run()).toBe("ctx-ok");
 	expect(callOnly.g()).toBe("f-g");
+	expect(typeof compoundAssignmentToString).toBe("function");
 	expect(typeof moduleId.id).not.toBe("undefined");
 	expect(defineProperty.d).toBe("defined");
 	expect(escaped.e).toBe("escaped");
@@ -45,6 +48,7 @@ it("should keep unsupported CommonJS modules working", () => {
 	expect(topLevelReturn.after).toBeUndefined();
 	expect(factoryArguments.direct).toBe(3);
 	expect(factoryArguments.arrow).toBe(3);
+	expect(typeofFactoryArguments.type).toBe("object");
 	expect(deleteReference.read()).toBe(1);
 	expect(deleteReference.remove()).toBe(true);
 	expect(deleteReference.read()).toBeUndefined();
@@ -96,6 +100,9 @@ it("should report a bailout reason for each unsupported module", () => {
 	expect(bailoutsOf("call-only.js")).toContainEqual(
 		expect.stringContaining("call context")
 	);
+	expect(bailoutsOf("compound-assignment.js")).toContainEqual(
+		expect.stringContaining("compound assignment")
+	);
 	expect(bailoutsOf("module-id.js")).toContainEqual(
 		expect.stringContaining("module.id")
 	);
@@ -109,6 +116,9 @@ it("should report a bailout reason for each unsupported module", () => {
 		expect.stringContaining("top-level return")
 	);
 	expect(bailoutsOf("factory-arguments.js")).toContainEqual(
+		expect.stringContaining("CommonJS arguments")
+	);
+	expect(bailoutsOf("typeof-factory-arguments.js")).toContainEqual(
 		expect.stringContaining("CommonJS arguments")
 	);
 	expect(bailoutsOf("delete-reference.js")).toContainEqual(

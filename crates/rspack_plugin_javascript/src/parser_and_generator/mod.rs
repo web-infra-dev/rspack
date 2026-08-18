@@ -543,8 +543,9 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       module_parser_options,
       mut parse_meta,
       ..
-    } = parse_context;
-    let mut diagnostics: Vec<Diagnostic> = vec![];
+  } = parse_context;
+  let mut diagnostics: Vec<Diagnostic> = vec![];
+  build_info.unresolved_identifier_names.clear();
 
     if let Some(collected_ts_info) = parse_meta.remove(COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY)
       && let Ok(collected_ts_info) =
@@ -630,7 +631,6 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     let mut semicolons = Default::default();
     remove_paren(&mut program, &allocator, Some(&mut comments));
     let semantic = resolver(&program);
-    build_info.unresolved_identifier_names.clear();
     program.visit_with(&mut semicolon::InsertedSemicolons::new(
       &mut semicolons,
       &tokens,
@@ -684,11 +684,12 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         && presentational_dependencies
           .iter()
           .any(|dependency| dependency.as_any().is::<ESMCompatibilityDependency>()));
-    if may_be_concatenated
+    let may_be_commonjs_concatenated = may_be_concatenated
+      && build_info.module_concatenation_bailout.is_none()
       && dependencies
         .iter()
-        .any(|dependency| dependency.as_any().is::<CommonJsExportsDependency>())
-    {
+        .any(|dependency| dependency.as_any().is::<CommonJsExportsDependency>());
+    if may_be_commonjs_concatenated {
       build_info.unresolved_identifier_names =
         collect_unresolved_identifier_names(&program, &semantic);
     }

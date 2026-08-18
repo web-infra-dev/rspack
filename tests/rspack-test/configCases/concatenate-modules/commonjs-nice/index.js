@@ -5,6 +5,17 @@ import { setValue, getValue as getLiveValue } from "./live";
 import { deep } from "./nested";
 import { "a-b" as ab } from "./weird-name";
 import {
+	anonymousFunction,
+	anonymousArrow,
+	AnonymousClass
+} from "./anonymous-name";
+import {
+	defined,
+	definedAnonymous,
+	readDefined
+} from "./define-name-collision";
+import { argumentsType } from "./esm-arguments";
+import {
 	value as collisionValue,
 	local as collisionLocal,
 	placeholder as collisionPlaceholder,
@@ -43,6 +54,12 @@ it("should support non-identifier export names", () => {
 	expect(ab).toBe("a-b-value");
 });
 
+it("should preserve anonymous function and class names", () => {
+	expect(anonymousFunction.name).toBe("");
+	expect(anonymousArrow.name).toBe("");
+	expect(AnonymousClass.name).toBe("");
+});
+
 it("should avoid generated CommonJS export name collisions", () => {
 	expect(collisionValue).toBe(1);
 	expect(collisionLocal).toBe(99);
@@ -50,9 +67,19 @@ it("should avoid generated CommonJS export name collisions", () => {
 	expect(collisionReadGlobal()).toBe(97);
 });
 
+it("should avoid identifiers injected by presentational dependencies", () => {
+	expect(defined).toBe(1);
+	expect(definedAnonymous.name).toBe("");
+	expect(readDefined()).toBe(96);
+});
+
+it("should keep concatenating ECMAScript modules that reference arguments", () => {
+	expect(argumentsType).toBe("object");
+});
+
 it("should concatenate all CommonJS modules into the entry", () => {
 	const concatModules = __STATS__.modules.filter((m) => m.modules);
 	expect(concatModules.length).toBe(1);
-	// index.js + flagged.js + plain.js + live.js + nested.js + weird-name.js + name-collision.js
-	expect(concatModules[0].modules.length).toBe(7);
+	// index.js + flagged.js + plain.js + live.js + nested.js + weird-name.js + name-collision.js + anonymous-name.js + define-name-collision.js + esm-arguments.js
+	expect(concatModules[0].modules.length).toBe(10);
 });

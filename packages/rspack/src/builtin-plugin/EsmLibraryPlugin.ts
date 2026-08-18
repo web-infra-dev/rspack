@@ -31,9 +31,9 @@ export function getConcatenateCommonJsModules(
 }
 
 export function applyLimits(options: RspackOptionsNormalized) {
+  // `modern-module` owns its scope-hoisting pipeline. Preserve the CommonJS
+  // preference before disabling the regular ModuleConcatenationPlugin.
   getConcatenateCommonJsModules(options);
-
-  // concatenateModules is not supported in ESM library mode, it has its own scope hoist algorithm
   options.optimization.concatenateModules = false;
 
   // esm library won't have useless empty chunk, the empty chunk for esm lib is to re-exports

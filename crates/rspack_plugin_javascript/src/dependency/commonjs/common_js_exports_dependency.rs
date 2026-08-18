@@ -3,8 +3,8 @@ use rspack_cacheable::{
   with::{AsPreset, AsVec},
 };
 use rspack_core::{
-  AsContextDependency, AsModuleDependency, Dependency, DependencyCategory,
-  DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
+  AsContextDependency, AsModuleDependency, CachedConstDependency, ConstDependency, Dependency,
+  DependencyCategory, DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
   DependencyTemplateType, DependencyType, ExportNameOrSpec, ExportSpec, ExportsInfoArtifact,
   ExportsOfExportsSpec, ExportsSpec, InitFragmentExt, InitFragmentKey, InitFragmentStage, Module,
   ModuleGraph, ModuleGraphCacheArtifact, ModuleInitFragments, NormalInitFragment, TemplateContext,
@@ -71,6 +71,7 @@ pub struct CommonJsExportsDependency {
   id: DependencyId,
   range: DependencyRange,
   value_range: Option<DependencyRange>,
+  prevent_name_inference: bool,
   base: ExportsBase,
   #[cacheable(with=AsVec<AsPreset>)]
   names: Vec<Atom>,
@@ -80,6 +81,7 @@ impl CommonJsExportsDependency {
   pub fn new(
     range: DependencyRange,
     value_range: Option<DependencyRange>,
+    prevent_name_inference: bool,
     base: ExportsBase,
     names: Vec<Atom>,
   ) -> Self {
@@ -87,6 +89,7 @@ impl CommonJsExportsDependency {
       id: DependencyId::new(),
       range,
       value_range,
+      prevent_name_inference,
       base,
       names,
     }
@@ -99,6 +102,50 @@ impl CommonJsExportsDependency {
   pub fn names(&self) -> &[Atom] {
     &self.names
   }
+}
+
+fn prevent_name_inference(
+  source: &mut TemplateReplaceSource,
+  module: &dyn Module,
+  dependency: &CommonJsExportsDependency,
+) {
+  let value_range = dependency
+    .value_range
+    .expect("concatenated CommonJS export should have a value range");
+  // DefinePlugin and similar presentational dependencies replace source after
+  // parsing, so an anonymous value may not have been visible in the AST above.
+  let has_anonymous_value_replacement = dependency.names.len() == 1
+    && module
+      .get_presentational_dependencies()
+      .is_some_and(|dependencies| {
+        dependencies.iter().any(|presentational_dependency| {
+          presentational_dependency
+            .as_any()
+            .downcast_ref::<ConstDependency>()
+            .is_some_and(|dependency| {
+              dependency.range == value_range
+                && (dependency.content.contains("function")
+                  || dependency.content.contains("class")
+                  || dependency.content.contains("=>"))
+            })
+        })
+      });
+  if !dependency.prevent_name_inference && !has_anonymous_value_replacement {
+    return;
+  }
+  // An assignment infers a name for an anonymous function or class from its
+  // target. Keep the value behind an identity call so the generated export
+  // binding does not become its inferred name. The value is passed as an
+  // argument (rather than evaluated inside the helper) to preserve lexical
+  // `this` and `arguments` for arrow functions. The annotation is required to
+  // prevent the minimizer from inlining the helper and reintroducing name
+  // inference.
+  source.insert_static(
+    value_range.start,
+    "/*#__NOINLINE__*/ (function(value) { return value; })(",
+    None,
+  );
+  source.insert_static(value_range.end, ")", None);
 }
 
 pub(super) fn get_concatenated_export_access(
@@ -126,7 +173,7 @@ pub(super) fn get_concatenated_export_access(
           hex::encode(name.as_bytes())
         )
       };
-      let symbol = get_unique_concatenated_name(module, concatenation_scope, &base);
+      let symbol = get_concatenated_name(module, concatenation_scope, &base);
       concatenation_scope.register_export(name.clone(), symbol.clone());
       symbol
     });
@@ -142,6 +189,20 @@ pub(super) fn get_concatenated_export_access(
     .boxed(),
   );
   format!("{symbol}{property_access_suffix}")
+}
+
+fn get_concatenated_name(
+  module: &dyn Module,
+  concatenation_scope: &mut rspack_core::ConcatenationScope,
+  base: &str,
+) -> String {
+  if concatenation_scope.is_faster_module_concatenation() {
+    concatenation_scope
+      .ensure_generated_top_level_symbol(base)
+      .to_string()
+  } else {
+    get_unique_concatenated_name(module, concatenation_scope, base)
+  }
 }
 
 fn get_unique_concatenated_name(
@@ -164,6 +225,23 @@ fn get_unique_concatenated_name(
         .unresolved_identifier_names
         .iter()
         .any(|name| name.as_str() == candidate)
+      || module
+        .get_presentational_dependencies()
+        .is_some_and(|dependencies| {
+          dependencies.iter().any(|dependency| {
+            dependency
+              .as_any()
+              .downcast_ref::<ConstDependency>()
+              .is_some_and(|dependency| dependency.content.contains(candidate))
+              || dependency
+                .as_any()
+                .downcast_ref::<CachedConstDependency>()
+                .is_some_and(|dependency| {
+                  dependency.identifier.contains(candidate)
+                    || dependency.content.contains(candidate)
+                })
+          })
+        })
       || concatenation_scope
         .current_module
         .export_map
@@ -273,7 +351,6 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
       runtime,
       init_fragments,
       runtime_template,
-      concatenation_scope,
       ..
     } = code_generatable_context;
 
@@ -289,7 +366,7 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
         .is_some_and(|name| name.as_str() == "__proto__")
     {
       debug_assert!(
-        concatenation_scope.is_none(),
+        source.concatenation_scope().is_none(),
         "CommonJS __proto__ assignment should prevent concatenation"
       );
       return;
@@ -300,28 +377,28 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
       .get_exports_info_data(&module.identifier());
     let used = exports_info.get_used_name(&compilation.exports_info_artifact, *runtime, &dep.names);
 
-    if let Some(concatenation_scope) = concatenation_scope {
+    if source.concatenation_scope().is_some() {
       debug_assert!(
         matches!(dep.base, ExportsBase::Exports | ExportsBase::ModuleExports),
         "unsupported CommonJS exports base in a concatenated module"
       );
       if let Some(UsedName::Normal(_)) = used {
-        source.replace(
-          dep.range.start,
-          dep.range.end,
-          get_concatenated_export_access(
-            module.as_ref(),
-            concatenation_scope,
-            init_fragments,
-            &dep.names,
-            property_access(dep.names[1..].iter(), 0),
-          ),
-          None,
-        );
-      } else {
-        let placeholder_var = get_unique_concatenated_name(
+        let replacement = get_concatenated_export_access(
           module.as_ref(),
-          concatenation_scope,
+          source
+            .concatenation_scope()
+            .expect("concatenated CommonJS export should have a concatenation scope"),
+          init_fragments,
+          &dep.names,
+          property_access(dep.names[1..].iter(), 0),
+        );
+        source.replace(dep.range.start, dep.range.end, replacement, None);
+      } else {
+        let placeholder_var = get_concatenated_name(
+          module.as_ref(),
+          source
+            .concatenation_scope()
+            .expect("concatenated CommonJS export should have a concatenation scope"),
           "__rspack_unused_export",
         );
         source.replace(
@@ -341,6 +418,7 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
           .boxed(),
         );
       }
+      prevent_name_inference(source, module.as_ref(), dep);
       return;
     }
 

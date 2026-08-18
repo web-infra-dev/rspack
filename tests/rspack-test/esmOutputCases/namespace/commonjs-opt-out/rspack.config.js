@@ -4,5 +4,6 @@ module.exports = {
     concatenateModules: {
       commonjs: false,
     },
+    inlineExports: false,
   },
 };

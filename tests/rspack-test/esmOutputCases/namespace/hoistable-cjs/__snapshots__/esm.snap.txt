@@ -7,11 +7,18 @@ var __RSPACK_CJS_EXPORT_placeholder__;
 var __RSPACK_CJS_EXPORT_setValue__;
 var __RSPACK_CJS_EXPORT_getValue__;
 var __RSPACK_CJS_EXPORT_readGlobal___0;
+var __RSPACK_CJS_EXPORT_anonymousFunction__;
+var __RSPACK_CJS_EXPORT_anonymousArrow__;
+var __RSPACK_CJS_EXPORT_AnonymousClass__;
+var __RSPACK_CJS_EXPORT_defined___0;
+var __RSPACK_CJS_EXPORT_definedAnonymous__;
+var __RSPACK_CJS_EXPORT_readDefined__;
 
 
 const __RSPACK_CJS_EXPORT_value__ = 41;
 var __rspack_unused_export = 42;
 globalThis.__RSPACK_CJS_EXPORT_readGlobal__ = 43;
+globalThis.__RSPACK_CJS_EXPORT_defined__ = 44;
 
 __rspack_unused_export_0 = "unused";
 __RSPACK_CJS_EXPORT_value___0 = 1;
@@ -23,7 +30,17 @@ __RSPACK_CJS_EXPORT_setValue__ = function setValue(value) {
 __RSPACK_CJS_EXPORT_getValue__ = function getValue() {
   return __RSPACK_CJS_EXPORT_value___0;
 };
-__RSPACK_CJS_EXPORT_readGlobal___0 = () => __RSPACK_CJS_EXPORT_readGlobal__;
+__RSPACK_CJS_EXPORT_readGlobal___0 = /*#__NOINLINE__*/ (function(value) { return value; })(() => __RSPACK_CJS_EXPORT_readGlobal__);
+__RSPACK_CJS_EXPORT_anonymousFunction__ = /*#__NOINLINE__*/ (function(value) { return value; })(function () {});
+__RSPACK_CJS_EXPORT_anonymousArrow__ = /*#__NOINLINE__*/ (function(value) { return value; })(() => {});
+__RSPACK_CJS_EXPORT_AnonymousClass__ = /*#__NOINLINE__*/ (function(value) { return value; })(class {});
+__RSPACK_CJS_EXPORT_defined___0 = 1;
+__RSPACK_CJS_EXPORT_definedAnonymous__ = /*#__NOINLINE__*/ (function(value) { return value; })(function () {});
+__RSPACK_CJS_EXPORT_readDefined__ = /*#__NOINLINE__*/ (function(value) { return value; })(() => {
+  const value = __RSPACK_CJS_EXPORT_defined__;
+  delete globalThis.__RSPACK_CJS_EXPORT_defined__;
+  return value;
+});
 
 // ./index.js
 
@@ -34,6 +51,12 @@ it("should scope-hoist a statically analyzable CommonJS module", () => {
 	expect(__RSPACK_CJS_EXPORT_local__).toBe(41);
 	expect(__RSPACK_CJS_EXPORT_placeholder__).toBe(42);
 	expect(__RSPACK_CJS_EXPORT_readGlobal___0()).toBe(43);
+	expect(__RSPACK_CJS_EXPORT_anonymousFunction__.name).toBe("");
+	expect(__RSPACK_CJS_EXPORT_anonymousArrow__.name).toBe("");
+	expect(__RSPACK_CJS_EXPORT_AnonymousClass__.name).toBe("");
+	expect(__RSPACK_CJS_EXPORT_defined___0).toBe(1);
+	expect(__RSPACK_CJS_EXPORT_definedAnonymous__.name).toBe("");
+	expect(__RSPACK_CJS_EXPORT_readDefined__()).toBe(44);
 
   __RSPACK_CJS_EXPORT_setValue__(2);
 

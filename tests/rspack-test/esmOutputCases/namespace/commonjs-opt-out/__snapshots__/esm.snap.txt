@@ -14,12 +14,17 @@ exports.U = 1;
 
 },
 });
+// ./esm.js
+const esmValue = 2;
+
 // ./index.js
 const foo = __webpack_require__("./foo.js");
 
 
+
 it("should keep an eligible CommonJS module wrapped when opted out", () => {
 	expect(foo.U).toBe(1);
+	expect(esmValue).toBe(2);
 });
 
 export {};

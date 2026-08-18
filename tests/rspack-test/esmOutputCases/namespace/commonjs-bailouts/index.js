@@ -1,8 +1,10 @@
 import { before, after } from "./top-level-return.js";
+import { toString as compoundAssignmentToString } from "./compound-assignment.js";
 import {
 	direct as directArguments,
 	arrow as arrowArguments
 } from "./factory-arguments.js";
+import { type as typeofFactoryArguments } from "./typeof-factory-arguments.js";
 import {
 	read as readDeleteReference,
 	remove as removeDeleteReference
@@ -29,8 +31,10 @@ import mutableDefault, { value as mutableDefaultValue } from "./mutable-default.
 it("should keep CommonJS factory and exports object semantics", () => {
 	expect(before).toBe("before");
 	expect(after).toBeUndefined();
+	expect(typeof compoundAssignmentToString).toBe("function");
 	expect(directArguments).toBe(3);
 	expect(arrowArguments).toBe(3);
+	expect(typeofFactoryArguments).toBe("object");
 	expect(readDeleteReference()).toBe(1);
 	expect(removeDeleteReference()).toBe(true);
 	expect(readDeleteReference()).toBeUndefined();

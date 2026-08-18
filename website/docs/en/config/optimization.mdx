@@ -68,7 +68,7 @@ export default {
 ## optimization.concatenateModules
 
 <PropertyType
-  type="boolean"
+  type="boolean | { commonjs?: boolean }"
   defaultValueList={[
     { defaultValue: 'true', mode: 'production' },
     { defaultValue: 'false', mode: 'development' },
@@ -77,10 +77,16 @@ export default {
 
 Tells Rspack to find segments of the module graph which can be safely concatenated into a single module. Depends on [optimization.providedExports](#optimizationprovidedexports) and [optimization.usedExports](#optimizationusedexports). By default `optimization.concatenateModules` is enabled in `production` mode and disabled elsewise.
 
+Passing an options object also enables module concatenation. The `commonjs` option controls whether CommonJS modules with statically analyzable exports can be concatenated, and defaults to `true`. Set `commonjs` to `false` to concatenate only ECMAScript modules.
+
+When [`output.library.type`](/config/output#outputlibrarytype) is `'modern-module'`, Rspack uses its dedicated linking and scope-hoisting pipeline. In that pipeline, `optimization.concatenateModules` only controls CommonJS hoisting: `false` or `{ commonjs: false }` prevents CommonJS modules from being scope-hoisted.
+
 ```js title="rspack.config.mjs"
 export default {
   optimization: {
-    concatenateModules: false,
+    concatenateModules: {
+      commonjs: false,
+    },
   },
 };
 ```

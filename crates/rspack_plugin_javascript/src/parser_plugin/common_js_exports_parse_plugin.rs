@@ -2,8 +2,8 @@ use rspack_core::{BuildMetaDefaultObject, BuildMetaExportsType, DependencyRange,
 use rspack_util::SpanExt;
 use swc_atoms::Atom;
 use swc_experimental_ecma_ast::{
-  AssignExpr, CallExpr, Expr, ExprOrSpread, GetSpan, Ident, Lit, MemberExpr, Prop, PropName,
-  PropOrSpread, Span, ThisExpr, UnaryExpr, UnaryOp,
+  AssignExpr, AssignOp, CallExpr, Expr, ExprOrSpread, GetSpan, Ident, Lit, MemberExpr, Prop,
+  PropName, PropOrSpread, Span, ThisExpr, UnaryExpr, UnaryOp,
 };
 
 use super::JavascriptParserPlugin;
@@ -178,6 +178,12 @@ fn handle_assign_export(
   if parser.is_esm {
     return None;
   }
+  if assign_expr.op != AssignOp::Assign {
+    parser
+      .build_info
+      .module_concatenation_bailout
+      .get_or_insert_with(|| "compound assignment to CommonJS exports".into());
+  }
   if (remaining.is_empty() || remaining.first().is_some_and(|i| i != "__esModule"))
     && let Some((arg, ids)) = parse_require_call(parser, &assign_expr.right)
     && arg.is_string()
@@ -228,9 +234,17 @@ fn handle_assign_export(
   // exports.a = 1;
   // module.exports.a = 1;
   // this.a = 1;
+  let prevent_name_inference = remaining.len() == 1
+    && match &assign_expr.right {
+      Expr::Arrow(_) => true,
+      Expr::Fn(expr) => expr.ident.is_none(),
+      Expr::Class(expr) => expr.ident.is_none(),
+      _ => false,
+    };
   parser.add_dependency(Box::new(CommonJsExportsDependency::new(
     assign_expr.left.span().into(),
-    None,
+    Some(assign_expr.right.span().into()),
+    prevent_name_inference,
     base,
     remaining.to_owned(),
   )));
@@ -372,6 +386,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsExportsParserPlugin {
       parser.add_dependency(Box::new(CommonJsExportsDependency::new(
         call_expr.span.into(),
         Some(arg2.span().into()),
+        false,
         base,
         vec![property.into()],
       )));

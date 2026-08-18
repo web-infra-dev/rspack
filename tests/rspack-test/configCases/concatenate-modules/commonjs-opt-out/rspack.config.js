@@ -6,6 +6,7 @@ module.exports = {
   devtool: false,
   optimization: {
     concatenateModules: { commonjs: false },
+    inlineExports: false,
     minimize: false,
     moduleIds: 'named',
     chunkIds: 'named',
