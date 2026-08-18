@@ -22,6 +22,10 @@ jobs:
   rust_tests:
     name: Run Rust Tests
     uses: ./.github/workflows/reusable-rust-test.yml
+    with:
+      # TEMPORARY (revert before merge): mirror the release workflow so this PR
+      # measures the per-crate `cargo check` step as well.
+      cargo-check-strategy: 'separated'
 
   test_required_check:
     # this job will be used for GitHub actions to determine required job success or not;

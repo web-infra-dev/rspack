@@ -65,6 +65,24 @@ jobs:
       - name: Run rustfmt
         run: cargo fmt --all -- --check
 
+  sccache_clippy_cache:
+    name: sccache clippy cache guard
+    needs: [check-changed]
+    if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
+    runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Install Rust Toolchain
+        uses: ./.github/actions/rustup
+        with:
+          key: check
+
+      - name: Verify clippy results are cached without losing lints
+        run: .github/scripts/verify-sccache-clippy.sh
+        env:
+          TOOLCHAIN_FILE: ${{ github.workspace }}/rust-toolchain.toml
+
   rust_unused_dependencies:
     needs: [check-changed]
     if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
@@ -174,6 +192,7 @@ jobs:
         rust_check,
         rust_unused_dependencies,
         rust_watcher_test,
+        sccache_clippy_cache,
         check-changed,
       ]
     if: ${{ always() && !cancelled() }}
@@ -182,7 +201,7 @@ jobs:
       - name: Log
         run: echo ${{ join(needs.*.result, ',') }}
       - name: Test check
-        if: ${{ needs.check-changed.outputs.code_changed == 'true' && join(needs.*.result, ',')!='success,success,success,success,success' }}
+        if: ${{ needs.check-changed.outputs.code_changed == 'true' && join(needs.*.result, ',')!='success,success,success,success,success,success' }}
         run: echo "Tests Failed" && exit 1
       - name: No check to Run test
         run: echo "Success"
