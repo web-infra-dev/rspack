@@ -1,3 +1,4 @@
+mod arc_computed;
 mod merge;
 
 pub mod asset_condition;
@@ -30,6 +31,7 @@ use std::{
 
 #[cfg(allocative)]
 pub use allocative;
+pub use arc_computed::ArcComputed;
 pub use merge::{MergeFrom, merge_from_optional_with};
 use regex::Regex;
 pub use span::SpanExt;

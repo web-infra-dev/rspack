@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-pub use rspack_loader_runner::{Content, Loader, LoaderContext, run_loaders};
+pub use rspack_loader_runner::{Content, Loader, LoaderContext, LoaderExecutionKind};
 use rspack_util::source_map::SourceMapKind;
 
 use crate::{CompilationId, CompilerId, CompilerOptions, NormalModule, ResolverFactory};
@@ -15,4 +15,5 @@ pub struct RunnerContext {
   pub source_map_kind: SourceMapKind,
 }
 
+pub type Loaders = rspack_loader_runner::Loaders<RunnerContext>;
 pub type BoxLoader = Arc<dyn for<'a> Loader<RunnerContext>>;

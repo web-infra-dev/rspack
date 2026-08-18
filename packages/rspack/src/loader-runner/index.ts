@@ -26,7 +26,6 @@ import { commitCustomFieldsToRust } from '../BuildInfo';
 import type { Compilation } from '../Compilation';
 import type { Compiler } from '../Compiler';
 import {
-  BUILTIN_LOADER_PREFIX,
   type Diagnostic,
   isUseSimpleSourceMap,
   isUseSourceMap,
@@ -173,10 +172,6 @@ export class LoaderObject {
     this.loaderItem.noPitch = true;
   }
 
-  shouldYield() {
-    return this.request.startsWith(BUILTIN_LOADER_PREFIX);
-  }
-
   static __from_binding(
     loaderItem: JsLoaderItem,
     compiler: Compiler,
@@ -232,6 +227,8 @@ export async function runLoaders(
   context: JsLoaderContext,
 ): Promise<JsLoaderContext> {
   const loaderState = context.loaderState;
+  const loaderChainStart = context.loaderChainStart;
+  const loaderChainEnd = context.loaderChainEnd;
   const pitch = loaderState === JsLoaderState.Pitching;
 
   const { resource } = context;
@@ -732,11 +729,32 @@ export async function runLoaders(
     context.__internal__parseMeta[key] = value;
   };
 
+  const getWorkerLoaderSpan = () => {
+    let start = loaderContext.loaderIndex;
+    let end = start + 1;
+
+    if (loaderState === JsLoaderState.Pitching) {
+      while (end < loaderChainEnd && loaderContext.loaders[end]?.parallel) {
+        end++;
+      }
+    } else {
+      while (
+        start > loaderChainStart &&
+        loaderContext.loaders[start - 1]?.parallel
+      ) {
+        start--;
+      }
+    }
+
+    return { start, end };
+  };
+
   const getWorkerLoaderContext = () => {
     const normalModule =
       loaderContext._module instanceof NormalModule
         ? loaderContext._module
         : undefined;
+    const workerLoaderSpan = getWorkerLoaderSpan();
     const workerLoaderContext = {
       version: loaderContext.version,
       hot: loaderContext.hot,
@@ -749,13 +767,19 @@ export async function runLoaders(
       sourceMap: loaderContext.sourceMap,
       rootContext: loaderContext.rootContext,
       loaderIndex: loaderContext.loaderIndex,
-      loaders: loaderContext.loaders.map((item) => {
+      loaderChainStart: workerLoaderSpan.start,
+      loaderChainEnd: workerLoaderSpan.end,
+      loaders: loaderContext.loaders.map((item, index) => {
         let options = item.options;
         // Do not pass options into worker, if it's not prepared to be executed
         // in the worker thread.
         //
         // Aligns yielding strategy within the worker.
-        if (!item.parallel || item.request.startsWith(BUILTIN_LOADER_PREFIX)) {
+        if (
+          !item.parallel ||
+          index < workerLoaderSpan.start ||
+          index >= workerLoaderSpan.end
+        ) {
           options = undefined;
         }
         return {
@@ -1011,12 +1035,11 @@ export async function runLoaders(
   try {
     switch (loaderState) {
       case JsLoaderState.Pitching: {
-        while (loaderContext.loaderIndex < loaderContext.loaders.length) {
+        while (loaderContext.loaderIndex < loaderChainEnd) {
           const currentLoaderObject =
             loaderContext.loaders[loaderContext.loaderIndex];
           const parallelism = enableParallelism(currentLoaderObject);
 
-          if (currentLoaderObject.shouldYield()) break;
           if (currentLoaderObject.pitchExecuted) {
             loaderContext.loaderIndex += 1;
             continue;
@@ -1057,12 +1080,11 @@ export async function runLoaders(
         let sourceMapParsed = false;
         let additionalData = context.additionalData;
 
-        while (loaderContext.loaderIndex >= 0) {
+        while (loaderContext.loaderIndex >= loaderChainStart) {
           const currentLoaderObject =
             loaderContext.loaders[loaderContext.loaderIndex];
           const parallelism = enableParallelism(currentLoaderObject);
 
-          if (currentLoaderObject.shouldYield()) break;
           if (currentLoaderObject.normalExecuted) {
             loaderContext.loaderIndex--;
             continue;

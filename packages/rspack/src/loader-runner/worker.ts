@@ -28,10 +28,11 @@ import {
 } from './service';
 import { convertArgs, runSyncOrAsync } from './utils';
 
-const BUILTIN_LOADER_PREFIX = 'builtin:';
-
 interface WorkerOptions {
-  loaderContext: LoaderContext;
+  loaderContext: LoaderContext & {
+    loaderChainStart: number;
+    loaderChainEnd: number;
+  };
   loaderState: JsLoaderState;
   args: any[];
 
@@ -453,18 +454,16 @@ async function loaderImpl(
     if (!currentLoaderObject?.parallel) {
       return true;
     }
-    if (currentLoaderObject?.request.startsWith(BUILTIN_LOADER_PREFIX)) {
-      return true;
-    }
     return false;
   };
 
   // Execute loader list until the current loader object is to yield to the main
-  // thread.  This happens if the loader is marked as non-parallel or if it is a
-  // builtin loader which belongs to the rust side.
+  // thread. This happens when the loader is marked as non-parallel. The
+  // factory-prepared execution chain guarantees that this range contains only
+  // JavaScript loaders.
   switch (loaderState) {
     case JsLoaderState.Pitching: {
-      while (loaderContext.loaderIndex < loaderContext.loaders.length) {
+      while (loaderContext.loaderIndex < loaderContext.loaderChainEnd) {
         const currentLoaderObject =
           loaderContext.loaders[loaderContext.loaderIndex];
         if (shouldYieldToMainThread(currentLoaderObject)) break;
@@ -493,7 +492,7 @@ async function loaderImpl(
       break;
     }
     case JsLoaderState.Normal: {
-      while (loaderContext.loaderIndex >= 0) {
+      while (loaderContext.loaderIndex >= loaderContext.loaderChainStart) {
         const currentLoaderObject =
           loaderContext.loaders[loaderContext.loaderIndex];
 

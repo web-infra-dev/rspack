@@ -1,11 +1,4 @@
-use std::{
-  fmt::Display,
-  ops::Deref,
-  sync::{
-    Arc,
-    atomic::{AtomicBool, Ordering},
-  },
-};
+use std::{fmt::Display, ops::Deref, sync::Arc};
 
 use async_trait::async_trait;
 use derive_more::Debug;
@@ -15,7 +8,7 @@ use rspack_error::Result;
 use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rspack_util::identifier::strip_zero_width_space_for_fragment;
 
-use super::LoaderContext;
+use super::{LoaderContext, LoaderExecutionKind};
 
 #[derive(Debug)]
 pub struct LoaderItem<Context: Send> {
@@ -35,24 +28,28 @@ pub struct LoaderItem<Context: Send> {
   /// Fragment of a loader, starts with `#`.
   #[allow(dead_code)]
   fragment: Option<String>,
-  /// Data shared between pitching and normal
-  data: serde_json::Value,
   r#type: String,
-  pitch_executed: AtomicBool,
-  normal_executed: AtomicBool,
+  execution_kind: LoaderExecutionKind,
+}
+
+#[derive(Debug, Default)]
+pub struct LoaderItemState {
+  /// Data shared between pitching and normal.
+  data: serde_json::Value,
+  pitch_executed: bool,
+  normal_executed: bool,
   /// Whether loader was called with [LoaderContext::finish_with].
-  ///
-  /// Indicates that the loader has finished its work,
-  /// otherwise loader runner will reset [`LoaderContext::content`], [`LoaderContext::source_map`], [`LoaderContext::additional_data`].
-  ///
-  /// This flag is used to align with webpack's behavior:
-  /// If nothing is modified in the loader, the loader will reset the content, source map, and additional data.
-  finish_called: AtomicBool,
+  finish_called: bool,
 }
 
 impl<C: Send> LoaderItem<C> {
   pub fn loader(&self) -> &Arc<dyn Loader<C>> {
     &self.loader
+  }
+
+  #[inline]
+  pub fn execution_kind(&self) -> LoaderExecutionKind {
+    self.execution_kind
   }
 
   #[inline]
@@ -74,51 +71,39 @@ impl<C: Send> LoaderItem<C> {
   pub fn r#type(&self) -> &str {
     &self.r#type
   }
+}
 
-  #[inline]
+impl LoaderItemState {
   pub fn data(&self) -> &serde_json::Value {
     &self.data
   }
 
-  #[inline]
-  #[doc(hidden)]
   pub fn set_data(&mut self, data: serde_json::Value) {
     self.data = data;
   }
 
-  #[inline]
-  #[doc(hidden)]
   pub fn pitch_executed(&self) -> bool {
-    self.pitch_executed.load(Ordering::Relaxed)
+    self.pitch_executed
   }
 
-  #[inline]
   pub fn normal_executed(&self) -> bool {
-    self.normal_executed.load(Ordering::Relaxed)
+    self.normal_executed
   }
 
-  #[inline]
-  #[doc(hidden)]
   pub fn finish_called(&self) -> bool {
-    self.finish_called.load(Ordering::Relaxed)
+    self.finish_called
   }
 
-  #[inline]
-  #[doc(hidden)]
-  pub fn set_pitch_executed(&self) {
-    self.pitch_executed.store(true, Ordering::Relaxed)
+  pub fn set_pitch_executed(&mut self) {
+    self.pitch_executed = true;
   }
 
-  #[inline]
-  #[doc(hidden)]
-  pub fn set_normal_executed(&self) {
-    self.normal_executed.store(true, Ordering::Relaxed)
+  pub fn set_normal_executed(&mut self) {
+    self.normal_executed = true;
   }
 
-  #[inline]
-  #[doc(hidden)]
-  pub fn set_finish_called(&self) {
-    self.finish_called.store(true, Ordering::Relaxed)
+  pub fn set_finish_called(&mut self) {
+    self.finish_called = true;
   }
 }
 
@@ -182,7 +167,7 @@ where
   async fn run(&self, loader_context: &mut LoaderContext<Context>) -> Result<()> {
     // If loader does not implement normal stage,
     // it should inherit the result from the previous loader.
-    loader_context.current_loader().set_finish_called();
+    loader_context.set_current_loader_finish_called();
     Ok(())
   }
 
@@ -196,11 +181,17 @@ where
   fn r#type(&self) -> Option<&str> {
     None
   }
+
+  /// Selects the runtime responsible for executing this loader.
+  fn execution_kind(&self) -> LoaderExecutionKind {
+    LoaderExecutionKind::Native
+  }
 }
 
 impl<C: Send> From<Arc<dyn Loader<C>>> for LoaderItem<C> {
   fn from(loader: Arc<dyn Loader<C>>) -> Self {
     let ident = &**loader.identifier();
+    let execution_kind = loader.execution_kind();
     if let Some(r#type) = loader.r#type() {
       let ResourceParsedData {
         path,
@@ -214,11 +205,8 @@ impl<C: Send> From<Arc<dyn Loader<C>>> for LoaderItem<C> {
         path,
         query,
         fragment,
-        data: serde_json::Value::Null,
         r#type: ty,
-        pitch_executed: AtomicBool::new(false),
-        normal_executed: AtomicBool::new(false),
-        finish_called: AtomicBool::new(false),
+        execution_kind,
       };
     }
     let ident = loader.identifier();
@@ -233,11 +221,8 @@ impl<C: Send> From<Arc<dyn Loader<C>>> for LoaderItem<C> {
       path,
       query,
       fragment,
-      data: serde_json::Value::Null,
       r#type: String::default(),
-      pitch_executed: AtomicBool::new(false),
-      normal_executed: AtomicBool::new(false),
-      finish_called: AtomicBool::new(false),
+      execution_kind,
     }
   }
 }

@@ -26,15 +26,18 @@ pub struct JsLoaderItem {
   pub no_pitch: bool,
 }
 
-impl From<&rspack_loader_runner::LoaderItem<RunnerContext>> for JsLoaderItem {
-  fn from(value: &rspack_loader_runner::LoaderItem<RunnerContext>) -> Self {
+impl JsLoaderItem {
+  fn from_parts(
+    value: &rspack_loader_runner::LoaderItem<RunnerContext>,
+    state: &rspack_loader_runner::LoaderItemState,
+  ) -> Self {
     JsLoaderItem {
       loader: value.request().to_string(),
       r#type: value.r#type().to_string(),
 
-      data: value.data().clone(),
-      normal_executed: value.normal_executed(),
-      pitch_executed: value.pitch_executed(),
+      data: state.data().clone(),
+      normal_executed: state.normal_executed(),
+      pitch_executed: state.pitch_executed(),
 
       no_pitch: false,
     }
@@ -110,6 +113,10 @@ pub struct JsLoaderContext {
 
   pub loader_items: Vec<JsLoaderItem>,
   pub loader_index: i32,
+  /// Inclusive start and exclusive end of the current JavaScript execution
+  /// span inside the loader chain.
+  pub loader_chain_start: i32,
+  pub loader_chain_end: i32,
   #[napi(ts_type = "Readonly<JsLoaderState>")]
   pub loader_state: JsLoaderState,
   #[napi(js_name = "__internal__error")]
@@ -129,11 +136,15 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
   ) -> std::result::Result<Self, Self::Error> {
     let module = &cx.context.module;
 
-    #[allow(clippy::unwrap_used)]
+    let execution_span = cx
+      .current_chain()
+      .expect("yielding requires a current execution chain")
+      .range();
     Ok(JsLoaderContext {
       resource: cx.resource_data.resource().to_owned(),
       module: ModuleObject::with_ptr(
-        NonNull::new(module.as_ref() as *const dyn Module as *mut dyn Module).unwrap(),
+        NonNull::new(module.as_ref() as *const dyn Module as *mut dyn Module)
+          .expect("module reference should always produce a non-null pointer"),
         cx.context.compiler_id,
       ),
       hot: cx.hot,
@@ -174,8 +185,15 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
         .map(|i| i.to_string_lossy().to_string())
         .collect(),
 
-      loader_items: cx.loader_items.iter().map(Into::into).collect(),
+      loader_items: cx
+        .loader_items()
+        .iter()
+        .zip(cx.loader_item_states.iter())
+        .map(|(item, state)| JsLoaderItem::from_parts(item, state))
+        .collect(),
       loader_index: cx.loader_index,
+      loader_chain_start: execution_span.start as i32,
+      loader_chain_end: execution_span.end as i32,
       loader_state: cx.state().into(),
       error: None,
       utf8_hint: None,
