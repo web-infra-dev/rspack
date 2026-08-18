@@ -106,10 +106,14 @@ impl Compiler {
         next_compilation.module_executor = std::mem::take(&mut self.compilation.module_executor);
       }
 
-      // Store old compilation in cache for artifact recovery during run_passes
-      // The cache hooks will recover artifacts based on their associated incremental passes
+      self.cache.store_hot_cache(&mut self.compilation);
+
+      // Artifact recovery belongs to incremental compilation and is independent
+      // from the configured build cache.
       let old_compilation = std::mem::replace(&mut self.compilation, next_compilation);
-      self.cache.store_old_compilation(Box::new(old_compilation));
+      self
+        .incremental_artifacts
+        .store_previous_compilation(Box::new(old_compilation));
 
       // FOR BINDING SAFETY:
       // Update `compilation` for each rebuild.

@@ -3,6 +3,7 @@ module.exports = {
 	description: "should have time log when logging verbose",
 	options(context) {
 		return {
+			incremental: false,
 			context: context.getSource(),
 			entry: "./fixtures/abc"
 		};

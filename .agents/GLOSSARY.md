@@ -200,15 +200,48 @@ Optimization that concatenates modules into single scope to reduce function call
 
 Removing code that is never executed (form of tree shaking).
 
-## Caching Terms
+## Cache and Incremental Terms
 
-### Persistent Cache
+### Cache
 
-Disk-based cache that persists across builds to speed up subsequent builds.
+Fine-grained memoization of build computations. Cache owns its entries, keys, validation, storage,
+and eviction independently from Incremental compilation.
+
+### Cache Entry
+
+A reusable value addressed and validated by the Cache subsystem. A Cache entry is not an
+Incremental Artifact.
 
 ### Memory Cache
 
-In-memory cache used during a single build.
+Cache entries retained in the current compiler process. They can be reused across multiple
+compilations in that process but do not survive process exit.
+
+### Filesystem Cache
+
+Cache entries persisted to the filesystem so later compiler processes can reuse them. Rspack exposes
+this storage mode through `cache: { type: 'persistent' }`.
+
+### Persistent Cache
+
+Filesystem-backed Cache that persists across compiler processes. Persistent Cache may use a memory
+front cache in addition to filesystem storage.
+
+### Cache Backend
+
+Internal implementation of the Cache contract. `legacy_cache` and `new_cache` are two Cache
+backends; selecting one must not change Incremental behavior.
+
+### Incremental Compilation
+
+Development-time rebuild mechanism that recovers unaffected intermediate state from the previous
+compilation in the same compiler. It is used by watch, HMR, and explicit rebuild workflows, not to
+make separate one-shot builds incremental.
+
+### Incremental Artifact
+
+Intermediate state produced by a compilation pass and recovered into the next compilation when that
+Incremental pass is enabled. The pass then updates affected work according to the known mutations.
 
 ### Cache Invalidation
 
@@ -387,4 +420,5 @@ Loading critical resources early in page load process.
 - [Webpack Glossary](https://webpack.js.org/glossary/)
 - [Rspack Documentation](https://rspack.rs/)
 - [Project Architecture](./ARCHITECTURE.md)
+- [Cache and Incremental Compilation](./CACHE_AND_INCREMENTAL.md)
 - [Common Patterns](./COMMON_PATTERNS.md)

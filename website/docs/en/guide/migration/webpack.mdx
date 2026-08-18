@@ -88,9 +88,17 @@ Rspack supports most webpack configuration options. See [Configure Rspack](/conf
 
 Webpack and Rspack use different cache option shapes. Do not copy webpack cache options directly; map them to the corresponding [Rspack cache options](/config/cache).
 
-Disabled cache and memory cache can be kept as-is: `cache: false`, `cache: true`, and `cache: { type: 'memory' }` have the same meaning in Rspack.
+For Cache storage itself, disabled cache and memory cache can be kept as-is: `cache: false`,
+`cache: true`, and `cache: { type: 'memory' }` map directly to Rspack.
 
 For webpack filesystem cache, use Rspack [persistent cache](/config/cache#persistent-cache), then migrate the supported fields below.
+
+webpack's `cache.cacheUnaffected` optimization maps conceptually to Rspack's top-level
+[`incremental`](/config/incremental) option. Rspack keeps this option independent from Cache, so
+`cache: false` does not disable Incremental. To prevent cross-compilation reuse through both
+mechanisms, also set `incremental: false`. Because Rspack Incremental covers more compilation stages
+and has its own defaults, migrate this optimization separately instead of treating it as a Cache
+field rename.
 
 1. Change webpack `cache.type: 'filesystem'` to Rspack `cache.type: 'persistent'`.
 
@@ -168,7 +176,8 @@ export default {
 };
 ```
 
-The following example shows the same mapping when automating config migration:
+The following example automates the Cache storage mapping. It intentionally leaves Incremental as a
+separate migration decision.
 
 ```js
 function transform(webpackConfig, rspackConfig) {
