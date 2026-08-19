@@ -1,9 +1,7 @@
-use std::sync::Arc;
-
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
 use rspack_cacheable::cacheable;
-use rspack_core::{CacheValue, Etag, LoaderCache, Resolver};
+use rspack_core::{CacheFacade, CacheValue, Etag, Resolver, loader_cache_item};
 use rspack_error::Result;
 use rspack_hash::{HashFunction, RspackHasher};
 use rspack_loader_runner::DescriptionData;
@@ -26,7 +24,7 @@ pub struct JsLoaderCacheEntry {
 
 #[napi]
 pub struct JsLoaderCache {
-  cache: Arc<LoaderCache>,
+  cache: CacheFacade,
   module_identifier: String,
   loader_names: Vec<String>,
 }
@@ -41,7 +39,7 @@ impl FromNapiValue for JsLoaderCacheObject {
     let instance =
       unsafe { <ClassInstance<JsLoaderCache> as FromNapiValue>::from_napi_value(env, napi_val)? };
     Ok(Self(JsLoaderCache {
-      cache: Arc::clone(&instance.cache),
+      cache: instance.cache.clone(),
       module_identifier: instance.module_identifier.clone(),
       loader_names: instance.loader_names.clone(),
     }))
@@ -70,11 +68,7 @@ impl TypeName for JsLoaderCacheObject {
 impl ValidateNapiValue for JsLoaderCacheObject {}
 
 impl JsLoaderCache {
-  pub fn new(
-    cache: Arc<LoaderCache>,
-    module_identifier: String,
-    loader_names: Vec<String>,
-  ) -> Self {
+  pub fn new(cache: CacheFacade, module_identifier: String, loader_names: Vec<String>) -> Self {
     Self {
       cache,
       module_identifier,
@@ -92,11 +86,7 @@ impl JsLoaderCache {
 }
 
 impl JsLoaderCacheObject {
-  pub fn new(
-    cache: Arc<LoaderCache>,
-    module_identifier: String,
-    loader_names: Vec<String>,
-  ) -> Self {
+  pub fn new(cache: CacheFacade, module_identifier: String, loader_names: Vec<String>) -> Self {
     Self(JsLoaderCache::new(cache, module_identifier, loader_names))
   }
 }
@@ -136,9 +126,12 @@ impl JsLoaderCache {
   #[napi]
   pub fn get(&self, loader_index: u32, etag: String) -> napi::Result<Option<JsLoaderCacheEntry>> {
     let loader_name = self.loader_name(loader_index)?;
-    let item_cache = self
-      .cache
-      .cache_item(&self.module_identifier, loader_name, Etag::from(etag));
+    let item_cache = loader_cache_item(
+      &self.cache,
+      &self.module_identifier,
+      loader_name,
+      Etag::from(etag),
+    );
     let Some(entry) = item_cache
       .get::<LoaderCacheEntry>()
       .map_err(|error| napi::Error::from_reason(error.to_string()))?
@@ -172,9 +165,12 @@ impl JsLoaderCache {
       content_is_string: output.content_is_string,
       source_map: output.source_map.map(|source_map| source_map.to_vec()),
     };
-    let item_cache = self
-      .cache
-      .cache_item(&self.module_identifier, loader_name, Etag::from(etag));
+    let item_cache = loader_cache_item(
+      &self.cache,
+      &self.module_identifier,
+      loader_name,
+      Etag::from(etag),
+    );
     item_cache
       .store(CacheValue::new(entry))
       .map_err(|error| napi::Error::from_reason(error.to_string()))

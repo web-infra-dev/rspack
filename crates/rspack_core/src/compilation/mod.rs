@@ -96,7 +96,6 @@ use crate::{
   get_runtime_key,
   incremental::{self, Incremental, IncrementalPasses, Mutation},
   is_source_equal,
-  loader::loader_cache::register_loader_cache,
   new_cache::{Cache, CacheFacade},
   to_identifier,
 };
@@ -358,7 +357,6 @@ impl Compilation {
     is_rebuild: bool,
     compiler_context: Arc<CompilerContext>,
   ) -> Self {
-    register_loader_cache(&options.context, cache.facade("loader"));
     Self {
       id: CompilationId::new(),
       compiler_id,

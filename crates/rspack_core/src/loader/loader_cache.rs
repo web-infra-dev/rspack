@@ -1,75 +1,35 @@
-use std::sync::{Arc, LazyLock};
-
-use dashmap::DashMap;
 use rspack_cacheable::cacheable;
 use rspack_collections::Identifiable;
 use rspack_error::Result;
 use rspack_hash::{HashFunction, RspackHasher};
 use rspack_loader_runner::{Content, LoaderContext};
 use rspack_sources::SourceMap;
-use ustr::Ustr;
 
-use crate::{CacheFacade, CacheValue, Context, Etag, ItemCacheFacade, Module, RunnerContext};
+use crate::{CacheFacade, CacheValue, Etag, ItemCacheFacade, Module, RunnerContext};
 
-const LOADER_CACHE_DIRECTORY: &str = "node_modules/.cache/loader-cache";
-
-// Keep a strong process-wide owner so compilers using the same cache directory
-// always share exactly one LoaderCache instance.
-static LOADER_CACHES: LazyLock<DashMap<Ustr, Arc<LoaderCache>>> = LazyLock::new(DashMap::new);
-
-#[derive(Debug)]
-pub struct LoaderCache {
-  storage: CacheFacade,
-}
-
-impl LoaderCache {
-  fn new(storage: CacheFacade) -> Self {
-    Self { storage }
+fn loader_cache_key(module_identifier: &str, loader_name: &str) -> String {
+  fn push_segment(key: &mut String, segment: &str) {
+    key.push('|');
+    key.push_str(&segment.len().to_string());
+    key.push(':');
+    key.push_str(segment);
   }
 
-  fn cache_key(&self, module_identifier: &str, loader_name: &str) -> String {
-    fn push_segment(key: &mut String, segment: &str) {
-      key.push('|');
-      key.push_str(&segment.len().to_string());
-      key.push(':');
-      key.push_str(segment);
-    }
-
-    let mut key = String::new();
-    push_segment(&mut key, module_identifier);
-    push_segment(&mut key, loader_name);
-    key
-  }
-
-  #[doc(hidden)]
-  pub fn cache_item(
-    &self,
-    module_identifier: &str,
-    loader_name: &str,
-    etag: Etag,
-  ) -> ItemCacheFacade {
-    let key = self.cache_key(module_identifier, loader_name);
-    self.storage.get_item_cache(&key, Some(etag))
-  }
+  let mut key = String::new();
+  push_segment(&mut key, module_identifier);
+  push_segment(&mut key, loader_name);
+  key
 }
 
-fn loader_cache_directory(context: &Context) -> Ustr {
-  Ustr::from(context.as_path().join(LOADER_CACHE_DIRECTORY).as_str())
-}
-
-pub(crate) fn register_loader_cache(context: &Context, storage: CacheFacade) {
-  let cache_directory = loader_cache_directory(context);
-  LOADER_CACHES
-    .entry(cache_directory)
-    .or_insert_with(|| Arc::new(LoaderCache::new(storage)));
-}
-
-pub fn get_loader_cache(context: &Context) -> Arc<LoaderCache> {
-  let cache_directory = loader_cache_directory(context);
-  LOADER_CACHES
-    .get(&cache_directory)
-    .map(|cache| Arc::clone(cache.value()))
-    .expect("loader cache should be registered when the compilation is created")
+#[doc(hidden)]
+pub fn loader_cache_item(
+  storage: &CacheFacade,
+  module_identifier: &str,
+  loader_name: &str,
+  etag: Etag,
+) -> ItemCacheFacade {
+  let key = loader_cache_key(module_identifier, loader_name);
+  storage.get_item_cache(&key, Some(etag))
 }
 
 #[cacheable]
@@ -140,8 +100,12 @@ pub(crate) fn before_normal_loader(
   };
   let loader_name = context.current_loader().loader_name();
   let module_identifier = context.context.module.identifier();
-  let cache = get_loader_cache(&context.context.options.context);
-  let item_cache = cache.cache_item(module_identifier.as_str(), loader_name, etag.clone());
+  let item_cache = loader_cache_item(
+    &context.context.loader_cache,
+    module_identifier.as_str(),
+    loader_name,
+    etag.clone(),
+  );
 
   if let Some(entry) = item_cache.get::<LoaderCacheEntry>()? {
     let content = match (&entry.content, entry.content_is_string) {
@@ -191,9 +155,13 @@ pub(crate) fn after_normal_loader(
     content_is_string,
     source_map: context.source_map().map(SourceMap::to_json),
   };
-  let cache = get_loader_cache(&context.context.options.context);
   let loader_name = context.current_loader().loader_name();
   let module_identifier = context.context.module.identifier();
-  let item_cache = cache.cache_item(module_identifier.as_str(), loader_name, state.etag);
+  let item_cache = loader_cache_item(
+    &context.context.loader_cache,
+    module_identifier.as_str(),
+    loader_name,
+    state.etag,
+  );
   item_cache.store(CacheValue::new(entry))
 }

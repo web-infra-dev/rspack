@@ -412,6 +412,7 @@ impl Module for NormalModule {
         compiler_id,
         compilation_id,
         options: compiler_options,
+        loader_cache: build_context.loader_cache,
         resolver_factory,
         source_map_kind: self.source_map_kind,
         module: self,
