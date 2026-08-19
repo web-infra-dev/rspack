@@ -61,8 +61,8 @@ pub fn create_cache(
   );
   let (base_path, database_path) = match &options.storage {
     crate::cache::persistent::storage::StorageOptions::FileSystem { directory } => (
+      directory.parent().unwrap_or(directory).to_path_buf(),
       directory.clone(),
-      directory.join(rspack_workspace::rspack_pkg_version!()),
     ),
   };
   let strategy = match FileCacheStrategy::new(
