@@ -1,23 +1,18 @@
 use std::{collections::VecDeque, path::PathBuf, sync::Arc};
 
-use rspack_error::Result;
 use rspack_fs::ReadableFileSystem;
 use rspack_paths::{ArcPath, ArcPathSet, AssertUtf8};
 
-use super::{BuildDependenciesSnapshot, CacheMeta, Snapshot};
+use super::{BuildDependenciesSnapshot, Snapshot};
 use crate::{
   CompilationLogger,
-  cache::persistent::{
-    build_dependencies::{Helper, is_node_package_path},
-    codec::CacheCodec,
-  },
+  cache::persistent::build_dependencies::{Helper, is_node_package_path},
 };
 
 pub type BuildDepsOptions = Vec<PathBuf>;
 
 #[derive(Debug)]
 pub enum BuildDepsValidationResult {
-  InvalidVersion,
   Valid {
     tracked_files: usize,
   },
@@ -32,7 +27,6 @@ pub enum BuildDepsValidationResult {
 pub struct BuildDeps {
   /// Dependencies configured at startup and added on the next store.
   pending: ArcPathSet,
-  data: BuildDependenciesSnapshot,
   fs: Arc<dyn ReadableFileSystem>,
   logger: CompilationLogger,
 }
@@ -48,38 +42,36 @@ impl BuildDeps {
         .iter()
         .map(|path| ArcPath::from(path.as_path()))
         .collect(),
-      data: Default::default(),
       fs,
       logger,
     }
   }
 
-  /// Update build dependencies and serialize the complete snapshot.
+  /// Update the build dependencies snapshot.
   ///
   /// For performance reasons, recursive searches stop at dependencies in
   /// `node_modules`.
-  pub async fn create_snapshot(
+  pub(in crate::new_cache) async fn update_snapshot(
     &mut self,
-    codec: &CacheCodec,
     snapshot: &Snapshot,
-    data: impl Iterator<Item = ArcPath>,
-    rspack_pkg_version: &str,
-    cache_version: &str,
-  ) -> Result<Vec<u8>> {
+    build_dependencies: &mut BuildDependenciesSnapshot,
+    paths: impl Iterator<Item = ArcPath>,
+  ) {
     let mut helper = Helper::new(self.fs.clone(), self.logger.clone());
     let mut added = ArcPathSet::default();
     let mut queue = VecDeque::new();
     queue.extend(self.pending.iter().cloned());
-    queue.extend(data);
+    queue.extend(paths);
 
-    while let Some(current) = queue.pop_front() {
-      if self.data.dependencies.contains(&current) || !added.insert(current.clone()) {
+    while let Some(dependency) = queue.pop_front() {
+      if build_dependencies.dependencies.contains(&dependency) || !added.insert(dependency.clone())
+      {
         continue;
       }
-      if is_node_package_path(&current) {
+      if is_node_package_path(&dependency) {
         continue;
       }
-      if let Some(children) = helper.resolve(current.assert_utf8()).await {
+      if let Some(children) = helper.resolve(dependency.assert_utf8()).await {
         queue.extend(
           children
             .into_iter()
@@ -89,48 +81,28 @@ impl BuildDeps {
     }
 
     let snapshots = snapshot.add(added.iter().cloned()).await;
-    self.data.dependencies.extend(added);
-    self.data.snapshots.extend(snapshots);
+    build_dependencies.dependencies.extend(added);
+    build_dependencies.snapshots.extend(snapshots);
     self.pending.clear();
-    let meta = CacheMeta {
-      rspack_pkg_version: rspack_pkg_version.to_string(),
-      cache_version: cache_version.to_string(),
-      build_dependencies: std::mem::take(&mut self.data),
-    };
-    let result = codec.encode(&meta);
-    self.data = meta.build_dependencies;
-    result
   }
 
   /// Validate build dependencies.
   ///
   /// If any build dependency changed, this method returns an invalid result.
-  pub async fn validate_snapshot(
-    &mut self,
-    codec: &CacheCodec,
+  pub(in crate::new_cache) async fn validate_snapshot(
+    &self,
     snapshot: &Snapshot,
-    data: Option<&[u8]>,
-    rspack_pkg_version: &str,
-    cache_version: &str,
-  ) -> Result<BuildDepsValidationResult> {
-    let Some(data) = data else {
-      return Ok(BuildDepsValidationResult::InvalidVersion);
-    };
-    let meta = codec.decode::<CacheMeta>(data)?;
-    if meta.rspack_pkg_version != rspack_pkg_version || meta.cache_version != cache_version {
-      return Ok(BuildDepsValidationResult::InvalidVersion);
-    }
-    let (modified_files, removed_files) = snapshot
-      .calc_modified_paths(&meta.build_dependencies.snapshots)
-      .await;
+    data: &BuildDependenciesSnapshot,
+  ) -> BuildDepsValidationResult {
+    let (modified_files, removed_files) = snapshot.calc_modified_paths(&data.snapshots).await;
     if !modified_files.is_empty() || !removed_files.is_empty() {
-      return Ok(BuildDepsValidationResult::Invalid {
+      return BuildDepsValidationResult::Invalid {
         modified_files,
         removed_files,
-      });
+      };
     }
-    let tracked_files = meta.build_dependencies.dependencies.len();
-    self.data = meta.build_dependencies;
-    Ok(BuildDepsValidationResult::Valid { tracked_files })
+    BuildDepsValidationResult::Valid {
+      tracked_files: data.dependencies.len(),
+    }
   }
 }

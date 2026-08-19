@@ -20,17 +20,9 @@ pub struct SnapshotEntry {
 
 #[cacheable]
 #[derive(Debug, Default)]
-struct BuildDependenciesSnapshot {
+pub(super) struct BuildDependenciesSnapshot {
   dependencies: ArcPathSet,
   snapshots: Vec<SnapshotEntry>,
-}
-
-#[cacheable]
-#[derive(Debug, Default)]
-struct CacheMeta {
-  rspack_pkg_version: String,
-  cache_version: String,
-  build_dependencies: BuildDependenciesSnapshot,
 }
 
 /// Creates and validates filesystem snapshots stored by the new cache.

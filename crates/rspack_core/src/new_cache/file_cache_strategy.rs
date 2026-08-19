@@ -1,5 +1,6 @@
 use std::{fmt, sync::Arc};
 
+use rspack_cacheable::cacheable;
 use rspack_error::Result;
 use rspack_paths::{ArcPathSet, Utf8PathBuf};
 use rustc_hash::FxHashMap;
@@ -7,12 +8,46 @@ use rustc_hash::FxHashMap;
 use super::{
   CacheKey, Etag,
   cache_value::{CacheEntry, CacheValueDecoder, CacheValueEncoder, ErasedCacheValue},
-  db::{Database, DatabaseFamily, DatabaseValue, DatabaseWrite},
-  snapshot::{BuildDeps, BuildDepsValidationResult, Snapshot},
+  db::{Database, DatabaseFamily, DatabaseWrite},
+  snapshot::{BuildDependenciesSnapshot, BuildDeps, BuildDepsValidationResult, Snapshot},
 };
 use crate::cache::persistent::codec::CacheCodec;
 
 const META_KEY: &[u8] = b"meta";
+
+#[cacheable]
+#[derive(Debug)]
+struct CacheMeta {
+  rspack_pkg_version: String,
+  cache_version: String,
+  build_dependencies: BuildDependenciesSnapshot,
+}
+
+impl CacheMeta {
+  fn new(rspack_pkg_version: String, cache_version: String) -> Self {
+    Self {
+      rspack_pkg_version,
+      cache_version,
+      build_dependencies: Default::default(),
+    }
+  }
+
+  fn has_same_version(&self, other: &Self) -> bool {
+    self.rspack_pkg_version == other.rspack_pkg_version && self.cache_version == other.cache_version
+  }
+}
+
+enum CacheMetaValidationResult {
+  InvalidVersion,
+  Valid {
+    meta: CacheMeta,
+    tracked_files: usize,
+  },
+  InvalidBuildDependencies {
+    modified_files: ArcPathSet,
+    removed_files: ArcPathSet,
+  },
+}
 
 #[derive(Debug, Default)]
 struct PendingWrites {
@@ -28,8 +63,7 @@ struct PendingWrite {
 
 /// Filesystem cache implementation scheduled by [`super::IdleFileCache`].
 pub struct FileCacheStrategy {
-  rspack_pkg_version: String,
-  cache_version: String,
+  meta: CacheMeta,
   codec: Arc<CacheCodec>,
   snapshot: Snapshot,
   build_deps: BuildDeps,
@@ -61,8 +95,7 @@ impl FileCacheStrategy {
   ) -> Result<Self> {
     let database = Database::open(base_path, database_path, readonly)?;
     Ok(Self {
-      rspack_pkg_version,
-      cache_version,
+      meta: CacheMeta::new(rspack_pkg_version, cache_version),
       codec,
       snapshot,
       build_deps,
@@ -75,28 +108,21 @@ impl FileCacheStrategy {
   /// Validates the current database's build dependencies once before the
   /// background job starts serving commands.
   pub async fn db_validation(&mut self) -> Result<()> {
-    let validation = {
-      let meta: Option<DatabaseValue> = self.database.get(DatabaseFamily::Meta, META_KEY)?;
-      self
-        .build_deps
-        .validate_snapshot(
-          &self.codec,
-          &self.snapshot,
-          meta.as_deref(),
-          &self.rspack_pkg_version,
-          &self.cache_version,
-        )
-        .await
-    };
+    let data = self.database.get(DatabaseFamily::Meta, META_KEY)?;
+    let validation = self.validate_meta(data.as_deref()).await;
     match validation {
-      Ok(BuildDepsValidationResult::InvalidVersion) => {
+      Ok(CacheMetaValidationResult::InvalidVersion) => {
         tracing::info!("Resetting persistent cache database because cache version changed");
         self.database.reset()?;
       }
-      Ok(BuildDepsValidationResult::Valid { tracked_files }) => {
+      Ok(CacheMetaValidationResult::Valid {
+        meta,
+        tracked_files,
+      }) => {
+        self.meta = meta;
         tracing::debug!(tracked_files, "Build dependencies snapshot is valid");
       }
-      Ok(BuildDepsValidationResult::Invalid {
+      Ok(CacheMetaValidationResult::InvalidBuildDependencies {
         modified_files,
         removed_files,
       }) => {
@@ -115,6 +141,33 @@ impl FileCacheStrategy {
       }
     }
     Ok(())
+  }
+
+  async fn validate_meta(&self, data: Option<&[u8]>) -> Result<CacheMetaValidationResult> {
+    let Some(data) = data else {
+      return Ok(CacheMetaValidationResult::InvalidVersion);
+    };
+    let meta = self.codec.decode::<CacheMeta>(data)?;
+    if !meta.has_same_version(&self.meta) {
+      return Ok(CacheMetaValidationResult::InvalidVersion);
+    }
+    let validation = self
+      .build_deps
+      .validate_snapshot(&self.snapshot, &meta.build_dependencies)
+      .await;
+    Ok(match validation {
+      BuildDepsValidationResult::Valid { tracked_files } => CacheMetaValidationResult::Valid {
+        meta,
+        tracked_files,
+      },
+      BuildDepsValidationResult::Invalid {
+        modified_files,
+        removed_files,
+      } => CacheMetaValidationResult::InvalidBuildDependencies {
+        modified_files,
+        removed_files,
+      },
+    })
   }
 
   pub(super) fn store(
@@ -178,19 +231,16 @@ impl FileCacheStrategy {
     }
 
     if self.has_pending_writes() {
-      let build_snapshot = if let Some(dependencies) = &self.pending_writes.build_dependencies {
-        Some(
-          self
-            .build_deps
-            .create_snapshot(
-              &self.codec,
-              &self.snapshot,
-              dependencies.iter().cloned(),
-              &self.rspack_pkg_version,
-              &self.cache_version,
-            )
-            .await?,
-        )
+      let encoded_meta = if let Some(dependencies) = &self.pending_writes.build_dependencies {
+        self
+          .build_deps
+          .update_snapshot(
+            &self.snapshot,
+            &mut self.meta.build_dependencies,
+            dependencies.iter().cloned(),
+          )
+          .await;
+        Some(self.codec.encode(&self.meta)?)
       } else {
         None
       };
@@ -207,11 +257,11 @@ impl FileCacheStrategy {
           DatabaseWrite::new(DatabaseFamily::Cache, key.as_bytes(), value.as_slice())
         })
         .collect::<Vec<_>>();
-      if let Some(snapshot) = &build_snapshot {
+      if let Some(meta) = &encoded_meta {
         writes.push(DatabaseWrite::new(
           DatabaseFamily::Meta,
           META_KEY,
-          snapshot.as_slice(),
+          meta.as_slice(),
         ));
       }
       self.database.write_batch(writes)?;

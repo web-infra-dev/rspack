@@ -4,9 +4,9 @@ mod memory;
 mod turbo;
 
 #[cfg(target_family = "wasm")]
-pub use memory::{Database, DatabaseValue};
+pub use memory::Database;
 #[cfg(not(target_family = "wasm"))]
-pub use turbo::{Database, DatabaseValue};
+pub use turbo::Database;
 
 #[derive(Debug, Clone, Copy)]
 pub enum DatabaseFamily {
