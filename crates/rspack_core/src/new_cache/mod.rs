@@ -59,25 +59,26 @@ pub fn create_cache(
     input_filesystem,
     CompilationLogger::new("rspack.newCache".to_string(), compilation_logging),
   );
-  let database_paths = match &options.storage {
-    crate::cache::persistent::storage::StorageOptions::FileSystem { directory } => directory
-      .parent()
-      .map(|base_path| (base_path.to_path_buf(), directory.clone()))
-      .ok_or_else(|| {
-        rspack_error::error!("Persistent cache directory must have a parent directory: {directory}")
-      }),
+  let (base_path, database_path) = match &options.storage {
+    crate::cache::persistent::storage::StorageOptions::FileSystem { directory } => {
+      let Some(base_path) = directory.parent() else {
+        tracing::warn!(
+          "Opening persistent cache database failed: Persistent cache directory must have a parent directory: {directory}"
+        );
+        return Cache::new(compiler_path, MemoryCache::default(), None);
+      };
+      (base_path.to_path_buf(), directory.clone())
+    }
   };
-  let strategy = match database_paths.and_then(|database_paths| {
-    FileCacheStrategy::new(
-      database_paths,
-      options.readonly,
-      rspack_workspace::rspack_pkg_version!().to_string(),
-      options.version.clone(),
-      codec,
-      snapshot,
-      build_deps,
-    )
-  }) {
+  let strategy = match FileCacheStrategy::new(
+    (base_path, database_path),
+    options.readonly,
+    rspack_workspace::rspack_pkg_version!().to_string(),
+    options.version.clone(),
+    codec,
+    snapshot,
+    build_deps,
+  ) {
     Ok(strategy) => strategy,
     Err(error) => {
       tracing::warn!("Opening persistent cache database failed: {error}");
