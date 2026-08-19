@@ -12,16 +12,12 @@ use super::{
 };
 use crate::cache::persistent::codec::CacheCodec;
 
-const BUILD_DEPENDENCIES_KEY: &[u8] = b"build-dependencies";
-// The cache version and build dependency snapshot share the metadata family.
-const CACHE_VERSION_KEY: &[u8] = b"cache-version";
-const RSPACK_PKG_VERSION_KEY: &[u8] = b"rspack-pkg-version";
+const META_KEY: &[u8] = b"meta";
 
 #[derive(Debug, Default)]
 struct PendingWrites {
   entries: FxHashMap<CacheKey, PendingWrite>,
   build_dependencies: Option<ArcPathSet>,
-  store_meta: bool,
 }
 
 #[derive(Debug)]
@@ -32,8 +28,6 @@ struct PendingWrite {
 
 /// Filesystem cache implementation scheduled by [`super::IdleFileCache`].
 pub struct FileCacheStrategy {
-  rspack_pkg_version: String,
-  version: String,
   codec: Arc<CacheCodec>,
   snapshot: Snapshot,
   build_deps: BuildDeps,
@@ -56,16 +50,12 @@ impl FileCacheStrategy {
   pub fn new(
     database_path: Utf8PathBuf,
     readonly: bool,
-    rspack_pkg_version: String,
-    version: String,
     codec: Arc<CacheCodec>,
     snapshot: Snapshot,
     build_deps: BuildDeps,
   ) -> Result<Self> {
     let database = Database::open(database_path, readonly)?;
     Ok(Self {
-      rspack_pkg_version,
-      version,
       codec,
       snapshot,
       build_deps,
@@ -78,29 +68,18 @@ impl FileCacheStrategy {
   /// Validates the current database's build dependencies once before the
   /// background job starts serving commands.
   pub async fn db_validation(&mut self) -> Result<()> {
-    let rspack_pkg_version = self
-      .database
-      .get(DatabaseFamily::Meta, RSPACK_PKG_VERSION_KEY)?;
-    let cache_version = self.database.get(DatabaseFamily::Meta, CACHE_VERSION_KEY)?;
-    if rspack_pkg_version.as_deref() != Some(self.rspack_pkg_version.as_bytes())
-      || cache_version.as_deref() != Some(self.version.as_bytes())
-    {
-      tracing::info!("Resetting persistent cache database because cache version changed");
-      self.database.reset()?;
-      self.pending_writes.store_meta = true;
-      return Ok(());
-    }
-
     let validation = {
-      let build_snapshot: Option<DatabaseValue> = self
-        .database
-        .get(DatabaseFamily::Meta, BUILD_DEPENDENCIES_KEY)?;
+      let meta: Option<DatabaseValue> = self.database.get(DatabaseFamily::Meta, META_KEY)?;
       self
         .build_deps
-        .validate_snapshot(&self.codec, &self.snapshot, build_snapshot.as_deref())
+        .validate_snapshot(&self.codec, &self.snapshot, meta.as_deref())
         .await
     };
     match validation {
+      Ok(BuildDepsValidationResult::InvalidVersion) => {
+        tracing::info!("Resetting persistent cache database because cache version changed");
+        self.database.reset()?;
+      }
       Ok(BuildDepsValidationResult::Valid { tracked_files }) => {
         tracing::debug!(tracked_files, "Build dependencies snapshot is valid");
       }
@@ -114,14 +93,12 @@ impl FileCacheStrategy {
           "Resetting persistent cache database because build dependencies changed"
         );
         self.database.reset()?;
-        self.pending_writes.store_meta = true;
       }
       Err(error) => {
         tracing::warn!(
           "Resetting persistent cache database because build dependencies validation failed: {error}"
         );
         self.database.reset()?;
-        self.pending_writes.store_meta = true;
       }
     }
     Ok(())
@@ -214,32 +191,14 @@ impl FileCacheStrategy {
       if let Some(snapshot) = &build_snapshot {
         writes.push(DatabaseWrite::new(
           DatabaseFamily::Meta,
-          BUILD_DEPENDENCIES_KEY,
+          META_KEY,
           snapshot.as_slice(),
         ));
-      }
-      let store_meta = self.pending_writes.store_meta && build_snapshot.is_some();
-      if store_meta {
-        writes.extend([
-          DatabaseWrite::new(
-            DatabaseFamily::Meta,
-            RSPACK_PKG_VERSION_KEY,
-            self.rspack_pkg_version.as_bytes(),
-          ),
-          DatabaseWrite::new(
-            DatabaseFamily::Meta,
-            CACHE_VERSION_KEY,
-            self.version.as_bytes(),
-          ),
-        ]);
       }
       self.database.write_batch(writes)?;
 
       self.pending_writes.entries.clear();
       self.pending_writes.build_dependencies = None;
-      if store_meta {
-        self.pending_writes.store_meta = false;
-      }
     }
 
     for _ in 0..max_compaction_passes {

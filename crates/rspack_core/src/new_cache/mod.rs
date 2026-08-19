@@ -55,6 +55,8 @@ pub fn create_cache(
   let snapshot = Snapshot::new(options.snapshot.clone(), input_filesystem.clone());
   let build_deps = BuildDeps::new(
     &options.build_dependencies,
+    rspack_workspace::rspack_pkg_version!().to_string(),
+    options.version.clone(),
     input_filesystem,
     CompilationLogger::new("rspack.newCache".to_string(), compilation_logging),
   );
@@ -63,21 +65,14 @@ pub fn create_cache(
       directory.clone()
     }
   };
-  let strategy = match FileCacheStrategy::new(
-    database_path,
-    options.readonly,
-    rspack_workspace::rspack_pkg_version!().to_string(),
-    options.version.clone(),
-    codec,
-    snapshot,
-    build_deps,
-  ) {
-    Ok(strategy) => strategy,
-    Err(error) => {
-      tracing::warn!("Opening persistent cache database failed: {error}");
-      return Cache::new(compiler_path, MemoryCache::default(), None);
-    }
-  };
+  let strategy =
+    match FileCacheStrategy::new(database_path, options.readonly, codec, snapshot, build_deps) {
+      Ok(strategy) => strategy,
+      Err(error) => {
+        tracing::warn!("Opening persistent cache database failed: {error}");
+        return Cache::new(compiler_path, MemoryCache::default(), None);
+      }
+    };
   let idle_file_cache = IdleFileCache::new(strategy, None, None, None);
 
   Cache::new(compiler_path, MemoryCache::default(), Some(idle_file_cache))

@@ -25,6 +25,14 @@ struct BuildDependenciesSnapshot {
   snapshots: Vec<SnapshotEntry>,
 }
 
+#[cacheable]
+#[derive(Debug, Default)]
+struct CacheMeta {
+  rspack_pkg_version: String,
+  cache_version: String,
+  build_dependencies: BuildDependenciesSnapshot,
+}
+
 /// Creates and validates filesystem snapshots stored by the new cache.
 #[derive(Debug)]
 pub struct Snapshot {

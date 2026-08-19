@@ -4,7 +4,7 @@ use rspack_error::Result;
 use rspack_fs::ReadableFileSystem;
 use rspack_paths::{ArcPath, ArcPathSet, AssertUtf8};
 
-use super::{BuildDependenciesSnapshot, Snapshot};
+use super::{BuildDependenciesSnapshot, CacheMeta, Snapshot};
 use crate::{
   CompilationLogger,
   cache::persistent::{
@@ -17,6 +17,7 @@ pub type BuildDepsOptions = Vec<PathBuf>;
 
 #[derive(Debug)]
 pub enum BuildDepsValidationResult {
+  InvalidVersion,
   Valid {
     tracked_files: usize,
   },
@@ -31,6 +32,8 @@ pub enum BuildDepsValidationResult {
 pub struct BuildDeps {
   /// Dependencies configured at startup and added on the next store.
   pending: ArcPathSet,
+  rspack_pkg_version: String,
+  cache_version: String,
   data: BuildDependenciesSnapshot,
   fs: Arc<dyn ReadableFileSystem>,
   logger: CompilationLogger,
@@ -39,6 +42,8 @@ pub struct BuildDeps {
 impl BuildDeps {
   pub fn new(
     options: &BuildDepsOptions,
+    rspack_pkg_version: String,
+    cache_version: String,
     fs: Arc<dyn ReadableFileSystem>,
     logger: CompilationLogger,
   ) -> Self {
@@ -47,6 +52,8 @@ impl BuildDeps {
         .iter()
         .map(|path| ArcPath::from(path.as_path()))
         .collect(),
+      rspack_pkg_version,
+      cache_version,
       data: Default::default(),
       fs,
       logger,
@@ -89,7 +96,14 @@ impl BuildDeps {
     self.data.dependencies.extend(added);
     self.data.snapshots.extend(snapshots);
     self.pending.clear();
-    codec.encode(&self.data)
+    let meta = CacheMeta {
+      rspack_pkg_version: self.rspack_pkg_version.clone(),
+      cache_version: self.cache_version.clone(),
+      build_dependencies: std::mem::take(&mut self.data),
+    };
+    let result = codec.encode(&meta);
+    self.data = meta.build_dependencies;
+    result
   }
 
   /// Validate build dependencies.
@@ -102,18 +116,25 @@ impl BuildDeps {
     data: Option<&[u8]>,
   ) -> Result<BuildDepsValidationResult> {
     let Some(data) = data else {
-      return Ok(BuildDepsValidationResult::Valid { tracked_files: 0 });
+      return Ok(BuildDepsValidationResult::InvalidVersion);
     };
-    let data = codec.decode::<BuildDependenciesSnapshot>(data)?;
-    let (modified_files, removed_files) = snapshot.calc_modified_paths(&data.snapshots).await;
+    let meta = codec.decode::<CacheMeta>(data)?;
+    if meta.rspack_pkg_version != self.rspack_pkg_version
+      || meta.cache_version != self.cache_version
+    {
+      return Ok(BuildDepsValidationResult::InvalidVersion);
+    }
+    let (modified_files, removed_files) = snapshot
+      .calc_modified_paths(&meta.build_dependencies.snapshots)
+      .await;
     if !modified_files.is_empty() || !removed_files.is_empty() {
       return Ok(BuildDepsValidationResult::Invalid {
         modified_files,
         removed_files,
       });
     }
-    let tracked_files = data.dependencies.len();
-    self.data = data;
+    let tracked_files = meta.build_dependencies.dependencies.len();
+    self.data = meta.build_dependencies;
     Ok(BuildDepsValidationResult::Valid { tracked_files })
   }
 }
