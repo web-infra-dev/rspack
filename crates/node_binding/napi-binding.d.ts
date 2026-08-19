@@ -2770,7 +2770,7 @@ export interface RawModuleRuleUse {
   loader: string
   options?: string
   cache: boolean
-  cacheKey: string
+  optionsCacheKey: string
 }
 
 export interface RawNewCache {

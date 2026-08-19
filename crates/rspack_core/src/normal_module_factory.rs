@@ -853,7 +853,7 @@ impl NormalModuleFactory {
                 .map(|object| object.to_string())
             }),
             cache: false,
-            cache_key: String::new(),
+            options_cache_key: String::new(),
           }
         }));
         scheme = get_scheme(unresolved_resource);
@@ -1376,7 +1376,7 @@ async fn resolve_each_with_options(
 ) -> Result<ResolvedLoader> {
   let resolved = resolve_each(plugin_driver, context, loader_resolver, loader).await?;
   let cache_key = if loader.cache {
-    loader_cache_key(&loader.loader, &resolved, &loader.cache_key)
+    loader_cache_key(&loader.loader, &resolved, &loader.options_cache_key)
   } else {
     String::new()
   };

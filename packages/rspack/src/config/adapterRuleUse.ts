@@ -558,7 +558,9 @@ function createRawModuleRuleUsesImpl(
       ),
       options: o,
       cache: use.cache ?? false,
-      cacheKey: use.cache ? (JSON.stringify(fingerprintOptions) ?? '') : '',
+      optionsCacheKey: use.cache
+        ? (JSON.stringify(fingerprintOptions) ?? '')
+        : '',
     };
   });
 }
