@@ -4,15 +4,8 @@ use rspack_cacheable::cacheable;
 use rspack_error::Result;
 use rspack_paths::{ArcPath, ArcPathSet};
 
-use super::snapshot::{BuildDeps, BuildDepsValidationResult, Snapshot, SnapshotEntry};
+use super::snapshot::{BuildDependenciesSnapshot, BuildDeps, BuildDepsValidationResult, Snapshot};
 use crate::cache::persistent::codec::CacheCodec;
-
-#[cacheable]
-#[derive(Debug, Default)]
-struct BuildDependenciesSnapshot {
-  dependencies: ArcPathSet,
-  snapshots: Vec<SnapshotEntry>,
-}
 
 #[cacheable]
 #[derive(Debug)]
@@ -79,13 +72,9 @@ impl CacheValidator {
     if !validator.has_same_version(&self.data) {
       return Ok(CacheValidatorResult::InvalidVersion);
     }
-    let validation = self
-      .build_deps
-      .validate_snapshot(
-        &self.snapshot,
-        &validator.build_dependencies.snapshots,
-        validator.build_dependencies.dependencies.len(),
-      )
+    let validation = validator
+      .build_dependencies
+      .validate(&self.snapshot, &self.build_deps)
       .await;
     Ok(match validation {
       BuildDepsValidationResult::Valid { tracked_files } => {
@@ -103,13 +92,11 @@ impl CacheValidator {
   }
 
   pub(super) async fn update(&mut self, paths: impl Iterator<Item = ArcPath>) -> Result<Vec<u8>> {
-    let added = self
-      .build_deps
-      .resolve_dependencies(&self.data.build_dependencies.dependencies, paths)
+    self
+      .data
+      .build_dependencies
+      .update(&self.snapshot, &mut self.build_deps, paths)
       .await;
-    let snapshots = self.snapshot.add(added.iter().cloned()).await;
-    self.data.build_dependencies.dependencies.extend(added);
-    self.data.build_dependencies.snapshots.extend(snapshots);
     self.codec.encode(&self.data)
   }
 }

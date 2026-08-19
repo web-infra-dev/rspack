@@ -18,6 +18,39 @@ pub struct SnapshotEntry {
   strategy: Strategy,
 }
 
+#[cacheable]
+#[derive(Debug, Default)]
+pub(super) struct BuildDependenciesSnapshot {
+  dependencies: ArcPathSet,
+  snapshots: Vec<SnapshotEntry>,
+}
+
+impl BuildDependenciesSnapshot {
+  pub(super) async fn validate(
+    &self,
+    snapshot: &Snapshot,
+    build_deps: &BuildDeps,
+  ) -> BuildDepsValidationResult {
+    build_deps
+      .validate_snapshot(snapshot, &self.snapshots, self.dependencies.len())
+      .await
+  }
+
+  pub(super) async fn update(
+    &mut self,
+    snapshot: &Snapshot,
+    build_deps: &mut BuildDeps,
+    paths: impl Iterator<Item = ArcPath>,
+  ) {
+    let added = build_deps
+      .resolve_dependencies(&self.dependencies, paths)
+      .await;
+    let snapshots = snapshot.add(added.iter().cloned()).await;
+    self.dependencies.extend(added);
+    self.snapshots.extend(snapshots);
+  }
+}
+
 /// Creates and validates filesystem snapshots stored by the new cache.
 #[derive(Debug)]
 pub struct Snapshot {
