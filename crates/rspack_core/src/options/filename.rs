@@ -610,16 +610,6 @@ fn hash_len(hash: &str, len: Option<u16>) -> usize {
   len.map_or(hash_len, usize::from).min(hash_len)
 }
 
-pub fn has_hash_placeholder(template: &str) -> bool {
-  let compiled = get_or_compile(intern_template(template));
-  compiled.has_hash_placeholder
-}
-
-pub fn has_content_hash_placeholder(template: &str) -> bool {
-  let compiled = get_or_compile(intern_template(template));
-  compiled.has_content_hash_placeholder
-}
-
 #[derive(Debug, Default)]
 struct FileReplacements {
   file: Option<String>,
