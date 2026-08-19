@@ -1,10 +1,19 @@
-use std::sync::Arc;
+use std::{
+  hash::{DefaultHasher, Hash, Hasher},
+  sync::Arc,
+};
 
 use rspack_cacheable::{cacheable, utils::PortablePath, with::As};
 use rspack_fs::IntermediateFileSystem;
 use rspack_paths::Utf8PathBuf;
 pub use rspack_storage::{BoxStorage, CacheDirectory, MemoryStorage, Storage};
 use rspack_storage::{FileSystemOptions, FileSystemStorage};
+
+pub(crate) fn compiler_cache_directory(compiler_path: &str) -> CacheDirectory {
+  let mut hasher = DefaultHasher::new();
+  compiler_path.hash(&mut hasher);
+  CacheDirectory::new(hex::encode(hasher.finish().to_ne_bytes()))
+}
 
 /// Storage Options
 ///

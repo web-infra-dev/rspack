@@ -46,7 +46,7 @@ class ChildCompilersPlugin {
 	}
 }
 
-const runCompiler = (context, cacheDirectory, version) =>
+const runCompiler = (context, cacheDirectory, version, newCache) =>
 	new Promise((resolve, reject) => {
 		const compiler = rspack({
 			name: "root",
@@ -55,6 +55,9 @@ const runCompiler = (context, cacheDirectory, version) =>
 			mode: "development",
 			output: {
 				path: context.getDist(`output-${version}`)
+			},
+			experiments: {
+				newCache
 			},
 			cache: {
 				type: "persistent",
@@ -90,26 +93,40 @@ module.exports = {
 		};
 	},
 	async build(context) {
-		const cacheDirectory = context.getDist(
+		const legacyCacheDirectory = context.getDist(
 			"persistent-cache-compiler-path"
 		);
-		fs.rmSync(cacheDirectory, { recursive: true, force: true });
+		const newCacheDirectory = context.getDist(
+			"persistent-new-cache-compiler-path"
+		);
+		fs.rmSync(legacyCacheDirectory, { recursive: true, force: true });
+		fs.rmSync(newCacheDirectory, { recursive: true, force: true });
 
-		await runCompiler(context, cacheDirectory, "v1");
-		await runCompiler(context, cacheDirectory, "v2");
+		await runCompiler(context, legacyCacheDirectory, "v1", false);
+		await runCompiler(context, legacyCacheDirectory, "v2", false);
+		await runCompiler(context, newCacheDirectory, "v1", true);
+		await runCompiler(context, newCacheDirectory, "v2", true);
 
 		context.setValue(
 			"cacheDirectories",
-			fs
-				.readdirSync(cacheDirectory)
-				.filter(name => CACHE_DIRECTORY_REGEXP.test(name))
-				.sort()
+			{
+				legacy: fs
+					.readdirSync(legacyCacheDirectory)
+					.filter(name => CACHE_DIRECTORY_REGEXP.test(name))
+					.sort(),
+				newCache: fs
+					.readdirSync(newCacheDirectory)
+					.filter(name => CACHE_DIRECTORY_REGEXP.test(name))
+					.sort()
+			}
 		);
 	},
 	check({ context }) {
 		const cacheDirectories = context.getValue("cacheDirectories");
 
-		expect(cacheDirectories).toHaveLength(1 + CHILD_COMPILER_NAMES.length);
-		expect(new Set(cacheDirectories).size).toBe(cacheDirectories.length);
+		for (const directories of [cacheDirectories.legacy, cacheDirectories.newCache]) {
+			expect(directories).toHaveLength(1 + CHILD_COMPILER_NAMES.length);
+			expect(new Set(directories).size).toBe(directories.length);
+		}
 	}
 };

@@ -6,10 +6,7 @@ pub mod snapshot;
 pub mod storage;
 pub mod validation;
 
-use std::{
-  hash::{DefaultHasher, Hash, Hasher},
-  sync::Arc,
-};
+use std::sync::Arc;
 
 use rspack_fs::{IntermediateFileSystem, ReadableFileSystem};
 use rspack_workspace::rspack_pkg_version;
@@ -20,7 +17,7 @@ use self::{
   context::CacheContext,
   occasion::{MakeOccasion, MinimizeOccasion, SourceMapDevToolPluginOccasion},
   snapshot::{Snapshot, SnapshotOptions},
-  storage::{CacheDirectory, StorageOptions, create_storage},
+  storage::{StorageOptions, compiler_cache_directory, create_storage},
   validation::CacheValidation,
 };
 use super::Cache;
@@ -70,11 +67,7 @@ impl PersistentCache {
     };
     let codec = Arc::new(CacheCodec::new(project_root));
     // Each compiler path owns exactly one storage directory.
-    let cache_directory = {
-      let mut hasher = DefaultHasher::new();
-      compiler_path.hash(&mut hasher);
-      CacheDirectory::new(hex::encode(hasher.finish().to_ne_bytes()))
-    };
+    let cache_directory = compiler_cache_directory(compiler_path);
     let storage = create_storage(
       option.storage.clone(),
       cache_directory,

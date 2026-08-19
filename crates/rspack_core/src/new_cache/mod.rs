@@ -24,7 +24,8 @@ use rspack_fs::ReadableFileSystem;
 
 use self::snapshot::{BuildDeps, Snapshot};
 use crate::{
-  CompilationLogger, CompilationLogging, CompilerOptions, cache::persistent::codec::CacheCodec,
+  CompilationLogger, CompilationLogging, CompilerOptions,
+  cache::persistent::{codec::CacheCodec, storage::compiler_cache_directory},
 };
 
 pub fn create_cache(
@@ -59,14 +60,15 @@ pub fn create_cache(
     input_filesystem,
     CompilationLogger::new("rspack.newCache".to_string(), compilation_logging),
   );
-  let (base_path, database_path) = match &options.storage {
-    crate::cache::persistent::storage::StorageOptions::FileSystem { directory } => (
-      directory.clone(),
-      directory.join(rspack_workspace::rspack_pkg_version!()),
-    ),
+  // Raw storage.directory is the normalized cache.storage.location.
+  let storage_location = match &options.storage {
+    crate::cache::persistent::storage::StorageOptions::FileSystem { directory } => {
+      directory.clone()
+    }
   };
+  let database_path = storage_location.join(compiler_cache_directory(&compiler_path).as_str());
   let strategy = match FileCacheStrategy::new(
-    (base_path, database_path),
+    (storage_location, database_path),
     options.readonly,
     rspack_workspace::rspack_pkg_version!().to_string(),
     options.version.clone(),
