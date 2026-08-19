@@ -21,6 +21,7 @@ const RSPACK_PKG_VERSION_KEY: &[u8] = b"rspack-pkg-version";
 struct PendingWrites {
   entries: FxHashMap<CacheKey, PendingWrite>,
   build_dependencies: Option<ArcPathSet>,
+  store_meta: bool,
 }
 
 #[derive(Debug)]
@@ -86,7 +87,7 @@ impl FileCacheStrategy {
     {
       tracing::info!("Resetting persistent cache database because cache version changed");
       self.database.reset()?;
-      self.store_meta()?;
+      self.pending_writes.store_meta = true;
       return Ok(());
     }
 
@@ -113,35 +114,17 @@ impl FileCacheStrategy {
           "Resetting persistent cache database because build dependencies changed"
         );
         self.database.reset()?;
-        self.store_meta()?;
+        self.pending_writes.store_meta = true;
       }
       Err(error) => {
         tracing::warn!(
           "Resetting persistent cache database because build dependencies validation failed: {error}"
         );
         self.database.reset()?;
-        self.store_meta()?;
+        self.pending_writes.store_meta = true;
       }
     }
     Ok(())
-  }
-
-  fn store_meta(&mut self) -> Result<()> {
-    if self.readonly {
-      return Ok(());
-    }
-    self.database.write_batch([
-      DatabaseWrite::new(
-        DatabaseFamily::Meta,
-        RSPACK_PKG_VERSION_KEY,
-        self.rspack_pkg_version.as_bytes(),
-      ),
-      DatabaseWrite::new(
-        DatabaseFamily::Meta,
-        CACHE_VERSION_KEY,
-        self.version.as_bytes(),
-      ),
-    ])
   }
 
   pub(super) fn store(
@@ -222,22 +205,41 @@ impl FileCacheStrategy {
         .map(|(key, pending)| Ok((key, (pending.encoder)(&pending.entry, &self.codec)?)))
         .collect::<Result<Vec<_>>>()?;
 
-      let writes = cache_entries
+      let mut writes = cache_entries
         .iter()
         .map(|(key, value)| {
           DatabaseWrite::new(DatabaseFamily::Cache, key.as_bytes(), value.as_slice())
         })
-        .chain(build_snapshot.iter().map(|snapshot| {
+        .collect::<Vec<_>>();
+      if let Some(snapshot) = &build_snapshot {
+        writes.push(DatabaseWrite::new(
+          DatabaseFamily::Meta,
+          BUILD_DEPENDENCIES_KEY,
+          snapshot.as_slice(),
+        ));
+      }
+      let store_meta = self.pending_writes.store_meta && build_snapshot.is_some();
+      if store_meta {
+        writes.extend([
           DatabaseWrite::new(
             DatabaseFamily::Meta,
-            BUILD_DEPENDENCIES_KEY,
-            snapshot.as_slice(),
-          )
-        }));
+            RSPACK_PKG_VERSION_KEY,
+            self.rspack_pkg_version.as_bytes(),
+          ),
+          DatabaseWrite::new(
+            DatabaseFamily::Meta,
+            CACHE_VERSION_KEY,
+            self.version.as_bytes(),
+          ),
+        ]);
+      }
       self.database.write_batch(writes)?;
 
       self.pending_writes.entries.clear();
       self.pending_writes.build_dependencies = None;
+      if store_meta {
+        self.pending_writes.store_meta = false;
+      }
     }
 
     for _ in 0..max_compaction_passes {
