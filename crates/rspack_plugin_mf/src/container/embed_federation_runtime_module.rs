@@ -26,7 +26,6 @@ static RUNTIME_MODULE_VARIABLES: LazyLock<Vec<&'static str>> = LazyLock::new(|| 
     EMBED_FEDERATION_RUNTIME_SYNC_TEMPLATE,
   ])
 });
-
 #[cacheable]
 #[derive(Debug, Default, Clone, Hash, PartialEq, Eq)]
 pub struct EmbedFederationRuntimeModuleOptions {
@@ -133,7 +132,6 @@ impl RuntimeModule for EmbedFederationRuntimeModule {
       module_executions.push_str(&module_str);
       module_executions.push('\n');
     }
-
     if self.options.experiments.async_startup {
       let entry_chunk_ids = compilation
         .build_chunk_graph_artifact
