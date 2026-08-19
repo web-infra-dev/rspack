@@ -32,8 +32,6 @@ pub enum BuildDepsValidationResult {
 pub struct BuildDeps {
   /// Dependencies configured at startup and added on the next store.
   pending: ArcPathSet,
-  rspack_pkg_version: String,
-  cache_version: String,
   data: BuildDependenciesSnapshot,
   fs: Arc<dyn ReadableFileSystem>,
   logger: CompilationLogger,
@@ -42,8 +40,6 @@ pub struct BuildDeps {
 impl BuildDeps {
   pub fn new(
     options: &BuildDepsOptions,
-    rspack_pkg_version: String,
-    cache_version: String,
     fs: Arc<dyn ReadableFileSystem>,
     logger: CompilationLogger,
   ) -> Self {
@@ -52,8 +48,6 @@ impl BuildDeps {
         .iter()
         .map(|path| ArcPath::from(path.as_path()))
         .collect(),
-      rspack_pkg_version,
-      cache_version,
       data: Default::default(),
       fs,
       logger,
@@ -69,6 +63,8 @@ impl BuildDeps {
     codec: &CacheCodec,
     snapshot: &Snapshot,
     data: impl Iterator<Item = ArcPath>,
+    rspack_pkg_version: &str,
+    cache_version: &str,
   ) -> Result<Vec<u8>> {
     let mut helper = Helper::new(self.fs.clone(), self.logger.clone());
     let mut added = ArcPathSet::default();
@@ -97,8 +93,8 @@ impl BuildDeps {
     self.data.snapshots.extend(snapshots);
     self.pending.clear();
     let meta = CacheMeta {
-      rspack_pkg_version: self.rspack_pkg_version.clone(),
-      cache_version: self.cache_version.clone(),
+      rspack_pkg_version: rspack_pkg_version.to_string(),
+      cache_version: cache_version.to_string(),
       build_dependencies: std::mem::take(&mut self.data),
     };
     let result = codec.encode(&meta);
@@ -114,14 +110,14 @@ impl BuildDeps {
     codec: &CacheCodec,
     snapshot: &Snapshot,
     data: Option<&[u8]>,
+    rspack_pkg_version: &str,
+    cache_version: &str,
   ) -> Result<BuildDepsValidationResult> {
     let Some(data) = data else {
       return Ok(BuildDepsValidationResult::InvalidVersion);
     };
     let meta = codec.decode::<CacheMeta>(data)?;
-    if meta.rspack_pkg_version != self.rspack_pkg_version
-      || meta.cache_version != self.cache_version
-    {
+    if meta.rspack_pkg_version != rspack_pkg_version || meta.cache_version != cache_version {
       return Ok(BuildDepsValidationResult::InvalidVersion);
     }
     let (modified_files, removed_files) = snapshot

@@ -28,6 +28,8 @@ struct PendingWrite {
 
 /// Filesystem cache implementation scheduled by [`super::IdleFileCache`].
 pub struct FileCacheStrategy {
+  rspack_pkg_version: String,
+  cache_version: String,
   codec: Arc<CacheCodec>,
   snapshot: Snapshot,
   build_deps: BuildDeps,
@@ -50,12 +52,16 @@ impl FileCacheStrategy {
   pub fn new(
     database_path: Utf8PathBuf,
     readonly: bool,
+    rspack_pkg_version: String,
+    cache_version: String,
     codec: Arc<CacheCodec>,
     snapshot: Snapshot,
     build_deps: BuildDeps,
   ) -> Result<Self> {
     let database = Database::open(database_path, readonly)?;
     Ok(Self {
+      rspack_pkg_version,
+      cache_version,
       codec,
       snapshot,
       build_deps,
@@ -72,7 +78,13 @@ impl FileCacheStrategy {
       let meta: Option<DatabaseValue> = self.database.get(DatabaseFamily::Meta, META_KEY)?;
       self
         .build_deps
-        .validate_snapshot(&self.codec, &self.snapshot, meta.as_deref())
+        .validate_snapshot(
+          &self.codec,
+          &self.snapshot,
+          meta.as_deref(),
+          &self.rspack_pkg_version,
+          &self.cache_version,
+        )
         .await
     };
     match validation {
@@ -169,7 +181,13 @@ impl FileCacheStrategy {
         Some(
           self
             .build_deps
-            .create_snapshot(&self.codec, &self.snapshot, dependencies.iter().cloned())
+            .create_snapshot(
+              &self.codec,
+              &self.snapshot,
+              dependencies.iter().cloned(),
+              &self.rspack_pkg_version,
+              &self.cache_version,
+            )
             .await?,
         )
       } else {
