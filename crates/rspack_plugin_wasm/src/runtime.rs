@@ -1,9 +1,11 @@
+use std::borrow::Cow;
+
 use cow_utils::CowUtils;
 use rspack_core::{
-  Compilation, PathData, RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule,
-  RuntimeModuleGenerateContext, RuntimeModuleStage, RuntimeTemplate, impl_runtime_module,
+  Compilation, FilenameRenderValue, PathData, PlaceholderKind, RuntimeCodeTemplate, RuntimeGlobals,
+  RuntimeModule, RuntimeModuleGenerateContext, RuntimeModuleStage, RuntimeTemplate,
+  impl_runtime_module,
 };
-use rspack_util::itoa;
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -203,29 +205,32 @@ async fn render_wasm_module_path(
       None,
     )
     .await?;
-  let fake_filename = rspack_core::Filename::from(compiled.without_hash_length());
-  let hash_len = compiled.content_hash_len().or(compiled.hash_len());
 
-  // Even use content hash when [hash] in webpack
-  let hash = match hash_len {
-    Some(hash_len) => {
-      let mut hash_len_buffer = itoa::Buffer::new();
-      let hash_len_str = hash_len_buffer.format(hash_len);
-      format!("\" + wasmModuleHash.slice(0, {hash_len_str}) + \"")
-    }
-    None => full_hash,
-  };
-
-  compilation
-    .get_path(
-      &fake_filename,
+  Ok(
+    compiled.render_with_path_data(
       PathData::default()
-        .hash(&hash)
-        .content_hash(&hash)
         .id(id.as_ref())
         .runtime(chunk.runtime().as_str()),
-    )
-    .await
+      None,
+      |placeholder| {
+        if !matches!(
+          placeholder.kind(),
+          PlaceholderKind::Hash | PlaceholderKind::ContentHash
+        ) {
+          return None;
+        }
+
+        // Even use content hash when [hash] in webpack.
+        let hash_expression = match placeholder.hash_len() {
+          Some(hash_len) => format!("wasmModuleHash.slice(0, {hash_len})"),
+          None => "wasmModuleHash".to_string(),
+        };
+        Some(FilenameRenderValue::Rendered(Cow::Owned(format!(
+          "\" + {hash_expression} + \""
+        ))))
+      },
+    ),
+  )
 }
 
 fn get_async_wasm_loading(
