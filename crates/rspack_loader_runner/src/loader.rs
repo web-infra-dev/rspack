@@ -38,7 +38,7 @@ pub struct LoaderItem<Context: Send> {
   /// Data shared between pitching and normal
   data: serde_json::Value,
   r#type: String,
-  cache_options: LoaderRunnerOptions,
+  cache_options: Option<Box<LoaderRunnerOptions>>,
   pitch_executed: AtomicBool,
   normal_executed: AtomicBool,
   /// Whether loader was called with [LoaderContext::finish_with].
@@ -78,27 +78,36 @@ impl<C: Send> LoaderItem<C> {
 
   #[inline]
   pub fn cache(&self) -> bool {
-    self.cache_options.cache
+    self.cache_options.is_some()
   }
 
   #[inline]
   pub fn loader_name(&self) -> &str {
-    &self.cache_options.loader_name
+    self
+      .cache_options
+      .as_deref()
+      .map_or("", |options| &options.loader_name)
   }
 
   #[inline]
   pub fn options_cache_key(&self) -> &str {
-    &self.cache_options.options_cache_key
+    self
+      .cache_options
+      .as_deref()
+      .map_or("", |options| &options.options_cache_key)
   }
 
   #[inline]
   pub fn loader_version(&self) -> &str {
-    &self.cache_options.loader_version
+    self
+      .cache_options
+      .as_deref()
+      .map_or("", |options| &options.loader_version)
   }
 
   #[inline]
-  pub fn cache_options(&self) -> &LoaderRunnerOptions {
-    &self.cache_options
+  pub fn cache_options(&self) -> Option<&LoaderRunnerOptions> {
+    self.cache_options.as_deref()
   }
 
   #[inline]
@@ -237,6 +246,7 @@ impl<C: Send> From<Arc<dyn Loader<C>>> for LoaderItem<C> {
 
 impl<C: Send> LoaderItem<C> {
   pub(crate) fn new(loader: Arc<dyn Loader<C>>, options: LoaderRunnerOptions) -> Self {
+    let cache_options = options.cache.then(|| Box::new(options));
     let ident = &**loader.identifier();
     if let Some(r#type) = loader.r#type() {
       let ResourceParsedData {
@@ -253,7 +263,7 @@ impl<C: Send> LoaderItem<C> {
         fragment,
         data: serde_json::Value::Null,
         r#type: ty,
-        cache_options: options,
+        cache_options,
         pitch_executed: AtomicBool::new(false),
         normal_executed: AtomicBool::new(false),
         finish_called: AtomicBool::new(false),
@@ -273,7 +283,7 @@ impl<C: Send> LoaderItem<C> {
       fragment,
       data: serde_json::Value::Null,
       r#type: String::default(),
-      cache_options: options,
+      cache_options,
       pitch_executed: AtomicBool::new(false),
       normal_executed: AtomicBool::new(false),
       finish_called: AtomicBool::new(false),

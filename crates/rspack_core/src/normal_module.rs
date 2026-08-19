@@ -122,7 +122,7 @@ pub struct NormalModule {
   /// Loaders for the module
   #[debug(skip)]
   loaders: Vec<BoxLoader>,
-  loader_options: Vec<LoaderRunnerOptions>,
+  loader_options: Option<Vec<LoaderRunnerOptions>>,
 
   /// Built source of this module (passed with loaders)
   #[cacheable(with=AsOption<AsPreset>)]
@@ -191,7 +191,7 @@ impl NormalModule {
     resource_data: Arc<ResourceData>,
     resolve_options: Option<Arc<Resolve>>,
     loaders: Vec<BoxLoader>,
-    loader_options: Vec<LoaderRunnerOptions>,
+    loader_options: Option<Vec<LoaderRunnerOptions>>,
     context: Option<Context>,
     extract_source_map: Option<bool>,
     import_phase: ImportPhase,

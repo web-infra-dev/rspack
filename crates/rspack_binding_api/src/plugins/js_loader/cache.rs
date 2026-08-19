@@ -132,11 +132,7 @@ pub(crate) async fn loader_cache_version(
   path: &Utf8Path,
   is_package_request: bool,
   description_data: Option<&DescriptionData>,
-  enabled: bool,
 ) -> Result<Option<String>> {
-  if !enabled {
-    return Ok(None);
-  }
   if is_package_request
     && let Some((name, version)) = description_data.and_then(|data| {
       let package = data.json();

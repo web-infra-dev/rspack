@@ -1100,10 +1100,24 @@ module.exports = "data:,";
     } else {
       resource_data.resource().to_owned()
     };
-    let (loaders, loader_options): (Vec<_>, Vec<_>) = resolved_loaders
-      .into_iter()
-      .map(|resolved| (resolved.loader, resolved.options))
-      .unzip();
+    let has_cached_loader = resolved_loaders
+      .iter()
+      .any(|resolved| resolved.options.cache);
+    let (loaders, loader_options) = if has_cached_loader {
+      let (loaders, loader_options) = resolved_loaders
+        .into_iter()
+        .map(|resolved| (resolved.loader, resolved.options))
+        .unzip();
+      (loaders, Some(loader_options))
+    } else {
+      (
+        resolved_loaders
+          .into_iter()
+          .map(|resolved| resolved.loader)
+          .collect(),
+        None,
+      )
+    };
 
     let resolved_module_type = self.calculate_module_type(match_module_type, &matched_module_rules);
     let resolved_module_layer =
@@ -1375,22 +1389,21 @@ async fn resolve_each_with_options(
   loader: &ModuleRuleUseLoader,
 ) -> Result<ResolvedLoader> {
   let resolved = resolve_each(plugin_driver, context, loader_resolver, loader).await?;
+  if !loader.cache {
+    return Ok(ResolvedLoader::uncached(resolved));
+  }
   let loader_name = parse_resource(&loader.loader).map_or_else(
     || loader.loader.clone(),
     |resource| resource.path.to_string(),
   );
-  let loader_version = if loader.cache {
-    resolved
-      .cache_version()
-      .unwrap_or(rspack_workspace::rspack_pkg_version!())
-      .to_owned()
-  } else {
-    String::new()
-  };
+  let loader_version = resolved
+    .cache_version()
+    .unwrap_or(rspack_workspace::rspack_pkg_version!())
+    .to_owned();
   Ok(ResolvedLoader {
     loader: resolved,
     options: LoaderRunnerOptions {
-      cache: loader.cache,
+      cache: true,
       loader_name,
       options_cache_key: loader.options_cache_key.clone(),
       loader_version,

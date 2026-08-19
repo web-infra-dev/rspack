@@ -98,22 +98,26 @@ fn create_loader_context<Context: Send>(
 #[tracing::instrument("LoaderRunner:run_loaders", skip_all, level = "trace")]
 pub async fn run_loaders<Context: Send>(
   loaders: Vec<Arc<dyn Loader<Context>>>,
-  loader_options: Vec<LoaderRunnerOptions>,
+  loader_options: Option<Vec<LoaderRunnerOptions>>,
   resource_data: Arc<ResourceData>,
   plugin: Option<Arc<dyn LoaderRunnerPlugin<Context = Context>>>,
   context: Context,
   fs: Arc<dyn ReadableFileSystem>,
 ) -> (LoaderResult<Context>, Option<Error>) {
-  assert_eq!(
-    loaders.len(),
-    loader_options.len(),
-    "loader options must stay aligned with loaders"
-  );
-  let loaders = loaders
-    .into_iter()
-    .zip(loader_options)
-    .map(|(loader, options)| LoaderItem::new(loader, options))
-    .collect::<Vec<LoaderItem<Context>>>();
+  let loaders = if let Some(loader_options) = loader_options {
+    assert_eq!(
+      loaders.len(),
+      loader_options.len(),
+      "loader options must stay aligned with loaders"
+    );
+    loaders
+      .into_iter()
+      .zip(loader_options)
+      .map(|(loader, options)| LoaderItem::new(loader, options))
+      .collect::<Vec<LoaderItem<Context>>>()
+  } else {
+    loaders.into_iter().map(LoaderItem::from).collect()
+  };
   let mut cx = create_loader_context(loaders, resource_data, plugin, context);
   let result = run_loaders_impl(&mut cx, fs).await;
   (LoaderResult::new(cx), result.err())
@@ -280,7 +284,7 @@ mod test {
   use rustc_hash::FxHashSet as HashSet;
 
   use super::{Loader, LoaderContext, ResourceData, run_loaders};
-  use crate::{AdditionalData, LoaderRunnerOptions, content::Content, plugin::LoaderRunnerPlugin};
+  use crate::{AdditionalData, content::Content, plugin::LoaderRunnerPlugin};
 
   struct TestContentPlugin;
 
@@ -459,7 +463,7 @@ mod test {
     assert!(
       run_loaders(
         vec![p1, p2, c1, c2],
-        vec![LoaderRunnerOptions::default(); 4],
+        None,
         rs.clone(),
         Some(Arc::new(TestContentPlugin)),
         (),
@@ -480,7 +484,7 @@ mod test {
     assert!(
       run_loaders(
         vec![p1, p2, p3],
-        vec![LoaderRunnerOptions::default(); 3],
+        None,
         rs.clone(),
         Some(Arc::new(TestContentPlugin)),
         (),
@@ -554,7 +558,7 @@ mod test {
     assert!(
       run_loaders(
         vec![Arc::new(Normal) as Arc<dyn Loader>, Arc::new(Normal2)],
-        vec![LoaderRunnerOptions::default(); 2],
+        None,
         rs,
         Some(Arc::new(TestContentPlugin)),
         (),
@@ -612,7 +616,7 @@ mod test {
     assert!(
       run_loaders(
         vec![Arc::new(Normal2), Arc::new(Normal)],
-        vec![LoaderRunnerOptions::default(); 2],
+        None,
         rs,
         Some(Arc::new(TestContentPlugin)),
         (),

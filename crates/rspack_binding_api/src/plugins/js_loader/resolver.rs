@@ -102,14 +102,17 @@ pub(crate) async fn resolve_loader(
       // Use `str::ends_with` instead of `Path::extension` to avoid unnecessary allocation
       let path = path.as_str();
 
-      let cache_version = loader_cache_version(
-        resolver,
-        Utf8Path::new(path),
-        is_package_request,
-        description_data.as_ref(),
-        l.cache,
-      )
-      .await?;
+      let cache_version = if l.cache {
+        loader_cache_version(
+          resolver,
+          Utf8Path::new(path),
+          is_package_request,
+          description_data.as_ref(),
+        )
+        .await?
+      } else {
+        None
+      };
 
       let r#type = if path.ends_with(".mjs") {
         Some(Cow::Borrowed("module"))

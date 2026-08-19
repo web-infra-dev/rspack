@@ -268,7 +268,9 @@ export async function runLoaders(
   const contextDependencies = context.contextDependencies;
   const missingDependencies = context.missingDependencies;
   const buildDependencies = context.buildDependencies;
-  const loaderCache = new LoaderCache(context);
+  const loaderCache = context.__internal__loaderCache
+    ? new LoaderCache(context)
+    : undefined;
 
   /// Construct `loaderContext`
   const loaderContext = {} as LoaderContext;
@@ -924,7 +926,7 @@ export async function runLoaders(
           }
           case RequestType.LoaderCacheGet: {
             const [loaderIndex, content, additionalData] = args;
-            return loaderCache.workerGet(loaderIndex, content, additionalData);
+            return loaderCache?.workerGet(loaderIndex, content, additionalData);
           }
           case RequestType.LoaderCacheStore: {
             const [
@@ -934,7 +936,7 @@ export async function runLoaders(
               sourceMap,
               additionalData,
             ] = args;
-            return loaderCache.workerStore(
+            return loaderCache?.workerStore(
               loaderIndex,
               content,
               contentIsString,
@@ -1092,7 +1094,7 @@ export async function runLoaders(
           }
 
           const cached: LoaderCacheEntry | null | undefined =
-            !parallelism && currentLoaderObject.loaderItem.cache
+            !parallelism && currentLoaderObject.loaderItem.cache && loaderCache
               ? loaderCache.get(
                   loaderContext.loaderIndex,
                   content,
@@ -1132,7 +1134,7 @@ export async function runLoaders(
           ]);
 
           if (cached === null) {
-            loaderCache.store(
+            loaderCache?.store(
               loaderContext.loaderIndex,
               content,
               JsSourceMap.__to_binding(sourceMap),

@@ -76,7 +76,8 @@ fn input_etag(context: &LoaderContext<RunnerContext>) -> Option<Etag> {
 pub(crate) fn before_normal_loader(
   context: &mut LoaderContext<RunnerContext>,
 ) -> Result<LoaderCacheAction> {
-  if !context.current_loader().cache() || !context.cacheable {
+  debug_assert!(context.current_loader().cache());
+  if !context.cacheable {
     return Ok(LoaderCacheAction::Disabled);
   }
   // The minimal cache only supports loaders whose observable input is content.

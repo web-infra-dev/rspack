@@ -978,7 +978,7 @@ export interface JsLoaderContext {
   loaderIndex: number
   loaderState: Readonly<JsLoaderState>
   __internal__error?: RspackError
-  __internal__loaderCache: JsLoaderCache
+  __internal__loaderCache?: JsLoaderCache | undefined
   /**
    * UTF-8 hint for `content`
    * - Some(true): `content` is a `UTF-8` encoded sequence

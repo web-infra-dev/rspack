@@ -131,7 +131,11 @@ impl LoaderRunnerPlugin for RspackLoaderRunnerPlugin {
     context: &mut LoaderContext<Self::Context>,
     loader: Arc<dyn Loader<Self::Context>>,
   ) -> Result<()> {
-    let cache_action = before_normal_loader(context)?;
+    let cache_action = if context.current_loader().cache() {
+      before_normal_loader(context)?
+    } else {
+      LoaderCacheAction::Disabled
+    };
     if matches!(cache_action, LoaderCacheAction::Hit) {
       context.current_loader().set_finish_called();
       return Ok(());

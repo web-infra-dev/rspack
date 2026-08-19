@@ -120,8 +120,11 @@ pub struct JsLoaderContext {
   pub loader_state: JsLoaderState,
   #[napi(js_name = "__internal__error")]
   pub error: Option<RspackError>,
-  #[napi(js_name = "__internal__loaderCache", ts_type = "JsLoaderCache")]
-  pub loader_cache: JsLoaderCacheObject,
+  #[napi(
+    js_name = "__internal__loaderCache",
+    ts_type = "JsLoaderCache | undefined"
+  )]
+  pub loader_cache: Option<JsLoaderCacheObject>,
 
   /// UTF-8 hint for `content`
   /// - Some(true): `content` is a `UTF-8` encoded sequence
@@ -186,14 +189,20 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
       loader_index: cx.loader_index,
       loader_state: cx.state().into(),
       error: None,
-      loader_cache: JsLoaderCacheObject::new(
-        cx.context.loader_cache.clone(),
-        module.identifier().to_string(),
-        cx.loader_items
-          .iter()
-          .map(|loader| loader.cache_options().clone())
-          .collect(),
-      ),
+      loader_cache: cx
+        .loader_items
+        .iter()
+        .any(|loader| loader.cache())
+        .then(|| {
+          JsLoaderCacheObject::new(
+            cx.context.loader_cache.clone(),
+            module.identifier().to_string(),
+            cx.loader_items
+              .iter()
+              .map(|loader| loader.cache_options().cloned().unwrap_or_default())
+              .collect(),
+          )
+        }),
       utf8_hint: None,
     })
   }
