@@ -3319,6 +3319,8 @@ impl ConcatenatedModule {
             let referenced_info_id = reference.module;
             let mut referenced_export_name = reference.options.ids.clone();
             referenced_export_name.extend(export_name.iter().skip(1).cloned());
+            // Call and ASI semantics belong to the consuming import expression,
+            // not to the re-export edge being followed here.
             return Self::get_final_binding(
               mg,
               mg_cache,
@@ -3327,10 +3329,10 @@ impl ConcatenatedModule {
               referenced_export_name,
               module_to_info_map,
               runtime,
-              reference.options.call,
+              as_call,
               reference.options.deferred_import,
               module.build_meta().strict_esm_module(),
-              reference.options.asi_safe,
+              asi_safe,
               already_visited,
             );
           }
