@@ -98,18 +98,6 @@ fn create_loader_context<Context: Send>(
 #[tracing::instrument("LoaderRunner:run_loaders", skip_all, level = "trace")]
 pub async fn run_loaders<Context: Send>(
   loaders: Vec<Arc<dyn Loader<Context>>>,
-  resource_data: Arc<ResourceData>,
-  plugin: Option<Arc<dyn LoaderRunnerPlugin<Context = Context>>>,
-  context: Context,
-  fs: Arc<dyn ReadableFileSystem>,
-) -> (LoaderResult<Context>, Option<Error>) {
-  let loader_options = vec![LoaderRunnerOptions::default(); loaders.len()];
-  run_loaders_with_options(loaders, loader_options, resource_data, plugin, context, fs).await
-}
-
-#[tracing::instrument("LoaderRunner:run_loaders_with_options", skip_all, level = "trace")]
-pub async fn run_loaders_with_options<Context: Send>(
-  loaders: Vec<Arc<dyn Loader<Context>>>,
   loader_options: Vec<LoaderRunnerOptions>,
   resource_data: Arc<ResourceData>,
   plugin: Option<Arc<dyn LoaderRunnerPlugin<Context = Context>>>,
@@ -292,7 +280,7 @@ mod test {
   use rustc_hash::FxHashSet as HashSet;
 
   use super::{Loader, LoaderContext, ResourceData, run_loaders};
-  use crate::{AdditionalData, content::Content, plugin::LoaderRunnerPlugin};
+  use crate::{AdditionalData, LoaderRunnerOptions, content::Content, plugin::LoaderRunnerPlugin};
 
   struct TestContentPlugin;
 
@@ -471,6 +459,7 @@ mod test {
     assert!(
       run_loaders(
         vec![p1, p2, c1, c2],
+        vec![LoaderRunnerOptions::default(); 4],
         rs.clone(),
         Some(Arc::new(TestContentPlugin)),
         (),
@@ -491,6 +480,7 @@ mod test {
     assert!(
       run_loaders(
         vec![p1, p2, p3],
+        vec![LoaderRunnerOptions::default(); 3],
         rs.clone(),
         Some(Arc::new(TestContentPlugin)),
         (),
@@ -564,6 +554,7 @@ mod test {
     assert!(
       run_loaders(
         vec![Arc::new(Normal) as Arc<dyn Loader>, Arc::new(Normal2)],
+        vec![LoaderRunnerOptions::default(); 2],
         rs,
         Some(Arc::new(TestContentPlugin)),
         (),
@@ -621,6 +612,7 @@ mod test {
     assert!(
       run_loaders(
         vec![Arc::new(Normal2), Arc::new(Normal)],
+        vec![LoaderRunnerOptions::default(); 2],
         rs,
         Some(Arc::new(TestContentPlugin)),
         (),

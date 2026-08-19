@@ -17,8 +17,7 @@ use rspack_fs::ReadableFileSystem;
 use rspack_hash::{RspackHash, RspackHashDigest, RspackHasher};
 use rspack_hook::define_hook;
 use rspack_loader_runner::{
-  AdditionalData, Content, LoaderContext, LoaderRunnerOptions, ResourceData,
-  run_loaders_with_options,
+  AdditionalData, Content, LoaderContext, LoaderRunnerOptions, ResourceData, run_loaders,
 };
 use rspack_sources::{
   BoxSource, CachedSource, OriginalSource, RawBufferSource, RawStringSource, ReplaceSource,
@@ -403,7 +402,7 @@ impl Module for NormalModule {
     let compiler_options = build_context.compiler_options.clone();
     let resolver_factory = build_context.resolver_factory.clone();
     let fs = build_context.fs.clone();
-    let (mut loader_result, err) = run_loaders_with_options(
+    let (mut loader_result, err) = run_loaders(
       self.loaders.clone(),
       self.loader_options.clone(),
       self.resource_data.clone(),

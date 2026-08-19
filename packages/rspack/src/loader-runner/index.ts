@@ -559,7 +559,6 @@ export async function runLoaders(
   // The public API intentionally accepts only Error instances. Keep these runtime checks for
   // untyped JavaScript loaders that pass strings or other non-Error values.
   loaderContext.emitError = function emitError(e) {
-    loaderCache.markSideEffect();
     if (!(e instanceof Error)) {
       e = new NonErrorEmittedError(e);
     }
@@ -575,7 +574,6 @@ export async function runLoaders(
     });
   };
   loaderContext.emitWarning = function emitWarning(e) {
-    loaderCache.markSideEffect();
     if (!(e instanceof Error)) {
       e = new NonErrorEmittedError(e);
     }
@@ -596,7 +594,6 @@ export async function runLoaders(
     sourceMap?,
     assetInfo?,
   ) {
-    loaderCache.markSideEffect();
     let source: Source | undefined;
     if (sourceMap) {
       if (
@@ -626,7 +623,6 @@ export async function runLoaders(
   loaderContext.fs = compiler.inputFileSystem;
   loaderContext.experiments = {
     emitDiagnostic: (diagnostic: Diagnostic) => {
-      loaderCache.markSideEffect();
       const d = Object.assign({}, diagnostic, {
         message:
           diagnostic.severity === 'warning'

@@ -48,36 +48,24 @@ pub(crate) struct LoaderCacheMissState {
 pub(crate) enum LoaderCacheAction {
   Disabled,
   Hit,
-  Miss(LoaderCacheMissState),
+  Miss(Box<LoaderCacheMissState>),
 }
 
 fn cache_miss_action(context: &LoaderContext<RunnerContext>, etag: Etag) -> LoaderCacheAction {
-  LoaderCacheAction::Miss(LoaderCacheMissState {
+  LoaderCacheAction::Miss(Box::new(LoaderCacheMissState {
     etag,
     diagnostics_len: context.diagnostics.len(),
-  })
-}
-
-fn update_hash_segment(hasher: &mut RspackHasher, label: &[u8], value: &[u8]) {
-  hasher.write(label);
-  hasher.write(&(value.len() as u64).to_le_bytes());
-  hasher.write(value);
+  }))
 }
 
 fn input_etag(context: &LoaderContext<RunnerContext>) -> Option<Etag> {
   let loader = context.current_loader();
   let mut hasher = RspackHasher::new(&HashFunction::Xxhash64);
-  let content = match context.content()? {
-    Content::String(content) => content.as_bytes(),
-    Content::Buffer(content) => content,
-  };
-  update_hash_segment(&mut hasher, b"content", content);
-  update_hash_segment(
-    &mut hasher,
-    b"options",
-    loader.options_cache_key().as_bytes(),
-  );
-  update_hash_segment(&mut hasher, b"version", loader.loader_version().as_bytes());
+  rspack_hash::rspack_hash_object!(&mut hasher, {
+    "content" => context.content()?,
+    "options" => loader.options_cache_key(),
+    "version" => loader.loader_version(),
+  });
   Some(Etag::from(format!("{:016x}", hasher.finish())))
 }
 
@@ -110,9 +98,8 @@ pub(crate) fn before_normal_loader(
   if let Some(entry) = item_cache.get::<LoaderCacheEntry>()? {
     let content = match (&entry.content, entry.content_is_string) {
       (Some(content), true) => {
-        let Ok(content) = String::from_utf8(content.clone()) else {
-          return Ok(cache_miss_action(context, etag));
-        };
+        // SAFETY: String cache entries are written exclusively from `Content::String`.
+        let content = unsafe { String::from_utf8_unchecked(content.clone()) };
         Some(Content::String(content))
       }
       (Some(content), false) => Some(Content::Buffer(content.clone())),
@@ -131,7 +118,7 @@ pub(crate) fn before_normal_loader(
 
 pub(crate) fn after_normal_loader(
   context: &LoaderContext<RunnerContext>,
-  state: LoaderCacheMissState,
+  state: Box<LoaderCacheMissState>,
 ) -> Result<()> {
   if !context.cacheable
     || context.diagnostics.len() != state.diagnostics_len

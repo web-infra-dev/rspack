@@ -16,7 +16,6 @@ type LoaderCacheApi = {
 
 type LoaderCacheInput = {
   etag: string;
-  sideEffects: number;
 };
 
 function toOwnedBuffer(value: string | Buffer | Uint8Array) {
@@ -40,15 +39,10 @@ export class LoaderCache {
   readonly #api: LoaderCacheApi;
   readonly #context: JsLoaderContext;
   readonly #workerInputs = new Map<number, LoaderCacheInput>();
-  #sideEffects = 0;
 
   constructor(context: JsLoaderContext) {
     this.#context = context;
     this.#api = (context as any).__internal__loaderCache as LoaderCacheApi;
-  }
-
-  markSideEffect() {
-    this.#sideEffects++;
   }
 
   begin(
@@ -63,8 +57,7 @@ export class LoaderCache {
       !loader ||
       isNil(content) ||
       !isNil(additionalData) ||
-      Object.keys(context.__internal__parseMeta).length > 0 ||
-      this.#hasModuleBuildSideEffects()
+      Object.keys(context.__internal__parseMeta).length > 0
     ) {
       return undefined;
     }
@@ -74,10 +67,7 @@ export class LoaderCache {
     updateHashSegment(hash, 'options', Buffer.from(loader.optionsCacheKey));
     updateHashSegment(hash, 'version', Buffer.from(loader.loaderVersion));
 
-    return {
-      etag: hash.digest('hex'),
-      sideEffects: this.#sideEffects,
-    };
+    return { etag: hash.digest('hex') };
   }
 
   get(loaderIndex: number, input: LoaderCacheInput) {
@@ -95,10 +85,8 @@ export class LoaderCache {
     const context = this.#context;
     if (
       !context.cacheable ||
-      this.#sideEffects !== input.sideEffects ||
       !isNil(additionalData) ||
-      Object.keys(context.__internal__parseMeta).length > 0 ||
-      this.#hasModuleBuildSideEffects()
+      Object.keys(context.__internal__parseMeta).length > 0
     ) {
       return;
     }
@@ -145,21 +133,6 @@ export class LoaderCache {
       sourceMap,
       additionalData,
       contentIsString,
-    );
-  }
-
-  #hasModuleBuildSideEffects() {
-    const buildInfo = this.#context._module.buildInfo;
-    return (
-      Object.keys(buildInfo.assets).length > 0 ||
-      Object.keys(buildInfo).some(
-        (key) =>
-          key !== 'assets' &&
-          key !== 'fileDependencies' &&
-          key !== 'contextDependencies' &&
-          key !== 'missingDependencies' &&
-          key !== 'buildDependencies',
-      )
     );
   }
 }
