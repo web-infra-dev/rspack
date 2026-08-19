@@ -54,6 +54,18 @@ impl CommonJsFullRequireDependency {
       factorize_info: Default::default(),
     }
   }
+
+  pub fn names(&self) -> &[Atom] {
+    &self.names
+  }
+
+  pub fn range(&self) -> DependencyRange {
+    self.range
+  }
+
+  pub fn asi_safe(&self) -> bool {
+    self.asi_safe
+  }
 }
 
 #[cacheable_dyn]

@@ -92,6 +92,10 @@ impl CommonJsRequireDependency {
       None => guard,
     });
   }
+
+  pub fn request_range(&self) -> DependencyRange {
+    self.range
+  }
 }
 
 #[cacheable_dyn]

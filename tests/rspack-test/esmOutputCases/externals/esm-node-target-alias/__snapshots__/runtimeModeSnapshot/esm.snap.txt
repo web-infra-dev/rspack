@@ -6,46 +6,34 @@ import { parse } from "node:url";
 import { createRequire as __rspack_createRequire } from "node:module";
 const __rspack_createRequire_require = __rspack_createRequire(import.meta.url);
 moduleFactories.add({
-"node:fs?435f"
-/*!****************************!*\
-  !*** external "node:path" ***!
-  \****************************/
-(module) {
-module.exports = __rspack_createRequire_require("node:path");
-
-},
-"node:url?b4ec"
-/*!***************************!*\
-  !*** external "node:url" ***!
-  \***************************/
-(module) {
-module.exports = __rspack_createRequire_require("node:url");
-
-},
 "./cjs-consumer.cjs"
 /*!**************************!*\
   !*** ./cjs-consumer.cjs ***!
   \**************************/
 (__unused_rspack_module, exports) {
 // CJS require of "module" type external — should be downgraded to node-commonjs
-const nodePath = rspackRequire(/*! node:fs */ "node:fs?435f");
-exports.n = nodePath.resolve;
+const nodePath = __rspack_createRequire_require("node:path");
+exports.nq = nodePath.resolve;
 
 // CJS require of "module-import" type external — should also be downgraded
-const nodeUrl = rspackRequire(/*! node:url */ "node:url?b4ec");
-exports.g = nodeUrl.parse;
+const nodeUrl = __rspack_createRequire_require("node:url");
+exports.gd = nodeUrl.parse;
+
+// CJS export-require dependency should use the same node-commonjs downgrade
+exports.M = __rspack_createRequire_require("node:path");
 
 
 },
 });
-// node:fs?16c7
+// node:fs
 
-// node:url?e0e4
+// node:url
 
 // ./index.js
 const cjs_consumer = rspackRequire("./cjs-consumer.cjs");
-var g = cjs_consumer.g;
-var n = cjs_consumer.n;
+var gd = cjs_consumer.gd;
+var M = cjs_consumer.M;
+var nq = cjs_consumer.nq;
 
 
 
@@ -64,17 +52,21 @@ it("should use aliased external request with correct external type", async () =>
 	expect(main.parse).toBe(nodeUrl.parse);
 
 	// CJS require of "module" external — downgraded to node-commonjs
-	expect(cjs_consumer.n).toBe(nodePath.resolve);
+	expect(cjs_consumer.nq).toBe(nodePath.resolve);
 	expect(main.cjsResolve).toBe(nodePath.resolve);
 
 	// CJS require of "module-import" external — downgraded to node-commonjs
-	expect(cjs_consumer.g).toBe(nodeUrl.parse);
+	expect(cjs_consumer.gd).toBe(nodeUrl.parse);
 	expect(main.cjsParse).toBe(nodeUrl.parse);
+
+	// CJS export-require dependency — also downgraded to node-commonjs
+	expect(cjs_consumer.M.resolve).toBe(nodePath.resolve);
+	expect(main.cjsReexport.resolve).toBe(nodePath.resolve);
 });
 
 
 
-export { g as cjsParse, n as cjsResolve, parse, resolve };
+export { M as cjsReexport, gd as cjsParse, nq as cjsResolve, parse, resolve };
 
 ```
 

@@ -11,8 +11,8 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet};
 use serde::Serialize;
 
 use crate::{
-  AsyncDependenciesBlockIdentifier, BoxModule, BuildContext, BuildInfo, BuildMeta,
-  BuildMetaExportsType, BuildResult, ChunkGraph, ChunkInitFragments, ChunkUkey,
+  AsyncDependenciesBlockIdentifier, BoxChunkInitFragment, BoxModule, BuildContext, BuildInfo,
+  BuildMeta, BuildMetaExportsType, BuildResult, ChunkGraph, ChunkInitFragments, ChunkUkey,
   CodeGenerationDataUrl, CodeGenerationResult, Compilation, ConcatenationScope,
   ConcatenationScopeInfoMode, Context, DependenciesBlock, DependencyId, ExportProvided,
   ExternalType, FactoryMeta, GeneratedSource, ImportAttributes, ImportPhase, InitFragmentExt,
@@ -144,6 +144,36 @@ fn get_source_for_commonjs(module_and_specifiers: Option<&ExternalRequestValue>)
     ("undefined", String::new())
   };
   format!("require({}){}", json_stringify_str(module_name), properties)
+}
+
+pub fn create_node_commonjs_init_fragment(compilation: &Compilation) -> BoxChunkInitFragment {
+  let need_prefix = compilation
+    .options
+    .output
+    .environment
+    .supports_node_prefix_for_core_modules();
+
+  let mut fragment = NormalInitFragment::new(
+    format!(
+      "import {{ createRequire as __rspack_createRequire }} from \"{}\";\n{} __rspack_createRequire_require = __rspack_createRequire({}.url);\n",
+      if need_prefix { "node:module" } else { "module" },
+      if compilation.options.output.environment.supports_const() {
+        "const"
+      } else {
+        "var"
+      },
+      compilation.options.output.import_meta_name
+    ),
+    InitFragmentStage::StageESMImports,
+    0,
+    InitFragmentKey::ModuleExternal("node-commonjs".to_string()),
+    None,
+  );
+  fragment.set_top_level_decl_symbols(vec![
+    "__rspack_createRequire".into(),
+    "__rspack_createRequire_require".into(),
+  ]);
+  fragment.boxed()
 }
 
 fn get_source_for_import(
@@ -571,6 +601,15 @@ impl ExternalModule {
   }
 
   pub fn set_external_type(&mut self, new_type: ExternalType) {
+    if let ExternalRequest::Map(map) = &mut self.request
+      && !map.contains_key(&new_type)
+      && let Some(request) = map.get(&self.external_type).cloned()
+    {
+      // Preserve the request selected by the previous type when a plugin
+      // changes how the external is rendered. Object-form externals are keyed
+      // by type, so changing only the type would make `get_request` panic.
+      map.insert(new_type.clone(), request);
+    }
     self.external_type = new_type;
   }
 
@@ -643,34 +682,8 @@ impl ExternalModule {
         )
       }
       "node-commonjs" => {
-        let need_prefix = compilation
-          .options
-          .output
-          .environment
-          .supports_node_prefix_for_core_modules();
-
         if compilation.options.output.module {
-          let mut fragment = NormalInitFragment::new(
-            format!(
-              "import {{ createRequire as __rspack_createRequire }} from \"{}\";\n{} __rspack_createRequire_require = __rspack_createRequire({}.url);\n",
-              if need_prefix { "node:module" } else { "module" },
-              if compilation.options.output.environment.supports_const() {
-                "const"
-              } else {
-                "var"
-              },
-              compilation.options.output.import_meta_name
-            ),
-            InitFragmentStage::StageESMImports,
-            0,
-            InitFragmentKey::ModuleExternal("node-commonjs".to_string()),
-            None,
-          );
-          fragment.set_top_level_decl_symbols(vec![
-            "__rspack_createRequire".into(),
-            "__rspack_createRequire_require".into(),
-          ]);
-          chunk_init_fragments.push(fragment.boxed());
+          chunk_init_fragments.push(create_node_commonjs_init_fragment(compilation));
           let (request, specifiers) = if let Some(request) = request {
             (
               json_stringify_str(request.primary()),
