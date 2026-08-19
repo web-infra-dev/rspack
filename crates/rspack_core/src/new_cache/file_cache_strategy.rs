@@ -50,6 +50,7 @@ impl fmt::Debug for FileCacheStrategy {
 
 impl FileCacheStrategy {
   pub fn new(
+    base_path: Utf8PathBuf,
     database_path: Utf8PathBuf,
     readonly: bool,
     rspack_pkg_version: String,
@@ -58,7 +59,7 @@ impl FileCacheStrategy {
     snapshot: Snapshot,
     build_deps: BuildDeps,
   ) -> Result<Self> {
-    let database = Database::open(database_path, readonly)?;
+    let database = Database::open(base_path, database_path, readonly)?;
     Ok(Self {
       rspack_pkg_version,
       cache_version,

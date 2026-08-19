@@ -33,6 +33,7 @@ pub type DatabaseValue = turbo_persistence::ArcBytes;
 
 pub struct Database {
   inner: Inner,
+  base_path: Utf8PathBuf,
   path: Utf8PathBuf,
   readonly: bool,
 }
@@ -48,10 +49,11 @@ impl fmt::Debug for Database {
 }
 
 impl Database {
-  pub fn open(path: Utf8PathBuf, readonly: bool) -> Result<Self> {
+  pub fn open(base_path: Utf8PathBuf, path: Utf8PathBuf, readonly: bool) -> Result<Self> {
     let inner = open_database(&path, readonly)?;
     Ok(Self {
       inner,
+      base_path,
       path,
       readonly,
     })
@@ -161,11 +163,7 @@ impl Database {
   }
 
   fn stale_directory(&self) -> Utf8PathBuf {
-    self
-      .path
-      .parent()
-      .map_or_else(|| Utf8PathBuf::from("."), |parent| parent.to_path_buf())
-      .join(STALE_DIRECTORY)
+    self.base_path.join(STALE_DIRECTORY)
   }
 }
 

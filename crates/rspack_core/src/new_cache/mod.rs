@@ -58,12 +58,14 @@ pub fn create_cache(
     input_filesystem,
     CompilationLogger::new("rspack.newCache".to_string(), compilation_logging),
   );
-  let database_path = match &options.storage {
-    crate::cache::persistent::storage::StorageOptions::FileSystem { directory } => {
-      directory.clone()
-    }
+  let (base_path, database_path) = match &options.storage {
+    crate::cache::persistent::storage::StorageOptions::FileSystem { directory } => (
+      directory.clone(),
+      directory.join(rspack_workspace::rspack_pkg_version!()),
+    ),
   };
   let strategy = match FileCacheStrategy::new(
+    base_path,
     database_path,
     options.readonly,
     rspack_workspace::rspack_pkg_version!().to_string(),
