@@ -63,7 +63,9 @@ pub fn create_cache(
     crate::cache::persistent::storage::StorageOptions::FileSystem { directory } => directory
       .parent()
       .map(|base_path| (base_path.to_path_buf(), directory.clone()))
-      .ok_or_else(|| rspack_error::error!("Persistent cache path has no parent: {directory}")),
+      .ok_or_else(|| {
+        rspack_error::error!("Persistent cache directory must have a parent directory: {directory}")
+      }),
   };
   let strategy = match database_paths.and_then(|database_paths| {
     FileCacheStrategy::new(
