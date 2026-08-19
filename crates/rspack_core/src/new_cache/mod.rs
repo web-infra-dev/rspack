@@ -60,10 +60,12 @@ pub fn create_cache(
     CompilationLogger::new("rspack.newCache".to_string(), compilation_logging),
   );
   let (base_path, database_path) = match &options.storage {
-    crate::cache::persistent::storage::StorageOptions::FileSystem { directory } => (
-      directory.clone(),
-      directory.join(rspack_workspace::rspack_pkg_version!()),
-    ),
+    crate::cache::persistent::storage::StorageOptions::FileSystem { directory } => {
+      let base_path = directory.parent().unwrap_or_else(|| {
+        panic!("Persistent cache directory must have a parent directory: {directory}")
+      });
+      (base_path.to_path_buf(), directory.clone())
+    }
   };
   let strategy = match FileCacheStrategy::new(
     (base_path, database_path),
