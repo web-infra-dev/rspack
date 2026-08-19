@@ -14,7 +14,7 @@ pub struct Database {
 }
 
 impl Database {
-  pub fn open(_base_path: Utf8PathBuf, _path: Utf8PathBuf, _readonly: bool) -> Result<Self> {
+  pub fn open(_path: Utf8PathBuf, _readonly: bool) -> Result<Self> {
     Ok(Self::default())
   }
 

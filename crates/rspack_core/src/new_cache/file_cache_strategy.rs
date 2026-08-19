@@ -15,6 +15,7 @@ use crate::cache::persistent::codec::CacheCodec;
 const BUILD_DEPENDENCIES_KEY: &[u8] = b"build-dependencies";
 // The cache version and build dependency snapshot share the metadata family.
 const CACHE_VERSION_KEY: &[u8] = b"cache-version";
+const RSPACK_PKG_VERSION_KEY: &[u8] = b"rspack-pkg-version";
 
 #[derive(Debug, Default)]
 struct PendingWrites {
@@ -30,6 +31,7 @@ struct PendingWrite {
 
 /// Filesystem cache implementation scheduled by [`super::IdleFileCache`].
 pub struct FileCacheStrategy {
+  rspack_pkg_version: String,
   version: String,
   codec: Arc<CacheCodec>,
   snapshot: Snapshot,
@@ -51,16 +53,17 @@ impl fmt::Debug for FileCacheStrategy {
 
 impl FileCacheStrategy {
   pub fn new(
-    base_path: Utf8PathBuf,
     database_path: Utf8PathBuf,
     readonly: bool,
+    rspack_pkg_version: String,
     version: String,
     codec: Arc<CacheCodec>,
     snapshot: Snapshot,
     build_deps: BuildDeps,
   ) -> Result<Self> {
-    let database = Database::open(base_path, database_path, readonly)?;
+    let database = Database::open(database_path, readonly)?;
     Ok(Self {
+      rspack_pkg_version,
       version,
       codec,
       snapshot,
@@ -74,11 +77,16 @@ impl FileCacheStrategy {
   /// Validates the current database's build dependencies once before the
   /// background job starts serving commands.
   pub async fn db_validation(&mut self) -> Result<()> {
+    let rspack_pkg_version = self
+      .database
+      .get(DatabaseFamily::Meta, RSPACK_PKG_VERSION_KEY)?;
     let cache_version = self.database.get(DatabaseFamily::Meta, CACHE_VERSION_KEY)?;
-    if cache_version.as_deref() != Some(self.version.as_bytes()) {
+    if rspack_pkg_version.as_deref() != Some(self.rspack_pkg_version.as_bytes())
+      || cache_version.as_deref() != Some(self.version.as_bytes())
+    {
       tracing::info!("Resetting persistent cache database because cache version changed");
       self.database.reset()?;
-      self.store_version()?;
+      self.store_meta()?;
       return Ok(());
     }
 
@@ -105,28 +113,35 @@ impl FileCacheStrategy {
           "Resetting persistent cache database because build dependencies changed"
         );
         self.database.reset()?;
-        self.store_version()?;
+        self.store_meta()?;
       }
       Err(error) => {
         tracing::warn!(
           "Resetting persistent cache database because build dependencies validation failed: {error}"
         );
         self.database.reset()?;
-        self.store_version()?;
+        self.store_meta()?;
       }
     }
     Ok(())
   }
 
-  fn store_version(&mut self) -> Result<()> {
+  fn store_meta(&mut self) -> Result<()> {
     if self.readonly {
       return Ok(());
     }
-    self.database.write_batch([DatabaseWrite::new(
-      DatabaseFamily::Meta,
-      CACHE_VERSION_KEY,
-      self.version.as_bytes(),
-    )])
+    self.database.write_batch([
+      DatabaseWrite::new(
+        DatabaseFamily::Meta,
+        RSPACK_PKG_VERSION_KEY,
+        self.rspack_pkg_version.as_bytes(),
+      ),
+      DatabaseWrite::new(
+        DatabaseFamily::Meta,
+        CACHE_VERSION_KEY,
+        self.version.as_bytes(),
+      ),
+    ])
   }
 
   pub(super) fn store(
