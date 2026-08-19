@@ -83,6 +83,22 @@ export default {
 `hidden-source-map` 只会移除 bundle 中的引用，并不会加密或保护 `.map` 文件。除非你明确希望公开源码，否则不要将生产环境的 `.map` 文件部署到可公开访问的 Web 服务器或 CDN；应将它们上传到受限的错误监控服务。
 :::
 
+## 常用值
+
+下表比较了常用配置的映射精度、输出方式和适用场景。
+
+| 值                        | 映射内容                       | 输出方式                                | 适用场景                         |
+| ------------------------- | ------------------------------ | --------------------------------------- | -------------------------------- |
+| `cheap-module-source-map` | 原始源码，仅包含行映射         | 通常为独立的 `.map` 文件                | 平衡调试精度和构建速度的开发环境 |
+| `cheap-source-map`        | 转换后的代码，仅包含行映射     | 通常为独立的 `.map` 文件                | 不需要映射回原始源码的开发环境   |
+| `eval`                    | 仅提供模块名称，不能映射回源码 | 使用 `eval()` 包装每个模块              | 开发环境中仅需定位模块           |
+| `eval-source-map`         | 原始源码，包含行列映射         | 每个模块的 map 内联到对应的 `eval()` 中 | 开发环境中需要精确调试           |
+| `false`                   | 不生成 source map              | 无                                      | 不需要调试信息                   |
+| `hidden-source-map`       | 原始源码，包含行列映射         | 独立的 `.map` 文件，bundle 中不包含引用 | 私下上传到错误监控服务           |
+| `inline-source-map`       | 原始源码，包含行列映射         | 以 Data URL 的形式内联到 bundle 中      | 需要分发单个文件的开发或测试场景 |
+| `nosources-source-map`    | 包含行列映射，但不包含源码内容 | 独立的 `.map` 文件，bundle 中包含引用   | 需要映射但不希望 map 包含源码    |
+| `source-map`              | 原始源码，包含行列映射         | 独立的 `.map` 文件，bundle 中包含引用   | 需要直接调试生产代码             |
+
 ## 修饰符
 
 不带修饰符的 `source-map` 会生成包含行列映射的独立 `.map` 文件，并在 bundle 中添加 `sourceMappingURL` 注释。你可以添加以下修饰符来改变生成方式、映射精度或 map 内容。
@@ -119,9 +135,15 @@ export default {
 
 ### `debugids`
 
-`debugids` 为 source map 添加 `debugId`。例如，使用 `source-map-debugids` 时，Rspack 还会在对应的输出资源中添加匹配的 `//# debugId` 注释，便于错误监控工具关联构建产物与 source map。
+`debugids` 基于 [TC39 Debug ID 提案](https://github.com/tc39/ecma426/blob/main/proposals/debug-id.md)，为 source map 添加 `debugId`。例如，使用 `source-map-debugids` 时，Rspack 还会在对应的输出资源中添加匹配的 `//# debugId` 注释，便于错误监控工具关联构建产物与 source map。
 
 Rspack 会校验修饰符的顺序，格式必须为 `[inline-|hidden-|eval-][nosources-][cheap-[module-]]source-map[-debugids]`。其中 `inline`、`hidden` 和 `eval` 互斥，`module` 只能跟在 `cheap` 之后，`debugids` 位于末尾。
+
+## 相关配置
+
+- [`output.sourceMapFilename`](/config/output#outputsourcemapfilename)：自定义独立 source map 文件的名称。
+- [`output.devtoolModuleFilenameTemplate`](/config/output#outputdevtoolmodulefilenametemplate)、[`output.devtoolFallbackModuleFilenameTemplate`](/config/output#outputdevtoolfallbackmodulefilenametemplate) 和 [`output.devtoolNamespace`](/config/output#outputdevtoolnamespace)：控制 source map 中的模块名称，并避免多个构建之间的名称冲突。
+- [`rules[].extractSourceMap`](/config/module-rules#rulesextractsourcemap)：从输入文件的 `sourceMappingURL` 注释中提取现有的 source map。
 
 ## 精细控制
 

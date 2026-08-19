@@ -83,6 +83,22 @@ export default {
 `hidden-source-map` only removes the reference from the bundle; it does not encrypt or protect the `.map` file. Unless you explicitly intend to publish your source code, do not deploy production `.map` files to a publicly accessible web server or CDN. Upload them to an access-controlled error monitoring service instead.
 :::
 
+## Common values
+
+The following table compares the mapping precision, output format, and typical use of common values.
+
+| Value                     | Mapping                                     | Output                                          | Typical use                                           |
+| ------------------------- | ------------------------------------------- | ----------------------------------------------- | ----------------------------------------------------- |
+| `cheap-module-source-map` | Original source with line maps only         | Usually a separate `.map` file                  | Balancing debugging accuracy and build speed          |
+| `cheap-source-map`        | Transformed code with line maps only        | Usually a separate `.map` file                  | Development without mapping to original source        |
+| `eval`                    | Module names only; no source mapping        | Wraps each module in `eval()`                   | Locating modules during development                   |
+| `eval-source-map`         | Original source with line and column maps   | Per-module map embedded in its `eval()`         | Precise debugging during development                  |
+| `false`                   | No source map                               | None                                            | Debugging information is not needed                   |
+| `hidden-source-map`       | Original source with line and column maps   | Separate `.map` file without a bundle reference | Private uploads to error monitoring services          |
+| `inline-source-map`       | Original source with line and column maps   | Map embedded in the bundle as a Data URL        | Distributing a single file for development or testing |
+| `nosources-source-map`    | Line and column maps without source content | Separate `.map` file with a bundle reference    | Mapping without embedding source in the map           |
+| `source-map`              | Original source with line and column maps   | Separate `.map` file with a bundle reference    | Debugging production code directly                    |
+
 ## Modifiers
 
 Without modifiers, `source-map` emits a separate `.map` file with line and column mappings and adds a `sourceMappingURL` comment to the bundle. Add the following modifiers to change how the map is emitted, its mapping precision, or its contents.
@@ -119,9 +135,15 @@ Used only together with `cheap`, as in `cheap-module-source-map`. It processes s
 
 ### `debugids`
 
-The `debugids` modifier adds a `debugId` to the source map. For example, with `source-map-debugids`, Rspack also adds a matching `//# debugId` comment to the corresponding output asset so error monitoring tools can associate the build artifact with its source map.
+The `debugids` modifier adds a `debugId` to the source map following the [TC39 Debug ID proposal](https://github.com/tc39/ecma426/blob/main/proposals/debug-id.md). For example, with `source-map-debugids`, Rspack also adds a matching `//# debugId` comment to the corresponding output asset so error monitoring tools can associate the build artifact with its source map.
 
 Rspack validates modifier order. Values must match `[inline-|hidden-|eval-][nosources-][cheap-[module-]]source-map[-debugids]`. The `inline`, `hidden`, and `eval` modifiers are mutually exclusive, `module` can only follow `cheap`, and `debugids` must appear at the end.
+
+## Related options
+
+- [`output.sourceMapFilename`](/config/output#outputsourcemapfilename) customizes the name of separate source map files.
+- [`output.devtoolModuleFilenameTemplate`](/config/output#outputdevtoolmodulefilenametemplate), [`output.devtoolFallbackModuleFilenameTemplate`](/config/output#outputdevtoolfallbackmodulefilenametemplate), and [`output.devtoolNamespace`](/config/output#outputdevtoolnamespace) control module names in source maps and avoid naming conflicts across builds.
+- [`rules[].extractSourceMap`](/config/module-rules#rulesextractsourcemap) extracts an existing source map from an input file's `sourceMappingURL` comment.
 
 ## Fine-grained control
 
