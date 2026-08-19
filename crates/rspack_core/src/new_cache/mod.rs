@@ -61,12 +61,9 @@ pub fn create_cache(
   );
   let (base_path, database_path) = match &options.storage {
     crate::cache::persistent::storage::StorageOptions::FileSystem { directory } => {
-      let Some(base_path) = directory.parent() else {
-        tracing::warn!(
-          "Opening persistent cache database failed: Persistent cache directory must have a parent directory: {directory}"
-        );
-        return Cache::new(compiler_path, MemoryCache::default(), None);
-      };
+      let base_path = directory.parent().unwrap_or_else(|| {
+        panic!("Persistent cache directory must have a parent directory: {directory}")
+      });
       (base_path.to_path_buf(), directory.clone())
     }
   };
