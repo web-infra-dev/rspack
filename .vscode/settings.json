@@ -8,22 +8,20 @@
     "**/*.bk": true,
     "/target": true
   },
-  "[typescript]": {
-    "editor.formatOnSave": true
-  },
   "editor.formatOnSave": true,
   "editor.defaultFormatter": "rstack.rstack",
-  "[json]": {
-    "editor.defaultFormatter": "rstack.rstack"
-  },
-  "[json5]": {
-    "editor.defaultFormatter": "rstack.rstack"
-  },
-  "[jsonc]": {
-    "editor.defaultFormatter": "rstack.rstack"
-  },
+  "[javascript]": { "editor.defaultFormatter": "rstack.rstack" },
+  "[javascriptreact]": { "editor.defaultFormatter": "rstack.rstack" },
+  "[typescript]": { "editor.defaultFormatter": "rstack.rstack" },
+  "[typescriptreact]": { "editor.defaultFormatter": "rstack.rstack" },
+  "[md]": { "editor.defaultFormatter": "rstack.rstack" },
+  "[mdx]": { "editor.defaultFormatter": "rstack.rstack" },
+  "[json]": { "editor.defaultFormatter": "rstack.rstack" },
+  "[json5]": { "editor.defaultFormatter": "rstack.rstack" },
+  "[jsonc]": { "editor.defaultFormatter": "rstack.rstack" },
+  "[yaml]": { "editor.defaultFormatter": "rstack.rstack" },
+  "[toml]": { "editor.defaultFormatter": "rstack.rstack" },
   "git.ignoreLimitWarning": true,
-  "eslint.enable": false,
   "cSpell.allowCompoundWords": true,
   "cSpell.caseSensitive": true,
   "json.schemas": [
