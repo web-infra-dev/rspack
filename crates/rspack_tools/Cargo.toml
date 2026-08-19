@@ -18,7 +18,7 @@ rspack_cacheable = { workspace = true }
 rspack_core      = { workspace = true }
 rspack_error     = { workspace = true }
 rspack_fs        = { workspace = true }
-rspack_paths     = { workspace = true, features = ["cacheable"] }
+rspack_paths     = { workspace = true }
 rustc-hash       = { workspace = true }
 tokio            = { workspace = true }
 

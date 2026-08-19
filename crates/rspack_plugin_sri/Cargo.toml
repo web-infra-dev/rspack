@@ -23,7 +23,7 @@ rspack_error                    = { workspace = true }
 rspack_fs                       = { workspace = true }
 rspack_hash                     = { workspace = true }
 rspack_hook                     = { workspace = true }
-rspack_paths                    = { workspace = true, features = ["cacheable"] }
+rspack_paths                    = { workspace = true }
 rspack_plugin_html              = { workspace = true }
 rspack_plugin_real_content_hash = { workspace = true }
 rspack_plugin_runtime           = { workspace = true }
