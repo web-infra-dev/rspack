@@ -42,10 +42,18 @@ async fn after_factorize(
       let dep = data.dependencies[0]
         .as_module_dependency()
         .expect("should be module dependency");
-      if matches!(
-        dep.dependency_type(),
-        DependencyType::CjsRequire | DependencyType::CjsFullRequire
-      ) {
+      let should_downgrade =
+        matches!(
+          dep.dependency_type(),
+          DependencyType::CjsRequire | DependencyType::CjsFullRequire
+        ) || (matches!(dep.dependency_type(), DependencyType::CjsExportRequire)
+          && data
+            .options
+            .output
+            .enabled_library_types
+            .as_ref()
+            .is_some_and(|types| types.iter().any(|ty| ty == "modern-module")));
+      if should_downgrade {
         external_module.set_external_type("node-commonjs".to_string());
       }
     }

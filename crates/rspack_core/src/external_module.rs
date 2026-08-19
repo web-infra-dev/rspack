@@ -607,6 +607,15 @@ impl ExternalModule {
   }
 
   pub fn set_external_type(&mut self, new_type: ExternalType) {
+    if let ExternalRequest::Map(map) = &mut self.request
+      && !map.contains_key(&new_type)
+      && let Some(request) = map.get(&self.external_type).cloned()
+    {
+      // Preserve the request selected by the previous type when a plugin
+      // changes how the external is rendered. Object-form externals are keyed
+      // by type, so changing only the type would make `get_request` panic.
+      map.insert(new_type.clone(), request);
+    }
     self.external_type = new_type;
   }
 

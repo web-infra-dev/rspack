@@ -1,0 +1,172 @@
+```mjs title=chunks/lazy.mjs
+import { __webpack_require__ } from "../runtime.mjs";
+import "../index_js-relative-external-package-external.mjs";
+
+__webpack_require__.add({
+"./lazy.cjs"
+/*!******************!*\
+  !*** ./lazy.cjs ***!
+  \******************/
+(__unused_rspack_module, exports, __webpack_require__) {
+exports.relativeValue = __webpack_require__(/*! relative-external */ "relative-external")/* .value */.value;
+exports.packageValue = __webpack_require__(/*! package-external */ "package-external")/* .value */.value;
+
+
+},
+});
+const lazy = __webpack_require__("./lazy.cjs");
+var lazy_default = /*#__PURE__*/__webpack_require__.n(lazy);
+var lazy_default_0 = lazy_default();
+var packageValue = lazy.packageValue;
+var relativeValue = lazy.relativeValue;
+
+export { packageValue, relativeValue };
+export default lazy_default_0;
+
+```
+
+```mjs title=index_js-relative-external-package-external.mjs
+import { __webpack_require__ } from "./runtime.mjs";
+
+import { createRequire as __rspack_createRequire } from "node:module";
+const __rspack_createRequire_require = __rspack_createRequire(import.meta.url);
+__webpack_require__.add({
+"relative-external"
+/*!*********************************!*\
+  !*** external "./external.cjs" ***!
+  \*********************************/
+(module) {
+module.exports = __rspack_createRequire_require("./external.cjs");
+
+},
+"package-external"
+/*!*****************************!*\
+  !*** external "shadow-pkg" ***!
+  \*****************************/
+(module) {
+module.exports = __rspack_createRequire_require("shadow-pkg");
+
+},
+});
+// ./index.js
+it("should preserve the resolution base for node-commonjs externals", async () => {
+	const { relativeValue, packageValue } = await import("./chunks/lazy.mjs").then(__webpack_require__.t.bind(__webpack_require__, /*! ./lazy.cjs */ "./lazy.cjs", 19));
+
+	expect(relativeValue).toBe(42);
+	expect(packageValue).toBe("root");
+});
+
+export {};
+
+```
+
+```mjs title=main.mjs
+import "./index_js-relative-external-package-external.mjs";
+
+export {};
+
+```
+
+```mjs title=runtime.mjs
+
+var __webpack_modules__ = {};
+// The module cache
+var __webpack_module_cache__ = {};
+// The require function
+function __webpack_require__(moduleId) {
+// Check if module is in cache
+var cachedModule = __webpack_module_cache__[moduleId];
+if (cachedModule !== undefined) {
+return cachedModule.exports;
+}
+// Create a new module (and put it into the cache)
+var module = (__webpack_module_cache__[moduleId] = {
+exports: {}
+});
+// Execute the module function
+__webpack_modules__[moduleId](module, module.exports, __webpack_require__);
+
+// Return the exports of the module
+return module.exports;
+}
+// expose the modules object (__webpack_modules__)
+__webpack_require__.m = __webpack_modules__;
+
+// webpack/runtime/compat_get_default_export
+(() => {
+// getDefaultExport function for compatibility with non-ESM modules
+__webpack_require__.n = (module) => {
+	var getter = module && module.__esModule ?
+		() => (module['default']) :
+		() => (module);
+	__webpack_require__.d(getter, { a: getter });
+	return getter;
+};
+
+})();
+// webpack/runtime/create_fake_namespace_object
+(() => {
+var getProto = Object.getPrototypeOf ? (obj) => (Object.getPrototypeOf(obj)) : (obj) => (obj.__proto__);
+var leafPrototypes;
+// create a fake namespace object
+// mode & 1: value is a module id, require it
+// mode & 2: merge all properties of value into the ns
+// mode & 4: return value when already ns object
+// mode & 16: return value when it's Promise-like
+// mode & 8|1: behave like require
+__webpack_require__.t = function(value, mode) {
+	if(mode & 1) value = this(value);
+	if(mode & 8) return value;
+	if(typeof value === 'object' && value) {
+		if((mode & 4) && value.__esModule) return value;
+		if((mode & 16) && typeof value.then === 'function') return value;
+	}
+	var ns = Object.create(null);
+  __webpack_require__.r(ns);
+	var def = {};
+	leafPrototypes = leafPrototypes || [null, getProto({}), getProto([]), getProto(getProto)];
+	for(var current = mode & 2 && value; (typeof current == 'object' || typeof current == 'function') && !~leafPrototypes.indexOf(current); current = getProto(current)) {
+		Object.getOwnPropertyNames(current).forEach((key) => { def[key] = () => (value[key]) });
+	}
+	def['default'] = () => (value);
+	__webpack_require__.d(ns, def);
+	return ns;
+};
+})();
+// webpack/runtime/define_property_getters
+(() => {
+__webpack_require__.d = (exports, getters, values) => {
+	var define = (defs, kind) => {
+		for(var key in defs) {
+			if(__webpack_require__.o(defs, key) && !__webpack_require__.o(exports, key)) {
+				Object.defineProperty(exports, key, { enumerable: true, [kind]: defs[key] });
+			}
+		}
+	};
+	define(getters, "get");
+	define(values, "value");
+};
+})();
+// webpack/runtime/esm_register_module
+(() => {
+__webpack_require__.add = function registerModules(modules) { Object.assign(__webpack_require__.m, modules) }
+
+})();
+// webpack/runtime/has_own_property
+(() => {
+__webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
+})();
+// webpack/runtime/make_namespace_object
+(() => {
+// define __esModule on exports
+__webpack_require__.r = (exports) => {
+	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+	}
+	Object.defineProperty(exports, '__esModule', { value: true });
+};
+})();
+
+export { __webpack_require__ };
+
+```
