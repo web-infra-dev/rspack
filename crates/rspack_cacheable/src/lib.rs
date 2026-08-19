@@ -45,9 +45,6 @@ pub fn to_bytes<T, C: CacheableContext>(_value: &T, _ctx: &C) -> Result<Vec<u8>>
 pub use context::{CacheableContext, ContextGuard};
 pub use deserialize::{Deserializer, Validator};
 pub use error::{Error, Result};
-/// Writing a `with` adapter for a foreign type means implementing rkyv's traits directly, and it
-/// has to be *this* rkyv: the workspace carries a 0.7 as well, and mixing the two yields
-/// "the trait is not implemented" errors that name the same path twice.
 pub use rkyv;
 pub use serialize::Serializer;
 pub use xxhash_rust;
