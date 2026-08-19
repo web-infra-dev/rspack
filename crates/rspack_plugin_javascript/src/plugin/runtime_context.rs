@@ -393,7 +393,7 @@ function {}(moduleId) {{
               .get(module, Some(chunk.runtime()));
             let module_graph = compilation.get_module_graph();
             let top_level_decls = codegen
-              .data
+              .data()
               .get::<CodeGenerationDataTopLevelDeclarations>()
               .map(|d| d.inner())
               .or_else(|| {
@@ -780,7 +780,7 @@ impl JsPlugin {
         let m = module_graph
           .module_by_identifier(m_identifier)
           .expect("should have module");
-        let Some((mut rendered_module, fragments, additional_fragments)) = render_module(
+        let Some((mut rendered_module, fragments)) = render_module(
           compilation,
           chunk_ukey,
           m.as_ref(),
@@ -803,7 +803,6 @@ impl JsPlugin {
           rendered_module = source.clone();
         };
         chunk_init_fragments.extend(fragments);
-        chunk_init_fragments.extend(additional_fragments);
         let inner_strict = !all_strict && m.build_info().strict;
         let module_runtime_requirements =
           ChunkGraph::get_module_runtime_requirements(compilation, *m_identifier, chunk.runtime());

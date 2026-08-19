@@ -488,6 +488,7 @@ pub async fn runtime_modules_code_generation(compilation: &mut Compilation) -> R
               compilation,
               runtime: None,
               concatenation_scope: None,
+              concatenation_source: None,
               runtime_template: &mut runtime_template,
             };
             let result = runtime_module

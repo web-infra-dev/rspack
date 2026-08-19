@@ -580,7 +580,7 @@ pub async fn process_chunks_runtime_requirements(
           && let Some(write_requirements) = compilation
             .code_generation_results
             .get(mid, Some(referenced_chunk.runtime()))
-            .data
+            .data()
             .get::<CodeGenerationRuntimeRequirementsWrite>()
         {
           metadata

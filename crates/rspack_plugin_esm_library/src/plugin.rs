@@ -353,11 +353,12 @@ async fn concatenation_scope(
   let ModuleInfo::Concatenated(current_module) = current_module else {
     return Ok(None);
   };
-  let scope = ConcatenationScope::new(
+  let mut scope = ConcatenationScope::new(
     current_module.module,
     modules_map.clone(),
     current_module.as_ref().clone(),
   );
+  scope.enable_codegen_data_collection();
   Ok(Some(scope))
 }
 

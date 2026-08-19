@@ -8,9 +8,12 @@ use std::{
 };
 
 use regex::Regex;
-use rspack_cacheable::{cacheable, cacheable_dyn};
+use rspack_cacheable::{
+  cacheable, cacheable_dyn,
+  with::{AsPreset, AsVec},
+};
 use rspack_core::{
-  BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, Compilation,
+  BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, CodeGenerationDataItem, Compilation,
   ConcatenationScopeInfoMode, CssAutoOrModuleParserOptions, CssBuildInfo, CssExportType,
   DependencyType, ExportsInfoArtifact, GenerateContext, GeneratedSource, Module, ModuleGraph,
   ModuleIdentifier, NormalModule, ParseContext, ParseResult, ParserAndGenerator, ParserOptions,
@@ -131,10 +134,15 @@ pub fn get_used_exports<'a>(
   )
 }
 
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct CodeGenerationDataUnusedLocalIdent {
+  #[cacheable(with=AsVec<AsPreset>)]
   pub(crate) idents: FxHashSet<SmolStr>,
 }
+
+#[cacheable_dyn]
+impl CodeGenerationDataItem for CodeGenerationDataUnusedLocalIdent {}
 
 pub fn get_unused_local_ident(
   css_build_info: &CssBuildInfo,

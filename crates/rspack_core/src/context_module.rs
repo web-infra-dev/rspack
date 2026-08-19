@@ -28,7 +28,7 @@ use rustc_hash::FxHashMap as HashMap;
 use crate::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildContext,
   BuildInfo, BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, BuildResult, ChunkGraph,
-  ChunkGroupOptions, CodeGenerationResult, Compilation, Context, ContextElementDependency,
+  ChunkGroupOptions, CodeGenerationResultBuilder, Compilation, Context, ContextElementDependency,
   DependenciesBlock, Dependency, DependencyCategory, DependencyId, DependencyLocation,
   DynamicImportMode, ExportsType, FactoryMeta, FakeNamespaceObjectMode, GroupOptions,
   ImportAttributes, ImportPhase, LibIdentOptions, Module, ModuleArgument,
@@ -1543,13 +1543,13 @@ impl Module for ContextModule {
   async fn code_generation(
     &self,
     code_generation_context: &mut ModuleCodeGenerationContext,
-  ) -> Result<CodeGenerationResult> {
+  ) -> Result<CodeGenerationResultBuilder> {
     let ModuleCodeGenerationContext {
       compilation,
       runtime_template,
       ..
     } = code_generation_context;
-    let mut code_generation_result = CodeGenerationResult::default();
+    let mut code_generation_result = CodeGenerationResultBuilder::default();
     let source = self.get_source(
       self.get_source_string(compilation, runtime_template),
       compilation,

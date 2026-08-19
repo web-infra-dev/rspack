@@ -534,7 +534,7 @@ impl ESMExportImportedSpecifierDependency {
             "/* empty/unused ESM star reexport */\n".to_string(),
             InitFragmentStage::StageESMExports,
             1,
-            InitFragmentKey::unique(),
+            InitFragmentKey::ESMEmptyReexport(import_var),
             None,
           )
           .boxed(),
@@ -545,7 +545,7 @@ impl ESMExportImportedSpecifierDependency {
           to_normal_comment(&format!("unused reexport {name}")),
           InitFragmentStage::StageESMExports,
           1,
-          InitFragmentKey::unique(),
+          InitFragmentKey::ESMUnusedReexport(import_var),
           None,
         )
         .boxed(),
@@ -837,7 +837,7 @@ impl ESMExportImportedSpecifierDependency {
               InitFragmentStage::StageESMImports
             },
             self.source_order,
-            InitFragmentKey::unique(),
+            InitFragmentKey::ESMDynamicReexport(import_var),
             None,
           )
           .boxed(),
@@ -1007,7 +1007,7 @@ impl ESMExportImportedSpecifierDependency {
 
   fn get_conditional_reexport_statement(
     &self,
-    ctxt: &mut TemplateContext<'_, '_>,
+    ctxt: &mut TemplateContext<'_>,
     key: Atom,
     name: &String,
     first_value_key: Atom,

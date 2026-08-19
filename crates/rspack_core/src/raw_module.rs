@@ -12,8 +12,8 @@ use rspack_sources::{BoxSource, OriginalSource, RawStringSource, SourceExt};
 use rspack_util::source_map::{ModuleSourceMapConfig, SourceMapKind};
 
 use crate::{
-  BoxModule, BuildContext, BuildInfo, BuildMeta, BuildResult, CodeGenerationResult, Compilation,
-  ConnectionState, Context, DependenciesBlock, DependencyId, FactoryMeta, Module,
+  BoxModule, BuildContext, BuildInfo, BuildMeta, BuildResult, CodeGenerationResultBuilder,
+  Compilation, ConnectionState, Context, DependenciesBlock, DependencyId, FactoryMeta, Module,
   ModuleCodeGenerationContext, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, ModuleType,
   RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, SourceType,
   dependencies_block::AsyncDependenciesBlockIdentifier, impl_module_meta_info,
@@ -123,8 +123,8 @@ impl Module for RawModule {
   async fn code_generation(
     &self,
     code_generation_context: &mut ModuleCodeGenerationContext,
-  ) -> Result<CodeGenerationResult> {
-    let mut cgr = CodeGenerationResult::default();
+  ) -> Result<CodeGenerationResultBuilder> {
+    let mut cgr = CodeGenerationResultBuilder::default();
     code_generation_context
       .runtime_template
       .runtime_requirements_mut()

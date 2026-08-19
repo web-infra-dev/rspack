@@ -13,11 +13,11 @@ use serde::Serialize;
 use crate::{
   AsyncDependenciesBlockIdentifier, BoxModule, BuildContext, BuildInfo, BuildMeta,
   BuildMetaExportsType, BuildResult, ChunkGraph, ChunkInitFragments, ChunkUkey,
-  CodeGenerationDataUrl, CodeGenerationResult, Compilation, ConcatenationScope,
-  ConcatenationScopeInfoMode, Context, DependenciesBlock, DependencyId, ExportProvided,
-  ExternalType, FactoryMeta, GeneratedSource, ImportAttributes, ImportPhase, InitFragmentExt,
-  InitFragmentKey, InitFragmentStage, LibIdentOptions, Module, ModuleArgument,
-  ModuleCodeGenerationContext, ModuleCodeTemplate, ModuleGraph, ModuleType,
+  CodeGenerationDataChunkInitFragments, CodeGenerationDataUrl, CodeGenerationResultBuilder,
+  Compilation, ConcatenationScope, ConcatenationScopeInfoMode, Context, DependenciesBlock,
+  DependencyId, ExportProvided, ExternalType, FactoryMeta, GeneratedSource, ImportAttributes,
+  ImportPhase, InitFragmentExt, InitFragmentKey, InitFragmentStage, LibIdentOptions, Module,
+  ModuleArgument, ModuleCodeGenerationContext, ModuleCodeTemplate, ModuleGraph, ModuleType,
   NAMESPACE_OBJECT_EXPORT, NormalInitFragment, PendingConcatenationScopeInfo, RuntimeGlobals,
   RuntimeSpec, SourceType, StaticExportsDependency, StaticExportsSpec, UsageState, UsedExports,
   UsedNameItem, extract_url_and_global, impl_module_meta_info, module_update_hash, property_access,
@@ -1328,15 +1328,16 @@ impl Module for ExternalModule {
   async fn code_generation(
     &self,
     code_generation_context: &mut ModuleCodeGenerationContext,
-  ) -> Result<CodeGenerationResult> {
+  ) -> Result<CodeGenerationResultBuilder> {
     let ModuleCodeGenerationContext {
       compilation,
       runtime,
       concatenation_scope,
+      concatenation_source,
       runtime_template,
     } = code_generation_context;
 
-    let mut cgr = CodeGenerationResult::default();
+    let mut cgr = CodeGenerationResultBuilder::default();
     let (request, external_type) = self.get_request_and_external_type();
     match self.external_type.as_str() {
       "asset" if request.is_some() => {
@@ -1347,14 +1348,23 @@ impl Module for ExternalModule {
             Some(request),
             external_type,
             *runtime,
-            concatenation_scope.as_mut(),
+            concatenation_scope.as_deref_mut(),
             runtime_template,
           )?;
           match source {
             GeneratedSource::Source(source) => cgr.add(SourceType::JavaScript, source),
-            GeneratedSource::Concatenation(source) => cgr.set_concatenation_source(source),
+            GeneratedSource::Concatenation(source) => {
+              let previous = concatenation_source.replace(source);
+              debug_assert!(previous.is_none());
+            }
           }
-          cgr.chunk_init_fragments = chunk_init_fragments;
+          if !chunk_init_fragments.is_empty() {
+            cgr
+              .data_mut()
+              .insert(CodeGenerationDataChunkInitFragments::from(
+                chunk_init_fragments,
+              ));
+          }
         } else {
           cgr.add(
             SourceType::JavaScript,
@@ -1367,7 +1377,7 @@ impl Module for ExternalModule {
           );
         }
         cgr
-          .data
+          .data_mut()
           .insert(CodeGenerationDataUrl::new(request.primary().to_string()));
       }
       "css-import" if request.is_some() => {
@@ -1387,17 +1397,25 @@ impl Module for ExternalModule {
           request,
           external_type,
           *runtime,
-          concatenation_scope.as_mut(),
+          concatenation_scope.as_deref_mut(),
           runtime_template,
         )?;
         match source {
           GeneratedSource::Source(source) => cgr.add(SourceType::JavaScript, source),
-          GeneratedSource::Concatenation(source) => cgr.set_concatenation_source(source),
+          GeneratedSource::Concatenation(source) => {
+            let previous = concatenation_source.replace(source);
+            debug_assert!(previous.is_none());
+          }
         }
-        cgr.chunk_init_fragments = chunk_init_fragments;
+        if !chunk_init_fragments.is_empty() {
+          cgr
+            .data_mut()
+            .insert(CodeGenerationDataChunkInitFragments::from(
+              chunk_init_fragments,
+            ));
+        }
       }
     };
-    cgr.concatenation_scope = std::mem::take(concatenation_scope);
     Ok(cgr)
   }
 

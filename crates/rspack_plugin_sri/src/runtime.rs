@@ -111,7 +111,7 @@ impl RuntimeModule for SRIHashVariableRuntimeModule {
           .iter()
           .any(|m| {
             let result = compilation.code_generation_results.get_one(&m.identifier());
-            result.inner.values().any(|v| v.size() != 0)
+            result.sources().values().any(|v| v.size() != 0)
           })
       })
       .collect::<Vec<_>>();
