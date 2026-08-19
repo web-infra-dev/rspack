@@ -6,7 +6,6 @@ use rspack_cacheable::{
   with::{AsCacheable, AsMap, AsOption, AsPreset, AsVec},
 };
 use rspack_collections::IdentifierIndexMap;
-use rspack_hash::RspackHasher;
 use rspack_util::{fx_hash::FxIndexMap, itoa};
 use rustc_hash::FxHashMap as HashMap;
 use swc_core::atoms::Atom;
