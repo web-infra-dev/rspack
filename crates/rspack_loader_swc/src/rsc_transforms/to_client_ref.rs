@@ -202,7 +202,7 @@ fn throw_error_function(call_error: &str) -> Expr {
   Expr::Fn(FnExpr {
     ident: None,
     function: Box::new(Function {
-      body: Some(BlockStmt {
+      body: Some(FunctionBody {
         span: DUMMY_SP,
         stmts: vec![Stmt::Throw(ThrowStmt {
           span: DUMMY_SP,
@@ -214,7 +214,6 @@ fn throw_error_function(call_error: &str) -> Expr {
             type_args: None,
           })),
         })],
-        ..Default::default()
       }),
       ..Default::default()
     }),

@@ -3,7 +3,7 @@
 .a { color: palegreen; };;;
 
 .bad {
-  a: url(data:text/bad-base64;base64,abcd?#iefix);
+  a: url("data:text/bad-base64;base64,abcd?#iefix");
   b: url("data:text/bad-base64;base64,    abcd?#iefix");
 }
 
@@ -12,8 +12,8 @@
 
 
 .class {
-  a: url(7159cadb6967ca3c.svg);
-  b: url(7159cadb6967ca3c.svg);
-  c: url(7159cadb6967ca3c);
-  d: url(7159cadb6967ca3c);
+  a: url("7159cadb6967ca3c.svg");
+  b: url("7159cadb6967ca3c.svg");
+  c: url("7159cadb6967ca3c");
+  d: url("7159cadb6967ca3c");
 }

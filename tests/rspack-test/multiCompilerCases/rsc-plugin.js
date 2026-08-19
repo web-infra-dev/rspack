@@ -82,6 +82,7 @@ const createFixture = context => {
 const createSharedOptions = fixture => ({
 	mode: "development",
 	cache: false,
+	incremental: false,
 	context: fixture.source,
 	resolve: {
 		extensions: ["...", ".jsx"],

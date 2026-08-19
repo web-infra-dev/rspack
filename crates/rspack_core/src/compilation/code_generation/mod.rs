@@ -1,9 +1,7 @@
 use async_trait::async_trait;
 
 use super::*;
-use crate::{
-  ModuleCodeGenerationContext, cache::Cache, compilation::pass::PassExt, logger::Logger,
-};
+use crate::{ModuleCodeGenerationContext, compilation::pass::PassExt, logger::Logger};
 
 pub struct CodeGenerationPass;
 
@@ -13,16 +11,12 @@ impl PassExt for CodeGenerationPass {
     "code generation"
   }
 
-  async fn before_pass(&self, compilation: &mut Compilation, cache: &mut dyn Cache) {
-    cache.before_modules_codegen(compilation).await;
+  fn incremental_passes(&self) -> IncrementalPasses {
+    IncrementalPasses::MODULES_CODEGEN
   }
 
   async fn run_pass(&self, compilation: &mut Compilation) -> Result<()> {
     code_generation_pass_impl(compilation).await
-  }
-
-  async fn after_pass(&self, compilation: &mut Compilation, cache: &mut dyn Cache) {
-    cache.after_modules_codegen(compilation).await;
   }
 }
 
@@ -194,23 +188,15 @@ pub(crate) async fn code_generation_modules(
                 codegen_res
                   .runtime_requirements
                   .extend(*runtime_template.runtime_requirements());
-                if module.as_concatenated_module().is_some() {
-                  // Concatenated modules are special here: `job.hash` already
-                  // fingerprints the generated module bodies, so we only need
-                  // to fold in the remaining codegen metadata.
-                  codegen_res.set_hash_for_concatenated_module(
-                    &job.hash,
-                    &options.output.hash_function,
-                    &options.output.hash_digest,
-                    &options.output.hash_salt,
-                  );
-                } else {
-                  codegen_res.set_hash(
-                    &options.output.hash_function,
-                    &options.output.hash_digest,
-                    &options.output.hash_salt,
-                  );
-                }
+                codegen_res.set_hash(
+                  &options.output.hash_function,
+                  &options.output.hash_digest,
+                  &options.output.hash_salt,
+                  module
+                    .as_concatenated_module()
+                    .is_some()
+                    .then_some(&job.hash),
+                );
                 codegen_res
               })
           })
@@ -245,6 +231,7 @@ pub(crate) async fn code_generation_modules(
           &compilation.options.output.hash_function,
           &compilation.options.output.hash_digest,
           &compilation.options.output.hash_salt,
+          None,
         );
         codegen_res
       }

@@ -149,6 +149,7 @@ impl Cache {
     let Some(storage) = &self.inner.storage else {
       return Ok(());
     };
+    storage.memory_cache.start_next_generation();
     if let Some(file_cache) = &storage.idle_file_cache {
       file_cache.begin_idle()
     } else {

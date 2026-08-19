@@ -154,7 +154,11 @@ impl FileCacheStrategy {
     decoder(&entry, etag, &self.codec)
   }
 
-  pub async fn after_all_stored(&mut self) -> Result<()> {
+  pub(super) async fn after_all_stored(
+    &mut self,
+    max_compaction_passes: usize,
+    mut check_idle_ended: impl FnMut() -> bool,
+  ) -> Result<()> {
     if self.readonly {
       return Ok(());
     }
@@ -195,12 +199,21 @@ impl FileCacheStrategy {
       self.pending_writes.build_dependencies = None;
     }
 
+    for _ in 0..max_compaction_passes {
+      if check_idle_ended() {
+        return Ok(());
+      }
+      self.database.compact()?;
+    }
+    if check_idle_ended() {
+      return Ok(());
+    }
     self.database.cleanup_stale();
     Ok(())
   }
 
   pub async fn shutdown(&mut self) -> Result<()> {
-    self.after_all_stored().await?;
+    self.after_all_stored(1, || false).await?;
 
     self.database.shutdown()?;
     Ok(())

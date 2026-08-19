@@ -3,9 +3,7 @@ use rspack_hash::RspackHasher;
 use rustc_hash::FxHashSet;
 
 use super::*;
-use crate::{
-  ModuleCodeGenerationContext, cache::Cache, compilation::pass::PassExt, logger::Logger,
-};
+use crate::{ModuleCodeGenerationContext, compilation::pass::PassExt, logger::Logger};
 
 pub struct ChunkHashResult {
   pub hash: RspackHashDigest,
@@ -20,8 +18,8 @@ impl PassExt for CreateHashPass {
     "hashing"
   }
 
-  async fn before_pass(&self, compilation: &mut Compilation, cache: &mut dyn Cache) {
-    cache.before_chunks_hashes(compilation).await;
+  fn incremental_passes(&self) -> IncrementalPasses {
+    IncrementalPasses::CHUNKS_HASHES
   }
 
   async fn run_pass(&self, compilation: &mut Compilation) -> Result<()> {
@@ -29,10 +27,6 @@ impl PassExt for CreateHashPass {
     create_hash(compilation, plugin_driver).await?;
     runtime_modules_code_generation(compilation).await?;
     Ok(())
-  }
-
-  async fn after_pass(&self, compilation: &mut Compilation, cache: &mut dyn Cache) {
-    cache.after_chunks_hashes(compilation).await;
   }
 }
 

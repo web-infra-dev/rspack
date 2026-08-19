@@ -1,0 +1,9 @@
+@font-face {
+	font-family: "X";
+	src: url("data:font/woff2;base64,");
+	font-style: normal;
+}
+
+.b {
+	color: blue;
+}

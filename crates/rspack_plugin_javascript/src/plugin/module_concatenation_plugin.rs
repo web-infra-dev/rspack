@@ -10,19 +10,19 @@ use rspack_collections::{
   Identifiable, IdentifierDashMap, IdentifierIndexSet, IdentifierMap, IdentifierSet,
 };
 use rspack_core::{
-  BoxDependency, BoxModule, ChunkUkey, Compilation, CompilationOptimizeChunkModules, DependencyId,
-  DependencyType, ExportProvided, ExportsInfoArtifact, GetTargetResult,
-  ImportedByDeferModulesArtifact, LibIdentOptions, Logger, ModuleGraph, ModuleGraphCacheArtifact,
-  ModuleGraphConnection, ModuleGraphModule, ModuleIdentifier, OptimizationBailoutItem, Plugin,
-  ProvidedExports, RuntimeCondition, RuntimeSpec, RuntimeSpecMap, SideEffectsStateArtifact,
-  SourceType,
+  BoxDependency, BoxModule, ChunkUkey, Compilation, CompilationOptimizeChunkModules,
+  ConcatenationScopeInfoMode, DependencyId, DependencyType, ExportProvided, ExportsInfoArtifact,
+  GetTargetResult, ImportedByDeferModulesArtifact, LibIdentOptions, Logger, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleGraphModule, ModuleIdentifier,
+  OptimizationBailoutItem, PendingConcatenationScopeInfo, Plugin, ProvidedExports,
+  RuntimeCondition, RuntimeSpec, RuntimeSpecMap, SideEffectsStateArtifact, SourceType,
   concatenated_module::{
     ConcatenatedInnerModule, ConcatenatedModule, RootModuleContext, is_esm_dep_like,
   },
   filter_runtime, get_cached_readable_identifier, get_target,
   incremental::IncrementalPasses,
 };
-use rspack_error::{Result, ToStringResultToRspackResultExt};
+use rspack_error::{Result, ToStringResultToRspackResultExt, error};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::itoa;
 use rustc_hash::FxHashSet as HashSet;
@@ -1069,9 +1069,35 @@ impl ModuleConcatenationPlugin {
       })
       .collect();
 
+    let faster_module_concatenation = compilation.options.experiments.faster_module_concatenation;
     let module_graph = compilation.get_module_graph_mut();
 
     for (can_be_root, can_be_inner, module_id, bailout_reason) in res {
+      if faster_module_concatenation && (can_be_root || can_be_inner) {
+        let module = module_graph
+          .module_by_identifier(&module_id)
+          .expect("should have module");
+        let mode = module.concatenation_scope_info_mode();
+        let pending = module
+          .build_info()
+          .pending_concatenation_scope_info
+          .as_deref();
+        let valid = matches!(
+          (mode, pending),
+          (
+            ConcatenationScopeInfoMode::AnalyzeAtMake,
+            Some(PendingConcatenationScopeInfo::Analyzed(_))
+          ) | (
+            ConcatenationScopeInfoMode::GenerateAtCodegen,
+            Some(PendingConcatenationScopeInfo::Generated)
+          )
+        );
+        if !valid {
+          return Err(error!(
+            "module {module_id} is eligible for module concatenation, but its concatenation scope info does not match the declared {mode:?} mode"
+          ));
+        }
+      }
       if can_be_root {
         relevant_modules.push(module_id);
       }

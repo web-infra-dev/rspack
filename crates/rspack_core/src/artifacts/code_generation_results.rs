@@ -13,8 +13,9 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet};
 use serde::Serialize;
 
 use crate::{
-  ArtifactExt, AssetInfo, BindingCell, ChunkInitFragments, ConcatenationScope, ModuleIdentifier,
-  RuntimeGlobals, RuntimeSpec, RuntimeSpecMap, SourceType, incremental::IncrementalPasses,
+  ArtifactExt, AssetInfo, BindingCell, ChunkInitFragments, ConcatenationCodeGenerationSource,
+  ConcatenationScope, ModuleIdentifier, RenderedInitFragments, RuntimeGlobals, RuntimeSpec,
+  RuntimeSpecMap, SourceType, incremental::IncrementalPasses,
 };
 
 #[derive(Clone, Debug)]
@@ -77,6 +78,32 @@ impl CodeGenerationDataAssetInfo {
   }
 }
 
+/// Describes a chunk-level default import referenced by a non-concatenated asset module.
+#[derive(Clone, Debug)]
+pub struct CodeGenerationDataPreservedAssetImport {
+  request: String,
+  binding: Atom,
+}
+
+impl CodeGenerationDataPreservedAssetImport {
+  pub fn new(request: String, binding: Atom) -> Self {
+    Self { request, binding }
+  }
+
+  pub fn request(&self) -> &str {
+    &self.request
+  }
+
+  pub fn binding(&self) -> &Atom {
+    &self.binding
+  }
+
+  fn update_hash(&self, hasher: &mut RspackHasher) {
+    "preserved asset import".hash(hasher);
+    self.request.hash(hasher);
+  }
+}
+
 #[derive(Clone, Debug)]
 pub struct CodeGenerationDataTopLevelDeclarations {
   inner: FxHashSet<Atom>,
@@ -89,6 +116,26 @@ impl CodeGenerationDataTopLevelDeclarations {
 
   pub fn inner(&self) -> &FxHashSet<Atom> {
     &self.inner
+  }
+}
+
+/// Typed [`CodeGenerationData`] entry for the digest of rendered init fragments.
+///
+/// `CodeGenerationData` is keyed by `TypeId`, so the newtype keeps this digest
+/// distinct from other `RspackHashDigest` values stored as code generation data.
+#[derive(Clone, Debug)]
+pub struct RenderedInitFragmentsDigest(RspackHashDigest);
+
+impl RenderedInitFragmentsDigest {
+  pub fn new(inner: RspackHashDigest) -> Self {
+    Self(inner)
+  }
+}
+
+impl RspackHash for RenderedInitFragmentsDigest {
+  fn hash(&self, state: &mut RspackHasher) {
+    state.write(b"RenderedInitFragmentsDigest");
+    self.0.hash(state);
   }
 }
 
@@ -114,6 +161,9 @@ impl DerefMut for CodeGenerationData {
 #[derive(Debug, Default, Clone)]
 pub struct CodeGenerationResult {
   pub inner: BindingCell<HashMap<SourceType, BoxSource>>,
+  /// Editable JavaScript output used only while generating a concatenated
+  /// module. Keeping it typed avoids inferring mutability from `BoxSource`.
+  pub concatenation_source: Option<Box<ConcatenationCodeGenerationSource>>,
   /// [definition in webpack](https://github.com/webpack/webpack/blob/4b4ca3bb53f36a5b8fc6bc1bd976ed7af161bd80/lib/Module.js#L75)
   pub data: CodeGenerationData,
   pub chunk_init_fragments: ChunkInitFragments,
@@ -142,40 +192,43 @@ impl CodeGenerationResult {
     debug_assert!(result.is_none());
   }
 
+  pub fn set_concatenation_source(&mut self, source: Box<ConcatenationCodeGenerationSource>) {
+    let previous = self.concatenation_source.replace(source);
+    debug_assert!(previous.is_none());
+  }
+
   pub fn set_hash(
     &mut self,
     hash_function: &HashFunction,
     hash_digest: &HashDigest,
     hash_salt: &HashSalt,
+    concatenated_module_hash: Option<&RspackHashDigest>,
   ) {
     let mut hasher = RspackHasher::with_salt(hash_function, hash_salt);
-    for (source_type, source) in self.inner.as_ref() {
-      source_type.hash(&mut hasher);
-      std::hash::Hash::hash(source, &mut hasher);
+    if let Some(concatenated_module_hash) = concatenated_module_hash {
+      concatenated_module_hash.hash(&mut hasher);
+      for source_type in self.inner.as_ref().keys() {
+        source_type.hash(&mut hasher);
+      }
+      if let Some(digest) = self.data.get::<RenderedInitFragmentsDigest>() {
+        digest.hash(&mut hasher);
+      }
+    } else {
+      for (source_type, source) in self.inner.as_ref() {
+        source_type.hash(&mut hasher);
+        std::hash::Hash::hash(source, &mut hasher);
+      }
+      if let Some(fragments) = self.data.get::<RenderedInitFragments>()
+        && !fragments.is_empty()
+      {
+        fragments.hash(&mut hasher);
+      }
     }
     self.chunk_init_fragments.hash(&mut hasher);
     self.runtime_requirements.hash(&mut hasher);
-    self.hash = Some(hasher.digest(hash_digest));
-  }
-
-  /// Concatenated modules already encode the generated module bodies into
-  /// `ConcatenatedModule::get_runtime_hash`, so we can reuse that digest here
-  /// and only mix in codegen-specific metadata instead of hashing the large
-  /// concatenated source again.
-  pub fn set_hash_for_concatenated_module(
-    &mut self,
-    runtime_hash: &RspackHashDigest,
-    hash_function: &HashFunction,
-    hash_digest: &HashDigest,
-    hash_salt: &HashSalt,
-  ) {
-    let mut hasher = RspackHasher::with_salt(hash_function, hash_salt);
-    runtime_hash.hash(&mut hasher);
-    for source_type in self.inner.as_ref().keys() {
-      source_type.hash(&mut hasher);
+    if let Some(asset_import) = self.data.get::<CodeGenerationDataPreservedAssetImport>() {
+      asset_import.update_hash(&mut hasher);
     }
-    self.chunk_init_fragments.hash(&mut hasher);
-    self.runtime_requirements.hash(&mut hasher);
     self.hash = Some(hasher.digest(hash_digest));
   }
 }

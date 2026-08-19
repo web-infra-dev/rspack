@@ -48,7 +48,7 @@ impl MinimizeCacheKey {
 }
 
 #[derive(Debug, Default)]
-pub struct MinimizePersistentCacheArtifact {
+pub struct MinimizePersistentCache {
   entries: FxHashMap<MinimizeCacheKey, CachedMinimizeEntry>,
   /// Keys of entries that were added during this build and need to be persisted.
   dirty_keys: Vec<MinimizeCacheKey>,
@@ -70,7 +70,7 @@ pub struct CachedExtractedComments {
   pub comments_file_name: String,
 }
 
-impl MinimizePersistentCacheArtifact {
+impl MinimizePersistentCache {
   pub fn get(&self, key: MinimizeCacheKey) -> Option<&CachedMinimizeEntry> {
     self.entries.get(&key)
   }
@@ -93,7 +93,7 @@ impl MinimizeOccasion {
 }
 
 impl Occasion for MinimizeOccasion {
-  type Artifact = MinimizePersistentCacheArtifact;
+  type CacheItem = MinimizePersistentCache;
 
   fn name(&self) -> &'static str {
     "minimize"
@@ -105,13 +105,13 @@ impl Occasion for MinimizeOccasion {
   }
 
   #[tracing::instrument(name = "Cache::Occasion::Minimize::save", skip_all)]
-  fn save(&self, storage: &mut dyn Storage, artifact: &MinimizePersistentCacheArtifact) {
+  fn save(&self, storage: &mut dyn Storage, cache_item: &MinimizePersistentCache) {
     // Only persist entries that were added during this build.
-    artifact
+    cache_item
       .dirty_keys
       .par_iter()
       .filter_map(|key| {
-        let entry = artifact.entries.get(key)?;
+        let entry = cache_item.entries.get(key)?;
         let storage_entry = Entry {
           source: entry.source.clone(),
           extracted_comments: entry
@@ -136,12 +136,12 @@ impl Occasion for MinimizeOccasion {
 
     tracing::debug!(
       "saved {} minimize persistent cache entries",
-      artifact.dirty_keys.len()
+      cache_item.dirty_keys.len()
     );
   }
 
   #[tracing::instrument(name = "Cache::Occasion::Minimize::recovery", skip_all)]
-  async fn recovery(&self, storage: &dyn Storage) -> Result<MinimizePersistentCacheArtifact> {
+  async fn recovery(&self, storage: &dyn Storage) -> Result<MinimizePersistentCache> {
     let items = storage.load(SCOPE).await?;
     let mut entries = FxHashMap::default();
     entries.reserve(items.len());
@@ -174,7 +174,7 @@ impl Occasion for MinimizeOccasion {
       "recovered {} minimize persistent cache entries",
       entries.len()
     );
-    Ok(MinimizePersistentCacheArtifact {
+    Ok(MinimizePersistentCache {
       entries,
       dirty_keys: Vec::new(),
     })

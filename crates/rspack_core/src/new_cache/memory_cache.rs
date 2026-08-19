@@ -1,3 +1,5 @@
+use std::sync::atomic::{AtomicU32, Ordering};
+
 use rspack_util::fx_hash::FxDashMap;
 
 use super::{
@@ -26,13 +28,62 @@ impl<T> Clone for MemoryCacheGetResult<T> {
   }
 }
 
-/// In-memory cache equivalent to webpack's `MemoryCachePlugin`.
-#[derive(Debug, Default)]
+#[derive(Debug)]
+enum MemoryCacheValue {
+  Miss,
+  Hit(CacheEntry),
+}
+
+#[derive(Debug)]
+struct MemoryCacheEntry {
+  value: MemoryCacheValue,
+  ttl: AtomicU32,
+}
+
+impl MemoryCacheEntry {
+  fn new(value: MemoryCacheValue, ttl: u32) -> Self {
+    Self {
+      value,
+      ttl: AtomicU32::new(ttl),
+    }
+  }
+
+  fn refresh(&self, ttl: u32) {
+    self.ttl.store(ttl, Ordering::Relaxed);
+  }
+
+  fn start_next_generation(&mut self) -> bool {
+    let ttl = self.ttl.get_mut();
+    if *ttl == 0 {
+      false
+    } else {
+      *ttl -= 1;
+      true
+    }
+  }
+}
+
+/// In-memory cache with generation-based garbage collection.
+#[derive(Debug)]
 pub struct MemoryCache {
-  entries: FxDashMap<CacheKey, Option<CacheEntry>>,
+  max_generations: u32,
+  entries: FxDashMap<CacheKey, MemoryCacheEntry>,
+}
+
+impl Default for MemoryCache {
+  fn default() -> Self {
+    Self::new(1)
+  }
 }
 
 impl MemoryCache {
+  pub fn new(max_generations: u32) -> Self {
+    Self {
+      max_generations,
+      entries: FxDashMap::default(),
+    }
+  }
+
   pub fn get<T: CacheValueData>(
     &self,
     key: &CacheKey,
@@ -41,8 +92,10 @@ impl MemoryCache {
     let Some(entry) = self.entries.get(key) else {
       return MemoryCacheGetResult::NotCached;
     };
-    let Some(entry) = entry.value() else {
-      return MemoryCacheGetResult::Miss;
+    entry.refresh(self.max_generations);
+    let entry = match &entry.value {
+      MemoryCacheValue::Miss => return MemoryCacheGetResult::Miss,
+      MemoryCacheValue::Hit(entry) => entry,
     };
     if entry.matches(etag) {
       entry
@@ -56,13 +109,28 @@ impl MemoryCache {
   }
 
   pub fn store<T: CacheValueData>(&self, key: CacheKey, etag: Option<Etag>, value: CacheValue<T>) {
-    self
-      .entries
-      .insert(key, Some(CacheEntry::new(etag, value.erase())));
+    self.entries.insert(
+      key,
+      MemoryCacheEntry::new(
+        MemoryCacheValue::Hit(CacheEntry::new(etag, value.erase())),
+        self.max_generations,
+      ),
+    );
   }
 
   pub fn store_miss(&self, key: CacheKey) {
-    self.entries.insert(key, None);
+    self.entries.insert(
+      key,
+      MemoryCacheEntry::new(MemoryCacheValue::Miss, self.max_generations),
+    );
+  }
+
+  /// Starts a new compilation generation and evicts entries that were not
+  /// accessed during the configured number of previous generations.
+  pub fn start_next_generation(&self) {
+    self
+      .entries
+      .retain(|_, entry| entry.start_next_generation());
   }
 
   pub fn clear(&self) {

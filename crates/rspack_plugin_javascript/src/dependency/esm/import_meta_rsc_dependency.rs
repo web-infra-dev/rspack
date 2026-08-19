@@ -155,6 +155,7 @@ impl DependencyTemplate for ImportMetaRscDependencyTemplate {
       .as_any()
       .downcast_ref::<ImportMetaRscDependency>()
       .expect("ImportMetaRscDependencyTemplate should only be used for ImportMetaRscDependency");
+    let rendered_binding = source.ensure_generated_top_level_symbol(IMPORT_META_RSC_BINDING);
 
     let TemplateContext {
       compilation,
@@ -167,10 +168,9 @@ impl DependencyTemplate for ImportMetaRscDependencyTemplate {
       runtime_template.module_raw(compilation, dependency.id(), dependency.request(), false);
     let importer = json_stringify_str(&dependency.importer);
 
-    init_fragments.push(Box::new(
-      NormalInitFragment::new(
-        format!(
-          r#"var {IMPORT_META_RSC_BINDING} = {{
+    let mut fragment = NormalInitFragment::new(
+      format!(
+        r#"var {rendered_binding} = {{
   loadCss: function() {{
     return (({rsc_manifest}.entryCssFiles[{importer}] || []).map(function(href) {{
       return {react}.createElement("link", Object.assign({{}}, {rsc_manifest}.cssLinkProps, {{
@@ -182,25 +182,20 @@ impl DependencyTemplate for ImportMetaRscDependencyTemplate {
   }}
 }};
 "#
-        ),
-        rspack_core::InitFragmentStage::StageProvides,
-        0,
-        rspack_core::InitFragmentKey::ModuleExternal(format!(
-          "import.meta.rspackRsc {}",
-          dependency.importer
-        )),
-        None,
-      )
-      .with_top_level_decl_symbols(vec![Atom::from(IMPORT_META_RSC_BINDING)]),
-    ));
+      ),
+      rspack_core::InitFragmentStage::StageProvides,
+      0,
+      rspack_core::InitFragmentKey::ModuleExternal(format!(
+        "import.meta.rspackRsc {}",
+        dependency.importer
+      )),
+      None,
+    );
+    fragment.set_top_level_decl_symbols(vec![Atom::from(IMPORT_META_RSC_BINDING)]);
+    init_fragments.push(Box::new(fragment));
 
     if let Some(range) = dependency.range {
-      source.replace(
-        range.start,
-        range.end,
-        IMPORT_META_RSC_BINDING.to_string(),
-        None,
-      );
+      source.replace_with_tracked_used_names(range.start, range.end, rendered_binding, None);
     }
   }
 }

@@ -7,6 +7,7 @@ define.fmt({
     'tests/rspack-test/**/*',
     '!tests/rspack-test/**/',
     '!tests/rspack-test/**/rspack.config.*',
+    '!tests/rspack-test/**/*.toml',
     'packages/**/etc/**/*',
     'tests/e2e/cases/make/rewrite-factorize-request/file.js',
 
@@ -18,6 +19,26 @@ define.fmt({
     'crates/**',
     '!crates/**/',
     '!crates/**/*.md',
+    '!crates/**/*.toml',
+  ],
+  overrides: [
+    {
+      files: '*.toml',
+      options: {
+        plugins: ['prettier-plugin-toml'],
+        printWidth: 120,
+        alignEntries: true,
+        arrayAutoExpand: false,
+        reorderKeys: true,
+        allowedBlankLines: 2,
+      },
+    },
+    {
+      files: ['clippy.toml', 'deny.toml'],
+      options: {
+        arrayAutoExpand: true,
+      },
+    },
   ],
 });
 
@@ -95,8 +116,7 @@ define.lint(async () => {
 
 define.staged({
   '*.rs': 'rustfmt',
-  '*.toml': 'pnpm exec taplo format',
-  '*.{md,mdx,json,css,less,scss,yaml,yml}': 'rs fmt',
+  '*.{md,mdx,json,css,less,scss,toml,yaml,yml}': 'rs fmt',
   '*.{ts,tsx,js,cts,cjs,mts,mjs}': ['rs lint', 'rs fmt'],
   'website/**/*': () => 'pnpm --dir website run check:spell',
 });

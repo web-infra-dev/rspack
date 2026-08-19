@@ -38,8 +38,10 @@ pub fn create_cache(
 
   let options = match &compiler_options.cache {
     crate::CacheOptions::Disabled => return Cache::new_disabled(compiler_path),
-    crate::CacheOptions::Memory { max_generations: _ } => {
-      return Cache::new(compiler_path, MemoryCache::default(), None);
+    crate::CacheOptions::Memory {
+      max_generations: _, /* TODO: old cache default to 1, change to 5 and pass to MemoryCache */
+    } => {
+      return Cache::new(compiler_path, MemoryCache::new(5), None);
     }
     crate::CacheOptions::Persistent(options) => options,
   };
@@ -76,7 +78,7 @@ pub fn create_cache(
       return Cache::new(compiler_path, MemoryCache::default(), None);
     }
   };
-  let idle_file_cache = IdleFileCache::new(strategy);
+  let idle_file_cache = IdleFileCache::new(strategy, None, None, None);
 
   Cache::new(compiler_path, MemoryCache::default(), Some(idle_file_cache))
 }

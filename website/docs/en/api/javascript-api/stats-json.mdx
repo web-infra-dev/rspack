@@ -17,7 +17,7 @@ $ rspack --json=compilation-stats.json
 
 ## Structure
 
-The top-level structure of the output object is as follows:
+The properties included in the output depend on the [stats configuration](/config/stats). The known fields of the top-level object are as follows:
 
 ```ts
 type StatsCompilation = {
@@ -29,6 +29,8 @@ type StatsCompilation = {
   name?: string;
   // Compilation specific hash
   hash?: string;
+  // Environment information included when `stats.env` is enabled
+  env?: any;
   // Compilation time in milliseconds
   time?: number;
   // Compilation build end timestamp
@@ -41,6 +43,8 @@ type StatsCompilation = {
   assetsByChunkName?: Record<string, string[]>;
   // List of asset objects, refer to the "Asset Object"
   assets?: StatsAsset[];
+  // Number of assets omitted from the output
+  filteredAssets?: number;
   // List of chunk objects, refer to the "Chunk Object"
   chunks?: StatsChunk[];
   // List of module objects, refer to the "Module Object"
@@ -53,11 +57,21 @@ type StatsCompilation = {
   errors?: StatsError[];
   // Number of errors
   errorsCount?: number;
+  // Number of error details omitted from the output
+  filteredErrorDetailsCount?: number;
   // List of warning objects, refer to the "Error/Warning Object"
-  warnings?: StatsWarnings[];
+  warnings?: StatsError[];
   // Number of warnings
   warningsCount?: number;
-};
+  // Number of warning details omitted from the output
+  filteredWarningDetailsCount?: number;
+  // Number of modules omitted from the output
+  filteredModules?: number;
+  // Stats for child compilations
+  children?: StatsCompilation[];
+  // Compilation logs, grouped by logger name
+  logging?: Record<string, StatsLogging>;
+} & Record<string, any>;
 ```
 
 ## Asset object
@@ -65,48 +79,65 @@ type StatsCompilation = {
 Each asset object represents an output file emitted from the compilation, and its structure is as follows:
 
 ```ts
+type StatsAssetInfo = {
+  // Whether the asset can be long-term cached because its name contains a hash
+  immutable?: boolean;
+  // Whether the asset was minimized
+  minimized?: boolean;
+  // Full hash values used by this asset
+  fullhash: string[];
+  // Chunk hash values used by this asset
+  chunkhash: string[];
+  // Content hash values used by this asset
+  contenthash: string[];
+  // Original source filename, when the asset was created from a source file
+  sourceFilename?: string;
+  // Whether the asset was copied from another file
+  copied?: boolean;
+  // Whether the asset exceeds `performance.maxAssetSize`
+  isOverSizeLimit?: boolean;
+  // Whether the asset is only used in development
+  development?: boolean;
+  // Whether the asset contains data for hot module replacement
+  hotModuleReplacement?: boolean;
+  // Whether the asset is JavaScript emitted as an ES module
+  javascriptModule?: boolean;
+  // Related asset filenames, grouped by relationship type
+  related: Record<string, string[]>;
+} & Record<string, any>;
+
 type StatsAsset = {
+  // Stats item type, such as "asset" or a related asset type
+  type: string;
   // The `output` filename
   name: string;
+  // Additional information about the asset
+  info: StatsAssetInfo;
   // The size of the file in bytes
   size: number;
-  // Indicates whether or not the asset made it to the `output` directory
+  // Whether the asset was emitted during this compilation
   emitted: boolean;
-  // The chunk IDs this asset related
-  chunks: Array<string | number | undefined | null>;
-  // The chunks this asset related
-  chunkNames: Array<string>;
-  // The chunk idHints this asset related
-  chunkIdHints: Array<string>;
-  // The chunk IDs this auxiliary asset related
-  auxiliaryChunks: Array<string | number | undefined | null>;
-  // The chunks this auxiliary asset related
-  auxiliaryChunkNames: Array<string>;
-  // The chunk idHints this auxiliary asset related
-  auxiliaryChunkIdHints: Array<string>;
-  info: {
-    // whether the asset is minimized
-    minimized: boolean;
-    // A flag telling whether the asset is only used for development and doesn't count towards user-facing assets
-    development: boolean;
-    // A flag telling whether the asset ships data for updating an existing application (HMR)
-    hotModuleReplacement: boolean;
-    // sourceFilename when asset was created from a source file (potentially transformed)
-    sourceFilename?: string;
-    // true, if the asset can be long term cached forever (contains a hash)
-    immutable: boolean;
-    // true, when asset is javascript and an ESM
-    javascriptModule?: boolean;
-    // the value(s) of the chunk hash used for this asset
-    chunkHash: Array<string>;
-    // the value(s) of the content hash used for this asset
-    contentHash: Array<string>;
-  };
-  // related assets, like source-map
-  related: StatsAsset[];
-  // whether the asset exceeds performance.maxAssetSize
+  // Whether the asset was not emitted during this compilation (`!emitted`)
+  cached: boolean;
+  // Related assets, such as source maps
+  related?: StatsAsset[];
+  // Chunk IDs related to this asset
+  chunks?: Array<string | number | null | undefined>;
+  // Chunk names related to this asset
+  chunkNames?: string[];
+  // Chunk ID hints related to this asset
+  chunkIdHints?: string[];
+  // Chunk IDs related to this auxiliary asset
+  auxiliaryChunks?: Array<string | number | null | undefined>;
+  // Chunk names related to this auxiliary asset
+  auxiliaryChunkNames?: string[];
+  // Chunk ID hints related to this auxiliary asset
+  auxiliaryChunkIdHints?: string[];
+  // Number of related assets omitted from the output
+  filteredRelated?: number;
+  // Whether the asset exceeds `performance.maxAssetSize`
   isOverSizeLimit?: boolean;
-};
+} & Record<string, any>;
 ```
 
 ## Chunk object
@@ -115,27 +146,31 @@ Each chunk object represents a group of modules known as a chunk, and its struct
 
 ```ts
 type StatsChunk = {
+  // Stats item type
+  type: string;
   // The list of product files contained in the chunk
-  files: Array<string>;
+  files: string[];
   // The list of attached product files contained in the chunk
-  auxiliaryFiles: Array<string>;
+  auxiliaryFiles: string[];
   // Chunk ID
   id?: string | number;
   // List of chunk names contained within this chunk
-  names: Array<string>;
+  names: string[];
+  // List of ID hints associated with the chunk
+  idHints: string[];
   // The runtime used by the chunk
-  runtime: Array<string>;
+  runtime: string[];
   // Size of the chunk (in bytes)
   size: number;
   // Total size of chunk modules group by the output type (in bytes)
   sizes: Record<string, number>;
   // Chunk hash
   hash?: string;
-  // Whether the chunk contains the rspack runtime
+  // Whether the chunk contains an entry module
   entry: boolean;
   // Whether the chunk is loaded on initial page load or on demand
   initial: boolean;
-  // Whether the chunk went through Code Generation
+  // Whether the chunk was rendered into an output asset
   rendered: boolean;
 
   // Parent chunk IDs
@@ -144,31 +179,35 @@ type StatsChunk = {
   children?: Array<string | number>;
   // Sibling chunk IDs
   siblings?: Array<string | number>;
+  // Child chunks grouped by loading order
+  childrenByOrder: Record<string, Array<string | number>>;
 
   // Chunk create reason when splitting chunks (need to enable `optimization.splitChunks`).
   reason?: string;
-  // List of idHints of the cache groups hit when splitting chunks (need to enable `optimization.splitChunks`).
-  idHints: Array<string>;
 
   // List of origins describing how the given chunk originated
-  origins: Array<{
-    // Path to the module
-    module: string;
-    // ID of the module
-    moduleId: string;
-    // The identifier of the module
-    moduleIdentifier: string;
-    // Relative path to the module
-    moduleName: string;
-    // Lines of code that generated this chunk
-    loc: string;
-    // The dependency request in the module
-    request: string;
-  }>;
+  origins?: StatsChunkOrigin[];
 
   // List of modules contained in the chunk, for details, refer to the "Module Object"
-  modules?: Array<StatsModule>;
-};
+  modules?: StatsModule[];
+  // Number of modules omitted from the output
+  filteredModules?: number;
+} & Record<string, any>;
+
+type StatsChunkOrigin = {
+  // Module identifier (compatibility alias of `moduleIdentifier`)
+  module: string;
+  // Internal identifier of the originating module
+  moduleIdentifier: string;
+  // Readable name of the originating module
+  moduleName: string;
+  // Location of the dependency in the originating module
+  loc: string;
+  // The dependency request in the module
+  request: string;
+  // ID of the module
+  moduleId?: string | number | null;
+} & Record<string, any>;
 ```
 
 ## Module object
@@ -177,79 +216,103 @@ Each module object represents a module in the dependency graph, and its structur
 
 ```ts
 type StatsModule = {
-  // Module ID
-  id?: string;
+  // Stats item type
+  type: string;
   // Module source type
   moduleType: string;
+  // Module layer
+  layer?: string;
   // A unique identifier used internally
-  identifier: string;
+  identifier?: string;
   // Path to the actual file
-  name: string;
+  name?: string;
+  // Absolute path used by the module for conditional matching
+  nameForCondition?: string;
+  // Legacy aliases for preOrderIndex and postOrderIndex
+  index?: number;
+  index2?: number;
+  // The top-down and bottom-up indexes of the module in the chunk group
+  preOrderIndex?: number;
+  postOrderIndex?: number;
   // Estimated size of the module in bytes
   size: number;
-  // Total size of module group by the output type (in bytes)
+  // Module sizes grouped by source type
   sizes: Record<string, number>;
-
+  // Whether the module can be cached
+  cacheable?: boolean;
   // Whether the module went through loaders and parsing
   built: boolean;
   // Whether the module went through code generation
   codeGenerated: boolean;
-  // Whether the module is run during the compilation (you can see it while using css-extract)
+  // Whether the module was executed during the build
   buildTimeExecuted: boolean;
-  // Whether the module is cached
+  // Whether the module was reused from cache
   cached: boolean;
-  // Whether the module can be cached
-  cacheable: boolean;
-  // Whether the module is optional, and if it is optional, only a warning will be issued when the module is not found
-  optional: boolean;
-  // Whether the module is dependent by other modules
+  // Whether a missing module only produces a warning
+  optional?: boolean;
+  // Whether the module is not included in any chunk
+  orphan?: boolean;
+  // Module ID
+  id?: string | number | null;
+  // Parent module ID
+  issuerId?: string | number | null;
+  // IDs of chunks that contain the module
+  chunks?: Array<string | number>;
+  // Assets generated by the module
+  assets?: string[];
+  // Whether the module is only included as a dependency of another module
   dependent?: boolean;
-
-  // List of reasons why the module is introduced, similar to the structure of chunk.origins
-  reasons?: Array<JsStatsModuleReason>;
   // Unique identifier of the parent module
   issuer?: string;
-  // Parent module ID
-  issuerId?: string;
   // Path to the actual file of parent module
   issuerName?: string;
   // Reference path from the entry to the current module
-  issuerPath: Array<JsStatsModuleIssuer>;
-  // Absolute path used by the module for conditional matching (usually the resource path)
-  nameForCondition?: string;
-  // The top-down index of the module in the ChunkGroup
-  preOrderIndex?: number;
-  // The bottom-up index of the module in the ChunkGroup
-  postOrderIndex?: number;
-  // The level in module graph
-  depth?: number;
-  // Whether the module is not included by any chunk
-  orphan: boolean;
-  // List of IDs of chunks that contain the module
-  chunks: Array<string | number | undefined | null>;
-  // List of assets generated by the module
-  assets?: Array<string>;
-
-  // Whether the module compiles failed
-  failed: boolean;
+  issuerPath?: StatsModuleIssuer[];
+  // Whether the module failed to compile
+  failed?: boolean;
   // Number of errors
-  errors: number;
+  errors?: number;
   // Number of warnings
-  warnings: number;
-
-  // Used module exports, true indicates that all are used, string[] indicates that some fields are used (need to enable `optimization.usedExports`)
-  usedExports?: null | string[] | boolean;
+  warnings?: number;
+  // Reasons why the module is included
+  reasons?: StatsModuleReason[];
+  // Number of reasons omitted from the output
+  filteredReasons?: number;
+  // Used module exports (`true` means all exports are used)
+  usedExports?: boolean | string[] | null;
   // List of fields exported by the module (need to enable `optimization.providedExports`)
-  providedExports?: null | string[];
+  providedExports?: string[] | null;
   // Optimization bailout reasons (need to enable `optimization.concatenateModules`)
-  optimizationBailout?: null | string[];
-
+  optimizationBailout?: string[] | null;
+  // The module's depth in the module graph
+  depth?: number;
   // If current module is generated by scope hoisting, this is the list of the original modules (need to enable `optimization.concatenateModules`)
-  modules?: Array<JsStatsModule>;
-
+  modules?: StatsModule[];
+  // Number of nested modules omitted from the output
+  filteredModules?: number;
   // Source code
   source?: string | Buffer;
-};
+} & Record<string, any>;
+
+type StatsModuleIssuer = {
+  identifier: string;
+  name: string;
+  id?: string | number | null;
+} & Record<string, any>;
+
+type StatsModuleReason = {
+  moduleIdentifier?: string;
+  moduleName?: string;
+  resolvedModuleIdentifier?: string;
+  resolvedModule?: string;
+  type?: string;
+  active: boolean;
+  explanation?: string;
+  userRequest?: string;
+  loc?: string;
+  moduleId?: string | number | null;
+  resolvedModuleId?: string | number | null;
+} & Record<string, any>;
 ```
 
 ## Entry/ChunkGroup Object
@@ -261,10 +324,10 @@ type StatsEntrypoints = Record<string, StatsChunkGroup>;
 type StatsNamedChunkGroups = Record<string, StatsChunkGroup>;
 
 type StatsChunkGroup = {
-  // Name of the entry
+  // Name of the chunk group
   name: string;
   // List of IDs of the chunks included
-  chunks: Array<string | number | undefined | null>;
+  chunks: Array<string | number>;
   // Assets generated by the chunk group
   assets: Array<{
     // File name
@@ -272,6 +335,9 @@ type StatsChunkGroup = {
     // File size
     size: number;
   }>;
+  // Present on entrypoint and named chunk group objects, but omitted from nested children
+  // Total asset count if it exceeds `stats.chunkGroupMaxAssets`; otherwise 0
+  filteredAssets?: number;
   // Total size of the assets generated by the chunk group
   assetsSize: number;
 
@@ -287,20 +353,20 @@ type StatsChunkGroup = {
   // Ordered children chunk groups, order by preload/prefetch
   children?: {
     // preload children chunk groups
-    preload?: Array<StatsChunkGroup>;
+    preload?: StatsChunkGroup[];
     // prefetch children chunk groups
-    prefetch?: Array<StatsChunkGroup>;
+    prefetch?: StatsChunkGroup[];
   };
   // Assets of ordered children chunk groups, order by preload/prefetch
   childAssets?: {
     // preload assets
-    preload?: Array<string>;
+    preload?: string[];
     // prefetch assets
-    prefetch?: Array<string>;
+    prefetch?: string[];
   };
   // Whether the assets of this entrypoint exceeds performance.maxEntrypointSize
   isOverSizeLimit?: boolean;
-};
+} & Record<string, any>;
 ```
 
 ## Error/Warning Object
@@ -311,10 +377,14 @@ Each error or warning object represents an error/warning thrown during the build
 type StatsError = {
   // Visual message of the error/warning
   message: string;
+  // Machine-readable error/warning code
+  code?: StatsErrorCode | string;
   // A custom filename associated with this error/warning.
   file?: string;
   // Detail info of the error/warning
   details?: string;
+  // Number of detail lines omitted because of `stats.errorsSpace` or `stats.warningsSpace`
+  filteredDetails?: number;
   // Stack info of the error/warning
   stack?: string;
   /**
@@ -333,23 +403,12 @@ type StatsError = {
    * - `"./src/index.css"`
    */
   moduleName?: string;
+  // Location of the error/warning in the module
+  loc?: string;
   // ID of the module where the error/warning occurs
-  moduleId?: string;
+  moduleId?: string | number | null;
   // Module import trace from entry module
-  moduleTrace: Array<{
-    // parent module
-    origin: {
-      identifier: string;
-      name?: string;
-      id?: string;
-    };
-    // imported module
-    module: {
-      identifier: string;
-      name?: string;
-      id?: string;
-    };
-  }>;
+  moduleTrace?: StatsModuleTraceItem[];
 
   // ID of the related chunk
   chunkId?: string;
@@ -359,5 +418,38 @@ type StatsError = {
   chunkEntry?: boolean;
   // Whether the related chunk is an initial chunk
   chunkInitial?: boolean;
+} & Record<string, any>;
+
+type StatsModuleTraceItem = {
+  originIdentifier: string;
+  originName: string;
+  moduleIdentifier: string;
+  moduleName: string;
+  originId?: string | number | null;
+  moduleId?: string | number | null;
+  dependencies: StatsModuleTraceDependency[];
 };
+
+type StatsModuleTraceDependency = {
+  loc: string;
+} & Record<string, any>;
+```
+
+## Logging object
+
+Each key in `StatsCompilation.logging` is a logger name, and its value has the following structure:
+
+```ts
+type StatsLogging = {
+  entries: StatsLoggingEntry[];
+  filteredEntries: number;
+  debug: boolean;
+} & Record<string, any>;
+
+type StatsLoggingEntry = {
+  type: string;
+  message: string;
+  trace?: string[] | undefined;
+  children?: StatsLoggingEntry[] | undefined;
+} & Record<string, any>;
 ```

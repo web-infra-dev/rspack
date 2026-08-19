@@ -5,7 +5,8 @@ The `rspack_sources` benchmarks live in their own `rspack_sources` benchmark
 target so CodSpeed builds and runs them in a separate binary, isolated from the
 allocator state left behind by the larger compilation benchmark suite.
 The full CSS bundle benchmarks use the Bootstrap and Tailwind fixtures in
-`benches/fixtures/css` and are registered in the default simulation suite.
+`benches/fixtures/css` and are registered in the default simulation suite. The
+`css-modules-development` case processes both fixture files as CSS modules.
 Walltime-only bundle benchmarks follow the same pattern and live in the
 separate `walltime` benchmark target.
 

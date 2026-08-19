@@ -25,7 +25,7 @@ jobs:
       - name: Pnpm Install
         run: pnpm i
 
-      - name: Check JS
+      - name: Run Rstack checks
         run: pnpm run lint:js
 
       - name: Website Spell Check
