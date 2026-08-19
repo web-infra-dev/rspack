@@ -958,17 +958,6 @@ export interface JsLoaderCacheEntry {
   content: null | Buffer
   contentIsString: boolean
   sourceMap?: Buffer
-  additionalData?: Buffer
-  fileDependenciesAdded: Array<string>
-  fileDependenciesRemoved: Array<string>
-  contextDependenciesAdded: Array<string>
-  contextDependenciesRemoved: Array<string>
-  missingDependenciesAdded: Array<string>
-  missingDependenciesRemoved: Array<string>
-  buildDependenciesAdded: Array<string>
-  buildDependenciesRemoved: Array<string>
-  parseMetaUpserted: Record<string, string>
-  parseMetaRemoved: Array<string>
 }
 
 export interface JsLoaderContext {
@@ -1001,6 +990,9 @@ export interface JsLoaderItem {
   loader: string
   type: string
   cache: boolean
+  loaderName: string
+  optionsCacheKey: string
+  loaderVersion: string
   data: any
   normalExecuted: boolean
   pitchExecuted: boolean

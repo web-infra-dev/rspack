@@ -28,6 +28,20 @@ module.exports = {
             parallel: { maxWorkers: 1 },
             cache: true,
           },
+          {
+            loader: path.resolve(__dirname, 'loader.js'),
+            options: { name: 'metadata' },
+          },
+        ],
+      },
+      {
+        test: /module-[ab]\.js$/,
+        use: [
+          {
+            loader: path.resolve(__dirname, 'loader.js'),
+            options: { name: 'module-id' },
+            cache: true,
+          },
         ],
       },
     ],

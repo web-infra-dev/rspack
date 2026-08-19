@@ -8,21 +8,6 @@ use rspack_error::Result;
 use rspack_hash::{HashFunction, RspackHasher};
 use rspack_loader_runner::DescriptionData;
 use rspack_paths::Utf8Path;
-use rustc_hash::FxHashMap as HashMap;
-
-#[cacheable]
-#[derive(Clone, Default)]
-struct DependencyDelta {
-  added: Vec<String>,
-  removed: Vec<String>,
-}
-
-#[cacheable]
-#[derive(Clone, Default)]
-struct ParseMetaDelta {
-  upserted: Vec<(String, String)>,
-  removed: Vec<String>,
-}
 
 #[cacheable]
 #[derive(Clone)]
@@ -30,12 +15,6 @@ struct LoaderCacheEntry {
   content: Option<Vec<u8>>,
   content_is_string: bool,
   source_map: Option<Vec<u8>>,
-  additional_data: Option<Vec<u8>>,
-  file_dependencies: DependencyDelta,
-  context_dependencies: DependencyDelta,
-  missing_dependencies: DependencyDelta,
-  build_dependencies: DependencyDelta,
-  parse_meta: ParseMetaDelta,
 }
 
 #[napi(object)]
@@ -43,24 +22,13 @@ pub struct JsLoaderCacheEntry {
   pub content: Either<Null, Buffer>,
   pub content_is_string: bool,
   pub source_map: Option<Buffer>,
-  pub additional_data: Option<Buffer>,
-  pub file_dependencies_added: Vec<String>,
-  pub file_dependencies_removed: Vec<String>,
-  pub context_dependencies_added: Vec<String>,
-  pub context_dependencies_removed: Vec<String>,
-  pub missing_dependencies_added: Vec<String>,
-  pub missing_dependencies_removed: Vec<String>,
-  pub build_dependencies_added: Vec<String>,
-  pub build_dependencies_removed: Vec<String>,
-  pub parse_meta_upserted: HashMap<String, String>,
-  pub parse_meta_removed: Vec<String>,
 }
 
 #[napi]
 pub struct JsLoaderCache {
   cache: Arc<LoaderCache>,
   module_identifier: String,
-  loader_keys: Vec<String>,
+  loader_names: Vec<String>,
 }
 
 pub struct JsLoaderCacheObject(JsLoaderCache);
@@ -75,7 +43,7 @@ impl FromNapiValue for JsLoaderCacheObject {
     Ok(Self(JsLoaderCache {
       cache: Arc::clone(&instance.cache),
       module_identifier: instance.module_identifier.clone(),
-      loader_keys: instance.loader_keys.clone(),
+      loader_names: instance.loader_names.clone(),
     }))
   }
 }
@@ -102,17 +70,21 @@ impl TypeName for JsLoaderCacheObject {
 impl ValidateNapiValue for JsLoaderCacheObject {}
 
 impl JsLoaderCache {
-  pub fn new(cache: Arc<LoaderCache>, module_identifier: String, loader_keys: Vec<String>) -> Self {
+  pub fn new(
+    cache: Arc<LoaderCache>,
+    module_identifier: String,
+    loader_names: Vec<String>,
+  ) -> Self {
     Self {
       cache,
       module_identifier,
-      loader_keys,
+      loader_names,
     }
   }
 
-  fn loader_key(&self, loader_index: u32) -> napi::Result<&str> {
+  fn loader_name(&self, loader_index: u32) -> napi::Result<&str> {
     self
-      .loader_keys
+      .loader_names
       .get(loader_index as usize)
       .map(String::as_str)
       .ok_or_else(|| napi::Error::from_reason(format!("Invalid loader index {loader_index}")))
@@ -120,8 +92,12 @@ impl JsLoaderCache {
 }
 
 impl JsLoaderCacheObject {
-  pub fn new(cache: Arc<LoaderCache>, module_identifier: String, loader_keys: Vec<String>) -> Self {
-    Self(JsLoaderCache::new(cache, module_identifier, loader_keys))
+  pub fn new(
+    cache: Arc<LoaderCache>,
+    module_identifier: String,
+    loader_names: Vec<String>,
+  ) -> Self {
+    Self(JsLoaderCache::new(cache, module_identifier, loader_names))
   }
 }
 
@@ -159,10 +135,10 @@ pub(crate) async fn loader_cache_version(
 impl JsLoaderCache {
   #[napi]
   pub fn get(&self, loader_index: u32, etag: String) -> napi::Result<Option<JsLoaderCacheEntry>> {
-    let cache_key = self.loader_key(loader_index)?;
+    let loader_name = self.loader_name(loader_index)?;
     let item_cache = self
       .cache
-      .cache_item(cache_key, &self.module_identifier, Etag::from(etag));
+      .cache_item(&self.module_identifier, loader_name, Etag::from(etag));
     let Some(entry) = item_cache
       .get::<LoaderCacheEntry>()
       .map_err(|error| napi::Error::from_reason(error.to_string()))?
@@ -177,17 +153,6 @@ impl JsLoaderCache {
         .map_or(Either::A(Null), |content| Either::B(content.into())),
       content_is_string: entry.content_is_string,
       source_map: entry.source_map.clone().map(Into::into),
-      additional_data: entry.additional_data.clone().map(Into::into),
-      file_dependencies_added: entry.file_dependencies.added.clone(),
-      file_dependencies_removed: entry.file_dependencies.removed.clone(),
-      context_dependencies_added: entry.context_dependencies.added.clone(),
-      context_dependencies_removed: entry.context_dependencies.removed.clone(),
-      missing_dependencies_added: entry.missing_dependencies.added.clone(),
-      missing_dependencies_removed: entry.missing_dependencies.removed.clone(),
-      build_dependencies_added: entry.build_dependencies.added.clone(),
-      build_dependencies_removed: entry.build_dependencies.removed.clone(),
-      parse_meta_upserted: entry.parse_meta.upserted.iter().cloned().collect(),
-      parse_meta_removed: entry.parse_meta.removed.clone(),
     }))
   }
 
@@ -198,7 +163,7 @@ impl JsLoaderCache {
     etag: String,
     output: JsLoaderCacheEntry,
   ) -> napi::Result<()> {
-    let cache_key = self.loader_key(loader_index)?;
+    let loader_name = self.loader_name(loader_index)?;
     let entry = LoaderCacheEntry {
       content: match output.content {
         Either::A(_) => None,
@@ -206,33 +171,10 @@ impl JsLoaderCache {
       },
       content_is_string: output.content_is_string,
       source_map: output.source_map.map(|source_map| source_map.to_vec()),
-      additional_data: output
-        .additional_data
-        .map(|additional_data| additional_data.to_vec()),
-      file_dependencies: DependencyDelta {
-        added: output.file_dependencies_added,
-        removed: output.file_dependencies_removed,
-      },
-      context_dependencies: DependencyDelta {
-        added: output.context_dependencies_added,
-        removed: output.context_dependencies_removed,
-      },
-      missing_dependencies: DependencyDelta {
-        added: output.missing_dependencies_added,
-        removed: output.missing_dependencies_removed,
-      },
-      build_dependencies: DependencyDelta {
-        added: output.build_dependencies_added,
-        removed: output.build_dependencies_removed,
-      },
-      parse_meta: ParseMetaDelta {
-        upserted: output.parse_meta_upserted.into_iter().collect(),
-        removed: output.parse_meta_removed,
-      },
     };
     let item_cache = self
       .cache
-      .cache_item(cache_key, &self.module_identifier, Etag::from(etag));
+      .cache_item(&self.module_identifier, loader_name, Etag::from(etag));
     item_cache
       .store(CacheValue::new(entry))
       .map_err(|error| napi::Error::from_reason(error.to_string()))

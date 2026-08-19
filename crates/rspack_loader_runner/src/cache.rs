@@ -4,6 +4,10 @@ use rspack_cacheable::cacheable;
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct LoaderRunnerOptions {
   pub cache: bool,
-  /// Loader name, stable options and loader version/file hash.
-  pub cache_key: String,
+  /// Loader name used as part of the cache key.
+  pub loader_name: String,
+  /// Stable serialization of the loader options used as part of the etag.
+  pub options_cache_key: String,
+  /// Loader implementation version or file hash used as part of the etag.
+  pub loader_version: String,
 }

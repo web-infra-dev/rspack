@@ -18,8 +18,8 @@ use crate::{
   ParserOptionsMap, RawModule, Resolve, ResolveArgs, ResolveOptionsWithDependencyType,
   ResolveResult, ResolvedModuleOptions, ResolvedModuleOptionsCacheKey, Resolver, ResolverFactory,
   ResourceData, ResourceParsedData, RunnerContext, RuntimeGlobals, SharedPluginDriver,
-  diagnostics::EmptyDependency, loader::loader_cache::loader_cache_key, module_rules_matcher,
-  parse_resource, resolve, stringify_loaders_and_resource,
+  diagnostics::EmptyDependency, module_rules_matcher, parse_resource, resolve,
+  stringify_loaders_and_resource,
 };
 
 define_hook!(NormalModuleFactoryBeforeResolve: SeriesBail(data: &mut ModuleFactoryCreateData) -> bool,tracing=false);
@@ -1375,16 +1375,25 @@ async fn resolve_each_with_options(
   loader: &ModuleRuleUseLoader,
 ) -> Result<ResolvedLoader> {
   let resolved = resolve_each(plugin_driver, context, loader_resolver, loader).await?;
-  let cache_key = if loader.cache {
-    loader_cache_key(&loader.loader, &resolved, &loader.options_cache_key)
-  } else {
-    String::new()
-  };
+  let loader_name = parse_resource(&loader.loader)
+    .map(|resource| resource.path.to_string())
+    .unwrap_or_else(|| loader.loader.clone());
+  let loader_version = loader
+    .cache
+    .then(|| {
+      resolved
+        .cache_version()
+        .unwrap_or(rspack_workspace::rspack_pkg_version!())
+        .to_owned()
+    })
+    .unwrap_or_default();
   Ok(ResolvedLoader {
     loader: resolved,
     options: LoaderRunnerOptions {
       cache: loader.cache,
-      cache_key,
+      loader_name,
+      options_cache_key: loader.options_cache_key.clone(),
+      loader_version,
     },
   })
 }

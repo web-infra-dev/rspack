@@ -927,20 +927,8 @@ export async function runLoaders(
             break;
           }
           case RequestType.LoaderCacheGet: {
-            const [
-              loaderIndex,
-              content,
-              contentIsString,
-              sourceMap,
-              additionalData,
-            ] = args;
-            return loaderCache.workerGet(
-              loaderIndex,
-              content,
-              contentIsString,
-              sourceMap,
-              additionalData,
-            );
+            const [loaderIndex, content, additionalData] = args;
+            return loaderCache.workerGet(loaderIndex, content, additionalData);
           }
           case RequestType.LoaderCacheStore: {
             const [
@@ -1110,12 +1098,9 @@ export async function runLoaders(
           const cacheInput =
             !parallelism && currentLoaderObject.loaderItem.cache
               ? loaderCache.begin(
+                  loaderContext.loaderIndex,
                   content,
-                  sourceMapParsed
-                    ? JsSourceMap.__to_binding(sourceMap)
-                    : rawSourceMap,
                   additionalData,
-                  typeof content === 'string',
                 )
               : undefined;
           if (cacheInput) {
@@ -1127,7 +1112,6 @@ export async function runLoaders(
                 : hit.content;
               sourceMap = JsSourceMap.__from_binding(hit.sourceMap);
               sourceMapParsed = true;
-              additionalData = hit.additionalData;
               loaderContext.loaderIndex--;
               continue;
             }

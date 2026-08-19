@@ -1,28 +1,17 @@
-use std::{
-  path::PathBuf,
-  sync::{Arc, LazyLock},
-};
+use std::sync::{Arc, LazyLock};
 
 use dashmap::DashMap;
-use rspack_cacheable::{
-  cacheable,
-  utils::PortablePath,
-  with::{As, AsPreset, AsVec},
-};
+use rspack_cacheable::cacheable;
 use rspack_collections::Identifiable;
 use rspack_error::Result;
 use rspack_hash::{HashFunction, RspackHasher};
 use rspack_loader_runner::{Content, LoaderContext};
 use rspack_sources::SourceMap;
-use rustc_hash::FxHashSet;
 use ustr::Ustr;
 
-use crate::{
-  BoxLoader, CacheFacade, CacheValue, Context, Etag, ItemCacheFacade, Module, RunnerContext,
-};
+use crate::{CacheFacade, CacheValue, Context, Etag, ItemCacheFacade, Module, RunnerContext};
 
 const LOADER_CACHE_DIRECTORY: &str = "node_modules/.cache/loader-cache";
-const LOADER_CACHE_VERSION: &str = "1";
 
 // Keep a strong process-wide owner so compilers using the same cache directory
 // always share exactly one LoaderCache instance.
@@ -30,19 +19,15 @@ static LOADER_CACHES: LazyLock<DashMap<Ustr, Arc<LoaderCache>>> = LazyLock::new(
 
 #[derive(Debug)]
 pub struct LoaderCache {
-  cache_directory: Ustr,
   storage: CacheFacade,
 }
 
 impl LoaderCache {
-  fn new(cache_directory: Ustr, storage: CacheFacade) -> Self {
-    Self {
-      cache_directory,
-      storage,
-    }
+  fn new(storage: CacheFacade) -> Self {
+    Self { storage }
   }
 
-  fn cache_key(&self, loader_key: &str, module_identifier: &str) -> String {
+  fn cache_key(&self, module_identifier: &str, loader_name: &str) -> String {
     fn push_segment(key: &mut String, segment: &str) {
       key.push('|');
       key.push_str(&segment.len().to_string());
@@ -50,21 +35,20 @@ impl LoaderCache {
       key.push_str(segment);
     }
 
-    let mut key = self.cache_directory.as_str().to_owned();
-    push_segment(&mut key, LOADER_CACHE_VERSION);
-    push_segment(&mut key, loader_key);
+    let mut key = String::new();
     push_segment(&mut key, module_identifier);
+    push_segment(&mut key, loader_name);
     key
   }
 
   #[doc(hidden)]
   pub fn cache_item(
     &self,
-    loader_key: &str,
     module_identifier: &str,
+    loader_name: &str,
     etag: Etag,
   ) -> ItemCacheFacade {
-    let key = self.cache_key(loader_key, module_identifier);
+    let key = self.cache_key(module_identifier, loader_name);
     self.storage.get_item_cache(&key, Some(etag))
   }
 }
@@ -77,7 +61,7 @@ pub(crate) fn register_loader_cache(context: &Context, storage: CacheFacade) {
   let cache_directory = loader_cache_directory(context);
   LOADER_CACHES
     .entry(cache_directory)
-    .or_insert_with(|| Arc::new(LoaderCache::new(cache_directory, storage)));
+    .or_insert_with(|| Arc::new(LoaderCache::new(storage)));
 }
 
 pub fn get_loader_cache(context: &Context) -> Arc<LoaderCache> {
@@ -88,56 +72,17 @@ pub fn get_loader_cache(context: &Context) -> Arc<LoaderCache> {
     .expect("loader cache should be registered when the compilation is created")
 }
 
-pub(crate) fn loader_cache_key(name: &str, loader: &BoxLoader, options: &str) -> String {
-  let version = loader
-    .cache_version()
-    .unwrap_or(rspack_workspace::rspack_pkg_version!());
-  format!(
-    "{}:{name}{}:{options}{}:{version}",
-    name.len(),
-    options.len(),
-    version.len()
-  )
-}
-
-#[cacheable]
-#[derive(Clone, Default)]
-struct DependencyDelta {
-  #[cacheable(with=AsVec<As<PortablePath>>)]
-  added: Vec<PathBuf>,
-  #[cacheable(with=AsVec<As<PortablePath>>)]
-  removed: Vec<PathBuf>,
-}
-
-#[cacheable]
-#[derive(Clone, Default)]
-struct JsonObjectDelta {
-  #[cacheable(with=AsPreset)]
-  upserted: serde_json::Map<String, serde_json::Value>,
-  removed: Vec<String>,
-}
-
 #[cacheable]
 #[derive(Clone)]
 struct LoaderCacheEntry {
   content: Option<Vec<u8>>,
   content_is_string: bool,
   source_map: Option<String>,
-  file_dependencies: DependencyDelta,
-  context_dependencies: DependencyDelta,
-  missing_dependencies: DependencyDelta,
-  build_dependencies: DependencyDelta,
-  build_info_extras: JsonObjectDelta,
 }
 
 pub(crate) struct LoaderCacheMissState {
   etag: Etag,
   diagnostics_len: usize,
-  file_dependencies: FxHashSet<PathBuf>,
-  context_dependencies: FxHashSet<PathBuf>,
-  missing_dependencies: FxHashSet<PathBuf>,
-  build_dependencies: FxHashSet<PathBuf>,
-  build_info_extras: serde_json::Map<String, serde_json::Value>,
 }
 
 pub(crate) enum LoaderCacheAction {
@@ -150,74 +95,29 @@ fn cache_miss_action(context: &LoaderContext<RunnerContext>, etag: Etag) -> Load
   LoaderCacheAction::Miss(LoaderCacheMissState {
     etag,
     diagnostics_len: context.diagnostics.len(),
-    file_dependencies: context.file_dependencies.clone(),
-    context_dependencies: context.context_dependencies.clone(),
-    missing_dependencies: context.missing_dependencies.clone(),
-    build_dependencies: context.build_dependencies.clone(),
-    build_info_extras: context.context.module.build_info().extras.clone(),
   })
 }
 
-fn dependency_delta(
-  baseline: &FxHashSet<PathBuf>,
-  current: &FxHashSet<PathBuf>,
-) -> DependencyDelta {
-  DependencyDelta {
-    added: current.difference(baseline).cloned().collect(),
-    removed: baseline.difference(current).cloned().collect(),
-  }
-}
-
-fn replay_dependency_delta(dependencies: &mut FxHashSet<PathBuf>, delta: &DependencyDelta) {
-  dependencies.retain(|dependency| !delta.removed.contains(dependency));
-  dependencies.extend(delta.added.iter().cloned());
-}
-
-fn json_object_delta(
-  baseline: &serde_json::Map<String, serde_json::Value>,
-  current: &serde_json::Map<String, serde_json::Value>,
-) -> JsonObjectDelta {
-  JsonObjectDelta {
-    upserted: current
-      .iter()
-      .filter(|(key, value)| baseline.get(*key) != Some(*value))
-      .map(|(key, value)| (key.clone(), value.clone()))
-      .collect(),
-    removed: baseline
-      .keys()
-      .filter(|key| !current.contains_key(*key))
-      .cloned()
-      .collect(),
-  }
-}
-
-fn replay_json_object_delta(
-  object: &mut serde_json::Map<String, serde_json::Value>,
-  delta: &JsonObjectDelta,
-) {
-  object.retain(|key, _| !delta.removed.contains(key));
-  object.extend(delta.upserted.clone());
+fn update_hash_segment(hasher: &mut RspackHasher, label: &[u8], value: &[u8]) {
+  hasher.write(label);
+  hasher.write(&(value.len() as u64).to_le_bytes());
+  hasher.write(value);
 }
 
 fn input_etag(context: &LoaderContext<RunnerContext>) -> Option<Etag> {
-  if context.additional_data().is_some() {
-    return None;
-  }
+  let loader = context.current_loader();
   let mut hasher = RspackHasher::new(&HashFunction::Xxhash64);
-  match context.content()? {
-    Content::String(content) => {
-      hasher.write(b"string");
-      hasher.write(content.as_bytes());
-    }
-    Content::Buffer(content) => {
-      hasher.write(b"buffer");
-      hasher.write(content);
-    }
-  }
-  if let Some(source_map) = context.source_map() {
-    hasher.write(b"source-map");
-    hasher.write(source_map.to_json().as_bytes());
-  }
+  let content = match context.content()? {
+    Content::String(content) => content.as_bytes(),
+    Content::Buffer(content) => content,
+  };
+  update_hash_segment(&mut hasher, b"content", content);
+  update_hash_segment(
+    &mut hasher,
+    b"options",
+    loader.options_cache_key().as_bytes(),
+  );
+  update_hash_segment(&mut hasher, b"version", loader.loader_version().as_bytes());
   Some(Etag::from(format!("{:016x}", hasher.finish())))
 }
 
@@ -227,18 +127,21 @@ pub(crate) fn before_normal_loader(
   if !context.current_loader().cache() || !context.cacheable {
     return Ok(LoaderCacheAction::Disabled);
   }
+  // The minimal cache only supports loaders whose observable input is content.
+  if context.additional_data().is_some()
+    || !context.parse_meta.is_empty()
+    || !context.context.module.build_info().assets.is_empty()
+    || !context.context.module.build_info().extras.is_empty()
+  {
+    return Ok(LoaderCacheAction::Disabled);
+  }
   let Some(etag) = input_etag(context) else {
     return Ok(LoaderCacheAction::Disabled);
   };
-  // parseMeta cannot be compared generically and emitted assets are observable
-  // side effects. A loader that starts after either value exists is not cached.
-  if !context.parse_meta.is_empty() || !context.context.module.build_info().assets.is_empty() {
-    return Ok(LoaderCacheAction::Disabled);
-  }
-  let cache_key = context.current_loader().cache_key().to_owned();
+  let loader_name = context.current_loader().loader_name();
   let module_identifier = context.context.module.identifier();
   let cache = get_loader_cache(&context.context.options.context);
-  let item_cache = cache.cache_item(&cache_key, module_identifier.as_str(), etag.clone());
+  let item_cache = cache.cache_item(module_identifier.as_str(), loader_name, etag.clone());
 
   if let Some(entry) = item_cache.get::<LoaderCacheEntry>()? {
     let content = match (&entry.content, entry.content_is_string) {
@@ -251,20 +154,6 @@ pub(crate) fn before_normal_loader(
       (Some(content), false) => Some(Content::Buffer(content.clone())),
       (None, _) => None,
     };
-    replay_dependency_delta(&mut context.file_dependencies, &entry.file_dependencies);
-    replay_dependency_delta(
-      &mut context.context_dependencies,
-      &entry.context_dependencies,
-    );
-    replay_dependency_delta(
-      &mut context.missing_dependencies,
-      &entry.missing_dependencies,
-    );
-    replay_dependency_delta(&mut context.build_dependencies, &entry.build_dependencies);
-    replay_json_object_delta(
-      &mut context.context.module.build_info_mut().extras,
-      &entry.build_info_extras,
-    );
     let source_map = entry
       .source_map
       .clone()
@@ -283,16 +172,15 @@ pub(crate) fn after_normal_loader(
   if !context.cacheable
     || context.diagnostics.len() != state.diagnostics_len
     || !context.context.module.build_info().assets.is_empty()
+    || !context.context.module.build_info().extras.is_empty()
     || context.additional_data().is_some()
     || !context.parse_meta.is_empty()
   {
     return Ok(());
   }
 
-  // V1 intentionally does not fingerprint loader dependencies. We replay the
-  // dependency deltas so watch registration is preserved, but a dependency's
-  // contents are not part of the cache key yet. Loaders whose output depends
-  // on an added dependency are therefore outside the supported scope for now.
+  // Dynamic loader dependencies are intentionally outside the minimal cache
+  // contract and are neither stored nor replayed on a cache hit.
   let (content, content_is_string) = match context.content() {
     Some(Content::String(content)) => (Some(content.as_bytes().to_vec()), true),
     Some(Content::Buffer(content)) => (Some(content.clone()), false),
@@ -302,24 +190,10 @@ pub(crate) fn after_normal_loader(
     content,
     content_is_string,
     source_map: context.source_map().map(SourceMap::to_json),
-    file_dependencies: dependency_delta(&state.file_dependencies, &context.file_dependencies),
-    context_dependencies: dependency_delta(
-      &state.context_dependencies,
-      &context.context_dependencies,
-    ),
-    missing_dependencies: dependency_delta(
-      &state.missing_dependencies,
-      &context.missing_dependencies,
-    ),
-    build_dependencies: dependency_delta(&state.build_dependencies, &context.build_dependencies),
-    build_info_extras: json_object_delta(
-      &state.build_info_extras,
-      &context.context.module.build_info().extras,
-    ),
   };
   let cache = get_loader_cache(&context.context.options.context);
-  let cache_key = context.current_loader().cache_key();
+  let loader_name = context.current_loader().loader_name();
   let module_identifier = context.context.module.identifier();
-  let item_cache = cache.cache_item(cache_key, module_identifier.as_str(), state.etag);
+  let item_cache = cache.cache_item(module_identifier.as_str(), loader_name, state.etag);
   item_cache.store(CacheValue::new(entry))
 }

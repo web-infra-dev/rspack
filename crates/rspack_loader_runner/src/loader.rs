@@ -39,7 +39,9 @@ pub struct LoaderItem<Context: Send> {
   data: serde_json::Value,
   r#type: String,
   cache: bool,
-  cache_key: String,
+  loader_name: String,
+  options_cache_key: String,
+  loader_version: String,
   pitch_executed: AtomicBool,
   normal_executed: AtomicBool,
   /// Whether loader was called with [LoaderContext::finish_with].
@@ -83,8 +85,18 @@ impl<C: Send> LoaderItem<C> {
   }
 
   #[inline]
-  pub fn cache_key(&self) -> &str {
-    &self.cache_key
+  pub fn loader_name(&self) -> &str {
+    &self.loader_name
+  }
+
+  #[inline]
+  pub fn options_cache_key(&self) -> &str {
+    &self.options_cache_key
+  }
+
+  #[inline]
+  pub fn loader_version(&self) -> &str {
+    &self.loader_version
   }
 
   #[inline]
@@ -240,7 +252,9 @@ impl<C: Send> LoaderItem<C> {
         data: serde_json::Value::Null,
         r#type: ty,
         cache: options.cache,
-        cache_key: options.cache_key,
+        loader_name: options.loader_name,
+        options_cache_key: options.options_cache_key,
+        loader_version: options.loader_version,
         pitch_executed: AtomicBool::new(false),
         normal_executed: AtomicBool::new(false),
         finish_called: AtomicBool::new(false),
@@ -261,7 +275,9 @@ impl<C: Send> LoaderItem<C> {
       data: serde_json::Value::Null,
       r#type: String::default(),
       cache: options.cache,
-      cache_key: options.cache_key,
+      loader_name: options.loader_name,
+      options_cache_key: options.options_cache_key,
+      loader_version: options.loader_version,
       pitch_executed: AtomicBool::new(false),
       normal_executed: AtomicBool::new(false),
       finish_called: AtomicBool::new(false),

@@ -510,8 +510,6 @@ async function loaderImpl(
             RequestType.LoaderCacheGet,
             loaderContext.loaderIndex,
             isNil(args[0]) ? null : toBuffer(args[0]),
-            typeof args[0] === 'string',
-            serializeObject(args[1]),
             args[2],
           );
           if (hit) {
@@ -521,7 +519,7 @@ async function loaderImpl(
                 ? hit.content && Buffer.from(hit.content).toString()
                 : hit.content && Buffer.from(hit.content),
               hit.sourceMap ? toObject(Buffer.from(hit.sourceMap)) : undefined,
-              hit.additionalData,
+              undefined,
             ];
             continue;
           }
