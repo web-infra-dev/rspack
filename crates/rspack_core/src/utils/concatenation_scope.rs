@@ -1,16 +1,22 @@
 use std::sync::{Arc, LazyLock};
 
 use anymap::CloneAny;
+use rspack_cacheable::{
+  cacheable,
+  with::{AsCacheable, AsMap, AsOption, AsPreset, AsVec},
+};
 use rspack_collections::IdentifierIndexMap;
+use rspack_hash::RspackHashDigest;
 use rspack_util::{
   fx_hash::{FxIndexMap, FxIndexSet},
   itoa,
 };
+use rustc_hash::FxHashMap as HashMap;
 use swc_core::atoms::Atom;
 
 use crate::{
   ExportMode, ModuleIdentifier,
-  concatenated_module::{ConcatenatedModuleInfo, ModuleInfo},
+  concatenated_module::{ConcatenatedImportMap, ConcatenatedModuleInfo, ModuleInfo},
 };
 
 pub static DEFAULT_EXPORT_ATOM: LazyLock<Atom> = LazyLock::new(|| "__rspack_default_export".into());
@@ -19,8 +25,10 @@ pub const DEFAULT_EXPORT: &str = "__rspack_default_export";
 const MODULE_REFERENCE_PREFIX: &str = "__rspack_module_ref";
 const MODULE_REFERENCE_PROPERTY_ACCESS_SUFFIX: &str = "._";
 
+#[cacheable]
 #[derive(Default, Debug, Clone)]
 pub struct ModuleReferenceOptions {
+  #[cacheable(with=AsVec<AsPreset>)]
   pub ids: Vec<Atom>,
   pub call: bool,
   pub direct_import: bool,
@@ -29,11 +37,54 @@ pub struct ModuleReferenceOptions {
   pub index: usize,
 }
 
+/// Module-local data produced while generating code in a concatenation scope.
+///
+/// The scope also contains compilation-local inputs such as `modules_map` and
+/// type-erased scratch data. Only this output is needed after code generation
+/// and is safe to persist with the generated source.
+#[cacheable]
+#[derive(Debug, Default, Clone)]
+pub struct ConcatenationCodeGenerationData {
+  #[cacheable(with=AsOption<AsPreset>)]
+  pub namespace_export_symbol: Option<Atom>,
+  #[cacheable(with=AsOption<AsMap<AsPreset>>)]
+  pub export_map: Option<HashMap<Atom, String>>,
+  #[cacheable(with=AsOption<AsMap<AsPreset>>)]
+  pub raw_export_map: Option<HashMap<Atom, String>>,
+  #[cacheable(with=AsOption<AsMap>)]
+  pub import_map: ConcatenatedImportMap,
+  #[cacheable(with=AsMap<AsCacheable, AsMap>)]
+  pub refs: IdentifierIndexMap<FxIndexMap<String, ModuleReferenceOptions>>,
+}
+
+impl ConcatenationCodeGenerationData {
+  pub fn apply_to(&self, info: &mut ConcatenatedModuleInfo) {
+    info.namespace_export_symbol = self.namespace_export_symbol.clone();
+    info.export_map = self.export_map.clone();
+    info.raw_export_map = self.raw_export_map.clone();
+    info.import_map = self.import_map.clone();
+  }
+
+  pub fn into_module_info(self, mut info: ConcatenatedModuleInfo) -> ConcatenatedModuleInfo {
+    info.namespace_export_symbol = self.namespace_export_symbol;
+    info.export_map = self.export_map;
+    info.raw_export_map = self.raw_export_map;
+    info.import_map = self.import_map;
+    info
+  }
+}
+
 #[derive(Debug, Clone)]
 pub struct ConcatenationScope {
   pub concat_module_id: ModuleIdentifier,
   pub current_module: ConcatenatedModuleInfo,
   pub modules_map: Arc<IdentifierIndexMap<ModuleInfo>>,
+  /// A stable fingerprint of the compilation-local inputs that can affect code generation.
+  ///
+  /// Scope providers may set this when their scope contains inputs that are not already covered by
+  /// the module runtime hash. The fingerprint is persisted alongside module hashes, while the scope
+  /// itself remains compilation-local.
+  pub code_generation_hash: Option<RspackHashDigest>,
   pub data: anymap::Map<dyn CloneAny + Send + Sync>,
   pub refs: IdentifierIndexMap<FxIndexMap<String, ModuleReferenceOptions>>,
   pub dyn_refs: IdentifierIndexMap<FxIndexSet<(String, Atom)>>,
@@ -51,6 +102,7 @@ impl ConcatenationScope {
       concat_module_id,
       current_module,
       modules_map,
+      code_generation_hash: None,
       data: Default::default(),
       refs: IdentifierIndexMap::default(),
       dyn_refs: Default::default(),
@@ -60,6 +112,21 @@ impl ConcatenationScope {
 
   pub fn is_module_in_scope(&self, module: &ModuleIdentifier) -> bool {
     self.modules_map.contains_key(module)
+  }
+
+  pub fn with_code_generation_hash(mut self, hash: RspackHashDigest) -> Self {
+    self.code_generation_hash = Some(hash);
+    self
+  }
+
+  pub fn into_code_generation_data(self) -> ConcatenationCodeGenerationData {
+    ConcatenationCodeGenerationData {
+      namespace_export_symbol: self.current_module.namespace_export_symbol,
+      export_map: self.current_module.export_map,
+      raw_export_map: self.current_module.raw_export_map,
+      import_map: self.current_module.import_map,
+      refs: self.refs,
+    }
   }
 
   /**

@@ -3,7 +3,7 @@ use std::{collections::hash_map::Entry, fmt::Debug};
 use dyn_clone::{DynClone, clone_trait_object};
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
-  with::{AsCacheable, AsInner, AsMap, AsOption, AsPreset, AsVec, Unsupported},
+  with::{AsCacheable, AsInner, AsMap, AsPreset, AsVec},
 };
 use rspack_collections::IdentifierMap;
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHash, RspackHashDigest, RspackHasher};
@@ -17,8 +17,9 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet};
 use serde::Serialize;
 
 use crate::{
-  ArtifactExt, AssetInfo, BindingCell, ChunkInitFragments, ConcatenationScope, ModuleIdentifier,
-  RuntimeGlobals, RuntimeSpec, RuntimeSpecMap, SourceType, incremental::IncrementalPasses,
+  ArtifactExt, AssetInfo, BindingCell, ChunkInitFragments, ConcatenationCodeGenerationData,
+  ConcatenationScope, ModuleIdentifier, RuntimeGlobals, RuntimeSpec, RuntimeSpecMap, SourceType,
+  incremental::IncrementalPasses,
 };
 
 #[cacheable]
@@ -228,8 +229,7 @@ pub struct CodeGenerationResult {
   pub runtime_requirements: RuntimeGlobals,
   pub hash: Option<RspackHashDigest>,
   pub id: CodeGenResultId,
-  #[cacheable(with=AsOption<Unsupported>)]
-  pub concatenation_scope: Option<ConcatenationScope>,
+  pub concatenation_data: Option<ConcatenationCodeGenerationData>,
 }
 
 impl CodeGenerationResult {

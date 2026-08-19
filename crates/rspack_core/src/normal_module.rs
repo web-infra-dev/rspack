@@ -28,12 +28,13 @@ use tracing::{Instrument, info_span};
 use crate::{
   AsyncDependenciesBlockIdentifier, BoxDependencyTemplate, BoxLoader, BoxModule,
   BoxModuleDependency, BuildContext, BuildInfo, BuildMeta, BuildResult, ChunkGraph,
-  CodeGenerationResult, Compilation, ConnectionState, Context, DependenciesBlock, DependencyId,
-  FactoryMeta, GenerateContext, GeneratorOptions, ImportPhase, LibIdentOptions, Module,
-  ModuleCodeGenerationContext, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
-  ModuleLayer, ModuleType, OptimizationBailoutItem, OutputOptions, ParseContext, ParseResult,
-  ParserAndGenerator, ParserOptions, Resolve, ResolvedModuleOptions, RspackLoaderRunnerPlugin,
-  RunnerContext, RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, SourceType, contextify,
+  CodeGenerationResult, Compilation, ConcatenationScope, ConnectionState, Context,
+  DependenciesBlock, DependencyId, FactoryMeta, GenerateContext, GeneratorOptions, ImportPhase,
+  LibIdentOptions, Module, ModuleCodeGenerationContext, ModuleGraph, ModuleGraphCacheArtifact,
+  ModuleIdentifier, ModuleLayer, ModuleType, OptimizationBailoutItem, OutputOptions, ParseContext,
+  ParseResult, ParserAndGenerator, ParserOptions, Resolve, ResolvedModuleOptions,
+  RspackLoaderRunnerPlugin, RunnerContext, RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact,
+  SourceType, contextify,
   diagnostics::ModuleBuildError,
   get_context, module_analyzed_side_effect_free, module_declared_side_effect_free,
   module_update_hash,
@@ -639,7 +640,8 @@ impl Module for NormalModule {
           SourceType::JavaScript,
           RawStringSource::from(format!("throw new Error({});\n", json!(error))).boxed(),
         );
-        code_generation_result.concatenation_scope = std::mem::take(concatenation_scope);
+        code_generation_result.concatenation_data =
+          std::mem::take(concatenation_scope).map(ConcatenationScope::into_code_generation_data);
       }
       return Ok(code_generation_result);
     }
@@ -683,7 +685,8 @@ impl Module for NormalModule {
         code_generation_result.add(*source_type, CachedSource::new(generation_result).boxed());
       }
     }
-    code_generation_result.concatenation_scope = std::mem::take(concatenation_scope);
+    code_generation_result.concatenation_data =
+      std::mem::take(concatenation_scope).map(ConcatenationScope::into_code_generation_data);
     Ok(code_generation_result)
   }
 

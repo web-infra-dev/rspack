@@ -304,10 +304,11 @@ impl ChunkGraph {
     compilation: &mut Compilation,
     module_identifier: ModuleIdentifier,
     hashes: RuntimeSpecMap<RspackHashDigest>,
+    code_generation_hash: Option<RspackHashDigest>,
   ) -> bool {
     compilation
       .cgm_hash_artifact
-      .set_hashes(module_identifier, hashes)
+      .set_hashes(module_identifier, hashes, code_generation_hash)
   }
 
   pub fn try_get_module_chunks(

@@ -24,6 +24,7 @@ use rspack_core::{
   rspack_sources::{ReplaceSource, Source},
 };
 use rspack_error::{Diagnostic, Result};
+use rspack_hash::{RspackHash, RspackHashDigest, RspackHasher};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{
   JavascriptModulesRenderChunkContent, JsPlugin, RenderSource,
@@ -66,6 +67,8 @@ pub struct EsmLibraryPlugin {
   // and read-only access the map, so it receives the map as an Arc
   pub(crate) concatenated_modules_map_for_codegen:
     AtomicRefCell<Arc<IdentifierIndexMap<ModuleInfo>>>,
+  pub(crate) concatenation_scope_code_generation_hashes:
+    AtomicRefCell<IdentifierMap<RspackHashDigest>>,
   pub(crate) concatenated_modules_map: RwLock<IdentifierIndexMap<ModuleInfo>>,
   pub(crate) links: AtomicRefCell<FxHashMap<ChunkUkey, ChunkLinkContext>>,
   pub(crate) chunk_ids_to_ukey: AtomicRefCell<FxHashMap<String, ChunkUkey>>,
@@ -82,6 +85,7 @@ impl EsmLibraryPlugin {
     Self::new_inner(
       preserve_modules,
       split_chunks,
+      Default::default(),
       Default::default(),
       Default::default(),
       Default::default(),
@@ -245,6 +249,10 @@ impl EsmLibraryPlugin {
         }
       }
     }
+
+    let code_generation_hashes =
+      get_concatenation_scope_code_generation_hashes(compilation, module_graph, &modules_map);
+    *self.concatenation_scope_code_generation_hashes.borrow_mut() = code_generation_hashes;
 
     // only used for scope
     // we mutably modify data in `self.concatenated_modules_map`
@@ -420,6 +428,10 @@ async fn finish_modules(
     }
   }
 
+  let code_generation_hashes =
+    get_concatenation_scope_code_generation_hashes(compilation, module_graph, &modules_map);
+  *self.concatenation_scope_code_generation_hashes.borrow_mut() = code_generation_hashes;
+
   // only used for scope
   // we mutably modify data in `self.concatenated_modules_map`
   let mut map = self.concatenated_modules_map_for_codegen.borrow_mut();
@@ -461,12 +473,77 @@ async fn concatenation_scope(
   let ModuleInfo::Concatenated(current_module) = current_module else {
     return Ok(None);
   };
+  let code_generation_hash = self
+    .concatenation_scope_code_generation_hashes
+    .borrow()
+    .get(&module)
+    .cloned()
+    .expect("concatenated module should have a code generation hash");
   let scope = ConcatenationScope::new(
     current_module.module,
     modules_map.clone(),
     current_module.as_ref().clone(),
-  );
+  )
+  .with_code_generation_hash(code_generation_hash);
   Ok(Some(scope))
+}
+
+fn get_concatenation_scope_code_generation_hashes(
+  compilation: &Compilation,
+  module_graph: &ModuleGraph,
+  modules_map: &IdentifierIndexMap<ModuleInfo>,
+) -> IdentifierMap<RspackHashDigest> {
+  modules_map
+    .iter()
+    .filter(|(_, info)| matches!(info, ModuleInfo::Concatenated(_)))
+    .map(|(module, _)| {
+      (
+        *module,
+        get_concatenation_scope_code_generation_hash(
+          compilation,
+          module_graph,
+          *module,
+          modules_map,
+        ),
+      )
+    })
+    .collect()
+}
+
+fn get_concatenation_scope_code_generation_hash(
+  compilation: &Compilation,
+  module_graph: &ModuleGraph,
+  module: ModuleIdentifier,
+  modules_map: &IdentifierIndexMap<ModuleInfo>,
+) -> RspackHashDigest {
+  let mut hasher = RspackHasher::from(&compilation.options.output);
+  "esm-library-concatenation-scope-v1".hash(&mut hasher);
+
+  // Code generation only looks up dependency targets in `modules_map`, and observes their
+  // membership, kind, and index. Target identity and the rest of the module graph are already
+  // covered by the module runtime hash, so hashing this projection keeps the fingerprint portable.
+  for dependency in module_graph.get_outgoing_deps_in_order(&module) {
+    "dependency".hash(&mut hasher);
+    let Some(referenced_module) = module_graph.module_identifier_by_dependency_id(dependency)
+    else {
+      "unresolved".hash(&mut hasher);
+      continue;
+    };
+
+    match modules_map.get(referenced_module) {
+      Some(ModuleInfo::Concatenated(info)) => {
+        "concatenated".hash(&mut hasher);
+        info.index.hash(&mut hasher);
+      }
+      Some(ModuleInfo::External(info)) => {
+        "external".hash(&mut hasher);
+        info.index.hash(&mut hasher);
+      }
+      None => "out-of-scope".hash(&mut hasher),
+    }
+  }
+
+  hasher.digest(&compilation.options.output.hash_digest)
 }
 
 #[plugin_hook(CompilationAfterCodeGeneration for EsmLibraryPlugin)]

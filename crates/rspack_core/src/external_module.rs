@@ -1242,7 +1242,8 @@ impl Module for ExternalModule {
         }
       }
     };
-    cgr.concatenation_scope = std::mem::take(concatenation_scope);
+    cgr.concatenation_data =
+      std::mem::take(concatenation_scope).map(ConcatenationScope::into_code_generation_data);
     Ok(cgr)
   }
 

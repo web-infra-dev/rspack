@@ -1510,12 +1510,11 @@ var {} = {{}};
                     runtime_template,
                   )
                   .await?;
-                *concate_info = codegen_res
-                  .concatenation_scope
+                codegen_res
+                  .concatenation_data
                   .as_ref()
-                  .expect("should have concatenation scope")
-                  .current_module
-                  .clone();
+                  .expect("should have concatenation code generation data")
+                  .apply_to(&mut concate_info);
 
                 let m = module_graph
                   .module_by_identifier(&id)
@@ -2727,12 +2726,12 @@ var {} = {{}};
         }
 
         let codegen_res = compilation.code_generation_results.get(&m, None);
-        let concatenation_scope = codegen_res
-          .concatenation_scope
+        let concatenation_data = codegen_res
+          .concatenation_data
           .as_ref()
-          .expect("should have concatenation scope for scope hoisted module");
+          .expect("should have concatenation code generation data for scope hoisted module");
 
-        for (ref_module, all_refs) in &concatenation_scope.refs {
+        for (ref_module, all_refs) in &concatenation_data.refs {
           // import all atoms from ref_module
           for (ref_string, options) in all_refs.iter() {
             if refs.contains_key(ref_string) {

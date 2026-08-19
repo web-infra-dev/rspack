@@ -8,7 +8,10 @@ use std::{
 
 use rayon::prelude::*;
 use regex::Regex;
-use rspack_cacheable::{cacheable, cacheable_dyn, with::As};
+use rspack_cacheable::{
+  cacheable, cacheable_dyn,
+  with::{As, AsOption, AsPreset, AsVec},
+};
 use rspack_collections::{
   Identifiable, Identifier, IdentifierIndexMap, IdentifierIndexSet, IdentifierMap, IdentifierSet,
 };
@@ -278,9 +281,12 @@ impl ConcatenationEntryExternal {
   }
 }
 
+#[cacheable]
 #[derive(Clone, Debug, Default)]
 pub struct ConcatenatedImportMapItem {
+  #[cacheable(with=AsVec<AsPreset>)]
   pub specifiers: HashSet<Atom>,
+  #[cacheable(with=AsOption<AsPreset>)]
   pub namespace: Option<Atom>,
 }
 
@@ -2586,7 +2592,7 @@ impl ConcatenatedModule {
         mut inner,
         mut data,
         mut runtime_requirements,
-        concatenation_scope,
+        concatenation_data,
         ..
       } = codegen_res;
 
@@ -2596,12 +2602,13 @@ impl ConcatenatedModule {
         .map(|fragments| mem::take(fragments.inner_mut()))
         .unwrap_or_default();
 
-      let concatenation_scope = concatenation_scope.expect("should have concatenation_scope");
+      let concatenation_data =
+        concatenation_data.expect("should have concatenation code generation data");
       let source = inner
         .remove(&SourceType::JavaScript)
         .expect("should have javascript source");
       let source_code = source.source().into_string_lossy();
-      let mut module_info = concatenation_scope.current_module;
+      let mut module_info = concatenation_data.into_module_info(info.clone());
 
       let jsx = module
         .as_ref()
