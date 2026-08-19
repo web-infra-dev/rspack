@@ -61,10 +61,8 @@ mod warm_cache_missing_dependencies {
 mod windows {
   use std::path::PathBuf;
 
-  use rustc_hash::FxHashSet;
-
   use super::super::memory_fs::MemoryFS;
-  use crate::{ResolveContext, ResolveOptions, ResolverGeneric, ResolverPath};
+  use crate::{ArcPath, ArcPathSet, ResolveContext, ResolveOptions, ResolverGeneric};
 
   fn file_system() -> MemoryFS {
     MemoryFS::new(&[
@@ -161,13 +159,13 @@ mod windows {
         .await
         .map(|r| r.full_path());
       assert_eq!(resolved, Ok(PathBuf::from(result)));
-      let file_dependencies: FxHashSet<ResolverPath> = file_dependencies
+      let file_dependencies: ArcPathSet = file_dependencies
         .iter()
-        .map(|p| ResolverPath::from(PathBuf::from(p)))
+        .map(|p| ArcPath::from(PathBuf::from(p)))
         .collect();
-      let missing_dependencies: FxHashSet<ResolverPath> = missing_dependencies
+      let missing_dependencies: ArcPathSet = missing_dependencies
         .iter()
-        .map(|p| ResolverPath::from(PathBuf::from(p)))
+        .map(|p| ArcPath::from(PathBuf::from(p)))
         .collect();
       assert_eq!(ctx.file_dependencies, file_dependencies, "{name}");
       assert_eq!(ctx.missing_dependencies, missing_dependencies, "{name}");

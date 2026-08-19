@@ -4149,7 +4149,6 @@ dependencies = [
  "rkyv 0.8.18",
  "rspack-allocative",
  "rspack_cacheable_macros",
- "rspack_resolver",
  "rspack_sources",
  "rustc-hash",
  "serde_json",
@@ -4179,7 +4178,6 @@ dependencies = [
  "lightningcss",
  "once_cell",
  "rspack_cacheable",
- "rspack_resolver",
  "rspack_sources",
  "rustc-hash",
  "serde_json",
@@ -4370,6 +4368,15 @@ dependencies = [
  "serde_json",
  "simd-json",
  "tracing",
+]
+
+[[package]]
+name = "rspack_intern"
+version = "0.102.0-beta.1"
+dependencies = [
+ "dashmap",
+ "rustc-hash",
+ "triomphe",
 ]
 
 [[package]]
@@ -4593,7 +4600,7 @@ dependencies = [
  "dashmap",
  "indexmap",
  "rspack_cacheable",
- "rspack_resolver",
+ "rspack_intern",
  "rustc-hash",
  "ustr-fxhash",
 ]
@@ -5533,6 +5540,7 @@ dependencies = [
  "normalize-path",
  "pnp",
  "regex",
+ "rspack_paths",
  "rustc-hash",
  "serde",
  "serde_json",
