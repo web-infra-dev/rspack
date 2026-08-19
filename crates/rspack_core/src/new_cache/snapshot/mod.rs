@@ -18,13 +18,6 @@ pub struct SnapshotEntry {
   strategy: Strategy,
 }
 
-#[cacheable]
-#[derive(Debug, Default)]
-pub(super) struct BuildDependenciesSnapshot {
-  dependencies: ArcPathSet,
-  snapshots: Vec<SnapshotEntry>,
-}
-
 /// Creates and validates filesystem snapshots stored by the new cache.
 #[derive(Debug)]
 pub struct Snapshot {

@@ -8,6 +8,7 @@ mod file_cache_strategy;
 mod idle_file_cache;
 mod memory_cache;
 mod snapshot;
+mod validator;
 
 use std::sync::Arc;
 

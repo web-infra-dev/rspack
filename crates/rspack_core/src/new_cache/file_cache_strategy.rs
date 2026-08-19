@@ -1,6 +1,5 @@
 use std::{fmt, sync::Arc};
 
-use rspack_cacheable::cacheable;
 use rspack_error::Result;
 use rspack_paths::{ArcPathSet, Utf8PathBuf};
 use rustc_hash::FxHashMap;
@@ -8,46 +7,13 @@ use rustc_hash::FxHashMap;
 use super::{
   CacheKey, Etag,
   cache_value::{CacheEntry, CacheValueDecoder, CacheValueEncoder, ErasedCacheValue},
-  db::{Database, DatabaseFamily, DatabaseWrite},
-  snapshot::{BuildDependenciesSnapshot, BuildDeps, BuildDepsValidationResult, Snapshot},
+  db::{Database, DatabaseFamily, DatabaseValue, DatabaseWrite},
+  snapshot::{BuildDeps, Snapshot},
+  validator::{CacheValidator, CacheValidatorResult},
 };
 use crate::cache::persistent::codec::CacheCodec;
 
 const VALIDATOR_KEY: &[u8] = b"validator";
-
-#[cacheable]
-#[derive(Debug)]
-struct CacheValidator {
-  rspack_pkg_version: String,
-  cache_version: String,
-  build_dependencies: BuildDependenciesSnapshot,
-}
-
-impl CacheValidator {
-  fn new(rspack_pkg_version: String, cache_version: String) -> Self {
-    Self {
-      rspack_pkg_version,
-      cache_version,
-      build_dependencies: Default::default(),
-    }
-  }
-
-  fn has_same_version(&self, other: &Self) -> bool {
-    self.rspack_pkg_version == other.rspack_pkg_version && self.cache_version == other.cache_version
-  }
-}
-
-enum CacheValidatorResult {
-  InvalidVersion,
-  Valid {
-    validator: CacheValidator,
-    tracked_files: usize,
-  },
-  InvalidBuildDependencies {
-    modified_files: ArcPathSet,
-    removed_files: ArcPathSet,
-  },
-}
 
 #[derive(Debug, Default)]
 struct PendingWrites {
@@ -65,8 +31,6 @@ struct PendingWrite {
 pub struct FileCacheStrategy {
   validator: CacheValidator,
   codec: Arc<CacheCodec>,
-  snapshot: Snapshot,
-  build_deps: BuildDeps,
   database: Database,
   pending_writes: PendingWrites,
   readonly: bool,
@@ -95,10 +59,14 @@ impl FileCacheStrategy {
   ) -> Result<Self> {
     let database = Database::open(base_path, database_path, readonly)?;
     Ok(Self {
-      validator: CacheValidator::new(rspack_pkg_version, cache_version),
+      validator: CacheValidator::new(
+        rspack_pkg_version,
+        cache_version,
+        codec.clone(),
+        snapshot,
+        build_deps,
+      ),
       codec,
-      snapshot,
-      build_deps,
       database,
       pending_writes: PendingWrites::default(),
       readonly,
@@ -108,20 +76,16 @@ impl FileCacheStrategy {
   /// Validates the current database's build dependencies once before the
   /// background job starts serving commands.
   pub async fn db_validation(&mut self) -> Result<()> {
-    let data = self
+    let data: Option<DatabaseValue> = self
       .database
       .get(DatabaseFamily::Validator, VALIDATOR_KEY)?;
-    let validation = self.validate_cache(data.as_deref()).await;
+    let validation = self.validator.validate(data.as_deref()).await;
     match validation {
       Ok(CacheValidatorResult::InvalidVersion) => {
         tracing::info!("Resetting persistent cache database because cache version changed");
         self.database.reset()?;
       }
-      Ok(CacheValidatorResult::Valid {
-        validator,
-        tracked_files,
-      }) => {
-        self.validator = validator;
+      Ok(CacheValidatorResult::Valid { tracked_files }) => {
         tracing::debug!(tracked_files, "Build dependencies snapshot is valid");
       }
       Ok(CacheValidatorResult::InvalidBuildDependencies {
@@ -143,33 +107,6 @@ impl FileCacheStrategy {
       }
     }
     Ok(())
-  }
-
-  async fn validate_cache(&self, data: Option<&[u8]>) -> Result<CacheValidatorResult> {
-    let Some(data) = data else {
-      return Ok(CacheValidatorResult::InvalidVersion);
-    };
-    let validator = self.codec.decode::<CacheValidator>(data)?;
-    if !validator.has_same_version(&self.validator) {
-      return Ok(CacheValidatorResult::InvalidVersion);
-    }
-    let validation = self
-      .build_deps
-      .validate_snapshot(&self.snapshot, &validator.build_dependencies)
-      .await;
-    Ok(match validation {
-      BuildDepsValidationResult::Valid { tracked_files } => CacheValidatorResult::Valid {
-        validator,
-        tracked_files,
-      },
-      BuildDepsValidationResult::Invalid {
-        modified_files,
-        removed_files,
-      } => CacheValidatorResult::InvalidBuildDependencies {
-        modified_files,
-        removed_files,
-      },
-    })
   }
 
   pub(super) fn store(
@@ -234,15 +171,7 @@ impl FileCacheStrategy {
 
     if self.has_pending_writes() {
       let encoded_validator = if let Some(dependencies) = &self.pending_writes.build_dependencies {
-        self
-          .build_deps
-          .update_snapshot(
-            &self.snapshot,
-            &mut self.validator.build_dependencies,
-            dependencies.iter().cloned(),
-          )
-          .await;
-        Some(self.codec.encode(&self.validator)?)
+        Some(self.validator.update(dependencies.iter().cloned()).await?)
       } else {
         None
       };
