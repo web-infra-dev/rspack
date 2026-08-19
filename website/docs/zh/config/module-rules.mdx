@@ -753,6 +753,7 @@ type RuleSetLoaderWithOptions = {
   ident?: string;
   loader: string;
   options?: string | Record<string, any>;
+  cache?: boolean;
   parallel?: boolean | { maxWorkers?: number };
 };
 ```
@@ -835,6 +836,57 @@ export default {
   },
 };
 ```
+
+## rules[].use.cache
+
+<ApiMeta stability={Stability.Experimental} />
+
+- **类型：** `boolean`
+- **默认值：** `false`
+
+为单个 loader 启用缓存。该选项仅在启用 [`experiments.newCache`](/config/experiments) 时生效。
+
+以下任一内容变化时，Rspack 会使对应的 loader 缓存失效：
+
+- 传给 loader 的输入内容；
+- JSON 序列化后的 loader options；
+- loader 实现版本。对于 JavaScript 包形式的 loader，Rspack 使用其包名和版本；对于本地 JavaScript loader，Rspack 会计算解析后入口文件的哈希。
+
+缓存命中时，Rspack 会直接恢复转换后的内容和 source map，不再执行 loader。
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    newCache: true,
+  },
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        use: [
+          {
+            loader: './loaders/expensive-loader.js',
+            options: {
+              mode: 'transform',
+            },
+            cache: true,
+          },
+        ],
+      },
+    ],
+  },
+};
+```
+
+:::warning
+
+该实验性缓存适用于可观测结果仅包含转换后内容和可选 source map 的纯 loader。
+
+- 通过 loader context 动态添加的依赖不会参与缓存校验，缓存命中时也不会恢复这些依赖。
+- 输入 source map 不属于缓存标识的一部分。如果 loader 的结果依赖该 source map，请勿启用此选项。
+- 涉及 `additionalData`、parse metadata 等暂不支持状态的结果不会被缓存。缓存命中时也不会重放 loader 的副作用。
+
+:::
 
 ## rules[].use.parallel
 

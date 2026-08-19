@@ -877,6 +877,8 @@ export type RuleSetLoaderWithOptions = {
 
   /**
    * Cache this loader in `experiments.newCache`.
+   * This is an experimental API and may change or be removed in the future.
+   * @experimental
    */
   cache?: boolean;
 
