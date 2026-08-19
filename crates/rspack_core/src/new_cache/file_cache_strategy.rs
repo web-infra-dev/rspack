@@ -13,6 +13,9 @@ use super::{
 use crate::cache::persistent::codec::CacheCodec;
 
 const BUILD_DEPENDENCIES_KEY: &[u8] = b"build-dependencies";
+// Stored in the snapshot family because the database schema is shared by all
+// cache entries and build dependency snapshots.
+const CACHE_VERSION_KEY: &[u8] = b"cache-version";
 
 #[derive(Debug, Default)]
 struct PendingWrites {
@@ -28,6 +31,7 @@ struct PendingWrite {
 
 /// Filesystem cache implementation scheduled by [`super::IdleFileCache`].
 pub struct FileCacheStrategy {
+  version: String,
   codec: Arc<CacheCodec>,
   snapshot: Snapshot,
   build_deps: BuildDeps,
@@ -51,12 +55,14 @@ impl FileCacheStrategy {
     base_path: Utf8PathBuf,
     database_path: Utf8PathBuf,
     readonly: bool,
+    version: String,
     codec: Arc<CacheCodec>,
     snapshot: Snapshot,
     build_deps: BuildDeps,
   ) -> Result<Self> {
     let database = Database::open(base_path, database_path, readonly)?;
     Ok(Self {
+      version,
       codec,
       snapshot,
       build_deps,
@@ -69,6 +75,16 @@ impl FileCacheStrategy {
   /// Validates the current database's build dependencies once before the
   /// background job starts serving commands.
   pub async fn db_validation(&mut self) -> Result<()> {
+    let cache_version = self
+      .database
+      .get(DatabaseFamily::Snapshot, CACHE_VERSION_KEY)?;
+    if cache_version.as_deref() != Some(self.version.as_bytes()) {
+      tracing::info!("Resetting persistent cache database because cache version changed");
+      self.database.reset()?;
+      self.store_version()?;
+      return Ok(());
+    }
+
     let validation = {
       let build_snapshot: Option<DatabaseValue> = self
         .database
@@ -92,15 +108,28 @@ impl FileCacheStrategy {
           "Resetting persistent cache database because build dependencies changed"
         );
         self.database.reset()?;
+        self.store_version()?;
       }
       Err(error) => {
         tracing::warn!(
           "Resetting persistent cache database because build dependencies validation failed: {error}"
         );
         self.database.reset()?;
+        self.store_version()?;
       }
     }
     Ok(())
+  }
+
+  fn store_version(&mut self) -> Result<()> {
+    if self.readonly {
+      return Ok(());
+    }
+    self.database.write_batch([DatabaseWrite::new(
+      DatabaseFamily::Snapshot,
+      CACHE_VERSION_KEY,
+      self.version.as_bytes(),
+    )])
   }
 
   pub(super) fn store(

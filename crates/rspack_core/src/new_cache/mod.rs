@@ -68,6 +68,7 @@ pub fn create_cache(
     base_path,
     database_path,
     options.readonly,
+    options.version.clone(),
     codec,
     snapshot,
     build_deps,
