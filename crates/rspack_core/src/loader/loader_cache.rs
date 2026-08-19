@@ -4,15 +4,15 @@ use std::{
   sync::{Arc, LazyLock},
 };
 
+use dashmap::DashMap;
 use rspack_collections::Identifiable;
 use rspack_hash::{HashFunction, RspackHasher};
 use rspack_loader_runner::{
   AdditionalData, Content, LoaderCacheAction, LoaderCacheState, LoaderContext, ParseMeta,
 };
-use rspack_paths::Utf8PathBuf;
 use rspack_sources::SourceMap;
-use rspack_util::fx_hash::FxDashMap;
 use rustc_hash::FxHashSet;
+use ustr::Ustr;
 
 use crate::{
   BoxLoader, Context, Module, RunnerContext,
@@ -23,19 +23,19 @@ const LOADER_CACHE_DIRECTORY: &str = "node_modules/.cache/loader-cache";
 
 // Keep a strong process-wide owner so compilers using the same cache directory
 // always share exactly one LoaderCache instance.
-static LOADER_CACHES: LazyLock<FxDashMap<Utf8PathBuf, Arc<LoaderCache>>> =
-  LazyLock::new(FxDashMap::default);
+static LOADER_CACHES: LazyLock<DashMap<Ustr, Arc<LoaderCache>>> =
+  LazyLock::new(DashMap::new);
 
 #[derive(Debug)]
 pub struct LoaderCache {
   // V1 uses this directory as the cache instance identity only. The storage is
   // still memory-only; a later persistent version can remain behind this type.
-  cache_directory: Utf8PathBuf,
+  cache_directory: Ustr,
   storage: MemoryCache,
 }
 
 impl LoaderCache {
-  fn new(cache_directory: Utf8PathBuf) -> Self {
+  fn new(cache_directory: Ustr) -> Self {
     Self {
       cache_directory,
       storage: MemoryCache::default(),
@@ -85,8 +85,9 @@ impl LoaderCache {
 
 pub fn get_loader_cache(context: &Context) -> Arc<LoaderCache> {
   let cache_directory = context.as_path().join(LOADER_CACHE_DIRECTORY);
+  let cache_directory = Ustr::from(cache_directory.as_str());
   LOADER_CACHES
-    .entry(cache_directory.clone())
+    .entry(cache_directory)
     .or_insert_with(|| Arc::new(LoaderCache::new(cache_directory)))
     .clone()
 }
