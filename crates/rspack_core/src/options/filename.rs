@@ -112,7 +112,7 @@ enum StringTemplateSegment {
 
 #[derive(Debug)]
 pub struct CompiledStringTemplate<'template> {
-  template: &'template str,
+  template: Cow<'template, str>,
   placeholder_data: Vec<PlaceholderData>,
   segments: Vec<StringTemplateSegment>,
   has_hash_placeholder: bool,
@@ -121,11 +121,15 @@ pub struct CompiledStringTemplate<'template> {
   full_hash_len: Option<u16>,
   chunk_hash_len: Option<u16>,
   content_hash_len: Option<u16>,
-  template_without_hash_length: OnceLock<Cow<'template, str>>,
+  template_without_hash_length: OnceLock<String>,
 }
 
 impl<'template> CompiledStringTemplate<'template> {
   fn compile(template: &'template str) -> Self {
+    Self::compile_cow(Cow::Borrowed(template))
+  }
+
+  fn compile_cow(template: Cow<'template, str>) -> Self {
     debug_assert!(template.len() <= MAX_TEMPLATE_LEN);
 
     let mut placeholder_data = Vec::new();
@@ -234,25 +238,22 @@ impl<'template> CompiledStringTemplate<'template> {
     output
   }
 
-  pub fn template(&self) -> &'template str {
-    self.template
+  pub fn template(&self) -> &str {
+    self.template.as_ref()
   }
 
   pub fn without_hash_length(&self) -> &str {
-    self
-      .template_without_hash_length
-      .get_or_init(|| {
-        if self.hash_len.is_none()
-          && self.full_hash_len.is_none()
-          && self.chunk_hash_len.is_none()
-          && self.content_hash_len.is_none()
-        {
-          Cow::Borrowed(self.template)
-        } else {
-          Cow::Owned(self.build_template_without_hash_length())
-        }
-      })
-      .as_ref()
+    if self.hash_len.is_none()
+      && self.full_hash_len.is_none()
+      && self.chunk_hash_len.is_none()
+      && self.content_hash_len.is_none()
+    {
+      self.template.as_ref()
+    } else {
+      self
+        .template_without_hash_length
+        .get_or_init(|| self.build_template_without_hash_length())
+    }
   }
 
   pub fn hash_len(&self) -> Option<usize> {
@@ -453,10 +454,27 @@ impl Filename {
     self.template().unwrap_or("")
   }
 
-  pub fn compiled(&self) -> Option<Arc<CompiledStringTemplate<'static>>> {
+  pub fn compiled_template(&self) -> Option<Arc<CompiledStringTemplate<'static>>> {
     match self.0 {
       FilenameKind::Template(template) => Some(get_or_compile(template)),
       FilenameKind::Fn(_) => None,
+    }
+  }
+
+  pub async fn compiled(
+    &self,
+    options: PathData<'_>,
+    asset_info: Option<&AssetInfo>,
+  ) -> rspack_error::Result<Arc<CompiledStringTemplate<'static>>> {
+    match &self.0 {
+      FilenameKind::Template(template) => Ok(get_or_compile(*template)),
+      FilenameKind::Fn(filename_fn) => {
+        let template = filename_fn.call(&options, asset_info).await?;
+        assert_template_len(&template);
+        Ok(Arc::new(CompiledStringTemplate::compile_cow(Cow::Owned(
+          template,
+        ))))
+      }
     }
   }
 
@@ -495,18 +513,8 @@ impl Filename {
     asset_info: Option<&mut AssetInfo>,
     renderer: impl FnMut(StringTemplatePlaceholder, &mut String) -> bool,
   ) -> rspack_error::Result<String> {
-    match &self.0 {
-      FilenameKind::Template(template) => {
-        let compiled = get_or_compile(*template);
-        Ok(compiled.render_with_path_data(options, asset_info, renderer))
-      }
-      FilenameKind::Fn(filename_fn) => {
-        let template = filename_fn.call(&options, asset_info.as_deref()).await?;
-        assert_template_len(&template);
-        let compiled = CompiledStringTemplate::compile(&template);
-        Ok(compiled.render_with_path_data(options, asset_info, renderer))
-      }
-    }
+    let compiled = self.compiled(options, asset_info.as_deref()).await?;
+    Ok(compiled.render_with_path_data(options, asset_info, renderer))
   }
 }
 

@@ -187,14 +187,24 @@ async fn render_wasm_module_path(
   chunk_ukey: &rspack_core::ChunkUkey,
 ) -> rspack_error::Result<String> {
   let filename = &compilation.options.output.webassembly_module_filename;
-  let compiled = filename.compiled();
-  let fake_filename = compiled.as_ref().map_or_else(
-    || filename.clone(),
-    |compiled| rspack_core::Filename::from(compiled.without_hash_length()),
-  );
-  let hash_len = compiled
-    .as_ref()
-    .and_then(|compiled| compiled.content_hash_len().or(compiled.hash_len()));
+  let chunk = compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .expect_get(chunk_ukey);
+  let full_hash = "\" + wasmModuleHash + \"".to_string();
+  let id = PathData::prepare_id("\" + wasmModuleId + \"");
+  let compiled = filename
+    .compiled(
+      PathData::default()
+        .hash(&full_hash)
+        .content_hash(&full_hash)
+        .id(id.as_ref())
+        .runtime(chunk.runtime().as_str()),
+      None,
+    )
+    .await?;
+  let fake_filename = rspack_core::Filename::from(compiled.without_hash_length());
+  let hash_len = compiled.content_hash_len().or(compiled.hash_len());
 
   // Even use content hash when [hash] in webpack
   let hash = match hash_len {
@@ -203,20 +213,16 @@ async fn render_wasm_module_path(
       let hash_len_str = hash_len_buffer.format(hash_len);
       format!("\" + wasmModuleHash.slice(0, {hash_len_str}) + \"")
     }
-    None => "\" + wasmModuleHash + \"".to_string(),
+    None => full_hash,
   };
 
-  let chunk = compilation
-    .build_chunk_graph_artifact
-    .chunk_by_ukey
-    .expect_get(chunk_ukey);
   compilation
     .get_path(
       &fake_filename,
       PathData::default()
         .hash(&hash)
         .content_hash(&hash)
-        .id(&PathData::prepare_id("\" + wasmModuleId + \""))
+        .id(id.as_ref())
         .runtime(chunk.runtime().as_str()),
     )
     .await
