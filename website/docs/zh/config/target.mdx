@@ -8,7 +8,7 @@ import WebpackLicense from '@components/WebpackLicense';
 
 # Target
 
-`target` 用于描述输出代码的运行环境。Rspack 会据此推断可用的平台 API 与 ECMAScript 语法，并为模块解析、externals、chunk 加载方式和 Rspack runtime 代码选择兼容的默认值。
+`target` 用于描述输出代码的运行环境。Rspack 会据此确定目标环境支持的平台 API 和 ECMAScript 语法，并自动设置与该环境兼容的模块解析条件、externals 预设和 chunk 加载方式。Rspack 生成的 runtime 代码也会使用目标环境支持的语法。
 
 当 Rspack 内置的 loader 和压缩插件未显式配置目标时，它们也可以从 `target` 继承默认值。但 `target` 不会为缺失的 API 注入 polyfill。
 
@@ -178,7 +178,7 @@ Rspack 支持以下格式：
 | `browserslist:/path/to/config`        | 使用指定的配置文件                 |
 | `browserslist:/path/to/config:modern` | 使用指定配置文件中的 `modern` 环境 |
 
-最近的配置可以来自 `.browserslistrc`，也可以来自 `package.json` 中的 `browserslist` 字段。显式选择 `browserslist` target 时，还可以使用 `BROWSERSLIST` 环境变量。Rspack 支持浏览器和 Node.js 查询，但不支持 Electron 查询。
+最近的配置可以来自 `browserslist` 或 `.browserslistrc` 文件，也可以来自 `package.json` 中的 `browserslist` 字段。显式选择 `browserslist` target 时，还可以使用 `BROWSERSLIST` 环境变量。Rspack 支持浏览器和 Node.js 查询，但不支持 Electron 查询。
 
 ### Baseline \{#baseline-queries}
 
@@ -202,6 +202,17 @@ Rspack 使用 [browserslist-rs](https://github.com/browserslist/browserslist-rs)
 ## 禁用 target
 
 仅在需要用自定义配置替代 target 推断时，才将 `target` 设为 `false`。这会禁用所有由 target 派生的默认值。
+
+以下是使用 CommonJS chunk 格式的最小配置：
+
+```js title="rspack.config.mjs"
+export default {
+  target: false,
+  output: {
+    chunkFormat: 'commonjs',
+  },
+};
+```
 
 只配置 `target: false` 会构建失败，因为 Rspack 无法推断 [`output.chunkFormat`](/config/output#outputchunkformat)。必须显式设置 `output.chunkFormat`，然后根据运行环境按需配置 `output.environment`、chunk 加载、解析条件和 externals 预设等选项。
 
