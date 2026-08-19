@@ -13,8 +13,7 @@ use super::{
 use crate::cache::persistent::codec::CacheCodec;
 
 const BUILD_DEPENDENCIES_KEY: &[u8] = b"build-dependencies";
-// Stored in the snapshot family because the database schema is shared by all
-// cache entries and build dependency snapshots.
+// The cache version and build dependency snapshot share the metadata family.
 const CACHE_VERSION_KEY: &[u8] = b"cache-version";
 
 #[derive(Debug, Default)]
@@ -75,9 +74,7 @@ impl FileCacheStrategy {
   /// Validates the current database's build dependencies once before the
   /// background job starts serving commands.
   pub async fn db_validation(&mut self) -> Result<()> {
-    let cache_version = self
-      .database
-      .get(DatabaseFamily::Snapshot, CACHE_VERSION_KEY)?;
+    let cache_version = self.database.get(DatabaseFamily::Meta, CACHE_VERSION_KEY)?;
     if cache_version.as_deref() != Some(self.version.as_bytes()) {
       tracing::info!("Resetting persistent cache database because cache version changed");
       self.database.reset()?;
@@ -88,7 +85,7 @@ impl FileCacheStrategy {
     let validation = {
       let build_snapshot: Option<DatabaseValue> = self
         .database
-        .get(DatabaseFamily::Snapshot, BUILD_DEPENDENCIES_KEY)?;
+        .get(DatabaseFamily::Meta, BUILD_DEPENDENCIES_KEY)?;
       self
         .build_deps
         .validate_snapshot(&self.codec, &self.snapshot, build_snapshot.as_deref())
@@ -126,7 +123,7 @@ impl FileCacheStrategy {
       return Ok(());
     }
     self.database.write_batch([DatabaseWrite::new(
-      DatabaseFamily::Snapshot,
+      DatabaseFamily::Meta,
       CACHE_VERSION_KEY,
       self.version.as_bytes(),
     )])
@@ -217,7 +214,7 @@ impl FileCacheStrategy {
         })
         .chain(build_snapshot.iter().map(|snapshot| {
           DatabaseWrite::new(
-            DatabaseFamily::Snapshot,
+            DatabaseFamily::Meta,
             BUILD_DEPENDENCIES_KEY,
             snapshot.as_slice(),
           )

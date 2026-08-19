@@ -194,7 +194,7 @@ fn database_config() -> DbConfig<{ DatabaseFamily::COUNT }> {
         kind: FamilyKind::SingleValue,
       },
       FamilyConfig {
-        name: "snapshot",
+        name: "meta",
         kind: FamilyKind::SingleValue,
       },
     ],
