@@ -118,7 +118,7 @@ pub(crate) fn before_normal_loader(
 
 pub(crate) fn after_normal_loader(
   context: &LoaderContext<RunnerContext>,
-  state: Box<LoaderCacheMissState>,
+  state: &LoaderCacheMissState,
 ) -> Result<()> {
   if !context.cacheable
     || context.diagnostics.len() != state.diagnostics_len
@@ -148,7 +148,7 @@ pub(crate) fn after_normal_loader(
     &context.context.loader_cache,
     module_identifier.as_str(),
     loader_name,
-    state.etag,
+    state.etag.clone(),
   );
   item_cache.store(CacheValue::new(entry))
 }

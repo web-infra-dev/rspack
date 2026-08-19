@@ -17,13 +17,13 @@ module.exports = {
             options: { name: 'left' },
           },
           {
-            loader: path.resolve(__dirname, 'loader.js'),
+            loader: path.resolve(__dirname, 'marked-loader.js'),
             options: { name: 'marked' },
             parallel: { maxWorkers: 1 },
             cache: true,
           },
           {
-            loader: path.resolve(__dirname, 'loader.js'),
+            loader: path.resolve(__dirname, 'right-loader.js'),
             options: { name: 'right' },
             parallel: { maxWorkers: 1 },
             cache: true,

@@ -12,7 +12,7 @@ export const toBuffer = (bufLike: string | Buffer | Uint8Array): Buffer => {
     return Buffer.from(bufLike);
   }
   if (bufLike instanceof Uint8Array) {
-    return Buffer.from(bufLike.buffer);
+    return Buffer.from(bufLike.buffer, bufLike.byteOffset, bufLike.byteLength);
   }
 
   throw new Error('Buffer, Uint8Array or string expected');

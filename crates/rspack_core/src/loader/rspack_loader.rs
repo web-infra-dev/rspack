@@ -142,7 +142,7 @@ impl LoaderRunnerPlugin for RspackLoaderRunnerPlugin {
       context.finish_with_empty();
     }
     if let LoaderCacheAction::Miss(state) = cache_action {
-      after_normal_loader(context, state)?;
+      after_normal_loader(context, &state)?;
     }
     Ok(())
   }

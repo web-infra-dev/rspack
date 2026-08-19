@@ -1375,18 +1375,18 @@ async fn resolve_each_with_options(
   loader: &ModuleRuleUseLoader,
 ) -> Result<ResolvedLoader> {
   let resolved = resolve_each(plugin_driver, context, loader_resolver, loader).await?;
-  let loader_name = parse_resource(&loader.loader)
-    .map(|resource| resource.path.to_string())
-    .unwrap_or_else(|| loader.loader.clone());
-  let loader_version = loader
-    .cache
-    .then(|| {
-      resolved
-        .cache_version()
-        .unwrap_or(rspack_workspace::rspack_pkg_version!())
-        .to_owned()
-    })
-    .unwrap_or_default();
+  let loader_name = parse_resource(&loader.loader).map_or_else(
+    || loader.loader.clone(),
+    |resource| resource.path.to_string(),
+  );
+  let loader_version = if loader.cache {
+    resolved
+      .cache_version()
+      .unwrap_or(rspack_workspace::rspack_pkg_version!())
+      .to_owned()
+  } else {
+    String::new()
+  };
   Ok(ResolvedLoader {
     loader: resolved,
     options: LoaderRunnerOptions {
