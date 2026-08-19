@@ -5,7 +5,7 @@ use rspack_cacheable::with::Unsupported;
 use rspack_core::{
   Chunk, ChunkGraph, ChunkUkey, Compilation, Filename, PathData, RuntimeGlobals,
   RuntimeGlobalsRenderMode, RuntimeModule, RuntimeModuleGenerateContext, RuntimeTemplate,
-  SourceType, has_hash_placeholder, impl_runtime_module,
+  SourceType, impl_runtime_module,
 };
 use rspack_util::{
   fx_hash::{FxIndexMap, FxIndexSet},
@@ -139,9 +139,17 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
     rspack_core::RuntimeModuleRuntimeRequirements {
       dependencies: {
         if (self.source_type == SourceType::JavaScript
-          && has_hash_placeholder(compilation.options.output.chunk_filename.as_str()))
+          && compilation
+            .options
+            .output
+            .chunk_filename
+            .has_hash_placeholder())
           || (self.source_type == SourceType::Css
-            && has_hash_placeholder(compilation.options.output.css_chunk_filename.as_str()))
+            && compilation
+              .options
+              .output
+              .css_chunk_filename
+              .has_hash_placeholder())
         {
           RuntimeGlobals::GET_FULL_HASH
         } else {
