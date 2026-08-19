@@ -8,12 +8,16 @@ use std::{
 };
 
 use regex::Regex;
-use rspack_cacheable::{cacheable, cacheable_dyn};
+use rspack_cacheable::{
+  cacheable, cacheable_dyn,
+  with::{AsPreset, AsVec},
+};
 use rspack_core::{
-  BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, Compilation,
-  CssAutoOrModuleParserOptions, CssBuildInfo, CssExportType, DependencyType, ExportsInfoArtifact,
-  GenerateContext, Module, ModuleGraph, ModuleIdentifier, NormalModule, ParseContext, ParseResult,
-  ParserAndGenerator, ParserOptions, ResolvedModuleOptions, RuntimeSpec, SourceType, UsageState,
+  BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, CodeGenerationDataItem, Compilation,
+  ConcatenationScopeInfoMode, CssAutoOrModuleParserOptions, CssBuildInfo, CssExportType,
+  DependencyType, ExportsInfoArtifact, GenerateContext, GeneratedSource, Module, ModuleGraph,
+  ModuleIdentifier, NormalModule, ParseContext, ParseResult, ParserAndGenerator, ParserOptions,
+  ResolvedModuleOptions, RuntimeSpec, SourceType, UsageState,
   rspack_sources::{BoxSource, Source},
 };
 pub use rspack_core::{CssExport, CssExports};
@@ -34,9 +38,6 @@ use crate::{
 
 static REGEX_IS_MODULES: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"\.module(s)?\.[^.]+$").expect("Invalid regex"));
-
-static REGEX_IS_COMMENTS: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r"/\*[\s\S]*?\*/").expect("Invalid regex"));
 
 pub(crate) static CSS_MODULE_SOURCE_TYPE_LIST: &[SourceType; 1] = &[SourceType::Css];
 
@@ -133,10 +134,15 @@ pub fn get_used_exports<'a>(
   )
 }
 
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct CodeGenerationDataUnusedLocalIdent {
+  #[cacheable(with=AsVec<AsPreset>)]
   pub(crate) idents: FxHashSet<SmolStr>,
 }
+
+#[cacheable_dyn]
+impl CodeGenerationDataItem for CodeGenerationDataUnusedLocalIdent {}
 
 pub fn get_unused_local_ident(
   css_build_info: &CssBuildInfo,
@@ -188,13 +194,13 @@ pub fn get_unused_local_ident(
   })
 }
 
-static REGEX_CUSTOM_PROPERTY_IDENT: LazyLock<Regex> = LazyLock::new(|| {
-  Regex::new(r"(^|[^-_a-zA-Z0-9])--([_a-zA-Z][-_a-zA-Z0-9]*)").expect("Invalid regex")
-});
-
 #[cacheable_dyn]
 #[async_trait::async_trait]
 impl ParserAndGenerator for CssParserAndGenerator {
+  fn concatenation_scope_info_mode(&self) -> ConcatenationScopeInfoMode {
+    ConcatenationScopeInfoMode::GenerateAtCodegen
+  }
+
   fn source_types(&self, module: &dyn Module, module_graph: &ModuleGraph) -> &[SourceType] {
     let export_type = self.effective_export_type(module);
     if matches!(
@@ -284,7 +290,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
     source: &BoxSource,
     module: &dyn rspack_core::Module,
     generate_context: &mut GenerateContext,
-  ) -> Result<BoxSource> {
+  ) -> Result<GeneratedSource> {
     match generate_context.requested_source_type {
       SourceType::Css => Ok(
         CssModuleGenerator::new(
@@ -294,7 +300,8 @@ impl ParserAndGenerator for CssParserAndGenerator {
           self.hot,
           self.es_module,
         )
-        .generate_css_source(),
+        .generate_css_source()
+        .into(),
       ),
       SourceType::JavaScript => CssModuleGenerator::new(
         source.clone(),

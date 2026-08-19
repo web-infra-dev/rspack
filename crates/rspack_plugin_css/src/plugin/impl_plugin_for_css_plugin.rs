@@ -83,7 +83,7 @@ impl CssPlugin {
           .code_generation_results
           .get(module_id, Some(chunk.runtime()));
         code_gen_result
-          .data
+          .data()
           .get::<CodeGenerationDataUnusedLocalIdent>()
           .map(|data| &data.idents)
       })

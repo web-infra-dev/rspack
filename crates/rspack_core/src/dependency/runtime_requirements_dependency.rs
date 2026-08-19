@@ -4,9 +4,9 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_hash::{RspackHash, RspackHasher};
 
 use crate::{
-  Compilation, DependencyCodeGeneration, DependencyRange, DependencyTemplate,
-  DependencyTemplateType, RuntimeGlobals, RuntimeGlobalsRenderMode, RuntimeSpec, TemplateContext,
-  TemplateReplaceSource,
+  CodeGenerationDataItem, Compilation, DependencyCodeGeneration, DependencyRange,
+  DependencyTemplate, DependencyTemplateType, RuntimeGlobals, RuntimeGlobalsRenderMode,
+  RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
 
 #[cacheable]
@@ -182,10 +182,14 @@ impl RuntimeRequirementsDependency {
   }
 }
 
+#[cacheable]
 #[derive(Debug, Default, Clone)]
 pub struct CodeGenerationRuntimeRequirementsWrite {
   pub runtime_requirements: RuntimeGlobals,
 }
+
+#[cacheable_dyn]
+impl CodeGenerationDataItem for CodeGenerationRuntimeRequirementsWrite {}
 
 impl CodeGenerationRuntimeRequirementsWrite {
   pub fn insert(&mut self, runtime_requirements: RuntimeGlobals) {

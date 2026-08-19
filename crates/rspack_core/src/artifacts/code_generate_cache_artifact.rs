@@ -42,17 +42,16 @@ impl CodeGenerateCacheArtifact {
     }
   }
 
-  pub async fn use_cache<G, F>(
+  pub async fn use_cache<F>(
     &self,
     job: &CodeGenerationJob,
-    generator: G,
+    generator: F,
   ) -> (Result<CodeGenerationResult>, bool)
   where
-    G: FnOnce() -> F,
     F: Future<Output = Result<CodeGenerationResult>>,
   {
     let Some(storage) = &self.storage else {
-      let res = generator().await;
+      let res = generator.await;
       return (res, false);
     };
 
@@ -65,7 +64,7 @@ impl CodeGenerateCacheArtifact {
     if let Some(value) = storage.get(&cache_key) {
       (Ok(value), true)
     } else {
-      match generator().await {
+      match generator.await {
         Ok(res) => {
           storage.set(cache_key, res.clone());
           (Ok(res), false)

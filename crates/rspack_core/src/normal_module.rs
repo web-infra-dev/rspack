@@ -18,8 +18,8 @@ use rspack_hash::{RspackHash, RspackHashDigest, RspackHasher};
 use rspack_hook::define_hook;
 use rspack_loader_runner::{AdditionalData, Content, LoaderContext, ResourceData, run_loaders};
 use rspack_sources::{
-  BoxSource, CachedSource, OriginalSource, RawBufferSource, RawStringSource, SourceExt, SourceMap,
-  SourceMapSource, WithoutOriginalOptions,
+  BoxSource, CachedSource, OriginalSource, RawBufferSource, RawStringSource, ReplaceSource,
+  SourceExt, SourceMap, SourceMapSource, WithoutOriginalOptions,
 };
 use rspack_util::source_map::{ModuleSourceMapConfig, SourceMapKind};
 use serde_json::json;
@@ -28,11 +28,12 @@ use tracing::{Instrument, info_span};
 use crate::{
   AsyncDependenciesBlockIdentifier, BoxDependencyTemplate, BoxLoader, BoxModule,
   BoxModuleDependency, BuildContext, BuildInfo, BuildMeta, BuildResult, ChunkGraph,
-  CodeGenerationResult, Compilation, ConnectionState, Context, DependenciesBlock, DependencyId,
-  FactoryMeta, GenerateContext, GeneratorOptions, ImportPhase, LibIdentOptions, Module,
-  ModuleCodeGenerationContext, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
-  ModuleLayer, ModuleType, OptimizationBailoutItem, OutputOptions, ParseContext, ParseResult,
-  ParserAndGenerator, ParserOptions, Resolve, ResolvedModuleOptions, RspackLoaderRunnerPlugin,
+  CodeGenerationResultBuilder, Compilation, ConcatenationScopeInfoMode, ConnectionState, Context,
+  DependenciesBlock, DependencyId, FactoryMeta, GenerateContext, GeneratedSource, GeneratorOptions,
+  ImportPhase, LibIdentOptions, Module, ModuleCodeGenerationContext, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleIdentifier, ModuleLayer, ModuleType, OptimizationBailoutItem,
+  OutputOptions, ParseContext, ParseResult, ParserAndGenerator, ParserOptions,
+  PendingConcatenationScopeInfo, Resolve, ResolvedModuleOptions, RspackLoaderRunnerPlugin,
   RunnerContext, RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, SourceType, contextify,
   diagnostics::ModuleBuildError,
   get_context, module_analyzed_side_effect_free, module_declared_side_effect_free,
@@ -511,6 +512,17 @@ impl Module for NormalModule {
       .map(Into::into)
       .collect();
 
+    if build_context
+      .compiler_options
+      .experiments
+      .faster_module_concatenation
+      && self.parser_and_generator.concatenation_scope_info_mode()
+        == ConcatenationScopeInfoMode::GenerateAtCodegen
+    {
+      self.build_info.pending_concatenation_scope_info =
+        Some(Box::new(PendingConcatenationScopeInfo::Generated));
+    }
+
     if no_parse {
       self.parsed = false;
       self.source = Some(source);
@@ -600,16 +612,17 @@ impl Module for NormalModule {
   async fn code_generation(
     &self,
     code_generation_context: &mut ModuleCodeGenerationContext,
-  ) -> Result<CodeGenerationResult> {
+  ) -> Result<CodeGenerationResultBuilder> {
     let ModuleCodeGenerationContext {
       compilation,
       runtime,
       concatenation_scope,
+      concatenation_source,
       runtime_template,
     } = code_generation_context;
 
     if let Some(error) = self.first_error() {
-      let mut code_generation_result = CodeGenerationResult::default();
+      let mut code_generation_result = CodeGenerationResultBuilder::default();
       let module_graph = compilation.get_module_graph();
 
       // If the module build failed and the module is able to emit JavaScript source,
@@ -623,7 +636,6 @@ impl Module for NormalModule {
           SourceType::JavaScript,
           RawStringSource::from(format!("throw new Error({});\n", json!(error))).boxed(),
         );
-        code_generation_result.concatenation_scope = std::mem::take(concatenation_scope);
       }
       return Ok(code_generation_result);
     }
@@ -634,7 +646,7 @@ impl Module for NormalModule {
       ));
     };
 
-    let mut code_generation_result = CodeGenerationResult::default();
+    let mut code_generation_result = CodeGenerationResultBuilder::default();
     if !self.parsed {
       runtime_template
         .runtime_requirements_mut()
@@ -644,6 +656,15 @@ impl Module for NormalModule {
     let module_graph = compilation.get_module_graph();
     for source_type in self.source_types(module_graph) {
       let in_concatenation = concatenation_scope.is_some();
+      let faster_concatenation = concatenation_scope
+        .as_ref()
+        .is_some_and(|scope| scope.is_faster_module_concatenation());
+      let expects_concatenation_source =
+        faster_concatenation && *source_type == SourceType::JavaScript;
+      let analyzed_concatenation_source = (expects_concatenation_source
+        && self.parser_and_generator.concatenation_scope_info_mode()
+          == ConcatenationScopeInfoMode::AnalyzeAtMake)
+        .then(|| ReplaceSource::new(source.clone()));
       let generation_result = self
         .parser_and_generator
         .generate(
@@ -652,22 +673,42 @@ impl Module for NormalModule {
           &mut GenerateContext {
             compilation,
             runtime_template,
-            data: &mut code_generation_result.data,
+            data: code_generation_result.data_mut(),
             requested_source_type: *source_type,
             module_parser_options: self.parser_and_generator_options.parser_options(),
             module_generator_options: self.parser_and_generator_options.generator_options(),
             runtime: *runtime,
-            concatenation_scope: concatenation_scope.as_mut(),
+            concatenation_scope: concatenation_scope.as_deref_mut(),
+            analyzed_concatenation_source,
           },
         )
         .await?;
-      if in_concatenation {
-        code_generation_result.add(*source_type, generation_result);
-      } else {
-        code_generation_result.add(*source_type, CachedSource::new(generation_result).boxed());
+      match (expects_concatenation_source, generation_result) {
+        (true, GeneratedSource::Concatenation(source)) => {
+          let previous = concatenation_source.replace(source);
+          debug_assert!(previous.is_none());
+        }
+        (true, GeneratedSource::Source(_)) => {
+          return Err(error!(
+            "module {} entered faster module concatenation, but its generator returned an untyped JavaScript source",
+            self.identifier()
+          ));
+        }
+        (false, GeneratedSource::Concatenation(_)) => {
+          return Err(error!(
+            "module {} returned a faster concatenation source outside faster JavaScript concatenation",
+            self.identifier()
+          ));
+        }
+        (false, GeneratedSource::Source(source)) => {
+          if in_concatenation {
+            code_generation_result.add(*source_type, source);
+          } else {
+            code_generation_result.add(*source_type, CachedSource::new(source).boxed());
+          }
+        }
       }
     }
-    code_generation_result.concatenation_scope = std::mem::take(concatenation_scope);
     Ok(code_generation_result)
   }
 
@@ -806,6 +847,10 @@ impl Module for NormalModule {
     self
       .parser_and_generator
       .get_concatenation_bailout_reason(self, mg, cg)
+  }
+
+  fn concatenation_scope_info_mode(&self) -> ConcatenationScopeInfoMode {
+    self.parser_and_generator.concatenation_scope_info_mode()
   }
 
   fn factory_meta(&self) -> Option<&FactoryMeta> {

@@ -11,8 +11,9 @@ use tokio::sync::oneshot::Sender;
 use super::context::{ExecutorTaskContext, ImportModuleMeta};
 use crate::{
   Chunk, ChunkGraph, ChunkKind, ChunkUkey, CodeGenerationDataAssetInfo, CodeGenerationDataFilename,
-  CodeGenerationResult, Compilation, CompilationAsset, CompilationAssets, EntryOptions, Entrypoint,
-  FactorizeInfo, ModuleCodeGenerationContext, ModuleType, PublicPath, RuntimeSpec, SourceType,
+  CodeGenerationResult, CodeGenerationResultBuilder, Compilation, CompilationAsset,
+  CompilationAssets, EntryOptions, Entrypoint, FactorizeInfo, ModuleCodeGenerationContext,
+  ModuleType, PublicPath, RuntimeSpec, SourceType,
   compilation::{
     code_generation::code_generation_modules,
     create_module_hashes::create_module_hashes,
@@ -124,9 +125,14 @@ fn create_execute_runtime_source(
   source.push_str(&metadata.render_context_setter_assignments(runtime_context));
 
   (!source.is_empty()).then(|| {
+    let mut code_generation_result = CodeGenerationResultBuilder::default();
+    code_generation_result.add(
+      SourceType::JavaScript,
+      RawStringSource::from(source).boxed(),
+    );
     (
       Identifier::from("rspack/runtime/execute_module_runtime"),
-      CodeGenerationResult::default().with_javascript(RawStringSource::from(source).boxed()),
+      code_generation_result.build(),
     )
   })
 }
@@ -426,6 +432,7 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
         compilation: &compilation,
         runtime: None,
         concatenation_scope: None,
+        concatenation_source: None,
         runtime_template: &mut runtime_template,
       };
       let result = runtime_module
@@ -437,7 +444,9 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
         runtime_module.identifier(),
         runtime_module_source.size() as f64,
       );
-      let result = CodeGenerationResult::default().with_javascript(runtime_module_source.clone());
+      let mut code_generation_result = CodeGenerationResultBuilder::default();
+      code_generation_result.add(SourceType::JavaScript, runtime_module_source.clone());
+      let result = code_generation_result.build();
 
       compilation.code_generation_results.insert(
         *runtime_id,
@@ -482,8 +491,8 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
           let codegen_result = compilation.code_generation_results.get(m, Some(&runtime));
 
           if let Some(source) = codegen_result.get(&SourceType::Asset)
-            && let Some(filename) = codegen_result.data.get::<CodeGenerationDataFilename>()
-            && let Some(asset_info) = codegen_result.data.get::<CodeGenerationDataAssetInfo>()
+            && let Some(filename) = codegen_result.data().get::<CodeGenerationDataFilename>()
+            && let Some(asset_info) = codegen_result.data().get::<CodeGenerationDataAssetInfo>()
           {
             let filename = filename.filename();
             compilation.emit_asset(

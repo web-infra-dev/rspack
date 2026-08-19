@@ -5,7 +5,7 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
   AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta,
-  BuildResult, ChunkGraph, CodeGenerationResult, Compilation, Context, DependenciesBlock,
+  BuildResult, ChunkGraph, CodeGenerationResultBuilder, Compilation, Context, DependenciesBlock,
   Dependency, DependencyId, ExportsType, FactoryMeta, LibIdentOptions, Module,
   ModuleCodeGenerationContext, ModuleGraph, ModuleIdentifier, ModuleType, RuntimeSpec, SourceType,
   impl_module_meta_info, impl_source_map_config, module_update_hash,
@@ -203,8 +203,8 @@ impl Module for RemoteModule {
   async fn code_generation(
     &self,
     code_generation_context: &mut ModuleCodeGenerationContext,
-  ) -> Result<CodeGenerationResult> {
-    let mut codegen = CodeGenerationResult::default();
+  ) -> Result<CodeGenerationResultBuilder> {
+    let mut codegen = CodeGenerationResultBuilder::default();
     let module_graph = code_generation_context.compilation.get_module_graph();
     let module = module_graph.get_module_by_dependency_id(&self.dependencies[0]);
     let id = module.and_then(|m| {
@@ -214,7 +214,7 @@ impl Module for RemoteModule {
       )
     });
     codegen.add(SourceType::Remote, RawStringSource::from_static("").boxed());
-    codegen.data.insert(CodeGenerationDataShareInit {
+    codegen.data_mut().insert(CodeGenerationDataShareInit {
       items: vec![ShareInitData {
         share_scope: self.share_scope.clone(),
         init_stage: 20,

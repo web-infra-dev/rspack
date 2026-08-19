@@ -64,6 +64,7 @@ export type KnownAssetInfo = {
   development?: boolean;
   hotModuleReplacement?: boolean;
   javascriptModule?: boolean;
+  isOverSizeLimit?: boolean;
   related?: Record<string, string | string[]>;
 };
 
@@ -126,6 +127,7 @@ export type KnownStatsModule = {
   errors?: number;
   warnings?: number;
   reasons?: StatsModuleReason[];
+  filteredReasons?: number;
   usedExports?: boolean | string[] | null;
   providedExports?: string[] | null;
   optimizationBailout?: string[] | null;
@@ -260,11 +262,13 @@ export type KnownStatsCompilation = {
   rspackVersion?: string;
   name?: string;
   hash?: string;
+  env?: any;
   time?: number;
   builtAt?: number;
   publicPath?: string;
   outputPath?: string;
   assets?: StatsAsset[];
+  filteredAssets?: number;
   assetsByChunkName?: Record<string, string[]>;
   chunks?: StatsChunk[];
   modules?: StatsModule[];
@@ -272,16 +276,16 @@ export type KnownStatsCompilation = {
   namedChunkGroups?: Record<string, StatsChunkGroup>;
   errors?: StatsError[];
   errorsCount?: number;
+  filteredErrorDetailsCount?: number;
   warnings?: StatsError[];
   warningsCount?: number;
+  filteredWarningDetailsCount?: number;
   filteredModules?: number;
   children?: StatsCompilation[];
   logging?: Record<string, StatsLogging>;
 
   // TODO: not aligned with webpack
-  // env?: any;
   // needAdditionalPass?: boolean;
-  // filteredAssets?: number;
 };
 
 export type StatsCompilation = KnownStatsCompilation & Record<string, any>;

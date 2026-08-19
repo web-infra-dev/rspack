@@ -1,7 +1,6 @@
 {
   "recommendations": [
-    "rstack.rstest",
-    "rstack.rslint",
+    "rstack.rstack",
     "streetsidesoftware.code-spell-checker",
     "tamasfe.even-better-toml",
     "rust-lang.rust-analyzer",

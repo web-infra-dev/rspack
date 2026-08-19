@@ -663,6 +663,10 @@ impl<'parser> JavascriptParser<'parser> {
     }
   }
 
+  pub fn compiler_options(&self) -> &CompilerOptions {
+    self.compiler_options
+  }
+
   pub fn add_dependency(&mut self, mut dep: BoxDependency) {
     if let Some(guard) = &self.current_branch_guard {
       guard.bind_dependency(dep.as_mut());

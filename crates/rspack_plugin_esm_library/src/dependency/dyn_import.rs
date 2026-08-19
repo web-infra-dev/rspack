@@ -317,7 +317,7 @@ impl DynamicImportDependencyTemplate {
       ))
     };
 
-    let Some(concatenation_scope) = &mut code_generatable_context.concatenation_scope else {
+    let Some(concatenation_scope) = source.concatenation_scope() else {
       // if we are not in a concatenation scope, then all its children are not scope hoisted as well
       // we can safely use __rspack_require to fetch module
       return Some(format!(

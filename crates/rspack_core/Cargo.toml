@@ -27,6 +27,7 @@ indoc                      = { workspace = true }
 inventory                  = { workspace = true }
 itertools                  = { workspace = true }
 json                       = { workspace = true }
+memchr                     = { workspace = true }
 mime_guess                 = { workspace = true }
 napi                       = { workspace = true, optional = true }
 num-bigint                 = { workspace = true }
@@ -48,7 +49,7 @@ rspack_location            = { workspace = true }
 rspack_macros              = { workspace = true }
 rspack_napi                = { workspace = true, optional = true }
 rspack_parallel            = { workspace = true }
-rspack_paths               = { workspace = true }
+rspack_paths               = { workspace = true, features = ["cacheable"] }
 rspack_regex               = { workspace = true }
 rspack_resolver            = { workspace = true }
 rspack_sources             = { workspace = true }

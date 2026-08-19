@@ -1,8 +1,8 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  DependencyCodeGeneration, DependencyTemplate, DependencyTemplateType, InitFragmentKey,
-  InitFragmentStage, ModuleGraph, NormalInitFragment, RuntimeGlobals, TemplateContext,
-  TemplateReplaceSource, UsageState,
+  ChunkGraph, DependencyCodeGeneration, DependencyTemplate, DependencyTemplateType,
+  InitFragmentKey, InitFragmentStage, ModuleGraph, NormalInitFragment, RuntimeGlobals,
+  TemplateContext, TemplateReplaceSource, UsageState,
 };
 use swc_atoms::Atom;
 
@@ -33,7 +33,7 @@ impl DependencyTemplate for ESMCompatibilityDependencyTemplate {
   fn render(
     &self,
     _dep: &dyn DependencyCodeGeneration,
-    _source: &mut TemplateReplaceSource,
+    source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {
     let TemplateContext {
@@ -41,11 +41,10 @@ impl DependencyTemplate for ESMCompatibilityDependencyTemplate {
       compilation,
       module,
       runtime,
-      concatenation_scope,
       runtime_template,
       ..
     } = code_generatable_context;
-    if concatenation_scope.is_some() {
+    if source.concatenation_scope().is_some() {
       return;
     }
     let module_graph = compilation.get_module_graph();
@@ -74,6 +73,10 @@ impl DependencyTemplate for ESMCompatibilityDependencyTemplate {
     }
 
     if ModuleGraph::is_async(&compilation.async_modules_artifact, &module.identifier()) {
+      let module_id =
+        ChunkGraph::get_module_id(&compilation.module_ids_artifact, module.identifier())
+          .map(ToString::to_string)
+          .unwrap_or_default();
       init_fragments.push(Box::new(NormalInitFragment::new(
         format!(
           "{}({}, async function (__rspack_load_async_deps, __rspack_async_done) {{ try {{\n",
@@ -87,7 +90,7 @@ impl DependencyTemplate for ESMCompatibilityDependencyTemplate {
         ),
         InitFragmentStage::StageAsyncBoundary,
         0,
-        InitFragmentKey::unique(),
+        InitFragmentKey::AsyncBoundary(module_id),
         Some(format!(
           "\n__rspack_async_done();\n}} catch(e) {{ __rspack_async_done(e); }} }}{});",
           if module.build_meta().has_top_level_await() {

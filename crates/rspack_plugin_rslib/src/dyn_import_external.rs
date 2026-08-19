@@ -248,7 +248,7 @@ impl DependencyTemplate for ImportDependencyTemplate {
   fn render(
     &self,
     dep: &dyn rspack_core::DependencyCodeGeneration,
-    source: &mut rspack_core::rspack_sources::ReplaceSource,
+    source: &mut rspack_core::TemplateReplaceSource,
     code_generatable_context: &mut rspack_core::TemplateContext,
   ) {
     let dep = dep
@@ -279,7 +279,7 @@ impl DependencyTemplate for ExportImportedDependencyTemplate {
   fn render(
     &self,
     dep: &dyn rspack_core::DependencyCodeGeneration,
-    source: &mut rspack_core::rspack_sources::ReplaceSource,
+    source: &mut rspack_core::TemplateReplaceSource,
     code_generatable_context: &mut rspack_core::TemplateContext,
   ) {
     let dep = dep

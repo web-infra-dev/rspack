@@ -475,7 +475,11 @@ impl Module {
   )]
   pub fn blocks(&mut self) -> napi::Result<Vec<AsyncDependenciesBlockWrapper>> {
     self.with_ref(|compilation, module| {
-      let module_graph = compilation.get_module_graph();
+      let Some(module_graph) = compilation.try_get_module_graph() else {
+        return Err(napi::Error::from_reason(
+          "Module.blocks is unavailable while the module graph is under construction (e.g. inside a loader during compilation.rebuildModule)",
+        ));
+      };
       let blocks = module.get_blocks();
       Ok(
         blocks
@@ -493,7 +497,11 @@ impl Module {
   #[napi(getter, ts_return_type = "Dependency[]")]
   pub fn dependencies(&mut self) -> napi::Result<Vec<DependencyWrapper>> {
     self.with_ref(|compilation, module| {
-      let module_graph = compilation.get_module_graph();
+      let Some(module_graph) = compilation.try_get_module_graph() else {
+        return Err(napi::Error::from_reason(
+          "Module.dependencies is unavailable while the module graph is under construction (e.g. inside a loader during compilation.rebuildModule)",
+        ));
+      };
       let dependencies = module.get_dependencies();
       Ok(
         dependencies

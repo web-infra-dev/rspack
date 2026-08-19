@@ -27,7 +27,7 @@ pub struct BuildModuleGraphArtifact {
   pub affected_dependencies: IncrementalInfo<DependencyId>,
   /// The modules which mgm.issuer() has been updated in cutout::fix_issuers.
   ///
-  /// This field is empty on a cold start.
+  /// This field is empty on the initial compilation.
   pub issuer_update_modules: IdentifierSet,
 
   // data

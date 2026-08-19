@@ -7,7 +7,7 @@ use rspack_core::{
   TemplateContext, TemplateReplaceSource,
 };
 
-use crate::utils::{AUTO_PUBLIC_PATH_PLACEHOLDER, css_escape_string};
+use crate::{css_syntax::serialize_url_value, utils::AUTO_PUBLIC_PATH_PLACEHOLDER};
 
 #[cacheable]
 #[derive(Debug, Clone)]
@@ -38,9 +38,9 @@ impl CssUrlDependency {
     // url points to asset modules, and asset modules should have same codegen results for all runtimes
     let code_gen_result = compilation.code_generation_results.get_one(identifier);
 
-    if let Some(url) = code_gen_result.data.get::<CodeGenerationDataUrl>() {
+    if let Some(url) = code_gen_result.data().get::<CodeGenerationDataUrl>() {
       Some(url.inner().to_string())
-    } else if let Some(data) = code_gen_result.data.get::<CodeGenerationDataFilename>() {
+    } else if let Some(data) = code_gen_result.data().get::<CodeGenerationDataFilename>() {
       let filename = data.filename();
       let public_path = data.public_path().cow_replace(
         "__RSPACK_PLUGIN_ASSET_AUTO_PUBLIC_PATH__",
@@ -132,7 +132,7 @@ impl DependencyTemplate for CssUrlDependencyTemplate {
       .module_graph_module_by_dependency_id(dep.id())
       && let Some(target_url) = dep.get_target_url(&mgm.module_identifier, compilation)
     {
-      let target_url = css_escape_string(&target_url);
+      let target_url = serialize_url_value(&target_url);
       let content = if dep.replace_function {
         format!("url({target_url})")
       } else {

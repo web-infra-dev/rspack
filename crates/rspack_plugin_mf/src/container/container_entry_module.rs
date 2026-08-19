@@ -5,13 +5,13 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildContext,
-  BuildInfo, BuildMeta, BuildMetaExportsType, BuildResult, ChunkGroupOptions, CodeGenerationResult,
-  CodeGenerationRuntimeRequirementsWrite, Compilation, Context, DependenciesBlock, Dependency,
-  DependencyId, DependencyType, ExportsArgument, FactoryMeta, GroupOptions, LibIdentOptions,
-  Module, ModuleCodeGenerationContext, ModuleCodeTemplate, ModuleDependency, ModuleGraph,
-  ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeGlobalsRenderMode, RuntimeSpec, SourceType,
-  StaticExportsDependency, StaticExportsSpec, impl_module_meta_info, impl_source_map_config,
-  module_update_hash,
+  BuildInfo, BuildMeta, BuildMetaExportsType, BuildResult, ChunkGroupOptions,
+  CodeGenerationDataItem, CodeGenerationResultBuilder, CodeGenerationRuntimeRequirementsWrite,
+  Compilation, Context, DependenciesBlock, Dependency, DependencyId, DependencyType,
+  ExportsArgument, FactoryMeta, GroupOptions, LibIdentOptions, Module, ModuleCodeGenerationContext,
+  ModuleCodeTemplate, ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleType, RuntimeGlobals,
+  RuntimeGlobalsRenderMode, RuntimeSpec, SourceType, StaticExportsDependency, StaticExportsSpec,
+  impl_module_meta_info, impl_source_map_config, module_update_hash,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
   runtime_mode::RuntimeMode,
 };
@@ -253,14 +253,14 @@ impl Module for ContainerEntryModule {
   async fn code_generation(
     &self,
     code_generation_context: &mut ModuleCodeGenerationContext,
-  ) -> Result<CodeGenerationResult> {
+  ) -> Result<CodeGenerationResultBuilder> {
     let ModuleCodeGenerationContext {
       compilation,
       runtime_template,
       ..
     } = code_generation_context;
 
-    let mut code_generation_result = CodeGenerationResult::default();
+    let mut code_generation_result = CodeGenerationResultBuilder::default();
     let require_name = module_require_scope_name(compilation, runtime_template);
     let runtime_argument = require_name.clone();
 
@@ -334,8 +334,10 @@ impl Module for ContainerEntryModule {
       );
 
       // Update the code generation result with the generated source
-      code_generation_result =
-        code_generation_result.with_javascript(RawStringSource::from(source).boxed());
+      code_generation_result.add(
+        SourceType::JavaScript,
+        RawStringSource::from(source).boxed(),
+      );
       code_generation_result.add(SourceType::Expose, RawStringSource::from_static("").boxed());
       return Ok(code_generation_result);
     }
@@ -431,19 +433,21 @@ var init = function(shareScope, initScope) {{
         export_init = runtime_template.returning_function("init", ""),
       )
     };
-    code_generation_result =
-      code_generation_result.with_javascript(RawStringSource::from(source).boxed());
+    code_generation_result.add(
+      SourceType::JavaScript,
+      RawStringSource::from(source).boxed(),
+    );
     code_generation_result.add(SourceType::Expose, RawStringSource::from_static("").boxed());
     if !self.enhanced {
       code_generation_result
-        .data
+        .data_mut()
         .insert(CodeGenerationRuntimeRequirementsWrite {
           runtime_requirements: RuntimeGlobals::CURRENT_REMOTE_GET_SCOPE,
         });
     }
     if self.enhanced {
       code_generation_result
-        .data
+        .data_mut()
         .insert(CodeGenerationDataExpose {
           module_map,
           module_map_runtime_requirements,
@@ -466,6 +470,7 @@ var init = function(shareScope, initScope) {{
 
 impl_empty_diagnosable_trait!(ContainerEntryModule);
 
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct ExposeModuleMap(Vec<(String, String)>);
 
@@ -540,9 +545,13 @@ impl ExposeModuleMap {
   }
 }
 
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct CodeGenerationDataExpose {
   pub module_map: ExposeModuleMap,
   pub module_map_runtime_requirements: RuntimeGlobals,
   pub share_scope: ShareScope,
 }
+
+#[cacheable_dyn]
+impl CodeGenerationDataItem for CodeGenerationDataExpose {}

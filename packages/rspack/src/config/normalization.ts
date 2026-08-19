@@ -649,6 +649,7 @@ export interface ExperimentsNormalized {
   css?: boolean;
   futureDefaults?: boolean;
   newCache?: boolean;
+  fasterModuleConcatenation?: boolean;
   buildHttp?: HttpUriPluginOptions;
   useInputFileSystem?: false | RegExp[];
   nativeWatcher?: boolean;

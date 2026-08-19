@@ -231,7 +231,7 @@ pub fn collect_module_original_sources(
 
       let mut source = source;
 
-      let (map, result_map) = compilation.code_generation_results.inner();
+      let map = compilation.code_generation_results.inner();
       let module_identifier = module.identifier();
       let code_gen_key = if map.contains_key(&module_identifier) {
         &module_identifier
@@ -240,10 +240,9 @@ pub fn collect_module_original_sources(
       };
 
       if let Some(entry) = map.get(code_gen_key)
-        && let Some(id) = entry.values().next()
-        && let Some(res) = result_map.get(id)
+        && let Some(res) = entry.values().next()
       {
-        source.size = res.inner().values().map(|s| s.size() as i32).sum();
+        source.size = res.sources().values().map(|s| s.size() as i32).sum();
       }
 
       Some(source)

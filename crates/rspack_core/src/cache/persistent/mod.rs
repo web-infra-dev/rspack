@@ -186,8 +186,8 @@ impl Cache for PersistentCache {
       return;
     }
 
-    if let Some(artifact) = self.ctx.load_occasion(&self.make_occasion).await {
-      *compilation.build_module_graph_artifact = artifact;
+    if let Some(cache_item) = self.ctx.load_occasion(&self.make_occasion).await {
+      *compilation.build_module_graph_artifact = cache_item;
       for (module, _) in compilation
         .build_module_graph_artifact
         .get_module_graph()
@@ -210,33 +210,33 @@ impl Cache for PersistentCache {
       return;
     }
 
-    let artifact = self
+    let cache_item = self
       .ctx
       .load_occasion(&self.minimize_occasion)
       .await
       .unwrap_or_default();
-    compilation.minimize_persistent_cache_artifact = Some(artifact);
+    compilation.minimize_persistent_cache = Some(cache_item);
 
     if compilation.use_source_map_dev_tool_plugin_cache {
-      let artifact = self
+      let cache_item = self
         .ctx
         .load_occasion(&self.source_map_dev_tool_plugin_occasion)
         .await
         .unwrap_or_default();
-      compilation.source_map_dev_tool_plugin_cache_artifact = Some(artifact);
+      compilation.source_map_dev_tool_plugin_cache = Some(cache_item);
     }
   }
 
   async fn after_process_assets(&mut self, compilation: &Compilation) {
-    if let Some(artifact) = &compilation.minimize_persistent_cache_artifact {
-      self.ctx.save_occasion(&self.minimize_occasion, artifact);
+    if let Some(cache_item) = &compilation.minimize_persistent_cache {
+      self.ctx.save_occasion(&self.minimize_occasion, cache_item);
     }
     if compilation.use_source_map_dev_tool_plugin_cache
-      && let Some(artifact) = &compilation.source_map_dev_tool_plugin_cache_artifact
+      && let Some(cache_item) = &compilation.source_map_dev_tool_plugin_cache
     {
       self
         .ctx
-        .save_occasion(&self.source_map_dev_tool_plugin_occasion, artifact);
+        .save_occasion(&self.source_map_dev_tool_plugin_occasion, cache_item);
     }
   }
 

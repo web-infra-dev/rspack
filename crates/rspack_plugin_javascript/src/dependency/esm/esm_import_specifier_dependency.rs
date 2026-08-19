@@ -430,6 +430,11 @@ impl DependencyCodeGeneration for ESMImportSpecifierDependency {
 #[derive(Debug, Clone, Default)]
 pub struct ESMImportSpecifierDependencyTemplate;
 
+enum ImportExpression {
+  Generated(String),
+  Tracked(String),
+}
+
 impl ESMImportSpecifierDependencyTemplate {
   pub fn template_type() -> DependencyTemplateType {
     DependencyTemplateType::Dependency(DependencyType::EsmImportSpecifier)
@@ -440,19 +445,19 @@ impl ESMImportSpecifierDependencyTemplate {
     ids: &[Atom],
     dep: &ESMImportSpecifierDependency,
     connection: Option<&ModuleGraphConnection>,
+    source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
-  ) -> String {
+  ) -> ImportExpression {
     let TemplateContext {
       compilation,
-      concatenation_scope,
       runtime,
       ..
     } = code_generatable_context;
-    if let Some(scope) = concatenation_scope
+    if let Some(scope) = source.concatenation_scope()
       && let Some(con) = connection
       && scope.is_module_in_scope(con.module_identifier())
     {
-      if ids.is_empty() {
+      let expression = if ids.is_empty() {
         scope.create_module_reference(
           con.module_identifier(),
           ModuleReferenceOptions {
@@ -500,7 +505,8 @@ impl ESMImportSpecifierDependencyTemplate {
             ..Default::default()
           },
         )
-      }
+      };
+      ImportExpression::Tracked(expression)
     } else {
       let mg = code_generatable_context.compilation.get_module_graph();
       let target_module = mg.get_module_by_dependency_id(&dep.id);
@@ -511,7 +517,14 @@ impl ESMImportSpecifierDependencyTemplate {
         dep.phase,
         code_generatable_context.runtime,
       );
-      esm_import_dependency_apply(dep, dep.source_order, dep.phase, code_generatable_context);
+      let rendered_import_var = source.ensure_generated_top_level_symbol(import_var);
+      esm_import_dependency_apply(
+        dep,
+        dep.source_order,
+        dep.phase,
+        source,
+        code_generatable_context,
+      );
       let TemplateContext {
         compilation,
         module,
@@ -520,21 +533,21 @@ impl ESMImportSpecifierDependencyTemplate {
         runtime_template,
         ..
       } = code_generatable_context;
-      runtime_template.export_from_import(
+      ImportExpression::Generated(runtime_template.export_from_import(
         compilation,
         init_fragments,
         module.identifier(),
         *runtime,
         true,
         &dep.request,
-        &import_var,
+        &rendered_import_var,
         ids,
         &dep.id,
         dep.call,
         !dep.direct_import,
         Some(dep.shorthand || dep.asi_safe),
         dep.phase,
-      )
+      ))
     }
   }
 
@@ -626,20 +639,30 @@ impl ESMImportSpecifierDependencyTemplate {
             UsedName::Inlined(_) => unreachable!("Inlined must be provided"),
           })
         else {
+          source.ignore_original_scope_range(dep.range);
           return;
         };
         let code = self.get_code_for_ids(
           &ids[..(ids.len() - 1)],
           dep,
           connection,
+          source,
           code_generatable_context,
         );
-        source.replace(
-          dep.range.start,
-          dep.range.end,
-          format!("{} in {code}", json_stringify_str(used_name.as_str())),
-          None,
-        )
+        match code {
+          ImportExpression::Generated(code) => source.replace(
+            dep.range.start,
+            dep.range.end,
+            format!("{} in {code}", json_stringify_str(used_name.as_str())),
+            None,
+          ),
+          ImportExpression::Tracked(code) => source.replace_with_tracked_used_names(
+            dep.range.start,
+            dep.range.end,
+            format!("{} in {code}", json_stringify_str(used_name.as_str())),
+            None,
+          ),
+        }
       }
     }
   }
@@ -694,12 +717,25 @@ impl DependencyTemplate for ESMImportSpecifierDependencyTemplate {
       );
     }
 
-    let export_expr = self.get_code_for_ids(ids, dep, connection, code_generatable_context);
+    let export_expr = self.get_code_for_ids(ids, dep, connection, source, code_generatable_context);
 
-    if dep.shorthand {
-      source.insert(dep.range.end, format!(": {export_expr}"), None);
-    } else {
-      source.replace(dep.range.start, dep.range.end, export_expr, None);
+    match (dep.shorthand, export_expr) {
+      (true, ImportExpression::Generated(export_expr)) => {
+        source.insert_shorthand_value(dep.range.end, dep.range, format!(": {export_expr}"), None)
+      }
+      (true, ImportExpression::Tracked(export_expr)) => source
+        .insert_shorthand_value_with_tracked_used_names(
+          dep.range.end,
+          dep.range,
+          format!(": {export_expr}"),
+          None,
+        ),
+      (false, ImportExpression::Generated(export_expr)) => {
+        source.replace(dep.range.start, dep.range.end, export_expr, None)
+      }
+      (false, ImportExpression::Tracked(export_expr)) => {
+        source.replace_with_tracked_used_names(dep.range.start, dep.range.end, export_expr, None)
+      }
     }
 
     let module_graph = code_generatable_context.compilation.get_module_graph();
@@ -761,12 +797,23 @@ impl DependencyTemplate for ESMImportSpecifierDependencyTemplate {
 
         let comment = to_normal_comment(prop.id.as_str());
         let key = format!("{comment}{new_name}");
-        let content = if prop.shorthand {
-          format!("{key}: {}", prop.id)
+        if source.faster_concatenation_scope().is_some() {
+          if prop.shorthand {
+            // Keep the original identifier as the local binding. Its make-time
+            // scope info is still needed by concatenation to deconflict the
+            // binding and all of its references.
+            source.insert_non_shorthand(prop.range.start, prop.range, format!("{key}: "), None);
+          } else {
+            source.replace(prop.range.start, prop.range.end, key, None);
+          }
         } else {
-          key
-        };
-        source.replace(prop.range.start, prop.range.end, content, None);
+          let content = if prop.shorthand {
+            format!("{key}: {}", prop.id)
+          } else {
+            key
+          };
+          source.replace(prop.range.start, prop.range.end, content, None);
+        }
       });
     }
   }
