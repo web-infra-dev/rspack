@@ -87,7 +87,7 @@ if (module.hot) {
 此功能内部依赖于 `Promise`。如果你在旧版浏览器中使用 `import()`，请记得使用类似于 [core-js](https://github.com/zloirock/core-js)， [es6-promise](https://github.com/stefanpenner/es6-promise) 或 [promise-polyfill](https://github.com/taylorhakes/promise-polyfill) 的 polyfill 来模拟 `Promise`。
 :::
 
-#### import() 中的动态表达式
+### import() 中的动态表达式
 
 `import()` 无法使用完全动态的导入语句，例如 `import(foo)`。因为 `foo` 可能是系统或项目中任何文件的任何路径。
 
@@ -103,7 +103,7 @@ import(`./locale/${language}.json`).then((module) => {
 });
 ```
 
-#### 魔法注释 \{#magic-comments}
+### import() 中的魔法注释 \{#magic-comments}
 
 <ApiMeta specific={['Rspack', 'Webpack']} />
 
@@ -111,6 +111,8 @@ import(`./locale/${language}.json`).then((module) => {
 
 :::tip
 从 Rspack 2.1.0 开始，推荐使用下方的 `rspack` 前缀魔法注释。对应的 `webpack` 前缀注释仍会被兼容支持，例如 `webpackIgnore` 等价于 `rspackIgnore`。
+
+下方示例统一使用 `rspack` 前缀；如需兼容 webpack，可以将其替换为对应的 `webpack` 前缀。
 :::
 
 ```js
@@ -134,9 +136,10 @@ import(
 );
 ```
 
-##### rspackIgnore / webpackIgnore \{#rspackignore}
+#### rspackIgnore \{#rspackignore}
 
 - **类型：** `boolean`
+- **webpack 兼容名称：** `webpackIgnore`
 
 设置为 `true` 时，Rspack 将跳过对该动态导入的静态分析和打包处理。具体表现为：
 
@@ -148,14 +151,6 @@ import(
 
 ```js
 import('https://esm.sh/react' /* rspackIgnore: true */).then((React) => {
-  console.log(React.version); // 19.0.0
-});
-```
-
-也支持等价的 `webpackIgnore` 注释：
-
-```js
-import('https://esm.sh/react' /* webpackIgnore: true */).then((React) => {
   console.log(React.version); // 19.0.0
 });
 ```
@@ -173,75 +168,172 @@ const url2 = new URL(/* rspackIgnore: true */ './index.css', import.meta.url);
 const url3 = new URL(/* webpackIgnore: true */ './index.css', import.meta.url);
 ```
 
-##### rspackMode / webpackMode \{#rspackmode}
+#### rspackMode \{#rspackmode}
 
 - **类型：** `"eager" | "lazy" | "weak" | "lazy-once"`
+- **webpack 兼容名称：** `webpackMode`
 - **默认值：** `'lazy'`
 
 可以指定以不同的模式解析动态导入。支持以下选项：
 
-- `'lazy'` (默认值)：为每个 `import()` 导入的模块生成一个可延迟加载（lazy-loadable）的 chunk。
-- `'lazy-once'`：生成一个可以满足所有 `import()` 调用的单个可延迟加载（lazy-loadable）的 chunk。此 chunk 将在第一次 `import()` 时调用时获取，随后的 `import()` 则使用相同的网络响应。注意，这种模式仅在部分动态语句中有意义，例如 `import("./locales/${language}.json")`，其中可能含有多个被请求的模块路径。
-- `'eager'`：不会生成额外的 chunk。所有的模块都被当前的 chunk 引入，并且没有额外的网络请求。但是仍会返回一个 resolved 状态的 Promise。与静态导入相比，在调用 `import()` 完成之前，该模块不会被执行。
-- `'weak'`：尝试加载模块，如果该模块函数已经以其他方式加载，（即另一个 chunk 导入过此模块，或包含模块的脚本被加载）。仍会返回 Promise， 但是只有在客户端上已经有该 chunk 时才会成功解析。如果该模块不可用，则返回 rejected 状态的 Promise，且网络请求永远都不会执行。当需要的 chunks 始终在（嵌入在页面中的）初始请求中手动提供，而不是在应用程序导航在最初没有提供的模块导入的情况下触发，这对于通用渲染（SSR）是非常有用的。
+- `'lazy'`（默认值）：为每个可能导入的模块生成一个可延迟加载的 chunk。
+- `'lazy-once'`：将动态导入上下文中的所有可能模块生成到同一个异步 chunk 中。第一次调用 `import()` 时加载该 chunk，后续调用会复用它。此模式适用于 `import('./locales/' + language + '.json')` 这类可能匹配多个模块的动态表达式。
+- `'eager'`：不生成额外的 chunk，而是将所有可能的模块放入当前 chunk，因此不会产生额外的网络请求。`import()` 仍然返回 Promise，且模块要等到调用 `import()` 时才会执行。
+- `'weak'`：仅在模块已通过其他方式加载时才解析成功，例如模块已包含在另一个加载完成的 chunk 中。此模式不会发起网络请求；如果模块不可用，Promise 会被拒绝。它主要用于由服务端确保所需 chunk 已包含在初始响应中的 SSR 场景。
 
-##### rspackPrefetch / webpackPrefetch \{#rspackprefetch}
+例如，使用 `lazy-once` 将所有可能的语言模块合并到同一个异步 chunk 中：
+
+```js
+const language = detectVisitorLanguage();
+const messages = await import(
+  /* rspackMode: "lazy-once" */
+  `./locales/${language}.js`
+);
+```
+
+#### rspackPrefetch \{#rspackprefetch}
 
 - **类型：**
-  - `number`: 预取优先级
-  - `boolean`: `false` 表示不预取, `true` 表示预取并且优先级是 `0`
+  - `number`：预取优先级
+  - `boolean`：`false` 表示不预取，`true` 表示预取且优先级为 `0`
+- **webpack 兼容名称：** `webpackPrefetch`
 
 告诉浏览器将来可能需要该资源来进行某些导航跳转，详情请查看[预取/预载模块](/guide/optimization/code-splitting#prefetchingpreloading-模块)。
 
-##### rspackPreload / webpackPreload \{#rspackpreload}
+例如，当父 chunk 加载后，浏览器会在空闲时预取编辑器 chunk：
+
+```js
+export function openEditor() {
+  return import(
+    /* rspackPrefetch: true */
+    './editor.js'
+  );
+}
+```
+
+也可以使用数字设置预取优先级：
+
+```js
+import(/* rspackPrefetch: 10 */ './editor.js');
+```
+
+#### rspackPreload \{#rspackpreload}
 
 - **类型：**
-  - `number`: 预载优先级
-  - `boolean`: `false` 表示不预载, `true` 表示预载并且优先级是 `0`
+  - `number`：预载优先级
+  - `boolean`：`false` 表示不预载，`true` 表示预载且优先级为 `0`
+- **webpack 兼容名称：** `webpackPreload`
 
 告诉浏览器在当前导航期间可能需要该资源，详情请查看[预取/预载模块](/guide/optimization/code-splitting#prefetchingpreloading-模块)。
 
-##### rspackChunkName / webpackChunkName \{#rspackchunkname}
+例如，在加载父 chunk 的同时预载图表库：
 
-- **类型：**: `string`
+```js
+export async function renderDashboard() {
+  const { renderChart } = await import(
+    /* rspackPreload: true */
+    './chart.js'
+  );
+
+  renderChart();
+}
+```
+
+#### rspackChunkName \{#rspackchunkname}
+
+- **类型：** `string`
+- **webpack 兼容名称：** `webpackChunkName`
 
 指定新 chunk 的名称。
 
-##### rspackFetchPriority / webpackFetchPriority \{#rspackfetchpriority}
+```js
+const settings = await import(
+  /* rspackChunkName: "settings" */
+  './settings.js'
+);
+```
+
+最终文件名仍由 [`output.chunkFilename`](/config/output#outputchunkfilename) 决定。
+
+#### rspackFetchPriority \{#rspackfetchpriority}
 
 <ApiMeta addedVersion="1.0.0" />
 
-- **类型：**: `"low" | "high" | "auto"`
+- **类型：** `"low" | "high" | "auto"`
+- **webpack 兼容名称：** `webpackFetchPriority`
 
 为指定的动态导入设置 [`fetchPriority`](https://developer.mozilla.org/en-US/docs/Web/API/HTMLImageElement/fetchPriority)。也可以通过使用 `module.parser.javascript.dynamicImportFetchPriority` 选项为所有动态导入设置全局默认值。
 
-##### rspackInclude / webpackInclude \{#rspackinclude}
+例如，为首屏关键模块设置较高的获取优先级：
+
+```js
+const hero = await import(
+  /* rspackFetchPriority: "high" */
+  './hero.js'
+);
+```
+
+#### rspackInclude \{#rspackinclude}
 
 <ApiMeta addedVersion="1.0.0" />
 
-- **类型：**: `Regexp`
+- **类型：** `RegExp`
+- **webpack 兼容名称：** `webpackInclude`
 
 在导入解析时匹配的正则表达式。只有匹配的模块**才会被打包**。
 
-##### rspackExclude / webpackExclude \{#rspackexclude}
+例如，只将 `./locales` 目录中的 `.json` 文件纳入动态导入上下文：
+
+```js
+const messages = await import(
+  /* rspackInclude: /\.json$/ */
+  `./locales/${language}`
+);
+```
+
+#### rspackExclude \{#rspackexclude}
 
 <ApiMeta addedVersion="1.0.0" />
 
-- **类型：**: `Regexp`
+- **类型：** `RegExp`
+- **webpack 兼容名称：** `webpackExclude`
 
 在导入解析时匹配的正则表达式。只有匹配的模块**不会被打包**。
 
+例如，排除 `./locales` 目录中的测试文件：
+
+```js
+const messages = await import(
+  /* rspackExclude: /\.test\.js$/ */
+  `./locales/${language}.js`
+);
+```
+
 :::info
-请注意，`rspackInclude` 和 `rspackExclude` 选项不会影响前缀。等价的 `webpackInclude` 和 `webpackExclude` 注释也会被兼容支持。例如：`./locale`。
+`rspackInclude` 和 `rspackExclude` 只会筛选静态路径前缀（例如 `./locales`）下发现的候选模块，不会改变该前缀。等价的 `webpackInclude` 和 `webpackExclude` 注释也会被兼容支持。
 :::
 
-##### rspackExports / webpackExports \{#rspackexports}
+#### rspackExports \{#rspackexports}
 
 <ApiMeta addedVersion="1.0.0" />
 
-- **Type:**: `string | string[]`
+- **类型：** `string | string[]`
+- **webpack 兼容名称：** `webpackExports`
 
 使 Rspack 在处理该动态 `import()` 模块时仅打包指定的导出。这样可以降低 chunk 的产物体积。
+
+例如，当导入结果传给其他函数、Rspack 无法静态推断具体使用了哪些导出时，可以显式声明需要的导出：
+
+```js
+const widget = await import(
+  /* rspackExports: ["render", "version"] */
+  './widget.js'
+);
+
+consumeWidget(widget);
+```
+
+如果代码直接访问导入模块的属性或对其进行解构，Rspack 通常可以自动推断使用的导出，无需添加 `rspackExports`。
 
 ## CommonJS
 

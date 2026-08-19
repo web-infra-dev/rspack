@@ -1,10 +1,8 @@
 //! <https://github.com/webpack/enhanced-resolve/blob/main/test/extensions.test.js>
 
-use rustc_hash::FxHashSet;
-
 use crate::{
-  EnforceExtension, Resolution, ResolveContext, ResolveError, ResolveOptions, Resolver,
-  ResolverPath,
+  ArcPath, ArcPathSet, EnforceExtension, Resolution, ResolveContext, ResolveError, ResolveOptions,
+  Resolver,
 };
 
 #[tokio::test]
@@ -67,9 +65,9 @@ async fn default_enforce_extension() {
   );
   assert_eq!(
     ctx.file_dependencies,
-    FxHashSet::from_iter([
-      ResolverPath::from(f.join("foo.ts")),
-      ResolverPath::from(f.join("package.json")),
+    ArcPathSet::from_iter([
+      ArcPath::from(f.join("foo.ts")),
+      ArcPath::from(f.join("package.json")),
     ])
   );
   assert!(ctx.missing_dependencies.is_empty());
@@ -95,14 +93,14 @@ async fn respect_enforce_extension() {
   );
   assert_eq!(
     ctx.file_dependencies,
-    FxHashSet::from_iter([
-      ResolverPath::from(f.join("foo.ts")),
-      ResolverPath::from(f.join("package.json")),
+    ArcPathSet::from_iter([
+      ArcPath::from(f.join("foo.ts")),
+      ArcPath::from(f.join("package.json")),
     ])
   );
   assert_eq!(
     ctx.missing_dependencies,
-    FxHashSet::from_iter([ResolverPath::from(f.join("foo"))])
+    ArcPathSet::from_iter([ArcPath::from(f.join("foo"))])
   );
 }
 

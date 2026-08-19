@@ -12,17 +12,15 @@
     "editor.formatOnSave": true
   },
   "editor.formatOnSave": true,
-  "editor.defaultFormatter": "esbenp.prettier-vscode",
-  // Temporary workaround until we switch to the Rstack VS Code extension.
-  "prettier.singleQuote": true,
+  "editor.defaultFormatter": "rstack.rstack",
   "[json]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
+    "editor.defaultFormatter": "rstack.rstack"
   },
   "[json5]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
+    "editor.defaultFormatter": "rstack.rstack"
   },
   "[jsonc]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
+    "editor.defaultFormatter": "rstack.rstack"
   },
   "git.ignoreLimitWarning": true,
   "eslint.enable": false,

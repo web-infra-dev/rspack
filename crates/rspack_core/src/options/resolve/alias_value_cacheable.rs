@@ -1,15 +1,18 @@
-use rkyv::{
-  Archive, Archived, Deserialize, Place, Portable, Resolver,
-  bytecheck::{CheckBytes, StructCheckContext},
-  de::Pooling,
-  rancor::{Fallible, Trace},
-  ser::{Sharing, Writer},
-  with::{ArchiveWith, DeserializeWith, SerializeWith},
+use rspack_cacheable::{
+  ContextGuard, Error,
+  rkyv::{
+    Archive, Archived, Deserialize, Place, Portable, Resolver, Serialize,
+    bytecheck::{CheckBytes, StructCheckContext},
+    de::Pooling,
+    rancor::{Fallible, Trace},
+    ser::{Sharing, Writer},
+    with::{ArchiveWith, DeserializeWith, SerializeWith},
+  },
+  utils::PortablePath,
 };
 use rspack_resolver::AliasValue;
 
-use super::AsPreset;
-use crate::{ContextGuard, Error, utils::PortablePath};
+pub struct AsAliasValue;
 
 pub struct ArchivedAliasValue {
   is_ignore: bool,
@@ -23,7 +26,7 @@ pub struct AliasValueResolver {
   path: PortablePath,
 }
 
-impl ArchiveWith<AliasValue> for AsPreset {
+impl ArchiveWith<AliasValue> for AsAliasValue {
   type Archived = ArchivedAliasValue;
   type Resolver = AliasValueResolver;
 
@@ -40,7 +43,7 @@ impl ArchiveWith<AliasValue> for AsPreset {
   }
 }
 
-impl<S> SerializeWith<AliasValue, S> for AsPreset
+impl<S> SerializeWith<AliasValue, S> for AsAliasValue
 where
   S: Fallible<Error = Error> + Writer + Sharing<Error> + ?Sized,
 {
@@ -54,7 +57,7 @@ where
     };
     let portable_path = PortablePath::new(path_str.as_ref(), guard.project_root());
     Ok(AliasValueResolver {
-      inner: rkyv::Serialize::serialize(&portable_path, serializer)?,
+      inner: Serialize::serialize(&portable_path, serializer)?,
       path: portable_path,
     })
   }
@@ -96,7 +99,7 @@ where
   }
 }
 
-impl<D> DeserializeWith<ArchivedAliasValue, AliasValue, D> for AsPreset
+impl<D> DeserializeWith<ArchivedAliasValue, AliasValue, D> for AsAliasValue
 where
   D: Fallible<Error = Error> + Pooling<Error> + ?Sized,
 {
