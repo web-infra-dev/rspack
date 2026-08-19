@@ -12,16 +12,15 @@ use serde::Serialize;
 
 use crate::{
   AsyncDependenciesBlockIdentifier, BoxChunkInitFragment, BoxDependency, BoxModule, BuildContext,
-  BuildInfo, BuildMeta,
-  BuildMetaExportsType, BuildResult, ChunkGraph, ChunkInitFragments, ChunkUkey,
-  CodeGenerationDataChunkInitFragments, CodeGenerationDataUrl, CodeGenerationResultBuilder,
-  Compilation, ConcatenationScope, Context, DependenciesBlock, DependencyId, ExportProvided,
-  ExternalType, FactoryMeta, ImportAttributes, ImportPhase, InitFragmentExt, InitFragmentKey,
-  InitFragmentStage, LibIdentOptions, Module, ModuleArgument, ModuleCodeGenerationContext,
-  ModuleCodeTemplate, ModuleGraph, ModuleType, NAMESPACE_OBJECT_EXPORT, NormalInitFragment,
-  RuntimeGlobals, RuntimeSpec, SourceType, StaticExportsDependency, StaticExportsSpec, UsageState,
-  UsedExports, UsedNameItem, extract_url_and_global, impl_module_meta_info, module_update_hash,
-  property_access,
+  BuildInfo, BuildMeta, BuildMetaExportsType, BuildResult, ChunkGraph, ChunkInitFragments,
+  ChunkUkey, CodeGenerationDataChunkInitFragments, CodeGenerationDataUrl,
+  CodeGenerationResultBuilder, Compilation, ConcatenationScope, Context, DependenciesBlock,
+  DependencyId, ExportProvided, ExternalType, FactoryMeta, ImportAttributes, ImportPhase,
+  InitFragmentExt, InitFragmentKey, InitFragmentStage, LibIdentOptions, Module, ModuleArgument,
+  ModuleCodeGenerationContext, ModuleCodeTemplate, ModuleGraph, ModuleType,
+  NAMESPACE_OBJECT_EXPORT, NormalInitFragment, RuntimeGlobals, RuntimeSpec, SourceType,
+  StaticExportsDependency, StaticExportsSpec, UsageState, UsedExports, UsedNameItem,
+  extract_url_and_global, impl_module_meta_info, module_update_hash, property_access,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
   to_identifier,
 };
@@ -595,6 +594,15 @@ impl ExternalModule {
   }
 
   pub fn set_external_type(&mut self, new_type: ExternalType) {
+    if let ExternalRequest::Map(map) = &mut self.request
+      && !map.contains_key(&new_type)
+      && let Some(request) = map.get(&self.external_type).cloned()
+    {
+      // Preserve the request selected by the previous type when a plugin
+      // changes how the external is rendered. Object-form externals are keyed
+      // by type, so changing only the type would make `get_request` panic.
+      map.insert(new_type.clone(), request);
+    }
     self.external_type = new_type;
   }
 

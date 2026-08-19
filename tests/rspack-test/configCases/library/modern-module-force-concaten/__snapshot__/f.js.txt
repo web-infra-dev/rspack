@@ -3,12 +3,8 @@ import { __webpack_require__ } from "./runtime~0.js";
 import { createRequire as __rspack_createRequire } from "node:module";
 const __rspack_createRequire_require = __rspack_createRequire(import.meta.url);
 __webpack_require__.add({
-928(module) {
-module.exports = __rspack_createRequire_require("path");
-
-},
-227(module, __unused_rspack_exports, __webpack_require__) {
-const path = __webpack_require__(928)
+227(module) {
+const path = __rspack_createRequire_require("path")
 
 module.exports = path.sep
 

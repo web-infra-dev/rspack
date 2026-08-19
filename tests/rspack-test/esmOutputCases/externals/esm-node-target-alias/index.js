@@ -1,6 +1,6 @@
 import { resolve } from "node:fs";
 import { parse } from "node:url";
-import { cjsResolve, cjsParse } from "./cjs-consumer.cjs";
+import { cjsResolve, cjsParse, cjsReexport } from "./cjs-consumer.cjs";
 
 it("should use aliased external request with correct external type", async () => {
 	const main = await import(/* webpackIgnore: true */ "./main.mjs");
@@ -22,6 +22,10 @@ it("should use aliased external request with correct external type", async () =>
 	// CJS require of "module-import" external — downgraded to node-commonjs
 	expect(cjsParse).toBe(nodeUrl.parse);
 	expect(main.cjsParse).toBe(nodeUrl.parse);
+
+	// CJS export-require dependency — also downgraded to node-commonjs
+	expect(cjsReexport.resolve).toBe(nodePath.resolve);
+	expect(main.cjsReexport.resolve).toBe(nodePath.resolve);
 });
 
-export { resolve, parse, cjsResolve, cjsParse };
+export { resolve, parse, cjsResolve, cjsParse, cjsReexport };

@@ -22,6 +22,12 @@ pub struct ModuleGraphConnection {
   conditional: bool,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ConnectionActiveState {
+  active: bool,
+  conditional: bool,
+}
+
 impl std::hash::Hash for ModuleGraphConnection {
   fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
     self.dependency_id.hash(state);
@@ -55,6 +61,20 @@ impl ModuleGraphConnection {
   pub fn force_inactive(&mut self) {
     self.active = false;
     self.conditional = false;
+  }
+
+  pub fn force_inactive_with_state(&mut self) -> ConnectionActiveState {
+    let state = ConnectionActiveState {
+      active: self.active,
+      conditional: self.conditional,
+    };
+    self.force_inactive();
+    state
+  }
+
+  pub fn restore_active_state(&mut self, state: ConnectionActiveState) {
+    self.active = state.active;
+    self.conditional = state.conditional;
   }
 
   pub fn is_active(
@@ -127,6 +147,46 @@ impl ModuleGraphConnection {
   /// used for set module identifier after clone the [ModuleGraphConnection]
   pub fn set_module_identifier(&mut self, mi: ModuleIdentifier) {
     self.module_identifier = mi;
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn should_restore_state_after_forcing_connection_inactive() {
+    let mut connection = ModuleGraphConnection::new(
+      DependencyId::from(1),
+      Some(ModuleIdentifier::from("issuer")),
+      ModuleIdentifier::from("target"),
+      true,
+    );
+
+    let state = connection.force_inactive_with_state();
+    assert!(!connection.active);
+    assert!(!connection.conditional);
+
+    connection.restore_active_state(state);
+    assert!(connection.active);
+    assert!(connection.conditional);
+  }
+
+  #[test]
+  fn should_not_reactivate_an_already_inactive_connection() {
+    let mut connection = ModuleGraphConnection::new(
+      DependencyId::from(1),
+      Some(ModuleIdentifier::from("issuer")),
+      ModuleIdentifier::from("target"),
+      true,
+    );
+    connection.force_inactive();
+
+    let state = connection.force_inactive_with_state();
+    connection.restore_active_state(state);
+
+    assert!(!connection.active);
+    assert!(!connection.conditional);
   }
 }
 
