@@ -1,6 +1,9 @@
 module.exports = {
-  externalsType: 'modern-module',
+  entry: {
+    safe: './entry-safe.js',
+    unsafe: './entry-unsafe.js',
+  },
   externals: {
-    'external-os': 'os',
+    external: 'commonjs external',
   },
 };
