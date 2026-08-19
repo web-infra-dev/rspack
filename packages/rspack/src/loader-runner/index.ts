@@ -54,7 +54,7 @@ import {
 } from '../util/identifier';
 import { memoize } from '../util/memoize';
 import { ModuleError, ModuleWarning } from './ModuleError';
-import { LoaderCache } from './cache';
+import { LoaderCache, type LoaderCacheEntry } from './cache';
 import * as pool from './service';
 import { type HandleIncomingRequest, RequestType } from './service';
 import {
@@ -1091,26 +1091,23 @@ export async function runLoaders(
             continue;
           }
 
-          const cacheInput =
+          const cached: LoaderCacheEntry | null | undefined =
             !parallelism && currentLoaderObject.loaderItem.cache
-              ? loaderCache.begin(
+              ? loaderCache.get(
                   loaderContext.loaderIndex,
                   content,
                   additionalData,
                 )
               : undefined;
-          if (cacheInput) {
-            const hit = loaderCache.get(loaderContext.loaderIndex, cacheInput);
-            if (hit) {
-              currentLoaderObject.normalExecuted = true;
-              content = hit.contentIsString
-                ? hit.content?.toString()
-                : hit.content;
-              sourceMap = JsSourceMap.__from_binding(hit.sourceMap);
-              sourceMapParsed = true;
-              loaderContext.loaderIndex--;
-              continue;
-            }
+          if (cached) {
+            currentLoaderObject.normalExecuted = true;
+            content = cached.contentIsString
+              ? cached.content?.toString()
+              : cached.content;
+            sourceMap = JsSourceMap.__from_binding(cached.sourceMap);
+            sourceMapParsed = true;
+            loaderContext.loaderIndex--;
+            continue;
           }
 
           await loadLoader(currentLoaderObject, compiler);
@@ -1134,10 +1131,9 @@ export async function runLoaders(
             additionalData,
           ]);
 
-          if (cacheInput) {
+          if (cached === null) {
             loaderCache.store(
               loaderContext.loaderIndex,
-              cacheInput,
               content,
               JsSourceMap.__to_binding(sourceMap),
               additionalData,

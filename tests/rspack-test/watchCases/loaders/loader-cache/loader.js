@@ -8,17 +8,6 @@ const loaderRuns = {
 
 module.exports = function (source, sourceMap) {
 	const { name } = this.getOptions();
-	if (name === "metadata") {
-		const match = source.match(
-			/^\/\/ loader-cache:options=([^;]+);version=([^\n]+)\n/
-		);
-		if (!match) throw new Error("Missing loader cache test metadata");
-		// Change etag-only fields while keeping the cached loader's input stable.
-		const target = this.loaders[this.loaderIndex - 1].loaderItem;
-		target.optionsCacheKey = match[1];
-		target.loaderVersion = match[2];
-		return source.slice(match[0].length);
-	}
 	if (name === "module-id") {
 		return source.replace("__MODULE_ID__", path.basename(this.resourcePath));
 	}

@@ -408,8 +408,8 @@ export declare class JsExportsInfo {
 }
 
 export declare class JsLoaderCache {
-  get(loaderIndex: number, etag: string): JsLoaderCacheEntry | null
-  store(loaderIndex: number, etag: string, output: JsLoaderCacheEntry): void
+  get(loaderIndex: number, content: Buffer): JsLoaderCacheEntry | null
+  store(loaderIndex: number, output: JsLoaderCacheEntry): void
 }
 
 export declare class JsModuleGraph {
@@ -990,9 +990,6 @@ export interface JsLoaderItem {
   loader: string
   type: string
   cache: boolean
-  loaderName: string
-  optionsCacheKey: string
-  loaderVersion: string
   data: any
   normalExecuted: boolean
   pitchExecuted: boolean

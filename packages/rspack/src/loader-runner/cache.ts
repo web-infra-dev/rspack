@@ -1,21 +1,16 @@
 import type { JsLoaderContext } from '@rspack/binding';
 
 import { isNil, toBuffer } from '../util';
-import { createHash } from '../util/createHash';
 
-type LoaderCacheEntry = {
+export type LoaderCacheEntry = {
   content: Buffer | null;
   contentIsString: boolean;
   sourceMap?: Buffer;
 };
 
 type LoaderCacheApi = {
-  get(loaderIndex: number, etag: string): LoaderCacheEntry | null;
-  store(loaderIndex: number, etag: string, output: LoaderCacheEntry): void;
-};
-
-type LoaderCacheInput = {
-  etag: string;
+  get(loaderIndex: number, content: Buffer): LoaderCacheEntry | null;
+  store(loaderIndex: number, output: LoaderCacheEntry): void;
 };
 
 function toOwnedBuffer(value: string | Buffer | Uint8Array) {
@@ -23,33 +18,20 @@ function toOwnedBuffer(value: string | Buffer | Uint8Array) {
   return Buffer.from(value);
 }
 
-function updateHashSegment(
-  hash: ReturnType<typeof createHash>,
-  label: string,
-  value: Buffer,
-) {
-  const length = Buffer.allocUnsafe(8);
-  length.writeBigUInt64LE(BigInt(value.length));
-  hash.update(Buffer.from(label));
-  hash.update(length);
-  hash.update(value);
-}
-
 export class LoaderCache {
   readonly #api: LoaderCacheApi;
   readonly #context: JsLoaderContext;
-  readonly #workerInputs = new Map<number, LoaderCacheInput>();
 
   constructor(context: JsLoaderContext) {
     this.#context = context;
     this.#api = (context as any).__internal__loaderCache as LoaderCacheApi;
   }
 
-  begin(
+  get(
     loaderIndex: number,
     content: Parameters<typeof toBuffer>[0] | null | undefined,
     additionalData: unknown,
-  ): LoaderCacheInput | undefined {
+  ): LoaderCacheEntry | null | undefined {
     const context = this.#context;
     const loader = context.loaderItems[loaderIndex];
     if (
@@ -62,21 +44,11 @@ export class LoaderCache {
       return undefined;
     }
 
-    const hash = createHash('xxhash64');
-    updateHashSegment(hash, 'content', toBuffer(content));
-    updateHashSegment(hash, 'options', Buffer.from(loader.optionsCacheKey));
-    updateHashSegment(hash, 'version', Buffer.from(loader.loaderVersion));
-
-    return { etag: hash.digest('hex') };
-  }
-
-  get(loaderIndex: number, input: LoaderCacheInput) {
-    return this.#api.get(loaderIndex, input.etag) ?? undefined;
+    return this.#api.get(loaderIndex, toBuffer(content));
   }
 
   store(
     loaderIndex: number,
-    input: LoaderCacheInput,
     content: Parameters<typeof toBuffer>[0] | null | undefined,
     sourceMap: Buffer | Uint8Array | undefined,
     additionalData: unknown,
@@ -91,7 +63,7 @@ export class LoaderCache {
       return;
     }
 
-    this.#api.store(loaderIndex, input.etag, {
+    this.#api.store(loaderIndex, {
       content: isNil(content) ? null : toOwnedBuffer(content),
       contentIsString,
       sourceMap: sourceMap ? Buffer.from(sourceMap) : undefined,
@@ -103,12 +75,8 @@ export class LoaderCache {
     content: Parameters<typeof toBuffer>[0] | null | undefined,
     additionalData: unknown,
   ) {
-    const input = this.begin(loaderIndex, content, additionalData);
-    if (!input) return undefined;
-    this.#workerInputs.set(loaderIndex, input);
-    const hit = this.get(loaderIndex, input);
+    const hit = this.get(loaderIndex, content, additionalData);
     if (!hit) return undefined;
-    this.#workerInputs.delete(loaderIndex);
     return {
       ...hit,
       content: hit.content ? Buffer.from(hit.content) : null,
@@ -123,12 +91,8 @@ export class LoaderCache {
     sourceMap: Buffer | Uint8Array | undefined,
     additionalData: unknown,
   ) {
-    const input = this.#workerInputs.get(loaderIndex);
-    if (!input) return;
-    this.#workerInputs.delete(loaderIndex);
     this.store(
       loaderIndex,
-      input,
       content,
       sourceMap,
       additionalData,

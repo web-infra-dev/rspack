@@ -1,10 +1,14 @@
+use std::sync::{Arc, Mutex};
+
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
 use rspack_cacheable::cacheable;
-use rspack_core::{CacheFacade, CacheValue, Etag, Resolver, loader_cache_item};
+use rspack_core::{
+  CacheFacade, CacheValue, Content, Etag, Resolver, loader_cache_etag, loader_cache_item,
+};
 use rspack_error::Result;
 use rspack_hash::{HashFunction, RspackHasher};
-use rspack_loader_runner::DescriptionData;
+use rspack_loader_runner::{DescriptionData, LoaderRunnerOptions};
 use rspack_paths::Utf8Path;
 
 #[cacheable]
@@ -26,7 +30,8 @@ pub struct JsLoaderCacheEntry {
 pub struct JsLoaderCache {
   cache: CacheFacade,
   module_identifier: String,
-  loader_names: Vec<String>,
+  loaders: Vec<LoaderRunnerOptions>,
+  pending_etags: Arc<Mutex<Vec<Option<Etag>>>>,
 }
 
 pub struct JsLoaderCacheObject(JsLoaderCache);
@@ -41,7 +46,8 @@ impl FromNapiValue for JsLoaderCacheObject {
     Ok(Self(JsLoaderCache {
       cache: instance.cache.clone(),
       module_identifier: instance.module_identifier.clone(),
-      loader_names: instance.loader_names.clone(),
+      loaders: instance.loaders.clone(),
+      pending_etags: instance.pending_etags.clone(),
     }))
   }
 }
@@ -68,26 +74,56 @@ impl TypeName for JsLoaderCacheObject {
 impl ValidateNapiValue for JsLoaderCacheObject {}
 
 impl JsLoaderCache {
-  pub fn new(cache: CacheFacade, module_identifier: String, loader_names: Vec<String>) -> Self {
+  fn new(cache: CacheFacade, module_identifier: String, loaders: Vec<LoaderRunnerOptions>) -> Self {
+    let pending_etags = Arc::new(Mutex::new(vec![None; loaders.len()]));
     Self {
       cache,
       module_identifier,
-      loader_names,
+      loaders,
+      pending_etags,
     }
   }
 
-  fn loader_name(&self, loader_index: u32) -> napi::Result<&str> {
+  fn loader(&self, loader_index: u32) -> napi::Result<&LoaderRunnerOptions> {
     self
-      .loader_names
+      .loaders
       .get(loader_index as usize)
-      .map(String::as_str)
       .ok_or_else(|| napi::Error::from_reason(format!("Invalid loader index {loader_index}")))
+  }
+
+  fn set_pending_etag(&self, loader_index: u32, etag: Option<Etag>) -> napi::Result<()> {
+    let mut pending_etags = self
+      .pending_etags
+      .lock()
+      .map_err(|_| napi::Error::from_reason("Loader cache state is poisoned"))?;
+    let pending_etag = pending_etags
+      .get_mut(loader_index as usize)
+      .ok_or_else(|| napi::Error::from_reason(format!("Invalid loader index {loader_index}")))?;
+    *pending_etag = etag;
+    Ok(())
+  }
+
+  fn take_pending_etag(&self, loader_index: u32) -> napi::Result<Option<Etag>> {
+    let mut pending_etags = self
+      .pending_etags
+      .lock()
+      .map_err(|_| napi::Error::from_reason("Loader cache state is poisoned"))?;
+    Ok(
+      pending_etags
+        .get_mut(loader_index as usize)
+        .ok_or_else(|| napi::Error::from_reason(format!("Invalid loader index {loader_index}")))?
+        .take(),
+    )
   }
 }
 
 impl JsLoaderCacheObject {
-  pub fn new(cache: CacheFacade, module_identifier: String, loader_names: Vec<String>) -> Self {
-    Self(JsLoaderCache::new(cache, module_identifier, loader_names))
+  pub(super) fn new(
+    cache: CacheFacade,
+    module_identifier: String,
+    loaders: Vec<LoaderRunnerOptions>,
+  ) -> Self {
+    Self(JsLoaderCache::new(cache, module_identifier, loaders))
   }
 }
 
@@ -124,20 +160,31 @@ pub(crate) async fn loader_cache_version(
 #[napi]
 impl JsLoaderCache {
   #[napi]
-  pub fn get(&self, loader_index: u32, etag: String) -> napi::Result<Option<JsLoaderCacheEntry>> {
-    let loader_name = self.loader_name(loader_index)?;
+  pub fn get(
+    &self,
+    loader_index: u32,
+    content: Buffer,
+  ) -> napi::Result<Option<JsLoaderCacheEntry>> {
+    let loader = self.loader(loader_index)?;
+    let etag = loader_cache_etag(
+      &Content::Buffer(content.to_vec()),
+      &loader.options_cache_key,
+      &loader.loader_version,
+    );
     let item_cache = loader_cache_item(
       &self.cache,
       &self.module_identifier,
-      loader_name,
-      Etag::from(etag),
+      &loader.loader_name,
+      etag.clone(),
     );
     let Some(entry) = item_cache
       .get::<LoaderCacheEntry>()
       .map_err(|error| napi::Error::from_reason(error.to_string()))?
     else {
+      self.set_pending_etag(loader_index, Some(etag))?;
       return Ok(None);
     };
+    self.set_pending_etag(loader_index, None)?;
 
     Ok(Some(JsLoaderCacheEntry {
       content: entry
@@ -150,13 +197,11 @@ impl JsLoaderCache {
   }
 
   #[napi]
-  pub fn store(
-    &self,
-    loader_index: u32,
-    etag: String,
-    output: JsLoaderCacheEntry,
-  ) -> napi::Result<()> {
-    let loader_name = self.loader_name(loader_index)?;
+  pub fn store(&self, loader_index: u32, output: JsLoaderCacheEntry) -> napi::Result<()> {
+    let loader_name = &self.loader(loader_index)?.loader_name;
+    let Some(etag) = self.take_pending_etag(loader_index)? else {
+      return Ok(());
+    };
     let entry = LoaderCacheEntry {
       content: match output.content {
         Either::A(_) => None,
@@ -165,12 +210,7 @@ impl JsLoaderCache {
       content_is_string: output.content_is_string,
       source_map: output.source_map.map(|source_map| source_map.to_vec()),
     };
-    let item_cache = loader_cache_item(
-      &self.cache,
-      &self.module_identifier,
-      loader_name,
-      Etag::from(etag),
-    );
+    let item_cache = loader_cache_item(&self.cache, &self.module_identifier, loader_name, etag);
     item_cache
       .store(CacheValue::new(entry))
       .map_err(|error| napi::Error::from_reason(error.to_string()))

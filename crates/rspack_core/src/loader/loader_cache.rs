@@ -8,17 +8,23 @@ use rspack_sources::SourceMap;
 use crate::{CacheFacade, CacheValue, Etag, ItemCacheFacade, Module, RunnerContext};
 
 fn loader_cache_key(module_identifier: &str, loader_name: &str) -> String {
-  fn push_segment(key: &mut String, segment: &str) {
-    key.push('|');
-    key.push_str(&segment.len().to_string());
-    key.push(':');
-    key.push_str(segment);
-  }
+  let mut hasher = RspackHasher::new(&HashFunction::Xxhash64);
+  rspack_hash::rspack_hash_object!(&mut hasher, {
+    "module" => module_identifier,
+    "loader" => loader_name,
+  });
+  format!("{:016x}", hasher.finish())
+}
 
-  let mut key = String::new();
-  push_segment(&mut key, module_identifier);
-  push_segment(&mut key, loader_name);
-  key
+#[doc(hidden)]
+pub fn loader_cache_etag(content: &Content, options_cache_key: &str, loader_version: &str) -> Etag {
+  let mut hasher = RspackHasher::new(&HashFunction::Xxhash64);
+  rspack_hash::rspack_hash_object!(&mut hasher, {
+    "content" => content,
+    "options" => options_cache_key,
+    "version" => loader_version,
+  });
+  Etag::from(format!("{:016x}", hasher.finish()))
 }
 
 #[doc(hidden)]
@@ -60,13 +66,11 @@ fn cache_miss_action(context: &LoaderContext<RunnerContext>, etag: Etag) -> Load
 
 fn input_etag(context: &LoaderContext<RunnerContext>) -> Option<Etag> {
   let loader = context.current_loader();
-  let mut hasher = RspackHasher::new(&HashFunction::Xxhash64);
-  rspack_hash::rspack_hash_object!(&mut hasher, {
-    "content" => context.content()?,
-    "options" => loader.options_cache_key(),
-    "version" => loader.loader_version(),
-  });
-  Some(Etag::from(format!("{:016x}", hasher.finish())))
+  Some(loader_cache_etag(
+    context.content()?,
+    loader.options_cache_key(),
+    loader.loader_version(),
+  ))
 }
 
 pub(crate) fn before_normal_loader(

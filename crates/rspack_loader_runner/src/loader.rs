@@ -38,10 +38,7 @@ pub struct LoaderItem<Context: Send> {
   /// Data shared between pitching and normal
   data: serde_json::Value,
   r#type: String,
-  cache: bool,
-  loader_name: String,
-  options_cache_key: String,
-  loader_version: String,
+  cache_options: LoaderRunnerOptions,
   pitch_executed: AtomicBool,
   normal_executed: AtomicBool,
   /// Whether loader was called with [LoaderContext::finish_with].
@@ -81,22 +78,27 @@ impl<C: Send> LoaderItem<C> {
 
   #[inline]
   pub fn cache(&self) -> bool {
-    self.cache
+    self.cache_options.cache
   }
 
   #[inline]
   pub fn loader_name(&self) -> &str {
-    &self.loader_name
+    &self.cache_options.loader_name
   }
 
   #[inline]
   pub fn options_cache_key(&self) -> &str {
-    &self.options_cache_key
+    &self.cache_options.options_cache_key
   }
 
   #[inline]
   pub fn loader_version(&self) -> &str {
-    &self.loader_version
+    &self.cache_options.loader_version
+  }
+
+  #[inline]
+  pub fn cache_options(&self) -> &LoaderRunnerOptions {
+    &self.cache_options
   }
 
   #[inline]
@@ -251,10 +253,7 @@ impl<C: Send> LoaderItem<C> {
         fragment,
         data: serde_json::Value::Null,
         r#type: ty,
-        cache: options.cache,
-        loader_name: options.loader_name,
-        options_cache_key: options.options_cache_key,
-        loader_version: options.loader_version,
+        cache_options: options,
         pitch_executed: AtomicBool::new(false),
         normal_executed: AtomicBool::new(false),
         finish_called: AtomicBool::new(false),
@@ -274,10 +273,7 @@ impl<C: Send> LoaderItem<C> {
       fragment,
       data: serde_json::Value::Null,
       r#type: String::default(),
-      cache: options.cache,
-      loader_name: options.loader_name,
-      options_cache_key: options.options_cache_key,
-      loader_version: options.loader_version,
+      cache_options: options,
       pitch_executed: AtomicBool::new(false),
       normal_executed: AtomicBool::new(false),
       finish_called: AtomicBool::new(false),

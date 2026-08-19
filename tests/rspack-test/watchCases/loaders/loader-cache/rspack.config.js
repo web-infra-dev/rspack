@@ -28,10 +28,6 @@ module.exports = {
             parallel: { maxWorkers: 1 },
             cache: true,
           },
-          {
-            loader: path.resolve(__dirname, 'loader.js'),
-            options: { name: 'metadata' },
-          },
         ],
       },
       {

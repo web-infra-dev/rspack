@@ -1,6 +1,5 @@
-// loader-cache:options=options-v2;version=version-v1
 module.exports = {
-	value: "initial",
+	value: "changed-2",
 	leftRuns: __LEFT__,
 	markedRuns: __MARKED__,
 	rightRuns: __RIGHT__,
