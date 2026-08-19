@@ -15,7 +15,8 @@ use rspack_util::{
 use rustc_hash::{FxHashMap as HashMap, FxHashSet};
 
 use crate::{
-  ArchivedRenderedInitFragments, ArtifactExt, AssetInfo, BindingCell, ChunkInitFragments,
+  ArchivedCodeGenerationDataConcatenationScopeOutput, ArchivedRenderedInitFragments, ArtifactExt,
+  AssetInfo, BindingCell, ChunkInitFragments, CodeGenerationDataConcatenationScopeOutput,
   ConcatenationScope, ModuleIdentifier, RenderedInitFragments, RuntimeGlobals, RuntimeSpec,
   RuntimeSpecMap, SourceType, incremental::IncrementalPasses,
 };
@@ -235,6 +236,9 @@ impl CodeGenerationDataItem for CodeGenerationDataChunkInitFragments {
     RspackHash::hash(self, hasher);
   }
 }
+
+#[cacheable_dyn]
+impl CodeGenerationDataItem for CodeGenerationDataConcatenationScopeOutput {}
 
 #[cacheable]
 #[derive(Debug, Default, Clone)]

@@ -8,7 +8,10 @@ use std::{
 
 use rayon::prelude::*;
 use regex::Regex;
-use rspack_cacheable::{cacheable, cacheable_dyn, with::As};
+use rspack_cacheable::{
+  cacheable, cacheable_dyn,
+  with::{As, AsOption, AsPreset, AsVec},
+};
 use rspack_collections::{
   Identifiable, Identifier, IdentifierIndexMap, IdentifierIndexSet, IdentifierMap, IdentifierSet,
 };
@@ -293,9 +296,12 @@ impl ConcatenationEntryExternal {
   }
 }
 
+#[cacheable]
 #[derive(Clone, Debug, Default)]
 pub struct ConcatenatedImportMapItem {
+  #[cacheable(with=AsVec<AsPreset>)]
   pub specifiers: HashSet<Atom>,
+  #[cacheable(with=AsOption<AsPreset>)]
   pub namespace: Option<Atom>,
 }
 

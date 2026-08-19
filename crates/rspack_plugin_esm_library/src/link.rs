@@ -8,17 +8,17 @@ use rayon::{iter::Either, prelude::*};
 use rspack_collections::{IdentifierIndexMap, IdentifierIndexSet, IdentifierMap};
 use rspack_core::{
   BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, ChunkInitFragments, ChunkRenderContext,
-  ChunkUkey, CodeGenerationDataChunkInitFragments, CodeGenerationDataPreservedAssetImport,
-  CodeGenerationPublicPathAutoReplace, Compilation, ConcatenatedModuleIdent, ConcatenationScope,
-  ConditionalInitFragment, DependencyType, ExportInfo, ExportMode, ExportProvided,
-  ExportsInfoArtifact, ExportsType, FindTargetResult, ImportSpec, InitFragmentKey,
-  ModuleCodeGenerationContext, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, ModuleInfo,
-  NAMESPACE_OBJECT_EXPORT, RuntimeGlobals, RuntimeGlobalsRenderMode, RuntimeTemplateRenderMode,
-  RuntimeVariable, SideEffectsStateArtifact, SourceType, URLStaticMode, UsageState, UsedName,
-  UsedNameItem, all_runtime_module_variables, collect_ident, escape_name_atom_ref, find_new_name,
-  find_target, get_cached_readable_identifier, get_module_directives, get_module_hashbang,
-  property_access, property_name, reserved_names::RESERVED_NAMES_ATOM_SET,
-  rspack_sources::ReplaceSource, split_readable_identifier, to_normal_comment,
+  ChunkUkey, CodeGenerationDataChunkInitFragments, CodeGenerationDataConcatenationScopeOutput,
+  CodeGenerationDataPreservedAssetImport, CodeGenerationPublicPathAutoReplace, Compilation,
+  ConcatenatedModuleIdent, ConditionalInitFragment, DependencyType, ExportInfo, ExportMode,
+  ExportProvided, ExportsInfoArtifact, ExportsType, FindTargetResult, ImportSpec, InitFragmentKey,
+  ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, ModuleInfo, NAMESPACE_OBJECT_EXPORT,
+  RuntimeGlobals, RuntimeGlobalsRenderMode, RuntimeTemplateRenderMode, RuntimeVariable,
+  SideEffectsStateArtifact, SourceType, URLStaticMode, UsageState, UsedName, UsedNameItem,
+  all_runtime_module_variables, collect_ident, escape_name_atom_ref, find_new_name, find_target,
+  get_cached_readable_identifier, get_module_directives, get_module_hashbang, property_access,
+  property_name, reserved_names::RESERVED_NAMES_ATOM_SET, rspack_sources::ReplaceSource,
+  split_readable_identifier, to_normal_comment,
 };
 use rspack_error::{Diagnostic, Error, Result};
 use rspack_plugin_javascript::{
@@ -529,13 +529,11 @@ impl EsmLibraryPlugin {
   ) -> Result<()> {
     let module_graph = compilation.get_module_graph();
 
-    // Scoped codegen reads from the Arc snapshot in concatenated_modules_map_for_codegen,
-    // so it is safe to update the working map while linking.
     let mut concate_modules_map = self.concatenated_modules_map.write().await;
     let mut external_module_init_fragments = IdentifierMap::default();
 
     // analyze every modules and collect identifiers to concate_modules_map
-    let concatenation_scopes = self
+    self
       .analyze_module(
         compilation,
         &mut concate_modules_map,
@@ -713,7 +711,6 @@ impl EsmLibraryPlugin {
       &mut link,
       &runtime_chunks_exporting_require_via_runtime_module,
       &mut concate_modules_map,
-      &concatenation_scopes,
       &mut needed_namespace_objects_by_ukey,
       &escaped_identifiers,
     ));
@@ -1525,262 +1522,224 @@ var {} = {{}};
     compilation: &Compilation,
     orig_concate_modules_map: &mut IdentifierIndexMap<ModuleInfo>,
     external_module_init_fragments: &mut IdentifierMap<ChunkInitFragments>,
-  ) -> Result<IdentifierMap<ConcatenationScope>> {
+  ) -> Result<()> {
     let runtime_template = compilation.runtime_template.create_chunk_code_template();
-    let modules_map = self.concatenated_modules_map_for_codegen.borrow().clone();
     let concate_modules_map = std::mem::take(orig_concate_modules_map);
     let map = rspack_parallel::scope::<_, _>(|token| {
       for (m, info) in concate_modules_map {
         // SAFETY: caller will poll the futures
-        let s =
-          unsafe { token.used((compilation, m, info, &runtime_template, modules_map.clone())) };
-        s.spawn(
-          async move |(compilation, id, info, runtime_template, modules_map)| {
-            if compilation
-              .build_chunk_graph_artifact
-              .chunk_graph
-              .get_module_chunks(m)
-              .is_empty()
-            {
-              // orphan module
-              return Ok((info, None, None));
-            }
+        let s = unsafe { token.used((compilation, m, info, &runtime_template)) };
+        s.spawn(async move |(compilation, id, info, runtime_template)| {
+          if compilation
+            .build_chunk_graph_artifact
+            .chunk_graph
+            .get_module_chunks(m)
+            .is_empty()
+          {
+            // orphan module
+            return Ok((info, None));
+          }
 
-            let chunk_ukey = Self::get_module_chunk(m, compilation)?;
+          let chunk_ukey = Self::get_module_chunk(m, compilation)?;
 
-            let module_graph = compilation.get_module_graph();
+          let module_graph = compilation.get_module_graph();
 
-            match info {
-              rspack_core::ModuleInfo::External(mut external_module_info) => {
-                let codegen_res = compilation.code_generation_results.get(&id, None);
-                let has_javascript_source = compilation
-                  .code_generation_results
-                  .get(&id, None)
-                  .get(&SourceType::JavaScript)
-                  .is_some();
-                let used_in_chunk = !compilation
-                  .build_chunk_graph_artifact
-                  .chunk_graph
-                  .get_module_chunks(id)
-                  .is_empty();
-                if has_javascript_source && used_in_chunk {
-                  // we use __rspack_require.add({...}) to register modules
-                  external_module_info
-                    .runtime_requirements
-                    .insert(RuntimeGlobals::REQUIRE | RuntimeGlobals::MODULE_FACTORIES);
-                }
-                let chunk_init_fragments = codegen_res
-                  .data()
-                  .get::<CodeGenerationDataChunkInitFragments>()
-                  .map(|fragments| fragments.inner().clone())
-                  .unwrap_or_default();
-                Ok((
-                  ModuleInfo::External(external_module_info),
-                  if chunk_init_fragments.is_empty() {
-                    None
-                  } else {
-                    Some((id, chunk_init_fragments))
-                  },
-                  None,
-                ))
+          match info {
+            rspack_core::ModuleInfo::External(mut external_module_info) => {
+              let codegen_res = compilation.code_generation_results.get(&id, None);
+              let has_javascript_source = compilation
+                .code_generation_results
+                .get(&id, None)
+                .get(&SourceType::JavaScript)
+                .is_some();
+              let used_in_chunk = !compilation
+                .build_chunk_graph_artifact
+                .chunk_graph
+                .get_module_chunks(id)
+                .is_empty();
+              if has_javascript_source && used_in_chunk {
+                // we use __rspack_require.add({...}) to register modules
+                external_module_info
+                  .runtime_requirements
+                  .insert(RuntimeGlobals::REQUIRE | RuntimeGlobals::MODULE_FACTORIES);
               }
-              rspack_core::ModuleInfo::Concatenated(mut concate_info) => {
-                let hooks = JsPlugin::get_compilation_hooks(compilation.id());
-                let hooks = hooks.read().await;
+              let chunk_init_fragments = codegen_res
+                .data()
+                .get::<CodeGenerationDataChunkInitFragments>()
+                .map(|fragments| fragments.inner().clone())
+                .unwrap_or_default();
+              Ok((
+                ModuleInfo::External(external_module_info),
+                if chunk_init_fragments.is_empty() {
+                  None
+                } else {
+                  Some((id, chunk_init_fragments))
+                },
+              ))
+            }
+            rspack_core::ModuleInfo::Concatenated(mut concate_info) => {
+              let hooks = JsPlugin::get_compilation_hooks(compilation.id());
+              let hooks = hooks.read().await;
 
-                let module = module_graph
-                  .module_by_identifier(&id)
-                  .expect("should have module");
-                let mut concatenation_scope = ConcatenationScope::new(
-                  concate_info.module,
-                  modules_map,
-                  concate_info.as_ref().clone(),
-                );
-                let runtime = compilation
-                  .build_chunk_graph_artifact
-                  .chunk_by_ukey
-                  .expect_get(&chunk_ukey)
-                  .runtime();
-                let mut module_runtime_template =
-                  compilation.runtime_template.create_module_code_template();
-                let mut codegen_res = {
-                  let mut code_generation_context = ModuleCodeGenerationContext {
-                    compilation,
-                    runtime: Some(runtime),
-                    concatenation_scope: Some(&mut concatenation_scope),
-                    concatenation_source: None,
-                    runtime_template: &mut module_runtime_template,
-                  };
-                  module.code_generation(&mut code_generation_context).await?
-                };
-                codegen_res
-                  .runtime_requirements_mut()
-                  .extend(*module_runtime_template.runtime_requirements());
-                let Some(js_source) = codegen_res.get(&SourceType::JavaScript) else {
-                  return Ok((
-                    ModuleInfo::Concatenated(concate_info),
-                    None,
-                    Some(concatenation_scope),
+              let module = module_graph
+                .module_by_identifier(&id)
+                .expect("should have module");
+              let codegen_res = compilation.code_generation_results.get(&id, None);
+              let Some(js_source) = codegen_res.get(&SourceType::JavaScript) else {
+                return Ok((ModuleInfo::Concatenated(concate_info), None));
+              };
+              let concatenation_scope_output = codegen_res
+                .data()
+                .get::<CodeGenerationDataConcatenationScopeOutput>()
+                .expect("should have concatenation scope output for scope hoisted module");
+
+              let mut render_source = RenderSource {
+                source: js_source.clone(),
+              };
+              let mut runtime_requirements = *codegen_res.runtime_requirements();
+
+              let mut chunk_init_fragments = vec![];
+              hooks
+                .render_module_content
+                .call(
+                  compilation,
+                  &chunk_ukey,
+                  module.as_ref(),
+                  &mut render_source,
+                  &mut runtime_requirements,
+                  &mut chunk_init_fragments,
+                  runtime_template,
+                )
+                .await?;
+              concatenation_scope_output.apply_to(&mut concate_info);
+
+              let jsx = module
+                .as_ref()
+                .as_normal_module()
+                .and_then(|normal_module| normal_module.get_parser_options())
+                .and_then(|options| {
+                  options
+                    .get_javascript()
+                    .and_then(|js_options| js_options.jsx)
+                })
+                .unwrap_or(false);
+              let source_str = render_source
+                .source
+                .source()
+                .into_string_lossy()
+                .into_owned();
+              let allocator = Allocator::new();
+              let lexer = swc_experimental_ecma_parser::Lexer::new(
+                &allocator,
+                Syntax::Es(EsSyntax {
+                  jsx,
+                  ..Default::default()
+                }),
+                EsVersion::EsNext,
+                StringSource::new(&source_str),
+                None,
+              );
+              let mut parser = Parser::new_from(&allocator, lexer);
+              let module = match parser.parse_module() {
+                Ok(module) => module,
+                Err(err) => {
+                  return Err(Error::from_string(
+                    Some(source_str.clone()),
+                    err.span().real_lo() as usize,
+                    err.span().real_hi() as usize,
+                    "JavaScript parse error:\n".to_string(),
+                    err.kind().msg().to_string(),
                   ));
-                };
-
-                let mut render_source = RenderSource {
-                  source: js_source.clone(),
-                };
-                let mut runtime_requirements = *codegen_res.runtime_requirements();
-
-                let mut chunk_init_fragments = vec![];
-                hooks
-                  .render_module_content
-                  .call(
-                    compilation,
-                    &chunk_ukey,
-                    module.as_ref(),
-                    &mut render_source,
-                    &mut runtime_requirements,
-                    &mut chunk_init_fragments,
-                    runtime_template,
-                  )
-                  .await?;
-                *concate_info = concatenation_scope.current_module.clone();
-
-                let jsx = module
-                  .as_ref()
-                  .as_normal_module()
-                  .and_then(|normal_module| normal_module.get_parser_options())
-                  .and_then(|options| {
-                    options
-                      .get_javascript()
-                      .and_then(|js_options| js_options.jsx)
-                  })
-                  .unwrap_or(false);
-                let source_str = render_source
-                  .source
-                  .source()
-                  .into_string_lossy()
-                  .into_owned();
-                let allocator = Allocator::new();
-                let lexer = swc_experimental_ecma_parser::Lexer::new(
-                  &allocator,
-                  Syntax::Es(EsSyntax {
-                    jsx,
-                    ..Default::default()
-                  }),
-                  EsVersion::EsNext,
-                  StringSource::new(&source_str),
-                  None,
-                );
-                let mut parser = Parser::new_from(&allocator, lexer);
-                let module = match parser.parse_module() {
-                  Ok(module) => module,
-                  Err(err) => {
-                    return Err(Error::from_string(
-                      Some(source_str.clone()),
-                      err.span().real_lo() as usize,
-                      err.span().real_hi() as usize,
-                      "JavaScript parse error:\n".to_string(),
-                      err.kind().msg().to_string(),
-                    ));
-                  }
-                };
-                let program = Program::Module(allocator.boxed(module));
-                let semantic = resolver(&program);
-                let ids = collect_ident(&allocator, &program);
-
-                concate_info.module_ctxt =
-                  SyntaxContext::from_u32(semantic.top_level_scope_id().raw());
-                concate_info.global_ctxt =
-                  SyntaxContext::from_u32(semantic.unresolved_scope_id().raw());
-
-                let top_level_scope_id = semantic.top_level_scope_id();
-                let mut all_used_names = FxHashSet::default();
-                all_used_names.reserve(ids.len());
-                concate_info.idents.reserve(ids.len());
-                concate_info.global_scope_ident.reserve(ids.len());
-                let mut binding_to_ref: FxIndexMap<
-                  (Atom, SyntaxContext),
-                  Vec<ConcatenatedModuleIdent>,
-                > = Default::default();
-                binding_to_ref.reserve(ids.len());
-
-                for ident in ids {
-                  let scope = semantic.node_scope(&ident.id);
-                  let is_global = SyntaxContext::from_u32(scope.raw()) == concate_info.global_ctxt;
-                  let legacy = if is_global {
-                    let leg = ident.to_legacy(&semantic);
-                    concate_info.global_scope_ident.push(leg.clone());
-                    all_used_names.insert(leg.id.sym.clone());
-                    Some(leg)
-                  } else {
-                    None
-                  };
-                  if ident.is_class_expr_with_ident {
-                    all_used_names.insert(Atom::from(ident.id.sym.as_str()));
-                    continue;
-                  }
-                  if scope != top_level_scope_id {
-                    all_used_names.insert(Atom::from(ident.id.sym.as_str()));
-                  }
-                  let legacy = legacy.unwrap_or_else(|| ident.to_legacy(&semantic));
-                  concate_info.idents.push(legacy.clone());
-                  binding_to_ref
-                    .entry((legacy.id.sym.clone(), legacy.id.ctxt))
-                    .or_default()
-                    .push(legacy);
                 }
+              };
+              let program = Program::Module(allocator.boxed(module));
+              let semantic = resolver(&program);
+              let ids = collect_ident(&allocator, &program);
 
-                concate_info.all_used_names = all_used_names;
-                concate_info.binding_to_ref = binding_to_ref;
-                concate_info.has_ast = true;
-                concate_info.source = Some(ReplaceSource::new(render_source.source.clone()));
-                concate_info.internal_source = Some(render_source.source.clone());
-                concate_info.runtime_requirements = runtime_requirements;
-                concate_info.chunk_init_fragments = codegen_res
-                  .data()
-                  .get::<CodeGenerationDataChunkInitFragments>()
-                  .map(|fragments| fragments.inner().clone())
-                  .unwrap_or_default();
-                concate_info
-                  .chunk_init_fragments
-                  .extend(chunk_init_fragments);
-                if let Some(CodeGenerationPublicPathAutoReplace(true)) =
-                  codegen_res
-                    .data()
-                    .get::<CodeGenerationPublicPathAutoReplace>()
-                {
-                  concate_info.public_path_auto_replacement = Some(true);
+              concate_info.module_ctxt =
+                SyntaxContext::from_u32(semantic.top_level_scope_id().raw());
+              concate_info.global_ctxt =
+                SyntaxContext::from_u32(semantic.unresolved_scope_id().raw());
+
+              let top_level_scope_id = semantic.top_level_scope_id();
+              let mut all_used_names = FxHashSet::default();
+              all_used_names.reserve(ids.len());
+              concate_info.idents.reserve(ids.len());
+              concate_info.global_scope_ident.reserve(ids.len());
+              let mut binding_to_ref: FxIndexMap<
+                (Atom, SyntaxContext),
+                Vec<ConcatenatedModuleIdent>,
+              > = Default::default();
+              binding_to_ref.reserve(ids.len());
+
+              for ident in ids {
+                let scope = semantic.node_scope(&ident.id);
+                let is_global = SyntaxContext::from_u32(scope.raw()) == concate_info.global_ctxt;
+                let legacy = if is_global {
+                  let leg = ident.to_legacy(&semantic);
+                  concate_info.global_scope_ident.push(leg.clone());
+                  all_used_names.insert(leg.id.sym.clone());
+                  Some(leg)
+                } else {
+                  None
+                };
+                if ident.is_class_expr_with_ident {
+                  all_used_names.insert(Atom::from(ident.id.sym.as_str()));
+                  continue;
                 }
-                if codegen_res.data().contains::<URLStaticMode>() {
-                  concate_info.static_url_replacement = true;
+                if scope != top_level_scope_id {
+                  all_used_names.insert(Atom::from(ident.id.sym.as_str()));
                 }
-                Ok((
-                  ModuleInfo::Concatenated(concate_info),
-                  None,
-                  Some(concatenation_scope),
-                ))
+                let legacy = legacy.unwrap_or_else(|| ident.to_legacy(&semantic));
+                concate_info.idents.push(legacy.clone());
+                binding_to_ref
+                  .entry((legacy.id.sym.clone(), legacy.id.ctxt))
+                  .or_default()
+                  .push(legacy);
               }
+
+              concate_info.all_used_names = all_used_names;
+              concate_info.binding_to_ref = binding_to_ref;
+              concate_info.has_ast = true;
+              concate_info.source = Some(ReplaceSource::new(render_source.source.clone()));
+              concate_info.internal_source = Some(render_source.source.clone());
+              concate_info.runtime_requirements = runtime_requirements;
+              concate_info.chunk_init_fragments = codegen_res
+                .data()
+                .get::<CodeGenerationDataChunkInitFragments>()
+                .map(|fragments| fragments.inner().clone())
+                .unwrap_or_default();
+              concate_info
+                .chunk_init_fragments
+                .extend(chunk_init_fragments);
+              if let Some(CodeGenerationPublicPathAutoReplace(true)) =
+                codegen_res
+                  .data()
+                  .get::<CodeGenerationPublicPathAutoReplace>()
+              {
+                concate_info.public_path_auto_replacement = Some(true);
+              }
+              if codegen_res.data().contains::<URLStaticMode>() {
+                concate_info.static_url_replacement = true;
+              }
+              Ok((ModuleInfo::Concatenated(concate_info), None))
             }
-          },
-        )
+          }
+        })
       }
     })
     .await;
 
-    let mut concatenation_scopes = IdentifierMap::default();
     for m in map {
       let m = m.map_err(|e| rspack_error::error!(e.to_string()))?;
-      let (m, external_fragments, concatenation_scope) =
-        m.map_err(|e| rspack_error::error!(e.to_string()))?;
+      let (m, external_fragments) = m.map_err(|e| rspack_error::error!(e.to_string()))?;
       if let Some((id, init_fragments)) = external_fragments {
         external_module_init_fragments.insert(id, init_fragments);
-      }
-      if let Some(concatenation_scope) = concatenation_scope {
-        concatenation_scopes.insert(m.id(), concatenation_scope);
       }
       orig_concate_modules_map.insert(m.id(), m);
     }
 
-    Ok(concatenation_scopes)
+    Ok(())
   }
 
   /**
@@ -2420,7 +2379,6 @@ var {} = {{}};
     link: &mut FxHashMap<ChunkUkey, ChunkLinkContext>,
     runtime_chunks_exporting_require_via_runtime_module: &FxHashSet<ChunkUkey>,
     concate_modules_map: &mut IdentifierIndexMap<ModuleInfo>,
-    concatenation_scopes: &IdentifierMap<ConcatenationScope>,
     needed_namespace_objects_by_ukey: &mut FxHashMap<ChunkUkey, IdentifierIndexSet>,
     escaped_identifiers: &FxHashMap<String, Vec<Atom>>,
   ) -> Vec<Diagnostic> {
@@ -2932,11 +2890,14 @@ var {} = {{}};
           }
         }
 
-        let concatenation_scope = concatenation_scopes
-          .get(m)
-          .expect("should have concatenation scope for scope hoisted module");
+        let concatenation_scope_output = compilation
+          .code_generation_results
+          .get(m, None)
+          .data()
+          .get::<CodeGenerationDataConcatenationScopeOutput>()
+          .expect("should have concatenation scope output for scope hoisted module");
 
-        for (ref_module, all_refs) in &concatenation_scope.refs {
+        for (ref_module, all_refs) in concatenation_scope_output.refs() {
           // import all atoms from ref_module
           for (ref_string, options) in all_refs.iter() {
             if refs.contains_key(ref_string) {

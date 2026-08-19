@@ -210,25 +210,30 @@ pub(crate) async fn code_generation_modules(
               concatenation_source: None,
               runtime_template: &mut runtime_template,
             };
+            let mut codegen_result_builder =
+              module.code_generation(&mut code_generation_context).await?;
 
-            module
-              .code_generation(&mut code_generation_context)
-              .await
-              .map(|mut codegen_result_builder| {
-                codegen_result_builder
-                  .runtime_requirements_mut()
-                  .extend(*runtime_template.runtime_requirements());
-                codegen_result_builder.set_hash(
-                  &options.output.hash_function,
-                  &options.output.hash_digest,
-                  &options.output.hash_salt,
-                  module
-                    .as_concatenated_module()
-                    .is_some()
-                    .then_some(&job.hash),
-                );
-                codegen_result_builder.build()
-              })
+            if let Some(scope) = concatenation_scope.as_mut()
+              && scope.is_codegen_data_collection_enabled()
+            {
+              codegen_result_builder
+                .data_mut()
+                .insert(scope.take_codegen_data_output());
+            }
+
+            codegen_result_builder
+              .runtime_requirements_mut()
+              .extend(*runtime_template.runtime_requirements());
+            codegen_result_builder.set_hash(
+              &options.output.hash_function,
+              &options.output.hash_digest,
+              &options.output.hash_salt,
+              module
+                .as_concatenated_module()
+                .is_some()
+                .then_some(&job.hash),
+            );
+            Ok(codegen_result_builder.build())
           };
           let (codegen_res, from_cache) = if let Some(new_cache) = new_code_generation_cache {
             use_new_cache(&new_cache, generator).await
