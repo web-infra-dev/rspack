@@ -510,6 +510,7 @@ async function loaderImpl(
             RequestType.LoaderCacheGet,
             loaderContext.loaderIndex,
             isNil(args[0]) ? null : toBuffer(args[0]),
+            serializeObject(args[1]),
             args[2],
           );
           if (hit) {

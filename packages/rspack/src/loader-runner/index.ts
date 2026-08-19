@@ -925,8 +925,13 @@ export async function runLoaders(
             break;
           }
           case RequestType.LoaderCacheGet: {
-            const [loaderIndex, content, additionalData] = args;
-            return loaderCache?.workerGet(loaderIndex, content, additionalData);
+            const [loaderIndex, content, sourceMap, additionalData] = args;
+            return loaderCache?.workerGet(
+              loaderIndex,
+              content,
+              sourceMap,
+              additionalData,
+            );
           }
           case RequestType.LoaderCacheStore: {
             const [
@@ -1098,6 +1103,9 @@ export async function runLoaders(
               ? loaderCache.get(
                   loaderContext.loaderIndex,
                   content,
+                  sourceMapParsed
+                    ? JsSourceMap.__to_binding(sourceMap)
+                    : rawSourceMap,
                   additionalData,
                 )
               : undefined;

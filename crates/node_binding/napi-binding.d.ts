@@ -408,7 +408,7 @@ export declare class JsExportsInfo {
 }
 
 export declare class JsLoaderCache {
-  get(loaderIndex: number, content: Buffer): JsLoaderCacheEntry | null
+  get(loaderIndex: number, content: Buffer, sourceMap?: Buffer | undefined | null): JsLoaderCacheEntry | null
   store(loaderIndex: number, output: JsLoaderCacheEntry): void
 }
 

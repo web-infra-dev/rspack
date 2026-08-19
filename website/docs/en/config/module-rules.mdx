@@ -851,6 +851,7 @@ Enables caching for an individual loader. This option only takes effect when [`e
 Rspack invalidates a loader cache entry when any of the following changes:
 
 - the input content passed to the loader;
+- the input source map passed to the loader;
 - the loader options after JSON serialization;
 - the loader implementation version. For a JavaScript package loader, Rspack uses its package name and version. For a local JavaScript loader, Rspack hashes its resolved entry file.
 
@@ -885,7 +886,6 @@ export default {
 This experimental cache is intended for pure loaders whose observable result is limited to transformed content and an optional source map.
 
 - Dependencies added dynamically through the loader context are not included in cache validation and are not restored on a cache hit.
-- The incoming source map is not included in the cache identity. Do not enable this option for a loader whose result depends on that map.
 - Results involving unsupported state such as `additionalData` or parse metadata are not cached. Loader side effects are not replayed on a cache hit.
 
 :::

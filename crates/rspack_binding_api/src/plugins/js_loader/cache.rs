@@ -160,10 +160,12 @@ impl JsLoaderCache {
     &self,
     loader_index: u32,
     content: Buffer,
+    source_map: Option<Buffer>,
   ) -> napi::Result<Option<JsLoaderCacheEntry>> {
     let loader = self.loader(loader_index)?;
     let etag = loader_cache_etag(
       &Content::Buffer(content.to_vec()),
+      source_map.as_deref(),
       &loader.options_cache_key,
       &loader.loader_version,
     );

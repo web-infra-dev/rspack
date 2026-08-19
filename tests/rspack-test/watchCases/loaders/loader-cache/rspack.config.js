@@ -17,6 +17,15 @@ module.exports = {
             options: { name: 'left' },
           },
           {
+            loader: path.resolve(__dirname, 'loader.js'),
+            options: { name: 'source-map-consumer' },
+            cache: true,
+          },
+          {
+            loader: path.resolve(__dirname, 'loader.js'),
+            options: { name: 'source-map-producer' },
+          },
+          {
             loader: path.resolve(__dirname, 'marked-loader.js'),
             options: { name: 'marked' },
             parallel: { maxWorkers: 1 },

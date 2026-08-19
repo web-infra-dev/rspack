@@ -17,10 +17,16 @@ fn loader_cache_key(module_identifier: &str, loader_name: &str) -> String {
 }
 
 #[doc(hidden)]
-pub fn loader_cache_etag(content: &Content, options_cache_key: &str, loader_version: &str) -> Etag {
+pub fn loader_cache_etag(
+  content: &Content,
+  source_map: Option<&[u8]>,
+  options_cache_key: &str,
+  loader_version: &str,
+) -> Etag {
   let mut hasher = RspackHasher::new(&HashFunction::Xxhash64);
   rspack_hash::rspack_hash_object!(&mut hasher, {
     "content" => content,
+    "sourceMap" => source_map,
     "options" => options_cache_key,
     "version" => loader_version,
   });
@@ -66,8 +72,10 @@ fn cache_miss_action(context: &LoaderContext<RunnerContext>, etag: Etag) -> Load
 
 fn input_etag(context: &LoaderContext<RunnerContext>) -> Option<Etag> {
   let loader = context.current_loader();
+  let source_map = context.source_map().map(SourceMap::to_json);
   Some(loader_cache_etag(
     context.content()?,
+    source_map.as_deref().map(str::as_bytes),
     loader.options_cache_key(),
     loader.loader_version(),
   ))
@@ -80,7 +88,7 @@ pub(crate) fn before_normal_loader(
   if !context.cacheable {
     return Ok(LoaderCacheAction::Disabled);
   }
-  // The minimal cache only supports loaders whose observable input is content.
+  // The minimal cache only supports loaders whose observable input is content and source map.
   if context.additional_data().is_some()
     || !context.parse_meta.is_empty()
     || !context.context.module.build_info().assets.is_empty()

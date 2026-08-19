@@ -9,7 +9,11 @@ export type LoaderCacheEntry = {
 };
 
 type LoaderCacheApi = {
-  get(loaderIndex: number, content: Buffer): LoaderCacheEntry | null;
+  get(
+    loaderIndex: number,
+    content: Buffer,
+    sourceMap?: Buffer,
+  ): LoaderCacheEntry | null;
   store(loaderIndex: number, output: LoaderCacheEntry): void;
 };
 
@@ -30,6 +34,7 @@ export class LoaderCache {
   get(
     loaderIndex: number,
     content: Parameters<typeof toBuffer>[0] | null | undefined,
+    sourceMap: Buffer | Uint8Array | undefined,
     additionalData: unknown,
   ): LoaderCacheEntry | null | undefined {
     const context = this.#context;
@@ -44,7 +49,11 @@ export class LoaderCache {
       return undefined;
     }
 
-    return this.#api.get(loaderIndex, toBuffer(content));
+    return this.#api.get(
+      loaderIndex,
+      toBuffer(content),
+      sourceMap ? Buffer.from(sourceMap) : undefined,
+    );
   }
 
   store(
@@ -73,9 +82,10 @@ export class LoaderCache {
   workerGet(
     loaderIndex: number,
     content: Parameters<typeof toBuffer>[0] | null | undefined,
+    sourceMap: Buffer | Uint8Array | undefined,
     additionalData: unknown,
   ) {
-    const hit = this.get(loaderIndex, content, additionalData);
+    const hit = this.get(loaderIndex, content, sourceMap, additionalData);
     if (!hit) return undefined;
     return {
       ...hit,

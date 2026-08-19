@@ -849,6 +849,7 @@ export default {
 以下任一内容变化时，Rspack 会使对应的 loader 缓存失效：
 
 - 传给 loader 的输入内容；
+- 传给 loader 的输入 source map；
 - JSON 序列化后的 loader options；
 - loader 实现版本。对于 JavaScript 包形式的 loader，Rspack 使用其包名和版本；对于本地 JavaScript loader，Rspack 会计算解析后入口文件的哈希。
 
@@ -883,7 +884,6 @@ export default {
 该实验性缓存适用于可观测结果仅包含转换后内容和可选 source map 的纯 loader。
 
 - 通过 loader context 动态添加的依赖不会参与缓存校验，缓存命中时也不会恢复这些依赖。
-- 输入 source map 不属于缓存标识的一部分。如果 loader 的结果依赖该 source map，请勿启用此选项。
 - 涉及 `additionalData`、parse metadata 等暂不支持状态的结果不会被缓存。缓存命中时也不会重放 loader 的副作用。
 
 :::

@@ -10,6 +10,8 @@ it("should cache each opted-in loader until its input changes", () => {
 		leftRuns: step + 1,
 		markedRuns: cachedRuns,
 		rightRuns: cachedRuns,
+		sourceMapConsumerRuns: step + 1,
+		sourceMapInput: `value-${step + 1}.js`,
 		sourceMap: true
 	});
 	expect(moduleA).toBe("module-a.js");
