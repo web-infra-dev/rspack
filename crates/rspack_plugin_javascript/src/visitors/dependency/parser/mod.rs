@@ -545,8 +545,9 @@ impl<'parser> JavascriptParser<'parser> {
           commonjs.exports
         });
       if commonjs_exports == JavascriptParserCommonjsExportsOption::Disable {
-        build_info.access_module_exports = true;
+        build_info.access_module_exports = Some(true);
       } else {
+        build_info.access_module_exports = Some(false);
         plugins.push(Box::new(parser_plugin::CommonJsExportsParserPlugin::new(
           commonjs_exports == JavascriptParserCommonjsExportsOption::SkipInEsm,
         )));

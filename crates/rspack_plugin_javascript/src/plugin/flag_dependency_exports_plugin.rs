@@ -1,16 +1,95 @@
 use rayon::prelude::*;
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
-  AsyncModulesArtifact, BuildMetaExportsType, Compilation, CompilationFinishModules, DependencyId,
-  EvaluatedInlinableValue, ExportInfo, ExportInfoData, ExportNameOrSpec, ExportProvided,
-  ExportsInfo, ExportsInfoArtifact, ExportsInfoData, ExportsOfExportsSpec, ExportsSpec,
-  GetTargetResult, Logger, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection,
-  ModuleIdentifier, Nullable, Plugin, SideEffectsStateArtifact, get_target,
+  AffectType, AsyncModulesArtifact, BoxDependency, BuildMetaExportsType, Compilation,
+  CompilationFinishModules, DependencyId, EvaluatedInlinableValue, ExportInfo, ExportInfoData,
+  ExportNameOrSpec, ExportProvided, ExportsInfo, ExportsInfoArtifact, ExportsInfoData,
+  ExportsOfExportsSpec, ExportsSpec, GetTargetResult, Logger, Module, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, Nullable, Plugin,
+  SideEffectsStateArtifact, get_target,
   incremental::{self, IncrementalPasses},
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use swc_atoms::Atom;
+
+use crate::dependency::{ESMExportImportedSpecifierDependency, ESMImportSideEffectDependency};
+
+fn is_star_reexport_dependency(dependency: &BoxDependency) -> bool {
+  dependency
+    .downcast_ref::<ESMImportSideEffectDependency>()
+    .is_some_and(ESMImportSideEffectDependency::is_star_export)
+    || dependency
+      .downcast_ref::<ESMExportImportedSpecifierDependency>()
+      .is_some_and(ESMExportImportedSpecifierDependency::is_star_export)
+}
+
+fn is_empty_exports_candidate(module: &dyn Module) -> bool {
+  module.build_meta().exports_type() == BuildMetaExportsType::Unset
+    && module.build_info().access_module_exports == Some(false)
+}
+
+fn can_infer_empty_exports(module_id: &ModuleIdentifier, module_graph: &ModuleGraph) -> bool {
+  // Not touching `module.exports` locally is insufficient: another module can still obtain the
+  // CommonJS exports object and mutate it. A star reexport only forwards exports and does not expose
+  // that object to user code.
+  module_graph
+    .get_incoming_connections(module_id)
+    .all(|connection| {
+      let dependency = module_graph.dependency_by_id(&connection.dependency_id);
+      is_star_reexport_dependency(dependency)
+    })
+}
+
+fn add_newly_unsafe_empty_exports_modules(module_graph: &ModuleGraph, modules: &mut IdentifierSet) {
+  // Adding a dependency does not rebuild its target. When an affected module starts exposing a
+  // previously-empty CommonJS module through a non-star edge, re-run export inference for the target
+  // and the modules whose export information depends on it.
+  let affected_modules = modules.iter().copied().collect::<Vec<_>>();
+  let mut newly_unsafe_modules = IdentifierSet::default();
+
+  for module_id in affected_modules {
+    for connection in module_graph.get_outgoing_connections(&module_id) {
+      let dependency = module_graph.dependency_by_id(&connection.dependency_id);
+      if is_star_reexport_dependency(dependency) {
+        continue;
+      }
+      let target_module_id = connection.module_identifier();
+      if module_graph
+        .module_by_identifier(target_module_id)
+        .is_some_and(|module| is_empty_exports_candidate(module.as_ref()))
+      {
+        newly_unsafe_modules.insert(*target_module_id);
+      }
+    }
+  }
+
+  let mut transitive_modules = newly_unsafe_modules.iter().copied().collect::<Vec<_>>();
+  let mut expanded_modules = IdentifierSet::default();
+  modules.extend(newly_unsafe_modules);
+
+  while let Some(module_id) = transitive_modules.pop() {
+    if !expanded_modules.insert(module_id) {
+      continue;
+    }
+    for connection in module_graph.get_incoming_connections(&module_id) {
+      let Some(origin_module_id) = connection.original_module_identifier else {
+        continue;
+      };
+      let dependency = module_graph.dependency_by_id(&connection.dependency_id);
+      match dependency.could_affect_referencing_module() {
+        AffectType::False => {}
+        AffectType::True => {
+          modules.insert(origin_module_id);
+        }
+        AffectType::Transitive => {
+          modules.insert(origin_module_id);
+          transitive_modules.push(origin_module_id);
+        }
+      }
+    }
+  }
+}
 
 struct FlagDependencyExportsState<'a> {
   mg: &'a ModuleGraph,
@@ -40,6 +119,8 @@ impl<'a> FlagDependencyExportsState<'a> {
         .expect("should have module");
       let exports_type_unset = module.build_meta().exports_type() == BuildMetaExportsType::Unset;
       let access_module_exports = module.build_info().access_module_exports;
+      let infer_empty_exports =
+        access_module_exports == Some(false) && can_infer_empty_exports(module_id, self.mg);
       let exports_info = self
         .exports_info_artifact
         .get_exports_info_data_mut(module_id);
@@ -47,7 +128,7 @@ impl<'a> FlagDependencyExportsState<'a> {
       exports_info.reset_provide_info();
       if exports_type_unset {
         exports_info.set_has_provide_info();
-        if access_module_exports
+        if !infer_empty_exports
           && !matches!(
             exports_info.other_exports_info().provided(),
             Some(ExportProvided::Unknown)
@@ -203,7 +284,7 @@ async fn finish_modules(
   _side_effects_state_artifact: &mut SideEffectsStateArtifact,
 ) -> Result<()> {
   let module_graph = compilation.get_module_graph();
-  let modules: IdentifierSet = if let Some(mutations) = compilation
+  let (mut modules, incremental) = if let Some(mutations) = compilation
     .incremental
     .mutations_read(IncrementalPasses::FINISH_MODULES)
   {
@@ -215,10 +296,13 @@ async fn finish_modules(
       modules.len(),
       module_graph.modules_len()
     ));
-    modules
+    (modules, true)
   } else {
-    module_graph.modules_keys().copied().collect()
+    (module_graph.modules_keys().copied().collect(), false)
   };
+  if incremental {
+    add_newly_unsafe_empty_exports_modules(module_graph, &mut modules);
+  }
   let module_graph_cache = compilation.module_graph_cache_artifact.clone();
 
   FlagDependencyExportsState::new(module_graph, &module_graph_cache, exports_info_artifact)

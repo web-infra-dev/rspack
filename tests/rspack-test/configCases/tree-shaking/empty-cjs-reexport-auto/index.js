@@ -2,6 +2,10 @@ export * from "./barrel";
 
 import { amdFactory, amdObject } from "./amd-barrel";
 import { commonJsValue } from "./disabled-commonjs-barrel";
+import "./mutate-external-require";
+import "./mutate-external-import";
+import { importValue, requireValue } from "./external-barrel";
+import { noParseValue } from "./no-parse-barrel";
 import "./access-exports";
 import "./access-module";
 import "./access-this";
@@ -31,4 +35,15 @@ it("should keep amd define exports unknown", () => {
 it("should keep exports unknown when commonjs export parsing is disabled", () => {
 	expect(commonJsValue).toBe("commonjs");
 	expect(findModule("disabled-commonjs.js").providedExports).toBe(null);
+});
+
+it("should keep exports unknown when another module can mutate them", () => {
+	expect(requireValue).toBe("require");
+	expect(importValue).toBe("import");
+	expect(findModule("external-empty.js").providedExports).toBe(null);
+});
+
+it("should keep exports unknown when the module was not parsed", () => {
+	expect(noParseValue).toBe("no-parse");
+	expect(findModule("no-parse.js").providedExports).toBe(null);
 });

@@ -279,7 +279,7 @@ impl CommonJsExportsParserPlugin {
   }
 
   fn mark_access_module_exports(&self, parser: &mut JavascriptParser) {
-    parser.build_info.access_module_exports = true;
+    parser.build_info.access_module_exports = Some(true);
   }
 }
 

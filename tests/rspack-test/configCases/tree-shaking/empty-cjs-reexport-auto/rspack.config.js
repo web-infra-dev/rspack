@@ -10,6 +10,7 @@ module.exports = {
     usedExports: true,
   },
   module: {
+    noParse: /no-parse\.js$/,
     rules: [
       {
         test: /\.ts$/,

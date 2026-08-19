@@ -1,0 +1,1 @@
+require("./empty").value = "ok";

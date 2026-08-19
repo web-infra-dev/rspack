@@ -277,7 +277,9 @@ pub struct BuildInfo {
   pub esm_named_exports: HashSet<Atom>,
   pub all_star_exports: Vec<DependencyId>,
   pub need_create_require: bool,
-  pub access_module_exports: bool,
+  /// `Some(false)` means the CommonJS exports parser completed without observing access to the
+  /// module exports object. `None` means no such analysis was performed.
+  pub access_module_exports: Option<bool>,
   #[cacheable(with=AsOption<AsPreset>)]
   pub json_data: Option<JsonValue>,
   pub asset: Option<Box<AssetBuildInfo>>,
@@ -319,7 +321,7 @@ impl Default for BuildInfo {
       esm_named_exports: HashSet::default(),
       all_star_exports: Vec::default(),
       need_create_require: false,
-      access_module_exports: false,
+      access_module_exports: None,
       json_data: None,
       asset: None,
       css: None,

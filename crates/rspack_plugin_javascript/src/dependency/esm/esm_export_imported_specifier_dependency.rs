@@ -133,6 +133,10 @@ impl ESMExportImportedSpecifierDependency {
       .map_or_else(|| self.ids.as_slice(), |meta| meta.ids.as_slice())
   }
 
+  pub fn is_star_export(&self) -> bool {
+    self.name.is_none()
+  }
+
   pub fn get_mode(
     &self,
     module_graph: &ModuleGraph,
