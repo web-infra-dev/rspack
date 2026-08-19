@@ -44,7 +44,7 @@ export default {
 
 #### 固定语法版本
 
-如果不使用 Browserslist，并且希望浏览器产物的 runtime 最多使用 ES2020 语法，可以组合平台和语法 target：
+如果不使用 Browserslist，并且希望浏览器产物的 runtime 最多使用 ES2020 语法，可以组合平台和语法 target（详见 [Target 数组](#target-arrays)）：
 
 ```js title="rspack.config.mjs"
 export default {
@@ -127,7 +127,7 @@ Rspack 会从 target 派生多项默认配置，包括：
 
 只有经过这些工具处理的代码才会应用相应转换。由 Babel 处理的代码遵循 Babel 自身的配置。内置工具也可能将继承的 target 限制在自身支持的版本范围内。
 
-## Target 数组
+## Target 数组 \{#target-arrays}
 
 target 数组会将所有值共同支持的特性子集应用于同一次编译。常见用法是在平台 target 上增加 ECMAScript 约束：
 

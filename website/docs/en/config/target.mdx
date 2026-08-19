@@ -44,7 +44,7 @@ When the project includes a standard Browserslist configuration, `target` defaul
 
 #### Syntax version
 
-If you do not use Browserslist and want browser output whose runtime uses at most ES2020 syntax, combine the platform and syntax targets:
+If you do not use Browserslist and want browser output whose runtime uses at most ES2020 syntax, combine the platform and syntax targets (see [Target arrays](#target-arrays) for details):
 
 ```js title="rspack.config.mjs"
 export default {
@@ -127,7 +127,7 @@ When used without an explicit transform target, the following built-in tools inh
 
 Only code processed by these tools receives their transformations. Code processed by Babel follows Babel's own configuration. Built-in tools may also limit inherited targets to the versions they support.
 
-## Target arrays
+## Target arrays \{#target-arrays}
 
 A target array applies the common subset of features supported by every item to a single compilation. A typical combination adds an ECMAScript constraint to a platform target:
 
