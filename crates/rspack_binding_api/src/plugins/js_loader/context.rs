@@ -18,7 +18,6 @@ pub struct JsLoaderItem {
   pub loader: String,
   pub r#type: String,
   pub cache: bool,
-  pub cache_key: String,
 
   // data
   pub data: serde_json::Value,
@@ -36,7 +35,6 @@ impl From<&rspack_loader_runner::LoaderItem<RunnerContext>> for JsLoaderItem {
       loader: value.request().to_string(),
       r#type: value.r#type().to_string(),
       cache: value.cache(),
-      cache_key: value.cache_key().to_string(),
 
       data: value.data().clone(),
       normal_executed: value.normal_executed(),
@@ -60,7 +58,6 @@ where
         data: serde_json::Value::Null,
         r#type: r#type.to_string(),
         cache: false,
-        cache_key: String::new(),
         pitch_executed: false,
         normal_executed: false,
         no_pitch: false,
@@ -71,7 +68,6 @@ where
       data: serde_json::Value::Null,
       r#type: String::default(),
       cache: false,
-      cache_key: String::new(),
       pitch_executed: false,
       normal_executed: false,
       no_pitch: false,
@@ -193,6 +189,10 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
       loader_cache: JsLoaderCacheObject::new(
         get_loader_cache(&cx.context.options.context),
         module.identifier().to_string(),
+        cx.loader_items
+          .iter()
+          .map(|loader| loader.cache_key().to_owned())
+          .collect(),
       ),
       utf8_hint: None,
     })

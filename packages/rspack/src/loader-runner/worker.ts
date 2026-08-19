@@ -509,7 +509,6 @@ async function loaderImpl(
           const hit = await sendRequest(
             RequestType.LoaderCacheGet,
             loaderContext.loaderIndex,
-            currentLoaderObject.loaderItem.cacheKey,
             isNil(args[0]) ? null : toBuffer(args[0]),
             typeof args[0] === 'string',
             serializeObject(args[1]),
@@ -532,7 +531,6 @@ async function loaderImpl(
         const fn = currentLoaderObject.normal;
         currentLoaderObject.normalExecuted = true;
         if (!fn) continue;
-        const inputAdditionalData = args[2];
         convertArgs(args, !!currentLoaderObject.raw);
         args = (await runSyncOrAsync(fn, loaderContext, args)) || [];
         if (currentLoaderObject.loaderItem.cache) {
@@ -540,14 +538,11 @@ async function loaderImpl(
           await sendRequest(
             RequestType.LoaderCacheStore,
             loaderContext.loaderIndex,
-            currentLoaderObject.loaderItem.cacheKey,
             isNil(args[0]) ? null : toBuffer(args[0]),
             typeof args[0] === 'string',
             serializeObject(args[1]),
             args[2],
           );
-        } else if (args[2] !== inputAdditionalData) {
-          await sendRequest(RequestType.LoaderCacheInvalidate);
         }
       }
     }

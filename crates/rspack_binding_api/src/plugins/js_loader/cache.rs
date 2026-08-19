@@ -2,25 +2,18 @@ use std::sync::Arc;
 
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
-use rspack_cacheable::{
-  cacheable,
-  utils::PortablePath,
-  with::{As, AsVec},
-};
+use rspack_cacheable::cacheable;
 use rspack_core::{CacheValue, Etag, LoaderCache, Resolver};
 use rspack_error::Result;
 use rspack_hash::{HashFunction, RspackHasher};
 use rspack_loader_runner::DescriptionData;
-use rspack_napi::threadsafe_js_value_ref::ThreadsafeJsValueRef;
 use rspack_paths::Utf8Path;
-use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
+use rustc_hash::FxHashMap as HashMap;
 
 #[cacheable]
 #[derive(Clone, Default)]
 struct DependencyDelta {
-  #[cacheable(with=AsVec<As<PortablePath>>)]
   added: Vec<String>,
-  #[cacheable(with=AsVec<As<PortablePath>>)]
   removed: Vec<String>,
 }
 
@@ -37,41 +30,37 @@ struct LoaderCacheEntry {
   content: Option<Vec<u8>>,
   content_is_string: bool,
   source_map: Option<Vec<u8>>,
-  additional_data_cache_key: Option<String>,
+  additional_data: Option<Vec<u8>>,
   file_dependencies: DependencyDelta,
   context_dependencies: DependencyDelta,
   missing_dependencies: DependencyDelta,
   build_dependencies: DependencyDelta,
   parse_meta: ParseMetaDelta,
-  requires_sidecar: bool,
-}
-
-#[derive(Clone)]
-struct LoaderCacheSidecar {
-  additional_data: ThreadsafeJsValueRef<Unknown<'static>>,
 }
 
 #[napi(object)]
-pub struct JsLoaderCacheData {
+pub struct JsLoaderCacheEntry {
   pub content: Either<Null, Buffer>,
   pub content_is_string: bool,
   pub source_map: Option<Buffer>,
-  #[napi(ts_type = "any")]
-  pub additional_data: Option<ThreadsafeJsValueRef<Unknown<'static>>>,
-  pub additional_data_cache_key: Option<String>,
-  pub file_dependencies: Vec<String>,
-  pub context_dependencies: Vec<String>,
-  pub missing_dependencies: Vec<String>,
-  pub build_dependencies: Vec<String>,
-  pub parse_meta: HashMap<String, String>,
-  pub cacheable: bool,
-  pub has_unhandled_side_effects: bool,
+  pub additional_data: Option<Buffer>,
+  pub file_dependencies_added: Vec<String>,
+  pub file_dependencies_removed: Vec<String>,
+  pub context_dependencies_added: Vec<String>,
+  pub context_dependencies_removed: Vec<String>,
+  pub missing_dependencies_added: Vec<String>,
+  pub missing_dependencies_removed: Vec<String>,
+  pub build_dependencies_added: Vec<String>,
+  pub build_dependencies_removed: Vec<String>,
+  pub parse_meta_upserted: HashMap<String, String>,
+  pub parse_meta_removed: Vec<String>,
 }
 
 #[napi]
 pub struct JsLoaderCache {
   cache: Arc<LoaderCache>,
   module_identifier: String,
+  loader_keys: Vec<String>,
 }
 
 pub struct JsLoaderCacheObject(JsLoaderCache);
@@ -86,6 +75,7 @@ impl FromNapiValue for JsLoaderCacheObject {
     Ok(Self(JsLoaderCache {
       cache: Arc::clone(&instance.cache),
       module_identifier: instance.module_identifier.clone(),
+      loader_keys: instance.loader_keys.clone(),
     }))
   }
 }
@@ -112,17 +102,26 @@ impl TypeName for JsLoaderCacheObject {
 impl ValidateNapiValue for JsLoaderCacheObject {}
 
 impl JsLoaderCache {
-  pub fn new(cache: Arc<LoaderCache>, module_identifier: String) -> Self {
+  pub fn new(cache: Arc<LoaderCache>, module_identifier: String, loader_keys: Vec<String>) -> Self {
     Self {
       cache,
       module_identifier,
+      loader_keys,
     }
+  }
+
+  fn loader_key(&self, loader_index: u32) -> napi::Result<&str> {
+    self
+      .loader_keys
+      .get(loader_index as usize)
+      .map(String::as_str)
+      .ok_or_else(|| napi::Error::from_reason(format!("Invalid loader index {loader_index}")))
   }
 }
 
 impl JsLoaderCacheObject {
-  pub fn new(cache: Arc<LoaderCache>, module_identifier: String) -> Self {
-    Self(JsLoaderCache::new(cache, module_identifier))
+  pub fn new(cache: Arc<LoaderCache>, module_identifier: String, loader_keys: Vec<String>) -> Self {
+    Self(JsLoaderCache::new(cache, module_identifier, loader_keys))
   }
 }
 
@@ -156,200 +155,86 @@ pub(crate) async fn loader_cache_version(
   Ok(Some(format!("file:{:016x}", hasher.finish())))
 }
 
-fn dependency_delta(baseline: &[String], current: &[String]) -> DependencyDelta {
-  let baseline = baseline.iter().cloned().collect::<HashSet<_>>();
-  let current = current.iter().cloned().collect::<HashSet<_>>();
-  DependencyDelta {
-    added: current.difference(&baseline).cloned().collect(),
-    removed: baseline.difference(&current).cloned().collect(),
-  }
-}
-
-fn replay_dependency_delta(dependencies: &mut Vec<String>, delta: &DependencyDelta) {
-  dependencies.retain(|dependency| !delta.removed.contains(dependency));
-  dependencies.extend(delta.added.iter().cloned());
-}
-
-fn parse_meta_delta(
-  baseline: &HashMap<String, String>,
-  current: &HashMap<String, String>,
-) -> ParseMetaDelta {
-  ParseMetaDelta {
-    upserted: current
-      .iter()
-      .filter(|(key, value)| baseline.get(*key) != Some(*value))
-      .map(|(key, value)| (key.clone(), value.clone()))
-      .collect(),
-    removed: baseline
-      .keys()
-      .filter(|key| !current.contains_key(*key))
-      .cloned()
-      .collect(),
-  }
-}
-
-fn replay_parse_meta(parse_meta: &mut HashMap<String, String>, delta: &ParseMetaDelta) {
-  parse_meta.retain(|key, _| !delta.removed.contains(key));
-  parse_meta.extend(delta.upserted.clone());
-}
-
-fn input_etag(data: &JsLoaderCacheData) -> Option<Etag> {
-  if !data.parse_meta.is_empty() {
-    return None;
-  }
-  let content = match &data.content {
-    Either::A(_) => return None,
-    Either::B(content) => content,
-  };
-  let mut hasher = RspackHasher::new(&HashFunction::Xxhash64);
-  if data.content_is_string {
-    hasher.write(b"string");
-  } else {
-    hasher.write(b"buffer");
-  }
-  hasher.write(content);
-  if let Some(source_map) = &data.source_map {
-    hasher.write(b"source-map");
-    hasher.write(source_map);
-  }
-  if data.additional_data.is_some() {
-    let additional_data_cache_key = data.additional_data_cache_key.as_ref()?;
-    hasher.write(b"additional-data");
-    hasher.write(additional_data_cache_key.as_bytes());
-  }
-  Some(Etag::from(format!("{:016x}", hasher.finish())))
-}
-
-fn output_additional_data_cache_key(
-  cache_key: &str,
-  etag: &Etag,
-  output: &JsLoaderCacheData,
-) -> Option<String> {
-  output.additional_data.as_ref()?;
-  let mut hasher = RspackHasher::new(&HashFunction::Xxhash64);
-  hasher.write(cache_key.as_bytes());
-  hasher.write(etag.as_str().as_bytes());
-  Some(format!("{:016x}", hasher.finish()))
-}
-
 #[napi]
 impl JsLoaderCache {
   #[napi]
-  pub fn get(
-    &self,
-    cache_key: String,
-    mut input: JsLoaderCacheData,
-  ) -> napi::Result<Option<JsLoaderCacheData>> {
-    if !input.cacheable || input.has_unhandled_side_effects {
-      return Ok(None);
-    }
-    let Some(etag) = input_etag(&input) else {
-      return Ok(None);
-    };
-    let (storage_key, item_cache) =
-      self
-        .cache
-        .cache_item(&cache_key, &self.module_identifier, etag.clone());
+  pub fn get(&self, loader_index: u32, etag: String) -> napi::Result<Option<JsLoaderCacheEntry>> {
+    let cache_key = self.loader_key(loader_index)?;
+    let item_cache = self
+      .cache
+      .cache_item(cache_key, &self.module_identifier, Etag::from(etag));
     let Some(entry) = item_cache
       .get::<LoaderCacheEntry>()
       .map_err(|error| napi::Error::from_reason(error.to_string()))?
     else {
       return Ok(None);
     };
-    let sidecar = if entry.requires_sidecar {
-      let Some(sidecar) = self
-        .cache
-        .get_sidecar::<LoaderCacheSidecar>(&storage_key, &etag)
-      else {
-        return Ok(None);
-      };
-      Some(sidecar)
-    } else {
-      None
-    };
 
-    replay_dependency_delta(&mut input.file_dependencies, &entry.file_dependencies);
-    replay_dependency_delta(&mut input.context_dependencies, &entry.context_dependencies);
-    replay_dependency_delta(&mut input.missing_dependencies, &entry.missing_dependencies);
-    replay_dependency_delta(&mut input.build_dependencies, &entry.build_dependencies);
-    replay_parse_meta(&mut input.parse_meta, &entry.parse_meta);
-
-    Ok(Some(JsLoaderCacheData {
+    Ok(Some(JsLoaderCacheEntry {
       content: entry
         .content
         .clone()
         .map_or(Either::A(Null), |content| Either::B(content.into())),
       content_is_string: entry.content_is_string,
       source_map: entry.source_map.clone().map(Into::into),
-      additional_data: sidecar.map(|sidecar| sidecar.additional_data.clone()),
-      additional_data_cache_key: entry.additional_data_cache_key.clone(),
-      file_dependencies: input.file_dependencies,
-      context_dependencies: input.context_dependencies,
-      missing_dependencies: input.missing_dependencies,
-      build_dependencies: input.build_dependencies,
-      parse_meta: input.parse_meta,
-      cacheable: input.cacheable,
-      has_unhandled_side_effects: false,
+      additional_data: entry.additional_data.clone().map(Into::into),
+      file_dependencies_added: entry.file_dependencies.added.clone(),
+      file_dependencies_removed: entry.file_dependencies.removed.clone(),
+      context_dependencies_added: entry.context_dependencies.added.clone(),
+      context_dependencies_removed: entry.context_dependencies.removed.clone(),
+      missing_dependencies_added: entry.missing_dependencies.added.clone(),
+      missing_dependencies_removed: entry.missing_dependencies.removed.clone(),
+      build_dependencies_added: entry.build_dependencies.added.clone(),
+      build_dependencies_removed: entry.build_dependencies.removed.clone(),
+      parse_meta_upserted: entry.parse_meta.upserted.iter().cloned().collect(),
+      parse_meta_removed: entry.parse_meta.removed.clone(),
     }))
   }
 
   #[napi]
   pub fn store(
     &self,
-    cache_key: String,
-    input: JsLoaderCacheData,
-    output: JsLoaderCacheData,
-  ) -> napi::Result<Option<String>> {
-    if !input.cacheable
-      || input.has_unhandled_side_effects
-      || !output.cacheable
-      || output.has_unhandled_side_effects
-    {
-      return Ok(None);
-    }
-    let Some(etag) = input_etag(&input) else {
-      return Ok(None);
-    };
-    let additional_data_cache_key = output_additional_data_cache_key(&cache_key, &etag, &output);
-    let additional_data = output.additional_data.clone();
+    loader_index: u32,
+    etag: String,
+    output: JsLoaderCacheEntry,
+  ) -> napi::Result<()> {
+    let cache_key = self.loader_key(loader_index)?;
     let entry = LoaderCacheEntry {
-      content: match &output.content {
+      content: match output.content {
         Either::A(_) => None,
         Either::B(content) => Some(content.to_vec()),
       },
       content_is_string: output.content_is_string,
-      source_map: output
-        .source_map
-        .as_ref()
-        .map(|source_map| source_map.to_vec()),
-      additional_data_cache_key: additional_data_cache_key.clone(),
-      file_dependencies: dependency_delta(&input.file_dependencies, &output.file_dependencies),
-      context_dependencies: dependency_delta(
-        &input.context_dependencies,
-        &output.context_dependencies,
-      ),
-      missing_dependencies: dependency_delta(
-        &input.missing_dependencies,
-        &output.missing_dependencies,
-      ),
-      build_dependencies: dependency_delta(&input.build_dependencies, &output.build_dependencies),
-      parse_meta: parse_meta_delta(&input.parse_meta, &output.parse_meta),
-      requires_sidecar: additional_data.is_some(),
+      source_map: output.source_map.map(|source_map| source_map.to_vec()),
+      additional_data: output
+        .additional_data
+        .map(|additional_data| additional_data.to_vec()),
+      file_dependencies: DependencyDelta {
+        added: output.file_dependencies_added,
+        removed: output.file_dependencies_removed,
+      },
+      context_dependencies: DependencyDelta {
+        added: output.context_dependencies_added,
+        removed: output.context_dependencies_removed,
+      },
+      missing_dependencies: DependencyDelta {
+        added: output.missing_dependencies_added,
+        removed: output.missing_dependencies_removed,
+      },
+      build_dependencies: DependencyDelta {
+        added: output.build_dependencies_added,
+        removed: output.build_dependencies_removed,
+      },
+      parse_meta: ParseMetaDelta {
+        upserted: output.parse_meta_upserted.into_iter().collect(),
+        removed: output.parse_meta_removed,
+      },
     };
-    let (storage_key, item_cache) =
-      self
-        .cache
-        .cache_item(&cache_key, &self.module_identifier, etag.clone());
-    if let Some(additional_data) = additional_data {
-      self
-        .cache
-        .store_sidecar(storage_key, etag, LoaderCacheSidecar { additional_data });
-    } else {
-      self.cache.remove_sidecar(&storage_key);
-    }
+    let item_cache = self
+      .cache
+      .cache_item(cache_key, &self.module_identifier, Etag::from(etag));
     item_cache
       .store(CacheValue::new(entry))
-      .map_err(|error| napi::Error::from_reason(error.to_string()))?;
-    Ok(additional_data_cache_key)
+      .map_err(|error| napi::Error::from_reason(error.to_string()))
   }
 }

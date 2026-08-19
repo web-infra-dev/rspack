@@ -1,6 +1,4 @@
 use std::{
-  any::Any,
-  fmt,
   path::PathBuf,
   sync::{Arc, LazyLock},
 };
@@ -14,9 +12,7 @@ use rspack_cacheable::{
 use rspack_collections::Identifiable;
 use rspack_error::Result;
 use rspack_hash::{HashFunction, RspackHasher};
-use rspack_loader_runner::{
-  AdditionalData, Content, LoaderCacheAction, LoaderCacheState, LoaderContext, ParseMeta,
-};
+use rspack_loader_runner::{Content, LoaderContext};
 use rspack_sources::SourceMap;
 use rustc_hash::FxHashSet;
 use ustr::Ustr;
@@ -26,6 +22,7 @@ use crate::{
 };
 
 const LOADER_CACHE_DIRECTORY: &str = "node_modules/.cache/loader-cache";
+const LOADER_CACHE_VERSION: &str = "1";
 
 // Keep a strong process-wide owner so compilers using the same cache directory
 // always share exactly one LoaderCache instance.
@@ -35,7 +32,6 @@ static LOADER_CACHES: LazyLock<DashMap<Ustr, Arc<LoaderCache>>> = LazyLock::new(
 pub struct LoaderCache {
   cache_directory: Ustr,
   storage: CacheFacade,
-  sidecars: DashMap<String, LoaderCacheSidecarEntry>,
 }
 
 impl LoaderCache {
@@ -43,7 +39,6 @@ impl LoaderCache {
     Self {
       cache_directory,
       storage,
-      sidecars: DashMap::new(),
     }
   }
 
@@ -56,6 +51,7 @@ impl LoaderCache {
     }
 
     let mut key = self.cache_directory.as_str().to_owned();
+    push_segment(&mut key, LOADER_CACHE_VERSION);
     push_segment(&mut key, loader_key);
     push_segment(&mut key, module_identifier);
     key
@@ -67,49 +63,9 @@ impl LoaderCache {
     loader_key: &str,
     module_identifier: &str,
     etag: Etag,
-  ) -> (String, ItemCacheFacade) {
+  ) -> ItemCacheFacade {
     let key = self.cache_key(loader_key, module_identifier);
-    let item = self.storage.get_item_cache(&key, Some(etag));
-    (key, item)
-  }
-
-  #[doc(hidden)]
-  pub fn get_sidecar<T: Any + Send + Sync>(&self, key: &str, etag: &Etag) -> Option<Arc<T>> {
-    let entry = self.sidecars.get(key)?;
-    if &entry.etag != etag {
-      return None;
-    }
-    Arc::clone(&entry.value).downcast().ok()
-  }
-
-  #[doc(hidden)]
-  pub fn store_sidecar<T: Any + Send + Sync>(&self, key: String, etag: Etag, value: T) {
-    self.sidecars.insert(
-      key,
-      LoaderCacheSidecarEntry {
-        etag,
-        value: Arc::new(value),
-      },
-    );
-  }
-
-  #[doc(hidden)]
-  pub fn remove_sidecar(&self, key: &str) {
-    self.sidecars.remove(key);
-  }
-}
-
-struct LoaderCacheSidecarEntry {
-  etag: Etag,
-  value: Arc<dyn Any + Send + Sync>,
-}
-
-impl fmt::Debug for LoaderCacheSidecarEntry {
-  fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-    formatter
-      .debug_struct("LoaderCacheSidecarEntry")
-      .field("etag", &self.etag)
-      .finish_non_exhaustive()
+    self.storage.get_item_cache(&key, Some(etag))
   }
 }
 
@@ -172,19 +128,9 @@ struct LoaderCacheEntry {
   missing_dependencies: DependencyDelta,
   build_dependencies: DependencyDelta,
   build_info_extras: JsonObjectDelta,
-  requires_sidecar: bool,
-}
-
-#[derive(Clone)]
-struct LoaderCacheSidecar {
-  additional_data: Option<AdditionalData>,
-  parse_meta: ParseMeta,
 }
 
 pub(crate) struct LoaderCacheMissState {
-  cache: Arc<LoaderCache>,
-  cache_key: String,
-  module_identifier: String,
   etag: Etag,
   diagnostics_len: usize,
   file_dependencies: FxHashSet<PathBuf>,
@@ -194,17 +140,14 @@ pub(crate) struct LoaderCacheMissState {
   build_info_extras: serde_json::Map<String, serde_json::Value>,
 }
 
-fn cache_miss_action(
-  context: &LoaderContext<RunnerContext>,
-  cache: Arc<LoaderCache>,
-  cache_key: String,
-  module_identifier: &str,
-  etag: Etag,
-) -> LoaderCacheAction {
-  LoaderCacheAction::Miss(LoaderCacheState::new(LoaderCacheMissState {
-    cache,
-    cache_key,
-    module_identifier: module_identifier.to_owned(),
+pub(crate) enum LoaderCacheAction {
+  Disabled,
+  Hit,
+  Miss(LoaderCacheMissState),
+}
+
+fn cache_miss_action(context: &LoaderContext<RunnerContext>, etag: Etag) -> LoaderCacheAction {
+  LoaderCacheAction::Miss(LoaderCacheMissState {
     etag,
     diagnostics_len: context.diagnostics.len(),
     file_dependencies: context.file_dependencies.clone(),
@@ -212,7 +155,7 @@ fn cache_miss_action(
     missing_dependencies: context.missing_dependencies.clone(),
     build_dependencies: context.build_dependencies.clone(),
     build_info_extras: context.context.module.build_info().extras.clone(),
-  }))
+  })
 }
 
 fn dependency_delta(
@@ -281,7 +224,7 @@ fn input_etag(context: &LoaderContext<RunnerContext>) -> Option<Etag> {
 pub(crate) fn before_normal_loader(
   context: &mut LoaderContext<RunnerContext>,
 ) -> Result<LoaderCacheAction> {
-  if !context.cacheable {
+  if !context.current_loader().cache() || !context.cacheable {
     return Ok(LoaderCacheAction::Disabled);
   }
   let Some(etag) = input_etag(context) else {
@@ -295,34 +238,13 @@ pub(crate) fn before_normal_loader(
   let cache_key = context.current_loader().cache_key().to_owned();
   let module_identifier = context.context.module.identifier();
   let cache = get_loader_cache(&context.context.options.context);
-  let (storage_key, item_cache) =
-    cache.cache_item(&cache_key, module_identifier.as_str(), etag.clone());
+  let item_cache = cache.cache_item(&cache_key, module_identifier.as_str(), etag.clone());
 
   if let Some(entry) = item_cache.get::<LoaderCacheEntry>()? {
-    let sidecar = if entry.requires_sidecar {
-      let Some(sidecar) = cache.get_sidecar::<LoaderCacheSidecar>(&storage_key, &etag) else {
-        return Ok(cache_miss_action(
-          context,
-          cache,
-          cache_key,
-          module_identifier.as_str(),
-          etag,
-        ));
-      };
-      Some(sidecar)
-    } else {
-      None
-    };
     let content = match (&entry.content, entry.content_is_string) {
       (Some(content), true) => {
         let Ok(content) = String::from_utf8(content.clone()) else {
-          return Ok(cache_miss_action(
-            context,
-            cache,
-            cache_key,
-            module_identifier.as_str(),
-            etag,
-          ));
+          return Ok(cache_miss_action(context, etag));
         };
         Some(Content::String(content))
       }
@@ -339,9 +261,6 @@ pub(crate) fn before_normal_loader(
       &entry.missing_dependencies,
     );
     replay_dependency_delta(&mut context.build_dependencies, &entry.build_dependencies);
-    if let Some(sidecar) = &sidecar {
-      context.parse_meta.extend(sidecar.parse_meta.clone());
-    }
     replay_json_object_delta(
       &mut context.context.module.build_info_mut().extras,
       &entry.build_info_extras,
@@ -350,21 +269,11 @@ pub(crate) fn before_normal_loader(
       .source_map
       .clone()
       .and_then(|source_map| SourceMap::from_json(source_map).ok());
-    context.__finish_with((
-      content,
-      source_map,
-      sidecar.and_then(|sidecar| sidecar.additional_data.clone()),
-    ));
+    context.__finish_with((content, source_map, None));
     return Ok(LoaderCacheAction::Hit);
   }
 
-  Ok(cache_miss_action(
-    context,
-    cache,
-    cache_key,
-    module_identifier.as_str(),
-    etag,
-  ))
+  Ok(cache_miss_action(context, etag))
 }
 
 pub(crate) fn after_normal_loader(
@@ -374,6 +283,8 @@ pub(crate) fn after_normal_loader(
   if !context.cacheable
     || context.diagnostics.len() != state.diagnostics_len
     || !context.context.module.build_info().assets.is_empty()
+    || context.additional_data().is_some()
+    || !context.parse_meta.is_empty()
   {
     return Ok(());
   }
@@ -387,11 +298,6 @@ pub(crate) fn after_normal_loader(
     Some(Content::Buffer(content)) => (Some(content.clone()), false),
     None => (None, false),
   };
-  let sidecar = LoaderCacheSidecar {
-    additional_data: context.additional_data().cloned(),
-    parse_meta: context.parse_meta.clone(),
-  };
-  let requires_sidecar = sidecar.additional_data.is_some() || !sidecar.parse_meta.is_empty();
   let entry = LoaderCacheEntry {
     content,
     content_is_string,
@@ -410,17 +316,10 @@ pub(crate) fn after_normal_loader(
       &state.build_info_extras,
       &context.context.module.build_info().extras,
     ),
-    requires_sidecar,
   };
-  let (storage_key, item_cache) = state.cache.cache_item(
-    &state.cache_key,
-    &state.module_identifier,
-    state.etag.clone(),
-  );
-  if requires_sidecar {
-    state.cache.store_sidecar(storage_key, state.etag, sidecar);
-  } else {
-    state.cache.remove_sidecar(&storage_key);
-  }
+  let cache = get_loader_cache(&context.context.options.context);
+  let cache_key = context.current_loader().cache_key();
+  let module_identifier = context.context.module.identifier();
+  let item_cache = cache.cache_item(cache_key, module_identifier.as_str(), state.etag);
   item_cache.store(CacheValue::new(entry))
 }

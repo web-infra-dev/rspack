@@ -408,8 +408,8 @@ export declare class JsExportsInfo {
 }
 
 export declare class JsLoaderCache {
-  get(cacheKey: string, input: JsLoaderCacheData): JsLoaderCacheData | null
-  store(cacheKey: string, input: JsLoaderCacheData, output: JsLoaderCacheData): string | null
+  get(loaderIndex: number, etag: string): JsLoaderCacheEntry | null
+  store(loaderIndex: number, etag: string, output: JsLoaderCacheEntry): void
 }
 
 export declare class JsModuleGraph {
@@ -954,19 +954,21 @@ export interface JsLinkPreloadData {
   chunk: Chunk
 }
 
-export interface JsLoaderCacheData {
+export interface JsLoaderCacheEntry {
   content: null | Buffer
   contentIsString: boolean
   sourceMap?: Buffer
-  additionalData?: any
-  additionalDataCacheKey?: string
-  fileDependencies: Array<string>
-  contextDependencies: Array<string>
-  missingDependencies: Array<string>
-  buildDependencies: Array<string>
-  parseMeta: Record<string, string>
-  cacheable: boolean
-  hasUnhandledSideEffects: boolean
+  additionalData?: Buffer
+  fileDependenciesAdded: Array<string>
+  fileDependenciesRemoved: Array<string>
+  contextDependenciesAdded: Array<string>
+  contextDependenciesRemoved: Array<string>
+  missingDependenciesAdded: Array<string>
+  missingDependenciesRemoved: Array<string>
+  buildDependenciesAdded: Array<string>
+  buildDependenciesRemoved: Array<string>
+  parseMetaUpserted: Record<string, string>
+  parseMetaRemoved: Array<string>
 }
 
 export interface JsLoaderContext {
@@ -999,7 +1001,6 @@ export interface JsLoaderItem {
   loader: string
   type: string
   cache: boolean
-  cacheKey: string
   data: any
   normalExecuted: boolean
   pitchExecuted: boolean

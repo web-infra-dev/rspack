@@ -136,7 +136,6 @@ export enum RequestType {
   UpdateLoaderObjects = 'UpdateLoaderObjects',
   LoaderCacheGet = 'LoaderCacheGet',
   LoaderCacheStore = 'LoaderCacheStore',
-  LoaderCacheInvalidate = 'LoaderCacheInvalidate',
   CompilationGetPath = 'CompilationGetPath',
   CompilationGetPathWithInfo = 'CompilationGetPathWithInfo',
   CompilationGetAssetPath = 'CompilationGetAssetPath',

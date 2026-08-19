@@ -929,7 +929,6 @@ export async function runLoaders(
           case RequestType.LoaderCacheGet: {
             const [
               loaderIndex,
-              cacheKey,
               content,
               contentIsString,
               sourceMap,
@@ -937,7 +936,6 @@ export async function runLoaders(
             ] = args;
             return loaderCache.workerGet(
               loaderIndex,
-              cacheKey,
               content,
               contentIsString,
               sourceMap,
@@ -947,7 +945,6 @@ export async function runLoaders(
           case RequestType.LoaderCacheStore: {
             const [
               loaderIndex,
-              cacheKey,
               content,
               contentIsString,
               sourceMap,
@@ -955,16 +952,11 @@ export async function runLoaders(
             ] = args;
             return loaderCache.workerStore(
               loaderIndex,
-              cacheKey,
               content,
               contentIsString,
               sourceMap,
               additionalData,
             );
-          }
-          case RequestType.LoaderCacheInvalidate: {
-            loaderCache.invalidate();
-            break;
           }
           case RequestType.CompilationGetPath: {
             const filename = args[0];
@@ -1117,7 +1109,7 @@ export async function runLoaders(
 
           const cacheInput =
             !parallelism && currentLoaderObject.loaderItem.cache
-              ? loaderCache.snapshot(
+              ? loaderCache.begin(
                   content,
                   sourceMapParsed
                     ? JsSourceMap.__to_binding(sourceMap)
@@ -1127,10 +1119,7 @@ export async function runLoaders(
                 )
               : undefined;
           if (cacheInput) {
-            const hit = loaderCache.get(
-              currentLoaderObject.loaderItem.cacheKey,
-              cacheInput,
-            );
+            const hit = loaderCache.get(loaderContext.loaderIndex, cacheInput);
             if (hit) {
               currentLoaderObject.normalExecuted = true;
               content = hit.contentIsString
@@ -1153,9 +1142,6 @@ export async function runLoaders(
           }
           if (!fn) continue;
 
-          const inputAdditionalData = additionalData;
-          const sideEffectsBefore = loaderCache.sideEffects;
-
           // Parse source map lazily only when a JavaScript loader consumes it.
           if (!sourceMapParsed) {
             sourceMap = JsSourceMap.__from_binding(rawSourceMap);
@@ -1169,24 +1155,13 @@ export async function runLoaders(
           ]);
 
           if (cacheInput) {
-            const output = loaderCache.snapshot(
+            loaderCache.store(
+              loaderContext.loaderIndex,
+              cacheInput,
               content,
               JsSourceMap.__to_binding(sourceMap),
               additionalData,
               typeof content === 'string',
-              loaderCache.sideEffects !== sideEffectsBefore,
-            );
-            loaderCache.store(
-              currentLoaderObject.loaderItem.cacheKey,
-              cacheInput,
-              output,
-              inputAdditionalData,
-              additionalData,
-            );
-          } else if (!parallelism) {
-            loaderCache.invalidateAdditionalData(
-              inputAdditionalData,
-              additionalData,
             );
           }
         }

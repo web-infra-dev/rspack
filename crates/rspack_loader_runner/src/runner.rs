@@ -9,7 +9,6 @@ use tracing::{Instrument, info_span};
 
 use crate::{
   LoaderRunnerOptions, ParseMeta,
-  cache::{after_normal_loader, before_normal_loader},
   content::{AdditionalData, Content, ResourceData},
   context::{LoaderContext, State},
   loader::{Loader, LoaderItem},
@@ -200,26 +199,24 @@ async fn run_loaders_impl<Context: Send>(
           continue;
         }
 
-        let cache_action = before_normal_loader(cx).await?;
-        if cache_action.is_hit() {
-          cx.current_loader().set_normal_executed();
-          cx.current_loader().set_finish_called();
-          cx.loader_index -= 1;
-          continue;
-        }
-
         cx.current_loader().set_normal_executed();
         let loader = cx.current_loader().loader().clone();
 
         let span = info_span!("run_loader:normal", resource);
-        loader.run(cx).instrument(span).await?;
-        if !cx.current_loader().finish_called() {
-          // If nothing is returned from this loader,
-          // we set everything to [None] and move to the next loader.
-          // This mocks the behavior of webpack loader-runner.
-          cx.finish_with_empty();
+        if let Some(plugin) = cx.plugin.clone() {
+          plugin
+            .run_normal_loader(cx, loader)
+            .instrument(span)
+            .await?;
+        } else {
+          loader.run(cx).instrument(span).await?;
+          if !cx.current_loader().finish_called() {
+            // If nothing is returned from this loader,
+            // we set everything to [None] and move to the next loader.
+            // This mocks the behavior of webpack loader-runner.
+            cx.finish_with_empty();
+          }
         }
-        after_normal_loader(cx, cache_action).await?;
       }
       State::Finished => break,
     }

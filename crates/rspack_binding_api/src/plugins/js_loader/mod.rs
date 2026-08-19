@@ -10,7 +10,7 @@ use std::{
   sync::{Arc, Mutex},
 };
 
-pub use cache::{JsLoaderCache, JsLoaderCacheData};
+pub use cache::{JsLoaderCache, JsLoaderCacheEntry};
 pub use context::{JsLoaderContext, JsLoaderItem};
 use napi::{
   bindgen_prelude::*,

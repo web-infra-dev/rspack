@@ -17,4 +17,4 @@ pub use runner::{LoaderResult, run_loaders, run_loaders_with_options};
 pub use scheme::{Scheme, get_scheme};
 
 pub const BUILTIN_LOADER_PREFIX: &str = "builtin:";
-pub use cache::{LoaderCacheAction, LoaderCacheState, LoaderRunnerOptions};
+pub use cache::LoaderRunnerOptions;
