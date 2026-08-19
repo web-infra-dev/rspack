@@ -628,6 +628,11 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       return default_with_diagnostics(source, diagnostics);
     }
 
+    let uses_esm_library = compiler_options
+      .output
+      .enabled_library_types
+      .as_ref()
+      .is_some_and(|types| types.iter().any(|ty| ty == "modern-module"));
     let mut semicolons = Default::default();
     remove_paren(&mut program, &allocator, Some(&mut comments));
     let semantic = resolver(&program);
@@ -689,7 +694,13 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       && dependencies
         .iter()
         .any(|dependency| dependency.as_any().is::<CommonJsExportsDependency>());
-    if may_be_commonjs_concatenated {
+    // Concatenation reparses generated source and must reserve free identifiers
+    // before CommonJS export bindings are introduced. modern-module uses its
+    // own linker, so it needs the same information independently of the normal
+    // concatenation optimization.
+    if may_be_commonjs_concatenated
+      && (uses_esm_library || compiler_options.optimization.concatenate_modules)
+    {
       build_info.unresolved_identifier_names =
         collect_unresolved_identifier_names(&program, &semantic);
     }

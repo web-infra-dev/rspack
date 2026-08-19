@@ -1,9 +1,17 @@
+import { restoreExternalPrototypeSetter } from "./external-prototype-setup";
 import flaggedDefault, { value, getValue } from "./flagged";
 import { a, b, inc } from "./plain";
 import * as plainNs from "./plain";
 import { setValue, getValue as getLiveValue } from "./live";
 import { deep } from "./nested";
-import { "a-b" as ab } from "./weird-name";
+import {
+	"a-b" as ab,
+	a_b_612d62,
+	chainedA,
+	chainedB,
+	"__rspack_cjs_external_setter__" as externalSetterExport,
+	externalSetterObserved
+} from "./weird-name";
 import {
 	anonymousFunction,
 	anonymousArrow,
@@ -21,6 +29,10 @@ import {
 	placeholder as collisionPlaceholder,
 	readGlobal as collisionReadGlobal
 } from "./name-collision";
+
+const externalSetterExportAtEvaluation = externalSetterExport;
+const externalSetterObservedAtEvaluation = externalSetterObserved;
+restoreExternalPrototypeSetter();
 
 it("should provide named and default exports of a __esModule-flagged module", () => {
 	expect(flaggedDefault).toBe("DEFAULT");
@@ -52,6 +64,17 @@ it("should support nested export assignments", () => {
 
 it("should support non-identifier export names", () => {
 	expect(ab).toBe("a-b-value");
+	expect(a_b_612d62).toBe("identifier-value");
+});
+
+it("should preserve chained CommonJS export assignments", () => {
+	expect(chainedA).toBe("chained-value");
+	expect(chainedB).toBe("chained-value");
+});
+
+it("should preserve inherited setters installed by an earlier module", () => {
+	expect(externalSetterExportAtEvaluation).toBe(45);
+	expect(externalSetterObservedAtEvaluation).toBe(45);
 });
 
 it("should preserve anonymous function and class names", () => {
@@ -80,6 +103,6 @@ it("should keep concatenating ECMAScript modules that reference arguments", () =
 it("should concatenate all CommonJS modules into the entry", () => {
 	const concatModules = __STATS__.modules.filter((m) => m.modules);
 	expect(concatModules.length).toBe(1);
-	// index.js + flagged.js + plain.js + live.js + nested.js + weird-name.js + name-collision.js + anonymous-name.js + define-name-collision.js + esm-arguments.js
-	expect(concatModules[0].modules.length).toBe(10);
+	// index.js + external-prototype-setup.js + flagged.js + plain.js + live.js + nested.js + weird-name.js + name-collision.js + anonymous-name.js + define-name-collision.js + esm-arguments.js
+	expect(concatModules[0].modules.length).toBe(11);
 });

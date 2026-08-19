@@ -234,17 +234,9 @@ fn handle_assign_export(
   // exports.a = 1;
   // module.exports.a = 1;
   // this.a = 1;
-  let prevent_name_inference = remaining.len() == 1
-    && match &assign_expr.right {
-      Expr::Arrow(_) => true,
-      Expr::Fn(expr) => expr.ident.is_none(),
-      Expr::Class(expr) => expr.ident.is_none(),
-      _ => false,
-    };
   parser.add_dependency(Box::new(CommonJsExportsDependency::new(
     assign_expr.left.span().into(),
     Some(assign_expr.right.span().into()),
-    prevent_name_inference,
     base,
     remaining.to_owned(),
   )));
@@ -386,7 +378,6 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsExportsParserPlugin {
       parser.add_dependency(Box::new(CommonJsExportsDependency::new(
         call_expr.span.into(),
         Some(arg2.span().into()),
-        false,
         base,
         vec![property.into()],
       )));

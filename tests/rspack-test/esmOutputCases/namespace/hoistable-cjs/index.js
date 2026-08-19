@@ -1,4 +1,7 @@
+import { restoreExternalPrototypeSetter } from "./external-prototype-setup.js";
 import {
+	"a-b" as ab,
+	"__rspack_cjs_external_setter__" as externalSetterExport,
 	getValue,
 	anonymousFunction,
 	anonymousArrow,
@@ -10,8 +13,16 @@ import {
 	readGlobal,
 	readDefined,
 	setValue,
-	value
+	value,
+	a_b_612d62,
+	chainedA,
+	chainedB,
+	externalSetterObserved
 } from "./foo.js";
+
+const externalSetterExportAtEvaluation = externalSetterExport;
+const externalSetterObservedAtEvaluation = externalSetterObserved;
+restoreExternalPrototypeSetter();
 
 it("should scope-hoist a statically analyzable CommonJS module", () => {
 	expect(value).toBe(1);
@@ -25,6 +36,12 @@ it("should scope-hoist a statically analyzable CommonJS module", () => {
 	expect(defined).toBe(1);
 	expect(definedAnonymous.name).toBe("");
 	expect(readDefined()).toBe(44);
+	expect(ab).toBe("a-b-value");
+	expect(a_b_612d62).toBe("identifier-value");
+	expect(chainedA).toBe("chained-value");
+	expect(chainedB).toBe("chained-value");
+	expect(externalSetterExportAtEvaluation).toBe(45);
+	expect(externalSetterObservedAtEvaluation).toBe(45);
 
   setValue(2);
 
