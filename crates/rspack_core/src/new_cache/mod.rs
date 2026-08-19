@@ -8,6 +8,7 @@ mod file_cache_strategy;
 mod idle_file_cache;
 mod memory_cache;
 mod snapshot;
+mod validator;
 
 use std::sync::Arc;
 
@@ -65,9 +66,10 @@ pub fn create_cache(
     ),
   };
   let strategy = match FileCacheStrategy::new(
-    base_path,
-    database_path,
+    (base_path, database_path),
     options.readonly,
+    rspack_workspace::rspack_pkg_version!().to_string(),
+    options.version.clone(),
     codec,
     snapshot,
     build_deps,

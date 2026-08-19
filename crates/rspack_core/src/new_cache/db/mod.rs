@@ -11,7 +11,7 @@ pub use turbo::{Database, DatabaseValue};
 #[derive(Debug, Clone, Copy)]
 pub enum DatabaseFamily {
   Cache,
-  Snapshot,
+  Validator,
 }
 
 impl DatabaseFamily {
@@ -20,7 +20,7 @@ impl DatabaseFamily {
   pub const fn index(self) -> usize {
     match self {
       Self::Cache => 0,
-      Self::Snapshot => 1,
+      Self::Validator => 1,
     }
   }
 }
