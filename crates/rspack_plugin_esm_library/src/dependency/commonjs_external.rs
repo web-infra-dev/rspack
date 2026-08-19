@@ -1,11 +1,12 @@
-use std::sync::Arc;
+use std::{collections::hash_map::Entry, sync::Arc};
 
 use atomic_refcell::AtomicRefCell;
 use rspack_core::{
-  BuildModuleGraphArtifact, Dependency, DependencyCodeGeneration, DependencyId, DependencyRange,
-  DependencyTemplate, TemplateContext, TemplateReplaceSource, UsedName,
-  create_node_commonjs_init_fragment, property_access,
+  BuildModuleGraphArtifact, ConnectionActiveState, Dependency, DependencyCodeGeneration,
+  DependencyId, DependencyRange, DependencyTemplate, TemplateContext, TemplateReplaceSource,
+  UsedName, create_node_commonjs_init_fragment, property_access,
 };
+use rspack_plugin_externals::is_node_builtin;
 use rspack_plugin_javascript::dependency::{
   CommonJsExportRequireDependency, CommonJsFullRequireDependency, CommonJsRequireDependency,
   RequireHeaderDependency,
@@ -16,6 +17,8 @@ use rspack_util::{
 };
 
 pub type DirectCommonJsExternalDependencies = Arc<AtomicRefCell<Arc<FxHashSet<DependencyId>>>>;
+pub type DirectCommonJsExternalConnectionStates =
+  AtomicRefCell<FxHashMap<DependencyId, ConnectionActiveState>>;
 
 #[derive(Debug, Clone, Copy)]
 enum DirectRequireKind {
@@ -36,8 +39,29 @@ fn direct_require_kind(external_type: &str) -> Option<DirectRequireKind> {
   }
 }
 
+fn is_relative_external_request(request: &str) -> bool {
+  request == "."
+    || request == ".."
+    || request.starts_with("./")
+    || request.starts_with("../")
+    || request.starts_with(".\\")
+    || request.starts_with("..\\")
+}
+
+fn can_render_direct_request(kind: DirectRequireKind, request: &str) -> bool {
+  match kind {
+    DirectRequireKind::CommonJs => !is_relative_external_request(request),
+    // `createRequire(import.meta.url)` resolves packages and package imports
+    // relative to the emitted asset. Moving that call into an issuer in a
+    // different directory can load another package, so only base-independent
+    // Node builtins are safe to render directly.
+    DirectRequireKind::NodeCommonJs => is_node_builtin(request),
+  }
+}
+
 pub fn cutout_commonjs_externals(
   build_module_graph_artifact: &mut BuildModuleGraphArtifact,
+  connection_states: &mut FxHashMap<DependencyId, ConnectionActiveState>,
 ) -> FxHashSet<DependencyId> {
   let module_graph = build_module_graph_artifact.get_module_graph();
   let mut direct_dependencies = FxHashSet::default();
@@ -103,6 +127,15 @@ pub fn cutout_commonjs_externals(
       })
       .chain(self_rendering_require_dependencies);
     for dependency_id in direct_require_candidates {
+      let dependency = module_graph.dependency_by_id(&dependency_id);
+      // Keep optional requests on the normal module path so their failure and
+      // module-cache behavior remains owned by the CommonJS runtime.
+      if dependency
+        .as_module_dependency()
+        .is_some_and(|dependency| dependency.get_optional())
+      {
+        continue;
+      }
       let Some(external_module) = module_graph
         .module_identifier_by_dependency_id(&dependency_id)
         .and_then(|module_id| module_graph.module_by_identifier(module_id))
@@ -111,8 +144,10 @@ pub fn cutout_commonjs_externals(
         continue;
       };
 
-      if direct_require_kind(external_module.resolve_external_type()).is_some()
-        && !external_module.get_request().has_rest()
+      let request = external_module.get_request();
+      if let Some(kind) = direct_require_kind(external_module.resolve_external_type())
+        && !request.has_rest()
+        && can_render_direct_request(kind, request.primary())
       {
         direct_dependencies.insert(dependency_id);
       }
@@ -120,14 +155,90 @@ pub fn cutout_commonjs_externals(
   }
 
   let module_graph = build_module_graph_artifact.get_module_graph_mut();
+  // A reused module graph can make a previously direct dependency ineligible.
+  // Restore the connection state captured before this plugin cut it out.
+  connection_states.retain(|dependency_id, state| {
+    if direct_dependencies.contains(dependency_id) {
+      return module_graph
+        .connection_by_dependency_id(dependency_id)
+        .is_some();
+    }
+    if let Some(connection) = module_graph.connection_by_dependency_id_mut(dependency_id) {
+      connection.restore_active_state(*state);
+    }
+    false
+  });
   for dependency_id in &direct_dependencies {
-    module_graph
+    let connection = module_graph
       .connection_by_dependency_id_mut(dependency_id)
-      .expect("direct CommonJS external should have a module graph connection")
-      .force_inactive();
+      .expect("direct CommonJS external should have a module graph connection");
+    match connection_states.entry(*dependency_id) {
+      Entry::Vacant(entry) => {
+        entry.insert(connection.force_inactive_with_state());
+      }
+      Entry::Occupied(_) => connection.force_inactive(),
+    }
   }
 
   direct_dependencies
+}
+
+#[cfg(test)]
+mod tests {
+  use super::{DirectRequireKind, can_render_direct_request, is_relative_external_request};
+
+  #[test]
+  fn should_detect_relative_external_requests() {
+    assert!(is_relative_external_request("."));
+    assert!(is_relative_external_request(".."));
+    assert!(is_relative_external_request("./external.cjs"));
+    assert!(is_relative_external_request("../external.cjs"));
+    assert!(is_relative_external_request(".\\external.cjs"));
+    assert!(is_relative_external_request("..\\external.cjs"));
+    assert!(!is_relative_external_request("external"));
+    assert!(!is_relative_external_request("node:fs"));
+    assert!(!is_relative_external_request("/external.cjs"));
+  }
+
+  #[test]
+  fn should_only_render_base_independent_node_commonjs_requests_directly() {
+    assert!(can_render_direct_request(
+      DirectRequireKind::NodeCommonJs,
+      "path"
+    ));
+    assert!(can_render_direct_request(
+      DirectRequireKind::NodeCommonJs,
+      "node:path"
+    ));
+    assert!(!can_render_direct_request(
+      DirectRequireKind::NodeCommonJs,
+      "external"
+    ));
+    assert!(!can_render_direct_request(
+      DirectRequireKind::NodeCommonJs,
+      "."
+    ));
+    assert!(!can_render_direct_request(
+      DirectRequireKind::NodeCommonJs,
+      "#external"
+    ));
+    assert!(!can_render_direct_request(
+      DirectRequireKind::NodeCommonJs,
+      "/external.cjs"
+    ));
+  }
+
+  #[test]
+  fn should_keep_bare_commonjs_requests_direct() {
+    assert!(can_render_direct_request(
+      DirectRequireKind::CommonJs,
+      "external"
+    ));
+    assert!(!can_render_direct_request(
+      DirectRequireKind::CommonJs,
+      "./external.cjs"
+    ));
+  }
 }
 
 fn get_direct_external_require(

@@ -1,1 +1,1 @@
-exports.platform = () => "local";
+exports.value = 7;

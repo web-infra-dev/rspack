@@ -1,0 +1,111 @@
+```mjs title=entry-a.mjs
+import { __webpack_require__ } from "./runtime.mjs";
+
+__webpack_require__.add({
+"./consumer-a.cjs"
+/*!************************!*\
+  !*** ./consumer-a.cjs ***!
+  \************************/
+(__unused_rspack_module, exports) {
+const first = require("external");
+const second = require("external");
+const viaModuleRequire = require("external");
+const constructed = new require("external");
+const { value } = require("external");
+
+exports.first = first;
+exports.second = second;
+exports.viaModuleRequire = viaModuleRequire;
+exports.constructed = constructed;
+exports.destructured = value;
+exports.method = (require("external").getValue)();
+exports.named = require("external");
+this.fromThis = require("external").value;
+
+
+},
+});
+// ./entry-a.js
+const consumer = __webpack_require__(/*! ./consumer-a.cjs */ "./consumer-a.cjs");
+
+process.__commonjsExternalValues.push(
+	consumer.first,
+	consumer.second,
+	consumer.named,
+	consumer.viaModuleRequire,
+	consumer.constructed
+);
+
+if (
+	consumer.method !== 42 ||
+	consumer.fromThis !== 42 ||
+	consumer.destructured !== 42
+) {
+	throw new Error("direct CommonJS external member access should preserve semantics");
+}
+
+const value = consumer.first.value;
+
+export { value };
+
+```
+
+```mjs title=entry-b.mjs
+import { __webpack_require__ } from "./runtime.mjs";
+
+__webpack_require__.add({
+"./consumer-b.cjs"
+/*!************************!*\
+  !*** ./consumer-b.cjs ***!
+  \************************/
+(module) {
+module.exports = require("external");
+
+
+},
+});
+// ./entry-b.js
+const consumer = __webpack_require__(/*! ./consumer-b.cjs */ "./consumer-b.cjs");
+
+process.__commonjsExternalValues.push(consumer);
+
+const value = consumer.value;
+
+export { value };
+
+```
+
+```mjs title=runtime.mjs
+
+var __webpack_modules__ = {};
+// The module cache
+var __webpack_module_cache__ = {};
+// The require function
+function __webpack_require__(moduleId) {
+// Check if module is in cache
+var cachedModule = __webpack_module_cache__[moduleId];
+if (cachedModule !== undefined) {
+return cachedModule.exports;
+}
+// Create a new module (and put it into the cache)
+var module = (__webpack_module_cache__[moduleId] = {
+exports: {}
+});
+// Execute the module function
+__webpack_modules__[moduleId].call(module.exports, module, module.exports, __webpack_require__);
+
+// Return the exports of the module
+return module.exports;
+}
+// expose the modules object (__webpack_modules__)
+__webpack_require__.m = __webpack_modules__;
+
+// webpack/runtime/esm_register_module
+(() => {
+__webpack_require__.add = function registerModules(modules) { Object.assign(__webpack_require__.m, modules) }
+
+})();
+
+export { __webpack_require__ };
+
+```
