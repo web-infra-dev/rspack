@@ -244,7 +244,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
         .collect::<FxIndexSet<ChunkUkey>>();
       let filename = Filename::from(dynamic_filename.clone());
       let compiled = filename
-        .compiled()
+        .compiled_template()
         .expect("dynamic filename is always a template");
       let fake_filename = Filename::from(compiled.without_hash_length());
       let chunk_hash_len = compiled.chunk_hash_len();
@@ -340,20 +340,19 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
         })
     {
       if let Some(chunk) = chunk_map.get(chunk_ukey) {
-        let compiled = filename_template.compiled();
-        let fake_filename = compiled.as_ref().map_or_else(
-          || filename_template.clone(),
-          |compiled| Filename::from(compiled.without_hash_length()),
-        );
-        let chunk_hash_len = compiled
-          .as_ref()
-          .and_then(|compiled| compiled.chunk_hash_len());
-        let content_hash_len = compiled
-          .as_ref()
-          .and_then(|compiled| compiled.content_hash_len());
-        let full_hash_len = compiled
-          .as_ref()
-          .and_then(|compiled| compiled.full_hash_len().or(compiled.hash_len()));
+        let compiled = filename_template
+          .compiled(
+            PathData::default()
+              .chunk(chunk.ukey(), compilation)
+              .chunk_name_optional(chunk.name())
+              .chunk_id_optional(chunk.id().map(|id| id.as_str())),
+            None,
+          )
+          .await?;
+        let fake_filename = Filename::from(compiled.without_hash_length());
+        let chunk_hash_len = compiled.chunk_hash_len();
+        let content_hash_len = compiled.content_hash_len();
+        let full_hash_len = compiled.full_hash_len().or(compiled.hash_len());
 
         let chunk_id = chunk
           .id()
@@ -408,22 +407,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
 
         let filename = compilation
           .get_path(
-            &Filename::from(if let Some(template) = fake_filename.template() {
-              rspack_util::json_stringify_str(template)
-            } else {
-              rspack_util::json_stringify_str(
-                fake_filename
-                  .render(
-                    PathData::default()
-                      .chunk(chunk.ukey(), compilation)
-                      .chunk_name_optional(chunk.name())
-                      .chunk_id_optional(chunk.id().map(|id| id.as_str())),
-                    None,
-                  )
-                  .await?
-                  .as_str(),
-              )
-            }),
+            &Filename::from(rspack_util::json_stringify_str(fake_filename.as_str())),
             PathData::default()
               .chunk_id_optional(chunk_id.as_deref())
               .chunk_hash_optional(chunk_hash.as_deref())

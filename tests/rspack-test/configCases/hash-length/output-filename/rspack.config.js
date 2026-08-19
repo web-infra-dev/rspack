@@ -237,6 +237,18 @@ module.exports = [
       expectedChunkFilenameLength: 2 + 9 + 7 + 3,
     },
   },
+  {
+    name: 'contenthash with length in function chunkFilename',
+    output: {
+      filename: 'bundle18.[contenthash].js',
+      chunkFilename: () => '[id].bundle18.[contenthash:7].js',
+    },
+    target: 'node',
+    amd: {
+      expectedFilenameLength: 28,
+      expectedChunkFilenameLength: 21,
+    },
+  },
 ];
 
 module.exports.forEach(function (options) {
