@@ -4,7 +4,7 @@ use std::{
   hash::{BuildHasherDefault, Hasher},
   ops::{Deref, Range},
   ptr,
-  sync::{Arc, LazyLock, OnceLock},
+  sync::{Arc, LazyLock},
 };
 
 use dashmap::DashMap;
@@ -81,6 +81,12 @@ pub struct StringTemplatePlaceholder {
   parameters: PlaceholderParameters,
 }
 
+#[derive(Debug, Clone)]
+pub enum FilenameRenderValue<'value> {
+  Value(Cow<'value, str>),
+  Rendered(Cow<'value, str>),
+}
+
 impl StringTemplatePlaceholder {
   pub fn kind(self) -> PlaceholderKind {
     self.kind
@@ -97,6 +103,22 @@ impl StringTemplatePlaceholder {
     match self.parameters {
       PlaceholderParameters::Hash { encoding, .. } => encoding,
       PlaceholderParameters::None => None,
+    }
+  }
+
+  pub fn render_hash<'hash>(self, hash: &'hash str) -> Option<Cow<'hash, str>> {
+    let PlaceholderParameters::Hash { len, encoding } = self.parameters else {
+      return None;
+    };
+
+    match encoding {
+      None => Some(Cow::Borrowed(&hash[..hash_len(hash, len)])),
+      Some(HashDigest::Base64) => {
+        let mut content = base64::encode_to_string(hash);
+        content.truncate(hash_len(&content, len));
+        Some(Cow::Owned(content))
+      }
+      Some(encoding) => unreachable!("unsupported filename hash encoding: {encoding:?}"),
     }
   }
 }
@@ -117,11 +139,6 @@ pub struct CompiledStringTemplate<'template> {
   segments: Vec<StringTemplateSegment>,
   has_hash_placeholder: bool,
   has_content_hash_placeholder: bool,
-  hash_len: Option<u16>,
-  full_hash_len: Option<u16>,
-  chunk_hash_len: Option<u16>,
-  content_hash_len: Option<u16>,
-  template_without_hash_length: OnceLock<String>,
 }
 
 impl<'template> CompiledStringTemplate<'template> {
@@ -138,10 +155,6 @@ impl<'template> CompiledStringTemplate<'template> {
     let mut placeholder_start = None;
     let mut has_hash_placeholder = false;
     let mut has_content_hash_placeholder = false;
-    let mut hash_len = None;
-    let mut full_hash_len = None;
-    let mut chunk_hash_len = None;
-    let mut content_hash_len = None;
     let bytes = template.as_bytes();
 
     for index in memchr2_iter(b'[', b']', bytes) {
@@ -162,15 +175,6 @@ impl<'template> CompiledStringTemplate<'template> {
 
       has_hash_placeholder |= matches!(kind, PlaceholderKind::Hash | PlaceholderKind::FullHash);
       has_content_hash_placeholder |= kind == PlaceholderKind::ContentHash;
-      if let PlaceholderParameters::Hash { len: Some(len), .. } = parameters {
-        match kind {
-          PlaceholderKind::Hash => hash_len.get_or_insert(len),
-          PlaceholderKind::FullHash => full_hash_len.get_or_insert(len),
-          PlaceholderKind::ChunkHash => chunk_hash_len.get_or_insert(len),
-          PlaceholderKind::ContentHash => content_hash_len.get_or_insert(len),
-          _ => unreachable!("only hash placeholders have hash parameters"),
-        };
-      }
 
       if plain_start < start {
         segments.push(StringTemplateSegment::Plain(to_u16_range(
@@ -203,76 +207,33 @@ impl<'template> CompiledStringTemplate<'template> {
       segments,
       has_hash_placeholder,
       has_content_hash_placeholder,
-      hash_len,
-      full_hash_len,
-      chunk_hash_len,
-      content_hash_len,
-      template_without_hash_length: OnceLock::new(),
     }
-  }
-
-  fn build_template_without_hash_length(&self) -> String {
-    let mut output = String::with_capacity(self.template.len());
-
-    for segment in &self.segments {
-      match segment {
-        StringTemplateSegment::Plain(range) => {
-          output.push_str(&self.template[usize::from(range.start)..usize::from(range.end)]);
-        }
-        StringTemplateSegment::Placeholder { id, range } => {
-          let data = self
-            .placeholder_data
-            .get(usize::from(*id))
-            .expect("filename placeholder segment references missing side-table data");
-          if let PlaceholderParameters::Hash { .. } = data.parameters {
-            output.push('[');
-            output.push_str(data.kind.as_str());
-            output.push(']');
-          } else {
-            output.push_str(&self.template[usize::from(range.start)..usize::from(range.end)]);
-          }
-        }
-      }
-    }
-
-    output
   }
 
   pub fn template(&self) -> &str {
     self.template.as_ref()
   }
 
-  pub fn without_hash_length(&self) -> &str {
-    if self.hash_len.is_none()
-      && self.full_hash_len.is_none()
-      && self.chunk_hash_len.is_none()
-      && self.content_hash_len.is_none()
-    {
-      self.template.as_ref()
-    } else {
-      self
-        .template_without_hash_length
-        .get_or_init(|| self.build_template_without_hash_length())
-    }
+  pub fn json_stringified(&self) -> CompiledStringTemplate<'static> {
+    let template = rspack_util::json_stringify_str(self.template());
+    assert_template_len(&template);
+    CompiledStringTemplate::compile_cow(Cow::Owned(template))
   }
 
-  pub fn hash_len(&self) -> Option<usize> {
-    self.hash_len.map(usize::from)
+  pub fn has_full_hash_digest(&self) -> bool {
+    self.placeholder_data.iter().any(|data| {
+      matches!(data.kind, PlaceholderKind::Hash | PlaceholderKind::FullHash)
+        && matches!(
+          data.parameters,
+          PlaceholderParameters::Hash {
+            encoding: Some(_),
+            ..
+          }
+        )
+    })
   }
 
-  pub fn full_hash_len(&self) -> Option<usize> {
-    self.full_hash_len.map(usize::from)
-  }
-
-  pub fn chunk_hash_len(&self) -> Option<usize> {
-    self.chunk_hash_len.map(usize::from)
-  }
-
-  pub fn content_hash_len(&self) -> Option<usize> {
-    self.content_hash_len.map(usize::from)
-  }
-
-  pub fn render_with(
+  fn render_with_writer(
     &self,
     mut renderer: impl FnMut(StringTemplatePlaceholder, &mut String) -> bool,
   ) -> String {
@@ -309,11 +270,25 @@ impl<'template> CompiledStringTemplate<'template> {
     output
   }
 
-  pub fn render_with_path_data(
+  pub fn render_with<'value>(
+    &self,
+    mut renderer: impl FnMut(StringTemplatePlaceholder) -> Option<FilenameRenderValue<'value>>,
+  ) -> String {
+    let mut asset_info = None;
+    self.render_with_writer(|placeholder, output| {
+      let Some(value) = renderer(placeholder) else {
+        return false;
+      };
+      render_filename_value(placeholder, value, &mut asset_info, output);
+      true
+    })
+  }
+
+  pub fn render_with_path_data<'value>(
     &self,
     options: PathData<'_>,
     mut asset_info: Option<&mut AssetInfo>,
-    mut renderer: impl FnMut(StringTemplatePlaceholder, &mut String) -> bool,
+    mut renderer: impl FnMut(StringTemplatePlaceholder) -> Option<FilenameRenderValue<'value>>,
   ) -> String {
     if let Some(content_hash) = options.content_hash
       && let Some(asset_info) = asset_info.as_deref_mut()
@@ -323,15 +298,19 @@ impl<'template> CompiledStringTemplate<'template> {
     }
 
     let file_replacements = FileReplacements::new(options);
-    self.render_with(|placeholder, output| {
-      renderer(placeholder, output)
-        || render_placeholder(
+    self.render_with_writer(|placeholder, output| {
+      if let Some(value) = renderer(placeholder) {
+        render_filename_value(placeholder, value, &mut asset_info, output);
+        true
+      } else {
+        render_placeholder(
           placeholder,
           options,
           &file_replacements,
           &mut asset_info,
           output,
         )
+      }
     })
   }
 }
@@ -492,6 +471,13 @@ impl Filename {
     }
   }
 
+  pub fn has_full_hash_digest(&self) -> bool {
+    match self.0 {
+      FilenameKind::Template(template) => get_or_compile(template).has_full_hash_digest(),
+      FilenameKind::Fn(_) => true,
+    }
+  }
+
   pub fn template(&self) -> Option<&str> {
     match &self.0 {
       FilenameKind::Template(template) => Some(template.as_str()),
@@ -504,14 +490,14 @@ impl Filename {
     options: PathData<'_>,
     asset_info: Option<&mut AssetInfo>,
   ) -> rspack_error::Result<String> {
-    self.render_with(options, asset_info, |_, _| false).await
+    self.render_with(options, asset_info, |_| None).await
   }
 
-  pub async fn render_with(
+  pub async fn render_with<'value>(
     &self,
     options: PathData<'_>,
     asset_info: Option<&mut AssetInfo>,
-    renderer: impl FnMut(StringTemplatePlaceholder, &mut String) -> bool,
+    renderer: impl FnMut(StringTemplatePlaceholder) -> Option<FilenameRenderValue<'value>>,
   ) -> rspack_error::Result<String> {
     let compiled = self.compiled(options, asset_info.as_deref()).await?;
     Ok(compiled.render_with_path_data(options, asset_info, renderer))
@@ -683,6 +669,36 @@ impl FileReplacements {
   }
 }
 
+fn render_filename_value(
+  placeholder: StringTemplatePlaceholder,
+  value: FilenameRenderValue<'_>,
+  asset_info: &mut Option<&mut AssetInfo>,
+  output: &mut String,
+) {
+  match value {
+    FilenameRenderValue::Rendered(value) => output.push_str(&value),
+    FilenameRenderValue::Value(value) => {
+      if matches!(
+        placeholder.kind,
+        PlaceholderKind::Hash
+          | PlaceholderKind::FullHash
+          | PlaceholderKind::ChunkHash
+          | PlaceholderKind::ContentHash
+      ) {
+        assert!(try_render_hash(
+          Some(&value),
+          placeholder.kind,
+          placeholder.parameters,
+          asset_info,
+          output,
+        ));
+      } else {
+        output.push_str(&value);
+      }
+    }
+  }
+}
+
 fn render_placeholder(
   placeholder: StringTemplatePlaceholder,
   options: PathData<'_>,
@@ -759,16 +775,10 @@ fn try_render_hash(
   let Some(hash) = hash else {
     return false;
   };
-  let PlaceholderParameters::Hash { len, encoding } = parameters else {
-    unreachable!("hash placeholder must have hash parameters");
-  };
-
-  let content: Cow<'_, str> = match encoding {
-    None => hash.into(),
-    Some(HashDigest::Base64) => base64::encode_to_string(hash).into(),
-    Some(encoding) => unreachable!("unsupported filename hash encoding: {encoding:?}"),
-  };
-  let content = &content[..hash_len(&content, len)];
+  let placeholder = StringTemplatePlaceholder { kind, parameters };
+  let content = placeholder
+    .render_hash(hash)
+    .expect("hash placeholder must have hash parameters");
 
   if let Some(asset_info) = asset_info.as_deref_mut() {
     asset_info.set_immutable(Some(true));
@@ -786,7 +796,7 @@ fn try_render_hash(
     }
   }
 
-  output.push_str(content);
+  output.push_str(&content);
   true
 }
 
