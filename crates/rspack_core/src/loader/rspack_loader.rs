@@ -132,7 +132,7 @@ impl LoaderRunnerPlugin for RspackLoaderRunnerPlugin {
     &self,
     context: &mut LoaderContext<Self::Context>,
   ) -> Result<LoaderCacheAction> {
-    Ok(before_normal_loader(context))
+    before_normal_loader(context)
   }
 
   async fn after_normal_loader(
@@ -143,7 +143,6 @@ impl LoaderRunnerPlugin for RspackLoaderRunnerPlugin {
     let state = state
       .downcast::<LoaderCacheMissState>()
       .expect("rspack loader cache state should have the expected type");
-    after_normal_loader(context, *state);
-    Ok(())
+    after_normal_loader(context, *state)
   }
 }

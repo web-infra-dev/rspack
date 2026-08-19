@@ -2,6 +2,11 @@ use std::sync::Arc;
 
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
+use rspack_cacheable::{
+  cacheable,
+  utils::PortablePath,
+  with::{As, AsVec},
+};
 use rspack_core::{CacheValue, Etag, LoaderCache, Resolver};
 use rspack_error::Result;
 use rspack_hash::{HashFunction, RspackHasher};
@@ -10,30 +15,40 @@ use rspack_napi::threadsafe_js_value_ref::ThreadsafeJsValueRef;
 use rspack_paths::Utf8Path;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
+#[cacheable]
 #[derive(Clone, Default)]
 struct DependencyDelta {
-  added: HashSet<String>,
-  removed: HashSet<String>,
+  #[cacheable(with=AsVec<As<PortablePath>>)]
+  added: Vec<String>,
+  #[cacheable(with=AsVec<As<PortablePath>>)]
+  removed: Vec<String>,
 }
 
+#[cacheable]
 #[derive(Clone, Default)]
 struct ParseMetaDelta {
-  upserted: HashMap<String, String>,
-  removed: HashSet<String>,
+  upserted: Vec<(String, String)>,
+  removed: Vec<String>,
 }
 
+#[cacheable]
 #[derive(Clone)]
 struct LoaderCacheEntry {
   content: Option<Vec<u8>>,
   content_is_string: bool,
   source_map: Option<Vec<u8>>,
-  additional_data: Option<ThreadsafeJsValueRef<Unknown<'static>>>,
   additional_data_cache_key: Option<String>,
   file_dependencies: DependencyDelta,
   context_dependencies: DependencyDelta,
   missing_dependencies: DependencyDelta,
   build_dependencies: DependencyDelta,
   parse_meta: ParseMetaDelta,
+  requires_sidecar: bool,
+}
+
+#[derive(Clone)]
+struct LoaderCacheSidecar {
+  additional_data: ThreadsafeJsValueRef<Unknown<'static>>,
 }
 
 #[napi(object)]
@@ -220,14 +235,38 @@ fn output_additional_data_cache_key(
 #[napi]
 impl JsLoaderCache {
   #[napi]
-  pub fn get(&self, cache_key: String, mut input: JsLoaderCacheData) -> Option<JsLoaderCacheData> {
+  pub fn get(
+    &self,
+    cache_key: String,
+    mut input: JsLoaderCacheData,
+  ) -> napi::Result<Option<JsLoaderCacheData>> {
     if !input.cacheable || input.has_unhandled_side_effects {
-      return None;
+      return Ok(None);
     }
-    let etag = input_etag(&input)?;
-    let entry = self
-      .cache
-      .get::<LoaderCacheEntry>(&cache_key, &self.module_identifier, &etag)?;
+    let Some(etag) = input_etag(&input) else {
+      return Ok(None);
+    };
+    let (storage_key, item_cache) =
+      self
+        .cache
+        .cache_item(&cache_key, &self.module_identifier, etag.clone());
+    let Some(entry) = item_cache
+      .get::<LoaderCacheEntry>()
+      .map_err(|error| napi::Error::from_reason(error.to_string()))?
+    else {
+      return Ok(None);
+    };
+    let sidecar = if entry.requires_sidecar {
+      let Some(sidecar) = self
+        .cache
+        .get_sidecar::<LoaderCacheSidecar>(&storage_key, &etag)
+      else {
+        return Ok(None);
+      };
+      Some(sidecar)
+    } else {
+      None
+    };
 
     replay_dependency_delta(&mut input.file_dependencies, &entry.file_dependencies);
     replay_dependency_delta(&mut input.context_dependencies, &entry.context_dependencies);
@@ -235,14 +274,14 @@ impl JsLoaderCache {
     replay_dependency_delta(&mut input.build_dependencies, &entry.build_dependencies);
     replay_parse_meta(&mut input.parse_meta, &entry.parse_meta);
 
-    Some(JsLoaderCacheData {
+    Ok(Some(JsLoaderCacheData {
       content: entry
         .content
         .clone()
         .map_or(Either::A(Null), |content| Either::B(content.into())),
       content_is_string: entry.content_is_string,
       source_map: entry.source_map.clone().map(Into::into),
-      additional_data: entry.additional_data.clone(),
+      additional_data: sidecar.map(|sidecar| sidecar.additional_data.clone()),
       additional_data_cache_key: entry.additional_data_cache_key.clone(),
       file_dependencies: input.file_dependencies,
       context_dependencies: input.context_dependencies,
@@ -251,7 +290,7 @@ impl JsLoaderCache {
       parse_meta: input.parse_meta,
       cacheable: input.cacheable,
       has_unhandled_side_effects: false,
-    })
+    }))
   }
 
   #[napi]
@@ -260,16 +299,19 @@ impl JsLoaderCache {
     cache_key: String,
     input: JsLoaderCacheData,
     output: JsLoaderCacheData,
-  ) -> Option<String> {
+  ) -> napi::Result<Option<String>> {
     if !input.cacheable
       || input.has_unhandled_side_effects
       || !output.cacheable
       || output.has_unhandled_side_effects
     {
-      return None;
+      return Ok(None);
     }
-    let etag = input_etag(&input)?;
+    let Some(etag) = input_etag(&input) else {
+      return Ok(None);
+    };
     let additional_data_cache_key = output_additional_data_cache_key(&cache_key, &etag, &output);
+    let additional_data = output.additional_data.clone();
     let entry = LoaderCacheEntry {
       content: match &output.content {
         Either::A(_) => None,
@@ -280,7 +322,6 @@ impl JsLoaderCache {
         .source_map
         .as_ref()
         .map(|source_map| source_map.to_vec()),
-      additional_data: output.additional_data.clone(),
       additional_data_cache_key: additional_data_cache_key.clone(),
       file_dependencies: dependency_delta(&input.file_dependencies, &output.file_dependencies),
       context_dependencies: dependency_delta(
@@ -293,13 +334,22 @@ impl JsLoaderCache {
       ),
       build_dependencies: dependency_delta(&input.build_dependencies, &output.build_dependencies),
       parse_meta: parse_meta_delta(&input.parse_meta, &output.parse_meta),
+      requires_sidecar: additional_data.is_some(),
     };
-    self.cache.store(
-      &cache_key,
-      &self.module_identifier,
-      etag,
-      CacheValue::new(entry),
-    );
-    additional_data_cache_key
+    let (storage_key, item_cache) =
+      self
+        .cache
+        .cache_item(&cache_key, &self.module_identifier, etag.clone());
+    if let Some(additional_data) = additional_data {
+      self
+        .cache
+        .store_sidecar(storage_key, etag, LoaderCacheSidecar { additional_data });
+    } else {
+      self.cache.remove_sidecar(&storage_key);
+    }
+    item_cache
+      .store(CacheValue::new(entry))
+      .map_err(|error| napi::Error::from_reason(error.to_string()))?;
+    Ok(additional_data_cache_key)
   }
 }

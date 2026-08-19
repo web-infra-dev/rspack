@@ -1,11 +1,11 @@
-use std::{
-  any::Any,
-  sync::atomic::{AtomicU32, Ordering},
-};
+use std::sync::atomic::{AtomicU32, Ordering};
 
 use rspack_util::fx_hash::FxDashMap;
 
-use super::{CacheKey, CacheValue, Etag, cache_value::CacheEntry};
+use super::{
+  CacheKey, CacheValue, Etag,
+  cache_value::{CacheEntry, CacheValueData},
+};
 
 /// Result of looking up an item in the memory cache.
 ///
@@ -84,7 +84,7 @@ impl MemoryCache {
     }
   }
 
-  pub fn get<T: Any + Send + Sync>(
+  pub fn get<T: CacheValueData>(
     &self,
     key: &CacheKey,
     etag: Option<&Etag>,
@@ -108,16 +108,11 @@ impl MemoryCache {
     }
   }
 
-  pub fn store<T: Any + Send + Sync>(
-    &self,
-    key: CacheKey,
-    etag: Option<Etag>,
-    value: CacheValue<T>,
-  ) {
+  pub fn store<T: CacheValueData>(&self, key: CacheKey, etag: Option<Etag>, value: CacheValue<T>) {
     self.entries.insert(
       key,
       MemoryCacheEntry::new(
-        MemoryCacheValue::Hit(CacheEntry::new(etag, value.erase_memory())),
+        MemoryCacheValue::Hit(CacheEntry::new(etag, value.erase())),
         self.max_generations,
       ),
     );
