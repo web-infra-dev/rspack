@@ -3,7 +3,7 @@ use std::{ptr::NonNull, sync::Arc};
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
 use rspack_collections::Identifiable;
-use rspack_core::{LoaderContext, Module, RunnerContext};
+use rspack_core::{LoaderContext, Module, RunnerContext, get_loader_cache};
 use rspack_error::ToStringResultToRspackResultExt;
 use rspack_loader_runner::State as LoaderState;
 use rspack_napi::threadsafe_js_value_ref::ThreadsafeJsValueRef;
@@ -191,7 +191,7 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
       loader_state: cx.state().into(),
       error: None,
       loader_cache: JsLoaderCacheObject::new(
-        cx.context.loader_cache().clone(),
+        get_loader_cache(&cx.context.options.context),
         module.identifier().to_string(),
       ),
       utf8_hint: None,

@@ -23,8 +23,7 @@ const LOADER_CACHE_DIRECTORY: &str = "node_modules/.cache/loader-cache";
 
 // Keep a strong process-wide owner so compilers using the same cache directory
 // always share exactly one LoaderCache instance.
-static LOADER_CACHES: LazyLock<DashMap<Ustr, Arc<LoaderCache>>> =
-  LazyLock::new(DashMap::new);
+static LOADER_CACHES: LazyLock<DashMap<Ustr, Arc<LoaderCache>>> = LazyLock::new(DashMap::new);
 
 #[derive(Debug)]
 pub struct LoaderCache {
@@ -221,7 +220,7 @@ pub(crate) fn before_normal_loader(
   }
   let cache_key = context.current_loader().cache_key().to_owned();
   let module_identifier = context.context.module.identifier();
-  let cache = Arc::clone(&context.context.loader_cache);
+  let cache = get_loader_cache(&context.context.options.context);
 
   if let Some(entry) = cache.get::<LoaderCacheEntry>(&cache_key, module_identifier.as_str(), &etag)
   {
