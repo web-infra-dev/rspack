@@ -120,7 +120,10 @@ jobs:
       - name: Check wasm32
         run: |
           rustup target add wasm32-unknown-unknown
-          cargo check -p rspack_resolver --all-features --target wasm32-unknown-unknown --locked
+          cargo check -p rspack_resolver --locked \
+            --no-default-features \
+            --features package_json_raw_json_api,yarn_pnp,enable_instrument,document-features \
+            --target wasm32-unknown-unknown
 
   resolver_required_check:
     # this job is used as the required status check for branch protection;
