@@ -47,29 +47,27 @@ async fn render_module_content(
       .environment
       .supports_node_prefix_for_core_modules();
 
-    init_fragments.push(
-      NormalInitFragment::new(
-        format!(
-          "import {{ createRequire as __rspack_createRequire }} from \"{}\";\n{} __rspack_createRequire_require = __rspack_createRequire({}.url);\n",
-          if need_prefix { "node:module" } else { "module" },
-          if compilation.options.output.environment.supports_const() {
-            "const"
-          } else {
-            "var"
-          },
-          compilation.options.output.import_meta_name
-        ),
-        InitFragmentStage::StageESMImports,
-        0,
-        InitFragmentKey::ModuleExternal("node-commonjs".to_string()),
-        None,
-      )
-      .with_top_level_decl_symbols(vec![
-        "__rspack_createRequire".into(),
-        "__rspack_createRequire_require".into(),
-      ])
-      .boxed(),
+    let mut fragment = NormalInitFragment::new(
+      format!(
+        "import {{ createRequire as __rspack_createRequire }} from \"{}\";\n{} __rspack_createRequire_require = __rspack_createRequire({}.url);\n",
+        if need_prefix { "node:module" } else { "module" },
+        if compilation.options.output.environment.supports_const() {
+          "const"
+        } else {
+          "var"
+        },
+        compilation.options.output.import_meta_name
+      ),
+      InitFragmentStage::StageESMImports,
+      0,
+      InitFragmentKey::ModuleExternal("node-commonjs".to_string()),
+      None,
     );
+    fragment.set_top_level_decl_symbols(vec![
+      "__rspack_createRequire".into(),
+      "__rspack_createRequire_require".into(),
+    ]);
+    init_fragments.push(fragment.boxed());
   }
   Ok(())
 }

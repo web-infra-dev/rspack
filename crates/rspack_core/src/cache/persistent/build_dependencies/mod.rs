@@ -7,7 +7,7 @@ use rspack_fs::ReadableFileSystem;
 use rspack_paths::{ArcPath, ArcPathSet, AssertUtf8};
 use rustc_hash::FxHashSet as HashSet;
 
-use self::helper::{Helper, is_node_package_path};
+pub(crate) use self::helper::{Helper, is_node_package_path};
 use super::{
   snapshot::{Snapshot, SnapshotScope},
   storage::Storage,

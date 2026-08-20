@@ -84,7 +84,7 @@ pub async fn replace_static_url_placeholders(
       continue;
     };
     let codegen_result = compilation.code_generation_results.get(module, runtime);
-    let Some(filename) = codegen_result.data.get::<CodeGenerationDataFilename>() else {
+    let Some(filename) = codegen_result.data().get::<CodeGenerationDataFilename>() else {
       unreachable!()
     };
 
@@ -213,7 +213,14 @@ async fn render_module_content(
   let codegen_result = compilation
     .code_generation_results
     .get(&module.identifier(), Some(runtime));
-  if codegen_result.data.contains::<URLStaticMode>() {
+  if codegen_result.data().contains::<URLStaticMode>() {
+    // Fast ESM concatenation applies snapshot spans in the original source
+    // coordinate space. Defer static URL materialization to the final chunk
+    // render so this hook does not wrap the module's ReplaceSource and shift
+    // those spans.
+    if compilation.options.experiments.faster_module_concatenation {
+      return Ok(());
+    }
     let output_path = get_chunk_output_path(compilation, *chunk_ukey).await?;
     render_source.source = replace_static_url_placeholders(
       compilation,

@@ -23,19 +23,19 @@ it(`should generate correct url public path with css filename`, async () => {
 		expect(Object.keys(x)).toEqual([]);
 		const css = getLinkSheet(document.querySelector("link"));
 		expect(css).toContain(`h1 {
-  same-dir: url(${publicPath}assets/img1.png);
-  nested-dir: url(${publicPath}assets/img2.png);
-  nested-nested-dir: url(${publicPath}assets/img3.png);
+  same-dir: url("${publicPath}assets/img1.png");
+  nested-dir: url("${publicPath}assets/img2.png");
+  nested-nested-dir: url("${publicPath}assets/img3.png");
 }`);
 		expect(css).toContain(`h2 {
-  same-dir: url(${publicPath}assets/img2.png);
-  nested-dir: url(${publicPath}assets/img3.png);
-  outer-dir: url(${publicPath}assets/img1.png);
+  same-dir: url("${publicPath}assets/img2.png");
+  nested-dir: url("${publicPath}assets/img3.png");
+  outer-dir: url("${publicPath}assets/img1.png");
 }`);
 		expect(css).toContain(`h3 {
-  same-dir: url(${publicPath}assets/img3.png);
-  outer-dir: url(${publicPath}assets/img2.png);
-  outer-outer-dir: url(${publicPath}assets/img1.png);
+  same-dir: url("${publicPath}assets/img3.png");
+  outer-dir: url("${publicPath}assets/img2.png");
+  outer-outer-dir: url("${publicPath}assets/img1.png");
 }`);
 	});
 });

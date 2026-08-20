@@ -3,15 +3,17 @@ use rspack_cacheable::{
   with::{AsPreset, AsVec},
 };
 use rspack_core::{
-  AsContextDependency, AwaitDependenciesInitFragment, Compilation, Dependency, DependencyCategory,
-  DependencyCodeGeneration, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
-  DependencyTemplateType, DependencyType, ExportsInfoArtifact, FactorizeInfo, InitFragmentKey,
-  InitFragmentStage, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, NormalInitFragment,
-  ReferencedExport, RuntimeSpec, TemplateContext, TemplateReplaceSource, UsedName,
-  create_exports_object_referenced, property_access, to_normal_comment,
+  AsContextDependency, AwaitDependenciesInitFragment, BuildMetaExportsType, Compilation, Dependency,
+  DependencyCategory, DependencyCodeGeneration, DependencyId, DependencyLocation, DependencyRange,
+  DependencyTemplate, DependencyTemplateType, DependencyType, ExportsInfoArtifact, FactorizeInfo,
+  InitFragmentKey, InitFragmentStage, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
+  NormalInitFragment, ReferencedExport, RuntimeSpec, TemplateContext, TemplateReplaceSource,
+  UsedName, create_exports_object_referenced, property_access, to_normal_comment,
 };
 use rspack_hash::{RspackHash, RspackHasher};
 use swc_atoms::Atom;
+
+use super::add_async_module_boundary;
 
 #[cacheable]
 #[derive(Debug, Clone)]
@@ -159,9 +161,11 @@ impl DependencyTemplate for ProvideDependencyTemplate {
       .as_any()
       .downcast_ref::<ProvideDependency>()
       .expect("ProvideDependencyTemplate should only be used for ProvideDependency");
+    let rendered_identifier = source.ensure_generated_top_level_symbol(dep.identifier.clone());
 
     let TemplateContext {
       compilation,
+      module,
       runtime,
       runtime_template,
       init_fragments,
@@ -184,8 +188,7 @@ impl DependencyTemplate for ProvideDependencyTemplate {
     let (provided_expr, post_await_expr) = if is_async {
       let post_await_expr = match used_name {
         Some(UsedName::Normal(used_name)) => Some(format!(
-          "{}{}",
-          dep.identifier,
+          "{rendered_identifier}{}",
           property_access(used_name, 0)
         )),
         Some(UsedName::Inlined(inlined)) => Some(inlined.render(&to_normal_comment(&format!(
@@ -213,26 +216,25 @@ impl DependencyTemplate for ProvideDependencyTemplate {
       (provided_expr, None)
     };
 
-    init_fragments.push(Box::new(
-      NormalInitFragment::new(
-        format!(
-          "/* provided dependency */ var {} = {};\n",
-          dep.identifier, provided_expr
-        ),
-        InitFragmentStage::StageProvides,
-        1,
-        InitFragmentKey::ModuleExternal(format!("provided {}", dep.identifier)),
-        None,
-      )
-      .with_top_level_decl_symbols(vec![dep.identifier.clone().into()]),
-    ));
+    let mut fragment = NormalInitFragment::new(
+      format!("/* provided dependency */ var {rendered_identifier} = {provided_expr};\n"),
+      InitFragmentStage::StageProvides,
+      1,
+      InitFragmentKey::ModuleExternal(format!("provided {}", dep.identifier)),
+      None,
+    );
+    fragment.set_top_level_decl_symbols(vec![dep.identifier.clone().into()]);
+    init_fragments.push(Box::new(fragment));
     if is_async {
+      if module.build_meta().exports_type() != BuildMetaExportsType::Namespace {
+        add_async_module_boundary(init_fragments, compilation, *module, runtime_template);
+      }
       init_fragments.push(Box::new(AwaitDependenciesInitFragment::new_single(
-        dep.identifier.clone(),
+        rendered_identifier.clone(),
       )));
       if let Some(post_await_expr) = post_await_expr {
         init_fragments.push(Box::new(NormalInitFragment::new(
-          format!("{} = {};\n", dep.identifier, post_await_expr),
+          format!("{rendered_identifier} = {post_await_expr};\n"),
           InitFragmentStage::StageAsyncESMImports,
           1,
           InitFragmentKey::ModuleExternal(format!("provided async {}", dep.identifier)),
@@ -240,6 +242,11 @@ impl DependencyTemplate for ProvideDependencyTemplate {
         )));
       }
     }
-    source.replace(dep.range.start, dep.range.end, dep.identifier.clone(), None);
+    source.replace_with_tracked_used_names(
+      dep.range.start,
+      dep.range.end,
+      rendered_identifier,
+      None,
+    );
   }
 }

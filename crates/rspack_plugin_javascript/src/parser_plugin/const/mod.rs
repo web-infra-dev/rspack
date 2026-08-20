@@ -132,13 +132,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ConstPlugin {
     let include_function_declarations = !parser.is_strict();
     let declarations = self::if_stmt::get_hoisted_declarations(stmt, include_function_declarations);
 
-    let replacement_body = if declarations.is_empty() {
-      "{}".to_string()
-    } else {
-      let mut names: Vec<&str> = declarations.iter().copied().collect();
-      names.sort_unstable();
-      format!("{{ var {} }}", names.join(", "))
-    };
+    let (replacement_body, _) = self::if_stmt::render_hoisted_declarations(&declarations, false);
 
     // Prepend the same comment as webpack for easier debugging.
     let mut replacement = String::from("// removed by dead control flow\n");

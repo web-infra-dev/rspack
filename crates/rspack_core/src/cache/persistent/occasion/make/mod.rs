@@ -18,7 +18,7 @@ use crate::{
   utils::{FileCounter, ResourceId},
 };
 
-/// Make Occasion is used to save MakeArtifact
+/// Make Occasion persists the build module graph as a cache item.
 #[derive(Debug)]
 pub struct MakeOccasion {
   codec: Arc<CacheCodec>,
@@ -31,7 +31,7 @@ impl MakeOccasion {
 }
 
 impl Occasion for MakeOccasion {
-  type Artifact = BuildModuleGraphArtifact;
+  type CacheItem = BuildModuleGraphArtifact;
 
   fn name(&self) -> &'static str {
     "make"
@@ -43,7 +43,7 @@ impl Occasion for MakeOccasion {
   }
 
   #[tracing::instrument(name = "Cache::Occasion::Make::save", skip_all)]
-  fn save(&self, storage: &mut dyn Storage, artifact: &BuildModuleGraphArtifact) {
+  fn save(&self, storage: &mut dyn Storage, cache_item: &BuildModuleGraphArtifact) {
     let BuildModuleGraphArtifact {
       // write all of field here to avoid forget to update occasion when add new fields
       // for module graph
@@ -61,7 +61,7 @@ impl Occasion for MakeOccasion {
       build_dependencies: _,
       make_failed_dependencies: _,
       make_failed_module: _,
-    } = artifact;
+    } = cache_item;
 
     let mut need_update_modules = issuer_update_modules.clone();
     need_update_modules.extend(affected_modules.active());

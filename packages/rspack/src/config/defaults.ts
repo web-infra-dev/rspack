@@ -279,9 +279,11 @@ const applyExperimentsDefaults = (
   { production }: { production: boolean },
 ) => {
   D(experiments, 'futureDefaults', false);
+  D(experiments, 'newCache', false);
   D(experiments, 'asyncWebAssembly', true);
   D(experiments, 'deferImport', false);
   D(experiments, 'sourceImport', false);
+  D(experiments, 'fasterModuleConcatenation', false);
 
   D(experiments, 'buildHttp', undefined);
   if (experiments.buildHttp && typeof experiments.buildHttp === 'object') {

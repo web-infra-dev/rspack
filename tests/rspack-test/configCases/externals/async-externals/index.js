@@ -45,6 +45,17 @@ it("should allow ProvidePlugin to await async externals", () => {
 	delete globalThis.__rspackProvidedAsyncSideEffect;
 });
 
+it("should add an async boundary for CommonJS consumers of async provided modules", async () => {
+	const { default: result } = await import("./provided-commonjs-consumer");
+	expect(result.providedAsyncModule).toMatchObject({
+		__esModule: true,
+		default: 42,
+		named: true
+	});
+	expect(result.providedAsyncModuleNamed).toBe(true);
+	expect(result.providedAsyncInlined).toBe(42);
+});
+
 it("should allow to catch errors of async externals", () => {
 	return expect(() => import("failing-promise-external")).rejects.toEqual(
 		expect.objectContaining({

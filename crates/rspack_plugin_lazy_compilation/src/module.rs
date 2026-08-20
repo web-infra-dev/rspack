@@ -4,7 +4,7 @@ use rspack_cacheable::{cacheable, cacheable_dyn, with::AsVec};
 use rspack_collections::Identifiable;
 use rspack_core::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildContext,
-  BuildInfo, BuildMeta, BuildResult, ChunkGraph, CodeGenerationResult, Compilation, Context,
+  BuildInfo, BuildMeta, BuildResult, ChunkGraph, CodeGenerationResultBuilder, Compilation, Context,
   DependenciesBlock, DependencyId, DependencyRange, FactoryMeta, ImportPhase, LibIdentOptions,
   Module, ModuleArgument, ModuleCodeGenerationContext, ModuleFactoryCreateData, ModuleGraph,
   ModuleIdentifier, ModuleLayer, ModuleType, OutputOptions, RuntimeGlobals, RuntimeSpec,
@@ -240,7 +240,7 @@ impl Module for LazyCompilationProxyModule {
   async fn code_generation(
     &self,
     code_generation_context: &mut ModuleCodeGenerationContext,
-  ) -> Result<CodeGenerationResult> {
+  ) -> Result<CodeGenerationResultBuilder> {
     let ModuleCodeGenerationContext {
       compilation,
       runtime_template,
@@ -322,7 +322,9 @@ impl Module for LazyCompilationProxyModule {
       ))
     };
 
-    Ok(CodeGenerationResult::default().with_javascript(Arc::new(source)))
+    let mut code_generation_result = CodeGenerationResultBuilder::default();
+    code_generation_result.add(SourceType::JavaScript, Arc::new(source));
+    Ok(code_generation_result)
   }
 
   async fn get_runtime_hash(

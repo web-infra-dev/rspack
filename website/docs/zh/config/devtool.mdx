@@ -1,5 +1,5 @@
 ---
-description: '需要精细控制时，直接使用 SourceMapDevToolPlugin 或 EvalSourceMapDevToolPlugin。'
+description: '了解如何为开发和生产环境配置 source map，以及每个 devtool 修饰符的作用。'
 ---
 
 import WebpackLicense from '@components/WebpackLicense';
@@ -8,9 +8,7 @@ import WebpackLicense from '@components/WebpackLicense';
 
 # Devtool
 
-该选项用于控制调试信息生成策略，影响调试能力与构建性能。
-
-需要精细控制时，直接使用 [SourceMapDevToolPlugin](/plugins/webpack/source-map-dev-tool-plugin) 或 [EvalSourceMapDevToolPlugin](/plugins/webpack/eval-source-map-dev-tool-plugin)。
+`devtool` 用于控制 Rspack 为输出代码生成哪些调试信息，包括是否生成 source map，以及 source map 的输出方式和映射精度。不同的配置会影响浏览器开发工具和错误监控工具将打包代码还原到原始源码的能力，也会影响构建速度以及源码暴露风险。
 
 - **类型：**
 
@@ -18,77 +16,135 @@ import WebpackLicense from '@components/WebpackLicense';
 type Devtool = string | false;
 ```
 
-- **默认值：** development 模式为 `cheap-module-source-map`，production 模式 为 `false`
-
-## 决策指南
-
-### 步骤1：是否需要调试
-
-- **不需要** → 设置 `devtool: false`
-  - 禁用所有调试信息
-  - 零额外构建开销，极致构建速度
-- **需要** → 进入[步骤2](#步骤2明确调试需求)
-
-### 步骤2：明确调试需求
-
-- **仅需定位模块** → 设置 `devtool: 'eval'`
-  - 每个模块都使用 `eval()` 执行，并且都有 `//# sourceURL`
-  - 极快的构建速度
-- **需要源码映射** → 进入[步骤3](#步骤3配置-source-map)
-
-### 步骤3：配置 source map
-
-设置 `devtool: 'source-map'` 时，source map 作为一个单独的文件生成。bundle 添加 `//# sourceMapURL` 注释，以便开发工具知道在哪里可以找到它。
-
-它还支持与以下修饰符进行组合，以提升性能或控制 source map 生成。
-
-性能优化修饰符，提升构建速度，通常用于**开发环境**：
-
-| 修饰符 | 效果                                                                                                                       | 性能提升 |
-| ------ | -------------------------------------------------------------------------------------------------------------------------- | -------- |
-| eval   | 每个模块都使用 `eval()` 执行，并且将模块 source map 转换为 DataUrl 后添加到 `eval()` 中，避免 chunk 级 source map 合并计算 | ⚡⚡     |
-| cheap  | 仅计算行映射，忽略列映射。仅映射到转译后的代码，忽略来自 loader 的 source map                                              | ⚡⚡     |
-| module | 处理来自 loader 的 source map，以映射到源代码。仅计算行映射，忽略列映射                                                    | ⚡       |
-
-:::tip 常见问题
-生产环境使用 `cheap` 修饰符（如 `cheap-source-map` 或 `cheap-module-source-map`）时，未生成 source map 文件是**符合预期的**。
-
-因为 `cheap` 只提供**行级**映射，而生产构建的代码通常被压缩成单行，生成 source map 没有实际意义。
-:::
-
-功能修饰符，按需控制 source map 的生成，通常用于**生产环境**：
-
-| 修饰符    | 效果                                                                                                    |
-| --------- | ------------------------------------------------------------------------------------------------------- |
-| hidden    | source map 作为一个单独的文件生成，但不会为 bundle 添加 `//# sourceMappingURL=[url]` 注释，保护源码隐私 |
-| inline    | source map 以 base64 内联到 bundle 中，不生成单独的文件                                                 |
-| nosources | 创建的 source map 不包含 `sourcesContent`（源代码内容）                                                 |
-| debugids  | 创建的 source map 增加 `debugId` 字段                                                                   |
-
-验证 `devtool` 的配置时，Rspack 期望的格式是 `[inline-|hidden-|eval-][nosources-][cheap-[module-]]source-map[-debugids]`.
+- **默认值：** development 模式为 `cheap-module-source-map`，production 模式为 `false`
 
 ## 推荐配置
 
-### 开发环境
+以下示例通过 `process.env.NODE_ENV` 区分开发和生产环境。
 
-以下选项非常适合开发环境：
+### 仅开发环境启用
 
-`cheap-source-map` - source map 作为一个单独的文件生成，不计算列映射，只是映射行。忽略源自 loader 的 source map，仅映射到转译后的代码。
+如果仅在开发阶段需要调试信息，生产环境不需要生成 source map，使用以下配置：
 
-`cheap-module-source-map` - 类似 `cheap-source-map`，并且，但会处理源自 loader 的 source map，映射到源代码。然而，source map 不计算列映射，只是映射行。
+```js title="rspack.config.mjs"
+const isDev = process.env.NODE_ENV === 'development';
 
-### 生产环境
+export default {
+  devtool: isDev ? 'cheap-module-source-map' : false,
+};
+```
 
-这些选项通常用于生产环境中：
+- **开发环境：** 使用 `cheap-module-source-map`，生成行级 source map，在调试精度和构建速度之间取得平衡。
+- **生产环境：** 设为 `false`，不生成 source map，也不会增加 source map 的生成开销。
 
-`false` - 不生成 source map。
+### 全部禁用
 
-`source-map` - source map 作为一个单独的文件生成。bundle 添加 `//# sourceMapURL` 注释，以便开发工具知道在哪里可以找到它。
+如果两个环境都不需要 source map，使用以下配置：
 
-`hidden-source-map` - 与 `source-map` 相同，但不会为 bundle 添加 `//# sourceMapURL` 注释。你可以将 source map 用于错误报告工具，来映射源自客户端的错误堆栈，而不必向浏览器暴露你的 source map。
+```js title="rspack.config.mjs"
+export default {
+  devtool: false,
+};
+```
 
-`nosources-source-map` - 创建的 source map 不包含 `sourcesContent`（源代码内容）。它仍然会暴露原始的文件名和文件结构，并且可以在客户端用于映射错误堆栈，而无需暴露源代码。如果你可以接受文件名被暴露，那么这种类型的 source map 可以部署到 Web 服务器上。
+该配置的构建开销最低，也不会输出 `.map` 文件。缺点是浏览器报错和生产错误堆栈只能指向打包后的代码，无法还原到原始源码。
+
+### 全部启用
+
+如果开发阶段需要快速的 source map，同时希望在生产环境获得完整的行列映射，使用以下配置：
+
+```js title="rspack.config.mjs"
+const isDev = process.env.NODE_ENV === 'development';
+
+export default {
+  devtool: isDev ? 'cheap-module-source-map' : 'source-map',
+};
+```
+
+- **开发环境：** 使用构建速度更快的 `cheap-module-source-map`。
+- **生产环境：** 使用 `source-map`，生成包含行列映射的独立 `.map` 文件，并在 bundle 中添加 `sourceMappingURL` 注释。只要 `.map` 文件可访问，浏览器开发工具就能自动加载它。该配置适合直接调试生产代码，但会增加构建时间，并可能向用户暴露源码。
+
+### 生产环境隐藏引用
+
+如果生产环境需要 source map 来还原错误堆栈，但不希望浏览器从 bundle 中自动发现它，使用以下配置：
+
+```js title="rspack.config.mjs"
+const isDev = process.env.NODE_ENV === 'development';
+
+export default {
+  devtool: isDev ? 'cheap-module-source-map' : 'hidden-source-map',
+};
+```
+
+- **开发环境：** 使用构建速度更快的 `cheap-module-source-map`。
+- **生产环境：** 使用 `hidden-source-map`，生成包含完整行列映射的独立 `.map` 文件，但不在 bundle 中添加 `//# sourceMappingURL` 注释。该配置适合将 source map 私下上传到错误监控服务，用于还原生产错误堆栈。
 
 :::warning
-在使用 `source-map` 或 `hidden-source-map` 时，请勿将 source maps (`.map` 文件) 部署到公开访问的 Web 服务器或 CDN 上。公开 source maps 会暴露你的源代码，并且可能带来安全风险。
+`hidden-source-map` 只会移除 bundle 中的引用，并不会加密或保护 `.map` 文件。除非你明确希望公开源码，否则不要将生产环境的 `.map` 文件部署到可公开访问的 Web 服务器或 CDN；应将它们上传到受限的错误监控服务。
 :::
+
+## 常用值
+
+下表比较了常用配置的映射精度、输出方式和适用场景。
+
+| 值                        | 映射内容                       | 输出方式                                | 适用场景                         |
+| ------------------------- | ------------------------------ | --------------------------------------- | -------------------------------- |
+| `cheap-module-source-map` | 原始源码，仅包含行映射         | 通常为独立的 `.map` 文件                | 平衡调试精度和构建速度的开发环境 |
+| `cheap-source-map`        | 转换后的代码，仅包含行映射     | 通常为独立的 `.map` 文件                | 不需要映射回原始源码的开发环境   |
+| `eval`                    | 仅提供模块名称，不能映射回源码 | 使用 `eval()` 包装每个模块              | 开发环境中仅需定位模块           |
+| `eval-source-map`         | 原始源码，包含行列映射         | 每个模块的 map 内联到对应的 `eval()` 中 | 开发环境中需要精确调试           |
+| `false`                   | 不生成 source map              | 无                                      | 不需要调试信息                   |
+| `hidden-source-map`       | 原始源码，包含行列映射         | 独立的 `.map` 文件，bundle 中不包含引用 | 私下上传到错误监控服务           |
+| `inline-source-map`       | 原始源码，包含行列映射         | 以 Data URL 的形式内联到 bundle 中      | 需要分发单个文件的开发或测试场景 |
+| `nosources-source-map`    | 包含行列映射，但不包含源码内容 | 独立的 `.map` 文件，bundle 中包含引用   | 需要映射但不希望 map 包含源码    |
+| `source-map`              | 原始源码，包含行列映射         | 独立的 `.map` 文件，bundle 中包含引用   | 需要直接调试生产代码             |
+
+## 修饰符
+
+不带修饰符的 `source-map` 会生成包含行列映射的独立 `.map` 文件，并在 bundle 中添加 `sourceMappingURL` 注释。你可以添加以下修饰符来改变生成方式、映射精度或 map 内容。
+
+### `eval`
+
+将每个模块包装在 `eval()` 中。当它与 `source-map` 组合为 `eval-source-map` 时，每个模块的 source map 会以 Data URL 的形式写入对应的 `eval()`，从而避免合并 chunk 级 source map，提升重新构建速度。该修饰符通常只用于开发环境。
+
+单独使用 `devtool: 'eval'` 时不会生成 source map，而是通过 `//# sourceURL` 为每个模块提供可读的模块名称，只能定位到模块，不能映射回原始源码。
+
+### `inline`
+
+将 source map 以 Data URL 的形式内联到 bundle 中，不生成独立的 `.map` 文件，例如 `inline-source-map`。这便于传输单个文件，但会明显增大 bundle 体积。默认情况下，source map 还会把源码内容一并包含在 bundle 中；与 `nosources` 组合时除外。因此，该修饰符通常只用于开发或测试。
+
+### `hidden`
+
+生成独立的 `.map` 文件，但不在 bundle 中添加 `//# sourceMappingURL` 注释，例如 `hidden-source-map`。浏览器不会自动发现该文件，适合将 source map 私下上传到错误监控服务。它不会阻止用户直接访问已公开部署的 `.map` 文件。
+
+### `nosources`
+
+从 source map 中移除 `sourcesContent`，例如 `nosources-source-map`。map 仍然包含原始文件名、目录结构和映射信息，可以用于还原错误堆栈，但不能单独向开发工具提供原始源码内容。
+
+### `cheap`
+
+只生成行映射，不生成列映射，以减少 source map 的计算开销，例如 `cheap-source-map`。单独使用时会忽略 loader 提供的 source map，因此映射结果指向 loader 转换后的代码，而不是原始源码。
+
+:::tip
+在启用代码压缩的 production 构建中，使用 `cheap` 修饰符（如 `cheap-source-map` 或 `cheap-module-source-map`）时，可能不会生成 source map 文件，这是符合预期的。压缩后的代码通常只有一行，而 `cheap` 只提供行级映射，因此无法生成有实际价值的映射。关闭代码压缩时仍可能生成 `.map` 文件。
+:::
+
+### `module`
+
+仅与 `cheap` 组合使用，例如 `cheap-module-source-map`。它会处理 loader 提供的 source map，将行映射还原到原始源码。与 `cheap-source-map` 相比，它的映射结果更准确，但计算开销也略高。不使用 `cheap` 时，`source-map` 默认就会处理 loader 的 source map，无需添加 `module`。
+
+### `debugids`
+
+`debugids` 基于 [TC39 Debug ID 提案](https://github.com/tc39/ecma426/blob/main/proposals/debug-id.md)，为 source map 添加 `debugId`。例如，使用 `source-map-debugids` 时，Rspack 还会在对应的输出资源中添加匹配的 `//# debugId` 注释，便于错误监控工具关联构建产物与 source map。
+
+Rspack 会校验修饰符的顺序，格式必须为 `[inline-|hidden-|eval-][nosources-][cheap-[module-]]source-map[-debugids]`。其中 `inline`、`hidden` 和 `eval` 互斥，`module` 只能跟在 `cheap` 之后，`debugids` 位于末尾。
+
+## 相关配置
+
+- [`output.sourceMapFilename`](/config/output#outputsourcemapfilename)：自定义独立 source map 文件的名称。
+- [`output.devtoolModuleFilenameTemplate`](/config/output#outputdevtoolmodulefilenametemplate)、[`output.devtoolFallbackModuleFilenameTemplate`](/config/output#outputdevtoolfallbackmodulefilenametemplate) 和 [`output.devtoolNamespace`](/config/output#outputdevtoolnamespace)：控制 source map 中的模块名称，并避免多个构建之间的名称冲突。
+- [`rules[].extractSourceMap`](/config/module-rules#rulesextractsourcemap)：从输入文件的 `sourceMappingURL` 注释中提取现有的 source map。
+
+## 精细控制
+
+如需更细粒度地控制 source map 的生成方式，将 `devtool` 设为 `false`，并改用 [SourceMapDevToolPlugin](/plugins/webpack/source-map-dev-tool-plugin)；对于基于 `eval` 的 source map，改用 [EvalSourceMapDevToolPlugin](/plugins/webpack/eval-source-map-dev-tool-plugin)。

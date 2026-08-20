@@ -1,5 +1,8 @@
 mod rebuild;
-use std::sync::{Arc, atomic::AtomicU32};
+use std::{
+  sync::{Arc, atomic::AtomicU32},
+  time::Instant,
+};
 
 use futures::future::join_all;
 use rspack_cacheable::cacheable;
@@ -18,11 +21,13 @@ use crate::{
   BoxPlugin, CleanOptions, Compilation, CompilationAsset, CompilationLogging, CompilerOptions,
   CompilerPlatform, ContextModuleFactory, Filename, KeepPattern, NormalModuleFactory, PluginDriver,
   ResolverFactory, SharedPluginDriver,
-  cache::{Cache, new_cache},
+  artifacts::IncrementalArtifacts,
+  cache::{Cache as LegacyCache, new_cache as create_legacy_cache},
   compilation::build_module_graph::ModuleExecutor,
   fast_set, include_hash,
   incremental::{Incremental, IncrementalPasses},
   logger::Logger,
+  new_cache::{Cache, CacheFacade, create_cache},
   trim_dir,
 };
 
@@ -95,7 +100,9 @@ pub struct Compiler {
   pub buildtime_plugin_driver: SharedPluginDriver,
   pub resolver_factory: Arc<ResolverFactory>,
   pub loader_resolver_factory: Arc<ResolverFactory>,
-  pub cache: Box<dyn Cache>,
+  pub cache: Box<dyn LegacyCache>,
+  incremental_artifacts: IncrementalArtifacts,
+  new_cache: Cache,
   /// emitted asset versions
   /// the key of HashMap is filename, the value of HashMap is version
   pub emitted_asset_versions: HashMap<String, String>,
@@ -154,7 +161,13 @@ impl Compiler {
     let plugin_driver = PluginDriver::new(options.clone(), plugins, resolver_factory.clone());
     let buildtime_plugin_driver =
       PluginDriver::new(options.clone(), buildtime_plugins, resolver_factory.clone());
-    let cache = new_cache(
+    let new_cache = create_cache(
+      compiler_path.clone(),
+      options.clone(),
+      input_filesystem.clone(),
+      compilation_logging.clone(),
+    );
+    let cache = create_legacy_cache(
       &compiler_path,
       options.clone(),
       input_filesystem.clone(),
@@ -168,7 +181,6 @@ impl Compiler {
     let compiler_context = compiler_context.unwrap_or_else(|| Arc::new(CompilerContext::new()));
     Self {
       id,
-      compiler_path,
       options: options.clone(),
       compilation: Compilation::new(
         id,
@@ -182,6 +194,7 @@ impl Compiler {
         incremental,
         Some(module_executor),
         compilation_logging,
+        new_cache.clone(),
         Default::default(),
         Default::default(),
         input_filesystem.clone(),
@@ -190,6 +203,7 @@ impl Compiler {
         false,
         compiler_context.clone(),
       ),
+      compiler_path,
       output_filesystem,
       intermediate_filesystem,
       plugin_driver,
@@ -197,6 +211,8 @@ impl Compiler {
       resolver_factory,
       loader_resolver_factory,
       cache,
+      incremental_artifacts: IncrementalArtifacts::default(),
+      new_cache,
       emitted_asset_versions: Default::default(),
       input_filesystem,
       platform,
@@ -209,33 +225,65 @@ impl Compiler {
     self.id
   }
 
+  pub fn get_cache(&self, name: &str) -> CacheFacade {
+    self.new_cache.facade(name)
+  }
+
+  fn end_idle(&self) -> Result<Instant> {
+    self.new_cache.end_idle()?;
+    Ok(Instant::now())
+  }
+
+  fn begin_idle(&self, started_at: Instant, successful: bool) -> Result<()> {
+    let record_build_time = if successful {
+      self.new_cache.record_build_time(started_at.elapsed())
+    } else {
+      Ok(())
+    };
+    let store_build_dependencies = if successful && self.new_cache.has_file_cache() {
+      let (build_dependencies, _, _, _) = self.compilation.build_dependencies();
+      self
+        .new_cache
+        .store_build_dependencies(build_dependencies.cloned().collect())
+    } else {
+      Ok(())
+    };
+    let begin_idle = self.new_cache.begin_idle();
+
+    record_build_time
+      .and(store_build_dependencies)
+      .and(begin_idle)
+  }
+
   pub async fn run(&mut self) -> Result<()> {
     self.build().await?;
     Ok(())
   }
 
   pub async fn build(&mut self) -> Result<()> {
+    let start = self.end_idle()?;
     let compiler_context = self.compiler_context.clone();
-    match within_compiler_context(compiler_context, self.build_inner()).await {
+    let result = match within_compiler_context(compiler_context, self.build_inner()).await {
       Ok(_) => {
         self
           .plugin_driver
           .compiler_hooks
           .done
           .call(&self.compilation)
-          .await?;
-        Ok(())
+          .await
       }
       Err(e) => {
-        self
+        let failed = self
           .plugin_driver
           .compiler_hooks
           .failed
           .call(&self.compilation)
-          .await?;
-        Err(e)
+          .await;
+        failed.and(Err(e))
       }
-    }
+    };
+    let cache_result = self.begin_idle(start, result.is_ok());
+    result.and(cache_result)
   }
 
   #[instrument("Compiler:build",target=TRACING_BENCH_TARGET, skip_all)]
@@ -247,6 +295,7 @@ impl Compiler {
     let _guard = scopeguard::guard((), move |_| plugin_driver_clone.clear_cache(compilation_id));
     let compilation_logging = self.compilation.get_logging().clone();
     compilation_logging.clear();
+    self.incremental_artifacts.reset();
 
     fast_set(
       &mut self.compilation,
@@ -262,6 +311,7 @@ impl Compiler {
         Incremental::new_cold(self.options.incremental),
         Some(Default::default()),
         compilation_logging,
+        self.new_cache.clone(),
         Default::default(),
         Default::default(),
         self.input_filesystem.clone(),
@@ -271,12 +321,7 @@ impl Compiler {
         self.compiler_context.clone(),
       ),
     );
-    let _is_hot = self.cache.before_compile(&mut self.compilation).await;
-    // TODO: disable it for now, enable it once persistent cache is added to all artifacts
-    // if is_hot {
-    //   // If it's a hot start, we can use incremental
-    //   self.compilation.incremental = Incremental::new_hot(self.options.incremental);
-    // }
+    self.cache.before_compile(&mut self.compilation).await;
 
     self.compile().await?;
     self.compile_done().await?;
@@ -307,7 +352,11 @@ impl Compiler {
     let start = logger.time("seal compilation");
     self
       .compilation
-      .run_passes(self.plugin_driver.clone(), &mut *self.cache)
+      .run_passes_with_incremental_artifacts(
+        self.plugin_driver.clone(),
+        &mut self.incremental_artifacts,
+        &mut *self.cache,
+      )
       .await?;
     logger.time_end(start);
 
@@ -582,8 +631,7 @@ impl Compiler {
       .await?;
 
     self.cache.close().await;
-
-    Ok(())
+    self.new_cache.shutdown().await
   }
 }
 

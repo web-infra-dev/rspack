@@ -1,45 +1,292 @@
 use std::fmt::Debug;
 
 use dyn_clone::{DynClone, clone_trait_object};
-use rspack_cacheable::cacheable_dyn;
+use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_hash::RspackHasher;
-use rspack_sources::ReplaceSource;
+use rspack_sources::{ReplaceSource, ReplacementEnforce};
 use rspack_util::ext::AsAny;
 
 use crate::{
-  ChunkInitFragments, CodeGenerationData, Compilation, ConcatenationScope, DependencyType, Module,
-  ModuleCodeTemplate, ModuleInitFragments, RuntimeSpec,
+  ChunkInitFragments, CodeGenerationData, CodeGenerationDataChunkInitFragments, Compilation,
+  ConcatenationScope, DependencyRange, DependencyType, Module, ModuleCodeTemplate,
+  ModuleInitFragments, RuntimeSpec,
 };
 
-pub struct TemplateContext<'a, 'b, 'c> {
+pub struct TemplateContext<'a> {
   pub compilation: &'a Compilation,
   pub module: &'a dyn Module,
-  pub init_fragments: &'a mut ModuleInitFragments<'b>,
+  pub init_fragments: &'a mut ModuleInitFragments,
   pub runtime: Option<&'a RuntimeSpec>,
-  pub concatenation_scope: Option<&'c mut ConcatenationScope>,
   pub data: &'a mut CodeGenerationData,
   pub runtime_template: &'a mut ModuleCodeTemplate,
 }
 
-impl TemplateContext<'_, '_, '_> {
+/// Maps an identifier emitted by generated code back to the make-time binding
+/// it redeclares.
+#[cacheable]
+#[derive(Debug, Clone, Copy, rspack_hash::RspackHash)]
+pub struct GeneratedCodeRebinding {
+  /// Identifier range in the original module source.
+  pub original_range: DependencyRange,
+  /// Identifier range relative to the generated replacement content.
+  pub generated_range: DependencyRange,
+}
+
+impl TemplateContext<'_> {
   pub fn chunk_init_fragments(&mut self) -> &mut ChunkInitFragments {
-    let data_fragments = self.data.get::<ChunkInitFragments>();
-    if data_fragments.is_some() {
+    if !self.data.contains::<CodeGenerationDataChunkInitFragments>() {
       self
         .data
-        .get_mut::<ChunkInitFragments>()
-        .expect("should have chunk_init_fragments")
-    } else {
-      self.data.insert(ChunkInitFragments::default());
-      self
-        .data
-        .get_mut::<ChunkInitFragments>()
-        .expect("should have chunk_init_fragments")
+        .insert(CodeGenerationDataChunkInitFragments::default());
     }
+    self
+      .data
+      .get_mut::<CodeGenerationDataChunkInitFragments>()
+      .expect("chunk init fragments should exist")
+      .inner_mut()
   }
 }
 
-pub type TemplateReplaceSource = ReplaceSource;
+/// The only source mutation entry point exposed to dependency templates.
+///
+/// Source edits and faster-concatenation scope updates are recorded together,
+/// so a template cannot mutate one while forgetting the other.
+pub struct TemplateReplaceSource<'a> {
+  source: &'a mut ReplaceSource,
+  concatenation_scope: Option<&'a mut ConcatenationScope>,
+}
+
+#[derive(Clone, Copy)]
+enum GeneratedCodeUsedNames {
+  Scan,
+  AlreadyTracked,
+}
+
+impl<'a> TemplateReplaceSource<'a> {
+  pub fn new(
+    source: &'a mut ReplaceSource,
+    concatenation_scope: Option<&'a mut ConcatenationScope>,
+  ) -> Self {
+    Self {
+      source,
+      concatenation_scope,
+    }
+  }
+
+  pub fn concatenation_scope(&mut self) -> Option<&mut ConcatenationScope> {
+    self.concatenation_scope.as_deref_mut()
+  }
+
+  pub fn faster_concatenation_scope(&mut self) -> Option<&mut ConcatenationScope> {
+    self
+      .concatenation_scope
+      .as_deref_mut()
+      .filter(|scope| scope.is_faster_module_concatenation())
+  }
+
+  pub fn ensure_generated_top_level_symbol(&mut self, preferred_name: impl Into<String>) -> String {
+    let preferred_name = preferred_name.into();
+    self
+      .ensure_generated_top_level_symbol_in_scope(&preferred_name)
+      .unwrap_or(preferred_name)
+  }
+
+  pub fn ensure_generated_top_level_symbol_in_scope(
+    &mut self,
+    preferred_name: &str,
+  ) -> Option<String> {
+    self.faster_concatenation_scope().map(|scope| {
+      scope
+        .ensure_generated_top_level_symbol(preferred_name)
+        .to_string()
+    })
+  }
+
+  #[inline]
+  fn record_edit(
+    &mut self,
+    start: u32,
+    end: u32,
+    content: &str,
+    used_names: GeneratedCodeUsedNames,
+  ) {
+    let Some(scope) = self.concatenation_scope.as_deref_mut() else {
+      return;
+    };
+    scope.record_source_edit(
+      (start != end).then(|| DependencyRange::new(start, end)),
+      matches!(used_names, GeneratedCodeUsedNames::Scan).then_some(content),
+    );
+  }
+
+  pub fn replace(&mut self, start: u32, end: u32, content: String, name: Option<String>) {
+    self.record_edit(start, end, &content, GeneratedCodeUsedNames::Scan);
+    self.source.replace(start, end, content, name);
+  }
+
+  /// Replaces source while preserving declarations that recreate existing
+  /// make-time bindings.
+  pub fn replace_with_rebindings(
+    &mut self,
+    start: u32,
+    end: u32,
+    mut content: String,
+    name: Option<String>,
+    rebindings: &[GeneratedCodeRebinding],
+  ) {
+    if let Some(scope) = self.faster_concatenation_scope() {
+      assert!(
+        rebindings
+          .windows(2)
+          .all(|pair| { pair[0].generated_range.end <= pair[1].generated_range.start }),
+        "generated code rebinding ranges should be sorted and non-overlapping"
+      );
+      for rebinding in rebindings.iter().rev() {
+        let generated_range = rebinding.generated_range;
+        let preferred_name = content
+          .get(generated_range.start as usize..generated_range.end as usize)
+          .unwrap_or_else(|| {
+            panic!(
+              "generated code rebinding range {}..{} should be in replacement content",
+              generated_range.start, generated_range.end
+            )
+          })
+          .to_string();
+        let placeholder =
+          scope.rebind_generated_top_level_symbol(&preferred_name, rebinding.original_range);
+        content.replace_range(
+          generated_range.start as usize..generated_range.end as usize,
+          placeholder.as_ref(),
+        );
+      }
+    }
+    self.replace(start, end, content, name);
+  }
+
+  /// Replaces source with code whose used names have already been recorded in
+  /// the concatenation scope.
+  pub fn replace_with_tracked_used_names(
+    &mut self,
+    start: u32,
+    end: u32,
+    content: String,
+    name: Option<String>,
+  ) {
+    self.record_edit(start, end, &content, GeneratedCodeUsedNames::AlreadyTracked);
+    self.source.replace(start, end, content, name);
+  }
+
+  pub fn replace_static(
+    &mut self,
+    start: u32,
+    end: u32,
+    content: &'static str,
+    name: Option<&'static str>,
+  ) {
+    self.record_edit(start, end, content, GeneratedCodeUsedNames::Scan);
+    self.source.replace_static(start, end, content, name);
+  }
+
+  pub fn replace_static_with_enforce(
+    &mut self,
+    start: u32,
+    end: u32,
+    content: &'static str,
+    name: Option<&'static str>,
+    enforce: ReplacementEnforce,
+  ) {
+    self.record_edit(start, end, content, GeneratedCodeUsedNames::Scan);
+    self
+      .source
+      .replace_static_with_enforce(start, end, content, name, enforce);
+  }
+
+  pub fn insert(&mut self, start: u32, content: String, name: Option<String>) {
+    self.record_edit(start, start, &content, GeneratedCodeUsedNames::Scan);
+    self.source.insert(start, content, name);
+  }
+
+  pub fn insert_static(&mut self, start: u32, content: &'static str, name: Option<&'static str>) {
+    self.record_edit(start, start, content, GeneratedCodeUsedNames::Scan);
+    self.source.insert_static(start, content, name);
+  }
+
+  /// Ignores identifiers in a range even when this template intentionally
+  /// leaves the source edit to an overlapping dependency.
+  pub fn ignore_original_scope_range(&mut self, range: DependencyRange) {
+    if let Some(scope) = self.faster_concatenation_scope() {
+      scope.remove_original_range(range);
+    }
+  }
+
+  /// Expands an object shorthand into a key-value pair where the original
+  /// shorthand identifier is no longer an identifier reference.
+  pub fn insert_shorthand_value(
+    &mut self,
+    start: u32,
+    shorthand_range: DependencyRange,
+    content: String,
+    name: Option<String>,
+  ) {
+    self.insert_shorthand_value_with_used_names(
+      start,
+      shorthand_range,
+      content,
+      name,
+      GeneratedCodeUsedNames::Scan,
+    );
+  }
+
+  /// Expands a shorthand using code whose used names have already been
+  /// recorded in the concatenation scope.
+  pub fn insert_shorthand_value_with_tracked_used_names(
+    &mut self,
+    start: u32,
+    shorthand_range: DependencyRange,
+    content: String,
+    name: Option<String>,
+  ) {
+    self.insert_shorthand_value_with_used_names(
+      start,
+      shorthand_range,
+      content,
+      name,
+      GeneratedCodeUsedNames::AlreadyTracked,
+    );
+  }
+
+  fn insert_shorthand_value_with_used_names(
+    &mut self,
+    start: u32,
+    shorthand_range: DependencyRange,
+    content: String,
+    name: Option<String>,
+    used_names: GeneratedCodeUsedNames,
+  ) {
+    if let Some(scope) = self.concatenation_scope.as_deref_mut() {
+      scope.record_source_edit(
+        Some(shorthand_range),
+        matches!(used_names, GeneratedCodeUsedNames::Scan).then_some(content.as_str()),
+      );
+    }
+    self.source.insert(start, content, name);
+  }
+
+  /// Expands an object shorthand while preserving the original identifier as
+  /// the value or binding that still needs concatenation-time renaming.
+  pub fn insert_non_shorthand(
+    &mut self,
+    start: u32,
+    original_range: DependencyRange,
+    content: String,
+    name: Option<String>,
+  ) {
+    if let Some(scope) = self.concatenation_scope.as_deref_mut() {
+      scope.record_non_shorthand_source_edit(original_range, &content);
+    }
+    self.source.insert(start, content, name);
+  }
+}
 
 clone_trait_object!(DependencyCodeGeneration);
 
@@ -83,7 +330,7 @@ pub trait DependencyTemplate: Debug + Sync + Send {
   fn render(
     &self,
     dep: &dyn DependencyCodeGeneration,
-    source: &mut ReplaceSource,
+    source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   );
 }

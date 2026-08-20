@@ -14,7 +14,7 @@ use rspack_util::source_map::SourceMapKind;
 use tokio::sync::OnceCell;
 
 use crate::{
-  ChunkUkey, CodeGenerationResult, Compilation, Module, ModuleCodeGenerationContext,
+  ChunkUkey, CodeGenerationResultBuilder, Compilation, Module, ModuleCodeGenerationContext,
   RuntimeCodeTemplate, RuntimeGlobals, RuntimeSpec, RuntimeTemplate, SourceType,
   runtime_mode::RuntimeMode,
 };
@@ -188,8 +188,8 @@ pub async fn runtime_module_code_generation(
   module: &dyn RuntimeModule,
   common: &RuntimeModuleCommon,
   ctx: &mut ModuleCodeGenerationContext<'_>,
-) -> Result<CodeGenerationResult> {
-  let mut result = CodeGenerationResult::default();
+) -> Result<CodeGenerationResultBuilder> {
+  let mut result = CodeGenerationResultBuilder::default();
   let source = runtime_module_get_generated_code(module, common, ctx.compilation).await?;
   result.add(SourceType::Runtime, source);
   Ok(result)

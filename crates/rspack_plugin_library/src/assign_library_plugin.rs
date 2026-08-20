@@ -397,7 +397,7 @@ async fn embed_in_runtime_bailout(
     .code_generation_results
     .get(&module.identifier(), Some(chunk.runtime()));
   let top_level_decls = codegen
-    .data
+    .data()
     .get::<CodeGenerationDataTopLevelDeclarations>()
     .map(|d| d.inner())
     .or_else(|| module.build_info().top_level_declarations.as_ref());

@@ -8,7 +8,7 @@ use std::{
 use cow_utils::CowUtils;
 use heck::{ToKebabCase, ToLowerCamelCase};
 use once_cell::sync::OnceCell;
-use regex::{Captures, Regex};
+use regex::Regex;
 use rspack_core::{
   BoxDependency, ChunkGraph, Compilation, CompilerOptions, CssExportType, CssExportsConvention,
   CssModuleGeneratorOptions, CssModuleRenderCondition, GeneratorOptions, ImportAttributes,
@@ -547,13 +547,6 @@ impl LocalIdentNameRenderOptions<'_> {
   }
 }
 
-static UNESCAPE_CSS_IDENT_REGEX: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r"([^a-zA-Z0-9_\u0081-\uffff-])").expect("invalid regex"));
-
-pub fn escape_css(s: &str) -> Cow<'_, str> {
-  UNESCAPE_CSS_IDENT_REGEX.replace_all(s, |s: &Captures| format!("\\{}", &s[0]))
-}
-
 pub(crate) fn export_locals_convention(
   key: &str,
   locals_convention: CssExportsConvention,
@@ -569,92 +562,6 @@ pub(crate) fn export_locals_convention(
     res.push(key.to_kebab_case());
   }
   res
-}
-
-static STRING_MULTILINE: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r"\\[\n\r\f]").expect("Invalid RegExp"));
-
-static TRIM_WHITE_SPACES: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r"(^[ \t\n\r\f]*|[ \t\n\r\f]*$)").expect("Invalid RegExp"));
-
-static UNESCAPE: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r"\\([0-9a-fA-F]{1,6}[ \t\n\r\f]?|[\s\S])").expect("Invalid RegExp"));
-
-static DATA: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^(?i)data:").expect("Invalid RegExp"));
-
-// `\/foo` in css should be treated as `foo` in js
-pub fn unescape(s: &str) -> Cow<'_, str> {
-  UNESCAPE.replace_all(s.as_ref(), |caps: &Captures| {
-    caps
-      .get(0)
-      .and_then(|m| {
-        let m = m.as_str();
-        if m.len() > 2 {
-          if let Ok(r_u32) = u32::from_str_radix(m[1..].trim(), 16)
-            && let Some(ch) = char::from_u32(r_u32)
-          {
-            return Some(format!("{ch}"));
-          }
-          None
-        } else {
-          Some(m[1..2].to_string())
-        }
-      })
-      .unwrap_or(caps[0].to_string())
-  })
-}
-
-static WHITE_OR_BRACKET_REGEX: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r#"[\n\t ()'"\\]"#).expect("Invalid Regexp"));
-static QUOTATION_REGEX: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r#"[\n"\\]"#).expect("Invalid Regexp"));
-static APOSTROPHE_REGEX: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r#"[\n'\\]"#).expect("Invalid Regexp"));
-
-pub fn css_escape_string(s: &str) -> String {
-  let mut count_white_or_bracket = 0;
-  let mut count_quotation = 0;
-  let mut count_apostrophe = 0;
-  for c in s.chars() {
-    match c {
-      '\t' | '\n' | ' ' | '(' | ')' => count_white_or_bracket += 1,
-      '"' => count_quotation += 1,
-      '\'' => count_apostrophe += 1,
-      _ => {}
-    }
-  }
-  if count_white_or_bracket < 2 {
-    WHITE_OR_BRACKET_REGEX
-      .replace_all(s, |caps: &Captures| format!("\\{}", &caps[0]))
-      .into_owned()
-  } else if count_quotation <= count_apostrophe {
-    format!(
-      "\"{}\"",
-      QUOTATION_REGEX.replace_all(s, |caps: &Captures| format!("\\{}", &caps[0]))
-    )
-  } else {
-    format!(
-      "\'{}\'",
-      APOSTROPHE_REGEX.replace_all(s, |caps: &Captures| format!("\\{}", &caps[0]))
-    )
-  }
-}
-
-pub fn normalize_url(s: &str) -> String {
-  let result = STRING_MULTILINE.replace_all(s, "");
-  let result = TRIM_WHITE_SPACES.replace_all(&result, "");
-  let result = unescape(&result);
-
-  if DATA.is_match(&result) {
-    return result.to_string();
-  }
-  if result.contains('%')
-    && let Ok(r) = urlencoding::decode(&result)
-  {
-    return r.to_string();
-  }
-
-  result.to_string()
 }
 
 pub fn css_parsing_traceable_error(

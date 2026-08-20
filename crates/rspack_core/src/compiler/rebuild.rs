@@ -21,7 +21,8 @@ impl Compiler {
     changed_files: FxHashSet<String>,
     deleted_files: FxHashSet<String>,
   ) -> Result<()> {
-    match within_compiler_context(
+    let start = self.end_idle()?;
+    let result = match within_compiler_context(
       self.compiler_context.clone(),
       self.rebuild_inner(changed_files, deleted_files),
     )
@@ -33,19 +34,20 @@ impl Compiler {
           .compiler_hooks
           .done
           .call(&self.compilation)
-          .await?;
-        Ok(())
+          .await
       }
       Err(e) => {
-        self
+        let failed = self
           .plugin_driver
           .compiler_hooks
           .failed
           .call(&self.compilation)
-          .await?;
-        Err(e)
+          .await;
+        failed.and(Err(e))
       }
-    }
+    };
+    let cache_result = self.begin_idle(start, result.is_ok());
+    result.and(cache_result)
   }
 
   #[tracing::instrument("Compiler:rebuild", skip_all, fields(
@@ -85,6 +87,7 @@ impl Compiler {
         Incremental::new_hot(self.options.incremental),
         Some(ModuleExecutor::default()),
         compilation_logging,
+        self.new_cache.clone(),
         modified_files,
         removed_files,
         self.input_filesystem.clone(),
@@ -103,10 +106,14 @@ impl Compiler {
         next_compilation.module_executor = std::mem::take(&mut self.compilation.module_executor);
       }
 
-      // Store old compilation in cache for artifact recovery during run_passes
-      // The cache hooks will recover artifacts based on their associated incremental passes
+      self.cache.store_hot_cache(&mut self.compilation);
+
+      // Artifact recovery belongs to incremental compilation and is independent
+      // from the configured build cache.
       let old_compilation = std::mem::replace(&mut self.compilation, next_compilation);
-      self.cache.store_old_compilation(Box::new(old_compilation));
+      self
+        .incremental_artifacts
+        .store_previous_compilation(Box::new(old_compilation));
 
       // FOR BINDING SAFETY:
       // Update `compilation` for each rebuild.

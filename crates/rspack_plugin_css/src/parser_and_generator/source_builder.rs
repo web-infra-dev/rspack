@@ -198,25 +198,23 @@ mod tests {
     assert!(warnings.is_empty());
 
     deps
-      .into_iter()
+      .iter()
       .filter_map(|dep| match dep {
-        css_module_lexer::Dependency::Import {
-          media,
-          supports,
-          layer,
-          ..
-        } => Some(CssModuleRenderCondition::new(
-          media.map(|media| media.trim().into()),
-          supports.map(|supports| supports.trim().into()),
-          layer.map(|layer| {
-            let layer = layer.trim();
-            if layer.is_empty() {
-              CssLayer::Anonymous
-            } else {
-              CssLayer::Named(layer.into())
-            }
-          }),
-        )),
+        css_module_lexer::Dependency::Import { attributes, .. } => {
+          let attributes = deps.import_attributes(*attributes);
+          Some(CssModuleRenderCondition::new(
+            attributes.media().map(|media| media.trim().into()),
+            attributes.supports().map(|supports| supports.trim().into()),
+            attributes.layer().map(|layer| {
+              let layer = layer.trim();
+              if layer.is_empty() {
+                CssLayer::Anonymous
+              } else {
+                CssLayer::Named(layer.into())
+              }
+            }),
+          ))
+        }
         _ => None,
       })
       .collect()

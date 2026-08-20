@@ -3676,12 +3676,16 @@ pub struct ExperimentsBuilder {
   future_defaults: Option<bool>,
   /// Whether to enable css.
   css: Option<bool>,
+  /// Whether to enable the new cache implementation.
+  new_cache: Option<bool>,
   /// Whether to enable async web assembly.
   async_web_assembly: Option<bool>,
   /// Whether to enable defer import.
   defer_import: Option<bool>,
   /// Whether to enable source import.
   source_import: Option<bool>,
+  /// Whether to enable the faster module concatenation implementation.
+  faster_module_concatenation: Option<bool>,
   // TODO: lazy compilation
   pure_functions: Option<bool>,
   runtime_mode: Option<RuntimeMode>,
@@ -3692,9 +3696,11 @@ impl From<Experiments> for ExperimentsBuilder {
     ExperimentsBuilder {
       future_defaults: None,
       css: Some(value.css),
+      new_cache: Some(value.new_cache),
       async_web_assembly: None,
       defer_import: Some(value.defer_import),
       source_import: Some(value.source_import),
+      faster_module_concatenation: Some(value.faster_module_concatenation),
       pure_functions: Some(value.pure_functions),
       runtime_mode: Some(value.runtime_mode),
     }
@@ -3706,9 +3712,11 @@ impl From<&mut ExperimentsBuilder> for ExperimentsBuilder {
     ExperimentsBuilder {
       future_defaults: value.future_defaults.take(),
       css: value.css.take(),
+      new_cache: value.new_cache.take(),
       async_web_assembly: value.async_web_assembly.take(),
       defer_import: value.defer_import.take(),
       source_import: value.source_import.take(),
+      faster_module_concatenation: value.faster_module_concatenation.take(),
       pure_functions: value.pure_functions.take(),
       runtime_mode: value.runtime_mode.take(),
     }
@@ -3725,6 +3733,12 @@ impl ExperimentsBuilder {
   /// Set whether to enable css.
   pub fn css(&mut self, css: bool) -> &mut Self {
     self.css = Some(css);
+    self
+  }
+
+  /// Set whether to enable the new cache implementation.
+  pub fn new_cache(&mut self, new_cache: bool) -> &mut Self {
+    self.new_cache = Some(new_cache);
     self
   }
 
@@ -3746,6 +3760,12 @@ impl ExperimentsBuilder {
     self
   }
 
+  /// Set whether to enable the faster module concatenation implementation.
+  pub fn faster_module_concatenation(&mut self, faster_module_concatenation: bool) -> &mut Self {
+    self.faster_module_concatenation = Some(faster_module_concatenation);
+    self
+  }
+
   /// Build [`Experiments`] from options.
   ///
   /// [`Experiments`]: rspack_core::options::Experiments
@@ -3762,8 +3782,10 @@ impl ExperimentsBuilder {
 
     Ok(Experiments {
       css: d!(self.css, false),
+      new_cache: d!(self.new_cache, false),
       defer_import: d!(self.defer_import, false),
       source_import: d!(self.source_import, false),
+      faster_module_concatenation: d!(self.faster_module_concatenation, false),
       pure_functions: d!(self.pure_functions, _production),
       runtime_mode: d!(self.runtime_mode, RuntimeMode::Webpack),
     })

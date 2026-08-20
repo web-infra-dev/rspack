@@ -1,32 +1,239 @@
 use std::sync::{Arc, LazyLock};
 
 use anymap::CloneAny;
-use rspack_collections::IdentifierIndexMap;
-use rspack_util::{
-  fx_hash::{FxIndexMap, FxIndexSet},
-  itoa,
+use rspack_cacheable::{
+  cacheable,
+  with::{AsCacheable, AsMap, AsOption, AsPreset, AsVec},
 };
+use rspack_collections::IdentifierIndexMap;
+use rspack_util::{fx_hash::FxIndexMap, itoa};
+use rustc_hash::FxHashMap as HashMap;
 use swc_core::atoms::Atom;
+use swc_experimental_ecma_ast::{is_valid_continue, is_valid_start};
 
 use crate::{
-  ExportMode, ModuleIdentifier,
-  concatenated_module::{ConcatenatedModuleInfo, ModuleInfo},
+  DependencyRange, ModuleIdentifier,
+  concatenated_module::{
+    ConcatenatedImportMap, ConcatenatedModuleInfo, FasterModuleConcatenationInfo,
+    GENERATED_TOP_LEVEL_SYMBOL_PREFIX, GeneratedTopLevelSymbolTarget,
+    MODULE_REFERENCE_PLACEHOLDER_PREFIX, MODULE_REFERENCE_PREFIX, MODULE_REFERENCE_SUFFIX,
+    ModuleInfo, OriginalScopeIdentUpdate,
+  },
 };
 
 pub static DEFAULT_EXPORT_ATOM: LazyLock<Atom> = LazyLock::new(|| "__rspack_default_export".into());
 pub const NAMESPACE_OBJECT_EXPORT: &str = "__rspack_ns_object";
 pub const DEFAULT_EXPORT: &str = "__rspack_default_export";
-const MODULE_REFERENCE_PREFIX: &str = "__rspack_module_ref";
 const MODULE_REFERENCE_PROPERTY_ACCESS_SUFFIX: &str = "._";
 
-#[derive(Default, Debug, Clone)]
+#[inline]
+fn is_ascii_identifier_continue(byte: u8) -> bool {
+  byte == b'_' || byte == b'$' || byte.is_ascii_alphanumeric()
+}
+
+#[inline]
+fn is_ascii_identifier_start(byte: u8) -> bool {
+  byte == b'_' || byte == b'$' || byte.is_ascii_alphabetic()
+}
+
+#[inline]
+fn hex_value(byte: u8) -> Option<u32> {
+  match byte {
+    b'0'..=b'9' => Some((byte - b'0') as u32),
+    b'a'..=b'f' => Some((byte - b'a' + 10) as u32),
+    b'A'..=b'F' => Some((byte - b'A' + 10) as u32),
+    _ => None,
+  }
+}
+
+fn parse_unicode_escape(code: &[u8], start: usize) -> Option<(char, usize)> {
+  if code.get(start..start + 2)? != b"\\u" {
+    return None;
+  }
+
+  let mut cursor = start + 2;
+  let mut value = 0u32;
+  if code.get(cursor) == Some(&b'{') {
+    cursor += 1;
+    let digits_start = cursor;
+    while let Some(digit) = code.get(cursor).and_then(|byte| hex_value(*byte)) {
+      if cursor - digits_start == 6 {
+        return None;
+      }
+      value = value.checked_mul(16)?.checked_add(digit)?;
+      cursor += 1;
+    }
+    if cursor == digits_start || code.get(cursor) != Some(&b'}') {
+      return None;
+    }
+    cursor += 1;
+  } else {
+    for _ in 0..4 {
+      value = value
+        .checked_mul(16)?
+        .checked_add(hex_value(*code.get(cursor)?)?)?;
+      cursor += 1;
+    }
+  }
+
+  char::from_u32(value).map(|character| (character, cursor))
+}
+
+/// Returns the end offset and, only when escapes were present, the decoded
+/// canonical identifier name.
+fn scan_generated_identifier(code: &str, start: usize) -> Option<(usize, Option<String>)> {
+  let bytes = code.as_bytes();
+  let mut cursor = start;
+  let mut canonical_name: Option<String> = None;
+  let mut is_start = true;
+
+  while cursor < bytes.len() {
+    let (character, end, escaped) = if bytes[cursor] == b'\\' {
+      let Some((character, end)) = parse_unicode_escape(bytes, cursor) else {
+        if is_start {
+          return None;
+        }
+        break;
+      };
+      (character, end, true)
+    } else {
+      let character = code[cursor..].chars().next()?;
+      (character, cursor + character.len_utf8(), false)
+    };
+    if if is_start {
+      !is_valid_start(character)
+    } else {
+      !is_valid_continue(character)
+    } {
+      break;
+    }
+
+    if escaped {
+      canonical_name
+        .get_or_insert_with(|| {
+          let mut name = String::with_capacity(end - start);
+          name.push_str(&code[start..cursor]);
+          name
+        })
+        .push(character);
+    } else if let Some(name) = &mut canonical_name {
+      name.push(character);
+    }
+    cursor = end;
+    is_start = false;
+  }
+
+  (cursor != start).then_some((cursor, canonical_name))
+}
+
+fn add_used_names_from_generated_code(info: &mut FasterModuleConcatenationInfo, code: &str) {
+  // The legacy codegen parse reserves names referenced by replacement code.
+  // Faster concatenation skips that parse, so conservatively collect every
+  // identifier-shaped token. False positives only reduce name reuse; missing
+  // a name could capture a generated global reference.
+  let bytes = code.as_bytes();
+  let mut cursor = 0;
+  while cursor < bytes.len() {
+    while cursor < bytes.len()
+      && bytes[cursor].is_ascii()
+      && !is_ascii_identifier_continue(bytes[cursor])
+      && bytes[cursor] != b'\\'
+    {
+      cursor += 1;
+    }
+    if cursor == bytes.len() {
+      break;
+    }
+
+    if !bytes[cursor].is_ascii() || bytes[cursor] == b'\\' {
+      if let Some((end, canonical_name)) = scan_generated_identifier(code, cursor) {
+        let name = canonical_name.as_deref().unwrap_or(&code[cursor..end]);
+        info.added_used_names.push(name.into());
+        cursor = end;
+      } else {
+        cursor += if bytes[cursor].is_ascii() {
+          1
+        } else {
+          code[cursor..]
+            .chars()
+            .next()
+            .expect("cursor should be on a character boundary")
+            .len_utf8()
+        };
+      }
+      continue;
+    }
+
+    let start = cursor;
+    while cursor < bytes.len() && is_ascii_identifier_continue(bytes[cursor]) {
+      cursor += 1;
+    }
+    if !is_ascii_identifier_start(bytes[start]) {
+      continue;
+    }
+    if cursor < bytes.len() && (!bytes[cursor].is_ascii() || bytes[cursor] == b'\\') {
+      let (end, canonical_name) = scan_generated_identifier(code, start)
+        .expect("ASCII identifier start should produce an identifier");
+      let name = canonical_name.as_deref().unwrap_or(&code[start..end]);
+      info.added_used_names.push(name.into());
+      cursor = end;
+    } else {
+      info.added_used_names.push(code[start..cursor].into());
+    }
+  }
+}
+
+#[cacheable]
+#[derive(Default, Debug, Clone, PartialEq, Eq)]
 pub struct ModuleReferenceOptions {
+  #[cacheable(with=AsVec<AsPreset>)]
   pub ids: Vec<Atom>,
   pub call: bool,
   pub direct_import: bool,
   pub deferred_import: bool,
   pub asi_safe: Option<bool>,
   pub index: usize,
+}
+
+/// Cacheable mutations produced while generating a module with a
+/// [`ConcatenationScope`]. The ESM library plugin opts into collecting this
+/// output because it consumes the mutations after the module codegen pass.
+#[cacheable]
+#[derive(Debug, Clone, Default)]
+pub struct CodeGenerationDataConcatenationScopeOutput {
+  #[cacheable(with=AsOption<AsPreset>)]
+  namespace_export_symbol: Option<Atom>,
+  #[cacheable(with=AsOption<AsMap<AsPreset, AsCacheable>>)]
+  export_map: Option<HashMap<Atom, String>>,
+  #[cacheable(with=AsOption<AsMap<AsPreset, AsCacheable>>)]
+  raw_export_map: Option<HashMap<Atom, String>>,
+  #[cacheable(with=AsOption<AsMap<AsCacheable, AsCacheable>>)]
+  import_map: ConcatenatedImportMap,
+  #[cacheable(with=AsMap<AsCacheable, AsMap<AsCacheable, AsCacheable>>)]
+  refs: IdentifierIndexMap<FxIndexMap<String, ModuleReferenceOptions>>,
+}
+
+impl CodeGenerationDataConcatenationScopeOutput {
+  pub fn apply_to(&self, current_module: &mut ConcatenatedModuleInfo) {
+    current_module
+      .namespace_export_symbol
+      .clone_from(&self.namespace_export_symbol);
+    current_module.export_map.clone_from(&self.export_map);
+    current_module
+      .raw_export_map
+      .clone_from(&self.raw_export_map);
+    current_module.import_map.clone_from(&self.import_map);
+  }
+
+  pub fn refs(&self) -> &IdentifierIndexMap<FxIndexMap<String, ModuleReferenceOptions>> {
+    &self.refs
+  }
+}
+
+#[derive(Debug, Clone)]
+pub struct ConcatenatedModuleReference {
+  pub module: ModuleIdentifier,
+  pub options: ModuleReferenceOptions,
 }
 
 #[derive(Debug, Clone)]
@@ -36,8 +243,8 @@ pub struct ConcatenationScope {
   pub modules_map: Arc<IdentifierIndexMap<ModuleInfo>>,
   pub data: anymap::Map<dyn CloneAny + Send + Sync>,
   pub refs: IdentifierIndexMap<FxIndexMap<String, ModuleReferenceOptions>>,
-  pub dyn_refs: IdentifierIndexMap<FxIndexSet<(String, Atom)>>,
-  pub re_exports: IdentifierIndexMap<Vec<ExportMode>>,
+  collect_codegen_data: bool,
+  faster_module_concatenation_info: Option<Box<FasterModuleConcatenationInfo>>,
 }
 
 #[allow(unused)]
@@ -53,9 +260,47 @@ impl ConcatenationScope {
       modules_map,
       data: Default::default(),
       refs: IdentifierIndexMap::default(),
-      dyn_refs: Default::default(),
-      re_exports: Default::default(),
+      collect_codegen_data: false,
+      faster_module_concatenation_info: None,
     }
+  }
+
+  /// Persist the codegen mutations that are consumed after module code
+  /// generation. This is opt-in so regular module concatenation does not pay
+  /// the collection or cache-storage cost.
+  pub fn enable_codegen_data_collection(&mut self) {
+    self.collect_codegen_data = true;
+  }
+
+  pub fn is_codegen_data_collection_enabled(&self) -> bool {
+    self.collect_codegen_data
+  }
+
+  pub(crate) fn take_codegen_data_output(&mut self) -> CodeGenerationDataConcatenationScopeOutput {
+    assert!(self.collect_codegen_data);
+    CodeGenerationDataConcatenationScopeOutput {
+      namespace_export_symbol: self.current_module.namespace_export_symbol.take(),
+      export_map: self.current_module.export_map.take(),
+      raw_export_map: self.current_module.raw_export_map.take(),
+      import_map: self.current_module.import_map.take(),
+      refs: std::mem::take(&mut self.refs),
+    }
+  }
+
+  pub fn enable_faster_module_concatenation(&mut self) {
+    self
+      .faster_module_concatenation_info
+      .get_or_insert_default();
+  }
+
+  pub(crate) fn take_faster_module_concatenation_info(
+    &mut self,
+  ) -> Option<Box<FasterModuleConcatenationInfo>> {
+    self.faster_module_concatenation_info.take()
+  }
+
+  pub fn is_faster_module_concatenation(&self) -> bool {
+    self.faster_module_concatenation_info.is_some()
   }
 
   pub fn is_module_in_scope(&self, module: &ModuleIdentifier) -> bool {
@@ -68,6 +313,12 @@ impl ConcatenationScope {
   pub fn register_export(&mut self, export_name: Atom, symbol: String) {
     let export_map = self.current_module.export_map.get_or_insert_default();
     export_map.insert(export_name, symbol);
+  }
+
+  pub fn register_generated_export(&mut self, export_name: Atom, preferred_name: &str) -> Atom {
+    let symbol = self.ensure_generated_top_level_symbol(preferred_name);
+    self.register_export(export_name, symbol.to_string());
+    symbol
   }
 
   pub fn register_raw_export(&mut self, export_name: Atom, symbol: String) {
@@ -118,11 +369,189 @@ impl ConcatenationScope {
     self.current_module.namespace_export_symbol = Some(symbol.into());
   }
 
-  pub fn create_module_reference(
+  pub fn register_generated_namespace_export(&mut self, preferred_name: &str) -> Atom {
+    let symbol = self.ensure_generated_top_level_symbol(preferred_name);
+    self.register_namespace_export(symbol.as_ref());
+    symbol
+  }
+
+  pub fn register_used_name(&mut self, name: Atom) {
+    let Some(info) = self.faster_module_concatenation_info.as_deref_mut() else {
+      return;
+    };
+    info.added_used_names.push(name);
+  }
+
+  pub fn register_used_names_from_generated_code(&mut self, code: &str) {
+    let Some(info) = self.faster_module_concatenation_info.as_deref_mut() else {
+      return;
+    };
+    add_used_names_from_generated_code(info, code);
+  }
+
+  pub fn remove_original_range(&mut self, range: DependencyRange) {
+    self.record_source_edit(Some(range), None);
+  }
+
+  pub fn set_original_range_non_shorthand(&mut self, range: DependencyRange) {
+    self.record_non_shorthand_source_edit(range, "");
+  }
+
+  #[inline]
+  pub(crate) fn record_source_edit(
+    &mut self,
+    removed_range: Option<DependencyRange>,
+    generated_code: Option<&str>,
+  ) {
+    let Some(info) = self.faster_module_concatenation_info.as_deref_mut() else {
+      return;
+    };
+    if let Some(range) = removed_range {
+      info
+        .original_scope_ident_updates
+        .push(OriginalScopeIdentUpdate::Remove(range));
+    }
+    if let Some(code) = generated_code
+      && !code.is_empty()
+    {
+      add_used_names_from_generated_code(info, code);
+    }
+  }
+
+  #[inline]
+  pub(crate) fn record_non_shorthand_source_edit(
+    &mut self,
+    range: DependencyRange,
+    generated_code: &str,
+  ) {
+    let Some(info) = self.faster_module_concatenation_info.as_deref_mut() else {
+      return;
+    };
+    info
+      .original_scope_ident_updates
+      .push(OriginalScopeIdentUpdate::NonShorthand(range));
+    if !generated_code.is_empty() {
+      add_used_names_from_generated_code(info, generated_code);
+    }
+  }
+
+  pub fn add_scope_ident(&mut self, symbol: Atom, range: DependencyRange) {
+    let Some(info) = self.faster_module_concatenation_info.as_deref_mut() else {
+      return;
+    };
+    info.added_scope_idents.push(crate::AddedScopeIdent {
+      symbol,
+      range,
+      shorthand: false,
+      is_class_expr_with_ident: false,
+    });
+  }
+
+  pub fn ensure_generated_top_level_symbol(&mut self, preferred_name: &str) -> Atom {
+    let preferred_name = Atom::from(preferred_name);
+    if !self.is_faster_module_concatenation() {
+      return preferred_name;
+    }
+    if let Some(existing) = self
+      .current_module
+      .generated_top_level_symbols
+      .iter()
+      .find(|symbol| {
+        symbol.target == GeneratedTopLevelSymbolTarget::New
+          && symbol.preferred_name == preferred_name
+      })
+    {
+      return existing.placeholder.clone();
+    }
+
+    // Use a verbose internal prefix to make collisions with user identifiers and
+    // generated data unlikely.
+    let placeholder = Atom::from(format!(
+      "{GENERATED_TOP_LEVEL_SYMBOL_PREFIX}{}__",
+      self.current_module.generated_top_level_symbols.len()
+    ));
+    self
+      .current_module
+      .generated_top_level_symbols
+      .push(crate::GeneratedTopLevelSymbol {
+        preferred_name,
+        placeholder: placeholder.clone(),
+        target: GeneratedTopLevelSymbolTarget::New,
+        resolved_binding: None,
+      });
+    placeholder
+  }
+
+  pub fn rebind_generated_top_level_symbol(
+    &mut self,
+    preferred_name: &str,
+    original_range: DependencyRange,
+  ) -> Atom {
+    let preferred_name = Atom::from(preferred_name);
+    if !self.is_faster_module_concatenation() {
+      return preferred_name;
+    }
+    if let Some(existing) = self
+      .current_module
+      .generated_top_level_symbols
+      .iter()
+      .find(|symbol| {
+        symbol.target == GeneratedTopLevelSymbolTarget::Rebind { original_range }
+          && symbol.preferred_name == preferred_name
+      })
+    {
+      return existing.placeholder.clone();
+    }
+
+    let placeholder = Atom::from(format!(
+      "{GENERATED_TOP_LEVEL_SYMBOL_PREFIX}{}__",
+      self.current_module.generated_top_level_symbols.len()
+    ));
+    self
+      .current_module
+      .generated_top_level_symbols
+      .push(crate::GeneratedTopLevelSymbol {
+        preferred_name,
+        placeholder: placeholder.clone(),
+        target: GeneratedTopLevelSymbolTarget::Rebind { original_range },
+        resolved_binding: None,
+      });
+    placeholder
+  }
+
+  fn build_module_reference(
     &mut self,
     module: &ModuleIdentifier,
-    options: ModuleReferenceOptions,
+    options: &ModuleReferenceOptions,
   ) -> String {
+    if self.is_faster_module_concatenation() {
+      if let Some((placeholder, _)) = self
+        .current_module
+        .module_references
+        .iter()
+        .find(|(_, reference)| reference.module == *module && reference.options == *options)
+      {
+        return placeholder.clone();
+      }
+
+      let mut index_buffer = itoa::Buffer::new();
+      let index_str = index_buffer.format(self.current_module.module_references.len());
+      let mut placeholder = String::with_capacity(
+        MODULE_REFERENCE_PLACEHOLDER_PREFIX.len() + index_str.len() + MODULE_REFERENCE_SUFFIX.len(),
+      );
+      placeholder.push_str(MODULE_REFERENCE_PLACEHOLDER_PREFIX);
+      placeholder.push_str(index_str);
+      placeholder.push_str(MODULE_REFERENCE_SUFFIX);
+      self.current_module.module_references.insert(
+        placeholder.clone(),
+        ConcatenatedModuleReference {
+          module: *module,
+          options: options.clone(),
+        },
+      );
+      return placeholder;
+    }
+
     let info = self
       .modules_map
       .get(module)
@@ -137,7 +566,7 @@ impl ConcatenationScope {
     let mut index_buffer = itoa::Buffer::new();
     let index_str = index_buffer.format(info.index());
     let mut module_ref = String::with_capacity(index_str.len() + export_data.len() + 64);
-    module_ref.push_str("__rspack_module_ref");
+    module_ref.push_str(MODULE_REFERENCE_PREFIX);
     module_ref.push_str(index_str);
     module_ref.push('_');
     module_ref.push_str(&export_data);
@@ -153,11 +582,30 @@ impl ConcatenationScope {
     if let Some(asi_safe) = options.asi_safe {
       module_ref.push_str(if asi_safe { "_asiSafe1" } else { "_asiSafe0" });
     }
-    module_ref.push_str("__._");
-    let entry = self.refs.entry(*module).or_default();
-    entry.insert(module_ref.clone(), options);
-
+    module_ref.push_str(MODULE_REFERENCE_SUFFIX);
     module_ref
+  }
+
+  pub fn create_module_reference(
+    &mut self,
+    module: &ModuleIdentifier,
+    options: ModuleReferenceOptions,
+  ) -> String {
+    let module_ref = self.build_module_reference(module, &options);
+    self
+      .refs
+      .entry(*module)
+      .or_default()
+      .insert(module_ref.clone(), options);
+    module_ref
+  }
+
+  pub fn create_export_reference(
+    &mut self,
+    module: &ModuleIdentifier,
+    options: &ModuleReferenceOptions,
+  ) -> String {
+    self.build_module_reference(module, options)
   }
 
   pub fn match_module_reference(name: &str) -> Option<ModuleReferenceOptions> {
@@ -269,7 +717,7 @@ mod tests {
   }
 
   #[test]
-  fn create_module_reference_round_trips_through_matcher() {
+  fn create_module_reference_tracks_legacy_and_faster_references() {
     let (mut scope, referenced_module_id) = create_test_scope(7);
     let options = ModuleReferenceOptions {
       ids: vec![Atom::from("default"), Atom::from("named")],
@@ -293,9 +741,23 @@ mod tests {
       .expect("should parse full module reference");
     let expected = ModuleReferenceOptions {
       index: 7,
-      ..options
+      ..options.clone()
     };
     assert_module_reference_options_eq(&parsed, &expected);
+
+    let (mut faster_scope, referenced_module_id) = create_test_scope(7);
+    faster_scope.enable_faster_module_concatenation();
+    let module_ref = faster_scope.create_module_reference(&referenced_module_id, options.clone());
+    assert_eq!(module_ref, "__rspack_module_reference_placeholder_0__._");
+
+    let reference = faster_scope
+      .current_module
+      .module_references
+      .get(&module_ref)
+      .expect("should store structured module reference");
+    assert_eq!(reference.module, referenced_module_id);
+    assert_module_reference_options_eq(&reference.options, &options);
+    assert!(ConcatenationScope::match_module_reference(&module_ref).is_none());
   }
 
   #[test]

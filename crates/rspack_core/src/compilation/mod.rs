@@ -75,19 +75,19 @@ use crate::{
   Chunk, ChunkByUkey, ChunkContentHash, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey,
   ChunkHashesArtifact, ChunkKind, ChunkNamedIdArtifact, ChunkRenderArtifact,
   ChunkRenderCacheArtifact, ChunkRenderResult, ChunkUkey, CircularModulesInfo,
-  CodeGenerateCacheArtifact, CodeGenerationJob, CodeGenerationResult, CodeGenerationResults,
-  CompilationLogger, CompilationLogging, CompilerOptions, CompilerPlatform, ConcatenationScope,
-  DependenciesDiagnosticsArtifact, DependencyId, DependencyTemplate, DependencyTemplateType,
-  DependencyType, Entry, EntryData, EntryOptions, EntryRuntime, Entrypoint, ExecuteModuleId,
-  ExportsInfoArtifact, Filename, ImportPhase, ImportVarMap, ImportedByDeferModulesArtifact,
-  ModuleFactory, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, ModuleIdsArtifact,
-  ModuleStaticCache, PathData, ProcessRuntimeRequirementsCacheArtifact, ReferencedExport,
-  ResolverFactory, RuntimeGlobals, RuntimeKeyMap, RuntimeMode, RuntimeModule,
-  RuntimeProxyMetadataArtifact, RuntimeSpec, RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver,
-  SideEffectsOptimizeArtifact, SideEffectsStateArtifact, SourceType, Stats, StatsContext,
-  StealCell, ValueCacheVersions,
+  CodeGenerateCacheArtifact, CodeGenerationJob, CodeGenerationResult, CodeGenerationResultBuilder,
+  CodeGenerationResults, CompilationLogger, CompilationLogging, CompilerOptions, CompilerPlatform,
+  ConcatenationScope, DependenciesDiagnosticsArtifact, DependencyId, DependencyTemplate,
+  DependencyTemplateType, DependencyType, Entry, EntryData, EntryOptions, EntryRuntime, Entrypoint,
+  ExecuteModuleId, ExportsInfoArtifact, ExternalModuleChunkConditionHook, Filename, ImportPhase,
+  ImportVarMap, ImportedByDeferModulesArtifact, ModuleFactory, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleIdentifier, ModuleIdsArtifact, ModuleStaticCache, PathData,
+  ProcessRuntimeRequirementsCacheArtifact, ReferencedExport, ResolverFactory, RuntimeGlobals,
+  RuntimeKeyMap, RuntimeMode, RuntimeModule, RuntimeProxyMetadataArtifact, RuntimeSpec,
+  RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver, SideEffectsOptimizeArtifact,
+  SideEffectsStateArtifact, SourceType, Stats, StatsContext, StealCell, ValueCacheVersions,
   cache::persistent::occasion::{
-    devtool::SourceMapDevToolPluginCacheArtifact, minimize::MinimizePersistentCacheArtifact,
+    devtool::SourceMapDevToolPluginCache, minimize::MinimizePersistentCache,
   },
   compilation::build_module_graph::{
     BuildModuleGraphArtifact, ModuleExecutor, UpdateParam, update_module_graph,
@@ -95,7 +95,9 @@ use crate::{
   compiler::{CompilationRecords, CompilerId},
   get_runtime_key,
   incremental::{self, Incremental, IncrementalPasses, Mutation},
-  is_source_equal, to_identifier,
+  is_source_equal,
+  new_cache::{Cache, CacheFacade},
+  to_identifier,
 };
 
 define_hook!(CompilationAddEntry: Series(entry_name: Option<&str>, options: &mut EntryOptions));
@@ -155,6 +157,7 @@ pub struct CompilationHooks {
   pub succeed_module: CompilationSucceedModuleHook,
   pub execute_module: CompilationExecuteModuleHook,
   pub finish_modules: CompilationFinishModulesHook,
+  pub external_module_chunk_condition: ExternalModuleChunkConditionHook,
   pub dependency_referenced_exports: CompilationDependencyReferencedExportsHook,
   pub seal: CompilationSealHook,
   pub optimize_dependencies: CompilationOptimizeDependenciesHook,
@@ -234,6 +237,7 @@ pub struct Compilation {
   pub emitted_assets: DashSet<String, BuildHasherDefault<FxHasher>>,
   diagnostics: Vec<Diagnostic>,
   logging: CompilationLogging,
+  cache: Cache,
   pub plugin_driver: SharedPluginDriver,
   pub buildtime_plugin_driver: SharedPluginDriver,
   pub resolver_factory: Arc<ResolverFactory>,
@@ -279,9 +283,9 @@ pub struct Compilation {
     StealCell<ProcessRuntimeRequirementsCacheArtifact>,
   pub imported_by_defer_modules_artifact: StealCell<ImportedByDeferModulesArtifact>,
 
-  pub minimize_persistent_cache_artifact: Option<MinimizePersistentCacheArtifact>,
+  pub minimize_persistent_cache: Option<MinimizePersistentCache>,
   pub use_source_map_dev_tool_plugin_cache: bool,
-  pub source_map_dev_tool_plugin_cache_artifact: Option<SourceMapDevToolPluginCacheArtifact>,
+  pub source_map_dev_tool_plugin_cache: Option<SourceMapDevToolPluginCache>,
 
   pub circular_modules: StealCell<CircularModulesInfo>,
   pub code_generated_modules: IdentifierSet,
@@ -344,6 +348,7 @@ impl Compilation {
     incremental: Incremental,
     module_executor: Option<ModuleExecutor>,
     logging: CompilationLogging,
+    cache: Cache,
     modified_files: ArcPathSet,
     removed_files: ArcPathSet,
     input_filesystem: Arc<dyn ReadableFileSystem>,
@@ -372,6 +377,7 @@ impl Compilation {
       emitted_assets: Default::default(),
       diagnostics: Default::default(),
       logging,
+      cache,
       plugin_driver,
       buildtime_plugin_driver,
       resolver_factory,
@@ -406,9 +412,9 @@ impl Compilation {
       process_runtime_requirements_cache_artifact: StealCell::new(
         ProcessRuntimeRequirementsCacheArtifact::new(&options),
       ),
-      minimize_persistent_cache_artifact: None,
+      minimize_persistent_cache: None,
       use_source_map_dev_tool_plugin_cache: false,
-      source_map_dev_tool_plugin_cache_artifact: None,
+      source_map_dev_tool_plugin_cache: None,
       build_time_executed_modules: Default::default(),
       incremental,
       build_chunk_graph_artifact: Default::default(),
@@ -439,6 +445,10 @@ impl Compilation {
     }
   }
 
+  pub fn get_cache(&self, name: &str) -> CacheFacade {
+    self.cache.facade(name)
+  }
+
   pub fn id(&self) -> CompilationId {
     self.id
   }
@@ -449,6 +459,13 @@ impl Compilation {
 
   pub fn get_module_graph(&self) -> &ModuleGraph {
     self.build_module_graph_artifact.get_module_graph()
+  }
+
+  pub fn try_get_module_graph(&self) -> Option<&ModuleGraph> {
+    self
+      .build_module_graph_artifact
+      .try_read()
+      .map(|artifact| artifact.get_module_graph())
   }
 
   // it will return None during make phase since mg is incomplete

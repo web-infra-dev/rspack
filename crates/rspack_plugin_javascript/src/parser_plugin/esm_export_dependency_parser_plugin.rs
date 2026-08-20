@@ -17,7 +17,7 @@ use crate::{
   dependency::{
     DeclarationId, DeclarationInfo, ESMExportExpressionDependency, ESMExportHeaderDependency,
     ESMExportImportedSpecifierDependency, ESMExportSpecifierDependency,
-    ESMImportSideEffectDependency,
+    ESMImportSideEffectDependency, NamedDeclarationInfo,
   },
   parser_plugin::compatibility_plugin::CompatibilityPlugin,
   utils::object_properties::get_attributes,
@@ -188,16 +188,18 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
         .as_ref()
         .and_then(|info| info.exported_enums.get(local_id).cloned());
       let variable = CompatibilityPlugin::update_nested_binding_declaration(parser, local_id);
+      let (value, value_is_generated) = if let Some(variable) = variable {
+        (variable, true)
+      } else {
+        (local_id.clone(), false)
+      };
 
       let range = DependencyRange::from(statement.span());
       let loc = parser.to_dependency_location(range);
       Box::new(ESMExportSpecifierDependency::new(
         export_name.clone(),
-        if let Some(variable) = variable {
-          variable
-        } else {
-          local_id.clone()
-        },
+        value,
+        value_is_generated,
         const_value,
         enum_value,
         statement.span().into(),
@@ -329,10 +331,20 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
           ),
         )))
       }
-      ExportDefaultExpression::ClassDecl(c) => c
-        .ident
-        .as_ref()
-        .map(|ident| DeclarationId::Id(ident.sym.to_string())),
+      ExportDefaultExpression::ClassDecl(c) => c.ident.as_ref().map(|ident| {
+        if parser
+          .compiler_options
+          .experiments
+          .faster_module_concatenation
+        {
+          DeclarationId::Named(NamedDeclarationInfo::new(
+            ident.sym.to_string(),
+            ident.span.into(),
+          ))
+        } else {
+          DeclarationId::Id(ident.sym.to_string())
+        }
+      }),
       ExportDefaultExpression::Expr(_) => None,
     };
     let const_value = match expr {

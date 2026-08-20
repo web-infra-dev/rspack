@@ -5,8 +5,8 @@ import "./style-for-inject.css";
 it("should resolve url() relative to output root for text exportType", () => {
 	// url() in non-link CSS is resolved relative to the document, not any output file.
 	// undoPath should be "" regardless of cssFilename/jsFilename configuration.
-	expect(textCss).toContain("url(images/img.png)");
-	expect(textCss).not.toContain("url(../images/img.png)");
+	expect(textCss).toContain('url("images/img.png")');
+	expect(textCss).not.toContain('url("../images/img.png")');
 });
 
 it("should resolve url() relative to output root for css-style-sheet exportType", () => {

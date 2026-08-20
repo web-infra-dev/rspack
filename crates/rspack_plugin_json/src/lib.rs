@@ -12,12 +12,12 @@ use json::{
 };
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, ExportsInfoArtifact, ExportsInfoData,
-  GenerateContext, GeneratorOptions, Module, ModuleArgument, ModuleGraph, NAMESPACE_OBJECT_EXPORT,
-  ParseOption, ParserAndGenerator, ParserOptions, Plugin, RuntimeSpec, SourceType, UsageState,
-  UsedNameItem,
+  BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, ConcatenationScopeInfoMode,
+  ExportsInfoArtifact, ExportsInfoData, GenerateContext, GeneratedSource, GeneratorOptions, Module,
+  ModuleArgument, ModuleGraph, NAMESPACE_OBJECT_EXPORT, ParseOption, ParserAndGenerator,
+  ParserOptions, Plugin, RuntimeSpec, SourceType, UsageState, UsedNameItem,
   diagnostics::ModuleParseError,
-  rspack_sources::{BoxSource, RawStringSource, Source, SourceExt},
+  rspack_sources::{BoxSource, RawStringSource, ReplaceSource, Source, SourceExt},
 };
 use rspack_error::{Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray, error};
 use rspack_util::{itoa, location::byte_line_column_to_offset};
@@ -37,6 +37,10 @@ struct JsonParserAndGenerator {
 #[cacheable_dyn]
 #[async_trait::async_trait]
 impl ParserAndGenerator for JsonParserAndGenerator {
+  fn concatenation_scope_info_mode(&self) -> ConcatenationScopeInfoMode {
+    ConcatenationScopeInfoMode::GenerateAtCodegen
+  }
+
   fn source_types(&self, _module: &dyn Module, _module_graph: &ModuleGraph) -> &[SourceType] {
     &[SourceType::JavaScript]
   }
@@ -168,7 +172,7 @@ impl ParserAndGenerator for JsonParserAndGenerator {
     _source: &BoxSource,
     module: &dyn rspack_core::Module,
     generate_context: &mut GenerateContext,
-  ) -> Result<BoxSource> {
+  ) -> Result<GeneratedSource> {
     let GenerateContext {
       compilation,
       runtime,
@@ -209,7 +213,8 @@ impl ParserAndGenerator for JsonParserAndGenerator {
         let is_js_object = final_json.is_object() || final_json.is_array();
         let final_json_string = stringify(final_json);
         let json_str = utils::escape_json(&final_json_string);
-        let json_expr = if self.json_parse && is_js_object && json_str.len() > 20 {
+        let use_json_parse = self.json_parse && is_js_object && json_str.len() > 20;
+        let json_expr = if use_json_parse {
           Cow::Owned(format!(
             "/*#__PURE__*/JSON.parse('{}')",
             json_str.cow_replace('\\', r"\\").cow_replace('\'', r"\'")
@@ -217,18 +222,43 @@ impl ParserAndGenerator for JsonParserAndGenerator {
         } else {
           json_str.cow_replace("\"__proto__\":", "[\"__proto__\"]:")
         };
-        let content = if let Some(scope) = concatenation_scope {
-          scope.register_namespace_export(NAMESPACE_OBJECT_EXPORT);
-          format!("var {NAMESPACE_OBJECT_EXPORT} = {json_expr}")
-        } else {
-          format!(
+        if let Some(scope) = concatenation_scope {
+          if use_json_parse {
+            scope.register_used_name("JSON".into());
+          }
+          let faster_module_concatenation = scope.is_faster_module_concatenation();
+          let namespace_export = scope.register_generated_namespace_export(NAMESPACE_OBJECT_EXPORT);
+          let rendered_namespace_export = if faster_module_concatenation {
+            NAMESPACE_OBJECT_EXPORT
+          } else {
+            namespace_export.as_ref()
+          };
+          let content = format!("var {rendered_namespace_export} = {json_expr}");
+          let source = RawStringSource::from(content);
+          if faster_module_concatenation {
+            let start = "var ".len() as u32;
+            let mut source = ReplaceSource::new(source);
+            source.replace(
+              start,
+              start + NAMESPACE_OBJECT_EXPORT.len() as u32,
+              namespace_export.to_string(),
+              None,
+            );
+            return Ok(GeneratedSource::generated_concatenation(source));
+          }
+          return Ok(source.boxed().into());
+        }
+
+        Ok(
+          RawStringSource::from(format!(
             r#"{}.exports = {json_expr}"#,
             generate_context
               .runtime_template
               .render_module_argument(ModuleArgument::Module)
-          )
-        };
-        Ok(RawStringSource::from(content).boxed())
+          ))
+          .boxed()
+          .into(),
+        )
       }
       _ => panic!(
         "Unsupported source type: {:?}",

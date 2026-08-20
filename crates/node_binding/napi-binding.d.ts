@@ -41,7 +41,6 @@ interface KnownBuildInfo {
 export type BuildInfo = KnownBuildInfo & Record<string, any>;
 
 export interface Module {
-	[MODULE_IDENTIFIER_SYMBOL]: string;
 	readonly type: string;
 	get context(): string | undefined;
 	get layer(): string | undefined;
@@ -192,7 +191,7 @@ export declare class ConcatenatedModule {
   get rootModule(): Module
   get modules(): Module[]
   readableIdentifier(): string
-  _originalSource(): JsSource
+  _originalSource(): JsSource | undefined
   nameForCondition(): string | undefined
   get blocks(): AsyncDependenciesBlock[]
   get dependencies(): Dependency[]
@@ -203,7 +202,7 @@ export declare class ConcatenatedModule {
 
 export declare class ContextModule {
   readableIdentifier(): string
-  _originalSource(): JsSource
+  _originalSource(): JsSource | undefined
   nameForCondition(): string | undefined
   get blocks(): AsyncDependenciesBlock[]
   get dependencies(): Dependency[]
@@ -268,7 +267,7 @@ export type EntryOptionsDTO = EntryOptionsDto
 
 export declare class ExternalModule {
   readableIdentifier(): string
-  _originalSource(): JsSource
+  _originalSource(): JsSource | undefined
   nameForCondition(): string | undefined
   get blocks(): AsyncDependenciesBlock[]
   get dependencies(): Dependency[]
@@ -445,7 +444,7 @@ export declare class KnownBuildInfo {
 
 export declare class Module {
   readableIdentifier(): string
-  _originalSource(): JsSource
+  _originalSource(): JsSource | undefined
   nameForCondition(): string | undefined
   get blocks(): AsyncDependenciesBlock[]
   get dependencies(): Dependency[]
@@ -761,6 +760,13 @@ export interface JsChunkGroupOrigin {
   module?: Module | undefined
   request?: string
   loc?: string | RealDependencyLocation
+}
+
+export interface JsChunkOptionNameBatch {
+  modules: Module[]
+  chunks: Chunk[]
+  chunkData: Uint32Array
+  cacheGroupKey: string
 }
 
 export interface JsChunkOptionNameCtx {
@@ -1911,7 +1917,8 @@ export interface RawCacheGroupOptions {
   maxInitialSize?: number | RawSplitChunkSizes
   maxAsyncRequests?: number
   maxInitialRequests?: number
-  name?: string | false | Function
+  name?: string | false | ((ctx: JsChunkOptionNameCtx) => string | undefined)
+  nameBatch?: ((batch: JsChunkOptionNameBatch) => (string | undefined)[])
   reuseExistingChunk?: boolean
   enforce?: boolean
   usedExports?: boolean
@@ -2288,8 +2295,10 @@ export interface RawEvalDevToolModulePluginOptions {
 export interface RawExperiments {
   useInputFileSystem?: false | Array<RegExp>
   css?: boolean
+  newCache: boolean
   deferImport: boolean
   sourceImport: boolean
+  fasterModuleConcatenation: boolean
   pureFunctions: boolean
   runtimeMode?: "webpack" | "rspack"
 }
@@ -3074,7 +3083,8 @@ export interface RawSplitChunkSizes {
 
 export interface RawSplitChunksOptions {
   fallbackCacheGroup?: RawFallbackCacheGroupOptions
-  name?: string | false | Function
+  name?: string | false | ((ctx: JsChunkOptionNameCtx) => string | undefined)
+  nameBatch?: ((batch: JsChunkOptionNameBatch) => (string | undefined)[])
   filename?: JsFilename
   cacheGroups?: Array<RawCacheGroupOptions>
   /** What kind of chunks should be selected. */
@@ -3225,23 +3235,24 @@ export declare enum RegisterJsTapKind {
   NormalModuleFactoryResolveForScheme = 32,
   ContextModuleFactoryBeforeResolve = 33,
   ContextModuleFactoryAfterResolve = 34,
-  JavascriptModulesChunkHash = 35,
-  HtmlPluginBeforeAssetTagGeneration = 36,
-  HtmlPluginAlterAssetTags = 37,
-  HtmlPluginAlterAssetTagGroups = 38,
-  HtmlPluginAfterTemplateExecution = 39,
-  HtmlPluginBeforeEmit = 40,
-  HtmlPluginAfterEmit = 41,
-  RuntimePluginCreateScript = 42,
-  RuntimePluginCreateLink = 43,
-  RuntimePluginLinkPreload = 44,
-  RuntimePluginLinkPrefetch = 45,
-  RealContentHashPluginUpdateHash = 46,
-  RsdoctorPluginModuleGraph = 47,
-  RsdoctorPluginChunkGraph = 48,
-  RsdoctorPluginModuleIds = 49,
-  RsdoctorPluginModuleSources = 50,
-  RsdoctorPluginAssets = 51
+  ExternalModuleChunkCondition = 35,
+  JavascriptModulesChunkHash = 36,
+  HtmlPluginBeforeAssetTagGeneration = 37,
+  HtmlPluginAlterAssetTags = 38,
+  HtmlPluginAlterAssetTagGroups = 39,
+  HtmlPluginAfterTemplateExecution = 40,
+  HtmlPluginBeforeEmit = 41,
+  HtmlPluginAfterEmit = 42,
+  RuntimePluginCreateScript = 43,
+  RuntimePluginCreateLink = 44,
+  RuntimePluginLinkPreload = 45,
+  RuntimePluginLinkPrefetch = 46,
+  RealContentHashPluginUpdateHash = 47,
+  RsdoctorPluginModuleGraph = 48,
+  RsdoctorPluginChunkGraph = 49,
+  RsdoctorPluginModuleIds = 50,
+  RsdoctorPluginModuleSources = 51,
+  RsdoctorPluginAssets = 52
 }
 
 export interface RegisterJsTaps {
@@ -3280,6 +3291,7 @@ export interface RegisterJsTaps {
   registerNormalModuleFactoryCreateModuleTaps: (stages: Array<number>) => Array<{ function: ((arg: JsNormalModuleFactoryCreateModuleArgs) => Promise<void>); stage: number; }>
   registerContextModuleFactoryBeforeResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: false | JsContextModuleFactoryBeforeResolveData) => Promise<false | JsContextModuleFactoryBeforeResolveData>); stage: number; }>
   registerContextModuleFactoryAfterResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: false | JsContextModuleFactoryAfterResolveData) => Promise<false | JsContextModuleFactoryAfterResolveData>); stage: number; }>
+  registerExternalModuleChunkConditionTaps: (stages: Array<number>) => Array<{ function: ((chunk: Chunk) => boolean | undefined); stage: number; }>
   registerJavascriptModulesChunkHashTaps: (stages: Array<number>) => Array<{ function: ((arg: Chunk) => Buffer); stage: number; }>
   registerHtmlPluginBeforeAssetTagGenerationTaps: (stages: Array<number>) => Array<{ function: ((arg: JsBeforeAssetTagGenerationData) => JsBeforeAssetTagGenerationData); stage: number; }>
   registerHtmlPluginAlterAssetTagsTaps: (stages: Array<number>) => Array<{ function: ((arg: JsAlterAssetTagsData) => JsAlterAssetTagsData); stage: number; }>

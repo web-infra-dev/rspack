@@ -74,7 +74,7 @@ impl CodeGenerationResult {
 impl CodeGenerationResult {
   #[napi(getter, ts_return_type = "Sources")]
   pub fn sources(&self) -> napi::Result<Reflector> {
-    self.with_ref(|i| Ok(i.inner.reflector()))
+    self.with_ref(|i| Ok(i.sources_cell().reflector()))
   }
 }
 

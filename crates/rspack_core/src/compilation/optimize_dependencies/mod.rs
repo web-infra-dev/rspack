@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 
 use super::*;
-use crate::{cache::Cache, compilation::pass::PassExt};
+use crate::compilation::pass::PassExt;
 
 pub struct OptimizeDependenciesPass;
 
@@ -11,8 +11,8 @@ impl PassExt for OptimizeDependenciesPass {
     "optimize dependencies"
   }
 
-  async fn before_pass(&self, compilation: &mut Compilation, cache: &mut dyn Cache) {
-    cache.before_optimize_dependencies(compilation).await;
+  fn incremental_passes(&self) -> IncrementalPasses {
+    IncrementalPasses::OPTIMIZE_DEPENDENCIES
   }
 
   async fn run_pass(&self, compilation: &mut Compilation) -> Result<()> {
@@ -45,9 +45,5 @@ impl PassExt for OptimizeDependenciesPass {
     compilation.extend_diagnostics(diagnostics);
 
     Ok(())
-  }
-
-  async fn after_pass(&self, compilation: &mut Compilation, cache: &mut dyn Cache) {
-    cache.after_optimize_dependencies(compilation).await;
   }
 }

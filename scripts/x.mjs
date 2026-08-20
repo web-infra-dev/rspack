@@ -53,8 +53,8 @@ buildCommand
       if (b === undefined && j === undefined) {
         b = j = true;
       }
-      b && (await $`pnpm --filter @rspack/binding build:${mode}`);
-      j && (await $`pnpm --filter "@rspack/*" build ${f ? '--force' : ''}`);
+      if (b) await $`pnpm --filter @rspack/binding build:${mode}`;
+      if (j) await $`pnpm --filter "@rspack/*" build ${f ? '--force' : ''}`;
     } catch (e) {
       process.exit(e.exitCode);
     }

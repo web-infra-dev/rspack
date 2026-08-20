@@ -4,6 +4,7 @@ const {
 } = require('@rspack/test-tools/helper/legacy/LogTestPlugin');
 
 module.exports = {
+  incremental: false,
   entry: './index.js',
   plugins: [new LogTestPlugin(true)],
   stats: {

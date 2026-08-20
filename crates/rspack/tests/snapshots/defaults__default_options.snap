@@ -1748,8 +1748,10 @@ CompilerOptions {
     cache: Disabled,
     experiments: Experiments {
         css: false,
+        new_cache: false,
         defer_import: false,
         source_import: false,
+        faster_module_concatenation: false,
         pure_functions: false,
         runtime_mode: Webpack,
     },
