@@ -11,6 +11,9 @@ import {
 	local,
 	placeholder,
 	readGlobal,
+	nestedValue,
+	readNestedValue,
+	setNestedValue,
 	readDefined,
 	setValue,
 	value,
@@ -30,6 +33,11 @@ it("should scope-hoist a statically analyzable CommonJS module", () => {
 	expect(local).toBe(41);
 	expect(placeholder).toBe(42);
 	expect(readGlobal()).toBe(43);
+	expect(nestedValue).toBe(1);
+	expect(readNestedValue()).toBe(1);
+	setNestedValue(2);
+	expect(nestedValue).toBe(2);
+	expect(readNestedValue()).toBe(2);
 	expect(anonymousFunction.name).toBe("");
 	expect(anonymousArrow.name).toBe("");
 	expect(AnonymousClass.name).toBe("");

@@ -104,7 +104,7 @@ impl CommonJsExportsDependency {
 pub(super) fn get_concatenated_export_access(
   module: &dyn Module,
   concatenation_scope: &mut rspack_core::ConcatenationScope,
-  init_fragments: &mut ModuleInitFragments<'_>,
+  init_fragments: &mut ModuleInitFragments,
   names: &[Atom],
   property_access_suffix: String,
 ) -> String {
@@ -120,7 +120,7 @@ pub(super) fn get_concatenated_export_access(
 fn get_concatenated_export_binding(
   module: &dyn Module,
   concatenation_scope: &mut rspack_core::ConcatenationScope,
-  init_fragments: &mut ModuleInitFragments<'_>,
+  init_fragments: &mut ModuleInitFragments,
   names: &[Atom],
 ) -> String {
   let name = names.first().expect("should have a CommonJS export name");
@@ -162,7 +162,7 @@ fn get_concatenated_export_binding(
 fn get_concatenated_exports_object(
   module: &dyn Module,
   concatenation_scope: &mut rspack_core::ConcatenationScope,
-  init_fragments: &mut ModuleInitFragments<'_>,
+  init_fragments: &mut ModuleInitFragments,
 ) -> String {
   // CommonJS starts with an ordinary object. Keep that object observable so
   // inherited accessors installed by another module or by the host still run.
@@ -191,7 +191,7 @@ fn get_concatenated_export_name(
 fn get_concatenated_export_setter(
   module: &dyn Module,
   concatenation_scope: &mut rspack_core::ConcatenationScope,
-  init_fragments: &mut ModuleInitFragments<'_>,
+  init_fragments: &mut ModuleInitFragments,
   names: &[Atom],
 ) -> (String, String) {
   let binding = get_concatenated_export_binding(module, concatenation_scope, init_fragments, names);
@@ -267,7 +267,7 @@ fn get_unique_concatenated_name(
       })
       || module
         .build_info()
-        .unresolved_identifier_names
+        .concatenation_reserved_identifier_names
         .iter()
         .any(|name| name.as_str() == candidate)
       || module

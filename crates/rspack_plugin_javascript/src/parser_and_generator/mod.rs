@@ -58,24 +58,27 @@ static LEGACY_REQUIRE_REGEX: LazyLock<Regex> = LazyLock::new(|| {
   Regex::new("__webpack_require__\\s*(!?\\.)").expect("should init `REQUIRE_FUNCTION_REGEX`")
 });
 
-fn collect_unresolved_identifier_names(
+fn collect_concatenation_reserved_identifier_names(
   program: &Program<'_>,
   semantic: &Semantic,
 ) -> FxHashSet<Atom> {
-  struct UnresolvedIdentifierCollector<'a> {
+  struct ConcatenationReservedIdentifierCollector<'a> {
     semantic: &'a Semantic,
     names: FxHashSet<Atom>,
   }
 
-  impl<'ast> Visit<'ast> for UnresolvedIdentifierCollector<'_> {
+  impl<'ast> Visit<'ast> for ConcatenationReservedIdentifierCollector<'_> {
     fn visit_ident(&mut self, ident: &Ident<'ast>) {
-      if self.semantic.node_scope(ident) == self.semantic.unresolved_scope_id() {
+      // Top-level declarations are already tracked by `top_level_declarations`.
+      // Reserve both unresolved references, which generated bindings could
+      // capture, and nested bindings, which could shadow inserted references.
+      if self.semantic.node_scope(ident) != self.semantic.top_level_scope_id() {
         self.names.insert(Atom::from(ident.sym.as_str()));
       }
     }
   }
 
-  let mut collector = UnresolvedIdentifierCollector {
+  let mut collector = ConcatenationReservedIdentifierCollector {
     semantic,
     names: FxHashSet::default(),
   };
@@ -543,9 +546,9 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       module_parser_options,
       mut parse_meta,
       ..
-  } = parse_context;
-  let mut diagnostics: Vec<Diagnostic> = vec![];
-  build_info.unresolved_identifier_names.clear();
+    } = parse_context;
+    let mut diagnostics: Vec<Diagnostic> = vec![];
+    build_info.concatenation_reserved_identifier_names.clear();
 
     if let Some(collected_ts_info) = parse_meta.remove(COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY)
       && let Ok(collected_ts_info) =
@@ -694,15 +697,16 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       && dependencies
         .iter()
         .any(|dependency| dependency.as_any().is::<CommonJsExportsDependency>());
-    // Concatenation reparses generated source and must reserve free identifiers
-    // before CommonJS export bindings are introduced. modern-module uses its
-    // own linker, so it needs the same information independently of the normal
-    // concatenation optimization.
+    // Legacy concatenation reparses generated source after CommonJS export
+    // bindings and references are introduced. Reserve globals from capture and
+    // nested bindings from shadowing those inserted references. modern-module
+    // uses its own legacy linker, so it needs the same information independently
+    // of the normal concatenation optimization.
     if may_be_commonjs_concatenated
       && (uses_esm_library || compiler_options.optimization.concatenate_modules)
     {
-      build_info.unresolved_identifier_names =
-        collect_unresolved_identifier_names(&program, &semantic);
+      build_info.concatenation_reserved_identifier_names =
+        collect_concatenation_reserved_identifier_names(&program, &semantic);
     }
 
     let mut side_effects_bailout = None;

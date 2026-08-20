@@ -27,43 +27,49 @@ function restoreExternalPrototypeSetter() {
 }
 
 // ./foo.js
-var __RSPACK_CJS_EXPORTS__ = {};
+var __RSPACK_CJS_EXPORTS___0 = {};
 var __RSPACK_CJS_EXPORT_value___0;
-function __RSPACK_CJS_SET_EXPORT_value_76616c7565__(value) { "use strict"; __RSPACK_CJS_EXPORTS__.value = value; __RSPACK_CJS_EXPORT_value___0 = __RSPACK_CJS_EXPORTS__.value; return value; }
+function __RSPACK_CJS_SET_EXPORT_value_76616c7565__(value) { "use strict"; __RSPACK_CJS_EXPORTS___0.value = value; __RSPACK_CJS_EXPORT_value___0 = __RSPACK_CJS_EXPORTS___0.value; return value; }
 var __RSPACK_CJS_EXPORT_local__;
-function __RSPACK_CJS_SET_EXPORT_local_6c6f63616c__(value) { "use strict"; __RSPACK_CJS_EXPORTS__.local = value; __RSPACK_CJS_EXPORT_local__ = __RSPACK_CJS_EXPORTS__.local; return value; }
+function __RSPACK_CJS_SET_EXPORT_local_6c6f63616c__(value) { "use strict"; __RSPACK_CJS_EXPORTS___0.local = value; __RSPACK_CJS_EXPORT_local__ = __RSPACK_CJS_EXPORTS___0.local; return value; }
 var __RSPACK_CJS_EXPORT_placeholder__;
-function __RSPACK_CJS_SET_EXPORT_placeholder_706c616365686f6c646572__(value) { "use strict"; __RSPACK_CJS_EXPORTS__.placeholder = value; __RSPACK_CJS_EXPORT_placeholder__ = __RSPACK_CJS_EXPORTS__.placeholder; return value; }
+function __RSPACK_CJS_SET_EXPORT_placeholder_706c616365686f6c646572__(value) { "use strict"; __RSPACK_CJS_EXPORTS___0.placeholder = value; __RSPACK_CJS_EXPORT_placeholder__ = __RSPACK_CJS_EXPORTS___0.placeholder; return value; }
 var __RSPACK_CJS_EXPORT_setValue__;
-function __RSPACK_CJS_SET_EXPORT_setValue_73657456616c7565__(value) { "use strict"; __RSPACK_CJS_EXPORTS__.setValue = value; __RSPACK_CJS_EXPORT_setValue__ = __RSPACK_CJS_EXPORTS__.setValue; return value; }
+function __RSPACK_CJS_SET_EXPORT_setValue_73657456616c7565__(value) { "use strict"; __RSPACK_CJS_EXPORTS___0.setValue = value; __RSPACK_CJS_EXPORT_setValue__ = __RSPACK_CJS_EXPORTS___0.setValue; return value; }
 var __RSPACK_CJS_EXPORT_getValue__;
-function __RSPACK_CJS_SET_EXPORT_getValue_67657456616c7565__(value) { "use strict"; __RSPACK_CJS_EXPORTS__.getValue = value; __RSPACK_CJS_EXPORT_getValue__ = __RSPACK_CJS_EXPORTS__.getValue; return value; }
+function __RSPACK_CJS_SET_EXPORT_getValue_67657456616c7565__(value) { "use strict"; __RSPACK_CJS_EXPORTS___0.getValue = value; __RSPACK_CJS_EXPORT_getValue__ = __RSPACK_CJS_EXPORTS___0.getValue; return value; }
 var __RSPACK_CJS_EXPORT_readGlobal___0;
-function __RSPACK_CJS_SET_EXPORT_readGlobal_72656164476c6f62616c__(value) { "use strict"; __RSPACK_CJS_EXPORTS__.readGlobal = value; __RSPACK_CJS_EXPORT_readGlobal___0 = __RSPACK_CJS_EXPORTS__.readGlobal; return value; }
+function __RSPACK_CJS_SET_EXPORT_readGlobal_72656164476c6f62616c__(value) { "use strict"; __RSPACK_CJS_EXPORTS___0.readGlobal = value; __RSPACK_CJS_EXPORT_readGlobal___0 = __RSPACK_CJS_EXPORTS___0.readGlobal; return value; }
+var __RSPACK_CJS_EXPORT_nestedValue__;
+function __RSPACK_CJS_SET_EXPORT_nestedValue_6e657374656456616c7565___0(value) { "use strict"; __RSPACK_CJS_EXPORTS___0.nestedValue = value; __RSPACK_CJS_EXPORT_nestedValue__ = __RSPACK_CJS_EXPORTS___0.nestedValue; return value; }
+var __RSPACK_CJS_EXPORT_readNestedValue__;
+function __RSPACK_CJS_SET_EXPORT_readNestedValue_726561644e657374656456616c7565__(value) { "use strict"; __RSPACK_CJS_EXPORTS___0.readNestedValue = value; __RSPACK_CJS_EXPORT_readNestedValue__ = __RSPACK_CJS_EXPORTS___0.readNestedValue; return value; }
+var __RSPACK_CJS_EXPORT_setNestedValue__;
+function __RSPACK_CJS_SET_EXPORT_setNestedValue_7365744e657374656456616c7565__(value) { "use strict"; __RSPACK_CJS_EXPORTS___0.setNestedValue = value; __RSPACK_CJS_EXPORT_setNestedValue__ = __RSPACK_CJS_EXPORTS___0.setNestedValue; return value; }
 var __RSPACK_CJS_EXPORT_anonymousFunction__;
-function __RSPACK_CJS_SET_EXPORT_anonymousFunction_616e6f6e796d6f757346756e6374696f6e__(value) { "use strict"; __RSPACK_CJS_EXPORTS__.anonymousFunction = value; __RSPACK_CJS_EXPORT_anonymousFunction__ = __RSPACK_CJS_EXPORTS__.anonymousFunction; return value; }
+function __RSPACK_CJS_SET_EXPORT_anonymousFunction_616e6f6e796d6f757346756e6374696f6e__(value) { "use strict"; __RSPACK_CJS_EXPORTS___0.anonymousFunction = value; __RSPACK_CJS_EXPORT_anonymousFunction__ = __RSPACK_CJS_EXPORTS___0.anonymousFunction; return value; }
 var __RSPACK_CJS_EXPORT_anonymousArrow__;
-function __RSPACK_CJS_SET_EXPORT_anonymousArrow_616e6f6e796d6f75734172726f77__(value) { "use strict"; __RSPACK_CJS_EXPORTS__.anonymousArrow = value; __RSPACK_CJS_EXPORT_anonymousArrow__ = __RSPACK_CJS_EXPORTS__.anonymousArrow; return value; }
+function __RSPACK_CJS_SET_EXPORT_anonymousArrow_616e6f6e796d6f75734172726f77__(value) { "use strict"; __RSPACK_CJS_EXPORTS___0.anonymousArrow = value; __RSPACK_CJS_EXPORT_anonymousArrow__ = __RSPACK_CJS_EXPORTS___0.anonymousArrow; return value; }
 var __RSPACK_CJS_EXPORT_AnonymousClass__;
-function __RSPACK_CJS_SET_EXPORT_AnonymousClass_416e6f6e796d6f7573436c617373__(value) { "use strict"; __RSPACK_CJS_EXPORTS__.AnonymousClass = value; __RSPACK_CJS_EXPORT_AnonymousClass__ = __RSPACK_CJS_EXPORTS__.AnonymousClass; return value; }
+function __RSPACK_CJS_SET_EXPORT_AnonymousClass_416e6f6e796d6f7573436c617373__(value) { "use strict"; __RSPACK_CJS_EXPORTS___0.AnonymousClass = value; __RSPACK_CJS_EXPORT_AnonymousClass__ = __RSPACK_CJS_EXPORTS___0.AnonymousClass; return value; }
 var __RSPACK_CJS_EXPORT_defined___0;
-function __RSPACK_CJS_SET_EXPORT_defined_646566696e6564__(value) { "use strict"; __RSPACK_CJS_EXPORTS__.defined = value; __RSPACK_CJS_EXPORT_defined___0 = __RSPACK_CJS_EXPORTS__.defined; return value; }
+function __RSPACK_CJS_SET_EXPORT_defined_646566696e6564__(value) { "use strict"; __RSPACK_CJS_EXPORTS___0.defined = value; __RSPACK_CJS_EXPORT_defined___0 = __RSPACK_CJS_EXPORTS___0.defined; return value; }
 var __RSPACK_CJS_EXPORT_definedAnonymous__;
-function __RSPACK_CJS_SET_EXPORT_definedAnonymous_646566696e6564416e6f6e796d6f7573__(value) { "use strict"; __RSPACK_CJS_EXPORTS__.definedAnonymous = value; __RSPACK_CJS_EXPORT_definedAnonymous__ = __RSPACK_CJS_EXPORTS__.definedAnonymous; return value; }
+function __RSPACK_CJS_SET_EXPORT_definedAnonymous_646566696e6564416e6f6e796d6f7573__(value) { "use strict"; __RSPACK_CJS_EXPORTS___0.definedAnonymous = value; __RSPACK_CJS_EXPORT_definedAnonymous__ = __RSPACK_CJS_EXPORTS___0.definedAnonymous; return value; }
 var __RSPACK_CJS_EXPORT_readDefined__;
-function __RSPACK_CJS_SET_EXPORT_readDefined_72656164446566696e6564__(value) { "use strict"; __RSPACK_CJS_EXPORTS__.readDefined = value; __RSPACK_CJS_EXPORT_readDefined__ = __RSPACK_CJS_EXPORTS__.readDefined; return value; }
+function __RSPACK_CJS_SET_EXPORT_readDefined_72656164446566696e6564__(value) { "use strict"; __RSPACK_CJS_EXPORTS___0.readDefined = value; __RSPACK_CJS_EXPORT_readDefined__ = __RSPACK_CJS_EXPORTS___0.readDefined; return value; }
 var __RSPACK_CJS_EXPORT_a_b_612d62__;
-function __RSPACK_CJS_SET_EXPORT_a_b_612d62__(value) { "use strict"; __RSPACK_CJS_EXPORTS__["a-b"] = value; __RSPACK_CJS_EXPORT_a_b_612d62__ = __RSPACK_CJS_EXPORTS__["a-b"]; return value; }
+function __RSPACK_CJS_SET_EXPORT_a_b_612d62__(value) { "use strict"; __RSPACK_CJS_EXPORTS___0["a-b"] = value; __RSPACK_CJS_EXPORT_a_b_612d62__ = __RSPACK_CJS_EXPORTS___0["a-b"]; return value; }
 var __RSPACK_CJS_EXPORT_a_b_612d62___0;
-function __RSPACK_CJS_SET_EXPORT_a_b_612d62_615f625f363132643632__(value) { "use strict"; __RSPACK_CJS_EXPORTS__.a_b_612d62 = value; __RSPACK_CJS_EXPORT_a_b_612d62___0 = __RSPACK_CJS_EXPORTS__.a_b_612d62; return value; }
+function __RSPACK_CJS_SET_EXPORT_a_b_612d62_615f625f363132643632__(value) { "use strict"; __RSPACK_CJS_EXPORTS___0.a_b_612d62 = value; __RSPACK_CJS_EXPORT_a_b_612d62___0 = __RSPACK_CJS_EXPORTS___0.a_b_612d62; return value; }
 var __RSPACK_CJS_EXPORT_chainedA__;
-function __RSPACK_CJS_SET_EXPORT_chainedA_636861696e656441__(value) { "use strict"; __RSPACK_CJS_EXPORTS__.chainedA = value; __RSPACK_CJS_EXPORT_chainedA__ = __RSPACK_CJS_EXPORTS__.chainedA; return value; }
+function __RSPACK_CJS_SET_EXPORT_chainedA_636861696e656441__(value) { "use strict"; __RSPACK_CJS_EXPORTS___0.chainedA = value; __RSPACK_CJS_EXPORT_chainedA__ = __RSPACK_CJS_EXPORTS___0.chainedA; return value; }
 var __RSPACK_CJS_EXPORT_chainedB__;
-function __RSPACK_CJS_SET_EXPORT_chainedB_636861696e656442__(value) { "use strict"; __RSPACK_CJS_EXPORTS__.chainedB = value; __RSPACK_CJS_EXPORT_chainedB__ = __RSPACK_CJS_EXPORTS__.chainedB; return value; }
+function __RSPACK_CJS_SET_EXPORT_chainedB_636861696e656442__(value) { "use strict"; __RSPACK_CJS_EXPORTS___0.chainedB = value; __RSPACK_CJS_EXPORT_chainedB__ = __RSPACK_CJS_EXPORTS___0.chainedB; return value; }
 var __RSPACK_CJS_EXPORT__rspack_cjs_external_setter__5f5f72737061636b5f636a735f65787465726e616c5f7365747465725f5f__;
-function __RSPACK_CJS_SET_EXPORT__rspack_cjs_external_setter__5f5f72737061636b5f636a735f65787465726e616c5f7365747465725f5f__(value) { "use strict"; __RSPACK_CJS_EXPORTS__.__rspack_cjs_external_setter__ = value; __RSPACK_CJS_EXPORT__rspack_cjs_external_setter__5f5f72737061636b5f636a735f65787465726e616c5f7365747465725f5f__ = __RSPACK_CJS_EXPORTS__.__rspack_cjs_external_setter__; return value; }
+function __RSPACK_CJS_SET_EXPORT__rspack_cjs_external_setter__5f5f72737061636b5f636a735f65787465726e616c5f7365747465725f5f__(value) { "use strict"; __RSPACK_CJS_EXPORTS___0.__rspack_cjs_external_setter__ = value; __RSPACK_CJS_EXPORT__rspack_cjs_external_setter__5f5f72737061636b5f636a735f65787465726e616c5f7365747465725f5f__ = __RSPACK_CJS_EXPORTS___0.__rspack_cjs_external_setter__; return value; }
 var __RSPACK_CJS_EXPORT_externalSetterObserved__;
-function __RSPACK_CJS_SET_EXPORT_externalSetterObserved_65787465726e616c5365747465724f62736572766564__(value) { "use strict"; __RSPACK_CJS_EXPORTS__.externalSetterObserved = value; __RSPACK_CJS_EXPORT_externalSetterObserved__ = __RSPACK_CJS_EXPORTS__.externalSetterObserved; return value; }
+function __RSPACK_CJS_SET_EXPORT_externalSetterObserved_65787465726e616c5365747465724f62736572766564__(value) { "use strict"; __RSPACK_CJS_EXPORTS___0.externalSetterObserved = value; __RSPACK_CJS_EXPORT_externalSetterObserved__ = __RSPACK_CJS_EXPORTS___0.externalSetterObserved; return value; }
 
 
 const __RSPACK_CJS_EXPORT_value__ = 41;
@@ -71,7 +77,7 @@ var __rspack_unused_export = 42;
 globalThis.__RSPACK_CJS_EXPORT_readGlobal__ = 43;
 globalThis.__RSPACK_CJS_EXPORT_defined__ = 44;
 
-__RSPACK_CJS_EXPORTS__.unused = "unused";
+__RSPACK_CJS_EXPORTS___0.unused = "unused";
 __RSPACK_CJS_SET_EXPORT_value_76616c7565__(1);
 __RSPACK_CJS_SET_EXPORT_local_6c6f63616c__(__RSPACK_CJS_EXPORT_value__);
 __RSPACK_CJS_SET_EXPORT_placeholder_706c616365686f6c646572__(__rspack_unused_export);
@@ -79,9 +85,18 @@ __RSPACK_CJS_SET_EXPORT_setValue_73657456616c7565__(function setValue(value) {
   __RSPACK_CJS_SET_EXPORT_value_76616c7565__(value);
 });
 __RSPACK_CJS_SET_EXPORT_getValue_67657456616c7565__(function getValue() {
-  return __RSPACK_CJS_EXPORTS__.value;
+  return __RSPACK_CJS_EXPORTS___0.value;
 });
 __RSPACK_CJS_SET_EXPORT_readGlobal_72656164476c6f62616c__(() => __RSPACK_CJS_EXPORT_readGlobal__);
+__RSPACK_CJS_SET_EXPORT_nestedValue_6e657374656456616c7565___0(1);
+__RSPACK_CJS_SET_EXPORT_readNestedValue_726561644e657374656456616c7565__(() => {
+	const __RSPACK_CJS_EXPORTS__ = { nestedValue: 100 };
+	return __RSPACK_CJS_EXPORTS___0.nestedValue;
+});
+__RSPACK_CJS_SET_EXPORT_setNestedValue_7365744e657374656456616c7565__(value => {
+	const __RSPACK_CJS_SET_EXPORT_nestedValue_6e657374656456616c7565__ = () => {};
+	__RSPACK_CJS_SET_EXPORT_nestedValue_6e657374656456616c7565___0(value);
+});
 __RSPACK_CJS_SET_EXPORT_anonymousFunction_616e6f6e796d6f757346756e6374696f6e__(function () {});
 __RSPACK_CJS_SET_EXPORT_anonymousArrow_616e6f6e796d6f75734172726f77__(() => {});
 __RSPACK_CJS_SET_EXPORT_AnonymousClass_416e6f6e796d6f7573436c617373__(class {});
@@ -112,6 +127,11 @@ it("should scope-hoist a statically analyzable CommonJS module", () => {
 	expect(__RSPACK_CJS_EXPORT_local__).toBe(41);
 	expect(__RSPACK_CJS_EXPORT_placeholder__).toBe(42);
 	expect(__RSPACK_CJS_EXPORT_readGlobal___0()).toBe(43);
+	expect(__RSPACK_CJS_EXPORT_nestedValue__).toBe(1);
+	expect(__RSPACK_CJS_EXPORT_readNestedValue__()).toBe(1);
+	__RSPACK_CJS_EXPORT_setNestedValue__(2);
+	expect(__RSPACK_CJS_EXPORT_nestedValue__).toBe(2);
+	expect(__RSPACK_CJS_EXPORT_readNestedValue__()).toBe(2);
 	expect(__RSPACK_CJS_EXPORT_anonymousFunction__.name).toBe("");
 	expect(__RSPACK_CJS_EXPORT_anonymousArrow__.name).toBe("");
 	expect(__RSPACK_CJS_EXPORT_AnonymousClass__.name).toBe("");

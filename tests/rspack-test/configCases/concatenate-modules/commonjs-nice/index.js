@@ -27,7 +27,10 @@ import {
 	value as collisionValue,
 	local as collisionLocal,
 	placeholder as collisionPlaceholder,
-	readGlobal as collisionReadGlobal
+	readGlobal as collisionReadGlobal,
+	nestedValue as collisionNestedValue,
+	readNestedValue as collisionReadNestedValue,
+	setNestedValue as collisionSetNestedValue
 } from "./name-collision";
 
 const externalSetterExportAtEvaluation = externalSetterExport;
@@ -88,6 +91,14 @@ it("should avoid generated CommonJS export name collisions", () => {
 	expect(collisionLocal).toBe(99);
 	expect(collisionPlaceholder).toBe(98);
 	expect(collisionReadGlobal()).toBe(97);
+});
+
+it("should avoid nested declarations shadowing generated CommonJS names", () => {
+	expect(collisionNestedValue).toBe(1);
+	expect(collisionReadNestedValue()).toBe(1);
+	collisionSetNestedValue(2);
+	expect(collisionNestedValue).toBe(2);
+	expect(collisionReadNestedValue()).toBe(2);
 });
 
 it("should avoid identifiers injected by presentational dependencies", () => {
