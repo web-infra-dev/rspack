@@ -54,11 +54,15 @@ pub struct AnalyzedConcatenationScopeInfo {
 /// `Generated` is an explicit declaration that the module has no original
 /// JavaScript scope. Any bindings introduced by its generator must be
 /// registered through `ConcatenationScope` during code generation.
+///
+/// `CodegenAnalysisRequired` means make encountered user-provided generated
+/// code that needs the legacy codegen-time scope analysis.
 #[cacheable]
 #[derive(Clone, Debug)]
 pub enum PendingConcatenationScopeInfo {
   Analyzed(AnalyzedConcatenationScopeInfo),
   Generated,
+  CodegenAnalysisRequired,
 }
 
 #[derive(Default)]

@@ -5,8 +5,73 @@ use rspack_core::{
   BoxDependencyTemplate, ConstDependency, RuntimeGlobals, RuntimeRequirementsDependency,
 };
 use serde_json::{Value, json};
+use swc_experimental_allocator::Allocator;
+use swc_experimental_ecma_ast::{EsVersion, Expr, Prop, PropName, PropOrSpread};
+use swc_experimental_ecma_parser::{EsSyntax, Syntax, parse_file_as_expr};
 
 use crate::visitors::{DestructuringAssignmentProperties, JavascriptParser};
+
+fn is_compile_time_expression(expr: &Expr<'_>) -> bool {
+  match expr {
+    Expr::Lit(_) => true,
+    Expr::Unary(expr) => is_compile_time_expression(&expr.arg),
+    Expr::Bin(expr) => {
+      is_compile_time_expression(&expr.left) && is_compile_time_expression(&expr.right)
+    }
+    Expr::Cond(expr) => {
+      is_compile_time_expression(&expr.test)
+        && is_compile_time_expression(&expr.cons)
+        && is_compile_time_expression(&expr.alt)
+    }
+    Expr::Array(expr) => expr.elems.iter().all(|element| {
+      element
+        .as_ref()
+        .is_none_or(|element| element.spread.is_none() && is_compile_time_expression(&element.expr))
+    }),
+    Expr::Object(expr) => expr.props.iter().all(|prop| match prop {
+      PropOrSpread::Prop(prop) => match &**prop {
+        Prop::KeyValue(prop) => {
+          let key_is_compile_time = match &prop.key {
+            PropName::Computed(computed) => is_compile_time_expression(&computed.expr),
+            PropName::Ident(_) | PropName::Str(_) | PropName::Num(_) | PropName::BigInt(_) => true,
+          };
+          key_is_compile_time && is_compile_time_expression(&prop.value)
+        }
+        Prop::Shorthand(_)
+        | Prop::Assign(_)
+        | Prop::Getter(_)
+        | Prop::Setter(_)
+        | Prop::Method(_) => false,
+      },
+      PropOrSpread::Spread(_) => false,
+    }),
+    Expr::Tpl(expr) => expr.exprs.iter().all(is_compile_time_expression),
+    Expr::Seq(expr) => expr.exprs.iter().all(is_compile_time_expression),
+    Expr::Paren(expr) => is_compile_time_expression(&expr.expr),
+    _ => false,
+  }
+}
+
+fn is_compile_time_source(source: &str) -> bool {
+  let allocator = Allocator::new();
+  parse_file_as_expr(
+    &allocator,
+    allocator.alloc_str(source),
+    Syntax::Es(EsSyntax::default()),
+    EsVersion::EsNext,
+    None,
+  )
+  .is_ok_and(|expr| is_compile_time_expression(&expr))
+}
+
+pub fn is_compile_time_define_value(code: &Value) -> bool {
+  match code {
+    Value::Array(items) => items.iter().all(is_compile_time_define_value),
+    Value::Object(object) => object.values().all(is_compile_time_define_value),
+    Value::String(source) => is_compile_time_source(source),
+    Value::Null | Value::Bool(_) | Value::Number(_) => true,
+  }
+}
 
 pub fn gen_const_dep(
   parser: &JavascriptParser,

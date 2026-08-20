@@ -5,6 +5,7 @@ use std::{
 
 use itertools::Itertools as _;
 use regex::Regex;
+use rspack_core::PendingConcatenationScopeInfo;
 use rspack_error::Diagnostic;
 use rustc_hash::FxHashMap;
 use serde_json::{Map, Value, json};
@@ -12,9 +13,22 @@ use swc_experimental_ecma_ast::Span;
 
 use super::{
   ConflictingValuesError, DefineValue,
-  utils::{code_to_string, gen_const_dep},
+  utils::{code_to_string, gen_const_dep, is_compile_time_define_value},
 };
 use crate::{utils::eval::BasicEvaluatedExpression, visitors::JavascriptParser};
+
+fn check_concatenation_fallback(parser: &mut JavascriptParser, is_compile_time_value: bool) {
+  if parser
+    .compiler_options()
+    .experiments
+    .faster_module_concatenation
+    && !is_compile_time_value
+  {
+    parser.build_info.pending_concatenation_scope_info = Some(Box::new(
+      PendingConcatenationScopeInfo::CodegenAnalysisRequired,
+    ));
+  }
+}
 
 static TYPEOF_OPERATOR_REGEXP: LazyLock<Regex> =
   LazyLock::new(|| Regex::new("^typeof\\s+").expect("should init `TYPEOF_OPERATOR_REGEXP`"));
@@ -55,6 +69,7 @@ type OnTypeof = dyn Fn(&DefineRecord, &mut JavascriptParser, u32 /* start */, u3
 
 pub struct DefineRecord {
   code: Value,
+  is_compile_time_value: bool,
   pub on_evaluate_identifier: Option<Box<OnEvaluateIdentifier>>,
   pub on_evaluate_typeof: Option<Box<OnEvaluateTypeof>>,
   pub on_expression: Option<Box<OnExpression>>,
@@ -90,8 +105,10 @@ impl std::fmt::Debug for DefineRecord {
 
 impl DefineRecord {
   fn from_code(code: Value) -> DefineRecord {
+    let is_compile_time_value = is_compile_time_define_value(&code);
     Self {
       code,
+      is_compile_time_value,
       on_evaluate_identifier: None,
       on_evaluate_typeof: None,
       on_expression: None,
@@ -126,6 +143,7 @@ impl DefineRecord {
 #[derive(Default)]
 pub struct ObjectDefineRecord {
   object: Value,
+  is_compile_time_value: bool,
   pub on_evaluate_identifier: Option<Box<OnObjectEvaluateIdentifier>>,
   pub on_expression: Option<Box<OnObjectExpression>>,
 }
@@ -162,8 +180,10 @@ type OnObjectExpression = dyn Fn(
 impl ObjectDefineRecord {
   fn from_code(obj: Value) -> Self {
     assert!(matches!(obj, Value::Array(_) | Value::Object(_)));
+    let is_compile_time_value = is_compile_time_define_value(&obj);
     Self {
       object: obj,
+      is_compile_time_value,
       on_evaluate_identifier: None,
       on_expression: None,
     }
@@ -273,6 +293,7 @@ impl WalkData {
           }))
           .with_on_expression(Box::new(
             move |record, parser, span, start, end, for_name| {
+              check_concatenation_fallback(parser, record.is_compile_time_value);
               let code = code_to_string(
                 &record.code,
                 Some(!parser.is_asi_position(span.start)),
@@ -353,6 +374,7 @@ impl WalkData {
         }))
         .with_on_expression(Box::new(
           move |record, parser, span, start, end, for_name| {
+            check_concatenation_fallback(parser, record.is_compile_time_value);
             let code = code_to_string(
               &record.object,
               Some(!parser.is_asi_position(span.start)),
@@ -376,6 +398,7 @@ impl WalkData {
         }))
         .with_on_expression(Box::new(
           move |record, parser, span, start, end, for_name| {
+            check_concatenation_fallback(parser, record.is_compile_time_value);
             let code = code_to_string(
               &record.object,
               Some(!parser.is_asi_position(span.start)),

@@ -187,6 +187,9 @@ pub(crate) fn populate_info_from_pending(
       info.canonical_names.as_slice(),
     ),
     PendingConcatenationScopeInfo::Generated => (0, 0, &[][..], &[][..]),
+    PendingConcatenationScopeInfo::CodegenAnalysisRequired => {
+      unreachable!("codegen analysis modules must not enter faster module concatenation")
+    }
   };
   let mut symbols = SmallVec::<[(&str, Atom); 8]>::new();
   let mut symbol_from_range = |range: DependencyRange| {

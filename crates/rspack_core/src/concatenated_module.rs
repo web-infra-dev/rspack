@@ -1112,7 +1112,7 @@ impl Module for ConcatenatedModule {
         s.spawn(|(module, compilation, runtime, id, info)| async move {
           let concatenation_scope = if let ModuleInfo::Concatenated(info) = info {
             let info = info.as_ref();
-            let mut scope = ConcatenationScope::new(
+            let scope = ConcatenationScope::new(
               module.id,
               module_to_info_map.expect("should have module_to_info_map for concatenated module"),
               ConcatenatedModuleInfo {
@@ -1121,9 +1121,6 @@ impl Module for ConcatenatedModule {
                 ..Default::default()
               },
             );
-            if compilation.options.experiments.faster_module_concatenation {
-              scope.enable_faster_module_concatenation();
-            }
             Some(scope)
           } else {
             None
@@ -2711,6 +2708,18 @@ impl ConcatenatedModule {
       let module = module_graph
         .module_by_identifier(&module_id)
         .unwrap_or_else(|| panic!("should have module {module_id}"));
+
+      if compilation.options.experiments.faster_module_concatenation
+        && !matches!(
+          module
+            .build_info()
+            .pending_concatenation_scope_info
+            .as_deref(),
+          Some(PendingConcatenationScopeInfo::CodegenAnalysisRequired)
+        )
+      {
+        concatenation_scope.enable_faster_module_concatenation();
+      }
 
       let mut runtime_template = compilation.runtime_template.create_module_code_template();
       let mut code_generation_context = ModuleCodeGenerationContext {

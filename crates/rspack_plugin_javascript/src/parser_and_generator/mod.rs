@@ -14,9 +14,9 @@ use rspack_core::{
   COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY, ChunkGraph, CollectedTypeScriptInfo, Compilation,
   ConcatenationScope, ConcatenationScopeInfoMode, DependenciesBlock, DependencyId, GenerateContext,
   GeneratedSource, ImportMeta, Module, ModuleArgument, ModuleCodeTemplate, ModuleGraph, ModuleType,
-  ParseContext, ParseResult, ParserAndGenerator, ResolvedModuleOptions, RuntimeGlobals,
-  RuntimeGlobalsRenderMode, RuntimeVariable, SideEffectsBailoutItem, SourceType, TemplateContext,
-  TemplateReplaceSource,
+  ParseContext, ParseResult, ParserAndGenerator, PendingConcatenationScopeInfo,
+  ResolvedModuleOptions, RuntimeGlobals, RuntimeGlobalsRenderMode, RuntimeVariable,
+  SideEffectsBailoutItem, SourceType, TemplateContext, TemplateReplaceSource,
   diagnostics::map_box_diagnostics_to_module_parse_diagnostics,
   remove_bom, render_init_fragments, render_init_fragments_to_strings,
   rspack_sources::{BoxSource, ReplaceSource, Source, SourceExt},
@@ -385,6 +385,9 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       program: &program,
     };
     let parser_runtime_requirements = ParserRuntimeRequirementsData::new(runtime_template);
+    // `BuildInfo` can be reused by a watch rebuild. Clear the previous result
+    // before parser plugins use this field to request codegen-time analysis.
+    build_info.pending_concatenation_scope_info = None;
 
     let ScanDependenciesResult {
       dependencies,
@@ -419,13 +422,22 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     };
     diagnostics.append(&mut warning_diagnostics);
     let mut side_effects_bailout = None;
+    let codegen_analysis_required = build_info.pending_concatenation_scope_info.take();
 
     let pending_concatenation_scope_info = if build_meta.esm()
       && (uses_esm_library
         || (compiler_options.optimization.concatenate_modules
           && build_info.module_concatenation_bailout.is_none()))
     {
-      pending_concatenation_scope_info_visitor.map(|visitor| Box::new(visitor.into_info()))
+      if matches!(
+        codegen_analysis_required.as_deref(),
+        Some(PendingConcatenationScopeInfo::CodegenAnalysisRequired)
+      ) {
+        drop(pending_concatenation_scope_info_visitor);
+        codegen_analysis_required
+      } else {
+        pending_concatenation_scope_info_visitor.map(|visitor| Box::new(visitor.into_info()))
+      }
     } else {
       drop(pending_concatenation_scope_info_visitor);
       None

@@ -1086,7 +1086,10 @@ impl ModuleConcatenationPlugin {
           (mode, pending),
           (
             ConcatenationScopeInfoMode::AnalyzeAtMake,
-            Some(PendingConcatenationScopeInfo::Analyzed(_))
+            Some(
+              PendingConcatenationScopeInfo::Analyzed(_)
+                | PendingConcatenationScopeInfo::CodegenAnalysisRequired,
+            ),
           ) | (
             ConcatenationScopeInfoMode::GenerateAtCodegen,
             Some(PendingConcatenationScopeInfo::Generated)
