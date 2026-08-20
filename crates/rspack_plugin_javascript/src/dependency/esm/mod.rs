@@ -55,7 +55,6 @@ pub use self::{
   import_weak_dependency::{ImportWeakDependency, ImportWeakDependencyTemplate},
   provide_dependency::{ProvideDependency, ProvideDependencyTemplate},
 };
-pub(super) use self::esm_compatibility_dependency::add_async_module_boundary;
 
 pub fn create_resource_identifier_for_esm_dependency(
   request: &str,

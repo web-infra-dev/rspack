@@ -13,7 +13,7 @@ use rspack_core::{
 use rspack_hash::{RspackHash, RspackHasher};
 use swc_atoms::Atom;
 
-use super::add_async_module_boundary;
+use super::esm_compatibility_dependency::add_async_module_boundary;
 
 #[cacheable]
 #[derive(Debug, Clone)]

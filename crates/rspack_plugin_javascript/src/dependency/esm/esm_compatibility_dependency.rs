@@ -7,10 +7,10 @@ use rspack_core::{
 use swc_atoms::Atom;
 
 pub(super) fn add_async_module_boundary(
-  init_fragments: &mut ModuleInitFragments<'_>,
+  init_fragments: &mut ModuleInitFragments,
   compilation: &Compilation,
   module: &dyn rspack_core::Module,
-  runtime_template: &ModuleCodeTemplate,
+  runtime_template: &mut ModuleCodeTemplate,
 ) {
   let module_id = ChunkGraph::get_module_id(&compilation.module_ids_artifact, module.identifier())
     .map(ToString::to_string)
