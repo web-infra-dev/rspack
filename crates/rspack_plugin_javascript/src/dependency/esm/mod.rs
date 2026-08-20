@@ -19,9 +19,7 @@ use std::fmt::Write as _;
 use rspack_core::{DependencyCategory, ImportAttributes, ImportPhase, ResourceIdentifier};
 
 pub use self::{
-  esm_compatibility_dependency::{
-    ESMCompatibilityDependency, ESMCompatibilityDependencyTemplate,
-  },
+  esm_compatibility_dependency::{ESMCompatibilityDependency, ESMCompatibilityDependencyTemplate},
   esm_export_expression_dependency::{
     DeclarationId, DeclarationInfo, ESMExportExpressionDependency,
     ESMExportExpressionDependencyTemplate, NamedDeclarationInfo,
