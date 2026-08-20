@@ -1,0 +1,3 @@
+(() => {
+	this.arrowThisValue = "arrow this";
+})();

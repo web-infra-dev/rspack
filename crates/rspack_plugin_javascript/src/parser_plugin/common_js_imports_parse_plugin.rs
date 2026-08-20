@@ -1220,6 +1220,7 @@ fn clear_create_require_tag(parser: &mut JavascriptParser, name: &Atom) {
 
 #[inline(never)]
 fn add_require_cache_dependency(parser: &mut JavascriptParser, range: DependencyRange) {
+  parser.build_info.untracked_module_exports_access = true;
   parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
     range,
     RuntimeGlobals::MODULE_CACHE,

@@ -52,8 +52,11 @@ impl Occasion for MakeOccasion {
       module_to_lazy_make,
       affected_modules,
       affected_dependencies,
+      revoked_dependency_target_modules: _,
+      had_untracked_module_exports_access_before_make: _,
       issuer_update_modules,
       // skip
+      untracked_module_exports_access_modules: _,
       entry_dependencies: _,
       file_dependencies: _,
       context_dependencies: _,
@@ -97,6 +100,7 @@ impl Occasion for MakeOccasion {
     let mut context_dep = FileCounter::default();
     let mut missing_dep = FileCounter::default();
     let mut build_dep = FileCounter::default();
+    let mut untracked_module_exports_access_modules = IdentifierSet::default();
     for (mid, module) in mg.modules() {
       let build_info = module.build_info();
       let resource_id = ResourceId::from(*mid);
@@ -104,6 +108,9 @@ impl Occasion for MakeOccasion {
       context_dep.add_files(&resource_id, &build_info.context_dependencies);
       missing_dep.add_files(&resource_id, &build_info.missing_dependencies);
       build_dep.add_files(&resource_id, &build_info.build_dependencies);
+      if build_info.untracked_module_exports_access {
+        untracked_module_exports_access_modules.insert(*mid);
+      }
       if !module.diagnostics().is_empty() {
         make_failed_module.insert(*mid);
       }
@@ -128,12 +135,15 @@ impl Occasion for MakeOccasion {
       // temporary data set to default
       affected_modules: Default::default(),
       affected_dependencies: Default::default(),
+      revoked_dependency_target_modules: Default::default(),
+      had_untracked_module_exports_access_before_make: false,
       issuer_update_modules: Default::default(),
 
       side_effects_state_artifact: Default::default(),
       module_graph: mg,
       module_to_lazy_make,
 
+      untracked_module_exports_access_modules,
       make_failed_module,
       make_failed_dependencies,
       entry_dependencies,

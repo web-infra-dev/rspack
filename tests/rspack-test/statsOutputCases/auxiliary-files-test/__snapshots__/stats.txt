@@ -43,6 +43,7 @@ modules by path ./ xx bytes (javascript) xx bytes (asset)
     [no exports used]
     ModuleConcatenation bailout: Module is an entry point
   ./stringModule.js xx bytes [depth 1] [orphan] [built]
+    [no exports]
     [module unused]
     ModuleConcatenation bailout: Module is not an ECMAScript module
     [inactive] esm import ./stringModule [523] ./index.js 1:1-42

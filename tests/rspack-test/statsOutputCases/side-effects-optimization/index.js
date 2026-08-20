@@ -1,4 +1,4 @@
-import { huh, a } from "big-module";
+import { a } from "big-module";
 import { smallVar } from "module-with-export";
 
-console.log(huh, a, smallVar);
+console.log(a, smallVar);

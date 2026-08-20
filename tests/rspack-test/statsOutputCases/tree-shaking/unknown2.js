@@ -1,3 +1,3 @@
 console.log();
-// Keep CommonJS exports unknown for this fixture.
-() => module.exports;
+// This fixture intentionally reads the CommonJS exports object.
+exports;

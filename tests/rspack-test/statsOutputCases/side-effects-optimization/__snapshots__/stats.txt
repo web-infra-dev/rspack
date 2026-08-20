@@ -1,57 +1,30 @@
-asset main.js xx KiB [emitted] (name: main)
-runtime modules xx KiB 4 modules
-cacheable modules xx KiB
-  modules by path ./node_modules/big-module/*.js xx bytes
-    ./node_modules/big-module/index.js xx bytes [built] [code generated]
-      [only some exports used: huh]
-      ModuleConcatenation bailout: Reexports in this module do not have a static target (huh : used in main)
-    ./node_modules/big-module/a.js xx bytes [built] [code generated]
-      [only some exports used: a, huh]
-      ModuleConcatenation bailout: List of module exports is dynamic (huh : maybe provided (runtime-defined) and used in main)
-    ./node_modules/big-module/log.js xx bytes [built] [code generated]
-      [only some exports used: huh]
-      Statement with side_effects in source code at ./node_modules/big-module/log.js<LINE_COL_RANGE>
-      ModuleConcatenation bailout: List of module exports is dynamic (huh : maybe provided (runtime-defined) and used in main)
-  modules by path ./node_modules/module-with-export/*.js xx KiB
-    ./node_modules/module-with-export/index.js xx KiB [built] [code generated]
-      [only some exports used: huh, smallVar]
-      ModuleConcatenation bailout: List of module exports is dynamic (huh : maybe provided (runtime-defined) and used in main)
-    ./node_modules/module-with-export/emptyModule.js xx bytes [built] [code generated]
-      [used exports unknown]
-      ModuleConcatenation bailout: Module is not an ECMAScript module
-  ./index.js xx bytes [built] [code generated]
-    [no exports]
-    [no exports used]
-    Statement with side_effects in source code at ./index.js<LINE_COL>-31
-    ModuleConcatenation bailout: Module is an entry point
-    ModuleConcatenation bailout: Cannot concat with <TEST_ROOT>/statsOutputCases/side-effects-optimization/node_modules/big-module/index.js: Reexports in this module do not have a static target (huh : used in main)
-    ModuleConcatenation bailout: Cannot concat with <TEST_ROOT>/statsOutputCases/side-effects-optimization/node_modules/module-with-export/index.js because of <TEST_ROOT>/statsOutputCases/side-effects-optimization/node_modules/big-module/index.js: Reexports in this module do not have a static target (huh : used in main)
+asset main.js xx bytes [emitted] (name: main)
+orphan modules xx KiB [orphan] 6 modules
+./index.js + 1 modules xx KiB [code generated]
+  [no exports]
+  [no exports used]
+  | orphan modules xx KiB [orphan] 2 modules
 Rspack x.x.x compiled successfully in X s
 
-asset main.no-side.js xx KiB [emitted] (name: main)
+asset main.no-side.js xx bytes [emitted] (name: main)
 runtime modules xx KiB 4 modules
+orphan modules xx bytes [orphan] 3 modules
 cacheable modules xx KiB
-  modules by path ./node_modules/big-module/*.js xx bytes
-    ./node_modules/big-module/index.js xx bytes [built] [code generated]
-      [only some exports used: a, huh]
-      ModuleConcatenation bailout: Reexports in this module do not have a static target (huh : used in main)
-    ./node_modules/big-module/a.js xx bytes [built] [code generated]
-      [only some exports used: a, huh]
-      ModuleConcatenation bailout: List of module exports is dynamic (huh : maybe provided (runtime-defined) and used in main)
-    ./node_modules/big-module/log.js xx bytes [built] [code generated]
-      [only some exports used: huh]
-      ModuleConcatenation bailout: List of module exports is dynamic (huh : maybe provided (runtime-defined) and used in main)
   modules by path ./node_modules/module-with-export/*.js xx KiB
-    ./node_modules/module-with-export/index.js xx KiB [built] [code generated]
-      [only some exports used: huh, smallVar]
-      ModuleConcatenation bailout: List of module exports is dynamic (huh : maybe provided (runtime-defined) and used in main)
+    ./node_modules/module-with-export/index.js xx bytes [built] [code generated]
+      [exports: justToBeABigFile, smallVar]
+      [only some exports used: smallVar]
+      ModuleConcatenation bailout: Cannot concat with <TEST_ROOT>/statsOutputCases/side-effects-optimization/node_modules/module-with-export/emptyModule.js: Module is not an ECMAScript module
     ./node_modules/module-with-export/emptyModule.js xx bytes [built] [code generated]
-      [used exports unknown]
+      [no exports]
+      [no exports used]
       ModuleConcatenation bailout: Module is not an ECMAScript module
-  ./index.js xx bytes [built] [code generated]
+  ./index.js + 2 modules xx bytes [code generated]
     [no exports]
     [no exports used]
-    ModuleConcatenation bailout: Module is an entry point
-    ModuleConcatenation bailout: Cannot concat with <TEST_ROOT>/statsOutputCases/side-effects-optimization/node_modules/big-module/index.js: Reexports in this module do not have a static target (huh : used in main)
-    ModuleConcatenation bailout: Cannot concat with <TEST_ROOT>/statsOutputCases/side-effects-optimization/node_modules/module-with-export/index.js because of <TEST_ROOT>/statsOutputCases/side-effects-optimization/node_modules/big-module/index.js: Reexports in this module do not have a static target (huh : used in main)
+    | orphan modules xx bytes [orphan] 3 modules
+  ./node_modules/big-module/log.js xx bytes [built] [code generated]
+    [exports: justToBeABigFile, smallVar]
+    [no exports used]
+    ModuleConcatenation bailout: Cannot concat with <TEST_ROOT>/statsOutputCases/side-effects-optimization/node_modules/module-with-export/index.js because of <TEST_ROOT>/statsOutputCases/side-effects-optimization/index.js: Module is an entry point
 Rspack x.x.x compiled successfully in X s

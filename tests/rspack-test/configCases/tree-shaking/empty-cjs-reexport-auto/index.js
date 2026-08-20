@@ -1,28 +1,33 @@
 export * from "./barrel";
 
 import { amdFactory, amdObject } from "./amd-barrel";
+import { arrowThisValue } from "./arrow-barrel";
+import { webpackModuleValue } from "./webpack-module-barrel";
 import { commonJsValue } from "./disabled-commonjs-barrel";
 import "./mutate-external-require";
 import "./mutate-external-import";
 import { importValue, requireValue } from "./external-barrel";
 import { noParseValue } from "./no-parse-barrel";
+import "./side-effect-import";
 import "./access-exports";
 import "./access-module";
 import "./access-this";
-import "./access-eval";
 
 const findModule = name => __STATS__.modules.find(m => m.name.endsWith(`/${name}`));
 
 it("should infer empty exports for auto modules without cjs export access", () => {
-	expect(findModule("empty.ts").providedExports).toEqual([]);
-	expect(findModule("barrel.js").providedExports).toEqual(["live"]);
+	expect(globalThis.emptySideEffectImportRan).toBe(true);
+	expect(findModule("index.js").providedExports).toEqual(["live"]);
 });
 
 it("should keep unknown exports when cjs export access is observed", () => {
+	expect(arrowThisValue).toBe("arrow this");
+	expect(webpackModuleValue).toBe("webpack module");
+	expect(findModule("access-arrow-this.js").providedExports).toBe(null);
+	expect(findModule("access-webpack-module.js").providedExports).toBe(null);
 	expect(findModule("access-exports.js").providedExports).toBe(null);
 	expect(findModule("access-module.js").providedExports).toBe(null);
 	expect(findModule("access-this.js").providedExports).toBe(null);
-	expect(findModule("access-eval.js").providedExports).toBe(null);
 });
 
 it("should keep amd define exports unknown", () => {

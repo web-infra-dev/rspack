@@ -544,13 +544,20 @@ impl<'parser> JavascriptParser<'parser> {
         .map_or(JavascriptParserCommonjsExportsOption::Enable, |commonjs| {
           commonjs.exports
         });
-      if commonjs_exports == JavascriptParserCommonjsExportsOption::Disable {
-        build_info.access_module_exports = Some(true);
-      } else {
-        build_info.access_module_exports = Some(false);
+      if commonjs_exports != JavascriptParserCommonjsExportsOption::Disable {
+        build_info.module_exports_accessed = Some(false);
         plugins.push(Box::new(parser_plugin::CommonJsExportsParserPlugin::new(
           commonjs_exports == JavascriptParserCommonjsExportsOption::SkipInEsm,
         )));
+        if !compiler_options
+          .output
+          .environment
+          .supports_method_shorthand()
+        {
+          plugins.push(Box::new(
+            parser_plugin::CommonJsExportsCallerReflectionParserPlugin,
+          ));
+        }
       }
     }
 
@@ -800,8 +807,12 @@ impl<'parser> JavascriptParser<'parser> {
     matches!(self.top_level_scope, TopLevelScope::Top)
   }
 
-  pub fn is_top_level_this(&self) -> bool {
+  pub fn is_top_level_lexical_scope(&self) -> bool {
     !matches!(self.top_level_scope, TopLevelScope::False)
+  }
+
+  pub fn is_top_level_this(&self) -> bool {
+    self.is_top_level_lexical_scope()
   }
 
   pub fn add_local_module(&mut self, name: &Atom, dep_idx: usize) {

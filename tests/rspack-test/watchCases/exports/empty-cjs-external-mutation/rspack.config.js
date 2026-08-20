@@ -4,5 +4,10 @@ module.exports = {
   optimization: {
     concatenateModules: false,
     minimize: false,
+    providedExports: true,
+  },
+  stats: {
+    modules: true,
+    providedExports: true,
   },
 };

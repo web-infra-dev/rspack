@@ -1,9 +1,12 @@
+use std::cmp::Ordering;
+
 use concat_string::concat_string;
 use rspack_core::{
   ConstDependency, ImportMetaKnownProperties, ModuleArgument, RuntimeGlobals,
   RuntimeGlobalsRenderMode, RuntimeRequirementsDependency,
-  RuntimeRequirementsDependencyWriteOperation, property_access,
-  runtime_mode::RuntimeMode as ExperimentRuntimeMode,
+  RuntimeRequirementsDependencyWriteOperation, RuntimeVariable, property_access,
+  rspack_export_runtime_variable_name, rspack_runtime_variable_name,
+  runtime_mode::RuntimeMode as ExperimentRuntimeMode, runtime_variable_name,
 };
 use rspack_error::{Error, Severity};
 use rspack_util::{SpanExt, json_stringify_str};
@@ -48,6 +51,8 @@ const API_EXPORTS_INFO: &str = "__webpack_exports_info__";
 const API_IS_INCLUDED: &str = "__webpack_is_included__";
 const API_LAYER: &str = "__webpack_layer__";
 const API_MODULE: &str = "__webpack_module__";
+const API_MODULE_CACHE: &str = "__webpack_module_cache__";
+const API_MODULES: &str = "__webpack_modules__";
 const API_NON_REQUIRE: &str = "__non_webpack_require__";
 const API_REQUIRE: &str = "__webpack_require__";
 
@@ -86,7 +91,7 @@ static RUNTIME_APIS: &[RuntimeApi] = &[
     identifier_mode: Some(RuntimeApiIdentifierMode::Normal),
   },
   RuntimeApi {
-    name: "__webpack_modules__",
+    name: API_MODULES,
     type_of: Some("object"),
     runtime_global: Some(RuntimeGlobals::MODULE_FACTORIES),
     identifier_mode: Some(RuntimeApiIdentifierMode::Normal),
@@ -281,6 +286,80 @@ fn is_writable_string_runtime_global(runtime_global: RuntimeGlobals) -> bool {
 
 fn get_typeof_evaluate_of_api(sym: &str) -> Option<&'static str> {
   runtime_api_from_name(sym).and_then(|api| api.type_of)
+}
+
+fn mark_untracked_module_exports_access(parser: &mut JavascriptParser) {
+  parser.build_info.untracked_module_exports_access = true;
+}
+
+/// Bindings that expose the runtime require, the module factories or the module cache. Reaching
+/// any of them lets user code mutate another module's exports without a module graph edge.
+///
+/// This list only depends on the runtime rendering options, so it is built once per module in
+/// [`crate::ParserRuntimeRequirementsData::new`] instead of on every parser hook invocation.
+pub(crate) fn untracked_module_exports_access_apis(
+  render_mode: RuntimeGlobalsRenderMode,
+  context: &str,
+  require: &str,
+  module_cache: &str,
+) -> Box<[Box<str>]> {
+  let raw_runtime_variable_name = |runtime_variable| match render_mode {
+    RuntimeGlobalsRenderMode::Webpack => runtime_variable_name(runtime_variable),
+    RuntimeGlobalsRenderMode::RspackContext | RuntimeGlobalsRenderMode::RspackLexical => {
+      rspack_runtime_variable_name(runtime_variable)
+    }
+    RuntimeGlobalsRenderMode::RspackExport => rspack_export_runtime_variable_name(runtime_variable),
+  };
+  let mut apis: Vec<Box<str>> = [
+    API_REQUIRE,
+    API_MODULE_CACHE,
+    API_MODULES,
+    raw_runtime_variable_name(&RuntimeVariable::Require),
+    raw_runtime_variable_name(&RuntimeVariable::ModuleCache),
+    raw_runtime_variable_name(&RuntimeVariable::Modules),
+    raw_runtime_variable_name(&RuntimeVariable::StartupExec),
+    context,
+    require,
+    module_cache,
+  ]
+  .into_iter()
+  .map(Box::from)
+  .collect();
+  // The render modes reuse the same names for several of these APIs.
+  apis.sort_unstable();
+  apis.dedup();
+  apis.into_boxed_slice()
+}
+
+/// Whether the resolved expression name accesses `api` itself or one of its members.
+///
+/// `for_name` is a dot joined member chain, so the length and the member boundary are checked
+/// before the bytes: this keeps the common case, where the name is not a runtime API at all, free
+/// of string comparisons.
+fn accesses_api(for_name: &[u8], api: &[u8]) -> bool {
+  match for_name.len().cmp(&api.len()) {
+    Ordering::Less => false,
+    Ordering::Equal => for_name == api,
+    Ordering::Greater => for_name[api.len()] == b'.' && &for_name[..api.len()] == api,
+  }
+}
+
+fn mark_untracked_module_exports_access_for_runtime_api(
+  parser: &mut JavascriptParser,
+  for_name: &str,
+) {
+  if parser.build_info.untracked_module_exports_access {
+    return;
+  }
+  let for_name = for_name.as_bytes();
+  if parser
+    .parser_runtime_requirements
+    .untracked_module_exports_access_apis
+    .iter()
+    .any(|api| accesses_api(for_name, api.as_bytes()))
+  {
+    mark_untracked_module_exports_access(parser);
+  }
 }
 
 pub(crate) fn import_meta_runtime_api_from_name(
@@ -589,6 +668,8 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
     ident: &Ident,
     for_name: &str,
   ) -> Option<bool> {
+    mark_untracked_module_exports_access_for_runtime_api(parser, for_name);
+
     if for_name == API_LAYER {
       parser.add_presentational_dependency(Box::new(ConstDependency::new(
         ident.span.into(),
@@ -600,6 +681,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
     }
 
     if for_name == API_MODULE {
+      parser.build_info.module_exports_accessed = Some(true);
       let range = ident.span.into();
       let loc = parser.to_dependency_location(range);
       parser
@@ -698,6 +780,10 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
     member_expr: &MemberExpr,
     for_name: &str,
   ) -> Option<bool> {
+    // Low-level runtime APIs can access the module cache, replace factories, or intercept module
+    // execution without creating module graph connections to the affected modules.
+    mark_untracked_module_exports_access_for_runtime_api(parser, for_name);
+
     if for_name == "require.extensions"
       || for_name == "require.config"
       || for_name == "require.version"
@@ -714,6 +800,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
     }
 
     if for_name == "require.cache" {
+      mark_untracked_module_exports_access(parser);
       parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
         member_expr.span().into(),
         RuntimeGlobals::MODULE_CACHE,
@@ -751,6 +838,8 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
     _members_optionals: &[bool],
     member_ranges: &[Span],
   ) -> Option<bool> {
+    mark_untracked_module_exports_access_for_runtime_api(parser, for_name);
+
     let len = members.len();
     if len >= 1 && for_name == API_EXPORTS_INFO {
       let prop = members[len - 1].clone();
@@ -786,6 +875,8 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
     _members_optionals: &[bool],
     member_ranges: &[Span],
   ) -> Option<bool> {
+    mark_untracked_module_exports_access_for_runtime_api(parser, for_name);
+
     if parser.compiler_options.experiments.runtime_mode != ExperimentRuntimeMode::Rspack {
       return None;
     }
@@ -833,6 +924,8 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
     member_ranges: &[Span],
     for_name: &str,
   ) -> Option<bool> {
+    mark_untracked_module_exports_access_for_runtime_api(parser, for_name);
+
     if parser.compiler_options.experiments.runtime_mode != ExperimentRuntimeMode::Rspack {
       return None;
     }
@@ -857,6 +950,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
     ident: &Ident,
     for_name: &str,
   ) -> Option<bool> {
+    mark_untracked_module_exports_access_for_runtime_api(parser, for_name);
     if expr.left.as_pat().is_some() {
       return None;
     }
@@ -927,6 +1021,8 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
     call_expr: &CallExpr,
     for_name: &str,
   ) -> Option<bool> {
+    mark_untracked_module_exports_access_for_runtime_api(parser, for_name);
+
     if for_name == API_IS_INCLUDED
       && call_expr.args.len() == 1
       && call_expr.args[0].spread.is_none()

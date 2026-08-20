@@ -577,7 +577,7 @@ impl AMDDefineDependencyParserPlugin {
       named_module,
     ));
 
-    parser.build_info.access_module_exports = Some(true);
+    parser.build_info.module_exports_accessed = Some(true);
     parser.add_presentational_dependency(dep);
 
     Some(true)

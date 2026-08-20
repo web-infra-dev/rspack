@@ -107,10 +107,6 @@ impl ESMImportSideEffectDependency {
   fn missing_module_active(&self) -> bool {
     !self.lazy_make
   }
-
-  pub fn is_star_export(&self) -> bool {
-    self.star_export
-  }
 }
 
 pub fn esm_import_dependency_apply<T: ModuleDependency>(

@@ -2,6 +2,7 @@
 module.exports = {
   mode: 'production',
   target: 'node',
+  amd: {},
   optimization: {
     concatenateModules: false,
     minimize: false,

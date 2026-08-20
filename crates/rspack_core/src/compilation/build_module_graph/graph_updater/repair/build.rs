@@ -186,8 +186,20 @@ impl Task<TaskContext> for BuildResultTask {
     }
 
     let module_identifier = module.identifier();
+    let untracked_module_exports_access = module.build_info().untracked_module_exports_access;
 
     module_graph.add_module(module);
+    if untracked_module_exports_access {
+      context
+        .artifact
+        .untracked_module_exports_access_modules
+        .insert(module_identifier);
+    } else {
+      context
+        .artifact
+        .untracked_module_exports_access_modules
+        .remove(&module_identifier);
+    }
 
     let mut tasks: Vec<Box<dyn Task<TaskContext>>> = vec![];
 

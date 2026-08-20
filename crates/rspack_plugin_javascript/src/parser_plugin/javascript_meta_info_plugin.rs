@@ -19,7 +19,9 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for JavascriptMetaInfoPlugin {
     for_name: &str,
   ) -> Option<bool> {
     if for_name == "eval" {
-      parser.build_info.access_module_exports = Some(true);
+      parser.build_info.module_exports_accessed = Some(true);
+      // Direct eval can reach runtime module-cache bindings without creating module graph edges.
+      parser.build_info.untracked_module_exports_access = true;
       parser.build_info.module_concatenation_bailout = Some("eval()".into());
       if let Some(top_level_symbol) = parser.inner_graph.get_top_level_symbol() {
         parser.inner_graph.add_usage(
