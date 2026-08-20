@@ -228,13 +228,7 @@ impl DependencyTemplate for ProvideDependencyTemplate {
     init_fragments.push(Box::new(fragment));
     if is_async {
       if module.build_meta().exports_type() != BuildMetaExportsType::Namespace {
-        add_async_module_boundary(
-          init_fragments,
-          compilation,
-          *module,
-          runtime_template,
-          true,
-        );
+        add_async_module_boundary(init_fragments, compilation, *module, runtime_template, true);
       }
       init_fragments.push(Box::new(AwaitDependenciesInitFragment::new_single(
         rendered_identifier.clone(),
