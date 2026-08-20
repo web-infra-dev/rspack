@@ -749,6 +749,13 @@ impl ExternalModule {
         )
       ),
       "var" | "promise" | "const" | "let" | "assign" => {
+        if let Some(concatenation_scope) = concatenation_scope.as_deref_mut()
+          && let Some(request) = request
+        {
+          // The primary request is emitted as a free expression. Preserve its
+          // identifiers so concatenated bindings cannot capture the external.
+          concatenation_scope.register_used_names_from_generated_code(request.primary());
+        }
         let external_variable = if let Some(request) = request {
           get_request_string(request)
         } else {
@@ -1066,6 +1073,11 @@ if(typeof {global} !== "undefined") return resolve();
         )
       }
       _ => {
+        if let Some(concatenation_scope) = concatenation_scope.as_deref_mut()
+          && let Some(request) = request
+        {
+          concatenation_scope.register_used_names_from_generated_code(request.primary());
+        }
         let external_variable = if let Some(request) = request {
           get_request_string(request)
         } else {
