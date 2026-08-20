@@ -199,7 +199,7 @@ rspack_macros                          = { version = "=0.102.0-beta.1", path = "
 rspack_napi                            = { version = "=0.102.0-beta.1", path = "crates/rspack_napi", default-features = false }
 rspack_napi_macros                     = { version = "=0.102.0-beta.1", path = "crates/rspack_napi_macros", default-features = false }
 rspack_parallel                        = { version = "=0.102.0-beta.1", path = "crates/rspack_parallel", default-features = false }
-rspack_paths                           = { version = "=0.102.0-beta.1", path = "crates/rspack_paths", default-features = false }
+rspack_paths                           = { version = "=0.102.0-beta.1", path = "crates/rspack_paths", default-features = false , features=["cacheable"] }
 rspack_plugin_asset                    = { version = "=0.102.0-beta.1", path = "crates/rspack_plugin_asset", default-features = false }
 rspack_plugin_banner                   = { version = "=0.102.0-beta.1", path = "crates/rspack_plugin_banner", default-features = false }
 rspack_plugin_case_sensitive           = { version = "=0.102.0-beta.1", path = "crates/rspack_plugin_case_sensitive", default-features = false }
