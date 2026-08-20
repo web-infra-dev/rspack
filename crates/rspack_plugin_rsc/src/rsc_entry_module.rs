@@ -324,11 +324,10 @@ impl Module for RscEntryModule {
           continue;
         }
 
-        let block_modifier = format!("server-entry={server_entry}");
         let block = AsyncDependenciesBlock::new(
           self.identifier,
+          blocks.len(),
           None,
-          Some(&block_modifier),
           block_dependencies,
           Some(server_entry.clone()),
         );
@@ -350,7 +349,7 @@ impl Module for RscEntryModule {
 
         let block = AsyncDependenciesBlock::new(
           self.identifier,
-          None,
+          blocks.len(),
           None,
           dependencies,
           Some(format!("{}#root-client", self.name)),
@@ -366,7 +365,7 @@ impl Module for RscEntryModule {
         );
         let block = AsyncDependenciesBlock::new(
           self.identifier,
-          None,
+          blocks.len(),
           None,
           vec![Box::new(dep) as Box<dyn Dependency>],
           Some(client_module.request.clone()),

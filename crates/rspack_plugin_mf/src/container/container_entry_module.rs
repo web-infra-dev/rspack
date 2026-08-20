@@ -213,8 +213,8 @@ impl Module for ContainerEntryModule {
       for (name, options) in &self.exposes {
         let mut block = AsyncDependenciesBlock::new(
           self.identifier,
+          blocks.len(),
           None,
-          Some(name),
           options
             .import
             .iter()
