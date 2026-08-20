@@ -21,9 +21,9 @@ struct LoaderCacheEntry {
 
 #[napi(object)]
 pub struct JsLoaderCacheEntry {
-  pub content: Either<Null, Buffer>,
+  pub content: Either<Null, Uint8Array>,
   pub content_is_string: bool,
-  pub source_map: Option<Buffer>,
+  pub source_map: Option<Uint8Array>,
 }
 
 #[napi]
@@ -159,8 +159,8 @@ impl JsLoaderCache {
   pub fn get(
     &self,
     loader_index: u32,
-    content: Buffer,
-    source_map: Option<Buffer>,
+    content: Uint8Array,
+    source_map: Option<Uint8Array>,
   ) -> napi::Result<Option<JsLoaderCacheEntry>> {
     let loader = self.loader(loader_index)?;
     let etag = loader_cache_etag(

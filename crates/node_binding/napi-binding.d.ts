@@ -408,7 +408,7 @@ export declare class JsExportsInfo {
 }
 
 export declare class JsLoaderCache {
-  get(loaderIndex: number, content: Buffer, sourceMap?: Buffer | undefined | null): JsLoaderCacheEntry | null
+  get(loaderIndex: number, content: Uint8Array, sourceMap?: Uint8Array | undefined | null): JsLoaderCacheEntry | null
   store(loaderIndex: number, output: JsLoaderCacheEntry): void
 }
 
@@ -955,9 +955,9 @@ export interface JsLinkPreloadData {
 }
 
 export interface JsLoaderCacheEntry {
-  content: null | Buffer
+  content: null | Uint8Array
   contentIsString: boolean
-  sourceMap?: Buffer
+  sourceMap?: Uint8Array
 }
 
 export interface JsLoaderContext {

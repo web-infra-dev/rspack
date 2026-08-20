@@ -65,6 +65,7 @@ import {
 } from './utils';
 
 const LOADER_PROCESS_NAME = 'Loader Analysis';
+const decoder = new TextDecoder();
 
 type LoaderObjectOptions = string | (object & { ident?: unknown }) | null;
 
@@ -191,7 +192,7 @@ export class LoaderObject {
 }
 
 class JsSourceMap {
-  static __from_binding(map?: Buffer) {
+  static __from_binding(map?: Uint8Array) {
     return isNil(map) ? undefined : toObject(map);
   }
 
@@ -1112,7 +1113,7 @@ export async function runLoaders(
           if (cached) {
             currentLoaderObject.normalExecuted = true;
             content = cached.contentIsString
-              ? cached.content?.toString()
+              ? cached.content && decoder.decode(cached.content)
               : cached.content;
             sourceMap = JsSourceMap.__from_binding(cached.sourceMap);
             sourceMapParsed = true;

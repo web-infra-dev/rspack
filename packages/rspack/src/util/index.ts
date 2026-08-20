@@ -1,5 +1,7 @@
 import type { LoaderObject } from '../loader-runner';
 
+const decoder = new TextDecoder();
+
 export function isNil(value: unknown): value is null | undefined {
   return value === null || value === undefined;
 }
@@ -18,10 +20,14 @@ export const toBuffer = (bufLike: string | Buffer | Uint8Array): Buffer => {
   throw new Error('Buffer, Uint8Array or string expected');
 };
 
-export const toObject = (input: string | Buffer | object): object => {
+export const toObject = (
+  input: string | Buffer | Uint8Array | object,
+): object => {
   let s: string;
   if (Buffer.isBuffer(input)) {
     s = input.toString('utf8');
+  } else if (input instanceof Uint8Array) {
+    s = decoder.decode(input);
   } else if (input && typeof input === 'object') {
     return input;
   } else if (typeof input === 'string') {

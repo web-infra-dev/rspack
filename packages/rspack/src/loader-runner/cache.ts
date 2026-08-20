@@ -1,25 +1,29 @@
 import type { JsLoaderContext } from '@rspack/binding';
 
-import { isNil, toBuffer } from '../util';
+import { isNil } from '../util';
+
+type LoaderCacheContent = string | Uint8Array;
 
 export type LoaderCacheEntry = {
-  content: Buffer | null;
+  content: Uint8Array | null;
   contentIsString: boolean;
-  sourceMap?: Buffer;
+  sourceMap?: Uint8Array;
 };
 
 type LoaderCacheApi = {
   get(
     loaderIndex: number,
-    content: Buffer,
-    sourceMap?: Buffer,
+    content: Uint8Array,
+    sourceMap?: Uint8Array,
   ): LoaderCacheEntry | null;
   store(loaderIndex: number, output: LoaderCacheEntry): void;
 };
 
-function toOwnedBuffer(value: string | Buffer | Uint8Array) {
-  if (typeof value === 'string') return Buffer.from(value);
-  return Buffer.from(value);
+const encoder = new TextEncoder();
+
+function toUint8Array(value: string | Uint8Array) {
+  if (typeof value === 'string') return encoder.encode(value);
+  return Uint8Array.from(value);
 }
 
 export class LoaderCache {
@@ -33,8 +37,8 @@ export class LoaderCache {
 
   get(
     loaderIndex: number,
-    content: Parameters<typeof toBuffer>[0] | null | undefined,
-    sourceMap: Buffer | Uint8Array | undefined,
+    content: LoaderCacheContent | null | undefined,
+    sourceMap: Uint8Array | undefined,
     additionalData: unknown,
   ): LoaderCacheEntry | null | undefined {
     const context = this.#context;
@@ -51,15 +55,15 @@ export class LoaderCache {
 
     return this.#api.get(
       loaderIndex,
-      toBuffer(content),
-      sourceMap ? Buffer.from(sourceMap) : undefined,
+      toUint8Array(content),
+      sourceMap ? Uint8Array.from(sourceMap) : undefined,
     );
   }
 
   store(
     loaderIndex: number,
-    content: Parameters<typeof toBuffer>[0] | null | undefined,
-    sourceMap: Buffer | Uint8Array | undefined,
+    content: LoaderCacheContent | null | undefined,
+    sourceMap: Uint8Array | undefined,
     additionalData: unknown,
     contentIsString: boolean,
   ) {
@@ -73,32 +77,28 @@ export class LoaderCache {
     }
 
     this.#api.store(loaderIndex, {
-      content: isNil(content) ? null : toOwnedBuffer(content),
+      content: isNil(content) ? null : toUint8Array(content),
       contentIsString,
-      sourceMap: sourceMap ? Buffer.from(sourceMap) : undefined,
+      sourceMap: sourceMap ? Uint8Array.from(sourceMap) : undefined,
     });
   }
 
   workerGet(
     loaderIndex: number,
-    content: Parameters<typeof toBuffer>[0] | null | undefined,
-    sourceMap: Buffer | Uint8Array | undefined,
+    content: LoaderCacheContent | null | undefined,
+    sourceMap: Uint8Array | undefined,
     additionalData: unknown,
   ) {
     const hit = this.get(loaderIndex, content, sourceMap, additionalData);
     if (!hit) return undefined;
-    return {
-      ...hit,
-      content: hit.content ? Buffer.from(hit.content) : null,
-      sourceMap: hit.sourceMap ? Buffer.from(hit.sourceMap) : undefined,
-    };
+    return hit;
   }
 
   workerStore(
     loaderIndex: number,
-    content: Parameters<typeof toBuffer>[0] | null | undefined,
+    content: LoaderCacheContent | null | undefined,
     contentIsString: boolean,
-    sourceMap: Buffer | Uint8Array | undefined,
+    sourceMap: Uint8Array | undefined,
     additionalData: unknown,
   ) {
     this.store(
