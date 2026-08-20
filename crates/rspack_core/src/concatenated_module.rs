@@ -315,7 +315,7 @@ pub struct GeneratedTopLevelSymbol {
   pub preferred_name: Atom,
   pub placeholder: Atom,
   pub target: GeneratedTopLevelSymbolTarget,
-  /// Make-time binding resolved from `original_range` for a rebound symbol.
+  /// Make-time binding resolved for a rebound symbol.
   pub resolved_binding: Option<Atom>,
 }
 
@@ -326,6 +326,9 @@ pub enum GeneratedTopLevelSymbolTarget {
   /// A declaration recreated during code generation that must stay bound to
   /// the original make-time binding.
   Rebind { original_range: DependencyRange },
+  /// A declaration injected during code generation that turns matching
+  /// make-time global references into references to the generated binding.
+  RebindGlobal,
 }
 
 /// Scope identifier supplied by dependency templates because it cannot be

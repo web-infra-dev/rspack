@@ -65,6 +65,7 @@ pub struct ESMExportImportedSpecifierDependency {
   loc: Option<DependencyLocation>,
   factorize_info: FactorizeInfo,
   lazy_make: bool,
+  default_exported_namespace: bool,
 }
 
 impl ESMExportImportedSpecifierDependency {
@@ -98,7 +99,12 @@ impl ESMExportImportedSpecifierDependency {
       loc,
       factorize_info: Default::default(),
       lazy_make: false,
+      default_exported_namespace: false,
     }
+  }
+
+  pub fn set_default_exported_namespace(&mut self) {
+    self.default_exported_namespace = true;
   }
 
   // Because it is shared by multiply ESMExportImportedSpecifierDependency, so put it to `BuildInfo`
@@ -1778,13 +1784,10 @@ impl DependencyTemplate for ESMExportImportedSpecifierDependencyTemplate {
     ) || can_use_concatenated_reference;
 
     if can_handle_in_concatenation_scope && source.concatenation_scope().is_some() {
-      // `export default namespace` has a separate ConstDependency that removes the
-      // export prefix. Keep its unused expression so an overlapping
+      // `export default namespace` has a separate ConstDependency that removes
+      // the export prefix. Keep the expression so an overlapping
       // PureExpressionDependency still has an operand to wrap.
-      let keep_unused_default_namespace_expression = matches!(&mode, ExportMode::Unused(_))
-        && dep.name.as_ref().is_some_and(|name| name == "default")
-        && dep.get_ids(module_graph).is_empty();
-      if !keep_unused_default_namespace_expression {
+      if !dep.default_exported_namespace {
         source.replace(dep.range.start, dep.range.end, String::new(), None);
       } else {
         source.ignore_original_scope_range(dep.range);

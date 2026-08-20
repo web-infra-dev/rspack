@@ -102,6 +102,18 @@ impl<'a> TemplateReplaceSource<'a> {
     })
   }
 
+  pub fn rebind_generated_global_symbol(&mut self, preferred_name: impl Into<String>) -> String {
+    let preferred_name = preferred_name.into();
+    self
+      .faster_concatenation_scope()
+      .map(|scope| {
+        scope
+          .rebind_generated_global_symbol(&preferred_name)
+          .to_string()
+      })
+      .unwrap_or(preferred_name)
+  }
+
   #[inline]
   fn record_edit(
     &mut self,
@@ -208,6 +220,23 @@ impl<'a> TemplateReplaceSource<'a> {
 
   pub fn insert_static(&mut self, start: u32, content: &'static str, name: Option<&'static str>) {
     self.record_edit(start, start, content, GeneratedCodeUsedNames::Scan);
+    self.source.insert_static(start, content, name);
+  }
+
+  /// Inserts static code whose used names have already been recorded in the
+  /// concatenation scope.
+  pub fn insert_static_with_tracked_used_names(
+    &mut self,
+    start: u32,
+    content: &'static str,
+    name: Option<&'static str>,
+  ) {
+    self.record_edit(
+      start,
+      start,
+      content,
+      GeneratedCodeUsedNames::AlreadyTracked,
+    );
     self.source.insert_static(start, content, name);
   }
 

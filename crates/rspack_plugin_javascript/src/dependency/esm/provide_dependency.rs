@@ -159,7 +159,7 @@ impl DependencyTemplate for ProvideDependencyTemplate {
       .as_any()
       .downcast_ref::<ProvideDependency>()
       .expect("ProvideDependencyTemplate should only be used for ProvideDependency");
-    let rendered_identifier = source.ensure_generated_top_level_symbol(dep.identifier.clone());
+    let rendered_identifier = source.rebind_generated_global_symbol(dep.identifier.clone());
 
     let TemplateContext {
       compilation,

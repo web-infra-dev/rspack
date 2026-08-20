@@ -107,7 +107,8 @@ impl PlaceholderReplacements<'_> {
       .filter(|symbol| symbol.placeholder == placeholder)?;
     let binding = match symbol.target {
       GeneratedTopLevelSymbolTarget::New => &symbol.placeholder,
-      GeneratedTopLevelSymbolTarget::Rebind { .. } => symbol.resolved_binding.as_ref()?,
+      GeneratedTopLevelSymbolTarget::Rebind { .. }
+      | GeneratedTopLevelSymbolTarget::RebindGlobal => symbol.resolved_binding.as_ref()?,
     };
     self.internal_names.get(binding).map(Atom::as_str)
   }
@@ -214,6 +215,12 @@ pub(crate) fn populate_info_from_pending(
   module_info.global_scope_ident.clear();
   module_info.binding_to_ref.clear();
   module_info.all_used_names.clear();
+  let rebound_global_names = module_info
+    .generated_top_level_symbols
+    .iter()
+    .filter(|symbol| symbol.target == GeneratedTopLevelSymbolTarget::RebindGlobal)
+    .map(|symbol| symbol.preferred_name.clone())
+    .collect::<SmallVec<[_; 4]>>();
   module_info.idents.reserve(
     pending_idents
       .len()
@@ -230,9 +237,12 @@ pub(crate) fn populate_info_from_pending(
       .len()
       .saturating_add(faster_info.added_used_names.len()),
   );
-  module_info
-    .all_used_names
-    .extend(faster_info.added_used_names.drain(..));
+  module_info.all_used_names.extend(
+    faster_info
+      .added_used_names
+      .drain(..)
+      .filter(|name| !rebound_global_names.contains(name)),
+  );
 
   let mut removed_ranges = SmallVec::<[DependencyRange; 4]>::new();
   let mut non_shorthand_ranges = SmallVec::<[DependencyRange; 4]>::new();
@@ -257,11 +267,13 @@ pub(crate) fn populate_info_from_pending(
       continue;
     }
 
+    let is_rebound_global = pending_ident.kind == ConcatenationScopeIdentKind::Global
+      && rebound_global_names.contains(&symbol);
     if removed_ranges
       .iter()
       .any(|range| range.start <= pending_ident.range.start && pending_ident.range.end <= range.end)
     {
-      if pending_ident.kind == ConcatenationScopeIdentKind::Global {
+      if pending_ident.kind == ConcatenationScopeIdentKind::Global && !is_rebound_global {
         module_info.all_used_names.insert(symbol);
       }
       continue;
@@ -269,6 +281,7 @@ pub(crate) fn populate_info_from_pending(
 
     let ctxt = match pending_ident.kind {
       ConcatenationScopeIdentKind::TopLevel => module_info.module_ctxt,
+      ConcatenationScopeIdentKind::Global if is_rebound_global => module_info.module_ctxt,
       ConcatenationScopeIdentKind::Global => module_info.global_ctxt,
       ConcatenationScopeIdentKind::UsedName => unreachable!(),
     };
@@ -331,6 +344,11 @@ pub(crate) fn populate_info_from_pending(
             || symbol_from_range(original_range),
             |canonical_name| canonical_name.name.clone(),
           );
+        symbol.resolved_binding = Some(binding.clone());
+        binding
+      }
+      GeneratedTopLevelSymbolTarget::RebindGlobal => {
+        let binding = symbol.preferred_name.clone();
         symbol.resolved_binding = Some(binding.clone());
         binding
       }

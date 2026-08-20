@@ -519,6 +519,39 @@ impl ConcatenationScope {
     placeholder
   }
 
+  pub fn rebind_generated_global_symbol(&mut self, preferred_name: &str) -> Atom {
+    let preferred_name = Atom::from(preferred_name);
+    if !self.is_faster_module_concatenation() {
+      return preferred_name;
+    }
+    if let Some(existing) = self
+      .current_module
+      .generated_top_level_symbols
+      .iter()
+      .find(|symbol| {
+        symbol.target == GeneratedTopLevelSymbolTarget::RebindGlobal
+          && symbol.preferred_name == preferred_name
+      })
+    {
+      return existing.placeholder.clone();
+    }
+
+    let placeholder = Atom::from(format!(
+      "{GENERATED_TOP_LEVEL_SYMBOL_PREFIX}{}__",
+      self.current_module.generated_top_level_symbols.len()
+    ));
+    self
+      .current_module
+      .generated_top_level_symbols
+      .push(crate::GeneratedTopLevelSymbol {
+        preferred_name,
+        placeholder: placeholder.clone(),
+        target: GeneratedTopLevelSymbolTarget::RebindGlobal,
+        resolved_binding: None,
+      });
+    placeholder
+  }
+
   fn build_module_reference(
     &mut self,
     module: &ModuleIdentifier,

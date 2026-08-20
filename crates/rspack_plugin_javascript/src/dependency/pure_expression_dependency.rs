@@ -144,14 +144,14 @@ impl DependencyTemplate for PureExpressionDependencyTemplate {
         format!("(/* runtime-dependent pure expression or super */ {condition} ? ("),
         None,
       );
-      source.insert_static(dep.range.end, ") : null)", None);
+      source.insert_static_with_tracked_used_names(dep.range.end, ") : null)", None);
     } else {
-      source.insert_static(
+      source.insert_static_with_tracked_used_names(
         dep.range.start,
         "(/* unused pure expression or super */ null && (",
         None,
       );
-      source.insert_static(dep.range.end, "))", None);
+      source.insert_static_with_tracked_used_names(dep.range.end, "))", None);
     }
   }
 }

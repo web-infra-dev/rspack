@@ -6,7 +6,9 @@ use rspack_util::atom::Atom;
 use rustc_hash::FxHashSet;
 use smallvec::SmallVec;
 use swc_experimental_allocator::atom::Atom as AstAtom;
-use swc_experimental_ecma_ast::{ClassExpr, Ident, ObjectPatProp, Prop, Visit, VisitWith};
+use swc_experimental_ecma_ast::{
+  ClassExpr, ForHead, ForInStmt, ForOfStmt, Ident, ObjectPatProp, Prop, Visit, VisitWith,
+};
 use swc_experimental_ecma_semantic::resolver::Semantic;
 
 #[derive(Clone, Copy)]
@@ -27,6 +29,13 @@ impl Default for UsedNames<'_> {
 }
 
 impl<'ast> UsedNames<'ast> {
+  fn contains(&self, name: &AstAtom<'ast>) -> bool {
+    match self {
+      Self::Inline(names) => names.contains(name),
+      Self::Heap(names) => names.contains(name),
+    }
+  }
+
   fn insert(&mut self, name: AstAtom<'ast>) -> bool {
     match self {
       Self::Inline(names) => {
@@ -53,9 +62,12 @@ impl<'ast> UsedNames<'ast> {
 pub(crate) struct PendingConcatenationScopeInfoVisitor<'semantic, 'ast> {
   semantic: &'semantic Semantic,
   top_level_idents: SmallVec<[PendingConcatenationScopeIdent; 8]>,
+  top_level_names: UsedNames<'ast>,
   global_idents: SmallVec<[PendingConcatenationScopeIdent; 4]>,
   used_name_set: UsedNames<'ast>,
   used_names: SmallVec<[(AstAtom<'ast>, DependencyRange); 8]>,
+  ambiguous_for_head_names: SmallVec<[AstAtom<'ast>; 1]>,
+  in_for_head_assignment: bool,
   canonical_names: SmallVec<[ConcatenationScopeCanonicalName; 1]>,
 }
 
@@ -64,9 +76,12 @@ impl<'semantic, 'ast> PendingConcatenationScopeInfoVisitor<'semantic, 'ast> {
     Self {
       semantic,
       top_level_idents: SmallVec::new(),
+      top_level_names: UsedNames::default(),
       global_idents: SmallVec::new(),
       used_name_set: UsedNames::default(),
       used_names: SmallVec::new(),
+      ambiguous_for_head_names: SmallVec::new(),
+      in_for_head_assignment: false,
       canonical_names: SmallVec::new(),
     }
   }
@@ -96,17 +111,29 @@ impl<'semantic, 'ast> PendingConcatenationScopeInfoVisitor<'semantic, 'ast> {
       self.add_canonical_name(ident, range);
       self.global_idents.push(pending_ident);
     } else if class_expr_with_ident || scope != self.semantic.top_level_scope_id() {
+      if self.in_for_head_assignment && !self.ambiguous_for_head_names.contains(&ident.sym) {
+        self.ambiguous_for_head_names.push(ident.sym);
+      }
       if self.used_name_set.insert(ident.sym) {
         self.add_canonical_name(ident, range);
         self.used_names.push((ident.sym, range));
       }
     } else {
       self.add_canonical_name(ident, range);
+      self.top_level_names.insert(ident.sym);
       self.top_level_idents.push(pending_ident);
     }
   }
 
   pub(crate) fn into_info(self) -> PendingConcatenationScopeInfo {
+    if self
+      .ambiguous_for_head_names
+      .iter()
+      .any(|name| self.top_level_names.contains(name))
+    {
+      return PendingConcatenationScopeInfo::CodegenAnalysisRequired;
+    }
+
     let mut idents = Vec::with_capacity(
       self.top_level_idents.len() + self.global_idents.len() + self.used_names.len(),
     );
@@ -181,5 +208,23 @@ impl<'ast> Visit<'ast> for PendingConcatenationScopeInfoVisitor<'_, 'ast> {
     } else {
       class_expr.visit_children_with(self);
     }
+  }
+
+  fn visit_for_in_stmt(&mut self, stmt: &ForInStmt<'ast>) {
+    let previous = self.in_for_head_assignment;
+    self.in_for_head_assignment = matches!(&stmt.left, ForHead::Pat(_));
+    stmt.left.visit_with(self);
+    self.in_for_head_assignment = previous;
+    stmt.right.visit_with(self);
+    stmt.body.visit_with(self);
+  }
+
+  fn visit_for_of_stmt(&mut self, stmt: &ForOfStmt<'ast>) {
+    let previous = self.in_for_head_assignment;
+    self.in_for_head_assignment = matches!(&stmt.left, ForHead::Pat(_));
+    stmt.left.visit_with(self);
+    self.in_for_head_assignment = previous;
+    stmt.right.visit_with(self);
+    stmt.body.visit_with(self);
   }
 }

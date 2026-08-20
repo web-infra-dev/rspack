@@ -61,6 +61,7 @@ fn create_default_exported_namespace_dependency(
   {
     dep.set_lazy();
   }
+  dep.set_default_exported_namespace();
   Some(dep)
 }
 
