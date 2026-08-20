@@ -3,9 +3,6 @@ module.exports = {
 	moduleScope(scope) {
 		scope.React = { version: "global" };
 	},
-	externals: {
-		react: "var React"
-	},
 	optimization: {
 		concatenateModules: true
 	}
