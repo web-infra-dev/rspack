@@ -129,6 +129,10 @@ impl LazyCompilationProxyModule {
   pub fn invalid(&mut self) {
     self.need_build = true;
   }
+
+  pub fn is_active(&self) -> bool {
+    self.active
+  }
 }
 
 impl_empty_diagnosable_trait!(LazyCompilationProxyModule);
