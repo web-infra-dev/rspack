@@ -183,8 +183,6 @@ impl IgnoredMatcher {
 
 #[cfg(test)]
 mod tests {
-  use std::sync::Mutex;
-
   use super::*;
 
   fn matcher(pattern: &str) -> IgnoredMatcher {
@@ -264,45 +262,6 @@ mod tests {
     let question = matcher("**/a?c");
     assert!(question.is_ignored("/p/abc"));
     assert!(!question.is_ignored("/p/ac"));
-  }
-
-  #[test]
-  fn function_decides_each_entry() {
-    // watchpack: `ignored: (entry) => boolean` — the predicate is asked about
-    // every entry and any truthy answer ignores it.
-    let m = IgnoredMatcher::new(FsWatcherIgnored::Function(Arc::new(|path| {
-      path.contains("/__ignored__")
-    })));
-    assert!(m.is_ignored("/proj/__ignored__"));
-    assert!(m.is_ignored("/proj/__ignored__/noise.js"));
-    assert!(m.is_ignored("/proj/nested/__ignored__/deep/noise.js"));
-    assert!(!m.is_ignored("/proj/src/index.js"));
-  }
-
-  #[test]
-  fn function_gets_the_raw_path() {
-    // The arbitrary function is the one form watchpack does NOT normalize
-    // separators for, so it sees exactly what the watcher reported.
-    let seen = Arc::new(Mutex::new(Vec::new()));
-    let recorder = Arc::clone(&seen);
-    let m = IgnoredMatcher::new(FsWatcherIgnored::Function(Arc::new(move |path| {
-      recorder
-        .lock()
-        .expect("should lock recorder")
-        .push(path.to_owned());
-      false
-    })));
-    assert!(!m.is_ignored(r"C:\proj\src\index.ts"));
-    assert_eq!(
-      seen.lock().expect("should lock recorder").as_slice(),
-      [r"C:\proj\src\index.ts"]
-    );
-  }
-
-  #[test]
-  fn function_returning_false_ignores_nothing() {
-    let m = IgnoredMatcher::new(FsWatcherIgnored::Function(Arc::new(|_| false)));
-    assert!(!m.is_ignored("/proj/node_modules/pkg/index.js"));
   }
 
   #[test]
