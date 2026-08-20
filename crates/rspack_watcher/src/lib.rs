@@ -20,7 +20,7 @@ use std::{
 use analyzer::{Analyzer, RecommendedAnalyzer};
 use disk_watcher::DiskWatcher;
 use executor::Executor;
-pub use ignored::FsWatcherIgnored;
+pub use ignored::{FsWatcherIgnored, IgnoredFn};
 use paths::PathManager;
 use rspack_error::Result;
 use rspack_paths::ArcPath;

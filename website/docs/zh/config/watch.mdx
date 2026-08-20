@@ -59,7 +59,7 @@ export default {
 
 ### watchOptions.ignored
 
-- **类型：** `RegExp | string | string[]`
+- **类型：** `RegExp | string | string[] | ((entry: string) => boolean)`
 - **默认值：** `/[\\/](?:\.git|node_modules)[\\/]/`
 
 监听时排除匹配到的路径。监听大量文件可能会导致 CPU 或内存使用率过高。
@@ -109,6 +109,18 @@ export default {
 ```
 
 当使用 glob 匹配时，Rspack 会将它们转换为正则表达式，因此在使用 glob 匹配之前，请确保你熟悉 [glob-to-regexp](https://github.com/fitzgen/glob-to-regexp)。
+
+最后，`ignored` 也可以是一个函数，它会被每个条目调用，返回 `true` 表示排除该条目：
+
+```js title="rspack.config.mjs"
+export default {
+  watchOptions: {
+    ignored: (entry) => entry.includes('.git'),
+  },
+};
+```
+
+与其他形式不同，函数拿到的路径保留了当前平台的分隔符，并且需要自行排除被排除目录下的条目。
 
 ### watchOptions.poll
 

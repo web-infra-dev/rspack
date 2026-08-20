@@ -1,8 +1,10 @@
-use std::{borrow::Cow, fmt::Debug};
+use std::{borrow::Cow, fmt::Debug, sync::Arc};
 
 use cow_utils::CowUtils;
 use regex::Regex;
 use rspack_regex::RspackRegex;
+
+pub type IgnoredFn = Arc<dyn Fn(&str) -> bool + Send + Sync>;
 
 #[derive(Default)]
 pub enum FsWatcherIgnored {
@@ -11,6 +13,7 @@ pub enum FsWatcherIgnored {
   Path(String),
   Paths(Vec<String>),
   Regex(RspackRegex),
+  Function(IgnoredFn),
 }
 
 impl Debug for FsWatcherIgnored {
@@ -20,6 +23,7 @@ impl Debug for FsWatcherIgnored {
       FsWatcherIgnored::Path(s) => write!(f, "FsWatcherIgnored::Path({s})"),
       FsWatcherIgnored::Paths(s) => write!(f, "FsWatcherIgnored::Paths({s:?})"),
       FsWatcherIgnored::Regex(reg) => write!(f, "FsWatcherIgnored::Regex({reg:?})"),
+      FsWatcherIgnored::Function(_) => write!(f, "FsWatcherIgnored::Function"),
     }
   }
 }
@@ -114,14 +118,15 @@ fn glob_to_regexp(glob: &str) -> String {
 /// watchpack-style ignore matcher. Exactly one classification strategy is live
 /// per watch: glob patterns are rewritten to match their subtree and folded
 /// into one precompiled regex (a single `is_match` per event), while a
-/// user-supplied `Regex` is applied as-is. `None` short-circuits before
-/// normalizing the path.
+/// user-supplied `Regex` is applied as-is and a user-supplied `Function` is
+/// asked about each entry. `None` short-circuits before normalizing the path.
 #[derive(Default)]
 pub enum IgnoredMatcher {
   #[default]
   None,
   Globs(Regex),
   Regex(RspackRegex),
+  Function(IgnoredFn),
 }
 
 impl IgnoredMatcher {
@@ -158,6 +163,7 @@ impl IgnoredMatcher {
       FsWatcherIgnored::Path(p) => compile(&[p]),
       FsWatcherIgnored::Paths(ps) => compile(&ps),
       FsWatcherIgnored::Regex(reg) => IgnoredMatcher::Regex(reg),
+      FsWatcherIgnored::Function(f) => IgnoredMatcher::Function(f),
     }
   }
 
@@ -168,12 +174,17 @@ impl IgnoredMatcher {
       IgnoredMatcher::None => false,
       IgnoredMatcher::Globs(re) => re.is_match(&normalize_path(path)),
       IgnoredMatcher::Regex(re) => re.test(&normalize_path(path)),
+      // watchpack hands the arbitrary function the raw entry — it is the only
+      // form whose path keeps the platform separators.
+      IgnoredMatcher::Function(f) => f(path),
     }
   }
 }
 
 #[cfg(test)]
 mod tests {
+  use std::sync::Mutex;
+
   use super::*;
 
   fn matcher(pattern: &str) -> IgnoredMatcher {
@@ -253,6 +264,45 @@ mod tests {
     let question = matcher("**/a?c");
     assert!(question.is_ignored("/p/abc"));
     assert!(!question.is_ignored("/p/ac"));
+  }
+
+  #[test]
+  fn function_decides_each_entry() {
+    // watchpack: `ignored: (entry) => boolean` — the predicate is asked about
+    // every entry and any truthy answer ignores it.
+    let m = IgnoredMatcher::new(FsWatcherIgnored::Function(Arc::new(|path| {
+      path.contains("/__ignored__")
+    })));
+    assert!(m.is_ignored("/proj/__ignored__"));
+    assert!(m.is_ignored("/proj/__ignored__/noise.js"));
+    assert!(m.is_ignored("/proj/nested/__ignored__/deep/noise.js"));
+    assert!(!m.is_ignored("/proj/src/index.js"));
+  }
+
+  #[test]
+  fn function_gets_the_raw_path() {
+    // The arbitrary function is the one form watchpack does NOT normalize
+    // separators for, so it sees exactly what the watcher reported.
+    let seen = Arc::new(Mutex::new(Vec::new()));
+    let recorder = Arc::clone(&seen);
+    let m = IgnoredMatcher::new(FsWatcherIgnored::Function(Arc::new(move |path| {
+      recorder
+        .lock()
+        .expect("should lock recorder")
+        .push(path.to_owned());
+      false
+    })));
+    assert!(!m.is_ignored(r"C:\proj\src\index.ts"));
+    assert_eq!(
+      seen.lock().expect("should lock recorder").as_slice(),
+      [r"C:\proj\src\index.ts"]
+    );
+  }
+
+  #[test]
+  fn function_returning_false_ignores_nothing() {
+    let m = IgnoredMatcher::new(FsWatcherIgnored::Function(Arc::new(|_| false)));
+    assert!(!m.is_ignored("/proj/node_modules/pkg/index.js"));
   }
 
   #[test]

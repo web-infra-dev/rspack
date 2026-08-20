@@ -437,6 +437,39 @@ mod tests {
     }
   }
 
+  #[test]
+  fn test_manager_with_ignored_function() {
+    let ignored = FsWatcherIgnored::Function(std::sync::Arc::new(|path: &str| {
+      path.contains("node_modules")
+    }));
+    let path_manager = PathManager::new(ignored);
+    let files = (
+      vec![
+        ArcPath::from(Utf8Path::new("src/index.js")),
+        ArcPath::from(Utf8Path::new("node_modules/axios/index.js")),
+      ]
+      .into_iter(),
+      vec![].into_iter(),
+    );
+    let empty = || (vec![].into_iter(), vec![].into_iter());
+
+    path_manager.update(files, empty(), empty()).unwrap();
+
+    let all_paths = path_manager
+      .access()
+      .all()
+      .map(|p| p.to_string_lossy().to_string())
+      .collect::<Vec<_>>();
+
+    assert_eq!(all_paths.len(), 1);
+    assert!(all_paths[0].ends_with("src/index.js"));
+
+    // Events are filtered by the same predicate, so a file discovered under an
+    // ignored directory never reaches the watcher pipeline.
+    assert!(path_manager.is_ignored_path(Path::new("/proj/node_modules/axios/lib/a.js")));
+    assert!(!path_manager.is_ignored_path(Path::new("/proj/src/index.js")));
+  }
+
   /// Regression for the FSEvents stale-event race: simulate two consecutive
   /// `FsWatcher::watch()` cycles with a real file write landing between
   /// them (the slow-runner case where the FSEvent is in the kernel queue
