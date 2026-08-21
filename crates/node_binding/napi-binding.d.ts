@@ -2764,6 +2764,7 @@ export interface RawModuleRuleUse {
 
 export interface RawNewCache {
   codeGeneration: boolean
+  loader: boolean
   minimize: boolean
 }
 

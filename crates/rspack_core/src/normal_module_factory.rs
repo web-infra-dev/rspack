@@ -1051,16 +1051,14 @@ module.exports = "data:,";
 
       for l in post_loaders {
         all_loaders.push(
-          resolve_each_with_options(plugin_driver, &self.options.context, &loader_resolver, &l)
-            .await?,
+          resolve_each_with_options(plugin_driver, &self.options, &loader_resolver, &l).await?,
         )
       }
 
       let mut resolved_normal_loaders = vec![];
       for l in normal_loaders {
         resolved_normal_loaders.push(
-          resolve_each_with_options(plugin_driver, &self.options.context, &loader_resolver, &l)
-            .await?,
+          resolve_each_with_options(plugin_driver, &self.options, &loader_resolver, &l).await?,
         )
       }
 
@@ -1082,8 +1080,7 @@ module.exports = "data:,";
 
       for l in pre_loaders {
         all_loaders.push(
-          resolve_each_with_options(plugin_driver, &self.options.context, &loader_resolver, &l)
-            .await?,
+          resolve_each_with_options(plugin_driver, &self.options, &loader_resolver, &l).await?,
         )
       }
 
@@ -1384,11 +1381,21 @@ impl ResolvedLoader {
 
 async fn resolve_each_with_options(
   plugin_driver: &SharedPluginDriver,
-  context: &Context,
+  options: &CompilerOptions,
   loader_resolver: &Resolver,
   loader: &ModuleRuleUseLoader,
 ) -> Result<ResolvedLoader> {
-  let resolved = resolve_each(plugin_driver, context, loader_resolver, loader).await?;
+  let uncached_loader;
+  let loader = if options.experiments.new_cache.loader {
+    loader
+  } else {
+    uncached_loader = ModuleRuleUseLoader {
+      cache: false,
+      ..loader.clone()
+    };
+    &uncached_loader
+  };
+  let resolved = resolve_each(plugin_driver, &options.context, loader_resolver, loader).await?;
   if !loader.cache {
     return Ok(ResolvedLoader::uncached(resolved));
   }

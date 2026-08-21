@@ -844,7 +844,7 @@ export default {
 - **类型：** `boolean`
 - **默认值：** `false`
 
-为单个 loader 启用缓存。该选项仅在启用 [`experiments.newCache`](/config/experiments) 时生效。
+为单个 loader 启用缓存。该选项仅在启用 `experiments.newCache.loader` 时生效。
 
 以下任一内容变化时，Rspack 会使对应的 loader 缓存失效：
 
@@ -858,7 +858,9 @@ export default {
 ```js title="rspack.config.mjs"
 export default {
   experiments: {
-    newCache: true,
+    newCache: {
+      loader: true,
+    },
   },
   module: {
     rules: [

@@ -5,7 +5,11 @@ module.exports = {
   mode: 'development',
   cache: { type: 'memory' },
   experiments: {
-    newCache: true,
+    newCache: {
+      codeGeneration: false,
+      loader: true,
+      minimize: false,
+    },
   },
   module: {
     rules: [

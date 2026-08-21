@@ -846,7 +846,7 @@ export default {
 - **Type:** `boolean`
 - **Default:** `false`
 
-Enables caching for an individual loader. This option only takes effect when [`experiments.newCache`](/config/experiments) is enabled.
+Enables caching for an individual loader. This option only takes effect when `experiments.newCache.loader` is enabled.
 
 Rspack invalidates a loader cache entry when any of the following changes:
 
@@ -860,7 +860,9 @@ On a cache hit, Rspack restores the transformed content and source map without e
 ```js title="rspack.config.mjs"
 export default {
   experiments: {
-    newCache: true,
+    newCache: {
+      loader: true,
+    },
   },
   module: {
     rules: [
