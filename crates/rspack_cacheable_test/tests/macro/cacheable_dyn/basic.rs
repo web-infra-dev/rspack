@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use rspack_cacheable::{
   CacheableContext, enable_cacheable as cacheable, enable_cacheable_dyn as cacheable_dyn,
   from_bytes, to_bytes,
@@ -49,6 +51,12 @@ struct Data {
   animal: Box<dyn Animal>,
 }
 
+#[cacheable]
+struct SharedData {
+  first: Arc<dyn Animal>,
+  second: Arc<dyn Animal>,
+}
+
 #[test]
 #[cfg_attr(miri, ignore)]
 fn test_cacheable_dyn_macro() {
@@ -77,4 +85,37 @@ fn test_cacheable_dyn_macro() {
   let deserialize_data = from_bytes::<Data, Context>(&bytes, &ctx).unwrap();
   assert_eq!(deserialize_data.animal.name(), "cat");
   assert_eq!(deserialize_data.animal.color(), "white");
+}
+
+#[test]
+#[cfg_attr(miri, ignore)]
+fn test_cacheable_dyn_arc_preserves_aliasing() {
+  let animal: Arc<dyn Animal> = Arc::new(Dog {
+    color: String::from("black"),
+  });
+  let data = SharedData {
+    first: Arc::clone(&animal),
+    second: animal,
+  };
+
+  let ctx = Context {};
+  let bytes = to_bytes(&data, &ctx).unwrap();
+  let deserialized = from_bytes::<SharedData, Context>(&bytes, &ctx).unwrap();
+
+  assert!(Arc::ptr_eq(&deserialized.first, &deserialized.second));
+  assert_eq!(deserialized.first.name(), "dog");
+  assert_eq!(deserialized.first.color(), "black");
+
+  let distinct = SharedData {
+    first: Arc::new(Dog {
+      color: String::from("black"),
+    }),
+    second: Arc::new(Dog {
+      color: String::from("black"),
+    }),
+  };
+  let bytes = to_bytes(&distinct, &ctx).unwrap();
+  let deserialized = from_bytes::<SharedData, Context>(&bytes, &ctx).unwrap();
+
+  assert!(!Arc::ptr_eq(&deserialized.first, &deserialized.second));
 }
