@@ -1516,8 +1516,10 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
         &tsconfig_options.references,
       )
       .await?;
-    for dependency in &tsconfig.file_dependencies {
-      ctx.add_file_dependency(dependency.as_path());
+    if ctx.file_dependencies.is_some() {
+      for dependency in &tsconfig.file_dependencies {
+        ctx.add_file_dependency(dependency.as_path());
+      }
     }
     let paths = tsconfig.resolve(cached_path.path(), specifier);
     for path in paths {
