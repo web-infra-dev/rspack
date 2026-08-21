@@ -2,7 +2,7 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AffectType, AsModuleDependency, ContextDependency, ContextOptions, ContextTypePrefix, Dependency,
   DependencyCategory, DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
-  DependencyTemplateType, DependencyType, ExportsInfoArtifact, FactorizeInfo, ModuleGraph,
+  DependencyTemplateType, DependencyType, ExportsInfoArtifact, ModuleGraph,
   ModuleGraphCacheArtifact, ResourceIdentifier, TemplateContext, TemplateReplaceSource,
 };
 use rspack_error::Diagnostic;
@@ -18,7 +18,6 @@ pub struct ImportMetaResolveContextDependency {
   resource_identifier: ResourceIdentifier,
   optional: bool,
   critical: Option<Diagnostic>,
-  factorize_info: FactorizeInfo,
 }
 
 impl ImportMetaResolveContextDependency {
@@ -31,7 +30,6 @@ impl ImportMetaResolveContextDependency {
       resource_identifier,
       optional,
       critical: None,
-      factorize_info: Default::default(),
     }
   }
 }
@@ -102,14 +100,6 @@ impl ContextDependency for ImportMetaResolveContextDependency {
 
   fn critical_mut(&mut self) -> &mut Option<Diagnostic> {
     &mut self.critical
-  }
-
-  fn factorize_info(&self) -> &FactorizeInfo {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
-    &mut self.factorize_info
   }
 }
 

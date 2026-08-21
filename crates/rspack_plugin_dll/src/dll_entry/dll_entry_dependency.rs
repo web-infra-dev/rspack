@@ -1,7 +1,7 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AffectType, AsContextDependency, AsDependencyCodeGeneration, Context, Dependency, DependencyId,
-  DependencyType, FactorizeInfo, ModuleDependency,
+  DependencyType, ModuleDependency,
 };
 
 use crate::DllEntryPluginOptions;
@@ -17,8 +17,6 @@ pub struct DllEntryDependency {
   pub name: String,
 
   id: DependencyId,
-
-  factorize_info: FactorizeInfo,
 }
 
 impl DllEntryDependency {
@@ -34,7 +32,6 @@ impl DllEntryDependency {
       entries,
       name,
       id: DependencyId::new(),
-      factorize_info: Default::default(),
     }
   }
 }
@@ -45,14 +42,6 @@ impl DllEntryDependency {
 impl ModuleDependency for DllEntryDependency {
   fn request(&self) -> &str {
     "dll main"
-  }
-
-  fn factorize_info(&self) -> &FactorizeInfo {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
-    &mut self.factorize_info
   }
 }
 

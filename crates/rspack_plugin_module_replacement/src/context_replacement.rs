@@ -122,7 +122,6 @@ async fn cmf_after_resolve(&self, mut result: AfterResolveResult) -> Result<Afte
                 attributes: options.context_options.attributes.clone(),
                 referenced_specifiers: options.context_options.referenced_specifiers.clone(),
                 dependency_type: DependencyType::ContextElement(options.type_prefix),
-                factorize_info: Default::default(),
               }
             })
             .collect::<Vec<_>>();

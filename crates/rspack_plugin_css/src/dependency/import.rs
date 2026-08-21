@@ -2,8 +2,8 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, CssExportType, CssModuleRenderCondition, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
-  DependencyTemplateType, DependencyType, FactorizeInfo, ModuleDependency, ResourceIdentifier,
-  TemplateContext, TemplateReplaceSource, css_module_render_conditions_identifier,
+  DependencyTemplateType, DependencyType, ModuleDependency, ResourceIdentifier, TemplateContext,
+  TemplateReplaceSource, css_module_render_conditions_identifier,
   iter_css_module_render_conditions, push_css_module_identifier_part,
 };
 
@@ -20,7 +20,6 @@ pub struct CssImportDependency {
   render_condition: CssModuleRenderCondition,
   export_type: Option<CssExportType>,
   resource_identifier: ResourceIdentifier,
-  factorize_info: FactorizeInfo,
 }
 
 impl CssImportDependency {
@@ -46,7 +45,6 @@ impl CssImportDependency {
       render_condition,
       export_type,
       resource_identifier,
-      factorize_info: Default::default(),
     }
   }
 
@@ -98,14 +96,6 @@ impl ModuleDependency for CssImportDependency {
 
   fn user_request(&self) -> &str {
     &self.request
-  }
-
-  fn factorize_info(&self) -> &FactorizeInfo {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
-    &mut self.factorize_info
   }
 }
 

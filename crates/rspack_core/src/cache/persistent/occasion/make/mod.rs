@@ -13,7 +13,6 @@ use super::{
   Occasion,
 };
 use crate::{
-  FactorizeInfo,
   compilation::build_module_graph::BuildModuleGraphArtifact,
   utils::{FileCounter, ResourceId},
 };
@@ -48,6 +47,7 @@ impl Occasion for MakeOccasion {
       // write all of field here to avoid forget to update occasion when add new fields
       // for module graph
       module_graph,
+      factorization_artifact,
       side_effects_state_artifact: _,
       module_to_lazy_make,
       affected_modules,
@@ -76,6 +76,7 @@ impl Occasion for MakeOccasion {
 
     module_graph::save_module_graph(
       module_graph,
+      factorization_artifact,
       module_to_lazy_make,
       affected_modules.removed(),
       &need_update_modules,
@@ -86,7 +87,7 @@ impl Occasion for MakeOccasion {
 
   #[tracing::instrument(name = "Cache::Occasion::Make::recovery", skip_all)]
   async fn recovery(&self, storage: &dyn Storage) -> Result<BuildModuleGraphArtifact> {
-    let (mg, module_to_lazy_make, entry_dependencies) =
+    let (mg, factorization_artifact, module_to_lazy_make, entry_dependencies) =
       module_graph::recovery_module_graph(storage, &self.codec).await?;
 
     // regenerate statistical data
@@ -109,18 +110,16 @@ impl Occasion for MakeOccasion {
       }
     }
 
-    // recovery make_failed_dependencies
+    // recovery factorization metadata
     let mut make_failed_dependencies = FxHashSet::default();
-    for (dep_id, dep) in mg.dependencies() {
-      if let Some(info) = FactorizeInfo::get_from(dep) {
-        if !info.is_success() {
-          make_failed_dependencies.insert(dep_id);
-        }
-        let resource = dep_id.into();
-        file_dep.add_files(&resource, info.file_dependencies());
-        context_dep.add_files(&resource, info.context_dependencies());
-        missing_dep.add_files(&resource, info.missing_dependencies());
+    for (dep_id, info) in factorization_artifact.iter() {
+      if !info.is_success() {
+        make_failed_dependencies.insert(dep_id);
       }
+      let resource = dep_id.into();
+      file_dep.add_files(&resource, info.file_dependencies());
+      context_dep.add_files(&resource, info.context_dependencies());
+      missing_dep.add_files(&resource, info.missing_dependencies());
     }
 
     Ok(BuildModuleGraphArtifact {
@@ -132,6 +131,7 @@ impl Occasion for MakeOccasion {
 
       side_effects_state_artifact: Default::default(),
       module_graph: mg,
+      factorization_artifact,
       module_to_lazy_make,
 
       make_failed_module,

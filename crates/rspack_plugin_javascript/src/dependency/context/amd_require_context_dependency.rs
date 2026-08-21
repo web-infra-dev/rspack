@@ -2,7 +2,7 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsModuleDependency, ContextDependency, ContextOptions, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
-  DependencyTemplateType, DependencyType, ExportsInfoArtifact, FactorizeInfo, ModuleGraph,
+  DependencyTemplateType, DependencyType, ExportsInfoArtifact, ModuleGraph,
   ModuleGraphCacheArtifact, ResourceIdentifier, TemplateContext, TemplateReplaceSource,
 };
 use rspack_error::Diagnostic;
@@ -20,7 +20,6 @@ pub struct AMDRequireContextDependency {
   options: ContextOptions,
   optional: bool,
   critical: Option<Diagnostic>,
-  factorize_info: FactorizeInfo,
 }
 
 impl AMDRequireContextDependency {
@@ -33,7 +32,6 @@ impl AMDRequireContextDependency {
       optional,
       id: DependencyId::new(),
       critical: None,
-      factorize_info: Default::default(),
     }
   }
 }
@@ -104,14 +102,6 @@ impl ContextDependency for AMDRequireContextDependency {
 
   fn critical_mut(&mut self) -> &mut Option<Diagnostic> {
     &mut self.critical
-  }
-
-  fn factorize_info(&self) -> &FactorizeInfo {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
-    &mut self.factorize_info
   }
 }
 

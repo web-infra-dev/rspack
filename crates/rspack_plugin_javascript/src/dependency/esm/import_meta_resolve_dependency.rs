@@ -2,8 +2,8 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
   DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, ExportsInfoArtifact,
-  FactorizeInfo, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ReferencedExport,
-  RuntimeSpec, TemplateContext, TemplateReplaceSource,
+  ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ReferencedExport, RuntimeSpec,
+  TemplateContext, TemplateReplaceSource,
 };
 
 #[cacheable]
@@ -13,7 +13,6 @@ pub struct ImportMetaResolveDependency {
   pub request: String,
   range: DependencyRange,
   optional: bool,
-  factorize_info: FactorizeInfo,
 }
 
 impl ImportMetaResolveDependency {
@@ -23,7 +22,6 @@ impl ImportMetaResolveDependency {
       request,
       optional,
       id: DependencyId::new(),
-      factorize_info: Default::default(),
     }
   }
 }
@@ -73,14 +71,6 @@ impl ModuleDependency for ImportMetaResolveDependency {
 
   fn get_optional(&self) -> bool {
     self.optional
-  }
-
-  fn factorize_info(&self) -> &FactorizeInfo {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
-    &mut self.factorize_info
   }
 }
 
