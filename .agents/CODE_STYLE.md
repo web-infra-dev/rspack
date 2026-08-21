@@ -105,11 +105,10 @@ let result = str.cow_replace("old", "new");
 
 ### TS/JS Formatting
 
-- Use Prettier
+- Run `pnpm run format:js`
 - Use Rslint for linting
 - **Indentation**: Tabs
 - **Semicolons**: Use semicolons
-- **Quotes**: Double quotes
 
 ### TS/JS Naming Conventions
 
@@ -175,22 +174,10 @@ if (isNil(options.context)) {
 
 ### Rust Testing
 
-- Place in same file with `#[cfg(test)]` module
+- Do not add inline `#[test]` functions or crate-local unit tests in ordinary changes
+- Add Rust test cases only when they belong in a dedicated test crate
 - Use descriptive names: `test_<what>_<condition>_<expected>`
 - Use `assert_eq!`, `assert!`, etc.
-
-```rust
-#[cfg(test)]
-mod tests {
- use super::*;
-
- #[test]
- fn test_wrap_comment_single_line() {
-  let result = wrap_comment("test");
-  assert_eq!(result, "/*! test */");
- }
-}
-```
 
 ### JavaScript/TypeScript Testing
 
@@ -249,7 +236,7 @@ packages/xxx/
 
 - **Rust formatting**: `cargo fmt`
 - **Rust linting**: `cargo clippy`
-- **TypeScript formatting**: Prettier
+- **TypeScript formatting**: `pnpm run format:js`
 - **TypeScript linting**: Rslint
 - **Type checking**: TypeScript compiler
 
