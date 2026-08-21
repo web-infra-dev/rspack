@@ -252,6 +252,7 @@ impl BuildModuleGraphArtifact {
   pub fn reset_temporary_data(&mut self) {
     self.affected_modules.reset();
     self.affected_dependencies.reset();
+    self.issuer_update_modules.clear();
     self.side_effects_state_artifact = Default::default();
 
     self.file_dependencies.reset_incremental_info();
