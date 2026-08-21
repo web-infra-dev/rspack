@@ -45,8 +45,6 @@ async fn auto() {
 }
 
 #[tokio::test]
-#[ignore = "temporary workaround: tsconfig and its references are no longer reported as file dependencies, \
-            because a monorepo with many project references bursts memory in the consumer"]
 async fn tsconfig_file_as_file_dependencies() {
   let f = super::fixture_root().join("tsconfig/cases/project_references");
 
