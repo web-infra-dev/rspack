@@ -1,7 +1,7 @@
 //! Tests for tsconfig project references
 
 use crate::{
-  ArcPath, ResolveContext, ResolveError, ResolveOptions, Resolver, TsconfigOptions,
+  InternedPath, ResolveContext, ResolveError, ResolveOptions, Resolver, TsconfigOptions,
   TsconfigReferences,
 };
 
@@ -75,7 +75,7 @@ async fn tsconfig_file_as_file_dependencies() {
   ];
   for dependency in expected_dependencies {
     assert!(
-      ctx.file_dependencies.contains(&ArcPath::from(&dependency)),
+      ctx.file_dependencies.contains(&InternedPath::from(&dependency)),
       "missing tsconfig file dependency {dependency:?}: {:?}",
       ctx.file_dependencies
     );

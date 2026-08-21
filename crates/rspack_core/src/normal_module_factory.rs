@@ -3,7 +3,7 @@ use std::{borrow::Cow, collections::HashMap, ops::Deref, sync::Arc};
 use rspack_error::{Result, error};
 use rspack_hook::define_hook;
 use rspack_loader_runner::{Loader, Scheme, get_scheme};
-use rspack_paths::ArcPathSet;
+use rspack_paths::InternedPathSet;
 use rspack_util::{MergeFrom, fx_hash::FxDashMap};
 use sugar_path::SugarPath;
 use winnow::prelude::*;
@@ -727,8 +727,8 @@ impl NormalModuleFactory {
     let importer = data.issuer_identifier;
     let raw_request = data.request.clone();
 
-    let mut file_dependencies: ArcPathSet = Default::default();
-    let mut missing_dependencies: ArcPathSet = Default::default();
+    let mut file_dependencies: InternedPathSet = Default::default();
+    let mut missing_dependencies: InternedPathSet = Default::default();
 
     let plugin_driver = &self.plugin_driver;
     let loader_resolver = self.get_loader_resolver();

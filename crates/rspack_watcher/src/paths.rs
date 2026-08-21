@@ -7,22 +7,22 @@ use std::{
 
 use dashmap::setref::multiple::RefMulti;
 use rspack_error::Result;
-use rspack_paths::{ArcPath, ArcPathDashMap, ArcPathDashSet};
+use rspack_paths::{InternedPath, InternedPathDashMap, InternedPathDashSet};
 
 use super::{FsWatcherIgnored, ignored::IgnoredMatcher};
 
 /// An iterator that chains together references to all files, directories, and missing paths
 /// stored in the [`PathTracker`]. This allows iteration over all registered paths as a single sequence.
 pub(crate) struct All<'a> {
-  inner: Box<dyn Iterator<Item = RefMulti<'a, ArcPath>> + 'a>,
+  inner: Box<dyn Iterator<Item = RefMulti<'a, InternedPath>> + 'a>,
 }
 
 impl<'a> All<'a> {
   /// Creates a new `All` iterator from the given sets of files, directories, and missing paths.
   fn new(
-    files: &'a ArcPathDashSet,
-    directories: &'a ArcPathDashSet,
-    missing: &'a ArcPathDashSet,
+    files: &'a InternedPathDashSet,
+    directories: &'a InternedPathDashSet,
+    missing: &'a InternedPathDashSet,
   ) -> Self {
     let files_iter = files.iter();
     let directories_iter = directories.iter();
@@ -36,7 +36,7 @@ impl<'a> All<'a> {
 }
 
 impl<'a> Iterator for All<'a> {
-  type Item = ArcPath;
+  type Item = InternedPath;
 
   fn next(&mut self) -> Option<Self::Item> {
     self.inner.next().map(|v| v.deref().clone())
@@ -61,12 +61,12 @@ impl<'a> PathAccessor<'a> {
   }
 
   /// Returns references to the sets of files, including added and removed files.
-  pub fn files(&self) -> (&'a ArcPathDashSet, &'a ArcPathDashSet, &'a ArcPathDashSet) {
+  pub fn files(&self) -> (&'a InternedPathDashSet, &'a InternedPathDashSet, &'a InternedPathDashSet) {
     (&self.files.all, &self.files.added, &self.files.removed)
   }
 
   /// Returns references to the set of directories, including added and removed directories.
-  pub fn directories(&self) -> (&'a ArcPathDashSet, &'a ArcPathDashSet, &'a ArcPathDashSet) {
+  pub fn directories(&self) -> (&'a InternedPathDashSet, &'a InternedPathDashSet, &'a InternedPathDashSet) {
     (
       &self.directories.all,
       &self.directories.added,
@@ -75,7 +75,7 @@ impl<'a> PathAccessor<'a> {
   }
 
   /// Returns references to the set of missing paths, including added and removed missing paths.
-  pub fn missing(&self) -> (&'a ArcPathDashSet, &'a ArcPathDashSet, &'a ArcPathDashSet) {
+  pub fn missing(&self) -> (&'a InternedPathDashSet, &'a InternedPathDashSet, &'a InternedPathDashSet) {
     (
       &self.missing.all,
       &self.missing.added,
@@ -84,7 +84,7 @@ impl<'a> PathAccessor<'a> {
   }
 
   /// Returns an iterator that combines all files, directories, and missing paths into a single sequence.
-  pub fn all(&self) -> impl Iterator<Item = ArcPath> + '_ {
+  pub fn all(&self) -> impl Iterator<Item = InternedPath> + '_ {
     All::new(&self.files.all, &self.directories.all, &self.missing.all)
   }
 }
@@ -95,15 +95,15 @@ impl<'a> PathAccessor<'a> {
 /// facilitates batch updates to the path sets, ensuring that additions and removals are processed efficiently.
 #[derive(Debug)]
 struct PathUpdater {
-  pub added: Vec<ArcPath>,
-  pub removed: Vec<ArcPath>,
+  pub added: Vec<InternedPath>,
+  pub removed: Vec<InternedPath>,
   base_dir: PathBuf,
 }
 
 impl<Added, Removed> From<(Added, Removed)> for PathUpdater
 where
-  Added: Iterator<Item = ArcPath>,
-  Removed: Iterator<Item = ArcPath>,
+  Added: Iterator<Item = InternedPath>,
+  Removed: Iterator<Item = InternedPath>,
 {
   fn from((added, removed): (Added, Removed)) -> Self {
     Self {
@@ -126,7 +126,7 @@ impl PathUpdater {
       let added = if added.is_absolute() {
         added
       } else {
-        ArcPath::from(self.base_dir.join(added.as_ref()))
+        InternedPath::from(self.base_dir.join(added.as_ref()))
       };
 
       // Skip ignored paths AND anything inside an ignored directory.
@@ -145,7 +145,7 @@ impl PathUpdater {
 
       let removed_absolute_path = self.base_dir.join(removed.as_ref());
 
-      watch_tracker.remove(ArcPath::from(removed_absolute_path));
+      watch_tracker.remove(InternedPath::from(removed_absolute_path));
     }
     Ok(())
   }
@@ -162,9 +162,9 @@ impl PathUpdater {
 /// This struct enables efficient updates and queries for the file system watcher,
 /// ensuring that changes to the set of watched paths are tracked and managed correctly.
 struct PathTracker {
-  added: ArcPathDashSet,
-  removed: ArcPathDashSet,
-  all: ArcPathDashSet,
+  added: InternedPathDashSet,
+  removed: InternedPathDashSet,
+  all: InternedPathDashSet,
 }
 
 impl PathTracker {
@@ -174,13 +174,13 @@ impl PathTracker {
   }
 
   /// Adds a path to the tracker.
-  fn add(&self, path: ArcPath) {
+  fn add(&self, path: InternedPath) {
     self.added.insert(path.clone());
     self.all.insert(path);
   }
 
   /// Removes a path from the tracker.
-  fn remove(&self, path: ArcPath) {
+  fn remove(&self, path: InternedPath) {
     self.all.remove(&path);
     self.removed.insert(path);
   }
@@ -196,7 +196,7 @@ pub(crate) struct PathManager {
   /// Baseline mtime for registered files, captured at scan time.
   /// Used to filter stale FSEvents that arrive for files not actually modified.
   /// See: https://gist.github.com/stormslowly/ed758500de6f23211fd63b39eba5ed07
-  file_mtimes: ArcPathDashMap<SystemTime>,
+  file_mtimes: InternedPathDashMap<SystemTime>,
 }
 
 impl PathManager {
@@ -207,7 +207,7 @@ impl PathManager {
       directories: PathTracker::default(),
       missing: PathTracker::default(),
       ignored: IgnoredMatcher::new(ignored),
-      file_mtimes: ArcPathDashMap::default(),
+      file_mtimes: InternedPathDashMap::default(),
     }
   }
 
@@ -238,20 +238,20 @@ impl PathManager {
   ///
   /// Use `has_mtime_changed` (which atomically reads-and-updates the
   /// baseline) to advance the recorded mtime in response to real events.
-  pub fn set_file_mtime_if_absent(&self, path: ArcPath, mtime: SystemTime) {
+  pub fn set_file_mtime_if_absent(&self, path: InternedPath, mtime: SystemTime) {
     self.file_mtimes.entry(path).or_insert(mtime);
   }
 
   /// Drop the baseline for a path that is no longer being watched, so the
   /// map does not grow unboundedly across watch cycles.
-  pub fn remove_file_mtime(&self, path: &ArcPath) {
+  pub fn remove_file_mtime(&self, path: &InternedPath) {
     self.file_mtimes.remove(path);
   }
 
   /// Check if a file's mtime has changed from the stored baseline.
   /// Returns `true` if the event should pass through (mtime changed or no baseline).
   /// Returns `false` if the event should be suppressed (mtime unchanged = stale).
-  pub fn has_mtime_changed(&self, path: &ArcPath) -> bool {
+  pub fn has_mtime_changed(&self, path: &InternedPath) -> bool {
     if !self.files.all.contains(path) {
       return true;
     }
@@ -284,9 +284,9 @@ impl PathManager {
   /// Update the paths, directories, and missing paths in the `PathManager`.
   pub fn update(
     &self,
-    files: (impl Iterator<Item = ArcPath>, impl Iterator<Item = ArcPath>),
-    directories: (impl Iterator<Item = ArcPath>, impl Iterator<Item = ArcPath>),
-    missing: (impl Iterator<Item = ArcPath>, impl Iterator<Item = ArcPath>),
+    files: (impl Iterator<Item = InternedPath>, impl Iterator<Item = InternedPath>),
+    directories: (impl Iterator<Item = InternedPath>, impl Iterator<Item = InternedPath>),
+    missing: (impl Iterator<Item = InternedPath>, impl Iterator<Item = InternedPath>),
   ) -> Result<()> {
     PathUpdater::from(files).update(&self.files, &self.ignored)?;
     PathUpdater::from(directories).update(&self.directories, &self.ignored)?;
@@ -296,7 +296,7 @@ impl PathManager {
     // does not grow unboundedly across `watch()` cycles. `reset()` has
     // already cleared `self.files.removed` at the start of this `watch()`
     // call, so what we see here is only this cycle's removals.
-    let removed_files: Vec<ArcPath> = self.files.removed.iter().map(|p| p.clone()).collect();
+    let removed_files: Vec<InternedPath> = self.files.removed.iter().map(|p| p.clone()).collect();
     for path in &removed_files {
       self.remove_file_mtime(path);
     }
@@ -329,9 +329,9 @@ mod tests {
   fn test_updater() {
     let updater = PathUpdater::from((
       vec![
-        ArcPath::from(Utf8Path::new("src/index.js")),
-        ArcPath::from(Utf8Path::new("node_modules/.pnpm/axios/lib/index.js")),
-        ArcPath::from(Utf8Path::new(".git/abc/")),
+        InternedPath::from(Utf8Path::new("src/index.js")),
+        InternedPath::from(Utf8Path::new("node_modules/.pnpm/axios/lib/index.js")),
+        InternedPath::from(Utf8Path::new(".git/abc/")),
       ]
       .into_iter(),
       vec![].into_iter(),
@@ -362,15 +362,15 @@ mod tests {
     let path_manager = PathManager::default();
 
     let files = (
-      vec![ArcPath::from(Utf8Path::new("src/index.js"))].into_iter(),
+      vec![InternedPath::from(Utf8Path::new("src/index.js"))].into_iter(),
       vec![].into_iter(),
     );
     let dirs = (
-      vec![ArcPath::from(Utf8Path::new("src"))].into_iter(),
+      vec![InternedPath::from(Utf8Path::new("src"))].into_iter(),
       vec![].into_iter(),
     );
     let missing = (
-      vec![ArcPath::from(Utf8Path::new("src/page/index.ts"))].into_iter(),
+      vec![InternedPath::from(Utf8Path::new("src/page/index.ts"))].into_iter(),
       vec![].into_iter(),
     );
 
@@ -402,19 +402,19 @@ mod tests {
     ]);
     let path_manager = PathManager::new(ignored);
     let files = (
-      vec![ArcPath::from(Utf8Path::new("src/index.js"))].into_iter(),
+      vec![InternedPath::from(Utf8Path::new("src/index.js"))].into_iter(),
       vec![].into_iter(),
     );
     let directories = (
       vec![
-        ArcPath::from(Utf8Path::new("src/")),
-        ArcPath::from(Utf8Path::new("node_modules/")),
+        InternedPath::from(Utf8Path::new("src/")),
+        InternedPath::from(Utf8Path::new("node_modules/")),
       ]
       .into_iter(),
       vec![].into_iter(),
     );
     let missing = (
-      vec![ArcPath::from(Utf8Path::new("src/page/index.ts"))].into_iter(),
+      vec![InternedPath::from(Utf8Path::new("src/page/index.ts"))].into_iter(),
       vec![].into_iter(),
     );
 
@@ -450,7 +450,7 @@ mod tests {
     use tempfile::NamedTempFile;
 
     let tempfile = NamedTempFile::new().expect("create temp file");
-    let path = ArcPath::from(tempfile.path());
+    let path = InternedPath::from(tempfile.path());
 
     let pm = PathManager::default();
     pm.update(

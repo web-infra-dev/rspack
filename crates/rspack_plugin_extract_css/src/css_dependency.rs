@@ -6,7 +6,7 @@ use rspack_core::{
   ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleLayer, ResourceIdentifier,
   SideEffectsStateArtifact,
 };
-use rspack_paths::ArcPathSet;
+use rspack_paths::InternedPathSet;
 
 #[cacheable]
 #[derive(Debug, Clone)]
@@ -28,10 +28,10 @@ pub struct CssDependency {
   range: DependencyRange,
   resource_identifier: ResourceIdentifier,
   pub(crate) cacheable: bool,
-  pub(crate) file_dependencies: ArcPathSet,
-  pub(crate) context_dependencies: ArcPathSet,
-  pub(crate) missing_dependencies: ArcPathSet,
-  pub(crate) build_dependencies: ArcPathSet,
+  pub(crate) file_dependencies: InternedPathSet,
+  pub(crate) context_dependencies: InternedPathSet,
+  pub(crate) missing_dependencies: InternedPathSet,
+  pub(crate) build_dependencies: InternedPathSet,
   factorize_info: FactorizeInfo,
 }
 
@@ -49,10 +49,10 @@ impl CssDependency {
     identifier_index: u32,
     range: DependencyRange,
     cacheable: bool,
-    file_dependencies: ArcPathSet,
-    context_dependencies: ArcPathSet,
-    missing_dependencies: ArcPathSet,
-    build_dependencies: ArcPathSet,
+    file_dependencies: InternedPathSet,
+    context_dependencies: InternedPathSet,
+    missing_dependencies: InternedPathSet,
+    build_dependencies: InternedPathSet,
   ) -> Self {
     let resource_identifier = format!("css-module-{}-{}", &identifier, identifier_index).into();
     Self {

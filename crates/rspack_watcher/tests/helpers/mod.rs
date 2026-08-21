@@ -10,7 +10,7 @@ use std::{
   time::SystemTime,
 };
 
-use rspack_paths::{ArcPath, Utf8PathBuf};
+use rspack_paths::{InternedPath, Utf8PathBuf};
 use rspack_util::fx_hash::FxHashSet;
 use rspack_watcher::{EventAggregateHandler, EventHandler, FsWatcher};
 use tempfile::TempDir;
@@ -199,9 +199,9 @@ impl TestHelper {
   /// All paths are relative to the temporary directory.
   pub fn watch(
     &mut self,
-    files: (impl Iterator<Item = ArcPath>, impl Iterator<Item = ArcPath>),
-    directories: (impl Iterator<Item = ArcPath>, impl Iterator<Item = ArcPath>),
-    missing: (impl Iterator<Item = ArcPath>, impl Iterator<Item = ArcPath>),
+    files: (impl Iterator<Item = InternedPath>, impl Iterator<Item = InternedPath>),
+    directories: (impl Iterator<Item = InternedPath>, impl Iterator<Item = InternedPath>),
+    missing: (impl Iterator<Item = InternedPath>, impl Iterator<Item = InternedPath>),
   ) -> Receiver<Event> {
     let (tx, rx) = std::sync::mpsc::channel();
 
@@ -214,11 +214,11 @@ impl TestHelper {
       ($expr:expr) => {{
         let left = $expr
           .0
-          .map(|p| ArcPath::from(self.canonicalized_temp_dir.join(p)))
+          .map(|p| InternedPath::from(self.canonicalized_temp_dir.join(p)))
           .collect::<Vec<_>>();
         let right = $expr
           .1
-          .map(|p| ArcPath::from(self.canonicalized_temp_dir.join(p)))
+          .map(|p| InternedPath::from(self.canonicalized_temp_dir.join(p)))
           .collect::<Vec<_>>();
         (left, right)
       }};

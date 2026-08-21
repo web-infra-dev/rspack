@@ -5,7 +5,7 @@ use std::sync::Arc;
 
 use rspack_cacheable::cacheable;
 use rspack_fs::ReadableFileSystem;
-use rspack_paths::{ArcPath, AssertUtf8};
+use rspack_paths::{InternedPath, AssertUtf8};
 
 use self::{
   hash_helper::{ContentHash, HashHelper, TimestampHash},
@@ -113,7 +113,7 @@ impl StrategyHelper {
   }
 
   /// get path file modified time
-  async fn modified_time(&self, path: &ArcPath) -> Option<u64> {
+  async fn modified_time(&self, path: &InternedPath) -> Option<u64> {
     if let Ok(info) = self.fs.metadata(path.assert_utf8()).await {
       // return the larger of ctime and mtime
       if info.ctime_ms > info.mtime_ms {
@@ -127,7 +127,7 @@ impl StrategyHelper {
   }
 
   /// get path file package version strategy
-  pub async fn package_version(&self, path: &ArcPath) -> Option<Strategy> {
+  pub async fn package_version(&self, path: &InternedPath) -> Option<Strategy> {
     self
       .package_helper
       .package_version(path)
@@ -136,7 +136,7 @@ impl StrategyHelper {
   }
 
   /// get path file hash strategy
-  pub async fn file_hash(&self, path: &ArcPath) -> Strategy {
+  pub async fn file_hash(&self, path: &InternedPath) -> Strategy {
     if let Some(ContentHash { hash, mtime }) = self.hash_helper.file_hash(path).await {
       Strategy::FileTimestampAndHash { mtime, hash }
     } else {
@@ -147,7 +147,7 @@ impl StrategyHelper {
   /// get path file strategy
   pub async fn file_strategy(
     &self,
-    path: &ArcPath,
+    path: &InternedPath,
     strategy_options: SnapshotStrategyOptions,
   ) -> Strategy {
     match (strategy_options.hash, strategy_options.timestamp) {
@@ -171,7 +171,7 @@ impl StrategyHelper {
   }
 
   /// get path context hash strategy
-  pub async fn dir_hash(&self, path: &ArcPath) -> Strategy {
+  pub async fn dir_hash(&self, path: &InternedPath) -> Strategy {
     if let Some(ContentHash { hash, .. }) = self.hash_helper.dir_hash(path).await {
       Strategy::DirHash { hash }
     } else {
@@ -182,7 +182,7 @@ impl StrategyHelper {
   /// get path context strategy
   pub async fn dir_strategy(
     &self,
-    path: &ArcPath,
+    path: &InternedPath,
     strategy_options: SnapshotStrategyOptions,
   ) -> Strategy {
     match (strategy_options.hash, strategy_options.timestamp) {
@@ -220,7 +220,7 @@ impl StrategyHelper {
   }
 
   /// validate path file by target strategy
-  pub async fn validate(&self, path: &ArcPath, strategy: &Strategy) -> ValidateResult {
+  pub async fn validate(&self, path: &InternedPath, strategy: &Strategy) -> ValidateResult {
     match strategy {
       Strategy::PackageVersion(version) => {
         let Some(ref cur_version) = self.package_helper.package_version(path).await else {
@@ -334,7 +334,7 @@ mod tests {
   use std::sync::Arc;
 
   use rspack_fs::{MemoryFileSystem, WritableFileSystem};
-  use rspack_paths::ArcPath;
+  use rspack_paths::InternedPath;
 
   use super::{Strategy, StrategyHelper, ValidateResult};
 
@@ -356,7 +356,7 @@ mod tests {
     let helper = StrategyHelper::new(fs.clone(), Default::default());
     assert!(matches!(
       helper
-        .validate(&ArcPath::from("/packages/lib/file.js"), &strategy)
+        .validate(&InternedPath::from("/packages/lib/file.js"), &strategy)
         .await,
       ValidateResult::NoChanged
     ));
@@ -370,7 +370,7 @@ mod tests {
     .unwrap();
     assert!(matches!(
       helper
-        .validate(&ArcPath::from("/packages/lib/file.js"), &strategy)
+        .validate(&InternedPath::from("/packages/lib/file.js"), &strategy)
         .await,
       ValidateResult::Modified
     ));
@@ -381,7 +381,7 @@ mod tests {
       .unwrap();
     assert!(matches!(
       helper
-        .validate(&ArcPath::from("/packages/lib/file.js"), &strategy)
+        .validate(&InternedPath::from("/packages/lib/file.js"), &strategy)
         .await,
       ValidateResult::Deleted
     ));
@@ -397,10 +397,10 @@ mod tests {
 
     std::thread::sleep(std::time::Duration::from_millis(100));
     let helper = StrategyHelper::new(fs.clone(), Default::default());
-    let strategy = helper.file_hash(&ArcPath::from("/file1.js")).await;
+    let strategy = helper.file_hash(&InternedPath::from("/file1.js")).await;
     assert!(matches!(
       helper
-        .validate(&ArcPath::from("/file1.js"), &strategy)
+        .validate(&InternedPath::from("/file1.js"), &strategy)
         .await,
       ValidateResult::NoChanged
     ));
@@ -412,7 +412,7 @@ mod tests {
       .unwrap();
     assert!(matches!(
       helper
-        .validate(&ArcPath::from("/file1.js"), &strategy)
+        .validate(&InternedPath::from("/file1.js"), &strategy)
         .await,
       ValidateResult::NoChanged
     ));
@@ -424,7 +424,7 @@ mod tests {
       .unwrap();
     assert!(matches!(
       helper
-        .validate(&ArcPath::from("/file1.js"), &strategy)
+        .validate(&InternedPath::from("/file1.js"), &strategy)
         .await,
       ValidateResult::Modified
     ));
@@ -434,7 +434,7 @@ mod tests {
     fs.remove_file("/file1.js".into()).await.unwrap();
     assert!(matches!(
       helper
-        .validate(&ArcPath::from("/file1.js"), &strategy)
+        .validate(&InternedPath::from("/file1.js"), &strategy)
         .await,
       ValidateResult::Deleted
     ));
@@ -452,7 +452,7 @@ mod tests {
     let strategy = Strategy::Missing;
     assert!(matches!(
       helper
-        .validate(&ArcPath::from("/file1.js"), &strategy)
+        .validate(&InternedPath::from("/file1.js"), &strategy)
         .await,
       ValidateResult::Modified
     ));
@@ -463,7 +463,7 @@ mod tests {
       .unwrap();
     assert!(matches!(
       helper
-        .validate(&ArcPath::from("/file1.js"), &strategy)
+        .validate(&InternedPath::from("/file1.js"), &strategy)
         .await,
       ValidateResult::Modified
     ));
@@ -472,7 +472,7 @@ mod tests {
     fs.remove_file("/file1.js".into()).await.unwrap();
     assert!(matches!(
       helper
-        .validate(&ArcPath::from("/file1.js"), &strategy)
+        .validate(&InternedPath::from("/file1.js"), &strategy)
         .await,
       ValidateResult::NoChanged
     ));

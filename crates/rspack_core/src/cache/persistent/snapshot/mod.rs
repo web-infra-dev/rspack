@@ -7,7 +7,7 @@ use std::sync::Arc;
 use rspack_error::Result;
 use rspack_fs::ReadableFileSystem;
 use rspack_parallel::TryFutureConsumer;
-use rspack_paths::{ArcPath, ArcPathSet};
+use rspack_paths::{InternedPath, InternedPathSet};
 
 pub(crate) use self::strategy::{StrategyHelper, ValidateResult};
 pub use self::{
@@ -45,7 +45,7 @@ impl Snapshot {
   async fn calc_strategy(
     options: &Arc<SnapshotOptions>,
     helper: &Arc<StrategyHelper>,
-    path: &ArcPath,
+    path: &InternedPath,
     scope: SnapshotScope,
   ) -> Option<Strategy> {
     let path_str = path.to_string_lossy();
@@ -89,7 +89,7 @@ impl Snapshot {
     &self,
     storage: &mut dyn Storage,
     scope: SnapshotScope,
-    paths: impl Iterator<Item = ArcPath>,
+    paths: impl Iterator<Item = InternedPath>,
   ) {
     let helper = Arc::new(StrategyHelper::new(self.fs.clone(), self.options.clone()));
     let codec = self.codec.clone();
@@ -119,7 +119,7 @@ impl Snapshot {
     &self,
     storage: &mut dyn Storage,
     scope: SnapshotScope,
-    paths: impl Iterator<Item = ArcPath>,
+    paths: impl Iterator<Item = InternedPath>,
   ) {
     for item in paths {
       storage.remove(scope.name(), item.as_os_str().as_encoded_bytes())
@@ -132,10 +132,10 @@ impl Snapshot {
     &self,
     storage: &dyn Storage,
     scope: SnapshotScope,
-  ) -> Result<(bool, ArcPathSet, ArcPathSet, ArcPathSet)> {
-    let mut modified_path = ArcPathSet::default();
-    let mut deleted_path = ArcPathSet::default();
-    let mut no_change_path = ArcPathSet::default();
+  ) -> Result<(bool, InternedPathSet, InternedPathSet, InternedPathSet)> {
+    let mut modified_path = InternedPathSet::default();
+    let mut deleted_path = InternedPathSet::default();
+    let mut no_change_path = InternedPathSet::default();
     let helper = Arc::new(StrategyHelper::new(self.fs.clone(), self.options.clone()));
     let codec = self.codec.clone();
 
@@ -147,7 +147,7 @@ impl Snapshot {
         let helper = helper.clone();
         let codec = codec.clone();
         async move {
-          let path = codec.decode::<ArcPath>(&key)?;
+          let path = codec.decode::<InternedPath>(&key)?;
           let validate = match codec.decode::<Strategy>(&value) {
             Ok(strategy) => helper.validate(&path, &strategy).await,
             Err(_) => ValidateResult::Modified,
@@ -177,7 +177,7 @@ mod tests {
   use std::sync::Arc;
 
   use rspack_fs::{MemoryFileSystem, WritableFileSystem};
-  use rspack_paths::ArcPath;
+  use rspack_paths::InternedPath;
 
   use super::{
     super::{codec::CacheCodec, storage::MemoryStorage},
@@ -186,7 +186,7 @@ mod tests {
 
   macro_rules! p {
     ($tt:tt) => {
-      ArcPath::from(std::path::Path::new($tt))
+      InternedPath::from(std::path::Path::new($tt))
     };
   }
 

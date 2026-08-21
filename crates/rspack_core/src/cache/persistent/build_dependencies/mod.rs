@@ -4,7 +4,7 @@ use std::{collections::VecDeque, path::PathBuf, sync::Arc};
 
 use rspack_error::Result;
 use rspack_fs::ReadableFileSystem;
-use rspack_paths::{ArcPath, ArcPathSet, AssertUtf8};
+use rspack_paths::{InternedPath, InternedPathSet, AssertUtf8};
 use rustc_hash::FxHashSet as HashSet;
 
 pub(crate) use self::helper::{Helper, is_node_package_path};
@@ -22,8 +22,8 @@ pub enum BuildDepsValidationResult {
     tracked_files: usize,
   },
   Invalid {
-    modified_files: ArcPathSet,
-    removed_files: ArcPathSet,
+    modified_files: InternedPathSet,
+    removed_files: InternedPathSet,
   },
 }
 
@@ -33,11 +33,11 @@ pub struct BuildDeps {
   /// The build dependencies has been added to snapshot.
   ///
   /// This field is used to avoid adding duplicate build dependencies to the snapshot.
-  added: ArcPathSet,
+  added: InternedPathSet,
   /// The pending dependencies.
   ///
   /// The next time the add method is called, this path will be additionally added.
-  pending: ArcPathSet,
+  pending: InternedPathSet,
   /// The snapshot which is used to save build dependencies.
   snapshot: Arc<Snapshot>,
   fs: Arc<dyn ReadableFileSystem>,
@@ -51,7 +51,7 @@ impl BuildDeps {
   ) -> Self {
     Self {
       added: Default::default(),
-      pending: options.iter().map(|v| ArcPath::from(v.as_path())).collect(),
+      pending: options.iter().map(|v| InternedPath::from(v.as_path())).collect(),
       snapshot,
       fs,
     }
@@ -63,7 +63,7 @@ impl BuildDeps {
   pub async fn add(
     &mut self,
     storage: &mut dyn Storage,
-    data: impl Iterator<Item = ArcPath>,
+    data: impl Iterator<Item = InternedPath>,
     logger: CompilationLogger,
   ) {
     let mut helper = Helper::new(self.fs.clone(), logger);

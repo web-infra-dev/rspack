@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use rspack_paths::{ArcPath, ArcPathDashSet};
+use rspack_paths::{InternedPath, InternedPathDashSet};
 use tokio::sync::mpsc::UnboundedSender;
 
 use super::{FsEvent, FsEventKind};
@@ -12,11 +12,11 @@ use crate::{EventBatch, paths::PathManager};
 /// or missing paths) are related to a specific filesystem path, such as when handling file system events.
 pub struct DependencyFinder<'a> {
   /// Reference to the set of registered file paths.
-  pub files: &'a ArcPathDashSet,
+  pub files: &'a InternedPathDashSet,
   /// Reference to the set of registered directory paths.
-  pub directories: &'a ArcPathDashSet,
+  pub directories: &'a InternedPathDashSet,
   /// Reference to the set of registered missing paths (paths that were expected but not found).
-  pub missing: &'a ArcPathDashSet,
+  pub missing: &'a InternedPathDashSet,
 }
 
 impl<'a> DependencyFinder<'a> {
@@ -27,9 +27,9 @@ impl<'a> DependencyFinder<'a> {
   /// that are registered as directories or missing.
   pub fn find_associated_event(
     &self,
-    path: &ArcPath,
+    path: &InternedPath,
     kind: FsEventKind,
-  ) -> Vec<(ArcPath, FsEventKind)> {
+  ) -> Vec<(InternedPath, FsEventKind)> {
     let mut paths = Vec::new();
 
     if path.exists() {
@@ -54,28 +54,28 @@ impl<'a> DependencyFinder<'a> {
   }
 
   /// Checks if the given path is registered as a file or missing.
-  fn contains_file(&self, path: &ArcPath) -> bool {
+  fn contains_file(&self, path: &InternedPath) -> bool {
     self.files.contains(path) || self.missing.contains(path)
   }
 
   /// Checks if the given path is registered as a directory or missing.
-  fn contains_directory(&self, path: &ArcPath) -> bool {
+  fn contains_directory(&self, path: &InternedPath) -> bool {
     self.directories.contains(path) || self.missing.contains(path)
   }
 
-  fn contains_path(&self, path: &ArcPath) -> bool {
+  fn contains_path(&self, path: &InternedPath) -> bool {
     self.files.contains(path) || self.directories.contains(path) || self.missing.contains(path)
   }
 
   /// Recursively adds all parent directories that are registered as directories or missing.
-  fn recurse_parent_directories(&self, path: &ArcPath, paths: &mut Vec<(ArcPath, FsEventKind)>) {
+  fn recurse_parent_directories(&self, path: &InternedPath, paths: &mut Vec<(InternedPath, FsEventKind)>) {
     match path.parent() {
       Some(parent) => {
-        if self.contains_directory(&ArcPath::from(parent)) {
+        if self.contains_directory(&InternedPath::from(parent)) {
           // For parent directory, it always FsEventKind::Change its recursive children no matter what kind is
-          paths.push((ArcPath::from(parent), FsEventKind::Change));
+          paths.push((InternedPath::from(parent), FsEventKind::Change));
         }
-        self.recurse_parent_directories(&ArcPath::from(parent), paths);
+        self.recurse_parent_directories(&InternedPath::from(parent), paths);
       }
       None => {
         // Reached the root directory, stop recursion
@@ -112,7 +112,7 @@ impl Trigger {
   /// If the file `/path/to/file.js` is changed, the trigger will send an event for the following paths:
   /// - `/path`
   /// - `/path/to`
-  pub fn on_event(&self, path: &ArcPath, kind: FsEventKind) {
+  pub fn on_event(&self, path: &InternedPath, kind: FsEventKind) {
     // Drop events inside ignored subtrees. The recursive-root watch delivers
     // events for unregistered paths (e.g. the build-output dir); left through,
     // `find_associated_event` bubbles them to a registered parent and triggers
@@ -167,7 +167,7 @@ impl Trigger {
 
   /// Sends a group of file system events for the given path and event kind.
   /// If the event is successfully sent, it returns true; otherwise, it returns false.
-  fn trigger_events(&self, events: Vec<(ArcPath, FsEventKind)>) -> bool {
+  fn trigger_events(&self, events: Vec<(InternedPath, FsEventKind)>) -> bool {
     self
       .tx
       .send(
@@ -184,18 +184,18 @@ mod tests {
 
   use std::path::Path;
 
-  use rspack_paths::ArcPath;
+  use rspack_paths::InternedPath;
 
   use super::*;
 
   #[test]
   fn test_find_dependency_for_file() {
-    let files = ArcPathDashSet::default();
-    let directories = ArcPathDashSet::default();
-    let missing = ArcPathDashSet::default();
+    let files = InternedPathDashSet::default();
+    let directories = InternedPathDashSet::default();
+    let missing = InternedPathDashSet::default();
 
-    let file_0 = ArcPath::from(Path::new("/path/a/b/c/index.js"));
-    let dir_0 = ArcPath::from(Path::new("/path/a/b"));
+    let file_0 = InternedPath::from(Path::new("/path/a/b/c/index.js"));
+    let dir_0 = InternedPath::from(Path::new("/path/a/b"));
     files.insert(file_0.clone());
 
     directories.insert(dir_0.clone());
@@ -215,12 +215,12 @@ mod tests {
 
   #[test]
   fn test_find_dependency_for_directory() {
-    let files = ArcPathDashSet::default();
-    let directories = ArcPathDashSet::default();
-    let missing = ArcPathDashSet::default();
+    let files = InternedPathDashSet::default();
+    let directories = InternedPathDashSet::default();
+    let missing = InternedPathDashSet::default();
 
-    let dir_0 = ArcPath::from(Path::new("/path/a/b/c"));
-    let dir_1 = ArcPath::from(Path::new("/path/a/b"));
+    let dir_0 = InternedPath::from(Path::new("/path/a/b/c"));
+    let dir_1 = InternedPath::from(Path::new("/path/a/b"));
 
     directories.insert(dir_0.clone());
     directories.insert(dir_1.clone());
@@ -232,7 +232,7 @@ mod tests {
     };
 
     let associated_events = finder.find_associated_event(
-      &ArcPath::from(Path::new("/path/a/b/c/index.js")),
+      &InternedPath::from(Path::new("/path/a/b/c/index.js")),
       FsEventKind::Create,
     );
     assert_eq!(associated_events.len(), 2);
