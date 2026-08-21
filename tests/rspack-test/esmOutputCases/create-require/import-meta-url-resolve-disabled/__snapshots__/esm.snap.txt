@@ -52,8 +52,11 @@ it("should delegate import.meta.url parsing when requireResolve is disabled", as
 	const source = fs.readFileSync(path.join(__rspack_import_meta_dirname__, "main.mjs"), "utf-8");
 	const runtimeCreateRequire =
 		"(0,external_node_module_namespaceObject." + "createRequire)(import.meta.url)";
+	const memberCreateRequire =
+		"external_node_module_namespaceObject." + "createRequire(import.meta.url)";
 
 	expect(source.split(runtimeCreateRequire)).toHaveLength(2);
+	expect(source.split(memberCreateRequire)).toHaveLength(3);
 	expect(source).toContain("file:" + "//");
 	expect(source).toContain("/* createRequire() */ undefined");
 	expect(resolved).toBe("path");
