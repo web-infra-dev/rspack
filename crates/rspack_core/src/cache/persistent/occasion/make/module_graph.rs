@@ -17,16 +17,18 @@ use crate::{
 
 pub const SCOPE: &str = "occasion_make_module_graph";
 
+type CachedDependency<'a> = (
+  OwnedOrRef<'a, BoxDependency>,
+  Option<OwnedOrRef<'a, AsyncDependenciesBlockIdentifier>>,
+  Option<OwnedOrRef<'a, FactorizeInfo>>,
+);
+
 /// The value struct of current storage scope
 #[cacheable]
 struct Node<'a> {
   pub mgm: OwnedOrRef<'a, ModuleGraphModule>,
   pub module: OwnedOrRef<'a, BoxModule>,
-  pub dependencies: Vec<(
-    OwnedOrRef<'a, BoxDependency>,
-    Option<OwnedOrRef<'a, AsyncDependenciesBlockIdentifier>>,
-    Option<OwnedOrRef<'a, FactorizeInfo>>,
-  )>,
+  pub dependencies: Vec<CachedDependency<'a>>,
   pub connections: Vec<OwnedOrRef<'a, ModuleGraphConnection>>,
   pub blocks: Vec<OwnedOrRef<'a, AsyncDependenciesBlock>>,
   pub lazy_info: Option<OwnedOrRef<'a, LazyDependencies>>,
