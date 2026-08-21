@@ -2,14 +2,27 @@ import * as callContext from "./call-context";
 import * as callOnly from "./call-only";
 import { toString as compoundAssignmentToString } from "./compound-assignment";
 import * as deleteReference from "./delete-reference";
+import {
+	assign as assignDestructuring,
+	value as destructuringValue
+} from "./destructuring-assignment";
 import * as defineProperty from "./define-property";
 import * as escaped from "./escaped";
 import * as exportRequire from "./export-require";
 import * as factoryArguments from "./factory-arguments";
+import {
+	assign as assignForIn,
+	value as forInValue
+} from "./for-in-assignment";
+import {
+	assign as assignForOf,
+	value as forOfValue
+} from "./for-of-assignment";
 import * as moduleId from "./module-id";
 import mutableDefault, { value as mutableDefaultValue } from "./mutable-default";
 import * as prototypeRead from "./prototype-read";
 import * as prototypeCustomRead from "./prototype-custom-read";
+import { toString as prototypeConditionalAssignmentToString } from "./prototype-conditional-assignment";
 import {
 	toString as prototypeCustomSetterExport,
 	value as prototypeCustomSetterValue
@@ -31,6 +44,10 @@ import * as thisExports from "./this-exports";
 import * as thisRead from "./this-read";
 import * as typeofFactoryArguments from "./typeof-factory-arguments";
 import * as topLevelReturn from "./top-level-return";
+import {
+	increment as incrementUpdate,
+	value as updateValue
+} from "./update-assignment";
 
 it("should keep unsupported CommonJS modules working", () => {
 	expect(sloppy.s).toBe("sloppy");
@@ -52,9 +69,22 @@ it("should keep unsupported CommonJS modules working", () => {
 	expect(deleteReference.read()).toBe(1);
 	expect(deleteReference.remove()).toBe(true);
 	expect(deleteReference.read()).toBeUndefined();
+	expect(updateValue).toBe(1);
+	expect(incrementUpdate()).toBe(1);
+	expect(updateValue).toBe(2);
+	expect(destructuringValue).toBe(1);
+	assignDestructuring();
+	expect(destructuringValue).toBe(2);
+	expect(forInValue).toBe("");
+	assignForIn();
+	expect(forInValue).toBe("key");
+	expect(forOfValue).toBe(1);
+	assignForOf();
+	expect(forOfValue).toBe(2);
 	expect(taggedTemplate.run()).toBe(1);
 	expect(prototypeRead.value).toBe("function");
 	expect(prototypeCustomRead.value).toBe(42);
+	expect(typeof prototypeConditionalAssignmentToString).toBe("function");
 	expect(typeof prototypeCustomSetterExport).toBe("function");
 	expect(prototypeCustomSetterValue).toBe(42);
 	expect(typeof prototypeIndirectObjectSetterExport).toBe("function");
@@ -124,6 +154,18 @@ it("should report a bailout reason for each unsupported module", () => {
 	expect(bailoutsOf("delete-reference.js")).toContainEqual(
 		expect.stringContaining("delete on CommonJS exports")
 	);
+	expect(bailoutsOf("update-assignment.js")).toContainEqual(
+		expect.stringContaining("non-plain assignment to CommonJS exports")
+	);
+	expect(bailoutsOf("destructuring-assignment.js")).toContainEqual(
+		expect.stringContaining("non-plain assignment to CommonJS exports")
+	);
+	expect(bailoutsOf("for-in-assignment.js")).toContainEqual(
+		expect.stringContaining("non-plain assignment to CommonJS exports")
+	);
+	expect(bailoutsOf("for-of-assignment.js")).toContainEqual(
+		expect.stringContaining("non-plain assignment to CommonJS exports")
+	);
 	expect(bailoutsOf("tagged-template.js")).toContainEqual(
 		expect.stringContaining("call context")
 	);
@@ -132,6 +174,9 @@ it("should report a bailout reason for each unsupported module", () => {
 	);
 	expect(bailoutsOf("prototype-custom-read.js")).toContainEqual(
 		expect.stringContaining("not assigned by the module")
+	);
+	expect(bailoutsOf("prototype-conditional-assignment.js")).toContainEqual(
+		expect.stringContaining("Object.prototype")
 	);
 	expect(bailoutsOf("prototype-custom-setter.js")).toContainEqual(
 		expect.stringContaining("Object.prototype")

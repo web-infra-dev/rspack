@@ -53,11 +53,15 @@ impl JavascriptParser<'_> {
     let old_top_level_scope = self.top_level_scope;
     let old_in_tagged_template_tag = self.in_tagged_template_tag;
     let old_in_unary_delete = self.in_unary_delete;
+    let old_in_mutating_assignment_target_pattern = self.in_mutating_assignment_target_pattern;
+    let old_mutating_assignment_target = self.mutating_assignment_target;
     let old_in_try = self.in_try;
     let old_terminated = self.terminated;
 
     self.in_tagged_template_tag = false;
     self.in_unary_delete = false;
+    self.in_mutating_assignment_target_pattern = false;
+    self.mutating_assignment_target = None;
     self.definitions = self.definitions_db.create_child(old_definitions);
     f(self);
 
@@ -68,6 +72,8 @@ impl JavascriptParser<'_> {
     self.top_level_scope = old_top_level_scope;
     self.in_tagged_template_tag = old_in_tagged_template_tag;
     self.in_unary_delete = old_in_unary_delete;
+    self.in_mutating_assignment_target_pattern = old_in_mutating_assignment_target_pattern;
+    self.mutating_assignment_target = old_mutating_assignment_target;
     self.in_try = old_in_try;
     self.terminated = old_terminated;
 
@@ -86,11 +92,15 @@ impl JavascriptParser<'_> {
     let old_top_level_scope = self.top_level_scope;
     let old_in_tagged_template_tag = self.in_tagged_template_tag;
     let old_in_unary_delete = self.in_unary_delete;
+    let old_in_mutating_assignment_target_pattern = self.in_mutating_assignment_target_pattern;
+    let old_mutating_assignment_target = self.mutating_assignment_target;
     let old_terminated = self.terminated;
 
     self.in_try = false;
     self.in_tagged_template_tag = false;
     self.in_unary_delete = false;
+    self.in_mutating_assignment_target_pattern = false;
+    self.mutating_assignment_target = None;
     self.terminated = None;
     self.definitions = self.definitions_db.create_child(old_definitions);
 
@@ -110,6 +120,8 @@ impl JavascriptParser<'_> {
     self.top_level_scope = old_top_level_scope;
     self.in_tagged_template_tag = old_in_tagged_template_tag;
     self.in_unary_delete = old_in_unary_delete;
+    self.in_mutating_assignment_target_pattern = old_in_mutating_assignment_target_pattern;
+    self.mutating_assignment_target = old_mutating_assignment_target;
     self.terminated = old_terminated;
   }
 
@@ -122,11 +134,15 @@ impl JavascriptParser<'_> {
     let old_top_level_scope = self.top_level_scope;
     let old_in_tagged_template_tag = self.in_tagged_template_tag;
     let old_in_unary_delete = self.in_unary_delete;
+    let old_in_mutating_assignment_target_pattern = self.in_mutating_assignment_target_pattern;
+    let old_mutating_assignment_target = self.mutating_assignment_target;
     let old_terminated = self.terminated;
 
     self.definitions = self.definitions_db.create_child(old_definitions);
     self.in_tagged_template_tag = false;
     self.in_unary_delete = false;
+    self.in_mutating_assignment_target_pattern = false;
+    self.mutating_assignment_target = None;
     self.terminated = None;
     if has_this {
       self.undefined_variable(&"this".into());
@@ -141,6 +157,8 @@ impl JavascriptParser<'_> {
     self.top_level_scope = old_top_level_scope;
     self.in_tagged_template_tag = old_in_tagged_template_tag;
     self.in_unary_delete = old_in_unary_delete;
+    self.in_mutating_assignment_target_pattern = old_in_mutating_assignment_target_pattern;
+    self.mutating_assignment_target = old_mutating_assignment_target;
     self.terminated = old_terminated;
   }
 
@@ -488,7 +506,7 @@ impl JavascriptParser<'_> {
         self.walk_variable_declaration(decl);
       }
       ForHead::Pat(pat) => {
-        self.walk_pattern(pat);
+        self.walk_mutating_assignment_target_pattern(pat);
       }
     }
   }
@@ -614,7 +632,7 @@ impl JavascriptParser<'_> {
 
   fn walk_update_expression(&mut self, expr: &UpdateExpr) {
     if !self.javascript_options.is_create_require_enabled() {
-      self.walk_expression(&expr.arg);
+      self.walk_mutating_assignment_target(&expr.arg);
       return;
     }
     let updated_ident = expr
@@ -624,10 +642,24 @@ impl JavascriptParser<'_> {
     if let Some(name) = &updated_ident {
       self.clear_create_require_tag(name);
     }
-    self.walk_expression(&expr.arg);
+    self.walk_mutating_assignment_target(&expr.arg);
     if let Some(name) = &updated_ident {
       self.clear_create_require_tag(name);
     }
+  }
+
+  fn walk_mutating_assignment_target(&mut self, expr: &Expr) {
+    let old_mutating_assignment_target = self.mutating_assignment_target;
+    self.mutating_assignment_target = Some(expr.span());
+    self.walk_expression(expr);
+    self.mutating_assignment_target = old_mutating_assignment_target;
+  }
+
+  fn walk_mutating_assignment_target_pattern(&mut self, pat: &Pat) {
+    let old_in_mutating_assignment_target_pattern = self.in_mutating_assignment_target_pattern;
+    self.in_mutating_assignment_target_pattern = true;
+    self.walk_pattern(pat);
+    self.in_mutating_assignment_target_pattern = old_in_mutating_assignment_target_pattern;
   }
 
   fn clear_create_require_tag(&mut self, name: &Atom) {
@@ -1954,7 +1986,13 @@ impl JavascriptParser<'_> {
       Pat::Assign(assign) => self.walk_assignment_pattern(assign),
       Pat::Object(obj) => self.walk_object_pattern(obj),
       Pat::Rest(rest) => self.walk_rest_element(rest),
-      Pat::Expr(expr) => self.walk_expression(expr),
+      Pat::Expr(expr) => {
+        if self.in_mutating_assignment_target_pattern {
+          self.walk_mutating_assignment_target(expr);
+        } else {
+          self.walk_expression(expr);
+        }
+      }
       Pat::Ident(_) => (),
       Pat::Invalid(_) => (),
     }
@@ -1971,11 +2009,14 @@ impl JavascriptParser<'_> {
   }
 
   fn walk_assign_target_pattern(&mut self, pat: &AssignTargetPat) {
+    let old_in_mutating_assignment_target_pattern = self.in_mutating_assignment_target_pattern;
+    self.in_mutating_assignment_target_pattern = true;
     match pat {
       AssignTargetPat::Array(array) => self.walk_array_pattern(array),
       AssignTargetPat::Object(obj) => self.walk_object_pattern(obj),
       AssignTargetPat::Invalid(_) => (),
     }
+    self.in_mutating_assignment_target_pattern = old_in_mutating_assignment_target_pattern;
   }
 
   fn walk_rest_element(&mut self, rest: &RestPat) {

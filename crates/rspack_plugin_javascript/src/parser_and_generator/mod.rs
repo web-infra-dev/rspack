@@ -15,7 +15,8 @@ use rspack_core::{
   ModuleArgument, ModuleCodeTemplate, ModuleGraph, ModuleType, ParseContext, ParseResult,
   ParserAndGenerator, ResolvedModuleOptions, RuntimeGlobals, RuntimeGlobalsRenderMode,
   RuntimeRequirementsDependency, RuntimeVariable, SideEffectsBailoutItem, SourceType,
-  TemplateContext, TemplateReplaceSource, diagnostics::map_box_diagnostics_to_module_parse_diagnostics,
+  TemplateContext, TemplateReplaceSource,
+  diagnostics::map_box_diagnostics_to_module_parse_diagnostics,
   property_access, remove_bom, render_init_fragments,
   rspack_sources::{BoxSource, ReplaceSource, Source, SourceExt},
 };
@@ -276,6 +277,21 @@ impl JavaScriptParserAndGenerator {
         {
           return Some(
             format!("Module assigns to {}.__proto__", dependency.base().as_str()).into(),
+          );
+        }
+        if module.build_info().module_concatenation_bailout.is_none()
+          && dependency
+            .names()
+            .first()
+            .is_some_and(|name| OBJECT_PROTOTYPE_METHODS.contains(&name.as_str()))
+        {
+          return Some(
+            format!(
+              "Module assigns to Object.prototype name via {}{}",
+              dependency.base().as_str(),
+              property_access(dependency.names().iter(), 0)
+            )
+            .into(),
           );
         }
       } else if let Some(dependency) = dependency

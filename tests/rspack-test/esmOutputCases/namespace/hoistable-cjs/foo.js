@@ -4,6 +4,7 @@ const __RSPACK_CJS_EXPORT_value__ = 41;
 var __rspack_unused_export = 42;
 globalThis.__RSPACK_CJS_EXPORT_readGlobal__ = 43;
 globalThis.__RSPACK_CJS_EXPORT_defined__ = 44;
+globalThis.__RSPACK_CJS_EXPORT_escapedDefined__ = 46;
 
 exports.unused = "unused";
 exports.value = 1;
@@ -35,9 +36,21 @@ exports.readDefined = () => {
   delete globalThis.__RSPACK_CJS_EXPORT_defined__;
   return value;
 };
+exports.escapedDefined = 1;
+exports.readEscapedDefined = () => {
+  const value = __CJS_ESCAPED_COLLISION_DEFINE__;
+  delete globalThis.__RSPACK_CJS_EXPORT_escapedDefined__;
+  return value;
+};
+(exports.parenthesizedLeft) = 1;
+exports.parenthesizedRight = (2);
+(exports.parenthesizedBoth) = (3);
+exports.parenthesizedSequence = (0, 4);
 exports["a-b"] = "a-b-value";
 exports.a_b_612d62 = "identifier-value";
 exports.chainedA = exports.chainedB = "chained-value";
 exports.__rspack_cjs_external_setter__ = 45;
+exports.externalGetterReadsDuringEvaluation =
+	globalThis.__rspack_cjs_external_getter_reads__;
 exports.externalSetterObserved =
 	globalThis.__rspack_cjs_external_setter_seen__;

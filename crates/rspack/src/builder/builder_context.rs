@@ -103,6 +103,7 @@ pub(super) enum BuiltinPluginOptions {
 pub struct BuilderContext {
   pub(super) plugins: Vec<BuiltinPluginOptions>,
   pub(super) platform: CompilerPlatform,
+  pub(super) concatenate_commonjs_modules: Option<bool>,
 }
 
 impl BuilderContext {
@@ -294,7 +295,13 @@ impl BuilderContext {
 
       // Output plugins
       BuiltinPluginOptions::EnableLibraryPlugin(library_type) => {
-        rspack_plugin_library::enable_library_plugin(library_type, None, None, true, &mut plugins)
+        rspack_plugin_library::enable_library_plugin(
+          library_type,
+          None,
+          None,
+          self.concatenate_commonjs_modules.unwrap_or(true),
+          &mut plugins,
+        )
       }
       // BuiltinPluginOptions::SplitChunksPlugin => {
       // plugins.push(rspack_plugin_split_chunks::SplitChunksPlugin::default().boxed())

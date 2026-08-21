@@ -154,6 +154,7 @@ impl DependencyTemplate for CommonJsSelfReferenceDependencyTemplate {
       runtime,
       runtime_template,
       init_fragments,
+      concatenation_scope,
       ..
     } = code_generatable_context;
     let module_graph = compilation.get_module_graph();
@@ -172,7 +173,7 @@ impl DependencyTemplate for CommonJsSelfReferenceDependencyTemplate {
       UsedName::Normal(dep.names.clone())
     };
 
-    if source.concatenation_scope().is_some() {
+    if let Some(concatenation_scope) = concatenation_scope.as_deref_mut() {
       debug_assert!(
         !dep.names.is_empty()
           && matches!(dep.base, ExportsBase::Exports | ExportsBase::ModuleExports),
@@ -180,9 +181,7 @@ impl DependencyTemplate for CommonJsSelfReferenceDependencyTemplate {
       );
       let replacement = get_concatenated_export_access(
         module.as_ref(),
-        source
-          .concatenation_scope()
-          .expect("concatenated CommonJS self reference should have a concatenation scope"),
+        concatenation_scope,
         init_fragments,
         &dep.names,
         property_access_with_optional(dep.names[1..].iter(), &dep.names_optionals[1..], 0),

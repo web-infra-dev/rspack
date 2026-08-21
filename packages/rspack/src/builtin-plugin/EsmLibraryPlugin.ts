@@ -9,14 +9,17 @@ import { RemoveDuplicateModulesPlugin } from './RemoveDuplicateModulesPlugin';
 import { toRawSplitChunksOptions } from './SplitChunksPlugin';
 
 const concatenateCommonJsModulesMap = new WeakMap<
-  RspackOptionsNormalized,
+  RspackOptionsNormalized['optimization'],
   boolean
 >();
 
 export function getConcatenateCommonJsModules(
   options: RspackOptionsNormalized,
 ): boolean {
-  const cached = concatenateCommonJsModulesMap.get(options);
+  // Child compilers shallow-copy the normalized options object while sharing
+  // its optimization object. Key by that stable object so applyLimits can
+  // preserve the parent's original CommonJS preference for its children.
+  const cached = concatenateCommonJsModulesMap.get(options.optimization);
   if (cached !== undefined) {
     return cached;
   }
@@ -26,7 +29,10 @@ export function getConcatenateCommonJsModules(
     typeof concatenateModules === 'object'
       ? concatenateModules.commonjs !== false
       : concatenateModules !== false;
-  concatenateCommonJsModulesMap.set(options, concatenateCommonJsModules);
+  concatenateCommonJsModulesMap.set(
+    options.optimization,
+    concatenateCommonJsModules,
+  );
   return concatenateCommonJsModules;
 }
 

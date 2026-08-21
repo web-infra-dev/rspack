@@ -29,6 +29,20 @@ exports.TF = function remove() {
 
 
 },
+"./destructuring-assignment.js"
+/*!*************************************!*\
+  !*** ./destructuring-assignment.js ***!
+  \*************************************/
+(module, exports) {
+
+
+exports.U = 1;
+exports.k = function assign() {
+	({ value: module.exports.U } = { value: 2 });
+};
+
+
+},
 "./factory-arguments.js"
 /*!******************************!*\
   !*** ./factory-arguments.js ***!
@@ -41,6 +55,38 @@ exports.U = (() => arguments.length)();
 
 
 },
+"./for-in-assignment.js"
+/*!******************************!*\
+  !*** ./for-in-assignment.js ***!
+  \******************************/
+(__unused_rspack_module, exports) {
+
+
+exports.U = "";
+exports.k = function assign() {
+	for (exports.U in { key: true }) {
+		// nothing
+	}
+};
+
+
+},
+"./for-of-assignment.js"
+/*!******************************!*\
+  !*** ./for-of-assignment.js ***!
+  \******************************/
+(__unused_rspack_module, exports) {
+
+
+exports.U = 1;
+exports.k = function assign() {
+	for (exports.U of [2]) {
+		// nothing
+	}
+};
+
+
+},
 "./mutable-default.js"
 /*!****************************!*\
   !*** ./mutable-default.js ***!
@@ -49,6 +95,20 @@ exports.U = (() => arguments.length)();
 
 
 exports.value = 1;
+
+
+},
+"./prototype-conditional-assignment.js"
+/*!*********************************************!*\
+  !*** ./prototype-conditional-assignment.js ***!
+  \*********************************************/
+(__unused_rspack_module, exports) {
+
+
+delete globalThis.__RSPACK_CJS_ASSIGN_OBJECT_PROTOTYPE_NAME__;
+if (globalThis.__RSPACK_CJS_ASSIGN_OBJECT_PROTOTYPE_NAME__) {
+	exports.toString = 1;
+}
 
 
 },
@@ -214,6 +274,20 @@ exports.N = typeof arguments;
 
 
 },
+"./update-assignment.js"
+/*!******************************!*\
+  !*** ./update-assignment.js ***!
+  \******************************/
+(__unused_rspack_module, exports) {
+
+
+exports.U = 1;
+exports.G = function increment() {
+	return exports.U++;
+};
+
+
+},
 });
 // ./index.js
 const top_level_return = rspackRequire("./top-level-return.js");
@@ -221,15 +295,25 @@ const compound_assignment = rspackRequire("./compound-assignment.js");
 const factory_arguments = rspackRequire("./factory-arguments.js");
 const typeof_factory_arguments = rspackRequire("./typeof-factory-arguments.js");
 const delete_reference = rspackRequire("./delete-reference.js");
+const destructuring_assignment = rspackRequire("./destructuring-assignment.js");
+const for_in_assignment = rspackRequire("./for-in-assignment.js");
+const for_of_assignment = rspackRequire("./for-of-assignment.js");
 const tagged_template = rspackRequire("./tagged-template.js");
 const prototype_read = rspackRequire("./prototype-read.js");
 const prototype_custom_read = rspackRequire("./prototype-custom-read.js");
+const prototype_conditional_assignment = rspackRequire("./prototype-conditional-assignment.js");
 const prototype_custom_setter = rspackRequire("./prototype-custom-setter.js");
 const prototype_indirect_object_setter = rspackRequire("./prototype-indirect-object-setter.js");
 const prototype_indirect_reflect_setter = rspackRequire("./prototype-indirect-reflect-setter.js");
 const prototype_setter = rspackRequire("./prototype-setter.js");
 const prototype_unknown_read = rspackRequire("./prototype-unknown-read.js");
 const mutable_default = rspackRequire("./mutable-default.js");
+const update_assignment = rspackRequire("./update-assignment.js");
+
+
+
+
+
 
 
 
@@ -255,9 +339,22 @@ it("should keep CommonJS factory and exports object semantics", () => {
 	expect((0,delete_reference.LF)()).toBe(1);
 	expect((0,delete_reference.TF)()).toBe(true);
 	expect((0,delete_reference.LF)()).toBeUndefined();
+	expect(update_assignment.U).toBe(1);
+	expect((0,update_assignment.G)()).toBe(1);
+	expect(update_assignment.U).toBe(2);
+	expect(destructuring_assignment.U).toBe(1);
+	(0,destructuring_assignment.k)();
+	expect(destructuring_assignment.U).toBe(2);
+	expect(for_in_assignment.U).toBe("");
+	(0,for_in_assignment.k)();
+	expect(for_in_assignment.U).toBe("key");
+	expect(for_of_assignment.U).toBe(1);
+	(0,for_of_assignment.k)();
+	expect(for_of_assignment.U).toBe(2);
 	expect((0,tagged_template.run)()).toBe(1);
 	expect(prototype_read.U).toBe("function");
 	expect(prototype_custom_read.U).toBe(42);
+	expect(typeof prototype_conditional_assignment.toString).toBe("function");
 	expect(typeof prototype_custom_setter.toString).toBe("function");
 	expect(prototype_custom_setter.U).toBe(42);
 	expect(typeof prototype_indirect_object_setter.valueOf).toBe("function");
