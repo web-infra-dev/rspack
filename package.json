@@ -57,7 +57,6 @@
     "@typescript/native": "catalog:",
     "commander": "catalog:",
     "cross-env": "catalog:",
-    "globals": "catalog:",
     "heading-case": "catalog:",
     "prettier-plugin-toml": "catalog:",
     "rstack": "catalog:",

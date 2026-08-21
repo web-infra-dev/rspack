@@ -33,7 +33,7 @@ pub fn create_cache(
   input_filesystem: Arc<dyn ReadableFileSystem>,
   compilation_logging: CompilationLogging,
 ) -> Cache {
-  if !compiler_options.experiments.new_cache {
+  if !compiler_options.experiments.new_cache.is_enabled() {
     return Cache::new_disabled(compiler_path);
   }
 

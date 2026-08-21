@@ -2,12 +2,6 @@ name: Reusable Rust Test
 
 on:
   workflow_call:
-    inputs:
-      cargo-check-strategy:
-        type: string
-        required: false
-        default: 'all'
-        description: 'Strategy for cargo check: all (default) or separated'
 
 jobs:
   check-changed:
@@ -35,6 +29,9 @@ jobs:
     needs: [check-changed]
     if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
     runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS ||  '"ubuntu-22.04"') }}
+    env:
+      CARGO_INCREMENTAL: 0
+      RUSTC: rustc
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
@@ -48,15 +45,12 @@ jobs:
         run: cargo codegen
 
       - name: Install cargo-binstall
-        if: ${{ inputs.cargo-check-strategy == 'separated' }}
         uses: cargo-bins/cargo-binstall@ead08b90bd7b2e6d81963fb9cf0b7239f66d5db4 # v1.21.0
 
       - name: Install cargo-workspaces
-        if: ${{ inputs.cargo-check-strategy == 'separated' }}
         run: cargo binstall --no-confirm cargo-workspaces@0.4.0 --force
 
-      - name: Run Cargo Check (separated strategy)
-        if: ${{ inputs.cargo-check-strategy == 'separated' }}
+      - name: Run Cargo Check (per crate)
         run: cargo workspaces exec --ignore-private cargo check --lib --locked
 
       - name: Run Clippy

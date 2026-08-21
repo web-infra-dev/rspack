@@ -3,15 +3,18 @@ use rspack_cacheable::{
   with::{AsPreset, AsVec},
 };
 use rspack_core::{
-  AsContextDependency, Compilation, Dependency, DependencyCategory, DependencyCodeGeneration,
-  DependencyId, DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType,
-  DependencyType, ExportsInfoArtifact, FactorizeInfo, InitFragmentKey, InitFragmentStage,
-  ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, NormalInitFragment, ReferencedExport,
-  RuntimeSpec, TemplateContext, TemplateReplaceSource, UsedName, create_exports_object_referenced,
-  property_access, to_normal_comment,
+  AsContextDependency, AwaitDependenciesInitFragment, BuildMetaExportsType, Compilation,
+  Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId, DependencyLocation,
+  DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, ExportsInfoArtifact,
+  FactorizeInfo, InitFragmentKey, InitFragmentStage, ModuleDependency, ModuleGraph,
+  ModuleGraphCacheArtifact, NormalInitFragment, ReferencedExport, RuntimeSpec, TemplateContext,
+  TemplateReplaceSource, UsedName, create_exports_object_referenced, property_access,
+  to_normal_comment,
 };
 use rspack_hash::{RspackHash, RspackHasher};
 use swc_atoms::Atom;
+
+use super::esm_compatibility_dependency::add_async_module_boundary;
 
 #[cacheable]
 #[derive(Debug, Clone)]
@@ -163,6 +166,7 @@ impl DependencyTemplate for ProvideDependencyTemplate {
 
     let TemplateContext {
       compilation,
+      module,
       runtime,
       runtime_template,
       init_fragments,
@@ -180,17 +184,37 @@ impl DependencyTemplate for ProvideDependencyTemplate {
     let used_name =
       exports_info.get_used_name(&compilation.exports_info_artifact, *runtime, &dep.ids);
     let module_raw = runtime_template.module_raw(compilation, dep.id(), dep.request(), dep.weak());
-    let provided_expr = match used_name {
-      Some(UsedName::Normal(used_name)) => format!("{module_raw}{}", property_access(used_name, 0)),
-      Some(UsedName::Inlined(inlined)) => format!(
-        "({}, {})",
-        module_raw,
-        inlined.render(&to_normal_comment(&format!(
+    let is_async =
+      ModuleGraph::is_async(&compilation.async_modules_artifact, con.module_identifier());
+    let (provided_expr, post_await_expr) = if is_async {
+      let post_await_expr = match used_name {
+        Some(UsedName::Normal(used_name)) => Some(format!(
+          "{rendered_identifier}{}",
+          property_access(used_name, 0)
+        )),
+        Some(UsedName::Inlined(inlined)) => Some(inlined.render(&to_normal_comment(&format!(
           "inlined export {}",
           property_access(&dep.ids, 0)
-        )))
-      ),
-      None => module_raw,
+        )))),
+        None => None,
+      };
+      (module_raw, post_await_expr)
+    } else {
+      let provided_expr = match used_name {
+        Some(UsedName::Normal(used_name)) => {
+          format!("{module_raw}{}", property_access(used_name, 0))
+        }
+        Some(UsedName::Inlined(inlined)) => format!(
+          "({}, {})",
+          module_raw,
+          inlined.render(&to_normal_comment(&format!(
+            "inlined export {}",
+            property_access(&dep.ids, 0)
+          )))
+        ),
+        None => module_raw,
+      };
+      (provided_expr, None)
     };
 
     let mut fragment = NormalInitFragment::new(
@@ -202,6 +226,23 @@ impl DependencyTemplate for ProvideDependencyTemplate {
     );
     fragment.set_top_level_decl_symbols(vec![dep.identifier.clone().into()]);
     init_fragments.push(Box::new(fragment));
+    if is_async {
+      if module.build_meta().exports_type() != BuildMetaExportsType::Namespace {
+        add_async_module_boundary(init_fragments, compilation, *module, runtime_template, true);
+      }
+      init_fragments.push(Box::new(AwaitDependenciesInitFragment::new_single(
+        rendered_identifier.clone(),
+      )));
+      if let Some(post_await_expr) = post_await_expr {
+        init_fragments.push(Box::new(NormalInitFragment::new(
+          format!("{rendered_identifier} = {post_await_expr};\n"),
+          InitFragmentStage::StageAsyncESMImports,
+          1,
+          InitFragmentKey::ModuleExternal(format!("provided async {}", dep.identifier)),
+          None,
+        )));
+      }
+    }
     source.replace_with_tracked_used_names(
       dep.range.start,
       dep.range.end,

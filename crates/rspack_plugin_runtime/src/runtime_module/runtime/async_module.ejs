@@ -59,7 +59,7 @@
 		return ret;
 	});
 };
-<%- define(ASYNC_MODULE) %> = <%- basicFunction("module, body, hasAwait") %> {
+<%- define(ASYNC_MODULE) %> = <%- basicFunction("module, body, hasAwait, useModuleExports") %> {
 	var queue;
 	hasAwait && ((queue = []).d = -1);
 	var depQueues = new Set();
@@ -74,6 +74,11 @@
 	promise[rspackExports] = exports;
 	promise[rspackQueues] = <%- basicFunction("fn") %> { queue && fn(queue), depQueues.forEach(fn), promise["catch"](<%- emptyFunction() %>); };
 	module.exports = promise;
+	var asyncModule = module;
+	if (useModuleExports) {
+		asyncModule = Object.create(module);
+		asyncModule.exports = exports;
+	}
 	var handle = <%- basicFunction("deps") %> {
 		currentDeps = wrapDeps(deps);
 		var fn;
@@ -92,7 +97,7 @@
 		});
 		return fn.r ? promise : getResult();
 	};
-	var done = <%- expressionFunction("(err ? reject(promise[rspackError] = err) : outerResolve(exports)), resolveQueue(queue), promise[rspackDone] = true", "err") %>;
-	body(handle, done);
+	var done = <%- expressionFunction("(err ? reject(promise[rspackError] = err) : (useModuleExports && (exports = promise[rspackExports] = asyncModule.exports), outerResolve(exports))), resolveQueue(queue), promise[rspackDone] = true", "err") %>;
+	body(handle, done, asyncModule);
 	queue && queue.d < 0 && (queue.d = 0);
 };
