@@ -6391,9 +6391,9 @@ dependencies = [
 
 [[package]]
 name = "swc_core"
-version = "77.0.0"
+version = "77.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e3550b31eb172f3b27c55a05642a9d13520a55552382a708e44bdf286dfcbbe1"
+checksum = "4451c5290d1358d0f8d839f48fee0d43df8d90281e25f39127d58d8a543bf336"
 dependencies = [
  "par-core",
  "swc",
@@ -6695,9 +6695,9 @@ dependencies = [
 
 [[package]]
 name = "swc_ecma_minifier"
-version = "61.0.0"
+version = "61.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e69fe76dfd4f43ed4a3e351cee1f183169789c744db2d6db73fbf693ae080424"
+checksum = "98532423b3d19a93da19f1357295dd955c6afbc19344e84224fa20fbe9613ea2"
 dependencies = [
  "arrayvec",
  "bitflags 2.11.1",
@@ -6990,9 +6990,9 @@ dependencies = [
 
 [[package]]
 name = "swc_ecma_transforms_module"
-version = "55.0.0"
+version = "55.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0ebbcdacd52372205ba065a432ff75c4ad2917cfb9a5eec0681ff1acd84b7ce3"
+checksum = "427f39b7e3212657de906269c07cd0b18dea4404a239c442a4d5c1ebb0d881a0"
 dependencies = [
  "Inflector",
  "anyhow",
@@ -7061,9 +7061,9 @@ dependencies = [
 
 [[package]]
 name = "swc_ecma_transforms_react"
-version = "55.0.0"
+version = "55.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0e0a418b1fed19876f340b9d54aba3acc89c8c3d3d74717d08709d00c17d401b"
+checksum = "4d051cd9043cd7ca24eb154606e6a6914ed13d0dca686bd681a5277d99a8e4c7"
 dependencies = [
  "base64",
  "bytes-str",
