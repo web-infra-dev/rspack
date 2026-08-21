@@ -277,7 +277,7 @@ pub struct BuildInfo {
   pub esm_named_exports: HashSet<Atom>,
   pub all_star_exports: Vec<DependencyId>,
   pub need_create_require: bool,
-  #[cacheable(with=AsOption<AsPreset>)]
+  #[cacheable(with=crate::json_archive::JsonDataArchive)]
   pub json_data: Option<JsonValue>,
   pub asset: Option<Box<AssetBuildInfo>>,
   pub css: Option<Box<CssBuildInfo>>,

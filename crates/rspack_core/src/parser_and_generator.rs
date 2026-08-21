@@ -243,6 +243,11 @@ pub trait ParserAndGenerator: Send + Sync + Debug + AsAny {
   fn has_runtime_hash(&self) -> bool {
     false
   }
+
+  /// Whether persisted JSON data can be reconstructed from the built module source.
+  fn can_restore_json_data_from_source(&self) -> bool {
+    false
+  }
 }
 
 impl dyn ParserAndGenerator + '_ {

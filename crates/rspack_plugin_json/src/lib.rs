@@ -45,6 +45,10 @@ impl ParserAndGenerator for JsonParserAndGenerator {
     &[SourceType::JavaScript]
   }
 
+  fn can_restore_json_data_from_source(&self) -> bool {
+    true
+  }
+
   fn size(&self, module: &dyn Module, _source_type: Option<&SourceType>) -> f64 {
     module
       .build_info()
