@@ -174,9 +174,9 @@ pub trait Dependency:
     None
   }
 
-  fn set_lazy(&mut self) {}
+  fn set_lazy(&self) {}
 
-  fn unset_lazy(&mut self) -> bool {
+  fn unset_lazy(&self) -> bool {
     false
   }
 }

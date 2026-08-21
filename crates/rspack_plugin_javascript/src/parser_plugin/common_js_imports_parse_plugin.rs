@@ -1390,7 +1390,7 @@ fn create_commonjs_require_context_dependency(
   if let Some(referenced_specifiers) = referenced_specifiers {
     dep.set_referenced_specifiers(referenced_specifiers);
   }
-  *dep.critical_mut() = result.critical;
+  dep.set_critical(result.critical);
   dep
 }
 
@@ -1882,7 +1882,7 @@ impl CommonJsImportsParserPlugin {
     let span = ident.span;
     let start = span.real_lo();
     let end = span.real_hi();
-    let mut dep = CommonJsRequireContextDependency::new(
+    let dep = CommonJsRequireContextDependency::new(
       ContextOptions {
         mode: ContextMode::Sync,
         recursive: true,
@@ -1918,7 +1918,7 @@ impl CommonJsImportsParserPlugin {
         span.into(),
       );
       error.severity = Severity::Warning;
-      *dep.critical_mut() = Some(Diagnostic::from(error));
+      dep.set_critical(Some(Diagnostic::from(error)));
     }
     parser.add_dependency(Box::new(dep));
     Some(true)

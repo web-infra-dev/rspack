@@ -17,7 +17,7 @@ pub struct ImportMetaContextDependency {
   range: DependencyRange,
   resource_identifier: ResourceIdentifier,
   optional: bool,
-  critical: Option<Diagnostic>,
+  critical: rspack_core::DependencyCriticalState,
   kind: ImportMetaContextDependencyKind,
 }
 
@@ -64,7 +64,7 @@ impl ImportMetaContextDependency {
       resource_identifier,
       optional,
       id: DependencyId::new(),
-      critical: None,
+      critical: Default::default(),
       kind,
     }
   }
@@ -108,7 +108,7 @@ impl Dependency for ImportMetaContextDependency {
     _module_graph_cache: &ModuleGraphCacheArtifact,
     _exports_info_artifact: &ExportsInfoArtifact,
   ) -> Option<Vec<Diagnostic>> {
-    self.critical.clone().map(|critical| vec![critical])
+    self.critical().map(|critical| vec![critical])
   }
 }
 
@@ -140,12 +140,12 @@ impl ContextDependency for ImportMetaContextDependency {
     rspack_core::ContextTypePrefix::Normal
   }
 
-  fn critical(&self) -> &Option<Diagnostic> {
-    &self.critical
+  fn critical(&self) -> Option<Diagnostic> {
+    self.critical.get()
   }
 
-  fn critical_mut(&mut self) -> &mut Option<Diagnostic> {
-    &mut self.critical
+  fn set_critical(&self, critical: Option<Diagnostic>) {
+    self.critical.set(critical);
   }
 }
 

@@ -42,7 +42,7 @@ fn create_default_exported_namespace_dependency(
     .filter(|settings| settings.namespace_import && settings.ids.is_empty())?
     .clone();
   let statement_span = statement.span();
-  let mut dep = ESMExportImportedSpecifierDependency::new(
+  let dep = ESMExportImportedSpecifierDependency::new(
     settings.source,
     settings.source_order,
     vec![],
@@ -89,7 +89,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
     parser.add_presentational_dependency(Box::new(clean_dep));
     let range = DependencyRange::from(statement.span());
     let loc = parser.to_dependency_location(range);
-    let mut side_effect_dep = ESMImportSideEffectDependency::new(
+    let side_effect_dep = ESMImportSideEffectDependency::new(
       source.clone(),
       parser.last_esm_import_order,
       statement.span().into(),
@@ -156,7 +156,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
       }) {
       let range = DependencyRange::from(statement.span());
       let loc = parser.to_dependency_location(range);
-      let mut dep = ESMExportImportedSpecifierDependency::new(
+      let dep = ESMExportImportedSpecifierDependency::new(
         source,
         source_order,
         ids.into_vec(),
@@ -241,7 +241,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
     } else {
       Some(parser.build_info.all_star_exports.clone())
     };
-    let mut dep = ESMExportImportedSpecifierDependency::new(
+    let dep = ESMExportImportedSpecifierDependency::new(
       source.clone(),
       parser.last_esm_import_order,
       local_id.map(|id| vec![id.clone()]).unwrap_or_default(),

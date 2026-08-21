@@ -17,7 +17,7 @@ pub struct RequireContextDependency {
   range: DependencyRange,
   resource_identifier: ResourceIdentifier,
   optional: bool,
-  critical: Option<Diagnostic>,
+  critical: rspack_core::DependencyCriticalState,
 }
 
 impl RequireContextDependency {
@@ -29,7 +29,7 @@ impl RequireContextDependency {
       id: DependencyId::new(),
       resource_identifier,
       optional,
-      critical: None,
+      critical: Default::default(),
     }
   }
 }
@@ -63,7 +63,7 @@ impl Dependency for RequireContextDependency {
     _exports_info_artifact: &ExportsInfoArtifact,
   ) -> Option<Vec<Diagnostic>> {
     if let Some(critical) = self.critical() {
-      return Some(vec![critical.clone()]);
+      return Some(vec![critical]);
     }
     None
   }
@@ -94,12 +94,12 @@ impl ContextDependency for RequireContextDependency {
     rspack_core::ContextTypePrefix::Normal
   }
 
-  fn critical(&self) -> &Option<Diagnostic> {
-    &self.critical
+  fn critical(&self) -> Option<Diagnostic> {
+    self.critical.get()
   }
 
-  fn critical_mut(&mut self) -> &mut Option<Diagnostic> {
-    &mut self.critical
+  fn set_critical(&self, critical: Option<Diagnostic>) {
+    self.critical.set(critical);
   }
 }
 

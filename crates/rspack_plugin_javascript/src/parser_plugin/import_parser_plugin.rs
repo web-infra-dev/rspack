@@ -514,7 +514,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
       if let Some(export) = exports {
         dep.set_referenced_specifiers(export, !is_statical && has_exports_magic_comment);
       }
-      *dep.critical_mut() = critical;
+      dep.set_critical(critical);
       let dep_idx = parser.next_dependency_idx();
       parser.add_dependency(Box::new(dep));
       ImportDependencyLocator {

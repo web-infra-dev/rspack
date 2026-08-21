@@ -4,13 +4,13 @@ use rspack_core::{
   AsContextDependency, AwaitDependenciesInitFragment, BuildMetaDefaultObject, ChunkGraph,
   ConditionalInitFragment, ConnectionState, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyCondition, DependencyConditionFn,
-  DependencyDiagnosticsContext, DependencyId, DependencyLocation, DependencyRange,
-  DependencyTemplate, DependencyTemplateType, DependencyType, ExportProvided, ExportsInfoArtifact,
-  ExportsType, ForwardId, ImportAttributes, ImportPhase, InitFragmentExt, InitFragmentKey,
-  InitFragmentStage, LazyUntil, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
-  ModuleIdentifier, ProvidedExports, ReferencedExport, ResourceIdentifier, RuntimeCondition,
-  RuntimeSpec, SideEffectsStateArtifact, SourceType, TemplateContext, TemplateReplaceSource,
-  TypeReexportPresenceMode, filter_runtime,
+  DependencyDiagnosticsContext, DependencyId, DependencyLazyState, DependencyLocation,
+  DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, ExportProvided,
+  ExportsInfoArtifact, ExportsType, ForwardId, ImportAttributes, ImportPhase, InitFragmentExt,
+  InitFragmentKey, InitFragmentStage, LazyUntil, ModuleDependency, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleIdentifier, ProvidedExports, ReferencedExport,
+  ResourceIdentifier, RuntimeCondition, RuntimeSpec, SideEffectsStateArtifact, SourceType,
+  TemplateContext, TemplateReplaceSource, TypeReexportPresenceMode, filter_runtime,
 };
 use rspack_error::{Diagnostic, Error, Severity};
 use swc_atoms::Atom;
@@ -69,7 +69,7 @@ pub struct ESMImportSideEffectDependency {
   attributes: Option<ImportAttributes>,
   resource_identifier: ResourceIdentifier,
   loc: Option<DependencyLocation>,
-  lazy_make: bool,
+  lazy_make: DependencyLazyState,
   star_export: bool,
 }
 
@@ -97,13 +97,13 @@ impl ESMImportSideEffectDependency {
       attributes,
       resource_identifier,
       loc,
-      lazy_make: false,
+      lazy_make: DependencyLazyState::default(),
       star_export,
     }
   }
 
   fn missing_module_active(&self) -> bool {
-    !self.lazy_make
+    !self.lazy_make.get()
   }
 }
 
@@ -610,7 +610,7 @@ impl Dependency for ESMImportSideEffectDependency {
   }
 
   fn lazy(&self) -> Option<LazyUntil> {
-    self.lazy_make.then(|| {
+    self.lazy_make.get().then(|| {
       if self.star_export {
         LazyUntil::Fallback
       } else {
@@ -619,14 +619,12 @@ impl Dependency for ESMImportSideEffectDependency {
     })
   }
 
-  fn set_lazy(&mut self) {
-    self.lazy_make = true;
+  fn set_lazy(&self) {
+    self.lazy_make.set();
   }
 
-  fn unset_lazy(&mut self) -> bool {
-    let changed = self.lazy_make;
-    self.lazy_make = false;
-    changed
+  fn unset_lazy(&self) -> bool {
+    self.lazy_make.unset()
   }
 }
 

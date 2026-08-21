@@ -154,7 +154,7 @@ impl Task<TaskContext> for FactorizeResultTask {
     let FactorizeResultTask {
       original_module_identifier,
       factory_result,
-      mut dependencies,
+      dependencies,
       factorize_info,
       from_unlazy,
     } = *self;
@@ -184,7 +184,7 @@ impl Task<TaskContext> for FactorizeResultTask {
     {
       let dep = &dependencies[0];
       tracing::trace!("Module make-skipped as side-effect-only import: {dep:?}");
-      for dep in &mut dependencies {
+      for dep in &dependencies {
         dep.set_lazy();
       }
       for dep in dependencies {

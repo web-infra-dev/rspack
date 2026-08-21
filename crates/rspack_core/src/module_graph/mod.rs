@@ -587,19 +587,6 @@ impl ModuleGraph {
       .unwrap_or_else(|| panic!("Dependency with ID {dependency_id:?} not found"))
   }
 
-  /// Get a mutable dependency by ID, panicking if not found.
-  ///
-  /// **PREFERRED METHOD**: Use this for ALL internal Rust code when you need to
-  /// modify dependencies. Dependencies should always be accessible in internal
-  /// operations, so this method enforces that invariant with a clear panic message.
-  pub fn dependency_by_id_mut(&mut self, dependency_id: &DependencyId) -> &mut BoxDependency {
-    self
-      .inner
-      .dependencies
-      .get_mut(dependency_id)
-      .unwrap_or_else(|| panic!("Dependency with ID {dependency_id:?} not found"))
-  }
-
   /// Uniquely identify a module by its dependency
   pub fn module_graph_module_by_dependency_id(
     &self,

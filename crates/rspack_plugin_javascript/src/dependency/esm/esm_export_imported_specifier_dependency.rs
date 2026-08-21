@@ -9,11 +9,11 @@ use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   AsContextDependency, ChunkGraph, ConditionalInitFragment, ConnectionState, Dependency,
   DependencyCategory, DependencyCodeGeneration, DependencyCondition, DependencyConditionFn,
-  DependencyDiagnosticsContext, DependencyId, DependencyLocation, DependencyRange,
-  DependencyTemplate, DependencyTemplateType, DependencyType, DetermineExportAssignmentsKey,
-  ESMExportBinding, ESMExportInitFragment, ExportMode, ExportModeDynamicReexport,
-  ExportModeEmptyStar, ExportModeFakeNamespaceObject, ExportModeNormalReexport,
-  ExportModeReexportDynamicDefault, ExportModeReexportNamedDefault,
+  DependencyDiagnosticsContext, DependencyId, DependencyLazyState, DependencyLocation,
+  DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
+  DetermineExportAssignmentsKey, ESMExportBinding, ESMExportInitFragment, ExportMode,
+  ExportModeDynamicReexport, ExportModeEmptyStar, ExportModeFakeNamespaceObject,
+  ExportModeNormalReexport, ExportModeReexportDynamicDefault, ExportModeReexportNamedDefault,
   ExportModeReexportNamespaceObject, ExportModeReexportUndefined, ExportModeUnused,
   ExportNameOrSpec, ExportPresenceMode, ExportProvided, ExportSpec, ExportsInfoArtifact,
   ExportsInfoData, ExportsOfExportsSpec, ExportsSpec, ExportsType, ForwardId, ImportAttributes,
@@ -62,7 +62,7 @@ pub struct ESMExportImportedSpecifierDependency {
   resource_identifier: ResourceIdentifier,
   export_presence_mode: ExportPresenceMode,
   loc: Option<DependencyLocation>,
-  lazy_make: bool,
+  lazy_make: DependencyLazyState,
 }
 
 impl ESMExportImportedSpecifierDependency {
@@ -94,7 +94,7 @@ impl ESMExportImportedSpecifierDependency {
       phase,
       attributes,
       loc,
-      lazy_make: false,
+      lazy_make: DependencyLazyState::default(),
     }
   }
 
@@ -160,7 +160,7 @@ impl ESMExportImportedSpecifierDependency {
     let Some(imported_module_identifier) = module_graph.module_identifier_by_dependency_id(id)
     else {
       // if it's not exists in module graph and has the lazy mark, then it's never picked up to make the module
-      return if self.lazy_make {
+      return if self.lazy_make.get() {
         ExportMode::LazyMake
       } else {
         ExportMode::Missing
@@ -1566,7 +1566,7 @@ impl Dependency for ESMExportImportedSpecifierDependency {
   }
 
   fn lazy(&self) -> Option<LazyUntil> {
-    self.lazy_make.then(|| {
+    self.lazy_make.get().then(|| {
       if let Some(name) = &self.name {
         LazyUntil::Id(name.clone())
       } else {
@@ -1575,14 +1575,12 @@ impl Dependency for ESMExportImportedSpecifierDependency {
     })
   }
 
-  fn set_lazy(&mut self) {
-    self.lazy_make = true;
+  fn set_lazy(&self) {
+    self.lazy_make.set();
   }
 
-  fn unset_lazy(&mut self) -> bool {
-    let changed = self.lazy_make;
-    self.lazy_make = false;
-    changed
+  fn unset_lazy(&self) -> bool {
+    self.lazy_make.unset()
   }
 }
 
