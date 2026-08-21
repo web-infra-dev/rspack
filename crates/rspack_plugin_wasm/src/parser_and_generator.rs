@@ -3,11 +3,11 @@ use std::borrow::Cow;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::IdentifierIndexMap;
 use rspack_core::{
-  AssetInfo, BoxDependency, BuildMetaExportsType, ChunkGraph, CodeGenerationDataItem,
-  ConcatenationScopeInfoMode, Dependency, DependencyId, DependencyType, ExportsArgument,
-  GenerateContext, GeneratedSource, ImportPhase, Module, ModuleArgument, ModuleDependency,
-  ModuleGraph, ModuleInitFragments, ParseContext, ParseResult, ParserAndGenerator, PathData,
-  RuntimeGlobals, SourceType, StaticExportsDependency, StaticExportsSpec,
+  AssetInfo, BoxDependency, BuildMetaExportsType, ChunkGraph, CodeGenerationDataItem, Dependency,
+  DependencyId, DependencyType, ExportsArgument, GenerateContext, ImportPhase, Module,
+  ModuleArgument, ModuleDependency, ModuleGraph, ModuleInitFragments, ParseContext, ParseResult,
+  ParserAndGenerator, PathData, RuntimeGlobals, SourceType, StaticExportsDependency,
+  StaticExportsSpec,
   rspack_sources::{BoxSource, RawStringSource, Source, SourceExt},
 };
 use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
