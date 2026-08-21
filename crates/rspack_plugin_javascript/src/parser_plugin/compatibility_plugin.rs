@@ -83,10 +83,6 @@ impl CompatibilityPlugin {
     parser: &mut JavascriptParser,
     name: &Atom,
   ) -> Option<Atom> {
-    let faster_module_concatenation = parser
-      .compiler_options
-      .experiments
-      .faster_module_concatenation;
     let (nested_name, dep) = {
       let data = parser.get_tag_data_mut::<NestedRequireData>(name, NESTED_IDENTIFIER_TAG)?;
       let nested_name = Atom::from(data.name.as_str());
@@ -98,11 +94,7 @@ impl CompatibilityPlugin {
       let dep = if data.update {
         None
       } else {
-        let mut dep = ConstDependency::new(data.loc, content);
-        if faster_module_concatenation {
-          dep.set_concatenation_scope_identifier(data.name.clone().into());
-        }
-        Some(dep)
+        Some(ConstDependency::new(data.loc, content))
       };
       data.update = true;
       (nested_name, dep)
@@ -245,10 +237,6 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CompatibilityPlugin {
     declarator: &VarDeclarator,
     _stmt: VariableDeclaration<'_>,
   ) -> Option<bool> {
-    let faster_module_concatenation = parser
-      .compiler_options
-      .experiments
-      .faster_module_concatenation;
     if let Some(ident) = declarator.name.as_ident()
       && (ident.id.sym.as_str() == parser.parser_runtime_requirements.exports
         || ident.id.sym.as_str() == self.nested_require_name(parser))
@@ -258,12 +246,9 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CompatibilityPlugin {
         NESTED_IDENTIFIER_TAG,
       )?;
       if !data.update {
-        let mut dep = ConstDependency::new(data.loc, data.name.clone().into());
-        if faster_module_concatenation {
-          dep.set_concatenation_scope_identifier(data.name.clone().into());
-        }
+        let dep = Box::new(ConstDependency::new(data.loc, data.name.clone().into()));
         data.update = true;
-        parser.add_presentational_dependency(Box::new(dep));
+        parser.add_presentational_dependency(dep);
       }
     }
     None
@@ -278,10 +263,6 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CompatibilityPlugin {
     if for_name != NESTED_IDENTIFIER_TAG {
       return None;
     }
-    let faster_module_concatenation = parser
-      .compiler_options
-      .experiments
-      .faster_module_concatenation;
     let tag_info = parser
       .definitions_db
       .expect_get_mut_tag_info(parser.current_tag_info?)
@@ -293,29 +274,25 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CompatibilityPlugin {
     let name = nested_require_data.name.clone();
     if !nested_require_data.update {
       let shorthand = nested_require_data.in_short_hand;
-      let content = if shorthand {
-        format!("{}: {}", ident.sym, name).into()
-      } else {
-        name.clone().into()
-      };
-      let mut dep = ConstDependency::new(nested_require_data.loc, content);
-      if faster_module_concatenation {
-        dep.set_concatenation_scope_identifier(name.clone().into());
-      }
-      deps.push(Box::new(dep));
+      deps.push(Box::new(ConstDependency::new(
+        nested_require_data.loc,
+        if shorthand {
+          format!("{}: {}", ident.sym, name).into()
+        } else {
+          name.clone().into()
+        },
+      )));
       nested_require_data.update = true;
     }
 
-    let content = if parser.in_short_hand {
-      format!("{}: {}", ident.sym, name).into()
-    } else {
-      name.clone().into()
-    };
-    let mut dep = ConstDependency::new(ident.span.into(), content);
-    if faster_module_concatenation {
-      dep.set_concatenation_scope_identifier(name.into());
-    }
-    deps.push(Box::new(dep));
+    deps.push(Box::new(ConstDependency::new(
+      ident.span.into(),
+      if parser.in_short_hand {
+        format!("{}: {}", ident.sym, name).into()
+      } else {
+        name.into()
+      },
+    )));
     parser.add_presentational_dependencies(deps);
     Some(true)
   }

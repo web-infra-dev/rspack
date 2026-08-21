@@ -2,11 +2,11 @@ use std::{borrow::Cow, collections::VecDeque};
 
 use concat_string::concat_string;
 use rspack_core::{
-  BoxDependency, ChunkGraph, ConcatenationScope, Context, CssBuildInfo, CssExport, CssExportType,
-  CssExports, CssModuleRenderCondition, DependencyCodeGeneration, DependencyId, DependencyType,
-  ExportsArgument, GenerateContext, GeneratedSource, Module, ModuleArgument, ModuleIdentifier,
-  ModuleInitFragments, RESERVED_IDENTIFIER, RuntimeGlobals, SourceType, TemplateContext,
-  TemplateReplaceSource, UsageState, UsedNameItem, css_module_render_conditions_identifier,
+  BoxDependency, ChunkGraph, Context, CssBuildInfo, CssExport, CssExportType, CssExports,
+  CssModuleRenderCondition, DependencyCodeGeneration, DependencyId, DependencyType,
+  ExportsArgument, GenerateContext, Module, ModuleArgument, ModuleIdentifier, ModuleInitFragments,
+  RESERVED_IDENTIFIER, RuntimeGlobals, SourceType, TemplateContext, UsageState, UsedNameItem,
+  css_module_render_conditions_identifier,
   rspack_sources::{
     BoxSource, ConcatSource, OriginalSource, RawStringSource, ReplaceSource, Source, SourceExt,
   },
@@ -54,14 +54,12 @@ fn render_dependency_template(
   dependency: &dyn DependencyCodeGeneration,
   source: &mut ReplaceSource,
   context: &mut TemplateContext,
-  concatenation_scope: Option<&mut ConcatenationScope>,
 ) {
   if let Some(template) = dependency
     .dependency_template()
     .and_then(|template_type| context.compilation.get_dependency_template(template_type))
   {
-    let mut source = TemplateReplaceSource::new(source, concatenation_scope);
-    template.render(dependency, &mut source, context)
+    template.render(dependency, source, context)
   } else {
     panic!(
       "Can not find dependency template of {:?}",
@@ -88,7 +86,6 @@ pub(crate) struct CssModuleGenerator<'a, 'g> {
   css_inject_style: Option<String>,
   css_style_sheet: Option<String>,
   concat_source: ConcatSource,
-  generated_symbol_replacements: Vec<(u32, u32, String)>,
 }
 
 impl<'a, 'g> CssModuleGenerator<'a, 'g> {
@@ -121,7 +118,6 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
       css_inject_style: None,
       css_style_sheet: None,
       concat_source: Default::default(),
-      generated_symbol_replacements: Vec::new(),
     }
   }
 
@@ -138,6 +134,7 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     self.css_inject_style.get_or_insert_with(|| {
       self
         .generate_context
+        .runtime_template
         .render_runtime_globals(&RuntimeGlobals::CSS_INJECT_STYLE)
     })
   }
@@ -146,6 +143,7 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     self.css_style_sheet.get_or_insert_with(|| {
       self
         .generate_context
+        .runtime_template
         .render_runtime_globals(&RuntimeGlobals::CSS_STYLE_SHEET)
     })
   }
@@ -185,7 +183,7 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     self.render_css_module_source()
   }
 
-  pub fn generate_javascript_source(mut self) -> Result<GeneratedSource> {
+  pub fn generate_javascript_source(mut self) -> Result<BoxSource> {
     match self.export_type {
       Some(CssExportType::Text) => {
         let css = self.css_text_expr_with_imports();
@@ -212,32 +210,14 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
       }
     }
     let generated_source = self.concat_source.source().into_string_lossy().into_owned();
-    let source = if self.module.get_source_map_kind().enabled() {
+    if self.module.get_source_map_kind().enabled() {
       let source_name = css_javascript_source_map_module_name(
         self.module,
         &self.generate_context.compilation.options.context,
       );
-      OriginalSource::new(generated_source, source_name).boxed()
+      Ok(OriginalSource::new(generated_source, source_name).boxed())
     } else {
-      RawStringSource::from(generated_source).boxed()
-    };
-    let faster_module_concatenation = self
-      .generate_context
-      .concatenation_scope
-      .as_ref()
-      .is_some_and(|scope| scope.is_faster_module_concatenation());
-    if self.generated_symbol_replacements.is_empty() && !faster_module_concatenation {
-      return Ok(source.into());
-    }
-
-    let mut source = ReplaceSource::new(source);
-    for (start, end, symbol) in self.generated_symbol_replacements {
-      source.replace(start, end, symbol, None);
-    }
-    if faster_module_concatenation {
-      Ok(GeneratedSource::generated_concatenation(source))
-    } else {
-      Ok(source.boxed().into())
+      Ok(RawStringSource::from(generated_source).boxed())
     }
   }
 
@@ -304,12 +284,12 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     let mut source = ReplaceSource::new(self.source.clone());
     let compilation = self.generate_context.compilation;
     let mut init_fragments = ModuleInitFragments::default();
-    let mut concatenation_scope = self.generate_context.concatenation_scope.take();
     let mut context = TemplateContext {
       compilation,
       module: self.module,
       runtime: self.generate_context.runtime,
       init_fragments: &mut init_fragments,
+      concatenation_scope: self.generate_context.concatenation_scope.take(),
       data: self.generate_context.data,
       runtime_template: self.generate_context.runtime_template,
     };
@@ -319,27 +299,17 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
       let dep = module_graph.dependency_by_id(id);
 
       if let Some(dependency) = dep.as_dependency_code_generation() {
-        render_dependency_template(
-          dependency,
-          &mut source,
-          &mut context,
-          concatenation_scope.as_deref_mut(),
-        );
+        render_dependency_template(dependency, &mut source, &mut context);
       }
     });
 
     if let Some(dependencies) = self.module.get_presentational_dependencies() {
       dependencies.iter().for_each(|dependency| {
-        render_dependency_template(
-          dependency.as_ref(),
-          &mut source,
-          &mut context,
-          concatenation_scope.as_deref_mut(),
-        );
+        render_dependency_template(dependency.as_ref(), &mut source, &mut context);
       });
     };
 
-    self.generate_context.concatenation_scope = concatenation_scope;
+    self.generate_context.concatenation_scope = context.concatenation_scope.take();
 
     source.boxed()
   }
@@ -467,6 +437,7 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     (
       self
         .generate_context
+        .runtime_template
         .render_runtime_globals(&RuntimeGlobals::REQUIRE),
       "(",
       ")",
@@ -491,6 +462,7 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     (
       self
         .generate_context
+        .runtime_template
         .render_runtime_globals(&RuntimeGlobals::MAKE_NAMESPACE_OBJECT),
       "(",
       ")",
@@ -740,9 +712,6 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
         .generate_context
         .runtime_template
         .define_es_module_flag_statement(exports_argument);
-      if let Some(scope) = self.generate_context.concatenation_scope.as_deref_mut() {
-        scope.register_used_names_from_generated_code(&esm_flag);
-      }
       self.concat_source.add(RawStringSource::from(esm_flag));
     }
 
@@ -788,26 +757,13 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
       i += 1;
     }
 
+    let export_source = concat_string!("var ", identifier, " = ", content, ";\n");
+    self.concat_source.add(RawStringSource::from(export_source));
+    state.used_identifiers.insert(identifier.clone());
     let Some(ref mut scope) = self.generate_context.concatenation_scope else {
       unreachable!();
     };
-    if scope.is_faster_module_concatenation() {
-      state.used_identifiers.insert(identifier.clone());
-      let symbol = scope.ensure_generated_top_level_symbol(&identifier);
-      scope.register_export(key.into(), symbol.to_string());
-      let start = self.concat_source.size() as u32 + "var ".len() as u32;
-      let end = start + identifier.len() as u32;
-      let export_source = concat_string!("var ", identifier, " = ", content, ";\n");
-      self.concat_source.add(RawStringSource::from(export_source));
-      self
-        .generated_symbol_replacements
-        .push((start, end, symbol.to_string()));
-    } else {
-      let export_source = concat_string!("var ", identifier, " = ", content, ";\n");
-      self.concat_source.add(RawStringSource::from(export_source));
-      state.used_identifiers.insert(identifier.clone());
-      scope.register_export(key.into(), identifier);
-    }
+    scope.register_export(key.into(), identifier);
   }
 
   fn render_css_export_content(&mut self, elements: &FxIndexSet<CssExport>) -> String {

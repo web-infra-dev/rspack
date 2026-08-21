@@ -3,10 +3,10 @@ use std::borrow::Cow;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::IdentifierIndexMap;
 use rspack_core::{
-  BoxDependency, BuildMetaExportsType, ConcatenationScopeInfoMode, Dependency, DependencyId,
-  DependencyType, ExportsArgument, GenerateContext, GeneratedSource, ImportPhase, Module,
-  ModuleArgument, ModuleDependency, ModuleGraph, ModuleInitFragments, ParseContext, ParseResult,
-  ParserAndGenerator, RuntimeGlobals, SourceType, StaticExportsDependency, StaticExportsSpec,
+  BoxDependency, BuildMetaExportsType, Dependency, DependencyId, DependencyType, ExportsArgument,
+  GenerateContext, ImportPhase, Module, ModuleArgument, ModuleDependency, ModuleGraph,
+  ModuleInitFragments, ParseContext, ParseResult, ParserAndGenerator, RuntimeGlobals, SourceType,
+  StaticExportsDependency, StaticExportsSpec,
   rspack_sources::{BoxSource, RawStringSource, Source, SourceExt},
 };
 use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
@@ -33,10 +33,6 @@ struct DepModule<'a> {
 #[cacheable_dyn]
 #[async_trait::async_trait]
 impl ParserAndGenerator for AsyncWasmParserAndGenerator {
-  fn concatenation_scope_info_mode(&self) -> ConcatenationScopeInfoMode {
-    ConcatenationScopeInfoMode::Unsupported
-  }
-
   fn source_types(&self, _module: &dyn Module, _module_graph: &ModuleGraph) -> &[SourceType] {
     WASM_SOURCE_TYPE
   }
@@ -161,7 +157,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
     source: &BoxSource,
     module: &dyn Module,
     generate_context: &mut GenerateContext,
-  ) -> Result<GeneratedSource> {
+  ) -> Result<BoxSource> {
     let GenerateContext {
       compilation,
       runtime,
@@ -197,7 +193,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
             runtime_template.render_runtime_globals(&RuntimeGlobals::ASYNC_MODULE),
             runtime_template.render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS),
           ));
-          return Ok(source.boxed().into());
+          return Ok(source.boxed());
         }
 
         let mut dep_modules = IdentifierIndexMap::<DepModule>::default();
@@ -340,9 +336,9 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
           ))
         };
 
-        Ok(source.boxed().into())
+        Ok(source.boxed())
       }
-      _ => Ok(source.clone().into()),
+      _ => Ok(source.clone()),
     }
   }
 

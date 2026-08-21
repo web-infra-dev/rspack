@@ -162,7 +162,6 @@ impl DependencyTemplate for ProvideDependencyTemplate {
       .as_any()
       .downcast_ref::<ProvideDependency>()
       .expect("ProvideDependencyTemplate should only be used for ProvideDependency");
-    let rendered_identifier = source.ensure_generated_top_level_symbol(dep.identifier.clone());
 
     let TemplateContext {
       compilation,
@@ -189,7 +188,8 @@ impl DependencyTemplate for ProvideDependencyTemplate {
     let (provided_expr, post_await_expr) = if is_async {
       let post_await_expr = match used_name {
         Some(UsedName::Normal(used_name)) => Some(format!(
-          "{rendered_identifier}{}",
+          "{}{}",
+          dep.identifier,
           property_access(used_name, 0)
         )),
         Some(UsedName::Inlined(inlined)) => Some(inlined.render(&to_normal_comment(&format!(
@@ -217,25 +217,29 @@ impl DependencyTemplate for ProvideDependencyTemplate {
       (provided_expr, None)
     };
 
-    let mut fragment = NormalInitFragment::new(
-      format!("/* provided dependency */ var {rendered_identifier} = {provided_expr};\n"),
-      InitFragmentStage::StageProvides,
-      1,
-      InitFragmentKey::ModuleExternal(format!("provided {}", dep.identifier)),
-      None,
-    );
-    fragment.set_top_level_decl_symbols(vec![dep.identifier.clone().into()]);
-    init_fragments.push(Box::new(fragment));
+    init_fragments.push(Box::new(
+      NormalInitFragment::new(
+        format!(
+          "/* provided dependency */ var {} = {};\n",
+          dep.identifier, provided_expr
+        ),
+        InitFragmentStage::StageProvides,
+        1,
+        InitFragmentKey::ModuleExternal(format!("provided {}", dep.identifier)),
+        None,
+      )
+      .with_top_level_decl_symbols(vec![dep.identifier.clone().into()]),
+    ));
     if is_async {
       if module.build_meta().exports_type() != BuildMetaExportsType::Namespace {
         add_async_module_boundary(init_fragments, compilation, *module, runtime_template, true);
       }
       init_fragments.push(Box::new(AwaitDependenciesInitFragment::new_single(
-        rendered_identifier.clone(),
+        dep.identifier.clone(),
       )));
       if let Some(post_await_expr) = post_await_expr {
         init_fragments.push(Box::new(NormalInitFragment::new(
-          format!("{rendered_identifier} = {post_await_expr};\n"),
+          format!("{} = {post_await_expr};\n", dep.identifier),
           InitFragmentStage::StageAsyncESMImports,
           1,
           InitFragmentKey::ModuleExternal(format!("provided async {}", dep.identifier)),
@@ -243,11 +247,6 @@ impl DependencyTemplate for ProvideDependencyTemplate {
         )));
       }
     }
-    source.replace_with_tracked_used_names(
-      dep.range.start,
-      dep.range.end,
-      rendered_identifier,
-      None,
-    );
+    source.replace(dep.range.start, dep.range.end, dep.identifier.clone(), None);
   }
 }
