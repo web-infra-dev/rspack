@@ -3,11 +3,11 @@ use std::borrow::Cow;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::IdentifierIndexMap;
 use rspack_core::{
-  AssetInfo, BoxDependency, BuildMetaExportsType, ChunkGraph, ConcatenationScopeInfoMode,
-  Dependency, DependencyId, DependencyType, ExportsArgument, GenerateContext, GeneratedSource,
-  ImportPhase, Module, ModuleArgument, ModuleDependency, ModuleGraph, ModuleInitFragments,
-  ParseContext, ParseResult, ParserAndGenerator, PathData, RuntimeGlobals, SourceType,
-  StaticExportsDependency, StaticExportsSpec,
+  AssetInfo, BoxDependency, BuildMetaExportsType, ChunkGraph, CodeGenerationDataItem,
+  ConcatenationScopeInfoMode, Dependency, DependencyId, DependencyType, ExportsArgument,
+  GenerateContext, GeneratedSource, ImportPhase, Module, ModuleArgument, ModuleDependency,
+  ModuleGraph, ModuleInitFragments, ParseContext, ParseResult, ParserAndGenerator, PathData,
+  RuntimeGlobals, SourceType, StaticExportsDependency, StaticExportsSpec,
   rspack_sources::{BoxSource, RawStringSource, Source, SourceExt},
 };
 use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
@@ -21,11 +21,15 @@ use crate::dependency::WasmImportDependency;
 #[derive(Debug)]
 pub struct AsyncWasmParserAndGenerator;
 
+#[cacheable]
 #[derive(Clone, Debug)]
 pub(crate) struct CodeGenerationDataWasmFilename {
   pub filename: String,
   pub asset_info: AssetInfo,
 }
+
+#[cacheable_dyn]
+impl CodeGenerationDataItem for CodeGenerationDataWasmFilename {}
 
 pub(crate) static WASM_SOURCE_TYPE: &[SourceType; 2] = &[SourceType::Wasm, SourceType::JavaScript];
 const WASM_MAGIC_HEADER: &[u8; 4] = b"\0asm";
