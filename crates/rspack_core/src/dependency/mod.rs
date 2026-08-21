@@ -9,7 +9,6 @@ mod dependency_template;
 mod dependency_trait;
 mod dependency_type;
 mod entry;
-mod factorize_info;
 mod loader_import;
 mod module_dependency;
 mod runtime_requirements_dependency;
@@ -30,7 +29,6 @@ pub use dependency_template::*;
 pub use dependency_trait::*;
 pub use dependency_type::DependencyType;
 pub use entry::*;
-pub use factorize_info::FactorizeInfo;
 pub use loader_import::*;
 pub use module_dependency::*;
 use rspack_cacheable::{

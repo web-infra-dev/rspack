@@ -3,8 +3,8 @@ use rspack_collections::Identifier;
 use rspack_core::{
   AsModuleDependency, ContextDependency, ContextOptions, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
-  DependencyTemplateType, DependencyType, ExportsInfoArtifact, FactorizeInfo, ImportAttributes,
-  ModuleGraph, ModuleGraphCacheArtifact, ReferencedSpecifier, ResourceIdentifier, TemplateContext,
+  DependencyTemplateType, DependencyType, ExportsInfoArtifact, ImportAttributes, ModuleGraph,
+  ModuleGraphCacheArtifact, ReferencedSpecifier, ResourceIdentifier, TemplateContext,
   TemplateReplaceSource,
 };
 use rspack_error::Diagnostic;
@@ -33,7 +33,6 @@ pub struct ImportContextDependency {
   resource_identifier: ResourceIdentifier,
   optional: bool,
   critical: Option<Diagnostic>,
-  factorize_info: FactorizeInfo,
 }
 
 impl ImportContextDependency {
@@ -50,7 +49,6 @@ impl ImportContextDependency {
       value_range,
       optional,
       critical: None,
-      factorize_info: Default::default(),
       options,
     }
   }
@@ -145,14 +143,6 @@ impl ContextDependency for ImportContextDependency {
 
   fn critical_mut(&mut self) -> &mut Option<Diagnostic> {
     &mut self.critical
-  }
-
-  fn factorize_info(&self) -> &FactorizeInfo {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
-    &mut self.factorize_info
   }
 }
 

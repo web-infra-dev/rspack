@@ -1,6 +1,6 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 
-use super::{AffectType, FactorizeInfo};
+use super::AffectType;
 use crate::{
   AsContextDependency, AsDependencyCodeGeneration, Context, Dependency, DependencyCategory,
   DependencyId, DependencyType, ModuleDependency, ModuleLayer,
@@ -14,7 +14,6 @@ pub struct EntryDependency {
   context: Context,
   layer: Option<ModuleLayer>,
   is_global: bool,
-  factorize_info: FactorizeInfo,
 }
 
 impl PartialEq for EntryDependency {
@@ -52,7 +51,6 @@ impl EntryDependency {
       layer,
       id: DependencyId::new(),
       is_global,
-      factorize_info: Default::default(),
     }
   }
 
@@ -96,14 +94,6 @@ impl ModuleDependency for EntryDependency {
 
   fn user_request(&self) -> &str {
     &self.request
-  }
-
-  fn factorize_info(&self) -> &FactorizeInfo {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
-    &mut self.factorize_info
   }
 }
 

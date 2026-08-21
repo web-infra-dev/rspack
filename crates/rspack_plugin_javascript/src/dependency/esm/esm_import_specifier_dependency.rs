@@ -7,7 +7,7 @@ use rspack_core::{
   AsContextDependency, ConnectionState, Dependency, DependencyCategory, DependencyCodeGeneration,
   DependencyCondition, DependencyConditionFn, DependencyDiagnosticsContext, DependencyId,
   DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
-  ExportPresenceMode, ExportProvided, ExportsInfoArtifact, ExportsType, FactorizeInfo, ForwardId,
+  ExportPresenceMode, ExportProvided, ExportsInfoArtifact, ExportsType, ForwardId,
   ImportAttributes, ImportPhase, JavascriptParserOptions, ModuleDependency, ModuleGraph,
   ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleReferenceOptions, ReferencedExport,
   ResourceIdentifier, RuntimeSpec, SideEffectsStateArtifact, TemplateContext,
@@ -61,7 +61,6 @@ pub struct ESMImportSpecifierDependency {
   loc: Option<DependencyLocation>,
   pub namespace_object_as_context: bool,
   ns_access: bool,
-  factorize_info: FactorizeInfo,
 }
 
 impl ESMImportSpecifierDependency {
@@ -107,7 +106,6 @@ impl ESMImportSpecifierDependency {
       attributes,
       resource_identifier,
       loc,
-      factorize_info: Default::default(),
     }
   }
 
@@ -378,14 +376,6 @@ impl ModuleDependency for ESMImportSpecifierDependency {
       )),
       self.branch_guard.as_ref(),
     )
-  }
-
-  fn factorize_info(&self) -> &FactorizeInfo {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
-    &mut self.factorize_info
   }
 }
 

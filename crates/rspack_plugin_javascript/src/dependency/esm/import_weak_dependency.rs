@@ -5,9 +5,9 @@ use rspack_cacheable::{
 use rspack_core::{
   AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
   DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, ExportsInfoArtifact,
-  FactorizeInfo, ImportAttributes, ImportPhase, ModuleDependency, ModuleGraphCacheArtifact,
-  ReferencedSpecifier, ResourceIdentifier, TemplateContext, TemplateReplaceSource,
-  create_exports_object_referenced, create_referenced_exports_by_referenced_specifiers,
+  ImportAttributes, ImportPhase, ModuleDependency, ModuleGraphCacheArtifact, ReferencedSpecifier,
+  ResourceIdentifier, TemplateContext, TemplateReplaceSource, create_exports_object_referenced,
+  create_referenced_exports_by_referenced_specifiers,
 };
 use swc_atoms::Atom;
 
@@ -27,7 +27,6 @@ pub struct ImportWeakDependency {
   attributes: Option<ImportAttributes>,
   phase: ImportPhase,
   resource_identifier: ResourceIdentifier,
-  factorize_info: FactorizeInfo,
   optional: bool,
 }
 
@@ -49,7 +48,6 @@ impl ImportWeakDependency {
       attributes,
       phase,
       resource_identifier,
-      factorize_info: Default::default(),
       optional,
     }
   }
@@ -146,14 +144,6 @@ impl ModuleDependency for ImportWeakDependency {
 
   fn user_request(&self) -> &str {
     &self.request
-  }
-
-  fn factorize_info(&self) -> &FactorizeInfo {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
-    &mut self.factorize_info
   }
 
   fn get_optional(&self) -> bool {
