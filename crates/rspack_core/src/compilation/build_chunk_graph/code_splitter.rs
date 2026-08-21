@@ -1271,22 +1271,21 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
 
   fn add_and_enter_module(&mut self, item: &AddAndEnterModule, compilation: &mut Compilation) {
     tracing::trace!("add_and_enter_module {:?}", item);
+    if compilation
+      .build_chunk_graph_artifact
+      .chunk_graph
+      .is_module_in_chunk(&item.module, item.chunk)
+    {
+      return;
+    }
+
+    // if this module in parent chunks
     let module_ordinal = *self.ordinal_by_module.get(&item.module).unwrap_or_else(|| {
       panic!(
         "expected a module ordinal for identifier '{}', but none was found.",
         &item.module
       )
     });
-    if self
-      .mask_by_chunk
-      .get(&item.chunk)
-      .expect("chunk must in mask_by_chunk")
-      .bit(module_ordinal)
-    {
-      return;
-    }
-
-    // if this module in parent chunks
     let cgi = self.chunk_group_info_mut(&item.chunk_group_info);
 
     if cgi.min_available_modules.bit(module_ordinal) {
@@ -1482,19 +1481,18 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     );
 
     for (module, active_state, connections) in block_modules.iter().rev() {
-      let ordinal = *self.ordinal_by_module.get(module).unwrap_or_else(|| {
-        panic!("expected a module ordinal for identifier '{module}', but none was found.")
-      });
-      if self
-        .mask_by_chunk
-        .get(&item.chunk)
-        .expect("chunk must in mask_by_chunk")
-        .bit(ordinal)
+      if compilation
+        .build_chunk_graph_artifact
+        .chunk_graph
+        .is_module_in_chunk(module, item.chunk)
       {
         // skip early if already connected
         continue;
       }
 
+      let ordinal = *self.ordinal_by_module.get(module).unwrap_or_else(|| {
+        panic!("expected a module ordinal for identifier '{module}', but none was found.")
+      });
       let chunk_group_info = self.chunk_group_info_mut(&item.chunk_group_info);
       if !active_state.is_true() {
         chunk_group_info
