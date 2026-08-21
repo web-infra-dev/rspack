@@ -1748,7 +1748,10 @@ CompilerOptions {
     cache: Disabled,
     experiments: Experiments {
         css: false,
-        new_cache: false,
+        new_cache: NewCacheOptions {
+            code_generation: false,
+            minimize: false,
+        },
         defer_import: false,
         source_import: false,
         faster_module_concatenation: false,

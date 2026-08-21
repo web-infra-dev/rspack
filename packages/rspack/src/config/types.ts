@@ -3082,6 +3082,16 @@ export type HttpUriOptions = HttpUriPluginOptions;
  */
 export type UseInputFileSystem = false | RegExp[];
 
+/** Fine-grained switches for the experimental new cache implementation. */
+export type NewCache = {
+  /** Enable the module code generation cache. @default true */
+  codeGeneration?: boolean;
+  /** Enable the asset minimization cache. @default true */
+  minimize?: boolean;
+};
+
+export type NewCachePresets = boolean;
+
 /**
  * Experimental features configuration.
  */
@@ -3122,7 +3132,7 @@ export type Experiments = {
    * Enable the experimental new cache implementation.
    * @default false
    */
-  newCache?: boolean;
+  newCache?: NewCachePresets | NewCache;
   /**
    * Enable the faster module concatenation implementation.
    * @default false

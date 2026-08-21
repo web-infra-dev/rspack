@@ -23,10 +23,33 @@ pub mod runtime_mode {
 
 use runtime_mode::RuntimeMode;
 
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct NewCacheOptions {
+  pub code_generation: bool,
+  pub minimize: bool,
+}
+
+impl NewCacheOptions {
+  pub const fn all() -> Self {
+    Self {
+      code_generation: true,
+      minimize: true,
+    }
+  }
+
+  pub const fn is_enabled(self) -> bool {
+    self.code_generation || self.minimize
+  }
+
+  pub const fn is_fully_enabled(self) -> bool {
+    self.code_generation && self.minimize
+  }
+}
+
 #[derive(Debug)]
 pub struct Experiments {
   pub css: bool,
-  pub new_cache: bool,
+  pub new_cache: NewCacheOptions,
   pub defer_import: bool,
   pub source_import: bool,
   pub faster_module_concatenation: bool,
