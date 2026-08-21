@@ -65,7 +65,7 @@ async fn render_manifest(
     let filename_data = compilation
       .code_generation_results
       .get(&m.identifier(), Some(chunk.runtime()))
-      .data
+      .data()
       .get::<CodeGenerationDataWasmFilename>()
       .expect("should have filename for async wasm module");
     let asset_info = filename_data
