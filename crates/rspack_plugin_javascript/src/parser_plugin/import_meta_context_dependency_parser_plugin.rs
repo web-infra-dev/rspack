@@ -477,7 +477,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaContextDependencyParse
     };
 
     if let Some(dep) = dep {
-      parser.add_dependency(std::sync::Arc::new(dep));
+      parser.add_dependency(Box::new(dep));
       Some(true)
     } else {
       None

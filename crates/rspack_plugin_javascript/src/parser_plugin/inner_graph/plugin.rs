@@ -1,6 +1,6 @@
 use rspack_core::{
   BoxDependency, Dependency, DependencyId, DependencyRange, UsedByExports,
-  UsedByExportsDeferredPureCheck, dependency_mut,
+  UsedByExportsDeferredPureCheck,
 };
 use rspack_util::SpanExt;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
@@ -89,7 +89,7 @@ impl InnerGraphParserPlugin {
           *parser.module_identifier,
         );
         let dep_idx = parser.next_dependency_idx();
-        parser.add_dependency(std::sync::Arc::new(dep));
+        parser.add_dependency(Box::new(dep));
         Self::on_usage(parser, InnerGraphUsageOperation::PureExpression(dep_idx));
       }
     }
@@ -308,17 +308,17 @@ impl InnerGraphParserPlugin {
       };
       match operation {
         InnerGraphUsageOperation::PureExpression(_) => {
-          if let Some(dep) = dependency_mut(dep).downcast_mut::<PureExpressionDependency>() {
+          if let Some(dep) = dep.downcast_mut::<PureExpressionDependency>() {
             dep.set_used_by_exports(Some(used_by_exports));
           }
         }
         InnerGraphUsageOperation::ESMImportSpecifier(_) => {
-          if let Some(dep) = dependency_mut(dep).downcast_mut::<ESMImportSpecifierDependency>() {
+          if let Some(dep) = dep.downcast_mut::<ESMImportSpecifierDependency>() {
             dep.set_used_by_exports(Some(used_by_exports));
           }
         }
         InnerGraphUsageOperation::URLDependency(_) => {
-          if let Some(dep) = dependency_mut(dep).downcast_mut::<URLDependency>() {
+          if let Some(dep) = dep.downcast_mut::<URLDependency>() {
             dep.set_used_by_exports(Some(used_by_exports));
           }
         }
@@ -640,7 +640,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InnerGraphParserPlugin {
           *parser.module_identifier,
         );
         let dep_idx = parser.next_dependency_idx();
-        parser.add_dependency(std::sync::Arc::new(dep));
+        parser.add_dependency(Box::new(dep));
         Self::on_usage(parser, InnerGraphUsageOperation::PureExpression(dep_idx));
       }
     }
@@ -692,7 +692,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InnerGraphParserPlugin {
         *parser.module_identifier,
       );
       let dep_idx = parser.next_dependency_idx();
-      parser.add_dependency(std::sync::Arc::new(dep));
+      parser.add_dependency(Box::new(dep));
       Self::on_usage(parser, InnerGraphUsageOperation::PureExpression(dep_idx));
     }
 
@@ -777,7 +777,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InnerGraphParserPlugin {
             *parser.module_identifier,
           );
           let dep_idx = parser.next_dependency_idx();
-          parser.add_dependency(std::sync::Arc::new(dep));
+          parser.add_dependency(Box::new(dep));
           Self::on_usage(parser, InnerGraphUsageOperation::PureExpression(dep_idx));
         }
       } else {
@@ -817,7 +817,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InnerGraphParserPlugin {
             *parser.module_identifier,
           );
           let dep_idx = parser.next_dependency_idx();
-          parser.add_dependency(std::sync::Arc::new(dep));
+          parser.add_dependency(Box::new(dep));
           Self::on_usage(parser, InnerGraphUsageOperation::PureExpression(dep_idx));
         } else if decl.init.is_none() || !decl.init.as_ref().expect("unreachable").is_class() {
           let init = decl.init.as_ref().expect("should have initialization");
@@ -827,7 +827,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InnerGraphParserPlugin {
             *parser.module_identifier,
           );
           let dep_idx = parser.next_dependency_idx();
-          parser.add_dependency(std::sync::Arc::new(dep));
+          parser.add_dependency(Box::new(dep));
           InnerGraphParserPlugin::on_usage(
             parser,
             InnerGraphUsageOperation::PureExpression(dep_idx),

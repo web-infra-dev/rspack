@@ -84,7 +84,7 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
 
   compilation
     .add_entry(
-      std::sync::Arc::new(dep),
+      Box::new(dep),
       EntryOptions {
         name: Some(self.options.name.clone()),
         runtime: self.options.runtime.clone(),

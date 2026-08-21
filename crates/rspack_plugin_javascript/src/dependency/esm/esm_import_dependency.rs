@@ -1,22 +1,16 @@
-use std::sync::atomic::{AtomicBool, Ordering};
-
-use rspack_cacheable::{
-  cacheable, cacheable_dyn,
-  rkyv::with::{AtomicLoad, Relaxed},
-  with::AsPreset,
-};
+use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   AsContextDependency, AwaitDependenciesInitFragment, BuildMetaDefaultObject, ChunkGraph,
   ConditionalInitFragment, ConnectionState, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyCondition, DependencyConditionFn,
-  DependencyDiagnosticsContext, DependencyId, DependencyLocation, DependencyRange,
-  DependencyTemplate, DependencyTemplateType, DependencyType, ExportProvided, ExportsInfoArtifact,
-  ExportsType, ForwardId, ImportAttributes, ImportPhase, InitFragmentExt, InitFragmentKey,
-  InitFragmentStage, LazyUntil, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
-  ModuleIdentifier, ProvidedExports, ReferencedExport, ResourceIdentifier, RuntimeCondition,
-  RuntimeSpec, SideEffectsStateArtifact, SourceType, TemplateContext, TemplateReplaceSource,
-  TypeReexportPresenceMode, filter_runtime,
+  DependencyDiagnosticsContext, DependencyId, DependencyLazyState, DependencyLocation,
+  DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, ExportProvided,
+  ExportsInfoArtifact, ExportsType, ForwardId, ImportAttributes, ImportPhase, InitFragmentExt,
+  InitFragmentKey, InitFragmentStage, LazyUntil, ModuleDependency, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleIdentifier, ProvidedExports, ReferencedExport,
+  ResourceIdentifier, RuntimeCondition, RuntimeSpec, SideEffectsStateArtifact, SourceType,
+  TemplateContext, TemplateReplaceSource, TypeReexportPresenceMode, filter_runtime,
 };
 use rspack_error::{Diagnostic, Error, Severity};
 use swc_atoms::Atom;
@@ -63,7 +57,7 @@ pub mod import_emitted_runtime {
 
 // ESMImportDependency is merged ESMImportSideEffectDependency.
 #[cacheable]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ESMImportSideEffectDependency {
   #[cacheable(with=AsPreset)]
   request: Atom,
@@ -75,27 +69,8 @@ pub struct ESMImportSideEffectDependency {
   attributes: Option<ImportAttributes>,
   resource_identifier: ResourceIdentifier,
   loc: Option<DependencyLocation>,
-  #[cacheable(with=AtomicLoad<Relaxed>)]
-  lazy_make: AtomicBool,
+  lazy_make: DependencyLazyState,
   star_export: bool,
-}
-
-impl Clone for ESMImportSideEffectDependency {
-  fn clone(&self) -> Self {
-    Self {
-      request: self.request.clone(),
-      source_order: self.source_order,
-      id: self.id,
-      range: self.range,
-      dependency_type: self.dependency_type.clone(),
-      phase: self.phase,
-      attributes: self.attributes.clone(),
-      resource_identifier: self.resource_identifier.clone(),
-      loc: self.loc.clone(),
-      lazy_make: AtomicBool::new(self.lazy_make.load(Ordering::Relaxed)),
-      star_export: self.star_export,
-    }
-  }
 }
 
 impl ESMImportSideEffectDependency {
@@ -122,13 +97,13 @@ impl ESMImportSideEffectDependency {
       attributes,
       resource_identifier,
       loc,
-      lazy_make: AtomicBool::new(false),
+      lazy_make: DependencyLazyState::default(),
       star_export,
     }
   }
 
   fn missing_module_active(&self) -> bool {
-    !self.lazy_make.load(Ordering::Relaxed)
+    !self.lazy_make.get()
   }
 }
 
@@ -635,7 +610,7 @@ impl Dependency for ESMImportSideEffectDependency {
   }
 
   fn lazy(&self) -> Option<LazyUntil> {
-    self.lazy_make.load(Ordering::Relaxed).then(|| {
+    self.lazy_make.get().then(|| {
       if self.star_export {
         LazyUntil::Fallback
       } else {
@@ -645,11 +620,11 @@ impl Dependency for ESMImportSideEffectDependency {
   }
 
   fn set_lazy(&self) {
-    self.lazy_make.store(true, Ordering::Relaxed);
+    self.lazy_make.set();
   }
 
   fn unset_lazy(&self) -> bool {
-    self.lazy_make.swap(false, Ordering::Relaxed)
+    self.lazy_make.unset()
   }
 }
 

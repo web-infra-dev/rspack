@@ -45,7 +45,7 @@ impl ProvideParserPlugin {
           .collect_vec(),
         loc,
       );
-      parser.add_dependency(std::sync::Arc::new(dep));
+      parser.add_dependency(Box::new(dep));
 
       // add value dependency
       let cache_key = format!("{VALUE_DEP_PREFIX}{name}");

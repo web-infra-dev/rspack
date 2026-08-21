@@ -640,7 +640,7 @@ impl RscServerPlugin {
     Some(InjectedSsrEntry {
       runtime,
       add_entry: (
-        Arc::new(ssr_entry_dependency),
+        Box::new(ssr_entry_dependency),
         EntryOptions {
           name: Some(entry_name.to_string()),
           layer: Some(LAYERS_NAMES.server_side_rendering.to_string()),
@@ -696,7 +696,7 @@ impl RscServerPlugin {
     Some(InjectedActionEntry {
       runtime,
       add_entry: (
-        Arc::new(action_entry_dep),
+        Box::new(action_entry_dep),
         EntryOptions {
           name: Some(entry_name.to_string()),
           layer: Some(layer),

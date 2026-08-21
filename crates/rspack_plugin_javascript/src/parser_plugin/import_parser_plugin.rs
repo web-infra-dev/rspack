@@ -1,8 +1,7 @@
 use rspack_core::{
   AsyncDependenciesBlock, ChunkGroupOptions, ContextDependency, ContextNameSpaceObject,
   ContextOptions, DependencyCategory, DependencyRange, DependencyType, DynamicImportFetchPriority,
-  DynamicImportMode, GroupOptions, ImportAttributes, ReferencedSpecifier, dependency_mut,
-  get_context,
+  DynamicImportMode, GroupOptions, ImportAttributes, ReferencedSpecifier, get_context,
 };
 use rspack_error::{Error, Severity};
 use rspack_util::{SpanExt, swc::get_swc_comments};
@@ -394,7 +393,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
           dep.set_referenced_specifiers(exports, !is_statical && has_exports_magic_comment);
         }
         let dep_idx = parser.next_dependency_idx();
-        parser.add_dependency(std::sync::Arc::new(dep));
+        parser.add_dependency(Box::new(dep));
         ImportDependencyLocator {
           block_idx: None,
           dep_idx,
@@ -412,7 +411,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
           dep.set_referenced_specifiers(exports, !is_statical && has_exports_magic_comment);
         }
         let dep_idx = parser.next_dependency_idx();
-        parser.add_dependency(std::sync::Arc::new(dep));
+        parser.add_dependency(Box::new(dep));
         ImportDependencyLocator {
           block_idx: None,
           dep_idx,
@@ -443,7 +442,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
           *parser.module_identifier,
           loc,
           None,
-          vec![std::sync::Arc::new(dep)],
+          vec![Box::new(dep)],
           Some(param.string().clone()),
         );
         block.set_group_options(GroupOptions::ChunkGroup(ChunkGroupOptions::new(
@@ -517,7 +516,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
       }
       dep.set_critical(critical);
       let dep_idx = parser.next_dependency_idx();
-      parser.add_dependency(std::sync::Arc::new(dep));
+      parser.add_dependency(Box::new(dep));
       ImportDependencyLocator {
         block_idx: None,
         dep_idx,
@@ -569,25 +568,25 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
       };
       match locator.dep_type {
         DependencyType::DynamicImport => {
-          let dep = dependency_mut(dep)
+          let dep = dep
             .downcast_mut::<ImportDependency>()
             .expect("Failed to downcast to ImportDependency");
           dep.set_referenced_specifiers(references, false);
         }
         DependencyType::DynamicImportEager => {
-          let dep = dependency_mut(dep)
+          let dep = dep
             .downcast_mut::<ImportEagerDependency>()
             .expect("Failed to downcast to ImportEagerDependency");
           dep.set_referenced_specifiers(references, false);
         }
         DependencyType::DynamicImportWeak => {
-          let dep = dependency_mut(dep)
+          let dep = dep
             .downcast_mut::<ImportWeakDependency>()
             .expect("Failed to downcast to ImportWeakDependency");
           dep.set_referenced_specifiers(references, false);
         }
         DependencyType::ImportContext => {
-          let dep = dependency_mut(dep)
+          let dep = dep
             .downcast_mut::<ImportContextDependency>()
             .expect("Failed to downcast to ImportContextDependency");
           dep.set_referenced_specifiers(references, false);

@@ -1,5 +1,4 @@
-use std::sync::Arc;
-
+use dyn_clone::clone_trait_object;
 use rspack_cacheable::cacheable_dyn;
 
 use super::Dependency;
@@ -26,6 +25,8 @@ pub trait ModuleDependency: Dependency {
   }
 }
 
+clone_trait_object!(ModuleDependency);
+
 pub trait AsModuleDependency {
   fn as_module_dependency(&self) -> Option<&dyn ModuleDependency> {
     None
@@ -46,4 +47,4 @@ impl<T: ModuleDependency> AsModuleDependency for T {
   }
 }
 
-pub type BoxModuleDependency = Arc<dyn ModuleDependency>;
+pub type BoxModuleDependency = Box<dyn ModuleDependency>;

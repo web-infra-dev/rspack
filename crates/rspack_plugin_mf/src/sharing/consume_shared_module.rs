@@ -179,7 +179,7 @@ impl Module for ConsumeSharedModule {
     let mut blocks = vec![];
     let mut dependencies = vec![];
     if let Some(fallback) = &self.options.import {
-      let dep = std::sync::Arc::new(ConsumeSharedFallbackDependency::new(fallback.to_owned()));
+      let dep = Box::new(ConsumeSharedFallbackDependency::new(fallback.to_owned()));
       if self.options.eager {
         dependencies.push(dep as BoxDependency);
       } else {

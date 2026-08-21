@@ -172,7 +172,7 @@ impl Module for ProvideSharedModule {
   ) -> Result<BuildResult> {
     let mut blocks = vec![];
     let mut dependencies = vec![];
-    let dep = std::sync::Arc::new(ProvideForSharedDependency::new(self.request.clone()));
+    let dep = Box::new(ProvideForSharedDependency::new(self.request.clone()));
     if self.eager {
       dependencies.push(dep as BoxDependency);
     } else {

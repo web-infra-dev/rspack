@@ -1,4 +1,4 @@
-use std::{borrow::Cow, iter, sync::Arc};
+use std::{borrow::Cow, iter};
 
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
@@ -1205,7 +1205,7 @@ impl Module for ExternalModule {
     self.build_meta.set_exports_type(exports_type);
     Ok(BuildResult {
       module: BoxModule::new(self),
-      dependencies: vec![Arc::new(StaticExportsDependency::new(
+      dependencies: vec![Box::new(StaticExportsDependency::new(
         StaticExportsSpec::True,
         can_mangle,
       ))],

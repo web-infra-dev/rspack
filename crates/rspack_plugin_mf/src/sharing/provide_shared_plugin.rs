@@ -244,7 +244,7 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
     .iter()
     .map(|(resource, config)| {
       (
-        std::sync::Arc::new(ProvideSharedDependency::new(
+        Box::new(ProvideSharedDependency::new(
           config.share_scope.clone(),
           config.share_key.clone(),
           config.version.clone(),

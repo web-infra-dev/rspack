@@ -4,8 +4,8 @@ use async_trait::async_trait;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
-  AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta,
-  BuildResult, CodeGenerationResultBuilder, Compilation, Context, DependenciesBlock, DependencyId,
+  AsyncDependenciesBlockIdentifier, BoxModule, BuildContext, BuildInfo, BuildMeta, BuildResult,
+  CodeGenerationResultBuilder, Compilation, Context, DependenciesBlock, Dependency, DependencyId,
   EntryDependency, FactoryMeta, Module, ModuleArgument, ModuleCodeGenerationContext, ModuleGraph,
   ModuleType, RuntimeGlobals, RuntimeSpec, SourceType, ValueCacheVersions, impl_module_meta_info,
   impl_source_map_config, module_update_hash,
@@ -87,7 +87,7 @@ impl Module for DllModule {
       .clone()
       .into_iter()
       .map(|entry| EntryDependency::new(entry, self.context.clone(), None, false))
-      .map(|dependency| std::sync::Arc::new(dependency) as BoxDependency)
+      .map(|dependency| Box::new(dependency) as Box<dyn Dependency>)
       .collect::<Vec<_>>();
 
     Ok(BuildResult {

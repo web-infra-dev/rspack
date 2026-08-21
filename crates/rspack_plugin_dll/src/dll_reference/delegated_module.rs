@@ -97,8 +97,8 @@ impl Module for DelegatedModule {
     _compilation: Option<&Compilation>,
   ) -> Result<BuildResult> {
     let dependencies = vec![
-      std::sync::Arc::new(DelegatedSourceDependency::new(self.source_request.clone())),
-      std::sync::Arc::new(StaticExportsDependency::new(
+      Box::new(DelegatedSourceDependency::new(self.source_request.clone())),
+      Box::new(StaticExportsDependency::new(
         match self.delegate_data.exports.clone() {
           Some(exports) => match exports {
             DllManifestContentItemExports::True => StaticExportsSpec::True,

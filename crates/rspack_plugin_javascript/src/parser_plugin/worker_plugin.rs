@@ -139,7 +139,7 @@ fn add_dependencies(
   let options_kind = parsed_options.as_ref().map(|options| options.kind);
   let name = parsed_options.and_then(|options| options.name);
   let output_module = output_options.module;
-  let dep = std::sync::Arc::new(WorkerDependency::new(
+  let dep = Box::new(WorkerDependency::new(
     parsed_path.value,
     output_options.worker_public_path.clone(),
     span.into(),
@@ -169,7 +169,7 @@ fn add_dependencies(
   parser.add_block(Box::new(block));
 
   if parser.compiler_options.output.trusted_types.is_some() {
-    parser.add_dependency(std::sync::Arc::new(CreateScriptUrlDependency::new(
+    parser.add_dependency(Box::new(CreateScriptUrlDependency::new(
       span.into(),
       first_arg.span().into(),
     )));

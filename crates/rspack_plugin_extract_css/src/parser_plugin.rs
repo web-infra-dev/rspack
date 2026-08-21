@@ -60,7 +60,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for PluginCssExtractParserPlugin {
                 layer,
               },
             )| {
-              std::sync::Arc::new(CssDependency::new(
+              Box::new(CssDependency::new(
                 identifier.into(),
                 parser.get_module_layer().cloned(),
                 layer.clone(),

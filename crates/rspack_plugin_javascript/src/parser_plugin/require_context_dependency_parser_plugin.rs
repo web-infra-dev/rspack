@@ -72,7 +72,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for RequireContextDependencyParserPl
       }
 
       let reg_exp = clean_regexp_in_context_module(reg_exp, reg_exp_span, parser);
-      parser.add_dependency(std::sync::Arc::new(RequireContextDependency::new(
+      parser.add_dependency(Box::new(RequireContextDependency::new(
         ContextOptions {
           mode,
           recursive,

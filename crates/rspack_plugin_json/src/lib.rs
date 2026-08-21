@@ -1,4 +1,4 @@
-use std::{borrow::Cow, sync::Arc};
+use std::borrow::Cow;
 
 use cow_utils::CowUtils;
 use json::{
@@ -151,7 +151,7 @@ impl ParserAndGenerator for JsonParserAndGenerator {
     Ok(
       rspack_core::ParseResult {
         presentational_dependencies: vec![],
-        dependencies: vec![Arc::new(JsonExportsDependency::new(self.exports_depth))],
+        dependencies: vec![Box::new(JsonExportsDependency::new(self.exports_depth))],
         blocks: vec![],
         code_generation_dependencies: vec![],
         source: box_source,

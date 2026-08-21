@@ -139,9 +139,7 @@ impl Module for FallbackModule {
   ) -> Result<BuildResult> {
     let mut dependencies: Vec<BoxDependency> = Vec::new();
     for request in &self.requests {
-      dependencies.push(std::sync::Arc::new(FallbackItemDependency::new(
-        request.clone(),
-      )))
+      dependencies.push(Box::new(FallbackItemDependency::new(request.clone())))
     }
 
     Ok(BuildResult {

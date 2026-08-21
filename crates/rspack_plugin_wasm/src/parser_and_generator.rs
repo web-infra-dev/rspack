@@ -1,4 +1,4 @@
-use std::{borrow::Cow, sync::Arc};
+use std::borrow::Cow;
 
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::IdentifierIndexMap;
@@ -61,7 +61,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
           "Source phase imports require valid WebAssembly modules. Invalid magic header (expected \\0asm).".into(),
         ));
       }
-      dependencies.push(Arc::new(StaticExportsDependency::new(
+      dependencies.push(Box::new(StaticExportsDependency::new(
         StaticExportsSpec::Array(vec![Atom::from("default")]),
         false,
       )));
@@ -97,7 +97,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
             for import in s {
               match import {
                 Ok(Import { module, name, .. }) => {
-                  dependencies.push(Arc::new(WasmImportDependency::new(
+                  dependencies.push(Box::new(WasmImportDependency::new(
                     module.into(),
                     name.into(),
                   )));
@@ -120,7 +120,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
       }
     }
 
-    dependencies.push(Arc::new(StaticExportsDependency::new(
+    dependencies.push(Box::new(StaticExportsDependency::new(
       StaticExportsSpec::Array(exports.iter().cloned().map(Atom::from).collect::<Vec<_>>()),
       false,
     )));

@@ -1463,7 +1463,7 @@ impl Module for ContextModule {
         None,
         context_element_dependencies
           .into_iter()
-          .map(|dep| Arc::new(dep) as Arc<dyn Dependency>)
+          .map(|dep| Box::new(dep) as Box<dyn Dependency>)
           .collect(),
         None,
       );
@@ -1507,7 +1507,7 @@ impl Module for ContextModule {
           (*self.identifier).into(),
           None,
           Some(&context_element_dependency.user_request.clone()),
-          vec![Arc::new(context_element_dependency)],
+          vec![Box::new(context_element_dependency)],
           Some(self.options.context_options.request.clone()),
         );
         block.set_group_options(GroupOptions::ChunkGroup(ChunkGroupOptions::new(
@@ -1521,7 +1521,7 @@ impl Module for ContextModule {
     } else {
       dependencies = context_element_dependencies
         .into_iter()
-        .map(|d| Arc::new(d) as BoxDependency)
+        .map(|d| Box::new(d) as BoxDependency)
         .collect();
     }
 
