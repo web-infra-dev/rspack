@@ -13,7 +13,6 @@ use crate::{
   NormalModuleBuildState, OptimizationBailoutItem, ResolverFactory, SharedPluginDriver,
   ValueCacheVersions,
   compilation::build_module_graph::{ForwardedIdSet, HasLazyDependencies, LazyDependencies},
-  new_cache::ModuleSnapshot,
   utils::{
     ResourceId,
     task_loop::{Task, TaskResult, TaskType},
@@ -32,18 +31,16 @@ struct ModuleBuildCacheEntry {
   #[allow(clippy::vec_box)]
   blocks: Vec<Box<AsyncDependenciesBlock>>,
   optimization_bailouts: Vec<OptimizationBailoutItem>,
-  snapshot: ModuleSnapshot,
 }
 
 impl ModuleBuildCacheEntry {
-  fn from_build_result(build_result: &BuildResult, snapshot: ModuleSnapshot) -> Option<Self> {
+  fn from_build_result(build_result: &BuildResult) -> Option<Self> {
     let module = build_result.module.as_normal_module()?;
     module.build_info().cacheable.then(|| Self {
       state: module.build_state(),
       dependencies: build_result.dependencies.clone(),
       blocks: build_result.blocks.clone(),
       optimization_bailouts: build_result.optimization_bailouts.clone(),
-      snapshot,
     })
   }
 
@@ -109,7 +106,9 @@ impl Task<TaskContext> for BuildTask {
       None
     };
 
-    if let Some(module_cache) = &module_cache {
+    let file_system_info = cache.file_system_info();
+
+    if let (Some(module_cache), Some(file_system_info)) = (&module_cache, file_system_info) {
       let entry = match module_cache.get::<ModuleBuildCacheEntry>() {
         Ok(entry) => entry,
         Err(error) => {
@@ -118,10 +117,11 @@ impl Task<TaskContext> for BuildTask {
         }
       };
       if let Some(entry) = entry
+        && let Some(snapshot) = entry.state.snapshot()
         && !entry
           .state
           .has_value_dependencies_diff(&value_cache_versions)
-        && cache.validate_module_snapshot(&entry.snapshot).await
+        && file_system_info.check_snapshot_valid(snapshot).await
         && entry.restore(&mut module).is_some()
       {
         plugin_driver
@@ -144,7 +144,7 @@ impl Task<TaskContext> for BuildTask {
       .call(compiler_id, compilation_id, &mut module)
       .await?;
 
-    let result = module
+    let mut result = module
       .build(
         BuildContext {
           compiler_id,
@@ -159,18 +159,21 @@ impl Task<TaskContext> for BuildTask {
       )
       .await;
 
-    if let Ok(build_result) = &result
-      && let Some(module_cache) = module_cache
+    if let Ok(build_result) = &mut result
+      && let (Some(module_cache), Some(file_system_info)) = (module_cache, file_system_info)
     {
-      let build_info = build_result.module.build_info();
-      if let Some(snapshot) = cache
-        .create_module_snapshot(
-          build_info.file_dependencies.iter().cloned(),
-          build_info.context_dependencies.iter().cloned(),
-          build_info.missing_dependencies.iter().cloned(),
-        )
-        .await
-        && let Some(entry) = ModuleBuildCacheEntry::from_build_result(build_result, snapshot)
+      let snapshot = {
+        let build_info = build_result.module.build_info();
+        file_system_info
+          .create_snapshot(
+            build_info.file_dependencies.iter().cloned(),
+            build_info.context_dependencies.iter().cloned(),
+            build_info.missing_dependencies.iter().cloned(),
+          )
+          .await
+      };
+      build_result.module.build_info_mut().snapshot = Some(snapshot);
+      if let Some(entry) = ModuleBuildCacheEntry::from_build_result(build_result)
         && let Err(error) = module_cache.store(CacheValue::new(entry))
       {
         tracing::warn!("Storing NormalModule build cache failed: {error}");

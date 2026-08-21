@@ -33,7 +33,7 @@ use crate::{
   Module, ModuleCodeGenerationContext, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
   ModuleLayer, ModuleType, OptimizationBailoutItem, OutputOptions, ParseContext, ParseResult,
   ParserAndGenerator, ParserOptions, Resolve, ResolvedModuleOptions, RspackLoaderRunnerPlugin,
-  RunnerContext, RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, SourceType,
+  RunnerContext, RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, Snapshot, SourceType,
   ValueCacheVersions, contextify,
   diagnostics::ModuleBuildError,
   get_context, module_analyzed_side_effect_free, module_declared_side_effect_free,
@@ -165,6 +165,10 @@ pub(crate) struct NormalModuleBuildState {
 }
 
 impl NormalModuleBuildState {
+  pub(crate) fn snapshot(&self) -> Option<&Snapshot> {
+    self.build_info.snapshot.as_ref()
+  }
+
   pub(crate) fn has_value_dependencies_diff(
     &self,
     value_cache_versions: &ValueCacheVersions,
