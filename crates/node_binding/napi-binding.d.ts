@@ -2303,11 +2303,6 @@ export interface RawExperiments {
   runtimeMode?: "webpack" | "rspack"
 }
 
-export interface RawNewCache {
-  codeGeneration: boolean
-  minimize: boolean
-}
-
 export interface RawExposeOptions {
   key: string
   name?: string
@@ -2750,6 +2745,11 @@ export interface RawModuleRule {
 export interface RawModuleRuleUse {
   loader: string
   options?: string
+}
+
+export interface RawNewCache {
+  codeGeneration: boolean
+  minimize: boolean
 }
 
 export interface RawNodeOption {
