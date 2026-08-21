@@ -126,6 +126,13 @@ module.exports = {
 			        type: javascript/esm,
 			      },
 			      Object {
+			        descriptionData: Object {
+			          type: module,
+			        },
+			        test: /\\\\\\.ts\\$/,
+			        type: javascript/esm,
+			      },
+			      Object {
 			        test: /\\\\\\.cjs\\$/,
 			        type: javascript/dynamic,
 			      },
@@ -134,6 +141,13 @@ module.exports = {
 			          type: commonjs,
 			        },
 			        test: /\\\\\\.js\\$/,
+			        type: javascript/dynamic,
+			      },
+			      Object {
+			        descriptionData: Object {
+			          type: commonjs,
+			        },
+			        test: /\\\\\\.ts\\$/,
 			        type: javascript/dynamic,
 			      },
 			      Object {

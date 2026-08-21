@@ -577,11 +577,25 @@ const applyModuleDefaults = (
         ...esm,
       },
       {
+        test: /\.ts$/,
+        descriptionData: {
+          type: 'module',
+        },
+        type: 'javascript/esm',
+      },
+      {
         test: /\.cjs$/,
         ...commonjs,
       },
       {
         test: /\.js$/,
+        descriptionData: {
+          type: 'commonjs',
+        },
+        ...commonjs,
+      },
+      {
+        test: /\.ts$/,
         descriptionData: {
           type: 'commonjs',
         },
