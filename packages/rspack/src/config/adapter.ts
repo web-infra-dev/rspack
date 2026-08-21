@@ -62,6 +62,7 @@ import type {
   JavascriptParserOptions,
   JsonGeneratorOptions,
   JsonParserOptions,
+  NewCache,
   Node,
   Optimization,
   Output,
@@ -82,13 +83,20 @@ export type {
 
 const MAX_U32 = 0xffffffff;
 
+type ExperimentsWithDefaults = Omit<
+  Required<ExperimentsNormalized>,
+  'newCache'
+> & {
+  newCache: false | Required<NewCache>;
+};
+
 // invariant: `options` is normalized with default value applied
 export const getRawOptions = (
   options: RspackOptionsNormalized,
   compiler: Compiler,
 ): RawOptions => {
   const mode = options.mode;
-  const experiments = options.experiments as Required<ExperimentsNormalized>;
+  const experiments = options.experiments as ExperimentsWithDefaults;
   return {
     name: options.name,
     mode,

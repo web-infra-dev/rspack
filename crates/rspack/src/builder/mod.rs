@@ -51,10 +51,10 @@ use rspack_core::{
   JavascriptParserOrder, JavascriptParserUrl, JavascriptParserWorkerOptions, JsonGeneratorOptions,
   JsonParserOptions, LibraryName, LibraryNonUmdObject, LibraryOptions, LibraryType,
   MangleExportsOption, Mode, ModuleNoParseRules, ModuleOptions, ModuleRule, ModuleRuleEffect,
-  ModuleType, NodeDirnameOption, NodeFilenameOption, NodeGlobalOption, NodeOption, Optimization,
-  OutputOptions, ParseOption, ParserOptions, ParserOptionsMap, PathInfo, PublicPath, Resolve,
-  RuleSetCondition, RuleSetLogicalConditions, SideEffectOption, StatsOptions, TrustedTypes,
-  UsedExportsOption, WasmLoading, WasmLoadingType, incremental::IncrementalOptions,
+  ModuleType, NewCacheOptions, NodeDirnameOption, NodeFilenameOption, NodeGlobalOption, NodeOption,
+  Optimization, OutputOptions, ParseOption, ParserOptions, ParserOptionsMap, PathInfo, PublicPath,
+  Resolve, RuleSetCondition, RuleSetLogicalConditions, SideEffectOption, StatsOptions,
+  TrustedTypes, UsedExportsOption, WasmLoading, WasmLoadingType, incremental::IncrementalOptions,
   runtime_mode::RuntimeMode,
 };
 use rspack_error::{Error, Result};
@@ -3677,7 +3677,7 @@ pub struct ExperimentsBuilder {
   /// Whether to enable css.
   css: Option<bool>,
   /// Whether to enable the new cache implementation.
-  new_cache: Option<bool>,
+  new_cache: Option<NewCacheOptions>,
   /// Whether to enable async web assembly.
   async_web_assembly: Option<bool>,
   /// Whether to enable defer import.
@@ -3738,7 +3738,11 @@ impl ExperimentsBuilder {
 
   /// Set whether to enable the new cache implementation.
   pub fn new_cache(&mut self, new_cache: bool) -> &mut Self {
-    self.new_cache = Some(new_cache);
+    self.new_cache = Some(if new_cache {
+      NewCacheOptions::all()
+    } else {
+      NewCacheOptions::default()
+    });
     self
   }
 
@@ -3782,7 +3786,7 @@ impl ExperimentsBuilder {
 
     Ok(Experiments {
       css: d!(self.css, false),
-      new_cache: d!(self.new_cache, false),
+      new_cache: d!(self.new_cache, NewCacheOptions::default()),
       defer_import: d!(self.defer_import, false),
       source_import: d!(self.source_import, false),
       faster_module_concatenation: d!(self.faster_module_concatenation, false),
