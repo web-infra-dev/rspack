@@ -447,32 +447,44 @@ impl CodeGenerationResults {
     module_identifier: &ModuleIdentifier,
     runtime: Option<&RuntimeSpec>,
   ) -> &BindingCell<CodeGenerationResult> {
-    if let Some(entry) = self.map.get(module_identifier) {
-      if let Some(runtime) = runtime {
-        entry.get(runtime).unwrap_or_else(|| {
-          panic!(
-            "Failed to code generation result for {module_identifier} with runtime {runtime:?} \n {entry:?}"
-          )
-        })
-      } else {
-        let mut values = entry.values();
-        let result = values
-          .next()
-          .unwrap_or_else(|| panic!("Expected value exists"));
-        if values.any(|other| !result.has_same_value(other)) {
-          panic!(
-            "No unique code generation entry for unspecified runtime for {module_identifier} ",
-          );
-        }
-        result
-      }
-    } else {
-      panic!(
+    self
+      .try_get(module_identifier, runtime)
+      .unwrap_or_else(|error| {
+        panic!("{error}");
+      })
+  }
+
+  pub fn try_get(
+    &self,
+    module_identifier: &ModuleIdentifier,
+    runtime: Option<&RuntimeSpec>,
+  ) -> rspack_error::Result<&BindingCell<CodeGenerationResult>> {
+    let entry = self.map.get(module_identifier).ok_or_else(|| {
+      rspack_error::error!(
         "No code generation entry for {} (existing entries: {:?})",
         module_identifier,
         self.map.keys().collect::<Vec<_>>()
       )
+    })?;
+
+    if let Some(runtime) = runtime {
+      return entry.get(runtime).ok_or_else(|| {
+        rspack_error::error!(
+          "Failed to code generation result for {module_identifier} with runtime {runtime:?} \n {entry:?}"
+        )
+      });
     }
+
+    let mut values = entry.values();
+    let result = values
+      .next()
+      .ok_or_else(|| rspack_error::error!("Expected value exists"))?;
+    if values.any(|other| !result.has_same_value(other)) {
+      return Err(rspack_error::error!(
+        "No unique code generation entry for unspecified runtime for {module_identifier} "
+      ));
+    }
+    Ok(result)
   }
 
   /**
