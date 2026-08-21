@@ -338,7 +338,7 @@ export default {
 ## optimization.moduleIds
 
 <PropertyType
-  type="false | 'natural' | 'named' | 'deterministic' | 'hashed'"
+  type="false | 'natural' | 'named' | 'deterministic' | 'compat-hashed' | 'hashed'"
   defaultValueList={[
     { defaultValue: "'deterministic'", mode: 'production' },
     { defaultValue: "'named'", mode: 'development' },
@@ -354,6 +354,7 @@ The following string values are supported:
 | `natural`       | Use numeric ids in order of usage.                                                                                             |
 | `named`         | Use meaningful, easy-to-debug content as id.                                                                                   |
 | `deterministic` | Use the hashed module identifier as the id to benefit from long-term caching. By default a minimum length of 3 digits is used. |
+| `compat-hashed` | Use the shortest available prefix of a stable alphanumeric hash.                                                               |
 | `hashed`        | Use hashed module identifiers as ids. Equivalent to using `HashedModuleIdsPlugin` with default options (md4, base64, 4 chars). |
 | `false`         | Disable Rspack's built-in module id algorithm, allowing a custom plugin to provide module ids.                                 |
 
@@ -366,6 +367,8 @@ export default {
 ```
 
 The `deterministic` option is useful for long term caching, and results in smaller bundles compared to hashed. Length of the numeric value is chosen to fill a maximum of 80% of the id space. By default a minimum length of 3 digits is used when `optimization.moduleIds` is set to `deterministic`.
+
+The `compat-hashed` option uses the shortest available prefix of a stable alphanumeric hash as the module id, balancing long-term caching, bundle size, and runtime performance.
 
 ## optimization.nodeEnv
 
