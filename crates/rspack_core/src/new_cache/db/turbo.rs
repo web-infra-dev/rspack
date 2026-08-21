@@ -3,10 +3,11 @@ use std::{
   time::{SystemTime, UNIX_EPOCH},
 };
 
+use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use rspack_error::Result;
 use rspack_paths::Utf8PathBuf;
 use turbo_persistence::{
-  CompactConfig, DbConfig, FamilyConfig, FamilyKind, SerialScheduler, TurboPersistence,
+  CompactConfig, DbConfig, FamilyConfig, FamilyKind, ParallelScheduler, TurboPersistence,
 };
 
 use super::DatabaseWrite;
@@ -16,8 +17,8 @@ const STALE_DIRECTORY: &str = "_stale";
 const MB: u64 = 1024 * 1024;
 
 // Keep idle compaction selective and bounded. This follows Turbopack's
-// compaction thresholds, while limiting each call to one merge segment because
-// Rspack uses the serial scheduler.
+// compaction thresholds, while limiting each call to one merge segment to keep
+// idle work responsive to interruption.
 const COMPACT_CONFIG: CompactConfig = CompactConfig {
   min_merge_count: 3,
   optimal_merge_count: 8,
@@ -28,7 +29,134 @@ const COMPACT_CONFIG: CompactConfig = CompactConfig {
   max_merge_segment_count: 1,
 };
 
-type Inner = TurboPersistence<SerialScheduler, { DatabaseFamily::COUNT }>;
+#[derive(Clone, Copy, Default)]
+struct RayonParallelScheduler;
+
+impl ParallelScheduler for RayonParallelScheduler {
+  fn block_in_place<R>(&self, f: impl FnOnce() -> R + Send) -> R
+  where
+    R: Send,
+  {
+    f()
+  }
+
+  fn parallel_for_each<T>(&self, items: &[T], f: impl Fn(&T) + Send + Sync)
+  where
+    T: Sync,
+  {
+    if items.len() <= 1 {
+      items.iter().for_each(f);
+      return;
+    }
+
+    items.into_par_iter().for_each(f);
+  }
+
+  fn try_parallel_for_each<'l, T, E>(
+    &self,
+    items: &'l [T],
+    f: impl (Fn(&'l T) -> Result<(), E>) + Send + Sync,
+  ) -> Result<(), E>
+  where
+    T: Sync,
+    E: Send + 'static,
+  {
+    if items.len() <= 1 {
+      for item in items {
+        f(item)?;
+      }
+      return Ok(());
+    }
+
+    items.into_par_iter().try_for_each(f)
+  }
+
+  fn try_parallel_for_each_mut<'l, T, E>(
+    &self,
+    items: &'l mut [T],
+    f: impl (Fn(&'l mut T) -> Result<(), E>) + Send + Sync,
+  ) -> Result<(), E>
+  where
+    T: Send + Sync,
+    E: Send + 'static,
+  {
+    if items.len() <= 1 {
+      for item in items {
+        f(item)?;
+      }
+      return Ok(());
+    }
+
+    items.into_par_iter().try_for_each(f)
+  }
+
+  fn try_parallel_for_each_owned<T, E>(
+    &self,
+    items: Vec<T>,
+    f: impl (Fn(T) -> Result<(), E>) + Send + Sync,
+  ) -> Result<(), E>
+  where
+    T: Send + Sync,
+    E: Send + 'static,
+  {
+    if items.len() <= 1 {
+      for item in items {
+        f(item)?;
+      }
+      return Ok(());
+    }
+
+    items.into_par_iter().try_for_each(f)
+  }
+
+  fn parallel_map_collect<'l, Item, PerItemResult, Output>(
+    &self,
+    items: &'l [Item],
+    f: impl Fn(&'l Item) -> PerItemResult + Send + Sync,
+  ) -> Output
+  where
+    Item: Sync,
+    PerItemResult: Send + Sync + 'l,
+    Output: FromIterator<PerItemResult>,
+  {
+    if items.len() <= 1 {
+      return items.iter().map(f).collect();
+    }
+
+    items
+      .into_par_iter()
+      .map(f)
+      .collect_vec_list()
+      .into_iter()
+      .flatten()
+      .collect()
+  }
+
+  fn parallel_map_collect_owned<Item, PerItemResult, Output>(
+    &self,
+    items: Vec<Item>,
+    f: impl Fn(Item) -> PerItemResult + Send + Sync,
+  ) -> Output
+  where
+    Item: Send + Sync,
+    PerItemResult: Send + Sync,
+    Output: FromIterator<PerItemResult>,
+  {
+    if items.len() <= 1 {
+      return items.into_iter().map(f).collect();
+    }
+
+    items
+      .into_par_iter()
+      .map(f)
+      .collect_vec_list()
+      .into_iter()
+      .flatten()
+      .collect()
+  }
+}
+
+type Inner = TurboPersistence<RayonParallelScheduler, { DatabaseFamily::COUNT }>;
 pub type DatabaseValue = turbo_persistence::ArcBytes;
 
 pub struct Database {
