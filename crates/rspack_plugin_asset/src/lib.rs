@@ -1,4 +1,4 @@
-use std::{borrow::Cow, path::PathBuf};
+use std::{borrow::Cow, path::PathBuf, sync::Arc};
 
 use asset_exports_dependency::AssetExportsDependency;
 use rayon::prelude::*;
@@ -513,7 +513,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
         // different from webpack
         // Rspack: when set asset as entry, output a js chunk with default export
         // webpack: Assets do not have dependencies
-        dependencies: vec![Box::new(AssetExportsDependency::new())],
+        dependencies: vec![Arc::new(AssetExportsDependency::new())],
         blocks: vec![],
         source,
         presentational_dependencies: vec![],

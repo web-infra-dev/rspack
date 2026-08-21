@@ -406,7 +406,7 @@ impl ModuleGraph {
     &mut self,
     old_module: &ModuleIdentifier,
     new_module: &ModuleIdentifier,
-    filter_connection: impl Fn(&ModuleGraphConnection, &Box<dyn Dependency>) -> bool,
+    filter_connection: impl Fn(&ModuleGraphConnection, &dyn Dependency) -> bool,
   ) {
     if old_module == new_module {
       return;
@@ -424,7 +424,7 @@ impl ModuleGraph {
         .connection_by_dependency_id(&dep_id)
         .expect("should have connection");
       let dependency = self.dependency_by_id(&dep_id);
-      if filter_connection(connection, dependency) {
+      if filter_connection(connection, dependency.as_ref()) {
         let connection = self
           .connection_by_dependency_id_mut(&dep_id)
           .expect("should have connection");
@@ -455,7 +455,7 @@ impl ModuleGraph {
         .connection_by_dependency_id(&dep_id)
         .expect("should have connection");
       let dependency = self.dependency_by_id(&dep_id);
-      if filter_connection(connection, dependency) {
+      if filter_connection(connection, dependency.as_ref()) {
         let connection = self
           .connection_by_dependency_id_mut(&dep_id)
           .expect("should have connection");

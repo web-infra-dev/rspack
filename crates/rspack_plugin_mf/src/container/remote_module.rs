@@ -174,7 +174,7 @@ impl Module for RemoteModule {
         .call(&dep as &dyn Dependency)
         .await?;
 
-      dependencies.push(Box::new(dep));
+      dependencies.push(std::sync::Arc::new(dep));
     } else {
       let dep = FallbackDependency::new(self.external_requests.clone());
 
@@ -188,7 +188,7 @@ impl Module for RemoteModule {
         .call(&dep as &dyn Dependency)
         .await?;
 
-      dependencies.push(Box::new(dep));
+      dependencies.push(std::sync::Arc::new(dep));
     }
 
     Ok(BuildResult {

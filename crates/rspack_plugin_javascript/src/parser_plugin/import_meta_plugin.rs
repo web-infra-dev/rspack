@@ -388,10 +388,9 @@ impl ImportMetaPlugin {
     let callee_span = call_expr.callee.span();
     let range = DependencyRange::from(callee_span);
     let loc = parser.to_dependency_location(range);
-    let import_meta_resolve_header_dependency = Box::new(ImportMetaResolveHeaderDependency::new(
-      callee_span.into(),
-      loc,
-    ));
+    let import_meta_resolve_header_dependency = std::sync::Arc::new(
+      ImportMetaResolveHeaderDependency::new(callee_span.into(), loc),
+    );
 
     if param.is_conditional() {
       for option in param.options() {
@@ -411,7 +410,7 @@ impl ImportMetaPlugin {
     param: &eval::BasicEvaluatedExpression,
   ) -> bool {
     if param.is_string() {
-      parser.add_dependency(Box::new(ImportMetaResolveDependency::new(
+      parser.add_dependency(std::sync::Arc::new(ImportMetaResolveDependency::new(
         param.string().clone(),
         param.range().into(),
         parser.in_try,
@@ -428,7 +427,7 @@ impl ImportMetaPlugin {
     param: &BasicEvaluatedExpression,
   ) {
     let dep = create_import_meta_resolve_context_dependency(parser, param, param.range().into());
-    parser.add_dependency(Box::new(dep));
+    parser.add_dependency(std::sync::Arc::new(dep));
   }
 
   fn process_rspack_rsc(&self, parser: &mut JavascriptParser, member_expr: &MemberExpr) {
@@ -437,7 +436,9 @@ impl ImportMetaPlugin {
 
     let range = member_expr.span().into();
     let loc = parser.to_dependency_location(range);
-    parser.add_dependency(Box::new(ImportMetaRscDependency::new(importer, range, loc)));
+    parser.add_dependency(std::sync::Arc::new(ImportMetaRscDependency::new(
+      importer, range, loc,
+    )));
   }
 
   fn process_rspack_rsc_destructuring(&self, parser: &mut JavascriptParser, span: Span) -> String {
@@ -445,9 +446,9 @@ impl ImportMetaPlugin {
     mark_import_meta_rsc_used(parser);
 
     let loc = parser.to_dependency_location(span.into());
-    parser.add_dependency(Box::new(ImportMetaRscDependency::new_without_replacement(
-      importer, loc,
-    )));
+    parser.add_dependency(std::sync::Arc::new(
+      ImportMetaRscDependency::new_without_replacement(importer, loc),
+    ));
 
     IMPORT_META_RSC_BINDING.to_string()
   }

@@ -1,4 +1,7 @@
-use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::{
+  Arc,
+  atomic::{AtomicUsize, Ordering},
+};
 
 use rayon::prelude::*;
 use rspack_cacheable::{cacheable, utils::OwnedOrRef};
@@ -206,7 +209,7 @@ pub async fn recovery_module_graph(
     let dep = TempDependency::default();
     let connection = ModuleGraphConnection::new(*dep.id(), None, mid, false);
     entry_dependencies.insert(*dep.id());
-    mg.add_dependency(Box::new(dep));
+    mg.add_dependency(Arc::new(dep));
     mg.cache_recovery_connection(connection);
   }
 

@@ -4,7 +4,6 @@ use std::{
   sync::{Arc, OnceLock},
 };
 
-use dyn_clone::{DynClone, clone_trait_object};
 use rspack_cacheable::cacheable_dyn;
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_error::Diagnostic;
@@ -52,14 +51,7 @@ impl DependencyDiagnosticsContext {
 
 #[cacheable_dyn]
 pub trait Dependency:
-  AsDependencyCodeGeneration
-  + AsContextDependency
-  + AsModuleDependency
-  + AsAny
-  + DynClone
-  + Send
-  + Sync
-  + Debug
+  AsDependencyCodeGeneration + AsContextDependency + AsModuleDependency + AsAny + Send + Sync + Debug
 {
   fn id(&self) -> &DependencyId;
 
@@ -195,6 +187,8 @@ impl dyn Dependency + '_ {
   }
 }
 
-clone_trait_object!(Dependency);
+pub type BoxDependency = Arc<dyn Dependency>;
 
-pub type BoxDependency = Box<dyn Dependency>;
+pub fn dependency_mut(dependency: &mut BoxDependency) -> &mut dyn Dependency {
+  Arc::get_mut(dependency).expect("dependency must be uniquely owned before publication")
+}

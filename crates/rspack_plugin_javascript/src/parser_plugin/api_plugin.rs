@@ -933,7 +933,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
     {
       let request = parser.evaluate_expression(&call_expr.args[0].expr);
       if request.is_string() {
-        parser.add_dependency(Box::new(IsIncludeDependency::new(
+        parser.add_dependency(std::sync::Arc::new(IsIncludeDependency::new(
           (call_expr.span.real_lo(), call_expr.span.real_hi()).into(),
           request.string().clone(),
         )));

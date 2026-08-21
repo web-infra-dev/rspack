@@ -200,13 +200,13 @@ impl Module for ContainerEntryModule {
 
     if self.dependency_type == DependencyType::ShareContainerEntry {
       // Shared Container logic
-      dependencies.push(Box::new(StaticExportsDependency::new(
+      dependencies.push(std::sync::Arc::new(StaticExportsDependency::new(
         StaticExportsSpec::Array(vec!["get".into(), "init".into()]),
         false,
       )));
       if let Some(request) = &self.request {
         let dep = ContainerExposedDependency::new_shared_fallback(request.clone());
-        dependencies.push(Box::new(dep));
+        dependencies.push(std::sync::Arc::new(dep));
       }
     } else {
       // Container logic
@@ -219,10 +219,10 @@ impl Module for ContainerEntryModule {
             .import
             .iter()
             .map(|request| {
-              Box::new(ContainerExposedDependency::new(
+              std::sync::Arc::new(ContainerExposedDependency::new(
                 name.clone(),
                 request.clone(),
-              )) as Box<dyn Dependency>
+              )) as BoxDependency
             })
             .collect(),
           None,
@@ -232,7 +232,7 @@ impl Module for ContainerEntryModule {
         ));
         blocks.push(Box::new(block));
       }
-      dependencies.push(Box::new(StaticExportsDependency::new(
+      dependencies.push(std::sync::Arc::new(StaticExportsDependency::new(
         StaticExportsSpec::Array(vec!["get".into(), "init".into()]),
         false,
       )));

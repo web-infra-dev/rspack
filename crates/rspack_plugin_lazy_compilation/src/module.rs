@@ -200,7 +200,7 @@ impl Module for LazyCompilationProxyModule {
     let mut dependencies = vec![];
     let mut blocks = vec![];
 
-    dependencies.push(Box::new(client_dep) as BoxDependency);
+    dependencies.push(std::sync::Arc::new(client_dep) as BoxDependency);
 
     if self.active {
       let dep = LazyCompilationDependency::new(self.dep_options.clone());
@@ -209,7 +209,7 @@ impl Module for LazyCompilationProxyModule {
         self.identifier,
         None,
         None,
-        vec![Box::new(dep)],
+        vec![std::sync::Arc::new(dep)],
         None,
       )));
     } else if has_closure_library(&build_context.compiler_options.output) {
@@ -218,7 +218,7 @@ impl Module for LazyCompilationProxyModule {
       // identifiers. Once the proxy activates and the lazily-built module
       // references those externals, the identifiers resolve instead of throwing.
       for request in self.reserved_externals.iter() {
-        dependencies.push(Box::new(CommonJsRequireDependency::new(
+        dependencies.push(std::sync::Arc::new(CommonJsRequireDependency::new(
           request.clone(),
           DependencyRange::new(0, 0),
           None,

@@ -669,7 +669,7 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
 
     let mut include_dependencies = Vec::new();
     if !client_modules.is_empty() || entry_state.has_css_imports_by_server_entry() {
-      let dependency = Box::new(RscEntryDependency::new(
+      let dependency = Arc::new(RscEntryDependency::new(
         entry_name.clone(),
         entry_state.ungrouped_client_entries.clone(),
         entry_state.root_client_entries.clone(),
@@ -691,7 +691,7 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
 
     let mut entry_dependencies = Vec::new();
     for request in &entry_state.root_css_imports {
-      let dependency = Box::new(EntryDependency::new(
+      let dependency = Arc::new(EntryDependency::new(
         request.clone(),
         compilation.options.context.clone(),
         None,

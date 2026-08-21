@@ -25,7 +25,7 @@ use rspack_core::{
   CompilerOptions, DependencyId, DependencyLocation, DependencyRange, FactoryMeta, ImportMeta,
   ImportMetaKnownProperties, JavascriptParserCommonjsExportsOption, JavascriptParserOptions,
   ModuleIdentifier, ModuleLayer, ModuleType, ParseMeta, ResolvedModuleOptions, ResourceData,
-  SideEffectsBailoutItemWithSpan,
+  SideEffectsBailoutItemWithSpan, dependency_mut,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_util::fx_hash::FxIndexSet;
@@ -665,7 +665,7 @@ impl<'parser> JavascriptParser<'parser> {
 
   pub fn add_dependency(&mut self, mut dep: BoxDependency) {
     if let Some(guard) = &self.current_branch_guard {
-      guard.bind_dependency(dep.as_mut());
+      guard.bind_dependency(dependency_mut(&mut dep));
     }
     self.dependencies.push(dep);
   }
@@ -673,7 +673,7 @@ impl<'parser> JavascriptParser<'parser> {
   pub fn add_dependencies(&mut self, deps: impl IntoIterator<Item = BoxDependency>) {
     if let Some(guard) = &self.current_branch_guard {
       self.dependencies.extend(deps.into_iter().map(|mut dep| {
-        guard.bind_dependency(dep.as_mut());
+        guard.bind_dependency(dependency_mut(&mut dep));
         dep
       }));
     } else {
@@ -759,7 +759,7 @@ impl<'parser> JavascriptParser<'parser> {
   pub fn add_block(&mut self, mut block: Box<AsyncDependenciesBlock>) {
     if let Some(guard) = &self.current_branch_guard {
       for dep in block.dependencies_mut() {
-        guard.bind_dependency(dep.as_mut());
+        guard.bind_dependency(dependency_mut(dep));
       }
     }
     self.blocks.push(block);

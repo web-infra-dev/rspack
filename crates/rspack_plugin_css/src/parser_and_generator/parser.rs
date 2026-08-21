@@ -2,11 +2,11 @@ use std::{path::Path, sync::Arc};
 
 use once_cell::sync::OnceCell;
 use rspack_core::{
-  BoxDependencyTemplate, BoxModuleDependency, ConstDependency, CssAutoOrModuleParserOptions,
-  CssExport, CssExportType, CssExports, CssExportsConvention, CssLayer, CssLocalNames,
-  CssModuleGeneratorOptions, CssModuleRenderCondition, CssParserImport, CssParserImportContext,
-  Dependency, DependencyId, DependencyRange, ModuleType, ParseContext, ParseResult, ResourceData,
-  StaticExportsDependency, StaticExportsSpec,
+  BoxDependency, BoxDependencyTemplate, BoxModuleDependency, ConstDependency,
+  CssAutoOrModuleParserOptions, CssExport, CssExportType, CssExports, CssExportsConvention,
+  CssLayer, CssLocalNames, CssModuleGeneratorOptions, CssModuleRenderCondition, CssParserImport,
+  CssParserImportContext, Dependency, DependencyId, DependencyRange, ModuleType, ParseContext,
+  ParseResult, ResourceData, StaticExportsDependency, StaticExportsSpec, dependency_mut,
   diagnostics::map_box_diagnostics_to_module_parse_diagnostics, remove_bom, rspack_sources::Source,
   topological_sort,
 };
@@ -40,7 +40,7 @@ pub(super) struct CssModuleParser<'context> {
   source: Arc<dyn Source>,
   source_code: Arc<str>,
   diagnostics: Vec<Diagnostic>,
-  dependencies: Vec<Box<dyn Dependency>>,
+  dependencies: Vec<BoxDependency>,
   presentational_dependencies: Vec<BoxDependencyTemplate>,
   code_generation_dependencies: Vec<BoxModuleDependency>,
   css_exports: CssExports,
@@ -280,7 +280,7 @@ impl<'context> CssModuleParser<'context> {
     ) {
       self
         .dependencies
-        .push(Box::new(StaticExportsDependency::new(
+        .push(Arc::new(StaticExportsDependency::new(
           StaticExportsSpec::Array(vec!["default".into()]),
           false,
         )));
@@ -964,7 +964,7 @@ impl<'context> CssModuleParser<'context> {
       range.end,
     );
     let request = normalize_url(request);
-    let dep = Box::new(CssUrlDependency::new(
+    let dep = Arc::new(CssUrlDependency::new(
       request.into_owned(),
       DependencyRange::new(range.start, range.end),
       matches!(kind, css_module_lexer::UrlRangeKind::Function),
@@ -1018,7 +1018,7 @@ impl<'context> CssModuleParser<'context> {
       supports.map(|supports| supports.trim().into()),
       layer,
     );
-    let dep = Box::new(CssImportDependency::new(
+    let dep = Arc::new(CssImportDependency::new(
       request,
       DependencyRange::new(range.start, range.end),
       inherited_render_conditions,
@@ -1178,7 +1178,7 @@ impl<'context> CssModuleParser<'context> {
       .await?;
     self
       .dependencies
-      .push(Box::new(CssSelfReferenceLocalIdentDependency::new(
+      .push(Arc::new(CssSelfReferenceLocalIdentDependency::new(
         convention_names,
         vec![CssSelfReferenceLocalIdentReplacement {
           local_ident,
@@ -1221,7 +1221,7 @@ impl<'context> CssModuleParser<'context> {
 
     self
       .dependencies
-      .push(Box::new(CssLocalIdentDependency::new(
+      .push(Arc::new(CssLocalIdentDependency::new(
         local_ident,
         convention_names,
         start,
@@ -1266,7 +1266,7 @@ impl<'context> CssModuleParser<'context> {
       .await?;
     self
       .dependencies
-      .push(Box::new(CssSelfReferenceLocalIdentDependency::new(
+      .push(Arc::new(CssSelfReferenceLocalIdentDependency::new(
         convention_names,
         vec![CssSelfReferenceLocalIdentReplacement {
           local_ident,
@@ -1309,7 +1309,7 @@ impl<'context> CssModuleParser<'context> {
 
     self
       .dependencies
-      .push(Box::new(CssLocalIdentDependency::new(
+      .push(Arc::new(CssLocalIdentDependency::new(
         local_ident,
         convention_names,
         start,
@@ -1473,11 +1473,11 @@ impl<'context> CssModuleParser<'context> {
       self
         .composes_order
         .track_request_order(&local_classes, from, range.start, *dep.id());
-      self.dependencies.push(Box::new(dep));
+      self.dependencies.push(Arc::new(dep));
     } else if from.is_none() {
       self
         .dependencies
-        .push(Box::new(CssSelfReferenceLocalIdentDependency::new(
+        .push(Arc::new(CssSelfReferenceLocalIdentDependency::new(
           names.clone(),
           vec![],
         )));
@@ -1548,7 +1548,7 @@ impl<'context> CssModuleParser<'context> {
       let Some(source_order) = source_order_by_dependency.get(&dependency_id) else {
         continue;
       };
-      if let Some(dep) = dep.downcast_mut::<CssComposeDependency>() {
+      if let Some(dep) = dependency_mut(dep).downcast_mut::<CssComposeDependency>() {
         dep.set_source_order(*source_order);
       }
     }
@@ -1574,7 +1574,7 @@ impl<'context> CssModuleParser<'context> {
     }
     self
       .dependencies
-      .push(Box::new(CssExportDependency::new(convention_names)));
+      .push(Arc::new(CssExportDependency::new(convention_names)));
   }
 
   fn handle_icss_import_from(&mut self, path: &str) {
@@ -1601,7 +1601,7 @@ impl<'context> CssModuleParser<'context> {
         self.update_css_exports_from_custom_property_definition(name, prop, &definition);
       }
     }
-    self.dependencies.push(Box::new(CssComposeDependency::new(
+    self.dependencies.push(Arc::new(CssComposeDependency::new(
       request,
       vec![value.to_owned().into()],
       DependencyRange::new(0, 0),
@@ -1615,7 +1615,7 @@ impl<'context> CssModuleParser<'context> {
     };
     self
       .dependencies
-      .push(Box::new(CssIcssSymbolDependency::new(
+      .push(Arc::new(CssIcssSymbolDependency::new(
         self.icss_symbol_value_from_definition(name, &definition),
         (range.start, range.end).into(),
       )));

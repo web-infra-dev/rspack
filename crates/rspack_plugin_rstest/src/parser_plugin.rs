@@ -190,7 +190,7 @@ impl RstestParserPlugin {
             parser.in_try,
             loc,
           );
-          parser.add_dependency(Box::new(dep));
+          parser.add_dependency(std::sync::Arc::new(dep));
 
           let callee_range = call_expr.callee.span().into();
           let loc = parser.to_dependency_location(callee_range);
@@ -240,7 +240,7 @@ impl RstestParserPlugin {
           let imported_span = call_expr.args.first().expect("should have one arg");
 
           let range = call_expr.span.into();
-          let dep = Box::new(ImportDependency::new(
+          let dep = std::sync::Arc::new(ImportDependency::new(
             Atom::from(lit.value.to_string_lossy().as_ref()),
             range,
             Some(attrs),
@@ -372,7 +372,7 @@ impl RstestParserPlugin {
             },
             if has_b { Some(", ".to_string()) } else { None },
           );
-          parser.add_dependency(Box::new(dep));
+          parser.add_dependency(std::sync::Arc::new(dep));
 
           parser.add_presentational_dependency(Box::new(
             MockMethodDependency::new(
@@ -395,7 +395,7 @@ impl RstestParserPlugin {
 
           if has_b {
             let second_arg = Span::new(first_arg.span().end, first_arg.span().end);
-            parser.add_dependency(Box::new(
+            parser.add_dependency(std::sync::Arc::new(
               MockModuleIdDependency::new(
                 format!("{MOCK_TARGET_REQUEST_PREFIX}{lit_str}"),
                 second_arg.into(),
@@ -456,7 +456,7 @@ impl RstestParserPlugin {
             .with_request_arg_end(Some(second_arg.span().real_hi()))
             .with_test_api_import_source_order(test_api_import_source_order),
           ));
-          parser.add_dependency(Box::new(module_dep));
+          parser.add_dependency(std::sync::Arc::new(module_dep));
         } else {
           parser.add_error(
             create_traceable_error(
@@ -580,7 +580,7 @@ impl RstestParserPlugin {
                 let mut attrs = ImportAttributes::default();
                 attrs.insert("rstest".to_string(), "importMock".to_string());
                 let range = call_expr.span.into();
-                let dep = Box::new(ImportDependency::new(
+                let dep = std::sync::Arc::new(ImportDependency::new(
                   Atom::from(mocked_target),
                   range,
                   Some(attrs),
@@ -623,7 +623,7 @@ impl RstestParserPlugin {
                   loc,
                 )));
 
-                parser.add_dependency(Box::new(dep));
+                parser.add_dependency(std::sync::Arc::new(dep));
                 return Some(true);
               }
             }

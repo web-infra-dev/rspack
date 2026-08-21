@@ -86,7 +86,7 @@ impl AMDRequireDependenciesBlockParserPlugin {
           let mut dep = AMDRequireItemDependency::new(request.as_str().into(), None);
           dep.set_optional(parser.in_try);
           deps.push(AMDRequireArrayItem::AMDRequireItemDependency { dep_id: *dep.id() });
-          block_deps.push(Box::new(dep));
+          block_deps.push(std::sync::Arc::new(dep));
         }
       }
       let range = param.range();
@@ -147,12 +147,10 @@ impl AMDRequireDependenciesBlockParserPlugin {
         parser.add_presentational_dependency(dep);
         return Some(true);
       } else {
-        let mut dep = Box::new(AMDRequireItemDependency::new(
-          Atom::new(param_str.as_str()),
-          Some(range.into()),
-        ));
+        let mut dep =
+          AMDRequireItemDependency::new(Atom::new(param_str.as_str()), Some(range.into()));
         dep.set_optional(parser.in_try);
-        block_deps.push(dep);
+        block_deps.push(std::sync::Arc::new(dep));
       }
 
       return Some(true);
@@ -188,7 +186,7 @@ impl AMDRequireDependenciesBlockParserPlugin {
     };
     let dep = AMDRequireContextDependency::new(options, param_range.into(), parser.in_try);
     dep.set_critical(result.critical);
-    block_deps.push(Box::new(dep));
+    block_deps.push(std::sync::Arc::new(dep));
     Some(true)
   }
 
@@ -299,7 +297,7 @@ impl AMDRequireDependenciesBlockParserPlugin {
     let block_loc = parser.to_dependency_location(range);
 
     if call_expr.args.len() == 1 {
-      let mut block_deps: Vec<BoxDependency> = vec![dep];
+      let mut block_deps: Vec<BoxDependency> = vec![std::sync::Arc::new(*dep)];
       let mut result = None;
       parser.in_function_scope(true, iter::empty(), |parser| {
         result = self.process_array(parser, &mut block_deps, call_expr, &param);
@@ -352,7 +350,7 @@ impl AMDRequireDependenciesBlockParserPlugin {
         dep.error_callback_bind_this = self.process_function_argument(parser, error_callback_arg);
       }
 
-      block_deps.insert(0, dep);
+      block_deps.insert(0, std::sync::Arc::new(*dep));
       let dep_block = Box::new(AsyncDependenciesBlock::new(
         *parser.module_identifier,
         block_loc,

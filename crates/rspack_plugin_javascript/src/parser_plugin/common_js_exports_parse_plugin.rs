@@ -194,7 +194,7 @@ fn handle_assign_export(
     // module.exports.aaa = require('xx');
     // this.aaa = require('xx');
     let range: DependencyRange = assign_expr.span.into();
-    parser.add_dependency(Box::new(CommonJsExportRequireDependency::new(
+    parser.add_dependency(std::sync::Arc::new(CommonJsExportRequireDependency::new(
       arg.string().clone(),
       parser.in_try,
       range,
@@ -228,7 +228,7 @@ fn handle_assign_export(
   // exports.a = 1;
   // module.exports.a = 1;
   // this.a = 1;
-  parser.add_dependency(Box::new(CommonJsExportsDependency::new(
+  parser.add_dependency(std::sync::Arc::new(CommonJsExportsDependency::new(
     assign_expr.left.span().into(),
     None,
     base,
@@ -252,7 +252,7 @@ fn handle_access_export(
   if remaining.is_empty() {
     parser.bailout();
   }
-  parser.add_dependency(Box::new(CommonJsSelfReferenceDependency::new(
+  parser.add_dependency(std::sync::Arc::new(CommonJsSelfReferenceDependency::new(
     expr_span.into(),
     base,
     remaining.to_vec(),
@@ -363,7 +363,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsExportsParserPlugin {
           get_value_of_property_description(arg2),
         );
       }
-      parser.add_dependency(Box::new(CommonJsExportsDependency::new(
+      parser.add_dependency(std::sync::Arc::new(CommonJsExportsDependency::new(
         call_expr.span.into(),
         Some(arg2.span().into()),
         base,
@@ -394,7 +394,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsExportsParserPlugin {
         RuntimeGlobals::NODE_MODULE_DECORATOR
       };
       parser.bailout();
-      parser.add_dependency(Box::new(ModuleDecoratorDependency::new(
+      parser.add_dependency(std::sync::Arc::new(ModuleDecoratorDependency::new(
         decorator,
         !parser.is_esm,
       )));

@@ -106,7 +106,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
     {
       side_effect_dep.set_lazy();
     }
-    parser.add_dependency(Box::new(side_effect_dep));
+    parser.add_dependency(std::sync::Arc::new(side_effect_dep));
     Some(true)
   }
 
@@ -177,7 +177,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
       {
         dep.set_lazy();
       }
-      Box::new(dep) as BoxDependency
+      std::sync::Arc::new(dep) as BoxDependency
     } else {
       let const_value = parser
         .get_tag_data::<ConstValueData>(local_id, INLINABLE_CONST_TAG)
@@ -191,7 +191,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
 
       let range = DependencyRange::from(statement.span());
       let loc = parser.to_dependency_location(range);
-      Box::new(ESMExportSpecifierDependency::new(
+      std::sync::Arc::new(ESMExportSpecifierDependency::new(
         export_name.clone(),
         if let Some(variable) = variable {
           variable
@@ -267,7 +267,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
     {
       dep.set_lazy();
     }
-    parser.add_dependency(Box::new(dep));
+    parser.add_dependency(std::sync::Arc::new(dep));
     Some(true)
   }
 
@@ -284,7 +284,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
         DependencyRange::new(statement_span.real_lo(), expr_span.real_lo()),
         "".into(),
       )));
-      parser.add_dependency(Box::new(dep));
+      parser.add_dependency(std::sync::Arc::new(dep));
       return Some(true);
     }
 
@@ -352,7 +352,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
       const_value,
       parser.to_dependency_location(DependencyRange::from(expr_span)),
     );
-    parser.add_dependency(Box::new(dep));
+    parser.add_dependency(std::sync::Arc::new(dep));
     let name = expr.ident().map_or_else(
       || DEFAULT_STAR_JS_WORD.clone(),
       |ident| Atom::from(ident.as_str()),
