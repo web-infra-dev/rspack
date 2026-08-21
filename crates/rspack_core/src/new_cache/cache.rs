@@ -5,7 +5,7 @@ use rspack_paths::InternedPathSet;
 
 use super::{
   CacheFacade, CacheKey, CacheValue, Etag, IdleFileCache, MemoryCache, MemoryCacheGetResult,
-  ModuleSnapshot, cache_value::CacheValueData, snapshot::Snapshot,
+  cache_value::CacheValueData, snapshot::FileSystemInfo,
 };
 
 /// Cache entry point backed by memory and optional filesystem storage.
@@ -23,7 +23,7 @@ struct CacheStorage {
 struct CacheInner {
   compiler_path: String,
   storage: Option<CacheStorage>,
-  snapshot: Option<Snapshot>,
+  file_system_info: Option<FileSystemInfo>,
 }
 
 /// Cheaply cloneable handle to the shared cache state.
@@ -45,16 +45,16 @@ impl Cache {
           memory_cache,
           idle_file_cache,
         }),
-        snapshot: None,
+        file_system_info: None,
       }),
     }
   }
 
-  pub(crate) fn new_with_snapshot(
+  pub(crate) fn new_with_file_system_info(
     compiler_path: String,
     memory_cache: MemoryCache,
     idle_file_cache: Option<IdleFileCache>,
-    snapshot: Snapshot,
+    file_system_info: FileSystemInfo,
   ) -> Self {
     Self {
       inner: Arc::new(CacheInner {
@@ -63,7 +63,7 @@ impl Cache {
           memory_cache,
           idle_file_cache,
         }),
-        snapshot: Some(snapshot),
+        file_system_info: Some(file_system_info),
       }),
     }
   }
@@ -73,7 +73,7 @@ impl Cache {
       inner: Arc::new(CacheInner {
         compiler_path,
         storage: None,
-        snapshot: None,
+        file_system_info: None,
       }),
     }
   }
@@ -147,29 +147,8 @@ impl Cache {
     }
   }
 
-  pub(crate) async fn create_module_snapshot(
-    &self,
-    file_dependencies: impl Iterator<Item = rspack_paths::ArcPath>,
-    context_dependencies: impl Iterator<Item = rspack_paths::ArcPath>,
-    missing_dependencies: impl Iterator<Item = rspack_paths::ArcPath>,
-  ) -> Option<ModuleSnapshot> {
-    let snapshot = self.inner.snapshot.as_ref()?;
-    Some(
-      snapshot
-        .create_module(
-          file_dependencies,
-          context_dependencies,
-          missing_dependencies,
-        )
-        .await,
-    )
-  }
-
-  pub(crate) async fn validate_module_snapshot(&self, snapshot: &ModuleSnapshot) -> bool {
-    let Some(snapshot_manager) = self.inner.snapshot.as_ref() else {
-      return false;
-    };
-    snapshot_manager.validate_module(snapshot).await
+  pub fn file_system_info(&self) -> Option<&FileSystemInfo> {
+    self.inner.file_system_info.as_ref()
   }
 
   pub fn has_file_cache(&self) -> bool {
