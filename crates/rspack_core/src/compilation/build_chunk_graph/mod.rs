@@ -27,6 +27,10 @@ pub fn build_chunk_graph(compilation: &mut Compilation) -> rspack_error::Result<
     .modules_keys()
     .copied()
     .collect::<Vec<_>>();
+  compilation
+    .build_chunk_graph_artifact
+    .chunk_graph
+    .reserve_modules(all_modules.len());
 
   splitter.prepare(&all_modules, compilation)?;
 
