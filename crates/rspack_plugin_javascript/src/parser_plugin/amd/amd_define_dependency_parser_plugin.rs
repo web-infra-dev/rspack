@@ -1,8 +1,9 @@
 use std::borrow::Cow;
 
 use rspack_core::{
-  BoxDependencyTemplate, BuildMetaDefaultObject, ContextDependency, ContextMode, ContextOptions,
-  Dependency, DependencyCategory, RuntimeGlobals, RuntimeRequirementsDependency, get_context,
+  BoxDependency, BoxDependencyTemplate, BuildMetaDefaultObject, ContextDependency, ContextMode,
+  ContextOptions, Dependency, DependencyCategory, RuntimeGlobals, RuntimeRequirementsDependency,
+  get_context,
 };
 use rspack_util::{SpanExt, atom::Atom};
 use rustc_hash::FxHashMap;
@@ -152,7 +153,7 @@ impl AMDDefineDependencyParserPlugin {
           let mut dep = AMDRequireItemDependency::new(request.as_str().into(), None);
           dep.set_optional(parser.in_try);
           deps.push(AMDRequireArrayItem::AMDRequireItemDependency { dep_id: *dep.id() });
-          parser.add_dependency(Box::new(dep));
+          parser.add_dependency(BoxDependency::new(dep));
         }
       }
       let dep = AMDRequireArrayDependency::new(deps, param.range().into());
@@ -214,12 +215,10 @@ impl AMDDefineDependencyParserPlugin {
         parser.add_presentational_dependency(dep);
         return Some(true);
       } else {
-        let mut dep = Box::new(AMDRequireItemDependency::new(
-          Atom::new(param_str.as_str()),
-          Some(range.into()),
-        ));
+        let mut dep =
+          AMDRequireItemDependency::new(Atom::new(param_str.as_str()), Some(range.into()));
         dep.set_optional(parser.in_try);
-        parser.add_dependency(dep);
+        parser.add_dependency(BoxDependency::new(dep));
         return Some(true);
       };
       // TODO: how to implement this?
@@ -257,7 +256,7 @@ impl AMDDefineDependencyParserPlugin {
     };
     let dep = AMDRequireContextDependency::new(options, param_range.into(), parser.in_try);
     dep.set_critical(result.critical);
-    parser.add_dependency(Box::new(dep));
+    parser.add_dependency(BoxDependency::new(dep));
     Some(true)
   }
 

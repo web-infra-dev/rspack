@@ -2,9 +2,9 @@
 use std::path::Path;
 
 use rspack_core::{
-  ConstDependency, Context, ContextDependency, ContextMode, ContextModulePattern, ContextOptions,
-  DependencyCategory, DependencyRange, DependencyType, ModuleType, ReferencedSpecifier,
-  RuntimeGlobals, RuntimeRequirementsDependency, get_context,
+  BoxDependency, ConstDependency, Context, ContextDependency, ContextMode, ContextModulePattern,
+  ContextOptions, DependencyCategory, DependencyRange, DependencyType, ModuleType,
+  ReferencedSpecifier, RuntimeGlobals, RuntimeRequirementsDependency, get_context,
 };
 use rspack_error::{Diagnostic, Severity};
 use rspack_util::{SpanExt, json_stringify_str};
@@ -1069,7 +1069,7 @@ fn add_deferred_create_require_callee_dependency(
     dep.set_branch_guard(branch_guard);
   }
   let dep_idx = parser.next_dependency_idx();
-  parser.add_dependency(Box::new(dep));
+  parser.add_dependency(BoxDependency::new(dep));
   InnerGraphParserPlugin::on_usage(
     parser,
     InnerGraphUsageOperation::ESMImportSpecifier(dep_idx),
@@ -1559,7 +1559,7 @@ impl CommonJsImportsParserPlugin {
     let range = call_expr.callee.span().into();
     let loc = parser.to_dependency_location(range);
     let require_resolve_header_dependency =
-      Box::new(RequireResolveHeaderDependency::new(range, loc));
+      BoxDependency::new(RequireResolveHeaderDependency::new(range, loc));
 
     if param.is_conditional() {
       for option in param.options() {
@@ -1604,15 +1604,17 @@ impl CommonJsImportsParserPlugin {
   ) -> bool {
     if param.is_string() {
       if let Some(context) = request_context {
-        parser.add_dependency(Box::new(RequireResolveDependency::new_contextual(
-          param.string().clone(),
-          param.range().into(),
-          weak,
-          parser.in_try,
-          context,
-        )));
+        parser.add_dependency(BoxDependency::new(
+          RequireResolveDependency::new_contextual(
+            param.string().clone(),
+            param.range().into(),
+            weak,
+            parser.in_try,
+            context,
+          ),
+        ));
       } else {
-        parser.add_dependency(Box::new(RequireResolveDependency::new(
+        parser.add_dependency(BoxDependency::new(RequireResolveDependency::new(
           param.string().clone(),
           param.range().into(),
           weak,
@@ -1641,7 +1643,7 @@ impl CommonJsImportsParserPlugin {
       request_context,
     );
 
-    parser.add_dependency(Box::new(dep));
+    parser.add_dependency(BoxDependency::new(dep));
   }
 
   fn chain_handler(
@@ -1737,7 +1739,7 @@ impl CommonJsImportsParserPlugin {
           dep_type: DependencyType::CjsRequire,
         });
       }
-      parser.add_dependency(Box::new(dep));
+      parser.add_dependency(BoxDependency::new(dep));
       true
     })
   }
@@ -1782,7 +1784,7 @@ impl CommonJsImportsParserPlugin {
         dep_type: DependencyType::CommonJSRequireContext,
       });
     }
-    parser.add_dependency(Box::new(dep));
+    parser.add_dependency(BoxDependency::new(dep));
     Some(true)
   }
 
@@ -1920,7 +1922,7 @@ impl CommonJsImportsParserPlugin {
       error.severity = Severity::Warning;
       dep.set_critical(Some(Diagnostic::from(error)));
     }
-    parser.add_dependency(Box::new(dep));
+    parser.add_dependency(BoxDependency::new(dep));
     Some(true)
   }
 }
@@ -2526,7 +2528,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
       && should_parse_commonjs_require(parser)
       && let Some(dep) = self.chain_handler(parser, member_expr, call_expr, members, false)
     {
-      parser.add_dependency(Box::new(dep));
+      parser.add_dependency(BoxDependency::new(dep));
       return Some(true);
     }
     None
@@ -2599,7 +2601,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
       && let Some(member) = callee.as_member()
       && let Some(dep) = self.chain_handler(parser, member, inner_call_expr, members, true)
     {
-      parser.add_dependency(Box::new(dep));
+      parser.add_dependency(BoxDependency::new(dep));
       parser.walk_expr_or_spread(&call_expr.args);
       return Some(true);
     }

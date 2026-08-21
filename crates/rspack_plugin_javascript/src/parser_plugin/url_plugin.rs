@@ -1,6 +1,6 @@
 use rspack_core::{
-  ContextDependency, ContextMode, ContextOptions, DependencyCategory, JavascriptParserUrl,
-  RuntimeGlobals, RuntimeRequirementsDependency, get_context,
+  BoxDependency, ContextDependency, ContextMode, ContextOptions, DependencyCategory,
+  JavascriptParserUrl, RuntimeGlobals, RuntimeRequirementsDependency, get_context,
 };
 use rspack_util::SpanExt;
 use swc_atoms::Atom;
@@ -171,7 +171,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for URLPlugin {
         self.mode,
       );
       let dep_idx = parser.next_dependency_idx();
-      parser.add_dependency(Box::new(dep));
+      parser.add_dependency(BoxDependency::new(dep));
       InnerGraphParserPlugin::on_usage(parser, InnerGraphUsageOperation::URLDependency(dep_idx));
       return Some(true);
     }
@@ -217,7 +217,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for URLPlugin {
       parser.in_try,
     );
     dep.set_critical(result.critical);
-    parser.add_dependency(Box::new(dep));
+    parser.add_dependency(BoxDependency::new(dep));
 
     Some(true)
   }

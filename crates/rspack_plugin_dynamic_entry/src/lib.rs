@@ -80,7 +80,7 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
             .insert(options.clone(), *dependency_id);
           dependency
         } else {
-          let dependency: DependencyRef = Arc::new(EntryDependency::new(
+          let dependency = DependencyRef::new(EntryDependency::new(
             entry.clone(),
             self.context.clone(),
             options.layer.clone(),
@@ -108,7 +108,7 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
       Default::default();
     for EntryDynamicResult { import, options } in decs {
       for entry in import {
-        let entry_dependency: DependencyRef = Arc::new(EntryDependency::new(
+        let entry_dependency = DependencyRef::new(EntryDependency::new(
           entry.clone(),
           self.context.clone(),
           options.layer.clone(),

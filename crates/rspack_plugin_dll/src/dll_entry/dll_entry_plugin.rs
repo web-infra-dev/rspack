@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
 use rspack_core::{
-  Compilation, CompilationParams, CompilerCompilation, CompilerMake, Context, DependencyType,
-  EntryOptions, Plugin,
+  Compilation, CompilationParams, CompilerCompilation, CompilerMake, Context, DependencyRef,
+  DependencyType, EntryOptions, Plugin,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -64,7 +64,7 @@ async fn compilation(
 async fn make(&self, compilation: &mut Compilation) -> Result<()> {
   compilation
     .add_entry(
-      Arc::new(DllEntryDependency::new(&self.options)),
+      DependencyRef::new(DllEntryDependency::new(&self.options)),
       EntryOptions {
         name: Some(self.options.name.clone()),
         ..Default::default()

@@ -565,7 +565,7 @@ impl ModuleGraph {
   }
 
   pub fn add_dependency(&mut self, dependency: BoxDependency) {
-    self.add_dependency_ref(dependency.into());
+    self.add_dependency_ref(dependency.shareable());
   }
 
   pub(crate) fn add_dependency_ref(&mut self, dependency: DependencyRef) {

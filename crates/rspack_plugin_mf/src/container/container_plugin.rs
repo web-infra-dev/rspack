@@ -2,9 +2,9 @@ use std::sync::Arc;
 
 use rspack_core::{
   ChunkUkey, Compilation, CompilationAdditionalTreeRuntimeRequirements, CompilationParams,
-  CompilationRuntimeRequirementInTree, CompilerCompilation, CompilerMake, DependencyType,
-  EntryOptions, EntryRuntime, Filename, LibraryOptions, Plugin, RuntimeGlobals, RuntimeModule,
-  SourceType,
+  CompilationRuntimeRequirementInTree, CompilerCompilation, CompilerMake, DependencyRef,
+  DependencyType, EntryOptions, EntryRuntime, Filename, LibraryOptions, Plugin, RuntimeGlobals,
+  RuntimeModule, SourceType,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -84,7 +84,7 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
 
   compilation
     .add_entry(
-      Arc::new(dep),
+      DependencyRef::new(dep),
       EntryOptions {
         name: Some(self.options.name.clone()),
         runtime: self.options.runtime.clone(),

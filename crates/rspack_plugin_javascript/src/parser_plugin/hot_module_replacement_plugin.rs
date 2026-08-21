@@ -177,11 +177,11 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ModuleHotReplacementParserPlugin
   ) -> Option<bool> {
     if for_name == expr_name::MODULE_HOT_ACCEPT {
       parser.create_accept_handler(call_expr, |request, range| {
-        Box::new(ModuleHotAcceptDependency::new(request, range))
+        BoxDependency::new(ModuleHotAcceptDependency::new(request, range))
       })
     } else if for_name == expr_name::MODULE_HOT_DECLINE {
       parser.create_decline_handler(call_expr, |request, range| {
-        Box::new(ModuleHotDeclineDependency::new(request, range))
+        BoxDependency::new(ModuleHotDeclineDependency::new(request, range))
       })
     } else {
       None
@@ -264,11 +264,11 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaHotReplacementParserPl
 
     if for_name == expr_name::IMPORT_META_HOT_ACCEPT {
       parser.create_accept_handler(call_expr, |request, range| {
-        Box::new(ImportMetaHotAcceptDependency::new(request, range))
+        BoxDependency::new(ImportMetaHotAcceptDependency::new(request, range))
       })
     } else if for_name == expr_name::IMPORT_META_HOT_DECLINE {
       parser.create_decline_handler(call_expr, |request, range| {
-        Box::new(ImportMetaHotDeclineDependency::new(request, range))
+        BoxDependency::new(ImportMetaHotDeclineDependency::new(request, range))
       })
     } else {
       None

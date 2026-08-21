@@ -8,9 +8,9 @@ use rustc_hash::FxHashSet;
 
 use super::alternatives::{TempDependency, TempModule};
 use crate::{
-  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxModule, Dependency, DependencyId,
-  DependencyParents, DependencyRef, FactorizationArtifact, FactorizeInfo, ModuleGraph,
-  ModuleGraphConnection, ModuleGraphModule, ModuleIdentifier, RayonConsumer,
+  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, Dependency,
+  DependencyId, DependencyParents, DependencyRef, FactorizationArtifact, FactorizeInfo,
+  ModuleGraph, ModuleGraphConnection, ModuleGraphModule, ModuleIdentifier, RayonConsumer,
   cache::persistent::{codec::CacheCodec, storage::Storage},
   compilation::build_module_graph::{LazyDependencies, ModuleToLazyMake},
 };
@@ -206,7 +206,7 @@ pub async fn recovery_module_graph(
     let dep = TempDependency::default();
     let connection = ModuleGraphConnection::new(*dep.id(), None, mid, false);
     entry_dependencies.insert(*dep.id());
-    mg.add_dependency(Box::new(dep));
+    mg.add_dependency(BoxDependency::new(dep));
     mg.cache_recovery_connection(connection);
   }
 

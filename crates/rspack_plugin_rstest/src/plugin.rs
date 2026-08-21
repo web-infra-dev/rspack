@@ -9,11 +9,11 @@ use regex::Regex;
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   BoxPlugin, ChunkUkey, Compilation, CompilationOptimizeDependencies, CompilationParams,
-  CompilationProcessAssets, CompilationRuntimeModule, CompilerCompilation, DependencyType,
-  ExportsInfoArtifact, FactoryMeta, ModuleFactoryCreateData, ModuleIdentifier, ModuleType,
-  NormalModuleFactoryBeforeResolve, NormalModuleFactoryParser, ParserAndGenerator, ParserOptions,
-  Plugin, PluginExt, ResolveOptionsWithDependencyType, ResolveResult, RuntimeGlobals,
-  RuntimeModule, RuntimeVariable, SideEffectsOptimizeArtifact,
+  CompilationProcessAssets, CompilationRuntimeModule, CompilerCompilation, DependencyRef,
+  DependencyType, ExportsInfoArtifact, FactoryMeta, ModuleFactoryCreateData, ModuleIdentifier,
+  ModuleType, NormalModuleFactoryBeforeResolve, NormalModuleFactoryParser, ParserAndGenerator,
+  ParserOptions, Plugin, PluginExt, ResolveOptionsWithDependencyType, ResolveResult,
+  RuntimeGlobals, RuntimeModule, RuntimeVariable, SideEffectsOptimizeArtifact,
   build_module_graph::BuildModuleGraphArtifact,
   module_declared_side_effect_free,
   resolver::ResolveInnerError,
@@ -280,7 +280,7 @@ impl RstestPlugin {
       .cloned()
     {
       dep.set_request(resolved_request.clone());
-      data.dependencies[0] = Arc::new(dep);
+      data.dependencies[0] = DependencyRef::new(dep);
     }
     data.request = resolved_request;
 

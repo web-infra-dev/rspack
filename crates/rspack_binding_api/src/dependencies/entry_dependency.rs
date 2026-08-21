@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use napi::{Either, Env, JsString};
 
 #[napi]
@@ -20,7 +18,7 @@ impl EntryDependency {
         "Dependency with id = {dependency_id:?} has already been resolved. Reusing EntryDependency is not allowed because Rust requires its ownership."
       ))),
       None => {
-        let dependency: rspack_core::DependencyRef = Arc::new(rspack_core::EntryDependency::new(
+        let dependency = rspack_core::DependencyRef::new(rspack_core::EntryDependency::new(
           self.request.clone(),
           context,
           layer,

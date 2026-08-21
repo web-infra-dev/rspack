@@ -82,7 +82,7 @@ impl Clone for ESMExportImportedSpecifierDependency {
       range: self.range,
       phase: self.phase,
       attributes: self.attributes.clone(),
-      resource_identifier: self.resource_identifier.clone(),
+      resource_identifier: self.resource_identifier,
       export_presence_mode: self.export_presence_mode,
       loc: self.loc.clone(),
       lazy_make: AtomicBool::new(self.lazy_make.load(Ordering::Relaxed)),

@@ -2,8 +2,8 @@ use std::sync::{Arc, LazyLock};
 
 use itertools::Itertools;
 use rspack_core::{
-  AsyncDependenciesBlock, ConstDependency, DependencyRange, EntryOptions, GroupOptions,
-  JavascriptParserWorkerOptions, JavascriptParserWorkerUrl,
+  AsyncDependenciesBlock, BoxDependency, ConstDependency, DependencyRange, EntryOptions,
+  GroupOptions, JavascriptParserWorkerOptions, JavascriptParserWorkerUrl,
 };
 use rspack_error::Severity;
 use rspack_hash::{RspackHash, RspackHasher};
@@ -139,7 +139,7 @@ fn add_dependencies(
   let options_kind = parsed_options.as_ref().map(|options| options.kind);
   let name = parsed_options.and_then(|options| options.name);
   let output_module = output_options.module;
-  let dep = Box::new(WorkerDependency::new(
+  let dep = BoxDependency::new(WorkerDependency::new(
     parsed_path.value,
     output_options.worker_public_path.clone(),
     span.into(),
@@ -169,7 +169,7 @@ fn add_dependencies(
   parser.add_block(Box::new(block));
 
   if parser.compiler_options.output.trusted_types.is_some() {
-    parser.add_dependency(Box::new(CreateScriptUrlDependency::new(
+    parser.add_dependency(BoxDependency::new(CreateScriptUrlDependency::new(
       span.into(),
       first_arg.span().into(),
     )));

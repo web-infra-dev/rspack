@@ -1,6 +1,6 @@
 use concat_string::concat_string;
 use rspack_core::{
-  ConstDependency, ImportMetaKnownProperties, ModuleArgument, RuntimeGlobals,
+  BoxDependency, ConstDependency, ImportMetaKnownProperties, ModuleArgument, RuntimeGlobals,
   RuntimeGlobalsRenderMode, RuntimeRequirementsDependency,
   RuntimeRequirementsDependencyWriteOperation, property_access,
   runtime_mode::RuntimeMode as ExperimentRuntimeMode,
@@ -933,7 +933,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
     {
       let request = parser.evaluate_expression(&call_expr.args[0].expr);
       if request.is_string() {
-        parser.add_dependency(Box::new(IsIncludeDependency::new(
+        parser.add_dependency(BoxDependency::new(IsIncludeDependency::new(
           (call_expr.span.real_lo(), call_expr.span.real_hi()).into(),
           request.string().clone(),
         )));

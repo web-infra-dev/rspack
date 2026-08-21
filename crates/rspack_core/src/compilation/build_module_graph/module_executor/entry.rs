@@ -1,4 +1,4 @@
-use std::{collections::hash_map::Entry, sync::Arc};
+use std::collections::hash_map::Entry;
 
 use super::{
   super::graph_updater::repair::{context::TaskContext, factorize::FactorizeTask},
@@ -44,7 +44,7 @@ impl Task<ExecutorTaskContext> for EntryTask {
     let (dep_id, is_new) = match entries.entry(meta.clone()) {
       Entry::Vacant(v) => {
         // not exist, generate a new dependency
-        let dep: DependencyRef = Arc::new(LoaderImportDependency::new(
+        let dep = DependencyRef::new(LoaderImportDependency::new(
           meta.request.clone(),
           origin_module_context.unwrap_or_else(|| Context::from("")),
         ));

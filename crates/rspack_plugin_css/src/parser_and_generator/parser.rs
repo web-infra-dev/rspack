@@ -2,11 +2,11 @@ use std::{path::Path, sync::Arc};
 
 use once_cell::sync::OnceCell;
 use rspack_core::{
-  BoxDependencyTemplate, ConstDependency, CssAutoOrModuleParserOptions, CssExport, CssExportType,
-  CssExports, CssExportsConvention, CssLayer, CssLocalNames, CssModuleGeneratorOptions,
-  CssModuleRenderCondition, CssParserImport, CssParserImportContext, Dependency, DependencyId,
-  DependencyRange, ModuleDependencyRef, ModuleType, ParseContext, ParseResult, ResourceData,
-  StaticExportsDependency, StaticExportsSpec,
+  BoxDependency, BoxDependencyTemplate, ConstDependency, CssAutoOrModuleParserOptions, CssExport,
+  CssExportType, CssExports, CssExportsConvention, CssLayer, CssLocalNames,
+  CssModuleGeneratorOptions, CssModuleRenderCondition, CssParserImport, CssParserImportContext,
+  Dependency, DependencyId, DependencyRange, ModuleDependencyRef, ModuleType, ParseContext,
+  ParseResult, ResourceData, StaticExportsDependency, StaticExportsSpec,
   diagnostics::map_box_diagnostics_to_module_parse_diagnostics, remove_bom, rspack_sources::Source,
   topological_sort,
 };
@@ -40,7 +40,7 @@ pub(super) struct CssModuleParser<'context> {
   source: Arc<dyn Source>,
   source_code: Arc<str>,
   diagnostics: Vec<Diagnostic>,
-  dependencies: Vec<Box<dyn Dependency>>,
+  dependencies: Vec<BoxDependency>,
   presentational_dependencies: Vec<BoxDependencyTemplate>,
   code_generation_dependencies: Vec<ModuleDependencyRef>,
   css_exports: CssExports,
@@ -280,7 +280,7 @@ impl<'context> CssModuleParser<'context> {
     ) {
       self
         .dependencies
-        .push(Box::new(StaticExportsDependency::new(
+        .push(BoxDependency::new(StaticExportsDependency::new(
           StaticExportsSpec::Array(vec!["default".into()]),
           false,
         )));
@@ -969,7 +969,7 @@ impl<'context> CssModuleParser<'context> {
       DependencyRange::new(range.start, range.end),
       matches!(kind, css_module_lexer::UrlRangeKind::Function),
     );
-    self.dependencies.push(Box::new(dep.clone()));
+    self.dependencies.push(BoxDependency::new(dep.clone()));
     self.code_generation_dependencies.push(Arc::new(dep));
     Ok(())
   }
@@ -1025,7 +1025,7 @@ impl<'context> CssModuleParser<'context> {
       render_condition,
       self.export_type(),
     );
-    self.dependencies.push(Box::new(dep.clone()));
+    self.dependencies.push(BoxDependency::new(dep.clone()));
     self.code_generation_dependencies.push(Arc::new(dep));
     Ok(())
   }
@@ -1176,15 +1176,15 @@ impl<'context> CssModuleParser<'context> {
     let (local_ident, convention_names) = self
       .resolve_local_ident_and_update_exports(&name, module_hash_options)
       .await?;
-    self
-      .dependencies
-      .push(Box::new(CssSelfReferenceLocalIdentDependency::new(
+    self.dependencies.push(BoxDependency::new(
+      CssSelfReferenceLocalIdentDependency::new(
         convention_names,
         vec![CssSelfReferenceLocalIdentReplacement {
           local_ident,
           range: (range.start, range.end).into(),
         }],
-      )));
+      ),
+    ));
     Ok(())
   }
 
@@ -1221,7 +1221,7 @@ impl<'context> CssModuleParser<'context> {
 
     self
       .dependencies
-      .push(Box::new(CssLocalIdentDependency::new(
+      .push(BoxDependency::new(CssLocalIdentDependency::new(
         local_ident,
         convention_names,
         start,
@@ -1264,15 +1264,15 @@ impl<'context> CssModuleParser<'context> {
     let (local_ident, convention_names) = self
       .resolve_local_var_ident_and_update_exports(name, module_hash_options)
       .await?;
-    self
-      .dependencies
-      .push(Box::new(CssSelfReferenceLocalIdentDependency::new(
+    self.dependencies.push(BoxDependency::new(
+      CssSelfReferenceLocalIdentDependency::new(
         convention_names,
         vec![CssSelfReferenceLocalIdentReplacement {
           local_ident,
           range: (range.start, range.end).into(),
         }],
-      )));
+      ),
+    ));
     Ok(())
   }
 
@@ -1309,7 +1309,7 @@ impl<'context> CssModuleParser<'context> {
 
     self
       .dependencies
-      .push(Box::new(CssLocalIdentDependency::new(
+      .push(BoxDependency::new(CssLocalIdentDependency::new(
         local_ident,
         convention_names,
         start,
@@ -1473,14 +1473,11 @@ impl<'context> CssModuleParser<'context> {
       self
         .composes_order
         .track_request_order(&local_classes, from, range.start, *dep.id());
-      self.dependencies.push(Box::new(dep));
+      self.dependencies.push(BoxDependency::new(dep));
     } else if from.is_none() {
-      self
-        .dependencies
-        .push(Box::new(CssSelfReferenceLocalIdentDependency::new(
-          names.clone(),
-          vec![],
-        )));
+      self.dependencies.push(BoxDependency::new(
+        CssSelfReferenceLocalIdentDependency::new(names.clone(), vec![]),
+      ));
     }
 
     let convention = self.convention();
@@ -1574,7 +1571,9 @@ impl<'context> CssModuleParser<'context> {
     }
     self
       .dependencies
-      .push(Box::new(CssExportDependency::new(convention_names)));
+      .push(BoxDependency::new(CssExportDependency::new(
+        convention_names,
+      )));
   }
 
   fn handle_icss_import_from(&mut self, path: &str) {
@@ -1601,12 +1600,14 @@ impl<'context> CssModuleParser<'context> {
         self.update_css_exports_from_custom_property_definition(name, prop, &definition);
       }
     }
-    self.dependencies.push(Box::new(CssComposeDependency::new(
-      request,
-      vec![value.to_owned().into()],
-      DependencyRange::new(0, 0),
-      self.export_type(),
-    )));
+    self
+      .dependencies
+      .push(BoxDependency::new(CssComposeDependency::new(
+        request,
+        vec![value.to_owned().into()],
+        DependencyRange::new(0, 0),
+        self.export_type(),
+      )));
   }
 
   fn handle_icss_symbol(&mut self, name: &str, range: css_module_lexer::Range) {
@@ -1615,7 +1616,7 @@ impl<'context> CssModuleParser<'context> {
     };
     self
       .dependencies
-      .push(Box::new(CssIcssSymbolDependency::new(
+      .push(BoxDependency::new(CssIcssSymbolDependency::new(
         self.icss_symbol_value_from_definition(name, &definition),
         (range.start, range.end).into(),
       )));

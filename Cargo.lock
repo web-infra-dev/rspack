@@ -4270,6 +4270,8 @@ dependencies = [
  "swc_experimental_ecma_semantic",
  "tokio",
  "tracing",
+ "triomphe",
+ "unsize",
  "urlencoding",
  "ustr-fxhash",
  "winnow",
@@ -7944,6 +7946,7 @@ checksum = "ef8f7726da4807b58ea5c96fdc122f80702030edc33b35aff9190a51148ccc85"
 dependencies = [
  "serde",
  "stable_deref_trait",
+ "unsize",
 ]
 
 [[package]]
@@ -8027,6 +8030,15 @@ name = "unit-prefix"
 version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "81e544489bf3d8ef66c953931f56617f423cd4b5494be343d9b9d3dda037b9a3"
+
+[[package]]
+name = "unsize"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4fa7a7a734c1a5664a662ddcea0b6c9472a21da8888c957c7f1eaa09dba7a939"
+dependencies = [
+ "autocfg",
+]
 
 [[package]]
 name = "unty"

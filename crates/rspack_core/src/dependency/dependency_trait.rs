@@ -1,14 +1,31 @@
 use std::{
+  alloc::{Layout, LayoutError, alloc, handle_alloc_error},
   any::Any,
-  fmt::Debug,
-  sync::{Arc, OnceLock},
+  fmt::{self, Debug},
+  mem::forget,
+  ops::{Deref, DerefMut},
+  ptr,
+  sync::{Arc, OnceLock, atomic::AtomicUsize},
 };
 
-use rspack_cacheable::cacheable_dyn;
+use rspack_cacheable::{
+  cacheable_dyn,
+  rkyv::{
+    Archive, ArchiveUnsized, Deserialize, DeserializeUnsized, Place, Serialize, SerializeUnsized,
+    de::{FromMetadata, Metadata, Pooling, PoolingExt, SharedPointer},
+    ptr_meta::{Pointee, from_raw_parts_mut},
+    rancor::{Fallible, ResultExt, Source},
+    rc::{ArchivedRc, Flavor, RcResolver},
+    ser::{Sharing, Writer},
+    traits::LayoutRaw,
+  },
+};
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_error::Diagnostic;
 use rspack_location::DependencyLocation;
 use rspack_util::ext::AsAny;
+use triomphe::{Arc as TriompheArc, UniqueArc};
+use unsize::{CoerceUnsize, Coercion};
 
 use super::{
   DependencyCategory, DependencyId, DependencyRange, DependencyType, ExportsSpec,
@@ -187,5 +204,220 @@ impl dyn Dependency + '_ {
   }
 }
 
-pub type BoxDependency = Box<dyn Dependency>;
-pub type DependencyRef = Arc<dyn Dependency>;
+/// A dependency with unique ownership while it is being constructed.
+///
+/// Unlike `Box<dyn Dependency>`, this uses the same allocation layout as [`DependencyRef`], so
+/// publishing it into the module graph does not reallocate or move the dependency.
+pub struct UniqueDependency(UniqueArc<dyn Dependency>);
+
+impl UniqueDependency {
+  pub fn new<D: Dependency + 'static>(dependency: D) -> Self {
+    let coercion =
+      unsafe { Coercion::<D, dyn Dependency>::new(|ptr: *const D| ptr as *const dyn Dependency) };
+    Self(UniqueArc::new(dependency).unsize(coercion))
+  }
+
+  pub fn shareable(self) -> DependencyRef {
+    DependencyRef(self.0.shareable())
+  }
+}
+
+impl Debug for UniqueDependency {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    Debug::fmt(self.as_ref(), f)
+  }
+}
+
+impl Deref for UniqueDependency {
+  type Target = dyn Dependency;
+
+  fn deref(&self) -> &Self::Target {
+    &*self.0
+  }
+}
+
+impl DerefMut for UniqueDependency {
+  fn deref_mut(&mut self) -> &mut Self::Target {
+    &mut *self.0
+  }
+}
+
+impl AsRef<dyn Dependency> for UniqueDependency {
+  fn as_ref(&self) -> &(dyn Dependency + 'static) {
+    &*self.0
+  }
+}
+
+impl AsMut<dyn Dependency> for UniqueDependency {
+  fn as_mut(&mut self) -> &mut (dyn Dependency + 'static) {
+    &mut *self.0
+  }
+}
+
+impl Archive for UniqueDependency {
+  type Archived = ArchivedRc<<dyn Dependency as ArchiveUnsized>::Archived, DependencyRefFlavor>;
+  type Resolver = RcResolver;
+
+  fn resolve(&self, resolver: Self::Resolver, out: Place<Self::Archived>) {
+    ArchivedRc::resolve_from_ref(self.as_ref(), resolver, out);
+  }
+}
+
+impl<S> Serialize<S> for UniqueDependency
+where
+  dyn Dependency: SerializeUnsized<S>,
+  S: Writer + Sharing + Fallible + ?Sized,
+  S::Error: Source,
+{
+  fn serialize(&self, serializer: &mut S) -> Result<Self::Resolver, S::Error> {
+    ArchivedRc::<
+      <dyn Dependency as ArchiveUnsized>::Archived,
+      DependencyRefFlavor,
+    >::serialize_from_ref(self.as_ref(), serializer)
+  }
+}
+
+impl<D> Deserialize<UniqueDependency, D>
+  for ArchivedRc<<dyn Dependency as ArchiveUnsized>::Archived, DependencyRefFlavor>
+where
+  <dyn Dependency as Pointee>::Metadata: Into<Metadata> + FromMetadata,
+  <dyn Dependency as ArchiveUnsized>::Archived: DeserializeUnsized<dyn Dependency, D>,
+  D: Fallible + ?Sized,
+  D::Error: Source,
+{
+  fn deserialize(&self, deserializer: &mut D) -> Result<UniqueDependency, D::Error> {
+    let metadata = self.get().deserialize_metadata();
+    let out = <DependencyRef as SharedPointer<dyn Dependency>>::alloc(metadata).into_error()?;
+    unsafe {
+      self.get().deserialize_unsized(deserializer, out)?;
+    }
+    let raw = unsafe { <DependencyRef as SharedPointer<dyn Dependency>>::from_value(out) };
+    let arc = unsafe { TriompheArc::from_raw(raw) };
+    let unique = UniqueArc::try_from(arc)
+      .unwrap_or_else(|_| unreachable!("a freshly deserialized dependency has one owner"));
+    Ok(UniqueDependency(unique))
+  }
+}
+
+/// Compatibility name for dependency construction sites. The backing allocation is a
+/// [`UniqueArc`], not a `Box`.
+pub type BoxDependency = UniqueDependency;
+
+/// A shared dependency published into the module graph.
+///
+/// This newtype also supplies rkyv with the dynamically sized allocation support that
+/// `triomphe::Arc` does not currently expose for trait objects.
+pub struct DependencyRef(TriompheArc<dyn Dependency>);
+
+impl DependencyRef {
+  pub fn new<D: Dependency + 'static>(dependency: D) -> Self {
+    UniqueDependency::new(dependency).shareable()
+  }
+}
+
+impl From<UniqueDependency> for DependencyRef {
+  fn from(dependency: UniqueDependency) -> Self {
+    dependency.shareable()
+  }
+}
+
+impl Clone for DependencyRef {
+  fn clone(&self) -> Self {
+    Self(self.0.clone())
+  }
+}
+
+impl Debug for DependencyRef {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    Debug::fmt(self.as_ref(), f)
+  }
+}
+
+impl Deref for DependencyRef {
+  type Target = dyn Dependency;
+
+  fn deref(&self) -> &Self::Target {
+    &*self.0
+  }
+}
+
+impl AsRef<dyn Dependency> for DependencyRef {
+  fn as_ref(&self) -> &(dyn Dependency + 'static) {
+    &*self.0
+  }
+}
+
+pub struct DependencyRefFlavor;
+
+impl Flavor for DependencyRefFlavor {
+  const ALLOW_CYCLES: bool = false;
+}
+
+unsafe impl SharedPointer<dyn Dependency> for DependencyRef {
+  fn alloc(
+    metadata: <dyn Dependency as Pointee>::Metadata,
+  ) -> Result<*mut dyn Dependency, LayoutError> {
+    let value_layout = <dyn Dependency as LayoutRaw>::layout_raw(metadata)?;
+    let (layout, data_offset) = Layout::new::<AtomicUsize>().extend(value_layout)?;
+    let layout = layout.pad_to_align();
+    let allocation = unsafe { alloc(layout) };
+    if allocation.is_null() {
+      handle_alloc_error(layout);
+    }
+
+    unsafe {
+      ptr::write(allocation.cast::<AtomicUsize>(), AtomicUsize::new(1));
+      Ok(from_raw_parts_mut(
+        allocation.add(data_offset).cast(),
+        metadata,
+      ))
+    }
+  }
+
+  unsafe fn from_value(ptr: *mut dyn Dependency) -> *mut dyn Dependency {
+    ptr
+  }
+
+  unsafe fn drop(ptr: *mut dyn Dependency) {
+    drop(unsafe { TriompheArc::from_raw(ptr) });
+  }
+}
+
+impl Archive for DependencyRef {
+  type Archived = ArchivedRc<<dyn Dependency as ArchiveUnsized>::Archived, DependencyRefFlavor>;
+  type Resolver = RcResolver;
+
+  fn resolve(&self, resolver: Self::Resolver, out: Place<Self::Archived>) {
+    ArchivedRc::resolve_from_ref(self.as_ref(), resolver, out);
+  }
+}
+
+impl<S> Serialize<S> for DependencyRef
+where
+  dyn Dependency: SerializeUnsized<S>,
+  S: Writer + Sharing + Fallible + ?Sized,
+  S::Error: Source,
+{
+  fn serialize(&self, serializer: &mut S) -> Result<Self::Resolver, S::Error> {
+    ArchivedRc::<
+      <dyn Dependency as ArchiveUnsized>::Archived,
+      DependencyRefFlavor,
+    >::serialize_from_ref(self.as_ref(), serializer)
+  }
+}
+
+impl<D> Deserialize<DependencyRef, D>
+  for ArchivedRc<<dyn Dependency as ArchiveUnsized>::Archived, DependencyRefFlavor>
+where
+  <dyn Dependency as Pointee>::Metadata: Into<Metadata> + FromMetadata,
+  <dyn Dependency as ArchiveUnsized>::Archived: DeserializeUnsized<dyn Dependency, D>,
+  D: Pooling + Fallible + ?Sized,
+  D::Error: Source,
+{
+  fn deserialize(&self, deserializer: &mut D) -> Result<DependencyRef, D::Error> {
+    let raw = deserializer.deserialize_shared::<_, DependencyRef>(self.get())?;
+    let arc = unsafe { TriompheArc::from_raw(raw) };
+    forget(arc.clone());
+    Ok(DependencyRef(arc))
+  }
+}

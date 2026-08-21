@@ -29,13 +29,13 @@ use crate::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildContext,
   BuildInfo, BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, BuildResult, ChunkGraph,
   ChunkGroupOptions, CodeGenerationResultBuilder, Compilation, Context, ContextElementDependency,
-  DependenciesBlock, Dependency, DependencyCategory, DependencyId, DependencyLocation,
-  DynamicImportMode, ExportsType, FactoryMeta, FakeNamespaceObjectMode, GroupOptions,
-  ImportAttributes, ImportPhase, LibIdentOptions, Module, ModuleArgument,
-  ModuleCodeGenerationContext, ModuleCodeTemplate, ModuleGraph, ModuleId, ModuleIdsArtifact,
-  ModuleLayer, ModuleType, RealDependencyLocation, ReferencedSpecifier, Resolve, RuntimeGlobals,
-  RuntimeGlobalsRenderMode, RuntimeSpec, SourceType, contextify, get_exports_type_with_strict,
-  get_outgoing_async_modules, impl_module_meta_info, module_update_hash, property_access, to_path,
+  DependenciesBlock, DependencyCategory, DependencyId, DependencyLocation, DynamicImportMode,
+  ExportsType, FactoryMeta, FakeNamespaceObjectMode, GroupOptions, ImportAttributes, ImportPhase,
+  LibIdentOptions, Module, ModuleArgument, ModuleCodeGenerationContext, ModuleCodeTemplate,
+  ModuleGraph, ModuleId, ModuleIdsArtifact, ModuleLayer, ModuleType, RealDependencyLocation,
+  ReferencedSpecifier, Resolve, RuntimeGlobals, RuntimeGlobalsRenderMode, RuntimeSpec, SourceType,
+  contextify, get_exports_type_with_strict, get_outgoing_async_modules, impl_module_meta_info,
+  module_update_hash, property_access, to_path,
 };
 
 static CHUNK_NAME_INDEX_PLACEHOLDER: &str = "[index]";
@@ -1463,7 +1463,7 @@ impl Module for ContextModule {
         None,
         context_element_dependencies
           .into_iter()
-          .map(|dep| Box::new(dep) as Box<dyn Dependency>)
+          .map(BoxDependency::new)
           .collect(),
         None,
       );
@@ -1507,7 +1507,7 @@ impl Module for ContextModule {
           (*self.identifier).into(),
           None,
           Some(&context_element_dependency.user_request.clone()),
-          vec![Box::new(context_element_dependency)],
+          vec![BoxDependency::new(context_element_dependency)],
           Some(self.options.context_options.request.clone()),
         );
         block.set_group_options(GroupOptions::ChunkGroup(ChunkGroupOptions::new(
@@ -1521,7 +1521,7 @@ impl Module for ContextModule {
     } else {
       dependencies = context_element_dependencies
         .into_iter()
-        .map(|d| Box::new(d) as BoxDependency)
+        .map(BoxDependency::new)
         .collect();
     }
 
