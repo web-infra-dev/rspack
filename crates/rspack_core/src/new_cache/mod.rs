@@ -22,9 +22,11 @@ pub use idle_file_cache::IdleFileCache;
 pub use memory_cache::{MemoryCache, MemoryCacheGetResult};
 use rspack_fs::ReadableFileSystem;
 
+pub(crate) use self::snapshot::ModuleSnapshot;
 use self::snapshot::{BuildDeps, Snapshot};
 use crate::{
-  CompilationLogger, CompilationLogging, CompilerOptions, cache::persistent::codec::CacheCodec,
+  CompilationLogger, CompilationLogging, CompilerOptions,
+  cache::persistent::{codec::CacheCodec, snapshot::SnapshotOptions},
 };
 
 pub fn create_cache(
@@ -42,7 +44,12 @@ pub fn create_cache(
     crate::CacheOptions::Memory {
       max_generations: _, /* TODO: old cache default to 1, change to 5 and pass to MemoryCache */
     } => {
-      return Cache::new(compiler_path, MemoryCache::new(5), None);
+      return Cache::new_with_snapshot(
+        compiler_path,
+        MemoryCache::new(5),
+        None,
+        Snapshot::new(SnapshotOptions::default(), input_filesystem),
+      );
     }
     crate::CacheOptions::Persistent(options) => options,
   };
@@ -56,7 +63,7 @@ pub fn create_cache(
   let snapshot = Snapshot::new(options.snapshot.clone(), input_filesystem.clone());
   let build_deps = BuildDeps::new(
     &options.build_dependencies,
-    input_filesystem,
+    input_filesystem.clone(),
     CompilationLogger::new("rspack.newCache".to_string(), compilation_logging),
   );
   let (base_path, database_path) = match &options.storage {
@@ -79,10 +86,20 @@ pub fn create_cache(
     Ok(strategy) => strategy,
     Err(error) => {
       tracing::warn!("Opening persistent cache database failed: {error}");
-      return Cache::new(compiler_path, MemoryCache::default(), None);
+      return Cache::new_with_snapshot(
+        compiler_path,
+        MemoryCache::default(),
+        None,
+        Snapshot::new(options.snapshot.clone(), input_filesystem),
+      );
     }
   };
   let idle_file_cache = IdleFileCache::new(strategy, None, None, None);
 
-  Cache::new(compiler_path, MemoryCache::default(), Some(idle_file_cache))
+  Cache::new_with_snapshot(
+    compiler_path,
+    MemoryCache::default(),
+    Some(idle_file_cache),
+    Snapshot::new(options.snapshot.clone(), input_filesystem),
+  )
 }

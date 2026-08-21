@@ -5,7 +5,7 @@ use rspack_paths::InternedPathSet;
 
 use super::{
   CacheFacade, CacheKey, CacheValue, Etag, IdleFileCache, MemoryCache, MemoryCacheGetResult,
-  cache_value::CacheValueData,
+  ModuleSnapshot, cache_value::CacheValueData, snapshot::Snapshot,
 };
 
 /// Cache entry point backed by memory and optional filesystem storage.
@@ -23,6 +23,7 @@ struct CacheStorage {
 struct CacheInner {
   compiler_path: String,
   storage: Option<CacheStorage>,
+  snapshot: Option<Snapshot>,
 }
 
 /// Cheaply cloneable handle to the shared cache state.
@@ -44,6 +45,25 @@ impl Cache {
           memory_cache,
           idle_file_cache,
         }),
+        snapshot: None,
+      }),
+    }
+  }
+
+  pub(crate) fn new_with_snapshot(
+    compiler_path: String,
+    memory_cache: MemoryCache,
+    idle_file_cache: Option<IdleFileCache>,
+    snapshot: Snapshot,
+  ) -> Self {
+    Self {
+      inner: Arc::new(CacheInner {
+        compiler_path,
+        storage: Some(CacheStorage {
+          memory_cache,
+          idle_file_cache,
+        }),
+        snapshot: Some(snapshot),
       }),
     }
   }
@@ -53,6 +73,7 @@ impl Cache {
       inner: Arc::new(CacheInner {
         compiler_path,
         storage: None,
+        snapshot: None,
       }),
     }
   }
@@ -124,6 +145,31 @@ impl Cache {
     } else {
       Ok(())
     }
+  }
+
+  pub(crate) async fn create_module_snapshot(
+    &self,
+    file_dependencies: impl Iterator<Item = rspack_paths::ArcPath>,
+    context_dependencies: impl Iterator<Item = rspack_paths::ArcPath>,
+    missing_dependencies: impl Iterator<Item = rspack_paths::ArcPath>,
+  ) -> Option<ModuleSnapshot> {
+    let snapshot = self.inner.snapshot.as_ref()?;
+    Some(
+      snapshot
+        .create_module(
+          file_dependencies,
+          context_dependencies,
+          missing_dependencies,
+        )
+        .await,
+    )
+  }
+
+  pub(crate) async fn validate_module_snapshot(&self, snapshot: &ModuleSnapshot) -> bool {
+    let Some(snapshot_manager) = self.inner.snapshot.as_ref() else {
+      return false;
+    };
+    snapshot_manager.validate_module(snapshot).await
   }
 
   pub fn has_file_cache(&self) -> bool {
