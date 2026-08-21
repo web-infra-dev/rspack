@@ -36,7 +36,7 @@ use crate::{
   ExportProvided, ExportsInfoArtifact, ExternalModule, Filename, GetTargetResult, ImportPhase,
   ModuleCodeTemplate, ModuleGraph, ModuleGraphCacheArtifact, ModuleLayer, ModuleType, NormalModule,
   OptimizationBailoutItem, RawModule, Resolve, ResolverFactory, RuntimeSpec, SelfModule,
-  SharedPluginDriver, SideEffectsStateArtifact, SourceType,
+  SharedPluginDriver, SideEffectsStateArtifact, Snapshot, SourceType,
   concatenated_module::ConcatenatedModule, dependencies_block::dependencies_block_update_hash,
   get_target, value_cache_versions::ValueCacheVersions,
 };
@@ -271,6 +271,7 @@ pub struct BuildInfo {
   pub context_dependencies: ArcPathSet,
   pub missing_dependencies: ArcPathSet,
   pub build_dependencies: ArcPathSet,
+  pub snapshot: Option<Snapshot>,
   pub value_dependencies: HashMap<String, String>,
   #[cacheable(with=AsVec<AsPreset>)]
   pub esm_named_exports: HashSet<Atom>,
@@ -312,6 +313,7 @@ impl Default for BuildInfo {
       context_dependencies: ArcPathSet::default(),
       missing_dependencies: ArcPathSet::default(),
       build_dependencies: ArcPathSet::default(),
+      snapshot: None,
       value_dependencies: HashMap::default(),
       esm_named_exports: HashSet::default(),
       all_star_exports: Vec::default(),
