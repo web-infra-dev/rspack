@@ -11,7 +11,7 @@ use self::{
   hash_helper::{ContentHash, HashHelper, TimestampHash},
   package_helper::PackageHelper,
 };
-use super::{SnapshotOptions, SnapshotStrategyOptions};
+use super::{SnapshotOptions, SnapshotScope, SnapshotStrategyOptions};
 
 /// Snapshot check strategy
 #[cacheable]
@@ -98,6 +98,7 @@ pub enum ValidateResult {
 
 pub struct StrategyHelper {
   fs: Arc<dyn ReadableFileSystem>,
+  snapshot_options: Arc<SnapshotOptions>,
   package_helper: Arc<PackageHelper>,
   hash_helper: HashHelper,
 }
@@ -107,9 +108,40 @@ impl StrategyHelper {
     let package_helper = Arc::new(PackageHelper::new(fs.clone()));
     Self {
       fs: fs.clone(),
-      hash_helper: HashHelper::new(fs, snapshot_options, package_helper.clone()),
+      hash_helper: HashHelper::new(fs, snapshot_options.clone(), package_helper.clone()),
+      snapshot_options,
       package_helper,
     }
+  }
+
+  pub async fn create_strategy(&self, path: &ArcPath, scope: SnapshotScope) -> Option<Strategy> {
+    let path_str = path.to_string_lossy();
+    if self.snapshot_options.is_immutable_path(&path_str) {
+      return None;
+    }
+    if self.snapshot_options.is_managed_path(&path_str)
+      && let Some(strategy) = self.package_version(path).await
+    {
+      return Some(strategy);
+    }
+    Some(match scope {
+      SnapshotScope::FILE => {
+        self
+          .file_strategy(path, self.snapshot_options.dependencies_strategy())
+          .await
+      }
+      SnapshotScope::MISSING => Strategy::Missing,
+      SnapshotScope::CONTEXT => {
+        self
+          .dir_strategy(path, self.snapshot_options.context_dependencies_strategy())
+          .await
+      }
+      SnapshotScope::BUILD => {
+        self
+          .dir_strategy(path, SnapshotStrategyOptions::hash())
+          .await
+      }
+    })
   }
 
   /// get path file modified time
