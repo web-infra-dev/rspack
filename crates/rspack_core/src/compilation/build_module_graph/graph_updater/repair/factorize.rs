@@ -5,7 +5,7 @@ use rspack_sources::BoxSource;
 
 use super::{TaskContext, add::AddTask};
 use crate::{
-  BoxDependency, CompilationId, CompilerId, CompilerOptions, Context, FactorizeInfo, ImportPhase,
+  CompilationId, CompilerId, CompilerOptions, Context, DependencyRef, FactorizeInfo, ImportPhase,
   ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, ModuleLayer,
   Resolve, ResolverFactory,
   dependency::DependencyType,
@@ -23,7 +23,7 @@ pub struct FactorizeTask {
   pub original_module_context: Option<Box<Context>>,
   pub issuer: Option<Box<str>>,
   pub issuer_layer: Option<ModuleLayer>,
-  pub dependencies: Vec<BoxDependency>,
+  pub dependencies: Vec<DependencyRef>,
   pub resolve_options: Option<Arc<Resolve>>,
   pub options: Arc<CompilerOptions>,
   pub resolver_factory: Arc<ResolverFactory>,
@@ -140,7 +140,7 @@ pub struct FactorizeResultTask {
   pub original_module_identifier: Option<ModuleIdentifier>,
   /// Result will be available if [crate::ModuleFactory::create] returns `Ok`.
   pub factory_result: Option<ModuleFactoryResult>,
-  pub dependencies: Vec<BoxDependency>,
+  pub dependencies: Vec<DependencyRef>,
   pub factorize_info: FactorizeInfo,
   pub from_unlazy: bool,
 }
@@ -174,7 +174,7 @@ impl Task<TaskContext> for FactorizeResultTask {
       tracing::trace!("Module created with failure, but without bailout: {dep:?}");
       // sync dependencies to mg
       for dep in dependencies {
-        module_graph.add_dependency(dep)
+        module_graph.add_dependency_ref(dep)
       }
       return Ok(vec![]);
     };
@@ -188,7 +188,7 @@ impl Task<TaskContext> for FactorizeResultTask {
         dep.set_lazy();
       }
       for dep in dependencies {
-        module_graph.add_dependency(dep)
+        module_graph.add_dependency_ref(dep)
       }
       return Ok(vec![]);
     }
@@ -198,7 +198,7 @@ impl Task<TaskContext> for FactorizeResultTask {
       tracing::trace!("Module ignored: {dep:?}");
       // sync dependencies to mg
       for dep in dependencies {
-        module_graph.add_dependency(dep)
+        module_graph.add_dependency_ref(dep)
       }
       return Ok(vec![]);
     };
@@ -220,7 +220,7 @@ impl Task<TaskContext> for FactorizeResultTask {
 
 fn skip_side_effect_free_esm_import_side_effect_dependencies(
   module: &crate::BoxModule,
-  dependencies: &[BoxDependency],
+  dependencies: &[DependencyRef],
 ) -> bool {
   module.as_normal_module().is_some()
     && module.factory_meta().and_then(|meta| meta.side_effect_free) == Some(true)

@@ -34,7 +34,7 @@ impl Dependency {
         let module_graph = compilation.get_module_graph();
         if let Some(dependency) = internal::try_dependency_by_id(module_graph, &self.dependency_id)
         {
-          f(dependency.as_ref(), Some(compilation))
+          f(dependency, Some(compilation))
         } else {
           Err(napi::Error::from_reason(format!(
             "Unable to access dependency with id = {:?} now. The dependency have been removed on the Rust side.",

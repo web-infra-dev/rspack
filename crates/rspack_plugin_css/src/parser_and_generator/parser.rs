@@ -2,10 +2,10 @@ use std::{path::Path, sync::Arc};
 
 use once_cell::sync::OnceCell;
 use rspack_core::{
-  BoxDependencyTemplate, BoxModuleDependency, ConstDependency, CssAutoOrModuleParserOptions,
-  CssExport, CssExportType, CssExports, CssExportsConvention, CssLayer, CssLocalNames,
-  CssModuleGeneratorOptions, CssModuleRenderCondition, CssParserImport, CssParserImportContext,
-  Dependency, DependencyId, DependencyRange, ModuleType, ParseContext, ParseResult, ResourceData,
+  BoxDependencyTemplate, ConstDependency, CssAutoOrModuleParserOptions, CssExport, CssExportType,
+  CssExports, CssExportsConvention, CssLayer, CssLocalNames, CssModuleGeneratorOptions,
+  CssModuleRenderCondition, CssParserImport, CssParserImportContext, Dependency, DependencyId,
+  DependencyRange, ModuleDependencyRef, ModuleType, ParseContext, ParseResult, ResourceData,
   StaticExportsDependency, StaticExportsSpec,
   diagnostics::map_box_diagnostics_to_module_parse_diagnostics, remove_bom, rspack_sources::Source,
   topological_sort,
@@ -42,7 +42,7 @@ pub(super) struct CssModuleParser<'context> {
   diagnostics: Vec<Diagnostic>,
   dependencies: Vec<Box<dyn Dependency>>,
   presentational_dependencies: Vec<BoxDependencyTemplate>,
-  code_generation_dependencies: Vec<BoxModuleDependency>,
+  code_generation_dependencies: Vec<ModuleDependencyRef>,
   css_exports: CssExports,
   css_local_names: CssLocalNames,
   icss_definitions: FxHashMap<String, IcssDefinition>,
@@ -964,13 +964,13 @@ impl<'context> CssModuleParser<'context> {
       range.end,
     );
     let request = normalize_url(request);
-    let dep = Box::new(CssUrlDependency::new(
+    let dep = CssUrlDependency::new(
       request.into_owned(),
       DependencyRange::new(range.start, range.end),
       matches!(kind, css_module_lexer::UrlRangeKind::Function),
-    ));
-    self.dependencies.push(dep.clone());
-    self.code_generation_dependencies.push(dep);
+    );
+    self.dependencies.push(Box::new(dep.clone()));
+    self.code_generation_dependencies.push(Arc::new(dep));
     Ok(())
   }
 
@@ -1018,15 +1018,15 @@ impl<'context> CssModuleParser<'context> {
       supports.map(|supports| supports.trim().into()),
       layer,
     );
-    let dep = Box::new(CssImportDependency::new(
+    let dep = CssImportDependency::new(
       request,
       DependencyRange::new(range.start, range.end),
       inherited_render_conditions,
       render_condition,
       self.export_type(),
-    ));
-    self.dependencies.push(dep.clone());
-    self.code_generation_dependencies.push(dep);
+    );
+    self.dependencies.push(Box::new(dep.clone()));
+    self.code_generation_dependencies.push(Arc::new(dep));
     Ok(())
   }
 

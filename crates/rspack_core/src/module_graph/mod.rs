@@ -22,7 +22,7 @@ mod connection;
 pub use connection::*;
 
 use crate::{
-  BoxDependency, BoxModule, DependencyCondition, DependencyId, ExportsInfoArtifact,
+  BoxDependency, BoxModule, DependencyCondition, DependencyId, DependencyRef, ExportsInfoArtifact,
   ModuleIdentifier,
 };
 
@@ -98,7 +98,7 @@ pub(crate) struct ModuleGraphData {
     rollback::RollbackMap<ModuleIdentifier, BoxModule, BuildHasherDefault<IdentifierHasher>>,
 
   /// Dependencies indexed by `DependencyId`.
-  dependencies: rollback::DenseDependencyIdMap<BoxDependency>,
+  dependencies: rollback::DenseDependencyIdMap<DependencyRef>,
   /// AsyncDependenciesBlocks indexed by `AsyncDependenciesBlockIdentifier`.
   blocks: AsyncDependenciesBlockIdentifierMap<Box<AsyncDependenciesBlock>>,
 
@@ -406,7 +406,7 @@ impl ModuleGraph {
     &mut self,
     old_module: &ModuleIdentifier,
     new_module: &ModuleIdentifier,
-    filter_connection: impl Fn(&ModuleGraphConnection, &Box<dyn Dependency>) -> bool,
+    filter_connection: impl Fn(&ModuleGraphConnection, &dyn Dependency) -> bool,
   ) {
     if old_module == new_module {
       return;
@@ -556,12 +556,28 @@ impl ModuleGraph {
     &self.inner.blocks
   }
 
-  pub fn dependencies(&self) -> impl Iterator<Item = (DependencyId, &BoxDependency)> {
-    self.inner.dependencies.iter()
+  pub fn dependencies(&self) -> impl Iterator<Item = (DependencyId, &(dyn Dependency + 'static))> {
+    self
+      .inner
+      .dependencies
+      .iter()
+      .map(|(id, dependency)| (id, dependency.as_ref()))
   }
 
   pub fn add_dependency(&mut self, dependency: BoxDependency) {
+    self.add_dependency_ref(dependency.into());
+  }
+
+  pub(crate) fn add_dependency_ref(&mut self, dependency: DependencyRef) {
     self.inner.dependencies.insert(*dependency.id(), dependency);
+  }
+
+  pub(crate) fn dependency_ref_by_id(&self, dependency_id: &DependencyId) -> &DependencyRef {
+    self
+      .inner
+      .dependencies
+      .get(dependency_id)
+      .unwrap_or_else(|| panic!("Dependency with ID {dependency_id:?} not found"))
   }
 
   /// Get a dependency by ID, panicking if not found.
@@ -579,12 +595,8 @@ impl ModuleGraph {
   ///
   /// **Only the binding layer (`rspack_binding_api`) should use `internal::try_dependency_by_id()`**
   /// for graceful handling of missing dependencies in external APIs.
-  pub fn dependency_by_id(&self, dependency_id: &DependencyId) -> &BoxDependency {
-    self
-      .inner
-      .dependencies
-      .get(dependency_id)
-      .unwrap_or_else(|| panic!("Dependency with ID {dependency_id:?} not found"))
+  pub fn dependency_by_id(&self, dependency_id: &DependencyId) -> &(dyn Dependency + 'static) {
+    self.dependency_ref_by_id(dependency_id).as_ref()
   }
 
   /// Uniquely identify a module by its dependency

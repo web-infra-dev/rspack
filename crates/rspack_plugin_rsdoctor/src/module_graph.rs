@@ -632,7 +632,7 @@ pub fn collect_export_usage_dependencies(
         .flat_map(|conn| {
           let dependency = module_graph.dependency_by_id(&conn.dependency_id);
           let Some(export_usages) = dependency_export_usage(
-            dependency.as_ref(),
+            dependency,
             module_graph,
             module_graph_cache,
             exports_info_artifact,
@@ -714,7 +714,7 @@ pub fn collect_active_export_usage_dependencies(
     .filter(|candidate| {
       let dependency = module_graph.dependency_by_id(&candidate.dependency_id);
       if !dependency_has_impure_deferred_pure_checks(
-        dependency.as_ref(),
+        dependency,
         module_graph,
         exports_info_artifact,
       ) && !is_origin_export_used(candidate, exports_info_artifact)

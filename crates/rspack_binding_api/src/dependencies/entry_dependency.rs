@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use napi::{Either, Env, JsString};
 
 #[napi]
@@ -12,18 +14,18 @@ impl EntryDependency {
     context: rspack_core::Context,
     layer: Option<String>,
     is_global: bool,
-  ) -> napi::Result<Box<dyn rspack_core::Dependency>> {
+  ) -> napi::Result<rspack_core::DependencyRef> {
     match &self.dependency_id {
       Some(dependency_id) => Err(napi::Error::from_reason(format!(
         "Dependency with id = {dependency_id:?} has already been resolved. Reusing EntryDependency is not allowed because Rust requires its ownership."
       ))),
       None => {
-        let dependency = Box::new(rspack_core::EntryDependency::new(
+        let dependency: rspack_core::DependencyRef = Arc::new(rspack_core::EntryDependency::new(
           self.request.clone(),
           context,
           layer,
           is_global,
-        )) as rspack_core::BoxDependency;
+        ));
         self.dependency_id = Some(*dependency.id());
         Ok(dependency)
       }

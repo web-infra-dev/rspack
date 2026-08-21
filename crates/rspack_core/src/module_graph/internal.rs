@@ -4,7 +4,9 @@
 ///
 /// This module provides restricted access to potentially unsafe ModuleGraph operations
 /// that should only be used in specific contexts where items may legitimately not exist.
-use crate::{BoxDependency, DependencyId, ModuleGraph, ModuleGraphModule, ModuleIdentifier};
+use crate::{
+  Dependency, DependencyId, DependencyRef, ModuleGraph, ModuleGraphModule, ModuleIdentifier,
+};
 
 /// Try to get a dependency by ID, returning None if not found.
 ///
@@ -30,8 +32,21 @@ use crate::{BoxDependency, DependencyId, ModuleGraph, ModuleGraphModule, ModuleI
 pub fn try_dependency_by_id<'a>(
   module_graph: &'a ModuleGraph,
   dependency_id: &DependencyId,
-) -> Option<&'a BoxDependency> {
-  module_graph.inner.dependencies.get(dependency_id)
+) -> Option<&'a (dyn Dependency + 'static)> {
+  module_graph
+    .inner
+    .dependencies
+    .get(dependency_id)
+    .map(AsRef::as_ref)
+}
+
+/// Try to clone the shared reference for a dependency.
+#[inline]
+pub fn try_dependency_ref_by_id(
+  module_graph: &ModuleGraph,
+  dependency_id: &DependencyId,
+) -> Option<DependencyRef> {
+  module_graph.inner.dependencies.get(dependency_id).cloned()
 }
 
 /// Try to get a mutable module graph module by identifier, returning None if not found.

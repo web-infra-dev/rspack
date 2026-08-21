@@ -273,12 +273,14 @@ impl RstestPlugin {
       _ => {}
     }
 
-    if let Some(dep) = data
+    if let Some(mut dep) = data
       .dependencies
-      .first_mut()
-      .and_then(|dep| dep.downcast_mut::<MockModuleIdDependency>())
+      .first()
+      .and_then(|dep| dep.downcast_ref::<MockModuleIdDependency>())
+      .cloned()
     {
       dep.set_request(resolved_request.clone());
+      data.dependencies[0] = Arc::new(dep);
     }
     data.request = resolved_request;
 

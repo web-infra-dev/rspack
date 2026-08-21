@@ -26,12 +26,12 @@ use serde_json::json;
 use tracing::{Instrument, info_span};
 
 use crate::{
-  AsyncDependenciesBlockIdentifier, BoxDependencyTemplate, BoxLoader, BoxModule,
-  BoxModuleDependency, BuildContext, BuildInfo, BuildMeta, BuildResult, ChunkGraph,
-  CodeGenerationResultBuilder, Compilation, ConnectionState, Context, DependenciesBlock,
-  DependencyId, FactoryMeta, GenerateContext, GeneratorOptions, ImportPhase, LibIdentOptions,
-  Module, ModuleCodeGenerationContext, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
-  ModuleLayer, ModuleType, OptimizationBailoutItem, OutputOptions, ParseContext, ParseResult,
+  AsyncDependenciesBlockIdentifier, BoxDependencyTemplate, BoxLoader, BoxModule, BuildContext,
+  BuildInfo, BuildMeta, BuildResult, ChunkGraph, CodeGenerationResultBuilder, Compilation,
+  ConnectionState, Context, DependenciesBlock, DependencyId, FactoryMeta, GenerateContext,
+  GeneratorOptions, ImportPhase, LibIdentOptions, Module, ModuleCodeGenerationContext,
+  ModuleDependencyRef, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, ModuleLayer,
+  ModuleType, OptimizationBailoutItem, OutputOptions, ParseContext, ParseResult,
   ParserAndGenerator, ParserOptions, Resolve, ResolvedModuleOptions, RspackLoaderRunnerPlugin,
   RunnerContext, RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, SourceType, contextify,
   diagnostics::ModuleBuildError,
@@ -138,7 +138,7 @@ pub struct NormalModule {
   cached_source_sizes: SourceSizeCache,
   diagnostics: Vec<Diagnostic>,
 
-  code_generation_dependencies: Option<Vec<BoxModuleDependency>>,
+  code_generation_dependencies: Option<Vec<ModuleDependencyRef>>,
   presentational_dependencies: Option<Vec<BoxDependencyTemplate>>,
 
   factory_meta: Option<FactoryMeta>,
@@ -717,7 +717,7 @@ impl Module for NormalModule {
     self.resolve_options.clone()
   }
 
-  fn get_code_generation_dependencies(&self) -> Option<&[BoxModuleDependency]> {
+  fn get_code_generation_dependencies(&self) -> Option<&[ModuleDependencyRef]> {
     if let Some(deps) = self.code_generation_dependencies.as_deref()
       && !deps.is_empty()
     {

@@ -4,7 +4,7 @@ use rspack_error::{Diagnostic, Result};
 use rspack_paths::{ArcPath, ArcPathSet};
 
 use crate::{
-  BoxDependency, BoxModule, CompilationId, CompilerId, CompilerOptions, Context, ModuleIdentifier,
+  BoxModule, CompilationId, CompilerId, CompilerOptions, Context, DependencyRef, ModuleIdentifier,
   ModuleLayer, Resolve, ResolverFactory,
 };
 
@@ -16,7 +16,7 @@ pub struct ModuleFactoryCreateData {
   pub options: Arc<CompilerOptions>,
   pub request: String,
   pub context: Context,
-  pub dependencies: Vec<BoxDependency>,
+  pub dependencies: Vec<DependencyRef>,
   pub issuer: Option<Box<str>>,
   pub issuer_identifier: Option<ModuleIdentifier>,
   pub issuer_layer: Option<ModuleLayer>,

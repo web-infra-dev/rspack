@@ -1,42 +1,7 @@
-use std::sync::{
-  RwLock,
-  atomic::{AtomicBool, Ordering},
-};
+use std::sync::RwLock;
 
-use rspack_cacheable::{
-  cacheable,
-  rkyv::with::{AtomicLoad, Lock, Relaxed},
-};
+use rspack_cacheable::{cacheable, rkyv::with::Lock};
 use rspack_error::Diagnostic;
-
-#[cacheable]
-#[derive(Debug, Default)]
-pub struct DependencyLazyState {
-  #[cacheable(with=AtomicLoad<Relaxed>)]
-  value: AtomicBool,
-}
-
-impl Clone for DependencyLazyState {
-  fn clone(&self) -> Self {
-    Self {
-      value: AtomicBool::new(self.get()),
-    }
-  }
-}
-
-impl DependencyLazyState {
-  pub fn get(&self) -> bool {
-    self.value.load(Ordering::Relaxed)
-  }
-
-  pub fn set(&self) {
-    self.value.store(true, Ordering::Relaxed);
-  }
-
-  pub fn unset(&self) -> bool {
-    self.value.swap(false, Ordering::Relaxed)
-  }
-}
 
 #[cacheable]
 #[derive(Debug, Default)]

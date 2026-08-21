@@ -1,19 +1,23 @@
-use std::hash::BuildHasherDefault;
+use std::{
+  hash::BuildHasherDefault,
+  sync::atomic::{AtomicBool, Ordering},
+};
 
 use indexmap::{IndexMap, IndexSet};
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
+  rkyv::with::{AtomicLoad, Relaxed},
   with::{AsOption, AsPreset, AsVec},
 };
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   AsContextDependency, ChunkGraph, ConditionalInitFragment, ConnectionState, Dependency,
   DependencyCategory, DependencyCodeGeneration, DependencyCondition, DependencyConditionFn,
-  DependencyDiagnosticsContext, DependencyId, DependencyLazyState, DependencyLocation,
-  DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
-  DetermineExportAssignmentsKey, ESMExportBinding, ESMExportInitFragment, ExportMode,
-  ExportModeDynamicReexport, ExportModeEmptyStar, ExportModeFakeNamespaceObject,
-  ExportModeNormalReexport, ExportModeReexportDynamicDefault, ExportModeReexportNamedDefault,
+  DependencyDiagnosticsContext, DependencyId, DependencyLocation, DependencyRange,
+  DependencyTemplate, DependencyTemplateType, DependencyType, DetermineExportAssignmentsKey,
+  ESMExportBinding, ESMExportInitFragment, ExportMode, ExportModeDynamicReexport,
+  ExportModeEmptyStar, ExportModeFakeNamespaceObject, ExportModeNormalReexport,
+  ExportModeReexportDynamicDefault, ExportModeReexportNamedDefault,
   ExportModeReexportNamespaceObject, ExportModeReexportUndefined, ExportModeUnused,
   ExportNameOrSpec, ExportPresenceMode, ExportProvided, ExportSpec, ExportsInfoArtifact,
   ExportsInfoData, ExportsOfExportsSpec, ExportsSpec, ExportsType, ForwardId, ImportAttributes,
@@ -45,7 +49,7 @@ const DYNAMIC_REEXPORT_RUNTIME_THRESHOLD: usize = 16;
 // case2: `export { a } from 'a';`
 // case3: `export * from 'a'`
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct ESMExportImportedSpecifierDependency {
   pub id: DependencyId,
   #[cacheable(with=AsVec<AsPreset>)]
@@ -62,7 +66,28 @@ pub struct ESMExportImportedSpecifierDependency {
   resource_identifier: ResourceIdentifier,
   export_presence_mode: ExportPresenceMode,
   loc: Option<DependencyLocation>,
-  lazy_make: DependencyLazyState,
+  #[cacheable(with=AtomicLoad<Relaxed>)]
+  lazy_make: AtomicBool,
+}
+
+impl Clone for ESMExportImportedSpecifierDependency {
+  fn clone(&self) -> Self {
+    Self {
+      id: self.id,
+      ids: self.ids.clone(),
+      name: self.name.clone(),
+      request: self.request.clone(),
+      source_order: self.source_order,
+      other_star_exports: self.other_star_exports.clone(),
+      range: self.range,
+      phase: self.phase,
+      attributes: self.attributes.clone(),
+      resource_identifier: self.resource_identifier.clone(),
+      export_presence_mode: self.export_presence_mode,
+      loc: self.loc.clone(),
+      lazy_make: AtomicBool::new(self.lazy_make.load(Ordering::Relaxed)),
+    }
+  }
 }
 
 impl ESMExportImportedSpecifierDependency {
@@ -94,7 +119,7 @@ impl ESMExportImportedSpecifierDependency {
       phase,
       attributes,
       loc,
-      lazy_make: DependencyLazyState::default(),
+      lazy_make: AtomicBool::new(false),
     }
   }
 
@@ -160,7 +185,7 @@ impl ESMExportImportedSpecifierDependency {
     let Some(imported_module_identifier) = module_graph.module_identifier_by_dependency_id(id)
     else {
       // if it's not exists in module graph and has the lazy mark, then it's never picked up to make the module
-      return if self.lazy_make.get() {
+      return if self.lazy_make.load(Ordering::Relaxed) {
         ExportMode::LazyMake
       } else {
         ExportMode::Missing
@@ -1566,7 +1591,7 @@ impl Dependency for ESMExportImportedSpecifierDependency {
   }
 
   fn lazy(&self) -> Option<LazyUntil> {
-    self.lazy_make.get().then(|| {
+    self.lazy_make.load(Ordering::Relaxed).then(|| {
       if let Some(name) = &self.name {
         LazyUntil::Id(name.clone())
       } else {
@@ -1576,11 +1601,11 @@ impl Dependency for ESMExportImportedSpecifierDependency {
   }
 
   fn set_lazy(&self) {
-    self.lazy_make.set();
+    self.lazy_make.store(true, Ordering::Relaxed);
   }
 
   fn unset_lazy(&self) -> bool {
-    self.lazy_make.unset()
+    self.lazy_make.swap(false, Ordering::Relaxed)
   }
 }
 

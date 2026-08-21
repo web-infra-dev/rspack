@@ -13,12 +13,11 @@ use tracing::instrument;
 use self::glob::ContextModuleGlobMatcher;
 pub use self::glob::{CompiledContextModuleGlobRequest, compile_context_module_glob_request};
 use crate::{
-  BoxDependency, CompilationId, ContextElementDependency, ContextMode, ContextModule,
-  ContextModuleOptions, ContextModulePattern, DependencyCategory, DependencyId, DependencyType,
-  ModuleExt, ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, OverrideStrict,
-  ResolveArgs, ResolveContextModuleDependencies, ResolveInnerOptions,
-  ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory, SharedPluginDriver,
-  resolve, walk_dir,
+  CompilationId, ContextElementDependency, ContextMode, ContextModule, ContextModuleOptions,
+  ContextModulePattern, DependencyCategory, DependencyId, DependencyRef, DependencyType, ModuleExt,
+  ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, OverrideStrict, ResolveArgs,
+  ResolveContextModuleDependencies, ResolveInnerOptions, ResolveOptionsWithDependencyType,
+  ResolveResult, Resolver, ResolverFactory, SharedPluginDriver, resolve, walk_dir,
 };
 
 mod glob;
@@ -36,7 +35,7 @@ pub struct BeforeResolveData {
   pub context: String,
   pub request: String,
   // assertions
-  pub dependencies: Vec<BoxDependency>,
+  pub dependencies: Vec<DependencyRef>,
   // dependency_type
   // file_dependencies
   // missing_dependencies
@@ -58,7 +57,7 @@ pub struct AfterResolveData {
   pub compilation_id: CompilationId,
   pub resource: Utf8PathBuf,
   pub context: String,
-  pub dependencies: Vec<BoxDependency>,
+  pub dependencies: Vec<DependencyRef>,
   // layer
   // resolve_options
   // file_dependencies: HashSet<String>,
