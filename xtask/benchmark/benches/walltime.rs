@@ -6,6 +6,7 @@ use criterion::{Criterion, criterion_group, criterion_main};
 use rspack_tasks::{CompilerContext, within_compiler_context, within_compiler_context_sync};
 
 use crate::groups::{
+  build_chunk_graph::build_chunk_graph_wide_benchmark,
   bundle::{
     threejs_10x,
     util::{CompilerBuilderGenerator, derive_projects},
@@ -88,5 +89,9 @@ impl Drop for NativeOutputCleanup {
 }
 
 criterion_group!(benchmark_setup, configure_rayon_for_benchmark);
-criterion_group!(walltime_benches, threejs_10x_bundle_benchmark);
+criterion_group!(
+  walltime_benches,
+  threejs_10x_bundle_benchmark,
+  build_chunk_graph_wide_benchmark
+);
 criterion_main!(benchmark_setup, walltime_benches);

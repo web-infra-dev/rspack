@@ -20,6 +20,9 @@ use serde_json::json;
 use crate::groups::diagnostics::assert_no_compilation_errors;
 
 pub(crate) static NUM_MODULES: usize = 10000;
+const WIDE_CHUNK_GROUPS: usize = 64;
+const WIDE_BRANCHES_PER_GROUP: usize = 8;
+const WIDE_LEAVES_PER_BRANCH: usize = 16;
 
 pub(crate) async fn prepare_large_code_splitting_case(
   num: usize,
@@ -37,6 +40,74 @@ pub(crate) async fn prepare_large_code_splitting_case(
       .await
       .unwrap();
   }
+}
+
+async fn prepare_wide_code_splitting_case(
+  groups: usize,
+  branches_per_group: usize,
+  leaves_per_branch: usize,
+  fs: &MemoryFileSystem,
+) {
+  fs.create_dir_all("/src".into()).await.unwrap();
+  fs.create_dir_all("/src/wide".into()).await.unwrap();
+
+  let mut entry = String::new();
+  for group in 0..groups {
+    entry.push_str(&format!("import('/src/wide/group-{group}.js');\n"));
+    let mut group_source = String::new();
+    for branch in 0..branches_per_group {
+      group_source.push_str(&format!(
+        "import value{branch} from '/src/wide/group-{group}-branch-{branch}.js';\n"
+      ));
+
+      let mut branch_source = String::new();
+      for leaf in 0..leaves_per_branch {
+        let leaf_id = (group * branches_per_group + branch) * leaves_per_branch + leaf;
+        branch_source.push_str(&format!(
+          "import value{leaf} from '/src/wide/leaf-{leaf_id}.js';\n"
+        ));
+        fs.write(
+          format!("/src/wide/leaf-{leaf_id}.js").as_str().into(),
+          format!("export default {leaf_id};").as_bytes(),
+        )
+        .await
+        .unwrap();
+      }
+      branch_source.push_str("export default ");
+      branch_source.push_str(
+        &(0..leaves_per_branch)
+          .map(|leaf| format!("value{leaf}"))
+          .collect::<Vec<_>>()
+          .join(" + "),
+      );
+      branch_source.push_str(";\n");
+      fs.write(
+        format!("/src/wide/group-{group}-branch-{branch}.js")
+          .as_str()
+          .into(),
+        branch_source.as_bytes(),
+      )
+      .await
+      .unwrap();
+    }
+    group_source.push_str("export default ");
+    group_source.push_str(
+      &(0..branches_per_group)
+        .map(|branch| format!("value{branch}"))
+        .collect::<Vec<_>>()
+        .join(" + "),
+    );
+    group_source.push_str(";\n");
+    fs.write(
+      format!("/src/wide/group-{group}.js").as_str().into(),
+      group_source.as_bytes(),
+    )
+    .await
+    .unwrap();
+  }
+  fs.write("/src/wide-entry.js".into(), entry.as_bytes())
+    .await
+    .unwrap();
 }
 
 fn gen_static_leaf_module(index: usize, ctx: &mut Vec<(String, String)>) {
@@ -104,7 +175,10 @@ fn gen_dynamic_module(
 pub fn build_chunk_graph_benchmark(c: &mut Criterion) {
   within_compiler_context_for_testing_sync(|| {
     build_chunk_graph_benchmark_inner(c);
-  })
+  });
+  // The simulation target runs this with one Rayon worker to catch fallback overhead. The
+  // dedicated walltime target registers the same case with the real multi-threaded pool.
+  build_chunk_graph_wide_benchmark(c);
 }
 pub fn build_chunk_graph_benchmark_inner(c: &mut Criterion) {
   let rt = rspack_benchmark::build_tokio_rt();
@@ -196,10 +270,57 @@ pub fn build_chunk_graph_benchmark_inner(c: &mut Criterion) {
     compiler.compilation.exports_info_artifact = exports_info_artifact.into();
   });
 
+  register_build_chunk_graph_benchmark(c, "rust@build_chunk_graph", compiler, NUM_MODULES / 10);
+}
+
+pub fn build_chunk_graph_wide_benchmark(c: &mut Criterion) {
+  within_compiler_context_for_testing_sync(|| {
+    build_chunk_graph_wide_benchmark_inner(c);
+  });
+}
+
+fn build_chunk_graph_wide_benchmark_inner(c: &mut Criterion) {
+  let rt = rspack_benchmark::build_tokio_rt();
+  let _guard = rt.enter();
+  let wide_fs = Arc::new(MemoryFileSystem::default());
+  let mut wide_compiler = Compiler::builder()
+    .context("/")
+    .entry("main", "/src/wide-entry.js")
+    .input_filesystem(wide_fs.clone())
+    .output_filesystem(wide_fs.clone())
+    .optimization(Optimization::builder())
+    .incremental(IncrementalOptions::empty_passes())
+    .build()
+    .unwrap();
+  reset_compilation_state(&mut wide_compiler);
+  rt.block_on(async {
+    prepare_wide_code_splitting_case(
+      WIDE_CHUNK_GROUPS,
+      WIDE_BRANCHES_PER_GROUP,
+      WIDE_LEAVES_PER_BRANCH,
+      &wide_fs,
+    )
+    .await;
+    prepare_chunk_graph_compilation(&mut wide_compiler).await;
+  });
+  register_build_chunk_graph_benchmark(
+    c,
+    "rust@build_chunk_graph_wide",
+    wide_compiler,
+    WIDE_CHUNK_GROUPS + 1,
+  );
+}
+
+fn register_build_chunk_graph_benchmark(
+  c: &mut Criterion,
+  name: &'static str,
+  compiler: Compiler,
+  expected_chunks: usize,
+) {
   assert_no_compilation_errors(&compiler.compilation, "build_chunk_graph benchmark setup");
   let compiler = RefCell::new(compiler);
 
-  c.bench_function("rust@build_chunk_graph", |b| {
+  c.bench_function(name, |b| {
     b.iter_batched_ref(
       || {
         let mut compiler = compiler.borrow_mut();
@@ -215,12 +336,75 @@ pub fn build_chunk_graph_benchmark_inner(c: &mut Criterion) {
             .build_chunk_graph_artifact
             .chunk_by_ukey
             .len(),
-          NUM_MODULES / 10
+          expected_chunks
         );
       },
       BatchSize::PerIteration,
     );
   });
+}
+
+async fn prepare_chunk_graph_compilation(compiler: &mut Compiler) {
+  let mut compilation_params = compiler.new_compilation_params();
+  compiler
+    .plugin_driver
+    .compiler_hooks
+    .this_compilation
+    .call(&mut compiler.compilation, &mut compilation_params)
+    .await
+    .unwrap();
+  compiler
+    .plugin_driver
+    .compiler_hooks
+    .compilation
+    .call(&mut compiler.compilation, &mut compilation_params)
+    .await
+    .unwrap();
+  compiler
+    .plugin_driver
+    .compiler_hooks
+    .make
+    .call(&mut compiler.compilation)
+    .await
+    .unwrap();
+  build_module_graph_pass(&mut compiler.compilation)
+    .await
+    .unwrap();
+
+  let mut side_effects_optimize_artifact =
+    compiler.compilation.side_effects_optimize_artifact.steal();
+  let mut diagnostics: Vec<Diagnostic> = vec![];
+  let mut build_module_graph_artifact = compiler.compilation.build_module_graph_artifact.steal();
+  let mut exports_info_artifact = compiler.compilation.exports_info_artifact.steal();
+  while matches!(
+    compiler
+      .plugin_driver
+      .compilation_hooks
+      .optimize_dependencies
+      .call(
+        &compiler.compilation,
+        &mut side_effects_optimize_artifact,
+        &mut build_module_graph_artifact,
+        &mut exports_info_artifact,
+        &mut diagnostics
+      )
+      .await
+      .unwrap(),
+    Some(true)
+  ) {}
+  compiler.compilation.build_module_graph_artifact = build_module_graph_artifact.into();
+  compiler.compilation.exports_info_artifact = exports_info_artifact.into();
+  compiler.compilation.side_effects_optimize_artifact = side_effects_optimize_artifact.into();
+  compiler.compilation.extend_diagnostics(diagnostics);
+
+  let make_artifact = compiler.compilation.build_module_graph_artifact.steal();
+  let exports_info_artifact = compiler.compilation.exports_info_artifact.steal();
+  let (make_artifact, exports_info_artifact) =
+    finish_build_module_graph(&compiler.compilation, make_artifact, exports_info_artifact)
+      .await
+      .unwrap();
+  compiler.compilation.build_module_graph_artifact = make_artifact.into();
+  compiler.compilation.exports_info_artifact = exports_info_artifact.into();
 }
 
 pub fn build_module_graph_benchmark(c: &mut Criterion) {
