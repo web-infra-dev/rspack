@@ -76,6 +76,9 @@ impl AMDRequireDependenciesBlockParserPlugin {
         if request == "require" {
           deps.push(AMDRequireArrayItem::Require);
         } else if request == "exports" || request == "module" {
+          // AMD pseudo-dependencies expose the current CommonJS factory objects to user code,
+          // regardless of the callback parameter name.
+          parser.build_info.module_exports_accessed = Some(true);
           deps.push(AMDRequireArrayItem::String(request.into()));
         } else if let Some(local_module) = parser.get_local_module_mut(request) {
           local_module.flag_used();
@@ -125,16 +128,18 @@ impl AMDRequireDependenciesBlockParserPlugin {
           RuntimeGlobals::REQUIRE,
         ));
         parser.add_presentational_dependency(dep);
-      } else if param_str == "module" {
+      } else if param_str == "module" || param_str == "exports" {
+        // AMD pseudo-dependencies expose the current CommonJS factory objects to user code,
+        // regardless of the callback parameter name.
+        parser.build_info.module_exports_accessed = Some(true);
+        let runtime_global = if param_str == "module" {
+          RuntimeGlobals::MODULE
+        } else {
+          RuntimeGlobals::EXPORTS
+        };
         let dep = Box::new(RuntimeRequirementsDependency::new(
           range.into(),
-          RuntimeGlobals::MODULE,
-        ));
-        parser.add_presentational_dependency(dep);
-      } else if param_str == "exports" {
-        let dep = Box::new(RuntimeRequirementsDependency::new(
-          range.into(),
-          RuntimeGlobals::EXPORTS,
+          runtime_global,
         ));
         parser.add_presentational_dependency(dep);
       } else if let Some(local_module) = parser.get_local_module_mut(param_str) {

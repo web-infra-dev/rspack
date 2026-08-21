@@ -37,10 +37,8 @@ pub(crate) use self::{
   amd::{
     AMDDefineDependencyParserPlugin, AMDParserPlugin, AMDRequireDependenciesBlockParserPlugin,
   },
-  api_plugin::{APIPlugin, untracked_module_exports_access_apis},
-  common_js_exports_parse_plugin::{
-    CommonJsExportsCallerReflectionParserPlugin, CommonJsExportsParserPlugin,
-  },
+  api_plugin::APIPlugin,
+  common_js_exports_parse_plugin::CommonJsExportsParserPlugin,
   common_js_imports_parse_plugin::{
     CREATE_REQUIRE_EVALUATED_TAG, CREATE_REQUIRE_SPECIFIER_TAG, CREATED_REQUIRE_IDENTIFIER_TAG,
     CommonJsImportsParserPlugin, CreatedRequireReferencesState, CreatedRequireTagData,

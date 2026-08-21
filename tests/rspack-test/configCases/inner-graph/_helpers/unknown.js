@@ -1,2 +1,2 @@
-// This fixture intentionally reads the CommonJS exports object.
-exports;
+// Keep this CommonJS export surface unknown for the inner-graph fixtures.
+void exports;

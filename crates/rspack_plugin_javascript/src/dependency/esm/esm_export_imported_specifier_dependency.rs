@@ -7,13 +7,13 @@ use rspack_cacheable::{
 };
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
-  AsContextDependency, ChunkGraph, ConditionalInitFragment, ConnectionState, Dependency,
-  DependencyCategory, DependencyCodeGeneration, DependencyCondition, DependencyConditionFn,
-  DependencyDiagnosticsContext, DependencyId, DependencyLocation, DependencyRange,
-  DependencyTemplate, DependencyTemplateType, DependencyType, DetermineExportAssignmentsKey,
-  ESMExportBinding, ESMExportInitFragment, ExportMode, ExportModeDynamicReexport,
-  ExportModeEmptyStar, ExportModeFakeNamespaceObject, ExportModeNormalReexport,
-  ExportModeReexportDynamicDefault, ExportModeReexportNamedDefault,
+  AsContextDependency, BuildMetaExportsType, ChunkGraph, ConditionalInitFragment, ConnectionState,
+  Dependency, DependencyCategory, DependencyCodeGeneration, DependencyCondition,
+  DependencyConditionFn, DependencyDiagnosticsContext, DependencyId, DependencyLocation,
+  DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
+  DetermineExportAssignmentsKey, ESMExportBinding, ESMExportInitFragment, ExportMode,
+  ExportModeDynamicReexport, ExportModeEmptyStar, ExportModeFakeNamespaceObject,
+  ExportModeNormalReexport, ExportModeReexportDynamicDefault, ExportModeReexportNamedDefault,
   ExportModeReexportNamespaceObject, ExportModeReexportUndefined, ExportModeUnused,
   ExportNameOrSpec, ExportPresenceMode, ExportProvided, ExportSpec, ExportsInfoArtifact,
   ExportsInfoData, ExportsOfExportsSpec, ExportsSpec, ExportsType, FactorizeInfo, ForwardId,
@@ -131,10 +131,6 @@ impl ESMExportImportedSpecifierDependency {
   pub fn get_ids<'a>(&'a self, mg: &'a ModuleGraph) -> &'a [Atom] {
     mg.get_dep_meta_if_existing(&self.id)
       .map_or_else(|| self.ids.as_slice(), |meta| meta.ids.as_slice())
-  }
-
-  pub fn is_star_export(&self) -> bool {
-    self.name.is_none()
   }
 
   pub fn get_mode(
@@ -1326,11 +1322,24 @@ impl Dependency for ESMExportImportedSpecifierDependency {
       }
       ExportMode::ReexportNamespaceObject(mode) => {
         let from = mg.connection_by_dependency_id(self.id());
+        let forward_exports_info = mg
+          .get_module_by_dependency_id(&self.id)
+          .is_none_or(|module| {
+            module.build_meta().exports_type() != BuildMetaExportsType::Unset
+              || module.build_info().module_exports_accessed != Some(false)
+          });
         Some(ExportsSpec {
           exports: ExportsOfExportsSpec::Names(vec![ExportNameOrSpec::ExportSpec(ExportSpec {
             name: mode.name,
             export: Some(rspack_core::Nullable::Null),
-            from: from.cloned(),
+            // A CommonJS namespace remains a runtime object even when its statically observed
+            // export surface is empty. Forwarding the empty nested exports would turn
+            // `export * as ns` followed by `ns.value` into a linking error.
+            from: if forward_exports_info {
+              from.cloned()
+            } else {
+              None
+            },
             ..Default::default()
           })]),
           priority: Some(1),

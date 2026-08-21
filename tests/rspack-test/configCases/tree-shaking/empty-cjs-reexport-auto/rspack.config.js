@@ -14,11 +14,11 @@ module.exports = {
     noParse: /no-parse\.js$/,
     rules: [
       {
-        test: /\.ts$/,
-        type: 'javascript/auto',
+        test: /dynamic\.js$/,
+        type: 'javascript/dynamic',
       },
       {
-        test: /disabled-commonjs\.js$/,
+        test: /disabled\.js$/,
         parser: {
           commonjs: {
             exports: false,

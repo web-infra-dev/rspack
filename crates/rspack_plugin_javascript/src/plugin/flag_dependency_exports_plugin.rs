@@ -1,134 +1,21 @@
 use rayon::prelude::*;
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
-  AffectType, AsyncModulesArtifact, BoxDependency, BuildMetaExportsType, Compilation,
-  CompilationFinishModules, DependencyId, EvaluatedInlinableValue, ExportInfo, ExportInfoData,
-  ExportNameOrSpec, ExportProvided, ExportsInfo, ExportsInfoArtifact, ExportsInfoData,
-  ExportsOfExportsSpec, ExportsSpec, GetTargetResult, Logger, Module, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, Nullable, Plugin,
-  SideEffectsStateArtifact, get_target,
+  AsyncModulesArtifact, BuildMetaExportsType, Compilation, CompilationFinishModules, DependencyId,
+  EvaluatedInlinableValue, ExportInfo, ExportInfoData, ExportNameOrSpec, ExportProvided,
+  ExportsInfo, ExportsInfoArtifact, ExportsInfoData, ExportsOfExportsSpec, ExportsSpec,
+  GetTargetResult, Logger, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection,
+  ModuleIdentifier, Nullable, Plugin, SideEffectsStateArtifact, get_target,
   incremental::{self, IncrementalPasses},
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use swc_atoms::Atom;
 
-use crate::dependency::{ESMExportImportedSpecifierDependency, ESMImportSideEffectDependency};
-
-fn is_safe_empty_exports_incoming_dependency(dependency: &BoxDependency) -> bool {
-  dependency
-    .downcast_ref::<ESMImportSideEffectDependency>()
-    .is_some()
-    || dependency
-      .downcast_ref::<ESMExportImportedSpecifierDependency>()
-      .is_some_and(ESMExportImportedSpecifierDependency::is_star_export)
-}
-
-fn is_empty_exports_candidate(module: &dyn Module) -> bool {
-  module.build_meta().exports_type() == BuildMetaExportsType::Unset
-    && module.build_info().module_exports_accessed == Some(false)
-}
-
-fn can_infer_empty_exports(
-  module_id: &ModuleIdentifier,
-  module_graph: &ModuleGraph,
-  has_untracked_module_exports_access: bool,
-) -> bool {
-  // Not touching `module.exports` locally is insufficient: another module can still obtain the
-  // CommonJS exports object and mutate it. The module cache and low-level runtime APIs can expose or
-  // replace exports without a graph edge. Side-effect-only ESM imports and star reexports do not
-  // expose that object to user code.
-  !has_untracked_module_exports_access
-    && module_graph
-      .get_incoming_connections(module_id)
-      .all(|connection| {
-        let dependency = module_graph.dependency_by_id(&connection.dependency_id);
-        is_safe_empty_exports_incoming_dependency(dependency)
-      })
-}
-
-fn add_affected_empty_exports_modules(
-  module_graph: &ModuleGraph,
-  revoked_dependency_target_modules: &IdentifierSet,
-  invalidate_all_candidates: bool,
-  modules: &mut IdentifierSet,
-) {
-  // Changing a dependency does not rebuild its target. Re-run export inference for candidate
-  // CommonJS targets when an affected module adds an unsafe edge, or when a revoked edge may have
-  // been the last unsafe edge. Untracked module-exports access invalidates every candidate
-  // because it does not create target-specific edges. Then include modules whose export information
-  // depends on the candidates.
-  let affected_modules = modules.iter().copied().collect::<Vec<_>>();
-  let mut affected_empty_exports_modules = if invalidate_all_candidates {
-    module_graph
-      .modules()
-      .filter_map(|(module_id, module)| {
-        is_empty_exports_candidate(module.as_ref()).then_some(*module_id)
-      })
-      .collect::<IdentifierSet>()
-  } else {
-    revoked_dependency_target_modules
-      .iter()
-      .filter(|module_id| {
-        module_graph
-          .module_by_identifier(module_id)
-          .is_some_and(|module| is_empty_exports_candidate(module.as_ref()))
-      })
-      .copied()
-      .collect::<IdentifierSet>()
-  };
-
-  for module_id in affected_modules {
-    for connection in module_graph.get_outgoing_connections(&module_id) {
-      let dependency = module_graph.dependency_by_id(&connection.dependency_id);
-      if is_safe_empty_exports_incoming_dependency(dependency) {
-        continue;
-      }
-      let target_module_id = connection.module_identifier();
-      if module_graph
-        .module_by_identifier(target_module_id)
-        .is_some_and(|module| is_empty_exports_candidate(module.as_ref()))
-      {
-        affected_empty_exports_modules.insert(*target_module_id);
-      }
-    }
-  }
-
-  let mut transitive_modules = affected_empty_exports_modules
-    .iter()
-    .copied()
-    .collect::<Vec<_>>();
-  let mut expanded_modules = IdentifierSet::default();
-  modules.extend(affected_empty_exports_modules);
-
-  while let Some(module_id) = transitive_modules.pop() {
-    if !expanded_modules.insert(module_id) {
-      continue;
-    }
-    for connection in module_graph.get_incoming_connections(&module_id) {
-      let Some(origin_module_id) = connection.original_module_identifier else {
-        continue;
-      };
-      let dependency = module_graph.dependency_by_id(&connection.dependency_id);
-      match dependency.could_affect_referencing_module() {
-        AffectType::False => {}
-        AffectType::True => {
-          modules.insert(origin_module_id);
-        }
-        AffectType::Transitive => {
-          modules.insert(origin_module_id);
-          transitive_modules.push(origin_module_id);
-        }
-      }
-    }
-  }
-}
-
 struct FlagDependencyExportsState<'a> {
   mg: &'a ModuleGraph,
   mg_cache: &'a ModuleGraphCacheArtifact,
   exports_info_artifact: &'a mut ExportsInfoArtifact,
-  has_untracked_module_exports_access: bool,
 }
 
 impl<'a> FlagDependencyExportsState<'a> {
@@ -136,13 +23,11 @@ impl<'a> FlagDependencyExportsState<'a> {
     mg: &'a ModuleGraph,
     mg_cache: &'a ModuleGraphCacheArtifact,
     exports_info_artifact: &'a mut ExportsInfoArtifact,
-    has_untracked_module_exports_access: bool,
   ) -> Self {
     Self {
       mg,
       mg_cache,
       exports_info_artifact,
-      has_untracked_module_exports_access,
     }
   }
 
@@ -154,8 +39,6 @@ impl<'a> FlagDependencyExportsState<'a> {
         .module_by_identifier(module_id)
         .expect("should have module");
       let exports_type_unset = module.build_meta().exports_type() == BuildMetaExportsType::Unset;
-      let infer_empty_exports = is_empty_exports_candidate(module.as_ref())
-        && can_infer_empty_exports(module_id, self.mg, self.has_untracked_module_exports_access);
       let exports_info = self
         .exports_info_artifact
         .get_exports_info_data_mut(module_id);
@@ -163,7 +46,8 @@ impl<'a> FlagDependencyExportsState<'a> {
       exports_info.reset_provide_info();
       if exports_type_unset {
         exports_info.set_has_provide_info();
-        if !infer_empty_exports
+        let can_infer_empty_exports = module.build_info().module_exports_accessed == Some(false);
+        if !can_infer_empty_exports
           && !matches!(
             exports_info.other_exports_info().provided(),
             Some(ExportProvided::Unknown)
@@ -319,11 +203,7 @@ async fn finish_modules(
   _side_effects_state_artifact: &mut SideEffectsStateArtifact,
 ) -> Result<()> {
   let module_graph = compilation.get_module_graph();
-  let has_untracked_module_exports_access = !compilation
-    .build_module_graph_artifact
-    .untracked_module_exports_access_modules
-    .is_empty();
-  let (mut modules, incremental) = if let Some(mutations) = compilation
+  let modules: IdentifierSet = if let Some(mutations) = compilation
     .incremental
     .mutations_read(IncrementalPasses::FINISH_MODULES)
   {
@@ -335,32 +215,14 @@ async fn finish_modules(
       modules.len(),
       module_graph.modules_len()
     ));
-    (modules, true)
+    modules
   } else {
-    (module_graph.modules_keys().copied().collect(), false)
+    module_graph.modules_keys().copied().collect()
   };
-  if incremental {
-    add_affected_empty_exports_modules(
-      module_graph,
-      &compilation
-        .build_module_graph_artifact
-        .revoked_dependency_target_modules,
-      compilation
-        .build_module_graph_artifact
-        .had_untracked_module_exports_access_before_make
-        != has_untracked_module_exports_access,
-      &mut modules,
-    );
-  }
   let module_graph_cache = compilation.module_graph_cache_artifact.clone();
 
-  FlagDependencyExportsState::new(
-    module_graph,
-    &module_graph_cache,
-    exports_info_artifact,
-    has_untracked_module_exports_access,
-  )
-  .apply(modules);
+  FlagDependencyExportsState::new(module_graph, &module_graph_cache, exports_info_artifact)
+    .apply(modules);
 
   Ok(())
 }

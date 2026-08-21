@@ -33,7 +33,6 @@ use swc_experimental_ecma_transforms_base::remove_paren::remove_paren;
 use crate::{
   BoxJavascriptParserPlugin,
   dependency::ESMCompatibilityDependency,
-  parser_plugin::untracked_module_exports_access_apis,
   visitors::{
     ParsedJavaScriptAst, ScanDependenciesResult,
     concatenate_scope_info::PendingConcatenationScopeInfoVisitor, scan_dependencies, semicolon,
@@ -52,10 +51,6 @@ pub struct ParserRuntimeRequirementsData {
   pub require_regex: &'static LazyLock<Regex>,
   pub module_cache: String,
   pub entry_module_id: String,
-  /// Names through which user code can reach the module cache, the module factories or the runtime
-  /// require without creating a module graph edge. Precomputed because it is matched against every
-  /// resolved expression name while parsing.
-  pub(crate) untracked_module_exports_access_apis: Box<[Box<str>]>,
 }
 
 static LEGACY_REQUIRE_REGEX: LazyLock<Regex> = LazyLock::new(|| {
@@ -131,15 +126,8 @@ impl ParserRuntimeRequirementsData {
       runtime_template.render_runtime_globals_without_adding(&RuntimeGlobals::ENTRY_MODULE_ID);
     let context_name = runtime_template.render_runtime_variable(&RuntimeVariable::Context);
     let rspack_module_name = runtime_template.render_runtime_variable(&RuntimeVariable::Module);
-    let render_mode = runtime_template.render_mode();
-    let untracked_module_exports_access_apis = untracked_module_exports_access_apis(
-      render_mode,
-      &context_name,
-      &require_name,
-      &module_cache_name,
-    );
     Self {
-      render_mode,
+      render_mode: runtime_template.render_mode(),
       require_regex: &LEGACY_REQUIRE_REGEX,
       context: context_name,
       module: module_name,
@@ -149,7 +137,6 @@ impl ParserRuntimeRequirementsData {
       compatibility_runtime_scope,
       module_cache: module_cache_name,
       entry_module_id: entry_module_id_name,
-      untracked_module_exports_access_apis,
     }
   }
 

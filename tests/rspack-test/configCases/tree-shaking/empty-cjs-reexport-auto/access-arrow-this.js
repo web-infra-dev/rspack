@@ -1,3 +1,0 @@
-(() => {
-	this.arrowThisValue = "arrow this";
-})();

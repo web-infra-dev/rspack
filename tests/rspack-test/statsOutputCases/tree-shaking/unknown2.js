@@ -1,3 +1,4 @@
 console.log();
-// This fixture intentionally reads the CommonJS exports object.
-exports;
+
+// Keep this CommonJS export surface unknown for the dynamic reexport case.
+void exports;

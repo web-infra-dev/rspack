@@ -5,6 +5,7 @@ Entrypoint main xx KiB = main.js
 chunk {889} (runtime: main) main.js (main) xx bytes [entry] [rendered]
   > ./index main
 ./index.js [237] xx bytes {889} [depth 0] [built] [code generated] [2 warnings]
+  [no exports]
   [no exports used]
   Statement with side_effects in source code at ./index.js<LINE_COL>-8
   ModuleConcatenation bailout: Module is not an ECMAScript module

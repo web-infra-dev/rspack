@@ -2,9 +2,8 @@ use rspack_core::{BuildMetaDefaultObject, BuildMetaExportsType, DependencyRange,
 use rspack_util::SpanExt;
 use swc_atoms::Atom;
 use swc_experimental_ecma_ast::{
-  AssignExpr, CallExpr, Expr, ExprOrSpread, GetSpan, Ident, Lit, MemberExpr, MemberProp,
-  ObjectPatProp, Pat, Program, Prop, PropName, PropOrSpread, Span, ThisExpr, UnaryExpr, UnaryOp,
-  VarDeclarator, Visit, VisitWith,
+  AssignExpr, CallExpr, Expr, ExprOrSpread, GetSpan, Ident, Lit, MemberExpr, Prop, PropName,
+  PropOrSpread, Span, ThisExpr, UnaryExpr, UnaryOp,
 };
 
 use super::JavascriptParserPlugin;
@@ -15,62 +14,8 @@ use crate::{
   },
   parser_plugin::common_js_imports_parse_plugin::is_require_call_expr,
   utils::eval::{self, BasicEvaluatedExpression},
-  visitors::{
-    JavascriptParser, VariableDeclaration, VariableDeclarationKind, member_property_to_atom,
-  },
+  visitors::JavascriptParser,
 };
-
-fn pattern_binds_name(pattern: &Pat, name: &str) -> bool {
-  match pattern {
-    Pat::Ident(ident) => ident.id.sym.as_ref() == name,
-    Pat::Array(array) => array
-      .elems
-      .iter()
-      .flatten()
-      .any(|element| pattern_binds_name(element, name)),
-    Pat::Assign(assign) => pattern_binds_name(&assign.left, name),
-    Pat::Object(object) => object.props.iter().any(|property| match property {
-      ObjectPatProp::KeyValue(property) => pattern_binds_name(&property.value, name),
-      ObjectPatProp::Assign(property) => property.key.id.sym.as_ref() == name,
-      ObjectPatProp::Rest(property) => pattern_binds_name(&property.arg, name),
-    }),
-    Pat::Rest(rest) => pattern_binds_name(&rest.arg, name),
-    Pat::Expr(_) | Pat::Invalid(_) => false,
-  }
-}
-
-fn member_property_is_caller(property: &MemberProp) -> bool {
-  match property {
-    MemberProp::Ident(ident) => ident.sym == "caller",
-    MemberProp::Computed(computed) => {
-      member_property_to_atom(&computed.expr).is_some_and(|property| property == "caller")
-    }
-    MemberProp::PrivateName(_) => false,
-  }
-}
-
-#[derive(Default)]
-struct FunctionCallerReflectionVisitor {
-  found: bool,
-}
-
-impl Visit<'_> for FunctionCallerReflectionVisitor {
-  fn visit_member_expr(&mut self, expression: &MemberExpr<'_>) {
-    if self.found {
-      return;
-    }
-    if member_property_is_caller(&expression.prop) {
-      self.found = true;
-      return;
-    }
-    expression.visit_children_with(self);
-  }
-}
-
-fn mark_module_factory_arguments_access(parser: &mut JavascriptParser) {
-  parser.build_info.module_exports_accessed = Some(true);
-  parser.build_info.untracked_module_exports_access = true;
-}
 
 fn get_value_of_property_description<'a>(expr: &'a Expr<'a>) -> Option<&'a Expr<'a>> {
   if let Expr::Object(obj) = expr {
@@ -233,6 +178,7 @@ fn handle_assign_export(
   if parser.is_esm {
     return None;
   }
+  parser.build_info.module_exports_accessed = Some(true);
   if (remaining.is_empty() || remaining.first().is_some_and(|i| i != "__esModule"))
     && let Some((arg, ids)) = parse_require_call(parser, &assign_expr.right)
     && arg.is_string()
@@ -304,6 +250,7 @@ fn handle_access_export(
   if parser.is_esm {
     return None;
   }
+  parser.build_info.module_exports_accessed = Some(true);
   if remaining.is_empty() {
     parser.bailout();
   }
@@ -333,67 +280,15 @@ impl CommonJsExportsParserPlugin {
     self.skip_in_esm && parser.is_esm
   }
 
-  fn mark_access_module_exports(&self, parser: &mut JavascriptParser) {
-    parser.build_info.module_exports_accessed = Some(true);
-  }
-
-  fn mark_module_factory_arguments_access(&self, parser: &mut JavascriptParser) {
-    // The arguments object contains the runtime require function and can escape to user code. In a
-    // non-strict function wrapper its `callee.caller` chain exposes the same function, also without
-    // a module graph edge.
-    mark_module_factory_arguments_access(parser);
-  }
-
-  fn mark_top_level_arguments_access(&self, parser: &mut JavascriptParser, for_name: &str) {
-    // The CommonJS factory receives `module.exports` as its second argument. Top-level arrows share
-    // that `arguments` object, while regular functions have their own.
-    if for_name == "arguments" && parser.is_top_level_lexical_scope() {
-      self.mark_module_factory_arguments_access(parser);
+  fn mark_factory_arguments_accessed(&self, parser: &mut JavascriptParser, for_name: &str) {
+    if for_name == "arguments" && parser.is_top_level_this() {
+      parser.build_info.module_exports_accessed = Some(true);
     }
-  }
-}
-
-/// Handles legacy sloppy-mode function reflection separately so modern method-shorthand output
-/// does not pay for an AST scan that can never expose the module factory.
-pub struct CommonJsExportsCallerReflectionParserPlugin;
-
-#[rspack_macros::implemented_javascript_parser_hooks]
-impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsExportsCallerReflectionParserPlugin {
-  fn program(&self, parser: &mut JavascriptParser<'p>, program: &Program) -> Option<bool> {
-    if !parser.build_info.strict && !parser.build_info.untracked_module_exports_access {
-      let mut visitor = FunctionCallerReflectionVisitor::default();
-      program.visit_with(&mut visitor);
-      if visitor.found {
-        // A sloppy nested function's `caller` is the CommonJS factory. Its arguments expose both
-        // the current exports object and the runtime require function, so target-specific graph
-        // checks are insufficient.
-        mark_module_factory_arguments_access(parser);
-      }
-    }
-    None
   }
 }
 
 #[rspack_macros::implemented_javascript_parser_hooks]
 impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsExportsParserPlugin {
-  fn pre_declarator(
-    &self,
-    parser: &mut JavascriptParser<'p>,
-    declarator: &VarDeclarator,
-    declaration: VariableDeclaration<'_>,
-  ) -> Option<bool> {
-    if !self.should_skip_handler(parser)
-      && parser.is_top_level_scope()
-      && declaration.kind() == VariableDeclarationKind::Var
-      && pattern_binds_name(&declarator.name, "arguments")
-    {
-      // Top-level `var` declarations are hoisted into the CommonJS factory scope. Before their
-      // initializer runs, `arguments` still aliases the factory arguments and exposes exports.
-      self.mark_module_factory_arguments_access(parser);
-    }
-    None
-  }
-
   fn assign_member_chain(
     &self,
     parser: &mut JavascriptParser<'p>,
@@ -405,16 +300,13 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsExportsParserPlugin {
     if self.should_skip_handler(parser) {
       return None;
     }
-
-    self.mark_top_level_arguments_access(parser, for_name);
+    self.mark_factory_arguments_accessed(parser, for_name);
 
     if for_name == "exports" {
-      self.mark_access_module_exports(parser);
       // exports.x = y;
       return handle_assign_export(parser, assign_expr, remaining, ExportsBase::Exports);
     }
     if for_name == "module" && matches!(remaining.first(), Some(first) if first == "exports") {
-      self.mark_access_module_exports(parser);
       // module.exports.x = y;
       return handle_assign_export(
         parser,
@@ -424,7 +316,6 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsExportsParserPlugin {
       );
     }
     if for_name == "this" && parser.is_top_level_scope() {
-      self.mark_access_module_exports(parser);
       // this.x = y
       return handle_assign_export(parser, assign_expr, remaining, ExportsBase::This);
     }
@@ -440,13 +331,13 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsExportsParserPlugin {
     if self.should_skip_handler(parser) {
       return None;
     }
+    self.mark_factory_arguments_accessed(parser, for_name);
 
     if parser.is_esm {
       return None;
     }
-    self.mark_top_level_arguments_access(parser, for_name);
     if matches!(for_name, "module" | "exports") {
-      self.mark_access_module_exports(parser);
+      parser.build_info.module_exports_accessed = Some(true);
     }
     if for_name == "Object.defineProperty"
       && parser.is_statement_level_expression(call_expr.span)
@@ -474,7 +365,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsExportsParserPlugin {
         "this" if parser.is_top_level_scope() => ExportsBase::DefinePropertyThis,
         _ => return None,
       };
-      self.mark_access_module_exports(parser);
+      parser.build_info.module_exports_accessed = Some(true);
       let property = parser.evaluate_expression(arg1).as_string()?;
       parser.enable();
       // Object.defineProperty(exports, "__esModule", { value: true });
@@ -509,11 +400,10 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsExportsParserPlugin {
     if self.should_skip_handler(parser) {
       return None;
     }
-
-    self.mark_top_level_arguments_access(parser, for_name);
+    self.mark_factory_arguments_accessed(parser, for_name);
 
     if for_name == "module" {
-      self.mark_access_module_exports(parser);
+      parser.build_info.module_exports_accessed = Some(true);
       let decorator = if parser.is_esm {
         RuntimeGlobals::ESM_MODULE_DECORATOR
       } else {
@@ -528,7 +418,6 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsExportsParserPlugin {
     }
 
     if for_name == "exports" {
-      self.mark_access_module_exports(parser);
       // exports
       return handle_access_export(parser, ident.span, &[], &[], ExportsBase::Exports, None);
     }
@@ -547,7 +436,6 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsExportsParserPlugin {
     }
 
     if parser.is_top_level_this() {
-      self.mark_access_module_exports(parser);
       // this
       return handle_access_export(parser, expr.span, &[], &[], ExportsBase::This, None);
     }
@@ -563,11 +451,9 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsExportsParserPlugin {
     if self.should_skip_handler(parser) {
       return None;
     }
-
-    self.mark_top_level_arguments_access(parser, for_name);
+    self.mark_factory_arguments_accessed(parser, for_name);
 
     if for_name == "module.exports" {
-      self.mark_access_module_exports(parser);
       // module.exports
       return handle_access_export(
         parser,
@@ -593,11 +479,9 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsExportsParserPlugin {
     if self.should_skip_handler(parser) {
       return None;
     }
-
-    self.mark_top_level_arguments_access(parser, for_name);
+    self.mark_factory_arguments_accessed(parser, for_name);
 
     if for_name == "exports" {
-      self.mark_access_module_exports(parser);
       // exports.a.b.c
       return handle_access_export(
         parser,
@@ -610,7 +494,6 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsExportsParserPlugin {
     }
 
     if for_name == "module" && matches!(members.first(), Some(first) if first == "exports") {
-      self.mark_access_module_exports(parser);
       // module.exports.a.b.c
       return handle_access_export(
         parser,
@@ -623,7 +506,6 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsExportsParserPlugin {
     }
 
     if for_name == "this" && parser.is_top_level_scope() {
-      self.mark_access_module_exports(parser);
       // this.a.b.c
       return handle_access_export(
         parser,
@@ -650,11 +532,9 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsExportsParserPlugin {
     if self.should_skip_handler(parser) {
       return None;
     }
-
-    self.mark_top_level_arguments_access(parser, for_name);
+    self.mark_factory_arguments_accessed(parser, for_name);
 
     if for_name == "exports" {
-      self.mark_access_module_exports(parser);
       // exports.a.b.c()
       return handle_access_export(
         parser,
@@ -667,7 +547,6 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsExportsParserPlugin {
     }
 
     if for_name == "module" && matches!(members.first(), Some(first) if first == "exports") {
-      self.mark_access_module_exports(parser);
       // module.exports.a.b.c()
       return handle_access_export(
         parser,
@@ -680,7 +559,6 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsExportsParserPlugin {
     }
 
     if for_name == "this" && parser.is_top_level_scope() {
-      self.mark_access_module_exports(parser);
       // this.a.b.c()
       return handle_access_export(
         parser,
@@ -705,10 +583,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsExportsParserPlugin {
       return None;
     }
 
-    self.mark_top_level_arguments_access(parser, for_name);
-
     (for_name == "module" || for_name == "exports").then(|| {
-      self.mark_access_module_exports(parser);
       eval::evaluate_to_string(
         "object".to_string(),
         expr.span.real_lo(),

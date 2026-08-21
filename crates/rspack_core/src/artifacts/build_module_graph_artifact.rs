@@ -25,12 +25,6 @@ pub struct BuildModuleGraphArtifact {
   ///
   /// This field will contain added dependencies, updated dependencies, removed dependencies.
   pub affected_dependencies: IncrementalInfo<DependencyId>,
-  /// Target modules of dependencies revoked during the current incremental make.
-  ///
-  /// The target cannot be recovered from the module graph after its connection is removed.
-  pub revoked_dependency_target_modules: IdentifierSet,
-  /// Whether any module had untracked access to module exports before the current make started.
-  pub had_untracked_module_exports_access_before_make: bool,
   /// The modules which mgm.issuer() has been updated in cutout::fix_issuers.
   ///
   /// This field is empty on the initial compilation.
@@ -43,8 +37,6 @@ pub struct BuildModuleGraphArtifact {
   pub module_to_lazy_make: ModuleToLazyMake,
 
   // statistical data, which can be regenerated from module_graph_partial and used as index.
-  /// Modules whose build info records untracked access to module exports.
-  pub untracked_module_exports_access_modules: IdentifierSet,
   /// Diagnostic non-empty modules in the module graph.
   pub make_failed_module: IdentifierSet,
   /// Factorize failed dependencies in module graph
@@ -67,13 +59,10 @@ impl BuildModuleGraphArtifact {
     Self {
       affected_modules: Default::default(),
       affected_dependencies: Default::default(),
-      revoked_dependency_target_modules: Default::default(),
-      had_untracked_module_exports_access_before_make: false,
       issuer_update_modules: Default::default(),
       module_graph: Default::default(),
       side_effects_state_artifact: Default::default(),
       module_to_lazy_make: Default::default(),
-      untracked_module_exports_access_modules: Default::default(),
       make_failed_module: Default::default(),
       make_failed_dependencies: Default::default(),
       entry_dependencies: Default::default(),
@@ -106,24 +95,6 @@ impl BuildModuleGraphArtifact {
   ///
   /// This function will update index on MakeArtifact.
   pub fn revoke_module(&mut self, module_identifier: &ModuleIdentifier) -> Vec<BuildDependency> {
-    let revoked_dependency_target_modules = {
-      let mg = &self.module_graph;
-      let mgm = mg
-        .module_graph_module_by_identifier(module_identifier)
-        .expect("should have mgm");
-      mgm
-        .all_dependencies()
-        .iter()
-        .filter_map(|dep_id| mg.module_identifier_by_dependency_id(dep_id).copied())
-        .collect::<Vec<_>>()
-    };
-    self
-      .revoked_dependency_target_modules
-      .extend(revoked_dependency_target_modules);
-    self
-      .untracked_module_exports_access_modules
-      .remove(module_identifier);
-
     let mg = &mut self.module_graph;
     let module = mg
       .module_by_identifier(module_identifier)
@@ -186,8 +157,8 @@ impl BuildModuleGraphArtifact {
   pub fn revoke_dependency(&mut self, dep_id: &DependencyId, force: bool) -> Vec<BuildDependency> {
     self.make_failed_dependencies.remove(dep_id);
 
-    let revoke_dep_ids = {
-      let mg = &mut self.module_graph;
+    let mg = &mut self.module_graph;
+    let revoke_dep_ids =
       if let Some(factorize_info) = FactorizeInfo::revoke(mg.dependency_by_id_mut(dep_id)) {
         let resource_id = ResourceId::from(dep_id);
         self
@@ -203,22 +174,7 @@ impl BuildModuleGraphArtifact {
         factorize_info.related_dep_ids().to_vec()
       } else {
         vec![*dep_id]
-      }
-    };
-    let revoked_dependency_target_modules = revoke_dep_ids
-      .iter()
-      .filter_map(|dep_id| {
-        self
-          .module_graph
-          .module_identifier_by_dependency_id(dep_id)
-          .copied()
-      })
-      .collect::<Vec<_>>();
-    self
-      .revoked_dependency_target_modules
-      .extend(revoked_dependency_target_modules);
-
-    let mg = &mut self.module_graph;
+      };
     revoke_dep_ids
       .iter()
       .filter_map(|dep_id| {
@@ -264,11 +220,8 @@ impl BuildModuleGraphArtifact {
   }
 
   pub fn reset_temporary_data(&mut self) {
-    self.had_untracked_module_exports_access_before_make =
-      !self.untracked_module_exports_access_modules.is_empty();
     self.affected_modules.reset();
     self.affected_dependencies.reset();
-    self.revoked_dependency_target_modules.clear();
     self.side_effects_state_artifact = Default::default();
 
     self.file_dependencies.reset_incremental_info();

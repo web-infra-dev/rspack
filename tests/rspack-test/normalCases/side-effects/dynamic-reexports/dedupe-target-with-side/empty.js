@@ -1,2 +1,2 @@
-// This fixture intentionally reads the CommonJS exports object.
-exports;
+// Keep this export surface dynamic for the side-effectful dynamic reexport case.
+void exports;

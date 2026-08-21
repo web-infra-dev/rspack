@@ -277,13 +277,10 @@ pub struct BuildInfo {
   pub esm_named_exports: HashSet<Atom>,
   pub all_star_exports: Vec<DependencyId>,
   pub need_create_require: bool,
-  /// `Some(false)` means the CommonJS exports parser completed without observing access to the
-  /// module exports object. `Some(true)` means an access was observed, while `None` means no such
-  /// analysis was performed.
+  /// Whether parsing observed access to the current CommonJS factory's export surface.
+  /// `Some(false)` means an eligible `javascript/auto` module was parsed without observing an
+  /// access. `None` means empty exports must not be inferred from this signal.
   pub module_exports_accessed: Option<bool>,
-  /// Whether this module can access or replace module exports without a statically tracked module
-  /// graph connection, for example through the module cache or low-level runtime APIs.
-  pub untracked_module_exports_access: bool,
   #[cacheable(with=AsOption<AsPreset>)]
   pub json_data: Option<JsonValue>,
   pub asset: Option<Box<AssetBuildInfo>>,
@@ -326,7 +323,6 @@ impl Default for BuildInfo {
       all_star_exports: Vec::default(),
       need_create_require: false,
       module_exports_accessed: None,
-      untracked_module_exports_access: false,
       json_data: None,
       asset: None,
       css: None,

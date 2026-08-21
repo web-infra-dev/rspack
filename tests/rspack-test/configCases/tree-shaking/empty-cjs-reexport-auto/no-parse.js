@@ -1,1 +1,2 @@
-module.exports = { noParseValue: "no-parse" };
+"use strict";
+module.exports = { fromNoParse: "no-parse" };
