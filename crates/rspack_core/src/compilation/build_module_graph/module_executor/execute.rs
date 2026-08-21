@@ -432,7 +432,6 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
         compilation: &compilation,
         runtime: None,
         concatenation_scope: None,
-        concatenation_source: None,
         runtime_template: &mut runtime_template,
       };
       let result = runtime_module

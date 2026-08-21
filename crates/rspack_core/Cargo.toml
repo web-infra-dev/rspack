@@ -27,7 +27,6 @@ indoc                      = { workspace = true }
 inventory                  = { workspace = true }
 itertools                  = { workspace = true }
 json                       = { workspace = true }
-memchr                     = { workspace = true }
 mime_guess                 = { workspace = true }
 napi                       = { workspace = true, optional = true }
 num-bigint                 = { workspace = true }
