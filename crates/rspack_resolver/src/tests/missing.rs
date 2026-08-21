@@ -65,7 +65,9 @@ async fn test() {
     for path in missing_dependencies {
       assert_eq!(path, path.normalize(), "{path:?}");
       assert!(
-        ctx.missing_dependencies.contains(&InternedPath::from(&path)),
+        ctx
+          .missing_dependencies
+          .contains(&InternedPath::from(&path)),
         "{specifier}: {path:?} not in {:?}",
         &ctx.missing_dependencies
       );

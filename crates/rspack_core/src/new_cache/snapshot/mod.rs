@@ -96,7 +96,10 @@ impl Snapshot {
   }
 
   #[tracing::instrument("Cache::Snapshot::calc_modified_paths", skip_all)]
-  pub async fn calc_modified_paths(&self, entries: &[SnapshotEntry]) -> (InternedPathSet, InternedPathSet) {
+  pub async fn calc_modified_paths(
+    &self,
+    entries: &[SnapshotEntry],
+  ) -> (InternedPathSet, InternedPathSet) {
     let helper = StrategyHelper::new(self.fs.clone(), self.options.clone());
     let mut modified_files = InternedPathSet::default();
     let mut removed_files = InternedPathSet::default();

@@ -91,7 +91,10 @@ impl CacheValidator {
     })
   }
 
-  pub(super) async fn update(&mut self, paths: impl Iterator<Item = InternedPath>) -> Result<Vec<u8>> {
+  pub(super) async fn update(
+    &mut self,
+    paths: impl Iterator<Item = InternedPath>,
+  ) -> Result<Vec<u8>> {
     self
       .data
       .build_dependencies

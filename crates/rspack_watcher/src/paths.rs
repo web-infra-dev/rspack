@@ -61,12 +61,24 @@ impl<'a> PathAccessor<'a> {
   }
 
   /// Returns references to the sets of files, including added and removed files.
-  pub fn files(&self) -> (&'a InternedPathDashSet, &'a InternedPathDashSet, &'a InternedPathDashSet) {
+  pub fn files(
+    &self,
+  ) -> (
+    &'a InternedPathDashSet,
+    &'a InternedPathDashSet,
+    &'a InternedPathDashSet,
+  ) {
     (&self.files.all, &self.files.added, &self.files.removed)
   }
 
   /// Returns references to the set of directories, including added and removed directories.
-  pub fn directories(&self) -> (&'a InternedPathDashSet, &'a InternedPathDashSet, &'a InternedPathDashSet) {
+  pub fn directories(
+    &self,
+  ) -> (
+    &'a InternedPathDashSet,
+    &'a InternedPathDashSet,
+    &'a InternedPathDashSet,
+  ) {
     (
       &self.directories.all,
       &self.directories.added,
@@ -75,7 +87,13 @@ impl<'a> PathAccessor<'a> {
   }
 
   /// Returns references to the set of missing paths, including added and removed missing paths.
-  pub fn missing(&self) -> (&'a InternedPathDashSet, &'a InternedPathDashSet, &'a InternedPathDashSet) {
+  pub fn missing(
+    &self,
+  ) -> (
+    &'a InternedPathDashSet,
+    &'a InternedPathDashSet,
+    &'a InternedPathDashSet,
+  ) {
     (
       &self.missing.all,
       &self.missing.added,
@@ -284,9 +302,18 @@ impl PathManager {
   /// Update the paths, directories, and missing paths in the `PathManager`.
   pub fn update(
     &self,
-    files: (impl Iterator<Item = InternedPath>, impl Iterator<Item = InternedPath>),
-    directories: (impl Iterator<Item = InternedPath>, impl Iterator<Item = InternedPath>),
-    missing: (impl Iterator<Item = InternedPath>, impl Iterator<Item = InternedPath>),
+    files: (
+      impl Iterator<Item = InternedPath>,
+      impl Iterator<Item = InternedPath>,
+    ),
+    directories: (
+      impl Iterator<Item = InternedPath>,
+      impl Iterator<Item = InternedPath>,
+    ),
+    missing: (
+      impl Iterator<Item = InternedPath>,
+      impl Iterator<Item = InternedPath>,
+    ),
   ) -> Result<()> {
     PathUpdater::from(files).update(&self.files, &self.ignored)?;
     PathUpdater::from(directories).update(&self.directories, &self.ignored)?;

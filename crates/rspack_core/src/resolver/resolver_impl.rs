@@ -7,7 +7,7 @@ use std::{
 use rspack_error::{Error, Severity, cyan, yellow};
 use rspack_fs::ReadableFileSystem;
 use rspack_loader_runner::DescriptionData;
-use rspack_paths::{InternedPathSet, AssertUtf8};
+use rspack_paths::{AssertUtf8, InternedPathSet};
 use rspack_util::location::byte_line_column_to_offset;
 
 use super::{ResolveResult, Resource, boxfs::BoxFS};

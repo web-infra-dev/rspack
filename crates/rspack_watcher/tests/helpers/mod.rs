@@ -199,9 +199,18 @@ impl TestHelper {
   /// All paths are relative to the temporary directory.
   pub fn watch(
     &mut self,
-    files: (impl Iterator<Item = InternedPath>, impl Iterator<Item = InternedPath>),
-    directories: (impl Iterator<Item = InternedPath>, impl Iterator<Item = InternedPath>),
-    missing: (impl Iterator<Item = InternedPath>, impl Iterator<Item = InternedPath>),
+    files: (
+      impl Iterator<Item = InternedPath>,
+      impl Iterator<Item = InternedPath>,
+    ),
+    directories: (
+      impl Iterator<Item = InternedPath>,
+      impl Iterator<Item = InternedPath>,
+    ),
+    missing: (
+      impl Iterator<Item = InternedPath>,
+      impl Iterator<Item = InternedPath>,
+    ),
   ) -> Receiver<Event> {
     let (tx, rx) = std::sync::mpsc::channel();
 

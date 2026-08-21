@@ -1,7 +1,7 @@
 use std::{collections::VecDeque, path::PathBuf, sync::Arc};
 
 use rspack_fs::ReadableFileSystem;
-use rspack_paths::{InternedPath, InternedPathSet, AssertUtf8};
+use rspack_paths::{AssertUtf8, InternedPath, InternedPathSet};
 
 use super::{Snapshot, SnapshotEntry};
 use crate::{

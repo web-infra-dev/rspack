@@ -164,10 +164,19 @@ impl NativeWatcher {
 
 fn to_tuple_path_iterator(
   tuple: (Vec<String>, Vec<String>),
-) -> (impl Iterator<Item = InternedPath>, impl Iterator<Item = InternedPath>) {
+) -> (
+  impl Iterator<Item = InternedPath>,
+  impl Iterator<Item = InternedPath>,
+) {
   (
-    tuple.0.into_iter().map(|s| InternedPath::from(PathBuf::from(s))),
-    tuple.1.into_iter().map(|s| InternedPath::from(PathBuf::from(s))),
+    tuple
+      .0
+      .into_iter()
+      .map(|s| InternedPath::from(PathBuf::from(s))),
+    tuple
+      .1
+      .into_iter()
+      .map(|s| InternedPath::from(PathBuf::from(s))),
   )
 }
 

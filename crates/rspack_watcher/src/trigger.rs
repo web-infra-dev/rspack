@@ -68,7 +68,11 @@ impl<'a> DependencyFinder<'a> {
   }
 
   /// Recursively adds all parent directories that are registered as directories or missing.
-  fn recurse_parent_directories(&self, path: &InternedPath, paths: &mut Vec<(InternedPath, FsEventKind)>) {
+  fn recurse_parent_directories(
+    &self,
+    path: &InternedPath,
+    paths: &mut Vec<(InternedPath, FsEventKind)>,
+  ) {
     match path.parent() {
       Some(parent) => {
         if self.contains_directory(&InternedPath::from(parent)) {

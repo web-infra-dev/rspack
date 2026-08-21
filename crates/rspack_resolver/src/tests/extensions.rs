@@ -1,8 +1,8 @@
 //! <https://github.com/webpack/enhanced-resolve/blob/main/test/extensions.test.js>
 
 use crate::{
-  InternedPath, InternedPathSet, EnforceExtension, Resolution, ResolveContext, ResolveError, ResolveOptions,
-  Resolver,
+  EnforceExtension, InternedPath, InternedPathSet, Resolution, ResolveContext, ResolveError,
+  ResolveOptions, Resolver,
 };
 
 #[tokio::test]

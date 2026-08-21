@@ -169,9 +169,18 @@ impl FsWatcher {
   /// * `event_handler` - A boxed trait object for handling individual events.
   pub fn watch(
     &self,
-    files: (impl Iterator<Item = InternedPath>, impl Iterator<Item = InternedPath>),
-    directories: (impl Iterator<Item = InternedPath>, impl Iterator<Item = InternedPath>),
-    missing: (impl Iterator<Item = InternedPath>, impl Iterator<Item = InternedPath>),
+    files: (
+      impl Iterator<Item = InternedPath>,
+      impl Iterator<Item = InternedPath>,
+    ),
+    directories: (
+      impl Iterator<Item = InternedPath>,
+      impl Iterator<Item = InternedPath>,
+    ),
+    missing: (
+      impl Iterator<Item = InternedPath>,
+      impl Iterator<Item = InternedPath>,
+    ),
     start_time: SystemTime,
     event_aggregate_handler: Box<dyn EventAggregateHandler + Send>,
     event_handler: Box<dyn EventHandler + Send>,

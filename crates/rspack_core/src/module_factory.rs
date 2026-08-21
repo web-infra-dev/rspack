@@ -29,7 +29,10 @@ pub struct ModuleFactoryCreateData {
 }
 
 impl ModuleFactoryCreateData {
-  pub fn add_file_dependencies<F: Into<InternedPath>>(&mut self, files: impl IntoIterator<Item = F>) {
+  pub fn add_file_dependencies<F: Into<InternedPath>>(
+    &mut self,
+    files: impl IntoIterator<Item = F>,
+  ) {
     self
       .file_dependencies
       .extend(files.into_iter().map(Into::into));

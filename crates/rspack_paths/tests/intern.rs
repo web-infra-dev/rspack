@@ -3,7 +3,7 @@ use std::{
   path::{Path, PathBuf},
 };
 
-use rspack_paths::{InternedPath, InternedPathSet, IdentityHasher, hash_path};
+use rspack_paths::{IdentityHasher, InternedPath, InternedPathSet, hash_path};
 
 /// Whether both handles point at the same interned allocation.
 fn same_allocation(a: &InternedPath, b: &InternedPath) -> bool {

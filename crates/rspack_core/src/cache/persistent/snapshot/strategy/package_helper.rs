@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use rspack_fs::ReadableFileSystem;
-use rspack_paths::{InternedPath, InternedPathDashMap, AssertUtf8};
+use rspack_paths::{AssertUtf8, InternedPath, InternedPathDashMap};
 use simd_json::prelude::{ValueAsScalar, ValueObjectAccess};
 
 /// A helper for finding package.json versions in directory hierarchies.

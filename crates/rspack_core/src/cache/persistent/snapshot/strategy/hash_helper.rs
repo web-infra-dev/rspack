@@ -4,7 +4,7 @@ use std::{
 };
 
 use rspack_fs::{FileMetadata, ReadableFileSystem};
-use rspack_paths::{InternedPath, InternedPathDashMap, AssertUtf8};
+use rspack_paths::{AssertUtf8, InternedPath, InternedPathDashMap};
 use rustc_hash::FxHasher;
 
 use super::{PackageHelper, SnapshotOptions};
@@ -264,19 +264,28 @@ mod tests {
     let hash0 = helper.file_hash(&InternedPath::from("/")).await.unwrap();
     assert_eq!(hash0.hash, 0);
 
-    let hash1 = helper.file_hash(&InternedPath::from("/hash.js")).await.unwrap();
+    let hash1 = helper
+      .file_hash(&InternedPath::from("/hash.js"))
+      .await
+      .unwrap();
 
     std::thread::sleep(std::time::Duration::from_millis(100));
     // do nothing
     let helper = new_helper(fs.clone());
-    let hash2 = helper.file_hash(&InternedPath::from("/hash.js")).await.unwrap();
+    let hash2 = helper
+      .file_hash(&InternedPath::from("/hash.js"))
+      .await
+      .unwrap();
     assert_eq!(hash1.hash, hash2.hash);
     assert_eq!(hash1.mtime, hash2.mtime);
 
     // same content
     let helper = new_helper(fs.clone());
     fs.write("/hash.js".into(), "abc".as_bytes()).await.unwrap();
-    let hash3 = helper.file_hash(&InternedPath::from("/hash.js")).await.unwrap();
+    let hash3 = helper
+      .file_hash(&InternedPath::from("/hash.js"))
+      .await
+      .unwrap();
     assert_eq!(hash1.hash, hash3.hash);
     assert!(hash1.mtime < hash3.mtime);
 
@@ -285,7 +294,10 @@ mod tests {
     fs.write("/hash.js".into(), "abcd".as_bytes())
       .await
       .unwrap();
-    let hash4 = helper.file_hash(&InternedPath::from("/hash.js")).await.unwrap();
+    let hash4 = helper
+      .file_hash(&InternedPath::from("/hash.js"))
+      .await
+      .unwrap();
     assert_ne!(hash1.hash, hash4.hash);
     assert!(hash1.mtime < hash4.mtime);
   }

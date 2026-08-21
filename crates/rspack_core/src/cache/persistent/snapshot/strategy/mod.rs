@@ -5,7 +5,7 @@ use std::sync::Arc;
 
 use rspack_cacheable::cacheable;
 use rspack_fs::ReadableFileSystem;
-use rspack_paths::{InternedPath, AssertUtf8};
+use rspack_paths::{AssertUtf8, InternedPath};
 
 use self::{
   hash_helper::{ContentHash, HashHelper, TimestampHash},

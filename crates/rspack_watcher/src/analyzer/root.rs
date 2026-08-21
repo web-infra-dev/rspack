@@ -48,7 +48,11 @@ impl Analyzer for WatcherRootAnalyzer {
 }
 
 /// Union of three path sets into a fresh set.
-fn union3(a: &InternedPathDashSet, b: &InternedPathDashSet, c: &InternedPathDashSet) -> InternedPathDashSet {
+fn union3(
+  a: &InternedPathDashSet,
+  b: &InternedPathDashSet,
+  c: &InternedPathDashSet,
+) -> InternedPathDashSet {
   let out = InternedPathDashSet::default();
   for set in [a, b, c] {
     for path in set.iter() {
@@ -99,7 +103,11 @@ impl PathTree {
     }
   }
 
-  pub fn update_paths(&self, added_paths: &InternedPathDashSet, removed_paths: &InternedPathDashSet) {
+  pub fn update_paths(
+    &self,
+    added_paths: &InternedPathDashSet,
+    removed_paths: &InternedPathDashSet,
+  ) {
     for added in added_paths.iter() {
       self.add_path(added.deref());
     }

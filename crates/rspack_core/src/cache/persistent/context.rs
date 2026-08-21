@@ -258,9 +258,18 @@ impl CacheContext {
   pub async fn save_snapshot(
     &mut self,
     snapshot: &Snapshot,
-    file_deps: (impl Iterator<Item = InternedPath>, impl Iterator<Item = InternedPath>),
-    context_deps: (impl Iterator<Item = InternedPath>, impl Iterator<Item = InternedPath>),
-    missing_deps: (impl Iterator<Item = InternedPath>, impl Iterator<Item = InternedPath>),
+    file_deps: (
+      impl Iterator<Item = InternedPath>,
+      impl Iterator<Item = InternedPath>,
+    ),
+    context_deps: (
+      impl Iterator<Item = InternedPath>,
+      impl Iterator<Item = InternedPath>,
+    ),
+    missing_deps: (
+      impl Iterator<Item = InternedPath>,
+      impl Iterator<Item = InternedPath>,
+    ),
   ) {
     if self.readonly {
       return;
@@ -396,7 +405,10 @@ fn write_occasion_timing_label(name: &'static str) -> &'static str {
   }
 }
 
-fn format_path_changes(modified_paths: &InternedPathSet, removed_paths: &InternedPathSet) -> String {
+fn format_path_changes(
+  modified_paths: &InternedPathSet,
+  removed_paths: &InternedPathSet,
+) -> String {
   let mut changes = String::new();
   if !modified_paths.is_empty() {
     append_paths_group(&mut changes, "modified paths", modified_paths);

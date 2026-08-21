@@ -4,7 +4,7 @@ use std::{collections::VecDeque, path::PathBuf, sync::Arc};
 
 use rspack_error::Result;
 use rspack_fs::ReadableFileSystem;
-use rspack_paths::{InternedPath, InternedPathSet, AssertUtf8};
+use rspack_paths::{AssertUtf8, InternedPath, InternedPathSet};
 use rustc_hash::FxHashSet as HashSet;
 
 pub(crate) use self::helper::{Helper, is_node_package_path};
@@ -51,7 +51,10 @@ impl BuildDeps {
   ) -> Self {
     Self {
       added: Default::default(),
-      pending: options.iter().map(|v| InternedPath::from(v.as_path())).collect(),
+      pending: options
+        .iter()
+        .map(|v| InternedPath::from(v.as_path()))
+        .collect(),
       snapshot,
       fs,
     }

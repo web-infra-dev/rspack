@@ -1,8 +1,8 @@
 //! <https://github.com/webpack/enhanced-resolve/blob/main/test/incorrect-description-file.test.js>
 
 use crate::{
-  InternedPath, InternedPathSet, JSONError, Resolution, ResolveContext, ResolveError, ResolveOptions,
-  Resolver,
+  InternedPath, InternedPathSet, JSONError, Resolution, ResolveContext, ResolveError,
+  ResolveOptions, Resolver,
 };
 
 // should not resolve main in incorrect description file #1
