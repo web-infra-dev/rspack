@@ -1041,37 +1041,21 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for RstestParserPlugin {
   fn identifier(
     &self,
     parser: &mut JavascriptParser<'p>,
-    ident: &Ident,
+    _ident: &Ident,
     for_name: &str,
   ) -> Option<bool> {
     if self.options.module_path_name {
       match for_name {
         DIR_NAME => {
-          let range = if parser
-            .compiler_options()
-            .experiments
-            .faster_module_concatenation
-          {
-            Some(ident.span.into())
-          } else {
-            None
-          };
-          let dependency = ModulePathNameDependency::new(NameType::DirName, range);
-          parser.add_presentational_dependency(Box::new(dependency));
+          parser.add_presentational_dependency(Box::new(ModulePathNameDependency::new(
+            NameType::DirName,
+          )));
           return Some(true);
         }
         FILE_NAME => {
-          let range = if parser
-            .compiler_options()
-            .experiments
-            .faster_module_concatenation
-          {
-            Some(ident.span.into())
-          } else {
-            None
-          };
-          let dependency = ModulePathNameDependency::new(NameType::FileName, range);
-          parser.add_presentational_dependency(Box::new(dependency));
+          parser.add_presentational_dependency(Box::new(ModulePathNameDependency::new(
+            NameType::FileName,
+          )));
           return Some(true);
         }
         _ => return None,

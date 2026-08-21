@@ -191,24 +191,9 @@ async fn process_multiple(&self, items: Vec<Item>) -> Result<Vec<Result>>> {
 
 ## Testing Patterns
 
-### Rust Unit Test
+### Rust Tests
 
-```rust
-#[cfg(test)]
-mod tests {
- use super::*;
-
- #[test]
- fn test_plugin_creation() {
-  let options = MyPluginOptions {
-   option1: "test".to_string(),
-   option2: Some(true),
-  };
-  let plugin = MyPlugin::new(options);
-  assert_eq!(plugin.name(), "rspack.MyPlugin");
- }
-}
-```
+Do not add inline `#[test]` functions or crate-local unit tests in ordinary changes. Add Rust test cases only when they belong in a dedicated test crate.
 
 ### JavaScript Integration Test
 

@@ -31,15 +31,14 @@ use swc_core::atoms::Wtf8Atom;
 use crate::{
   AsyncDependenciesBlock, BindingCell, BoxDependency, BoxDependencyTemplate, BoxModuleDependency,
   ChunkGraph, ChunkUkey, CodeGenerationResultBuilder, CollectedTypeScriptInfo, Compilation,
-  CompilationAsset, CompilationId, CompilerId, CompilerOptions, ConcatenationCodeGenerationSource,
-  ConcatenationScope, ConcatenationScopeInfoMode, ConnectionState, Context, ContextModule,
-  CssExportType, DependenciesBlock, DependencyId, ExportProvided, ExportsInfoArtifact,
-  ExternalModule, Filename, GetTargetResult, ImportPhase, ModuleCodeTemplate, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleLayer, ModuleType, NormalModule, OptimizationBailoutItem,
-  RawModule, Resolve, ResolverFactory, RuntimeSpec, SelfModule, SharedPluginDriver,
-  SideEffectsStateArtifact, SourceType, concatenated_module::ConcatenatedModule,
-  dependencies_block::dependencies_block_update_hash, get_target,
-  utils::PendingConcatenationScopeInfo, value_cache_versions::ValueCacheVersions,
+  CompilationAsset, CompilationId, CompilerId, CompilerOptions, ConcatenationScope,
+  ConnectionState, Context, ContextModule, CssExportType, DependenciesBlock, DependencyId,
+  ExportProvided, ExportsInfoArtifact, ExternalModule, Filename, GetTargetResult, ImportPhase,
+  ModuleCodeTemplate, ModuleGraph, ModuleGraphCacheArtifact, ModuleLayer, ModuleType, NormalModule,
+  OptimizationBailoutItem, RawModule, Resolve, ResolverFactory, RuntimeSpec, SelfModule,
+  SharedPluginDriver, SideEffectsStateArtifact, SourceType,
+  concatenated_module::ConcatenatedModule, dependencies_block::dependencies_block_update_hash,
+  get_target, value_cache_versions::ValueCacheVersions,
 };
 
 pub struct BuildContext {
@@ -285,7 +284,6 @@ pub struct BuildInfo {
   pub side_effects_free: Option<HashSet<Atom>>,
   #[cacheable(with=AsOption<AsVec<AsPreset>>)]
   pub top_level_declarations: Option<HashSet<Atom>>,
-  pub pending_concatenation_scope_info: Option<Box<PendingConcatenationScopeInfo>>,
   pub module_concatenation_bailout: Option<String>,
   pub assets: BindingCell<HashMap<String, CompilationAsset>>,
   pub module: bool,
@@ -323,7 +321,6 @@ impl Default for BuildInfo {
       css: None,
       side_effects_free: None,
       top_level_declarations: None,
-      pending_concatenation_scope_info: None,
       module_concatenation_bailout: None,
       assets: Default::default(),
       module: false,
@@ -661,10 +658,7 @@ pub type ResourceIdentifier = Identifier;
 pub struct ModuleCodeGenerationContext<'a> {
   pub compilation: &'a Compilation,
   pub runtime: Option<&'a RuntimeSpec>,
-  pub concatenation_scope: Option<&'a mut ConcatenationScope>,
-  /// Editable JavaScript output used only by faster module concatenation.
-  /// This transient value belongs to a single code generation call and is not cached.
-  pub concatenation_source: Option<Box<ConcatenationCodeGenerationSource>>,
+  pub concatenation_scope: Option<ConcatenationScope>,
   pub runtime_template: &'a mut ModuleCodeTemplate,
 }
 
@@ -790,10 +784,6 @@ pub trait Module:
 
   fn get_presentational_dependencies(&self) -> Option<&[BoxDependencyTemplate]> {
     None
-  }
-
-  fn concatenation_scope_info_mode(&self) -> ConcatenationScopeInfoMode {
-    ConcatenationScopeInfoMode::Unsupported
   }
 
   fn get_concatenation_bailout_reason(
