@@ -114,7 +114,9 @@ impl CodeGenerationResults {
         Either::B(vec) => vec.into_iter().map(Into::into).collect(),
       });
 
-      let code_generation_result = code_generation_results.get(&module.identifier, rt.as_ref());
+      let code_generation_result = code_generation_results
+        .try_get(&module.identifier, rt.as_ref())
+        .map_err(|error| napi::Error::from_reason(error.to_string()))?;
       Ok(code_generation_result.reflector())
     })
   }

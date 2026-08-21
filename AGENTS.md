@@ -18,7 +18,7 @@ Rspack is a high-performance JavaScript bundler written in Rust that offers stro
 
 ## Setup
 
-- **Rust**: Latest stable (via [rustup](https://rustup.rs/))
+- **Rust**: Use the toolchain pinned by `rust-toolchain.toml`
 - **Node.js**: Latest LTS
 - **pnpm**: Version in `package.json`
 - Run `pnpm run setup` to install and build

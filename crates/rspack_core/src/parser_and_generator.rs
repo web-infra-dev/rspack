@@ -8,7 +8,7 @@ use rspack_cacheable::{
 use rspack_error::{Result, TWithDiagnosticArray};
 use rspack_hash::RspackHashDigest;
 use rspack_loader_runner::{AdditionalData, ParseMeta, ResourceData};
-use rspack_sources::{BoxSource, ReplaceSource};
+use rspack_sources::BoxSource;
 use rspack_util::{ext::AsAny, source_map::SourceMapKind};
 use rustc_hash::{FxHashMap, FxHashSet};
 use swc_core::atoms::Atom;
@@ -18,7 +18,7 @@ use crate::{
   BuildInfo, BuildMeta, ChunkGraph, CodeGenerationData, Compilation, CompilerOptions,
   ConcatenationScope, Context, DependencyLocation, DependencyRange, EvaluatedInlinableValue,
   FactoryMeta, GeneratorOptions, Module, ModuleCodeTemplate, ModuleGraph, ModuleIdentifier,
-  ModuleLayer, ModuleType, NormalModule, ParserOptions, RuntimeGlobals, RuntimeSpec, SourceType,
+  ModuleLayer, ModuleType, NormalModule, ParserOptions, RuntimeSpec, SourceType,
 };
 
 #[derive(Debug)]
@@ -119,84 +119,6 @@ pub struct GenerateContext<'a> {
   pub module_generator_options: Option<&'a GeneratorOptions>,
   pub runtime: Option<&'a RuntimeSpec>,
   pub concatenation_scope: Option<&'a mut ConcatenationScope>,
-  pub(crate) analyzed_concatenation_source: Option<ReplaceSource>,
-}
-
-impl GenerateContext<'_> {
-  /// Takes the editable source initialized from the make-time module source.
-  ///
-  /// This is only available to generators using `AnalyzeAtMake` during faster
-  /// module concatenation.
-  pub fn take_analyzed_concatenation_source(&mut self) -> Option<ReplaceSource> {
-    self.analyzed_concatenation_source.take()
-  }
-
-  /// Renders a runtime global and records the identifiers referenced by the
-  /// rendered expression for generated concatenation sources.
-  pub fn render_runtime_globals(&mut self, runtime_globals: &RuntimeGlobals) -> String {
-    let rendered = self
-      .runtime_template
-      .render_runtime_globals(runtime_globals);
-    if let Some(scope) = self.concatenation_scope.as_deref_mut() {
-      scope.register_used_names_from_generated_code(&rendered);
-    }
-    rendered
-  }
-}
-
-#[derive(Debug, Clone)]
-pub enum ConcatenationCodeGenerationSource {
-  /// Dependency-template edits are based on the make-time module source.
-  Analyzed(ReplaceSource),
-  /// The complete JavaScript source was produced during code generation.
-  Generated(ReplaceSource),
-}
-
-impl ConcatenationCodeGenerationSource {
-  pub fn into_source(self) -> ReplaceSource {
-    match self {
-      Self::Analyzed(source) | Self::Generated(source) => source,
-    }
-  }
-}
-
-#[derive(Debug)]
-pub enum GeneratedSource {
-  Source(BoxSource),
-  Concatenation(Box<ConcatenationCodeGenerationSource>),
-}
-
-impl GeneratedSource {
-  pub fn analyzed_concatenation(source: ReplaceSource) -> Self {
-    Self::Concatenation(Box::new(ConcatenationCodeGenerationSource::Analyzed(
-      source,
-    )))
-  }
-
-  pub fn generated_concatenation(source: ReplaceSource) -> Self {
-    Self::Concatenation(Box::new(ConcatenationCodeGenerationSource::Generated(
-      source,
-    )))
-  }
-}
-
-impl From<BoxSource> for GeneratedSource {
-  fn from(source: BoxSource) -> Self {
-    Self::Source(source)
-  }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ConcatenationScopeInfoMode {
-  /// Scope information is collected from the original JavaScript program
-  /// during make.
-  AnalyzeAtMake,
-  /// The module has no original JavaScript scope. Its generator must register
-  /// every generated binding and referenced identifier through
-  /// `ConcatenationScope`.
-  GenerateAtCodegen,
-  /// The parser and generator cannot participate in module concatenation.
-  Unsupported,
 }
 
 #[cacheable_dyn]
@@ -217,9 +139,7 @@ pub trait ParserAndGenerator: Send + Sync + Debug + AsAny {
     source: &BoxSource,
     module: &dyn Module,
     generate_context: &mut GenerateContext,
-  ) -> Result<GeneratedSource>;
-
-  fn concatenation_scope_info_mode(&self) -> ConcatenationScopeInfoMode;
+  ) -> Result<BoxSource>;
 
   fn get_concatenation_bailout_reason(
     &self,

@@ -2298,7 +2298,6 @@ export interface RawExperiments {
   newCache: false | RawNewCache
   deferImport: boolean
   sourceImport: boolean
-  fasterModuleConcatenation: boolean
   pureFunctions: boolean
   runtimeMode?: "webpack" | "rspack"
 }
