@@ -280,6 +280,10 @@ const applyExperimentsDefaults = (
 ) => {
   D(experiments, 'futureDefaults', false);
   D(experiments, 'newCache', false);
+  if (typeof experiments.newCache === 'object') {
+    D(experiments.newCache, 'codeGeneration', true);
+    D(experiments.newCache, 'minimize', true);
+  }
   D(experiments, 'asyncWebAssembly', true);
   D(experiments, 'deferImport', false);
   D(experiments, 'sourceImport', false);

@@ -226,7 +226,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let options = &self.options;
   let minimizer_options = &self.options.minimizer_options;
 
-  let new_cache = (compilation.options.experiments.new_cache
+  let new_cache = (compilation.options.experiments.new_cache.minimize
     && !matches!(&compilation.options.cache, CacheOptions::Disabled))
   .then(|| compilation.get_cache(PLUGIN_NAME));
   let minimize_persistent_cache = compilation.minimize_persistent_cache.take();

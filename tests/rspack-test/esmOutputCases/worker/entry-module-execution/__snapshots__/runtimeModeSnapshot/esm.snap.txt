@@ -132,7 +132,7 @@ var wrapDeps = (deps) => {
 		return ret;
 	});
 };
-var asyncModule = (module, body, hasAwait) => {
+var asyncModule = (module, body, hasAwait, useModuleExports) => {
 	var queue;
 	hasAwait && ((queue = []).d = -1);
 	var depQueues = new Set();
@@ -147,6 +147,11 @@ var asyncModule = (module, body, hasAwait) => {
 	promise[rspackExports] = exports;
 	promise[rspackQueues] = (fn) => { queue && fn(queue), depQueues.forEach(fn), promise["catch"](() => {}); };
 	module.exports = promise;
+	var asyncModule = module;
+	if (useModuleExports) {
+		asyncModule = Object.create(module);
+		asyncModule.exports = exports;
+	}
 	var handle = (deps) => {
 		currentDeps = wrapDeps(deps);
 		var fn;
@@ -165,8 +170,8 @@ var asyncModule = (module, body, hasAwait) => {
 		});
 		return fn.r ? promise : getResult();
 	};
-	var done = (err) => ((err ? reject(promise[rspackError] = err) : outerResolve(exports)), resolveQueue(queue), promise[rspackDone] = true);
-	body(handle, done);
+	var done = (err) => ((err ? reject(promise[rspackError] = err) : (useModuleExports && (exports = promise[rspackExports] = asyncModule.exports), outerResolve(exports))), resolveQueue(queue), promise[rspackDone] = true);
+	body(handle, done, asyncModule);
 	queue && queue.d < 0 && (queue.d = 0);
 };
 ;

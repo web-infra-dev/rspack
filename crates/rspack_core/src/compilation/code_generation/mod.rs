@@ -134,6 +134,7 @@ pub(crate) async fn code_generation_modules(
     .options
     .experiments
     .new_cache
+    .code_generation
     .then(|| compilation.get_cache(CODE_GENERATION_CACHE_NAME));
   let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
   let module_graph = compilation.get_module_graph();
