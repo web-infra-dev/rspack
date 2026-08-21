@@ -1,6 +1,10 @@
 import { createRequire } from "node:module";
 import { bundledValue } from "./only-require.js";
-import { preservedResolved } from "./preserve-import-meta.js";
+import {
+	preservedLetResolved,
+	preservedResolved,
+	preservedVarResolved
+} from "./preserve-import-meta.js";
 
 const req = createRequire(import.meta.url);
 
@@ -18,5 +22,7 @@ it("should delegate import.meta.url parsing when requireResolve is disabled", as
 	expect(source).toContain("/* createRequire() */ undefined");
 	expect(resolved).toBe("path");
 	expect(preservedResolved).toBe("path");
+	expect(preservedVarResolved).toBe("path");
+	expect(preservedLetResolved).toBe("path");
 	expect(bundledValue).toBe("dep");
 });

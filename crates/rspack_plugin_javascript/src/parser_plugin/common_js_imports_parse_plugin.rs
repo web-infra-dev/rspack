@@ -3,8 +3,8 @@ use std::path::Path;
 
 use rspack_core::{
   ConstDependency, Context, ContextDependency, ContextMode, ContextModulePattern, ContextOptions,
-  DependencyCategory, DependencyRange, DependencyType, ModuleType, ReferencedSpecifier,
-  RuntimeGlobals, RuntimeRequirementsDependency, get_context,
+  DependencyCategory, DependencyRange, DependencyType, ImportMetaKnownProperties, ModuleType,
+  ReferencedSpecifier, RuntimeGlobals, RuntimeRequirementsDependency, get_context,
 };
 use rspack_error::{Diagnostic, Severity};
 use rspack_util::{SpanExt, json_stringify_str};
@@ -624,6 +624,14 @@ fn parse_create_require_new_argument(
 #[inline(never)]
 fn should_replace_create_require_argument(parser: &mut JavascriptParser, arg: &Expr) -> bool {
   let Some(new_expr) = arg.as_new() else {
+    if let Some(member) = arg.as_member()
+      && is_meta_url(parser, member)
+    {
+      return parser
+        .javascript_options
+        .import_meta()
+        .is_known_property_enabled(ImportMetaKnownProperties::URL);
+    }
     return true;
   };
   if new_expr
