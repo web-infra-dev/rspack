@@ -54,7 +54,7 @@ pub fn new_cache(
   intermediate_filesystem: Arc<dyn IntermediateFileSystem>,
   compilation_logging: CompilationLogging,
 ) -> Box<dyn Cache> {
-  if compiler_option.experiments.new_cache.is_fully_enabled() {
+  if compiler_option.experiments.new_cache.is_enabled() {
     return Box::new(DisableCache);
   }
 

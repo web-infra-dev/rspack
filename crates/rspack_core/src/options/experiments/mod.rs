@@ -40,10 +40,6 @@ impl NewCacheOptions {
   pub const fn is_enabled(self) -> bool {
     self.code_generation || self.minimize
   }
-
-  pub const fn is_fully_enabled(self) -> bool {
-    self.code_generation && self.minimize
-  }
 }
 
 #[derive(Debug)]
