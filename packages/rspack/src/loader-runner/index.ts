@@ -54,6 +54,7 @@ import {
 } from '../util/identifier';
 import { memoize } from '../util/memoize';
 import { ModuleError, ModuleWarning } from './ModuleError';
+import { LoaderCache, type LoaderCacheEntry } from './cache';
 import * as pool from './service';
 import { type HandleIncomingRequest, RequestType } from './service';
 import {
@@ -190,7 +191,7 @@ export class LoaderObject {
 }
 
 class JsSourceMap {
-  static __from_binding(map?: Buffer) {
+  static __from_binding(map?: Uint8Array) {
     return isNil(map) ? undefined : toObject(map);
   }
 
@@ -267,6 +268,9 @@ export async function runLoaders(
   const contextDependencies = context.contextDependencies;
   const missingDependencies = context.missingDependencies;
   const buildDependencies = context.buildDependencies;
+  const loaderCache = context.__internal__loaderCache
+    ? new LoaderCache(context)
+    : undefined;
 
   /// Construct `loaderContext`
   const loaderContext = {} as LoaderContext;
@@ -920,6 +924,19 @@ export async function runLoaders(
             });
             break;
           }
+          case RequestType.LoaderCacheGet: {
+            const [loaderIndex, content, additionalData] = args;
+            return loaderCache?.workerGet(loaderIndex, content, additionalData);
+          }
+          case RequestType.LoaderCacheStore: {
+            const [loaderIndex, content, sourceMap, additionalData] = args;
+            return loaderCache?.workerStore(
+              loaderIndex,
+              content,
+              sourceMap,
+              additionalData,
+            );
+          }
           case RequestType.CompilationGetPath: {
             const filename = args[0];
             const data = args[1];
@@ -1051,7 +1068,8 @@ export async function runLoaders(
         break;
       }
       case JsLoaderState.Normal: {
-        let content = context.content;
+        let content: Parameters<typeof toBuffer>[0] | null | undefined =
+          context.content;
         const rawSourceMap = context.sourceMap;
         let sourceMap: string | object | undefined;
         let sourceMapParsed = false;
@@ -1064,6 +1082,23 @@ export async function runLoaders(
 
           if (currentLoaderObject.shouldYield()) break;
           if (currentLoaderObject.normalExecuted) {
+            loaderContext.loaderIndex--;
+            continue;
+          }
+
+          const cached: LoaderCacheEntry | null | undefined =
+            !parallelism && currentLoaderObject.loaderItem.cache && loaderCache
+              ? loaderCache.get(
+                  loaderContext.loaderIndex,
+                  content,
+                  additionalData,
+                )
+              : undefined;
+          if (cached) {
+            currentLoaderObject.normalExecuted = true;
+            content = cached.content;
+            sourceMap = JsSourceMap.__from_binding(cached.sourceMap);
+            sourceMapParsed = true;
             loaderContext.loaderIndex--;
             continue;
           }
@@ -1088,6 +1123,15 @@ export async function runLoaders(
             sourceMap,
             additionalData,
           ]);
+
+          if (cached === null) {
+            loaderCache?.store(
+              loaderContext.loaderIndex,
+              content,
+              JsSourceMap.__to_binding(sourceMap),
+              additionalData,
+            );
+          }
         }
 
         context.content = isNil(content) ? null : toBuffer(content);

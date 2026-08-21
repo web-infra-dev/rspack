@@ -1672,6 +1672,10 @@ pub struct ModuleRuleUseLoader {
   /// Loader options
   /// This only exists if the loader is a built-in loader.
   pub options: Option<String>,
+  /// Cache this loader.
+  pub cache: bool,
+  /// Stable serialization of the public loader options.
+  pub options_cache_key: String,
 }
 
 pub type FnUse =
