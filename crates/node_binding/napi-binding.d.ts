@@ -958,6 +958,7 @@ export interface JsLoaderCacheEntry {
   content: null | Uint8Array
   contentIsString: boolean
   sourceMap?: Uint8Array
+  parseMeta: Record<string, string>
 }
 
 export interface JsLoaderContext {

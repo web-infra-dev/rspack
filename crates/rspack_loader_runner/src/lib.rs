@@ -9,6 +9,8 @@ mod runner;
 mod scheme;
 
 pub use content::{AdditionalData, Content, DescriptionData, ParseMeta, ResourceData};
+#[doc(hidden)]
+pub use content::{ParseMetaValue, ParseMetaValueRegistration};
 pub use context::{LoaderContext, State};
 pub use loader::{DisplayWithSuffix, Loader, LoaderItem, ResourceParsedData, parse_resource};
 pub use plugin::LoaderRunnerPlugin;

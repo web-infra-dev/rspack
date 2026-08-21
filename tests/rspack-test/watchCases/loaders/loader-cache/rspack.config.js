@@ -1,4 +1,5 @@
 const path = require('path');
+const { rspack } = require('@rspack/core');
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
@@ -11,8 +12,40 @@ module.exports = {
       minimize: false,
     },
   },
+  optimization: {
+    inlineExports: true,
+  },
+  resolve: {
+    extensions: ['.ts', '...'],
+  },
+  plugins: [new rspack.CssExtractRspackPlugin()],
   module: {
     rules: [
+      {
+        test: /style\.css$/,
+        type: 'javascript/auto',
+        use: [
+          {
+            loader: rspack.CssExtractRspackPlugin.loader,
+            cache: true,
+          },
+          'css-loader',
+        ],
+      },
+      {
+        test: /enum\.ts$/,
+        use: [
+          {
+            loader: 'builtin:swc-loader',
+            options: {
+              collectTypeScriptInfo: {
+                exportedEnum: true,
+              },
+            },
+            cache: true,
+          },
+        ],
+      },
       {
         test: /value\.js$/,
         use: [

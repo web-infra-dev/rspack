@@ -1,4 +1,5 @@
 use std::{
+  any::Any,
   fmt::Debug,
   path::{Path, PathBuf},
   sync::Arc,
@@ -15,6 +16,11 @@ use rspack_error::{Error, Result, ToStringResultToRspackResultExt};
 use rspack_hash::{RspackHash, RspackHasher};
 use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rustc_hash::FxHashMap;
+use serde::{
+  Deserialize, Deserializer, Serialize, Serializer,
+  de::{DeserializeOwned, Error as _},
+  ser::Error as _,
+};
 
 use crate::{Scheme, get_scheme, parse_resource};
 
@@ -342,4 +348,119 @@ impl DescriptionData {
 }
 
 pub type AdditionalData = anymap::Map<dyn CloneAny + Send + Sync>;
-pub type ParseMeta = FxHashMap<String, Box<dyn CloneAny + Send + Sync>>;
+
+#[doc(hidden)]
+pub trait ParseMetaValue: CloneAny + Send + Sync {
+  fn parse_meta_type(&self) -> &'static str;
+  fn serialize_parse_meta(&self) -> serde_json::Result<serde_json::Value>;
+  fn clone_parse_meta(&self) -> Box<dyn ParseMetaValue>;
+  fn into_any(self: Box<Self>) -> Box<dyn Any + Send + Sync>;
+}
+
+impl Clone for Box<dyn ParseMetaValue> {
+  fn clone(&self) -> Self {
+    self.clone_parse_meta()
+  }
+}
+
+impl Debug for dyn ParseMetaValue {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    f.debug_tuple("ParseMetaValue")
+      .field(&self.parse_meta_type())
+      .finish()
+  }
+}
+
+#[derive(Serialize, Deserialize)]
+struct SerializedParseMetaValue {
+  ty: String,
+  value: serde_json::Value,
+}
+
+impl Serialize for dyn ParseMetaValue {
+  fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+  where
+    S: Serializer,
+  {
+    SerializedParseMetaValue {
+      ty: self.parse_meta_type().to_string(),
+      value: self.serialize_parse_meta().map_err(S::Error::custom)?,
+    }
+    .serialize(serializer)
+  }
+}
+
+impl<'de> Deserialize<'de> for Box<dyn ParseMetaValue> {
+  fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+  where
+    D: Deserializer<'de>,
+  {
+    let value = SerializedParseMetaValue::deserialize(deserializer)?;
+    let registration = rspack_cacheable::__private::inventory::iter::<ParseMetaValueRegistration>
+      .into_iter()
+      .find(|registration| registration.ty == value.ty)
+      .ok_or_else(|| D::Error::custom(format!("Unknown parse meta type: {}", value.ty)))?;
+    (registration.deserialize)(value.value).map_err(D::Error::custom)
+  }
+}
+
+#[doc(hidden)]
+pub struct ParseMetaValueRegistration {
+  ty: &'static str,
+  deserialize: fn(serde_json::Value) -> serde_json::Result<Box<dyn ParseMetaValue>>,
+}
+
+impl ParseMetaValueRegistration {
+  pub const fn new<T>(ty: &'static str) -> Self
+  where
+    T: ParseMetaValue + DeserializeOwned + 'static,
+  {
+    Self {
+      ty,
+      deserialize: deserialize_parse_meta_value::<T>,
+    }
+  }
+}
+
+fn deserialize_parse_meta_value<T>(
+  value: serde_json::Value,
+) -> serde_json::Result<Box<dyn ParseMetaValue>>
+where
+  T: ParseMetaValue + DeserializeOwned + 'static,
+{
+  serde_json::from_value(value).map(|value: T| Box::new(value) as Box<dyn ParseMetaValue>)
+}
+
+rspack_cacheable::__private::inventory::collect!(ParseMetaValueRegistration);
+
+#[macro_export]
+#[doc(hidden)]
+macro_rules! register_parse_meta_value {
+  ($ty:ty, $name:literal) => {
+    impl $crate::ParseMetaValue for $ty {
+      fn parse_meta_type(&self) -> &'static str {
+        $name
+      }
+
+      fn serialize_parse_meta(&self) -> serde_json::Result<serde_json::Value> {
+        serde_json::to_value(self)
+      }
+
+      fn clone_parse_meta(&self) -> Box<dyn $crate::ParseMetaValue> {
+        Box::new(self.clone())
+      }
+
+      fn into_any(self: Box<Self>) -> Box<dyn std::any::Any + Send + Sync> {
+        self
+      }
+    }
+
+    rspack_cacheable::__private::inventory::submit! {
+      $crate::ParseMetaValueRegistration::new::<$ty>($name)
+    }
+  };
+}
+
+register_parse_meta_value!(String, "string");
+
+pub type ParseMeta = FxHashMap<String, Box<dyn ParseMetaValue>>;

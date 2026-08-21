@@ -11,6 +11,7 @@ use rspack_loader_runner::{AdditionalData, ParseMeta, ResourceData};
 use rspack_sources::{BoxSource, ReplaceSource};
 use rspack_util::{ext::AsAny, source_map::SourceMapKind};
 use rustc_hash::{FxHashMap, FxHashSet};
+use serde::{Deserialize, Serialize};
 use swc_core::atoms::Atom;
 
 use crate::{
@@ -46,7 +47,7 @@ pub struct ParseContext<'a> {
 }
 
 #[cacheable]
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct CollectedTypeScriptInfo {
   #[cacheable(with=AsVec<AsPreset>)]
   pub type_exports: FxHashSet<Atom>,
@@ -54,10 +55,15 @@ pub struct CollectedTypeScriptInfo {
   pub exported_enums: FxHashMap<Atom, TSEnumValue>,
 }
 
+rspack_loader_runner::register_parse_meta_value!(
+  CollectedTypeScriptInfo,
+  "rspack-collected-typescript-info"
+);
+
 pub const COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY: &str = "rspack-collected-ts-info";
 
 #[cacheable]
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct TSEnumValue(
   #[cacheable(with=AsMap<AsPreset>)] FxHashMap<Atom, Option<EvaluatedInlinableValue>>,
 );

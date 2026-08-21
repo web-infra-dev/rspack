@@ -1,4 +1,7 @@
-use std::sync::{Arc, Mutex};
+use std::{
+  collections::HashMap,
+  sync::{Arc, Mutex},
+};
 
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
@@ -17,6 +20,7 @@ struct LoaderCacheEntry {
   content: Option<Vec<u8>>,
   content_is_string: bool,
   source_map: Option<Vec<u8>>,
+  parse_meta: String,
 }
 
 #[napi(object)]
@@ -24,6 +28,7 @@ pub struct JsLoaderCacheEntry {
   pub content: Either<Null, Uint8Array>,
   pub content_is_string: bool,
   pub source_map: Option<Uint8Array>,
+  pub parse_meta: HashMap<String, String>,
 }
 
 #[napi]
@@ -191,6 +196,8 @@ impl JsLoaderCache {
         .map_or(Either::A(Null), |content| Either::B(content.into())),
       content_is_string: entry.content_is_string,
       source_map: entry.source_map.clone().map(Into::into),
+      parse_meta: serde_json::from_str(&entry.parse_meta)
+        .map_err(|error| napi::Error::from_reason(error.to_string()))?,
     }))
   }
 
@@ -207,6 +214,8 @@ impl JsLoaderCache {
       },
       content_is_string: output.content_is_string,
       source_map: output.source_map.map(|source_map| source_map.to_vec()),
+      parse_meta: serde_json::to_string(&output.parse_meta)
+        .map_err(|error| napi::Error::from_reason(error.to_string()))?,
     };
     let item_cache = loader_cache_item(&self.cache, &self.module_identifier, loader_name, etag);
     item_cache

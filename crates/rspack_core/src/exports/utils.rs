@@ -12,6 +12,7 @@ use rspack_cacheable::{
 use rspack_hash::RspackHasher;
 use rspack_util::{atom::Atom, json_stringify, ryu_js};
 use rustc_hash::FxHashSet as HashSet;
+use serde::{Deserialize, Serialize};
 
 use crate::{DependencyId, property_access};
 
@@ -37,7 +38,7 @@ pub enum UsedExports {
 }
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum EvaluatedInlinableValue {
   Null,
   Undefined,

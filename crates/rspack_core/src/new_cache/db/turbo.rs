@@ -187,10 +187,31 @@ impl Database {
     })
   }
 
+  #[tracing::instrument(
+    name = "new_cache:db_read",
+    skip_all,
+    level = "trace",
+    target = "rspack_new_cache",
+    fields(
+      perfetto.track_name = "new_cache:db_read",
+      perfetto.process_name = "Cache",
+      family = ?family,
+    )
+  )]
   pub fn get(&self, family: super::DatabaseFamily, key: &[u8]) -> Result<Option<DatabaseValue>> {
     Ok(self.inner.get(family.index(), &key)?)
   }
 
+  #[tracing::instrument(
+    name = "new_cache:db_write",
+    skip_all,
+    level = "trace",
+    target = "rspack_new_cache",
+    fields(
+      perfetto.track_name = "new_cache:db_write",
+      perfetto.process_name = "Cache",
+    )
+  )]
   pub fn write_batch<'a>(
     &mut self,
     writes: impl IntoIterator<Item = DatabaseWrite<'a>>,

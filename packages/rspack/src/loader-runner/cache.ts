@@ -8,6 +8,7 @@ export type LoaderCacheEntry = {
   content: Uint8Array | null;
   contentIsString: boolean;
   sourceMap?: Uint8Array;
+  parseMeta: Record<string, string>;
 };
 
 type LoaderCacheApi = {
@@ -53,11 +54,15 @@ export class LoaderCache {
       return undefined;
     }
 
-    return this.#api.get(
+    const hit = this.#api.get(
       loaderIndex,
       toUint8Array(content),
       sourceMap ? Uint8Array.from(sourceMap) : undefined,
     );
+    if (hit) {
+      Object.assign(context.__internal__parseMeta, hit.parseMeta);
+    }
+    return hit;
   }
 
   store(
@@ -68,11 +73,7 @@ export class LoaderCache {
     contentIsString: boolean,
   ) {
     const context = this.#context;
-    if (
-      !context.cacheable ||
-      !isNil(additionalData) ||
-      Object.keys(context.__internal__parseMeta).length > 0
-    ) {
+    if (!context.cacheable || !isNil(additionalData)) {
       return;
     }
 
@@ -80,6 +81,7 @@ export class LoaderCache {
       content: isNil(content) ? null : toUint8Array(content),
       contentIsString,
       sourceMap: sourceMap ? Uint8Array.from(sourceMap) : undefined,
+      parseMeta: { ...context.__internal__parseMeta },
     });
   }
 

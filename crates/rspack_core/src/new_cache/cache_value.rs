@@ -139,6 +139,16 @@ impl<T: CacheValueData> CacheValue<T> {
   }
 }
 
+#[tracing::instrument(
+  name = "new_cache:serialize",
+  skip_all,
+  level = "trace",
+  target = "rspack_new_cache",
+  fields(
+    perfetto.track_name = "new_cache:serialize",
+    perfetto.process_name = "Cache",
+  )
+)]
 fn encode_cache_entry<T: CacheValueData>(
   entry: &CacheEntry,
   codec: &CacheCodec,
@@ -155,6 +165,16 @@ fn encode_cache_entry<T: CacheValueData>(
   })
 }
 
+#[tracing::instrument(
+  name = "new_cache:deserialize",
+  skip_all,
+  level = "trace",
+  target = "rspack_new_cache",
+  fields(
+    perfetto.track_name = "new_cache:deserialize",
+    perfetto.process_name = "Cache",
+  )
+)]
 fn decode_cache_entry<T: CacheValueData>(
   bytes: &[u8],
   etag: Option<&Etag>,
