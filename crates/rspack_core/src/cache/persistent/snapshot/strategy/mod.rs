@@ -119,6 +119,9 @@ impl StrategyHelper {
     if self.snapshot_options.is_immutable_path(&path_str) {
       return None;
     }
+    if matches!(scope, SnapshotScope::MISSING) {
+      return Some(Strategy::Missing);
+    }
     if self.snapshot_options.is_managed_path(&path_str)
       && let Some(strategy) = self.package_version(path).await
     {
@@ -130,7 +133,7 @@ impl StrategyHelper {
           .file_strategy(path, self.snapshot_options.dependencies_strategy())
           .await
       }
-      SnapshotScope::MISSING => Strategy::Missing,
+      SnapshotScope::MISSING => unreachable!("missing scope is handled above"),
       SnapshotScope::CONTEXT => {
         self
           .dir_strategy(path, self.snapshot_options.context_dependencies_strategy())
