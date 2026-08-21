@@ -623,15 +623,15 @@ fn parse_create_require_new_argument(
 
 #[inline(never)]
 fn should_replace_create_require_argument(parser: &mut JavascriptParser, arg: &Expr) -> bool {
+  if let Some(member) = arg.as_member()
+    && is_meta_url(parser, member)
+  {
+    return parser
+      .javascript_options
+      .import_meta()
+      .is_known_property_enabled(ImportMetaKnownProperties::URL);
+  }
   let Some(new_expr) = arg.as_new() else {
-    if let Some(member) = arg.as_member()
-      && is_meta_url(parser, member)
-    {
-      return parser
-        .javascript_options
-        .import_meta()
-        .is_known_property_enabled(ImportMetaKnownProperties::URL);
-    }
     return true;
   };
   if new_expr
