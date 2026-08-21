@@ -6,11 +6,11 @@ use rspack_core::{
   DependencyCodeGeneration, DependencyCondition, DependencyConditionFn,
   DependencyDiagnosticsContext, DependencyId, DependencyLocation, DependencyRange,
   DependencyTemplate, DependencyTemplateType, DependencyType, ExportProvided, ExportsInfoArtifact,
-  ExportsType, FactorizeInfo, ForwardId, ImportAttributes, ImportPhase, InitFragmentExt,
-  InitFragmentKey, InitFragmentStage, LazyUntil, ModuleDependency, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleIdentifier, ProvidedExports, ReferencedExport,
-  ResourceIdentifier, RuntimeCondition, RuntimeSpec, SideEffectsStateArtifact, SourceType,
-  TemplateContext, TemplateReplaceSource, TypeReexportPresenceMode, filter_runtime,
+  ExportsType, ForwardId, ImportAttributes, ImportPhase, InitFragmentExt, InitFragmentKey,
+  InitFragmentStage, LazyUntil, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
+  ModuleIdentifier, ProvidedExports, ReferencedExport, ResourceIdentifier, RuntimeCondition,
+  RuntimeSpec, SideEffectsStateArtifact, SourceType, TemplateContext, TemplateReplaceSource,
+  TypeReexportPresenceMode, filter_runtime,
 };
 use rspack_error::{Diagnostic, Error, Severity};
 use swc_atoms::Atom;
@@ -69,7 +69,6 @@ pub struct ESMImportSideEffectDependency {
   attributes: Option<ImportAttributes>,
   resource_identifier: ResourceIdentifier,
   loc: Option<DependencyLocation>,
-  factorize_info: FactorizeInfo,
   lazy_make: bool,
   star_export: bool,
 }
@@ -98,7 +97,6 @@ impl ESMImportSideEffectDependency {
       attributes,
       resource_identifier,
       loc,
-      factorize_info: Default::default(),
       lazy_make: false,
       star_export,
     }
@@ -659,14 +657,6 @@ impl ModuleDependency for ESMImportSideEffectDependency {
     Some(DependencyCondition::new(
       ESMImportSideEffectDependencyCondition,
     ))
-  }
-
-  fn factorize_info(&self) -> &FactorizeInfo {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
-    &mut self.factorize_info
   }
 }
 

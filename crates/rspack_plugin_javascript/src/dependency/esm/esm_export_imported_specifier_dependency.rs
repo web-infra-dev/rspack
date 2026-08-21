@@ -16,16 +16,15 @@ use rspack_core::{
   ExportModeReexportDynamicDefault, ExportModeReexportNamedDefault,
   ExportModeReexportNamespaceObject, ExportModeReexportUndefined, ExportModeUnused,
   ExportNameOrSpec, ExportPresenceMode, ExportProvided, ExportSpec, ExportsInfoArtifact,
-  ExportsInfoData, ExportsOfExportsSpec, ExportsSpec, ExportsType, FactorizeInfo, ForwardId,
-  ImportAttributes, ImportPhase, InitFragmentExt, InitFragmentKey, InitFragmentStage,
-  JavascriptParserOptions, LazyUntil, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
-  ModuleIdentifier, ModuleReferenceOptions, NormalInitFragment, NormalReexportItem,
-  ReferencedExport, ResourceIdentifier, RuntimeCondition, RuntimeGlobals, RuntimeSpec,
-  SideEffectsStateArtifact, StarReexportsInfo, TemplateContext, TemplateReplaceSource, UsageState,
-  UsedName, collect_referenced_export_items, create_exports_object_referenced,
-  create_no_exports_referenced, filter_runtime, get_exports_type, get_runtime_key,
-  get_terminal_binding, property_access, property_name,
-  render_make_deferred_namespace_mode_from_exports_type, to_normal_comment,
+  ExportsInfoData, ExportsOfExportsSpec, ExportsSpec, ExportsType, ForwardId, ImportAttributes,
+  ImportPhase, InitFragmentExt, InitFragmentKey, InitFragmentStage, JavascriptParserOptions,
+  LazyUntil, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
+  ModuleReferenceOptions, NormalInitFragment, NormalReexportItem, ReferencedExport,
+  ResourceIdentifier, RuntimeCondition, RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact,
+  StarReexportsInfo, TemplateContext, TemplateReplaceSource, UsageState, UsedName,
+  collect_referenced_export_items, create_exports_object_referenced, create_no_exports_referenced,
+  filter_runtime, get_exports_type, get_runtime_key, get_terminal_binding, property_access,
+  property_name, render_make_deferred_namespace_mode_from_exports_type, to_normal_comment,
 };
 use rspack_error::{Diagnostic, Error, Severity};
 use rspack_hash::{RspackHash, RspackHasher};
@@ -63,7 +62,6 @@ pub struct ESMExportImportedSpecifierDependency {
   resource_identifier: ResourceIdentifier,
   export_presence_mode: ExportPresenceMode,
   loc: Option<DependencyLocation>,
-  factorize_info: FactorizeInfo,
   lazy_make: bool,
 }
 
@@ -96,7 +94,6 @@ impl ESMExportImportedSpecifierDependency {
       phase,
       attributes,
       loc,
-      factorize_info: Default::default(),
       lazy_make: false,
     }
   }
@@ -1611,14 +1608,6 @@ impl ModuleDependency for ESMExportImportedSpecifierDependency {
     Some(DependencyCondition::new(
       ESMExportImportedSpecifierDependencyCondition,
     ))
-  }
-
-  fn factorize_info(&self) -> &FactorizeInfo {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
-    &mut self.factorize_info
   }
 }
 

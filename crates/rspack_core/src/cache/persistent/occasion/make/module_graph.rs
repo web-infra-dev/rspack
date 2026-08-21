@@ -9,8 +9,8 @@ use rustc_hash::FxHashSet;
 use super::alternatives::{TempDependency, TempModule};
 use crate::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, Dependency,
-  DependencyId, DependencyParents, ModuleGraph, ModuleGraphConnection, ModuleGraphModule,
-  ModuleIdentifier, RayonConsumer,
+  DependencyId, DependencyParents, FactorizationArtifact, FactorizeInfo, ModuleGraph,
+  ModuleGraphConnection, ModuleGraphModule, ModuleIdentifier, RayonConsumer,
   cache::persistent::{codec::CacheCodec, storage::Storage},
   compilation::build_module_graph::{LazyDependencies, ModuleToLazyMake},
 };
@@ -25,6 +25,7 @@ struct Node<'a> {
   pub dependencies: Vec<(
     OwnedOrRef<'a, BoxDependency>,
     Option<OwnedOrRef<'a, AsyncDependenciesBlockIdentifier>>,
+    Option<OwnedOrRef<'a, FactorizeInfo>>,
   )>,
   pub connections: Vec<OwnedOrRef<'a, ModuleGraphConnection>>,
   pub blocks: Vec<OwnedOrRef<'a, AsyncDependenciesBlock>>,
@@ -34,6 +35,7 @@ struct Node<'a> {
 #[tracing::instrument("Cache::Occasion::Make::ModuleGraph::save", skip_all)]
 pub fn save_module_graph(
   mg: &ModuleGraph,
+  factorization_artifact: &FactorizationArtifact,
   module_to_lazy_make: &ModuleToLazyMake,
   removed_modules: &IdentifierSet,
   need_update_modules: &IdentifierSet,
@@ -67,6 +69,7 @@ pub fn save_module_graph(
           (
             mg.dependency_by_id(dep_id).into(),
             mg.get_parent_block(dep_id).map(Into::into),
+            factorization_artifact.get_by_owner(dep_id).map(Into::into),
           )
         })
         .collect::<Vec<_>>();
@@ -99,7 +102,9 @@ pub fn save_module_graph(
           node.dependencies = node
             .dependencies
             .into_iter()
-            .map(|(dep, _)| (TempDependency::transform_from(dep), None))
+            .map(|(dep, _, factorize_info)| {
+              (TempDependency::transform_from(dep), None, factorize_info)
+            })
             .collect();
           node.blocks = vec![];
           if let Ok(bytes) = codec.encode(&node) {
@@ -125,9 +130,15 @@ pub fn save_module_graph(
 pub async fn recovery_module_graph(
   storage: &dyn Storage,
   codec: &CacheCodec,
-) -> Result<(ModuleGraph, ModuleToLazyMake, FxHashSet<DependencyId>)> {
+) -> Result<(
+  ModuleGraph,
+  FactorizationArtifact,
+  ModuleToLazyMake,
+  FxHashSet<DependencyId>,
+)> {
   let mut need_check_dep = vec![];
   let mut mg = ModuleGraph::default();
+  let mut factorization_artifact = FactorizationArtifact::default();
   let mut module_to_lazy_make = ModuleToLazyMake::default();
   storage
     .load(SCOPE)
@@ -142,7 +153,9 @@ pub async fn recovery_module_graph(
     .consume(|node| {
       let mgm = node.mgm.into_owned();
       let module = node.module.into_owned();
-      for (index_in_block, (dep, parent_block)) in node.dependencies.into_iter().enumerate() {
+      for (index_in_block, (dep, parent_block, factorize_info)) in
+        node.dependencies.into_iter().enumerate()
+      {
         let dep = dep.into_owned();
         mg.set_parents(
           *dep.id(),
@@ -153,6 +166,9 @@ pub async fn recovery_module_graph(
           },
         );
         mg.add_dependency(dep);
+        if let Some(factorize_info) = factorize_info {
+          factorization_artifact.insert(factorize_info.into_owned());
+        }
       }
       for con in node.connections {
         let con = con.into_owned();
@@ -193,5 +209,10 @@ pub async fn recovery_module_graph(
   }
 
   tracing::debug!("recovery {} module", mg.modules_len());
-  Ok((mg, module_to_lazy_make, entry_dependencies))
+  Ok((
+    mg,
+    factorization_artifact,
+    module_to_lazy_make,
+    entry_dependencies,
+  ))
 }

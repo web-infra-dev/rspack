@@ -2,7 +2,7 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsModuleDependency, Context, ContextDependency, ContextOptions, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
-  DependencyTemplateType, DependencyType, ExportsInfoArtifact, FactorizeInfo, ModuleGraph,
+  DependencyTemplateType, DependencyType, ExportsInfoArtifact, ModuleGraph,
   ModuleGraphCacheArtifact, ReferencedSpecifier, ResourceIdentifier, TemplateContext,
   TemplateReplaceSource,
 };
@@ -24,7 +24,6 @@ pub struct CommonJsRequireContextDependency {
   options: ContextOptions,
   optional: bool,
   critical: Option<Diagnostic>,
-  factorize_info: FactorizeInfo,
 }
 
 impl CommonJsRequireContextDependency {
@@ -50,7 +49,6 @@ impl CommonJsRequireContextDependency {
       optional,
       id: DependencyId::new(),
       critical: None,
-      factorize_info: Default::default(),
     }
   }
 
@@ -143,14 +141,6 @@ impl ContextDependency for CommonJsRequireContextDependency {
 
   fn critical_mut(&mut self) -> &mut Option<Diagnostic> {
     &mut self.critical
-  }
-
-  fn factorize_info(&self) -> &FactorizeInfo {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
-    &mut self.factorize_info
   }
 }
 

@@ -4,9 +4,8 @@ use rspack_cacheable::{
 };
 use rspack_core::{
   AsContextDependency, AsDependencyCodeGeneration, Dependency, DependencyCategory, DependencyId,
-  DependencyType, ExportsInfoArtifact, FactorizeInfo, ModuleDependency, ModuleGraph,
-  ModuleGraphCacheArtifact, ReferencedExport, ResourceIdentifier, RuntimeSpec,
-  create_exports_object_referenced,
+  DependencyType, ExportsInfoArtifact, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
+  ReferencedExport, ResourceIdentifier, RuntimeSpec, create_exports_object_referenced,
 };
 use rspack_util::fx_hash::FxIndexSet;
 use swc_core::atoms::Atom;
@@ -20,7 +19,6 @@ pub struct ClientReferenceDependency {
   referenced_exports: FxIndexSet<Atom>,
   is_server_side_rendering: bool,
   resource_identifier: ResourceIdentifier,
-  factorize_info: FactorizeInfo,
 }
 
 impl ClientReferenceDependency {
@@ -35,7 +33,6 @@ impl ClientReferenceDependency {
       request,
       referenced_exports,
       resource_identifier,
-      factorize_info: Default::default(),
       is_server_side_rendering,
     }
   }
@@ -103,14 +100,6 @@ impl ModuleDependency for ClientReferenceDependency {
 
   fn user_request(&self) -> &str {
     &self.request
-  }
-
-  fn factorize_info(&self) -> &FactorizeInfo {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
-    &mut self.factorize_info
   }
 }
 

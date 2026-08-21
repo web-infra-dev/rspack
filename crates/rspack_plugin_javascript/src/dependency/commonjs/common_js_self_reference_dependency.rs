@@ -5,8 +5,8 @@ use rspack_cacheable::{
 use rspack_core::{
   AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
   DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, ExportsInfoArtifact,
-  FactorizeInfo, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ReferencedExport,
-  RuntimeSpec, TemplateContext, TemplateReplaceSource, UsedName, property_access_with_optional,
+  ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ReferencedExport, RuntimeSpec,
+  TemplateContext, TemplateReplaceSource, UsedName, property_access_with_optional,
 };
 use swc_atoms::Atom;
 
@@ -22,7 +22,6 @@ pub struct CommonJsSelfReferenceDependency {
   names: Vec<Atom>,
   names_optionals: Vec<bool>,
   is_call: bool,
-  factorize_info: FactorizeInfo,
 }
 
 impl CommonJsSelfReferenceDependency {
@@ -40,7 +39,6 @@ impl CommonJsSelfReferenceDependency {
       names,
       names_optionals,
       is_call,
-      factorize_info: Default::default(),
     }
   }
 }
@@ -94,14 +92,6 @@ impl Dependency for CommonJsSelfReferenceDependency {
 impl ModuleDependency for CommonJsSelfReferenceDependency {
   fn request(&self) -> &str {
     "self"
-  }
-
-  fn factorize_info(&self) -> &FactorizeInfo {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
-    &mut self.factorize_info
   }
 }
 

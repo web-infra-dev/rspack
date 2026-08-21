@@ -1,7 +1,7 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, Dependency, DependencyCodeGeneration, DependencyId, DependencyRange,
-  DependencyTemplate, DependencyTemplateType, DependencyType, ExportsInfoArtifact, FactorizeInfo,
+  DependencyTemplate, DependencyTemplateType, DependencyType, ExportsInfoArtifact,
   ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ReferencedExport, RuntimeSpec,
   TemplateContext, TemplateReplaceSource,
 };
@@ -12,7 +12,6 @@ pub struct IsIncludeDependency {
   pub range: DependencyRange,
   pub id: DependencyId,
   pub request: String,
-  factorize_info: FactorizeInfo,
 }
 
 impl IsIncludeDependency {
@@ -21,7 +20,6 @@ impl IsIncludeDependency {
       range,
       id: DependencyId::default(),
       request,
-      factorize_info: Default::default(),
     }
   }
 }
@@ -65,14 +63,6 @@ impl ModuleDependency for IsIncludeDependency {
 
   fn request(&self) -> &str {
     &self.request
-  }
-
-  fn factorize_info(&self) -> &FactorizeInfo {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
-    &mut self.factorize_info
   }
 }
 

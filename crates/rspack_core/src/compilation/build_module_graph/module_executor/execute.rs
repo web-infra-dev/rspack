@@ -12,8 +12,8 @@ use super::context::{ExecutorTaskContext, ImportModuleMeta};
 use crate::{
   Chunk, ChunkGraph, ChunkKind, ChunkUkey, CodeGenerationDataAssetInfo, CodeGenerationDataFilename,
   CodeGenerationResult, CodeGenerationResultBuilder, Compilation, CompilationAsset,
-  CompilationAssets, EntryOptions, Entrypoint, FactorizeInfo, ModuleCodeGenerationContext,
-  ModuleType, PublicPath, RuntimeSpec, SourceType,
+  CompilationAssets, EntryOptions, Entrypoint, ModuleCodeGenerationContext, ModuleType, PublicPath,
+  RuntimeSpec, SourceType,
   compilation::{
     code_generation::code_generation_modules,
     create_module_hashes::create_module_hashes,
@@ -285,8 +285,9 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
       }
       for dep_id in module.get_dependencies() {
         if !has_error && make_failed_dependencies.contains(dep_id) {
-          let dep = mg.dependency_by_id(dep_id);
-          let diagnostics = FactorizeInfo::get_from(dep)
+          let diagnostics = origin_context
+            .artifact
+            .factorize_info(dep_id)
             .expect("should have factorize info")
             .diagnostics();
           let errors: Vec<_> = diagnostics

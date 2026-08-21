@@ -2,8 +2,8 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
   DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, ExportsInfoArtifact,
-  FactorizeInfo, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ReferencedExport,
-  RuntimeSpec, TemplateContext, TemplateReplaceSource,
+  ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ReferencedExport, RuntimeSpec,
+  TemplateContext, TemplateReplaceSource,
 };
 
 use crate::import_dependency::module_id_rstest;
@@ -16,7 +16,6 @@ pub struct MockModuleIdDependency {
   pub weak: bool,
   range: DependencyRange,
   optional: bool,
-  factorize_info: FactorizeInfo,
   category: DependencyCategory,
   pub suffix: Option<String>,
   missing_module_fallback: Option<String>,
@@ -38,7 +37,6 @@ impl MockModuleIdDependency {
       weak,
       optional,
       id: DependencyId::new(),
-      factorize_info: Default::default(),
       category,
       suffix,
       missing_module_fallback: None,
@@ -108,14 +106,6 @@ impl ModuleDependency for MockModuleIdDependency {
 
   fn get_optional(&self) -> bool {
     self.optional
-  }
-
-  fn factorize_info(&self) -> &FactorizeInfo {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
-    &mut self.factorize_info
   }
 }
 
