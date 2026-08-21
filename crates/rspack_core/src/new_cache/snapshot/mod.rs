@@ -1,17 +1,16 @@
 mod build_deps;
-mod strategy;
 
 use std::sync::Arc;
 
+use futures::future::join3;
 use rspack_cacheable::cacheable;
 use rspack_fs::ReadableFileSystem;
 use rspack_paths::{InternedPath, InternedPathSet};
 use rspack_parallel::FutureConsumer;
 
 pub use self::build_deps::{BuildDeps, BuildDepsValidationResult};
-use self::strategy::{SnapshotScope, calc_strategy};
 use crate::cache::persistent::snapshot::{
-  SnapshotOptions, Strategy, StrategyHelper, ValidateResult,
+  SnapshotOptions, SnapshotScope, Strategy, StrategyHelper, ValidateResult,
 };
 
 #[cacheable]
@@ -56,7 +55,9 @@ impl BuildDependenciesSnapshot {
     let added = build_deps
       .resolve_dependencies(&self.dependencies, paths)
       .await;
-    let snapshots = file_system_info.add(added.iter().cloned()).await;
+    let snapshots = file_system_info
+      .create_build_dependencies_snapshot(added.iter().cloned())
+      .await;
     self.dependencies.extend(added);
     self.snapshots.extend(snapshots);
   }
@@ -77,21 +78,20 @@ impl FileSystemInfo {
     }
   }
 
-  async fn add_with_scopes(
-    &self,
-    paths: impl Iterator<Item = (SnapshotScope, InternedPath)>,
-  ) -> Vec<(SnapshotScope, SnapshotEntry)> {
-    let helper = Arc::new(StrategyHelper::new(self.fs.clone(), self.options.clone()));
-    let options = self.options.clone();
+  async fn create_entries(
+    helper: Arc<StrategyHelper>,
+    paths: impl Iterator<Item = InternedPath>,
+    scope: SnapshotScope,
+  ) -> Vec<SnapshotEntry> {
     let mut entries = Vec::with_capacity(paths.size_hint().0);
     paths
-      .map(|(scope, path)| {
+      .map(|path| {
         let helper = helper.clone();
-        let options = options.clone();
         async move {
-          calc_strategy(&options, &helper, &path, scope)
+          helper
+            .create_strategy(&path, scope)
             .await
-            .map(|strategy| (scope, SnapshotEntry { path, strategy }))
+            .map(|strategy| SnapshotEntry { path, strategy })
         }
       })
       .fut_consume(|entry| entries.extend(entry))
@@ -99,16 +99,23 @@ impl FileSystemInfo {
     entries
   }
 
-  #[tracing::instrument("Cache::FileSystemInfo::add", skip_all)]
-  pub async fn add(&self, paths: impl Iterator<Item = InternedPath>) -> Vec<SnapshotEntry> {
-    self
-      .add_with_scopes(paths.map(|path| (SnapshotScope::Build, path)))
-      .await
-      .into_iter()
-      .map(|(_, entry)| entry)
-      .collect()
+  #[tracing::instrument("Cache::FileSystemInfo::create_build_dependencies_snapshot", skip_all)]
+  pub async fn create_build_dependencies_snapshot(
+    &self,
+    paths: impl Iterator<Item = InternedPath>,
+  ) -> Vec<SnapshotEntry> {
+    Self::create_entries(
+      Arc::new(StrategyHelper::new(self.fs.clone(), self.options.clone())),
+      paths,
+      SnapshotScope::BUILD,
+    )
+    .await
   }
 
+  /// Creates a snapshot from file, context, and missing dependencies.
+  ///
+  /// This follows webpack's `FileSystemInfo.createSnapshot` structure:
+  /// <https://github.com/webpack/webpack/blob/main/lib/FileSystemInfo.js#L2534-L3017>
   #[tracing::instrument("Cache::FileSystemInfo::create_snapshot", skip_all)]
   pub async fn create_snapshot(
     &self,
@@ -116,24 +123,18 @@ impl FileSystemInfo {
     context_dependencies: impl Iterator<Item = InternedPath>,
     missing_dependencies: impl Iterator<Item = InternedPath>,
   ) -> Snapshot {
-    let entries = self
-      .add_with_scopes(
-        file_dependencies
-          .map(|path| (SnapshotScope::File, path))
-          .chain(context_dependencies.map(|path| (SnapshotScope::Context, path)))
-          .chain(missing_dependencies.map(|path| (SnapshotScope::Missing, path))),
-      )
-      .await;
-    let mut snapshot = Snapshot::default();
-    for (scope, entry) in entries {
-      match scope {
-        SnapshotScope::File => snapshot.file_dependencies.push(entry),
-        SnapshotScope::Context => snapshot.context_dependencies.push(entry),
-        SnapshotScope::Missing => snapshot.missing_dependencies.push(entry),
-        SnapshotScope::Build => unreachable!("module snapshots do not contain build dependencies"),
-      }
+    let helper = Arc::new(StrategyHelper::new(self.fs.clone(), self.options.clone()));
+    let (file_dependencies, context_dependencies, missing_dependencies) = join3(
+      Self::create_entries(helper.clone(), file_dependencies, SnapshotScope::FILE),
+      Self::create_entries(helper.clone(), context_dependencies, SnapshotScope::CONTEXT),
+      Self::create_entries(helper, missing_dependencies, SnapshotScope::MISSING),
+    )
+    .await;
+    Snapshot {
+      file_dependencies,
+      context_dependencies,
+      missing_dependencies,
     }
-    snapshot
   }
 
   #[tracing::instrument("Cache::FileSystemInfo::check_snapshot_valid", skip_all)]

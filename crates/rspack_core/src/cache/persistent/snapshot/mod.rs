@@ -42,41 +42,6 @@ impl Snapshot {
     }
   }
 
-  async fn calc_strategy(
-    options: &Arc<SnapshotOptions>,
-    helper: &Arc<StrategyHelper>,
-    path: &InternedPath,
-    scope: SnapshotScope,
-  ) -> Option<Strategy> {
-    let path_str = path.to_string_lossy();
-    if options.is_immutable_path(&path_str) {
-      return None;
-    }
-    if options.is_managed_path(&path_str)
-      && let Some(v) = helper.package_version(path).await
-    {
-      return Some(v);
-    }
-    Some(match scope {
-      SnapshotScope::FILE => {
-        helper
-          .file_strategy(path, options.dependencies_strategy())
-          .await
-      }
-      SnapshotScope::MISSING => Strategy::Missing,
-      SnapshotScope::CONTEXT => {
-        helper
-          .dir_strategy(path, options.context_dependencies_strategy())
-          .await
-      }
-      SnapshotScope::BUILD => {
-        helper
-          .dir_strategy(path, SnapshotStrategyOptions::hash())
-          .await
-      }
-    })
-  }
-
   #[tracing::instrument("Cache::Snapshot::reset", skip_all)]
   pub fn reset(&self, storage: &mut dyn Storage) {
     storage.reset(SnapshotScope::FILE.name());
@@ -97,10 +62,9 @@ impl Snapshot {
     paths
       .map(|path| {
         let helper = helper.clone();
-        let options = self.options.clone();
         let codec = codec.clone();
         async move {
-          let strategy = Self::calc_strategy(&options, &helper, &path, scope).await?;
+          let strategy = helper.create_strategy(&path, scope).await?;
           Some((
             codec.encode(&path).expect("should encode success"),
             codec.encode(&strategy).expect("should encode success"),
