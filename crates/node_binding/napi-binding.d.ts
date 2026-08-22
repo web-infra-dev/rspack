@@ -560,6 +560,7 @@ export declare enum BuiltinPluginName {
   NamedModuleIdsPlugin = 'NamedModuleIdsPlugin',
   NaturalModuleIdsPlugin = 'NaturalModuleIdsPlugin',
   DeterministicModuleIdsPlugin = 'DeterministicModuleIdsPlugin',
+  CompatHashedModuleIdsPlugin = 'CompatHashedModuleIdsPlugin',
   SyncModuleIdsPlugin = 'SyncModuleIdsPlugin',
   HashedModuleIdsPlugin = 'HashedModuleIdsPlugin',
   NaturalChunkIdsPlugin = 'NaturalChunkIdsPlugin',
@@ -1959,6 +1960,10 @@ export interface RawCircularDependencyRspackPluginOptions {
 export interface RawCollectShareEntryPluginOptions {
   consumes: Array<RawConsumeOptions>
   filename?: string
+}
+
+export interface RawCompatHashedModuleIdsPluginOptions {
+  minLength?: number
 }
 
 export interface RawCompilerPlatform {

@@ -3458,6 +3458,11 @@ impl OptimizationOptionsBuilder {
           .plugins
           .push(BuiltinPluginOptions::DeterministicModuleIdsPlugin);
       }
+      "compat-hashed" => {
+        builder_context
+          .plugins
+          .push(BuiltinPluginOptions::CompatHashedModuleIdsPlugin);
+      }
       "named" => {
         builder_context
           .plugins
