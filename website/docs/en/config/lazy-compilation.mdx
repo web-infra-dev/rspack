@@ -58,7 +58,6 @@ type LazyCompilationOptions =
 
 - **JavaScript API:** Lazy compilation is disabled by default. After enabling `lazyCompilation`, register the lazy compilation middleware with your development server. See [Integrating with custom server](/guide/features/lazy-compilation#integrating-with-custom-server).
 - **Rspack CLI:** `rspack dev` registers the middleware automatically. When [`target`](/config/target) is limited to a browser environment and `lazyCompilation` is not explicitly configured, it also uses `{ entries: false, imports: true }`. When the option is omitted in other cases, lazy compilation remains disabled.
-- **Configuration object:** When `lazyCompilation` is enabled with an object, omitted `entries` and `imports` each default to `true`.
 
 ## Compilation scope
 
@@ -94,9 +93,11 @@ To narrow the scope further, use [`test`](#test) to filter modules. It accepts a
 ### entries
 
 - **Type:** `boolean`
-- **Default:** See [Default behavior](#default-behavior).
+- **Default:** When `entries` is omitted from the configuration object, it defaults to `true`.
 
-Controls whether entry modules are lazily compiled. When omitted from the object, this option defaults to `true`. When set to `false`, entry modules are built during the initial compilation. Modules loaded through `import()` remain lazily compiled unless `imports` is also set to `false`.
+Controls whether entry modules are lazily compiled.
+
+When set to `false`, entry modules are built during the initial compilation.
 
 ```js title="rspack.config.mjs"
 export default {
@@ -109,9 +110,11 @@ export default {
 ### imports
 
 - **Type:** `boolean`
-- **Default:** See [Default behavior](#default-behavior).
+- **Default:** When `imports` is omitted from the configuration object, it defaults to `true`.
 
-Controls whether modules loaded through dynamic `import()` are lazily compiled. When omitted from the object, this option defaults to `true`. When set to `false`, dynamically imported modules are built during the initial compilation. Entry modules remain lazily compiled unless `entries` is also set to `false`.
+Controls whether modules loaded through dynamic `import()` are lazily compiled.
+
+When set to `false`, dynamically imported modules are built during the initial compilation.
 
 ```js title="rspack.config.mjs"
 export default {
