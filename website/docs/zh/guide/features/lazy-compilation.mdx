@@ -2,7 +2,7 @@
 description: 'Lazy compilation 是一个提升开发阶段启动性能的有效手段，它采用按需编译模块的方式，而非在启动时编译全部模块。'
 ---
 
-# 按需编译
+# 按需编译 \{#lazy-compilation}
 
 Lazy compilation 是一个提升开发阶段启动性能的有效手段，它采用按需编译模块的方式，而非在启动时编译全部模块。这意味着开发者在启动 dev server 时，可以很快看到应用运行，并分次构建所需的模块。
 
@@ -12,7 +12,7 @@ Lazy compilation 是一个提升开发阶段启动性能的有效手段，它采
 Lazy compilation 仅在开发阶段有效，对于生产构建不会产生影响。
 :::
 
-## 如何使用
+## 如何使用 \{#how-to-use}
 
 ### Rspack CLI
 
@@ -59,7 +59,7 @@ export default defineConfig({
 
 使用 Rsbuild 的 [dev.lazyCompilation](https://rsbuild.rs/zh/config/dev/lazy-compilation) 选项开启。
 
-## 原理
+## 原理 \{#under-the-hood}
 
 懒编译的原理是将未执行的入口和 Module 的内容改写，当该 Module 在运行时被执行时，会发送请求到开发服务器，随后开发服务器会触发对应 Compiler 的重编译以及模块热更新。
 
@@ -69,9 +69,9 @@ export default defineConfig({
 
 只有当执行对应的入口和模块时，Rspack 才会编译对应的入口和 Module 以及他们的所有依赖。
 
-## 筛选部分模块
+## 筛选部分模块 \{#filtering-modules}
 
-除了 `entries` 和 `imports` 两个选项以外，你也可以使用 `test` 选项来筛选部分模块开启懒编译。
+除了 [`entries`](/config/lazy-compilation#entries) 和 [`imports`](/config/lazy-compilation#imports) 选项以外，你也可以使用 [`test`](/config/lazy-compilation#test) 来筛选哪些模块开启懒编译。
 
 例如，如果你想要避免懒编译 `About` 入口，可以参考如下配置：
 
@@ -94,7 +94,7 @@ export default defineConfig({
 });
 ```
 
-### 排除 HMR client
+### 排除 HMR client \{#exclude-hmr-client}
 
 如果你未使用 Rspack 的 dev server，而是使用自己的 server 作为开发服务器，一般会在 entry 配置中加入另外的 client 代码来开启 HMR 等能力，那么最好通过配置 test 来将该 client 模块从懒编译模块中排除出去。
 
@@ -120,7 +120,7 @@ new compiler.rspack.EntryPlugin(compiler.context, 'dev-client.js', {
 }).apply(compiler);
 ```
 
-## 与自定义的服务器集成
+## 与自定义的服务器集成 \{#integrating-with-custom-server}
 
 如果你没有使用 Rspack CLI 或 Rsbuild，并且使用自己的开发服务器，你需要手动将 `rspack.lazyCompilationMiddleware` 集成到你的开发服务器中：
 
@@ -150,9 +150,9 @@ server.start();
 
 - `compiler`: 当前的 [Compiler](/api/javascript-api/compiler)，使用该 Compiler 对应的 `lazyCompilation` 配置。
 
-## 自定义懒编译端点
+## 自定义懒编译端点 \{#customizing-lazy-compilation-endpoint}
 
-默认情况下，懒编译中间件使用 `/_rspack/lazy/trigger` 前缀来处理请求。如果你需要自定义这个前缀，可以使用 `prefix` 选项：
+默认情况下，懒编译中间件使用 `/_rspack/lazy/trigger` 前缀来处理请求。如果你需要自定义这个前缀，可以使用 [`prefix`](/config/lazy-compilation#prefix) 选项：
 
 ```js title="rspack.config.mjs"
 import { defineConfig } from '@rspack/cli';

@@ -69,7 +69,7 @@ Only when corresponding entries and modules are executed will Rspack compile the
 
 ## Filtering modules
 
-In addition to two options `entries` and `imports`, you can also use a `test` option to filter out certain modules for lazy compilation.
+In addition to the [`entries`](/config/lazy-compilation#entries) and [`imports`](/config/lazy-compilation#imports) options, you can use [`test`](/config/lazy-compilation#test) to filter which modules are lazily compiled.
 
 For example, if you want to disable lazy compilation for the `About` entry point, you can refer to the following configuration:
 
@@ -152,7 +152,7 @@ server.start();
 
 ## Customizing lazy compilation endpoint
 
-By default, the lazy compilation middleware uses the `/_rspack/lazy/trigger` prefix for handling requests. If you need to customize this prefix, you can use the `prefix` option:
+By default, the lazy compilation middleware uses the `/_rspack/lazy/trigger` prefix for handling requests. If you need to customize this prefix, you can use the [`prefix`](/config/lazy-compilation#prefix) option:
 
 ```js title="rspack.config.mjs"
 import { defineConfig } from '@rspack/cli';
