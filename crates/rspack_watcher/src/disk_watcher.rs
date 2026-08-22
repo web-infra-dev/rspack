@@ -1,4 +1,4 @@
-use std::{sync::Arc, time::Duration};
+use std::{path::Path, sync::Arc, time::Duration};
 
 use notify::{Event, EventKind, RecommendedWatcher, Watcher, event::ModifyKind};
 use rspack_paths::ArcPath;
@@ -85,17 +85,20 @@ impl DiskWatcher {
   ) -> rspack_error::Result<()> {
     let new_patterns: HashSet<WatchPattern> = patterns.collect();
 
-    let new_paths = new_patterns.iter().map(|p| &p.path).collect::<HashSet<_>>();
-
-    // Collect stale paths that are no longer needed, then unwatch and remove them.
-    let stale_paths: HashSet<ArcPath> = self
+    // A changed recursive mode must be unwatched before it is registered again.
+    let stale_patterns: Vec<(ArcPath, bool)> = self
       .watch_patterns
       .iter()
-      .filter(|p| !new_paths.contains(&p.path))
-      .map(|p| p.path.clone())
+      .filter(|p| !new_patterns.contains(*p))
+      .map(|p| {
+        (
+          p.path.clone(),
+          matches!(p.mode, notify::RecursiveMode::Recursive),
+        )
+      })
       .collect();
 
-    for path in &stale_paths {
+    for (path, _) in &stale_patterns {
       if let Some(watcher) = &mut self.inner
         && let Err(e) = watcher.unwatch(path)
         && !matches!(e.kind, notify::ErrorKind::WatchNotFound)
@@ -104,9 +107,24 @@ impl DiskWatcher {
       }
     }
 
-    self
-      .watch_patterns
-      .retain(|p| !stale_paths.contains(&p.path));
+    // notify's inotify backend removes every descendant watch when a recursive
+    // parent is unwatched, so retained children must also be registered again.
+    let stale_paths: HashSet<&Path> = stale_patterns
+      .iter()
+      .map(|(path, _)| path.as_ref())
+      .collect();
+    let stale_recursive_paths: HashSet<&Path> = stale_patterns
+      .iter()
+      .filter_map(|(path, recursive)| recursive.then_some(path.as_ref()))
+      .collect();
+    self.watch_patterns.retain(|p| {
+      !stale_paths.contains(p.path.as_ref())
+        && !p
+          .path
+          .as_ref()
+          .ancestors()
+          .any(|path| stale_recursive_paths.contains(path))
+    });
 
     for pattern in new_patterns {
       if self.watch_patterns.contains(&pattern) {
