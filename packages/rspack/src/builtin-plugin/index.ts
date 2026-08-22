@@ -4,7 +4,7 @@ export * from './AssetModulesPlugin';
 export * from './AsyncWebAssemblyModulesPlugin';
 export * from './BannerPlugin';
 export * from './BundlerInfoRspackPlugin';
-export { createNativePlugin, RspackBuiltinPlugin } from './base';
+export { createNativePlugin } from './base';
 export * from './CaseSensitivePlugin';
 export * from './ChunkPrefetchPreloadPlugin';
 export * from './CircularModulesInfoPlugin';
