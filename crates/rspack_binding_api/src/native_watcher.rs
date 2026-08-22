@@ -7,7 +7,7 @@ use std::{
 
 use napi::bindgen_prelude::*;
 use napi_derive::*;
-use rspack_paths::ArcPath;
+use rspack_paths::InternedPath;
 use rspack_regex::RspackRegex;
 use rspack_watcher::{FsEventKind, FsWatcher, FsWatcherIgnored, FsWatcherOptions};
 
@@ -132,7 +132,7 @@ impl NativeWatcher {
     } {
       self
         .watcher
-        .trigger_event(&ArcPath::from(AsRef::<Path>::as_ref(&path)), kind);
+        .trigger_event(&InternedPath::from(AsRef::<Path>::as_ref(&path)), kind);
     }
   }
 
@@ -164,10 +164,19 @@ impl NativeWatcher {
 
 fn to_tuple_path_iterator(
   tuple: (Vec<String>, Vec<String>),
-) -> (impl Iterator<Item = ArcPath>, impl Iterator<Item = ArcPath>) {
+) -> (
+  impl Iterator<Item = InternedPath>,
+  impl Iterator<Item = InternedPath>,
+) {
   (
-    tuple.0.into_iter().map(|s| ArcPath::from(PathBuf::from(s))),
-    tuple.1.into_iter().map(|s| ArcPath::from(PathBuf::from(s))),
+    tuple
+      .0
+      .into_iter()
+      .map(|s| InternedPath::from(PathBuf::from(s))),
+    tuple
+      .1
+      .into_iter()
+      .map(|s| InternedPath::from(PathBuf::from(s))),
   )
 }
 

@@ -89,7 +89,7 @@ use dashmap::DashSet;
 use futures::future::{BoxFuture, try_join_all};
 // Resolved dependencies are reported as interned paths, so consumers do not have to convert or
 // rehash them; re-exported for anyone reading a `ResolveContext`.
-pub use rspack_paths::{ArcPath, ArcPathSet};
+pub use rspack_paths::{InternedPath, InternedPathSet};
 use rustc_hash::FxHashSet;
 
 use crate::{
@@ -119,10 +119,10 @@ type ResolveResult = Result<Option<CachedPath>, ResolveError>;
 #[derive(Debug, Default, Clone)]
 pub struct ResolveContext {
   /// Files that were found on file system
-  pub file_dependencies: ArcPathSet,
+  pub file_dependencies: InternedPathSet,
 
   /// Dependencies that were not found on file system
-  pub missing_dependencies: ArcPathSet,
+  pub missing_dependencies: InternedPathSet,
 }
 
 /// Resolver with the current operating system as the file system

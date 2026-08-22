@@ -1,6 +1,6 @@
 use rspack_cacheable::cacheable;
 use rspack_error::Diagnostic;
-use rspack_paths::ArcPathSet;
+use rspack_paths::InternedPathSet;
 use rustc_hash::FxHashMap;
 
 use crate::DependencyId;
@@ -9,9 +9,9 @@ use crate::DependencyId;
 #[derive(Debug, Clone)]
 pub struct FactorizeInfo {
   related_dep_ids: Vec<DependencyId>,
-  file_dependencies: ArcPathSet,
-  context_dependencies: ArcPathSet,
-  missing_dependencies: ArcPathSet,
+  file_dependencies: InternedPathSet,
+  context_dependencies: InternedPathSet,
+  missing_dependencies: InternedPathSet,
   diagnostics: Vec<Diagnostic>,
 }
 
@@ -19,9 +19,9 @@ impl FactorizeInfo {
   pub fn new(
     diagnostics: Vec<Diagnostic>,
     related_dep_ids: Vec<DependencyId>,
-    file_dependencies: ArcPathSet,
-    context_dependencies: ArcPathSet,
-    missing_dependencies: ArcPathSet,
+    file_dependencies: InternedPathSet,
+    context_dependencies: InternedPathSet,
+    missing_dependencies: InternedPathSet,
   ) -> Self {
     assert!(
       !related_dep_ids.is_empty(),
@@ -48,15 +48,15 @@ impl FactorizeInfo {
     &self.related_dep_ids
   }
 
-  pub fn file_dependencies(&self) -> &ArcPathSet {
+  pub fn file_dependencies(&self) -> &InternedPathSet {
     &self.file_dependencies
   }
 
-  pub fn context_dependencies(&self) -> &ArcPathSet {
+  pub fn context_dependencies(&self) -> &InternedPathSet {
     &self.context_dependencies
   }
 
-  pub fn missing_dependencies(&self) -> &ArcPathSet {
+  pub fn missing_dependencies(&self) -> &InternedPathSet {
     &self.missing_dependencies
   }
 
