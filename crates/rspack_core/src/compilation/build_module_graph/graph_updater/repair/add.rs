@@ -120,6 +120,7 @@ impl Task<TaskContext> for AddTask {
       module: self.module,
       resolver_factory: context.resolver_factory.clone(),
       compiler_options: context.compiler_options.clone(),
+      loader_cache: context.cache.facade("loader"),
       plugin_driver: context.plugin_driver.clone(),
       runtime_template: context.runtime_template.create_module_code_template(),
       fs: context.fs.clone(),

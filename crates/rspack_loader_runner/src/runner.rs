@@ -8,7 +8,7 @@ use rustc_hash::FxHashSet as HashSet;
 use tracing::{Instrument, info_span};
 
 use crate::{
-  ParseMeta,
+  LoaderRunnerOptions, ParseMeta,
   content::{AdditionalData, Content, ResourceData},
   context::{LoaderContext, State},
   loader::{Loader, LoaderItem},
@@ -98,15 +98,26 @@ fn create_loader_context<Context: Send>(
 #[tracing::instrument("LoaderRunner:run_loaders", skip_all, level = "trace")]
 pub async fn run_loaders<Context: Send>(
   loaders: Vec<Arc<dyn Loader<Context>>>,
+  loader_options: Option<Vec<LoaderRunnerOptions>>,
   resource_data: Arc<ResourceData>,
   plugin: Option<Arc<dyn LoaderRunnerPlugin<Context = Context>>>,
   context: Context,
   fs: Arc<dyn ReadableFileSystem>,
 ) -> (LoaderResult<Context>, Option<Error>) {
-  let loaders = loaders
-    .into_iter()
-    .map(|i| i.into())
-    .collect::<Vec<LoaderItem<Context>>>();
+  let loaders = if let Some(loader_options) = loader_options {
+    assert_eq!(
+      loaders.len(),
+      loader_options.len(),
+      "loader options must stay aligned with loaders"
+    );
+    loaders
+      .into_iter()
+      .zip(loader_options)
+      .map(|(loader, options)| LoaderItem::new(loader, options))
+      .collect::<Vec<LoaderItem<Context>>>()
+  } else {
+    loaders.into_iter().map(LoaderItem::from).collect()
+  };
   let mut cx = create_loader_context(loaders, resource_data, plugin, context);
   let result = run_loaders_impl(&mut cx, fs).await;
   (LoaderResult::new(cx), result.err())
@@ -184,12 +195,19 @@ async fn run_loaders_impl<Context: Send>(
         let loader = cx.current_loader().loader().clone();
 
         let span = info_span!("run_loader:normal", resource);
-        loader.run(cx).instrument(span).await?;
-        if !cx.current_loader().finish_called() {
-          // If nothing is returned from this loader,
-          // we set everything to [None] and move to the next loader.
-          // This mocks the behavior of webpack loader-runner.
-          cx.finish_with_empty();
+        if let Some(plugin) = cx.plugin.clone() {
+          plugin
+            .run_normal_loader(cx, loader)
+            .instrument(span)
+            .await?;
+        } else {
+          loader.run(cx).instrument(span).await?;
+          if !cx.current_loader().finish_called() {
+            // If nothing is returned from this loader,
+            // we set everything to [None] and move to the next loader.
+            // This mocks the behavior of webpack loader-runner.
+            cx.finish_with_empty();
+          }
         }
       }
       State::Finished => break,
@@ -445,6 +463,7 @@ mod test {
     assert!(
       run_loaders(
         vec![p1, p2, c1, c2],
+        None,
         rs.clone(),
         Some(Arc::new(TestContentPlugin)),
         (),
@@ -465,6 +484,7 @@ mod test {
     assert!(
       run_loaders(
         vec![p1, p2, p3],
+        None,
         rs.clone(),
         Some(Arc::new(TestContentPlugin)),
         (),
@@ -538,6 +558,7 @@ mod test {
     assert!(
       run_loaders(
         vec![Arc::new(Normal) as Arc<dyn Loader>, Arc::new(Normal2)],
+        None,
         rs,
         Some(Arc::new(TestContentPlugin)),
         (),
@@ -595,6 +616,7 @@ mod test {
     assert!(
       run_loaders(
         vec![Arc::new(Normal2), Arc::new(Normal)],
+        None,
         rs,
         Some(Arc::new(TestContentPlugin)),
         (),

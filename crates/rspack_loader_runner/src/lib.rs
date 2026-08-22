@@ -1,5 +1,6 @@
 #![feature(string_from_utf8_lossy_owned)]
 
+mod cache;
 mod content;
 mod context;
 mod loader;
@@ -16,3 +17,4 @@ pub use runner::{LoaderResult, run_loaders};
 pub use scheme::{Scheme, get_scheme};
 
 pub const BUILTIN_LOADER_PREFIX: &str = "builtin:";
+pub use cache::LoaderRunnerOptions;
