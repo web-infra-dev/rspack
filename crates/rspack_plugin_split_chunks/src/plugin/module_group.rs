@@ -294,17 +294,12 @@ impl Combinator {
     chunk_by_ukey: &ChunkByUkey,
     chunk_index_map: &FxHashMap<ChunkUkey, u32>,
   ) -> Vec<ChunkCombination> {
-    if let Some(first_chunk) = module_chunks.iter().next() {
-      let first_runtime_key = get_runtime_key(chunk_by_ukey.expect_get(first_chunk).runtime());
-      // Chunks with the same runtime always have the same usage key for a module.
-      if module_chunks.iter().skip(1).all(|chunk_ukey| {
-        get_runtime_key(chunk_by_ukey.expect_get(chunk_ukey).runtime()) == first_runtime_key
-      }) {
-        return vec![ChunkCombination {
-          key: get_key(module_chunks.iter().copied(), chunk_index_map),
-          chunks: Arc::new(module_chunks.clone()),
-        }];
-      }
+    // A single chunk cannot produce runtime-dependent usage groups.
+    if module_chunks.len() == 1 {
+      return vec![ChunkCombination {
+        key: get_key(module_chunks.iter().copied(), chunk_index_map),
+        chunks: Arc::new(module_chunks.clone()),
+      }];
     }
 
     let exports_info = exports_info_artifact.get_exports_info_data(module_identifier);
