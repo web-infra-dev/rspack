@@ -289,15 +289,37 @@ impl Combinator {
 
   fn group_chunks_by_exports(
     module_identifier: &ModuleIdentifier,
-    module_chunks: impl Iterator<Item = ChunkUkey>,
+    module_chunks: &FxHashSet<ChunkUkey>,
     exports_info_artifact: &ExportsInfoArtifact,
     chunk_by_ukey: &ChunkByUkey,
     chunk_index_map: &FxHashMap<ChunkUkey, u32>,
   ) -> Vec<ChunkCombination> {
+    // A single chunk cannot produce runtime-dependent usage groups.
+    if module_chunks.len() == 1 {
+      return vec![ChunkCombination {
+        key: get_key(module_chunks.iter().copied(), chunk_index_map),
+        chunks: Arc::new(module_chunks.clone()),
+      }];
+    }
+
+    let mut chunks = module_chunks.iter();
+    if let Some(first_chunk) = chunks.next() {
+      let first_runtime_key = get_runtime_key(chunk_by_ukey.expect_get(first_chunk).runtime());
+      // Chunks with the same runtime always have the same usage key for a module.
+      if chunks.all(|chunk_ukey| {
+        get_runtime_key(chunk_by_ukey.expect_get(chunk_ukey).runtime()) == first_runtime_key
+      }) {
+        return vec![ChunkCombination {
+          key: get_key(module_chunks.iter().copied(), chunk_index_map),
+          chunks: Arc::new(module_chunks.clone()),
+        }];
+      }
+    }
+
     let exports_info = exports_info_artifact.get_exports_info_data(module_identifier);
     let mut grouped_by_used_exports: FxHashMap<UsageKey, FxHashSet<ChunkUkey>> = Default::default();
     let mut runtime_key_map = RuntimeKeyMap::default();
-    for chunk_ukey in module_chunks {
+    for chunk_ukey in module_chunks.iter().copied() {
       let chunk = chunk_by_ukey.expect_get(&chunk_ukey);
       let runtime = chunk.runtime();
       let usage_key = runtime_key_map
@@ -432,9 +454,7 @@ impl Combinator {
           module,
           module_chunks
             .get(module_index)
-            .expect("should have module chunks")
-            .iter()
-            .copied(),
+            .expect("should have module chunks"),
           exports_info_artifact,
           chunk_by_ukey,
           chunk_index_map,
