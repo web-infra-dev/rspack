@@ -14,6 +14,7 @@ use rspack_util::{
   itoa,
 };
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
+use smallvec::{SmallVec, smallvec};
 
 use super::incremental::ChunkCreateData;
 use crate::{
@@ -34,7 +35,7 @@ pub(crate) type DependenciesBlockIdentifierMap<V> =
 pub(crate) type DependenciesBlockIdentifierSet =
   std::collections::HashSet<DependenciesBlockIdentifier, BuildHasherDefault<FxHasher>>;
 
-type ConnectionIdList = Arc<Vec<DependencyId>>;
+type ConnectionIdList = Arc<[DependencyId]>;
 type PreparedBlockConnectionMap = Vec<PreparedBlockConnection>;
 type BlockModules = Vec<(ModuleIdentifier, ConnectionState, ConnectionIdList)>;
 type BlockConnectionMap = DependenciesBlockIdentifierMap<Arc<BlockModules>>;
@@ -54,37 +55,45 @@ struct PreparedBlockConnectionBuilder {
   dependency: DependencyId,
 }
 
+struct PreparedBlockConnectionGroup {
+  block: DependenciesBlockIdentifier,
+  module: ModuleIdentifier,
+  connections: SmallVec<[DependencyId; 2]>,
+}
+
 fn finalize_prepared_connection_map(
   connections: impl IntoIterator<Item = PreparedBlockConnectionBuilder>,
   capacity: usize,
 ) -> PreparedBlockConnectionMap {
-  let mut groups = PreparedBlockConnectionMap::with_capacity(capacity);
-  let mut group_index_by_block = DependenciesBlockIdentifierMap::<IdentifierMap<usize>>::default();
+  let mut groups = Vec::<PreparedBlockConnectionGroup>::with_capacity(capacity);
+  let mut group_index_by_key =
+    HashMap::<(DependenciesBlockIdentifier, ModuleIdentifier), usize>::default();
   for connection in connections {
-    let index_by_module = match group_index_by_block.entry(connection.block) {
-      hash_map::Entry::Occupied(entry) => entry.into_mut(),
-      hash_map::Entry::Vacant(entry) => entry.insert(IdentifierMap::default()),
-    };
-
-    match index_by_module.entry(connection.module) {
+    let key = (connection.block, connection.module);
+    match group_index_by_key.entry(key) {
       hash_map::Entry::Occupied(entry) => {
-        Arc::get_mut(&mut groups[*entry.get()].connections)
-          .expect("prepared connections should not be shared during finalize")
-          .push(connection.dependency);
+        groups[*entry.get()].connections.push(connection.dependency);
       }
       hash_map::Entry::Vacant(entry) => {
         let index = groups.len();
         entry.insert(index);
-        groups.push(PreparedBlockConnection {
+        groups.push(PreparedBlockConnectionGroup {
           block: connection.block,
           module: connection.module,
-          connections: Arc::new(vec![connection.dependency]),
+          connections: smallvec![connection.dependency],
         });
       }
     }
   }
 
   groups
+    .into_iter()
+    .map(|group| PreparedBlockConnection {
+      block: group.block,
+      module: group.module,
+      connections: group.connections.as_slice().into(),
+    })
+    .collect()
 }
 
 #[derive(Debug, Clone, Default)]
@@ -2278,9 +2287,8 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         chunk_groups_merging_tasks.push((info_ukey, process_block, cgi));
       }
 
-      let mut chunk_group_merging_results = chunk_groups_merging_tasks
-        .into_par_iter()
-        .map(|(info_ukey, process_block, mut cgi)| {
+      let merge_chunk_group =
+        |(info_ukey, process_block, mut cgi): (CgiUkey, Option<ProcessBlock>, ChunkGroupInfo)| {
           let mut changed = false;
           let available_modules_length = cgi.available_modules_to_be_merged.len() as u32;
 
@@ -2315,8 +2323,18 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
             changed,
             available_modules_length,
           )
-        })
-        .collect::<Vec<_>>();
+        };
+      let mut chunk_group_merging_results = if chunk_groups_merging_tasks.len() == 1 {
+        chunk_groups_merging_tasks
+          .into_iter()
+          .map(merge_chunk_group)
+          .collect::<Vec<_>>()
+      } else {
+        chunk_groups_merging_tasks
+          .into_par_iter()
+          .map(merge_chunk_group)
+          .collect::<Vec<_>>()
+      };
 
       for (info_ukey, cgi, _, _, _) in &mut chunk_group_merging_results {
         *self.chunk_group_info_mut(info_ukey) = cgi.take().expect("should have chunk group info");
@@ -2381,8 +2399,8 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
           return None;
         }
 
-        let mut ordered_deps = Vec::new();
-        let mut unordered_deps = Vec::with_capacity(dependency_count);
+        let mut ordered_deps = Vec::with_capacity(dependency_count);
+        let mut unordered_deps = Vec::new();
         let mut ordered_deps_sorted = true;
         let mut last_source_order = None;
         for dep_id in all_dependencies {
