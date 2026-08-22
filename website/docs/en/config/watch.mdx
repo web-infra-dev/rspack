@@ -59,7 +59,7 @@ export default {
 
 ### watchOptions.ignored
 
-- **Type:** `RegExp | string | string[]`
+- **Type:** `RegExp | string | string[] | ((entry: string) => boolean)`
 - **Default:** `/[\\/](?:\.git|node_modules)[\\/]/`
 
 The path that matches is excluded while watching. Watching many files can result in a lot of CPU or memory usage.
@@ -109,6 +109,18 @@ export default {
 ```
 
 When using glob patterns, Rspack convert them to regular expressions with [glob-to-regexp](https://github.com/fitzgen/glob-to-regexp), so make sure to get yourself familiar with it before you use glob patterns for watchOptions.ignored.
+
+Finally, `ignored` can be a function that is asked about every entry and returns `true` to exclude it:
+
+```js title="rspack.config.mjs"
+export default {
+  watchOptions: {
+    ignored: (entry) => entry.includes('.git'),
+  },
+};
+```
+
+Unlike the other forms, the function receives the entry with the platform path separators, and it has to exclude the entries below an excluded directory itself.
 
 ### watchOptions.poll
 

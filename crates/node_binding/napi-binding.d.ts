@@ -1797,9 +1797,10 @@ export interface NativeWatcherOptions {
   aggregateTimeout?: number
   /**
    * The ignored paths for the watcher.
-   * It can be a single path, an array of paths, or a regular expression.
+   * It can be a single path, an array of paths, a regular expression, or a
+   * predicate returning `true` for entries to ignore.
    */
-  ignored?: string | string[] | RegExp
+  ignored?: string | string[] | RegExp | ((entry: string) => boolean)
 }
 
 /**

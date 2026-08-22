@@ -17,7 +17,8 @@ import type {
  * Copyright (c) JS Foundation and other contributors
  * https://github.com/webpack/watchpack/blob/main/LICENSE
  */
-type JsWatcherIgnored = string | string[] | RegExp | undefined;
+type JsWatcherIgnored =
+  string | string[] | RegExp | ((entry: string) => boolean) | undefined;
 
 const toJsWatcherIgnored = (
   ignored: Watchpack.WatchOptions['ignored'],
@@ -25,14 +26,10 @@ const toJsWatcherIgnored = (
   if (
     Array.isArray(ignored) ||
     typeof ignored === 'string' ||
-    ignored instanceof RegExp
+    ignored instanceof RegExp ||
+    typeof ignored === 'function'
   ) {
     return ignored;
-  }
-  if (typeof ignored === 'function') {
-    throw new Error(
-      "NativeWatcher does not support using a function for the 'ignored' option",
-    );
   }
   return undefined;
 };

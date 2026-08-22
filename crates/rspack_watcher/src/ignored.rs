@@ -1,8 +1,10 @@
-use std::{borrow::Cow, fmt::Debug};
+use std::{borrow::Cow, fmt::Debug, sync::Arc};
 
 use cow_utils::CowUtils;
 use regex::Regex;
 use rspack_regex::RspackRegex;
+
+pub type IgnoredFn = Arc<dyn Fn(&str) -> bool + Send + Sync>;
 
 #[derive(Default)]
 pub enum FsWatcherIgnored {
@@ -11,6 +13,7 @@ pub enum FsWatcherIgnored {
   Path(String),
   Paths(Vec<String>),
   Regex(RspackRegex),
+  Function(IgnoredFn),
 }
 
 impl Debug for FsWatcherIgnored {
@@ -20,6 +23,7 @@ impl Debug for FsWatcherIgnored {
       FsWatcherIgnored::Path(s) => write!(f, "FsWatcherIgnored::Path({s})"),
       FsWatcherIgnored::Paths(s) => write!(f, "FsWatcherIgnored::Paths({s:?})"),
       FsWatcherIgnored::Regex(reg) => write!(f, "FsWatcherIgnored::Regex({reg:?})"),
+      FsWatcherIgnored::Function(_) => write!(f, "FsWatcherIgnored::Function"),
     }
   }
 }
@@ -114,14 +118,15 @@ fn glob_to_regexp(glob: &str) -> String {
 /// watchpack-style ignore matcher. Exactly one classification strategy is live
 /// per watch: glob patterns are rewritten to match their subtree and folded
 /// into one precompiled regex (a single `is_match` per event), while a
-/// user-supplied `Regex` is applied as-is. `None` short-circuits before
-/// normalizing the path.
+/// user-supplied `Regex` is applied as-is and a user-supplied `Function` is
+/// asked about each entry. `None` short-circuits before normalizing the path.
 #[derive(Default)]
 pub enum IgnoredMatcher {
   #[default]
   None,
   Globs(Regex),
   Regex(RspackRegex),
+  Function(IgnoredFn),
 }
 
 impl IgnoredMatcher {
@@ -158,6 +163,7 @@ impl IgnoredMatcher {
       FsWatcherIgnored::Path(p) => compile(&[p]),
       FsWatcherIgnored::Paths(ps) => compile(&ps),
       FsWatcherIgnored::Regex(reg) => IgnoredMatcher::Regex(reg),
+      FsWatcherIgnored::Function(f) => IgnoredMatcher::Function(f),
     }
   }
 
@@ -168,6 +174,9 @@ impl IgnoredMatcher {
       IgnoredMatcher::None => false,
       IgnoredMatcher::Globs(re) => re.is_match(&normalize_path(path)),
       IgnoredMatcher::Regex(re) => re.test(&normalize_path(path)),
+      // watchpack hands the arbitrary function the raw entry — it is the only
+      // form whose path keeps the platform separators.
+      IgnoredMatcher::Function(f) => f(path),
     }
   }
 }
