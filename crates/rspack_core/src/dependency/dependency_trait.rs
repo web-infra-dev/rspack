@@ -2,7 +2,6 @@ use std::{
   alloc::{Layout, LayoutError, alloc, handle_alloc_error},
   any::Any,
   fmt::{self, Debug},
-  mem::forget,
   ops::{Deref, DerefMut},
   ptr,
   sync::{Arc, OnceLock, atomic::AtomicUsize},
@@ -417,7 +416,7 @@ where
   fn deserialize(&self, deserializer: &mut D) -> Result<DependencyRef, D::Error> {
     let raw = deserializer.deserialize_shared::<_, DependencyRef>(self.get())?;
     let arc = unsafe { TriompheArc::from_raw(raw) };
-    forget(arc.clone());
+    let _ = TriompheArc::into_raw(arc.clone());
     Ok(DependencyRef(arc))
   }
 }
