@@ -71,6 +71,9 @@ impl ScopeFileSystem {
   ) -> Result<()> {
     let from_file = from.workspace.join(relative_path.as_ref());
     let to_file = to.workspace.join(relative_path.as_ref());
+    to.fs
+      .create_dir_all(to_file.parent().expect("should have parent"))
+      .await?;
     if let Err(e) = from.fs.rename(&from_file, &to_file).await {
       // If the source file is not found, ignore the error.
       let e: Error = e.into();
