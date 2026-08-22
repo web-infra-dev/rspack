@@ -34,3 +34,51 @@ class MyJsMinimizerPlugin {
   }
 }
 ```
+
+## Static methods
+
+### `getChunkFilenameTemplate`
+
+<ApiMeta addedVersion={'2.2.0'} />
+
+```ts
+function getChunkFilenameTemplate(
+  chunk: Chunk,
+  outputOptions: Output,
+): Filename | undefined;
+```
+
+Returns the filename template that is used to render the JavaScript file of the
+given chunk, resolved in this order:
+
+1. `chunk.filenameTemplate`, if the chunk carries its own template (for example
+   a chunk produced by a `splitChunks` cache group with `filename` set).
+2. [`output.filename`](/config/output#outputfilename), if the chunk can be initial.
+3. [`output.chunkFilename`](/config/output#outputchunkfilename) otherwise.
+
+```js
+class MyPlugin {
+  apply(compiler) {
+    const { JavascriptModulesPlugin } = compiler.rspack.javascript;
+    compiler.hooks.compilation.tap('MyPlugin', (compilation) => {
+      compilation.hooks.afterSeal.tap('MyPlugin', () => {
+        for (const chunk of compilation.chunks) {
+          const template = JavascriptModulesPlugin.getChunkFilenameTemplate(
+            chunk,
+            compilation.outputOptions,
+          );
+          const filename = compilation.getPath(template, { chunk });
+          console.log(filename);
+        }
+      });
+    });
+  }
+}
+```
+
+:::info Difference from webpack
+webpack also returns [`output.hotUpdateChunkFilename`](/config/output#outputhotupdatechunkfilename)
+for hot update chunks. Rspack keeps hot update chunks inside its Rust HMR
+pipeline and never exposes them to the JavaScript side, so no chunk you can
+reach from a plugin is a hot update chunk.
+:::
