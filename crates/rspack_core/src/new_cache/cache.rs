@@ -5,7 +5,7 @@ use rspack_paths::ArcPathSet;
 
 use super::{
   CacheFacade, CacheKey, CacheValue, Etag, IdleFileCache, MemoryCache, MemoryCacheGetResult,
-  cache_value::CacheValueData,
+  cache_value::CacheValueData, snapshot::FileSystemInfo,
 };
 
 /// Cache entry point backed by memory and optional filesystem storage.
@@ -23,6 +23,7 @@ struct CacheStorage {
 struct CacheInner {
   compiler_path: String,
   storage: Option<CacheStorage>,
+  file_system_info: Option<FileSystemInfo>,
 }
 
 /// Cheaply cloneable handle to the shared cache state.
@@ -44,6 +45,25 @@ impl Cache {
           memory_cache,
           idle_file_cache,
         }),
+        file_system_info: None,
+      }),
+    }
+  }
+
+  pub(crate) fn new_with_file_system_info(
+    compiler_path: String,
+    memory_cache: MemoryCache,
+    idle_file_cache: Option<IdleFileCache>,
+    file_system_info: FileSystemInfo,
+  ) -> Self {
+    Self {
+      inner: Arc::new(CacheInner {
+        compiler_path,
+        storage: Some(CacheStorage {
+          memory_cache,
+          idle_file_cache,
+        }),
+        file_system_info: Some(file_system_info),
       }),
     }
   }
@@ -53,6 +73,7 @@ impl Cache {
       inner: Arc::new(CacheInner {
         compiler_path,
         storage: None,
+        file_system_info: None,
       }),
     }
   }
@@ -124,6 +145,10 @@ impl Cache {
     } else {
       Ok(())
     }
+  }
+
+  pub fn file_system_info(&self) -> Option<&FileSystemInfo> {
+    self.inner.file_system_info.as_ref()
   }
 
   pub fn has_file_cache(&self) -> bool {
