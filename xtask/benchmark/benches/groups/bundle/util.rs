@@ -116,6 +116,7 @@ pub fn derive_projects(
             let mut builder = builder();
             builder.mode(Mode::Production);
             builder.devtool(rspack::builder::Devtool::SourceMap);
+            builder.experiments(Experiments::builder().css(true).pure_functions(false));
             builder
           }),
         ));
