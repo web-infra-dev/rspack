@@ -16,21 +16,9 @@ catalogs:
     '@babel/core':
       specifier: ^7.29.7
       version: 7.29.7
-    '@babel/generator':
-      specifier: 7.29.8
-      version: 7.29.8
-    '@babel/parser':
-      specifier: 7.29.8
-      version: 7.29.8
     '@babel/preset-react':
       specifier: ^7.29.7
       version: 7.29.7
-    '@babel/traverse':
-      specifier: 7.29.8
-      version: 7.29.8
-    '@babel/types':
-      specifier: 7.29.8
-      version: 7.29.8
     '@discoveryjs/json-ext':
       specifier: ^1.1.0
       version: 1.1.0
@@ -121,12 +109,6 @@ catalogs:
     '@swc/types':
       specifier: 0.1.28
       version: 0.1.28
-    '@types/babel__generator':
-      specifier: 7.27.0
-      version: 7.27.0
-    '@types/babel__traverse':
-      specifier: 7.28.0
-      version: 7.28.0
     '@types/fs-extra':
       specifier: 11.0.4
       version: 11.0.4
@@ -803,9 +785,6 @@ importers:
       '@rspack/dev-server':
         specifier: 'catalog:'
         version: 2.2.0(@rspack/core@packages+rspack)
-      '@rspack/test-tools':
-        specifier: workspace:*
-        version: link:../rspack-test-tools
       '@rstackjs/load-config':
         specifier: 'catalog:'
         version: 0.1.2(jiti@2.7.0)
@@ -815,9 +794,6 @@ importers:
       concat-stream:
         specifier: 'catalog:'
         version: 2.0.0
-      cross-env:
-        specifier: 'catalog:'
-        version: 10.1.0
       execa:
         specifier: 'catalog:'
         version: 5.1.1
@@ -842,24 +818,9 @@ importers:
 
   packages/rspack-test-tools:
     dependencies:
-      '@babel/generator':
-        specifier: 'catalog:'
-        version: 7.29.8
-      '@babel/parser':
-        specifier: 'catalog:'
-        version: 7.29.8
-      '@babel/traverse':
-        specifier: 'catalog:'
-        version: 7.29.8
-      '@babel/types':
-        specifier: 'catalog:'
-        version: 7.29.8
       chalk:
         specifier: 'catalog:'
         version: 6.0.0
-      cross-env:
-        specifier: 'catalog:'
-        version: 10.1.0
       filenamify:
         specifier: 'catalog:'
         version: 4.3.0
@@ -902,19 +863,10 @@ importers:
       wast-loader:
         specifier: 'catalog:'
         version: 1.14.1
-      webpack-sources:
-        specifier: 'catalog:'
-        version: 3.5.1(patch_hash=edd7c720efbda4112ce993316326133bd6b80ff93727e6604cf45bcfb355f561)
     devDependencies:
       '@rspack/core':
         specifier: workspace:*
         version: link:../rspack
-      '@types/babel__generator':
-        specifier: 'catalog:'
-        version: 7.27.0
-      '@types/babel__traverse':
-        specifier: 'catalog:'
-        version: 7.28.0
       '@types/fs-extra':
         specifier: 'catalog:'
         version: 11.0.4
@@ -936,15 +888,9 @@ importers:
       '@iarna/toml':
         specifier: 'catalog:'
         version: 3.0.0
-      '@types/fs-extra':
-        specifier: 'catalog:'
-        version: 11.0.4
       chalk:
         specifier: 'catalog:'
         version: 6.0.0
-      fs-extra:
-        specifier: 'catalog:'
-        version: 11.4.0
       glob:
         specifier: 'catalog:'
         version: 13.0.6
@@ -1050,9 +996,6 @@ importers:
       '@babel/core':
         specifier: 'catalog:'
         version: 7.29.7
-      '@babel/preset-react':
-        specifier: 'catalog:'
-        version: 7.29.7(@babel/core@7.29.7)
       '@module-federation/runtime-tools':
         specifier: 'catalog:'
         version: 2.8.2
@@ -1086,12 +1029,6 @@ importers:
       '@swc/plugin-remove-console':
         specifier: 'catalog:'
         version: 13.0.0
-      '@types/babel__generator':
-        specifier: 'catalog:'
-        version: 7.27.0
-      '@types/babel__traverse':
-        specifier: 'catalog:'
-        version: 7.28.0
       '@types/fs-extra':
         specifier: 'catalog:'
         version: 11.0.4
@@ -1550,10 +1487,6 @@ packages:
     resolution: {integrity: sha512-DkXD5OJQaAQIdZ1bt3UZdEnHAn9Imd3IVBdX03UFe+ony9Ojw5pzr9YVKGDY1jt+Gcn/FnGkNf8r+Vj5NOJWtQ==}
     engines: {node: '>=6.9.0'}
 
-  '@babel/generator@7.29.8':
-    resolution: {integrity: sha512-gZbepsdh3WDtgZKWL+vTPh71LSBrm/Y4/QDZBVCcYfmeTEEuoOYwlSy+G1StfJg+/Zy550u/3TATbm7qDbbMtg==}
-    engines: {node: '>=6.9.0'}
-
   '@babel/helper-annotate-as-pure@7.29.7':
     resolution: {integrity: sha512-OoK6239jHPuSQOoS0kfTVKn0b/rVTk0seKq4Gd2UMLtmOVLjDC0ki3e+c90Trqv2gMfvJFqkiljrr568+qddiw==}
     engines: {node: '>=6.9.0'}
@@ -1648,10 +1581,6 @@ packages:
 
   '@babel/traverse@7.29.7':
     resolution: {integrity: sha512-EhlfNQtZ+NK22w5BM61ciuiq1m58ed33Wr1Xan//ZRTy6hgjnwyCffRYwzsGXdASJSUJ1guZILsErh1eQcl+zw==}
-    engines: {node: '>=6.9.0'}
-
-  '@babel/traverse@7.29.8':
-    resolution: {integrity: sha512-I5z7H3bf/41ktsNVLtpN0wAa336HkqIHQ5BuPLEhTkt1jVSyZpeNKIzTgEWmlxjdg81R0IgUCcaE+Ok3NvrfZg==}
     engines: {node: '>=6.9.0'}
 
   '@babel/types@7.29.7':
@@ -3719,12 +3648,6 @@ packages:
 
   '@types/argparse@1.0.38':
     resolution: {integrity: sha512-ebDJ9b0e702Yr7pWgB0jzm+CX4Srzz8RcXtLJDJB+BSccqMa36uyH/zUsSYao5+BD1ytv3k3rPYCq4mAE1hsXA==}
-
-  '@types/babel__generator@7.27.0':
-    resolution: {integrity: sha512-ufFd2Xi92OAVPYsy+P4n7/U7e68fex0+Ee8gSG9KX7eo084CWiQ4sdxktvdl0bOPupXtVJPY19zk6EwWqUQ8lg==}
-
-  '@types/babel__traverse@7.28.0':
-    resolution: {integrity: sha512-8PvcXf70gTDZBgt9ptxJ8elBeBjcLOAcOtoO/mPJjtji1+CdGbHgm77om1GrsPxsiE+uXIpNSK64UYaIwQXd4Q==}
 
   '@types/chai@5.2.3':
     resolution: {integrity: sha512-Mw558oeA9fFbv65/y4mHtXDs9bPnFMZAL/jxdPFUpOHHIXX91mcgEHbS5Lahr+pwZFR8A7GQleRWeI6cGFC2UA==}
@@ -7999,14 +7922,6 @@ snapshots:
       '@jridgewell/trace-mapping': 0.3.31
       jsesc: 3.1.0
 
-  '@babel/generator@7.29.8':
-    dependencies:
-      '@babel/parser': 7.29.8
-      '@babel/types': 7.29.8
-      '@jridgewell/gen-mapping': 0.3.13
-      '@jridgewell/trace-mapping': 0.3.31
-      jsesc: 3.1.0
-
   '@babel/helper-annotate-as-pure@7.29.7':
     dependencies:
       '@babel/types': 7.29.7
@@ -8118,18 +8033,6 @@ snapshots:
       '@babel/parser': 7.29.7
       '@babel/template': 7.29.7
       '@babel/types': 7.29.7
-      debug: 4.4.3
-    transitivePeerDependencies:
-      - supports-color
-
-  '@babel/traverse@7.29.8':
-    dependencies:
-      '@babel/code-frame': 7.29.7
-      '@babel/generator': 7.29.8
-      '@babel/helper-globals': 7.29.7
-      '@babel/parser': 7.29.8
-      '@babel/template': 7.29.7
-      '@babel/types': 7.29.8
       debug: 4.4.3
     transitivePeerDependencies:
       - supports-color
@@ -10199,14 +10102,6 @@ snapshots:
       tslib: 2.8.1
 
   '@types/argparse@1.0.38': {}
-
-  '@types/babel__generator@7.27.0':
-    dependencies:
-      '@babel/types': 7.29.8
-
-  '@types/babel__traverse@7.28.0':
-    dependencies:
-      '@babel/types': 7.29.8
 
   '@types/chai@5.2.3':
     dependencies:
