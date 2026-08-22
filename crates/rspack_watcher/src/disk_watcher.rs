@@ -1,10 +1,67 @@
 use std::{sync::Arc, time::Duration};
 
-use notify::{Event, EventKind, RecommendedWatcher, Watcher, event::ModifyKind};
+use notify::{
+  Event, EventKind, RecommendedWatcher, Watcher,
+  event::{ModifyKind, RenameMode},
+};
 use rspack_paths::ArcPath;
 use rspack_util::fx_hash::FxHashSet as HashSet;
 
 use crate::{FsEventKind, WatchPattern, trigger};
+
+/// Translate a `notify::Event` into `(path, kind)` pairs, splitting renames
+/// so the source path becomes `Remove` and the destination becomes `Create`
+fn map_notify_event_to_fs_events(event: Event) -> Vec<(ArcPath, FsEventKind)> {
+  if event.paths.is_empty() {
+    return Vec::new();
+  }
+
+  match event.kind {
+    EventKind::Create(_) => event
+      .paths
+      .into_iter()
+      .map(|p| (ArcPath::from(p), FsEventKind::Create))
+      .collect(),
+    EventKind::Remove(_) => event
+      .paths
+      .into_iter()
+      .map(|p| (ArcPath::from(p), FsEventKind::Remove))
+      .collect(),
+    EventKind::Modify(ModifyKind::Name(RenameMode::From)) => event
+      .paths
+      .into_iter()
+      .map(|p| (ArcPath::from(p), FsEventKind::Remove))
+      .collect(),
+    EventKind::Modify(ModifyKind::Name(RenameMode::To)) => event
+      .paths
+      .into_iter()
+      .map(|p| (ArcPath::from(p), FsEventKind::Create))
+      .collect(),
+    EventKind::Modify(ModifyKind::Name(RenameMode::Both)) => {
+      // `RenameMode::Both` paths are ordered `(from, to)` per notify docs
+      let mut iter = event.paths.into_iter();
+      let mut result = Vec::with_capacity(2);
+      if let Some(from) = iter.next() {
+        result.push((ArcPath::from(from), FsEventKind::Remove));
+      }
+      if let Some(to) = iter.next() {
+        result.push((ArcPath::from(to), FsEventKind::Create));
+      }
+      result
+    }
+    EventKind::Modify(
+      ModifyKind::Data(_)
+      | ModifyKind::Any
+      | ModifyKind::Name(RenameMode::Any | RenameMode::Other)
+      | ModifyKind::Metadata(_),
+    ) => event
+      .paths
+      .into_iter()
+      .map(|p| (ArcPath::from(p), FsEventKind::Change))
+      .collect(),
+    _ => Vec::new(),
+  }
+}
 
 /// `DiskWatcher` is responsible for managing the underlying file system watcher
 /// and keeping track of the currently watched paths.
@@ -39,22 +96,7 @@ impl DiskWatcher {
             "fs_event",
           );
 
-          if event.paths.is_empty() {
-            return;
-          }
-
-          let kind = match event.kind {
-            EventKind::Create(_) => FsEventKind::Create,
-            EventKind::Modify(
-              ModifyKind::Data(_) | ModifyKind::Any | ModifyKind::Name(_) | ModifyKind::Metadata(_),
-            ) => FsEventKind::Change,
-            EventKind::Remove(_) => FsEventKind::Remove,
-            // TODO: handle this case /path/to/index.js -> /path/to/index.js.map
-            // path/to/index.js should be removed, and path/to/index.js.map should be changed
-            // Now /path/to/index.js and /path/to/index.js.map will both be changed
-            _ => return,
-          };
-          for path in event.paths.into_iter().map(ArcPath::from) {
+          for (path, kind) in map_notify_event_to_fs_events(event) {
             trigger.on_event(&path, kind);
           }
         }
@@ -206,5 +248,126 @@ mod tests {
     assert!(paths.contains(&ArcPath::from(dir_b)));
     assert!(paths.contains(&ArcPath::from(dir_c)));
     assert!(!paths.contains(&ArcPath::from(dir_a)));
+  }
+
+  fn make_event(kind: EventKind, paths: Vec<&str>) -> Event {
+    let mut event = Event::new(kind);
+    for p in paths {
+      event = event.add_path(std::path::PathBuf::from(p));
+    }
+    event
+  }
+
+  #[test]
+  fn test_map_rename_from_emits_remove() {
+    let event = make_event(
+      EventKind::Modify(ModifyKind::Name(RenameMode::From)),
+      vec!["/path/to/index.js"],
+    );
+    let result = map_notify_event_to_fs_events(event);
+    assert_eq!(
+      result,
+      vec![(
+        ArcPath::from(std::path::PathBuf::from("/path/to/index.js")),
+        FsEventKind::Remove
+      )]
+    );
+  }
+
+  #[test]
+  fn test_map_rename_to_emits_create() {
+    let event = make_event(
+      EventKind::Modify(ModifyKind::Name(RenameMode::To)),
+      vec!["/path/to/index.js.map"],
+    );
+    let result = map_notify_event_to_fs_events(event);
+    assert_eq!(
+      result,
+      vec![(
+        ArcPath::from(std::path::PathBuf::from("/path/to/index.js.map")),
+        FsEventKind::Create
+      )]
+    );
+  }
+
+  #[test]
+  fn test_map_rename_both_splits_into_remove_and_create() {
+    let event = make_event(
+      EventKind::Modify(ModifyKind::Name(RenameMode::Both)),
+      vec!["/path/to/index.js", "/path/to/index.js.map"],
+    );
+    let result = map_notify_event_to_fs_events(event);
+    assert_eq!(
+      result,
+      vec![
+        (
+          ArcPath::from(std::path::PathBuf::from("/path/to/index.js")),
+          FsEventKind::Remove
+        ),
+        (
+          ArcPath::from(std::path::PathBuf::from("/path/to/index.js.map")),
+          FsEventKind::Create
+        ),
+      ]
+    );
+  }
+
+  #[test]
+  fn test_map_rename_any_falls_back_to_change() {
+    let event = make_event(
+      EventKind::Modify(ModifyKind::Name(RenameMode::Any)),
+      vec!["/path/to/file"],
+    );
+    let result = map_notify_event_to_fs_events(event);
+    assert_eq!(
+      result,
+      vec![(
+        ArcPath::from(std::path::PathBuf::from("/path/to/file")),
+        FsEventKind::Change
+      )]
+    );
+  }
+
+  #[test]
+  fn test_map_data_modify_is_change() {
+    use notify::event::DataChange;
+    let event = make_event(
+      EventKind::Modify(ModifyKind::Data(DataChange::Content)),
+      vec!["/path/to/file"],
+    );
+    let result = map_notify_event_to_fs_events(event);
+    assert_eq!(result.len(), 1);
+    assert_eq!(result[0].1, FsEventKind::Change);
+  }
+
+  #[test]
+  fn test_map_create_and_remove_pass_through() {
+    use notify::event::{CreateKind, RemoveKind};
+    let create = make_event(EventKind::Create(CreateKind::File), vec!["/a"]);
+    assert_eq!(
+      map_notify_event_to_fs_events(create),
+      vec![(
+        ArcPath::from(std::path::PathBuf::from("/a")),
+        FsEventKind::Create
+      )]
+    );
+
+    let remove = make_event(EventKind::Remove(RemoveKind::File), vec!["/a"]);
+    assert_eq!(
+      map_notify_event_to_fs_events(remove),
+      vec![(
+        ArcPath::from(std::path::PathBuf::from("/a")),
+        FsEventKind::Remove
+      )]
+    );
+  }
+
+  #[test]
+  fn test_map_empty_paths_returns_empty() {
+    let event = make_event(
+      EventKind::Modify(ModifyKind::Name(RenameMode::Both)),
+      vec![],
+    );
+    assert!(map_notify_event_to_fs_events(event).is_empty());
   }
 }
