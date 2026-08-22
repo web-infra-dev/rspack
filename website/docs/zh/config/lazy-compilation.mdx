@@ -57,6 +57,7 @@ type LazyCompilationOptions =
 
 - **JavaScript API：** 默认关闭懒编译。启用 `lazyCompilation` 后，需要将 lazy compilation 中间件注册到开发服务器。参见[与自定义的服务器集成](/guide/features/lazy-compilation#integrating-with-custom-server)。
 - **Rspack CLI：** `rspack dev` 会自动注册中间件。当 [`target`](/config/target) 仅面向浏览器环境且未显式配置 `lazyCompilation` 时，还会默认使用 `{ entries: false, imports: true }`；其他情况下，未配置时保持关闭。
+- **配置对象：** 使用对象形式启用 `lazyCompilation` 时，未设置的 `entries` 和 `imports` 均默认为 `true`。
 
 ## 编译范围
 
@@ -94,7 +95,7 @@ export default {
 - **类型：** `boolean`
 - **默认值：** 参考 [默认行为](#默认行为)
 
-控制是否对入口模块启用懒编译。设为 `false` 时，入口模块会在首次编译中完成构建，不影响通过 `import()` 加载的模块。
+控制是否对入口模块启用懒编译。在对象中省略 `entries` 时，该选项默认为 `true`。设为 `false` 时，入口模块会在首次编译中完成构建；除非同时将 `imports` 设为 `false`，否则通过 `import()` 加载的模块仍会进行懒编译。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -109,7 +110,7 @@ export default {
 - **类型：** `boolean`
 - **默认值：** 参考 [默认行为](#默认行为)
 
-控制是否对 `import()` 动态导入的模块启用懒编译。设为 `false` 时，动态导入的模块会在首次编译中完成构建，不影响入口模块。
+控制是否对 `import()` 动态导入的模块启用懒编译。在对象中省略 `imports` 时，该选项默认为 `true`。设为 `false` 时，动态导入的模块会在首次编译中完成构建；除非同时将 `entries` 设为 `false`，否则入口模块仍会进行懒编译。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -124,7 +125,7 @@ export default {
 - **类型：** `RegExp | ((module: Module) => boolean)`
 - **默认值：** `undefined`
 
-在 `entries` 和 `imports` 选出的入口模块及动态导入模块上进一步筛选。正则表达式会匹配 `module.nameForCondition()`，函数则直接接收 `Module` 实例。匹配成功或返回 `true` 时，该模块会进行懒编译；否则会正常构建。
+在 `entries` 和 `imports` 选出的入口模块及动态导入模块上进一步筛选。两者均未设置时，都会默认为 `true`，因此 `test` 会同时筛选这两类模块。正则表达式会匹配 `module.nameForCondition()`，函数则直接接收 `Module` 实例。匹配成功或返回 `true` 时，该模块会进行懒编译；否则会正常构建。
 
 ```js title="rspack.config.mjs"
 export default {

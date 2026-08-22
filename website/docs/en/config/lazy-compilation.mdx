@@ -58,6 +58,7 @@ type LazyCompilationOptions =
 
 - **JavaScript API:** Lazy compilation is disabled by default. After enabling `lazyCompilation`, register the lazy compilation middleware with your development server. See [Integrating with custom server](/guide/features/lazy-compilation#integrating-with-custom-server).
 - **Rspack CLI:** `rspack dev` registers the middleware automatically. When [`target`](/config/target) is limited to a browser environment and `lazyCompilation` is not explicitly configured, it also uses `{ entries: false, imports: true }`. When the option is omitted in other cases, lazy compilation remains disabled.
+- **Configuration object:** When `lazyCompilation` is enabled with an object, omitted `entries` and `imports` each default to `true`.
 
 ## Compilation scope
 
@@ -95,7 +96,7 @@ To narrow the scope further, use [`test`](#test) to filter modules. It accepts a
 - **Type:** `boolean`
 - **Default:** See [Default behavior](#default-behavior).
 
-Controls whether entry modules are lazily compiled. When set to `false`, entry modules are built during the initial compilation. This does not affect modules loaded through `import()`.
+Controls whether entry modules are lazily compiled. When omitted from the object, this option defaults to `true`. When set to `false`, entry modules are built during the initial compilation. Modules loaded through `import()` remain lazily compiled unless `imports` is also set to `false`.
 
 ```js title="rspack.config.mjs"
 export default {
@@ -110,7 +111,7 @@ export default {
 - **Type:** `boolean`
 - **Default:** See [Default behavior](#default-behavior).
 
-Controls whether modules loaded through dynamic `import()` are lazily compiled. When set to `false`, dynamically imported modules are built during the initial compilation. This does not affect entry modules.
+Controls whether modules loaded through dynamic `import()` are lazily compiled. When omitted from the object, this option defaults to `true`. When set to `false`, dynamically imported modules are built during the initial compilation. Entry modules remain lazily compiled unless `entries` is also set to `false`.
 
 ```js title="rspack.config.mjs"
 export default {
@@ -125,7 +126,7 @@ export default {
 - **Type:** `RegExp | ((module: Module) => boolean)`
 - **Default:** `undefined`
 
-Further filters the entry and dynamically imported modules selected by `entries` and `imports`. A regular expression is tested against `module.nameForCondition()`, while a function receives the `Module` instance directly. A match or a return value of `true` enables lazy compilation for the module; otherwise, the module is built normally.
+Further filters the entry and dynamically imported modules selected by `entries` and `imports`. When neither option is specified, both default to `true`, so `test` filters both groups. A regular expression is tested against `module.nameForCondition()`, while a function receives the `Module` instance directly. A match or a return value of `true` enables lazy compilation for the module; otherwise, the module is built normally.
 
 ```js title="rspack.config.mjs"
 export default {
