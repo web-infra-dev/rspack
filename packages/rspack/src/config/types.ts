@@ -3087,6 +3087,8 @@ export type UseInputFileSystem = false | RegExp[];
 export type NewCache = {
   /** Enable the module code generation cache. @default true */
   codeGeneration?: boolean;
+  /** Enable the devtool asset cache. @default true */
+  devtool?: boolean;
   /** Enable the asset minimization cache. @default true */
   minimize?: boolean;
 };

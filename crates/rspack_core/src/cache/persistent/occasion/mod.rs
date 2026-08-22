@@ -4,7 +4,9 @@ pub mod minimize;
 
 use std::future::Future;
 
-pub use devtool::{SourceMapDevToolPluginCache, SourceMapDevToolPluginOccasion};
+pub use devtool::{
+  CachedSourceMapDevToolPluginEntry, SourceMapDevToolPluginCache, SourceMapDevToolPluginOccasion,
+};
 pub use make::MakeOccasion;
 pub use minimize::{
   CachedExtractedComments, CachedMinimizeEntry, MinimizeOccasion, MinimizePersistentCache,
