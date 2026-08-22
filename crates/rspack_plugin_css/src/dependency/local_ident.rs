@@ -10,7 +10,7 @@ use rspack_hash::{RspackHash, RspackHasher};
 use crate::{css_syntax::escape_identifier, utils::replace_css_module_id_placeholder};
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct CssLocalIdentDependency {
   id: DependencyId,
   local_ident: String,

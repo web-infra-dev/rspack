@@ -11,7 +11,7 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet};
 use serde::Serialize;
 
 use crate::{
-  AsyncDependenciesBlockIdentifier, BoxModule, BuildContext, BuildInfo, BuildMeta,
+  AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta,
   BuildMetaExportsType, BuildResult, ChunkGraph, ChunkInitFragments, ChunkUkey,
   CodeGenerationDataChunkInitFragments, CodeGenerationDataUrl, CodeGenerationResultBuilder,
   Compilation, ConcatenationScope, Context, DependenciesBlock, DependencyId, ExportProvided,
@@ -1205,7 +1205,7 @@ impl Module for ExternalModule {
     self.build_meta.set_exports_type(exports_type);
     Ok(BuildResult {
       module: BoxModule::new(self),
-      dependencies: vec![Box::new(StaticExportsDependency::new(
+      dependencies: vec![BoxDependency::new(StaticExportsDependency::new(
         StaticExportsSpec::True,
         can_mangle,
       ))],

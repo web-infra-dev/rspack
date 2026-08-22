@@ -9,7 +9,7 @@ use rspack_core::{
 // Before: `export const a = 1`
 // After: `const a = 1`
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct ESMExportHeaderDependency {
   id: DependencyId,
   range: DependencyRange,

@@ -12,10 +12,10 @@ use json::{
 };
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, ExportsInfoArtifact, ExportsInfoData,
-  GenerateContext, GeneratorOptions, Module, ModuleArgument, ModuleGraph, NAMESPACE_OBJECT_EXPORT,
-  ParseOption, ParserAndGenerator, ParserOptions, Plugin, RuntimeSpec, SourceType, UsageState,
-  UsedNameItem,
+  BoxDependency, BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, ExportsInfoArtifact,
+  ExportsInfoData, GenerateContext, GeneratorOptions, Module, ModuleArgument, ModuleGraph,
+  NAMESPACE_OBJECT_EXPORT, ParseOption, ParserAndGenerator, ParserOptions, Plugin, RuntimeSpec,
+  SourceType, UsageState, UsedNameItem,
   diagnostics::ModuleParseError,
   rspack_sources::{BoxSource, RawStringSource, Source, SourceExt},
 };
@@ -151,7 +151,9 @@ impl ParserAndGenerator for JsonParserAndGenerator {
     Ok(
       rspack_core::ParseResult {
         presentational_dependencies: vec![],
-        dependencies: vec![Box::new(JsonExportsDependency::new(self.exports_depth))],
+        dependencies: vec![BoxDependency::new(JsonExportsDependency::new(
+          self.exports_depth,
+        ))],
         blocks: vec![],
         code_generation_dependencies: vec![],
         source: box_source,

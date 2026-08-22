@@ -1,6 +1,5 @@
-use std::fmt::Debug;
+use std::{fmt::Debug, sync::Arc};
 
-use dyn_clone::{DynClone, clone_trait_object};
 use rspack_cacheable::cacheable_dyn;
 use rspack_hash::RspackHasher;
 use rspack_sources::ReplaceSource;
@@ -38,11 +37,9 @@ impl TemplateContext<'_, '_> {
 
 pub type TemplateReplaceSource = ReplaceSource;
 
-clone_trait_object!(DependencyCodeGeneration);
-
 // Align with https://github.com/webpack/webpack/blob/671ac29d462e75a10c3fdfc785a4c153e41e749e/lib/DependencyCodeGeneration.js
 #[cacheable_dyn]
-pub trait DependencyCodeGeneration: Debug + DynClone + Sync + Send + AsAny {
+pub trait DependencyCodeGeneration: Debug + Sync + Send + AsAny {
   fn update_hash(
     &self,
     _hasher: &mut RspackHasher,
@@ -56,7 +53,7 @@ pub trait DependencyCodeGeneration: Debug + DynClone + Sync + Send + AsAny {
   }
 }
 
-pub type BoxDependencyTemplate = Box<dyn DependencyCodeGeneration>;
+pub type DependencyCodeGenerationRef = Arc<dyn DependencyCodeGeneration>;
 
 pub trait AsDependencyCodeGeneration {
   fn as_dependency_code_generation(&self) -> Option<&dyn DependencyCodeGeneration> {

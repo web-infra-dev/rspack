@@ -328,7 +328,7 @@ async fn normal_module_factory_after_resolve(
   let css_dependency_export_type = data
     .dependencies
     .first()
-    .and_then(css_dependency_export_type);
+    .and_then(|dependency| css_dependency_export_type(dependency.as_ref()));
 
   if let Some(export_type) = css_dependency_export_type.or(css_attribute_export_type) {
     append_css_export_type_key(create_data, export_type);
@@ -348,7 +348,7 @@ async fn normal_module_factory_module(
     return Ok(());
   };
 
-  let css_dependency_meta = css_dependency_meta(dependency);
+  let css_dependency_meta = css_dependency_meta(dependency.as_ref());
   if css_dependency_meta.render_conditions.is_empty()
     && css_dependency_meta.export_type.is_none()
     && !css_dependency_meta.is_css_dependency

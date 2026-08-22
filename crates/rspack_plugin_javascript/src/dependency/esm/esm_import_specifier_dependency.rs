@@ -33,7 +33,7 @@ use crate::{
 };
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct ESMImportSpecifierDependency {
   id: DependencyId,
   #[cacheable(with=AsPreset)]

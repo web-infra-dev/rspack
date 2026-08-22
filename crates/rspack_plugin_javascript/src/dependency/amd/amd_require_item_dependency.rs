@@ -7,7 +7,7 @@ use rspack_core::{
 use rspack_util::atom::Atom;
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct AMDRequireItemDependency {
   id: DependencyId,
   #[cacheable(with=AsPreset)]

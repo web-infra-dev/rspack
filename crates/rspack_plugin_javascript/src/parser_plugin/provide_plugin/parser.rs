@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use cow_utils::CowUtils;
 use itertools::Itertools;
-use rspack_core::DependencyRange;
+use rspack_core::{BoxDependency, DependencyRange};
 use rustc_hash::FxHashSet as HashSet;
 use swc_atoms::Atom;
 use swc_experimental_ecma_ast::{CallExpr, GetSpan, Ident, MemberExpr, Span};
@@ -45,7 +45,7 @@ impl ProvideParserPlugin {
           .collect_vec(),
         loc,
       );
-      parser.add_dependency(Box::new(dep));
+      parser.add_dependency(BoxDependency::new(dep));
 
       // add value dependency
       let cache_key = format!("{VALUE_DEP_PREFIX}{name}");

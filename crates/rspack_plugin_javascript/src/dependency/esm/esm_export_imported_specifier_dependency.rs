@@ -1,8 +1,12 @@
-use std::hash::BuildHasherDefault;
+use std::{
+  hash::BuildHasherDefault,
+  sync::atomic::{AtomicBool, Ordering},
+};
 
 use indexmap::{IndexMap, IndexSet};
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
+  rkyv::with::{AtomicLoad, Relaxed},
   with::{AsOption, AsPreset, AsVec},
 };
 use rspack_collections::{IdentifierMap, IdentifierSet};
@@ -45,7 +49,7 @@ const DYNAMIC_REEXPORT_RUNTIME_THRESHOLD: usize = 16;
 // case2: `export { a } from 'a';`
 // case3: `export * from 'a'`
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct ESMExportImportedSpecifierDependency {
   pub id: DependencyId,
   #[cacheable(with=AsVec<AsPreset>)]
@@ -62,7 +66,8 @@ pub struct ESMExportImportedSpecifierDependency {
   resource_identifier: ResourceIdentifier,
   export_presence_mode: ExportPresenceMode,
   loc: Option<DependencyLocation>,
-  lazy_make: bool,
+  #[cacheable(with=AtomicLoad<Relaxed>)]
+  lazy_make: AtomicBool,
 }
 
 impl ESMExportImportedSpecifierDependency {
@@ -94,7 +99,7 @@ impl ESMExportImportedSpecifierDependency {
       phase,
       attributes,
       loc,
-      lazy_make: false,
+      lazy_make: AtomicBool::new(false),
     }
   }
 
@@ -160,7 +165,7 @@ impl ESMExportImportedSpecifierDependency {
     let Some(imported_module_identifier) = module_graph.module_identifier_by_dependency_id(id)
     else {
       // if it's not exists in module graph and has the lazy mark, then it's never picked up to make the module
-      return if self.lazy_make {
+      return if self.lazy_make.load(Ordering::Relaxed) {
         ExportMode::LazyMake
       } else {
         ExportMode::Missing
@@ -1566,7 +1571,7 @@ impl Dependency for ESMExportImportedSpecifierDependency {
   }
 
   fn lazy(&self) -> Option<LazyUntil> {
-    self.lazy_make.then(|| {
+    self.lazy_make.load(Ordering::Relaxed).then(|| {
       if let Some(name) = &self.name {
         LazyUntil::Id(name.clone())
       } else {
@@ -1575,14 +1580,12 @@ impl Dependency for ESMExportImportedSpecifierDependency {
     })
   }
 
-  fn set_lazy(&mut self) {
-    self.lazy_make = true;
+  fn set_lazy(&self) {
+    self.lazy_make.store(true, Ordering::Relaxed);
   }
 
-  fn unset_lazy(&mut self) -> bool {
-    let changed = self.lazy_make;
-    self.lazy_make = false;
-    changed
+  fn unset_lazy(&self) -> bool {
+    self.lazy_make.swap(false, Ordering::Relaxed)
   }
 }
 

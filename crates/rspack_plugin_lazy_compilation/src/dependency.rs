@@ -18,7 +18,7 @@ pub struct DependencyOptions {
 }
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct LazyCompilationDependency {
   id: DependencyId,
   options: DependencyOptions,

@@ -7,7 +7,7 @@ use rspack_core::{
 use crate::{ExposeOptions, ShareScope};
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct ContainerEntryDependency {
   id: DependencyId,
   pub name: String,

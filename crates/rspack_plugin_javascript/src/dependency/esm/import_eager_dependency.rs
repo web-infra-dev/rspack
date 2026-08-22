@@ -14,7 +14,7 @@ use swc_atoms::Atom;
 use super::create_resource_identifier_for_esm_dependency;
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct ImportEagerDependency {
   id: DependencyId,
   #[cacheable(with=AsPreset)]

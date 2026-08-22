@@ -25,7 +25,7 @@ async-recursion = { version = "1.1.1", default-features = false }
 async-trait     = { version = "0.1.89", default-features = false }
 atomic_refcell  = { version = "0.1.14", default-features = false }
 base64-simd     = { version = "0.8.0", default-features = false, features = ["alloc"] }
-bitflags        = { version = "2.11.1", default-features = false }
+bitflags        = { version = "2.13.1", default-features = false }
 browserslist-rs = { version = "0.20.0", default-features = false }
 bytes           = { version = "1.12.0", default-features = false }
 camino          = { version = "1.2.3", default-features = false }
@@ -44,7 +44,7 @@ derive_more         = { version = "2.1.1", default-features = false }
 document-features   = { version = "0.2.12", default-features = false, features = ["default"] }
 dunce               = { version = "1.0.5", default-features = false }
 dyn-clone           = { version = "1.0.20", default-features = false }
-either              = { version = "1.16.0", default-features = false }
+either              = { version = "1.18.0", default-features = false }
 enum-tag            = { version = "0.3.0", default-features = false }
 fast-glob           = { version = "1.1.0", default-features = false }
 form_urlencoded     = { version = "1.2.2", default-features = false }
@@ -57,7 +57,7 @@ html-escape         = { version = "0.2.13", default-features = false }
 indexmap            = { version = "2.14.0", default-features = false }
 indicatif           = { version = "0.18.4", default-features = false }
 indoc               = { version = "2.0.7", default-features = false }
-insta               = { version = "1.42.0", default-features = false }
+insta               = { version = "1.48.0", default-features = false }
 itertools           = { version = "0.14.0", default-features = false, features = ["use_std"] }
 itoa                = { version = "1.0.18", default-features = false }
 json                = { version = "0.12.4", default-features = false }
@@ -117,12 +117,13 @@ thread_local        = { version = "1.1.9", default-features = false }
 tokio               = { version = "1.53.1", default-features = false, features = ["rt"] }
 tracing             = { version = "0.1.44", default-features = false, features = ["max_level_trace", "release_max_level_trace"] }
 tracing-subscriber  = { version = "0.3.23", default-features = false, features = ["fmt", "registry"] }
-triomphe            = { version = "0.1.14", default-features = false, features = ["std"] }
+triomphe            = { version = "0.1.14", default-features = false, features = ["std", "unsize"] }
 trybuild            = { version = "1.0.116", default-features = false, features = ["diff"] }
 turbo-persistence   = { package = "rspack-turbo-persistence", version = "0.1.1", default-features = false }
 twox-hash           = { version = "2.1.2", default-features = false }
 unicase             = { version = "2.9.0", default-features = false }
 unicode-width       = { version = "0.2.2", default-features = false }
+unsize              = { version = "1.1.0", default-features = false }
 url                 = { version = "2.5.8", default-features = false }
 urlencoding         = { version = "2.1.3", default-features = false }
 ustr                = { package = "ustr-fxhash", version = "1.0.1", default-features = false }

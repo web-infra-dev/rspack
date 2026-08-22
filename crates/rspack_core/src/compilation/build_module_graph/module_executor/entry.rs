@@ -7,7 +7,7 @@ use super::{
   overwrite::overwrite_tasks,
 };
 use crate::{
-  Context, Dependency, LoaderImportDependency,
+  Context, DependencyRef, LoaderImportDependency,
   utils::task_loop::{Task, TaskResult, TaskType},
 };
 
@@ -44,14 +44,14 @@ impl Task<ExecutorTaskContext> for EntryTask {
     let (dep_id, is_new) = match entries.entry(meta.clone()) {
       Entry::Vacant(v) => {
         // not exist, generate a new dependency
-        let dep = Box::new(LoaderImportDependency::new(
+        let dep = DependencyRef::new(LoaderImportDependency::new(
           meta.request.clone(),
           origin_module_context.unwrap_or_else(|| Context::from("")),
         ));
         let dep_id = *dep.id();
 
         let mg = TaskContext::get_module_graph_mut(&mut origin_context.artifact);
-        mg.add_dependency(dep.clone());
+        mg.add_dependency_ref(dep.clone());
 
         res.extend(overwrite_tasks(vec![Box::new(FactorizeTask {
           compiler_id: origin_context.compiler_id,

@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use rspack_core::{ConstDependency, RuntimeGlobals, RuntimeRequirementsDependency};
 use swc_experimental_ecma_ast::{MemberExpr, UnaryExpr};
 
@@ -39,7 +41,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsPlugin {
     for_name: &str,
   ) -> Option<bool> {
     if for_name == expr_name::MODULE {
-      parser.add_presentational_dependency(Box::new(ConstDependency::new(
+      parser.add_presentational_dependency(Arc::new(ConstDependency::new(
         expr.span.into(),
         "'object'".into(),
       )));
@@ -56,7 +58,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsPlugin {
     for_name: &str,
   ) -> Option<bool> {
     if for_name == "module.id" {
-      parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::add_only(
+      parser.add_presentational_dependency(Arc::new(RuntimeRequirementsDependency::add_only(
         RuntimeGlobals::MODULE_ID,
       )));
       parser.build_info.module_concatenation_bailout = Some(for_name.to_string());
@@ -64,7 +66,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsPlugin {
     }
 
     if for_name == "module.loaded" {
-      parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::add_only(
+      parser.add_presentational_dependency(Arc::new(RuntimeRequirementsDependency::add_only(
         RuntimeGlobals::MODULE_LOADED,
       )));
       parser.build_info.module_concatenation_bailout = Some(for_name.to_string());

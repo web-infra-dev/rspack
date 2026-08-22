@@ -5,7 +5,7 @@ use rspack_core::{
 };
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct FallbackDependency {
   id: DependencyId,
   resource_identifier: ResourceIdentifier,

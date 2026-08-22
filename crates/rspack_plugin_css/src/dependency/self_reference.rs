@@ -16,7 +16,7 @@ pub struct CssSelfReferenceLocalIdentReplacement {
 }
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct CssSelfReferenceLocalIdentDependency {
   id: DependencyId,
   names: Vec<String>,
