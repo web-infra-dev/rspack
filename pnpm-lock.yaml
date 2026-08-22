@@ -173,8 +173,8 @@ catalogs:
       specifier: ^2.0.0
       version: 2.0.0
     connect-next:
-      specifier: ^4.0.3
-      version: 4.0.3
+      specifier: ^5.0.0
+      version: 5.0.0
     core-js:
       specifier: 3.50.0
       version: 3.50.0
@@ -715,7 +715,7 @@ importers:
         version: 1.4.2
       connect-next:
         specifier: 'catalog:'
-        version: 4.0.3
+        version: 5.0.0
       enhanced-resolve:
         specifier: 'catalog:'
         version: 5.24.5
@@ -4489,8 +4489,8 @@ packages:
     resolution: {integrity: sha512-MWufYdFw53ccGjCA+Ol7XJYpAlW6/prSMzuPOTRnJGcGzuhLn4Scrz7qf6o8bROZ514ltazcIFJZevcfbo0x7A==}
     engines: {'0': node >= 6.0}
 
-  connect-next@4.0.3:
-    resolution: {integrity: sha512-XzXkWnwNtbFJEPqW9gWZBRsS83lbI+alSxSSOL8PbHDqzRG6CMxLOfNGrpFfwr6jx1SqmwLvdNHlMZRaa0z4Fw==}
+  connect-next@5.0.0:
+    resolution: {integrity: sha512-f8s8Vjzr46shiGeR6KIQxDy8i/PRw+cFpzDei9SHEv8C46WVpzfmKIIvYA6z9lkE7Qqiq+XcKlfdsU4MqcUl0w==}
     engines: {node: ^20.19.0 || >=22.12.0}
 
   console-browserify@1.2.0:
@@ -10885,7 +10885,7 @@ snapshots:
       readable-stream: 3.6.2
       typedarray: 0.0.6
 
-  connect-next@4.0.3: {}
+  connect-next@5.0.0: {}
 
   console-browserify@1.2.0: {}
 
