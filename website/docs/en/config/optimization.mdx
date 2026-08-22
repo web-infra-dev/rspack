@@ -342,6 +342,7 @@ export default {
   defaultValueList={[
     { defaultValue: "'deterministic'", mode: 'production' },
     { defaultValue: "'named'", mode: 'development' },
+    { defaultValue: "'natural'", mode: 'none' },
   ]}
 />
 
@@ -358,17 +359,35 @@ The following string values are supported:
 | `hashed`        | Use hashed module identifiers as ids. Equivalent to using `HashedModuleIdsPlugin` with default options (md4, base64, 4 chars). |
 | `false`         | Disable Rspack's built-in module id algorithm, allowing a custom plugin to provide module ids.                                 |
 
+We recommend using `named` in development and `deterministic` or `compat-hashed` in production.
+
+Use `process.env.NODE_ENV` to determine the current environment:
+
 ```js title="rspack.config.mjs"
+const isDev = process.env.NODE_ENV === 'development';
+
 export default {
   optimization: {
-    moduleIds: 'deterministic',
+    moduleIds: isDev ? 'named' : 'deterministic',
   },
 };
 ```
 
-The `deterministic` option is useful for long term caching, and results in smaller bundles compared to hashed. Length of the numeric value is chosen to fill a maximum of 80% of the id space. By default a minimum length of 3 digits is used when `optimization.moduleIds` is set to `deterministic`.
-
 The `compat-hashed` option uses the shortest available prefix of a stable alphanumeric hash as the module id, balancing long-term caching, bundle size, and runtime performance.
+
+```js title="rspack.config.mjs"
+const isDev = process.env.NODE_ENV === 'development';
+
+export default {
+  optimization: {
+    moduleIds: isDev ? 'named' : 'compat-hashed',
+  },
+};
+```
+
+:::tip
+The `compat-hashed` option is available in Rspack 2.2.0 and later.
+:::
 
 ## optimization.nodeEnv
 
