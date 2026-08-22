@@ -302,6 +302,20 @@ impl Combinator {
       }];
     }
 
+    let mut chunks = module_chunks.iter();
+    if let Some(first_chunk) = chunks.next() {
+      let first_runtime_key = get_runtime_key(chunk_by_ukey.expect_get(first_chunk).runtime());
+      // Chunks with the same runtime always have the same usage key for a module.
+      if chunks.all(|chunk_ukey| {
+        get_runtime_key(chunk_by_ukey.expect_get(chunk_ukey).runtime()) == first_runtime_key
+      }) {
+        return vec![ChunkCombination {
+          key: get_key(module_chunks.iter().copied(), chunk_index_map),
+          chunks: Arc::new(module_chunks.clone()),
+        }];
+      }
+    }
+
     let exports_info = exports_info_artifact.get_exports_info_data(module_identifier);
     let mut grouped_by_used_exports: FxHashMap<UsageKey, FxHashSet<ChunkUkey>> = Default::default();
     let mut runtime_key_map = RuntimeKeyMap::default();
