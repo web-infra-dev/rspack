@@ -59,6 +59,16 @@ export default defineConfig({
 
 使用 Rsbuild 的 [dev.lazyCompilation](https://rsbuild.rs/zh/config/dev/lazy-compilation) 选项开启。
 
+## 原理
+
+懒编译的原理是将未执行的入口和 Module 的内容改写，当该 Module 在运行时被执行时，会发送请求到开发服务器，随后开发服务器会触发对应 Compiler 的重编译以及模块热更新。
+
+如下图，左边是首次编译的 Home 入口 Module 内容，右图是触发重编译后对应 Module 的内容。
+
+![image](https://assets.rspack.rs/rspack/assets/lazy-proxy-module.png)
+
+只有当执行对应的入口和模块时，Rspack 才会编译对应的入口和 Module 以及他们的所有依赖。
+
 ## 筛选部分模块
 
 除了 `entries` 和 `imports` 两个选项以外，你也可以使用 `test` 选项来筛选部分模块开启懒编译。
@@ -84,21 +94,35 @@ export default defineConfig({
 });
 ```
 
-## 原理
+### 排除 HMR client
 
-懒编译的原理是将未执行的入口和 Module 的内容改写，当该 Module 在运行时被执行时，会发送请求到开发服务器，随后开发服务器会触发对应 Compiler 的重编译以及模块热更新。
+如果你未使用 Rspack 的 dev server，而是使用自己的 server 作为开发服务器，一般会在 entry 配置中加入另外的 client 代码来开启 HMR 等能力，那么最好通过配置 test 来将该 client 模块从懒编译模块中排除出去。
 
-如下图，左边是首次编译的 Home 入口 Module 内容，右图是触发重编译后对应 Module 的内容。
+如果不排除掉，并且开启 entry 的懒编译，该 client 在第一次访问页面时不会被编译，因此需要一次额外的刷新才能让其真正生效。
 
-![image](https://assets.rspack.rs/rspack/assets/lazy-proxy-module.png)
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
 
-只有当执行对应的入口和模块时，Rspack 才会编译对应的入口和 Module 以及他们的所有依赖。
+const options = {
+  lazyCompilation: {
+    test(module) {
+      const isMyClient = module.nameForCondition().endsWith('dev-client.js');
+      // 让 dev-client.js 不被懒编译
+      return !isMyClient;
+    },
+  },
+};
+const compiler = rspack(options);
+
+new compiler.rspack.EntryPlugin(compiler.context, 'dev-client.js', {
+  // name: undefined 代表这是全局 entry，会插入到每一个 entry 前
+  name: undefined,
+}).apply(compiler);
+```
 
 ## 与自定义的服务器集成
 
-当你使用 Rspack CLI 时，`lazyCompilation` 选项实际上会由 `@rspack/cli` 消费，并向开发服务器中添加一个 [Express 风格的中间件](https://expressjs.com/en/guide/using-middleware.html)，来处理客户端发起的 lazy compilation 请求。
-
-如果你使用自己的开发服务器，你需要手动将 `rspack.lazyCompilationMiddleware` 集成到你的开发服务器中：
+如果你没有使用 Rspack CLI 或 Rsbuild，并且使用自己的开发服务器，你需要手动将 `rspack.lazyCompilationMiddleware` 集成到你的开发服务器中：
 
 ```js title="start.mjs"
 import { rspack } from '@rspack/core';
