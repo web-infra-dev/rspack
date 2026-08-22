@@ -1,4 +1,5 @@
 use std::{
+  borrow::Cow,
   path::PathBuf,
   sync::{Arc, LazyLock},
 };
@@ -58,10 +59,11 @@ use crate::{
 pub static RSPACK_ESM_RUNTIME_CHUNK: &str = "RSPACK_ESM_RUNTIME";
 
 #[plugin]
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct EsmLibraryPlugin {
   pub(crate) preserve_modules: Option<PathBuf>,
   pub(crate) split_chunks: Option<Vec<CacheGroup>>,
+  pub(crate) concatenate_commonjs_modules: bool,
 
   // module instance will hold this map till compile done, we can't mutate it,
   // normal concatenateModule just read the info from it
@@ -80,11 +82,26 @@ pub struct EsmLibraryPlugin {
   pub(crate) dyn_import_ns_map: Arc<AtomicRefCell<IdentifierMap<Atom>>>,
 }
 
+impl Default for EsmLibraryPlugin {
+  fn default() -> Self {
+    Self::new(None, None)
+  }
+}
+
 impl EsmLibraryPlugin {
   pub fn new(preserve_modules: Option<PathBuf>, split_chunks: Option<Vec<CacheGroup>>) -> Self {
+    Self::new_with_commonjs_modules(preserve_modules, split_chunks, true)
+  }
+
+  pub fn new_with_commonjs_modules(
+    preserve_modules: Option<PathBuf>,
+    split_chunks: Option<Vec<CacheGroup>>,
+    concatenate_commonjs_modules: bool,
+  ) -> Self {
     Self::new_inner(
       preserve_modules,
       split_chunks,
+      concatenate_commonjs_modules,
       Default::default(),
       Default::default(),
       Default::default(),
@@ -112,10 +129,46 @@ impl EsmLibraryPlugin {
       // make sure all exports are provided
       let mut should_scope_hoisting = true;
 
-      if let Some(reason) = module.get_concatenation_bailout_reason(
-        module_graph,
-        &compilation.build_chunk_graph_artifact.chunk_graph,
-      ) {
+      let is_commonjs_entry = module.module_type().is_js_like()
+        && module.build_meta().exports_type() != rspack_core::BuildMetaExportsType::Namespace
+        && module_graph
+          .get_incoming_connections(module_identifier)
+          .any(|connection| {
+            module_graph
+              .dependency_by_id(&connection.dependency_id)
+              .dependency_type()
+              == &DependencyType::Entry
+          });
+      let reason = if is_commonjs_entry {
+        Some(Cow::Borrowed(
+          "CommonJS entry modules cannot be scope hoisted",
+        ))
+      } else {
+        module
+          .as_normal_module()
+          .and_then(|module| {
+            module
+              .parser_and_generator()
+              .downcast_ref::<JavaScriptParserAndGenerator>()
+          })
+          .map_or_else(
+            || {
+              module.get_concatenation_bailout_reason(
+                module_graph,
+                &compilation.build_chunk_graph_artifact.chunk_graph,
+              )
+            },
+            |parser_and_generator| {
+              parser_and_generator.get_concatenation_bailout_reason_with_commonjs(
+                module.as_ref(),
+                module_graph,
+                self.concatenate_commonjs_modules,
+              )
+            },
+          )
+      };
+
+      if let Some(reason) = reason {
         logger.debug(format!(
           "module {module_identifier} has bailout reason: {reason}",
         ));
@@ -128,8 +181,11 @@ impl EsmLibraryPlugin {
       // }
       else if module_graph
         .get_incoming_connections(module_identifier)
-        .map(|conn| module_graph.dependency_by_id(&conn.dependency_id))
-        .any(|dep| {
+        .any(|conn| {
+          let dep = module_graph.dependency_by_id(&conn.dependency_id);
+          let is_current_module_self_reference = *dep.dependency_type()
+            == DependencyType::CjsSelfReference
+            && conn.original_module_identifier == Some(*module_identifier);
           !is_esm_dep_like(dep)
             && !matches!(
               (dep.dependency_type(), dep.url_mode()),
@@ -141,6 +197,7 @@ impl EsmLibraryPlugin {
                 Some(JavascriptParserUrl::NewUrlRelative)
               )
             )
+            && !is_current_module_self_reference
         })
       {
         logger.debug(format!(

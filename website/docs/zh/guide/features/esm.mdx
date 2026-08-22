@@ -45,7 +45,7 @@ export default {
 };
 ```
 
-与应用场景的 `output.module: true` 不同，`modern-module` 会切换到一条专门面向库的 ESM 渲染路径。它会自动启用 `output.module`，并切换到基于 `import` 的 chunk loading，因此通常不需要再手动指定 `chunkFormat: 'module'` 或 `chunkLoading: 'import'`。如果你的库还需要在 Worker 中以 ESM 方式加载 chunk，再额外配置 `workerChunkLoading: 'import'`。同时，也不要开启 `optimization.concatenateModules`，因为 `modern-module` 使用的是自己专门的链接与 scope hoist 逻辑。
+与应用场景的 `output.module: true` 不同，`modern-module` 会切换到一条专门面向库的 ESM 渲染路径。它会自动启用 `output.module`，并切换到基于 `import` 的 chunk loading，因此通常不需要再手动指定 `chunkFormat: 'module'` 或 `chunkLoading: 'import'`。如果你的库还需要在 Worker 中以 ESM 方式加载 chunk，再额外配置 `workerChunkLoading: 'import'`。`modern-module` 使用自己的链接与 scope hoist 流程，而不是常规的模块拼接插件。但 [`optimization.concatenateModules`](/config/optimization#optimizationconcatenatemodules) 仍用于控制该流程是否可以提升导出可静态分析的 CommonJS 模块：将其设为 `false` 或 `{ commonjs: false }` 可禁用 CommonJS 提升。
 
 你可以查看 [rspack-examples](https://github.com/rstackjs/rstack-examples/tree/main/rspack/library-esm) 中这个使用 ESM 库的例子。
 
@@ -86,5 +86,6 @@ export default {
 3. [output.library.type](/config/output#outputlibrarytype): 在构建库的 ESM 产物时，通常设置为 `'modern-module'`，表示使用 Rspack 专门的 ESM library 渲染路径。
 4. [output.chunkLoading](/config/output#outputchunkloading): 在构建应用的 ESM 产物时，通常设置为 `'import'`；对于 `modern-module`，Rspack 会自动切换到基于 `import` 的 chunk loading。
 5. [output.workerChunkLoading](/config/output#outputworkerchunkloading): 当你的应用或库还需要在 Worker 中以 ESM 方式加载 chunk 时，通常设置为 `'import'`。
-6. [optimization.avoidEntryIife](/config/optimization#optimizationavoidentryiife): 在某些情况下，Rspack 会将 ESM 产物的输出包裹在一个 IIFE 中，这会破坏 ESM 的模块化特性
-7. [HtmlWebpackPlugin.scriptLoading](/guide/tech/html#htmlwebpackplugin): 设置为 `'module'`，表示使用 ESM 的 `<script type="module">` 来加载 `.mjs` 模块。
+6. [optimization.concatenateModules](/config/optimization#optimizationconcatenatemodules): 对于 `modern-module`，控制导出可静态分析的 CommonJS 模块是否可以参与其专用的 scope hoist 流程。将其设为 `false` 或 `{ commonjs: false }` 可禁用 CommonJS 提升。
+7. [optimization.avoidEntryIife](/config/optimization#optimizationavoidentryiife): 在某些情况下，Rspack 会将 ESM 产物的输出包裹在一个 IIFE 中，这会破坏 ESM 的模块化特性
+8. [HtmlWebpackPlugin.scriptLoading](/guide/tech/html#htmlwebpackplugin): 设置为 `'module'`，表示使用 ESM 的 `<script type="module">` 来加载 `.mjs` 模块。

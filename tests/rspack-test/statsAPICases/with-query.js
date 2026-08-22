@@ -264,7 +264,7 @@ module.exports = {
 			          nameForCondition: <TEST_ROOT>/fixtures/abc-query.js,
 			          optimizationBailout: Array [
 			            Statement with side_effects in source code at ./fixtures/abc-query.js<LINE_COL>-32,
-			            ModuleConcatenation bailout: Module is not an ECMAScript module,
+			            ModuleConcatenation bailout: Module is not in strict mode,
 			          ],
 			          optional: false,
 			          orphan: false,
@@ -463,7 +463,7 @@ module.exports = {
 			      nameForCondition: <TEST_ROOT>/fixtures/abc-query.js,
 			      optimizationBailout: Array [
 			        Statement with side_effects in source code at ./fixtures/abc-query.js<LINE_COL>-32,
-			        ModuleConcatenation bailout: Module is not an ECMAScript module,
+			        ModuleConcatenation bailout: Module is not in strict mode,
 			      ],
 			      optional: false,
 			      orphan: false,

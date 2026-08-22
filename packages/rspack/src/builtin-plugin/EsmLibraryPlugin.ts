@@ -8,8 +8,38 @@ import WebpackError from '../lib/WebpackError';
 import { RemoveDuplicateModulesPlugin } from './RemoveDuplicateModulesPlugin';
 import { toRawSplitChunksOptions } from './SplitChunksPlugin';
 
+const concatenateCommonJsModulesMap = new WeakMap<
+  RspackOptionsNormalized['optimization'],
+  boolean
+>();
+
+export function getConcatenateCommonJsModules(
+  options: RspackOptionsNormalized,
+): boolean {
+  // Child compilers shallow-copy the normalized options object while sharing
+  // its optimization object. Key by that stable object so applyLimits can
+  // preserve the parent's original CommonJS preference for its children.
+  const cached = concatenateCommonJsModulesMap.get(options.optimization);
+  if (cached !== undefined) {
+    return cached;
+  }
+
+  const { concatenateModules } = options.optimization;
+  const concatenateCommonJsModules =
+    typeof concatenateModules === 'object'
+      ? concatenateModules.commonjs !== false
+      : concatenateModules !== false;
+  concatenateCommonJsModulesMap.set(
+    options.optimization,
+    concatenateCommonJsModules,
+  );
+  return concatenateCommonJsModules;
+}
+
 export function applyLimits(options: RspackOptionsNormalized) {
-  // concatenateModules is not supported in ESM library mode, it has its own scope hoist algorithm
+  // `modern-module` owns its scope-hoisting pipeline. Preserve the CommonJS
+  // preference before disabling the regular ModuleConcatenationPlugin.
+  getConcatenateCommonJsModules(options);
   options.optimization.concatenateModules = false;
 
   // esm library won't have useless empty chunk, the empty chunk for esm lib is to re-exports
@@ -75,6 +105,9 @@ export class EsmLibraryPlugin {
       name: BuiltinPluginName.EsmLibraryPlugin,
       options: {
         preserveModules: this.options.preserveModules,
+        concatenateCommonJsModules: getConcatenateCommonJsModules(
+          compiler.options,
+        ),
         splitChunks: toRawSplitChunksOptions(
           this.options.splitChunks ?? false,
           compiler,

@@ -68,7 +68,7 @@ export default {
 ## optimization.concatenateModules
 
 <PropertyType
-  type="boolean"
+  type="boolean | { commonjs?: boolean }"
   defaultValueList={[
     { defaultValue: 'true', mode: 'production' },
     { defaultValue: 'false', mode: 'development' },
@@ -77,10 +77,16 @@ export default {
 
 开启模块拼接优化，允许将多个模块拼接成单个模块以降低产物体积，提升压缩效率。此优化需要开启 [optimization.providedExports](#optimizationprovidedexports) 和 [optimization.usedExports](#optimizationusedexports)。默认情况下，`optimization.concatenateModules` 在 `production` 模式下启用，其它模式则禁用。
 
+传入配置对象同样会开启模块拼接。`commonjs` 选项用于控制是否拼接导出可静态分析的 CommonJS 模块，默认值为 `true`。将 `commonjs` 设为 `false` 后，仅拼接 ECMAScript 模块。
+
+当 [`output.library.type`](/config/output#outputlibrarytype) 为 `'modern-module'` 时，Rspack 会使用专门的链接和 scope hoist 流程。在该流程中，`optimization.concatenateModules` 仅控制 CommonJS 提升：设为 `false` 或 `{ commonjs: false }` 会阻止 CommonJS 模块参与 scope hoist。
+
 ```js title="rspack.config.mjs"
 export default {
   optimization: {
-    concatenateModules: false,
+    concatenateModules: {
+      commonjs: false,
+    },
   },
 };
 ```

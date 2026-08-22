@@ -282,7 +282,12 @@ export class RspackOptionsApply {
       ).apply(compiler);
     }
     if (options.optimization.concatenateModules) {
-      new ModuleConcatenationPlugin().apply(compiler);
+      const concatenateModules = options.optimization.concatenateModules;
+      new ModuleConcatenationPlugin(
+        typeof concatenateModules === 'object'
+          ? concatenateModules.commonjs !== false
+          : true,
+      ).apply(compiler);
     }
     if (options.optimization.inlineExports) {
       new InlineExportsPlugin().apply(compiler);

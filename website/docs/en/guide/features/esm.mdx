@@ -47,7 +47,7 @@ export default {
 };
 ```
 
-Unlike application-oriented `output.module: true`, `modern-module` switches Rspack onto a dedicated ESM library rendering path. It automatically enables `output.module` and moves chunk loading to `import`, so you usually do not need to manually set `chunkFormat: 'module'` or `chunkLoading: 'import'`. If your library also needs ESM worker chunk loading, configure `workerChunkLoading: 'import'` explicitly. Also, do not enable `optimization.concatenateModules`, because `modern-module` uses its own linking and scope-hoisting pipeline.
+Unlike application-oriented `output.module: true`, `modern-module` switches Rspack onto a dedicated ESM library rendering path. It automatically enables `output.module` and moves chunk loading to `import`, so you usually do not need to manually set `chunkFormat: 'module'` or `chunkLoading: 'import'`. If your library also needs ESM worker chunk loading, configure `workerChunkLoading: 'import'` explicitly. `modern-module` uses its own linking and scope-hoisting pipeline instead of the regular module-concatenation plugin. However, [`optimization.concatenateModules`](/config/optimization#optimizationconcatenatemodules) still controls whether that pipeline can hoist CommonJS modules with statically analyzable exports: set it to `false` or `{ commonjs: false }` to disable CommonJS hoisting.
 
 You can check out this [rspack-examples](https://github.com/rstackjs/rstack-examples/tree/main/rspack/library-esm) ESM library example.
 
@@ -88,5 +88,6 @@ Below are the main configuration options related to ESM and their descriptions, 
 3. [output.library.type](/config/output#outputlibrarytype): When building library ESM output, this is typically set to `'modern-module'` to use Rspack's dedicated ESM library rendering path.
 4. [output.chunkLoading](/config/output#outputchunkloading): When building application ESM output, this is typically set to `'import'`; for `modern-module`, Rspack switches chunk loading to `import` automatically.
 5. [output.workerChunkLoading](/config/output#outputworkerchunkloading): When your application or library also needs ESM worker chunk loading, this is typically set to `'import'`.
-6. [optimization.avoidEntryIife](/config/optimization#optimizationavoidentryiife): In some cases, Rspack wraps ESM output in an IIFE, which breaks ESM's modular characteristics.
-7. [HtmlWebpackPlugin.scriptLoading](/guide/tech/html#htmlwebpackplugin): Set to `'module'` to use ESM `<script type="module">` for loading `.mjs` modules.
+6. [optimization.concatenateModules](/config/optimization#optimizationconcatenatemodules): For `modern-module`, controls whether CommonJS modules with statically analyzable exports can participate in its dedicated scope-hoisting pipeline. Set it to `false` or `{ commonjs: false }` to disable CommonJS hoisting.
+7. [optimization.avoidEntryIife](/config/optimization#optimizationavoidentryiife): In some cases, Rspack wraps ESM output in an IIFE, which breaks ESM's modular characteristics.
+8. [HtmlWebpackPlugin.scriptLoading](/guide/tech/html#htmlwebpackplugin): Set to `'module'` to use ESM `<script type="module">` for loading `.mjs` modules.

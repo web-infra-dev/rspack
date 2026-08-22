@@ -3,12 +3,13 @@ use rspack_cacheable::{
   with::{AsPreset, AsVec},
 };
 use rspack_core::{
-  AsContextDependency, AsModuleDependency, Dependency, DependencyCategory,
-  DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
+  AsContextDependency, AsModuleDependency, CachedConstDependency, ConstDependency, Dependency,
+  DependencyCategory, DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
   DependencyTemplateType, DependencyType, ExportNameOrSpec, ExportSpec, ExportsInfoArtifact,
-  ExportsOfExportsSpec, ExportsSpec, InitFragmentExt, InitFragmentKey, InitFragmentStage,
-  ModuleGraph, ModuleGraphCacheArtifact, NormalInitFragment, TemplateContext,
-  TemplateReplaceSource, UsedName, property_access,
+  ExportsOfExportsSpec, ExportsSpec, InitFragmentExt, InitFragmentKey, InitFragmentStage, Module,
+  ModuleGraph, ModuleGraphCacheArtifact, ModuleInitFragments, NormalInitFragment, TemplateContext,
+  TemplateReplaceSource, UsedName, generated_code_contains_identifier, property_access,
+  to_identifier,
 };
 use rspack_util::json_stringify_str;
 use swc_atoms::Atom;
@@ -27,6 +28,17 @@ pub enum ExportsBase {
 }
 
 impl ExportsBase {
+  pub const fn as_str(&self) -> &'static str {
+    match self {
+      Self::Exports => "exports",
+      Self::ModuleExports => "module.exports",
+      Self::This => "this",
+      Self::DefinePropertyExports => "Object.defineProperty(exports)",
+      Self::DefinePropertyModuleExports => "Object.defineProperty(module.exports)",
+      Self::DefinePropertyThis => "Object.defineProperty(this)",
+    }
+  }
+
   pub const fn is_exports(&self) -> bool {
     matches!(self, Self::Exports | Self::DefinePropertyExports)
   }
@@ -59,7 +71,9 @@ impl ExportsBase {
 pub struct CommonJsExportsDependency {
   id: DependencyId,
   range: DependencyRange,
+  assignment_range: Option<DependencyRange>,
   value_range: Option<DependencyRange>,
+  prevent_name_inference: bool,
   base: ExportsBase,
   #[cacheable(with=AsVec<AsPreset>)]
   names: Vec<Atom>,
@@ -68,18 +82,282 @@ pub struct CommonJsExportsDependency {
 impl CommonJsExportsDependency {
   pub fn new(
     range: DependencyRange,
+    assignment_range: Option<DependencyRange>,
     value_range: Option<DependencyRange>,
+    prevent_name_inference: bool,
     base: ExportsBase,
     names: Vec<Atom>,
   ) -> Self {
     Self {
       id: DependencyId::new(),
       range,
+      assignment_range,
       value_range,
+      prevent_name_inference,
       base,
       names,
     }
   }
+
+  pub fn base(&self) -> ExportsBase {
+    self.base
+  }
+
+  pub fn names(&self) -> &[Atom] {
+    &self.names
+  }
+}
+
+fn should_prevent_name_inference(
+  module: &dyn Module,
+  dependency: &CommonJsExportsDependency,
+) -> bool {
+  if dependency.prevent_name_inference {
+    return true;
+  }
+
+  let Some(value_range) = dependency.value_range else {
+    return false;
+  };
+  // DefinePlugin and similar presentational dependencies replace source after
+  // parsing, so an anonymous value may not have been visible in the AST.
+  dependency.names.len() == 1
+    && module
+      .get_presentational_dependencies()
+      .is_some_and(|dependencies| {
+        dependencies.iter().any(|presentational_dependency| {
+          presentational_dependency
+            .as_any()
+            .downcast_ref::<ConstDependency>()
+            .is_some_and(|dependency| {
+              dependency.range == value_range
+                && (dependency.content.contains("function")
+                  || dependency.content.contains("class")
+                  || dependency.content.contains("=>"))
+            })
+        })
+      })
+}
+
+pub(super) fn get_concatenated_export_access(
+  module: &dyn Module,
+  concatenation_scope: &mut rspack_core::ConcatenationScope,
+  init_fragments: &mut ModuleInitFragments,
+  names: &[Atom],
+  property_access_suffix: String,
+) -> String {
+  get_concatenated_export_binding(module, concatenation_scope, init_fragments, names);
+  let exports_object = get_concatenated_exports_object(module, concatenation_scope, init_fragments);
+  let name = names.first().expect("should have a CommonJS export name");
+  format!(
+    "{exports_object}{}{property_access_suffix}",
+    property_access(std::iter::once(name), 0)
+  )
+}
+
+fn get_concatenated_export_binding(
+  module: &dyn Module,
+  concatenation_scope: &mut rspack_core::ConcatenationScope,
+  init_fragments: &mut ModuleInitFragments,
+  names: &[Atom],
+) -> String {
+  let name = names.first().expect("should have a CommonJS export name");
+  let binding = concatenation_scope
+    .current_module
+    .export_map
+    .as_ref()
+    .and_then(|export_map| export_map.get(name))
+    .cloned()
+    .unwrap_or_else(|| {
+      let identifier = to_identifier(name);
+      let base = if identifier == name.as_str() {
+        format!("__RSPACK_CJS_EXPORT_{name}__")
+      } else {
+        format!(
+          "__RSPACK_CJS_EXPORT_{}_{}__",
+          identifier,
+          hex::encode(name.as_bytes())
+        )
+      };
+      let symbol = get_concatenated_export_name(module, concatenation_scope, &base);
+      concatenation_scope.register_export(name.clone(), symbol.clone());
+      symbol
+    });
+
+  init_fragments.push(
+    NormalInitFragment::new(
+      format!("var {binding};\n"),
+      InitFragmentStage::StageConstants,
+      0,
+      InitFragmentKey::CommonJsExports(binding.clone()),
+      None,
+    )
+    .boxed(),
+  );
+  binding
+}
+
+fn get_concatenated_exports_object(
+  module: &dyn Module,
+  concatenation_scope: &mut rspack_core::ConcatenationScope,
+  init_fragments: &mut ModuleInitFragments,
+) -> String {
+  // CommonJS starts with an ordinary object. Keep that object observable so
+  // inherited accessors installed by another module or by the host still run.
+  let symbol = get_concatenated_name(module, concatenation_scope, "__RSPACK_CJS_EXPORTS__");
+  init_fragments.push(
+    NormalInitFragment::new(
+      format!("var {symbol} = {{}};\n"),
+      InitFragmentStage::StageConstants,
+      0,
+      InitFragmentKey::CommonJsExports(symbol.clone()),
+      None,
+    )
+    .boxed(),
+  );
+  symbol
+}
+
+fn get_concatenated_export_name(
+  module: &dyn Module,
+  concatenation_scope: &mut rspack_core::ConcatenationScope,
+  base: &str,
+) -> String {
+  get_unique_concatenated_name(module, concatenation_scope, base)
+}
+
+fn get_concatenated_export_setter(
+  module: &dyn Module,
+  concatenation_scope: &mut rspack_core::ConcatenationScope,
+  init_fragments: &mut ModuleInitFragments,
+  names: &[Atom],
+) -> (String, String) {
+  let binding = get_concatenated_export_binding(module, concatenation_scope, init_fragments, names);
+  let exports_object = get_concatenated_exports_object(module, concatenation_scope, init_fragments);
+  let top_level_name = names.first().expect("should have a CommonJS export name");
+  let top_level_access = format!(
+    "{exports_object}{}",
+    property_access(std::iter::once(top_level_name), 0)
+  );
+  let encoded_path = names
+    .iter()
+    .map(|name| hex::encode(name.as_bytes()))
+    .collect::<Vec<_>>()
+    .join("_");
+  let setter_base = format!(
+    "__RSPACK_CJS_SET_EXPORT_{}_{}__",
+    to_identifier(top_level_name),
+    encoded_path
+  );
+  let setter = get_concatenated_name(module, concatenation_scope, &setter_base);
+
+  // Evaluate the RHS as an argument to preserve anonymous function/class names,
+  // assign through the real exports object, then synchronize the live binding
+  // from an already evaluated value where possible. Re-reading a top-level
+  // property here could invoke an inherited getter earlier than CommonJS does.
+  // Returning the argument preserves the value of the assignment expression.
+  let (parameters, assignment_target, binding_value, prefix) = if names.len() == 1 {
+    (
+      "value",
+      top_level_access,
+      "value".to_string(),
+      format!("{setter}("),
+    )
+  } else {
+    let parent_access = property_access(names[..names.len() - 1].iter(), 0);
+    let last_access = property_access(names[names.len() - 1..].iter(), 0);
+    (
+      "target, value",
+      format!("target{last_access}"),
+      if names.len() == 2 {
+        "target".to_string()
+      } else {
+        top_level_access
+      },
+      format!("{setter}({exports_object}{parent_access}, "),
+    )
+  };
+  init_fragments.push(
+    NormalInitFragment::new(
+      format!(
+        "function {setter}({parameters}) {{ \"use strict\"; {assignment_target} = value; {binding} = {binding_value}; return value; }}\n"
+      ),
+      InitFragmentStage::StageConstants,
+      0,
+      InitFragmentKey::CommonJsExports(setter),
+      None,
+    )
+    .boxed(),
+  );
+  (prefix, ")".to_string())
+}
+
+fn get_concatenated_name(
+  module: &dyn Module,
+  concatenation_scope: &mut rspack_core::ConcatenationScope,
+  base: &str,
+) -> String {
+  get_unique_concatenated_name(module, concatenation_scope, base)
+}
+
+fn get_unique_concatenated_name(
+  module: &dyn Module,
+  concatenation_scope: &rspack_core::ConcatenationScope,
+  base: &str,
+) -> String {
+  let is_used = |candidate: &str| {
+    module
+      .build_info()
+      .top_level_declarations
+      .as_ref()
+      .is_some_and(|declarations| {
+        declarations
+          .iter()
+          .any(|declaration| declaration.as_str() == candidate)
+      })
+      || module
+        .build_info()
+        .concatenation_reserved_identifier_names
+        .iter()
+        .any(|name| name.as_str() == candidate)
+      || module
+        .get_presentational_dependencies()
+        .is_some_and(|dependencies| {
+          dependencies.iter().any(|dependency| {
+            dependency
+              .as_any()
+              .downcast_ref::<ConstDependency>()
+              .is_some_and(|dependency| {
+                generated_code_contains_identifier(&dependency.content, candidate)
+              })
+              || dependency
+                .as_any()
+                .downcast_ref::<CachedConstDependency>()
+                .is_some_and(|dependency| {
+                  generated_code_contains_identifier(&dependency.identifier, candidate)
+                    || generated_code_contains_identifier(&dependency.content, candidate)
+                })
+          })
+        })
+      || concatenation_scope
+        .current_module
+        .export_map
+        .as_ref()
+        .is_some_and(|export_map| export_map.values().any(|name| name == candidate))
+  };
+
+  if !is_used(base) {
+    return base.to_string();
+  }
+
+  for index in 0.. {
+    let candidate = format!("{base}_{index}");
+    if !is_used(&candidate) {
+      return candidate;
+    }
+  }
+
+  unreachable!("a unique CommonJS export name should always be available")
 }
 
 #[cacheable_dyn]
@@ -107,6 +385,9 @@ impl Dependency for CommonJsExportsDependency {
     _exports_info_artifact: &ExportsInfoArtifact,
   ) -> Option<ExportsSpec> {
     let name = self.names[0].clone();
+    if self.base.is_expression() && name.as_str() == "__proto__" {
+      return None;
+    }
     let vec = vec![ExportNameOrSpec::ExportSpec(ExportSpec {
       // We can't mangle names that are in an empty object because one could access the prototype property
       // when export isn't set yet. It's different for different targets. so here we only list common properties.
@@ -167,6 +448,7 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
       runtime,
       init_fragments,
       runtime_template,
+      concatenation_scope,
       ..
     } = code_generatable_context;
 
@@ -175,10 +457,73 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
       .module_by_identifier(&module.identifier())
       .expect("should have mgm");
 
+    if dep.base.is_expression()
+      && dep
+        .names
+        .first()
+        .is_some_and(|name| name.as_str() == "__proto__")
+    {
+      debug_assert!(
+        concatenation_scope.is_none(),
+        "CommonJS __proto__ assignment should prevent concatenation"
+      );
+      return;
+    }
+
     let exports_info = compilation
       .exports_info_artifact
       .get_exports_info_data(&module.identifier());
     let used = exports_info.get_used_name(&compilation.exports_info_artifact, *runtime, &dep.names);
+
+    if let Some(concatenation_scope) = concatenation_scope.as_deref_mut() {
+      debug_assert!(
+        matches!(dep.base, ExportsBase::Exports | ExportsBase::ModuleExports),
+        "unsupported CommonJS exports base in a concatenated module"
+      );
+      if let Some(UsedName::Normal(_)) = used {
+        let value_range = dep
+          .value_range
+          .expect("concatenated CommonJS export should have a value range");
+        let assignment_range = dep
+          .assignment_range
+          .expect("concatenated CommonJS export should have an assignment range");
+        let (prefix, suffix) = get_concatenated_export_setter(
+          module.as_ref(),
+          concatenation_scope,
+          init_fragments,
+          &dep.names,
+        );
+        // Prevent the minimizer from inlining the setter into a direct binding
+        // assignment, which would infer a name for an anonymous function or
+        // class that CommonJS property assignment leaves unnamed.
+        let prefix = if should_prevent_name_inference(module.as_ref(), dep) {
+          format!("/*#__NOINLINE__*/ {prefix}")
+        } else {
+          prefix
+        };
+        // Parentheses are removed from assignment operands before dependency
+        // creation. Consume their original delimiters and rebuild one pair
+        // around a parenthesized RHS so it remains a single setter argument.
+        let has_parenthesized_value = value_range.end < assignment_range.end;
+        let (prefix, suffix) = if has_parenthesized_value {
+          (format!("{prefix}("), format!("){suffix}"))
+        } else {
+          (prefix, suffix)
+        };
+        source.replace(assignment_range.start, value_range.start, prefix, None);
+        source.replace(value_range.end, assignment_range.end, suffix, None);
+      } else {
+        let exports_object =
+          get_concatenated_exports_object(module.as_ref(), concatenation_scope, init_fragments);
+        source.replace(
+          dep.range.start,
+          dep.range.end,
+          format!("{exports_object}{}", property_access(dep.names.iter(), 0)),
+          None,
+        );
+      }
+      return;
+    }
 
     let exports_argument = module.get_exports_argument();
     let module_argument = module.get_module_argument();

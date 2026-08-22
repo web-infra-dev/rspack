@@ -284,6 +284,10 @@ pub struct BuildInfo {
   pub side_effects_free: Option<HashSet<Atom>>,
   #[cacheable(with=AsOption<AsVec<AsPreset>>)]
   pub top_level_declarations: Option<HashSet<Atom>>,
+  /// Identifier names that generated concatenation bindings must avoid.
+  /// Top-level declarations are tracked separately by `top_level_declarations`.
+  #[cacheable(with=AsVec<AsPreset>)]
+  pub concatenation_reserved_identifier_names: HashSet<Atom>,
   pub module_concatenation_bailout: Option<String>,
   pub assets: BindingCell<HashMap<String, CompilationAsset>>,
   pub module: bool,
@@ -321,6 +325,7 @@ impl Default for BuildInfo {
       css: None,
       side_effects_free: None,
       top_level_declarations: None,
+      concatenation_reserved_identifier_names: Default::default(),
       module_concatenation_bailout: None,
       assets: Default::default(),
       module: false,

@@ -3609,6 +3609,10 @@ impl OptimizationOptionsBuilder {
         .push(BuiltinPluginOptions::RuntimeChunkPlugin(runtime_chunk));
     }
 
+    // `modern-module` always owns its ESM scope-hoisting pipeline, but an
+    // explicit `false` still disables CommonJS hoisting. Keep that original
+    // preference separate from the mode-dependent regular-plugin default.
+    builder_context.concatenate_commonjs_modules = Some(self.concatenate_modules.unwrap_or(true));
     let concatenate_modules = d!(self.concatenate_modules, production);
     if concatenate_modules {
       builder_context

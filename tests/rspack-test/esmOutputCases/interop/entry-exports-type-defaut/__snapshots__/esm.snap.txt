@@ -43,7 +43,11 @@ it('should have default export for json module', async () => {
   expect(json.foo).toBe(42)
   const { default: cjs } = await import(/* webpackIgnore: true */'./cjsBundle.mjs')
   expect(cjs.value).toBe(42)
+  const { default: strictCjs, value } = await import(/* webpackIgnore: true */'./strictCjsBundle.mjs')
+  expect(strictCjs.value).toBe(42)
+  expect(value).toBe(42)
 })
+
 export {};
 
 ```
@@ -110,5 +114,31 @@ __webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj
 })();
 
 export { __webpack_require__ };
+
+```
+
+```mjs title=strictCjsBundle.mjs
+import { __webpack_require__ } from "./runtime.mjs";
+
+__webpack_require__.add({
+"./strict-cjs.js"
+/*!***********************!*\
+  !*** ./strict-cjs.js ***!
+  \***********************/
+(__unused_rspack_module, exports) {
+
+
+exports.value = 42;
+
+
+},
+});
+const strict_cjs = __webpack_require__("./strict-cjs.js");
+var strict_cjs_default = /*#__PURE__*/__webpack_require__.n(strict_cjs);
+var strict_cjs_default_0 = strict_cjs_default();
+var value = strict_cjs.value;
+
+export { value };
+export default strict_cjs_default_0;
 
 ```

@@ -2794,6 +2794,16 @@ export type OptimizationSplitChunksOptions = {
   hidePathInfo?: boolean;
 } & SharedOptimizationSplitChunksCacheGroup;
 
+/** Advanced options for module concatenation. */
+export type ConcatenateModulesOptions = {
+  /**
+   * Also concatenate CommonJS modules with statically analyzable exports.
+   *
+   * @default true
+   */
+  commonjs?: boolean;
+};
+
 export type Optimization = {
   /**
    * Which algorithm to use when choosing module ids.
@@ -2873,11 +2883,12 @@ export type Optimization = {
 
   /**
    * Tells Rspack to find segments of the module graph which can be safely concatenated into a single module.
+   * An options object implies `true`.
    *
    * The value is `true` in production mode.
    * The value is `false` in development mode.
    */
-  concatenateModules?: boolean;
+  concatenateModules?: boolean | ConcatenateModulesOptions;
 
   /**
    * Tells Rspack whether to perform a more detailed analysis of variable assignments.
