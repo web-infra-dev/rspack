@@ -70,14 +70,14 @@ pub use self::{
   runtime_requirements::RuntimeRequirementsPass,
 };
 use crate::{
-  AsyncModulesArtifact, BindingCell, BoxDependency, BoxModule, BuildChunkGraphArtifact, CacheCount,
-  CacheOptions, CgcRuntimeRequirementsArtifact, CgmHashArtifact, CgmRuntimeRequirementsArtifact,
-  Chunk, ChunkByUkey, ChunkContentHash, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey,
-  ChunkHashesArtifact, ChunkKind, ChunkNamedIdArtifact, ChunkRenderArtifact,
-  ChunkRenderCacheArtifact, ChunkRenderResult, ChunkUkey, CircularModulesInfo,
-  CodeGenerateCacheArtifact, CodeGenerationJob, CodeGenerationResult, CodeGenerationResultBuilder,
-  CodeGenerationResults, CompilationLogger, CompilationLogging, CompilerOptions, CompilerPlatform,
-  ConcatenationScope, DependenciesDiagnosticsArtifact, DependencyId, DependencyTemplate,
+  AsyncModulesArtifact, BindingCell, BoxModule, BuildChunkGraphArtifact, CacheCount, CacheOptions,
+  CgcRuntimeRequirementsArtifact, CgmHashArtifact, CgmRuntimeRequirementsArtifact, Chunk,
+  ChunkByUkey, ChunkContentHash, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkHashesArtifact,
+  ChunkKind, ChunkNamedIdArtifact, ChunkRenderArtifact, ChunkRenderCacheArtifact,
+  ChunkRenderResult, ChunkUkey, CircularModulesInfo, CodeGenerateCacheArtifact, CodeGenerationJob,
+  CodeGenerationResult, CodeGenerationResultBuilder, CodeGenerationResults, CompilationLogger,
+  CompilationLogging, CompilerOptions, CompilerPlatform, ConcatenationScope,
+  DependenciesDiagnosticsArtifact, Dependency, DependencyId, DependencyRef, DependencyTemplate,
   DependencyTemplateType, DependencyType, Entry, EntryData, EntryOptions, EntryRuntime, Entrypoint,
   ExecuteModuleId, ExportsInfoArtifact, ExternalModuleChunkConditionHook, Filename, ImportPhase,
   ImportVarMap, ImportedByDeferModulesArtifact, ModuleFactory, ModuleGraph,
@@ -645,7 +645,7 @@ impl Compilation {
     }
   }
 
-  pub async fn add_entry(&mut self, entry: BoxDependency, options: EntryOptions) -> Result<()> {
+  pub async fn add_entry(&mut self, entry: DependencyRef, options: EntryOptions) -> Result<()> {
     let entry_id = *entry.id();
     let entry_name: Option<String> = options.name.clone();
     let plugin_driver = self.plugin_driver.clone();
@@ -684,9 +684,12 @@ impl Compilation {
     Ok(())
   }
 
-  pub async fn add_entry_batch(&mut self, args: Vec<(BoxDependency, EntryOptions)>) -> Result<()> {
+  pub async fn add_entry_batch<D>(&mut self, args: Vec<(D, EntryOptions)>) -> Result<()>
+  where
+    D: Into<DependencyRef>,
+  {
     for (entry, options) in args {
-      self.add_entry(entry, options).await?;
+      self.add_entry(entry.into(), options).await?;
     }
 
     let make_artifact = self.build_module_graph_artifact.steal();
@@ -712,7 +715,10 @@ impl Compilation {
     Ok(())
   }
 
-  pub async fn add_include(&mut self, args: Vec<(BoxDependency, EntryOptions)>) -> Result<()> {
+  pub async fn add_include<D>(&mut self, args: Vec<(D, EntryOptions)>) -> Result<()>
+  where
+    D: Into<DependencyRef>,
+  {
     if !self.in_finish_make.load(Ordering::Acquire) {
       return Err(rspack_error::Error::error(
         "You can only call `add_include` during the finish make stage".into(),
@@ -720,6 +726,7 @@ impl Compilation {
     }
 
     for (entry, options) in args {
+      let entry = entry.into();
       let entry_id = *entry.id();
       self
         .build_module_graph_artifact
@@ -1248,7 +1255,7 @@ impl Compilation {
       .insert(dependency_type, module_factory);
   }
 
-  pub fn get_dependency_factory(&self, dependency: &BoxDependency) -> Arc<dyn ModuleFactory> {
+  pub fn get_dependency_factory(&self, dependency: &dyn Dependency) -> Arc<dyn ModuleFactory> {
     let dependency_type = dependency.dependency_type();
     self
       .dependency_factories

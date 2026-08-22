@@ -1,4 +1,8 @@
-use rspack_core::{BoxDependencyTemplate, ConstDependency, ContextDependency, DependencyRange};
+use std::sync::Arc;
+
+use rspack_core::{
+  ConstDependency, ContextDependency, DependencyCodeGenerationRef, DependencyRange,
+};
 use rspack_util::{SpanExt, itoa};
 use swc_atoms::Atom;
 use swc_experimental_ecma_ast::{CallExpr, GetSpan, Ident, Program, VarDeclarator};
@@ -52,7 +56,7 @@ impl CompatibilityPlugin {
         parser.add_dependency(last);
       }
     }
-    parser.add_presentational_dependency(Box::new(dep));
+    parser.add_presentational_dependency(Arc::new(dep));
     Some(true)
   }
 
@@ -100,7 +104,7 @@ impl CompatibilityPlugin {
       (nested_name, dep)
     };
     if let Some(dep) = dep {
-      parser.add_presentational_dependency(Box::new(dep));
+      parser.add_presentational_dependency(Arc::new(dep));
     }
     Some(nested_name)
   }
@@ -116,7 +120,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CompatibilityPlugin {
       .is_some()
     {
       parser
-        .add_presentational_dependency(Box::new(ConstDependency::new((0, 0).into(), "//".into())));
+        .add_presentational_dependency(Arc::new(ConstDependency::new((0, 0).into(), "//".into())));
     }
 
     None
@@ -246,7 +250,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CompatibilityPlugin {
         NESTED_IDENTIFIER_TAG,
       )?;
       if !data.update {
-        let dep = Box::new(ConstDependency::new(data.loc, data.name.clone().into()));
+        let dep = Arc::new(ConstDependency::new(data.loc, data.name.clone().into()));
         data.update = true;
         parser.add_presentational_dependency(dep);
       }
@@ -270,11 +274,11 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CompatibilityPlugin {
       .as_deref_mut()?;
 
     let nested_require_data = NestedRequireData::downcast_mut(tag_info);
-    let mut deps: Vec<BoxDependencyTemplate> = Vec::with_capacity(2);
+    let mut deps: Vec<DependencyCodeGenerationRef> = Vec::with_capacity(2);
     let name = nested_require_data.name.clone();
     if !nested_require_data.update {
       let shorthand = nested_require_data.in_short_hand;
-      deps.push(Box::new(ConstDependency::new(
+      deps.push(Arc::new(ConstDependency::new(
         nested_require_data.loc,
         if shorthand {
           format!("{}: {}", ident.sym, name).into()
@@ -285,7 +289,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CompatibilityPlugin {
       nested_require_data.update = true;
     }
 
-    deps.push(Box::new(ConstDependency::new(
+    deps.push(Arc::new(ConstDependency::new(
       ident.span.into(),
       if parser.in_short_hand {
         format!("{}: {}", ident.sym, name).into()

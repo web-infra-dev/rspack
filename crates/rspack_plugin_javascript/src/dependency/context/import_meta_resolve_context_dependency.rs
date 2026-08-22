@@ -10,14 +10,14 @@ use rspack_error::Diagnostic;
 use super::{context_dependency_template_as_id, create_resource_identifier_for_context_dependency};
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct ImportMetaResolveContextDependency {
   id: DependencyId,
   options: ContextOptions,
   range: DependencyRange,
   resource_identifier: ResourceIdentifier,
   optional: bool,
-  critical: Option<Diagnostic>,
+  critical: rspack_core::DependencyCriticalState,
 }
 
 impl ImportMetaResolveContextDependency {
@@ -29,7 +29,7 @@ impl ImportMetaResolveContextDependency {
       range,
       resource_identifier,
       optional,
-      critical: None,
+      critical: Default::default(),
     }
   }
 }
@@ -63,7 +63,7 @@ impl Dependency for ImportMetaResolveContextDependency {
     _exports_info_artifact: &ExportsInfoArtifact,
   ) -> Option<Vec<Diagnostic>> {
     if let Some(critical) = self.critical() {
-      return Some(vec![critical.clone()]);
+      return Some(vec![critical]);
     }
     None
   }
@@ -94,12 +94,12 @@ impl ContextDependency for ImportMetaResolveContextDependency {
     ContextTypePrefix::Normal
   }
 
-  fn critical(&self) -> &Option<Diagnostic> {
-    &self.critical
+  fn critical(&self) -> Option<Diagnostic> {
+    self.critical.get()
   }
 
-  fn critical_mut(&mut self) -> &mut Option<Diagnostic> {
-    &mut self.critical
+  fn set_critical(&self, critical: Option<Diagnostic>) {
+    self.critical.set(critical);
   }
 }
 

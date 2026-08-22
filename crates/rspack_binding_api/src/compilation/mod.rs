@@ -14,7 +14,7 @@ use entries::JsEntries;
 use napi_derive::napi;
 use rspack_collections::IdentifierSet;
 use rspack_core::{
-  BindingCell, BoxDependency, Compilation, CompilationId, EntryOptions, ExportsInfoArtifact,
+  BindingCell, Compilation, CompilationId, DependencyRef, EntryOptions, ExportsInfoArtifact,
   ModuleIdentifier, OptimizationBailoutItem, Reflector, rspack_sources::BoxSource,
 };
 use rspack_error::{Diagnostic, Severity, ToStringResultToRspackResultExt};
@@ -838,7 +838,7 @@ impl JsCompilation {
           };
           Ok((dependency, options))
         })
-        .collect::<napi::Result<Vec<(BoxDependency, EntryOptions)>>>()
+        .collect::<napi::Result<Vec<(DependencyRef, EntryOptions)>>>()
         .map_err(|err| napi::Error::new(err.status.into(), err.reason))?;
 
       callbackify(
@@ -941,7 +941,7 @@ impl JsCompilation {
           };
           Ok((dependency, options))
         })
-        .collect::<napi::Result<Vec<(BoxDependency, EntryOptions)>>>()
+        .collect::<napi::Result<Vec<(DependencyRef, EntryOptions)>>>()
         .map_err(|err| napi::Error::new(err.status.into(), err.reason))?;
 
       callbackify(

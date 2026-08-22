@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use rspack_core::ConstDependency;
 use rspack_util::SpanExt;
 use swc_experimental_ecma_ast::{BinExpr, BinaryOp, GetSpan};
@@ -15,7 +17,7 @@ pub fn expression_logic_operator(scanner: &mut JavascriptParser, expr: &BinExpr)
       expr.op == BinaryOp::LogicalOr
     };
     if !param.could_have_side_effects() && (keep_right || param.is_bool()) {
-      scanner.add_presentational_dependency(Box::new(ConstDependency::new(
+      scanner.add_presentational_dependency(Arc::new(ConstDependency::new(
         param.range().into(),
         format!(" {boolean}").into(),
       )));
@@ -24,7 +26,7 @@ pub fn expression_logic_operator(scanner: &mut JavascriptParser, expr: &BinExpr)
     }
 
     if !keep_right {
-      scanner.add_presentational_dependency(Box::new(ConstDependency::new(
+      scanner.add_presentational_dependency(Arc::new(ConstDependency::new(
         {
           let span = expr.right.span();
           (span.real_lo(), span.real_hi()).into()
@@ -37,12 +39,12 @@ pub fn expression_logic_operator(scanner: &mut JavascriptParser, expr: &BinExpr)
     let param = scanner.evaluate_expression(&expr.left);
     if let Some(keep_right) = param.as_nullish() {
       if !param.could_have_side_effects() && keep_right {
-        scanner.add_presentational_dependency(Box::new(ConstDependency::new(
+        scanner.add_presentational_dependency(Arc::new(ConstDependency::new(
           param.range().into(),
           " null".into(),
         )));
       } else {
-        scanner.add_presentational_dependency(Box::new(ConstDependency::new(
+        scanner.add_presentational_dependency(Arc::new(ConstDependency::new(
           {
             let span = expr.right.span();
             (span.real_lo(), span.real_hi()).into()

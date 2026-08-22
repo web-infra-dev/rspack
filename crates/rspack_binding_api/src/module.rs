@@ -509,7 +509,7 @@ impl Module {
           .filter_map(|dependency_id| {
             internal::try_dependency_by_id(module_graph, dependency_id).map(|dep| {
               DependencyWrapper::new(
-                (&**dep) as &dyn rspack_core::Dependency,
+                dep,
                 compilation.id(),
                 Some(compilation),
               )

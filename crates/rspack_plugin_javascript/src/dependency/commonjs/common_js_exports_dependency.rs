@@ -55,7 +55,7 @@ impl ExportsBase {
 }
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct CommonJsExportsDependency {
   id: DependencyId,
   range: DependencyRange,

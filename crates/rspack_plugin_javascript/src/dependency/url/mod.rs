@@ -15,7 +15,7 @@ use swc_atoms::Atom;
 use crate::{connection_active_used_by_exports, runtime::AUTO_PUBLIC_PATH_PLACEHOLDER};
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct URLDependency {
   id: DependencyId,
   #[cacheable(with=AsPreset)]

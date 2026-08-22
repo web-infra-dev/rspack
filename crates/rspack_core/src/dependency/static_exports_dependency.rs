@@ -19,7 +19,7 @@ pub enum StaticExportsSpec {
 }
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct StaticExportsDependency {
   id: DependencyId,
   exports: StaticExportsSpec,

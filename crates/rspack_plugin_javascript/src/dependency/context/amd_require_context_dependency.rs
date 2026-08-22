@@ -12,14 +12,14 @@ use super::{
 };
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct AMDRequireContextDependency {
   id: DependencyId,
   range: DependencyRange,
   resource_identifier: ResourceIdentifier,
   options: ContextOptions,
   optional: bool,
-  critical: Option<Diagnostic>,
+  critical: rspack_core::DependencyCriticalState,
 }
 
 impl AMDRequireContextDependency {
@@ -31,7 +31,7 @@ impl AMDRequireContextDependency {
       resource_identifier,
       optional,
       id: DependencyId::new(),
-      critical: None,
+      critical: Default::default(),
     }
   }
 }
@@ -65,7 +65,7 @@ impl Dependency for AMDRequireContextDependency {
     _exports_info_artifact: &ExportsInfoArtifact,
   ) -> Option<Vec<Diagnostic>> {
     if let Some(critical) = self.critical() {
-      return Some(vec![critical.clone()]);
+      return Some(vec![critical]);
     }
     None
   }
@@ -96,12 +96,12 @@ impl ContextDependency for AMDRequireContextDependency {
     rspack_core::ContextTypePrefix::Normal
   }
 
-  fn critical(&self) -> &Option<Diagnostic> {
-    &self.critical
+  fn critical(&self) -> Option<Diagnostic> {
+    self.critical.get()
   }
 
-  fn critical_mut(&mut self) -> &mut Option<Diagnostic> {
-    &mut self.critical
+  fn set_critical(&self, critical: Option<Diagnostic>) {
+    self.critical.set(critical);
   }
 }
 

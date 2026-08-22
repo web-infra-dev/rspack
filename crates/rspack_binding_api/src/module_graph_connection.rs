@@ -71,7 +71,7 @@ impl ModuleGraphConnection {
     self.with_ref(|compilation, module_graph| {
       if let Some(dependency) = internal::try_dependency_by_id(module_graph, &self.dependency_id) {
         Ok(DependencyWrapper::new(
-          (&**dependency) as &dyn rspack_core::Dependency,
+          dependency,
           compilation.id(),
           Some(compilation),
         ))

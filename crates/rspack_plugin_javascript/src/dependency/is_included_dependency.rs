@@ -7,7 +7,7 @@ use rspack_core::{
 };
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct IsIncludeDependency {
   pub range: DependencyRange,
   pub id: DependencyId,

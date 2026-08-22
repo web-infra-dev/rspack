@@ -10,10 +10,10 @@ use heck::{ToKebabCase, ToLowerCamelCase};
 use once_cell::sync::OnceCell;
 use regex::Regex;
 use rspack_core::{
-  BoxDependency, ChunkGraph, Compilation, CompilerOptions, CssExportType, CssExportsConvention,
-  CssModuleGeneratorOptions, CssModuleRenderCondition, GeneratorOptions, ImportAttributes,
-  LocalIdentName, Module, ModuleType, NormalModuleCreateData, PathData, ReplaceAllPlaceholder,
-  ResourceData,
+  ChunkGraph, Compilation, CompilerOptions, CssExportType, CssExportsConvention,
+  CssModuleGeneratorOptions, CssModuleRenderCondition, Dependency, GeneratorOptions,
+  ImportAttributes, LocalIdentName, Module, ModuleType, NormalModuleCreateData, PathData,
+  ReplaceAllPlaceholder, ResourceData,
 };
 use rspack_error::{Diagnostic, Error, Result, Severity};
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHasher};
@@ -107,7 +107,7 @@ pub(crate) fn css_attribute_export_type(
     .and_then(|value| (value == "css").then_some(CssExportType::CssStyleSheet))
 }
 
-pub(crate) fn css_dependency_export_type(dependency: &BoxDependency) -> Option<CssExportType> {
+pub(crate) fn css_dependency_export_type(dependency: &dyn Dependency) -> Option<CssExportType> {
   dependency
     .downcast_ref::<CssImportDependency>()
     .and_then(|dep| dep.export_type())
@@ -125,7 +125,7 @@ pub(crate) struct CssDependencyMeta {
   pub export_type: Option<CssExportType>,
 }
 
-pub(crate) fn css_dependency_meta(dependency: &BoxDependency) -> CssDependencyMeta {
+pub(crate) fn css_dependency_meta(dependency: &dyn Dependency) -> CssDependencyMeta {
   let css_import_dependency = dependency.downcast_ref::<CssImportDependency>();
   let is_css_import_dependency = css_import_dependency.is_some();
   let is_css_dependency =

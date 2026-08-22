@@ -1,6 +1,8 @@
+use std::sync::Arc;
+
 use rspack_core::{
-  ContextDependency, ContextMode, ContextOptions, DependencyCategory, JavascriptParserUrl,
-  RuntimeGlobals, RuntimeRequirementsDependency, get_context,
+  BoxDependency, ContextDependency, ContextMode, ContextOptions, DependencyCategory,
+  JavascriptParserUrl, RuntimeGlobals, RuntimeRequirementsDependency, get_context,
 };
 use rspack_util::SpanExt;
 use swc_atoms::Atom;
@@ -135,7 +137,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for URLPlugin {
         {
           return None;
         }
-        parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
+        parser.add_presentational_dependency(Arc::new(RuntimeRequirementsDependency::new(
           arg2.span().into(),
           RuntimeGlobals::BASE_URI,
         )));
@@ -171,7 +173,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for URLPlugin {
         self.mode,
       );
       let dep_idx = parser.next_dependency_idx();
-      parser.add_dependency(Box::new(dep));
+      parser.add_dependency(BoxDependency::new(dep));
       InnerGraphParserPlugin::on_usage(parser, InnerGraphUsageOperation::URLDependency(dep_idx));
       return Some(true);
     }
@@ -210,14 +212,14 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for URLPlugin {
       ..Default::default()
     };
 
-    let mut dep = URLContextDependency::new(
+    let dep = URLContextDependency::new(
       options,
       expr.span().into(),
       param.range().into(),
       parser.in_try,
     );
-    *dep.critical_mut() = result.critical;
-    parser.add_dependency(Box::new(dep));
+    dep.set_critical(result.critical);
+    parser.add_dependency(BoxDependency::new(dep));
 
     Some(true)
   }

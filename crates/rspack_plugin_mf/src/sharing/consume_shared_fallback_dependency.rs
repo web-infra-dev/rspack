@@ -5,7 +5,7 @@ use rspack_core::{
 };
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct ConsumeSharedFallbackDependency {
   id: DependencyId,
   request: String,

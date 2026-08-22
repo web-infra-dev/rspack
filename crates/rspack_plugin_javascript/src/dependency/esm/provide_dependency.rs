@@ -16,7 +16,7 @@ use swc_atoms::Atom;
 use super::esm_compatibility_dependency::add_async_module_boundary;
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct ProvideDependency {
   id: DependencyId,
   #[cacheable(with=AsPreset)]
