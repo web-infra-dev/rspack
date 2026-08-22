@@ -1,0 +1,30 @@
+---
+description: 'Assign compact and stable alphanumeric chunk ids'
+---
+
+# CompactChunkIdsPlugin
+
+`CompactChunkIdsPlugin` assigns stable alphanumeric ids based on chunk contents. The first character uses `a-zA-Z`, and subsequent characters use `a-zA-Z0-9`. It starts with the shortest configured hash prefix and extends an id when that prefix is already used.
+
+`optimization.chunkIds: 'compact'` uses this plugin internally. Use the plugin directly when you need to customize compact id generation.
+
+```js title="rspack.config.mjs"
+import rspack from '@rspack/core';
+
+export default {
+  plugins: [
+    new rspack.ids.CompactChunkIdsPlugin({
+      minLength: 1,
+    }),
+  ],
+};
+```
+
+## Options
+
+### minLength
+
+- **Type:** `number`
+- **Default:** `1`
+
+The minimum encoded id length. Rspack extends an id one character at a time when its hash prefix is already used. If the complete hash still conflicts, compilation fails with an error.

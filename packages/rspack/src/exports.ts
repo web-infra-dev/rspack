@@ -186,6 +186,7 @@ interface Electron {
 export const electron: Electron = { ElectronTargetPlugin };
 
 import {
+  CompactChunkIdsPlugin,
   CompatHashedModuleIdsPlugin,
   DeterministicModuleIdsPlugin,
   HashedModuleIdsPlugin,
@@ -193,12 +194,14 @@ import {
 } from './builtin-plugin';
 
 interface Ids {
+  CompactChunkIdsPlugin: typeof CompactChunkIdsPlugin;
   CompatHashedModuleIdsPlugin: typeof CompatHashedModuleIdsPlugin;
   DeterministicModuleIdsPlugin: typeof DeterministicModuleIdsPlugin;
   HashedModuleIdsPlugin: typeof HashedModuleIdsPlugin;
 }
 
 export const ids: Ids = {
+  CompactChunkIdsPlugin,
   CompatHashedModuleIdsPlugin,
   DeterministicModuleIdsPlugin,
   HashedModuleIdsPlugin,

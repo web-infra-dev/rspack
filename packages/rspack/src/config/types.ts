@@ -2806,7 +2806,8 @@ export type Optimization = {
   /**
    * Which algorithm to use when choosing chunk ids.
    */
-  chunkIds?: 'natural' | 'named' | 'deterministic' | 'size' | 'total-size';
+  chunkIds?:
+    'natural' | 'named' | 'deterministic' | 'compact' | 'size' | 'total-size';
 
   /**
    * Whether to minimize the bundle.
