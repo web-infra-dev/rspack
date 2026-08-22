@@ -342,6 +342,7 @@ export default {
   defaultValueList={[
     { defaultValue: "'deterministic'", mode: 'production' },
     { defaultValue: "'named'", mode: 'development' },
+    { defaultValue: "'natural'", mode: 'none' },
   ]}
 />
 
@@ -360,7 +361,7 @@ export default {
 
 推荐在开发环境使用 `named`，在生产环境使用 `deterministic` 或 `compat-hashed`。
 
-- 默认行为对应的配置：
+通过 `process.env.NODE_ENV` 来判断当前环境：
 
 ```js title="rspack.config.mjs"
 const isDev = process.env.NODE_ENV === 'development';

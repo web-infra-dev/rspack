@@ -342,6 +342,7 @@ export default {
   defaultValueList={[
     { defaultValue: "'deterministic'", mode: 'production' },
     { defaultValue: "'named'", mode: 'development' },
+    { defaultValue: "'natural'", mode: 'none' },
   ]}
 />
 
@@ -360,7 +361,7 @@ The following string values are supported:
 
 We recommend using `named` in development and `deterministic` or `compat-hashed` in production.
 
-- Configuration equivalent to the default behavior:
+Use `process.env.NODE_ENV` to determine the current environment:
 
 ```js title="rspack.config.mjs"
 const isDev = process.env.NODE_ENV === 'development';
