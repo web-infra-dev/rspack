@@ -1383,10 +1383,14 @@ impl Dependency for ESMExportImportedSpecifierDependency {
       }
       ExportMode::DynamicReexport(mode) => {
         let from = mg.connection_by_dependency_id(self.id());
+        let can_mangle = mg
+          .module_identifier_by_dependency_id(self.id())
+          .and_then(|identifier| mg.module_by_identifier(identifier))
+          .is_some_and(|module| module.build_info().is_empty_js_auto);
         Some(ExportsSpec {
           exports: ExportsOfExportsSpec::UnknownExports,
           from: from.cloned(),
-          can_mangle: Some(false),
+          can_mangle: Some(can_mangle),
           hide_export: mode.hidden.clone(),
           exclude_exports: {
             let mut exclude_exports = mode.ignored;

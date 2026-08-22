@@ -275,6 +275,8 @@ pub struct BuildInfo {
   #[cacheable(with=AsVec<AsPreset>)]
   pub esm_named_exports: HashSet<Atom>,
   pub all_star_exports: Vec<DependencyId>,
+  /// Whether a `javascript/auto` module has no statements after parsing.
+  pub is_empty_js_auto: bool,
   pub need_create_require: bool,
   #[cacheable(with=AsOption<AsPreset>)]
   pub json_data: Option<JsonValue>,
@@ -315,6 +317,7 @@ impl Default for BuildInfo {
       value_dependencies: HashMap::default(),
       esm_named_exports: HashSet::default(),
       all_star_exports: Vec::default(),
+      is_empty_js_auto: false,
       need_create_require: false,
       json_data: None,
       asset: None,
