@@ -1,5 +1,6 @@
 asset main.js xx KiB [emitted] (name: main)
 ./example.js xx bytes [built] [code generated]
+  [no exports]
   [no exports used]
 ./increment.js xx bytes [built] [code generated]
   [exports: decrement, increment, incrementBy2]
