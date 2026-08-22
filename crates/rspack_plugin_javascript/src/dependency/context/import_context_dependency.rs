@@ -24,7 +24,7 @@ fn create_resource_identifier(options: &ContextOptions) -> Identifier {
 }
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct ImportContextDependency {
   id: DependencyId,
   options: ContextOptions,

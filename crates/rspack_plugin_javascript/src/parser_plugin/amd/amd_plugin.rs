@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use rspack_core::{ConstDependency, RuntimeGlobals, RuntimeRequirementsDependency};
 use rspack_util::SpanExt;
 use swc_experimental_ecma_ast::{CallExpr, Expr, GetSpan, Ident, MemberExpr, UnaryExpr};
@@ -24,7 +26,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for AMDParserPlugin {
     for_name: &str,
   ) -> Option<bool> {
     if for_name == "require.config" || for_name == "requirejs.config" {
-      parser.add_presentational_dependency(Box::new(ConstDependency::new(
+      parser.add_presentational_dependency(Arc::new(ConstDependency::new(
         call_expr.span.into(),
         "undefined".into(),
       )));
@@ -40,14 +42,14 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for AMDParserPlugin {
     for_name: &str,
   ) -> Option<bool> {
     if for_name == "require.version" {
-      parser.add_presentational_dependency(Box::new(ConstDependency::new(
+      parser.add_presentational_dependency(Arc::new(ConstDependency::new(
         expr.span.into(),
         "\"0.0.0\"".into(),
       )));
       return Some(true);
     }
     if for_name == "requirejs.onError" {
-      parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
+      parser.add_presentational_dependency(Arc::new(RuntimeRequirementsDependency::new(
         expr.span.into(),
         RuntimeGlobals::UNCAUGHT_ERROR_HANDLER,
       )));
@@ -56,7 +58,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for AMDParserPlugin {
 
     // AMD
     if for_name == "define.amd" || for_name == "require.amd" {
-      parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
+      parser.add_presentational_dependency(Arc::new(RuntimeRequirementsDependency::new(
         expr.span.into(),
         RuntimeGlobals::AMD_OPTIONS,
       )));
@@ -77,7 +79,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for AMDParserPlugin {
     for_name: &str,
   ) -> Option<bool> {
     if for_name == DEFINE || for_name == REQUIRE {
-      parser.add_presentational_dependency(Box::new(ConstDependency::new(
+      parser.add_presentational_dependency(Arc::new(ConstDependency::new(
         expr.span.into(),
         "\"function\"".into(),
       )));
@@ -85,7 +87,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for AMDParserPlugin {
     }
 
     if for_name == DEFINE_AMD || for_name == REQUIRE_AMD {
-      parser.add_presentational_dependency(Box::new(ConstDependency::new(
+      parser.add_presentational_dependency(Arc::new(ConstDependency::new(
         expr.span.into(),
         "\"object\"".into(),
       )));
@@ -127,7 +129,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for AMDParserPlugin {
     for_name: &str,
   ) -> Option<bool> {
     if for_name == DEFINE {
-      parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
+      parser.add_presentational_dependency(Arc::new(RuntimeRequirementsDependency::new(
         ident.span().into(),
         RuntimeGlobals::AMD_DEFINE,
       )));
@@ -176,7 +178,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for AMDParserPlugin {
 
   fn rename(&self, parser: &mut JavascriptParser<'p>, expr: &Expr, for_name: &str) -> Option<bool> {
     if for_name == DEFINE {
-      parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
+      parser.add_presentational_dependency(Arc::new(RuntimeRequirementsDependency::new(
         expr.span().into(),
         RuntimeGlobals::AMD_DEFINE,
       )));

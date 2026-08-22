@@ -14,7 +14,7 @@ use crate::plugin_state::{
 };
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct RscEntryDependency {
   id: DependencyId,
   pub name: Arc<str>,

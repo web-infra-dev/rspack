@@ -12,7 +12,7 @@ use rspack_hash::{RspackHash, RspackHasher};
 use crate::runtime_condition_used_by_exports;
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct PureExpressionDependency {
   pub range: DependencyRange,
   used_by_exports: Option<UsedByExports>,

@@ -1,5 +1,6 @@
 #[cfg(windows)]
 use std::path::Path;
+use std::sync::Arc;
 
 use rspack_core::{
   BoxDependency, ConstDependency, Context, ContextDependency, ContextMode, ContextModulePattern,
@@ -667,7 +668,7 @@ fn should_clear_create_require_call(parser: &mut JavascriptParser, args: &[ExprO
 
 #[inline(never)]
 fn clear_create_require_call(parser: &mut JavascriptParser, span: Span) {
-  parser.add_presentational_dependency(Box::new(ConstDependency::new(
+  parser.add_presentational_dependency(Arc::new(ConstDependency::new(
     span.into(),
     "/* createRequire() */ undefined".into(),
   )));
@@ -841,11 +842,11 @@ fn wrap_span_with_side_effects(parser: &mut JavascriptParser, span: Span, side_e
   if side_effects.is_empty() {
     return;
   }
-  parser.add_presentational_dependency(Box::new(ConstDependency::new(
+  parser.add_presentational_dependency(Arc::new(ConstDependency::new(
     (span.real_lo(), span.real_lo()).into(),
     side_effects_with_suffix(side_effects, ""),
   )));
-  parser.add_presentational_dependency(Box::new(ConstDependency::new(
+  parser.add_presentational_dependency(Arc::new(ConstDependency::new(
     (span.real_hi(), span.real_hi()).into(),
     ")".into(),
   )));
@@ -1190,7 +1191,7 @@ fn tag_created_require_declarator<'a>(
   } else if clear_call {
     clear_create_require_call(parser, call_span);
   } else if replace_argument {
-    parser.add_presentational_dependency(Box::new(ConstDependency::new(
+    parser.add_presentational_dependency(Arc::new(ConstDependency::new(
       args[0].expr.span().into(),
       json_stringify_str(&value).into(),
     )));
@@ -1220,7 +1221,7 @@ fn clear_create_require_tag(parser: &mut JavascriptParser, name: &Atom) {
 
 #[inline(never)]
 fn add_require_cache_dependency(parser: &mut JavascriptParser, range: DependencyRange) {
-  parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
+  parser.add_presentational_dependency(Arc::new(RuntimeRequirementsDependency::new(
     range,
     RuntimeGlobals::MODULE_CACHE,
   )));
@@ -1250,7 +1251,7 @@ fn handle_created_require_member(
     add_require_cache_dependency(parser, cache_range.into());
   } else {
     add_unsupported_create_require_member_warning(parser, member_span);
-    parser.add_presentational_dependency(Box::new(ConstDependency::new(
+    parser.add_presentational_dependency(Arc::new(ConstDependency::new(
       member_span.into(),
       unsupported_replacement,
     )));
@@ -1304,7 +1305,7 @@ fn walk_unsupported_create_require_resolve(
     let arg = &inner_call_expr.args[0].expr;
     if let Some(value) = evaluate_create_require_argument(parser, arg) {
       if should_replace_create_require_argument(parser, arg) {
-        parser.add_presentational_dependency(Box::new(ConstDependency::new(
+        parser.add_presentational_dependency(Arc::new(ConstDependency::new(
           arg.span().into(),
           json_stringify_str(&value).into(),
         )));
@@ -1835,7 +1836,7 @@ impl CommonJsImportsParserPlugin {
       if !is_expression {
         let range: DependencyRange = callee.span().into();
         let loc = parser.to_dependency_location(range);
-        parser.add_presentational_dependency(Box::new(RequireHeaderDependency::new(range, loc)));
+        parser.add_presentational_dependency(Arc::new(RequireHeaderDependency::new(range, loc)));
         return Some(true);
       }
     }
@@ -1844,7 +1845,7 @@ impl CommonJsImportsParserPlugin {
     {
       local_module.flag_used();
       let span = expr.span();
-      let dep = Box::new(LocalModuleDependency::new(
+      let dep = Arc::new(LocalModuleDependency::new(
         local_module.clone(),
         Some(span.into()),
         matches!(expr, CallOrNewExpr::New(_)),
@@ -1866,7 +1867,7 @@ impl CommonJsImportsParserPlugin {
     } else {
       let range: DependencyRange = callee.span().into();
       let loc = parser.to_dependency_location(range);
-      parser.add_presentational_dependency(Box::new(RequireHeaderDependency::new(range, loc)));
+      parser.add_presentational_dependency(Arc::new(RequireHeaderDependency::new(range, loc)));
     }
     Some(true)
   }
@@ -2260,7 +2261,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
       Some(false)
     } else if for_name == expr_name::REQUIRE && should_parse_commonjs_require(parser) {
       if parser.javascript_options.require_alias.unwrap_or_default() {
-        parser.add_presentational_dependency(Box::new(ConstDependency::new(
+        parser.add_presentational_dependency(Arc::new(ConstDependency::new(
           expr.span().into(),
           "undefined".into(),
         )));
@@ -2399,7 +2400,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
       || should_handle_create_require_specifier(parser, for_name)
       || for_name == CREATED_REQUIRE_IDENTIFIER_TAG
     {
-      parser.add_presentational_dependency(Box::new(ConstDependency::new(
+      parser.add_presentational_dependency(Arc::new(ConstDependency::new(
         expr.span.into(),
         "'function'".into(),
       )));
@@ -2425,7 +2426,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
         if clear_call {
           clear_create_require_call(parser, call_expr.span);
         } else if argument.replace_argument {
-          parser.add_presentational_dependency(Box::new(ConstDependency::new(
+          parser.add_presentational_dependency(Arc::new(ConstDependency::new(
             call_expr.args[0].expr.span().into(),
             json_stringify_str(&argument.value).into(),
           )));
@@ -2616,7 +2617,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
     for_name: &str,
   ) -> Option<bool> {
     if for_name == expr_name::REQUIRE && should_parse_commonjs_require(parser) {
-      parser.add_presentational_dependency(Box::new(ConstDependency::new(
+      parser.add_presentational_dependency(Arc::new(ConstDependency::new(
         (0, 0).into(),
         "var require;".into(),
       )));

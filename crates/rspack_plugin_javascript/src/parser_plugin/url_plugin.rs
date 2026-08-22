@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use rspack_core::{
   BoxDependency, ContextDependency, ContextMode, ContextOptions, DependencyCategory,
   JavascriptParserUrl, RuntimeGlobals, RuntimeRequirementsDependency, get_context,
@@ -135,7 +137,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for URLPlugin {
         {
           return None;
         }
-        parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
+        parser.add_presentational_dependency(Arc::new(RuntimeRequirementsDependency::new(
           arg2.span().into(),
           RuntimeGlobals::BASE_URI,
         )));

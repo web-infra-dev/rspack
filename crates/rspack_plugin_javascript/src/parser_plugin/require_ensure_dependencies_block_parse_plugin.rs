@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use either::Either;
 use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, ChunkGroupOptions, ConstDependency, DependencyRange,
@@ -41,7 +43,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for RequireEnsureDependenciesBlockPa
     for_name: &str,
   ) -> Option<bool> {
     (for_name == "require.ensure").then(|| {
-      parser.add_presentational_dependency(Box::new(ConstDependency::new(
+      parser.add_presentational_dependency(Arc::new(ConstDependency::new(
         expr.span.into(),
         "'function'".into(),
       )));

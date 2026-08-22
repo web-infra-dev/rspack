@@ -6,7 +6,7 @@ use crate::{
 };
 
 #[cacheable]
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub struct TempDependency {
   id: DependencyId,
 }

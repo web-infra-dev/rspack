@@ -17,7 +17,7 @@ use rspack_core::{
 use rspack_hash::{RspackHash, RspackHasher};
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct WorkerDependency {
   id: DependencyId,
   request: String,

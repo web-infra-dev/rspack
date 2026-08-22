@@ -211,17 +211,17 @@ fn add_dependencies(
         format!(", {{ type: {worker_type} }})"),
       ),
     };
-    parser.add_presentational_dependency(Box::new(ConstDependency::new(
+    parser.add_presentational_dependency(Arc::new(ConstDependency::new(
       (options_range.0, options_range.0).into(),
       prefix.into(),
     )));
-    parser.add_presentational_dependency(Box::new(ConstDependency::new(
+    parser.add_presentational_dependency(Arc::new(ConstDependency::new(
       (options_range.1, options_range.1).into(),
       suffix.into(),
     )));
   } else if options_range.is_none() && output_module {
     let insert_position = first_arg.span().real_hi();
-    parser.add_presentational_dependency(Box::new(ConstDependency::new(
+    parser.add_presentational_dependency(Arc::new(ConstDependency::new(
       (insert_position, insert_position).into(),
       ", { type: \"module\" }".into(),
     )));

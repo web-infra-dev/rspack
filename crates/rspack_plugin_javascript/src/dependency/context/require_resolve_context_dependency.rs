@@ -10,7 +10,7 @@ use rspack_error::Diagnostic;
 use super::{context_dependency_template_as_id, create_resource_identifier_for_context_dependency};
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct RequireResolveContextDependency {
   id: DependencyId,
   options: ContextOptions,

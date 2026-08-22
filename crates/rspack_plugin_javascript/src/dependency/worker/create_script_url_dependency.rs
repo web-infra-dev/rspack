@@ -6,7 +6,7 @@ use rspack_core::{
 };
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct CreateScriptUrlDependency {
   id: DependencyId,
   range: DependencyRange,

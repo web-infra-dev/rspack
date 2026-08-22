@@ -1,4 +1,4 @@
-use std::iter;
+use std::{iter, sync::Arc};
 
 use either::Either;
 use itertools::Itertools;
@@ -91,7 +91,7 @@ impl AMDRequireDependenciesBlockParserPlugin {
       }
       let range = param.range();
       let dep = AMDRequireArrayDependency::new(deps, range.into());
-      parser.add_presentational_dependency(Box::new(dep));
+      parser.add_presentational_dependency(Arc::new(dep));
       return Some(true);
     }
     None
@@ -120,26 +120,26 @@ impl AMDRequireDependenciesBlockParserPlugin {
       let range = param.range();
 
       if param_str == "require" {
-        let dep = Box::new(RuntimeRequirementsDependency::new(
+        let dep = Arc::new(RuntimeRequirementsDependency::new(
           range.into(),
           RuntimeGlobals::REQUIRE,
         ));
         parser.add_presentational_dependency(dep);
       } else if param_str == "module" {
-        let dep = Box::new(RuntimeRequirementsDependency::new(
+        let dep = Arc::new(RuntimeRequirementsDependency::new(
           range.into(),
           RuntimeGlobals::MODULE,
         ));
         parser.add_presentational_dependency(dep);
       } else if param_str == "exports" {
-        let dep = Box::new(RuntimeRequirementsDependency::new(
+        let dep = Arc::new(RuntimeRequirementsDependency::new(
           range.into(),
           RuntimeGlobals::EXPORTS,
         ));
         parser.add_presentational_dependency(dep);
       } else if let Some(local_module) = parser.get_local_module_mut(param_str) {
         local_module.flag_used();
-        let dep = Box::new(LocalModuleDependency::new(
+        let dep = Arc::new(LocalModuleDependency::new(
           local_module.clone(),
           Some(range.into()),
           false,
@@ -326,7 +326,7 @@ impl AMDRequireDependenciesBlockParserPlugin {
       });
 
       if !result.is_some_and(|x| x) {
-        let dep = Box::new(UnsupportedDependency::new(
+        let dep = Arc::new(UnsupportedDependency::new(
           "unsupported".into(),
           call_expr.span.into(),
         ));

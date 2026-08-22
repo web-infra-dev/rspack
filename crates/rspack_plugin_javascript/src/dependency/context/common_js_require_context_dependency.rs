@@ -13,7 +13,7 @@ use super::{
 };
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct CommonJsRequireContextDependency {
   id: DependencyId,
   loc: DependencyLocation,

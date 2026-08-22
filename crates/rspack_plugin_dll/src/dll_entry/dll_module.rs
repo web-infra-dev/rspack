@@ -45,12 +45,12 @@ impl DllModule {
       context,
       name,
       ..
-    } = dep.clone();
+    } = dep;
 
     Self {
-      name,
-      entries,
-      context,
+      name: name.clone(),
+      entries: entries.clone(),
+      context: context.clone(),
       ..Default::default()
     }
   }

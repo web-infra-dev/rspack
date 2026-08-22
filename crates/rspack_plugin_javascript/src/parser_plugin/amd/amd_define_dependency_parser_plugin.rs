@@ -1,9 +1,9 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, sync::Arc};
 
 use rspack_core::{
-  BoxDependency, BoxDependencyTemplate, BuildMetaDefaultObject, ContextDependency, ContextMode,
-  ContextOptions, Dependency, DependencyCategory, RuntimeGlobals, RuntimeRequirementsDependency,
-  get_context,
+  BoxDependency, BuildMetaDefaultObject, ContextDependency, ContextMode, ContextOptions,
+  Dependency, DependencyCategory, DependencyCodeGenerationRef, RuntimeGlobals,
+  RuntimeRequirementsDependency, get_context,
 };
 use rspack_util::{SpanExt, atom::Atom};
 use rustc_hash::FxHashMap;
@@ -157,7 +157,7 @@ impl AMDDefineDependencyParserPlugin {
         }
       }
       let dep = AMDRequireArrayDependency::new(deps, param.range().into());
-      parser.add_presentational_dependency(Box::new(dep));
+      parser.add_presentational_dependency(Arc::new(dep));
       return Some(true);
     }
     None
@@ -185,18 +185,18 @@ impl AMDDefineDependencyParserPlugin {
       let param_str = param.string();
       let range = param.range();
 
-      let dep: BoxDependencyTemplate = if param_str == "require" {
-        Box::new(RuntimeRequirementsDependency::new(
+      let dep: DependencyCodeGenerationRef = if param_str == "require" {
+        Arc::new(RuntimeRequirementsDependency::new(
           range.into(),
           RuntimeGlobals::REQUIRE,
         ))
       } else if param_str == "exports" {
-        Box::new(RuntimeRequirementsDependency::new(
+        Arc::new(RuntimeRequirementsDependency::new(
           range.into(),
           RuntimeGlobals::EXPORTS,
         ))
       } else if param_str == "module" {
-        Box::new(RuntimeRequirementsDependency::new(
+        Arc::new(RuntimeRequirementsDependency::new(
           range.into(),
           RuntimeGlobals::MODULE,
         ))
@@ -207,7 +207,7 @@ impl AMDDefineDependencyParserPlugin {
           .unwrap_or(param_str.into()),
       ) {
         local_module.flag_used();
-        let dep = Box::new(LocalModuleDependency::new(
+        let dep = Arc::new(LocalModuleDependency::new(
           local_module.clone(),
           Some(range.into()),
           false,
@@ -568,7 +568,7 @@ impl AMDDefineDependencyParserPlugin {
       parser.add_local_module(name, dep_idx);
     }
 
-    let dep = Box::new(AMDDefineDependency::new(
+    let dep = Arc::new(AMDDefineDependency::new(
       call_expr.span.into(),
       array.map(|expr| expr.span().into()),
       func.map(|expr| expr.span().into()),

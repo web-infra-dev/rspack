@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use rspack_core::{BoxDependency, DependencyRange, ImportMetaKnownProperties};
 use rspack_util::SpanExt;
 use swc_atoms::Atom;
@@ -52,7 +54,7 @@ impl JavascriptParser<'_> {
     self.build_info.module_concatenation_bailout = Some(String::from("Hot Module Replacement"));
     let range = DependencyRange::from(span);
     let loc = self.to_dependency_location(range);
-    self.add_presentational_dependency(Box::new(ModuleArgumentDependency::new(
+    self.add_presentational_dependency(Arc::new(ModuleArgumentDependency::new(
       Some("hot".into()),
       span.into(),
       loc,
@@ -68,7 +70,7 @@ impl JavascriptParser<'_> {
     let callee_span = call_expr.callee.span();
     let callee_range = DependencyRange::from(callee_span);
     let loc = self.to_dependency_location(callee_range);
-    self.add_presentational_dependency(Box::new(ModuleArgumentDependency::new(
+    self.add_presentational_dependency(Arc::new(ModuleArgumentDependency::new(
       Some("hot.accept".into()),
       callee_span.into(),
       loc,
@@ -84,7 +86,7 @@ impl JavascriptParser<'_> {
       };
       let call_range = DependencyRange::from(call_expr.span());
       let loc = self.to_dependency_location(call_range);
-      self.add_presentational_dependency(Box::new(ESMAcceptDependency::new(
+      self.add_presentational_dependency(Arc::new(ESMAcceptDependency::new(
         range,
         callback_arg.is_some(),
         dependency_ids,
@@ -109,7 +111,7 @@ impl JavascriptParser<'_> {
     let callee_span = call_expr.callee.span();
     let callee_range = DependencyRange::from(callee_span);
     let loc = self.to_dependency_location(callee_range);
-    self.add_presentational_dependency(Box::new(ModuleArgumentDependency::new(
+    self.add_presentational_dependency(Arc::new(ModuleArgumentDependency::new(
       Some("hot.decline".into()),
       callee_span.into(),
       loc,

@@ -80,24 +80,6 @@ pub struct ESMImportSideEffectDependency {
   star_export: bool,
 }
 
-impl Clone for ESMImportSideEffectDependency {
-  fn clone(&self) -> Self {
-    Self {
-      request: self.request.clone(),
-      source_order: self.source_order,
-      id: self.id,
-      range: self.range,
-      dependency_type: self.dependency_type,
-      phase: self.phase,
-      attributes: self.attributes.clone(),
-      resource_identifier: self.resource_identifier,
-      loc: self.loc.clone(),
-      lazy_make: AtomicBool::new(self.lazy_make.load(Ordering::Relaxed)),
-      star_export: self.star_export,
-    }
-  }
-}
-
 impl ESMImportSideEffectDependency {
   #[allow(clippy::too_many_arguments)]
   pub fn new(

@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use rspack_cacheable::cacheable_dyn;
 
 use super::Dependency;
@@ -45,5 +43,3 @@ impl<T: ModuleDependency> AsModuleDependency for T {
     Some(self)
   }
 }
-
-pub type ModuleDependencyRef = Arc<dyn ModuleDependency>;

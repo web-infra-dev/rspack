@@ -10,7 +10,7 @@ use rspack_core::{
 use crate::{css_syntax::serialize_url_value, utils::AUTO_PUBLIC_PATH_PLACEHOLDER};
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct CssUrlDependency {
   id: DependencyId,
   request: String,

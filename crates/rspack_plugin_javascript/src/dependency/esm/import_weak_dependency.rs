@@ -16,7 +16,7 @@ use super::create_resource_identifier_for_esm_dependency;
 // Align with webpack's ImportWeakDependency:
 // https://github.com/webpack/webpack/blob/2944286213cf1b3697a1c8dd41ffd3f8ada99448/lib/dependencies/ImportWeakDependency.js
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct ImportWeakDependency {
   id: DependencyId,
   #[cacheable(with=AsPreset)]

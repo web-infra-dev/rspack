@@ -8,7 +8,7 @@ use super::provide_shared_plugin::ProvideVersion;
 use crate::{ConsumeVersion, ShareScope};
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct ProvideSharedDependency {
   id: DependencyId,
   request: String,

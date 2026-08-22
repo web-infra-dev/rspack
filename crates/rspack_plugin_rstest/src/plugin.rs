@@ -273,14 +273,12 @@ impl RstestPlugin {
       _ => {}
     }
 
-    if let Some(mut dep) = data
+    if let Some(dep) = data
       .dependencies
       .first()
       .and_then(|dep| dep.downcast_ref::<MockModuleIdDependency>())
-      .cloned()
     {
-      dep.set_request(resolved_request.clone());
-      data.dependencies[0] = DependencyRef::new(dep);
+      data.dependencies[0] = DependencyRef::new(dep.with_request(resolved_request.clone()));
     }
     data.request = resolved_request;
 

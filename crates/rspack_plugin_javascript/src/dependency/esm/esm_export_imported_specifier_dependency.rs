@@ -70,26 +70,6 @@ pub struct ESMExportImportedSpecifierDependency {
   lazy_make: AtomicBool,
 }
 
-impl Clone for ESMExportImportedSpecifierDependency {
-  fn clone(&self) -> Self {
-    Self {
-      id: self.id,
-      ids: self.ids.clone(),
-      name: self.name.clone(),
-      request: self.request.clone(),
-      source_order: self.source_order,
-      other_star_exports: self.other_star_exports.clone(),
-      range: self.range,
-      phase: self.phase,
-      attributes: self.attributes.clone(),
-      resource_identifier: self.resource_identifier,
-      export_presence_mode: self.export_presence_mode,
-      loc: self.loc.clone(),
-      lazy_make: AtomicBool::new(self.lazy_make.load(Ordering::Relaxed)),
-    }
-  }
-}
-
 impl ESMExportImportedSpecifierDependency {
   #[allow(clippy::too_many_arguments)]
   pub fn new(

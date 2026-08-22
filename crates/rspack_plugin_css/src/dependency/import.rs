@@ -10,7 +10,7 @@ use rspack_core::{
 use crate::utils::source_order_to_i32;
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct CssImportDependency {
   id: DependencyId,
   request: String,

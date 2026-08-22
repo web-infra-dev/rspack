@@ -14,7 +14,7 @@ pub enum NameType {
 }
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct ModulePathNameDependency {
   r#type: NameType,
 }

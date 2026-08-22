@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use rspack_core::{
   BoxDependency, ConstDependency, Dependency, DependencyRange, DependencyType, ExportPresenceMode,
   ImportAttributes, ImportPhase,
@@ -98,7 +100,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMImportDependencyParserPlugin 
 
     parser.add_dependency(BoxDependency::new(dependency));
 
-    parser.add_presentational_dependency(Box::new(ConstDependency::new(
+    parser.add_presentational_dependency(Arc::new(ConstDependency::new(
       import_span.into(),
       if parser.is_asi_position(import_decl.span_lo()) {
         ";".into()

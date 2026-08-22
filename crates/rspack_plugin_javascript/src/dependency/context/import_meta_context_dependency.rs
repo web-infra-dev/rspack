@@ -10,7 +10,7 @@ use rspack_error::Diagnostic;
 use super::create_resource_identifier_for_context_dependency;
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct ImportMetaContextDependency {
   id: DependencyId,
   options: ContextOptions,

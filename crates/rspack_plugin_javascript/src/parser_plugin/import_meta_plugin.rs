@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use concat_string::concat_string;
 use cow_utils::CowUtils;
 use itertools::Itertools;
@@ -203,7 +205,7 @@ impl ImportMetaBuiltinProperty {
     unary_expr: &UnaryExpr,
   ) -> Option<bool> {
     let type_of = self.evaluate_typeof(plugin, parser)?;
-    parser.add_presentational_dependency(Box::new(ConstDependency::new(
+    parser.add_presentational_dependency(Arc::new(ConstDependency::new(
       unary_expr.span().into(),
       concat_string!("'", type_of, "'").into(),
     )));
@@ -275,7 +277,7 @@ impl ImportMetaBuiltinProperty {
       _ => unreachable!("unexpected import.meta builtin property"),
     };
 
-    parser.add_presentational_dependency(Box::new(ConstDependency::new(
+    parser.add_presentational_dependency(Arc::new(ConstDependency::new(
       member_expr.span().into(),
       replacement.into(),
     )));
@@ -343,7 +345,7 @@ impl ImportMetaPlugin {
 
   fn import_meta_main(&self, parser: &mut JavascriptParser) -> String {
     parser.build_info.module_concatenation_bailout = Some("import.meta.main".into());
-    parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::add_only(
+    parser.add_presentational_dependency(Arc::new(RuntimeRequirementsDependency::add_only(
       RuntimeGlobals::MODULE_CACHE | RuntimeGlobals::ENTRY_MODULE_ID | RuntimeGlobals::MODULE,
     )));
     concat_string!(
@@ -586,7 +588,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaPlugin {
   ) -> Option<bool> {
     match for_name {
       expr_name::IMPORT_META => {
-        parser.add_presentational_dependency(Box::new(ConstDependency::new(
+        parser.add_presentational_dependency(Arc::new(ConstDependency::new(
           unary_expr.span().into(),
           "'object'".into(),
         )));
@@ -600,7 +602,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaPlugin {
         if !self.runtime_api_enabled(api) {
           return None;
         }
-        parser.add_presentational_dependency(Box::new(ConstDependency::new(
+        parser.add_presentational_dependency(Arc::new(ConstDependency::new(
           unary_expr.span().into(),
           format!("'{}'", api.type_of).into(),
         )));
@@ -675,7 +677,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaPlugin {
           }
         }
         content.push_str("})");
-        parser.add_presentational_dependency(Box::new(ConstDependency::new(
+        parser.add_presentational_dependency(Arc::new(ConstDependency::new(
           span.into(),
           content.into(),
         )));
@@ -697,7 +699,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaPlugin {
         } else {
           "({})"
         };
-        parser.add_presentational_dependency(Box::new(ConstDependency::new(
+        parser.add_presentational_dependency(Arc::new(ConstDependency::new(
           span.into(),
           content.into(),
         )));
@@ -831,7 +833,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaPlugin {
       return None;
     }
 
-    parser.add_presentational_dependency(Box::new(ConstDependency::new(
+    parser.add_presentational_dependency(Arc::new(ConstDependency::new(
       expr.span().into(),
       "undefined".into(),
     )));
@@ -861,7 +863,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaPlugin {
             if self.preserve_property(None) {
               return Some(true);
             }
-            parser.add_presentational_dependency(Box::new(ConstDependency::new(
+            parser.add_presentational_dependency(Arc::new(ConstDependency::new(
               expr.obj.span().into(),
               "({})".into(),
             )));
@@ -885,7 +887,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaPlugin {
             )
           };
 
-          parser.add_presentational_dependency(Box::new(dep));
+          parser.add_presentational_dependency(Arc::new(dep));
           return Some(true);
         }
       }
@@ -910,7 +912,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaDisabledPlugin {
     if import_meta_name == expr_name::IMPORT_META {
       None
     } else if root_name == expr_name::IMPORT_META {
-      parser.add_presentational_dependency(Box::new(ConstDependency::new(
+      parser.add_presentational_dependency(Arc::new(ConstDependency::new(
         span.into(),
         import_meta_name.into(),
       )));

@@ -10,7 +10,7 @@ use rspack_core::{
 use rspack_util::atom::Atom;
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct CssComposeDependency {
   id: DependencyId,
   request: String,

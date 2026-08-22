@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use itertools::Itertools;
 use rspack_core::{
   BoxDependency, ConstDependency, Dependency, DependencyRange, DependencyType, ImportPhase,
@@ -74,7 +76,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
       statement.declaration_span().map(|span| span.into()),
       loc,
     );
-    parser.add_presentational_dependency(Box::new(dep));
+    parser.add_presentational_dependency(Arc::new(dep));
     Some(true)
   }
 
@@ -86,7 +88,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
   ) -> Option<bool> {
     parser.last_esm_import_order += 1;
     let clean_dep = ConstDependency::new(statement.span().into(), "".into());
-    parser.add_presentational_dependency(Box::new(clean_dep));
+    parser.add_presentational_dependency(Arc::new(clean_dep));
     let range = DependencyRange::from(statement.span());
     let loc = parser.to_dependency_location(range);
     let side_effect_dep = ESMImportSideEffectDependency::new(
@@ -280,7 +282,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
     let expr_span = expr.span();
     let statement_span = statement.span();
     if let Some(dep) = create_default_exported_namespace_dependency(parser, statement, expr) {
-      parser.add_presentational_dependency(Box::new(ConstDependency::new(
+      parser.add_presentational_dependency(Arc::new(ConstDependency::new(
         DependencyRange::new(statement_span.real_lo(), expr_span.real_lo()),
         "".into(),
       )));

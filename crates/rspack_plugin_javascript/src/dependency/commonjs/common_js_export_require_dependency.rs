@@ -20,7 +20,7 @@ use crate::dependency::commonjs::OBJECT_PROTOTYPE_METHODS;
 
 #[cacheable]
 #[allow(unused)]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct CommonJsExportRequireDependency {
   id: DependencyId,
   request: String,

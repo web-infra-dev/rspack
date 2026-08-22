@@ -8,7 +8,7 @@ use rspack_core::{
 use rspack_paths::ArcPathSet;
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct CssDependency {
   pub(crate) id: DependencyId,
   pub(crate) identifier: String,

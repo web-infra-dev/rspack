@@ -7,7 +7,7 @@ use rspack_core::{
 use crate::DllEntryPluginOptions;
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct DllEntryDependency {
   pub context: Context,
 

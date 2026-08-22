@@ -12,7 +12,7 @@ use super::{
 };
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct AMDRequireContextDependency {
   id: DependencyId,
   range: DependencyRange,

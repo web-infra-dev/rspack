@@ -12,7 +12,7 @@ use super::{
 };
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct URLContextDependency {
   id: DependencyId,
   range: DependencyRange,

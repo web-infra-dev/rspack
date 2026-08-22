@@ -8,7 +8,7 @@ use swc_core::ecma::atoms::Atom;
 
 #[allow(dead_code)]
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct WasmImportDependency {
   id: DependencyId,
   #[cacheable(with=AsPreset)]

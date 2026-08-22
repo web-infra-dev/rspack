@@ -2,10 +2,10 @@ use std::{path::Path, sync::Arc};
 
 use once_cell::sync::OnceCell;
 use rspack_core::{
-  BoxDependency, BoxDependencyTemplate, ConstDependency, CssAutoOrModuleParserOptions, CssExport,
-  CssExportType, CssExports, CssExportsConvention, CssLayer, CssLocalNames,
-  CssModuleGeneratorOptions, CssModuleRenderCondition, CssParserImport, CssParserImportContext,
-  Dependency, DependencyId, DependencyRange, ModuleDependencyRef, ModuleType, ParseContext,
+  BoxDependency, ConstDependency, CssAutoOrModuleParserOptions, CssExport, CssExportType,
+  CssExports, CssExportsConvention, CssLayer, CssLocalNames, CssModuleGeneratorOptions,
+  CssModuleRenderCondition, CssParserImport, CssParserImportContext, Dependency,
+  DependencyCodeGenerationRef, DependencyId, DependencyRange, ModuleType, ParseContext,
   ParseResult, ResourceData, StaticExportsDependency, StaticExportsSpec,
   diagnostics::map_box_diagnostics_to_module_parse_diagnostics, remove_bom, rspack_sources::Source,
   topological_sort,
@@ -41,8 +41,8 @@ pub(super) struct CssModuleParser<'context> {
   source_code: Arc<str>,
   diagnostics: Vec<Diagnostic>,
   dependencies: Vec<BoxDependency>,
-  presentational_dependencies: Vec<BoxDependencyTemplate>,
-  code_generation_dependencies: Vec<ModuleDependencyRef>,
+  presentational_dependencies: Vec<DependencyCodeGenerationRef>,
+  code_generation_dependencies: Vec<DependencyId>,
   css_exports: CssExports,
   css_local_names: CssLocalNames,
   icss_definitions: FxHashMap<String, IcssDefinition>,
@@ -747,7 +747,7 @@ impl<'context> CssModuleParser<'context> {
         let range = self.presentational_replace_range(content, *range);
         self
           .presentational_dependencies
-          .push(Box::new(ConstDependency::new(range, (*content).into())));
+          .push(Arc::new(ConstDependency::new(range, (*content).into())));
         Ok(())
       }
       css_module_lexer::Dependency::Charset { range, .. } => {
@@ -940,7 +940,7 @@ impl<'context> CssModuleParser<'context> {
     self.has_charset = true;
     self
       .presentational_dependencies
-      .push(Box::new(ConstDependency::new(
+      .push(Arc::new(ConstDependency::new(
         (range.start, range.end).into(),
         "".into(),
       )));
@@ -969,8 +969,8 @@ impl<'context> CssModuleParser<'context> {
       DependencyRange::new(range.start, range.end),
       matches!(kind, css_module_lexer::UrlRangeKind::Function),
     );
-    self.dependencies.push(BoxDependency::new(dep.clone()));
-    self.code_generation_dependencies.push(Arc::new(dep));
+    self.code_generation_dependencies.push(*dep.id());
+    self.dependencies.push(BoxDependency::new(dep));
     Ok(())
   }
 
@@ -986,7 +986,7 @@ impl<'context> CssModuleParser<'context> {
     if request.trim().is_empty() {
       self
         .presentational_dependencies
-        .push(Box::new(ConstDependency::new(
+        .push(Arc::new(ConstDependency::new(
           (range.start, range.end).into(),
           "".into(),
         )));
@@ -1025,8 +1025,8 @@ impl<'context> CssModuleParser<'context> {
       render_condition,
       self.export_type(),
     );
-    self.dependencies.push(BoxDependency::new(dep.clone()));
-    self.code_generation_dependencies.push(Arc::new(dep));
+    self.code_generation_dependencies.push(*dep.id());
+    self.dependencies.push(BoxDependency::new(dep));
     Ok(())
   }
 
