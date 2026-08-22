@@ -14,7 +14,6 @@ use rspack_core::{
   CompilationProcessAssets, CompilerCompilation, Filename, Logger, ModuleIdentifier, PathData,
   Plugin,
   cache::persistent::occasion::SourceMapDevToolPluginCache,
-  has_content_hash_placeholder,
   rspack_sources::{
     BoxSource, ConcatSource, MapOptions, ObjectPool, RawBufferSource, RawStringSource, Source,
     SourceExt, SourceMap, SourceValue,
@@ -1023,7 +1022,7 @@ impl SourceMapDevToolPlugin {
       };
 
       let content_hash_digest =
-        if chunk.is_some() && has_content_hash_placeholder(source_map_filename_config.as_str()) {
+        if chunk.is_some() && source_map_filename_config.has_content_hash_placeholder() {
           let mut hasher = RspackHasher::from(&compilation.options.output);
           source_map_json.hash(&mut hasher);
           let digest = hasher.digest(&compilation.options.output.hash_digest);

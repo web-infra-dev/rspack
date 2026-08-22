@@ -1,6 +1,6 @@
 use rspack_core::{
   Compilation, PathData, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext,
-  RuntimeTemplate, SourceType, has_hash_placeholder, impl_runtime_module,
+  RuntimeTemplate, SourceType, impl_runtime_module,
 };
 
 // TODO workaround for get_chunk_update_filename
@@ -26,13 +26,12 @@ impl RuntimeModule for GetChunkUpdateFilenameRuntimeModule {
   ) -> rspack_core::RuntimeModuleRuntimeRequirements {
     rspack_core::RuntimeModuleRuntimeRequirements {
       dependencies: {
-        if has_hash_placeholder(
-          compilation
-            .options
-            .output
-            .hot_update_chunk_filename
-            .as_str(),
-        ) {
+        if compilation
+          .options
+          .output
+          .hot_update_chunk_filename
+          .has_hash_placeholder()
+        {
           RuntimeGlobals::GET_FULL_HASH
         } else {
           RuntimeGlobals::default()

@@ -6,6 +6,7 @@ mod plugin;
 mod rspack_hash;
 mod runtime_module;
 mod source_map_config;
+mod string_enum;
 
 #[proc_macro_attribute]
 pub fn impl_runtime_module(
@@ -54,6 +55,20 @@ pub fn implemented_javascript_parser_hooks(
 pub fn define_hook(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
   let input = syn::parse_macro_input!(input as hook::DefineHookInput);
   match input.expand() {
+    syn::Result::Ok(tt) => tt,
+    syn::Result::Err(err) => err.to_compile_error(),
+  }
+  .into()
+}
+
+/// Derives `as_str` and `From<&str>` for a fieldless enum.
+///
+/// Variant names use `snake_case` by default. Use `#[string_enum(rename = "...")]` to override a
+/// value and mark exactly one variant with `#[string_enum(fallback)]` for unknown strings.
+#[proc_macro_derive(StringEnum, attributes(string_enum))]
+pub fn string_enum_derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+  let input = syn::parse_macro_input!(input as syn::DeriveInput);
+  match string_enum::expand(input) {
     syn::Result::Ok(tt) => tt,
     syn::Result::Err(err) => err.to_compile_error(),
   }

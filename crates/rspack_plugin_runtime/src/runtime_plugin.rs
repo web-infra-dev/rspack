@@ -274,6 +274,14 @@ async fn runtime_requirements_in_tree(
             },
             *chunk_ukey,
           )
+          .with_full_hash(
+            compilation.options.output.filename.has_full_hash_digest()
+              || compilation
+                .options
+                .output
+                .chunk_filename
+                .has_full_hash_digest(),
+          )
           .boxed(),
         ));
       }
@@ -302,6 +310,18 @@ async fn runtime_requirements_in_tree(
               })
             },
             *chunk_ukey,
+          )
+          .with_full_hash(
+            compilation
+              .options
+              .output
+              .css_filename
+              .has_full_hash_digest()
+              || compilation
+                .options
+                .output
+                .css_chunk_filename
+                .has_full_hash_digest(),
           )
           .boxed(),
         ));
