@@ -857,13 +857,13 @@ impl Stats<'_> {
           ),
         },
         StatschunkGroupChildAssets {
-          preload: get_chunk_group_oreded_child_assets(
+          preload: get_chunk_group_ordered_child_assets(
             &ordered_children,
             &ChunkGroupOrderKey::Preload,
             &build_chunk_graph_artifact.chunk_group_by_ukey,
             &build_chunk_graph_artifact.chunk_by_ukey,
           ),
-          prefetch: get_chunk_group_oreded_child_assets(
+          prefetch: get_chunk_group_ordered_child_assets(
             &ordered_children,
             &ChunkGroupOrderKey::Prefetch,
             &build_chunk_graph_artifact.chunk_group_by_ukey,
