@@ -10,7 +10,7 @@ use rustc_hash::FxHashMap;
 use swc_atoms::Atom;
 use swc_experimental_allocator::CloneIn;
 use swc_experimental_ecma_ast::{
-  BlockStmtOrExpr, CallExpr, Expr, GetSpan, Ident, MemberExpr, Pat, Span, VarDeclarator,
+  BlockStmtOrExpr, CallExpr, Expr, GetSpan, Ident, MemberExpr, ObjectPat, Pat, Span, VarDeclarator,
 };
 
 use super::{JavascriptParserPlugin, import_phase::get_import_phase};
@@ -21,9 +21,10 @@ use crate::{
   magic_comment::try_extract_magic_comment,
   utils::object_properties::{get_attributes, get_value_by_obj_prop},
   visitors::{
-    ContextModuleScanResult, JavascriptParser, PatRef, Statement, TagInfoData, TopLevelScope,
-    VariableDeclaration, VariableDeclarationKind, context_reg_exp, create_context_dependency,
-    create_traceable_error, get_non_optional_part, parse_order_string,
+    ContextModuleScanResult, DestructuringAssignmentProperties, JavascriptParser, PatRef,
+    Statement, TagInfoData, TopLevelScope, VariableDeclaration, VariableDeclarationKind,
+    context_reg_exp, create_context_dependency, create_traceable_error, get_non_optional_part,
+    parse_order_string,
   },
 };
 
@@ -47,6 +48,123 @@ fn tag_dynamic_import_referenced(
   );
 }
 
+fn collect_destructuring_references(
+  properties: &DestructuringAssignmentProperties,
+) -> Vec<Vec<Atom>> {
+  let mut references = Vec::new();
+  properties.traverse_on_leaf(&mut |stack| {
+    references.push(stack.iter().map(|property| property.id.clone()).collect());
+  });
+  references
+}
+
+fn add_destructuring_import_references(
+  parser: &mut JavascriptParser,
+  import_call: &CallExpr,
+  pattern: &ObjectPat,
+) {
+  let Some(properties) =
+    parser.collect_destructuring_assignment_properties_from_object_pattern(pattern)
+  else {
+    return;
+  };
+  let references = collect_destructuring_references(&properties);
+  let import_span = import_call.span();
+  parser.dynamic_import_references.add_import(import_span);
+  let import_references = parser
+    .dynamic_import_references
+    .get_import_mut_expect(&import_span);
+  for reference in references {
+    import_references.add_reference(reference);
+  }
+}
+
+fn is_unbound_promise_all(parser: &mut JavascriptParser, call: &CallExpr) -> bool {
+  let Some(callee) = call.callee.as_expr() else {
+    return false;
+  };
+  let Some(member) = callee.as_member() else {
+    return false;
+  };
+  member
+    .obj
+    .as_ident()
+    .is_some_and(|ident| ident.sym.as_str() == "Promise")
+    && member
+      .prop
+      .as_ident()
+      .is_some_and(|ident| ident.sym.as_str() == "all")
+    && parser.get_variable_info(&Atom::from("Promise")).is_none()
+}
+
+fn track_dynamic_import_pattern(
+  parser: &mut JavascriptParser,
+  import_call: &CallExpr,
+  pattern: &Pat,
+) {
+  match pattern {
+    Pat::Ident(binding) => {
+      let name = Atom::from(binding.id.sym.as_str());
+      parser.define_variable(name.clone());
+      tag_dynamic_import_referenced(parser, import_call, name);
+    }
+    Pat::Object(pattern) => {
+      add_destructuring_import_references(parser, import_call, pattern);
+    }
+    Pat::Assign(pattern) => {
+      track_dynamic_import_pattern(parser, import_call, &pattern.left);
+    }
+    _ => {}
+  }
+}
+
+fn track_dynamic_imports_in_promise_all(parser: &mut JavascriptParser, declarator: &VarDeclarator) {
+  let Some(pattern) = declarator.name.as_array() else {
+    return;
+  };
+  let Some(init) = &declarator.init else {
+    return;
+  };
+  let Some(await_expr) = init.as_await() else {
+    return;
+  };
+  let Some(promise_all) = await_expr.arg.as_call() else {
+    return;
+  };
+  if !is_unbound_promise_all(parser, promise_all) {
+    return;
+  }
+  let [argument] = promise_all.args.as_slice() else {
+    return;
+  };
+  if argument.spread.is_some() {
+    return;
+  }
+  let Some(imports) = argument.expr.as_array() else {
+    return;
+  };
+  if imports
+    .elems
+    .iter()
+    .flatten()
+    .any(|element| element.spread.is_some())
+  {
+    return;
+  }
+
+  for (pattern, import) in pattern.elems.iter().zip(&imports.elems) {
+    let (Some(pattern), Some(import)) = (pattern, import) else {
+      continue;
+    };
+    let Some(import_call) = import.expr.as_call() else {
+      continue;
+    };
+    if import_call.callee.is_import() {
+      track_dynamic_import_pattern(parser, import_call, pattern);
+    }
+  }
+}
+
 #[derive(Debug, Default)]
 pub struct ImportsReferencesState {
   inner: FxHashMap<Span, ImportReferences>,
@@ -54,7 +172,7 @@ pub struct ImportsReferencesState {
 
 impl ImportsReferencesState {
   pub fn add_import(&mut self, import: Span) {
-    self.inner.insert(import, ImportReferences::default());
+    self.inner.entry(import).or_default();
   }
 
   fn get_import(&self, import: &Span) -> Option<&ImportReferences> {
@@ -152,16 +270,18 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
     declarator: &VarDeclarator,
     declaration: VariableDeclaration<'_>,
   ) -> Option<bool> {
-    if declaration.kind() != VariableDeclarationKind::Var
-      && let Some(init) = &declarator.init
-      && let Some(expr) = init.as_await()
-      && let Some(call) = expr.arg.as_call()
-      && call.callee.is_import()
-      && let Some(binding) = declarator.name.as_ident()
-    {
-      let name = Atom::from(binding.id.sym.as_str());
-      parser.define_variable(name.clone());
-      tag_dynamic_import_referenced(parser, call, name);
+    if declaration.kind() != VariableDeclarationKind::Var {
+      if let Some(init) = &declarator.init
+        && let Some(expr) = init.as_await()
+        && let Some(call) = expr.arg.as_call()
+        && call.callee.is_import()
+        && let Some(binding) = declarator.name.as_ident()
+      {
+        let name = Atom::from(binding.id.sym.as_str());
+        parser.define_variable(name.clone());
+        tag_dynamic_import_referenced(parser, call, name);
+      }
+      track_dynamic_imports_in_promise_all(parser, declarator);
     }
     None
   }
@@ -183,11 +303,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
       .destructuring_assignment_properties
       .get(&ident.span())
     {
-      let mut refs = Vec::new();
-      keys.traverse_on_leaf(&mut |stack| {
-        refs.push(stack.iter().map(|p| p.id.clone()).collect::<Vec<Atom>>());
-      });
-      for ids in refs {
+      for ids in collect_destructuring_references(keys) {
         parser
           .dynamic_import_references
           .get_import_mut_expect(&data.import_span)
@@ -331,12 +447,12 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
     let referenced_fulfilled_ns_obj =
       import_then.and_then(|import_then| get_fulfilled_callback_namespace_obj(import_then));
     if let Some(keys) = referenced_in_destructuring {
-      let mut refs = Vec::new();
-      keys.traverse_on_leaf(&mut |stack| {
-        let names = stack.iter().map(|p| p.id.clone()).collect();
-        refs.push(ReferencedSpecifier::new(names));
-      });
-      exports = Some(refs);
+      exports = Some(
+        collect_destructuring_references(keys)
+          .into_iter()
+          .map(ReferencedSpecifier::new)
+          .collect(),
+      );
     }
     if let Some((referenced_in_members, is_call)) = referenced_in_members {
       let referenced = if is_call {
@@ -673,23 +789,7 @@ fn walk_import_then_fulfilled_callback(
       if let Some(ns_obj) = namespace_obj_arg.as_ident() {
         tag_dynamic_import_referenced(parser, import_call, Atom::from(ns_obj.id.sym.as_str()));
       } else if let Some(ns_obj) = namespace_obj_arg.as_object() {
-        if let Some(keys) =
-          parser.collect_destructuring_assignment_properties_from_object_pattern(ns_obj)
-        {
-          parser
-            .dynamic_import_references
-            .add_import(import_call.span);
-          let import_references = parser
-            .dynamic_import_references
-            .get_import_mut_expect(&import_call.span);
-          let mut refs = Vec::new();
-          keys.traverse_on_leaf(&mut |stack| {
-            refs.push(stack.iter().map(|p| p.id.clone()).collect::<Vec<Atom>>());
-          });
-          for ids in refs {
-            import_references.add_reference(ids);
-          }
-        }
+        add_destructuring_import_references(parser, import_call, ns_obj);
       } else {
         unreachable!()
       }
