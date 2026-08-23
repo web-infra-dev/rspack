@@ -209,7 +209,8 @@ impl SplitChunksPlugin {
     if item.uses_shared_module_chunks() {
       debug_assert!(original_chunks.is_subset(&item.chunks));
       let chunks = original_chunks.clone();
-      let mut modules = IdentifierSet::default();
+      let mut modules =
+        IdentifierSet::with_capacity_and_hasher(item.modules.len(), Default::default());
       for mid in &item.modules {
         if let Some(module) = compilation.module_by_identifier(mid)
           && module_chunk_condition(module.as_ref(), &new_chunk, compilation)
