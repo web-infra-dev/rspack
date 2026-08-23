@@ -643,8 +643,11 @@ impl SplitChunksPlugin {
                         .get(indexed_cache_group.cache_group_index as usize)
                         .is_some_and(Option::is_some)
                     });
-                    if !(cache_group.r#type)(module)
-                      || !(cache_group.layer)(module.get_layer().map(ToString::to_string)).await?
+                    if (!indexed_cache_group.has_default_type_filter
+                      && !(cache_group.r#type)(module))
+                      || (!indexed_cache_group.has_default_layer_filter
+                        && !(cache_group.layer)(module.get_layer().map(ToString::to_string))
+                          .await?)
                     {
                       continue;
                     }

@@ -1,6 +1,6 @@
 use std::{
   ops::{Deref, DerefMut},
-  sync::Arc,
+  sync::{Arc, LazyLock},
 };
 
 use derive_more::Debug;
@@ -70,12 +70,26 @@ pub type ModuleTypeFilter = Arc<dyn Fn(&dyn Module) -> bool + Send + Sync>;
 pub type ModuleLayerFilter =
   Arc<dyn Fn(Option<String>) -> BoxFuture<'static, Result<bool>> + Send + Sync>;
 
+static DEFAULT_MODULE_TYPE_FILTER: LazyLock<ModuleTypeFilter> =
+  LazyLock::new(|| Arc::new(|_| true));
+static DEFAULT_MODULE_LAYER_FILTER: LazyLock<ModuleLayerFilter> = LazyLock::new(|| {
+  Arc::new(|_| -> BoxFuture<'static, Result<bool>> { Box::pin(async move { Ok(true) }) })
+});
+
 pub fn create_default_module_type_filter() -> ModuleTypeFilter {
-  Arc::new(|_| true)
+  DEFAULT_MODULE_TYPE_FILTER.clone()
 }
 
 pub fn create_default_module_layer_filter() -> ModuleLayerFilter {
-  Arc::new(|_| Box::pin(async move { Ok(true) }))
+  DEFAULT_MODULE_LAYER_FILTER.clone()
+}
+
+pub(crate) fn is_default_module_type_filter(filter: &ModuleTypeFilter) -> bool {
+  Arc::ptr_eq(filter, &DEFAULT_MODULE_TYPE_FILTER)
+}
+
+pub(crate) fn is_default_module_layer_filter(filter: &ModuleLayerFilter) -> bool {
+  Arc::ptr_eq(filter, &DEFAULT_MODULE_LAYER_FILTER)
 }
 
 pub fn create_async_chunk_filter() -> ChunkFilter {

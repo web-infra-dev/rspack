@@ -21,7 +21,10 @@ use tracing::instrument;
 
 use crate::{
   CacheGroup, SplitChunkSizes,
-  common::{FallbackCacheGroup, ModuleChunkMap},
+  common::{
+    FallbackCacheGroup, ModuleChunkMap, is_default_module_layer_filter,
+    is_default_module_type_filter,
+  },
   get_module_sizes,
   module_group::{IndexedCacheGroup, ModuleGroup, ModuleGroupKey},
   options::chunk_name::ChunkNameGetterFnCtx,
@@ -152,6 +155,8 @@ impl SplitChunksPlugin {
       .map(|v| IndexedCacheGroup {
         cache_group_index: u32::try_from(v.0).expect("cache group index should fit in u32"),
         cache_group: v.1,
+        has_default_type_filter: is_default_module_type_filter(&v.1.r#type),
+        has_default_layer_filter: is_default_module_layer_filter(&v.1.layer),
       })
       .sorted_by(|a, b| match b.compare_by_priority(a) {
         Ordering::Equal => a.compare_by_index(b),

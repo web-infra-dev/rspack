@@ -13,6 +13,8 @@ use crate::{
 pub(crate) struct IndexedCacheGroup<'a> {
   pub cache_group_index: u32,
   pub cache_group: &'a CacheGroup,
+  pub has_default_type_filter: bool,
+  pub has_default_layer_filter: bool,
 }
 
 impl<'a> IndexedCacheGroup<'a> {
