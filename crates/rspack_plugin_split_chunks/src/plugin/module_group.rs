@@ -899,103 +899,109 @@ impl SplitChunksPlugin {
     module_sizes: &ModuleSizes,
   ) {
     // remove all modules from other entries and update size
-    let keys_of_invalid_group = module_group_map
-      .par_iter_mut()
-      .filter_map(|(key, other_module_group)| {
-        let removed_modules = match (
-          placed_module_chunks,
-          other_module_group.shared_module_chunks(),
-        ) {
-          (
-            ModuleChunkMap::Shared {
-              modules,
-              chunks: placed_chunks,
-            },
-            Some(other_chunks),
-          ) => {
-            other_chunks.intersection(placed_chunks).next()?;
-            other_module_group.remove_shared_modules_in(modules)
+    let process_module_group = |(key, other_module_group): (&ModuleGroupKey, &mut ModuleGroup)| {
+      let removed_modules = match (
+        placed_module_chunks,
+        other_module_group.shared_module_chunks(),
+      ) {
+        (
+          ModuleChunkMap::Shared {
+            modules,
+            chunks: placed_chunks,
+          },
+          Some(other_chunks),
+        ) => {
+          other_chunks.intersection(placed_chunks).next()?;
+          other_module_group.remove_shared_modules_in(modules)
+        }
+        _ => {
+          let duplicated_modules = other_module_group
+            .modules
+            .iter()
+            .filter(|module| {
+              let Some(placed_chunks) = placed_module_chunks.get(module) else {
+                return false;
+              };
+              let Some(other_chunks) = other_module_group.get_module_chunks(module) else {
+                return false;
+              };
+              placed_chunks.intersection(other_chunks).next().is_some()
+            })
+            .copied()
+            .collect::<Vec<_>>();
+          if duplicated_modules.is_empty() {
+            false
+          } else {
+            other_module_group.remove_modules(duplicated_modules);
+            true
           }
-          _ => {
-            let duplicated_modules = other_module_group
-              .modules
-              .iter()
-              .filter(|module| {
-                let Some(placed_chunks) = placed_module_chunks.get(module) else {
-                  return false;
-                };
-                let Some(other_chunks) = other_module_group.get_module_chunks(module) else {
-                  return false;
-                };
-                placed_chunks.intersection(other_chunks).next().is_some()
-              })
-              .copied()
-              .collect::<Vec<_>>();
-            if duplicated_modules.is_empty() {
-              false
-            } else {
-              other_module_group.remove_modules(duplicated_modules);
-              true
-            }
-          }
-        };
-
-        if !removed_modules {
-          return None;
         }
+      };
 
-        if other_module_group.modules.is_empty() {
-          tracing::trace!(
-            "{key} is deleted for having empty modules",
-          );
-          return Some(key.clone());
-        }
+      if !removed_modules {
+        return None;
+      }
 
-        tracing::trace!("other_module_group: {other_module_group:#?}");
-        tracing::trace!("placed_module_chunks: {placed_module_chunks:#?}");
+      if other_module_group.modules.is_empty() {
+        tracing::trace!("{key} is deleted for having empty modules",);
+        return Some(key.clone());
+      }
 
-        let cache_group = other_module_group.get_cache_group(&self.cache_groups);
+      tracing::trace!("other_module_group: {other_module_group:#?}");
+      tracing::trace!("placed_module_chunks: {placed_module_chunks:#?}");
 
-        // Since we removed some modules and chunks from the `other_module_group`. There are chances
-        // that the `min_chunks` and `min_size` validation is not satisfied anymore.
+      let cache_group = other_module_group.get_cache_group(&self.cache_groups);
 
-        // Validate `min_size` again
-        if remove_min_size_violating_modules(key, other_module_group, cache_group, module_sizes) {
-          tracing::trace!(
-            "{key} is deleted for violating min_size {:#?}",
-            cache_group.min_size,
-          );
-          return Some(key.clone());
-        }
+      // Since we removed some modules and chunks from the `other_module_group`. There are chances
+      // that the `min_chunks` and `min_size` validation is not satisfied anymore.
 
-        other_module_group.rebuild_chunks();
+      // Validate `min_size` again
+      if remove_min_size_violating_modules(key, other_module_group, cache_group, module_sizes) {
+        tracing::trace!(
+          "{key} is deleted for violating min_size {:#?}",
+          cache_group.min_size,
+        );
+        return Some(key.clone());
+      }
 
-        // Validate `min_chunks` again
-        if other_module_group.chunks.len() < cache_group.min_chunks as usize {
-          tracing::trace!(
-            "{key} is deleted for each_module_group.chunks.len()({:?}) < cache_group.min_chunks({:?})",
-            other_module_group.chunks.len(),
-            cache_group.min_chunks
-          );
-          return Some(key.clone());
-        }
+      other_module_group.rebuild_chunks();
 
-        let chunks_len = other_module_group.chunks.len();
-        if !Self::check_min_size_reduction(
-          other_module_group.get_sizes(module_sizes),
-          &cache_group.min_size_reduction,
-          chunks_len,
-        ) {
-          tracing::trace!(
-            "{key} is deleted for violating min_size {:#?}",
-            cache_group.min_size,
-          );
-          return Some(key.clone());
-        }
+      // Validate `min_chunks` again
+      if other_module_group.chunks.len() < cache_group.min_chunks as usize {
+        tracing::trace!(
+          "{key} is deleted for each_module_group.chunks.len()({:?}) < cache_group.min_chunks({:?})",
+          other_module_group.chunks.len(),
+          cache_group.min_chunks
+        );
+        return Some(key.clone());
+      }
 
-        None
-      })
-      .collect::<Vec<_>>();
+      let chunks_len = other_module_group.chunks.len();
+      if !Self::check_min_size_reduction(
+        other_module_group.get_sizes(module_sizes),
+        &cache_group.min_size_reduction,
+        chunks_len,
+      ) {
+        tracing::trace!(
+          "{key} is deleted for violating min_size {:#?}",
+          cache_group.min_size,
+        );
+        return Some(key.clone());
+      }
+
+      None
+    };
+    let keys_of_invalid_group = if rayon::current_num_threads() == 1 {
+      module_group_map
+        .iter_mut()
+        .filter_map(&process_module_group)
+        .collect::<Vec<_>>()
+    } else {
+      module_group_map
+        .par_iter_mut()
+        .filter_map(&process_module_group)
+        .collect::<Vec<_>>()
+    };
 
     keys_of_invalid_group.into_iter().for_each(|key| {
       module_group_map.swap_remove(&key);
