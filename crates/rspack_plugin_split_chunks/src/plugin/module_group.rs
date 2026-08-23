@@ -658,6 +658,15 @@ impl SplitChunksPlugin {
                   if belong_to_chunks.is_empty() {
                     return Ok(());
                   }
+                  if cache_groups.iter().all(|indexed_cache_group| {
+                    let cache_group = indexed_cache_group.cache_group;
+                    indexed_cache_group.has_default_type_filter
+                      && indexed_cache_group.has_default_layer_filter
+                      && !matches!(&cache_group.test, CacheGroupTest::Fn(_))
+                      && belong_to_chunks.len() < cache_group.min_chunks as usize
+                  }) {
+                    return Ok(());
+                  }
 
                   let module = module_graph
                     .module_by_identifier(module_identifier)
@@ -674,6 +683,15 @@ impl SplitChunksPlugin {
                         .get(indexed_cache_group.cache_group_index as usize)
                         .is_some_and(Option::is_some)
                     });
+                    let can_check_min_chunks_before_filters = indexed_cache_group
+                      .has_default_type_filter
+                      && indexed_cache_group.has_default_layer_filter
+                      && !matches!(&cache_group.test, CacheGroupTest::Fn(_));
+                    if can_check_min_chunks_before_filters
+                      && belong_to_chunks.len() < cache_group.min_chunks as usize
+                    {
+                      continue;
+                    }
                     if (!indexed_cache_group.has_default_type_filter
                       && !(cache_group.r#type)(module))
                       || (!indexed_cache_group.has_default_layer_filter
