@@ -902,7 +902,7 @@ impl SplitChunksPlugin {
   ) {
     // remove all modules from other entries and update size
     let process_module_group = |(key, other_module_group): (&ModuleGroupKey, &mut ModuleGroup)| {
-      let removed_modules = match (
+      let (removed_modules, updated_shared_group) = match (
         placed_module_chunks,
         other_module_group.shared_module_chunks(),
       ) {
@@ -914,7 +914,10 @@ impl SplitChunksPlugin {
           Some(other_chunks),
         ) => {
           other_chunks.intersection(placed_chunks).next()?;
-          other_module_group.remove_shared_modules_in(modules, module_sizes)
+          (
+            other_module_group.remove_shared_modules_in(modules, module_sizes),
+            true,
+          )
         }
         _ => {
           let duplicated_modules = other_module_group
@@ -932,10 +935,10 @@ impl SplitChunksPlugin {
             .copied()
             .collect::<Vec<_>>();
           if duplicated_modules.is_empty() {
-            false
+            (false, false)
           } else {
             other_module_group.remove_modules(duplicated_modules);
-            true
+            (true, false)
           }
         }
       };
@@ -953,6 +956,17 @@ impl SplitChunksPlugin {
       tracing::trace!("placed_module_chunks: {placed_module_chunks:#?}");
 
       let cache_group = other_module_group.get_cache_group(&self.cache_groups);
+
+      if updated_shared_group
+        && cache_group.min_size.values().all(|size| *size == 0.0)
+        && cache_group
+          .min_size_reduction
+          .values()
+          .all(|size| *size == 0.0)
+      {
+        debug_assert!(other_module_group.chunks.len() >= cache_group.min_chunks as usize);
+        return None;
+      }
 
       // Since we removed some modules and chunks from the `other_module_group`. There are chances
       // that the `min_chunks` and `min_size` validation is not satisfied anymore.
