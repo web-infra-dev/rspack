@@ -65,7 +65,9 @@ it("should only concatenate unknown non-ESM modules without CommonJS export acce
 		module => module.name === "./sloppy-empty.js"
 	);
 	expect(sloppyEmpty.optimizationBailout).toEqual(
-		expect.arrayContaining([expect.stringContaining("not in strict mode")])
+		expect.arrayContaining([
+			expect.stringContaining("not an ECMAScript module")
+		])
 	);
 
 	const topLevelReturn = __STATS__.modules.find(
