@@ -25,7 +25,7 @@ use crate::{
   SplitChunksNameBatchFn, SplitChunksPlugin,
   common::{ChunkFilter, ModuleChunkMap, ModuleChunks, ModuleSizes},
   min_size::remove_min_size_violating_modules,
-  module_group::{IndexedCacheGroup, ModuleGroup, ModuleGroupKey, compare_entries},
+  module_group::{IndexedCacheGroup, ModuleGroup, ModuleGroupKey, is_better_entry},
   options::{
     cache_group::CacheGroup,
     cache_group_test::{CacheGroupTest, CacheGroupTestFnCtx},
@@ -551,8 +551,7 @@ impl SplitChunksPlugin {
       let [(entry_key, entry), (best_entry_key, best_entry)] = module_group_map
         .get_disjoint_indices_mut([entry_index, best_entry_index])
         .expect("entry indices should be valid and unique");
-      let result = compare_entries((entry_key, entry), (best_entry_key, best_entry));
-      if result > 0f64 {
+      if is_better_entry((entry_key, entry), (best_entry_key, best_entry)) {
         best_entry_index = entry_index;
       }
     }

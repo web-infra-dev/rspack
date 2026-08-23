@@ -348,10 +348,10 @@ impl ModuleGroup {
   }
 }
 
-pub(crate) fn compare_entries(
+pub(crate) fn is_better_entry(
   (a_key, a): (&ModuleGroupKey, &mut ModuleGroup),
   (b_key, b): (&ModuleGroupKey, &mut ModuleGroup),
-) -> f64 {
+) -> bool {
   // 1. by priority
   // no need to compare priority anymore because we already pick all cache groups with same priority
   // let diff_priority = a.cache_group_priority - b.cache_group_priority;
@@ -361,9 +361,8 @@ pub(crate) fn compare_entries(
   // 2. by number of chunks
   let a_chunks_len = a.chunks.len();
   let b_chunks_len = b.chunks.len();
-  let diff_count = a_chunks_len as f64 - b_chunks_len as f64;
-  if diff_count != 0f64 {
-    return diff_count;
+  if a_chunks_len != b_chunks_len {
+    return a_chunks_len > b_chunks_len;
   }
 
   // 3. by size reduction
@@ -371,21 +370,19 @@ pub(crate) fn compare_entries(
   let b_size_reduce = b.get_total_size() * (b_chunks_len - 1) as f64;
   let diff_size_reduce = a_size_reduce - b_size_reduce;
   if diff_size_reduce != 0f64 {
-    return diff_size_reduce;
+    return diff_size_reduce > 0f64;
   }
 
   // 4. by cache group index
-  let index_diff = b.cache_group_index as f64 - a.cache_group_index as f64;
-  if index_diff != 0f64 {
-    return index_diff;
+  if a.cache_group_index != b.cache_group_index {
+    return a.cache_group_index < b.cache_group_index;
   }
 
   // 5. by number of modules (to be able to compare by identifier)
   let modules_a_len = a.modules.len();
   let modules_b_len = b.modules.len();
-  let diff = modules_a_len as f64 - modules_b_len as f64;
-  if diff != 0f64 {
-    return diff;
+  if modules_a_len != modules_b_len {
+    return modules_a_len > modules_b_len;
   }
 
   let mut modules_a = a.sorted_modules_for_compare().iter();
@@ -397,17 +394,13 @@ pub(crate) fn compare_entries(
       (Some(a), Some(b)) => {
         let res = a.cmp(b);
         if !res.is_eq() {
-          return res as i32 as f64;
+          return res.is_gt();
         }
       }
-      (None, Some(_)) => return -1.0,
-      (Some(_), None) => return 1.0,
+      (None, Some(_)) => return false,
+      (Some(_), None) => return true,
     }
   }
 
-  match a_key.cmp(b_key) {
-    Ordering::Less => -1.0,
-    Ordering::Equal => 0.0,
-    Ordering::Greater => 1.0,
-  }
+  a_key > b_key
 }
