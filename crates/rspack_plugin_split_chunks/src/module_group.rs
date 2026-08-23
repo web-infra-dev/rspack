@@ -137,7 +137,6 @@ pub(crate) struct ModuleGroup {
   #[debug(skip)]
   pub chunks: FxHashSet<ChunkUkey>,
   modules_for_compare: ModulesForCompare,
-  added: Vec<ModuleIdentifier>,
   removed: Vec<ModuleIdentifier>,
   sizes: SplitChunkSizes,
   total_size: f64,
@@ -159,7 +158,6 @@ impl ModuleGroup {
       chunks: Default::default(),
       modules_for_compare: Default::default(),
       chunk_name,
-      added: Default::default(),
       removed: Default::default(),
       total_size: 0.0,
     }
@@ -304,9 +302,16 @@ impl ModuleGroup {
       .extend(module_chunks.values().flatten().copied());
   }
 
-  pub fn prepare_modules_for_sizes_and_compare(&mut self) {
-    let modules = self.modules.iter().copied().collect::<Vec<_>>();
-    self.added = modules.clone();
+  pub fn prepare_modules_for_sizes_and_compare(&mut self, module_sizes: &ModuleSizes) {
+    let mut modules = Vec::with_capacity(self.modules.len());
+    for module in &self.modules {
+      modules.push(*module);
+      let module_sizes = module_sizes.get(module).expect("should have module size");
+      for (ty, size) in module_sizes {
+        *self.sizes.entry(*ty).or_default() += size;
+        self.total_size += size;
+      }
+    }
     self.modules_for_compare.prepare(modules);
     self.removed.reserve(self.modules.len());
   }
@@ -320,24 +325,13 @@ impl ModuleGroup {
   }
 
   pub fn get_total_size(&self) -> f64 {
-    if !self.added.is_empty() || !self.removed.is_empty() {
+    if !self.removed.is_empty() {
       unreachable!("should update sizes before get total size");
     }
     self.total_size
   }
 
   pub fn get_sizes(&mut self, module_sizes: &ModuleSizes) -> &SplitChunkSizes {
-    if !self.added.is_empty() {
-      let added = std::mem::take(&mut self.added);
-      for module in added {
-        let module_sizes = module_sizes.get(&module).expect("should have module size");
-        for (ty, s) in module_sizes.iter() {
-          let size = self.sizes.entry(*ty).or_default();
-          *size += s;
-          self.total_size += s;
-        }
-      }
-    }
     if !self.removed.is_empty() {
       for module in self.removed.drain(..) {
         let module_sizes = module_sizes.get(&module).expect("should have module size");

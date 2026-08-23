@@ -247,7 +247,9 @@ impl SplitChunksPlugin {
 
       module_group_map
         .par_iter_mut()
-        .for_each(|(_, module_group)| module_group.prepare_modules_for_sizes_and_compare());
+        .for_each(|(_, module_group)| {
+          module_group.prepare_modules_for_sizes_and_compare(&module_sizes)
+        });
       self.ensure_min_size_fit(&mut module_group_map, &module_sizes);
 
       while !module_group_map.is_empty() {
