@@ -445,16 +445,23 @@ impl Combinator {
     chunk_by_ukey: &ChunkByUkey,
     module_chunks: &ModuleChunks,
     chunk_index_map: &FxHashMap<ChunkUkey, u32>,
+    min_chunks: usize,
   ) {
     let (grouped_by_exports, used_exports_chunks): (Vec<_>, Vec<_>) = all_modules
       .par_iter()
       .enumerate()
       .map(|(module_index, module)| {
+        let module_chunks = module_chunks
+          .get(module_index)
+          .expect("should have module chunks");
+        // Usage grouping only partitions this module's chunks, so none of the resulting groups can
+        // satisfy the smallest used-exports cache group when the original set is already smaller.
+        if module_chunks.len() < min_chunks {
+          return (Vec::new(), Vec::new());
+        }
         let grouped_chunks = Self::group_chunks_by_exports(
           module,
-          module_chunks
-            .get(module_index)
-            .expect("should have module chunks"),
+          module_chunks,
           exports_info_artifact,
           chunk_by_ukey,
           chunk_index_map,

@@ -211,9 +211,11 @@ impl SplitChunksPlugin {
         );
       }
 
-      if cache_groups
+      if let Some(min_chunks) = cache_groups
         .iter()
-        .any(|cache_group| cache_group.cache_group.used_exports)
+        .filter(|cache_group| cache_group.cache_group.used_exports)
+        .map(|cache_group| cache_group.cache_group.min_chunks as usize)
+        .min()
       {
         combinator.prepare_group_by_used_exports(
           &all_modules,
@@ -221,6 +223,7 @@ impl SplitChunksPlugin {
           &compilation.build_chunk_graph_artifact.chunk_by_ukey,
           available_module_chunks.as_ref(),
           &chunk_index_map,
+          min_chunks,
         );
       }
 
