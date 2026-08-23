@@ -339,8 +339,7 @@ impl ModuleGroup {
       }
     }
     if !self.removed.is_empty() {
-      let removed = std::mem::take(&mut self.removed);
-      for module in removed {
+      for module in self.removed.drain(..) {
         let module_sizes = module_sizes.get(&module).expect("should have module size");
         for (ty, s) in module_sizes.iter() {
           let size = self.sizes.entry(*ty).or_default();
