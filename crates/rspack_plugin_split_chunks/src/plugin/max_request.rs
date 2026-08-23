@@ -15,6 +15,12 @@ impl SplitChunksPlugin {
     cache_group: &CacheGroup,
     used_chunks: &mut Cow<FxHashSet<ChunkUkey>>,
   ) {
+    if cache_group.max_initial_requests == f64::INFINITY
+      && cache_group.max_async_requests == f64::INFINITY
+    {
+      return;
+    }
+
     let chunk_db = &compilation.build_chunk_graph_artifact.chunk_by_ukey;
     let chunk_group_db = &compilation.build_chunk_graph_artifact.chunk_group_by_ukey;
     let invalided_chunks = used_chunks
