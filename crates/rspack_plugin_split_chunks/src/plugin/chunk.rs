@@ -14,19 +14,23 @@ use crate::{
 };
 
 fn put_split_chunk_reason(
-  chunk_reason: &mut Option<String>,
+  reason_slot: &mut Option<String>,
   is_reuse_existing_chunk_with_all_modules: bool,
+  additional_capacity: usize,
 ) {
   let reason = if is_reuse_existing_chunk_with_all_modules {
-    "reused as split chunk".to_string()
+    "reused as split chunk"
   } else {
-    "split chunk".to_string()
+    "split chunk"
   };
-  if let Some(chunk_reason) = chunk_reason {
+  if let Some(chunk_reason) = reason_slot {
+    chunk_reason.reserve(1 + reason.len() + additional_capacity);
     chunk_reason.push(',');
-    chunk_reason.push_str(&reason);
+    chunk_reason.push_str(reason);
   } else {
-    *chunk_reason = Some(reason);
+    let mut chunk_reason = String::with_capacity(reason.len() + additional_capacity);
+    chunk_reason.push_str(reason);
+    *reason_slot = Some(chunk_reason);
   }
 }
 
@@ -129,6 +133,7 @@ impl SplitChunksPlugin {
     module_group: &mut ModuleGroup,
     is_reuse_existing_chunk: &mut bool,
     is_reuse_existing_chunk_with_all_modules: &mut bool,
+    reason_additional_capacity: usize,
   ) -> ChunkUkey {
     if let Some(chunk_name) = &module_group.chunk_name {
       if let Some(chunk) = compilation
@@ -157,6 +162,7 @@ impl SplitChunksPlugin {
         put_split_chunk_reason(
           new_chunk.chunk_reason_mut(),
           *is_reuse_existing_chunk_with_all_modules,
+          reason_additional_capacity,
         );
 
         compilation
@@ -187,6 +193,7 @@ impl SplitChunksPlugin {
       put_split_chunk_reason(
         new_chunk.chunk_reason_mut(),
         *is_reuse_existing_chunk_with_all_modules,
+        reason_additional_capacity,
       );
 
       compilation

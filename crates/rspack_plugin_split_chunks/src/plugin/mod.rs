@@ -265,11 +265,18 @@ impl SplitChunksPlugin {
 
         let mut is_reuse_existing_chunk = false;
         let mut is_reuse_existing_chunk_with_all_modules = false;
+        let reason_additional_capacity = 16
+          + cache_group.key.len()
+          + module_group
+            .chunk_name
+            .as_ref()
+            .map_or(0, |chunk_name| 9 + chunk_name.len());
         let new_chunk = self.get_corresponding_chunk(
           compilation,
           &mut module_group,
           &mut is_reuse_existing_chunk,
           &mut is_reuse_existing_chunk_with_all_modules,
+          reason_additional_capacity,
         );
 
         tracing::trace!(
@@ -458,13 +465,7 @@ impl SplitChunksPlugin {
           .chunk_by_ukey
           .expect_get_mut(&new_chunk);
         if let Some(chunk_reason) = new_chunk_mut.chunk_reason_mut() {
-          chunk_reason.reserve(
-            16 + cache_group.key.len()
-              + module_group
-                .chunk_name
-                .as_ref()
-                .map_or(0, |chunk_name| 9 + chunk_name.len()),
-          );
+          chunk_reason.reserve(reason_additional_capacity);
           chunk_reason.push_str(" (cache group: ");
           chunk_reason.push_str(cache_group.key.as_str());
           chunk_reason.push(')');
