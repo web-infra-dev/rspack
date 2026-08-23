@@ -480,6 +480,14 @@ impl SplitChunksPlugin {
     max_size_setting_map: &FxHashMap<ChunkUkey, MaxSizeSetting>,
   ) -> Result<()> {
     let fallback_cache_group = &self.fallback_cache_group;
+    if max_size_setting_map.is_empty()
+      && !fallback_cache_group.chunks_filter.is_func()
+      && fallback_cache_group.max_async_size.is_empty()
+      && fallback_cache_group.max_initial_size.is_empty()
+    {
+      return Ok(());
+    }
+
     let chunk_group_db = &compilation.build_chunk_graph_artifact.chunk_group_by_ukey;
     let compilation_ref = &*compilation;
 
