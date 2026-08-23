@@ -1475,6 +1475,19 @@ fn should_parse_commonjs_require(parser: &JavascriptParser) -> bool {
   )
 }
 
+fn is_global_require_name(name: &str) -> bool {
+  name == expr_name::REQUIRE || name.starts_with("require.")
+}
+
+pub(super) fn mark_module_exports_accessed_by_require(
+  parser: &mut JavascriptParser,
+  for_name: &str,
+) {
+  if parser.build_info.module_exports_accessed == Some(false) && is_global_require_name(for_name) {
+    parser.build_info.module_exports_accessed = Some(true);
+  }
+}
+
 enum CallOrNewExpr<'a> {
   Call(&'a CallExpr<'a>),
   New(&'a NewExpr<'a>),
@@ -2101,6 +2114,8 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
     ident: &Ident,
     for_name: &str,
   ) -> Option<bool> {
+    mark_module_exports_accessed_by_require(parser, for_name);
+
     if for_name == COMMONJS_REQUIRE_TAG && should_parse_commonjs_require(parser) {
       let tag_info = parser
         .definitions_db
@@ -2150,6 +2165,8 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
     members_optionals: &[bool],
     member_ranges: &[Span],
   ) -> Option<bool> {
+    mark_module_exports_accessed_by_require(parser, for_name);
+
     if for_name == CREATED_REQUIRE_IDENTIFIER_TAG {
       if members
         .first()
@@ -2195,6 +2212,8 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
     members_optionals: &[bool],
     _member_ranges: &[Span],
   ) -> Option<bool> {
+    mark_module_exports_accessed_by_require(parser, for_name);
+
     if for_name == CREATED_REQUIRE_IDENTIFIER_TAG {
       let ids = get_non_optional_part(members, members_optionals);
       if members.is_empty() {
@@ -2248,6 +2267,8 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
   }
 
   fn can_rename(&self, parser: &mut JavascriptParser<'p>, for_name: &str) -> Option<bool> {
+    mark_module_exports_accessed_by_require(parser, for_name);
+
     if (for_name == expr_name::REQUIRE && should_parse_commonjs_require(parser))
       || for_name == CREATED_REQUIRE_IDENTIFIER_TAG
     {
@@ -2292,6 +2313,8 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
     expr: &'a UnaryExpr<'a>,
     for_name: &str,
   ) -> Option<BasicEvaluatedExpression<'a>> {
+    mark_module_exports_accessed_by_require(parser, for_name);
+
     ((should_parse_commonjs_require(parser)
       && (for_name == expr_name::REQUIRE
         || for_name == expr_name::REQUIRE_RESOLVE
@@ -2315,6 +2338,8 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
     start: u32,
     end: u32,
   ) -> Option<BasicEvaluatedExpression<'p>> {
+    mark_module_exports_accessed_by_require(parser, for_name);
+
     match for_name {
       expr_name::REQUIRE if should_parse_commonjs_require(parser) => {
         Some(eval::evaluate_to_identifier(
@@ -2400,6 +2425,8 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
     expr: &UnaryExpr,
     for_name: &str,
   ) -> Option<bool> {
+    mark_module_exports_accessed_by_require(parser, for_name);
+
     // same as webpack/tagRequireExpression
     if (should_parse_commonjs_require(parser)
       && (for_name == expr_name::REQUIRE
@@ -2424,6 +2451,8 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
     call_expr: &CallExpr,
     for_name: &str,
   ) -> Option<bool> {
+    mark_module_exports_accessed_by_require(parser, for_name);
+
     if (for_name == expr_name::REQUIRE || for_name == expr_name::MODULE_REQUIRE)
       && should_parse_commonjs_require(parser)
     {
@@ -2483,6 +2512,8 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
     new_expr: &NewExpr,
     for_name: &str,
   ) -> Option<bool> {
+    mark_module_exports_accessed_by_require(parser, for_name);
+
     if (for_name == expr_name::REQUIRE || for_name == expr_name::MODULE_REQUIRE)
       && should_parse_commonjs_require(parser)
     {
@@ -2509,6 +2540,8 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
     member_ranges: &[Span],
     for_name: &str,
   ) -> Option<bool> {
+    mark_module_exports_accessed_by_require(parser, for_name);
+
     if callee_members.is_empty()
       && should_handle_create_require_specifier(parser, for_name)
       && let Some(argument) = parse_create_require_argument(parser, call_expr, false)
@@ -2553,6 +2586,8 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
     member_ranges: &[Span],
     for_name: &str,
   ) -> Option<bool> {
+    mark_module_exports_accessed_by_require(parser, for_name);
+
     if callee_members.is_empty()
       && should_handle_create_require_specifier(parser, for_name)
       && members.len() == 1
@@ -2624,6 +2659,8 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
     ident: &Ident,
     for_name: &str,
   ) -> Option<bool> {
+    mark_module_exports_accessed_by_require(parser, for_name);
+
     if for_name == expr_name::REQUIRE && should_parse_commonjs_require(parser) {
       parser.add_presentational_dependency(Arc::new(ConstDependency::new(
         (0, 0).into(),

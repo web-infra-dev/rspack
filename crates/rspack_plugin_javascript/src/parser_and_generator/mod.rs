@@ -172,6 +172,36 @@ impl JavaScriptParserAndGenerator {
     self.parser_plugins.push(parser_plugin);
   }
 
+  fn is_esm_concatenation_candidate(module: &dyn Module) -> bool {
+    module.build_meta().exports_type() == BuildMetaExportsType::Namespace
+      && module
+        .get_presentational_dependencies()
+        .is_some_and(|dependencies| {
+          dependencies.iter().any(|dependency| {
+            dependency
+              .as_any()
+              .downcast_ref::<ESMCompatibilityDependency>()
+              .is_some()
+          })
+        })
+  }
+
+  pub(crate) fn get_module_concatenation_bailout_reason(
+    &self,
+    module: &dyn Module,
+    allow_non_esm: bool,
+  ) -> Option<Cow<'static, str>> {
+    if !Self::is_esm_concatenation_candidate(module) && !allow_non_esm {
+      return Some("Module is not an ECMAScript module".into());
+    }
+
+    module
+      .build_info()
+      .module_concatenation_bailout
+      .as_deref()
+      .map(|bailout| format!("Module uses {bailout}").into())
+  }
+
   fn source_block(
     &self,
     compilation: &Compilation,
@@ -479,28 +509,6 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     _mg: &ModuleGraph,
     _cg: &ChunkGraph,
   ) -> Option<Cow<'static, str>> {
-    // Only ES modules are valid for optimization
-    if module.build_meta().exports_type() != BuildMetaExportsType::Namespace {
-      return Some("Module is not an ECMAScript module".into());
-    }
-
-    if let Some(deps) = module.get_presentational_dependencies() {
-      if !deps.iter().any(|dep| {
-        // https://github.com/webpack/webpack/blob/b9fb99c63ca433b24233e0bbc9ce336b47872c08/lib/javascript/JavascriptGenerator.js#L65-L74
-        dep
-          .as_any()
-          .downcast_ref::<ESMCompatibilityDependency>()
-          .is_some()
-      }) {
-        return Some("Module is not an ECMAScript module".into());
-      }
-    } else {
-      return Some("Module is not an ECMAScript module".into());
-    }
-
-    if let Some(bailout) = module.build_info().module_concatenation_bailout.as_deref() {
-      return Some(format!("Module uses {bailout}").into());
-    }
-    None
+    self.get_module_concatenation_bailout_reason(module, false)
   }
 }

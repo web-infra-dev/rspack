@@ -14,6 +14,7 @@ use swc_experimental_ecma_ast::{
   AssignExpr, AssignOp, CallExpr, GetSpan, Ident, MemberExpr, Pat, Span, UnaryExpr, VarDeclarator,
 };
 
+use super::common_js_imports_parse_plugin::mark_module_exports_accessed_by_require;
 use crate::{
   dependency::{
     ExportInfoDependency, IsIncludeDependency, ModuleArgumentDependency, RequireMainDependency,
@@ -602,6 +603,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
     }
 
     if for_name == API_MODULE {
+      parser.build_info.module_exports_accessed = Some(true);
       let range = ident.span.into();
       let loc = parser.to_dependency_location(range);
       parser
@@ -700,6 +702,8 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
     member_expr: &MemberExpr,
     for_name: &str,
   ) -> Option<bool> {
+    mark_module_exports_accessed_by_require(parser, for_name);
+
     if for_name == "require.extensions"
       || for_name == "require.config"
       || for_name == "require.version"
@@ -835,6 +839,8 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
     member_ranges: &[Span],
     for_name: &str,
   ) -> Option<bool> {
+    mark_module_exports_accessed_by_require(parser, for_name);
+
     if parser.compiler_options.experiments.runtime_mode != ExperimentRuntimeMode::Rspack {
       return None;
     }

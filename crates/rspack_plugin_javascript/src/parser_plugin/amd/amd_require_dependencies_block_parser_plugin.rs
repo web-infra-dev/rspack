@@ -46,6 +46,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for AMDRequireDependenciesBlockParse
     for_name: &str,
   ) -> Option<bool> {
     if for_name == "require" {
+      parser.build_info.module_exports_accessed = Some(true);
       self.process_call_require(parser, call_expr)
     } else {
       None
