@@ -955,8 +955,15 @@ impl SplitChunksPlugin {
       // Since we removed some modules and chunks from the `other_module_group`. There are chances
       // that the `min_chunks` and `min_size` validation is not satisfied anymore.
 
-      // Validate `min_size` again
-      if remove_min_size_violating_modules(key, other_module_group, cache_group, module_sizes) {
+      // Validate `min_size` again and always flush the pending size updates before comparisons.
+      if cache_group.min_size.values().all(|size| *size == 0.0) {
+        let _ = other_module_group.get_sizes(module_sizes);
+      } else if remove_min_size_violating_modules(
+        key,
+        other_module_group,
+        cache_group,
+        module_sizes,
+      ) {
         tracing::trace!(
           "{key} is deleted for violating min_size {:#?}",
           cache_group.min_size,
@@ -977,11 +984,16 @@ impl SplitChunksPlugin {
       }
 
       let chunks_len = other_module_group.chunks.len();
-      if !Self::check_min_size_reduction(
-        other_module_group.get_sizes(module_sizes),
-        &cache_group.min_size_reduction,
-        chunks_len,
-      ) {
+      if cache_group
+        .min_size_reduction
+        .values()
+        .any(|size| *size != 0.0)
+        && !Self::check_min_size_reduction(
+          other_module_group.get_sizes(module_sizes),
+          &cache_group.min_size_reduction,
+          chunks_len,
+        )
+      {
         tracing::trace!(
           "{key} is deleted for violating min_size {:#?}",
           cache_group.min_size,
