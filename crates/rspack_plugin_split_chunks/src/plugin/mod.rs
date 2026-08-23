@@ -458,9 +458,13 @@ impl SplitChunksPlugin {
           .chunk_by_ukey
           .expect_get_mut(&new_chunk);
         if let Some(chunk_reason) = new_chunk_mut.chunk_reason_mut() {
-          chunk_reason.push_str(&format!(" (cache group: {})", cache_group.key.as_str()));
+          chunk_reason.push_str(" (cache group: ");
+          chunk_reason.push_str(cache_group.key.as_str());
+          chunk_reason.push(')');
           if let Some(chunk_name) = &module_group.chunk_name {
-            chunk_reason.push_str(&format!(" (name: {chunk_name})"));
+            chunk_reason.push_str(" (name: ");
+            chunk_reason.push_str(chunk_name);
+            chunk_reason.push(')');
           }
         }
         if let Some(filename) = &cache_group.filename {
