@@ -301,7 +301,10 @@ impl ModuleGroup {
       for module in self.removed.drain(..) {
         let module_sizes = module_sizes.get(&module).expect("should have module size");
         for (ty, s) in module_sizes.iter() {
-          let size = self.sizes.entry(*ty).or_default();
+          let size = self
+            .sizes
+            .get_mut(ty)
+            .expect("removed module source type should have group size");
           *size -= s;
           *size = size.max(0.0);
           self.total_size -= s;
