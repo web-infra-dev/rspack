@@ -267,6 +267,21 @@ impl ModuleChunkMap {
     module_chunks.entry(module).or_default().insert(chunk);
   }
 
+  pub fn insert_shared_chunk(
+    &mut self,
+    expected_modules: &IdentifierSet,
+    chunk: ChunkUkey,
+  ) -> bool {
+    let Self::Shared { modules, chunks } = self else {
+      return false;
+    };
+    if modules != expected_modules {
+      return false;
+    }
+    chunks.insert(chunk);
+    true
+  }
+
   pub fn retain_modules(&mut self, modules_to_keep: &IdentifierSet) {
     match self {
       Self::Shared { modules, .. } => modules.retain(|module| modules_to_keep.contains(module)),

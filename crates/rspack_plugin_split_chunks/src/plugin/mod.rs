@@ -299,7 +299,13 @@ impl SplitChunksPlugin {
           .await?;
         {
           let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
-          if is_reuse_existing_chunk {
+          // `reuseExistingChunk` can select a chunk that already contains the complete module
+          // group. Keep the shared representation in that common case instead of expanding one
+          // identical chunk set per module. If a chunk condition excluded any module, the sets no
+          // longer match and we deliberately fall back to the per-module representation below.
+          let inserted_shared_destination = is_reuse_existing_chunk_with_all_modules
+            && placed_module_chunks.insert_shared_chunk(&module_group.modules, new_chunk);
+          if is_reuse_existing_chunk && !inserted_shared_destination {
             // A module already in the reused destination does not need to move, but that original
             // placement still belongs to the winning group and must be unavailable to competing
             // groups at this and lower priorities.
