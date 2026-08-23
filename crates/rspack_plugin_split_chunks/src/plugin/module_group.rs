@@ -548,9 +548,12 @@ impl SplitChunksPlugin {
 
     let mut best_entry_index = 0;
     for entry_index in 1..module_group_map.len() {
-      let [(entry_key, entry), (best_entry_key, best_entry)] = module_group_map
-        .get_disjoint_indices_mut([entry_index, best_entry_index])
-        .expect("entry indices should be valid and unique");
+      let (entry_key, entry) = module_group_map
+        .get_index(entry_index)
+        .expect("entry index should be valid");
+      let (best_entry_key, best_entry) = module_group_map
+        .get_index(best_entry_index)
+        .expect("best entry index should be valid");
       if is_better_entry((entry_key, entry), (best_entry_key, best_entry)) {
         best_entry_index = entry_index;
       }

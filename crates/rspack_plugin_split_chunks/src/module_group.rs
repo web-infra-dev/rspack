@@ -31,42 +31,6 @@ impl<'a> IndexedCacheGroup<'a> {
   }
 }
 
-#[derive(Debug)]
-enum ModulesForCompare {
-  Unsorted(Vec<ModuleIdentifier>),
-  Sorted(Vec<ModuleIdentifier>),
-}
-
-impl Default for ModulesForCompare {
-  fn default() -> Self {
-    Self::Unsorted(Default::default())
-  }
-}
-
-impl ModulesForCompare {
-  fn prepare(&mut self, modules: Vec<ModuleIdentifier>) {
-    if modules.is_empty() {
-      return;
-    }
-
-    if matches!(self, Self::Unsorted(modules_for_compare) if modules_for_compare.is_empty()) {
-      *self = Self::Unsorted(modules);
-    }
-  }
-
-  fn sorted(&mut self) -> &[ModuleIdentifier] {
-    if let Self::Unsorted(modules) = self {
-      modules.sort_unstable_by_key(|module| module.precomputed_hash());
-      *self = Self::Sorted(std::mem::take(modules));
-    }
-
-    let Self::Sorted(modules) = self else {
-      unreachable!("modules for compare should be sorted");
-    };
-    modules
-  }
-}
-
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub(crate) enum ModuleGroupKey {
   Named {
@@ -136,7 +100,7 @@ pub(crate) struct ModuleGroup {
   /// `Chunk`s which `Module`s in this ModuleGroup belong to
   #[debug(skip)]
   pub chunks: FxHashSet<ChunkUkey>,
-  modules_for_compare: ModulesForCompare,
+  modules_for_compare: Vec<ModuleIdentifier>,
   removed: Vec<ModuleIdentifier>,
   sizes: SplitChunkSizes,
   total_size: f64,
@@ -312,12 +276,13 @@ impl ModuleGroup {
         self.total_size += size;
       }
     }
-    self.modules_for_compare.prepare(modules);
+    modules.sort_unstable_by_key(|module| module.precomputed_hash());
+    self.modules_for_compare = modules;
     self.removed.reserve(self.modules.len());
   }
 
-  pub fn sorted_modules_for_compare(&mut self) -> &[ModuleIdentifier] {
-    self.modules_for_compare.sorted()
+  pub fn sorted_modules_for_compare(&self) -> &[ModuleIdentifier] {
+    &self.modules_for_compare
   }
 
   pub fn get_cache_group<'a>(&self, cache_groups: &'a [CacheGroup]) -> &'a CacheGroup {
@@ -349,8 +314,8 @@ impl ModuleGroup {
 }
 
 pub(crate) fn is_better_entry(
-  (a_key, a): (&ModuleGroupKey, &mut ModuleGroup),
-  (b_key, b): (&ModuleGroupKey, &mut ModuleGroup),
+  (a_key, a): (&ModuleGroupKey, &ModuleGroup),
+  (b_key, b): (&ModuleGroupKey, &ModuleGroup),
 ) -> bool {
   // 1. by priority
   // no need to compare priority anymore because we already pick all cache groups with same priority
