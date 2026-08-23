@@ -65,6 +65,8 @@ import * as ModuleFilenameHelpers from './lib/ModuleFilenameHelpers';
 
 // API extractor not working with some re-exports, see: https://github.com/microsoft/fluentui/issues/20694
 export { Template } from './Template';
+export { RuntimeTemplate } from './RuntimeTemplate';
+export type { ConcatenationArg } from './RuntimeTemplate';
 export { ModuleFilenameHelpers };
 
 export const WebpackError = Error;

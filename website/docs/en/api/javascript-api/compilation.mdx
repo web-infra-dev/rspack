@@ -585,6 +585,50 @@ getCache(name: string): CacheFacade;
 
 The normalized options used by this Compilation, see [Configure Rspack](/config/) for details.
 
+### runtimeTemplate
+
+**Type**: `RuntimeTemplate`
+
+Helpers that generate runtime code matching the capabilities of the targeted environment, as
+declared by [`output.environment`](/config/output#outputenvironment). Use them instead of
+hand-written snippets so that generated code stays valid for older targets.
+
+```js
+class MyPlugin {
+  apply(compiler) {
+    compiler.hooks.compilation.tap('MyPlugin', (compilation) => {
+      const { runtimeTemplate } = compilation;
+
+      // `() => (globalThis)` when arrow functions are supported,
+      // `function() { return globalThis; }` otherwise
+      runtimeTemplate.returningFunction('globalThis');
+
+      // `(a) => {\n\tconsole.log(a);\n}` when arrow functions are supported,
+      // `function(a) {\n\tconsole.log(a);\n}` otherwise
+      runtimeTemplate.basicFunction('a', 'console.log(a);');
+    });
+  }
+}
+```
+
+Available helpers:
+
+- Environment checks: `isIIFE`, `isModule`, `isNeutralPlatform`, `supportsConst`,
+  `supportsArrowFunction`, `supportsAsyncFunction`, `supportsOptionalChaining`, `supportsForOf`,
+  `supportsDestructuring`, `supportsBigIntLiteral`, `supportsDynamicImport`,
+  `supportsEcmaScriptModuleSyntax`, `supportTemplateLiteral`, `supportNodePrefixForCoreModules`
+- Code generation: `renderNodePrefixForCoreModule`, `returningFunction`, `basicFunction`,
+  `expressionFunction`, `emptyFunction`, `concatenation`, `destructureArray`, `destructureObject`,
+  `iife`, `forEach`
+- Missing module handling: `throwMissingModuleErrorBlock`, `throwMissingModuleErrorFunction`,
+  `missingModule`, `missingModuleStatement`, `missingModulePromise`
+
+The webpack methods that render references to other modules (`moduleId`, `moduleRaw`,
+`moduleExports`, `moduleNamespace`, `moduleNamespacePromise`, `importStatement`,
+`exportFromImport`, `blockPromise`, `asyncModuleFactory`, `syncModuleFactory`, `weakError`,
+`runtimeConditionExpression`) are not available, because Rspack keeps the module graph and the
+code generation results on the Rust side.
+
 ### compiler
 
 **Type**: `Compiler`
