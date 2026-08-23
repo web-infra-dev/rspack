@@ -213,27 +213,45 @@ impl ModuleGroup {
     self.remove_modules([module]);
   }
 
-  pub fn remove_shared_modules_in(&mut self, modules: &IdentifierSet) -> bool {
+  pub fn remove_shared_modules_in(
+    &mut self,
+    modules: &IdentifierSet,
+    module_sizes: &ModuleSizes,
+  ) -> bool {
     debug_assert!(matches!(self.module_chunks, ModuleGroupChunks::Shared(_)));
-    let removed_start = self.removed.len();
+    let sizes = &mut self.sizes;
+    let total_size = &mut self.total_size;
+    let mut removed_any = false;
+    let mut subtract_sizes = |module: &ModuleIdentifier| {
+      let module_sizes = module_sizes.get(module).expect("should have module size");
+      for (ty, module_size) in module_sizes {
+        let size = sizes
+          .get_mut(ty)
+          .expect("removed module source type should have group size");
+        *size -= module_size;
+        *size = size.max(0.0);
+        *total_size -= module_size;
+      }
+    };
     if self.modules.len() > modules.len() {
       for module in modules {
         if self.modules.remove(module) {
-          self.removed.push(*module);
+          subtract_sizes(module);
+          removed_any = true;
         }
       }
     } else {
-      let removed = &mut self.removed;
       self.modules.retain(|module| {
         if modules.contains(module) {
-          removed.push(*module);
+          subtract_sizes(module);
+          removed_any = true;
           false
         } else {
           true
         }
       });
     }
-    self.removed.len() != removed_start
+    removed_any
   }
 
   pub fn remove_modules(&mut self, modules: impl IntoIterator<Item = ModuleIdentifier>) {

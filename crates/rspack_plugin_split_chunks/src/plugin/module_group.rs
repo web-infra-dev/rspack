@@ -914,7 +914,7 @@ impl SplitChunksPlugin {
           Some(other_chunks),
         ) => {
           other_chunks.intersection(placed_chunks).next()?;
-          other_module_group.remove_shared_modules_in(modules)
+          other_module_group.remove_shared_modules_in(modules, module_sizes)
         }
         _ => {
           let duplicated_modules = other_module_group
