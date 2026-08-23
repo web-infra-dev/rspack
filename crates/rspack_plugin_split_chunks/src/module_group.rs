@@ -3,7 +3,7 @@ use std::{cmp::Ordering, fmt};
 use derive_more::Debug;
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{ChunkUkey, ModuleIdentifier, SourceType};
-use rustc_hash::{FxHashMap, FxHashSet};
+use rustc_hash::FxHashSet;
 
 use crate::{
   CacheGroup,
@@ -131,7 +131,6 @@ pub(crate) struct ModuleGroup {
   /// A module
   pub chunk_name: Option<String>,
 
-  pub source_types_modules: FxHashMap<SourceType, IdentifierSet>,
   /// `Chunk`s which `Module`s in this ModuleGroup belong to
   #[debug(skip)]
   pub chunks: FxHashSet<ChunkUkey>,
@@ -155,7 +154,6 @@ impl ModuleGroup {
       cache_group_index,
       cache_group_reuse_existing_chunk: cache_group.reuse_existing_chunk,
       sizes: Default::default(),
-      source_types_modules: Default::default(),
       chunks: Default::default(),
       modules_for_compare: Default::default(),
       chunk_name,
@@ -170,28 +168,18 @@ impl ModuleGroup {
     ty: &[SourceType],
     module_sizes: &ModuleSizes,
   ) -> IdentifierSet {
-    // if there is only one source type, we can just use the `source_types_modules` directly
-    // instead of iterating over all modules
-    if ty.len() == 1 {
-      self
-        .source_types_modules
-        .get(ty.first().expect("should have at least one source type"))
-        .cloned()
-        .unwrap_or_default()
-    } else {
-      self
-        .modules
-        .iter()
-        .filter_map(|module| {
-          let sizes = module_sizes.get(module).expect("should have module size");
-          if ty.iter().any(|ty| sizes.contains_key(ty)) {
-            Some(*module)
-          } else {
-            None
-          }
-        })
-        .collect()
-    }
+    self
+      .modules
+      .iter()
+      .filter_map(|module| {
+        let sizes = module_sizes.get(module).expect("should have module size");
+        if ty.iter().any(|ty| sizes.contains_key(ty)) {
+          Some(*module)
+        } else {
+          None
+        }
+      })
+      .collect()
   }
 
   pub fn add_module(
@@ -322,11 +310,6 @@ impl ModuleGroup {
           let size = self.sizes.entry(*ty).or_default();
           *size += s;
           self.total_size += s;
-          self
-            .source_types_modules
-            .entry(*ty)
-            .or_default()
-            .insert(module);
         }
       }
     }
@@ -339,11 +322,6 @@ impl ModuleGroup {
           *size -= s;
           *size = size.max(0.0);
           self.total_size -= s;
-          self
-            .source_types_modules
-            .entry(*ty)
-            .or_default()
-            .remove(&module);
         }
       }
     }
