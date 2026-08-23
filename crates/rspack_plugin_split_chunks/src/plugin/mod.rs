@@ -473,6 +473,7 @@ impl SplitChunksPlugin {
         self.move_modules_to_new_chunk_and_remove_from_old_chunks(
           &placed_module_chunks,
           new_chunk,
+          is_reuse_existing_chunk_with_all_modules,
           compilation,
         );
 

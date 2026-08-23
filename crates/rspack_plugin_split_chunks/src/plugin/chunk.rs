@@ -260,6 +260,7 @@ impl SplitChunksPlugin {
     &self,
     placed_module_chunks: &ModuleChunkMap,
     new_chunk: ChunkUkey,
+    destination_has_all_modules: bool,
     compilation: &mut Compilation,
   ) {
     let chunk_graph = &mut compilation.build_chunk_graph_artifact.chunk_graph;
@@ -272,7 +273,9 @@ impl SplitChunksPlugin {
         .collect::<Vec<_>>();
       if !chunks.is_empty() {
         chunk_graph.disconnect_chunks_and_modules(&chunks, &modules);
-        chunk_graph.connect_chunk_and_modules(new_chunk, &modules);
+        if !destination_has_all_modules {
+          chunk_graph.connect_chunk_and_modules(new_chunk, &modules);
+        }
       }
       return;
     }
@@ -299,7 +302,9 @@ impl SplitChunksPlugin {
       move_module(module, chunks);
     }
 
-    chunk_graph.connect_chunk_and_modules(new_chunk, &module_identifiers);
+    if !destination_has_all_modules {
+      chunk_graph.connect_chunk_and_modules(new_chunk, &module_identifiers);
+    }
   }
 
   /// Since the modules are moved into the `new_chunk`, we should
