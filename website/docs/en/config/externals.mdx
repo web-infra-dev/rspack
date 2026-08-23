@@ -305,25 +305,32 @@ export default {
 ## externalsType
 
 - **Type:** `string`
-- **Default:** Depends on [`output.library.type`](/config/output#outputlibrarytype) and [`output.module`](/config/output#outputmodule)
 
-The default value is inferred as follows:
+`externalsType` determines how Rspack loads external dependencies by default. When using the `'amd'`, `'umd'`, `'system'`, or `'jsonp'` type, [`output.library.type`](/config/output#outputlibrarytype) must be set to the same value. For example, only an `'amd'` library can use an `'amd'` external.
 
-- When [`output.library`](/config/output#outputlibrary) is configured, it matches [`output.library.type`](/config/output#outputlibrarytype).
-- Otherwise, when [`output.module`](/config/output#outputmodule) is `true`, it is `'module-import'`.
-- Otherwise, it is `'var'`.
+Set `externalsType` explicitly when an external dependency needs a loading format different from the inferred value.
 
-Specify the default type of externals. `amd`, `umd`, `system` and `jsonp` externals **depend on the [`output.library.type`](/config/output#outputlibrarytype)** being set to the same value e.g. you can only consume `amd` externals within an `amd` library.
+## Default value
 
-Set `externalsType` explicitly when the external dependency should use a different loading format from the inferred default.
+The default value is inferred in this order:
 
-Supported types:
+- If [`output.library`](/config/output#outputlibrary) is configured with a type other than `'modern-module'`, `externalsType` defaults to [`output.library.type`](/config/output#outputlibrarytype).
+- Otherwise, if [`output.module`](/config/output#outputmodule) is `true`, it defaults to `'module-import'`.
+- Otherwise, it defaults to `'var'`.
+
+For backward compatibility, [`output.library.type: 'modern-module'`](#externalstypemodern-module) currently skips the first rule and falls through to the `output.module` rule. Set `externalsType: 'modern-module'` explicitly to opt in to modern module externals.
+
+## Supported values
+
+The following types are supported:
 
 - `'amd'`
 - `'amd-require'`
 - `'assign'` - same as `'var'`
 - [`'commonjs'`](#externalstypecommonjs)
+- `'commonjs2'`
 - `'commonjs-module'`
+- `'commonjs-static'`
 - [`'global'`](#externalstypeglobal)
 - [`'module'`](#externalstypemodule)
 - [`'import'`](#externalstypeimport) - uses `import()` to load a native ECMAScript module (async module)
