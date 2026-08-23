@@ -248,6 +248,14 @@ pub struct FallbackCacheGroup {
 pub type ModuleSizes = IdentifierMap<FxHashMap<SourceType, f64>>;
 pub(crate) type ModuleChunks = Vec<FxHashSet<ChunkUkey>>;
 
+/// Returns a lossy mask for quickly proving that two chunk sets are disjoint. Chunk keys may
+/// collide in the mask, so overlapping masks must always fall back to an exact check.
+pub(crate) fn chunk_mask<'a>(chunks: impl Iterator<Item = &'a ChunkUkey>) -> u64 {
+  chunks.fold(0, |mask, chunk| {
+    mask | (1u64 << (chunk.as_u32() & (u64::BITS - 1)))
+  })
+}
+
 #[derive(Debug)]
 pub(crate) enum ModuleChunkMap {
   Shared {
@@ -258,6 +266,13 @@ pub(crate) enum ModuleChunkMap {
 }
 
 impl ModuleChunkMap {
+  pub fn chunk_mask(&self) -> u64 {
+    match self {
+      Self::Shared { chunks, .. } => chunk_mask(chunks.iter()),
+      Self::ByModule(module_chunks) => chunk_mask(module_chunks.values().flatten()),
+    }
+  }
+
   pub fn get(&self, module: &ModuleIdentifier) -> Option<&FxHashSet<ChunkUkey>> {
     match self {
       Self::Shared { modules, chunks } => modules.contains(module).then_some(chunks),
