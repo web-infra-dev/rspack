@@ -902,7 +902,7 @@ impl SplitChunksPlugin {
     let keys_of_invalid_group = module_group_map
       .par_iter_mut()
       .filter_map(|(key, other_module_group)| {
-        let duplicated_modules = match (
+        let removed_modules = match (
           placed_module_chunks,
           other_module_group.shared_module_chunks(),
         ) {
@@ -914,40 +914,35 @@ impl SplitChunksPlugin {
             Some(other_chunks),
           ) => {
             other_chunks.intersection(placed_chunks).next()?;
-            if other_module_group.modules.len() > modules.len() {
-              modules
-                .intersection(&other_module_group.modules)
-                .copied()
-                .collect::<Vec<_>>()
+            other_module_group.remove_shared_modules_in(modules)
+          }
+          _ => {
+            let duplicated_modules = other_module_group
+              .modules
+              .iter()
+              .filter(|module| {
+                let Some(placed_chunks) = placed_module_chunks.get(module) else {
+                  return false;
+                };
+                let Some(other_chunks) = other_module_group.get_module_chunks(module) else {
+                  return false;
+                };
+                placed_chunks.intersection(other_chunks).next().is_some()
+              })
+              .copied()
+              .collect::<Vec<_>>();
+            if duplicated_modules.is_empty() {
+              false
             } else {
-              other_module_group
-                .modules
-                .intersection(modules)
-                .copied()
-                .collect::<Vec<_>>()
+              other_module_group.remove_modules(duplicated_modules);
+              true
             }
           }
-          _ => other_module_group
-            .modules
-            .iter()
-            .filter(|module| {
-              let Some(placed_chunks) = placed_module_chunks.get(module) else {
-                return false;
-              };
-              let Some(other_chunks) = other_module_group.get_module_chunks(module) else {
-                return false;
-              };
-              placed_chunks.intersection(other_chunks).next().is_some()
-            })
-            .copied()
-            .collect::<Vec<_>>(),
         };
 
-        if duplicated_modules.is_empty() {
+        if !removed_modules {
           return None;
         }
-
-        other_module_group.remove_modules(duplicated_modules);
 
         if other_module_group.modules.is_empty() {
           tracing::trace!(

@@ -251,6 +251,29 @@ impl ModuleGroup {
     self.remove_modules([module]);
   }
 
+  pub fn remove_shared_modules_in(&mut self, modules: &IdentifierSet) -> bool {
+    debug_assert!(matches!(self.module_chunks, ModuleGroupChunks::Shared(_)));
+    let removed_start = self.removed.len();
+    if self.modules.len() > modules.len() {
+      for module in modules {
+        if self.modules.remove(module) {
+          self.removed.push(*module);
+        }
+      }
+    } else {
+      let removed = &mut self.removed;
+      self.modules.retain(|module| {
+        if modules.contains(module) {
+          removed.push(*module);
+          false
+        } else {
+          true
+        }
+      });
+    }
+    self.removed.len() != removed_start
+  }
+
   pub fn remove_modules(&mut self, modules: impl IntoIterator<Item = ModuleIdentifier>) {
     match &mut self.module_chunks {
       ModuleGroupChunks::Shared(_) => {
