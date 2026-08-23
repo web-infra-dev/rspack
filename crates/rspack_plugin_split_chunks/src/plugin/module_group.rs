@@ -210,12 +210,50 @@ pub(crate) struct Combinator {
 
 enum ChunkCombinations<'a> {
   Slice(&'a [ChunkCombination]),
-  UsedExports(Vec<&'a ChunkCombination>),
+  UsedExports {
+    chunk_keys: &'a [ChunksKey],
+    combinations: &'a FxHashMap<ChunksKey, Vec<ChunkCombination>>,
+  },
+}
+
+struct UsedExportsCombinationsIter<'a> {
+  chunk_keys: std::slice::Iter<'a, ChunksKey>,
+  combinations: &'a FxHashMap<ChunksKey, Vec<ChunkCombination>>,
+  current: Option<std::slice::Iter<'a, ChunkCombination>>,
 }
 
 enum ChunkCombinationsIter<'a> {
   Slice(std::slice::Iter<'a, ChunkCombination>),
-  UsedExports(std::iter::Copied<std::slice::Iter<'a, &'a ChunkCombination>>),
+  UsedExports(UsedExportsCombinationsIter<'a>),
+}
+
+impl<'a> Iterator for UsedExportsCombinationsIter<'a> {
+  type Item = &'a ChunkCombination;
+
+  fn next(&mut self) -> Option<Self::Item> {
+    loop {
+      if let Some(current) = &mut self.current
+        && let Some(combination) = current.next()
+      {
+        return Some(combination);
+      }
+      let chunk_key = self.chunk_keys.next()?;
+      self.current = Some(
+        self
+          .combinations
+          .get(chunk_key)
+          .expect("should have combinations")
+          .iter(),
+      );
+    }
+  }
+
+  fn size_hint(&self) -> (usize, Option<usize>) {
+    (
+      self.current.as_ref().map_or(0, ExactSizeIterator::len),
+      None,
+    )
+  }
 }
 
 impl<'a> Iterator for ChunkCombinationsIter<'a> {
@@ -243,9 +281,14 @@ impl<'a> IntoIterator for &'a ChunkCombinations<'a> {
   fn into_iter(self) -> Self::IntoIter {
     match self {
       ChunkCombinations::Slice(combs) => ChunkCombinationsIter::Slice(combs.iter()),
-      ChunkCombinations::UsedExports(combs) => {
-        ChunkCombinationsIter::UsedExports(combs.iter().copied())
-      }
+      ChunkCombinations::UsedExports {
+        chunk_keys,
+        combinations,
+      } => ChunkCombinationsIter::UsedExports(UsedExportsCombinationsIter {
+        chunk_keys: chunk_keys.iter(),
+        combinations,
+        current: None,
+      }),
     }
   }
 }
@@ -269,24 +312,6 @@ impl Combinator {
       .combinations
       .get(&chunks_key)
       .expect("should have combinations")
-  }
-
-  fn get_used_exports_combs(&self, module_index: usize) -> Vec<&ChunkCombination> {
-    let mut result = vec![];
-    let chunks_by_module_used = self
-      .grouped_by_exports
-      .get(module_index)
-      .expect("should have exports for module");
-
-    for chunks_key in chunks_by_module_used.iter() {
-      let combs = self
-        .used_exports_combinations
-        .get(chunks_key)
-        .expect("should have combinations");
-      result.extend(combs.iter());
-    }
-
-    result
   }
 
   fn group_chunks_by_exports(
@@ -352,7 +377,13 @@ impl Combinator {
     chunk_index_map: &FxHashMap<ChunkUkey, u32>,
   ) -> ChunkCombinations<'_> {
     if used_exports {
-      ChunkCombinations::UsedExports(self.get_used_exports_combs(module_index))
+      ChunkCombinations::UsedExports {
+        chunk_keys: self
+          .grouped_by_exports
+          .get(module_index)
+          .expect("should have exports for module"),
+        combinations: &self.used_exports_combinations,
+      }
     } else {
       ChunkCombinations::Slice(self.get_non_used_exports_combs(
         module_index,
