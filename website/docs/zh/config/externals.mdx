@@ -310,7 +310,7 @@ export default {
 
 如果 external 依赖需要使用与推导结果不同的加载格式，请显式设置 `externalsType`。
 
-## 默认值
+### 默认值
 
 默认值按以下顺序推导：
 
@@ -318,9 +318,9 @@ export default {
 - 否则，如果 [`output.module`](/config/output#outputmodule) 为 `true`，则默认为 `'module-import'`。
 - 其他情况下默认为 `'var'`。
 
-出于向后兼容的考虑，[`output.library.type: 'modern-module'`](#externalstypemodern-module) 目前会跳过第一条规则，继续按照 `output.module` 推导默认值。如需使用 modern module externals，请显式设置 `externalsType: 'modern-module'`。
+出于向后兼容的考虑，[`output.library.type: 'modern-module'`](/config/output#outputlibrarytype) 目前会跳过第一条规则，继续按照 `output.module` 推导默认值。如需使用 modern module externals，请显式设置 `externalsType: 'modern-module'`。
 
-## 可选值
+### 可选值
 
 支持的类型如下：
 

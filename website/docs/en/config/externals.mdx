@@ -310,7 +310,7 @@ export default {
 
 Set `externalsType` explicitly when an external dependency needs a loading format different from the inferred value.
 
-## Default value
+### Default value
 
 The default value is inferred in this order:
 
@@ -318,9 +318,9 @@ The default value is inferred in this order:
 - Otherwise, if [`output.module`](/config/output#outputmodule) is `true`, it defaults to `'module-import'`.
 - Otherwise, it defaults to `'var'`.
 
-For backward compatibility, [`output.library.type: 'modern-module'`](#externalstypemodern-module) currently skips the first rule and falls through to the `output.module` rule. Set `externalsType: 'modern-module'` explicitly to opt in to modern module externals.
+For backward compatibility, [`output.library.type: 'modern-module'`](/config/output#outputlibrarytype) currently skips the first rule and falls through to the `output.module` rule. Set `externalsType: 'modern-module'` explicitly to opt in to modern module externals.
 
-## Supported values
+### Supported values
 
 The following types are supported:
 
