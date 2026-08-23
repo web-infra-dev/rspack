@@ -6,6 +6,7 @@ use rspack_core::{
 };
 use rspack_error::Result;
 use rustc_hash::FxHashSet;
+use smallvec::SmallVec;
 
 use crate::{
   SplitChunksPlugin,
@@ -273,12 +274,15 @@ impl SplitChunksPlugin {
   ) {
     let chunk_graph = &mut compilation.build_chunk_graph_artifact.chunk_graph;
     if let ModuleChunkMap::Shared { modules, chunks } = placed_module_chunks {
-      let modules = modules.iter().copied().collect::<Vec<_>>();
+      let modules = modules
+        .iter()
+        .copied()
+        .collect::<SmallVec<[ModuleIdentifier; 8]>>();
       let chunks = chunks
         .iter()
         .filter(|chunk| **chunk != new_chunk)
         .copied()
-        .collect::<Vec<_>>();
+        .collect::<SmallVec<[ChunkUkey; 8]>>();
       if !chunks.is_empty() {
         chunk_graph.disconnect_chunks_and_modules(&chunks, &modules);
         if !destination_has_all_modules {
