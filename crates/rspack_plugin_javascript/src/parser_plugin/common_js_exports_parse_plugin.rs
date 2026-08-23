@@ -180,6 +180,7 @@ fn handle_assign_export(
   if parser.is_esm {
     return None;
   }
+  parser.build_info.module_exports_accessed = Some(true);
   if (remaining.is_empty() || remaining.first().is_some_and(|i| i != "__esModule"))
     && let Some((arg, ids)) = parse_require_call(parser, &assign_expr.right)
     && arg.is_string()
@@ -251,6 +252,7 @@ fn handle_access_export(
   if parser.is_esm {
     return None;
   }
+  parser.build_info.module_exports_accessed = Some(true);
   if remaining.is_empty() {
     parser.bailout();
   }
@@ -279,6 +281,12 @@ impl CommonJsExportsParserPlugin {
   fn should_skip_handler(&self, parser: &JavascriptParser) -> bool {
     self.skip_in_esm && parser.is_esm
   }
+
+  fn mark_factory_arguments_accessed(&self, parser: &mut JavascriptParser, for_name: &str) {
+    if for_name == "arguments" && parser.is_top_level_this() {
+      parser.build_info.module_exports_accessed = Some(true);
+    }
+  }
 }
 
 #[rspack_macros::implemented_javascript_parser_hooks]
@@ -294,6 +302,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsExportsParserPlugin {
     if self.should_skip_handler(parser) {
       return None;
     }
+    self.mark_factory_arguments_accessed(parser, for_name);
 
     if for_name == "exports" {
       // exports.x = y;
@@ -324,9 +333,13 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsExportsParserPlugin {
     if self.should_skip_handler(parser) {
       return None;
     }
+    self.mark_factory_arguments_accessed(parser, for_name);
 
     if parser.is_esm {
       return None;
+    }
+    if matches!(for_name, "module" | "exports") {
+      parser.build_info.module_exports_accessed = Some(true);
     }
     if for_name == "Object.defineProperty"
       && parser.is_statement_level_expression(call_expr.span)
@@ -354,6 +367,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsExportsParserPlugin {
         "this" if parser.is_top_level_scope() => ExportsBase::DefinePropertyThis,
         _ => return None,
       };
+      parser.build_info.module_exports_accessed = Some(true);
       let property = parser.evaluate_expression(arg1).as_string()?;
       parser.enable();
       // Object.defineProperty(exports, "__esModule", { value: true });
@@ -388,8 +402,10 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsExportsParserPlugin {
     if self.should_skip_handler(parser) {
       return None;
     }
+    self.mark_factory_arguments_accessed(parser, for_name);
 
     if for_name == "module" {
+      parser.build_info.module_exports_accessed = Some(true);
       let decorator = if parser.is_esm {
         RuntimeGlobals::ESM_MODULE_DECORATOR
       } else {
@@ -437,6 +453,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsExportsParserPlugin {
     if self.should_skip_handler(parser) {
       return None;
     }
+    self.mark_factory_arguments_accessed(parser, for_name);
 
     if for_name == "module.exports" {
       // module.exports
@@ -464,6 +481,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsExportsParserPlugin {
     if self.should_skip_handler(parser) {
       return None;
     }
+    self.mark_factory_arguments_accessed(parser, for_name);
 
     if for_name == "exports" {
       // exports.a.b.c
@@ -516,6 +534,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsExportsParserPlugin {
     if self.should_skip_handler(parser) {
       return None;
     }
+    self.mark_factory_arguments_accessed(parser, for_name);
 
     if for_name == "exports" {
       // exports.a.b.c()

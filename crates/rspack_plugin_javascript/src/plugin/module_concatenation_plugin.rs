@@ -12,10 +12,10 @@ use rspack_collections::{
 use rspack_core::{
   BoxModule, ChunkUkey, Compilation, CompilationOptimizeChunkModules, Dependency, DependencyId,
   DependencyType, ExportProvided, ExportsInfoArtifact, GetTargetResult,
-  ImportedByDeferModulesArtifact, LibIdentOptions, Logger, ModuleGraph, ModuleGraphCacheArtifact,
-  ModuleGraphConnection, ModuleGraphModule, ModuleIdentifier, OptimizationBailoutItem, Plugin,
-  ProvidedExports, RuntimeCondition, RuntimeSpec, RuntimeSpecMap, SideEffectsStateArtifact,
-  SourceType,
+  ImportedByDeferModulesArtifact, LibIdentOptions, Logger, Module, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleGraphModule, ModuleIdentifier,
+  OptimizationBailoutItem, Plugin, ProvidedExports, RuntimeCondition, RuntimeSpec, RuntimeSpecMap,
+  SideEffectsStateArtifact, SourceType,
   concatenated_module::{
     ConcatenatedInnerModule, ConcatenatedModule, RootModuleContext, is_esm_dep_like,
   },
@@ -27,8 +27,52 @@ use rspack_hook::{plugin, plugin_hook};
 use rspack_util::itoa;
 use rustc_hash::FxHashSet as HashSet;
 
+use crate::parser_and_generator::JavaScriptParserAndGenerator;
+
 fn format_bailout_reason(msg: &str) -> String {
   format!("ModuleConcatenation bailout: {msg}")
+}
+
+fn is_unknown_empty_commonjs(
+  module_id: &ModuleIdentifier,
+  module: &dyn Module,
+  exports_info_artifact: &ExportsInfoArtifact,
+) -> bool {
+  module.module_type().is_js_auto()
+    && !module.build_meta().esm()
+    && module.build_info().module_exports_accessed == Some(false)
+    && matches!(
+      exports_info_artifact
+        .get_exports_info_data(module_id)
+        .other_exports_info()
+        .provided(),
+      Some(ExportProvided::Unknown)
+    )
+}
+
+fn has_incoming_named_esm_reference(
+  module_id: &ModuleIdentifier,
+  module_graph: &ModuleGraph,
+  module_graph_cache: &ModuleGraphCacheArtifact,
+  exports_info_artifact: &ExportsInfoArtifact,
+) -> bool {
+  module_graph
+    .get_incoming_connections(module_id)
+    .any(|connection| {
+      let dependency = module_graph.dependency_by_id(&connection.dependency_id);
+      is_esm_dep_like(dependency)
+        && dependency.as_module_dependency().is_some_and(|dependency| {
+          dependency
+            .get_referenced_exports(
+              module_graph,
+              module_graph_cache,
+              exports_info_artifact,
+              None,
+            )
+            .iter()
+            .any(|referenced_export| !referenced_export.name.is_empty())
+        })
+    })
 }
 
 #[derive(Clone, Debug)]
@@ -949,11 +993,43 @@ impl ModuleConcatenationPlugin {
         let m = module_graph
           .module_by_identifier(&module_id)
           .expect("should have module");
+        let is_unknown_empty_commonjs =
+          is_unknown_empty_commonjs(&module_id, m.as_ref(), &compilation.exports_info_artifact);
+        // A named import needs a concrete binding, which an empty CommonJS module cannot provide.
+        // Keep that existing linker constraint separate from the empty-module classification.
+        let can_concatenate_unknown_empty_commonjs = is_unknown_empty_commonjs
+          && !has_incoming_named_esm_reference(
+            &module_id,
+            module_graph,
+            &compilation.module_graph_cache_artifact,
+            &compilation.exports_info_artifact,
+          );
 
-        if let Some(reason) = m.get_concatenation_bailout_reason(
-          module_graph,
-          &compilation.build_chunk_graph_artifact.chunk_graph,
-        ) {
+        let concatenation_bailout_reason = if can_concatenate_unknown_empty_commonjs {
+          m.as_normal_module()
+            .and_then(|module| {
+              module
+                .parser_and_generator()
+                .downcast_ref::<JavaScriptParserAndGenerator>()
+            })
+            .map_or_else(
+              || {
+                m.get_concatenation_bailout_reason(
+                  module_graph,
+                  &compilation.build_chunk_graph_artifact.chunk_graph,
+                )
+              },
+              |parser_and_generator| {
+                parser_and_generator.get_module_concatenation_bailout_reason(m.as_ref(), true)
+              },
+            )
+        } else {
+          m.get_concatenation_bailout_reason(
+            module_graph,
+            &compilation.build_chunk_graph_artifact.chunk_graph,
+          )
+        };
+        if let Some(reason) = concatenation_bailout_reason {
           bailout_reason.push(reason);
           return (false, false, module_id, bailout_reason);
         }
@@ -970,6 +1046,11 @@ impl ModuleConcatenationPlugin {
         if number_of_module_chunks == 0 {
           bailout_reason.push("Module is not in any chunk".into());
           return (false, false, module_id, bailout_reason);
+        }
+
+        if can_concatenate_unknown_empty_commonjs {
+          // Unknown CommonJS exports cannot provide the root's export surface.
+          can_be_root = false;
         }
 
         let exports_info = compilation
