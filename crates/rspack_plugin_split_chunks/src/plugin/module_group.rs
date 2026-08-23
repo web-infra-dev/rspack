@@ -17,6 +17,7 @@ use rspack_core::{
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_util::{fx_hash::FxDashMap, tracing_preset::TRACING_BENCH_TARGET};
 use rustc_hash::{FxHashMap, FxHashSet, FxHasher};
+use smallvec::SmallVec;
 use tracing::instrument;
 
 use super::ModuleGroupMap;
@@ -191,7 +192,7 @@ fn get_key<I: Iterator<Item = ChunkUkey>>(
         .get(&chunk)
         .expect("should already have index for chunk ukey")
     })
-    .collect::<Vec<_>>();
+    .collect::<SmallVec<[u32; 16]>>();
   sorted_chunk_ukeys.sort_unstable();
   let mut hasher = FxHasher::default();
   for chunk_ukey in sorted_chunk_ukeys {
