@@ -998,6 +998,7 @@ impl ModuleConcatenationPlugin {
         // A named import needs a concrete binding, which an empty CommonJS module cannot provide.
         // Keep that existing linker constraint separate from the empty-module classification.
         let can_concatenate_unknown_empty_commonjs = is_unknown_empty_commonjs
+          && m.build_info().strict
           && !has_incoming_named_esm_reference(
             &module_id,
             module_graph,
