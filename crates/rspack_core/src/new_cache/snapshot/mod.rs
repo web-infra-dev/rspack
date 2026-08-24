@@ -80,7 +80,7 @@ pub struct Snapshot {
   pub(super) managed_contexts: Option<InternedPathSet>,
   pub(super) managed_missing: Option<InternedPathSet>,
   #[cacheable(omit_bounds)]
-  pub(super) children: Option<Vec<Box<Snapshot>>>,
+  pub(super) children: Option<Vec<Snapshot>>,
 }
 
 impl Snapshot {
