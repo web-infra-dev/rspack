@@ -969,6 +969,11 @@ export async function runLoaders(
   };
 
   const enableParallelism = (currentLoaderObject: any) => {
+    // A buffer backed by WASM linear memory retains the entire backing store
+    // after crossing the worker boundary, so a cached loader must stay on the
+    // main thread to avoid copying the whole WASM memory through N-API.
+    if (process.env.WASM && currentLoaderObject?.loaderItem.cache) return false;
+
     return currentLoaderObject?.parallel;
   };
 
