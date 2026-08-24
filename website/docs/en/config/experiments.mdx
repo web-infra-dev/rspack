@@ -271,20 +271,13 @@ This option depends on `optimization.sideEffects`. If you disable [`optimization
 - **Type:** `'webpack' | 'rspack'`
 - **Default:** `'webpack'`
 
-Controls how Rspack organizes the generated runtime code:
-
-- `'webpack'` keeps the webpack-compatible runtime layout. The module loading function and runtime helpers are exposed through `__webpack_require__`.
-- `'rspack'` uses Rspack's native runtime layout. When combined with [`output.module`](/config/output#outputmodule) and [`modern-module`](/config/output#outputlibrarytype), it exports the loader, module factories, and runtime helpers as named ESM bindings.
-
-For regular builds, keep the default `'webpack'` mode. Enabling `'rspack'` is not recommended because it currently provides no clear user-facing benefit in these builds. The recommended use case is an ESM library built with `output.module: true` and `output.library.type: 'modern-module'`.
+When [`output.module`](/config/output#outputmodule) is `true` and [`output.library.type`](/config/output#outputlibrarytype) is `'modern-module'`, setting `experiments.runtimeMode` to `'rspack'` generates cleaner output. Instead of exporting one `__webpack_require__` function with runtime helpers attached as properties, the runtime exports the loader, module factories, and helpers as named ESM bindings. Each output chunk can import only the bindings it needs.
 
 :::warning Plugin compatibility
 Before enabling this option, check any plugins that inject runtime code. If the injected code directly depends on **`__webpack_require__`**, it will no longer work because the runtime argument passed to module factories changes to **`__rspack_context`** in `'rspack'` mode.
 :::
 
-### Recommended use: ESM libraries with `modern-module`
-
-When [`output.module`](/config/output#outputmodule) is `true` and [`output.library.type`](/config/output#outputlibrarytype) is `'modern-module'`, `'rspack'` mode makes a separate runtime chunk more ESM-friendly. Instead of exporting one `__webpack_require__` function with helpers attached as properties, the runtime exports the loader, module factories, and helpers as named ESM bindings. Each output chunk can import the bindings it needs directly.
+### Example
 
 ```js title="rspack.config.mjs"
 export default {

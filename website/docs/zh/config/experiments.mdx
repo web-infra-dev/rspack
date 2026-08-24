@@ -271,20 +271,13 @@ export default {
 - **类型：** `'webpack' | 'rspack'`
 - **默认值：** `'webpack'`
 
-控制 Rspack 如何组织生成的 runtime 代码：
-
-- `'webpack'` 保留与 webpack 兼容的 runtime 结构，通过 `__webpack_require__` 同时暴露模块加载函数和 runtime 辅助函数。
-- `'rspack'` 使用 Rspack 原生的 runtime 结构。与 [`output.module`](/config/output#outputmodule) 和 [`modern-module`](/config/output#outputlibrarytype) 配合使用时，它会将加载函数、模块工厂和 runtime 辅助函数分别导出为具名 ESM 绑定。
-
-对于常规构建，请保留默认的 `'webpack'` 模式。不建议在这类构建中开启 `'rspack'`，因为它目前没有明确的用户侧收益。推荐场景是通过 `output.module: true` 和 `output.library.type: 'modern-module'` 构建 ESM 库。
+当 [`output.module`](/config/output#outputmodule) 为 `true`，且 [`output.library.type`](/config/output#outputlibrarytype) 为 `'modern-module'` 时，将 `experiments.runtimeMode` 设置为 `'rspack'` 可以精简产物。runtime 不再只导出一个挂载了多个辅助函数的 `__webpack_require__`，而是将加载函数、模块工厂和辅助函数分别导出为具名 ESM 绑定，让每个产物 chunk 只需导入实际使用的绑定。
 
 :::warning 插件兼容性
 开启该选项前，请检查项目中会注入 runtime 代码的插件。如果注入的代码直接依赖 **`__webpack_require__`**，开启 `'rspack'` 模式后将无法工作，因为传递给模块工厂的 runtime 参数会变为 **`__rspack_context`**。
 :::
 
-### 推荐场景：配合 `modern-module` 构建 ESM 库
-
-当 [`output.module`](/config/output#outputmodule) 为 `true`，且 [`output.library.type`](/config/output#outputlibrarytype) 为 `'modern-module'` 时，`'rspack'` 模式会让独立 runtime chunk 的 ESM 结构更清晰。runtime 不再只导出一个挂载了多个辅助函数的 `__webpack_require__`，而是将加载函数、模块工厂和辅助函数分别导出为具名 ESM 绑定，让每个产物 chunk 可以直接导入需要的绑定。
+### 示例
 
 ```js title="rspack.config.mjs"
 export default {
