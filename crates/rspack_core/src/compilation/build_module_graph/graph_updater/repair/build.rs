@@ -1,8 +1,4 @@
-use std::{
-  collections::VecDeque,
-  sync::Arc,
-  time::{SystemTime, UNIX_EPOCH},
-};
+use std::{collections::VecDeque, sync::Arc};
 
 use rspack_fs::ReadableFileSystem;
 use rustc_hash::FxHashSet;
@@ -67,12 +63,7 @@ impl Task<TaskContext> for BuildTask {
       .call(compiler_id, compilation_id, &mut module)
       .await?;
 
-    let start_time = file_system_info.and_then(|_| {
-      SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .ok()
-        .and_then(|duration| u64::try_from(duration.as_millis()).ok())
-    });
+    let start_time = file_system_info.map(|_| rspack_util::current_time());
     let mut result = module
       .build(
         BuildContext {

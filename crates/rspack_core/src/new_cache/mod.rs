@@ -79,7 +79,7 @@ pub fn create_cache(
     rspack_workspace::rspack_pkg_version!().to_string(),
     options.version.clone(),
     codec,
-    file_system_info,
+    file_system_info.clone(),
     build_deps,
   ) {
     Ok(strategy) => strategy,
@@ -89,7 +89,7 @@ pub fn create_cache(
         compiler_path,
         MemoryCache::default(),
         None,
-        FileSystemInfo::new(input_filesystem, options.snapshot.clone()),
+        file_system_info,
       );
     }
   };
@@ -99,6 +99,6 @@ pub fn create_cache(
     compiler_path,
     MemoryCache::default(),
     Some(idle_file_cache),
-    FileSystemInfo::new(input_filesystem, options.snapshot.clone()),
+    file_system_info,
   )
 }

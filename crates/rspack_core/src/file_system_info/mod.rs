@@ -128,15 +128,6 @@ impl FileSystemInfo {
     snapshot
   }
 
-  /// Mirrors webpack's `FileSystemInfo.checkSnapshotValid`.
-  ///
-  /// <https://github.com/webpack/webpack/blob/main/lib/FileSystemInfo.js#L3069-L3543>
-  #[tracing::instrument("Cache::FileSystemInfo::check_snapshot_valid", skip_all)]
-  pub async fn check_snapshot_valid(&self, snapshot: &Snapshot) -> Result<bool> {
-    let changes = self.collect_snapshot_changes(snapshot).await?;
-    Ok(changes.modified_files.is_empty() && changes.removed_files.is_empty())
-  }
-
   pub(crate) async fn collect_snapshot_changes(
     &self,
     snapshot: &Snapshot,
@@ -164,13 +155,7 @@ impl FileSystemInfo {
         &mut changes,
         &entry.path,
         entry.value.clone(),
-        self
-          .file_hash(&entry.path)
-          .await?
-          .map(|value| TimestampAndHash {
-            timestamp: value.timestamp,
-            hash: value.hash,
-          }),
+        self.file_hash(&entry.path).await?,
       );
     }
     for entry in &snapshot.context_timestamps {
@@ -303,10 +288,7 @@ impl FileSystemInfo {
       return Ok(CapturedFile::Managed { path, item });
     }
     Ok(if options.hash && options.timestamp {
-      let value = self.file_hash(&path).await?.map(|value| TimestampAndHash {
-        timestamp: value.timestamp,
-        hash: value.hash,
-      });
+      let value = self.file_hash(&path).await?;
       CapturedFile::TimestampAndHash(SnapshotEntry { path, value })
     } else if options.hash {
       let value = self.file_hash(&path).await?.map(|value| value.hash);
@@ -415,6 +397,14 @@ impl FileSystemInfo {
     let Some(metadata) = self.metadata(path).await? else {
       return Ok(None);
     };
+    self.file_hash_from_metadata(path, &metadata).await
+  }
+
+  async fn file_hash_from_metadata(
+    &self,
+    path: &InternedPath,
+    metadata: &FileMetadata,
+  ) -> Result<Option<TimestampAndHash>> {
     let mut hasher = FxHasher::default();
     if metadata.is_symlink {
       let target = self.fs.canonicalize(path.assert_utf8()).await?;
@@ -426,7 +416,7 @@ impl FileSystemInfo {
       content.hash(&mut hasher);
     }
     Ok(Some(TimestampAndHash {
-      timestamp: Self::modified_time_from_metadata(&metadata),
+      timestamp: Self::modified_time_from_metadata(metadata),
       hash: hasher.finish(),
     }))
   }
@@ -437,7 +427,12 @@ impl FileSystemInfo {
       return Ok(None);
     };
     if !metadata.is_directory || metadata.is_symlink {
-      return Ok(self.file_hash(path).await?.map(|value| value.hash));
+      return Ok(
+        self
+          .file_hash_from_metadata(path, &metadata)
+          .await?
+          .map(|value| value.hash),
+      );
     }
     let Some(mut children) = missing_as_none(self.fs.read_dir(path.assert_utf8()).await)? else {
       return Ok(None);

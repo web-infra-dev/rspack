@@ -39,16 +39,7 @@ impl Cache {
     memory_cache: MemoryCache,
     idle_file_cache: Option<IdleFileCache>,
   ) -> Self {
-    Self {
-      inner: Arc::new(CacheInner {
-        compiler_path,
-        storage: Some(CacheStorage {
-          memory_cache,
-          idle_file_cache,
-        }),
-        file_system_info: None,
-      }),
-    }
+    Self::new_inner(compiler_path, memory_cache, idle_file_cache, None)
   }
 
   pub(crate) fn new_with_file_system_info(
@@ -57,6 +48,20 @@ impl Cache {
     idle_file_cache: Option<IdleFileCache>,
     file_system_info: FileSystemInfo,
   ) -> Self {
+    Self::new_inner(
+      compiler_path,
+      memory_cache,
+      idle_file_cache,
+      Some(file_system_info),
+    )
+  }
+
+  fn new_inner(
+    compiler_path: String,
+    memory_cache: MemoryCache,
+    idle_file_cache: Option<IdleFileCache>,
+    file_system_info: Option<FileSystemInfo>,
+  ) -> Self {
     Self {
       inner: Arc::new(CacheInner {
         compiler_path,
@@ -64,7 +69,7 @@ impl Cache {
           memory_cache,
           idle_file_cache,
         }),
-        file_system_info: Some(file_system_info),
+        file_system_info,
       }),
     }
   }
