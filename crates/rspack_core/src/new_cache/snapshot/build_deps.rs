@@ -1,7 +1,7 @@
 use std::{collections::VecDeque, path::PathBuf, sync::Arc};
 
 use rspack_fs::ReadableFileSystem;
-use rspack_paths::{ArcPath, ArcPathSet, AssertUtf8};
+use rspack_paths::{AssertUtf8, InternedPath, InternedPathSet};
 
 use super::{Snapshot, SnapshotEntry};
 use crate::{
@@ -17,8 +17,8 @@ pub enum BuildDepsValidationResult {
     tracked_files: usize,
   },
   Invalid {
-    modified_files: ArcPathSet,
-    removed_files: ArcPathSet,
+    modified_files: InternedPathSet,
+    removed_files: InternedPathSet,
   },
 }
 
@@ -26,7 +26,7 @@ pub enum BuildDepsValidationResult {
 #[derive(Debug)]
 pub struct BuildDeps {
   /// Dependencies configured at startup and added on the next store.
-  pending: ArcPathSet,
+  pending: InternedPathSet,
   fs: Arc<dyn ReadableFileSystem>,
   logger: CompilationLogger,
 }
@@ -40,7 +40,7 @@ impl BuildDeps {
     Self {
       pending: options
         .iter()
-        .map(|path| ArcPath::from(path.as_path()))
+        .map(|path| InternedPath::from(path.as_path()))
         .collect(),
       fs,
       logger,
@@ -53,11 +53,11 @@ impl BuildDeps {
   /// `node_modules`.
   pub async fn resolve_dependencies(
     &mut self,
-    current: &ArcPathSet,
-    paths: impl Iterator<Item = ArcPath>,
-  ) -> ArcPathSet {
+    current: &InternedPathSet,
+    paths: impl Iterator<Item = InternedPath>,
+  ) -> InternedPathSet {
     let mut helper = Helper::new(self.fs.clone(), self.logger.clone());
-    let mut added = ArcPathSet::default();
+    let mut added = InternedPathSet::default();
     let mut queue = VecDeque::new();
     queue.extend(self.pending.iter().cloned());
     queue.extend(paths);
@@ -73,7 +73,7 @@ impl BuildDeps {
         queue.extend(
           children
             .into_iter()
-            .map(|path| ArcPath::from(path.as_path())),
+            .map(|path| InternedPath::from(path.as_path())),
         );
       }
     }

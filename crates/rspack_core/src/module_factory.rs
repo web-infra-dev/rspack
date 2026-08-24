@@ -1,7 +1,7 @@
 use std::{fmt::Debug, sync::Arc};
 
 use rspack_error::{Diagnostic, Result};
-use rspack_paths::{ArcPath, ArcPathSet};
+use rspack_paths::{InternedPath, InternedPathSet};
 
 use crate::{
   BoxModule, CompilationId, CompilerId, CompilerOptions, Context, DependencyRef, ModuleIdentifier,
@@ -22,20 +22,23 @@ pub struct ModuleFactoryCreateData {
   pub issuer_layer: Option<ModuleLayer>,
   pub resolver_factory: Arc<ResolverFactory>,
 
-  pub file_dependencies: ArcPathSet,
-  pub context_dependencies: ArcPathSet,
-  pub missing_dependencies: ArcPathSet,
+  pub file_dependencies: InternedPathSet,
+  pub context_dependencies: InternedPathSet,
+  pub missing_dependencies: InternedPathSet,
   pub diagnostics: Vec<Diagnostic>,
 }
 
 impl ModuleFactoryCreateData {
-  pub fn add_file_dependencies<F: Into<ArcPath>>(&mut self, files: impl IntoIterator<Item = F>) {
+  pub fn add_file_dependencies<F: Into<InternedPath>>(
+    &mut self,
+    files: impl IntoIterator<Item = F>,
+  ) {
     self
       .file_dependencies
       .extend(files.into_iter().map(Into::into));
   }
 
-  pub fn add_missing_dependencies<F: Into<ArcPath>>(
+  pub fn add_missing_dependencies<F: Into<InternedPath>>(
     &mut self,
     missing: impl IntoIterator<Item = F>,
   ) {

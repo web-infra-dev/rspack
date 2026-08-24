@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use rspack_cacheable::cacheable;
 use rspack_error::Result;
-use rspack_paths::{ArcPath, ArcPathSet};
+use rspack_paths::{InternedPath, InternedPathSet};
 
 use super::snapshot::{BuildDependenciesSnapshot, BuildDeps, BuildDepsValidationResult, Snapshot};
 use crate::cache::persistent::codec::CacheCodec;
@@ -35,8 +35,8 @@ pub(super) enum CacheValidatorResult {
     tracked_files: usize,
   },
   InvalidBuildDependencies {
-    modified_files: ArcPathSet,
-    removed_files: ArcPathSet,
+    modified_files: InternedPathSet,
+    removed_files: InternedPathSet,
   },
 }
 
@@ -91,7 +91,10 @@ impl CacheValidator {
     })
   }
 
-  pub(super) async fn update(&mut self, paths: impl Iterator<Item = ArcPath>) -> Result<Vec<u8>> {
+  pub(super) async fn update(
+    &mut self,
+    paths: impl Iterator<Item = InternedPath>,
+  ) -> Result<Vec<u8>> {
     self
       .data
       .build_dependencies

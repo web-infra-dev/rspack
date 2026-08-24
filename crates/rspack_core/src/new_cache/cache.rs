@@ -1,7 +1,7 @@
 use std::{sync::Arc, time::Duration};
 
 use rspack_error::Result;
-use rspack_paths::ArcPathSet;
+use rspack_paths::InternedPathSet;
 
 use super::{
   CacheFacade, CacheKey, CacheValue, Etag, IdleFileCache, MemoryCache, MemoryCacheGetResult,
@@ -115,7 +115,7 @@ impl Cache {
     }
   }
 
-  pub fn store_build_dependencies(&self, dependencies: ArcPathSet) -> Result<()> {
+  pub fn store_build_dependencies(&self, dependencies: InternedPathSet) -> Result<()> {
     let Some(storage) = &self.inner.storage else {
       return Ok(());
     };

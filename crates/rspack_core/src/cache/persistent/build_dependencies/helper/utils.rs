@@ -21,13 +21,13 @@ pub fn is_node_package_path(path: &Path) -> bool {
 mod test {
   use std::path::PathBuf;
 
-  use rspack_paths::ArcPath;
+  use rspack_paths::InternedPath;
 
   use super::is_node_package_path;
 
-  fn generate_arc_path(path: &str) -> ArcPath {
+  fn generate_arc_path(path: &str) -> InternedPath {
     let path_buf = PathBuf::from(path);
-    ArcPath::from(path_buf)
+    InternedPath::from(path_buf)
   }
 
   #[test]

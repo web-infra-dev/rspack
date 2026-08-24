@@ -50,7 +50,7 @@ use rspack_error::{Diagnostic, Result, ToStringResultToRspackResultExt};
 use rspack_fs::{IntermediateFileSystem, ReadableFileSystem, WritableFileSystem};
 use rspack_hash::{RspackHashDigest, RspackHasher};
 use rspack_hook::define_hook;
-use rspack_paths::{ArcPath, ArcPathIndexSet, ArcPathSet};
+use rspack_paths::{InternedPath, InternedPathIndexSet, InternedPathSet};
 use rspack_sources::BoxSource;
 use rspack_tasks::CompilerContext;
 #[cfg(allocative)]
@@ -295,10 +295,10 @@ pub struct Compilation {
 
   pub hash: Option<RspackHashDigest>,
 
-  pub file_dependencies: ArcPathIndexSet,
-  pub context_dependencies: ArcPathIndexSet,
-  pub missing_dependencies: ArcPathIndexSet,
-  pub build_dependencies: ArcPathIndexSet,
+  pub file_dependencies: InternedPathIndexSet,
+  pub context_dependencies: InternedPathIndexSet,
+  pub missing_dependencies: InternedPathIndexSet,
+  pub build_dependencies: InternedPathIndexSet,
 
   pub value_cache_versions: ValueCacheVersions,
 
@@ -308,8 +308,8 @@ pub struct Compilation {
   pub module_executor: Option<ModuleExecutor>,
   in_finish_make: AtomicBool,
 
-  pub modified_files: ArcPathSet,
-  pub removed_files: ArcPathSet,
+  pub modified_files: InternedPathSet,
+  pub removed_files: InternedPathSet,
   pub build_module_graph_artifact: StealCell<BuildModuleGraphArtifact>,
   pub input_filesystem: Arc<dyn ReadableFileSystem>,
 
@@ -349,8 +349,8 @@ impl Compilation {
     module_executor: Option<ModuleExecutor>,
     logging: CompilationLogging,
     cache: Cache,
-    modified_files: ArcPathSet,
-    removed_files: ArcPathSet,
+    modified_files: InternedPathSet,
+    removed_files: InternedPathSet,
     input_filesystem: Arc<dyn ReadableFileSystem>,
     intermediate_filesystem: Arc<dyn IntermediateFileSystem>,
     output_filesystem: Arc<dyn WritableFileSystem>,
@@ -489,10 +489,10 @@ impl Compilation {
   pub fn file_dependencies(
     &self,
   ) -> (
-    impl Iterator<Item = &ArcPath>,
-    impl Iterator<Item = &ArcPath>,
-    impl Iterator<Item = &ArcPath>,
-    impl Iterator<Item = &ArcPath>,
+    impl Iterator<Item = &InternedPath>,
+    impl Iterator<Item = &InternedPath>,
+    impl Iterator<Item = &InternedPath>,
+    impl Iterator<Item = &InternedPath>,
   ) {
     let all_files = self
       .build_module_graph_artifact
@@ -518,10 +518,10 @@ impl Compilation {
   pub fn context_dependencies(
     &self,
   ) -> (
-    impl Iterator<Item = &ArcPath>,
-    impl Iterator<Item = &ArcPath>,
-    impl Iterator<Item = &ArcPath>,
-    impl Iterator<Item = &ArcPath>,
+    impl Iterator<Item = &InternedPath>,
+    impl Iterator<Item = &InternedPath>,
+    impl Iterator<Item = &InternedPath>,
+    impl Iterator<Item = &InternedPath>,
   ) {
     let all_files = self
       .build_module_graph_artifact
@@ -547,10 +547,10 @@ impl Compilation {
   pub fn missing_dependencies(
     &self,
   ) -> (
-    impl Iterator<Item = &ArcPath>,
-    impl Iterator<Item = &ArcPath>,
-    impl Iterator<Item = &ArcPath>,
-    impl Iterator<Item = &ArcPath>,
+    impl Iterator<Item = &InternedPath>,
+    impl Iterator<Item = &InternedPath>,
+    impl Iterator<Item = &InternedPath>,
+    impl Iterator<Item = &InternedPath>,
   ) {
     let all_files = self
       .build_module_graph_artifact
@@ -576,10 +576,10 @@ impl Compilation {
   pub fn build_dependencies(
     &self,
   ) -> (
-    impl Iterator<Item = &ArcPath>,
-    impl Iterator<Item = &ArcPath>,
-    impl Iterator<Item = &ArcPath>,
-    impl Iterator<Item = &ArcPath>,
+    impl Iterator<Item = &InternedPath>,
+    impl Iterator<Item = &InternedPath>,
+    impl Iterator<Item = &InternedPath>,
+    impl Iterator<Item = &InternedPath>,
   ) {
     let all_files = self
       .build_module_graph_artifact

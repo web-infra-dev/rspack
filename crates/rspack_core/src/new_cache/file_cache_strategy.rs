@@ -1,7 +1,7 @@
 use std::{fmt, sync::Arc};
 
 use rspack_error::Result;
-use rspack_paths::{ArcPathSet, Utf8PathBuf};
+use rspack_paths::{InternedPathSet, Utf8PathBuf};
 use rustc_hash::FxHashMap;
 
 use super::{
@@ -18,7 +18,7 @@ const VALIDATOR_KEY: &[u8] = b"validator";
 #[derive(Debug, Default)]
 struct PendingWrites {
   entries: FxHashMap<CacheKey, PendingWrite>,
-  build_dependencies: Option<ArcPathSet>,
+  build_dependencies: Option<InternedPathSet>,
 }
 
 #[derive(Debug)]
@@ -128,7 +128,7 @@ impl FileCacheStrategy {
     );
   }
 
-  pub fn store_build_dependencies(&mut self, dependencies: ArcPathSet) {
+  pub fn store_build_dependencies(&mut self, dependencies: InternedPathSet) {
     if self.readonly {
       return;
     }
