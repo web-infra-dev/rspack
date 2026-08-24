@@ -5,7 +5,7 @@ use rspack_core::{
 };
 use rspack_error::{Diagnostic, Result, error};
 use rspack_hook::{plugin, plugin_hook};
-use rustc_hash::{FxBuildHasher, FxHashMap};
+use rustc_hash::{FxBuildHasher, FxHashMap, FxHashSet};
 
 use crate::{
   compat_hashed_id::{
@@ -66,8 +66,11 @@ async fn chunk_ids(
   // Prevent generated ids from aliasing preassigned ids on case-insensitive file systems.
   let used_ids = get_used_chunk_ids(chunk_by_ukey)
     .into_iter()
-    .map(|id| id.to_ascii_lowercase())
-    .collect();
+    .map(|mut id| {
+      id.make_ascii_lowercase();
+      id
+    })
+    .collect::<FxHashSet<_>>();
   let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
   let module_graph = compilation.get_module_graph();
   let module_graph_cache = &compilation.module_graph_cache_artifact;
