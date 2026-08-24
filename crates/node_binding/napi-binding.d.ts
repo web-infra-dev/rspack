@@ -407,6 +407,11 @@ export declare class JsExportsInfo {
   getUsed(name: string | string[], runtime: string | string[] | undefined):  0 | 1 | 2 | 3 | 4
 }
 
+export declare class JsLoaderCache {
+  get(loaderIndex: number, content: string | Uint8Array): JsLoaderCacheEntry | null
+  store(loaderIndex: number, output: JsLoaderCacheEntry): void
+}
+
 export declare class JsModuleGraph {
   getModule(dependency: Dependency): Module | null
   getResolvedModule(dependency: Dependency): Module | null
@@ -951,6 +956,11 @@ export interface JsLinkPreloadData {
   chunk: Chunk
 }
 
+export interface JsLoaderCacheEntry {
+  content: null | string | Uint8Array
+  sourceMap?: Uint8Array
+}
+
 export interface JsLoaderContext {
   resource: string
   _module: Module
@@ -969,6 +979,7 @@ export interface JsLoaderContext {
   loaderIndex: number
   loaderState: Readonly<JsLoaderState>
   __internal__error?: RspackError
+  __internal__loaderCache?: JsLoaderCache | undefined
   /**
    * UTF-8 hint for `content`
    * - Some(true): `content` is a `UTF-8` encoded sequence
@@ -979,6 +990,7 @@ export interface JsLoaderContext {
 export interface JsLoaderItem {
   loader: string
   type: string
+  cache: boolean
   data: any
   normalExecuted: boolean
   pitchExecuted: boolean
@@ -2754,11 +2766,14 @@ export interface RawModuleRule {
 export interface RawModuleRuleUse {
   loader: string
   options?: string
+  cache: boolean
+  optionsCacheKey: string
 }
 
 export interface RawNewCache {
   codeGeneration: boolean
   devtool: boolean
+  loader: boolean
   minimize: boolean
 }
 

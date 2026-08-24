@@ -283,6 +283,7 @@ const applyExperimentsDefaults = (
   if (typeof experiments.newCache === 'object') {
     D(experiments.newCache, 'codeGeneration', true);
     D(experiments.newCache, 'devtool', true);
+    D(experiments.newCache, 'loader', true);
     D(experiments.newCache, 'minimize', true);
   }
   D(experiments, 'asyncWebAssembly', true);

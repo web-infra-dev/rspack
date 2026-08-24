@@ -891,6 +891,13 @@ export type RuleSetLoaderWithOptions = {
    */
   parallel?: boolean | { maxWorkers?: number };
 
+  /**
+   * Cache this loader in `experiments.newCache`.
+   * This is an experimental API and may change or be removed in the future.
+   * @experimental
+   */
+  cache?: boolean;
+
   options?: RuleSetLoaderOptions;
 };
 
@@ -3114,6 +3121,8 @@ export type NewCache = {
   codeGeneration?: boolean;
   /** Enable the devtool asset cache. @default true */
   devtool?: boolean;
+  /** Enable the per-loader cache. @default true */
+  loader?: boolean;
   /** Enable the asset minimization cache. @default true */
   minimize?: boolean;
 };
