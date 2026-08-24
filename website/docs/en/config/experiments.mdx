@@ -277,9 +277,6 @@ When [`output.module`](/config/output#outputmodule) is `true` and [`output.libra
 
 ```js title="rspack.config.mjs"
 export default {
-  entry: {
-    main: './src/index.js',
-  },
   experiments: {
     runtimeMode: 'rspack',
   },
@@ -302,30 +299,13 @@ The generated runtime and a chunk that consumes it are organized like this (simp
 
 ```js
 // runtime.js
-var __webpack_modules__ = {};
-
-function __webpack_require__(moduleId) {
-  // Load and execute the module.
-}
-
-__webpack_require__.m = __webpack_modules__;
-__webpack_require__.n = compatGetDefaultExport;
-__webpack_require__.add = (modules) => {
-  Object.assign(__webpack_require__.m, modules);
-};
-
 export { __webpack_require__ };
 
 // main.js
 import { __webpack_require__ } from './runtime.js';
 
-__webpack_require__.add({
-  './src/cjs.js'(module) {
-    module.exports = 'value';
-  },
-});
-
-const value = __webpack_require__('./src/cjs.js');
+__webpack_require__.add(/* module factories */);
+const value = __webpack_require__(moduleId);
 const getDefault = __webpack_require__.n(value);
 ```
 
@@ -334,21 +314,6 @@ const getDefault = __webpack_require__.n(value);
 
 ```js
 // runtime.js
-var modules = {};
-
-function rspackRequire(moduleId) {
-  // Load and execute the module.
-}
-
-var moduleFactories = modules;
-moduleFactories.add = (newModules) => {
-  Object.assign(moduleFactories, newModules);
-};
-
-var compatGetDefaultExport = (module) => {
-  // Return a compatible default export getter.
-};
-
 export { rspackRequire, moduleFactories, compatGetDefaultExport };
 
 // main.js
@@ -358,13 +323,8 @@ import {
   compatGetDefaultExport,
 } from './runtime.js';
 
-moduleFactories.add({
-  './src/cjs.js'(module) {
-    module.exports = 'value';
-  },
-});
-
-const value = rspackRequire('./src/cjs.js');
+moduleFactories.add(/* module factories */);
+const value = rspackRequire(moduleId);
 const getDefault = compatGetDefaultExport(value);
 ```
 
