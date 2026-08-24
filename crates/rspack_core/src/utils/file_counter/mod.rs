@@ -3,7 +3,7 @@ mod resource_id;
 use std::hash::BuildHasherDefault;
 
 use rspack_collections::IdentifierSet;
-use rspack_paths::{InternedPath, InternedPathMap, InternedPathSet};
+use rspack_paths::{InternedPath, InternedPathMap};
 use rustc_hash::FxHashSet;
 use ustr::IdentityHasher;
 
@@ -56,7 +56,11 @@ impl FileCounter {
   /// Add batch [`PathBuf`] to counter
   ///
   /// It will add resource_id at the PathBuf in inner hashmap
-  pub fn add_files(&mut self, resource_id: &ResourceId, paths: &InternedPathSet) {
+  pub fn add_files<'a>(
+    &mut self,
+    resource_id: &ResourceId,
+    paths: impl IntoIterator<Item = &'a InternedPath>,
+  ) {
     for path in paths {
       let list = self.inner.entry(path.clone()).or_default();
       if list.is_empty() {
@@ -73,7 +77,11 @@ impl FileCounter {
   ///
   /// If the PathBuf resource_id is empty after reduction, the record will be deleted
   /// If PathBuf does not exist, panic will occur.
-  pub fn remove_files(&mut self, resource_id: &ResourceId, paths: &InternedPathSet) {
+  pub fn remove_files<'a>(
+    &mut self,
+    resource_id: &ResourceId,
+    paths: impl IntoIterator<Item = &'a InternedPath>,
+  ) {
     for path in paths {
       let Some(list) = self.inner.get_mut(path) else {
         panic!("unable to remove untracked file {}", path.to_string_lossy());
@@ -239,6 +247,22 @@ mod test {
     counter.remove_files(&resource_2, &file_list_a);
     assert_eq!(counter.added_files().count(), 0);
     assert_eq!(counter.removed_files().count(), 1);
+  }
+
+  #[test]
+  fn file_counter_accepts_slices() {
+    let mut counter = FileCounter::default();
+    let files = [
+      InternedPath::from(std::path::PathBuf::from("/a")),
+      InternedPath::from(std::path::PathBuf::from("/b")),
+    ];
+    let resource = ResourceId::Module("A".into());
+
+    counter.add_files(&resource, files.as_slice());
+    assert_eq!(counter.files().count(), 2);
+
+    counter.remove_files(&resource, files.as_slice());
+    assert_eq!(counter.files().count(), 0);
   }
 
   #[test]
