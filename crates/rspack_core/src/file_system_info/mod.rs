@@ -1,4 +1,3 @@
-mod options;
 mod snapshot;
 
 use std::{
@@ -10,21 +9,13 @@ use futures::future::join3;
 use rspack_error::Result;
 use rspack_fs::{Error as FileSystemError, FileMetadata, ReadableFileSystem};
 use rspack_parallel::TryFutureConsumer;
-use rspack_paths::{AssertUtf8, InternedPath, InternedPathSet};
+use rspack_paths::{AssertUtf8, InternedPath};
 use rustc_hash::FxHasher;
 use simd_json::prelude::{ValueAsScalar, ValueObjectAccess};
 
+pub use self::snapshot::Snapshot;
 use self::snapshot::{ManagedItemInfo, SnapshotEntry, TimestampAndHash};
-pub use self::{
-  options::{PathMatcher, SnapshotOptions, SnapshotStrategyOptions},
-  snapshot::Snapshot,
-};
-
-#[derive(Debug, Default)]
-pub(crate) struct SnapshotChanges {
-  pub modified_files: InternedPathSet,
-  pub removed_files: InternedPathSet,
-}
+use crate::cache::persistent::snapshot::{SnapshotOptions, SnapshotStrategyOptions};
 
 #[derive(Debug)]
 enum CapturedFile {
@@ -60,11 +51,11 @@ enum CapturedMissing {
   Existence(SnapshotEntry<bool>),
 }
 
-/// Creates and validates filesystem snapshots.
+/// Creates filesystem snapshots.
 ///
 /// This module follows webpack's `FileSystemInfo` seam: callers provide paths
-/// and a snapshot mode, while filesystem classification, capture, merge, and
-/// validation stay behind this interface.
+/// and a snapshot mode, while filesystem classification and capture stay
+/// behind this interface.
 #[derive(Debug, Clone)]
 pub struct FileSystemInfo {
   fs: Arc<dyn ReadableFileSystem>,
@@ -120,86 +111,6 @@ impl FileSystemInfo {
         self.options.dependencies_strategy(),
       )
       .await
-  }
-
-  /// Mirrors webpack's `FileSystemInfo.mergeSnapshots`.
-  pub fn merge_snapshots(&self, mut snapshot: Snapshot, added: Snapshot) -> Snapshot {
-    snapshot.merge(added);
-    snapshot
-  }
-
-  pub(crate) async fn collect_snapshot_changes(
-    &self,
-    snapshot: &Snapshot,
-  ) -> Result<SnapshotChanges> {
-    let mut changes = SnapshotChanges::default();
-
-    for entry in &snapshot.file_timestamps {
-      record_change(
-        &mut changes,
-        &entry.path,
-        entry.value,
-        self.modified_time(&entry.path).await?,
-      );
-    }
-    for entry in &snapshot.file_hashes {
-      record_change(
-        &mut changes,
-        &entry.path,
-        entry.value,
-        self.file_hash(&entry.path).await?.map(|value| value.hash),
-      );
-    }
-    for entry in &snapshot.file_tshs {
-      record_timestamp_and_hash_change(
-        &mut changes,
-        &entry.path,
-        entry.value.clone(),
-        self.file_hash(&entry.path).await?,
-      );
-    }
-    for entry in &snapshot.context_timestamps {
-      record_change(
-        &mut changes,
-        &entry.path,
-        entry.value,
-        self.context_timestamp_hash(&entry.path).await?,
-      );
-    }
-    for entry in &snapshot.context_hashes {
-      record_change(
-        &mut changes,
-        &entry.path,
-        entry.value,
-        self.context_hash(&entry.path).await?,
-      );
-    }
-    for entry in &snapshot.context_tshs {
-      let current = self.context_timestamp_and_hash(&entry.path).await?;
-      record_timestamp_and_hash_change(&mut changes, &entry.path, entry.value.clone(), current);
-    }
-    for entry in &snapshot.missing_existence {
-      let current = self.exists(&entry.path).await?;
-      if current != entry.value {
-        if entry.value && !current {
-          changes.removed_files.insert(entry.path.clone());
-        } else {
-          changes.modified_files.insert(entry.path.clone());
-        }
-      }
-    }
-
-    self
-      .check_managed_paths(snapshot, &snapshot.managed_files, false, &mut changes)
-      .await?;
-    self
-      .check_managed_paths(snapshot, &snapshot.managed_contexts, false, &mut changes)
-      .await?;
-    self
-      .check_managed_paths(snapshot, &snapshot.managed_missing, true, &mut changes)
-      .await?;
-
-    Ok(changes)
   }
 
   async fn capture_files(
@@ -335,33 +246,6 @@ impl FileSystemInfo {
     }
     let value = self.exists(&path).await?;
     Ok(CapturedMissing::Existence(SnapshotEntry { path, value }))
-  }
-
-  async fn check_managed_paths(
-    &self,
-    snapshot: &Snapshot,
-    paths: &InternedPathSet,
-    expect_missing: bool,
-    changes: &mut SnapshotChanges,
-  ) -> Result<()> {
-    for path in paths {
-      if expect_missing && self.exists(path).await? {
-        changes.modified_files.insert(path.clone());
-        continue;
-      }
-      let Some(current) = self.managed_item_info(path).await? else {
-        changes.removed_files.insert(path.clone());
-        continue;
-      };
-      let valid = snapshot
-        .managed_item_info
-        .iter()
-        .any(|item| item.path == current.path && item.version == current.version);
-      if !valid {
-        changes.modified_files.insert(path.clone());
-      }
-    }
-    Ok(())
   }
 
   fn is_immutable(&self, path: &InternedPath) -> bool {
@@ -554,40 +438,5 @@ fn missing_as_none<T>(result: rspack_fs::Result<T>) -> Result<Option<T>> {
     Ok(value) => Ok(Some(value)),
     Err(FileSystemError::Io(error)) if error.kind() == std::io::ErrorKind::NotFound => Ok(None),
     Err(error) => Err(error.into()),
-  }
-}
-
-fn record_change<T: PartialEq>(
-  changes: &mut SnapshotChanges,
-  path: &InternedPath,
-  previous: Option<T>,
-  current: Option<T>,
-) {
-  if previous == current {
-    return;
-  }
-  if previous.is_some() && current.is_none() {
-    changes.removed_files.insert(path.clone());
-  } else {
-    changes.modified_files.insert(path.clone());
-  }
-}
-
-fn record_timestamp_and_hash_change(
-  changes: &mut SnapshotChanges,
-  path: &InternedPath,
-  previous: Option<TimestampAndHash>,
-  current: Option<TimestampAndHash>,
-) {
-  match (previous, current) {
-    (None, None) => {}
-    (Some(_), None) => {
-      changes.removed_files.insert(path.clone());
-    }
-    (Some(previous), Some(current))
-      if previous.timestamp == current.timestamp || previous.hash == current.hash => {}
-    _ => {
-      changes.modified_files.insert(path.clone());
-    }
   }
 }

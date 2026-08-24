@@ -8,10 +8,10 @@ use super::{
   CacheKey, Etag,
   cache_value::{CacheEntry, CacheValueDecoder, CacheValueEncoder, ErasedCacheValue},
   db::{Database, DatabaseFamily, DatabaseValue, DatabaseWrite},
-  snapshot::BuildDeps,
+  snapshot::{BuildDeps, Snapshot},
   validator::{CacheValidator, CacheValidatorResult},
 };
-use crate::{FileSystemInfo, cache::persistent::codec::CacheCodec};
+use crate::cache::persistent::codec::CacheCodec;
 
 const VALIDATOR_KEY: &[u8] = b"validator";
 
@@ -53,7 +53,7 @@ impl FileCacheStrategy {
     rspack_pkg_version: String,
     cache_version: String,
     codec: Arc<CacheCodec>,
-    file_system_info: FileSystemInfo,
+    snapshot: Snapshot,
     build_deps: BuildDeps,
   ) -> Result<Self> {
     let (base_path, database_path) = database_paths;
@@ -63,7 +63,7 @@ impl FileCacheStrategy {
         rspack_pkg_version,
         cache_version,
         codec.clone(),
-        file_system_info,
+        snapshot,
         build_deps,
       ),
       codec,

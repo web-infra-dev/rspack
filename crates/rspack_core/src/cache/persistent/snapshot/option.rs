@@ -1,7 +1,7 @@
 use rspack_cacheable::{cacheable, utils::PortablePath, with::As};
 use rspack_regex::RspackRegex;
 
-/// Use string or regex to match path.
+/// Use string or regex to match path
 #[cacheable]
 #[derive(Debug, Clone, Hash)]
 pub enum PathMatcher {
@@ -18,12 +18,16 @@ impl PathMatcher {
   }
 }
 
-/// Filesystem snapshot options shared by cache implementations.
+/// Snapshot options
 #[cacheable]
 #[derive(Debug, Clone, Hash)]
 pub struct SnapshotOptions {
+  /// immutable paths, snapshot will ignore them
   immutable_paths: Vec<PathMatcher>,
+  /// unmanaged paths, snapshot will use compile time strategy even if
+  /// them are in managed_paths
   unmanaged_paths: Vec<PathMatcher>,
+  /// managed_paths, snapshot will use lib version strategy
   managed_paths: Vec<PathMatcher>,
   dependencies: SnapshotStrategyOptions,
   context_dependencies: SnapshotStrategyOptions,
@@ -41,7 +45,6 @@ impl Default for SnapshotOptions {
   }
 }
 
-/// Controls which filesystem information is captured in a snapshot.
 #[cacheable]
 #[derive(Debug, Clone, Copy, Hash)]
 pub struct SnapshotStrategyOptions {
@@ -95,13 +98,28 @@ impl SnapshotOptions {
     self.context_dependencies
   }
 
-  pub fn is_immutable_path(&self, path: &str) -> bool {
-    self.immutable_paths.iter().any(|item| item.try_match(path))
+  pub fn is_immutable_path(&self, path_str: &str) -> bool {
+    for item in &self.immutable_paths {
+      if item.try_match(path_str) {
+        return true;
+      }
+    }
+    false
   }
 
-  pub fn is_managed_path(&self, path: &str) -> bool {
-    !self.unmanaged_paths.iter().any(|item| item.try_match(path))
-      && self.managed_paths.iter().any(|item| item.try_match(path))
+  pub fn is_managed_path(&self, path_str: &str) -> bool {
+    for item in &self.unmanaged_paths {
+      if item.try_match(path_str) {
+        return false;
+      }
+    }
+
+    for item in &self.managed_paths {
+      if item.try_match(path_str) {
+        return true;
+      }
+    }
+    false
   }
 }
 

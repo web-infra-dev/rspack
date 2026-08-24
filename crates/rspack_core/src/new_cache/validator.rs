@@ -4,8 +4,8 @@ use rspack_cacheable::cacheable;
 use rspack_error::Result;
 use rspack_paths::{InternedPath, InternedPathSet};
 
-use super::snapshot::{BuildDependenciesSnapshot, BuildDeps, BuildDepsValidationResult};
-use crate::{FileSystemInfo, cache::persistent::codec::CacheCodec};
+use super::snapshot::{BuildDependenciesSnapshot, BuildDeps, BuildDepsValidationResult, Snapshot};
+use crate::cache::persistent::codec::CacheCodec;
 
 #[cacheable]
 #[derive(Debug)]
@@ -44,7 +44,7 @@ pub(super) enum CacheValidatorResult {
 pub(super) struct CacheValidator {
   data: CacheValidatorData,
   codec: Arc<CacheCodec>,
-  file_system_info: FileSystemInfo,
+  snapshot: Snapshot,
   build_deps: BuildDeps,
 }
 
@@ -53,13 +53,13 @@ impl CacheValidator {
     rspack_pkg_version: String,
     cache_version: String,
     codec: Arc<CacheCodec>,
-    file_system_info: FileSystemInfo,
+    snapshot: Snapshot,
     build_deps: BuildDeps,
   ) -> Self {
     Self {
       data: CacheValidatorData::new(rspack_pkg_version, cache_version),
       codec,
-      file_system_info,
+      snapshot,
       build_deps,
     }
   }
@@ -74,8 +74,8 @@ impl CacheValidator {
     }
     let validation = validator
       .build_dependencies
-      .validate(&self.file_system_info, &self.build_deps)
-      .await?;
+      .validate(&self.snapshot, &self.build_deps)
+      .await;
     Ok(match validation {
       BuildDepsValidationResult::Valid { tracked_files } => {
         self.data = validator;
@@ -98,8 +98,8 @@ impl CacheValidator {
     self
       .data
       .build_dependencies
-      .update(&self.file_system_info, &mut self.build_deps, paths)
-      .await?;
+      .update(&self.snapshot, &mut self.build_deps, paths)
+      .await;
     self.codec.encode(&self.data)
   }
 }

@@ -1,11 +1,11 @@
 use std::{collections::VecDeque, path::PathBuf, sync::Arc};
 
-use rspack_error::Result;
 use rspack_fs::ReadableFileSystem;
 use rspack_paths::{AssertUtf8, InternedPath, InternedPathSet};
 
+use super::{Snapshot, SnapshotEntry};
 use crate::{
-  CompilationLogger, FileSystemInfo, Snapshot,
+  CompilationLogger,
   cache::persistent::build_dependencies::{Helper, is_node_package_path},
 };
 
@@ -87,19 +87,17 @@ impl BuildDeps {
   /// If any build dependency changed, this method returns an invalid result.
   pub async fn validate_snapshot(
     &self,
-    file_system_info: &FileSystemInfo,
     snapshot: &Snapshot,
+    entries: &[SnapshotEntry],
     tracked_files: usize,
-  ) -> Result<BuildDepsValidationResult> {
-    let changes = file_system_info.collect_snapshot_changes(snapshot).await?;
-    let modified_files = changes.modified_files;
-    let removed_files = changes.removed_files;
+  ) -> BuildDepsValidationResult {
+    let (modified_files, removed_files) = snapshot.calc_modified_paths(entries).await;
     if !modified_files.is_empty() || !removed_files.is_empty() {
-      return Ok(BuildDepsValidationResult::Invalid {
+      return BuildDepsValidationResult::Invalid {
         modified_files,
         removed_files,
-      });
+      };
     }
-    Ok(BuildDepsValidationResult::Valid { tracked_files })
+    BuildDepsValidationResult::Valid { tracked_files }
   }
 }

@@ -22,10 +22,10 @@ pub use idle_file_cache::IdleFileCache;
 pub use memory_cache::{MemoryCache, MemoryCacheGetResult};
 use rspack_fs::ReadableFileSystem;
 
-use self::snapshot::BuildDeps;
+use self::snapshot::{BuildDeps, Snapshot as BuildDependenciesSnapshotter};
 use crate::{
-  CompilationLogger, CompilationLogging, CompilerOptions, FileSystemInfo, SnapshotOptions,
-  cache::persistent::codec::CacheCodec,
+  CompilationLogger, CompilationLogging, CompilerOptions, FileSystemInfo,
+  cache::persistent::{codec::CacheCodec, snapshot::SnapshotOptions},
 };
 
 pub fn create_cache(
@@ -60,6 +60,8 @@ pub fn create_cache(
   };
   let codec = Arc::new(CacheCodec::new(project_root));
   let file_system_info = FileSystemInfo::new(input_filesystem.clone(), options.snapshot.clone());
+  let build_dependencies_snapshotter =
+    BuildDependenciesSnapshotter::new(options.snapshot.clone(), input_filesystem.clone());
   let build_deps = BuildDeps::new(
     &options.build_dependencies,
     input_filesystem.clone(),
@@ -79,7 +81,7 @@ pub fn create_cache(
     rspack_workspace::rspack_pkg_version!().to_string(),
     options.version.clone(),
     codec,
-    file_system_info.clone(),
+    build_dependencies_snapshotter,
     build_deps,
   ) {
     Ok(strategy) => strategy,

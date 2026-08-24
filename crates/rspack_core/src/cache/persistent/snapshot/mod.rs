@@ -1,3 +1,4 @@
+mod option;
 mod scope;
 mod strategy;
 
@@ -9,10 +10,13 @@ use rspack_parallel::TryFutureConsumer;
 use rspack_paths::{InternedPath, InternedPathSet};
 
 pub(crate) use self::strategy::{StrategyHelper, ValidateResult};
-pub use self::{scope::SnapshotScope, strategy::Strategy};
+pub use self::{
+  option::{PathMatcher, SnapshotOptions, SnapshotStrategyOptions},
+  scope::SnapshotScope,
+  strategy::Strategy,
+};
 use super::{codec::CacheCodec, storage::Storage};
 use crate::FutureConsumer;
-pub use crate::{PathMatcher, SnapshotOptions, SnapshotStrategyOptions};
 
 /// Snapshot is used to check if files have been modified or deleted.
 ///

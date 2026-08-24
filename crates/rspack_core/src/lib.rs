@@ -15,9 +15,7 @@ pub use compilation::{
   *,
 };
 pub use exports::*;
-pub use file_system_info::{
-  FileSystemInfo, PathMatcher, Snapshot, SnapshotOptions, SnapshotStrategyOptions,
-};
+pub use file_system_info::{FileSystemInfo, Snapshot};
 pub use new_cache::{Cache, CacheFacade, CacheValue, Etag, ItemCacheFacade, MultiItemCache};
 pub use transient_cache::*;
 pub use value_cache_versions::ValueCacheVersions;
