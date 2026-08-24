@@ -107,9 +107,7 @@ const modules = import.meta.glob('./pages/**/*.js', {
 
 ### 更紧凑的 Compat Hashed IDs \{#compat-hashed-ids}
 
-Rspack 2.2 为 [`optimization.moduleIds`](/config/optimization#optimizationmoduleids) 和 [`optimization.chunkIds`](/config/optimization#optimizationchunkids) 新增了 `'compat-hashed'`。它会对模块或 Chunk 的稳定标识计算 hash，并将编码后 hash 的最短可用前缀作为 ID；只有发生前缀冲突时才会延长 ID。
-
-与使用十进制数字空间的 `deterministic` 相比，`compat-hashed` 可以用更少字符表达相同规模的 ID。模块 ID 使用首字符为字母、后续为字母数字的 base62 编码，兼顾长期缓存、产物体积和运行时索引性能；Chunk ID 使用 `0-9a-z` 的 base36 编码，可以安全用于大小写不敏感的文件系统。
+Rspack 2.2 为 [`optimization.moduleIds`](/config/optimization#optimizationmoduleids) 和 [`optimization.chunkIds`](/config/optimization#optimizationchunkids) 新增了 `'compat-hashed'`。它使用稳定 hash 的最短可用前缀生成更紧凑的 ID。相比 `deterministic`，它在同样保持 ID 稳定性的同时，兼顾运行时索引性能和产物体积。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -119,23 +117,6 @@ export default {
   },
 };
 ```
-
-下表基于均匀 hash 分布估算，`minLength` 为 `1`，并且只统计每个唯一 ID 一次。base36 对应 Chunk ID，base62 对应模块 ID：
-
-| ID 数量    | `deterministic` 总字符数 | base36 总字符数（相对降低） | base62 总字符数（相对降低） |
-| ---------- | ------------------------ | ---------------------------- | ---------------------------- |
-| 100        | 389                      | 165（57.6%）                  | 159（59.1%）                  |
-| 1,000      | 4,889                    | 2,243（54.1%）                | 2,079（57.5%）                |
-| 10,000     | 58,889                   | 29,456（50.0%）               | 26,948（54.2%）               |
-| 100,000    | 688,889                  | 357,560（48.1%）              | 316,828（54.0%）              |
-| 1,000,000  | 7,888,889                | 4,177,607（47.0%）            | 3,821,599（51.6%）            |
-| 10,000,000 | 88,888,889              | 48,789,095（45.1%）           | 42,832,418（51.8%）           |
-
-ID 通常会在模块表和运行时代码中被多次引用，因此未压缩产物中的收益可能进一步放大，压缩后的实际收益取决于具体产物结构和压缩算法。如果希望扩大初始 ID 空间、减少前缀冲突，可以直接使用 `CompatHashedModuleIdsPlugin` 或 `CompatHashedChunkIdsPlugin` 并调大 `minLength`，代价是 ID 长度会增长。
-
-:::warning
-模块 ID 区分大小写且可能包含大写字母。在大小写不敏感的文件系统上，如果 [Asset module 文件名](/config/output#outputassetmodulefilename)或 [WebAssembly 模块文件名](/config/output#outputwebassemblymodulefilename)包含 `[id]`，不要将它作为唯一的区分项。请优先使用 `[contenthash]`，或将其与 `[id]` 一起使用。
-:::
 
 ## 产物优化
 
