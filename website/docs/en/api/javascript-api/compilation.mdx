@@ -612,12 +612,6 @@ class MyPlugin {
 }
 ```
 
-The webpack methods that render references to other modules (`moduleId`, `moduleRaw`,
-`moduleExports`, `moduleNamespace`, `moduleNamespacePromise`, `importStatement`,
-`exportFromImport`, `blockPromise`, `asyncModuleFactory`, `syncModuleFactory`, `weakError`,
-`runtimeConditionExpression`) are not available, because Rspack keeps the module graph and the
-code generation results on the Rust side.
-
 <Collapse>
   <CollapsePanel
     className="collapse-code-panel"
