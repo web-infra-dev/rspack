@@ -122,6 +122,7 @@ impl ScanContext {
 #[derive(Debug)]
 struct ImportData<'s> {
   start: Pos,
+  ignored: bool,
   prelude: ImportPrelude<'s>,
   url: Option<&'s str>,
   url_flags: TokenFlags,
@@ -134,6 +135,7 @@ impl ImportData<'_> {
   pub fn new(start: Pos) -> Self {
     Self {
       start,
+      ignored: false,
       prelude: ImportPrelude::default(),
       url: None,
       url_flags: TokenFlags::ascii(),
@@ -328,6 +330,7 @@ impl BalancedStack {
 struct BalancedItem {
   kind: BalancedItemKind,
   range: Range,
+  ignored: bool,
 }
 
 impl BalancedItem {
@@ -343,6 +346,7 @@ impl BalancedItem {
     Self {
       kind,
       range: Range::new(start, end),
+      ignored: false,
     }
   }
 
@@ -350,6 +354,7 @@ impl BalancedItem {
     Self {
       kind: BalancedItemKind::new(name),
       range: Range::new(start, end),
+      ignored: false,
     }
   }
 
@@ -357,6 +362,7 @@ impl BalancedItem {
     Self {
       kind: BalancedItemKind::Other,
       range: Range::new(start, end),
+      ignored: false,
     }
   }
 
@@ -364,6 +370,7 @@ impl BalancedItem {
     Self {
       kind: BalancedItemKind::Curly,
       range: Range::new(start, end),
+      ignored: false,
     }
   }
 }
@@ -415,6 +422,75 @@ impl BalancedItemKind {
   pub fn is_mode_class(&self) -> bool {
     matches!(self, Self::LocalClass | Self::GlobalClass)
   }
+}
+
+#[derive(Debug, Clone, Copy)]
+enum IgnoreMagicCommentValue<'s> {
+  Boolean(bool),
+  Other(&'s str),
+}
+
+#[derive(Debug, Clone, Copy)]
+struct IgnoreMagicCommentOption<'s> {
+  value: IgnoreMagicCommentValue<'s>,
+  range: Range,
+}
+
+type ParsedIgnoreMagicComments<'s> = SmallVec<[(&'s str, IgnoreMagicCommentValue<'s>); 2]>;
+
+fn preceding_comment_ranges(input: &str) -> SmallVec<[Range; 2]> {
+  let bytes = input.as_bytes();
+  let mut cursor = bytes.len();
+  let mut ranges = SmallVec::new();
+
+  loop {
+    while cursor > 0 && is_css_space_byte(bytes[cursor - 1]) {
+      cursor -= 1;
+    }
+    if cursor < 2 || &bytes[cursor - 2..cursor] != b"*/" {
+      break;
+    }
+    let Some(start) = input[..cursor - 2].rfind("/*") else {
+      break;
+    };
+    ranges.push(Range::new(start as Pos, cursor as Pos));
+    cursor = start;
+  }
+
+  ranges.reverse();
+  ranges
+}
+
+fn parse_ignore_magic_comment(content: &str) -> Option<Result<ParsedIgnoreMagicComments<'_>, ()>> {
+  if !content.contains("webpackIgnore") && !content.contains("rspackIgnore") {
+    return None;
+  }
+
+  let mut options = SmallVec::new();
+  for item in content.split(',') {
+    let item = item.trim();
+    let (name, rest) = if let Some(rest) = item.strip_prefix("webpackIgnore") {
+      ("webpackIgnore", rest)
+    } else if let Some(rest) = item.strip_prefix("rspackIgnore") {
+      ("rspackIgnore", rest)
+    } else {
+      return Some(Err(()));
+    };
+    let Some(value) = rest.strip_prefix(':') else {
+      return Some(Err(()));
+    };
+    let value = value.trim();
+    if value.is_empty() || value.contains('*') {
+      return Some(Err(()));
+    }
+    let value = match value {
+      "true" => IgnoreMagicCommentValue::Boolean(true),
+      "false" => IgnoreMagicCommentValue::Boolean(false),
+      value => IgnoreMagicCommentValue::Other(value),
+    };
+    options.push((name, value));
+  }
+  Some(Ok(options))
 }
 
 fn trivia_only(input: &str) -> bool {
@@ -3081,6 +3157,67 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
 }
 
 impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
+  fn ignore_comment_before(&mut self, lexer: &DependencyLexer<'s>, start: Pos) -> Option<bool> {
+    let input = lexer.slice(0, start)?;
+    let mut webpack_ignore = None;
+    let mut rspack_ignore = None;
+
+    for range in preceding_comment_ranges(input) {
+      let comment = lexer.slice(range.start, range.end)?;
+      let content = lexer.slice(range.start + 2, range.end - 2)?;
+      let Some(parsed) = parse_ignore_magic_comment(content) else {
+        continue;
+      };
+      let Ok(options) = parsed else {
+        self.handle_warning.handle_warning(Warning {
+          range,
+          kind: WarningKind::MagicCommentCompilationError { comment },
+        });
+        continue;
+      };
+      for (name, value) in options {
+        let option = IgnoreMagicCommentOption { value, range };
+        if name == "rspackIgnore" {
+          rspack_ignore = Some(option);
+        } else {
+          webpack_ignore = Some(option);
+        }
+      }
+    }
+
+    if let (Some(_), Some(rspack_ignore)) = (webpack_ignore, rspack_ignore) {
+      self.handle_warning.handle_warning(Warning {
+        range: rspack_ignore.range,
+        kind: WarningKind::MagicCommentConflict {
+          ignored: "webpackIgnore",
+          preferred: "rspackIgnore",
+        },
+      });
+      return self.validate_ignore_comment("rspackIgnore", rspack_ignore);
+    }
+    if let Some(rspack_ignore) = rspack_ignore {
+      return self.validate_ignore_comment("rspackIgnore", rspack_ignore);
+    }
+    webpack_ignore.and_then(|option| self.validate_ignore_comment("webpackIgnore", option))
+  }
+
+  fn validate_ignore_comment(
+    &mut self,
+    name: &'s str,
+    option: IgnoreMagicCommentOption<'s>,
+  ) -> Option<bool> {
+    match option.value {
+      IgnoreMagicCommentValue::Boolean(value) => Some(value),
+      IgnoreMagicCommentValue::Other(received) => {
+        self.handle_warning.handle_warning(Warning {
+          range: option.range,
+          kind: WarningKind::MagicCommentExpectedBoolean { name, received },
+        });
+        None
+      }
+    }
+  }
+
   fn handle_comment(
     &mut self,
     lexer: &mut DependencyLexer<'s>,
@@ -3116,9 +3253,19 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
     flags: TokenFlags,
   ) -> Option<()> {
     let value = lexer.slice(content_start, content_end)?;
+    let can_be_dependency = match &self.scope {
+      Scope::InAtImport(import_data) => !import_data.in_supports(),
+      Scope::InBlock => true,
+      _ => false,
+    };
+    let ignored = can_be_dependency && self.ignore_comment_before(lexer, start) == Some(true);
     match self.scope {
       Scope::InAtImport(ref mut import_data) => {
         if import_data.in_supports() {
+          return Some(());
+        }
+        if ignored {
+          import_data.ignored = true;
           return Some(());
         }
         if import_data.url.is_some() {
@@ -3137,11 +3284,16 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
         import_data.url_flags = flags;
         import_data.url_range = Some(Range::new(start, end));
       }
-      Scope::InBlock => self.dependency_context.push_dependency(Dependency::Url {
-        request: value,
-        range: Range::new(start, end),
-        kind: UrlRangeKind::Function,
-      }),
+      Scope::InBlock => {
+        if ignored {
+          return Some(());
+        }
+        self.dependency_context.push_dependency(Dependency::Url {
+          request: value,
+          range: Range::new(start, end),
+          kind: UrlRangeKind::Function,
+        });
+      }
       _ => {}
     }
     Some(())
@@ -3154,15 +3306,34 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
     end: Pos,
     flags: TokenFlags,
   ) -> Option<()> {
+    let inside_url = matches!(
+      self.balanced.last(),
+      Some(last) if matches!(last.kind, BalancedItemKind::Url)
+    );
+    let can_be_dependency = match &self.scope {
+      Scope::InAtImport(import_data) => {
+        !import_data.in_supports() && (inside_url || import_data.url.is_none())
+      }
+      Scope::InBlock => matches!(
+        self.balanced.last(),
+        Some(last) if matches!(last.kind, BalancedItemKind::Url | BalancedItemKind::ImageSet)
+      ),
+      _ => false,
+    };
+    let ignored = can_be_dependency && self.ignore_comment_before(lexer, start) == Some(true);
     match self.scope {
       Scope::InAtImport(ref mut import_data) => {
-        let inside_url = matches!(
-            self.balanced.last(),
-            Some(last) if matches!(last.kind, BalancedItemKind::Url)
-        );
+        // Do not parse URLs in `supports(...)`.
+        if import_data.in_supports() {
+          return Some(());
+        }
+        if ignored || inside_url && self.balanced.last().is_some_and(|item| item.ignored) {
+          import_data.ignored = true;
+          return Some(());
+        }
 
-        // Do not parse URLs in `supports(...)` and other strings if we already have a URL
-        if import_data.in_supports() || (!inside_url && import_data.url.is_some()) {
+        // Do not parse other strings if we already have a URL.
+        if !inside_url && import_data.url.is_some() {
           return Some(());
         }
 
@@ -3208,6 +3379,9 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
         let Some(last) = self.balanced.last() else {
           return Some(());
         };
+        if ignored || last.ignored {
+          return Some(());
+        }
         let kind = match last.kind {
           BalancedItemKind::Url => UrlRangeKind::String,
           BalancedItemKind::ImageSet => UrlRangeKind::Function,
@@ -3334,6 +3508,10 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
   ) -> Option<()> {
     match self.scope {
       Scope::InAtImport(ref import_data) => {
+        if import_data.ignored {
+          self.scope = Scope::TopLevel;
+          return Some(());
+        }
         let Some(url) = import_data.url else {
           if let Some((name, name_range)) = import_data.prelude.icss_import_url() {
             self
@@ -3497,16 +3675,24 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
     } else {
       lowercase_ascii_keyword(name, &mut normalized)
     };
-    let item = normalized_name.map_or_else(
+    let mut item = normalized_name.map_or_else(
       || BalancedItem::new_other(start, end),
       |name| BalancedItem::new_normalized(name, start, end),
     );
+    if normalized_name == Some("url(")
+      && self.ignore_comment_before(stream.lexer(), start) == Some(true)
+    {
+      item.ignored = true;
+    }
+    let ignored_url = item.ignored;
     let at_import_top_level =
       matches!(self.scope, Scope::InAtImport(_)) && self.balanced.is_empty();
     self.balanced.push(item, self.mode_data.as_mut());
 
     if let Scope::InAtImport(ref mut import_data) = self.scope {
-      if at_import_top_level && normalized_name == Some("url(") {
+      if ignored_url {
+        import_data.ignored = true;
+      } else if at_import_top_level && normalized_name == Some("url(") {
         import_data.prelude.push(ImportPreludeNode::Url {
           range: Range::new(start, end),
         });
@@ -3632,7 +3818,7 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
     }
     if let Scope::InAtImport(ref mut import_data) = self.scope {
       let not_in_supports = !import_data.in_supports();
-      if matches!(last.kind, BalancedItemKind::Url) && not_in_supports {
+      if matches!(last.kind, BalancedItemKind::Url) && !last.ignored && not_in_supports {
         import_data.url_range = Some(Range::new(last.range.start, end));
       } else if matches!(last.kind, BalancedItemKind::Layer) && not_in_supports {
         import_data.layer = ImportDataLayer::EndLayer {

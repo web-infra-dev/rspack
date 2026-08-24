@@ -603,23 +603,61 @@ impl<'s> Warning<'s> {
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum WarningKind<'s> {
-  Unexpected { message: &'s str },
-  DuplicateUrl { when: &'s str },
+  Unexpected {
+    message: &'s str,
+  },
+  MagicCommentCompilationError {
+    comment: &'s str,
+  },
+  MagicCommentExpectedBoolean {
+    name: &'s str,
+    received: &'s str,
+  },
+  MagicCommentConflict {
+    ignored: &'s str,
+    preferred: &'s str,
+  },
+  DuplicateUrl {
+    when: &'s str,
+  },
   NamespaceNotSupportedInBundledCss,
   NotPrecededAtImport,
-  ExpectedUrl { when: &'s str },
-  ExpectedUrlBefore { when: &'s str },
-  ExpectedLayerBefore { when: &'s str },
+  ExpectedUrl {
+    when: &'s str,
+  },
+  ExpectedUrlBefore {
+    when: &'s str,
+  },
+  ExpectedLayerBefore {
+    when: &'s str,
+  },
   InconsistentModeResult,
-  ExpectedNotInside { pseudo: &'s str },
-  NotPure { message: &'s str },
-  UnexpectedComposition { message: &'s str },
+  ExpectedNotInside {
+    pseudo: &'s str,
+  },
+  NotPure {
+    message: &'s str,
+  },
+  UnexpectedComposition {
+    message: &'s str,
+  },
 }
 
 impl Display for Warning<'_> {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     match self.kind {
       WarningKind::Unexpected { message, .. } => write!(f, "{message}"),
+      WarningKind::MagicCommentCompilationError { comment } => write!(
+        f,
+        "Compilation error while processing magic comment(-s): {comment}"
+      ),
+      WarningKind::MagicCommentExpectedBoolean { name, received } => {
+        write!(f, "`{name}` expected a boolean, but received: {received}.")
+      }
+      WarningKind::MagicCommentConflict { ignored, preferred } => write!(
+        f,
+        "`{ignored}` is ignored because `{preferred}` is also specified. Prefer `{preferred}`."
+      ),
       WarningKind::DuplicateUrl { when, .. } => {
         write!(f, "Duplicate of 'url(...)' in '{when}'")
       }

@@ -1,0 +1,5 @@
+@import /* rspackIgnore: true */ url("./missing.css");
+
+.class {
+	background: /* rspackIgnore: true */ url("./missing.png");
+}
