@@ -11,7 +11,7 @@ export * from './CircularModulesInfoPlugin';
 export * from './CircularCheckRspackPlugin';
 export * from './CircularDependencyRspackPlugin';
 export * from './CommonJsChunkFormatPlugin';
-export * from './CompactChunkIdsPlugin';
+export * from './CompatHashedChunkIdsPlugin';
 export * from './CompatHashedModuleIdsPlugin';
 export * from './ContextReplacementPlugin';
 export * from './CopyRspackPlugin';

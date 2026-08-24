@@ -1,0 +1,34 @@
+---
+description: 'CompatHashedChunkIdsPlugin 使用稳定字母数字 hash 的最短可用前缀生成紧凑 Chunk id，兼顾长期缓存、产物体积和运行时索引性能'
+---
+
+# CompatHashedChunkIdsPlugin
+
+`CompatHashedChunkIdsPlugin` 会对 Chunk 内容计算 hash，并分配编码后 hash 的最短可用前缀。与 `deterministic` 相比，它生成的 id 更紧凑，在保持稳定性的同时，可以减小产物体积并提升运行时索引性能。首字符使用 `a-zA-Z`，后续字符使用 `a-zA-Z0-9`。只有较短前缀已被使用时，才会延长 id。
+
+`optimization.chunkIds: 'compat-hashed'` 内部会使用该插件。只有在需要自定义编码后 id 的最小长度时，才需要直接使用该插件。
+
+```js title="rspack.config.mjs"
+import rspack from '@rspack/core';
+
+export default {
+  optimization: {
+    chunkIds: false,
+  },
+  plugins: [
+    new rspack.ids.CompatHashedChunkIdsPlugin({
+      minLength: 1,
+    }),
+  ],
+};
+```
+
+## 选项
+
+### minLength
+
+- **类型：** `number`
+- **默认值：** `1`
+- **取值范围：** `1` 到 `11` 的整数
+
+编码后 id 的最小长度。如果 hash 前缀已经被使用，Rspack 会逐个字符延长该 id。增大 `minLength` 会扩大初始 id 空间，降低前缀冲突的概率，使产物和缓存更加稳定；相应地，Chunk id 也会变长。

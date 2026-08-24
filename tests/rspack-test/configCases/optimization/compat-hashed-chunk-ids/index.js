@@ -1,4 +1,4 @@
-it("should load chunks with compact ids", async () => {
+it("should load chunks with compat-hashed ids", async () => {
 	const values = await Promise.all([
 		import("./a"),
 		import("./b"),

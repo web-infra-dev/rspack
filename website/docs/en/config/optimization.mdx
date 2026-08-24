@@ -38,7 +38,7 @@ The `⁠optimization.avoidEntryIife` option can negatively affect build performa
 ## optimization.chunkIds
 
 <PropertyType
-  type="'natural' | 'named' | 'deterministic' | 'compact' | 'size' | 'total-size'"
+  type="false | 'natural' | 'named' | 'deterministic' | 'compat-hashed' | 'size' | 'total-size'"
   defaultValueList={[
     { defaultValue: "'named'", mode: 'development' },
     { defaultValue: "'deterministic'", mode: 'production' },
@@ -54,9 +54,10 @@ The following string values are supported:
 | `'natural'`       | Use numeric ids in order of usage.                                                                                                             |
 | `'named'`         | Readable ids for better debugging.                                                                                                             |
 | `'deterministic'` | Short numeric ids which will not be changing between compilation. Good for long term caching. By default a minimum length of 3 digits is used. |
-| `'compact'`       | Stable alphanumeric ids with a denser identifier space. Equivalent to using `CompactChunkIdsPlugin` with default options.                      |
+| `'compat-hashed'` | Use the shortest available prefix of a stable alphanumeric hash.                                                                               |
 | `'size'`          | Use numeric ids to make the initial download package smaller.                                                                                  |
 | `'total-size'`    | Use numeric ids to make the overall download package smaller.                                                                                  |
+| `false`           | Disable Rspack's built-in chunk id algorithm, allowing a custom plugin to provide chunk ids.                                                   |
 
 ```js title="rspack.config.mjs"
 export default {
@@ -66,7 +67,19 @@ export default {
 };
 ```
 
-The `compact` option starts with one-character chunk ids and extends them when collisions occur. It is opt-in; production mode continues to default to `deterministic`.
+The `compat-hashed` option uses the shortest available prefix of a stable alphanumeric hash as the chunk id, balancing long-term caching, bundle size, and runtime performance.
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    chunkIds: 'compat-hashed',
+  },
+};
+```
+
+:::tip
+The `compat-hashed` option is available in Rspack 2.2.0 and later.
+:::
 
 ## optimization.concatenateModules
 

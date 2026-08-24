@@ -31,7 +31,7 @@ use napi::{
 use napi_derive::napi;
 use raw_dll::{RawDllReferenceAgencyPluginOptions, RawFlagAllModulesAsUsedPluginOptions};
 use raw_ids::{
-  RawCompactChunkIdsPluginOptions, RawCompatHashedModuleIdsPluginOptions,
+  RawCompatHashedChunkIdsPluginOptions, RawCompatHashedModuleIdsPluginOptions,
   RawDeterministicModuleIdsPluginOptions, RawHashedModuleIdsPluginOptions,
   RawOccurrenceChunkIdsPluginOptions, RawSyncModuleIdsPluginOptions,
 };
@@ -45,7 +45,7 @@ use raw_sri::RawSubresourceIntegrityPluginOptions;
 use rspack_core::{BoxPlugin, Plugin, PluginExt};
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_ids::{
-  CompactChunkIdsPlugin, CompatHashedModuleIdsPlugin, DeterministicChunkIdsPlugin,
+  CompatHashedChunkIdsPlugin, CompatHashedModuleIdsPlugin, DeterministicChunkIdsPlugin,
   DeterministicModuleIdsPlugin, HashedModuleIdsPlugin, NamedChunkIdsPlugin, NamedModuleIdsPlugin,
   NaturalChunkIdsPlugin, NaturalModuleIdsPlugin, OccurrenceChunkIdsPlugin, SyncModuleIdsPlugin,
 };
@@ -204,7 +204,7 @@ pub enum BuiltinPluginName {
   NaturalChunkIdsPlugin,
   NamedChunkIdsPlugin,
   DeterministicChunkIdsPlugin,
-  CompactChunkIdsPlugin,
+  CompatHashedChunkIdsPlugin,
   OccurrenceChunkIdsPlugin,
   RealContentHashPlugin,
   RemoveEmptyChunksPlugin,
@@ -628,9 +628,9 @@ impl<'a> BuiltinPlugin<'a> {
       BuiltinPluginName::DeterministicChunkIdsPlugin => {
         plugins.push(DeterministicChunkIdsPlugin::default().boxed())
       }
-      BuiltinPluginName::CompactChunkIdsPlugin => plugins.push(
-        CompactChunkIdsPlugin::new(
-          downcast_into::<RawCompactChunkIdsPluginOptions>(self.options)
+      BuiltinPluginName::CompatHashedChunkIdsPlugin => plugins.push(
+        CompatHashedChunkIdsPlugin::new(
+          downcast_into::<RawCompatHashedChunkIdsPluginOptions>(self.options)
             .map_err(|report| napi::Error::from_reason(report.to_string()))?
             .into(),
         )

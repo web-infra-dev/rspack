@@ -3506,10 +3506,10 @@ impl OptimizationOptionsBuilder {
           .plugins
           .push(BuiltinPluginOptions::DeterministicChunkIdsPlugin);
       }
-      "compact" => {
+      "compat-hashed" => {
         builder_context
           .plugins
-          .push(BuiltinPluginOptions::CompactChunkIdsPlugin);
+          .push(BuiltinPluginOptions::CompatHashedChunkIdsPlugin);
       }
       "named" => {
         builder_context

@@ -2805,9 +2805,17 @@ export type Optimization = {
 
   /**
    * Which algorithm to use when choosing chunk ids.
+   * Setting to `false` disables the built-in algorithm, allowing a custom plugin
+   * to provide chunk ids instead.
    */
   chunkIds?:
-    'natural' | 'named' | 'deterministic' | 'compact' | 'size' | 'total-size';
+    | false
+    | 'natural'
+    | 'named'
+    | 'deterministic'
+    | 'compat-hashed'
+    | 'size'
+    | 'total-size';
 
   /**
    * Whether to minimize the bundle.

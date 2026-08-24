@@ -4,46 +4,43 @@ use rspack_core::{
   incremental::IncrementalPasses,
 };
 use rspack_error::{Diagnostic, Result, error};
-use rspack_hash::{HashFunction, RspackHasher};
 use rspack_hook::{plugin, plugin_hook};
 use rustc_hash::{FxBuildHasher, FxHashMap};
 
 use crate::{
-  compact_id::{FULL_IDENTIFIER_LENGTH, encode_identifier_hash},
+  compat_hashed_id::{
+    CompatHashedIdAssigner, FULL_IDENTIFIER_LENGTH, hash_identifier, normalize_min_length,
+    validate_min_length,
+  },
   id_helpers::{
     NaturalChunkCompareCache, compare_chunks_natural, get_full_chunk_name, get_used_chunk_ids,
   },
 };
 
 #[derive(Debug, Clone, Default)]
-pub struct CompactChunkIdsPluginOptions {
+pub struct CompatHashedChunkIdsPluginOptions {
   pub min_length: Option<usize>,
 }
 
 #[plugin]
 #[derive(Debug)]
-pub struct CompactChunkIdsPlugin {
+pub struct CompatHashedChunkIdsPlugin {
   min_length: usize,
 }
 
-impl Default for CompactChunkIdsPlugin {
+impl Default for CompatHashedChunkIdsPlugin {
   fn default() -> Self {
     Self::new(Default::default())
   }
 }
 
-impl CompactChunkIdsPlugin {
-  pub fn new(options: CompactChunkIdsPluginOptions) -> Self {
-    Self::new_inner(
-      options
-        .min_length
-        .filter(|min_length| *min_length != 0)
-        .unwrap_or(1),
-    )
+impl CompatHashedChunkIdsPlugin {
+  pub fn new(options: CompatHashedChunkIdsPluginOptions) -> Self {
+    Self::new_inner(normalize_min_length(options.min_length))
   }
 }
 
-#[plugin_hook(CompilationChunkIds for CompactChunkIdsPlugin)]
+#[plugin_hook(CompilationChunkIds for CompatHashedChunkIdsPlugin)]
 async fn chunk_ids(
   &self,
   compilation: &Compilation,
@@ -53,20 +50,16 @@ async fn chunk_ids(
 ) -> Result<()> {
   if let Some(diagnostic) = compilation.incremental.disable_passes(
     IncrementalPasses::CHUNK_IDS | IncrementalPasses::MODULES_HASHES,
-    "CompactChunkIdsPlugin (optimization.chunkIds = \"compact\")",
+    "CompatHashedChunkIdsPlugin (optimization.chunkIds = \"compat-hashed\")",
     "it requires calculating the id of all the chunks, which is a global effect",
   ) && let Some(diagnostic) = diagnostic
   {
     diagnostics.push(diagnostic);
   }
 
-  if self.min_length > FULL_IDENTIFIER_LENGTH {
-    return Err(error!(
-      "'minLength' must not exceed {FULL_IDENTIFIER_LENGTH} for CompactChunkIdsPlugin"
-    ));
-  }
+  validate_min_length(self.min_length, "CompatHashedChunkIdsPlugin")?;
 
-  let mut used_ids = get_used_chunk_ids(chunk_by_ukey);
+  let used_ids = get_used_chunk_ids(chunk_by_ukey);
   let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
   let module_graph = compilation.get_module_graph();
   let module_graph_cache = &compilation.module_graph_cache_artifact;
@@ -90,9 +83,7 @@ async fn chunk_ids(
         context,
         &compilation.exports_info_artifact,
       );
-      let mut hasher = RspackHasher::new(&HashFunction::Xxhash64);
-      hasher.write(name.as_bytes());
-      (chunk, encode_identifier_hash(hasher.finish()))
+      (chunk, hash_identifier(&name))
     })
     .collect::<Vec<_>>();
 
@@ -110,24 +101,15 @@ async fn chunk_ids(
 
   let mut chunk_key_to_id =
     FxHashMap::with_capacity_and_hasher(chunks_with_hashes.len(), FxBuildHasher::default());
+  let mut id_assigner = CompatHashedIdAssigner::new(self.min_length, used_ids);
   for (chunk, hash) in chunks_with_hashes {
-    // SAFETY: `encode_identifier_hash` only emits ASCII characters.
-    let hash = unsafe { std::str::from_utf8_unchecked(&hash) };
-    let Some(chunk_id) = (self.min_length..=hash.len()).find_map(|length| {
-      let candidate = &hash[..length];
-      if used_ids.contains(candidate) {
-        None
-      } else {
-        Some(candidate.to_string())
-      }
-    }) else {
+    let Some(chunk_id) = id_assigner.assign(&hash) else {
       return Err(error!(
-        "Unable to assign a unique compact id to chunk '{:?}' after using all {FULL_IDENTIFIER_LENGTH} hash characters",
+        "Unable to assign a unique compat-hashed id to chunk '{:?}' after using all {FULL_IDENTIFIER_LENGTH} hash characters",
         chunk.ukey()
       ));
     };
 
-    used_ids.insert(chunk_id.clone());
     chunk_key_to_id.insert(chunk.ukey(), chunk_id);
   }
 
@@ -138,7 +120,7 @@ async fn chunk_ids(
   Ok(())
 }
 
-impl Plugin for CompactChunkIdsPlugin {
+impl Plugin for CompatHashedChunkIdsPlugin {
   fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
     ctx.compilation_hooks.chunk_ids.tap(chunk_ids::new(self));
     Ok(())

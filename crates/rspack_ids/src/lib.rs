@@ -1,6 +1,6 @@
-mod compact_chunk_ids_plugin;
-mod compact_id;
-pub use compact_chunk_ids_plugin::*;
+mod compat_hashed_chunk_ids_plugin;
+mod compat_hashed_id;
+pub use compat_hashed_chunk_ids_plugin::*;
 mod compat_hashed_module_ids_plugin;
 pub use compat_hashed_module_ids_plugin::*;
 mod deterministic_module_ids_plugin;

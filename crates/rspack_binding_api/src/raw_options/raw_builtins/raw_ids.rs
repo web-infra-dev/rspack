@@ -5,7 +5,7 @@ use napi_derive::napi;
 use rspack_core::{CompilerId, Module};
 use rspack_hash::{HashDigest, HashFunction};
 use rspack_ids::{
-  CompactChunkIdsPluginOptions, CompatHashedModuleIdsPluginOptions,
+  CompatHashedChunkIdsPluginOptions, CompatHashedModuleIdsPluginOptions,
   DeterministicModuleIdsPluginOptions, HashedModuleIdsPluginOptions, ModuleFilterFn,
   OccurrenceChunkIdsPluginOptions, SyncModuleIdsPluginMode, SyncModuleIdsPluginOptions,
 };
@@ -89,12 +89,12 @@ impl From<RawCompatHashedModuleIdsPluginOptions> for CompatHashedModuleIdsPlugin
 
 #[derive(Debug)]
 #[napi(object, object_to_js = false)]
-pub struct RawCompactChunkIdsPluginOptions {
+pub struct RawCompatHashedChunkIdsPluginOptions {
   pub min_length: Option<u32>,
 }
 
-impl From<RawCompactChunkIdsPluginOptions> for CompactChunkIdsPluginOptions {
-  fn from(value: RawCompactChunkIdsPluginOptions) -> Self {
+impl From<RawCompatHashedChunkIdsPluginOptions> for CompatHashedChunkIdsPluginOptions {
+  fn from(value: RawCompatHashedChunkIdsPluginOptions) -> Self {
     Self {
       min_length: value.min_length.map(|n| n as usize),
     }
