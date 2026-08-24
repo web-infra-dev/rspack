@@ -2,7 +2,11 @@
 description: 'CompatHashedChunkIdsPlugin assigns compact ids using the shortest available prefixes of stable lowercase alphanumeric hashes to shrink bundles and speed runtime indexing'
 ---
 
+import { ApiMeta } from '@components/ApiMeta.tsx';
+
 # CompatHashedChunkIdsPlugin
+
+<ApiMeta specific={['Rspack']} addedVersion="2.2.0" />
 
 `CompatHashedChunkIdsPlugin` hashes chunk contents and assigns the shortest available prefix of each encoded hash. Compared with `deterministic`, it produces more compact ids that preserve stability while reducing bundle size and improving runtime indexing performance. Every character uses `0-9a-z`, making chunk ids safe for case-insensitive file systems. An id is extended only when its shorter prefix is already used.
 

@@ -2,7 +2,11 @@
 description: 'CompatHashedChunkIdsPlugin 使用稳定小写字母数字 hash 的最短可用前缀生成紧凑 Chunk id，兼顾长期缓存、产物体积和运行时索引性能'
 ---
 
+import { ApiMeta } from '@components/ApiMeta.tsx';
+
 # CompatHashedChunkIdsPlugin
+
+<ApiMeta specific={['Rspack']} addedVersion="2.2.0" />
 
 `CompatHashedChunkIdsPlugin` 会对 Chunk 内容计算 hash，并分配编码后 hash 的最短可用前缀。与 `deterministic` 相比，它生成的 id 更紧凑，在保持稳定性的同时，可以减小产物体积并提升运行时索引性能。每个字符均使用 `0-9a-z`，因此 Chunk id 可以安全用于大小写不敏感的文件系统。只有较短前缀已被使用时，才会延长 id。
 
