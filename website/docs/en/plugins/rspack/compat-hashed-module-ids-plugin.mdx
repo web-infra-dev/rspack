@@ -10,6 +10,10 @@ import { ApiMeta } from '@components/ApiMeta.tsx';
 
 `CompatHashedModuleIdsPlugin` hashes module identifiers and assigns the shortest available prefix of each encoded hash. Compared with `deterministic`, it produces more compact ids that preserve stability while reducing bundle size and improving runtime indexing performance. The first character uses `a-zA-Z`, and subsequent characters use `a-zA-Z0-9`. An id is extended only when its shorter prefix is already used.
 
+:::warning
+The generated module ids are case-sensitive and may contain uppercase letters. On case-insensitive file systems, avoid using `[id]` as the only distinguishing placeholder in [Asset module filenames](/config/output#outputassetmodulefilename) or [WebAssembly module filenames](/config/output#outputwebassemblymodulefilename). Prefer `[contenthash]`, or include it alongside `[id]`.
+:::
+
 [`optimization.moduleIds: 'compat-hashed'`](/config/optimization#optimizationmoduleids) uses this plugin internally. Use the plugin directly when you need to customize the minimum encoded id length.
 
 ```js title="rspack.config.mjs"
