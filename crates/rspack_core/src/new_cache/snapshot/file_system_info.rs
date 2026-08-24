@@ -118,6 +118,20 @@ impl FileSystemInfo {
     }
   }
 
+  pub fn clear(&self) {
+    self.file_timestamps.clear();
+    self.file_hashes.clear();
+    self.file_timestamp_hashes.clear();
+    self.context_timestamps.clear();
+    self.context_hashes.clear();
+    self.context_timestamp_hashes.clear();
+    self.managed_items.clear();
+  }
+
+  pub fn module_strategy(&self) -> SnapshotStrategyOptions {
+    self.options.dependencies_strategy()
+  }
+
   /// See webpack's snapshot creation implementation:
   /// https://github.com/webpack/webpack/blob/ce97d583e1cd8f3e47b70737de72e91b567a8497/lib/FileSystemInfo.js#L2525-L3079
   #[tracing::instrument("Cache::FileSystemInfo::create_snapshot", skip_all)]

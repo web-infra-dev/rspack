@@ -19,6 +19,7 @@ const VALIDATOR_KEY: &[u8] = b"validator";
 struct PendingWrites {
   entries: FxHashMap<CacheKey, PendingWrite>,
   build_dependencies: Option<InternedPathSet>,
+  max_dependencies_id: Option<u32>,
 }
 
 #[derive(Debug)]
@@ -139,6 +140,24 @@ impl FileCacheStrategy {
       .extend(dependencies);
   }
 
+  pub fn store_dependency_id(&mut self, dependency_id: u32) {
+    if self.readonly {
+      return;
+    }
+    self.validator.store_dependency_id(dependency_id);
+    self.pending_writes.max_dependencies_id = Some(
+      self
+        .pending_writes
+        .max_dependencies_id
+        .unwrap_or_default()
+        .max(dependency_id),
+    );
+  }
+
+  pub fn restore_dependency_id(&self) -> Option<u32> {
+    Some(self.validator.restore_dependency_id())
+  }
+
   pub(super) fn restore(
     &self,
     key: &CacheKey,
@@ -172,6 +191,8 @@ impl FileCacheStrategy {
     if self.has_pending_writes() {
       let encoded_validator = if let Some(dependencies) = &self.pending_writes.build_dependencies {
         Some(self.validator.update(dependencies.iter().cloned()).await?)
+      } else if self.pending_writes.max_dependencies_id.is_some() {
+        Some(self.validator.encode()?)
       } else {
         None
       };
@@ -199,6 +220,7 @@ impl FileCacheStrategy {
 
       self.pending_writes.entries.clear();
       self.pending_writes.build_dependencies = None;
+      self.pending_writes.max_dependencies_id = None;
     }
 
     for _ in 0..max_compaction_passes {
@@ -222,6 +244,8 @@ impl FileCacheStrategy {
   }
 
   pub fn has_pending_writes(&self) -> bool {
-    !self.pending_writes.entries.is_empty() || self.pending_writes.build_dependencies.is_some()
+    !self.pending_writes.entries.is_empty()
+      || self.pending_writes.build_dependencies.is_some()
+      || self.pending_writes.max_dependencies_id.is_some()
   }
 }

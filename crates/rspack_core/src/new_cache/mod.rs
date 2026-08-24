@@ -21,6 +21,7 @@ pub use file_cache_strategy::FileCacheStrategy;
 pub use idle_file_cache::IdleFileCache;
 pub use memory_cache::{MemoryCache, MemoryCacheGetResult};
 use rspack_fs::ReadableFileSystem;
+pub(crate) use snapshot::Snapshot;
 
 use self::snapshot::{BuildDeps, FileSystemInfo};
 use crate::{CompilationLogger, CompilationLogging, CompilerOptions, cache::CacheCodec};
@@ -34,13 +35,28 @@ pub fn create_cache(
   if !compiler_options.experiments.new_cache.is_enabled() {
     return Cache::new_disabled(compiler_path);
   }
+  let module_cache_enabled = compiler_options.experiments.new_cache.module;
 
   let options = match &compiler_options.cache {
     crate::CacheOptions::Disabled => return Cache::new_disabled(compiler_path),
     crate::CacheOptions::Memory {
       max_generations: _, /* TODO: old cache default to 1, change to 5 and pass to MemoryCache */
     } => {
-      return Cache::new(compiler_path, MemoryCache::new(5), None);
+      if !module_cache_enabled {
+        return Cache::new(compiler_path, MemoryCache::new(5), None);
+      }
+      let file_system_info = FileSystemInfo::new(
+        input_filesystem,
+        Default::default(),
+        compiler_options.output.hash_function,
+      );
+      return Cache::new_with_module_cache(
+        compiler_path,
+        MemoryCache::new(5),
+        None,
+        Arc::new(CacheCodec::new(None)),
+        file_system_info,
+      );
     }
     crate::CacheOptions::Persistent(options) => options,
   };
@@ -74,17 +90,37 @@ pub fn create_cache(
     options.readonly,
     rspack_workspace::rspack_pkg_version!().to_string(),
     options.version.clone(),
-    codec,
-    file_system_info,
+    codec.clone(),
+    file_system_info.clone(),
     build_deps,
   ) {
     Ok(strategy) => strategy,
     Err(error) => {
       tracing::warn!("Opening persistent cache database failed: {error}");
-      return Cache::new(compiler_path, MemoryCache::default(), None);
+      return if module_cache_enabled {
+        Cache::new_with_module_cache(
+          compiler_path,
+          MemoryCache::default(),
+          None,
+          codec,
+          file_system_info,
+        )
+      } else {
+        Cache::new(compiler_path, MemoryCache::default(), None)
+      };
     }
   };
   let idle_file_cache = IdleFileCache::new(strategy, None, None, None);
 
-  Cache::new(compiler_path, MemoryCache::default(), Some(idle_file_cache))
+  if module_cache_enabled {
+    Cache::new_with_module_cache(
+      compiler_path,
+      MemoryCache::default(),
+      Some(idle_file_cache),
+      codec,
+      file_system_info,
+    )
+  } else {
+    Cache::new(compiler_path, MemoryCache::default(), Some(idle_file_cache))
+  }
 }

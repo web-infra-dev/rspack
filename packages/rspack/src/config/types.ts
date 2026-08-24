@@ -3117,6 +3117,8 @@ export type UseInputFileSystem = false | RegExp[];
 
 /** Fine-grained switches for the experimental new cache implementation. */
 export type NewCache = {
+  /** Enable the module build cache used during make. @default true */
+  module?: boolean;
   /** Enable the module code generation cache. @default true */
   codeGeneration?: boolean;
   /** Enable the devtool asset cache. @default true */
