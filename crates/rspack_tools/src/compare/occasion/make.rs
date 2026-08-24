@@ -1,11 +1,11 @@
 use std::sync::Arc;
 
-pub use rspack_core::cache::persistent::occasion::make::SCOPE;
+pub use rspack_core::legacy_cache::persistent::occasion::make::SCOPE;
 use rspack_core::{
   DependencyId,
   build_module_graph::BuildModuleGraphArtifact,
-  cache::persistent::{
-    codec::CacheCodec,
+  cache::CacheCodec,
+  legacy_cache::persistent::{
     occasion::{Occasion, make::MakeOccasion},
     storage::Storage,
   },

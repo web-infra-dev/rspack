@@ -10,11 +10,10 @@ use rspack_tasks::{get_current_dependency_id, set_current_dependency_id};
 
 use super::{
   build_dependencies::{BuildDeps, BuildDepsValidationResult},
-  codec::CacheCodec,
   snapshot::SnapshotScope,
   storage::Storage,
 };
-use crate::CompilationLogger;
+use crate::{CompilationLogger, cache::CacheCodec};
 
 pub const SCOPE: &str = "meta";
 

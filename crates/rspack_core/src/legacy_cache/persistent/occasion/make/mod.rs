@@ -8,11 +8,9 @@ use rspack_collections::IdentifierSet;
 use rspack_error::Result;
 use rustc_hash::FxHashSet;
 
-use super::{
-  super::{codec::CacheCodec, storage::Storage},
-  Occasion,
-};
+use super::{super::storage::Storage, Occasion};
 use crate::{
+  cache::CacheCodec,
   compilation::build_module_graph::BuildModuleGraphArtifact,
   utils::{FileCounter, ResourceId},
 };

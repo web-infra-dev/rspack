@@ -23,9 +23,7 @@ pub use memory_cache::{MemoryCache, MemoryCacheGetResult};
 use rspack_fs::ReadableFileSystem;
 
 use self::snapshot::{BuildDeps, FileSystemInfo};
-use crate::{
-  CompilationLogger, CompilationLogging, CompilerOptions, cache::persistent::codec::CacheCodec,
-};
+use crate::{CompilationLogger, CompilationLogging, CompilerOptions, cache::CacheCodec};
 
 pub fn create_cache(
   compiler_path: String,
@@ -64,7 +62,7 @@ pub fn create_cache(
     CompilationLogger::new("rspack.newCache".to_string(), compilation_logging),
   );
   let (base_path, database_path) = match &options.storage {
-    crate::cache::persistent::storage::StorageOptions::FileSystem { directory } => {
+    crate::cache::StorageOptions::FileSystem { directory } => {
       let base_path = directory.parent().unwrap_or_else(|| {
         panic!("Persistent cache directory must have a parent directory: {directory}")
       });

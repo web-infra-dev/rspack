@@ -17,7 +17,7 @@ use super::{
   ContextFileSystemInfoEntry, ContextTimestampAndHash, FileHash, FileSystemInfoEntry, Snapshot,
   TimestampAndHash,
 };
-use crate::cache::persistent::snapshot::{SnapshotOptions, SnapshotStrategyOptions};
+use crate::cache::{SnapshotOptions, SnapshotStrategyOptions};
 
 static FS_ACCURACY: AtomicU64 = AtomicU64::new(2000);
 

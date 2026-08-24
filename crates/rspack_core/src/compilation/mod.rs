@@ -86,9 +86,6 @@ use crate::{
   RuntimeKeyMap, RuntimeMode, RuntimeModule, RuntimeProxyMetadataArtifact, RuntimeSpec,
   RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver, SideEffectsOptimizeArtifact,
   SideEffectsStateArtifact, SourceType, Stats, StatsContext, StealCell, ValueCacheVersions,
-  cache::persistent::occasion::{
-    devtool::SourceMapDevToolPluginCache, minimize::MinimizePersistentCache,
-  },
   compilation::build_module_graph::{
     BuildModuleGraphArtifact, ModuleExecutor, UpdateParam, update_module_graph,
   },
@@ -96,6 +93,9 @@ use crate::{
   get_runtime_key,
   incremental::{self, Incremental, IncrementalPasses, Mutation},
   is_source_equal,
+  legacy_cache::persistent::occasion::{
+    devtool::SourceMapDevToolPluginCache, minimize::MinimizePersistentCache,
+  },
   new_cache::{Cache, CacheFacade},
   to_identifier,
 };

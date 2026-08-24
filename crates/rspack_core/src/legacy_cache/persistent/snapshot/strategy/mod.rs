@@ -11,7 +11,7 @@ use self::{
   hash_helper::{ContentHash, HashHelper, TimestampHash},
   package_helper::PackageHelper,
 };
-use super::{SnapshotOptions, SnapshotStrategyOptions};
+use crate::cache::{SnapshotOptions, SnapshotStrategyOptions};
 
 /// Snapshot check strategy
 #[cacheable]

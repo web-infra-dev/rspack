@@ -2,8 +2,8 @@ use async_trait::async_trait;
 use rspack_error::Result;
 
 use crate::{
-  Compilation, artifacts::IncrementalArtifacts, cache::Cache, incremental::IncrementalPasses,
-  logger::Logger,
+  Compilation, artifacts::IncrementalArtifacts, incremental::IncrementalPasses,
+  legacy_cache::Cache, logger::Logger,
 };
 
 /// A compilation pass that transforms the compilation state.

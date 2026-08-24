@@ -5,7 +5,7 @@ use rspack_error::Result;
 use rspack_paths::{InternedPath, InternedPathSet};
 
 use super::snapshot::{BuildDeps, BuildDepsValidationResult, FileSystemInfo, Snapshot};
-use crate::cache::persistent::codec::CacheCodec;
+use crate::cache::CacheCodec;
 
 #[cacheable]
 #[derive(Debug)]

@@ -11,8 +11,9 @@ use crate::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, Dependency,
   DependencyId, DependencyParents, DependencyRef, FactorizationArtifact, FactorizeInfo,
   ModuleGraph, ModuleGraphConnection, ModuleGraphModule, ModuleIdentifier, RayonConsumer,
-  cache::persistent::{codec::CacheCodec, storage::Storage},
+  cache::CacheCodec,
   compilation::build_module_graph::{LazyDependencies, ModuleToLazyMake},
+  legacy_cache::persistent::storage::Storage,
 };
 
 pub const SCOPE: &str = "occasion_make_module_graph";
