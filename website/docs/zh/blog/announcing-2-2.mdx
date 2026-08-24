@@ -1,6 +1,6 @@
 ---
 description: 'Rspack 2.2 正式发布, '
-date: 2026-08-xx 16:00:00
+date: 2026-08-26 14:00:00
 sidebar: false
 authors:
   - name: Pengfei Shu
@@ -17,13 +17,13 @@ import { PackageManagerTabs } from '@theme';
 
 # Rspack 2.2 发布公告
 
-_2026 年 8 月 ?? 日_
+_2026 年 8 月 26 日_
 
 <BlogAuthors />
 
 ![Rspack 2.2 Banner](https://assets.rspack.rs/rspack/rspack-banner-v2.2.png)
 
-我们很高兴地宣布 Rspack 2.2 已正式发布！
+我们很高兴地宣布 Rspack 2.1 已正式发布！
 
 ---
 
@@ -44,6 +44,21 @@ _2026 年 8 月 ?? 日_
   - [Rsdoctor](#rsdoctor)
 
 ## 性能提升
+
+### 更好的 HMR
+
+在之前 HMR 中，即使只修改了 JavaScript 代码，HMR 在更新的过程中还是会加载相关的 CSS 文件，并在浏览器中对比内容是否变化，最终决定是否更新 CSS。
+
+在 [#14682](https://github.com/web-infra-dev/rspack/pull/14682) 中，Rspack 通过在构建阶段判断出 CSS Chunk 否有变化，精细化的控制 HMR 是否需要拉取 CSS 资源省去 HTTP 的请求时间。
+通过示例项目的验证，在不同的 CSS 文件大小的情况下，JavaScript 的热更新能保持在一个稳定的速度。
+
+| Stylesheet Size    | before  | after |
+| ------------------ | ------- | ----- |
+| 0.5 MB / 5k rules  | ~50 ms  | ~5 ms |
+| 2.1 MB / 20k rules | ~170 ms | ~5 ms |
+| 4.1 MB / 40k rules | ~385 ms | ~6 ms |
+
+此外，我们还[修复](https://github.com/web-infra-dev/rspack/pull/14580)了 `mini-css-extract-plugin` 在 Stylesheet 热更新中的样式短暂消失导致页面都抖动的问题，让页面一直保持期望的样子。
 
 ## 新特性
 
