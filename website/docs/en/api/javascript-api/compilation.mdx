@@ -15,6 +15,7 @@ import StatsType from '../../types/stats.mdx';
 import LoggerType from '../../types/logger.mdx';
 import CacheType from '../../types/cache.mdx';
 import CompilerType from '../../types/compiler.mdx';
+import RuntimeTemplateType from '../../types/runtime-template.mdx';
 import RspackErrorType from '../../types/rspack-error.mdx';
 import CompilationDependenciesType from '../../types/compilation-dependencies.mdx';
 import { Collapse, CollapsePanel } from '@components/Collapse';
@@ -584,6 +585,42 @@ getCache(name: string): CacheFacade;
 **Type**: `RspackOptionsNormalized`
 
 The normalized options used by this Compilation, see [Configure Rspack](/config/) for details.
+
+### runtimeTemplate
+
+**Type**: `RuntimeTemplate`
+
+Helpers that generate runtime code matching the capabilities of the targeted environment, as
+declared by [`output.environment`](/config/output#outputenvironment). Use them instead of
+hand-written snippets so that generated code stays valid for older targets.
+
+```js
+class MyPlugin {
+  apply(compiler) {
+    compiler.hooks.compilation.tap('MyPlugin', (compilation) => {
+      const { runtimeTemplate } = compilation;
+
+      // `() => (globalThis)` when arrow functions are supported,
+      // `function() { return globalThis; }` otherwise
+      runtimeTemplate.returningFunction('globalThis');
+
+      // `(a) => {\n\tconsole.log(a);\n}` when arrow functions are supported,
+      // `function(a) {\n\tconsole.log(a);\n}` otherwise
+      runtimeTemplate.basicFunction('a', 'console.log(a);');
+    });
+  }
+}
+```
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="RuntimeTemplate.ts"
+    key="RuntimeTemplate"
+  >
+    <RuntimeTemplateType />
+  </CollapsePanel>
+</Collapse>
 
 ### compiler
 
