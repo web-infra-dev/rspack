@@ -90,6 +90,27 @@ it("should analyze dynamic imports destructured from Promise.all", async () => {
 	expect(destructuredUsedExports).toEqual(["foo", "usedExports"]);
 });
 
+it("should retain parent exports for empty nested patterns in Promise.all", async () => {
+	const [{ bar: {}, usedExports }] = await Promise.all([
+		import("./promise-all/a?empty-nested-pattern")
+	]);
+
+	expect(usedExports).toEqual(["bar", "usedExports"]);
+});
+
+it("should keep Promise.all imports without a matching pattern fully referenced", async () => {
+	const [namespace] = await Promise.all([
+		import("./promise-all/a?unmatched-pattern"),
+		import("./promise-all/b?unmatched-pattern")
+	]);
+
+	expect(namespace.bar).toBe("bar");
+	expect(namespace.usedExports).toEqual(["bar", "usedExports"]);
+
+	const unmatched = await import("./promise-all/b?unmatched-pattern");
+	expect(unmatched.usedExports).toBe(true);
+});
+
 it("should not analyze Promise.all when Promise is shadowed", async () => {
 	await (async Promise => {
 		const [{ foo, usedExports: destructuredUsedExports }, namespace] = await Promise.all([
