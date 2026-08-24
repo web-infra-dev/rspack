@@ -85,11 +85,25 @@ import rawCSS from './example.css' with { type: 'text' };
 
 :::
 
+#### 动态端口 \{#dynamic-port}
+
+Rsbuild 现在支持将 [`server.port`](https://rsbuild.rs/zh/config/server/port#动态端口) 设置为 `0`，由操作系统自动分配一个可用端口：
+
+```ts title="rsbuild.config.ts"
+export default {
+  server: {
+    port: 0,
+  },
+};
+```
+
+这在测试场景中尤其有用，可以避免多个测试同时启动 Rsbuild server 时发生端口冲突。
+
 #### 定制压缩配置 \{#custom-minimizer-configs}
 
-Rsbuild 现在支持同时配置多种压缩选项。通过为 [`minify.jsOptions`](https://rsbuild.rs/config/output/minify#minifyjsoptions) 传入数组，可以针对不同产物设置不同的压缩策略。
+Rsbuild 现在支持同时配置多种压缩选项。
 
-例如，仅移除主 bundle 中的 `console` 调用，同时保留其他 bundle 中的调用：
+通过为 [`minify.jsOptions`](https://rsbuild.rs/config/output/minify#minifyjsoptions) 传入数组，可以针对不同产物设置不同的压缩策略。例如，仅移除主 bundle 中的 `console` 调用，同时保留其他 bundle 中的调用：
 
 ```ts title="rsbuild.config.ts"
 export default {
