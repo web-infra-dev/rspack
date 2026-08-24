@@ -44,6 +44,7 @@ _2026 年 8 月 26 日_
 - 新特性
   - [`import.meta.glob` 支持 `caseSensitive`](#import-meta-glob-case-sensitive)
   - [Compat Hashed IDs](#compat-hashed-ids)
+  - [Rspack Runtime Mode](#rspack-runtime-mode)
 
 - 产物优化
 
@@ -116,6 +117,40 @@ export default {
     chunkIds: 'compat-hashed',
   },
 };
+```
+
+### Rspack Runtime Mode \{#rspack-runtime-mode}
+
+`experiments.runtimeMode` 新增了 `'rspack'` 选项，用于生成更现代化的运行时代码。以 `output.module: true` 时的产物为例，Rspack 在定义 runtime helper 时，不再使用 IIFE 包裹并将其挂载到 `__webpack_require__`，而是直接在 ESM 顶层声明，并通过 `export` 语句导出。这样不仅能精简产物，也对下游 tree shaking 更加友好。
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    runtimeMode: 'rspack',
+  },
+  output: {
+    module: true,
+  },
+};
+```
+
+默认的 `webpack` runtime mode 产物：
+
+```js
+(() => {
+  __webpack_require__.runtimeHelper = () => {
+    // ...
+  };
+})();
+```
+
+使用 `rspack` runtime mode 后：
+
+```js
+var runtimeHelper = () => {
+  // ...
+};
+export { runtimeHelper };
 ```
 
 ## 产物优化
