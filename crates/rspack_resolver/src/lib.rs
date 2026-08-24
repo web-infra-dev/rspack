@@ -89,7 +89,7 @@ use dashmap::DashSet;
 use futures::future::{BoxFuture, try_join_all};
 // Resolved dependencies are reported as interned paths, so consumers do not have to convert or
 // rehash them; re-exported for anyone reading a `ResolveContext`.
-pub use rspack_paths::{InternedPath, InternedPathSet};
+pub use rspack_paths::{InternedPath, InternedPathSet, dedup_paths};
 use rustc_hash::FxHashSet;
 
 use crate::{
@@ -118,11 +118,11 @@ type ResolveResult = Result<Option<CachedPath>, ResolveError>;
 /// Context returned from the [Resolver::resolve_with_context] API
 #[derive(Debug, Default, Clone)]
 pub struct ResolveContext {
-  /// Files that were found on file system
-  pub file_dependencies: InternedPathSet,
+  /// Files that were found on file system. Duplicate-free: see [`dedup_paths`].
+  pub file_dependencies: Vec<InternedPath>,
 
-  /// Dependencies that were not found on file system
-  pub missing_dependencies: InternedPathSet,
+  /// Dependencies that were not found on file system. Duplicate-free: see [`dedup_paths`].
+  pub missing_dependencies: Vec<InternedPath>,
 }
 
 /// Resolver with the current operating system as the file system
@@ -267,10 +267,12 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
       .resolve_tracing(directory.as_ref(), specifier, &mut ctx)
       .await;
     if let Some(deps) = &mut ctx.file_dependencies {
-      resolve_context.file_dependencies.extend(deps.drain(..));
+      resolve_context.file_dependencies.append(deps);
+      dedup_paths(&mut resolve_context.file_dependencies);
     }
     if let Some(deps) = &mut ctx.missing_dependencies {
-      resolve_context.missing_dependencies.extend(deps.drain(..));
+      resolve_context.missing_dependencies.append(deps);
+      dedup_paths(&mut resolve_context.missing_dependencies);
     }
     result
   }

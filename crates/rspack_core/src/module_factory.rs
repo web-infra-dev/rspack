@@ -1,7 +1,7 @@
 use std::{fmt::Debug, sync::Arc};
 
 use rspack_error::{Diagnostic, Result};
-use rspack_paths::{InternedPath, InternedPathSet};
+use rspack_paths::InternedPath;
 
 use crate::{
   BoxModule, CompilationId, CompilerId, CompilerOptions, Context, DependencyRef, ModuleIdentifier,
@@ -22,9 +22,11 @@ pub struct ModuleFactoryCreateData {
   pub issuer_layer: Option<ModuleLayer>,
   pub resolver_factory: Arc<ResolverFactory>,
 
-  pub file_dependencies: InternedPathSet,
-  pub context_dependencies: InternedPathSet,
-  pub missing_dependencies: InternedPathSet,
+  /// Collected as plain lists and deduplicated once in `FactorizeInfo::new`, so that resolution
+  /// never has to build a hash set per dependency.
+  pub file_dependencies: Vec<InternedPath>,
+  pub context_dependencies: Vec<InternedPath>,
+  pub missing_dependencies: Vec<InternedPath>,
   pub diagnostics: Vec<Diagnostic>,
 }
 

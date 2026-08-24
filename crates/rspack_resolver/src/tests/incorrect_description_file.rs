@@ -23,7 +23,7 @@ async fn incorrect_description_file_1() {
 
   assert!(matches!(resolution, Err(ResolveError::JSON(_))));
   assert_eq!(
-    ctx.file_dependencies,
+    InternedPathSet::from_iter(ctx.file_dependencies.iter().cloned()),
     InternedPathSet::from_iter([
       InternedPath::from(f.join("pack1")),
       InternedPath::from(f.join("pack1/package.json")),

@@ -167,8 +167,16 @@ mod windows {
         .iter()
         .map(|p| InternedPath::from(PathBuf::from(p)))
         .collect();
-      assert_eq!(ctx.file_dependencies, file_dependencies, "{name}");
-      assert_eq!(ctx.missing_dependencies, missing_dependencies, "{name}");
+      assert_eq!(
+        InternedPathSet::from_iter(ctx.file_dependencies.iter().cloned()),
+        file_dependencies,
+        "{name}"
+      );
+      assert_eq!(
+        InternedPathSet::from_iter(ctx.missing_dependencies.iter().cloned()),
+        missing_dependencies,
+        "{name}"
+      );
     }
   }
 }

@@ -7,7 +7,7 @@ use std::{
 use rspack_error::{Error, Severity, cyan, yellow};
 use rspack_fs::ReadableFileSystem;
 use rspack_loader_runner::DescriptionData;
-use rspack_paths::{AssertUtf8, InternedPathSet};
+use rspack_paths::{AssertUtf8, InternedPath};
 use rspack_util::location::byte_line_column_to_offset;
 
 use super::{ResolveResult, Resource, boxfs::BoxFS};
@@ -18,11 +18,11 @@ use crate::{
 #[derive(Debug, Default, Clone)]
 pub struct ResolveDependencies {
   /// Files that were found on file system; entries carry the precomputed
-  /// `FxHash` from `rspack_resolver`.
-  pub file_dependencies: InternedPathSet,
+  /// `FxHash` from `rspack_resolver`. Duplicate-free.
+  pub file_dependencies: Vec<InternedPath>,
   /// Dependencies that were not found on file system; entries carry the
-  /// precomputed `FxHash` from `rspack_resolver`.
-  pub missing_dependencies: InternedPathSet,
+  /// precomputed `FxHash` from `rspack_resolver`. Duplicate-free.
+  pub missing_dependencies: Vec<InternedPath>,
 }
 
 /// Proxy to [nodejs_resolver::Error] or [rspack_resolver::ResolveError]

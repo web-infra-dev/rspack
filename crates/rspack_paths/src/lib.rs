@@ -244,6 +244,18 @@ impl Hash for InternedPath {
   }
 }
 
+/// Drop duplicate paths in place.
+///
+/// Callers collect paths as plain lists and clean them up once here, rather than paying for a hash
+/// set per list. Sorting by the precomputed content hash keeps the result deterministic across
+/// runs — interned pointer addresses would not — and `dedup` then compares interned handles, which
+/// is a pointer comparison. Hash collisions between distinct paths end up adjacent but survive,
+/// because `dedup` uses `PartialEq`.
+pub fn dedup_paths(paths: &mut Vec<InternedPath>) {
+  paths.sort_unstable_by_key(InternedPath::precomputed_hash);
+  paths.dedup();
+}
+
 /// A standard `HashMap` using `InternedPath` as the key type with a custom `Hasher`
 /// that just uses the precomputed hash for speed instead of calculating it.
 pub type InternedPathMap<V> = HashMap<InternedPath, V, BuildHasherDefault<IdentityHasher>>;

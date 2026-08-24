@@ -64,7 +64,7 @@ async fn default_enforce_extension() {
     Ok(f.join("foo.ts"))
   );
   assert_eq!(
-    ctx.file_dependencies,
+    InternedPathSet::from_iter(ctx.file_dependencies.iter().cloned()),
     InternedPathSet::from_iter([
       InternedPath::from(f.join("foo.ts")),
       InternedPath::from(f.join("package.json")),
@@ -92,14 +92,14 @@ async fn respect_enforce_extension() {
     Ok(f.join("foo.ts"))
   );
   assert_eq!(
-    ctx.file_dependencies,
+    InternedPathSet::from_iter(ctx.file_dependencies.iter().cloned()),
     InternedPathSet::from_iter([
       InternedPath::from(f.join("foo.ts")),
       InternedPath::from(f.join("package.json")),
     ])
   );
   assert_eq!(
-    ctx.missing_dependencies,
+    InternedPathSet::from_iter(ctx.missing_dependencies.iter().cloned()),
     InternedPathSet::from_iter([InternedPath::from(f.join("foo"))])
   );
 }

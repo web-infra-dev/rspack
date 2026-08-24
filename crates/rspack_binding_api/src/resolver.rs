@@ -81,12 +81,12 @@ impl JsResolver {
             let mut resolve_request = ResolveRequest::from(resource);
             resolve_request.file_dependencies = resolve_dependencies
               .file_dependencies
-              .drain()
+              .drain(..)
               .map(|path| path.to_string_lossy().into_owned())
               .collect();
             resolve_request.missing_dependencies = resolve_dependencies
               .missing_dependencies
-              .drain()
+              .drain(..)
               .map(|path| path.to_string_lossy().into_owned())
               .collect();
             Ok(match simd_json::to_string(&resolve_request) {

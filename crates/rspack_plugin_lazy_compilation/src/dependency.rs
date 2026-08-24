@@ -4,16 +4,16 @@ use rspack_core::{
   DependencyType, ModuleDependency,
 };
 use rspack_error::Diagnostic;
-use rspack_paths::InternedPathSet;
+use rspack_paths::InternedPath;
 
 #[cacheable]
 #[derive(Debug, Clone)]
 pub struct DependencyOptions {
   pub request: String,
 
-  pub file_dependencies: InternedPathSet,
-  pub context_dependencies: InternedPathSet,
-  pub missing_dependencies: InternedPathSet,
+  pub file_dependencies: Vec<InternedPath>,
+  pub context_dependencies: Vec<InternedPath>,
+  pub missing_dependencies: Vec<InternedPath>,
   pub diagnostics: Vec<Diagnostic>,
 }
 

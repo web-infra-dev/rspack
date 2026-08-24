@@ -1,6 +1,6 @@
 use rspack_cacheable::cacheable;
 use rspack_error::Diagnostic;
-use rspack_paths::{InternedPath, InternedPathSet};
+use rspack_paths::{InternedPath, dedup_paths};
 use rustc_hash::FxHashMap;
 
 use crate::DependencyId;
@@ -11,7 +11,7 @@ pub struct FactorizeInfo {
   related_dep_ids: Vec<DependencyId>,
   /// These are only ever iterated, so they are stored as compact slices instead of hash sets.
   /// They must stay duplicate-free: `FileCounter::remove_files` panics when the same path is
-  /// removed twice. Building them from an `InternedPathSet` guarantees that.
+  /// removed twice. [`dedup_paths`] establishes that in `new`.
   file_dependencies: Box<[InternedPath]>,
   context_dependencies: Box<[InternedPath]>,
   missing_dependencies: Box<[InternedPath]>,
@@ -22,19 +22,22 @@ impl FactorizeInfo {
   pub fn new(
     diagnostics: Vec<Diagnostic>,
     related_dep_ids: Vec<DependencyId>,
-    file_dependencies: InternedPathSet,
-    context_dependencies: InternedPathSet,
-    missing_dependencies: InternedPathSet,
+    mut file_dependencies: Vec<InternedPath>,
+    mut context_dependencies: Vec<InternedPath>,
+    mut missing_dependencies: Vec<InternedPath>,
   ) -> Self {
     assert!(
       !related_dep_ids.is_empty(),
       "factorization should contain at least one dependency"
     );
+    dedup_paths(&mut file_dependencies);
+    dedup_paths(&mut context_dependencies);
+    dedup_paths(&mut missing_dependencies);
     Self {
       related_dep_ids,
-      file_dependencies: file_dependencies.into_iter().collect(),
-      context_dependencies: context_dependencies.into_iter().collect(),
-      missing_dependencies: missing_dependencies.into_iter().collect(),
+      file_dependencies: file_dependencies.into_boxed_slice(),
+      context_dependencies: context_dependencies.into_boxed_slice(),
+      missing_dependencies: missing_dependencies.into_boxed_slice(),
       diagnostics,
     }
   }
