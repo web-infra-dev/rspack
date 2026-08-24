@@ -43,7 +43,7 @@ _2026 年 8 月 26 日_
 
 - 新特性
   - [`import.meta.glob` 支持 `caseSensitive`](#import-meta-glob-case-sensitive)
-  - [更紧凑的 Compat Hashed IDs](#compat-hashed-ids)
+  - [Compat Hashed IDs](#compat-hashed-ids)
 
 - 产物优化
 
@@ -105,9 +105,9 @@ const modules = import.meta.glob('./pages/**/*.js', {
 });
 ```
 
-### 更紧凑的 Compat Hashed IDs \{#compat-hashed-ids}
+### Compat Hashed IDs \{#compat-hashed-ids}
 
-Rspack 2.2 为 [`optimization.moduleIds`](/config/optimization#optimizationmoduleids) 和 [`optimization.chunkIds`](/config/optimization#optimizationchunkids) 新增了 `'compat-hashed'`。它使用稳定 hash 的最短可用前缀生成更紧凑的 ID。相比 `deterministic`，它在同样保持 ID 稳定性的同时，兼顾运行时索引性能和产物体积。
+[`optimization.moduleIds`](/config/optimization#optimizationmoduleids) 和 [`optimization.chunkIds`](/config/optimization#optimizationchunkids) 新增了 `'compat-hashed'`。它使用稳定 hash 的最短可用前缀生成更紧凑的 ID。相比 `deterministic`，它在同样保持 ID 稳定性的同时，兼顾运行时索引性能和产物体积。如果你的项目对于产物体积比较关注，可以通过如下配置开启：
 
 ```js title="rspack.config.mjs"
 export default {
