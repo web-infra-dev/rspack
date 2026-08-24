@@ -3,9 +3,8 @@ use std::{collections::VecDeque, path::PathBuf, sync::Arc};
 use rspack_fs::ReadableFileSystem;
 use rspack_paths::{AssertUtf8, InternedPath, InternedPathSet};
 
-use super::{FileSystemInfo, SnapshotEntry};
 use crate::{
-  CompilationLogger,
+  CompilationLogger, FileSystemInfo, Snapshot,
   cache::persistent::build_dependencies::{Helper, is_node_package_path},
 };
 
@@ -88,10 +87,12 @@ impl BuildDeps {
   pub async fn validate_snapshot(
     &self,
     file_system_info: &FileSystemInfo,
-    entries: &[SnapshotEntry],
+    snapshot: &Snapshot,
     tracked_files: usize,
   ) -> BuildDepsValidationResult {
-    let (modified_files, removed_files) = file_system_info.calc_modified_paths(entries).await;
+    let changes = file_system_info.collect_snapshot_changes(snapshot).await;
+    let modified_files = changes.modified_files;
+    let removed_files = changes.removed_files;
     if !modified_files.is_empty() || !removed_files.is_empty() {
       return BuildDepsValidationResult::Invalid {
         modified_files,

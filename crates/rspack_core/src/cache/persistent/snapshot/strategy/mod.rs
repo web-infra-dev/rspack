@@ -11,11 +11,11 @@ use self::{
   hash_helper::{ContentHash, HashHelper, TimestampHash},
   package_helper::PackageHelper,
 };
-use super::{SnapshotOptions, SnapshotScope, SnapshotStrategyOptions};
+use super::{SnapshotOptions, SnapshotStrategyOptions};
 
 /// Snapshot check strategy
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub enum Strategy {
   /// Check by package version
   ///
@@ -98,7 +98,6 @@ pub enum ValidateResult {
 
 pub struct StrategyHelper {
   fs: Arc<dyn ReadableFileSystem>,
-  snapshot_options: Arc<SnapshotOptions>,
   package_helper: Arc<PackageHelper>,
   hash_helper: HashHelper,
 }
@@ -108,47 +107,9 @@ impl StrategyHelper {
     let package_helper = Arc::new(PackageHelper::new(fs.clone()));
     Self {
       fs: fs.clone(),
-      hash_helper: HashHelper::new(fs, snapshot_options.clone(), package_helper.clone()),
-      snapshot_options,
+      hash_helper: HashHelper::new(fs, snapshot_options, package_helper.clone()),
       package_helper,
     }
-  }
-
-  pub async fn create_strategy(
-    &self,
-    path: &InternedPath,
-    scope: SnapshotScope,
-  ) -> Option<Strategy> {
-    let path_str = path.to_string_lossy();
-    if self.snapshot_options.is_immutable_path(&path_str) {
-      return None;
-    }
-    if matches!(scope, SnapshotScope::MISSING) {
-      return Some(Strategy::Missing);
-    }
-    if self.snapshot_options.is_managed_path(&path_str)
-      && let Some(strategy) = self.package_version(path).await
-    {
-      return Some(strategy);
-    }
-    Some(match scope {
-      SnapshotScope::FILE => {
-        self
-          .file_strategy(path, self.snapshot_options.dependencies_strategy())
-          .await
-      }
-      SnapshotScope::MISSING => unreachable!("missing scope is handled above"),
-      SnapshotScope::CONTEXT => {
-        self
-          .dir_strategy(path, self.snapshot_options.context_dependencies_strategy())
-          .await
-      }
-      SnapshotScope::BUILD => {
-        self
-          .dir_strategy(path, SnapshotStrategyOptions::hash())
-          .await
-      }
-    })
   }
 
   /// get path file modified time

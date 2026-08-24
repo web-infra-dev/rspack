@@ -1,4 +1,3 @@
-mod option;
 mod scope;
 mod strategy;
 
@@ -10,13 +9,10 @@ use rspack_parallel::TryFutureConsumer;
 use rspack_paths::{InternedPath, InternedPathSet};
 
 pub(crate) use self::strategy::{StrategyHelper, ValidateResult};
-pub use self::{
-  option::{PathMatcher, SnapshotOptions, SnapshotStrategyOptions},
-  scope::SnapshotScope,
-  strategy::Strategy,
-};
+pub use self::{scope::SnapshotScope, strategy::Strategy};
 use super::{codec::CacheCodec, storage::Storage};
 use crate::FutureConsumer;
+pub use crate::{PathMatcher, SnapshotOptions, SnapshotStrategyOptions};
 
 /// Snapshot is used to check if files have been modified or deleted.
 ///
@@ -42,6 +38,41 @@ impl Snapshot {
     }
   }
 
+  async fn calc_strategy(
+    options: &Arc<SnapshotOptions>,
+    helper: &Arc<StrategyHelper>,
+    path: &InternedPath,
+    scope: SnapshotScope,
+  ) -> Option<Strategy> {
+    let path_str = path.to_string_lossy();
+    if options.is_immutable_path(&path_str) {
+      return None;
+    }
+    if options.is_managed_path(&path_str)
+      && let Some(v) = helper.package_version(path).await
+    {
+      return Some(v);
+    }
+    Some(match scope {
+      SnapshotScope::FILE => {
+        helper
+          .file_strategy(path, options.dependencies_strategy())
+          .await
+      }
+      SnapshotScope::MISSING => Strategy::Missing,
+      SnapshotScope::CONTEXT => {
+        helper
+          .dir_strategy(path, options.context_dependencies_strategy())
+          .await
+      }
+      SnapshotScope::BUILD => {
+        helper
+          .dir_strategy(path, SnapshotStrategyOptions::hash())
+          .await
+      }
+    })
+  }
+
   #[tracing::instrument("Cache::Snapshot::reset", skip_all)]
   pub fn reset(&self, storage: &mut dyn Storage) {
     storage.reset(SnapshotScope::FILE.name());
@@ -62,9 +93,10 @@ impl Snapshot {
     paths
       .map(|path| {
         let helper = helper.clone();
+        let options = self.options.clone();
         let codec = codec.clone();
         async move {
-          let strategy = helper.create_strategy(&path, scope).await?;
+          let strategy = Self::calc_strategy(&options, &helper, &path, scope).await?;
           Some((
             codec.encode(&path).expect("should encode success"),
             codec.encode(&strategy).expect("should encode success"),

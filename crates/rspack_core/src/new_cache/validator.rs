@@ -4,10 +4,8 @@ use rspack_cacheable::cacheable;
 use rspack_error::Result;
 use rspack_paths::{InternedPath, InternedPathSet};
 
-use super::snapshot::{
-  BuildDependenciesSnapshot, BuildDeps, BuildDepsValidationResult, FileSystemInfo,
-};
-use crate::cache::persistent::codec::CacheCodec;
+use super::snapshot::{BuildDependenciesSnapshot, BuildDeps, BuildDepsValidationResult};
+use crate::{FileSystemInfo, cache::persistent::codec::CacheCodec};
 
 #[cacheable]
 #[derive(Debug)]

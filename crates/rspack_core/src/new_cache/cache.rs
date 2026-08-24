@@ -5,8 +5,9 @@ use rspack_paths::InternedPathSet;
 
 use super::{
   CacheFacade, CacheKey, CacheValue, Etag, IdleFileCache, MemoryCache, MemoryCacheGetResult,
-  cache_value::CacheValueData, snapshot::FileSystemInfo,
+  cache_value::CacheValueData,
 };
+use crate::FileSystemInfo;
 
 /// Cache entry point backed by memory and optional filesystem storage.
 ///

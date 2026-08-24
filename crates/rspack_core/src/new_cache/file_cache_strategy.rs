@@ -8,10 +8,10 @@ use super::{
   CacheKey, Etag,
   cache_value::{CacheEntry, CacheValueDecoder, CacheValueEncoder, ErasedCacheValue},
   db::{Database, DatabaseFamily, DatabaseValue, DatabaseWrite},
-  snapshot::{BuildDeps, FileSystemInfo},
+  snapshot::BuildDeps,
   validator::{CacheValidator, CacheValidatorResult},
 };
-use crate::cache::persistent::codec::CacheCodec;
+use crate::{FileSystemInfo, cache::persistent::codec::CacheCodec};
 
 const VALIDATOR_KEY: &[u8] = b"validator";
 

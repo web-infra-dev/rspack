@@ -21,12 +21,11 @@ pub use file_cache_strategy::FileCacheStrategy;
 pub use idle_file_cache::IdleFileCache;
 pub use memory_cache::{MemoryCache, MemoryCacheGetResult};
 use rspack_fs::ReadableFileSystem;
-pub use snapshot::{FileSystemInfo, Snapshot};
 
 use self::snapshot::BuildDeps;
 use crate::{
-  CompilationLogger, CompilationLogging, CompilerOptions,
-  cache::persistent::{codec::CacheCodec, snapshot::SnapshotOptions},
+  CompilationLogger, CompilationLogging, CompilerOptions, FileSystemInfo, SnapshotOptions,
+  cache::persistent::codec::CacheCodec,
 };
 
 pub fn create_cache(
@@ -48,7 +47,7 @@ pub fn create_cache(
         compiler_path,
         MemoryCache::new(5),
         None,
-        FileSystemInfo::new(SnapshotOptions::default(), input_filesystem),
+        FileSystemInfo::new(input_filesystem, SnapshotOptions::default()),
       );
     }
     crate::CacheOptions::Persistent(options) => options,
@@ -60,7 +59,7 @@ pub fn create_cache(
     None
   };
   let codec = Arc::new(CacheCodec::new(project_root));
-  let file_system_info = FileSystemInfo::new(options.snapshot.clone(), input_filesystem.clone());
+  let file_system_info = FileSystemInfo::new(input_filesystem.clone(), options.snapshot.clone());
   let build_deps = BuildDeps::new(
     &options.build_dependencies,
     input_filesystem.clone(),
@@ -90,7 +89,7 @@ pub fn create_cache(
         compiler_path,
         MemoryCache::default(),
         None,
-        FileSystemInfo::new(options.snapshot.clone(), input_filesystem),
+        FileSystemInfo::new(input_filesystem, options.snapshot.clone()),
       );
     }
   };
@@ -100,6 +99,6 @@ pub fn create_cache(
     compiler_path,
     MemoryCache::default(),
     Some(idle_file_cache),
-    FileSystemInfo::new(options.snapshot.clone(), input_filesystem),
+    FileSystemInfo::new(input_filesystem, options.snapshot.clone()),
   )
 }

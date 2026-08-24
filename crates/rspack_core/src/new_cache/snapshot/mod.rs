@@ -1,35 +1,16 @@
 mod build_deps;
-mod file_system_info;
 
 use rspack_cacheable::cacheable;
 use rspack_paths::{InternedPath, InternedPathSet};
 
-pub use self::{
-  build_deps::{BuildDeps, BuildDepsValidationResult},
-  file_system_info::FileSystemInfo,
-};
-use crate::cache::persistent::snapshot::Strategy;
-
-#[cacheable]
-#[derive(Debug, Clone)]
-pub struct SnapshotEntry {
-  path: InternedPath,
-  strategy: Strategy,
-}
-
-#[cacheable]
-#[derive(Debug, Default, Clone)]
-pub struct Snapshot {
-  file_dependencies: Vec<SnapshotEntry>,
-  context_dependencies: Vec<SnapshotEntry>,
-  missing_dependencies: Vec<SnapshotEntry>,
-}
+pub use self::build_deps::{BuildDeps, BuildDepsValidationResult};
+use crate::{FileSystemInfo, Snapshot, SnapshotStrategyOptions};
 
 #[cacheable]
 #[derive(Debug, Default)]
 pub(super) struct BuildDependenciesSnapshot {
   dependencies: InternedPathSet,
-  snapshots: Vec<SnapshotEntry>,
+  snapshot: Snapshot,
 }
 
 impl BuildDependenciesSnapshot {
@@ -39,7 +20,7 @@ impl BuildDependenciesSnapshot {
     build_deps: &BuildDeps,
   ) -> BuildDepsValidationResult {
     build_deps
-      .validate_snapshot(file_system_info, &self.snapshots, self.dependencies.len())
+      .validate_snapshot(file_system_info, &self.snapshot, self.dependencies.len())
       .await
   }
 
@@ -52,10 +33,16 @@ impl BuildDependenciesSnapshot {
     let added = build_deps
       .resolve_dependencies(&self.dependencies, paths)
       .await;
-    let snapshots = file_system_info
-      .create_build_dependencies_snapshot(added.iter().cloned())
+    let snapshot = file_system_info
+      .create_snapshot(
+        None,
+        std::iter::empty(),
+        added.iter().cloned(),
+        std::iter::empty(),
+        SnapshotStrategyOptions::hash(),
+      )
       .await;
     self.dependencies.extend(added);
-    self.snapshots.extend(snapshots);
+    self.snapshot = file_system_info.merge_snapshots(std::mem::take(&mut self.snapshot), snapshot);
   }
 }
