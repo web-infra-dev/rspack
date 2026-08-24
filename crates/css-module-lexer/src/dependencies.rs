@@ -474,7 +474,10 @@ fn parse_ignore_magic_comment(content: &str) -> Option<Result<ParsedIgnoreMagicC
     } else if let Some(rest) = item.strip_prefix("rspackIgnore") {
       ("rspackIgnore", rest)
     } else {
-      return Some(Err(()));
+      // Other magic comment fields may share the same comment. They are not
+      // consumed by the CSS dependency lexer, but must not invalidate a valid
+      // ignore option.
+      continue;
     };
     let Some(value) = rest.strip_prefix(':') else {
       return Some(Err(()));
@@ -490,7 +493,7 @@ fn parse_ignore_magic_comment(content: &str) -> Option<Result<ParsedIgnoreMagicC
     };
     options.push((name, value));
   }
-  Some(Ok(options))
+  (!options.is_empty()).then_some(Ok(options))
 }
 
 fn trivia_only(input: &str) -> bool {
