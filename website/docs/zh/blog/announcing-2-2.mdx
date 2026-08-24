@@ -55,9 +55,19 @@ _2026 年 8 月 ?? 日_
 
 Rsbuild 2.2 已经与 Rspack 2.2 同步发布。
 
+#### 导入源文本 \{#import-text}
+
+Rsbuild 现在支持使用 import attributes 语法 [`with { type: 'text' }`](https://rsbuild.rs/guide/basic/static-assets#with-import-attributes) 将文件原始内容作为字符串导入：
+
+```ts
+import rawCSS from './example.css' with { type: 'text' };
+```
+
+这与 TC39 的 [Import Text 提案](https://github.com/tc39/proposal-import-text) 保持一致。
+
 #### Node.js 拆包优化 \{#node-split-chunks}
 
-在 Rsbuild 2.2 中，Node.js 构建会默认启用 [`splitChunks`](https://rsbuild.rs/zh/config/split-chunks)，将共享模块提取为独立的 chunk，从而减少重复代码并降低 SSR 应用的内存占用。
+在 Rsbuild 2.2 中，Node.js 构建会默认启用 [chunk 拆分](https://rsbuild.rs/zh/config/split-chunks)，将共享模块提取为独立的 chunk，从而减少重复代码并降低 SSR 应用的内存占用。
 
 下面是 TanStack Start 用户提供的 [实测数据](https://github.com/TanStack/router/issues/8113#issuecomment-5366808113)，测试应用包含 300 个文件路由和 400 个共享组件：
 
