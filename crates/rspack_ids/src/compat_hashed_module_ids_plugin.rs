@@ -60,7 +60,11 @@ async fn module_ids(
     module_ids.retain(|module, _| preserved_module_ids.contains_key(module));
   }
 
-  validate_min_length(self.min_length, "CompatHashedModuleIdsPlugin")?;
+  validate_min_length(
+    self.min_length,
+    FULL_IDENTIFIER_LENGTH,
+    "CompatHashedModuleIdsPlugin",
+  )?;
 
   let (used_ids, modules) =
     get_used_module_ids_and_modules_with_artifact(compilation, module_ids, None);

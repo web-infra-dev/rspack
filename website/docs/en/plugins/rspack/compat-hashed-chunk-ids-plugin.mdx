@@ -1,10 +1,10 @@
 ---
-description: 'CompatHashedChunkIdsPlugin assigns compact ids using the shortest available prefixes of stable alphanumeric hashes to shrink bundles and speed runtime indexing'
+description: 'CompatHashedChunkIdsPlugin assigns compact ids using the shortest available prefixes of stable lowercase alphanumeric hashes to shrink bundles and speed runtime indexing'
 ---
 
 # CompatHashedChunkIdsPlugin
 
-`CompatHashedChunkIdsPlugin` hashes chunk contents and assigns the shortest available prefix of each encoded hash. Compared with `deterministic`, it produces more compact ids that preserve stability while reducing bundle size and improving runtime indexing performance. The first character uses `a-zA-Z`, and subsequent characters use `a-zA-Z0-9`. An id is extended only when its shorter prefix is already used.
+`CompatHashedChunkIdsPlugin` hashes chunk contents and assigns the shortest available prefix of each encoded hash. Compared with `deterministic`, it produces more compact ids that preserve stability while reducing bundle size and improving runtime indexing performance. Every character uses `0-9a-z`, making chunk ids safe for case-insensitive file systems. An id is extended only when its shorter prefix is already used.
 
 `optimization.chunkIds: 'compat-hashed'` uses this plugin internally. Use the plugin directly when you need to customize the minimum encoded id length.
 
@@ -29,6 +29,6 @@ export default {
 
 - **Type:** `number`
 - **Default:** `1`
-- **Range:** Integer from `1` to `11`
+- **Range:** Integer from `1` to `13`
 
 The minimum encoded id length. Rspack extends an id one character at a time when its hash prefix is already used. Increasing `minLength` expands the initial id space, reducing prefix collisions and making generated output and caching more stable. The tradeoff is that chunk ids become longer.

@@ -54,7 +54,7 @@ export default {
 | `'natural'`       | 根据 Chunk 加载的顺序使用自增数字作为 Chunk id。                                         |
 | `'named'`         | 使用有意义、方便调试的内容当作 Chunk id。                                                |
 | `'deterministic'` | 简短的数字 id，在多次编译的场景下，会尽量保持其稳定性。适合长期缓存。默认使用 3 位数字。 |
-| `'compat-hashed'` | 使用稳定字母数字 hash 的最短可用前缀。                                                   |
+| `'compat-hashed'` | 使用稳定小写字母数字 hash 的最短可用前缀。                                               |
 | `'size'`          | 使用让初始下载包大小更小的数字 id。                                                      |
 | `'total-size'`    | 使用让总下载包大小更小的数字 id。                                                        |
 | `false`           | 禁用 Rspack 内置的 Chunk id 算法，允许自定义插件提供 Chunk id。                          |
@@ -67,7 +67,7 @@ export default {
 };
 ```
 
-`compat-hashed` 选项使用稳定字母数字 hash 的最短可用前缀作为 Chunk id，兼顾长期缓存、产物体积和运行时性能。
+`compat-hashed` 选项使用稳定小写字母数字 hash 的最短可用前缀作为 Chunk id，兼顾长期缓存、产物体积和运行时性能。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -390,6 +390,10 @@ export default {
 ```
 
 `compat-hashed` 选项使用稳定字母数字 hash 的最短可用前缀作为模块 id，兼顾长期缓存、产物体积和运行时性能。
+
+:::warning
+`compat-hashed` 生成的模块 id 区分大小写且可能包含大写字母。在大小写不敏感的文件系统上，不要仅使用 `[id]` 区分 [Asset module 文件名](/config/output#outputassetmodulefilename)。请优先使用 `[contenthash]`，或将其与 `[id]` 一起使用。
+:::
 
 ```js title="rspack.config.mjs"
 const isDev = process.env.NODE_ENV === 'development';

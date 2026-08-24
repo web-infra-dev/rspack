@@ -9,8 +9,8 @@ use rustc_hash::{FxBuildHasher, FxHashMap};
 
 use crate::{
   compat_hashed_id::{
-    CompatHashedIdAssigner, FULL_IDENTIFIER_LENGTH, hash_identifier, normalize_min_length,
-    validate_min_length,
+    CompatHashedIdAssigner, FULL_LOWERCASE_ALPHANUMERIC_LENGTH, hash_lowercase_alphanumeric,
+    normalize_min_length, validate_min_length,
   },
   id_helpers::{
     NaturalChunkCompareCache, compare_chunks_natural, get_full_chunk_name, get_used_chunk_ids,
@@ -57,9 +57,17 @@ async fn chunk_ids(
     diagnostics.push(diagnostic);
   }
 
-  validate_min_length(self.min_length, "CompatHashedChunkIdsPlugin")?;
+  validate_min_length(
+    self.min_length,
+    FULL_LOWERCASE_ALPHANUMERIC_LENGTH,
+    "CompatHashedChunkIdsPlugin",
+  )?;
 
-  let used_ids = get_used_chunk_ids(chunk_by_ukey);
+  // Prevent generated ids from aliasing preassigned ids on case-insensitive file systems.
+  let used_ids = get_used_chunk_ids(chunk_by_ukey)
+    .into_iter()
+    .map(|id| id.to_ascii_lowercase())
+    .collect();
   let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
   let module_graph = compilation.get_module_graph();
   let module_graph_cache = &compilation.module_graph_cache_artifact;
@@ -83,7 +91,7 @@ async fn chunk_ids(
         context,
         &compilation.exports_info_artifact,
       );
-      (chunk, hash_identifier(&name))
+      (chunk, hash_lowercase_alphanumeric(&name))
     })
     .collect::<Vec<_>>();
 
@@ -105,7 +113,7 @@ async fn chunk_ids(
   for (chunk, hash) in chunks_with_hashes {
     let Some(chunk_id) = id_assigner.assign(&hash) else {
       return Err(error!(
-        "Unable to assign a unique compat-hashed id to chunk '{:?}' after using all {FULL_IDENTIFIER_LENGTH} hash characters",
+        "Unable to assign a unique compat-hashed id to chunk '{:?}' after using all {FULL_LOWERCASE_ALPHANUMERIC_LENGTH} hash characters",
         chunk.ukey()
       ));
     };

@@ -10,11 +10,11 @@ const checkChunkIds =
           chunks: true,
           ids: true,
         })
-        .chunks.map((chunk) => chunk.id);
+        .chunks.map((chunk) => String(chunk.id));
 
       expect(new Set(ids).size).toBe(ids.length);
       for (const id of ids) {
-        expect(id).toMatch(/^[A-Za-z][A-Za-z0-9]*$/);
+        expect(id).toMatch(/^[a-z0-9]+$/);
         expect(id.length).toBeGreaterThanOrEqual(minLength);
       }
       if (expectExtended) {

@@ -10,6 +10,10 @@ import { ApiMeta } from '@components/ApiMeta.tsx';
 
 `CompatHashedModuleIdsPlugin` 会对模块标识符计算 hash，并分配编码后 hash 的最短可用前缀。与 `deterministic` 相比，它生成的 id 更紧凑，在保持稳定性的同时，可以减小产物体积并提升运行时索引性能。首字符使用 `a-zA-Z`，后续字符使用 `a-zA-Z0-9`。只有较短前缀已被使用时，才会延长 id。
 
+:::warning
+生成的模块 id 区分大小写且可能包含大写字母。在大小写不敏感的文件系统上，不要仅使用 `[id]` 区分 [Asset module 文件名](/config/output#outputassetmodulefilename)。请优先使用 `[contenthash]`，或将其与 `[id]` 一起使用。
+:::
+
 [`optimization.moduleIds: 'compat-hashed'`](/config/optimization#optimizationmoduleids) 内部会使用该插件。只有在需要自定义编码后 id 的最小长度时，才需要直接使用该插件。
 
 ```js title="rspack.config.mjs"
