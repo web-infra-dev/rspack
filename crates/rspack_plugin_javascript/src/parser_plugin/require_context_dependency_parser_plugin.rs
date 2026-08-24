@@ -7,9 +7,7 @@ use rspack_regex::RspackRegex;
 use rspack_util::SpanExt;
 use swc_experimental_ecma_ast::{CallExpr, GetSpan};
 
-use super::{
-  JavascriptParserPlugin, common_js_imports_parse_plugin::mark_module_exports_accessed_by_require,
-};
+use super::JavascriptParserPlugin;
 use crate::{
   dependency::RequireContextDependency,
   visitors::{
@@ -28,8 +26,6 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for RequireContextDependencyParserPl
     expr: &CallExpr,
     for_name: &str,
   ) -> Option<bool> {
-    mark_module_exports_accessed_by_require(parser, for_name);
-
     if for_name != "require.context" {
       return None;
     }
