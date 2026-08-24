@@ -299,12 +299,20 @@ export default {
 
 ```js
 // runtime.js
+var __webpack_modules__ = {};
+function __webpack_require__(moduleId) {
+  /* ... */
+}
+__webpack_require__.m = __webpack_modules__;
+__webpack_require__.n = (module) => {
+  /* ... */
+};
+
 export { __webpack_require__ };
 
 // main.js
 import { __webpack_require__ } from './runtime.js';
 
-__webpack_require__.add(/* module factories */);
 const value = __webpack_require__(moduleId);
 const getDefault = __webpack_require__.n(value);
 ```
@@ -314,16 +322,20 @@ const getDefault = __webpack_require__.n(value);
 
 ```js
 // runtime.js
+var modules = {};
+function rspackRequire(moduleId) {
+  /* ... */
+}
+var moduleFactories = modules;
+var compatGetDefaultExport = (module) => {
+  /* ... */
+};
+
 export { rspackRequire, moduleFactories, compatGetDefaultExport };
 
 // main.js
-import {
-  rspackRequire,
-  moduleFactories,
-  compatGetDefaultExport,
-} from './runtime.js';
+import { rspackRequire, compatGetDefaultExport } from './runtime.js';
 
-moduleFactories.add(/* module factories */);
 const value = rspackRequire(moduleId);
 const getDefault = compatGetDefaultExport(value);
 ```
