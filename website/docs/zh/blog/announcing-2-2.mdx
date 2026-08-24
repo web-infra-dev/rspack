@@ -86,6 +86,16 @@ const modules = import.meta.glob('./pages/**/*.js', {
 
 ## 产物优化
 
+## Break Change
+
+### RSC 插件：通过 `preinit` 加载客户端组件的 CSS
+
+此前，RSC 插件会包装客户端引用（Client Reference），并在渲染组件时插入 CSS `<link>` 标签。由于包装后的导出不再是原始的 Client Reference，某些导出形式可能无法保留 Client Reference 标识。
+
+Rspack 2.2 不再包装客户端引用，而是通过 React 的 [`preinit`](https://react.dev/reference/react-dom/preinit) 加载客户端组件的 CSS。
+
+这项调整改变了 RSC 中客户端组件 CSS 的加载方式，是一项针对 RSC 框架集成的破坏性变更。如果你正在集成 Rspack RSC 插件，请将 [`react-server-dom-rspack`](https://www.npmjs.com/package/react-server-dom-rspack) 同步升级到 `0.1.0`。
+
 ## 生态
 
 ### Rsbuild \{#rsbuild}
@@ -212,12 +222,6 @@ const myPlugin = () => ({
   },
 });
 ```
-
-#### RSC 插件：Client Component CSS 使用 preinit 加载
-
-Rspack RSC 插件现在对 Client Component CSS 使用 React 的 preinit 方法加载。这样可以保持客户端引用的标识一致性，包括默认导出、具名导出、CommonJS 导出以及非组件导出，均转换为客户端引用（client reference）。
-
-对于 RSC 框架集成而言，这是一项破坏性变更。请将 `react-server-dom-rspack` 升级至 0.1.0。
 
 ### Rslib \{#rslib}
 
