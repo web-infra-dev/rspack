@@ -61,12 +61,12 @@ Rsbuild 2.2 已经与 Rspack 2.2 同步发布。
 
 下面是 TanStack Start 用户提供的 [实测数据](https://github.com/TanStack/router/issues/8113#issuecomment-5366808113)，测试应用包含 300 个文件路由和 400 个共享组件：
 
-| 指标                     | Rsbuild 2.1 | Rsbuild 2.2 | 变化           |
-| ------------------------ | ----------- | ----------- | -------------- |
-| 服务端产物体积           | 298 MB      | 4.1 MB      | **减少约 98%** |
-| 访问所有路由后的内存占用 | 486 MB      | 129 MB      | **减少约 73%** |
-| 路由平均访问耗时         | 7.2 ms      | 1.6 ms      | **减少约 78%** |
-| 共享组件的 HMR 耗时      | 7.1 s       | 0.98 s      | **减少约 86%** |
+| 指标                     | Rsbuild 2.1 | Rsbuild 2.2 | 变化         |
+| ------------------------ | ----------- | ----------- | ------------ |
+| 服务端产物体积           | 298 MB      | 4.1 MB      | **减少 98%** |
+| 访问所有路由后的内存占用 | 486 MB      | 129 MB      | **减少 73%** |
+| 路由平均访问耗时         | 7.2 ms      | 1.6 ms      | **减少 78%** |
+| 共享组件的 HMR 耗时      | 7.1 s       | 0.98 s      | **减少 86%** |
 
 :::tip
 
@@ -74,6 +74,34 @@ Rsbuild 2.2 已经与 Rspack 2.2 同步发布。
 - 升级后，Node.js 构建可能会生成额外的共享 chunk 文件；如需保留原有行为，可设置 `splitChunks: false`。
 
 :::
+
+#### 自定义重启流程 \{#restart-api}
+
+基于 Rsbuild 的框架和工具现在可以自行控制重启流程。
+
+Rsbuild 的 JavaScript API 现已支持 [`restart`](https://rsbuild.rs/zh/api/javascript-api/core#restart-handling) 选项，用于处理开发服务器（`rsbuild dev`）或监听构建（`rsbuild build --watch`）的重启请求，例如：
+
+```ts
+import { createRsbuild } from '@rsbuild/core';
+
+await createRsbuild({
+  restart: (restart) => {
+    // 自定义重启逻辑
+  },
+});
+```
+
+Rsbuild 插件也可以通过监听 [`onRestart`](https://rsbuild.rs/zh/plugins/dev/hooks#onrestart) hook 来执行自定义逻辑，例如：
+
+```ts
+const myPlugin = () => ({
+  setup(api) {
+    api.onRestart((context) => {
+      console.log('restart!', context);
+    });
+  },
+});
+```
 
 ### Rslib \{#rslib}
 
