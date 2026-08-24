@@ -7,8 +7,9 @@ use std::{
 };
 
 use futures::future::join3;
-use rspack_fs::{FileMetadata, ReadableFileSystem};
-use rspack_parallel::FutureConsumer;
+use rspack_error::Result;
+use rspack_fs::{Error as FileSystemError, FileMetadata, ReadableFileSystem};
+use rspack_parallel::TryFutureConsumer;
 use rspack_paths::{AssertUtf8, InternedPath, InternedPathSet};
 use rustc_hash::FxHasher;
 use simd_json::prelude::{ValueAsScalar, ValueObjectAccess};
@@ -89,17 +90,36 @@ impl FileSystemInfo {
     contexts: impl Iterator<Item = InternedPath>,
     missing: impl Iterator<Item = InternedPath>,
     options: SnapshotStrategyOptions,
-  ) -> Snapshot {
-    let (mut file_snapshot, context_snapshot, missing_snapshot) = join3(
+  ) -> Result<Snapshot> {
+    let (file_snapshot, context_snapshot, missing_snapshot) = join3(
       self.capture_files(files, options),
       self.capture_contexts(contexts, options),
       self.capture_missing(missing),
     )
     .await;
+    let mut file_snapshot = file_snapshot?;
     file_snapshot.start_time = start_time;
-    file_snapshot.merge(context_snapshot);
-    file_snapshot.merge(missing_snapshot);
-    file_snapshot
+    file_snapshot.merge(context_snapshot?);
+    file_snapshot.merge(missing_snapshot?);
+    Ok(file_snapshot)
+  }
+
+  pub(crate) async fn create_module_snapshot(
+    &self,
+    start_time: Option<u64>,
+    files: impl Iterator<Item = InternedPath>,
+    contexts: impl Iterator<Item = InternedPath>,
+    missing: impl Iterator<Item = InternedPath>,
+  ) -> Result<Snapshot> {
+    self
+      .create_snapshot(
+        start_time,
+        files,
+        contexts,
+        missing,
+        self.options.dependencies_strategy(),
+      )
+      .await
   }
 
   /// Mirrors webpack's `FileSystemInfo.mergeSnapshots`.
@@ -112,12 +132,15 @@ impl FileSystemInfo {
   ///
   /// <https://github.com/webpack/webpack/blob/main/lib/FileSystemInfo.js#L3069-L3543>
   #[tracing::instrument("Cache::FileSystemInfo::check_snapshot_valid", skip_all)]
-  pub async fn check_snapshot_valid(&self, snapshot: &Snapshot) -> bool {
-    let changes = self.collect_snapshot_changes(snapshot).await;
-    changes.modified_files.is_empty() && changes.removed_files.is_empty()
+  pub async fn check_snapshot_valid(&self, snapshot: &Snapshot) -> Result<bool> {
+    let changes = self.collect_snapshot_changes(snapshot).await?;
+    Ok(changes.modified_files.is_empty() && changes.removed_files.is_empty())
   }
 
-  pub(crate) async fn collect_snapshot_changes(&self, snapshot: &Snapshot) -> SnapshotChanges {
+  pub(crate) async fn collect_snapshot_changes(
+    &self,
+    snapshot: &Snapshot,
+  ) -> Result<SnapshotChanges> {
     let mut changes = SnapshotChanges::default();
 
     for entry in &snapshot.file_timestamps {
@@ -125,7 +148,7 @@ impl FileSystemInfo {
         &mut changes,
         &entry.path,
         entry.value,
-        self.modified_time(&entry.path).await,
+        self.modified_time(&entry.path).await?,
       );
     }
     for entry in &snapshot.file_hashes {
@@ -133,7 +156,7 @@ impl FileSystemInfo {
         &mut changes,
         &entry.path,
         entry.value,
-        self.file_hash(&entry.path).await.map(|value| value.hash),
+        self.file_hash(&entry.path).await?.map(|value| value.hash),
       );
     }
     for entry in &snapshot.file_tshs {
@@ -143,7 +166,7 @@ impl FileSystemInfo {
         entry.value.clone(),
         self
           .file_hash(&entry.path)
-          .await
+          .await?
           .map(|value| TimestampAndHash {
             timestamp: value.timestamp,
             hash: value.hash,
@@ -155,7 +178,7 @@ impl FileSystemInfo {
         &mut changes,
         &entry.path,
         entry.value,
-        self.context_timestamp_hash(&entry.path).await,
+        self.context_timestamp_hash(&entry.path).await?,
       );
     }
     for entry in &snapshot.context_hashes {
@@ -163,15 +186,15 @@ impl FileSystemInfo {
         &mut changes,
         &entry.path,
         entry.value,
-        self.context_hash(&entry.path).await,
+        self.context_hash(&entry.path).await?,
       );
     }
     for entry in &snapshot.context_tshs {
-      let current = self.context_timestamp_and_hash(&entry.path).await;
+      let current = self.context_timestamp_and_hash(&entry.path).await?;
       record_timestamp_and_hash_change(&mut changes, &entry.path, entry.value.clone(), current);
     }
     for entry in &snapshot.missing_existence {
-      let current = self.exists(&entry.path).await;
+      let current = self.exists(&entry.path).await?;
       if current != entry.value {
         if entry.value && !current {
           changes.removed_files.insert(entry.path.clone());
@@ -183,22 +206,22 @@ impl FileSystemInfo {
 
     self
       .check_managed_paths(snapshot, &snapshot.managed_files, false, &mut changes)
-      .await;
+      .await?;
     self
       .check_managed_paths(snapshot, &snapshot.managed_contexts, false, &mut changes)
-      .await;
+      .await?;
     self
       .check_managed_paths(snapshot, &snapshot.managed_missing, true, &mut changes)
-      .await;
+      .await?;
 
-    changes
+    Ok(changes)
   }
 
   async fn capture_files(
     &self,
     files: impl Iterator<Item = InternedPath>,
     options: SnapshotStrategyOptions,
-  ) -> Snapshot {
+  ) -> Result<Snapshot> {
     let mut snapshot = Snapshot::default();
     let file_system_info = self.clone();
     files
@@ -206,7 +229,7 @@ impl FileSystemInfo {
         let file_system_info = file_system_info.clone();
         async move { file_system_info.capture_file(path, options).await }
       })
-      .fut_consume(|entry| match entry {
+      .try_fut_consume(|entry| match entry {
         CapturedFile::Ignored => {}
         CapturedFile::Managed { path, item } => {
           snapshot.managed_files.insert(path);
@@ -216,15 +239,15 @@ impl FileSystemInfo {
         CapturedFile::Hash(entry) => snapshot.file_hashes.push(entry),
         CapturedFile::TimestampAndHash(entry) => snapshot.file_tshs.push(entry),
       })
-      .await;
-    snapshot
+      .await?;
+    Ok(snapshot)
   }
 
   async fn capture_contexts(
     &self,
     contexts: impl Iterator<Item = InternedPath>,
     options: SnapshotStrategyOptions,
-  ) -> Snapshot {
+  ) -> Result<Snapshot> {
     let mut snapshot = Snapshot::default();
     let file_system_info = self.clone();
     contexts
@@ -232,7 +255,7 @@ impl FileSystemInfo {
         let file_system_info = file_system_info.clone();
         async move { file_system_info.capture_context(path, options).await }
       })
-      .fut_consume(|entry| match entry {
+      .try_fut_consume(|entry| match entry {
         CapturedContext::Ignored => {}
         CapturedContext::Managed { path, item } => {
           snapshot.managed_contexts.insert(path);
@@ -242,11 +265,11 @@ impl FileSystemInfo {
         CapturedContext::Hash(entry) => snapshot.context_hashes.push(entry),
         CapturedContext::TimestampAndHash(entry) => snapshot.context_tshs.push(entry),
       })
-      .await;
-    snapshot
+      .await?;
+    Ok(snapshot)
   }
 
-  async fn capture_missing(&self, missing: impl Iterator<Item = InternedPath>) -> Snapshot {
+  async fn capture_missing(&self, missing: impl Iterator<Item = InternedPath>) -> Result<Snapshot> {
     let mut snapshot = Snapshot::default();
     let file_system_info = self.clone();
     missing
@@ -254,7 +277,7 @@ impl FileSystemInfo {
         let file_system_info = file_system_info.clone();
         async move { file_system_info.capture_missing_path(path).await }
       })
-      .fut_consume(|entry| match entry {
+      .try_fut_consume(|entry| match entry {
         CapturedMissing::Ignored => {}
         CapturedMissing::Managed { path, item } => {
           snapshot.managed_missing.insert(path);
@@ -262,74 +285,74 @@ impl FileSystemInfo {
         }
         CapturedMissing::Existence(entry) => snapshot.missing_existence.push(entry),
       })
-      .await;
-    snapshot
+      .await?;
+    Ok(snapshot)
   }
 
   async fn capture_file(
     &self,
     path: InternedPath,
     options: SnapshotStrategyOptions,
-  ) -> CapturedFile {
+  ) -> Result<CapturedFile> {
     if self.is_immutable(&path) {
-      return CapturedFile::Ignored;
+      return Ok(CapturedFile::Ignored);
     }
     if self.is_managed(&path)
-      && let Some(item) = self.managed_item_info(&path).await
+      && let Some(item) = self.managed_item_info(&path).await?
     {
-      return CapturedFile::Managed { path, item };
+      return Ok(CapturedFile::Managed { path, item });
     }
-    if options.hash && options.timestamp {
-      let value = self.file_hash(&path).await.map(|value| TimestampAndHash {
+    Ok(if options.hash && options.timestamp {
+      let value = self.file_hash(&path).await?.map(|value| TimestampAndHash {
         timestamp: value.timestamp,
         hash: value.hash,
       });
       CapturedFile::TimestampAndHash(SnapshotEntry { path, value })
     } else if options.hash {
-      let value = self.file_hash(&path).await.map(|value| value.hash);
+      let value = self.file_hash(&path).await?.map(|value| value.hash);
       CapturedFile::Hash(SnapshotEntry { path, value })
     } else {
-      let value = self.modified_time(&path).await;
+      let value = self.modified_time(&path).await?;
       CapturedFile::Timestamp(SnapshotEntry { path, value })
-    }
+    })
   }
 
   async fn capture_context(
     &self,
     path: InternedPath,
     options: SnapshotStrategyOptions,
-  ) -> CapturedContext {
+  ) -> Result<CapturedContext> {
     if self.is_immutable(&path) {
-      return CapturedContext::Ignored;
+      return Ok(CapturedContext::Ignored);
     }
     if self.is_managed(&path)
-      && let Some(item) = self.managed_item_info(&path).await
+      && let Some(item) = self.managed_item_info(&path).await?
     {
-      return CapturedContext::Managed { path, item };
+      return Ok(CapturedContext::Managed { path, item });
     }
-    if options.hash && options.timestamp {
-      let value = self.context_timestamp_and_hash(&path).await;
+    Ok(if options.hash && options.timestamp {
+      let value = self.context_timestamp_and_hash(&path).await?;
       CapturedContext::TimestampAndHash(SnapshotEntry { path, value })
     } else if options.hash {
-      let value = self.context_hash(&path).await;
+      let value = self.context_hash(&path).await?;
       CapturedContext::Hash(SnapshotEntry { path, value })
     } else {
-      let value = self.context_timestamp_hash(&path).await;
+      let value = self.context_timestamp_hash(&path).await?;
       CapturedContext::Timestamp(SnapshotEntry { path, value })
-    }
+    })
   }
 
-  async fn capture_missing_path(&self, path: InternedPath) -> CapturedMissing {
+  async fn capture_missing_path(&self, path: InternedPath) -> Result<CapturedMissing> {
     if self.is_immutable(&path) {
-      return CapturedMissing::Ignored;
+      return Ok(CapturedMissing::Ignored);
     }
     if self.is_managed(&path)
-      && let Some(item) = self.managed_item_info(&path).await
+      && let Some(item) = self.managed_item_info(&path).await?
     {
-      return CapturedMissing::Managed { path, item };
+      return Ok(CapturedMissing::Managed { path, item });
     }
-    let value = self.exists(&path).await;
-    CapturedMissing::Existence(SnapshotEntry { path, value })
+    let value = self.exists(&path).await?;
+    Ok(CapturedMissing::Existence(SnapshotEntry { path, value }))
   }
 
   async fn check_managed_paths(
@@ -338,13 +361,13 @@ impl FileSystemInfo {
     paths: &InternedPathSet,
     expect_missing: bool,
     changes: &mut SnapshotChanges,
-  ) {
+  ) -> Result<()> {
     for path in paths {
-      if expect_missing && self.exists(path).await {
+      if expect_missing && self.exists(path).await? {
         changes.modified_files.insert(path.clone());
         continue;
       }
-      let Some(current) = self.managed_item_info(path).await else {
+      let Some(current) = self.managed_item_info(path).await? else {
         changes.removed_files.insert(path.clone());
         continue;
       };
@@ -356,6 +379,7 @@ impl FileSystemInfo {
         changes.modified_files.insert(path.clone());
       }
     }
+    Ok(())
   }
 
   fn is_immutable(&self, path: &InternedPath) -> bool {
@@ -366,49 +390,58 @@ impl FileSystemInfo {
     self.options.is_managed_path(&path.to_string_lossy())
   }
 
-  async fn exists(&self, path: &InternedPath) -> bool {
-    self.fs.metadata(path.assert_utf8()).await.is_ok()
+  async fn exists(&self, path: &InternedPath) -> Result<bool> {
+    Ok(self.metadata(path).await?.is_some())
   }
 
-  async fn metadata(&self, path: &InternedPath) -> Option<FileMetadata> {
-    self.fs.metadata(path.assert_utf8()).await.ok()
+  async fn metadata(&self, path: &InternedPath) -> Result<Option<FileMetadata>> {
+    missing_as_none(self.fs.metadata(path.assert_utf8()).await)
   }
 
   fn modified_time_from_metadata(metadata: &FileMetadata) -> u64 {
     metadata.ctime_ms.max(metadata.mtime_ms)
   }
 
-  async fn modified_time(&self, path: &InternedPath) -> Option<u64> {
-    self
-      .metadata(path)
-      .await
-      .map(|metadata| Self::modified_time_from_metadata(&metadata))
+  async fn modified_time(&self, path: &InternedPath) -> Result<Option<u64>> {
+    Ok(
+      self
+        .metadata(path)
+        .await?
+        .map(|metadata| Self::modified_time_from_metadata(&metadata)),
+    )
   }
 
-  async fn file_hash(&self, path: &InternedPath) -> Option<TimestampAndHash> {
-    let metadata = self.metadata(path).await?;
+  async fn file_hash(&self, path: &InternedPath) -> Result<Option<TimestampAndHash>> {
+    let Some(metadata) = self.metadata(path).await? else {
+      return Ok(None);
+    };
     let mut hasher = FxHasher::default();
     if metadata.is_symlink {
-      if let Ok(target) = self.fs.canonicalize(path.assert_utf8()).await {
-        target.hash(&mut hasher);
-      }
+      let target = self.fs.canonicalize(path.assert_utf8()).await?;
+      target.hash(&mut hasher);
     } else if metadata.is_file {
-      let content = self.fs.read(path.assert_utf8()).await.ok()?;
+      let Some(content) = missing_as_none(self.fs.read(path.assert_utf8()).await)? else {
+        return Ok(None);
+      };
       content.hash(&mut hasher);
     }
-    Some(TimestampAndHash {
+    Ok(Some(TimestampAndHash {
       timestamp: Self::modified_time_from_metadata(&metadata),
       hash: hasher.finish(),
-    })
+    }))
   }
 
   #[async_recursion::async_recursion]
-  async fn context_hash(&self, path: &InternedPath) -> Option<u64> {
-    let metadata = self.metadata(path).await?;
+  async fn context_hash(&self, path: &InternedPath) -> Result<Option<u64>> {
+    let Some(metadata) = self.metadata(path).await? else {
+      return Ok(None);
+    };
     if !metadata.is_directory || metadata.is_symlink {
-      return self.file_hash(path).await.map(|value| value.hash);
+      return Ok(self.file_hash(path).await?.map(|value| value.hash));
     }
-    let mut children = self.fs.read_dir(path.assert_utf8()).await.ok()?;
+    let Some(mut children) = missing_as_none(self.fs.read_dir(path.assert_utf8()).await)? else {
+      return Ok(None);
+    };
     children.sort();
     let mut hasher = FxHasher::default();
     for child in children {
@@ -418,24 +451,31 @@ impl FileSystemInfo {
         continue;
       }
       if self.is_managed(&child_path)
-        && let Some(item) = self.managed_item_info(&child_path).await
+        && let Some(item) = self.managed_item_info(&child_path).await?
       {
         item.path.hash(&mut hasher);
         item.version.hash(&mut hasher);
         continue;
       }
-      self.context_hash(&child_path).await?.hash(&mut hasher);
+      let Some(hash) = self.context_hash(&child_path).await? else {
+        return Ok(None);
+      };
+      hash.hash(&mut hasher);
     }
-    Some(hasher.finish())
+    Ok(Some(hasher.finish()))
   }
 
   #[async_recursion::async_recursion]
-  async fn context_timestamp_hash(&self, path: &InternedPath) -> Option<u64> {
-    let metadata = self.metadata(path).await?;
+  async fn context_timestamp_hash(&self, path: &InternedPath) -> Result<Option<u64>> {
+    let Some(metadata) = self.metadata(path).await? else {
+      return Ok(None);
+    };
     if !metadata.is_directory || metadata.is_symlink {
-      return Some(Self::modified_time_from_metadata(&metadata));
+      return Ok(Some(Self::modified_time_from_metadata(&metadata)));
     }
-    let mut children = self.fs.read_dir(path.assert_utf8()).await.ok()?;
+    let Some(mut children) = missing_as_none(self.fs.read_dir(path.assert_utf8()).await)? else {
+      return Ok(None);
+    };
     children.sort();
     let mut hasher = FxHasher::default();
     for child in children {
@@ -445,45 +485,80 @@ impl FileSystemInfo {
         continue;
       }
       if self.is_managed(&child_path)
-        && let Some(item) = self.managed_item_info(&child_path).await
+        && let Some(item) = self.managed_item_info(&child_path).await?
       {
         item.path.hash(&mut hasher);
         item.version.hash(&mut hasher);
         continue;
       }
-      self
-        .context_timestamp_hash(&child_path)
-        .await?
-        .hash(&mut hasher);
+      let Some(timestamp) = self.context_timestamp_hash(&child_path).await? else {
+        return Ok(None);
+      };
+      timestamp.hash(&mut hasher);
     }
-    Some(hasher.finish())
+    Ok(Some(hasher.finish()))
   }
 
-  async fn context_timestamp_and_hash(&self, path: &InternedPath) -> Option<TimestampAndHash> {
+  async fn context_timestamp_and_hash(
+    &self,
+    path: &InternedPath,
+  ) -> Result<Option<TimestampAndHash>> {
     let (timestamp, hash) =
-      futures::join!(self.context_timestamp_hash(path), self.context_hash(path));
-    Some(TimestampAndHash {
-      timestamp: timestamp?,
-      hash: hash?,
+      futures::try_join!(self.context_timestamp_hash(path), self.context_hash(path))?;
+    Ok(match (timestamp, hash) {
+      (Some(timestamp), Some(hash)) => Some(TimestampAndHash { timestamp, hash }),
+      _ => None,
     })
   }
 
-  async fn managed_item_info(&self, path: &InternedPath) -> Option<ManagedItemInfo> {
-    let mut current = path.clone();
+  async fn managed_item_info(&self, path: &InternedPath) -> Result<Option<ManagedItemInfo>> {
+    let mut current = match self.metadata(path).await? {
+      Some(metadata) if !metadata.is_directory => match path.parent() {
+        Some(parent) => InternedPath::from(parent),
+        None => return Ok(None),
+      },
+      _ => path.clone(),
+    };
     loop {
       let package_json = InternedPath::from(current.join("package.json"));
-      if let Ok(mut content) = self.fs.read(package_json.assert_utf8()).await
+      if let Some(mut content) =
+        missing_package_json_as_none(self.fs.read(package_json.assert_utf8()).await)?
         && let Ok(value) = simd_json::to_borrowed_value(&mut content)
         && let Some(version) = value.get("version").and_then(|value| value.as_str())
       {
-        return Some(ManagedItemInfo {
+        return Ok(Some(ManagedItemInfo {
           path: current,
           version: version.to_string(),
-        });
+        }));
       }
-      let parent = current.parent()?;
+      let Some(parent) = current.parent() else {
+        return Ok(None);
+      };
       current = InternedPath::from(parent);
     }
+  }
+}
+
+fn missing_package_json_as_none<T>(result: rspack_fs::Result<T>) -> Result<Option<T>> {
+  match result {
+    Ok(value) => Ok(Some(value)),
+    Err(FileSystemError::Io(error))
+      if matches!(
+        error.kind(),
+        std::io::ErrorKind::NotFound | std::io::ErrorKind::NotADirectory
+      ) =>
+    {
+      Ok(None)
+    }
+    Err(error) => Err(error.into()),
+  }
+}
+
+fn missing_as_none<T>(result: rspack_fs::Result<T>) -> Result<Option<T>> {
+  match result {
+    Ok(value) => Ok(Some(value)),
+    Err(FileSystemError::Io(error)) if error.kind() == std::io::ErrorKind::NotFound => Ok(None),
+    Err(error) => Err(error.into()),
   }
 }
 

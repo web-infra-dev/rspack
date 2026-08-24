@@ -1,5 +1,10 @@
-use std::{collections::VecDeque, sync::Arc};
+use std::{
+  collections::VecDeque,
+  sync::Arc,
+  time::{SystemTime, UNIX_EPOCH},
+};
 
+use rspack_cacheable::cacheable;
 use rspack_fs::ReadableFileSystem;
 use rustc_hash::FxHashSet;
 
@@ -7,15 +12,89 @@ use super::{
   TaskContext, lazy::process_unlazy_dependencies, process_dependencies::ProcessDependenciesTask,
 };
 use crate::{
-  AsyncDependenciesBlock, BoxDependency, BoxModule, BuildContext, BuildResult, CompilationId,
-  CompilerId, CompilerOptions, DependencyParents, ModuleCodeTemplate, ResolverFactory,
-  SharedPluginDriver,
+  BoxModule, BuildContext, BuildResult, Cache, CacheValue, CompilationId, CompilerId,
+  CompilerOptions, DependencyParents, DependencyRef, Module, ModuleCodeTemplate,
+  NormalModuleBuildState, OptimizationBailoutItem, ResolverFactory, SharedPluginDriver,
+  ValueCacheVersions,
   compilation::build_module_graph::{ForwardedIdSet, HasLazyDependencies, LazyDependencies},
+  dependencies_block::AsyncDependenciesBlockBuildState,
   utils::{
     ResourceId,
     task_loop::{Task, TaskResult, TaskType},
   },
 };
+
+const MODULES_CACHE_NAMESPACE: &str = "Compilation/modules";
+
+#[cacheable]
+#[derive(Debug)]
+struct ModuleBuildCacheEntry {
+  state: NormalModuleBuildState,
+  dependencies: Vec<DependencyRef>,
+  blocks: Vec<AsyncDependenciesBlockBuildState>,
+  optimization_bailouts: Vec<OptimizationBailoutItem>,
+}
+
+impl ModuleBuildCacheEntry {
+  fn from_build_result(build_result: &mut BuildResult) -> Option<Self> {
+    let module = build_result.module.as_normal_module()?;
+    module.build_info().cacheable.then(|| Self {
+      state: module.build_state(),
+      dependencies: std::mem::take(&mut build_result.dependencies)
+        .into_iter()
+        .map(DependencyRef::from)
+        .collect(),
+      blocks: std::mem::take(&mut build_result.blocks)
+        .into_iter()
+        .map(AsyncDependenciesBlockBuildState::from_block)
+        .collect(),
+      optimization_bailouts: build_result.optimization_bailouts.clone(),
+    })
+  }
+
+  fn restore(&self, module: &mut BoxModule) -> Option<()> {
+    module
+      .as_normal_module_mut()?
+      .restore_build_state(&self.state);
+    Some(())
+  }
+
+  fn build_result(&self, module: BoxModule) -> ModuleBuildResult {
+    ModuleBuildResult {
+      module,
+      dependencies: self.dependencies.clone(),
+      blocks: self.blocks.clone(),
+      optimization_bailouts: self.optimization_bailouts.clone(),
+    }
+  }
+}
+
+#[derive(Debug)]
+struct ModuleBuildResult {
+  module: BoxModule,
+  dependencies: Vec<DependencyRef>,
+  blocks: Vec<AsyncDependenciesBlockBuildState>,
+  optimization_bailouts: Vec<OptimizationBailoutItem>,
+}
+
+impl ModuleBuildResult {
+  fn from_fresh(build_result: BuildResult) -> Self {
+    Self {
+      module: build_result.module,
+      dependencies: build_result
+        .dependencies
+        .into_iter()
+        .map(DependencyRef::from)
+        .collect(),
+      blocks: build_result
+        .blocks
+        .into_iter()
+        .map(AsyncDependenciesBlockBuildState::from_block)
+        .collect(),
+      optimization_bailouts: build_result.optimization_bailouts,
+    }
+  }
+}
 
 #[derive(Debug)]
 pub struct BuildTask {
@@ -27,6 +106,8 @@ pub struct BuildTask {
   pub runtime_template: ModuleCodeTemplate,
   pub plugin_driver: SharedPluginDriver,
   pub fs: Arc<dyn ReadableFileSystem>,
+  pub cache: Cache,
+  pub value_cache_versions: ValueCacheVersions,
   pub forwarded_ids: ForwardedIdSet,
 }
 
@@ -45,8 +126,60 @@ impl Task<TaskContext> for BuildTask {
       runtime_template,
       mut module,
       fs,
+      cache,
+      value_cache_versions,
       forwarded_ids,
     } = *self;
+
+    let module_cache = if cache.is_enabled() && module.as_normal_module().is_some() {
+      Some(
+        cache
+          .facade(MODULES_CACHE_NAMESPACE)
+          .get_item_cache(module.identifier().as_str(), None),
+      )
+    } else {
+      None
+    };
+    let file_system_info = cache.file_system_info();
+
+    // Mirrors webpack's NormalModule.needBuild snapshot and value-dependency checks.
+    // https://github.com/webpack/webpack/blob/main/lib/NormalModule.js#L1857-L1905
+    if let (Some(module_cache), Some(file_system_info)) = (&module_cache, file_system_info) {
+      let entry = match module_cache.get::<ModuleBuildCacheEntry>() {
+        Ok(entry) => entry,
+        Err(error) => {
+          tracing::warn!("Restoring NormalModule build cache failed: {error}");
+          None
+        }
+      };
+      if let Some(entry) = entry
+        && let Some(snapshot) = entry.state.snapshot()
+        && !entry
+          .state
+          .has_value_dependencies_diff(&value_cache_versions)
+      {
+        let snapshot_valid = match file_system_info.check_snapshot_valid(snapshot).await {
+          Ok(valid) => valid,
+          Err(error) => {
+            tracing::warn!("Validating NormalModule build snapshot failed: {error}");
+            false
+          }
+        };
+        if snapshot_valid && entry.restore(&mut module).is_some() {
+          plugin_driver
+            .compilation_hooks
+            .still_valid_module
+            .call(compiler_id, compilation_id, &mut module)
+            .await?;
+          return Ok(vec![Box::new(BuildResultTask {
+            build_result: Box::new(entry.build_result(module)),
+            plugin_driver,
+            forwarded_ids,
+            invoke_succeed_module: false,
+          })]);
+        }
+      }
+    }
 
     plugin_driver
       .compilation_hooks
@@ -54,7 +187,11 @@ impl Task<TaskContext> for BuildTask {
       .call(compiler_id, compilation_id, &mut module)
       .await?;
 
-    let result = module
+    let start_time = SystemTime::now()
+      .duration_since(UNIX_EPOCH)
+      .ok()
+      .and_then(|duration| u64::try_from(duration.as_millis()).ok());
+    let mut result = module
       .build(
         BuildContext {
           compiler_id,
@@ -69,11 +206,60 @@ impl Task<TaskContext> for BuildTask {
       )
       .await;
 
+    let mut cached_build_dependencies = None;
+    if let Ok(build_result) = &mut result
+      && let (Some(module_cache), Some(file_system_info)) = (module_cache, file_system_info)
+    {
+      let snapshot = {
+        let build_info = build_result.module.build_info();
+        file_system_info
+          .create_module_snapshot(
+            start_time,
+            build_info.file_dependencies.iter().cloned(),
+            build_info.context_dependencies.iter().cloned(),
+            build_info.missing_dependencies.iter().cloned(),
+          )
+          .await
+      };
+      match snapshot {
+        Ok(snapshot) => {
+          // webpack also stores the completed module snapshot on buildInfo.
+          // https://github.com/webpack/webpack/blob/main/lib/NormalModule.js#L1654-L1670
+          build_result.module.build_info_mut().snapshot = Some(snapshot);
+          if let Some(entry) = ModuleBuildCacheEntry::from_build_result(build_result) {
+            cached_build_dependencies = Some((
+              entry.dependencies.clone(),
+              entry.blocks.clone(),
+              entry.optimization_bailouts.clone(),
+            ));
+            if let Err(error) = module_cache.store(CacheValue::new(entry)) {
+              tracing::warn!("Storing NormalModule build cache failed: {error}");
+            }
+          }
+        }
+        Err(error) => {
+          tracing::warn!("Creating NormalModule build snapshot failed: {error}");
+        }
+      }
+    }
+
     result.map::<Vec<Box<dyn Task<TaskContext>>>, _>(|build_result| {
+      let build_result =
+        if let Some((dependencies, blocks, optimization_bailouts)) = cached_build_dependencies {
+          ModuleBuildResult {
+            module: build_result.module,
+            dependencies,
+            blocks,
+            optimization_bailouts,
+          }
+        } else {
+          ModuleBuildResult::from_fresh(build_result)
+        };
       vec![Box::new(BuildResultTask {
         build_result: Box::new(build_result),
         plugin_driver,
         forwarded_ids,
+        invoke_succeed_module: true,
       })]
     })
   }
@@ -81,9 +267,10 @@ impl Task<TaskContext> for BuildTask {
 
 #[derive(Debug)]
 struct BuildResultTask {
-  pub build_result: Box<BuildResult>,
+  pub build_result: Box<ModuleBuildResult>,
   pub plugin_driver: SharedPluginDriver,
   pub forwarded_ids: ForwardedIdSet,
+  pub invoke_succeed_module: bool,
 }
 
 #[async_trait::async_trait]
@@ -96,14 +283,17 @@ impl Task<TaskContext> for BuildResultTask {
       build_result,
       plugin_driver,
       mut forwarded_ids,
+      invoke_succeed_module,
     } = *self;
     let mut module = build_result.module;
 
-    plugin_driver
-      .compilation_hooks
-      .succeed_module
-      .call(context.compiler_id, context.compilation_id, &mut module)
-      .await?;
+    if invoke_succeed_module {
+      plugin_driver
+        .compilation_hooks
+        .succeed_module
+        .call(context.compiler_id, context.compilation_id, &mut module)
+        .await?;
+    }
 
     let build_info = module.build_info();
 
@@ -114,7 +304,7 @@ impl Task<TaskContext> for BuildResultTask {
         .insert(module.identifier());
     }
 
-    tracing::trace!("Module built: {}", module.identifier());
+    tracing::trace!("Module integrated: {}", module.identifier());
     context
       .artifact
       .module_graph
@@ -142,14 +332,14 @@ impl Task<TaskContext> for BuildResultTask {
     let mut lazy_dependencies = LazyDependencies::default();
     let mut queue = VecDeque::new();
     let mut all_dependencies = vec![];
-    let mut handle_block = |dependencies: Vec<BoxDependency>,
-                            blocks: Vec<Box<AsyncDependenciesBlock>>,
-                            current_block: Option<Box<AsyncDependenciesBlock>>|
-     -> Vec<Box<AsyncDependenciesBlock>> {
+    let mut handle_block = |dependencies: Vec<DependencyRef>,
+                            blocks: Vec<AsyncDependenciesBlockBuildState>,
+                            current_block: Option<Box<crate::AsyncDependenciesBlock>>|
+     -> Vec<AsyncDependenciesBlockBuildState> {
       for (index_in_block, dependency) in dependencies.into_iter().enumerate() {
         let dependency_id = *dependency.id();
         if let Some(until) = dependency.lazy() {
-          lazy_dependencies.insert(&dependency, until);
+          lazy_dependencies.insert(dependency.as_ref(), until);
         }
         if current_block.is_none() {
           module.add_dependency_id(dependency_id);
@@ -163,7 +353,7 @@ impl Task<TaskContext> for BuildResultTask {
             index_in_block,
           },
         );
-        module_graph.add_dependency(dependency);
+        module_graph.add_dependency_ref(dependency);
       }
       if let Some(current_block) = current_block {
         module.add_block_id(current_block.identifier());
@@ -174,9 +364,10 @@ impl Task<TaskContext> for BuildResultTask {
     let blocks = handle_block(build_result.dependencies, build_result.blocks, None);
     queue.extend(blocks);
 
-    while let Some(mut block) = queue.pop_front() {
-      let dependencies = block.take_dependencies();
-      let blocks = handle_block(dependencies, block.take_blocks(), Some(block));
+    while let Some(block) = queue.pop_front() {
+      let dependencies = block.dependencies();
+      let blocks = block.blocks();
+      let blocks = handle_block(dependencies, blocks, Some(block.create_block()));
       queue.extend(blocks);
     }
 

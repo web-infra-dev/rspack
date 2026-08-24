@@ -248,10 +248,14 @@ impl Compiler {
     } else {
       Ok(())
     };
+    let record_dependency_id = self
+      .new_cache
+      .record_dependency_id(self.compilation.compiler_context.dependency_id());
     let begin_idle = self.new_cache.begin_idle();
 
     record_build_time
       .and(store_build_dependencies)
+      .and(record_dependency_id)
       .and(begin_idle)
   }
 
@@ -322,6 +326,7 @@ impl Compiler {
       ),
     );
     self.cache.before_compile(&mut self.compilation).await;
+    self.new_cache.restore_dependency_id();
 
     self.compile().await?;
     self.compile_done().await?;

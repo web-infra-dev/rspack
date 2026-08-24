@@ -5,8 +5,8 @@ use rspack_collections::{Identifier, IdentifierHasher};
 use rspack_hash::{RspackHash, RspackHasher};
 
 use crate::{
-  BoxDependency, Compilation, DependencyId, DependencyLocation, GroupOptions, ModuleIdentifier,
-  RuntimeSpec,
+  BoxDependency, Compilation, DependencyId, DependencyLocation, DependencyRef, GroupOptions,
+  ModuleIdentifier, RuntimeSpec,
 };
 
 pub trait DependenciesBlock {
@@ -87,6 +87,75 @@ pub struct AsyncDependenciesBlock {
   loc: Option<DependencyLocation>,
   parent: ModuleIdentifier,
   request: Option<String>,
+}
+
+#[cacheable]
+#[derive(Debug, Clone)]
+pub(crate) struct AsyncDependenciesBlockBuildState {
+  id: AsyncDependenciesBlockIdentifier,
+  group_options: Option<GroupOptions>,
+  #[allow(clippy::vec_box)]
+  #[cacheable(omit_bounds)]
+  blocks: Vec<Box<AsyncDependenciesBlockBuildState>>,
+  block_ids: Vec<AsyncDependenciesBlockIdentifier>,
+  dependency_ids: Vec<DependencyId>,
+  dependencies: Vec<DependencyRef>,
+  loc: Option<DependencyLocation>,
+  parent: ModuleIdentifier,
+  request: Option<String>,
+}
+
+impl AsyncDependenciesBlockBuildState {
+  pub(crate) fn from_block(block: Box<AsyncDependenciesBlock>) -> Self {
+    let AsyncDependenciesBlock {
+      id,
+      group_options,
+      blocks,
+      block_ids,
+      dependency_ids,
+      dependencies,
+      loc,
+      parent,
+      request,
+    } = *block;
+    Self {
+      id,
+      group_options,
+      blocks: blocks
+        .into_iter()
+        .map(Self::from_block)
+        .map(Box::new)
+        .collect(),
+      block_ids,
+      dependency_ids,
+      dependencies: dependencies.into_iter().map(DependencyRef::from).collect(),
+      loc,
+      parent,
+      request,
+    }
+  }
+
+  pub(crate) fn dependencies(&self) -> Vec<DependencyRef> {
+    self.dependencies.clone()
+  }
+
+  pub(crate) fn blocks(&self) -> Vec<Self> {
+    self.blocks.iter().map(|block| (**block).clone()).collect()
+  }
+
+  pub(crate) fn create_block(&self) -> Box<AsyncDependenciesBlock> {
+    Box::new(AsyncDependenciesBlock {
+      id: self.id,
+      group_options: self.group_options.clone(),
+      blocks: Vec::new(),
+      block_ids: self.block_ids.clone(),
+      dependency_ids: self.dependency_ids.clone(),
+      dependencies: Vec::new(),
+      loc: self.loc.clone(),
+      parent: self.parent,
+      request: self.request.clone(),
+    })
+  }
 }
 
 impl AsyncDependenciesBlock {

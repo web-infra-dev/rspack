@@ -1,5 +1,6 @@
 use std::{collections::VecDeque, path::PathBuf, sync::Arc};
 
+use rspack_error::Result;
 use rspack_fs::ReadableFileSystem;
 use rspack_paths::{AssertUtf8, InternedPath, InternedPathSet};
 
@@ -89,16 +90,16 @@ impl BuildDeps {
     file_system_info: &FileSystemInfo,
     snapshot: &Snapshot,
     tracked_files: usize,
-  ) -> BuildDepsValidationResult {
-    let changes = file_system_info.collect_snapshot_changes(snapshot).await;
+  ) -> Result<BuildDepsValidationResult> {
+    let changes = file_system_info.collect_snapshot_changes(snapshot).await?;
     let modified_files = changes.modified_files;
     let removed_files = changes.removed_files;
     if !modified_files.is_empty() || !removed_files.is_empty() {
-      return BuildDepsValidationResult::Invalid {
+      return Ok(BuildDepsValidationResult::Invalid {
         modified_files,
         removed_files,
-      };
+      });
     }
-    BuildDepsValidationResult::Valid { tracked_files }
+    Ok(BuildDepsValidationResult::Valid { tracked_files })
   }
 }

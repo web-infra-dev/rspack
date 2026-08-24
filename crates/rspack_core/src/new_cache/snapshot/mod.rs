@@ -1,6 +1,7 @@
 mod build_deps;
 
 use rspack_cacheable::cacheable;
+use rspack_error::Result;
 use rspack_paths::{InternedPath, InternedPathSet};
 
 pub use self::build_deps::{BuildDeps, BuildDepsValidationResult};
@@ -18,7 +19,7 @@ impl BuildDependenciesSnapshot {
     &self,
     file_system_info: &FileSystemInfo,
     build_deps: &BuildDeps,
-  ) -> BuildDepsValidationResult {
+  ) -> Result<BuildDepsValidationResult> {
     build_deps
       .validate_snapshot(file_system_info, &self.snapshot, self.dependencies.len())
       .await
@@ -29,7 +30,7 @@ impl BuildDependenciesSnapshot {
     file_system_info: &FileSystemInfo,
     build_deps: &mut BuildDeps,
     paths: impl Iterator<Item = InternedPath>,
-  ) {
+  ) -> Result<()> {
     let added = build_deps
       .resolve_dependencies(&self.dependencies, paths)
       .await;
@@ -41,8 +42,9 @@ impl BuildDependenciesSnapshot {
         std::iter::empty(),
         SnapshotStrategyOptions::hash(),
       )
-      .await;
+      .await?;
     self.dependencies.extend(added);
     self.snapshot = file_system_info.merge_snapshots(std::mem::take(&mut self.snapshot), snapshot);
+    Ok(())
   }
 }
