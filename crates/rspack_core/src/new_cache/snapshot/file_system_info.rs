@@ -73,6 +73,9 @@ struct ContextValue {
 /// sets and a strategy, while path classification, managed package handling,
 /// timestamp accuracy, hashing, merging and validation stay behind this
 /// interface.
+///
+/// See webpack's `FileSystemInfo` implementation:
+/// https://github.com/webpack/webpack/blob/ce97d583e1cd8f3e47b70737de72e91b567a8497/lib/FileSystemInfo.js#L1282-L1450
 #[derive(Clone)]
 pub struct FileSystemInfo {
   fs: Arc<dyn ReadableFileSystem>,
@@ -115,6 +118,8 @@ impl FileSystemInfo {
     }
   }
 
+  /// See webpack's snapshot creation implementation:
+  /// https://github.com/webpack/webpack/blob/ce97d583e1cd8f3e47b70737de72e91b567a8497/lib/FileSystemInfo.js#L2525-L3079
   #[tracing::instrument("Cache::FileSystemInfo::create_snapshot", skip_all)]
   pub async fn create_snapshot(
     &self,
@@ -146,6 +151,8 @@ impl FileSystemInfo {
     Ok(snapshot)
   }
 
+  /// See webpack's snapshot merge implementation:
+  /// https://github.com/webpack/webpack/blob/ce97d583e1cd8f3e47b70737de72e91b567a8497/lib/FileSystemInfo.js#L3081-L3166
   pub fn merge_snapshots(&self, mut first: Snapshot, second: Snapshot) -> Snapshot {
     first.merge(second);
     first
@@ -155,6 +162,8 @@ impl FileSystemInfo {
     self.options.dependencies_strategy()
   }
 
+  /// See webpack's snapshot validation implementation:
+  /// https://github.com/webpack/webpack/blob/ce97d583e1cd8f3e47b70737de72e91b567a8497/lib/FileSystemInfo.js#L3168-L3735
   #[tracing::instrument("Cache::FileSystemInfo::check_snapshot_valid", skip_all)]
   pub async fn check_snapshot_valid(
     &self,
@@ -350,6 +359,8 @@ impl FileSystemInfo {
     }
   }
 
+  /// See webpack's file timestamp and hash implementations:
+  /// https://github.com/webpack/webpack/blob/ce97d583e1cd8f3e47b70737de72e91b567a8497/lib/FileSystemInfo.js#L3737-L3865
   async fn file_timestamp(&self, path: &InternedPath) -> Result<Option<FileSystemInfoEntry>> {
     if let Some(entry) = self.file_timestamps.get(path) {
       return Ok(entry.clone());
@@ -484,6 +495,8 @@ impl FileSystemInfo {
     Ok(value)
   }
 
+  /// See webpack's recursive context timestamp and hash implementations:
+  /// https://github.com/webpack/webpack/blob/ce97d583e1cd8f3e47b70737de72e91b567a8497/lib/FileSystemInfo.js#L3867-L4490
   #[async_recursion::async_recursion]
   async fn context_value(
     &self,
@@ -685,6 +698,8 @@ impl FileSystemInfo {
     Ok(None)
   }
 
+  /// See webpack's managed item metadata implementation:
+  /// https://github.com/webpack/webpack/blob/ce97d583e1cd8f3e47b70737de72e91b567a8497/lib/FileSystemInfo.js#L4505-L4577
   async fn managed_item_info(&self, path: &InternedPath) -> Result<Option<String>> {
     if let Some(info) = self.managed_items.get(path) {
       return Ok(info.clone());

@@ -60,6 +60,9 @@ impl BuildDeps {
   ///
   /// For performance reasons, recursive searches stop at dependencies in
   /// `node_modules`.
+  ///
+  /// See webpack's build dependency resolution implementation:
+  /// https://github.com/webpack/webpack/blob/ce97d583e1cd8f3e47b70737de72e91b567a8497/lib/FileSystemInfo.js#L1873-L2523
   pub async fn resolve_dependencies(
     &mut self,
     current: &InternedPathSet,

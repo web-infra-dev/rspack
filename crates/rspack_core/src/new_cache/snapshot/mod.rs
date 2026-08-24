@@ -15,6 +15,9 @@ pub use self::{
 /// `safe_time` mirrors webpack's filesystem-accuracy guard. A timestamp newer
 /// than a snapshot's start time cannot prove that the file stayed unchanged
 /// while the snapshot was being created.
+///
+/// See webpack's filesystem entry data structures:
+/// https://github.com/webpack/webpack/blob/ce97d583e1cd8f3e47b70737de72e91b567a8497/lib/FileSystemInfo.js#L75-L132
 #[cacheable]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FileSystemInfoEntry {
@@ -58,6 +61,9 @@ pub struct ContextTimestampAndHash {
 /// only the collections required by its strategy. Children are reserved for
 /// shared snapshots; ordinary build-dependency merges combine their maps
 /// directly.
+///
+/// See webpack's `Snapshot` data structure:
+/// https://github.com/webpack/webpack/blob/ce97d583e1cd8f3e47b70737de72e91b567a8497/lib/FileSystemInfo.js#L303-L665
 #[cacheable]
 #[derive(Debug, Default)]
 pub struct Snapshot {
@@ -78,6 +84,8 @@ pub struct Snapshot {
 }
 
 impl Snapshot {
+  /// See webpack's snapshot merge implementation:
+  /// https://github.com/webpack/webpack/blob/ce97d583e1cd8f3e47b70737de72e91b567a8497/lib/FileSystemInfo.js#L3081-L3166
   pub(super) fn merge(&mut self, other: Self) {
     self.start_time = match (self.start_time, other.start_time) {
       (Some(first), Some(second)) => Some(first.min(second)),
