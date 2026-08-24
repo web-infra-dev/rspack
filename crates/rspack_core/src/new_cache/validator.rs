@@ -12,7 +12,6 @@ use crate::cache::CacheCodec;
 struct CacheValidatorData {
   rspack_pkg_version: String,
   cache_version: String,
-  max_dependencies_id: u32,
   build_dependencies: InternedPathSet,
   build_dependencies_snapshot: Snapshot,
 }
@@ -22,7 +21,6 @@ impl CacheValidatorData {
     Self {
       rspack_pkg_version,
       cache_version,
-      max_dependencies_id: 0,
       build_dependencies: Default::default(),
       build_dependencies_snapshot: Default::default(),
     }
@@ -129,18 +127,6 @@ impl CacheValidator {
       );
       self.data.build_dependencies.extend(resolved.dependencies);
     }
-    self.codec.encode(&self.data)
-  }
-
-  pub(super) fn store_dependency_id(&mut self, dependency_id: u32) {
-    self.data.max_dependencies_id = self.data.max_dependencies_id.max(dependency_id);
-  }
-
-  pub(super) fn restore_dependency_id(&self) -> u32 {
-    self.data.max_dependencies_id
-  }
-
-  pub(super) fn encode(&self) -> Result<Vec<u8>> {
     self.codec.encode(&self.data)
   }
 }

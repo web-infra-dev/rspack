@@ -325,6 +325,10 @@ fn database_config() -> DbConfig<{ DatabaseFamily::COUNT }> {
         name: "validator",
         kind: FamilyKind::SingleValue,
       },
+      FamilyConfig {
+        name: "meta",
+        kind: FamilyKind::SingleValue,
+      },
     ],
   }
 }

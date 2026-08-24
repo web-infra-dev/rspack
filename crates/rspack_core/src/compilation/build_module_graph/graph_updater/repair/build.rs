@@ -27,6 +27,16 @@ use crate::{
 
 const MODULES_CACHE_NAMESPACE: &str = "Compilation/modules";
 
+type RestoredDependencies = Vec<BoxDependency>;
+// AsyncDependenciesBlock is recursive and intentionally stays behind a pointer.
+#[allow(clippy::vec_box)]
+type RestoredBlocks = Vec<Box<AsyncDependenciesBlock>>;
+type RestoredBuildResult = (
+  RestoredDependencies,
+  RestoredBlocks,
+  Vec<OptimizationBailoutItem>,
+);
+
 #[cacheable]
 struct CachedBuildResult<'a> {
   dependencies: Vec<OwnedOrRef<'a, BoxDependency>>,
@@ -47,7 +57,7 @@ impl CachedBuildResult<'_> {
     }
   }
 
-  fn into_parts(self) -> (Vec<BoxDependency>, Vec<Box<AsyncDependenciesBlock>>) {
+  fn into_parts(self) -> (RestoredDependencies, RestoredBlocks) {
     (
       self
         .dependencies
@@ -102,14 +112,7 @@ impl ModuleBuildCacheEntry {
     Some(())
   }
 
-  fn build_result_parts(
-    &self,
-    cache: &Cache,
-  ) -> rspack_error::Result<(
-    Vec<BoxDependency>,
-    Vec<Box<AsyncDependenciesBlock>>,
-    Vec<OptimizationBailoutItem>,
-  )> {
+  fn build_result_parts(&self, cache: &Cache) -> rspack_error::Result<RestoredBuildResult> {
     let codec = cache
       .codec()
       .ok_or_else(|| rspack_error::error!("New cache codec is unavailable"))?;

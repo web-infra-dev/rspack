@@ -14,12 +14,13 @@ use super::{
 use crate::cache::CacheCodec;
 
 const VALIDATOR_KEY: &[u8] = b"validator";
+const MAX_DEPENDENCY_ID_KEY: &[u8] = b"max_dependency_id";
 
 #[derive(Debug, Default)]
 struct PendingWrites {
   entries: FxHashMap<CacheKey, PendingWrite>,
   build_dependencies: Option<InternedPathSet>,
-  max_dependencies_id: Option<u32>,
+  max_dependency_id: Option<u32>,
 }
 
 #[derive(Debug)]
@@ -34,6 +35,7 @@ pub struct FileCacheStrategy {
   codec: Arc<CacheCodec>,
   database: Database,
   pending_writes: PendingWrites,
+  max_dependency_id: u32,
   readonly: bool,
 }
 
@@ -70,6 +72,7 @@ impl FileCacheStrategy {
       codec,
       database,
       pending_writes: PendingWrites::default(),
+      max_dependency_id: 0,
       readonly,
     })
   }
@@ -107,6 +110,12 @@ impl FileCacheStrategy {
         self.database.reset()?;
       }
     }
+    self.max_dependency_id = self
+      .database
+      .get(DatabaseFamily::Meta, MAX_DEPENDENCY_ID_KEY)?
+      .map(|data| self.codec.decode::<u32>(&data))
+      .transpose()?
+      .unwrap_or_default();
     Ok(())
   }
 
@@ -144,18 +153,18 @@ impl FileCacheStrategy {
     if self.readonly {
       return;
     }
-    self.validator.store_dependency_id(dependency_id);
-    self.pending_writes.max_dependencies_id = Some(
+    self.max_dependency_id = self.max_dependency_id.max(dependency_id);
+    self.pending_writes.max_dependency_id = Some(
       self
         .pending_writes
-        .max_dependencies_id
+        .max_dependency_id
         .unwrap_or_default()
         .max(dependency_id),
     );
   }
 
   pub fn restore_dependency_id(&self) -> Option<u32> {
-    Some(self.validator.restore_dependency_id())
+    Some(self.max_dependency_id)
   }
 
   pub(super) fn restore(
@@ -191,11 +200,14 @@ impl FileCacheStrategy {
     if self.has_pending_writes() {
       let encoded_validator = if let Some(dependencies) = &self.pending_writes.build_dependencies {
         Some(self.validator.update(dependencies.iter().cloned()).await?)
-      } else if self.pending_writes.max_dependencies_id.is_some() {
-        Some(self.validator.encode()?)
       } else {
         None
       };
+      let encoded_max_dependency_id = self
+        .pending_writes
+        .max_dependency_id
+        .map(|_| self.codec.encode(&self.max_dependency_id))
+        .transpose()?;
       let cache_entries = self
         .pending_writes
         .entries
@@ -216,11 +228,18 @@ impl FileCacheStrategy {
           validator.as_slice(),
         ));
       }
+      if let Some(max_dependency_id) = &encoded_max_dependency_id {
+        writes.push(DatabaseWrite::new(
+          DatabaseFamily::Meta,
+          MAX_DEPENDENCY_ID_KEY,
+          max_dependency_id.as_slice(),
+        ));
+      }
       self.database.write_batch(writes)?;
 
       self.pending_writes.entries.clear();
       self.pending_writes.build_dependencies = None;
-      self.pending_writes.max_dependencies_id = None;
+      self.pending_writes.max_dependency_id = None;
     }
 
     for _ in 0..max_compaction_passes {
@@ -246,6 +265,6 @@ impl FileCacheStrategy {
   pub fn has_pending_writes(&self) -> bool {
     !self.pending_writes.entries.is_empty()
       || self.pending_writes.build_dependencies.is_some()
-      || self.pending_writes.max_dependencies_id.is_some()
+      || self.pending_writes.max_dependency_id.is_some()
   }
 }
