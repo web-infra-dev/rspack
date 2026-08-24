@@ -176,6 +176,12 @@ const myPlugin = () => ({
 });
 ```
 
+#### RSC 插件：Client Component CSS 使用 preinit 加载
+
+Rspack RSC 插件现在对 Client Component CSS 使用 React 的 preinit 方法加载。这样可以保持客户端引用的标识一致性，包括默认导出、具名导出、CommonJS 导出以及非组件导出，均转换为客户端引用（client reference）。
+
+对于 RSC 框架集成而言，这是一项破坏性变更。请将 `react-server-dom-rspack` 升级至 0.1.0。
+
 ### Rslib \{#rslib}
 
 ### Rstest \{#rstest}
