@@ -63,13 +63,13 @@ Rsbuild 现在支持使用 import attributes 语法 [`with { type: 'text' }`](ht
 import rawCSS from './example.css' with { type: 'text' };
 ```
 
-这与 TC39 的 [Import Text 提案](https://github.com/tc39/proposal-import-text) 保持一致。
+> 这与 TC39 的 [Import Text 提案](https://github.com/tc39/proposal-import-text) 保持一致。
 
 #### Node.js 拆包优化 \{#node-split-chunks}
 
 在 Rsbuild 2.2 中，Node.js 构建会默认启用 [chunk 拆分](https://rsbuild.rs/zh/config/split-chunks)，将共享模块提取为独立的 chunk，从而减少重复代码并降低 SSR 应用的内存占用。
 
-下面是 TanStack Start 用户提供的 [实测数据](https://github.com/TanStack/router/issues/8113#issuecomment-5366808113)，测试应用包含 300 个文件路由和 400 个共享组件：
+下面是 TanStack Start 用户提供的 [实测数据](https://github.com/TanStack/router/issues/8113#issuecomment-5366808113)，测试应用包含 300 个路由和 400 个共享组件：
 
 | 指标                     | Rsbuild 2.1 | Rsbuild 2.2 | 变化         |
 | ------------------------ | ----------- | ----------- | ------------ |
@@ -84,6 +84,26 @@ import rawCSS from './example.css' with { type: 'text' };
 - 升级后，Node.js 构建可能会生成额外的共享 chunk 文件；如需保留原有行为，可设置 `splitChunks: false`。
 
 :::
+
+#### 支持 Solid v2 RC \{#solid-v2}
+
+Rsbuild 现在支持 [Solid v2 RC](https://www.solidjs.com/blog/solid-2-0-rc-the-big-reveal)。
+
+[`@rsbuild/plugin-solid`](https://rsbuild.rs/zh/plugins/list/plugin-solid) 现在默认使用 Solid 全新的 Rust 编译器。在 Solid 官方的基准测试中，新编译器的编译速度相比此前的 Babel 实现提升 **20 倍以上**。
+
+安装 Beta 版本来体验：
+
+<PackageManagerTabs command="add @rsbuild/plugin-solid@beta -D" />
+
+#### 创建 Octane 项目 \{#octane-template}
+
+`create-rsbuild` 现在支持创建 Octane 项目。[Octane](https://octanejs.dev/) 是一个高性能 JavaScript UI 框架，允许你通过 React API 编写组件，并将其编译为直接的 DOM 代码。
+
+运行以下命令即可创建一个 Octane 项目：
+
+```bash
+npx -y create-rsbuild@latest my-app -t octane-ts
+```
 
 #### 动态端口 \{#dynamic-port}
 
@@ -154,16 +174,6 @@ const myPlugin = () => ({
     });
   },
 });
-```
-
-#### 创建 Octane 项目 \{#octane-template}
-
-`create-rsbuild` 现在支持创建 Octane 项目。[Octane](https://octanejs.dev/) 是一个高性能 JavaScript UI 框架，允许你通过 React API 编写组件，并将其编译为直接的 DOM 代码。
-
-运行以下命令即可创建一个 Octane 项目：
-
-```bash
-npx -y create-rsbuild@latest my-app -t octane-ts
 ```
 
 ### Rslib \{#rslib}
