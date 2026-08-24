@@ -274,106 +274,15 @@ This option depends on `optimization.sideEffects`. If you disable [`optimization
 Controls how Rspack organizes the generated runtime code:
 
 - `'webpack'` keeps the webpack-compatible runtime layout. The module loading function and runtime helpers are exposed through `__webpack_require__`.
-- `'rspack'` uses Rspack's native runtime layout. It separates the module loading function from the runtime context, reducing the coupling between runtime responsibilities and producing a cleaner runtime structure.
+- `'rspack'` uses Rspack's native runtime layout. When combined with [`output.module`](/config/output#outputmodule) and [`modern-module`](/config/output#outputlibrarytype), it exports the loader, module factories, and runtime helpers as named ESM bindings.
 
-Enable the Rspack runtime layout with the following configuration:
-
-```js title="rspack.config.mjs"
-export default {
-  experiments: {
-    runtimeMode: 'rspack',
-  },
-};
-```
+For regular builds, keep the default `'webpack'` mode. Enabling `'rspack'` is not recommended because it currently provides no clear user-facing benefit in these builds. The recommended use case is an ESM library built with `output.module: true` and `output.library.type: 'modern-module'`.
 
 :::warning Plugin compatibility
 Before enabling this option, check any plugins that inject runtime code. If the injected code directly depends on **`__webpack_require__`**, it will no longer work because the runtime argument passed to module factories changes to **`__rspack_context`** in `'rspack'` mode.
 :::
 
-### Regular output
-
-In a regular build, the default mode emits each runtime module in a separate IIFE and defines its helper directly on `__webpack_require__`. The `'rspack'` mode renders runtime helpers as named local bindings in a shared IIFE, then exposes the bindings required by module factories through a dedicated `__rspack_context` object. The module loading function is available through `__rspack_context.r`.
-
-The following simplified output shows the difference:
-
-<Tabs>
-  <Tab label="runtimeMode: 'webpack'">
-
-```js
-var __webpack_modules__ = {
-  './lib.js'(__unused_module, __webpack_exports__, __webpack_require__) {
-    __webpack_require__.r(__webpack_exports__);
-    __webpack_require__.d(__webpack_exports__, {
-      value: () => value,
-    });
-    const value = 42;
-  },
-};
-
-function __webpack_require__(moduleId) {
-  // Load and execute the module.
-  var module = { exports: {} };
-  __webpack_modules__[moduleId](module, module.exports, __webpack_require__);
-  return module.exports;
-}
-
-// One IIFE for each runtime module.
-(() => {
-  __webpack_require__.d = (exports, getters) => {
-    // Define getters for harmony exports.
-  };
-})();
-
-(() => {
-  __webpack_require__.r = (exports) => {
-    // Mark exports as an ES module.
-  };
-})();
-```
-
-  </Tab>
-  <Tab label="runtimeMode: 'rspack'">
-
-```js
-var __rspack_modules = {
-  './lib.js'(__unused_module, __rspack_exports, __rspack_context) {
-    __rspack_context.N(__rspack_exports);
-    __rspack_context.d(__rspack_exports, {
-      value: () => value,
-    });
-    const value = 42;
-  },
-};
-
-var __rspack_context = {};
-
-function __rspack_require(moduleId) {
-  // Load and execute the module.
-  var module = { exports: {} };
-  __rspack_modules[moduleId](module, module.exports, __rspack_context);
-  return module.exports;
-}
-
-__rspack_context.r = __rspack_require;
-
-// Runtime modules share one IIFE and use named local bindings.
-(function () {
-  var definePropertyGetters = (exports, getters) => {
-    // Define getters for harmony exports.
-  };
-  __rspack_context.d = definePropertyGetters;
-
-  var makeNamespaceObject = (exports) => {
-    // Mark exports as an ES module.
-  };
-  __rspack_context.N = makeNamespaceObject;
-})();
-```
-
-  </Tab>
-</Tabs>
-
-### ESM libraries with `modern-module`
+### Recommended use: ESM libraries with `modern-module`
 
 When [`output.module`](/config/output#outputmodule) is `true` and [`output.library.type`](/config/output#outputlibrarytype) is `'modern-module'`, `'rspack'` mode makes a separate runtime chunk more ESM-friendly. Instead of exporting one `__webpack_require__` function with helpers attached as properties, the runtime exports the loader, module factories, and helpers as named ESM bindings. Each output chunk can import the bindings it needs directly.
 

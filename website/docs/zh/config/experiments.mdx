@@ -274,106 +274,15 @@ export default {
 控制 Rspack 如何组织生成的 runtime 代码：
 
 - `'webpack'` 保留与 webpack 兼容的 runtime 结构，通过 `__webpack_require__` 同时暴露模块加载函数和 runtime 辅助函数。
-- `'rspack'` 使用 Rspack 原生的 runtime 结构，将模块加载函数与 runtime 上下文分离，降低不同 runtime 职责之间的耦合，产出更清晰的 runtime 结构。
+- `'rspack'` 使用 Rspack 原生的 runtime 结构。与 [`output.module`](/config/output#outputmodule) 和 [`modern-module`](/config/output#outputlibrarytype) 配合使用时，它会将加载函数、模块工厂和 runtime 辅助函数分别导出为具名 ESM 绑定。
 
-通过以下配置启用 Rspack runtime 结构：
-
-```js title="rspack.config.mjs"
-export default {
-  experiments: {
-    runtimeMode: 'rspack',
-  },
-};
-```
+对于常规构建，请保留默认的 `'webpack'` 模式。不建议在这类构建中开启 `'rspack'`，因为它目前没有明确的用户侧收益。推荐场景是通过 `output.module: true` 和 `output.library.type: 'modern-module'` 构建 ESM 库。
 
 :::warning 插件兼容性
 开启该选项前，请检查项目中会注入 runtime 代码的插件。如果注入的代码直接依赖 **`__webpack_require__`**，开启 `'rspack'` 模式后将无法工作，因为传递给模块工厂的 runtime 参数会变为 **`__rspack_context`**。
 :::
 
-### 常规产物
-
-在常规构建中，默认模式会为每个 runtime module 分别生成一个 IIFE，并直接在 `__webpack_require__` 上定义对应的辅助函数。`'rspack'` 模式会将 runtime 辅助函数生成为具名局部绑定，合并到一个共享 IIFE 中，再通过独立的 `__rspack_context` 对象向模块工厂暴露需要的绑定。其中，模块加载函数通过 `__rspack_context.r` 提供。
-
-下面是简化后的产物，用于说明两者的组织差异：
-
-<Tabs>
-  <Tab label="runtimeMode: 'webpack'">
-
-```js
-var __webpack_modules__ = {
-  './lib.js'(__unused_module, __webpack_exports__, __webpack_require__) {
-    __webpack_require__.r(__webpack_exports__);
-    __webpack_require__.d(__webpack_exports__, {
-      value: () => value,
-    });
-    const value = 42;
-  },
-};
-
-function __webpack_require__(moduleId) {
-  // 加载并执行模块。
-  var module = { exports: {} };
-  __webpack_modules__[moduleId](module, module.exports, __webpack_require__);
-  return module.exports;
-}
-
-// 每个 runtime module 分别使用一个 IIFE。
-(() => {
-  __webpack_require__.d = (exports, getters) => {
-    // 为 harmony exports 定义 getter。
-  };
-})();
-
-(() => {
-  __webpack_require__.r = (exports) => {
-    // 将 exports 标记为 ES module。
-  };
-})();
-```
-
-  </Tab>
-  <Tab label="runtimeMode: 'rspack'">
-
-```js
-var __rspack_modules = {
-  './lib.js'(__unused_module, __rspack_exports, __rspack_context) {
-    __rspack_context.N(__rspack_exports);
-    __rspack_context.d(__rspack_exports, {
-      value: () => value,
-    });
-    const value = 42;
-  },
-};
-
-var __rspack_context = {};
-
-function __rspack_require(moduleId) {
-  // 加载并执行模块。
-  var module = { exports: {} };
-  __rspack_modules[moduleId](module, module.exports, __rspack_context);
-  return module.exports;
-}
-
-__rspack_context.r = __rspack_require;
-
-// runtime modules 共用一个 IIFE，并使用具名局部绑定。
-(function () {
-  var definePropertyGetters = (exports, getters) => {
-    // 为 harmony exports 定义 getter。
-  };
-  __rspack_context.d = definePropertyGetters;
-
-  var makeNamespaceObject = (exports) => {
-    // 将 exports 标记为 ES module。
-  };
-  __rspack_context.N = makeNamespaceObject;
-})();
-```
-
-  </Tab>
-</Tabs>
-
-### 配合 `modern-module` 构建 ESM 库
+### 推荐场景：配合 `modern-module` 构建 ESM 库
 
 当 [`output.module`](/config/output#outputmodule) 为 `true`，且 [`output.library.type`](/config/output#outputlibrarytype) 为 `'modern-module'` 时，`'rspack'` 模式会让独立 runtime chunk 的 ESM 结构更清晰。runtime 不再只导出一个挂载了多个辅助函数的 `__webpack_require__`，而是将加载函数、模块工厂和辅助函数分别导出为具名 ESM 绑定，让每个产物 chunk 可以直接导入需要的绑定。
 
