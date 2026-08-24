@@ -477,6 +477,13 @@ fn parse_ignore_magic_comment(content: &str) -> Option<Result<ParsedIgnoreMagicC
       // Other magic comment fields may share the same comment. They are not
       // consumed by the CSS dependency lexer, but must not invalidate a valid
       // ignore option.
+      if ["webpackIgnore", "rspackIgnore"].iter().any(|name| {
+        item
+          .find(name)
+          .is_some_and(|start| item[start + name.len()..].trim_start().starts_with(':'))
+      }) {
+        return Some(Err(()));
+      }
       continue;
     };
     let Some(value) = rest.strip_prefix(':') else {
