@@ -118,6 +118,10 @@ impl ESMImportSpecifierDependency {
     self.ids.first().unwrap_or(&self.name)
   }
 
+  pub(crate) fn is_namespace_import(&self, module_graph: &ModuleGraph) -> bool {
+    self.ns_access || self.get_ids(module_graph).is_empty()
+  }
+
   pub fn get_referenced_exports_in_destructuring(
     &self,
     ids: Option<&[Atom]>,

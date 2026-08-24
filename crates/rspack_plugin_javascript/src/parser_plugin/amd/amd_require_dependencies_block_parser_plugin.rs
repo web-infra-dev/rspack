@@ -46,8 +46,13 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for AMDRequireDependenciesBlockParse
     for_name: &str,
   ) -> Option<bool> {
     if for_name == "require" {
-      parser.build_info.module_exports_accessed = Some(true);
-      self.process_call_require(parser, call_expr)
+      let result = self.process_call_require(parser, call_expr);
+      if result.is_some() {
+        // An AMD callback can receive the current factory's `module` or `exports` object under an
+        // arbitrary parameter name. Do not apply this bailout to ordinary CommonJS require calls.
+        parser.build_info.module_exports_accessed = Some(true);
+      }
+      result
     } else {
       None
     }

@@ -10,9 +10,7 @@ use swc_experimental_ecma_ast::{
   ArrowExpr, BlockStmtOrExpr, CallExpr, Expr, FnExpr, GetSpan, UnaryExpr,
 };
 
-use super::{
-  JavascriptParserPlugin, common_js_imports_parse_plugin::mark_module_exports_accessed_by_require,
-};
+use super::JavascriptParserPlugin;
 use crate::{
   dependency::{RequireEnsureDependency, RequireEnsureItemDependency},
   utils::eval::{self, BasicEvaluatedExpression},
@@ -25,12 +23,10 @@ pub struct RequireEnsureDependenciesBlockParserPlugin;
 impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for RequireEnsureDependenciesBlockParserPlugin {
   fn evaluate_typeof(
     &self,
-    parser: &mut JavascriptParser<'p>,
+    _parser: &mut JavascriptParser<'p>,
     expr: &'a UnaryExpr<'a>,
     for_name: &str,
   ) -> Option<BasicEvaluatedExpression<'a>> {
-    mark_module_exports_accessed_by_require(parser, for_name);
-
     (for_name == "require.ensure").then(|| {
       eval::evaluate_to_string(
         "function".to_string(),
@@ -46,8 +42,6 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for RequireEnsureDependenciesBlockPa
     expr: &UnaryExpr,
     for_name: &str,
   ) -> Option<bool> {
-    mark_module_exports_accessed_by_require(parser, for_name);
-
     (for_name == "require.ensure").then(|| {
       parser.add_presentational_dependency(Arc::new(ConstDependency::new(
         expr.span.into(),
@@ -63,8 +57,6 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for RequireEnsureDependenciesBlockPa
     expr: &CallExpr,
     for_name: &str,
   ) -> Option<bool> {
-    mark_module_exports_accessed_by_require(parser, for_name);
-
     if for_name != "require.ensure" {
       return None;
     }

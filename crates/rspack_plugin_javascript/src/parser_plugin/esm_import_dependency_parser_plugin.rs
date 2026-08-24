@@ -7,7 +7,8 @@ use rspack_core::{
 use rspack_util::SpanExt;
 use swc_atoms::Atom;
 use swc_experimental_ecma_ast::{
-  BinExpr, BinaryOp, CallExpr, Callee, Expr, GetSpan, Ident, ImportDecl, MemberExpr, Span,
+  BinExpr, BinaryOp, CallExpr, Callee, Expr, GetSpan, Ident, ImportDecl, ImportSpecifier,
+  MemberExpr, ModuleExportName, Span,
 };
 
 use super::{
@@ -87,6 +88,22 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMImportDependencyParserPlugin 
     let phase = get_import_phase(parser, import_decl.phase);
     check_import_phase(parser, phase);
     let import_span = import_decl.span;
+    let needs_commonjs_namespace_object =
+      import_decl
+        .specifiers
+        .iter()
+        .any(|specifier| match specifier {
+          ImportSpecifier::Default(_) | ImportSpecifier::Namespace(_) => true,
+          ImportSpecifier::Named(named) => named.imported.as_ref().is_some_and(|imported| {
+            matches!(
+              imported,
+              ModuleExportName::Ident(ident) if ident.sym == "default"
+            ) || matches!(
+              imported,
+              ModuleExportName::Str(value) if value.value.as_wtf8() == "default"
+            )
+          }),
+        });
     let dependency = ESMImportSideEffectDependency::new(
       source.into(),
       parser.last_esm_import_order,
@@ -96,6 +113,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMImportDependencyParserPlugin 
       attributes,
       parser.to_dependency_location(DependencyRange::from(import_span)),
       false,
+      needs_commonjs_namespace_object,
     );
 
     parser.add_dependency(BoxDependency::new(dependency));

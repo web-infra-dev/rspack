@@ -11,13 +11,14 @@ use rspack_collections::{
 };
 use rspack_core::{
   BoxModule, ChunkUkey, Compilation, CompilationOptimizeChunkModules, Dependency, DependencyId,
-  DependencyType, ExportProvided, ExportsInfoArtifact, GetTargetResult,
-  ImportedByDeferModulesArtifact, LibIdentOptions, Logger, Module, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleGraphModule, ModuleIdentifier,
-  OptimizationBailoutItem, Plugin, ProvidedExports, RuntimeCondition, RuntimeSpec, RuntimeSpecMap,
-  SideEffectsStateArtifact, SourceType,
+  DependencyType, ExportProvided, ExportsInfoArtifact, GetTargetResult, ImportPhase,
+  ImportedByDeferModulesArtifact, LibIdentOptions, Logger, ModuleGraph, ModuleGraphCacheArtifact,
+  ModuleGraphConnection, ModuleGraphModule, ModuleIdentifier, OptimizationBailoutItem, Plugin,
+  ProvidedExports, RuntimeCondition, RuntimeSpec, RuntimeSpecMap, SideEffectsStateArtifact,
+  SourceType,
   concatenated_module::{
     ConcatenatedInnerModule, ConcatenatedModule, RootModuleContext, is_esm_dep_like,
+    is_unknown_empty_commonjs_for_concatenation,
   },
   filter_runtime, get_cached_readable_identifier, get_target,
   incremental::IncrementalPasses,
@@ -27,51 +28,64 @@ use rspack_hook::{plugin, plugin_hook};
 use rspack_util::itoa;
 use rustc_hash::FxHashSet as HashSet;
 
-use crate::parser_and_generator::JavaScriptParserAndGenerator;
+use crate::{
+  dependency::{
+    ESMExportImportedSpecifierDependency, ESMImportSideEffectDependency,
+    ESMImportSpecifierDependency,
+  },
+  parser_and_generator::JavaScriptParserAndGenerator,
+};
 
 fn format_bailout_reason(msg: &str) -> String {
   format!("ModuleConcatenation bailout: {msg}")
 }
 
-fn is_unknown_empty_commonjs(
-  module_id: &ModuleIdentifier,
-  module: &dyn Module,
-  exports_info_artifact: &ExportsInfoArtifact,
+fn can_reference_unknown_empty_commonjs_without_wrapper(
+  dependency: &dyn Dependency,
+  module_graph: &ModuleGraph,
 ) -> bool {
-  module.module_type().is_js_auto()
-    && !module.build_meta().esm()
-    && module.build_info().module_exports_accessed == Some(false)
-    && matches!(
-      exports_info_artifact
-        .get_exports_info_data(module_id)
-        .other_exports_info()
-        .provided(),
-      Some(ExportProvided::Unknown)
-    )
+  if dependency.get_phase() != ImportPhase::Evaluation {
+    return false;
+  }
+
+  match dependency.dependency_type() {
+    DependencyType::EsmImport | DependencyType::EsmExportImport => dependency
+      .downcast_ref::<ESMImportSideEffectDependency>()
+      .is_some_and(|dependency| !dependency.needs_commonjs_namespace_object()),
+    DependencyType::EsmImportSpecifier => dependency
+      .downcast_ref::<ESMImportSpecifierDependency>()
+      .is_some_and(|dependency| {
+        !dependency.is_namespace_import(module_graph)
+          && dependency
+            .get_ids(module_graph)
+            .first()
+            .is_some_and(|name| !matches!(name.as_str(), "default" | "__esModule"))
+      }),
+    DependencyType::EsmExportImportedSpecifier => dependency
+      .downcast_ref::<ESMExportImportedSpecifierDependency>()
+      .is_some_and(|dependency| {
+        let ids = dependency.get_ids(module_graph);
+        (dependency.name.is_none() && ids.is_empty())
+          || (dependency.name.is_some()
+            && ids
+              .first()
+              .is_some_and(|name| !matches!(name.as_str(), "default" | "__esModule")))
+      }),
+    _ => false,
+  }
 }
 
-fn has_incoming_named_esm_reference(
+fn has_only_safe_incoming_unknown_empty_commonjs_connections(
   module_id: &ModuleIdentifier,
   module_graph: &ModuleGraph,
-  module_graph_cache: &ModuleGraphCacheArtifact,
-  exports_info_artifact: &ExportsInfoArtifact,
 ) -> bool {
   module_graph
     .get_incoming_connections(module_id)
-    .any(|connection| {
-      let dependency = module_graph.dependency_by_id(&connection.dependency_id);
-      is_esm_dep_like(dependency)
-        && dependency.as_module_dependency().is_some_and(|dependency| {
-          dependency
-            .get_referenced_exports(
-              module_graph,
-              module_graph_cache,
-              exports_info_artifact,
-              None,
-            )
-            .iter()
-            .any(|referenced_export| !referenced_export.name.is_empty())
-        })
+    .all(|connection| {
+      can_reference_unknown_empty_commonjs_without_wrapper(
+        module_graph.dependency_by_id(&connection.dependency_id),
+        module_graph,
+      )
     })
 }
 
@@ -993,18 +1007,12 @@ impl ModuleConcatenationPlugin {
         let m = module_graph
           .module_by_identifier(&module_id)
           .expect("should have module");
-        let is_unknown_empty_commonjs =
-          is_unknown_empty_commonjs(&module_id, m.as_ref(), &compilation.exports_info_artifact);
-        // A named import needs a concrete binding, which an empty CommonJS module cannot provide.
-        // Keep that existing linker constraint separate from the empty-module classification.
-        let can_concatenate_unknown_empty_commonjs = is_unknown_empty_commonjs
-          && m.build_info().strict
-          && !has_incoming_named_esm_reference(
-            &module_id,
-            module_graph,
-            &compilation.module_graph_cache_artifact,
-            &compilation.exports_info_artifact,
-          );
+        let exports_info = compilation
+          .exports_info_artifact
+          .get_exports_info_data(&module_id);
+        let can_concatenate_unknown_empty_commonjs =
+          is_unknown_empty_commonjs_for_concatenation(m.as_ref(), exports_info)
+            && has_only_safe_incoming_unknown_empty_commonjs_connections(&module_id, module_graph);
 
         let concatenation_bailout_reason = if can_concatenate_unknown_empty_commonjs {
           m.as_normal_module()
@@ -1054,9 +1062,6 @@ impl ModuleConcatenationPlugin {
           can_be_root = false;
         }
 
-        let exports_info = compilation
-          .exports_info_artifact
-          .get_exports_info_data(&module_id);
         let relevant_exports = exports_info.get_relevant_exports(None);
         let mut unknown_exports = None;
         for export_info in relevant_exports.iter() {
