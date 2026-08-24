@@ -77,8 +77,5 @@ class MyPlugin {
 ```
 
 :::info Difference from webpack
-webpack also returns [`output.hotUpdateChunkFilename`](/config/output#outputhotupdatechunkfilename)
-for hot update chunks. Rspack keeps hot update chunks inside its Rust HMR
-pipeline and never exposes them to the JavaScript side, so no chunk you can
-reach from a plugin is a hot update chunk.
+Hot update chunks are not currently supported because they are not yet exposed to the JavaScript side.
 :::

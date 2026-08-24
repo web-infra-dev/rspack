@@ -76,8 +76,5 @@ class MyPlugin {
 ```
 
 :::info 与 webpack 的差异
-webpack 还会为 hot update chunk 返回
-[`output.hotUpdateChunkFilename`](/config/output#outputhotupdatechunkfilename)。
-Rspack 的 hot update chunk 完全保留在 Rust 侧的 HMR 流程中，不会暴露给 JavaScript 层，
-因此插件能拿到的 chunk 都不会是 hot update chunk。
+尚不支持 hot update chunk，因其未暴露到 JavaScript 侧。
 :::
