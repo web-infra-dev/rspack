@@ -273,10 +273,6 @@ export default {
 
 当 [`output.module`](/config/output#outputmodule) 为 `true`，且 [`output.library.type`](/config/output#outputlibrarytype) 为 `'modern-module'` 时，将 `experiments.runtimeMode` 设置为 `'rspack'` 可以精简产物。runtime 不再只导出一个挂载了多个辅助函数的 `__webpack_require__`，而是将加载函数、模块工厂和辅助函数分别导出为具名 ESM 绑定，让每个产物 chunk 只需导入实际使用的绑定。
 
-:::warning 插件兼容性
-开启该选项前，请检查项目中会注入 runtime 代码的插件。如果注入的代码直接依赖 **`__webpack_require__`**，开启 `'rspack'` 模式后将无法工作，因为传递给模块工厂的 runtime 参数会变为 **`__rspack_context`**。
-:::
-
 ### 示例
 
 ```js title="rspack.config.mjs"
