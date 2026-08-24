@@ -27,9 +27,11 @@ plugin = ["rspack_binding_builder/plugin"]
 rspack_binding_builder        = { workspace = true }
 rspack_binding_builder_macros = { workspace = true }
 
-rspack_core  = { workspace = true }
-rspack_error = { workspace = true }
-rspack_napi  = { workspace = true }
+rspack_core              = { workspace = true }
+rspack_error             = { workspace = true }
+rspack_hook              = { workspace = true }
+rspack_napi              = { workspace = true }
+rspack_plugin_javascript = { workspace = true }
 
 napi        = { workspace = true, features = ["async", "tokio_rt", "serde-json", "anyhow", "napi9", "compat-mode"] }
 napi-derive = { workspace = true, features = ["compat-mode"] }

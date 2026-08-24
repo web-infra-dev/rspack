@@ -93,7 +93,7 @@ impl Task<TaskContext> for BuildResultTask {
   }
   async fn main_run(self: Box<Self>, context: &mut TaskContext) -> TaskResult<TaskContext> {
     let BuildResultTask {
-      build_result,
+      mut build_result,
       plugin_driver,
       mut forwarded_ids,
     } = *self;
@@ -102,7 +102,12 @@ impl Task<TaskContext> for BuildResultTask {
     plugin_driver
       .compilation_hooks
       .succeed_module
-      .call(context.compiler_id, context.compilation_id, &mut module)
+      .call(
+        context.compiler_id,
+        context.compilation_id,
+        &mut module,
+        &mut build_result.dependencies,
+      )
       .await?;
 
     let build_info = module.build_info();

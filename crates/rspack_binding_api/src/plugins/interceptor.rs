@@ -15,7 +15,7 @@ use napi::{
 use rspack_collections::{Identifier, IdentifierMap, IdentifierSet};
 use rspack_core::{
   AfterResolveResult, AssetEmittedInfo, AsyncModulesArtifact, BeforeResolveResult, BindingCell,
-  BoxModule, ChunkGraph, ChunkUkey, CircularModulesInfo, Compilation,
+  BoxDependency, BoxModule, ChunkGraph, ChunkUkey, CircularModulesInfo, Compilation,
   CompilationAdditionalTreeRuntimeRequirements, CompilationAdditionalTreeRuntimeRequirementsHook,
   CompilationAfterOptimizeModules, CompilationAfterOptimizeModulesHook,
   CompilationAfterProcessAssets, CompilationAfterProcessAssetsHook, CompilationAfterSeal,
@@ -1291,6 +1291,7 @@ impl CompilationSucceedModule for CompilationSucceedModuleTap {
     compiler_id: CompilerId,
     _compilation_id: CompilationId,
     module: &mut BoxModule,
+    _dependencies: &mut [BoxDependency],
   ) -> rspack_error::Result<()> {
     #[allow(clippy::unwrap_used)]
     let _ = self

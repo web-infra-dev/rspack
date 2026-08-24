@@ -70,17 +70,17 @@ pub use self::{
   runtime_requirements::RuntimeRequirementsPass,
 };
 use crate::{
-  AsyncModulesArtifact, BindingCell, BoxModule, BuildChunkGraphArtifact, CacheCount, CacheOptions,
-  CgcRuntimeRequirementsArtifact, CgmHashArtifact, CgmRuntimeRequirementsArtifact, Chunk,
-  ChunkByUkey, ChunkContentHash, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkHashesArtifact,
-  ChunkKind, ChunkNamedIdArtifact, ChunkRenderArtifact, ChunkRenderCacheArtifact,
-  ChunkRenderResult, ChunkUkey, CircularModulesInfo, CodeGenerateCacheArtifact, CodeGenerationJob,
-  CodeGenerationResult, CodeGenerationResultBuilder, CodeGenerationResults, CompilationLogger,
-  CompilationLogging, CompilerOptions, CompilerPlatform, ConcatenationScope,
-  DependenciesDiagnosticsArtifact, Dependency, DependencyId, DependencyRef, DependencyTemplate,
-  DependencyTemplateType, DependencyType, Entry, EntryData, EntryOptions, EntryRuntime, Entrypoint,
-  ExecuteModuleId, ExportsInfoArtifact, ExternalModuleChunkConditionHook, Filename, ImportPhase,
-  ImportVarMap, ImportedByDeferModulesArtifact, ModuleFactory, ModuleGraph,
+  AsyncModulesArtifact, BindingCell, BoxDependency, BoxModule, BuildChunkGraphArtifact, CacheCount,
+  CacheOptions, CgcRuntimeRequirementsArtifact, CgmHashArtifact, CgmRuntimeRequirementsArtifact,
+  Chunk, ChunkByUkey, ChunkContentHash, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey,
+  ChunkHashesArtifact, ChunkKind, ChunkNamedIdArtifact, ChunkRenderArtifact,
+  ChunkRenderCacheArtifact, ChunkRenderResult, ChunkUkey, CircularModulesInfo,
+  CodeGenerateCacheArtifact, CodeGenerationJob, CodeGenerationResult, CodeGenerationResultBuilder,
+  CodeGenerationResults, CompilationLogger, CompilationLogging, CompilerOptions, CompilerPlatform,
+  ConcatenationScope, DependenciesDiagnosticsArtifact, Dependency, DependencyId, DependencyRef,
+  DependencyTemplate, DependencyTemplateType, DependencyType, Entry, EntryData, EntryOptions,
+  EntryRuntime, Entrypoint, ExecuteModuleId, ExportsInfoArtifact, ExternalModuleChunkConditionHook,
+  Filename, ImportPhase, ImportVarMap, ImportedByDeferModulesArtifact, ModuleFactory, ModuleGraph,
   ModuleGraphCacheArtifact, ModuleIdentifier, ModuleIdsArtifact, ModuleStaticCache, PathData,
   ProcessRuntimeRequirementsCacheArtifact, ReferencedExport, ResolverFactory, RuntimeGlobals,
   RuntimeKeyMap, RuntimeMode, RuntimeModule, RuntimeProxyMetadataArtifact, RuntimeSpec,
@@ -104,7 +104,7 @@ define_hook!(CompilationAddEntry: Series(entry_name: Option<&str>, options: &mut
 define_hook!(CompilationBuildModule: Series(compiler_id: CompilerId, compilation_id: CompilationId, module: &mut BoxModule),tracing=false);
 define_hook!(CompilationRevokedModules: Series(compilation: &Compilation, revoked_modules: &IdentifierSet));
 define_hook!(CompilationStillValidModule: Series(compiler_id: CompilerId, compilation_id: CompilationId, module: &mut BoxModule));
-define_hook!(CompilationSucceedModule: Series(compiler_id: CompilerId, compilation_id: CompilationId, module: &mut BoxModule),tracing=false);
+define_hook!(CompilationSucceedModule: Series(compiler_id: CompilerId, compilation_id: CompilationId, module: &mut BoxModule, dependencies: &mut [BoxDependency]),tracing=false);
 define_hook!(CompilationExecuteModule:
   Series(module: &ModuleIdentifier, runtime_modules: &[Identifier], code_generation_results: &BindingCell<CodeGenerationResults>, execute_module_id: &ExecuteModuleId));
 define_hook!(CompilationFinishModules: Series(compilation: &Compilation, async_modules_artifact: &mut AsyncModulesArtifact, exports_info_artifact: &mut ExportsInfoArtifact, side_effects_state_artifact: &mut SideEffectsStateArtifact));

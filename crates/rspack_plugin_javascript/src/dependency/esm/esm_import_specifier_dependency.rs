@@ -114,6 +114,16 @@ impl ESMImportSpecifierDependency {
       .map_or_else(|| self.ids.as_slice(), |meta| meta.ids.as_slice())
   }
 
+  pub fn ids(&self) -> &[Atom] {
+    &self.ids
+  }
+
+  pub fn set_request(&mut self, request: Atom) {
+    self.resource_identifier =
+      create_resource_identifier_for_esm_dependency(&request, self.phase, self.attributes.as_ref());
+    self.request = request;
+  }
+
   pub fn imported_name(&self) -> &Atom {
     self.ids.first().unwrap_or(&self.name)
   }

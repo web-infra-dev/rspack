@@ -4123,7 +4123,9 @@ dependencies = [
  "rspack_binding_builder_macros",
  "rspack_core",
  "rspack_error",
+ "rspack_hook",
  "rspack_napi",
+ "rspack_plugin_javascript",
 ]
 
 [[package]]

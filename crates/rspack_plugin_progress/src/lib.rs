@@ -12,8 +12,8 @@ use futures::future::BoxFuture;
 use indicatif::{MultiProgress, ProgressBar, ProgressDrawTarget, ProgressStyle};
 use rspack_collections::IdentifierMap;
 use rspack_core::{
-  AsyncModulesArtifact, BoxModule, ChunkByUkey, ChunkNamedIdArtifact, CircularModulesInfo,
-  Compilation, CompilationAfterOptimizeModules, CompilationAfterProcessAssets,
+  AsyncModulesArtifact, BoxDependency, BoxModule, ChunkByUkey, ChunkNamedIdArtifact,
+  CircularModulesInfo, Compilation, CompilationAfterOptimizeModules, CompilationAfterProcessAssets,
   CompilationBuildModule, CompilationChunkIds, CompilationFinishModules, CompilationId,
   CompilationModuleIds, CompilationOptimizeChunkModules, CompilationOptimizeChunks,
   CompilationOptimizeCodeGeneration, CompilationOptimizeDependencies, CompilationOptimizeModules,
@@ -387,6 +387,7 @@ async fn succeed_module(
   _compiler_id: CompilerId,
   _compilation_id: CompilationId,
   module: &mut BoxModule,
+  _dependencies: &mut [BoxDependency],
 ) -> Result<()> {
   self.modules_done.fetch_add(1, Relaxed);
   self
