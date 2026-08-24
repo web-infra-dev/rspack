@@ -754,7 +754,6 @@ type RuleSetLoaderWithOptions = {
   ident?: string;
   loader: string;
   options?: string | Record<string, any>;
-  cache?: boolean;
   parallel?: boolean | { maxWorkers?: number };
 };
 ```
@@ -838,61 +837,6 @@ export default {
   },
 };
 ```
-
-## rules[].use.cache
-
-<ApiMeta stability={Stability.Experimental} />
-
-- **Type:** `boolean`
-- **Default:** `false`
-
-Enables caching for an individual loader. This option only takes effect when `experiments.newCache.loader` is enabled.
-
-Rspack invalidates a loader cache entry when any of the following changes:
-
-- the input content passed to the loader;
-- the loader options after JSON serialization;
-- the loader implementation identity. Rspack hashes the resolved entry file for JavaScript loaders and uses the declared cache version for native loaders;
-- the Rspack version.
-
-On a cache hit, Rspack restores the transformed content and source map without executing the loader again.
-
-```js title="rspack.config.mjs"
-export default {
-  experiments: {
-    newCache: {
-      loader: true,
-    },
-  },
-  module: {
-    rules: [
-      {
-        test: /\.js$/,
-        use: [
-          {
-            loader: './loaders/expensive-loader.js',
-            options: {
-              mode: 'transform',
-            },
-            cache: true,
-          },
-        ],
-      },
-    ],
-  },
-};
-```
-
-:::warning
-
-This experimental cache is intended for pure loaders whose observable result is limited to transformed content and an optional source map.
-
-- Dependencies added dynamically through the loader context are not included in cache validation and are not restored on a cache hit.
-- Transitive files imported by a JavaScript loader and its package metadata are not included in the loader implementation fingerprint.
-- Incoming source maps do not participate in cache validation. Only enable caching when the loader output does not depend on its input source map.
-- Results involving unsupported state such as `additionalData` or parse metadata are not cached. Loader side effects are not replayed on a cache hit.
-
-:::
 
 ## rules[].use.parallel
 
