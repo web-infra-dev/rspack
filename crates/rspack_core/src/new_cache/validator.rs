@@ -4,7 +4,7 @@ use rspack_cacheable::cacheable;
 use rspack_error::Result;
 use rspack_paths::{InternedPath, InternedPathSet};
 
-use super::snapshot::{BuildDependenciesSnapshot, BuildDeps, BuildDepsValidationResult, Snapshot};
+use super::snapshot::{BuildDeps, BuildDepsValidationResult, FileSystemInfo, Snapshot};
 use crate::cache::persistent::codec::CacheCodec;
 
 #[cacheable]
@@ -12,7 +12,8 @@ use crate::cache::persistent::codec::CacheCodec;
 struct CacheValidatorData {
   rspack_pkg_version: String,
   cache_version: String,
-  build_dependencies: BuildDependenciesSnapshot,
+  build_dependencies: InternedPathSet,
+  build_dependencies_snapshot: Snapshot,
 }
 
 impl CacheValidatorData {
@@ -21,6 +22,7 @@ impl CacheValidatorData {
       rspack_pkg_version,
       cache_version,
       build_dependencies: Default::default(),
+      build_dependencies_snapshot: Default::default(),
     }
   }
 
@@ -44,7 +46,7 @@ pub(super) enum CacheValidatorResult {
 pub(super) struct CacheValidator {
   data: CacheValidatorData,
   codec: Arc<CacheCodec>,
-  snapshot: Snapshot,
+  file_system_info: FileSystemInfo,
   build_deps: BuildDeps,
 }
 
@@ -53,13 +55,13 @@ impl CacheValidator {
     rspack_pkg_version: String,
     cache_version: String,
     codec: Arc<CacheCodec>,
-    snapshot: Snapshot,
+    file_system_info: FileSystemInfo,
     build_deps: BuildDeps,
   ) -> Self {
     Self {
       data: CacheValidatorData::new(rspack_pkg_version, cache_version),
       codec,
-      snapshot,
+      file_system_info,
       build_deps,
     }
   }
@@ -72,10 +74,15 @@ impl CacheValidator {
     if !validator.has_same_version(&self.data) {
       return Ok(CacheValidatorResult::InvalidVersion);
     }
-    let validation = validator
-      .build_dependencies
-      .validate(&self.snapshot, &self.build_deps)
-      .await;
+    let validation = self
+      .build_deps
+      .validate_snapshot(
+        &self.file_system_info,
+        &validator.build_dependencies_snapshot,
+        &validator.build_dependencies,
+        validator.build_dependencies.len(),
+      )
+      .await?;
     Ok(match validation {
       BuildDepsValidationResult::Valid { tracked_files } => {
         self.data = validator;
@@ -95,11 +102,27 @@ impl CacheValidator {
     &mut self,
     paths: impl Iterator<Item = InternedPath>,
   ) -> Result<Vec<u8>> {
-    self
-      .data
-      .build_dependencies
-      .update(&self.snapshot, &mut self.build_deps, paths)
+    let resolved = self
+      .build_deps
+      .resolve_dependencies(&self.data.build_dependencies, paths)
       .await;
+    if !resolved.dependencies.is_empty() {
+      let snapshot = self
+        .file_system_info
+        .create_snapshot(
+          None,
+          &resolved.files,
+          &resolved.contexts,
+          &resolved.missing,
+          self.file_system_info.build_dependencies_strategy(),
+        )
+        .await?;
+      self.data.build_dependencies_snapshot = self.file_system_info.merge_snapshots(
+        std::mem::take(&mut self.data.build_dependencies_snapshot),
+        snapshot,
+      );
+      self.data.build_dependencies.extend(resolved.dependencies);
+    }
     self.codec.encode(&self.data)
   }
 }
