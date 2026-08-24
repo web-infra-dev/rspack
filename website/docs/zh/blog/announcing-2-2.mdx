@@ -75,11 +75,40 @@ Rsbuild 2.2 已经与 Rspack 2.2 同步发布。
 
 :::
 
+#### 定制压缩配置 \{#custom-minimizer-configs}
+
+Rsbuild 现在支持同时配置多种压缩选项。通过为 [`minify.jsOptions`](https://rsbuild.rs/config/output/minify#minifyjsoptions) 传入数组，可以针对不同产物设置不同的压缩策略。
+
+例如，仅移除主 bundle 中的 `console` 调用，同时保留其他 bundle 中的调用：
+
+```ts title="rsbuild.config.ts"
+export default {
+  output: {
+    minify: {
+      jsOptions: [
+        {
+          include: /main\./,
+          minimizerOptions: {
+            compress: { drop_console: true },
+          },
+        },
+        {
+          exclude: /main\./,
+          minimizerOptions: {
+            compress: { drop_console: false },
+          },
+        },
+      ],
+    },
+  },
+};
+```
+
 #### 自定义重启流程 \{#restart-api}
 
 基于 Rsbuild 的框架和工具现在可以自行控制重启流程。
 
-Rsbuild 的 JavaScript API 现已支持 [`restart`](https://rsbuild.rs/zh/api/javascript-api/core#restart-handling) 选项，用于处理开发服务器（`rsbuild dev`）或监听构建（`rsbuild build --watch`）的重启请求，例如：
+Rsbuild 的 JavaScript API 现已支持 [`restart`](https://rsbuild.rs/zh/api/javascript-api/core#restart-handling) 选项，用于处理开发服务器（`rsbuild dev`）或监听构建（`rsbuild build --watch`）的重启请求：
 
 ```ts
 import { createRsbuild } from '@rsbuild/core';
