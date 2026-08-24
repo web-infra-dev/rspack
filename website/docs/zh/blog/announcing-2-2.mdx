@@ -30,8 +30,10 @@ _2026 年 8 月 26 日_
 值得关注的变更如下：
 
 - 性能提升
+  - [CSS 解析性能提升](#css-performance)
 
 - 新特性
+  - [`import.meta.glob` 支持 `caseSensitive`](#import-meta-glob-case-sensitive)
 
 - 产物优化
 
@@ -60,7 +62,21 @@ _2026 年 8 月 26 日_
 
 此外，我们还[修复](https://github.com/web-infra-dev/rspack/pull/14580)了 `mini-css-extract-plugin` 在 Stylesheet 热更新中的样式短暂消失导致页面都抖动的问题，让页面一直保持期望的样子。
 
+### CSS 解析性能提升 \{#css-performance}
+
+Rspack 2.2 优化了内置 CSS 和 CSS Modules 的解析性能，速度是 Rspack 2.1.0 的 **3 倍**，同时改进了对 Unicode 的支持。详情见 [PR #14809](https://github.com/web-infra-dev/rspack/pull/14809)。
+
 ## 新特性
+
+### `import.meta.glob` 支持 `caseSensitive` \{#import-meta-glob-case-sensitive}
+
+[`import.meta.glob`](/api/runtime-api/module-variables#importmetaglob) 新增了 `caseSensitive` 参数。设置为 `false` 时，glob 匹配会忽略文件路径的大小写：
+
+```js
+const modules = import.meta.glob('./pages/**/*.js', {
+  caseSensitive: false,
+});
+```
 
 ## 产物优化
 
