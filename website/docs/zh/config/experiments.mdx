@@ -292,7 +292,7 @@ export default {
 
 ### 常规产物
 
-在常规构建中，默认模式同时把 `__webpack_require__` 用作函数和 runtime 辅助函数的容器。`'rspack'` 模式会向模块工厂传入独立的 `__rspack_context` 对象，并通过 `__rspack_context.r` 暴露模块加载函数。
+在常规构建中，默认模式会为每个 runtime module 分别生成一个 IIFE，并直接在 `__webpack_require__` 上定义对应的辅助函数。`'rspack'` 模式会将 runtime 辅助函数生成为具名局部绑定，合并到一个共享 IIFE 中，再通过独立的 `__rspack_context` 对象向模块工厂暴露需要的绑定。其中，模块加载函数通过 `__rspack_context.r` 提供。
 
 下面是简化后的产物，用于说明两者的组织差异：
 
@@ -300,31 +300,74 @@ export default {
   <Tab label="runtimeMode: 'webpack'">
 
 ```js
+var __webpack_modules__ = {
+  './lib.js'(__unused_module, __webpack_exports__, __webpack_require__) {
+    __webpack_require__.r(__webpack_exports__);
+    __webpack_require__.d(__webpack_exports__, {
+      value: () => value,
+    });
+    const value = 42;
+  },
+};
+
 function __webpack_require__(moduleId) {
   // 加载并执行模块。
+  var module = { exports: {} };
+  __webpack_modules__[moduleId](module, module.exports, __webpack_require__);
+  return module.exports;
 }
 
-__webpack_require__.d = definePropertyGetters;
-__webpack_require__.r = makeNamespaceObject;
+// 每个 runtime module 分别使用一个 IIFE。
+(() => {
+  __webpack_require__.d = (exports, getters) => {
+    // 为 harmony exports 定义 getter。
+  };
+})();
 
-__webpack_modules__[moduleId](module, module.exports, __webpack_require__);
+(() => {
+  __webpack_require__.r = (exports) => {
+    // 将 exports 标记为 ES module。
+  };
+})();
 ```
 
   </Tab>
   <Tab label="runtimeMode: 'rspack'">
 
 ```js
+var __rspack_modules = {
+  './lib.js'(__unused_module, __rspack_exports, __rspack_context) {
+    __rspack_context.N(__rspack_exports);
+    __rspack_context.d(__rspack_exports, {
+      value: () => value,
+    });
+    const value = 42;
+  },
+};
+
 var __rspack_context = {};
 
 function __rspack_require(moduleId) {
   // 加载并执行模块。
+  var module = { exports: {} };
+  __rspack_modules[moduleId](module, module.exports, __rspack_context);
+  return module.exports;
 }
 
 __rspack_context.r = __rspack_require;
-__rspack_context.d = definePropertyGetters;
-__rspack_context.N = makeNamespaceObject;
 
-__rspack_modules[moduleId](module, module.exports, __rspack_context);
+// runtime modules 共用一个 IIFE，并使用具名局部绑定。
+(function () {
+  var definePropertyGetters = (exports, getters) => {
+    // 为 harmony exports 定义 getter。
+  };
+  __rspack_context.d = definePropertyGetters;
+
+  var makeNamespaceObject = (exports) => {
+    // 将 exports 标记为 ES module。
+  };
+  __rspack_context.N = makeNamespaceObject;
+})();
 ```
 
   </Tab>
