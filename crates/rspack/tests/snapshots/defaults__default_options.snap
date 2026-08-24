@@ -1753,6 +1753,7 @@ CompilerOptions {
             devtool: false,
             loader: false,
             minimize: false,
+            module: false,
         },
         defer_import: false,
         source_import: false,

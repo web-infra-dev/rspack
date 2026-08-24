@@ -6,7 +6,10 @@ use rspack_paths::InternedPathSet;
 use super::{
   CacheFacade, CacheKey, CacheValue, Etag, IdleFileCache, MemoryCache, MemoryCacheGetResult,
   cache_value::CacheValueData,
+  module_build_cache::{MODULE_BUILD_CACHE_NAME, ModuleBuildCache},
+  snapshot::FileSystemInfo,
 };
+use crate::cache::{CacheCodec, SnapshotStrategyOptions};
 
 /// Cache entry point backed by memory and optional filesystem storage.
 ///
@@ -17,6 +20,9 @@ use super::{
 struct CacheStorage {
   memory_cache: MemoryCache,
   idle_file_cache: Option<IdleFileCache>,
+  file_system_info: FileSystemInfo,
+  codec: Arc<CacheCodec>,
+  snapshot_strategy: SnapshotStrategyOptions,
 }
 
 #[derive(Debug)]
@@ -36,6 +42,9 @@ impl Cache {
     compiler_path: String,
     memory_cache: MemoryCache,
     idle_file_cache: Option<IdleFileCache>,
+    file_system_info: FileSystemInfo,
+    codec: Arc<CacheCodec>,
+    snapshot_strategy: SnapshotStrategyOptions,
   ) -> Self {
     Self {
       inner: Arc::new(CacheInner {
@@ -43,9 +52,23 @@ impl Cache {
         storage: Some(CacheStorage {
           memory_cache,
           idle_file_cache,
+          file_system_info,
+          codec,
+          snapshot_strategy,
         }),
       }),
     }
+  }
+
+  /// The per-module build cache, absent when the cache itself is disabled.
+  pub fn module_build_cache(&self) -> Option<ModuleBuildCache> {
+    let storage = self.inner.storage.as_ref()?;
+    Some(ModuleBuildCache::new(
+      self.facade(MODULE_BUILD_CACHE_NAME),
+      storage.file_system_info.clone(),
+      storage.codec.clone(),
+      storage.snapshot_strategy,
+    ))
   }
 
   pub fn new_disabled(compiler_path: String) -> Self {
@@ -161,6 +184,7 @@ impl Cache {
     let Some(storage) = &self.inner.storage else {
       return Ok(());
     };
+    storage.file_system_info.clear();
     if let Some(file_cache) = &storage.idle_file_cache {
       file_cache.end_idle()
     } else {

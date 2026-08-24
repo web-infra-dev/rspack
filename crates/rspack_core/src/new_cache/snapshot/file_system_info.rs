@@ -118,6 +118,21 @@ impl FileSystemInfo {
     }
   }
 
+  /// Drops every cached filesystem observation.
+  ///
+  /// webpack allocates a fresh `FileSystemInfo` per compilation, so an
+  /// observation never outlives the build that made it. This cache is owned by
+  /// the compiler, and has to be reset at the start of a build instead.
+  pub fn clear(&self) {
+    self.file_timestamps.clear();
+    self.file_hashes.clear();
+    self.file_timestamp_hashes.clear();
+    self.context_timestamps.clear();
+    self.context_hashes.clear();
+    self.context_timestamp_hashes.clear();
+    self.managed_items.clear();
+  }
+
   /// See webpack's snapshot creation implementation:
   /// https://github.com/webpack/webpack/blob/ce97d583e1cd8f3e47b70737de72e91b567a8497/lib/FileSystemInfo.js#L2525-L3079
   #[tracing::instrument("Cache::FileSystemInfo::create_snapshot", skip_all)]

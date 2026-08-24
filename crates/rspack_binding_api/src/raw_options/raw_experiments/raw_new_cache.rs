@@ -8,6 +8,7 @@ pub struct RawNewCache {
   pub devtool: bool,
   pub loader: bool,
   pub minimize: bool,
+  pub module: bool,
 }
 
 impl From<RawNewCache> for NewCacheOptions {
@@ -17,6 +18,7 @@ impl From<RawNewCache> for NewCacheOptions {
       devtool: value.devtool,
       loader: value.loader,
       minimize: value.minimize,
+      module: value.module,
     }
   }
 }

@@ -2775,6 +2775,7 @@ export interface RawNewCache {
   devtool: boolean
   loader: boolean
   minimize: boolean
+  module: boolean
 }
 
 export interface RawNodeOption {

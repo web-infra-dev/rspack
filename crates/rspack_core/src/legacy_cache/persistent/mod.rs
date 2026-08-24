@@ -199,12 +199,14 @@ impl Cache for PersistentCache {
       return;
     }
 
-    let cache_item = self
-      .ctx
-      .load_occasion(&self.minimize_occasion)
-      .await
-      .unwrap_or_default();
-    compilation.minimize_persistent_cache = Some(cache_item);
+    if !compilation.options.experiments.new_cache.minimize {
+      let cache_item = self
+        .ctx
+        .load_occasion(&self.minimize_occasion)
+        .await
+        .unwrap_or_default();
+      compilation.minimize_persistent_cache = Some(cache_item);
+    }
 
     if compilation.use_source_map_dev_tool_plugin_cache {
       let cache_item = self

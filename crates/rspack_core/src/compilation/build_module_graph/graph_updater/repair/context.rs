@@ -6,10 +6,12 @@ use rustc_hash::FxHashMap as HashMap;
 
 use super::BuildModuleGraphArtifact;
 use crate::{
-  Compilation, CompilationId, CompilerId, CompilerOptions, CompilerPlatform, DependencyTemplate,
-  DependencyTemplateType, DependencyType, ExportsInfoArtifact, ModuleFactory, ResolverFactory,
-  RuntimeTemplate, SharedPluginDriver, incremental::Incremental, module_graph::ModuleGraph,
-  new_cache::Cache,
+  CacheCount, Compilation, CompilationId, CompilerId, CompilerOptions, CompilerPlatform,
+  DependencyTemplate, DependencyTemplateType, DependencyType, ExportsInfoArtifact, ModuleFactory,
+  ResolverFactory, RuntimeTemplate, SharedPluginDriver, ValueCacheVersions,
+  incremental::Incremental,
+  module_graph::ModuleGraph,
+  new_cache::{Cache, ModuleBuildCache},
 };
 
 #[derive(Debug)]
@@ -30,6 +32,9 @@ pub struct TaskContext {
   pub dependency_templates: HashMap<DependencyTemplateType, Arc<dyn DependencyTemplate>>,
   pub runtime_template: RuntimeTemplate,
   pub(crate) cache: Cache,
+  pub module_build_cache: Option<ModuleBuildCache>,
+  pub module_build_cache_counter: Option<Arc<CacheCount>>,
+  pub value_cache_versions: Arc<ValueCacheVersions>,
 
   pub artifact: BuildModuleGraphArtifact,
   pub exports_info_artifact: ExportsInfoArtifact,
@@ -41,6 +46,7 @@ impl TaskContext {
     artifact: BuildModuleGraphArtifact,
     exports_info_artifact: ExportsInfoArtifact,
   ) -> Self {
+    let module_build_cache = compilation.module_build_cache();
     Self {
       compiler_id: compilation.compiler_id(),
       compilation_id: compilation.id(),
@@ -57,6 +63,12 @@ impl TaskContext {
       output_fs: compilation.output_filesystem.clone(),
       runtime_template: RuntimeTemplate::new(compilation.options.clone()),
       cache: compilation.cache.clone(),
+      value_cache_versions: match &module_build_cache {
+        Some(_) => Arc::new(compilation.value_cache_versions.clone()),
+        None => Arc::default(),
+      },
+      module_build_cache,
+      module_build_cache_counter: None,
       artifact,
       exports_info_artifact,
     }

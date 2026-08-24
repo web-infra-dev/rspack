@@ -3125,6 +3125,8 @@ export type NewCache = {
   loader?: boolean;
   /** Enable the asset minimization cache. @default true */
   minimize?: boolean;
+  /** Enable the module build cache used while making the module graph. @default true */
+  module?: boolean;
 };
 
 export type NewCachePresets = boolean;

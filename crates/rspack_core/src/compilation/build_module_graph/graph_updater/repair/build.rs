@@ -7,10 +7,11 @@ use super::{
   TaskContext, lazy::process_unlazy_dependencies, process_dependencies::ProcessDependenciesTask,
 };
 use crate::{
-  AsyncDependenciesBlock, BoxDependency, BoxModule, BuildContext, BuildResult, CacheFacade,
-  CompilationId, CompilerId, CompilerOptions, DependencyParents, ModuleCodeTemplate,
-  ResolverFactory, SharedPluginDriver,
+  AsyncDependenciesBlock, BoxDependency, BoxModule, BuildContext, BuildResult, CacheCount,
+  CacheFacade, CompilationId, CompilerId, CompilerOptions, DependencyParents, ModuleCodeTemplate,
+  ModuleIdentifier, ResolverFactory, SharedPluginDriver, ValueCacheVersions,
   compilation::build_module_graph::{ForwardedIdSet, HasLazyDependencies, LazyDependencies},
+  new_cache::ModuleBuildCache,
   utils::{
     ResourceId,
     task_loop::{Task, TaskResult, TaskType},
@@ -29,6 +30,9 @@ pub struct BuildTask {
   pub plugin_driver: SharedPluginDriver,
   pub fs: Arc<dyn ReadableFileSystem>,
   pub forwarded_ids: ForwardedIdSet,
+  pub module_build_cache: Option<ModuleBuildCache>,
+  pub module_build_cache_counter: Option<Arc<CacheCount>>,
+  pub value_cache_versions: Arc<ValueCacheVersions>,
 }
 
 #[async_trait::async_trait]
@@ -48,29 +52,62 @@ impl Task<TaskContext> for BuildTask {
       mut module,
       fs,
       forwarded_ids,
+      module_build_cache,
+      module_build_cache_counter,
+      value_cache_versions,
     } = *self;
 
-    plugin_driver
-      .compilation_hooks
-      .build_module
-      .call(compiler_id, compilation_id, &mut module)
-      .await?;
+    let cached = match &module_build_cache {
+      Some(cache) => restore_from_cache(cache, &module.identifier(), &value_cache_versions).await,
+      None => None,
+    };
+    let from_cache = cached.is_some();
+    if let Some(counter) = &module_build_cache_counter {
+      if from_cache {
+        counter.hit();
+      } else {
+        counter.miss();
+      }
+    }
 
-    let result = module
-      .build(
-        BuildContext {
-          compiler_id,
-          compilation_id,
-          compiler_options: compiler_options.clone(),
-          loader_cache,
-          resolver_factory: resolver_factory.clone(),
-          plugin_driver: plugin_driver.clone(),
-          runtime_template,
-          fs: fs.clone(),
-        },
-        None,
-      )
-      .await;
+    // The hook may change module state that is part of the build result, so it
+    // has to run on the module that ends up in the module graph.
+    let result = if let Some(mut build_result) = cached {
+      plugin_driver
+        .compilation_hooks
+        .build_module
+        .call(compiler_id, compilation_id, &mut build_result.module)
+        .await?;
+      Ok(build_result)
+    } else {
+      plugin_driver
+        .compilation_hooks
+        .build_module
+        .call(compiler_id, compilation_id, &mut module)
+        .await?;
+      let result = module
+        .build(
+          BuildContext {
+            compiler_id,
+            compilation_id,
+            compiler_options: compiler_options.clone(),
+            loader_cache,
+            resolver_factory: resolver_factory.clone(),
+            plugin_driver: plugin_driver.clone(),
+            runtime_template,
+            fs: fs.clone(),
+          },
+          None,
+        )
+        .await;
+      if let Ok(build_result) = &result
+        && let Some(cache) = &module_build_cache
+        && let Err(error) = cache.store(build_result).await
+      {
+        tracing::warn!("Storing module build result to the cache failed: {error}");
+      }
+      result
+    };
 
     result.map::<Vec<Box<dyn Task<TaskContext>>>, _>(|build_result| {
       vec![Box::new(BuildResultTask {
@@ -79,6 +116,20 @@ impl Task<TaskContext> for BuildTask {
         forwarded_ids,
       })]
     })
+  }
+}
+
+async fn restore_from_cache(
+  cache: &ModuleBuildCache,
+  identifier: &ModuleIdentifier,
+  value_cache_versions: &ValueCacheVersions,
+) -> Option<BuildResult> {
+  match cache.get(identifier, value_cache_versions).await {
+    Ok(build_result) => build_result,
+    Err(error) => {
+      tracing::warn!("Restoring module build result from the cache failed: {error}");
+      None
+    }
   }
 }
 

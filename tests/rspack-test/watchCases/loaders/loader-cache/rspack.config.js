@@ -9,6 +9,9 @@ module.exports = {
       codeGeneration: false,
       loader: true,
       minimize: false,
+      // This case asserts that an uncached loader reruns on every step, which
+      // the module build cache would skip for a rewrite with equal content.
+      module: false,
     },
   },
   module: {
