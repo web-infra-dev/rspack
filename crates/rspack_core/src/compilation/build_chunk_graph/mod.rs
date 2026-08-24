@@ -28,6 +28,14 @@ pub fn build_chunk_graph(compilation: &mut Compilation) -> rspack_error::Result<
     .copied()
     .collect::<Vec<_>>();
 
+  // make sure all module (weak dependency particularly) has a cgm
+  for module_identifier in &all_modules {
+    compilation
+      .build_chunk_graph_artifact
+      .chunk_graph
+      .add_module(*module_identifier)
+  }
+
   splitter.prepare(&all_modules, compilation)?;
 
   splitter.update_with_compilation(compilation)?;
@@ -41,14 +49,6 @@ pub fn build_chunk_graph(compilation: &mut Compilation) -> rspack_error::Result<
 
   // remove empty chunk groups
   splitter.remove_orphan(compilation)?;
-
-  // make sure all module (weak dependency particularly) has a cgm
-  for module_identifier in all_modules {
-    compilation
-      .build_chunk_graph_artifact
-      .chunk_graph
-      .add_module(module_identifier)
-  }
 
   compilation
     .build_chunk_graph_artifact
