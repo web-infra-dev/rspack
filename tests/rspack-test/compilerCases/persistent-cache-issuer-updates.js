@@ -88,7 +88,7 @@ module.exports = {
 					apply(compiler) {
 						compiler.hooks.done.tap("CaptureSharedIssuer", stats => {
 							const shared = [...stats.compilation.modules].find(module =>
-								module.resource?.endsWith("/shared.js")
+								module.resource === path.join(root, "src/shared.js")
 							);
 							const issuer =
 								shared && stats.compilation.moduleGraph.getIssuer(shared);
