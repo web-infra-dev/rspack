@@ -125,6 +125,26 @@ pub struct ResolveContext {
   pub missing_dependencies: Vec<InternedPath>,
 }
 
+/// Move one resolution's freshly collected paths into the caller's context, duplicate-free.
+///
+/// Deduplicating `collected` before the merge keeps the cost proportional to this resolution
+/// alone. A caller that reuses one `ResolveContext` across many calls would otherwise re-sort an
+/// ever-growing list on every call; here the second sort only runs once the context already
+/// holds something, and the common case — a fresh context per resolution — moves the vector
+/// across without copying or sorting twice.
+fn merge_dependencies(collected: &mut Option<Vec<InternedPath>>, into: &mut Vec<InternedPath>) {
+  let Some(collected) = collected else {
+    return;
+  };
+  dedup_paths(collected);
+  if into.is_empty() {
+    *into = std::mem::take(collected);
+  } else {
+    into.append(collected);
+    dedup_paths(into);
+  }
+}
+
 /// Resolver with the current operating system as the file system
 pub type Resolver = ResolverGeneric<FileSystemOs>;
 
@@ -266,14 +286,14 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     let result = self
       .resolve_tracing(directory.as_ref(), specifier, &mut ctx)
       .await;
-    if let Some(deps) = &mut ctx.file_dependencies {
-      resolve_context.file_dependencies.append(deps);
-      dedup_paths(&mut resolve_context.file_dependencies);
-    }
-    if let Some(deps) = &mut ctx.missing_dependencies {
-      resolve_context.missing_dependencies.append(deps);
-      dedup_paths(&mut resolve_context.missing_dependencies);
-    }
+    merge_dependencies(
+      &mut ctx.file_dependencies,
+      &mut resolve_context.file_dependencies,
+    );
+    merge_dependencies(
+      &mut ctx.missing_dependencies,
+      &mut resolve_context.missing_dependencies,
+    );
     result
   }
 
