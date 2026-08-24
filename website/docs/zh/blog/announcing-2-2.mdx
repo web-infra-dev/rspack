@@ -51,7 +51,27 @@ _2026 年 8 月 ?? 日_
 
 ## 生态
 
-### Rsbuild \{#rsbuild}
+### Rsbuild 2.2 \{#rsbuild}
+
+#### Node.js 拆包优化 \{#node-split-chunks}
+
+在 Rsbuild 2.2 中，Node.js 构建会默认启用 [`splitChunks`](https://rsbuild.rs/zh/config/split-chunks)，将共享模块提取为独立的 chunk，从而减少重复代码并降低 SSR 应用的内存占用。
+
+下面是 TanStack Start 用户提供的 [实测数据](https://github.com/TanStack/router/issues/8113#issuecomment-5366808113)，测试应用包含 300 个文件路由和 400 个共享组件：
+
+| 指标                     | Rsbuild 2.1 | Rsbuild 2.2 | 变化           |
+| ------------------------ | ----------- | ----------- | -------------- |
+| 服务端产物体积           | 298 MB      | 4.1 MB      | **减少约 99%** |
+| 访问所有路由后的内存占用 | 486 MB      | 129 MB      | **减少约 73%** |
+| 路由平均访问耗时         | 7.2 ms      | 1.6 ms      | **减少约 78%** |
+| 共享组件的 HMR 耗时      | 7.1 s       | 0.98 s      | **减少约 86%** |
+
+:::tip
+
+- 实际收益取决于项目规模和模块结构。
+- 升级后，Node.js 构建可能会生成额外的共享 chunk 文件；如需保留原有行为，可设置 `splitChunks: false`。
+
+:::
 
 ### Rslib \{#rslib}
 
