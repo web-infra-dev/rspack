@@ -47,9 +47,6 @@ enum Command {
   },
   EndIdle,
   Shutdown(oneshot::Sender<Result<()>>),
-  RestoreDependencyId {
-    result: sync_mpsc::SyncSender<Result<Option<u32>>>,
-  },
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -171,9 +168,6 @@ impl BackgroundJob {
         self.idle_deadline = None;
         let _ = result.send(self.strategy.shutdown().await);
         return true;
-      }
-      Command::RestoreDependencyId { result } => {
-        let _ = result.send(self.strategy.restore_dependency_id());
       }
     }
     false
@@ -298,14 +292,6 @@ impl IdleFileCache {
 
   pub fn store_dependency_id(&self, dependency_id: u32) -> Result<()> {
     self.send(Command::StoreDependencyId(dependency_id))
-  }
-
-  pub fn restore_dependency_id(&self) -> Result<Option<u32>> {
-    let (result, result_receiver) = sync_mpsc::sync_channel(1);
-    self.send(Command::RestoreDependencyId { result })?;
-    result_receiver
-      .recv()
-      .map_err(|_| rspack_error::error!("Idle file cache background job has stopped"))?
   }
 
   pub fn record_build_time(&self, build_time: Duration) -> Result<()> {

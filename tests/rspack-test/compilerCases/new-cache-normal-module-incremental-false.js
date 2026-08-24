@@ -35,7 +35,7 @@ const run = compiler =>
 /** @type {import('@rspack/test-tools').TCompilerCaseConfig} */
 module.exports = {
 	description:
-		"should reuse unchanged module builds when incremental compilation is disabled",
+		"should save module builds without restoring them when incremental compilation is disabled",
 	options(context) {
 		return {
 			context: context.getSource("new-cache-normal-module-incremental-false"),
@@ -79,7 +79,8 @@ module.exports = {
 		expect(hooks).toEqual([
 			"buildModule",
 			"succeedModule",
-			"stillValidModule",
+			"buildModule",
+			"succeedModule",
 			"buildModule",
 			"succeedModule"
 		]);

@@ -326,7 +326,6 @@ impl Compiler {
       ),
     );
     self.cache.before_compile(&mut self.compilation).await;
-    self.new_cache.restore_dependency_id();
 
     self.compile().await?;
     self.compile_done().await?;

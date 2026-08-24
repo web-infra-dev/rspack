@@ -1,11 +1,7 @@
-use std::{
-  sync::{Arc, OnceLock},
-  time::Duration,
-};
+use std::{sync::Arc, time::Duration};
 
 use rspack_error::Result;
 use rspack_paths::InternedPathSet;
-use rspack_tasks::{get_current_dependency_id, set_current_dependency_id};
 
 use super::{
   CacheFacade, CacheKey, CacheValue, Etag, IdleFileCache, MemoryCache, MemoryCacheGetResult,
@@ -29,7 +25,6 @@ struct CacheInner {
   compiler_path: String,
   storage: Option<CacheStorage>,
   file_system_info: Option<FileSystemInfo>,
-  dependency_id_restored: OnceLock<()>,
 }
 
 /// Cheaply cloneable handle to the shared cache state.
@@ -52,7 +47,6 @@ impl Cache {
           idle_file_cache,
         }),
         file_system_info: None,
-        dependency_id_restored: OnceLock::new(),
       }),
     }
   }
@@ -71,7 +65,6 @@ impl Cache {
           idle_file_cache,
         }),
         file_system_info: Some(file_system_info),
-        dependency_id_restored: OnceLock::new(),
       }),
     }
   }
@@ -82,33 +75,12 @@ impl Cache {
         compiler_path,
         storage: None,
         file_system_info: None,
-        dependency_id_restored: OnceLock::new(),
       }),
     }
   }
 
   pub(crate) fn is_enabled(&self) -> bool {
     self.inner.storage.is_some()
-  }
-
-  pub(crate) fn restore_dependency_id(&self) {
-    self.inner.dependency_id_restored.get_or_init(|| {
-      let Some(file_cache) = self
-        .inner
-        .storage
-        .as_ref()
-        .and_then(|storage| storage.idle_file_cache.as_ref())
-      else {
-        return;
-      };
-      match file_cache.restore_dependency_id() {
-        Ok(Some(dependency_id)) if get_current_dependency_id() < dependency_id => {
-          set_current_dependency_id(dependency_id);
-        }
-        Ok(_) => {}
-        Err(error) => tracing::warn!("Restoring new cache dependency id failed: {error}"),
-      }
-    });
   }
 
   pub(crate) fn facade(&self, name: &str) -> CacheFacade {

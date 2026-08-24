@@ -154,10 +154,6 @@ impl FileCacheStrategy {
     );
   }
 
-  pub fn restore_dependency_id(&self) -> Result<Option<u32>> {
-    Ok(Some(self.validator.restore_dependency_id()))
-  }
-
   pub(super) fn restore(
     &self,
     key: &CacheKey,

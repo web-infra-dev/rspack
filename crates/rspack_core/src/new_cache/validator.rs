@@ -109,10 +109,6 @@ impl CacheValidator {
     self.data.max_dependencies_id = self.data.max_dependencies_id.max(dependency_id);
   }
 
-  pub(super) fn restore_dependency_id(&self) -> u32 {
-    self.data.max_dependencies_id
-  }
-
   pub(super) fn encode(&self) -> Result<Vec<u8>> {
     self.codec.encode(&self.data)
   }

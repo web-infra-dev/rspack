@@ -15,7 +15,6 @@ use crate::{
   BoxModule, BuildContext, BuildResult, Cache, CacheValue, CompilationId, CompilerId,
   CompilerOptions, DependencyParents, DependencyRef, Module, ModuleCodeTemplate,
   NormalModuleBuildState, OptimizationBailoutItem, ResolverFactory, SharedPluginDriver,
-  ValueCacheVersions,
   compilation::build_module_graph::{ForwardedIdSet, HasLazyDependencies, LazyDependencies},
   dependencies_block::AsyncDependenciesBlockBuildState,
   utils::{
@@ -50,22 +49,6 @@ impl ModuleBuildCacheEntry {
         .collect(),
       optimization_bailouts: build_result.optimization_bailouts.clone(),
     })
-  }
-
-  fn restore(&self, module: &mut BoxModule) -> Option<()> {
-    module
-      .as_normal_module_mut()?
-      .restore_build_state(&self.state);
-    Some(())
-  }
-
-  fn build_result(&self, module: BoxModule) -> ModuleBuildResult {
-    ModuleBuildResult {
-      module,
-      dependencies: self.dependencies.clone(),
-      blocks: self.blocks.clone(),
-      optimization_bailouts: self.optimization_bailouts.clone(),
-    }
   }
 }
 
@@ -107,7 +90,6 @@ pub struct BuildTask {
   pub plugin_driver: SharedPluginDriver,
   pub fs: Arc<dyn ReadableFileSystem>,
   pub cache: Cache,
-  pub value_cache_versions: ValueCacheVersions,
   pub forwarded_ids: ForwardedIdSet,
 }
 
@@ -127,7 +109,6 @@ impl Task<TaskContext> for BuildTask {
       mut module,
       fs,
       cache,
-      value_cache_versions,
       forwarded_ids,
     } = *self;
 
@@ -141,45 +122,6 @@ impl Task<TaskContext> for BuildTask {
       None
     };
     let file_system_info = cache.file_system_info();
-
-    // Mirrors webpack's NormalModule.needBuild snapshot and value-dependency checks.
-    // https://github.com/webpack/webpack/blob/main/lib/NormalModule.js#L1857-L1905
-    if let (Some(module_cache), Some(file_system_info)) = (&module_cache, file_system_info) {
-      let entry = match module_cache.get::<ModuleBuildCacheEntry>() {
-        Ok(entry) => entry,
-        Err(error) => {
-          tracing::warn!("Restoring NormalModule build cache failed: {error}");
-          None
-        }
-      };
-      if let Some(entry) = entry
-        && let Some(snapshot) = entry.state.snapshot()
-        && !entry
-          .state
-          .has_value_dependencies_diff(&value_cache_versions)
-      {
-        let snapshot_valid = match file_system_info.check_snapshot_valid(snapshot).await {
-          Ok(valid) => valid,
-          Err(error) => {
-            tracing::warn!("Validating NormalModule build snapshot failed: {error}");
-            false
-          }
-        };
-        if snapshot_valid && entry.restore(&mut module).is_some() {
-          plugin_driver
-            .compilation_hooks
-            .still_valid_module
-            .call(compiler_id, compilation_id, &mut module)
-            .await?;
-          return Ok(vec![Box::new(BuildResultTask {
-            build_result: Box::new(entry.build_result(module)),
-            plugin_driver,
-            forwarded_ids,
-            invoke_succeed_module: false,
-          })]);
-        }
-      }
-    }
 
     plugin_driver
       .compilation_hooks
@@ -259,7 +201,6 @@ impl Task<TaskContext> for BuildTask {
         build_result: Box::new(build_result),
         plugin_driver,
         forwarded_ids,
-        invoke_succeed_module: true,
       })]
     })
   }
@@ -270,7 +211,6 @@ struct BuildResultTask {
   pub build_result: Box<ModuleBuildResult>,
   pub plugin_driver: SharedPluginDriver,
   pub forwarded_ids: ForwardedIdSet,
-  pub invoke_succeed_module: bool,
 }
 
 #[async_trait::async_trait]
@@ -283,17 +223,14 @@ impl Task<TaskContext> for BuildResultTask {
       build_result,
       plugin_driver,
       mut forwarded_ids,
-      invoke_succeed_module,
     } = *self;
     let mut module = build_result.module;
 
-    if invoke_succeed_module {
-      plugin_driver
-        .compilation_hooks
-        .succeed_module
-        .call(context.compiler_id, context.compilation_id, &mut module)
-        .await?;
-    }
+    plugin_driver
+      .compilation_hooks
+      .succeed_module
+      .call(context.compiler_id, context.compilation_id, &mut module)
+      .await?;
 
     let build_info = module.build_info();
 

@@ -1,9 +1,7 @@
-use std::sync::Arc;
-
 use rustc_hash::FxHashMap as HashMap;
 
 #[derive(Debug, Default, Clone)]
-pub struct ValueCacheVersions(Arc<HashMap<String, String>>);
+pub struct ValueCacheVersions(HashMap<String, String>);
 
 impl ValueCacheVersions {
   pub fn get(&self, key: &str) -> Option<&String> {
@@ -11,7 +9,7 @@ impl ValueCacheVersions {
   }
 
   pub fn insert(&mut self, key: String, value: String) {
-    Arc::make_mut(&mut self.0).insert(key, value);
+    self.0.insert(key, value);
   }
 
   pub fn has_diff(&self, value_dependencies: &HashMap<String, String>) -> bool {

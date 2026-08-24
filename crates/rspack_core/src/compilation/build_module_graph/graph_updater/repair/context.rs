@@ -8,8 +8,8 @@ use super::BuildModuleGraphArtifact;
 use crate::{
   Compilation, CompilationId, CompilerId, CompilerOptions, CompilerPlatform, DependencyTemplate,
   DependencyTemplateType, DependencyType, ExportsInfoArtifact, ModuleFactory, ResolverFactory,
-  RuntimeTemplate, SharedPluginDriver, ValueCacheVersions, incremental::Incremental,
-  module_graph::ModuleGraph, new_cache::Cache,
+  RuntimeTemplate, SharedPluginDriver, incremental::Incremental, module_graph::ModuleGraph,
+  new_cache::Cache,
 };
 
 #[derive(Debug)]
@@ -30,7 +30,6 @@ pub struct TaskContext {
   pub dependency_templates: HashMap<DependencyTemplateType, Arc<dyn DependencyTemplate>>,
   pub runtime_template: RuntimeTemplate,
   pub(super) cache: Cache,
-  pub(super) value_cache_versions: ValueCacheVersions,
 
   pub artifact: BuildModuleGraphArtifact,
   pub exports_info_artifact: ExportsInfoArtifact,
@@ -58,7 +57,6 @@ impl TaskContext {
       output_fs: compilation.output_filesystem.clone(),
       runtime_template: RuntimeTemplate::new(compilation.options.clone()),
       cache: compilation.cache.clone(),
-      value_cache_versions: compilation.value_cache_versions.clone(),
       artifact,
       exports_info_artifact,
     }

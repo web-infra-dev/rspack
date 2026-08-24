@@ -59,7 +59,7 @@ const runCompiler = (context, cacheDirectory, output) =>
 /** @type {import('@rspack/test-tools').TCompilerCaseConfig} */
 module.exports = {
 	description:
-		"should restore unchanged module builds from the persistent cache",
+		"should save module builds to the persistent cache without restoring them",
 	options(context) {
 		return {
 			context: context.getSource("new-cache-normal-module"),
@@ -73,13 +73,16 @@ module.exports = {
 		fs.rmSync(cacheDirectory, { recursive: true, force: true });
 
 		await runCompiler(context, cacheDirectory, context.getDist("output-1"));
+		expect(fs.existsSync(cacheDirectory)).toBe(true);
+		expect(fs.readdirSync(cacheDirectory).length).toBeGreaterThan(0);
 		await runCompiler(context, cacheDirectory, context.getDist("output-2"));
 	},
 	check() {
 		expect(hooks).toEqual([
 			"buildModule",
 			"succeedModule",
-			"stillValidModule"
+			"buildModule",
+			"succeedModule"
 		]);
 	}
 };
