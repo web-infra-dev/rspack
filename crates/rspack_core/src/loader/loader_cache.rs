@@ -22,7 +22,8 @@ pub fn loader_cache_etag(content: &Content, options_cache_key: &str, loader_vers
   rspack_hash::rspack_hash_object!(&mut hasher, {
     "content" => content,
     "options" => options_cache_key,
-    "version" => loader_version,
+    "loader_version" => loader_version,
+    "rspack_version" => rspack_workspace::rspack_pkg_version!(),
   });
   Etag::from(format!("{:016x}", hasher.finish()))
 }
