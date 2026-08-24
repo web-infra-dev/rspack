@@ -15,6 +15,9 @@ authors:
   - name: Zhixin Jin
     avatar: 'https://github.com/intellild.png'
     github: 'intellild'
+  - name: 9aoy
+    avatar: 'https://github.com/9aoy.png'
+    github: '9aoy'
 ---
 
 import { BlogAuthors } from '@rstack-dev/doc-ui/blog-authors';
@@ -251,6 +254,47 @@ Rslib 现已支持使用 [TypeScript 7](https://devblogs.microsoft.com/typescrip
 [Rslib 1.0 RC](https://github.com/web-infra-dev/rslib/releases/tag/v1.0.0-rc.0) 版本现已发布，正式版也即将到来。如果你正在使用 Rslib 0.x，可以参考 [从 0.x 升级到 v1](https://v1.rslib.rs/zh/guide/upgrade/v0-to-v1) 指南，了解相关不兼容更新。
 
 ### Rstest \{#rstest}
+
+#### 在 Rstest 中运行 Playwright E2E 测试 \{#rstest-playwright}
+
+Rstest 0.11.1 新增了 [`@rstest/playwright`](https://rstest.rs/zh/guide/advanced/playwright)，让 E2E 测试也能使用 Rstest 的测试运行器、配置和报告能力。它提供 `page`、`serve` 等 Playwright fixtures 和 Playwright 风格的异步断言，可用于测试本地开发服务器、预览服务器或已部署的应用，并与单元测试共享一致的工作流：
+
+```ts
+import { expect, test } from '@rstest/playwright';
+
+test('home page', async ({ page, serve }) => {
+  const { url } = await serve('./dist/index.html');
+
+  await page.goto(url);
+  await expect(page.locator('h1')).toHaveText('Home');
+});
+```
+
+#### 预打包 DOM 测试环境 \{#rstest-environment-prebundle}
+
+Rstest 0.11.6 新增了 DOM 测试环境预打包。开启后，Rstest 会预打包 `jsdom` 或 `happy-dom`，并在多个 worker 之间复用产物，避免为每个测试文件重复解析和初始化环境。对于 DOM 测试较多的项目，这可以显著缩短整体测试耗时。
+
+在 Apple Silicon、Node.js 24、4 个 fork worker 的[本地基准测试](https://github.com/web-infra-dev/rstest/releases/tag/v0.11.6)中，一个包含 100 个测试文件、1000 个测试用例的项目获得了以下收益：
+
+| 测试环境            | 原生加载 | 预打包  | 耗时降低  |
+| ------------------- | -------- | ------- | --------- |
+| `jsdom` 30.0.1      | 16.99 s  | 10.57 s | **37.8%** |
+| `happy-dom` 20.11.1 | 6.35 s   | 2.98 s  | **53.0%** |
+
+该能力默认关闭，可通过 [`testEnvironment.prebundle`](https://rstest.rs/zh/config/test/test-environment#环境预打包) 开启：
+
+```ts title="rstest.config.ts"
+import { defineConfig } from '@rstest/core';
+
+export default defineConfig({
+  testEnvironment: {
+    name: 'jsdom',
+    prebundle: 'auto',
+  },
+});
+```
+
+设置为 `'auto'` 时，Rstest 只会预打包已验证兼容的环境版本；如果无法构建、加载或验证预打包产物，则会自动回退到原生加载。实际收益会因项目规模和运行环境而异。
 
 ### Rslint \{#rslint}
 
