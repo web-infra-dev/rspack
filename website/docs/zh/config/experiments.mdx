@@ -6,6 +6,7 @@ import { ApiMeta, Stability } from '../../../components/ApiMeta';
 import WebpackLicense from '@components/WebpackLicense';
 import PropertyType from '@components/PropertyType';
 import { Table } from '@builtIns';
+import { Tabs, Tab } from '@theme';
 
 <WebpackLicense from="https://webpack.js.org/configuration/experiments/" />
 
@@ -262,6 +263,172 @@ export default {
 :::warning
 这个选项依赖 `optimization.sideEffects`。如果你关闭了 [`optimization.sideEffects`](/config/optimization#optimizationsideeffects)，pure function 相关提示将不会被分析。
 :::
+
+## experiments.runtimeMode
+
+<ApiMeta addedVersion="2.1.0" />
+
+- **类型：** `'webpack' | 'rspack'`
+- **默认值：** `'webpack'`
+
+控制 Rspack 如何组织生成的 runtime 代码：
+
+- `'webpack'` 保留与 webpack 兼容的 runtime 结构，通过 `__webpack_require__` 同时暴露模块加载函数和 runtime 辅助函数。
+- `'rspack'` 使用 Rspack 原生的 runtime 结构，将模块加载函数与 runtime 上下文分离，降低不同 runtime 职责之间的耦合，产出更清晰的 runtime 结构。
+
+通过以下配置启用 Rspack runtime 结构：
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    runtimeMode: 'rspack',
+  },
+};
+```
+
+:::warning 插件兼容性
+开启该选项前，请检查项目中会注入 runtime 代码的插件。如果注入的代码直接依赖 **`__webpack_require__`**，开启 `'rspack'` 模式后将无法工作，因为传递给模块工厂的 runtime 参数会变为 **`__rspack_context`**。
+:::
+
+### 常规产物
+
+在常规构建中，默认模式同时把 `__webpack_require__` 用作函数和 runtime 辅助函数的容器。`'rspack'` 模式会向模块工厂传入独立的 `__rspack_context` 对象，并通过 `__rspack_context.r` 暴露模块加载函数。
+
+下面是简化后的产物，用于说明两者的组织差异：
+
+<Tabs>
+  <Tab label="runtimeMode: 'webpack'">
+
+```js
+function __webpack_require__(moduleId) {
+  // 加载并执行模块。
+}
+
+__webpack_require__.d = definePropertyGetters;
+__webpack_require__.r = makeNamespaceObject;
+
+__webpack_modules__[moduleId](module, module.exports, __webpack_require__);
+```
+
+  </Tab>
+  <Tab label="runtimeMode: 'rspack'">
+
+```js
+var __rspack_context = {};
+
+function __rspack_require(moduleId) {
+  // 加载并执行模块。
+}
+
+__rspack_context.r = __rspack_require;
+__rspack_context.d = definePropertyGetters;
+__rspack_context.N = makeNamespaceObject;
+
+__rspack_modules[moduleId](module, module.exports, __rspack_context);
+```
+
+  </Tab>
+</Tabs>
+
+### 配合 `modern-module` 构建 ESM 库
+
+当 [`output.module`](/config/output#outputmodule) 为 `true`，且 [`output.library.type`](/config/output#outputlibrarytype) 为 `'modern-module'` 时，`'rspack'` 模式会让独立 runtime chunk 的 ESM 结构更清晰。runtime 不再只导出一个挂载了多个辅助函数的 `__webpack_require__`，而是将加载函数、模块工厂和辅助函数分别导出为具名 ESM 绑定，让每个产物 chunk 可以直接导入需要的绑定。
+
+```js title="rspack.config.mjs"
+export default {
+  entry: {
+    main: './src/index.js',
+  },
+  experiments: {
+    runtimeMode: 'rspack',
+  },
+  output: {
+    module: true,
+    library: {
+      type: 'modern-module',
+    },
+  },
+  optimization: {
+    runtimeChunk: 'single',
+  },
+};
+```
+
+生成的 runtime 及使用它的 chunk 会采用如下组织方式（代码经过简化）：
+
+<Tabs>
+  <Tab label="runtimeMode: 'webpack'">
+
+```js
+// runtime.js
+var __webpack_modules__ = {};
+
+function __webpack_require__(moduleId) {
+  // 加载并执行模块。
+}
+
+__webpack_require__.m = __webpack_modules__;
+__webpack_require__.n = compatGetDefaultExport;
+__webpack_require__.add = (modules) => {
+  Object.assign(__webpack_require__.m, modules);
+};
+
+export { __webpack_require__ };
+
+// main.js
+import { __webpack_require__ } from './runtime.js';
+
+__webpack_require__.add({
+  './src/cjs.js'(module) {
+    module.exports = 'value';
+  },
+});
+
+const value = __webpack_require__('./src/cjs.js');
+const getDefault = __webpack_require__.n(value);
+```
+
+  </Tab>
+  <Tab label="runtimeMode: 'rspack'">
+
+```js
+// runtime.js
+var modules = {};
+
+function rspackRequire(moduleId) {
+  // 加载并执行模块。
+}
+
+var moduleFactories = modules;
+moduleFactories.add = (newModules) => {
+  Object.assign(moduleFactories, newModules);
+};
+
+var compatGetDefaultExport = (module) => {
+  // 返回兼容的默认导出 getter。
+};
+
+export { rspackRequire, moduleFactories, compatGetDefaultExport };
+
+// main.js
+import {
+  rspackRequire,
+  moduleFactories,
+  compatGetDefaultExport,
+} from './runtime.js';
+
+moduleFactories.add({
+  './src/cjs.js'(module) {
+    module.exports = 'value';
+  },
+});
+
+const value = rspackRequire('./src/cjs.js');
+const getDefault = compatGetDefaultExport(value);
+```
+
+  </Tab>
+</Tabs>
 
 ## experiments.useInputFileSystem
 

@@ -5,6 +5,7 @@ description: 'In minor releases, Rspack may change the APIs of experimental feat
 import { ApiMeta, Stability } from '../../../components/ApiMeta';
 import WebpackLicense from '@components/WebpackLicense';
 import PropertyType from '@components/PropertyType';
+import { Tabs, Tab } from '@theme';
 
 <WebpackLicense from="https://webpack.js.org/configuration/experiments/" />
 
@@ -262,6 +263,172 @@ export default {
 :::warning
 This option depends on `optimization.sideEffects`. If you disable [`optimization.sideEffects`](/config/optimization#optimizationsideeffects), pure-function hints will not be analyzed.
 :::
+
+## experiments.runtimeMode
+
+<ApiMeta addedVersion="2.1.0" />
+
+- **Type:** `'webpack' | 'rspack'`
+- **Default:** `'webpack'`
+
+Controls how Rspack organizes the generated runtime code:
+
+- `'webpack'` keeps the webpack-compatible runtime layout. The module loading function and runtime helpers are exposed through `__webpack_require__`.
+- `'rspack'` uses Rspack's native runtime layout. It separates the module loading function from the runtime context, reducing the coupling between runtime responsibilities and producing a cleaner runtime structure.
+
+Enable the Rspack runtime layout with the following configuration:
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    runtimeMode: 'rspack',
+  },
+};
+```
+
+:::warning Plugin compatibility
+Before enabling this option, check any plugins that inject runtime code. If the injected code directly depends on **`__webpack_require__`**, it will no longer work because the runtime argument passed to module factories changes to **`__rspack_context`** in `'rspack'` mode.
+:::
+
+### Regular output
+
+In a regular build, the default mode uses `__webpack_require__` both as a function and as a container for runtime helpers. The `'rspack'` mode passes a dedicated `__rspack_context` object to module factories and exposes the module loading function through `__rspack_context.r`.
+
+The following simplified output shows the difference:
+
+<Tabs>
+  <Tab label="runtimeMode: 'webpack'">
+
+```js
+function __webpack_require__(moduleId) {
+  // Load and execute the module.
+}
+
+__webpack_require__.d = definePropertyGetters;
+__webpack_require__.r = makeNamespaceObject;
+
+__webpack_modules__[moduleId](module, module.exports, __webpack_require__);
+```
+
+  </Tab>
+  <Tab label="runtimeMode: 'rspack'">
+
+```js
+var __rspack_context = {};
+
+function __rspack_require(moduleId) {
+  // Load and execute the module.
+}
+
+__rspack_context.r = __rspack_require;
+__rspack_context.d = definePropertyGetters;
+__rspack_context.N = makeNamespaceObject;
+
+__rspack_modules[moduleId](module, module.exports, __rspack_context);
+```
+
+  </Tab>
+</Tabs>
+
+### ESM libraries with `modern-module`
+
+When [`output.module`](/config/output#outputmodule) is `true` and [`output.library.type`](/config/output#outputlibrarytype) is `'modern-module'`, `'rspack'` mode makes a separate runtime chunk more ESM-friendly. Instead of exporting one `__webpack_require__` function with helpers attached as properties, the runtime exports the loader, module factories, and helpers as named ESM bindings. Each output chunk can import the bindings it needs directly.
+
+```js title="rspack.config.mjs"
+export default {
+  entry: {
+    main: './src/index.js',
+  },
+  experiments: {
+    runtimeMode: 'rspack',
+  },
+  output: {
+    module: true,
+    library: {
+      type: 'modern-module',
+    },
+  },
+  optimization: {
+    runtimeChunk: 'single',
+  },
+};
+```
+
+The generated runtime and a chunk that consumes it are organized like this (simplified):
+
+<Tabs>
+  <Tab label="runtimeMode: 'webpack'">
+
+```js
+// runtime.js
+var __webpack_modules__ = {};
+
+function __webpack_require__(moduleId) {
+  // Load and execute the module.
+}
+
+__webpack_require__.m = __webpack_modules__;
+__webpack_require__.n = compatGetDefaultExport;
+__webpack_require__.add = (modules) => {
+  Object.assign(__webpack_require__.m, modules);
+};
+
+export { __webpack_require__ };
+
+// main.js
+import { __webpack_require__ } from './runtime.js';
+
+__webpack_require__.add({
+  './src/cjs.js'(module) {
+    module.exports = 'value';
+  },
+});
+
+const value = __webpack_require__('./src/cjs.js');
+const getDefault = __webpack_require__.n(value);
+```
+
+  </Tab>
+  <Tab label="runtimeMode: 'rspack'">
+
+```js
+// runtime.js
+var modules = {};
+
+function rspackRequire(moduleId) {
+  // Load and execute the module.
+}
+
+var moduleFactories = modules;
+moduleFactories.add = (newModules) => {
+  Object.assign(moduleFactories, newModules);
+};
+
+var compatGetDefaultExport = (module) => {
+  // Return a compatible default export getter.
+};
+
+export { rspackRequire, moduleFactories, compatGetDefaultExport };
+
+// main.js
+import {
+  rspackRequire,
+  moduleFactories,
+  compatGetDefaultExport,
+} from './runtime.js';
+
+moduleFactories.add({
+  './src/cjs.js'(module) {
+    module.exports = 'value';
+  },
+});
+
+const value = rspackRequire('./src/cjs.js');
+const getDefault = compatGetDefaultExport(value);
+```
+
+  </Tab>
+</Tabs>
 
 ## experiments.useInputFileSystem
 
