@@ -23,8 +23,8 @@ use crate::{
   parser_plugin::compatibility_plugin::CompatibilityPlugin,
   utils::object_properties::get_attributes,
   visitors::{
-    ExportDefaultDeclaration, ExportDefaultExpression, ExportImport, ExportLocal, JavascriptParser,
-    create_traceable_error,
+    ExportAllDeclaration, ExportDefaultDeclaration, ExportDefaultExpression, ExportImport,
+    ExportLocal, ExportNamedDeclaration, JavascriptParser, create_traceable_error,
   },
 };
 
@@ -90,6 +90,14 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
     parser.add_presentational_dependency(Arc::new(clean_dep));
     let range = DependencyRange::from(statement.span());
     let loc = parser.to_dependency_location(range);
+    let needs_commonjs_namespace_object = match statement {
+      ExportImport::All(ExportAllDeclaration::NamedAll(_)) => true,
+      ExportImport::Named(ExportNamedDeclaration::Specifiers(named)) => {
+        ExportNamedDeclaration::named_export_specifiers(named)
+          .any(|(imported, _, _)| imported.as_str() == "default")
+      }
+      _ => false,
+    };
     let side_effect_dep = ESMImportSideEffectDependency::new(
       source.clone(),
       parser.last_esm_import_order,
@@ -99,6 +107,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
       statement.get_with_obj().map(get_attributes),
       loc,
       statement.is_star_export(),
+      needs_commonjs_namespace_object,
     );
     if parser
       .factory_meta
