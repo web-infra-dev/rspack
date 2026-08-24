@@ -15,6 +15,7 @@ import StatsType from '../../types/stats.mdx';
 import LoggerType from '../../types/logger.mdx';
 import CacheType from '../../types/cache.mdx';
 import CompilerType from '../../types/compiler.mdx';
+import RuntimeTemplateType from '../../types/runtime-template.mdx';
 import RspackErrorType from '../../types/rspack-error.mdx';
 import CompilationDependenciesType from '../../types/compilation-dependencies.mdx';
 import { Collapse, CollapsePanel } from '@components/Collapse';
@@ -607,22 +608,20 @@ class MyPlugin {
 }
 ```
 
-可用的方法：
-
-- 环境能力判断：`isIIFE`、`isModule`、`isNeutralPlatform`、`supportsConst`、
-  `supportsArrowFunction`、`supportsAsyncFunction`、`supportsOptionalChaining`、`supportsForOf`、
-  `supportsDestructuring`、`supportsBigIntLiteral`、`supportsDynamicImport`、
-  `supportsEcmaScriptModuleSyntax`、`supportTemplateLiteral`、`supportNodePrefixForCoreModules`
-- 代码生成：`renderNodePrefixForCoreModule`、`returningFunction`、`basicFunction`、
-  `expressionFunction`、`emptyFunction`、`concatenation`、`destructureArray`、`destructureObject`、
-  `iife`、`forEach`
-- 缺失模块处理：`throwMissingModuleErrorBlock`、`throwMissingModuleErrorFunction`、
-  `missingModule`、`missingModuleStatement`、`missingModulePromise`
-
 webpack 中用于渲染模块间引用的方法（`moduleId`、`moduleRaw`、`moduleExports`、`moduleNamespace`、
 `moduleNamespacePromise`、`importStatement`、`exportFromImport`、`blockPromise`、
 `asyncModuleFactory`、`syncModuleFactory`、`weakError`、`runtimeConditionExpression`）暂不提供，
 因为 Rspack 将模块图与代码生成结果保存在 Rust 侧。
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="RuntimeTemplate.ts"
+    key="RuntimeTemplate"
+  >
+    <RuntimeTemplateType />
+  </CollapsePanel>
+</Collapse>
 
 ### compiler
 

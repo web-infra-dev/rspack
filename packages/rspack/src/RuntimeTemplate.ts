@@ -149,10 +149,13 @@ export class RuntimeTemplate {
     return this.outputOptions.module;
   }
 
+  /**
+   * Matches `CompilerPlatform::is_neutral` in
+   * `crates/rspack_core/src/options/platform.rs`.
+   */
   isNeutralPlatform(): boolean {
-    return (
-      !this.#environment.document && !this.compilation.compiler.platform.node
-    );
+    const { platform } = this.compilation.compiler;
+    return !platform.web && !platform.node;
   }
 
   supportsConst(): boolean {
