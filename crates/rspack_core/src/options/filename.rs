@@ -214,12 +214,6 @@ impl<'template> CompiledStringTemplate<'template> {
     self.template.as_ref()
   }
 
-  pub fn json_stringified(&self) -> CompiledStringTemplate<'static> {
-    let template = rspack_util::json_stringify_str(self.template());
-    assert_template_len(&template);
-    CompiledStringTemplate::compile_cow(Cow::Owned(template))
-  }
-
   pub fn has_full_hash_digest(&self) -> bool {
     self.placeholder_data.iter().any(|data| {
       matches!(data.kind, PlaceholderKind::Hash | PlaceholderKind::FullHash)
@@ -449,6 +443,27 @@ impl Filename {
       FilenameKind::Template(template) => Ok(get_or_compile(*template)),
       FilenameKind::Fn(filename_fn) => {
         let template = filename_fn.call(&options, asset_info).await?;
+        assert_template_len(&template);
+        Ok(Arc::new(CompiledStringTemplate::compile_cow(Cow::Owned(
+          template,
+        ))))
+      }
+    }
+  }
+
+  pub async fn as_json_string_literal_template(
+    &self,
+    options: PathData<'_>,
+    asset_info: Option<&AssetInfo>,
+  ) -> rspack_error::Result<Arc<CompiledStringTemplate<'static>>> {
+    match &self.0 {
+      FilenameKind::Template(template) => {
+        let template = rspack_util::json_stringify_str(template.as_str());
+        Ok(get_or_compile(intern_template(&template)))
+      }
+      FilenameKind::Fn(filename_fn) => {
+        let template = filename_fn.call(&options, asset_info).await?;
+        let template = rspack_util::json_stringify_str(&template);
         assert_template_len(&template);
         Ok(Arc::new(CompiledStringTemplate::compile_cow(Cow::Owned(
           template,

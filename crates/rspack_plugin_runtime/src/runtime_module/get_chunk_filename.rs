@@ -285,9 +285,8 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
         .collect::<FxIndexSet<ChunkUkey>>();
       let filename = Filename::from(dynamic_filename.clone());
       let compiled = filename
-        .compiled_template()
-        .expect("dynamic filename is always a template")
-        .json_stringified();
+        .as_json_string_literal_template(PathData::default(), None)
+        .await?;
 
       let chunk_id = "\" + chunkId + \"";
       let chunk_name = stringify_dynamic_chunk_map(
@@ -360,7 +359,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
     {
       if let Some(chunk) = chunk_map.get(chunk_ukey) {
         let compiled = filename_template
-          .compiled(
+          .as_json_string_literal_template(
             PathData::default()
               .chunk(chunk.ukey(), compilation)
               .chunk_name_optional(chunk.name())
@@ -368,7 +367,6 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
             None,
           )
           .await?;
-        let compiled = compiled.json_stringified();
 
         let chunk_id = chunk
           .id()
