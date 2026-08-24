@@ -392,7 +392,7 @@ export default {
 `compat-hashed` 选项使用稳定字母数字 hash 的最短可用前缀作为模块 id，兼顾长期缓存、产物体积和运行时性能。
 
 :::warning
-`compat-hashed` 生成的模块 id 区分大小写且可能包含大写字母。在大小写不敏感的文件系统上，不要仅使用 `[id]` 区分 [Asset module 文件名](/config/output#outputassetmodulefilename)。请优先使用 `[contenthash]`，或将其与 `[id]` 一起使用。
+`compat-hashed` 生成的模块 id 区分大小写且可能包含大写字母。在大小写不敏感的文件系统上，不要在 [Asset module 文件名](/config/output#outputassetmodulefilename)或 [WebAssembly 模块文件名](/config/output#outputwebassemblymodulefilename)中仅使用 `[id]` 进行区分。请优先使用 `[contenthash]`，或将其与 `[id]` 一起使用。
 :::
 
 ```js title="rspack.config.mjs"
