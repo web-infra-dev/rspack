@@ -3,20 +3,19 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, CodeGenerationDataFilename, CodeGenerationDataUrl, Compilation, Dependency,
   DependencyCategory, DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
-  DependencyTemplateType, DependencyType, FactorizeInfo, ModuleDependency, ModuleIdentifier,
-  TemplateContext, TemplateReplaceSource,
+  DependencyTemplateType, DependencyType, ModuleDependency, ModuleIdentifier, TemplateContext,
+  TemplateReplaceSource,
 };
 
 use crate::{css_syntax::serialize_url_value, utils::AUTO_PUBLIC_PATH_PLACEHOLDER};
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct CssUrlDependency {
   id: DependencyId,
   request: String,
   range: DependencyRange,
   replace_function: bool,
-  factorize_info: FactorizeInfo,
 }
 
 impl CssUrlDependency {
@@ -26,7 +25,6 @@ impl CssUrlDependency {
       range,
       id: DependencyId::new(),
       replace_function,
-      factorize_info: Default::default(),
     }
   }
 
@@ -38,9 +36,9 @@ impl CssUrlDependency {
     // url points to asset modules, and asset modules should have same codegen results for all runtimes
     let code_gen_result = compilation.code_generation_results.get_one(identifier);
 
-    if let Some(url) = code_gen_result.data.get::<CodeGenerationDataUrl>() {
+    if let Some(url) = code_gen_result.data().get::<CodeGenerationDataUrl>() {
       Some(url.inner().to_string())
-    } else if let Some(data) = code_gen_result.data.get::<CodeGenerationDataFilename>() {
+    } else if let Some(data) = code_gen_result.data().get::<CodeGenerationDataFilename>() {
       let filename = data.filename();
       let public_path = data.public_path().cow_replace(
         "__RSPACK_PLUGIN_ASSET_AUTO_PUBLIC_PATH__",
@@ -84,14 +82,6 @@ impl ModuleDependency for CssUrlDependency {
 
   fn user_request(&self) -> &str {
     &self.request
-  }
-
-  fn factorize_info(&self) -> &FactorizeInfo {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
-    &mut self.factorize_info
   }
 }
 

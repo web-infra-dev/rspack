@@ -1,9 +1,10 @@
 use std::{collections::BTreeMap, sync::LazyLock};
 
+use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  Chunk, ChunkGraph, Compilation, ModuleIdentifier, RuntimeGlobals, RuntimeModule,
-  RuntimeModuleGenerateContext, RuntimeModuleRuntimeRequirements, RuntimeModuleStage,
-  RuntimeTemplate, SourceType, impl_runtime_module,
+  Chunk, ChunkGraph, CodeGenerationDataItem, Compilation, ModuleIdentifier, RuntimeGlobals,
+  RuntimeModule, RuntimeModuleGenerateContext, RuntimeModuleRuntimeRequirements,
+  RuntimeModuleStage, RuntimeTemplate, SourceType, impl_runtime_module,
 };
 use rspack_plugin_runtime::{
   extract_runtime_globals_from_ejs, extract_runtime_module_variables_from_ejs,
@@ -126,7 +127,7 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
       let code_gen = compilation
         .code_generation_results
         .get(&module, Some(chunk.runtime()));
-      if let Some(data) = code_gen.data.get::<CodeGenerationDataConsumeShared>() {
+      if let Some(data) = code_gen.data().get::<CodeGenerationDataConsumeShared>() {
         let share_scope_json = if enhanced {
           json_stringify(&data.share_scope)
         } else {
@@ -257,6 +258,7 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
   }
 }
 
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct CodeGenerationDataConsumeShared {
   pub share_scope: ShareScope,
@@ -269,3 +271,6 @@ pub struct CodeGenerationDataConsumeShared {
   pub fallback: Option<String>,
   pub tree_shaking_mode: Option<String>,
 }
+
+#[cacheable_dyn]
+impl CodeGenerationDataItem for CodeGenerationDataConsumeShared {}

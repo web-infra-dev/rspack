@@ -31,8 +31,9 @@ use napi::{
 use napi_derive::napi;
 use raw_dll::{RawDllReferenceAgencyPluginOptions, RawFlagAllModulesAsUsedPluginOptions};
 use raw_ids::{
-  RawDeterministicModuleIdsPluginOptions, RawHashedModuleIdsPluginOptions,
-  RawOccurrenceChunkIdsPluginOptions, RawSyncModuleIdsPluginOptions,
+  RawCompatHashedModuleIdsPluginOptions, RawDeterministicModuleIdsPluginOptions,
+  RawHashedModuleIdsPluginOptions, RawOccurrenceChunkIdsPluginOptions,
+  RawSyncModuleIdsPluginOptions,
 };
 use raw_lightning_css_minimizer::RawLightningCssMinimizerRspackPluginOptions;
 use raw_mf::{
@@ -44,9 +45,9 @@ use raw_sri::RawSubresourceIntegrityPluginOptions;
 use rspack_core::{BoxPlugin, Plugin, PluginExt};
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_ids::{
-  DeterministicChunkIdsPlugin, DeterministicModuleIdsPlugin, HashedModuleIdsPlugin,
-  NamedChunkIdsPlugin, NamedModuleIdsPlugin, NaturalChunkIdsPlugin, NaturalModuleIdsPlugin,
-  OccurrenceChunkIdsPlugin, SyncModuleIdsPlugin,
+  CompatHashedModuleIdsPlugin, DeterministicChunkIdsPlugin, DeterministicModuleIdsPlugin,
+  HashedModuleIdsPlugin, NamedChunkIdsPlugin, NamedModuleIdsPlugin, NaturalChunkIdsPlugin,
+  NaturalModuleIdsPlugin, OccurrenceChunkIdsPlugin, SyncModuleIdsPlugin,
 };
 use rspack_plugin_asset::AssetPlugin;
 use rspack_plugin_banner::BannerPlugin;
@@ -197,6 +198,7 @@ pub enum BuiltinPluginName {
   NamedModuleIdsPlugin,
   NaturalModuleIdsPlugin,
   DeterministicModuleIdsPlugin,
+  CompatHashedModuleIdsPlugin,
   SyncModuleIdsPlugin,
   HashedModuleIdsPlugin,
   NaturalChunkIdsPlugin,
@@ -587,6 +589,14 @@ impl<'a> BuiltinPlugin<'a> {
       BuiltinPluginName::DeterministicModuleIdsPlugin => plugins.push(
         DeterministicModuleIdsPlugin::new(
           downcast_into::<RawDeterministicModuleIdsPluginOptions>(self.options)
+            .map_err(|report| napi::Error::from_reason(report.to_string()))?
+            .into(),
+        )
+        .boxed(),
+      ),
+      BuiltinPluginName::CompatHashedModuleIdsPlugin => plugins.push(
+        CompatHashedModuleIdsPlugin::new(
+          downcast_into::<RawCompatHashedModuleIdsPluginOptions>(self.options)
             .map_err(|report| napi::Error::from_reason(report.to_string()))?
             .into(),
         )

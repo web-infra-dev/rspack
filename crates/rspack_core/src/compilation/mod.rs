@@ -50,7 +50,7 @@ use rspack_error::{Diagnostic, Result, ToStringResultToRspackResultExt};
 use rspack_fs::{IntermediateFileSystem, ReadableFileSystem, WritableFileSystem};
 use rspack_hash::{RspackHashDigest, RspackHasher};
 use rspack_hook::define_hook;
-use rspack_paths::{ArcPath, ArcPathIndexSet, ArcPathSet};
+use rspack_paths::{InternedPath, InternedPathIndexSet, InternedPathSet};
 use rspack_sources::BoxSource;
 use rspack_tasks::CompilerContext;
 #[cfg(allocative)]
@@ -70,18 +70,18 @@ pub use self::{
   runtime_requirements::RuntimeRequirementsPass,
 };
 use crate::{
-  AsyncModulesArtifact, BindingCell, BoxDependency, BoxModule, BuildChunkGraphArtifact, CacheCount,
-  CacheOptions, CgcRuntimeRequirementsArtifact, CgmHashArtifact, CgmRuntimeRequirementsArtifact,
-  Chunk, ChunkByUkey, ChunkContentHash, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey,
-  ChunkHashesArtifact, ChunkKind, ChunkNamedIdArtifact, ChunkRenderArtifact,
-  ChunkRenderCacheArtifact, ChunkRenderResult, ChunkUkey, CircularModulesInfo,
-  CodeGenerateCacheArtifact, CodeGenerationJob, CodeGenerationResult, CodeGenerationResults,
-  CompilationLogger, CompilationLogging, CompilerOptions, CompilerPlatform, ConcatenationScope,
-  DependenciesDiagnosticsArtifact, DependencyId, DependencyTemplate, DependencyTemplateType,
-  DependencyType, Entry, EntryData, EntryOptions, EntryRuntime, Entrypoint, ExecuteModuleId,
-  ExportsInfoArtifact, ExternalModuleChunkConditionHook, Filename, ImportPhase, ImportVarMap,
-  ImportedByDeferModulesArtifact, ModuleFactory, ModuleGraph, ModuleGraphCacheArtifact,
-  ModuleIdentifier, ModuleIdsArtifact, ModuleStaticCache, PathData,
+  AsyncModulesArtifact, BindingCell, BoxModule, BuildChunkGraphArtifact, CacheCount, CacheOptions,
+  CgcRuntimeRequirementsArtifact, CgmHashArtifact, CgmRuntimeRequirementsArtifact, Chunk,
+  ChunkByUkey, ChunkContentHash, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkHashesArtifact,
+  ChunkKind, ChunkNamedIdArtifact, ChunkRenderArtifact, ChunkRenderCacheArtifact,
+  ChunkRenderResult, ChunkUkey, CircularModulesInfo, CodeGenerateCacheArtifact, CodeGenerationJob,
+  CodeGenerationResult, CodeGenerationResultBuilder, CodeGenerationResults, CompilationLogger,
+  CompilationLogging, CompilerOptions, CompilerPlatform, ConcatenationScope,
+  DependenciesDiagnosticsArtifact, Dependency, DependencyId, DependencyRef, DependencyTemplate,
+  DependencyTemplateType, DependencyType, Entry, EntryData, EntryOptions, EntryRuntime, Entrypoint,
+  ExecuteModuleId, ExportsInfoArtifact, ExternalModuleChunkConditionHook, Filename, ImportPhase,
+  ImportVarMap, ImportedByDeferModulesArtifact, ModuleFactory, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleIdentifier, ModuleIdsArtifact, ModuleStaticCache, PathData,
   ProcessRuntimeRequirementsCacheArtifact, ReferencedExport, ResolverFactory, RuntimeGlobals,
   RuntimeKeyMap, RuntimeMode, RuntimeModule, RuntimeProxyMetadataArtifact, RuntimeSpec,
   RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver, SideEffectsOptimizeArtifact,
@@ -295,10 +295,10 @@ pub struct Compilation {
 
   pub hash: Option<RspackHashDigest>,
 
-  pub file_dependencies: ArcPathIndexSet,
-  pub context_dependencies: ArcPathIndexSet,
-  pub missing_dependencies: ArcPathIndexSet,
-  pub build_dependencies: ArcPathIndexSet,
+  pub file_dependencies: InternedPathIndexSet,
+  pub context_dependencies: InternedPathIndexSet,
+  pub missing_dependencies: InternedPathIndexSet,
+  pub build_dependencies: InternedPathIndexSet,
 
   pub value_cache_versions: ValueCacheVersions,
 
@@ -308,8 +308,8 @@ pub struct Compilation {
   pub module_executor: Option<ModuleExecutor>,
   in_finish_make: AtomicBool,
 
-  pub modified_files: ArcPathSet,
-  pub removed_files: ArcPathSet,
+  pub modified_files: InternedPathSet,
+  pub removed_files: InternedPathSet,
   pub build_module_graph_artifact: StealCell<BuildModuleGraphArtifact>,
   pub input_filesystem: Arc<dyn ReadableFileSystem>,
 
@@ -349,8 +349,8 @@ impl Compilation {
     module_executor: Option<ModuleExecutor>,
     logging: CompilationLogging,
     cache: Cache,
-    modified_files: ArcPathSet,
-    removed_files: ArcPathSet,
+    modified_files: InternedPathSet,
+    removed_files: InternedPathSet,
     input_filesystem: Arc<dyn ReadableFileSystem>,
     intermediate_filesystem: Arc<dyn IntermediateFileSystem>,
     output_filesystem: Arc<dyn WritableFileSystem>,
@@ -461,6 +461,13 @@ impl Compilation {
     self.build_module_graph_artifact.get_module_graph()
   }
 
+  pub fn try_get_module_graph(&self) -> Option<&ModuleGraph> {
+    self
+      .build_module_graph_artifact
+      .try_read()
+      .map(|artifact| artifact.get_module_graph())
+  }
+
   // it will return None during make phase since mg is incomplete
   pub fn module_by_identifier(&self, identifier: &ModuleIdentifier) -> Option<&BoxModule> {
     if self.build_module_graph_artifact.is_stolen() {
@@ -482,10 +489,10 @@ impl Compilation {
   pub fn file_dependencies(
     &self,
   ) -> (
-    impl Iterator<Item = &ArcPath>,
-    impl Iterator<Item = &ArcPath>,
-    impl Iterator<Item = &ArcPath>,
-    impl Iterator<Item = &ArcPath>,
+    impl Iterator<Item = &InternedPath>,
+    impl Iterator<Item = &InternedPath>,
+    impl Iterator<Item = &InternedPath>,
+    impl Iterator<Item = &InternedPath>,
   ) {
     let all_files = self
       .build_module_graph_artifact
@@ -511,10 +518,10 @@ impl Compilation {
   pub fn context_dependencies(
     &self,
   ) -> (
-    impl Iterator<Item = &ArcPath>,
-    impl Iterator<Item = &ArcPath>,
-    impl Iterator<Item = &ArcPath>,
-    impl Iterator<Item = &ArcPath>,
+    impl Iterator<Item = &InternedPath>,
+    impl Iterator<Item = &InternedPath>,
+    impl Iterator<Item = &InternedPath>,
+    impl Iterator<Item = &InternedPath>,
   ) {
     let all_files = self
       .build_module_graph_artifact
@@ -540,10 +547,10 @@ impl Compilation {
   pub fn missing_dependencies(
     &self,
   ) -> (
-    impl Iterator<Item = &ArcPath>,
-    impl Iterator<Item = &ArcPath>,
-    impl Iterator<Item = &ArcPath>,
-    impl Iterator<Item = &ArcPath>,
+    impl Iterator<Item = &InternedPath>,
+    impl Iterator<Item = &InternedPath>,
+    impl Iterator<Item = &InternedPath>,
+    impl Iterator<Item = &InternedPath>,
   ) {
     let all_files = self
       .build_module_graph_artifact
@@ -569,10 +576,10 @@ impl Compilation {
   pub fn build_dependencies(
     &self,
   ) -> (
-    impl Iterator<Item = &ArcPath>,
-    impl Iterator<Item = &ArcPath>,
-    impl Iterator<Item = &ArcPath>,
-    impl Iterator<Item = &ArcPath>,
+    impl Iterator<Item = &InternedPath>,
+    impl Iterator<Item = &InternedPath>,
+    impl Iterator<Item = &InternedPath>,
+    impl Iterator<Item = &InternedPath>,
   ) {
     let all_files = self
       .build_module_graph_artifact
@@ -638,14 +645,13 @@ impl Compilation {
     }
   }
 
-  pub async fn add_entry(&mut self, entry: BoxDependency, options: EntryOptions) -> Result<()> {
+  pub async fn add_entry(&mut self, entry: DependencyRef, options: EntryOptions) -> Result<()> {
     let entry_id = *entry.id();
     let entry_name: Option<String> = options.name.clone();
     let plugin_driver = self.plugin_driver.clone();
     self
       .build_module_graph_artifact
-      .get_module_graph_mut()
-      .add_dependency(entry);
+      .add_unfactorized_dependency(entry);
     let entry_options = if let Some(name) = &entry_name {
       if let Some(data) = self.entries.get_mut(name) {
         data.dependencies.push(entry_id);
@@ -678,9 +684,12 @@ impl Compilation {
     Ok(())
   }
 
-  pub async fn add_entry_batch(&mut self, args: Vec<(BoxDependency, EntryOptions)>) -> Result<()> {
+  pub async fn add_entry_batch<D>(&mut self, args: Vec<(D, EntryOptions)>) -> Result<()>
+  where
+    D: Into<DependencyRef>,
+  {
     for (entry, options) in args {
-      self.add_entry(entry, options).await?;
+      self.add_entry(entry.into(), options).await?;
     }
 
     let make_artifact = self.build_module_graph_artifact.steal();
@@ -706,7 +715,10 @@ impl Compilation {
     Ok(())
   }
 
-  pub async fn add_include(&mut self, args: Vec<(BoxDependency, EntryOptions)>) -> Result<()> {
+  pub async fn add_include<D>(&mut self, args: Vec<(D, EntryOptions)>) -> Result<()>
+  where
+    D: Into<DependencyRef>,
+  {
     if !self.in_finish_make.load(Ordering::Acquire) {
       return Err(rspack_error::Error::error(
         "You can only call `add_include` during the finish make stage".into(),
@@ -714,11 +726,11 @@ impl Compilation {
     }
 
     for (entry, options) in args {
+      let entry = entry.into();
       let entry_id = *entry.id();
       self
         .build_module_graph_artifact
-        .get_module_graph_mut()
-        .add_dependency(entry);
+        .add_unfactorized_dependency(entry);
       if let Some(name) = options.name.clone() {
         if let Some(data) = self.entries.get_mut(&name) {
           data.include_dependencies.push(entry_id);
@@ -1243,7 +1255,7 @@ impl Compilation {
       .insert(dependency_type, module_factory);
   }
 
-  pub fn get_dependency_factory(&self, dependency: &BoxDependency) -> Arc<dyn ModuleFactory> {
+  pub fn get_dependency_factory(&self, dependency: &dyn Dependency) -> Arc<dyn ModuleFactory> {
     let dependency_type = dependency.dependency_type();
     self
       .dependency_factories

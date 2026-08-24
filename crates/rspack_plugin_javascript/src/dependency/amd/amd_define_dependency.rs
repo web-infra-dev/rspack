@@ -148,7 +148,7 @@ impl Branch {
 }
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct AMDDefineDependency {
   id: DependencyId,
   range: DependencyRange,

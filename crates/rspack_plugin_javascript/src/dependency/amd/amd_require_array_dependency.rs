@@ -21,7 +21,7 @@ pub enum AMDRequireArrayItem {
 }
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct AMDRequireArrayDependency {
   id: DependencyId,
   deps_array: Vec<AMDRequireArrayItem>,

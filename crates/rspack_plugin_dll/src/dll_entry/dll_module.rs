@@ -4,8 +4,8 @@ use async_trait::async_trait;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
-  AsyncDependenciesBlockIdentifier, BoxModule, BuildContext, BuildInfo, BuildMeta, BuildResult,
-  CodeGenerationResult, Compilation, Context, DependenciesBlock, Dependency, DependencyId,
+  AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta,
+  BuildResult, CodeGenerationResultBuilder, Compilation, Context, DependenciesBlock, DependencyId,
   EntryDependency, FactoryMeta, Module, ModuleArgument, ModuleCodeGenerationContext, ModuleGraph,
   ModuleType, RuntimeGlobals, RuntimeSpec, SourceType, ValueCacheVersions, impl_module_meta_info,
   impl_source_map_config, module_update_hash,
@@ -45,12 +45,12 @@ impl DllModule {
       context,
       name,
       ..
-    } = dep.clone();
+    } = dep;
 
     Self {
-      name,
-      entries,
-      context,
+      name: name.clone(),
+      entries: entries.clone(),
+      context: context.clone(),
       ..Default::default()
     }
   }
@@ -87,7 +87,7 @@ impl Module for DllModule {
       .clone()
       .into_iter()
       .map(|entry| EntryDependency::new(entry, self.context.clone(), None, false))
-      .map(|dependency| Box::new(dependency) as Box<dyn Dependency>)
+      .map(BoxDependency::new)
       .collect::<Vec<_>>();
 
     Ok(BuildResult {
@@ -101,19 +101,21 @@ impl Module for DllModule {
   async fn code_generation(
     &self,
     code_generation_context: &mut ModuleCodeGenerationContext,
-  ) -> Result<CodeGenerationResult> {
+  ) -> Result<CodeGenerationResultBuilder> {
     let ModuleCodeGenerationContext {
       runtime_template, ..
     } = code_generation_context;
 
-    let mut code_generation_result = CodeGenerationResult::default();
+    let mut code_generation_result = CodeGenerationResultBuilder::default();
 
-    code_generation_result =
-      code_generation_result.with_javascript(Arc::new(RawStringSource::from(format!(
+    code_generation_result.add(
+      SourceType::JavaScript,
+      Arc::new(RawStringSource::from(format!(
         "{}.exports = {}",
         runtime_template.render_module_argument(ModuleArgument::Module),
         runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
-      ))));
+      ))),
+    );
 
     Ok(code_generation_result)
   }

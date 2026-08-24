@@ -12,6 +12,7 @@ use std::{
   fmt::Display,
   hash::{Hash, Hasher},
   rc::Rc,
+  sync::Arc,
 };
 
 use bitflags::bitflags;
@@ -21,11 +22,11 @@ use rspack_cacheable::{
   with::{AsCacheable, AsOption, AsPreset, AsVec},
 };
 use rspack_core::{
-  ArcComputed, AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BuildInfo, BuildMeta,
-  CompilerOptions, DependencyId, DependencyLocation, DependencyRange, FactoryMeta, ImportMeta,
-  ImportMetaKnownProperties, JavascriptParserCommonjsExportsOption, JavascriptParserOptions,
-  ModuleIdentifier, ModuleLayer, ModuleType, ParseMeta, ResolvedModuleOptions, ResourceData,
-  SideEffectsBailoutItemWithSpan,
+  ArcComputed, AsyncDependenciesBlock, BoxDependency, BuildInfo, BuildMeta, CompilerOptions,
+  DependencyCodeGeneration, DependencyCodeGenerationRef, DependencyId, DependencyLocation,
+  DependencyRange, FactoryMeta, ImportMeta, ImportMetaKnownProperties,
+  JavascriptParserCommonjsExportsOption, JavascriptParserOptions, ModuleIdentifier, ModuleLayer,
+  ModuleType, ParseMeta, ResolvedModuleOptions, ResourceData, SideEffectsBailoutItemWithSpan,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_util::fx_hash::FxIndexSet;
@@ -407,7 +408,7 @@ pub struct JavascriptParser<'parser> {
   errors: Vec<Diagnostic>,
   warning_diagnostics: Vec<Diagnostic>,
   dependencies: Vec<BoxDependency>,
-  presentational_dependencies: Vec<BoxDependencyTemplate>,
+  presentational_dependencies: Vec<DependencyCodeGenerationRef>,
   // Vec<Box<T: Sized>> makes sense if T is a large type (see #3530, 1st comment).
   // #3530: https://github.com/rust-lang/rust-clippy/issues/3530
   #[allow(clippy::vec_box)]
@@ -663,10 +664,6 @@ impl<'parser> JavascriptParser<'parser> {
     }
   }
 
-  pub fn compiler_options(&self) -> &CompilerOptions {
-    self.compiler_options
-  }
-
   pub fn add_dependency(&mut self, mut dep: BoxDependency) {
     if let Some(guard) = &self.current_branch_guard {
       guard.bind_dependency(dep.as_mut());
@@ -738,13 +735,13 @@ impl<'parser> JavascriptParser<'parser> {
     self.current_branch_guard = old_guard;
   }
 
-  pub fn add_presentational_dependency(&mut self, dep: BoxDependencyTemplate) {
+  pub fn add_presentational_dependency(&mut self, dep: DependencyCodeGenerationRef) {
     self.presentational_dependencies.push(dep);
   }
 
   pub fn add_presentational_dependencies(
     &mut self,
-    deps: impl IntoIterator<Item = BoxDependencyTemplate>,
+    deps: impl IntoIterator<Item = DependencyCodeGenerationRef>,
   ) {
     self.presentational_dependencies.extend(deps);
   }
@@ -756,8 +753,8 @@ impl<'parser> JavascriptParser<'parser> {
   pub fn get_presentational_dependency_mut(
     &mut self,
     idx: usize,
-  ) -> Option<&mut BoxDependencyTemplate> {
-    self.presentational_dependencies.get_mut(idx)
+  ) -> Option<&mut (dyn DependencyCodeGeneration + 'static)> {
+    Arc::get_mut(self.presentational_dependencies.get_mut(idx)?)
   }
 
   pub fn add_block(&mut self, mut block: Box<AsyncDependenciesBlock>) {

@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use rspack_core::{
   CachedConstDependency, CachedConstDependencyPlace, ConstDependency, NodeDirnameOption,
   NodeFilenameOption, NodeGlobalOption, RuntimeGlobals, RuntimeRequirementsDependency, get_context,
@@ -88,7 +90,7 @@ impl NodeStuffPlugin {
       )],
       None,
     );
-    parser.add_presentational_dependency(Box::new(external_url_dep));
+    parser.add_presentational_dependency(Arc::new(external_url_dep));
 
     if matches!(property, NodeMetaProperty::Dirname) {
       let external_path_dep = ExternalModuleDependency::new(
@@ -96,7 +98,7 @@ impl NodeStuffPlugin {
         vec![("dirname".to_string(), "__rspack_dirname".to_string())],
         None,
       );
-      parser.add_presentational_dependency(Box::new(external_path_dep));
+      parser.add_presentational_dependency(Arc::new(external_path_dep));
     }
   }
 
@@ -123,7 +125,7 @@ impl NodeStuffPlugin {
       property.node_module_runtime_expr().into(),
       place,
     );
-    parser.add_presentational_dependency(Box::new(const_dep));
+    parser.add_presentational_dependency(Arc::new(const_dep));
   }
 }
 
@@ -182,7 +184,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for NodeStuffPlugin {
         NodeDirnameOption::False => None,
       };
       if let Some(dirname) = dirname {
-        parser.add_presentational_dependency(Box::new(ConstDependency::new(
+        parser.add_presentational_dependency(Arc::new(ConstDependency::new(
           ident.span.into(),
           rspack_util::json_stringify_str(&dirname).into(),
         )));
@@ -226,7 +228,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for NodeStuffPlugin {
         NodeFilenameOption::False => None,
       };
       if let Some(filename) = filename {
-        parser.add_presentational_dependency(Box::new(ConstDependency::new(
+        parser.add_presentational_dependency(Arc::new(ConstDependency::new(
           ident.span.into(),
           rspack_util::json_stringify_str(&filename).into(),
         )));
@@ -240,12 +242,12 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for NodeStuffPlugin {
     {
       if parser.in_short_hand {
         let start = ident.span.real_lo();
-        parser.add_presentational_dependency(Box::new(ConstDependency::new(
+        parser.add_presentational_dependency(Arc::new(ConstDependency::new(
           (start, start).into(),
           format!("{}: ", ident.sym).into(),
         )));
       }
-      parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
+      parser.add_presentational_dependency(Arc::new(RuntimeRequirementsDependency::new(
         ident.span.into(),
         RuntimeGlobals::GLOBAL,
       )));
@@ -267,7 +269,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for NodeStuffPlugin {
         NodeGlobalOption::True | NodeGlobalOption::Warn
       )
     {
-      parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
+      parser.add_presentational_dependency(Arc::new(RuntimeRequirementsDependency::new(
         expr.span().into(),
         RuntimeGlobals::GLOBAL,
       )));
@@ -318,7 +320,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for NodeStuffPlugin {
       _ => return None,
     }
 
-    parser.add_presentational_dependency(Box::new(ConstDependency::new(
+    parser.add_presentational_dependency(Arc::new(ConstDependency::new(
       unary_expr.span().into(),
       "'string'".into(),
     )));

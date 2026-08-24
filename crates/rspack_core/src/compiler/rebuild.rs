@@ -3,7 +3,7 @@ use std::path::Path;
 use rspack_collections::IdentifierMap;
 use rspack_error::Result;
 use rspack_hash::RspackHashDigest;
-use rspack_paths::ArcPathSet;
+use rspack_paths::InternedPathSet;
 use rspack_tasks::within_compiler_context;
 use rustc_hash::FxHashSet;
 
@@ -63,9 +63,9 @@ impl Compiler {
 
     // build without stats
     {
-      let mut modified_files: ArcPathSet = ArcPathSet::default();
+      let mut modified_files: InternedPathSet = InternedPathSet::default();
       modified_files.extend(changed_files.iter().map(|files| Path::new(files).into()));
-      let mut removed_files: ArcPathSet = ArcPathSet::default();
+      let mut removed_files: InternedPathSet = InternedPathSet::default();
       removed_files.extend(deleted_files.iter().map(|files| Path::new(files).into()));
 
       let mut all_files = modified_files.clone();

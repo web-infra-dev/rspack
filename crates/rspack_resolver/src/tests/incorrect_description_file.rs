@@ -1,9 +1,8 @@
 //! <https://github.com/webpack/enhanced-resolve/blob/main/test/incorrect-description-file.test.js>
 
-use rustc_hash::FxHashSet;
-
 use crate::{
-  JSONError, Resolution, ResolveContext, ResolveError, ResolveOptions, Resolver, ResolverPath,
+  InternedPath, InternedPathSet, JSONError, Resolution, ResolveContext, ResolveError,
+  ResolveOptions, Resolver,
 };
 
 // should not resolve main in incorrect description file #1
@@ -25,9 +24,9 @@ async fn incorrect_description_file_1() {
   assert!(matches!(resolution, Err(ResolveError::JSON(_))));
   assert_eq!(
     ctx.file_dependencies,
-    FxHashSet::from_iter([
-      ResolverPath::from(f.join("pack1")),
-      ResolverPath::from(f.join("pack1/package.json")),
+    InternedPathSet::from_iter([
+      InternedPath::from(f.join("pack1")),
+      InternedPath::from(f.join("pack1/package.json")),
     ])
   );
   assert!(!ctx.missing_dependencies.is_empty());

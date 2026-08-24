@@ -51,10 +51,10 @@ use rspack_core::{
   JavascriptParserOrder, JavascriptParserUrl, JavascriptParserWorkerOptions, JsonGeneratorOptions,
   JsonParserOptions, LibraryName, LibraryNonUmdObject, LibraryOptions, LibraryType,
   MangleExportsOption, Mode, ModuleNoParseRules, ModuleOptions, ModuleRule, ModuleRuleEffect,
-  ModuleType, NodeDirnameOption, NodeFilenameOption, NodeGlobalOption, NodeOption, Optimization,
-  OutputOptions, ParseOption, ParserOptions, ParserOptionsMap, PathInfo, PublicPath, Resolve,
-  RuleSetCondition, RuleSetLogicalConditions, SideEffectOption, StatsOptions, TrustedTypes,
-  UsedExportsOption, WasmLoading, WasmLoadingType, incremental::IncrementalOptions,
+  ModuleType, NewCacheOptions, NodeDirnameOption, NodeFilenameOption, NodeGlobalOption, NodeOption,
+  Optimization, OutputOptions, ParseOption, ParserOptions, ParserOptionsMap, PathInfo, PublicPath,
+  Resolve, RuleSetCondition, RuleSetLogicalConditions, SideEffectOption, StatsOptions,
+  TrustedTypes, UsedExportsOption, WasmLoading, WasmLoadingType, incremental::IncrementalOptions,
   runtime_mode::RuntimeMode,
 };
 use rspack_error::{Error, Result};
@@ -3458,6 +3458,11 @@ impl OptimizationOptionsBuilder {
           .plugins
           .push(BuiltinPluginOptions::DeterministicModuleIdsPlugin);
       }
+      "compat-hashed" => {
+        builder_context
+          .plugins
+          .push(BuiltinPluginOptions::CompatHashedModuleIdsPlugin);
+      }
       "named" => {
         builder_context
           .plugins
@@ -3677,15 +3682,13 @@ pub struct ExperimentsBuilder {
   /// Whether to enable css.
   css: Option<bool>,
   /// Whether to enable the new cache implementation.
-  new_cache: Option<bool>,
+  new_cache: Option<NewCacheOptions>,
   /// Whether to enable async web assembly.
   async_web_assembly: Option<bool>,
   /// Whether to enable defer import.
   defer_import: Option<bool>,
   /// Whether to enable source import.
   source_import: Option<bool>,
-  /// Whether to enable the faster module concatenation implementation.
-  faster_module_concatenation: Option<bool>,
   // TODO: lazy compilation
   pure_functions: Option<bool>,
   runtime_mode: Option<RuntimeMode>,
@@ -3700,7 +3703,6 @@ impl From<Experiments> for ExperimentsBuilder {
       async_web_assembly: None,
       defer_import: Some(value.defer_import),
       source_import: Some(value.source_import),
-      faster_module_concatenation: Some(value.faster_module_concatenation),
       pure_functions: Some(value.pure_functions),
       runtime_mode: Some(value.runtime_mode),
     }
@@ -3716,7 +3718,6 @@ impl From<&mut ExperimentsBuilder> for ExperimentsBuilder {
       async_web_assembly: value.async_web_assembly.take(),
       defer_import: value.defer_import.take(),
       source_import: value.source_import.take(),
-      faster_module_concatenation: value.faster_module_concatenation.take(),
       pure_functions: value.pure_functions.take(),
       runtime_mode: value.runtime_mode.take(),
     }
@@ -3738,7 +3739,11 @@ impl ExperimentsBuilder {
 
   /// Set whether to enable the new cache implementation.
   pub fn new_cache(&mut self, new_cache: bool) -> &mut Self {
-    self.new_cache = Some(new_cache);
+    self.new_cache = Some(if new_cache {
+      NewCacheOptions::all()
+    } else {
+      NewCacheOptions::default()
+    });
     self
   }
 
@@ -3760,12 +3765,6 @@ impl ExperimentsBuilder {
     self
   }
 
-  /// Set whether to enable the faster module concatenation implementation.
-  pub fn faster_module_concatenation(&mut self, faster_module_concatenation: bool) -> &mut Self {
-    self.faster_module_concatenation = Some(faster_module_concatenation);
-    self
-  }
-
   /// Build [`Experiments`] from options.
   ///
   /// [`Experiments`]: rspack_core::options::Experiments
@@ -3782,10 +3781,9 @@ impl ExperimentsBuilder {
 
     Ok(Experiments {
       css: d!(self.css, false),
-      new_cache: d!(self.new_cache, false),
+      new_cache: d!(self.new_cache, NewCacheOptions::default()),
       defer_import: d!(self.defer_import, false),
       source_import: d!(self.source_import, false),
-      faster_module_concatenation: d!(self.faster_module_concatenation, false),
       pure_functions: d!(self.pure_functions, _production),
       runtime_mode: d!(self.runtime_mode, RuntimeMode::Webpack),
     })

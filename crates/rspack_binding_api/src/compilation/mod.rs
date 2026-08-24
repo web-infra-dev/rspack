@@ -14,8 +14,8 @@ use entries::JsEntries;
 use napi_derive::napi;
 use rspack_collections::IdentifierSet;
 use rspack_core::{
-  BindingCell, BoxDependency, Compilation, CompilationId, EntryOptions, ExportsInfoArtifact,
-  FactorizeInfo, ModuleIdentifier, OptimizationBailoutItem, Reflector, rspack_sources::BoxSource,
+  BindingCell, Compilation, CompilationId, DependencyRef, EntryOptions, ExportsInfoArtifact,
+  ModuleIdentifier, OptimizationBailoutItem, Reflector, rspack_sources::BoxSource,
 };
 use rspack_error::{Diagnostic, Severity, ToStringResultToRspackResultExt};
 use rspack_napi::napi::bindgen_prelude::*;
@@ -838,7 +838,7 @@ impl JsCompilation {
           };
           Ok((dependency, options))
         })
-        .collect::<napi::Result<Vec<(BoxDependency, EntryOptions)>>>()
+        .collect::<napi::Result<Vec<(DependencyRef, EntryOptions)>>>()
         .map_err(|err| napi::Error::new(err.status.into(), err.reason))?;
 
       callbackify(
@@ -855,8 +855,9 @@ impl JsCompilation {
           let results = dependency_ids
             .into_iter()
             .map(|dependency_id| {
-              let dependency = module_graph.dependency_by_id(&dependency_id);
-              if let Some(factorize_info) = FactorizeInfo::get_from(dependency)
+              if let Some(factorize_info) = compilation
+                .build_module_graph_artifact
+                .factorize_info(&dependency_id)
                 && let Some(diagnostic) = factorize_info.diagnostics().first()
               {
                 return Either::A(diagnostic.to_string());
@@ -940,7 +941,7 @@ impl JsCompilation {
           };
           Ok((dependency, options))
         })
-        .collect::<napi::Result<Vec<(BoxDependency, EntryOptions)>>>()
+        .collect::<napi::Result<Vec<(DependencyRef, EntryOptions)>>>()
         .map_err(|err| napi::Error::new(err.status.into(), err.reason))?;
 
       callbackify(
@@ -957,8 +958,9 @@ impl JsCompilation {
           let results = dependency_ids
             .into_iter()
             .map(|dependency_id| {
-              let dependency = module_graph.dependency_by_id(&dependency_id);
-              if let Some(factorize_info) = FactorizeInfo::get_from(dependency)
+              if let Some(factorize_info) = compilation
+                .build_module_graph_artifact
+                .factorize_info(&dependency_id)
                 && let Some(diagnostic) = factorize_info.diagnostics().first()
               {
                 return Either::A(diagnostic.to_string());

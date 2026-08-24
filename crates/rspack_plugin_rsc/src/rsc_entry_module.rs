@@ -9,8 +9,8 @@ use rspack_cacheable::{
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildContext,
-  BuildInfo, BuildMeta, BuildMetaExportsType, BuildResult, CodeGenerationResult, Compilation,
-  Context, DependenciesBlock, Dependency, DependencyId, DependencyRange, FactoryMeta, ImportPhase,
+  BuildInfo, BuildMeta, BuildMetaExportsType, BuildResult, CodeGenerationResultBuilder,
+  Compilation, Context, DependenciesBlock, DependencyId, DependencyRange, FactoryMeta, ImportPhase,
   LibIdentOptions, Module, ModuleCodeGenerationContext, ModuleGraph, ModuleIdentifier, ModuleLayer,
   ModuleType, ReferencedSpecifier, RuntimeSpec, SourceType, contextify, impl_module_meta_info,
   impl_source_map_config, module_update_hash,
@@ -267,7 +267,7 @@ impl Module for RscEntryModule {
         if let Some(referenced_specifiers) = referenced_specifiers {
           dep.set_referenced_specifiers(referenced_specifiers, true);
         }
-        dependencies.push(Box::new(dep));
+        dependencies.push(BoxDependency::new(dep));
       }
       Ok(BuildResult {
         module: BoxModule::new(self),
@@ -302,21 +302,21 @@ impl Module for RscEntryModule {
 
         if let Some(css_imports) = self.css_imports_by_server_entry.get(&server_entry) {
           block_dependencies.extend(css_imports.iter().map(|request| {
-            Box::new(ClientReferenceDependency::new(
+            BoxDependency::new(ClientReferenceDependency::new(
               request.clone(),
               Default::default(),
               self.is_server_side_rendering,
-            )) as Box<dyn Dependency>
+            ))
           }));
         }
 
         if let Some(client_modules) = self.client_modules_by_server_entry.get(&server_entry) {
           block_dependencies.extend(client_modules.iter().map(|client_module| {
-            Box::new(ClientReferenceDependency::new(
+            BoxDependency::new(ClientReferenceDependency::new(
               client_module.request.clone(),
               client_module.ids.clone(),
               self.is_server_side_rendering,
-            )) as Box<dyn Dependency>
+            ))
           }));
         }
 
@@ -340,11 +340,11 @@ impl Module for RscEntryModule {
           .root_client_modules
           .iter()
           .map(|client_module| {
-            Box::new(ClientReferenceDependency::new(
+            BoxDependency::new(ClientReferenceDependency::new(
               client_module.request.clone(),
               client_module.ids.clone(),
               self.is_server_side_rendering,
-            )) as Box<dyn Dependency>
+            ))
           })
           .collect::<Vec<_>>();
 
@@ -368,7 +368,7 @@ impl Module for RscEntryModule {
           self.identifier,
           None,
           None,
-          vec![Box::new(dep) as Box<dyn Dependency>],
+          vec![BoxDependency::new(dep)],
           Some(client_module.request.clone()),
         );
         blocks.push(Box::new(block));
@@ -390,11 +390,16 @@ impl Module for RscEntryModule {
   async fn code_generation(
     &self,
     code_generation_context: &mut ModuleCodeGenerationContext,
-  ) -> Result<CodeGenerationResult> {
+  ) -> Result<CodeGenerationResultBuilder> {
     let compilation = code_generation_context.compilation;
     let source = self.render_debug_comments(compilation);
 
-    Ok(CodeGenerationResult::default().with_javascript(RawStringSource::from(source).boxed()))
+    let mut code_generation_result = CodeGenerationResultBuilder::default();
+    code_generation_result.add(
+      SourceType::JavaScript,
+      RawStringSource::from(source).boxed(),
+    );
+    Ok(code_generation_result)
   }
 
   async fn get_runtime_hash(

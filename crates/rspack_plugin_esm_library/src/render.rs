@@ -142,7 +142,7 @@ impl EsmLibraryPlugin {
     let chunk_link_guard = self.links.borrow();
     let chunk_link = &chunk_link_guard[chunk_ukey];
 
-    let mut chunk_init_fragments: Vec<Box<dyn InitFragment<ChunkRenderContext> + 'static>> =
+    let mut chunk_init_fragments: Vec<Box<dyn InitFragment + 'static>> =
       chunk_link.init_fragments.clone();
 
     let mut replace_auto_public_path = false;
@@ -201,12 +201,12 @@ impl EsmLibraryPlugin {
         let preserved_asset_import = compilation
           .code_generation_results
           .get(m, Some(chunk.runtime()))
-          .data
+          .data()
           .get::<CodeGenerationDataPreservedAssetImport>()
           .cloned();
 
         let hooks = hooks.read().await;
-        let Some((module_source, init_frags, init_frags2)) = render_module(
+        let Some((module_source, init_fragments)) = render_module(
           compilation,
           chunk_ukey,
           module.as_ref(),
@@ -242,8 +242,7 @@ impl EsmLibraryPlugin {
           module_source
         };
 
-        chunk_init_fragments.extend(init_frags);
-        chunk_init_fragments.extend(init_frags2);
+        chunk_init_fragments.extend(init_fragments);
         decl_inner.add(module_source.clone());
       }
 

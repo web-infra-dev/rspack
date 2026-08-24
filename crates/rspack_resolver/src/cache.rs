@@ -12,6 +12,7 @@ use std::{
 use camino::{Utf8Component, Utf8Path, Utf8PathBuf};
 use dashmap::{DashMap, DashSet};
 use futures::future::BoxFuture;
+use rspack_paths::{InternedPath, hash_path};
 use rustc_hash::FxHasher;
 use tokio::sync::OnceCell as OnceLock;
 
@@ -19,7 +20,6 @@ use crate::{
   FileMetadata, FileSystem, JSONError, ResolveError, ResolveOptions, TsConfig,
   context::ResolveContext as Ctx,
   package_json::{PackageJson, off_to_location},
-  resolver_path::{ResolverPath, hash_path},
 };
 
 #[derive(Default)]
@@ -161,18 +161,18 @@ pub struct CachedPathImpl {
   canonicalized: OnceLock<Option<Utf8PathBuf>>,
   node_modules: OnceLock<Option<CachedPath>>,
   package_json: OnceLock<Option<Arc<PackageJson>>>,
-  /// Memoized `<self.path>/package.json` `ResolverPath` for the
+  /// Memoized `<self.path>/package.json` `InternedPath` for the
   /// `missing_dependencies` push that fires on every `package_json` cache-hit
   /// `None` (~97% of `package_json` calls in dep-tracking workloads).
-  package_json_dep_path: std::sync::OnceLock<ResolverPath>,
+  package_json_dep_path: std::sync::OnceLock<InternedPath>,
 }
 
-impl From<&CachedPathImpl> for ResolverPath {
-  /// Reuse the cache-side `FxHash` (already computed in `Cache::value`); the
-  /// only remaining work is one `Arc::from(&Path)` to materialize the shared
-  /// path buffer for the `ResolveContext` sink.
+impl From<&CachedPathImpl> for InternedPath {
+  /// Reuse the cache-side `FxHash` (already computed in `Cache::value`), so interning the
+  /// dependency into the `ResolveContext` sink is a lookup with no rehashing, and allocates
+  /// nothing at all for a path that has been seen before.
   fn from(cached: &CachedPathImpl) -> Self {
-    Self::from_parts(cached.hash, Arc::from(cached.path.as_std_path()))
+    Self::from_parts(cached.hash, cached.path.as_std_path())
   }
 }
 
@@ -192,7 +192,7 @@ impl CachedPathImpl {
 
   /// Without this cache, each `None` cache-hit on `package_json` would
   /// re-`join` + re-allocate the `Arc<Path>` + re-hash on every push.
-  fn package_json_dep_path(&self) -> ResolverPath {
+  fn package_json_dep_path(&self) -> InternedPath {
     self
       .package_json_dep_path
       .get_or_init(|| self.path.join("package.json").into())

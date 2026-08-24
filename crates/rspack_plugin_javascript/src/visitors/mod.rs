@@ -1,4 +1,3 @@
-pub(crate) mod concatenate_scope_info;
 mod dependency;
 pub mod scope_info;
 pub mod semicolon;

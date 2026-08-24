@@ -8,7 +8,7 @@ use rspack_core::{
 use rspack_util::json_stringify_str;
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct MockMethodDependency {
   call_expr_range: DependencyRange,
   callee_range: DependencyRange,
@@ -217,7 +217,7 @@ impl MockMethodDependencyTemplate {
   ///   observe an initialized value once they lazily run
   /// - `>= 1`: normal ESM imports (`source_order` starts at 1)
   fn add_placeholder_fragment(
-    init_fragments: &mut Vec<Box<dyn rspack_core::InitFragment<rspack_core::GenerateContext<'_>>>>,
+    init_fragments: &mut Vec<Box<dyn rspack_core::InitFragment>>,
     flag: &str,
     hoist_id: &str,
     request: &str,
@@ -241,7 +241,7 @@ impl MockMethodDependencyTemplate {
   /// Since ESMImport's merge logic returns the first fragment when its runtime_condition is true,
   /// our new fragment will take precedence and the original will be ignored.
   fn hoist_test_api_import(
-    init_fragments: &mut Vec<Box<dyn rspack_core::InitFragment<rspack_core::GenerateContext<'_>>>>,
+    init_fragments: &mut Vec<Box<dyn rspack_core::InitFragment>>,
     source_order: Option<i32>,
   ) {
     let Some(source_order) = source_order else {
@@ -258,7 +258,7 @@ impl MockMethodDependencyTemplate {
     let target_key = fragment.key().clone();
 
     // Clone and downcast to get the content
-    let cloned: Box<dyn rspack_core::InitFragment<_>> = fragment.clone();
+    let cloned: Box<dyn rspack_core::InitFragment> = fragment.clone();
     let Ok(conditional_fragment) = cloned.into_any().downcast::<ConditionalInitFragment>() else {
       return;
     };

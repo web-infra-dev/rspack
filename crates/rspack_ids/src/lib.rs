@@ -1,3 +1,5 @@
+mod compat_hashed_module_ids_plugin;
+pub use compat_hashed_module_ids_plugin::*;
 mod deterministic_module_ids_plugin;
 pub use deterministic_module_ids_plugin::*;
 mod hashed_module_ids_plugin;

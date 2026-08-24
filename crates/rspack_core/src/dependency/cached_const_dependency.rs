@@ -29,7 +29,7 @@ impl RspackHash for CachedConstDependencyPlace {
 }
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct CachedConstDependency {
   pub place: CachedConstDependencyPlace,
   pub identifier: Box<str>,
@@ -124,56 +124,36 @@ impl DependencyTemplate for CachedConstDependencyTemplate {
       .as_any()
       .downcast_ref::<CachedConstDependency>()
       .expect("CachedConstDependencyTemplate should be used for CachedConstDependency");
-    let faster_module_concatenation = code_generatable_context
-      .compilation
-      .options
-      .experiments
-      .faster_module_concatenation;
-    let rendered_identifier = if matches!(dep.place, CachedConstDependencyPlace::Module) {
-      source.ensure_generated_top_level_symbol(dep.identifier.to_string())
-    } else {
-      dep.identifier.to_string()
-    };
 
     match dep.place {
       CachedConstDependencyPlace::Module => {
-        let mut fragment = NormalInitFragment::new(
-          format!("var {rendered_identifier} = {};\n", dep.content),
-          InitFragmentStage::StageConstants,
-          dep.place.order(),
-          InitFragmentKey::Const(dep.identifier.to_string()),
-          None,
+        code_generatable_context.init_fragments.push(
+          NormalInitFragment::new(
+            format!("var {} = {};\n", dep.identifier, dep.content),
+            InitFragmentStage::StageConstants,
+            dep.place.order(),
+            InitFragmentKey::Const(dep.identifier.to_string()),
+            None,
+          )
+          .boxed(),
         );
-        if faster_module_concatenation {
-          fragment.set_top_level_decl_symbols(vec![dep.identifier.as_ref().into()]);
-        }
-        code_generatable_context
-          .init_fragments
-          .push(fragment.boxed());
       }
       CachedConstDependencyPlace::Chunk => {
-        let mut fragment = NormalInitFragment::new(
-          format!("var {} = {};\n", dep.identifier, dep.content),
-          InitFragmentStage::StageConstants,
-          dep.place.order(),
-          InitFragmentKey::Const(dep.identifier.to_string()),
-          None,
+        code_generatable_context.chunk_init_fragments().push(
+          NormalInitFragment::new(
+            format!("var {} = {};\n", dep.identifier, dep.content),
+            InitFragmentStage::StageConstants,
+            dep.place.order(),
+            InitFragmentKey::Const(dep.identifier.to_string()),
+            None,
+          )
+          .boxed(),
         );
-        if faster_module_concatenation {
-          fragment.set_top_level_decl_symbols(vec![dep.identifier.as_ref().into()]);
-        }
-        code_generatable_context
-          .chunk_init_fragments()
-          .push(fragment.boxed());
       }
     }
 
     if let Some(range) = dep.range {
-      if matches!(dep.place, CachedConstDependencyPlace::Module) {
-        source.replace_with_tracked_used_names(range.start, range.end, rendered_identifier, None);
-      } else {
-        source.replace(range.start, range.end, rendered_identifier, None);
-      }
+      source.replace(range.start, range.end, dep.identifier.to_string(), None);
     }
   }
 }

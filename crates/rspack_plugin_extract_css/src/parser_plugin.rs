@@ -60,7 +60,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for PluginCssExtractParserPlugin {
                 layer,
               },
             )| {
-              Box::new(CssDependency::new(
+              BoxDependency::new(CssDependency::new(
                 identifier.into(),
                 parser.get_module_layer().cloned(),
                 layer.clone(),
@@ -76,7 +76,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for PluginCssExtractParserPlugin {
                 parser.build_info.context_dependencies.clone(),
                 parser.build_info.missing_dependencies.clone(),
                 parser.build_info.build_dependencies.clone(),
-              )) as BoxDependency
+              ))
             },
           )
           .collect::<Vec<_>>()

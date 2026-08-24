@@ -3,7 +3,7 @@ use std::{collections::VecDeque, fmt::Write, iter::once, sync::atomic::AtomicU32
 use itertools::Itertools;
 use rspack_collections::{Identifier, IdentifierSet};
 use rspack_error::Error;
-use rspack_paths::ArcPathSet;
+use rspack_paths::InternedPathSet;
 use rspack_sources::{RawStringSource, SourceExt};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet};
 use tokio::sync::oneshot::Sender;
@@ -11,8 +11,9 @@ use tokio::sync::oneshot::Sender;
 use super::context::{ExecutorTaskContext, ImportModuleMeta};
 use crate::{
   Chunk, ChunkGraph, ChunkKind, ChunkUkey, CodeGenerationDataAssetInfo, CodeGenerationDataFilename,
-  CodeGenerationResult, Compilation, CompilationAsset, CompilationAssets, EntryOptions, Entrypoint,
-  FactorizeInfo, ModuleCodeGenerationContext, ModuleType, PublicPath, RuntimeSpec, SourceType,
+  CodeGenerationResult, CodeGenerationResultBuilder, Compilation, CompilationAsset,
+  CompilationAssets, EntryOptions, Entrypoint, ModuleCodeGenerationContext, ModuleType, PublicPath,
+  RuntimeSpec, SourceType,
   compilation::{
     code_generation::code_generation_modules,
     create_module_hashes::create_module_hashes,
@@ -124,9 +125,14 @@ fn create_execute_runtime_source(
   source.push_str(&metadata.render_context_setter_assignments(runtime_context));
 
   (!source.is_empty()).then(|| {
+    let mut code_generation_result = CodeGenerationResultBuilder::default();
+    code_generation_result.add(
+      SourceType::JavaScript,
+      RawStringSource::from(source).boxed(),
+    );
     (
       Identifier::from("rspack/runtime/execute_module_runtime"),
-      CodeGenerationResult::default().with_javascript(RawStringSource::from(source).boxed()),
+      code_generation_result.build(),
     )
   })
 }
@@ -135,10 +141,10 @@ fn create_execute_runtime_source(
 pub struct ExecuteModuleResult {
   pub error: Option<String>,
   pub cacheable: bool,
-  pub file_dependencies: ArcPathSet,
-  pub context_dependencies: ArcPathSet,
-  pub missing_dependencies: ArcPathSet,
-  pub build_dependencies: ArcPathSet,
+  pub file_dependencies: InternedPathSet,
+  pub context_dependencies: InternedPathSet,
+  pub missing_dependencies: InternedPathSet,
+  pub build_dependencies: InternedPathSet,
   pub code_generated_modules: IdentifierSet,
   pub id: ExecuteModuleId,
 }
@@ -279,8 +285,9 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
       }
       for dep_id in module.get_dependencies() {
         if !has_error && make_failed_dependencies.contains(dep_id) {
-          let dep = mg.dependency_by_id(dep_id);
-          let diagnostics = FactorizeInfo::get_from(dep)
+          let diagnostics = origin_context
+            .artifact
+            .factorize_info(dep_id)
             .expect("should have factorize info")
             .diagnostics();
           let errors: Vec<_> = diagnostics
@@ -437,7 +444,9 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
         runtime_module.identifier(),
         runtime_module_source.size() as f64,
       );
-      let result = CodeGenerationResult::default().with_javascript(runtime_module_source.clone());
+      let mut code_generation_result = CodeGenerationResultBuilder::default();
+      code_generation_result.add(SourceType::JavaScript, runtime_module_source.clone());
+      let result = code_generation_result.build();
 
       compilation.code_generation_results.insert(
         *runtime_id,
@@ -482,8 +491,8 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
           let codegen_result = compilation.code_generation_results.get(m, Some(&runtime));
 
           if let Some(source) = codegen_result.get(&SourceType::Asset)
-            && let Some(filename) = codegen_result.data.get::<CodeGenerationDataFilename>()
-            && let Some(asset_info) = codegen_result.data.get::<CodeGenerationDataAssetInfo>()
+            && let Some(filename) = codegen_result.data().get::<CodeGenerationDataFilename>()
+            && let Some(asset_info) = codegen_result.data().get::<CodeGenerationDataAssetInfo>()
           {
             let filename = filename.filename();
             compilation.emit_asset(

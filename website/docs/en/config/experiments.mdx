@@ -187,23 +187,6 @@ const instance = await WebAssembly.instantiate(wasmModule);
 For a normal WebAssembly import, Rspack instantiates the module and exposes its exports. For a source phase import, Rspack returns the compiled `WebAssembly.Module` instead, and your code is responsible for calling `WebAssembly.instantiate`.
 :::
 
-## experiments.fasterModuleConcatenation
-
-<ApiMeta addedVersion="2.2.0" />
-
-- **Type:** `boolean`
-- **Default:** `false`
-
-Improves the speed of [module concatenation optimization](/config/optimization#optimizationconcatenatemodules) when enabled.
-
-```js title="rspack.config.mjs"
-export default {
-  experiments: {
-    fasterModuleConcatenation: true,
-  },
-};
-```
-
 ## experiments.futureDefaults
 
 - **Type:** `boolean`

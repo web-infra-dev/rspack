@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use rspack_cacheable::cacheable;
 use rspack_fs::ReadableFileSystem;
-use rspack_paths::{ArcPath, ArcPathSet};
+use rspack_paths::{InternedPath, InternedPathSet};
 
 pub use self::build_deps::{BuildDeps, BuildDepsValidationResult};
 use crate::cache::persistent::snapshot::{
@@ -14,15 +14,41 @@ use crate::cache::persistent::snapshot::{
 #[cacheable]
 #[derive(Debug)]
 pub struct SnapshotEntry {
-  path: ArcPath,
+  path: InternedPath,
   strategy: Strategy,
 }
 
 #[cacheable]
 #[derive(Debug, Default)]
-struct BuildDependenciesSnapshot {
-  dependencies: ArcPathSet,
+pub(super) struct BuildDependenciesSnapshot {
+  dependencies: InternedPathSet,
   snapshots: Vec<SnapshotEntry>,
+}
+
+impl BuildDependenciesSnapshot {
+  pub(super) async fn validate(
+    &self,
+    snapshot: &Snapshot,
+    build_deps: &BuildDeps,
+  ) -> BuildDepsValidationResult {
+    build_deps
+      .validate_snapshot(snapshot, &self.snapshots, self.dependencies.len())
+      .await
+  }
+
+  pub(super) async fn update(
+    &mut self,
+    snapshot: &Snapshot,
+    build_deps: &mut BuildDeps,
+    paths: impl Iterator<Item = InternedPath>,
+  ) {
+    let added = build_deps
+      .resolve_dependencies(&self.dependencies, paths)
+      .await;
+    let snapshots = snapshot.add(added.iter().cloned()).await;
+    self.dependencies.extend(added);
+    self.snapshots.extend(snapshots);
+  }
 }
 
 /// Creates and validates filesystem snapshots stored by the new cache.
@@ -40,7 +66,7 @@ impl Snapshot {
     }
   }
 
-  async fn calc_strategy(&self, helper: &StrategyHelper, path: &ArcPath) -> Option<Strategy> {
+  async fn calc_strategy(&self, helper: &StrategyHelper, path: &InternedPath) -> Option<Strategy> {
     let path_str = path.to_string_lossy();
     if self.options.is_immutable_path(&path_str) {
       return None;
@@ -58,7 +84,7 @@ impl Snapshot {
   }
 
   #[tracing::instrument("Cache::Snapshot::add", skip_all)]
-  pub async fn add(&self, paths: impl Iterator<Item = ArcPath>) -> Vec<SnapshotEntry> {
+  pub async fn add(&self, paths: impl Iterator<Item = InternedPath>) -> Vec<SnapshotEntry> {
     let helper = StrategyHelper::new(self.fs.clone(), self.options.clone());
     let mut entries = Vec::with_capacity(paths.size_hint().0);
     for path in paths {
@@ -70,10 +96,13 @@ impl Snapshot {
   }
 
   #[tracing::instrument("Cache::Snapshot::calc_modified_paths", skip_all)]
-  pub async fn calc_modified_paths(&self, entries: &[SnapshotEntry]) -> (ArcPathSet, ArcPathSet) {
+  pub async fn calc_modified_paths(
+    &self,
+    entries: &[SnapshotEntry],
+  ) -> (InternedPathSet, InternedPathSet) {
     let helper = StrategyHelper::new(self.fs.clone(), self.options.clone());
-    let mut modified_files = ArcPathSet::default();
-    let mut removed_files = ArcPathSet::default();
+    let mut modified_files = InternedPathSet::default();
+    let mut removed_files = InternedPathSet::default();
     for entry in entries {
       match helper.validate(&entry.path, &entry.strategy).await {
         ValidateResult::Modified => {

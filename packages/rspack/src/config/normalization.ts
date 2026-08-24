@@ -61,6 +61,8 @@ import type {
   LibraryOptions,
   Loader,
   Mode,
+  NewCache,
+  NewCachePresets,
   Name,
   Node,
   NoParseOption,
@@ -376,6 +378,10 @@ export const getNormalizedRspackOptions = (
     experiments: nestedConfig(config.experiments, (experiments) => {
       return {
         ...experiments,
+        newCache:
+          experiments.newCache === undefined
+            ? undefined
+            : getNormalizedNewCacheOptions(experiments.newCache),
         buildHttp: experiments.buildHttp,
         useInputFileSystem: experiments.useInputFileSystem,
       };
@@ -492,6 +498,14 @@ const getNormalizedIncrementalOptions = (
     return { silent: false };
   }
   return incremental;
+};
+
+const getNormalizedNewCacheOptions = (
+  newCache: NewCachePresets | NewCache,
+): false | NewCache => {
+  if (newCache === false) return false;
+  if (newCache === true) return {};
+  return newCache;
 };
 
 const nestedConfig = <T, R>(value: T | undefined, fn: (value: T) => R) =>
@@ -648,8 +662,7 @@ export interface ExperimentsNormalized {
   asyncWebAssembly?: boolean;
   css?: boolean;
   futureDefaults?: boolean;
-  newCache?: boolean;
-  fasterModuleConcatenation?: boolean;
+  newCache?: false | NewCache;
   buildHttp?: HttpUriPluginOptions;
   useInputFileSystem?: false | RegExp[];
   nativeWatcher?: boolean;

@@ -7,7 +7,7 @@ use rspack_core::{
 use rspack_hash::{RspackHash, RspackHasher};
 
 #[cacheable]
-#[derive(Debug, Clone, RspackHash)]
+#[derive(Debug, RspackHash)]
 pub struct ExternalModuleDependency {
   module: String,
   import_specifier: Vec<(String, String)>,

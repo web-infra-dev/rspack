@@ -34,7 +34,7 @@ impl Dependency {
         let module_graph = compilation.get_module_graph();
         if let Some(dependency) = internal::try_dependency_by_id(module_graph, &self.dependency_id)
         {
-          f(dependency.as_ref(), Some(compilation))
+          f(dependency, Some(compilation))
         } else {
           Err(napi::Error::from_reason(format!(
             "Unable to access dependency with id = {:?} now. The dependency have been removed on the Rust side.",
@@ -48,13 +48,6 @@ impl Dependency {
       // We do not guarantee that the memory pointed to by the pointer remains valid when used outside the scope.
       f(unsafe { self.dependency.as_ref() }, None)
     }
-  }
-
-  fn as_mut(&mut self) -> napi::Result<&mut dyn rspack_core::Dependency> {
-    // SAFETY:
-    // We need to make users aware in the documentation that values obtained within the JS hook callback should not be used outside the scope of the callback.
-    // We do not guarantee that the memory pointed to by the pointer remains valid when used outside the scope.
-    Ok(unsafe { self.dependency.as_mut() })
   }
 }
 
@@ -127,15 +120,14 @@ impl Dependency {
 
   #[napi(setter)]
   pub fn set_critical(&mut self, val: bool) -> napi::Result<()> {
-    let dependency = self.as_mut()?;
-
-    if let Some(dep) = dependency.as_context_dependency_mut() {
-      let critical = dep.critical_mut();
-      if !val {
-        *critical = None;
+    self.with_ref(|dependency, _| {
+      if let Some(dep) = dependency.as_context_dependency()
+        && !val
+      {
+        dep.set_critical(None);
       }
-    }
-    Ok(())
+      Ok(())
+    })
   }
 
   #[napi(getter, ts_return_type = "Array<string> | undefined")]

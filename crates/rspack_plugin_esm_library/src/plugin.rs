@@ -353,11 +353,12 @@ async fn concatenation_scope(
   let ModuleInfo::Concatenated(current_module) = current_module else {
     return Ok(None);
   };
-  let scope = ConcatenationScope::new(
+  let mut scope = ConcatenationScope::new(
     current_module.module,
     modules_map.clone(),
     current_module.as_ref().clone(),
   );
+  scope.enable_codegen_data_collection();
   Ok(Some(scope))
 }
 
@@ -679,7 +680,10 @@ async fn after_factorize(
   if let Some(external_module) = module.as_external_module_mut()
     && external_module.resolve_external_type() == "module"
     && (external_module.get_external_type() != "modern-module"
-      || data.dependencies.first().is_some_and(is_esm_dep_like))
+      || data
+        .dependencies
+        .first()
+        .is_some_and(|dependency| is_esm_dep_like(dependency.as_ref())))
   {
     // If there's an issuer, append it to the module id
     if let Some(issuer_identifier) = &data.issuer_identifier {

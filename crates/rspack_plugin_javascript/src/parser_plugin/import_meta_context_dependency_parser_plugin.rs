@@ -1,8 +1,8 @@
 use concat_string::concat_string;
 use rspack_core::{
-  ContextMode, ContextModulePattern, ContextNameSpaceObject, ContextOptions, DependencyCategory,
-  ReferencedSpecifier, compile_context_module_glob_request, get_context, normalize_path_separators,
-  normalize_path_separators_for_path,
+  BoxDependency, ContextMode, ContextModulePattern, ContextNameSpaceObject, ContextOptions,
+  DependencyCategory, ReferencedSpecifier, compile_context_module_glob_request, get_context,
+  normalize_path_separators, normalize_path_separators_for_path,
 };
 use rspack_error::{Error, Result, Severity};
 use rspack_macros::AstObject;
@@ -477,7 +477,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaContextDependencyParse
     };
 
     if let Some(dep) = dep {
-      parser.add_dependency(Box::new(dep));
+      parser.add_dependency(BoxDependency::new(dep));
       Some(true)
     } else {
       None

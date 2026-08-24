@@ -1,64 +1,13 @@
-use rspack_cacheable::{cacheable, with::AsPreset};
-use swc_core::{
-  atoms::Atom,
-  ecma::{
-    ast::{ClassExpr, Ident, ObjectPatProp, Prop},
-    visit::{Visit, VisitWith, noop_visit_type},
-  },
+use swc_core::ecma::{
+  ast::{ClassExpr, Ident, ObjectPatProp, Prop},
+  visit::{Visit, VisitWith, noop_visit_type},
 };
-
-use crate::DependencyRange;
 
 #[derive(Clone, Debug)]
 pub struct ConcatenatedModuleIdent {
   pub id: Ident,
   pub shorthand: bool,
   pub is_class_expr_with_ident: bool,
-}
-
-#[cacheable]
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum ConcatenationScopeIdentKind {
-  TopLevel,
-  Global,
-  UsedName,
-}
-
-#[cacheable]
-#[derive(Clone, Debug)]
-pub struct ConcatenationScopeIdent {
-  pub range: DependencyRange,
-  pub shorthand: bool,
-  pub kind: ConcatenationScopeIdentKind,
-}
-
-#[cacheable]
-#[derive(Clone, Debug)]
-pub struct ConcatenationScopeCanonicalName {
-  pub range: DependencyRange,
-  #[cacheable(with=AsPreset)]
-  pub name: Atom,
-}
-
-#[cacheable]
-#[derive(Clone, Debug)]
-pub struct AnalyzedConcatenationScopeInfo {
-  pub module_ctxt: u32,
-  pub global_ctxt: u32,
-  pub idents: Vec<ConcatenationScopeIdent>,
-  pub canonical_names: Vec<ConcatenationScopeCanonicalName>,
-}
-
-/// Make-time scope information required by faster module concatenation.
-///
-/// `Generated` is an explicit declaration that the module has no original
-/// JavaScript scope. Any bindings introduced by its generator must be
-/// registered through `ConcatenationScope` during code generation.
-#[cacheable]
-#[derive(Clone, Debug)]
-pub enum PendingConcatenationScopeInfo {
-  Analyzed(AnalyzedConcatenationScopeInfo),
-  Generated,
 }
 
 #[derive(Default)]
