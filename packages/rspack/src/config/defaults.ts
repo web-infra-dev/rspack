@@ -281,6 +281,7 @@ const applyExperimentsDefaults = (
   D(experiments, 'futureDefaults', false);
   D(experiments, 'newCache', false);
   if (typeof experiments.newCache === 'object') {
+    D(experiments.newCache, 'module', true);
     D(experiments.newCache, 'codeGeneration', true);
     D(experiments.newCache, 'minimize', true);
   }

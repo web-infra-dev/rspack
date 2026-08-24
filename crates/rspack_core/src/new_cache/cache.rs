@@ -79,10 +79,6 @@ impl Cache {
     }
   }
 
-  pub(crate) fn is_enabled(&self) -> bool {
-    self.inner.storage.is_some()
-  }
-
   pub(crate) fn facade(&self, name: &str) -> CacheFacade {
     let mut cache_name = String::with_capacity(self.inner.compiler_path.len() + name.len());
     cache_name.push_str(&self.inner.compiler_path);
@@ -154,17 +150,6 @@ impl Cache {
 
   pub fn file_system_info(&self) -> Option<&FileSystemInfo> {
     self.inner.file_system_info.as_ref()
-  }
-
-  pub(crate) fn record_dependency_id(&self, dependency_id: u32) -> Result<()> {
-    let Some(storage) = &self.inner.storage else {
-      return Ok(());
-    };
-    if let Some(file_cache) = &storage.idle_file_cache {
-      file_cache.store_dependency_id(dependency_id)
-    } else {
-      Ok(())
-    }
   }
 
   pub fn has_file_cache(&self) -> bool {

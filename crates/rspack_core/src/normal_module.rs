@@ -149,20 +149,6 @@ pub struct NormalModule {
   source_map_kind: SourceMapKind,
 }
 
-#[cacheable]
-#[derive(Debug)]
-pub(crate) struct NormalModuleBuildState {
-  #[cacheable(with=AsOption<AsPreset>)]
-  source: Option<BoxSource>,
-  diagnostics: Vec<Diagnostic>,
-  code_generation_dependencies: Option<Vec<DependencyId>>,
-  presentational_dependencies: Option<Vec<DependencyCodeGenerationRef>>,
-  build_info: BuildInfo,
-  build_meta: BuildMeta,
-  parsed: bool,
-  source_map_kind: SourceMapKind,
-}
-
 static DEBUG_ID: AtomicUsize = AtomicUsize::new(1);
 
 impl NormalModule {
@@ -245,19 +231,6 @@ impl NormalModule {
 
   pub fn id(&self) -> ModuleIdentifier {
     self.id
-  }
-
-  pub(crate) fn build_state(&self) -> NormalModuleBuildState {
-    NormalModuleBuildState {
-      source: self.source.clone(),
-      diagnostics: self.diagnostics.clone(),
-      code_generation_dependencies: self.code_generation_dependencies.clone(),
-      presentational_dependencies: self.presentational_dependencies.clone(),
-      build_info: self.build_info.clone(),
-      build_meta: self.build_meta.clone(),
-      parsed: self.parsed,
-      source_map_kind: self.source_map_kind,
-    }
   }
 
   pub fn match_resource(&self) -> Option<&ResourceData> {

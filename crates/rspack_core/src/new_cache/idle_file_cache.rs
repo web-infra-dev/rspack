@@ -34,7 +34,6 @@ enum Command {
     encoder: CacheValueEncoder,
   },
   StoreBuildDependencies(InternedPathSet),
-  StoreDependencyId(u32),
   Restore {
     key: CacheKey,
     etag: Option<Etag>,
@@ -122,9 +121,6 @@ impl BackgroundJob {
       }
       Command::StoreBuildDependencies(dependencies) => {
         self.strategy.store_build_dependencies(dependencies);
-      }
-      Command::StoreDependencyId(dependency_id) => {
-        self.strategy.store_dependency_id(dependency_id);
       }
       Command::Restore {
         key,
@@ -288,10 +284,6 @@ impl IdleFileCache {
 
   pub fn store_build_dependencies(&self, dependencies: InternedPathSet) -> Result<()> {
     self.send(Command::StoreBuildDependencies(dependencies))
-  }
-
-  pub fn store_dependency_id(&self, dependency_id: u32) -> Result<()> {
-    self.send(Command::StoreDependencyId(dependency_id))
   }
 
   pub fn record_build_time(&self, build_time: Duration) -> Result<()> {

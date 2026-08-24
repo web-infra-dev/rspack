@@ -3101,6 +3101,8 @@ export type UseInputFileSystem = false | RegExp[];
 
 /** Fine-grained switches for the experimental new cache implementation. */
 export type NewCache = {
+  /** Enable module filesystem snapshots. @default true */
+  module?: boolean;
   /** Enable the module code generation cache. @default true */
   codeGeneration?: boolean;
   /** Enable the asset minimization cache. @default true */
