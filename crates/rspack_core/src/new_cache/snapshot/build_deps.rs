@@ -1,4 +1,4 @@
-use std::{collections::VecDeque, path::PathBuf, sync::Arc};
+use std::{collections::VecDeque, sync::Arc};
 
 use rspack_error::Result;
 use rspack_fs::ReadableFileSystem;
@@ -7,10 +7,8 @@ use rspack_paths::{AssertUtf8, InternedPath, InternedPathSet};
 use super::{FileSystemInfo, Snapshot, SnapshotValidationResult};
 use crate::{
   CompilationLogger,
-  cache::persistent::build_dependencies::{Helper, is_node_package_path},
+  cache::{BuildDependencyHelper, BuildDepsOptions, is_node_package_path},
 };
-
-pub type BuildDepsOptions = Vec<PathBuf>;
 
 #[derive(Debug)]
 pub enum BuildDepsValidationResult {
@@ -68,7 +66,7 @@ impl BuildDeps {
     current: &InternedPathSet,
     paths: impl Iterator<Item = InternedPath>,
   ) -> ResolvedBuildDependencies {
-    let mut helper = Helper::new(self.fs.clone(), self.logger.clone());
+    let mut helper = BuildDependencyHelper::new(self.fs.clone(), self.logger.clone());
     let mut resolved = ResolvedBuildDependencies::default();
     let mut queue = VecDeque::new();
     queue.extend(self.pending.iter().cloned());

@@ -22,8 +22,8 @@ use rspack_core::{
   OutputOptions, ProcessAssetsPass, RuntimeRequirementsPass, SideEffectsOptimizeArtifact,
   SourceType, UsedExportsOption, build_chunk_graph,
   build_module_graph::{build_module_graph_pass, finish_build_module_graph},
-  cache::Cache,
   incremental::IncrementalOptions,
+  legacy_cache::Cache,
   pass::PassExt,
   rspack_sources::{RawStringSource, SourceExt},
 };

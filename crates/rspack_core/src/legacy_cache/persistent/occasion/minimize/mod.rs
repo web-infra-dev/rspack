@@ -6,11 +6,11 @@ use rspack_error::Result;
 use rspack_sources::BoxSource;
 use rustc_hash::FxHashMap;
 
-use super::{
-  super::{codec::CacheCodec, storage::Storage},
-  Occasion,
+use super::{super::storage::Storage, Occasion};
+use crate::{
+  RayonConsumer,
+  cache::{CacheCodec, CachedExtractedComments, CachedMinimizeEntry},
 };
-use crate::RayonConsumer;
 
 pub const SCOPE: &str = "occasion_minimize";
 
@@ -52,22 +52,6 @@ pub struct MinimizePersistentCache {
   entries: FxHashMap<MinimizeCacheKey, CachedMinimizeEntry>,
   /// Keys of entries that were added during this build and need to be persisted.
   dirty_keys: Vec<MinimizeCacheKey>,
-}
-
-#[cacheable]
-#[derive(Debug, Clone)]
-pub struct CachedMinimizeEntry {
-  #[cacheable(with=AsPreset)]
-  pub source: BoxSource,
-  pub extracted_comments: Option<CachedExtractedComments>,
-}
-
-#[cacheable]
-#[derive(Debug, Clone)]
-pub struct CachedExtractedComments {
-  #[cacheable(with=AsPreset)]
-  pub source: BoxSource,
-  pub comments_file_name: String,
 }
 
 impl MinimizePersistentCache {

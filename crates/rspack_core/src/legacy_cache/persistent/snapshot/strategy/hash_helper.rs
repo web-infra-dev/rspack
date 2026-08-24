@@ -231,9 +231,8 @@ mod tests {
   use rspack_fs::{MemoryFileSystem, WritableFileSystem};
   use rspack_paths::InternedPath;
 
-  use super::{
-    super::super::super::snapshot::PathMatcher, HashHelper, PackageHelper, SnapshotOptions,
-  };
+  use super::{HashHelper, PackageHelper, SnapshotOptions};
+  use crate::cache::PathMatcher;
 
   fn new_helper(fs: Arc<MemoryFileSystem>) -> HashHelper {
     HashHelper::new(

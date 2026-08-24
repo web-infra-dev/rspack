@@ -4,13 +4,9 @@ pub mod minimize;
 
 use std::future::Future;
 
-pub use devtool::{
-  CachedSourceMapDevToolPluginEntry, SourceMapDevToolPluginCache, SourceMapDevToolPluginOccasion,
-};
+pub use devtool::{SourceMapDevToolPluginCache, SourceMapDevToolPluginOccasion};
 pub use make::MakeOccasion;
-pub use minimize::{
-  CachedExtractedComments, CachedMinimizeEntry, MinimizeOccasion, MinimizePersistentCache,
-};
+pub use minimize::{MinimizeOccasion, MinimizePersistentCache};
 use rspack_error::Result;
 
 use super::storage::Storage;

@@ -13,8 +13,9 @@ use rspack_core::{
   AssetInfo, CacheCount, CacheFacade, CacheOptions, CacheValue, Chunk, ChunkUkey, Compilation,
   CompilationAsset, CompilationParams, CompilationProcessAssets, CompilerCompilation, Etag,
   Filename, Logger, ModuleIdentifier, PathData, Plugin,
-  cache::persistent::occasion::{CachedSourceMapDevToolPluginEntry, SourceMapDevToolPluginCache},
+  cache::CachedSourceMapDevToolPluginEntry,
   has_content_hash_placeholder,
+  legacy_cache::persistent::occasion::SourceMapDevToolPluginCache,
   rspack_sources::{
     BoxSource, ConcatSource, MapOptions, ObjectPool, RawBufferSource, RawStringSource, Source,
     SourceExt, SourceMap, SourceValue,

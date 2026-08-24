@@ -3,17 +3,17 @@ use std::sync::Arc;
 use rayon::prelude::*;
 use rspack_cacheable::{
   cacheable,
-  with::{AsCacheable, AsOption, AsPreset, AsTuple2, AsVec},
+  with::{AsPreset, AsVec},
 };
 use rspack_error::Result;
-use rspack_sources::{BoxSource, ConcatSource, SourceExt};
+use rspack_sources::BoxSource;
 use rustc_hash::FxHashMap;
 
-use super::{
-  super::{codec::CacheCodec, storage::Storage},
-  Occasion,
+use super::{super::storage::Storage, Occasion};
+use crate::{
+  CompilationAsset, RayonConsumer,
+  cache::{CacheCodec, CachedSourceMapDevToolPluginEntry},
 };
-use crate::{AssetInfo, CompilationAsset, RayonConsumer};
 
 pub const SCOPE: &str = "occasion_source_map_dev_tool_plugin";
 
@@ -68,64 +68,6 @@ pub struct SourceMapDevToolPluginCache {
   entries: FxHashMap<CacheKey, Option<CachedSourceMapDevToolPluginEntry>>,
   pending_writes: Vec<CacheKey>,
   pending_removes: Vec<CacheKey>,
-}
-
-#[cacheable]
-#[derive(Debug, Clone)]
-pub struct CachedSourceMapDevToolPluginEntry {
-  #[cacheable(with=AsVec<AsPreset>)]
-  asset_append: Vec<BoxSource>,
-  #[cacheable(with=AsOption<AsTuple2<AsCacheable, AsPreset>>)]
-  source_map: Option<(String, BoxSource)>,
-}
-
-impl CachedSourceMapDevToolPluginEntry {
-  pub fn from_assets(
-    asset_append: &[BoxSource],
-    source_map: Option<(&str, &CompilationAsset)>,
-  ) -> Option<Self> {
-    let source_map = match source_map {
-      Some((filename, asset)) => Some((filename.to_string(), asset.get_source()?.clone())),
-      None => None,
-    };
-
-    Some(Self {
-      asset_append: asset_append.to_vec(),
-      source_map,
-    })
-  }
-
-  #[allow(clippy::type_complexity)]
-  pub fn restore(
-    &self,
-    asset: &CompilationAsset,
-  ) -> Option<(
-    CompilationAsset,
-    Option<(String, CompilationAsset)>,
-    Vec<BoxSource>,
-  )> {
-    let source = asset.get_source()?.clone();
-    let source = if self.asset_append.is_empty() {
-      source
-    } else {
-      let mut children = Vec::with_capacity(self.asset_append.len() + 1);
-      children.push(source);
-      children.extend(self.asset_append.iter().cloned());
-      ConcatSource::new(children).boxed()
-    };
-
-    let source_asset = CompilationAsset::new(Some(source), (*asset.info).clone());
-    let source_map = self.source_map.as_ref().map(|(filename, source)| {
-      let mut source_map_asset_info = AssetInfo::default().with_development(Some(true));
-      source_map_asset_info.version = asset.info.version.clone();
-      (
-        filename.clone(),
-        CompilationAsset::new(Some(source.clone()), source_map_asset_info),
-      )
-    });
-
-    Some((source_asset, source_map, self.asset_append.clone()))
-  }
 }
 
 impl SourceMapDevToolPluginCache {
@@ -268,12 +210,11 @@ impl Occasion for SourceMapDevToolPluginOccasion {
         };
         let entry = cache_item.entries.get(key)?.as_ref()?;
         let storage_entry = Entry {
-          append: entry.asset_append.clone(),
+          append: entry.asset_append().to_vec(),
           source_map: entry
-            .source_map
-            .as_ref()
+            .source_map()
             .map(|(filename, source)| SourceMapAssetEntry {
-              filename: filename.clone(),
+              filename: filename.to_string(),
               source: source.clone(),
             }),
         };
@@ -312,12 +253,12 @@ impl Occasion for SourceMapDevToolPluginOccasion {
         match self.codec.decode::<Entry>(&value) {
           Ok(entry) => Some((
             key,
-            Some(CachedSourceMapDevToolPluginEntry {
-              asset_append: entry.append,
-              source_map: entry
+            Some(CachedSourceMapDevToolPluginEntry::from_parts(
+              entry.append,
+              entry
                 .source_map
                 .map(|source_map| (source_map.filename, source_map.source)),
-            }),
+            )),
           )),
           Err(err) => {
             tracing::warn!("source map persistent cache decode failed: {:?}", err);

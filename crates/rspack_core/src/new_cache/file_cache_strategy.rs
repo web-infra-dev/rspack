@@ -11,7 +11,7 @@ use super::{
   snapshot::{BuildDeps, FileSystemInfo},
   validator::{CacheValidator, CacheValidatorResult},
 };
-use crate::cache::persistent::codec::CacheCodec;
+use crate::cache::CacheCodec;
 
 const VALIDATOR_KEY: &[u8] = b"validator";
 

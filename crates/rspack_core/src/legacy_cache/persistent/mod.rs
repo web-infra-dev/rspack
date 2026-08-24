@@ -1,5 +1,4 @@
 pub mod build_dependencies;
-pub mod codec;
 pub mod context;
 pub mod occasion;
 pub mod snapshot;
@@ -15,30 +14,20 @@ use rspack_fs::{IntermediateFileSystem, ReadableFileSystem};
 use rspack_workspace::rspack_pkg_version;
 
 use self::{
-  build_dependencies::{BuildDeps, BuildDepsOptions},
-  codec::CacheCodec,
+  build_dependencies::BuildDeps,
   context::CacheContext,
   occasion::{MakeOccasion, MinimizeOccasion, SourceMapDevToolPluginOccasion},
-  snapshot::{Snapshot, SnapshotOptions},
-  storage::{CacheDirectory, StorageOptions, create_storage},
+  snapshot::Snapshot,
+  storage::{CacheDirectory, create_storage},
   validation::CacheValidation,
 };
 use super::Cache;
-use crate::{Compilation, CompilationLogger, CompilationLogging, CompilerOptions, Logger};
+use crate::{
+  Compilation, CompilationLogger, CompilationLogging, CompilerOptions, Logger,
+  cache::{CacheCodec, PersistentCacheOptions},
+};
 
 const LOGGER_NAME: &str = "rspack.persistentCache";
-
-#[derive(Debug, Clone)]
-pub struct PersistentCacheOptions {
-  pub build_dependencies: BuildDepsOptions,
-  pub version: String,
-  pub snapshot: SnapshotOptions,
-  pub storage: StorageOptions,
-  pub portable: bool,
-  pub readonly: bool,
-  /// Filesystem cache max age in seconds.
-  pub max_age: u64,
-}
 
 /// Persistent cache implementation
 #[derive(Debug)]

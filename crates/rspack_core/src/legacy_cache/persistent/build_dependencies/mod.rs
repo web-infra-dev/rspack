@@ -1,20 +1,18 @@
-mod helper;
-
-use std::{collections::VecDeque, path::PathBuf, sync::Arc};
+use std::{collections::VecDeque, sync::Arc};
 
 use rspack_error::Result;
 use rspack_fs::ReadableFileSystem;
 use rspack_paths::{AssertUtf8, InternedPath, InternedPathSet};
 use rustc_hash::FxHashSet as HashSet;
 
-pub(crate) use self::helper::{Helper, is_node_package_path};
 use super::{
   snapshot::{Snapshot, SnapshotScope},
   storage::Storage,
 };
-use crate::CompilationLogger;
-
-pub type BuildDepsOptions = Vec<PathBuf>;
+use crate::{
+  CompilationLogger,
+  cache::{BuildDependencyHelper, BuildDepsOptions, is_node_package_path},
+};
 
 #[derive(Debug)]
 pub enum BuildDepsValidationResult {
@@ -69,7 +67,7 @@ impl BuildDeps {
     data: impl Iterator<Item = InternedPath>,
     logger: CompilationLogger,
   ) {
-    let mut helper = Helper::new(self.fs.clone(), logger);
+    let mut helper = BuildDependencyHelper::new(self.fs.clone(), logger);
     let mut new_deps = HashSet::default();
     let mut queue = VecDeque::new();
     queue.extend(std::mem::take(&mut self.pending));
@@ -137,13 +135,15 @@ mod test {
 
   use super::{
     super::{
-      codec::CacheCodec,
-      snapshot::{Snapshot, SnapshotOptions, SnapshotScope},
+      snapshot::{Snapshot, SnapshotScope},
       storage::{MemoryStorage, Storage},
     },
     BuildDeps, BuildDepsValidationResult,
   };
-  use crate::{CompilationLogger, CompilationLogging, LogType};
+  use crate::{
+    CompilationLogger, CompilationLogging, LogType,
+    cache::{CacheCodec, SnapshotOptions},
+  };
 
   fn test_logger(name: &str) -> (CompilationLogger, CompilationLogging) {
     let logging = CompilationLogging::default();

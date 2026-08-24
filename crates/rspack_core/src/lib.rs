@@ -5,6 +5,7 @@ mod compilation;
 mod transient_cache;
 
 mod exports;
+pub mod legacy_cache;
 mod new_cache;
 mod value_cache_versions;
 pub use artifacts::*;
