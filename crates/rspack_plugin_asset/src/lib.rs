@@ -5,8 +5,8 @@ use rayon::prelude::*;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AssetBuildInfo, AssetGeneratorDataUrl, AssetGeneratorDataUrlFnCtx, AssetGeneratorImportMode,
-  AssetInfo, AssetParserDataUrl, BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph,
-  ChunkUkey, CodeGenerationDataAssetInfo, CodeGenerationDataFilename,
+  AssetInfo, AssetParserDataUrl, BoxDependency, BuildMetaDefaultObject, BuildMetaExportsType,
+  ChunkGraph, ChunkUkey, CodeGenerationDataAssetInfo, CodeGenerationDataFilename,
   CodeGenerationDataPreservedAssetImport, CodeGenerationDataUrl,
   CodeGenerationPublicPathAutoReplace, Compilation, CompilationRenderManifest, CompilerOptions,
   DependencyType, Filename, GenerateContext, GeneratorOptions, JavascriptParserUrl,
@@ -513,7 +513,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
         // different from webpack
         // Rspack: when set asset as entry, output a js chunk with default export
         // webpack: Assets do not have dependencies
-        dependencies: vec![Box::new(AssetExportsDependency::new())],
+        dependencies: vec![BoxDependency::new(AssetExportsDependency::new())],
         blocks: vec![],
         source,
         presentational_dependencies: vec![],

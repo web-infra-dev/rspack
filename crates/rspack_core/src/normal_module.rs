@@ -26,14 +26,14 @@ use serde_json::json;
 use tracing::{Instrument, info_span};
 
 use crate::{
-  AsyncDependenciesBlockIdentifier, BoxDependencyTemplate, BoxLoader, BoxModule,
-  BoxModuleDependency, BuildContext, BuildInfo, BuildMeta, BuildResult, ChunkGraph,
-  CodeGenerationResultBuilder, Compilation, ConnectionState, Context, DependenciesBlock,
-  DependencyId, FactoryMeta, GenerateContext, GeneratorOptions, ImportPhase, LibIdentOptions,
-  Module, ModuleCodeGenerationContext, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
-  ModuleLayer, ModuleType, OptimizationBailoutItem, OutputOptions, ParseContext, ParseResult,
-  ParserAndGenerator, ParserOptions, Resolve, ResolvedModuleOptions, RspackLoaderRunnerPlugin,
-  RunnerContext, RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, SourceType, contextify,
+  AsyncDependenciesBlockIdentifier, BoxLoader, BoxModule, BuildContext, BuildInfo, BuildMeta,
+  BuildResult, ChunkGraph, CodeGenerationResultBuilder, Compilation, ConnectionState, Context,
+  DependenciesBlock, DependencyCodeGenerationRef, DependencyId, FactoryMeta, GenerateContext,
+  GeneratorOptions, ImportPhase, LibIdentOptions, Module, ModuleCodeGenerationContext, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleIdentifier, ModuleLayer, ModuleType, OptimizationBailoutItem,
+  OutputOptions, ParseContext, ParseResult, ParserAndGenerator, ParserOptions, Resolve,
+  ResolvedModuleOptions, RspackLoaderRunnerPlugin, RunnerContext, RuntimeGlobals, RuntimeSpec,
+  SideEffectsStateArtifact, SourceType, contextify,
   diagnostics::ModuleBuildError,
   get_context, module_analyzed_side_effect_free, module_declared_side_effect_free,
   module_update_hash,
@@ -138,8 +138,8 @@ pub struct NormalModule {
   cached_source_sizes: SourceSizeCache,
   diagnostics: Vec<Diagnostic>,
 
-  code_generation_dependencies: Option<Vec<BoxModuleDependency>>,
-  presentational_dependencies: Option<Vec<BoxDependencyTemplate>>,
+  code_generation_dependencies: Option<Vec<DependencyId>>,
+  presentational_dependencies: Option<Vec<DependencyCodeGenerationRef>>,
 
   factory_meta: Option<FactoryMeta>,
   build_info: BuildInfo,
@@ -717,7 +717,7 @@ impl Module for NormalModule {
     self.resolve_options.clone()
   }
 
-  fn get_code_generation_dependencies(&self) -> Option<&[BoxModuleDependency]> {
+  fn get_code_generation_dependencies(&self) -> Option<&[DependencyId]> {
     if let Some(deps) = self.code_generation_dependencies.as_deref()
       && !deps.is_empty()
     {
@@ -727,7 +727,7 @@ impl Module for NormalModule {
     }
   }
 
-  fn get_presentational_dependencies(&self) -> Option<&[BoxDependencyTemplate]> {
+  fn get_presentational_dependencies(&self) -> Option<&[DependencyCodeGenerationRef]> {
     if let Some(deps) = self.presentational_dependencies.as_deref()
       && !deps.is_empty()
     {

@@ -111,7 +111,7 @@ use std::{
 use napi::{CallContext, bindgen_prelude::*};
 pub use raw_options::{CustomPluginBuilder, register_custom_plugin};
 use rspack_core::{
-  BoxDependency, Compilation, CompilationId, CompilerId, CompilerPlatform, EntryOptions,
+  Compilation, CompilationId, CompilerId, CompilerPlatform, DependencyRef, EntryOptions,
   ModuleIdentifier, PluginExt,
 };
 use rspack_error::Diagnostic;
@@ -231,8 +231,8 @@ struct JsCompiler {
   // call drop manually to avoid unnecessary drop overhead in cli build
   compiler: ManuallyDrop<Compiler>,
   state: CompilerState,
-  include_dependencies_map: FxHashMap<EntryDependencyCacheKey, BoxDependency>,
-  entry_dependencies_map: FxHashMap<EntryDependencyCacheKey, BoxDependency>,
+  include_dependencies_map: FxHashMap<EntryDependencyCacheKey, DependencyRef>,
+  entry_dependencies_map: FxHashMap<EntryDependencyCacheKey, DependencyRef>,
   compiler_context: Arc<CompilerContext>,
   virtual_file_store: Option<Arc<RwLock<dyn VirtualFileStore>>>,
 }

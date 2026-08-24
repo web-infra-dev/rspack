@@ -7,7 +7,7 @@ use crate::{
 };
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct EntryDependency {
   id: DependencyId,
   request: String,

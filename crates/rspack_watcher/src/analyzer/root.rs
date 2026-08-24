@@ -2,7 +2,7 @@
 use std::ops::Deref;
 
 use dashmap::DashSet as HashSet;
-use rspack_paths::{ArcPath, ArcPathDashMap, ArcPathDashSet};
+use rspack_paths::{InternedPath, InternedPathDashMap, InternedPathDashSet};
 use rspack_util::fx_hash::FxDashMap as HashMap;
 
 use super::{Analyzer, WatchPattern};
@@ -48,8 +48,12 @@ impl Analyzer for WatcherRootAnalyzer {
 }
 
 /// Union of three path sets into a fresh set.
-fn union3(a: &ArcPathDashSet, b: &ArcPathDashSet, c: &ArcPathDashSet) -> ArcPathDashSet {
-  let out = ArcPathDashSet::default();
+fn union3(
+  a: &InternedPathDashSet,
+  b: &InternedPathDashSet,
+  c: &InternedPathDashSet,
+) -> InternedPathDashSet {
+  let out = InternedPathDashSet::default();
   for set in [a, b, c] {
     for path in set.iter() {
       out.insert(path.deref().clone());
@@ -59,8 +63,8 @@ fn union3(a: &ArcPathDashSet, b: &ArcPathDashSet, c: &ArcPathDashSet) -> ArcPath
 }
 
 /// Set difference `a - b` into a fresh set.
-fn difference(a: &ArcPathDashSet, b: &ArcPathDashSet) -> ArcPathDashSet {
-  let out = ArcPathDashSet::default();
+fn difference(a: &InternedPathDashSet, b: &InternedPathDashSet) -> InternedPathDashSet {
+  let out = InternedPathDashSet::default();
   for path in a.iter() {
     if !b.contains(path.deref()) {
       out.insert(path.deref().clone());
@@ -71,16 +75,16 @@ fn difference(a: &ArcPathDashSet, b: &ArcPathDashSet) -> ArcPathDashSet {
 
 #[derive(Debug, Default)]
 struct PathTree {
-  inner: ArcPathDashMap<TreeNode>,
+  inner: InternedPathDashMap<TreeNode>,
 }
 
 impl PathTree {
-  pub fn find_common_root(&self) -> Option<ArcPath> {
+  pub fn find_common_root(&self) -> Option<InternedPath> {
     let root = self.find_root()?;
     Some(self.find_common_root_recursive(root))
   }
 
-  fn find_common_root_recursive(&self, path: ArcPath) -> ArcPath {
+  fn find_common_root_recursive(&self, path: InternedPath) -> InternedPath {
     let node = self
       .inner
       .get(&path)
@@ -99,7 +103,11 @@ impl PathTree {
     }
   }
 
-  pub fn update_paths(&self, added_paths: &ArcPathDashSet, removed_paths: &ArcPathDashSet) {
+  pub fn update_paths(
+    &self,
+    added_paths: &InternedPathDashSet,
+    removed_paths: &InternedPathDashSet,
+  ) {
     for added in added_paths.iter() {
       self.add_path(added.deref());
     }
@@ -108,37 +116,37 @@ impl PathTree {
     }
   }
 
-  pub fn add_path(&self, path: &ArcPath) {
+  pub fn add_path(&self, path: &InternedPath) {
     self.inner.entry(path.clone()).or_default();
     self.add_path_recursive(path);
   }
 
-  pub fn remove_path(&self, path: &ArcPath) {
+  pub fn remove_path(&self, path: &InternedPath) {
     self.inner.remove(path);
     // Detach from the PARENT's child set. The previous code removed `path` from
     // its own set (a no-op), leaving a stale child reference on the parent that
     // could later surface as a tree node that no longer exists.
-    if let Some(parent) = path.parent().map(ArcPath::from)
+    if let Some(parent) = path.parent().map(InternedPath::from)
       && let Some(parent_node) = self.inner.get(&parent)
     {
       parent_node.children.remove(path);
     }
   }
 
-  fn find_root(&self) -> Option<ArcPath> {
+  fn find_root(&self) -> Option<InternedPath> {
     // Start from the current path and find the root recursively
     let path = self.inner.iter().next()?.key().clone();
     Some(self.find_root_recursive(path))
   }
 
-  fn find_root_recursive(&self, path: ArcPath) -> ArcPath {
+  fn find_root_recursive(&self, path: InternedPath) -> InternedPath {
     // If the path is already a root, return it
 
     match path.parent() {
       Some(parent) => {
         // If the parent exists in the tree, continue searching up
-        if self.inner.get(&ArcPath::from(parent)).is_some() {
-          self.find_root_recursive(ArcPath::from(parent))
+        if self.inner.get(&InternedPath::from(parent)).is_some() {
+          self.find_root_recursive(InternedPath::from(parent))
         } else {
           path
         }
@@ -147,32 +155,32 @@ impl PathTree {
     }
   }
 
-  fn add_path_recursive(&self, path: &ArcPath) {
+  fn add_path_recursive(&self, path: &InternedPath) {
     let tree = &self.inner;
     if let Some(parent) = path.parent() {
-      if let Some(node) = tree.get_mut(&ArcPath::from(parent)) {
+      if let Some(node) = tree.get_mut(&InternedPath::from(parent)) {
         node.add_child(path.clone());
         return;
       }
       let parent_node = TreeNode::default();
       parent_node.add_child(path.clone());
-      tree.insert(ArcPath::from(parent), parent_node);
-      self.add_path_recursive(&ArcPath::from(parent))
+      tree.insert(InternedPath::from(parent), parent_node);
+      self.add_path_recursive(&InternedPath::from(parent))
     }
   }
 }
 
 #[derive(Debug, Default)]
 struct TreeNode {
-  children: ArcPathDashSet,
+  children: InternedPathDashSet,
 }
 
 impl TreeNode {
-  fn add_child(&self, child: ArcPath) {
+  fn add_child(&self, child: InternedPath) {
     self.children.insert(child);
   }
 
-  fn only_child(&self) -> Option<ArcPath> {
+  fn only_child(&self) -> Option<InternedPath> {
     if self.children.len() == 1 {
       self.children.iter().next().map(|c| c.key().clone())
     } else {
@@ -183,7 +191,7 @@ impl TreeNode {
 
 #[cfg(test)]
 mod tests {
-  use rspack_paths::ArcPath;
+  use rspack_paths::InternedPath;
 
   use super::*;
   use crate::paths::PathManager;
@@ -191,10 +199,10 @@ mod tests {
   #[test]
   fn test_find_watch_root() {
     let current_dir = std::env::current_dir().expect("Failed to get current directory");
-    let file_0 = ArcPath::from(current_dir.join("Cargo.toml"));
-    let file_1 = ArcPath::from(current_dir.join("src/lib.rs"));
-    let dir_0 = ArcPath::from(current_dir.clone());
-    let dir_1 = ArcPath::from(current_dir.join("src"));
+    let file_0 = InternedPath::from(current_dir.join("Cargo.toml"));
+    let file_1 = InternedPath::from(current_dir.join("src/lib.rs"));
+    let dir_0 = InternedPath::from(current_dir.clone());
+    let dir_1 = InternedPath::from(current_dir.join("src"));
     let path_manager = PathManager::default();
     let files = (vec![file_0, file_1].into_iter(), vec![].into_iter());
     let dirs = (vec![dir_0, dir_1].into_iter(), vec![].into_iter());
@@ -205,7 +213,7 @@ mod tests {
     let watch_patterns = analyzer.analyze(path_manager.access());
 
     assert_eq!(watch_patterns.len(), 1);
-    assert_eq!(watch_patterns[0].path, ArcPath::from(current_dir));
+    assert_eq!(watch_patterns[0].path, InternedPath::from(current_dir));
     assert_eq!(watch_patterns[0].mode, notify::RecursiveMode::Recursive);
   }
 
@@ -232,14 +240,14 @@ mod tests {
     let watch_patterns = analyzer.analyze(path_manager.access());
 
     assert_eq!(watch_patterns.len(), 1);
-    assert_eq!(watch_patterns[0].path, ArcPath::from(current_dir));
+    assert_eq!(watch_patterns[0].path, InternedPath::from(current_dir));
   }
 
   #[test]
   fn test_remove_path_detaches_from_parent() {
     let base = std::env::current_dir().expect("Failed to get current directory");
-    let dir = ArcPath::from(base.join("a"));
-    let leaf = ArcPath::from(base.join("a").join("b.js"));
+    let dir = InternedPath::from(base.join("a"));
+    let leaf = InternedPath::from(base.join("a").join("b.js"));
 
     let tree = PathTree::default();
     tree.add_path(&leaf); // builds `a` as an ancestor whose child is `b.js`
@@ -275,8 +283,8 @@ mod tests {
     // deletes it — keeping the tree connected so `find_common_root` cannot land
     // on a non-existent orphan root and panic.
     let base = std::env::current_dir().expect("cwd");
-    let sm = ArcPath::from(base.join("__mig__").join("some-module"));
-    let sub = |s: &str| ArcPath::from(base.join("__mig__").join("some-module").join(s));
+    let sm = InternedPath::from(base.join("__mig__").join("some-module"));
+    let sub = |s: &str| InternedPath::from(base.join("__mig__").join("some-module").join(s));
 
     let pm = PathManager::default();
     let analyzer = WatcherRootAnalyzer::default();

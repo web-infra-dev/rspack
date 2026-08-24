@@ -11,7 +11,7 @@ use rspack_util::fx_hash::FxIndexSet;
 use swc_core::atoms::Atom;
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct ClientReferenceDependency {
   id: DependencyId,
   request: String,

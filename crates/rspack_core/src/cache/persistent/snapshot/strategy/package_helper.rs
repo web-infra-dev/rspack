@@ -1,14 +1,14 @@
 use std::sync::Arc;
 
 use rspack_fs::ReadableFileSystem;
-use rspack_paths::{ArcPath, ArcPathDashMap, AssertUtf8};
+use rspack_paths::{AssertUtf8, InternedPath, InternedPathDashMap};
 use simd_json::prelude::{ValueAsScalar, ValueObjectAccess};
 
 /// A helper for finding package.json versions in directory hierarchies.
 #[derive(Debug)]
 pub struct PackageHelper {
   fs: Arc<dyn ReadableFileSystem>,
-  version_cache: ArcPathDashMap<Option<String>>,
+  version_cache: InternedPathDashMap<Option<String>>,
 }
 
 impl PackageHelper {
@@ -22,7 +22,7 @@ impl PackageHelper {
 
   /// Finds the package.json version for the given path by traversing up the directory tree.
   #[async_recursion::async_recursion]
-  pub async fn package_version(&self, path: &ArcPath) -> Option<String> {
+  pub async fn package_version(&self, path: &InternedPath) -> Option<String> {
     if let Some(version) = self.version_cache.get(path) {
       return version.clone();
     }
@@ -38,7 +38,7 @@ impl PackageHelper {
     if res.is_none()
       && let Some(p) = path.parent()
     {
-      res = self.package_version(&ArcPath::from(p)).await;
+      res = self.package_version(&InternedPath::from(p)).await;
     }
 
     self.version_cache.insert(path.into(), res.clone());
@@ -51,7 +51,7 @@ mod tests {
   use std::sync::Arc;
 
   use rspack_fs::{MemoryFileSystem, WritableFileSystem};
-  use rspack_paths::ArcPath;
+  use rspack_paths::InternedPath;
 
   use super::PackageHelper;
 
@@ -69,13 +69,13 @@ mod tests {
     let helper = PackageHelper::new(fs.clone());
     assert_eq!(
       helper
-        .package_version(&ArcPath::from("/packages/p1/file.js"))
+        .package_version(&InternedPath::from("/packages/p1/file.js"))
         .await,
       Some("1.2.0".into())
     );
     assert_eq!(
       helper
-        .package_version(&ArcPath::from("/packages/p2/file.js"))
+        .package_version(&InternedPath::from("/packages/p2/file.js"))
         .await,
       None
     );

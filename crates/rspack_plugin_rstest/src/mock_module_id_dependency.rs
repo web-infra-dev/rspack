@@ -9,7 +9,7 @@ use rspack_core::{
 use crate::import_dependency::module_id_rstest;
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct MockModuleIdDependency {
   pub id: DependencyId,
   pub request: String,
@@ -43,8 +43,17 @@ impl MockModuleIdDependency {
     }
   }
 
-  pub fn set_request(&mut self, request: String) {
-    self.request = request;
+  pub fn with_request(&self, request: String) -> Self {
+    Self {
+      id: self.id,
+      request,
+      weak: self.weak,
+      range: self.range,
+      optional: self.optional,
+      category: self.category,
+      suffix: self.suffix.clone(),
+      missing_module_fallback: self.missing_module_fallback.clone(),
+    }
   }
 
   pub fn with_missing_module_fallback(mut self, fallback: String) -> Self {

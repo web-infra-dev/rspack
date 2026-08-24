@@ -13,7 +13,7 @@ use swc_atoms::Atom;
 use super::ExportsBase;
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct CommonJsSelfReferenceDependency {
   id: DependencyId,
   range: DependencyRange,

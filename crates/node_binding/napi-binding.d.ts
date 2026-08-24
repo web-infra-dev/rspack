@@ -560,6 +560,7 @@ export declare enum BuiltinPluginName {
   NamedModuleIdsPlugin = 'NamedModuleIdsPlugin',
   NaturalModuleIdsPlugin = 'NaturalModuleIdsPlugin',
   DeterministicModuleIdsPlugin = 'DeterministicModuleIdsPlugin',
+  CompatHashedModuleIdsPlugin = 'CompatHashedModuleIdsPlugin',
   SyncModuleIdsPlugin = 'SyncModuleIdsPlugin',
   HashedModuleIdsPlugin = 'HashedModuleIdsPlugin',
   NaturalChunkIdsPlugin = 'NaturalChunkIdsPlugin',
@@ -1961,6 +1962,10 @@ export interface RawCollectShareEntryPluginOptions {
   filename?: string
 }
 
+export interface RawCompatHashedModuleIdsPluginOptions {
+  minLength?: number
+}
+
 export interface RawCompilerPlatform {
   web?: boolean | null
   browser?: boolean | null
@@ -2748,6 +2753,7 @@ export interface RawModuleRuleUse {
 
 export interface RawNewCache {
   codeGeneration: boolean
+  devtool: boolean
   minimize: boolean
 }
 

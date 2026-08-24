@@ -13,7 +13,7 @@ use swc_atoms::Atom;
 pub const IMPORT_META_RSC_BINDING: &str = "__rspack_import_meta_rsc__";
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct ImportMetaRscDependency {
   id: DependencyId,
   #[cacheable(with=AsPreset)]

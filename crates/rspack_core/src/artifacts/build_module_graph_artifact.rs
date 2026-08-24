@@ -5,7 +5,7 @@ use rspack_error::Diagnostic;
 use rustc_hash::FxHashSet;
 
 use crate::{
-  ArtifactExt, BoxDependency, BuildDependency, DependencyId, FactorizationArtifact, FactorizeInfo,
+  ArtifactExt, BuildDependency, DependencyId, DependencyRef, FactorizationArtifact, FactorizeInfo,
   ModuleGraph, ModuleIdentifier, SideEffectsStateArtifact,
   compilation::build_module_graph::ModuleToLazyMake,
   incremental::IncrementalPasses,
@@ -87,9 +87,9 @@ impl BuildModuleGraphArtifact {
   ///
   /// Replacing a dependency with the same id must also discard the previous
   /// dependency's factorization result.
-  pub(crate) fn add_unfactorized_dependency(&mut self, dependency: BoxDependency) {
+  pub(crate) fn add_unfactorized_dependency(&mut self, dependency: DependencyRef) {
     self.revoke_factorization(dependency.id());
-    self.module_graph.add_dependency(dependency);
+    self.module_graph.add_dependency_ref(dependency);
   }
 
   pub fn factorize_info(&self, dep_id: &DependencyId) -> Option<&FactorizeInfo> {

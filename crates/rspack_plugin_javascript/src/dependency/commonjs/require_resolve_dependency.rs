@@ -9,7 +9,7 @@ use rspack_core::{
 use super::create_resource_identifier_for_contextual_commonjs_dependency;
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct RequireResolveDependency {
   pub id: DependencyId,
   pub request: String,

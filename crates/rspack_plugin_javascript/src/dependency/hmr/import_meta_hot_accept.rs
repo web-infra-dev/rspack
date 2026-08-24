@@ -7,7 +7,7 @@ use rspack_core::{
 use swc_atoms::Atom;
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct ImportMetaHotAcceptDependency {
   id: DependencyId,
   #[cacheable(with=AsPreset)]

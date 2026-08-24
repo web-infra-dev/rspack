@@ -691,18 +691,34 @@ export type Output = {
 
 //#region Resolve
 /**
- * Path alias
+ * Redirect module requests to other paths.
+ *
  * @example
+ * A regular alias also matches subpath requests:
+ *
  * ```js
  * {
- * 	"@": path.resolve(__dirname, './src'),
- * 	"abc$": path.resolve(__dirname, './node_modules/abc/index.js'),
+ *   '@': path.resolve(import.meta.dirname, './src'),
  * }
- * // - require("@/a") will attempt to resolve <root>/src/a.
- * // - require("abc") will attempt to resolve <root>/src/abc.
- * // - require("abc/file.js") will not match, and it will attempt to resolve node_modules/abc/file.js.
  * ```
- * */
+ *
+ * `import '@/a'` will attempt to resolve `<root>/src/a`.
+ *
+ * @example
+ * Add `$` to the end of an alias key to match only the complete module request.
+ * The `$` is a special `resolve.alias` marker and is not part of the module request:
+ *
+ * ```js
+ * {
+ *   abc$: path.resolve(import.meta.dirname, './src/abc'),
+ * }
+ * ```
+ *
+ * - `import 'abc'` will attempt to resolve `<root>/src/abc`.
+ * - `import 'abc/file.js'` will not match the alias and will continue through normal module resolution, which typically attempts to resolve `node_modules/abc/file.js`.
+ *
+ * Without the `$`, an `abc` alias would also match subpath requests such as `import 'abc/file.js'`.
+ */
 export type ResolveAlias =
   | {
       [x: string]: string | false | (string | false)[];
@@ -2800,7 +2816,8 @@ export type Optimization = {
    * Setting to `false` disables the built-in algorithm, allowing a custom plugin
    * (e.g. HashedModuleIdsPlugin) to provide module ids instead.
    */
-  moduleIds?: false | 'named' | 'natural' | 'deterministic' | 'hashed';
+  moduleIds?:
+    false | 'named' | 'natural' | 'deterministic' | 'compat-hashed' | 'hashed';
 
   /**
    * Which algorithm to use when choosing chunk ids.
@@ -3086,6 +3103,8 @@ export type UseInputFileSystem = false | RegExp[];
 export type NewCache = {
   /** Enable the module code generation cache. @default true */
   codeGeneration?: boolean;
+  /** Enable the devtool asset cache. @default true */
+  devtool?: boolean;
   /** Enable the asset minimization cache. @default true */
   minimize?: boolean;
 };

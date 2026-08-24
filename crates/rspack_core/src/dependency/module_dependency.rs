@@ -1,4 +1,3 @@
-use dyn_clone::clone_trait_object;
 use rspack_cacheable::cacheable_dyn;
 
 use super::Dependency;
@@ -25,8 +24,6 @@ pub trait ModuleDependency: Dependency {
   }
 }
 
-clone_trait_object!(ModuleDependency);
-
 pub trait AsModuleDependency {
   fn as_module_dependency(&self) -> Option<&dyn ModuleDependency> {
     None
@@ -46,5 +43,3 @@ impl<T: ModuleDependency> AsModuleDependency for T {
     Some(self)
   }
 }
-
-pub type BoxModuleDependency = Box<dyn ModuleDependency>;

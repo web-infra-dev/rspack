@@ -1,6 +1,6 @@
 {
   "name": "@rspack/cli",
-  "version": "2.2.0-beta.1",
+  "version": "2.2.0-rc.0",
   "description": "CLI for rspack",
   "homepage": "https://rspack.rs",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",
@@ -39,10 +39,8 @@
     "@rstackjs/load-config": "catalog:",
     "@rspack/core": "workspace:*",
     "@rspack/dev-server": "catalog:",
-    "@rspack/test-tools": "workspace:*",
     "cac": "catalog:",
     "concat-stream": "catalog:",
-    "cross-env": "catalog:",
     "execa": "catalog:",
     "exit-hook": "catalog:",
     "jiti": "catalog:",

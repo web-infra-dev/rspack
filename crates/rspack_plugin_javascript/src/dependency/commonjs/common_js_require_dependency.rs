@@ -15,7 +15,7 @@ use super::create_resource_identifier_for_contextual_commonjs_dependency;
 use crate::dependency::{DependencyBranchGuard, compose_dependency_condition};
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct CommonJsRequireDependency {
   id: DependencyId,
   request: String,

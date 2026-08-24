@@ -39,7 +39,7 @@ impl DeclarationInfo {
 }
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct ESMExportExpressionDependency {
   id: DependencyId,
   range: DependencyRange,

@@ -9,7 +9,7 @@ use std::{
 };
 
 use rspack_error::Result;
-use rspack_paths::ArcPathSet;
+use rspack_paths::InternedPathSet;
 use tokio::{
   sync::{mpsc, oneshot},
   time::{Instant, sleep_until},
@@ -33,7 +33,7 @@ enum Command {
     value: ErasedCacheValue,
     encoder: CacheValueEncoder,
   },
-  StoreBuildDependencies(ArcPathSet),
+  StoreBuildDependencies(InternedPathSet),
   Restore {
     key: CacheKey,
     etag: Option<Etag>,
@@ -282,7 +282,7 @@ impl IdleFileCache {
     )
   }
 
-  pub fn store_build_dependencies(&self, dependencies: ArcPathSet) -> Result<()> {
+  pub fn store_build_dependencies(&self, dependencies: InternedPathSet) -> Result<()> {
     self.send(Command::StoreBuildDependencies(dependencies))
   }
 

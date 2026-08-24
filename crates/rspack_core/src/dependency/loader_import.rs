@@ -7,7 +7,7 @@ use crate::{
 };
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct LoaderImportDependency {
   id: DependencyId,
   context: Context,

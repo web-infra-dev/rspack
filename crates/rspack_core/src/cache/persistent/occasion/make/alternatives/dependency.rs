@@ -1,19 +1,19 @@
 use rspack_cacheable::{cacheable, cacheable_dyn, utils::OwnedOrRef};
 
 use crate::{
-  AffectType, AsContextDependency, AsDependencyCodeGeneration, AsModuleDependency, BoxDependency,
-  Dependency, DependencyId,
+  AffectType, AsContextDependency, AsDependencyCodeGeneration, AsModuleDependency, Dependency,
+  DependencyId, DependencyRef,
 };
 
 #[cacheable]
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub struct TempDependency {
   id: DependencyId,
 }
 
 impl TempDependency {
-  pub fn transform_from(dep: OwnedOrRef<BoxDependency>) -> OwnedOrRef<BoxDependency> {
-    OwnedOrRef::Owned(Box::new(TempDependency {
+  pub fn transform_from(dep: OwnedOrRef<DependencyRef>) -> OwnedOrRef<DependencyRef> {
+    OwnedOrRef::Owned(DependencyRef::new(TempDependency {
       id: *dep.as_ref().id(),
     }))
   }

@@ -1,9 +1,10 @@
 use std::{collections::VecDeque, path::PathBuf, sync::Arc};
 
+use rspack_error::Result;
 use rspack_fs::ReadableFileSystem;
-use rspack_paths::{ArcPath, ArcPathSet, AssertUtf8};
+use rspack_paths::{AssertUtf8, InternedPath, InternedPathSet};
 
-use super::{Snapshot, SnapshotEntry};
+use super::{FileSystemInfo, Snapshot, SnapshotValidationResult};
 use crate::{
   CompilationLogger,
   cache::persistent::build_dependencies::{Helper, is_node_package_path},
@@ -17,16 +18,24 @@ pub enum BuildDepsValidationResult {
     tracked_files: usize,
   },
   Invalid {
-    modified_files: ArcPathSet,
-    removed_files: ArcPathSet,
+    modified_files: InternedPathSet,
+    removed_files: InternedPathSet,
   },
+}
+
+#[derive(Debug, Default)]
+pub struct ResolvedBuildDependencies {
+  pub(crate) dependencies: InternedPathSet,
+  pub(crate) files: InternedPathSet,
+  pub(crate) contexts: InternedPathSet,
+  pub(crate) missing: InternedPathSet,
 }
 
 /// Build dependencies manager.
 #[derive(Debug)]
 pub struct BuildDeps {
   /// Dependencies configured at startup and added on the next store.
-  pending: ArcPathSet,
+  pending: InternedPathSet,
   fs: Arc<dyn ReadableFileSystem>,
   logger: CompilationLogger,
 }
@@ -40,7 +49,7 @@ impl BuildDeps {
     Self {
       pending: options
         .iter()
-        .map(|path| ArcPath::from(path.as_path()))
+        .map(|path| InternedPath::from(path.as_path()))
         .collect(),
       fs,
       logger,
@@ -51,20 +60,34 @@ impl BuildDeps {
   ///
   /// For performance reasons, recursive searches stop at dependencies in
   /// `node_modules`.
+  ///
+  /// See webpack's build dependency resolution implementation:
+  /// https://github.com/webpack/webpack/blob/ce97d583e1cd8f3e47b70737de72e91b567a8497/lib/FileSystemInfo.js#L1873-L2523
   pub async fn resolve_dependencies(
     &mut self,
-    current: &ArcPathSet,
-    paths: impl Iterator<Item = ArcPath>,
-  ) -> ArcPathSet {
+    current: &InternedPathSet,
+    paths: impl Iterator<Item = InternedPath>,
+  ) -> ResolvedBuildDependencies {
     let mut helper = Helper::new(self.fs.clone(), self.logger.clone());
-    let mut added = ArcPathSet::default();
+    let mut resolved = ResolvedBuildDependencies::default();
     let mut queue = VecDeque::new();
     queue.extend(self.pending.iter().cloned());
     queue.extend(paths);
 
     while let Some(dependency) = queue.pop_front() {
-      if current.contains(&dependency) || !added.insert(dependency.clone()) {
+      if current.contains(&dependency) || !resolved.dependencies.insert(dependency.clone()) {
         continue;
+      }
+      match self.fs.metadata(dependency.assert_utf8()).await {
+        Ok(metadata) if metadata.is_directory => {
+          resolved.contexts.insert(dependency.clone());
+        }
+        Ok(_) => {
+          resolved.files.insert(dependency.clone());
+        }
+        Err(_) => {
+          resolved.missing.insert(dependency.clone());
+        }
       }
       if is_node_package_path(&dependency) {
         continue;
@@ -73,13 +96,13 @@ impl BuildDeps {
         queue.extend(
           children
             .into_iter()
-            .map(|path| ArcPath::from(path.as_path())),
+            .map(|path| InternedPath::from(path.as_path())),
         );
       }
     }
 
     self.pending.clear();
-    added
+    resolved
   }
 
   /// Validate build dependencies.
@@ -87,17 +110,36 @@ impl BuildDeps {
   /// If any build dependency changed, this method returns an invalid result.
   pub async fn validate_snapshot(
     &self,
+    file_system_info: &FileSystemInfo,
     snapshot: &Snapshot,
-    entries: &[SnapshotEntry],
+    dependencies: &InternedPathSet,
     tracked_files: usize,
-  ) -> BuildDepsValidationResult {
-    let (modified_files, removed_files) = snapshot.calc_modified_paths(entries).await;
-    if !modified_files.is_empty() || !removed_files.is_empty() {
-      return BuildDepsValidationResult::Invalid {
-        modified_files,
+  ) -> Result<BuildDepsValidationResult> {
+    let validation = file_system_info.check_snapshot_valid(snapshot).await?;
+    let pending = self
+      .pending
+      .iter()
+      .filter(|path| !dependencies.contains(*path))
+      .cloned()
+      .collect::<InternedPathSet>();
+    match validation {
+      SnapshotValidationResult::Valid if pending.is_empty() => {
+        Ok(BuildDepsValidationResult::Valid { tracked_files })
+      }
+      SnapshotValidationResult::Valid => Ok(BuildDepsValidationResult::Invalid {
+        modified_files: pending,
+        removed_files: Default::default(),
+      }),
+      SnapshotValidationResult::Invalid {
+        mut modified_files,
         removed_files,
-      };
+      } => {
+        modified_files.extend(pending);
+        Ok(BuildDepsValidationResult::Invalid {
+          modified_files,
+          removed_files,
+        })
+      }
     }
-    BuildDepsValidationResult::Valid { tracked_files }
   }
 }

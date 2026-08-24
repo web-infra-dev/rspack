@@ -42,22 +42,22 @@ use swc_experimental_ecma_parser::{EsSyntax, Parser, StringSource, Syntax};
 use swc_experimental_ecma_semantic::resolver::{Semantic, resolver};
 
 use crate::{
-  AsyncDependenciesBlockIdentifier, BoxDependency, BoxDependencyTemplate, BoxModule,
-  BoxModuleDependency, BuildContext, BuildInfo, BuildMeta, BuildMetaDefaultObject,
-  BuildMetaExportsType, BuildResult, ChunkGraph, ChunkInitFragments,
+  AsyncDependenciesBlockIdentifier, BoxModule, BuildContext, BuildInfo, BuildMeta,
+  BuildMetaDefaultObject, BuildMetaExportsType, BuildResult, ChunkGraph, ChunkInitFragments,
   CodeGenerationDataChunkInitFragments, CodeGenerationDataTopLevelDeclarations,
   CodeGenerationPublicPathAutoReplace, CodeGenerationResultBuilder,
   CodeGenerationRuntimeRequirementsWrite, Compilation, ConcatenatedModuleIdent, ConcatenationScope,
   ConditionalInitFragment, ConnectionState, Context, DEFAULT_EXPORT, DEFAULT_EXPORT_ATOM,
-  DependenciesBlock, DependencyId, DependencyType, ExportInfo, ExportProvided, ExportsArgument,
-  ExportsInfoArtifact, ExportsType, FactoryMeta, ImportedByDeferModulesArtifact, InitFragment,
-  InitFragmentStage, LibIdentOptions, Module, ModuleArgument, ModuleCodeGenerationContext,
-  ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, ModuleLayer,
-  ModuleStaticCache, ModuleType, NAMESPACE_OBJECT_EXPORT, ParserOptions, Resolve, RuntimeCondition,
-  RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, SourceType, URLStaticMode, UsageState,
-  UsedName, UsedNameItem, escape_identifier, fast_set, filter_runtime, find_target,
-  get_runtime_key, impl_source_map_config, merge_runtime_condition,
-  merge_runtime_condition_non_false, module_update_hash, property_access, property_name,
+  DependenciesBlock, Dependency, DependencyCodeGenerationRef, DependencyId, DependencyType,
+  ExportInfo, ExportProvided, ExportsArgument, ExportsInfoArtifact, ExportsType, FactoryMeta,
+  ImportedByDeferModulesArtifact, InitFragment, InitFragmentStage, LibIdentOptions, Module,
+  ModuleArgument, ModuleCodeGenerationContext, ModuleGraph, ModuleGraphCacheArtifact,
+  ModuleGraphConnection, ModuleIdentifier, ModuleLayer, ModuleStaticCache, ModuleType,
+  NAMESPACE_OBJECT_EXPORT, ParserOptions, Resolve, RuntimeCondition, RuntimeGlobals, RuntimeSpec,
+  SideEffectsStateArtifact, SourceType, URLStaticMode, UsageState, UsedName, UsedNameItem,
+  escape_identifier, fast_set, filter_runtime, find_target, get_runtime_key,
+  impl_source_map_config, merge_runtime_condition, merge_runtime_condition_non_false,
+  module_update_hash, property_access, property_name,
   render_make_deferred_namespace_mode_from_exports_type,
   reserved_names::RESERVED_NAMES_ATOM_SET,
   subtract_runtime_condition, to_identifier_with_escaped, to_normal_comment,
@@ -82,8 +82,8 @@ pub struct RootModuleContext {
   pub name_for_condition: Option<Box<str>>,
   pub lib_indent: Option<String>,
   pub resolve_options: Option<Arc<Resolve>>,
-  pub code_generation_dependencies: Option<Vec<BoxModuleDependency>>,
-  pub presentational_dependencies: Option<Vec<BoxDependencyTemplate>>,
+  pub code_generation_dependencies: Option<Vec<DependencyId>>,
+  pub presentational_dependencies: Option<Vec<DependencyCodeGenerationRef>>,
   pub context: Option<Context>,
   pub layer: Option<ModuleLayer>,
   pub side_effect_connection_state: ConnectionState,
@@ -685,7 +685,7 @@ impl ConcatenatedModule {
       };
       for dependency in dependencies {
         let references_concatenated_module = module_graph
-          .module_identifier_by_dependency_id(dependency.id())
+          .module_identifier_by_dependency_id(dependency)
           .is_some_and(|module_id| concatenated_modules.contains(module_id));
         if references_concatenated_module {
           continue;
@@ -693,7 +693,7 @@ impl ConcatenatedModule {
         root_module_ctxt
           .code_generation_dependencies
           .get_or_insert_with(Vec::new)
-          .push(dependency.clone());
+          .push(*dependency);
       }
     }
     Self::new(id.as_str().into(), root_module_ctxt, modules, runtime)
@@ -2127,7 +2127,7 @@ impl Module for ConcatenatedModule {
     self.root_module_ctxt.resolve_options.clone()
   }
 
-  fn get_code_generation_dependencies(&self) -> Option<&[BoxModuleDependency]> {
+  fn get_code_generation_dependencies(&self) -> Option<&[DependencyId]> {
     if let Some(deps) = self
       .root_module_ctxt
       .code_generation_dependencies
@@ -2140,7 +2140,7 @@ impl Module for ConcatenatedModule {
     }
   }
 
-  fn get_presentational_dependencies(&self) -> Option<&[BoxDependencyTemplate]> {
+  fn get_presentational_dependencies(&self) -> Option<&[DependencyCodeGenerationRef]> {
     if let Some(deps) = self.root_module_ctxt.presentational_dependencies.as_deref()
       && !deps.is_empty()
     {
@@ -3355,7 +3355,7 @@ impl ConcatenatedModule {
   }
 }
 
-pub fn is_esm_dep_like(dep: &BoxDependency) -> bool {
+pub fn is_esm_dep_like(dep: &dyn Dependency) -> bool {
   matches!(
     dep.dependency_type(),
     DependencyType::EsmImportSpecifier

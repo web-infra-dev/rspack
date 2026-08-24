@@ -24,7 +24,7 @@ fn create_resource_identifier(options: &ContextOptions) -> Identifier {
 }
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct ImportContextDependency {
   id: DependencyId,
   options: ContextOptions,
@@ -32,7 +32,7 @@ pub struct ImportContextDependency {
   value_range: DependencyRange,
   resource_identifier: ResourceIdentifier,
   optional: bool,
-  critical: Option<Diagnostic>,
+  critical: rspack_core::DependencyCriticalState,
 }
 
 impl ImportContextDependency {
@@ -48,7 +48,7 @@ impl ImportContextDependency {
       range,
       value_range,
       optional,
-      critical: None,
+      critical: Default::default(),
       options,
     }
   }
@@ -106,7 +106,7 @@ impl Dependency for ImportContextDependency {
     _exports_info_artifact: &ExportsInfoArtifact,
   ) -> Option<Vec<Diagnostic>> {
     if let Some(critical) = self.critical() {
-      return Some(vec![critical.clone()]);
+      return Some(vec![critical]);
     }
     None
   }
@@ -137,12 +137,12 @@ impl ContextDependency for ImportContextDependency {
     rspack_core::ContextTypePrefix::Import
   }
 
-  fn critical(&self) -> &Option<Diagnostic> {
-    &self.critical
+  fn critical(&self) -> Option<Diagnostic> {
+    self.critical.get()
   }
 
-  fn critical_mut(&mut self) -> &mut Option<Diagnostic> {
-    &mut self.critical
+  fn set_critical(&self, critical: Option<Diagnostic>) {
+    self.critical.set(critical);
   }
 }
 

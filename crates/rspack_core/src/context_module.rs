@@ -14,7 +14,7 @@ use rspack_collections::{Identifiable, Identifier};
 use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::{RspackHashDigest, RspackHasher};
 use rspack_macros::impl_source_map_config;
-use rspack_paths::{ArcPathSet, Utf8PathBuf};
+use rspack_paths::{InternedPathSet, Utf8PathBuf};
 use rspack_regex::RspackRegex;
 use rspack_sources::{BoxSource, OriginalSource, RawStringSource, SourceExt};
 use rspack_util::{
@@ -29,13 +29,13 @@ use crate::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildContext,
   BuildInfo, BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, BuildResult, ChunkGraph,
   ChunkGroupOptions, CodeGenerationResultBuilder, Compilation, Context, ContextElementDependency,
-  DependenciesBlock, Dependency, DependencyCategory, DependencyId, DependencyLocation,
-  DynamicImportMode, ExportsType, FactoryMeta, FakeNamespaceObjectMode, GroupOptions,
-  ImportAttributes, ImportPhase, LibIdentOptions, Module, ModuleArgument,
-  ModuleCodeGenerationContext, ModuleCodeTemplate, ModuleGraph, ModuleId, ModuleIdsArtifact,
-  ModuleLayer, ModuleType, RealDependencyLocation, ReferencedSpecifier, Resolve, RuntimeGlobals,
-  RuntimeGlobalsRenderMode, RuntimeSpec, SourceType, contextify, get_exports_type_with_strict,
-  get_outgoing_async_modules, impl_module_meta_info, module_update_hash, property_access, to_path,
+  DependenciesBlock, DependencyCategory, DependencyId, DependencyLocation, DynamicImportMode,
+  ExportsType, FactoryMeta, FakeNamespaceObjectMode, GroupOptions, ImportAttributes, ImportPhase,
+  LibIdentOptions, Module, ModuleArgument, ModuleCodeGenerationContext, ModuleCodeTemplate,
+  ModuleGraph, ModuleId, ModuleIdsArtifact, ModuleLayer, ModuleType, RealDependencyLocation,
+  ReferencedSpecifier, Resolve, RuntimeGlobals, RuntimeGlobalsRenderMode, RuntimeSpec, SourceType,
+  contextify, get_exports_type_with_strict, get_outgoing_async_modules, impl_module_meta_info,
+  module_update_hash, property_access, to_path,
 };
 
 static CHUNK_NAME_INDEX_PLACEHOLDER: &str = "[index]";
@@ -1463,7 +1463,7 @@ impl Module for ContextModule {
         None,
         context_element_dependencies
           .into_iter()
-          .map(|dep| Box::new(dep) as Box<dyn Dependency>)
+          .map(BoxDependency::new)
           .collect(),
         None,
       );
@@ -1507,7 +1507,7 @@ impl Module for ContextModule {
           (*self.identifier).into(),
           None,
           Some(&context_element_dependency.user_request.clone()),
-          vec![Box::new(context_element_dependency)],
+          vec![BoxDependency::new(context_element_dependency)],
           Some(self.options.context_options.request.clone()),
         );
         block.set_group_options(GroupOptions::ChunkGroup(ChunkGroupOptions::new(
@@ -1521,12 +1521,12 @@ impl Module for ContextModule {
     } else {
       dependencies = context_element_dependencies
         .into_iter()
-        .map(|d| Box::new(d) as BoxDependency)
+        .map(BoxDependency::new)
         .collect();
     }
 
     if !self.options.resource.as_str().is_empty() {
-      let mut context_dependencies: ArcPathSet = Default::default();
+      let mut context_dependencies: InternedPathSet = Default::default();
       context_dependencies.insert(self.options.resource.as_std_path().into());
       self.build_info.context_dependencies = context_dependencies;
     }

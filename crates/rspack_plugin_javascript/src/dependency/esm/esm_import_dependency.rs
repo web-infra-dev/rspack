@@ -1,4 +1,10 @@
-use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
+use std::sync::atomic::{AtomicBool, Ordering};
+
+use rspack_cacheable::{
+  cacheable, cacheable_dyn,
+  rkyv::with::{AtomicLoad, Relaxed},
+  with::AsPreset,
+};
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   AsContextDependency, AwaitDependenciesInitFragment, BuildMetaDefaultObject, ChunkGraph,
@@ -57,7 +63,7 @@ pub mod import_emitted_runtime {
 
 // ESMImportDependency is merged ESMImportSideEffectDependency.
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct ESMImportSideEffectDependency {
   #[cacheable(with=AsPreset)]
   request: Atom,
@@ -69,7 +75,8 @@ pub struct ESMImportSideEffectDependency {
   attributes: Option<ImportAttributes>,
   resource_identifier: ResourceIdentifier,
   loc: Option<DependencyLocation>,
-  lazy_make: bool,
+  #[cacheable(with=AtomicLoad<Relaxed>)]
+  lazy_make: AtomicBool,
   star_export: bool,
 }
 
@@ -97,13 +104,13 @@ impl ESMImportSideEffectDependency {
       attributes,
       resource_identifier,
       loc,
-      lazy_make: false,
+      lazy_make: AtomicBool::new(false),
       star_export,
     }
   }
 
   fn missing_module_active(&self) -> bool {
-    !self.lazy_make
+    !self.lazy_make.load(Ordering::Relaxed)
   }
 }
 
@@ -610,7 +617,7 @@ impl Dependency for ESMImportSideEffectDependency {
   }
 
   fn lazy(&self) -> Option<LazyUntil> {
-    self.lazy_make.then(|| {
+    self.lazy_make.load(Ordering::Relaxed).then(|| {
       if self.star_export {
         LazyUntil::Fallback
       } else {
@@ -619,14 +626,12 @@ impl Dependency for ESMImportSideEffectDependency {
     })
   }
 
-  fn set_lazy(&mut self) {
-    self.lazy_make = true;
+  fn set_lazy(&self) {
+    self.lazy_make.store(true, Ordering::Relaxed);
   }
 
-  fn unset_lazy(&mut self) -> bool {
-    let changed = self.lazy_make;
-    self.lazy_make = false;
-    changed
+  fn unset_lazy(&self) -> bool {
+    self.lazy_make.swap(false, Ordering::Relaxed)
   }
 }
 

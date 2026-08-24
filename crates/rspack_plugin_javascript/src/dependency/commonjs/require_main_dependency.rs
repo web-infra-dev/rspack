@@ -6,7 +6,7 @@ use rspack_core::{
 use rspack_hash::{RspackHash, RspackHasher};
 
 #[cacheable]
-#[derive(Debug, Clone, RspackHash)]
+#[derive(Debug, RspackHash)]
 pub struct RequireMainDependency {
   pub range: DependencyRange,
 }

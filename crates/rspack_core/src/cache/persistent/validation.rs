@@ -5,7 +5,7 @@ use std::{
 
 use rspack_cacheable::cacheable;
 use rspack_error::Error;
-use rspack_paths::{ArcPath, ArcPathSet};
+use rspack_paths::{InternedPath, InternedPathSet};
 use rspack_tasks::{get_current_dependency_id, set_current_dependency_id};
 
 use super::{
@@ -33,8 +33,8 @@ pub enum CacheValidationResult {
     message: &'static str,
   },
   InvalidBuildDependencies {
-    modified_files: ArcPathSet,
-    removed_files: ArcPathSet,
+    modified_files: InternedPathSet,
+    removed_files: InternedPathSet,
   },
   VersionError(Error),
   BuildDependenciesError(Error),
@@ -166,7 +166,7 @@ impl CacheValidation {
   pub async fn add_build_dependencies(
     &mut self,
     storage: &mut dyn Storage,
-    data: impl Iterator<Item = ArcPath>,
+    data: impl Iterator<Item = InternedPath>,
     logger: CompilationLogger,
   ) {
     self.build_dependencies.add(storage, data, logger).await;

@@ -62,7 +62,7 @@ mod windows {
   use std::path::PathBuf;
 
   use super::super::memory_fs::MemoryFS;
-  use crate::{ArcPath, ArcPathSet, ResolveContext, ResolveOptions, ResolverGeneric};
+  use crate::{InternedPath, InternedPathSet, ResolveContext, ResolveOptions, ResolverGeneric};
 
   fn file_system() -> MemoryFS {
     MemoryFS::new(&[
@@ -159,13 +159,13 @@ mod windows {
         .await
         .map(|r| r.full_path());
       assert_eq!(resolved, Ok(PathBuf::from(result)));
-      let file_dependencies: ArcPathSet = file_dependencies
+      let file_dependencies: InternedPathSet = file_dependencies
         .iter()
-        .map(|p| ArcPath::from(PathBuf::from(p)))
+        .map(|p| InternedPath::from(PathBuf::from(p)))
         .collect();
-      let missing_dependencies: ArcPathSet = missing_dependencies
+      let missing_dependencies: InternedPathSet = missing_dependencies
         .iter()
-        .map(|p| ArcPath::from(PathBuf::from(p)))
+        .map(|p| InternedPath::from(PathBuf::from(p)))
         .collect();
       assert_eq!(ctx.file_dependencies, file_dependencies, "{name}");
       assert_eq!(ctx.missing_dependencies, missing_dependencies, "{name}");

@@ -1,14 +1,14 @@
 use std::{fmt, sync::Arc};
 
 use rspack_error::Result;
-use rspack_paths::{ArcPathSet, Utf8PathBuf};
+use rspack_paths::{InternedPathSet, Utf8PathBuf};
 use rustc_hash::FxHashMap;
 
 use super::{
   CacheKey, Etag,
   cache_value::{CacheEntry, CacheValueDecoder, CacheValueEncoder, ErasedCacheValue},
   db::{Database, DatabaseFamily, DatabaseValue, DatabaseWrite},
-  snapshot::{BuildDeps, Snapshot},
+  snapshot::{BuildDeps, FileSystemInfo},
   validator::{CacheValidator, CacheValidatorResult},
 };
 use crate::cache::persistent::codec::CacheCodec;
@@ -18,7 +18,7 @@ const VALIDATOR_KEY: &[u8] = b"validator";
 #[derive(Debug, Default)]
 struct PendingWrites {
   entries: FxHashMap<CacheKey, PendingWrite>,
-  build_dependencies: Option<ArcPathSet>,
+  build_dependencies: Option<InternedPathSet>,
 }
 
 #[derive(Debug)]
@@ -53,7 +53,7 @@ impl FileCacheStrategy {
     rspack_pkg_version: String,
     cache_version: String,
     codec: Arc<CacheCodec>,
-    snapshot: Snapshot,
+    file_system_info: FileSystemInfo,
     build_deps: BuildDeps,
   ) -> Result<Self> {
     let (base_path, database_path) = database_paths;
@@ -63,7 +63,7 @@ impl FileCacheStrategy {
         rspack_pkg_version,
         cache_version,
         codec.clone(),
-        snapshot,
+        file_system_info,
         build_deps,
       ),
       codec,
@@ -128,7 +128,7 @@ impl FileCacheStrategy {
     );
   }
 
-  pub fn store_build_dependencies(&mut self, dependencies: ArcPathSet) {
+  pub fn store_build_dependencies(&mut self, dependencies: InternedPathSet) {
     if self.readonly {
       return;
     }

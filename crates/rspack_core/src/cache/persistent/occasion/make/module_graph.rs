@@ -9,8 +9,8 @@ use rustc_hash::FxHashSet;
 use super::alternatives::{TempDependency, TempModule};
 use crate::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, Dependency,
-  DependencyId, DependencyParents, FactorizationArtifact, FactorizeInfo, ModuleGraph,
-  ModuleGraphConnection, ModuleGraphModule, ModuleIdentifier, RayonConsumer,
+  DependencyId, DependencyParents, DependencyRef, FactorizationArtifact, FactorizeInfo,
+  ModuleGraph, ModuleGraphConnection, ModuleGraphModule, ModuleIdentifier, RayonConsumer,
   cache::persistent::{codec::CacheCodec, storage::Storage},
   compilation::build_module_graph::{LazyDependencies, ModuleToLazyMake},
 };
@@ -18,7 +18,7 @@ use crate::{
 pub const SCOPE: &str = "occasion_make_module_graph";
 
 type CachedDependency<'a> = (
-  OwnedOrRef<'a, BoxDependency>,
+  OwnedOrRef<'a, DependencyRef>,
   Option<OwnedOrRef<'a, AsyncDependenciesBlockIdentifier>>,
   Option<OwnedOrRef<'a, FactorizeInfo>>,
 );
@@ -69,7 +69,7 @@ pub fn save_module_graph(
         .par_iter()
         .map(|dep_id| {
           (
-            mg.dependency_by_id(dep_id).into(),
+            mg.dependency_ref_by_id(dep_id).into(),
             mg.get_parent_block(dep_id).map(Into::into),
             factorization_artifact.get_by_owner(dep_id).map(Into::into),
           )
@@ -167,7 +167,7 @@ pub async fn recovery_module_graph(
             index_in_block,
           },
         );
-        mg.add_dependency(dep);
+        mg.add_dependency_ref(dep);
         if let Some(factorize_info) = factorize_info {
           factorization_artifact.insert(factorize_info.into_owned());
         }
@@ -206,7 +206,7 @@ pub async fn recovery_module_graph(
     let dep = TempDependency::default();
     let connection = ModuleGraphConnection::new(*dep.id(), None, mid, false);
     entry_dependencies.insert(*dep.id());
-    mg.add_dependency(Box::new(dep));
+    mg.add_dependency(BoxDependency::new(dep));
     mg.cache_recovery_connection(connection);
   }
 
