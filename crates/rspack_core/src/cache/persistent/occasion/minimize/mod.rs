@@ -14,8 +14,23 @@ use crate::RayonConsumer;
 
 pub const SCOPE: &str = "occasion_minimize";
 
+/// Identity of the asset that produced a cached minimize entry.
+///
+/// `MinimizeCacheKey` folds these values into a single `u64`, which is lossy:
+/// a key that has been swapped, truncated, or collided still parses into a
+/// well-formed key. Persisting the identity beside the value lets recovery
+/// reject an entry that does not belong to the asset that requested it.
+#[cacheable]
+#[derive(Debug, Clone)]
+pub struct EntryIdentity {
+  pub filename: String,
+  pub options_hash: u64,
+  pub is_module: Option<bool>,
+}
+
 #[cacheable]
 struct Entry {
+  pub identity: EntryIdentity,
   #[cacheable(with=AsPreset)]
   pub source: BoxSource,
   pub extracted_comments: Option<ExtractedCommentsEntry>,
@@ -49,7 +64,7 @@ impl MinimizeCacheKey {
 
 #[derive(Debug, Default)]
 pub struct MinimizePersistentCache {
-  entries: FxHashMap<MinimizeCacheKey, CachedMinimizeEntry>,
+  entries: FxHashMap<MinimizeCacheKey, (EntryIdentity, CachedMinimizeEntry)>,
   /// Keys of entries that were added during this build and need to be persisted.
   dirty_keys: Vec<MinimizeCacheKey>,
 }
@@ -71,13 +86,40 @@ pub struct CachedExtractedComments {
 }
 
 impl MinimizePersistentCache {
-  pub fn get(&self, key: MinimizeCacheKey) -> Option<&CachedMinimizeEntry> {
-    self.entries.get(&key)
+  /// Look up a cached minimize result.
+  ///
+  /// The stored identity is compared against the asset that is asking for it.
+  /// A mismatch means the key/value association in storage is not trustworthy,
+  /// so the entry is treated as a miss and the asset is minimized again.
+  pub fn get(
+    &self,
+    key: MinimizeCacheKey,
+    filename: &str,
+    options_hash: u64,
+    is_module: Option<bool>,
+  ) -> Option<&CachedMinimizeEntry> {
+    let (identity, entry) = self.entries.get(&key)?;
+    if identity.filename != filename
+      || identity.options_hash != options_hash
+      || identity.is_module != is_module
+    {
+      tracing::warn!(
+        "minimize persistent cache entry does not belong to {}; treating as a miss",
+        filename
+      );
+      return None;
+    }
+    Some(entry)
   }
 
-  pub fn insert(&mut self, key: MinimizeCacheKey, entry: CachedMinimizeEntry) {
+  pub fn insert(
+    &mut self,
+    key: MinimizeCacheKey,
+    identity: EntryIdentity,
+    entry: CachedMinimizeEntry,
+  ) {
     self.dirty_keys.push(key);
-    self.entries.insert(key, entry);
+    self.entries.insert(key, (identity, entry));
   }
 }
 
@@ -111,8 +153,9 @@ impl Occasion for MinimizeOccasion {
       .dirty_keys
       .par_iter()
       .filter_map(|key| {
-        let entry = cache_item.entries.get(key)?;
+        let (identity, entry) = cache_item.entries.get(key)?;
         let storage_entry = Entry {
+          identity: identity.clone(),
           source: entry.source.clone(),
           extracted_comments: entry
             .extracted_comments
@@ -155,13 +198,16 @@ impl Occasion for MinimizeOccasion {
         Ok(entry) => {
           entries.insert(
             key,
-            CachedMinimizeEntry {
-              source: entry.source,
-              extracted_comments: entry.extracted_comments.map(|ec| CachedExtractedComments {
-                source: ec.source,
-                comments_file_name: ec.comments_file_name,
-              }),
-            },
+            (
+              entry.identity,
+              CachedMinimizeEntry {
+                source: entry.source,
+                extracted_comments: entry.extracted_comments.map(|ec| CachedExtractedComments {
+                  source: ec.source,
+                  comments_file_name: ec.comments_file_name,
+                }),
+              },
+            ),
           );
         }
         Err(err) => {
@@ -178,5 +224,96 @@ impl Occasion for MinimizeOccasion {
       entries,
       dirty_keys: Vec::new(),
     })
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use rspack_sources::{RawStringSource, SourceExt};
+
+  use super::*;
+  use crate::cache::persistent::storage::MemoryStorage;
+
+  const OPTIONS_HASH: u64 = 7;
+
+  fn entry(filename: &str, body: &str) -> Entry {
+    Entry {
+      identity: EntryIdentity {
+        filename: filename.to_string(),
+        options_hash: OPTIONS_HASH,
+        is_module: Some(false),
+      },
+      source: RawStringSource::from(body.to_string()).boxed(),
+      extracted_comments: None,
+    }
+  }
+
+  /// Storage verifies pack integrity, not the key/value association inside a
+  /// pack. A recovered entry whose identity does not match the asset asking
+  /// for it must be discarded rather than returned as that asset's output.
+  #[tokio::test]
+  async fn recovery_should_reject_cross_wired_entries() -> Result<()> {
+    let codec = Arc::new(CacheCodec::new(None));
+    let occasion = MinimizeOccasion::new(codec.clone());
+    let mut storage = MemoryStorage::default();
+
+    let key_a = MinimizeCacheKey::new(1);
+    let key_b = MinimizeCacheKey::new(2);
+
+    // Swap the two keys, as a truncated write or a partially restored cache can.
+    storage.set(SCOPE, key_b.to_bytes(), codec.encode(&entry("a.js", "A"))?);
+    storage.set(SCOPE, key_a.to_bytes(), codec.encode(&entry("b.js", "B"))?);
+
+    let cache = occasion.recovery(&storage).await?;
+    assert!(
+      cache
+        .get(key_a, "a.js", OPTIONS_HASH, Some(false))
+        .is_none()
+    );
+    assert!(
+      cache
+        .get(key_b, "b.js", OPTIONS_HASH, Some(false))
+        .is_none()
+    );
+
+    Ok(())
+  }
+
+  #[tokio::test]
+  async fn recovery_should_keep_matching_entries() -> Result<()> {
+    let codec = Arc::new(CacheCodec::new(None));
+    let occasion = MinimizeOccasion::new(codec.clone());
+    let mut storage = MemoryStorage::default();
+
+    let key_a = MinimizeCacheKey::new(1);
+    storage.set(SCOPE, key_a.to_bytes(), codec.encode(&entry("a.js", "A"))?);
+
+    let cache = occasion.recovery(&storage).await?;
+    let cached = cache
+      .get(key_a, "a.js", OPTIONS_HASH, Some(false))
+      .expect("matching entry should be a cache hit");
+    assert_eq!(cached.source.source().into_string_lossy(), "A");
+
+    Ok(())
+  }
+
+  #[tokio::test]
+  async fn recovery_should_reject_entries_with_stale_options() -> Result<()> {
+    let codec = Arc::new(CacheCodec::new(None));
+    let occasion = MinimizeOccasion::new(codec.clone());
+    let mut storage = MemoryStorage::default();
+
+    let key_a = MinimizeCacheKey::new(1);
+    storage.set(SCOPE, key_a.to_bytes(), codec.encode(&entry("a.js", "A"))?);
+
+    let cache = occasion.recovery(&storage).await?;
+    assert!(
+      cache
+        .get(key_a, "a.js", OPTIONS_HASH + 1, Some(false))
+        .is_none()
+    );
+    assert!(cache.get(key_a, "a.js", OPTIONS_HASH, Some(true)).is_none());
+
+    Ok(())
   }
 }

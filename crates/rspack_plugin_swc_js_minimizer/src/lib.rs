@@ -13,7 +13,7 @@ use rspack_core::{
   AssetInfo, CacheOptions, CacheValue, ChunkUkey, Compilation, CompilationAsset, CompilationParams,
   CompilationProcessAssets, CompilerCompilation, Etag, Logger, Plugin,
   cache::persistent::occasion::minimize::{
-    CachedExtractedComments, CachedMinimizeEntry, MinimizeCacheKey,
+    CachedExtractedComments, CachedMinimizeEntry, EntryIdentity, MinimizeCacheKey,
   },
   diagnostics::MinifyError,
   rspack_sources::{
@@ -230,7 +230,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     && !matches!(&compilation.options.cache, CacheOptions::Disabled))
   .then(|| compilation.get_cache(PLUGIN_NAME));
   let minimize_persistent_cache = compilation.minimize_persistent_cache.take();
-  let legacy_cache_entries: Mutex<Vec<(MinimizeCacheKey, CachedMinimizeEntry)>> =
+  let legacy_cache_entries: Mutex<Vec<(MinimizeCacheKey, EntryIdentity, CachedMinimizeEntry)>> =
     Mutex::new(Vec::new());
   let logger = compilation.get_logger(PLUGIN_NAME);
   let minimize_cache_counter = (new_cache.is_some() || minimize_persistent_cache.is_some())
@@ -295,7 +295,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
             is_module,
           ));
           cache_key = Some(key);
-          cache.get(key)
+          cache.get(key, filename, self.options_hash, is_module)
         } else {
           None
         };
@@ -528,7 +528,15 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
             legacy_cache_entries
               .lock()
               .expect("legacy_cache_entries lock failed")
-              .push((cache_key, entry));
+              .push((
+                cache_key,
+                EntryIdentity {
+                  filename: filename.to_string(),
+                  options_hash: self.options_hash,
+                  is_module,
+                },
+                entry,
+              ));
           }
         }
 
@@ -540,11 +548,11 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   })?;
 
   if let Some(mut cache) = minimize_persistent_cache {
-    for (key, entry) in legacy_cache_entries
+    for (key, identity, entry) in legacy_cache_entries
       .into_inner()
       .expect("legacy_cache_entries lock failed")
     {
-      cache.insert(key, entry);
+      cache.insert(key, identity, entry);
     }
     compilation.minimize_persistent_cache = Some(cache);
   }
