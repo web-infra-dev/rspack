@@ -50,9 +50,9 @@ _2026 年 8 月 26 日_
 - [简短的模块 ID](#compat-hashed-ids)
 - 生态
   - [Rsbuild](#rsbuild)
-  - [Rslib](#rslib)
   - [Rstest](#rstest)
   - [Rslint](#rslint)
+  - [Rslib](#rslib)
   - [Rspress](#rspress)
   - [Agent plugin](#rstack-agent-plugin)
 - 升级指南
@@ -248,18 +248,6 @@ await createRsbuild({
 
 Rsbuild 插件也可以通过监听 [`onRestart`](https://rsbuild.rs/zh/plugins/dev/hooks#onrestart) hook 来执行自定义逻辑。
 
-### Rslib \{#rslib}
-
-#### 支持 TypeScript 7 \{#typescript-7}
-
-Rslib 0.23.2 支持使用 [TypeScript 7](https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/) 生成类型声明文件。安装 TypeScript 7 后，Rslib 会自动启用原生 TypeScript，类型声明文件生成速度可提升约 **5 至 10 倍**。
-
-<PackageManagerTabs command="add typescript@latest -D" />
-
-#### Rslib 1.0 即将发布 \{#rslib-v1}
-
-[Rslib 1.0 RC](https://github.com/web-infra-dev/rslib/releases/tag/v1.0.0-rc.1) 版本现已发布，正式版也即将到来。如果你正在使用 Rslib 0.x，可以参考 [从 0.x 升级到 v1](https://v1.rslib.rs/zh/guide/upgrade/v0-to-v1) 指南，了解相关不兼容更新。
-
 ### Rstest \{#rstest}
 
 #### Playwright E2E 测试 \{#rstest-playwright}
@@ -372,6 +360,18 @@ await Rslint.outputFixes(results);
 ```
 
 JavaScript API 也支持通过 `lintText` 检查内存中的源码，并使用 `virtualFiles` 提供配置、`tsconfig.json` 和项目文件，适合用于编辑器和 Playground 等不直接依赖磁盘文件的集成场景。
+
+### Rslib \{#rslib}
+
+#### 支持 TypeScript 7 \{#typescript-7}
+
+Rslib 0.23.2 支持使用 [TypeScript 7](https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/) 生成类型声明文件。安装 TypeScript 7 后，Rslib 会自动启用原生 TypeScript，类型声明文件生成速度可提升约 **5 至 10 倍**。
+
+<PackageManagerTabs command="add typescript@latest -D" />
+
+#### Rslib 1.0 即将发布 \{#rslib-v1}
+
+[Rslib 1.0 RC](https://github.com/web-infra-dev/rslib/releases/tag/v1.0.0-rc.1) 版本现已发布，正式版也即将到来。如果你正在使用 Rslib 0.x，可以参考 [从 0.x 升级到 v1](https://v1.rslib.rs/zh/guide/upgrade/v0-to-v1) 指南，了解相关不兼容更新。
 
 ### Rspress \{#rspress}
 
