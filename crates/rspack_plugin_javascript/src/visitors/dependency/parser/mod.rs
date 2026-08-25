@@ -1243,24 +1243,22 @@ impl<'parser> JavascriptParser<'parser> {
       match object {
         ExprRef::Member(expr) => {
           let property = expr.property(ast);
-          let property_data = ast.property_key_data(property);
-          let member_object = expr.object(ast);
           if expr.computed(ast) {
-            let Some(value) = member_property_key_data_to_atom(ast, property_data) else {
+            let Some(value) = member_property_key_to_atom(ast, property) else {
               break;
             };
             // Since members are not used across rspack javascript parser plugin,
             // we directly makes it atom here
             members.push(value);
-            member_ranges.push(member_object.span(ast));
-          } else if let PropertyKeyData::IdentifierName(ident) = property_data {
+            member_ranges.push(expr.object(ast).span(ast));
+          } else if let PropertyKeyData::IdentifierName(ident) = ast.property_key_data(property) {
             members.push(Atom::from(ast.get_utf8(ident.name(ast))));
-            member_ranges.push(member_object.span(ast));
+            member_ranges.push(expr.object(ast).span(ast));
           } else {
             break;
           }
           members_optionals.push(in_optional_chain || expr.optional(ast));
-          object = ExprRef::from_expr(ast, member_object);
+          object = ExprRef::from_expr(ast, expr.object(ast));
           in_optional_chain = false;
         }
         ExprRef::OptChain(expr) => {
