@@ -1,5 +1,5 @@
 ---
-description: 'Rspack 2.2 正式发布, '
+description: 'Rspack 2.2 正式发布，带来构建性能与 HMR 优化、更快的 CSS 解析、import.meta 新增 API、compat-hashed IDs 和 Rspack runtime mode。'
 date: 2026-08-26 14:00:00
 sidebar: false
 authors:
@@ -35,7 +35,7 @@ _2026 年 8 月 26 日_
 
 ![Rspack 2.2 Banner](https://assets.rspack.rs/rspack/rspack-banner-v2.2.png)
 
-我们很高兴地宣布 Rspack 2.1 已正式发布！
+我们很高兴地宣布 Rspack 2.2 已正式发布！
 
 ---
 
@@ -43,17 +43,18 @@ _2026 年 8 月 26 日_
 
 - 性能提升
   - [构建性能提升](#build-performance-improve)
-  - [更好的 HMR ](#better-hmr)
+  - [更好的 HMR](#better-hmr)
   - [CSS 解析性能提升](#css-performance)
+  - [Wasm 包体积优化](#wasm-size)
 
 - 新特性
   - [`import.meta` 新增 API](#import-meta-apis)
   - [Compat hashed IDs](#compat-hashed-ids)
   - [Rspack runtime mode](#rspack-runtime-mode)
 
-- Breaking Changes
+- Breaking changes
   - [RSC 插件 CSS 加载方式改变](#rsc-plugin-use-preinit)
-  - [WASM 插件兼容性破坏](#wasm-plugin-breaking)
+  - [Wasm 插件需要重新构建](#wasm-plugin-breaking)
 
 - 生态
   - [Rsbuild](#rsbuild)
@@ -66,37 +67,34 @@ _2026 年 8 月 26 日_
 
 ### 构建性能提升 5% \{#build-performance-improve}
 
-在这次 Rspack 2.2.0 中，我们合入了 30 多个构建性能改进，改进了模块合并，Split Chunks，Source Map 生成等构建路径上的算法，在生产冷构建的 Benchmark 中构建时间从 `1822 ms` 降至 `1725 ms` 提升 5.6% 。
+Rspack 2.2 合入了 30 多项构建性能优化，覆盖模块合并、Split Chunks 和 Source Map 生成等构建路径上的核心算法。在生产模式冷构建的基准测试中，构建时间从 **1822 ms** 降至 **1725 ms**，提升约 **5.6%**。
 
-> Benchmark 来源: [Benchmark 仓库](https://github.com/LingyuCoder/rspack-react-10k-benchmark/commit/121be0c19252db61e9fc9c8ebbce93943caa88eb) 在 veLinux 2 (kernel 5.15.120, x86_64), 32G 内存, 16核(Intel Xeon Platinum 8336C) 环境中测试。
+> 数据来源：[rspack-react-10k-benchmark](https://github.com/LingyuCoder/rspack-react-10k-benchmark/commit/121be0c19252db61e9fc9c8ebbce93943caa88eb)，测试环境为 veLinux 2（kernel 5.15.120，x86_64），32 GB 内存，16 核 Intel Xeon Platinum 8336C。
 
 ### 更好的 HMR \{#better-hmr}
 
-在研发体验方面，Rspack 2.2.0 的 HMR 的资源请求更加精细，让更新速度更加稳定。
-在之前 HMR 中，即使只修改了 JavaScript 代码，HMR 在更新的过程中还是会加载相关的 CSS 文件，并在浏览器中对比内容是否变化，最终决定是否更新 CSS。
+Rspack 2.2 让 HMR 的资源请求更加精确，热更新速度也更稳定。此前，即使只修改了 JavaScript 代码，HMR 也会在更新过程中加载相关的 CSS 文件，再在浏览器中对比内容是否变化，最后才决定要不要更新样式。
 
-在 [#14682](https://github.com/web-infra-dev/rspack/pull/14682) 中，Rspack 通过在构建阶段判断出 CSS Chunk 否有变化，精细化的控制 HMR 是否需要拉取 CSS 资源省去 HTTP 的请求时间。
-通过示例项目的验证，在不同的 CSS 文件大小的情况下，JavaScript 的热更新能保持在一个稳定的速度。
+在 [#14682](https://github.com/web-infra-dev/rspack/pull/14682) 中，Rspack 改为在构建阶段判断 CSS chunk 是否发生变化，并据此精确控制 HMR 是否需要拉取 CSS 资源，省去了不必要的 HTTP 请求。在示例项目中，无论样式表体积多大，JavaScript 的热更新都能保持稳定的速度：
 
-| Stylesheet Size    | before  | after |
-| ------------------ | ------- | ----- |
-| 0.5 MB / 5k rules  | ~50 ms  | ~5 ms |
-| 2.1 MB / 20k rules | ~170 ms | ~5 ms |
-| 4.1 MB / 40k rules | ~385 ms | ~6 ms |
+| 样式表体积          | 优化前  | 优化后 |
+| ------------------- | ------- | ------ |
+| 0.5 MB / 5k 条规则  | ~50 ms  | ~5 ms  |
+| 2.1 MB / 20k 条规则 | ~170 ms | ~5 ms  |
+| 4.1 MB / 40k 条规则 | ~385 ms | ~6 ms  |
 
-此外，我们还[修复](https://github.com/web-infra-dev/rspack/pull/14580)了 `mini-css-extract-plugin` 在 Stylesheet 热更新中的样式短暂消失导致页面都抖动的问题，让页面一直保持期望的样子。
+此外，我们还[修复](https://github.com/web-infra-dev/rspack/pull/14580)了 `mini-css-extract-plugin` 在样式热更新过程中样式短暂丢失、导致页面闪烁的问题。
 
 ### CSS 解析性能提升 \{#css-performance}
 
-在 CSS 的 HRM 改进的基础上，我们还将内置 CSS 性能提升了 **3 倍**，进一步的提升研发体验；同时进一步完善了 Unicode 支持。
-在开发构建和生产构建场景中，CSS 性能提升如下：
+在 HMR 改进之外，我们还将内置 CSS 的解析速度提升了约 **3 倍**，并完善了 Unicode 支持。开发构建和生产构建的数据如下：
 
 | 场景                          | 优化前   | 优化后  | 性能提升   |
 | ----------------------------- | -------- | ------- | ---------- |
 | CSS 开发构建                  | 320.3 ms | 87.2 ms | **3.7 倍** |
 | CSS 生产构建（含 Source Map） | 354.1 ms | 121 ms  | **2.9 倍** |
 
-例如，下面的 CSS Module 使用 emoji 作为类名：
+例如，下面的 CSS Modules 文件使用 emoji 作为类名：
 
 ```css title="style.modules.css"
 .🦀 {
@@ -104,20 +102,17 @@ _2026 年 8 月 26 日_
 }
 ```
 
-新版中会生成 `.style_modules_css-🦀`，而不是带有多余转义的 `.style_modules_css-\🦀`。
+Rspack 2.2 会生成 `.style_modules_css-🦀`，而不再是带有多余转义的 `.style_modules_css-\🦀`。
 
-### WASM 包体积优化 3%
+### Wasm 包体积优化 3% \{#wasm-size}
 
-Rspack 2.2.0 优化了 WASM 版本的构建配置，移除没有必要的依赖，优化编译选项后，WASM 体积从 **30,194.9 KB** 降至 **29,111.8 KB**，减约 **3.6%** ；
-使用 `gzip -9` 压缩从 **9,466.4 KB** 降至 **9,163.8 KB**，减少约 **3.2%**。
-这可以降低 `@rspack/browser` 等 WASM 场景下的下载与加载开销。
+Rspack 2.2 调整了 Wasm 版本的构建配置，移除了不必要的依赖并优化了编译选项。Wasm 产物体积从 **30,194.9 KB** 降至 **29,111.8 KB**，减少约 **3.6%**；经 `gzip -9` 压缩后从 **9,466.4 KB** 降至 **9,163.8 KB**，减少约 **3.2%**。这可以降低 [`@rspack/browser`](/api/javascript-api/browser) 等 Wasm 场景下的下载与加载开销。
 
 ## 新特性
 
 ### `import.meta` 新增 API \{#import-meta-apis}
 
-Rspack 2.2.0 进一步完善了对 ESM 模块的支持，新增了一组基于 `import.meta` 的运行时 API。
-相比 CommonJS 风格的全局变量，`import.meta` 更符合 ESM 的使用方式，因此推荐在 ESM 模块中优先使用这些 API。
+Rspack 2.2 进一步完善了对 ESM 的支持，新增了一组基于 [`import.meta`](/api/runtime-api/module-variables) 的运行时 API。相比 CommonJS 风格的全局变量，它们更符合 ESM 的书写习惯，推荐在 ESM 模块中优先使用：
 
 | 新增 `import.meta` API          | 对应的运行时变量           |
 | ------------------------------- | -------------------------- |
@@ -130,8 +125,7 @@ Rspack 2.2.0 进一步完善了对 ESM 模块的支持，新增了一组基于 `
 | `import.meta.rspackVersion`     | `__rspack_version__`       |
 | `import.meta.rspackHash`        | `__webpack_hash__`         |
 
-此外 [`import.meta.glob`](/api/runtime-api/module-variables#importmetaglob) 新增了 `caseSensitive` 参数。
-设置为 `false` 时，glob 匹配会忽略文件路径的大小写：
+此外，[`import.meta.glob`](/api/runtime-api/module-variables#importmetaglob) 新增了 `caseSensitive` 选项。设置为 `false` 时，glob 匹配会忽略文件路径的大小写：
 
 ```js
 const modules = import.meta.glob('./pages/**/*.js', {
@@ -141,7 +135,7 @@ const modules = import.meta.glob('./pages/**/*.js', {
 
 ### Compat hashed IDs \{#compat-hashed-ids}
 
-[`optimization.moduleIds`](/config/optimization#optimizationmoduleids) 和 [`optimization.chunkIds`](/config/optimization#optimizationchunkids) 新增了 `'compat-hashed'`。它使用稳定 hash 的最短可用前缀生成更紧凑的 ID。相比 `deterministic`，它在同样保持 ID 稳定性的同时，兼顾运行时索引性能和产物体积。如果你的项目对于产物体积比较关注，可以通过如下配置开启：
+[`optimization.moduleIds`](/config/optimization#optimizationmoduleids) 和 [`optimization.chunkIds`](/config/optimization#optimizationchunkids) 新增了 `'compat-hashed'`，它取稳定 hash 的最短可用前缀来生成更紧凑的 ID。相比 `deterministic`，它在同样保证 ID 稳定的前提下，兼顾了运行时的索引性能和产物体积。如果你的项目比较关注产物体积，可以这样开启：
 
 ```js title="rspack.config.mjs"
 export default {
@@ -154,9 +148,9 @@ export default {
 
 ### Rspack runtime mode \{#rspack-runtime-mode}
 
-之前 Rspack 和 Webpack 采用类似的方法，将运行时 helper 函数挂载在 `__webpack_require__` 对象上，这种方组织代码在可读性以及对下游产物的优化都不是特别的友好。
+此前 Rspack 沿用了 webpack 的做法，把运行时 helper 挂载在 `__webpack_require__` 对象上。这种组织方式既不利于阅读和调试，也不便于下游工具对产物做进一步优化。
 
-为了产物的代码更加的简洁，同时适合开发者阅读调试和下游编译器优化，Rspack 在 `experiments.runtimeMode` 中新增了 `rspack` 配置项目，以生成更佳符合现代化的运行时代码。开启此模式后运行时的 helper 直接在 ESM 顶层声明，并通过 `export` 语句导出。
+为此，Rspack 在 `experiments.runtimeMode` 中新增了 `'rspack'` 选项，用于生成更贴近现代 ESM 的运行时代码。开启后，运行时 helper 会直接在 ESM 顶层声明，并通过 `export` 导出：
 
 ```js title="rspack.config.mjs"
 export default {
@@ -169,7 +163,7 @@ export default {
 };
 ```
 
-默认的 `webpack` 选项的产物：
+默认 `'webpack'` 模式下的产物：
 
 ```js
 (() => {
@@ -179,7 +173,7 @@ export default {
 })();
 ```
 
-使用 `rspack` 选项后：
+使用 `'rspack'` 模式后：
 
 ```js
 var runtimeHelper = () => {
@@ -204,16 +198,15 @@ Rspack 2.2 不再包装客户端引用，而是通过 React 的 [`preinit`](http
 
 ### Wasm 插件需要重新构建 \{#wasm-plugin-breaking}
 
-Rspack 2.2.0 已将 `swc_core` 从 76 升级至 77, 影响了 SWC Wasm 插件边界上的 AST 序列化格式，
-因此基于旧版 SWC 构建的 Wasm 插件将无法继续使用，并可能出现以下错误：
+Rspack 2.2 将 `swc_core` 从 76 升级至 77，这改变了 SWC Wasm 插件边界上的 AST 序列化格式。基于旧版 SWC 构建的 Wasm 插件将无法继续加载，构建时会抛出如下错误：
 
 ```text
 The version of the SWC Wasm plugin you're using might not be compatible with 'builtin:swc-loader'.
 ```
 
-如果你正在使用 SWC Wasm 插件，请重新构建插件，或升级到兼容 SWC 77 的版本。
-可以通过 [plugins.swc.rs](https://plugins.swc.rs/) 查找与当前 Rspack 版本匹配的插件版本，
-并参考 SWC plugin version mismatch 文档了解更多信息。
+如果你正在使用 SWC Wasm 插件，请重新构建插件，或升级到兼容 SWC 77 的版本。可以在 [plugins.swc.rs](https://plugins.swc.rs/) 中查找与当前 Rspack 版本匹配的插件版本。
+
+> 详情请查阅：[常见问题 - SWC 插件版本不匹配](/errors/swc-plugin-version)。
 
 ## 生态
 
@@ -223,7 +216,7 @@ Rsbuild 2.2 已经与 Rspack 2.2 同步发布。
 
 #### 导入源文本 \{#import-text}
 
-Rsbuild 现在支持使用 import attributes 语法 [`with { type: 'text' }`](https://rsbuild.rs/guide/basic/static-assets#with-import-attributes) 将文件原始内容作为字符串导入：
+Rsbuild 现在支持使用 import attributes 语法 [`with { type: 'text' }`](https://rsbuild.rs/zh/guide/basic/static-assets#with-import-attributes) 将文件原始内容作为字符串导入：
 
 ```ts
 import rawCSS from './example.css' with { type: 'text' };
@@ -289,7 +282,7 @@ export default {
 
 Rsbuild 现在支持同时配置多种压缩选项。
 
-通过为 [`minify.jsOptions`](https://rsbuild.rs/config/output/minify#minifyjsoptions) 传入数组，可以针对不同产物设置不同的压缩策略。例如，仅移除主 bundle 中的 `console` 调用，同时保留其他 bundle 中的调用：
+通过为 [`minify.jsOptions`](https://rsbuild.rs/zh/config/output/minify#minifyjsoptions) 传入数组，可以针对不同产物设置不同的压缩策略。例如，仅移除主 bundle 中的 `console` 调用，同时保留其他 bundle 中的调用：
 
 ```ts title="rsbuild.config.ts"
 export default {
@@ -443,6 +436,6 @@ JavaScript API 也支持通过 `lintText` 检查内存中的源码，并使用 `
 
 Rspress 在 [AFDocs](https://afdocs.dev/) Agent-friendly 评分中达到 100/100。
 
-Rspress 通过 `llms.txt`、[SSG-MD](https://rspress.rs/zh/guide/basic/ssg-md)、`Accept: text/markdown` 和 `injectLlmsHint` 等，让 Agent 更容易发现、读取和理解文档。更多 Rspress 关于 Agent-friendly 的设计与实践，请参考文档 [怎样构建一个 Agent-friendly 的网站](https://rspress.rs/zh/blog/agent-friendly-website)。
+Rspress 通过 `llms.txt`、[SSG-MD](https://rspress.rs/zh/guide/basic/ssg-md)、`Accept: text/markdown` 和 `injectLlmsHint` 等能力，让 Agent 更容易发现、读取和理解文档。更多设计与实践可以参考 [怎样构建一个 Agent-friendly 的网站](https://rspress.rs/zh/blog/agent-friendly-website)。
 
 ![Rspress AFDocs scorecard](https://assets.rspack.rs/rspress/assets/rspress-afdocs-scorecard.png)
