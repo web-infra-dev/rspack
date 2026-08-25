@@ -179,17 +179,39 @@ impl<'s> ImportAttributes<'s> {
   }
 }
 
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
+pub struct MagicComments<'s> {
+  value: &'s str,
+  range: Range,
+}
+
+impl<'s> MagicComments<'s> {
+  pub(crate) fn new(value: &'s str, range: Range) -> Self {
+    Self { value, range }
+  }
+
+  pub fn value(&self) -> &'s str {
+    self.value
+  }
+
+  pub fn range(&self) -> Range {
+    self.range
+  }
+}
+
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum Dependency<'s> {
   Url {
     request: &'s str,
     range: Range,
     kind: UrlRangeKind,
+    magic_comments: Option<MagicComments<'s>>,
   },
   Import {
     request: &'s str,
     range: Range,
     attributes: DependencyIndex<ImportAttributes<'s>>,
+    magic_comments: Option<MagicComments<'s>>,
   },
   ICSSImportUrl {
     name: &'s str,
@@ -403,6 +425,7 @@ impl<'s> DependencyContext<'s> {
     layer: Option<&'s str>,
     supports: Option<&'s str>,
     media: Option<&'s str>,
+    magic_comments: Option<MagicComments<'s>>,
   ) {
     let attributes = DependencyIndex::from_index(self.import_attributes.len());
     self
@@ -412,6 +435,7 @@ impl<'s> DependencyContext<'s> {
       request,
       range,
       attributes,
+      magic_comments,
     });
   }
 
@@ -603,61 +627,23 @@ impl<'s> Warning<'s> {
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum WarningKind<'s> {
-  Unexpected {
-    message: &'s str,
-  },
-  MagicCommentCompilationError {
-    comment: &'s str,
-  },
-  MagicCommentExpectedBoolean {
-    name: &'s str,
-    received: &'s str,
-  },
-  MagicCommentConflict {
-    ignored: &'s str,
-    preferred: &'s str,
-  },
-  DuplicateUrl {
-    when: &'s str,
-  },
+  Unexpected { message: &'s str },
+  DuplicateUrl { when: &'s str },
   NamespaceNotSupportedInBundledCss,
   NotPrecededAtImport,
-  ExpectedUrl {
-    when: &'s str,
-  },
-  ExpectedUrlBefore {
-    when: &'s str,
-  },
-  ExpectedLayerBefore {
-    when: &'s str,
-  },
+  ExpectedUrl { when: &'s str },
+  ExpectedUrlBefore { when: &'s str },
+  ExpectedLayerBefore { when: &'s str },
   InconsistentModeResult,
-  ExpectedNotInside {
-    pseudo: &'s str,
-  },
-  NotPure {
-    message: &'s str,
-  },
-  UnexpectedComposition {
-    message: &'s str,
-  },
+  ExpectedNotInside { pseudo: &'s str },
+  NotPure { message: &'s str },
+  UnexpectedComposition { message: &'s str },
 }
 
 impl Display for Warning<'_> {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     match self.kind {
       WarningKind::Unexpected { message, .. } => write!(f, "{message}"),
-      WarningKind::MagicCommentCompilationError { comment } => write!(
-        f,
-        "Compilation error while processing magic comment(-s): {comment}"
-      ),
-      WarningKind::MagicCommentExpectedBoolean { name, received } => {
-        write!(f, "`{name}` expected a boolean, but received: {received}.")
-      }
-      WarningKind::MagicCommentConflict { ignored, preferred } => write!(
-        f,
-        "`{ignored}` is ignored because `{preferred}` is also specified. Prefer `{preferred}`."
-      ),
       WarningKind::DuplicateUrl { when, .. } => {
         write!(f, "Duplicate of 'url(...)' in '{when}'")
       }

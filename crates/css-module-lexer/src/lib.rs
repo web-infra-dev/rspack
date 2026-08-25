@@ -5,8 +5,8 @@ mod lexer;
 
 pub use dependencies::{DashedIdentCollector, LexDependencies, ModeData};
 pub use dependency_types::{
-  Dependency, DependencyContext, DependencyIndex, DependencyListRange, ImportAttributes, Mode,
-  Range, UrlRangeKind, ValueAtRuleImportItem, Warning, WarningKind,
+  Dependency, DependencyContext, DependencyIndex, DependencyListRange, ImportAttributes,
+  MagicComments, Mode, Range, UrlRangeKind, ValueAtRuleImportItem, Warning, WarningKind,
 };
 pub use lexer::{Lexer, LexerVisitor, Pos, Token, TokenFlags, TokenKind, TokenWithTrivia, Trivia};
 
