@@ -78,16 +78,6 @@ impl AtomKey {
   pub fn as_atom(&self) -> &Atom {
     &self.0
   }
-
-  #[inline]
-  pub fn as_str(&self) -> &str {
-    self.0.as_str()
-  }
-
-  #[inline]
-  pub fn into_atom(self) -> Atom {
-    self.0
-  }
 }
 
 impl From<Atom> for AtomKey {
@@ -108,22 +98,6 @@ impl Hash for AtomKey {
   #[inline]
   fn hash<H: Hasher>(&self, state: &mut H) {
     self.0.0.hash(state);
-  }
-}
-
-impl Deref for AtomKey {
-  type Target = str;
-
-  #[inline]
-  fn deref(&self) -> &Self::Target {
-    self.0.as_str()
-  }
-}
-
-impl AsRef<str> for AtomKey {
-  #[inline]
-  fn as_ref(&self) -> &str {
-    self.0.as_str()
   }
 }
 

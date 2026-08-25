@@ -1,5 +1,4 @@
 use bitflags::bitflags;
-use rspack_util::atom::AtomKey;
 use rustc_hash::FxHashMap;
 use slotmap::{KeyData, SlotMap, new_key_type};
 use smallvec::SmallVec;
@@ -70,7 +69,7 @@ struct Binding {
 pub struct ScopeInfoDB {
   map: SlotMap<ScopeInfoId, ScopeInfo>,
   /// For each name, the stack of active bindings, innermost last.
-  bindings: FxHashMap<AtomKey, SmallVec<[Binding; 2]>>,
+  bindings: FxHashMap<Atom, SmallVec<[Binding; 2]>>,
   /// The innermost active scope, used to validate the stack discipline.
   current: Option<ScopeInfoId>,
   variable_info_db: VariableInfoDB,
@@ -191,24 +190,7 @@ impl ScopeInfoDB {
       Some(id),
       "lookup must start from the innermost active scope"
     );
-    let key = AtomKey::from(key);
-    let binding = self.bindings.get(&key)?.last()?;
-    let value = binding.value;
-    if value == VariableInfoId::tombstone() || value == VariableInfoId::undefined() {
-      None
-    } else {
-      Some(value)
-    }
-  }
-
-  /// Resolve an already-owned atom without cloning or re-interning it.
-  pub fn get_atom(&mut self, id: ScopeInfoId, key: &Atom) -> Option<VariableInfoId> {
-    debug_assert_eq!(
-      self.current,
-      Some(id),
-      "lookup must start from the innermost active scope"
-    );
-    let binding = self.bindings.get(AtomKey::from_atom_ref(key))?.last()?;
+    let binding = self.bindings.get(key)?.last()?;
     let value = binding.value;
     if value == VariableInfoId::tombstone() || value == VariableInfoId::undefined() {
       None
@@ -223,7 +205,6 @@ impl ScopeInfoDB {
     //   Some(id),
     //   "bindings can only be set in the innermost active scope"
     // );
-    let key = AtomKey::from(key);
     let stack = self.bindings.entry(key.clone()).or_default();
     if let Some(top) = stack.last_mut()
       && top.scope == id
@@ -388,7 +369,7 @@ impl VariableInfo {
 pub struct ScopeInfo {
   parent: Option<ScopeInfoId>,
   /// Names bound in this scope, in definition order.
-  defined: Vec<AtomKey>,
+  defined: Vec<Atom>,
   pub is_strict: bool,
 }
 
