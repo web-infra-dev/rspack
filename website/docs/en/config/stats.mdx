@@ -34,9 +34,7 @@ type StatsPresets =
 type Stats = boolean | StatsOptions | StatsPresets;
 ```
 
-- **Default output options in `@rspack/cli`:** `{ "all":false, "errors":true, "warnings":true, "moduleTrace":true, "timings":true }`
-
-These defaults are merged when neither `stats.preset` nor `stats.all` is specified. Since `stats.all` defaults to `false`, `stats.logging` is also disabled by default.
+- **Default in `@rspack/cli`:** `{ "preset":"errors-warnings", "timings":true, "logging":false }`
 
 ## Stats presets
 

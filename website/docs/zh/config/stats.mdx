@@ -34,9 +34,7 @@ type StatsPresets =
 type Stats = boolean | StatsOptions | StatsPresets;
 ```
 
-- **`@rspack/cli` 中的默认输出选项：** `{ "all":false, "errors":true, "warnings":true, "moduleTrace":true, "timings":true }`
-
-当 `stats.preset` 和 `stats.all` 均未指定时，会合并这些默认值。由于 `stats.all` 默认为 `false`，因此 `stats.logging` 默认也处于禁用状态。
+- **`@rspack/cli` 中的默认值：** `{ "preset":"errors-warnings", "timings":true, "logging":false }`
 
 ## 预设（Stats presets）
 
