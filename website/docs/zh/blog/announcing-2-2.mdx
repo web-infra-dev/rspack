@@ -48,16 +48,13 @@ _2026 年 8 月 26 日_
   - [构建性能提升](#build-performance-improve)
   - [更好的 HMR](#better-hmr)
   - [CSS 解析性能提升](#css-performance)
-  - [其他性能优化](#wasm-size)
-
+  - [其他优化](#wasm-size)
 - 新特性
   - [`import.meta` 新增 API](#import-meta-apis)
   - [Compat hashed IDs](#compat-hashed-ids)
-
 - 升级指南
   - [RSC 插件 CSS 加载方式改变](#rsc-plugin-use-preinit)
   - [Wasm 插件需要重新构建](#wasm-plugin-breaking)
-
 - 生态
   - [Rsbuild](#rsbuild)
   - [Rslib](#rslib)
@@ -97,7 +94,7 @@ Rspack 内置 CSS 的解析速度提升了约 **3 倍**，并完善了 Unicode �
 | CSS 开发构建 | 320.3 ms | 87.2 ms | **3.7 倍** |
 | CSS 生产构建 | 354.1 ms | 121 ms  | **2.9 倍** |
 
-### 其他性能优化 \{#wasm-size}
+### 其他优化 \{#wasm-size}
 
 - Wasm 产物体积从 29.5 MB 降至 28.4 MB，减少约 **1.1 MB**，降低了 [`@rspack/browser`](/api/javascript-api/browser) 等场景的网络开销。
 - Rspack 现在会并行编译 [SWC Wasm 插件](/guide/features/builtin-swc-loader#jscexperimentalplugins)，将 Rstest 启用 Istanbul 覆盖率时的冷加载耗时从约 1.85 秒降至约 360 毫秒，缩短约 **80%**。
@@ -182,21 +179,21 @@ Node.js 构建现在会默认启用 [chunk 拆分](https://rsbuild.rs/zh/config/
 
 > 测试应用包含 300 个路由和 400 个共享组件，实际收益取决于项目规模和模块结构。
 
-#### 支持 Solid v2 RC \{#solid-v2}
+#### 支持 Solid v2 \{#solid-v2}
 
 Rsbuild 现在支持 [Solid v2 RC](https://www.solidjs.com/blog/solid-2-0-rc-the-big-reveal)，并默认使用 Solid 全新的 Rust 编译器。在官方的基准测试中，新编译器的编译速度相比此前的 Babel 实现提升 **20 倍以上**。
 
 升级 [@rsbuild/plugin-solid](https://rsbuild.rs/zh/plugins/list/plugin-solid) 至 v2 beta 版本，然后移除 Babel 插件即可体验：
 
 ```diff
-- import { pluginBabel } from '@rsbuild/plugin-babel';
+-import { pluginBabel } from '@rsbuild/plugin-babel';
 import { pluginSolid } from '@rsbuild/plugin-solid';
 
 export default {
   plugins: [
--    pluginBabel({
--      include: /\.(?:jsx|tsx)$/,
--    }),
+-   pluginBabel({
+-     include: /\.(?:jsx|tsx)$/,
+-   }),
     pluginSolid(),
   ],
 };
@@ -228,9 +225,7 @@ export default {
 
 #### 定制压缩配置 \{#custom-minimizer-configs}
 
-Rsbuild 现在支持同时配置多种压缩选项。
-
-通过为 [`minify.jsOptions`](https://rsbuild.rs/zh/config/output/minify#minifyjsoptions) 传入数组，可以针对不同产物设置不同的压缩策略。例如，仅移除主 bundle 中的 `console` 调用：
+Rsbuild 现在支持同时配置多种压缩选项。为 [`minify.jsOptions`](https://rsbuild.rs/zh/config/output/minify#minifyjsoptions) 传入数组，可以针对不同产物设置不同的压缩策略。例如，仅移除主 bundle 中的 `console` 调用：
 
 ```ts title="rsbuild.config.ts"
 export default {
@@ -287,9 +282,11 @@ Rslib 0.23.2 支持使用 [TypeScript 7](https://devblogs.microsoft.com/typescri
 
 ### Rstest \{#rstest}
 
-#### 运行 Playwright E2E 测试 \{#rstest-playwright}
+#### Playwright E2E 测试 \{#rstest-playwright}
 
-Rstest 0.11.1 新增了 [`@rstest/playwright`](https://rstest.rs/zh/guide/advanced/playwright)，让 E2E 测试也能使用 Rstest 的测试运行器、配置和报告能力。它提供 `page`、`serve` 等 Playwright fixtures 和 Playwright 风格的异步断言，可用于测试本地开发服务器、预览服务器或已部署的应用，并与单元测试共享一致的工作流：
+Rstest 新增了 [`@rstest/playwright`](https://rstest.rs/zh/guide/advanced/playwright)，让 E2E 测试也能使用 Rstest 的测试运行器、配置和报告能力。
+
+它提供 Playwright 风格的断言 API，可用于测试本地开发服务器、预览服务器或已部署的应用，并与单元测试共享一致的工作流：
 
 ```ts
 import { expect, test } from '@rstest/playwright';
@@ -302,9 +299,11 @@ test('home page', async ({ page, serve }) => {
 });
 ```
 
-#### 支持 Module Federation \{#rstest-module-federation}
+#### 模块联邦测试 \{#rstest-module-federation}
 
-Rstest 0.11.4 带来了 Module Federation 支持：现在可以在 Node、JSDOM 和 Browser Mode 环境下，直接测试真实的联邦远程模块，无需 mock federation boundary。通过 `@module-federation/rstest`，你还可以加载 URL remote，或在 Node.js 集成测试中使用 `commonjs` remote：
+Rstest 现在支持模块联邦测试：可以在 Node、JSDOM 和 Browser Mode 环境下，直接测试真实的联邦远程模块。
+
+通过 `@module-federation/rstest`，你还可以加载 URL remote，或在 Node.js 集成测试中使用 CommonJS remote：
 
 ```ts title="rstest.config.ts"
 import { federation } from '@module-federation/rstest';
@@ -322,13 +321,13 @@ export default defineConfig({
 });
 ```
 
-更多配置方式请参考 [Module Federation × Rstest 集成文档](https://module-federation.io/integrations/build-tool/rstest.html)。
+> 详见 [Module Federation × Rstest 集成文档](https://module-federation.io/integrations/build-tool/rstest.html)。
 
-#### 预打包 DOM 测试环境 \{#rstest-environment-prebundle}
+#### 预打包测试环境 \{#rstest-environment-prebundle}
 
-Rstest 0.11.6 新增了 DOM 测试环境预打包。开启后，Rstest 会预打包 `jsdom` 或 `happy-dom`，并在多个 worker 之间复用产物，避免为每个测试文件重复解析和初始化环境。对于 DOM 测试较多的项目，这可以显著缩短整体测试耗时。
+Rstest 现在支持预打包 DOM 测试环境。开启后，Rstest 会预打包 `jsdom` 或 `happy-dom`，并在多个 worker 之间复用产物，避免为每个测试文件重复解析和初始化环境。对于 DOM 测试较多的项目，这可以显著缩短整体测试耗时。
 
-在 Apple Silicon、Node.js 24、4 个 fork worker 的[本地基准测试](https://github.com/web-infra-dev/rstest/releases/tag/v0.11.6)中，一个包含 100 个测试文件、1000 个测试用例的项目获得了以下收益：
+在 [基准测试](https://github.com/web-infra-dev/rstest/releases/tag/v0.11.6) 中，一个包含 1000 个测试用例的项目取得了以下收益：
 
 | 测试环境            | 原生加载 | 预打包  | 耗时降低  |
 | ------------------- | -------- | ------- | --------- |
@@ -420,15 +419,7 @@ Rstack 推出了基于 [Agent Plugins 1.0](https://agent-plugins.org/) 的 Rstac
 
 ## 升级指南 \{#upgrad-guide}
 
-### RSC 插件：通过 `preinit` 加载客户端组件的 CSS \{#rsc-plugin-use-preinit}
-
-此前，RSC 插件会包装客户端引用（Client Reference），并在渲染组件时插入 CSS `<link>` 标签。由于包装后的导出不再是原始的 Client Reference，某些导出形式可能无法保留 Client Reference 标识。
-
-Rspack 2.2 不再包装客户端引用，而是通过 React 的 [`preinit`](https://react.dev/reference/react-dom/preinit) 加载客户端组件的 CSS。
-
-这项调整改变了 RSC 中客户端组件 CSS 的加载方式，是一项针对 RSC 框架集成的破坏性变更。如果你正在集成 Rspack RSC 插件，请将 [`react-server-dom-rspack`](https://www.npmjs.com/package/react-server-dom-rspack) 同步升级到 `0.1.0`。
-
-### Wasm 插件需要重新构建 \{#wasm-plugin-breaking}
+### Wasm 插件 \{#wasm-plugin-breaking}
 
 Rspack 2.2 将 `swc_core` 从 76 升级至 77，这改变了 SWC Wasm 插件边界上的 AST 序列化格式。基于旧版 SWC 构建的 Wasm 插件将无法继续加载，构建时会抛出如下错误：
 
@@ -438,4 +429,12 @@ The version of the SWC Wasm plugin you're using might not be compatible with 'bu
 
 如果你正在使用 SWC Wasm 插件，请重新构建插件，或升级到兼容 SWC 77 的版本。可以在 [plugins.swc.rs](https://plugins.swc.rs/) 中查找与当前 Rspack 版本匹配的插件版本。
 
-> 详情请查阅：[常见问题 - SWC 插件版本不匹配](/errors/swc-plugin-version)。
+> 详见：[常见问题 - SWC 插件版本不匹配](/errors/swc-plugin-version)。
+
+### RSC 插件 \{#rsc-plugin-use-preinit}
+
+此前，RSC 插件会包装客户端引用（Client Reference），并在渲染组件时插入 CSS `<link>` 标签。由于包装后的导出不再是原始的 Client Reference，某些导出形式可能无法保留 Client Reference 标识。
+
+Rspack 2.2 不再包装客户端引用，而是通过 React 的 [`preinit`](https://react.dev/reference/react-dom/preinit) 加载客户端组件的 CSS。
+
+这项调整改变了 RSC 中客户端组件 CSS 的加载方式，是一项针对 RSC 框架集成的破坏性变更。如果你正在集成 Rspack RSC 插件，请将 [`react-server-dom-rspack`](https://www.npmjs.com/package/react-server-dom-rspack) 同步升级到 `0.1.0`。
