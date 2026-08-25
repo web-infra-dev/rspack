@@ -2,11 +2,10 @@ use rspack_core::{
   BoxDependency, BuildMetaDefaultObject, BuildMetaExportsType, DependencyRange, RuntimeGlobals,
 };
 use rspack_util::SpanExt;
-use smallvec::SmallVec;
 use swc_atoms::Atom;
 use swc_next_ecma_ast::{
   Argument, AssignmentExpression, Ast, CallExpression, Expr, ExprData, GetSpan, PropertyKeyData,
-  Span, ThisExpression, UnaryExpression, UnaryOperator,
+  Span, ThisExpression, TypedSubRange, UnaryExpression, UnaryOperator,
 };
 
 use super::JavascriptParserPlugin;
@@ -237,7 +236,7 @@ fn handle_access_export(
   remaining: &[Atom],
   remaining_optionals: &[bool],
   base: ExportsBase,
-  call_args: Option<SmallVec<[Argument; 4]>>,
+  call_args: Option<TypedSubRange<Argument>>,
 ) -> Option<bool> {
   if parser.is_esm {
     return None;
@@ -253,7 +252,8 @@ fn handle_access_export(
     call_args.is_some(),
   )));
   if let Some(call_args) = call_args {
-    parser.walk_arguments(call_args.into_iter());
+    let ast = parser.ast.ast;
+    parser.walk_arguments(call_args.iter().map(|id| ast.get_node_in_sub_range(id)));
   }
   Some(true)
 }
@@ -515,13 +515,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsExportsParserPlugin {
     }
     let ast = parser.ast.ast;
     let callee_span = expr.callee(ast).span(ast);
-    let arguments = || {
-      expr
-        .arguments(ast)
-        .iter()
-        .map(|id| ast.get_node_in_sub_range(id))
-        .collect::<SmallVec<[Argument; 4]>>()
-    };
+    let arguments = || expr.arguments(ast);
 
     if for_name == "exports" {
       // exports.a.b.c()

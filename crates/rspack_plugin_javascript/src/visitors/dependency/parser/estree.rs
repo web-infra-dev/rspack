@@ -101,22 +101,20 @@ impl ExportNamedDeclaration {
     self.0.attributes(ast)
   }
 
-  pub fn named_export_specifiers(self, ast: &Ast<'_>) -> Vec<(Atom, Atom, Span)> {
-    self
-      .0
-      .specifiers(ast)
-      .iter()
-      .map(|slot| {
-        let specifier = ast.get_node_in_sub_range(slot);
-        let local = specifier.local(ast);
-        let exported = specifier.exported(ast);
-        (
-          module_export_name_to_atom(ast, local),
-          module_export_name_to_atom(ast, exported),
-          exported.span(ast),
-        )
-      })
-      .collect()
+  pub fn named_export_specifiers<'a>(
+    self,
+    ast: &'a Ast<'_>,
+  ) -> impl Iterator<Item = (Atom, Atom, Span)> + 'a {
+    self.0.specifiers(ast).iter().map(move |slot| {
+      let specifier = ast.get_node_in_sub_range(slot);
+      let local = specifier.local(ast);
+      let exported = specifier.exported(ast);
+      (
+        module_export_name_to_atom(ast, local),
+        module_export_name_to_atom(ast, exported),
+        exported.span(ast),
+      )
+    })
   }
 }
 
@@ -374,13 +372,12 @@ impl VariableDeclaration {
     self.0.kind(ast)
   }
 
-  pub fn declarators(self, ast: &Ast<'_>) -> Vec<VariableDeclarator> {
+  pub fn declarators<'a>(self, ast: &'a Ast<'_>) -> impl Iterator<Item = VariableDeclarator> + 'a {
     self
       .0
       .declarators(ast)
       .iter()
-      .map(|slot| ast.get_node_in_sub_range(slot))
-      .collect()
+      .map(move |slot| ast.get_node_in_sub_range(slot))
   }
 }
 

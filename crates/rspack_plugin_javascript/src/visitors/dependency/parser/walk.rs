@@ -1,3 +1,4 @@
+use smallvec::SmallVec;
 use swc_atoms::Atom;
 use swc_next_ecma_ast::*;
 
@@ -1038,7 +1039,7 @@ impl JavascriptParser<'_> {
     let mut members = AtomMembers::new();
     let mut members_optionals = OptionalMembers::new();
     let mut member_ranges = MemberRanges::new();
-    let mut member_nodes = Vec::new();
+    let mut member_nodes = SmallVec::<[JsxMemberExpression; 2]>::new();
     let root = loop {
       let object = current.object(ast);
       members.push(Atom::from(ast.get_utf8(current.property(ast).name(ast))));
