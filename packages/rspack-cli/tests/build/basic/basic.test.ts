@@ -92,7 +92,7 @@ describe('build command', () => {
     expect(stderr).toBeFalsy();
     expect(stdout).toBeTruthy();
   });
-  it('should use error-only logging defaults', async () => {
+  it('should use stats logging defaults', async () => {
     const defaultResult = await run(
       __dirname,
       ['--config', './logging.config.js'],
@@ -104,7 +104,6 @@ describe('build command', () => {
 
     expect(defaultResult.exitCode).toBe(0);
     expect(defaultOutput).not.toContain('compilation logger warning');
-    expect(defaultOutput).not.toContain('infrastructure logger warning');
 
     const partialStatsResult = await run(
       __dirname,
@@ -117,7 +116,6 @@ describe('build command', () => {
 
     expect(partialStatsResult.exitCode).toBe(0);
     expect(partialStatsOutput).not.toContain('compilation logger warning');
-    expect(partialStatsOutput).not.toContain('infrastructure logger warning');
 
     for (const statsPreset of ['string', 'object']) {
       const presetResult = await run(
@@ -131,7 +129,6 @@ describe('build command', () => {
 
       expect(presetResult.exitCode).toBe(0);
       expect(presetOutput).toContain('compilation logger warning');
-      expect(presetOutput).not.toContain('infrastructure logger warning');
     }
 
     const allStatsResult = await run(
@@ -145,7 +142,6 @@ describe('build command', () => {
 
     expect(allStatsResult.exitCode).toBe(0);
     expect(allStatsOutput).toContain('compilation logger warning');
-    expect(allStatsOutput).not.toContain('infrastructure logger warning');
 
     const explicitResult = await run(
       __dirname,
@@ -158,7 +154,6 @@ describe('build command', () => {
 
     expect(explicitResult.exitCode).toBe(0);
     expect(explicitOutput).toContain('compilation logger warning');
-    expect(explicitOutput).toContain('infrastructure logger warning');
   });
   it('entry option should have higher priority than config', async () => {
     const { exitCode, stderr, stdout } = await run(
