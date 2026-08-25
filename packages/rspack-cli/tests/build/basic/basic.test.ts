@@ -92,6 +92,33 @@ describe('build command', () => {
     expect(stderr).toBeFalsy();
     expect(stdout).toBeTruthy();
   });
+  it('should use error-only logging defaults', async () => {
+    const defaultResult = await run(
+      __dirname,
+      ['--config', './logging.config.js'],
+      {},
+      {},
+      true,
+    );
+    const defaultOutput = `${defaultResult.stdout}${defaultResult.stderr}`;
+
+    expect(defaultResult.exitCode).toBe(0);
+    expect(defaultOutput).not.toContain('compilation logger warning');
+    expect(defaultOutput).not.toContain('infrastructure logger warning');
+
+    const explicitResult = await run(
+      __dirname,
+      ['--config', './logging.config.js'],
+      {},
+      { EXPLICIT_LOGGING: 'true' },
+      true,
+    );
+    const explicitOutput = `${explicitResult.stdout}${explicitResult.stderr}`;
+
+    expect(explicitResult.exitCode).toBe(0);
+    expect(explicitOutput).toContain('compilation logger warning');
+    expect(explicitOutput).toContain('infrastructure logger warning');
+  });
   it('entry option should have higher priority than config', async () => {
     const { exitCode, stderr, stdout } = await run(
       __dirname,

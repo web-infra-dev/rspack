@@ -274,7 +274,11 @@ export class RspackCLI {
       }
 
       if (typeof item.stats === 'undefined') {
-        item.stats = { preset: 'errors-warnings', timings: true };
+        item.stats = {
+          preset: 'errors-warnings',
+          timings: true,
+          logging: false,
+        };
       } else if (typeof item.stats === 'boolean') {
         item.stats = item.stats ? { preset: 'normal' } : { preset: 'none' };
       } else if (typeof item.stats === 'string') {
@@ -283,6 +287,8 @@ export class RspackCLI {
             'normal' | 'none' | 'verbose' | 'errors-only' | 'errors-warnings',
         };
       }
+      item.infrastructureLogging ??= {};
+      item.infrastructureLogging.level ??= 'error';
       return item;
     };
 
