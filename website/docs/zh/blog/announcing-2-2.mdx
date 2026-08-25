@@ -51,6 +51,7 @@ _2026 年 8 月 26 日_
 - 新特性
   - [`import.meta` 改进](#import-meta-improvements)
   - [支持 Browserslist Baseline](#browserslist-baseline)
+  - [支持更多平台](#more-linux-platforms)
 - 生态
   - [Rsbuild](#rsbuild)
   - [Rstest](#rstest)
@@ -146,6 +147,15 @@ export default {
 ```
 
 你也可以使用 `baseline widely available on 2025-05-01` 按指定日期查询，详见 [`target` 配置文档](/config/target#baseline-queries)。
+
+### 支持更多平台 \{#more-linux-platforms}
+
+Rspack 为更多 Linux 平台提供了预编译的原生 binding：
+
+- RISC-V 64 位：`linux-riscv64-gnu` 和 `linux-riscv64-musl`
+- ppc64le 和 s390x 架构：`linux-ppc64-gnu` 和 `linux-s390x-gnu`
+
+在这些平台上安装 Rspack 时，可以直接使用对应的原生 binding，无需回退到 Wasm binding。完整的平台列表请参考[环境准备](/guide/start/quick-start#环境准备)。
 
 ## 生态
 
