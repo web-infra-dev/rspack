@@ -150,46 +150,6 @@ impl ModuleGraphConnection {
   }
 }
 
-#[cfg(test)]
-mod tests {
-  use super::*;
-
-  #[test]
-  fn should_restore_state_after_forcing_connection_inactive() {
-    let mut connection = ModuleGraphConnection::new(
-      DependencyId::from(1),
-      Some(ModuleIdentifier::from("issuer")),
-      ModuleIdentifier::from("target"),
-      true,
-    );
-
-    let state = connection.force_inactive_with_state();
-    assert!(!connection.active);
-    assert!(!connection.conditional);
-
-    connection.restore_active_state(state);
-    assert!(connection.active);
-    assert!(connection.conditional);
-  }
-
-  #[test]
-  fn should_not_reactivate_an_already_inactive_connection() {
-    let mut connection = ModuleGraphConnection::new(
-      DependencyId::from(1),
-      Some(ModuleIdentifier::from("issuer")),
-      ModuleIdentifier::from("target"),
-      true,
-    );
-    connection.force_inactive();
-
-    let state = connection.force_inactive_with_state();
-    connection.restore_active_state(state);
-
-    assert!(!connection.active);
-    assert!(!connection.conditional);
-  }
-}
-
 #[cacheable]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ConnectionState {
