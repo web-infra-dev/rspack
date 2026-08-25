@@ -28,7 +28,7 @@ authors:
 
 import { BlogAuthors } from '@rstack-dev/doc-ui/blog-authors';
 
-import { PackageManagerTabs } from '@theme';
+import { PackageManagerTabs, Prompt } from '@theme';
 
 # Rspack 2.2 发布公告
 
@@ -64,6 +64,7 @@ _2026 年 8 月 26 日_
   - [Rstest](#rstest)
   - [Rslint](#rslint)
   - [Rspress](#rspress)
+  - [Agent plugin](#rstack-agent-plugin)
 
 ## 性能提升
 
@@ -400,6 +401,22 @@ Rspress 在 [AFDocs](https://afdocs.dev/) Agent-friendly 评分中达到 100/100
 Rspress 通过 `llms.txt`、[SSG-MD](https://rspress.rs/zh/guide/basic/ssg-md)、`Accept: text/markdown` 和 `injectLlmsHint` 等能力，让 Agent 更容易发现、读取和理解文档。更多设计与实践可以参考 [怎样构建一个 Agent-friendly 的网站](https://rspress.rs/zh/blog/agent-friendly-website)。
 
 ![Rspress AFDocs scorecard](https://assets.rspack.rs/rspress/assets/rspress-afdocs-scorecard.png)
+
+### Agent plugin \{#rstack-agent-plugin}
+
+Rstack 推出了基于 [Agent Plugins 1.0](https://agent-plugins.org/) 的 Rstack Agent Plugin，可以在 GitHub Copilot、Codex、Cursor 等所有支持该插件规范的 Agent 客户端中使用。
+
+只需安装一个插件，即可获得完整的 Rstack Skills 集合，让 Agent 更好地开发和维护 Rstack 项目。
+
+<Prompt
+  title="一键安装 Rstack Agent Plugin"
+  description="复制这段 Prompt 发送给你的 Agent，即可安装插件。"
+  prompt="Install the Rstack Agent Plugin from https://github.com/rstackjs/agent-skills."
+/>
+
+更多 Rstack 相关 skills 和 agent plugin，请参考 [**Rstack Agent Skills**](https://github.com/rstackjs/agent-skills)。
+
+![Rstack Agent Plugin](https://assets.rspack.rs/rstack/assets/rstack-agent-plugin.png)
 
 ## 升级指南 \{#upgrad-guide}
 
