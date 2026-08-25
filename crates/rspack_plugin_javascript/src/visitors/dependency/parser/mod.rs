@@ -113,7 +113,11 @@ pub(crate) fn member_property_to_atom(ast: &Ast<'_>, expr: Expr) -> Option<Atom>
 /// `obj["key"]` are exposed directly as `StringLiteral`, without an outer
 /// `PropertyKeyData::Expr` variant.
 pub(crate) fn member_property_key_to_atom(ast: &Ast<'_>, key: PropertyKey) -> Option<Atom> {
-  match ast.property_key_data(key) {
+  member_property_key_data_to_atom(ast, ast.property_key_data(key))
+}
+
+fn member_property_key_data_to_atom(ast: &Ast<'_>, key: PropertyKeyData) -> Option<Atom> {
+  match key {
     PropertyKeyData::StringLiteral(node) => Some(atom_from_wtf8(ast.get_wtf8(node.value(ast)))),
     PropertyKeyData::NumericLiteral(node) => Some(Atom::from(
       rspack_util::ryu_js::Buffer::new().format(node.value(ast)),
@@ -1239,22 +1243,24 @@ impl<'parser> JavascriptParser<'parser> {
       match object {
         ExprRef::Member(expr) => {
           let property = expr.property(ast);
+          let property_data = ast.property_key_data(property);
+          let member_object = expr.object(ast);
           if expr.computed(ast) {
-            let Some(value) = member_property_key_to_atom(ast, property) else {
+            let Some(value) = member_property_key_data_to_atom(ast, property_data) else {
               break;
             };
             // Since members are not used across rspack javascript parser plugin,
             // we directly makes it atom here
             members.push(value);
-            member_ranges.push(expr.object(ast).span(ast));
-          } else if let PropertyKeyData::IdentifierName(ident) = ast.property_key_data(property) {
+            member_ranges.push(member_object.span(ast));
+          } else if let PropertyKeyData::IdentifierName(ident) = property_data {
             members.push(Atom::from(ast.get_utf8(ident.name(ast))));
-            member_ranges.push(expr.object(ast).span(ast));
+            member_ranges.push(member_object.span(ast));
           } else {
             break;
           }
           members_optionals.push(in_optional_chain || expr.optional(ast));
-          object = ExprRef::from_expr(ast, expr.object(ast));
+          object = ExprRef::from_expr(ast, member_object);
           in_optional_chain = false;
         }
         ExprRef::OptChain(expr) => {
@@ -1475,18 +1481,15 @@ impl<'parser> JavascriptParser<'parser> {
     let drive = self.plugin_drive.clone();
     if drive.program(self, program).is_none() {
       let ast = self.ast.ast;
-      let body = program
-        .body(ast)
-        .iter()
-        .map(|slot| ast.get_node_in_sub_range(slot))
-        .collect::<Vec<_>>();
+      let body = program.body(ast);
       // Match the legacy `Program::Module` traversal without treating an
       // `import.meta`-only unambiguous parse as ESM. Do not set `self.is_esm`
       // early: legacy parsing only flipped that state during pre-walk.
       let is_esm_program = matches!(self.module_type, ModuleType::JsEsm)
-        || body.iter().any(|statement| {
+        || body.iter().any(|slot| {
+          let statement = ast.get_node_in_sub_range(slot);
           matches!(
-            ast.stmt_data(*statement),
+            ast.stmt_data(statement),
             StmtData::ImportDeclaration(_)
               | StmtData::ExportNamedDeclaration(_)
               | StmtData::ExportDefaultDeclaration(_)
@@ -1498,16 +1501,16 @@ impl<'parser> JavascriptParser<'parser> {
       if is_esm_program {
         self.set_strict(true);
         self.prev_statement = None;
-        self.module_pre_walk_module_items(&body);
+        self.module_pre_walk_module_items(body);
       } else {
         self.detect_mode(program);
       }
       self.prev_statement = None;
-      self.pre_walk_module_items(&body);
+      self.pre_walk_module_items(body);
       self.prev_statement = None;
-      self.block_pre_walk_module_items(&body);
+      self.block_pre_walk_module_items(body);
       self.prev_statement = None;
-      self.walk_module_items(&body);
+      self.walk_module_items(body);
     }
     drive.finish(self);
   }

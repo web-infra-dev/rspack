@@ -958,14 +958,11 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
     for_name: &str,
   ) -> Option<bool> {
     let ast = parser.ast.ast;
-    let arguments = call_expr
-      .arguments(ast)
-      .iter()
-      .map(|id| ast.get_node_in_sub_range(id))
-      .collect::<Vec<_>>();
+    let arguments = call_expr.arguments(ast);
     if for_name == API_IS_INCLUDED
       && arguments.len() == 1
-      && let ArgumentData::Expr(argument) = ast.argument_data(arguments[0])
+      && let Some(argument) = arguments.get_node(ast, 0)
+      && let ArgumentData::Expr(argument) = ast.argument_data(argument)
     {
       let request = parser.evaluate_expression(argument);
       if request.is_string() {

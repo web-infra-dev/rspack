@@ -1,5 +1,5 @@
 use swc_atoms::Atom;
-use swc_next_ecma_ast::{ExprData, GetSpan, Stmt, StmtData};
+use swc_next_ecma_ast::{ExprData, GetSpan, Stmt, StmtData, TypedSubRange};
 
 use super::{
   JavascriptParser,
@@ -15,15 +15,19 @@ use crate::{
 };
 
 impl JavascriptParser<'_> {
-  pub fn block_pre_walk_module_items(&mut self, statements: &[Stmt]) {
-    for &statement in statements {
+  pub fn block_pre_walk_module_items(&mut self, statements: TypedSubRange<Stmt>) {
+    let ast = self.ast.ast;
+    for id in statements.iter() {
+      let statement = ast.get_node_in_sub_range(id);
       self.block_pre_walk_module_item(statement);
     }
   }
 
-  pub fn block_pre_walk_statements(&mut self, statements: &[Stmt]) {
-    for &statement in statements {
-      self.block_pre_walk_statement(Statement::from_stmt(self.ast.ast, statement));
+  pub fn block_pre_walk_statements(&mut self, statements: TypedSubRange<Stmt>) {
+    let ast = self.ast.ast;
+    for id in statements.iter() {
+      let statement = ast.get_node_in_sub_range(id);
+      self.block_pre_walk_statement(Statement::from_stmt(ast, statement));
     }
   }
 

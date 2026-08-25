@@ -2,6 +2,7 @@ use rspack_core::{
   BoxDependency, BuildMetaDefaultObject, BuildMetaExportsType, DependencyRange, RuntimeGlobals,
 };
 use rspack_util::SpanExt;
+use smallvec::SmallVec;
 use swc_atoms::Atom;
 use swc_next_ecma_ast::{
   Argument, AssignmentExpression, Ast, CallExpression, Expr, ExprData, GetSpan, PropertyKeyData,
@@ -236,7 +237,7 @@ fn handle_access_export(
   remaining: &[Atom],
   remaining_optionals: &[bool],
   base: ExportsBase,
-  call_args: Option<Vec<Argument>>,
+  call_args: Option<SmallVec<[Argument; 4]>>,
 ) -> Option<bool> {
   if parser.is_esm {
     return None;
@@ -319,17 +320,19 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsExportsParserPlugin {
     }
     let ast = parser.ast.ast;
     let call_span = call_expr.span(ast);
-    let args = call_expr
-      .arguments(ast)
-      .iter()
-      .map(|id| ast.get_node_in_sub_range(id))
-      .collect::<Vec<_>>();
+    let args = call_expr.arguments(ast);
     if for_name == "Object.defineProperty"
       && parser.is_statement_level_expression(call_span)
       && args.len() == 3
-      && let Some(arg0) = args[0].as_expr(ast)
-      && let Some(arg1) = args[1].as_expr(ast)
-      && let Some(arg2) = args[2].as_expr(ast)
+      && let Some(arg0) = args
+        .get_node(ast, 0)
+        .and_then(|argument| argument.as_expr(ast))
+      && let Some(arg1) = args
+        .get_node(ast, 1)
+        .and_then(|argument| argument.as_expr(ast))
+      && let Some(arg2) = args
+        .get_node(ast, 2)
+        .and_then(|argument| argument.as_expr(ast))
     {
       let exports_arg = parser.evaluate_expression(arg0);
       if !exports_arg.is_identifier() {
@@ -517,7 +520,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsExportsParserPlugin {
         .arguments(ast)
         .iter()
         .map(|id| ast.get_node_in_sub_range(id))
-        .collect::<Vec<_>>()
+        .collect::<SmallVec<[Argument; 4]>>()
     };
 
     if for_name == "exports" {

@@ -46,15 +46,19 @@ fn eval_property_key<'parser>(
 }
 
 impl JavascriptParser<'_> {
-  pub fn pre_walk_module_items(&mut self, statements: &[Stmt]) {
-    for &statement in statements {
+  pub fn pre_walk_module_items(&mut self, statements: TypedSubRange<Stmt>) {
+    let ast = self.ast.ast;
+    for id in statements.iter() {
+      let statement = ast.get_node_in_sub_range(id);
       self.pre_walk_module_item(statement);
     }
   }
 
-  pub fn pre_walk_statements(&mut self, statements: &[Stmt]) {
-    for &statement in statements {
-      self.pre_walk_statement(Statement::from_stmt(self.ast.ast, statement));
+  pub fn pre_walk_statements(&mut self, statements: TypedSubRange<Stmt>) {
+    let ast = self.ast.ast;
+    for id in statements.iter() {
+      let statement = ast.get_node_in_sub_range(id);
+      self.pre_walk_statement(Statement::from_stmt(ast, statement));
     }
   }
 
@@ -118,18 +122,9 @@ impl JavascriptParser<'_> {
 
   fn pre_walk_switch_statement(&mut self, stmt: SwitchStatement) {
     let ast = self.ast.ast;
-    let cases = stmt
-      .cases(ast)
-      .iter()
-      .map(|id| ast.get_node_in_sub_range(id))
-      .collect::<Vec<_>>();
-    for case in cases {
-      let statements = case
-        .consequent(ast)
-        .iter()
-        .map(|id| ast.get_node_in_sub_range(id))
-        .collect::<Vec<_>>();
-      self.pre_walk_statements(&statements);
+    for id in stmt.cases(ast).iter() {
+      let case = ast.get_node_in_sub_range(id);
+      self.pre_walk_statements(case.consequent(ast));
     }
   }
 
@@ -185,12 +180,8 @@ impl JavascriptParser<'_> {
   }
 
   pub(super) fn pre_walk_block_statement(&mut self, stmt: BlockStatement) {
-    let statements = stmt
-      .body(self.ast.ast)
-      .iter()
-      .map(|id| self.ast.ast.get_node_in_sub_range(id))
-      .collect::<Vec<_>>();
-    self.pre_walk_statements(&statements);
+    let ast = self.ast.ast;
+    self.pre_walk_statements(stmt.body(ast));
   }
 
   fn pre_walk_do_while_statement(&mut self, stmt: DoWhileStatement) {
@@ -250,12 +241,11 @@ impl JavascriptParser<'_> {
       return None;
     }
     let mut keys = DestructuringAssignmentProperties::default();
-    let properties = object
+    for property in object
       .properties(ast)
       .iter()
       .map(|id| ast.get_node_in_sub_range(id))
-      .collect::<Vec<_>>();
-    for property in properties {
+    {
       let key = property.key(ast);
       let value = property.value(ast);
       let (id, shorthand) = if property.shorthand(ast) {

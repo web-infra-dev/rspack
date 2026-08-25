@@ -1,5 +1,3 @@
-use std::borrow::Cow;
-
 use swc_atoms::Atom;
 use swc_next_ecma_ast::*;
 
@@ -123,8 +121,10 @@ impl JavascriptParser<'_> {
     self.terminated = old_terminated;
   }
 
-  pub fn walk_module_items(&mut self, statements: &[Stmt]) {
-    for &statement in statements {
+  pub fn walk_module_items(&mut self, statements: TypedSubRange<Stmt>) {
+    let ast = self.ast.ast;
+    for id in statements.iter() {
+      let statement = ast.get_node_in_sub_range(id);
       self.walk_module_item(statement);
     }
   }
@@ -177,10 +177,12 @@ impl JavascriptParser<'_> {
     }
   }
 
-  pub fn walk_statements(&mut self, statements: &[Stmt]) {
+  pub fn walk_statements(&mut self, statements: TypedSubRange<Stmt>) {
+    let ast = self.ast.ast;
     let mut only_function_declaration = false;
-    for &statement in statements {
-      let stmt = Statement::from_stmt(self.ast.ast, statement);
+    for id in statements.iter() {
+      let statement = ast.get_node_in_sub_range(id);
+      let stmt = Statement::from_stmt(ast, statement);
       if only_function_declaration
         && !matches!(stmt, Statement::Fn(_))
         && self
@@ -302,12 +304,7 @@ impl JavascriptParser<'_> {
       }
       let prev = this.prev_statement;
       let body = catch_clause.body(ast);
-      let statements = body
-        .body(ast)
-        .iter()
-        .map(|slot| ast.get_node_in_sub_range(slot))
-        .collect::<Vec<_>>();
-      this.block_pre_walk_statements(&statements);
+      this.block_pre_walk_statements(body.body(ast));
       this.prev_statement = prev;
       this.walk_statement(Statement::Block(body));
     })
@@ -316,39 +313,27 @@ impl JavascriptParser<'_> {
   fn walk_switch_statement(&mut self, stmt: SwitchStatement) {
     let ast = self.ast.ast;
     self.walk_expression(stmt.discriminant(ast));
-    let cases = stmt
-      .cases(ast)
-      .iter()
-      .map(|slot| ast.get_node_in_sub_range(slot))
-      .collect::<Vec<_>>();
-    self.walk_switch_cases(&cases);
+    self.walk_switch_cases(stmt.cases(ast));
   }
 
-  fn walk_switch_cases(&mut self, cases: &[SwitchCase]) {
+  fn walk_switch_cases(&mut self, cases: TypedSubRange<SwitchCase>) {
     self.in_block_scope(false, |this| {
       let ast = this.ast.ast;
-      for &case in cases {
-        let consequent = case
-          .consequent(ast)
-          .iter()
-          .map(|slot| ast.get_node_in_sub_range(slot))
-          .collect::<Vec<_>>();
+      for id in cases.iter() {
+        let case = ast.get_node_in_sub_range(id);
+        let consequent = case.consequent(ast);
         if !consequent.is_empty() {
           let prev = this.prev_statement;
-          this.block_pre_walk_statements(&consequent);
+          this.block_pre_walk_statements(consequent);
           this.prev_statement = prev;
         }
       }
-      for &case in cases {
+      for id in cases.iter() {
+        let case = ast.get_node_in_sub_range(id);
         if let Some(test) = case.test(ast) {
           this.walk_expression(test);
         }
-        let consequent = case
-          .consequent(ast)
-          .iter()
-          .map(|slot| ast.get_node_in_sub_range(slot))
-          .collect::<Vec<_>>();
-        this.walk_statements(&consequent);
+        this.walk_statements(case.consequent(ast));
         this.terminated = None;
       }
     })
@@ -455,15 +440,11 @@ impl JavascriptParser<'_> {
       }
       let body = stmt.body(ast);
       if let Some(body) = body.as_block_statement(ast) {
-        let statements = body
-          .body(ast)
-          .iter()
-          .map(|slot| ast.get_node_in_sub_range(slot))
-          .collect::<Vec<_>>();
+        let statements = body.body(ast);
         let prev = this.prev_statement;
-        this.block_pre_walk_statements(&statements);
+        this.block_pre_walk_statements(statements);
         this.prev_statement = prev;
-        this.walk_statements(&statements);
+        this.walk_statements(statements);
       } else {
         this.walk_nested_statement(body);
       }
@@ -481,15 +462,11 @@ impl JavascriptParser<'_> {
       }
       let body = stmt.body(ast);
       if let Some(body) = body.as_block_statement(ast) {
-        let statements = body
-          .body(ast)
-          .iter()
-          .map(|slot| ast.get_node_in_sub_range(slot))
-          .collect::<Vec<_>>();
+        let statements = body.body(ast);
         let prev = this.prev_statement;
-        this.block_pre_walk_statements(&statements);
+        this.block_pre_walk_statements(statements);
         this.prev_statement = prev;
-        this.walk_statements(&statements);
+        this.walk_statements(statements);
       } else {
         this.walk_nested_statement(body);
       }
@@ -507,15 +484,11 @@ impl JavascriptParser<'_> {
       }
       let body = stmt.body(ast);
       if let Some(body) = body.as_block_statement(ast) {
-        let statements = body
-          .body(ast)
-          .iter()
-          .map(|slot| ast.get_node_in_sub_range(slot))
-          .collect::<Vec<_>>();
+        let statements = body.body(ast);
         let prev = this.prev_statement;
-        this.block_pre_walk_statements(&statements);
+        this.block_pre_walk_statements(statements);
         this.prev_statement = prev;
-        this.walk_statements(&statements);
+        this.walk_statements(statements);
       } else {
         this.walk_nested_statement(body);
       }
@@ -776,12 +749,11 @@ impl JavascriptParser<'_> {
         self.clear_created_require_tags_in_pattern(rest.argument(ast));
       }
       BindingPatternData::ArrayPattern(array) => {
-        let elements = array
+        for element in array
           .elements(ast)
           .iter()
           .filter_map(|id| ast.get_node_in_sub_range(id))
-          .collect::<Vec<_>>();
-        for element in elements {
+        {
           self.clear_created_require_tags_in_pattern(element);
         }
         if let Some(rest) = array.rest(ast) {
@@ -789,12 +761,11 @@ impl JavascriptParser<'_> {
         }
       }
       BindingPatternData::ObjectPattern(object) => {
-        let properties = object
+        for property in object
           .properties(ast)
           .iter()
           .map(|id| ast.get_node_in_sub_range(id))
-          .collect::<Vec<_>>();
-        for property in properties {
+        {
           self.clear_created_require_tags_in_pattern(property.value(ast));
         }
         if let Some(rest) = object.rest(ast) {
@@ -948,16 +919,12 @@ impl JavascriptParser<'_> {
 
   fn walk_sequence_expression(&mut self, expr: SequenceExpression) {
     let ast = self.ast.ast;
-    let expressions = expr
-      .expressions(ast)
-      .iter()
-      .map(|id| ast.get_node_in_sub_range(id))
-      .collect::<Vec<_>>();
+    let expressions = expr.expressions(ast);
     if self.is_statement_level_expression(expr.span(ast))
       && let Some(old) = self.statement_path.pop()
     {
       let prev = self.prev_statement;
-      for expression in expressions {
+      for expression in expressions.iter().map(|id| ast.get_node_in_sub_range(id)) {
         self.statement_path.push(expression.span(ast).into());
         self.walk_expression(expression);
         self.prev_statement = self.statement_path.pop();
@@ -965,7 +932,7 @@ impl JavascriptParser<'_> {
       self.prev_statement = prev;
       self.statement_path.push(old);
     } else {
-      self.walk_expressions(expressions.into_iter());
+      self.walk_expressions(expressions.iter().map(|id| ast.get_node_in_sub_range(id)));
     }
   }
 
@@ -979,20 +946,18 @@ impl JavascriptParser<'_> {
     let ast = self.ast.ast;
     let opening = element.opening_element(ast);
     self.walk_jsx_element_name(opening.name(ast));
-    let attributes = opening
+    for attribute in opening
       .attributes(ast)
       .iter()
       .map(|id| ast.get_node_in_sub_range(id))
-      .collect::<Vec<_>>();
-    for attribute in attributes {
+    {
       self.walk_jsx_attr_or_spread(attribute);
     }
-    let children = element
+    for child in element
       .children(ast)
       .iter()
       .map(|id| ast.get_node_in_sub_range(id))
-      .collect::<Vec<_>>();
-    for child in children {
+    {
       self.walk_jsx_child(child);
     }
     if let Some(closing) = element.closing_element(ast) {
@@ -1001,12 +966,12 @@ impl JavascriptParser<'_> {
   }
 
   fn walk_jsx_fragment(&mut self, fragment: JsxFragment) {
-    let children = fragment
-      .children(self.ast.ast)
+    let ast = self.ast.ast;
+    for child in fragment
+      .children(ast)
       .iter()
-      .map(|id| self.ast.ast.get_node_in_sub_range(id))
-      .collect::<Vec<_>>();
-    for child in children {
+      .map(|id| ast.get_node_in_sub_range(id))
+    {
       self.walk_jsx_child(child);
     }
   }
@@ -1176,12 +1141,11 @@ impl JavascriptParser<'_> {
 
   fn walk_object_expression(&mut self, expr: ObjectExpression) {
     let ast = self.ast.ast;
-    let properties = expr
+    for property in expr
       .properties(ast)
       .iter()
       .map(|id| ast.get_node_in_sub_range(id))
-      .collect::<Vec<_>>();
-    for property in properties {
+    {
       match ast.object_property_kind_data(property) {
         ObjectPropertyKindData::SpreadElement(spread) => {
           self.walk_expression(spread.argument(ast));
@@ -1499,27 +1463,23 @@ impl JavascriptParser<'_> {
     }
   }
 
-  fn formal_parameter_patterns(ast: &Ast<'_>, params: FormalParameters) -> Vec<BindingPattern> {
-    let mut patterns = params
+  fn formal_parameter_patterns<'a>(
+    ast: &'a Ast<'a>,
+    params: FormalParameters,
+  ) -> impl Iterator<Item = BindingPattern> + 'a {
+    params
       .items(ast)
       .iter()
       .map(|id| ast.get_node_in_sub_range(id))
       .filter_map(|item| item.as_formal_parameter(ast))
       .filter_map(|parameter| parameter.pattern(ast).as_binding_pattern(ast))
-      .collect::<Vec<_>>();
-    if let Some(rest) = params.rest(ast) {
-      patterns.push(BindingPattern::BindingRestElement(rest));
-    }
-    patterns
+      .chain(params.rest(ast).map(BindingPattern::BindingRestElement))
   }
 
-  fn simple_parameter_identifiers(
-    ast: &Ast<'_>,
+  fn parameter_identifiers<'a>(
+    ast: &'a Ast<'a>,
     params: FormalParameters,
-  ) -> Option<Vec<BindingIdentifier>> {
-    if params.rest(ast).is_some() {
-      return None;
-    }
+  ) -> impl Iterator<Item = Option<BindingIdentifier>> + 'a {
     params
       .items(ast)
       .iter()
@@ -1531,7 +1491,11 @@ impl JavascriptParser<'_> {
           .as_binding_pattern(ast)?
           .as_binding_identifier(ast)
       })
-      .collect()
+  }
+
+  fn has_simple_parameter_identifiers(ast: &Ast<'_>, params: FormalParameters) -> bool {
+    params.rest(ast).is_none()
+      && Self::parameter_identifiers(ast, params).all(|identifier| identifier.is_some())
   }
 
   pub(crate) fn walk_function_body(&mut self, body: FunctionBody) {
@@ -1546,17 +1510,13 @@ impl JavascriptParser<'_> {
         break;
       }
     }
-    let statements = body
-      .body(ast)
-      .iter()
-      .map(|id| ast.get_node_in_sub_range(id))
-      .collect::<Vec<_>>();
+    let statements = body.body(ast);
     let prev = self.prev_statement;
-    self.pre_walk_statements(&statements);
+    self.pre_walk_statements(statements);
     self.prev_statement = prev;
-    self.block_pre_walk_statements(&statements);
+    self.block_pre_walk_statements(statements);
     self.prev_statement = prev;
-    self.walk_statements(&statements);
+    self.walk_statements(statements);
   }
 
   fn walk_import_expression(&mut self, expr: ImportExpression) {
@@ -1621,9 +1581,8 @@ impl JavascriptParser<'_> {
       ExprData::ArrowFunctionExpression(arrow) => arrow.params(ast),
       _ => unreachable!("IIFE must be a function or arrow function"),
     };
-    for (i, identifier) in Self::simple_parameter_identifiers(ast, formal_params)
-      .expect("IIFE parameters must be binding identifiers")
-      .into_iter()
+    for (i, identifier) in Self::parameter_identifiers(ast, formal_params)
+      .map(|identifier| identifier.expect("IIFE parameters must be binding identifiers"))
       .enumerate()
     {
       params.push(identifier);
@@ -1692,21 +1651,18 @@ impl JavascriptParser<'_> {
   fn walk_call_expression(&mut self, expr: CallExpression) {
     let ast = self.ast.ast;
     let callee = expr.callee(ast);
-    let arguments = expr
-      .arguments(ast)
-      .iter()
-      .map(|id| ast.get_node_in_sub_range(id))
-      .collect::<Vec<_>>();
+    let arguments = expr.arguments(ast);
 
     if let Some(member) = callee.as_member_expression(ast)
       && let Some(function) = member.object(ast).as_function(ast)
       && Self::property_key_name(ast, member.property(ast))
         .is_some_and(|name| name == "call" || name == "bind")
       && !arguments.is_empty()
-      && Self::simple_parameter_identifiers(ast, function.params(ast)).is_some()
+      && Self::has_simple_parameter_identifiers(ast, function.params(ast))
     {
       let mut args = arguments
-        .into_iter()
+        .iter()
+        .map(|id| ast.get_node_in_sub_range(id))
         .filter_map(|argument| argument.as_expr(ast));
       let current_this = args.next();
       self._walk_iife(member.object(ast), args, current_this);
@@ -1718,12 +1674,12 @@ impl JavascriptParser<'_> {
       ExprData::ArrowFunctionExpression(arrow) => Some(arrow.params(ast)),
       _ => None,
     };
-    if direct_params.is_some_and(|params| Self::simple_parameter_identifiers(ast, params).is_some())
-    {
+    if direct_params.is_some_and(|params| Self::has_simple_parameter_identifiers(ast, params)) {
       self._walk_iife(
         callee,
         arguments
-          .into_iter()
+          .iter()
+          .map(|id| ast.get_node_in_sub_range(id))
           .filter_map(|argument| argument.as_expr(ast)),
         None,
       );
@@ -1778,23 +1734,26 @@ impl JavascriptParser<'_> {
           .import_call(self, call, None, Some((&members, true)))
           .unwrap_or_default()
         {
-          self.walk_arguments(arguments.into_iter());
+          self.walk_arguments(arguments.iter().map(|id| ast.get_node_in_sub_range(id)));
           return;
         }
       }
     }
     let evaluated_callee = self.evaluate_expression(callee);
     if evaluated_callee.is_identifier() {
-      let members = evaluated_callee
-        .members()
-        .map_or_else(|| Cow::Owned(Vec::new()), Cow::Borrowed);
-      let members_optionals = evaluated_callee.members_optionals().map_or_else(
-        || Cow::Owned(members.iter().map(|_| false).collect::<Vec<_>>()),
-        Cow::Borrowed,
-      );
+      let members = evaluated_callee.members().map_or(&[][..], Vec::as_slice);
+      let owned_members_optionals;
+      let members_optionals = match evaluated_callee.members_optionals() {
+        Some(members_optionals) => members_optionals.as_slice(),
+        None => {
+          owned_members_optionals =
+            std::iter::repeat_n(false, members.len()).collect::<OptionalMembers>();
+          owned_members_optionals.as_slice()
+        }
+      };
       let member_ranges = evaluated_callee
         .member_ranges()
-        .map_or_else(|| Cow::Owned(Vec::new()), Cow::Borrowed);
+        .map_or(&[][..], Vec::as_slice);
       let drive = self.plugin_drive.clone();
       if evaluated_callee
         .root_info()
@@ -1803,9 +1762,9 @@ impl JavascriptParser<'_> {
             parser,
             expr,
             for_name,
-            &members,
-            &members_optionals,
-            &member_ranges,
+            members,
+            members_optionals,
+            member_ranges,
           )
         })
         .unwrap_or_default()
@@ -1833,7 +1792,7 @@ impl JavascriptParser<'_> {
     } else {
       self.walk_expression(callee);
     }
-    self.walk_arguments(arguments.into_iter());
+    self.walk_arguments(arguments.iter().map(|id| ast.get_node_in_sub_range(id)));
   }
 
   fn extract_await_import_member(
@@ -2072,16 +2031,16 @@ impl JavascriptParser<'_> {
 
   fn walk_arrow_function_expression(&mut self, expr: ArrowFunctionExpression) {
     let ast = self.ast.ast;
-    let patterns = Self::formal_parameter_patterns(ast, expr.params(ast));
+    let params = expr.params(ast);
     let was_top_level_scope = self.top_level_scope;
     if !matches!(was_top_level_scope, TopLevelScope::False) {
       self.top_level_scope = TopLevelScope::ArrowFunction;
     }
     self.in_function_scope(
       false,
-      patterns.iter().copied().map(PatRef::Borrowed),
+      Self::formal_parameter_patterns(ast, params).map(PatRef::Borrowed),
       |this| {
-        for pattern in patterns.iter().copied() {
+        for pattern in Self::formal_parameter_patterns(ast, params) {
           this.walk_pattern(pattern)
         }
         match this
@@ -2129,16 +2088,12 @@ impl JavascriptParser<'_> {
 
   fn walk_block_statement(&mut self, stmt: BlockStatement) {
     let ast = self.ast.ast;
-    let statements = stmt
-      .body(ast)
-      .iter()
-      .map(|id| ast.get_node_in_sub_range(id))
-      .collect::<Vec<_>>();
+    let statements = stmt.body(ast);
     self.in_block_scope(true, |this| {
       let prev = this.prev_statement;
-      this.block_pre_walk_statements(&statements);
+      this.block_pre_walk_statements(statements);
       this.prev_statement = prev;
-      this.walk_statements(&statements);
+      this.walk_statements(statements);
     })
   }
 
@@ -2148,13 +2103,9 @@ impl JavascriptParser<'_> {
     let ast = self.ast.ast;
     let function = decl.function();
     let patterns = Self::formal_parameter_patterns(ast, function.params(ast));
-    self.in_function_scope(
-      true,
-      patterns.iter().copied().map(PatRef::Borrowed),
-      |this| {
-        this.walk_function(function);
-      },
-    );
+    self.in_function_scope(true, patterns.map(PatRef::Borrowed), |this| {
+      this.walk_function(function);
+    });
     self.top_level_scope = was_top_level;
   }
 
@@ -2170,16 +2121,16 @@ impl JavascriptParser<'_> {
     let ast = self.ast.ast;
     let was_top_level = self.top_level_scope;
     self.top_level_scope = TopLevelScope::False;
-    let mut scope_params: Vec<PatRef> = Self::formal_parameter_patterns(ast, expr.params(ast))
-      .into_iter()
+    let scope_params = Self::formal_parameter_patterns(ast, expr.params(ast))
       .map(PatRef::Borrowed)
-      .collect();
+      .chain(
+        expr
+          .id(ast)
+          .map(BindingPattern::BindingIdentifier)
+          .map(PatRef::Owned),
+      );
 
-    if let Some(identifier) = expr.id(ast) {
-      scope_params.push(PatRef::Owned(BindingPattern::BindingIdentifier(identifier)));
-    }
-
-    self.in_function_scope(true, scope_params.into_iter(), |this| {
+    self.in_function_scope(true, scope_params, |this| {
       this.walk_function(expr);
     });
     self.top_level_scope = was_top_level;
@@ -2236,12 +2187,11 @@ impl JavascriptParser<'_> {
 
   fn walk_object_pattern(&mut self, object: ObjectPattern) {
     let ast = self.ast.ast;
-    let properties = object
+    for property in object
       .properties(ast)
       .iter()
       .map(|id| ast.get_node_in_sub_range(id))
-      .collect::<Vec<_>>();
-    for property in properties {
+    {
       if property.computed(ast) {
         self.walk_property_key(property.key(ast));
       }
@@ -2260,12 +2210,11 @@ impl JavascriptParser<'_> {
 
   fn walk_array_pattern(&mut self, pattern: ArrayPattern) {
     let ast = self.ast.ast;
-    let elements = pattern
+    for element in pattern
       .elements(ast)
       .iter()
       .filter_map(|id| ast.get_node_in_sub_range(id))
-      .collect::<Vec<_>>();
-    for element in elements {
+    {
       self.walk_pattern(element);
     }
     if let Some(rest) = pattern.rest(ast) {
@@ -2290,22 +2239,17 @@ impl JavascriptParser<'_> {
     }
 
     // TODO: define variable for class expression in block pre walk
-    let scope_params = if let ClassDeclOrExpr::Expr(class_expr) = class_decl_or_expr
-      && let Some(identifier) = class_expr.id(ast)
-    {
-      vec![PatRef::Owned(BindingPattern::BindingIdentifier(identifier))]
-    } else {
-      vec![]
+    let scope_param = match class_decl_or_expr {
+      ClassDeclOrExpr::Expr(class_expr) => class_expr
+        .id(ast)
+        .map(BindingPattern::BindingIdentifier)
+        .map(PatRef::Owned),
+      ClassDeclOrExpr::Decl(_) => None,
     };
 
-    let elements = classy
-      .body(ast)
-      .body(ast)
-      .iter()
-      .map(|id| ast.get_node_in_sub_range(id))
-      .collect::<Vec<_>>();
-    self.in_class_scope(true, scope_params.into_iter(), |this| {
-      for class_element in elements {
+    let elements = classy.body(ast).body(ast);
+    self.in_class_scope(true, scope_param.into_iter(), |this| {
+      for class_element in elements.iter().map(|id| ast.get_node_in_sub_range(id)) {
         if this
           .plugin_drive
           .clone()
@@ -2333,11 +2277,9 @@ impl JavascriptParser<'_> {
             this.top_level_scope = TopLevelScope::False;
             let function = method.value(ast);
             let patterns = Self::formal_parameter_patterns(ast, function.params(ast));
-            this.in_function_scope(
-              true,
-              patterns.iter().copied().map(PatRef::Borrowed),
-              |this| this.walk_function(function),
-            );
+            this.in_function_scope(true, patterns.map(PatRef::Borrowed), |this| {
+              this.walk_function(function)
+            });
             this.top_level_scope = was_top_level;
           }
           ClassElementData::PropertyDefinition(property) => {
@@ -2361,16 +2303,13 @@ impl JavascriptParser<'_> {
           ClassElementData::StaticBlock(block) => {
             let was_top_level = this.top_level_scope;
             this.top_level_scope = TopLevelScope::False;
-            let statements = block
-              .body(this.ast.ast)
-              .iter()
-              .map(|id| this.ast.ast.get_node_in_sub_range(id))
-              .collect::<Vec<_>>();
+            let ast = this.ast.ast;
+            let statements = block.body(ast);
             this.in_block_scope(true, |this| {
               let prev = this.prev_statement;
-              this.block_pre_walk_statements(&statements);
+              this.block_pre_walk_statements(statements);
               this.prev_statement = prev;
-              this.walk_statements(&statements);
+              this.walk_statements(statements);
             });
             this.top_level_scope = was_top_level;
           }

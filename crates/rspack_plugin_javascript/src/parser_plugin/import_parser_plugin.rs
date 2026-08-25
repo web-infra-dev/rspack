@@ -661,17 +661,18 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
     if let Some(import_then) = import_then {
       if let Some(ns_obj) = referenced_fulfilled_ns_obj {
         let ast = parser.ast.ast;
-        let arguments = import_then
-          .arguments(ast)
-          .iter()
-          .map(|id| ast.get_node_in_sub_range(id))
-          .collect::<Vec<_>>();
+        let arguments = import_then.arguments(ast);
         let fulfilled_callback = arguments
-          .first()
+          .get_node(ast, 0)
           .and_then(|argument| argument.as_expr(ast))
           .expect("fulfilled callback should be an expression");
         walk_import_then_fulfilled_callback(parser, node, fulfilled_callback, ns_obj);
-        parser.walk_arguments(arguments.into_iter().skip(1));
+        parser.walk_arguments(
+          arguments
+            .iter()
+            .skip(1)
+            .map(|id| ast.get_node_in_sub_range(id)),
+        );
       } else {
         let ast = parser.ast.ast;
         parser.walk_arguments(

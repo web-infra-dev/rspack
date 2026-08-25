@@ -9,6 +9,7 @@ use rspack_core::{
 };
 use rspack_error::{Diagnostic, Severity};
 use rspack_util::{SpanExt, json_stringify_str};
+use smallvec::SmallVec;
 use swc_atoms::Atom;
 use swc_next_ecma_ast::{
   Argument, ArgumentData, AssignmentExpression, AssignmentOperator, Ast, CallExpression, Expr,
@@ -353,7 +354,9 @@ fn static_member_name(ast: &Ast<'_>, member_expr: MemberExpression) -> Option<At
   }
 }
 
-fn collect_arguments(ast: &Ast<'_>, arguments: TypedSubRange<Argument>) -> Vec<Argument> {
+type Arguments = SmallVec<[Argument; 4]>;
+
+fn collect_arguments(ast: &Ast<'_>, arguments: TypedSubRange<Argument>) -> Arguments {
   arguments
     .iter()
     .map(|id| ast.get_node_in_sub_range(id))
@@ -1543,7 +1546,7 @@ impl CallOrNewExpression {
     }
   }
 
-  pub fn args(self, ast: &Ast<'_>) -> Vec<Argument> {
+  pub fn args(self, ast: &Ast<'_>) -> Arguments {
     match self {
       CallOrNewExpression::Call(call_expr) => collect_arguments(ast, call_expr.arguments(ast)),
       CallOrNewExpression::New(new_expr) => collect_arguments(ast, new_expr.arguments(ast)),

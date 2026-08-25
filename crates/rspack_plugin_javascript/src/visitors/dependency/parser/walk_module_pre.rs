@@ -1,6 +1,6 @@
 use swc_atoms::Atom;
 use swc_next_ecma_ast::{
-  GetSpan, ImportDeclaration, ImportDeclarationSpecifierData, Stmt, StmtData,
+  GetSpan, ImportDeclaration, ImportDeclarationSpecifierData, Stmt, StmtData, TypedSubRange,
 };
 
 use crate::{
@@ -12,9 +12,10 @@ use crate::{
 };
 
 impl JavascriptParser<'_> {
-  pub fn module_pre_walk_module_items(&mut self, statements: &[Stmt]) {
-    for &statement in statements {
-      let ast = self.ast.ast;
+  pub fn module_pre_walk_module_items(&mut self, statements: TypedSubRange<Stmt>) {
+    let ast = self.ast.ast;
+    for id in statements.iter() {
+      let statement = ast.get_node_in_sub_range(id);
       self.statement_path.push(statement.span(ast).into());
       match ast.stmt_data(statement) {
         StmtData::ImportDeclaration(declaration) => {
@@ -41,12 +42,8 @@ impl JavascriptParser<'_> {
       .into_owned();
     drive.import(self, declaration, &source);
     let source_atom = Atom::from(source);
-    let specifiers = declaration
-      .specifiers(ast)
-      .iter()
-      .map(|id| ast.get_node_in_sub_range(id))
-      .collect::<Vec<_>>();
-    for specifier in specifiers {
+    for id in declaration.specifiers(ast).iter() {
+      let specifier = ast.get_node_in_sub_range(id);
       match ast.import_declaration_specifier_data(specifier) {
         ImportDeclarationSpecifierData::ImportSpecifier(named) => {
           let local = named.local(ast);
