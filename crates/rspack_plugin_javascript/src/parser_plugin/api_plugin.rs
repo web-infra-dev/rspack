@@ -602,7 +602,6 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
     }
 
     if for_name == API_MODULE {
-      parser.build_info.module_exports_accessed = Some(true);
       let range = ident.span.into();
       let loc = parser.to_dependency_location(range);
       parser
