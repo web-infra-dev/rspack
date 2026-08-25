@@ -271,7 +271,7 @@ test('home page', async ({ page, serve }) => {
 
 Rstest 现在支持模块联邦测试：可以在 Node、JSDOM 和 Browser Mode 环境下，直接测试真实的联邦远程模块。
 
-通过 `@module-federation/rstest`，你还可以加载 URL remote，或在 Node.js 集成测试中使用 CommonJS remote：
+在 Rstest 配置文件中引入 `@module-federation/rstest` 即可：
 
 ```ts title="rstest.config.ts"
 import { federation } from '@module-federation/rstest';
@@ -281,9 +281,7 @@ export default defineConfig({
   plugins: [
     federation({
       name: 'host',
-      remotes: {
-        'component-app': 'component_app@http://localhost:3001/remoteEntry.js',
-      },
+      // options
     }),
   ],
 });
