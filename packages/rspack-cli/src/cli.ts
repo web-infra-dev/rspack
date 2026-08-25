@@ -273,22 +273,6 @@ export class RspackCLI {
         }
       }
 
-      if (typeof item.stats === 'undefined') {
-        item.stats = {
-          preset: 'errors-warnings',
-          timings: true,
-          logging: false,
-        };
-      } else if (typeof item.stats === 'boolean') {
-        item.stats = item.stats ? { preset: 'normal' } : { preset: 'none' };
-      } else if (typeof item.stats === 'string') {
-        item.stats = {
-          preset: item.stats as
-            'normal' | 'none' | 'verbose' | 'errors-only' | 'errors-warnings',
-        };
-      } else if (typeof item.stats.preset === 'undefined') {
-        item.stats.logging ??= false;
-      }
       item.infrastructureLogging ??= {};
       item.infrastructureLogging.level ??= 'error';
       return item;

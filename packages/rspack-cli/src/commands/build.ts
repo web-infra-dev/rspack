@@ -5,6 +5,7 @@ import type {
   MultiStatsOptions,
   Stats,
   StatsOptions,
+  StatsValue,
 } from '@rspack/core';
 import type { RspackCLI } from '../cli';
 import type { RspackCommand } from '../types';
@@ -19,6 +20,30 @@ import {
 type BuildOptions = CommonOptionsForBuildAndServe & {
   json?: boolean | string;
 };
+
+const defaultStatsOptions = {
+  all: false,
+  errors: true,
+  warnings: true,
+  moduleTrace: true,
+  timings: true,
+} satisfies StatsOptions;
+
+function applyDefaultStatsOptions(stats: StatsValue | undefined): StatsOptions {
+  const options: StatsOptions =
+    typeof stats === 'boolean' || typeof stats === 'string'
+      ? { preset: stats }
+      : (stats ?? {});
+
+  if (options.preset !== undefined || options.all !== undefined) {
+    return options;
+  }
+
+  return {
+    ...defaultStatsOptions,
+    ...options,
+  };
+}
 
 async function runBuild(cli: RspackCLI, options: BuildOptions): Promise<void> {
   setDefaultNodeEnv(options, 'production');
@@ -57,11 +82,11 @@ async function runBuild(cli: RspackCLI, options: BuildOptions): Promise<void> {
       if (cli.isMultipleCompiler(compiler)) {
         return {
           children: compiler.compilers.map((item) =>
-            item.options ? item.options.stats : undefined,
+            applyDefaultStatsOptions(item.options?.stats),
           ),
         } satisfies MultiStatsOptions;
       }
-      return compiler.options?.stats;
+      return applyDefaultStatsOptions(compiler.options?.stats);
     };
 
     const statsOptions = getStatsOptions() as StatsOptions;

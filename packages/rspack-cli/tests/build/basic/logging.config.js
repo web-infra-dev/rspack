@@ -5,6 +5,7 @@ const INFRASTRUCTURE_LOG = 'infrastructure logger warning';
 const explicitLogging = process.env.EXPLICIT_LOGGING === 'true';
 const partialStats = process.env.PARTIAL_STATS === 'true';
 const statsPreset = process.env.STATS_PRESET;
+const allStats = process.env.ALL_STATS === 'true';
 
 module.exports = {
   entry: './src/index.js',
@@ -30,13 +31,19 @@ module.exports = {
                 }
               : 'verbose',
         }
-      : partialStats
+      : allStats
         ? {
             stats: {
-              timings: false,
+              all: true,
             },
           }
-        : {}),
+        : partialStats
+          ? {
+              stats: {
+                timings: false,
+              },
+            }
+          : {}),
   plugins: [
     {
       apply(compiler) {
