@@ -7,7 +7,6 @@ use rspack_core::{
   DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate, TemplateContext,
   TemplateReplaceSource, UsedName, create_node_commonjs_init_fragment, property_access,
 };
-use rspack_plugin_externals::is_node_builtin;
 use rspack_plugin_javascript::dependency::{
   CommonJsExportRequireDependency, CommonJsFullRequireDependency, CommonJsRequireDependency,
   RequireHeaderDependency,
@@ -54,15 +53,12 @@ fn is_relative_external_request(request: &str) -> bool {
     || request.starts_with("..\\")
 }
 
-fn can_render_direct_request(kind: DirectRequireKind, request: &str) -> bool {
-  match kind {
-    DirectRequireKind::CommonJs => !is_relative_external_request(request),
-    // `createRequire(import.meta.url)` resolves packages and package imports
-    // relative to the emitted asset. Moving that call into an issuer in a
-    // different directory can load another package, so only base-independent
-    // Node builtins are safe to render directly.
-    DirectRequireKind::NodeCommonJs => is_node_builtin(request),
-  }
+fn can_render_direct_request(request: &str) -> bool {
+  // Both ambient `require` and `createRequire(import.meta.url)` resolve
+  // relative requests from the emitted asset containing the call. Keep those
+  // requests on the external-module path because direct rendering can move the
+  // call into an issuer emitted in another directory.
+  !is_relative_external_request(request)
 }
 
 pub fn cutout_commonjs_externals(
@@ -151,9 +147,9 @@ pub fn cutout_commonjs_externals(
       };
 
       let request = external_module.get_request();
-      if let Some(kind) = direct_require_kind(external_module.resolve_external_type())
+      if direct_require_kind(external_module.resolve_external_type()).is_some()
         && !request.has_rest()
-        && can_render_direct_request(kind, request.primary())
+        && can_render_direct_request(request.primary())
       {
         direct_dependencies.insert(dependency_id);
       }
