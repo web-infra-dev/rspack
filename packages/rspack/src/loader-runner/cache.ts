@@ -96,6 +96,10 @@ export class LoaderCache {
     const isUnchangedPrefix = (current: string[], before: string[]) =>
       current.length >= before.length &&
       before.every((dependency, index) => current[index] === dependency);
+    // A cache hit can only replay dependencies appended by this loader. If the
+    // loader removed or reordered previously collected dependencies (for example,
+    // through clearDependencies), its dependency-context side effect cannot be
+    // reproduced safely, so the loader result must not be cached.
     const dependencyContextAppendOnly = (
       [
         'fileDependencies',
