@@ -4225,6 +4225,7 @@ dependencies = [
  "inventory",
  "itertools 0.14.0",
  "json",
+ "memchr",
  "mime_guess",
  "napi",
  "num-bigint",
@@ -4534,6 +4535,7 @@ dependencies = [
 name = "rspack_macros"
 version = "0.102.0-rc.0"
 dependencies = [
+ "heck",
  "proc-macro2",
  "quote",
  "syn 2.0.117",
