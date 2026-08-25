@@ -102,7 +102,6 @@ pub struct Compiler {
   pub loader_resolver_factory: Arc<ResolverFactory>,
   pub cache: Box<dyn LegacyCache>,
   incremental_artifacts: IncrementalArtifacts,
-  incremental_artifacts_prepared: bool,
   new_cache: Cache,
   /// emitted asset versions
   /// the key of HashMap is filename, the value of HashMap is version
@@ -213,7 +212,6 @@ impl Compiler {
       loader_resolver_factory,
       cache,
       incremental_artifacts: IncrementalArtifacts::default(),
-      incremental_artifacts_prepared: false,
       new_cache,
       emitted_asset_versions: Default::default(),
       input_filesystem,
@@ -258,31 +256,14 @@ impl Compiler {
   }
 
   pub async fn run(&mut self) -> Result<()> {
-    self.build_once().await?;
+    self.build().await?;
     Ok(())
   }
 
   pub async fn build(&mut self) -> Result<()> {
-    self.build_with_incremental_artifacts(true).await
-  }
-
-  /// Run a standalone build without preparing artifacts for a later rebuild.
-  pub async fn build_once(&mut self) -> Result<()> {
-    self.build_with_incremental_artifacts(false).await
-  }
-
-  async fn build_with_incremental_artifacts(
-    &mut self,
-    prepare_incremental_artifacts: bool,
-  ) -> Result<()> {
     let start = self.end_idle()?;
     let compiler_context = self.compiler_context.clone();
-    let result = match within_compiler_context(
-      compiler_context,
-      self.build_inner(prepare_incremental_artifacts),
-    )
-    .await
-    {
+    let result = match within_compiler_context(compiler_context, self.build_inner()).await {
       Ok(_) => {
         self
           .plugin_driver
@@ -306,7 +287,7 @@ impl Compiler {
   }
 
   #[instrument("Compiler:build",target=TRACING_BENCH_TARGET, skip_all)]
-  async fn build_inner(&mut self, prepare_incremental_artifacts: bool) -> Result<()> {
+  async fn build_inner(&mut self) -> Result<()> {
     // TODO: clear the outdated cache entries in resolver,
     // TODO: maybe it's better to use external entries.
     let plugin_driver_clone = self.plugin_driver.clone();
@@ -315,13 +296,6 @@ impl Compiler {
     let compilation_logging = self.compilation.get_logging().clone();
     compilation_logging.clear();
     self.incremental_artifacts.reset();
-    self.incremental_artifacts_prepared = false;
-
-    let incremental = if prepare_incremental_artifacts {
-      Incremental::new_cold(self.options.incremental)
-    } else {
-      Incremental::new_cold(crate::incremental::IncrementalOptions::empty_passes())
-    };
 
     fast_set(
       &mut self.compilation,
@@ -334,7 +308,7 @@ impl Compiler {
         self.resolver_factory.clone(),
         self.loader_resolver_factory.clone(),
         None,
-        incremental,
+        Incremental::new_cold(self.options.incremental),
         Some(Default::default()),
         compilation_logging,
         self.new_cache.clone(),
@@ -352,7 +326,6 @@ impl Compiler {
     self.compile().await?;
     self.compile_done().await?;
     self.cache.after_compile(&self.compilation).await;
-    self.incremental_artifacts_prepared = prepare_incremental_artifacts;
     #[cfg(allocative)]
     crate::utils::snapshot_allocative("build");
 
