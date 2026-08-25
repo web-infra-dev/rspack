@@ -19,7 +19,6 @@ rspack_hash                = { workspace = true }
 rspack_hook                = { workspace = true }
 rspack_intern              = { workspace = true, features = ["atom"] }
 rspack_parallel            = { workspace = true }
-rspack_plugin_externals    = { workspace = true }
 rspack_plugin_javascript   = { workspace = true }
 rspack_plugin_rslib        = { workspace = true }
 rspack_plugin_runtime      = { workspace = true }
