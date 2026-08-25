@@ -45,8 +45,8 @@ _2026 年 8 月 26 日_
 - 新特性
   - [`import.meta.glob` 支持 `caseSensitive`](#import-meta-glob-case-sensitive)
   - [`import.meta` 新增 API](#import-meta-apis)
-  - [Compat Hashed IDs](#compat-hashed-ids)
-  - [Rspack Runtime Mode](#rspack-runtime-mode)
+  - [Compat hashed IDs](#compat-hashed-ids)
+  - [Rspack runtime mode](#rspack-runtime-mode)
 
 - 产物优化
 
@@ -129,7 +129,7 @@ const modules = import.meta.glob('./pages/**/*.js', {
 });
 ```
 
-### Compat Hashed IDs \{#compat-hashed-ids}
+### Compat hashed IDs \{#compat-hashed-ids}
 
 [`optimization.moduleIds`](/config/optimization#optimizationmoduleids) 和 [`optimization.chunkIds`](/config/optimization#optimizationchunkids) 新增了 `'compat-hashed'`。它使用稳定 hash 的最短可用前缀生成更紧凑的 ID。相比 `deterministic`，它在同样保持 ID 稳定性的同时，兼顾运行时索引性能和产物体积。如果你的项目对于产物体积比较关注，可以通过如下配置开启：
 
@@ -142,7 +142,7 @@ export default {
 };
 ```
 
-### Rspack Runtime Mode \{#rspack-runtime-mode}
+### Rspack runtime mode \{#rspack-runtime-mode}
 
 `experiments.runtimeMode` 新增了 `'rspack'` 选项，用于生成更现代化的运行时代码。以 `output.module: true` 时的产物为例，Rspack 在定义 runtime helper 时，不再使用 IIFE 包裹并将其挂载到 `__webpack_require__`，而是直接在 ESM 顶层声明，并通过 `export` 语句导出。这样不仅能精简产物，也对下游 tree shaking 更加友好。
 
@@ -178,7 +178,7 @@ export { runtimeHelper };
 
 ## 产物优化
 
-## Break Change
+## Breaking changes \{#breaking-changes}
 
 ### RSC 插件：通过 `preinit` 加载客户端组件的 CSS
 
@@ -187,6 +187,19 @@ export { runtimeHelper };
 Rspack 2.2 不再包装客户端引用，而是通过 React 的 [`preinit`](https://react.dev/reference/react-dom/preinit) 加载客户端组件的 CSS。
 
 这项调整改变了 RSC 中客户端组件 CSS 的加载方式，是一项针对 RSC 框架集成的破坏性变更。如果你正在集成 Rspack RSC 插件，请将 [`react-server-dom-rspack`](https://www.npmjs.com/package/react-server-dom-rspack) 同步升级到 `0.1.0`。
+
+### Wasm 插件需要重新构建
+
+Rspack 2.2.0 已将 `swc_core` 从 76 升级至 77, 影响了 SWC Wasm 插件边界上的 AST 序列化格式，
+因此基于旧版 SWC 构建的 Wasm 插件将无法继续使用，并可能出现以下错误：
+
+```text
+The version of the SWC Wasm plugin you're using might not be compatible with 'builtin:swc-loader'.
+```
+
+如果你正在使用 SWC Wasm 插件，请重新构建插件，或升级到兼容 SWC 77 的版本。
+可以通过 [plugins.swc.rs](https://plugins.swc.rs/) 查找与当前 Rspack 版本匹配的插件版本，
+并参考 SWC plugin version mismatch 文档了解更多信息。
 
 ## 生态
 
@@ -327,7 +340,7 @@ Rslib 现已支持使用 [TypeScript 7](https://devblogs.microsoft.com/typescrip
 
 ### Rstest \{#rstest}
 
-#### 在 Rstest 中运行 Playwright E2E 测试 \{#rstest-playwright}
+#### 运行 Playwright E2E 测试 \{#rstest-playwright}
 
 Rstest 0.11.1 新增了 [`@rstest/playwright`](https://rstest.rs/zh/guide/advanced/playwright)，让 E2E 测试也能使用 Rstest 的测试运行器、配置和报告能力。它提供 `page`、`serve` 等 Playwright fixtures 和 Playwright 风格的异步断言，可用于测试本地开发服务器、预览服务器或已部署的应用，并与单元测试共享一致的工作流：
 
