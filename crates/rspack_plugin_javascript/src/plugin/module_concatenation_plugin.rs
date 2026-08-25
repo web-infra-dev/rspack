@@ -11,14 +11,13 @@ use rspack_collections::{
 };
 use rspack_core::{
   BoxModule, ChunkUkey, Compilation, CompilationOptimizeChunkModules, Dependency, DependencyId,
-  DependencyType, ExportProvided, ExportsInfoArtifact, GetTargetResult, ImportPhase,
-  ImportedByDeferModulesArtifact, LibIdentOptions, Logger, ModuleGraph, ModuleGraphCacheArtifact,
-  ModuleGraphConnection, ModuleGraphModule, ModuleIdentifier, OptimizationBailoutItem, Plugin,
-  ProvidedExports, RuntimeCondition, RuntimeSpec, RuntimeSpecMap, SideEffectsStateArtifact,
-  SourceType,
+  DependencyType, ExportProvided, ExportsInfoArtifact, ExportsInfoData, GetTargetResult,
+  ImportPhase, ImportedByDeferModulesArtifact, LibIdentOptions, Logger, Module, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleGraphModule, ModuleIdentifier,
+  OptimizationBailoutItem, Plugin, ProvidedExports, RuntimeCondition, RuntimeSpec, RuntimeSpecMap,
+  SideEffectsStateArtifact, SourceType,
   concatenated_module::{
     ConcatenatedInnerModule, ConcatenatedModule, RootModuleContext, is_esm_dep_like,
-    is_unknown_empty_commonjs_for_concatenation,
   },
   filter_runtime, get_cached_readable_identifier, get_target,
   incremental::IncrementalPasses,
@@ -28,48 +27,52 @@ use rspack_hook::{plugin, plugin_hook};
 use rspack_util::itoa;
 use rustc_hash::FxHashSet as HashSet;
 
-use crate::{
-  dependency::{
-    ESMExportImportedSpecifierDependency, ESMImportSideEffectDependency,
-    ESMImportSpecifierDependency,
-  },
-  parser_and_generator::JavaScriptParserAndGenerator,
-};
+use crate::dependency::ESMExportImportedSpecifierDependency;
 
 fn format_bailout_reason(msg: &str) -> String {
   format!("ModuleConcatenation bailout: {msg}")
 }
 
+fn is_unknown_empty_commonjs_for_concatenation(
+  module: &dyn Module,
+  exports_info: &ExportsInfoData,
+) -> bool {
+  module.module_type().is_js_auto()
+    && !module.build_meta().esm()
+    && module.build_info().strict
+    && module.build_info().module_exports_accessed == Some(false)
+    && matches!(
+      exports_info.other_exports_info().provided(),
+      Some(ExportProvided::Unknown)
+    )
+}
+
 fn can_reference_unknown_empty_commonjs_without_wrapper(
   dependency: &dyn Dependency,
   module_graph: &ModuleGraph,
+  module_graph_cache: &ModuleGraphCacheArtifact,
+  exports_info_artifact: &ExportsInfoArtifact,
 ) -> bool {
   if dependency.get_phase() != ImportPhase::Evaluation {
     return false;
   }
 
   match dependency.dependency_type() {
-    DependencyType::EsmImport | DependencyType::EsmExportImport => dependency
-      .downcast_ref::<ESMImportSideEffectDependency>()
-      .is_some_and(|dependency| !dependency.needs_commonjs_namespace_object()),
-    DependencyType::EsmImportSpecifier => dependency
-      .downcast_ref::<ESMImportSpecifierDependency>()
-      .is_some_and(|dependency| {
-        !dependency.is_namespace_import(module_graph)
-          && dependency
-            .get_ids(module_graph)
-            .first()
-            .is_some_and(|name| !matches!(name.as_str(), "default" | "__esModule"))
-      }),
+    // Import declarations and reexports also create their more specific dependencies. Those
+    // dependencies below decide whether a binding would require the CommonJS wrapper.
+    DependencyType::EsmImport | DependencyType::EsmExportImport => true,
     DependencyType::EsmExportImportedSpecifier => dependency
       .downcast_ref::<ESMExportImportedSpecifierDependency>()
       .is_some_and(|dependency| {
         let ids = dependency.get_ids(module_graph);
-        (dependency.name.is_none() && ids.is_empty())
-          || (dependency.name.is_some()
-            && ids
-              .first()
-              .is_some_and(|name| !matches!(name.as_str(), "default" | "__esModule")))
+        let referenced_exports = dependency.get_referenced_exports(
+          module_graph,
+          module_graph_cache,
+          exports_info_artifact,
+          None,
+        );
+        // An empty-name reference represents whole-namespace usage, which still needs the wrapper.
+        dependency.name.is_none() && ids.is_empty() && referenced_exports.is_empty()
       }),
     _ => false,
   }
@@ -78,6 +81,8 @@ fn can_reference_unknown_empty_commonjs_without_wrapper(
 fn has_only_safe_incoming_unknown_empty_commonjs_connections(
   module_id: &ModuleIdentifier,
   module_graph: &ModuleGraph,
+  module_graph_cache: &ModuleGraphCacheArtifact,
+  exports_info_artifact: &ExportsInfoArtifact,
 ) -> bool {
   module_graph
     .get_incoming_connections(module_id)
@@ -85,6 +90,8 @@ fn has_only_safe_incoming_unknown_empty_commonjs_connections(
       can_reference_unknown_empty_commonjs_without_wrapper(
         module_graph.dependency_by_id(&connection.dependency_id),
         module_graph,
+        module_graph_cache,
+        exports_info_artifact,
       )
     })
 }
@@ -1012,32 +1019,25 @@ impl ModuleConcatenationPlugin {
           .get_exports_info_data(&module_id);
         let can_concatenate_unknown_empty_commonjs =
           is_unknown_empty_commonjs_for_concatenation(m.as_ref(), exports_info)
-            && has_only_safe_incoming_unknown_empty_commonjs_connections(&module_id, module_graph);
+            && has_only_safe_incoming_unknown_empty_commonjs_connections(
+              &module_id,
+              module_graph,
+              &compilation.module_graph_cache_artifact,
+              &compilation.exports_info_artifact,
+            );
 
-        let concatenation_bailout_reason = if can_concatenate_unknown_empty_commonjs {
-          m.as_normal_module()
-            .and_then(|module| {
-              module
-                .parser_and_generator()
-                .downcast_ref::<JavaScriptParserAndGenerator>()
-            })
-            .map_or_else(
-              || {
-                m.get_concatenation_bailout_reason(
-                  module_graph,
-                  &compilation.build_chunk_graph_artifact.chunk_graph,
-                )
-              },
-              |parser_and_generator| {
-                parser_and_generator.get_module_concatenation_bailout_reason(m.as_ref(), true)
-              },
+        let concatenation_bailout_reason: Option<Cow<'static, str>> =
+          if can_concatenate_unknown_empty_commonjs {
+            m.build_info()
+              .module_concatenation_bailout
+              .as_deref()
+              .map(|bailout| format!("Module uses {bailout}").into())
+          } else {
+            m.get_concatenation_bailout_reason(
+              module_graph,
+              &compilation.build_chunk_graph_artifact.chunk_graph,
             )
-        } else {
-          m.get_concatenation_bailout_reason(
-            module_graph,
-            &compilation.build_chunk_graph_artifact.chunk_graph,
-          )
-        };
+          };
         if let Some(reason) = concatenation_bailout_reason {
           bailout_reason.push(reason);
           return (false, false, module_id, bailout_reason);

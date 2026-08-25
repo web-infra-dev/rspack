@@ -77,13 +77,10 @@ pub struct ESMImportSideEffectDependency {
   loc: Option<DependencyLocation>,
   #[cacheable(with=AtomicLoad<Relaxed>)]
   lazy_make: AtomicBool,
-  flags: u8,
+  star_export: bool,
 }
 
 impl ESMImportSideEffectDependency {
-  const STAR_EXPORT: u8 = 1 << 0;
-  const NEEDS_COMMONJS_NAMESPACE_OBJECT: u8 = 1 << 1;
-
   #[allow(clippy::too_many_arguments)]
   pub fn new(
     request: Atom,
@@ -94,7 +91,6 @@ impl ESMImportSideEffectDependency {
     attributes: Option<ImportAttributes>,
     loc: Option<DependencyLocation>,
     star_export: bool,
-    needs_commonjs_namespace_object: bool,
   ) -> Self {
     let resource_identifier =
       create_resource_identifier_for_esm_dependency(&request, phase, attributes.as_ref());
@@ -109,17 +105,8 @@ impl ESMImportSideEffectDependency {
       resource_identifier,
       loc,
       lazy_make: AtomicBool::new(false),
-      flags: (if star_export { Self::STAR_EXPORT } else { 0 })
-        | (if needs_commonjs_namespace_object {
-          Self::NEEDS_COMMONJS_NAMESPACE_OBJECT
-        } else {
-          0
-        }),
+      star_export,
     }
-  }
-
-  pub(crate) fn needs_commonjs_namespace_object(&self) -> bool {
-    self.flags & Self::NEEDS_COMMONJS_NAMESPACE_OBJECT != 0
   }
 
   fn missing_module_active(&self) -> bool {
@@ -631,7 +618,7 @@ impl Dependency for ESMImportSideEffectDependency {
 
   fn lazy(&self) -> Option<LazyUntil> {
     self.lazy_make.load(Ordering::Relaxed).then(|| {
-      if self.flags & Self::STAR_EXPORT != 0 {
+      if self.star_export {
         LazyUntil::Fallback
       } else {
         LazyUntil::NoUntil
