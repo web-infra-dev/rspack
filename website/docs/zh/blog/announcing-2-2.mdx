@@ -98,7 +98,7 @@ Rspack 内置 CSS 的解析速度提升了约 **3 倍**，并完善了 Unicode �
 
 ### 其他性能优化 \{#wasm-size}
 
-- Wasm 产物体积从 29.5 MB 降至 28.4 MB，减少约 **1.1 MB**，降低了 [`@rspack/browser`](/api/javascript-api/browser) 等 Wasm 场景的下载与加载开销。
+- Wasm 产物体积从 29.5 MB 降至 28.4 MB，减少约 **1.1 MB**，降低了 [`@rspack/browser`](/api/javascript-api/browser) 等场景的网络开销。
 - Rspack 现在会并行编译 [SWC Wasm 插件](/guide/features/builtin-swc-loader#jscexperimentalplugins)，将 Rstest 启用 Istanbul 覆盖率时的冷加载耗时从约 1.85 秒降至约 360 毫秒，缩短约 **80%**。
 - [CopyRspackPlugin](/plugins/rspack/copy-rspack-plugin) 的性能得到优化，在复制大量文件时，性能提升约 **3～4 倍**。
 
@@ -158,7 +158,7 @@ Rsbuild 2.2 已经与 Rspack 2.2 同步发布。
 
 #### 导入源文本 \{#import-text}
 
-Rsbuild 现在支持使用 import attributes 语法 [`with { type: 'text' }`](https://rsbuild.rs/zh/guide/basic/static-assets#with-import-attributes) 将文件原始内容作为字符串导入：
+Rsbuild 现在支持使用 [import attributes 语法](https://rsbuild.rs/zh/guide/basic/static-assets#with-import-attributes) 将文件原始内容作为字符串导入：
 
 ```ts
 import rawCSS from './example.css' with { type: 'text' };
@@ -168,9 +168,9 @@ import rawCSS from './example.css' with { type: 'text' };
 
 #### Node.js 拆包优化 \{#node-split-chunks}
 
-在 Rsbuild 2.2 中，Node.js 构建会默认启用 [chunk 拆分](https://rsbuild.rs/zh/config/split-chunks)，将共享模块提取为独立的 chunk，从而减少重复代码并降低 SSR 应用的内存占用。
+Node.js 构建现在会默认启用 [chunk 拆分](https://rsbuild.rs/zh/config/split-chunks)，将共享模块提取为独立的 chunk，从而减少重复代码和 SSR 内存占用。
 
-下面是 TanStack Start 用户提供的 [实测数据](https://github.com/TanStack/router/issues/8113#issuecomment-5366808113)，测试应用包含 300 个路由和 400 个共享组件：
+下面是 TanStack Start 用户提供的 [实测数据](https://github.com/TanStack/router/issues/8113#issuecomment-5366808113)：
 
 | 指标                     | Rsbuild 2.1 | Rsbuild 2.2 | 变化         |
 | ------------------------ | ----------- | ----------- | ------------ |
@@ -179,22 +179,27 @@ import rawCSS from './example.css' with { type: 'text' };
 | 路由平均访问耗时         | 7.2 ms      | 1.6 ms      | **减少 78%** |
 | 共享组件的 HMR 耗时      | 7.1 s       | 0.98 s      | **减少 86%** |
 
-:::tip
-
-- 实际收益取决于项目规模和模块结构。
-- 升级后，Node.js 构建可能会生成额外的共享 chunk 文件；如需保留原有行为，可设置 `splitChunks: false`。
-
-:::
+> 测试应用包含 300 个路由和 400 个共享组件，实际收益取决于项目规模和模块结构。
 
 #### 支持 Solid v2 RC \{#solid-v2}
 
-Rsbuild 现在支持 [Solid v2 RC](https://www.solidjs.com/blog/solid-2-0-rc-the-big-reveal)。
+Rsbuild 现在支持 [Solid v2 RC](https://www.solidjs.com/blog/solid-2-0-rc-the-big-reveal)，并默认使用 Solid 全新的 Rust 编译器。在官方的基准测试中，新编译器的编译速度相比此前的 Babel 实现提升 **20 倍以上**。
 
-[`@rsbuild/plugin-solid`](https://rsbuild.rs/zh/plugins/list/plugin-solid) 现在默认使用 Solid 全新的 Rust 编译器。在 Solid 官方的基准测试中，新编译器的编译速度相比此前的 Babel 实现提升 **20 倍以上**。
+升级 [@rsbuild/plugin-solid](https://rsbuild.rs/zh/plugins/list/plugin-solid) 至 v2 beta 版本，然后移除 Babel 插件即可体验：
 
-安装 Beta 版本来体验：
+```diff
+- import { pluginBabel } from '@rsbuild/plugin-babel';
+import { pluginSolid } from '@rsbuild/plugin-solid';
 
-<PackageManagerTabs command="add @rsbuild/plugin-solid@beta -D" />
+export default {
+  plugins: [
+-    pluginBabel({
+-      include: /\.(?:jsx|tsx)$/,
+-    }),
+    pluginSolid(),
+  ],
+};
+```
 
 #### 创建 Octane 项目 \{#octane-template}
 
@@ -224,7 +229,7 @@ export default {
 
 Rsbuild 现在支持同时配置多种压缩选项。
 
-通过为 [`minify.jsOptions`](https://rsbuild.rs/zh/config/output/minify#minifyjsoptions) 传入数组，可以针对不同产物设置不同的压缩策略。例如，仅移除主 bundle 中的 `console` 调用，同时保留其他 bundle 中的调用：
+通过为 [`minify.jsOptions`](https://rsbuild.rs/zh/config/output/minify#minifyjsoptions) 传入数组，可以针对不同产物设置不同的压缩策略。例如，仅移除主 bundle 中的 `console` 调用：
 
 ```ts title="rsbuild.config.ts"
 export default {
@@ -265,17 +270,7 @@ await createRsbuild({
 });
 ```
 
-Rsbuild 插件也可以通过监听 [`onRestart`](https://rsbuild.rs/zh/plugins/dev/hooks#onrestart) hook 来执行自定义逻辑，例如：
-
-```ts
-const myPlugin = () => ({
-  setup(api) {
-    api.onRestart((context) => {
-      console.log('restart!', context);
-    });
-  },
-});
-```
+Rsbuild 插件也可以通过监听 [`onRestart`](https://rsbuild.rs/zh/plugins/dev/hooks#onrestart) hook 来执行自定义逻辑。
 
 ### Rslib \{#rslib}
 
