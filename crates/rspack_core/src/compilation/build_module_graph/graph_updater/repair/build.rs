@@ -1,10 +1,7 @@
-use std::{
-  collections::VecDeque,
-  sync::Arc,
-  time::{SystemTime, UNIX_EPOCH},
-};
+use std::{collections::VecDeque, sync::Arc};
 
 use rspack_fs::ReadableFileSystem;
+use rspack_util::current_time;
 use rustc_hash::FxHashSet;
 
 use super::{
@@ -85,12 +82,7 @@ impl Task<TaskContext> for BuildTask {
       })]);
     }
 
-    let build_start_time = use_module_build_cache.then(|| {
-      SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_millis() as u64
-    });
+    let build_start_time = use_module_build_cache.then(current_time);
 
     plugin_driver
       .compilation_hooks

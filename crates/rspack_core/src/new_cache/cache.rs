@@ -1,17 +1,13 @@
-use std::{
-  sync::{Arc, OnceLock},
-  time::Duration,
-};
+use std::{sync::Arc, time::Duration};
 
 use rspack_error::Result;
 use rspack_paths::InternedPathSet;
-use rspack_tasks::{get_current_dependency_id, set_current_dependency_id};
 
 use super::{
   CacheFacade, CacheKey, CacheValue, Etag, IdleFileCache, MemoryCache, MemoryCacheGetResult,
   cache_value::CacheValueData,
-  module_build_cache::ModuleBuildCache,
-  snapshot::{FileSystemInfo, Snapshot, SnapshotValidationResult},
+  module_build_cache::{ModuleBuildCache, ModuleCacheState},
+  snapshot::FileSystemInfo,
 };
 use crate::{ValueCacheVersions, cache::CacheCodec};
 
@@ -30,9 +26,7 @@ struct CacheStorage {
 struct CacheInner {
   compiler_path: String,
   storage: Option<CacheStorage>,
-  codec: Option<Arc<CacheCodec>>,
-  file_system_info: Option<FileSystemInfo>,
-  dependency_id_restored: OnceLock<()>,
+  module_cache: Option<ModuleCacheState>,
 }
 
 /// Cheaply cloneable handle to the shared cache state.
@@ -47,18 +41,7 @@ impl Cache {
     memory_cache: MemoryCache,
     idle_file_cache: Option<IdleFileCache>,
   ) -> Self {
-    Self {
-      inner: Arc::new(CacheInner {
-        compiler_path,
-        storage: Some(CacheStorage {
-          memory_cache,
-          idle_file_cache,
-        }),
-        codec: None,
-        file_system_info: None,
-        dependency_id_restored: OnceLock::new(),
-      }),
-    }
+    Self::new_with_storage(compiler_path, memory_cache, idle_file_cache, None)
   }
 
   pub(crate) fn new_with_module_cache(
@@ -68,6 +51,20 @@ impl Cache {
     codec: Arc<CacheCodec>,
     file_system_info: FileSystemInfo,
   ) -> Self {
+    Self::new_with_storage(
+      compiler_path,
+      memory_cache,
+      idle_file_cache,
+      Some(ModuleCacheState::new(codec, file_system_info)),
+    )
+  }
+
+  fn new_with_storage(
+    compiler_path: String,
+    memory_cache: MemoryCache,
+    idle_file_cache: Option<IdleFileCache>,
+    module_cache: Option<ModuleCacheState>,
+  ) -> Self {
     Self {
       inner: Arc::new(CacheInner {
         compiler_path,
@@ -75,9 +72,7 @@ impl Cache {
           memory_cache,
           idle_file_cache,
         }),
-        codec: Some(codec),
-        file_system_info: Some(file_system_info),
-        dependency_id_restored: OnceLock::new(),
+        module_cache,
       }),
     }
   }
@@ -87,69 +82,20 @@ impl Cache {
       inner: Arc::new(CacheInner {
         compiler_path,
         storage: None,
-        codec: None,
-        file_system_info: None,
-        dependency_id_restored: OnceLock::new(),
+        module_cache: None,
       }),
     }
   }
 
-  pub(crate) fn is_module_cache_enabled(&self) -> bool {
-    self.inner.storage.is_some()
-      && self.inner.codec.is_some()
-      && self.inner.file_system_info.is_some()
-  }
-
   pub(crate) fn module_build_cache(
     &self,
-    value_cache_versions: Arc<ValueCacheVersions>,
+    value_cache_versions: &ValueCacheVersions,
   ) -> Option<ModuleBuildCache> {
     self
-      .is_module_cache_enabled()
-      .then(|| ModuleBuildCache::new(self.clone(), value_cache_versions))
-  }
-
-  pub(crate) fn codec(&self) -> Option<&CacheCodec> {
-    self.inner.codec.as_deref()
-  }
-
-  pub(crate) fn file_system_info(&self) -> Option<&FileSystemInfo> {
-    self.inner.file_system_info.as_ref()
-  }
-
-  pub(crate) async fn create_module_snapshot(
-    &self,
-    start_time: u64,
-    file_dependencies: &InternedPathSet,
-    context_dependencies: &InternedPathSet,
-    missing_dependencies: &InternedPathSet,
-    build_dependencies: &InternedPathSet,
-  ) -> Result<Option<Snapshot>> {
-    let Some(file_system_info) = self.file_system_info() else {
-      return Ok(None);
-    };
-    let mut files = file_dependencies.clone();
-    files.extend(build_dependencies.iter().cloned());
-    file_system_info
-      .create_snapshot(
-        Some(start_time),
-        &files,
-        context_dependencies,
-        missing_dependencies,
-        file_system_info.module_strategy(),
-      )
-      .await
-      .map(Some)
-  }
-
-  pub(crate) async fn check_module_snapshot_valid(&self, snapshot: &Snapshot) -> Result<bool> {
-    let Some(file_system_info) = self.file_system_info() else {
-      return Ok(false);
-    };
-    Ok(matches!(
-      file_system_info.check_snapshot_valid(snapshot).await?,
-      SnapshotValidationResult::Valid
-    ))
+      .inner
+      .module_cache
+      .as_ref()
+      .map(|module_cache| module_cache.build_cache(self.clone(), value_cache_versions))
   }
 
   /// Restore the dependency id generator before the first make pass.
@@ -157,33 +103,9 @@ impl Cache {
   /// Cached dependencies retain their ids, so newly created dependencies must
   /// continue after the largest id stored by the persistent cache.
   pub(crate) fn restore_dependency_id(&self) {
-    if !self.is_module_cache_enabled() {
-      return;
+    if let Some(module_cache) = &self.inner.module_cache {
+      module_cache.restore_dependency_id(self.idle_file_cache());
     }
-    self.inner.dependency_id_restored.get_or_init(|| {
-      let Some(file_cache) = self
-        .inner
-        .storage
-        .as_ref()
-        .and_then(|storage| storage.idle_file_cache.as_ref())
-      else {
-        return;
-      };
-
-      let dependency_id = match file_cache.restore_dependency_id() {
-        Ok(dependency_id) => dependency_id,
-        Err(error) => {
-          tracing::warn!("Restoring new cache dependency id failed: {error}");
-          None
-        }
-      };
-      if let Some(dependency_id) = dependency_id {
-        let current = get_current_dependency_id();
-        if current < dependency_id {
-          set_current_dependency_id(dependency_id);
-        }
-      }
-    });
   }
 
   pub(crate) fn facade(&self, name: &str) -> CacheFacade {
@@ -256,25 +178,23 @@ impl Cache {
   }
 
   pub(crate) fn record_dependency_id(&self, dependency_id: u32) -> Result<()> {
-    if !self.is_module_cache_enabled() {
-      return Ok(());
-    }
-    let Some(storage) = &self.inner.storage else {
-      return Ok(());
-    };
-    if let Some(file_cache) = &storage.idle_file_cache {
-      file_cache.store_dependency_id(dependency_id)
+    if let Some(module_cache) = &self.inner.module_cache {
+      module_cache.record_dependency_id(self.idle_file_cache(), dependency_id)
     } else {
       Ok(())
     }
   }
 
-  pub fn has_file_cache(&self) -> bool {
+  fn idle_file_cache(&self) -> Option<&IdleFileCache> {
     self
       .inner
       .storage
       .as_ref()
-      .is_some_and(|storage| storage.idle_file_cache.is_some())
+      .and_then(|storage| storage.idle_file_cache.as_ref())
+  }
+
+  pub fn has_file_cache(&self) -> bool {
+    self.idle_file_cache().is_some()
   }
 
   pub fn record_build_time(&self, build_time: Duration) -> Result<()> {
@@ -304,8 +224,8 @@ impl Cache {
     let Some(storage) = &self.inner.storage else {
       return Ok(());
     };
-    if let Some(file_system_info) = &self.inner.file_system_info {
-      file_system_info.clear();
+    if let Some(module_cache) = &self.inner.module_cache {
+      module_cache.clear();
     }
     if let Some(file_cache) = &storage.idle_file_cache {
       file_cache.end_idle()

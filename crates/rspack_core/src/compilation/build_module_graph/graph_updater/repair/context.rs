@@ -46,7 +46,7 @@ impl TaskContext {
   ) -> Self {
     let module_build_cache = compilation
       .cache
-      .module_build_cache(Arc::new(compilation.value_cache_versions.clone()));
+      .module_build_cache(&compilation.value_cache_versions);
     Self {
       compiler_id: compilation.compiler_id(),
       compilation_id: compilation.id(),

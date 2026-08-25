@@ -12,7 +12,7 @@ use rspack_cacheable::{
   with::{AsInner, AsInnerConverter, AsMap, AsOption, AsPreset, AsVec},
 };
 use rspack_collections::{Identifiable, Identifier, IdentifierMap, IdentifierSet};
-use rspack_error::{Diagnosable, Result};
+use rspack_error::{Diagnosable, Diagnostic, Result};
 use rspack_fs::ReadableFileSystem;
 use rspack_hash::{RspackHash, RspackHashDigest, RspackHasher, write_u64_hex};
 use rspack_paths::InternedPathSet;
@@ -333,6 +333,18 @@ impl Default for BuildInfo {
       extras: Default::default(),
       deferred_pure_checks: HashSet::default(),
     }
+  }
+}
+
+impl BuildInfo {
+  pub(crate) fn need_build(
+    &self,
+    diagnostics: &[Diagnostic],
+    value_cache_versions: &ValueCacheVersions,
+  ) -> bool {
+    !self.cacheable
+      || value_cache_versions.has_diff(&self.value_dependencies)
+      || diagnostics.iter().any(|diagnostic| diagnostic.is_error())
   }
 }
 
@@ -832,10 +844,9 @@ pub trait Module:
   }
 
   fn need_build(&self, value_cache_version: &ValueCacheVersions) -> bool {
-    let build_info = self.build_info();
-    !build_info.cacheable
-      || value_cache_version.has_diff(&build_info.value_dependencies)
-      || self.diagnostics().iter().any(|item| item.is_error())
+    self
+      .build_info()
+      .need_build(&self.diagnostics(), value_cache_version)
   }
 
   fn need_id(&self) -> bool {

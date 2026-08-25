@@ -1,12 +1,19 @@
-use std::sync::Arc;
+use std::{
+  borrow::Cow,
+  sync::{Arc, OnceLock},
+};
 
 use rspack_cacheable::{cacheable, utils::OwnedOrRef};
 use rspack_error::Result;
+use rspack_tasks::{get_current_dependency_id, set_current_dependency_id};
 
-use super::{Cache, CacheValue, snapshot::Snapshot};
+use super::{
+  Cache, CacheFacade, CacheValue, IdleFileCache,
+  snapshot::{FileSystemInfo, Snapshot, SnapshotValidationResult},
+};
 use crate::{
-  AsyncDependenciesBlock, BoxDependency, BoxModule, BuildResult, Module, NormalModuleBuildState,
-  OptimizationBailoutItem, ValueCacheVersions,
+  AsyncDependenciesBlock, BoxDependency, BoxModule, BuildInfo, BuildResult, Module,
+  NormalModuleBuildState, OptimizationBailoutItem, ValueCacheVersions, cache::CacheCodec,
 };
 
 const MODULE_BUILD_CACHE_NAME: &str = "Compilation/modules";
@@ -62,39 +69,7 @@ struct ModuleBuildCacheEntry {
 }
 
 impl ModuleBuildCacheEntry {
-  fn from_build_result(
-    build_result: &BuildResult,
-    snapshot: Snapshot,
-    cache: &Cache,
-  ) -> Result<Option<Self>> {
-    let Some(module) = build_result.module.as_normal_module() else {
-      return Ok(None);
-    };
-    if !module.build_info().cacheable {
-      return Ok(None);
-    }
-    let Some(codec) = cache.codec() else {
-      return Ok(None);
-    };
-    Ok(Some(Self {
-      state: module.build_state(),
-      snapshot,
-      build_result: codec.encode(&CachedBuildResult::from_build_result(build_result))?,
-      optimization_bailouts: build_result.optimization_bailouts.clone(),
-    }))
-  }
-
-  fn restore(&self, module: &mut BoxModule) -> Option<()> {
-    module
-      .as_normal_module_mut()?
-      .restore_build_state(&self.state);
-    Some(())
-  }
-
-  fn build_result_parts(&self, cache: &Cache) -> Result<RestoredModuleBuild> {
-    let codec = cache
-      .codec()
-      .ok_or_else(|| rspack_error::error!("New cache codec is unavailable"))?;
+  fn build_result_parts(&self, codec: &CacheCodec) -> Result<RestoredModuleBuild> {
     let cached: CachedBuildResult<'static> = codec.decode(&self.build_result)?;
     let (dependencies, blocks) = cached.into_parts();
     Ok(RestoredModuleBuild {
@@ -102,6 +77,71 @@ impl ModuleBuildCacheEntry {
       blocks,
       optimization_bailouts: self.optimization_bailouts.clone(),
     })
+  }
+}
+
+#[derive(Debug)]
+pub(super) struct ModuleCacheState {
+  codec: Arc<CacheCodec>,
+  file_system_info: FileSystemInfo,
+  dependency_id_restored: OnceLock<()>,
+}
+
+impl ModuleCacheState {
+  pub(super) fn new(codec: Arc<CacheCodec>, file_system_info: FileSystemInfo) -> Self {
+    Self {
+      codec,
+      file_system_info,
+      dependency_id_restored: OnceLock::new(),
+    }
+  }
+
+  pub(super) fn build_cache(
+    &self,
+    cache: Cache,
+    value_cache_versions: &ValueCacheVersions,
+  ) -> ModuleBuildCache {
+    ModuleBuildCache {
+      cache: cache.facade(MODULE_BUILD_CACHE_NAME),
+      codec: self.codec.clone(),
+      file_system_info: self.file_system_info.clone(),
+      value_cache_versions: Arc::new(value_cache_versions.clone()),
+    }
+  }
+
+  pub(super) fn restore_dependency_id(&self, file_cache: Option<&IdleFileCache>) {
+    self.dependency_id_restored.get_or_init(|| {
+      let Some(file_cache) = file_cache else {
+        return;
+      };
+      let dependency_id = match file_cache.restore_dependency_id() {
+        Ok(dependency_id) => dependency_id,
+        Err(error) => {
+          tracing::warn!("Restoring new cache dependency id failed: {error}");
+          return;
+        }
+      };
+      let current = get_current_dependency_id();
+      if current < dependency_id {
+        set_current_dependency_id(dependency_id);
+      }
+    });
+  }
+
+  pub(super) fn record_dependency_id(
+    &self,
+    file_cache: Option<&IdleFileCache>,
+    dependency_id: u32,
+  ) -> Result<()> {
+    if let Some(file_cache) = file_cache {
+      file_cache.store_dependency_id(dependency_id)
+    } else {
+      Ok(())
+    }
+  }
+
+  pub(super) fn clear(&self) {
+    self.file_system_info.clear();
   }
 }
 
@@ -126,71 +166,88 @@ impl RestoredModuleBuild {
 /// Per-NormalModule build cache aligned with webpack's `Compilation/modules` cache.
 #[derive(Debug, Clone)]
 pub(crate) struct ModuleBuildCache {
-  cache: Cache,
+  cache: CacheFacade,
+  codec: Arc<CacheCodec>,
+  file_system_info: FileSystemInfo,
   value_cache_versions: Arc<ValueCacheVersions>,
 }
 
 impl ModuleBuildCache {
-  pub(crate) fn new(cache: Cache, value_cache_versions: Arc<ValueCacheVersions>) -> Self {
-    Self {
-      cache,
-      value_cache_versions,
-    }
-  }
-
   #[tracing::instrument("Cache::ModuleBuild::restore", skip_all)]
   pub(crate) async fn restore(
     &self,
     module: &mut BoxModule,
   ) -> Result<Option<RestoredModuleBuild>> {
+    if module.as_normal_module().is_none() {
+      return Ok(None);
+    }
     let item_cache = self
       .cache
-      .facade(MODULE_BUILD_CACHE_NAME)
       .get_item_cache(module.identifier().as_str(), None);
     let Some(entry) = item_cache.get::<ModuleBuildCacheEntry>()? else {
       return Ok(None);
     };
     if entry.state.need_build(&self.value_cache_versions)
-      || !self
-        .cache
-        .check_module_snapshot_valid(&entry.snapshot)
-        .await?
+      || !matches!(
+        self
+          .file_system_info
+          .check_snapshot_valid(&entry.snapshot)
+          .await?,
+        SnapshotValidationResult::Valid
+      )
     {
       return Ok(None);
     }
 
-    let restored = entry.build_result_parts(&self.cache)?;
-    let Some(()) = entry.restore(module) else {
+    let restored = entry.build_result_parts(&self.codec)?;
+    let Some(module) = module.as_normal_module_mut() else {
       return Ok(None);
     };
+    module.restore_build_state(&entry.state);
     Ok(Some(restored))
   }
 
   #[tracing::instrument("Cache::ModuleBuild::store", skip_all)]
   pub(crate) async fn store(&self, build_result: &BuildResult, start_time: u64) -> Result<()> {
-    let build_info = build_result.module.build_info();
-    let Some(snapshot) = self
-      .cache
-      .create_module_snapshot(
-        start_time,
-        &build_info.file_dependencies,
-        &build_info.context_dependencies,
-        &build_info.missing_dependencies,
-        &build_info.build_dependencies,
-      )
-      .await?
-    else {
+    let Some(module) = build_result.module.as_normal_module() else {
       return Ok(());
     };
-    let Some(entry) =
-      ModuleBuildCacheEntry::from_build_result(build_result, snapshot, &self.cache)?
-    else {
+    let build_info = module.build_info();
+    if !build_info.cacheable {
       return Ok(());
+    }
+    let snapshot = self.create_snapshot(build_info, start_time).await?;
+    let entry = ModuleBuildCacheEntry {
+      state: module.build_state(),
+      snapshot,
+      build_result: self
+        .codec
+        .encode(&CachedBuildResult::from_build_result(build_result))?,
+      optimization_bailouts: build_result.optimization_bailouts.clone(),
     };
     self
       .cache
-      .facade(MODULE_BUILD_CACHE_NAME)
       .get_item_cache(build_result.module.identifier().as_str(), None)
       .store(CacheValue::new(entry))
+  }
+
+  async fn create_snapshot(&self, build_info: &BuildInfo, start_time: u64) -> Result<Snapshot> {
+    let files = if build_info.build_dependencies.is_empty() {
+      Cow::Borrowed(&build_info.file_dependencies)
+    } else {
+      let mut files = build_info.file_dependencies.clone();
+      files.extend(build_info.build_dependencies.iter().cloned());
+      Cow::Owned(files)
+    };
+    self
+      .file_system_info
+      .create_snapshot(
+        Some(start_time),
+        &files,
+        &build_info.context_dependencies,
+        &build_info.missing_dependencies,
+        self.file_system_info.module_strategy(),
+      )
+      .await
   }
 }

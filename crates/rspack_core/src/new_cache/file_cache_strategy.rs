@@ -20,7 +20,7 @@ const MAX_DEPENDENCY_ID_KEY: &[u8] = b"max_dependency_id";
 struct PendingWrites {
   entries: FxHashMap<CacheKey, PendingWrite>,
   build_dependencies: Option<InternedPathSet>,
-  max_dependency_id: Option<u32>,
+  max_dependency_id_dirty: bool,
 }
 
 #[derive(Debug)]
@@ -150,21 +150,15 @@ impl FileCacheStrategy {
   }
 
   pub fn store_dependency_id(&mut self, dependency_id: u32) {
-    if self.readonly {
+    if self.readonly || dependency_id <= self.max_dependency_id {
       return;
     }
-    self.max_dependency_id = self.max_dependency_id.max(dependency_id);
-    self.pending_writes.max_dependency_id = Some(
-      self
-        .pending_writes
-        .max_dependency_id
-        .unwrap_or_default()
-        .max(dependency_id),
-    );
+    self.max_dependency_id = dependency_id;
+    self.pending_writes.max_dependency_id_dirty = true;
   }
 
-  pub fn restore_dependency_id(&self) -> Option<u32> {
-    Some(self.max_dependency_id)
+  pub fn restore_dependency_id(&self) -> u32 {
+    self.max_dependency_id
   }
 
   pub(super) fn restore(
@@ -205,8 +199,8 @@ impl FileCacheStrategy {
       };
       let encoded_max_dependency_id = self
         .pending_writes
-        .max_dependency_id
-        .map(|_| self.codec.encode(&self.max_dependency_id))
+        .max_dependency_id_dirty
+        .then(|| self.codec.encode(&self.max_dependency_id))
         .transpose()?;
       let cache_entries = self
         .pending_writes
@@ -239,7 +233,7 @@ impl FileCacheStrategy {
 
       self.pending_writes.entries.clear();
       self.pending_writes.build_dependencies = None;
-      self.pending_writes.max_dependency_id = None;
+      self.pending_writes.max_dependency_id_dirty = false;
     }
 
     for _ in 0..max_compaction_passes {
@@ -265,6 +259,6 @@ impl FileCacheStrategy {
   pub fn has_pending_writes(&self) -> bool {
     !self.pending_writes.entries.is_empty()
       || self.pending_writes.build_dependencies.is_some()
-      || self.pending_writes.max_dependency_id.is_some()
+      || self.pending_writes.max_dependency_id_dirty
   }
 }

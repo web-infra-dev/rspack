@@ -48,7 +48,7 @@ enum Command {
   EndIdle,
   Shutdown(oneshot::Sender<Result<()>>),
   RestoreDependencyId {
-    result: sync_mpsc::SyncSender<Option<u32>>,
+    result: sync_mpsc::SyncSender<u32>,
   },
 }
 
@@ -300,7 +300,7 @@ impl IdleFileCache {
     self.send(Command::StoreDependencyId(dependency_id))
   }
 
-  pub fn restore_dependency_id(&self) -> Result<Option<u32>> {
+  pub fn restore_dependency_id(&self) -> Result<u32> {
     let (result, result_receiver) = sync_mpsc::sync_channel(1);
     self.send(Command::RestoreDependencyId { result })?;
     result_receiver

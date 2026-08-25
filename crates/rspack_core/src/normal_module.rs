@@ -168,12 +168,9 @@ pub(crate) struct NormalModuleBuildState {
 
 impl NormalModuleBuildState {
   pub(crate) fn need_build(&self, value_cache_versions: &ValueCacheVersions) -> bool {
-    !self.build_info.cacheable
-      || value_cache_versions.has_diff(&self.build_info.value_dependencies)
-      || self
-        .diagnostics
-        .iter()
-        .any(|diagnostic| diagnostic.is_error())
+    self
+      .build_info
+      .need_build(&self.diagnostics, value_cache_versions)
   }
 }
 

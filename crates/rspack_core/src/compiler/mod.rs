@@ -248,13 +248,9 @@ impl Compiler {
     } else {
       Ok(())
     };
-    let record_dependency_id = if self.new_cache.is_module_cache_enabled() {
-      self
-        .new_cache
-        .record_dependency_id(self.compilation.compiler_context.dependency_id())
-    } else {
-      Ok(())
-    };
+    let record_dependency_id = self
+      .new_cache
+      .record_dependency_id(self.compilation.compiler_context.dependency_id());
     let begin_idle = self.new_cache.begin_idle();
 
     record_build_time
@@ -330,9 +326,7 @@ impl Compiler {
       ),
     );
     self.cache.before_compile(&mut self.compilation).await;
-    if self.new_cache.is_module_cache_enabled() {
-      self.new_cache.restore_dependency_id();
-    }
+    self.new_cache.restore_dependency_id();
 
     self.compile().await?;
     self.compile_done().await?;
