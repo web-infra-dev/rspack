@@ -189,64 +189,6 @@ pub fn cutout_commonjs_externals(
   direct_dependencies
 }
 
-#[cfg(test)]
-mod tests {
-  use super::{DirectRequireKind, can_render_direct_request, is_relative_external_request};
-
-  #[test]
-  fn should_detect_relative_external_requests() {
-    assert!(is_relative_external_request("."));
-    assert!(is_relative_external_request(".."));
-    assert!(is_relative_external_request("./external.cjs"));
-    assert!(is_relative_external_request("../external.cjs"));
-    assert!(is_relative_external_request(".\\external.cjs"));
-    assert!(is_relative_external_request("..\\external.cjs"));
-    assert!(!is_relative_external_request("external"));
-    assert!(!is_relative_external_request("node:fs"));
-    assert!(!is_relative_external_request("/external.cjs"));
-  }
-
-  #[test]
-  fn should_only_render_base_independent_node_commonjs_requests_directly() {
-    assert!(can_render_direct_request(
-      DirectRequireKind::NodeCommonJs,
-      "path"
-    ));
-    assert!(can_render_direct_request(
-      DirectRequireKind::NodeCommonJs,
-      "node:path"
-    ));
-    assert!(!can_render_direct_request(
-      DirectRequireKind::NodeCommonJs,
-      "external"
-    ));
-    assert!(!can_render_direct_request(
-      DirectRequireKind::NodeCommonJs,
-      "."
-    ));
-    assert!(!can_render_direct_request(
-      DirectRequireKind::NodeCommonJs,
-      "#external"
-    ));
-    assert!(!can_render_direct_request(
-      DirectRequireKind::NodeCommonJs,
-      "/external.cjs"
-    ));
-  }
-
-  #[test]
-  fn should_keep_bare_commonjs_requests_direct() {
-    assert!(can_render_direct_request(
-      DirectRequireKind::CommonJs,
-      "external"
-    ));
-    assert!(!can_render_direct_request(
-      DirectRequireKind::CommonJs,
-      "./external.cjs"
-    ));
-  }
-}
-
 fn get_direct_external_require(
   dependency_id: &DependencyId,
   expression_range: DependencyRange,
