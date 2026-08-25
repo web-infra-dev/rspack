@@ -6,9 +6,8 @@ const {
 
 /** @type {import("@rspack/core").Configuration} */
 export default {
-  externalsType: 'module',
   externals: {
-    'node:fs': { module: 'node:path' },
+    'node:fs': 'module node:path',
     'node:url': 'module-import node:url',
   },
   plugins: [
