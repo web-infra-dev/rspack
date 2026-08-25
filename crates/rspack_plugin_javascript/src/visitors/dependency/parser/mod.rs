@@ -1070,7 +1070,8 @@ impl<'parser> JavascriptParser<'parser> {
     flags: Option<VariableInfoFlags>,
   ) {
     let flags = flags.unwrap_or(VariableInfoFlags::TAGGED);
-    let new_info = if let Some(old_info_id) = self.definitions_db.get(self.definitions, &name) {
+    let new_info = if let Some(old_info_id) = self.definitions_db.get_atom(self.definitions, &name)
+    {
       let old_info = self.definitions_db.expect_get_variable(old_info_id);
       if let Some(old_tag_info) = old_info.tag_info {
         let declared_scope = old_info.declared_scope;

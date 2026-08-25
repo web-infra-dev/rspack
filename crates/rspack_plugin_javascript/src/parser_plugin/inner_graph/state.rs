@@ -1,8 +1,10 @@
 use std::{
   collections::hash_map::Entry,
+  hash::{Hash, Hasher},
   sync::atomic::{AtomicUsize, Ordering},
 };
 
+use rspack_util::atom::AtomKey;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_next_ecma_ast::Span;
 
@@ -53,10 +55,25 @@ pub(super) enum InnerGraphMapValue {
   Nil,
 }
 
-#[derive(PartialEq, Eq, Hash, Debug, Clone)]
+#[derive(PartialEq, Eq, Debug, Clone)]
 pub(super) enum InnerGraphMapSetValue {
   TopLevel(TopLevelSymbol),
   Str(Atom),
+}
+
+impl Hash for InnerGraphMapSetValue {
+  fn hash<H: Hasher>(&self, state: &mut H) {
+    match self {
+      Self::TopLevel(value) => {
+        0u8.hash(state);
+        value.hash(state);
+      }
+      Self::Str(value) => {
+        1u8.hash(state);
+        AtomKey::from_atom_ref(value).hash(state);
+      }
+    }
+  }
 }
 
 #[derive(PartialEq, Eq, Debug)]

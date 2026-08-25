@@ -56,6 +56,83 @@ impl Atom {
   }
 }
 
+/// A hash-table key for owned-only lookups of [`Atom`] values.
+///
+/// Unlike [`Atom`], this type deliberately does not implement `Borrow<str>`:
+/// it hashes with hstr's cached hash instead of hashing the string contents on
+/// every probe. Use it only for internal tables that are queried with owned
+/// atoms (or with `from_atom_ref`), and keep [`Atom`] at IR boundaries that
+/// require borrowed string lookups.
+#[derive(Clone, Default, PartialEq, Eq)]
+#[repr(transparent)]
+pub struct AtomKey(Atom);
+
+impl AtomKey {
+  #[inline]
+  pub fn from_atom_ref(value: &Atom) -> &Self {
+    // SAFETY: `AtomKey` is transparent over `Atom` and adds no invariants.
+    unsafe { &*(std::ptr::from_ref(value).cast::<Self>()) }
+  }
+
+  #[inline]
+  pub fn as_atom(&self) -> &Atom {
+    &self.0
+  }
+
+  #[inline]
+  pub fn as_str(&self) -> &str {
+    self.0.as_str()
+  }
+
+  #[inline]
+  pub fn into_atom(self) -> Atom {
+    self.0
+  }
+}
+
+impl From<Atom> for AtomKey {
+  #[inline]
+  fn from(value: Atom) -> Self {
+    Self(value)
+  }
+}
+
+impl From<&str> for AtomKey {
+  #[inline]
+  fn from(value: &str) -> Self {
+    Self(Atom::from(value))
+  }
+}
+
+impl Hash for AtomKey {
+  #[inline]
+  fn hash<H: Hasher>(&self, state: &mut H) {
+    self.0.0.hash(state);
+  }
+}
+
+impl Deref for AtomKey {
+  type Target = str;
+
+  #[inline]
+  fn deref(&self) -> &Self::Target {
+    self.0.as_str()
+  }
+}
+
+impl AsRef<str> for AtomKey {
+  #[inline]
+  fn as_ref(&self) -> &str {
+    self.0.as_str()
+  }
+}
+
+impl fmt::Debug for AtomKey {
+  fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fmt::Debug::fmt(&self.0, formatter)
+  }
+}
+
 impl PartialEq for Atom {
   #[inline]
   fn eq(&self, other: &Self) -> bool {

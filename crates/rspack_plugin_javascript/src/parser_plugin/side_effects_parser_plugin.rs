@@ -3,7 +3,7 @@ use std::sync::LazyLock;
 use rspack_core::{
   DeferredPureCheck, Dependency, DependencyRange, ModuleDependency, SideEffectsBailoutItemWithSpan,
 };
-use rspack_util::{SpanExt, swc::RspackComments};
+use rspack_util::{SpanExt, atom::AtomKey, swc::RspackComments};
 use rustc_hash::{FxHashMap, FxHashSet};
 use swc_next_ecma_ast::{
   ArgumentData, ArrowFunctionBodyData, ArrowFunctionExpression, Ast, BindingPattern,
@@ -176,7 +176,7 @@ fn visit_stmt_defined_binding_names(ast: &Ast<'_>, statement: Stmt, f: &mut impl
   }
 }
 
-fn collect_pure_function_acceptable_names(ast: &Ast<'_>, program: Program) -> FxHashSet<Atom> {
+fn collect_pure_function_acceptable_names(ast: &Ast<'_>, program: Program) -> FxHashSet<AtomKey> {
   let statements = program.body(ast);
   let mut names = FxHashSet::default();
   for statement in statements
@@ -184,7 +184,7 @@ fn collect_pure_function_acceptable_names(ast: &Ast<'_>, program: Program) -> Fx
     .map(|slot| ast.get_node_in_sub_range(slot))
   {
     visit_stmt_defined_binding_names(ast, statement, &mut |name| {
-      names.insert(name);
+      names.insert(name.into());
     });
   }
 
@@ -198,8 +198,8 @@ fn collect_pure_function_acceptable_names(ast: &Ast<'_>, program: Program) -> Fx
         for slot in export.specifiers(ast).iter() {
           let specifier = ast.get_node_in_sub_range(slot);
           let local = atom_from_module_export_name(ast, specifier.local(ast));
-          if local_bindings.contains(&local) {
-            names.insert(atom_from_module_export_name(ast, specifier.exported(ast)));
+          if local_bindings.contains(AtomKey::from_atom_ref(&local)) {
+            names.insert(atom_from_module_export_name(ast, specifier.exported(ast)).into());
           }
         }
       }
@@ -213,7 +213,7 @@ fn collect_pure_function_acceptable_names(ast: &Ast<'_>, program: Program) -> Fx
           _ => false,
         };
         if is_function {
-          names.insert(Atom::from("default"));
+          names.insert(AtomKey::from("default"));
         }
       }
       _ => {}
@@ -231,21 +231,23 @@ fn collect_defined_configured_side_effects_free(
   configured_side_effects_free
     .iter()
     .filter_map(|name| {
-      let atom = Atom::from(name.clone());
-      acceptable.contains(&atom).then_some(atom)
+      let atom = Atom::from(name.as_str());
+      acceptable
+        .contains(AtomKey::from_atom_ref(&atom))
+        .then_some(atom)
     })
     .collect()
 }
 
-fn collect_duplicate_top_level_names(ast: &Ast<'_>, program: Program) -> FxHashSet<Atom> {
-  let mut counts = FxHashMap::<Atom, usize>::default();
+fn collect_duplicate_top_level_names(ast: &Ast<'_>, program: Program) -> FxHashSet<AtomKey> {
+  let mut counts = FxHashMap::<AtomKey, usize>::default();
   for statement in program
     .body(ast)
     .iter()
     .map(|slot| ast.get_node_in_sub_range(slot))
   {
     visit_stmt_defined_binding_names(ast, statement, &mut |name| {
-      *counts.entry(name).or_default() += 1;
+      *counts.entry(name.into()).or_default() += 1;
     });
   }
   counts
@@ -387,9 +389,9 @@ fn mark_side_effects_free(parser: &mut JavascriptParser, name: &Atom, export_nam
 fn already_marked_or_duplicate(
   parser: &JavascriptParser,
   name: &Atom,
-  duplicate_names: &FxHashSet<Atom>,
+  duplicate_names: &FxHashSet<AtomKey>,
 ) -> bool {
-  duplicate_names.contains(name)
+  duplicate_names.contains(AtomKey::from_atom_ref(name))
     || parser
       .build_info
       .side_effects_free
@@ -402,7 +404,7 @@ fn try_mark_auto_side_effects_free_variable(
   analyze_side_effects_free: bool,
   variable: AstVariableDeclaration,
   export_name: Option<&Atom>,
-  duplicate_names: &FxHashSet<Atom>,
+  duplicate_names: &FxHashSet<AtomKey>,
 ) {
   let ast = parser.ast.ast;
   if variable.kind(ast) != VariableKind::Const {
@@ -445,7 +447,7 @@ fn try_mark_auto_side_effects_free_decl(
   analyze_side_effects_free: bool,
   declaration: Decl,
   export_name: Option<&Atom>,
-  duplicate_names: &FxHashSet<Atom>,
+  duplicate_names: &FxHashSet<AtomKey>,
 ) {
   let ast = parser.ast.ast;
   match ast.decl_data(declaration) {
@@ -475,7 +477,7 @@ fn mark_auto_side_effects_free_program(
   parser: &mut JavascriptParser,
   analyze_side_effects_free: bool,
   program: Program,
-  duplicate_names: &FxHashSet<Atom>,
+  duplicate_names: &FxHashSet<AtomKey>,
 ) {
   let ast = parser.ast.ast;
   for statement in program

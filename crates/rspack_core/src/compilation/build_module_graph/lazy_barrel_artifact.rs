@@ -3,7 +3,7 @@ use rspack_cacheable::{
   with::{AsMap, AsPreset, AsVec},
 };
 use rspack_collections::IdentifierMap;
-use rspack_util::atom::Atom;
+use rspack_util::atom::{Atom, AtomKey};
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::{BoxDependency, DependencyId, DependencyRef, ModuleIdentifier};
@@ -18,7 +18,7 @@ pub enum ForwardId {
 #[derive(Debug)]
 pub enum ForwardedIdSet {
   All,
-  IdSet(FxHashSet<Atom>),
+  IdSet(FxHashSet<AtomKey>),
 }
 
 impl ForwardedIdSet {
@@ -32,7 +32,7 @@ impl ForwardedIdSet {
       match dep.forward_id() {
         ForwardId::All => return Self::All,
         ForwardId::Id(id) => {
-          set.insert(id);
+          set.insert(id.into());
         }
         ForwardId::Empty => {}
       }
@@ -123,11 +123,11 @@ impl LazyDependencies {
       ForwardedIdSet::All => self.all_lazy_dependencies().collect(),
       ForwardedIdSet::IdSet(set) => set
         .iter()
-        .filter(|forward_id| !self.terminal_forward_ids.contains(*forward_id))
+        .filter(|forward_id| !self.terminal_forward_ids.contains(forward_id.as_atom()))
         .flat_map(|forward_id| {
           self
             .forward_id_to_request
-            .get(forward_id)
+            .get(forward_id.as_atom())
             .and_then(|request| self.request_to_dependencies.get(request))
             .unwrap_or(&self.fallback_dependencies)
         })
