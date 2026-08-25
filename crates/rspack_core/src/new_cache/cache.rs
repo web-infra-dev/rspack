@@ -9,11 +9,11 @@ use rspack_tasks::{get_current_dependency_id, set_current_dependency_id};
 
 use super::{
   CacheFacade, CacheKey, CacheValue, Etag, IdleFileCache, MemoryCache, MemoryCacheGetResult,
-  Snapshot,
   cache_value::CacheValueData,
-  snapshot::{FileSystemInfo, SnapshotValidationResult},
+  module_build_cache::ModuleBuildCache,
+  snapshot::{FileSystemInfo, Snapshot, SnapshotValidationResult},
 };
-use crate::cache::CacheCodec;
+use crate::{ValueCacheVersions, cache::CacheCodec};
 
 /// Cache entry point backed by memory and optional filesystem storage.
 ///
@@ -98,6 +98,15 @@ impl Cache {
     self.inner.storage.is_some()
       && self.inner.codec.is_some()
       && self.inner.file_system_info.is_some()
+  }
+
+  pub(crate) fn module_build_cache(
+    &self,
+    value_cache_versions: Arc<ValueCacheVersions>,
+  ) -> Option<ModuleBuildCache> {
+    self
+      .is_module_cache_enabled()
+      .then(|| ModuleBuildCache::new(self.clone(), value_cache_versions))
   }
 
   pub(crate) fn codec(&self) -> Option<&CacheCodec> {

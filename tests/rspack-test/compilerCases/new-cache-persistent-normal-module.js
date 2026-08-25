@@ -4,6 +4,23 @@ const rspack = require("@rspack/core");
 const hooks = [];
 const PLUGIN_NAME = "NewCachePersistentNormalModuleTestPlugin";
 
+const getModuleBuildCacheCount = stats => {
+	const logging = stats.toJson({ all: false, logging: "verbose" }).logging;
+	const entries = logging["rspack.Compilation"]?.entries ?? [];
+	const cacheEntry = entries.find(
+		entry =>
+			entry.type === "cache" &&
+			entry.message?.startsWith("module build cache:")
+	);
+	expect(cacheEntry).toBeTruthy();
+	const match = cacheEntry.message.match(/\((\d+)\/(\d+)\)/);
+	expect(match).toBeTruthy();
+	return {
+		hits: Number(match[1]),
+		total: Number(match[2])
+	};
+};
+
 class NewCachePersistentNormalModuleTestPlugin {
 	apply(compiler) {
 		compiler.hooks.compilation.tap(PLUGIN_NAME, compilation => {
@@ -56,7 +73,7 @@ const runCompiler = (context, cacheDirectory, output) =>
 						new Error(stats.toString({ all: false, errors: true }))
 					);
 				}
-				resolve();
+				resolve(stats);
 			});
 		});
 	});
@@ -77,8 +94,17 @@ module.exports = {
 		);
 		fs.rmSync(cacheDirectory, { recursive: true, force: true });
 
-		await runCompiler(context, cacheDirectory, context.getDist("output-1"));
-		await runCompiler(context, cacheDirectory, context.getDist("output-2"));
+		const coldCount = getModuleBuildCacheCount(
+			await runCompiler(context, cacheDirectory, context.getDist("output-1"))
+		);
+		const warmCount = getModuleBuildCacheCount(
+			await runCompiler(context, cacheDirectory, context.getDist("output-2"))
+		);
+
+		expect(coldCount.total).toBeGreaterThan(0);
+		expect(coldCount.hits).toBe(0);
+		expect(warmCount.total).toBeGreaterThan(0);
+		expect(warmCount.hits).toBe(warmCount.total);
 	},
 	check() {
 		expect(hooks).toEqual([

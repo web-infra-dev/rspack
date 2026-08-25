@@ -7,6 +7,7 @@ mod etag;
 mod file_cache_strategy;
 mod idle_file_cache;
 mod memory_cache;
+mod module_build_cache;
 mod snapshot;
 mod validator;
 
@@ -20,8 +21,8 @@ pub use etag::Etag;
 pub use file_cache_strategy::FileCacheStrategy;
 pub use idle_file_cache::IdleFileCache;
 pub use memory_cache::{MemoryCache, MemoryCacheGetResult};
+pub(crate) use module_build_cache::ModuleBuildCache;
 use rspack_fs::ReadableFileSystem;
-pub(crate) use snapshot::Snapshot;
 
 use self::snapshot::{BuildDeps, FileSystemInfo};
 use crate::{CompilationLogger, CompilationLogging, CompilerOptions, cache::CacheCodec};

@@ -6,17 +6,13 @@ use rustc_hash::FxHashMap as HashMap;
 
 use super::BuildModuleGraphArtifact;
 use crate::{
-  Compilation, CompilationId, CompilerId, CompilerOptions, CompilerPlatform, DependencyTemplate,
-  DependencyTemplateType, DependencyType, ExportsInfoArtifact, ModuleFactory, ResolverFactory,
-  RuntimeTemplate, SharedPluginDriver, ValueCacheVersions, incremental::Incremental,
-  module_graph::ModuleGraph, new_cache::Cache,
+  CacheCount, Compilation, CompilationId, CompilerId, CompilerOptions, CompilerPlatform,
+  DependencyTemplate, DependencyTemplateType, DependencyType, ExportsInfoArtifact, ModuleFactory,
+  ResolverFactory, RuntimeTemplate, SharedPluginDriver,
+  incremental::Incremental,
+  module_graph::ModuleGraph,
+  new_cache::{Cache, ModuleBuildCache},
 };
-
-#[derive(Debug, Clone)]
-pub(super) struct ModuleCacheContext {
-  pub cache: Cache,
-  pub value_cache_versions: Arc<ValueCacheVersions>,
-}
 
 #[derive(Debug)]
 pub struct TaskContext {
@@ -36,7 +32,8 @@ pub struct TaskContext {
   pub dependency_templates: HashMap<DependencyTemplateType, Arc<dyn DependencyTemplate>>,
   pub runtime_template: RuntimeTemplate,
   pub(crate) cache: Cache,
-  pub(super) module_cache: Option<ModuleCacheContext>,
+  pub(super) module_build_cache: Option<ModuleBuildCache>,
+  pub(super) module_build_cache_counter: Option<Arc<CacheCount>>,
 
   pub artifact: BuildModuleGraphArtifact,
   pub exports_info_artifact: ExportsInfoArtifact,
@@ -48,13 +45,9 @@ impl TaskContext {
     artifact: BuildModuleGraphArtifact,
     exports_info_artifact: ExportsInfoArtifact,
   ) -> Self {
-    let module_cache = compilation
+    let module_build_cache = compilation
       .cache
-      .is_module_cache_enabled()
-      .then(|| ModuleCacheContext {
-        cache: compilation.cache.clone(),
-        value_cache_versions: Arc::new(compilation.value_cache_versions.clone()),
-      });
+      .module_build_cache(Arc::new(compilation.value_cache_versions.clone()));
     Self {
       compiler_id: compilation.compiler_id(),
       compilation_id: compilation.id(),
@@ -71,7 +64,8 @@ impl TaskContext {
       output_fs: compilation.output_filesystem.clone(),
       runtime_template: RuntimeTemplate::new(compilation.options.clone()),
       cache: compilation.cache.clone(),
-      module_cache,
+      module_build_cache,
+      module_build_cache_counter: None,
       artifact,
       exports_info_artifact,
     }

@@ -4,123 +4,23 @@ use std::{
   time::{SystemTime, UNIX_EPOCH},
 };
 
-use rspack_cacheable::{cacheable, utils::OwnedOrRef};
 use rspack_fs::ReadableFileSystem;
 use rustc_hash::FxHashSet;
 
 use super::{
-  TaskContext, context::ModuleCacheContext, lazy::process_unlazy_dependencies,
-  process_dependencies::ProcessDependenciesTask,
+  TaskContext, lazy::process_unlazy_dependencies, process_dependencies::ProcessDependenciesTask,
 };
 use crate::{
-  AsyncDependenciesBlock, BoxDependency, BoxModule, BuildContext, BuildResult, Cache, CacheFacade,
-  CacheValue, CompilationId, CompilerId, CompilerOptions, DependencyParents, Module,
-  ModuleCodeTemplate, NormalModuleBuildState, OptimizationBailoutItem, ResolverFactory,
-  SharedPluginDriver,
+  AsyncDependenciesBlock, BoxDependency, BoxModule, BuildContext, BuildResult, CacheCount,
+  CacheFacade, CompilationId, CompilerId, CompilerOptions, DependencyParents, ModuleCodeTemplate,
+  ResolverFactory, SharedPluginDriver,
   compilation::build_module_graph::{ForwardedIdSet, HasLazyDependencies, LazyDependencies},
-  new_cache::Snapshot,
+  new_cache::ModuleBuildCache,
   utils::{
     ResourceId,
     task_loop::{Task, TaskResult, TaskType},
   },
 };
-
-const MODULES_CACHE_NAMESPACE: &str = "Compilation/modules";
-
-type RestoredDependencies = Vec<BoxDependency>;
-// AsyncDependenciesBlock is recursive and intentionally stays behind a pointer.
-#[allow(clippy::vec_box)]
-type RestoredBlocks = Vec<Box<AsyncDependenciesBlock>>;
-type RestoredBuildResult = (
-  RestoredDependencies,
-  RestoredBlocks,
-  Vec<OptimizationBailoutItem>,
-);
-
-#[cacheable]
-struct CachedBuildResult<'a> {
-  dependencies: Vec<OwnedOrRef<'a, BoxDependency>>,
-  // AsyncDependenciesBlock is recursive and intentionally stays behind a pointer.
-  #[allow(clippy::vec_box)]
-  blocks: Vec<OwnedOrRef<'a, AsyncDependenciesBlock>>,
-}
-
-impl CachedBuildResult<'_> {
-  fn from_build_result(build_result: &BuildResult) -> CachedBuildResult<'_> {
-    CachedBuildResult {
-      dependencies: build_result.dependencies.iter().map(Into::into).collect(),
-      blocks: build_result
-        .blocks
-        .iter()
-        .map(|block| block.as_ref().into())
-        .collect(),
-    }
-  }
-
-  fn into_parts(self) -> (RestoredDependencies, RestoredBlocks) {
-    (
-      self
-        .dependencies
-        .into_iter()
-        .map(OwnedOrRef::into_owned)
-        .collect(),
-      self
-        .blocks
-        .into_iter()
-        .map(|block| Box::new(block.into_owned()))
-        .collect(),
-    )
-  }
-}
-
-#[cacheable]
-#[derive(Debug)]
-struct ModuleBuildCacheEntry {
-  state: NormalModuleBuildState,
-  snapshot: Snapshot,
-  build_result: Vec<u8>,
-  optimization_bailouts: Vec<OptimizationBailoutItem>,
-}
-
-impl ModuleBuildCacheEntry {
-  fn from_build_result(
-    build_result: &BuildResult,
-    snapshot: Snapshot,
-    cache: &Cache,
-  ) -> rspack_error::Result<Option<Self>> {
-    let Some(module) = build_result.module.as_normal_module() else {
-      return Ok(None);
-    };
-    if !module.build_info().cacheable {
-      return Ok(None);
-    }
-    let Some(codec) = cache.codec() else {
-      return Ok(None);
-    };
-    Ok(Some(Self {
-      state: module.build_state(),
-      snapshot,
-      build_result: codec.encode(&CachedBuildResult::from_build_result(build_result))?,
-      optimization_bailouts: build_result.optimization_bailouts.clone(),
-    }))
-  }
-
-  fn restore(&self, module: &mut BoxModule) -> Option<()> {
-    module
-      .as_normal_module_mut()?
-      .restore_build_state(&self.state);
-    Some(())
-  }
-
-  fn build_result_parts(&self, cache: &Cache) -> rspack_error::Result<RestoredBuildResult> {
-    let codec = cache
-      .codec()
-      .ok_or_else(|| rspack_error::error!("New cache codec is unavailable"))?;
-    let cached: CachedBuildResult<'static> = codec.decode(&self.build_result)?;
-    let (dependencies, blocks) = cached.into_parts();
-    Ok((dependencies, blocks, self.optimization_bailouts.clone()))
-  }
-}
 
 #[derive(Debug)]
 pub struct BuildTask {
@@ -133,7 +33,8 @@ pub struct BuildTask {
   pub runtime_template: ModuleCodeTemplate,
   pub plugin_driver: SharedPluginDriver,
   pub fs: Arc<dyn ReadableFileSystem>,
-  pub(super) module_cache_context: Option<ModuleCacheContext>,
+  pub(super) module_build_cache: Option<ModuleBuildCache>,
+  pub(super) module_build_cache_counter: Option<Arc<CacheCount>>,
   pub forwarded_ids: ForwardedIdSet,
 }
 
@@ -153,75 +54,49 @@ impl Task<TaskContext> for BuildTask {
       runtime_template,
       mut module,
       fs,
-      module_cache_context,
+      module_build_cache,
+      module_build_cache_counter,
       forwarded_ids,
     } = *self;
 
-    let module_cache = if module.as_normal_module().is_some() {
-      module_cache_context.as_ref().map(|context| {
-        context
-          .cache
-          .facade(MODULES_CACHE_NAMESPACE)
-          .get_item_cache(module.identifier().as_str(), None)
-      })
-    } else {
-      None
-    };
-
-    if let (Some(module_cache), Some(module_cache_context)) = (&module_cache, &module_cache_context)
-    {
-      let entry = match module_cache.get::<ModuleBuildCacheEntry>() {
-        Ok(entry) => entry,
-        Err(error) => {
-          tracing::warn!("Restoring NormalModule build cache failed: {error}");
-          None
-        }
-      };
-      if let Some(entry) = entry
-        && !entry
-          .state
-          .need_build(&module_cache_context.value_cache_versions)
-      {
-        match module_cache_context
-          .cache
-          .check_module_snapshot_valid(&entry.snapshot)
-          .await
-        {
-          Ok(true) => match entry.build_result_parts(&module_cache_context.cache) {
-            Ok((dependencies, blocks, optimization_bailouts))
-              if entry.restore(&mut module).is_some() =>
-            {
-              plugin_driver
-                .compilation_hooks
-                .still_valid_module
-                .call(compiler_id, compilation_id, &mut module)
-                .await?;
-              return Ok(vec![Box::new(BuildResultTask {
-                build_result: Box::new(BuildResult {
-                  module,
-                  dependencies,
-                  blocks,
-                  optimization_bailouts,
-                }),
-                plugin_driver,
-                forwarded_ids,
-                invoke_succeed_module: false,
-              })]);
-            }
-            Ok(_) => {}
-            Err(error) => {
-              tracing::warn!("Decoding NormalModule build cache failed: {error}");
-            }
-          },
-          Ok(false) => {}
+    let use_module_build_cache =
+      module.as_normal_module().is_some() && module_build_cache.is_some();
+    let restored = match &module_build_cache {
+      Some(module_build_cache) if use_module_build_cache => {
+        match module_build_cache.restore(&mut module).await {
+          Ok(restored) => restored,
           Err(error) => {
-            tracing::warn!("Validating NormalModule build cache failed: {error}");
+            tracing::warn!("Restoring NormalModule build cache failed: {error}");
+            None
           }
         }
       }
+      _ => None,
+    };
+    if let Some(counter) = &module_build_cache_counter
+      && use_module_build_cache
+    {
+      if restored.is_some() {
+        counter.hit();
+      } else {
+        counter.miss();
+      }
+    }
+    if let Some(restored) = restored {
+      plugin_driver
+        .compilation_hooks
+        .still_valid_module
+        .call(compiler_id, compilation_id, &mut module)
+        .await?;
+      return Ok(vec![Box::new(BuildResultTask {
+        build_result: Box::new(restored.into_build_result(module)),
+        plugin_driver,
+        forwarded_ids,
+        invoke_succeed_module: false,
+      })]);
     }
 
-    let build_start_time = module_cache_context.as_ref().map(|_| {
+    let build_start_time = use_module_build_cache.then(|| {
       SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap_or_default()
@@ -234,7 +109,7 @@ impl Task<TaskContext> for BuildTask {
       .call(compiler_id, compilation_id, &mut module)
       .await?;
 
-    let mut result = module
+    let result = module
       .build(
         BuildContext {
           compiler_id,
@@ -250,47 +125,14 @@ impl Task<TaskContext> for BuildTask {
       )
       .await;
 
-    if let Ok(build_result) = &mut result
-      && let Some(module_cache) = module_cache
-      && let Some(module_cache_context) = &module_cache_context
+    if let Ok(build_result) = &result
+      && let Some(module_build_cache) = &module_build_cache
       && let Some(build_start_time) = build_start_time
+      && let Err(error) = module_build_cache
+        .store(build_result, build_start_time)
+        .await
     {
-      let snapshot = {
-        let build_info = build_result.module.build_info();
-        module_cache_context
-          .cache
-          .create_module_snapshot(
-            build_start_time,
-            &build_info.file_dependencies,
-            &build_info.context_dependencies,
-            &build_info.missing_dependencies,
-            &build_info.build_dependencies,
-          )
-          .await
-      };
-      match snapshot {
-        Ok(Some(snapshot)) => {
-          match ModuleBuildCacheEntry::from_build_result(
-            build_result,
-            snapshot,
-            &module_cache_context.cache,
-          ) {
-            Ok(Some(entry)) => {
-              if let Err(error) = module_cache.store(CacheValue::new(entry)) {
-                tracing::warn!("Storing NormalModule build cache failed: {error}");
-              }
-            }
-            Ok(None) => {}
-            Err(error) => {
-              tracing::warn!("Encoding NormalModule build cache failed: {error}");
-            }
-          }
-        }
-        Ok(None) => {}
-        Err(error) => {
-          tracing::warn!("Creating NormalModule build snapshot failed: {error}");
-        }
-      }
+      tracing::warn!("Storing NormalModule build cache failed: {error}");
     }
 
     result.map::<Vec<Box<dyn Task<TaskContext>>>, _>(|build_result| {
