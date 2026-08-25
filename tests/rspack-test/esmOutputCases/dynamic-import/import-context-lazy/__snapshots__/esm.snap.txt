@@ -96,9 +96,9 @@ module.exports = __rspack_async_context;
 
 module.exports = {
 
-  "./modules/a.js": function() { return __webpack_require__.e(/*! esm */ "a").then(__webpack_require__.bind(__webpack_require__, /*! ./modules/a.js */ "./modules/a.js")); },
+  "./modules/a.js": function() { return __webpack_require__.e(/*! esm */ "a").then(() => (__webpack_require__(/*! ./modules/a.js */ "./modules/a.js"))); },
 
-  "./modules/b.js": function() { return __webpack_require__.e(/*! esm */ "b").then(__webpack_require__.bind(__webpack_require__, /*! ./modules/b.js */ "./modules/b.js")); }
+  "./modules/b.js": function() { return __webpack_require__.e(/*! esm */ "b").then(() => (__webpack_require__(/*! ./modules/b.js */ "./modules/b.js"))); }
 };
 
 

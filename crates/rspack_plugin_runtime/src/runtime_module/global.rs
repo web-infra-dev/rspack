@@ -40,8 +40,15 @@ impl RuntimeModule for GlobalRuntimeModule {
     &self,
     context: &RuntimeModuleGenerateContext<'_>,
   ) -> rspack_error::Result<String> {
-    let source = context.runtime_template.render(self.id(), None)?;
+    let mut source = context.runtime_template.render(
+      self.id(),
+      Some(serde_json::json!({
+        "_global_this": context.compilation.options.output.environment.global_this,
+      })),
+    )?;
 
+    let trimmed_len = source.trim_end().len();
+    source.truncate(trimmed_len);
     Ok(source)
   }
 }
