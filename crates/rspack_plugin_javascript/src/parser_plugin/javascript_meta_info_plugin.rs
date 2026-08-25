@@ -6,19 +6,12 @@ use super::{
   JavascriptParserPlugin,
   inner_graph::state::{InnerGraphMapUsage, TopLevelSymbol},
 };
-use crate::visitors::{JavascriptParser, Statement};
+use crate::visitors::JavascriptParser;
 
 pub struct JavascriptMetaInfoPlugin;
 
 #[rspack_macros::implemented_javascript_parser_hooks]
 impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for JavascriptMetaInfoPlugin {
-  fn statement(&self, parser: &mut JavascriptParser<'p>, statement: Statement<'_>) -> Option<bool> {
-    if matches!(statement, Statement::Return(_)) && parser.is_top_level_scope() {
-      parser.build_info.module_concatenation_bailout = Some("top-level return".into());
-    }
-    None
-  }
-
   fn call(
     &self,
     parser: &mut JavascriptParser<'p>,
@@ -26,7 +19,6 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for JavascriptMetaInfoPlugin {
     for_name: &str,
   ) -> Option<bool> {
     if for_name == "eval" {
-      parser.build_info.module_exports_accessed = Some(true);
       parser.build_info.module_concatenation_bailout = Some("eval()".into());
       if let Some(top_level_symbol) = parser.inner_graph.get_top_level_symbol() {
         parser.inner_graph.add_usage(

@@ -1,7 +1,11 @@
-import * as values from "./barrel";
+import { getValue } from "./barrel";
 import "./sloppy-empty";
+import "./override-strict-empty";
+import "./override-non-strict-empty";
 import "./shadowed-require";
 import "./access-exports";
+import "./access-module";
+import "./access-webpack-module";
 import "./require-access";
 import "./mutate-empty";
 import "./dynamic";
@@ -30,9 +34,9 @@ const dynamicEmpty = import(
 
 it("should only concatenate unknown non-ESM modules without CommonJS export access", async () => {
 	const dynamicNamespace = await dynamicEmpty;
-	expect(values.getValue()).toBe(42);
-	expect(Object.keys(values)).toEqual(["getValue"]);
+	expect(getValue()).toBe(42);
 	expect(Object.keys(unknown)).toEqual([]);
+	expect(Object.keys(namedValues)).toEqual(["missing"]);
 	expect(namedValues.missing).toBeUndefined();
 	expect(directMissing).toBeUndefined();
 	expect(mutatedValue).toBe(42);
@@ -49,8 +53,15 @@ it("should only concatenate unknown non-ESM modules without CommonJS export acce
 	expect(globalThis.emptyAutoReexportStrictExecuted).toBe(true);
 	expect(globalThis.emptyAutoReexportSloppyExecuted).toBe(true);
 	expect(globalThis.emptyAutoReexportSloppyThisPreserved).toBe(true);
+	expect(globalThis.emptyAutoReexportOverrideStrictExecuted).toBe(true);
+	expect(globalThis.emptyAutoReexportOverrideNonStrictExecuted).toBe(true);
 	expect(globalThis.emptyAutoReexportShadowedRequireExecuted).toBe(true);
 	expect(globalThis.emptyAutoReexportAccessExportsExecuted).toBe(true);
+	expect(globalThis.emptyAutoReexportAccessModuleExecuted).toBe(true);
+	expect(typeof globalThis.emptyAutoReexportWebpackModule).toBe("object");
+	expect(globalThis.emptyAutoReexportWebpackModule).not.toBe(
+		__webpack_module__
+	);
 	expect(globalThis.emptyAutoReexportRequireAccessExecuted).toBe(true);
 	expect(globalThis.emptyAutoReexportMutatedExecuted).toBe(true);
 	expect(globalThis.emptyAutoReexportMutatorExecuted).toBe(true);
@@ -73,8 +84,12 @@ it("should only concatenate unknown non-ESM modules without CommonJS export acce
 	delete globalThis.emptyAutoReexportStrictExecuted;
 	delete globalThis.emptyAutoReexportSloppyExecuted;
 	delete globalThis.emptyAutoReexportSloppyThisPreserved;
+	delete globalThis.emptyAutoReexportOverrideStrictExecuted;
+	delete globalThis.emptyAutoReexportOverrideNonStrictExecuted;
 	delete globalThis.emptyAutoReexportShadowedRequireExecuted;
 	delete globalThis.emptyAutoReexportAccessExportsExecuted;
+	delete globalThis.emptyAutoReexportAccessModuleExecuted;
+	delete globalThis.emptyAutoReexportWebpackModule;
 	delete globalThis.emptyAutoReexportRequireAccessExecuted;
 	delete globalThis.emptyAutoReexportMutatedExecuted;
 	delete globalThis.emptyAutoReexportMutatorExecuted;
@@ -103,13 +118,8 @@ it("should only concatenate unknown non-ESM modules without CommonJS export acce
 	expect(concatenated.modules.map(module => module.name)).toEqual(
 		expect.arrayContaining([
 			"./empty.js",
-			"./shadowed-require.js",
-			"./require-access.js",
-			"./mutate-empty.js",
-			"./direct-empty.js",
-			"./named-empty.js",
-			"./named-barrel.js",
-			"./named-reexport-empty.js"
+			"./override-strict-empty.js",
+			"./shadowed-require.js"
 		])
 	);
 	const nestedModuleNames = new Set(
@@ -120,7 +130,15 @@ it("should only concatenate unknown non-ESM modules without CommonJS export acce
 
 	for (const name of [
 		"./sloppy-empty.js",
+		"./override-non-strict-empty.js",
 		"./access-exports.js",
+		"./access-module.js",
+		"./access-webpack-module.js",
+		"./direct-empty.js",
+		"./named-empty.js",
+		"./named-reexport-empty.js",
+		"./require-access.js",
+		"./mutate-empty.js",
 		"./required-dep.js",
 		"./mutated-empty.js",
 		"./amd-require-empty.js",
@@ -130,9 +148,6 @@ it("should only concatenate unknown non-ESM modules without CommonJS export acce
 		"./namespace-empty.js",
 		"./default-empty.js",
 		"./namespace-member-empty.js",
-		"./unused-namespace-empty.js",
-		"./unused-default-empty.js",
-		"./unused-named-default-empty.js",
 		"./namespace-reexport-empty.js",
 		"./default-reexport-empty.js",
 		"./es-module-empty.js",

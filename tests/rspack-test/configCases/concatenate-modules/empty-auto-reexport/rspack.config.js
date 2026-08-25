@@ -13,6 +13,18 @@ module.exports = {
         sideEffects: true,
       },
       {
+        test: /override-strict-empty\.js$/,
+        parser: {
+          overrideStrict: 'strict',
+        },
+      },
+      {
+        test: /override-non-strict-empty\.js$/,
+        parser: {
+          overrideStrict: 'non-strict',
+        },
+      },
+      {
         test: /dynamic\.js$/,
         type: 'javascript/dynamic',
       },
