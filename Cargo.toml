@@ -169,7 +169,7 @@ wasmtime     = { version = "36.0.13", default-features = false }
 
 
 # all rspack workspace dependencies
-css-module-lexer                       = { version = "=0.102.0-rc.0", path = "crates/css-module-lexer", default-features = false }
+css-module-lexer                       = { version = "=0.102.0", path = "crates/css-module-lexer", default-features = false }
 rspack                                 = { version = "=0.102.0", path = "crates/rspack", default-features = false }
 rspack_allocator                       = { version = "=0.102.0", path = "crates/rspack_allocator", default-features = false }
 rspack_binding_api                     = { version = "=0.102.0", path = "crates/rspack_binding_api", default-features = false }
