@@ -18,7 +18,10 @@ use rspack_cacheable::{
   },
   with::AsPreset,
 };
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use serde::{
+  Deserialize, Deserializer, Serialize, Serializer,
+  de::{Error as DeserializeError, Visitor},
+};
 use swc_next_ecma_ast::{Ast, AstUtf8};
 
 /// An owned JavaScript name used by Rspack's internal IR.
@@ -247,7 +250,41 @@ impl<'de> Deserialize<'de> for Atom {
   where
     D: Deserializer<'de>,
   {
-    String::deserialize(deserializer).map(Self::from)
+    struct AtomVisitor;
+
+    impl<'de> Visitor<'de> for AtomVisitor {
+      type Value = Atom;
+
+      fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str("a string")
+      }
+
+      #[inline]
+      fn visit_borrowed_str<E>(self, value: &'de str) -> Result<Self::Value, E>
+      where
+        E: DeserializeError,
+      {
+        Ok(Atom::from(value))
+      }
+
+      #[inline]
+      fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+      where
+        E: DeserializeError,
+      {
+        Ok(Atom::from(value))
+      }
+
+      #[inline]
+      fn visit_string<E>(self, value: String) -> Result<Self::Value, E>
+      where
+        E: DeserializeError,
+      {
+        Ok(Atom::from(value))
+      }
+    }
+
+    deserializer.deserialize_str(AtomVisitor)
   }
 }
 
