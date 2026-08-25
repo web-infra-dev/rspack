@@ -271,7 +271,7 @@ This option depends on `optimization.sideEffects`. If you disable [`optimization
 - **Type:** `'webpack' | 'rspack'`
 - **Default:** `'webpack'`
 
-When [`output.module`](/config/output#outputmodule) is `true` and [`output.library.type`](/config/output#outputlibrarytype) is `'modern-module'`, setting `experiments.runtimeMode` to `'rspack'` generates cleaner output. Instead of exporting one `__webpack_require__` function with runtime helpers attached as properties, the runtime exports the loader, module factories, and helpers as named ESM bindings. Each output chunk can import only the bindings it needs.
+Setting `experiments.runtimeMode` to `'rspack'` enables Rspack's experimental runtime output. This output mode is still under development, so use it with caution. It currently generates cleaner output when [`output.module`](/config/output#outputmodule) is `true` and [`output.library.type`](/config/output#outputlibrarytype) is `'modern-module'`. In this case, instead of exporting one `__webpack_require__` function with runtime helpers attached as properties, the runtime exports the loader, module factories, and helpers as named ESM bindings. Each output chunk can import only the bindings it needs.
 
 ### Example
 
