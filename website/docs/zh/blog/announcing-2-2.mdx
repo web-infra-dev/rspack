@@ -396,7 +396,7 @@ export default defineConfig({
 
 #### 完整的 typescript-eslint 支持 \{#typescript-eslint-support}
 
-Rslint 0.8.1 现已完整对齐 typescript-eslint 的官方预设体系，支持 `recommended`、`recommendedTypeChecked`、`strict`、`strictTypeChecked`、`stylistic` 和 `stylisticTypeChecked`。同时，Rslint 已内置实现几乎所有 `@typescript-eslint` 规则，将现有 typescript-eslint 规则配置迁移到 Rslint 时，几乎不需要额外调整。
+Rslint 0.8.1 已内置实现全部 `@typescript-eslint` 规则，并完整对齐 typescript-eslint 的官方预设体系，支持 `recommended`、`recommendedTypeChecked`、`strict`、`strictTypeChecked`、`stylistic` 和 `stylisticTypeChecked`。
 
 通过 `defineConfig` 配置 ESLint core 和 `@typescript-eslint` 规则时，编辑器可以自动补全规则名称、严重级别和规则选项，并在 Rslint 运行前发现无效配置。此外，`@rslint/core` 还内置了 Browser、Node.js、Worker 和 Rstest 等运行环境的 `globals`：
 
