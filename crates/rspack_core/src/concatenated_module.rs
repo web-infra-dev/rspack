@@ -2635,7 +2635,7 @@ impl ConcatenatedModule {
       binding_to_ref.reserve(ids.len());
 
       for ident in ids {
-        let scope = ident.scope;
+        let scope = ident.id.ctxt;
         let is_global = scope == module_info.global_ctxt;
         let legacy = if is_global {
           let leg = ident.to_legacy();
@@ -2655,7 +2655,7 @@ impl ConcatenatedModule {
         if scope != module_info.module_ctxt {
           all_used_names.insert(Atom::from(ident.id.sym.as_str()));
         }
-        let legacy = legacy.unwrap_or_else(|| ident.to_legacy());
+        let legacy = legacy.unwrap_or_else(|| ident.into_legacy());
         module_info.idents.push(legacy.clone());
         binding_to_ref
           .entry((Atom::from(legacy.id.sym.as_str()), legacy.id.ctxt))
@@ -3501,7 +3501,6 @@ pub fn escape_name_atom_ref(name: &Atom) -> Atom {
 #[derive(Debug)]
 pub struct NewConcatenatedModuleIdent {
   pub id: swc_ecma_ast::Ident,
-  pub scope: SyntaxContext,
   pub shorthand: bool,
   pub is_class_expr_with_ident: bool,
 }
@@ -3510,6 +3509,14 @@ impl NewConcatenatedModuleIdent {
   pub fn to_legacy(&self) -> ConcatenatedModuleIdent {
     ConcatenatedModuleIdent {
       id: self.id.clone(),
+      is_class_expr_with_ident: self.is_class_expr_with_ident,
+      shorthand: self.shorthand,
+    }
+  }
+
+  pub fn into_legacy(self) -> ConcatenatedModuleIdent {
+    ConcatenatedModuleIdent {
+      id: self.id,
       is_class_expr_with_ident: self.is_class_expr_with_ident,
       shorthand: self.shorthand,
     }
@@ -3601,7 +3608,6 @@ fn collect_ident(ast: &Ast<'_>, semantic: &JsNameResolver<'_>) -> Vec<NewConcate
       let scope = SyntaxContext::from_u32(scope.raw());
       self.ids.push(NewConcatenatedModuleIdent {
         id: swc_ecma_ast::Ident::new(swc_core::atoms::Atom::from(name), span, scope),
-        scope,
         shorthand,
         is_class_expr_with_ident,
       });

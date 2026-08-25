@@ -524,7 +524,7 @@ Please annotate your `impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ...` block
   fn meta_property(
     &self,
     _parser: &mut JavascriptParser<'p>,
-    _root_name: &Atom,
+    _root_name: &str,
     _span: Span,
   ) -> Option<bool> {
     None

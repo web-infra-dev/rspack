@@ -278,24 +278,20 @@ pub fn try_extract_magic_comment(
 ) -> RspackCommentMap {
   let mut result = RspackCommentMap::new();
   let mut warning_diagnostics = Vec::new();
-  if let Some(comments) = parser.ast.comments.leading.get(&span.start) {
-    analyze_comments(
-      parser.source,
-      comments,
-      error_span,
-      &mut warning_diagnostics,
-      &mut result,
-    );
-  }
-  if let Some(comments) = parser.ast.comments.trailing.get(&span.end) {
-    analyze_comments(
-      parser.source,
-      comments,
-      error_span,
-      &mut warning_diagnostics,
-      &mut result,
-    );
-  }
+  analyze_comments(
+    parser.source,
+    parser.ast.comments.leading(span.start),
+    error_span,
+    &mut warning_diagnostics,
+    &mut result,
+  );
+  analyze_comments(
+    parser.source,
+    parser.ast.comments.trailing(span.end),
+    error_span,
+    &mut warning_diagnostics,
+    &mut result,
+  );
   parser.add_warnings(warning_diagnostics);
   result
 }
@@ -568,16 +564,15 @@ fn parse_magic_comment_name(name: &str) -> Option<(RspackComment, MagicCommentPr
   Some((RspackComment::try_from(name).ok()?, prefix))
 }
 
-fn analyze_comments(
+fn analyze_comments<'a>(
   source: &str,
-  comments: &[Comment],
+  comments: impl DoubleEndedIterator<Item = Comment<'a>>,
   error_span: Span,
   warning_diagnostics: &mut Vec<Diagnostic>,
   result: &mut RspackCommentMap,
 ) {
   let mut parsed_comment = FxHashSet::<Span>::default();
   for comment in comments
-    .iter()
     .rev()
     .filter(|c| matches!(c.kind, CommentKind::Block))
   {

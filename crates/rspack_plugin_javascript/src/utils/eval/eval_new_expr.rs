@@ -3,7 +3,6 @@ use swc_next_ecma_ast::{ArgumentData, GetSpan, NewExpression};
 
 use super::BasicEvaluatedExpression;
 use crate::{
-  Atom,
   parser_plugin::{evaluate_create_require_new_expression, is_create_require_specifier},
   utils::eval,
   visitors::{CallHooksName, JavascriptParser},
@@ -19,8 +18,8 @@ pub fn eval_new_expression<'parser>(
   let identifier = callee.as_identifier_reference(ast);
   if parser.javascript_options.is_create_require_enabled() {
     if let Some(identifier) = identifier {
-      let name = Atom::from(ast.get_utf8(identifier.name(ast)));
-      if is_create_require_specifier(parser, &name) {
+      let name = ast.get_utf8(identifier.name(ast));
+      if is_create_require_specifier(parser, name) {
         let evaluated = name.call_hooks_name(parser, |parser, for_name| {
           evaluate_create_require_new_expression(parser, for_name, Some(callee), expression)
         });

@@ -127,6 +127,27 @@ fn member_property_key_data_to_atom(ast: &Ast<'_>, key: PropertyKeyData) -> Opti
   }
 }
 
+fn member_property_key_can_be_atom(ast: &Ast<'_>, key: PropertyKey) -> bool {
+  match ast.property_key_data(key) {
+    PropertyKeyData::StringLiteral(_)
+    | PropertyKeyData::NumericLiteral(_)
+    | PropertyKeyData::BigIntLiteral(_) => true,
+    PropertyKeyData::Expr(expr) => match ast.expr_data(expr) {
+      ExprData::StringLiteral(_)
+      | ExprData::BooleanLiteral(_)
+      | ExprData::NullLiteral(_)
+      | ExprData::NumericLiteral(_)
+      | ExprData::BigIntLiteral(_)
+      | ExprData::RegExpLiteral(_) => true,
+      ExprData::TemplateLiteral(template) => {
+        template.expressions(ast).is_empty() && template.quasis(ast).len() == 1
+      }
+      _ => false,
+    },
+    PropertyKeyData::IdentifierName(_) | PropertyKeyData::PrivateIdentifier(_) => false,
+  }
+}
+
 impl<T> TagInfoData for T
 where
   T: Clone + Sized + 'static,
@@ -160,6 +181,30 @@ where
 pub type AtomMembers = SmallVec<[Atom; 2]>;
 pub type OptionalMembers = SmallVec<[bool; 2]>;
 pub type MemberRanges = SmallVec<[Span; 2]>;
+type RawAtomMembers = SmallVec<[(PropertyKey, bool); 2]>;
+
+struct RawExtractedMemberExpressionChainData {
+  object: ExprRef,
+  members: RawAtomMembers,
+  members_optionals: OptionalMembers,
+  member_ranges: MemberRanges,
+}
+
+fn materialize_member_atoms(ast: &Ast<'_>, members: RawAtomMembers) -> AtomMembers {
+  members
+    .into_iter()
+    .map(|(property, computed)| {
+      if computed {
+        member_property_key_to_atom(ast, property)
+          .expect("validated computed member property should convert to an atom")
+      } else if let PropertyKeyData::IdentifierName(identifier) = ast.property_key_data(property) {
+        Atom::from_ast(ast, identifier.name(ast))
+      } else {
+        unreachable!("validated static member property should be an identifier")
+      }
+    })
+    .collect()
+}
 
 #[derive(Debug)]
 pub struct ExtractedMemberExpressionChainData {
@@ -227,13 +272,14 @@ fn object_and_members_to_name(object: &str, members_reversed: &[impl AsRef<str>]
 }
 
 pub trait RootName {
-  fn get_root_name(&self, _ast: &Ast<'_>) -> Option<Atom> {
+  fn get_root_name<'ast>(&self, _ast: &'ast Ast<'_>) -> Option<&'ast str> {
     None
   }
 }
 
 impl RootName for Expr {
-  fn get_root_name(&self, ast: &Ast<'_>) -> Option<Atom> {
+  #[inline]
+  fn get_root_name<'ast>(&self, ast: &'ast Ast<'_>) -> Option<&'ast str> {
     match ast.expr_data(*self) {
       ExprData::IdentifierReference(ident) => ident.get_root_name(ast),
       ExprData::ThisExpression(this) => this.get_root_name(ast),
@@ -244,7 +290,8 @@ impl RootName for Expr {
 }
 
 impl RootName for ExprRef {
-  fn get_root_name(&self, ast: &Ast<'_>) -> Option<Atom> {
+  #[inline]
+  fn get_root_name<'ast>(&self, ast: &'ast Ast<'_>) -> Option<&'ast str> {
     match self {
       ExprRef::Ident(ident) => ident.get_root_name(ast),
       ExprRef::This(this) => this.get_root_name(ast),
@@ -255,25 +302,28 @@ impl RootName for ExprRef {
 }
 
 impl RootName for ThisExpression {
-  fn get_root_name(&self, _ast: &Ast<'_>) -> Option<Atom> {
-    Some("this".into())
+  #[inline]
+  fn get_root_name<'ast>(&self, _ast: &'ast Ast<'_>) -> Option<&'ast str> {
+    Some("this")
   }
 }
 
 impl RootName for IdentifierReference {
-  fn get_root_name(&self, ast: &Ast<'_>) -> Option<Atom> {
-    Some(Atom::from_ast(ast, self.name(ast)))
+  #[inline]
+  fn get_root_name<'ast>(&self, ast: &'ast Ast<'_>) -> Option<&'ast str> {
+    Some(ast.get_utf8(self.name(ast)))
   }
 }
 
 impl RootName for MetaProperty {
-  fn get_root_name(&self, ast: &Ast<'_>) -> Option<Atom> {
+  #[inline]
+  fn get_root_name<'ast>(&self, ast: &'ast Ast<'_>) -> Option<&'ast str> {
     match (
       ast.get_utf8(self.meta(ast).name(ast)),
       ast.get_utf8(self.property(ast).name(ast)),
     ) {
-      ("new", "target") => Some("new.target".into()),
-      ("import", "meta") => Some("import.meta".into()),
+      ("new", "target") => Some("new.target"),
+      ("import", "meta") => Some("import.meta"),
       _ => None,
     }
   }
@@ -1117,7 +1167,7 @@ impl<'parser> JavascriptParser<'parser> {
   fn _get_member_expression_info(
     &mut self,
     object: ExprRef,
-    mut members: AtomMembers,
+    members: RawAtomMembers,
     mut members_optionals: OptionalMembers,
     mut member_ranges: MemberRanges,
     allowed_types: AllowedMemberTypes,
@@ -1129,26 +1179,27 @@ impl<'parser> JavascriptParser<'parser> {
           return None;
         }
         let callee = expr.callee(ast);
-        let (root_name, mut root_members) = if let Some(member) = callee.as_member_expression(ast) {
-          let extracted = self.extract_member_expression_chain(ExprRef::Member(member));
+        let (root_name, root_members) = if let Some(member) = callee.as_member_expression(ast) {
+          let extracted = self.extract_member_expression_chain_raw(ExprRef::Member(member));
           let root_name = extracted.object.get_root_name(ast)?;
           (root_name, extracted.members)
         } else {
-          (callee.get_root_name(ast)?, AtomMembers::new())
+          (callee.get_root_name(ast)?, RawAtomMembers::new())
         };
         let NameInfo {
           info: root_info, ..
-        } = self.get_name_info_from_variable(&root_name)?;
+        } = self.get_name_info_from_variable(root_name)?;
 
+        let mut root_members = materialize_member_atoms(ast, root_members);
+        let mut members = materialize_member_atoms(ast, members);
         root_members.reverse();
         members.reverse();
         members_optionals.reverse();
         member_ranges.reverse();
-        let root_name_for_info = root_name.clone();
         Some(MemberExpressionInfo::Call(CallExpressionInfo {
           call: expr,
           root_info: root_info.map_or_else(
-            || ExportedVariableInfo::Name(root_name_for_info),
+            || ExportedVariableInfo::Name(Atom::from(root_name)),
             |i| ExportedVariableInfo::VariableInfo(i.id()),
           ),
           callee_members: root_members,
@@ -1166,17 +1217,17 @@ impl<'parser> JavascriptParser<'parser> {
         let NameInfo {
           name: resolved_root,
           info: root_info,
-        } = self.get_name_info_from_variable(&root_name)?;
+        } = self.get_name_info_from_variable(root_name)?;
 
+        let mut members = materialize_member_atoms(ast, members);
         let name = object_and_members_to_name(resolved_root, &members);
         members.reverse();
         members_optionals.reverse();
         member_ranges.reverse();
-        let root_name_for_info = root_name.clone();
         Some(MemberExpressionInfo::Expression(ExpressionExpressionInfo {
           name,
           root_info: root_info.map_or_else(
-            || ExportedVariableInfo::Name(root_name_for_info),
+            || ExportedVariableInfo::Name(Atom::from(root_name)),
             |i| ExportedVariableInfo::VariableInfo(i.id()),
           ),
           members,
@@ -1200,7 +1251,7 @@ impl<'parser> JavascriptParser<'parser> {
       }
       _ => self._get_member_expression_info(
         expr_ref,
-        AtomMembers::new(),
+        RawAtomMembers::new(),
         OptionalMembers::new(),
         MemberRanges::new(),
         allowed_types,
@@ -1213,12 +1264,12 @@ impl<'parser> JavascriptParser<'parser> {
     expr: ExprRef,
     allowed_types: AllowedMemberTypes,
   ) -> Option<MemberExpressionInfo> {
-    let ExtractedMemberExpressionChainData {
+    let RawExtractedMemberExpressionChainData {
       object,
       members,
       members_optionals,
       member_ranges,
-    } = self.extract_member_expression_chain(expr);
+    } = self.extract_member_expression_chain_raw(expr);
     self._get_member_expression_info(
       object,
       members,
@@ -1232,9 +1283,27 @@ impl<'parser> JavascriptParser<'parser> {
     &self,
     expr: ExprRef,
   ) -> ExtractedMemberExpressionChainData {
+    let RawExtractedMemberExpressionChainData {
+      object,
+      members,
+      members_optionals,
+      member_ranges,
+    } = self.extract_member_expression_chain_raw(expr);
+    ExtractedMemberExpressionChainData {
+      object,
+      members: materialize_member_atoms(self.ast.ast, members),
+      members_optionals,
+      member_ranges,
+    }
+  }
+
+  fn extract_member_expression_chain_raw(
+    &self,
+    expr: ExprRef,
+  ) -> RawExtractedMemberExpressionChainData {
     let ast = self.ast.ast;
     let mut object = expr;
-    let mut members = AtomMembers::new();
+    let mut members = RawAtomMembers::new();
     let mut members_optionals = OptionalMembers::new();
     let mut member_ranges = MemberRanges::new();
     let mut in_optional_chain = self.member_expr_in_optional_chain;
@@ -1242,22 +1311,23 @@ impl<'parser> JavascriptParser<'parser> {
       match object {
         ExprRef::Member(expr) => {
           let property = expr.property(ast);
+          let object_expr = expr.object(ast);
           if expr.computed(ast) {
-            let Some(value) = member_property_key_to_atom(ast, property) else {
+            if !member_property_key_can_be_atom(ast, property) {
               break;
-            };
-            // Since members are not used across rspack javascript parser plugin,
-            // we directly makes it atom here
-            members.push(value);
-            member_ranges.push(expr.object(ast).span(ast));
-          } else if let PropertyKeyData::IdentifierName(ident) = ast.property_key_data(property) {
-            members.push(Atom::from_ast(ast, ident.name(ast)));
-            member_ranges.push(expr.object(ast).span(ast));
+            }
+            members.push((property, true));
+          } else if matches!(
+            ast.property_key_data(property),
+            PropertyKeyData::IdentifierName(_)
+          ) {
+            members.push((property, false));
           } else {
             break;
           }
+          member_ranges.push(object_expr.span(ast));
           members_optionals.push(in_optional_chain || expr.optional(ast));
-          object = ExprRef::from_expr(ast, expr.object(ast));
+          object = ExprRef::from_expr(ast, object_expr);
           in_optional_chain = false;
         }
         ExprRef::OptChain(expr) => {
@@ -1272,7 +1342,7 @@ impl<'parser> JavascriptParser<'parser> {
         _ => break,
       }
     }
-    ExtractedMemberExpressionChainData {
+    RawExtractedMemberExpressionChainData {
       object,
       members,
       members_optionals,
@@ -1284,7 +1354,8 @@ impl<'parser> JavascriptParser<'parser> {
   where
     F: FnOnce(&mut Self, BindingIdentifier),
   {
-    let name = Atom::from_ast(self.ast.ast, ident.name(self.ast.ast));
+    let ast = self.ast.ast;
+    let name = ast.get_utf8(ident.name(ast));
     let drive = self.plugin_drive.clone();
     if !name
       .call_hooks_name(self, |parser, for_name| {
@@ -1592,7 +1663,7 @@ impl<'parser> JavascriptParser<'parser> {
       ExprData::MemberExpression(member) => eval::eval_member_expression(self, member, expr),
       ExprData::IdentifierReference(ident) => {
         let span = ident.span(ast);
-        let name = Atom::from_ast(ast, ident.name(ast));
+        let name = ast.get_utf8(ident.name(ast));
         if name == "undefined" {
           let mut eval = BasicEvaluatedExpression::with_range(span.real_lo(), span.real_hi());
           eval.set_undefined();
@@ -1604,7 +1675,7 @@ impl<'parser> JavascriptParser<'parser> {
             drive.evaluate_identifier(parser, name, None, span.real_lo(), span.real_hi())
           })
           .or_else(|| {
-            let info = self.get_variable_info(&name);
+            let info = self.get_variable_info(name);
             if let Some(info) = info {
               if let Some(name) = &info.name
                 && (info.is_free() || info.is_tagged())
@@ -1622,6 +1693,7 @@ impl<'parser> JavascriptParser<'parser> {
                 None
               }
             } else {
+              let name = Atom::from(name);
               let mut eval = BasicEvaluatedExpression::with_range(span.real_lo(), span.real_hi());
               eval.set_identifier(
                 name.clone(),

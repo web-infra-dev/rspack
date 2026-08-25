@@ -305,19 +305,14 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
     let comment = parser
       .ast
       .comments
-      .leading
-      .get(&expr_span.start)
-      .map(|c| {
-        c.iter()
-          .dedup()
-          .map(|c| match c.kind {
-            CommentKind::Block => format!("/*{}*/", c.text),
-            CommentKind::Line => format!("//{}\n", c.text),
-          })
-          .collect_vec()
-          .join("")
+      .leading(expr_span.start)
+      .dedup()
+      .map(|c| match c.kind {
+        CommentKind::Block => format!("/*{}*/", c.text),
+        CommentKind::Line => format!("//{}\n", c.text),
       })
-      .unwrap_or_default();
+      .collect_vec()
+      .join("");
     let declaration = match expr {
       ExportDefaultExpression::FnDecl(f) => {
         let start = f.span(ast).real_lo();

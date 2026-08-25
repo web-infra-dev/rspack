@@ -74,6 +74,7 @@ pub enum ExprRef {
 }
 
 impl ExprRef {
+  #[inline]
   pub fn from_expr(ast: &Ast<'_>, expr: Expr) -> Self {
     match ast.expr_data(expr) {
       ExprData::AwaitExpression(node) => Self::Await(node),
@@ -87,6 +88,7 @@ impl ExprRef {
     }
   }
 
+  #[inline]
   pub fn expression(self) -> Expr {
     match self {
       Self::Await(node) => Expr::AwaitExpression(node),

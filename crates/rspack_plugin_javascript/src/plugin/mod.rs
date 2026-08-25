@@ -1192,7 +1192,7 @@ var {} = {{}};
                   let mut module_scope_idents = Vec::new();
 
                   for ident in collector_ids {
-                    let scope_id = ident.scope;
+                    let scope_id = ident.id.ctxt;
                     if scope_id == global_scope_id
                       || scope_id != module_scope_id
                       || ident.is_class_expr_with_ident
@@ -1202,7 +1202,7 @@ var {} = {{}};
 
                     if scope_id == module_scope_id {
                       acc.all_used_names.insert(Atom::from(ident.id.sym.as_str()));
-                      module_scope_idents.push(Arc::new(ident.to_legacy()));
+                      module_scope_idents.push(Arc::new(ident.into_legacy()));
                     }
                   }
 
@@ -1238,8 +1238,8 @@ var {} = {{}};
                     .runtime();
 
                   for ident in collector_ids {
-                    if ident.scope == global_scope_id {
-                      let ident = ident.to_legacy();
+                    if ident.id.ctxt == global_scope_id {
+                      let ident = ident.into_legacy();
                       acc.all_used_names.insert(Atom::from(ident.id.sym.as_str()));
                       idents_vec.push(ident.clone());
                       acc.non_inlined_module_through_idents.push(ident);

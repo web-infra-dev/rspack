@@ -6,14 +6,15 @@ use rspack_core::{
 use rspack_util::{SpanExt, atom::AtomKey, swc::RspackComments};
 use rustc_hash::{FxHashMap, FxHashSet};
 use swc_next_ecma_ast::{
-  ArgumentData, ArrowFunctionBodyData, ArrowFunctionExpression, Ast, BindingPattern,
-  BindingPatternData, CallExpression, Class, ClassElement, ClassElementData, CommentKind, Decl,
-  DeclData, ExportDefaultDeclarationKindData, Expr, ExprData, ForStatementInitData,
-  FormalParameterItemData, FormalParameterPatternData, Function, GetSpan,
+  ArgumentData, ArrowFunctionBodyData, ArrowFunctionExpression, Ast, BindingIdentifier,
+  BindingPattern, BindingPatternData, CallExpression, Class, ClassElement, ClassElementData,
+  CommentKind, Decl, DeclData, ExportDefaultDeclarationKindData, Expr, ExprData,
+  ForStatementInitData, FormalParameterItemData, FormalParameterPatternData, Function, GetSpan,
   ImportDeclarationSpecifierData, MethodDefinitionKind, ModuleExportName, ModuleExportNameData,
   ObjectPropertyKindData, Program, PropertyKey, PropertyKeyData, PropertyKind, Span, Stmt,
-  StmtData, UnaryOperator, VariableDeclaration as AstVariableDeclaration, VariableKind,
+  StmtData, SymbolId, UnaryOperator, VariableDeclaration as AstVariableDeclaration, VariableKind,
 };
+use swc_next_ecma_semantic::Semantic;
 
 use crate::{
   Atom, JavascriptParserPlugin,
@@ -62,70 +63,76 @@ fn has_no_side_effects_notation(comments: &RspackComments<'_>, span: Span) -> bo
 }
 
 fn has_pure_comment(comments: &RspackComments<'_>, pos: u32) -> bool {
-  comments.leading.get(&pos).is_some_and(|comment_list| {
-    comment_list
-      .iter()
-      .any(|comment| comment.kind == CommentKind::Block && PURE_COMMENTS.is_match(comment.text))
-  })
+  comments
+    .leading(pos)
+    .any(|comment| comment.kind == CommentKind::Block && PURE_COMMENTS.is_match(comment.text))
 }
 
-fn visit_pattern_binding_names(ast: &Ast<'_>, pattern: BindingPattern, f: &mut impl FnMut(Atom)) {
+fn visit_pattern_bindings(
+  ast: &Ast<'_>,
+  pattern: BindingPattern,
+  f: &mut impl FnMut(BindingIdentifier),
+) {
   match ast.binding_pattern_data(pattern) {
-    BindingPatternData::BindingIdentifier(identifier) => f(atom_from_binding(ast, identifier)),
+    BindingPatternData::BindingIdentifier(identifier) => f(identifier),
     BindingPatternData::ArrayPattern(array) => {
       for slot in array.elements(ast).iter() {
         if let Some(element) = ast.get_node_in_sub_range(slot) {
-          visit_pattern_binding_names(ast, element, f);
+          visit_pattern_bindings(ast, element, f);
         }
       }
       if let Some(rest) = array.rest(ast) {
-        visit_pattern_binding_names(ast, rest.argument(ast), f);
+        visit_pattern_bindings(ast, rest.argument(ast), f);
       }
     }
     BindingPatternData::ObjectPattern(object) => {
       for slot in object.properties(ast).iter() {
         let property = ast.get_node_in_sub_range(slot);
-        visit_pattern_binding_names(ast, property.value(ast), f);
+        visit_pattern_bindings(ast, property.value(ast), f);
       }
       if let Some(rest) = object.rest(ast) {
-        visit_pattern_binding_names(ast, rest.argument(ast), f);
+        visit_pattern_bindings(ast, rest.argument(ast), f);
       }
     }
     BindingPatternData::AssignmentPattern(assignment) => {
-      visit_pattern_binding_names(ast, assignment.left(ast), f);
+      visit_pattern_bindings(ast, assignment.left(ast), f);
     }
     BindingPatternData::BindingRestElement(rest) => {
-      visit_pattern_binding_names(ast, rest.argument(ast), f);
+      visit_pattern_bindings(ast, rest.argument(ast), f);
     }
     BindingPatternData::SimpleAssignmentTarget(_) => {}
   }
 }
 
-fn visit_decl_binding_names(ast: &Ast<'_>, declaration: Decl, f: &mut impl FnMut(Atom)) {
+fn visit_decl_bindings(ast: &Ast<'_>, declaration: Decl, f: &mut impl FnMut(BindingIdentifier)) {
   match ast.decl_data(declaration) {
     DeclData::Function(function) => {
       if let Some(identifier) = function.id(ast) {
-        f(atom_from_binding(ast, identifier));
+        f(identifier);
       }
     }
     DeclData::Class(class) => {
       if let Some(identifier) = class.id(ast) {
-        f(atom_from_binding(ast, identifier));
+        f(identifier);
       }
     }
     DeclData::VariableDeclaration(variable) => {
       for slot in variable.declarators(ast).iter() {
         let declarator = ast.get_node_in_sub_range(slot);
-        visit_pattern_binding_names(ast, declarator.id(ast), f);
+        visit_pattern_bindings(ast, declarator.id(ast), f);
       }
     }
     _ => {}
   }
 }
 
-fn visit_stmt_defined_binding_names(ast: &Ast<'_>, statement: Stmt, f: &mut impl FnMut(Atom)) {
+fn visit_stmt_defined_bindings(
+  ast: &Ast<'_>,
+  statement: Stmt,
+  f: &mut impl FnMut(BindingIdentifier),
+) {
   match ast.stmt_data(statement) {
-    StmtData::Declaration(declaration) => visit_decl_binding_names(ast, declaration, f),
+    StmtData::Declaration(declaration) => visit_decl_bindings(ast, declaration, f),
     StmtData::ImportDeclaration(import) => {
       for slot in import.specifiers(ast).iter() {
         let specifier = ast.get_node_in_sub_range(slot);
@@ -136,35 +143,35 @@ fn visit_stmt_defined_binding_names(ast: &Ast<'_>, statement: Stmt, f: &mut impl
             specifier.local(ast)
           }
         };
-        f(atom_from_binding(ast, local));
+        f(local);
       }
     }
     StmtData::ExportNamedDeclaration(export) => {
       if let Some(declaration) = export.declaration(ast) {
-        visit_decl_binding_names(ast, declaration, f);
+        visit_decl_bindings(ast, declaration, f);
       }
     }
     StmtData::ExportDefaultDeclaration(export) => {
       match ast.export_default_declaration_kind_data(export.declaration(ast)) {
         ExportDefaultDeclarationKindData::Function(function) => {
           if let Some(identifier) = function.id(ast) {
-            f(atom_from_binding(ast, identifier));
+            f(identifier);
           }
         }
         ExportDefaultDeclarationKindData::Class(class) => {
           if let Some(identifier) = class.id(ast) {
-            f(atom_from_binding(ast, identifier));
+            f(identifier);
           }
         }
         ExportDefaultDeclarationKindData::Expr(expression) => match ast.expr_data(expression) {
           ExprData::Function(function) => {
             if let Some(identifier) = function.id(ast) {
-              f(atom_from_binding(ast, identifier));
+              f(identifier);
             }
           }
           ExprData::Class(class) => {
             if let Some(identifier) = class.id(ast) {
-              f(atom_from_binding(ast, identifier));
+              f(identifier);
             }
           }
           _ => {}
@@ -176,20 +183,18 @@ fn visit_stmt_defined_binding_names(ast: &Ast<'_>, statement: Stmt, f: &mut impl
   }
 }
 
-fn collect_pure_function_acceptable_names(ast: &Ast<'_>, program: Program) -> FxHashSet<AtomKey> {
-  let statements = program.body(ast);
-  let mut names = FxHashSet::default();
-  for statement in statements
-    .iter()
-    .map(|slot| ast.get_node_in_sub_range(slot))
-  {
-    visit_stmt_defined_binding_names(ast, statement, &mut |name| {
-      names.insert(name.into());
-    });
-  }
-
-  let local_bindings = names.clone();
-  for statement in statements
+fn collect_pure_function_acceptable_names(
+  ast: &Ast<'_>,
+  program: Program,
+  semantic: &Semantic<'_>,
+  symbol_counts: &FxHashMap<SymbolId, usize>,
+) -> FxHashSet<AtomKey> {
+  let mut names = symbol_counts
+    .keys()
+    .map(|&symbol| atom_from_symbol(ast, semantic, symbol).into())
+    .collect::<FxHashSet<_>>();
+  for statement in program
+    .body(ast)
     .iter()
     .map(|slot| ast.get_node_in_sub_range(slot))
   {
@@ -198,7 +203,7 @@ fn collect_pure_function_acceptable_names(ast: &Ast<'_>, program: Program) -> Fx
         for slot in export.specifiers(ast).iter() {
           let specifier = ast.get_node_in_sub_range(slot);
           let local = atom_from_module_export_name(ast, specifier.local(ast));
-          if local_bindings.contains(AtomKey::from_atom_ref(&local)) {
+          if names.contains(AtomKey::from_atom_ref(&local)) {
             names.insert(atom_from_module_export_name(ast, specifier.exported(ast)).into());
           }
         }
@@ -226,8 +231,10 @@ fn collect_defined_configured_side_effects_free(
   ast: &Ast<'_>,
   program: Program,
   configured_side_effects_free: &[String],
+  semantic: &Semantic<'_>,
+  symbol_counts: &FxHashMap<SymbolId, usize>,
 ) -> FxHashSet<Atom> {
-  let acceptable = collect_pure_function_acceptable_names(ast, program);
+  let acceptable = collect_pure_function_acceptable_names(ast, program, semantic, symbol_counts);
   configured_side_effects_free
     .iter()
     .filter_map(|name| {
@@ -239,20 +246,46 @@ fn collect_defined_configured_side_effects_free(
     .collect()
 }
 
-fn collect_duplicate_top_level_names(ast: &Ast<'_>, program: Program) -> FxHashSet<AtomKey> {
-  let mut counts = FxHashMap::<AtomKey, usize>::default();
+fn atom_from_symbol(ast: &Ast<'_>, semantic: &Semantic<'_>, symbol: SymbolId) -> Atom {
+  Atom::from(
+    ast
+      .get_wtf8(semantic.symbol(symbol).name)
+      .to_string_lossy()
+      .as_ref(),
+  )
+}
+
+fn collect_top_level_symbol_counts(
+  ast: &Ast<'_>,
+  semantic: &Semantic<'_>,
+  program: Program,
+) -> FxHashMap<SymbolId, usize> {
+  let mut counts = FxHashMap::<SymbolId, usize>::default();
   for statement in program
     .body(ast)
     .iter()
     .map(|slot| ast.get_node_in_sub_range(slot))
   {
-    visit_stmt_defined_binding_names(ast, statement, &mut |name| {
-      *counts.entry(name.into()).or_default() += 1;
+    visit_stmt_defined_bindings(ast, statement, &mut |identifier| {
+      let symbol = semantic
+        .symbol_of(identifier.node_id())
+        .expect("semantic analysis should resolve every top-level binding");
+      *counts.entry(symbol).or_default() += 1;
     });
   }
   counts
+}
+
+fn collect_duplicate_top_level_names(
+  ast: &Ast<'_>,
+  semantic: &Semantic<'_>,
+  counts: FxHashMap<SymbolId, usize>,
+) -> FxHashSet<AtomKey> {
+  counts
     .into_iter()
-    .filter_map(|(name, count)| (count > 1).then_some(name))
+    .filter_map(|(symbol, count)| {
+      (count > 1).then(|| atom_from_symbol(ast, semantic, symbol).into())
+    })
     .collect()
 }
 
@@ -555,8 +588,15 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for SideEffectsParserPlugin {
           .extend(detected);
       }
 
+      let symbol_counts = collect_top_level_symbol_counts(ast, parser.ast.semantic, program);
       if let Some(configured) = &parser.javascript_options.side_effects_free {
-        let defined = collect_defined_configured_side_effects_free(ast, program, configured);
+        let defined = collect_defined_configured_side_effects_free(
+          ast,
+          program,
+          configured,
+          parser.ast.semantic,
+          &symbol_counts,
+        );
         if !defined.is_empty() {
           parser
             .build_info
@@ -566,7 +606,8 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for SideEffectsParserPlugin {
         }
       }
 
-      let duplicate_names = collect_duplicate_top_level_names(ast, program);
+      let duplicate_names =
+        collect_duplicate_top_level_names(ast, parser.ast.semantic, symbol_counts);
       loop {
         let previous_len = parser
           .build_info

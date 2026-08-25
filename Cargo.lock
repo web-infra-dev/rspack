@@ -5721,6 +5721,7 @@ dependencies = [
  "smallvec",
  "sugar_path",
  "swc_core",
+ "swc_next_allocator",
  "swc_next_ecma_ast",
  "swc_plugin_runner",
  "unicase",

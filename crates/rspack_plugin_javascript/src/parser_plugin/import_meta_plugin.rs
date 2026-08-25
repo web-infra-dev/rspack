@@ -642,7 +642,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaPlugin {
   fn meta_property(
     &self,
     parser: &mut JavascriptParser<'p>,
-    root_name: &Atom,
+    root_name: &str,
     span: Span,
   ) -> Option<bool> {
     if root_name == expr_name::IMPORT_META {
@@ -928,7 +928,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaDisabledPlugin {
   fn meta_property(
     &self,
     parser: &mut JavascriptParser<'p>,
-    root_name: &Atom,
+    root_name: &str,
     span: Span,
   ) -> Option<bool> {
     let import_meta_name = parser.compiler_options.output.import_meta_name.clone();

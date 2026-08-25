@@ -1,9 +1,10 @@
 #[cfg(feature = "plugin")]
 pub mod runtime;
 
-use rustc_hash::{FxHashMap, FxHashSet};
+use rustc_hash::FxHashSet;
+use swc_next_allocator::{hash_map::HashMap as ArenaHashMap, vec::Vec as ArenaVec};
 use swc_next_ecma_ast::{
-  Ast, CommentKind as NextCommentKind, CommentPosition, Span as NextAstSpan,
+  Ast, Comment, CommentKind as NextCommentKind, CommentPosition, Span as NextAstSpan,
 };
 
 use crate::atom::Atom;
@@ -15,51 +16,57 @@ pub struct RspackComment<'a> {
   pub text: &'a str,
 }
 
-#[derive(Debug, Default)]
 pub struct RspackComments<'a> {
-  pub leading: FxHashMap<u32, Vec<RspackComment<'a>>>,
-  pub trailing: FxHashMap<u32, Vec<RspackComment<'a>>>,
+  ast: &'a Ast<'a>,
+  comments: ArenaHashMap<'a, u32, ArenaVec<'a, Comment>>,
 }
 
 impl<'a> RspackComments<'a> {
   pub fn from_ast(ast: &'a Ast<'a>) -> Self {
-    let source = ast.source();
-    let mut comments = Self::default();
-    for comment in ast.comments() {
-      let value = ast.get_utf8(comment.value(source.as_bytes()));
-      let item = RspackComment {
+    Self {
+      ast,
+      comments: ast.create_comments_map(),
+    }
+  }
+
+  fn at(
+    &self,
+    pos: u32,
+    position: CommentPosition,
+  ) -> impl DoubleEndedIterator<Item = RspackComment<'_>> {
+    self
+      .comments
+      .get(&pos)
+      .into_iter()
+      .flat_map(|comments| comments.iter())
+      .filter(move |comment| comment.position == position)
+      .map(|comment| RspackComment {
         span: comment.span,
         kind: comment.kind,
-        text: value,
-      };
-      match comment.position {
-        CommentPosition::Leading => comments
-          .leading
-          .entry(comment.attached_to)
-          .or_default()
-          .push(item),
-        CommentPosition::Trailing => comments
-          .trailing
-          .entry(comment.attached_to)
-          .or_default()
-          .push(item),
-      }
-    }
-    comments
+        text: self
+          .ast
+          .get_utf8(comment.value(self.ast.source().as_bytes())),
+      })
+  }
+
+  pub fn leading(&self, pos: u32) -> impl DoubleEndedIterator<Item = RspackComment<'_>> {
+    self.at(pos, CommentPosition::Leading)
+  }
+
+  pub fn trailing(&self, pos: u32) -> impl DoubleEndedIterator<Item = RspackComment<'_>> {
+    self.at(pos, CommentPosition::Trailing)
   }
 
   pub fn has_flag(&self, pos: u32, flag: &str) -> bool {
-    self.leading.get(&pos).is_some_and(|comment_list| {
-      comment_list.iter().any(|comment| {
-        comment.kind == NextCommentKind::Block
-          && comment.text.lines().any(|line| {
-            let line = line.trim_start_matches(['*', ' ']).trim();
-            line.len() == flag.len() + 5
-              && (line.starts_with("#__") || line.starts_with("@__"))
-              && line.ends_with("__")
-              && flag == &line[3..line.len() - 2]
-          })
-      })
+    self.leading(pos).any(|comment| {
+      comment.kind == NextCommentKind::Block
+        && comment.text.lines().any(|line| {
+          let line = line.trim_start_matches(['*', ' ']).trim();
+          line.len() == flag.len() + 5
+            && (line.starts_with("#__") || line.starts_with("@__"))
+            && line.ends_with("__")
+            && flag == &line[3..line.len() - 2]
+        })
     })
   }
 }
@@ -72,13 +79,7 @@ pub fn get_swc_next_comments(
   let mut result = vec![];
   let mut visited = FxHashSet::<NextAstSpan>::default();
 
-  for comment in comments
-    .leading
-    .get(&lo)
-    .into_iter()
-    .chain(comments.trailing.get(&hi))
-    .flatten()
-  {
+  for comment in comments.leading(lo).chain(comments.trailing(hi)) {
     if visited.insert(comment.span) {
       result.push((
         matches!(comment.kind, NextCommentKind::Line),

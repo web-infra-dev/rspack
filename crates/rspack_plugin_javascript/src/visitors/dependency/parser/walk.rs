@@ -1222,7 +1222,7 @@ impl JavascriptParser<'_> {
     self
       .plugin_drive
       .clone()
-      .meta_property(self, &root_name, expr.span(ast));
+      .meta_property(self, root_name, expr.span(ast));
   }
 
   fn walk_conditional_expression(&mut self, expr: ConditionalExpression) {
@@ -1362,7 +1362,7 @@ impl JavascriptParser<'_> {
     if object.is_meta_property(ast)
       && let Some(root_name) = object.get_root_name(ast)
     {
-      let root_info = ExportedVariableInfo::Name(root_name);
+      let root_info = ExportedVariableInfo::Name(Atom::from(root_name));
       if drive
         .unhandled_expression_member_chain(self, &root_info, expr.into())
         .unwrap_or_default()
@@ -1933,12 +1933,12 @@ impl JavascriptParser<'_> {
       {
         self.walk_expression(right);
       }
-      let name = Atom::from(ast.get_utf8(ident.name(ast)));
+      let name = ast.get_utf8(ident.name(ast));
       if self.javascript_options.is_create_require_enabled() {
         // The assignment target already gives us the canonical identifier
         // name. Clear any createRequire-derived tag here instead of trying to
         // reconstruct the name from a hook-facing span.
-        self.clear_create_require_tag(&name);
+        self.clear_create_require_tag(name);
       }
       if !name
         .call_hooks_name(self, |this, for_name| {
@@ -1962,7 +1962,7 @@ impl JavascriptParser<'_> {
       }
       self.enter_array_pattern(array, |this, ident| {
         let ast = this.ast.ast;
-        let name = Atom::from(ast.get_utf8(ident.name(ast)));
+        let name = ast.get_utf8(ident.name(ast));
         if !name
           .call_hooks_name(this, |this, for_name| {
             drive.assign(
@@ -1976,7 +1976,7 @@ impl JavascriptParser<'_> {
           })
           .unwrap_or_default()
         {
-          this.define_variable(name);
+          this.define_variable(Atom::from(name));
         }
       });
       self.walk_array_pattern(array);
@@ -1987,7 +1987,7 @@ impl JavascriptParser<'_> {
       }
       self.enter_object_pattern(object, |this, ident| {
         let ast = this.ast.ast;
-        let name = Atom::from(ast.get_utf8(ident.name(ast)));
+        let name = ast.get_utf8(ident.name(ast));
         if !name
           .call_hooks_name(this, |this, for_name| {
             drive.assign(
@@ -2001,7 +2001,7 @@ impl JavascriptParser<'_> {
           })
           .unwrap_or_default()
         {
-          this.define_variable(name);
+          this.define_variable(Atom::from(name));
         }
       });
       self.walk_object_pattern(object);

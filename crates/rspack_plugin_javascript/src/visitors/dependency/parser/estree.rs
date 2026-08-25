@@ -287,6 +287,7 @@ pub enum Statement {
 }
 
 impl Statement {
+  #[inline]
   pub fn from_stmt(ast: &Ast<'_>, statement: Stmt) -> Self {
     match ast.stmt_data(statement) {
       StmtData::BlockStatement(node) => Self::Block(node),
@@ -317,6 +318,7 @@ impl Statement {
     }
   }
 
+  #[inline]
   pub fn span(self, ast: &Ast<'_>) -> Span {
     match self {
       Self::Block(node) => node.span(ast),

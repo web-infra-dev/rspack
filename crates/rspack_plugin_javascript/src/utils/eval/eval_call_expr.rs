@@ -2,7 +2,6 @@ use swc_next_ecma_ast::{CallExpression, PropertyKeyData};
 
 use super::BasicEvaluatedExpression;
 use crate::{
-  Atom,
   parser_plugin::{
     CREATE_REQUIRE_EVALUATED_TAG, JavascriptParserPlugin, is_create_require_namespace_member,
     is_create_require_specifier,
@@ -19,9 +18,9 @@ pub fn eval_call_expression<'parser>(
   let drive = parser.plugin_drive.clone();
   let callee = expression.callee(ast);
   if let Some(identifier) = callee.as_identifier_reference(ast) {
-    let name = Atom::from(ast.get_utf8(identifier.name(ast)));
+    let name = ast.get_utf8(identifier.name(ast));
     let is_create_require = parser.javascript_options.is_create_require_enabled()
-      && is_create_require_specifier(parser, &name);
+      && is_create_require_specifier(parser, name);
     let evaluated = if is_create_require {
       name.call_hooks_name(parser, |parser, for_name| {
         drive.evaluate_call_expression(parser, for_name, expression)
@@ -31,10 +30,10 @@ pub fn eval_call_expression<'parser>(
       if evaluated.is_identifier() && evaluated.identifier() == CREATE_REQUIRE_EVALUATED_TAG {
         drive.evaluate_call_expression(parser, CREATE_REQUIRE_EVALUATED_TAG, expression)
       } else {
-        drive.evaluate_call_expression(parser, &name, expression)
+        drive.evaluate_call_expression(parser, name, expression)
       }
     } else {
-      drive.evaluate_call_expression(parser, &name, expression)
+      drive.evaluate_call_expression(parser, name, expression)
     };
     if evaluated.is_some() {
       return evaluated;

@@ -1647,7 +1647,7 @@ var {} = {{}};
               binding_to_ref.reserve(ids.len());
 
               for ident in ids {
-                let scope = ident.scope;
+                let scope = ident.id.ctxt;
                 let is_global = scope == concate_info.global_ctxt;
                 let legacy = if is_global {
                   let leg = ident.to_legacy();
@@ -1664,7 +1664,7 @@ var {} = {{}};
                 if scope != concate_info.module_ctxt {
                   all_used_names.insert(Atom::from(ident.id.sym.as_str()));
                 }
-                let legacy = legacy.unwrap_or_else(|| ident.to_legacy());
+                let legacy = legacy.unwrap_or_else(|| ident.into_legacy());
                 concate_info.idents.push(legacy.clone());
                 binding_to_ref
                   .entry((Atom::from(legacy.id.sym.as_str()), legacy.id.ctxt))

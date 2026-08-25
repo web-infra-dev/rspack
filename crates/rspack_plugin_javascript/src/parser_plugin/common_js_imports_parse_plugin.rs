@@ -1546,7 +1546,8 @@ pub(crate) fn is_require_call_expr(parser: &mut JavascriptParser, call: CallExpr
   let callee = call.callee(ast);
 
   if let Some(ident) = callee.as_identifier_reference(ast) {
-    return Atom::from(ast.get_utf8(ident.name(ast)))
+    return ast
+      .get_utf8(ident.name(ast))
       .call_hooks_name(parser, |_, for_name| {
         (for_name == expr_name::REQUIRE).then_some(true)
       })
