@@ -52,7 +52,7 @@ _2026 年 8 月 26 日_
   - [Compat hashed IDs](#compat-hashed-ids)
   - [Rspack runtime mode](#rspack-runtime-mode)
 
-- Breaking changes
+- 升级指南
   - [RSC 插件 CSS 加载方式改变](#rsc-plugin-use-preinit)
   - [Wasm 插件需要重新构建](#wasm-plugin-breaking)
 
@@ -181,32 +181,6 @@ var runtimeHelper = () => {
 };
 export { runtimeHelper };
 ```
-
-## 产物优化
-
-TODO
-
-## Breaking changes \{#breaking-changes}
-
-### RSC 插件：通过 `preinit` 加载客户端组件的 CSS \{#rsc-plugin-use-preinit}
-
-此前，RSC 插件会包装客户端引用（Client Reference），并在渲染组件时插入 CSS `<link>` 标签。由于包装后的导出不再是原始的 Client Reference，某些导出形式可能无法保留 Client Reference 标识。
-
-Rspack 2.2 不再包装客户端引用，而是通过 React 的 [`preinit`](https://react.dev/reference/react-dom/preinit) 加载客户端组件的 CSS。
-
-这项调整改变了 RSC 中客户端组件 CSS 的加载方式，是一项针对 RSC 框架集成的破坏性变更。如果你正在集成 Rspack RSC 插件，请将 [`react-server-dom-rspack`](https://www.npmjs.com/package/react-server-dom-rspack) 同步升级到 `0.1.0`。
-
-### Wasm 插件需要重新构建 \{#wasm-plugin-breaking}
-
-Rspack 2.2 将 `swc_core` 从 76 升级至 77，这改变了 SWC Wasm 插件边界上的 AST 序列化格式。基于旧版 SWC 构建的 Wasm 插件将无法继续加载，构建时会抛出如下错误：
-
-```text
-The version of the SWC Wasm plugin you're using might not be compatible with 'builtin:swc-loader'.
-```
-
-如果你正在使用 SWC Wasm 插件，请重新构建插件，或升级到兼容 SWC 77 的版本。可以在 [plugins.swc.rs](https://plugins.swc.rs/) 中查找与当前 Rspack 版本匹配的插件版本。
-
-> 详情请查阅：[常见问题 - SWC 插件版本不匹配](/errors/swc-plugin-version)。
 
 ## 生态
 
@@ -441,3 +415,25 @@ Rspress 在 [AFDocs](https://afdocs.dev/) Agent-friendly 评分中达到 100/100
 Rspress 通过 `llms.txt`、[SSG-MD](https://rspress.rs/zh/guide/basic/ssg-md)、`Accept: text/markdown` 和 `injectLlmsHint` 等能力，让 Agent 更容易发现、读取和理解文档。更多设计与实践可以参考 [怎样构建一个 Agent-friendly 的网站](https://rspress.rs/zh/blog/agent-friendly-website)。
 
 ![Rspress AFDocs scorecard](https://assets.rspack.rs/rspress/assets/rspress-afdocs-scorecard.png)
+
+## 升级指南 \{#upgrad-guide}
+
+### RSC 插件：通过 `preinit` 加载客户端组件的 CSS \{#rsc-plugin-use-preinit}
+
+此前，RSC 插件会包装客户端引用（Client Reference），并在渲染组件时插入 CSS `<link>` 标签。由于包装后的导出不再是原始的 Client Reference，某些导出形式可能无法保留 Client Reference 标识。
+
+Rspack 2.2 不再包装客户端引用，而是通过 React 的 [`preinit`](https://react.dev/reference/react-dom/preinit) 加载客户端组件的 CSS。
+
+这项调整改变了 RSC 中客户端组件 CSS 的加载方式，是一项针对 RSC 框架集成的破坏性变更。如果你正在集成 Rspack RSC 插件，请将 [`react-server-dom-rspack`](https://www.npmjs.com/package/react-server-dom-rspack) 同步升级到 `0.1.0`。
+
+### Wasm 插件需要重新构建 \{#wasm-plugin-breaking}
+
+Rspack 2.2 将 `swc_core` 从 76 升级至 77，这改变了 SWC Wasm 插件边界上的 AST 序列化格式。基于旧版 SWC 构建的 Wasm 插件将无法继续加载，构建时会抛出如下错误：
+
+```text
+The version of the SWC Wasm plugin you're using might not be compatible with 'builtin:swc-loader'.
+```
+
+如果你正在使用 SWC Wasm 插件，请重新构建插件，或升级到兼容 SWC 77 的版本。可以在 [plugins.swc.rs](https://plugins.swc.rs/) 中查找与当前 Rspack 版本匹配的插件版本。
+
+> 详情请查阅：[常见问题 - SWC 插件版本不匹配](/errors/swc-plugin-version)。
