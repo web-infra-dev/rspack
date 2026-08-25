@@ -44,8 +44,10 @@ _2026 年 8 月 26 日_
 
 值得关注的变更如下：
 
-- [性能提升](#performance-improvements)
-- [HMR 改进](#better-hmr)
+- 性能
+  - [性能提升](#performance-improvements)
+  - [HMR 改进](#better-hmr)
+- 新特性
 - [`import.meta` 改进](#import-meta-improvements)
 - [简短的模块 ID](#compat-hashed-ids)
 - 生态
@@ -57,7 +59,9 @@ _2026 年 8 月 26 日_
   - [Agent plugin](#rstack-agent-plugin)
 - 升级指南
 
-## 性能提升 \{#performance-improvements}
+## 性能
+
+### 性能提升 \{#performance-improvements}
 
 Rspack 2.2 包含 30 多项构建性能优化，例如：
 
@@ -72,7 +76,7 @@ Rspack 2.2 包含 30 多项构建性能优化，例如：
 | CSS 开发构建 | 320.3 ms | 87.2 ms | **3.7 倍** |
 | CSS 生产构建 | 354.1 ms | 121 ms  | **2.9 倍** |
 
-## HMR 改进 \{#better-hmr}
+### HMR 改进 \{#better-hmr}
 
 Rspack 2.2 让 HMR 的资源请求更加精确，热更新速度也更稳定。此前，即使只修改了 JavaScript 代码，HMR 也会在更新过程中加载相关的 CSS 文件，再在浏览器中对比内容是否变化，最后才决定要不要更新样式。
 
@@ -86,9 +90,33 @@ Rspack 2.2 让 HMR 的资源请求更加精确，热更新速度也更稳定。�
 
 此外，我们还[修复](https://github.com/web-infra-dev/rspack/pull/14580)了 `mini-css-extract-plugin` 在样式热更新过程中样式短暂丢失、导致页面闪烁的问题。
 
-## `import.meta` 改进 \{#import-meta-improvements}
+### 更短的模块 ID \{#compat-hashed-ids}
 
-Rspack 2.2 新增了一组基于 [`import.meta`](/api/runtime-api/module-variables#import-meta) 的运行时 API。相比 CommonJS 风格的全局变量，它们更符合 ESM 标准，推荐在 ESM 模块中优先使用：
+Rspack 现在支持为模块和 chunk 生成更短的 ID。相比当前的 `deterministic` 策略，新的 `compat-hashed` 策略会从稳定 hash 中选取最短可用前缀，在保持 ID 稳定和运行时索引效率的同时，进一步减小产物体积。
+
+在一个真实项目中，产物体积变化如下：
+
+| **指标**        | **`deterministic`** | **`compat-hashed`** | **体积减少**         |
+| --------------- | ------------------- | ------------------- | -------------------- |
+| Minified JS     | 25,795.2 KB         | 25,710.6 KB         | **84.6 KB（0.33%）** |
+| Minified + gzip | 7,103.3 KB          | 7,041.7 KB          | **61.6 KB（0.87%）** |
+
+通过 [`optimization.chunkIds`](/config/optimization#optimizationchunkids) 和 [`optimization.moduleIds`](/config/optimization#optimizationmoduleids) 选项即可开启：
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    chunkIds: 'compat-hashed',
+    moduleIds: 'compat-hashed',
+  },
+};
+```
+
+## 新特性
+
+### `import.meta` 改进 \{#import-meta-improvements}
+
+Rspack 现在支持通过 [`import.meta`](/api/runtime-api/module-variables#import-meta) 来访问 Rspack 特有的模块变量。相比 CommonJS 风格的变量，新用法更符合 ESM 规范，推荐在 ESM 模块中优先使用：
 
 ```js
 // Before
@@ -104,28 +132,6 @@ import.meta.rspackPublicPath = '/assets/';
 const modules = import.meta.glob('./pages/**/*.js', {
   caseSensitive: false,
 });
-```
-
-## 简短的模块 ID \{#compat-hashed-ids}
-
-Rspack 现在支持为模块和 chunk 生成更短的 ID。相比 `deterministic`，新的 `compat-hashed` 策略会从稳定 hash 中选取最短可用前缀，在保持 ID 稳定和运行时索引效率的同时，进一步减小产物体积。
-
-在一个真实项目中，产物体积变化如下：
-
-| **指标**        | **`deterministic`** | **`compat-hashed`** | **体积减少**         |
-| --------------- | ------------------- | ------------------- | -------------------- |
-| Minified JS     | 25,795.2 KB         | 25,710.6 KB         | **84.6 KB（0.33%）** |
-| Minified + gzip | 7,103.3 KB          | 7,041.7 KB          | **61.6 KB（0.87%）** |
-
-可以通过 [`optimization.chunkIds`](/config/optimization#optimizationchunkids) 和 [`optimization.moduleIds`](/config/optimization#optimizationmoduleids) 选项开启：
-
-```js title="rspack.config.mjs"
-export default {
-  optimization: {
-    chunkIds: 'compat-hashed',
-    moduleIds: 'compat-hashed',
-  },
-};
 ```
 
 ## 生态
