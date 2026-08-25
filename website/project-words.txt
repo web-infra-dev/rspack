@@ -204,6 +204,7 @@ shulaoda
 sockjs
 sokra
 solidjs
+sooniter
 statoscope
 struct
 svgr

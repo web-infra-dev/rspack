@@ -18,6 +18,9 @@ authors:
   - name: 9aoy
     avatar: 'https://github.com/9aoy.png'
     github: '9aoy'
+  - name: Sooniter
+    avatar: 'https://github.com/sooniter.png'
+    github: 'sooniter'
 ---
 
 import { BlogAuthors } from '@rstack-dev/doc-ui/blog-authors';
@@ -437,3 +440,9 @@ await Rslint.outputFixes(results);
 JavaScript API 也支持通过 `lintText` 检查内存中的源码，并使用 `virtualFiles` 提供配置、`tsconfig.json` 和项目文件，适合用于编辑器和 Playground 等不直接依赖磁盘文件的集成场景。
 
 ### Rspress \{#rspress}
+
+Rspress 在 [AFDocs](https://afdocs.dev/) Agent-friendly 评分中达到 100/100。
+
+Rspress 通过 `llms.txt`、[SSG-MD](https://rspress.rs/zh/guide/basic/ssg-md)、`Accept: text/markdown` 和 `injectLlmsHint` 等，让 Agent 更容易发现、读取和理解文档。更多 Rspress 关于 Agent-friendly 的设计与实践，请参考文档 [怎样构建一个 Agent-friendly 的网站](https://rspress.rs/zh/blog/agent-friendly-website)。
+
+![Rspress AFDocs scorecard](https://assets.rspack.rs/rspress/assets/rspress-afdocs-scorecard.png)
