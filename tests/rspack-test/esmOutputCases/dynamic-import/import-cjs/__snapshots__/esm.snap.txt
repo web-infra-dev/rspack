@@ -40,7 +40,7 @@ import { __webpack_require__ } from "./runtime.mjs";
 
 // ./index.js
 it('should support dynamic import', async () => {
-	const mod = await import("./dynamic.mjs").then(__webpack_require__.t.bind(__webpack_require__, /*! ./dynamic */ "./dynamic.js", 19))
+	const mod = await import("./dynamic.mjs").then(() => (__webpack_require__.t(/*! ./dynamic */ "./dynamic.js", 19)))
 	const mod2 = await import("./esm.mjs")
 	expect(mod.value).toBe(42)
 	expect(mod2.value).toBe(42)
@@ -91,7 +91,7 @@ __webpack_require__.n = (module) => {
 })();
 // webpack/runtime/create_fake_namespace_object
 (() => {
-var getProto = Object.getPrototypeOf ? (obj) => (Object.getPrototypeOf(obj)) : (obj) => (obj.__proto__);
+var getProto = Object.getPrototypeOf;
 var leafPrototypes;
 // create a fake namespace object
 // mode & 1: value is a module id, require it

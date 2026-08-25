@@ -1,3 +1,6 @@
+<% if (_global_this) { %>
+<%- define(GLOBAL) %> = globalThis;
+<% } else { %>
 <%- define(GLOBAL) %> = (<%- basicFunction("") %> {
 	if (typeof globalThis === 'object') return globalThis;
 	try {
@@ -6,3 +9,4 @@
 		if (typeof window === 'object') return window;
 	}
 })();
+<% } %>

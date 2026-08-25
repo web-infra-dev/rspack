@@ -23,21 +23,21 @@ it("should allow async externals", async () => {
 	expect(__rspack_external__static_package_json_4ad57751["default"].foo).toBe("static");
 	expect(__rspack_external__static_package_str_json_50654c65["default"].foo).toBe("static-str");
 
-	const dynamicPkg = await Promise.resolve(/* import() */).then(__webpack_require__.bind(__webpack_require__, 726))
+	const dynamicPkg = await Promise.resolve(/* import() */).then(() => (__webpack_require__(726)))
 
 	expect(dynamicPkg.default.foo).toBe("dynamic");
 
-	const dynamicPkgPure = await Promise.resolve(/* import() */).then(__webpack_require__.bind(__webpack_require__, 766))
-	const dynamicPkgStr = await Promise.resolve(/* import() */).then(__webpack_require__.bind(__webpack_require__, 808))
+	const dynamicPkgPure = await Promise.resolve(/* import() */).then(() => (__webpack_require__(766)))
+	const dynamicPkgStr = await Promise.resolve(/* import() */).then(() => (__webpack_require__(808)))
 
 	expect(dynamicPkgPure.default.foo).toBe("dynamic-str");
 	expect(dynamicPkgStr.default.foo).toBe("dynamic-str");
 
-	const eagerPkg = await Promise.resolve(/* import() eager */).then(__webpack_require__.bind(__webpack_require__, 66));
+	const eagerPkg = await Promise.resolve(/* import() eager */).then(() => (__webpack_require__(66)));
 
 	expect(eagerPkg.default.foo).toBe("eager");
 
-	await Promise.resolve(/* import() */).then(__webpack_require__.bind(__webpack_require__, 226));
+	await Promise.resolve(/* import() */).then(() => (__webpack_require__(226)));
 	const weakPkg = await Promise.resolve(/* import() weak */).then(function() { if(!__webpack_require__.m[226]) {
  var e = new Error('Module is not available (weak dependency), request is ./weak.json'); e.code = 'MODULE_NOT_FOUND'; throw e;
 }
@@ -50,7 +50,7 @@ return __webpack_require__(226)});
 
 	expect(nested.default.foo).toBe("context-dependency");
 
-	const reExportPkg = await __webpack_require__.e(/* import() */ 532).then(__webpack_require__.bind(__webpack_require__, 367));
+	const reExportPkg = await __webpack_require__.e(/* import() */ 532).then(() => (__webpack_require__(367)));
 
 	expect(reExportPkg.foo).toBe("re-export");
 });
@@ -166,12 +166,8 @@ __webpack_require__.e = (chunkId) => {
 // webpack/runtime/get javascript chunk filename
 (() => {
 // This function allow to reference chunks
-__webpack_require__.u = (chunkId) => {
-  // return url for filenames not based on template
 
-  // return url for filenames based on template
-  return "" + chunkId + ".bundle0.mjs"
-}
+__webpack_require__.u = (chunkId) => (chunkId + ".bundle0.mjs");
 })();
 // webpack/runtime/has_own_property
 (() => {
@@ -202,7 +198,7 @@ __webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj
         if (__webpack_require__.o(moduleInstalledChunks, chunkId) && moduleInstalledChunks[chunkId]) {
             moduleInstalledChunks[chunkId][0]();
         }
-        moduleInstalledChunks[__rspack_esm_ids[i]] = 0;
+        moduleInstalledChunks[chunkId] = 0;
     }
 
 };
