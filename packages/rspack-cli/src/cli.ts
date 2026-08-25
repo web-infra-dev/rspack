@@ -277,7 +277,6 @@ export class RspackCLI {
         item.stats = {
           preset: 'errors-warnings',
           timings: true,
-          logging: false,
         };
       } else if (typeof item.stats === 'boolean') {
         item.stats = item.stats ? { preset: 'normal' } : { preset: 'none' };
@@ -287,6 +286,7 @@ export class RspackCLI {
             'normal' | 'none' | 'verbose' | 'errors-only' | 'errors-warnings',
         };
       }
+      item.stats.logging ??= false;
       item.infrastructureLogging ??= {};
       item.infrastructureLogging.level ??= 'error';
       return item;

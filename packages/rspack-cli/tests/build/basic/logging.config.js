@@ -3,6 +3,7 @@ const path = require('path');
 const COMPILATION_LOG = 'compilation logger warning';
 const INFRASTRUCTURE_LOG = 'infrastructure logger warning';
 const explicitLogging = process.env.EXPLICIT_LOGGING === 'true';
+const partialStats = process.env.PARTIAL_STATS === 'true';
 
 module.exports = {
   entry: './src/index.js',
@@ -19,7 +20,13 @@ module.exports = {
           logging: 'warn',
         },
       }
-    : {}),
+    : partialStats
+      ? {
+          stats: {
+            timings: false,
+          },
+        }
+      : {}),
   plugins: [
     {
       apply(compiler) {
