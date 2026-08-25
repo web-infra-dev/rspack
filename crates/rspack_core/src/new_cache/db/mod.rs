@@ -24,16 +24,3 @@ impl DatabaseFamily {
     }
   }
 }
-
-#[derive(Debug)]
-pub struct DatabaseWrite<'a> {
-  pub family: DatabaseFamily,
-  pub key: &'a [u8],
-  pub value: &'a [u8],
-}
-
-impl<'a> DatabaseWrite<'a> {
-  pub fn new(family: DatabaseFamily, key: &'a [u8], value: &'a [u8]) -> Self {
-    Self { family, key, value }
-  }
-}

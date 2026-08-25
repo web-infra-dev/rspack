@@ -1,5 +1,6 @@
 use std::{fmt, sync::Arc};
 
+use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use rspack_error::Result;
 use rspack_paths::{InternedPathSet, Utf8PathBuf};
 use rustc_hash::FxHashMap;
@@ -7,8 +8,8 @@ use rustc_hash::FxHashMap;
 use super::{
   CacheKey, Etag,
   cache_value::{CacheEntry, CacheValueDecoder, CacheValueEncoder, ErasedCacheValue},
-  db::{Database, DatabaseFamily, DatabaseValue, DatabaseWrite},
-  snapshot::{BuildDeps, FileSystemInfo},
+  db::{Database, DatabaseFamily, DatabaseValue},
+  snapshot::FileSystemInfo,
   validator::{CacheValidator, CacheValidatorResult},
 };
 use crate::cache::CacheCodec;
@@ -18,7 +19,7 @@ const VALIDATOR_KEY: &[u8] = b"validator";
 #[derive(Debug, Default)]
 struct PendingWrites {
   entries: FxHashMap<CacheKey, PendingWrite>,
-  build_dependencies: Option<InternedPathSet>,
+  new_build_dependencies: Option<InternedPathSet>,
 }
 
 #[derive(Debug)]
@@ -54,7 +55,6 @@ impl FileCacheStrategy {
     cache_version: String,
     codec: Arc<CacheCodec>,
     file_system_info: FileSystemInfo,
-    build_deps: BuildDeps,
   ) -> Result<Self> {
     let (base_path, database_path) = database_paths;
     let database = Database::open(base_path, database_path, readonly)?;
@@ -64,7 +64,6 @@ impl FileCacheStrategy {
         cache_version,
         codec.clone(),
         file_system_info,
-        build_deps,
       ),
       codec,
       database,
@@ -81,12 +80,16 @@ impl FileCacheStrategy {
       .get(DatabaseFamily::Validator, VALIDATOR_KEY)?;
     let validation = self.validator.validate(data.as_deref()).await;
     match validation {
+      Ok(CacheValidatorResult::Valid) => {
+        tracing::debug!("Build dependencies snapshot is valid");
+      }
       Ok(CacheValidatorResult::InvalidVersion) => {
         tracing::info!("Resetting persistent cache database because cache version changed");
         self.database.reset()?;
       }
-      Ok(CacheValidatorResult::Valid { tracked_files }) => {
-        tracing::debug!(tracked_files, "Build dependencies snapshot is valid");
+      Ok(CacheValidatorResult::InvalidError) => {
+        tracing::info!("Resetting persistent cache database because of an invalid cache error");
+        self.database.reset()?;
       }
       Ok(CacheValidatorResult::InvalidBuildDependencies {
         modified_files,
@@ -134,7 +137,7 @@ impl FileCacheStrategy {
     }
     self
       .pending_writes
-      .build_dependencies
+      .new_build_dependencies
       .get_or_insert_default()
       .extend(dependencies);
   }
@@ -170,35 +173,26 @@ impl FileCacheStrategy {
     }
 
     if self.has_pending_writes() {
-      let encoded_validator = if let Some(dependencies) = &self.pending_writes.build_dependencies {
-        Some(self.validator.update(dependencies.iter().cloned()).await?)
+      let validator = if let Some(dependencies) = &self.pending_writes.new_build_dependencies {
+        self.validator.update(dependencies.iter().cloned()).await?
       } else {
         None
       };
-      let cache_entries = self
-        .pending_writes
-        .entries
-        .iter()
-        .map(|(key, pending)| Ok((key, (pending.encoder)(&pending.entry, &self.codec)?)))
-        .collect::<Result<Vec<_>>>()?;
-
-      let mut writes = cache_entries
-        .iter()
-        .map(|(key, value)| {
-          DatabaseWrite::new(DatabaseFamily::Cache, key.as_bytes(), value.as_slice())
-        })
-        .collect::<Vec<_>>();
-      if let Some(validator) = &encoded_validator {
-        writes.push(DatabaseWrite::new(
-          DatabaseFamily::Validator,
-          VALIDATOR_KEY,
-          validator.as_slice(),
-        ));
-      }
-      self.database.write_batch(writes)?;
+      let entries = &self.pending_writes.entries;
+      let codec = &self.codec;
+      self.database.write_batch(move |batch| {
+        entries.par_iter().try_for_each(|(key, pending)| {
+          let value = (pending.encoder)(&pending.entry, codec)?;
+          batch.put(DatabaseFamily::Cache, key.as_bytes(), value)
+        })?;
+        if let Some(validator) = validator {
+          batch.put(DatabaseFamily::Validator, VALIDATOR_KEY, validator)?;
+        }
+        Ok(())
+      })?;
 
       self.pending_writes.entries.clear();
-      self.pending_writes.build_dependencies = None;
+      self.pending_writes.new_build_dependencies = None;
     }
 
     for _ in 0..max_compaction_passes {
@@ -222,6 +216,6 @@ impl FileCacheStrategy {
   }
 
   pub fn has_pending_writes(&self) -> bool {
-    !self.pending_writes.entries.is_empty() || self.pending_writes.build_dependencies.is_some()
+    !self.pending_writes.entries.is_empty() || self.pending_writes.new_build_dependencies.is_some()
   }
 }
