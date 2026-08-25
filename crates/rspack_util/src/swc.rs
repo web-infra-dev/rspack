@@ -2,10 +2,11 @@
 pub mod runtime;
 
 use rustc_hash::{FxHashMap, FxHashSet};
-use swc_core::atoms::Atom;
 use swc_next_ecma_ast::{
   Ast, CommentKind as NextCommentKind, CommentPosition, Span as NextAstSpan,
 };
+
+use crate::atom::Atom;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct RspackComment<'a> {

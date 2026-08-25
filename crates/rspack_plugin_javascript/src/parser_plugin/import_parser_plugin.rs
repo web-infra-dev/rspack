@@ -7,7 +7,6 @@ use rspack_core::{
 use rspack_error::{Error, Severity};
 use rspack_util::{SpanExt, swc::get_swc_next_comments};
 use rustc_hash::FxHashMap;
-use swc_atoms::Atom;
 use swc_next_ecma_ast::{
   ArrowFunctionBodyData, BindingPattern, BindingPatternData, CallExpression, Expr, ExprData,
   FormalParameters, GetSpan, ImportExpression, ObjectPattern, Span, VariableDeclarator,
@@ -15,6 +14,7 @@ use swc_next_ecma_ast::{
 
 use super::{JavascriptParserPlugin, import_phase::get_import_phase};
 use crate::{
+  Atom,
   dependency::{
     ImportContextDependency, ImportDependency, ImportEagerDependency, ImportWeakDependency,
   },
@@ -92,7 +92,7 @@ fn is_unbound_promise_all(parser: &mut JavascriptParser, call: CallExpression) -
       .property(ast)
       .as_identifier_name(ast)
       .is_some_and(|ident| ast.get_utf8(ident.name(ast)) == "all")
-    && parser.get_variable_info(&Atom::from("Promise")).is_none()
+    && parser.get_variable_info("Promise").is_none()
 }
 
 fn track_dynamic_import_pattern(
@@ -265,8 +265,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
       return Some(true);
     }
     if let Some(ident) = expr.as_identifier_reference(ast)
-      && let Some(name_info) =
-        parser.get_name_info_from_variable(&Atom::from(ast.get_utf8(ident.name(ast))))
+      && let Some(name_info) = parser.get_name_info_from_variable(ast.get_utf8(ident.name(ast)))
       && let Some(info) = name_info.info
       && let Some(name) = info.name.clone()
       && parser

@@ -2,10 +2,10 @@ use std::sync::Arc;
 
 use rspack_core::{BoxDependency, DependencyRange, ImportMetaKnownProperties};
 use rspack_util::SpanExt;
-use swc_atoms::Atom;
 use swc_next_ecma_ast::{ArgumentData, CallExpression, GetSpan, Span};
 
 use crate::{
+  Atom,
   dependency::{
     ESMAcceptDependency, ImportMetaHotAcceptDependency, ImportMetaHotDeclineDependency,
     ModuleArgumentDependency, ModuleHotAcceptDependency, ModuleHotDeclineDependency,

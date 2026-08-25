@@ -2,7 +2,6 @@ use rspack_core::{
   BoxDependency, BuildMetaDefaultObject, BuildMetaExportsType, DependencyRange, RuntimeGlobals,
 };
 use rspack_util::SpanExt;
-use swc_atoms::Atom;
 use swc_next_ecma_ast::{
   Argument, AssignmentExpression, Ast, CallExpression, Expr, ExprData, GetSpan, PropertyKeyData,
   Span, ThisExpression, TypedSubRange, UnaryExpression, UnaryOperator,
@@ -10,6 +9,7 @@ use swc_next_ecma_ast::{
 
 use super::JavascriptParserPlugin;
 use crate::{
+  Atom,
   dependency::{
     CommonJsExportRequireDependency, CommonJsExportsDependency, CommonJsSelfReferenceDependency,
     ExportsBase, ModuleDecoratorDependency,

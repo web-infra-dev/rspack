@@ -4,11 +4,11 @@ use cow_utils::CowUtils;
 use itertools::Itertools;
 use rspack_core::{BoxDependency, DependencyRange};
 use rustc_hash::FxHashSet as HashSet;
-use swc_atoms::Atom;
 use swc_next_ecma_ast::{CallExpression, GetSpan, Span};
 
 use super::{super::JavascriptParserPlugin, ProvideValue, VALUE_DEP_PREFIX};
 use crate::{
+  Atom,
   dependency::ProvideDependency,
   visitors::{HookMemberExpression, Identifier, JavascriptParser},
 };

@@ -46,11 +46,11 @@ use rspack_util::SpanExt;
 #[cfg(allocative)]
 use rspack_util::allocative;
 pub use side_effects_flag_plugin::*;
-use swc_atoms::Atom;
 use tokio::sync::RwLock;
 
-use crate::runtime::{
-  render_chunk_modules, render_module, render_runtime_modules, stringify_array,
+use crate::{
+  Atom,
+  runtime::{render_chunk_modules, render_module, render_runtime_modules, stringify_array},
 };
 
 #[cfg_attr(allocative, allocative::root)]
@@ -1165,9 +1165,12 @@ var {} = {{}};
                 (m.build_info().hash.as_ref(), idents_with_hash.hash.as_ref())
               && *hash_current == *hash_cache
             {
-              acc
-                .all_used_names
-                .extend(idents_with_hash.value.iter().map(|v| v.id.sym.clone()));
+              acc.all_used_names.extend(
+                idents_with_hash
+                  .value
+                  .iter()
+                  .map(|v| Atom::from(v.id.sym.as_str())),
+              );
               acc
                 .non_inlined_module_through_idents
                 .extend(idents_with_hash.value.clone());
@@ -1194,11 +1197,11 @@ var {} = {{}};
                       || scope_id != module_scope_id
                       || ident.is_class_expr_with_ident
                     {
-                      acc.all_used_names.insert(ident.id.sym.clone());
+                      acc.all_used_names.insert(Atom::from(ident.id.sym.as_str()));
                     }
 
                     if scope_id == module_scope_id {
-                      acc.all_used_names.insert(ident.id.sym.clone());
+                      acc.all_used_names.insert(Atom::from(ident.id.sym.as_str()));
                       module_scope_idents.push(Arc::new(ident.to_legacy()));
                     }
                   }
@@ -1237,7 +1240,7 @@ var {} = {{}};
                   for ident in collector_ids {
                     if ident.scope == global_scope_id {
                       let ident = ident.to_legacy();
-                      acc.all_used_names.insert(ident.id.sym.clone());
+                      acc.all_used_names.insert(Atom::from(ident.id.sym.as_str()));
                       idents_vec.push(ident.clone());
                       acc.non_inlined_module_through_idents.push(ident);
                     }

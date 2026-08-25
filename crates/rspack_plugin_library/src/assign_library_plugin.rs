@@ -20,7 +20,7 @@ use rspack_plugin_javascript::{
   JavascriptModulesChunkHash, JavascriptModulesEmbedInRuntimeBailout, JavascriptModulesRender,
   JavascriptModulesRenderStartup, JavascriptModulesStrictRuntimeBailout, JsPlugin, RenderSource,
 };
-use swc_core::atoms::Atom;
+use rspack_util::atom::Atom;
 
 use crate::utils::{COMMON_LIBRARY_NAME_MESSAGE, get_options_for_chunk};
 

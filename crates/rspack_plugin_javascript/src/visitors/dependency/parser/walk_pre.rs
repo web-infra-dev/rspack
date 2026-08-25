@@ -1,5 +1,4 @@
 use rspack_util::SpanExt;
-use swc_atoms::Atom;
 use swc_next_ecma_ast::*;
 
 use super::{
@@ -7,6 +6,7 @@ use super::{
   estree::{MaybeNamedFunctionDecl, Statement},
 };
 use crate::{
+  Atom,
   parser_plugin::JavascriptParserPlugin,
   utils::eval::BasicEvaluatedExpression,
   visitors::{DestructuringAssignmentProperties, VariableDeclaration, VariableDeclarationKind},

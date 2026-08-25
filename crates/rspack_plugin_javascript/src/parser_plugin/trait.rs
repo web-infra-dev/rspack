@@ -1,4 +1,3 @@
-use swc_atoms::Atom;
 use swc_next_ecma_ast::{
   AssignmentExpression, AwaitExpression, BinaryExpression, BindingIdentifier, CallExpression,
   ChainExpression, ClassElement, ConditionalExpression, Expr, ForOfStatement, IfStatement,
@@ -6,7 +5,7 @@ use swc_next_ecma_ast::{
   Span, Stmt, ThisExpression, UnaryExpression, VariableDeclarator,
 };
 
-use crate::visitors::HookMemberExpression;
+use crate::{Atom, visitors::HookMemberExpression};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[repr(u8)]

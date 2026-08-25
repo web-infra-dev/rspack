@@ -1,5 +1,4 @@
 use smallvec::SmallVec;
-use swc_atoms::Atom;
 use swc_next_ecma_ast::*;
 
 use super::{
@@ -13,6 +12,7 @@ use super::{
   object_and_members_to_name,
 };
 use crate::{
+  Atom,
   dependency::DependencyBranchGuard,
   parser_plugin::{
     CREATE_REQUIRE_EVALUATED_TAG, CREATE_REQUIRE_SPECIFIER_TAG, CREATED_REQUIRE_IDENTIFIER_TAG,
@@ -81,7 +81,7 @@ impl JavascriptParser<'_> {
     }
 
     self.enter_patterns(params, |this, ident| {
-      this.define_variable(Atom::from(this.ast.ast.get_utf8(ident.name(this.ast.ast))));
+      this.define_variable(Atom::from_ast(this.ast.ast, ident.name(this.ast.ast)));
     });
 
     f(self);
@@ -111,7 +111,7 @@ impl JavascriptParser<'_> {
       self.undefined_variable(&"this".into());
     }
     self.enter_patterns(params, |this, ident| {
-      this.define_variable(Atom::from(this.ast.ast.get_utf8(ident.name(this.ast.ast))));
+      this.define_variable(Atom::from_ast(this.ast.ast, ident.name(this.ast.ast)));
     });
     f(self);
 
@@ -299,7 +299,7 @@ impl JavascriptParser<'_> {
       let ast = this.ast.ast;
       if let Some(param) = catch_clause.param(ast) {
         this.enter_pattern(PatRef::Borrowed(param), |this, ident| {
-          this.define_variable(Atom::from(this.ast.ast.get_utf8(ident.name(this.ast.ast))));
+          this.define_variable(Atom::from_ast(this.ast.ast, ident.name(this.ast.ast)));
         });
         this.walk_pattern(param)
       }
@@ -520,7 +520,7 @@ impl JavascriptParser<'_> {
         if let SimpleAssignmentTargetData::IdentifierReference(identifier) =
           ast.simple_assignment_target_data(target)
         {
-          self.clear_create_require_tag(&Atom::from(ast.get_utf8(identifier.name(ast))));
+          self.clear_create_require_tag(ast.get_utf8(identifier.name(ast)));
         }
       }
       AssignmentTargetData::ArrayAssignmentTarget(array) => {
@@ -553,7 +553,7 @@ impl JavascriptParser<'_> {
       {
         self.copy_create_require_assignment_result(
           Atom::from(ast.get_utf8(binding.name(ast))),
-          &Atom::from(ast.get_utf8(target.name(ast))),
+          ast.get_utf8(target.name(ast)),
         );
         continue;
       }
@@ -674,7 +674,7 @@ impl JavascriptParser<'_> {
     }
   }
 
-  fn clear_create_require_tag(&mut self, name: &Atom) {
+  fn clear_create_require_tag(&mut self, name: &str) {
     if let Some(variable_info) = self.get_variable_info(name) {
       let declared_scope = variable_info.declared_scope;
       let should_clear_name = variable_info.name.as_ref().is_some_and(|name| {
@@ -703,12 +703,14 @@ impl JavascriptParser<'_> {
           VariableInfoFlags::NORMAL,
           None,
         );
-        self.definitions_db.set(declared_scope, name.clone(), info);
+        self
+          .definitions_db
+          .set(declared_scope, Atom::from(name), info);
       }
     }
   }
 
-  fn has_create_require_tag(&mut self, name: &Atom, include_create_require_fn: bool) -> bool {
+  fn has_create_require_tag(&mut self, name: &str, include_create_require_fn: bool) -> bool {
     let Some(variable_info) = self.get_variable_info(name) else {
       return false;
     };
@@ -734,13 +736,13 @@ impl JavascriptParser<'_> {
     let ast = self.ast.ast;
     match ast.binding_pattern_data(pattern) {
       BindingPatternData::BindingIdentifier(identifier) => {
-        self.clear_create_require_tag(&Atom::from(ast.get_utf8(identifier.name(ast))))
+        self.clear_create_require_tag(ast.get_utf8(identifier.name(ast)))
       }
       BindingPatternData::SimpleAssignmentTarget(target) => {
         if let SimpleAssignmentTargetData::IdentifierReference(identifier) =
           ast.simple_assignment_target_data(target)
         {
-          self.clear_create_require_tag(&Atom::from(ast.get_utf8(identifier.name(ast))));
+          self.clear_create_require_tag(ast.get_utf8(identifier.name(ast)));
         }
       }
       BindingPatternData::AssignmentPattern(pattern) => {
@@ -842,7 +844,7 @@ impl JavascriptParser<'_> {
     None
   }
 
-  fn copy_create_require_assignment_result(&mut self, binding: Atom, target: &Atom) {
+  fn copy_create_require_assignment_result(&mut self, binding: Atom, target: &str) {
     if let Some(data) = self
       .get_tag_data::<CreatedRequireTagData>(target, CREATED_REQUIRE_IDENTIFIER_TAG)
       .cloned()
@@ -1057,12 +1059,12 @@ impl JavascriptParser<'_> {
       self.walk_identifier_name(root_name, root.span(ast));
       return;
     };
-    let resolved_root = name_info.name.clone();
+    let resolved_root = name_info.name;
     let root_info = name_info.info.map_or_else(
       || ExportedVariableInfo::Name(root_name.clone()),
       |info| ExportedVariableInfo::VariableInfo(info.id()),
     );
-    let name = object_and_members_to_name(&resolved_root, &members);
+    let name = object_and_members_to_name(resolved_root, &members);
     members.reverse();
     members_optionals.reverse();
     member_ranges.reverse();
@@ -1925,9 +1927,9 @@ impl JavascriptParser<'_> {
         return;
       }
       if !self.javascript_options.is_create_require_enabled()
-        || !right.as_identifier_reference(ast).is_some_and(|rhs| {
-          self.has_create_require_tag(&Atom::from(ast.get_utf8(rhs.name(ast))), false)
-        })
+        || !right
+          .as_identifier_reference(ast)
+          .is_some_and(|rhs| self.has_create_require_tag(ast.get_utf8(rhs.name(ast)), false))
       {
         self.walk_expression(right);
       }

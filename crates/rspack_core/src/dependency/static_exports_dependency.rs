@@ -2,7 +2,7 @@ use rspack_cacheable::{
   cacheable, cacheable_dyn,
   with::{AsPreset, AsVec},
 };
-use swc_core::ecma::atoms::Atom;
+use rspack_util::atom::Atom;
 
 use super::AffectType;
 use crate::{

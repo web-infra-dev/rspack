@@ -1,4 +1,3 @@
-use swc_atoms::Atom;
 use swc_next_ecma_ast::{
   AssignmentExpression, AwaitExpression, BinaryExpression, BindingIdentifier, CallExpression,
   ChainExpression, ClassElement, ConditionalExpression, Expr, ForOfStatement, IfStatement,
@@ -8,6 +7,7 @@ use swc_next_ecma_ast::{
 
 use super::{BoxJavascriptParserPlugin, JavascriptParserPlugin, JavascriptParserPluginHook};
 use crate::{
+  Atom,
   utils::eval::BasicEvaluatedExpression,
   visitors::{
     ClassDeclOrExpr, DestructuringAssignmentProperty, ExportDefaultDeclaration,
@@ -739,7 +739,7 @@ impl<'p: 'a, 'a> JavascriptParserPlugin<'p, 'a> for JavaScriptParserPluginDrive 
   fn meta_property(
     &self,
     parser: &mut JavascriptParser<'p>,
-    root_name: &swc_atoms::Atom,
+    root_name: &Atom,
     span: Span,
   ) -> Option<bool> {
     for plugin in self.plugins_for(JavascriptParserPluginHook::MetaProperty) {
@@ -788,7 +788,7 @@ impl<'p: 'a, 'a> JavascriptParserPlugin<'p, 'a> for JavaScriptParserPluginDrive 
     &self,
     parser: &mut JavascriptParser<'p>,
     statement: ImportDeclaration,
-    source: &swc_atoms::Atom,
+    source: &Atom,
     export_name: Option<&Atom>,
     identifier_name: &Atom,
   ) -> Option<bool> {

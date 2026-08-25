@@ -32,7 +32,6 @@ use rspack_error::{Diagnostic, Result};
 use rspack_util::fx_hash::FxIndexSet;
 use rustc_hash::{FxHashMap, FxHashSet};
 use smallvec::SmallVec;
-use swc_atoms::Atom;
 use swc_next_ecma_ast::{
   ArrayPattern, AssignmentPattern, Ast, BindingIdentifier, BindingPattern, BindingPatternData,
   BindingRestElement, CallExpression, Decl, DeclData, Expr, ExprData, GetSpan, IdentifierReference,
@@ -41,7 +40,7 @@ use swc_next_ecma_ast::{
 };
 
 use crate::{
-  BoxJavascriptParserPlugin,
+  Atom, BoxJavascriptParserPlugin,
   dependency::{DependencyBranchGuard, local_module::LocalModule},
   parser_and_generator::ParserRuntimeRequirementsData,
   parser_plugin::{
@@ -209,7 +208,7 @@ pub enum ExportedVariableInfo {
   VariableInfo(VariableInfoId),
 }
 
-fn object_and_members_to_name(object: &Atom, members_reversed: &[impl AsRef<str>]) -> String {
+fn object_and_members_to_name(object: &str, members_reversed: &[impl AsRef<str>]) -> String {
   let total_len = object.len()
     + members_reversed.len()
     + members_reversed
@@ -263,7 +262,7 @@ impl RootName for ThisExpression {
 
 impl RootName for IdentifierReference {
   fn get_root_name(&self, ast: &Ast<'_>) -> Option<Atom> {
-    Some(Atom::from(ast.get_utf8(self.name(ast))))
+    Some(Atom::from_ast(ast, self.name(ast)))
   }
 }
 
@@ -281,7 +280,7 @@ impl RootName for MetaProperty {
 }
 
 pub struct NameInfo<'a> {
-  pub name: &'a Atom,
+  pub name: &'a str,
   pub info: Option<&'a VariableInfo>,
 }
 
@@ -925,7 +924,7 @@ impl<'parser> JavascriptParser<'parser> {
 
   pub fn get_tag_data<Data: TagInfoData>(
     &mut self,
-    name: &Atom,
+    name: &str,
     tag: &'static str,
   ) -> Option<&Data> {
     self
@@ -936,7 +935,7 @@ impl<'parser> JavascriptParser<'parser> {
 
   pub fn get_tag_data_mut<Data: TagInfoData>(
     &mut self,
-    name: &Atom,
+    name: &str,
     tag: &'static str,
   ) -> Option<&mut Data> {
     self
@@ -957,7 +956,7 @@ impl<'parser> JavascriptParser<'parser> {
       .and_then(|tag_info_id| self.get_tag_data_by_id(tag_info_id, tag))
   }
 
-  pub fn get_free_info_from_variable<'a>(&'a mut self, name: &'a Atom) -> Option<NameInfo<'a>> {
+  pub fn get_free_info_from_variable<'a>(&'a mut self, name: &'a str) -> Option<NameInfo<'a>> {
     let Some(info) = self.get_variable_info(name) else {
       return Some(NameInfo { name, info: None });
     };
@@ -968,12 +967,12 @@ impl<'parser> JavascriptParser<'parser> {
       return None;
     }
     Some(NameInfo {
-      name,
+      name: name.as_str(),
       info: Some(info),
     })
   }
 
-  pub fn get_name_info_from_variable<'a>(&'a mut self, name: &'a Atom) -> Option<NameInfo<'a>> {
+  pub fn get_name_info_from_variable<'a>(&'a mut self, name: &'a str) -> Option<NameInfo<'a>> {
     let Some(info) = self.get_variable_info(name) else {
       return Some(NameInfo { name, info: None });
     };
@@ -984,7 +983,7 @@ impl<'parser> JavascriptParser<'parser> {
       return None;
     }
     Some(NameInfo {
-      name,
+      name: name.as_str(),
       info: Some(info),
     })
   }
@@ -1252,7 +1251,7 @@ impl<'parser> JavascriptParser<'parser> {
             members.push(value);
             member_ranges.push(expr.object(ast).span(ast));
           } else if let PropertyKeyData::IdentifierName(ident) = ast.property_key_data(property) {
-            members.push(Atom::from(ast.get_utf8(ident.name(ast))));
+            members.push(Atom::from_ast(ast, ident.name(ast)));
             member_ranges.push(expr.object(ast).span(ast));
           } else {
             break;
@@ -1285,7 +1284,7 @@ impl<'parser> JavascriptParser<'parser> {
   where
     F: FnOnce(&mut Self, BindingIdentifier),
   {
-    let name = Atom::from(self.ast.ast.get_utf8(ident.name(self.ast.ast)));
+    let name = Atom::from_ast(self.ast.ast, ident.name(self.ast.ast));
     let drive = self.plugin_drive.clone();
     if !name
       .call_hooks_name(self, |parser, for_name| {
@@ -1534,7 +1533,7 @@ impl<'parser> JavascriptParser<'parser> {
     scope.is_strict
   }
 
-  pub fn is_variable_defined(&mut self, name: &Atom) -> bool {
+  pub fn is_variable_defined(&mut self, name: &str) -> bool {
     let Some(info) = self.get_variable_info(name) else {
       return false;
     };
@@ -1593,7 +1592,7 @@ impl<'parser> JavascriptParser<'parser> {
       ExprData::MemberExpression(member) => eval::eval_member_expression(self, member, expr),
       ExprData::IdentifierReference(ident) => {
         let span = ident.span(ast);
-        let name = Atom::from(ast.get_utf8(ident.name(ast)));
+        let name = Atom::from_ast(ast, ident.name(ast));
         if name == "undefined" {
           let mut eval = BasicEvaluatedExpression::with_range(span.real_lo(), span.real_hi());
           eval.set_undefined();

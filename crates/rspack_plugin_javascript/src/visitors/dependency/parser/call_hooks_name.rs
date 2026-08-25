@@ -1,8 +1,10 @@
-use swc_atoms::Atom;
 use swc_next_ecma_ast::{ChainExpression, Expr, MemberExpression};
 
 use super::{AllowedMemberTypes, ExportedVariableInfo, JavascriptParser, MemberExpressionInfo};
-use crate::visitors::{ExprRef, scope_info::VariableInfoId};
+use crate::{
+  Atom,
+  visitors::{ExprRef, scope_info::VariableInfoId},
+};
 
 /// callHooksForName/callHooksForInfo in webpack
 /// webpack use HookMap and filter at callHooksForName/callHooksForInfo

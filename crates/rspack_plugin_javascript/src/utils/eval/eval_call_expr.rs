@@ -1,8 +1,8 @@
-use swc_atoms::Atom;
 use swc_next_ecma_ast::{CallExpression, PropertyKeyData};
 
 use super::BasicEvaluatedExpression;
 use crate::{
+  Atom,
   parser_plugin::{
     CREATE_REQUIRE_EVALUATED_TAG, JavascriptParserPlugin, is_create_require_namespace_member,
     is_create_require_specifier,

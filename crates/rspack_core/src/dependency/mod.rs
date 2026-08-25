@@ -37,6 +37,7 @@ use rspack_cacheable::{
   cacheable,
   with::{AsPreset, AsVec},
 };
+use rspack_util::atom::Atom;
 pub use runtime_requirements_dependency::{
   CodeGenerationRuntimeRequirementsWrite, RuntimeRequirementsDependency,
   RuntimeRequirementsDependencyTemplate, RuntimeRequirementsDependencyWriteOperation,
@@ -44,7 +45,6 @@ pub use runtime_requirements_dependency::{
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde::Serialize;
 pub use static_exports_dependency::{StaticExportsDependency, StaticExportsSpec};
-use swc_core::ecma::atoms::Atom;
 
 use crate::{
   ConnectionState, EvaluatedInlinableValue, ExportsInfoArtifact, ExportsType, ModuleGraph,

@@ -9,9 +9,9 @@ use rspack_core::{
   ResourceIdentifier, TemplateContext, TemplateReplaceSource, create_exports_object_referenced,
   create_referenced_exports_by_referenced_specifiers,
 };
-use swc_atoms::Atom;
 
 use super::create_resource_identifier_for_esm_dependency;
+use crate::Atom;
 
 #[cacheable]
 #[derive(Debug)]

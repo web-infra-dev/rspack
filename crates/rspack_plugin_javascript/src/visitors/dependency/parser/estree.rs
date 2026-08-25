@@ -3,7 +3,6 @@
 //! Every payload is a SWC Next typed handle. Callers must use the parser-owned
 //! [`Ast`] passed alongside the handle to read fields.
 
-use swc_atoms::Atom;
 use swc_next_ecma_ast::{
   Ast, BindingIdentifier, BlockStatement, BreakStatement, Class, ContinueStatement,
   DebuggerStatement, DeclData, DoWhileStatement, EmptyStatement,
@@ -15,6 +14,8 @@ use swc_next_ecma_ast::{
   ThrowStatement, TryStatement, TypedSubRange, VariableDeclaration as SwcVariableDeclaration,
   VariableDeclarator, VariableKind, WhileStatement, WithStatement,
 };
+
+use crate::Atom;
 
 fn wtf8_to_atom(value: &swc_next_allocator::wtf8::Wtf8) -> Atom {
   Atom::from(value.to_string_lossy().as_ref())

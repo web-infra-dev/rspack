@@ -4,7 +4,7 @@ use rspack_core::{
   DependencyRange, DependencyType, ExportsInfoArtifact, ModuleDependency, ModuleGraph,
   ModuleGraphCacheArtifact, ReferencedExport, RuntimeSpec,
 };
-use swc_core::ecma::atoms::Atom;
+use rspack_util::atom::Atom;
 
 #[allow(dead_code)]
 #[cacheable]

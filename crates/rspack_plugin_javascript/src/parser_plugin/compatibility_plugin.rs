@@ -4,7 +4,6 @@ use rspack_core::{
   ConstDependency, ContextDependency, DependencyCodeGenerationRef, DependencyRange,
 };
 use rspack_util::{SpanExt, itoa};
-use swc_atoms::Atom;
 use swc_next_ecma_ast::{
   ArgumentData, BindingIdentifier, BindingPatternData, CallExpression, GetSpan, Program,
   VariableDeclarator,
@@ -12,6 +11,7 @@ use swc_next_ecma_ast::{
 
 use super::JavascriptParserPlugin;
 use crate::{
+  Atom,
   dependency::CommonJsRequireContextDependency,
   visitors::{
     Identifier, JavascriptParser, Statement, TagInfoData, VariableDeclaration, expr_name,
@@ -261,8 +261,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CompatibilityPlugin {
       && (name == parser.parser_runtime_requirements.exports
         || name == self.nested_require_name(parser))
     {
-      let data =
-        parser.get_tag_data_mut::<NestedRequireData>(&Atom::from(name), NESTED_IDENTIFIER_TAG)?;
+      let data = parser.get_tag_data_mut::<NestedRequireData>(name, NESTED_IDENTIFIER_TAG)?;
       if !data.update {
         let dep = Arc::new(ConstDependency::new(data.loc, data.name.clone().into()));
         data.update = true;

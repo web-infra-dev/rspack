@@ -2,8 +2,9 @@ use rspack_core::{CollectedTypeScriptInfo, EvaluatedInlinableValue, TSEnumValue}
 use rspack_swc_plugin_ts_collector::{
   EnumMemberValue, ExportedEnumCollector, TypeExportsCollector,
 };
+use rspack_util::atom::Atom;
 use rustc_hash::FxHashMap;
-use swc::atoms::{Atom, Wtf8Atom};
+use swc::atoms::{Atom as SwcAtom, Wtf8Atom};
 use swc_core::{
   common::SyntaxContext,
   ecma::{ast::Program, visit::VisitWith},
@@ -20,7 +21,7 @@ pub fn collect_typescript_info(
   if options.type_exports.unwrap_or_default() {
     program.visit_with(&mut TypeExportsCollector::new(&mut type_exports));
   }
-  let mut exported_enums: FxHashMap<Atom, FxHashMap<Wtf8Atom, EnumMemberValue>> =
+  let mut exported_enums: FxHashMap<SwcAtom, FxHashMap<Wtf8Atom, EnumMemberValue>> =
     Default::default();
   if let Some(kind) = &options.exported_enum {
     program.visit_with(&mut ExportedEnumCollector::new(
@@ -30,7 +31,10 @@ pub fn collect_typescript_info(
     ));
   }
   CollectedTypeScriptInfo {
-    type_exports,
+    type_exports: type_exports
+      .into_iter()
+      .map(|value| Atom::from(value.as_str()))
+      .collect(),
     exported_enums: exported_enums
       .into_iter()
       .map(|(k, members)| {
@@ -41,15 +45,15 @@ pub fn collect_typescript_info(
               let value = match v {
                 EnumMemberValue::Number(n) => Some(EvaluatedInlinableValue::new_number(n)),
                 EnumMemberValue::String(s) => Some(EvaluatedInlinableValue::new_string(
-                  s.to_atom_lossy().into_owned(),
+                  Atom::from(s.to_string_lossy().as_ref()),
                 )),
                 EnumMemberValue::Unknown => None,
               };
-              (id.to_atom_lossy().into_owned(), value)
+              (Atom::from(id.to_string_lossy().as_ref()), value)
             })
             .collect(),
         );
-        (k, value)
+        (Atom::from(k.as_str()), value)
       })
       .collect(),
   }

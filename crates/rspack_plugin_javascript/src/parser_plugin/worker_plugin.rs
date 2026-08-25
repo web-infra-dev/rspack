@@ -10,7 +10,6 @@ use rspack_hash::{RspackHash, RspackHasher};
 use rspack_macros::AstObject;
 use rspack_util::SpanExt;
 use rustc_hash::{FxHashMap, FxHashSet};
-use swc_atoms::Atom;
 use swc_next_ecma_ast::{
   Argument, ArgumentData, BindingIdentifier, CallExpression, GetSpan, NewExpression, Span,
   TypedSubRange, VariableDeclarator,
@@ -23,6 +22,7 @@ use super::{
   url_plugin::get_url_request,
 };
 use crate::{
+  Atom,
   dependency::{CreateScriptUrlDependency, WorkerDependency},
   magic_comment::try_extract_magic_comment,
   parser_plugin::url_plugin::is_meta_url,

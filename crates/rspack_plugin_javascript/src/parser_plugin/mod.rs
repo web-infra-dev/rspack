@@ -76,9 +76,10 @@ pub use self::{
     JavascriptParserPluginHooks,
   },
 };
+use crate::Atom;
 
-pub static JS_DEFAULT_KEYWORD: std::sync::LazyLock<swc_atoms::Atom> =
-  std::sync::LazyLock::new(|| swc_atoms::atom!("default"));
+pub static JS_DEFAULT_KEYWORD: std::sync::LazyLock<Atom> =
+  std::sync::LazyLock::new(|| Atom::from("default"));
 
-pub static DEFAULT_STAR_JS_WORD: std::sync::LazyLock<swc_atoms::Atom> =
-  std::sync::LazyLock::new(|| swc_atoms::atom!("*default*"));
+pub static DEFAULT_STAR_JS_WORD: std::sync::LazyLock<Atom> =
+  std::sync::LazyLock::new(|| Atom::from("*default*"));

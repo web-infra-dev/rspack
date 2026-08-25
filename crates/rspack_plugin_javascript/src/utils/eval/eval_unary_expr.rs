@@ -1,9 +1,9 @@
 use rspack_util::SpanExt;
-use swc_atoms::Atom;
 use swc_next_ecma_ast::{ExprData, GetSpan, UnaryExpression, UnaryOperator};
 
 use super::BasicEvaluatedExpression;
 use crate::{
+  Atom,
   parser_plugin::JavascriptParserPlugin,
   visitors::{CallHooksName, JavascriptParser, RootName},
 };

@@ -33,7 +33,7 @@ export { readFileHoisted, readFileSyncHoisted } from "./fs-fs.mjs";
 import { __webpack_require__ } from "./runtime.mjs";
 import "./wrapped.mjs";
 import "./hoisted.mjs";
-import { readFileSyncHoisted as readFileSync, readFileHoisted as readFile } from "./fs-fs.mjs";
+import { readFileHoisted as readFile, readFileSyncHoisted as readFileSync } from "./fs-fs.mjs";
 
 // ./src/index.js
 const wrapped_0 = __webpack_require__("./src/wrapped.js");

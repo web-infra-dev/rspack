@@ -7,8 +7,7 @@ use rspack_core::{
   DependencyType, ExportsInfoArtifact, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
   ReferencedExport, ResourceIdentifier, RuntimeSpec, create_exports_object_referenced,
 };
-use rspack_util::fx_hash::FxIndexSet;
-use swc_core::atoms::Atom;
+use rspack_util::{atom::Atom, fx_hash::FxIndexSet};
 
 #[cacheable]
 #[derive(Debug)]

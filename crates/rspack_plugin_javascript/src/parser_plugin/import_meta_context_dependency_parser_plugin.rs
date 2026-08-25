@@ -10,11 +10,11 @@ use rspack_paths::Utf8Path;
 use rspack_regex::RspackRegex;
 use rspack_util::{SpanExt, identifier::relative_path_to_request, node_path::NodePath};
 use sugar_path::SugarPath;
-use swc_atoms::Atom;
 use swc_next_ecma_ast::{Ast, CallExpression, Expr, GetSpan, ObjectExpression};
 
 use super::JavascriptParserPlugin;
 use crate::{
+  Atom,
   dependency::ImportMetaContextDependency,
   utils::{
     eval::{self, BasicEvaluatedExpression},

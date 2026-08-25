@@ -5,7 +5,6 @@ use rspack_core::{
 };
 use rspack_util::{SpanExt, swc::RspackComments};
 use rustc_hash::{FxHashMap, FxHashSet};
-use swc_atoms::Atom;
 use swc_next_ecma_ast::{
   ArgumentData, ArrowFunctionBodyData, ArrowFunctionExpression, Ast, BindingPattern,
   BindingPatternData, CallExpression, Class, ClassElement, ClassElementData, CommentKind, Decl,
@@ -17,7 +16,7 @@ use swc_next_ecma_ast::{
 };
 
 use crate::{
-  JavascriptParserPlugin,
+  Atom, JavascriptParserPlugin,
   dependency::ESMImportSideEffectDependency,
   parser_plugin::esm_import_dependency_parser_plugin::{ESM_SPECIFIER_TAG, ESMSpecifierData},
   visitors::{JavascriptParser, Statement, TagInfoData},
@@ -772,7 +771,7 @@ fn try_extract_deferred_check(
       let Some(dependency) = dependency.downcast_ref::<ESMImportSideEffectDependency>() else {
         return false;
       };
-      dependency.request() == &data.source
+      dependency.request() == data.source.as_str()
         && data.attributes.as_ref() == dependency.get_attributes()
     })
     .map(|dependency| DeferredPureCheck {

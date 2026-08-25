@@ -1,11 +1,11 @@
 use rspack_cacheable::cacheable;
 use rspack_core::EvaluatedInlinableValue;
 use rspack_util::ryu_js;
-use swc_atoms::Atom;
 use swc_next_ecma_ast::{BindingPattern, BindingPatternData, VariableDeclarator};
 
 use super::JavascriptParserPlugin;
 use crate::{
+  Atom,
   utils::eval::{
     BasicEvaluatedExpression, evaluate_to_boolean, evaluate_to_null, evaluate_to_number,
     evaluate_to_string, evaluate_to_undefined,

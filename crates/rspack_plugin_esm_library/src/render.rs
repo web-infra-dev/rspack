@@ -817,7 +817,7 @@ var {} = {{}};
         continue;
       }
 
-      if let Some(internal_name) = info.get_internal_name(&ident.id.sym) {
+      if let Some(internal_name) = info.get_internal_name(ident.id.sym.as_str()) {
         let name = if ident.shorthand {
           format!("{}: {}", &ident.id.sym, &internal_name)
         } else {

@@ -955,7 +955,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for RstestParserPlugin {
     let ast = parser.ast.ast;
     let import_span = import_expr.span(ast);
     let tag_data = parser.get_tag_data::<bool>(
-      &self.compose_rstest_import_call_key(import_span).into(),
+      &self.compose_rstest_import_call_key(import_span),
       RSTEST_MOCK_FIRST_ARG_TAG,
     );
     if tag_data.is_some() {

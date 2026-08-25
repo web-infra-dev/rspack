@@ -9,7 +9,6 @@ use rspack_core::{
 };
 use rspack_error::{Diagnostic, Severity};
 use rspack_util::{SpanExt, json_stringify_str};
-use swc_atoms::Atom;
 use swc_next_ecma_ast::{
   Argument, ArgumentData, AssignmentExpression, AssignmentOperator, Ast, CallExpression, Expr,
   ExprData, GetSpan, MemberExpression, NewExpression, PropertyKeyData, Span, TypedSubRange,
@@ -25,6 +24,7 @@ use super::{
   url_plugin::is_meta_url,
 };
 use crate::{
+  Atom,
   dependency::{
     CommonJsFullRequireDependency, CommonJsRequireContextDependency, CommonJsRequireDependency,
     DependencyBranchGuard, ESMImportSpecifierDependency, RequireHeaderDependency,
@@ -237,7 +237,7 @@ fn is_current_create_require_tag(parser: &JavascriptParser) -> bool {
 }
 
 #[inline(never)]
-pub fn is_create_require_specifier(parser: &mut JavascriptParser, name: &Atom) -> bool {
+pub fn is_create_require_specifier(parser: &mut JavascriptParser, name: &str) -> bool {
   let Some(variable_info) = parser.get_variable_info(name) else {
     return false;
   };
@@ -301,10 +301,9 @@ pub(crate) fn is_create_require_namespace_member(
   let Some(namespace) = member_expr.object(ast).as_identifier_reference(ast) else {
     return false;
   };
-  let Some(settings) = parser.get_tag_data::<ESMSpecifierData>(
-    &Atom::from(ast.get_utf8(namespace.name(ast))),
-    ESM_SPECIFIER_TAG,
-  ) else {
+  let Some(settings) =
+    parser.get_tag_data::<ESMSpecifierData>(ast.get_utf8(namespace.name(ast)), ESM_SPECIFIER_TAG)
+  else {
     return false;
   };
   let source = settings.source.clone();
@@ -525,7 +524,7 @@ fn evaluate_create_require_argument(parser: &mut JavascriptParser, arg: Expr) ->
   let ast = parser.ast.ast;
   let new_expr = arg.as_new_expression(ast)?;
   if ast.get_utf8(new_expr.callee(ast).as_identifier_reference(ast)?.name(ast)) != "URL"
-    || parser.get_variable_info(&Atom::from("URL")).is_some()
+    || parser.get_variable_info("URL").is_some()
   {
     return None;
   }
@@ -600,7 +599,7 @@ fn is_side_effect_free_ignored_url_arg(parser: &mut JavascriptParser, expr: Expr
     | ExprData::RegExpLiteral(_) => true,
     ExprData::IdentifierReference(ident) => {
       ast.get_utf8(ident.name(ast)) == "undefined"
-        && parser.get_variable_info(&Atom::from("undefined")).is_none()
+        && parser.get_variable_info("undefined").is_none()
     }
     ExprData::UnaryExpression(unary) if unary.operator(ast) == UnaryOperator::Void => {
       is_side_effect_free_ignored_url_arg(parser, unary.argument(ast))
@@ -704,7 +703,7 @@ fn should_replace_create_require_argument(parser: &mut JavascriptParser, arg: Ex
     .callee(ast)
     .as_identifier_reference(ast)
     .is_some_and(|ident| ast.get_utf8(ident.name(ast)) == "URL")
-    && parser.get_variable_info(&Atom::from("URL")).is_none()
+    && parser.get_variable_info("URL").is_none()
   {
     let is_absolute_file_url = is_absolute_file_url_constructor_arg(parser, arg);
     let start = if is_absolute_file_url { 1 } else { 2 };
@@ -757,7 +756,7 @@ fn is_valid_ignored_url_base_arg(parser: &mut JavascriptParser, base: Argument) 
   };
   if let Some(ident) = base.as_identifier_reference(ast)
     && ast.get_utf8(ident.name(ast)) == "undefined"
-    && parser.get_variable_info(&Atom::from("undefined")).is_none()
+    && parser.get_variable_info("undefined").is_none()
   {
     return true;
   }
@@ -783,7 +782,7 @@ fn is_absolute_file_url_constructor_arg(parser: &mut JavascriptParser, arg: Expr
     .callee(ast)
     .as_identifier_reference(ast)
     .is_none_or(|ident| ast.get_utf8(ident.name(ast)) != "URL")
-    || parser.get_variable_info(&Atom::from("URL")).is_some()
+    || parser.get_variable_info("URL").is_some()
   {
     return false;
   };
@@ -813,7 +812,7 @@ fn is_unbound_url_constructor(parser: &mut JavascriptParser, callee: Expr) -> bo
   callee
     .as_identifier_reference(parser.ast.ast)
     .is_some_and(|ident| parser.ast.ast.get_utf8(ident.name(parser.ast.ast)) == "URL")
-    && parser.get_variable_info(&Atom::from("URL")).is_none()
+    && parser.get_variable_info("URL").is_none()
 }
 
 #[inline(never)]
@@ -1089,10 +1088,7 @@ fn deferred_create_require_callee(
   let (settings, range, ids, direct_import, ns_access) =
     if let Some(ident) = callee.as_identifier_reference(ast) {
       let settings = parser
-        .get_tag_data::<ESMSpecifierData>(
-          &Atom::from(ast.get_utf8(ident.name(ast))),
-          ESM_SPECIFIER_TAG,
-        )?
+        .get_tag_data::<ESMSpecifierData>(ast.get_utf8(ident.name(ast)), ESM_SPECIFIER_TAG)?
         .clone();
       let ids = settings.ids.clone().into_vec();
       (settings, ident.span(ast).into(), ids, true, false)
@@ -1100,10 +1096,7 @@ fn deferred_create_require_callee(
       let member = callee.as_member_expression(ast)?;
       let namespace = member.object(ast).as_identifier_reference(ast)?;
       let settings = parser
-        .get_tag_data::<ESMSpecifierData>(
-          &Atom::from(ast.get_utf8(namespace.name(ast))),
-          ESM_SPECIFIER_TAG,
-        )?
+        .get_tag_data::<ESMSpecifierData>(ast.get_utf8(namespace.name(ast)), ESM_SPECIFIER_TAG)?
         .clone();
       let mut ids = settings.ids.clone().into_vec();
       ids.push(static_member_name(ast, member)?);
@@ -1200,9 +1193,10 @@ fn pre_tag_created_require_declarator(
     return;
   };
   let callee = call.callee(ast);
-  let is_create_require_callee = callee.as_identifier_reference(ast).is_some_and(|ident| {
-    is_create_require_specifier(parser, &Atom::from(ast.get_utf8(ident.name(ast))))
-  }) || is_create_require_namespace_member(parser, callee);
+  let is_create_require_callee = callee
+    .as_identifier_reference(ast)
+    .is_some_and(|ident| is_create_require_specifier(parser, ast.get_utf8(ident.name(ast))))
+    || is_create_require_namespace_member(parser, callee);
   let args = arguments_view(ast, call.arguments(ast));
   if !is_create_require_callee || !can_defer_create_require_call(parser, &args) {
     return;
@@ -1299,7 +1293,7 @@ fn tag_created_require_declarator(
   parser.walk_arguments(args.iter().skip(1));
 }
 
-fn clear_create_require_tag(parser: &mut JavascriptParser, name: &Atom) {
+fn clear_create_require_tag(parser: &mut JavascriptParser, name: &str) {
   if let Some(declared_scope) = parser
     .get_variable_info(name)
     .map(|info| info.declared_scope)
@@ -1313,7 +1307,7 @@ fn clear_create_require_tag(parser: &mut JavascriptParser, name: &Atom) {
     );
     parser
       .definitions_db
-      .set(declared_scope, name.clone(), info);
+      .set(declared_scope, Atom::from(name), info);
   }
 }
 
@@ -1633,7 +1627,7 @@ impl CommonJsImportsParserPlugin {
     };
 
     if parser
-      .get_variable_info(&Atom::from(ast.get_utf8(ident.name(ast))))
+      .get_variable_info(ast.get_utf8(ident.name(ast)))
       .is_some()
     {
       return false;
@@ -2052,8 +2046,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
       return Some(true);
     }
     if let Some(ident) = expr.as_identifier_reference(ast)
-      && let Some(name_info) =
-        parser.get_name_info_from_variable(&Atom::from(ast.get_utf8(ident.name(ast))))
+      && let Some(name_info) = parser.get_name_info_from_variable(ast.get_utf8(ident.name(ast)))
       && let Some(info) = name_info.info
       && let Some(name) = info.name.clone()
       && parser
@@ -2108,7 +2101,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
     if let Some(init) = init.as_identifier_reference(ast)
       && let Some(data) = parser
         .get_tag_data::<CreatedRequireTagData>(
-          &Atom::from(ast.get_utf8(init.name(ast))),
+          ast.get_utf8(init.name(ast)),
           CREATED_REQUIRE_IDENTIFIER_TAG,
         )
         .cloned()
@@ -2128,7 +2121,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
     }
 
     if let Some(init) = init.as_identifier_reference(ast)
-      && is_create_require_specifier(parser, &Atom::from(ast.get_utf8(init.name(ast))))
+      && is_create_require_specifier(parser, ast.get_utf8(init.name(ast)))
       && let Some(binding) = declarator.id(ast).as_binding_identifier(ast)
     {
       let name = Atom::from(ast.get_utf8(binding.name(ast)));
@@ -2195,7 +2188,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
 
     if parser
       .get_tag_data::<CreatedRequireTagData>(
-        &Atom::from(parser.ast.ast.get_utf8(binding.name(parser.ast.ast))),
+        parser.ast.ast.get_utf8(binding.name(parser.ast.ast)),
         CREATED_REQUIRE_IDENTIFIER_TAG,
       )
       .is_some()
@@ -2811,7 +2804,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
       let Some(name) = source_for_span(parser, ident.span()) else {
         return Some(true);
       };
-      clear_create_require_tag(parser, &Atom::from(name));
+      clear_create_require_tag(parser, &name);
       return Some(true);
     }
 

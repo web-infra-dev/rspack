@@ -5,7 +5,6 @@ use rspack_core::{
   BoxDependency, ConstDependency, Dependency, DependencyRange, DependencyType, ImportPhase,
 };
 use rspack_util::SpanExt;
-use swc_atoms::Atom;
 use swc_next_ecma_ast::{CommentKind, ExprData, GetSpan, Span};
 
 use super::{
@@ -15,7 +14,7 @@ use super::{
   inner_graph::state::InnerGraphMapUsage,
 };
 use crate::{
-  ConstValue, InnerGraphParserPlugin,
+  Atom, ConstValue, InnerGraphParserPlugin,
   dependency::{
     DeclarationId, DeclarationInfo, ESMExportExpressionDependency, ESMExportHeaderDependency,
     ESMExportImportedSpecifierDependency, ESMExportSpecifierDependency,
@@ -44,10 +43,7 @@ fn create_default_exported_namespace_dependency(
     return None;
   };
   let settings = parser
-    .get_tag_data::<ESMSpecifierData>(
-      &Atom::from(ast.get_utf8(identifier.name(ast))),
-      ESM_SPECIFIER_TAG,
-    )
+    .get_tag_data::<ESMSpecifierData>(ast.get_utf8(identifier.name(ast)), ESM_SPECIFIER_TAG)
     .filter(|settings| settings.namespace_import && settings.ids.is_empty())?
     .clone();
   let statement_span = statement.span(ast);
@@ -359,10 +355,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
       ExportDefaultExpression::Expr(expression) => {
         if let ExprData::IdentifierReference(identifier) = ast.expr_data(expression) {
           parser
-            .get_tag_data::<ConstValueData>(
-              &Atom::from(ast.get_utf8(identifier.name(ast))),
-              INLINABLE_CONST_TAG,
-            )
+            .get_tag_data::<ConstValueData>(ast.get_utf8(identifier.name(ast)), INLINABLE_CONST_TAG)
             .map(|data| data.value.clone())
         } else {
           to_evaluated_inlinable_value(&parser.evaluate_expression(expression))

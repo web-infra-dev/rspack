@@ -1,4 +1,3 @@
-use swc_atoms::Atom;
 use swc_next_ecma_ast::{ExprData, GetSpan, Stmt, StmtData, TypedSubRange};
 
 use super::{
@@ -9,7 +8,7 @@ use super::{
   },
 };
 use crate::{
-  JS_DEFAULT_KEYWORD,
+  Atom, JS_DEFAULT_KEYWORD,
   parser_plugin::JavascriptParserPlugin,
   visitors::{VariableDeclaration, VariableDeclarationKind},
 };

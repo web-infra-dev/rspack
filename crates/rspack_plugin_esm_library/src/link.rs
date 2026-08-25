@@ -1110,7 +1110,7 @@ var {} = {{}};
         .as_concatenated()
         .global_scope_ident
         .iter()
-        .map(|ident| ident.id.sym.clone())
+        .map(|ident| Atom::from(ident.id.sym.as_str()))
     }));
 
     // merge all all_used_names from hoisted modules
@@ -1652,22 +1652,22 @@ var {} = {{}};
                 let legacy = if is_global {
                   let leg = ident.to_legacy();
                   concate_info.global_scope_ident.push(leg.clone());
-                  all_used_names.insert(leg.id.sym.clone());
+                  all_used_names.insert(Atom::from(leg.id.sym.as_str()));
                   Some(leg)
                 } else {
                   None
                 };
                 if ident.is_class_expr_with_ident {
-                  all_used_names.insert(ident.id.sym.clone());
+                  all_used_names.insert(Atom::from(ident.id.sym.as_str()));
                   continue;
                 }
                 if scope != concate_info.module_ctxt {
-                  all_used_names.insert(ident.id.sym.clone());
+                  all_used_names.insert(Atom::from(ident.id.sym.as_str()));
                 }
                 let legacy = legacy.unwrap_or_else(|| ident.to_legacy());
                 concate_info.idents.push(legacy.clone());
                 binding_to_ref
-                  .entry((legacy.id.sym.clone(), legacy.id.ctxt))
+                  .entry((Atom::from(legacy.id.sym.as_str()), legacy.id.ctxt))
                   .or_default()
                   .push(legacy);
               }

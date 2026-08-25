@@ -23,6 +23,7 @@ use rspack_sources::{
 };
 use rspack_util::{
   SpanExt,
+  atom::Atom,
   fx_hash::{FxIndexMap, FxIndexSet},
   itoa, json_stringify, json_stringify_str,
   source_map::SourceMapKind,
@@ -30,7 +31,6 @@ use rspack_util::{
 };
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::{
-  atoms::Atom,
   common::{BytePos, Spanned, SyntaxContext},
   ecma::visit::swc_ecma_ast,
 };
@@ -330,17 +330,17 @@ pub struct ConcatenatedModuleInfo {
 }
 
 impl ConcatenatedModuleInfo {
-  pub fn get_internal_name<'me>(&'me self, atom: &Atom) -> Option<&'me Atom> {
+  pub fn get_internal_name<'me>(&'me self, atom: &str) -> Option<&'me Atom> {
     if let Some(name) = self.internal_names.get(atom) {
       return Some(name);
     }
 
-    if atom.as_str() == "default" {
+    if atom == "default" {
       return self.internal_names.get(&*DEFAULT_EXPORT_ATOM);
     }
 
     if let Some(name) = &self.namespace_object_name
-      && name == atom
+      && name.as_str() == atom
     {
       return Some(name);
     }
@@ -2647,7 +2647,7 @@ impl ConcatenatedModule {
         let legacy = if is_global {
           let leg = ident.to_legacy();
           module_info.global_scope_ident.push(leg.clone());
-          all_used_names.insert(leg.id.sym.clone());
+          all_used_names.insert(Atom::from(leg.id.sym.as_str()));
           Some(leg)
         } else {
           None
@@ -2660,12 +2660,12 @@ impl ConcatenatedModule {
         // you could see tests/webpack-test/cases/scope-hoisting/renaming-4967 as a example
         // during module eval phase.
         if scope != module_info.module_ctxt {
-          all_used_names.insert(ident.id.sym.clone());
+          all_used_names.insert(Atom::from(ident.id.sym.as_str()));
         }
         let legacy = legacy.unwrap_or_else(|| ident.to_legacy());
         module_info.idents.push(legacy.clone());
         binding_to_ref
-          .entry((legacy.id.sym.clone(), legacy.id.ctxt))
+          .entry((Atom::from(legacy.id.sym.as_str()), legacy.id.ctxt))
           .or_default()
           .push(legacy);
       }
@@ -3607,7 +3607,7 @@ fn collect_ident(ast: &Ast<'_>, semantic: &JsNameResolver<'_>) -> Vec<NewConcate
       );
       let scope = SyntaxContext::from_u32(scope.raw());
       self.ids.push(NewConcatenatedModuleIdent {
-        id: swc_ecma_ast::Ident::new(Atom::from(name), span, scope),
+        id: swc_ecma_ast::Ident::new(swc_core::atoms::Atom::from(name), span, scope),
         scope,
         shorthand,
         is_class_expr_with_ident,
