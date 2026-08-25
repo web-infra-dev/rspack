@@ -44,6 +44,7 @@ _2026 年 8 月 26 日_
 
 - 新特性
   - [`import.meta.glob` 支持 `caseSensitive`](#import-meta-glob-case-sensitive)
+  - [`import.meta` 新增 API](#import-meta-apis)
   - [Compat Hashed IDs](#compat-hashed-ids)
   - [Rspack Runtime Mode](#rspack-runtime-mode)
 
@@ -103,9 +104,24 @@ Rspack 2.2 会生成 `.style_modules_css-😍`，而不是带有多余转义的 
 
 ## 新特性
 
-### `import.meta.glob` 支持 `caseSensitive` \{#import-meta-glob-case-sensitive}
+### `import.meta` 新增 API \{#import-meta-apis}
 
-[`import.meta.glob`](/api/runtime-api/module-variables#importmetaglob) 新增了 `caseSensitive` 参数。设置为 `false` 时，glob 匹配会忽略文件路径的大小写：
+Rspack 2.2.0 进一步完善了对 ESM 模块的支持，新增了一组基于 `import.meta` 的运行时 API。
+相比 CommonJS 风格的全局变量，`import.meta` 更符合 ESM 的使用方式，因此推荐在 ESM 模块中优先使用这些 API。
+
+| 新增 `import.meta` API          | 对应的运行时变量           |
+| ------------------------------- | -------------------------- |
+| `import.meta.rspackPublicPath`  | `__webpack_public_path__`  |
+| `import.meta.rspackBaseUri`     | `__webpack_base_uri__`     |
+| `import.meta.rspackShareScopes` | `__webpack_share_scopes__` |
+| `import.meta.rspackInitSharing` | `__webpack_init_sharing__` |
+| `import.meta.rspackNonce`       | `__webpack_nonce__`        |
+| `import.meta.rspackUniqueId`    | `__rspack_unique_id__`     |
+| `import.meta.rspackVersion`     | `__rspack_version__`       |
+| `import.meta.rspackHash`        | `__webpack_hash__`         |
+
+此外 [`import.meta.glob`](/api/runtime-api/module-variables#importmetaglob) 新增了 `caseSensitive` 参数。
+设置为 `false` 时，glob 匹配会忽略文件路径的大小写：
 
 ```js
 const modules = import.meta.glob('./pages/**/*.js', {
