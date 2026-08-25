@@ -23,7 +23,7 @@ use rspack_sources::{
 };
 use rspack_util::{
   SpanExt,
-  atom::Atom,
+  atom::{Atom, AtomKey},
   fx_hash::{FxIndexMap, FxIndexSet},
   itoa, json_stringify, json_stringify_str,
   source_map::SourceMapKind,
@@ -155,9 +155,8 @@ static REGEX: LazyLock<Regex> = LazyLock::new(|| {
 
 #[derive(Default)]
 struct NameAllocator {
-  used_names: HashSet<Atom>,
   used_strings: HashSet<String>,
-  suffix_counters: HashMap<Atom, u32>,
+  suffix_counters: HashMap<AtomKey, u32>,
 }
 
 impl NameAllocator {
@@ -169,19 +168,17 @@ impl NameAllocator {
     }
 
     Self {
-      used_names,
       used_strings,
       suffix_counters: HashMap::default(),
     }
   }
 
   fn contains(&self, name: &Atom) -> bool {
-    self.used_names.contains(name)
+    self.used_strings.contains(name.as_str())
   }
 
-  fn insert(&mut self, name: Atom) {
+  fn insert(&mut self, name: &Atom) {
     self.used_strings.insert(name.as_ref().to_string());
-    self.used_names.insert(name);
   }
 
   fn find_new_name(&mut self, old_name: &str, extra_info: &[Atom]) -> Atom {
@@ -207,7 +204,6 @@ impl NameAllocator {
       if !self.used_strings.contains(&escaped) {
         self.used_strings.insert(escaped.clone());
         let candidate: Atom = escaped.into();
-        self.used_names.insert(candidate.clone());
         return candidate;
       }
     }
@@ -216,18 +212,17 @@ impl NameAllocator {
     if !base_str.is_empty() && !self.used_strings.contains(&base_str) {
       self.used_strings.insert(base_str.clone());
       let base: Atom = base_str.into();
-      self.used_names.insert(base.clone());
       return base;
     }
 
     let base: Atom = base_str.into();
-    let counter = self.suffix_counters.entry(base.clone()).or_insert(0);
-    let mut i = *counter;
-    let mut i_buffer = itoa::Buffer::new();
-
     let mut base_with_underscore = String::with_capacity(base.len() + 1);
     base_with_underscore.push_str(base.as_ref());
     base_with_underscore.push('_');
+
+    let counter = self.suffix_counters.entry(base.into()).or_insert(0);
+    let mut i = *counter;
+    let mut i_buffer = itoa::Buffer::new();
 
     let mut numbered = String::with_capacity(base_with_underscore.len() + 8);
     loop {
@@ -238,7 +233,6 @@ impl NameAllocator {
       if !self.used_strings.contains(&numbered) {
         self.used_strings.insert(numbered.clone());
         let candidate: Atom = Atom::from(numbered.as_str());
-        self.used_names.insert(candidate.clone());
         *counter = i + 1;
         return candidate;
       }
@@ -1252,7 +1246,7 @@ impl Module for ConcatenatedModule {
               }
             } else {
               // Handle the case when the name is not already used
-              name_allocator.insert(name.clone());
+              name_allocator.insert(name);
               info.internal_names.insert(name.clone(), name.clone());
               top_level_declarations.insert(name.clone());
             }
@@ -1272,7 +1266,6 @@ impl Module for ConcatenatedModule {
                     .internal_names
                     .insert(ns_import, internal_ns_import.clone());
                 } else {
-                  let ns_import_key = ns_import.clone();
                   let new_name = if name_allocator.contains(&ns_import) {
                     name_allocator.find_new_name(
                       escaped_names
@@ -1282,11 +1275,11 @@ impl Module for ConcatenatedModule {
                       &[],
                     )
                   } else {
-                    name_allocator.insert(ns_import);
-                    ns_import_key.clone()
+                    name_allocator.insert(&ns_import);
+                    ns_import.clone()
                   };
 
-                  info.internal_names.insert(ns_import_key, new_name.clone());
+                  info.internal_names.insert(ns_import, new_name.clone());
                   total_imported_atoms.ns_import = Some(new_name);
                 }
               }
@@ -1326,7 +1319,7 @@ impl Module for ConcatenatedModule {
                   }
                   new_name
                 } else {
-                  name_allocator.insert(atom.clone());
+                  name_allocator.insert(&atom);
                   atom.clone()
                 };
 
@@ -1350,7 +1343,7 @@ impl Module for ConcatenatedModule {
           {
             let name =
               Atom::from(namespace_export_symbol[NAMESPACE_OBJECT_EXPORT.len()..].to_string());
-            name_allocator.insert(name.clone());
+            name_allocator.insert(&name);
             info
               .internal_names
               .insert(namespace_export_symbol.clone(), name.clone());
