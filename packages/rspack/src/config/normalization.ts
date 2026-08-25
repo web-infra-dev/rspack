@@ -85,6 +85,7 @@ import type {
   TrustedTypes,
   UniqueName,
   WasmLoading,
+  WasmStreamingFallback,
   Watch,
   WatchOptions,
   WebassemblyModuleFilename,
@@ -178,6 +179,7 @@ export const getNormalizedRspackOptions = (
         hotUpdateGlobal: output.hotUpdateGlobal,
         assetModuleFilename: output.assetModuleFilename,
         wasmLoading: output.wasmLoading,
+        wasmStreamingFallback: output.wasmStreamingFallback,
         enabledChunkLoadingTypes: output.enabledChunkLoadingTypes
           ? [...output.enabledChunkLoadingTypes]
           : ['...'],
@@ -599,6 +601,7 @@ export interface OutputNormalized {
   importMetaName?: ImportMetaName;
   iife?: Iife;
   wasmLoading?: WasmLoading;
+  wasmStreamingFallback?: WasmStreamingFallback;
   enabledWasmLoadingTypes?: EnabledWasmLoadingTypes;
   webassemblyModuleFilename?: WebassemblyModuleFilename;
   chunkFormat?: string | false;

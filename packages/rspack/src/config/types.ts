@@ -74,6 +74,9 @@ export type WasmLoadingType = 'fetch' | 'async-node' | 'universal';
 /** Option to set the method of loading WebAssembly Modules. */
 export type WasmLoading = false | WasmLoadingType;
 
+/** Whether to fall back to non-streaming WebAssembly loading when streaming fails due to an incorrect MIME type. */
+export type WasmStreamingFallback = boolean;
+
 export type ScriptType = false | 'text/javascript' | 'module';
 
 export type LibraryCustomUmdObject = {
@@ -578,6 +581,13 @@ export type Output = {
    * @default 'fetch'
    * */
   wasmLoading?: WasmLoading;
+
+  /**
+   * Fall back to non-streaming WebAssembly instantiation or compilation when the server
+   * does not serve WebAssembly with the `application/wasm` MIME type.
+   * @default true
+   */
+  wasmStreamingFallback?: WasmStreamingFallback;
 
   /** List of wasm loading types enabled for use by entry points. */
   enabledWasmLoadingTypes?: EnabledWasmLoadingTypes;
