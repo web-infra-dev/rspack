@@ -44,15 +44,10 @@ _2026 年 8 月 26 日_
 
 值得关注的变更如下：
 
-- 性能提升
-  - [更好的 HMR](#better-hmr)
-  - [CSS 解析性能提升](#css-performance)
-- 新特性
-  - [`import.meta` 新增 API](#import-meta-apis)
-  - [Compat hashed IDs](#compat-hashed-ids)
-- 升级指南
-  - [RSC 插件 CSS 加载方式改变](#rsc-plugin-use-preinit)
-  - [Wasm 插件需要重新构建](#wasm-plugin-breaking)
+- [性能提升](#performance-improvements)
+- [HMR 改进](#better-hmr)
+- [`import.meta` 改进](#import-meta-improvements)
+- [简短的模块 ID](#compat-hashed-ids)
 - 生态
   - [Rsbuild](#rsbuild)
   - [Rslib](#rslib)
@@ -60,17 +55,24 @@ _2026 年 8 月 26 日_
   - [Rslint](#rslint)
   - [Rspress](#rspress)
   - [Agent plugin](#rstack-agent-plugin)
+- 升级指南
 
-## 性能提升
+## 性能提升 \{#performance-improvements}
 
 Rspack 2.2 包含 30 多项构建性能优化，例如：
 
-- 优化模块合并、Split Chunks 和 Source Map 生成等核心流程的性能。在 [基准测试](https://github.com/LingyuCoder/rspack-react-10k-benchmark/commit/121be0c19252db61e9fc9c8ebbce93943caa88eb) 中，生产构建时间从 **1822 ms** 降至 **1725 ms**，提升约 **5.6%**。
-- 优化 [CopyRspackPlugin](/plugins/rspack/copy-rspack-plugin) 的性能。在复制大量文件时，性能提升约 **3～4 倍**。
-- 优化 Wasm 产物的包体积，从 29.5 MB 降至 28.4 MB，减少约 **1.1 MB**。
-- 默认并行编译 SWC Wasm 插件。[swc-plugin-coverage-instrument](https://npmx.dev/package/swc-plugin-coverage-instrument) 插件的加载耗时从 1.8 秒降至约 0.36 秒，缩短约 **80%**。
+- 优化模块合并、Split Chunks 和 Source Map 生成等核心流程的性能。在基准测试中，生产构建时间从 1822 ms 降至 1725 ms，提升约 5.6%。
+- 优化 [CopyRspackPlugin](/plugins/rspack/copy-rspack-plugin) 的性能。在复制大量文件时，性能提升约 3～4 倍。
+- 优化 Wasm 产物的包体积，从 29.5 MB 降至 28.4 MB，减少约 1.1 MB。
+- 并行编译 SWC Wasm 插件，这减少了插件加载时间。例如，[coverage-instrument](https://npmx.dev/package/swc-plugin-coverage-instrument) 插件的加载时间减少约 80%。
+- Rspack 内置 CSS 的解析速度提升了约 3 倍：
 
-### 更好的 HMR \{#better-hmr}
+| 场景         | 优化前   | 优化后  | 性能提升   |
+| ------------ | -------- | ------- | ---------- |
+| CSS 开发构建 | 320.3 ms | 87.2 ms | **3.7 倍** |
+| CSS 生产构建 | 354.1 ms | 121 ms  | **2.9 倍** |
+
+## HMR 改进 \{#better-hmr}
 
 Rspack 2.2 让 HMR 的资源请求更加精确，热更新速度也更稳定。此前，即使只修改了 JavaScript 代码，HMR 也会在更新过程中加载相关的 CSS 文件，再在浏览器中对比内容是否变化，最后才决定要不要更新样式。
 
@@ -84,31 +86,17 @@ Rspack 2.2 让 HMR 的资源请求更加精确，热更新速度也更稳定。�
 
 此外，我们还[修复](https://github.com/web-infra-dev/rspack/pull/14580)了 `mini-css-extract-plugin` 在样式热更新过程中样式短暂丢失、导致页面闪烁的问题。
 
-### CSS 解析性能提升 \{#css-performance}
+## `import.meta` 改进 \{#import-meta-improvements}
 
-Rspack 内置 CSS 的解析速度提升了约 **3 倍**，并完善了 Unicode 支持。性能数据如下：
+Rspack 2.2 新增了一组基于 [`import.meta`](/api/runtime-api/module-variables#import-meta) 的运行时 API。相比 CommonJS 风格的全局变量，它们更符合 ESM 标准，推荐在 ESM 模块中优先使用：
 
-| 场景         | 优化前   | 优化后  | 性能提升   |
-| ------------ | -------- | ------- | ---------- |
-| CSS 开发构建 | 320.3 ms | 87.2 ms | **3.7 倍** |
-| CSS 生产构建 | 354.1 ms | 121 ms  | **2.9 倍** |
+```js
+// Before
+__webpack_public_path__ = '/assets/';
 
-## 新特性
-
-### `import.meta` 新增 API \{#import-meta-apis}
-
-Rspack 2.2 进一步完善了对 ESM 的支持，新增了一组基于 [`import.meta`](/api/runtime-api/module-variables) 的运行时 API。相比 CommonJS 风格的全局变量，它们更符合 ESM 的书写习惯，推荐在 ESM 模块中优先使用：
-
-| 新增 `import.meta` API          | 对应的运行时变量           |
-| ------------------------------- | -------------------------- |
-| `import.meta.rspackPublicPath`  | `__webpack_public_path__`  |
-| `import.meta.rspackBaseUri`     | `__webpack_base_uri__`     |
-| `import.meta.rspackShareScopes` | `__webpack_share_scopes__` |
-| `import.meta.rspackInitSharing` | `__webpack_init_sharing__` |
-| `import.meta.rspackNonce`       | `__webpack_nonce__`        |
-| `import.meta.rspackUniqueId`    | `__rspack_unique_id__`     |
-| `import.meta.rspackVersion`     | `__rspack_version__`       |
-| `import.meta.rspackHash`        | `__webpack_hash__`         |
+// After
+import.meta.rspackPublicPath = '/assets/';
+```
 
 此外，[`import.meta.glob`](/api/runtime-api/module-variables#importmetaglob) 新增了 `caseSensitive` 选项。设置为 `false` 时，glob 匹配会忽略文件路径的大小写：
 
@@ -118,25 +106,24 @@ const modules = import.meta.glob('./pages/**/*.js', {
 });
 ```
 
-### Compat hashed IDs \{#compat-hashed-ids}
+## 简短的模块 ID \{#compat-hashed-ids}
 
-[`optimization.moduleIds`](/config/optimization#optimizationmoduleids) 和 [`optimization.chunkIds`](/config/optimization#optimizationchunkids) 新增了 `'compat-hashed'`，它取稳定 hash 的最短可用前缀来生成更紧凑的 ID。相比 `deterministic`，它在同样保证 ID 稳定的前提下，兼顾了运行时的索引性能和产物体积。
+Rspack 现在支持为模块和 chunk 生成更短的 ID。相比 `deterministic`，新的 `compat-hashed` 策略会从稳定 hash 中选取最短可用前缀，在保持 ID 稳定和运行时索引效率的同时，进一步减小产物体积。
 
-以一个包含 27.6k 个模块的真实项目生产构建为例，minify 和 gzip 后的产物体积变化如下：
+在一个真实项目中，产物体积变化如下：
 
-|    **策略**     |    **Minified JS**    |  **Minified + gzip**  |
-| :-------------: | :-------------------: | :-------------------: |
-| `deterministic` |     26,414,278 B      |      7,273,763 B      |
-| `compat-hashed` |     26,327,662 B      |      7,210,729 B      |
-|      降幅       | **86,616 B（0.33%）** | **63,034 B（0.87%）** |
+| **指标**        | **`deterministic`** | **`compat-hashed`** | **体积减少**         |
+| --------------- | ------------------- | ------------------- | -------------------- |
+| Minified JS     | 25,795.2 KB         | 25,710.6 KB         | **84.6 KB（0.33%）** |
+| Minified + gzip | 7,103.3 KB          | 7,041.7 KB          | **61.6 KB（0.87%）** |
 
-如果你的项目比较关注产物体积，可以这样开启：
+可以通过 [`optimization.chunkIds`](/config/optimization#optimizationchunkids) 和 [`optimization.moduleIds`](/config/optimization#optimizationmoduleids) 选项开启：
 
 ```js title="rspack.config.mjs"
 export default {
   optimization: {
-    moduleIds: 'compat-hashed',
     chunkIds: 'compat-hashed',
+    moduleIds: 'compat-hashed',
   },
 };
 ```
