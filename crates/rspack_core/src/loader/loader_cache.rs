@@ -1,11 +1,11 @@
 use std::path::Path;
 
 use bitflags::bitflags;
-use rspack_cacheable::cacheable;
+use rspack_cacheable::{cacheable, with::AsMap};
 use rspack_collections::Identifiable;
 use rspack_error::Result;
 use rspack_hash::{HashFunction, RspackHasher};
-use rspack_loader_runner::{Content, LoaderContext, LoaderDependencies};
+use rspack_loader_runner::{Content, LoaderContext, LoaderDependencies, ParseMeta};
 use rspack_paths::{InternedPath, InternedPathSet};
 use rspack_sources::SourceMap;
 use rspack_util::time::current_time;
@@ -161,6 +161,8 @@ struct LoaderCacheEntry {
   content_is_string: bool,
   source_map: Option<String>,
   dependency_snapshot: LoaderCacheDependencySnapshot,
+  #[cacheable(with=AsMap)]
+  parse_meta: ParseMeta,
 }
 
 pub(crate) struct LoaderCacheMissState {
@@ -245,6 +247,7 @@ pub(crate) async fn before_normal_loader(
     let mut dependencies = LoaderDependencies::default();
     restore_loader_cache_dependencies(&entry.dependency_snapshot, &mut dependencies);
     context.add_dependencies(&dependencies);
+    context.parse_meta = entry.parse_meta.clone();
     context.__finish_with((content, source_map, None));
     return Ok(LoaderCacheAction::Hit);
   }
@@ -261,7 +264,6 @@ pub(crate) async fn after_normal_loader(
     || !context.context.module.build_info().assets.is_empty()
     || !context.context.module.build_info().extras.is_empty()
     || context.additional_data().is_some()
-    || !context.parse_meta.is_empty()
   {
     return Ok(());
   }
@@ -288,6 +290,7 @@ pub(crate) async fn after_normal_loader(
     content_is_string,
     source_map: context.source_map().map(SourceMap::to_json),
     dependency_snapshot,
+    parse_meta: context.parse_meta.clone(),
   };
   let loader_name = context.current_loader().loader_name();
   let module_identifier = context.context.module.identifier();

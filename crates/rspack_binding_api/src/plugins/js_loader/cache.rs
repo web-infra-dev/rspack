@@ -1,8 +1,11 @@
-use std::sync::{Arc, Mutex};
+use std::{
+  collections::HashMap,
+  sync::{Arc, Mutex},
+};
 
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
-use rspack_cacheable::cacheable;
+use rspack_cacheable::{cacheable, with::AsMap};
 use rspack_core::{
   CacheFacade, CacheValue, Content, Etag, FileSystemInfo, LoaderCacheDependencySnapshot,
   LoaderDependencies, Resolver, loader_cache_dependency_snapshot,
@@ -22,6 +25,8 @@ struct LoaderCacheEntry {
   content_is_string: bool,
   source_map: Option<Vec<u8>>,
   dependency_snapshot: LoaderCacheDependencySnapshot,
+  #[cacheable(with=AsMap)]
+  parse_meta: HashMap<String, String>,
 }
 
 #[napi(object)]
@@ -30,6 +35,7 @@ pub struct JsLoaderCacheEntry {
   pub source_map: Option<Uint8Array>,
   pub added_dependencies: JsLoaderDependencies,
   pub removed_dependencies: JsLoaderDependencies,
+  pub parse_meta: HashMap<String, String>,
 }
 
 #[derive(Clone)]
@@ -188,6 +194,7 @@ impl JsLoaderCache {
       source_map: entry.source_map.clone().map(Into::into),
       added_dependencies: (&dependencies).into(),
       removed_dependencies: Default::default(),
+      parse_meta: entry.parse_meta.clone(),
     }))
   }
 
@@ -218,6 +225,7 @@ impl JsLoaderCache {
       content_is_string,
       source_map: output.source_map.map(|source_map| source_map.to_vec()),
       dependency_snapshot,
+      parse_meta: output.parse_meta,
     };
     let item_cache = loader_cache_item(&self.cache, &self.module_identifier, loader_name, etag);
     item_cache

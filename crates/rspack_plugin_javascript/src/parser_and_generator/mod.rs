@@ -259,8 +259,9 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     let mut diagnostics: Vec<Diagnostic> = vec![];
 
     if let Some(collected_ts_info) = parse_meta.remove(COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY)
-      && let Ok(collected_ts_info) =
-        (collected_ts_info as Box<dyn std::any::Any>).downcast::<CollectedTypeScriptInfo>()
+      && let Ok(collected_ts_info) = collected_ts_info
+        .into_any()
+        .downcast::<CollectedTypeScriptInfo>()
     {
       build_info.collected_typescript_info = Some(*collected_ts_info);
     }

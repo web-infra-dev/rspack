@@ -1,3 +1,5 @@
+import { E } from "./enum";
+
 const value = require("./value");
 const moduleA = require("./module-a");
 const moduleB = require("./module-b");
@@ -30,6 +32,9 @@ it("should cache each opted-in loader until its input changes", () => {
 	});
 	expect(moduleA).toBe("module-a.js");
 	expect(moduleB).toBe("module-b.js");
+	expect(E.A).toBe(0);
+	const generated = require("fs").readFileSync(__filename, "utf-8");
+	expect(generated).toContain("inlined export .E.A");
 	expect(bom).toEqual({
 		hasBom: true,
 		producerRuns: 1,

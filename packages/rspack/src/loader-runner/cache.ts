@@ -13,6 +13,7 @@ export type LoaderCacheEntry = {
   sourceMap?: Uint8Array;
   addedDependencies: LoaderDependencies;
   removedDependencies: LoaderDependencies;
+  parseMeta: Record<string, string>;
 };
 
 type LoaderCacheApi = {
@@ -61,6 +62,7 @@ export class LoaderCache {
     );
     if (hit) {
       this.#dependencies.addDependencies(hit.addedDependencies);
+      Object.assign(context.__internal__parseMeta, hit.parseMeta);
     }
     return hit;
   }
@@ -72,11 +74,7 @@ export class LoaderCache {
     additionalData: unknown,
   ) {
     const context = this.#context;
-    if (
-      !context.cacheable ||
-      !isNil(additionalData) ||
-      Object.keys(context.__internal__parseMeta).length > 0
-    ) {
+    if (!context.cacheable || !isNil(additionalData)) {
       return;
     }
 
@@ -85,6 +83,7 @@ export class LoaderCache {
       sourceMap,
       addedDependencies: this.#dependencies.added,
       removedDependencies: this.#dependencies.removed,
+      parseMeta: { ...context.__internal__parseMeta },
     });
   }
 
