@@ -874,7 +874,7 @@ impl<'parser> JavascriptParser<'parser> {
     self.last_esm_import_order
   }
 
-  pub fn get_variable_info(&mut self, name: &Atom) -> Option<&VariableInfo> {
+  pub fn get_variable_info(&mut self, name: &str) -> Option<&VariableInfo> {
     let id = self.definitions_db.get(self.definitions, name)?;
     Some(self.definitions_db.expect_get_variable(id))
   }
@@ -1649,7 +1649,7 @@ impl<'parser> JavascriptParser<'parser> {
           );
           Some(eval)
         };
-        let Some(info) = self.get_variable_info(&"this".into()) else {
+        let Some(info) = self.get_variable_info("this") else {
           // use `ident.sym` as fallback for global variable(or maybe just a undefined variable)
           return drive
             .evaluate_identifier(self, "this", None, span.real_lo(), span.real_hi())

@@ -1871,10 +1871,12 @@ impl JavascriptParser<'_> {
 
   fn walk_identifier(&mut self, identifier: IdentifierReference) {
     let ast = self.ast.ast;
-    self.walk_identifier_name(
-      Atom::from(ast.get_utf8(identifier.name(ast))),
-      identifier.span(ast),
-    );
+    let name = ast.get_utf8(identifier.name(ast));
+    let span = identifier.span(ast);
+    let drive = self.plugin_drive.clone();
+    name.call_hooks_name(self, |this, for_name| {
+      drive.identifier(this, &Identifier { span }, for_name)
+    });
   }
 
   fn walk_identifier_name(&mut self, name: Atom, span: Span) {

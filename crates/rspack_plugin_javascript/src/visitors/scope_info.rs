@@ -1,3 +1,8 @@
+use std::{
+  borrow::Borrow,
+  hash::{Hash, Hasher},
+};
+
 use bitflags::bitflags;
 use rustc_hash::FxHashMap;
 use slotmap::{KeyData, SlotMap, new_key_type};
@@ -52,6 +57,27 @@ struct Binding {
   value: VariableInfoId,
 }
 
+/// An atom-backed scope key that can also be queried with an AST string view.
+///
+/// `swc_atoms::Atom` hashes its precomputed hash value, while `str` hashes its
+/// bytes, so `Atom` cannot implement `Borrow<str>`. Hashing both forms as
+/// strings keeps borrowed lookups correct and avoids materializing an `Atom`
+/// for every identifier reference produced by SWC Next.
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct ScopeName(Atom);
+
+impl Borrow<str> for ScopeName {
+  fn borrow(&self) -> &str {
+    self.0.as_str()
+  }
+}
+
+impl Hash for ScopeName {
+  fn hash<H: Hasher>(&self, state: &mut H) {
+    self.0.as_str().hash(state);
+  }
+}
+
 /// Scoped symbol table.
 ///
 /// The parser enters and exits scopes in strict stack order and always reads
@@ -68,7 +94,7 @@ struct Binding {
 pub struct ScopeInfoDB {
   map: SlotMap<ScopeInfoId, ScopeInfo>,
   /// For each name, the stack of active bindings, innermost last.
-  bindings: FxHashMap<Atom, SmallVec<[Binding; 2]>>,
+  bindings: FxHashMap<ScopeName, SmallVec<[Binding; 2]>>,
   /// The innermost active scope, used to validate the stack discipline.
   current: Option<ScopeInfoId>,
   variable_info_db: VariableInfoDB,
@@ -183,7 +209,7 @@ impl ScopeInfoDB {
   }
 
   /// Resolve `key` starting from the innermost active scope `id`.
-  pub fn get(&mut self, id: ScopeInfoId, key: &Atom) -> Option<VariableInfoId> {
+  pub fn get(&mut self, id: ScopeInfoId, key: &str) -> Option<VariableInfoId> {
     debug_assert_eq!(
       self.current,
       Some(id),
@@ -204,6 +230,7 @@ impl ScopeInfoDB {
     //   Some(id),
     //   "bindings can only be set in the innermost active scope"
     // );
+    let key = ScopeName(key);
     let stack = self.bindings.entry(key.clone()).or_default();
     if let Some(top) = stack.last_mut()
       && top.scope == id
@@ -233,7 +260,7 @@ impl ScopeInfoDB {
         .iter()
         .rev()
         .find(|binding| binding.scope == id)?;
-      (binding.value != VariableInfoId::tombstone()).then_some((name.as_str(), binding.value))
+      (binding.value != VariableInfoId::tombstone()).then_some((name.0.as_str(), binding.value))
     })
   }
 }
@@ -368,12 +395,14 @@ impl VariableInfo {
 pub struct ScopeInfo {
   parent: Option<ScopeInfoId>,
   /// Names bound in this scope, in definition order.
-  defined: Vec<Atom>,
+  defined: Vec<ScopeName>,
   pub is_strict: bool,
 }
 
 #[cfg(test)]
 mod tests {
+  use swc_atoms::Atom;
+
   use super::{ScopeInfoDB, VariableInfo, VariableInfoFlags, VariableInfoId};
 
   fn new_variable(db: &mut ScopeInfoDB, scope: super::ScopeInfoId) -> VariableInfoId {
@@ -384,7 +413,7 @@ mod tests {
   fn inner_scope_shadows_and_unwinds() {
     let mut db = ScopeInfoDB::new();
     let root = db.create();
-    let a = "a".into();
+    let a = Atom::from("a");
 
     let outer = new_variable(&mut db, root);
     db.set(root, "a".into(), outer);
@@ -405,7 +434,7 @@ mod tests {
   fn delete_masks_outer_binding_until_exit() {
     let mut db = ScopeInfoDB::new();
     let root = db.create();
-    let a = "a".into();
+    let a = Atom::from("a");
 
     let outer = new_variable(&mut db, root);
     db.set(root, "a".into(), outer);

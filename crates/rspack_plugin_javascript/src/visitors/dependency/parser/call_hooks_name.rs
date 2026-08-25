@@ -27,13 +27,7 @@ impl CallHooksName for Atom {
   where
     F: Fn(&mut JavascriptParser<'parser>, &str) -> Option<T>,
   {
-    if let Some(id) = parser.get_variable_info(self).map(|info| info.id()) {
-      // resolved variable info
-      call_hooks_info(id, parser, hook_call)
-    } else {
-      // unresolved free variable, for example the global `require` in commonjs.
-      hook_call(parser, self)
-    }
+    self.as_str().call_hooks_name(parser, hook_call)
   }
 }
 
@@ -46,7 +40,13 @@ impl CallHooksName for &str {
   where
     F: Fn(&mut JavascriptParser<'parser>, &str) -> Option<T>,
   {
-    Atom::from(*self).call_hooks_name(parser, hook_call)
+    if let Some(id) = parser.get_variable_info(self).map(|info| info.id()) {
+      // resolved variable info
+      call_hooks_info(id, parser, hook_call)
+    } else {
+      // unresolved free variable, for example the global `require` in commonjs.
+      hook_call(parser, self)
+    }
   }
 }
 
