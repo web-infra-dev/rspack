@@ -1,13 +1,17 @@
+use bitflags::bitflags;
 use rspack_cacheable::cacheable;
 use rspack_collections::Identifiable;
 use rspack_error::Result;
 use rspack_fs::ReadableFileSystem;
 use rspack_hash::{HashFunction, RspackHasher};
 use rspack_loader_runner::{Content, LoaderContext, LoaderDependencyContext};
-use rspack_paths::{InternedPath, InternedPathSet, Utf8Path};
+use rspack_paths::InternedPathSet;
 use rspack_sources::SourceMap;
 
-use crate::{CacheFacade, CacheValue, Etag, ItemCacheFacade, Module, RunnerContext};
+use crate::{
+  CacheFacade, CacheValue, Etag, ItemCacheFacade, Module, RunnerContext,
+  new_cache::FileDependencies,
+};
 
 fn loader_cache_key(module_identifier: &str, loader_name: &str) -> String {
   let mut hasher = RspackHasher::new(&HashFunction::Xxhash64);
@@ -32,19 +36,22 @@ pub fn loader_cache_etag(content: &Content, options_cache_key: &str, loader_vers
 
 #[doc(hidden)]
 #[cacheable]
-#[derive(Clone)]
-struct LoaderCacheDependency {
-  path: InternedPath,
-  mtime_ms: u64,
-  file: bool,
-  build: bool,
+#[derive(Clone, Copy)]
+struct LoaderCacheDependencyKind(u8);
+
+bitflags! {
+  impl LoaderCacheDependencyKind: u8 {
+    const FILE = 1 << 0;
+    const BUILD = 1 << 1;
+  }
 }
 
 #[doc(hidden)]
 #[cacheable]
 #[derive(Clone)]
 pub struct LoaderCacheDependencySnapshot {
-  dependencies: Vec<LoaderCacheDependency>,
+  dependencies: FileDependencies,
+  kinds: Vec<LoaderCacheDependencyKind>,
 }
 
 #[doc(hidden)]
@@ -57,21 +64,30 @@ pub fn loader_cache_dependency_snapshot(
   {
     return None;
   }
-  let dependencies = dependency_context
+  let mut paths = Vec::with_capacity(
+    dependency_context.file_dependencies.len() + dependency_context.build_dependencies.len(),
+  );
+  let mut kinds = Vec::with_capacity(paths.capacity());
+  for path in dependency_context
     .file_dependencies
     .union(&dependency_context.build_dependencies)
-    .map(|path| {
-      let utf8_path = Utf8Path::from_path(path.as_path())?;
-      let metadata = fs.metadata_sync(utf8_path).ok()?;
-      Some(LoaderCacheDependency {
-        path: path.clone(),
-        mtime_ms: metadata.mtime_ms,
-        file: dependency_context.file_dependencies.contains(path),
-        build: dependency_context.build_dependencies.contains(path),
-      })
-    })
-    .collect::<Option<Vec<_>>>()?;
-  Some(LoaderCacheDependencySnapshot { dependencies })
+  {
+    paths.push(path.clone());
+    let mut kind = LoaderCacheDependencyKind::empty();
+    if dependency_context.file_dependencies.contains(path) {
+      kind.insert(LoaderCacheDependencyKind::FILE);
+    }
+    if dependency_context.build_dependencies.contains(path) {
+      kind.insert(LoaderCacheDependencyKind::BUILD);
+    }
+    debug_assert!(!kind.is_empty());
+    kinds.push(kind);
+  }
+  let dependencies = FileDependencies::capture(fs, paths)?;
+  Some(LoaderCacheDependencySnapshot {
+    dependencies,
+    kinds,
+  })
 }
 
 #[doc(hidden)]
@@ -79,13 +95,7 @@ pub fn loader_cache_dependency_snapshot_is_valid(
   fs: &dyn ReadableFileSystem,
   snapshot: &LoaderCacheDependencySnapshot,
 ) -> bool {
-  snapshot.dependencies.iter().all(|dependency| {
-    let Some(path) = Utf8Path::from_path(dependency.path.as_path()) else {
-      return false;
-    };
-    fs.metadata_sync(path)
-      .is_ok_and(|metadata| metadata.mtime_ms == dependency.mtime_ms)
-  })
+  snapshot.dependencies.paths().len() == snapshot.kinds.len() && snapshot.dependencies.is_valid(fs)
 }
 
 #[doc(hidden)]
@@ -93,16 +103,12 @@ pub fn restore_loader_cache_dependencies(
   snapshot: &LoaderCacheDependencySnapshot,
   dependency_context: &mut LoaderDependencyContext,
 ) {
-  for dependency in &snapshot.dependencies {
-    if dependency.file {
-      dependency_context
-        .file_dependencies
-        .insert(dependency.path.clone());
+  for (path, kind) in snapshot.dependencies.paths().zip(&snapshot.kinds) {
+    if kind.contains(LoaderCacheDependencyKind::FILE) {
+      dependency_context.file_dependencies.insert(path.clone());
     }
-    if dependency.build {
-      dependency_context
-        .build_dependencies
-        .insert(dependency.path.clone());
+    if kind.contains(LoaderCacheDependencyKind::BUILD) {
+      dependency_context.build_dependencies.insert(path.clone());
     }
   }
 }
