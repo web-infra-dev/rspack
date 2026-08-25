@@ -199,7 +199,7 @@ Rspack 2.2 不再包装客户端引用，而是通过 React 的 [`preinit`](http
 
 这项调整改变了 RSC 中客户端组件 CSS 的加载方式，是一项针对 RSC 框架集成的破坏性变更。如果你正在集成 Rspack RSC 插件，请将 [`react-server-dom-rspack`](https://www.npmjs.com/package/react-server-dom-rspack) 同步升级到 `0.1.0`。
 
-### Wasm 插件需要重新构建 \{wasm-plugin-breaking}
+### Wasm 插件需要重新构建 \{#wasm-plugin-breaking}
 
 Rspack 2.2.0 已将 `swc_core` 从 76 升级至 77, 影响了 SWC Wasm 插件边界上的 AST 序列化格式，
 因此基于旧版 SWC 构建的 Wasm 插件将无法继续使用，并可能出现以下错误：
