@@ -313,7 +313,7 @@ const myPlugin = () => ({
 
 #### 支持 TypeScript 7 \{#typescript-7}
 
-Rslib 0.23.2 支持使用 TypeScript 7 生成类型声明文件。安装 TypeScript 7 后，Rslib 会自动启用原生 TypeScript 进行类型生成。在 [TypeScript 官方基准测试](https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/) 中，使用 TypeScript 7 通常可以获得 **8 至 12 倍**的性能提升，具体收益会因项目规模和硬件环境而异。
+Rslib 0.23.2 支持使用 [TypeScript 7](https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/) 生成类型声明文件。安装 TypeScript 7 后，Rslib 会自动启用原生 TypeScript，类型声明文件生成速度可提升约 **5 至 10 倍**。
 
 <PackageManagerTabs command="add typescript@latest -D" />
 
@@ -337,6 +337,28 @@ test('home page', async ({ page, serve }) => {
   await expect(page.locator('h1')).toHaveText('Home');
 });
 ```
+
+#### 支持 Module Federation \{#rstest-module-federation}
+
+Rstest 0.11.4 带来了 Module Federation 支持：现在可以在 Node、JSDOM 和 Browser Mode 环境下，直接测试真实的联邦远程模块，无需 mock federation boundary。通过 `@module-federation/rstest`，你还可以加载 URL remote，或在 Node.js 集成测试中使用 `commonjs` remote：
+
+```ts title="rstest.config.ts"
+import { federation } from '@module-federation/rstest';
+import { defineConfig } from '@rstest/core';
+
+export default defineConfig({
+  plugins: [
+    federation({
+      name: 'host',
+      remotes: {
+        'component-app': 'component_app@http://localhost:3001/remoteEntry.js',
+      },
+    }),
+  ],
+});
+```
+
+更多配置方式请参考 [Module Federation × Rstest 集成文档](https://module-federation.io/integrations/build-tool/rstest.html)。
 
 #### 预打包 DOM 测试环境 \{#rstest-environment-prebundle}
 
