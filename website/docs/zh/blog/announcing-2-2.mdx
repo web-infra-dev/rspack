@@ -45,7 +45,7 @@ _2026 年 8 月 26 日_
   - [构建性能提升](#build-performance-improve)
   - [更好的 HMR](#better-hmr)
   - [CSS 解析性能提升](#css-performance)
-  - [Wasm 包体积优化](#wasm-size)
+  - [其他性能优化](#wasm-size)
 
 - 新特性
   - [`import.meta` 新增 API](#import-meta-apis)
@@ -65,11 +65,11 @@ _2026 年 8 月 26 日_
 
 ## 性能提升
 
-### 构建性能提升 5% \{#build-performance-improve}
+### 构建性能提升 \{#build-performance-improve}
 
 Rspack 2.2 合入了 30 多项构建性能优化，覆盖模块合并、Split Chunks 和 Source Map 生成等构建路径上的核心算法。在生产模式冷构建的基准测试中，构建时间从 **1822 ms** 降至 **1725 ms**，提升约 **5.6%**。
 
-> 数据来源：[rspack-react-10k-benchmark](https://github.com/LingyuCoder/rspack-react-10k-benchmark/commit/121be0c19252db61e9fc9c8ebbce93943caa88eb)，测试环境为 veLinux 2（kernel 5.15.120，x86_64），32 GB 内存，16 核 Intel Xeon Platinum 8336C。
+> 数据来源：[rspack-react-10k-benchmark](https://github.com/LingyuCoder/rspack-react-10k-benchmark/commit/121be0c19252db61e9fc9c8ebbce93943caa88eb)。
 
 ### 更好的 HMR \{#better-hmr}
 
@@ -87,26 +87,18 @@ Rspack 2.2 让 HMR 的资源请求更加精确，热更新速度也更稳定。�
 
 ### CSS 解析性能提升 \{#css-performance}
 
-在 HMR 改进之外，我们还将内置 CSS 的解析速度提升了约 **3 倍**，并完善了 Unicode 支持。开发构建和生产构建的数据如下：
+Rspack 内置 CSS 的解析速度提升了约 **3 倍**，并完善了 Unicode 支持。性能数据如下：
 
-| 场景                          | 优化前   | 优化后  | 性能提升   |
-| ----------------------------- | -------- | ------- | ---------- |
-| CSS 开发构建                  | 320.3 ms | 87.2 ms | **3.7 倍** |
-| CSS 生产构建（含 Source Map） | 354.1 ms | 121 ms  | **2.9 倍** |
+| 场景         | 优化前   | 优化后  | 性能提升   |
+| ------------ | -------- | ------- | ---------- |
+| CSS 开发构建 | 320.3 ms | 87.2 ms | **3.7 倍** |
+| CSS 生产构建 | 354.1 ms | 121 ms  | **2.9 倍** |
 
-例如，下面的 CSS Modules 文件使用 emoji 作为类名：
+### 其他性能优化 \{#wasm-size}
 
-```css title="style.modules.css"
-.🦀 {
-  color: red;
-}
-```
-
-Rspack 2.2 会生成 `.style_modules_css-🦀`，而不再是带有多余转义的 `.style_modules_css-\🦀`。
-
-### Wasm 包体积优化 3% \{#wasm-size}
-
-Rspack 2.2 调整了 Wasm 版本的构建配置，移除了不必要的依赖并优化了编译选项。Wasm 产物体积从 **30,194.9 KB** 降至 **29,111.8 KB**，减少约 **3.6%**；经 `gzip -9` 压缩后从 **9,466.4 KB** 降至 **9,163.8 KB**，减少约 **3.2%**。这可以降低 [`@rspack/browser`](/api/javascript-api/browser) 等 Wasm 场景下的下载与加载开销。
+- Wasm 产物体积从 29.5 MB 降至 28.4 MB，减少约 **1.1 MB**，降低了 [`@rspack/browser`](/api/javascript-api/browser) 等 Wasm 场景的下载与加载开销。
+- Rspack 现在会并行编译 [SWC Wasm 插件](/guide/features/builtin-swc-loader#jscexperimentalplugins)，将 Rstest 启用 Istanbul 覆盖率时的冷加载耗时从约 1.85 秒降至约 360 毫秒，缩短约 **80%**。
+- [CopyRspackPlugin](/plugins/rspack/copy-rspack-plugin) 的性能得到优化，在复制大量文件时，性能提升约 **3～4 倍**。
 
 ## 新特性
 
