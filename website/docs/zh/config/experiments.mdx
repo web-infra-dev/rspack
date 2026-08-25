@@ -6,6 +6,7 @@ import { ApiMeta, Stability } from '../../../components/ApiMeta';
 import WebpackLicense from '@components/WebpackLicense';
 import PropertyType from '@components/PropertyType';
 import { Table } from '@builtIns';
+import { Tabs, Tab } from '@theme';
 
 <WebpackLicense from="https://webpack.js.org/configuration/experiments/" />
 
@@ -262,6 +263,85 @@ export default {
 :::warning
 这个选项依赖 `optimization.sideEffects`。如果你关闭了 [`optimization.sideEffects`](/config/optimization#optimizationsideeffects)，pure function 相关提示将不会被分析。
 :::
+
+## experiments.runtimeMode
+
+<ApiMeta addedVersion="2.2.0" />
+
+- **类型：** `'webpack' | 'rspack'`
+- **默认值：** `'webpack'`
+
+将 `experiments.runtimeMode` 设置为 `'rspack'` 会启用 Rspack 的实验性 runtime 产物。该产物模式仍在开发中，请谨慎使用。目前，它在 [`output.module`](/config/output#outputmodule) 为 `true`，且 [`output.library.type`](/config/output#outputlibrarytype) 为 `'modern-module'` 时能够精简产物。在这种情况下，runtime 不再只导出一个挂载了多个辅助函数的 `__webpack_require__`，而是将加载函数、模块工厂和辅助函数分别导出为具名 ESM 绑定，让每个产物 chunk 只需导入实际使用的绑定。
+
+### 示例
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    runtimeMode: 'rspack',
+  },
+  output: {
+    module: true,
+    library: {
+      type: 'modern-module',
+    },
+  },
+  optimization: {
+    runtimeChunk: 'single',
+  },
+};
+```
+
+生成的 runtime 及使用它的 chunk 会采用如下组织方式（代码经过简化）：
+
+<Tabs>
+  <Tab label="runtimeMode: 'webpack'">
+
+```js
+// runtime.js
+var __webpack_modules__ = {};
+function __webpack_require__(moduleId) {
+  /* ... */
+}
+__webpack_require__.m = __webpack_modules__;
+__webpack_require__.n = (module) => {
+  /* ... */
+};
+
+export { __webpack_require__ };
+
+// main.js
+import { __webpack_require__ } from './runtime.js';
+
+const value = __webpack_require__(moduleId);
+const getDefault = __webpack_require__.n(value);
+```
+
+  </Tab>
+  <Tab label="runtimeMode: 'rspack'">
+
+```js
+// runtime.js
+var modules = {};
+function rspackRequire(moduleId) {
+  /* ... */
+}
+var moduleFactories = modules;
+var compatGetDefaultExport = (module) => {
+  /* ... */
+};
+
+export { rspackRequire, moduleFactories, compatGetDefaultExport };
+
+// main.js
+import { rspackRequire, compatGetDefaultExport } from './runtime.js';
+
+const value = rspackRequire(moduleId);
+const getDefault = compatGetDefaultExport(value);
+```
+
+  </Tab>
+</Tabs>
 
 ## experiments.useInputFileSystem
 
