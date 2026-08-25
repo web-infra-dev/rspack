@@ -48,7 +48,8 @@ _2026 年 8 月 26 日_
   - [性能提升](#performance-improvements)
   - [HMR 改进](#better-hmr)
 - 新特性
-- [`import.meta` 改进](#import-meta-improvements)
+  - [`import.meta` 改进](#import-meta-improvements)
+  - [支持 Browserslist Baseline](#browserslist-baseline)
 - [简短的模块 ID](#compat-hashed-ids)
 - 生态
   - [Rsbuild](#rsbuild)
@@ -133,6 +134,18 @@ const modules = import.meta.glob('./pages/**/*.js', {
   caseSensitive: false,
 });
 ```
+
+### 支持 Browserslist Baseline \{#browserslist-baseline}
+
+Rspack 现在支持 [Browserslist 的 Baseline 查询](https://web.dev/articles/use-baseline-with-browserslist)。你可以根据 Baseline 特性集来指定目标浏览器版本。例如，兼容 [**Baseline 广泛可用的特性**](https://web.dev/baseline)，可以配置：
+
+```js title="rspack.config.mjs"
+export default {
+  target: 'browserslist:baseline widely available',
+};
+```
+
+你也可以使用 `baseline widely available on 2025-05-01` 按指定日期查询，详见 [`target` 配置文档](/config/target#baseline-queries)。
 
 ## 生态
 
