@@ -4,7 +4,7 @@ use rspack_error::Result;
 use rspack_fs::ReadableFileSystem;
 use rspack_hash::{HashFunction, RspackHasher};
 use rspack_loader_runner::{Content, LoaderContext, LoaderDependencyContext};
-use rspack_paths::{InternedPathSet, Utf8Path};
+use rspack_paths::{InternedPath, InternedPathSet, Utf8Path};
 use rspack_sources::SourceMap;
 
 use crate::{CacheFacade, CacheValue, Etag, ItemCacheFacade, Module, RunnerContext};
@@ -31,42 +31,80 @@ pub fn loader_cache_etag(content: &Content, options_cache_key: &str, loader_vers
 }
 
 #[doc(hidden)]
-pub fn loader_cache_dependencies_etag(
+#[cacheable]
+#[derive(Clone)]
+struct LoaderCacheDependency {
+  path: InternedPath,
+  mtime_ms: u64,
+  file: bool,
+  build: bool,
+}
+
+#[doc(hidden)]
+#[cacheable]
+#[derive(Clone)]
+pub struct LoaderCacheDependencySnapshot {
+  dependencies: Vec<LoaderCacheDependency>,
+}
+
+#[doc(hidden)]
+pub fn loader_cache_dependency_snapshot(
   fs: &dyn ReadableFileSystem,
   dependency_context: &LoaderDependencyContext,
-) -> Option<Etag> {
-  let mut dependencies = dependency_context
+) -> Option<LoaderCacheDependencySnapshot> {
+  if !dependency_context.context_dependencies.is_empty()
+    || !dependency_context.missing_dependencies.is_empty()
+  {
+    return None;
+  }
+  let dependencies = dependency_context
     .file_dependencies
-    .iter()
-    .map(|path| ("file", path))
-    .chain(
+    .union(&dependency_context.build_dependencies)
+    .map(|path| {
+      let utf8_path = Utf8Path::from_path(path.as_path())?;
+      let metadata = fs.metadata_sync(utf8_path).ok()?;
+      Some(LoaderCacheDependency {
+        path: path.clone(),
+        mtime_ms: metadata.mtime_ms,
+        file: dependency_context.file_dependencies.contains(path),
+        build: dependency_context.build_dependencies.contains(path),
+      })
+    })
+    .collect::<Option<Vec<_>>>()?;
+  Some(LoaderCacheDependencySnapshot { dependencies })
+}
+
+#[doc(hidden)]
+pub fn loader_cache_dependency_snapshot_is_valid(
+  fs: &dyn ReadableFileSystem,
+  snapshot: &LoaderCacheDependencySnapshot,
+) -> bool {
+  snapshot.dependencies.iter().all(|dependency| {
+    let Some(path) = Utf8Path::from_path(dependency.path.as_path()) else {
+      return false;
+    };
+    fs.metadata_sync(path)
+      .is_ok_and(|metadata| metadata.mtime_ms == dependency.mtime_ms)
+  })
+}
+
+#[doc(hidden)]
+pub fn restore_loader_cache_dependencies(
+  snapshot: &LoaderCacheDependencySnapshot,
+  dependency_context: &mut LoaderDependencyContext,
+) {
+  for dependency in &snapshot.dependencies {
+    if dependency.file {
       dependency_context
-        .context_dependencies
-        .iter()
-        .map(|path| ("context", path)),
-    )
-    .chain(
+        .file_dependencies
+        .insert(dependency.path.clone());
+    }
+    if dependency.build {
       dependency_context
         .build_dependencies
-        .iter()
-        .map(|path| ("build", path)),
-    )
-    .collect::<Vec<_>>();
-  dependencies.sort_unstable_by(|(kind_a, path_a), (kind_b, path_b)| {
-    kind_a
-      .cmp(kind_b)
-      .then_with(|| path_a.as_path().cmp(path_b.as_path()))
-  });
-
-  let mut hasher = RspackHasher::new(&HashFunction::Xxhash64);
-  for (kind, path) in dependencies {
-    let path = Utf8Path::from_path(path.as_path())?;
-    let metadata = fs.metadata_sync(path).ok()?;
-    hasher.write(kind.as_bytes());
-    hasher.write(path.as_str().as_bytes());
-    hasher.write(&metadata.mtime_ms.to_le_bytes());
+        .insert(dependency.path.clone());
+    }
   }
-  Some(Etag::from(format!("{:016x}", hasher.finish())))
 }
 
 #[doc(hidden)]
@@ -86,8 +124,7 @@ struct LoaderCacheEntry {
   content: Option<Vec<u8>>,
   content_is_string: bool,
   source_map: Option<String>,
-  dependency_context: LoaderDependencyContext,
-  dependencies_etag: Etag,
+  dependency_snapshot: LoaderCacheDependencySnapshot,
 }
 
 pub(crate) struct LoaderCacheMissState {
@@ -157,8 +194,10 @@ pub(crate) fn before_normal_loader(
   );
 
   if let Some(entry) = item_cache.get::<LoaderCacheEntry>()?
-    && loader_cache_dependencies_etag(context.context.fs.as_ref(), &entry.dependency_context)
-      == Some(entry.dependencies_etag.clone())
+    && loader_cache_dependency_snapshot_is_valid(
+      context.context.fs.as_ref(),
+      &entry.dependency_snapshot,
+    )
   {
     let content = match (&entry.content, entry.content_is_string) {
       (Some(content), true) => {
@@ -173,21 +212,7 @@ pub(crate) fn before_normal_loader(
       .source_map
       .clone()
       .and_then(|source_map| SourceMap::from_json(source_map).ok());
-    context
-      .dependency_context
-      .file_dependencies
-      .extend(entry.dependency_context.file_dependencies.iter().cloned());
-    context.dependency_context.context_dependencies.extend(
-      entry
-        .dependency_context
-        .context_dependencies
-        .iter()
-        .cloned(),
-    );
-    context
-      .dependency_context
-      .build_dependencies
-      .extend(entry.dependency_context.build_dependencies.iter().cloned());
+    restore_loader_cache_dependencies(&entry.dependency_snapshot, &mut context.dependency_context);
     context.__finish_with((content, source_map, None));
     return Ok(LoaderCacheAction::Hit);
   }
@@ -221,6 +246,9 @@ pub(crate) fn after_normal_loader(
   ) else {
     return Ok(());
   };
+  if !context_dependencies.is_empty() {
+    return Ok(());
+  }
   let Some(build_dependencies) = dependency_delta(
     &context.dependency_context.build_dependencies,
     &state.dependency_context.build_dependencies,
@@ -234,12 +262,12 @@ pub(crate) fn after_normal_loader(
   }
   let dependency_context = LoaderDependencyContext {
     file_dependencies,
-    context_dependencies,
+    context_dependencies: Default::default(),
     missing_dependencies: Default::default(),
     build_dependencies,
   };
-  let Some(dependencies_etag) =
-    loader_cache_dependencies_etag(context.context.fs.as_ref(), &dependency_context)
+  let Some(dependency_snapshot) =
+    loader_cache_dependency_snapshot(context.context.fs.as_ref(), &dependency_context)
   else {
     return Ok(());
   };
@@ -253,8 +281,7 @@ pub(crate) fn after_normal_loader(
     content,
     content_is_string,
     source_map: context.source_map().map(SourceMap::to_json),
-    dependency_context,
-    dependencies_etag,
+    dependency_snapshot,
   };
   let loader_name = context.current_loader().loader_name();
   let module_identifier = context.context.module.identifier();
