@@ -4,6 +4,7 @@ const COMPILATION_LOG = 'compilation logger warning';
 const INFRASTRUCTURE_LOG = 'infrastructure logger warning';
 const explicitLogging = process.env.EXPLICIT_LOGGING === 'true';
 const partialStats = process.env.PARTIAL_STATS === 'true';
+const statsPreset = process.env.STATS_PRESET;
 
 module.exports = {
   entry: './src/index.js',
@@ -20,13 +21,22 @@ module.exports = {
           logging: 'warn',
         },
       }
-    : partialStats
+    : statsPreset
       ? {
-          stats: {
-            timings: false,
-          },
+          stats:
+            statsPreset === 'object'
+              ? {
+                  preset: 'verbose',
+                }
+              : 'verbose',
         }
-      : {}),
+      : partialStats
+        ? {
+            stats: {
+              timings: false,
+            },
+          }
+        : {}),
   plugins: [
     {
       apply(compiler) {

@@ -119,6 +119,21 @@ describe('build command', () => {
     expect(partialStatsOutput).not.toContain('compilation logger warning');
     expect(partialStatsOutput).not.toContain('infrastructure logger warning');
 
+    for (const statsPreset of ['string', 'object']) {
+      const presetResult = await run(
+        __dirname,
+        ['--config', './logging.config.js'],
+        {},
+        { STATS_PRESET: statsPreset },
+        true,
+      );
+      const presetOutput = `${presetResult.stdout}${presetResult.stderr}`;
+
+      expect(presetResult.exitCode).toBe(0);
+      expect(presetOutput).toContain('compilation logger warning');
+      expect(presetOutput).not.toContain('infrastructure logger warning');
+    }
+
     const explicitResult = await run(
       __dirname,
       ['--config', './logging.config.js'],
