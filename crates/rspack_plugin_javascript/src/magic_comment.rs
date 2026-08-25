@@ -11,7 +11,7 @@ use swc_next_ecma_ast::{
   ArgumentData, Ast, CommentKind, Expr, ExprData, GetSpan, ObjectPropertyKindData, PropertyKey,
   PropertyKeyData, Span, UnaryOperator,
 };
-use swc_next_ecma_parser::{FragmentContext, NoTokenParserConfig, Options, Parser};
+use swc_next_ecma_parser::{FragmentContext, Options, Parser, TokenParserConfig};
 
 use crate::{
   utils::object_properties::FromAstExpr,
@@ -376,7 +376,7 @@ fn parse_magic_comment_object<'a>(
       preserve_parens: false,
       ..Options::default()
     },
-    NoTokenParserConfig,
+    TokenParserConfig,
   )
   .parse_expression_fragment(FragmentContext::TopLevel)
   .ok()?;

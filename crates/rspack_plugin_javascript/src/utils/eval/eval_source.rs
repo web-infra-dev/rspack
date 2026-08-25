@@ -2,7 +2,7 @@ use rspack_error::{Error, Severity};
 use rspack_util::swc::RspackComments;
 use serde_json::json;
 use swc_next_ecma_ast::{Directive, GetSpan, Stmt};
-use swc_next_ecma_parser::{FragmentContext, NoTokenParserConfig, Options, Parser};
+use swc_next_ecma_parser::{FragmentContext, Options, Parser, TokenParserConfig};
 use swc_next_ecma_semantic::{AnalyzeOptions, SemanticReturn, analyze};
 
 use super::BasicEvaluatedExpression;
@@ -26,7 +26,7 @@ pub fn eval_source<'parser>(
       preserve_parens: false,
       ..Options::default()
     },
-    NoTokenParserConfig,
+    TokenParserConfig,
   )
   .parse_expression_fragment(FragmentContext::TopLevel);
   match result {
