@@ -122,6 +122,12 @@ impl Compiler {
       self.compile().await?;
     }
 
+    self
+      .plugin_driver
+      .compiler_hooks
+      .after_compile
+      .call(&mut self.compilation)
+      .await?;
     self.compile_done().await?;
     self.cache.after_compile(&self.compilation).await;
 
