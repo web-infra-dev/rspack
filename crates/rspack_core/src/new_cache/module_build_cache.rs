@@ -80,38 +80,50 @@ impl ModuleBuildCacheEntry {
   }
 }
 
+#[derive(Debug, Clone)]
+pub(crate) struct ModuleCache {
+  inner: Arc<ModuleCacheInner>,
+}
+
 #[derive(Debug)]
-pub(super) struct ModuleCacheState {
+struct ModuleCacheInner {
+  cache: CacheFacade,
   codec: Arc<CacheCodec>,
   file_system_info: FileSystemInfo,
+  idle_file_cache: Option<IdleFileCache>,
   dependency_id_restored: OnceLock<()>,
 }
 
-impl ModuleCacheState {
-  pub(super) fn new(codec: Arc<CacheCodec>, file_system_info: FileSystemInfo) -> Self {
+impl ModuleCache {
+  pub(crate) fn new(
+    cache: Cache,
+    codec: Arc<CacheCodec>,
+    file_system_info: FileSystemInfo,
+    idle_file_cache: Option<IdleFileCache>,
+  ) -> Self {
     Self {
-      codec,
-      file_system_info,
-      dependency_id_restored: OnceLock::new(),
+      inner: Arc::new(ModuleCacheInner {
+        cache: cache.facade(MODULE_BUILD_CACHE_NAME),
+        codec,
+        file_system_info,
+        idle_file_cache,
+        dependency_id_restored: OnceLock::new(),
+      }),
     }
   }
 
-  pub(super) fn build_cache(
-    &self,
-    cache: Cache,
-    value_cache_versions: &ValueCacheVersions,
-  ) -> ModuleBuildCache {
+  pub(crate) fn build_cache(&self, value_cache_versions: &ValueCacheVersions) -> ModuleBuildCache {
     ModuleBuildCache {
-      cache: cache.facade(MODULE_BUILD_CACHE_NAME),
-      codec: self.codec.clone(),
-      file_system_info: self.file_system_info.clone(),
+      cache: self.inner.cache.clone(),
+      codec: self.inner.codec.clone(),
+      file_system_info: self.inner.file_system_info.clone(),
       value_cache_versions: Arc::new(value_cache_versions.clone()),
     }
   }
 
-  pub(super) fn restore_dependency_id(&self, file_cache: Option<&IdleFileCache>) {
-    self.dependency_id_restored.get_or_init(|| {
-      let Some(file_cache) = file_cache else {
+  pub(crate) fn restore_dependency_id(&self) {
+    self.inner.dependency_id_restored.get_or_init(|| {
+      let Some(file_cache) = &self.inner.idle_file_cache else {
         return;
       };
       let dependency_id = match file_cache.restore_dependency_id() {
@@ -128,20 +140,16 @@ impl ModuleCacheState {
     });
   }
 
-  pub(super) fn record_dependency_id(
-    &self,
-    file_cache: Option<&IdleFileCache>,
-    dependency_id: u32,
-  ) -> Result<()> {
-    if let Some(file_cache) = file_cache {
+  pub(crate) fn record_dependency_id(&self, dependency_id: u32) -> Result<()> {
+    if let Some(file_cache) = &self.inner.idle_file_cache {
       file_cache.store_dependency_id(dependency_id)
     } else {
       Ok(())
     }
   }
 
-  pub(super) fn clear(&self) {
-    self.file_system_info.clear();
+  pub(crate) fn clear(&self) {
+    self.inner.file_system_info.clear();
   }
 }
 

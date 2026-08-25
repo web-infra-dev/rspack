@@ -44,9 +44,7 @@ impl TaskContext {
     artifact: BuildModuleGraphArtifact,
     exports_info_artifact: ExportsInfoArtifact,
   ) -> Self {
-    let module_build_cache = compilation
-      .cache
-      .module_build_cache(&compilation.value_cache_versions);
+    let module_build_cache = compilation.module_build_cache();
     Self {
       compiler_id: compilation.compiler_id(),
       compilation_id: compilation.id(),

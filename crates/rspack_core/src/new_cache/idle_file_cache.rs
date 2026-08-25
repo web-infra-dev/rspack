@@ -203,7 +203,7 @@ impl BackgroundJob {
 }
 
 /// Runs filesystem cache operations in one persistent background job.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct IdleFileCache {
   command_sender: mpsc::UnboundedSender<Command>,
   idle_epoch: Arc<AtomicU64>,

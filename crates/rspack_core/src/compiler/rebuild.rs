@@ -95,7 +95,8 @@ impl Compiler {
         self.output_filesystem.clone(),
         true,
         self.compiler_context.clone(),
-      );
+      )
+      .with_module_cache(self.module_cache.clone());
       next_compilation.hot_index = self.compilation.hot_index + 1;
 
       if next_compilation

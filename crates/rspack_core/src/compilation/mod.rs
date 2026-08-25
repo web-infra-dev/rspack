@@ -96,7 +96,7 @@ use crate::{
   legacy_cache::persistent::occasion::{
     devtool::SourceMapDevToolPluginCache, minimize::MinimizePersistentCache,
   },
-  new_cache::{Cache, CacheFacade},
+  new_cache::{Cache, CacheFacade, ModuleBuildCache, ModuleCache},
   to_identifier,
 };
 
@@ -238,6 +238,7 @@ pub struct Compilation {
   diagnostics: Vec<Diagnostic>,
   logging: CompilationLogging,
   cache: Cache,
+  module_cache: Option<ModuleCache>,
   pub plugin_driver: SharedPluginDriver,
   pub buildtime_plugin_driver: SharedPluginDriver,
   pub resolver_factory: Arc<ResolverFactory>,
@@ -378,6 +379,7 @@ impl Compilation {
       diagnostics: Default::default(),
       logging,
       cache,
+      module_cache: None,
       plugin_driver,
       buildtime_plugin_driver,
       resolver_factory,
@@ -447,6 +449,18 @@ impl Compilation {
 
   pub fn get_cache(&self, name: &str) -> CacheFacade {
     self.cache.facade(name)
+  }
+
+  pub(crate) fn with_module_cache(mut self, module_cache: Option<ModuleCache>) -> Self {
+    self.module_cache = module_cache;
+    self
+  }
+
+  pub(crate) fn module_build_cache(&self) -> Option<ModuleBuildCache> {
+    self
+      .module_cache
+      .as_ref()
+      .map(|module_cache| module_cache.build_cache(&self.value_cache_versions))
   }
 
   pub fn id(&self) -> CompilationId {

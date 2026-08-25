@@ -6,10 +6,7 @@ use rspack_paths::InternedPathSet;
 use super::{
   CacheFacade, CacheKey, CacheValue, Etag, IdleFileCache, MemoryCache, MemoryCacheGetResult,
   cache_value::CacheValueData,
-  module_build_cache::{ModuleBuildCache, ModuleCacheState},
-  snapshot::FileSystemInfo,
 };
-use crate::{ValueCacheVersions, cache::CacheCodec};
 
 /// Cache entry point backed by memory and optional filesystem storage.
 ///
@@ -26,7 +23,6 @@ struct CacheStorage {
 struct CacheInner {
   compiler_path: String,
   storage: Option<CacheStorage>,
-  module_cache: Option<ModuleCacheState>,
 }
 
 /// Cheaply cloneable handle to the shared cache state.
@@ -41,30 +37,6 @@ impl Cache {
     memory_cache: MemoryCache,
     idle_file_cache: Option<IdleFileCache>,
   ) -> Self {
-    Self::new_with_storage(compiler_path, memory_cache, idle_file_cache, None)
-  }
-
-  pub(crate) fn new_with_module_cache(
-    compiler_path: String,
-    memory_cache: MemoryCache,
-    idle_file_cache: Option<IdleFileCache>,
-    codec: Arc<CacheCodec>,
-    file_system_info: FileSystemInfo,
-  ) -> Self {
-    Self::new_with_storage(
-      compiler_path,
-      memory_cache,
-      idle_file_cache,
-      Some(ModuleCacheState::new(codec, file_system_info)),
-    )
-  }
-
-  fn new_with_storage(
-    compiler_path: String,
-    memory_cache: MemoryCache,
-    idle_file_cache: Option<IdleFileCache>,
-    module_cache: Option<ModuleCacheState>,
-  ) -> Self {
     Self {
       inner: Arc::new(CacheInner {
         compiler_path,
@@ -72,7 +44,6 @@ impl Cache {
           memory_cache,
           idle_file_cache,
         }),
-        module_cache,
       }),
     }
   }
@@ -82,29 +53,7 @@ impl Cache {
       inner: Arc::new(CacheInner {
         compiler_path,
         storage: None,
-        module_cache: None,
       }),
-    }
-  }
-
-  pub(crate) fn module_build_cache(
-    &self,
-    value_cache_versions: &ValueCacheVersions,
-  ) -> Option<ModuleBuildCache> {
-    self
-      .inner
-      .module_cache
-      .as_ref()
-      .map(|module_cache| module_cache.build_cache(self.clone(), value_cache_versions))
-  }
-
-  /// Restore the dependency id generator before the first make pass.
-  ///
-  /// Cached dependencies retain their ids, so newly created dependencies must
-  /// continue after the largest id stored by the persistent cache.
-  pub(crate) fn restore_dependency_id(&self) {
-    if let Some(module_cache) = &self.inner.module_cache {
-      module_cache.restore_dependency_id(self.idle_file_cache());
     }
   }
 
@@ -177,14 +126,6 @@ impl Cache {
     }
   }
 
-  pub(crate) fn record_dependency_id(&self, dependency_id: u32) -> Result<()> {
-    if let Some(module_cache) = &self.inner.module_cache {
-      module_cache.record_dependency_id(self.idle_file_cache(), dependency_id)
-    } else {
-      Ok(())
-    }
-  }
-
   fn idle_file_cache(&self) -> Option<&IdleFileCache> {
     self
       .inner
@@ -224,9 +165,6 @@ impl Cache {
     let Some(storage) = &self.inner.storage else {
       return Ok(());
     };
-    if let Some(module_cache) = &self.inner.module_cache {
-      module_cache.clear();
-    }
     if let Some(file_cache) = &storage.idle_file_cache {
       file_cache.end_idle()
     } else {
