@@ -1821,6 +1821,23 @@ export default {
 };
 ```
 
+## output.wasmStreamingFallback
+
+- **Type:** `boolean`
+- **Default:** `true`
+
+Controls whether the generated WebAssembly loading runtime falls back to a non-streaming API when `WebAssembly.compileStreaming` or `WebAssembly.instantiateStreaming` rejects because the response does not use the `application/wasm` MIME type.
+
+Set this option to `false` to omit the fallback runtime code when your server always serves WebAssembly files with the correct MIME type.
+
+```js title="rspack.config.mjs"
+export default {
+  output: {
+    wasmStreamingFallback: false,
+  },
+};
+```
+
 ## output.webassemblyModuleFilename
 
 - **Type:** `string`
