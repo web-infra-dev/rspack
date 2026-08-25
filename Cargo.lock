@@ -4227,7 +4227,6 @@ dependencies = [
  "rspack_util",
  "rustc-hash",
  "serde_json",
- "swc_core",
  "ustr-fxhash",
  "xxhash-rust",
 ]
@@ -5097,7 +5096,6 @@ dependencies = [
  "rspack_plugin_split_chunks",
  "rspack_util",
  "simd-json",
- "swc_core",
  "tracing",
 ]
 
@@ -5534,7 +5532,6 @@ dependencies = [
  "rspack_hash",
  "rspack_hook",
  "rspack_util",
- "swc_core",
  "tokio",
  "tracing",
  "wasmparser",
