@@ -10,10 +10,10 @@ use rspack_core::{
 use rspack_error::{Diagnostic, Severity};
 use rspack_util::{SpanExt, json_stringify_str};
 use swc_atoms::Atom;
-use swc_experimental_allocator::CloneIn;
-use swc_experimental_ecma_ast::{
-  AssignExpr, AssignOp, CallExpr, Callee, Expr, ExprOrSpread, GetSpan, Ident, Lit, MemberExpr,
-  MemberProp, NewExpr, Span, UnaryExpr, UnaryOp, VarDeclarator,
+use swc_next_ecma_ast::{
+  Argument, ArgumentData, AssignmentExpression, AssignmentOperator, Ast, CallExpression, Expr,
+  ExprData, GetSpan, MemberExpression, NewExpression, PropertyKeyData, Span, TypedSubRange,
+  UnaryExpression, UnaryOperator, VariableDeclarator,
 };
 use url::Url;
 
@@ -34,9 +34,10 @@ use crate::{
   magic_comment::try_extract_magic_comment,
   utils::eval::{self, BasicEvaluatedExpression},
   visitors::{
-    CallHooksName, ExportedVariableInfo, JavascriptParser, StatementPath, TagInfoData,
-    VariableDeclaration, VariableDeclarationKind, VariableInfo, VariableInfoFlags, context_reg_exp,
-    create_context_dependency, create_traceable_error, expr_name, get_non_optional_part,
+    CallHooksName, ExportedVariableInfo, HookMemberExpression, Identifier, JavascriptParser,
+    StatementPath, TagInfoData, VariableDeclaration, VariableDeclarationKind, VariableInfo,
+    VariableInfoFlags, context_reg_exp, create_context_dependency, create_traceable_error,
+    expr_name, get_non_optional_part, member_property_key_to_atom,
   },
 };
 
@@ -62,16 +63,16 @@ struct CreateRequireArgument {
 }
 
 #[derive(Default)]
-pub struct CreatedRequireReferencesState<'a> {
-  pending: rustc_hash::FxHashMap<Span, PendingCreatedRequire<'a>>,
+pub struct CreatedRequireReferencesState {
+  pending: rustc_hash::FxHashMap<Span, PendingCreatedRequire>,
   exported_locals: rustc_hash::FxHashSet<Atom>,
 }
 
-struct PendingCreatedRequire<'a> {
+struct PendingCreatedRequire {
   must_keep: bool,
   callee: DeferredCreateRequireCallee,
   // Deferred calls skip this expression until their keep/strip state is known.
-  argument: Expr<'a>,
+  argument: Expr,
   statement_path: Vec<StatementPath>,
   prev_statement: Option<StatementPath>,
 }
@@ -86,12 +87,12 @@ struct DeferredCreateRequireCallee {
   branch_guard: Option<DependencyBranchGuard>,
 }
 
-impl<'a> CreatedRequireReferencesState<'a> {
+impl CreatedRequireReferencesState {
   fn add_pending(
     &mut self,
     call_span: Span,
     callee: DeferredCreateRequireCallee,
-    argument: Expr<'a>,
+    argument: Expr,
     statement_path: Vec<StatementPath>,
     prev_statement: Option<StatementPath>,
   ) {
@@ -118,7 +119,7 @@ impl<'a> CreatedRequireReferencesState<'a> {
     }
   }
 
-  fn take_pending(&mut self) -> Vec<(Span, PendingCreatedRequire<'a>)> {
+  fn take_pending(&mut self) -> Vec<(Span, PendingCreatedRequire)> {
     let mut pending = std::mem::take(&mut self.pending)
       .into_iter()
       .collect::<Vec<_>>();
@@ -263,7 +264,7 @@ fn should_handle_create_require_specifier(parser: &JavascriptParser, for_name: &
 fn should_handle_create_require_call(
   parser: &mut JavascriptParser,
   for_name: &str,
-  callee: Option<&Expr>,
+  callee: Option<Expr>,
 ) -> bool {
   should_handle_create_require_specifier(parser, for_name)
     || callee.is_some_and(|callee| is_create_require_namespace_member(parser, callee))
@@ -271,7 +272,7 @@ fn should_handle_create_require_call(
 
 #[cold]
 #[inline(never)]
-fn is_evaluated_create_require(parser: &mut JavascriptParser, expr: &Expr) -> bool {
+fn is_evaluated_create_require(parser: &mut JavascriptParser, expr: Expr) -> bool {
   let evaluated = parser.evaluate_expression(expr);
   evaluated.is_identifier() && evaluated.identifier() == CREATE_REQUIRE_EVALUATED_TAG
 }
@@ -291,22 +292,24 @@ fn is_create_require_module_object_import(settings: &ESMSpecifierData) -> bool {
 #[inline(never)]
 pub(crate) fn is_create_require_namespace_member(
   parser: &mut JavascriptParser,
-  expr: &Expr,
+  expr: Expr,
 ) -> bool {
-  let Some(member_expr) = expr.as_member() else {
+  let ast = parser.ast.ast;
+  let Some(member_expr) = expr.as_member_expression(ast) else {
     return false;
   };
-  let Some(namespace) = member_expr.obj.as_ident() else {
+  let Some(namespace) = member_expr.object(ast).as_identifier_reference(ast) else {
     return false;
   };
-  let Some(settings) =
-    parser.get_tag_data::<ESMSpecifierData>(&Atom::from(namespace.sym.as_str()), ESM_SPECIFIER_TAG)
-  else {
+  let Some(settings) = parser.get_tag_data::<ESMSpecifierData>(
+    &Atom::from(ast.get_utf8(namespace.name(ast))),
+    ESM_SPECIFIER_TAG,
+  ) else {
     return false;
   };
   let source = settings.source.clone();
   let module_object_import = is_create_require_module_object_import(settings);
-  let Some(member) = static_member_name(member_expr) else {
+  let Some(member) = static_member_name(ast, member_expr) else {
     return false;
   };
   module_object_import
@@ -338,17 +341,29 @@ fn is_create_require_namespace_member_param(
 
 #[cold]
 #[inline(never)]
-fn static_member_name(member_expr: &MemberExpr) -> Option<Atom> {
-  match &member_expr.prop {
-    MemberProp::Ident(ident) => Some(Atom::from(ident.sym.as_str())),
-    MemberProp::Computed(computed) => match &computed.expr {
-      Expr::Lit(lit) => match &**lit {
-        Lit::Str(str) => Some(Atom::from(str.value.as_wtf8().to_string_lossy().as_ref())),
-        _ => None,
-      },
-      _ => None,
-    },
-    MemberProp::PrivateName(_) => None,
+fn static_member_name(ast: &Ast<'_>, member_expr: MemberExpression) -> Option<Atom> {
+  if member_expr.computed(ast) {
+    member_property_key_to_atom(ast, member_expr.property(ast))
+  } else if let PropertyKeyData::IdentifierName(identifier) =
+    ast.property_key_data(member_expr.property(ast))
+  {
+    Some(Atom::from(ast.get_utf8(identifier.name(ast))))
+  } else {
+    None
+  }
+}
+
+fn collect_arguments(ast: &Ast<'_>, arguments: TypedSubRange<Argument>) -> Vec<Argument> {
+  arguments
+    .iter()
+    .map(|id| ast.get_node_in_sub_range(id))
+    .collect()
+}
+
+fn argument_expression(ast: &Ast<'_>, argument: Argument) -> Expr {
+  match ast.argument_data(argument) {
+    ArgumentData::Expr(expression) => expression,
+    ArgumentData::SpreadElement(spread) => spread.argument(ast),
   }
 }
 
@@ -456,13 +471,13 @@ fn dirname(path: &str) -> Option<&str> {
 
 #[cold]
 #[inline(never)]
-fn evaluate_create_require_argument(parser: &mut JavascriptParser, arg: &Expr) -> Option<String> {
+fn evaluate_create_require_argument(parser: &mut JavascriptParser, arg: Expr) -> Option<String> {
   let evaluated = parser.evaluate_expression(arg);
   if let Some(value) = evaluated.as_string() {
     return Some(value);
   }
 
-  if let Some(member) = arg.as_member()
+  if let Some(member) = arg.as_member_expression(parser.ast.ast)
     && is_meta_url(parser, member)
   {
     return Url::from_file_path(parser.resource_data.resource())
@@ -470,20 +485,20 @@ fn evaluate_create_require_argument(parser: &mut JavascriptParser, arg: &Expr) -
       .map(|url| url.to_string());
   }
 
-  let new_expr = arg.as_new()?;
-  if new_expr.callee.as_ident()?.sym.as_str() != "URL"
+  let ast = parser.ast.ast;
+  let new_expr = arg.as_new_expression(ast)?;
+  if ast.get_utf8(new_expr.callee(ast).as_identifier_reference(ast)?.name(ast)) != "URL"
     || parser.get_variable_info(&Atom::from("URL")).is_some()
   {
     return None;
   }
-  if let Some(args) = &new_expr.args
-    && !args.is_empty()
-    && args[0].spread.is_none()
-    && let Some(value) = parser.evaluate_expression(&args[0].expr).as_string()
+  let args = collect_arguments(ast, new_expr.arguments(ast));
+  if let Some(first_arg) = args.first().and_then(|arg| arg.as_expr(ast))
+    && let Some(value) = parser.evaluate_expression(first_arg).as_string()
     && value.starts_with("file:/")
   {
     if let Some(base) = args.get(1)
-      && !is_valid_ignored_url_base_arg(parser, base)
+      && !is_valid_ignored_url_base_arg(parser, *base)
     {
       return None;
     }
@@ -524,26 +539,34 @@ fn evaluate_create_require_argument(parser: &mut JavascriptParser, arg: &Expr) -
 #[inline(never)]
 fn ignored_url_args_are_side_effect_free_from(
   parser: &mut JavascriptParser,
-  args: &[ExprOrSpread],
+  args: &[Argument],
   start: usize,
 ) -> bool {
-  args
-    .iter()
-    .skip(start)
-    .all(|arg| arg.spread.is_none() && is_side_effect_free_ignored_url_arg(parser, &arg.expr))
+  let ast = parser.ast.ast;
+  args.iter().skip(start).all(|arg| {
+    arg
+      .as_expr(ast)
+      .is_some_and(|expr| is_side_effect_free_ignored_url_arg(parser, expr))
+  })
 }
 
 #[cold]
 #[inline(never)]
-fn is_side_effect_free_ignored_url_arg(parser: &mut JavascriptParser, expr: &Expr) -> bool {
-  match expr {
-    Expr::Lit(_) => true,
-    Expr::Ident(ident) => {
-      ident.sym.as_str() == "undefined"
+fn is_side_effect_free_ignored_url_arg(parser: &mut JavascriptParser, expr: Expr) -> bool {
+  let ast = parser.ast.ast;
+  match ast.expr_data(expr) {
+    ExprData::StringLiteral(_)
+    | ExprData::NumericLiteral(_)
+    | ExprData::BigIntLiteral(_)
+    | ExprData::BooleanLiteral(_)
+    | ExprData::NullLiteral(_)
+    | ExprData::RegExpLiteral(_) => true,
+    ExprData::IdentifierReference(ident) => {
+      ast.get_utf8(ident.name(ast)) == "undefined"
         && parser.get_variable_info(&Atom::from("undefined")).is_none()
     }
-    Expr::Unary(unary) if unary.op == UnaryOp::Void => {
-      is_side_effect_free_ignored_url_arg(parser, &unary.arg)
+    ExprData::UnaryExpression(unary) if unary.operator(ast) == UnaryOperator::Void => {
+      is_side_effect_free_ignored_url_arg(parser, unary.argument(ast))
     }
     _ => false,
   }
@@ -553,17 +576,19 @@ fn is_side_effect_free_ignored_url_arg(parser: &mut JavascriptParser, expr: &Exp
 #[inline(never)]
 fn parse_create_require_argument(
   parser: &mut JavascriptParser,
-  call_expr: &CallExpr,
+  call_expr: CallExpression,
   emit_warning: bool,
 ) -> Option<CreateRequireArgument> {
-  parse_create_require_argument_from_args(parser, &call_expr.args, call_expr.span, emit_warning)
+  let ast = parser.ast.ast;
+  let args = collect_arguments(ast, call_expr.arguments(ast));
+  parse_create_require_argument_from_args(parser, &args, call_expr.span(ast), emit_warning)
 }
 
 #[cold]
 #[inline(never)]
 fn parse_create_require_argument_from_args(
   parser: &mut JavascriptParser,
-  args: &[ExprOrSpread],
+  args: &[Argument],
   span: Span,
   emit_warning: bool,
 ) -> Option<CreateRequireArgument> {
@@ -574,24 +599,24 @@ fn parse_create_require_argument_from_args(
     return None;
   }
 
-  if let Some(spread) = args[0].spread {
+  let ast = parser.ast.ast;
+  let Some(arg) = args[0].as_expr(ast) else {
     if emit_warning {
       add_create_require_warning(
         parser,
         "module.createRequire does not support spread arguments.",
-        spread,
+        args[0].span(ast),
       );
     }
     return None;
-  }
+  };
 
-  let arg = &args[0].expr;
   let Some(value) = evaluate_create_require_argument(parser, arg) else {
     if emit_warning {
       add_create_require_warning(
         parser,
         "module.createRequire failed parsing argument.",
-        arg.span(),
+        arg.span(parser.ast.ast),
       );
     }
     return None;
@@ -601,7 +626,7 @@ fn parse_create_require_argument_from_args(
     add_create_require_warning(
       parser,
       "module.createRequire supports only file URLs and absolute paths.",
-      arg.span(),
+      arg.span(parser.ast.ast),
     );
   }
   Some(CreateRequireArgument {
@@ -615,16 +640,18 @@ fn parse_create_require_argument_from_args(
 #[inline(never)]
 fn parse_create_require_new_argument(
   parser: &mut JavascriptParser,
-  new_expr: &NewExpr,
+  new_expr: NewExpression,
   emit_warning: bool,
 ) -> Option<CreateRequireArgument> {
-  let args = new_expr.args.as_deref().unwrap_or_default();
-  parse_create_require_argument_from_args(parser, args, new_expr.span, emit_warning)
+  let ast = parser.ast.ast;
+  let args = collect_arguments(ast, new_expr.arguments(ast));
+  parse_create_require_argument_from_args(parser, &args, new_expr.span(ast), emit_warning)
 }
 
 #[inline(never)]
-fn should_replace_create_require_argument(parser: &mut JavascriptParser, arg: &Expr) -> bool {
-  if let Some(member) = arg.as_member()
+fn should_replace_create_require_argument(parser: &mut JavascriptParser, arg: Expr) -> bool {
+  let ast = parser.ast.ast;
+  if let Some(member) = arg.as_member_expression(ast)
     && is_meta_url(parser, member)
   {
     return parser
@@ -632,44 +659,42 @@ fn should_replace_create_require_argument(parser: &mut JavascriptParser, arg: &E
       .import_meta()
       .is_known_property_enabled(ImportMetaKnownProperties::URL);
   }
-  let Some(new_expr) = arg.as_new() else {
+  let Some(new_expr) = arg.as_new_expression(ast) else {
     return true;
   };
   if new_expr
-    .callee
-    .as_ident()
-    .is_some_and(|ident| ident.sym.as_str() == "URL")
+    .callee(ast)
+    .as_identifier_reference(ast)
+    .is_some_and(|ident| ast.get_utf8(ident.name(ast)) == "URL")
     && parser.get_variable_info(&Atom::from("URL")).is_none()
   {
     let is_absolute_file_url = is_absolute_file_url_constructor_arg(parser, arg);
     let start = if is_absolute_file_url { 1 } else { 2 };
-    let Some(args) = &new_expr.args else {
-      return true;
-    };
+    let args = collect_arguments(ast, new_expr.arguments(ast));
     if is_absolute_file_url
       && let Some(base) = args.get(1)
-      && !is_valid_ignored_url_base_arg(parser, base)
+      && !is_valid_ignored_url_base_arg(parser, *base)
     {
       return false;
     }
-    ignored_url_args_are_side_effect_free_from(parser, args, start)
+    ignored_url_args_are_side_effect_free_from(parser, &args, start)
   } else {
     true
   }
 }
 
 #[inline(never)]
-fn can_defer_create_require_call(parser: &mut JavascriptParser, args: &[ExprOrSpread]) -> bool {
+fn can_defer_create_require_call(parser: &mut JavascriptParser, args: &[Argument]) -> bool {
+  let ast = parser.ast.ast;
   args.len() == 1
-    && args[0].spread.is_none()
     && args[0]
-      .expr
-      .as_member()
+      .as_expr(ast)
+      .and_then(|expr| expr.as_member_expression(ast))
       .is_some_and(|member| is_meta_url(parser, member))
 }
 
 #[inline(never)]
-fn should_clear_create_require_call(parser: &mut JavascriptParser, args: &[ExprOrSpread]) -> bool {
+fn should_clear_create_require_call(parser: &mut JavascriptParser, args: &[Argument]) -> bool {
   !matches!(parser.javascript_options.require_resolve, Some(false))
     && can_defer_create_require_call(parser, args)
 }
@@ -683,85 +708,84 @@ fn clear_create_require_call(parser: &mut JavascriptParser, span: Span) {
 }
 
 #[inline(never)]
-fn is_valid_ignored_url_base_arg(parser: &mut JavascriptParser, base: &ExprOrSpread) -> bool {
-  if base.spread.is_some() {
+fn is_valid_ignored_url_base_arg(parser: &mut JavascriptParser, base: Argument) -> bool {
+  let ast = parser.ast.ast;
+  let Some(base) = base.as_expr(ast) else {
     return false;
-  }
-  if let Expr::Ident(ident) = &base.expr
-    && ident.sym.as_str() == "undefined"
+  };
+  if let Some(ident) = base.as_identifier_reference(ast)
+    && ast.get_utf8(ident.name(ast)) == "undefined"
     && parser.get_variable_info(&Atom::from("undefined")).is_none()
   {
     return true;
   }
-  if let Expr::Unary(unary) = &base.expr
-    && unary.op == UnaryOp::Void
-    && is_side_effect_free_ignored_url_arg(parser, &unary.arg)
+  if let Some(unary) = base.as_unary_expression(ast)
+    && unary.operator(ast) == UnaryOperator::Void
+    && is_side_effect_free_ignored_url_arg(parser, unary.argument(ast))
   {
     return true;
   }
   parser
-    .evaluate_expression(&base.expr)
+    .evaluate_expression(base)
     .as_string()
     .is_some_and(|base| Url::parse(&base).is_ok())
 }
 
 #[inline(never)]
-fn is_absolute_file_url_constructor_arg(parser: &mut JavascriptParser, arg: &Expr) -> bool {
-  let Some(new_expr) = arg.as_new() else {
+fn is_absolute_file_url_constructor_arg(parser: &mut JavascriptParser, arg: Expr) -> bool {
+  let ast = parser.ast.ast;
+  let Some(new_expr) = arg.as_new_expression(ast) else {
     return false;
   };
   if new_expr
-    .callee
-    .as_ident()
-    .is_none_or(|ident| ident.sym.as_str() != "URL")
+    .callee(ast)
+    .as_identifier_reference(ast)
+    .is_none_or(|ident| ast.get_utf8(ident.name(ast)) != "URL")
     || parser.get_variable_info(&Atom::from("URL")).is_some()
   {
     return false;
   };
-  let Some(args) = &new_expr.args else {
-    return false;
-  };
+  let args = collect_arguments(ast, new_expr.arguments(ast));
   args
     .first()
-    .filter(|arg| arg.spread.is_none())
-    .and_then(|arg| parser.evaluate_expression(&arg.expr).as_string())
+    .and_then(|arg| arg.as_expr(ast))
+    .and_then(|arg| parser.evaluate_expression(arg).as_string())
     .is_some_and(|value| value.starts_with("file:/"))
 }
 
 #[inline(never)]
-fn walk_create_require_callee(parser: &mut JavascriptParser, call_expr: &CallExpr) {
-  if let Callee::Expr(callee) = &call_expr.callee {
-    parser.walk_expression(callee);
-  }
+fn walk_create_require_callee(parser: &mut JavascriptParser, call_expr: CallExpression) {
+  parser.walk_expression(call_expr.callee(parser.ast.ast));
 }
 
-fn walk_create_require_ignored_args(parser: &mut JavascriptParser, call_expr: &CallExpr) {
-  if call_expr.args.len() > 1 {
-    parser.walk_expr_or_spread(&call_expr.args[1..]);
+fn walk_create_require_ignored_args(parser: &mut JavascriptParser, call_expr: CallExpression) {
+  let ast = parser.ast.ast;
+  let args = collect_arguments(ast, call_expr.arguments(ast));
+  if args.len() > 1 {
+    parser.walk_arguments(args.into_iter().skip(1));
   }
 }
 
 #[inline(never)]
-fn is_unbound_url_constructor(parser: &mut JavascriptParser, callee: &Expr) -> bool {
+fn is_unbound_url_constructor(parser: &mut JavascriptParser, callee: Expr) -> bool {
   callee
-    .as_ident()
-    .is_some_and(|ident| ident.sym.as_str() == "URL")
+    .as_identifier_reference(parser.ast.ast)
+    .is_some_and(|ident| parser.ast.ast.get_utf8(ident.name(parser.ast.ast)) == "URL")
     && parser.get_variable_info(&Atom::from("URL")).is_none()
 }
 
 #[inline(never)]
-fn walk_create_require_argument_side_effects(parser: &mut JavascriptParser, arg: &Expr) {
-  let Some(new_expr) = arg.as_new() else {
+fn walk_create_require_argument_side_effects(parser: &mut JavascriptParser, arg: Expr) {
+  let ast = parser.ast.ast;
+  let Some(new_expr) = arg.as_new_expression(ast) else {
     return;
   };
-  if !is_unbound_url_constructor(parser, &new_expr.callee) {
+  if !is_unbound_url_constructor(parser, new_expr.callee(ast)) {
     return;
   };
-  let Some(args) = &new_expr.args else {
-    return;
-  };
+  let args = collect_arguments(ast, new_expr.arguments(ast));
   if args.len() > 1 {
-    parser.walk_expr_or_spread(&args[1..]);
+    parser.walk_arguments(args.into_iter().skip(1));
   }
 }
 
@@ -802,32 +826,31 @@ fn side_effects_with_suffix(side_effects: &str, suffix: &str) -> Box<str> {
 }
 
 #[inline(never)]
-fn create_require_url_arg_side_effects(parser: &mut JavascriptParser, arg: &Expr) -> String {
-  let Some(new_expr) = arg.as_new() else {
+fn create_require_url_arg_side_effects(parser: &mut JavascriptParser, arg: Expr) -> String {
+  let ast = parser.ast.ast;
+  let Some(new_expr) = arg.as_new_expression(ast) else {
     return String::new();
   };
-  if !is_unbound_url_constructor(parser, &new_expr.callee) {
+  if !is_unbound_url_constructor(parser, new_expr.callee(ast)) {
     return String::new();
   };
-  let Some(args) = &new_expr.args else {
-    return String::new();
-  };
+  let args = collect_arguments(ast, new_expr.arguments(ast));
   let start = if is_absolute_file_url_constructor_arg(parser, arg) {
     1
   } else {
     2
   };
   let mut side_effects = String::new();
-  for arg in args.iter().skip(start) {
-    let Some(source) = source_for_span(parser, arg.expr.span()) else {
+  for argument in args.iter().skip(start).copied() {
+    let expression = argument_expression(ast, argument);
+    let Some(source) = source_for_span(parser, expression.span(ast)) else {
       continue;
     };
-    if arg.spread.is_some() {
+    if argument.as_expr(ast).is_none() {
       push_spread_side_effect(&mut side_effects, &source);
-    } else if !is_side_effect_free_ignored_url_arg(parser, &arg.expr)
-      && !arg
-        .expr
-        .as_member()
+    } else if !is_side_effect_free_ignored_url_arg(parser, expression)
+      && !expression
+        .as_member_expression(ast)
         .is_some_and(|expr| is_meta_url(parser, expr))
     {
       push_side_effect(&mut side_effects, &source);
@@ -861,16 +884,15 @@ fn wrap_span_with_side_effects(parser: &mut JavascriptParser, span: Span, side_e
 }
 
 #[inline(never)]
-fn create_require_extra_arg_side_effects(
-  parser: &JavascriptParser,
-  args: &[ExprOrSpread],
-) -> String {
+fn create_require_extra_arg_side_effects(parser: &JavascriptParser, args: &[Argument]) -> String {
+  let ast = parser.ast.ast;
   let mut side_effects = String::new();
-  for arg in args.iter().skip(1) {
-    let Some(source) = source_for_span(parser, arg.expr.span()) else {
+  for argument in args.iter().skip(1).copied() {
+    let expression = argument_expression(ast, argument);
+    let Some(source) = source_for_span(parser, expression.span(ast)) else {
       continue;
     };
-    if arg.spread.is_some() {
+    if argument.as_expr(ast).is_none() {
       push_spread_side_effect(&mut side_effects, &source);
     } else {
       push_side_effect(&mut side_effects, &source);
@@ -882,13 +904,13 @@ fn create_require_extra_arg_side_effects(
 #[inline(never)]
 fn create_require_args_side_effects(
   parser: &mut JavascriptParser,
-  args: &[ExprOrSpread],
+  args: &[Argument],
   argument: &CreateRequireArgument,
 ) -> String {
   let mut side_effects = if argument.replace_argument {
     String::new()
   } else {
-    create_require_url_arg_side_effects(parser, &args[0].expr)
+    create_require_url_arg_side_effects(parser, argument_expression(parser.ast.ast, args[0]))
   };
   let extra_side_effects = create_require_extra_arg_side_effects(parser, args);
   if !extra_side_effects.is_empty() {
@@ -898,12 +920,12 @@ fn create_require_args_side_effects(
 }
 
 #[inline(never)]
-fn evaluate_created_require<'a>(
-  parser: &mut JavascriptParser,
+fn evaluate_created_require<'p>(
+  parser: &mut JavascriptParser<'p>,
   range: Span,
-  args: &[ExprOrSpread],
+  args: &[Argument],
   argument: CreateRequireArgument,
-) -> BasicEvaluatedExpression<'a> {
+) -> BasicEvaluatedExpression<'p> {
   let side_effects = create_require_args_side_effects(parser, args, &argument);
   let has_side_effects = !side_effects.is_empty();
   let evaluated_name = Atom::from(range.real_lo().to_string());
@@ -931,32 +953,39 @@ fn evaluate_created_require<'a>(
 }
 
 #[inline(never)]
-pub(crate) fn evaluate_create_require_new_expression<'a>(
-  parser: &mut JavascriptParser,
+pub(crate) fn evaluate_create_require_new_expression<'p>(
+  parser: &mut JavascriptParser<'p>,
   for_name: &str,
-  callee: Option<&Expr>,
-  expr: &'a NewExpr,
-) -> Option<BasicEvaluatedExpression<'a>> {
+  callee: Option<Expr>,
+  expr: NewExpression,
+) -> Option<BasicEvaluatedExpression<'p>> {
   if !should_handle_create_require_call(parser, for_name, callee) {
     return None;
   }
   let argument = parse_create_require_new_argument(parser, expr, false)?;
+  let ast = parser.ast.ast;
+  let args = collect_arguments(ast, expr.arguments(ast));
   Some(evaluate_created_require(
     parser,
-    expr.span,
-    expr.args.as_deref().unwrap_or_default(),
+    expr.span(ast),
+    &args,
     argument,
   ))
 }
 
 #[inline(never)]
-fn evaluate_create_require_call_expression<'a>(
-  parser: &mut JavascriptParser,
-  expr: &'a CallExpr,
-) -> Option<BasicEvaluatedExpression<'a>> {
+fn evaluate_create_require_call_expression<'p>(
+  parser: &mut JavascriptParser<'p>,
+  expr: CallExpression,
+) -> Option<BasicEvaluatedExpression<'p>> {
   let argument = parse_create_require_argument(parser, expr, false)?;
+  let ast = parser.ast.ast;
+  let args = collect_arguments(ast, expr.arguments(ast));
   Some(evaluate_created_require(
-    parser, expr.span, &expr.args, argument,
+    parser,
+    expr.span(ast),
+    &args,
+    argument,
   ))
 }
 
@@ -1008,26 +1037,34 @@ fn add_unsupported_create_require_member_warning(parser: &mut JavascriptParser, 
 
 fn deferred_create_require_callee(
   parser: &mut JavascriptParser,
-  callee: &Expr,
+  callee: Expr,
   call_span: Span,
 ) -> Option<DeferredCreateRequireCallee> {
-  let (settings, range, ids, direct_import, ns_access) = if let Some(ident) = callee.as_ident() {
-    let settings = parser
-      .get_tag_data::<ESMSpecifierData>(&Atom::from(ident.sym.as_str()), ESM_SPECIFIER_TAG)?
-      .clone();
-    let ids = settings.ids.clone().into_vec();
-    (settings, ident.span.into(), ids, true, false)
-  } else {
-    let member = callee.as_member()?;
-    let namespace = member.obj.as_ident()?;
-    let settings = parser
-      .get_tag_data::<ESMSpecifierData>(&Atom::from(namespace.sym.as_str()), ESM_SPECIFIER_TAG)?
-      .clone();
-    let mut ids = settings.ids.clone().into_vec();
-    ids.push(static_member_name(member)?);
-    let ns_access = settings.namespace_import && !ids.is_empty();
-    (settings, callee.span().into(), ids, false, ns_access)
-  };
+  let ast = parser.ast.ast;
+  let (settings, range, ids, direct_import, ns_access) =
+    if let Some(ident) = callee.as_identifier_reference(ast) {
+      let settings = parser
+        .get_tag_data::<ESMSpecifierData>(
+          &Atom::from(ast.get_utf8(ident.name(ast))),
+          ESM_SPECIFIER_TAG,
+        )?
+        .clone();
+      let ids = settings.ids.clone().into_vec();
+      (settings, ident.span(ast).into(), ids, true, false)
+    } else {
+      let member = callee.as_member_expression(ast)?;
+      let namespace = member.object(ast).as_identifier_reference(ast)?;
+      let settings = parser
+        .get_tag_data::<ESMSpecifierData>(
+          &Atom::from(ast.get_utf8(namespace.name(ast))),
+          ESM_SPECIFIER_TAG,
+        )?
+        .clone();
+      let mut ids = settings.ids.clone().into_vec();
+      ids.push(static_member_name(ast, member)?);
+      let ns_access = settings.namespace_import && !ids.is_empty();
+      (settings, callee.span(ast).into(), ids, false, ns_access)
+    };
   Some(DeferredCreateRequireCallee {
     settings,
     range,
@@ -1085,48 +1122,51 @@ fn add_deferred_create_require_callee_dependency(
   );
 }
 
-fn keep_deferred_create_require_call<'a>(
-  parser: &mut JavascriptParser<'a>,
-  pending: PendingCreatedRequire<'a>,
+fn keep_deferred_create_require_call(
+  parser: &mut JavascriptParser,
+  pending: PendingCreatedRequire,
 ) {
   add_deferred_create_require_callee_dependency(parser, pending.callee);
   // Let the regular parser plugins own children of a call that survives.
   let statement_path = std::mem::replace(&mut parser.statement_path, pending.statement_path);
   let prev_statement = std::mem::replace(&mut parser.prev_statement, pending.prev_statement);
-  parser.walk_expression(&pending.argument);
+  parser.walk_expression(pending.argument);
   parser.statement_path = statement_path;
   parser.prev_statement = prev_statement;
 }
 
-fn pre_tag_created_require_declarator<'a>(
-  parser: &mut JavascriptParser<'a>,
-  declarator: &VarDeclarator,
-  declaration: VariableDeclaration<'_>,
+fn pre_tag_created_require_declarator(
+  parser: &mut JavascriptParser,
+  declarator: VariableDeclarator,
+  declaration: VariableDeclaration,
 ) {
   // Register metadata only; the normal declarator walk still creates or clears dependencies.
-  if declaration.kind() != VariableDeclarationKind::Const {
+  let ast = parser.ast.ast;
+  if declaration.kind(ast) != VariableDeclarationKind::Const {
     return;
   }
-  let Some(binding) = declarator.name.as_ident() else {
+  let Some(binding) = declarator.id(ast).as_binding_identifier(ast) else {
     return;
   };
-  let Some(call) = declarator.init.as_ref().and_then(Expr::as_call) else {
+  let Some(call) = declarator
+    .init(ast)
+    .and_then(|expr| expr.as_call_expression(ast))
+  else {
     return;
   };
-  let Some(callee) = call.callee.as_expr() else {
-    return;
-  };
-  let is_create_require_callee = callee
-    .as_ident()
-    .is_some_and(|ident| is_create_require_specifier(parser, &Atom::from(ident.sym.as_str())))
-    || is_create_require_namespace_member(parser, callee);
-  if !is_create_require_callee || !can_defer_create_require_call(parser, &call.args) {
+  let callee = call.callee(ast);
+  let is_create_require_callee = callee.as_identifier_reference(ast).is_some_and(|ident| {
+    is_create_require_specifier(parser, &Atom::from(ast.get_utf8(ident.name(ast))))
+  }) || is_create_require_namespace_member(parser, callee);
+  let args = collect_arguments(ast, call.arguments(ast));
+  if !is_create_require_callee || !can_defer_create_require_call(parser, &args) {
     return;
   }
   let Some(argument) = parse_create_require_argument(parser, call, false) else {
     return;
   };
-  let Some(deferred_callee) = deferred_create_require_callee(parser, callee, call.span) else {
+  let call_span = call.span(ast);
+  let Some(deferred_callee) = deferred_create_require_callee(parser, callee, call_span) else {
     return;
   };
   let CreateRequireArgument {
@@ -1134,7 +1174,7 @@ fn pre_tag_created_require_declarator<'a>(
     context,
     replace_argument: _,
   } = argument;
-  let name = Atom::from(binding.id.sym.as_str());
+  let name = Atom::from(ast.get_utf8(binding.name(ast)));
   parser.define_variable(name.clone());
   parser.tag_variable(
     name,
@@ -1142,16 +1182,16 @@ fn pre_tag_created_require_declarator<'a>(
     Some(CreatedRequireTagData {
       context,
       side_effects: String::new(),
-      pending_call: Some(call.span),
+      pending_call: Some(call_span),
       preserve_unhandled: true,
     }),
   );
   let statement_path = parser.statement_path.clone();
   let prev_statement = parser.prev_statement;
   parser.created_require_references.add_pending(
-    call.span,
+    call_span,
     deferred_callee,
-    call.args[0].expr.clone_in(parser.ast.allocator),
+    argument_expression(parser.ast.ast, args[0]),
     statement_path,
     prev_statement,
   );
@@ -1159,12 +1199,12 @@ fn pre_tag_created_require_declarator<'a>(
 
 #[cold]
 #[inline(never)]
-fn tag_created_require_declarator<'a>(
-  parser: &mut JavascriptParser<'a>,
-  binding: &Ident,
+fn tag_created_require_declarator(
+  parser: &mut JavascriptParser,
+  binding: swc_next_ecma_ast::BindingIdentifier,
   call_span: Span,
   clear_call: bool,
-  args: &[ExprOrSpread],
+  args: &[Argument],
   deferred_callee: Option<DeferredCreateRequireCallee>,
   argument: CreateRequireArgument,
 ) {
@@ -1174,7 +1214,7 @@ fn tag_created_require_declarator<'a>(
     replace_argument,
   } = argument;
   let deferred = deferred_callee.is_some();
-  let binding_name = Atom::from(binding.sym.as_str());
+  let binding_name = Atom::from(parser.ast.ast.get_utf8(binding.name(parser.ast.ast)));
   parser.define_variable(binding_name.clone());
   parser.tag_variable(
     binding_name,
@@ -1192,7 +1232,7 @@ fn tag_created_require_declarator<'a>(
     parser.created_require_references.add_pending(
       call_span,
       callee,
-      args[0].expr.clone_in(parser.ast.allocator),
+      argument_expression(parser.ast.ast, args[0]),
       statement_path,
       prev_statement,
     );
@@ -1200,13 +1240,15 @@ fn tag_created_require_declarator<'a>(
     clear_create_require_call(parser, call_span);
   } else if replace_argument {
     parser.add_presentational_dependency(Arc::new(ConstDependency::new(
-      args[0].expr.span().into(),
+      argument_expression(parser.ast.ast, args[0])
+        .span(parser.ast.ast)
+        .into(),
       json_stringify_str(&value).into(),
     )));
   } else {
-    walk_create_require_argument_side_effects(parser, &args[0].expr);
+    walk_create_require_argument_side_effects(parser, argument_expression(parser.ast.ast, args[0]));
   }
-  parser.walk_expr_or_spread(&args[1..]);
+  parser.walk_arguments(args.iter().skip(1).copied());
 }
 
 fn clear_create_require_tag(parser: &mut JavascriptParser, name: &Atom) {
@@ -1236,11 +1278,16 @@ fn add_require_cache_dependency(parser: &mut JavascriptParser, range: Dependency
 }
 
 #[inline(never)]
-fn require_cache_range(member_expr: &MemberExpr, member_ranges: &[Span], members: &[Atom]) -> Span {
+fn require_cache_range(
+  ast: &Ast<'_>,
+  member_expr: HookMemberExpression,
+  member_ranges: &[Span],
+  members: &[Atom],
+) -> Span {
   if members.len() > 1 {
     member_ranges[1]
   } else {
-    member_expr.span()
+    member_expr.span(ast)
   }
 }
 
@@ -1305,46 +1352,55 @@ fn preserve_unhandled_created_require(parser: &mut JavascriptParser) -> bool {
 #[inline(never)]
 fn walk_unsupported_create_require_resolve(
   parser: &mut JavascriptParser,
-  inner_call_expr: &CallExpr,
-  call_expr: &CallExpr,
+  inner_call_expr: CallExpression,
+  call_expr: CallExpression,
 ) {
   walk_create_require_callee(parser, inner_call_expr);
-  if inner_call_expr.args.len() == 1 && inner_call_expr.args[0].spread.is_none() {
-    let arg = &inner_call_expr.args[0].expr;
+  let ast = parser.ast.ast;
+  let inner_args = collect_arguments(ast, inner_call_expr.arguments(ast));
+  if inner_args.len() == 1
+    && let Some(arg) = inner_args[0].as_expr(ast)
+  {
     if let Some(value) = evaluate_create_require_argument(parser, arg) {
       if should_replace_create_require_argument(parser, arg) {
         parser.add_presentational_dependency(Arc::new(ConstDependency::new(
-          arg.span().into(),
+          arg.span(parser.ast.ast).into(),
           json_stringify_str(&value).into(),
         )));
       } else {
         walk_create_require_argument_side_effects(parser, arg);
       }
-    } else if let Some(new_expr) = arg.as_new()
-      && is_unbound_url_constructor(parser, &new_expr.callee)
-      && let Some(args) = new_expr.args.as_ref()
+    } else if let Some(new_expr) = arg.as_new_expression(parser.ast.ast)
+      && is_unbound_url_constructor(parser, new_expr.callee(parser.ast.ast))
+      && let args = collect_arguments(parser.ast.ast, new_expr.arguments(parser.ast.ast))
       && args.len() > 2
     {
       if get_url_request(parser, new_expr).is_some() {
-        parser.walk_expr_or_spread(&args[2..]);
+        parser.walk_arguments(args.into_iter().skip(2));
       } else {
-        parser.walk_expr_or_spread(args);
+        parser.walk_arguments(args.into_iter());
       }
     } else {
       parser.walk_expression(arg);
     }
   } else {
-    parser.walk_expr_or_spread(&inner_call_expr.args);
+    parser.walk_arguments(inner_args.into_iter());
   }
-  parser.walk_expr_or_spread(&call_expr.args);
+  let ast = parser.ast.ast;
+  parser.walk_arguments(
+    call_expr
+      .arguments(ast)
+      .iter()
+      .map(|id| ast.get_node_in_sub_range(id)),
+  );
 }
 
 fn tag_commonjs_require_referenced(
   parser: &mut JavascriptParser,
-  require_call: &CallExpr,
+  require_call: CallExpression,
   variable_name: Atom,
 ) {
-  let require_span = require_call.span;
+  let require_span = require_call.span(parser.ast.ast);
   parser
     .common_js_require_references
     .add_require(require_span);
@@ -1362,15 +1418,15 @@ fn tag_commonjs_require_referenced(
 fn create_commonjs_require_context_dependency(
   parser: &mut JavascriptParser,
   param: &BasicEvaluatedExpression,
-  call_expr: &CallExpr,
-  arg_expr: &Expr,
+  call_expr: CallExpression,
+  arg_expr: Expr,
   referenced_specifiers: Option<Vec<ReferencedSpecifier>>,
   request_context: Option<rspack_core::Context>,
 ) -> CommonJsRequireContextDependency {
   let result = create_context_dependency(param, parser);
   let request = result.request();
 
-  let span = call_expr.span;
+  let span = call_expr.span(parser.ast.ast);
   let options = ContextOptions {
     mode: ContextMode::Sync,
     recursive: true,
@@ -1384,7 +1440,7 @@ fn create_commonjs_require_context_dependency(
     end: span.real_hi(),
     ..Default::default()
   };
-  let range = call_expr.span.into();
+  let range = span.into();
   let loc = parser
     .to_dependency_location(range)
     .expect("Should get correct loc");
@@ -1392,7 +1448,7 @@ fn create_commonjs_require_context_dependency(
     options,
     loc,
     range,
-    Some(arg_expr.span().into()),
+    Some(arg_expr.span(parser.ast.ast).into()),
     parser.in_try,
     request_context,
   );
@@ -1436,28 +1492,26 @@ fn create_require_resolve_context_dependency(
   RequireResolveContextDependency::new(options, range, parser.in_try, request_context)
 }
 
-pub(crate) fn is_require_call_expr(parser: &mut JavascriptParser, call: &CallExpr) -> bool {
+pub(crate) fn is_require_call_expr(parser: &mut JavascriptParser, call: CallExpression) -> bool {
   if !should_parse_commonjs_require(parser) {
     return false;
   }
 
-  if call.args.len() != 1 {
+  let ast = parser.ast.ast;
+  if call.arguments(ast).len() != 1 {
     return false;
   }
-  let Some(callee) = call.callee.as_expr() else {
-    return false;
-  };
+  let callee = call.callee(ast);
 
-  if let Some(ident) = callee.as_ident() {
-    return ident
-      .sym
+  if let Some(ident) = callee.as_identifier_reference(ast) {
+    return Atom::from(ast.get_utf8(ident.name(ast)))
       .call_hooks_name(parser, |_, for_name| {
         (for_name == expr_name::REQUIRE).then_some(true)
       })
       .unwrap_or_default();
   }
 
-  if let Some(member) = callee.as_member() {
+  if let Some(member) = callee.as_member_expression(parser.ast.ast) {
     return member
       .call_hooks_name(parser, |_, for_name| {
         (for_name == expr_name::MODULE_REQUIRE).then_some(true)
@@ -1475,30 +1529,31 @@ fn should_parse_commonjs_require(parser: &JavascriptParser) -> bool {
   )
 }
 
-enum CallOrNewExpr<'a> {
-  Call(&'a CallExpr<'a>),
-  New(&'a NewExpr<'a>),
+#[derive(Clone, Copy)]
+enum CallOrNewExpression {
+  Call(CallExpression),
+  New(NewExpression),
 }
 
-impl<'a> CallOrNewExpr<'a> {
-  pub fn callee(&self) -> Option<&'a Expr<'a>> {
+impl CallOrNewExpression {
+  pub fn callee(self, ast: &Ast<'_>) -> Expr {
     match self {
-      CallOrNewExpr::Call(call_expr) => call_expr.callee.as_expr(),
-      CallOrNewExpr::New(new_expr) => Some(&new_expr.callee),
+      CallOrNewExpression::Call(call_expr) => call_expr.callee(ast),
+      CallOrNewExpression::New(new_expr) => new_expr.callee(ast),
     }
   }
 
-  pub fn args(&self) -> Option<&'a [ExprOrSpread<'a>]> {
+  pub fn args(self, ast: &Ast<'_>) -> Vec<Argument> {
     match self {
-      CallOrNewExpr::Call(call_expr) => Some(&call_expr.args),
-      CallOrNewExpr::New(new_expr) => new_expr.args.as_deref(),
+      CallOrNewExpression::Call(call_expr) => collect_arguments(ast, call_expr.arguments(ast)),
+      CallOrNewExpression::New(new_expr) => collect_arguments(ast, new_expr.arguments(ast)),
     }
   }
 
-  pub fn span(&self) -> Span {
+  pub fn span(self, ast: &Ast<'_>) -> Span {
     match self {
-      CallOrNewExpr::Call(call_expr) => call_expr.span,
-      CallOrNewExpr::New(new_expr) => new_expr.span,
+      CallOrNewExpression::Call(call_expr) => call_expr.span(ast),
+      CallOrNewExpression::New(new_expr) => new_expr.span(ast),
     }
   }
 }
@@ -1520,21 +1575,17 @@ impl CommonJsImportsParserPlugin {
       .unwrap_or_default()
   }
 
-  fn should_process_resolve(parser: &mut JavascriptParser, call_expr: &CallExpr) -> bool {
-    let Callee::Expr(expr) = &call_expr.callee else {
+  fn should_process_resolve(parser: &mut JavascriptParser, call_expr: CallExpression) -> bool {
+    let ast = parser.ast.ast;
+    let Some(member_expr) = call_expr.callee(ast).as_member_expression(ast) else {
       return false;
     };
-
-    let Expr::Member(member_expr) = expr.as_ref() else {
-      return false;
-    };
-
-    let Expr::Ident(ident) = &member_expr.obj else {
+    let Some(ident) = member_expr.object(ast).as_identifier_reference(ast) else {
       return false;
     };
 
     if parser
-      .get_variable_info(&Atom::from(ident.sym.as_str()))
+      .get_variable_info(&Atom::from(ast.get_utf8(ident.name(ast))))
       .is_some()
     {
       return false;
@@ -1546,26 +1597,25 @@ impl CommonJsImportsParserPlugin {
   fn process_resolve(
     &self,
     parser: &mut JavascriptParser,
-    call_expr: &CallExpr,
+    call_expr: CallExpression,
     weak: bool,
     request_context: Option<Context>,
   ) {
-    if call_expr.args.len() != 1 {
+    let ast = parser.ast.ast;
+    let args = collect_arguments(ast, call_expr.arguments(ast));
+    if args.len() != 1 {
       return;
     }
 
-    if let ExprOrSpread {
-      spread: None,
-      expr: argument_expr,
-    } = &call_expr.args[0]
-      && Self::has_ignore_comment(parser, call_expr.span, argument_expr.span())
+    if let Some(argument_expr) = args[0].as_expr(ast)
+      && Self::has_ignore_comment(parser, call_expr.span(ast), argument_expr.span(ast))
     {
       return;
     }
 
-    let argument_expr = &call_expr.args[0].expr;
+    let argument_expr = argument_expression(ast, args[0]);
     let param = parser.evaluate_expression(argument_expr);
-    let range = call_expr.callee.span().into();
+    let range = call_expr.callee(parser.ast.ast).span(parser.ast.ast).into();
     let loc = parser.to_dependency_location(range);
     let require_resolve_header_dependency =
       BoxDependency::new(RequireResolveHeaderDependency::new(range, loc));
@@ -1588,16 +1638,18 @@ impl CommonJsImportsParserPlugin {
   fn process_created_require_resolve_call(
     &self,
     parser: &mut JavascriptParser,
-    expr: &CallExpr,
+    expr: CallExpression,
   ) -> Option<bool> {
-    if expr.args.len() != 1 || expr.args[0].spread.is_some() {
+    let ast = parser.ast.ast;
+    let args = collect_arguments(ast, expr.arguments(ast));
+    if args.len() != 1 || args[0].as_expr(ast).is_none() {
       preserve_unhandled_created_require(parser);
-      parser.walk_expr_or_spread(&expr.args);
+      parser.walk_arguments(args.into_iter());
       return Some(true);
     }
     if matches!(parser.javascript_options.require_resolve, Some(false)) {
       preserve_unhandled_created_require(parser);
-      parser.walk_expr_or_spread(&expr.args);
+      parser.walk_arguments(args.into_iter());
       return Some(true);
     }
     self.process_resolve(parser, expr, false, current_created_require_context(parser));
@@ -1658,31 +1710,31 @@ impl CommonJsImportsParserPlugin {
   fn chain_handler(
     &self,
     parser: &mut JavascriptParser,
-    member_expr: &MemberExpr,
-    call_expr: &CallExpr,
+    member_expr: MemberExpression,
+    call_expr: CallExpression,
     members: &[Atom],
     is_call: bool,
   ) -> Option<CommonJsFullRequireDependency> {
-    if call_expr.args.len() != 1 {
+    let ast = parser.ast.ast;
+    let args = collect_arguments(ast, call_expr.arguments(ast));
+    if args.len() != 1 {
       return None;
     }
-    let arg = &call_expr.args[0];
-    if let ExprOrSpread {
-      spread: None,
-      expr: argument_expr,
-    } = arg
-      && Self::has_ignore_comment(parser, call_expr.span, argument_expr.span())
+    let arg = args[0];
+    if let Some(argument_expr) = arg.as_expr(ast)
+      && Self::has_ignore_comment(parser, call_expr.span(ast), argument_expr.span(ast))
     {
       return None;
     }
-    let param = parser.evaluate_expression(&arg.expr);
-    let range = DependencyRange::from(member_expr.span);
+    let param = parser.evaluate_expression(argument_expression(ast, arg));
+    let member_span = member_expr.span(parser.ast.ast);
+    let range = DependencyRange::from(member_span);
     let loc = parser.to_dependency_location(range);
     param.is_string().then(|| {
       CommonJsFullRequireDependency::new(
         param.string().to_owned(),
         members.to_vec(),
-        member_expr.span.into(),
+        member_span.into(),
         loc,
         is_call,
         parser
@@ -1691,7 +1743,7 @@ impl CommonJsImportsParserPlugin {
           .unwrap_or(false)
           && !members.is_empty(),
         parser.in_try,
-        !parser.is_asi_position(member_expr.span.start),
+        !parser.is_asi_position(member_span.start),
       )
     })
   }
@@ -1756,16 +1808,19 @@ impl CommonJsImportsParserPlugin {
   fn process_require_context(
     &self,
     parser: &mut JavascriptParser,
-    call_expr: &CallExpr,
+    call_expr: CallExpression,
     param: &BasicEvaluatedExpression,
     request_context: Option<Context>,
   ) -> Option<bool> {
-    let Some(argument_expr) = call_expr.args.first().map(|expr| &expr.expr) else {
+    let ast = parser.ast.ast;
+    let Some(argument_expr) = call_expr.arguments(ast).get_node(ast, 0) else {
       unreachable!("ensure require includes arguments")
     };
+    let argument_expr = argument_expression(ast, argument_expr);
+    let call_span = call_expr.span(ast);
     let referenced_specifiers = parser
       .destructuring_assignment_properties
-      .get(&call_expr.span)
+      .get(&call_span)
       .map(|keys| {
         let mut refs = Vec::new();
         keys.traverse_on_leaf(&mut |stack| {
@@ -1785,7 +1840,7 @@ impl CommonJsImportsParserPlugin {
     let dep_idx = parser.next_dependency_idx();
     if let Some(require_references) = parser
       .common_js_require_references
-      .get_require_mut(&call_expr.span)
+      .get_require_mut(&call_span)
     {
       require_references.dep_locator = Some(RequireDependencyLocator {
         dep_idx,
@@ -1800,18 +1855,18 @@ impl CommonJsImportsParserPlugin {
   fn require_handler(
     &self,
     parser: &mut JavascriptParser,
-    expr: CallOrNewExpr,
+    expr: CallOrNewExpression,
     request_context: Option<Context>,
   ) -> Option<bool> {
-    let callee = expr.callee()?;
-    let args = expr.args()?;
+    let ast = parser.ast.ast;
+    let callee = expr.callee(ast);
+    let args = expr.args(ast);
+    let expr_span = expr.span(ast);
 
     if args.len() != 1 {
       return None;
     }
-    if args[0].spread.is_some() {
-      return None;
-    }
+    let argument_expr = args[0].as_expr(ast)?;
 
     // Skip adding require() as a dependency when in unreachable code after
     // return/throw (e.g. require("fail") in dead code should not be resolved).
@@ -1821,28 +1876,23 @@ impl CommonJsImportsParserPlugin {
       return Some(true);
     }
 
-    if let ExprOrSpread {
-      spread: None,
-      expr: argument_expr,
-    } = &args[0]
-      && Self::has_ignore_comment(parser, expr.span(), argument_expr.span())
-    {
+    if Self::has_ignore_comment(parser, expr_span, argument_expr.span(ast)) {
       return Some(true);
     }
 
-    let param = parser.evaluate_expression(&args[0].expr);
+    let param = parser.evaluate_expression(argument_expr);
     if param.is_conditional() {
       let mut is_expression = false;
       for p in param.options() {
         if self
-          .process_require_item(parser, expr.span(), p, request_context.clone())
+          .process_require_item(parser, expr_span, p, request_context.clone())
           .is_none()
         {
           is_expression = true;
         }
       }
       if !is_expression {
-        let range: DependencyRange = callee.span().into();
+        let range: DependencyRange = callee.span(parser.ast.ast).into();
         let loc = parser.to_dependency_location(range);
         parser.add_presentational_dependency(Arc::new(RequireHeaderDependency::new(range, loc)));
         return Some(true);
@@ -1852,11 +1902,11 @@ impl CommonJsImportsParserPlugin {
       && let Some(local_module) = parser.get_local_module_mut(param.string())
     {
       local_module.flag_used();
-      let span = expr.span();
+      let span = expr_span;
       let dep = Arc::new(LocalModuleDependency::new(
         local_module.clone(),
         Some(span.into()),
-        matches!(expr, CallOrNewExpr::New(_)),
+        matches!(expr, CallOrNewExpression::New(_)),
       ));
       parser.add_presentational_dependency(dep);
       return Some(true);
@@ -1867,13 +1917,13 @@ impl CommonJsImportsParserPlugin {
     }
 
     if self
-      .process_require_item(parser, expr.span(), &param, request_context.clone())
+      .process_require_item(parser, expr_span, &param, request_context.clone())
       .is_none()
-      && let CallOrNewExpr::Call(call_expr) = expr
+      && let CallOrNewExpression::Call(call_expr) = expr
     {
       self.process_require_context(parser, call_expr, &param, request_context);
     } else {
-      let range: DependencyRange = callee.span().into();
+      let range: DependencyRange = callee.span(parser.ast.ast).into();
       let loc = parser.to_dependency_location(range);
       parser.add_presentational_dependency(Arc::new(RequireHeaderDependency::new(range, loc)));
     }
@@ -1883,14 +1933,14 @@ impl CommonJsImportsParserPlugin {
   fn require_as_expression_handler(
     &self,
     parser: &mut JavascriptParser,
-    ident: &Ident,
+    ident: &Identifier,
     request_context: Option<Context>,
   ) -> Option<bool> {
     if parser.javascript_options.require_as_expression == Some(false) {
       return None;
     }
 
-    let span = ident.span;
+    let span = ident.span();
     let start = span.real_lo();
     let end = span.real_hi();
     let dep = CommonJsRequireContextDependency::new(
@@ -1941,19 +1991,21 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
   fn can_collect_destructuring_assignment_properties(
     &self,
     parser: &mut JavascriptParser<'p>,
-    expr: &Expr,
+    expr: Expr,
   ) -> Option<bool> {
     if !should_parse_commonjs_require(parser) {
       return None;
     }
 
-    if let Some(call) = expr.as_call()
+    let ast = parser.ast.ast;
+    if let Some(call) = expr.as_call_expression(ast)
       && is_require_call_expr(parser, call)
     {
       return Some(true);
     }
-    if let Some(ident) = expr.as_ident()
-      && let Some(name_info) = parser.get_name_info_from_variable(&Atom::from(ident.sym.as_str()))
+    if let Some(ident) = expr.as_identifier_reference(ast)
+      && let Some(name_info) =
+        parser.get_name_info_from_variable(&Atom::from(ast.get_utf8(ident.name(ast))))
       && let Some(info) = name_info.info
       && let Some(name) = info.name.clone()
       && parser
@@ -1968,8 +2020,8 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
   fn pre_declarator(
     &self,
     parser: &mut JavascriptParser<'p>,
-    declarator: &VarDeclarator,
-    declaration: VariableDeclaration<'_>,
+    declarator: VariableDeclarator,
+    declaration: VariableDeclaration,
   ) -> Option<bool> {
     if parser.javascript_options.is_create_require_enabled() {
       pre_tag_created_require_declarator(parser, declarator, declaration);
@@ -1979,13 +2031,14 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
       return None;
     }
 
-    if declaration.kind() != VariableDeclarationKind::Var
-      && let Some(init) = &declarator.init
-      && let Some(call) = init.as_call()
-      && let Some(binding) = declarator.name.as_ident()
+    let ast = parser.ast.ast;
+    if declaration.kind(ast) != VariableDeclarationKind::Var
+      && let Some(init) = declarator.init(ast)
+      && let Some(call) = init.as_call_expression(ast)
+      && let Some(binding) = declarator.id(ast).as_binding_identifier(ast)
       && is_require_call_expr(parser, call)
     {
-      let name = Atom::from(binding.id.sym.as_str());
+      let name = Atom::from(ast.get_utf8(binding.name(ast)));
       parser.define_variable(name.clone());
       tag_commonjs_require_referenced(parser, call, name);
     }
@@ -1995,24 +2048,25 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
   fn declarator(
     &self,
     parser: &mut JavascriptParser<'p>,
-    declarator: &VarDeclarator,
-    declaration: VariableDeclaration<'_>,
+    declarator: VariableDeclarator,
+    declaration: VariableDeclaration,
   ) -> Option<bool> {
     if !parser.javascript_options.is_create_require_enabled() {
       return None;
     }
 
-    let init = declarator.init.as_ref()?;
-    if let Some(init) = init.as_ident()
+    let ast = parser.ast.ast;
+    let init = declarator.init(ast)?;
+    if let Some(init) = init.as_identifier_reference(ast)
       && let Some(data) = parser
         .get_tag_data::<CreatedRequireTagData>(
-          &Atom::from(init.sym.as_str()),
+          &Atom::from(ast.get_utf8(init.name(ast))),
           CREATED_REQUIRE_IDENTIFIER_TAG,
         )
         .cloned()
-      && let Some(binding) = declarator.name.as_ident()
+      && let Some(binding) = declarator.id(ast).as_binding_identifier(ast)
     {
-      let name = Atom::from(binding.id.sym.as_str());
+      let name = Atom::from(ast.get_utf8(binding.name(ast)));
       parser.define_variable(name.clone());
       parser.tag_variable(
         name,
@@ -2025,41 +2079,43 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
       return Some(true);
     }
 
-    if let Some(init) = init.as_ident()
-      && is_create_require_specifier(parser, &Atom::from(init.sym.as_str()))
-      && let Some(binding) = declarator.name.as_ident()
+    if let Some(init) = init.as_identifier_reference(ast)
+      && is_create_require_specifier(parser, &Atom::from(ast.get_utf8(init.name(ast))))
+      && let Some(binding) = declarator.id(ast).as_binding_identifier(ast)
     {
-      let name = Atom::from(binding.id.sym.as_str());
+      let name = Atom::from(ast.get_utf8(binding.name(ast)));
       parser.define_variable(name.clone());
       tag_create_require(parser, name);
     }
 
-    let binding = declarator.name.as_ident()?;
+    let binding = declarator.id(ast).as_binding_identifier(ast)?;
 
     if is_create_require_namespace_member(parser, init) {
-      let name = Atom::from(binding.id.sym.as_str());
+      let name = Atom::from(ast.get_utf8(binding.name(ast)));
       parser.define_variable(name.clone());
       tag_create_require(parser, name);
     }
 
-    if let Some(call) = init.as_call()
-      && let Some(callee) = call.callee.as_expr()
+    if let Some(call) = init.as_call_expression(ast)
+      && let callee = call.callee(ast)
       && (is_evaluated_create_require(parser, callee)
         || is_create_require_namespace_member(parser, callee))
       && let Some(argument) = parse_create_require_argument(parser, call, false)
     {
-      let clear_call = should_clear_create_require_call(parser, &call.args);
-      let deferred_callee = (declaration.kind() == VariableDeclarationKind::Const
-        && can_defer_create_require_call(parser, &call.args))
-      .then(|| deferred_create_require_callee(parser, callee, call.span))
+      let args = collect_arguments(parser.ast.ast, call.arguments(parser.ast.ast));
+      let call_span = call.span(parser.ast.ast);
+      let clear_call = should_clear_create_require_call(parser, &args);
+      let deferred_callee = (declaration.kind(parser.ast.ast) == VariableDeclarationKind::Const
+        && can_defer_create_require_call(parser, &args))
+      .then(|| deferred_create_require_callee(parser, callee, call_span))
       .flatten();
       let walk_callee = !clear_call && deferred_callee.is_none();
       tag_created_require_declarator(
         parser,
-        &binding.id,
-        call.span,
+        binding,
+        call_span,
         clear_call,
-        &call.args,
+        &args,
         deferred_callee,
         argument,
       );
@@ -2069,25 +2125,36 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
       return Some(true);
     }
 
-    if let Some(init) = init.as_new()
-      && (is_evaluated_create_require(parser, &init.callee)
-        || is_create_require_namespace_member(parser, &init.callee))
+    if let Some(init) = init.as_new_expression(parser.ast.ast)
+      && (is_evaluated_create_require(parser, init.callee(parser.ast.ast))
+        || is_create_require_namespace_member(parser, init.callee(parser.ast.ast)))
       && let Some(argument) = parse_create_require_new_argument(parser, init, false)
-      && let Some(args) = init.args.as_deref()
     {
-      tag_created_require_declarator(parser, &binding.id, init.span, false, args, None, argument);
-      parser.walk_expression(&init.callee);
+      let ast = parser.ast.ast;
+      let args = collect_arguments(ast, init.arguments(ast));
+      tag_created_require_declarator(
+        parser,
+        binding,
+        init.span(ast),
+        false,
+        &args,
+        None,
+        argument,
+      );
+      parser.walk_expression(init.callee(parser.ast.ast));
       return Some(true);
     }
 
     if parser
       .get_tag_data::<CreatedRequireTagData>(
-        &Atom::from(binding.id.sym.as_str()),
+        &Atom::from(parser.ast.ast.get_utf8(binding.name(parser.ast.ast))),
         CREATED_REQUIRE_IDENTIFIER_TAG,
       )
       .is_some()
     {
-      parser.define_variable(Atom::from(binding.id.sym.as_str()));
+      parser.define_variable(Atom::from(
+        parser.ast.ast.get_utf8(binding.name(parser.ast.ast)),
+      ));
       parser.walk_expression(init);
       return Some(true);
     }
@@ -2098,7 +2165,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
   fn identifier(
     &self,
     parser: &mut JavascriptParser<'p>,
-    ident: &Ident,
+    ident: &Identifier,
     for_name: &str,
   ) -> Option<bool> {
     if for_name == COMMONJS_REQUIRE_TAG && should_parse_commonjs_require(parser) {
@@ -2106,7 +2173,10 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
         .definitions_db
         .expect_get_tag_info(parser.current_tag_info?);
       let data = RequireTagData::downcast(tag_info.data.clone()?);
-      if let Some(keys) = parser.destructuring_assignment_properties.get(&ident.span) {
+      if let Some(keys) = parser
+        .destructuring_assignment_properties
+        .get(&ident.span())
+      {
         let mut refs = Vec::new();
         keys.traverse_on_leaf(&mut |stack| {
           refs.push(stack.iter().map(|p| p.id.clone()).collect::<Vec<Atom>>());
@@ -2144,7 +2214,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
   fn member_chain(
     &self,
     parser: &mut JavascriptParser<'p>,
-    _expr: &MemberExpr,
+    _expr: HookMemberExpression,
     for_name: &str,
     members: &[Atom],
     members_optionals: &[bool],
@@ -2157,13 +2227,13 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
       {
         add_require_cache_dependency(
           parser,
-          require_cache_range(_expr, member_ranges, members).into(),
+          require_cache_range(parser.ast.ast, _expr, member_ranges, members).into(),
         );
       } else if !preserve_unhandled_created_require(parser) {
         handle_created_require_member(
           parser,
-          _expr.span(),
-          require_cache_range(_expr, member_ranges, members),
+          _expr.span(parser.ast.ast),
+          require_cache_range(parser.ast.ast, _expr, member_ranges, members),
           members,
           "undefined".into(),
         );
@@ -2189,7 +2259,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
   fn call_member_chain(
     &self,
     parser: &mut JavascriptParser<'p>,
-    expr: &CallExpr,
+    expr: CallExpression,
     for_name: &str,
     members: &[Atom],
     members_optionals: &[bool],
@@ -2198,10 +2268,10 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
     if for_name == CREATED_REQUIRE_IDENTIFIER_TAG {
       let ids = get_non_optional_part(members, members_optionals);
       if members.is_empty() {
-        wrap_created_require_with_side_effects(parser, expr.span());
+        wrap_created_require_with_side_effects(parser, expr.span(parser.ast.ast));
         return self.require_handler(
           parser,
-          CallOrNewExpr::Call(expr),
+          CallOrNewExpression::Call(expr),
           current_created_require_context(parser),
         );
       }
@@ -2213,11 +2283,23 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
         .is_some_and(|member| member.as_ref() != "cache")
         && preserve_unhandled_created_require(parser)
       {
-        parser.walk_expr_or_spread(&expr.args);
+        let ast = parser.ast.ast;
+        parser.walk_arguments(
+          expr
+            .arguments(ast)
+            .iter()
+            .map(|id| ast.get_node_in_sub_range(id)),
+        );
         return Some(true);
       }
       if ids.len() != members.len() {
-        parser.walk_expr_or_spread(&expr.args);
+        let ast = parser.ast.ast;
+        parser.walk_arguments(
+          expr
+            .arguments(ast)
+            .iter()
+            .map(|id| ast.get_node_in_sub_range(id)),
+        );
         return Some(true);
       }
       return None;
@@ -2243,7 +2325,13 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
           .unwrap_or(false)
           && !direct_import,
       );
-    parser.walk_expr_or_spread(&expr.args);
+    let ast = parser.ast.ast;
+    parser.walk_arguments(
+      expr
+        .arguments(ast)
+        .iter()
+        .map(|id| ast.get_node_in_sub_range(id)),
+    );
     Some(true)
   }
 
@@ -2257,20 +2345,26 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
     }
   }
 
-  fn rename(&self, parser: &mut JavascriptParser<'p>, expr: &Expr, for_name: &str) -> Option<bool> {
+  fn rename(&self, parser: &mut JavascriptParser<'p>, expr: Expr, for_name: &str) -> Option<bool> {
     if for_name == CREATED_REQUIRE_IDENTIFIER_TAG {
       if !preserve_unhandled_created_require(parser)
-        && let Some(ident) = expr.as_ident()
+        && let Some(ident) = expr.as_identifier_reference(parser.ast.ast)
       {
         let context = current_created_require_context(parser);
-        self.require_as_expression_handler(parser, ident, context)?;
+        self.require_as_expression_handler(
+          parser,
+          &Identifier {
+            span: ident.span(parser.ast.ast),
+          },
+          context,
+        )?;
       }
       parser.walk_expression(expr);
       Some(false)
     } else if for_name == expr_name::REQUIRE && should_parse_commonjs_require(parser) {
       if parser.javascript_options.require_alias.unwrap_or_default() {
         parser.add_presentational_dependency(Arc::new(ConstDependency::new(
-          expr.span().into(),
+          expr.span(parser.ast.ast).into(),
           "undefined".into(),
         )));
         Some(false)
@@ -2289,22 +2383,17 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
   fn evaluate_typeof(
     &self,
     parser: &mut JavascriptParser<'p>,
-    expr: &'a UnaryExpr<'a>,
+    expr: UnaryExpression,
     for_name: &str,
-  ) -> Option<BasicEvaluatedExpression<'a>> {
+  ) -> Option<BasicEvaluatedExpression<'p>> {
+    let span = expr.span(parser.ast.ast);
     ((should_parse_commonjs_require(parser)
       && (for_name == expr_name::REQUIRE
         || for_name == expr_name::REQUIRE_RESOLVE
         || for_name == expr_name::REQUIRE_RESOLVE_WEAK))
       || should_handle_create_require_specifier(parser, for_name)
       || for_name == CREATED_REQUIRE_IDENTIFIER_TAG)
-      .then(|| {
-        eval::evaluate_to_string(
-          "function".to_string(),
-          expr.span.real_lo(),
-          expr.span.real_hi(),
-        )
-      })
+      .then(|| eval::evaluate_to_string("function".to_string(), span.real_lo(), span.real_hi()))
   }
 
   fn evaluate_identifier(
@@ -2367,12 +2456,9 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
     &self,
     parser: &mut JavascriptParser<'p>,
     for_name: &str,
-    expr: &'a CallExpr<'a>,
-  ) -> Option<BasicEvaluatedExpression<'a>>
-  where
-    'p: 'a,
-  {
-    if !should_handle_create_require_call(parser, for_name, expr.callee.as_expr()) {
+    expr: CallExpression,
+  ) -> Option<BasicEvaluatedExpression<'p>> {
+    if !should_handle_create_require_call(parser, for_name, Some(expr.callee(parser.ast.ast))) {
       return None;
     }
     evaluate_create_require_call_expression(parser, expr)
@@ -2382,12 +2468,9 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
     &self,
     parser: &mut JavascriptParser<'p>,
     property: &str,
-    expr: &'a CallExpr<'a>,
-    param: BasicEvaluatedExpression<'a>,
-  ) -> Option<BasicEvaluatedExpression<'a>>
-  where
-    'p: 'a,
-  {
+    expr: CallExpression,
+    param: BasicEvaluatedExpression<'p>,
+  ) -> Option<BasicEvaluatedExpression<'p>> {
     if !is_create_require_namespace_member_param(parser, property, &param) {
       return None;
     }
@@ -2397,7 +2480,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
   fn r#typeof(
     &self,
     parser: &mut JavascriptParser<'p>,
-    expr: &UnaryExpr,
+    expr: UnaryExpression,
     for_name: &str,
   ) -> Option<bool> {
     // same as webpack/tagRequireExpression
@@ -2409,7 +2492,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
       || for_name == CREATED_REQUIRE_IDENTIFIER_TAG
     {
       parser.add_presentational_dependency(Arc::new(ConstDependency::new(
-        expr.span.into(),
+        expr.span(parser.ast.ast).into(),
         "'function'".into(),
       )));
       Some(true)
@@ -2421,25 +2504,36 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
   fn call(
     &self,
     parser: &mut JavascriptParser<'p>,
-    call_expr: &CallExpr,
+    call_expr: CallExpression,
     for_name: &str,
   ) -> Option<bool> {
     if (for_name == expr_name::REQUIRE || for_name == expr_name::MODULE_REQUIRE)
       && should_parse_commonjs_require(parser)
     {
-      self.require_handler(parser, CallOrNewExpr::Call(call_expr), None)
-    } else if should_handle_create_require_call(parser, for_name, call_expr.callee.as_expr()) {
+      self.require_handler(parser, CallOrNewExpression::Call(call_expr), None)
+    } else if should_handle_create_require_call(
+      parser,
+      for_name,
+      Some(call_expr.callee(parser.ast.ast)),
+    ) {
       if let Some(argument) = parse_create_require_argument(parser, call_expr, true) {
-        let clear_call = should_clear_create_require_call(parser, &call_expr.args);
+        let ast = parser.ast.ast;
+        let args = collect_arguments(ast, call_expr.arguments(ast));
+        let call_span = call_expr.span(ast);
+        let clear_call = should_clear_create_require_call(parser, &args);
         if clear_call {
-          clear_create_require_call(parser, call_expr.span);
+          clear_create_require_call(parser, call_span);
         } else if argument.replace_argument {
+          let argument_expr = argument_expression(parser.ast.ast, args[0]);
           parser.add_presentational_dependency(Arc::new(ConstDependency::new(
-            call_expr.args[0].expr.span().into(),
+            argument_expr.span(parser.ast.ast).into(),
             json_stringify_str(&argument.value).into(),
           )));
         } else {
-          walk_create_require_argument_side_effects(parser, &call_expr.args[0].expr);
+          walk_create_require_argument_side_effects(
+            parser,
+            argument_expression(parser.ast.ast, args[0]),
+          );
         }
         if !clear_call {
           walk_create_require_callee(parser, call_expr);
@@ -2466,10 +2560,10 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
       self.process_resolve(parser, call_expr, true, None);
       Some(true)
     } else if for_name == CREATED_REQUIRE_IDENTIFIER_TAG {
-      wrap_created_require_with_side_effects(parser, call_expr.span());
+      wrap_created_require_with_side_effects(parser, call_expr.span(parser.ast.ast));
       self.require_handler(
         parser,
-        CallOrNewExpr::Call(call_expr),
+        CallOrNewExpression::Call(call_expr),
         current_created_require_context(parser),
       )
     } else {
@@ -2480,18 +2574,18 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
   fn new_expression(
     &self,
     parser: &mut JavascriptParser<'p>,
-    new_expr: &NewExpr,
+    new_expr: NewExpression,
     for_name: &str,
   ) -> Option<bool> {
     if (for_name == expr_name::REQUIRE || for_name == expr_name::MODULE_REQUIRE)
       && should_parse_commonjs_require(parser)
     {
-      self.require_handler(parser, CallOrNewExpr::New(new_expr), None)
+      self.require_handler(parser, CallOrNewExpression::New(new_expr), None)
     } else if for_name == CREATED_REQUIRE_IDENTIFIER_TAG {
-      wrap_created_require_with_side_effects(parser, new_expr.span);
+      wrap_created_require_with_side_effects(parser, new_expr.span(parser.ast.ast));
       self.require_handler(
         parser,
-        CallOrNewExpr::New(new_expr),
+        CallOrNewExpression::New(new_expr),
         current_created_require_context(parser),
       )
     } else {
@@ -2502,9 +2596,9 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
   fn member_chain_of_call_member_chain(
     &self,
     parser: &mut JavascriptParser<'p>,
-    member_expr: &MemberExpr,
+    member_expr: MemberExpression,
     callee_members: &[Atom],
-    call_expr: &CallExpr,
+    call_expr: CallExpression,
     members: &[Atom],
     member_ranges: &[Span],
     for_name: &str,
@@ -2513,12 +2607,15 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
       && should_handle_create_require_specifier(parser, for_name)
       && let Some(argument) = parse_create_require_argument(parser, call_expr, false)
     {
-      let side_effects = create_require_args_side_effects(parser, &call_expr.args, &argument);
+      let ast = parser.ast.ast;
+      let args = collect_arguments(ast, call_expr.arguments(ast));
+      let member_span = member_expr.span(ast);
+      let side_effects = create_require_args_side_effects(parser, &args, &argument);
       let unsupported_replacement = create_require_unsupported_member_replacement(&side_effects);
       handle_created_require_member(
         parser,
-        member_expr.span(),
-        require_cache_range(member_expr, member_ranges, members),
+        member_span,
+        require_cache_range(parser.ast.ast, member_expr.into(), member_ranges, members),
         members,
         unsupported_replacement,
       );
@@ -2526,7 +2623,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
         .first()
         .is_some_and(|member| member.as_ref() == "cache")
       {
-        wrap_span_with_side_effects(parser, member_expr.span(), &side_effects);
+        wrap_span_with_side_effects(parser, member_span, &side_effects);
       }
       walk_create_require_ignored_args(parser, call_expr);
       return Some(true);
@@ -2546,9 +2643,9 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
   fn call_member_chain_of_call_member_chain(
     &self,
     parser: &mut JavascriptParser<'p>,
-    call_expr: &CallExpr,
+    call_expr: CallExpression,
     callee_members: &[Atom],
-    inner_call_expr: &CallExpr,
+    inner_call_expr: CallExpression,
     members: &[Atom],
     member_ranges: &[Span],
     for_name: &str,
@@ -2558,16 +2655,20 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
       && members.len() == 1
       && members[0].as_ref() == "resolve"
     {
+      let ast = parser.ast.ast;
+      let call_args = collect_arguments(ast, call_expr.arguments(ast));
       if matches!(parser.javascript_options.require_resolve, Some(false))
-        || call_expr.args.len() != 1
-        || call_expr.args[0].spread.is_some()
+        || call_args.len() != 1
+        || call_args[0].as_expr(ast).is_none()
       {
         walk_unsupported_create_require_resolve(parser, inner_call_expr, call_expr);
         return Some(true);
       }
       let argument = parse_create_require_argument(parser, inner_call_expr, false)?;
-      let side_effects = create_require_args_side_effects(parser, &inner_call_expr.args, &argument);
-      wrap_span_with_side_effects(parser, call_expr.span(), &side_effects);
+      let ast = parser.ast.ast;
+      let inner_args = collect_arguments(ast, inner_call_expr.arguments(ast));
+      let side_effects = create_require_args_side_effects(parser, &inner_args, &argument);
+      wrap_span_with_side_effects(parser, call_expr.span(parser.ast.ast), &side_effects);
       let context = argument.context;
       walk_create_require_ignored_args(parser, inner_call_expr);
       self.process_resolve(parser, call_expr, false, Some(context));
@@ -2578,14 +2679,18 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
       && should_handle_create_require_specifier(parser, for_name)
       && let Some(argument) = parse_create_require_argument(parser, inner_call_expr, false)
     {
-      let side_effects = create_require_args_side_effects(parser, &inner_call_expr.args, &argument);
+      let ast = parser.ast.ast;
+      let inner_args = collect_arguments(ast, inner_call_expr.arguments(ast));
+      let side_effects = create_require_args_side_effects(parser, &inner_args, &argument);
       let unsupported_replacement = create_require_unsupported_member_replacement(&side_effects);
-      let member_span = call_expr.callee.span();
+      let callee = call_expr.callee(ast);
+      let member_span = callee.span(ast);
       handle_created_require_member(
         parser,
         member_span,
         require_cache_range(
-          call_expr.callee.as_expr()?.as_member()?,
+          parser.ast.ast,
+          callee.as_member_expression(parser.ast.ast)?.into(),
           member_ranges,
           members,
         ),
@@ -2599,19 +2704,32 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
         wrap_span_with_side_effects(parser, member_span, &side_effects);
       }
       walk_create_require_ignored_args(parser, inner_call_expr);
-      parser.walk_expr_or_spread(&call_expr.args);
+      let ast = parser.ast.ast;
+      parser.walk_arguments(
+        call_expr
+          .arguments(ast)
+          .iter()
+          .map(|id| ast.get_node_in_sub_range(id)),
+      );
       return Some(true);
     }
 
     if callee_members.is_empty()
       && (for_name == expr_name::REQUIRE || for_name == expr_name::MODULE_REQUIRE)
       && should_parse_commonjs_require(parser)
-      && let Some(callee) = call_expr.callee.as_expr()
-      && let Some(member) = callee.as_member()
+      && let Some(member) = call_expr
+        .callee(parser.ast.ast)
+        .as_member_expression(parser.ast.ast)
       && let Some(dep) = self.chain_handler(parser, member, inner_call_expr, members, true)
     {
       parser.add_dependency(BoxDependency::new(dep));
-      parser.walk_expr_or_spread(&call_expr.args);
+      let ast = parser.ast.ast;
+      parser.walk_arguments(
+        call_expr
+          .arguments(ast)
+          .iter()
+          .map(|id| ast.get_node_in_sub_range(id)),
+      );
       return Some(true);
     }
     None
@@ -2620,8 +2738,8 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
   fn assign(
     &self,
     parser: &mut JavascriptParser<'p>,
-    expr: &AssignExpr,
-    ident: &Ident,
+    expr: AssignmentExpression,
+    ident: &Identifier,
     for_name: &str,
   ) -> Option<bool> {
     if for_name == expr_name::REQUIRE && should_parse_commonjs_require(parser) {
@@ -2636,10 +2754,16 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
       || for_name == CREATE_REQUIRE_SPECIFIER_TAG
       || for_name == CREATE_REQUIRE_EVALUATED_TAG
     {
-      if matches!(expr.op, AssignOp::OrAssign | AssignOp::NullishAssign) {
+      if matches!(
+        expr.operator(parser.ast.ast),
+        AssignmentOperator::LogicalOrAssign | AssignmentOperator::NullishAssign
+      ) {
         return Some(true);
       }
-      clear_create_require_tag(parser, &Atom::from(ident.sym.as_str()));
+      let Some(name) = source_for_span(parser, ident.span()) else {
+        return Some(true);
+      };
+      clear_create_require_tag(parser, &Atom::from(name));
       return Some(true);
     }
 

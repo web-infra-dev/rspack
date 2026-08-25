@@ -75,10 +75,10 @@ urlencoding                = { workspace = true }
 ustr                       = { workspace = true }
 winnow                     = { workspace = true }
 
-swc_experimental_allocator     = { workspace = true }
-swc_experimental_ecma_ast      = { workspace = true }
-swc_experimental_ecma_parser   = { workspace = true }
-swc_experimental_ecma_semantic = { workspace = true }
+swc_next_allocator     = { workspace = true }
+swc_next_ecma_ast      = { workspace = true }
+swc_next_ecma_parser   = { workspace = true }
+swc_next_ecma_semantic = { workspace = true }
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
 turbo-persistence = { workspace = true }

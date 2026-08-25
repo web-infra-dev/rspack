@@ -18,7 +18,6 @@ use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_paths::{AssertUtf8, Utf8Path};
 use sugar_path::SugarPath;
-use swc_experimental_ecma_ast::{ClassMember, Key, PropName};
 
 use crate::{
   FLAG_DEPENDENCY_EXPORTS_STAGE, deferred_pure_check_is_impure,
@@ -77,42 +76,6 @@ fn glob_match_with_normalized_pattern(pattern: &str, string: &str) -> bool {
     String::from("**/") + trim_start
   };
   fast_glob::glob_match(&normalized_glob, string.trim_start_matches("./"))
-}
-
-pub trait ClassExt<'a> {
-  fn class_key(&'a self) -> Option<&'a PropName<'a>>;
-  fn is_static(&self) -> bool;
-}
-
-impl<'a> ClassExt<'a> for ClassMember<'a> {
-  fn class_key(&'a self) -> Option<&'a PropName<'a>> {
-    match self {
-      ClassMember::Constructor(c) => Some(&c.key),
-      ClassMember::Method(m) => Some(&m.key),
-      ClassMember::PrivateMethod(_) => None,
-      ClassMember::ClassProp(c) => Some(&c.key),
-      ClassMember::PrivateProp(_) => None,
-      ClassMember::Empty(_) => None,
-      ClassMember::StaticBlock(_) => None,
-      ClassMember::AutoAccessor(a) => match &a.key {
-        Key::Private(_) => None,
-        Key::Public(public) => Some(public),
-      },
-    }
-  }
-
-  fn is_static(&self) -> bool {
-    match self {
-      ClassMember::Constructor(_) => false,
-      ClassMember::Method(m) => m.is_static,
-      ClassMember::PrivateMethod(m) => m.is_static,
-      ClassMember::ClassProp(p) => p.is_static,
-      ClassMember::PrivateProp(p) => p.is_static,
-      ClassMember::Empty(_) => false,
-      ClassMember::StaticBlock(_) => true,
-      ClassMember::AutoAccessor(a) => a.is_static,
-    }
-  }
 }
 
 #[plugin]

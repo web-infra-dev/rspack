@@ -15,9 +15,12 @@ use rspack_core::{
   ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, ModuleInfo, NAMESPACE_OBJECT_EXPORT,
   RuntimeGlobals, RuntimeGlobalsRenderMode, RuntimeTemplateRenderMode, RuntimeVariable,
   SideEffectsStateArtifact, SourceType, URLStaticMode, UsageState, UsedName, UsedNameItem,
-  all_runtime_module_variables, collect_ident, escape_name_atom_ref, find_new_name, find_target,
-  get_cached_readable_identifier, get_module_directives, get_module_hashbang, property_access,
-  property_name, reserved_names::RESERVED_NAMES_ATOM_SET, rspack_sources::ReplaceSource,
+  all_runtime_module_variables,
+  concatenated_module::{ConcatenatedModuleParseMode, analyze_concatenated_module_identifiers},
+  escape_name_atom_ref, find_new_name, find_target, get_cached_readable_identifier,
+  get_module_directives, get_module_hashbang, property_access, property_name,
+  reserved_names::RESERVED_NAMES_ATOM_SET,
+  rspack_sources::ReplaceSource,
   split_readable_identifier, to_normal_comment,
 };
 use rspack_error::{Diagnostic, Error, Result};
@@ -26,15 +29,10 @@ use rspack_plugin_javascript::{
 };
 use rspack_plugin_runtime::should_export_webpack_require_for_module_chunk_loading;
 use rspack_util::{
-  SpanExt,
   atom::Atom,
   fx_hash::{FxHashMap, FxHashSet, FxIndexMap, FxIndexSet},
 };
 use swc_core::common::SyntaxContext;
-use swc_experimental_allocator::Allocator;
-use swc_experimental_ecma_ast::{EsVersion, Program};
-use swc_experimental_ecma_parser::{EsSyntax, Parser, StringSource, Syntax};
-use swc_experimental_ecma_semantic::resolver::resolver;
 
 use crate::{
   EsmLibraryPlugin,
@@ -1537,7 +1535,7 @@ var {} = {{}};
             .is_empty()
           {
             // orphan module
-            return Ok((info, None));
+            return Ok::<_, Error>((info, None));
           }
 
           let chunk_ukey = Self::get_module_chunk(m, compilation)?;
@@ -1628,40 +1626,16 @@ var {} = {{}};
                 .source()
                 .into_string_lossy()
                 .into_owned();
-              let allocator = Allocator::new();
-              let lexer = swc_experimental_ecma_parser::Lexer::new(
-                &allocator,
-                Syntax::Es(EsSyntax {
-                  jsx,
-                  ..Default::default()
-                }),
-                EsVersion::EsNext,
-                StringSource::new(&source_str),
-                None,
-              );
-              let mut parser = Parser::new_from(&allocator, lexer);
-              let module = match parser.parse_module() {
-                Ok(module) => module,
-                Err(err) => {
-                  return Err(Error::from_string(
-                    Some(source_str.clone()),
-                    err.span().real_lo() as usize,
-                    err.span().real_hi() as usize,
-                    "JavaScript parse error:\n".to_string(),
-                    err.kind().msg().to_string(),
-                  ));
-                }
-              };
-              let program = Program::Module(allocator.boxed(module));
-              let semantic = resolver(&program);
-              let ids = collect_ident(&allocator, &program);
+              let analysis = analyze_concatenated_module_identifiers(
+                &source_str,
+                jsx,
+                ConcatenatedModuleParseMode::Module,
+              )?;
+              let ids = analysis.identifiers;
 
-              concate_info.module_ctxt =
-                SyntaxContext::from_u32(semantic.top_level_scope_id().raw());
-              concate_info.global_ctxt =
-                SyntaxContext::from_u32(semantic.unresolved_scope_id().raw());
+              concate_info.module_ctxt = analysis.module_ctxt;
+              concate_info.global_ctxt = analysis.global_ctxt;
 
-              let top_level_scope_id = semantic.top_level_scope_id();
               let mut all_used_names = FxHashSet::default();
               all_used_names.reserve(ids.len());
               concate_info.idents.reserve(ids.len());
@@ -1673,10 +1647,10 @@ var {} = {{}};
               binding_to_ref.reserve(ids.len());
 
               for ident in ids {
-                let scope = semantic.node_scope(&ident.id);
-                let is_global = SyntaxContext::from_u32(scope.raw()) == concate_info.global_ctxt;
+                let scope = ident.scope;
+                let is_global = scope == concate_info.global_ctxt;
                 let legacy = if is_global {
-                  let leg = ident.to_legacy(&semantic);
+                  let leg = ident.to_legacy();
                   concate_info.global_scope_ident.push(leg.clone());
                   all_used_names.insert(leg.id.sym.clone());
                   Some(leg)
@@ -1684,13 +1658,13 @@ var {} = {{}};
                   None
                 };
                 if ident.is_class_expr_with_ident {
-                  all_used_names.insert(Atom::from(ident.id.sym.as_str()));
+                  all_used_names.insert(ident.id.sym.clone());
                   continue;
                 }
-                if scope != top_level_scope_id {
-                  all_used_names.insert(Atom::from(ident.id.sym.as_str()));
+                if scope != concate_info.module_ctxt {
+                  all_used_names.insert(ident.id.sym.clone());
                 }
-                let legacy = legacy.unwrap_or_else(|| ident.to_legacy(&semantic));
+                let legacy = legacy.unwrap_or_else(|| ident.to_legacy());
                 concate_info.idents.push(legacy.clone());
                 binding_to_ref
                   .entry((legacy.id.sym.clone(), legacy.id.ctxt))

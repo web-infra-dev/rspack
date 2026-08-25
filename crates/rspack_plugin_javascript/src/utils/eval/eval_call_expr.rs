@@ -1,5 +1,5 @@
 use swc_atoms::Atom;
-use swc_experimental_ecma_ast::{CallExpr, Callee, MemberProp};
+use swc_next_ecma_ast::{CallExpression, PropertyKeyData};
 
 use super::BasicEvaluatedExpression;
 use crate::{
@@ -11,47 +11,50 @@ use crate::{
 };
 
 #[inline]
-pub fn eval_call_expression<'parser: 'a, 'a>(
+pub fn eval_call_expression<'parser>(
   parser: &mut JavascriptParser<'parser>,
-  expr: &'a CallExpr<'a>,
-) -> Option<BasicEvaluatedExpression<'a>> {
+  expression: CallExpression,
+) -> Option<BasicEvaluatedExpression<'parser>> {
+  let ast = parser.ast.ast;
   let drive = parser.plugin_drive.clone();
-  match &expr.callee {
-    Callee::Expr(callee_expr) => {
-      if let Some(ident) = callee_expr.as_ident() {
-        let is_create_require = parser.javascript_options.is_create_require_enabled()
-          && is_create_require_specifier(parser, &Atom::from(ident.sym.as_str()));
-        let evaluated = if is_create_require {
-          Atom::from(ident.sym.as_str()).call_hooks_name(parser, |parser, for_name| {
-            drive.evaluate_call_expression(parser, for_name, expr)
-          })
-        } else if parser.javascript_options.is_create_require_enabled() {
-          let evaluated = parser.evaluate_expression(callee_expr);
-          if evaluated.is_identifier() && evaluated.identifier() == CREATE_REQUIRE_EVALUATED_TAG {
-            drive.evaluate_call_expression(parser, CREATE_REQUIRE_EVALUATED_TAG, expr)
-          } else {
-            drive.evaluate_call_expression(parser, ident.sym.as_str(), expr)
-          }
-        } else {
-          drive.evaluate_call_expression(parser, ident.sym.as_str(), expr)
-        };
-        if evaluated.is_some() {
-          return evaluated;
-        }
+  let callee = expression.callee(ast);
+  if let Some(identifier) = callee.as_identifier_reference(ast) {
+    let name = Atom::from(ast.get_utf8(identifier.name(ast)));
+    let is_create_require = parser.javascript_options.is_create_require_enabled()
+      && is_create_require_specifier(parser, &name);
+    let evaluated = if is_create_require {
+      name.call_hooks_name(parser, |parser, for_name| {
+        drive.evaluate_call_expression(parser, for_name, expression)
+      })
+    } else if parser.javascript_options.is_create_require_enabled() {
+      let evaluated = parser.evaluate_expression(callee);
+      if evaluated.is_identifier() && evaluated.identifier() == CREATE_REQUIRE_EVALUATED_TAG {
+        drive.evaluate_call_expression(parser, CREATE_REQUIRE_EVALUATED_TAG, expression)
+      } else {
+        drive.evaluate_call_expression(parser, &name, expression)
       }
-      if let Some(member) = callee_expr.as_member()
-        && let MemberProp::Ident(ident) = &member.prop
-      {
-        let param = parser.evaluate_expression(&member.obj);
-        return drive.evaluate_call_expression_member(parser, ident.sym.as_str(), expr, param);
-      }
-      if parser.javascript_options.is_create_require_enabled()
-        && is_create_require_namespace_member(parser, callee_expr)
-      {
-        return drive.evaluate_call_expression(parser, "", expr);
-      }
-      None
+    } else {
+      drive.evaluate_call_expression(parser, &name, expression)
+    };
+    if evaluated.is_some() {
+      return evaluated;
     }
-    _ => None,
   }
+  if let Some(member) = callee.as_member_expression(ast)
+    && let PropertyKeyData::IdentifierName(identifier) = ast.property_key_data(member.property(ast))
+  {
+    let parameter = parser.evaluate_expression(member.object(ast));
+    return drive.evaluate_call_expression_member(
+      parser,
+      ast.get_utf8(identifier.name(ast)),
+      expression,
+      parameter,
+    );
+  }
+  if parser.javascript_options.is_create_require_enabled()
+    && is_create_require_namespace_member(parser, callee)
+  {
+    return drive.evaluate_call_expression(parser, "", expression);
+  }
+  None
 }

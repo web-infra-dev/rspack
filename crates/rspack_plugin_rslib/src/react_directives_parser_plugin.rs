@@ -2,52 +2,26 @@ use std::sync::Arc;
 
 use rspack_core::ConstDependency;
 use rspack_plugin_javascript::{JavascriptParserPlugin, visitors::JavascriptParser};
-use swc_experimental_ecma_ast::{Lit, ModuleItem, Program, Span, Stmt};
+use swc_next_ecma_ast::{GetSpan, Program};
 
 pub struct ReactDirectivesParserPlugin;
 
-impl ReactDirectivesParserPlugin {
-  fn process_statements<'a, I>(stmts: I, directives: &mut Vec<(String, Span)>)
-  where
-    I: Iterator<Item = &'a Stmt<'a>>,
-  {
-    for stmt in stmts {
-      let Stmt::Expr(expr_stmt) = stmt else { break };
-      let Some(Lit::Str(str_lit)) = expr_stmt.expr.as_lit() else {
-        break;
-      };
-
-      let value = str_lit.value.to_string_lossy().to_string();
-      if !value.starts_with("use ") {
-        break;
-      }
-
-      let directive = format!("\"{value}\"");
-      directives.push((directive, expr_stmt.span));
-    }
-  }
-}
-
 #[rspack_plugin_javascript::implemented_javascript_parser_hooks]
 impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ReactDirectivesParserPlugin {
-  fn program(&self, parser: &mut JavascriptParser<'p>, ast: &Program) -> Option<bool> {
-    let mut directives = Vec::new();
-
-    match ast {
-      Program::Module(module) => {
-        let stmts = module.body.iter().filter_map(|item| {
-          if let ModuleItem::Stmt(stmt) = item {
-            Some(&**stmt)
-          } else {
-            None
-          }
-        });
-        Self::process_statements(stmts, &mut directives);
-      }
-      Program::Script(script) => {
-        Self::process_statements(script.body.iter(), &mut directives);
-      }
-    }
+  fn program(&self, parser: &mut JavascriptParser<'p>, program: Program) -> Option<bool> {
+    let ast = parser.ast.ast;
+    let directives = program
+      .directives(ast)
+      .iter()
+      .map(|id| ast.get_node_in_sub_range(id))
+      .take_while(|directive| ast.get_utf8(directive.value(ast)).starts_with("use "))
+      .map(|directive| {
+        (
+          format!("\"{}\"", ast.get_utf8(directive.value(ast))),
+          directive.span(ast),
+        )
+      })
+      .collect::<Vec<_>>();
 
     if directives.is_empty() {
       return None;

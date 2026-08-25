@@ -16,12 +16,14 @@ impl SpanExt for swc_core::common::Span {
   }
 }
 
-impl SpanExt for swc_experimental_ecma_ast::Span {
+impl SpanExt for swc_next_ecma_ast::Span {
+  #[inline]
   fn real_lo(&self) -> u32 {
-    self.start.saturating_sub(1)
+    self.start
   }
 
+  #[inline]
   fn real_hi(&self) -> u32 {
-    self.end.saturating_sub(1)
+    self.end
   }
 }

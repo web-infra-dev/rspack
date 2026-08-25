@@ -178,7 +178,9 @@ jobs:
   build-s390x:
     name: Build s390x
     needs: [check-changed]
-    if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
+    # SWC Next 0.1.3 unconditionally rejects big-endian targets in its AST FFI.
+    # Re-enable after upstream makes the unused FFI serializer portable or optional.
+    if: ${{ false }}
     uses: ./.github/workflows/reusable-build-build.yml
     with:
       target: s390x-unknown-linux-gnu
@@ -251,7 +253,8 @@ jobs:
                 needs.build-wasm.result != 'success' ||
                 needs.build-riscv64.result != 'success' ||
                 needs.build-ppc64.result != 'success' ||
-                needs.build-s390x.result != 'success' ||
+                (needs.build-s390x.result != 'success' &&
+                  needs.build-s390x.result != 'skipped') ||
                 needs.test-wasm.result != 'success' ||
                 needs.check-cache.result != 'skipped'))
           }}

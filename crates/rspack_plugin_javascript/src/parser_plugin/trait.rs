@@ -1,9 +1,12 @@
 use swc_atoms::Atom;
-use swc_experimental_ecma_ast::{
-  AssignExpr, AwaitExpr, BinExpr, CallExpr, ClassMember, CondExpr, Expr, ForOfStmt, Ident, IfStmt,
-  ImportDecl, MemberExpr, ModuleDecl, NewExpr, OptChainExpr, Program, Span, ThisExpr, UnaryExpr,
-  VarDeclarator,
+use swc_next_ecma_ast::{
+  AssignmentExpression, AwaitExpression, BinaryExpression, BindingIdentifier, CallExpression,
+  ChainExpression, ClassElement, ConditionalExpression, Expr, ForOfStatement, IfStatement,
+  ImportDeclaration, ImportExpression, LogicalExpression, MemberExpression, NewExpression, Program,
+  Span, Stmt, ThisExpression, UnaryExpression, VariableDeclarator,
 };
+
+use crate::visitors::HookMemberExpression;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[repr(u8)]
@@ -108,7 +111,7 @@ use crate::{
   visitors::{
     ClassDeclOrExpr, DestructuringAssignmentProperty, ExportDefaultDeclaration,
     ExportDefaultExpression, ExportImport, ExportLocal, ExportedVariableInfo,
-    ExpressionExpressionInfo, JavascriptParser, Statement, VariableDeclaration,
+    ExpressionExpressionInfo, Identifier, JavascriptParser, Statement, VariableDeclaration,
   },
 };
 
@@ -172,20 +175,21 @@ Please annotate your `impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ...` block
   }
 
   /// The return value will have no effect.
-  fn top_level_await_expr(&self, _parser: &mut JavascriptParser<'p>, _expr: &AwaitExpr) {}
+  fn top_level_await_expr(&self, _parser: &mut JavascriptParser<'p>, _expr: AwaitExpression) {}
 
   /// The return value will have no effect.
-  fn top_level_for_of_await_stmt(&self, _parser: &mut JavascriptParser<'p>, _stmt: &ForOfStmt) {}
+  fn top_level_for_of_await_stmt(&self, _parser: &mut JavascriptParser<'p>, _stmt: ForOfStatement) {
+  }
 
   fn can_rename(&self, _parser: &mut JavascriptParser<'p>, _str: &str) -> Option<bool> {
     None
   }
 
-  fn rename(&self, _parser: &mut JavascriptParser<'p>, _expr: &Expr, _str: &str) -> Option<bool> {
+  fn rename(&self, _parser: &mut JavascriptParser<'p>, _expr: Expr, _str: &str) -> Option<bool> {
     None
   }
 
-  fn program(&self, _parser: &mut JavascriptParser<'p>, _ast: &Program) -> Option<bool> {
+  fn program(&self, _parser: &mut JavascriptParser<'p>, _ast: Program) -> Option<bool> {
     None
   }
 
@@ -204,11 +208,7 @@ Please annotate your `impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ...` block
     None
   }
 
-  fn module_declaration(
-    &self,
-    _parser: &mut JavascriptParser<'p>,
-    _decl: &ModuleDecl,
-  ) -> Option<bool> {
+  fn module_declaration(&self, _parser: &mut JavascriptParser<'p>, _decl: Stmt) -> Option<bool> {
     None
   }
 
@@ -220,7 +220,7 @@ Please annotate your `impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ...` block
   fn block_pre_module_declaration(
     &self,
     _parser: &mut JavascriptParser<'p>,
-    _decl: &ModuleDecl,
+    _decl: Stmt,
   ) -> Option<bool> {
     None
   }
@@ -228,8 +228,8 @@ Please annotate your `impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ...` block
   fn pre_declarator(
     &self,
     _parser: &mut JavascriptParser<'p>,
-    _declarator: &VarDeclarator,
-    _declaration: VariableDeclaration<'_>,
+    _declarator: VariableDeclarator,
+    _declaration: VariableDeclaration,
   ) -> Option<bool> {
     None
   }
@@ -237,35 +237,26 @@ Please annotate your `impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ...` block
   fn evaluate(
     &self,
     _parser: &mut JavascriptParser<'p>,
-    _expr: &'a Expr,
-  ) -> Option<BasicEvaluatedExpression<'a>>
-  where
-    'p: 'a,
-  {
+    _expr: Expr,
+  ) -> Option<BasicEvaluatedExpression<'p>> {
     None
   }
 
   fn evaluate_typeof(
     &self,
     _parser: &mut JavascriptParser<'p>,
-    _expr: &'a UnaryExpr<'a>,
+    _expr: UnaryExpression,
     _for_name: &str,
-  ) -> Option<BasicEvaluatedExpression<'a>>
-  where
-    'p: 'a,
-  {
+  ) -> Option<BasicEvaluatedExpression<'p>> {
     None
   }
 
   fn evaluate_binary_expression(
     &self,
     _parser: &mut JavascriptParser<'p>,
-    _expr: &'a BinExpr<'a>,
-    _left: &BasicEvaluatedExpression<'a>,
-  ) -> Option<BasicEvaluatedExpression<'a>>
-  where
-    'p: 'a,
-  {
+    _expr: BinaryExpression,
+    _left: &BasicEvaluatedExpression<'p>,
+  ) -> Option<BasicEvaluatedExpression<'p>> {
     None
   }
 
@@ -286,11 +277,8 @@ Please annotate your `impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ...` block
     &self,
     _parser: &mut JavascriptParser<'p>,
     _name: &str,
-    _expr: &'a CallExpr<'a>,
-  ) -> Option<BasicEvaluatedExpression<'a>>
-  where
-    'p: 'a,
-  {
+    _expr: CallExpression,
+  ) -> Option<BasicEvaluatedExpression<'p>> {
     None
   }
 
@@ -298,19 +286,16 @@ Please annotate your `impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ...` block
     &self,
     _parser: &mut JavascriptParser<'p>,
     _property: &str,
-    _expr: &'a CallExpr<'a>,
-    _param: BasicEvaluatedExpression<'a>,
-  ) -> Option<BasicEvaluatedExpression<'a>>
-  where
-    'p: 'a,
-  {
+    _expr: CallExpression,
+    _param: BasicEvaluatedExpression<'p>,
+  ) -> Option<BasicEvaluatedExpression<'p>> {
     None
   }
 
   fn can_collect_destructuring_assignment_properties(
     &self,
     _parser: &mut JavascriptParser<'p>,
-    _expr: &Expr,
+    _expr: Expr,
   ) -> Option<bool> {
     None
   }
@@ -318,7 +303,7 @@ Please annotate your `impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ...` block
   fn pattern(
     &self,
     _parser: &mut JavascriptParser<'p>,
-    _ident: &Ident,
+    _ident: BindingIdentifier,
     _for_name: &str,
   ) -> Option<bool> {
     None
@@ -327,7 +312,7 @@ Please annotate your `impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ...` block
   fn call(
     &self,
     _parser: &mut JavascriptParser<'p>,
-    _expr: &CallExpr,
+    _expr: CallExpression,
     _for_name: &str,
   ) -> Option<bool> {
     None
@@ -336,7 +321,7 @@ Please annotate your `impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ...` block
   fn call_member_chain(
     &self,
     _parser: &mut JavascriptParser<'p>,
-    _expr: &CallExpr,
+    _expr: CallExpression,
     _for_name: &str,
     _members: &[Atom],
     _members_optionals: &[bool],
@@ -348,7 +333,7 @@ Please annotate your `impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ...` block
   fn member(
     &self,
     _parser: &mut JavascriptParser<'p>,
-    _expr: &MemberExpr,
+    _expr: HookMemberExpression,
     _for_name: &str,
   ) -> Option<bool> {
     None
@@ -357,7 +342,7 @@ Please annotate your `impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ...` block
   fn member_chain(
     &self,
     _parser: &mut JavascriptParser<'p>,
-    _expr: &MemberExpr,
+    _expr: HookMemberExpression,
     _for_name: &str,
     _members: &[Atom],
     _members_optionals: &[bool],
@@ -370,7 +355,7 @@ Please annotate your `impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ...` block
     &self,
     _parser: &mut JavascriptParser<'p>,
     _root_info: &ExportedVariableInfo,
-    _expr: &MemberExpr,
+    _expr: HookMemberExpression,
   ) -> Option<bool> {
     None
   }
@@ -379,9 +364,9 @@ Please annotate your `impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ...` block
   fn member_chain_of_call_member_chain(
     &self,
     _parser: &mut JavascriptParser<'p>,
-    _member_expr: &MemberExpr,
+    _member_expr: MemberExpression,
     _callee_members: &[Atom],
-    _call_expr: &CallExpr,
+    _call_expr: CallExpression,
     _members: &[Atom],
     _member_ranges: &[Span],
     _for_name: &str,
@@ -393,9 +378,9 @@ Please annotate your `impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ...` block
   fn call_member_chain_of_call_member_chain(
     &self,
     _parser: &mut JavascriptParser<'p>,
-    _call_expr: &CallExpr,
+    _call_expr: CallExpression,
     _callee_members: &[Atom],
-    _inner_call_expr: &CallExpr,
+    _inner_call_expr: CallExpression,
     _members: &[Atom],
     _member_ranges: &[Span],
     _for_name: &str,
@@ -406,7 +391,7 @@ Please annotate your `impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ...` block
   fn r#typeof(
     &self,
     _parser: &mut JavascriptParser<'p>,
-    _expr: &UnaryExpr,
+    _expr: UnaryExpression,
     _for_name: &str,
   ) -> Option<bool> {
     None
@@ -419,14 +404,18 @@ Please annotate your `impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ...` block
   fn expression_logical_operator(
     &self,
     _parser: &mut JavascriptParser<'p>,
-    _expr: &BinExpr,
+    _expr: LogicalExpression,
   ) -> Option<KeepRight> {
     None
   }
 
   /// Return:
   /// - `None` means should walk left and right;
-  fn binary_expression(&self, _parser: &mut JavascriptParser<'p>, _expr: &BinExpr) -> Option<bool> {
+  fn binary_expression(
+    &self,
+    _parser: &mut JavascriptParser<'p>,
+    _expr: BinaryExpression,
+  ) -> Option<bool> {
     None
   }
 
@@ -434,14 +423,14 @@ Please annotate your `impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ...` block
   /// - `None` means need walk `stmt.test`, `stmt.cons` and `stmt.alt`;
   /// - `Some(true)` means only need walk `stmt.cons`;
   /// - `Some(false)` means only need walk `stmt.alt`;
-  fn statement_if(&self, _parser: &mut JavascriptParser<'p>, _expr: &IfStmt) -> Option<bool> {
+  fn statement_if(&self, _parser: &mut JavascriptParser<'p>, _expr: IfStatement) -> Option<bool> {
     None
   }
 
   fn class_extends_expression(
     &self,
     _parser: &mut JavascriptParser<'p>,
-    _super_class: &Expr,
+    _super_class: Expr,
     _class_decl_or_expr: ClassDeclOrExpr,
   ) -> Option<bool> {
     None
@@ -450,7 +439,7 @@ Please annotate your `impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ...` block
   fn class_body_element(
     &self,
     _parser: &mut JavascriptParser<'p>,
-    _element: &ClassMember,
+    _element: ClassElement,
     _class_decl_or_expr: ClassDeclOrExpr,
   ) -> Option<bool> {
     None
@@ -459,7 +448,7 @@ Please annotate your `impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ...` block
   fn class_body_value(
     &self,
     _parser: &mut JavascriptParser<'p>,
-    _element: &ClassMember,
+    _element: ClassElement,
     _expr_span: Span,
     _class_decl_or_expr: ClassDeclOrExpr,
   ) -> Option<bool> {
@@ -469,8 +458,8 @@ Please annotate your `impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ...` block
   fn declarator(
     &self,
     _parser: &mut JavascriptParser<'p>,
-    _expr: &VarDeclarator,
-    _stmt: VariableDeclaration<'_>,
+    _expr: VariableDeclarator,
+    _stmt: VariableDeclaration,
   ) -> Option<bool> {
     None
   }
@@ -478,7 +467,7 @@ Please annotate your `impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ...` block
   fn new_expression(
     &self,
     _parser: &mut JavascriptParser<'p>,
-    _expr: &NewExpr,
+    _expr: NewExpression,
     _for_name: &str,
   ) -> Option<bool> {
     None
@@ -487,7 +476,7 @@ Please annotate your `impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ...` block
   fn identifier(
     &self,
     _parser: &mut JavascriptParser<'p>,
-    _ident: &Ident,
+    _ident: &Identifier,
     _for_name: &str,
   ) -> Option<bool> {
     None
@@ -496,7 +485,7 @@ Please annotate your `impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ...` block
   fn this(
     &self,
     _parser: &mut JavascriptParser<'p>,
-    _expr: &ThisExpr,
+    _expr: ThisExpression,
     _for_name: &str,
   ) -> Option<bool> {
     None
@@ -505,8 +494,8 @@ Please annotate your `impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ...` block
   fn assign(
     &self,
     _parser: &mut JavascriptParser<'p>,
-    _expr: &AssignExpr,
-    _ident: &Ident,
+    _expr: AssignmentExpression,
+    _ident: &Identifier,
     _for_name: &str,
   ) -> Option<bool> {
     None
@@ -515,7 +504,7 @@ Please annotate your `impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ...` block
   fn assign_member_chain(
     &self,
     _parser: &mut JavascriptParser<'p>,
-    _expr: &AssignExpr,
+    _expr: AssignmentExpression,
     _members: &[Atom],
     _member_ranges: &[Span],
     _for_name: &str,
@@ -526,8 +515,8 @@ Please annotate your `impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ...` block
   fn import_call(
     &self,
     _parser: &mut JavascriptParser<'p>,
-    _expr: &CallExpr,
-    _import_then: Option<&CallExpr>,
+    _expr: ImportExpression,
+    _import_then: Option<CallExpression>,
     _members: Option<(&[Atom], bool)>,
   ) -> Option<bool> {
     None
@@ -545,7 +534,7 @@ Please annotate your `impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ...` block
   fn import(
     &self,
     _parser: &mut JavascriptParser<'p>,
-    _statement: &ImportDecl,
+    _statement: ImportDeclaration,
     _source: &str,
   ) -> Option<bool> {
     None
@@ -554,7 +543,7 @@ Please annotate your `impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ...` block
   fn import_specifier(
     &self,
     _parser: &mut JavascriptParser<'p>,
-    _statement: &ImportDecl,
+    _statement: ImportDeclaration,
     _source: &Atom,
     _export_name: Option<&Atom>,
     _identifier_name: &Atom,
@@ -610,7 +599,7 @@ Please annotate your `impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ...` block
   fn optional_chaining(
     &self,
     _parser: &mut JavascriptParser<'p>,
-    _expr: &OptChainExpr,
+    _expr: ChainExpression,
   ) -> Option<bool> {
     None
   }
@@ -618,7 +607,7 @@ Please annotate your `impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ...` block
   fn expression_conditional_operation(
     &self,
     _parser: &mut JavascriptParser<'p>,
-    _expr: &CondExpr,
+    _expr: ConditionalExpression,
   ) -> Option<bool> {
     None
   }
@@ -627,7 +616,7 @@ Please annotate your `impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ...` block
     None
   }
 
-  fn is_pure(&self, _parser: &mut JavascriptParser<'p>, _expr: &Expr) -> Option<bool> {
+  fn is_pure(&self, _parser: &mut JavascriptParser<'p>, _expr: Expr) -> Option<bool> {
     None
   }
 

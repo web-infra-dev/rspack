@@ -5,10 +5,13 @@ use itertools::Itertools;
 use rspack_core::{BoxDependency, DependencyRange};
 use rustc_hash::FxHashSet as HashSet;
 use swc_atoms::Atom;
-use swc_experimental_ecma_ast::{CallExpr, GetSpan, Ident, MemberExpr, Span};
+use swc_next_ecma_ast::{CallExpression, GetSpan, Span};
 
 use super::{super::JavascriptParserPlugin, ProvideValue, VALUE_DEP_PREFIX};
-use crate::{dependency::ProvideDependency, visitors::JavascriptParser};
+use crate::{
+  dependency::ProvideDependency,
+  visitors::{HookMemberExpression, Identifier, JavascriptParser},
+};
 
 const SOURCE_DOT: &str = r#"."#;
 const MODULE_DOT: &str = r#"_dot_"#;
@@ -68,12 +71,18 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ProvideParserPlugin {
   fn call(
     &self,
     parser: &mut JavascriptParser<'p>,
-    expr: &CallExpr,
+    expr: CallExpression,
     for_name: &str,
   ) -> Option<bool> {
-    if self.add_provide_dep(for_name, expr.callee.span(), parser) {
+    let ast = parser.ast.ast;
+    if self.add_provide_dep(for_name, expr.callee(ast).span(ast), parser) {
       // FIXME: webpack use `walk_expression` here
-      parser.walk_expr_or_spread(&expr.args);
+      parser.walk_arguments(
+        expr
+          .arguments(ast)
+          .iter()
+          .map(|id| ast.get_node_in_sub_range(id)),
+      );
       return Some(true);
     }
     None
@@ -82,22 +91,22 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ProvideParserPlugin {
   fn member(
     &self,
     parser: &mut JavascriptParser<'p>,
-    expr: &MemberExpr,
+    expr: HookMemberExpression,
     for_name: &str,
   ) -> Option<bool> {
     self
-      .add_provide_dep(for_name, expr.span(), parser)
+      .add_provide_dep(for_name, expr.span(parser.ast.ast), parser)
       .then_some(true)
   }
 
   fn identifier(
     &self,
     parser: &mut JavascriptParser<'p>,
-    ident: &Ident,
+    ident: &Identifier,
     for_name: &str,
   ) -> Option<bool> {
     self
-      .add_provide_dep(for_name, ident.span, parser)
+      .add_provide_dep(for_name, ident.span(), parser)
       .then_some(true)
   }
 }

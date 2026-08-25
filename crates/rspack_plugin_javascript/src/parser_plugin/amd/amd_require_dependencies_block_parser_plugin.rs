@@ -9,7 +9,9 @@ use rspack_core::{
 };
 use rspack_error::{Error, Severity};
 use rspack_util::{SpanExt, atom::Atom};
-use swc_experimental_ecma_ast::{BlockStmtOrExpr, CallExpr, ExprOrSpread, GetSpan, Pat};
+use swc_next_ecma_ast::{
+  Argument, ArrowFunctionBodyData, Ast, BindingPattern, CallExpression, FormalParameters, GetSpan,
+};
 
 use crate::{
   JavascriptParserPlugin,
@@ -24,15 +26,29 @@ use crate::{
   parser_plugin::require_ensure_dependencies_block_parse_plugin::GetFunctionExpression,
   utils::eval::BasicEvaluatedExpression,
   visitors::{
-    JavascriptParser, Statement, context_reg_exp, create_context_dependency, create_traceable_error,
+    JavascriptParser, PatRef, context_reg_exp, create_context_dependency, create_traceable_error,
   },
 };
 
-fn is_reserved_param(pat: &Pat) -> bool {
+fn formal_parameter_patterns(ast: &Ast<'_>, params: FormalParameters) -> Vec<BindingPattern> {
+  let mut patterns = params
+    .items(ast)
+    .iter()
+    .map(|id| ast.get_node_in_sub_range(id))
+    .filter_map(|item| item.as_formal_parameter(ast))
+    .filter_map(|parameter| parameter.pattern(ast).as_binding_pattern(ast))
+    .collect::<Vec<_>>();
+  if let Some(rest) = params.rest(ast) {
+    patterns.push(BindingPattern::BindingRestElement(rest));
+  }
+  patterns
+}
+
+fn is_reserved_param(ast: &Ast<'_>, pat: BindingPattern) -> bool {
   const RESERVED_NAMES: [&str; 3] = ["require", "module", "exports"];
   pat
-    .as_ident()
-    .is_some_and(|ident| RESERVED_NAMES.contains(&ident.id.sym.as_str()))
+    .as_binding_identifier(ast)
+    .is_some_and(|ident| RESERVED_NAMES.contains(&ast.get_utf8(ident.name(ast))))
 }
 
 pub struct AMDRequireDependenciesBlockParserPlugin;
@@ -42,7 +58,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for AMDRequireDependenciesBlockParse
   fn call(
     &self,
     parser: &mut JavascriptParser<'p>,
-    call_expr: &CallExpr,
+    call_expr: CallExpression,
     for_name: &str,
   ) -> Option<bool> {
     if for_name == "require" {
@@ -58,7 +74,7 @@ impl AMDRequireDependenciesBlockParserPlugin {
     &self,
     parser: &mut JavascriptParser,
     block_deps: &mut Vec<BoxDependency>,
-    call_expr: &CallExpr,
+    call_expr: CallExpression,
     param: &BasicEvaluatedExpression,
   ) -> Option<bool> {
     if param.is_array() {
@@ -101,7 +117,7 @@ impl AMDRequireDependenciesBlockParserPlugin {
     &self,
     parser: &mut JavascriptParser,
     block_deps: &mut Vec<BoxDependency>,
-    call_expr: &CallExpr,
+    call_expr: CallExpression,
     param: &BasicEvaluatedExpression,
   ) -> Option<bool> {
     if param.is_conditional() {
@@ -162,10 +178,10 @@ impl AMDRequireDependenciesBlockParserPlugin {
     &self,
     parser: &mut JavascriptParser,
     block_deps: &mut Vec<BoxDependency>,
-    call_expr: &CallExpr,
+    call_expr: CallExpression,
     param: &BasicEvaluatedExpression,
   ) -> Option<bool> {
-    let call_span = call_expr.span;
+    let call_span = call_expr.span(parser.ast.ast);
     let param_range = param.range();
 
     let result = create_context_dependency(param, parser);
@@ -219,38 +235,44 @@ impl AMDRequireDependenciesBlockParserPlugin {
     None
   }
 
-  fn process_function_argument(
-    &self,
-    parser: &mut JavascriptParser,
-    func_arg: &ExprOrSpread,
-  ) -> bool {
+  fn process_function_argument(&self, parser: &mut JavascriptParser, func_arg: Argument) -> bool {
     let mut bind_this = true;
+    let ast = parser.ast.ast;
+    let Some(func_arg_expr) = func_arg.as_expr(ast) else {
+      parser.walk_arguments(iter::once(func_arg));
+      return bind_this;
+    };
 
-    if let Some(func_expr) = func_arg.expr.get_function_expr() {
+    if let Some(func_expr) = func_arg_expr.get_function_expr(ast) {
       match func_expr.func {
         Either::Left(func) => {
-          if let Some(body) = &func.function.body {
-            let params = func
-              .function
-              .params
-              .iter()
-              .filter(|param| !is_reserved_param(&param.pat))
-              .map(|param| crate::visitors::PatRef::Borrowed(&param.pat));
-            parser.in_function_scope(true, params, |parser| {
-              parser.walk_statement(Statement::Block(body));
-            });
-          }
+          let params = formal_parameter_patterns(ast, func.params(ast));
+          parser.in_function_scope(
+            true,
+            params
+              .into_iter()
+              .filter(|param| !is_reserved_param(ast, *param))
+              .map(PatRef::Borrowed),
+            |parser| parser.walk_function_body(func.body(parser.ast.ast)),
+          );
         }
         Either::Right(arrow) => {
-          let params = arrow
-            .params
-            .iter()
-            .filter(|param| !is_reserved_param(param))
-            .map(crate::visitors::PatRef::Borrowed);
-          parser.in_function_scope(true, params, |parser| match &arrow.body {
-            BlockStmtOrExpr::BlockStmt(body) => parser.walk_statement(Statement::Block(body)),
-            BlockStmtOrExpr::Expr(expr) => parser.walk_expression(expr),
-          });
+          let params = formal_parameter_patterns(ast, arrow.params(ast));
+          parser.in_function_scope(
+            true,
+            params
+              .into_iter()
+              .filter(|param| !is_reserved_param(ast, *param))
+              .map(PatRef::Borrowed),
+            |parser| match parser
+              .ast
+              .ast
+              .arrow_function_body_data(arrow.body(parser.ast.ast))
+            {
+              ArrowFunctionBodyData::FunctionBody(body) => parser.walk_function_body(body),
+              ArrowFunctionBodyData::Expr(expr) => parser.walk_expression(expr),
+            },
+          );
         }
       }
 
@@ -262,7 +284,7 @@ impl AMDRequireDependenciesBlockParserPlugin {
         bind_this = false;
       }
     } else {
-      parser.walk_expression(&func_arg.expr);
+      parser.walk_expression(func_arg_expr);
     }
 
     bind_this
@@ -271,32 +293,44 @@ impl AMDRequireDependenciesBlockParserPlugin {
   fn process_call_require(
     &self,
     parser: &mut JavascriptParser,
-    call_expr: &CallExpr,
+    call_expr: CallExpression,
   ) -> Option<bool> {
-    if call_expr.args.is_empty() {
+    let ast = parser.ast.ast;
+    let args = call_expr
+      .arguments(ast)
+      .iter()
+      .map(|id| ast.get_node_in_sub_range(id))
+      .collect::<Vec<_>>();
+    if args.is_empty() {
       return None;
     }
     // TODO: check if args includes spread
 
     // require(['dep1', 'dep2'], callback, errorCallback);
 
-    let first_arg = call_expr.args.first().expect("first arg cannot be None");
-    let callback_arg = call_expr.args.get(1);
-    let error_callback_arg = call_expr.args.get(2);
+    let first_arg = *args.first().expect("first arg cannot be None");
+    let callback_arg = args.get(1).copied();
+    let error_callback_arg = args.get(2).copied();
+    let first_arg_expr = first_arg.as_expr(ast)?;
 
-    let param = parser.evaluate_expression(&first_arg.expr);
+    let param = parser.evaluate_expression(first_arg_expr);
+    let call_span = call_expr.span(ast);
 
     let mut dep = AMDRequireDependency::new(
-      call_expr.span.into(),
-      Some(first_arg.expr.span().into()),
-      callback_arg.map(|arg| arg.expr.span().into()),
-      error_callback_arg.map(|arg| arg.expr.span().into()),
+      call_span.into(),
+      Some(first_arg_expr.span(ast).into()),
+      callback_arg
+        .and_then(|arg| arg.as_expr(ast))
+        .map(|expr| expr.span(ast).into()),
+      error_callback_arg
+        .and_then(|arg| arg.as_expr(ast))
+        .map(|expr| expr.span(ast).into()),
     );
 
-    let range = DependencyRange::from(call_expr.span);
+    let range = DependencyRange::from(call_span);
     let block_loc = parser.to_dependency_location(range);
 
-    if call_expr.args.len() == 1 {
+    if args.len() == 1 {
       let mut block_deps: Vec<BoxDependency> = vec![BoxDependency::new(dep)];
       let mut result = None;
       parser.in_function_scope(true, iter::empty(), |parser| {
@@ -317,7 +351,7 @@ impl AMDRequireDependenciesBlockParserPlugin {
       }
     }
 
-    if call_expr.args.len() == 2 || call_expr.args.len() == 3 {
+    if args.len() == 2 || args.len() == 3 {
       let mut block_deps: Vec<BoxDependency> = vec![];
 
       let mut result = None;
@@ -328,14 +362,14 @@ impl AMDRequireDependenciesBlockParserPlugin {
       if !result.is_some_and(|x| x) {
         let dep = Arc::new(UnsupportedDependency::new(
           "unsupported".into(),
-          call_expr.span.into(),
+          call_span.into(),
         ));
         parser.add_presentational_dependency(dep);
         let mut error: Error = create_traceable_error(
           "UnsupportedFeatureWarning".into(),
           "Cannot statically analyse 'require(…, …)'".into(),
           parser.source.to_string(),
-          call_expr.span.into(),
+          call_span.into(),
         );
         error.severity = Severity::Warning;
         error.hide_stack = Some(true);

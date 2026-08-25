@@ -7,7 +7,10 @@ use rspack_core::{
 };
 use rspack_util::{SpanExt, atom::Atom};
 use rustc_hash::FxHashMap;
-use swc_experimental_ecma_ast::{BlockStmtOrExpr, CallExpr, Callee, Expr, GetSpan, Lit};
+use swc_next_ecma_ast::{
+  ArrowFunctionBodyData, Ast, BindingPattern, CallExpression, Expr, ExprData, FormalParameters,
+  GetSpan, PropertyKeyData,
+};
 
 use crate::{
   JavascriptParserPlugin,
@@ -20,50 +23,54 @@ use crate::{
   },
   utils::eval::BasicEvaluatedExpression,
   visitors::{
-    ExportedVariableInfo, JavascriptParser, PatRef, Statement, context_reg_exp,
-    create_context_dependency,
+    ExportedVariableInfo, JavascriptParser, PatRef, context_reg_exp, create_context_dependency,
   },
 };
 
 pub struct AMDDefineDependencyParserPlugin;
 
-fn is_unbound_function_expression(expr: &Expr) -> bool {
-  expr.is_fn() || expr.is_arrow()
+fn formal_parameter_patterns(ast: &Ast<'_>, params: FormalParameters) -> Vec<BindingPattern> {
+  let mut patterns = params
+    .items(ast)
+    .iter()
+    .map(|id| ast.get_node_in_sub_range(id))
+    .filter_map(|item| item.as_formal_parameter(ast))
+    .filter_map(|parameter| parameter.pattern(ast).as_binding_pattern(ast))
+    .collect::<Vec<_>>();
+  if let Some(rest) = params.rest(ast) {
+    patterns.push(BindingPattern::BindingRestElement(rest));
+  }
+  patterns
 }
 
-fn is_bound_function_expression(expr: &Expr) -> bool {
-  if !expr.is_call() {
+fn is_unbound_function_expression(ast: &Ast<'_>, expr: Expr) -> bool {
+  expr.as_function(ast).is_some() || expr.as_arrow_function_expression(ast).is_some()
+}
+
+fn is_bound_function_expression(ast: &Ast<'_>, expr: Expr) -> bool {
+  let Some(call_expr) = expr.as_call_expression(ast) else {
+    return false;
+  };
+  let Some(callee_member) = call_expr.callee(ast).as_member_expression(ast) else {
+    return false;
+  };
+  if callee_member.computed(ast) || callee_member.object(ast).as_function(ast).is_none() {
     return false;
   }
-
-  let call_expr = expr.as_call().expect("expr is supposed to be CallExpr");
-  match &call_expr.callee {
-    Callee::Super(_) => return false,
-    Callee::Import(_) => return false,
-    Callee::Expr(callee) => {
-      if !callee.is_member() {
-        return false;
-      }
-      let callee_member = callee
-        .as_member()
-        .expect("callee is supposed to be MemberExpr");
-      if callee_member.prop.is_computed() {
-        return false;
-      }
-      if !callee_member.obj.is_fn() {
-        return false;
-      }
-      if !callee_member.prop.is_ident_with("bind") {
-        return false;
-      }
-    }
+  let PropertyKeyData::IdentifierName(property) =
+    ast.property_key_data(callee_member.property(ast))
+  else {
+    return false;
+  };
+  if ast.get_utf8(property.name(ast)) != "bind" {
+    return false;
   }
 
   true
 }
 
-fn is_callable(expr: &Expr) -> bool {
-  is_unbound_function_expression(expr) || is_bound_function_expression(expr)
+fn is_callable(ast: &Ast<'_>, expr: Expr) -> bool {
+  is_unbound_function_expression(ast, expr) || is_bound_function_expression(ast, expr)
 }
 
 /// `define('ui/foo/bar', ['./baz', '../qux'], ...);`
@@ -93,25 +100,37 @@ const MODULE: &str = "module";
 const EXPORTS: &str = "exports";
 const RESERVED_NAMES: [&str; 3] = [REQUIRE, EXPORTS, MODULE];
 
-fn get_lit_str(expr: &Expr) -> Option<Atom> {
-  expr.as_lit().and_then(|lit| match lit {
-    Lit::Str(s) => Some(Atom::new(s.value.as_wtf8().to_string_lossy().as_ref())),
-    _ => None,
-  })
+fn get_lit_str(ast: &Ast<'_>, expr: Expr) -> Option<Atom> {
+  let string = expr.as_string_literal(ast)?;
+  Some(Atom::new(
+    ast.get_wtf8(string.value(ast)).to_string_lossy().as_ref(),
+  ))
 }
 
-fn get_ident_name(pat: &PatRef<'_>) -> Atom {
+fn is_literal(ast: &Ast<'_>, expr: Expr) -> bool {
+  matches!(
+    ast.expr_data(expr),
+    ExprData::StringLiteral(_)
+      | ExprData::NumericLiteral(_)
+      | ExprData::BigIntLiteral(_)
+      | ExprData::BooleanLiteral(_)
+      | ExprData::NullLiteral(_)
+      | ExprData::RegExpLiteral(_)
+  )
+}
+
+fn get_ident_name(ast: &Ast<'_>, pat: &PatRef) -> Atom {
   pat
     .as_pat()
-    .as_ident()
-    .map_or("".into(), |ident| Atom::new(ident.id.sym.as_str()))
+    .as_binding_identifier(ast)
+    .map_or("".into(), |ident| Atom::new(ast.get_utf8(ident.name(ast))))
 }
 
 impl AMDDefineDependencyParserPlugin {
   fn process_array(
     &self,
     parser: &mut JavascriptParser,
-    call_expr: &CallExpr,
+    call_expr: CallExpression,
     param: &BasicEvaluatedExpression,
     identifiers: &mut FxHashMap<usize, Atom>, // param index => "require" | "module" | "exports"
     named_module: &Option<Atom>,
@@ -166,7 +185,7 @@ impl AMDDefineDependencyParserPlugin {
   fn process_item(
     &self,
     parser: &mut JavascriptParser,
-    call_expr: &CallExpr,
+    call_expr: CallExpression,
     param: &BasicEvaluatedExpression,
     named_module: &Option<Atom>,
   ) -> Option<bool> {
@@ -232,10 +251,10 @@ impl AMDDefineDependencyParserPlugin {
   fn process_context(
     &self,
     parser: &mut JavascriptParser,
-    call_expr: &CallExpr,
+    call_expr: CallExpression,
     param: &BasicEvaluatedExpression,
   ) -> Option<bool> {
-    let call_span = call_expr.span;
+    let call_span = call_expr.span(parser.ast.ast);
     let param_range = param.range();
 
     let result = create_context_dependency(param, parser);
@@ -263,111 +282,101 @@ impl AMDDefineDependencyParserPlugin {
   fn process_call_define(
     &self,
     parser: &mut JavascriptParser,
-    call_expr: &CallExpr,
+    call_expr: CallExpression,
   ) -> Option<bool> {
-    let mut array: Option<&Expr> = None;
-    let mut func: Option<&Expr> = None;
-    let mut obj: Option<&Expr> = None;
+    let ast = parser.ast.ast;
+    let args = call_expr
+      .arguments(ast)
+      .iter()
+      .map(|id| ast.get_node_in_sub_range(id))
+      .collect::<Vec<_>>();
+    let mut array: Option<Expr> = None;
+    let mut func: Option<Expr> = None;
+    let mut obj: Option<Expr> = None;
     let mut named_module: Option<Atom> = None;
 
-    match call_expr.args.len() {
+    match args.len() {
       1 => {
-        let first_arg = &call_expr.args[0];
+        // We don't support spread syntax in `define()`.
+        let first_arg = args[0].as_expr(ast)?;
 
-        // We don't support spread syntax in `define()`
-        if first_arg.spread.is_some() {
-          return None;
-        }
-
-        if is_callable(&first_arg.expr) {
+        if is_callable(ast, first_arg) {
           // define(f() {…})
-          func = Some(&first_arg.expr);
-        } else if first_arg.expr.is_object() {
+          func = Some(first_arg);
+        } else if first_arg.as_object_expression(ast).is_some() {
           // define({…})
-          obj = Some(&first_arg.expr);
+          obj = Some(first_arg);
         } else {
           // define(expr)
           // unclear if function or object
-          func = Some(&first_arg.expr);
-          obj = Some(&first_arg.expr);
+          func = Some(first_arg);
+          obj = Some(first_arg);
         }
       }
       2 => {
-        let first_arg = &call_expr.args[0];
-        let second_arg = &call_expr.args[1];
+        let first_arg = args[0].as_expr(ast)?;
+        let second_arg = args[1].as_expr(ast)?;
 
-        // We don't support spread syntax in `define()`
-        if first_arg.spread.is_some() || second_arg.spread.is_some() {
-          return None;
-        }
-
-        if first_arg.expr.is_lit() {
+        if is_literal(ast, first_arg) {
           // define("…", …)
-          named_module = get_lit_str(&first_arg.expr);
+          named_module = get_lit_str(ast, first_arg);
 
-          if is_callable(&second_arg.expr) {
+          if is_callable(ast, second_arg) {
             // define("…", f() {…})
-            func = Some(&second_arg.expr);
-          } else if second_arg.expr.is_object() {
+            func = Some(second_arg);
+          } else if second_arg.as_object_expression(ast).is_some() {
             // define("…", {…})
-            obj = Some(&second_arg.expr);
+            obj = Some(second_arg);
           } else {
             // define("…", expr)
             // unclear if function or object
-            func = Some(&second_arg.expr);
-            obj = Some(&second_arg.expr);
+            func = Some(second_arg);
+            obj = Some(second_arg);
           }
         } else {
           // define([…], …)
-          array = Some(&first_arg.expr);
+          array = Some(first_arg);
 
-          if is_callable(&second_arg.expr) {
+          if is_callable(ast, second_arg) {
             // define([…], f() {})
-            func = Some(&second_arg.expr);
-          } else if second_arg.expr.is_object() {
+            func = Some(second_arg);
+          } else if second_arg.as_object_expression(ast).is_some() {
             // define([…], {…})
-            obj = Some(&second_arg.expr);
+            obj = Some(second_arg);
           } else {
             // define([…], expr)
             // unclear if function or object
-            func = Some(&second_arg.expr);
-            obj = Some(&second_arg.expr);
+            func = Some(second_arg);
+            obj = Some(second_arg);
           }
         }
       }
       3 => {
         // define("…", […], …)
 
-        let first_arg = &call_expr.args[0];
-        let second_arg = &call_expr.args[1];
-        let third_arg = &call_expr.args[2];
+        let first_arg = args[0].as_expr(ast)?;
+        let second_arg = args[1].as_expr(ast)?;
+        let third_arg = args[2].as_expr(ast)?;
 
-        // We don't support spread syntax in `define()`
-        if first_arg.spread.is_some() || second_arg.spread.is_some() || third_arg.spread.is_some() {
+        if !is_literal(ast, first_arg) {
           return None;
         }
+        second_arg.as_array_expression(ast)?;
 
-        if !first_arg.expr.is_lit() {
-          return None;
-        }
-        if !second_arg.expr.is_array() {
-          return None;
-        }
+        named_module = get_lit_str(ast, first_arg);
+        array = Some(second_arg);
 
-        named_module = get_lit_str(&first_arg.expr);
-        array = Some(&second_arg.expr);
-
-        if is_callable(&third_arg.expr) {
+        if is_callable(ast, third_arg) {
           // define("…", […], f() {})
-          func = Some(&third_arg.expr);
-        } else if third_arg.expr.is_object() {
+          func = Some(third_arg);
+        } else if third_arg.as_object_expression(ast).is_some() {
           // define("…", […], {…})
-          obj = Some(&third_arg.expr);
+          obj = Some(third_arg);
         } else {
           // define("…", […], expr)
           // unclear if function or object
-          func = Some(&third_arg.expr);
-          obj = Some(&third_arg.expr);
+          func = Some(third_arg);
+          obj = Some(third_arg);
         }
       }
       _ => return None,
@@ -385,47 +394,46 @@ impl AMDDefineDependencyParserPlugin {
       parser.parser_exports_state = Some(false);
     }
 
-    let mut fn_params: Option<Vec<PatRef<'_>>> = None;
+    let mut fn_params: Option<Vec<PatRef>> = None;
     let mut fn_params_offset = 0usize;
     if let Some(func) = func {
-      if is_unbound_function_expression(func) {
-        fn_params = match func {
-          Expr::Fn(normal_func) => Some(
-            normal_func
-              .function
-              .params
-              .iter()
-              .map(|param| PatRef::Borrowed(&param.pat))
+      if is_unbound_function_expression(ast, func) {
+        fn_params = match ast.expr_data(func) {
+          ExprData::Function(normal_func) => Some(
+            formal_parameter_patterns(ast, normal_func.params(ast))
+              .into_iter()
+              .map(PatRef::Borrowed)
               .collect(),
           ),
-          Expr::Arrow(array_func) => Some(array_func.params.iter().map(PatRef::Borrowed).collect()),
+          ExprData::ArrowFunctionExpression(arrow_func) => Some(
+            formal_parameter_patterns(ast, arrow_func.params(ast))
+              .into_iter()
+              .map(PatRef::Borrowed)
+              .collect(),
+          ),
           _ => None,
         };
-      } else if is_bound_function_expression(func) {
+      } else if is_bound_function_expression(ast, func) {
         let call_expr = func
-          .as_call()
-          .expect("call_expr is supposed to be a CallExpr");
-        let object = &call_expr
-          .callee
-          .as_expr()
-          .expect("call_expr.callee is supposed to be Expr")
-          .as_member()
-          .expect("call_expr.callee is supposed to be MemberExpr")
-          .obj
-          .as_fn()
-          .expect("call_expr.callee.obj is supposed to be FnExpr");
+          .as_call_expression(ast)
+          .expect("call_expr is supposed to be a CallExpression");
+        let object = call_expr
+          .callee(ast)
+          .as_member_expression(ast)
+          .expect("call_expr.callee is supposed to be MemberExpression")
+          .object(ast)
+          .as_function(ast)
+          .expect("call_expr.callee.obj is supposed to be Function");
 
         fn_params = Some(
-          object
-            .function
-            .params
-            .iter()
-            .map(|param| PatRef::Borrowed(&param.pat))
+          formal_parameter_patterns(ast, object.params(ast))
+            .into_iter()
+            .map(PatRef::Borrowed)
             .collect(),
         );
 
-        if !call_expr.args.is_empty() {
-          fn_params_offset = call_expr.args.len() - 1;
+        if !call_expr.arguments(ast).is_empty() {
+          fn_params_offset = call_expr.arguments(ast).len() - 1;
         }
       }
     }
@@ -449,7 +457,7 @@ impl AMDDefineDependencyParserPlugin {
           let idx = i - fn_params_offset;
           i += 1;
           if let Some(name) = identifiers.get(&idx) {
-            fn_renames.insert(get_ident_name(param), name.clone());
+            fn_renames.insert(get_ident_name(ast, param), name.clone());
             return false;
           }
           true
@@ -464,14 +472,14 @@ impl AMDDefineDependencyParserPlugin {
         let idx = i - fn_params_offset;
         i += 1;
         if idx < RESERVED_NAMES.len() {
-          fn_renames.insert(get_ident_name(param), RESERVED_NAMES[idx].into());
+          fn_renames.insert(get_ident_name(ast, param), RESERVED_NAMES[idx].into());
           return false;
         }
         true
       });
     }
 
-    if func.is_some_and(is_unbound_function_expression) {
+    if func.is_some_and(|func| is_unbound_function_expression(ast, func)) {
       let in_try = parser.in_try;
       parser.in_function_scope(
         true,
@@ -487,52 +495,43 @@ impl AMDDefineDependencyParserPlugin {
 
           parser.in_try = in_try;
 
-          if let Some(func) = func.and_then(|f| f.as_fn()) {
-            if let Some(body) = &func.function.body {
-              parser.detect_mode(&body.stmts);
-              let prev = parser.prev_statement;
-              parser.pre_walk_statement(Statement::Block(body));
-              parser.prev_statement = prev;
-              parser.walk_statement(Statement::Block(body));
+          match func.map(|func| parser.ast.ast.expr_data(func)) {
+            Some(ExprData::Function(function)) => {
+              parser.walk_function_body(function.body(parser.ast.ast));
             }
-          } else if let Some(func) = func.and_then(|f| f.as_arrow()) {
-            match &func.body {
-              BlockStmtOrExpr::BlockStmt(stmt) => {
-                parser.detect_mode(&stmt.stmts);
-                let prev = parser.prev_statement;
-                parser.pre_walk_statement(Statement::Block(stmt));
-                parser.prev_statement = prev;
-                parser.walk_statement(Statement::Block(stmt));
+            Some(ExprData::ArrowFunctionExpression(function)) => {
+              match parser
+                .ast
+                .ast
+                .arrow_function_body_data(function.body(parser.ast.ast))
+              {
+                ArrowFunctionBodyData::FunctionBody(body) => parser.walk_function_body(body),
+                ArrowFunctionBodyData::Expr(expr) => parser.walk_expression(expr),
               }
-              BlockStmtOrExpr::Expr(expr) => parser.walk_expression(expr),
             }
+            _ => unreachable!(),
           }
         },
       );
-    } else if func.is_some_and(is_bound_function_expression) {
+    } else if func.is_some_and(|func| is_bound_function_expression(ast, func)) {
       let in_try = parser.in_try;
 
-      if let Some(call_expr) = func.and_then(|f| f.as_call()) {
+      if let Some(call_expr) = func.and_then(|f| f.as_call_expression(ast)) {
         let object = call_expr
-          .callee
-          .as_expr()
-          .and_then(|expr| expr.as_member())
-          .and_then(|member_expr| member_expr.obj.as_fn());
+          .callee(ast)
+          .as_member_expression(ast)
+          .and_then(|member_expr| member_expr.object(ast).as_function(ast));
 
         if let Some(func_expr) = object {
+          let params = formal_parameter_patterns(ast, func_expr.params(ast));
           parser.in_function_scope(
             true,
-            func_expr
-              .function
-              .params
-              .iter()
-              .map(|param| PatRef::Borrowed(&param.pat))
-              .filter(|pat| {
-                pat
-                  .as_pat()
-                  .as_ident()
-                  .is_some_and(|ident| !RESERVED_NAMES.contains(&ident.id.sym.as_str()))
-              }),
+            params.into_iter().map(PatRef::Borrowed).filter(|pat| {
+              pat
+                .as_pat()
+                .as_binding_identifier(ast)
+                .is_some_and(|ident| !RESERVED_NAMES.contains(&ast.get_utf8(ident.name(ast))))
+            }),
             |parser| {
               for (name, rename_identifier) in fn_renames.iter() {
                 let variable = parser
@@ -544,18 +543,17 @@ impl AMDDefineDependencyParserPlugin {
 
               parser.in_try = in_try;
 
-              if let Some(body) = &func_expr.function.body {
-                parser.detect_mode(&body.stmts);
-                let prev = parser.prev_statement;
-                parser.pre_walk_statement(Statement::Block(body));
-                parser.prev_statement = prev;
-                parser.walk_statement(Statement::Block(body));
-              }
+              parser.walk_function_body(func_expr.body(parser.ast.ast));
             },
           );
         }
 
-        parser.walk_expr_or_spread(&call_expr.args);
+        parser.walk_arguments(
+          call_expr
+            .arguments(parser.ast.ast)
+            .iter()
+            .map(|id| parser.ast.ast.get_node_in_sub_range(id)),
+        );
       }
     } else if let Some(expr) = func {
       parser.walk_expression(expr);
@@ -569,10 +567,10 @@ impl AMDDefineDependencyParserPlugin {
     }
 
     let dep = Arc::new(AMDDefineDependency::new(
-      call_expr.span.into(),
-      array.map(|expr| expr.span().into()),
-      func.map(|expr| expr.span().into()),
-      obj.map(|expr| expr.span().into()),
+      call_expr.span(ast).into(),
+      array.map(|expr| expr.span(ast).into()),
+      func.map(|expr| expr.span(ast).into()),
+      obj.map(|expr| expr.span(ast).into()),
       named_module,
     ));
 
@@ -587,7 +585,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for AMDDefineDependencyParserPlugin 
   fn call(
     &self,
     parser: &mut JavascriptParser<'p>,
-    call_expr: &CallExpr,
+    call_expr: CallExpression,
     for_name: &str,
   ) -> Option<bool> {
     if for_name == "define" {

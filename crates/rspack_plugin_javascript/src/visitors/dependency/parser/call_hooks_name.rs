@@ -1,6 +1,5 @@
 use swc_atoms::Atom;
-use swc_experimental_allocator::{CloneIn, atom::Atom as AstAtom};
-use swc_experimental_ecma_ast::{Expr, MemberExpr, OptChainExpr};
+use swc_next_ecma_ast::{ChainExpression, Expr, MemberExpression};
 
 use super::{AllowedMemberTypes, ExportedVariableInfo, JavascriptParser, MemberExpressionInfo};
 use crate::visitors::{ExprRef, scope_info::VariableInfoId};
@@ -51,18 +50,6 @@ impl CallHooksName for &str {
   }
 }
 
-impl CallHooksName for AstAtom<'_> {
-  fn call_hooks_name<'parser, F, T>(
-    &self,
-    parser: &mut JavascriptParser<'parser>,
-    hook_call: F,
-  ) -> Option<T>
-  where
-    F: Fn(&mut JavascriptParser<'parser>, &str) -> Option<T>,
-  {
-    Atom::from(self.as_str()).call_hooks_name(parser, hook_call)
-  }
-}
 #[allow(unused_lifetimes)]
 impl CallHooksName for String {
   fn call_hooks_name<'parser, F, T>(
@@ -93,7 +80,7 @@ impl CallHooksName for ExportedVariableInfo {
   }
 }
 #[allow(unused_lifetimes)]
-impl CallHooksName for MemberExpr<'_> {
+impl CallHooksName for MemberExpression {
   fn call_hooks_name<'parser, F, T>(
     &self,
     parser: &mut JavascriptParser<'parser>,
@@ -103,7 +90,7 @@ impl CallHooksName for MemberExpr<'_> {
     F: Fn(&mut JavascriptParser<'parser>, &str) -> Option<T>,
   {
     let Some(MemberExpressionInfo::Expression(expr_name)) =
-      parser.get_member_expression_info(ExprRef::Member(self), AllowedMemberTypes::Expression)
+      parser.get_member_expression_info(ExprRef::Member(*self), AllowedMemberTypes::Expression)
     else {
       return None;
     };
@@ -117,7 +104,7 @@ impl CallHooksName for MemberExpr<'_> {
   }
 }
 #[allow(unused_lifetimes)]
-impl CallHooksName for OptChainExpr<'_> {
+impl CallHooksName for ChainExpression {
   fn call_hooks_name<'parser, F, T>(
     &self,
     parser: &mut JavascriptParser<'parser>,
@@ -128,12 +115,7 @@ impl CallHooksName for OptChainExpr<'_> {
   {
     let Some(MemberExpressionInfo::Expression(expr_name)) = parser
       .get_member_expression_info_from_expr(
-        &Expr::OptChain(
-          parser
-            .ast
-            .allocator
-            .boxed(self.clone_in(parser.ast.allocator)),
-        ),
+        Expr::ChainExpression(*self),
         AllowedMemberTypes::Expression,
       )
     else {
