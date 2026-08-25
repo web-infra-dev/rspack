@@ -61,11 +61,11 @@ _2026 年 8 月 26 日_
 
 Rspack 2.2 包含 30 多项构建性能优化，例如：
 
-- 优化模块合并、Split Chunks 和 Source Map 生成等核心流程的性能。在基准测试中，生产构建时间从 1822 ms 降至 1725 ms，提升约 5.6%。
+- 优化模块合并、chunk 拆分和 Source Map 生成等核心流程性能。在基准测试中，生产构建时间从 1822 ms 降至 1725 ms，提升约 5.6%。
 - 优化 [CopyRspackPlugin](/plugins/rspack/copy-rspack-plugin) 的性能。在复制大量文件时，性能提升约 3～4 倍。
 - 优化 Wasm 产物的包体积，从 29.5 MB 降至 28.4 MB，减少约 1.1 MB。
 - 并行编译 SWC Wasm 插件，这减少了插件加载时间。例如，[coverage-instrument](https://npmx.dev/package/swc-plugin-coverage-instrument) 插件的加载时间减少约 80%。
-- Rspack 内置 CSS 的解析速度提升了约 3 倍：
+- 内置 CSS 的解析速度提升了约 3 倍：
 
 | 场景         | 优化前   | 优化后  | 性能提升   |
 | ------------ | -------- | ------- | ---------- |
