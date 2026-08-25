@@ -65,10 +65,9 @@ _2026 年 8 月 26 日_
 
 Rspack 2.2 包含 30 多项构建性能优化，例如：
 
-Rspack 2.2 合入了 30 多项构建性能优化，覆盖模块合并、Split Chunks 和 Source Map 生成等构建路径上的核心算法。在生产模式冷构建的基准测试中，构建时间从 **1822 ms** 降至 **1725 ms**，提升约 **5.6%**。
-
+- 优化模块合并、Split Chunks 和 Source Map 生成等核心流程的性能。在 [基准测试](https://github.com/LingyuCoder/rspack-react-10k-benchmark/commit/121be0c19252db61e9fc9c8ebbce93943caa88eb) 中，生产构建时间从 **1822 ms** 降至 **1725 ms**，提升约 **5.6%**。
 - 优化 [CopyRspackPlugin](/plugins/rspack/copy-rspack-plugin) 的性能。在复制大量文件时，性能提升约 **3～4 倍**。
-  > 数据来源：[rspack-react-10k-benchmark](https://github.com/LingyuCoder/rspack-react-10k-benchmark/commit/121be0c19252db61e9fc9c8ebbce93943caa88eb)。
+- 优化 Wasm 产物的包体积，从 29.5 MB 降至 28.4 MB，减少约 **1.1 MB**。
 - 默认并行编译 SWC Wasm 插件。[swc-plugin-coverage-instrument](https://npmx.dev/package/swc-plugin-coverage-instrument) 插件的加载耗时从 1.8 秒降至约 0.36 秒，缩短约 **80%**。
 
 ### 更好的 HMR \{#better-hmr}
