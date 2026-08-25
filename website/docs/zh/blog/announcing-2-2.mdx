@@ -50,9 +50,9 @@ _2026 年 8 月 26 日_
 - [简短的模块 ID](#compat-hashed-ids)
 - 生态
   - [Rsbuild](#rsbuild)
-  - [Rslib](#rslib)
   - [Rstest](#rstest)
   - [Rslint](#rslint)
+  - [Rslib](#rslib)
   - [Rspress](#rspress)
   - [Agent plugin](#rstack-agent-plugin)
 - 升级指南
@@ -61,11 +61,11 @@ _2026 年 8 月 26 日_
 
 Rspack 2.2 包含 30 多项构建性能优化，例如：
 
-- 优化模块合并、Split Chunks 和 Source Map 生成等核心流程的性能。在基准测试中，生产构建时间从 1822 ms 降至 1725 ms，提升约 5.6%。
+- 优化模块合并、chunk 拆分和 Source Map 生成等核心流程性能。在基准测试中，生产构建时间从 1822 ms 降至 1725 ms，提升约 5.6%。
 - 优化 [CopyRspackPlugin](/plugins/rspack/copy-rspack-plugin) 的性能。在复制大量文件时，性能提升约 3～4 倍。
 - 优化 Wasm 产物的包体积，从 29.5 MB 降至 28.4 MB，减少约 1.1 MB。
 - 并行编译 SWC Wasm 插件，这减少了插件加载时间。例如，[coverage-instrument](https://npmx.dev/package/swc-plugin-coverage-instrument) 插件的加载时间减少约 80%。
-- Rspack 内置 CSS 的解析速度提升了约 3 倍：
+- 内置 CSS 的解析速度提升了约 3 倍：
 
 | 场景         | 优化前   | 优化后  | 性能提升   |
 | ------------ | -------- | ------- | ---------- |
@@ -248,18 +248,6 @@ await createRsbuild({
 
 Rsbuild 插件也可以通过监听 [`onRestart`](https://rsbuild.rs/zh/plugins/dev/hooks#onrestart) hook 来执行自定义逻辑。
 
-### Rslib \{#rslib}
-
-#### 支持 TypeScript 7 \{#typescript-7}
-
-Rslib 0.23.2 支持使用 [TypeScript 7](https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/) 生成类型声明文件。安装 TypeScript 7 后，Rslib 会自动启用原生 TypeScript，类型声明文件生成速度可提升约 **5 至 10 倍**。
-
-<PackageManagerTabs command="add typescript@latest -D" />
-
-#### Rslib 1.0 即将发布 \{#rslib-v1}
-
-[Rslib 1.0 RC](https://github.com/web-infra-dev/rslib/releases/tag/v1.0.0-rc.1) 版本现已发布，正式版也即将到来。如果你正在使用 Rslib 0.x，可以参考 [从 0.x 升级到 v1](https://v1.rslib.rs/zh/guide/upgrade/v0-to-v1) 指南，了解相关不兼容更新。
-
 ### Rstest \{#rstest}
 
 #### Playwright E2E 测试 \{#rstest-playwright}
@@ -372,6 +360,18 @@ await Rslint.outputFixes(results);
 ```
 
 JavaScript API 也支持通过 `lintText` 检查内存中的源码，并使用 `virtualFiles` 提供配置、`tsconfig.json` 和项目文件，适合用于编辑器和 Playground 等不直接依赖磁盘文件的集成场景。
+
+### Rslib \{#rslib}
+
+#### 支持 TypeScript 7 \{#typescript-7}
+
+Rslib 0.23.2 支持使用 [TypeScript 7](https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/) 生成类型声明文件。安装 TypeScript 7 后，Rslib 会自动启用原生 TypeScript，类型声明文件生成速度可提升约 **5 至 10 倍**。
+
+<PackageManagerTabs command="add typescript@latest -D" />
+
+#### Rslib 1.0 即将发布 \{#rslib-v1}
+
+[Rslib 1.0 RC](https://github.com/web-infra-dev/rslib/releases/tag/v1.0.0-rc.1) 版本现已发布，正式版也即将到来。如果你正在使用 Rslib 0.x，可以参考 [从 0.x 升级到 v1](https://v1.rslib.rs/zh/guide/upgrade/v0-to-v1) 指南，了解相关不兼容更新。
 
 ### Rspress \{#rspress}
 
