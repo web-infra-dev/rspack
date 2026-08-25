@@ -227,8 +227,8 @@ catalogs:
       specifier: ^13.0.6
       version: 13.0.6
     heading-case:
-      specifier: ^1.1.5
-      version: 1.1.5
+      specifier: ^1.1.7
+      version: 1.1.7
     html-loader:
       specifier: ^5.1.0
       version: 5.1.0
@@ -457,7 +457,7 @@ importers:
         version: 10.1.0
       heading-case:
         specifier: 'catalog:'
-        version: 1.1.5
+        version: 1.1.7
       prettier-plugin-toml:
         specifier: 'catalog:'
         version: 2.0.6(prettier@3.9.6)
@@ -5279,8 +5279,8 @@ packages:
   hastscript@9.0.1:
     resolution: {integrity: sha512-g7df9rMFX/SPi34tyGCyUBREQoKkapwdY/T04Qn9TDWfHhAYt4/I0gMVirzK5wEzeUqIjEB+LXC/ypb7Aqno5w==}
 
-  heading-case@1.1.5:
-    resolution: {integrity: sha512-dVZmEJLF5vK2IV3LLpEWgyy0wbe4W+vsUzuHy6KE440IClTXR5GIGDGwiawHqCqunsqos4nvOBpnLGUrUv3BUg==}
+  heading-case@1.1.7:
+    resolution: {integrity: sha512-d7v8lndDCzqkiy+b7i02yuyY0v9X53ohChT7/J1uPiCcDrStmapZ7bO6J+PDcHyThtz6KjO1MFfKclL4WQhGPQ==}
     hasBin: true
 
   hmac-drbg@1.0.1:
@@ -11814,7 +11814,7 @@ snapshots:
       property-information: 7.2.0
       space-separated-tokens: 2.0.2
 
-  heading-case@1.1.5: {}
+  heading-case@1.1.7: {}
 
   hmac-drbg@1.0.1:
     dependencies:
