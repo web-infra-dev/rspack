@@ -8,7 +8,8 @@ module.exports = {
 		return {
 			context: context.getSource(),
 			entry: "./fixtures/abc",
-			cache: true
+			cache: true,
+			incremental: true
 		};
 	},
 	async build(context, compiler) {

@@ -8,6 +8,7 @@ module.exports = {
       context: context.getSource(),
       entry: "./count-loader!./count-loader",
       devtool: false,
+      incremental: true,
       mode: "development",
       output: {
         path: "/directory",

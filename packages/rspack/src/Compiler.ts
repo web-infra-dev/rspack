@@ -139,6 +139,7 @@ export const GET_COMPILER_ID = Symbol('getCompilerId');
 
 class Compiler {
   #instance?: binding.JsCompiler;
+  #incrementalConfigured: boolean;
   #initial: boolean;
 
   #compilation?: Compilation;
@@ -213,6 +214,8 @@ class Compiler {
   __internal_browser_require: (id: string) => unknown;
 
   constructor(context: string, options: RspackOptionsNormalized) {
+    this.#incrementalConfigured =
+      options.incremental !== undefined && options.incremental !== false;
     this.#initial = true;
 
     this.#builtinPlugins = [];
@@ -715,6 +718,7 @@ class Compiler {
     };
     applyRspackOptionsDefaults(options);
     const childCompiler = new Compiler(this.context, options);
+    childCompiler.#incrementalConfigured = this.#incrementalConfigured;
     childCompiler.name = compilerName;
     childCompiler.outputPath = this.outputPath;
     childCompiler.inputFileSystem = this.inputFileSystem;
@@ -851,7 +855,7 @@ class Compiler {
         return;
       }
       this.#initial = false;
-      instance!.build(callback);
+      instance!.build(this.watchMode || this.#incrementalConfigured, callback);
     });
   }
 
