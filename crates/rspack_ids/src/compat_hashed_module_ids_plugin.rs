@@ -5,35 +5,22 @@ use rspack_core::{
   incremental::IncrementalPasses,
 };
 use rspack_error::{Diagnostic, Result, error};
-use rspack_hash::{HashFunction, RspackHasher};
 use rspack_hook::{plugin, plugin_hook};
 
-use crate::id_helpers::{
-  compare_modules_by_pre_order_index_or_identifier, get_full_module_name,
-  get_used_module_ids_and_modules_with_artifact,
+use crate::{
+  compat_hashed_id::{
+    CompatHashedIdAssigner, FULL_IDENTIFIER_LENGTH, hash_identifier, normalize_min_length,
+    validate_min_length,
+  },
+  id_helpers::{
+    compare_modules_by_pre_order_index_or_identifier, get_full_module_name,
+    get_used_module_ids_and_modules_with_artifact,
+  },
 };
-
-const IDENTIFIER_START_CHARS: &[u8] = b"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
-const IDENTIFIER_CONTINUE_CHARS: &[u8] =
-  b"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-const FULL_IDENTIFIER_LENGTH: usize = 11;
 
 #[derive(Debug, Clone, Default)]
 pub struct CompatHashedModuleIdsPluginOptions {
   pub min_length: Option<usize>,
-}
-
-fn encode_identifier_hash(mut hash: u64) -> [u8; FULL_IDENTIFIER_LENGTH] {
-  let mut identifier = [0; FULL_IDENTIFIER_LENGTH];
-  identifier[0] = IDENTIFIER_START_CHARS[(hash % IDENTIFIER_START_CHARS.len() as u64) as usize];
-  hash /= IDENTIFIER_START_CHARS.len() as u64;
-  for character in &mut identifier[1..] {
-    *character =
-      IDENTIFIER_CONTINUE_CHARS[(hash % IDENTIFIER_CONTINUE_CHARS.len() as u64) as usize];
-    hash /= IDENTIFIER_CONTINUE_CHARS.len() as u64;
-  }
-  debug_assert_eq!(hash, 0);
-  identifier
 }
 
 #[plugin]
@@ -50,12 +37,7 @@ impl Default for CompatHashedModuleIdsPlugin {
 
 impl CompatHashedModuleIdsPlugin {
   pub fn new(options: CompatHashedModuleIdsPluginOptions) -> Self {
-    Self::new_inner(
-      options
-        .min_length
-        .filter(|min_length| *min_length != 0)
-        .unwrap_or(1),
-    )
+    Self::new_inner(normalize_min_length(options.min_length))
   }
 }
 
@@ -78,13 +60,13 @@ async fn module_ids(
     module_ids.retain(|module, _| preserved_module_ids.contains_key(module));
   }
 
-  if self.min_length > FULL_IDENTIFIER_LENGTH {
-    return Err(error!(
-      "'minLength' must not exceed {FULL_IDENTIFIER_LENGTH} for CompatHashedModuleIdsPlugin"
-    ));
-  }
+  validate_min_length(
+    self.min_length,
+    FULL_IDENTIFIER_LENGTH,
+    "CompatHashedModuleIdsPlugin",
+  )?;
 
-  let (mut used_ids, modules) =
+  let (used_ids, modules) =
     get_used_module_ids_and_modules_with_artifact(compilation, module_ids, None);
 
   let mut module_ids_map = std::mem::take(module_ids);
@@ -99,9 +81,7 @@ async fn module_ids(
     .into_par_iter()
     .map(|module| {
       let name = get_full_module_name(module, context);
-      let mut hasher = RspackHasher::new(&HashFunction::Xxhash64);
-      hasher.write(name.as_bytes());
-      (module, encode_identifier_hash(hasher.finish()))
+      (module, hash_identifier(&name))
     })
     .collect::<Vec<_>>();
 
@@ -109,24 +89,15 @@ async fn module_ids(
     compare_modules_by_pre_order_index_or_identifier(module_graph, &a.identifier(), &b.identifier())
   });
 
+  let mut id_assigner = CompatHashedIdAssigner::new(self.min_length, used_ids);
   for (module, hash) in modules_with_hashes {
-    // SAFETY: `encode_identifier_hash` only emits ASCII characters.
-    let hash = unsafe { std::str::from_utf8_unchecked(&hash) };
-    let Some(module_id) = (self.min_length..=hash.len()).find_map(|length| {
-      let candidate = &hash[..length];
-      if used_ids.contains(candidate) {
-        None
-      } else {
-        Some(candidate.to_string())
-      }
-    }) else {
+    let Some(module_id) = id_assigner.assign(&hash) else {
       return Err(error!(
         "Unable to assign a unique compat-hashed id to module '{}' after using all {FULL_IDENTIFIER_LENGTH} hash characters",
         module.identifier()
       ));
     };
 
-    used_ids.insert(module_id.clone());
     ChunkGraph::set_module_id(&mut module_ids_map, module.identifier(), module_id.into());
   }
 

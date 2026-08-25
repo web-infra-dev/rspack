@@ -29,7 +29,7 @@ use smol_str::SmolStr;
 use swc_core::atoms::Wtf8Atom;
 
 use crate::{
-  AsyncDependenciesBlock, BindingCell, BoxDependency, ChunkGraph, ChunkUkey,
+  AsyncDependenciesBlock, BindingCell, BoxDependency, CacheFacade, ChunkGraph, ChunkUkey,
   CodeGenerationResultBuilder, CollectedTypeScriptInfo, Compilation, CompilationAsset,
   CompilationId, CompilerId, CompilerOptions, ConcatenationScope, ConnectionState, Context,
   ContextModule, CssExportType, DependenciesBlock, DependencyCodeGenerationRef, DependencyId,
@@ -45,6 +45,7 @@ pub struct BuildContext {
   pub compiler_id: CompilerId,
   pub compilation_id: CompilationId,
   pub compiler_options: Arc<CompilerOptions>,
+  pub loader_cache: CacheFacade,
   pub resolver_factory: Arc<ResolverFactory>,
   pub runtime_template: ModuleCodeTemplate,
   pub plugin_driver: SharedPluginDriver,

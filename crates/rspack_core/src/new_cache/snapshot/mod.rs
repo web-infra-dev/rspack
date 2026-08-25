@@ -1,119 +1,123 @@
-mod build_deps;
-
-use std::sync::Arc;
+mod file_system_info;
 
 use rspack_cacheable::cacheable;
-use rspack_fs::ReadableFileSystem;
-use rspack_paths::{InternedPath, InternedPathSet};
+use rspack_hash::RspackHashDigest;
+use rspack_paths::{InternedPathMap, InternedPathSet};
 
-pub use self::build_deps::{BuildDeps, BuildDepsValidationResult};
-use crate::cache::persistent::snapshot::{
-  SnapshotOptions, SnapshotStrategyOptions, Strategy, StrategyHelper, ValidateResult,
-};
+pub use self::file_system_info::{FileSystemInfo, SnapshotValidationResult};
 
+/// Timestamp information captured for a file.
+///
+/// `safe_time` mirrors webpack's filesystem-accuracy guard. A timestamp newer
+/// than a snapshot's start time cannot prove that the file stayed unchanged
+/// while the snapshot was being created.
+///
+/// See webpack's filesystem entry data structures:
+/// https://github.com/webpack/webpack/blob/ce97d583e1cd8f3e47b70737de72e91b567a8497/lib/FileSystemInfo.js#L75-L132
 #[cacheable]
-#[derive(Debug)]
-pub struct SnapshotEntry {
-  path: InternedPath,
-  strategy: Strategy,
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FileSystemInfoEntry {
+  safe_time: u64,
+  timestamp: Option<u64>,
 }
 
+#[cacheable]
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum FileHash {
+  Digest(RspackHashDigest),
+  Directory,
+}
+
+#[cacheable]
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TimestampAndHash {
+  safe_time: u64,
+  timestamp: Option<u64>,
+  hash: FileHash,
+}
+
+#[cacheable]
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ContextFileSystemInfoEntry {
+  safe_time: u64,
+  timestamp_hash: RspackHashDigest,
+}
+
+#[cacheable]
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ContextTimestampAndHash {
+  safe_time: u64,
+  timestamp_hash: RspackHashDigest,
+  hash: RspackHashDigest,
+}
+
+/// Serializable filesystem state captured by [`FileSystemInfo`].
+///
+/// The optional maps follow webpack's `Snapshot` layout: a snapshot allocates
+/// only the collections required by its strategy. Children are reserved for
+/// shared snapshots; ordinary build-dependency merges combine their maps
+/// directly.
+///
+/// See webpack's `Snapshot` data structure:
+/// https://github.com/webpack/webpack/blob/ce97d583e1cd8f3e47b70737de72e91b567a8497/lib/FileSystemInfo.js#L303-L665
 #[cacheable]
 #[derive(Debug, Default)]
-pub(super) struct BuildDependenciesSnapshot {
-  dependencies: InternedPathSet,
-  snapshots: Vec<SnapshotEntry>,
-}
-
-impl BuildDependenciesSnapshot {
-  pub(super) async fn validate(
-    &self,
-    snapshot: &Snapshot,
-    build_deps: &BuildDeps,
-  ) -> BuildDepsValidationResult {
-    build_deps
-      .validate_snapshot(snapshot, &self.snapshots, self.dependencies.len())
-      .await
-  }
-
-  pub(super) async fn update(
-    &mut self,
-    snapshot: &Snapshot,
-    build_deps: &mut BuildDeps,
-    paths: impl Iterator<Item = InternedPath>,
-  ) {
-    let added = build_deps
-      .resolve_dependencies(&self.dependencies, paths)
-      .await;
-    let snapshots = snapshot.add(added.iter().cloned()).await;
-    self.dependencies.extend(added);
-    self.snapshots.extend(snapshots);
-  }
-}
-
-/// Creates and validates filesystem snapshots stored by the new cache.
-#[derive(Debug)]
 pub struct Snapshot {
-  options: Arc<SnapshotOptions>,
-  fs: Arc<dyn ReadableFileSystem>,
+  pub(super) start_time: Option<u64>,
+  pub(super) file_timestamps: Option<InternedPathMap<Option<FileSystemInfoEntry>>>,
+  pub(super) file_hashes: Option<InternedPathMap<Option<FileHash>>>,
+  pub(super) file_timestamp_hashes: Option<InternedPathMap<Option<TimestampAndHash>>>,
+  pub(super) context_timestamps: Option<InternedPathMap<Option<ContextFileSystemInfoEntry>>>,
+  pub(super) context_hashes: Option<InternedPathMap<Option<RspackHashDigest>>>,
+  pub(super) context_timestamp_hashes: Option<InternedPathMap<Option<ContextTimestampAndHash>>>,
+  pub(super) missing_existence: Option<InternedPathMap<bool>>,
+  pub(super) managed_item_info: Option<InternedPathMap<String>>,
+  pub(super) managed_files: Option<InternedPathSet>,
+  pub(super) managed_contexts: Option<InternedPathSet>,
+  pub(super) managed_missing: Option<InternedPathSet>,
+  #[cacheable(omit_bounds)]
+  pub(super) children: Option<Vec<Snapshot>>,
 }
 
 impl Snapshot {
-  pub fn new(options: SnapshotOptions, fs: Arc<dyn ReadableFileSystem>) -> Self {
-    Self {
-      options: Arc::new(options),
-      fs,
-    }
-  }
+  /// See webpack's snapshot merge implementation:
+  /// https://github.com/webpack/webpack/blob/ce97d583e1cd8f3e47b70737de72e91b567a8497/lib/FileSystemInfo.js#L3081-L3166
+  pub(super) fn merge(&mut self, other: Self) {
+    self.start_time = match (self.start_time, other.start_time) {
+      (Some(first), Some(second)) => Some(first.min(second)),
+      (first, second) => first.or(second),
+    };
+    merge_maps(&mut self.file_timestamps, other.file_timestamps);
+    merge_maps(&mut self.file_hashes, other.file_hashes);
+    merge_maps(&mut self.file_timestamp_hashes, other.file_timestamp_hashes);
+    merge_maps(&mut self.context_timestamps, other.context_timestamps);
+    merge_maps(&mut self.context_hashes, other.context_hashes);
+    merge_maps(
+      &mut self.context_timestamp_hashes,
+      other.context_timestamp_hashes,
+    );
+    merge_maps(&mut self.missing_existence, other.missing_existence);
+    merge_maps(&mut self.managed_item_info, other.managed_item_info);
+    merge_sets(&mut self.managed_files, other.managed_files);
+    merge_sets(&mut self.managed_contexts, other.managed_contexts);
+    merge_sets(&mut self.managed_missing, other.managed_missing);
 
-  async fn calc_strategy(&self, helper: &StrategyHelper, path: &InternedPath) -> Option<Strategy> {
-    let path_str = path.to_string_lossy();
-    if self.options.is_immutable_path(&path_str) {
-      return None;
+    if let Some(children) = other.children {
+      self.children.get_or_insert_default().extend(children);
     }
-    if self.options.is_managed_path(&path_str)
-      && let Some(strategy) = helper.package_version(path).await
-    {
-      return Some(strategy);
-    }
-    Some(
-      helper
-        .dir_strategy(path, SnapshotStrategyOptions::hash())
-        .await,
-    )
   }
+}
 
-  #[tracing::instrument("Cache::Snapshot::add", skip_all)]
-  pub async fn add(&self, paths: impl Iterator<Item = InternedPath>) -> Vec<SnapshotEntry> {
-    let helper = StrategyHelper::new(self.fs.clone(), self.options.clone());
-    let mut entries = Vec::with_capacity(paths.size_hint().0);
-    for path in paths {
-      if let Some(strategy) = self.calc_strategy(&helper, &path).await {
-        entries.push(SnapshotEntry { path, strategy });
-      }
-    }
-    entries
-  }
+fn merge_maps<T>(target: &mut Option<InternedPathMap<T>>, source: Option<InternedPathMap<T>>) {
+  let Some(source) = source else {
+    return;
+  };
+  target.get_or_insert_default().extend(source);
+}
 
-  #[tracing::instrument("Cache::Snapshot::calc_modified_paths", skip_all)]
-  pub async fn calc_modified_paths(
-    &self,
-    entries: &[SnapshotEntry],
-  ) -> (InternedPathSet, InternedPathSet) {
-    let helper = StrategyHelper::new(self.fs.clone(), self.options.clone());
-    let mut modified_files = InternedPathSet::default();
-    let mut removed_files = InternedPathSet::default();
-    for entry in entries {
-      match helper.validate(&entry.path, &entry.strategy).await {
-        ValidateResult::Modified => {
-          modified_files.insert(entry.path.clone());
-        }
-        ValidateResult::Deleted => {
-          removed_files.insert(entry.path.clone());
-        }
-        ValidateResult::NoChanged => {}
-      }
-    }
-    (modified_files, removed_files)
-  }
+fn merge_sets(target: &mut Option<InternedPathSet>, source: Option<InternedPathSet>) {
+  let Some(source) = source else {
+    return;
+  };
+  target.get_or_insert_default().extend(source);
 }

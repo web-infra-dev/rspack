@@ -1750,6 +1750,8 @@ CompilerOptions {
         css: false,
         new_cache: NewCacheOptions {
             code_generation: false,
+            devtool: false,
+            loader: false,
             minimize: false,
         },
         defer_import: false,

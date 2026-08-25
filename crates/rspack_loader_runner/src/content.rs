@@ -12,6 +12,7 @@ use rspack_cacheable::{
   with::{As, AsInner, AsOption, AsPreset},
 };
 use rspack_error::{Error, Result, ToStringResultToRspackResultExt};
+use rspack_hash::{RspackHash, RspackHasher};
 use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rustc_hash::FxHashMap;
 
@@ -21,6 +22,15 @@ use crate::{Scheme, get_scheme, parse_resource};
 pub enum Content {
   String(String),
   Buffer(Vec<u8>),
+}
+
+impl RspackHash for Content {
+  fn hash(&self, state: &mut RspackHasher) {
+    match self {
+      Self::String(content) => content.hash(state),
+      Self::Buffer(content) => state.write(content),
+    }
+  }
 }
 
 impl Content {

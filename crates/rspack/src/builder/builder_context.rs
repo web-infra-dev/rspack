@@ -83,6 +83,7 @@ pub(super) enum BuiltinPluginOptions {
   NaturalChunkIdsPlugin,
   NamedChunkIdsPlugin,
   DeterministicChunkIdsPlugin,
+  CompatHashedChunkIdsPlugin,
   OccurrenceChunkIdsPlugin(rspack_ids::OccurrenceChunkIdsPluginOptions),
 
   // Define and optimization plugins
@@ -331,6 +332,9 @@ impl BuilderContext {
       }
       BuiltinPluginOptions::DeterministicChunkIdsPlugin => {
         plugins.push(rspack_ids::DeterministicChunkIdsPlugin::default().boxed())
+      }
+      BuiltinPluginOptions::CompatHashedChunkIdsPlugin => {
+        plugins.push(rspack_ids::CompatHashedChunkIdsPlugin::default().boxed())
       }
       BuiltinPluginOptions::OccurrenceChunkIdsPlugin(options) => {
         plugins.push(rspack_ids::OccurrenceChunkIdsPlugin::new(options).boxed())

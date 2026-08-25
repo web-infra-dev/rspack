@@ -9,7 +9,7 @@ use rspack_cacheable::cacheable;
 use rspack_error::Result;
 use rspack_fs::{IntermediateFileSystem, NativeFileSystem, ReadableFileSystem, WritableFileSystem};
 use rspack_hook::define_hook;
-use rspack_paths::{Utf8Path, Utf8PathBuf};
+use rspack_paths::{InternedPath, Utf8Path, Utf8PathBuf};
 use rspack_sources::BoxSource;
 use rspack_tasks::{CompilerContext, within_compiler_context};
 use rspack_util::{node_path::NodePath, tracing_preset::TRACING_BENCH_TARGET};
@@ -18,14 +18,14 @@ use tracing::instrument;
 
 pub use self::rebuild::CompilationRecords;
 use crate::{
-  BoxPlugin, CleanOptions, Compilation, CompilationAsset, CompilationLogging, CompilerOptions,
-  CompilerPlatform, ContextModuleFactory, Filename, KeepPattern, NormalModuleFactory, PluginDriver,
-  ResolverFactory, SharedPluginDriver,
+  BoxPlugin, CacheOptions, CleanOptions, Compilation, CompilationAsset, CompilationLogging,
+  CompilerOptions, CompilerPlatform, ContextModuleFactory, Filename, KeepPattern,
+  NormalModuleFactory, PluginDriver, ResolverFactory, SharedPluginDriver,
   artifacts::IncrementalArtifacts,
-  cache::{Cache as LegacyCache, new_cache as create_legacy_cache},
   compilation::build_module_graph::ModuleExecutor,
-  fast_set, include_hash,
+  fast_set,
   incremental::{Incremental, IncrementalPasses},
+  legacy_cache::{Cache as LegacyCache, create_cache as create_legacy_cache},
   logger::Logger,
   new_cache::{Cache, CacheFacade, create_cache},
   trim_dir,
@@ -234,13 +234,21 @@ impl Compiler {
     Ok(Instant::now())
   }
 
-  fn begin_idle(&self, started_at: Instant, successful: bool) -> Result<()> {
+  fn begin_idle(&mut self, started_at: Instant, successful: bool) -> Result<()> {
     let record_build_time = if successful {
       self.new_cache.record_build_time(started_at.elapsed())
     } else {
       Ok(())
     };
     let store_build_dependencies = if successful && self.new_cache.has_file_cache() {
+      if let CacheOptions::Persistent(options) = &self.options.cache {
+        self.compilation.build_dependencies.extend(
+          options
+            .build_dependencies
+            .iter()
+            .map(|path| InternedPath::from(path.as_path())),
+        );
+      }
       let (build_dependencies, _, _, _) = self.compilation.build_dependencies();
       self
         .new_cache
@@ -496,9 +504,13 @@ impl Compiler {
       let mut immutable = asset.info.immutable.unwrap_or(false);
       if !query.is_empty() {
         immutable = immutable
-          && (include_hash(target_file, &asset.info.content_hash)
-            || include_hash(target_file, &asset.info.chunk_hash)
-            || include_hash(target_file, &asset.info.full_hash));
+          && asset
+            .info
+            .content_hash
+            .iter()
+            .chain(&asset.info.chunk_hash)
+            .chain(&asset.info.full_hash)
+            .any(|hash| target_file.contains(hash));
       }
 
       let stat = self

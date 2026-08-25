@@ -1,4 +1,7 @@
-use crate::cache::persistent::PersistentCacheOptions;
+pub use crate::cache::{
+  BuildDepsOptions, PathMatcher, PersistentCacheOptions, SnapshotOptions, SnapshotStrategyOptions,
+  StorageOptions,
+};
 
 #[derive(Debug, Clone)]
 pub enum CacheOptions {

@@ -1,10 +1,8 @@
 use cow_utils::CowUtils;
 use rspack_core::{
-  Compilation, PathData, RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule,
-  RuntimeModuleGenerateContext, RuntimeModuleStage, RuntimeTemplate,
-  get_filename_without_hash_length, impl_runtime_module,
+  Compilation, RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext,
+  RuntimeModuleStage, RuntimeTemplate, impl_runtime_module,
 };
-use rspack_util::itoa;
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -110,8 +108,6 @@ impl RuntimeModule for AsyncWasmCompileRuntimeModule {
   ) -> rspack_error::Result<String> {
     let compilation = context.compilation;
     let runtime_template = context.runtime_template;
-    let path =
-      render_wasm_module_path(compilation, &self.chunk().expect("should attached chunk")).await?;
 
     Ok(get_async_wasm_compile(
       &self
@@ -120,10 +116,10 @@ impl RuntimeModule for AsyncWasmCompileRuntimeModule {
           "$IMPORT_META_NAME",
           compilation.options.output.import_meta_name.as_str(),
         )
-        .cow_replace("$PATH", &format!("\"{path}\"")),
+        .cow_replace("$PATH", "wasmModuleFilename"),
       &self
         .generate_before_load_binary_code
-        .cow_replace("$PATH", &format!("\"{path}\"")),
+        .cow_replace("$PATH", "wasmModuleFilename"),
       &self.generate_before_compile_streaming,
       self.supports_streaming,
       runtime_template,
@@ -158,8 +154,6 @@ impl RuntimeModule for AsyncWasmLoadingRuntimeModule {
   ) -> rspack_error::Result<String> {
     let compilation = context.compilation;
     let runtime_template = context.runtime_template;
-    let path =
-      render_wasm_module_path(compilation, &self.chunk().expect("should attached chunk")).await?;
 
     Ok(get_async_wasm_loading(
       &self
@@ -168,10 +162,10 @@ impl RuntimeModule for AsyncWasmLoadingRuntimeModule {
           "$IMPORT_META_NAME",
           compilation.options.output.import_meta_name.as_str(),
         )
-        .cow_replace("$PATH", &format!("\"{path}\"")),
+        .cow_replace("$PATH", "wasmModuleFilename"),
       &self
         .generate_before_load_binary_code
-        .cow_replace("$PATH", &format!("\"{path}\"")),
+        .cow_replace("$PATH", "wasmModuleFilename"),
       &self.generate_before_instantiate_streaming,
       self.supports_streaming,
       runtime_template,
@@ -181,42 +175,6 @@ impl RuntimeModule for AsyncWasmLoadingRuntimeModule {
   fn stage(&self) -> RuntimeModuleStage {
     RuntimeModuleStage::Attach
   }
-}
-
-async fn render_wasm_module_path(
-  compilation: &rspack_core::Compilation,
-  chunk_ukey: &rspack_core::ChunkUkey,
-) -> rspack_error::Result<String> {
-  let (fake_filename, hash_len_map) =
-    get_filename_without_hash_length(&compilation.options.output.webassembly_module_filename);
-
-  // Even use content hash when [hash] in webpack
-  let hash = match hash_len_map
-    .get("[contenthash]")
-    .or(hash_len_map.get("[hash]"))
-  {
-    Some(hash_len) => {
-      let mut hash_len_buffer = itoa::Buffer::new();
-      let hash_len_str = hash_len_buffer.format(*hash_len);
-      format!("\" + wasmModuleHash.slice(0, {hash_len_str}) + \"")
-    }
-    None => "\" + wasmModuleHash + \"".to_string(),
-  };
-
-  let chunk = compilation
-    .build_chunk_graph_artifact
-    .chunk_by_ukey
-    .expect_get(chunk_ukey);
-  compilation
-    .get_path(
-      &fake_filename,
-      PathData::default()
-        .hash(&hash)
-        .content_hash(&hash)
-        .id(&PathData::prepare_id("\" + wasmModuleId + \""))
-        .runtime(chunk.runtime().as_str()),
-    )
-    .await
 }
 
 fn get_async_wasm_loading(
@@ -258,7 +216,7 @@ fn get_async_wasm_loading(
   if supports_streaming {
     format!(
       r#"
-    {instantiate_wasm} = function(exports, wasmModuleId, wasmModuleHash, importsObj) {{
+    {instantiate_wasm} = function(exports, wasmModuleFilename, importsObj) {{
       {generate_before_load_binary_code}
       var req = {req};
       var fallback = function() {{
@@ -272,7 +230,7 @@ fn get_async_wasm_loading(
     let req = req.trim_end_matches(';');
     format!(
       r#"
-    {instantiate_wasm} = function(exports, wasmModuleId, wasmModuleHash, importsObj) {{
+    {instantiate_wasm} = function(exports, wasmModuleFilename, importsObj) {{
       return {req}{fallback_code}
     }};
       "#
@@ -319,7 +277,7 @@ fn get_async_wasm_compile(
   if supports_streaming {
     format!(
       r#"
-    {compile_wasm} = function(wasmModuleId, wasmModuleHash) {{
+    {compile_wasm} = function(wasmModuleFilename) {{
       {generate_before_load_binary_code}
       var req = {req};
       var fallback = function() {{
@@ -333,7 +291,7 @@ fn get_async_wasm_compile(
     let req = req.trim_end_matches(';');
     format!(
       r#"
-    {compile_wasm} = function(wasmModuleId, wasmModuleHash) {{
+    {compile_wasm} = function(wasmModuleFilename) {{
       return {req}{fallback_code}
     }};
       "#

@@ -15,6 +15,7 @@ import StatsType from '../../types/stats.mdx';
 import LoggerType from '../../types/logger.mdx';
 import CacheType from '../../types/cache.mdx';
 import CompilerType from '../../types/compiler.mdx';
+import RuntimeTemplateType from '../../types/runtime-template.mdx';
 import RspackErrorType from '../../types/rspack-error.mdx';
 import CompilationDependenciesType from '../../types/compilation-dependencies.mdx';
 import { Collapse, CollapsePanel } from '@components/Collapse';
@@ -581,6 +582,41 @@ getCache(name: string): CacheFacade;
 **类型：** `RspackOptionsNormalized`
 
 获取此 Compilation 使用的完整配置，详见[配置 Rspack](/config/)。
+
+### runtimeTemplate
+
+**类型：** `RuntimeTemplate`
+
+用于生成运行时代码的辅助方法，会根据 [`output.environment`](/config/output#outputenvironment)
+声明的目标环境能力来选择语法。相比手写代码片段，使用这些方法可以保证生成的代码在旧目标环境下依然合法。
+
+```js
+class MyPlugin {
+  apply(compiler) {
+    compiler.hooks.compilation.tap('MyPlugin', (compilation) => {
+      const { runtimeTemplate } = compilation;
+
+      // 支持箭头函数时为 `() => (globalThis)`，
+      // 否则为 `function() { return globalThis; }`
+      runtimeTemplate.returningFunction('globalThis');
+
+      // 支持箭头函数时为 `(a) => {\n\tconsole.log(a);\n}`，
+      // 否则为 `function(a) {\n\tconsole.log(a);\n}`
+      runtimeTemplate.basicFunction('a', 'console.log(a);');
+    });
+  }
+}
+```
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="RuntimeTemplate.ts"
+    key="RuntimeTemplate"
+  >
+    <RuntimeTemplateType />
+  </CollapsePanel>
+</Collapse>
 
 ### compiler
 

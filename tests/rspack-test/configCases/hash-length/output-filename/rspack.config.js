@@ -237,6 +237,81 @@ module.exports = [
       expectedChunkFilenameLength: 2 + 9 + 7 + 3,
     },
   },
+  {
+    name: 'contenthash with length in function chunkFilename',
+    output: {
+      filename: 'bundle18.[contenthash].js',
+      chunkFilename: () => '[id].bundle18.[contenthash:7].js',
+    },
+    target: 'node',
+    amd: {
+      expectedFilenameLength: 28,
+      expectedChunkFilenameLength: 21,
+    },
+  },
+  {
+    name: 'fullhash with length in function chunkFilename',
+    output: {
+      filename: 'bundle19.[fullhash].js',
+      chunkFilename: () => '[id].bundle19.[fullhash:7].js',
+    },
+    target: 'node',
+    amd: {
+      expectedFilenameLength: 28,
+      expectedChunkFilenameLength: 21,
+    },
+  },
+  {
+    name: 'contenthash with base64 and length in function chunkFilename',
+    output: {
+      filename: 'bundle20.[contenthash].js',
+      chunkFilename: () => '[id].bundle20.[contenthash:base64:4].js',
+    },
+    optimization: {
+      realContentHash: false,
+    },
+    target: 'node',
+    amd: {
+      expectedFilenameLength: 28,
+      expectedChunkFilenameLength: 18,
+    },
+  },
+  {
+    name: 'contenthash with different lengths in function chunkFilename',
+    output: {
+      filename: 'bundle21.[contenthash].js',
+      chunkFilename: () => '[id].bundle21.[contenthash:16]-[contenthash:8].js',
+    },
+    target: 'node',
+    amd: {
+      expectedFilenameLength: 28,
+      expectedChunkFilenameLength: 39,
+    },
+  },
+  {
+    name: 'contenthash with different lengths in chunkFilename',
+    output: {
+      filename: 'bundle22.[contenthash].js',
+      chunkFilename: '[id].bundle22.[contenthash:16]-[contenthash:8].js',
+    },
+    target: 'node',
+    amd: {
+      expectedFilenameLength: 28,
+      expectedChunkFilenameLength: 39,
+    },
+  },
+  {
+    name: 'fullhash with base64 and length in function chunkFilename',
+    output: {
+      filename: 'bundle23.[fullhash].js',
+      chunkFilename: () => '[id].bundle23.[fullhash:base64:4].js',
+    },
+    target: 'node',
+    amd: {
+      expectedFilenameLength: 28,
+      expectedChunkFilenameLength: 18,
+    },
+  },
 ];
 
 module.exports.forEach(function (options) {
