@@ -179,39 +179,19 @@ impl<'s> ImportAttributes<'s> {
   }
 }
 
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
-pub struct MagicComments<'s> {
-  value: &'s str,
-  range: Range,
-}
-
-impl<'s> MagicComments<'s> {
-  pub(crate) fn new(value: &'s str, range: Range) -> Self {
-    Self { value, range }
-  }
-
-  pub fn value(&self) -> &'s str {
-    self.value
-  }
-
-  pub fn range(&self) -> Range {
-    self.range
-  }
-}
-
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum Dependency<'s> {
   Url {
     request: &'s str,
     range: Range,
     kind: UrlRangeKind,
-    magic_comments: Option<MagicComments<'s>>,
+    magic_comments: Option<&'s str>,
   },
   Import {
     request: &'s str,
     range: Range,
     attributes: DependencyIndex<ImportAttributes<'s>>,
-    magic_comments: Option<MagicComments<'s>>,
+    magic_comments: Option<&'s str>,
   },
   ICSSImportUrl {
     name: &'s str,
@@ -425,7 +405,7 @@ impl<'s> DependencyContext<'s> {
     layer: Option<&'s str>,
     supports: Option<&'s str>,
     media: Option<&'s str>,
-    magic_comments: Option<MagicComments<'s>>,
+    magic_comments: Option<&'s str>,
   ) {
     let attributes = DependencyIndex::from_index(self.import_attributes.len());
     self

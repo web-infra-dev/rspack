@@ -11,8 +11,8 @@ use crate::{
     is_css_white_space_char, lowercase_ascii_keyword, strip_vendor_prefix, trim_css_whitespace,
   },
   dependency_types::{
-    Dependency, DependencyContext, MagicComments, Mode, Range, UrlRangeKind, ValueAtRuleImportItem,
-    Warning, WarningKind,
+    Dependency, DependencyContext, Mode, Range, UrlRangeKind, ValueAtRuleImportItem, Warning,
+    WarningKind,
   },
   lexer::{LexerVisitor, Token, TokenFlags, TokenKind, TokenStream},
 };
@@ -122,7 +122,7 @@ impl ScanContext {
 #[derive(Debug)]
 struct ImportData<'s> {
   start: Pos,
-  magic_comments: Option<MagicComments<'s>>,
+  magic_comments: Option<&'s str>,
   prelude: ImportPrelude<'s>,
   url: Option<&'s str>,
   url_flags: TokenFlags,
@@ -3111,13 +3111,10 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
 }
 
 impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
-  fn magic_comments_before(lexer: &DependencyLexer<'s>, start: Pos) -> Option<MagicComments<'s>> {
+  fn magic_comments_before(lexer: &DependencyLexer<'s>, start: Pos) -> Option<&'s str> {
     let input = lexer.slice(0, start)?;
     let range = preceding_comment_range(input)?;
-    Some(MagicComments::new(
-      lexer.slice(range.start, range.end)?,
-      range,
-    ))
+    lexer.slice(range.start, range.end)
   }
 
   fn handle_comment(
@@ -3225,10 +3222,7 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
     if magic_comments.is_none()
       && let Some(range) = self.balanced.last().and_then(|item| item.magic_comments)
     {
-      magic_comments = Some(MagicComments::new(
-        lexer.slice(range.start, range.end)?,
-        range,
-      ));
+      magic_comments = lexer.slice(range.start, range.end);
     }
     match self.scope {
       Scope::InAtImport(ref mut import_data) => {
@@ -3592,8 +3586,8 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
         import_data.prelude.push(ImportPreludeNode::Url {
           range: Range::new(start, end),
         });
-        import_data.magic_comments = magic_comments
-          .map(|range| MagicComments::new(stream.slice_trusted(range.start, range.end), range));
+        import_data.magic_comments =
+          magic_comments.map(|range| stream.slice_trusted(range.start, range.end));
       } else if at_import_top_level && normalized_name == Some("layer(") {
         import_data.prelude.push(ImportPreludeNode::Layer {
           range: Range::new(start, end),

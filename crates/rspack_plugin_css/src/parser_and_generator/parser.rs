@@ -214,9 +214,17 @@ fn normalize_ident_name(name: &str) -> SmolStr {
   SmolStr::new(unescape_identifier(name).as_ref())
 }
 
-fn raw_magic_comments(comments: css_module_lexer::MagicComments<'_>) -> Vec<RawMagicComment<'_>> {
-  let value = comments.value();
-  let base = comments.range().start;
+fn raw_magic_comments<'a>(source: &str, comments: &'a str) -> Vec<RawMagicComment<'a>> {
+  let source_start = source.as_ptr() as usize;
+  let Some(base) = (comments.as_ptr() as usize)
+    .checked_sub(source_start)
+    .and_then(|base| base.checked_add(comments.len()).map(|end| (base, end)))
+    .filter(|(base, end)| source.get(*base..*end) == Some(comments))
+    .and_then(|(base, _)| u32::try_from(base).ok())
+  else {
+    return Vec::new();
+  };
+  let value = comments;
   let mut offset = 0;
   let mut result = Vec::new();
 
@@ -976,13 +984,13 @@ impl<'context> CssModuleParser<'context> {
 
   fn should_ignore_magic_comments(
     &mut self,
-    comments: Option<css_module_lexer::MagicComments<'_>>,
+    comments: Option<&str>,
     range: css_module_lexer::Range,
   ) -> bool {
     let Some(comments) = comments else {
       return false;
     };
-    let comments = raw_magic_comments(comments);
+    let comments = raw_magic_comments(&self.source_code, comments);
     let (options, diagnostics) = try_extract_magic_comment_from_comments(
       &self.source_code,
       &comments,
