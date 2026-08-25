@@ -5,12 +5,8 @@ var __webpack_require__ = {};
 // webpack/runtime/get javascript chunk filename
 (() => {
 // This function allow to reference chunks
-__webpack_require__.u = (chunkId) => {
-  // return url for filenames not based on template
 
-  // return url for filenames based on template
-  return "" + chunkId + ".mjs"
-}
+__webpack_require__.u = (chunkId) => (chunkId + ".mjs");
 })();
 // webpack/runtime/public_path
 (() => {
@@ -132,7 +128,7 @@ var wrapDeps = (deps) => {
 			}
 		}
 		var ret = {};
-		ret[rspackQueues] = () => {};
+		ret[rspackQueues] = x => {};
 		ret[rspackExports] = dep;
 		return ret;
 	});
@@ -150,7 +146,7 @@ __webpack_require__.a = (module, body, hasAwait, useModuleExports) => {
 		outerResolve = resolve;
 	});
 	promise[rspackExports] = exports;
-	promise[rspackQueues] = (fn) => { queue && fn(queue), depQueues.forEach(fn), promise["catch"](() => {}); };
+	promise[rspackQueues] = (fn) => { queue && fn(queue), depQueues.forEach(fn), promise["catch"](x => {}); };
 	module.exports = promise;
 	var asyncModule = module;
 	if (useModuleExports) {

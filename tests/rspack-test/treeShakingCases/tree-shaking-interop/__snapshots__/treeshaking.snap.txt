@@ -22,7 +22,7 @@ __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   a: () => (a)
 });
-__webpack_require__.e(/* import() */ "bar_js").then(__webpack_require__.bind(__webpack_require__, "./bar.js")).then(mod => {
+__webpack_require__.e(/* import() */ "bar_js").then(() => (__webpack_require__("./bar.js"))).then(mod => {
 	console.log(mod);
 });
 const a = "a";

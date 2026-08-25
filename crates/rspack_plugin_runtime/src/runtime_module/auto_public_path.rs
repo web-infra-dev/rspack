@@ -104,12 +104,15 @@ fn auto_public_path_template(
   let undo_path = get_undo_path(filename, output_path, false);
   let import_meta_name = output.import_meta_name.clone();
 
-  runtime_template.render(
+  let mut source = runtime_template.render(
     id,
     Some(serde_json::json!({
       "_script_type": output.script_type,
       "_import_meta_name": import_meta_name,
       "_undo_path": undo_path
     })),
-  )
+  )?;
+  let trimmed_len = source.trim_end().len();
+  source.truncate(trimmed_len);
+  Ok(source)
 }

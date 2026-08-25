@@ -1209,6 +1209,8 @@ impl CompilerOptionsBuilder {
         let entry_options = EntryOptions {
           name: Some(name),
           runtime: desc.runtime.map(EntryRuntime::String),
+          worker: None,
+          worklet: None,
           chunk_loading: desc.chunk_loading,
           wasm_loading: desc.wasm_loading,
           async_chunks: desc.async_chunks,

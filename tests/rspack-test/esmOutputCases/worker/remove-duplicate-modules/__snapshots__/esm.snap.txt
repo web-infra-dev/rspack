@@ -60,12 +60,8 @@ var __webpack_require__ = {};
 // webpack/runtime/get javascript chunk filename
 (() => {
 // This function allow to reference chunks
-__webpack_require__.u = (chunkId) => {
-  // return url for filenames not based on template
 
-  // return url for filenames based on template
-  return "" + chunkId + ".mjs"
-}
+__webpack_require__.u = (chunkId) => (chunkId + ".mjs");
 })();
 // webpack/runtime/public_path
 (() => {
