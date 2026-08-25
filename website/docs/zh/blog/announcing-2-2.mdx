@@ -279,32 +279,6 @@ Rsbuild 插件也可以通过监听 [`onRestart`](https://rsbuild.rs/zh/plugins/
 
 ### Rstest \{#rstest}
 
-#### 预打包 DOM 测试环境 \{#rstest-environment-prebundle}
-
-Rstest 现在支持预打包 DOM 测试环境。开启后，Rstest 会预打包 `jsdom` 或 `happy-dom`，并在多个 worker 之间复用产物，避免为每个测试文件重复解析和初始化环境。对于 DOM 测试较多的项目，这可以显著缩短整体测试耗时。
-
-在 [基准测试](https://github.com/web-infra-dev/rstest/releases/tag/v0.11.6) 中，一个包含 1000 个测试用例的项目取得了以下收益：
-
-| 测试环境            | 原生加载 | 预打包  | 耗时降低  |
-| ------------------- | -------- | ------- | --------- |
-| `jsdom` 30.0.1      | 16.99 s  | 10.57 s | **37.8%** |
-| `happy-dom` 20.11.1 | 6.35 s   | 2.98 s  | **53.0%** |
-
-该能力默认关闭，可通过 [`testEnvironment.prebundle`](https://rstest.rs/zh/config/test/test-environment#环境预打包) 开启：
-
-```ts title="rstest.config.ts"
-import { defineConfig } from '@rstest/core';
-
-export default defineConfig({
-  testEnvironment: {
-    name: 'jsdom',
-    prebundle: 'auto',
-  },
-});
-```
-
-设置为 `'auto'` 时，Rstest 只会预打包已验证兼容的环境版本；如果无法构建、加载或验证预打包产物，则会自动回退到原生加载。实际收益会因项目规模和运行环境而异。
-
 #### 模块联邦测试 \{#rstest-module-federation}
 
 Rstest 现在支持模块联邦测试：可以在 Node、JSDOM 和 Browser Mode 环境下，直接测试真实的联邦远程模块。
@@ -344,31 +318,80 @@ test('home page', async ({ page, serve }) => {
 });
 ```
 
+#### 预打包测试环境 \{#rstest-environment-prebundle}
+
+Rstest 现在支持预打包 DOM 测试环境。开启后，Rstest 会预打包 `jsdom` 或 `happy-dom`，并在多个 worker 之间复用产物，避免为每个测试文件重复解析和初始化环境。对于 DOM 测试较多的项目，这可以显著缩短整体测试耗时。
+
+在 [基准测试](https://github.com/web-infra-dev/rstest/releases/tag/v0.11.6) 中，一个包含 1000 个测试用例的项目取得了以下收益：
+
+| 测试环境            | 原生加载 | 预打包  | 耗时降低  |
+| ------------------- | -------- | ------- | --------- |
+| `jsdom` 30.0.1      | 16.99 s  | 10.57 s | **37.8%** |
+| `happy-dom` 20.11.1 | 6.35 s   | 2.98 s  | **53.0%** |
+
+该能力默认关闭，可通过 [`testEnvironment.prebundle`](https://rstest.rs/zh/config/test/test-environment#环境预打包) 开启：
+
+```ts title="rstest.config.ts"
+import { defineConfig } from '@rstest/core';
+
+export default defineConfig({
+  testEnvironment: {
+    name: 'jsdom',
+    prebundle: 'auto',
+  },
+});
+```
+
+设置为 `'auto'` 时，Rstest 只会预打包已验证兼容的环境版本；如果无法构建、加载或验证预打包产物，则会自动回退到原生加载。实际收益会因项目规模和运行环境而异。
+
 ### Rslint \{#rslint}
 
-#### 完整的 typescript-eslint 支持 \{#typescript-eslint-support}
+#### 完整支持 typescript-eslint \{#typescript-eslint-support}
 
-Rslint 0.8.1 已内置实现全部 `@typescript-eslint` 规则，并完整对齐 typescript-eslint 的官方预设体系，支持 `recommended`、`recommendedTypeChecked`、`strict`、`strictTypeChecked`、`stylistic` 和 `stylisticTypeChecked`。
+Rslint 现在内置支持超过 500 条 lint 规则，并实现了 `@typescript-eslint` 的 [全部规则和预设](https://rslint.rs/api/presets/ts)。
 
-通过 `defineConfig` 配置 ESLint core 和 `@typescript-eslint` 规则时，编辑器可以自动补全规则名称、严重级别和规则选项，并在 Rslint 运行前发现无效配置。此外，`@rslint/core` 还内置了 Browser、Node.js、Worker 和 Rstest 等运行环境的 `globals`：
+例如，你可以通过 `recommendedTypeChecked` 预设来启用所有推荐的类型感知规则：
 
 ```ts title="rslint.config.ts"
-import { defineConfig, globals, js, ts } from '@rslint/core';
+import { defineConfig, js, ts } from '@rslint/core';
 
 export default defineConfig([
   js.configs.recommended,
   ts.configs.recommendedTypeChecked,
+]);
+```
+
+#### 类型提示 \{#config-type-hints}
+
+`defineConfig` 现在为 ESLint core 和 `@typescript-eslint` 规则提供完整的类型提示，包括规则名称和选项类型。
+
+```ts title="rslint.config.ts"
+import { defineConfig } from '@rslint/core';
+
+export default defineConfig([
   {
-    files: ['src/client/**'],
-    languageOptions: {
-      globals: globals.browser,
-    },
     rules: {
       '@typescript-eslint/no-floating-promises': 'error',
       '@typescript-eslint/no-unused-vars': [
         'error',
         { argsIgnorePattern: '^_' },
       ],
+    },
+  },
+]);
+```
+
+#### 内置常用 globals \{#built-in-globals}
+
+`@rslint/core` 现在默认导出 [globals](https://rslint.rs/api/configuration/globals) 对象，包含浏览器、Node.js 和 Rstest 等常用环境的全局变量定义：
+
+```ts title="rslint.config.ts"
+import { defineConfig, globals } from '@rslint/core';
+
+export default defineConfig([
+  {
+    languageOptions: {
+      globals: globals.browser,
     },
   },
 ]);
@@ -383,6 +406,7 @@ import { Rslint } from '@rslint/core';
 
 const rslint = new Rslint({ fix: true });
 const results = await rslint.lintFiles(['src/**/*.ts']);
+
 await Rslint.outputFixes(results);
 ```
 
