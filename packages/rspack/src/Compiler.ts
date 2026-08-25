@@ -851,7 +851,7 @@ class Compiler {
         return;
       }
       this.#initial = false;
-      instance!.build(callback);
+      instance!.build(this.watchMode, callback);
     });
   }
 

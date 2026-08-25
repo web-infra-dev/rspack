@@ -419,10 +419,11 @@ impl JsCompiler {
   }
 
   /// Build with the given option passed to the constructor
-  #[napi(ts_args_type = "callback: (err: null | Error) => void")]
+  #[napi(ts_args_type = "rebuildable: boolean, callback: (err: null | Error) => void")]
   pub fn build(
     &mut self,
     reference: Reference<JsCompiler>,
+    rebuildable: bool,
     f: Function<'static>,
   ) -> Result<(), ErrorCode> {
     unsafe {
@@ -430,7 +431,12 @@ impl JsCompiler {
         callbackify(
           f,
           async move {
-            let result = compiler.build().await.to_napi_result_with_message(|e| {
+            let result = if rebuildable {
+              compiler.build().await
+            } else {
+              compiler.build_once().await
+            }
+            .to_napi_result_with_message(|e| {
               print_error_diagnostic(e, compiler.options.stats.colors)
             });
             result?;
