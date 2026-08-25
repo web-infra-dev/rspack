@@ -39,16 +39,18 @@ _2026 年 8 月 26 日_
 值得关注的变更如下：
 
 - 性能提升
+  - [构建性能提升](#build-perfermance-improve)
   - [更好的 HMR ](#better-hmr)
   - [CSS 解析性能提升](#css-performance)
 
 - 新特性
-  - [`import.meta.glob` 支持 `caseSensitive`](#import-meta-glob-case-sensitive)
   - [`import.meta` 新增 API](#import-meta-apis)
   - [Compat hashed IDs](#compat-hashed-ids)
   - [Rspack runtime mode](#rspack-runtime-mode)
 
-- 产物优化
+- Breaking Changes
+  - [RSC 插件 CSS 加载方式改变](#rsc-plugin-use-preinit)
+  - [WASM 插件兼容性破坏](#wasm-plugin-breaking)
 
 - 生态
   - [Rsbuild](#rsbuild)
@@ -56,11 +58,10 @@ _2026 年 8 月 26 日_
   - [Rstest](#rstest)
   - [Rslint](#rslint)
   - [Rspress](#rspress)
-  - [Rsdoctor](#rsdoctor)
 
 ## 性能提升
 
-### 构建性能提升 5%
+### 构建性能提升 5% \{#build-perfermance-improve}
 
 在这次 Rspack 2.2.0 中，我们合入了 30 多个构建性能改进，改进了模块合并，Split Chunks，Source Map 生成等构建路径上的算法，在生产冷构建的 Benchmark 中构建时间从 `1822 ms` 降至 `1725 ms` 提升 5.6% 。
 
@@ -100,7 +101,13 @@ _2026 年 8 月 26 日_
 }
 ```
 
-Rspack 2.2 会生成 `.style_modules_css-😍`，而不是带有多余转义的 `.style_modules_css-\😍`。
+新版中会生成 `.style_modules_css-😍`，而不是带有多余转义的 `.style_modules_css-\😍`。
+
+### WASM 包体积优化 3%
+
+Rspack 2.2.0 优化了 WASM 版本的构建配置，移除没有必要的依赖，优化编译选项后，WASM 体积从 **30,194.9 KB** 降至 **29,111.8 KB**，减约 **3.6%** ；
+使用 `gzip -9` 压缩从 **9,466.4 KB** 降至 **9,163.8 KB**，减少约 **3.2%**。
+这可以降低 `@rspack/browser` 等 WASM 场景下的下载与加载开销。
 
 ## 新特性
 
@@ -144,7 +151,9 @@ export default {
 
 ### Rspack runtime mode \{#rspack-runtime-mode}
 
-`experiments.runtimeMode` 新增了 `'rspack'` 选项，用于生成更现代化的运行时代码。以 `output.module: true` 时的产物为例，Rspack 在定义 runtime helper 时，不再使用 IIFE 包裹并将其挂载到 `__webpack_require__`，而是直接在 ESM 顶层声明，并通过 `export` 语句导出。这样不仅能精简产物，也对下游 tree shaking 更加友好。
+之前 Rspack 和 Webpack 采用类似的方法，将运行时 helper 函数挂载在 `__webpack_require__` 对象上，这种方组织代码在可读性以及对下游产物的优化都不是特别的友好。
+
+为了产物的代码更加的简洁，同时适合开发者阅读调试和下游编译器优化，Rspack 在 `experiments.runtimeMode` 中新增了 `rspack` 配置项目，以生成更佳符合现代化的运行时代码。开启此模式后运行时的 helper 直接在 ESM 顶层声明，并通过 `export` 语句导出。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -157,7 +166,7 @@ export default {
 };
 ```
 
-默认的 `webpack` runtime mode 产物：
+默认的 `webpack` 选项的产物：
 
 ```js
 (() => {
@@ -167,7 +176,7 @@ export default {
 })();
 ```
 
-使用 `rspack` runtime mode 后：
+使用 `rspack` 选项后：
 
 ```js
 var runtimeHelper = () => {
@@ -178,9 +187,11 @@ export { runtimeHelper };
 
 ## 产物优化
 
+TODO
+
 ## Breaking changes \{#breaking-changes}
 
-### RSC 插件：通过 `preinit` 加载客户端组件的 CSS
+### RSC 插件：通过 `preinit` 加载客户端组件的 CSS \{#rsc-plugin-use-preinit}
 
 此前，RSC 插件会包装客户端引用（Client Reference），并在渲染组件时插入 CSS `<link>` 标签。由于包装后的导出不再是原始的 Client Reference，某些导出形式可能无法保留 Client Reference 标识。
 
@@ -188,7 +199,7 @@ Rspack 2.2 不再包装客户端引用，而是通过 React 的 [`preinit`](http
 
 这项调整改变了 RSC 中客户端组件 CSS 的加载方式，是一项针对 RSC 框架集成的破坏性变更。如果你正在集成 Rspack RSC 插件，请将 [`react-server-dom-rspack`](https://www.npmjs.com/package/react-server-dom-rspack) 同步升级到 `0.1.0`。
 
-### Wasm 插件需要重新构建
+### Wasm 插件需要重新构建 \{wasm-plugin-breaking}
 
 Rspack 2.2.0 已将 `swc_core` 从 76 升级至 77, 影响了 SWC Wasm 插件边界上的 AST 序列化格式，
 因此基于旧版 SWC 构建的 Wasm 插件将无法继续使用，并可能出现以下错误：
@@ -384,5 +395,3 @@ export default defineConfig({
 ### Rslint \{#rslint}
 
 ### Rspress \{#rspress}
-
-### Rsdoctor \{#rsdoctor}
