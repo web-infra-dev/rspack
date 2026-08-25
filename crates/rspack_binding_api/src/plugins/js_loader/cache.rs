@@ -30,7 +30,7 @@ pub struct JsLoaderCacheEntry {
   pub content: Either3<Null, String, Uint8Array>,
   pub source_map: Option<Uint8Array>,
   pub dependency_context: JsLoaderDependencyContext,
-  pub dependency_context_valid: bool,
+  pub dependency_context_append_only: bool,
 }
 
 #[napi]
@@ -206,7 +206,7 @@ impl JsLoaderCache {
       },
       source_map: entry.source_map.clone().map(Into::into),
       dependency_context: (&dependency_context).into(),
-      dependency_context_valid: true,
+      dependency_context_append_only: true,
     }))
   }
 
@@ -216,7 +216,7 @@ impl JsLoaderCache {
     let Some(etag) = self.take_pending_etag(loader_index)? else {
       return Ok(());
     };
-    if !output.dependency_context_valid
+    if !output.dependency_context_append_only
       || !output.dependency_context.context_dependencies.is_empty()
       || !output.dependency_context.missing_dependencies.is_empty()
     {

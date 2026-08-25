@@ -8,7 +8,7 @@ export type LoaderCacheEntry = {
   content: LoaderCacheContent | null;
   sourceMap?: Uint8Array;
   dependencyContext: DependencyContext;
-  dependencyContextValid: boolean;
+  dependencyContextAppendOnly: boolean;
 };
 
 type DependencyContext = JsLoaderContext['dependencyContext'];
@@ -96,7 +96,7 @@ export class LoaderCache {
     const isUnchangedPrefix = (current: string[], before: string[]) =>
       current.length >= before.length &&
       before.every((dependency, index) => current[index] === dependency);
-    const dependencyContextValid = (
+    const dependencyContextAppendOnly = (
       [
         'fileDependencies',
         'contextDependencies',
@@ -105,7 +105,7 @@ export class LoaderCache {
       ] as const
     ).every((key) => isUnchangedPrefix(dependencyContext[key], previous[key]));
     const added = (key: keyof DependencyContext) =>
-      dependencyContextValid
+      dependencyContextAppendOnly
         ? dependencyContext[key].slice(previous[key].length)
         : [];
 
@@ -118,7 +118,7 @@ export class LoaderCache {
         missingDependencies: added('missingDependencies'),
         buildDependencies: added('buildDependencies'),
       },
-      dependencyContextValid,
+      dependencyContextAppendOnly,
     });
   }
 

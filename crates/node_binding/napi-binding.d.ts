@@ -960,7 +960,7 @@ export interface JsLoaderCacheEntry {
   content: null | string | Uint8Array
   sourceMap?: Uint8Array
   dependencyContext: JsLoaderDependencyContext
-  dependencyContextValid: boolean
+  dependencyContextAppendOnly: boolean
 }
 
 export interface JsLoaderContext {
