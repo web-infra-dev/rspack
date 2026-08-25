@@ -39,6 +39,7 @@ _2026 年 8 月 26 日_
 值得关注的变更如下：
 
 - 性能提升
+  - [更好的 HMR ](#better-hmr)
   - [CSS 解析性能提升](#css-performance)
 
 - 新特性
@@ -58,8 +59,15 @@ _2026 年 8 月 26 日_
 
 ## 性能提升
 
-### 更好的 HMR
+### 构建性能提升 5%
 
+在这次 Rspack 2.2.0 中，我们合入了 30 多个构建性能改进，改进了模块合并，Split Chunks，Source Map 生成等构建路径上的算法，在生产冷构建的 Benchmark 中构建时间从 `1822 ms` 降至 `1725 ms` 提升 5.6% 。
+
+> Benchmark 来源: [Benchmark 仓库](https://github.com/LingyuCoder/rspack-react-10k-benchmark/commit/121be0c19252db61e9fc9c8ebbce93943caa88eb) 在 veLinux 2 (kernel 5.15.120, x86_64), 32G 内存, 16核(Intel Xeon Platinum 8336C) 环境中测试。
+
+### 更好的 HMR \{#better-hmr}
+
+在研发体验方面，Rspack 2.2.0 的 HMR 的资源请求更加精细，让更新速度更加稳定。
 在之前 HMR 中，即使只修改了 JavaScript 代码，HMR 在更新的过程中还是会加载相关的 CSS 文件，并在浏览器中对比内容是否变化，最终决定是否更新 CSS。
 
 在 [#14682](https://github.com/web-infra-dev/rspack/pull/14682) 中，Rspack 通过在构建阶段判断出 CSS Chunk 否有变化，精细化的控制 HMR 是否需要拉取 CSS 资源省去 HTTP 的请求时间。
@@ -75,7 +83,13 @@ _2026 年 8 月 26 日_
 
 ### CSS 解析性能提升 \{#css-performance}
 
-Rspack 2.2 将内置 CSS 性能提升至 Rspack 2.1.0 的 **3 倍**，并进一步完善了 Unicode 支持。
+在 CSS 的 HRM 改进的基础上，我们还将内置 CSS 性能提升了 **3 倍**，进一步的提升研发体验；同时进一步完善了 Unicode 支持。
+在开发构建和生产构建场景中，CSS 性能提升如下：
+
+| 场景                          | 优化前   | 优化后  | 性能提升   |
+| ----------------------------- | -------- | ------- | ---------- |
+| CSS 开发构建                  | 320.3 ms | 87.2 ms | **3.7 倍** |
+| CSS 生产构建（含 Source Map） | 354.1 ms | 121 ms  | **2.9 倍** |
 
 例如，下面的 CSS Module 使用 emoji 作为类名：
 
@@ -86,13 +100,6 @@ Rspack 2.2 将内置 CSS 性能提升至 Rspack 2.1.0 的 **3 倍**，并进一�
 ```
 
 Rspack 2.2 会生成 `.style_modules_css-😍`，而不是带有多余转义的 `.style_modules_css-\😍`。
-
-在开发构建和生产构建场景中，CSS 性能提升如下：
-
-| 场景                          | 优化前   | 优化后  | 性能提升   |
-| ----------------------------- | -------- | ------- | ---------- |
-| CSS 开发构建                  | 320.3 ms | 87.2 ms | **3.7 倍** |
-| CSS 生产构建（含 Source Map） | 354.1 ms | 121 ms  | **2.9 倍** |
 
 ## 新特性
 
