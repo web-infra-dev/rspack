@@ -6,9 +6,9 @@ use rustc_hash::FxHashMap as HashMap;
 
 use super::BuildModuleGraphArtifact;
 use crate::{
-  CacheCount, Compilation, CompilationId, CompilerId, CompilerOptions, CompilerPlatform,
-  DependencyTemplate, DependencyTemplateType, DependencyType, ExportsInfoArtifact, ModuleFactory,
-  ResolverFactory, RuntimeTemplate, SharedPluginDriver,
+  Compilation, CompilationId, CompilerId, CompilerOptions, CompilerPlatform, DependencyTemplate,
+  DependencyTemplateType, DependencyType, ExportsInfoArtifact, ModuleFactory, ResolverFactory,
+  RuntimeTemplate, SharedPluginDriver,
   incremental::Incremental,
   module_graph::ModuleGraph,
   new_cache::{Cache, ModuleBuildCache},
@@ -33,7 +33,6 @@ pub struct TaskContext {
   pub runtime_template: RuntimeTemplate,
   pub(crate) cache: Cache,
   pub(super) module_build_cache: Option<ModuleBuildCache>,
-  pub(super) module_build_cache_counter: Option<Arc<CacheCount>>,
 
   pub artifact: BuildModuleGraphArtifact,
   pub exports_info_artifact: ExportsInfoArtifact,
@@ -65,7 +64,6 @@ impl TaskContext {
       runtime_template: RuntimeTemplate::new(compilation.options.clone()),
       cache: compilation.cache.clone(),
       module_build_cache,
-      module_build_cache_counter: None,
       artifact,
       exports_info_artifact,
     }

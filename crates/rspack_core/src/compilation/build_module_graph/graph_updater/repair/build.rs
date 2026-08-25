@@ -11,8 +11,8 @@ use super::{
   TaskContext, lazy::process_unlazy_dependencies, process_dependencies::ProcessDependenciesTask,
 };
 use crate::{
-  AsyncDependenciesBlock, BoxDependency, BoxModule, BuildContext, BuildResult, CacheCount,
-  CacheFacade, CompilationId, CompilerId, CompilerOptions, DependencyParents, ModuleCodeTemplate,
+  AsyncDependenciesBlock, BoxDependency, BoxModule, BuildContext, BuildResult, CacheFacade,
+  CompilationId, CompilerId, CompilerOptions, DependencyParents, ModuleCodeTemplate,
   ResolverFactory, SharedPluginDriver,
   compilation::build_module_graph::{ForwardedIdSet, HasLazyDependencies, LazyDependencies},
   new_cache::ModuleBuildCache,
@@ -34,7 +34,6 @@ pub struct BuildTask {
   pub plugin_driver: SharedPluginDriver,
   pub fs: Arc<dyn ReadableFileSystem>,
   pub(super) module_build_cache: Option<ModuleBuildCache>,
-  pub(super) module_build_cache_counter: Option<Arc<CacheCount>>,
   pub forwarded_ids: ForwardedIdSet,
 }
 
@@ -55,7 +54,6 @@ impl Task<TaskContext> for BuildTask {
       mut module,
       fs,
       module_build_cache,
-      module_build_cache_counter,
       forwarded_ids,
     } = *self;
 
@@ -73,15 +71,6 @@ impl Task<TaskContext> for BuildTask {
       }
       _ => None,
     };
-    if let Some(counter) = &module_build_cache_counter
-      && use_module_build_cache
-    {
-      if restored.is_some() {
-        counter.hit();
-      } else {
-        counter.miss();
-      }
-    }
     if let Some(restored) = restored {
       plugin_driver
         .compilation_hooks

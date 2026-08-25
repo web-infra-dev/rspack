@@ -5,19 +5,15 @@ pub mod factorize;
 pub mod lazy;
 pub mod process_dependencies;
 
-use std::sync::Arc;
-
 use rspack_error::Result;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use self::context::TaskContext;
 use super::BuildModuleGraphArtifact;
 use crate::{
-  BuildDependency, Compilation, ExportsInfoArtifact, Logger,
+  BuildDependency, Compilation, ExportsInfoArtifact,
   utils::task_loop::{Task, run_task_loop},
 };
-
-const LOGGER_NAME: &str = "rspack.Compilation";
 
 pub async fn repair(
   compilation: &Compilation,
@@ -71,16 +67,6 @@ pub async fn repair(
     .collect::<Vec<_>>();
 
   let mut ctx = TaskContext::new(compilation, artifact, exports_info_artifact);
-  let logger = compilation.get_logger(LOGGER_NAME);
-  ctx.module_build_cache_counter = ctx
-    .module_build_cache
-    .is_some()
-    .then(|| Arc::new(logger.cache("module build cache")));
   run_task_loop(&mut ctx, init_tasks).await?;
-  if let Some(counter) = ctx.module_build_cache_counter.take()
-    && let Some(counter) = Arc::into_inner(counter)
-  {
-    logger.cache_end(counter);
-  }
   Ok((ctx.artifact, ctx.exports_info_artifact))
 }

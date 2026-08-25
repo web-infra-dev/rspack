@@ -37,7 +37,6 @@ module.exports = {
 			all: false,
 			logging: "verbose"
 		});
-		expect(stats).not.toContain("module build cache");
 		expect(stats).not.toContain("module factorize cache");
 		expect(stats).not.toContain("module code generation cache");
 	}

@@ -125,7 +125,6 @@ impl Task<TaskContext> for AddTask {
       runtime_template: context.runtime_template.create_module_code_template(),
       fs: context.fs.clone(),
       module_build_cache: context.module_build_cache.clone(),
-      module_build_cache_counter: context.module_build_cache_counter.clone(),
       forwarded_ids,
     })])
   }
