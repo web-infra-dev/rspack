@@ -21,7 +21,7 @@ pub use etag::Etag;
 pub use file_cache_strategy::FileCacheStrategy;
 pub use idle_file_cache::IdleFileCache;
 pub use memory_cache::{MemoryCache, MemoryCacheGetResult};
-pub(crate) use module_build_cache::{ModuleBuildCache, ModuleCache};
+pub(crate) use module_build_cache::{ModuleBuildCache, ModuleCache, ModuleCacheFactory};
 use rspack_fs::ReadableFileSystem;
 
 use self::snapshot::{BuildDeps, FileSystemInfo};
@@ -29,7 +29,7 @@ use crate::{CompilationLogger, CompilationLogging, CompilerOptions, cache::Cache
 
 pub(crate) struct NewCache {
   pub(crate) cache: Cache,
-  pub(crate) module_cache: Option<ModuleCache>,
+  pub(crate) module_cache_factory: Option<ModuleCacheFactory>,
 }
 
 pub(crate) fn create_cache(
@@ -41,7 +41,7 @@ pub(crate) fn create_cache(
   if !compiler_options.experiments.new_cache.is_enabled() {
     return NewCache {
       cache: Cache::new_disabled(compiler_path),
-      module_cache: None,
+      module_cache_factory: None,
     };
   }
   let module_cache_enabled = compiler_options.experiments.new_cache.module;
@@ -50,23 +50,14 @@ pub(crate) fn create_cache(
     crate::CacheOptions::Disabled => {
       return NewCache {
         cache: Cache::new_disabled(compiler_path),
-        module_cache: None,
+        module_cache_factory: None,
       };
     }
     crate::CacheOptions::Memory {
       max_generations: _, /* TODO: old cache default to 1, change to 5 and pass to MemoryCache */
     } => {
-      let module_cache = module_cache_enabled.then(|| {
-        (
-          Arc::new(CacheCodec::new(None)),
-          FileSystemInfo::new(
-            input_filesystem,
-            Default::default(),
-            compiler_options.output.hash_function,
-          ),
-        )
-      });
-      return assemble_cache(compiler_path, MemoryCache::new(5), None, module_cache);
+      let module_cache_codec = module_cache_enabled.then(|| Arc::new(CacheCodec::new(None)));
+      return assemble_cache(compiler_path, MemoryCache::new(5), None, module_cache_codec);
     }
     crate::CacheOptions::Persistent(options) => options,
   };
@@ -101,23 +92,28 @@ pub(crate) fn create_cache(
     rspack_workspace::rspack_pkg_version!().to_string(),
     options.version.clone(),
     codec.clone(),
-    file_system_info.clone(),
+    file_system_info,
     build_deps,
   ) {
     Ok(strategy) => strategy,
     Err(error) => {
       tracing::warn!("Opening persistent cache database failed: {error}");
-      let module_cache = module_cache_enabled.then_some((codec, file_system_info));
-      return assemble_cache(compiler_path, MemoryCache::default(), None, module_cache);
+      let module_cache_codec = module_cache_enabled.then_some(codec);
+      return assemble_cache(
+        compiler_path,
+        MemoryCache::default(),
+        None,
+        module_cache_codec,
+      );
     }
   };
   let idle_file_cache = IdleFileCache::new(strategy, None, None, None);
-  let module_cache = module_cache_enabled.then_some((codec, file_system_info));
+  let module_cache_codec = module_cache_enabled.then_some(codec);
   assemble_cache(
     compiler_path,
     MemoryCache::default(),
     Some(idle_file_cache),
-    module_cache,
+    module_cache_codec,
   )
 }
 
@@ -125,14 +121,13 @@ fn assemble_cache(
   compiler_path: String,
   memory_cache: MemoryCache,
   idle_file_cache: Option<IdleFileCache>,
-  module_cache: Option<(Arc<CacheCodec>, FileSystemInfo)>,
+  module_cache_codec: Option<Arc<CacheCodec>>,
 ) -> NewCache {
   let cache = Cache::new(compiler_path, memory_cache, idle_file_cache.clone());
-  let module_cache = module_cache.map(|(codec, file_system_info)| {
-    ModuleCache::new(cache.clone(), codec, file_system_info, idle_file_cache)
-  });
+  let module_cache_factory =
+    module_cache_codec.map(|codec| ModuleCacheFactory::new(cache.clone(), codec, idle_file_cache));
   NewCache {
     cache,
-    module_cache,
+    module_cache_factory,
   }
 }

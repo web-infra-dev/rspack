@@ -27,7 +27,7 @@ use crate::{
   incremental::{Incremental, IncrementalPasses},
   legacy_cache::{Cache as LegacyCache, create_cache as create_legacy_cache},
   logger::Logger,
-  new_cache::{Cache, CacheFacade, ModuleCache, NewCache, create_cache},
+  new_cache::{Cache, CacheFacade, ModuleCacheFactory, NewCache, create_cache},
   trim_dir,
 };
 
@@ -103,7 +103,7 @@ pub struct Compiler {
   pub cache: Box<dyn LegacyCache>,
   incremental_artifacts: IncrementalArtifacts,
   new_cache: Cache,
-  module_cache: Option<ModuleCache>,
+  module_cache_factory: Option<ModuleCacheFactory>,
   /// emitted asset versions
   /// the key of HashMap is filename, the value of HashMap is version
   pub emitted_asset_versions: HashMap<String, String>,
@@ -164,7 +164,7 @@ impl Compiler {
       PluginDriver::new(options.clone(), buildtime_plugins, resolver_factory.clone());
     let NewCache {
       cache: new_cache,
-      module_cache,
+      module_cache_factory,
     } = create_cache(
       compiler_path.clone(),
       options.clone(),
@@ -207,7 +207,7 @@ impl Compiler {
         false,
         compiler_context.clone(),
       )
-      .with_module_cache(module_cache.clone()),
+      .with_module_cache(module_cache_factory.as_ref()),
       compiler_path,
       output_filesystem,
       intermediate_filesystem,
@@ -218,7 +218,7 @@ impl Compiler {
       cache,
       incremental_artifacts: IncrementalArtifacts::default(),
       new_cache,
-      module_cache,
+      module_cache_factory,
       emitted_asset_versions: Default::default(),
       input_filesystem,
       platform,
@@ -236,9 +236,6 @@ impl Compiler {
   }
 
   fn end_idle(&self) -> Result<Instant> {
-    if let Some(module_cache) = &self.module_cache {
-      module_cache.clear();
-    }
     self.new_cache.end_idle()?;
     Ok(Instant::now())
   }
@@ -257,8 +254,8 @@ impl Compiler {
     } else {
       Ok(())
     };
-    let record_dependency_id = if let Some(module_cache) = &self.module_cache {
-      module_cache.record_dependency_id(self.compilation.compiler_context.dependency_id())
+    let record_dependency_id = if let Some(module_cache_factory) = &self.module_cache_factory {
+      module_cache_factory.record_dependency_id(self.compilation.compiler_context.dependency_id())
     } else {
       Ok(())
     };
@@ -335,11 +332,11 @@ impl Compiler {
         false,
         self.compiler_context.clone(),
       )
-      .with_module_cache(self.module_cache.clone()),
+      .with_module_cache(self.module_cache_factory.as_ref()),
     );
     self.cache.before_compile(&mut self.compilation).await;
-    if let Some(module_cache) = &self.module_cache {
-      module_cache.restore_dependency_id();
+    if let Some(module_cache_factory) = &self.module_cache_factory {
+      module_cache_factory.restore_dependency_id();
     }
 
     self.compile().await?;

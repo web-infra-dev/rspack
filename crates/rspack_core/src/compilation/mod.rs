@@ -96,7 +96,7 @@ use crate::{
   legacy_cache::persistent::occasion::{
     devtool::SourceMapDevToolPluginCache, minimize::MinimizePersistentCache,
   },
-  new_cache::{Cache, CacheFacade, ModuleBuildCache, ModuleCache},
+  new_cache::{Cache, CacheFacade, ModuleBuildCache, ModuleCache, ModuleCacheFactory},
   to_identifier,
 };
 
@@ -451,8 +451,21 @@ impl Compilation {
     self.cache.facade(name)
   }
 
-  pub(crate) fn with_module_cache(mut self, module_cache: Option<ModuleCache>) -> Self {
-    self.module_cache = module_cache;
+  pub(crate) fn with_module_cache(
+    mut self,
+    module_cache_factory: Option<&ModuleCacheFactory>,
+  ) -> Self {
+    let snapshot_options = match &self.options.cache {
+      CacheOptions::Persistent(options) => options.snapshot.clone(),
+      CacheOptions::Disabled | CacheOptions::Memory { .. } => Default::default(),
+    };
+    self.module_cache = module_cache_factory.map(|factory| {
+      factory.create_for_compilation(
+        self.input_filesystem.clone(),
+        snapshot_options,
+        self.options.output.hash_function,
+      )
+    });
     self
   }
 

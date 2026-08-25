@@ -5,6 +5,8 @@ use std::{
 
 use rspack_cacheable::{cacheable, utils::OwnedOrRef};
 use rspack_error::Result;
+use rspack_fs::ReadableFileSystem;
+use rspack_hash::HashFunction;
 use rspack_tasks::{get_current_dependency_id, set_current_dependency_id};
 
 use super::{
@@ -13,7 +15,8 @@ use super::{
 };
 use crate::{
   AsyncDependenciesBlock, BoxDependency, BoxModule, BuildInfo, BuildResult, Module,
-  NormalModuleBuildState, OptimizationBailoutItem, ValueCacheVersions, cache::CacheCodec,
+  NormalModuleBuildState, OptimizationBailoutItem, ValueCacheVersions,
+  cache::{CacheCodec, SnapshotOptions},
 };
 
 const MODULE_BUILD_CACHE_NAME: &str = "Compilation/modules";
@@ -80,50 +83,45 @@ impl ModuleBuildCacheEntry {
   }
 }
 
-#[derive(Debug, Clone)]
-pub(crate) struct ModuleCache {
-  inner: Arc<ModuleCacheInner>,
-}
-
+/// Creates compilation-local module cache views and owns persistent module metadata.
 #[derive(Debug)]
-struct ModuleCacheInner {
+pub(crate) struct ModuleCacheFactory {
   cache: CacheFacade,
   codec: Arc<CacheCodec>,
-  file_system_info: FileSystemInfo,
   idle_file_cache: Option<IdleFileCache>,
   dependency_id_restored: OnceLock<()>,
 }
 
-impl ModuleCache {
+impl ModuleCacheFactory {
   pub(crate) fn new(
     cache: Cache,
     codec: Arc<CacheCodec>,
-    file_system_info: FileSystemInfo,
     idle_file_cache: Option<IdleFileCache>,
   ) -> Self {
     Self {
-      inner: Arc::new(ModuleCacheInner {
-        cache: cache.facade(MODULE_BUILD_CACHE_NAME),
-        codec,
-        file_system_info,
-        idle_file_cache,
-        dependency_id_restored: OnceLock::new(),
-      }),
+      cache: cache.facade(MODULE_BUILD_CACHE_NAME),
+      codec,
+      idle_file_cache,
+      dependency_id_restored: OnceLock::new(),
     }
   }
 
-  pub(crate) fn build_cache(&self, value_cache_versions: &ValueCacheVersions) -> ModuleBuildCache {
-    ModuleBuildCache {
-      cache: self.inner.cache.clone(),
-      codec: self.inner.codec.clone(),
-      file_system_info: self.inner.file_system_info.clone(),
-      value_cache_versions: Arc::new(value_cache_versions.clone()),
+  pub(crate) fn create_for_compilation(
+    &self,
+    input_filesystem: Arc<dyn ReadableFileSystem>,
+    snapshot_options: SnapshotOptions,
+    hash_function: HashFunction,
+  ) -> ModuleCache {
+    ModuleCache {
+      cache: self.cache.clone(),
+      codec: self.codec.clone(),
+      file_system_info: FileSystemInfo::new(input_filesystem, snapshot_options, hash_function),
     }
   }
 
   pub(crate) fn restore_dependency_id(&self) {
-    self.inner.dependency_id_restored.get_or_init(|| {
-      let Some(file_cache) = &self.inner.idle_file_cache else {
+    self.dependency_id_restored.get_or_init(|| {
+      let Some(file_cache) = &self.idle_file_cache else {
         return;
       };
       let dependency_id = match file_cache.restore_dependency_id() {
@@ -141,15 +139,30 @@ impl ModuleCache {
   }
 
   pub(crate) fn record_dependency_id(&self, dependency_id: u32) -> Result<()> {
-    if let Some(file_cache) = &self.inner.idle_file_cache {
+    if let Some(file_cache) = &self.idle_file_cache {
       file_cache.store_dependency_id(dependency_id)
     } else {
       Ok(())
     }
   }
+}
 
-  pub(crate) fn clear(&self) {
-    self.inner.file_system_info.clear();
+/// Compilation-local view of webpack's `Compilation/modules` cache.
+#[derive(Debug)]
+pub(crate) struct ModuleCache {
+  cache: CacheFacade,
+  codec: Arc<CacheCodec>,
+  file_system_info: FileSystemInfo,
+}
+
+impl ModuleCache {
+  pub(crate) fn build_cache(&self, value_cache_versions: &ValueCacheVersions) -> ModuleBuildCache {
+    ModuleBuildCache {
+      cache: self.cache.clone(),
+      codec: self.codec.clone(),
+      file_system_info: self.file_system_info.clone(),
+      value_cache_versions: Arc::new(value_cache_versions.clone()),
+    }
   }
 }
 

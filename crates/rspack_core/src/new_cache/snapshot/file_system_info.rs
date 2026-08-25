@@ -118,16 +118,6 @@ impl FileSystemInfo {
     }
   }
 
-  pub fn clear(&self) {
-    self.file_timestamps.clear();
-    self.file_hashes.clear();
-    self.file_timestamp_hashes.clear();
-    self.context_timestamps.clear();
-    self.context_hashes.clear();
-    self.context_timestamp_hashes.clear();
-    self.managed_items.clear();
-  }
-
   pub fn module_strategy(&self) -> SnapshotStrategyOptions {
     self.options.dependencies_strategy()
   }

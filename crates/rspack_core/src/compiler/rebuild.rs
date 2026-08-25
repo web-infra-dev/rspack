@@ -96,7 +96,7 @@ impl Compiler {
         true,
         self.compiler_context.clone(),
       )
-      .with_module_cache(self.module_cache.clone());
+      .with_module_cache(self.module_cache_factory.as_ref());
       next_compilation.hot_index = self.compilation.hot_index + 1;
 
       if next_compilation
