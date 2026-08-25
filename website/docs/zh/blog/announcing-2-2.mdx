@@ -1,5 +1,5 @@
 ---
-description: 'Rspack 2.2 正式发布，带来构建性能与 HMR 优化、更快的 CSS 解析、import.meta 新增 API、compat-hashed IDs 和 Rspack runtime mode。'
+description: 'Rspack 2.2 正式发布，带来构建性能与 HMR 优化、更快的 CSS 解析、import.meta 新增 API 和 compat-hashed IDs。'
 date: 2026-08-26 14:00:00
 sidebar: false
 authors:
@@ -21,6 +21,9 @@ authors:
   - name: Sooniter
     avatar: 'https://github.com/sooniter.png'
     github: 'sooniter'
+  - name: LingyuCoder
+    avatar: 'https://github.com/LingyuCoder.png'
+    github: 'LingyuCoder'
 ---
 
 import { BlogAuthors } from '@rstack-dev/doc-ui/blog-authors';
@@ -50,7 +53,6 @@ _2026 年 8 月 26 日_
 - 新特性
   - [`import.meta` 新增 API](#import-meta-apis)
   - [Compat hashed IDs](#compat-hashed-ids)
-  - [Rspack runtime mode](#rspack-runtime-mode)
 
 - 升级指南
   - [RSC 插件 CSS 加载方式改变](#rsc-plugin-use-preinit)
@@ -127,7 +129,17 @@ const modules = import.meta.glob('./pages/**/*.js', {
 
 ### Compat hashed IDs \{#compat-hashed-ids}
 
-[`optimization.moduleIds`](/config/optimization#optimizationmoduleids) 和 [`optimization.chunkIds`](/config/optimization#optimizationchunkids) 新增了 `'compat-hashed'`，它取稳定 hash 的最短可用前缀来生成更紧凑的 ID。相比 `deterministic`，它在同样保证 ID 稳定的前提下，兼顾了运行时的索引性能和产物体积。如果你的项目比较关注产物体积，可以这样开启：
+[`optimization.moduleIds`](/config/optimization#optimizationmoduleids) 和 [`optimization.chunkIds`](/config/optimization#optimizationchunkids) 新增了 `'compat-hashed'`，它取稳定 hash 的最短可用前缀来生成更紧凑的 ID。相比 `deterministic`，它在同样保证 ID 稳定的前提下，兼顾了运行时的索引性能和产物体积。
+
+以一个包含 27.6k 个模块的真实项目生产构建为例，minify 和 gzip 后的产物体积变化如下：
+
+|    **策略**     |    **Minified JS**    |  **Minified + gzip**  |
+| :-------------: | :-------------------: | :-------------------: |
+| `deterministic` |     26,414,278 B      |      7,273,763 B      |
+| `compat-hashed` |     26,327,662 B      |      7,210,729 B      |
+|      降幅       | **86,616 B（0.33%）** | **63,034 B（0.87%）** |
+
+如果你的项目比较关注产物体积，可以这样开启：
 
 ```js title="rspack.config.mjs"
 export default {
@@ -136,42 +148,6 @@ export default {
     chunkIds: 'compat-hashed',
   },
 };
-```
-
-### Rspack runtime mode \{#rspack-runtime-mode}
-
-此前 Rspack 沿用了 webpack 的做法，把运行时 helper 挂载在 `__webpack_require__` 对象上。这种组织方式既不利于阅读和调试，也不便于下游工具对产物做进一步优化。
-
-为此，Rspack 在 `experiments.runtimeMode` 中新增了 `'rspack'` 选项，用于生成更贴近现代 ESM 的运行时代码。开启后，运行时 helper 会直接在 ESM 顶层声明，并通过 `export` 导出：
-
-```js title="rspack.config.mjs"
-export default {
-  experiments: {
-    runtimeMode: 'rspack',
-  },
-  output: {
-    module: true,
-  },
-};
-```
-
-默认 `'webpack'` 模式下的产物：
-
-```js
-(() => {
-  __webpack_require__.runtimeHelper = () => {
-    // ...
-  };
-})();
-```
-
-使用 `'rspack'` 模式后：
-
-```js
-var runtimeHelper = () => {
-  // ...
-};
-export { runtimeHelper };
 ```
 
 ## 生态
