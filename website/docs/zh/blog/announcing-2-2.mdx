@@ -67,9 +67,9 @@ _2026 年 8 月 26 日_
 
 ### 构建性能提升 \{#build-performance-improve}
 
-Rspack 2.2 合入了 30 多项构建性能优化，覆盖模块合并、Split Chunks 和 Source Map 生成等构建路径上的核心算法。在生产模式冷构建的基准测试中，构建时间从 **1822 ms** 降至 **1725 ms**，提升约 **5.6%**。
+Rspack 2.2 合入了 30 多项构建性能优化，覆盖模块合并、Split Chunks 和 Source Map 生成等构建路径上的核心算法。在生产模式冷构建的基准测试中，相比 Rspack 2.1，构建时间从 **1822 ms** 降至 **1725 ms**，提升约 **5.6%**。
 
-> 数据来源：[rspack-react-10k-benchmark](https://github.com/LingyuCoder/rspack-react-10k-benchmark/commit/121be0c19252db61e9fc9c8ebbce93943caa88eb)。
+> 数据来源：[rspack-react-10k-benchmark](https://github.com/LingyuCoder/rspack-react-10k-benchmark/commit/121be0c19252db61e9fc9c8ebbce93943caa88eb) 的 `react-10k` 用例，即一个包含 10,000 个 JSX 组件的 React 应用。测试机器为 veLinux 2（kernel 5.15.120，x86_64），16 核 Intel Xeon Platinum 8336C，32 GB 内存；每个版本采集 3 组样本，每组 2 次预热加 10 次计时，取样本间的中位数。
 
 ### 更好的 HMR \{#better-hmr}
 
@@ -430,7 +430,7 @@ Rspress 通过 `llms.txt`、[SSG-MD](https://rspress.rs/zh/guide/basic/ssg-md)�
 
 ![Rspress AFDocs scorecard](https://assets.rspack.rs/rspress/assets/rspress-afdocs-scorecard.png)
 
-## 升级指南 \{#upgrad-guide}
+## 升级指南 \{#upgrade-guide}
 
 ### RSC 插件：通过 `preinit` 加载客户端组件的 CSS \{#rsc-plugin-use-preinit}
 
