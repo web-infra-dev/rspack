@@ -47,10 +47,10 @@ _2026 年 8 月 26 日_
 - 性能
   - [性能提升](#performance-improvements)
   - [HMR 改进](#better-hmr)
+  - [更短的模块 ID](#compat-hashed-ids)
 - 新特性
   - [`import.meta` 改进](#import-meta-improvements)
   - [支持 Browserslist Baseline](#browserslist-baseline)
-- [简短的模块 ID](#compat-hashed-ids)
 - 生态
   - [Rsbuild](#rsbuild)
   - [Rstest](#rstest)
@@ -79,17 +79,17 @@ Rspack 2.2 包含 30 多项构建性能优化，例如：
 
 ### HMR 改进 \{#better-hmr}
 
-Rspack 2.2 让 HMR 的资源请求更加精确，热更新速度也更稳定。此前，即使只修改了 JavaScript 代码，HMR 也会在更新过程中加载相关的 CSS 文件，再在浏览器中对比内容是否变化，最后才决定要不要更新样式。
+Rspack 2.2 减少了 HMR 中不必要的 CSS 请求。此前，即使只修改了 JavaScript 代码，浏览器也会在热更新时请求相关的 CSS 文件，比较内容后再判断是否需要更新样式。样式表越大，这一步带来的额外耗时就越明显。
 
-在 [#14682](https://github.com/web-infra-dev/rspack/pull/14682) 中，Rspack 改为在构建阶段判断 CSS chunk 是否发生变化，并据此精确控制 HMR 是否需要拉取 CSS 资源，省去了不必要的 HTTP 请求。在示例项目中，无论样式表体积多大，JavaScript 的热更新都能保持稳定的速度：
+在 [#14682](https://github.com/web-infra-dev/rspack/pull/14682) 中，Rspack 改为在构建阶段判断 CSS 是否发生变化，仅在需要时请求 CSS 资源，从而避免不必要的 HTTP 请求。因此，JavaScript 热更新耗时不再随样式表体积明显增加：
 
-| 样式表体积          | 优化前  | 优化后 |
-| ------------------- | ------- | ------ |
-| 0.5 MB / 5k 条规则  | ~50 ms  | ~5 ms  |
-| 2.1 MB / 20k 条规则 | ~170 ms | ~5 ms  |
-| 4.1 MB / 40k 条规则 | ~385 ms | ~6 ms  |
+| 样式表体积 | 优化前  | 优化后 |
+| ---------- | ------- | ------ |
+| 0.5 MB     | ~50 ms  | ~5 ms  |
+| 2.1 MB     | ~170 ms | ~5 ms  |
+| 4.1 MB     | ~385 ms | ~6 ms  |
 
-此外，我们还[修复](https://github.com/web-infra-dev/rspack/pull/14580)了 `mini-css-extract-plugin` 在样式热更新过程中样式短暂丢失、导致页面闪烁的问题。
+此外，[#14580](https://github.com/web-infra-dev/rspack/pull/14580) 修复了 `mini-css-extract-plugin` 热更新时样式短暂失效的问题，避免页面闪烁。
 
 ### 更短的模块 ID \{#compat-hashed-ids}
 
