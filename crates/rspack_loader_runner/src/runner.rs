@@ -1,16 +1,15 @@
-use std::{fmt::Debug, path::PathBuf, sync::Arc};
+use std::{fmt::Debug, sync::Arc};
 
 use rspack_error::{Diagnostic, Error, Result, error};
 use rspack_fs::ReadableFileSystem;
 use rspack_paths::Utf8PathBuf;
 use rspack_sources::SourceMap;
-use rustc_hash::FxHashSet as HashSet;
 use tracing::{Instrument, info_span};
 
 use crate::{
   LoaderRunnerOptions, ParseMeta,
   content::{AdditionalData, Content, ResourceData},
-  context::{LoaderContext, State},
+  context::{LoaderContext, LoaderDependencyContext, State},
   loader::{Loader, LoaderItem},
   plugin::LoaderRunnerPlugin,
 };
@@ -42,7 +41,10 @@ async fn process_resource<Context: Send>(
   {
     loader_context.content = Some(content);
     loader_context.source_map = source_map.map(Box::new);
-    loader_context.file_dependencies.extend(file_dependencies);
+    loader_context
+      .dependency_context
+      .file_dependencies
+      .extend(file_dependencies);
     return Ok(());
   }
 
@@ -67,21 +69,20 @@ fn create_loader_context<Context: Send>(
   plugin: Option<Arc<dyn LoaderRunnerPlugin<Context = Context>>>,
   context: Context,
 ) -> LoaderContext<Context> {
-  let mut file_dependencies: HashSet<PathBuf> = Default::default();
+  let mut dependency_context = LoaderDependencyContext::default();
   if let Some(resource_path) = resource_data.path()
     && resource_path.is_absolute()
   {
-    file_dependencies.insert(resource_path.to_owned().into_std_path_buf());
+    dependency_context
+      .file_dependencies
+      .insert(resource_path.into());
   }
 
   LoaderContext {
     hot: false,
     cacheable: true,
     parse_meta: Default::default(),
-    file_dependencies,
-    context_dependencies: Default::default(),
-    missing_dependencies: Default::default(),
-    build_dependencies: Default::default(),
+    dependency_context,
     content: None,
     context,
     source_map: None,
@@ -232,10 +233,7 @@ async fn run_loaders_impl<Context: Send>(
 pub struct LoaderResult<Context> {
   pub context: Context,
   pub cacheable: bool,
-  pub file_dependencies: HashSet<PathBuf>,
-  pub context_dependencies: HashSet<PathBuf>,
-  pub missing_dependencies: HashSet<PathBuf>,
-  pub build_dependencies: HashSet<PathBuf>,
+  pub dependency_context: LoaderDependencyContext,
   pub diagnostics: Vec<Diagnostic>,
   pub content: Content,
   pub source_map: Option<Box<SourceMap<'static>>>,
@@ -249,10 +247,7 @@ impl<Context: Send> LoaderResult<Context> {
     LoaderResult {
       context: loader_context.context,
       cacheable: loader_context.cacheable,
-      file_dependencies: loader_context.file_dependencies,
-      context_dependencies: loader_context.context_dependencies,
-      missing_dependencies: loader_context.missing_dependencies,
-      build_dependencies: loader_context.build_dependencies,
+      dependency_context: loader_context.dependency_context,
       diagnostics: loader_context.diagnostics,
       content: loader_context
         .content
@@ -280,8 +275,8 @@ mod test {
   use rspack_collections::Identifier;
   use rspack_error::Result;
   use rspack_fs::{NativeFileSystem, ReadableFileSystem};
+  use rspack_paths::InternedPathSet;
   use rspack_sources::SourceMap;
-  use rustc_hash::FxHashSet as HashSet;
 
   use super::{Loader, LoaderContext, ResourceData, run_loaders};
   use crate::{AdditionalData, content::Content, plugin::LoaderRunnerPlugin};
@@ -304,13 +299,7 @@ mod test {
       &self,
       _resource_data: &ResourceData,
       _fs: Arc<dyn ReadableFileSystem>,
-    ) -> Result<
-      Option<(
-        Content,
-        Option<SourceMap<'static>>,
-        HashSet<std::path::PathBuf>,
-      )>,
-    > {
+    ) -> Result<Option<(Content, Option<SourceMap<'static>>, InternedPathSet)>> {
       Ok(Some((Content::Buffer(vec![]), None, Default::default())))
     }
   }

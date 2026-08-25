@@ -7,7 +7,11 @@ type LoaderCacheContent = string | Uint8Array;
 export type LoaderCacheEntry = {
   content: LoaderCacheContent | null;
   sourceMap?: Uint8Array;
+  dependencyContext: DependencyContext;
+  dependencyContextValid: boolean;
 };
+
+type DependencyContext = JsLoaderContext['dependencyContext'];
 
 type LoaderCacheApi = {
   get(
@@ -20,10 +24,12 @@ type LoaderCacheApi = {
 export class LoaderCache {
   readonly #api: LoaderCacheApi;
   readonly #context: JsLoaderContext;
+  readonly #pendingDependencyContexts: Array<DependencyContext | undefined>;
 
   constructor(context: JsLoaderContext) {
     this.#context = context;
     this.#api = (context as any).__internal__loaderCache as LoaderCacheApi;
+    this.#pendingDependencyContexts = new Array(context.loaderItems.length);
   }
 
   get(
@@ -32,6 +38,7 @@ export class LoaderCache {
     additionalData: unknown,
   ): LoaderCacheEntry | null | undefined {
     const context = this.#context;
+    const dependencyContext = context.dependencyContext;
     const loader = context.loaderItems[loaderIndex];
     if (
       !context.cacheable ||
@@ -43,7 +50,27 @@ export class LoaderCache {
       return undefined;
     }
 
-    return this.#api.get(loaderIndex, content);
+    const hit = this.#api.get(loaderIndex, content);
+    if (hit) {
+      dependencyContext.fileDependencies.push(
+        ...hit.dependencyContext.fileDependencies,
+      );
+      dependencyContext.contextDependencies.push(
+        ...hit.dependencyContext.contextDependencies,
+      );
+      dependencyContext.buildDependencies.push(
+        ...hit.dependencyContext.buildDependencies,
+      );
+      this.#pendingDependencyContexts[loaderIndex] = undefined;
+    } else {
+      this.#pendingDependencyContexts[loaderIndex] = {
+        fileDependencies: dependencyContext.fileDependencies.slice(),
+        contextDependencies: dependencyContext.contextDependencies.slice(),
+        missingDependencies: dependencyContext.missingDependencies.slice(),
+        buildDependencies: dependencyContext.buildDependencies.slice(),
+      };
+    }
+    return hit;
   }
 
   store(
@@ -53,6 +80,7 @@ export class LoaderCache {
     additionalData: unknown,
   ) {
     const context = this.#context;
+    const dependencyContext = context.dependencyContext;
     if (
       !context.cacheable ||
       !isNil(additionalData) ||
@@ -61,9 +89,36 @@ export class LoaderCache {
       return;
     }
 
+    const previous = this.#pendingDependencyContexts[loaderIndex];
+    this.#pendingDependencyContexts[loaderIndex] = undefined;
+    if (!previous) return;
+
+    const isUnchangedPrefix = (current: string[], before: string[]) =>
+      current.length >= before.length &&
+      before.every((dependency, index) => current[index] === dependency);
+    const dependencyContextValid = (
+      [
+        'fileDependencies',
+        'contextDependencies',
+        'missingDependencies',
+        'buildDependencies',
+      ] as const
+    ).every((key) => isUnchangedPrefix(dependencyContext[key], previous[key]));
+    const added = (key: keyof DependencyContext) =>
+      dependencyContextValid
+        ? dependencyContext[key].slice(previous[key].length)
+        : [];
+
     this.#api.store(loaderIndex, {
       content: isNil(content) ? null : content,
       sourceMap,
+      dependencyContext: {
+        fileDependencies: added('fileDependencies'),
+        contextDependencies: added('contextDependencies'),
+        missingDependencies: added('missingDependencies'),
+        buildDependencies: added('buildDependencies'),
+      },
+      dependencyContextValid,
     });
   }
 

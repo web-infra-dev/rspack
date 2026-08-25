@@ -1,10 +1,10 @@
-use std::{path::PathBuf, sync::Arc};
+use std::sync::Arc;
 
 use derive_more::Debug;
+use rspack_cacheable::cacheable;
 use rspack_error::Diagnostic;
-use rspack_paths::Utf8Path;
+use rspack_paths::{InternedPathSet, Utf8Path};
 use rspack_sources::SourceMap;
-use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
   AdditionalData, Content, LoaderItem, LoaderRunnerPlugin, ParseMeta, ResourceData,
@@ -33,6 +33,15 @@ impl State {
   }
 }
 
+#[cacheable]
+#[derive(Clone, Debug, Default)]
+pub struct LoaderDependencyContext {
+  pub file_dependencies: InternedPathSet,
+  pub context_dependencies: InternedPathSet,
+  pub missing_dependencies: InternedPathSet,
+  pub build_dependencies: InternedPathSet,
+}
+
 #[derive(Debug)]
 pub struct LoaderContext<Context: Send> {
   pub hot: bool,
@@ -46,10 +55,7 @@ pub struct LoaderContext<Context: Send> {
   pub(crate) additional_data: Option<AdditionalData>,
 
   pub cacheable: bool,
-  pub file_dependencies: HashSet<PathBuf>,
-  pub context_dependencies: HashSet<PathBuf>,
-  pub missing_dependencies: HashSet<PathBuf>,
-  pub build_dependencies: HashSet<PathBuf>,
+  pub dependency_context: LoaderDependencyContext,
 
   pub diagnostics: Vec<Diagnostic>,
 

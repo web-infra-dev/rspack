@@ -410,6 +410,7 @@ impl Module for NormalModule {
         compiler_id,
         compilation_id,
         options: compiler_options,
+        fs: fs.clone(),
         loader_cache: build_context.loader_cache,
         resolver_factory,
         source_map_kind: self.source_map_kind,
@@ -423,26 +424,7 @@ impl Module for NormalModule {
 
     if let Some(err) = err {
       self.build_info.cacheable = loader_result.cacheable;
-      self.build_info.file_dependencies = loader_result
-        .file_dependencies
-        .into_iter()
-        .map(Into::into)
-        .collect();
-      self.build_info.context_dependencies = loader_result
-        .context_dependencies
-        .into_iter()
-        .map(Into::into)
-        .collect();
-      self.build_info.missing_dependencies = loader_result
-        .missing_dependencies
-        .into_iter()
-        .map(Into::into)
-        .collect();
-      self.build_info.build_dependencies = loader_result
-        .build_dependencies
-        .into_iter()
-        .map(Into::into)
-        .collect();
+      self.build_info.dependency_context = loader_result.dependency_context;
 
       self.source = None;
 
@@ -497,26 +479,7 @@ impl Module for NormalModule {
     )?;
 
     self.build_info.cacheable = loader_result.cacheable;
-    self.build_info.file_dependencies = loader_result
-      .file_dependencies
-      .into_iter()
-      .map(Into::into)
-      .collect();
-    self.build_info.context_dependencies = loader_result
-      .context_dependencies
-      .into_iter()
-      .map(Into::into)
-      .collect();
-    self.build_info.missing_dependencies = loader_result
-      .missing_dependencies
-      .into_iter()
-      .map(Into::into)
-      .collect();
-    self.build_info.build_dependencies = loader_result
-      .build_dependencies
-      .into_iter()
-      .map(Into::into)
-      .collect();
+    self.build_info.dependency_context = loader_result.dependency_context;
 
     if no_parse {
       self.parsed = false;

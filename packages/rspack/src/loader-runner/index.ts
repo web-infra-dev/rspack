@@ -264,10 +264,10 @@ export async function runLoaders(
   const contextDirectory = resourcePath ? dirname(resourcePath) : null;
 
   // execution state
-  const fileDependencies = context.fileDependencies;
-  const contextDependencies = context.contextDependencies;
-  const missingDependencies = context.missingDependencies;
-  const buildDependencies = context.buildDependencies;
+  const fileDependencies = context.dependencyContext.fileDependencies;
+  const contextDependencies = context.dependencyContext.contextDependencies;
+  const missingDependencies = context.dependencyContext.missingDependencies;
+  const buildDependencies = context.dependencyContext.buildDependencies;
   const loaderCache = context.__internal__loaderCache
     ? new LoaderCache(context)
     : undefined;

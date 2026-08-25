@@ -4,12 +4,16 @@ use napi::bindgen_prelude::*;
 use napi_derive::napi;
 use rspack_cacheable::cacheable;
 use rspack_core::{
-  CacheFacade, CacheValue, Content, Etag, Resolver, loader_cache_etag, loader_cache_item,
+  CacheFacade, CacheValue, Content, Etag, LoaderDependencyContext, Resolver,
+  loader_cache_dependencies_etag, loader_cache_etag, loader_cache_item,
 };
 use rspack_error::Result;
+use rspack_fs::ReadableFileSystem;
 use rspack_hash::{HashFunction, RspackHasher};
 use rspack_loader_runner::LoaderRunnerOptions;
 use rspack_paths::Utf8Path;
+
+use super::context::JsLoaderDependencyContext;
 
 #[cacheable]
 #[derive(Clone)]
@@ -17,17 +21,22 @@ struct LoaderCacheEntry {
   content: Option<Vec<u8>>,
   content_is_string: bool,
   source_map: Option<Vec<u8>>,
+  dependency_context: LoaderDependencyContext,
+  dependencies_etag: Etag,
 }
 
 #[napi(object)]
 pub struct JsLoaderCacheEntry {
   pub content: Either3<Null, String, Uint8Array>,
   pub source_map: Option<Uint8Array>,
+  pub dependency_context: JsLoaderDependencyContext,
+  pub dependency_context_valid: bool,
 }
 
 #[napi]
 pub struct JsLoaderCache {
   cache: CacheFacade,
+  fs: Arc<dyn ReadableFileSystem>,
   module_identifier: String,
   loaders: Vec<LoaderRunnerOptions>,
   pending_etags: Arc<Mutex<Vec<Option<Etag>>>>,
@@ -44,6 +53,7 @@ impl FromNapiValue for JsLoaderCacheObject {
       unsafe { <ClassInstance<JsLoaderCache> as FromNapiValue>::from_napi_value(env, napi_val)? };
     Ok(Self(JsLoaderCache {
       cache: instance.cache.clone(),
+      fs: instance.fs.clone(),
       module_identifier: instance.module_identifier.clone(),
       loaders: instance.loaders.clone(),
       pending_etags: instance.pending_etags.clone(),
@@ -73,10 +83,16 @@ impl TypeName for JsLoaderCacheObject {
 impl ValidateNapiValue for JsLoaderCacheObject {}
 
 impl JsLoaderCache {
-  fn new(cache: CacheFacade, module_identifier: String, loaders: Vec<LoaderRunnerOptions>) -> Self {
+  fn new(
+    cache: CacheFacade,
+    fs: Arc<dyn ReadableFileSystem>,
+    module_identifier: String,
+    loaders: Vec<LoaderRunnerOptions>,
+  ) -> Self {
     let pending_etags = Arc::new(Mutex::new(vec![None; loaders.len()]));
     Self {
       cache,
+      fs,
       module_identifier,
       loaders,
       pending_etags,
@@ -119,10 +135,11 @@ impl JsLoaderCache {
 impl JsLoaderCacheObject {
   pub(super) fn new(
     cache: CacheFacade,
+    fs: Arc<dyn ReadableFileSystem>,
     module_identifier: String,
     loaders: Vec<LoaderRunnerOptions>,
   ) -> Self {
-    Self(JsLoaderCache::new(cache, module_identifier, loaders))
+    Self(JsLoaderCache::new(cache, fs, module_identifier, loaders))
   }
 }
 
@@ -169,6 +186,12 @@ impl JsLoaderCache {
       self.set_pending_etag(loader_index, Some(etag))?;
       return Ok(None);
     };
+    if loader_cache_dependencies_etag(self.fs.as_ref(), &entry.dependency_context)
+      != Some(entry.dependencies_etag.clone())
+    {
+      self.set_pending_etag(loader_index, Some(etag))?;
+      return Ok(None);
+    }
     self.set_pending_etag(loader_index, None)?;
 
     Ok(Some(JsLoaderCacheEntry {
@@ -182,6 +205,8 @@ impl JsLoaderCache {
         (Some(content), false) => Either3::C(content.clone().into()),
       },
       source_map: entry.source_map.clone().map(Into::into),
+      dependency_context: (&entry.dependency_context).into(),
+      dependency_context_valid: true,
     }))
   }
 
@@ -189,6 +214,17 @@ impl JsLoaderCache {
   pub fn store(&self, loader_index: u32, output: JsLoaderCacheEntry) -> napi::Result<()> {
     let loader_name = &self.loader(loader_index)?.loader_name;
     let Some(etag) = self.take_pending_etag(loader_index)? else {
+      return Ok(());
+    };
+    if !output.dependency_context_valid
+      || !output.dependency_context.missing_dependencies.is_empty()
+    {
+      return Ok(());
+    }
+    let dependency_context: LoaderDependencyContext = output.dependency_context.into();
+    let Some(dependencies_etag) =
+      loader_cache_dependencies_etag(self.fs.as_ref(), &dependency_context)
+    else {
       return Ok(());
     };
     let (content, content_is_string) = match output.content {
@@ -200,6 +236,8 @@ impl JsLoaderCache {
       content,
       content_is_string,
       source_map: output.source_map.map(|source_map| source_map.to_vec()),
+      dependency_context,
+      dependencies_etag,
     };
     let item_cache = loader_cache_item(&self.cache, &self.module_identifier, loader_name, etag);
     item_cache

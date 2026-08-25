@@ -959,6 +959,8 @@ export interface JsLinkPreloadData {
 export interface JsLoaderCacheEntry {
   content: null | string | Uint8Array
   sourceMap?: Uint8Array
+  dependencyContext: JsLoaderDependencyContext
+  dependencyContextValid: boolean
 }
 
 export interface JsLoaderContext {
@@ -971,10 +973,7 @@ export interface JsLoaderContext {
   __internal__parseMeta: Record<string, string>
   sourceMap?: Buffer
   cacheable: boolean
-  fileDependencies: Array<string>
-  contextDependencies: Array<string>
-  missingDependencies: Array<string>
-  buildDependencies: Array<string>
+  dependencyContext: JsLoaderDependencyContext
   loaderItems: Array<JsLoaderItem>
   loaderIndex: number
   loaderState: Readonly<JsLoaderState>
@@ -985,6 +984,13 @@ export interface JsLoaderContext {
    * - Some(true): `content` is a `UTF-8` encoded sequence
    */
   __internal__utf8Hint?: boolean
+}
+
+export interface JsLoaderDependencyContext {
+  fileDependencies: Array<string>
+  contextDependencies: Array<string>
+  missingDependencies: Array<string>
+  buildDependencies: Array<string>
 }
 
 export interface JsLoaderItem {

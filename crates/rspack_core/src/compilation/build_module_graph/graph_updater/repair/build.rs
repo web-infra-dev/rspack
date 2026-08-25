@@ -124,22 +124,22 @@ impl Task<TaskContext> for BuildResultTask {
       .get_optimization_bailout_mut(&module.identifier())
       .extend(build_result.optimization_bailouts);
     let resource_id = ResourceId::from(module.identifier());
-    context
-      .artifact
-      .file_dependencies
-      .add_files(&resource_id, &build_info.file_dependencies);
-    context
-      .artifact
-      .context_dependencies
-      .add_files(&resource_id, &build_info.context_dependencies);
-    context
-      .artifact
-      .missing_dependencies
-      .add_files(&resource_id, &build_info.missing_dependencies);
-    context
-      .artifact
-      .build_dependencies
-      .add_files(&resource_id, &build_info.build_dependencies);
+    context.artifact.file_dependencies.add_files(
+      &resource_id,
+      &build_info.dependency_context.file_dependencies,
+    );
+    context.artifact.context_dependencies.add_files(
+      &resource_id,
+      &build_info.dependency_context.context_dependencies,
+    );
+    context.artifact.missing_dependencies.add_files(
+      &resource_id,
+      &build_info.dependency_context.missing_dependencies,
+    );
+    context.artifact.build_dependencies.add_files(
+      &resource_id,
+      &build_info.dependency_context.build_dependencies,
+    );
 
     let module_graph = &mut context.artifact.module_graph;
     let mut lazy_dependencies = LazyDependencies::default();

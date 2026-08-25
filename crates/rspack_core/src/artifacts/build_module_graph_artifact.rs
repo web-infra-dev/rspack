@@ -158,18 +158,22 @@ impl BuildModuleGraphArtifact {
     // clean module build info
     let build_info = module.build_info();
     let resource_id = ResourceId::from(module_identifier);
-    self
-      .file_dependencies
-      .remove_files(&resource_id, &build_info.file_dependencies);
-    self
-      .context_dependencies
-      .remove_files(&resource_id, &build_info.context_dependencies);
-    self
-      .missing_dependencies
-      .remove_files(&resource_id, &build_info.missing_dependencies);
-    self
-      .build_dependencies
-      .remove_files(&resource_id, &build_info.build_dependencies);
+    self.file_dependencies.remove_files(
+      &resource_id,
+      &build_info.dependency_context.file_dependencies,
+    );
+    self.context_dependencies.remove_files(
+      &resource_id,
+      &build_info.dependency_context.context_dependencies,
+    );
+    self.missing_dependencies.remove_files(
+      &resource_id,
+      &build_info.dependency_context.missing_dependencies,
+    );
+    self.build_dependencies.remove_files(
+      &resource_id,
+      &build_info.dependency_context.build_dependencies,
+    );
     self.make_failed_module.remove(module_identifier);
 
     // clean incoming & all_dependencies(outgoing) factorize info

@@ -3,7 +3,7 @@ use std::{ptr::NonNull, sync::Arc};
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
 use rspack_collections::Identifiable;
-use rspack_core::{LoaderContext, Module, RunnerContext};
+use rspack_core::{LoaderContext, LoaderDependencyContext, Module, RunnerContext};
 use rspack_error::ToStringResultToRspackResultExt;
 use rspack_loader_runner::State as LoaderState;
 use rspack_napi::threadsafe_js_value_ref::ThreadsafeJsValueRef;
@@ -94,6 +94,73 @@ impl From<LoaderState> for JsLoaderState {
 }
 
 #[napi(object)]
+#[derive(Clone, Default)]
+pub struct JsLoaderDependencyContext {
+  pub file_dependencies: Vec<String>,
+  pub context_dependencies: Vec<String>,
+  pub missing_dependencies: Vec<String>,
+  pub build_dependencies: Vec<String>,
+}
+
+impl From<&LoaderDependencyContext> for JsLoaderDependencyContext {
+  fn from(value: &LoaderDependencyContext) -> Self {
+    Self {
+      file_dependencies: value
+        .file_dependencies
+        .iter()
+        .map(|path| path.to_string_lossy().into_owned())
+        .collect(),
+      context_dependencies: value
+        .context_dependencies
+        .iter()
+        .map(|path| path.to_string_lossy().into_owned())
+        .collect(),
+      missing_dependencies: value
+        .missing_dependencies
+        .iter()
+        .map(|path| path.to_string_lossy().into_owned())
+        .collect(),
+      build_dependencies: value
+        .build_dependencies
+        .iter()
+        .map(|path| path.to_string_lossy().into_owned())
+        .collect(),
+    }
+  }
+}
+
+impl From<JsLoaderDependencyContext> for LoaderDependencyContext {
+  fn from(value: JsLoaderDependencyContext) -> Self {
+    Self {
+      file_dependencies: value
+        .file_dependencies
+        .iter()
+        .map(String::as_str)
+        .map(Into::into)
+        .collect(),
+      context_dependencies: value
+        .context_dependencies
+        .iter()
+        .map(String::as_str)
+        .map(Into::into)
+        .collect(),
+      missing_dependencies: value
+        .missing_dependencies
+        .iter()
+        .map(String::as_str)
+        .map(Into::into)
+        .collect(),
+      build_dependencies: value
+        .build_dependencies
+        .iter()
+        .map(String::as_str)
+        .map(Into::into)
+        .collect(),
+    }
+  }
+}
+
+#[napi(object)]
 pub struct JsLoaderContext {
   pub resource: String,
   #[napi(js_name = "_module", ts_type = "Module")]
@@ -109,10 +176,7 @@ pub struct JsLoaderContext {
   pub parse_meta: HashMap<String, String>,
   pub source_map: Option<Buffer>,
   pub cacheable: bool,
-  pub file_dependencies: Vec<String>,
-  pub context_dependencies: Vec<String>,
-  pub missing_dependencies: Vec<String>,
-  pub build_dependencies: Vec<String>,
+  pub dependency_context: JsLoaderDependencyContext,
 
   pub loader_items: Vec<JsLoaderItem>,
   pub loader_index: i32,
@@ -164,26 +228,7 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
         .map(|v| v.to_json())
         .map(|v| v.into_bytes().into()),
       cacheable: cx.cacheable,
-      file_dependencies: cx
-        .file_dependencies
-        .iter()
-        .map(|i| i.to_string_lossy().to_string())
-        .collect(),
-      context_dependencies: cx
-        .context_dependencies
-        .iter()
-        .map(|i| i.to_string_lossy().to_string())
-        .collect(),
-      missing_dependencies: cx
-        .missing_dependencies
-        .iter()
-        .map(|i| i.to_string_lossy().to_string())
-        .collect(),
-      build_dependencies: cx
-        .build_dependencies
-        .iter()
-        .map(|i| i.to_string_lossy().to_string())
-        .collect(),
+      dependency_context: (&cx.dependency_context).into(),
 
       loader_items: cx.loader_items.iter().map(Into::into).collect(),
       loader_index: cx.loader_index,
@@ -196,6 +241,7 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
         .then(|| {
           JsLoaderCacheObject::new(
             cx.context.loader_cache.clone(),
+            cx.context.fs.clone(),
             module.identifier().to_string(),
             cx.loader_items
               .iter()

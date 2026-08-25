@@ -58,6 +58,30 @@ module.exports = {
           },
         ],
       },
+      {
+        test: /(?:file|context|build|missing)-dependency\.js$/,
+        use: [
+          {
+            loader: path.resolve(__dirname, 'loader.js'),
+            options: { name: 'dependency' },
+            cache: true,
+          },
+        ],
+      },
+      {
+        test: /chain-dependency\.js$/,
+        use: [
+          {
+            loader: path.resolve(__dirname, 'loader.js'),
+            options: { name: 'chain-left' },
+            cache: true,
+          },
+          {
+            loader: path.resolve(__dirname, 'chain-right-loader.js'),
+            cache: true,
+          },
+        ],
+      },
     ],
   },
 };

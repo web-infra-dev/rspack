@@ -172,6 +172,7 @@ fn create_known_private_properties(env: &Env, properties: &mut Vec<Property>) ->
           let result = wrapped_value.with_ref(|module| {
             module
               .build_info()
+              .dependency_context
               .file_dependencies
               .iter()
               .map(|dependency| env_ref.create_string(dependency.to_string_lossy().as_ref()))
@@ -196,6 +197,7 @@ fn create_known_private_properties(env: &Env, properties: &mut Vec<Property>) ->
           let result = wrapped_value.with_ref(|module| {
             module
               .build_info()
+              .dependency_context
               .context_dependencies
               .iter()
               .map(|dependency| env_ref.create_string(dependency.to_string_lossy().as_ref()))
@@ -220,6 +222,7 @@ fn create_known_private_properties(env: &Env, properties: &mut Vec<Property>) ->
           let result = wrapped_value.with_ref(|module| {
             module
               .build_info()
+              .dependency_context
               .missing_dependencies
               .iter()
               .map(|dependency| env_ref.create_string(dependency.to_string_lossy().as_ref()))
@@ -244,6 +247,7 @@ fn create_known_private_properties(env: &Env, properties: &mut Vec<Property>) ->
           let result = wrapped_value.with_ref(|module| {
             module
               .build_info()
+              .dependency_context
               .build_dependencies
               .iter()
               .map(|dependency| env_ref.create_string(dependency.to_string_lossy().as_ref()))
