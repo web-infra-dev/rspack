@@ -293,8 +293,10 @@ export class RspackCLI {
         item.stats.logging ??= false;
       }
 
-      item.infrastructureLogging ??= {};
-      item.infrastructureLogging.level ??= 'error';
+      if (isBuild) {
+        item.infrastructureLogging ??= {};
+        item.infrastructureLogging.level ??= 'error';
+      }
       return item;
     };
 
