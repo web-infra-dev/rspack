@@ -1,11 +1,34 @@
 ---
-description: 'Enable library format bundling for this libraryType, and is used by output.enabledLibraryTypes under the hood'
+description: 'Enables a library output type so Rspack can generate bundles in that format.'
 ---
 
 # EnableLibraryPlugin
 
-Enable library format bundling for this libraryType, and is used by [output.enabledLibraryTypes](/config/output#outputenabledlibrarytypes) under the hood.
+`EnableLibraryPlugin` registers a library output type with the compiler. [`output.enabledLibraryTypes`](/config/output#outputenabledlibrarytypes) applies this plugin internally.
 
 ```js
 new rspack.library.EnableLibraryPlugin('var');
 ```
+
+## Example
+
+For a regular library build, configure [`output.library`](/config/output#outputlibrary). Rspack automatically enables its library type:
+
+```js title="src/index.js"
+export const add = (a, b) => a + b;
+```
+
+```js title="rspack.config.mjs"
+export default {
+  entry: './src/index.js',
+  output: {
+    filename: 'math-library.js',
+    library: {
+      name: 'MathLibrary',
+      type: 'var',
+    },
+  },
+};
+```
+
+After loading `math-library.js` in a browser, consumers can call `MathLibrary.add(1, 2)`. Apply `EnableLibraryPlugin` directly when a library type cannot be discovered from static configuration, such as when using a dynamic entry or a child compiler.

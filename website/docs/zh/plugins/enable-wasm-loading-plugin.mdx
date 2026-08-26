@@ -1,11 +1,35 @@
 ---
-description: '开启该 wasmLoadingType 的运行时模块打包，output.enabledWasmLoadingTypes 底层使用了该插件。'
+description: '启用指定 WebAssembly 加载类型所需的运行时支持。'
 ---
 
 # EnableWasmLoadingPlugin
 
-开启该 wasmLoadingType 的运行时模块打包，[output.enabledWasmLoadingTypes](/config/output#outputenabledwasmloadingtypes) 底层使用了该插件。
+`EnableWasmLoadingPlugin` 会启用指定 WebAssembly 加载类型所需的运行时模块。[`output.enabledWasmLoadingTypes`](/config/output#outputenabledwasmloadingtypes) 的底层会应用此插件。
 
 ```js
-new rspack.library.EnableWasmLoadingPlugin('fetch');
+new rspack.wasm.EnableWasmLoadingPlugin('fetch');
 ```
+
+## 示例
+
+下面的浏览器构建会使用 `fetch` 加载异步 WebAssembly 模块：
+
+```js title="src/index.js"
+import { add } from './add.wasm';
+
+console.log(add(1, 2));
+```
+
+```js title="rspack.config.mjs"
+export default {
+  entry: './src/index.js',
+  experiments: {
+    asyncWebAssembly: true,
+  },
+  output: {
+    wasmLoading: 'fetch',
+  },
+};
+```
+
+设置 [`output.wasmLoading`](/config/output#outputwasmloading) 后，Rspack 会自动启用对应插件。对于无法从静态配置中发现 WebAssembly 加载类型的动态入口或子编译器，可以直接应用此插件。

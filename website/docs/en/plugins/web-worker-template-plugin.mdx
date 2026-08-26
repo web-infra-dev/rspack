@@ -1,13 +1,36 @@
 ---
-description: 'This plugin is used to bundle Web Worker assets, often used with childCompiler.'
+description: 'Configures Web Worker bundles to use array-push chunks and importScripts-based loading.'
 ---
 
 # WebWorkerTemplatePlugin
 
-This plugin is used to bundle Web Worker assets, often used with childCompiler.
+`WebWorkerTemplatePlugin` configures Web Worker assets and is most often used with a child compiler.
 
 It sets [output.chunkLoading](/config/output#outputchunkloading) to `'import-scripts'` and applies the [`'array-push'` chunk format](/config/output#outputchunkformat) used by web worker targets.
 
 ```js
 new rspack.webworker.WebWorkerTemplatePlugin();
 ```
+
+## Example
+
+This worker loads `math.js` as an asynchronous chunk before processing a message:
+
+```js title="src/worker.js"
+self.onmessage = async ({ data }) => {
+  const { double } = await import('./math.js');
+  self.postMessage(double(data));
+};
+```
+
+```js title="rspack.config.mjs"
+export default {
+  target: 'webworker',
+  entry: './src/worker.js',
+  output: {
+    chunkLoading: 'import-scripts',
+  },
+};
+```
+
+Rspack loads the asynchronous chunk with `importScripts` inside the worker. For a normal worker build, `target: 'webworker'` enables this behavior automatically. Apply `WebWorkerTemplatePlugin` directly when configuring a child compiler for Web Worker output.

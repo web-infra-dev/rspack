@@ -1,13 +1,36 @@
 ---
-description: 'Rspack WebWorkerTemplatePlugin 用于打包 Web Worker 产物，经常配合 childCompiler 一起使用。'
+description: '配置 Web Worker bundle 使用 array-push chunk 格式和基于 importScripts 的加载方式。'
 ---
 
 # WebWorkerTemplatePlugin
 
-此插件用于打包 Web Worker 产物，经常配合 childCompiler 一起使用。
+`WebWorkerTemplatePlugin` 用于配置 Web Worker 产物，通常配合子编译器使用。
 
 它会将 [output.chunkLoading](/config/output#outputchunkloading) 设为 `'import-scripts'`，并应用 web worker 目标使用的 [`'array-push'` chunk format](/config/output#outputchunkformat)。
 
 ```js
 new rspack.webworker.WebWorkerTemplatePlugin();
 ```
+
+## 示例
+
+下面的 worker 会先将 `math.js` 作为异步 chunk 加载，再处理收到的消息：
+
+```js title="src/worker.js"
+self.onmessage = async ({ data }) => {
+  const { double } = await import('./math.js');
+  self.postMessage(double(data));
+};
+```
+
+```js title="rspack.config.mjs"
+export default {
+  target: 'webworker',
+  entry: './src/worker.js',
+  output: {
+    chunkLoading: 'import-scripts',
+  },
+};
+```
+
+Rspack 会在 worker 中通过 `importScripts` 加载异步 chunk。对于常规 worker 构建，`target: 'webworker'` 会自动启用相同的行为。配置用于生成 Web Worker 产物的子编译器时，可以直接应用 `WebWorkerTemplatePlugin`。

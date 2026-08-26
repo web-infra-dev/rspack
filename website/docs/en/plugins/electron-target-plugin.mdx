@@ -1,11 +1,34 @@
 ---
-description: 'This plugin is used to external the Electron built-in modules during bundling, and is used by externalsPresets.electron, externalsPresets.electronMain...'
+description: 'Externalizes Electron built-in modules for main, preload, or renderer process bundles.'
 ---
 
 # ElectronTargetPlugin
 
-This plugin is used to external the Electron built-in modules during bundling, and is used by [`externalsPresets.electron`](/config/externals#externalspresetselectron), [`externalsPresets.electronMain`](/config/externals#externalspresetselectronmain), [`externalsPresets.electronRenderer`](/config/externals#externalspresetselectronrenderer), and [`externalsPresets.electronPreload`](/config/externals#externalspresetselectronpreload) under the hood.
+`ElectronTargetPlugin` keeps Electron built-in modules external, so Electron loads them at runtime instead of Rspack bundling them. It is used by [`externalsPresets.electron`](/config/externals#externalspresetselectron), [`externalsPresets.electronMain`](/config/externals#externalspresetselectronmain), [`externalsPresets.electronRenderer`](/config/externals#externalspresetselectronrenderer), and [`externalsPresets.electronPreload`](/config/externals#externalspresetselectronpreload) under the hood.
+
+When applying the plugin directly, pass `'main'`, `'preload'`, or `'renderer'` to externalize the additional built-ins available in that Electron process.
 
 ```js
-new rspack.electron.ElectronTargetPlugin();
+new rspack.electron.ElectronTargetPlugin('main');
 ```
+
+## Example
+
+For a regular Electron application, setting the appropriate [target](/config/target) is the simplest way to enable the plugin. This main-process build leaves the `electron` import in the generated bundle so Electron can provide it at runtime:
+
+```js title="rspack.config.mjs"
+export default {
+  target: 'electron-main',
+  entry: './src/main.js',
+};
+```
+
+```js title="src/main.js"
+import { app, BrowserWindow } from 'electron';
+
+app.whenReady().then(() => {
+  new BrowserWindow();
+});
+```
+
+`target: 'electron-main'` enables the Electron main-process externals preset, which applies `ElectronTargetPlugin` with the `'main'` context internally. Direct application is mainly useful when configuring a child compiler.

@@ -1,10 +1,10 @@
 ---
-description: 'This plugin is used to bundle out Node.js assets, often used with childCompiler'
+description: 'Configures CommonJS chunks and Node.js chunk loading, primarily for child compilers.'
 ---
 
 # NodeTemplatePlugin
 
-This plugin is used to bundle Node.js assets, often used with childCompiler.
+`NodeTemplatePlugin` configures Node.js assets and is most often used with a child compiler.
 
 It applies the [`'commonjs'` chunk format](/config/output#outputchunkformat) and configures [output.chunkLoading](/config/output#outputchunkloading) for Node.js runtimes.
 
@@ -22,3 +22,28 @@ new rspack.node.NodeTemplatePlugin();
 - Default: `false`
 
 Use `'async-node'` chunk loading for async chunks instead of `'require'`.
+
+## Example
+
+This Node.js entry creates an asynchronous chunk for `task.js`:
+
+```js title="src/index.js"
+async function main() {
+  const { run } = await import('./task.js');
+  run();
+}
+
+main();
+```
+
+```js title="rspack.config.mjs"
+export default {
+  target: 'node',
+  entry: './src/index.js',
+  output: {
+    chunkLoading: 'require',
+  },
+};
+```
+
+Rspack emits CommonJS chunks and loads the asynchronous chunk with `require`. A normal `target: 'node'` build configures this behavior automatically. Apply `NodeTemplatePlugin` directly when a child compiler needs Node.js-style chunk output.

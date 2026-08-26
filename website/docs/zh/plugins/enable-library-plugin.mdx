@@ -1,11 +1,34 @@
 ---
-description: '开启该 libraryType 的产物格式打包，output.enabledLibraryTypes 底层使用了该插件。'
+description: '启用指定的 library 输出类型，使 Rspack 能够生成对应格式的 bundle。'
 ---
 
 # EnableLibraryPlugin
 
-开启该 libraryType 的产物格式打包，[output.enabledLibraryTypes](/config/output#outputenabledlibrarytypes) 底层使用了该插件。
+`EnableLibraryPlugin` 会向编译器注册一种 library 输出类型。[`output.enabledLibraryTypes`](/config/output#outputenabledlibrarytypes) 的底层会应用此插件。
 
 ```js
 new rspack.library.EnableLibraryPlugin('var');
 ```
+
+## 示例
+
+常规 library 构建可以直接配置 [`output.library`](/config/output#outputlibrary)，Rspack 会自动启用其中的 library 类型：
+
+```js title="src/index.js"
+export const add = (a, b) => a + b;
+```
+
+```js title="rspack.config.mjs"
+export default {
+  entry: './src/index.js',
+  output: {
+    filename: 'math-library.js',
+    library: {
+      name: 'MathLibrary',
+      type: 'var',
+    },
+  },
+};
+```
+
+在浏览器中加载 `math-library.js` 后，可以通过 `MathLibrary.add(1, 2)` 调用导出。当 Rspack 无法从静态配置中发现 library 类型时，例如使用动态入口或子编译器，可以直接应用 `EnableLibraryPlugin`。

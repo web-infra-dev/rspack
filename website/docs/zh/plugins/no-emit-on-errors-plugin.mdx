@@ -1,5 +1,5 @@
 ---
-description: '此插件用来在编译错误时阻止产物生成，optimization.emitOnErrors 底层使用了该插件。'
+description: '当编译中存在错误时，阻止 Rspack 输出构建产物。'
 ---
 
 import { ApiMeta } from '@components/ApiMeta.tsx';
@@ -8,8 +8,24 @@ import { ApiMeta } from '@components/ApiMeta.tsx';
 
 <ApiMeta addedVersion={'1.0.0'} />
 
-此插件用来在编译错误时阻止产物生成，[`optimization.emitOnErrors`](/config/optimization#optimizationemitonerrors) 底层使用了该插件。
+`NoEmitOnErrorsPlugin` 会在编译中存在错误时阻止 Rspack 输出构建产物。将 [`optimization.emitOnErrors`](/config/optimization#optimizationemitonerrors) 设置为 `false` 会在内部应用此插件。
 
 ```js
 new rspack.NoEmitOnErrorsPlugin();
 ```
+
+## 示例
+
+下面的开发配置会在新一次编译出错时保持 `dist` 中原有的文件不变：
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  mode: 'development',
+  entry: './src/index.js',
+  plugins: [new rspack.NoEmitOnErrorsPlugin()],
+};
+```
+
+例如，当 `src/index.js` 中存在语法错误时，Rspack 会报告错误，但不会写入本次编译的产物。等价的配置是 `optimization.emitOnErrors: false`。

@@ -1,10 +1,10 @@
 ---
-description: 'Rspack NodeTemplatePlugin 用于打包 Node.js 产物，经常配合 childCompiler 一起使用。'
+description: '配置 CommonJS chunk 和 Node.js chunk 加载方式，主要用于子编译器。'
 ---
 
 # NodeTemplatePlugin
 
-此插件用于打包 Node.js 产物，经常配合 childCompiler 一起使用。
+`NodeTemplatePlugin` 用于配置 Node.js 产物，通常配合子编译器使用。
 
 它会应用 [`'commonjs'` chunk format](/config/output#outputchunkformat)，并为 Node.js 运行时配置 [output.chunkLoading](/config/output#outputchunkloading)。
 
@@ -21,4 +21,29 @@ new rspack.node.NodeTemplatePlugin();
 - 类型：`boolean`
 - 默认值：`false`
 
-为异步 chunk 使用 `'async-node'` 加载 chunks，而不是 `'require'`。
+使用 `'async-node'` 而不是 `'require'` 加载异步 chunk。
+
+## 示例
+
+下面的 Node.js 入口会将 `task.js` 生成为异步 chunk：
+
+```js title="src/index.js"
+async function main() {
+  const { run } = await import('./task.js');
+  run();
+}
+
+main();
+```
+
+```js title="rspack.config.mjs"
+export default {
+  target: 'node',
+  entry: './src/index.js',
+  output: {
+    chunkLoading: 'require',
+  },
+};
+```
+
+Rspack 会生成 CommonJS chunk，并通过 `require` 加载异步 chunk。常规的 `target: 'node'` 构建会自动配置相同的行为。当子编译器需要生成 Node.js 风格的 chunk 时，可以直接应用 `NodeTemplatePlugin`。

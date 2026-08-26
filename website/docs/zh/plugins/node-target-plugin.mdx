@@ -1,11 +1,32 @@
 ---
-description: '此插件用来在打包时将 Node.js 的内置模块外置掉，externalsPresets.node 底层使用了该插件。'
+description: '将 Node.js 内置模块保留为外部依赖，使其由 Node.js 运行时加载。'
 ---
 
 # NodeTargetPlugin
 
-此插件用来在打包时将 Node.js 的内置模块外置掉，[`externalsPresets.node`](/config/externals#externalspresetsnode) 底层使用了该插件。
+`NodeTargetPlugin` 会将 `node:fs`、`node:path` 等 Node.js 内置模块保留为外部依赖，使其由 Node.js 运行时加载，而不是被打进 bundle。[`externalsPresets.node`](/config/externals#externalspresetsnode) 的底层使用了该插件。
 
 ```js
 new rspack.node.NodeTargetPlugin();
 ```
+
+## 示例
+
+下面的入口使用 Node.js 的 `node:fs` 模块读取自身源码：
+
+```js title="src/index.js"
+import { readFileSync } from 'node:fs';
+
+console.log(readFileSync(new URL(import.meta.url), 'utf8'));
+```
+
+将 `target` 设置为 `'node'`，让 Rspack 生成可在 Node.js 中运行的 bundle：
+
+```js title="rspack.config.mjs"
+export default {
+  target: 'node',
+  entry: './src/index.js',
+};
+```
+
+生成的 bundle 会将 `node:fs` 保留为外部请求。`target: 'node'` 会启用 `externalsPresets.node`，并在内部应用 `NodeTargetPlugin`。配置自定义编译器或子编译器时，可以直接应用此插件。

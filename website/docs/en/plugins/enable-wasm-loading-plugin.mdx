@@ -1,11 +1,35 @@
 ---
-description: 'Enable runtime module bundling for this wasmLoadingType, and is used by output.enabledWasmLoadingTypes under the hood'
+description: 'Enables the runtime support required by a WebAssembly loading type.'
 ---
 
 # EnableWasmLoadingPlugin
 
-Enable runtime module bundling for this wasmLoadingType, and is used by [output.enabledWasmLoadingTypes](/config/output#outputenabledwasmloadingtypes) under the hood.
+`EnableWasmLoadingPlugin` enables the runtime modules required by a WebAssembly loading type. [`output.enabledWasmLoadingTypes`](/config/output#outputenabledwasmloadingtypes) applies this plugin internally.
 
 ```js
-new rspack.library.EnableWasmLoadingPlugin('fetch');
+new rspack.wasm.EnableWasmLoadingPlugin('fetch');
 ```
+
+## Example
+
+The following browser build loads an asynchronous WebAssembly module with `fetch`:
+
+```js title="src/index.js"
+import { add } from './add.wasm';
+
+console.log(add(1, 2));
+```
+
+```js title="rspack.config.mjs"
+export default {
+  entry: './src/index.js',
+  experiments: {
+    asyncWebAssembly: true,
+  },
+  output: {
+    wasmLoading: 'fetch',
+  },
+};
+```
+
+Setting [`output.wasmLoading`](/config/output#outputwasmloading) automatically enables the matching plugin. Direct application is mainly useful for dynamic entries or child compilers whose WebAssembly loading type cannot be discovered from static configuration.

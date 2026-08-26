@@ -1,11 +1,32 @@
 ---
-description: 'This plugin is used to external the Node.js built-in modules during bundling, and is used by externalsPresets.node under the hood'
+description: 'Externalizes Node.js built-in modules so they are loaded by the Node.js runtime.'
 ---
 
 # NodeTargetPlugin
 
-This plugin is used to external the Node.js built-in modules during bundling, and is used by [`externalsPresets.node`](/config/externals#externalspresetsnode) under the hood.
+`NodeTargetPlugin` keeps Node.js built-in modules such as `node:fs` and `node:path` external, so they are loaded from the Node.js runtime instead of being bundled. It is used by [`externalsPresets.node`](/config/externals#externalspresetsnode) under the hood.
 
 ```js
 new rspack.node.NodeTargetPlugin();
 ```
+
+## Example
+
+The following entry reads its own source file with the Node.js `node:fs` module:
+
+```js title="src/index.js"
+import { readFileSync } from 'node:fs';
+
+console.log(readFileSync(new URL(import.meta.url), 'utf8'));
+```
+
+Set `target` to `'node'` so Rspack generates a Node.js-compatible bundle:
+
+```js title="rspack.config.mjs"
+export default {
+  target: 'node',
+  entry: './src/index.js',
+};
+```
+
+The generated bundle keeps `node:fs` as an external request. `target: 'node'` enables `externalsPresets.node`, which applies `NodeTargetPlugin` internally. Apply the plugin directly when configuring a custom or child compiler.
