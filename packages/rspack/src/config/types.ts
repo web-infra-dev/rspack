@@ -3478,6 +3478,7 @@ export type RspackOptions = {
 
   /**
    * Control artifact reuse during same-compiler rebuilds such as watch and HMR.
+   * Effective only when `mode` is set to `'development'`.
    * This does not make standalone one-shot builds incremental.
    */
   incremental?: IncrementalPresets | Incremental;
