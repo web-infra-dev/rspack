@@ -65,7 +65,7 @@ Notable changes include:
 
 ### Performance improvements \{#performance-improvements}
 
-Rspack 2.2 includes more than 30 build performance optimizations, including:
+Rspack 2.2 includes more than 30 performance optimizations, including:
 
 - Improved the performance of core processes such as module concatenation, chunk splitting, and source map generation. In our benchmark, production build time dropped from 1822 ms to 1725 ms, an improvement of around 5%.
 - Improved the performance of [CopyRspackPlugin](/plugins/rspack/copy-rspack-plugin). When copying a large number of files, it is now around 3-4x faster.
@@ -329,7 +329,7 @@ In a [benchmark](https://github.com/web-infra-dev/rstest/releases/tag/v0.11.6), 
 | `jsdom` 30.0.1      | 16.99 s        | 10.57 s    | **37.8%**      |
 | `happy-dom` 20.11.1 | 6.35 s         | 2.98 s     | **53.0%**      |
 
-This feature is disabled by default and can be enabled through [`testEnvironment.prebundle`](https://rstest.rs/config/test/test-environment#environment-prebundling):
+This feature is disabled by default and can be enabled through [`testEnvironment.prebundle`](https://rstest.rs/config/test/test-environment#environment-prebundle):
 
 ```ts title="rstest.config.ts"
 import { defineConfig } from '@rstest/core';
