@@ -330,6 +330,12 @@ pub struct NameInfo<'a> {
   pub info: Option<&'a VariableInfo>,
 }
 
+#[derive(Clone, Copy, Default)]
+struct SemanticVariableCacheEntry {
+  generation: u32,
+  variable: Option<VariableInfoId>,
+}
+
 pub enum PatRef {
   Borrowed(BindingPattern),
   Owned(BindingPattern),
@@ -501,6 +507,10 @@ pub struct JavascriptParser<'parser> {
   // ===== states =======
   pub(crate) definitions_db: ScopeInfoDB,
   pub(crate) definitions: ScopeInfoId,
+  // Semantic symbols provide stable keys for lexical bindings; values still
+  // come from ScopeInfoDB so webpack-specific aliases and tags remain intact.
+  semantic_variable_cache: Vec<SemanticVariableCacheEntry>,
+  semantic_variable_cache_generation: u32,
   pub(crate) top_level_scope: TopLevelScope,
   pub(crate) current_tag_info: Option<TagInfoId>,
   pub in_try: bool,
@@ -683,6 +693,8 @@ impl<'parser> JavascriptParser<'parser> {
       in_tagged_template_tag: false,
       definitions: db.create(),
       definitions_db: db,
+      semantic_variable_cache: Default::default(),
+      semantic_variable_cache_generation: 1,
       plugin_drive,
       resource_data,
       factory_meta,
@@ -924,6 +936,57 @@ impl<'parser> JavascriptParser<'parser> {
     Some(self.definitions_db.expect_get_variable(id))
   }
 
+  pub(crate) fn clear_semantic_variable_cache(&mut self) {
+    // ScopeInfoDB overlays may change independently of the immutable semantic
+    // model. Generations make invalidation constant-time.
+    self.semantic_variable_cache_generation =
+      self.semantic_variable_cache_generation.wrapping_add(1);
+    if self.semantic_variable_cache_generation == 0 {
+      self.semantic_variable_cache.fill(Default::default());
+      self.semantic_variable_cache_generation = 1;
+    }
+  }
+
+  pub(super) fn get_variable_info_for_identifier(
+    &mut self,
+    identifier: IdentifierReference,
+  ) -> Option<&VariableInfo> {
+    let ast = self.ast.ast;
+    let name = ast.get_utf8(identifier.name(ast));
+    let Some(reference) = self
+      .ast
+      .semantic
+      .reference_of(identifier.node_id())
+      .map(|reference| self.ast.semantic.reference(reference))
+    else {
+      return self.get_variable_info(name);
+    };
+    // References affected by `with`, and unresolved globals such as `require`,
+    // must keep using Rspack's name-based scope and plugin resolution.
+    let Some(symbol) = reference.symbol.filter(|_| !reference.flags.is_dynamic()) else {
+      return self.get_variable_info(name);
+    };
+
+    let index = symbol.index();
+    if index >= self.semantic_variable_cache.len() {
+      self
+        .semantic_variable_cache
+        .resize(index + 1, SemanticVariableCacheEntry::default());
+    }
+    let entry = self.semantic_variable_cache[index];
+    let id = if entry.generation == self.semantic_variable_cache_generation {
+      entry.variable
+    } else {
+      let variable = self.definitions_db.get(self.definitions, name);
+      self.semantic_variable_cache[index] = SemanticVariableCacheEntry {
+        generation: self.semantic_variable_cache_generation,
+        variable,
+      };
+      variable
+    }?;
+    Some(self.definitions_db.expect_get_variable(id))
+  }
+
   fn get_tag_data_by_id<Data: TagInfoData>(
     &self,
     tag_info_id: TagInfoId,
@@ -1034,6 +1097,37 @@ impl<'parser> JavascriptParser<'parser> {
     })
   }
 
+  fn get_name_info_from_identifier(
+    &mut self,
+    identifier: IdentifierReference,
+  ) -> Option<NameInfo<'_>> {
+    let ast = self.ast.ast;
+    let name = ast.get_utf8(identifier.name(ast));
+    let Some(info) = self.get_variable_info_for_identifier(identifier) else {
+      return Some(NameInfo { name, info: None });
+    };
+    let Some(resolved_name) = &info.name else {
+      return None;
+    };
+    if !info.is_free() && !info.is_tagged() {
+      return None;
+    }
+    Some(NameInfo {
+      name: resolved_name.as_str(),
+      info: Some(info),
+    })
+  }
+
+  fn get_name_info_from_root(&mut self, root: ExprRef) -> Option<NameInfo<'_>> {
+    match root {
+      ExprRef::Ident(identifier) => self.get_name_info_from_identifier(identifier),
+      _ => {
+        let name = root.get_root_name(self.ast.ast)?;
+        self.get_name_info_from_variable(name)
+      }
+    }
+  }
+
   pub fn get_all_variables_from_current_scope(
     &self,
   ) -> impl Iterator<Item = (&Atom, VariableInfoId)> {
@@ -1041,6 +1135,7 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   pub fn define_variable(&mut self, name: Atom) {
+    self.clear_semantic_variable_cache();
     let definitions = self.definitions;
     if let Some(variable_info) = self.get_variable_info(&name)
       && variable_info.tag_info.is_some()
@@ -1059,6 +1154,7 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   pub fn set_variable(&mut self, name: Atom, variable: ExportedVariableInfo) {
+    self.clear_semantic_variable_cache();
     let scope_id = self.definitions;
     match variable {
       ExportedVariableInfo::Name(variable) => {
@@ -1082,6 +1178,7 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   fn undefined_variable(&mut self, name: &Atom) {
+    self.clear_semantic_variable_cache();
     self.definitions_db.delete(self.definitions, name)
   }
 
@@ -1115,6 +1212,7 @@ impl<'parser> JavascriptParser<'parser> {
     data: Option<Box<dyn anymap::CloneAny>>,
     flags: Option<VariableInfoFlags>,
   ) {
+    self.clear_semantic_variable_cache();
     let flags = flags.unwrap_or(VariableInfoFlags::TAGGED);
     let new_info = if let Some(old_info_id) = self.definitions_db.get(self.definitions, &name) {
       let old_info = self.definitions_db.expect_get_variable(old_info_id);
@@ -1175,16 +1273,16 @@ impl<'parser> JavascriptParser<'parser> {
           return None;
         }
         let callee = expr.callee(ast);
-        let (root_name, root_members) = if let Some(member) = callee.as_member_expression(ast) {
+        let (root, root_members) = if let Some(member) = callee.as_member_expression(ast) {
           let extracted = self.extract_member_expression_chain_raw(ExprRef::Member(member));
-          let root_name = extracted.object.get_root_name(ast)?;
-          (root_name, extracted.members)
+          (extracted.object, extracted.members)
         } else {
-          (callee.get_root_name(ast)?, RawAtomMembers::new())
+          (ExprRef::from_expr(ast, callee), RawAtomMembers::new())
         };
+        let root_name = root.get_root_name(ast)?;
         let NameInfo {
           info: root_info, ..
-        } = self.get_name_info_from_variable(root_name)?;
+        } = self.get_name_info_from_root(root)?;
 
         let mut root_members = materialize_member_atoms(ast, root_members);
         let mut members = materialize_member_atoms(ast, members);
@@ -1213,7 +1311,7 @@ impl<'parser> JavascriptParser<'parser> {
         let NameInfo {
           name: resolved_root,
           info: root_info,
-        } = self.get_name_info_from_variable(root_name)?;
+        } = self.get_name_info_from_root(object)?;
 
         let mut members = materialize_member_atoms(ast, members);
         let name = object_and_members_to_name(resolved_root, &members);
@@ -1664,12 +1762,12 @@ impl<'parser> JavascriptParser<'parser> {
           return Some(eval);
         }
         let drive = self.plugin_drive.clone();
-        name
+        ident
           .call_hooks_name(self, |parser, name| {
             drive.evaluate_identifier(parser, name, None, span.real_lo(), span.real_hi())
           })
           .or_else(|| {
-            let info = self.get_variable_info(name);
+            let info = self.get_variable_info_for_identifier(ident);
             if let Some(info) = info {
               if let Some(name) = &info.name
                 && (info.is_free() || info.is_tagged())

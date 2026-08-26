@@ -705,6 +705,7 @@ impl JavascriptParser<'_> {
         self
           .definitions_db
           .set(declared_scope, Atom::from(name), info);
+        self.clear_semantic_variable_cache();
       }
     }
   }
@@ -1870,10 +1871,9 @@ impl JavascriptParser<'_> {
 
   fn walk_identifier(&mut self, identifier: IdentifierReference) {
     let ast = self.ast.ast;
-    let name = ast.get_utf8(identifier.name(ast));
     let span = identifier.span(ast);
     let drive = self.plugin_drive.clone();
-    name.call_hooks_name(self, |this, for_name| {
+    identifier.call_hooks_name(self, |this, for_name| {
       drive.identifier(this, &Identifier { span }, for_name)
     });
   }
@@ -1937,7 +1937,7 @@ impl JavascriptParser<'_> {
         // reconstruct the name from a hook-facing span.
         self.clear_create_require_tag(name);
       }
-      if !name
+      if !ident
         .call_hooks_name(self, |this, for_name| {
           drive.assign(
             this,

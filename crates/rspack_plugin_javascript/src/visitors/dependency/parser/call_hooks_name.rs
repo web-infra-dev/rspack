@@ -1,4 +1,4 @@
-use swc_next_ecma_ast::{ChainExpression, Expr, MemberExpression};
+use swc_next_ecma_ast::{ChainExpression, Expr, IdentifierReference, MemberExpression};
 
 use super::{AllowedMemberTypes, ExportedVariableInfo, JavascriptParser, MemberExpressionInfo};
 use crate::{
@@ -48,6 +48,28 @@ impl CallHooksName for &str {
     } else {
       // unresolved free variable, for example the global `require` in commonjs.
       hook_call(parser, self)
+    }
+  }
+}
+
+impl CallHooksName for IdentifierReference {
+  fn call_hooks_name<'parser, F, T>(
+    &self,
+    parser: &mut JavascriptParser<'parser>,
+    hook_call: F,
+  ) -> Option<T>
+  where
+    F: Fn(&mut JavascriptParser<'parser>, &str) -> Option<T>,
+  {
+    let ast = parser.ast.ast;
+    let name = ast.get_utf8(self.name(ast));
+    if let Some(id) = parser
+      .get_variable_info_for_identifier(*self)
+      .map(|info| info.id())
+    {
+      call_hooks_info(id, parser, hook_call)
+    } else {
+      hook_call(parser, name)
     }
   }
 }
