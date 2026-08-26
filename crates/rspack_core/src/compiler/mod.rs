@@ -14,6 +14,7 @@ use rspack_sources::BoxSource;
 use rspack_tasks::{CompilerContext, within_compiler_context};
 use rspack_util::{node_path::NodePath, tracing_preset::TRACING_BENCH_TARGET};
 use rustc_hash::FxHashMap as HashMap;
+use tokio::sync::Semaphore;
 use tracing::instrument;
 
 pub use self::rebuild::CompilationRecords;
@@ -67,6 +68,7 @@ pub struct CompilerHooks {
 }
 
 static COMPILER_ID: AtomicU32 = AtomicU32::new(0);
+const MAX_CONCURRENT_ASSET_EMITS: usize = 15;
 
 #[cacheable]
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd)]
@@ -446,6 +448,7 @@ impl Compiler {
       .compilation
       .incremental
       .passes_enabled(IncrementalPasses::EMIT_ASSETS);
+    let emit_assets_semaphore = Arc::new(Semaphore::new(MAX_CONCURRENT_ASSET_EMITS));
 
     let emit_results = rspack_parallel::scope(|token| {
       self
@@ -468,9 +471,14 @@ impl Compiler {
 
           // SAFETY: await immediately and trust caller to poll future entirely
           let s = unsafe { token.used((&self, filename, asset, output_path)) };
+          let emit_assets_semaphore = Arc::clone(&emit_assets_semaphore);
 
-          s.spawn(|(this, filename, asset, output_path)| {
-            this.emit_asset(output_path, filename, asset)
+          s.spawn(move |(this, filename, asset, output_path)| async move {
+            let _permit = emit_assets_semaphore
+              .acquire_owned()
+              .await
+              .expect("asset emit semaphore should not be closed");
+            this.emit_asset(output_path, filename, asset).await
           });
         })
     })
