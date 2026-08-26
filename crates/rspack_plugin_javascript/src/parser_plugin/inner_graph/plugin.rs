@@ -96,23 +96,35 @@ impl InnerGraphParserPlugin {
 
   pub fn infer_dependency_usage(
     state: &mut InnerGraphState,
-    deferred_pure_checks_by_symbol: &HashMap<TopLevelSymbol, Vec<UsedByExportsDeferredPureCheck>>,
+    deferred_pure_checks_by_symbol: &[Vec<UsedByExportsDeferredPureCheck>],
   ) -> Vec<(InnerGraphUsageOperation, UsedByExports)> {
-    let mut non_terminal = state.inner_graph.keys().copied().collect::<HashSet<_>>();
-    let mut processed: HashMap<TopLevelSymbol, HashSet<InnerGraphMapSetValue>> = HashMap::default();
+    let symbol_count = state.symbol_count();
+    let mut non_terminal = vec![false; symbol_count];
+    let mut remaining = 0;
+    for symbol in state.graph_symbols() {
+      non_terminal[symbol.index()] = true;
+      remaining += 1;
+    }
+    let mut processed = (0..symbol_count)
+      .map(|_| HashSet::default())
+      .collect::<Vec<HashSet<InnerGraphMapSetValue>>>();
 
-    while !non_terminal.is_empty() {
+    while remaining != 0 {
       let mut keys_to_remove = vec![];
-      for key in non_terminal.iter() {
+      for (index, is_non_terminal) in non_terminal.iter().copied().enumerate() {
+        if !is_non_terminal {
+          continue;
+        }
+        let key = TopLevelSymbol::from_index(index);
         let mut new_set = HashSet::default();
         // Using enum to manipulate original is pretty hard, so I use an extra variable to
         // flagging the new set has changed to boolean `true`
         // you could refer https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/optimize/InnerGraph.js#L150
         let mut set_is_true = false;
         let mut is_terminal = true;
-        let already_processed = processed.entry(*key).or_default();
-        if matches!(state.inner_graph.get(key), Some(InnerGraphMapValue::Set(_))) {
-          let Some(InnerGraphMapValue::Set(names)) = state.inner_graph.remove(key) else {
+        let already_processed = &mut processed[index];
+        if matches!(state.graph(key), Some(InnerGraphMapValue::Set(_))) {
+          let Some(InnerGraphMapValue::Set(names)) = state.take_graph(key) else {
             unreachable!("checked Set value before removing inner graph entry")
           };
           already_processed.extend(names.iter().cloned());
@@ -122,20 +134,20 @@ impl InnerGraphParserPlugin {
                 new_set.insert(InnerGraphMapSetValue::Str(v));
               }
               InnerGraphMapSetValue::TopLevel(dep_symbol) => {
-                if dep_symbol == *key {
+                if dep_symbol == key {
                   continue;
                 }
-                if deferred_pure_checks_by_symbol.contains_key(&dep_symbol) {
+                if !deferred_pure_checks_by_symbol[dep_symbol.index()].is_empty() {
                   new_set.insert(InnerGraphMapSetValue::TopLevel(dep_symbol));
                 }
-                match state.inner_graph.get(&dep_symbol) {
+                match state.graph(dep_symbol) {
                   Some(InnerGraphMapValue::True) => {
                     set_is_true = true;
                     break;
                   }
                   Some(InnerGraphMapValue::Set(item_value)) => {
                     for i in item_value {
-                      if matches!(i, InnerGraphMapSetValue::TopLevel(value) if value == key) {
+                      if matches!(i, InnerGraphMapSetValue::TopLevel(value) if *value == key) {
                         continue;
                       }
                       if already_processed.contains(i) {
@@ -153,24 +165,26 @@ impl InnerGraphParserPlugin {
             }
           }
           if set_is_true {
-            state.inner_graph.insert(*key, InnerGraphMapValue::True);
+            state.set_graph(key, InnerGraphMapValue::True);
           } else if new_set.is_empty() {
-            state.inner_graph.insert(*key, InnerGraphMapValue::Nil);
+            state.set_graph(key, InnerGraphMapValue::Nil);
           } else {
-            state
-              .inner_graph
-              .insert(*key, InnerGraphMapValue::Set(new_set));
+            state.set_graph(key, InnerGraphMapValue::Set(new_set));
           }
         }
 
         if is_terminal {
-          keys_to_remove.push(*key);
+          keys_to_remove.push(key);
           // We use `""` to represent global_key
           if key.is_global() {
-            let global_value = state.inner_graph.get(&TopLevelSymbol::global()).cloned();
+            let global_value = state.graph(TopLevelSymbol::global()).cloned();
             if let Some(global_value) = global_value {
-              for (key, value) in state.inner_graph.iter_mut() {
-                if !key.is_global() && value != &InnerGraphMapValue::True {
+              for index in 1..symbol_count {
+                let symbol = TopLevelSymbol::from_index(index);
+                let Some(value) = state.graph_mut(symbol) else {
+                  continue;
+                };
+                if value != &InnerGraphMapValue::True {
                   if global_value == InnerGraphMapValue::True {
                     *value = InnerGraphMapValue::True;
                   } else {
@@ -195,17 +209,21 @@ impl InnerGraphParserPlugin {
       }
       // Work around for rustc borrow rules
       for k in keys_to_remove {
-        non_terminal.remove(&k);
+        if std::mem::replace(&mut non_terminal[k.index()], false) {
+          remaining -= 1;
+        }
       }
     }
 
     let mut finalized = vec![];
-    for (symbol, cbs) in state.usage_map.drain() {
-      let mut deferred_pure_checks = deferred_pure_checks_by_symbol
-        .get(&symbol)
-        .cloned()
-        .unwrap_or_default();
-      let usage = state.inner_graph.get(&symbol);
+    for index in 0..symbol_count {
+      let symbol = TopLevelSymbol::from_index(index);
+      let cbs = state.take_usage_operations(symbol);
+      if cbs.is_empty() {
+        continue;
+      }
+      let mut deferred_pure_checks = deferred_pure_checks_by_symbol[index].clone();
+      let usage = state.graph(symbol);
       let used_by_exports = if let Some(usage) = usage {
         match usage {
           InnerGraphMapValue::Set(set) => {
@@ -213,7 +231,8 @@ impl InnerGraphParserPlugin {
             for item in set {
               match item {
                 InnerGraphMapSetValue::TopLevel(dep_symbol) => {
-                  if let Some(checks) = deferred_pure_checks_by_symbol.get(dep_symbol) {
+                  let checks = &deferred_pure_checks_by_symbol[dep_symbol.index()];
+                  if !checks.is_empty() {
                     deferred_pure_checks.extend(checks.iter().cloned());
                   }
                 }
@@ -243,14 +262,14 @@ impl InnerGraphParserPlugin {
     state: &mut InnerGraphState,
     dependencies: &mut [BoxDependency],
   ) {
-    if !state.is_enabled() || state.usage_map.is_empty() {
+    if !state.is_enabled() || !state.has_usage_operations() {
       return;
     }
 
-    let mut deferred_pure_checks_by_symbol = HashMap::default();
+    let mut deferred_pure_checks_by_symbol = vec![Vec::new(); state.symbol_count()];
     if state
-      .symbol_map
-      .values()
+      .symbols()
+      .map(|(_, symbol_data)| symbol_data)
       .any(|symbol_data| !symbol_data.depend_on_pure.is_empty())
     {
       let mut dep_by_span: HashMap<(u32, u32), (DependencyId, Atom)> = dependencies
@@ -267,13 +286,13 @@ impl InnerGraphParserPlugin {
 
       let mut always_used_symbols = Vec::new();
 
-      for (symbol, symbol_data) in &state.symbol_map {
+      for (symbol, symbol_data) in state.symbols() {
         // A single UsedByExports edge cannot safely describe a pure
         // expression whose purity depends on multiple imported callees. Keep
         // the expression conservative until the dependency model can encode
         // the combined condition.
         if symbol_data.depend_on_pure.len() > 1 {
-          always_used_symbols.push(*symbol);
+          always_used_symbols.push(symbol);
           continue;
         }
         let mut deferred_pure_checks = Vec::new();
@@ -285,20 +304,20 @@ impl InnerGraphParserPlugin {
               atom: import_name,
             });
           } else {
-            always_used_symbols.push(*symbol);
+            always_used_symbols.push(symbol);
             deferred_pure_checks.clear();
             break;
           }
         }
 
         if !deferred_pure_checks.is_empty() {
-          deferred_pure_checks_by_symbol.insert(*symbol, deferred_pure_checks);
+          deferred_pure_checks_by_symbol[symbol.index()] = deferred_pure_checks;
         }
       }
 
       for symbol in always_used_symbols {
-        state.inner_graph.insert(symbol, InnerGraphMapValue::True);
-        deferred_pure_checks_by_symbol.remove(&symbol);
+        state.set_graph(symbol, InnerGraphMapValue::True);
+        deferred_pure_checks_by_symbol[symbol.index()].clear();
       }
     }
 
@@ -346,12 +365,7 @@ impl InnerGraphParserPlugin {
     if parser.inner_graph.is_enabled()
       && let Some(symbol) = parser.inner_graph.get_top_level_symbol()
     {
-      parser
-        .inner_graph
-        .usage_map
-        .entry(symbol)
-        .or_default()
-        .push(operation);
+      parser.inner_graph.add_usage_operation(symbol, operation);
       // When inner graph is enabled but no top-level symbol, the expression is always used,
       // so we skip adding PureExpressionDependency (same as UsedByExports::Bool(true))
     }

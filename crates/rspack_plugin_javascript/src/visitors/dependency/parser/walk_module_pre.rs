@@ -60,9 +60,11 @@ impl JavascriptParser<'_> {
           {
             self.define_variable(identifier_name);
           }
+          self.bind_semantic_identifier(local);
         }
         ImportDeclarationSpecifierData::ImportDefaultSpecifier(default) => {
-          let identifier_name = Atom::from(ast.get_utf8(default.local(ast).name(ast)));
+          let local = default.local(ast);
+          let identifier_name = Atom::from(ast.get_utf8(local.name(ast)));
           if drive
             .import_specifier(
               self,
@@ -75,15 +77,18 @@ impl JavascriptParser<'_> {
           {
             self.define_variable(identifier_name);
           }
+          self.bind_semantic_identifier(local);
         }
         ImportDeclarationSpecifierData::ImportNamespaceSpecifier(namespace) => {
-          let identifier_name = Atom::from(ast.get_utf8(namespace.local(ast).name(ast)));
+          let local = namespace.local(ast);
+          let identifier_name = Atom::from(ast.get_utf8(local.name(ast)));
           if drive
             .import_specifier(self, declaration, &source_atom, None, &identifier_name)
             .unwrap_or_default()
           {
             self.define_variable(identifier_name);
           }
+          self.bind_semantic_identifier(local);
         }
       }
     }

@@ -330,12 +330,6 @@ pub struct NameInfo<'a> {
   pub info: Option<&'a VariableInfo>,
 }
 
-#[derive(Clone, Copy, Default)]
-struct SemanticVariableCacheEntry {
-  generation: u32,
-  variable: Option<VariableInfoId>,
-}
-
 pub enum PatRef {
   Borrowed(BindingPattern),
   Owned(BindingPattern),
@@ -507,10 +501,13 @@ pub struct JavascriptParser<'parser> {
   // ===== states =======
   pub(crate) definitions_db: ScopeInfoDB,
   pub(crate) definitions: ScopeInfoId,
-  // Semantic symbols provide stable keys for lexical bindings; values still
-  // come from ScopeInfoDB so webpack-specific aliases and tags remain intact.
-  semantic_variable_cache: Vec<SemanticVariableCacheEntry>,
-  semantic_variable_cache_generation: u32,
+  // Semantic symbols are the authoritative keys for lexical references.
+  // Values point into the Rspack overlay that carries webpack-specific tags
+  // and aliases; unresolved/dynamic names still use ScopeInfoDB directly.
+  semantic_variables: Vec<Option<VariableInfoId>>,
+  // Stack of scoped alias overrides. Scope entry records a length marker and
+  // scope exit restores only the slots changed after that marker.
+  semantic_variable_overrides: Vec<(u32, Option<VariableInfoId>)>,
   pub(crate) top_level_scope: TopLevelScope,
   pub(crate) current_tag_info: Option<TagInfoId>,
   pub in_try: bool,
@@ -693,8 +690,8 @@ impl<'parser> JavascriptParser<'parser> {
       in_tagged_template_tag: false,
       definitions: db.create(),
       definitions_db: db,
-      semantic_variable_cache: Default::default(),
-      semantic_variable_cache_generation: 1,
+      semantic_variables: Default::default(),
+      semantic_variable_overrides: Default::default(),
       plugin_drive,
       resource_data,
       factory_meta,
@@ -936,17 +933,6 @@ impl<'parser> JavascriptParser<'parser> {
     Some(self.definitions_db.expect_get_variable(id))
   }
 
-  pub(crate) fn clear_semantic_variable_cache(&mut self) {
-    // ScopeInfoDB overlays may change independently of the immutable semantic
-    // model. Generations make invalidation constant-time.
-    self.semantic_variable_cache_generation =
-      self.semantic_variable_cache_generation.wrapping_add(1);
-    if self.semantic_variable_cache_generation == 0 {
-      self.semantic_variable_cache.fill(Default::default());
-      self.semantic_variable_cache_generation = 1;
-    }
-  }
-
   pub(super) fn get_variable_info_for_identifier(
     &mut self,
     identifier: IdentifierReference,
@@ -968,23 +954,62 @@ impl<'parser> JavascriptParser<'parser> {
     };
 
     let index = symbol.index();
-    if index >= self.semantic_variable_cache.len() {
-      self
-        .semantic_variable_cache
-        .resize(index + 1, SemanticVariableCacheEntry::default());
-    }
-    let entry = self.semantic_variable_cache[index];
-    let id = if entry.generation == self.semantic_variable_cache_generation {
-      entry.variable
+    let id = if let Some(id) = self.semantic_variables.get(index).copied().flatten() {
+      id
     } else {
-      let variable = self.definitions_db.get(self.definitions, name);
-      self.semantic_variable_cache[index] = SemanticVariableCacheEntry {
-        generation: self.semantic_variable_cache_generation,
-        variable,
-      };
-      variable
-    }?;
+      let (variable, tracked) =
+        self
+          .definitions_db
+          .get_and_track_semantic_symbol(self.definitions, name, index);
+      let id = variable?;
+      if tracked {
+        if index >= self.semantic_variables.len() {
+          self.semantic_variables.resize(index + 1, None);
+        }
+        self.semantic_variables[index] = Some(id);
+      }
+      id
+    };
     Some(self.definitions_db.expect_get_variable(id))
+  }
+
+  fn update_semantic_variables(
+    &mut self,
+    semantic_symbol: Option<u32>,
+    variable: Option<VariableInfoId>,
+  ) {
+    if let Some(semantic_symbol) = semantic_symbol {
+      let index = semantic_symbol as usize;
+      if index >= self.semantic_variables.len() {
+        self.semantic_variables.resize(index + 1, None);
+      }
+      self.semantic_variables[index] = variable;
+    }
+  }
+
+  fn restore_semantic_variable_overrides(&mut self, mark: usize) {
+    while self.semantic_variable_overrides.len() > mark {
+      let (index, variable) = self
+        .semantic_variable_overrides
+        .pop()
+        .expect("semantic override mark must be valid");
+      self.semantic_variables[index as usize] = variable;
+    }
+  }
+
+  pub(crate) fn set_variable_info(
+    &mut self,
+    scope: ScopeInfoId,
+    name: Atom,
+    variable: VariableInfoId,
+  ) {
+    let semantic_symbol = self.definitions_db.set(scope, name, variable);
+    self.update_semantic_variables(semantic_symbol, Some(variable));
+  }
+
+  fn delete_variable_info(&mut self, scope: ScopeInfoId, name: &Atom) {
+    let semantic_symbol = self.definitions_db.delete(scope, name);
+    self.update_semantic_variables(semantic_symbol, None);
   }
 
   fn get_tag_data_by_id<Data: TagInfoData>(
@@ -1135,7 +1160,6 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   pub fn define_variable(&mut self, name: Atom) {
-    self.clear_semantic_variable_cache();
     let definitions = self.definitions;
     if let Some(variable_info) = self.get_variable_info(&name)
       && variable_info.tag_info.is_some()
@@ -1150,16 +1174,71 @@ impl<'parser> JavascriptParser<'parser> {
       VariableInfoFlags::NORMAL,
       None,
     );
-    self.definitions_db.set(definitions, name, info);
+    self.set_variable_info(definitions, name, info);
+  }
+
+  fn bind_semantic_identifier(&mut self, identifier: BindingIdentifier) {
+    let Some(symbol) = self.ast.semantic.symbol_of(identifier.node_id()) else {
+      return;
+    };
+    let index = symbol.index();
+    let ast = self.ast.ast;
+    let name = ast.get_utf8(identifier.name(ast));
+    let (variable, tracked) =
+      self
+        .definitions_db
+        .get_and_track_semantic_symbol(self.definitions, name, index);
+    if index >= self.semantic_variables.len() {
+      self.semantic_variables.resize(index + 1, None);
+    }
+    self.semantic_variables[index] = tracked.then_some(variable).flatten();
+  }
+
+  fn bind_semantic_reference(&mut self, identifier: IdentifierReference) {
+    let Some(reference) = self
+      .ast
+      .semantic
+      .reference_of(identifier.node_id())
+      .map(|reference| self.ast.semantic.reference(reference))
+    else {
+      return;
+    };
+    let Some(symbol) = reference.symbol.filter(|_| !reference.flags.is_dynamic()) else {
+      return;
+    };
+    let index = symbol.index();
+    let ast = self.ast.ast;
+    let name = ast.get_utf8(identifier.name(ast));
+    let (variable, tracked) =
+      self
+        .definitions_db
+        .get_and_track_semantic_symbol(self.definitions, name, index);
+    if index >= self.semantic_variables.len() {
+      self.semantic_variables.resize(index + 1, None);
+    }
+    let semantic_variable = tracked.then_some(variable).flatten();
+    let previous = self.semantic_variables[index];
+    if previous != semantic_variable {
+      self.semantic_variable_overrides.push((
+        u32::try_from(index).expect("too many semantic symbols"),
+        previous,
+      ));
+    }
+    self.semantic_variables[index] = semantic_variable;
+  }
+
+  pub(super) fn define_variable_identifier(&mut self, identifier: BindingIdentifier) {
+    let ast = self.ast.ast;
+    self.define_variable(Atom::from_ast(ast, identifier.name(ast)));
+    self.bind_semantic_identifier(identifier);
   }
 
   pub fn set_variable(&mut self, name: Atom, variable: ExportedVariableInfo) {
-    self.clear_semantic_variable_cache();
     let scope_id = self.definitions;
     match variable {
       ExportedVariableInfo::Name(variable) => {
         if name == variable {
-          self.definitions_db.delete(scope_id, &name);
+          self.delete_variable_info(scope_id, &name);
         } else {
           let variable = VariableInfo::create(
             &mut self.definitions_db,
@@ -1168,18 +1247,17 @@ impl<'parser> JavascriptParser<'parser> {
             VariableInfoFlags::FREE,
             None,
           );
-          self.definitions_db.set(scope_id, name, variable);
+          self.set_variable_info(scope_id, name, variable);
         }
       }
       ExportedVariableInfo::VariableInfo(variable) => {
-        self.definitions_db.set(scope_id, name, variable);
+        self.set_variable_info(scope_id, name, variable);
       }
     }
   }
 
   fn undefined_variable(&mut self, name: &Atom) {
-    self.clear_semantic_variable_cache();
-    self.definitions_db.delete(self.definitions, name)
+    self.delete_variable_info(self.definitions, name)
   }
 
   pub fn tag_variable<Data: TagInfoData>(
@@ -1212,7 +1290,6 @@ impl<'parser> JavascriptParser<'parser> {
     data: Option<Box<dyn anymap::CloneAny>>,
     flags: Option<VariableInfoFlags>,
   ) {
-    self.clear_semantic_variable_cache();
     let flags = flags.unwrap_or(VariableInfoFlags::TAGGED);
     let new_info = if let Some(old_info_id) = self.definitions_db.get(self.definitions, &name) {
       let old_info = self.definitions_db.expect_get_variable(old_info_id);
@@ -1255,7 +1332,7 @@ impl<'parser> JavascriptParser<'parser> {
         tag_info,
       )
     };
-    self.definitions_db.set(self.definitions, name, new_info);
+    self.set_variable_info(self.definitions, name, new_info);
   }
 
   fn _get_member_expression_info(

@@ -40,6 +40,7 @@ impl JavascriptParser<'_> {
     let old_in_tagged_template_tag = self.in_tagged_template_tag;
     let old_in_try = self.in_try;
     let old_terminated = self.terminated;
+    let semantic_override_mark = self.semantic_variable_overrides.len();
 
     self.in_tagged_template_tag = false;
     self.definitions = self.definitions_db.create_child(old_definitions);
@@ -48,6 +49,7 @@ impl JavascriptParser<'_> {
     let terminated = self.terminated;
 
     self.definitions_db.exit_scope(self.definitions);
+    self.restore_semantic_variable_overrides(semantic_override_mark);
     self.definitions = old_definitions;
     self.top_level_scope = old_top_level_scope;
     self.in_tagged_template_tag = old_in_tagged_template_tag;
@@ -69,6 +71,7 @@ impl JavascriptParser<'_> {
     let old_top_level_scope = self.top_level_scope;
     let old_in_tagged_template_tag = self.in_tagged_template_tag;
     let old_terminated = self.terminated;
+    let semantic_override_mark = self.semantic_variable_overrides.len();
 
     self.in_try = false;
     self.in_tagged_template_tag = false;
@@ -80,13 +83,14 @@ impl JavascriptParser<'_> {
     }
 
     self.enter_patterns(params, |this, ident| {
-      this.define_variable(Atom::from_ast(this.ast.ast, ident.name(this.ast.ast)));
+      this.define_variable_identifier(ident);
     });
 
     f(self);
 
     self.in_try = old_in_try;
     self.definitions_db.exit_scope(self.definitions);
+    self.restore_semantic_variable_overrides(semantic_override_mark);
     self.definitions = old_definitions;
     self.top_level_scope = old_top_level_scope;
     self.in_tagged_template_tag = old_in_tagged_template_tag;
@@ -102,6 +106,7 @@ impl JavascriptParser<'_> {
     let old_top_level_scope = self.top_level_scope;
     let old_in_tagged_template_tag = self.in_tagged_template_tag;
     let old_terminated = self.terminated;
+    let semantic_override_mark = self.semantic_variable_overrides.len();
 
     self.definitions = self.definitions_db.create_child(old_definitions);
     self.in_tagged_template_tag = false;
@@ -110,11 +115,12 @@ impl JavascriptParser<'_> {
       self.undefined_variable(&"this".into());
     }
     self.enter_patterns(params, |this, ident| {
-      this.define_variable(Atom::from_ast(this.ast.ast, ident.name(this.ast.ast)));
+      this.define_variable_identifier(ident);
     });
     f(self);
 
     self.definitions_db.exit_scope(self.definitions);
+    self.restore_semantic_variable_overrides(semantic_override_mark);
     self.definitions = old_definitions;
     self.top_level_scope = old_top_level_scope;
     self.in_tagged_template_tag = old_in_tagged_template_tag;
@@ -298,7 +304,7 @@ impl JavascriptParser<'_> {
       let ast = this.ast.ast;
       if let Some(param) = catch_clause.param(ast) {
         this.enter_pattern(PatRef::Borrowed(param), |this, ident| {
-          this.define_variable(Atom::from_ast(this.ast.ast, ident.name(this.ast.ast)));
+          this.define_variable_identifier(ident);
         });
         this.walk_pattern(param)
       }
@@ -702,10 +708,7 @@ impl JavascriptParser<'_> {
           VariableInfoFlags::NORMAL,
           None,
         );
-        self
-          .definitions_db
-          .set(declared_scope, Atom::from(name), info);
-        self.clear_semantic_variable_cache();
+        self.set_variable_info(declared_scope, Atom::from(name), info);
       }
     }
   }
@@ -1903,6 +1906,7 @@ impl JavascriptParser<'_> {
           .try_walk_created_require_assignment(expr, ident)
           .unwrap_or_default()
       {
+        self.bind_semantic_reference(ident);
         return;
       }
       if expr.operator(ast) == AssignmentOperator::Assign
@@ -1920,6 +1924,7 @@ impl JavascriptParser<'_> {
             .map(|info| ExportedVariableInfo::VariableInfo(info.id()))
             .unwrap_or(ExportedVariableInfo::Name(rename_identifier));
           self.set_variable(Atom::from(ast.get_utf8(ident.name(ast))), variable);
+          self.bind_semantic_reference(ident);
         }
         return;
       }

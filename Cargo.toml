@@ -102,7 +102,6 @@ simd-json           = { version = "0.17.3", default-features = false, features =
 simd-utf16-len      = { version = "0.1.0", default-features = false }
 simdutf8            = { version = "0.1.5", default-features = false }
 similar-asserts     = { version = "1.5.0", default-features = false }
-slotmap             = { version = "1.1.1", default-features = false }
 smallvec            = { version = "1.15.2", default-features = false }
 smol_str            = { version = "0.3.6", default-features = false }
 stacker             = { version = "0.1.24", default-features = false }

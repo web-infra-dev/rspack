@@ -1303,10 +1303,7 @@ fn clear_create_require_tag(parser: &mut JavascriptParser, name: &str) {
       VariableInfoFlags::NORMAL,
       None,
     );
-    parser
-      .definitions_db
-      .set(declared_scope, Atom::from(name), info);
-    parser.clear_semantic_variable_cache();
+    parser.set_variable_info(declared_scope, Atom::from(name), info);
   }
 }
 
