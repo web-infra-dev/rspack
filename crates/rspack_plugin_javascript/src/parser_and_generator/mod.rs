@@ -26,7 +26,7 @@ use rspack_error::{
 };
 use rspack_util::swc::RspackComments;
 use swc_next_allocator::Allocator;
-use swc_next_ecma_ast::{Lang, Severity as SwcSeverity, SourceType as SwcSourceType, VisitWith};
+use swc_next_ecma_ast::{Lang, Severity as SwcSeverity, SourceType as SwcSourceType};
 use swc_next_ecma_parser::{CommentMode, Options, ParseReturn, Parser, TokenParserConfig};
 use swc_next_ecma_semantic::{AnalyzeOptions, SemanticReturn, analyze};
 
@@ -340,11 +340,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     let program = ast.root_program();
     let comments = RspackComments::from_ast(&ast);
     let mut semicolons = Default::default();
-    program.visit_with(&mut semicolon::InsertedSemicolons::new(
-      &ast,
-      &mut semicolons,
-      &tokens,
-    ));
+    semicolon::collect(&ast, &mut semicolons, &tokens);
     let parsed_ast = ParsedJavaScriptAst {
       ast: &ast,
       comments: &comments,
