@@ -16,6 +16,11 @@ export type LoaderCacheEntry = {
   parseMeta: Record<string, string>;
 };
 
+export type WorkerCacheResult =
+  | { type: 'disabled' }
+  | { type: 'miss' }
+  | { type: 'hit'; entry: LoaderCacheEntry };
+
 type LoaderCacheApi = {
   get(
     loaderIndex: number,
@@ -91,10 +96,11 @@ export class LoaderCache {
     loaderIndex: number,
     content: LoaderCacheContent | null | undefined,
     additionalData: unknown,
-  ) {
+  ): Promise<WorkerCacheResult> {
     const hit = await this.get(loaderIndex, content, additionalData);
-    if (!hit) return undefined;
-    return hit;
+    if (hit === undefined) return { type: 'disabled' };
+    if (hit === null) return { type: 'miss' };
+    return { type: 'hit', entry: hit };
   }
 
   async workerStore(
