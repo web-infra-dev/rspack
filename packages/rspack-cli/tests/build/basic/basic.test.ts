@@ -92,6 +92,69 @@ describe('build command', () => {
     expect(stderr).toBeFalsy();
     expect(stdout).toBeTruthy();
   });
+  it('should use stats logging defaults', async () => {
+    const defaultResult = await run(
+      __dirname,
+      ['--config', './logging.config.js'],
+      {},
+      {},
+      true,
+    );
+    const defaultOutput = `${defaultResult.stdout}${defaultResult.stderr}`;
+
+    expect(defaultResult.exitCode).toBe(0);
+    expect(defaultOutput).not.toContain('compilation logger warning');
+
+    const partialStatsResult = await run(
+      __dirname,
+      ['--config', './logging.config.js'],
+      {},
+      { PARTIAL_STATS: 'true' },
+      true,
+    );
+    const partialStatsOutput = `${partialStatsResult.stdout}${partialStatsResult.stderr}`;
+
+    expect(partialStatsResult.exitCode).toBe(0);
+    expect(partialStatsOutput).not.toContain('compilation logger warning');
+
+    for (const statsPreset of ['string', 'object']) {
+      const presetResult = await run(
+        __dirname,
+        ['--config', './logging.config.js'],
+        {},
+        { STATS_PRESET: statsPreset },
+        true,
+      );
+      const presetOutput = `${presetResult.stdout}${presetResult.stderr}`;
+
+      expect(presetResult.exitCode).toBe(0);
+      expect(presetOutput).toContain('compilation logger warning');
+    }
+
+    const allStatsResult = await run(
+      __dirname,
+      ['--config', './logging.config.js'],
+      {},
+      { ALL_STATS: 'true' },
+      true,
+    );
+    const allStatsOutput = `${allStatsResult.stdout}${allStatsResult.stderr}`;
+
+    expect(allStatsResult.exitCode).toBe(0);
+    expect(allStatsOutput).toContain('compilation logger warning');
+
+    const explicitResult = await run(
+      __dirname,
+      ['--config', './logging.config.js'],
+      {},
+      { EXPLICIT_LOGGING: 'true' },
+      true,
+    );
+    const explicitOutput = `${explicitResult.stdout}${explicitResult.stderr}`;
+
+    expect(explicitResult.exitCode).toBe(0);
+    expect(explicitOutput).toContain('compilation logger warning');
+  });
   it('entry option should have higher priority than config', async () => {
     const { exitCode, stderr, stdout } = await run(
       __dirname,
