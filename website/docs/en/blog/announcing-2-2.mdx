@@ -38,7 +38,7 @@ _August 26, 2026_
 
 ![Rspack 2.2 banner](https://assets.rspack.rs/rspack/rspack-banner-v2.2.png)
 
-We are excited to announce the official release of Rspack 2.2!
+We are excited to announce that Rspack 2.2 is now available!
 
 ---
 
@@ -67,10 +67,10 @@ Notable changes include:
 
 Rspack 2.2 includes more than 30 performance optimizations, including:
 
-- Made core processes such as module concatenation, chunk splitting, and source map generation faster. In our benchmark, production build time dropped from 1822 ms to 1725 ms, an improvement of around 5%.
+- Sped up module concatenation, chunk splitting, source map generation, and other core processes. In our benchmark, these changes cut production build time by around 5%, from 1822 ms to 1725 ms.
 - Made [CopyRspackPlugin](/plugins/rspack/copy-rspack-plugin) around 3-4x faster when copying a large number of files.
 - Reduced the Wasm build size from 29.5 MB to 28.4 MB, saving around 1.1 MB.
-- Parallelized the compilation of SWC Wasm plugins, reducing plugin load time. For example, the load time of the [coverage-instrument](https://npmx.dev/package/swc-plugin-coverage-instrument) plugin was reduced by around 80%.
+- Parallelized SWC Wasm plugin compilation to reduce plugin load times. For example, this cut load time for the [coverage-instrument](https://npmx.dev/package/swc-plugin-coverage-instrument) plugin by around 80%.
 - Made built-in CSS parsing around 3x faster:
 
 | Scenario              | Before   | After   | Improvement |
@@ -80,9 +80,9 @@ Rspack 2.2 includes more than 30 performance optimizations, including:
 
 ### Better HMR \{#better-hmr}
 
-Rspack 2.2 reduces unnecessary CSS requests during HMR. Previously, even when only JavaScript code changed, the browser would request the related CSS files during a hot update and compare their contents to determine whether the styles needed to be updated. The larger the stylesheet, the more time this extra step took.
+Rspack 2.2 avoids unnecessary CSS requests during HMR. Previously, even a JavaScript-only change made the browser request and compare related CSS files to check for style updates. This overhead grew with the size of the stylesheet.
 
-With [#14682](https://github.com/web-infra-dev/rspack/pull/14682), Rspack now determines during the build whether CSS has changed, so the browser requests CSS assets only when needed, avoiding unnecessary HTTP requests. As a result, JavaScript hot update times no longer increase significantly with stylesheet size:
+With [#14682](https://github.com/web-infra-dev/rspack/pull/14682), Rspack now checks for CSS changes during the build. The browser requests CSS assets only when needed, avoiding unnecessary HTTP requests. As a result, JavaScript hot update times no longer grow significantly with stylesheet size:
 
 | Stylesheet size | Before  | After |
 | --------------- | ------- | ----- |
@@ -90,11 +90,11 @@ With [#14682](https://github.com/web-infra-dev/rspack/pull/14682), Rspack now de
 | 2.1 MB          | ~170 ms | ~5 ms |
 | 4.1 MB          | ~385 ms | ~6 ms |
 
-In addition, [#14580](https://github.com/web-infra-dev/rspack/pull/14580) fixes an issue where styles briefly disappeared during hot updates with `mini-css-extract-plugin`. This prevents page flicker.
+In addition, [#14580](https://github.com/web-infra-dev/rspack/pull/14580) prevents page flicker caused by styles briefly disappearing during hot updates with `mini-css-extract-plugin`.
 
 ### Shorter module IDs \{#compat-hashed-ids}
 
-Rspack can now generate shorter IDs for modules and chunks. Compared with the existing `deterministic` strategy, the new `compat-hashed` strategy selects the shortest available prefix from a stable hash, further reducing output size while preserving stable IDs and efficient runtime indexing.
+Rspack can now generate shorter module and chunk IDs. The new `compat-hashed` strategy selects the shortest available prefix from a stable hash. Compared with `deterministic`, it reduces output size while preserving stable IDs and efficient runtime indexing.
 
 In a real-world project, the output size changed as follows:
 
@@ -118,7 +118,7 @@ export default {
 
 ### `import.meta` improvements \{#import-meta-improvements}
 
-Rspack now lets you access Rspack-specific module variables through [`import.meta`](/api/runtime-api/module-variables#import-meta). Compared with CommonJS-style variables, this approach aligns better with ESM conventions, so we recommend using it in ESM modules:
+Rspack now exposes Rspack-specific module variables through [`import.meta`](/api/runtime-api/module-variables#import-meta). This aligns more closely with ESM conventions than CommonJS-style variables, so we recommend it for ESM modules:
 
 ```js
 // Before
@@ -128,7 +128,7 @@ __webpack_public_path__ = '/assets/';
 import.meta.rspackPublicPath = '/assets/';
 ```
 
-In addition, [`import.meta.glob`](/api/runtime-api/module-variables#importmetaglob) adds a new `caseSensitive` option. When set to `false`, glob patterns match file paths case-insensitively:
+[`import.meta.glob`](/api/runtime-api/module-variables#importmetaglob) now supports a `caseSensitive` option. Set it to `false` to match file paths case-insensitively:
 
 ```js
 const modules = import.meta.glob('./pages/**/*.js', {
@@ -138,7 +138,7 @@ const modules = import.meta.glob('./pages/**/*.js', {
 
 ### Browserslist Baseline support \{#browserslist-baseline}
 
-Rspack now supports [Baseline queries in Browserslist](https://web.dev/articles/use-baseline-with-browserslist). You can specify target browser versions based on Baseline feature sets. For example, to target [**Baseline Widely available features**](https://web.dev/baseline), use:
+Rspack now supports [Baseline queries in Browserslist](https://web.dev/articles/use-baseline-with-browserslist). These queries let you target browser versions by Baseline feature set. For example, to target [**Baseline Widely available features**](https://web.dev/baseline), use:
 
 ```js title="rspack.config.mjs"
 export default {
@@ -146,7 +146,7 @@ export default {
 };
 ```
 
-You can also use `baseline widely available on 2025-05-01` to target features that were widely available on a specific date. See the [`target` configuration documentation](/config/target#baseline-queries) for details.
+You can also target features that were widely available on a specific date with `baseline widely available on 2025-05-01`. See the [`target` configuration documentation](/config/target#baseline-queries) for details.
 
 ### Support for more platforms \{#more-linux-platforms}
 
@@ -155,7 +155,7 @@ Rspack now provides precompiled native bindings for more Linux platforms:
 - RISC-V 64-bit: `linux-riscv64-gnu` and `linux-riscv64-musl`
 - ppc64le and s390x architectures: `linux-ppc64-gnu` and `linux-s390x-gnu`
 
-When installing Rspack on these platforms, you can use the corresponding native binding directly without falling back to the Wasm binding. See [Environment preparation](/guide/start/quick-start#environment-preparation) for the complete list of supported platforms.
+On these platforms, Rspack can use the corresponding native binding instead of falling back to Wasm. See [Environment preparation](/guide/start/quick-start#environment-preparation) for the complete list of supported platforms.
 
 ## Ecosystem
 
@@ -165,7 +165,7 @@ Rsbuild 2.2 has been released alongside Rspack 2.2.
 
 #### Importing source text \{#import-text}
 
-Rsbuild now supports using [import attributes](https://rsbuild.rs/guide/basic/static-assets#with-import-attributes) to import the raw contents of a file as a string:
+Rsbuild now supports [import attributes](https://rsbuild.rs/guide/basic/static-assets#with-import-attributes) for importing a file's raw contents as a string:
 
 ```ts
 import rawCSS from './example.css' with { type: 'text' };
@@ -190,7 +190,7 @@ The following [real-world results](https://github.com/TanStack/router/issues/811
 
 #### Solid v2 support \{#solid-v2}
 
-Rsbuild now supports [Solid v2 RC](https://www.solidjs.com/blog/solid-2-0-rc-the-big-reveal) and uses Solid's new Rust compiler by default. In the official benchmark, the new compiler is **more than 20x faster** than the previous Babel implementation.
+Rsbuild now supports [Solid v2 RC](https://www.solidjs.com/blog/solid-2-0-rc-the-big-reveal) and uses Solid's new Rust compiler by default. In Solid's official benchmark, the Rust compiler is **more than 20x faster** than the previous Babel implementation.
 
 To try it, upgrade [@rsbuild/plugin-solid](https://rsbuild.rs/plugins/list/plugin-solid) to the v2 beta and remove the Babel plugin:
 
@@ -210,7 +210,7 @@ export default {
 
 #### Octane template \{#octane-template}
 
-`create-rsbuild` now supports creating Octane projects. [Octane](https://octanejs.dev/) is a high-performance JavaScript UI framework that lets you write components using React APIs and compiles them into code that updates the DOM directly.
+`create-rsbuild` now supports creating Octane projects. [Octane](https://octanejs.dev/) is a high-performance JavaScript UI framework. You write components with React APIs, and Octane compiles them into code that updates the DOM directly.
 
 Run this command to create an Octane project:
 
@@ -220,7 +220,7 @@ npx -y create-rsbuild@latest my-app -t octane-ts
 
 #### Dynamic ports \{#dynamic-port}
 
-Rsbuild now supports setting [`server.port`](https://rsbuild.rs/config/server/port#dynamic-port) to `0`, allowing the operating system to automatically assign an available port:
+Rsbuild now lets you set [`server.port`](https://rsbuild.rs/config/server/port#dynamic-port) to `0`, so the operating system assigns an available port automatically:
 
 ```ts title="rsbuild.config.ts"
 export default {
@@ -230,11 +230,11 @@ export default {
 };
 ```
 
-This is particularly useful for testing because it avoids port conflicts when multiple tests start Rsbuild servers at the same time.
+This is useful in tests because it prevents port conflicts when multiple Rsbuild servers start at once.
 
 #### Custom minifier configurations \{#custom-minimizer-configs}
 
-Rsbuild now supports configuring multiple minification options at once. Pass an array to [`minify.jsOptions`](https://rsbuild.rs/config/output/minify#minifyjsoptions) to apply different minification strategies to different outputs. For example, you can remove `console` calls only from the main bundle:
+Rsbuild now supports multiple minification configurations. Pass an array to [`minify.jsOptions`](https://rsbuild.rs/config/output/minify#minifyjsoptions) to apply different strategies to different outputs. This example removes `console` calls only from the main bundle:
 
 ```ts title="rsbuild.config.ts"
 export default {
@@ -263,7 +263,7 @@ export default {
 
 Frameworks and tools built on Rsbuild can now manage restarts themselves.
 
-The Rsbuild JavaScript API now supports a [`restart`](https://rsbuild.rs/api/javascript-api/core#restart-handling) option for handling restart requests from the development server (`rsbuild dev`) or watch builds (`rsbuild build --watch`):
+The Rsbuild JavaScript API now provides a [`restart`](https://rsbuild.rs/api/javascript-api/core#restart-handling) option. Use it to handle restart requests from the development server (`rsbuild dev`) or watch builds (`rsbuild build --watch`):
 
 ```ts
 import { createRsbuild } from '@rsbuild/core';
@@ -281,7 +281,7 @@ Rsbuild plugins can also run custom logic by listening to the [`onRestart`](http
 
 #### Module Federation testing \{#rstest-module-federation}
 
-Rstest now supports Module Federation testing, allowing you to directly test real remote modules exposed through Module Federation in Node.js, JSDOM, and Browser Mode environments.
+Rstest now supports testing real remote modules exposed through Module Federation in Node.js, JSDOM, and Browser Mode.
 
 Add `@module-federation/rstest` to your Rstest configuration:
 
@@ -303,9 +303,9 @@ export default defineConfig({
 
 #### Playwright E2E testing \{#rstest-playwright}
 
-Rstest now provides [`@rstest/playwright`](https://rstest.rs/guide/advanced/playwright), bringing Rstest's test runner, configuration, and reporting capabilities to E2E testing.
+Rstest now provides [`@rstest/playwright`](https://rstest.rs/guide/advanced/playwright), bringing its test runner, configuration, and reporting to E2E testing.
 
-It provides Playwright-style assertion APIs for testing local development servers, preview servers, or deployed applications, so E2E tests can use the same workflow as unit tests:
+It provides Playwright-style assertions for local development servers, preview servers, and deployed applications. This lets E2E tests use the same workflow as unit tests:
 
 ```ts
 import { expect, test } from '@rstest/playwright';
@@ -320,7 +320,7 @@ test('home page', async ({ page, serve }) => {
 
 #### Prebundled test environments \{#rstest-environment-prebundle}
 
-Rstest now supports prebundling DOM test environments. When enabled, Rstest prebundles `jsdom` or `happy-dom` and reuses the output across workers, avoiding repeated parsing and initialization for every test file. This can significantly reduce overall test time in projects with many DOM tests.
+Rstest now supports prebundling DOM test environments. When enabled, it prebundles `jsdom` or `happy-dom` and reuses the output across workers. This avoids repeated parsing and initialization for each test file. It can significantly reduce test time in projects with many DOM tests.
 
 In a [benchmark](https://github.com/web-infra-dev/rstest/releases/tag/v0.11.6), a project with 1,000 test cases saw the following improvements:
 
@@ -342,7 +342,7 @@ export default defineConfig({
 });
 ```
 
-When set to `'auto'`, Rstest only prebundles versions of `jsdom` and `happy-dom` that have been verified as compatible. If Rstest cannot build, load, or verify the prebundled output, it automatically falls back to native loading. Actual improvements vary depending on project size and runtime environment.
+With `'auto'`, Rstest prebundles only versions of `jsdom` and `happy-dom` verified as compatible. If it cannot build, load, or verify the output, it falls back to native loading. Actual improvements depend on project size and runtime environment.
 
 ### Rslint \{#rslint}
 
@@ -410,25 +410,25 @@ const results = await rslint.lintFiles(['src/**/*.ts']);
 await Rslint.outputFixes(results);
 ```
 
-The JavaScript API also lets you lint source code in memory with `lintText` and provide configuration, `tsconfig.json`, and project files through `virtualFiles`. This is useful for editor and playground integrations that do not directly rely on the file system.
+The JavaScript API also lets you lint source code in memory with `lintText`. You can provide configuration, `tsconfig.json`, and project files through `virtualFiles`. This is useful for editor and playground integrations that work without direct file system access.
 
 ### Rslib \{#rslib}
 
 #### TypeScript 7 support \{#typescript-7}
 
-Rslib 0.23.2 supports generating declaration files with [TypeScript 7](https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/). After you install TypeScript 7, Rslib automatically enables native TypeScript, making declaration file generation around **5-10x faster**.
+Rslib 0.23.2 can generate declaration files with [TypeScript 7](https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/). After installing TypeScript 7, Rslib enables native TypeScript automatically. This makes declaration file generation around **5-10x faster**.
 
 <PackageManagerTabs command="add typescript@latest -D" />
 
 #### Rslib 1.0 is coming soon \{#rslib-v1}
 
-[Rslib 1.0 RC](https://github.com/web-infra-dev/rslib/releases/tag/v1.0.0-rc.1) is now available, and the stable release is coming soon. If you are using Rslib 0.x, see the [Upgrade from 0.x to v1](https://v1.rslib.rs/guide/upgrade/v0-to-v1) guide for details about the breaking changes.
+[Rslib 1.0 RC](https://github.com/web-infra-dev/rslib/releases/tag/v1.0.0-rc.1) is now available, with the stable release coming soon. If you use Rslib 0.x, see the [Upgrade from 0.x to v1](https://v1.rslib.rs/guide/upgrade/v0-to-v1) guide for details about the breaking changes.
 
 ### Rspress \{#rspress}
 
 Rspress earned an Agent-friendly score of 100/100 from [AFDocs](https://afdocs.dev/).
 
-Capabilities such as `llms.txt`, [SSG-MD](https://rspress.rs/guide/basic/ssg-md), `Accept: text/markdown`, and `injectLlmsHint` make it easier for Agents to discover, read, and understand Rspress documentation. For more details on the design and practices behind these capabilities, see [How to build an Agent-friendly website](https://rspress.rs/blog/agent-friendly-website).
+Rspress features such as `llms.txt`, [SSG-MD](https://rspress.rs/guide/basic/ssg-md), `Accept: text/markdown`, and `injectLlmsHint` help Agents discover, read, and understand its documentation. See [How to build an Agent-friendly website](https://rspress.rs/blog/agent-friendly-website) for the design and practices behind these features.
 
 ![Rspress AFDocs scorecard](https://assets.rspack.rs/rspress/assets/rspress-afdocs-scorecard.png)
 
@@ -436,7 +436,7 @@ Capabilities such as `llms.txt`, [SSG-MD](https://rspress.rs/guide/basic/ssg-md)
 
 Rstack has released the Rstack Agent Plugin, built on [Agent Plugins 1.0](https://agent-plugins.org/). It works with any Agent client that supports the specification, including GitHub Copilot, Codex, and Cursor.
 
-Installing this single plugin gives you the complete collection of Rstack Skills, helping Agents develop and maintain Rstack projects more effectively.
+The plugin provides the complete collection of Rstack Skills, helping Agents develop and maintain Rstack projects more effectively.
 
 ![Rstack Agent Plugin](https://assets.rspack.rs/rstack/assets/rstack-agent-plugin.png)
 
@@ -454,20 +454,20 @@ To install the plugin:
 
 ### Wasm plugins \{#wasm-plugin-breaking}
 
-Rspack 2.2 upgrades `swc_core` from 76 to 77, changing the AST serialization format at the SWC Wasm plugin boundary. Wasm plugins built with an older version of SWC will no longer load, and builds will fail with the following error:
+Rspack 2.2 upgrades `swc_core` from 76 to 77. This changes the AST serialization format at the SWC Wasm plugin boundary. Wasm plugins built with an older version of SWC will no longer load, causing builds to fail with this error:
 
 ```text
 The version of the SWC Wasm plugin you're using might not be compatible with 'builtin:swc-loader'.
 ```
 
-If you use an SWC Wasm plugin, rebuild it or upgrade to a version compatible with SWC 77. You can find plugin versions that match your current Rspack version at [plugins.swc.rs](https://plugins.swc.rs/).
+If you use an SWC Wasm plugin, rebuild it with SWC 77 or upgrade to a compatible version. Find plugin versions that match your current Rspack version at [plugins.swc.rs](https://plugins.swc.rs/).
 
 > See [FAQ - SWC plugin version mismatch](/errors/swc-plugin-version) for details.
 
 ### RSC plugin \{#rsc-plugin-use-preinit}
 
-Previously, the RSC plugin wrapped Client References and inserted CSS `<link>` tags when rendering components. Because the wrapped exports were no longer the original Client References, some export forms could fail to preserve the Client Reference marker.
+Previously, the RSC plugin wrapped Client References to insert CSS `<link>` tags during rendering. The wrapped exports were no longer the original Client References, so some export forms could lose the Client Reference marker.
 
 Rspack 2.2 no longer wraps Client References. Instead, it uses React's [`preinit`](https://react.dev/reference/react-dom/preinit) to load CSS for client components.
 
-This changes how CSS for client components is loaded in RSC and is a breaking change for RSC framework integrations. If you maintain an integration with the Rspack RSC plugin, upgrade [`react-server-dom-rspack`](https://www.npmjs.com/package/react-server-dom-rspack) to `0.1.0` at the same time.
+This is a breaking change for RSC framework integrations because it changes how client component CSS is loaded. If you maintain an integration with the Rspack RSC plugin, also upgrade [`react-server-dom-rspack`](https://www.npmjs.com/package/react-server-dom-rspack) to `0.1.0`.

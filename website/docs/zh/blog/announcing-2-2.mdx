@@ -38,7 +38,7 @@ _2026 年 8 月 26 日_
 
 ![Rspack 2.2 Banner](https://assets.rspack.rs/rspack/rspack-banner-v2.2.png)
 
-我们很高兴地宣布 Rspack 2.2 已正式发布！
+我们很高兴地宣布，Rspack 2.2 现已发布！
 
 ---
 
@@ -80,7 +80,7 @@ Rspack 2.2 包含 30 多项性能优化，例如：
 
 ### HMR 改进 \{#better-hmr}
 
-Rspack 2.2 减少了 HMR 中不必要的 CSS 请求。此前，即使只修改了 JavaScript 代码，浏览器也会在热更新时请求相关的 CSS 文件，比较内容后再判断是否需要更新样式。样式表越大，这一步带来的额外耗时就越明显。
+Rspack 2.2 避免了 HMR 中不必要的 CSS 请求。此前，即使只修改了 JavaScript 代码，浏览器也会在热更新时请求相关的 CSS 文件，比较内容后再判断是否需要更新样式。样式表越大，这一步带来的额外耗时就越明显。
 
 在 [#14682](https://github.com/web-infra-dev/rspack/pull/14682) 中，Rspack 改为在构建阶段判断 CSS 是否发生变化，使浏览器仅在需要时请求 CSS 资源，从而避免不必要的 HTTP 请求。因此，JavaScript 热更新耗时不再随样式表体积明显增加：
 
@@ -190,7 +190,7 @@ Node.js 构建现在会默认启用 [chunk 拆分](https://rsbuild.rs/zh/config/
 
 #### 支持 Solid v2 \{#solid-v2}
 
-Rsbuild 现在支持 [Solid v2 RC](https://www.solidjs.com/blog/solid-2-0-rc-the-big-reveal)，并默认使用 Solid 全新的 Rust 编译器。在官方的基准测试中，新编译器的编译速度相比此前的 Babel 实现提升 **20 倍以上**。
+Rsbuild 现在支持 [Solid v2 RC](https://www.solidjs.com/blog/solid-2-0-rc-the-big-reveal)，并默认使用 Solid 全新的 Rust 编译器。在 Solid 官方基准测试中，新编译器的编译速度相比此前的 Babel 实现提升 **20 倍以上**。
 
 升级 [@rsbuild/plugin-solid](https://rsbuild.rs/zh/plugins/list/plugin-solid) 至 v2 beta 版本，然后移除 Babel 插件即可体验：
 
@@ -210,7 +210,7 @@ export default {
 
 #### Octane 模板 \{#octane-template}
 
-`create-rsbuild` 现在支持创建 Octane 项目。[Octane](https://octanejs.dev/) 是一个高性能 JavaScript UI 框架，允许你使用 React API 编写组件，并将其编译为直接更新 DOM 的代码。
+`create-rsbuild` 现在支持创建 Octane 项目。[Octane](https://octanejs.dev/) 是一个高性能 JavaScript UI 框架。你可以使用 React API 编写组件，Octane 会将这些组件编译为直接更新 DOM 的代码。
 
 运行以下命令即可创建一个 Octane 项目：
 
@@ -460,13 +460,13 @@ Rspack 2.2 将 `swc_core` 从 76 升级至 77，这改变了 SWC Wasm 插件边�
 The version of the SWC Wasm plugin you're using might not be compatible with 'builtin:swc-loader'.
 ```
 
-如果你正在使用 SWC Wasm 插件，请重新构建插件，或升级到兼容 SWC 77 的版本。可以在 [plugins.swc.rs](https://plugins.swc.rs/) 中查找与当前 Rspack 版本匹配的插件版本。
+如果你正在使用 SWC Wasm 插件，请使用 SWC 77 重新构建插件，或升级到兼容 SWC 77 的版本。可以在 [plugins.swc.rs](https://plugins.swc.rs/) 中查找与当前 Rspack 版本匹配的插件版本。
 
 > 详见：[常见问题 - SWC 插件版本不匹配](/errors/swc-plugin-version)。
 
 ### RSC 插件 \{#rsc-plugin-use-preinit}
 
-此前，RSC 插件会包装客户端引用（Client Reference），并在渲染组件时插入 CSS `<link>` 标签。由于包装后的导出不再是原始的 Client Reference，某些导出形式可能无法保留 Client Reference 标识。
+此前，RSC 插件会通过包装客户端引用（Client Reference），在渲染组件时插入 CSS `<link>` 标签。由于包装后的导出不再是原始的 Client Reference，某些导出形式可能无法保留 Client Reference 标识。
 
 Rspack 2.2 不再包装客户端引用，而是通过 React 的 [`preinit`](https://react.dev/reference/react-dom/preinit) 加载客户端组件的 CSS。
 
