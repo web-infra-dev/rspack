@@ -772,11 +772,12 @@ mod tests_extract_magic_comment_object {
     let mut warning_diagnostics = Vec::new();
     analyze_comments(
       "",
-      &[Comment {
+      [Comment {
         kind: CommentKind::Block,
         span: DUMMY_SP,
         text: raw,
-      }],
+      }]
+      .into_iter(),
       DUMMY_SP,
       &mut warning_diagnostics,
       &mut result,
