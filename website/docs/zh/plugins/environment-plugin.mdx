@@ -8,7 +8,7 @@ import WebpackLicense from '@components/WebpackLicense';
 
 # EnvironmentPlugin
 
-`EnvironmentPlugin` 简化了使用 [`DefinePlugin`](/plugins/webpack/define-plugin) 设置 `process.env` 变量的过程。
+`EnvironmentPlugin` 简化了使用 [`DefinePlugin`](/plugins/define-plugin) 设置 `process.env` 变量的过程。
 
 ## 选项
 
@@ -53,7 +53,7 @@ new rspack.EnvironmentPlugin({
 :::
 
 :::tip 提示
-与 [`DefinePlugin`](/plugins/webpack/define-plugin) 不同，`EnvironmentPlugin` 会对默认值使用 `JSON.stringify`。
+与 [`DefinePlugin`](/plugins/define-plugin) 不同，`EnvironmentPlugin` 会对默认值使用 `JSON.stringify`。
 :::
 
 :::tip 提示

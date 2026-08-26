@@ -68,7 +68,7 @@ Notable changes include:
 Rspack 2.2 includes more than 30 performance optimizations, including:
 
 - Sped up module concatenation, chunk splitting, source map generation, and other core processes. In our benchmark, these changes cut production build time by around 5%, from 1822 ms to 1725 ms.
-- Made [CopyRspackPlugin](/plugins/rspack/copy-rspack-plugin) around 3-4x faster when copying a large number of files.
+- Made [CopyRspackPlugin](/plugins/copy-rspack-plugin) around 3-4x faster when copying a large number of files.
 - Reduced the Wasm build size from 29.5 MB to 28.4 MB, saving around 1.1 MB.
 - Parallelized SWC Wasm plugin compilation to reduce plugin load times. For example, this cut load time for the [coverage-instrument](https://npmx.dev/package/swc-plugin-coverage-instrument) plugin by around 80%.
 - Made built-in CSS parsing around 3x faster:

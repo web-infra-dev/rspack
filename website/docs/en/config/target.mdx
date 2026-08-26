@@ -122,8 +122,8 @@ When used without an explicit transform target, the following built-in tools inh
 
 - [`builtin:swc-loader`](/guide/features/builtin-swc-loader) derives `env.targets` or `jsc.target`
 - [`builtin:lightningcss-loader`](/guide/features/builtin-lightningcss-loader) derives browser targets when available
-- [`SwcJsMinimizerRspackPlugin`](/plugins/rspack/swc-js-minimizer-rspack-plugin) derives its ECMAScript target
-- [`LightningCssMinimizerRspackPlugin`](/plugins/rspack/lightning-css-minimizer-rspack-plugin) derives browser targets when available
+- [`SwcJsMinimizerRspackPlugin`](/plugins/swc-js-minimizer-rspack-plugin) derives its ECMAScript target
+- [`LightningCssMinimizerRspackPlugin`](/plugins/lightning-css-minimizer-rspack-plugin) derives browser targets when available
 
 Only code processed by these tools receives their transformations. Code processed by Babel follows Babel's own configuration. Built-in tools may also limit inherited targets to the versions they support.
 

@@ -3,7 +3,7 @@ description: 'SplitChunksPlugin 是一个内置插件，用于将代码拆分成
 ---
 
 import WebpackLicense from '@components/WebpackLicense';
-import { ApiMeta } from '../../../../components/ApiMeta';
+import { ApiMeta } from '@components/ApiMeta';
 
 <WebpackLicense from="https://webpack.docschina.org/configuration/optimization/" />
 
@@ -265,7 +265,7 @@ export default {
 
 生成 chunk 的最小体积（以 bytes 为单位）。
 
-当使用 `number` 类型的配置时，会为所有的模块类型配置同样的 `minSize`，模块类型为 [`splitChunks.defaultSizeTypes`](/plugins/webpack/split-chunks-plugin#splitchunksdefaultsizetypes) 中定义的模块类型。
+当使用 `number` 类型的配置时，会为所有的模块类型配置同样的 `minSize`，模块类型为 [`splitChunks.defaultSizeTypes`](/plugins/split-chunks-plugin#splitchunksdefaultsizetypes) 中定义的模块类型。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -565,7 +565,7 @@ import { value2 } from 'shared';
 value2;
 ```
 
-默认的策略中 shared 模块由于同时出现在 3 个 chunk 中，如果它满足了[最小拆分体积](/plugins/webpack/split-chunks-plugin#splitchunksminsize)，那么 shared 本该被抽离到一个单独 chunk 中。
+默认的策略中 shared 模块由于同时出现在 3 个 chunk 中，如果它满足了[最小拆分体积](/plugins/split-chunks-plugin#splitchunksminsize)，那么 shared 本该被抽离到一个单独 chunk 中。
 
 ```
 chunk foo, chunk bar
@@ -732,4 +732,4 @@ export default {
 
 有可能。
 
-在 `mini-css-extract-plugin`、Rspack 的[内置 CSS 支持](/guide/tech/css#内置-css-支持)这类抽取式 CSS 场景里，splitChunks 改变 chunk group 后，最终 CSS 顺序也可能随之变化。可以参考 [Deep dive into webpack CSS order issue](https://github.com/orgs/web-infra-dev/discussions/12)。如果 CSS 顺序是主要诉求，也建议同时参考 [CssChunkingPlugin](/plugins/rspack/css-chunking-plugin)。
+在 `mini-css-extract-plugin`、Rspack 的[内置 CSS 支持](/guide/tech/css#内置-css-支持)这类抽取式 CSS 场景里，splitChunks 改变 chunk group 后，最终 CSS 顺序也可能随之变化。可以参考 [Deep dive into webpack CSS order issue](https://github.com/orgs/web-infra-dev/discussions/12)。如果 CSS 顺序是主要诉求，也建议同时参考 [CssChunkingPlugin](/plugins/css-chunking-plugin)。

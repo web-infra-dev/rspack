@@ -59,9 +59,9 @@ Please refer to the [Module Federation v2.0 official documentation](https://modu
 
 This is the version built into Rspack. In addition to supporting Module Federation v1.0's capabilities such as module export, module loading, and dependency sharing, it also adds runtime plugin functionality, allowing users to extend the behavior and functionality of module federation.
 
-In Rspack 2.0, `ModuleFederationPlugin` also further improves shared dependency Tree Shaking. You can use `shared.treeShaking` to optimize shared dependencies based on actual usage. For related options, see [ModuleFederationPlugin](/plugins/webpack/module-federation-plugin#shared).
+In Rspack 2.0, `ModuleFederationPlugin` also further improves shared dependency Tree Shaking. You can use `shared.treeShaking` to optimize shared dependencies based on actual usage. For related options, see [ModuleFederationPlugin](/plugins/module-federation-plugin#shared).
 
-You can use it through Rspack's [ModuleFederationPlugin](/plugins/webpack/module-federation-plugin) without installing any additional plugins.
+You can use it through Rspack's [ModuleFederationPlugin](/plugins/module-federation-plugin) without installing any additional plugins.
 
 ```js title="rspack.config.mjs"
 import { rspack } from '@rspack/core';
@@ -85,7 +85,7 @@ export default {
 
 This version is implemented for compatibility with [webpack.container.ModuleFederationPlugin](https://webpack.js.org/plugins/module-federation-plugin/).
 
-You can use it through Rspack's [ModuleFederationPluginV1](/plugins/webpack/module-federation-plugin-v1).
+You can use it through Rspack's [ModuleFederationPluginV1](/plugins/module-federation-plugin-v1).
 
 :::tip
 Module Federation v1.0 is no longer being iterated on, we recommend using Module Federation v1.5 or v2.0 versions.

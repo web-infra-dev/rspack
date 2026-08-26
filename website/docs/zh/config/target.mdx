@@ -122,8 +122,8 @@ Rspack 会从 target 派生多项默认配置，包括：
 
 - [`builtin:swc-loader`](/guide/features/builtin-swc-loader) 会派生 `env.targets` 或 `jsc.target`
 - [`builtin:lightningcss-loader`](/guide/features/builtin-lightningcss-loader) 会在存在浏览器目标时派生对应的 target
-- [`SwcJsMinimizerRspackPlugin`](/plugins/rspack/swc-js-minimizer-rspack-plugin) 会派生 ECMAScript target
-- [`LightningCssMinimizerRspackPlugin`](/plugins/rspack/lightning-css-minimizer-rspack-plugin) 会在存在浏览器目标时派生对应的 target
+- [`SwcJsMinimizerRspackPlugin`](/plugins/swc-js-minimizer-rspack-plugin) 会派生 ECMAScript target
+- [`LightningCssMinimizerRspackPlugin`](/plugins/lightning-css-minimizer-rspack-plugin) 会在存在浏览器目标时派生对应的 target
 
 只有经过这些工具处理的代码才会应用相应转换。由 Babel 处理的代码遵循 Babel 自身的配置。内置工具也可能将继承的 target 限制在自身支持的版本范围内。
 

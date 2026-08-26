@@ -104,7 +104,7 @@ const FullyFeatured = memo(() => {
       icon: lightningcss,
       title: 'Lightning CSS',
       description: t('featureLightningCss'),
-      link: tUrl('/plugins/rspack/lightning-css-minimizer-rspack-plugin'),
+      link: tUrl('/plugins/lightning-css-minimizer-rspack-plugin'),
     },
     {
       icon: javascriptApi,

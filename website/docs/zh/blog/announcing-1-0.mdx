@@ -69,7 +69,7 @@ Rspack 是基于 Rust 编写的下一代 JavaScript 打包工具， 兼容 webpa
 
 ### 更小的包体积
 
-生产构建的包体积一直是 Rspack 最为关注的核心指标。自 0.1 发布以来，Rspack 逐步对齐了 webpack 的各个产物优化能力，实现了完整的 [split chunks](/plugins/webpack/split-chunks-plugin#splitchunksplugin)、[tree shaking](/guide/optimization/tree-shaking)、[scope hoisting](/config/optimization#optimizationconcatenatemodules)、[mangle exports](/config/optimization#optimizationmangleexports) 等重要特性。
+生产构建的包体积一直是 Rspack 最为关注的核心指标。自 0.1 发布以来，Rspack 逐步对齐了 webpack 的各个产物优化能力，实现了完整的 [split chunks](/plugins/split-chunks-plugin#splitchunksplugin)、[tree shaking](/guide/optimization/tree-shaking)、[scope hoisting](/config/optimization#optimizationconcatenatemodules)、[mangle exports](/config/optimization#optimizationmangleexports) 等重要特性。
 
 当一个项目从 webpack 迁移到 Rspack 后，这些优化能够保障，在提升开发体验的同时，产物的包体积仍与 webpack 处于同一水平。在部分场景下，Rspack 的产物体积已经略优于 webpack。
 

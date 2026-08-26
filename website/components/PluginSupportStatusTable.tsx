@@ -45,12 +45,12 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
   },
   {
     name: 'BannerPlugin',
-    url: '/plugins/webpack/banner-plugin',
+    url: '/plugins/banner-plugin',
     status: SupportStatus.FullySupported,
   },
   {
     name: 'DefinePlugin',
-    url: '/plugins/webpack/define-plugin',
+    url: '/plugins/define-plugin',
     status: SupportStatus.PartiallySupported,
     notes: {
       en: '`rspack.DefinePlugin.runtimeValue` function not supported',
@@ -59,17 +59,17 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
   },
   {
     name: 'DllPlugin',
-    url: '/plugins/webpack/dll-plugin',
+    url: '/plugins/dll-plugin',
     status: SupportStatus.FullySupported,
   },
   {
     name: 'EnvironmentPlugin',
-    url: '/plugins/webpack/environment-plugin',
+    url: '/plugins/environment-plugin',
     status: SupportStatus.FullySupported,
   },
   {
     name: 'EvalSourceMapDevToolPlugin',
-    url: '/plugins/webpack/eval-source-map-dev-tool-plugin',
+    url: '/plugins/eval-source-map-dev-tool-plugin',
     status: SupportStatus.FullySupported,
   },
   {
@@ -78,17 +78,17 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
   },
   {
     name: 'HotModuleReplacementPlugin',
-    url: '/plugins/webpack/hot-module-replacement-plugin',
+    url: '/plugins/hot-module-replacement-plugin',
     status: SupportStatus.FullySupported,
   },
   {
     name: 'IgnorePlugin',
-    url: '/plugins/webpack/ignore-plugin',
+    url: '/plugins/ignore-plugin',
     status: SupportStatus.FullySupported,
   },
   {
     name: 'LimitChunkCountPlugin',
-    url: '/plugins/webpack/limit-chunk-count-plugin',
+    url: '/plugins/limit-chunk-count-plugin',
     status: SupportStatus.FullySupported,
   },
   {
@@ -101,7 +101,7 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
   },
   {
     name: 'ModuleFederationPlugin',
-    url: '/plugins/webpack/module-federation-plugin',
+    url: '/plugins/module-federation-plugin',
     status: SupportStatus.FullySupported,
   },
   {
@@ -110,7 +110,7 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
   },
   {
     name: 'NormalModuleReplacementPlugin',
-    url: '/plugins/webpack/normal-module-replacement-plugin',
+    url: '/plugins/normal-module-replacement-plugin',
     status: SupportStatus.FullySupported,
   },
   {
@@ -123,7 +123,7 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
   },
   {
     name: 'ProgressPlugin',
-    url: '/plugins/webpack/progress-plugin',
+    url: '/plugins/progress-plugin',
     status: SupportStatus.PartiallySupported,
     notes: {
       zh: '仅支持部分选项',
@@ -132,17 +132,17 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
   },
   {
     name: 'ProvidePlugin',
-    url: '/plugins/webpack/provide-plugin',
+    url: '/plugins/provide-plugin',
     status: SupportStatus.FullySupported,
   },
   {
     name: 'SourceMapDevToolPlugin',
-    url: '/plugins/webpack/source-map-dev-tool-plugin',
+    url: '/plugins/source-map-dev-tool-plugin',
     status: SupportStatus.FullySupported,
   },
   {
     name: 'SplitChunksPlugin',
-    url: '/plugins/webpack/split-chunks-plugin',
+    url: '/plugins/split-chunks-plugin',
     status: SupportStatus.FullySupported,
   },
   {
@@ -165,7 +165,7 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
   },
   {
     name: 'EntryPlugin',
-    url: '/plugins/webpack/entry-plugin',
+    url: '/plugins/entry-plugin',
     status: SupportStatus.PartiallySupported,
     notes: {
       en: '`wasmLoading` option is not supported',
@@ -174,12 +174,12 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
   },
   {
     name: 'JsonpTemplatePlugin',
-    url: '/plugins/webpack/jsonp-template-plugin',
+    url: '/plugins/jsonp-template-plugin',
     status: SupportStatus.FullySupported,
   },
   {
     name: 'NodeTemplatePlugin',
-    url: '/plugins/webpack/node-template-plugin',
+    url: '/plugins/node-template-plugin',
     status: SupportStatus.FullySupported,
   },
   {
@@ -188,7 +188,7 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
   },
   {
     name: 'WebWorkerTemplatePlugin',
-    url: '/plugins/webpack/web-worker-template-plugin',
+    url: '/plugins/web-worker-template-plugin',
     status: SupportStatus.FullySupported,
   },
   {
@@ -213,7 +213,7 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
   },
   {
     name: 'NodeTargetPlugin',
-    url: '/plugins/webpack/node-target-plugin',
+    url: '/plugins/node-target-plugin',
     status: SupportStatus.FullySupported,
   },
   {
@@ -296,7 +296,7 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
   },
   {
     name: 'ContextReplacementPlugin',
-    url: '/plugins/webpack/context-replacement-plugin',
+    url: '/plugins/context-replacement-plugin',
     status: SupportStatus.FullySupported,
   },
   {
@@ -321,7 +321,7 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
   },
   {
     name: 'DllReferencePlugin',
-    url: '/plugins/webpack/dll-reference-plugin',
+    url: '/plugins/dll-reference-plugin',
     status: SupportStatus.FullySupported,
   },
   {
@@ -334,22 +334,22 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
   },
   {
     name: 'ElectronTargetPlugin',
-    url: '/plugins/webpack/electron-target-plugin',
+    url: '/plugins/electron-target-plugin',
     status: SupportStatus.FullySupported,
   },
   {
     name: 'EnableChunkLoadingPlugin',
-    url: '/plugins/webpack/enable-chunk-loading-plugin',
+    url: '/plugins/enable-chunk-loading-plugin',
     status: SupportStatus.FullySupported,
   },
   {
     name: 'EnableLibraryPlugin',
-    url: '/plugins/webpack/enable-library-plugin',
+    url: '/plugins/enable-library-plugin',
     status: SupportStatus.FullySupported,
   },
   {
     name: 'EnableWasmLoadingPlugin',
-    url: '/plugins/webpack/enable-wasm-loading-plugin',
+    url: '/plugins/enable-wasm-loading-plugin',
     status: SupportStatus.FullySupported,
   },
   {
@@ -358,12 +358,12 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
   },
   {
     name: 'ExternalsPlugin',
-    url: '/plugins/webpack/externals-plugin',
+    url: '/plugins/externals-plugin',
     status: SupportStatus.FullySupported,
   },
   {
     name: 'FetchCompileAsyncWasmPlugin',
-    url: '/plugins/webpack/internal-plugins#fetchcompileasyncwasmplugin',
+    url: '/plugins/internal-plugins#fetchcompileasyncwasmplugin',
     status: SupportStatus.FullySupported,
   },
   {
@@ -436,7 +436,7 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
   },
   {
     name: 'RuntimeChunkPlugin',
-    url: '/plugins/webpack/runtime-chunk-plugin',
+    url: '/plugins/runtime-chunk-plugin',
     status: SupportStatus.FullySupported,
   },
   {
@@ -449,7 +449,7 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
   },
   {
     name: 'CaseSensitivePlugin',
-    url: '/plugins/webpack/case-sensitive-plugin',
+    url: '/plugins/case-sensitive-plugin',
     status: SupportStatus.FullySupported,
   },
 ].sort((a, b) => {

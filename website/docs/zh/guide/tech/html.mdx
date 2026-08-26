@@ -13,11 +13,11 @@ Rspack 提供两种插件用于生成 HTML：
 - 内置的 `HtmlRspackPlugin` 针对性能和常见 HTML 生成场景做了优化；
 - 兼容社区的 `HtmlWebpackPlugin`，适合需要更完整的 webpack 生态兼容性，或需要 `HtmlRspackPlugin` 尚未实现的功能。
 
-如果你不确定应该选择哪个插件，可以先查看 [HtmlRspackPlugin 与 HtmlWebpackPlugin 的对比](/plugins/rspack/html-rspack-plugin#对比)，了解两者在性能、功能和兼容性上的差异。
+如果你不确定应该选择哪个插件，可以先查看 [HtmlRspackPlugin 与 HtmlWebpackPlugin 的对比](/plugins/html-rspack-plugin#对比)，了解两者在性能、功能和兼容性上的差异。
 
 ### 内置 HtmlRspackPlugin
 
-[HtmlRspackPlugin](/plugins/rspack/html-rspack-plugin) 是以 Rust 实现的高性能 HTML 插件，它的构建性能显著优于 `HtmlWebpackPlugin` 插件，尤其是在构建大量 HTML 文件的场景下。
+[HtmlRspackPlugin](/plugins/html-rspack-plugin) 是以 Rust 实现的高性能 HTML 插件，它的构建性能显著优于 `HtmlWebpackPlugin` 插件，尤其是在构建大量 HTML 文件的场景下。
 
 ```js title="rspack.config.mjs"
 import { rspack } from '@rspack/core';
@@ -27,7 +27,7 @@ export default {
 };
 ```
 
-有关所有配置选项，请参阅[插件文档](/plugins/rspack/html-rspack-plugin)。
+有关所有配置选项，请参阅[插件文档](/plugins/html-rspack-plugin)。
 
 ### HtmlWebpackPlugin
 

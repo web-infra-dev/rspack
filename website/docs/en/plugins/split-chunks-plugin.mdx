@@ -3,7 +3,7 @@ description: 'SplitChunksPlugin is a built-in plugin that splits code into multi
 ---
 
 import WebpackLicense from '@components/WebpackLicense';
-import { ApiMeta } from '../../../../components/ApiMeta';
+import { ApiMeta } from '@components/ApiMeta';
 
 <WebpackLicense from="https://webpack.js.org/configuration/optimization/" />
 
@@ -281,7 +281,7 @@ Prevents exposing path info when creating names for parts splitted by maxSize.
 - **Type:** `number | Record<string, number>`
 - **Default:** `20000` in production and `10000` in others
 
-When using the `number` type of configuration, the same `minSize` will be configured for all module types defined in [`splitChunks.defaultSizeTypes`](/plugins/webpack/split-chunks-plugin#splitchunksdefaultsizetypes).
+When using the `number` type of configuration, the same `minSize` will be configured for all module types defined in [`splitChunks.defaultSizeTypes`](/plugins/split-chunks-plugin#splitchunksdefaultsizetypes).
 
 ```js title="rspack.config.mjs"
 export default {
@@ -571,7 +571,7 @@ import { value2 } from 'shared';
 value2;
 ```
 
-In the default strategy, the `shared` module appears in 3 chunks. If it meets the [minSize for splitting](/plugins/webpack/split-chunks-plugin#splitchunksminsize), then the `shared` module should be extracted into a separate chunk.
+In the default strategy, the `shared` module appears in 3 chunks. If it meets the [minSize for splitting](/plugins/split-chunks-plugin#splitchunksminsize), then the `shared` module should be extracted into a separate chunk.
 
 ```
 chunk foo, chunk bar
@@ -738,4 +738,4 @@ No. Tree shaking decides what code is kept. `splitChunks` only decides how kept 
 
 Yes, potentially. This caveat is about extracted CSS, not JavaScript execution order.
 
-In extracted CSS flows such as `mini-css-extract-plugin` or Rspack's [Built-in CSS support](/guide/tech/css#built-in-css-support), changing chunk groups with splitChunks can also change final CSS order. See [Deep dive into webpack CSS order issue](https://github.com/orgs/web-infra-dev/discussions/12) for background. If CSS order is the primary concern, also review [CssChunkingPlugin](/plugins/rspack/css-chunking-plugin).
+In extracted CSS flows such as `mini-css-extract-plugin` or Rspack's [Built-in CSS support](/guide/tech/css#built-in-css-support), changing chunk groups with splitChunks can also change final CSS order. See [Deep dive into webpack CSS order issue](https://github.com/orgs/web-infra-dev/discussions/12) for background. If CSS order is the primary concern, also review [CssChunkingPlugin](/plugins/css-chunking-plugin).

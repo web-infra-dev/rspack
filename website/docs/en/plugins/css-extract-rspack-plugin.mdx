@@ -1,5 +1,5 @@
 ---
-description: 'Rspack 目前不兼容 mini-css-extract-plugin，但可以使用 CssExtractRspackPlugin 替代，它可以和 css-loader 搭配使用，用于将 CSS 提取成单独文件。'
+description: 'Rspack is currently incompatible with mini-css-extract-plugin, but you can use the CssExtractRspackPlugin as a replacement'
 ---
 
 import { Table } from '@builtIns';
@@ -9,13 +9,13 @@ import { ApiMeta } from '@components/ApiMeta.tsx';
 
 <ApiMeta specific={['Rspack']} />
 
-Rspack 目前不兼容 [mini-css-extract-plugin](https://github.com/webpack/mini-css-extract-plugin)，但可以使用 CssExtractRspackPlugin 替代，它可以和 css-loader 搭配使用，用于将 CSS 提取成单独文件。
+Rspack is currently incompatible with [mini-css-extract-plugin](https://github.com/webpack/mini-css-extract-plugin), but you can use the CssExtractRspackPlugin as a replacement. It can be used with css-loader to extract CSS into separate files.
 
-> 如果你的项目不依赖于 css-loader 和 mini-css-extract-plugin，我们更推荐使用 Rspack [内置的 CSS 解决方案](/guide/tech/css)，它的性能更好。
+> If your project does not depend on css-loader and mini-css-extract-plugin, it is recommended to use Rspack's built-in CSS solution, which offers better performance.
 
-## 示例
+## Example
 
-使用 CssExtractRspackPlugin 时，需要在 `plugins` 中注册插件，并在 [module.rules](/config/module#modulerules) 中注册 `CssExtractRspackPlugin.loader`。
+When using CssExtractRspackPlugin, you need to register the plugin in the `plugins` section and register `CssExtractRspackPlugin.loader` in [module.rules](/config/module#modulerules).
 
 ```ts title="rspack.config.mjs"
 import { rspack } from '@rspack/core';
@@ -34,9 +34,9 @@ export default {
 };
 ```
 
-### 通过 splitChunks 拆分提取出的 CSS
+### Split extracted CSS with splitChunks
 
-`CssExtractRspackPlugin` 会为提取出的 CSS 模块添加 `css/mini-extract` 模块类型。你可以使用 [`splitChunks.cacheGroups.{cacheGroup}.type`](/plugins/webpack/split-chunks-plugin#splitchunkscachegroupscachegrouptype) 创建一个只命中 `CssExtractRspackPlugin` 提取出的 CSS 的 cache group，而不会命中 JavaScript 模块或内置 CSS 模块。
+`CssExtractRspackPlugin` adds extracted CSS modules with the `css/mini-extract` module type. You can use [`splitChunks.cacheGroups.{cacheGroup}.type`](/plugins/split-chunks-plugin#splitchunkscachegroupscachegrouptype) to create a cache group that only matches CSS extracted by `CssExtractRspackPlugin`, without matching JavaScript modules or native CSS modules.
 
 ```ts title="rspack.config.mjs"
 import { rspack } from '@rspack/core';
@@ -68,11 +68,11 @@ export default {
 };
 ```
 
-在这个例子中，`extractedCss` 只会选择模块类型为 `css/mini-extract` 的模块。`enforce: true` 会让 CSS chunk 即使在普通 `minSize` 或请求数限制启发式规则下会被跳过时也被创建；如果希望该 cache group 遵循普通 splitChunks 启发式规则，可以移除 `enforce`。
+In this example, `extractedCss` only selects modules whose module type is `css/mini-extract`. `enforce: true` makes the CSS chunk be created even when the normal `minSize` or request-limit heuristics would skip it; remove `enforce` if you want the cache group to follow the normal splitChunks heuristics.
 
-## Plugin 选项
+## Plugin options
 
-CssExtractRspackPlugin 插件的选项。
+Options for `CssExtractRspackPlugin`.
 
 - **Types:**
 
@@ -94,19 +94,19 @@ interface PluginOptions {
 <Table
   header={[
     {
-      name: '名称',
+      name: 'Name',
       key: 'name',
     },
     {
-      name: '类型',
+      name: 'Type',
       key: 'type',
     },
     {
-      name: '默认值',
+      name: 'Default Value',
       key: 'default',
     },
     {
-      name: '描述',
+      name: 'Description',
       key: 'description',
     },
   ]}
@@ -115,67 +115,70 @@ interface PluginOptions {
       name: '`filename`',
       type: '`string`',
       default: '"[name].css"',
-      description: 'CSS 产物的名称，请参考 `output.filename`',
+      description:
+        'The name of each CSS output file, please refer to `output.filename`',
     },
     {
       name: '`chunkFilename`',
       type: '`string`',
       default: '"[name].css"',
       description:
-        '异步加载的 CSS 产物的名称，如果不设置则会使用 `filename`，请参考 `output.chunkFilename`',
+        'The name of the asynchronously loaded CSS files. If not set, it will use `filename`; please refer to `output.chunkFilename`',
     },
     {
       name: '`ignoreOrder`',
       type: '`boolean`',
       default: 'false',
       description:
-        '若某些 CSS 在不同 chunk 中顺序有冲突，是否发出警告。例如 entryA 引入 a.css 和 b.css，entryB 引入 b.css 和 a.css，a.css 和 b.css 的顺序无法确定',
+        'Whether to issue a warning if there are conflicts in the order of some CSS in different chunks. For example, entryA introduces a.css and b.css, entryB introduces b.css and a.css, and the order of a.css and b.css cannot be determined',
     },
     {
       name: '`insert`',
       type: '`string | ((linkTag: HTMLLinkElement) => void)`',
       default: 'undefined',
       description:
-        '决定 link 标签怎样插入到页面，如果传入 string 类型，则会视为 DOM 选择器，link 标签会插入到该选择器对应的元素后。如果传入 function 类型，则会将 function 转成字符串，在运行时进行调用，参数是 link 标签',
+        'Decide how the link tag is inserted into the page. If passed as a string type, it will be regarded as DOM selector, and the link tag will be inserted after element corresponding to that selector. If passed as function type, the function will be converted into a string at runtime for invocation, with link tag as parameter',
     },
     {
       name: '`attributes`',
       type: '`Record<string, string>`',
       default: 'undefined',
       description:
-        '设置 link 标签的自定义 attributes，仅对异步加载的 CSS 文件生效',
+        'Adds custom attributes to the `link` tag for async CSS chunks',
     },
     {
       name: '`linkType`',
       type: "`string | 'text/css' | false`",
       default: '"text/css"',
-      description: '设置 link 标签的 type 属性值，仅对异步加载的 CSS 文件生效',
+      description:
+        'Set the `type` attribute value for link tags to load async CSS chunks',
     },
     {
       name: '`runtime`',
       type: '`boolean`',
       default: 'true',
-      description:
-        '是否注入 runtime 代码以加载 CSS。如果禁用，CSS 仍然会被提取，可用于自定义的加载方式',
+      description: `Whether to inject runtime code for CSS loading. If disabled, CSS will be still extracted and can be used for a custom loading methods`,
     },
     {
       name: '`pathinfo`',
       type: '`boolean`',
       default: 'false',
-      description: '是否在 CSS 产物中包含带有更详细的路径信息的注释',
+      description:
+        'Whether to include comments in CSS bundles with more detailed path information',
     },
     {
       name: '`enforceRelative`',
       type: '`boolean`',
       default: 'false',
-      description: '是否在生成的 CSS `url()` 是相对路径时，保留 "\.\/"',
+      description:
+        'Whether to preserve "\.\/" when generated CSS `url()` is relative',
     },
   ]}
 />
 
-## Loader 选项
+## Loader options
 
-`CssExtractRspackPlugin.loader` 的选项。
+Options for `CssExtractRspackPlugin.loader`.
 
 - **Types:**
 
@@ -190,19 +193,19 @@ interface LoaderOptions {
 <Table
   header={[
     {
-      name: '名称',
+      name: 'Name',
       key: 'name',
     },
     {
-      name: '类型',
+      name: 'Type',
       key: 'type',
     },
     {
-      name: '默认值',
+      name: 'Default Value',
       key: 'default',
     },
     {
-      name: '描述',
+      name: 'Description',
       key: 'description',
     },
   ]}
@@ -212,30 +215,30 @@ interface LoaderOptions {
       type: '`string | ((resourcePath: string, context: string) => string)`',
       default: 'output.publicPath',
       description:
-        '为 CSS 中的外部资源（如图片、文件等）指定自定义的 publicPath',
+        'Specifies a custom public path for the external resources like images, files, etc inside CSS',
     },
     {
       name: '`emit`',
       type: '`boolean`',
       default: 'true',
       description:
-        '如果为 true，则输出 CSS 文件。如果为 false，则插件将提取 CSS，但不会输出文件',
+        'If true, emits CSS files. If false, the plugin will extract the CSS but will not emit files',
     },
     {
       name: '`esModule`',
       type: '`boolean`',
       default: 'true',
       description:
-        '在生成的 JavaScript 模块中，是否使用 ES 模块语法进行 CSS Modules 类名导出',
+        'whether to use ES modules syntax for CSS Modules class name exports in the generated JavaScript module',
     },
   ]}
 />
 
-## 注意事项
+## Note
 
-当同时使用内置 CSS 和 `CssExtractRspackPlugin` 时，推荐显式手动给 `CssExtractRspackPlugin.loader` 的 `type` 设置成 `javascript/auto`。
+Please note that if you want to use this plugin and css together, it's recommended to explicitly set type to `javascript/auto`.
 
-例如：
+For example:
 
 ```ts title="rspack.config.mjs"
 import { rspack } from '@rspack/core';
@@ -246,17 +249,14 @@ export default {
     rules: [
       {
         test: /src\/legacy-project\/.*\.css$/,
-        type: 'javascript/auto', // 覆盖默认的 CSS 模块类型，视为普通 JS 文件
+        type: 'javascript/auto', // Cover the default CSS module type and treat it as a regular JS file.
         use: [rspack.CssExtractRspackPlugin.loader, 'css-loader'],
       },
       {
         test: /src\/new-project\/.*\.css$/,
-        type: 'css/auto', // 使用内置 CSS 处理
+        type: 'css/auto', // Handle with built-in CSS
       },
     ],
-  },
-  experiments: {
-    css: true,
   },
 };
 ```
