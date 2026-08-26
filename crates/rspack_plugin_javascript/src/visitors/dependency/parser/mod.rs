@@ -1691,7 +1691,7 @@ impl<'parser> JavascriptParser<'parser> {
               let mut eval = BasicEvaluatedExpression::with_range(span.real_lo(), span.real_hi());
               eval.set_identifier(
                 name.clone(),
-                ExportedVariableInfo::Name(name.clone()),
+                ExportedVariableInfo::Name(name),
                 None,
                 None,
                 None,
