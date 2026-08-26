@@ -146,7 +146,7 @@ export default {
 };
 ```
 
-You can also target a specific date with `baseline widely available on 2025-05-01`. See the [`target` configuration documentation](/config/target#baseline-queries) for details.
+You can also use `baseline widely available on 2025-05-01` to target features that were widely available on a specific date. See the [`target` configuration documentation](/config/target#baseline-queries) for details.
 
 ### Support for more platforms \{#more-linux-platforms}
 
@@ -281,7 +281,7 @@ Rsbuild plugins can also run custom logic by listening to the [`onRestart`](http
 
 #### Module Federation testing \{#rstest-module-federation}
 
-Rstest now supports Module Federation testing, allowing you to test actual federated remote modules directly in Node.js, JSDOM, and Browser Mode environments.
+Rstest now supports Module Federation testing, allowing you to directly test real remote modules exposed through Module Federation in Node.js, JSDOM, and Browser Mode environments.
 
 Add `@module-federation/rstest` to your Rstest configuration:
 
@@ -305,7 +305,7 @@ export default defineConfig({
 
 Rstest now provides [`@rstest/playwright`](https://rstest.rs/guide/advanced/playwright), bringing Rstest's test runner, configuration, and reporting capabilities to E2E testing.
 
-It provides Playwright-style assertion APIs for testing local development servers, preview servers, or deployed applications while using the same workflow as unit tests:
+It provides Playwright-style assertion APIs for testing local development servers, preview servers, or deployed applications, so E2E tests can use the same workflow as unit tests:
 
 ```ts
 import { expect, test } from '@rstest/playwright';
@@ -342,7 +342,7 @@ export default defineConfig({
 });
 ```
 
-When set to `'auto'`, Rstest only prebundles versions of the test environment that have been verified as compatible. If Rstest cannot build, load, or verify the prebundled output, it automatically falls back to native loading. Actual improvements vary depending on project size and runtime environment.
+When set to `'auto'`, Rstest only prebundles versions of `jsdom` and `happy-dom` that have been verified as compatible. If Rstest cannot build, load, or verify the prebundled output, it automatically falls back to native loading. Actual improvements vary depending on project size and runtime environment.
 
 ### Rslint \{#rslint}
 
