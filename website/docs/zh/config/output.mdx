@@ -1812,6 +1812,23 @@ export default {
 };
 ```
 
+## output.wasmStreamingFallback
+
+- **类型：** `boolean`
+- **默认值：** `true`
+
+控制生成的 WebAssembly 加载运行时代码是否在 `WebAssembly.compileStreaming` 或 `WebAssembly.instantiateStreaming` 因响应未使用 `application/wasm` MIME 类型而失败时，回退到非流式 API。
+
+如果服务器始终以正确的 MIME 类型提供 WebAssembly 文件，可以将此选项设置为 `false`，从而省略相关的回退运行时代码。
+
+```js title="rspack.config.mjs"
+export default {
+  output: {
+    wasmStreamingFallback: false,
+  },
+};
+```
+
 ## output.webassemblyModuleFilename
 
 - **类型：** `string`

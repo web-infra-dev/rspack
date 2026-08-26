@@ -469,6 +469,7 @@ module.exports = {
 			    trustedTypes: undefined,
 			    uniqueName: @rspack/tests,
 			    wasmLoading: fetch,
+			    wasmStreamingFallback: true,
 			    webassemblyModuleFilename: [hash].module.wasm,
 			    workerChunkLoading: import-scripts,
 			    workerPublicPath: ,

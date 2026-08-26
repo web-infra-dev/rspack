@@ -863,6 +863,7 @@ const applyOutputDefaults = (
   F(output, 'chunkLoadingGlobal', () => `rspackChunk${uniqueNameId}`);
   D(output, 'assetModuleFilename', '[hash][ext][query]');
   D(output, 'webassemblyModuleFilename', '[hash].module.wasm');
+  D(output, 'wasmStreamingFallback', true);
   D(output, 'compareBeforeEmit', true);
   if (output.path && !path.isAbsolute(output.path)) {
     if (!context) {
