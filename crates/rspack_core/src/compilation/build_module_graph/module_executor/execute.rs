@@ -248,34 +248,18 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
       }
       let module = mg.module_by_identifier(&m).expect("should have module");
       let build_info = module.build_info();
-      execute_result.file_dependencies.extend(
-        build_info
-          .dependency_context
-          .file_dependencies
-          .iter()
-          .cloned(),
-      );
-      execute_result.context_dependencies.extend(
-        build_info
-          .dependency_context
-          .context_dependencies
-          .iter()
-          .cloned(),
-      );
-      execute_result.missing_dependencies.extend(
-        build_info
-          .dependency_context
-          .missing_dependencies
-          .iter()
-          .cloned(),
-      );
-      execute_result.build_dependencies.extend(
-        build_info
-          .dependency_context
-          .build_dependencies
-          .iter()
-          .cloned(),
-      );
+      execute_result
+        .file_dependencies
+        .extend(build_info.dependency_context.file.iter().cloned());
+      execute_result
+        .context_dependencies
+        .extend(build_info.dependency_context.context.iter().cloned());
+      execute_result
+        .missing_dependencies
+        .extend(build_info.dependency_context.missing.iter().cloned());
+      execute_result
+        .build_dependencies
+        .extend(build_info.dependency_context.build.iter().cloned());
       if !build_info.cacheable {
         execute_result.cacheable = false;
       }

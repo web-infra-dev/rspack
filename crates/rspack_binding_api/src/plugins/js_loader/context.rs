@@ -106,22 +106,22 @@ impl From<&LoaderDependencyContext> for JsLoaderDependencyContext {
   fn from(value: &LoaderDependencyContext) -> Self {
     Self {
       file_dependencies: value
-        .file_dependencies
+        .file
         .iter()
         .map(|path| path.to_string_lossy().into_owned())
         .collect(),
       context_dependencies: value
-        .context_dependencies
+        .context
         .iter()
         .map(|path| path.to_string_lossy().into_owned())
         .collect(),
       missing_dependencies: value
-        .missing_dependencies
+        .missing
         .iter()
         .map(|path| path.to_string_lossy().into_owned())
         .collect(),
       build_dependencies: value
-        .build_dependencies
+        .build
         .iter()
         .map(|path| path.to_string_lossy().into_owned())
         .collect(),
@@ -132,25 +132,25 @@ impl From<&LoaderDependencyContext> for JsLoaderDependencyContext {
 impl From<JsLoaderDependencyContext> for LoaderDependencyContext {
   fn from(value: JsLoaderDependencyContext) -> Self {
     Self {
-      file_dependencies: value
+      file: value
         .file_dependencies
         .iter()
         .map(String::as_str)
         .map(Into::into)
         .collect(),
-      context_dependencies: value
+      context: value
         .context_dependencies
         .iter()
         .map(String::as_str)
         .map(Into::into)
         .collect(),
-      missing_dependencies: value
+      missing: value
         .missing_dependencies
         .iter()
         .map(String::as_str)
         .map(Into::into)
         .collect(),
-      build_dependencies: value
+      build: value
         .build_dependencies
         .iter()
         .map(String::as_str)
@@ -228,7 +228,7 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
         .map(|v| v.to_json())
         .map(|v| v.into_bytes().into()),
       cacheable: cx.cacheable,
-      dependency_context: (&cx.dependency_context).into(),
+      dependency_context: cx.dependency_context().into(),
 
       loader_items: cx.loader_items.iter().map(Into::into).collect(),
       loader_index: cx.loader_index,

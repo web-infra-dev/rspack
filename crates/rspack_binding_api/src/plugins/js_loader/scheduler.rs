@@ -85,7 +85,7 @@ pub(crate) fn merge_loader_context(
   mut from: JsLoaderContext,
 ) -> Result<()> {
   to.cacheable = from.cacheable;
-  to.dependency_context = from.dependency_context.into();
+  to.replace_dependency_context(from.dependency_context.into());
 
   if let Some(error) = from.error {
     return Err(error.with_parent_error_name("ModuleBuildError").into());

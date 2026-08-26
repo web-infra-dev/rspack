@@ -41,10 +41,10 @@ async fn process_resource<Context: Send>(
   {
     loader_context.content = Some(content);
     loader_context.source_map = source_map.map(Box::new);
-    loader_context
-      .dependency_context
-      .file_dependencies
-      .extend(file_dependencies);
+    for dependency in file_dependencies {
+      loader_context.add_file_dependency(dependency);
+    }
+    loader_context.merge_dependency_context_changes();
     return Ok(());
   }
 
@@ -73,9 +73,7 @@ fn create_loader_context<Context: Send>(
   if let Some(resource_path) = resource_data.path()
     && resource_path.is_absolute()
   {
-    dependency_context
-      .file_dependencies
-      .insert(resource_path.into());
+    dependency_context.file.insert(resource_path.into());
   }
 
   LoaderContext {
@@ -83,6 +81,8 @@ fn create_loader_context<Context: Send>(
     cacheable: true,
     parse_meta: Default::default(),
     dependency_context,
+    added_dependency_context: Default::default(),
+    removed_dependency_context: Default::default(),
     content: None,
     context,
     source_map: None,
@@ -160,7 +160,10 @@ async fn run_loaders_impl<Context: Send>(
         cx.current_loader().set_pitch_executed();
         let loader = cx.current_loader().loader().clone();
         let span = info_span!("run_loader:pitch", resource);
-        loader.pitch(cx).instrument(span).await?;
+        cx.reset_dependency_context_changes();
+        let result = loader.pitch(cx).instrument(span).await;
+        cx.merge_dependency_context_changes();
+        result?;
         if cx.content.is_some() {
           cx.state.transition(State::Normal);
           cx.loader_index -= 1;
@@ -196,20 +199,21 @@ async fn run_loaders_impl<Context: Send>(
         let loader = cx.current_loader().loader().clone();
 
         let span = info_span!("run_loader:normal", resource);
-        if let Some(plugin) = cx.plugin.clone() {
-          plugin
-            .run_normal_loader(cx, loader)
-            .instrument(span)
-            .await?;
+        cx.reset_dependency_context_changes();
+        let result = if let Some(plugin) = cx.plugin.clone() {
+          plugin.run_normal_loader(cx, loader).instrument(span).await
         } else {
-          loader.run(cx).instrument(span).await?;
-          if !cx.current_loader().finish_called() {
+          let result = loader.run(cx).instrument(span).await;
+          if result.is_ok() && !cx.current_loader().finish_called() {
             // If nothing is returned from this loader,
             // we set everything to [None] and move to the next loader.
             // This mocks the behavior of webpack loader-runner.
             cx.finish_with_empty();
           }
-        }
+          result
+        };
+        cx.merge_dependency_context_changes();
+        result?;
       }
       State::Finished => break,
     }

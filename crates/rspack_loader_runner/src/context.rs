@@ -3,7 +3,7 @@ use std::sync::Arc;
 use derive_more::Debug;
 use rspack_cacheable::cacheable;
 use rspack_error::Diagnostic;
-use rspack_paths::{InternedPathSet, Utf8Path};
+use rspack_paths::{InternedPath, InternedPathSet, Utf8Path};
 use rspack_sources::SourceMap;
 
 use crate::{
@@ -36,10 +36,19 @@ impl State {
 #[cacheable]
 #[derive(Clone, Debug, Default)]
 pub struct LoaderDependencyContext {
-  pub file_dependencies: InternedPathSet,
-  pub context_dependencies: InternedPathSet,
-  pub missing_dependencies: InternedPathSet,
-  pub build_dependencies: InternedPathSet,
+  pub file: InternedPathSet,
+  pub context: InternedPathSet,
+  pub missing: InternedPathSet,
+  pub build: InternedPathSet,
+}
+
+impl LoaderDependencyContext {
+  pub fn is_empty(&self) -> bool {
+    self.file.is_empty()
+      && self.context.is_empty()
+      && self.missing.is_empty()
+      && self.build.is_empty()
+  }
 }
 
 #[derive(Debug)]
@@ -55,7 +64,13 @@ pub struct LoaderContext<Context: Send> {
   pub(crate) additional_data: Option<AdditionalData>,
 
   pub cacheable: bool,
-  pub dependency_context: LoaderDependencyContext,
+  /// Dependencies committed by resource processing and preceding loaders.
+  pub(crate) dependency_context: LoaderDependencyContext,
+  /// Dependencies added by the current native loader. A dependency remains
+  /// here even when it was already present in `dependency_context`.
+  pub(crate) added_dependency_context: LoaderDependencyContext,
+  /// Dependencies removed by the current native loader.
+  pub(crate) removed_dependency_context: LoaderDependencyContext,
 
   pub diagnostics: Vec<Diagnostic>,
 
@@ -68,6 +83,158 @@ pub struct LoaderContext<Context: Send> {
 }
 
 impl<Context: Send> LoaderContext<Context> {
+  pub fn dependency_context(&self) -> &LoaderDependencyContext {
+    &self.dependency_context
+  }
+
+  pub fn file_dependencies(&self) -> &InternedPathSet {
+    &self.dependency_context.file
+  }
+
+  pub fn context_dependencies(&self) -> &InternedPathSet {
+    &self.dependency_context.context
+  }
+
+  pub fn missing_dependencies(&self) -> &InternedPathSet {
+    &self.dependency_context.missing
+  }
+
+  pub fn build_dependencies(&self) -> &InternedPathSet {
+    &self.dependency_context.build
+  }
+
+  #[doc(hidden)]
+  pub fn added_dependency_context(&self) -> &LoaderDependencyContext {
+    &self.added_dependency_context
+  }
+
+  #[doc(hidden)]
+  pub fn removed_dependency_context(&self) -> &LoaderDependencyContext {
+    &self.removed_dependency_context
+  }
+
+  #[doc(hidden)]
+  pub fn reset_dependency_context_changes(&mut self) {
+    self.added_dependency_context = Default::default();
+    self.removed_dependency_context = Default::default();
+  }
+
+  #[doc(hidden)]
+  pub fn merge_dependency_context_changes(&mut self) {
+    macro_rules! merge_dependencies {
+      ($field:ident) => {{
+        for dependency in self.removed_dependency_context.$field.drain() {
+          self.dependency_context.$field.remove(&dependency);
+        }
+        self
+          .dependency_context
+          .$field
+          .extend(self.added_dependency_context.$field.drain());
+      }};
+    }
+
+    merge_dependencies!(file);
+    merge_dependencies!(context);
+    merge_dependencies!(missing);
+    merge_dependencies!(build);
+  }
+
+  #[doc(hidden)]
+  pub fn replace_dependency_context(&mut self, dependency_context: LoaderDependencyContext) {
+    self.dependency_context = dependency_context;
+    self.reset_dependency_context_changes();
+  }
+
+  #[doc(hidden)]
+  pub fn add_dependency_context(&mut self, dependency_context: &LoaderDependencyContext) {
+    for dependency in &dependency_context.file {
+      self.add_file_dependency(dependency.clone());
+    }
+    for dependency in &dependency_context.context {
+      self.add_context_dependency(dependency.clone());
+    }
+    for dependency in &dependency_context.missing {
+      self.add_missing_dependency(dependency.clone());
+    }
+    for dependency in &dependency_context.build {
+      self.add_build_dependency(dependency.clone());
+    }
+  }
+
+  pub fn add_file_dependency(&mut self, dependency: impl Into<InternedPath>) {
+    let dependency = dependency.into();
+    self.removed_dependency_context.file.remove(&dependency);
+    self.added_dependency_context.file.insert(dependency);
+  }
+
+  pub fn add_context_dependency(&mut self, dependency: impl Into<InternedPath>) {
+    let dependency = dependency.into();
+    self.removed_dependency_context.context.remove(&dependency);
+    self.added_dependency_context.context.insert(dependency);
+  }
+
+  pub fn add_missing_dependency(&mut self, dependency: impl Into<InternedPath>) {
+    let dependency = dependency.into();
+    self.removed_dependency_context.missing.remove(&dependency);
+    self.added_dependency_context.missing.insert(dependency);
+  }
+
+  pub fn add_build_dependency(&mut self, dependency: impl Into<InternedPath>) {
+    let dependency = dependency.into();
+    self.removed_dependency_context.build.remove(&dependency);
+    self.added_dependency_context.build.insert(dependency);
+  }
+
+  pub fn remove_file_dependency(&mut self, dependency: impl Into<InternedPath>) {
+    let dependency = dependency.into();
+    self.added_dependency_context.file.remove(&dependency);
+    if self.dependency_context.file.contains(&dependency) {
+      self.removed_dependency_context.file.insert(dependency);
+    }
+  }
+
+  pub fn remove_context_dependency(&mut self, dependency: impl Into<InternedPath>) {
+    let dependency = dependency.into();
+    self.added_dependency_context.context.remove(&dependency);
+    if self.dependency_context.context.contains(&dependency) {
+      self.removed_dependency_context.context.insert(dependency);
+    }
+  }
+
+  pub fn remove_missing_dependency(&mut self, dependency: impl Into<InternedPath>) {
+    let dependency = dependency.into();
+    self.added_dependency_context.missing.remove(&dependency);
+    if self.dependency_context.missing.contains(&dependency) {
+      self.removed_dependency_context.missing.insert(dependency);
+    }
+  }
+
+  pub fn remove_build_dependency(&mut self, dependency: impl Into<InternedPath>) {
+    let dependency = dependency.into();
+    self.added_dependency_context.build.remove(&dependency);
+    if self.dependency_context.build.contains(&dependency) {
+      self.removed_dependency_context.build.insert(dependency);
+    }
+  }
+
+  pub fn clear_dependencies(&mut self) {
+    self
+      .removed_dependency_context
+      .file
+      .extend(self.dependency_context.file.iter().cloned());
+    self
+      .removed_dependency_context
+      .context
+      .extend(self.dependency_context.context.iter().cloned());
+    self
+      .removed_dependency_context
+      .missing
+      .extend(self.dependency_context.missing.iter().cloned());
+    self.added_dependency_context.file.clear();
+    self.added_dependency_context.context.clear();
+    self.added_dependency_context.missing.clear();
+  }
+
   pub fn remaining_request(&self) -> LoaderItemList<'_, Context> {
     if self.loader_index >= self.loader_items.len() as i32 - 1 {
       return Default::default();

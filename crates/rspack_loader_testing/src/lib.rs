@@ -1,3 +1,5 @@
+use std::sync::atomic::{AtomicUsize, Ordering};
+
 use async_trait::async_trait;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{Loader, LoaderContext, RunnerContext};
@@ -101,3 +103,35 @@ impl Loader<RunnerContext> for NoPassthroughLoader {
   }
 }
 pub const NO_PASS_THROUGH_LOADER_IDENTIFIER: &str = "builtin:test-no-passthrough-loader";
+
+static DEPENDENCY_LOADER_RUNS: AtomicUsize = AtomicUsize::new(0);
+
+#[cacheable]
+pub struct DependencyLoader;
+#[cacheable_dyn]
+#[async_trait]
+impl Loader<RunnerContext> for DependencyLoader {
+  fn identifier(&self) -> Identifier {
+    DEPENDENCY_LOADER_IDENTIFIER.into()
+  }
+
+  async fn run(&self, loader_context: &mut LoaderContext<RunnerContext>) -> Result<()> {
+    let dependency = loader_context
+      .resource_path()
+      .expect("test dependency loader requires a resource path")
+      .with_file_name("overlap-dependency.txt");
+    loader_context.add_file_dependency(dependency.clone());
+    let value = loader_context
+      .context
+      .fs
+      .read_to_string(&dependency)
+      .await?;
+    let runs = DEPENDENCY_LOADER_RUNS.fetch_add(1, Ordering::Relaxed) + 1;
+    loader_context.finish_with(format!(
+      "module.exports = {{ value: {}, runs: {runs} }};",
+      json!(value.trim())
+    ));
+    Ok(())
+  }
+}
+pub const DEPENDENCY_LOADER_IDENTIFIER: &str = "builtin:test-dependency-loader";

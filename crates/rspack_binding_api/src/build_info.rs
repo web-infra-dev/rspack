@@ -173,7 +173,7 @@ fn create_known_private_properties(env: &Env, properties: &mut Vec<Property>) ->
             module
               .build_info()
               .dependency_context
-              .file_dependencies
+              .file
               .iter()
               .map(|dependency| env_ref.create_string(dependency.to_string_lossy().as_ref()))
               .collect::<napi::Result<Vec<JsString>>>()
@@ -198,7 +198,7 @@ fn create_known_private_properties(env: &Env, properties: &mut Vec<Property>) ->
             module
               .build_info()
               .dependency_context
-              .context_dependencies
+              .context
               .iter()
               .map(|dependency| env_ref.create_string(dependency.to_string_lossy().as_ref()))
               .collect::<napi::Result<Vec<JsString>>>()
@@ -223,7 +223,7 @@ fn create_known_private_properties(env: &Env, properties: &mut Vec<Property>) ->
             module
               .build_info()
               .dependency_context
-              .missing_dependencies
+              .missing
               .iter()
               .map(|dependency| env_ref.create_string(dependency.to_string_lossy().as_ref()))
               .collect::<napi::Result<Vec<JsString>>>()
@@ -248,7 +248,7 @@ fn create_known_private_properties(env: &Env, properties: &mut Vec<Property>) ->
             module
               .build_info()
               .dependency_context
-              .build_dependencies
+              .build
               .iter()
               .map(|dependency| env_ref.create_string(dependency.to_string_lossy().as_ref()))
               .collect::<napi::Result<Vec<JsString>>>()

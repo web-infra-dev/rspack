@@ -7,6 +7,7 @@ const contextDependency = require("./context-dependency");
 const buildDependency = require("./build-dependency");
 const missingDependency = require("./missing-dependency");
 const chainDependency = require("./chain-dependency");
+const overlapDependency = require("./overlap-dependency");
 
 // Cached loaders run initially, then run again when their input content
 // changes at steps 2 and 4.
@@ -48,5 +49,9 @@ it("should cache each opted-in loader until its input changes", () => {
 	});
 	expect(chainDependency).toEqual({
 		leftRuns: 1
+	});
+	expect(overlapDependency).toEqual({
+		value: step < 2 ? "overlap-0" : "overlap-2",
+		runs: step < 2 ? 1 : 2
 	});
 });
