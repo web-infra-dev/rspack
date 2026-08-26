@@ -1,11 +1,11 @@
-use std::{collections::hash_map::Entry, sync::Arc};
+use std::sync::Arc;
 
 use atomic_refcell::AtomicRefCell;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  BuildModuleGraphArtifact, CodeGenerationDataItem, CommonJsExternalRequireKind,
-  ConnectionActiveState, Dependency, DependencyCodeGeneration, DependencyId, DependencyRange,
-  DependencyTemplate, TemplateContext, TemplateReplaceSource, UsedName, property_access,
+  BuildModuleGraphArtifact, CodeGenerationDataItem, CommonJsExternalRequireKind, Dependency,
+  DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate, TemplateContext,
+  TemplateReplaceSource, UsedName, property_access,
 };
 use rspack_plugin_javascript::dependency::{
   CommonJsExportRequireDependency, CommonJsFullRequireDependency, CommonJsRequireDependency,
@@ -17,8 +17,6 @@ use rspack_util::{
 };
 
 pub type DirectCommonJsExternalDependencies = Arc<AtomicRefCell<Arc<FxHashSet<DependencyId>>>>;
-pub type DirectCommonJsExternalConnectionStates =
-  AtomicRefCell<FxHashMap<DependencyId, ConnectionActiveState>>;
 
 #[cacheable]
 #[derive(Debug, Clone)]
@@ -46,7 +44,6 @@ fn can_render_direct_request(request: &str) -> bool {
 
 pub fn cutout_commonjs_externals(
   build_module_graph_artifact: &mut BuildModuleGraphArtifact,
-  connection_states: &mut FxHashMap<DependencyId, ConnectionActiveState>,
 ) -> FxHashSet<DependencyId> {
   let module_graph = build_module_graph_artifact.get_module_graph();
   let mut direct_dependencies = FxHashSet::default();
@@ -141,29 +138,11 @@ pub fn cutout_commonjs_externals(
   }
 
   let module_graph = build_module_graph_artifact.get_module_graph_mut();
-  // A reused module graph can make a previously direct dependency ineligible.
-  // Restore the connection state captured before this plugin cut it out.
-  connection_states.retain(|dependency_id, state| {
-    if direct_dependencies.contains(dependency_id) {
-      return module_graph
-        .connection_by_dependency_id(dependency_id)
-        .is_some();
-    }
-    if let Some(connection) = module_graph.connection_by_dependency_id_mut(dependency_id) {
-      connection.restore_active_state(*state);
-    }
-    false
-  });
   for dependency_id in &direct_dependencies {
-    let connection = module_graph
+    module_graph
       .connection_by_dependency_id_mut(dependency_id)
-      .expect("direct CommonJS external should have a module graph connection");
-    match connection_states.entry(*dependency_id) {
-      Entry::Vacant(entry) => {
-        entry.insert(connection.force_inactive_with_state());
-      }
-      Entry::Occupied(_) => connection.force_inactive(),
-    }
+      .expect("direct CommonJS external should have a module graph connection")
+      .force_inactive();
   }
 
   direct_dependencies

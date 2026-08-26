@@ -49,10 +49,9 @@ use crate::{
   chunk_link::ChunkLinkContext,
   dependency::{
     commonjs_external::{
-      DirectCommonJsExportRequireDependencyTemplate, DirectCommonJsExternalConnectionStates,
-      DirectCommonJsExternalDependencies, DirectCommonJsFullRequireDependencyTemplate,
-      DirectCommonJsRequireDependencyTemplate, DirectRequireHeaderDependencyTemplate,
-      cutout_commonjs_externals,
+      DirectCommonJsExportRequireDependencyTemplate, DirectCommonJsExternalDependencies,
+      DirectCommonJsFullRequireDependencyTemplate, DirectCommonJsRequireDependencyTemplate,
+      DirectRequireHeaderDependencyTemplate, cutout_commonjs_externals,
     },
     dyn_import::DynamicImportDependencyTemplate,
   },
@@ -88,7 +87,6 @@ pub struct EsmLibraryPlugin {
   pub(crate) all_dyn_targets: AtomicRefCell<IdentifierSet>,
   pub(crate) namespace_targets: AtomicRefCell<IdentifierSet>,
   pub(crate) direct_commonjs_external_dependencies: DirectCommonJsExternalDependencies,
-  pub(crate) direct_commonjs_external_connection_states: DirectCommonJsExternalConnectionStates,
   /// module_id → namespace export name in the chunk, for modules whose exports
   /// were renamed in a multi-module chunk. Written during link, read during code generation.
   pub(crate) dyn_import_ns_map: Arc<AtomicRefCell<IdentifierMap<Atom>>>,
@@ -99,7 +97,6 @@ impl EsmLibraryPlugin {
     Self::new_inner(
       preserve_modules,
       split_chunks,
-      Default::default(),
       Default::default(),
       Default::default(),
       Default::default(),
@@ -850,10 +847,7 @@ async fn optimize_dependencies(
   exports_info_artifact: &mut ExportsInfoArtifact,
   _diagnostics: &mut Vec<Diagnostic>,
 ) -> Result<Option<bool>> {
-  let direct_dependencies = cutout_commonjs_externals(
-    build_module_graph_artifact,
-    &mut self.direct_commonjs_external_connection_states.borrow_mut(),
-  );
+  let direct_dependencies = cutout_commonjs_externals(build_module_graph_artifact);
   *self.direct_commonjs_external_dependencies.borrow_mut() = Arc::new(direct_dependencies);
   cutout_dyn_import_externals(
     false,

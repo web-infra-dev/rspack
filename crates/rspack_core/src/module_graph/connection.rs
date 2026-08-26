@@ -22,12 +22,6 @@ pub struct ModuleGraphConnection {
   conditional: bool,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct ConnectionActiveState {
-  active: bool,
-  conditional: bool,
-}
-
 impl std::hash::Hash for ModuleGraphConnection {
   fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
     self.dependency_id.hash(state);
@@ -61,20 +55,6 @@ impl ModuleGraphConnection {
   pub fn force_inactive(&mut self) {
     self.active = false;
     self.conditional = false;
-  }
-
-  pub fn force_inactive_with_state(&mut self) -> ConnectionActiveState {
-    let state = ConnectionActiveState {
-      active: self.active,
-      conditional: self.conditional,
-    };
-    self.force_inactive();
-    state
-  }
-
-  pub fn restore_active_state(&mut self, state: ConnectionActiveState) {
-    self.active = state.active;
-    self.conditional = state.conditional;
   }
 
   pub fn is_active(
