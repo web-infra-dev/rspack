@@ -82,6 +82,71 @@ change. The alignment is semantic, not structural. Rspack exposes Incremental as
 top-level option and does not inherit webpack's configuration coupling between `cacheUnaffected` and
 memory cache.
 
+## Incremental Compiler Contract
+
+The native compiler has one Incremental switch: the resolved `incremental` option. Its meaning does
+not depend on whether an individual call came from `run()` or `watch()`:
+
+- Enabled passes mean that the compiler supports Incremental rebuilds. A cold build performs the
+  bookkeeping needed by a later rebuild.
+- No enabled passes mean that the compiler does not support Incremental rebuilds. Builds use the
+  ordinary pass runner and create no Incremental checkpoints or artifacts.
+
+The JavaScript compiler resolves this option once, before creating the native compiler. Watch mode
+keeps the default Incremental passes enabled; a standalone run without an explicit Incremental
+option resolves them to disabled. An explicit `incremental` option is preserved. After the native
+compiler exists, later builds do not reinterpret the option based on their call site.
+
+`incremental_ready` is not another enable switch. It records only whether the previous successful
+compilation completed the bookkeeping required for hot recovery:
+
+```text
+bookkeeping = incremental.enabled()
+hot_recovery = incremental.enabled() && incremental_ready
+```
+
+Readiness is cleared before a build starts and restored only after a successful Incremental
+compilation. Therefore a failed or partial build cannot be treated as a valid recovery source; the
+next rebuild falls back to cold Incremental bookkeeping.
+
+### Cold and Hot Incremental Compilations
+
+- An **ordinary compilation** has Incremental disabled and performs no bookkeeping.
+- A **cold Incremental compilation** has Incremental enabled but no ready previous artifacts. It
+  performs full work and captures artifacts.
+- A **hot Incremental rebuild** has Incremental enabled and ready previous artifacts. It recovers
+  pass-owned artifacts and applies mutations.
+
+Only readiness changes between cold and hot compilations. Incremental enablement is fixed when the
+native compiler is created.
+
+### Pass and Artifact Conventions
+
+- A pass declares its Incremental ownership through `incremental_passes`. Recovery and capture
+  belong in the shared Incremental pass runner, not in Cache hooks or ad hoc compiler branches.
+- Compilation-specific checkpoints must be guarded by the enabled pass set.
+- A cold Incremental pass may capture artifacts but must never read mutations or recover artifacts
+  from an unready compilation.
+- A hot Incremental pass reads only the mutations and artifacts owned by its enabled pass group.
+- Disabling an Incremental pass must also prevent its artifact recovery, checkpointing, and capture.
+- Pass implementations must not inspect Cache enablement to decide whether Incremental state is
+  available. They must use the Incremental lifecycle and pass APIs.
+- Readiness belongs on `Compiler`; pass-owned reusable state belongs in `IncrementalArtifacts`;
+  current compilation state belongs on `Compilation`.
+
+### Testing Conventions
+
+Lifecycle changes should use existing JavaScript integration test harnesses rather than crate-local
+Rust unit tests. Cover at least:
+
+- one-shot build with resolved Incremental disabled;
+- one-shot build with Incremental explicitly enabled;
+- initial watch compilation followed by at least one hot rebuild;
+- explicitly requested same-compiler rebuilds outside watch mode;
+- failure followed by a successful recovery build;
+- `incremental: false` in watch mode; and
+- representative Cache on/off combinations to ensure Cache does not control Incremental lifecycle.
+
 ## Cache Storage Modes
 
 Cache supports fine-grained entries through two storage modes:
@@ -159,6 +224,11 @@ Changes to these systems must preserve the following rules:
    incremental build.
 7. Tests that require full-rebuild behavior must set `incremental: false` explicitly instead of
    relying on `cache: false` as an indirect switch.
+8. A native compiler with Incremental disabled must not enter the Incremental artifact pipeline.
+9. Hot artifact recovery requires both enabled Incremental passes and readiness from the previous
+   successful compilation.
+10. Readiness must not enable Incremental; it only selects hot recovery when Incremental is already
+    enabled.
 
 Most pass-scoped Incremental state follows these rules today. The `*CacheArtifact` types described
 above are transitional Cache co-location, while `EMIT_ASSETS` still keeps emitted asset versions
@@ -174,5 +244,7 @@ introduce new Cache/Incremental coupling.
 - Incremental configuration and mutations: `crates/rspack_core/src/incremental/`
 - Incremental artifact ownership: `crates/rspack_core/src/artifacts/incremental_artifacts.rs`
 - Pass recovery and legacy Cache hooks: `crates/rspack_core/src/compilation/pass.rs`
+- Compiler lifecycle and Incremental activation: `crates/rspack_core/src/compiler/mod.rs`
 - Rebuild lifecycle: `crates/rspack_core/src/compiler/rebuild.rs`
+- JavaScript compiler lifecycle: `packages/rspack/src/Compiler.ts`
 - Artifact design: [`ARTIFACTS.md`](./ARTIFACTS.md)

@@ -18,14 +18,13 @@ use crate::{
 impl Compiler {
   pub async fn rebuild(
     &mut self,
-    watchable: bool,
     changed_files: FxHashSet<String>,
     deleted_files: FxHashSet<String>,
   ) -> Result<()> {
     let start = self.end_idle()?;
     let result = match within_compiler_context(
       self.compiler_context.clone(),
-      self.rebuild_inner(watchable, changed_files, deleted_files),
+      self.rebuild_inner(changed_files, deleted_files),
     )
     .await
     {
@@ -57,17 +56,11 @@ impl Compiler {
   ))]
   async fn rebuild_inner(
     &mut self,
-    watchable: bool,
     changed_files: FxHashSet<String>,
     deleted_files: FxHashSet<String>,
   ) -> Result<()> {
     let records = self.last_records.clone();
-    let incremental = if watchable {
-      self.options.incremental
-    } else {
-      crate::incremental::IncrementalOptions::empty_passes()
-    };
-    let recover_incremental_artifacts = self.incremental_ready && !incremental.passes.is_empty();
+    let recover_incremental_artifacts = self.incremental_ready;
     self.incremental_ready = false;
 
     // build without stats
@@ -85,9 +78,9 @@ impl Compiler {
       compilation_logging.clear();
 
       let incremental = if recover_incremental_artifacts {
-        Incremental::new_hot(incremental)
+        Incremental::new_hot(self.options.incremental)
       } else {
-        Incremental::new_cold(incremental)
+        Incremental::new_cold(self.options.incremental)
       };
       let mut next_compilation = Compilation::new(
         self.id,
@@ -112,10 +105,9 @@ impl Compiler {
       );
       next_compilation.hot_index = self.compilation.hot_index + 1;
 
-      if recover_incremental_artifacts
-        && next_compilation
-          .incremental
-          .mutations_readable(IncrementalPasses::BUILD_MODULE_GRAPH)
+      if next_compilation
+        .incremental
+        .mutations_readable(IncrementalPasses::BUILD_MODULE_GRAPH)
       {
         // reuse module executor
         next_compilation.module_executor = std::mem::take(&mut self.compilation.module_executor);

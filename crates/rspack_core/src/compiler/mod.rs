@@ -102,6 +102,7 @@ pub struct Compiler {
   pub loader_resolver_factory: Arc<ResolverFactory>,
   pub cache: Box<dyn LegacyCache>,
   incremental_artifacts: IncrementalArtifacts,
+  /// Whether the previous successful compilation produced reusable Incremental artifacts.
   incremental_ready: bool,
   new_cache: Cache,
   /// emitted asset versions
@@ -263,14 +264,9 @@ impl Compiler {
   }
 
   pub async fn build(&mut self) -> Result<()> {
-    self.build_with_mode(false).await
-  }
-
-  pub async fn build_with_mode(&mut self, watchable: bool) -> Result<()> {
     let start = self.end_idle()?;
     let compiler_context = self.compiler_context.clone();
-    let result = match within_compiler_context(compiler_context, self.build_inner(watchable)).await
-    {
+    let result = match within_compiler_context(compiler_context, self.build_inner()).await {
       Ok(_) => {
         self
           .plugin_driver
@@ -294,7 +290,7 @@ impl Compiler {
   }
 
   #[instrument("Compiler:build",target=TRACING_BENCH_TARGET, skip_all)]
-  async fn build_inner(&mut self, watchable: bool) -> Result<()> {
+  async fn build_inner(&mut self) -> Result<()> {
     // TODO: clear the outdated cache entries in resolver,
     // TODO: maybe it's better to use external entries.
     let plugin_driver_clone = self.plugin_driver.clone();
@@ -304,12 +300,6 @@ impl Compiler {
     compilation_logging.clear();
     self.incremental_artifacts.reset();
     self.incremental_ready = false;
-
-    let incremental = if watchable {
-      self.options.incremental
-    } else {
-      crate::incremental::IncrementalOptions::empty_passes()
-    };
 
     fast_set(
       &mut self.compilation,
@@ -322,7 +312,7 @@ impl Compiler {
         self.resolver_factory.clone(),
         self.loader_resolver_factory.clone(),
         None,
-        Incremental::new_cold(incremental),
+        Incremental::new_cold(self.options.incremental),
         Some(Default::default()),
         compilation_logging,
         self.new_cache.clone(),

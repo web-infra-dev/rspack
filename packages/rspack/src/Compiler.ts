@@ -214,8 +214,8 @@ class Compiler {
   __internal_browser_require: (id: string) => unknown;
 
   constructor(context: string, options: RspackOptionsNormalized) {
-    // Defaults configure passes for watch mode. Only an explicit option opts
-    // run() into preparing artifacts for another run.
+    // Preserve the user's intent before defaults fill in the passes used by
+    // watch mode.
     this.#incrementalRequested =
       options.incremental !== undefined && options.incremental !== false;
     this.#initial = true;
@@ -848,10 +848,8 @@ class Compiler {
       if (error) {
         return callback(error);
       }
-      const watchable = this.watchMode || this.#incrementalRequested;
       if (!this.#initial) {
         instance!.rebuild(
-          watchable,
           Array.from(this.modifiedFiles || []),
           Array.from(this.removedFiles || []),
           callback,
@@ -859,7 +857,7 @@ class Compiler {
         return;
       }
       this.#initial = false;
-      instance!.build(watchable, callback);
+      instance!.build(callback);
     });
   }
 
@@ -877,7 +875,6 @@ class Compiler {
         return callback?.(error);
       }
       instance!.rebuild(
-        true,
         Array.from(modifiedFiles || []),
         Array.from(removedFiles || []),
         (error) => {
@@ -954,6 +951,11 @@ class Compiler {
 
     const { options } = this;
     this.#rawOptions = getRawOptions(options, this);
+    // Resolve Incremental support once when the native compiler is created.
+    // Builds after this point only follow the resolved option.
+    if (!this.watchMode && !this.#incrementalRequested) {
+      this.#rawOptions.incremental = false;
+    }
     this.#rawOptions.__references = Object.fromEntries(
       this.#ruleSet.builtinReferences.entries(),
     );
