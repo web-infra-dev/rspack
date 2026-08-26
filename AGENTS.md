@@ -16,6 +16,11 @@ Rspack is a high-performance JavaScript bundler written in Rust that offers stro
 - **Thread pool boundaries**: Avoid mixing `rayon` and `tokio` thread pools for the same workflow unless there is a clear boundary that cannot be avoided
 - **Rule of thumb**: Do not use `tokio` to parallelize synchronous CPU-heavy work, and do not introduce `rayon` inside async orchestration that should stay within `rspack_parallel`
 
+## Cache architecture
+
+- **Backend boundary**: `crates/rspack_core/src/new_cache/` and `crates/rspack_core/src/legacy_cache/` may depend on shared code in `crates/rspack_core/src/cache/`, but must not reference each other.
+- Read [Cache and Incremental](.agents/CACHE_AND_INCREMENTAL.md) before modifying either cache backend or their shared dependencies.
+
 ## Setup
 
 - **Rust**: Use the toolchain pinned by `rust-toolchain.toml`

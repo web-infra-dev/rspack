@@ -891,6 +891,13 @@ export type RuleSetLoaderWithOptions = {
    */
   parallel?: boolean | { maxWorkers?: number };
 
+  /**
+   * Cache this loader in `experiments.newCache`.
+   * This is an experimental API and may change or be removed in the future.
+   * @experimental
+   */
+  cache?: boolean;
+
   options?: RuleSetLoaderOptions;
 };
 
@@ -2821,8 +2828,17 @@ export type Optimization = {
 
   /**
    * Which algorithm to use when choosing chunk ids.
+   * Setting to `false` disables the built-in algorithm, allowing a custom plugin
+   * to provide chunk ids instead.
    */
-  chunkIds?: 'natural' | 'named' | 'deterministic' | 'size' | 'total-size';
+  chunkIds?:
+    | false
+    | 'natural'
+    | 'named'
+    | 'deterministic'
+    | 'compat-hashed'
+    | 'size'
+    | 'total-size';
 
   /**
    * Whether to minimize the bundle.
@@ -3105,6 +3121,8 @@ export type NewCache = {
   codeGeneration?: boolean;
   /** Enable the devtool asset cache. @default true */
   devtool?: boolean;
+  /** Enable the per-loader cache. @default true */
+  loader?: boolean;
   /** Enable the asset minimization cache. @default true */
   minimize?: boolean;
 };
@@ -3460,6 +3478,7 @@ export type RspackOptions = {
 
   /**
    * Control artifact reuse during same-compiler rebuilds such as watch and HMR.
+   * Effective only when `mode` is set to `'development'`.
    * This does not make standalone one-shot builds incremental.
    */
   incremental?: IncrementalPresets | Incremental;

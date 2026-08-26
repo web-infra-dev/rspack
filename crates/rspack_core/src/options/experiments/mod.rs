@@ -27,6 +27,7 @@ use runtime_mode::RuntimeMode;
 pub struct NewCacheOptions {
   pub code_generation: bool,
   pub devtool: bool,
+  pub loader: bool,
   pub minimize: bool,
 }
 
@@ -35,12 +36,13 @@ impl NewCacheOptions {
     Self {
       code_generation: true,
       devtool: true,
+      loader: true,
       minimize: true,
     }
   }
 
   pub const fn is_enabled(self) -> bool {
-    self.code_generation || self.devtool || self.minimize
+    self.code_generation || self.devtool || self.loader || self.minimize
   }
 }
 

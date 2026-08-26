@@ -4,8 +4,8 @@ use rspack_cacheable::cacheable;
 use rspack_error::Result;
 use rspack_paths::{InternedPath, InternedPathSet};
 
-use super::snapshot::{BuildDeps, BuildDepsValidationResult, FileSystemInfo, Snapshot};
-use crate::cache::persistent::codec::CacheCodec;
+use super::snapshot::{FileSystemInfo, Snapshot};
+use crate::{cache::CacheCodec, new_cache::snapshot::SnapshotValidationResult};
 
 #[cacheable]
 #[derive(Debug)]
@@ -13,7 +13,7 @@ struct CacheValidatorData {
   rspack_pkg_version: String,
   cache_version: String,
   build_dependencies: InternedPathSet,
-  build_dependencies_snapshot: Snapshot,
+  build_dependencies_snapshot: Option<Snapshot>,
 }
 
 impl CacheValidatorData {
@@ -22,7 +22,7 @@ impl CacheValidatorData {
       rspack_pkg_version,
       cache_version,
       build_dependencies: Default::default(),
-      build_dependencies_snapshot: Default::default(),
+      build_dependencies_snapshot: None,
     }
   }
 
@@ -32,14 +32,13 @@ impl CacheValidatorData {
 }
 
 pub(super) enum CacheValidatorResult {
+  Valid,
   InvalidVersion,
-  Valid {
-    tracked_files: usize,
-  },
   InvalidBuildDependencies {
     modified_files: InternedPathSet,
     removed_files: InternedPathSet,
   },
+  InvalidError,
 }
 
 #[derive(Debug)]
@@ -47,7 +46,6 @@ pub(super) struct CacheValidator {
   data: CacheValidatorData,
   codec: Arc<CacheCodec>,
   file_system_info: FileSystemInfo,
-  build_deps: BuildDeps,
 }
 
 impl CacheValidator {
@@ -56,13 +54,11 @@ impl CacheValidator {
     cache_version: String,
     codec: Arc<CacheCodec>,
     file_system_info: FileSystemInfo,
-    build_deps: BuildDeps,
   ) -> Self {
     Self {
       data: CacheValidatorData::new(rspack_pkg_version, cache_version),
       codec,
       file_system_info,
-      build_deps,
     }
   }
 
@@ -76,21 +72,19 @@ impl CacheValidator {
     if !validator.has_same_version(&self.data) {
       return Ok(CacheValidatorResult::InvalidVersion);
     }
+    let Some(build_dependencies_snapshot) = &validator.build_dependencies_snapshot else {
+      return Ok(CacheValidatorResult::InvalidError);
+    };
     let validation = self
-      .build_deps
-      .validate_snapshot(
-        &self.file_system_info,
-        &validator.build_dependencies_snapshot,
-        &validator.build_dependencies,
-        validator.build_dependencies.len(),
-      )
+      .file_system_info
+      .check_snapshot_valid(build_dependencies_snapshot)
       .await?;
     Ok(match validation {
-      BuildDepsValidationResult::Valid { tracked_files } => {
+      SnapshotValidationResult::Valid => {
         self.data = validator;
-        CacheValidatorResult::Valid { tracked_files }
+        CacheValidatorResult::Valid
       }
-      BuildDepsValidationResult::Invalid {
+      SnapshotValidationResult::Invalid {
         modified_files,
         removed_files,
       } => CacheValidatorResult::InvalidBuildDependencies {
@@ -104,29 +98,37 @@ impl CacheValidator {
   /// https://github.com/webpack/webpack/blob/ce97d583e1cd8f3e47b70737de72e91b567a8497/lib/cache/PackFileCacheStrategy.js#L1510-L1625
   pub(super) async fn update(
     &mut self,
-    paths: impl Iterator<Item = InternedPath>,
-  ) -> Result<Vec<u8>> {
-    let resolved = self
-      .build_deps
-      .resolve_dependencies(&self.data.build_dependencies, paths)
-      .await;
-    if !resolved.dependencies.is_empty() {
-      let snapshot = self
-        .file_system_info
-        .create_snapshot(
-          None,
-          &resolved.files,
-          &resolved.contexts,
-          &resolved.missing,
-          self.file_system_info.build_dependencies_strategy(),
-        )
-        .await?;
-      self.data.build_dependencies_snapshot = self.file_system_info.merge_snapshots(
-        std::mem::take(&mut self.data.build_dependencies_snapshot),
-        snapshot,
-      );
-      self.data.build_dependencies.extend(resolved.dependencies);
+    build_dependencies: impl Iterator<Item = InternedPath>,
+  ) -> Result<Option<Vec<u8>>> {
+    let new_build_dependencies = build_dependencies
+      .filter(|path| !self.data.build_dependencies.contains(path))
+      .collect::<InternedPathSet>();
+    if new_build_dependencies.is_empty() && self.data.build_dependencies_snapshot.is_some() {
+      return Ok(None);
     }
-    self.codec.encode(&self.data)
+
+    let resolved = self
+      .file_system_info
+      .resolve_build_dependencies(new_build_dependencies.iter().cloned())
+      .await;
+    let snapshot = self
+      .file_system_info
+      .create_snapshot(
+        None,
+        &resolved.files,
+        &resolved.contexts,
+        &resolved.missing,
+        self.file_system_info.build_dependencies_strategy(),
+      )
+      .await?;
+    self.data.build_dependencies_snapshot = Some(
+      if let Some(current) = self.data.build_dependencies_snapshot.take() {
+        self.file_system_info.merge_snapshots(current, snapshot)
+      } else {
+        snapshot
+      },
+    );
+    self.data.build_dependencies.extend(new_build_dependencies);
+    Ok(Some(self.codec.encode(&self.data)?))
   }
 }

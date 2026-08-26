@@ -11,13 +11,13 @@ use once_cell::sync::OnceCell;
 use regex::Regex;
 use rspack_core::{
   ChunkGraph, Compilation, CompilerOptions, CssExportType, CssExportsConvention,
-  CssModuleGeneratorOptions, CssModuleRenderCondition, Dependency, GeneratorOptions,
-  ImportAttributes, LocalIdentName, Module, ModuleType, NormalModuleCreateData, PathData,
-  ReplaceAllPlaceholder, ResourceData,
+  CssModuleGeneratorOptions, CssModuleRenderCondition, Dependency, FilenameRenderValue,
+  GeneratorOptions, ImportAttributes, LocalIdentName, Module, ModuleType, NormalModuleCreateData,
+  PathData, PlaceholderKind, ResourceData,
 };
 use rspack_error::{Diagnostic, Error, Result, Severity};
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHasher};
-use rspack_util::{base64, identifier::make_paths_relative, itoa, json_stringify_str};
+use rspack_util::{identifier::make_paths_relative, itoa, json_stringify_str};
 use rustc_hash::{FxHashSet, FxHasher};
 
 use crate::{
@@ -495,15 +495,6 @@ struct LocalIdentNameRenderOptions<'a> {
   folder: &'a str,
 }
 
-fn render_hash(hash: &str, len: Option<usize>, need_base64: bool) -> String {
-  let content = if need_base64 {
-    base64::encode_to_string(hash)
-  } else {
-    hash.to_string()
-  };
-  content[..len.unwrap_or(content.len()).min(content.len())].to_string()
-}
-
 fn non_numeric_only_hash(hash: &str, hash_length: usize) -> String {
   if hash_length < 1 {
     return String::new();
@@ -524,26 +515,22 @@ fn non_numeric_only_hash(hash: &str, hash_length: usize) -> String {
 
 impl LocalIdentNameRenderOptions<'_> {
   pub async fn render_local_ident_name(self, local_ident_name: &LocalIdentName) -> Result<String> {
-    let template = local_ident_name.template.template().map_or_else(
-      || local_ident_name.template.clone(),
-      |template| {
-        template
-          .replace_all_with_len("[fullhash]", |len, need_base64| {
-            render_hash(self.local_ident_hash, len, need_base64)
-          })
-          .into_owned()
-          .into()
-      },
-    );
-    let raw = template.render(self.path_data, None).await?;
-    let s: &str = raw.as_ref();
-
-    Ok(
-      s.cow_replace("[uniqueName]", self.unique_name)
-        .cow_replace("[local]", self.local)
-        .cow_replace("[folder]", self.folder)
-        .into_owned(),
-    )
+    local_ident_name
+      .template
+      .render_with(self.path_data, None, |placeholder| {
+        match placeholder.kind() {
+          PlaceholderKind::FullHash => Some(FilenameRenderValue::Value(Cow::Borrowed(
+            self.local_ident_hash,
+          ))),
+          PlaceholderKind::UniqueName => {
+            Some(FilenameRenderValue::Value(Cow::Borrowed(self.unique_name)))
+          }
+          PlaceholderKind::Local => Some(FilenameRenderValue::Value(Cow::Borrowed(self.local))),
+          PlaceholderKind::Folder => Some(FilenameRenderValue::Value(Cow::Borrowed(self.folder))),
+          _ => None,
+        }
+      })
+      .await
   }
 }
 

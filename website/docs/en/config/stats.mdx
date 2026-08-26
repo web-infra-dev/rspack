@@ -34,7 +34,8 @@ type StatsPresets =
 type Stats = boolean | StatsOptions | StatsPresets;
 ```
 
-- **Default:** `{ "preset":"errors-warnings", "timings":true }`
+- **Default in `@rspack/core`:** `{}`
+- **Default in `@rspack/cli`:** `{ "preset":"errors-warnings", "timings":true, "logging":false }`
 
 ## Stats presets
 

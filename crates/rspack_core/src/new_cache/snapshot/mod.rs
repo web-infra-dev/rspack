@@ -1,14 +1,10 @@
-mod build_deps;
 mod file_system_info;
 
 use rspack_cacheable::cacheable;
 use rspack_hash::RspackHashDigest;
 use rspack_paths::{InternedPathMap, InternedPathSet};
 
-pub use self::{
-  build_deps::{BuildDeps, BuildDepsValidationResult},
-  file_system_info::{FileSystemInfo, SnapshotValidationResult},
-};
+pub use self::file_system_info::{FileSystemInfo, SnapshotValidationResult};
 
 /// Timestamp information captured for a file.
 ///
