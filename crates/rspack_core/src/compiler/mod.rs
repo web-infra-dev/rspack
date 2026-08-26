@@ -14,6 +14,7 @@ use rspack_sources::BoxSource;
 use rspack_tasks::{CompilerContext, within_compiler_context};
 use rspack_util::{node_path::NodePath, tracing_preset::TRACING_BENCH_TARGET};
 use rustc_hash::FxHashMap as HashMap;
+use tokio::sync::Semaphore;
 use tracing::instrument;
 
 pub use self::rebuild::CompilationRecords;
@@ -450,7 +451,8 @@ impl Compiler {
       .incremental
       .passes_enabled(IncrementalPasses::EMIT_ASSETS);
 
-    let emit_results = rspack_parallel::scope_with_limit(EMIT_ASSETS_CONCURRENCY_LIMIT, |token| {
+    let emit_limit = Arc::new(Semaphore::new(EMIT_ASSETS_CONCURRENCY_LIMIT));
+    let emit_results = rspack_parallel::scope(|token| {
       self
         .compilation
         .assets()
@@ -472,8 +474,13 @@ impl Compiler {
           // SAFETY: await immediately and trust caller to poll future entirely
           let s = unsafe { token.used((&self, filename, asset, output_path)) };
 
-          s.spawn(|(this, filename, asset, output_path)| {
-            this.emit_asset(output_path, filename, asset)
+          let emit_limit = emit_limit.clone();
+          s.spawn(|(this, filename, asset, output_path)| async move {
+            let _permit = emit_limit
+              .acquire()
+              .await
+              .expect("emit limit semaphore should not be closed");
+            this.emit_asset(output_path, filename, asset).await
           });
         })
     })
