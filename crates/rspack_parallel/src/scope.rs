@@ -85,8 +85,7 @@ where
 /// Async scope helper with a concurrency limit
 ///
 /// Behaves like [`scope`], except that no more than `limit` spawned tasks
-/// run their body at the same time. Use it when the task body holds a scarce
-/// process-wide resource, such as an open file descriptor.
+/// run their body at the same time.
 pub async fn scope_with_limit<'scope, F, O>(limit: usize, f: F) -> Vec<Result<O, JoinError>>
 where
   for<'spawner> F: FnOnce(Token<'scope, 'spawner, O>),
@@ -209,12 +208,12 @@ mod test {
   use super::scope_with_limit;
 
   #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
-  async fn limit_running_task() {
+  async fn limits_concurrent_tasks() {
     within_compiler_context_for_testing(async {
       let running = Arc::new(AtomicUsize::new(0));
       let peak = Arc::new(AtomicUsize::new(0));
 
-      scope_with_limit(2, |token| {
+      let results = scope_with_limit(2, |token| {
         for _ in 0..8 {
           // SAFETY: await immediately and trust caller to poll future entirely
           let s = unsafe { token.used((running.clone(), peak.clone())) };
@@ -229,6 +228,7 @@ mod test {
       })
       .await;
 
+      assert_eq!(results.len(), 8);
       assert!(peak.load(Ordering::SeqCst) <= 2);
     })
     .await;

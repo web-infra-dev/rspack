@@ -31,9 +31,6 @@ use crate::{
   trim_dir,
 };
 
-// keeps the number of files open at once bounded, same limit webpack emits assets with
-const EMIT_ASSETS_CONCURRENCY_LIMIT: usize = 15;
-
 // should be SyncHook, but rspack need call js hook
 define_hook!(CompilerThisCompilation: Series(compilation: &mut Compilation, params: &mut CompilationParams));
 // should be SyncHook, but rspack need call js hook
@@ -91,6 +88,9 @@ impl CompilerId {
     self.0
   }
 }
+
+// bounds open file descriptors during emit, same limit as webpack's Compiler.emitAssets
+const EMIT_ASSETS_CONCURRENCY_LIMIT: usize = 15;
 
 #[derive(Debug)]
 pub struct Compiler {
