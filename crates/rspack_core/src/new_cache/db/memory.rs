@@ -1,12 +1,27 @@
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use rspack_error::Result;
 use rspack_paths::Utf8PathBuf;
 use rustc_hash::FxHashMap;
 
-use super::{DatabaseFamily, DatabaseWrite};
+use super::DatabaseFamily;
 
 pub type DatabaseValue = Arc<[u8]>;
+
+pub(crate) struct DatabaseBatch {
+  writes: Mutex<[FxHashMap<Vec<u8>, DatabaseValue>; DatabaseFamily::COUNT]>,
+}
+
+impl DatabaseBatch {
+  pub fn put(&self, family: DatabaseFamily, key: &[u8], value: Vec<u8>) -> Result<()> {
+    self
+      .writes
+      .lock()
+      .expect("memory database batch mutex should not be poisoned")[family.index()]
+    .insert(key.to_vec(), Arc::from(value));
+    Ok(())
+  }
+}
 
 #[derive(Debug, Default)]
 pub struct Database {
@@ -22,12 +37,18 @@ impl Database {
     Ok(self.families[family.index()].get(key).cloned())
   }
 
-  pub fn write_batch<'a>(
-    &mut self,
-    writes: impl IntoIterator<Item = DatabaseWrite<'a>>,
-  ) -> Result<()> {
-    for write in writes {
-      self.families[write.family.index()].insert(write.key.to_vec(), Arc::from(write.value));
+  pub fn write_batch(&mut self, write: impl FnOnce(&DatabaseBatch) -> Result<()>) -> Result<()> {
+    let batch = DatabaseBatch {
+      writes: Mutex::new(Default::default()),
+    };
+    write(&batch)?;
+    for (family, writes) in self.families.iter_mut().zip(
+      batch
+        .writes
+        .into_inner()
+        .expect("memory database batch mutex should not be poisoned"),
+    ) {
+      family.extend(writes);
     }
     Ok(())
   }

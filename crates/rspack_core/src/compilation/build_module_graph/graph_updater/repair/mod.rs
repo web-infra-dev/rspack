@@ -43,17 +43,19 @@ pub async fn repair(
       dependencies
         .into_iter()
         .map(|dep_id| {
-          let dependency = module_graph.dependency_by_id(&dep_id);
+          let dependency = module_graph.dependency_ref_by_id(&dep_id);
+          let module_factory = compilation.get_dependency_factory(dependency.as_ref());
+          let dependency = dependency.clone();
           Box::new(factorize::FactorizeTask {
             compiler_id: compilation.compiler_id(),
             compilation_id: compilation.id(),
-            module_factory: compilation.get_dependency_factory(dependency),
+            module_factory,
             original_module_identifier: None,
             original_module_source: None,
             issuer: None,
             issuer_layer: None,
             original_module_context: None,
-            dependencies: vec![dependency.clone()],
+            dependencies: vec![dependency],
             resolve_options: None,
             options: compilation.options.clone(),
             resolver_factory: compilation.resolver_factory.clone(),

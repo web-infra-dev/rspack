@@ -282,12 +282,13 @@ const applyExperimentsDefaults = (
   D(experiments, 'newCache', false);
   if (typeof experiments.newCache === 'object') {
     D(experiments.newCache, 'codeGeneration', true);
+    D(experiments.newCache, 'devtool', true);
+    D(experiments.newCache, 'loader', true);
     D(experiments.newCache, 'minimize', true);
   }
   D(experiments, 'asyncWebAssembly', true);
   D(experiments, 'deferImport', false);
   D(experiments, 'sourceImport', false);
-  D(experiments, 'fasterModuleConcatenation', false);
 
   D(experiments, 'buildHttp', undefined);
   if (experiments.buildHttp && typeof experiments.buildHttp === 'object') {

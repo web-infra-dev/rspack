@@ -2,9 +2,8 @@ use std::borrow::Cow;
 
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  ChunkGraph, Compilation, ConcatenationScopeInfoMode, GenerateContext, GeneratedSource, Module,
-  ModuleGraph, NormalModule, ParseContext, ParseResult, ParserAndGenerator, RuntimeSpec,
-  SourceType, rspack_sources::BoxSource,
+  ChunkGraph, Compilation, GenerateContext, Module, ModuleGraph, NormalModule, ParseContext,
+  ParseResult, ParserAndGenerator, RuntimeSpec, SourceType, rspack_sources::BoxSource,
 };
 use rspack_error::{Result, TWithDiagnosticArray};
 use rspack_hash::RspackHashDigest;
@@ -18,10 +17,6 @@ pub(crate) struct RslibAssetParserAndGenerator(pub AssetParserAndGenerator);
 #[cacheable_dyn]
 #[async_trait::async_trait]
 impl ParserAndGenerator for RslibAssetParserAndGenerator {
-  fn concatenation_scope_info_mode(&self) -> ConcatenationScopeInfoMode {
-    self.0.concatenation_scope_info_mode()
-  }
-
   fn source_types(&self, module: &dyn Module, module_graph: &ModuleGraph) -> &[SourceType] {
     let mut source_types = FxHashSet::default();
     let module_id = module.identifier();
@@ -65,7 +60,7 @@ impl ParserAndGenerator for RslibAssetParserAndGenerator {
     source: &BoxSource,
     module: &dyn Module,
     generate_context: &mut GenerateContext,
-  ) -> Result<GeneratedSource> {
+  ) -> Result<BoxSource> {
     self.0.generate(source, module, generate_context).await
   }
 

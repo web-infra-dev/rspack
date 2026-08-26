@@ -15,10 +15,10 @@ use rspack_util::{
 use rustc_hash::{FxHashMap as HashMap, FxHashSet};
 
 use crate::{
-  ArchivedCodeGenerationDataConcatenationScopeOutput, ArchivedRenderedInitFragments, ArtifactExt,
-  AssetInfo, BindingCell, ChunkInitFragments, CodeGenerationDataConcatenationScopeOutput,
-  ConcatenationScope, ModuleIdentifier, RenderedInitFragments, RuntimeGlobals, RuntimeSpec,
-  RuntimeSpecMap, SourceType, incremental::IncrementalPasses,
+  ArchivedCodeGenerationDataConcatenationScopeOutput, ArtifactExt, AssetInfo, BindingCell,
+  ChunkInitFragments, CodeGenerationDataConcatenationScopeOutput, ConcatenationScope,
+  ModuleIdentifier, RuntimeGlobals, RuntimeSpec, RuntimeSpecMap, SourceType,
+  incremental::IncrementalPasses,
 };
 
 #[cacheable]
@@ -141,27 +141,6 @@ pub trait CodeGenerationDataItem: Debug + DynClone + AsAny + IntoAny + Send + Sy
 clone_trait_object!(CodeGenerationDataItem);
 
 #[cacheable]
-/// Typed [`CodeGenerationData`] entry for the digest of rendered init fragments.
-///
-/// `CodeGenerationData` is keyed by `TypeId`, so the newtype keeps this digest
-/// distinct from other `RspackHashDigest` values stored as code generation data.
-#[derive(Clone, Debug)]
-pub struct RenderedInitFragmentsDigest(RspackHashDigest);
-
-impl RenderedInitFragmentsDigest {
-  pub fn new(inner: RspackHashDigest) -> Self {
-    Self(inner)
-  }
-}
-
-impl RspackHash for RenderedInitFragmentsDigest {
-  fn hash(&self, state: &mut RspackHasher) {
-    state.write(b"RenderedInitFragmentsDigest");
-    self.0.hash(state);
-  }
-}
-
-#[cacheable]
 #[derive(Debug, Default, Clone)]
 pub struct CodeGenerationDataChunkInitFragments {
   inner: ChunkInitFragments,
@@ -213,22 +192,6 @@ impl CodeGenerationDataItem for CodeGenerationDataPreservedAssetImport {
 
 #[cacheable_dyn]
 impl CodeGenerationDataItem for CodeGenerationDataTopLevelDeclarations {}
-
-#[cacheable_dyn]
-impl CodeGenerationDataItem for RenderedInitFragments {
-  fn update_hash(&self, hasher: &mut RspackHasher) {
-    if !self.is_empty() {
-      RspackHash::hash(self, hasher);
-    }
-  }
-}
-
-#[cacheable_dyn]
-impl CodeGenerationDataItem for RenderedInitFragmentsDigest {
-  fn update_hash(&self, hasher: &mut RspackHasher) {
-    RspackHash::hash(self, hasher);
-  }
-}
 
 #[cacheable_dyn]
 impl CodeGenerationDataItem for CodeGenerationDataChunkInitFragments {
@@ -383,19 +346,32 @@ impl CodeGenerationResultBuilder {
     hash_function: &HashFunction,
     hash_digest: &HashDigest,
     hash_salt: &HashSalt,
-    concatenated_module_hash: Option<&RspackHashDigest>,
   ) {
     let mut hasher = RspackHasher::with_salt(hash_function, hash_salt);
-    if let Some(concatenated_module_hash) = concatenated_module_hash {
-      concatenated_module_hash.hash(&mut hasher);
-      for source_type in self.value.sources.as_ref().keys() {
-        source_type.hash(&mut hasher);
-      }
-    } else {
-      for (source_type, source) in self.value.sources.as_ref() {
-        source_type.hash(&mut hasher);
-        std::hash::Hash::hash(source, &mut hasher);
-      }
+    for (source_type, source) in self.value.sources.as_ref() {
+      source_type.hash(&mut hasher);
+      std::hash::Hash::hash(source, &mut hasher);
+    }
+    self.value.data.update_hash(&mut hasher);
+    self.value.runtime_requirements.hash(&mut hasher);
+    self.value.hash = Some(hasher.digest(hash_digest));
+  }
+
+  /// Concatenated modules already encode the generated module bodies into
+  /// `ConcatenatedModule::get_runtime_hash`, so we can reuse that digest here
+  /// and only mix in codegen-specific metadata instead of hashing the large
+  /// concatenated source again.
+  pub fn set_hash_for_concatenated_module(
+    &mut self,
+    runtime_hash: &RspackHashDigest,
+    hash_function: &HashFunction,
+    hash_digest: &HashDigest,
+    hash_salt: &HashSalt,
+  ) {
+    let mut hasher = RspackHasher::with_salt(hash_function, hash_salt);
+    runtime_hash.hash(&mut hasher);
+    for source_type in self.value.sources.as_ref().keys() {
+      source_type.hash(&mut hasher);
     }
     self.value.data.update_hash(&mut hasher);
     self.value.runtime_requirements.hash(&mut hasher);
@@ -447,32 +423,44 @@ impl CodeGenerationResults {
     module_identifier: &ModuleIdentifier,
     runtime: Option<&RuntimeSpec>,
   ) -> &BindingCell<CodeGenerationResult> {
-    if let Some(entry) = self.map.get(module_identifier) {
-      if let Some(runtime) = runtime {
-        entry.get(runtime).unwrap_or_else(|| {
-          panic!(
-            "Failed to code generation result for {module_identifier} with runtime {runtime:?} \n {entry:?}"
-          )
-        })
-      } else {
-        let mut values = entry.values();
-        let result = values
-          .next()
-          .unwrap_or_else(|| panic!("Expected value exists"));
-        if values.any(|other| !result.has_same_value(other)) {
-          panic!(
-            "No unique code generation entry for unspecified runtime for {module_identifier} ",
-          );
-        }
-        result
-      }
-    } else {
-      panic!(
+    self
+      .try_get(module_identifier, runtime)
+      .unwrap_or_else(|error| {
+        panic!("{error}");
+      })
+  }
+
+  pub fn try_get(
+    &self,
+    module_identifier: &ModuleIdentifier,
+    runtime: Option<&RuntimeSpec>,
+  ) -> rspack_error::Result<&BindingCell<CodeGenerationResult>> {
+    let entry = self.map.get(module_identifier).ok_or_else(|| {
+      rspack_error::error!(
         "No code generation entry for {} (existing entries: {:?})",
         module_identifier,
         self.map.keys().collect::<Vec<_>>()
       )
+    })?;
+
+    if let Some(runtime) = runtime {
+      return entry.get(runtime).ok_or_else(|| {
+        rspack_error::error!(
+          "Failed to code generation result for {module_identifier} with runtime {runtime:?} \n {entry:?}"
+        )
+      });
     }
+
+    let mut values = entry.values();
+    let result = values
+      .next()
+      .ok_or_else(|| rspack_error::error!("Expected value exists"))?;
+    if values.any(|other| !result.has_same_value(other)) {
+      return Err(rspack_error::error!(
+        "No unique code generation entry for unspecified runtime for {module_identifier} "
+      ));
+    }
+    Ok(result)
   }
 
   /**

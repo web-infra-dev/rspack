@@ -1,4 +1,10 @@
-use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
+use std::sync::atomic::{AtomicBool, Ordering};
+
+use rspack_cacheable::{
+  cacheable, cacheable_dyn,
+  rkyv::with::{AtomicLoad, Relaxed},
+  with::AsPreset,
+};
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   AsContextDependency, AwaitDependenciesInitFragment, BuildMetaDefaultObject, ChunkGraph,
@@ -6,11 +12,11 @@ use rspack_core::{
   DependencyCodeGeneration, DependencyCondition, DependencyConditionFn,
   DependencyDiagnosticsContext, DependencyId, DependencyLocation, DependencyRange,
   DependencyTemplate, DependencyTemplateType, DependencyType, ExportProvided, ExportsInfoArtifact,
-  ExportsType, FactorizeInfo, ForwardId, ImportAttributes, ImportPhase, InitFragmentExt,
-  InitFragmentKey, InitFragmentStage, LazyUntil, ModuleDependency, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleIdentifier, ProvidedExports, ReferencedExport,
-  ResourceIdentifier, RuntimeCondition, RuntimeSpec, SideEffectsStateArtifact, SourceType,
-  TemplateContext, TemplateReplaceSource, TypeReexportPresenceMode, filter_runtime,
+  ExportsType, ForwardId, ImportAttributes, ImportPhase, InitFragmentExt, InitFragmentKey,
+  InitFragmentStage, LazyUntil, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
+  ModuleIdentifier, ProvidedExports, ReferencedExport, ResourceIdentifier, RuntimeCondition,
+  RuntimeSpec, SideEffectsStateArtifact, SourceType, TemplateContext, TemplateReplaceSource,
+  TypeReexportPresenceMode, filter_runtime,
 };
 use rspack_error::{Diagnostic, Error, Severity};
 use swc_atoms::Atom;
@@ -57,7 +63,7 @@ pub mod import_emitted_runtime {
 
 // ESMImportDependency is merged ESMImportSideEffectDependency.
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct ESMImportSideEffectDependency {
   #[cacheable(with=AsPreset)]
   request: Atom,
@@ -69,8 +75,8 @@ pub struct ESMImportSideEffectDependency {
   attributes: Option<ImportAttributes>,
   resource_identifier: ResourceIdentifier,
   loc: Option<DependencyLocation>,
-  factorize_info: FactorizeInfo,
-  lazy_make: bool,
+  #[cacheable(with=AtomicLoad<Relaxed>)]
+  lazy_make: AtomicBool,
   star_export: bool,
 }
 
@@ -98,14 +104,13 @@ impl ESMImportSideEffectDependency {
       attributes,
       resource_identifier,
       loc,
-      factorize_info: Default::default(),
-      lazy_make: false,
+      lazy_make: AtomicBool::new(false),
       star_export,
     }
   }
 
   fn missing_module_active(&self) -> bool {
-    !self.lazy_make
+    !self.lazy_make.load(Ordering::Relaxed)
   }
 }
 
@@ -113,12 +118,15 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
   module_dependency: &T,
   source_order: i32,
   phase: ImportPhase,
-  source: &mut TemplateReplaceSource,
   code_generatable_context: &mut TemplateContext,
 ) {
-  let compilation = code_generatable_context.compilation;
-  let module = code_generatable_context.module;
-  let runtime = code_generatable_context.runtime;
+  let TemplateContext {
+    compilation,
+    module,
+    runtime,
+    runtime_template,
+    ..
+  } = code_generatable_context;
   // Only available when module factorization is successful.
   let module_graph = compilation.get_module_graph();
   let module_graph_cache = &compilation.module_graph_cache_artifact;
@@ -126,7 +134,7 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
   let is_target_active = if let Some(con) = connection {
     con.is_target_active(
       module_graph,
-      runtime,
+      *runtime,
       module_graph_cache,
       &compilation
         .build_module_graph_artifact
@@ -160,7 +168,7 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
     RuntimeCondition::Boolean(false)
   } else if let Some(connection) = module_graph.connection_by_dependency_id(module_dependency.id())
   {
-    filter_runtime(runtime, |r| {
+    filter_runtime(*runtime, |r| {
       connection.is_target_active(
         module_graph,
         r,
@@ -180,24 +188,17 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
     target_module,
     module_dependency.user_request(),
     phase,
-    runtime,
+    *runtime,
   );
-  let rendered_import_var = source.ensure_generated_top_level_symbol(import_var);
-  let content: (String, String) = code_generatable_context.runtime_template.import_statement(
-    module,
+  let content: (String, String) = runtime_template.import_statement(
+    *module,
     compilation,
     module_dependency.id(),
-    &rendered_import_var,
+    &import_var,
     module_dependency.request(),
     phase,
     false,
   );
-  let is_async_module = matches!(target_module, Some(target_module) if ModuleGraph::is_async(&compilation.async_modules_artifact, &target_module.identifier()));
-  let async_dependencies_binding = if is_async_module {
-    source.ensure_generated_top_level_symbol_in_scope("__rspack_async_deps")
-  } else {
-    None
-  };
   let TemplateContext {
     init_fragments,
     compilation,
@@ -246,6 +247,7 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
     emitted_modules.insert(target_module, merged_runtime_condition);
   }
 
+  let is_async_module = matches!(target_module, Some(target_module) if ModuleGraph::is_async(&compilation.async_modules_artifact, &target_module.identifier()));
   if is_async_module {
     init_fragments.push(Box::new(ConditionalInitFragment::new(
       content.0,
@@ -255,17 +257,7 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
       None,
       runtime_condition.clone(),
     )));
-    let await_dependencies = if let Some(binding) = async_dependencies_binding {
-      AwaitDependenciesInitFragment::new_single_with_binding(rendered_import_var, binding)
-    } else if compilation.options.experiments.faster_module_concatenation {
-      AwaitDependenciesInitFragment::new_single_with_binding(
-        rendered_import_var,
-        "__rspack_async_deps".to_string(),
-      )
-    } else {
-      AwaitDependenciesInitFragment::new_single(rendered_import_var)
-    };
-    init_fragments.push(await_dependencies.boxed());
+    init_fragments.push(AwaitDependenciesInitFragment::new_single(import_var).boxed());
     init_fragments.push(Box::new(ConditionalInitFragment::new(
       content.1,
       InitFragmentStage::StageAsyncESMImports,
@@ -625,7 +617,7 @@ impl Dependency for ESMImportSideEffectDependency {
   }
 
   fn lazy(&self) -> Option<LazyUntil> {
-    self.lazy_make.then(|| {
+    self.lazy_make.load(Ordering::Relaxed).then(|| {
       if self.star_export {
         LazyUntil::Fallback
       } else {
@@ -634,14 +626,12 @@ impl Dependency for ESMImportSideEffectDependency {
     })
   }
 
-  fn set_lazy(&mut self) {
-    self.lazy_make = true;
+  fn set_lazy(&self) {
+    self.lazy_make.store(true, Ordering::Relaxed);
   }
 
-  fn unset_lazy(&mut self) -> bool {
-    let changed = self.lazy_make;
-    self.lazy_make = false;
-    changed
+  fn unset_lazy(&self) -> bool {
+    self.lazy_make.swap(false, Ordering::Relaxed)
   }
 }
 
@@ -659,14 +649,6 @@ impl ModuleDependency for ESMImportSideEffectDependency {
     Some(DependencyCondition::new(
       ESMImportSideEffectDependencyCondition,
     ))
-  }
-
-  fn factorize_info(&self) -> &FactorizeInfo {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
-    &mut self.factorize_info
   }
 }
 
@@ -727,14 +709,18 @@ impl DependencyTemplate for ESMImportSideEffectDependencyTemplate {
   fn render(
     &self,
     dep: &dyn DependencyCodeGeneration,
-    source: &mut TemplateReplaceSource,
+    _source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {
     let dep = dep
       .as_any()
       .downcast_ref::<ESMImportSideEffectDependency>()
       .expect("ESMImportSideEffectDependencyTemplate should only be used for ESMImportSideEffectDependency");
-    let compilation = code_generatable_context.compilation;
+    let TemplateContext {
+      compilation,
+      concatenation_scope,
+      ..
+    } = code_generatable_context;
     let module_graph = compilation.get_module_graph();
 
     let module = module_graph.get_module_by_dependency_id(&dep.id);
@@ -753,17 +739,11 @@ impl DependencyTemplate for ESMImportSideEffectDependencyTemplate {
       }
     }
 
-    if let Some(scope) = source.concatenation_scope()
+    if let Some(scope) = concatenation_scope
       && module.is_some_and(|m| scope.is_module_in_scope(&m.identifier()))
     {
       return;
     }
-    esm_import_dependency_apply(
-      dep,
-      dep.source_order,
-      dep.phase,
-      source,
-      code_generatable_context,
-    );
+    esm_import_dependency_apply(dep, dep.source_order, dep.phase, code_generatable_context);
   }
 }

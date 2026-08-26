@@ -1,5 +1,5 @@
 #![allow(unused)]
-use rspack_paths::ArcPath;
+use rspack_paths::InternedPath;
 use rspack_util::fx_hash::FxHashSet as HashSet;
 
 use super::{Analyzer, WatchPattern};
@@ -47,14 +47,14 @@ impl WatcherDirectoriesAnalyzer {
   }
 
   /// Finds the deepest existing directory path and its depth.
-  fn find_exists_path(&self, path: ArcPath) -> Option<(ArcPath, u32)> {
+  fn find_exists_path(&self, path: InternedPath) -> Option<(InternedPath, u32)> {
     let mut current = path;
     let mut deep = 0u32;
     // Traverse up the path until we find a directory that exists
     while !current.is_dir() {
       deep += 1;
       if let Some(parent) = current.parent() {
-        current = ArcPath::from(parent);
+        current = InternedPath::from(parent);
       } else {
         return None; // No parent exists
       }
@@ -95,12 +95,12 @@ mod tests {
     assert_eq!(watch_patterns.len(), 2);
     assert!(watch_patterns.contains(&{
       WatchPattern {
-        path: ArcPath::from(current_dir.clone()),
+        path: InternedPath::from(current_dir.clone()),
         mode: notify::RecursiveMode::NonRecursive,
       }
     }));
     assert!(watch_patterns.contains(&WatchPattern {
-      path: ArcPath::from(current_dir.join("src")),
+      path: InternedPath::from(current_dir.join("src")),
       mode: notify::RecursiveMode::NonRecursive
     }));
   }
@@ -108,7 +108,7 @@ mod tests {
   #[test]
   fn test_find_non_exists_watcher_directories() {
     let current_dir = std::env::current_dir().expect("Failed to get current directory");
-    let dir_0 = ArcPath::from(current_dir.join("src"));
+    let dir_0 = InternedPath::from(current_dir.join("src"));
 
     let path_manager = PathManager::default();
     let files = (
@@ -144,7 +144,7 @@ mod tests {
       mode: notify::RecursiveMode::Recursive,
     }));
     assert!(watch_patterns.contains(&WatchPattern {
-      path: ArcPath::from(current_dir),
+      path: InternedPath::from(current_dir),
       mode: notify::RecursiveMode::NonRecursive,
     }));
   }

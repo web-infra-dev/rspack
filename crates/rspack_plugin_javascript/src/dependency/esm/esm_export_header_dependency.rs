@@ -9,7 +9,7 @@ use rspack_core::{
 // Before: `export const a = 1`
 // After: `const a = 1`
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct ESMExportHeaderDependency {
   id: DependencyId,
   range: DependencyRange,
@@ -84,11 +84,15 @@ impl DependencyTemplate for ESMExportHeaderDependencyTemplate {
       .expect(
         "ESMExportHeaderDependencyTemplate should only be used for ESMExportHeaderDependency",
       );
-    let replacement_end = if let Some(range) = &dep.range_decl {
-      range.start
-    } else {
-      dep.range.end
-    };
-    source.replace_static(dep.range.start, replacement_end, "", None);
+    source.replace_static(
+      dep.range.start,
+      if let Some(range) = &dep.range_decl {
+        range.start
+      } else {
+        dep.range.end
+      },
+      "",
+      None,
+    );
   }
 }

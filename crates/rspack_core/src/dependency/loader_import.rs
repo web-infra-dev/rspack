@@ -1,18 +1,17 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 
-use super::{AffectType, FactorizeInfo};
+use super::AffectType;
 use crate::{
   AsContextDependency, AsDependencyCodeGeneration, Context, Dependency, DependencyCategory,
   DependencyId, DependencyType, ModuleDependency,
 };
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct LoaderImportDependency {
   id: DependencyId,
   context: Context,
   request: String,
-  factorize_info: FactorizeInfo,
 }
 
 impl LoaderImportDependency {
@@ -21,7 +20,6 @@ impl LoaderImportDependency {
       request,
       context,
       id: DependencyId::new(),
-      factorize_info: Default::default(),
     }
   }
 }
@@ -76,13 +74,5 @@ impl ModuleDependency for LoaderImportDependency {
 
   fn user_request(&self) -> &str {
     &self.request
-  }
-
-  fn factorize_info(&self) -> &FactorizeInfo {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
-    &mut self.factorize_info
   }
 }

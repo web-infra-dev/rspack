@@ -26,6 +26,8 @@ use runtime_mode::RuntimeMode;
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct NewCacheOptions {
   pub code_generation: bool,
+  pub devtool: bool,
+  pub loader: bool,
   pub minimize: bool,
 }
 
@@ -33,12 +35,14 @@ impl NewCacheOptions {
   pub const fn all() -> Self {
     Self {
       code_generation: true,
+      devtool: true,
+      loader: true,
       minimize: true,
     }
   }
 
   pub const fn is_enabled(self) -> bool {
-    self.code_generation || self.minimize
+    self.code_generation || self.devtool || self.loader || self.minimize
   }
 }
 
@@ -48,7 +52,6 @@ pub struct Experiments {
   pub new_cache: NewCacheOptions,
   pub defer_import: bool,
   pub source_import: bool,
-  pub faster_module_concatenation: bool,
   pub pure_functions: bool,
   pub runtime_mode: RuntimeMode,
 }

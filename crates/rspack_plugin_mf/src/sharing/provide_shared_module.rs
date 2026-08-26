@@ -172,9 +172,9 @@ impl Module for ProvideSharedModule {
   ) -> Result<BuildResult> {
     let mut blocks = vec![];
     let mut dependencies = vec![];
-    let dep = Box::new(ProvideForSharedDependency::new(self.request.clone()));
+    let dep = BoxDependency::new(ProvideForSharedDependency::new(self.request.clone()));
     if self.eager {
-      dependencies.push(dep as BoxDependency);
+      dependencies.push(dep);
     } else {
       let block = AsyncDependenciesBlock::new(self.identifier, None, None, vec![dep], None);
       blocks.push(Box::new(block));

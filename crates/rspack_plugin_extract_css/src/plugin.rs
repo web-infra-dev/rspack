@@ -557,6 +557,8 @@ async fn runtime_requirement_in_tree(
   let has_hot_update = runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS);
 
   if has_hot_update || runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS) {
+    let full_hash = self.options.filename.has_full_hash_digest()
+      || self.options.chunk_filename.has_full_hash_digest();
     let filename = self.options.filename.clone();
     let chunk_filename = self.options.chunk_filename.clone();
     let runtime_template = compilation.runtime_template.create_chunk_code_template();
@@ -588,6 +590,7 @@ async fn runtime_requirement_in_tree(
           },
           *chunk_ukey,
         )
+        .with_full_hash(full_hash)
         .with_rspack_export_global(MINI_CSS_CHUNK_FILENAME_EXPORT_GLOBAL),
       ),
     ));

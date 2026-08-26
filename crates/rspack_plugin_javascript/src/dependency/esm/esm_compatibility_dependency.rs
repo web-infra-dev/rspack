@@ -54,7 +54,7 @@ pub(super) fn add_async_module_boundary(
 // Mark module `__esModule`.
 // Add `__rspack_require.r(__rspack_exports);`.
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct ESMCompatibilityDependency;
 
 #[cacheable_dyn]
@@ -78,7 +78,7 @@ impl DependencyTemplate for ESMCompatibilityDependencyTemplate {
   fn render(
     &self,
     _dep: &dyn DependencyCodeGeneration,
-    source: &mut TemplateReplaceSource,
+    _source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {
     let TemplateContext {
@@ -86,10 +86,11 @@ impl DependencyTemplate for ESMCompatibilityDependencyTemplate {
       compilation,
       module,
       runtime,
+      concatenation_scope,
       runtime_template,
       ..
     } = code_generatable_context;
-    if source.concatenation_scope().is_some() {
+    if concatenation_scope.is_some() {
       return;
     }
     let module_graph = compilation.get_module_graph();

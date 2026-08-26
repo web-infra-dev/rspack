@@ -97,8 +97,8 @@ impl Module for DelegatedModule {
     _compilation: Option<&Compilation>,
   ) -> Result<BuildResult> {
     let dependencies = vec![
-      Box::new(DelegatedSourceDependency::new(self.source_request.clone())),
-      Box::new(StaticExportsDependency::new(
+      BoxDependency::new(DelegatedSourceDependency::new(self.source_request.clone())),
+      BoxDependency::new(StaticExportsDependency::new(
         match self.delegate_data.exports.clone() {
           Some(exports) => match exports {
             DllManifestContentItemExports::True => StaticExportsSpec::True,
@@ -107,7 +107,7 @@ impl Module for DelegatedModule {
           None => StaticExportsSpec::True,
         },
         false,
-      )) as BoxDependency,
+      )),
     ];
     self.build_meta = self.delegate_data.build_meta.clone();
     Ok(BuildResult {

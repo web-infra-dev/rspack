@@ -1,0 +1,47 @@
+<>
+
+```ts
+type ConcatenationArg = string | { expr: string };
+
+declare class RuntimeTemplate {
+  compilation: Compilation;
+  outputOptions: OutputNormalized;
+  globalObject: string | undefined;
+  contentHashReplacement: string;
+
+  isIIFE(): boolean | undefined;
+  isModule(): boolean | undefined;
+  isNeutralPlatform(): boolean;
+
+  supportsConst(): boolean;
+  supportsArrowFunction(): boolean;
+  supportsAsyncFunction(): boolean;
+  supportsOptionalChaining(): boolean;
+  supportsForOf(): boolean;
+  supportsDestructuring(): boolean;
+  supportsBigIntLiteral(): boolean;
+  supportsDynamicImport(): boolean;
+  supportsEcmaScriptModuleSyntax(): boolean;
+  supportTemplateLiteral(): boolean;
+  supportNodePrefixForCoreModules(): boolean;
+
+  renderNodePrefixForCoreModule(mod: string): string;
+  returningFunction(returnValue: string, args?: string): string;
+  basicFunction(args: string, body: string | string[]): string;
+  expressionFunction(expression: string, args?: string): string;
+  emptyFunction(): string;
+  concatenation(...args: ConcatenationArg[]): string;
+  destructureArray(items: string[], value: string): string;
+  destructureObject(items: string[], value: string): string;
+  iife(args: string, body: string | string[]): string;
+  forEach(variable: string, array: string, body: string | string[]): string;
+
+  throwMissingModuleErrorBlock(options: { request?: string }): string;
+  throwMissingModuleErrorFunction(options: { request?: string }): string;
+  missingModule(options: { request?: string }): string;
+  missingModuleStatement(options: { request?: string }): string;
+  missingModulePromise(options: { request?: string }): string;
+}
+```
+
+</>

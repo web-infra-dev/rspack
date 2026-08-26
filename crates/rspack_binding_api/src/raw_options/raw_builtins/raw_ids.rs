@@ -5,6 +5,7 @@ use napi_derive::napi;
 use rspack_core::{CompilerId, Module};
 use rspack_hash::{HashDigest, HashFunction};
 use rspack_ids::{
+  CompatHashedChunkIdsPluginOptions, CompatHashedModuleIdsPluginOptions,
   DeterministicModuleIdsPluginOptions, HashedModuleIdsPluginOptions, ModuleFilterFn,
   OccurrenceChunkIdsPluginOptions, SyncModuleIdsPluginMode, SyncModuleIdsPluginOptions,
 };
@@ -70,6 +71,34 @@ fn into_module_filter(test: RawModuleFilter) -> ModuleFilterFn {
       Box::pin(async move { Ok(test.call_with_sync(module).await?.unwrap_or(false)) })
     },
   )
+}
+
+#[derive(Debug)]
+#[napi(object, object_to_js = false)]
+pub struct RawCompatHashedModuleIdsPluginOptions {
+  pub min_length: Option<u32>,
+}
+
+impl From<RawCompatHashedModuleIdsPluginOptions> for CompatHashedModuleIdsPluginOptions {
+  fn from(value: RawCompatHashedModuleIdsPluginOptions) -> Self {
+    Self {
+      min_length: value.min_length.map(|n| n as usize),
+    }
+  }
+}
+
+#[derive(Debug)]
+#[napi(object, object_to_js = false)]
+pub struct RawCompatHashedChunkIdsPluginOptions {
+  pub min_length: Option<u32>,
+}
+
+impl From<RawCompatHashedChunkIdsPluginOptions> for CompatHashedChunkIdsPluginOptions {
+  fn from(value: RawCompatHashedChunkIdsPluginOptions) -> Self {
+    Self {
+      min_length: value.min_length.map(|n| n as usize),
+    }
+  }
 }
 
 #[derive(Debug)]

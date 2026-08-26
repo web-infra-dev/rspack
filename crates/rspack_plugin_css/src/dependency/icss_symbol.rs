@@ -21,7 +21,7 @@ pub enum CssIcssSymbolValue {
 }
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct CssIcssSymbolDependency {
   id: DependencyId,
   value: CssIcssSymbolValue,

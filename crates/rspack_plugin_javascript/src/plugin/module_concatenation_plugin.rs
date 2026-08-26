@@ -10,19 +10,19 @@ use rspack_collections::{
   Identifiable, IdentifierDashMap, IdentifierIndexSet, IdentifierMap, IdentifierSet,
 };
 use rspack_core::{
-  BoxDependency, BoxModule, ChunkUkey, Compilation, CompilationOptimizeChunkModules,
-  ConcatenationScopeInfoMode, DependencyId, DependencyType, ExportProvided, ExportsInfoArtifact,
-  GetTargetResult, ImportedByDeferModulesArtifact, LibIdentOptions, Logger, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleGraphModule, ModuleIdentifier,
-  OptimizationBailoutItem, PendingConcatenationScopeInfo, Plugin, ProvidedExports,
-  RuntimeCondition, RuntimeSpec, RuntimeSpecMap, SideEffectsStateArtifact, SourceType,
+  BoxModule, ChunkUkey, Compilation, CompilationOptimizeChunkModules, Dependency, DependencyId,
+  DependencyType, ExportProvided, ExportsInfoArtifact, GetTargetResult,
+  ImportedByDeferModulesArtifact, LibIdentOptions, Logger, ModuleGraph, ModuleGraphCacheArtifact,
+  ModuleGraphConnection, ModuleGraphModule, ModuleIdentifier, OptimizationBailoutItem, Plugin,
+  ProvidedExports, RuntimeCondition, RuntimeSpec, RuntimeSpecMap, SideEffectsStateArtifact,
+  SourceType,
   concatenated_module::{
     ConcatenatedInnerModule, ConcatenatedModule, RootModuleContext, is_esm_dep_like,
   },
   filter_runtime, get_cached_readable_identifier, get_target,
   incremental::IncrementalPasses,
 };
-use rspack_error::{Result, ToStringResultToRspackResultExt, error};
+use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::itoa;
 use rustc_hash::FxHashSet as HashSet;
@@ -1069,35 +1069,9 @@ impl ModuleConcatenationPlugin {
       })
       .collect();
 
-    let faster_module_concatenation = compilation.options.experiments.faster_module_concatenation;
     let module_graph = compilation.get_module_graph_mut();
 
     for (can_be_root, can_be_inner, module_id, bailout_reason) in res {
-      if faster_module_concatenation && (can_be_root || can_be_inner) {
-        let module = module_graph
-          .module_by_identifier(&module_id)
-          .expect("should have module");
-        let mode = module.concatenation_scope_info_mode();
-        let pending = module
-          .build_info()
-          .pending_concatenation_scope_info
-          .as_deref();
-        let valid = matches!(
-          (mode, pending),
-          (
-            ConcatenationScopeInfoMode::AnalyzeAtMake,
-            Some(PendingConcatenationScopeInfo::Analyzed(_))
-          ) | (
-            ConcatenationScopeInfoMode::GenerateAtCodegen,
-            Some(PendingConcatenationScopeInfo::Generated)
-          )
-        );
-        if !valid {
-          return Err(error!(
-            "module {module_id} is eligible for module concatenation, but its concatenation scope info does not match the declared {mode:?} mode"
-          ));
-        }
-      }
       if can_be_root {
         relevant_modules.push(module_id);
       }
@@ -1813,6 +1787,7 @@ async fn create_concatenated_module(
         resolver_factory: compilation.resolver_factory.clone(),
         plugin_driver: compilation.plugin_driver.clone(),
         compiler_options: compilation.options.clone(),
+        loader_cache: compilation.get_cache("loader"),
         fs: compilation.input_filesystem.clone(),
         runtime_template: compilation.runtime_template.create_module_code_template(),
       },
@@ -1831,7 +1806,7 @@ fn prepare_concatenated_module_connections<F>(
   filter_connection: F,
 ) -> Vec<DependencyId>
 where
-  F: Fn(&ModuleIdentifier, &ModuleGraphConnection, &BoxDependency) -> bool + Sync,
+  F: Fn(&ModuleIdentifier, &ModuleGraphConnection, &dyn Dependency) -> bool + Sync,
 {
   let mg = compilation.get_module_graph();
 
@@ -1873,7 +1848,7 @@ fn prepare_concatenated_root_module_connections<F>(
   filter_connection: F,
 ) -> (Vec<DependencyId>, Vec<DependencyId>)
 where
-  F: Fn(&ModuleIdentifier, &ModuleGraphConnection, &BoxDependency) -> bool,
+  F: Fn(&ModuleIdentifier, &ModuleGraphConnection, &dyn Dependency) -> bool,
 {
   let mg = compilation.get_module_graph();
   let mut outgoings = vec![];

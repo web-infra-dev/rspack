@@ -186,7 +186,7 @@ pub(crate) async fn code_generation_modules(
       };
 
       s.spawn(
-        |(this, module_graph, cache_counter, new_cache, mut job)| async move {
+        |(this, module_graph, cache_counter, new_cache, job)| async move {
           let options = &this.options;
 
           let module = module_graph
@@ -201,39 +201,46 @@ pub(crate) async fn code_generation_modules(
               )
             }))
           });
-          let mut concatenation_scope = job.scope.take();
           let generator = async {
             let mut runtime_template = this.runtime_template.create_module_code_template();
             let mut code_generation_context = ModuleCodeGenerationContext {
               compilation: this,
               runtime: Some(&job.runtime),
-              concatenation_scope: concatenation_scope.as_mut(),
-              concatenation_source: None,
+              concatenation_scope: job.scope.clone(),
               runtime_template: &mut runtime_template,
             };
             let mut codegen_result_builder =
               module.code_generation(&mut code_generation_context).await?;
 
-            if let Some(scope) = concatenation_scope.as_mut()
+            if let Some(scope) = code_generation_context.concatenation_scope.as_mut()
               && scope.is_codegen_data_collection_enabled()
             {
               codegen_result_builder
                 .data_mut()
                 .insert(scope.take_codegen_data_output());
             }
+            drop(code_generation_context);
 
             codegen_result_builder
               .runtime_requirements_mut()
               .extend(*runtime_template.runtime_requirements());
-            codegen_result_builder.set_hash(
-              &options.output.hash_function,
-              &options.output.hash_digest,
-              &options.output.hash_salt,
-              module
-                .as_concatenated_module()
-                .is_some()
-                .then_some(&job.hash),
-            );
+            if module.as_concatenated_module().is_some() {
+              // Concatenated modules are special here: `job.hash` already
+              // fingerprints the generated module bodies, so we only need
+              // to fold in the remaining codegen metadata.
+              codegen_result_builder.set_hash_for_concatenated_module(
+                &job.hash,
+                &options.output.hash_function,
+                &options.output.hash_digest,
+                &options.output.hash_salt,
+              );
+            } else {
+              codegen_result_builder.set_hash(
+                &options.output.hash_function,
+                &options.output.hash_digest,
+                &options.output.hash_salt,
+              );
+            }
             Ok(codegen_result_builder.build())
           };
           let (codegen_res, from_cache) = if let Some(new_cache) = new_code_generation_cache {
@@ -275,7 +282,6 @@ pub(crate) async fn code_generation_modules(
           &compilation.options.output.hash_function,
           &compilation.options.output.hash_digest,
           &compilation.options.output.hash_salt,
-          None,
         );
         codegen_result_builder.build()
       }

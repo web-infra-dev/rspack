@@ -1,7 +1,7 @@
 //! Tests for tsconfig project references
 
 use crate::{
-  ArcPath, ResolveContext, ResolveError, ResolveOptions, Resolver, TsconfigOptions,
+  InternedPath, ResolveContext, ResolveError, ResolveOptions, Resolver, TsconfigOptions,
   TsconfigReferences,
 };
 
@@ -45,8 +45,6 @@ async fn auto() {
 }
 
 #[tokio::test]
-#[ignore = "temporary workaround: tsconfig and its references are no longer reported as file dependencies, \
-            because a monorepo with many project references bursts memory in the consumer"]
 async fn tsconfig_file_as_file_dependencies() {
   let f = super::fixture_root().join("tsconfig/cases/project_references");
 
@@ -77,7 +75,9 @@ async fn tsconfig_file_as_file_dependencies() {
   ];
   for dependency in expected_dependencies {
     assert!(
-      ctx.file_dependencies.contains(&ArcPath::from(&dependency)),
+      ctx
+        .file_dependencies
+        .contains(&InternedPath::from(&dependency)),
       "missing tsconfig file dependency {dependency:?}: {:?}",
       ctx.file_dependencies
     );

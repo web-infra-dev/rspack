@@ -89,7 +89,7 @@ impl InnerGraphParserPlugin {
           *parser.module_identifier,
         );
         let dep_idx = parser.next_dependency_idx();
-        parser.add_dependency(Box::new(dep));
+        parser.add_dependency(BoxDependency::new(dep));
         Self::on_usage(parser, InnerGraphUsageOperation::PureExpression(dep_idx));
       }
     }
@@ -640,7 +640,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InnerGraphParserPlugin {
           *parser.module_identifier,
         );
         let dep_idx = parser.next_dependency_idx();
-        parser.add_dependency(Box::new(dep));
+        parser.add_dependency(BoxDependency::new(dep));
         Self::on_usage(parser, InnerGraphUsageOperation::PureExpression(dep_idx));
       }
     }
@@ -692,7 +692,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InnerGraphParserPlugin {
         *parser.module_identifier,
       );
       let dep_idx = parser.next_dependency_idx();
-      parser.add_dependency(Box::new(dep));
+      parser.add_dependency(BoxDependency::new(dep));
       Self::on_usage(parser, InnerGraphUsageOperation::PureExpression(dep_idx));
     }
 
@@ -777,7 +777,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InnerGraphParserPlugin {
             *parser.module_identifier,
           );
           let dep_idx = parser.next_dependency_idx();
-          parser.add_dependency(Box::new(dep));
+          parser.add_dependency(BoxDependency::new(dep));
           Self::on_usage(parser, InnerGraphUsageOperation::PureExpression(dep_idx));
         }
       } else {
@@ -817,7 +817,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InnerGraphParserPlugin {
             *parser.module_identifier,
           );
           let dep_idx = parser.next_dependency_idx();
-          parser.add_dependency(Box::new(dep));
+          parser.add_dependency(BoxDependency::new(dep));
           Self::on_usage(parser, InnerGraphUsageOperation::PureExpression(dep_idx));
         } else if decl.init.is_none() || !decl.init.as_ref().expect("unreachable").is_class() {
           let init = decl.init.as_ref().expect("should have initialization");
@@ -827,7 +827,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InnerGraphParserPlugin {
             *parser.module_identifier,
           );
           let dep_idx = parser.next_dependency_idx();
-          parser.add_dependency(Box::new(dep));
+          parser.add_dependency(BoxDependency::new(dep));
           InnerGraphParserPlugin::on_usage(
             parser,
             InnerGraphUsageOperation::PureExpression(dep_idx),

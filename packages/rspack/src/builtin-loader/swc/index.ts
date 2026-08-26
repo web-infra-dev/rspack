@@ -2,8 +2,6 @@ import type { GetLoaderOptions } from '../../config/adapterRuleUse';
 import { resolveCollectTypeScriptInfo } from './collectTypeScriptInfo';
 import { resolvePluginImport } from './pluginImport';
 
-export type { CollectTypeScriptInfoOptions } from './collectTypeScriptInfo';
-export type { PluginImportOptions } from './pluginImport';
 export type {
   SwcLoaderEnvConfig,
   SwcLoaderEsParserConfig,

@@ -89,7 +89,7 @@ use dashmap::DashSet;
 use futures::future::{BoxFuture, try_join_all};
 // Resolved dependencies are reported as interned paths, so consumers do not have to convert or
 // rehash them; re-exported for anyone reading a `ResolveContext`.
-pub use rspack_paths::{ArcPath, ArcPathSet};
+pub use rspack_paths::{InternedPath, InternedPathSet};
 use rustc_hash::FxHashSet;
 
 use crate::{
@@ -119,10 +119,10 @@ type ResolveResult = Result<Option<CachedPath>, ResolveError>;
 #[derive(Debug, Default, Clone)]
 pub struct ResolveContext {
   /// Files that were found on file system
-  pub file_dependencies: ArcPathSet,
+  pub file_dependencies: InternedPathSet,
 
   /// Dependencies that were not found on file system
-  pub missing_dependencies: ArcPathSet,
+  pub missing_dependencies: InternedPathSet,
 }
 
 /// Resolver with the current operating system as the file system
@@ -1516,13 +1516,11 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
         &tsconfig_options.references,
       )
       .await?;
-    // TODO: restore once these can be reported without costing `module count * tsconfig count`.
-    // Temporarily disabled: a monorepo with project references bursts memory in the consumer,
-    // which keeps this set per module. Trade-off: tsconfig edits won't invalidate watch builds.
-    // See `tsconfig_file_as_file_dependencies`, ignored for now.
-    // for dependency in &tsconfig.file_dependencies {
-    //   ctx.add_file_dependency(dependency.as_path());
-    // }
+    if ctx.file_dependencies.is_some() {
+      for dependency in &tsconfig.file_dependencies {
+        ctx.add_file_dependency(dependency.as_path());
+      }
+    }
     let paths = tsconfig.resolve(cached_path.path(), specifier);
     for path in paths {
       let cached_path = self.cache.value(&path);

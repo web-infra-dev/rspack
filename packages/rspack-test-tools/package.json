@@ -1,6 +1,6 @@
 {
   "name": "@rspack/test-tools",
-  "version": "2.2.0-beta.1",
+  "version": "2.2.0",
   "description": "Test tools for rspack",
   "homepage": "https://rspack.rs",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",
@@ -37,12 +37,7 @@
     "dev": "rs lib -w"
   },
   "dependencies": {
-    "@babel/generator": "catalog:",
-    "@babel/parser": "catalog:",
-    "@babel/traverse": "catalog:",
-    "@babel/types": "catalog:",
     "chalk": "catalog:",
-    "cross-env": "catalog:",
     "filenamify": "catalog:",
     "fs-extra": "catalog:",
     "iconv-lite": "catalog:",
@@ -56,13 +51,10 @@
     "rspack-merge": "catalog:",
     "source-map": "catalog:",
     "terser-webpack-plugin": "catalog:",
-    "wast-loader": "catalog:",
-    "webpack-sources": "catalog:"
+    "wast-loader": "catalog:"
   },
   "devDependencies": {
     "@rspack/core": "workspace:*",
-    "@types/babel__generator": "catalog:",
-    "@types/babel__traverse": "catalog:",
     "@types/fs-extra": "catalog:",
     "@types/jsdom": "catalog:",
     "rstack": "catalog:",

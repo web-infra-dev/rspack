@@ -205,17 +205,10 @@ impl Hash for dyn Source {
 
 pub trait AsAny {
   fn as_any(&self) -> &dyn Any;
-
-  /// Convert an owned [`Arc`] into an [`Any`] trait object for downcasting.
-  fn into_any_arc(self: Arc<Self>) -> Arc<dyn Any + Send + Sync>;
 }
 
-impl<T: Any + Send + Sync> AsAny for T {
+impl<T: Any> AsAny for T {
   fn as_any(&self) -> &dyn Any {
-    self
-  }
-
-  fn into_any_arc(self: Arc<Self>) -> Arc<dyn Any + Send + Sync> {
     self
   }
 }

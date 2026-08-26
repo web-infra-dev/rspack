@@ -3458,6 +3458,11 @@ impl OptimizationOptionsBuilder {
           .plugins
           .push(BuiltinPluginOptions::DeterministicModuleIdsPlugin);
       }
+      "compat-hashed" => {
+        builder_context
+          .plugins
+          .push(BuiltinPluginOptions::CompatHashedModuleIdsPlugin);
+      }
       "named" => {
         builder_context
           .plugins
@@ -3500,6 +3505,11 @@ impl OptimizationOptionsBuilder {
         builder_context
           .plugins
           .push(BuiltinPluginOptions::DeterministicChunkIdsPlugin);
+      }
+      "compat-hashed" => {
+        builder_context
+          .plugins
+          .push(BuiltinPluginOptions::CompatHashedChunkIdsPlugin);
       }
       "named" => {
         builder_context
@@ -3684,8 +3694,6 @@ pub struct ExperimentsBuilder {
   defer_import: Option<bool>,
   /// Whether to enable source import.
   source_import: Option<bool>,
-  /// Whether to enable the faster module concatenation implementation.
-  faster_module_concatenation: Option<bool>,
   // TODO: lazy compilation
   pure_functions: Option<bool>,
   runtime_mode: Option<RuntimeMode>,
@@ -3700,7 +3708,6 @@ impl From<Experiments> for ExperimentsBuilder {
       async_web_assembly: None,
       defer_import: Some(value.defer_import),
       source_import: Some(value.source_import),
-      faster_module_concatenation: Some(value.faster_module_concatenation),
       pure_functions: Some(value.pure_functions),
       runtime_mode: Some(value.runtime_mode),
     }
@@ -3716,7 +3723,6 @@ impl From<&mut ExperimentsBuilder> for ExperimentsBuilder {
       async_web_assembly: value.async_web_assembly.take(),
       defer_import: value.defer_import.take(),
       source_import: value.source_import.take(),
-      faster_module_concatenation: value.faster_module_concatenation.take(),
       pure_functions: value.pure_functions.take(),
       runtime_mode: value.runtime_mode.take(),
     }
@@ -3764,12 +3770,6 @@ impl ExperimentsBuilder {
     self
   }
 
-  /// Set whether to enable the faster module concatenation implementation.
-  pub fn faster_module_concatenation(&mut self, faster_module_concatenation: bool) -> &mut Self {
-    self.faster_module_concatenation = Some(faster_module_concatenation);
-    self
-  }
-
   /// Build [`Experiments`] from options.
   ///
   /// [`Experiments`]: rspack_core::options::Experiments
@@ -3789,7 +3789,6 @@ impl ExperimentsBuilder {
       new_cache: d!(self.new_cache, NewCacheOptions::default()),
       defer_import: d!(self.defer_import, false),
       source_import: d!(self.source_import, false),
-      faster_module_concatenation: d!(self.faster_module_concatenation, false),
       pure_functions: d!(self.pure_functions, _production),
       runtime_mode: d!(self.runtime_mode, RuntimeMode::Webpack),
     })

@@ -1,5 +1,5 @@
 use napi_derive::napi;
-use rspack_core::cache::persistent::storage::StorageOptions;
+use rspack_core::StorageOptions;
 
 #[derive(Debug, Default)]
 #[napi(object)]

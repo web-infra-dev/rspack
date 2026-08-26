@@ -65,6 +65,8 @@ import * as ModuleFilenameHelpers from './lib/ModuleFilenameHelpers';
 
 // API extractor not working with some re-exports, see: https://github.com/microsoft/fluentui/issues/20694
 export { Template } from './Template';
+export { RuntimeTemplate } from './RuntimeTemplate';
+export type { ConcatenationArg } from './RuntimeTemplate';
 export { ModuleFilenameHelpers };
 
 export const WebpackError = Error;
@@ -186,17 +188,23 @@ interface Electron {
 export const electron: Electron = { ElectronTargetPlugin };
 
 import {
+  CompatHashedChunkIdsPlugin,
+  CompatHashedModuleIdsPlugin,
   DeterministicModuleIdsPlugin,
   HashedModuleIdsPlugin,
   SyncModuleIdsPlugin,
 } from './builtin-plugin';
 
 interface Ids {
+  CompatHashedChunkIdsPlugin: typeof CompatHashedChunkIdsPlugin;
+  CompatHashedModuleIdsPlugin: typeof CompatHashedModuleIdsPlugin;
   DeterministicModuleIdsPlugin: typeof DeterministicModuleIdsPlugin;
   HashedModuleIdsPlugin: typeof HashedModuleIdsPlugin;
 }
 
 export const ids: Ids = {
+  CompatHashedChunkIdsPlugin,
+  CompatHashedModuleIdsPlugin,
   DeterministicModuleIdsPlugin,
   HashedModuleIdsPlugin,
 };

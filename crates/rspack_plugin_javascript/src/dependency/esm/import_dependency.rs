@@ -5,9 +5,9 @@ use rspack_cacheable::{
 use rspack_core::{
   AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration,
   DependencyCondition, DependencyId, DependencyRange, DependencyTemplate, DependencyTemplateType,
-  DependencyType, ExportsInfoArtifact, FactorizeInfo, ImportAttributes, ImportPhase,
-  ModuleDependency, ModuleGraphCacheArtifact, ReferencedSpecifier, ResourceIdentifier,
-  TemplateContext, TemplateReplaceSource, create_exports_object_referenced,
+  DependencyType, ExportsInfoArtifact, ImportAttributes, ImportPhase, ModuleDependency,
+  ModuleGraphCacheArtifact, ReferencedSpecifier, ResourceIdentifier, TemplateContext,
+  TemplateReplaceSource, create_exports_object_referenced,
   create_referenced_exports_by_referenced_specifiers,
 };
 use swc_atoms::Atom;
@@ -16,7 +16,7 @@ use super::create_resource_identifier_for_esm_dependency;
 use crate::dependency::{DependencyBranchGuard, compose_dependency_condition};
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct ImportDependency {
   pub id: DependencyId,
   #[cacheable(with=AsPreset)]
@@ -28,7 +28,6 @@ pub struct ImportDependency {
   phase: ImportPhase,
   pub comments: Vec<(bool, String)>,
   resource_identifier: ResourceIdentifier,
-  factorize_info: FactorizeInfo,
   optional: bool,
   #[cacheable(with=AsOption<AsCacheable>)]
   branch_guard: Option<DependencyBranchGuard>,
@@ -53,7 +52,6 @@ impl ImportDependency {
       attributes,
       phase,
       resource_identifier,
-      factorize_info: Default::default(),
       optional,
       comments,
       branch_guard: None,
@@ -159,14 +157,6 @@ impl ModuleDependency for ImportDependency {
 
   fn user_request(&self) -> &str {
     &self.request
-  }
-
-  fn factorize_info(&self) -> &FactorizeInfo {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
-    &mut self.factorize_info
   }
 
   fn get_optional(&self) -> bool {

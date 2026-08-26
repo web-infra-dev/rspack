@@ -2,9 +2,9 @@ use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
 use rspack_core::{
   AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
   DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
-  ExportsInfoArtifact, FactorizeInfo, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
-  NormalInitFragment, ReferencedExport, RuntimeGlobals, RuntimeSpec, TemplateContext,
-  TemplateReplaceSource, create_exports_object_referenced,
+  ExportsInfoArtifact, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, NormalInitFragment,
+  ReferencedExport, RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource,
+  create_exports_object_referenced,
 };
 use rspack_hash::{RspackHash, RspackHasher};
 use rspack_util::json_stringify_str;
@@ -13,7 +13,7 @@ use swc_atoms::Atom;
 pub const IMPORT_META_RSC_BINDING: &str = "__rspack_import_meta_rsc__";
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct ImportMetaRscDependency {
   id: DependencyId,
   #[cacheable(with=AsPreset)]
@@ -21,7 +21,6 @@ pub struct ImportMetaRscDependency {
   importer: String,
   range: Option<DependencyRange>,
   loc: Option<DependencyLocation>,
-  factorize_info: FactorizeInfo,
 }
 
 impl ImportMetaRscDependency {
@@ -32,7 +31,6 @@ impl ImportMetaRscDependency {
       importer,
       range: Some(range),
       loc,
-      factorize_info: Default::default(),
     }
   }
 
@@ -43,7 +41,6 @@ impl ImportMetaRscDependency {
       importer,
       range: None,
       loc,
-      factorize_info: Default::default(),
     }
   }
 }
@@ -93,14 +90,6 @@ impl ModuleDependency for ImportMetaRscDependency {
 
   fn user_request(&self) -> &str {
     &self.request
-  }
-
-  fn factorize_info(&self) -> &FactorizeInfo {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
-    &mut self.factorize_info
   }
 }
 
@@ -155,7 +144,6 @@ impl DependencyTemplate for ImportMetaRscDependencyTemplate {
       .as_any()
       .downcast_ref::<ImportMetaRscDependency>()
       .expect("ImportMetaRscDependencyTemplate should only be used for ImportMetaRscDependency");
-    let rendered_binding = source.ensure_generated_top_level_symbol(IMPORT_META_RSC_BINDING);
 
     let TemplateContext {
       compilation,
@@ -168,9 +156,10 @@ impl DependencyTemplate for ImportMetaRscDependencyTemplate {
       runtime_template.module_raw(compilation, dependency.id(), dependency.request(), false);
     let importer = json_stringify_str(&dependency.importer);
 
-    let mut fragment = NormalInitFragment::new(
-      format!(
-        r#"var {rendered_binding} = {{
+    init_fragments.push(Box::new(
+      NormalInitFragment::new(
+        format!(
+          r#"var {IMPORT_META_RSC_BINDING} = {{
   loadCss: function() {{
     return (({rsc_manifest}.entryCssFiles[{importer}] || []).map(function(href) {{
       return {react}.createElement("link", Object.assign({{}}, {rsc_manifest}.cssLinkProps, {{
@@ -182,20 +171,25 @@ impl DependencyTemplate for ImportMetaRscDependencyTemplate {
   }}
 }};
 "#
-      ),
-      rspack_core::InitFragmentStage::StageProvides,
-      0,
-      rspack_core::InitFragmentKey::ModuleExternal(format!(
-        "import.meta.rspackRsc {}",
-        dependency.importer
-      )),
-      None,
-    );
-    fragment.set_top_level_decl_symbols(vec![Atom::from(IMPORT_META_RSC_BINDING)]);
-    init_fragments.push(Box::new(fragment));
+        ),
+        rspack_core::InitFragmentStage::StageProvides,
+        0,
+        rspack_core::InitFragmentKey::ModuleExternal(format!(
+          "import.meta.rspackRsc {}",
+          dependency.importer
+        )),
+        None,
+      )
+      .with_top_level_decl_symbols(vec![Atom::from(IMPORT_META_RSC_BINDING)]),
+    ));
 
     if let Some(range) = dependency.range {
-      source.replace_with_tracked_used_names(range.start, range.end, rendered_binding, None);
+      source.replace(
+        range.start,
+        range.end,
+        IMPORT_META_RSC_BINDING.to_string(),
+        None,
+      );
     }
   }
 }
