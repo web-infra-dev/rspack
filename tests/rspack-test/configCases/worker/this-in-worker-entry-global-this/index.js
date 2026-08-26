@@ -4,6 +4,6 @@ it("should reach a worker entry's global scope as globalThis", async () => {
 	const result = await new Promise(resolve => {
 		worker.onmessage = event => resolve(event.data);
 	});
-	expect(result).toBe("got hello:defined:globalThis");
+	expect(result).toBe("got hello:defined:globalThis:dependency:exports");
 	await worker.terminate();
 });

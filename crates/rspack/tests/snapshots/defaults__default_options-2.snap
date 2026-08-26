@@ -31,6 +31,8 @@ BuilderContext {
                         "main",
                     ),
                     runtime: None,
+                    worker: None,
+                    worklet: None,
                     chunk_loading: None,
                     wasm_loading: None,
                     async_chunks: None,
