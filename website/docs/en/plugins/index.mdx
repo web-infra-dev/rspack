@@ -1,42 +1,77 @@
 ---
-description: 'Overview of Rspack plugin docs, including built-in plugins, webpack-compatible plugins, and reference entry points.'
+description: 'Browse all documented Rspack plugins by function, with concise descriptions and links to each reference page.'
 ---
 
 # Rspack plugins
 
-Rspack enhances its compilation capabilities through a rich ecosystem of plugins. These plugins fall into the following categories:
+Browse all documented Rspack plugins by function below.
 
-## Built-in plugins
+## Output and assets
 
-Rspack provides several high-performance built-in plugins. They can serve as drop-in replacements for popular plugins in the webpack ecosystem and deliver more efficient performance.
+- [BannerPlugin](/plugins/banner-plugin): Adds a banner to the beginning or end of generated chunks.
+- [CopyRspackPlugin](/plugins/copy-rspack-plugin): Copies files or directories into the build output.
+- [CssExtractRspackPlugin](/plugins/css-extract-rspack-plugin): Extracts CSS into standalone files as a replacement for `mini-css-extract-plugin`.
+- [HtmlRspackPlugin](/plugins/html-rspack-plugin): Generates HTML files and injects the build's scripts and styles.
+- [SubresourceIntegrityPlugin](/plugins/subresource-integrity-plugin): Generates integrity hashes for emitted assets and adds them to HTML and chunk-loading tags.
 
-Including:
+## Build optimization
 
-- [CircularCheckRspackPlugin](/plugins/rspack/circular-check-rspack-plugin): Flags circular imports
-- [CompatHashedChunkIdsPlugin](/plugins/rspack/compat-hashed-chunk-ids-plugin): Assigns compact, stable chunk ids using alphanumeric hash prefixes
-- [CompatHashedModuleIdsPlugin](/plugins/rspack/compat-hashed-module-ids-plugin): Assigns compact, stable module ids using alphanumeric hash prefixes
-- [CopyRspackPlugin](/plugins/rspack/copy-rspack-plugin): Copies files or directories to the build output
-- [CssChunkingPlugin](/plugins/rspack/css-chunking-plugin): Splits CSS while preserving import order to avoid style issues
-- [CssExtractRspackPlugin](/plugins/rspack/css-extract-rspack-plugin): Extracts styles into standalone CSS files
-- [HtmlRspackPlugin](/plugins/rspack/html-rspack-plugin): Generates HTML and injects assets
-- [LightningCssMinimizerRspackPlugin](/plugins/rspack/lightning-css-minimizer-rspack-plugin): Minifies CSS with Lightning CSS
-- [SubresourceIntegrityPlugin](/plugins/rspack/subresource-integrity-plugin): Enables subresource integrity (SRI)
-- [SwcJsMinimizerRspackPlugin](/plugins/rspack/swc-js-minimizer-rspack-plugin): Minifies JavaScript via SWC
-- [VirtualModulesPlugin](/plugins/rspack/virtual-modules-plugin): Creates and modifies virtual modules in memory
-- [CircularDependencyRspackPlugin](/plugins/rspack/circular-dependency-rspack-plugin): Deprecated. Use [CircularCheckRspackPlugin](/plugins/rspack/circular-check-rspack-plugin) instead.
+- [CompatHashedChunkIdsPlugin](/plugins/compat-hashed-chunk-ids-plugin): Assigns compact, stable hash ids to chunks.
+- [CompatHashedModuleIdsPlugin](/plugins/compat-hashed-module-ids-plugin): Assigns compact, stable hash ids to modules.
+- [CssChunkingPlugin](/plugins/css-chunking-plugin): Splits CSS into chunks while preserving required stylesheet ordering.
+- [DeterministicModuleIdsPlugin](/plugins/deterministic-module-ids-plugin): Assigns short numeric module ids that remain stable between builds.
+- [DllPlugin](/plugins/dll-plugin): Creates a prebuilt DLL bundle and its manifest.
+- [DllReferencePlugin](/plugins/dll-reference-plugin): References a DLL manifest to reuse prebuilt dependencies.
+- [LightningCssMinimizerRspackPlugin](/plugins/lightning-css-minimizer-rspack-plugin): Minifies CSS assets with Lightning CSS.
+- [LimitChunkCountPlugin](/plugins/limit-chunk-count-plugin): Merges chunks to keep their total count below a configured limit.
+- [RuntimeChunkPlugin](/plugins/runtime-chunk-plugin): Controls how Rspack creates runtime chunks.
+- [SplitChunksPlugin](/plugins/split-chunks-plugin): Splits shared or asynchronous code into chunks for better loading and caching.
+- [SwcJsMinimizerRspackPlugin](/plugins/swc-js-minimizer-rspack-plugin): Minifies JavaScript assets with SWC.
 
-## Built-in plugins (webpack-aligned)
+## Modules and dependencies
 
-To align with webpack's functionality, Rspack has replicated most of webpack's built-in plugins. They maintain the same naming and configuration parameters as closely as possible and provide the same features.
+- [ContextReplacementPlugin](/plugins/context-replacement-plugin): Narrows or replaces the modules available to dynamic `require` and `import()` contexts.
+- [DefinePlugin](/plugins/define-plugin): Replaces variables with constant values or expressions at compile time.
+- [EntryPlugin](/plugins/entry-plugin): Adds an entry module and entry chunk during compilation.
+- [EnvironmentPlugin](/plugins/environment-plugin): Defines selected `process.env` values through `DefinePlugin`.
+- [ExternalsPlugin](/plugins/externals-plugin): Leaves selected dependencies out of the bundle so they can be provided externally.
+- [IgnorePlugin](/plugins/ignore-plugin): Prevents matching `import` or `require` requests from producing modules.
+- [JavascriptModulesPlugin](/plugins/javascript-modules-plugin): Handles JavaScript module bundling and exposes compilation hooks for customizing rendering and chunk hashes.
+- [ModuleFederationPlugin](/plugins/module-federation-plugin): Enables Module Federation 1.5 in Rspack.
+- [ModuleFederationPluginV1](/plugins/module-federation-plugin-v1): Provides webpack-compatible Module Federation 1.0 behavior.
+- [NormalModuleReplacementPlugin](/plugins/normal-module-replacement-plugin): Replaces matching module requests with another resource.
+- [ProvidePlugin](/plugins/provide-plugin): Automatically imports modules when configured identifiers are used.
+- [TreeShakingSharedPlugin](/plugins/tree-shaking-shared-plugin): Performs on-demand builds and export optimization for Module Federation shared dependencies.
+- [VirtualModulesPlugin](/plugins/virtual-modules-plugin): Creates, updates, and deletes in-memory modules that behave like files.
 
-See [Built-in plugins (webpack-aligned) - Overview](/plugins/webpack/) for more details.
+## Development and debugging
 
-## Community plugins
+- [CaseSensitivePlugin](/plugins/case-sensitive-plugin): Warns when module request casing conflicts with paths on the file system.
+- [CircularCheckRspackPlugin](/plugins/circular-check-rspack-plugin): Reports circular imports found in the module graph.
+- [EvalSourceMapDevToolPlugin](/plugins/eval-source-map-dev-tool-plugin): Provides fine-grained source map generation using eval-based mappings.
+- [HotModuleReplacementPlugin](/plugins/hot-module-replacement-plugin): Enables hot module replacement during development.
+- [NoEmitOnErrorsPlugin](/plugins/no-emit-on-errors-plugin): Prevents assets from being emitted when compilation errors occur.
+- [ProgressPlugin](/plugins/progress-plugin): Reports and customizes compilation progress.
+- [SourceMapDevToolPlugin](/plugins/source-map-dev-tool-plugin): Provides fine-grained control over source map generation.
 
-Rspack strives to maintain compatibility with the webpack plugin ecosystem to leverage the excellent features that have been accumulated and validated by the community.
+## Targets and runtime
 
-Please refer to the [Plugin compatibility list](/guide/compatibility/plugin) to access a list of webpack plugins that have passed our compatibility tests.
+- [ElectronTargetPlugin](/plugins/electron-target-plugin): Externalizes Electron built-in modules for Electron targets.
+- [EnableChunkLoadingPlugin](/plugins/enable-chunk-loading-plugin): Enables a chunk-loading type and its required runtime modules.
+- [EnableLibraryPlugin](/plugins/enable-library-plugin): Enables output for a specified library type.
+- [EnableWasmLoadingPlugin](/plugins/enable-wasm-loading-plugin): Enables a WebAssembly loading type and its required runtime modules.
+- [JsonpTemplatePlugin](/plugins/jsonp-template-plugin): Configures browser builds to use JSONP-style chunk loading.
+- [NodeTargetPlugin](/plugins/node-target-plugin): Externalizes Node.js built-in modules for Node targets.
+- [NodeTemplatePlugin](/plugins/node-template-plugin): Configures Node.js chunk format and loading behavior.
+- [WebWorkerTemplatePlugin](/plugins/web-worker-template-plugin): Configures Web Worker builds and `importScripts`-based chunk loading.
 
-You can also check out the community Rspack plugins at [awesome-rstack](https://github.com/rstackjs/awesome-rstack).
+## Reference
 
-Welcome to add the plugins you developed to this repository.
+- [Internal plugins](/plugins/internal-plugins): Catalogs low-level plugins that Rspack applies internally for custom compiler development and inspection.
+- [webpack built-in plugin support](/plugins/webpack-built-in-plugin-support): Summarizes Rspack's support for webpack built-in plugins.
+
+For third-party plugins, see the [plugin compatibility list](/guide/compatibility/plugin) and [awesome-rstack](https://github.com/rstackjs/awesome-rstack).
+
+## Deprecated
+
+- [CircularDependencyRspackPlugin](/plugins/circular-dependency-rspack-plugin): Detects circular dependencies and is deprecated in favor of `CircularCheckRspackPlugin`.

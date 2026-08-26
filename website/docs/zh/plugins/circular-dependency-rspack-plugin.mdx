@@ -13,7 +13,7 @@ import { ApiMeta, Stability } from '@components/ApiMeta.tsx';
 />
 
 :::warning 已废弃
-`CircularDependencyRspackPlugin` 已废弃。请使用 [`CircularCheckRspackPlugin`](/plugins/rspack/circular-check-rspack-plugin)，CircularCheckRspackPlugin 有更好的性能和更合理的 API 设计。
+`CircularDependencyRspackPlugin` 已废弃。请使用 [`CircularCheckRspackPlugin`](/plugins/circular-check-rspack-plugin)，CircularCheckRspackPlugin 有更好的性能和更合理的 API 设计。
 :::
 
 检测运行时模块之间的循环导入依赖关系。当运行时调用的函数使用时，循环引用通常不表示存在错误，但当在初始化期间使用导入时，可能会导致错误或错误。此插件不会区分这两者，但可用于在遇到错误后帮助识别和解决循环。

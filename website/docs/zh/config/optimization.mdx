@@ -310,7 +310,7 @@ export default {
   ]}
 />
 
-自定义压缩器。默认使用 [`rspack.SwcJsMinimizerRspackPlugin`](/plugins/rspack/swc-js-minimizer-rspack-plugin) 和 [`rspack.LightningCssMinimizerRspackPlugin`](/plugins/rspack/lightning-css-minimizer-rspack-plugin)。
+自定义压缩器。默认使用 [`rspack.SwcJsMinimizerRspackPlugin`](/plugins/swc-js-minimizer-rspack-plugin) 和 [`rspack.LightningCssMinimizerRspackPlugin`](/plugins/lightning-css-minimizer-rspack-plugin)。
 
 当设置了 `optimization.minimizer` 时，默认的压缩器会被禁用。
 
@@ -417,7 +417,7 @@ export default {
   - [`development` 模式](/config/mode#development)：`'development'`
   - [`none` 模式](/config/mode#none)：`false`
 
-`optimization.nodeEnv` 用于控制 Rspack 在编译时替换 `process.env.NODE_ENV` 所使用的值。Rspack 会通过 [DefinePlugin](/plugins/webpack/define-plugin) 完成该替换。
+`optimization.nodeEnv` 用于控制 Rspack 在编译时替换 `process.env.NODE_ENV` 所使用的值。Rspack 会通过 [DefinePlugin](/plugins/define-plugin) 完成该替换。
 
 你也可以使用以下值覆盖由 `mode` 决定的默认行为：
 
@@ -578,7 +578,7 @@ Rspack 支持通过 `optimization.splitChunks` 配置项来对 Chunk 进行拆�
 
 该优化选项默认情况下是开启的，你可以将其设为 `false` 来关闭它。
 
-有关配置此行为的可用选项，请参见 [SplitChunksPlugin](/plugins/webpack/split-chunks-plugin) 页面。
+有关配置此行为的可用选项，请参见 [SplitChunksPlugin](/plugins/split-chunks-plugin) 页面。
 
 ## optimization.usedExports
 

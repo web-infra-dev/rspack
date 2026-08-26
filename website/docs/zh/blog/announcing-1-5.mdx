@@ -247,7 +247,7 @@ Rspack 1.5 引入了 [experiments.typeReexportsPresence](/config/module-parser#j
 
 在 Rspack 1.4 中，我们引入了[自定义 InputFileSystem](/blog/announcing-1-4#自定义文件读取系统) 功能，配合 `webpack-virtual-modules` 插件可以支持虚拟模块。然而，当虚拟模块数量较大时，该方式仍然存在性能瓶颈。
 
-为了更好地支持虚拟模块，Rspack 1.5 新增了内置的 [VirtualModulesPlugin](/plugins/rspack/virtual-modules-plugin)，它基于 Rust 实现，将虚拟模块的存储和管理迁移到 Rust 层，有效减少了模块读取和解析的开销，在处理大量虚拟模块时能够保持更好的性能表现。
+为了更好地支持虚拟模块，Rspack 1.5 新增了内置的 [VirtualModulesPlugin](/plugins/virtual-modules-plugin)，它基于 Rust 实现，将虚拟模块的存储和管理迁移到 Rust 层，有效减少了模块读取和解析的开销，在处理大量虚拟模块时能够保持更好的性能表现。
 
 `VirtualModulesPlugin` 与 `webpack-virtual-modules` 保持了一致的 API 设计，以便你可以轻松地迁移：
 

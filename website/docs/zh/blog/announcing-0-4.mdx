@@ -251,7 +251,7 @@ export default {
 }
 ```
 
-对于 `builtins.html` 可以直接迁移到 [HtmlRspackPlugin](/plugins/rspack/html-rspack-plugin)：
+对于 `builtins.html` 可以直接迁移到 [HtmlRspackPlugin](/plugins/html-rspack-plugin)：
 
 ```diff title="rspack.config.mjs"
 + import { rspack } from '@rspack/core';
@@ -279,9 +279,9 @@ export default {
 };
 ```
 
-对于 `builtins.copy` 可以直接迁移到 [CopyRspackPlugin](/plugins/rspack/copy-rspack-plugin)。
+对于 `builtins.copy` 可以直接迁移到 [CopyRspackPlugin](/plugins/copy-rspack-plugin)。
 
-原先的 `builtins.minifyOptions` 我们提供了 [SwcJsMinimizerRspackPlugin](/plugins/rspack/swc-js-minimizer-rspack-plugin)：
+原先的 `builtins.minifyOptions` 我们提供了 [SwcJsMinimizerRspackPlugin](/plugins/swc-js-minimizer-rspack-plugin)：
 
 ```js title="rspack.config.mjs"
 import { rspack } from '@rspack/core';

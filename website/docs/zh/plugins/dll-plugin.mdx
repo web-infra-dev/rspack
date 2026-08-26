@@ -97,6 +97,6 @@ new rspack.DllPlugin({
 插件将会生成 `manifest.json` 文件并将其输出到指定路径。
 manifest 文件包含了从 `require` 和 `import` 请求到模块id的映射。
 
-`manifest.json` 将会被 [DllReferencePlugin](/plugins/webpack/dll-reference-plugin) 消费，通过"动态链接库"的方式将依赖链接起来。
+`manifest.json` 将会被 [DllReferencePlugin](/plugins/dll-reference-plugin) 消费，通过"动态链接库"的方式将依赖链接起来。
 
 此插件与 `output.library` 的选项相结合可以暴露出dll 函数。

@@ -254,7 +254,7 @@ Rspack 1.5 introduces the [experiments.typeReexportsPresence](/config/module-par
 
 In Rspack 1.4, we introduced [custom InputFileSystem](/blog/announcing-1-4#custom-input-file-system), which combined with the `webpack-virtual-modules` plugin, enabled support for virtual modules. However, this approach still had performance bottlenecks when dealing with a large number of virtual modules.
 
-To address this, Rspack 1.5 adds a built-in [VirtualModulesPlugin](/plugins/rspack/virtual-modules-plugin).
+To address this, Rspack 1.5 adds a built-in [VirtualModulesPlugin](/plugins/virtual-modules-plugin).
 
 This plugin is implemented in Rust and moves the storage and management of virtual modules to the Rust layer. This reduces module read and parse overhead. As a result, it delivers significantly better performance when handling large volumes of virtual modules.
 

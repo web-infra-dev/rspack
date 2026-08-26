@@ -24,7 +24,7 @@ import { ApiMeta } from '@components/ApiMeta.tsx';
 
 ### 支持 HTML 插件
 
-支持与 [`HtmlRspackPlugin`](/plugins/rspack/html-rspack-plugin) 和 [`html-webpack-plugin`](https://github.com/jantimon/html-webpack-plugin) 集成。它会自动为注入的标签设置 `integrity` 和 `crossorigin` 属性。
+支持与 [`HtmlRspackPlugin`](/plugins/html-rspack-plugin) 和 [`html-webpack-plugin`](https://github.com/jantimon/html-webpack-plugin) 集成。它会自动为注入的标签设置 `integrity` 和 `crossorigin` 属性。
 
 ### 支持代码分割
 
@@ -61,9 +61,9 @@ export default {
 
 ### 使用 HTML 插件
 
-当使用 HTML 插件（[`HtmlRspackPlugin`](/plugins/rspack/html-rspack-plugin) 或 [`html-webpack-plugin`](https://github.com/jantimon/html-webpack-plugin)）时，`integrity` 和 `crossorigin` 属性将被自动设置。
+当使用 HTML 插件（[`HtmlRspackPlugin`](/plugins/html-rspack-plugin) 或 [`html-webpack-plugin`](https://github.com/jantimon/html-webpack-plugin)）时，`integrity` 和 `crossorigin` 属性将被自动设置。
 
-SubresourceIntegrityPlugin 默认会与 [`HtmlRspackPlugin`](/plugins/rspack/html-rspack-plugin) 交互：
+SubresourceIntegrityPlugin 默认会与 [`HtmlRspackPlugin`](/plugins/html-rspack-plugin) 交互：
 
 ```js title="rspack.config.mjs"
 import { SubresourceIntegrityPlugin, HtmlRspackPlugin } from '@rspack/core';
@@ -94,7 +94,7 @@ export default {
 
 如果使用 HTML 插件时设置了 `inject: false`，你需要在模板中手动注入 `integrity` 和 `crossorigin` 属性。
 
-对于 [`HtmlRspackPlugin`](/plugins/rspack/html-rspack-plugin)，模板的语法与标准 `.ejs` 稍有不同（参考[文档](/plugins/rspack/html-rspack-plugin#支持的-ejs-语法)），可以这样注入属性：
+对于 [`HtmlRspackPlugin`](/plugins/html-rspack-plugin)，模板的语法与标准 `.ejs` 稍有不同（参考[文档](/plugins/html-rspack-plugin#支持的-ejs-语法)），可以这样注入属性：
 
 ```ejs title="index.ejs"
 <% for src in htmlRspackPlugin.files.js { %>

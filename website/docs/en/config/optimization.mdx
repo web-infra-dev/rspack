@@ -310,7 +310,7 @@ export default {
   ]}
 />
 
-Customize the minimizer. By default, [`rspack.SwcJsMinimizerRspackPlugin`](/plugins/rspack/swc-js-minimizer-rspack-plugin) and [`rspack.LightningCssMinimizerRspackPlugin`](/plugins/rspack/lightning-css-minimizer-rspack-plugin) are used.
+Customize the minimizer. By default, [`rspack.SwcJsMinimizerRspackPlugin`](/plugins/swc-js-minimizer-rspack-plugin) and [`rspack.LightningCssMinimizerRspackPlugin`](/plugins/lightning-css-minimizer-rspack-plugin) are used.
 
 When `optimization.minimizer` is specified, the default minimizers will be disabled.
 
@@ -417,7 +417,7 @@ The `compat-hashed` option is available in Rspack 2.2.0 and later.
   - [`development` mode](/config/mode#development): `'development'`
   - [`none` mode](/config/mode#none): `false`
 
-`optimization.nodeEnv` controls the value used to replace `process.env.NODE_ENV` at compile time. Rspack performs this replacement with [DefinePlugin](/plugins/webpack/define-plugin).
+`optimization.nodeEnv` controls the value used to replace `process.env.NODE_ENV` at compile time. Rspack performs this replacement with [DefinePlugin](/plugins/define-plugin).
 
 You can override the mode-dependent default with either of the following values:
 
@@ -582,7 +582,7 @@ It is enabled by default for dynamically imported modules.
 
 To turn it off, set it to `false`.
 
-See available options for configuring this behavior in the [SplitChunksPlugin](/plugins/webpack/split-chunks-plugin) page.
+See available options for configuring this behavior in the [SplitChunksPlugin](/plugins/split-chunks-plugin) page.
 
 ## optimization.usedExports
 
