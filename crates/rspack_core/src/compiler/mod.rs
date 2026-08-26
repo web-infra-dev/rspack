@@ -38,6 +38,7 @@ define_hook!(CompilerCompilation: Series(compilation: &mut Compilation, params: 
 // should be AsyncParallelHook
 define_hook!(CompilerMake: Series(compilation: &mut Compilation));
 define_hook!(CompilerFinishMake: Series(compilation: &mut Compilation));
+define_hook!(CompilerAfterCompile: Series(compilation: &mut Compilation));
 // should be SyncBailHook, but rspack need call js hook
 define_hook!(CompilerShouldEmit: SeriesBail(compilation: &mut Compilation) -> bool);
 define_hook!(CompilerShouldRecord: SeriesBail(compilation: &mut Compilation) -> bool);
@@ -54,6 +55,7 @@ pub struct CompilerHooks {
   pub compilation: CompilerCompilationHook,
   pub make: CompilerMakeHook,
   pub finish_make: CompilerFinishMakeHook,
+  pub after_compile: CompilerAfterCompileHook,
   pub should_emit: CompilerShouldEmitHook,
   pub should_record: CompilerShouldRecordHook,
   pub emit: CompilerEmitHook,
@@ -332,6 +334,12 @@ impl Compiler {
     self.cache.before_compile(&mut self.compilation).await;
 
     self.compile().await?;
+    self
+      .plugin_driver
+      .compiler_hooks
+      .after_compile
+      .call(&mut self.compilation)
+      .await?;
     self.compile_done().await?;
     self.cache.after_compile(&self.compilation).await;
     #[cfg(allocative)]

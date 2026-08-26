@@ -484,7 +484,9 @@ class ExamplePlugin {
 
 ## `afterCompile`
 
-在 make 阶段结束后 seal 阶段开始前调用，在 seal 阶段会从模块图优化并创建 chunk 图，以生成产物信息。
+在 compilation 完成并 seal 之后、Rspack 判断是否输出产物（[`shouldEmit`](#shouldemit)）之前调用。
+
+此时产物已经生成并可以通过 `compilation.assets` 访问，但尚未写入输出目录，因此插件仍然可以在这里终止构建，而不会留下已写出的产物文件。
 
 - **类型：** `AsyncSeriesHook<[Compilation]>`
 - **参数：**
