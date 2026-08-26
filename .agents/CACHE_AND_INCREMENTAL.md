@@ -66,8 +66,8 @@ Incremental compilation is designed for rebuilds performed by the same compiler 
 modified and removed files. The supported user-facing workflows are development, watch mode, and
 HMR.
 
-Here, “development-time” describes the long-lived rebuild workflow, not `mode: 'development'`.
-Production-mode watch and other explicit rebuilds in the same compiler can also use Incremental.
+Incremental passes are enabled only when `mode` is `development`. The initial compilation prepares
+artifacts for a possible later rebuild, even though it cannot reuse a previous compilation.
 
 A standalone `rspack build` creates a fresh compiler and performs a one-shot build. There is no
 previous in-memory compilation to incrementally update, so `incremental` does not turn separate
