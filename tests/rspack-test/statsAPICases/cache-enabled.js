@@ -13,13 +13,11 @@ module.exports = {
 	},
 	async build(context, compiler) {
 		await new Promise((resolve, reject) => {
-			const watching = compiler.watch({}, err => {
-				watching.close(closeErr => {
-					if (err || closeErr) {
-						return reject(err || closeErr);
-					}
-					resolve();
-				});
+			compiler.run(err => {
+				if (err) {
+					return reject(err);
+				}
+				resolve();
 			});
 		});
 		await new Promise((resolve, reject) => {

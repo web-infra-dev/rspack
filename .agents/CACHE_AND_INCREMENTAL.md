@@ -82,25 +82,6 @@ change. The alignment is semantic, not structural. Rspack exposes Incremental as
 top-level option and does not inherit webpack's configuration coupling between `cacheUnaffected` and
 memory cache.
 
-## Incremental Activation
-
-The JavaScript binding resolves Incremental once, when it creates the native compiler:
-
-```text
-effective_incremental = compiler.watchMode ? configured_incremental : false
-```
-
-- `run()` creates a compiler with Incremental disabled. It does not prepare checkpoints or artifacts
-  for a hypothetical rebuild.
-- `watch()` uses the configured Incremental passes. Its initial compilation is cold and prepares the
-  artifacts consumed by later watch rebuilds.
-- `incremental: false` disables Incremental in watch mode as well.
-
-The native compiler must consume this resolved option without independently deriving run or watch
-mode. The option is fixed after native compiler creation, so switching an already-created compiler
-from `run()` to `watch()` does not enable Incremental retroactively. Create a compiler and enter
-watch mode before its first compilation when Incremental watch behavior is required.
-
 ## Cache Storage Modes
 
 Cache supports fine-grained entries through two storage modes:
@@ -178,8 +159,6 @@ Changes to these systems must preserve the following rules:
    incremental build.
 7. Tests that require full-rebuild behavior must set `incremental: false` explicitly instead of
    relying on `cache: false` as an indirect switch.
-8. A standalone `run()` must not enable Incremental merely because passes are configured by default.
-9. Watch mode must respect the configured Incremental passes, including `incremental: false`.
 
 Most pass-scoped Incremental state follows these rules today. The `*CacheArtifact` types described
 above are transitional Cache co-location, while `EMIT_ASSETS` still keeps emitted asset versions
@@ -193,7 +172,6 @@ introduce new Cache/Incremental coupling.
 - Legacy Cache backend: `crates/rspack_core/src/legacy_cache/`
 - New Cache backend: `crates/rspack_core/src/new_cache/`
 - Incremental configuration and mutations: `crates/rspack_core/src/incremental/`
-- Incremental activation: `packages/rspack/src/config/adapter.ts`
 - Incremental artifact ownership: `crates/rspack_core/src/artifacts/incremental_artifacts.rs`
 - Pass recovery and legacy Cache hooks: `crates/rspack_core/src/compilation/pass.rs`
 - Rebuild lifecycle: `crates/rspack_core/src/compiler/rebuild.rs`
