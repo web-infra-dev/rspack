@@ -3,10 +3,11 @@ use rspack_util::swc::RspackComments;
 use serde_json::json;
 use swc_next_ecma_ast::{Directive, GetSpan, Stmt};
 use swc_next_ecma_parser::{FragmentContext, Options, Parser, TokenParserConfig};
-use swc_next_ecma_semantic::{AnalyzeOptions, SemanticReturn, analyze};
 
 use super::BasicEvaluatedExpression;
-use crate::visitors::{JavascriptParser, ParsedJavaScriptAst};
+use crate::visitors::{
+  JavascriptParser, ParsedJavaScriptAst, name_resolution::JavascriptNameResolution,
+};
 
 #[inline]
 pub fn eval_source<'parser>(
@@ -14,8 +15,8 @@ pub fn eval_source<'parser>(
   source: String,
   error_title: String,
 ) -> Option<BasicEvaluatedExpression<'parser>> {
-  // Fragment ASTs use the module AST's arena so their source, nodes, semantic
-  // model, and wrapper all live for the complete parser lifetime. This lets us
+  // Fragment ASTs use the module AST's arena so their source, nodes, name
+  // resolution, and wrapper all live for the complete parser lifetime. This lets us
   // reuse the normal evaluator and parser hooks without unsafe owned handles.
   let allocator = parser.ast.ast.allocator();
   let source_in_allocator = allocator.alloc_str(&source);
@@ -61,15 +62,11 @@ pub fn eval_source<'parser>(
 
       let ast = &*allocator.alloc(ast);
       let comments = &*allocator.alloc(RspackComments::from_ast(ast));
-      let SemanticReturn {
-        semantic,
-        diagnostics: _,
-      } = analyze(ast, AnalyzeOptions::default());
-      let semantic = &*allocator.alloc(semantic);
+      let name_resolution = &*allocator.alloc(JavascriptNameResolution::resolve(ast));
       let fragment_ast = &*allocator.alloc(ParsedJavaScriptAst {
         ast,
         comments,
-        semantic,
+        name_resolution,
         program,
       });
 

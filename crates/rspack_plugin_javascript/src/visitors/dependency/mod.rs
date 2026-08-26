@@ -11,7 +11,6 @@ use rspack_error::Diagnostic;
 use rspack_util::swc::RspackComments;
 use rustc_hash::FxHashSet;
 use swc_next_ecma_ast::{Ast, Program};
-use swc_next_ecma_semantic::Semantic;
 
 pub(crate) use self::parser::{StatementPath, member_property_key_to_atom};
 pub use self::{
@@ -25,7 +24,10 @@ pub use self::{
   },
   util::*,
 };
-use crate::{BoxJavascriptParserPlugin, parser_and_generator::ParserRuntimeRequirementsData};
+use crate::{
+  BoxJavascriptParserPlugin, parser_and_generator::ParserRuntimeRequirementsData,
+  visitors::name_resolution::JavascriptNameResolution,
+};
 
 pub struct ScanDependenciesResult {
   pub dependencies: Vec<BoxDependency>,
@@ -38,7 +40,7 @@ pub struct ScanDependenciesResult {
 pub struct ParsedJavaScriptAst<'ast> {
   pub ast: &'ast Ast<'ast>,
   pub comments: &'ast RspackComments<'ast>,
-  pub semantic: &'ast Semantic<'ast>,
+  pub name_resolution: &'ast JavascriptNameResolution<'ast>,
   pub program: Program,
 }
 
