@@ -727,9 +727,7 @@ impl ExternalModule {
         get_namespace_object_export(concatenation_scope, supports_const, runtime_template),
         get_source_for_global_variable_external(request, &compilation.options.output.global_object)
       ),
-      _ if commonjs_require_kind.is_some() => {
-        let require_kind =
-          commonjs_require_kind.expect("matched CommonJS external type should have a require kind");
+      _ if let Some(require_kind) = commonjs_require_kind => {
         let require_expression =
           require_kind.render_external_request(request, compilation, &mut chunk_init_fragments);
         format!(
