@@ -20,8 +20,7 @@ use crate::{
   },
   visitors::{
     AtomMembers, ExportedVariableInfo, ExprRef, Identifier, VariableDeclaration, VariableInfo,
-    VariableInfoFlags, dependency::parser::ExtractedMemberExpressionChainData,
-    get_non_optional_part,
+    VariableInfoFlags, get_non_optional_part,
   },
 };
 
@@ -1803,16 +1802,17 @@ impl JavascriptParser<'_> {
     expr: MemberExpression,
   ) -> Option<(ImportExpression, AtomMembers, AwaitExpression)> {
     let ast = self.ast.ast;
-    let ExtractedMemberExpressionChainData {
+    let super::RawExtractedMemberExpressionChainData {
       object,
-      mut members,
+      members,
       mut members_optionals,
       ..
-    } = self.extract_member_expression_chain(ExprRef::Member(expr));
+    } = self.extract_member_expression_chain_raw(ExprRef::Member(expr));
     let ExprRef::Await(await_expr) = object else {
       return None;
     };
     let call = await_expr.argument(ast).as_import_expression(ast)?;
+    let mut members = super::materialize_member_atoms(ast, members);
     members.reverse();
     members_optionals.reverse();
     let members = get_non_optional_part(&members, &members_optionals);
