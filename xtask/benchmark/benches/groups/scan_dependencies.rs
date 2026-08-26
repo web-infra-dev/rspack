@@ -19,8 +19,8 @@ use rspack_plugin_javascript::{
   BoxJavascriptParserPlugin,
   parser_and_generator::ParserRuntimeRequirementsData,
   visitors::{
-    ParsedJavaScriptAst, ScanDependenciesResult, name_resolution::JavascriptNameResolution,
-    scan_dependencies as run_scan_dependencies, semicolon,
+    ParsedJavaScriptAst, ScanDependenciesResult, scan_dependencies as run_scan_dependencies,
+    semicolon,
   },
 };
 use rspack_tasks::within_compiler_context_for_testing_sync;
@@ -29,6 +29,7 @@ use rustc_hash::FxHashSet;
 use swc_next_allocator::Allocator;
 use swc_next_ecma_ast::{Lang, SourceType as SwcSourceType};
 use swc_next_ecma_parser::{CommentMode, Options, Parser, TokenParserConfig};
+use swc_next_ecma_semantic::{AnalyzeOptions, analyze};
 
 const THREE_MODULE_BENCHMARK_ID: &str = "rust@scan_dependencies@three_module";
 const THREE_MODULE_RESOURCE_PATH: &str = "/node_modules/three/build/three.module.js";
@@ -210,7 +211,19 @@ fn parse_benchmark_program(
   let tokens = parse_return.tokens;
   let ast = Box::leak(Box::new(parse_return.ast));
   let comments = Box::leak(Box::new(RspackComments::from_ast(ast)));
-  let name_resolution = Box::leak(Box::new(JavascriptNameResolution::resolve(ast)));
+  let semantic_return = analyze(
+    ast,
+    AnalyzeOptions {
+      check_syntax: true,
+      build_module_record: false,
+    },
+  );
+  assert!(
+    semantic_return.diagnostics.is_empty(),
+    "scan_dependencies benchmark source should pass semantic analysis: {:#?}",
+    semantic_return.diagnostics
+  );
+  let semantic = Box::leak(Box::new(semantic_return.semantic));
   let program = ast.root_program();
 
   let mut semicolons = FxHashSet::default();
@@ -220,7 +233,7 @@ fn parse_benchmark_program(
     parsed_ast: ParsedJavaScriptAst {
       ast,
       comments,
-      name_resolution,
+      semantic,
       program,
     },
     semicolons,

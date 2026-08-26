@@ -11,15 +11,16 @@ use swc_next_ecma_ast::{
   DeclData, ExportDefaultDeclarationKindData, Expr, ExprData, ForStatementInitData,
   FormalParameterItemData, FormalParameterPatternData, Function, GetSpan, MethodDefinitionKind,
   ModuleExportName, ModuleExportNameData, ObjectPropertyKindData, Program, PropertyKey,
-  PropertyKeyData, PropertyKind, Span, Stmt, StmtData, UnaryOperator,
-  VariableDeclaration as AstVariableDeclaration, VariableKind,
+  PropertyKeyData, PropertyKind, ScopeId, SourceType, Span, Stmt, StmtData, SymbolId,
+  UnaryOperator, VariableDeclaration as AstVariableDeclaration, VariableKind,
 };
+use swc_next_ecma_semantic::Semantic;
 
 use crate::{
   Atom, JavascriptParserPlugin,
   dependency::ESMImportSideEffectDependency,
   parser_plugin::esm_import_dependency_parser_plugin::{ESM_SPECIFIER_TAG, ESMSpecifierData},
-  visitors::{JavascriptParser, Statement, TagInfoData, name_resolution::JavascriptNameResolution},
+  visitors::{JavascriptParser, Statement, TagInfoData},
 };
 
 static PURE_COMMENTS: LazyLock<regex::Regex> = LazyLock::new(|| {
@@ -67,14 +68,22 @@ fn has_pure_comment(comments: &RspackComments<'_>, pos: u32) -> bool {
     .any(|comment| comment.kind == CommentKind::Block && PURE_COMMENTS.is_match(comment.text))
 }
 
+fn top_level_scope(ast: &Ast<'_>) -> ScopeId {
+  match ast.source_type() {
+    SourceType::Script => ScopeId::ROOT,
+    SourceType::Module | SourceType::CommonJs => ScopeId::MODULE,
+    SourceType::Unambiguous => unreachable!("parser should resolve unambiguous source type"),
+  }
+}
+
 fn collect_pure_function_acceptable_names(
   ast: &Ast<'_>,
   program: Program,
-  name_resolution: &JavascriptNameResolution<'_>,
+  semantic: &Semantic<'_>,
 ) -> FxHashSet<AtomKey> {
-  let mut names = name_resolution
-    .top_level_bindings()
-    .cloned()
+  let mut names = semantic
+    .bindings(top_level_scope(ast))
+    .map(|symbol| atom_from_symbol(ast, semantic, symbol).into())
     .collect::<FxHashSet<_>>();
   for statement in program
     .body(ast)
@@ -114,9 +123,9 @@ fn collect_defined_configured_side_effects_free(
   ast: &Ast<'_>,
   program: Program,
   configured_side_effects_free: &[String],
-  name_resolution: &JavascriptNameResolution<'_>,
+  semantic: &Semantic<'_>,
 ) -> FxHashSet<Atom> {
-  let acceptable = collect_pure_function_acceptable_names(ast, program, name_resolution);
+  let acceptable = collect_pure_function_acceptable_names(ast, program, semantic);
   configured_side_effects_free
     .iter()
     .filter_map(|name| {
@@ -125,6 +134,23 @@ fn collect_defined_configured_side_effects_free(
         .contains(AtomKey::from_atom_ref(&atom))
         .then_some(atom)
     })
+    .collect()
+}
+
+fn atom_from_symbol(ast: &Ast<'_>, semantic: &Semantic<'_>, symbol: SymbolId) -> Atom {
+  Atom::from(
+    ast
+      .get_wtf8(semantic.symbol(symbol).name)
+      .to_string_lossy()
+      .as_ref(),
+  )
+}
+
+fn collect_duplicate_top_level_names(ast: &Ast<'_>, semantic: &Semantic<'_>) -> FxHashSet<AtomKey> {
+  semantic
+    .bindings(top_level_scope(ast))
+    .filter(|&symbol| semantic.declarations(symbol).len() > 1)
+    .map(|symbol| atom_from_symbol(ast, semantic, symbol).into())
     .collect()
 }
 
@@ -432,7 +458,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for SideEffectsParserPlugin {
           ast,
           program,
           configured,
-          parser.ast.name_resolution,
+          parser.ast.semantic,
         );
         if !defined.is_empty() {
           parser
@@ -443,7 +469,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for SideEffectsParserPlugin {
         }
       }
 
-      let duplicate_names = parser.ast.name_resolution.duplicate_top_level_bindings();
+      let duplicate_names = collect_duplicate_top_level_names(ast, parser.ast.semantic);
       loop {
         let previous_len = parser
           .build_info
@@ -699,7 +725,12 @@ fn is_global_reference_to(
   if ast.get_utf8(identifier.name(ast)) != expected {
     return false;
   }
-  parser.ast.name_resolution.is_definitely_global(identifier)
+  parser
+    .ast
+    .semantic
+    .reference_of(identifier.node_id())
+    .map(|reference| parser.ast.semantic.reference(reference))
+    .is_some_and(|reference| reference.symbol.is_none() && !reference.flags.is_dynamic())
 }
 
 fn identifier_expression_name(ast: &Ast<'_>, expression: Expr) -> Option<Atom> {

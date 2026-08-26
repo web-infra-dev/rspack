@@ -45,6 +45,7 @@ swc_core                   = { workspace = true, features = ["common"] }
 swc_next_allocator         = { workspace = true }
 swc_next_ecma_ast          = { workspace = true }
 swc_next_ecma_parser       = { workspace = true }
+swc_next_ecma_semantic     = { workspace = true }
 
 [[bench]]
 harness = false

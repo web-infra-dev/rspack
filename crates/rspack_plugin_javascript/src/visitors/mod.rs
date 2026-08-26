@@ -1,5 +1,4 @@
 mod dependency;
-pub mod name_resolution;
 pub mod scope_info;
 pub mod semicolon;
 

@@ -28,14 +28,12 @@ use rspack_util::swc::RspackComments;
 use swc_next_allocator::Allocator;
 use swc_next_ecma_ast::{Lang, Severity as SwcSeverity, SourceType as SwcSourceType};
 use swc_next_ecma_parser::{CommentMode, Options, ParseReturn, Parser, TokenParserConfig};
+use swc_next_ecma_semantic::{AnalyzeOptions, SemanticReturn, analyze};
 
 use crate::{
   BoxJavascriptParserPlugin,
   dependency::ESMCompatibilityDependency,
-  visitors::{
-    ParsedJavaScriptAst, ScanDependenciesResult, name_resolution::JavascriptNameResolution,
-    scan_dependencies, semicolon,
-  },
+  visitors::{ParsedJavaScriptAst, ScanDependenciesResult, scan_dependencies, semicolon},
 };
 
 #[derive(Debug)]
@@ -311,7 +309,34 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       return default_with_diagnostics(source, diagnostics);
     }
 
-    let name_resolution = JavascriptNameResolution::resolve(&ast);
+    let SemanticReturn {
+      semantic,
+      diagnostics: mut semantic_diagnostics,
+    } = analyze(
+      &ast,
+      AnalyzeOptions {
+        check_syntax: true,
+        build_module_record: false,
+      },
+    );
+    // The legacy parser accepted several redeclaration combinations that the
+    // SWC Next semantic checker rejects (for example `var a` followed by
+    // `export function a`, and an exported binding shadowing an import). The
+    // parser has already emitted its own early errors, so retain the semantic
+    // syntax checks while excluding this stricter-than-legacy category.
+    semantic_diagnostics.retain(|diagnostic| {
+      !(diagnostic.message.starts_with("Identifier '")
+        && diagnostic.message.ends_with("' has already been declared"))
+        // Rspack intentionally parses regexp literals as raw pattern/flags
+        // and lets consumers such as import.meta.webpackContext downgrade an
+        // invalid constructed regexp to a warning, matching the legacy path.
+        && diagnostic.message != "Invalid regular expression literal"
+    });
+    if !semantic_diagnostics.is_empty() {
+      append_swc_next_diagnostics(&mut diagnostics, &source_string, semantic_diagnostics);
+      return default_with_diagnostics(source, diagnostics);
+    }
+
     let program = ast.root_program();
     let comments = RspackComments::from_ast(&ast);
     let mut semicolons = Default::default();
@@ -319,7 +344,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     let parsed_ast = ParsedJavaScriptAst {
       ast: &ast,
       comments: &comments,
-      name_resolution: &name_resolution,
+      semantic: &semantic,
       program,
     };
     let parser_runtime_requirements = ParserRuntimeRequirementsData::new(runtime_template);
