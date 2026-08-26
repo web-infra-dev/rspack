@@ -127,19 +127,19 @@ impl Task<TaskContext> for BuildResultTask {
     context
       .artifact
       .file_dependencies
-      .add_files(&resource_id, &build_info.dependency_context.file);
+      .add_files(&resource_id, &build_info.dependencies.file);
     context
       .artifact
       .context_dependencies
-      .add_files(&resource_id, &build_info.dependency_context.context);
+      .add_files(&resource_id, &build_info.dependencies.context);
     context
       .artifact
       .missing_dependencies
-      .add_files(&resource_id, &build_info.dependency_context.missing);
+      .add_files(&resource_id, &build_info.dependencies.missing);
     context
       .artifact
       .build_dependencies
-      .add_files(&resource_id, &build_info.dependency_context.build);
+      .add_files(&resource_id, &build_info.dependencies.build);
 
     let module_graph = &mut context.artifact.module_graph;
     let mut lazy_dependencies = LazyDependencies::default();

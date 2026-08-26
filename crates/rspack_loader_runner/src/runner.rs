@@ -9,7 +9,7 @@ use tracing::{Instrument, info_span};
 use crate::{
   LoaderRunnerOptions, ParseMeta,
   content::{AdditionalData, Content, ResourceData},
-  context::{LoaderContext, LoaderDependencyContext, State},
+  context::{LoaderContext, LoaderDependencies, State},
   loader::{Loader, LoaderItem},
   plugin::LoaderRunnerPlugin,
 };
@@ -44,7 +44,7 @@ async fn process_resource<Context: Send>(
     for dependency in file_dependencies {
       loader_context.add_file_dependency(dependency);
     }
-    loader_context.merge_dependency_context_changes();
+    loader_context.merge_dependency_changes();
     return Ok(());
   }
 
@@ -69,20 +69,20 @@ fn create_loader_context<Context: Send>(
   plugin: Option<Arc<dyn LoaderRunnerPlugin<Context = Context>>>,
   context: Context,
 ) -> LoaderContext<Context> {
-  let mut dependency_context = LoaderDependencyContext::default();
+  let mut dependencies = LoaderDependencies::default();
   if let Some(resource_path) = resource_data.path()
     && resource_path.is_absolute()
   {
-    dependency_context.file.insert(resource_path.into());
+    dependencies.file.insert(resource_path.into());
   }
 
   LoaderContext {
     hot: false,
     cacheable: true,
     parse_meta: Default::default(),
-    dependency_context,
-    added_dependency_context: Default::default(),
-    removed_dependency_context: Default::default(),
+    dependencies,
+    added_dependencies: Default::default(),
+    removed_dependencies: Default::default(),
     content: None,
     context,
     source_map: None,
@@ -160,9 +160,9 @@ async fn run_loaders_impl<Context: Send>(
         cx.current_loader().set_pitch_executed();
         let loader = cx.current_loader().loader().clone();
         let span = info_span!("run_loader:pitch", resource);
-        cx.reset_dependency_context_changes();
+        cx.reset_dependency_changes();
         let result = loader.pitch(cx).instrument(span).await;
-        cx.merge_dependency_context_changes();
+        cx.merge_dependency_changes();
         result?;
         if cx.content.is_some() {
           cx.state.transition(State::Normal);
@@ -199,7 +199,7 @@ async fn run_loaders_impl<Context: Send>(
         let loader = cx.current_loader().loader().clone();
 
         let span = info_span!("run_loader:normal", resource);
-        cx.reset_dependency_context_changes();
+        cx.reset_dependency_changes();
         let result = if let Some(plugin) = cx.plugin.clone() {
           plugin.run_normal_loader(cx, loader).instrument(span).await
         } else {
@@ -212,7 +212,7 @@ async fn run_loaders_impl<Context: Send>(
           }
           result
         };
-        cx.merge_dependency_context_changes();
+        cx.merge_dependency_changes();
         result?;
       }
       State::Finished => break,
@@ -237,7 +237,7 @@ async fn run_loaders_impl<Context: Send>(
 pub struct LoaderResult<Context> {
   pub context: Context,
   pub cacheable: bool,
-  pub dependency_context: LoaderDependencyContext,
+  pub dependencies: LoaderDependencies,
   pub diagnostics: Vec<Diagnostic>,
   pub content: Content,
   pub source_map: Option<Box<SourceMap<'static>>>,
@@ -251,7 +251,7 @@ impl<Context: Send> LoaderResult<Context> {
     LoaderResult {
       context: loader_context.context,
       cacheable: loader_context.cacheable,
-      dependency_context: loader_context.dependency_context,
+      dependencies: loader_context.dependencies,
       diagnostics: loader_context.diagnostics,
       content: loader_context
         .content

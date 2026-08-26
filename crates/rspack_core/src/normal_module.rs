@@ -424,7 +424,7 @@ impl Module for NormalModule {
 
     if let Some(err) = err {
       self.build_info.cacheable = loader_result.cacheable;
-      self.build_info.dependency_context = loader_result.dependency_context;
+      self.build_info.dependencies = loader_result.dependencies;
 
       self.source = None;
 
@@ -479,7 +479,7 @@ impl Module for NormalModule {
     )?;
 
     self.build_info.cacheable = loader_result.cacheable;
-    self.build_info.dependency_context = loader_result.dependency_context;
+    self.build_info.dependencies = loader_result.dependencies;
 
     if no_parse {
       self.parsed = false;

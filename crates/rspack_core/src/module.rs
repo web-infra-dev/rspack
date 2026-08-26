@@ -267,7 +267,7 @@ pub struct BuildInfo {
   pub strict: bool,
   pub module_argument: ModuleArgument,
   pub exports_argument: ExportsArgument,
-  pub dependency_context: crate::LoaderDependencyContext,
+  pub dependencies: crate::LoaderDependencies,
   pub value_dependencies: HashMap<String, String>,
   #[cacheable(with=AsVec<AsPreset>)]
   pub esm_named_exports: HashSet<Atom>,
@@ -305,7 +305,7 @@ impl Default for BuildInfo {
       strict: false,
       module_argument: Default::default(),
       exports_argument: Default::default(),
-      dependency_context: Default::default(),
+      dependencies: Default::default(),
       value_dependencies: HashMap::default(),
       esm_named_exports: HashSet::default(),
       all_star_exports: Vec::default(),

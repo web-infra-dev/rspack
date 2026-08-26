@@ -4,7 +4,7 @@ use napi::bindgen_prelude::*;
 use napi_derive::napi;
 use rspack_cacheable::cacheable;
 use rspack_core::{
-  CacheFacade, CacheValue, Content, Etag, LoaderCacheDependencySnapshot, LoaderDependencyContext,
+  CacheFacade, CacheValue, Content, Etag, LoaderCacheDependencySnapshot, LoaderDependencies,
   Resolver, loader_cache_dependency_snapshot, loader_cache_dependency_snapshot_is_valid,
   loader_cache_etag, loader_cache_item, restore_loader_cache_dependencies,
 };
@@ -14,7 +14,7 @@ use rspack_hash::{HashFunction, RspackHasher};
 use rspack_loader_runner::LoaderRunnerOptions;
 use rspack_paths::Utf8Path;
 
-use super::context::JsLoaderDependencyContext;
+use super::context::JsLoaderDependencies;
 
 #[cacheable]
 #[derive(Clone)]
@@ -29,8 +29,8 @@ struct LoaderCacheEntry {
 pub struct JsLoaderCacheEntry {
   pub content: Either3<Null, String, Uint8Array>,
   pub source_map: Option<Uint8Array>,
-  pub dependency_context: JsLoaderDependencyContext,
-  pub dependency_context_append_only: bool,
+  pub added_dependencies: JsLoaderDependencies,
+  pub removed_dependencies: JsLoaderDependencies,
 }
 
 #[napi]
@@ -191,8 +191,8 @@ impl JsLoaderCache {
       return Ok(None);
     }
     self.set_pending_etag(loader_index, None)?;
-    let mut dependency_context = LoaderDependencyContext::default();
-    restore_loader_cache_dependencies(&entry.dependency_snapshot, &mut dependency_context);
+    let mut dependencies = LoaderDependencies::default();
+    restore_loader_cache_dependencies(&entry.dependency_snapshot, &mut dependencies);
 
     Ok(Some(JsLoaderCacheEntry {
       content: match (&entry.content, entry.content_is_string) {
@@ -205,8 +205,8 @@ impl JsLoaderCache {
         (Some(content), false) => Either3::C(content.clone().into()),
       },
       source_map: entry.source_map.clone().map(Into::into),
-      dependency_context: (&dependency_context).into(),
-      dependency_context_append_only: true,
+      added_dependencies: (&dependencies).into(),
+      removed_dependencies: Default::default(),
     }))
   }
 
@@ -216,15 +216,15 @@ impl JsLoaderCache {
     let Some(etag) = self.take_pending_etag(loader_index)? else {
       return Ok(());
     };
-    if !output.dependency_context_append_only
-      || !output.dependency_context.context_dependencies.is_empty()
-      || !output.dependency_context.missing_dependencies.is_empty()
+    if !output.removed_dependencies.is_empty()
+      || !output.added_dependencies.context_dependencies.is_empty()
+      || !output.added_dependencies.missing_dependencies.is_empty()
     {
       return Ok(());
     }
-    let dependency_context: LoaderDependencyContext = output.dependency_context.into();
+    let dependencies: LoaderDependencies = output.added_dependencies.into();
     let Some(dependency_snapshot) =
-      loader_cache_dependency_snapshot(self.fs.as_ref(), &dependency_context)
+      loader_cache_dependency_snapshot(self.fs.as_ref(), &dependencies)
     else {
       return Ok(());
     };

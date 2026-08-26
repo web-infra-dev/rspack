@@ -160,16 +160,16 @@ impl BuildModuleGraphArtifact {
     let resource_id = ResourceId::from(module_identifier);
     self
       .file_dependencies
-      .remove_files(&resource_id, &build_info.dependency_context.file);
+      .remove_files(&resource_id, &build_info.dependencies.file);
     self
       .context_dependencies
-      .remove_files(&resource_id, &build_info.dependency_context.context);
+      .remove_files(&resource_id, &build_info.dependencies.context);
     self
       .missing_dependencies
-      .remove_files(&resource_id, &build_info.dependency_context.missing);
+      .remove_files(&resource_id, &build_info.dependencies.missing);
     self
       .build_dependencies
-      .remove_files(&resource_id, &build_info.dependency_context.build);
+      .remove_files(&resource_id, &build_info.dependencies.build);
     self.make_failed_module.remove(module_identifier);
 
     // clean incoming & all_dependencies(outgoing) factorize info

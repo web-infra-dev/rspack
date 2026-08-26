@@ -4,7 +4,7 @@ use rspack_collections::Identifiable;
 use rspack_error::Result;
 use rspack_fs::ReadableFileSystem;
 use rspack_hash::{HashFunction, RspackHasher};
-use rspack_loader_runner::{Content, LoaderContext, LoaderDependencyContext};
+use rspack_loader_runner::{Content, LoaderContext, LoaderDependencies};
 use rspack_sources::SourceMap;
 
 use crate::{
@@ -56,21 +56,20 @@ pub struct LoaderCacheDependencySnapshot {
 #[doc(hidden)]
 pub fn loader_cache_dependency_snapshot(
   fs: &dyn ReadableFileSystem,
-  dependency_context: &LoaderDependencyContext,
+  dependencies: &LoaderDependencies,
 ) -> Option<LoaderCacheDependencySnapshot> {
-  if !dependency_context.context.is_empty() || !dependency_context.missing.is_empty() {
+  if !dependencies.context.is_empty() || !dependencies.missing.is_empty() {
     return None;
   }
-  let mut paths =
-    Vec::with_capacity(dependency_context.file.len() + dependency_context.build.len());
+  let mut paths = Vec::with_capacity(dependencies.file.len() + dependencies.build.len());
   let mut kinds = Vec::with_capacity(paths.capacity());
-  for path in dependency_context.file.union(&dependency_context.build) {
+  for path in dependencies.file.union(&dependencies.build) {
     paths.push(path.clone());
     let mut kind = LoaderCacheDependencyKind::empty();
-    if dependency_context.file.contains(path) {
+    if dependencies.file.contains(path) {
       kind.insert(LoaderCacheDependencyKind::FILE);
     }
-    if dependency_context.build.contains(path) {
+    if dependencies.build.contains(path) {
       kind.insert(LoaderCacheDependencyKind::BUILD);
     }
     debug_assert!(!kind.is_empty());
@@ -94,14 +93,14 @@ pub fn loader_cache_dependency_snapshot_is_valid(
 #[doc(hidden)]
 pub fn restore_loader_cache_dependencies(
   snapshot: &LoaderCacheDependencySnapshot,
-  dependency_context: &mut LoaderDependencyContext,
+  dependencies: &mut LoaderDependencies,
 ) {
   for (path, kind) in snapshot.dependencies.paths().zip(&snapshot.kinds) {
     if kind.contains(LoaderCacheDependencyKind::FILE) {
-      dependency_context.file.insert(path.clone());
+      dependencies.file.insert(path.clone());
     }
     if kind.contains(LoaderCacheDependencyKind::BUILD) {
-      dependency_context.build.insert(path.clone());
+      dependencies.build.insert(path.clone());
     }
   }
 }
@@ -199,9 +198,9 @@ pub(crate) fn before_normal_loader(
       .source_map
       .clone()
       .and_then(|source_map| SourceMap::from_json(source_map).ok());
-    let mut dependency_context = LoaderDependencyContext::default();
-    restore_loader_cache_dependencies(&entry.dependency_snapshot, &mut dependency_context);
-    context.add_dependency_context(&dependency_context);
+    let mut dependencies = LoaderDependencies::default();
+    restore_loader_cache_dependencies(&entry.dependency_snapshot, &mut dependencies);
+    context.add_dependencies(&dependencies);
     context.__finish_with((content, source_map, None));
     return Ok(LoaderCacheAction::Hit);
   }
@@ -223,13 +222,12 @@ pub(crate) fn after_normal_loader(
     return Ok(());
   }
 
-  if !context.removed_dependency_context().is_empty() {
+  if !context.removed_dependencies().is_empty() {
     return Ok(());
   }
-  let Some(dependency_snapshot) = loader_cache_dependency_snapshot(
-    context.context.fs.as_ref(),
-    context.added_dependency_context(),
-  ) else {
+  let Some(dependency_snapshot) =
+    loader_cache_dependency_snapshot(context.context.fs.as_ref(), context.added_dependencies())
+  else {
     return Ok(());
   };
 

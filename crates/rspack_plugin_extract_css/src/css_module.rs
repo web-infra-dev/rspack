@@ -70,7 +70,7 @@ impl CssModule {
       build_info: BuildInfo {
         cacheable: dep.cacheable,
         strict: true,
-        dependency_context: dep.dependency_context.clone(),
+        dependencies: dep.dependencies.clone(),
         ..Default::default()
       },
       build_meta: Default::default(),

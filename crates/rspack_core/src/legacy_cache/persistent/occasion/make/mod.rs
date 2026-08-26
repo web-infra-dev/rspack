@@ -99,10 +99,10 @@ impl Occasion for MakeOccasion {
     for (mid, module) in mg.modules() {
       let build_info = module.build_info();
       let resource_id = ResourceId::from(*mid);
-      file_dep.add_files(&resource_id, &build_info.dependency_context.file);
-      context_dep.add_files(&resource_id, &build_info.dependency_context.context);
-      missing_dep.add_files(&resource_id, &build_info.dependency_context.missing);
-      build_dep.add_files(&resource_id, &build_info.dependency_context.build);
+      file_dep.add_files(&resource_id, &build_info.dependencies.file);
+      context_dep.add_files(&resource_id, &build_info.dependencies.context);
+      missing_dep.add_files(&resource_id, &build_info.dependencies.missing);
+      build_dep.add_files(&resource_id, &build_info.dependencies.build);
       if !module.diagnostics().is_empty() {
         make_failed_module.insert(*mid);
       }

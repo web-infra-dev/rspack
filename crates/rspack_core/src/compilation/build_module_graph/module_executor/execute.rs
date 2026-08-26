@@ -250,16 +250,16 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
       let build_info = module.build_info();
       execute_result
         .file_dependencies
-        .extend(build_info.dependency_context.file.iter().cloned());
+        .extend(build_info.dependencies.file.iter().cloned());
       execute_result
         .context_dependencies
-        .extend(build_info.dependency_context.context.iter().cloned());
+        .extend(build_info.dependencies.context.iter().cloned());
       execute_result
         .missing_dependencies
-        .extend(build_info.dependency_context.missing.iter().cloned());
+        .extend(build_info.dependencies.missing.iter().cloned());
       execute_result
         .build_dependencies
-        .extend(build_info.dependency_context.build.iter().cloned());
+        .extend(build_info.dependencies.build.iter().cloned());
       if !build_info.cacheable {
         execute_result.cacheable = false;
       }

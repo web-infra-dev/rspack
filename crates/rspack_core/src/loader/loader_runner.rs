@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use rspack_fs::ReadableFileSystem;
 pub use rspack_loader_runner::{
-  Content, Loader, LoaderContext, LoaderDependencyContext, LoaderRunnerOptions, run_loaders,
+  Content, Loader, LoaderContext, LoaderDependencies, LoaderRunnerOptions, run_loaders,
 };
 use rspack_util::source_map::SourceMapKind;
 

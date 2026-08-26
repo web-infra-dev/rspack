@@ -83,10 +83,22 @@ module.exports = {
         ],
       },
       {
-        test: /overlap-dependency\.js$/,
+        test: /[/\\]overlap-dependency\.js$/,
         use: [
           {
             loader: 'builtin:test-dependency-loader',
+            cache: true,
+          },
+          {
+            loader: path.resolve(__dirname, 'overlap-owner-loader.js'),
+          },
+        ],
+      },
+      {
+        test: /js-overlap-dependency\.js$/,
+        use: [
+          {
+            loader: path.resolve(__dirname, 'js-overlap-value-loader.js'),
             cache: true,
           },
           {

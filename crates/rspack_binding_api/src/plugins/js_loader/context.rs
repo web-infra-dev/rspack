@@ -3,7 +3,7 @@ use std::{ptr::NonNull, sync::Arc};
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
 use rspack_collections::Identifiable;
-use rspack_core::{LoaderContext, LoaderDependencyContext, Module, RunnerContext};
+use rspack_core::{LoaderContext, LoaderDependencies, Module, RunnerContext};
 use rspack_error::ToStringResultToRspackResultExt;
 use rspack_loader_runner::State as LoaderState;
 use rspack_napi::threadsafe_js_value_ref::ThreadsafeJsValueRef;
@@ -95,15 +95,24 @@ impl From<LoaderState> for JsLoaderState {
 
 #[napi(object)]
 #[derive(Clone, Default)]
-pub struct JsLoaderDependencyContext {
+pub struct JsLoaderDependencies {
   pub file_dependencies: Vec<String>,
   pub context_dependencies: Vec<String>,
   pub missing_dependencies: Vec<String>,
   pub build_dependencies: Vec<String>,
 }
 
-impl From<&LoaderDependencyContext> for JsLoaderDependencyContext {
-  fn from(value: &LoaderDependencyContext) -> Self {
+impl JsLoaderDependencies {
+  pub(super) fn is_empty(&self) -> bool {
+    self.file_dependencies.is_empty()
+      && self.context_dependencies.is_empty()
+      && self.missing_dependencies.is_empty()
+      && self.build_dependencies.is_empty()
+  }
+}
+
+impl From<&LoaderDependencies> for JsLoaderDependencies {
+  fn from(value: &LoaderDependencies) -> Self {
     Self {
       file_dependencies: value
         .file
@@ -129,8 +138,8 @@ impl From<&LoaderDependencyContext> for JsLoaderDependencyContext {
   }
 }
 
-impl From<JsLoaderDependencyContext> for LoaderDependencyContext {
-  fn from(value: JsLoaderDependencyContext) -> Self {
+impl From<JsLoaderDependencies> for LoaderDependencies {
+  fn from(value: JsLoaderDependencies) -> Self {
     Self {
       file: value
         .file_dependencies
@@ -176,7 +185,7 @@ pub struct JsLoaderContext {
   pub parse_meta: HashMap<String, String>,
   pub source_map: Option<Buffer>,
   pub cacheable: bool,
-  pub dependency_context: JsLoaderDependencyContext,
+  pub dependencies: JsLoaderDependencies,
 
   pub loader_items: Vec<JsLoaderItem>,
   pub loader_index: i32,
@@ -228,7 +237,7 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
         .map(|v| v.to_json())
         .map(|v| v.into_bytes().into()),
       cacheable: cx.cacheable,
-      dependency_context: cx.dependency_context().into(),
+      dependencies: cx.dependencies().into(),
 
       loader_items: cx.loader_items.iter().map(Into::into).collect(),
       loader_index: cx.loader_index,
