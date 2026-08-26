@@ -126,6 +126,28 @@ impl Cache {
     }
   }
 
+  pub fn store_dependency_id(&self, dependency_id: u32) -> Result<()> {
+    let Some(storage) = &self.inner.storage else {
+      return Ok(());
+    };
+    if let Some(file_cache) = &storage.idle_file_cache {
+      file_cache.store_dependency_id(dependency_id)
+    } else {
+      Ok(())
+    }
+  }
+
+  pub fn restore_dependency_id(&self) -> Result<Option<u32>> {
+    let Some(storage) = &self.inner.storage else {
+      return Ok(None);
+    };
+    storage
+      .idle_file_cache
+      .as_ref()
+      .map(IdleFileCache::restore_dependency_id)
+      .transpose()
+  }
+
   pub fn has_file_cache(&self) -> bool {
     self
       .inner
