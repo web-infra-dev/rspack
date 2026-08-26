@@ -31,6 +31,9 @@ use crate::{
   trim_dir,
 };
 
+// keeps the number of files open at once bounded, same limit webpack emits assets with
+const EMIT_ASSETS_CONCURRENCY_LIMIT: usize = 15;
+
 // should be SyncHook, but rspack need call js hook
 define_hook!(CompilerThisCompilation: Series(compilation: &mut Compilation, params: &mut CompilationParams));
 // should be SyncHook, but rspack need call js hook
@@ -447,7 +450,7 @@ impl Compiler {
       .incremental
       .passes_enabled(IncrementalPasses::EMIT_ASSETS);
 
-    let emit_results = rspack_parallel::scope(|token| {
+    let emit_results = rspack_parallel::scope_with_limit(EMIT_ASSETS_CONCURRENCY_LIMIT, |token| {
       self
         .compilation
         .assets()
