@@ -82,7 +82,7 @@ Rspack 2.2 包含 30 多项性能优化，例如：
 
 Rspack 2.2 减少了 HMR 中不必要的 CSS 请求。此前，即使只修改了 JavaScript 代码，浏览器也会在热更新时请求相关的 CSS 文件，比较内容后再判断是否需要更新样式。样式表越大，这一步带来的额外耗时就越明显。
 
-在 [#14682](https://github.com/web-infra-dev/rspack/pull/14682) 中，Rspack 改为在构建阶段判断 CSS 是否发生变化，仅在需要时请求 CSS 资源，从而避免不必要的 HTTP 请求。因此，JavaScript 热更新耗时不再随样式表体积明显增加：
+在 [#14682](https://github.com/web-infra-dev/rspack/pull/14682) 中，Rspack 改为在构建阶段判断 CSS 是否发生变化，使浏览器仅在需要时请求 CSS 资源，从而避免不必要的 HTTP 请求。因此，JavaScript 热更新耗时不再随样式表体积明显增加：
 
 | 样式表体积 | 优化前  | 优化后 |
 | ---------- | ------- | ------ |
@@ -210,7 +210,7 @@ export default {
 
 #### Octane 模板 \{#octane-template}
 
-`create-rsbuild` 现在支持创建 Octane 项目。[Octane](https://octanejs.dev/) 是一个高性能 JavaScript UI 框架，允许你通过 React API 编写组件，并将其编译为直接的 DOM 代码。
+`create-rsbuild` 现在支持创建 Octane 项目。[Octane](https://octanejs.dev/) 是一个高性能 JavaScript UI 框架，允许你使用 React API 编写组件，并将其编译为直接更新 DOM 的代码。
 
 运行以下命令即可创建一个 Octane 项目：
 
@@ -281,7 +281,7 @@ Rsbuild 插件也可以通过监听 [`onRestart`](https://rsbuild.rs/zh/plugins/
 
 #### 模块联邦测试 \{#rstest-module-federation}
 
-Rstest 现在支持模块联邦测试：可以在 Node、JSDOM 和 Browser Mode 环境下，直接测试真实的联邦远程模块。
+Rstest 现在支持模块联邦测试：可以在 Node.js、JSDOM 和 Browser Mode 环境中，直接测试通过模块联邦暴露的真实远程模块。
 
 在 Rstest 配置文件中引入 `@module-federation/rstest` 即可：
 
@@ -383,7 +383,7 @@ export default defineConfig([
 
 #### 内置常用 globals \{#built-in-globals}
 
-`@rslint/core` 现在默认导出 [globals](https://rslint.rs/api/configuration/globals) 对象，包含浏览器、Node.js 和 Rstest 等常用环境的全局变量定义：
+`@rslint/core` 现在提供内置的 [`globals`](https://rslint.rs/api/configuration/globals) 对象，其中包含浏览器、Node.js 和 Rstest 等常用环境的全局变量定义：
 
 ```ts title="rslint.config.ts"
 import { defineConfig, globals } from '@rslint/core';
