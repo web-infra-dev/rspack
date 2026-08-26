@@ -8,7 +8,7 @@ use rustc_hash::FxHashMap;
 use super::{
   CacheKey, Etag, Meta,
   cache_value::{CacheEntry, CacheValueDecoder, CacheValueEncoder, ErasedCacheValue},
-  db::{Database, DatabaseFamily, DatabaseValue},
+  db::{Database, DatabaseFamily},
   snapshot::FileSystemInfo,
   validator::{CacheValidator, CacheValidatorResult},
 };
@@ -84,10 +84,13 @@ impl FileCacheStrategy {
   /// Validates the current database's build dependencies once before the
   /// background job starts serving commands.
   pub async fn db_validation(&mut self) -> Result<()> {
-    let data: Option<DatabaseValue> = self
+    let Some(data) = self
       .database
-      .get(DatabaseFamily::Validator, VALIDATOR_KEY)?;
-    let validation = self.validator.validate(data.as_deref()).await;
+      .get(DatabaseFamily::Validator, VALIDATOR_KEY)?
+    else {
+      return Ok(());
+    };
+    let validation = self.validator.validate(data).await;
     match validation {
       Ok(CacheValidatorResult::Valid) => {}
       Ok(CacheValidatorResult::InvalidVersion) => {
