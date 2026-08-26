@@ -225,7 +225,7 @@ impl ScopeInfoDB {
 
   /// The variables bound in scope `id` itself (not in enclosing scopes).
   /// `id` must be an active scope.
-  pub fn scope_variables(&self, id: ScopeInfoId) -> impl Iterator<Item = (&str, VariableInfoId)> {
+  pub fn scope_variables(&self, id: ScopeInfoId) -> impl Iterator<Item = (&Atom, VariableInfoId)> {
     let scope = self.expect_get_scope(id);
     scope.defined.iter().filter_map(move |name| {
       let binding = self
@@ -234,7 +234,7 @@ impl ScopeInfoDB {
         .iter()
         .rev()
         .find(|binding| binding.scope == id)?;
-      (binding.value != VariableInfoId::tombstone()).then_some((name.as_str(), binding.value))
+      (binding.value != VariableInfoId::tombstone()).then_some((name, binding.value))
     })
   }
 }
@@ -432,6 +432,8 @@ mod tests {
     db.delete(root, &"b".into());
 
     let variables: Vec<_> = db.scope_variables(root).collect();
-    assert_eq!(variables, vec![("a", a)]);
+    assert_eq!(variables.len(), 1);
+    assert_eq!(variables[0].0.as_str(), "a");
+    assert_eq!(variables[0].1, a);
   }
 }

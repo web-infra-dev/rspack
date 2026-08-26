@@ -1,4 +1,3 @@
-use rspack_util::atom::Atom;
 use rustc_hash::FxHashSet;
 use swc_next_ecma_ast::CallExpression;
 
@@ -39,10 +38,10 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for JavascriptMetaInfoPlugin {
     }
     let variables: Vec<_> = parser
       .get_all_variables_from_current_scope()
-      .map(|(name, _)| Atom::new(name))
+      .map(|(name, info)| (name.clone(), info))
       .collect();
-    for name in variables {
-      if parser.is_variable_defined(&name) {
+    for (name, info) in variables {
+      if !parser.definitions_db.expect_get_variable(info).is_free() {
         parser
           .build_info
           .top_level_declarations
