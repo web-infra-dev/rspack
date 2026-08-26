@@ -94,6 +94,9 @@ define.doc(async () => {
       }),
     ],
     themeConfig: {
+      llmsUI: {
+        placement: 'outline',
+      },
       socialLinks: [
         {
           icon: 'github',
