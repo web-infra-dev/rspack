@@ -764,7 +764,7 @@ impl<'context> CssModuleParser<'context> {
         kind,
         magic_comments,
       } => {
-        if self.should_ignore_magic_comments(*magic_comments, *range) {
+        if self.url() && self.should_ignore_magic_comments(*magic_comments, *range) {
           return Ok(());
         }
         self.handle_url(request, *range, *kind)
@@ -775,7 +775,7 @@ impl<'context> CssModuleParser<'context> {
         attributes,
         magic_comments,
       } => {
-        if self.should_ignore_magic_comments(*magic_comments, *range) {
+        if self.import() && self.should_ignore_magic_comments(*magic_comments, *range) {
           return Ok(());
         }
         let attributes = dependency_context.import_attributes(*attributes);
