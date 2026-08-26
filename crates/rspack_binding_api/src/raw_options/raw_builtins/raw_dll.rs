@@ -2,8 +2,9 @@ use napi::Either;
 use napi_derive::napi;
 use rspack_core::ModuleId;
 use rspack_plugin_dll::{
-  DllEntryPluginOptions, DllManifest, DllManifestContent, DllManifestContentItem,
-  DllManifestContentItemExports, DllReferenceAgencyPluginOptions, LibManifestPluginOptions,
+  DelegatedPluginOptions, DllEntryPluginOptions, DllManifest, DllManifestContent,
+  DllManifestContentItem, DllManifestContentItemExports, DllReferenceAgencyPluginOptions,
+  LibManifestPluginOptions,
 };
 use rustc_hash::FxHashMap as HashMap;
 use swc_core::atoms::Atom;
@@ -162,6 +163,44 @@ impl From<RawDllReferenceAgencyPluginOptions> for DllReferenceAgencyPluginOption
           .collect::<DllManifestContent>()
       }),
       manifest: manifest.map(|m| m.into()),
+    }
+  }
+}
+
+#[napi(object, object_to_js = false)]
+pub struct RawDelegatedPluginOptions {
+  pub source: String,
+  pub context: Option<String>,
+  pub content: HashMap<String, RawDllManifestContentItem>,
+  pub r#type: String,
+  pub extensions: Option<Vec<String>>,
+  pub scope: Option<String>,
+  pub compilation_context: String,
+}
+
+impl From<RawDelegatedPluginOptions> for DelegatedPluginOptions {
+  fn from(value: RawDelegatedPluginOptions) -> Self {
+    let RawDelegatedPluginOptions {
+      source,
+      context,
+      content,
+      r#type,
+      extensions,
+      scope,
+      compilation_context,
+    } = value;
+
+    Self {
+      source,
+      context: context.map(|ctx| ctx.into()),
+      content: content
+        .into_iter()
+        .map(|(k, v)| (k, v.into()))
+        .collect::<DllManifestContent>(),
+      r#type,
+      extensions: extensions.unwrap_or_default(),
+      scope,
+      compilation_context: compilation_context.into(),
     }
   }
 }

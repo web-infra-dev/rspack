@@ -63,7 +63,8 @@ use rspack_plugin_devtool::{
   SourceMapDevToolModuleOptionsPluginOptions, SourceMapDevToolPlugin,
 };
 use rspack_plugin_dll::{
-  DllEntryPlugin, DllReferenceAgencyPlugin, FlagAllModulesAsUsedPlugin, LibManifestPlugin,
+  DelegatedPlugin, DllEntryPlugin, DllReferenceAgencyPlugin, FlagAllModulesAsUsedPlugin,
+  LibManifestPlugin,
 };
 use rspack_plugin_dynamic_entry::DynamicEntryPlugin;
 use rspack_plugin_ensure_chunk_conditions::EnsureChunkConditionsPlugin;
@@ -125,7 +126,7 @@ use self::{
   raw_copy::RawCopyRspackPluginOptions,
   raw_css_chunking::RawCssChunkingPluginOptions,
   raw_css_extract::RawCssExtractPluginOption,
-  raw_dll::{RawDllEntryPluginOptions, RawLibManifestPluginOptions},
+  raw_dll::{RawDelegatedPluginOptions, RawDllEntryPluginOptions, RawLibManifestPluginOptions},
   raw_html::RawHtmlRspackPluginOptions,
   raw_ignore::RawIgnorePluginOptions,
   raw_lazy_compilation::{JsBackend, RawLazyCompilationOption},
@@ -236,6 +237,7 @@ pub enum BuiltinPluginName {
   ContextReplacementPlugin,
   DllEntryPlugin,
   DllReferenceAgencyPlugin,
+  DelegatedPlugin,
   LibManifestPlugin,
   FlagAllModulesAsUsedPlugin,
 
@@ -911,6 +913,12 @@ impl<'a> BuiltinPlugin<'a> {
           .map_err(|report| napi::Error::from_reason(report.to_string()))?;
         let options = raw_options.into();
         plugins.push(DllReferenceAgencyPlugin::new(options).boxed());
+      }
+      BuiltinPluginName::DelegatedPlugin => {
+        let raw_options = downcast_into::<RawDelegatedPluginOptions>(self.options)
+          .map_err(|report| napi::Error::from_reason(report.to_string()))?;
+        let options = raw_options.into();
+        plugins.push(DelegatedPlugin::new(options).boxed());
       }
       BuiltinPluginName::RsdoctorPlugin => {
         #[cfg(not(feature = "browser"))]

@@ -603,6 +603,7 @@ export declare enum BuiltinPluginName {
   ContextReplacementPlugin = 'ContextReplacementPlugin',
   DllEntryPlugin = 'DllEntryPlugin',
   DllReferenceAgencyPlugin = 'DllReferenceAgencyPlugin',
+  DelegatedPlugin = 'DelegatedPlugin',
   LibManifestPlugin = 'LibManifestPlugin',
   FlagAllModulesAsUsedPlugin = 'FlagAllModulesAsUsedPlugin',
   CssHttpExternalsRspackPlugin = 'CssHttpExternalsRspackPlugin',
@@ -2222,6 +2223,16 @@ export interface RawCssParserOptions {
   url?: boolean
   import?: boolean
   resolveImport?: boolean | ((context: { url: string, media: string | undefined, resourcePath: string, supports: string | undefined, layer: string | undefined }) => boolean)
+}
+
+export interface RawDelegatedPluginOptions {
+  source: string
+  context?: string
+  content: Record<string, RawDllManifestContentItem>
+  type: string
+  extensions?: Array<string>
+  scope?: string
+  compilationContext: string
 }
 
 export interface RawDeterministicModuleIdsPluginOptions {

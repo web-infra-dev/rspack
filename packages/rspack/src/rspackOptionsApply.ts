@@ -77,6 +77,7 @@ import { getTargetProperties, getTargetsProperties } from './config/target';
 import MemoryCachePlugin from './lib/cache/MemoryCachePlugin';
 import EntryOptionPlugin from './lib/EntryOptionPlugin';
 import IgnoreWarningsPlugin from './lib/IgnoreWarningsPlugin';
+import WarnDeprecatedOptionPlugin from './lib/WarnDeprecatedOptionPlugin';
 import { DefaultStatsFactoryPlugin } from './stats/DefaultStatsFactoryPlugin';
 import { DefaultStatsPresetPlugin } from './stats/DefaultStatsPresetPlugin';
 import { DefaultStatsPrinterPlugin } from './stats/DefaultStatsPrinterPlugin';
@@ -361,6 +362,11 @@ export class RspackOptionsApply {
           break;
         }
         case 'hashed': {
+          new WarnDeprecatedOptionPlugin(
+            'optimization.moduleIds',
+            'hashed',
+            'deterministic',
+          ).apply(compiler);
           new HashedModuleIdsPlugin().apply(compiler);
           break;
         }

@@ -21,6 +21,7 @@ export * from './CssModulesPlugin';
 export * from './css-extract/index';
 export * from './DataUriPlugin';
 export * from './DefinePlugin';
+export * from './DelegatedPlugin';
 export * from './DeterministicChunkIdsPlugin';
 export * from './DeterministicModuleIdsPlugin';
 export * from './DllEntryPlugin';

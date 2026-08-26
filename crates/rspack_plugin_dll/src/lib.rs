@@ -65,8 +65,9 @@ pub struct DllManifest {
 }
 
 pub use dll_entry::dll_entry_plugin::{DllEntryPlugin, DllEntryPluginOptions};
-pub use dll_reference::dll_reference_agency_plugin::{
-  DllReferenceAgencyPlugin, DllReferenceAgencyPluginOptions,
+pub use dll_reference::{
+  delegated_plugin::{DelegatedPlugin, DelegatedPluginOptions},
+  dll_reference_agency_plugin::{DllReferenceAgencyPlugin, DllReferenceAgencyPluginOptions},
 };
 pub use flag_all_modules_as_used_plugin::FlagAllModulesAsUsedPlugin;
 pub use lib_manifest_plugin::{LibManifestPlugin, LibManifestPluginOptions};

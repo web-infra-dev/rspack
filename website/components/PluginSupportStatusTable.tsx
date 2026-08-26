@@ -301,7 +301,7 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
   },
   {
     name: 'DelegatedPlugin',
-    status: SupportStatus.NotSupported,
+    status: SupportStatus.FullySupported,
   },
   {
     name: 'DeterministicChunkIdsPlugin',
@@ -384,7 +384,7 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
   },
   {
     name: 'LibManifestPlugin',
-    status: SupportStatus.NotSupported,
+    status: SupportStatus.FullySupported,
   },
   {
     name: 'LoaderOptionsPlugin',
