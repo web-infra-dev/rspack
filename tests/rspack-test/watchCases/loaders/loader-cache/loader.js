@@ -9,6 +9,7 @@ const loaderRuns = {
 	"bom-producer": 0,
 	"file-dependency": 0,
 	"context-dependency": 0,
+	"context-downstream": 0,
 	"build-dependency": 0,
 	"missing-dependency": 0,
 	"chain-left": 0
@@ -48,6 +49,13 @@ module.exports = function (source, sourceMap) {
 		return source
 			.replace("__DEPENDENCY_VALUE__", JSON.stringify(fs.readdirSync(dependency).sort()))
 			.replace("__DEPENDENCY_RUNS__", loaderRuns[name]);
+	}
+	if (name === "context-downstream") {
+		loaderRuns[name]++;
+		return source.replace(
+			/(\bruns:\s*\d+)/,
+			`$1,\n\tdownstreamRuns: ${loaderRuns[name]}`
+		);
 	}
 	if (name === "build-dependency") {
 		loaderRuns[name]++;

@@ -59,8 +59,23 @@ module.exports = {
         ],
       },
       {
-        test: /(?:file|context|build|missing)-dependency\.js$/,
+        test: /(?:file|build|missing)-dependency\.js$/,
         use: [
+          {
+            loader: path.resolve(__dirname, 'loader.js'),
+            options: { name: 'dependency' },
+            cache: true,
+          },
+        ],
+      },
+      {
+        test: /context-dependency\.js$/,
+        use: [
+          {
+            loader: path.resolve(__dirname, 'loader.js'),
+            options: { name: 'context-downstream' },
+            cache: true,
+          },
           {
             loader: path.resolve(__dirname, 'loader.js'),
             options: { name: 'dependency' },

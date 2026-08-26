@@ -38,8 +38,9 @@ pub fn loader_cache_etag(
   loader_version: &str,
 ) -> Etag {
   let mut hasher = RspackHasher::new(&HashFunction::Xxhash64);
-  // Context and missing dependencies are omitted because entries that add either kind are skipped
-  // at store time by the minimal cache.
+  // Context and missing dependencies intentionally invalidate the minimal cache: inherited values
+  // disable lookup, and entries that add either kind are skipped at store time. This trade-off lets
+  // the etag omit both kinds entirely.
   rspack_hash::rspack_hash_object!(&mut hasher, {
     "content" => content,
     "file_dependencies" => sorted_dependency_paths(&existing.file),
@@ -184,6 +185,8 @@ pub(crate) fn before_normal_loader(
     || !context.parse_meta.is_empty()
     || !context.context.module.build_info().assets.is_empty()
     || !context.context.module.build_info().extras.is_empty()
+    || !context.context_dependencies().is_empty()
+    || !context.missing_dependencies().is_empty()
   {
     return Ok(LoaderCacheAction::Disabled);
   }

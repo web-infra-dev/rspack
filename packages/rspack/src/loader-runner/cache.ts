@@ -47,7 +47,9 @@ export class LoaderCache {
       !loader ||
       isNil(content) ||
       !isNil(additionalData) ||
-      Object.keys(context.__internal__parseMeta).length > 0
+      Object.keys(context.__internal__parseMeta).length > 0 ||
+      this.#dependencies.contextDependencies().length > 0 ||
+      this.#dependencies.missingDependencies().length > 0
     ) {
       return undefined;
     }
