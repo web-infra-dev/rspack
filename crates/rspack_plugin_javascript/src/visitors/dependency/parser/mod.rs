@@ -127,8 +127,8 @@ fn member_property_key_data_to_atom(ast: &Ast<'_>, key: PropertyKeyData) -> Opti
   }
 }
 
-fn member_property_key_can_be_atom(ast: &Ast<'_>, key: PropertyKey) -> bool {
-  match ast.property_key_data(key) {
+fn member_property_key_data_can_be_atom(ast: &Ast<'_>, key: PropertyKeyData) -> bool {
+  match key {
     PropertyKeyData::StringLiteral(_)
     | PropertyKeyData::NumericLiteral(_)
     | PropertyKeyData::BigIntLiteral(_) => true,
@@ -181,7 +181,7 @@ where
 pub type AtomMembers = SmallVec<[Atom; 2]>;
 pub type OptionalMembers = SmallVec<[bool; 2]>;
 pub type MemberRanges = SmallVec<[Span; 2]>;
-type RawAtomMembers = SmallVec<[(PropertyKey, bool); 2]>;
+type RawAtomMembers = SmallVec<[PropertyKeyData; 2]>;
 
 struct RawExtractedMemberExpressionChainData {
   object: ExprRef,
@@ -191,19 +191,15 @@ struct RawExtractedMemberExpressionChainData {
 }
 
 fn materialize_member_atoms(ast: &Ast<'_>, members: RawAtomMembers) -> AtomMembers {
-  members
-    .into_iter()
-    .map(|(property, computed)| {
-      if computed {
-        member_property_key_to_atom(ast, property)
-          .expect("validated computed member property should convert to an atom")
-      } else if let PropertyKeyData::IdentifierName(identifier) = ast.property_key_data(property) {
-        Atom::from_ast(ast, identifier.name(ast))
-      } else {
-        unreachable!("validated static member property should be an identifier")
-      }
-    })
-    .collect()
+  let mut atoms = AtomMembers::with_capacity(members.len());
+  for property in members {
+    atoms.push(match property {
+      PropertyKeyData::IdentifierName(identifier) => Atom::from_ast(ast, identifier.name(ast)),
+      property => member_property_key_data_to_atom(ast, property)
+        .expect("validated computed member property should convert to an atom"),
+    });
+  }
+  atoms
 }
 
 #[derive(Debug)]
@@ -1311,17 +1307,15 @@ impl<'parser> JavascriptParser<'parser> {
       match object {
         ExprRef::Member(expr) => {
           let property = expr.property(ast);
+          let property_data = ast.property_key_data(property);
           let object_expr = expr.object(ast);
           if expr.computed(ast) {
-            if !member_property_key_can_be_atom(ast, property) {
+            if !member_property_key_data_can_be_atom(ast, property_data) {
               break;
             }
-            members.push((property, true));
-          } else if matches!(
-            ast.property_key_data(property),
-            PropertyKeyData::IdentifierName(_)
-          ) {
-            members.push((property, false));
+            members.push(property_data);
+          } else if matches!(property_data, PropertyKeyData::IdentifierName(_)) {
+            members.push(property_data);
           } else {
             break;
           }
