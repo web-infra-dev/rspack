@@ -8,17 +8,18 @@ module.exports = {
 		return {
 			context: context.getSource(),
 			entry: "./fixtures/abc",
-			cache: true,
-			incremental: true
+			cache: true
 		};
 	},
 	async build(context, compiler) {
 		await new Promise((resolve, reject) => {
-			compiler.run(err => {
-				if (err) {
-					return reject(err);
-				}
-				resolve();
+			const watching = compiler.watch({}, err => {
+				watching.close(closeErr => {
+					if (err || closeErr) {
+						return reject(err || closeErr);
+					}
+					resolve();
+				});
 			});
 		});
 		await new Promise((resolve, reject) => {

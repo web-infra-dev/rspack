@@ -114,7 +114,7 @@ export const getRawOptions = (
     stats: getRawStats(options.stats),
     cache: getRawCache(options.cache!),
     experiments,
-    incremental: options.incremental,
+    incremental: compiler.watchMode ? options.incremental : false,
     node: getRawNode(options.node),
     amd: options.amd ? JSON.stringify(options.amd || {}) : undefined,
     bail: options.bail!,

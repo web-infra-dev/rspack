@@ -102,8 +102,6 @@ pub struct Compiler {
   pub loader_resolver_factory: Arc<ResolverFactory>,
   pub cache: Box<dyn LegacyCache>,
   incremental_artifacts: IncrementalArtifacts,
-  /// Whether the previous successful compilation produced reusable Incremental artifacts.
-  incremental_ready: bool,
   new_cache: Cache,
   /// emitted asset versions
   /// the key of HashMap is filename, the value of HashMap is version
@@ -214,7 +212,6 @@ impl Compiler {
       loader_resolver_factory,
       cache,
       incremental_artifacts: IncrementalArtifacts::default(),
-      incremental_ready: false,
       new_cache,
       emitted_asset_versions: Default::default(),
       input_filesystem,
@@ -299,7 +296,6 @@ impl Compiler {
     let compilation_logging = self.compilation.get_logging().clone();
     compilation_logging.clear();
     self.incremental_artifacts.reset();
-    self.incremental_ready = false;
 
     fast_set(
       &mut self.compilation,
@@ -330,7 +326,6 @@ impl Compiler {
     self.compile().await?;
     self.compile_done().await?;
     self.cache.after_compile(&self.compilation).await;
-    self.incremental_ready = self.compilation.incremental.enabled();
     #[cfg(allocative)]
     crate::utils::snapshot_allocative("build");
 
@@ -355,21 +350,14 @@ impl Compiler {
 
     let logger = self.compilation.get_logger("rspack.Compiler");
     let start = logger.time("seal compilation");
-    if self.compilation.incremental.enabled() {
-      self
-        .compilation
-        .run_passes_with_incremental_artifacts(
-          self.plugin_driver.clone(),
-          &mut self.incremental_artifacts,
-          &mut *self.cache,
-        )
-        .await?;
-    } else {
-      self
-        .compilation
-        .run_passes(self.plugin_driver.clone(), &mut *self.cache)
-        .await?;
-    }
+    self
+      .compilation
+      .run_passes_with_incremental_artifacts(
+        self.plugin_driver.clone(),
+        &mut self.incremental_artifacts,
+        &mut *self.cache,
+      )
+      .await?;
     logger.time_end(start);
 
     // Consume plugin driver diagnostic

@@ -2,13 +2,12 @@ const { createFsFromVolume, Volume } = require("memfs");
 
 /** @type {import('@rspack/test-tools').TCompilerCaseConfig} */
 module.exports = {
-  description: "should use cache on second run call",
+  description: "should use cache on second watch compilation",
   options(context) {
     return {
       context: context.getSource(),
       entry: "./count-loader!./count-loader",
       devtool: false,
-      incremental: true,
       mode: "development",
       output: {
         path: "/directory",
@@ -20,15 +19,24 @@ module.exports = {
   },
   async build(context, compiler) {
     return new Promise((resolve, reject) => {
-      compiler.run((err) => {
-        compiler.run((err) => {
-          const result = compiler.outputFileSystem.readFileSync(
-            "/directory/main.js",
-            "utf-8"
-          );
+      let builds = 0;
+      const watching = compiler.watch({}, (err) => {
+        if (err) {
+          return watching.close(() => reject(err));
+        }
+        if (builds++ === 0) {
+          return watching.invalidate();
+        }
+        const result = compiler.outputFileSystem.readFileSync(
+          "/directory/main.js",
+          "utf-8"
+        );
+        try {
           expect(result).toContain("module.exports = 0;");
-          resolve();
-        });
+        } catch (error) {
+          return watching.close(() => reject(error));
+        }
+        watching.close(resolve);
       });
     });
   },

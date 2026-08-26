@@ -3477,8 +3477,8 @@ export type RspackOptions = {
   lazyCompilation?: boolean | LazyCompilationOptions;
 
   /**
-   * Enable artifact bookkeeping and reuse for same-compiler rebuilds such as watch and HMR.
-   * When enabled, the cold build prepares artifacts for later rebuilds.
+   * Control artifact reuse during same-compiler rebuilds such as watch and HMR.
+   * This does not make standalone one-shot builds incremental.
    */
   incremental?: IncrementalPresets | Incremental;
 };

@@ -60,8 +60,6 @@ impl Compiler {
     deleted_files: FxHashSet<String>,
   ) -> Result<()> {
     let records = self.last_records.clone();
-    let recover_incremental_artifacts = self.incremental_ready;
-    self.incremental_ready = false;
 
     // build without stats
     {
@@ -77,11 +75,6 @@ impl Compiler {
       let compilation_logging = self.compilation.get_logging().clone();
       compilation_logging.clear();
 
-      let incremental = if recover_incremental_artifacts {
-        Incremental::new_hot(self.options.incremental)
-      } else {
-        Incremental::new_cold(self.options.incremental)
-      };
       let mut next_compilation = Compilation::new(
         self.id,
         self.options.clone(),
@@ -91,7 +84,7 @@ impl Compiler {
         self.resolver_factory.clone(),
         self.loader_resolver_factory.clone(),
         records,
-        incremental,
+        Incremental::new_hot(self.options.incremental),
         Some(ModuleExecutor::default()),
         compilation_logging,
         self.new_cache.clone(),
@@ -118,13 +111,9 @@ impl Compiler {
       // Artifact recovery belongs to incremental compilation and is independent
       // from the configured build cache.
       let old_compilation = std::mem::replace(&mut self.compilation, next_compilation);
-      if recover_incremental_artifacts {
-        self
-          .incremental_artifacts
-          .store_previous_compilation(Box::new(old_compilation));
-      } else {
-        self.incremental_artifacts.reset();
-      }
+      self
+        .incremental_artifacts
+        .store_previous_compilation(Box::new(old_compilation));
 
       // FOR BINDING SAFETY:
       // Update `compilation` for each rebuild.
@@ -135,7 +124,6 @@ impl Compiler {
 
     self.compile_done().await?;
     self.cache.after_compile(&self.compilation).await;
-    self.incremental_ready = self.compilation.incremental.enabled();
 
     #[cfg(allocative)]
     crate::utils::snapshot_allocative("rebuild");
