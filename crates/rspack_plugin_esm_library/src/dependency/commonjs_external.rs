@@ -3,9 +3,9 @@ use std::{collections::hash_map::Entry, sync::Arc};
 use atomic_refcell::AtomicRefCell;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  BuildModuleGraphArtifact, CodeGenerationDataItem, ConnectionActiveState, Dependency,
-  DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate, TemplateContext,
-  TemplateReplaceSource, UsedName, create_node_commonjs_init_fragment, property_access,
+  BuildModuleGraphArtifact, CodeGenerationDataItem, CommonJsExternalRequireKind,
+  ConnectionActiveState, Dependency, DependencyCodeGeneration, DependencyId, DependencyRange,
+  DependencyTemplate, TemplateContext, TemplateReplaceSource, UsedName, property_access,
 };
 use rspack_plugin_javascript::dependency::{
   CommonJsExportRequireDependency, CommonJsFullRequireDependency, CommonJsRequireDependency,
@@ -21,28 +21,11 @@ pub type DirectCommonJsExternalConnectionStates =
   AtomicRefCell<FxHashMap<DependencyId, ConnectionActiveState>>;
 
 #[cacheable]
-#[derive(Debug, Clone, Copy)]
-enum DirectRequireKind {
-  CommonJs,
-  NodeCommonJs,
-}
-
-#[cacheable]
 #[derive(Debug, Clone)]
-struct DirectExternalRequireHeaders(Vec<(DependencyRange, DirectRequireKind)>);
+struct DirectExternalRequireHeaders(Vec<(DependencyRange, CommonJsExternalRequireKind)>);
 
 #[cacheable_dyn]
 impl CodeGenerationDataItem for DirectExternalRequireHeaders {}
-
-fn direct_require_kind(external_type: &str) -> Option<DirectRequireKind> {
-  match external_type {
-    "commonjs" | "commonjs2" | "commonjs-module" | "commonjs-static" => {
-      Some(DirectRequireKind::CommonJs)
-    }
-    "node-commonjs" => Some(DirectRequireKind::NodeCommonJs),
-    _ => None,
-  }
-}
 
 fn is_relative_external_request(request: &str) -> bool {
   request == "."
@@ -147,7 +130,8 @@ pub fn cutout_commonjs_externals(
       };
 
       let request = external_module.get_request();
-      if direct_require_kind(external_module.resolve_external_type()).is_some()
+      if CommonJsExternalRequireKind::from_external_type(external_module.resolve_external_type())
+        .is_some()
         && !request.has_rest()
         && can_render_direct_request(request.primary())
       {
@@ -190,7 +174,7 @@ fn get_direct_external_require(
   expression_range: DependencyRange,
   direct_dependencies: &DirectCommonJsExternalDependencies,
   context: &TemplateContext,
-) -> Option<(String, DependencyRange, DirectRequireKind)> {
+) -> Option<(String, DependencyRange, CommonJsExternalRequireKind)> {
   if !direct_dependencies.borrow().contains(dependency_id) {
     return None;
   }
@@ -204,30 +188,22 @@ fn get_direct_external_require(
   Some((
     external_module.get_request().primary().to_string(),
     expression_range,
-    direct_require_kind(external_module.resolve_external_type())?,
+    CommonJsExternalRequireKind::from_external_type(external_module.resolve_external_type())?,
   ))
 }
 
 fn render_direct_require(
   request: &str,
   properties: &[rspack_util::atom::Atom],
-  kind: DirectRequireKind,
+  kind: CommonJsExternalRequireKind,
   context: &mut TemplateContext,
 ) -> String {
-  let require = match kind {
-    DirectRequireKind::CommonJs => "require",
-    DirectRequireKind::NodeCommonJs => "__rspack_createRequire_require",
-  };
-
-  if matches!(kind, DirectRequireKind::NodeCommonJs) {
-    let init_fragment = create_node_commonjs_init_fragment(context.compilation);
-    context.chunk_init_fragments().push(init_fragment);
-  }
-
-  format!(
-    "{require}({}){}",
-    json_stringify_str(request),
-    property_access(properties, 0)
+  let compilation = context.compilation;
+  kind.render_expression(
+    Some(request),
+    properties,
+    compilation,
+    context.chunk_init_fragments(),
   )
 }
 
@@ -438,23 +414,12 @@ impl DependencyTemplate for DirectRequireHeaderDependencyTemplate {
         });
 
     match direct_require_kind {
-      Some(DirectRequireKind::CommonJs) => {
-        source.replace(
-          header_range.start,
-          header_range.end,
-          "require".to_string(),
-          None,
-        );
-      }
-      Some(DirectRequireKind::NodeCommonJs) => {
-        source.replace(
-          header_range.start,
-          header_range.end,
-          "__rspack_createRequire_require".to_string(),
-          None,
-        );
-        let init_fragment = create_node_commonjs_init_fragment(context.compilation);
-        context.chunk_init_fragments().push(init_fragment);
+      Some(kind) => {
+        let compilation = context.compilation;
+        let require = kind
+          .render_callee(compilation, context.chunk_init_fragments())
+          .to_string();
+        source.replace(header_range.start, header_range.end, require, None);
       }
       None => {
         if let Some(template) = &self.template {

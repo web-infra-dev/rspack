@@ -55,6 +55,92 @@ impl ExternalRequestValue {
   }
 }
 
+/// The CommonJS require form used to render an external request.
+#[cacheable]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CommonJsExternalRequireKind {
+  CommonJs,
+  NodeCommonJs,
+}
+
+impl CommonJsExternalRequireKind {
+  pub fn from_external_type(external_type: &str) -> Option<Self> {
+    match external_type {
+      "commonjs" | "commonjs2" | "commonjs-module" | "commonjs-static" => Some(Self::CommonJs),
+      "node-commonjs" => Some(Self::NodeCommonJs),
+      _ => None,
+    }
+  }
+
+  /// Renders the complete require expression and installs any init fragment
+  /// required by its callee.
+  pub fn render_expression<S: AsRef<str>>(
+    self,
+    request: Option<&str>,
+    properties: impl IntoIterator<Item = S>,
+    compilation: &Compilation,
+    chunk_init_fragments: &mut ChunkInitFragments,
+  ) -> String {
+    let require = self.render_callee(compilation, chunk_init_fragments);
+    format!(
+      "{require}({}){}",
+      request
+        .map(json_stringify_str)
+        .unwrap_or_else(|| "undefined".to_string()),
+      property_access(properties, 0)
+    )
+  }
+
+  fn render_external_request(
+    self,
+    request: Option<&ExternalRequestValue>,
+    compilation: &Compilation,
+    chunk_init_fragments: &mut ChunkInitFragments,
+  ) -> String {
+    match request {
+      Some(request) => self.render_expression(
+        Some(request.primary()),
+        request.iter().skip(1),
+        compilation,
+        chunk_init_fragments,
+      ),
+      // Preserve the existing fallback for a missing object-form request:
+      // ESM node-commonjs used the undefined value while other CommonJS
+      // renderers requested the literal module name "undefined".
+      None if matches!(self, Self::NodeCommonJs) && compilation.options.output.module => self
+        .render_expression(
+          None,
+          iter::empty::<&str>(),
+          compilation,
+          chunk_init_fragments,
+        ),
+      None => self.render_expression(
+        Some("undefined"),
+        iter::empty::<&str>(),
+        compilation,
+        chunk_init_fragments,
+      ),
+    }
+  }
+
+  /// Renders only the require callee and installs its required init fragment.
+  ///
+  /// This is the split-range counterpart of [`Self::render_expression`].
+  pub fn render_callee(
+    self,
+    compilation: &Compilation,
+    chunk_init_fragments: &mut ChunkInitFragments,
+  ) -> &'static str {
+    match self {
+      Self::NodeCommonJs if compilation.options.output.module => {
+        chunk_init_fragments.push(create_node_commonjs_init_fragment(compilation));
+        "__rspack_createRequire_require"
+      }
+      Self::CommonJs | Self::NodeCommonJs => "require",
+    }
+  }
+}
+
 impl Serialize for ExternalRequestValue {
   fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
   where
@@ -127,19 +213,7 @@ fn get_request_string(request: &ExternalRequestValue) -> String {
   format!("{variable_name}{object_lookup}")
 }
 
-fn get_source_for_commonjs(module_and_specifiers: Option<&ExternalRequestValue>) -> String {
-  let (module_name, properties) = if let Some(module_and_specifiers) = module_and_specifiers {
-    (
-      module_and_specifiers.primary(),
-      property_access(module_and_specifiers.iter(), 1),
-    )
-  } else {
-    ("undefined", String::new())
-  };
-  format!("require({}){}", json_stringify_str(module_name), properties)
-}
-
-pub fn create_node_commonjs_init_fragment(compilation: &Compilation) -> BoxChunkInitFragment {
+fn create_node_commonjs_init_fragment(compilation: &Compilation) -> BoxChunkInitFragment {
   let need_prefix = compilation
     .options
     .output
@@ -632,6 +706,8 @@ impl ExternalModule {
     let mut chunk_init_fragments: ChunkInitFragments = Default::default();
     let supports_const = compilation.options.output.environment.supports_const();
     let resolved_external_type = self.resolve_external_type();
+    let commonjs_require_kind =
+      CommonJsExternalRequireKind::from_external_type(resolved_external_type);
     let module_graph = compilation.get_module_graph();
     let module_graph_cache = &compilation.module_graph_cache_artifact;
 
@@ -651,37 +727,15 @@ impl ExternalModule {
         get_namespace_object_export(concatenation_scope, supports_const, runtime_template),
         get_source_for_global_variable_external(request, &compilation.options.output.global_object)
       ),
-      "commonjs" | "commonjs2" | "commonjs-module" | "commonjs-static" => {
+      _ if commonjs_require_kind.is_some() => {
+        let require_kind =
+          commonjs_require_kind.expect("matched CommonJS external type should have a require kind");
+        let require_expression =
+          require_kind.render_external_request(request, compilation, &mut chunk_init_fragments);
         format!(
-          "{} = {};",
-          get_namespace_object_export(concatenation_scope, supports_const, runtime_template),
-          get_source_for_commonjs(request)
+          "{} = {require_expression};",
+          get_namespace_object_export(concatenation_scope, supports_const, runtime_template)
         )
-      }
-      "node-commonjs" => {
-        if compilation.options.output.module {
-          chunk_init_fragments.push(create_node_commonjs_init_fragment(compilation));
-          let (request, specifiers) = if let Some(request) = request {
-            (
-              json_stringify_str(request.primary()),
-              property_access(request.iter(), 1),
-            )
-          } else {
-            ("undefined".to_string(), String::new())
-          };
-          format!(
-            "{} = __rspack_createRequire_require({}){};",
-            get_namespace_object_export(concatenation_scope, supports_const, runtime_template),
-            request,
-            specifiers
-          )
-        } else {
-          format!(
-            "{} = {};",
-            get_namespace_object_export(concatenation_scope, supports_const, runtime_template),
-            get_source_for_commonjs(request)
-          )
-        }
       }
       "amd" | "amd-require" | "umd" | "umd2" | "system" | "jsonp" => {
         let id = ChunkGraph::get_module_id(&compilation.module_ids_artifact, self.identifier())
