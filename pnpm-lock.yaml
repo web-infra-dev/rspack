@@ -88,12 +88,12 @@ catalogs:
     '@rspress/plugin-sitemap':
       specifier: ^2.0.19
       version: 2.0.19
-    '@rstack-dev/doc-ui':
-      specifier: 1.14.8
-      version: 1.14.8
     '@rstackjs/create-toolkit':
       specifier: 2.2.3
       version: 2.2.3
+    '@rstackjs/doc-ui':
+      specifier: 1.14.9
+      version: 1.14.9
     '@rstackjs/load-config':
       specifier: ^0.1.2
       version: 0.1.2
@@ -1224,9 +1224,9 @@ importers:
 
   website:
     dependencies:
-      '@rstack-dev/doc-ui':
+      '@rstackjs/doc-ui':
         specifier: 'catalog:'
-        version: 1.14.8(@rspress/core@2.0.19)
+        version: 1.14.9(@rspress/core@2.0.19)
       markdown-to-jsx:
         specifier: 'catalog:'
         version: 9.10.2(react@19.2.8)(vue@3.5.41)
@@ -3257,14 +3257,6 @@ packages:
   '@rspress/shared@2.0.19':
     resolution: {integrity: sha512-INrETllWuR49lksqCz+xeLSO6rKtHA+5Ix2YQWcP9nerCuTSyGYwH8eBC0HrIacJkGHxB8wkkbV99tyzGtY8Wg==}
 
-  '@rstack-dev/doc-ui@1.14.8':
-    resolution: {integrity: sha512-CAibkpvCnJEcxsypu3ZE9JjtQw+1+iJGv9X09Yg4//9FevHpfaHW+b2onFG+Z/xOlUXGg83rJTb7CO6YbToP0w==}
-    peerDependencies:
-      '@rspress/core': '>=2.0.0'
-    peerDependenciesMeta:
-      '@rspress/core':
-        optional: true
-
   '@rstackjs/cli-darwin-arm64@0.6.4':
     resolution: {integrity: sha512-mr+vVKE3uNzj9n7jzvWVDsEeDpoCCtk0pJN3evro1EVSsi703vzZuR0KNYI1VgjHvzO7re55cHCuQ0GhQHXPGw==}
     engines: {node: '>=22.12.0'}
@@ -3354,6 +3346,14 @@ packages:
   '@rstackjs/create-toolkit@2.2.3':
     resolution: {integrity: sha512-0I1U/BGGLXBkvE+C9oDKYfmg1wjFMHCPQlG2BJF+f41kL0BmXZaQMa/m515lo8Q349otqyAEam4A5BMuxetTVw==}
     engines: {node: ^20.19.0 || >=22.12.0}
+
+  '@rstackjs/doc-ui@1.14.9':
+    resolution: {integrity: sha512-Te7Wx4K9JuvluP7HsH/Dpdju5QhClUe17/9YBzHlul+x2wg63jOkngv79DlMXyYDJgHQ+11vZfz18B+bnPhttw==}
+    peerDependencies:
+      '@rspress/core': '>=2.0.0'
+    peerDependenciesMeta:
+      '@rspress/core':
+        optional: true
 
   '@rstackjs/load-config@0.1.2':
     resolution: {integrity: sha512-6hChPVosmh2rzEt1M1CvGpsaE/+gGlt51ci5pbyd4Bd1FXyH+Owlg99ECvdcWtD7zdDwDM3jGkQL05xn9oWSIA==}
@@ -9701,10 +9701,6 @@ snapshots:
       - core-js
       - supports-color
 
-  '@rstack-dev/doc-ui@1.14.8(@rspress/core@2.0.19)':
-    optionalDependencies:
-      '@rspress/core': 2.0.19(@module-federation/runtime-tools@2.8.2)(@rspack/core@2.1.10)(core-js@3.50.0)(micromark-util-types@2.0.2)(micromark@4.0.2)
-
   '@rstackjs/cli-darwin-arm64@0.6.4':
     optional: true
 
@@ -9745,6 +9741,10 @@ snapshots:
     optional: true
 
   '@rstackjs/create-toolkit@2.2.3': {}
+
+  '@rstackjs/doc-ui@1.14.9(@rspress/core@2.0.19)':
+    optionalDependencies:
+      '@rspress/core': 2.0.19(@module-federation/runtime-tools@2.8.2)(@rspack/core@2.1.10)(core-js@3.50.0)(micromark-util-types@2.0.2)(micromark@4.0.2)
 
   '@rstackjs/load-config@0.1.2(jiti@2.7.0)':
     optionalDependencies:
