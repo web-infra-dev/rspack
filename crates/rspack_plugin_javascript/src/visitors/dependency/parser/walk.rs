@@ -1544,8 +1544,8 @@ impl JavascriptParser<'_> {
   fn _walk_iife(
     &mut self,
     expr: Expr,
-    args: impl Iterator<Item = Expr>,
-    current_this: Option<Expr>,
+    args: impl Iterator<Item = Argument>,
+    current_this: Option<Argument>,
   ) {
     fn get_var_name(parser: &mut JavascriptParser, expr: Expr) -> Option<ExportedVariableInfo> {
       if let Some(rename_identifier) = parser.get_rename_identifier(expr)
@@ -1570,10 +1570,24 @@ impl JavascriptParser<'_> {
       None
     }
 
+    fn get_argument_var_name(
+      parser: &mut JavascriptParser,
+      argument: Argument,
+    ) -> Option<ExportedVariableInfo> {
+      let ast = parser.ast.ast;
+      match ast.argument_data(argument) {
+        ArgumentData::Expr(expression) => get_var_name(parser, expression),
+        ArgumentData::SpreadElement(spread) => {
+          parser.walk_expression(spread.argument(ast));
+          None
+        }
+      }
+    }
+
     let ast = self.ast.ast;
-    let rename_this = current_this.and_then(|this| get_var_name(self, this));
+    let rename_this = current_this.and_then(|this| get_argument_var_name(self, this));
     let variable_info_for_args = args
-      .map(|param| get_var_name(self, param))
+      .map(|argument| get_argument_var_name(self, argument))
       .collect::<Vec<_>>();
 
     let mut params = Vec::new();
@@ -1662,10 +1676,7 @@ impl JavascriptParser<'_> {
       && !arguments.is_empty()
       && Self::has_simple_parameter_identifiers(ast, function.params(ast))
     {
-      let mut args = arguments
-        .iter()
-        .map(|id| ast.get_node_in_sub_range(id))
-        .filter_map(|argument| argument.as_expr(ast));
+      let mut args = arguments.iter().map(|id| ast.get_node_in_sub_range(id));
       let current_this = args.next();
       self._walk_iife(member.object(ast), args, current_this);
       return;
@@ -1679,10 +1690,7 @@ impl JavascriptParser<'_> {
     if direct_params.is_some_and(|params| Self::has_simple_parameter_identifiers(ast, params)) {
       self._walk_iife(
         callee,
-        arguments
-          .iter()
-          .map(|id| ast.get_node_in_sub_range(id))
-          .filter_map(|argument| argument.as_expr(ast)),
+        arguments.iter().map(|id| ast.get_node_in_sub_range(id)),
         None,
       );
       return;

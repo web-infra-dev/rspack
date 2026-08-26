@@ -787,8 +787,7 @@ fn is_pure_callee(parser: &mut JavascriptParser, expression: Expr) -> bool {
       let object = member.object(ast);
       match ast.expr_data(object) {
         ExprData::IdentifierReference(identifier) => {
-          ast.get_utf8(identifier.name(ast)) == "Math"
-            || is_global_reference_to(parser, identifier, "Math")
+          is_global_reference_to(parser, identifier, "Math")
         }
         ExprData::StringLiteral(_) => is_pure_string_method(property.as_str()),
         ExprData::TemplateLiteral(template) if template.expressions(ast).is_empty() => {
