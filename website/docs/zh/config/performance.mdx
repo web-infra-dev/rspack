@@ -9,7 +9,7 @@ import WebpackLicense from '@components/WebpackLicense';
 
 # Performance
 
-`performance` 用于配置 Rspack 的性能提示机制，帮助你在构建阶段识别体积过大的输出结果。
+`performance` 用于配置 Rspack 的性能提示机制，帮助你在构建阶段识别体积过大的输出结果，以及异步分块瀑布、过大的内联资源、生产环境嵌入式 Source Map 和 ES 模块顶层 `this` 等打包特有的问题。
 
 它会根据资源（asset）体积和入口（entrypoint）总体积与阈值的比较结果，决定是否输出提示，并由 `hints` 决定提示级别（warning/error/关闭）。
 
@@ -39,6 +39,31 @@ export default {
 export default {
   performance: {
     assetFilter: (assetFilename) => !assetFilename.endsWith('.css'),
+  },
+};
+```
+
+## performance.all
+
+<PropertyType type="boolean" defaultValue="false" />
+
+启用所有未单独设置的可选打包诊断。单独设置的诊断项优先级高于 `all`。
+
+## 打包诊断
+
+以下诊断默认关闭，并且仅在启用 `performance.hints` 时生效：
+
+- `asyncChunkWaterfalls`：报告需要至少三次串行请求的异步 `import()` 链。
+- `embeddedSourceMaps`：报告生产构建中嵌入 JavaScript 的 `eval` 或 `inline` Source Map。
+- `inlinedAssets`：报告大于 8 KiB、无法独立缓存的 data URL 资源模块。
+- `topLevelThis`：报告 ES 模块中会被 Rspack 替换为 `undefined` 的顶层 `this`。
+
+一次启用所有打包诊断：
+
+```js title="rspack.config.mjs"
+export default {
+  performance: {
+    all: true,
   },
 };
 ```

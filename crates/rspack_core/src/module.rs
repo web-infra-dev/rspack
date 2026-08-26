@@ -285,6 +285,8 @@ pub struct BuildInfo {
   pub side_effects_free: Option<HashSet<Atom>>,
   #[cacheable(with=AsOption<AsVec<AsPreset>>)]
   pub top_level_declarations: Option<HashSet<Atom>>,
+  /// Number of top-level `this` expressions that are replaced in an ES module.
+  pub top_level_this: u32,
   pub module_concatenation_bailout: Option<String>,
   pub assets: BindingCell<HashMap<String, CompilationAsset>>,
   pub module: bool,
@@ -322,6 +324,7 @@ impl Default for BuildInfo {
       css: None,
       side_effects_free: None,
       top_level_declarations: None,
+      top_level_this: 0,
       module_concatenation_bailout: None,
       assets: Default::default(),
       module: false,

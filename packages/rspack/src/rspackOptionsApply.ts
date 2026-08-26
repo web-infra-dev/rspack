@@ -420,7 +420,17 @@ export class RspackOptionsApply {
     }
 
     if (options.performance) {
-      new SizeLimitsPlugin(options.performance).apply(compiler);
+      const devtool = options.devtool;
+      new SizeLimitsPlugin({
+        ...options.performance,
+        // `eval` and `inline` source maps are useful during development, but
+        // unnecessarily ship their map data to production users.
+        embeddedSourceMaps:
+          options.performance.embeddedSourceMaps &&
+          options.mode === 'production' &&
+          typeof devtool === 'string' &&
+          /^(?:eval|inline)/.test(devtool),
+      }).apply(compiler);
     }
 
     if (options.cache) {

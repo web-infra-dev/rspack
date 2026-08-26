@@ -11,7 +11,7 @@ import WebpackLicense from '@components/WebpackLicense';
 
 `performance` configures Rspack's performance hint mechanism, helping you identify oversized outputs during the build.
 
-It compares asset sizes and entrypoint total sizes against thresholds to decide whether hints should be emitted, and `hints` controls the hint level (`warning` / `error` / disabled).
+It compares asset sizes and entrypoint total sizes against thresholds to decide whether hints should be emitted. It can also report bundle-specific problems such as async chunk waterfalls, oversized inlined assets, production source maps embedded in JavaScript, and top-level `this` in ES modules. `hints` controls the hint level (`warning` / `error` / disabled).
 
 You can define budget thresholds with `maxAssetSize` and `maxEntrypointSize`, and use `assetFilter` to exclude files that should not be counted, so hints better match your real performance goals.
 
@@ -39,6 +39,31 @@ Ignore CSS files when calculating performance hints:
 export default {
   performance: {
     assetFilter: (assetFilename) => !assetFilename.endsWith('.css'),
+  },
+};
+```
+
+## performance.all
+
+<PropertyType type="boolean" defaultValue="false" />
+
+Enables all opt-in bundling diagnostics that are not set individually. An individual diagnostic option overrides `all`.
+
+## Bundling diagnostics
+
+All diagnostics in this section are disabled by default and require `performance.hints` to be enabled:
+
+- `asyncChunkWaterfalls`: reports async `import()` chains three levels deep, which require sequential network requests.
+- `embeddedSourceMaps`: reports `eval` and `inline` source maps in production builds because map data is included in the JavaScript download.
+- `inlinedAssets`: reports data-URL asset modules larger than 8 KiB, which cannot be cached independently.
+- `topLevelThis`: reports top-level `this` in ES modules, where Rspack replaces it with `undefined`.
+
+Enable all bundling diagnostics:
+
+```js title="rspack.config.mjs"
+export default {
+  performance: {
+    all: true,
   },
 };
 ```
