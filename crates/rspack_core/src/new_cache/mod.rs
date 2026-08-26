@@ -57,7 +57,7 @@ pub fn create_cache(
   let codec = Arc::new(CacheCodec::new(project_root));
   let logger = Arc::new(CompilationLogger::new(
     "rspack.cache.IdleFileCache",
-    compilation_logging.clone(),
+    compilation_logging,
   ));
   let file_system_info = FileSystemInfo::new(
     input_filesystem.clone(),
@@ -84,10 +84,7 @@ pub fn create_cache(
   ) {
     Ok(strategy) => strategy,
     Err(error) => {
-      logger.warn(format!(
-        "Restoring cache from {database_path} failed: {error}"
-      ));
-      logger.debug(format!("{error:?}"));
+      logger.warn(format!("Open cache from {database_path} failed: {error}"));
       return Cache::new(compiler_path, MemoryCache::default(), None);
     }
   };
