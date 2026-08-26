@@ -19,6 +19,7 @@ type LoaderCacheApi = {
   get(
     loaderIndex: number,
     content: LoaderCacheContent,
+    existing: LoaderDependencies,
   ): LoaderCacheEntry | null;
   store(loaderIndex: number, output: LoaderCacheEntry): void;
 };
@@ -51,7 +52,11 @@ export class LoaderCache {
       return undefined;
     }
 
-    const hit = this.#api.get(loaderIndex, content);
+    const hit = this.#api.get(
+      loaderIndex,
+      content,
+      this.#dependencies.existing,
+    );
     if (hit) {
       this.#dependencies.addDependencies(hit.addedDependencies);
     }

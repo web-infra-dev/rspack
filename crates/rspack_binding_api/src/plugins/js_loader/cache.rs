@@ -162,14 +162,17 @@ impl JsLoaderCache {
     &self,
     loader_index: u32,
     content: Either<String, Uint8Array>,
+    existing: JsLoaderDependencies,
   ) -> napi::Result<Option<JsLoaderCacheEntry>> {
     let loader = self.loader(loader_index)?;
     let content = match content {
       Either::A(content) => content.into_bytes(),
       Either::B(content) => content.to_vec(),
     };
+    let existing: LoaderDependencies = existing.into();
     let etag = loader_cache_etag(
       &Content::Buffer(content),
+      &existing,
       &loader.options_cache_key,
       &loader.loader_version,
     );

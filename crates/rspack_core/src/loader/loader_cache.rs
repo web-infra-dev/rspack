@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use bitflags::bitflags;
 use rspack_cacheable::cacheable;
 use rspack_collections::Identifiable;
@@ -5,6 +7,7 @@ use rspack_error::Result;
 use rspack_fs::ReadableFileSystem;
 use rspack_hash::{HashFunction, RspackHasher};
 use rspack_loader_runner::{Content, LoaderContext, LoaderDependencies};
+use rspack_paths::InternedPathSet;
 use rspack_sources::SourceMap;
 
 use crate::{
@@ -21,11 +24,26 @@ fn loader_cache_key(module_identifier: &str, loader_name: &str) -> String {
   format!("{:016x}", hasher.finish())
 }
 
+fn sorted_dependency_paths(paths: &InternedPathSet) -> Vec<&Path> {
+  let mut paths = paths.iter().map(|path| path.as_path()).collect::<Vec<_>>();
+  paths.sort_unstable();
+  paths
+}
+
 #[doc(hidden)]
-pub fn loader_cache_etag(content: &Content, options_cache_key: &str, loader_version: &str) -> Etag {
+pub fn loader_cache_etag(
+  content: &Content,
+  existing: &LoaderDependencies,
+  options_cache_key: &str,
+  loader_version: &str,
+) -> Etag {
   let mut hasher = RspackHasher::new(&HashFunction::Xxhash64);
+  // Context and missing dependencies are omitted because entries that add either kind are skipped
+  // at store time by the minimal cache.
   rspack_hash::rspack_hash_object!(&mut hasher, {
     "content" => content,
+    "file_dependencies" => sorted_dependency_paths(&existing.file),
+    "build_dependencies" => sorted_dependency_paths(&existing.build),
     "options" => options_cache_key,
     "loader_version" => loader_version,
     "rspack_version" => rspack_workspace::rspack_pkg_version!(),
@@ -147,6 +165,7 @@ fn input_etag(context: &LoaderContext<RunnerContext>) -> Option<Etag> {
   let loader = context.current_loader();
   Some(loader_cache_etag(
     context.content()?,
+    context.dependencies(),
     loader.options_cache_key(),
     loader.loader_version(),
   ))
@@ -159,7 +178,8 @@ pub(crate) fn before_normal_loader(
   if !context.cacheable {
     return Ok(LoaderCacheAction::Disabled);
   }
-  // The minimal cache only supports loaders whose observable input is content and source map.
+  // Source maps are intentionally excluded from the etag as a performance trade-off. The minimal
+  // cache treats source-map-only changes as equivalent inputs.
   if context.additional_data().is_some()
     || !context.parse_meta.is_empty()
     || !context.context.module.build_info().assets.is_empty()

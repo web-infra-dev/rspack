@@ -13,6 +13,10 @@ const jsOverlapDependency = require("./js-overlap-dependency");
 // Cached loaders run initially, then run again when their input content
 // changes at steps 2 and 4.
 const CACHED_LOADER_RUNS_BY_STEP = [1, 1, 2, 2, 3];
+// Changing the dependencies inherited from a preceding loader invalidates the
+// etag at step 1. Changing this loader's own file dependency still invalidates
+// its stored mtime snapshot at step 2.
+const OVERLAP_LOADER_RUNS_BY_STEP = [1, 2, 3, 3, 3];
 
 it("should cache each opted-in loader until its input changes", () => {
 	const step = +WATCH_STEP;
@@ -53,10 +57,10 @@ it("should cache each opted-in loader until its input changes", () => {
 	});
 	expect(overlapDependency).toEqual({
 		value: step < 2 ? "overlap-0" : "overlap-2",
-		runs: step < 2 ? 1 : 2
+		runs: OVERLAP_LOADER_RUNS_BY_STEP[step]
 	});
 	expect(jsOverlapDependency).toEqual({
 		value: step < 2 ? "overlap-0" : "overlap-2",
-		runs: step < 2 ? 1 : 2
+		runs: OVERLAP_LOADER_RUNS_BY_STEP[step]
 	});
 });
