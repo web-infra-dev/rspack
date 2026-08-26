@@ -18,13 +18,14 @@ use crate::{
 impl Compiler {
   pub async fn rebuild(
     &mut self,
+    watchable: bool,
     changed_files: FxHashSet<String>,
     deleted_files: FxHashSet<String>,
   ) -> Result<()> {
     let start = self.end_idle()?;
     let result = match within_compiler_context(
       self.compiler_context.clone(),
-      self.rebuild_inner(changed_files, deleted_files),
+      self.rebuild_inner(watchable, changed_files, deleted_files),
     )
     .await
     {
@@ -56,12 +57,18 @@ impl Compiler {
   ))]
   async fn rebuild_inner(
     &mut self,
+    watchable: bool,
     changed_files: FxHashSet<String>,
     deleted_files: FxHashSet<String>,
   ) -> Result<()> {
     let records = self.last_records.clone();
-    let recover_incremental_artifacts = self.incremental_artifacts_prepared;
-    self.incremental_artifacts_prepared = false;
+    let incremental = if watchable {
+      self.options.incremental
+    } else {
+      crate::incremental::IncrementalOptions::empty_passes()
+    };
+    let recover_incremental_artifacts = self.incremental_ready && !incremental.passes.is_empty();
+    self.incremental_ready = false;
 
     // build without stats
     {
@@ -78,12 +85,9 @@ impl Compiler {
       compilation_logging.clear();
 
       let incremental = if recover_incremental_artifacts {
-        Incremental::new_hot(self.options.incremental)
+        Incremental::new_hot(incremental)
       } else {
-        // A standalone build does not prepare snapshots for a later rebuild.
-        // If it is rebuilt unexpectedly, perform one cold compilation and
-        // prepare artifacts for subsequent rebuilds.
-        Incremental::new_cold(self.options.incremental)
+        Incremental::new_cold(incremental)
       };
       let mut next_compilation = Compilation::new(
         self.id,
@@ -139,7 +143,7 @@ impl Compiler {
 
     self.compile_done().await?;
     self.cache.after_compile(&self.compilation).await;
-    self.incremental_artifacts_prepared = true;
+    self.incremental_ready = self.compilation.incremental.enabled();
 
     #[cfg(allocative)]
     crate::utils::snapshot_allocative("rebuild");

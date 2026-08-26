@@ -419,11 +419,11 @@ impl JsCompiler {
   }
 
   /// Build with the given option passed to the constructor
-  #[napi(ts_args_type = "rebuildable: boolean, callback: (err: null | Error) => void")]
+  #[napi(ts_args_type = "watchable: boolean, callback: (err: null | Error) => void")]
   pub fn build(
     &mut self,
     reference: Reference<JsCompiler>,
-    rebuildable: bool,
+    watchable: bool,
     f: Function<'static>,
   ) -> Result<(), ErrorCode> {
     unsafe {
@@ -431,14 +431,12 @@ impl JsCompiler {
         callbackify(
           f,
           async move {
-            let result = if rebuildable {
-              compiler.build().await
-            } else {
-              compiler.build_once().await
-            }
-            .to_napi_result_with_message(|e| {
-              print_error_diagnostic(e, compiler.options.stats.colors)
-            });
+            let result = compiler
+              .build_with_mode(watchable)
+              .await
+              .to_napi_result_with_message(|e| {
+                print_error_diagnostic(e, compiler.options.stats.colors)
+              });
             result?;
             tracing::debug!("build ok");
             Ok(())
@@ -453,11 +451,12 @@ impl JsCompiler {
 
   /// Rebuild with the given option passed to the constructor
   #[napi(
-    ts_args_type = "changed_files: string[], removed_files: string[], callback: (err: null | Error) => void"
+    ts_args_type = "watchable: boolean, changed_files: string[], removed_files: string[], callback: (err: null | Error) => void"
   )]
   pub fn rebuild(
     &mut self,
     reference: Reference<JsCompiler>,
+    watchable: bool,
     changed_files: Vec<String>,
     removed_files: Vec<String>,
     f: Function<'static>,
@@ -469,6 +468,7 @@ impl JsCompiler {
           async move {
             let result = compiler
               .rebuild(
+                watchable,
                 changed_files.into_iter().collect::<FxHashSet<_>>(),
                 removed_files.into_iter().collect::<FxHashSet<_>>(),
               )

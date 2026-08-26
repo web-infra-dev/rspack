@@ -139,7 +139,7 @@ export const GET_COMPILER_ID = Symbol('getCompilerId');
 
 class Compiler {
   #instance?: binding.JsCompiler;
-  #incrementalConfigured: boolean;
+  #incrementalRequested: boolean;
   #initial: boolean;
 
   #compilation?: Compilation;
@@ -214,7 +214,9 @@ class Compiler {
   __internal_browser_require: (id: string) => unknown;
 
   constructor(context: string, options: RspackOptionsNormalized) {
-    this.#incrementalConfigured =
+    // Defaults configure passes for watch mode. Only an explicit option opts
+    // run() into preparing artifacts for another run.
+    this.#incrementalRequested =
       options.incremental !== undefined && options.incremental !== false;
     this.#initial = true;
 
@@ -718,7 +720,7 @@ class Compiler {
     };
     applyRspackOptionsDefaults(options);
     const childCompiler = new Compiler(this.context, options);
-    childCompiler.#incrementalConfigured = this.#incrementalConfigured;
+    childCompiler.#incrementalRequested = this.#incrementalRequested;
     childCompiler.name = compilerName;
     childCompiler.outputPath = this.outputPath;
     childCompiler.inputFileSystem = this.inputFileSystem;
@@ -846,8 +848,10 @@ class Compiler {
       if (error) {
         return callback(error);
       }
+      const watchable = this.watchMode || this.#incrementalRequested;
       if (!this.#initial) {
         instance!.rebuild(
+          watchable,
           Array.from(this.modifiedFiles || []),
           Array.from(this.removedFiles || []),
           callback,
@@ -855,7 +859,7 @@ class Compiler {
         return;
       }
       this.#initial = false;
-      instance!.build(this.watchMode || this.#incrementalConfigured, callback);
+      instance!.build(watchable, callback);
     });
   }
 
@@ -873,6 +877,7 @@ class Compiler {
         return callback?.(error);
       }
       instance!.rebuild(
+        true,
         Array.from(modifiedFiles || []),
         Array.from(removedFiles || []),
         (error) => {
