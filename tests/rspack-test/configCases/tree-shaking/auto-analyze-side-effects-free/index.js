@@ -6,6 +6,7 @@ import { pureUsesHelper } from './pure-local-call';
 import { pureStatements } from './pure-statements';
 import { impureDefaultParam } from './impure-default-param';
 import { impureBodyCall } from './impure-body-call';
+import { impureShadowedPureCall } from './impure-shadowed-pure-call';
 import { impureGlobalWrite } from './impure-global-write';
 import { impureObjectPattern } from './impure-object-pattern';
 import { impureMemberAccess } from './impure-member-access';
@@ -13,7 +14,7 @@ import { impureLocalAssignment } from './impure-local-assignment';
 import { impureIf } from './impure-if';
 import { callImportedPure } from './impure-imported-call';
 import { reassignedFunction } from './reassigned-function';
-import { events } from './tracker';
+import { events, record } from './tracker';
 
 const unusedPureEmpty = pureEmpty();
 const unusedPureReturnLiteral = pureReturnLiteral();
@@ -24,6 +25,7 @@ const unusedPureStatements = pureStatements();
 
 impureDefaultParam();
 impureBodyCall();
+impureShadowedPureCall(() => record('shadowed-pure-call'));
 impureGlobalWrite();
 
 let objectPatternGetterCount = 0;
@@ -51,11 +53,12 @@ it('should auto analyze no-side-effects functions conservatively', () => {
   expect(events).toEqual([
     'default-param',
     'body-call',
+    'shadowed-pure-call',
     'global-write',
     'reassigned'
   ]);
   expect(globalThis.__AUTO_SIDE_EFFECTS_WRITE__).toBe(1);
   expect(objectPatternGetterCount).toBe(1);
   expect(memberAccessGetterCount).toBe(1);
-  expect(Reflect.ownKeys(__webpack_modules__).length).toBe(12);
+  expect(Reflect.ownKeys(__webpack_modules__).length).toBe(13);
 });

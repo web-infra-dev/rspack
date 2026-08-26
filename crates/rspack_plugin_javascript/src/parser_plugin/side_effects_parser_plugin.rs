@@ -3,7 +3,7 @@ use std::sync::LazyLock;
 use rspack_core::{
   DeferredPureCheck, Dependency, DependencyRange, ModuleDependency, SideEffectsBailoutItemWithSpan,
 };
-use rspack_util::{SpanExt, atom::AtomKey, swc::RspackComments};
+use rspack_util::{SpanExt, swc::RspackComments};
 use rustc_hash::FxHashSet;
 use swc_next_ecma_ast::{
   ArgumentData, ArrowFunctionBodyData, ArrowFunctionExpression, Ast, BindingPattern,
@@ -11,8 +11,8 @@ use swc_next_ecma_ast::{
   DeclData, ExportDefaultDeclarationKindData, Expr, ExprData, ForStatementInitData,
   FormalParameterItemData, FormalParameterPatternData, Function, GetSpan, MethodDefinitionKind,
   ModuleExportName, ModuleExportNameData, ObjectPropertyKindData, Program, PropertyKey,
-  PropertyKeyData, PropertyKind, ScopeId, SourceType, Span, Stmt, StmtData, SymbolId,
-  UnaryOperator, VariableDeclaration as AstVariableDeclaration, VariableKind,
+  PropertyKeyData, PropertyKind, ScopeId, SourceType, Span, Stmt, StmtData, UnaryOperator,
+  VariableDeclaration as AstVariableDeclaration, VariableKind,
 };
 use swc_next_ecma_semantic::Semantic;
 
@@ -76,15 +76,23 @@ fn top_level_scope(ast: &Ast<'_>) -> ScopeId {
   }
 }
 
-fn collect_pure_function_acceptable_names(
+fn collect_defined_configured_side_effects_free(
   ast: &Ast<'_>,
   program: Program,
+  configured_side_effects_free: &[String],
   semantic: &Semantic<'_>,
-) -> FxHashSet<AtomKey> {
-  let mut names = semantic
-    .bindings(top_level_scope(ast))
-    .map(|symbol| atom_from_symbol(ast, semantic, symbol).into())
+) -> FxHashSet<Atom> {
+  let top_level_scope = top_level_scope(ast);
+  let configured_names = configured_side_effects_free
+    .iter()
+    .map(String::as_str)
     .collect::<FxHashSet<_>>();
+  let mut defined = configured_side_effects_free
+    .iter()
+    .filter(|name| semantic.binding(top_level_scope, name.as_bytes()).is_some())
+    .map(|name| Atom::from(name.as_str()))
+    .collect::<FxHashSet<_>>();
+
   for statement in program
     .body(ast)
     .iter()
@@ -94,13 +102,20 @@ fn collect_pure_function_acceptable_names(
       StmtData::ExportNamedDeclaration(export) if export.source(ast).is_none() => {
         for slot in export.specifiers(ast).iter() {
           let specifier = ast.get_node_in_sub_range(slot);
+          let exported = atom_from_module_export_name(ast, specifier.exported(ast));
+          if !configured_names.contains(exported.as_str()) {
+            continue;
+          }
           let local = atom_from_module_export_name(ast, specifier.local(ast));
-          if names.contains(AtomKey::from_atom_ref(&local)) {
-            names.insert(atom_from_module_export_name(ast, specifier.exported(ast)).into());
+          if semantic
+            .binding(top_level_scope, local.as_bytes())
+            .is_some()
+          {
+            defined.insert(exported);
           }
         }
       }
-      StmtData::ExportDefaultDeclaration(export) => {
+      StmtData::ExportDefaultDeclaration(export) if configured_names.contains("default") => {
         let is_function = match ast.export_default_declaration_kind_data(export.declaration(ast)) {
           ExportDefaultDeclarationKindData::Function(_) => true,
           ExportDefaultDeclarationKindData::Expr(expression) => matches!(
@@ -110,48 +125,22 @@ fn collect_pure_function_acceptable_names(
           _ => false,
         };
         if is_function {
-          names.insert(AtomKey::from("default"));
+          defined.insert(Atom::from("default"));
         }
       }
       _ => {}
     }
   }
-  names
+  defined
 }
 
-fn collect_defined_configured_side_effects_free(
-  ast: &Ast<'_>,
-  program: Program,
-  configured_side_effects_free: &[String],
+fn has_duplicate_declaration(
   semantic: &Semantic<'_>,
-) -> FxHashSet<Atom> {
-  let acceptable = collect_pure_function_acceptable_names(ast, program, semantic);
-  configured_side_effects_free
-    .iter()
-    .filter_map(|name| {
-      let atom = Atom::from(name.as_str());
-      acceptable
-        .contains(AtomKey::from_atom_ref(&atom))
-        .then_some(atom)
-    })
-    .collect()
-}
-
-fn atom_from_symbol(ast: &Ast<'_>, semantic: &Semantic<'_>, symbol: SymbolId) -> Atom {
-  Atom::from(
-    ast
-      .get_wtf8(semantic.symbol(symbol).name)
-      .to_string_lossy()
-      .as_ref(),
-  )
-}
-
-fn collect_duplicate_top_level_names(ast: &Ast<'_>, semantic: &Semantic<'_>) -> FxHashSet<AtomKey> {
+  identifier: swc_next_ecma_ast::BindingIdentifier,
+) -> bool {
   semantic
-    .bindings(top_level_scope(ast))
-    .filter(|&symbol| semantic.declarations(symbol).len() > 1)
-    .map(|symbol| atom_from_symbol(ast, semantic, symbol).into())
-    .collect()
+    .symbol_of(identifier.node_id())
+    .is_some_and(|symbol| semantic.declarations(symbol).len() > 1)
 }
 
 fn collect_annotation_from_variable(
@@ -287,9 +276,9 @@ fn mark_side_effects_free(parser: &mut JavascriptParser, name: &Atom, export_nam
 fn already_marked_or_duplicate(
   parser: &JavascriptParser,
   name: &Atom,
-  duplicate_names: &FxHashSet<AtomKey>,
+  identifier: swc_next_ecma_ast::BindingIdentifier,
 ) -> bool {
-  duplicate_names.contains(AtomKey::from_atom_ref(name))
+  has_duplicate_declaration(parser.ast.semantic, identifier)
     || parser
       .build_info
       .side_effects_free
@@ -302,7 +291,6 @@ fn try_mark_auto_side_effects_free_variable(
   analyze_side_effects_free: bool,
   variable: AstVariableDeclaration,
   export_name: Option<&Atom>,
-  duplicate_names: &FxHashSet<AtomKey>,
 ) {
   let ast = parser.ast.ast;
   if variable.kind(ast) != VariableKind::Const {
@@ -319,7 +307,7 @@ fn try_mark_auto_side_effects_free_variable(
       continue;
     };
     let name = atom_from_binding(ast, identifier);
-    if already_marked_or_duplicate(parser, &name, duplicate_names) {
+    if already_marked_or_duplicate(parser, &name, identifier) {
       continue;
     }
     let Some(initializer) = declarator.init(ast) else {
@@ -345,7 +333,6 @@ fn try_mark_auto_side_effects_free_decl(
   analyze_side_effects_free: bool,
   declaration: Decl,
   export_name: Option<&Atom>,
-  duplicate_names: &FxHashSet<AtomKey>,
 ) {
   let ast = parser.ast.ast;
   match ast.decl_data(declaration) {
@@ -354,7 +341,7 @@ fn try_mark_auto_side_effects_free_decl(
         return;
       };
       let name = atom_from_binding(ast, identifier);
-      if !already_marked_or_duplicate(parser, &name, duplicate_names)
+      if !already_marked_or_duplicate(parser, &name, identifier)
         && is_side_effects_free_function_body(parser, analyze_side_effects_free, function)
       {
         mark_side_effects_free(parser, &name, export_name);
@@ -365,7 +352,6 @@ fn try_mark_auto_side_effects_free_decl(
       analyze_side_effects_free,
       variable,
       export_name,
-      duplicate_names,
     ),
     _ => {}
   }
@@ -375,7 +361,6 @@ fn mark_auto_side_effects_free_program(
   parser: &mut JavascriptParser,
   analyze_side_effects_free: bool,
   program: Program,
-  duplicate_names: &FxHashSet<AtomKey>,
 ) {
   let ast = parser.ast.ast;
   for statement in program
@@ -384,13 +369,9 @@ fn mark_auto_side_effects_free_program(
     .map(|slot| ast.get_node_in_sub_range(slot))
   {
     match ast.stmt_data(statement) {
-      StmtData::Declaration(declaration) => try_mark_auto_side_effects_free_decl(
-        parser,
-        analyze_side_effects_free,
-        declaration,
-        None,
-        duplicate_names,
-      ),
+      StmtData::Declaration(declaration) => {
+        try_mark_auto_side_effects_free_decl(parser, analyze_side_effects_free, declaration, None)
+      }
       StmtData::ExportNamedDeclaration(export) => {
         if let Some(declaration) = export.declaration(ast) {
           try_mark_auto_side_effects_free_decl(
@@ -398,7 +379,6 @@ fn mark_auto_side_effects_free_program(
             analyze_side_effects_free,
             declaration,
             None,
-            duplicate_names,
           );
         }
       }
@@ -410,7 +390,7 @@ fn mark_auto_side_effects_free_program(
               continue;
             };
             let name = atom_from_binding(ast, identifier);
-            if !already_marked_or_duplicate(parser, &name, duplicate_names)
+            if !already_marked_or_duplicate(parser, &name, identifier)
               && is_side_effects_free_function_body(parser, analyze_side_effects_free, function)
             {
               mark_side_effects_free(parser, &name, Some(&default_name));
@@ -421,7 +401,7 @@ fn mark_auto_side_effects_free_program(
               && let Some(identifier) = function.id(ast)
             {
               let name = atom_from_binding(ast, identifier);
-              if !already_marked_or_duplicate(parser, &name, duplicate_names)
+              if !already_marked_or_duplicate(parser, &name, identifier)
                 && is_side_effects_free_function_body(parser, analyze_side_effects_free, function)
               {
                 mark_side_effects_free(parser, &name, Some(&default_name));
@@ -469,19 +449,13 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for SideEffectsParserPlugin {
         }
       }
 
-      let duplicate_names = collect_duplicate_top_level_names(ast, parser.ast.semantic);
       loop {
         let previous_len = parser
           .build_info
           .side_effects_free
           .as_ref()
           .map_or(0, FxHashSet::len);
-        mark_auto_side_effects_free_program(
-          parser,
-          self.analyze_side_effects_free,
-          program,
-          &duplicate_names,
-        );
+        mark_auto_side_effects_free_program(parser, self.analyze_side_effects_free, program);
         let next_len = parser
           .build_info
           .side_effects_free
@@ -617,6 +591,7 @@ enum ExplicitSideEffectsFreeCallee {
 
 fn resolve_explicit_side_effects_free_callee(
   parser: &mut JavascriptParser,
+  identifier: swc_next_ecma_ast::IdentifierReference,
   ident: &Atom,
   span: Span,
   allow_unresolved_marked: bool,
@@ -641,19 +616,28 @@ fn resolve_explicit_side_effects_free_callee(
     }
   }
 
-  if let Some((declared_scope, is_free)) = parser
-    .get_variable_info(ident)
-    .map(|info| (info.declared_scope, info.is_free()))
-  {
-    if !is_free && declared_scope == parser.definitions {
-      return ExplicitSideEffectsFreeCallee::Direct;
-    }
+  let Some(reference) = parser
+    .ast
+    .semantic
+    .reference_of(identifier.node_id())
+    .map(|reference| parser.ast.semantic.reference(reference))
+  else {
+    return if allow_unresolved_marked {
+      ExplicitSideEffectsFreeCallee::Direct
+    } else {
+      ExplicitSideEffectsFreeCallee::Invalid
+    };
+  };
+  if reference.flags.is_dynamic() {
     return ExplicitSideEffectsFreeCallee::Invalid;
   }
-  if allow_unresolved_marked {
-    ExplicitSideEffectsFreeCallee::Direct
-  } else {
-    ExplicitSideEffectsFreeCallee::Invalid
+  match reference.symbol {
+    Some(symbol) if parser.ast.semantic.scope_of(symbol) == top_level_scope(parser.ast.ast) => {
+      ExplicitSideEffectsFreeCallee::Direct
+    }
+    Some(_) => ExplicitSideEffectsFreeCallee::Invalid,
+    None if allow_unresolved_marked => ExplicitSideEffectsFreeCallee::Direct,
+    None => ExplicitSideEffectsFreeCallee::Invalid,
   }
 }
 
@@ -733,11 +717,14 @@ fn is_global_reference_to(
     .is_some_and(|reference| reference.symbol.is_none() && !reference.flags.is_dynamic())
 }
 
-fn identifier_expression_name(ast: &Ast<'_>, expression: Expr) -> Option<Atom> {
+fn identifier_expression(
+  ast: &Ast<'_>,
+  expression: Expr,
+) -> Option<swc_next_ecma_ast::IdentifierReference> {
   let ExprData::IdentifierReference(identifier) = ast.expr_data(expression) else {
     return None;
   };
-  Some(atom_from_identifier(ast, identifier))
+  Some(identifier)
 }
 
 fn property_key_name(ast: &Ast<'_>, key: PropertyKey) -> Option<Atom> {
@@ -887,9 +874,11 @@ fn is_pure_call_expression(
     );
   }
 
-  if analyze_side_effects_free && let Some(name) = identifier_expression_name(ast, callee) {
+  if analyze_side_effects_free && let Some(identifier) = identifier_expression(ast, callee) {
+    let name = atom_from_identifier(ast, identifier);
     match resolve_explicit_side_effects_free_callee(
       parser,
+      identifier,
       &name,
       callee.span(ast),
       callees.is_none(),
