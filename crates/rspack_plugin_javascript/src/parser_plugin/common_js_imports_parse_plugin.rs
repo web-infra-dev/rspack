@@ -988,8 +988,6 @@ fn evaluate_created_require<'p>(
     evaluated_name.clone(),
     ExportedVariableInfo::Name(evaluated_name),
     None,
-    None,
-    None,
   );
   evaluated.set_side_effects(has_side_effects);
   evaluated.set_truthy();
@@ -1710,7 +1708,7 @@ impl CommonJsImportsParserPlugin {
       if let Some(context) = request_context {
         parser.add_dependency(BoxDependency::new(
           RequireResolveDependency::new_contextual(
-            param.string().clone(),
+            param.string().to_owned(),
             param.range().into(),
             weak,
             parser.in_try,
@@ -1719,7 +1717,7 @@ impl CommonJsImportsParserPlugin {
         ));
       } else {
         parser.add_dependency(BoxDependency::new(RequireResolveDependency::new(
-          param.string().clone(),
+          param.string().to_owned(),
           param.range().into(),
           weak,
           parser.in_try,
@@ -1816,7 +1814,7 @@ impl CommonJsImportsParserPlugin {
           });
       let mut dep = if let Some(context) = request_context {
         CommonJsRequireDependency::new_contextual(
-          param.string().clone(),
+          param.string().to_owned(),
           range_expr,
           Some(span.into()),
           parser.in_try,
@@ -1825,7 +1823,7 @@ impl CommonJsImportsParserPlugin {
         )
       } else {
         CommonJsRequireDependency::new(
-          param.string().clone(),
+          param.string().to_owned(),
           range_expr,
           Some(span.into()),
           parser.in_try,

@@ -187,7 +187,7 @@ fn handle_assign_export(
     // this.aaa = require('xx');
     let range: DependencyRange = assign_span.into();
     parser.add_dependency(BoxDependency::new(CommonJsExportRequireDependency::new(
-      arg.string().clone(),
+      arg.string().to_owned(),
       parser.in_try,
       range,
       base,

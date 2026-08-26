@@ -418,7 +418,7 @@ impl ImportMetaPlugin {
   ) -> bool {
     if param.is_string() {
       parser.add_dependency(BoxDependency::new(ImportMetaResolveDependency::new(
-        param.string().clone(),
+        param.string().to_owned(),
         param.range().into(),
         parser.in_try,
       )));

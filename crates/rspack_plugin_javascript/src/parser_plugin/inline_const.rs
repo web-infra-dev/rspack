@@ -188,7 +188,7 @@ pub(super) fn to_evaluated_inlinable_value(
     && let str = evaluated.string()
     && str.len() <= EvaluatedInlinableValue::SHORT_SIZE
   {
-    Some(EvaluatedInlinableValue::new_string(str.as_str().into()))
+    Some(EvaluatedInlinableValue::new_string(str.into()))
   } else if evaluated.is_null() {
     Some(EvaluatedInlinableValue::new_null())
   } else if evaluated.is_undefined() {

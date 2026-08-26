@@ -9,6 +9,8 @@ mod eval_source;
 mod eval_tpl_expr;
 mod eval_unary_expr;
 
+use std::borrow::Cow;
+
 use bitflags::bitflags;
 use num_bigint::BigInt;
 use rspack_core::{DependencyId, DependencyRange};
@@ -26,7 +28,10 @@ pub use self::{
   eval_tpl_expr::{TemplateStringKind, eval_tagged_tpl_expression, eval_tpl_expression},
   eval_unary_expr::eval_unary_expression,
 };
-use crate::{Atom, visitors::ExportedVariableInfo};
+use crate::{
+  Atom,
+  visitors::{AtomMembers, ExportedVariableInfo, MemberRanges, OptionalMembers},
+};
 
 type Boolean = bool;
 type Number = f64;
@@ -39,9 +44,14 @@ type Regexp = (String, String); // (expr, flags)
 struct IdentifierData {
   identifier: Atom,
   root_info: ExportedVariableInfo,
-  members: Option<Vec<Atom>>,
-  members_optionals: Option<Vec<bool>>,
-  member_ranges: Option<Vec<Span>>,
+  member_path: Option<MemberPathData>,
+}
+
+#[derive(Debug, Clone)]
+struct MemberPathData {
+  members: AtomMembers,
+  members_optionals: OptionalMembers,
+  member_ranges: MemberRanges,
 }
 
 #[derive(Debug, Clone)]
@@ -93,7 +103,7 @@ enum Payload<'a> {
   // Compile time value
   Undefined,
   Null,
-  String(String),
+  String(Cow<'a, str>),
   Number(Number),
   Boolean(Boolean),
   RegExp(Box<Regexp>),
@@ -282,7 +292,7 @@ impl<'a> BasicEvaluatedExpression<'a> {
     } else if self.is_undefined() {
       Some("undefined".to_string())
     } else if self.is_string() {
-      Some(self.string().clone())
+      Some(self.string().to_owned())
     } else if self.is_number() {
       Some(self.number().to_string())
     } else if self.is_array() {
@@ -436,16 +446,18 @@ impl<'a> BasicEvaluatedExpression<'a> {
     &mut self,
     name: Atom,
     root_info: ExportedVariableInfo,
-    members: Option<Vec<Atom>>,
-    members_optionals: Option<Vec<bool>>,
-    member_ranges: Option<Vec<Span>>,
+    member_path: Option<(AtomMembers, OptionalMembers, MemberRanges)>,
   ) {
     self.payload = Payload::Identifier(Box::new(IdentifierData {
       identifier: name,
       root_info,
-      members,
-      members_optionals,
-      member_ranges,
+      member_path: member_path.map(
+        |(members, members_optionals, member_ranges)| MemberPathData {
+          members,
+          members_optionals,
+          member_ranges,
+        },
+      ),
     }));
     self.side_effects = true;
   }
@@ -478,8 +490,11 @@ impl<'a> BasicEvaluatedExpression<'a> {
     }));
   }
 
-  pub fn set_string(&mut self, string: String) {
-    self.payload = Payload::String(string);
+  pub fn set_string<S>(&mut self, string: S)
+  where
+    S: Into<Cow<'a, str>>,
+  {
+    self.payload = Payload::String(string.into());
     self.side_effects = false;
   }
 
@@ -502,9 +517,9 @@ impl<'a> BasicEvaluatedExpression<'a> {
     self.side_effects = true;
   }
 
-  pub fn string(&self) -> &String {
+  pub fn string(&self) -> &str {
     match &self.payload {
-      Payload::String(string) => string,
+      Payload::String(string) => string.as_ref(),
       _ => panic!("make sure string exist"),
     }
   }
@@ -532,26 +547,24 @@ impl<'a> BasicEvaluatedExpression<'a> {
     }
   }
 
-  pub fn members(&self) -> Option<&Vec<Atom>> {
+  pub fn members(&self) -> Option<&AtomMembers> {
     assert!(self.is_identifier());
     match &self.payload {
-      Payload::Identifier(identifier) => identifier.members.as_ref(),
+      Payload::Identifier(identifier) => identifier.member_path.as_ref().map(|path| &path.members),
       _ => panic!("make sure identifier exist"),
     }
   }
 
-  pub fn members_optionals(&self) -> Option<&Vec<bool>> {
+  pub fn member_path(&self) -> Option<(&[Atom], &[bool], &[Span])> {
     assert!(self.is_identifier());
     match &self.payload {
-      Payload::Identifier(identifier) => identifier.members_optionals.as_ref(),
-      _ => panic!("make sure identifier exist"),
-    }
-  }
-
-  pub fn member_ranges(&self) -> Option<&Vec<Span>> {
-    assert!(self.is_identifier());
-    match &self.payload {
-      Payload::Identifier(identifier) => identifier.member_ranges.as_ref(),
+      Payload::Identifier(identifier) => identifier.member_path.as_ref().map(|path| {
+        (
+          path.members.as_slice(),
+          path.members_optionals.as_slice(),
+          path.member_ranges.as_slice(),
+        )
+      }),
       _ => panic!("make sure identifier exist"),
     }
   }
@@ -737,13 +750,7 @@ pub fn evaluate_to_identifier<'a>(
   end: u32,
 ) -> BasicEvaluatedExpression<'a> {
   let mut eval = BasicEvaluatedExpression::with_range(start, end);
-  eval.set_identifier(
-    identifier,
-    ExportedVariableInfo::Name(root_info),
-    None,
-    None,
-    None,
-  );
+  eval.set_identifier(identifier, ExportedVariableInfo::Name(root_info), None);
   eval.set_side_effects(false);
   match truthy {
     Some(v) => {

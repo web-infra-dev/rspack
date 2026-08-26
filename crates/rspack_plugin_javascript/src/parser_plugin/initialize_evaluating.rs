@@ -100,11 +100,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InitializeEvaluating {
       });
 
       if let Some(result) = arg1.map(|arg1| {
-        mock_javascript_indexof(
-          param.string().as_str(),
-          arg1.string().as_str(),
-          arg2.map(|a| a.number()),
-        )
+        mock_javascript_indexof(param.string(), arg1.string(), arg2.map(|a| a.number()))
       }) {
         let mut res = BasicEvaluatedExpression::with_range(span.real_lo(), span.real_hi());
         res.set_number(result as f64);
@@ -124,7 +120,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InitializeEvaluating {
       }
       let result = if args.len() == 1 {
         match property {
-          SLICE_METHOD_NAME => mock_javascript_slice(str.as_str(), arg1.number()),
+          SLICE_METHOD_NAME => mock_javascript_slice(str, arg1.number()),
           // 1-arg forms of substr/substring have additional edge cases;
           // keep them unevaluated for now.
           SUBSTR_METHOD_NAME | SUBSTRING_METHOD_NAME => return None,
@@ -143,13 +139,13 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InitializeEvaluating {
             if start < 0.0 || end < 0.0 || end < start {
               return None;
             }
-            mock_javascript_slice_range(str.as_str(), start, end)
+            mock_javascript_slice_range(str, start, end)
           }
           // substring has distinct semantics (clamps negatives, swaps indices).
           SUBSTRING_METHOD_NAME => {
-            mock_javascript_substring_range(str.as_str(), arg1.number(), arg2.number())
+            mock_javascript_substring_range(str, arg1.number(), arg2.number())
           }
-          SUBSTR_METHOD_NAME => mock_javascript_substr(str.as_str(), arg1.number(), arg2.number()),
+          SUBSTR_METHOD_NAME => mock_javascript_substr(str, arg1.number(), arg2.number()),
           _ => unreachable!(),
         }
       };
@@ -170,9 +166,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InitializeEvaluating {
       let mut res = BasicEvaluatedExpression::with_range(span.real_lo(), span.real_hi());
       // mock js replace
       let s: Cow<'_, str> = if arg1.is_string() {
-        param
-          .string()
-          .cow_replacen(arg1.string(), arg2.string().as_str(), 1)
+        param.string().cow_replacen(arg1.string(), arg2.string(), 1)
       } else if arg1.regexp().1.contains('g') {
         let raw = arg1.regexp();
         let regexp = eval_regexp_to_regexp(&raw.0, &raw.1);
@@ -197,7 +191,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InitializeEvaluating {
           continue;
         }
         let mut new_string = if arg_expr.is_string() {
-          arg_expr.string().clone()
+          arg_expr.string().to_owned()
         } else {
           format!("{}", arg_expr.number())
         };

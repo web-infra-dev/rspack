@@ -969,7 +969,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
         let span = call_expr.span(ast);
         parser.add_dependency(BoxDependency::new(IsIncludeDependency::new(
           (span.real_lo(), span.real_hi()).into(),
-          request.string().clone(),
+          request.string().to_owned(),
         )));
         return Some(true);
       }
