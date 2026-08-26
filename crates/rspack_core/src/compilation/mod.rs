@@ -1241,8 +1241,8 @@ impl Compilation {
     Ok((path, info))
   }
 
-  pub fn get_logger(&self, name: impl Into<String>) -> CompilationLogger {
-    CompilationLogger::new(name.into(), self.logging.clone())
+  pub fn get_logger(&self, name: impl Into<Arc<str>>) -> CompilationLogger {
+    CompilationLogger::new(name, self.logging.clone())
   }
 
   pub fn set_dependency_factory(

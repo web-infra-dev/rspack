@@ -275,12 +275,12 @@ impl CacheCount {
   }
 }
 
-pub type CompilationLogging = Arc<DashMap<String, Vec<LogType>, BuildHasherDefault<FxHasher>>>;
+pub type CompilationLogging = Arc<DashMap<Arc<str>, Vec<LogType>, BuildHasherDefault<FxHasher>>>;
 
 #[derive(Clone)]
 pub struct CompilationLogger {
   logging: CompilationLogging,
-  name: String,
+  name: Arc<str>,
 }
 
 impl fmt::Debug for CompilationLogger {
@@ -292,8 +292,21 @@ impl fmt::Debug for CompilationLogger {
 }
 
 impl CompilationLogger {
-  pub fn new(name: String, logging: CompilationLogging) -> Self {
-    Self { logging, name }
+  pub fn new(name: impl Into<Arc<str>>, logging: CompilationLogging) -> Self {
+    Self {
+      logging,
+      name: name.into(),
+    }
+  }
+
+  pub fn get_child(&self, name: &str) -> Self {
+    let mut child_name = self.name.to_string();
+    child_name.push('/');
+    child_name.push_str(name);
+    Self {
+      logging: self.logging.clone(),
+      name: Arc::from(child_name),
+    }
   }
 }
 

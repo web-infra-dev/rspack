@@ -1,4 +1,4 @@
-use std::{borrow::Cow, cell::RefCell};
+use std::{borrow::Cow, cell::RefCell, sync::Arc};
 
 use napi::{
   Env,
@@ -251,71 +251,72 @@ pub struct JsStatsLogging<'a> {
   pub trace: Option<Vec<String>>,
 }
 
-impl<'a> From<(String, rspack_core::LogType)> for JsStatsLogging<'a> {
-  fn from(value: (String, rspack_core::LogType)) -> Self {
+impl<'a> From<(Arc<str>, rspack_core::LogType)> for JsStatsLogging<'a> {
+  fn from(value: (Arc<str>, rspack_core::LogType)) -> Self {
+    let name = value.0.to_string();
     match value.1 {
       rspack_core::LogType::Error { message, trace } => Self {
-        name: value.0,
+        name,
         r#type: "error",
         args: Some(vec![message]),
         trace: Some(trace),
       },
       rspack_core::LogType::Warn { message, trace } => Self {
-        name: value.0,
+        name,
         r#type: "warn",
         args: Some(vec![message]),
         trace: Some(trace),
       },
       rspack_core::LogType::Info { message } => Self {
-        name: value.0,
+        name,
         r#type: "info",
         args: Some(vec![message]),
         trace: None,
       },
       rspack_core::LogType::Log { message } => Self {
-        name: value.0,
+        name,
         r#type: "log",
         args: Some(vec![message]),
         trace: None,
       },
       rspack_core::LogType::Debug { message } => Self {
-        name: value.0,
+        name,
         r#type: "debug",
         args: Some(vec![message]),
         trace: None,
       },
       rspack_core::LogType::Trace { message, trace } => Self {
-        name: value.0,
+        name,
         r#type: "trace",
         args: Some(vec![message]),
         trace: Some(trace),
       },
       rspack_core::LogType::Group { message } => Self {
-        name: value.0,
+        name,
         r#type: "group",
         args: Some(vec![message]),
         trace: None,
       },
       rspack_core::LogType::GroupCollapsed { message } => Self {
-        name: value.0,
+        name,
         r#type: "groupCollapsed",
         args: Some(vec![message]),
         trace: None,
       },
       rspack_core::LogType::GroupEnd => Self {
-        name: value.0,
+        name,
         r#type: "groupEnd",
         args: None,
         trace: None,
       },
       rspack_core::LogType::Profile { label } => Self {
-        name: value.0,
+        name,
         r#type: "profile",
         args: Some(vec![label.to_string()]),
         trace: None,
       },
       rspack_core::LogType::ProfileEnd { label } => Self {
-        name: value.0,
+        name,
         r#type: "profileEnd",
         args: Some(vec![label.to_string()]),
         trace: None,
@@ -329,20 +330,20 @@ impl<'a> From<(String, rspack_core::LogType)> for JsStatsLogging<'a> {
         let mut time_buffer = ryu_js::Buffer::new();
         let time_str = time_buffer.format(ms);
         Self {
-          name: value.0,
+          name,
           r#type: "time",
           args: Some(vec![format!("{}: {} ms", label, time_str)]),
           trace: None,
         }
       }
       rspack_core::LogType::Clear => Self {
-        name: value.0,
+        name,
         r#type: "clear",
         args: None,
         trace: None,
       },
       rspack_core::LogType::Status { message } => Self {
-        name: value.0,
+        name,
         r#type: "status",
         args: Some(vec![message]),
         trace: None,
@@ -353,7 +354,7 @@ impl<'a> From<(String, rspack_core::LogType)> for JsStatsLogging<'a> {
         let mut total_buffer = itoa::Buffer::new();
         let total_str = total_buffer.format(total);
         Self {
-          name: value.0,
+          name,
           r#type: "cache",
           args: Some(vec![format!(
             "{}: {:.1}% ({}/{})",
@@ -1276,7 +1277,6 @@ impl JsStats {
     self
       .inner
       .get_logging()
-      .into_iter()
       .filter(|log| {
         let bit = log.1.to_bit_flag();
         accepted_types & bit == bit

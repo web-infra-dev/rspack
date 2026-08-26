@@ -27,7 +27,7 @@ pub use meta::Meta;
 use rspack_fs::ReadableFileSystem;
 
 use self::snapshot::FileSystemInfo;
-use crate::{CompilationLogger, CompilationLogging, CompilerOptions, cache::CacheCodec};
+use crate::{CompilationLogger, CompilationLogging, CompilerOptions, Logger, cache::CacheCodec};
 
 pub fn create_cache(
   compiler_path: String,
@@ -49,15 +49,19 @@ pub fn create_cache(
     crate::CacheOptions::Persistent(options) => options,
   };
 
-  let portable_project_root = if options.portable {
+  let project_root = if options.portable {
     Some(compiler_options.context.as_path().to_path_buf())
   } else {
     None
   };
-  let codec = Arc::new(CacheCodec::new(portable_project_root));
+  let codec = Arc::new(CacheCodec::new(project_root));
+  let logger = Arc::new(CompilationLogger::new(
+    "rspack.cache.IdleFileCache",
+    compilation_logging.clone(),
+  ));
   let file_system_info = FileSystemInfo::new(
     input_filesystem.clone(),
-    CompilationLogger::new("rspack.FileSystemInfo".to_string(), compilation_logging),
+    logger.get_child("rspack.FileSystemInfo"),
     options.snapshot.clone(),
     compiler_options.output.hash_function,
   );
@@ -70,20 +74,24 @@ pub fn create_cache(
     }
   };
   let strategy = match FileCacheStrategy::new(
-    (base_path, database_path),
+    (base_path, database_path.clone()),
     options.readonly,
     rspack_workspace::rspack_pkg_version!().to_string(),
     options.version.clone(),
     codec,
     file_system_info,
+    logger.clone(),
   ) {
     Ok(strategy) => strategy,
     Err(error) => {
-      tracing::warn!("Opening persistent cache database failed: {error}");
+      logger.warn(format!(
+        "Restoring cache from {database_path} failed: {error}"
+      ));
+      logger.debug(format!("{error:?}"));
       return Cache::new(compiler_path, MemoryCache::default(), None);
     }
   };
-  let idle_file_cache = IdleFileCache::new(strategy, None, None, None);
+  let idle_file_cache = IdleFileCache::new(strategy, logger, None, None, None);
 
   Cache::new(compiler_path, MemoryCache::default(), Some(idle_file_cache))
 }

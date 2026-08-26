@@ -1,5 +1,6 @@
 use std::{
   fmt,
+  sync::Arc,
   time::{SystemTime, UNIX_EPOCH},
 };
 
@@ -11,7 +12,7 @@ use turbo_persistence::{
   WriteBatch,
 };
 
-use crate::new_cache::db::DatabaseFamily;
+use crate::{CompilationLogger, Logger, new_cache::db::DatabaseFamily};
 
 const STALE_DIRECTORY: &str = "_stale";
 const MB: u64 = 1024 * 1024;
@@ -177,6 +178,7 @@ pub struct Database {
   base_path: Utf8PathBuf,
   path: Utf8PathBuf,
   readonly: bool,
+  logger: Arc<CompilationLogger>,
 }
 
 impl fmt::Debug for Database {
@@ -190,13 +192,19 @@ impl fmt::Debug for Database {
 }
 
 impl Database {
-  pub fn open(base_path: Utf8PathBuf, path: Utf8PathBuf, readonly: bool) -> Result<Self> {
+  pub fn open(
+    base_path: Utf8PathBuf,
+    path: Utf8PathBuf,
+    readonly: bool,
+    logger: Arc<CompilationLogger>,
+  ) -> Result<Self> {
     let inner = open_database(&path, readonly)?;
     Ok(Self {
       inner,
       base_path,
       path,
       readonly,
+      logger,
     })
   }
 
@@ -244,17 +252,15 @@ impl Database {
     let stale_directory = self.stale_directory();
     match std::fs::remove_dir_all(stale_directory.as_std_path()) {
       Ok(()) => {
-        tracing::debug!(
-          path = %stale_directory,
-          "Removed stale persistent cache databases"
-        );
+        self.logger.debug(format!(
+          "Removed stale cache databases from {stale_directory}"
+        ));
       }
       Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
       Err(error) => {
-        tracing::warn!(
-          path = %stale_directory,
-          "Removing stale persistent cache databases failed: {error}"
-        );
+        self.logger.warn(format!(
+          "Removing stale cache databases from {stale_directory} failed: {error}"
+        ));
       }
     }
   }

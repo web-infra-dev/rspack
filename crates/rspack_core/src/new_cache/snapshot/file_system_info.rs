@@ -126,7 +126,6 @@ impl FileSystemInfo {
 
   /// See webpack's snapshot creation implementation:
   /// https://github.com/webpack/webpack/blob/ce97d583e1cd8f3e47b70737de72e91b567a8497/lib/FileSystemInfo.js#L2525-L3079
-  #[tracing::instrument("Cache::FileSystemInfo::create_snapshot", skip_all)]
   pub async fn create_snapshot(
     &self,
     start_time: Option<u64>,
@@ -170,7 +169,6 @@ impl FileSystemInfo {
 
   /// See webpack's snapshot validation implementation:
   /// https://github.com/webpack/webpack/blob/ce97d583e1cd8f3e47b70737de72e91b567a8497/lib/FileSystemInfo.js#L3168-L3735
-  #[tracing::instrument("Cache::FileSystemInfo::check_snapshot_valid", skip_all)]
   pub async fn check_snapshot_valid(
     &self,
     snapshot: &Snapshot,

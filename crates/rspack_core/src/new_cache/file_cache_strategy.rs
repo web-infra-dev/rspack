@@ -12,7 +12,7 @@ use super::{
   snapshot::FileSystemInfo,
   validator::{CacheValidator, CacheValidatorResult},
 };
-use crate::cache::CacheCodec;
+use crate::{CompilationLogger, Logger, cache::CacheCodec};
 
 const VALIDATOR_KEY: &[u8] = b"validator";
 const META_KEY: &[u8] = b"meta";
@@ -37,6 +37,7 @@ pub struct FileCacheStrategy {
   database: Database,
   pending_writes: PendingWrites,
   readonly: bool,
+  logger: Arc<CompilationLogger>,
 }
 
 impl fmt::Debug for FileCacheStrategy {
@@ -57,20 +58,26 @@ impl FileCacheStrategy {
     cache_version: String,
     codec: Arc<CacheCodec>,
     file_system_info: FileSystemInfo,
+    logger: Arc<CompilationLogger>,
   ) -> Result<Self> {
     let (base_path, database_path) = database_paths;
-    let database = Database::open(base_path, database_path, readonly)?;
+    let start = logger.time("open cache database");
+    let database = Database::open(base_path, database_path, readonly, logger.clone());
+    logger.time_end(start);
+    let database = database?;
     Ok(Self {
       validator: CacheValidator::new(
         rspack_pkg_version,
         cache_version,
         codec.clone(),
         file_system_info,
+        logger.clone(),
       ),
       codec,
       database,
       pending_writes: PendingWrites::default(),
       readonly,
+      logger,
     })
   }
 
@@ -82,32 +89,34 @@ impl FileCacheStrategy {
       .get(DatabaseFamily::Validator, VALIDATOR_KEY)?;
     let validation = self.validator.validate(data.as_deref()).await;
     match validation {
-      Ok(CacheValidatorResult::Valid) => {
-        tracing::debug!("Build dependencies snapshot is valid");
-      }
+      Ok(CacheValidatorResult::Valid) => {}
       Ok(CacheValidatorResult::InvalidVersion) => {
-        tracing::info!("Resetting persistent cache database because cache version changed");
-        self.database.reset()?;
-      }
-      Ok(CacheValidatorResult::InvalidError) => {
-        tracing::info!("Resetting persistent cache database because of an invalid cache error");
+        self
+          .logger
+          .log("Resetting cache, the cache version doesn't match");
         self.database.reset()?;
       }
       Ok(CacheValidatorResult::InvalidBuildDependencies {
         modified_files,
         removed_files,
       }) => {
-        tracing::info!(
-          modified_files = modified_files.len(),
-          removed_files = removed_files.len(),
-          "Resetting persistent cache database because build dependencies changed"
-        );
+        self.logger.log(format!(
+          "Resetting cache, build dependencies have changed ({} modified, {} removed)",
+          modified_files.len(),
+          removed_files.len()
+        ));
+        self.database.reset()?;
+      }
+      Ok(CacheValidatorResult::InvalidError) => {
+        self
+          .logger
+          .warn("Resetting cache, unexpected error occurred");
         self.database.reset()?;
       }
       Err(error) => {
-        tracing::warn!(
-          "Resetting persistent cache database because build dependencies validation failed: {error}"
-        );
+        self.logger.log(format!(
+          "Resetting cache, unexpected error occurred: {error}"
+        ));
         self.database.reset()?;
       }
     }
@@ -192,6 +201,8 @@ impl FileCacheStrategy {
     }
 
     if self.has_pending_writes() {
+      self.logger.log("Storing cache...");
+      let start = self.logger.time("store cache");
       let codec = &self.codec;
       let entries = &self.pending_writes.entries;
       let validator = if let Some(dependencies) = &self.pending_writes.new_build_dependencies {
@@ -205,7 +216,10 @@ impl FileCacheStrategy {
         .as_ref()
         .map(|meta| codec.encode(meta))
         .transpose()?;
-      self.database.write_batch(move |batch| {
+      let stored_items = entries.len()
+        + if validator.is_some() { 1 } else { 0 }
+        + if meta.is_some() { 1 } else { 0 };
+      let result = self.database.write_batch(move |batch| {
         entries.par_iter().try_for_each(|(key, pending)| {
           let value = (pending.encoder)(&pending.entry, codec)?;
           batch.put(DatabaseFamily::Cache, key.as_bytes(), value)
@@ -217,11 +231,16 @@ impl FileCacheStrategy {
           batch.put(DatabaseFamily::Meta, META_KEY, meta)?;
         }
         Ok(())
-      })?;
+      });
+      self.logger.time_end(start);
+      result?;
 
       self.pending_writes.entries.clear();
       self.pending_writes.new_build_dependencies = None;
       self.pending_writes.meta = None;
+      self
+        .logger
+        .log(format!("Stored cache ({stored_items} items)"));
     }
 
     for _ in 0..max_compaction_passes {
