@@ -1750,6 +1750,7 @@ CompilerOptions {
     experiments: Experiments {
         css: false,
         new_cache: NewCacheOptions {
+            module: false,
             code_generation: false,
             devtool: false,
             loader: false,

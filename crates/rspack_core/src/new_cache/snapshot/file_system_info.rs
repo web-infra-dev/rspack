@@ -8,13 +8,13 @@ use rspack_paths::{AssertUtf8, InternedPath, InternedPathDashMap, InternedPathSe
 use rspack_util::time::mtime_accuracy;
 use simd_json::prelude::{ValueAsScalar, ValueObjectAccess};
 
-use super::{
-  ContextFileSystemInfoEntry, ContextTimestampAndHash, FileHash, FileSystemInfoEntry, Snapshot,
-  TimestampAndHash,
-};
 use crate::{
   CompilationLogger,
-  cache::{BuildDependencyHelper, SnapshotOptions, SnapshotStrategyOptions, is_node_package_path},
+  cache::{
+    BuildDependencyHelper, ContextFileSystemInfoEntry, ContextTimestampAndHash, FileHash,
+    FileSystemInfoEntry, Snapshot, SnapshotOptions, SnapshotStrategyOptions, TimestampAndHash,
+    is_node_package_path,
+  },
 };
 
 #[derive(Debug, Default)]

@@ -19,16 +19,16 @@ use tracing::instrument;
 
 pub use self::rebuild::CompilationRecords;
 use crate::{
-  BoxPlugin, CacheOptions, CleanOptions, Compilation, CompilationAsset, CompilationLogging,
-  CompilerOptions, CompilerPlatform, ContextModuleFactory, Filename, KeepPattern,
-  NormalModuleFactory, PluginDriver, ResolverFactory, SharedPluginDriver,
+  BoxPlugin, CacheOptions, CleanOptions, Compilation, CompilationAsset, CompilationCacheContext,
+  CompilationLogging, CompilerOptions, CompilerPlatform, ContextModuleFactory, Filename,
+  KeepPattern, NormalModuleFactory, PluginDriver, ResolverFactory, SharedPluginDriver,
   artifacts::IncrementalArtifacts,
   compilation::build_module_graph::ModuleExecutor,
   fast_set,
   incremental::{Incremental, IncrementalPasses},
   legacy_cache::{Cache as LegacyCache, create_cache as create_legacy_cache},
   logger::Logger,
-  new_cache::{Cache, CacheFacade, Meta, create_cache},
+  new_cache::{Cache, CacheFacade, Meta, ModuleCacheFactory, NewCache, create_cache},
   trim_dir,
 };
 
@@ -109,6 +109,7 @@ pub struct Compiler {
   pub cache: Box<dyn LegacyCache>,
   incremental_artifacts: IncrementalArtifacts,
   new_cache: Cache,
+  module_cache_factory: Option<ModuleCacheFactory>,
   /// emitted asset versions
   /// the key of HashMap is filename, the value of HashMap is version
   pub emitted_asset_versions: HashMap<String, String>,
@@ -167,7 +168,10 @@ impl Compiler {
     let plugin_driver = PluginDriver::new(options.clone(), plugins, resolver_factory.clone());
     let buildtime_plugin_driver =
       PluginDriver::new(options.clone(), buildtime_plugins, resolver_factory.clone());
-    let new_cache = create_cache(
+    let NewCache {
+      cache: new_cache,
+      module_cache_factory,
+    } = create_cache(
       compiler_path.clone(),
       options.clone(),
       input_filesystem.clone(),
@@ -201,6 +205,7 @@ impl Compiler {
         Some(module_executor),
         compilation_logging,
         new_cache.clone(),
+        CompilationCacheContext::new(module_cache_factory.as_ref()),
         Default::default(),
         Default::default(),
         input_filesystem.clone(),
@@ -219,6 +224,7 @@ impl Compiler {
       cache,
       incremental_artifacts: IncrementalArtifacts::default(),
       new_cache,
+      module_cache_factory,
       emitted_asset_versions: Default::default(),
       input_filesystem,
       platform,
@@ -338,6 +344,7 @@ impl Compiler {
         Some(Default::default()),
         compilation_logging,
         self.new_cache.clone(),
+        CompilationCacheContext::new(self.module_cache_factory.as_ref()),
         Default::default(),
         Default::default(),
         self.input_filesystem.clone(),

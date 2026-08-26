@@ -8,8 +8,10 @@ use super::BuildModuleGraphArtifact;
 use crate::{
   Compilation, CompilationId, CompilerId, CompilerOptions, CompilerPlatform, DependencyTemplate,
   DependencyTemplateType, DependencyType, ExportsInfoArtifact, ModuleFactory, ResolverFactory,
-  RuntimeTemplate, SharedPluginDriver, incremental::Incremental, module_graph::ModuleGraph,
-  new_cache::Cache,
+  RuntimeTemplate, SharedPluginDriver,
+  incremental::Incremental,
+  module_graph::ModuleGraph,
+  new_cache::{Cache, ModuleBuildCache},
 };
 
 #[derive(Debug)]
@@ -30,6 +32,7 @@ pub struct TaskContext {
   pub dependency_templates: HashMap<DependencyTemplateType, Arc<dyn DependencyTemplate>>,
   pub runtime_template: RuntimeTemplate,
   pub(crate) cache: Cache,
+  pub(super) module_build_cache: Option<ModuleBuildCache>,
 
   pub artifact: BuildModuleGraphArtifact,
   pub exports_info_artifact: ExportsInfoArtifact,
@@ -40,6 +43,7 @@ impl TaskContext {
     compilation: &Compilation,
     artifact: BuildModuleGraphArtifact,
     exports_info_artifact: ExportsInfoArtifact,
+    module_build_cache: Option<ModuleBuildCache>,
   ) -> Self {
     Self {
       compiler_id: compilation.compiler_id(),
@@ -57,6 +61,7 @@ impl TaskContext {
       output_fs: compilation.output_filesystem.clone(),
       runtime_template: RuntimeTemplate::new(compilation.options.clone()),
       cache: compilation.cache.clone(),
+      module_build_cache,
       artifact,
       exports_info_artifact,
     }
@@ -85,6 +90,7 @@ impl TaskContext {
       None,
       Default::default(),
       self.cache.clone(),
+      Default::default(),
       Default::default(),
       Default::default(),
       self.fs.clone(),

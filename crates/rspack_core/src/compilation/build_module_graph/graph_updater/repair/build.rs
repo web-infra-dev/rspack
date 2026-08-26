@@ -1,6 +1,7 @@
 use std::{collections::VecDeque, sync::Arc};
 
 use rspack_fs::ReadableFileSystem;
+use rspack_util::current_time;
 use rustc_hash::FxHashSet;
 
 use super::{
@@ -11,6 +12,7 @@ use crate::{
   CompilationId, CompilerId, CompilerOptions, DependencyParents, ModuleCodeTemplate,
   ResolverFactory, SharedPluginDriver,
   compilation::build_module_graph::{ForwardedIdSet, HasLazyDependencies, LazyDependencies},
+  new_cache::ModuleBuildCache,
   utils::{
     ResourceId,
     task_loop::{Task, TaskResult, TaskType},
@@ -28,6 +30,7 @@ pub struct BuildTask {
   pub runtime_template: ModuleCodeTemplate,
   pub plugin_driver: SharedPluginDriver,
   pub fs: Arc<dyn ReadableFileSystem>,
+  pub(super) module_build_cache: Option<ModuleBuildCache>,
   pub forwarded_ids: ForwardedIdSet,
 }
 
@@ -47,8 +50,28 @@ impl Task<TaskContext> for BuildTask {
       runtime_template,
       mut module,
       fs,
+      module_build_cache,
       forwarded_ids,
     } = *self;
+
+    if let Some(module_build_cache) = &module_build_cache
+      && let Some(restored) = module_build_cache.restore(&mut module).await?
+    {
+      plugin_driver
+        .compilation_hooks
+        .still_valid_module
+        .call(compiler_id, compilation_id, &mut module)
+        .await?;
+      return Ok(vec![Box::new(BuildResultTask {
+        build_result: Box::new(restored.into_build_result(module)),
+        plugin_driver,
+        forwarded_ids,
+        invoke_succeed_module: false,
+      })]);
+    }
+
+    // Snapshot time must precede buildModule because plugins may read files.
+    let build_start_time = module_build_cache.as_ref().map(|_| current_time());
 
     plugin_driver
       .compilation_hooks
@@ -72,13 +95,21 @@ impl Task<TaskContext> for BuildTask {
       )
       .await;
 
-    result.map::<Vec<Box<dyn Task<TaskContext>>>, _>(|build_result| {
-      vec![Box::new(BuildResultTask {
-        build_result: Box::new(build_result),
-        plugin_driver,
-        forwarded_ids,
-      })]
-    })
+    let mut build_result = result?;
+    if let (Some(module_build_cache), Some(build_start_time)) =
+      (&module_build_cache, build_start_time)
+    {
+      module_build_cache
+        .store(&mut build_result, build_start_time)
+        .await?;
+    }
+
+    Ok(vec![Box::new(BuildResultTask {
+      build_result: Box::new(build_result),
+      plugin_driver,
+      forwarded_ids,
+      invoke_succeed_module: true,
+    })])
   }
 }
 
@@ -87,6 +118,7 @@ struct BuildResultTask {
   pub build_result: Box<BuildResult>,
   pub plugin_driver: SharedPluginDriver,
   pub forwarded_ids: ForwardedIdSet,
+  pub invoke_succeed_module: bool,
 }
 
 #[async_trait::async_trait]
@@ -99,14 +131,17 @@ impl Task<TaskContext> for BuildResultTask {
       build_result,
       plugin_driver,
       mut forwarded_ids,
+      invoke_succeed_module,
     } = *self;
     let mut module = build_result.module;
 
-    plugin_driver
-      .compilation_hooks
-      .succeed_module
-      .call(context.compiler_id, context.compilation_id, &mut module)
-      .await?;
+    if invoke_succeed_module {
+      plugin_driver
+        .compilation_hooks
+        .succeed_module
+        .call(context.compiler_id, context.compilation_id, &mut module)
+        .await?;
+    }
 
     let build_info = module.build_info();
 
@@ -117,7 +152,11 @@ impl Task<TaskContext> for BuildResultTask {
         .insert(module.identifier());
     }
 
-    tracing::trace!("Module built: {}", module.identifier());
+    if invoke_succeed_module {
+      tracing::trace!("Module built: {}", module.identifier());
+    } else {
+      tracing::trace!("Module restored from build cache: {}", module.identifier());
+    }
     context
       .artifact
       .module_graph

@@ -66,7 +66,12 @@ pub async fn repair(
     })
     .collect::<Vec<_>>();
 
-  let mut ctx = TaskContext::new(compilation, artifact, exports_info_artifact);
+  let mut ctx = TaskContext::new(
+    compilation,
+    artifact,
+    exports_info_artifact,
+    compilation.module_build_cache(),
+  );
   run_task_loop(&mut ctx, init_tasks).await?;
   Ok((ctx.artifact, ctx.exports_info_artifact))
 }

@@ -8,7 +8,7 @@ use rspack_tasks::within_compiler_context;
 use rustc_hash::FxHashSet;
 
 use crate::{
-  ChunkGraph, ChunkKind, Compilation, Compiler, RuntimeSpec,
+  ChunkGraph, ChunkKind, Compilation, CompilationCacheContext, Compiler, RuntimeSpec,
   chunk_graph_chunk::ChunkIdMap,
   chunk_graph_module::{ModuleIdMap, ModuleIdSet},
   compilation::build_module_graph::ModuleExecutor,
@@ -88,6 +88,7 @@ impl Compiler {
         Some(ModuleExecutor::default()),
         compilation_logging,
         self.new_cache.clone(),
+        CompilationCacheContext::new(self.module_cache_factory.as_ref()),
         modified_files,
         removed_files,
         self.input_filesystem.clone(),

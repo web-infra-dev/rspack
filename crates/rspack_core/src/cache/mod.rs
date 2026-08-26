@@ -10,4 +10,8 @@ pub use cache_entry::{
 };
 pub use codec::CacheCodec;
 pub use options::{BuildDepsOptions, PersistentCacheOptions, StorageOptions};
-pub use snapshot::{PathMatcher, SnapshotOptions, SnapshotStrategyOptions};
+pub(crate) use snapshot::{
+  ContextFileSystemInfoEntry, ContextTimestampAndHash, FileHash, FileSystemInfoEntry,
+  TimestampAndHash,
+};
+pub use snapshot::{PathMatcher, Snapshot, SnapshotOptions, SnapshotStrategyOptions};

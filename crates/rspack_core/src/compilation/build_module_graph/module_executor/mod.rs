@@ -83,7 +83,7 @@ impl ModuleExecutor {
       update_module_graph(compilation, make_artifact, exports_info_artifact, params).await?;
 
     let mut ctx = ExecutorTaskContext {
-      origin_context: TaskContext::new(compilation, make_artifact, exports_info_artifact),
+      origin_context: TaskContext::new(compilation, make_artifact, exports_info_artifact, None),
       tracker: Default::default(),
       entries: std::mem::take(&mut self.entries),
       executed_entry_deps: Default::default(),

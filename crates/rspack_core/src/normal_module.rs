@@ -35,7 +35,7 @@ use crate::{
   ModuleGraphCacheArtifact, ModuleIdentifier, ModuleLayer, ModuleType, OptimizationBailoutItem,
   OutputOptions, ParseContext, ParseResult, ParserAndGenerator, ParserOptions, Resolve,
   ResolvedModuleOptions, RspackLoaderRunnerPlugin, RunnerContext, RuntimeGlobals, RuntimeSpec,
-  SideEffectsStateArtifact, SourceType, contextify,
+  SideEffectsStateArtifact, SourceType, ValueCacheVersions, contextify,
   diagnostics::ModuleBuildError,
   get_context, module_analyzed_side_effect_free, module_declared_side_effect_free,
   module_update_hash,
@@ -152,6 +152,36 @@ pub struct NormalModule {
   source_map_kind: SourceMapKind,
 }
 
+/// Serializable build products restored onto a freshly factorized NormalModule.
+///
+/// Configuration such as requests, resource data, parser/generator options,
+/// import phase, and source-map settings intentionally remains owned by the
+/// new module, mirroring webpack's `updateCacheModule` behavior.
+#[cacheable]
+#[derive(Debug)]
+pub(crate) struct NormalModuleBuildState {
+  #[cacheable(with=AsOption<AsPreset>)]
+  source: Option<BoxSource>,
+  diagnostics: Vec<Diagnostic>,
+  code_generation_dependencies: Option<Vec<DependencyId>>,
+  presentational_dependencies: Option<Vec<DependencyCodeGenerationRef>>,
+  build_info: BuildInfo,
+  build_meta: BuildMeta,
+  parsed: bool,
+}
+
+impl NormalModuleBuildState {
+  pub(crate) fn need_build(&self, value_cache_versions: &ValueCacheVersions) -> bool {
+    self
+      .build_info
+      .need_build(&self.diagnostics, value_cache_versions)
+  }
+
+  pub(crate) fn snapshot(&self) -> Option<&crate::cache::Snapshot> {
+    self.build_info.snapshot.as_deref()
+  }
+}
+
 static DEBUG_ID: AtomicUsize = AtomicUsize::new(1);
 
 impl NormalModule {
@@ -236,6 +266,35 @@ impl NormalModule {
 
   pub fn id(&self) -> ModuleIdentifier {
     self.id
+  }
+
+  pub(crate) fn build_state(&self) -> NormalModuleBuildState {
+    NormalModuleBuildState {
+      source: self.source.clone(),
+      diagnostics: self.diagnostics.clone(),
+      code_generation_dependencies: self.code_generation_dependencies.clone(),
+      presentational_dependencies: self.presentational_dependencies.clone(),
+      build_info: self.build_info.clone(),
+      build_meta: self.build_meta.clone(),
+      parsed: self.parsed,
+    }
+  }
+
+  pub(crate) fn restore_build_state(&mut self, state: &NormalModuleBuildState) {
+    let import_phase = self.build_info.import_phase;
+    self.source.clone_from(&state.source);
+    self.diagnostics.clone_from(&state.diagnostics);
+    self
+      .code_generation_dependencies
+      .clone_from(&state.code_generation_dependencies);
+    self
+      .presentational_dependencies
+      .clone_from(&state.presentational_dependencies);
+    self.build_info.clone_from(&state.build_info);
+    self.build_info.import_phase = import_phase;
+    self.build_meta.clone_from(&state.build_meta);
+    self.parsed = state.parsed;
+    self.cached_source_sizes = SourceSizeCache::default();
   }
 
   pub fn match_resource(&self) -> Option<&ResourceData> {
@@ -377,6 +436,8 @@ impl Module for NormalModule {
   ) -> Result<BuildResult> {
     // so does webpack
     self.parsed = true;
+    // Only new_cache.module attaches a snapshot while storing the completed build.
+    self.build_info.snapshot = None;
 
     let no_parse = if let Some(no_parse) = build_context.compiler_options.module.no_parse.as_ref() {
       no_parse.try_match(self.request.as_str()).await?

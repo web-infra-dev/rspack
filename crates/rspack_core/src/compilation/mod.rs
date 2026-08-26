@@ -80,7 +80,7 @@ use crate::{
   DependenciesDiagnosticsArtifact, Dependency, DependencyId, DependencyRef, DependencyTemplate,
   DependencyTemplateType, DependencyType, Entry, EntryData, EntryOptions, EntryRuntime, Entrypoint,
   ExecuteModuleId, ExportsInfoArtifact, ExternalModuleChunkConditionHook, Filename, ImportPhase,
-  ImportVarMap, ImportedByDeferModulesArtifact, ModuleFactory, ModuleGraph,
+  ImportVarMap, ImportedByDeferModulesArtifact, Mode, ModuleFactory, ModuleGraph,
   ModuleGraphCacheArtifact, ModuleIdentifier, ModuleIdsArtifact, ModuleStaticCache, PathData,
   ProcessRuntimeRequirementsCacheArtifact, ReferencedExport, ResolverFactory, RuntimeGlobals,
   RuntimeKeyMap, RuntimeMode, RuntimeModule, RuntimeProxyMetadataArtifact, RuntimeSpec,
@@ -96,7 +96,7 @@ use crate::{
   legacy_cache::persistent::occasion::{
     devtool::SourceMapDevToolPluginCache, minimize::MinimizePersistentCache,
   },
-  new_cache::{Cache, CacheFacade},
+  new_cache::{Cache, CacheFacade, ModuleBuildCache, ModuleCache, ModuleCacheFactory},
   to_identifier,
 };
 
@@ -238,6 +238,7 @@ pub struct Compilation {
   diagnostics: Vec<Diagnostic>,
   logging: CompilationLogging,
   cache: Cache,
+  module_cache: Option<ModuleCache>,
   pub plugin_driver: SharedPluginDriver,
   pub buildtime_plugin_driver: SharedPluginDriver,
   pub resolver_factory: Arc<ResolverFactory>,
@@ -323,6 +324,21 @@ pub struct Compilation {
   pub compiler_context: Arc<CompilerContext>,
 }
 
+/// Explicit cache capabilities available to a newly created Compilation.
+/// Temporary compilations use `Default` to opt out of module persistence.
+#[derive(Debug, Default)]
+pub struct CompilationCacheContext {
+  module_cache_factory: Option<ModuleCacheFactory>,
+}
+
+impl CompilationCacheContext {
+  pub(crate) fn new(module_cache_factory: Option<&ModuleCacheFactory>) -> Self {
+    Self {
+      module_cache_factory: module_cache_factory.cloned(),
+    }
+  }
+}
+
 impl Compilation {
   pub const OPTIMIZE_CHUNKS_STAGE_BASIC: i32 = -10;
   pub const OPTIMIZE_CHUNKS_STAGE_ADVANCED: i32 = 10;
@@ -349,6 +365,7 @@ impl Compilation {
     module_executor: Option<ModuleExecutor>,
     logging: CompilationLogging,
     cache: Cache,
+    cache_context: CompilationCacheContext,
     modified_files: InternedPathSet,
     removed_files: InternedPathSet,
     input_filesystem: Arc<dyn ReadableFileSystem>,
@@ -357,6 +374,26 @@ impl Compilation {
     is_rebuild: bool,
     compiler_context: Arc<CompilerContext>,
   ) -> Self {
+    let module_snapshot_options = match &options.cache {
+      CacheOptions::Persistent(options) => options.snapshot.clone(),
+      CacheOptions::Disabled | CacheOptions::Memory { .. } => Default::default(),
+    };
+    // webpack defaults module snapshots to timestamp in non-production modes,
+    // and timestamp + hash in production.
+    let module_snapshot_strategy = if matches!(options.mode, Mode::Production) {
+      crate::cache::SnapshotStrategyOptions::hash_and_timestamp()
+    } else {
+      crate::cache::SnapshotStrategyOptions::timestamp()
+    };
+    let module_cache = cache_context.module_cache_factory.as_ref().map(|factory| {
+      factory.create_for_compilation(
+        input_filesystem.clone(),
+        logging.clone(),
+        module_snapshot_options,
+        options.output.hash_function,
+        module_snapshot_strategy,
+      )
+    });
     Self {
       id: CompilationId::new(),
       compiler_id,
@@ -378,6 +415,7 @@ impl Compilation {
       diagnostics: Default::default(),
       logging,
       cache,
+      module_cache,
       plugin_driver,
       buildtime_plugin_driver,
       resolver_factory,
@@ -447,6 +485,13 @@ impl Compilation {
 
   pub fn get_cache(&self, name: &str) -> CacheFacade {
     self.cache.facade(name)
+  }
+
+  pub(crate) fn module_build_cache(&self) -> Option<ModuleBuildCache> {
+    self
+      .module_cache
+      .as_ref()
+      .map(|module_cache| module_cache.build_cache(&self.value_cache_versions))
   }
 
   pub fn id(&self) -> CompilationId {
@@ -1070,6 +1115,9 @@ impl Compilation {
     exports_info_artifact: &mut ExportsInfoArtifact,
     f: impl Fn(Vec<&BoxModule>) -> T,
   ) -> Result<T> {
+    if let Some(module_cache) = &self.module_cache {
+      module_cache.invalidate(&module_identifiers);
+    }
     let artifact = self.build_module_graph_artifact.steal();
 
     // https://github.com/webpack/webpack/blob/19ca74127f7668aaf60d59f4af8fcaee7924541a/lib/Compilation.js#L2462C21-L2462C25

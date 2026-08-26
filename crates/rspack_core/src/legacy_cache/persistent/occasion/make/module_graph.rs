@@ -60,6 +60,10 @@ pub fn save_module_graph(
       let module = mg
         .module_by_identifier(identifier)
         .expect("should have module");
+      debug_assert!(
+        module.build_info().snapshot.is_none(),
+        "legacy cache must not persist module build snapshots"
+      );
       let blocks = module
         .get_blocks()
         .par_iter()
