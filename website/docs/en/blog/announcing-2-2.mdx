@@ -1,5 +1,5 @@
 ---
-description: 'Rspack 2.2 正式发布，带来性能提升与 HMR 优化、更短的模块 ID、import.meta 改进和更多平台支持。'
+description: 'Rspack 2.2 is now available, featuring performance and HMR improvements, shorter module IDs, import.meta enhancements, and support for more platforms.'
 date: 2026-08-26 14:00:00
 sidebar: false
 authors:
@@ -30,80 +30,80 @@ import { BlogAuthors } from '@rstack-dev/doc-ui/blog-authors';
 
 import { PackageManagerTabs, Prompt } from '@theme';
 
-# Rspack 2.2 发布公告
+# Announcing Rspack 2.2
 
-_2026 年 8 月 26 日_
+_August 26, 2026_
 
 <BlogAuthors />
 
-![Rspack 2.2 Banner](https://assets.rspack.rs/rspack/rspack-banner-v2.2.png)
+![Rspack 2.2 banner](https://assets.rspack.rs/rspack/rspack-banner-v2.2.png)
 
-我们很高兴地宣布 Rspack 2.2 已正式发布！
+We are excited to announce the official release of Rspack 2.2!
 
 ---
 
-值得关注的变更如下：
+Notable changes include:
 
-- 性能
-  - [性能提升](#performance-improvements)
-  - [HMR 改进](#better-hmr)
-  - [更短的模块 ID](#compat-hashed-ids)
-- 新特性
-  - [`import.meta` 改进](#import-meta-improvements)
-  - [支持 Browserslist Baseline](#browserslist-baseline)
-  - [支持更多平台](#more-linux-platforms)
-- 生态
+- Performance
+  - [Performance improvements](#performance-improvements)
+  - [Better HMR](#better-hmr)
+  - [Shorter module IDs](#compat-hashed-ids)
+- New features
+  - [`import.meta` improvements](#import-meta-improvements)
+  - [Browserslist Baseline support](#browserslist-baseline)
+  - [Support for more platforms](#more-linux-platforms)
+- Ecosystem
   - [Rsbuild](#rsbuild)
   - [Rstest](#rstest)
   - [Rslint](#rslint)
   - [Rslib](#rslib)
   - [Rspress](#rspress)
   - [Agent plugin](#rstack-agent-plugin)
-- 升级指南
+- Upgrade guide
 
-## 性能
+## Performance
 
-### 性能提升 \{#performance-improvements}
+### Performance improvements \{#performance-improvements}
 
-Rspack 2.2 包含 30 多项构建性能优化，例如：
+Rspack 2.2 includes more than 30 build performance optimizations, including:
 
-- 优化模块合并、chunk 拆分和 Source Map 生成等核心流程性能。在基准测试中，生产构建时间从 1822 ms 降至 1725 ms，提升约 5%。
-- 优化 [CopyRspackPlugin](/plugins/rspack/copy-rspack-plugin) 的性能。在复制大量文件时，性能提升约 3～4 倍。
-- 优化 Wasm 产物的包体积，从 29.5 MB 降至 28.4 MB，减少约 1.1 MB。
-- 并行编译 SWC Wasm 插件，这减少了插件加载时间。例如，[coverage-instrument](https://npmx.dev/package/swc-plugin-coverage-instrument) 插件的加载时间减少约 80%。
-- 内置 CSS 的解析速度提升了约 3 倍：
+- Improved the performance of core processes such as module concatenation, chunk splitting, and source map generation. In our benchmark, production build time dropped from 1822 ms to 1725 ms, an improvement of around 5%.
+- Improved the performance of [CopyRspackPlugin](/plugins/rspack/copy-rspack-plugin). When copying a large number of files, it is now around 3-4x faster.
+- Reduced the size of the Wasm build from 29.5 MB to 28.4 MB, a reduction of around 1.1 MB.
+- Compiled SWC Wasm plugins in parallel, reducing plugin load time. For example, the load time of the [coverage-instrument](https://npmx.dev/package/swc-plugin-coverage-instrument) plugin was reduced by around 80%.
+- Made built-in CSS parsing around 3x faster:
 
-| 场景         | 优化前   | 优化后  | 性能提升   |
-| ------------ | -------- | ------- | ---------- |
-| CSS 开发构建 | 320.3 ms | 87.2 ms | **3.7 倍** |
-| CSS 生产构建 | 354.1 ms | 121 ms  | **2.9 倍** |
+| Scenario              | Before   | After   | Improvement |
+| --------------------- | -------- | ------- | ----------- |
+| CSS development build | 320.3 ms | 87.2 ms | **3.7x**    |
+| CSS production build  | 354.1 ms | 121 ms  | **2.9x**    |
 
-### HMR 改进 \{#better-hmr}
+### Better HMR \{#better-hmr}
 
-Rspack 2.2 减少了 HMR 中不必要的 CSS 请求。此前，即使只修改了 JavaScript 代码，浏览器也会在热更新时请求相关的 CSS 文件，比较内容后再判断是否需要更新样式。样式表越大，这一步带来的额外耗时就越明显。
+Rspack 2.2 reduces unnecessary CSS requests during HMR. Previously, even when only JavaScript code changed, the browser would request the related CSS files during a hot update, compare their contents, and then determine whether the styles needed to be updated. The larger the stylesheet, the more time this extra step took.
 
-在 [#14682](https://github.com/web-infra-dev/rspack/pull/14682) 中，Rspack 改为在构建阶段判断 CSS 是否发生变化，仅在需要时请求 CSS 资源，从而避免不必要的 HTTP 请求。因此，JavaScript 热更新耗时不再随样式表体积明显增加：
+With [#14682](https://github.com/web-infra-dev/rspack/pull/14682), Rspack now determines whether CSS has changed during the build and only requests CSS assets when needed, avoiding unnecessary HTTP requests. As a result, JavaScript hot update time no longer grows significantly with stylesheet size:
 
-| 样式表体积 | 优化前  | 优化后 |
-| ---------- | ------- | ------ |
-| 0.5 MB     | ~50 ms  | ~5 ms  |
-| 2.1 MB     | ~170 ms | ~5 ms  |
-| 4.1 MB     | ~385 ms | ~6 ms  |
+| Stylesheet size | Before  | After |
+| --------------- | ------- | ----- |
+| 0.5 MB          | ~50 ms  | ~5 ms |
+| 2.1 MB          | ~170 ms | ~5 ms |
+| 4.1 MB          | ~385 ms | ~6 ms |
 
-此外，[#14580](https://github.com/web-infra-dev/rspack/pull/14580) 修复了 `mini-css-extract-plugin` 热更新时样式短暂失效的问题，避免页面闪烁。
+In addition, [#14580](https://github.com/web-infra-dev/rspack/pull/14580) fixes an issue where styles briefly disappeared during hot updates with `mini-css-extract-plugin`, preventing page flicker.
 
-### 更短的模块 ID \{#compat-hashed-ids}
+### Shorter module IDs \{#compat-hashed-ids}
 
-Rspack 现在支持为模块和 chunk 生成更短的 ID。相比当前的 `deterministic` 策略，新的 `compat-hashed` 策略会从稳定 hash 中选取最短可用前缀，在保持 ID 稳定和运行时索引效率的同时，进一步减小产物体积。
+Rspack can now generate shorter IDs for modules and chunks. Compared with the existing `deterministic` strategy, the new `compat-hashed` strategy selects the shortest available prefix from a stable hash, further reducing output size while preserving ID stability and efficient runtime indexing.
 
-在一个真实项目中，产物体积变化如下：
+In a real-world project, the output size changed as follows:
 
-| **指标**        | **`deterministic`** | **`compat-hashed`** | **体积减少**         |
-| --------------- | ------------------- | ------------------- | -------------------- |
-| Minified JS     | 25,795.2 KB         | 25,710.6 KB         | **84.6 KB（0.33%）** |
-| Minified + gzip | 7,103.3 KB          | 7,041.7 KB          | **61.6 KB（0.87%）** |
+| **Metric**      | **`deterministic`** | **`compat-hashed`** | **Size reduction**  |
+| --------------- | ------------------- | ------------------- | ------------------- |
+| Minified JS     | 25,795.2 KB         | 25,710.6 KB         | **84.6 KB (0.33%)** |
+| Minified + gzip | 7,103.3 KB          | 7,041.7 KB          | **61.6 KB (0.87%)** |
 
-通过 [`optimization.chunkIds`](/config/optimization#optimizationchunkids) 和 [`optimization.moduleIds`](/config/optimization#optimizationmoduleids) 选项即可开启：
+Enable this strategy through [`optimization.chunkIds`](/config/optimization#optimizationchunkids) and [`optimization.moduleIds`](/config/optimization#optimizationmoduleids):
 
 ```js title="rspack.config.mjs"
 export default {
@@ -114,11 +114,11 @@ export default {
 };
 ```
 
-## 新特性
+## New features
 
-### `import.meta` 改进 \{#import-meta-improvements}
+### `import.meta` improvements \{#import-meta-improvements}
 
-Rspack 现在支持通过 [`import.meta`](/api/runtime-api/module-variables#import-meta) 来访问 Rspack 特有的模块变量。相比 CommonJS 风格的变量，新用法更符合 ESM 规范，推荐在 ESM 模块中优先使用：
+Rspack now supports accessing Rspack-specific module variables through [`import.meta`](/api/runtime-api/module-variables#import-meta). Compared with CommonJS-style variables, this approach aligns better with ESM conventions and is preferred in ESM modules:
 
 ```js
 // Before
@@ -128,7 +128,7 @@ __webpack_public_path__ = '/assets/';
 import.meta.rspackPublicPath = '/assets/';
 ```
 
-此外，[`import.meta.glob`](/api/runtime-api/module-variables#importmetaglob) 新增了 `caseSensitive` 选项。设置为 `false` 时，glob 匹配会忽略文件路径的大小写：
+In addition, [`import.meta.glob`](/api/runtime-api/module-variables#importmetaglob) adds a new `caseSensitive` option. When set to `false`, glob matching ignores letter casing in file paths:
 
 ```js
 const modules = import.meta.glob('./pages/**/*.js', {
@@ -136,9 +136,9 @@ const modules = import.meta.glob('./pages/**/*.js', {
 });
 ```
 
-### 支持 Browserslist Baseline \{#browserslist-baseline}
+### Browserslist Baseline support \{#browserslist-baseline}
 
-Rspack 现在支持 [Browserslist 的 Baseline 查询](https://web.dev/articles/use-baseline-with-browserslist)。你可以根据 Baseline 特性集来指定目标浏览器版本。例如，兼容 [**Baseline 广泛可用的特性**](https://web.dev/baseline)，可以配置：
+Rspack now supports [Baseline queries in Browserslist](https://web.dev/articles/use-baseline-with-browserslist). You can specify target browser versions based on Baseline feature sets. For example, to target [**Baseline Widely available features**](https://web.dev/baseline), use:
 
 ```js title="rspack.config.mjs"
 export default {
@@ -146,53 +146,53 @@ export default {
 };
 ```
 
-你也可以使用 `baseline widely available on 2025-05-01` 按指定日期查询，详见 [`target` 配置文档](/config/target#baseline-queries)。
+You can also query for a specific date with `baseline widely available on 2025-05-01`. See the [`target` configuration documentation](/config/target#baseline-queries) for details.
 
-### 支持更多平台 \{#more-linux-platforms}
+### Support for more platforms \{#more-linux-platforms}
 
-Rspack 为更多 Linux 平台提供了预编译的原生 binding：
+Rspack now provides precompiled native bindings for more Linux platforms:
 
-- RISC-V 64 位：`linux-riscv64-gnu` 和 `linux-riscv64-musl`
-- ppc64le 和 s390x 架构：`linux-ppc64-gnu` 和 `linux-s390x-gnu`
+- RISC-V 64-bit: `linux-riscv64-gnu` and `linux-riscv64-musl`
+- ppc64le and s390x architectures: `linux-ppc64-gnu` and `linux-s390x-gnu`
 
-在这些平台上安装 Rspack 时，可以直接使用对应的原生 binding，无需回退到 Wasm binding。完整的平台列表请参考[环境准备](/guide/start/quick-start#环境准备)。
+When installing Rspack on these platforms, you can use the corresponding native binding directly without falling back to the Wasm binding. See [Environment preparation](/guide/start/quick-start#environment-preparation) for the complete list of supported platforms.
 
-## 生态
+## Ecosystem
 
 ### Rsbuild \{#rsbuild}
 
-Rsbuild 2.2 已经与 Rspack 2.2 同步发布。
+Rsbuild 2.2 has been released alongside Rspack 2.2.
 
-#### 导入源文本 \{#import-text}
+#### Importing source text \{#import-text}
 
-Rsbuild 现在支持使用 [import attributes 语法](https://rsbuild.rs/zh/guide/basic/static-assets#with-import-attributes) 将文件原始内容作为字符串导入：
+Rsbuild now supports using [import attributes](https://rsbuild.rs/guide/basic/static-assets#with-import-attributes) to import the raw contents of a file as a string:
 
 ```ts
 import rawCSS from './example.css' with { type: 'text' };
 ```
 
-> 这与 TC39 的 [Import Text 提案](https://github.com/tc39/proposal-import-text) 保持一致。
+> This aligns with the TC39 [Import Text proposal](https://github.com/tc39/proposal-import-text).
 
-#### Node.js 拆包优化 \{#node-split-chunks}
+#### Optimized chunk splitting for Node.js \{#node-split-chunks}
 
-Node.js 构建现在会默认启用 [chunk 拆分](https://rsbuild.rs/zh/config/split-chunks)，将共享模块提取为独立的 chunk，从而减少重复代码和 SSR 内存占用。
+Node.js builds now enable [chunk splitting](https://rsbuild.rs/config/split-chunks) by default, extracting shared modules into separate chunks to reduce duplicate code and SSR memory usage.
 
-下面是 TanStack Start 用户提供的 [实测数据](https://github.com/TanStack/router/issues/8113#issuecomment-5366808113)：
+Here is [real-world data](https://github.com/TanStack/router/issues/8113#issuecomment-5366808113) provided by a TanStack Start user:
 
-| 指标                     | Rsbuild 2.1 | Rsbuild 2.2 | 变化         |
-| ------------------------ | ----------- | ----------- | ------------ |
-| 服务端产物体积           | 298 MB      | 4.1 MB      | **减少 98%** |
-| 访问所有路由后的内存占用 | 486 MB      | 129 MB      | **减少 73%** |
-| 路由平均访问耗时         | 7.2 ms      | 1.6 ms      | **减少 78%** |
-| 共享组件的 HMR 耗时      | 7.1 s       | 0.98 s      | **减少 86%** |
+| Metric                                 | Rsbuild 2.1 | Rsbuild 2.2 | Change            |
+| -------------------------------------- | ----------- | ----------- | ----------------- |
+| Server output size                     | 298 MB      | 4.1 MB      | **98% reduction** |
+| Memory usage after visiting all routes | 486 MB      | 129 MB      | **73% reduction** |
+| Average route access time              | 7.2 ms      | 1.6 ms      | **78% reduction** |
+| HMR time for shared components         | 7.1 s       | 0.98 s      | **86% reduction** |
 
-> 测试应用包含 300 个路由和 400 个共享组件，实际收益取决于项目规模和模块结构。
+> The test application contains 300 routes and 400 shared components. Actual improvements depend on the size and module structure of your project.
 
-#### 支持 Solid v2 \{#solid-v2}
+#### Solid v2 support \{#solid-v2}
 
-Rsbuild 现在支持 [Solid v2 RC](https://www.solidjs.com/blog/solid-2-0-rc-the-big-reveal)，并默认使用 Solid 全新的 Rust 编译器。在官方的基准测试中，新编译器的编译速度相比此前的 Babel 实现提升 **20 倍以上**。
+Rsbuild now supports [Solid v2 RC](https://www.solidjs.com/blog/solid-2-0-rc-the-big-reveal) and uses Solid's new Rust compiler by default. In the official benchmark, the new compiler is **more than 20x faster** than the previous Babel implementation.
 
-升级 [@rsbuild/plugin-solid](https://rsbuild.rs/zh/plugins/list/plugin-solid) 至 v2 beta 版本，然后移除 Babel 插件即可体验：
+To try it, upgrade [@rsbuild/plugin-solid](https://rsbuild.rs/plugins/list/plugin-solid) to the v2 beta and remove the Babel plugin:
 
 ```diff
 -import { pluginBabel } from '@rsbuild/plugin-babel';
@@ -208,19 +208,19 @@ export default {
 };
 ```
 
-#### 创建 Octane 项目 \{#octane-template}
+#### Creating an Octane project \{#octane-template}
 
-`create-rsbuild` 现在支持创建 Octane 项目。[Octane](https://octanejs.dev/) 是一个高性能 JavaScript UI 框架，允许你通过 React API 编写组件，并将其编译为直接的 DOM 代码。
+`create-rsbuild` now supports creating Octane projects. [Octane](https://octanejs.dev/) is a high-performance JavaScript UI framework that lets you write components with React APIs and compiles them directly to DOM code.
 
-运行以下命令即可创建一个 Octane 项目：
+Run the following command to create an Octane project:
 
 ```bash
 npx -y create-rsbuild@latest my-app -t octane-ts
 ```
 
-#### 动态端口 \{#dynamic-port}
+#### Dynamic ports \{#dynamic-port}
 
-Rsbuild 现在支持将 [`server.port`](https://rsbuild.rs/zh/config/server/port#动态端口) 设置为 `0`，由操作系统自动分配一个可用端口：
+Rsbuild now supports setting [`server.port`](https://rsbuild.rs/config/server/port#dynamic-port) to `0`, allowing the operating system to automatically assign an available port:
 
 ```ts title="rsbuild.config.ts"
 export default {
@@ -230,11 +230,11 @@ export default {
 };
 ```
 
-这在测试场景中尤其有用，可以避免多个测试同时启动 Rsbuild server 时发生端口冲突。
+This is particularly useful in testing, as it avoids port conflicts when multiple tests start Rsbuild servers at the same time.
 
-#### 定制压缩配置 \{#custom-minimizer-configs}
+#### Custom minifier configurations \{#custom-minimizer-configs}
 
-Rsbuild 现在支持同时配置多种压缩选项。为 [`minify.jsOptions`](https://rsbuild.rs/zh/config/output/minify#minifyjsoptions) 传入数组，可以针对不同产物设置不同的压缩策略。例如，仅移除主 bundle 中的 `console` 调用：
+Rsbuild now supports configuring multiple minification options at once. Pass an array to [`minify.jsOptions`](https://rsbuild.rs/config/output/minify#minifyjsoptions) to apply different minification strategies to different outputs. For example, you can remove `console` calls only from the main bundle:
 
 ```ts title="rsbuild.config.ts"
 export default {
@@ -259,31 +259,31 @@ export default {
 };
 ```
 
-#### 自定义重启流程 \{#restart-api}
+#### Custom restart handling \{#restart-api}
 
-基于 Rsbuild 的框架和工具现在可以自行控制重启流程。
+Frameworks and tools built on Rsbuild can now control the restart process themselves.
 
-Rsbuild 的 JavaScript API 现已支持 [`restart`](https://rsbuild.rs/zh/api/javascript-api/core#restart-handling) 选项，用于处理开发服务器（`rsbuild dev`）或监听构建（`rsbuild build --watch`）的重启请求：
+The Rsbuild JavaScript API now supports a [`restart`](https://rsbuild.rs/api/javascript-api/core#restart-handling) option for handling restart requests from the development server (`rsbuild dev`) or watch builds (`rsbuild build --watch`):
 
 ```ts
 import { createRsbuild } from '@rsbuild/core';
 
 await createRsbuild({
   restart: (restart) => {
-    // 自定义重启逻辑
+    // Custom restart logic
   },
 });
 ```
 
-Rsbuild 插件也可以通过监听 [`onRestart`](https://rsbuild.rs/zh/plugins/dev/hooks#onrestart) hook 来执行自定义逻辑。
+Rsbuild plugins can also run custom logic by listening to the [`onRestart`](https://rsbuild.rs/plugins/dev/hooks#onrestart) hook.
 
 ### Rstest \{#rstest}
 
-#### 模块联邦测试 \{#rstest-module-federation}
+#### Module Federation testing \{#rstest-module-federation}
 
-Rstest 现在支持模块联邦测试：可以在 Node、JSDOM 和 Browser Mode 环境下，直接测试真实的联邦远程模块。
+Rstest now supports Module Federation testing, allowing you to test real federated remote modules directly in Node, JSDOM, and Browser Mode environments.
 
-在 Rstest 配置文件中引入 `@module-federation/rstest` 即可：
+Add `@module-federation/rstest` to your Rstest configuration:
 
 ```ts title="rstest.config.ts"
 import { federation } from '@module-federation/rstest';
@@ -299,13 +299,13 @@ export default defineConfig({
 });
 ```
 
-> 详见 [Module Federation × Rstest 集成文档](https://module-federation.io/integrations/build-tool/rstest.html)。
+> See the [Module Federation × Rstest integration documentation](https://module-federation.io/integrations/build-tool/rstest.html) for details.
 
-#### Playwright E2E 测试 \{#rstest-playwright}
+#### Playwright E2E testing \{#rstest-playwright}
 
-Rstest 新增了 [`@rstest/playwright`](https://rstest.rs/zh/guide/advanced/playwright)，让 E2E 测试也能使用 Rstest 的测试运行器、配置和报告能力。
+Rstest adds [`@rstest/playwright`](https://rstest.rs/guide/advanced/playwright), bringing Rstest's test runner, configuration, and reporting capabilities to E2E testing.
 
-它提供 Playwright 风格的断言 API，可用于测试本地开发服务器、预览服务器或已部署的应用，并与单元测试共享一致的工作流：
+It provides Playwright-style assertion APIs for testing local development servers, preview servers, or deployed applications, while sharing a consistent workflow with unit tests:
 
 ```ts
 import { expect, test } from '@rstest/playwright';
@@ -318,18 +318,18 @@ test('home page', async ({ page, serve }) => {
 });
 ```
 
-#### 预打包测试环境 \{#rstest-environment-prebundle}
+#### Prebundled test environments \{#rstest-environment-prebundle}
 
-Rstest 现在支持预打包 DOM 测试环境。开启后，Rstest 会预打包 `jsdom` 或 `happy-dom`，并在多个 worker 之间复用产物，避免为每个测试文件重复解析和初始化环境。对于 DOM 测试较多的项目，这可以显著缩短整体测试耗时。
+Rstest now supports prebundling DOM test environments. When enabled, Rstest prebundles `jsdom` or `happy-dom` and reuses the output across workers, avoiding repeated parsing and initialization for every test file. This can significantly reduce overall test time in projects with many DOM tests.
 
-在 [基准测试](https://github.com/web-infra-dev/rstest/releases/tag/v0.11.6) 中，一个包含 1000 个测试用例的项目取得了以下收益：
+In a [benchmark](https://github.com/web-infra-dev/rstest/releases/tag/v0.11.6), a project with 1,000 test cases saw the following improvements:
 
-| 测试环境            | 原生加载 | 预打包  | 耗时降低  |
-| ------------------- | -------- | ------- | --------- |
-| `jsdom` 30.0.1      | 16.99 s  | 10.57 s | **37.8%** |
-| `happy-dom` 20.11.1 | 6.35 s   | 2.98 s  | **53.0%** |
+| Test environment    | Native loading | Prebundled | Time reduction |
+| ------------------- | -------------- | ---------- | -------------- |
+| `jsdom` 30.0.1      | 16.99 s        | 10.57 s    | **37.8%**      |
+| `happy-dom` 20.11.1 | 6.35 s         | 2.98 s     | **53.0%**      |
 
-该能力默认关闭，可通过 [`testEnvironment.prebundle`](https://rstest.rs/zh/config/test/test-environment#环境预打包) 开启：
+This feature is disabled by default and can be enabled through [`testEnvironment.prebundle`](https://rstest.rs/config/test/test-environment#environment-prebundling):
 
 ```ts title="rstest.config.ts"
 import { defineConfig } from '@rstest/core';
@@ -342,15 +342,15 @@ export default defineConfig({
 });
 ```
 
-设置为 `'auto'` 时，Rstest 只会预打包已验证兼容的环境版本；如果无法构建、加载或验证预打包产物，则会自动回退到原生加载。实际收益会因项目规模和运行环境而异。
+When set to `'auto'`, Rstest only prebundles environment versions that have been verified as compatible. If it cannot build, load, or verify the prebundled output, it automatically falls back to native loading. Actual improvements vary depending on project size and runtime environment.
 
 ### Rslint \{#rslint}
 
-#### 更多 Lint 规则 \{#typescript-eslint-support}
+#### More lint rules \{#typescript-eslint-support}
 
-Rslint 现在内置支持超过 500 条 lint 规则，并实现了 `@typescript-eslint` 的 [全部规则和预设](https://rslint.rs/api/presets/ts)。
+Rslint now includes more than 500 built-in lint rules and implements [all rules and presets](https://rslint.rs/api/presets/ts) from `@typescript-eslint`.
 
-例如，你可以通过 `recommendedTypeChecked` 预设来启用所有推荐的类型感知规则：
+For example, you can enable all recommended type-aware rules through the `recommendedTypeChecked` preset:
 
 ```ts title="rslint.config.ts"
 import { defineConfig, js, ts } from '@rslint/core';
@@ -361,9 +361,9 @@ export default defineConfig([
 ]);
 ```
 
-#### 配置类型提示 \{#config-type-hints}
+#### Configuration type hints \{#config-type-hints}
 
-`defineConfig` 现在为 ESLint core 和 `@typescript-eslint` 规则提供完整的类型提示，包括规则名称和选项类型。
+`defineConfig` now provides complete type hints for ESLint core and `@typescript-eslint` rules, including rule names and option types.
 
 ```ts title="rslint.config.ts"
 import { defineConfig } from '@rslint/core';
@@ -381,9 +381,9 @@ export default defineConfig([
 ]);
 ```
 
-#### 内置常用 globals \{#built-in-globals}
+#### Built-in common globals \{#built-in-globals}
 
-`@rslint/core` 现在默认导出 [globals](https://rslint.rs/api/configuration/globals) 对象，包含浏览器、Node.js 和 Rstest 等常用环境的全局变量定义：
+`@rslint/core` now exports a [globals](https://rslint.rs/api/configuration/globals) object by default, containing global variable definitions for common environments such as browsers, Node.js, and Rstest:
 
 ```ts title="rslint.config.ts"
 import { defineConfig, globals } from '@rslint/core';
@@ -399,7 +399,7 @@ export default defineConfig([
 
 #### JavaScript API \{#rslint-js-api}
 
-`@rslint/core` 现在提供了与 ESLint v10 形态对齐的 [JavaScript API](https://rslint.rs/guide/js-api)：
+`@rslint/core` now provides a [JavaScript API](https://rslint.rs/guide/js-api) aligned with ESLint v10:
 
 ```ts
 import { Rslint } from '@rslint/core';
@@ -410,64 +410,64 @@ const results = await rslint.lintFiles(['src/**/*.ts']);
 await Rslint.outputFixes(results);
 ```
 
-JavaScript API 也支持通过 `lintText` 检查内存中的源码，并使用 `virtualFiles` 提供配置、`tsconfig.json` 和项目文件，适合用于编辑器和 Playground 等不直接依赖磁盘文件的集成场景。
+The JavaScript API also supports linting in-memory source code through `lintText` and providing configuration, `tsconfig.json`, and project files through `virtualFiles`. This is useful for integrations such as editors and Playgrounds that do not directly rely on the file system.
 
 ### Rslib \{#rslib}
 
-#### 支持 TypeScript 7 \{#typescript-7}
+#### TypeScript 7 support \{#typescript-7}
 
-Rslib 0.23.2 支持使用 [TypeScript 7](https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/) 生成类型声明文件。安装 TypeScript 7 后，Rslib 会自动启用原生 TypeScript，类型声明文件生成速度可提升约 **5 至 10 倍**。
+Rslib 0.23.2 supports generating declaration files with [TypeScript 7](https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/). After you install TypeScript 7, Rslib automatically enables native TypeScript, making declaration file generation around **5-10x faster**.
 
 <PackageManagerTabs command="add typescript@latest -D" />
 
-#### Rslib 1.0 即将发布 \{#rslib-v1}
+#### Rslib 1.0 is coming soon \{#rslib-v1}
 
-[Rslib 1.0 RC](https://github.com/web-infra-dev/rslib/releases/tag/v1.0.0-rc.1) 版本现已发布，正式版也即将到来。如果你正在使用 Rslib 0.x，可以参考 [从 0.x 升级到 v1](https://v1.rslib.rs/zh/guide/upgrade/v0-to-v1) 指南，了解相关不兼容更新。
+[Rslib 1.0 RC](https://github.com/web-infra-dev/rslib/releases/tag/v1.0.0-rc.1) is now available, and the stable release is coming soon. If you are using Rslib 0.x, see the [Upgrade from 0.x to v1](https://v1.rslib.rs/guide/upgrade/v0-to-v1) guide for details about the breaking changes.
 
 ### Rspress \{#rspress}
 
-Rspress 在 [AFDocs](https://afdocs.dev/) Agent-friendly 评分中达到 100/100。
+Rspress received an Agent-friendly score of 100/100 from [AFDocs](https://afdocs.dev/).
 
-Rspress 通过 `llms.txt`、[SSG-MD](https://rspress.rs/zh/guide/basic/ssg-md)、`Accept: text/markdown` 和 `injectLlmsHint` 等能力，让 Agent 更容易发现、读取和理解文档。更多设计与实践可以参考 [怎样构建一个 Agent-friendly 的网站](https://rspress.rs/zh/blog/agent-friendly-website)。
+Capabilities such as `llms.txt`, [SSG-MD](https://rspress.rs/guide/basic/ssg-md), `Accept: text/markdown`, and `injectLlmsHint` make it easier for Agents to discover, read, and understand Rspress documentation. For more details about the design and practices behind these features, see [How to build an Agent-friendly website](https://rspress.rs/blog/agent-friendly-website).
 
 ![Rspress AFDocs scorecard](https://assets.rspack.rs/rspress/assets/rspress-afdocs-scorecard.png)
 
 ### Agent plugin \{#rstack-agent-plugin}
 
-Rstack 推出了基于 [Agent Plugins 1.0](https://agent-plugins.org/) 的 Rstack Agent Plugin，可以在 GitHub Copilot、Codex、Cursor 等所有支持该插件规范的 Agent 客户端中使用。
+Rstack has released the Rstack Agent Plugin based on [Agent Plugins 1.0](https://agent-plugins.org/). It works with any Agent client that supports the specification, including GitHub Copilot, Codex, and Cursor.
 
-只需安装一个插件，即可获得完整的 Rstack Skills 集合，让 Agent 更好地开发和维护 Rstack 项目。
+By installing a single plugin, you get the complete collection of Rstack Skills, helping Agents develop and maintain Rstack projects more effectively.
 
 ![Rstack Agent Plugin](https://assets.rspack.rs/rstack/assets/rstack-agent-plugin.png)
 
-安装方式：
+To install:
 
 <Prompt
-  title="一键安装 Rstack Agent Plugin"
-  description="复制这段 Prompt 发送给你的 Agent，即可安装插件。"
+  title="Install the Rstack Agent Plugin"
+  description="Copy this prompt and send it to your Agent to install the plugin."
   prompt="Install the Rstack Agent Plugin from https://github.com/rstackjs/agent-skills."
 />
 
-> 查看 [Rstack Agent Skills](https://github.com/rstackjs/agent-skills) 了解更多。
+> See [Rstack Agent Skills](https://github.com/rstackjs/agent-skills) to learn more.
 
-## 升级指南 \{#upgrade-guide}
+## Upgrade guide \{#upgrade-guide}
 
-### Wasm 插件 \{#wasm-plugin-breaking}
+### Wasm plugins \{#wasm-plugin-breaking}
 
-Rspack 2.2 将 `swc_core` 从 76 升级至 77，这改变了 SWC Wasm 插件边界上的 AST 序列化格式。基于旧版 SWC 构建的 Wasm 插件将无法继续加载，构建时会抛出如下错误：
+Rspack 2.2 upgrades `swc_core` from 76 to 77, changing the AST serialization format at the SWC Wasm plugin boundary. Wasm plugins built with an older version of SWC will no longer load, and builds will throw the following error:
 
 ```text
 The version of the SWC Wasm plugin you're using might not be compatible with 'builtin:swc-loader'.
 ```
 
-如果你正在使用 SWC Wasm 插件，请重新构建插件，或升级到兼容 SWC 77 的版本。可以在 [plugins.swc.rs](https://plugins.swc.rs/) 中查找与当前 Rspack 版本匹配的插件版本。
+If you use an SWC Wasm plugin, rebuild it or upgrade to a version compatible with SWC 77. You can find plugin versions that match your current Rspack version at [plugins.swc.rs](https://plugins.swc.rs/).
 
-> 详见：[常见问题 - SWC 插件版本不匹配](/errors/swc-plugin-version)。
+> See [FAQ - SWC plugin version mismatch](/errors/swc-plugin-version) for details.
 
-### RSC 插件 \{#rsc-plugin-use-preinit}
+### RSC plugin \{#rsc-plugin-use-preinit}
 
-此前，RSC 插件会包装客户端引用（Client Reference），并在渲染组件时插入 CSS `<link>` 标签。由于包装后的导出不再是原始的 Client Reference，某些导出形式可能无法保留 Client Reference 标识。
+Previously, the RSC plugin wrapped Client References and inserted CSS `<link>` tags when rendering components. Because the wrapped exports were no longer the original Client References, some export forms might not preserve the Client Reference marker.
 
-Rspack 2.2 不再包装客户端引用，而是通过 React 的 [`preinit`](https://react.dev/reference/react-dom/preinit) 加载客户端组件的 CSS。
+Rspack 2.2 no longer wraps Client References. Instead, it loads CSS for client components through React's [`preinit`](https://react.dev/reference/react-dom/preinit).
 
-这项调整改变了 RSC 中客户端组件 CSS 的加载方式，是一项针对 RSC 框架集成的破坏性变更。如果你正在集成 Rspack RSC 插件，请将 [`react-server-dom-rspack`](https://www.npmjs.com/package/react-server-dom-rspack) 同步升级到 `0.1.0`。
+This changes how CSS for client components is loaded in RSC and is a breaking change for RSC framework integrations. If you are integrating the Rspack RSC plugin, upgrade [`react-server-dom-rspack`](https://www.npmjs.com/package/react-server-dom-rspack) to `0.1.0` at the same time.
