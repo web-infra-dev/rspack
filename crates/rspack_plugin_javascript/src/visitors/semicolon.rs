@@ -72,9 +72,8 @@ pub fn collect(ast: &Ast<'_>, semicolons: &mut FxHashSet<u32>, tokens: &[Token])
   let mut collector = InsertedSemicolons::new(semicolons, tokens);
   for index in 0..ast.node_count() {
     let node = NodeId::from_raw_unchecked(index as u32);
-    let span = ast.span(node);
     match ast.node_kind(node) {
-      NodeKind::UpdateExpression => collector.semi(span),
+      NodeKind::UpdateExpression => collector.semi(ast.span(node)),
       NodeKind::ExpressionStatement
       | NodeKind::VariableDeclaration
       | NodeKind::ContinueStatement
@@ -87,7 +86,7 @@ pub fn collect(ast: &Ast<'_>, semicolons: &mut FxHashSet<u32>, tokens: &[Token])
       | NodeKind::ExportDefaultDeclaration
       | NodeKind::ExportAllDeclaration
       | NodeKind::DebuggerStatement
-      | NodeKind::PropertyDefinition => collector.post_semi(span),
+      | NodeKind::PropertyDefinition => collector.post_semi(ast.span(node)),
       _ => {}
     }
   }
