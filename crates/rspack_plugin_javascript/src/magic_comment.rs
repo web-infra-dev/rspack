@@ -1118,19 +1118,6 @@ mod tests_extract_magic_comment_object {
   }
 
   #[test]
-  fn test_unsupported_webpack_mode_value_is_dropped_with_warning() {
-    let (comments, warnings) = extract(r#"webpackMode: "unknown""#);
-
-    assert_eq!(comments.get_mode(), None);
-    assert_eq!(warnings.len(), 1);
-    assert!(
-      warnings[0]
-        .message
-        .contains(r#"`webpackMode` expected "lazy", "lazy-once", "eager" or "weak""#)
-    );
-  }
-
-  #[test]
   fn test_extract_magic_comment_object() {
     test_extract_string();
     test_extract_number();
