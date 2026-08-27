@@ -92,6 +92,8 @@ With [#14682](https://github.com/web-infra-dev/rspack/pull/14682), Rspack now ch
 
 In addition, [#14580](https://github.com/web-infra-dev/rspack/pull/14580) prevents page flicker caused by styles briefly disappearing during hot updates with `mini-css-extract-plugin`.
 
+<a id="compat-hashed-ids" />
+
 ### Shorter module IDs \{#compact-hashed-ids}
 
 Rspack can now generate shorter module and chunk IDs. The new `compact-hashed` strategy selects the shortest available prefix from a stable hash. Compared with `deterministic`, it reduces output size while preserving stable IDs and efficient runtime indexing.
