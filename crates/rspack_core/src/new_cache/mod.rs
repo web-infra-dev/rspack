@@ -5,7 +5,6 @@ mod cache_value;
 mod db;
 mod etag;
 mod file_cache_strategy;
-mod file_dependencies;
 mod idle_file_cache;
 mod memory_cache;
 mod meta;
@@ -20,13 +19,13 @@ pub use cache_key::CacheKey;
 pub use cache_value::CacheValue;
 pub use etag::Etag;
 pub use file_cache_strategy::FileCacheStrategy;
-pub(crate) use file_dependencies::FileDependencies;
 pub use idle_file_cache::IdleFileCache;
 pub use memory_cache::{MemoryCache, MemoryCacheGetResult};
 pub use meta::Meta;
 use rspack_fs::ReadableFileSystem;
+pub use snapshot::FileSystemInfo;
+pub(crate) use snapshot::{Snapshot, SnapshotValidationResult};
 
-use self::snapshot::FileSystemInfo;
 use crate::{CompilationLogger, CompilationLogging, CompilerOptions, cache::CacheCodec};
 
 pub fn create_cache(

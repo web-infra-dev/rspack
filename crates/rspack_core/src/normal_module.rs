@@ -412,6 +412,7 @@ impl Module for NormalModule {
         options: compiler_options,
         fs: fs.clone(),
         loader_cache: build_context.loader_cache,
+        loader_cache_file_system_info: build_context.loader_cache_file_system_info,
         resolver_factory,
         source_map_kind: self.source_map_kind,
         module: self,

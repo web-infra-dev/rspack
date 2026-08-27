@@ -96,7 +96,7 @@ use crate::{
   legacy_cache::persistent::occasion::{
     devtool::SourceMapDevToolPluginCache, minimize::MinimizePersistentCache,
   },
-  new_cache::{Cache, CacheFacade},
+  new_cache::{Cache, CacheFacade, FileSystemInfo},
   to_identifier,
 };
 
@@ -238,6 +238,7 @@ pub struct Compilation {
   diagnostics: Vec<Diagnostic>,
   logging: CompilationLogging,
   cache: Cache,
+  loader_cache_file_system_info: FileSystemInfo,
   pub plugin_driver: SharedPluginDriver,
   pub buildtime_plugin_driver: SharedPluginDriver,
   pub resolver_factory: Arc<ResolverFactory>,
@@ -357,6 +358,15 @@ impl Compilation {
     is_rebuild: bool,
     compiler_context: Arc<CompilerContext>,
   ) -> Self {
+    let loader_cache_file_system_info = FileSystemInfo::new(
+      input_filesystem.clone(),
+      CompilationLogger::new(
+        "rspack.LoaderCacheFileSystemInfo".to_string(),
+        logging.clone(),
+      ),
+      crate::cache::SnapshotOptions::default(),
+      options.output.hash_function,
+    );
     Self {
       id: CompilationId::new(),
       compiler_id,
@@ -378,6 +388,7 @@ impl Compilation {
       diagnostics: Default::default(),
       logging,
       cache,
+      loader_cache_file_system_info,
       plugin_driver,
       buildtime_plugin_driver,
       resolver_factory,
@@ -447,6 +458,10 @@ impl Compilation {
 
   pub fn get_cache(&self, name: &str) -> CacheFacade {
     self.cache.facade(name)
+  }
+
+  pub fn loader_cache_file_system_info(&self) -> FileSystemInfo {
+    self.loader_cache_file_system_info.clone()
   }
 
   pub fn id(&self) -> CompilationId {
