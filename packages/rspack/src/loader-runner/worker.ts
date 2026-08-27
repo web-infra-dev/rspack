@@ -109,6 +109,16 @@ async function loaderImpl(
   loaderContext.clearDependencies = function clearDependencies() {
     pendingDependencyRequest.push(sendRequest(RequestType.ClearDependencies));
   };
+
+  const beginDependencyChanges = () =>
+    sendRequest(RequestType.BeginDependencyChanges);
+  const mergeDependencyChanges = async () => {
+    if (pendingDependencyRequest.length > 0) {
+      waitForPendingRequest(pendingDependencyRequest);
+      pendingDependencyRequest.length = 0;
+    }
+    await sendRequest(RequestType.MergeDependencyChanges);
+  };
   loaderContext.resolve = function resolve(context, request, callback) {
     sendRequest(RequestType.Resolve, context, request).then(
       ([result, resolveRequest]) => {
@@ -504,42 +514,54 @@ async function loaderImpl(
           continue;
         }
 
-        if (currentLoaderObject.loaderItem.cache) {
-          waitForPendingRequest(pendingDependencyRequest);
-          const hit = await sendRequest(
-            RequestType.LoaderCacheGet,
-            loaderContext.loaderIndex,
-            args[0],
-            args[2],
-          );
-          if (hit) {
-            currentLoaderObject.normalExecuted = true;
-            args = [
-              typeof hit.content === 'string'
-                ? hit.content
-                : hit.content && Buffer.from(hit.content),
-              hit.sourceMap ? toObject(Buffer.from(hit.sourceMap)) : undefined,
-              undefined,
-            ];
-            continue;
-          }
+        const trackDependencies = currentLoaderObject.loaderItem.cache;
+        if (trackDependencies) {
+          await beginDependencyChanges();
         }
+        try {
+          if (currentLoaderObject.loaderItem.cache) {
+            waitForPendingRequest(pendingDependencyRequest);
+            const hit = await sendRequest(
+              RequestType.LoaderCacheGet,
+              loaderContext.loaderIndex,
+              args[0],
+              args[2],
+            );
+            if (hit) {
+              currentLoaderObject.normalExecuted = true;
+              args = [
+                typeof hit.content === 'string'
+                  ? hit.content
+                  : hit.content && Buffer.from(hit.content),
+                hit.sourceMap
+                  ? toObject(Buffer.from(hit.sourceMap))
+                  : undefined,
+                undefined,
+              ];
+              continue;
+            }
+          }
 
-        await loadLoaderAsync(currentLoaderObject, loaderContext._compiler);
-        const fn = currentLoaderObject.normal;
-        currentLoaderObject.normalExecuted = true;
-        if (!fn) continue;
-        convertArgs(args, !!currentLoaderObject.raw);
-        args = (await runSyncOrAsync(fn, loaderContext, args)) || [];
-        if (currentLoaderObject.loaderItem.cache) {
-          waitForPendingRequest(pendingDependencyRequest);
-          await sendRequest(
-            RequestType.LoaderCacheStore,
-            loaderContext.loaderIndex,
-            args[0],
-            serializeObject(args[1]),
-            args[2],
-          );
+          await loadLoaderAsync(currentLoaderObject, loaderContext._compiler);
+          const fn = currentLoaderObject.normal;
+          currentLoaderObject.normalExecuted = true;
+          if (!fn) continue;
+          convertArgs(args, !!currentLoaderObject.raw);
+          args = (await runSyncOrAsync(fn, loaderContext, args)) || [];
+          if (currentLoaderObject.loaderItem.cache) {
+            waitForPendingRequest(pendingDependencyRequest);
+            await sendRequest(
+              RequestType.LoaderCacheStore,
+              loaderContext.loaderIndex,
+              args[0],
+              serializeObject(args[1]),
+              args[2],
+            );
+          }
+        } finally {
+          if (trackDependencies) {
+            await mergeDependencyChanges();
+          }
         }
       }
     }

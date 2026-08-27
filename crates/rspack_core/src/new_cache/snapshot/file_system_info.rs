@@ -1,17 +1,11 @@
-use std::{
-  collections::VecDeque,
-  fmt,
-  sync::{
-    Arc,
-    atomic::{AtomicU64, Ordering},
-  },
-};
+use std::{collections::VecDeque, fmt, sync::Arc};
 
 use rspack_error::{Result, error};
 use rspack_fs::{Error as FsError, FileMetadata, ReadableFileSystem};
 use rspack_hash::{HashDigest, HashFunction, RspackHashDigest, RspackHasher};
 use rspack_parallel::TryFutureConsumer;
 use rspack_paths::{AssertUtf8, InternedPath, InternedPathDashMap, InternedPathSet};
+use rspack_util::time::mtime_accuracy;
 use simd_json::prelude::{ValueAsScalar, ValueObjectAccess};
 
 use super::{
@@ -22,8 +16,6 @@ use crate::{
   CompilationLogger,
   cache::{BuildDependencyHelper, SnapshotOptions, SnapshotStrategyOptions, is_node_package_path},
 };
-
-static FS_ACCURACY: AtomicU64 = AtomicU64::new(2000);
 
 #[derive(Debug, Default)]
 pub struct ResolvedBuildDependencies {
@@ -434,7 +426,7 @@ impl FileSystemInfo {
         }
       } else {
         let timestamp = metadata.mtime_ms;
-        let accuracy = apply_mtime(timestamp);
+        let accuracy = mtime_accuracy(timestamp);
         FileSystemInfoEntry {
           safe_time: if timestamp == 0 {
             u64::MAX
@@ -968,30 +960,6 @@ fn record_invalid(
     modified_files.insert(path.clone());
   } else {
     removed_files.insert(path.clone());
-  }
-}
-
-fn apply_mtime(mtime: u64) -> u64 {
-  let mut accuracy = FS_ACCURACY.load(Ordering::Relaxed);
-  loop {
-    let next = if accuracy > 1 && !mtime.is_multiple_of(2) {
-      1
-    } else if accuracy > 10 && !mtime.is_multiple_of(20) {
-      10
-    } else if accuracy > 100 && !mtime.is_multiple_of(200) {
-      100
-    } else if accuracy > 1000 && !mtime.is_multiple_of(2000) {
-      1000
-    } else {
-      accuracy
-    };
-    if next == accuracy {
-      return accuracy;
-    }
-    match FS_ACCURACY.compare_exchange_weak(accuracy, next, Ordering::Relaxed, Ordering::Relaxed) {
-      Ok(_) => return next,
-      Err(current) => accuracy = current,
-    }
   }
 }
 

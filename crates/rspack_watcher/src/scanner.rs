@@ -1,10 +1,10 @@
 use std::{ops::Deref, sync::Arc, time::SystemTime};
 
 use rspack_paths::{InternedPath, InternedPathDashSet};
+use rspack_util::time::{mtime_safe_time, system_time_to_millis};
 use tokio::sync::mpsc::UnboundedSender;
 
-use super::{FsEvent, FsEventKind, PathManager};
-use crate::{EventBatch, time_info};
+use super::{EventBatch, FsEvent, FsEventKind, PathManager};
 
 // Scanner will scann the path whether it is exist or not in disk on initialization
 pub struct Scanner {
@@ -133,7 +133,7 @@ fn scan_path_events(
 }
 
 /// Whether `path`'s current on-disk mtime is at or after `start_time`, using
-/// watchpack's accuracy padding ([`time_info::safe_time`]) so a change hidden by
+/// watchpack's accuracy padding ([`mtime_safe_time`]) so a change hidden by
 /// coarse mtime granularity is still caught. A failed stat (missing/unreadable)
 /// counts as unchanged.
 fn changed_since(path: &InternedPath, start_time: SystemTime) -> bool {
@@ -143,8 +143,7 @@ fn changed_since(path: &InternedPath, start_time: SystemTime) -> bool {
   else {
     return false;
   };
-  time_info::safe_time(time_info::system_time_to_millis(mtime))
-    >= time_info::system_time_to_millis(start_time)
+  mtime_safe_time(system_time_to_millis(mtime)) >= system_time_to_millis(start_time)
 }
 
 #[cfg(test)]

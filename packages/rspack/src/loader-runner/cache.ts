@@ -1,18 +1,25 @@
 import type { JsLoaderContext } from '@rspack/binding';
 
 import { isNil } from '../util';
+import {
+  type LoaderDependencies,
+  LoaderDependenciesState,
+} from './dependencies';
 
 type LoaderCacheContent = string | Uint8Array;
 
 export type LoaderCacheEntry = {
   content: LoaderCacheContent | null;
   sourceMap?: Uint8Array;
+  addedDependencies: LoaderDependencies;
+  removedDependencies: LoaderDependencies;
 };
 
 type LoaderCacheApi = {
   get(
     loaderIndex: number,
     content: LoaderCacheContent,
+    existing: LoaderDependencies,
   ): LoaderCacheEntry | null;
   store(loaderIndex: number, output: LoaderCacheEntry): void;
 };
@@ -20,10 +27,12 @@ type LoaderCacheApi = {
 export class LoaderCache {
   readonly #api: LoaderCacheApi;
   readonly #context: JsLoaderContext;
+  readonly #dependencies: LoaderDependenciesState;
 
-  constructor(context: JsLoaderContext) {
+  constructor(context: JsLoaderContext, dependencies: LoaderDependenciesState) {
     this.#context = context;
     this.#api = (context as any).__internal__loaderCache as LoaderCacheApi;
+    this.#dependencies = dependencies;
   }
 
   get(
@@ -38,12 +47,22 @@ export class LoaderCache {
       !loader ||
       isNil(content) ||
       !isNil(additionalData) ||
-      Object.keys(context.__internal__parseMeta).length > 0
+      Object.keys(context.__internal__parseMeta).length > 0 ||
+      this.#dependencies.contextDependencies().length > 0 ||
+      this.#dependencies.missingDependencies().length > 0
     ) {
       return undefined;
     }
 
-    return this.#api.get(loaderIndex, content);
+    const hit = this.#api.get(
+      loaderIndex,
+      content,
+      this.#dependencies.existing,
+    );
+    if (hit) {
+      this.#dependencies.addDependencies(hit.addedDependencies);
+    }
+    return hit;
   }
 
   store(
@@ -64,6 +83,8 @@ export class LoaderCache {
     this.#api.store(loaderIndex, {
       content: isNil(content) ? null : content,
       sourceMap,
+      addedDependencies: this.#dependencies.added,
+      removedDependencies: this.#dependencies.removed,
     });
   }
 

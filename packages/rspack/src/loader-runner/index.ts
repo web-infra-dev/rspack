@@ -55,6 +55,7 @@ import {
 import { memoize } from '../util/memoize';
 import { ModuleError, ModuleWarning } from './ModuleError';
 import { LoaderCache, type LoaderCacheEntry } from './cache';
+import { LoaderDependenciesState } from './dependencies';
 import * as pool from './service';
 import { type HandleIncomingRequest, RequestType } from './service';
 import {
@@ -264,12 +265,9 @@ export async function runLoaders(
   const contextDirectory = resourcePath ? dirname(resourcePath) : null;
 
   // execution state
-  const fileDependencies = context.fileDependencies;
-  const contextDependencies = context.contextDependencies;
-  const missingDependencies = context.missingDependencies;
-  const buildDependencies = context.buildDependencies;
+  const dependencies = new LoaderDependenciesState(context.dependencies);
   const loaderCache = context.__internal__loaderCache
-    ? new LoaderCache(context)
+    ? new LoaderCache(context, dependencies)
     : undefined;
 
   /// Construct `loaderContext`
@@ -286,30 +284,28 @@ export async function runLoaders(
   loaderContext.resourceFragment = resourceFragment!;
   loaderContext.dependency = loaderContext.addDependency =
     function addDependency(file) {
-      fileDependencies.push(file);
+      dependencies.addFile(file);
     };
   loaderContext.addContextDependency = function addContextDependency(context) {
-    contextDependencies.push(context);
+    dependencies.addContext(context);
   };
   loaderContext.addMissingDependency = function addMissingDependency(context) {
-    missingDependencies.push(context);
+    dependencies.addMissing(context);
   };
   loaderContext.addBuildDependency = function addBuildDependency(file) {
-    buildDependencies.push(file);
+    dependencies.addBuild(file);
   };
   loaderContext.getDependencies = function getDependencies() {
-    return fileDependencies.slice();
+    return dependencies.fileDependencies();
   };
   loaderContext.getContextDependencies = function getContextDependencies() {
-    return contextDependencies.slice();
+    return dependencies.contextDependencies();
   };
   loaderContext.getMissingDependencies = function getMissingDependencies() {
-    return missingDependencies.slice();
+    return dependencies.missingDependencies();
   };
   loaderContext.clearDependencies = function clearDependencies() {
-    fileDependencies.length = 0;
-    contextDependencies.length = 0;
-    missingDependencies.length = 0;
+    dependencies.clearDependencies();
     context.cacheable = true;
   };
 
@@ -709,6 +705,7 @@ export async function runLoaders(
       );
     }
   }
+  dependencies.mergeChanges();
 
   /// Sync with `context`
   Object.defineProperty(loaderContext, 'loaderIndex', {
@@ -844,6 +841,16 @@ export async function runLoaders(
           }
           case RequestType.ClearDependencies: {
             loaderContext.clearDependencies();
+            break;
+          }
+          case RequestType.BeginDependencyChanges: {
+            // Commit dependencies from preceding uncached worker loaders before
+            // starting the per-loader state needed by a cached loader.
+            dependencies.mergeChanges();
+            break;
+          }
+          case RequestType.MergeDependencyChanges: {
+            dependencies.mergeChanges();
             break;
           }
           case RequestType.Resolve: {
@@ -1053,11 +1060,17 @@ export async function runLoaders(
           }
           if (!fn) continue;
 
-          const args = await isomorphoicRun(fn, [
-            loaderContext.remainingRequest,
-            loaderContext.previousRequest,
-            currentLoaderObject.loaderItem.data,
-          ]);
+          dependencies.resetChanges();
+          let args: any[];
+          try {
+            args = await isomorphoicRun(fn, [
+              loaderContext.remainingRequest,
+              loaderContext.previousRequest,
+              currentLoaderObject.loaderItem.data,
+            ]);
+          } finally {
+            dependencies.mergeChanges();
+          }
 
           const hasArg = args.some((value: any) => value !== undefined);
 
@@ -1091,51 +1104,58 @@ export async function runLoaders(
             continue;
           }
 
-          const cached: LoaderCacheEntry | null | undefined =
-            !parallelism && currentLoaderObject.loaderItem.cache && loaderCache
-              ? loaderCache.get(
-                  loaderContext.loaderIndex,
-                  content,
-                  additionalData,
-                )
-              : undefined;
-          if (cached) {
-            currentLoaderObject.normalExecuted = true;
-            content = cached.content;
-            sourceMap = JsSourceMap.__from_binding(cached.sourceMap);
-            sourceMapParsed = true;
-            loaderContext.loaderIndex--;
-            continue;
-          }
+          dependencies.resetChanges();
+          try {
+            const cached: LoaderCacheEntry | null | undefined =
+              !parallelism &&
+              currentLoaderObject.loaderItem.cache &&
+              loaderCache
+                ? loaderCache.get(
+                    loaderContext.loaderIndex,
+                    content,
+                    additionalData,
+                  )
+                : undefined;
+            if (cached) {
+              currentLoaderObject.normalExecuted = true;
+              content = cached.content;
+              sourceMap = JsSourceMap.__from_binding(cached.sourceMap);
+              sourceMapParsed = true;
+              loaderContext.loaderIndex--;
+              continue;
+            }
 
-          await loadLoader(currentLoaderObject, compiler);
-          const fn = currentLoaderObject.normal;
-          // If parallelism is enabled,
-          // we delegate the current loader to use the runner in worker.
-          if (!parallelism || !fn) {
-            currentLoaderObject.normalExecuted = true;
-          }
-          if (!fn) continue;
+            await loadLoader(currentLoaderObject, compiler);
+            const fn = currentLoaderObject.normal;
+            // If parallelism is enabled,
+            // we delegate the current loader to use the runner in worker.
+            if (!parallelism || !fn) {
+              currentLoaderObject.normalExecuted = true;
+            }
+            if (!fn) continue;
 
-          // Parse source map lazily only when a JavaScript loader consumes it.
-          if (!sourceMapParsed) {
-            sourceMap = JsSourceMap.__from_binding(rawSourceMap);
-            sourceMapParsed = true;
-          }
+            // Parse source map lazily only when a JavaScript loader consumes it.
+            if (!sourceMapParsed) {
+              sourceMap = JsSourceMap.__from_binding(rawSourceMap);
+              sourceMapParsed = true;
+            }
 
-          [content, sourceMap, additionalData] = await isomorphoicRun(fn, [
-            content,
-            sourceMap,
-            additionalData,
-          ]);
-
-          if (cached === null) {
-            loaderCache?.store(
-              loaderContext.loaderIndex,
+            [content, sourceMap, additionalData] = await isomorphoicRun(fn, [
               content,
-              JsSourceMap.__to_binding(sourceMap),
+              sourceMap,
               additionalData,
-            );
+            ]);
+
+            if (cached === null) {
+              loaderCache?.store(
+                loaderContext.loaderIndex,
+                content,
+                JsSourceMap.__to_binding(sourceMap),
+                additionalData,
+              );
+            }
+          } finally {
+            dependencies.mergeChanges();
           }
         }
 

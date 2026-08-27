@@ -124,6 +124,8 @@ export enum RequestType {
   GetContextDependencies = 'GetContextDependencies',
   GetMissingDependencies = 'GetMissingDependencies',
   ClearDependencies = 'ClearDependencies',
+  BeginDependencyChanges = 'BeginDependencyChanges',
+  MergeDependencyChanges = 'MergeDependencyChanges',
   Resolve = 'Resolve',
   GetResolve = 'GetResolve',
   GetLogger = 'GetLogger',
