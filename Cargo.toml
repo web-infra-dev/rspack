@@ -511,6 +511,18 @@ lto           = false
 opt-level = 2
 strip     = false
 
+# CI uses many codegen units without LTO, which makes semantic syntax checking's
+# generated AST visitor and regular-expression validator disproportionately
+# inflate the size artifact. Compile that path for size here; release keeps
+# opt-level 3 so the semantic walk does not regress runtime performance.
+[profile.ci.package.swc_next_ecma_semantic]
+codegen-units = 1
+opt-level     = "z"
+
+[profile.ci.package.swc_next_regular_expression]
+codegen-units = 1
+opt-level     = "z"
+
 # This is for production for profiling production build
 [profile.profiling]
 debug           = "limited"

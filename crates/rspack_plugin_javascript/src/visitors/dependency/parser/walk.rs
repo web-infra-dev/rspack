@@ -1776,7 +1776,7 @@ impl JavascriptParser<'_> {
       let (member_info, await_import_member) =
         self.get_member_expression_info_and_await_import(member, AllowedMemberTypes::all());
       match member_info {
-        Some(MemberExpressionInfo::Call(expr_info)) => {
+        Some(MemberExpressionInfo::Call(expr_info))
           if expr_info
             .root_info
             .call_hooks_name(self, |this, for_name| {
@@ -1793,11 +1793,11 @@ impl JavascriptParser<'_> {
                   for_name,
                 )
             })
-            .unwrap_or_default()
-          {
-            return;
-          }
+            .unwrap_or_default() =>
+        {
+          return;
         }
+        Some(MemberExpressionInfo::Call(_)) => {}
         Some(MemberExpressionInfo::Expression(expr_info)) => {
           callee_expression_info = Some(expr_info);
         }
