@@ -503,6 +503,10 @@ pub struct JavascriptParser<'parser> {
   // ===== states =======
   pub(crate) definitions_db: WebpackVariableEnvironment,
   pub(crate) definitions: ScopeInfoId,
+  /// Canonical variable info shared by ordinary semantic bindings. Webpack
+  /// metadata is allocated separately only for aliases, tags, and dynamic
+  /// overrides.
+  semantic_normal_variable: VariableInfoId,
   // Semantic symbols are the authoritative keys for lexical references.
   // Values point into the Rspack overlay that carries webpack-specific tags
   // and aliases; unresolved/dynamic names use the webpack environment.
@@ -676,6 +680,9 @@ impl<'parser> JavascriptParser<'parser> {
     let plugin_drive = Rc::new(JavaScriptParserPluginDrive::new(plugins));
     let mut db = WebpackVariableEnvironment::new();
     let (semantic_scopes_by_node, current_semantic_scope) = Self::semantic_scope_state(ast);
+    let definitions = db.create();
+    let semantic_normal_variable =
+      VariableInfo::create(&mut db, definitions, None, VariableInfoFlags::NORMAL, None);
 
     Self {
       last_esm_import_order: 0,
@@ -693,8 +700,9 @@ impl<'parser> JavascriptParser<'parser> {
       top_level_scope: TopLevelScope::Top,
       is_esm: matches!(module_type, ModuleType::JsEsm),
       in_tagged_template_tag: false,
-      definitions: db.create(),
+      definitions,
       definitions_db: db,
+      semantic_normal_variable,
       semantic_variables: Default::default(),
       semantic_variable_overrides: Default::default(),
       semantic_scopes_by_node,
@@ -1011,13 +1019,7 @@ impl<'parser> JavascriptParser<'parser> {
     if let Some(id) = self.semantic_variables[index] {
       return id;
     }
-    let id = VariableInfo::create(
-      &mut self.definitions_db,
-      self.definitions,
-      None,
-      VariableInfoFlags::NORMAL,
-      None,
-    );
+    let id = self.semantic_normal_variable;
     self.semantic_variables[index] = Some(id);
     id
   }

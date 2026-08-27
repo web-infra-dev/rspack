@@ -91,6 +91,10 @@ struct Binding {
 #[derive(Debug)]
 pub struct WebpackVariableEnvironment {
   map: Vec<ScopeInfo>,
+  /// Names introduced along the active scope path. Child scopes append to the
+  /// log and truncate it on exit, so scopes do not each retain a `Vec` header
+  /// and allocation for their definitions.
+  defined: Vec<Atom>,
   /// For each name, the stack of active bindings, innermost last.
   bindings: FxHashMap<Atom, SmallVec<[Binding; 2]>>,
   /// The innermost active scope, used to validate the stack discipline.
@@ -109,6 +113,7 @@ impl WebpackVariableEnvironment {
   pub fn new() -> Self {
     Self {
       map: Vec::new(),
+      defined: Vec::new(),
       bindings: FxHashMap::default(),
       current: None,
       variable_info_db: VariableInfoDB::new(),
@@ -124,7 +129,7 @@ impl WebpackVariableEnvironment {
     let info = ScopeInfo {
       is_strict,
       parent,
-      defined: Vec::new(),
+      defined_start: u32::try_from(self.defined.len()).expect("too many scoped definitions"),
     };
     let id = ScopeInfoId::from_index(self.map.len());
     self.map.push(info);
@@ -153,10 +158,10 @@ impl WebpackVariableEnvironment {
       Some(id),
       "only the innermost active scope can be exited"
     );
-    let scope = self.expect_get_mut_scope(id);
-    let defined = std::mem::take(&mut scope.defined);
+    let scope = self.expect_get_scope(id);
+    let defined_start = scope.defined_start as usize;
     self.current = scope.parent;
-    for key in &defined {
+    for key in &self.defined[defined_start..] {
       if let Some(stack) = self.bindings.get_mut(key)
         && let Some(top) = stack.last()
         && top.scope == id
@@ -164,9 +169,7 @@ impl WebpackVariableEnvironment {
         stack.pop();
       }
     }
-    // Keep the names for `scope_variables` of scopes that are re-read after
-    // walking (only the root scope in practice, which is never exited).
-    self.expect_get_mut_scope(id).defined = defined;
+    self.defined.truncate(defined_start);
   }
 
   pub fn expect_get_scope(&self, id: ScopeInfoId) -> &ScopeInfo {
@@ -293,7 +296,7 @@ impl WebpackVariableEnvironment {
       value: variable_info_id,
       semantic_symbol: None,
     });
-    self.expect_get_mut_scope(id).defined.push(key);
+    self.defined.push(key);
     None
   }
 
@@ -301,19 +304,22 @@ impl WebpackVariableEnvironment {
     self.set(id, key.clone(), VariableInfoId::tombstone())
   }
 
-  /// The variables bound in scope `id` itself (not in enclosing scopes).
-  /// `id` must be an active scope.
+  /// The variables bound in the innermost active scope `id` itself (not in
+  /// enclosing scopes).
   pub fn scope_variables(&self, id: ScopeInfoId) -> impl Iterator<Item = (&Atom, VariableInfoId)> {
+    debug_assert_eq!(self.current, Some(id));
     let scope = self.expect_get_scope(id);
-    scope.defined.iter().filter_map(move |name| {
-      let binding = self
-        .bindings
-        .get(name)?
-        .iter()
-        .rev()
-        .find(|binding| binding.scope == id)?;
-      (binding.value != VariableInfoId::tombstone()).then_some((name, binding.value))
-    })
+    self.defined[scope.defined_start as usize..]
+      .iter()
+      .filter_map(move |name| {
+        let binding = self
+          .bindings
+          .get(name)?
+          .iter()
+          .rev()
+          .find(|binding| binding.scope == id)?;
+        (binding.value != VariableInfoId::tombstone()).then_some((name, binding.value))
+      })
   }
 }
 
@@ -447,8 +453,8 @@ impl VariableInfo {
 #[derive(Debug)]
 pub struct ScopeInfo {
   parent: Option<ScopeInfoId>,
-  /// Names bound in this scope, in definition order.
-  defined: Vec<Atom>,
+  /// Start of this scope's names in `WebpackVariableEnvironment::defined`.
+  defined_start: u32,
   pub is_strict: bool,
 }
 
