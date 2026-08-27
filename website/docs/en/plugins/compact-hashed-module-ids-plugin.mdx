@@ -1,0 +1,46 @@
+---
+description: 'CompactHashedModuleIdsPlugin assigns compact ids using the shortest available prefixes of stable alphanumeric hashes to shrink bundles and speed runtime indexing'
+---
+
+import { ApiMeta } from '@components/ApiMeta.tsx';
+
+# CompactHashedModuleIdsPlugin
+
+<ApiMeta specific={['Rspack']} addedVersion="2.2.1" />
+
+`CompactHashedModuleIdsPlugin` hashes module identifiers and assigns the shortest available prefix of each encoded hash. Compared with `deterministic`, it produces more compact ids that preserve stability while reducing bundle size and improving runtime indexing performance. The first character uses `a-zA-Z`, and subsequent characters use `a-zA-Z0-9`. An id is extended only when its shorter prefix is already used.
+
+:::warning Deprecated alias
+`CompatHashedModuleIdsPlugin` was available in Rspack 2.2.0. It is deprecated and was renamed to `CompactHashedModuleIdsPlugin` in Rspack 2.2.1. The old name remains available as a compatibility alias.
+:::
+
+:::warning
+The generated module ids are case-sensitive and may contain uppercase letters. On case-insensitive file systems, avoid using `[id]` as the only distinguishing placeholder in [Asset module filenames](/config/output#outputassetmodulefilename) or [WebAssembly module filenames](/config/output#outputwebassemblymodulefilename). Prefer `[contenthash]`, or include it alongside `[id]`.
+:::
+
+[`optimization.moduleIds: 'compact-hashed'`](/config/optimization#optimizationmoduleids) uses this plugin internally. Use the plugin directly when you need to customize the minimum encoded id length.
+
+```js title="rspack.config.mjs"
+import rspack from '@rspack/core';
+
+export default {
+  optimization: {
+    moduleIds: false,
+  },
+  plugins: [
+    new rspack.ids.CompactHashedModuleIdsPlugin({
+      minLength: 1,
+    }),
+  ],
+};
+```
+
+## Options
+
+### minLength
+
+- **Type:** `number`
+- **Default:** `1`
+- **Range:** Integer from `1` to `11`
+
+The minimum encoded id length. Rspack extends an id one character at a time when its hash prefix is already used. Increasing `minLength` expands the initial id space, reducing prefix collisions and making generated output and caching more stable. The tradeoff is that module ids become longer.

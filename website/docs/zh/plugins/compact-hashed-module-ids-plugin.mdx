@@ -1,0 +1,46 @@
+---
+description: 'CompactHashedModuleIdsPlugin 使用稳定字母数字 hash 的最短可用前缀生成紧凑模块 id，兼顾长期缓存、产物体积和运行时索引性能'
+---
+
+import { ApiMeta } from '@components/ApiMeta.tsx';
+
+# CompactHashedModuleIdsPlugin
+
+<ApiMeta specific={['Rspack']} addedVersion="2.2.1" />
+
+`CompactHashedModuleIdsPlugin` 会对模块标识符计算 hash，并分配编码后 hash 的最短可用前缀。与 `deterministic` 相比，它生成的 id 更紧凑，在保持稳定性的同时，可以减小产物体积并提升运行时索引性能。首字符使用 `a-zA-Z`，后续字符使用 `a-zA-Z0-9`。只有较短前缀已被使用时，才会延长 id。
+
+:::warning 已废弃的别名
+`CompatHashedModuleIdsPlugin` 可在 Rspack 2.2.0 中使用，现已废弃，并于 Rspack 2.2.1 更名为 `CompactHashedModuleIdsPlugin`。旧名称目前仅作为兼容别名保留。
+:::
+
+:::warning
+生成的模块 id 区分大小写且可能包含大写字母。在大小写不敏感的文件系统上，不要在 [Asset module 文件名](/config/output#outputassetmodulefilename)或 [WebAssembly 模块文件名](/config/output#outputwebassemblymodulefilename)中仅使用 `[id]` 进行区分。请优先使用 `[contenthash]`，或将其与 `[id]` 一起使用。
+:::
+
+[`optimization.moduleIds: 'compact-hashed'`](/config/optimization#optimizationmoduleids) 内部会使用该插件。只有在需要自定义编码后 id 的最小长度时，才需要直接使用该插件。
+
+```js title="rspack.config.mjs"
+import rspack from '@rspack/core';
+
+export default {
+  optimization: {
+    moduleIds: false,
+  },
+  plugins: [
+    new rspack.ids.CompactHashedModuleIdsPlugin({
+      minLength: 1,
+    }),
+  ],
+};
+```
+
+## 选项
+
+### minLength
+
+- **类型：** `number`
+- **默认值：** `1`
+- **取值范围：** `1` 到 `11` 的整数
+
+编码后 id 的最小长度。如果 hash 前缀已经被使用，Rspack 会逐个字符延长该 id。增大 `minLength` 会扩大初始 id 空间，降低前缀冲突的概率，使产物和缓存更加稳定；相应地，模块 id 也会变长。

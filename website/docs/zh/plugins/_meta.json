@@ -17,8 +17,8 @@
     "type": "section-header",
     "label": "构建优化"
   },
-  "compat-hashed-chunk-ids-plugin",
-  "compat-hashed-module-ids-plugin",
+  "compact-hashed-chunk-ids-plugin",
+  "compact-hashed-module-ids-plugin",
   "css-chunking-plugin",
   "deterministic-module-ids-plugin",
   "dll-plugin",

@@ -57,6 +57,14 @@ define.doc(async () => {
       pluginClientRedirects({
         redirects: [
           {
+            from: '^(/zh)?/plugins/compat-hashed-chunk-ids-plugin/?$',
+            to: '$1/plugins/compact-hashed-chunk-ids-plugin',
+          },
+          {
+            from: '^(/zh)?/plugins/compat-hashed-module-ids-plugin/?$',
+            to: '$1/plugins/compact-hashed-module-ids-plugin',
+          },
+          {
             from: '^(/zh)?/plugins/webpack/warn-case-sensitive-modules-plugin/?$',
             to: '$1/plugins/case-sensitive-plugin',
           },
