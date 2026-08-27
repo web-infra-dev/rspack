@@ -341,6 +341,7 @@ impl JavascriptParser<'_> {
           this.prev_statement = prev;
         }
       }
+      this.activate_semantic_scope_bindings();
       for id in cases.iter() {
         let case = ast.get_node_in_sub_range(id);
         if let Some(test) = case.test(ast) {
@@ -440,6 +441,7 @@ impl JavascriptParser<'_> {
             ForStatementInitData::VariableDeclaration(decl) => {
               let decl = VariableDeclaration(decl);
               this.block_pre_walk_variable_declaration(decl);
+              this.activate_semantic_scope_bindings();
               this.prev_statement = None;
               this.walk_variable_declaration(decl);
             }
@@ -458,6 +460,7 @@ impl JavascriptParser<'_> {
           this.in_semantic_scope(body.node_id(), |this| {
             let prev = this.prev_statement;
             this.block_pre_walk_statements(statements);
+            this.activate_semantic_scope_bindings();
             this.prev_statement = prev;
             this.walk_statements(statements);
           });
@@ -484,6 +487,7 @@ impl JavascriptParser<'_> {
           this.in_semantic_scope(body.node_id(), |this| {
             let prev = this.prev_statement;
             this.block_pre_walk_statements(statements);
+            this.activate_semantic_scope_bindings();
             this.prev_statement = prev;
             this.walk_statements(statements);
           });
@@ -510,6 +514,7 @@ impl JavascriptParser<'_> {
           this.in_semantic_scope(body.node_id(), |this| {
             let prev = this.prev_statement;
             this.block_pre_walk_statements(statements);
+            this.activate_semantic_scope_bindings();
             this.prev_statement = prev;
             this.walk_statements(statements);
           });
@@ -525,6 +530,7 @@ impl JavascriptParser<'_> {
       ForStatementLeftData::VariableDeclaration(decl) => {
         let decl = VariableDeclaration(decl);
         self.block_pre_walk_variable_declaration(decl);
+        self.activate_semantic_scope_bindings();
         self.walk_variable_declaration(decl);
       }
       ForStatementLeftData::AssignmentTarget(target) => {
@@ -1541,6 +1547,7 @@ impl JavascriptParser<'_> {
       this.pre_walk_statements(statements);
       this.prev_statement = prev;
       this.block_pre_walk_statements(statements);
+      this.activate_semantic_scope_bindings();
       this.prev_statement = prev;
       this.walk_statements(statements);
     });
@@ -2125,6 +2132,7 @@ impl JavascriptParser<'_> {
       this.in_block_scope(true, |this| {
         let prev = this.prev_statement;
         this.block_pre_walk_statements(statements);
+        this.activate_semantic_scope_bindings();
         this.prev_statement = prev;
         this.walk_statements(statements);
       })
@@ -2350,6 +2358,7 @@ impl JavascriptParser<'_> {
                 this.in_block_scope(true, |this| {
                   let prev = this.prev_statement;
                   this.block_pre_walk_statements(statements);
+                  this.activate_semantic_scope_bindings();
                   this.prev_statement = prev;
                   this.walk_statements(statements);
                 });

@@ -32,47 +32,51 @@ impl JavascriptParser<'_> {
 
   pub fn block_pre_walk_module_item(&mut self, statement: Stmt) {
     let ast = self.ast.ast;
+    self.statement_path.push(statement.span(ast).into());
     match ast.stmt_data(statement) {
-      StmtData::ImportDeclaration(_)
-      | StmtData::ExportAllDeclaration(_)
-      | StmtData::ExportNamedDeclaration(_)
-      | StmtData::ExportDefaultDeclaration(_) => {
-        let drive = self.plugin_drive.clone();
-        self.enter_statement(
-          statement.span(ast),
-          statement,
-          |parser, node| {
-            drive
-              .block_pre_module_declaration(parser, node)
-              .unwrap_or_default()
-          },
-          |parser, node| match parser.ast.ast.stmt_data(node) {
-            StmtData::ExportNamedDeclaration(declaration) => {
-              parser.block_pre_walk_export_named_declaration(ExportNamedDeclaration(declaration))
-            }
-            StmtData::ExportDefaultDeclaration(declaration) => parser
-              .block_pre_walk_export_default_declaration(ExportDefaultDeclaration(declaration)),
-            _ => (),
-          },
-        );
+      StmtData::ExportNamedDeclaration(declaration) => {
+        self.block_pre_walk_export_named_declaration(ExportNamedDeclaration(declaration));
       }
-      _ => self.block_pre_walk_statement(Statement::from_stmt(ast, statement)),
+      StmtData::ExportDefaultDeclaration(declaration) => {
+        let handled = self
+          .plugin_drive
+          .clone()
+          .block_pre_module_declaration(self, statement)
+          .unwrap_or_default();
+        if !handled {
+          self.block_pre_walk_export_default_declaration(ExportDefaultDeclaration(declaration));
+        }
+      }
+      StmtData::ImportDeclaration(_) | StmtData::ExportAllDeclaration(_) => {}
+      _ => {
+        self.statement_path.pop();
+        self.block_pre_walk_statement(Statement::from_stmt(ast, statement));
+        return;
+      }
     }
+    self.prev_statement = self.statement_path.pop();
   }
 
   pub fn block_pre_walk_statement(&mut self, statement: Statement) {
-    let drive = self.plugin_drive.clone();
-    self.enter_statement(
-      statement.span(self.ast.ast),
-      statement,
-      |parser, node| drive.block_pre_statement(parser, node).unwrap_or_default(),
-      |parser, node| match node {
-        Statement::Class(declaration) => parser.block_pre_walk_class_declaration(declaration),
-        Statement::Var(declaration) => parser.block_pre_walk_variable_declaration(declaration),
-        Statement::Expr(expression) => parser.block_pre_walk_expression_statement(expression),
+    self
+      .statement_path
+      .push(statement.span(self.ast.ast).into());
+    // InnerGraph is the only block-pre statement consumer and only handles
+    // classes. Variable and expression pre-effects bypass plugin dispatch.
+    let handled = matches!(statement, Statement::Class(_))
+      && self
+        .plugin_drive
+        .clone()
+        .block_pre_statement(self, statement)
+        .unwrap_or_default();
+    if !handled {
+      match statement {
+        Statement::Var(declaration) => self.block_pre_walk_variable_declaration(declaration),
+        Statement::Expr(expression) => self.block_pre_walk_expression_statement(expression),
         _ => (),
-      },
-    );
+      }
+    }
+    self.prev_statement = self.statement_path.pop();
   }
 
   fn block_pre_walk_expression_statement(
@@ -88,12 +92,6 @@ impl JavascriptParser<'_> {
   pub(super) fn block_pre_walk_variable_declaration(&mut self, declaration: VariableDeclaration) {
     if declaration.kind(self.ast.ast) != VariableDeclarationKind::Var {
       self._pre_walk_variable_declaration(declaration);
-    }
-  }
-
-  fn block_pre_walk_class_declaration(&mut self, declaration: MaybeNamedClassDecl) {
-    if let Some(identifier) = declaration.ident(self.ast.ast) {
-      self.define_variable_identifier(identifier);
     }
   }
 

@@ -38,7 +38,7 @@ use swc_next_ecma_ast::{
   MemberExpression, MetaProperty, NodeId, ObjectPattern, Program, PropertyKey, PropertyKeyData,
   ScopeId, Span, StmtData, ThisExpression,
 };
-use swc_next_ecma_semantic::ReferenceSpace;
+use swc_next_ecma_semantic::{ReferenceSpace, SymbolFlags};
 
 use crate::{
   Atom, BoxJavascriptParserPlugin,
@@ -527,6 +527,7 @@ pub struct JavascriptParser<'parser> {
   pub(crate) statement_path: Vec<StatementPath>,
   pub(crate) prev_statement: Option<StatementPath>,
   pub is_esm: bool,
+  detected_esm_program: Option<bool>,
   pub(crate) destructuring_assignment_properties: DestructuringAssignmentPropertiesMap,
   pub(crate) dynamic_import_references: ImportsReferencesState,
   pub(crate) common_js_require_references: RequireReferencesState,
@@ -699,6 +700,7 @@ impl<'parser> JavascriptParser<'parser> {
       in_short_hand: false,
       top_level_scope: TopLevelScope::Top,
       is_esm: matches!(module_type, ModuleType::JsEsm),
+      detected_esm_program: None,
       in_tagged_template_tag: false,
       definitions,
       definitions_db: db,
@@ -1022,6 +1024,38 @@ impl<'parser> JavascriptParser<'parser> {
     let id = self.semantic_normal_variable;
     self.semantic_variables[index] = Some(id);
     id
+  }
+
+  /// Activate ordinary JavaScript declarations owned by the current semantic
+  /// scope. SWC Next has already resolved lexical ownership and `var`/function
+  /// hoisting, so the dependency walker does not need to rediscover those
+  /// bindings by recursively visiting declaration patterns.
+  ///
+  /// Parameters, catch bindings, and imports keep their dedicated activation
+  /// paths. Rspack intentionally suppresses some callback parameters (for
+  /// example `require.ensure`'s `require` parameter), while import bindings
+  /// need parser-plugin tags before references can consume them.
+  fn activate_semantic_scope_bindings(&mut self) {
+    let symbols = self
+      .ast
+      .semantic
+      .bindings(self.current_semantic_scope)
+      .filter_map(|symbol| {
+        let flags = self.ast.semantic.symbol(symbol).flags;
+        (flags.intersects(
+          SymbolFlags::FUNCTION_SCOPED_VAR
+            | SymbolFlags::BLOCK_SCOPED_VAR
+            | SymbolFlags::FUNCTION
+            | SymbolFlags::CLASS,
+        ) && !flags
+          .intersects(SymbolFlags::PARAMETER | SymbolFlags::CATCH_VAR | SymbolFlags::ANY_IMPORT))
+        .then_some(symbol.index())
+      })
+      .collect::<SmallVec<[_; 16]>>();
+
+    for index in symbols {
+      self.ensure_semantic_variable(index);
+    }
   }
 
   fn semantic_symbol_for_name(&self, name: &str) -> Option<usize> {
@@ -1924,24 +1958,9 @@ impl<'parser> JavascriptParser<'parser> {
   pub fn walk_program(&mut self, program: Program) {
     let drive = self.plugin_drive.clone();
     if drive.program(self, program).is_none() {
+      let is_esm_program = self.detect_esm_program(program);
       let ast = self.ast.ast;
       let body = program.body(ast);
-      // Match the legacy `Program::Module` traversal without treating an
-      // `import.meta`-only unambiguous parse as ESM. Do not set `self.is_esm`
-      // early: legacy parsing only flipped that state during pre-walk.
-      let is_esm_program = matches!(self.module_type, ModuleType::JsEsm)
-        || body.iter().any(|slot| {
-          let statement = ast.get_node_in_sub_range(slot);
-          matches!(
-            ast.stmt_data(statement),
-            StmtData::ImportDeclaration(_)
-              | StmtData::ExportNamedDeclaration(_)
-              | StmtData::ExportDefaultDeclaration(_)
-              | StmtData::ExportAllDeclaration(_)
-              | StmtData::TsExportAssignment(_)
-              | StmtData::TsNamespaceExportDeclaration(_)
-          )
-        });
       if is_esm_program {
         self.set_strict(true);
         self.prev_statement = None;
@@ -1953,10 +1972,37 @@ impl<'parser> JavascriptParser<'parser> {
       self.pre_walk_module_items(body);
       self.prev_statement = None;
       self.block_pre_walk_module_items(body);
+      self.activate_semantic_scope_bindings();
       self.prev_statement = None;
       self.walk_module_items(body);
     }
     drive.finish(self);
+  }
+
+  /// Match the legacy `Program::Module` distinction without treating an
+  /// `import.meta`-only unambiguous parse as ESM. The ESM detection plugin and
+  /// the dependency walk both consume this value, so cache their shared
+  /// top-level declaration scan.
+  pub(crate) fn detect_esm_program(&mut self, program: Program) -> bool {
+    if let Some(is_esm) = self.detected_esm_program {
+      return is_esm;
+    }
+    let ast = self.ast.ast;
+    let is_esm = matches!(self.module_type, ModuleType::JsEsm)
+      || program.body(ast).iter().any(|slot| {
+        let statement = ast.get_node_in_sub_range(slot);
+        matches!(
+          ast.stmt_data(statement),
+          StmtData::ImportDeclaration(_)
+            | StmtData::ExportNamedDeclaration(_)
+            | StmtData::ExportDefaultDeclaration(_)
+            | StmtData::ExportAllDeclaration(_)
+            | StmtData::TsExportAssignment(_)
+            | StmtData::TsNamespaceExportDeclaration(_)
+        )
+      });
+    self.detected_esm_program = Some(is_esm);
+    is_esm
   }
 
   fn set_strict(&mut self, value: bool) {

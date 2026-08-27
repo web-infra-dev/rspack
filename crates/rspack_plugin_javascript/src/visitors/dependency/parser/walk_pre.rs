@@ -1,10 +1,7 @@
 use rspack_util::SpanExt;
 use swc_next_ecma_ast::*;
 
-use super::{
-  DestructuringAssignmentProperty, JavascriptParser, PatRef,
-  estree::{MaybeNamedFunctionDecl, Statement},
-};
+use super::{DestructuringAssignmentProperty, JavascriptParser, PatRef, estree::Statement};
 use crate::{
   Atom,
   parser_plugin::JavascriptParserPlugin,
@@ -73,28 +70,36 @@ impl JavascriptParser<'_> {
   }
 
   pub fn pre_walk_statement(&mut self, statement: Statement) {
-    let drive = self.plugin_drive.clone();
-    self.enter_statement(
-      statement.span(self.ast.ast),
-      statement,
-      |parser, node| drive.pre_statement(parser, node).unwrap_or_default(),
-      |parser, node| match node {
-        Statement::Block(stmt) => parser.pre_walk_block_statement(stmt),
-        Statement::DoWhile(stmt) => parser.pre_walk_do_while_statement(stmt),
-        Statement::ForIn(stmt) => parser.pre_walk_for_in_statement(stmt),
-        Statement::ForOf(stmt) => parser.pre_walk_for_of_statement(stmt),
-        Statement::For(stmt) => parser.pre_walk_for_statement(stmt),
-        Statement::Fn(stmt) => parser.pre_walk_function_declaration(stmt),
-        Statement::Var(stmt) => parser.pre_walk_variable_declaration(stmt),
-        Statement::If(stmt) => parser.pre_walk_if_statement(stmt),
-        Statement::Labeled(stmt) => parser.pre_walk_labeled_statement(stmt),
-        Statement::Switch(stmt) => parser.pre_walk_switch_statement(stmt),
-        Statement::Try(stmt) => parser.pre_walk_try_statement(stmt),
-        Statement::While(stmt) => parser.pre_walk_while_statement(stmt),
-        Statement::With(stmt) => parser.pre_walk_with_statement(stmt),
+    self
+      .statement_path
+      .push(statement.span(self.ast.ast).into());
+    // Only function and class declarations have pre-statement consumers.
+    // Avoid dispatching every control-flow statement through the plugin drive
+    // while retaining the full statement path required by deferred hooks.
+    let handled = matches!(statement, Statement::Fn(_) | Statement::Class(_))
+      && self
+        .plugin_drive
+        .clone()
+        .pre_statement(self, statement)
+        .unwrap_or_default();
+    if !handled {
+      match statement {
+        Statement::Block(stmt) => self.pre_walk_block_statement(stmt),
+        Statement::DoWhile(stmt) => self.pre_walk_do_while_statement(stmt),
+        Statement::ForIn(stmt) => self.pre_walk_for_in_statement(stmt),
+        Statement::ForOf(stmt) => self.pre_walk_for_of_statement(stmt),
+        Statement::For(stmt) => self.pre_walk_for_statement(stmt),
+        Statement::Var(stmt) => self.pre_walk_variable_declaration(stmt),
+        Statement::If(stmt) => self.pre_walk_if_statement(stmt),
+        Statement::Labeled(stmt) => self.pre_walk_labeled_statement(stmt),
+        Statement::Switch(stmt) => self.pre_walk_switch_statement(stmt),
+        Statement::Try(stmt) => self.pre_walk_try_statement(stmt),
+        Statement::While(stmt) => self.pre_walk_while_statement(stmt),
+        Statement::With(stmt) => self.pre_walk_with_statement(stmt),
         _ => (),
-      },
-    );
+      }
+    }
+    self.prev_statement = self.statement_path.pop();
   }
 
   fn pre_walk_with_statement(&mut self, stmt: WithStatement) {
@@ -137,12 +142,6 @@ impl JavascriptParser<'_> {
     self.pre_walk_statement(Statement::from_stmt(ast, stmt.consequent(ast)));
     if let Some(alternate) = stmt.alternate(ast) {
       self.pre_walk_statement(Statement::from_stmt(ast, alternate));
-    }
-  }
-
-  pub fn pre_walk_function_declaration(&mut self, decl: MaybeNamedFunctionDecl) {
-    if let Some(identifier) = decl.ident(self.ast.ast) {
-      self.define_variable_identifier(identifier);
     }
   }
 
@@ -203,16 +202,11 @@ impl JavascriptParser<'_> {
     let ast = self.ast.ast;
     for declarator in decl.declarators(ast) {
       self.pre_walk_variable_declarator(declarator);
-      let handled = drive
-        .pre_declarator(self, declarator, decl)
-        .unwrap_or_default();
-      self.enter_pattern(PatRef::Borrowed(declarator.id(ast)), |this, identifier| {
-        if !handled {
-          this.define_variable_identifier(identifier);
-        } else {
-          this.bind_semantic_identifier(identifier);
-        }
-      });
+      let _ = drive.pre_declarator(self, declarator, decl);
+      self.enter_pattern(PatRef::Borrowed(declarator.id(ast)), |_, _| {});
+      // Ordinary declarations were activated from semantic scope bindings.
+      // Hooks install their tags/aliases through `set_variable_info`, which
+      // updates the same semantic-symbol slot.
     }
   }
 
