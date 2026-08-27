@@ -34,6 +34,7 @@ pub(crate) fn bundle_benchmark_case(c: &mut Criterion, target_id: &str) {
   group.bench_function(format!("bundle@{id}"), |b| {
     b.iter_batched(
       || {
+        rspack_benchmark::collect_memory();
         let compiler_context = Arc::new(CompilerContext::new());
         (
           compiler_context.clone(),

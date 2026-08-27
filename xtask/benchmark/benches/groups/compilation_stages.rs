@@ -74,6 +74,7 @@ pub(crate) fn flag_dependency_exports_benchmark(c: &mut Criterion, rt: &Runtime)
   c.bench_function("rust@flag_dependency_exports", |b| {
     b.iter_batched_ref(
       || {
+        rspack_benchmark::collect_memory();
         let mut compiler = compiler.borrow_mut();
         if should_reset.get() {
           compiler.compilation.exports_info_artifact.reset();
@@ -120,6 +121,7 @@ pub(crate) fn flag_dependency_usage_benchmark(c: &mut Criterion, rt: &Runtime) {
   c.bench_function("rust@flag_dependency_usage", |b| {
     b.iter_batched_ref(
       || {
+        rspack_benchmark::collect_memory();
         let mut compiler = compiler.borrow_mut();
         if should_reset.get() {
           compiler
@@ -172,6 +174,7 @@ pub(crate) fn create_module_ids_benchmark(c: &mut Criterion, rt: &Runtime) {
   c.bench_function("rust@create_module_ids", |b| {
     b.iter_batched_ref(
       || {
+        rspack_benchmark::collect_memory();
         let mut compiler = compiler.borrow_mut();
         compiler.compilation.module_ids_artifact.clear();
       },
@@ -208,6 +211,7 @@ pub(crate) fn create_named_module_ids_benchmark(c: &mut Criterion, rt: &Runtime)
   c.bench_function("rust@create_named_module_ids", |b| {
     b.iter_batched_ref(
       || {
+        rspack_benchmark::collect_memory();
         let mut compiler = compiler.borrow_mut();
         compiler.compilation.module_ids_artifact.clear();
       },
@@ -310,6 +314,7 @@ pub(crate) fn split_chunks_benchmark(c: &mut Criterion, rt: &Runtime) {
   c.bench_function("rust@split_chunks", |b| {
     b.iter_batched_ref(
       || {
+        rspack_benchmark::collect_memory();
         let mut compiler = compiler.borrow_mut();
         restore_initial_chunk_state(&mut compiler.compilation);
       },
@@ -357,6 +362,7 @@ pub(crate) fn create_chunk_ids_benchmark(c: &mut Criterion, rt: &Runtime) {
   c.bench_function("rust@create_chunk_ids", |b| {
     b.iter_batched(
       || {
+        rspack_benchmark::collect_memory();
         (
           initial_chunk_by_ukey.clone(),
           ChunkNamedIdArtifact::default(),
@@ -404,6 +410,7 @@ pub(crate) fn create_named_chunk_ids_benchmark(c: &mut Criterion, rt: &Runtime) 
   c.bench_function("rust@create_named_chunk_ids", |b| {
     b.iter_batched(
       || {
+        rspack_benchmark::collect_memory();
         (
           initial_chunk_by_ukey.clone(),
           ChunkNamedIdArtifact::default(),
@@ -472,6 +479,7 @@ pub(crate) fn mangle_exports_benchmark(c: &mut Criterion, rt: &Runtime) {
   c.bench_function("rust@mangle_exports", |b| {
     b.iter_batched_ref(
       || {
+        rspack_benchmark::collect_memory();
         let mut compiler = compiler.borrow_mut();
         if should_reset.get() {
           compiler
@@ -523,6 +531,7 @@ pub(crate) fn create_module_hashes_benchmark(c: &mut Criterion, rt: &Runtime) {
   c.bench_function("rust@create_module_hashes", |b| {
     b.iter_batched_ref(
       || {
+        rspack_benchmark::collect_memory();
         let _compiler = compiler.borrow();
       },
       |_| {
@@ -590,6 +599,7 @@ pub(crate) fn runtime_requirements_benchmark(c: &mut Criterion, rt: &Runtime) {
   c.bench_function("rust@runtime_requirements", |b| {
     b.iter_batched(
       || {
+        rspack_benchmark::collect_memory();
         let fs = Arc::new(MemoryFileSystem::default());
         let random_table = random_table.clone();
         let mut compiler = create_general_stage_compiler(fs.clone());
@@ -662,6 +672,7 @@ pub(crate) fn create_full_hash_benchmark(c: &mut Criterion, rt: &Runtime) {
   c.bench_function("rust@create_full_hash", |b| {
     b.iter_batched_ref(
       || {
+        rspack_benchmark::collect_memory();
         let mut compiler = compiler.borrow_mut();
         compiler.compilation.chunk_hashes_artifact.clear();
         compiler.compilation.runtime_modules_hash.clear();
@@ -726,6 +737,7 @@ pub(crate) fn create_chunk_assets_benchmark(c: &mut Criterion, rt: &Runtime) {
   c.bench_function("rust@create_chunk_assets", |b| {
     b.iter_batched_ref(
       || {
+        rspack_benchmark::collect_memory();
         let mut compiler = compiler.borrow_mut();
         restore_chunk_asset_state(&mut compiler.compilation, &initial_state);
       },
@@ -785,6 +797,7 @@ pub(crate) fn create_module_assets_benchmark(c: &mut Criterion, rt: &Runtime) {
   c.bench_function("rust@create_module_assets", |b| {
     b.iter_batched_ref(
       || {
+        rspack_benchmark::collect_memory();
         let mut compiler = compiler.borrow_mut();
         restore_chunk_asset_state(&mut compiler.compilation, &initial_state);
       },
@@ -842,6 +855,7 @@ pub(crate) fn real_content_hash_benchmark(c: &mut Criterion, rt: &Runtime) {
   c.bench_function("rust@real_content_hash", |b| {
     b.iter_batched_ref(
       || {
+        rspack_benchmark::collect_memory();
         let mut compiler = compiler.borrow_mut();
         restore_chunk_asset_state(&mut compiler.compilation, &initial_state);
       },
@@ -932,6 +946,7 @@ fn register_create_concatenate_module_benchmark(
   c.bench_function(case.name, |b| {
     b.iter_batched_ref(
       || {
+        rspack_benchmark::collect_memory();
         let mut compiler = compiler.borrow_mut();
         if should_reset.get() {
           compiler

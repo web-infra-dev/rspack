@@ -97,7 +97,10 @@ fn register_scan_dependencies_benchmark_case(
 ) {
   c.bench_function(benchmark_case.benchmark_id, |b| {
     b.iter_batched_ref(
-      || benchmark_case.build_iteration_state(),
+      || {
+        rspack_benchmark::collect_memory();
+        benchmark_case.build_iteration_state()
+      },
       |iteration_state| {
         let result = benchmark_case.execute_scan_dependencies(iteration_state);
         black_box(result);

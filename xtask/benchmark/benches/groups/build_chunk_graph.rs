@@ -202,6 +202,7 @@ pub fn build_chunk_graph_benchmark_inner(c: &mut Criterion) {
   c.bench_function("rust@build_chunk_graph", |b| {
     b.iter_batched_ref(
       || {
+        rspack_benchmark::collect_memory();
         let mut compiler = compiler.borrow_mut();
         reset_chunk_graph_state(&mut compiler.compilation);
       },
@@ -261,6 +262,7 @@ fn build_module_graph_case(
   c.bench_function(benchmark_id, |b| {
     b.iter_batched_ref(
       || {
+        rspack_benchmark::collect_memory();
         let mut compiler = compiler.borrow_mut();
         reset_compilation_state(&mut compiler);
         let plugin_driver = compiler.plugin_driver.clone();

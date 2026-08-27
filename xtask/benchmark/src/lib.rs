@@ -102,6 +102,24 @@ unsafe impl<A: GlobalAlloc> GlobalAlloc for NeverGrowInPlaceAllocator<A> {
   }
 }
 
+/// Reclaim memory retained by the allocator so that every measured iteration
+/// starts from a comparable heap state.
+///
+/// Between iterations a benchmark leaves behind thread-local free lists and
+/// retired pages whose layout depends on the previous iteration's allocation
+/// and free order. The next iteration then walks a different allocator fast
+/// path, which shows up as run-to-run variance. Collecting in `setup` resets
+/// that state; it is not part of the measured region, since CodSpeed only
+/// instruments the routine passed to `iter_batched`/`iter_batched_ref`.
+pub fn collect_memory() {
+  #[cfg(not(target_family = "wasm"))]
+  // SAFETY: `mi_collect` only touches allocator-internal bookkeeping.
+  #[expect(unsafe_code)]
+  unsafe {
+    libmimalloc_sys::mi_collect(true)
+  }
+}
+
 fn build_multi_thread_tokio_rt(worker_threads: usize, blocking_threads: usize) -> Runtime {
   let mut builder = Builder::new_multi_thread();
   builder

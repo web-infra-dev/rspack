@@ -61,6 +61,7 @@ fn persistent_cache_benchmark_case<F>(
   group.bench_function(benchmark_id, |b| {
     b.iter_batched(
       || {
+        rspack_benchmark::collect_memory();
         // Clear the previous measured workspace outside the next sample's
         // timed region so cleanup cost never lands in benchmark results.
         cleanup_pending_workspaces(&pending_cleanup);
