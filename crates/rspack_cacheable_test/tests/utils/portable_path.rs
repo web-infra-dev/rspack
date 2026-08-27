@@ -83,20 +83,32 @@ fn test_relative_path_outside_project() {
 #[test]
 #[cfg(windows)]
 fn test_windows_path() {
-  let context = TestContext(Some(PathBuf::from("C:\\Users\\test\\project")));
+  let project_root = PathBuf::from("C:\\Users\\test\\project");
+  let new_project_root = PathBuf::from("D:\\workspace");
+  let path = PathBuf::from("C:\\Users\\test\\project\\src\\main.rs");
 
-  let data = PathData {
-    path1: PathBuf::from("C:\\Users\\test\\project\\src\\main.rs"),
-    path2: Utf8PathBuf::from("C:\\Users\\test\\project\\src\\lib.rs"),
-  };
+  let restored =
+    PortablePath::new(&path, Some(&project_root)).into_path_string(Some(&new_project_root));
+  assert_eq!(restored, "D:\\workspace\\src\\main.rs");
 
-  let bytes = rspack_cacheable::to_bytes(&data, &context).unwrap();
+  let restored = PortablePath::new(&path, None).into_path_string(None);
+  assert_eq!(restored, "C:\\Users\\test\\project\\src\\main.rs");
 
-  // Deserialize on different Windows path
-  let new_context = TestContext(Some(PathBuf::from("D:\\workspace")));
-  let new_data: PathData = rspack_cacheable::from_bytes(&bytes, &new_context).unwrap();
+  let outside = PathBuf::from("C:\\Users\\test\\other\\lib.rs");
+  let restored =
+    PortablePath::new(&outside, Some(&project_root)).into_path_string(Some(&project_root));
+  assert_eq!(restored, "C:\\Users\\test\\other\\lib.rs");
+}
 
-  // Path separators should be normalized
-  assert_eq!(new_data.path1, PathBuf::from("D:\\workspace\\src\\main.rs"));
-  assert_eq!(new_data.path2, PathBuf::from("D:\\workspace\\src\\lib.rs"));
+#[test]
+fn test_round_trip_keeps_native_separator() {
+  let project_root = PathBuf::from("a").join("project");
+  let path = project_root.join("src").join("main.rs");
+
+  let restored = PortablePath::new(&path, None).into_path_string(None);
+  assert_eq!(restored, path.to_string_lossy());
+
+  let restored =
+    PortablePath::new(&path, Some(&project_root)).into_path_string(Some(&project_root));
+  assert_eq!(restored, path.to_string_lossy());
 }

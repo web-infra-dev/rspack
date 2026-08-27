@@ -4,6 +4,18 @@ use sugar_path::SugarPath;
 
 use crate::{ContextGuard, Result, cacheable, with::AsConverter};
 
+#[inline]
+fn to_native_separator(path: String) -> String {
+  #[cfg(windows)]
+  {
+    path.replace('/', std::path::MAIN_SEPARATOR_STR)
+  }
+  #[cfg(not(windows))]
+  {
+    path
+  }
+}
+
 /// A portable path representation that can be serialized and deserialized across different
 /// environments with different project roots.
 ///
@@ -56,7 +68,7 @@ impl PortablePath {
         .to_string_lossy()
         .into_owned();
     }
-    self.path
+    to_native_separator(self.path)
   }
 }
 
