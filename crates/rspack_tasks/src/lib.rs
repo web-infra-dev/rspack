@@ -16,8 +16,7 @@ use tokio::{
 
 mod worker_dispatcher;
 pub use worker_dispatcher::{
-  WorkerConsumer, WorkerConsumerHandle, WorkerDispatchError, WorkerDispatchFailure,
-  WorkerDispatcher, WorkerJob,
+  WorkerDispatchError, WorkerDispatchFailure, WorkerDispatcher, WorkerJob,
 };
 
 // don't overuse this and put everything here, it's mostly used for store isolated id generator

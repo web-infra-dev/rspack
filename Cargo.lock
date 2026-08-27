@@ -4613,7 +4613,6 @@ dependencies = [
  "napi",
  "oneshot",
  "rspack_error",
- "rspack_tasks",
  "serde_json",
  "tokio",
 ]

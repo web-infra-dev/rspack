@@ -3,7 +3,7 @@ import path from 'node:path';
 import { deserialize, serialize } from 'node:v8';
 import { MessageChannel, type MessagePort, Worker } from 'node:worker_threads';
 
-import { dispatchJsLoaderTask } from '@rspack/binding';
+import { dispatchWorkerTask } from '@rspack/binding';
 
 interface WorkerSlot {
   worker: Worker;
@@ -357,7 +357,7 @@ export const run = async (
   });
 
   try {
-    const payload = await dispatchJsLoaderTask(serialize({ taskId, task }));
+    const payload = await dispatchWorkerTask(serialize({ taskId, task }));
     const result = deserialize(payload) as WorkerResult;
     await Promise.allSettled(pendingRequests.values());
     if (!result.ok) throw result.error;

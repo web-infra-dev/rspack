@@ -11,7 +11,7 @@ import {
 import {
   JsLoaderState,
   type NormalModule,
-  registerJsLoaderWorker,
+  recvWorkerTask,
 } from '@rspack/binding';
 import type { LoaderContext } from '../config';
 import type { ResolveCallback } from '../config/adapterRuleUse';
@@ -710,29 +710,38 @@ function createSendRequestSync(workerSyncPort: MessagePort, taskId: number) {
   };
 }
 
-async function registerPersistentWorker(data: PersistentWorkerData) {
+async function runWorkerLoop(data: PersistentWorkerData) {
   data.workerPort.on('message', handleIncomingResponses);
-  await registerJsLoaderWorker(async (payload) => {
-    const { taskId, task } = deserialize(payload) as {
-      taskId: number;
-      task: WorkerOptions;
-    };
-    const sendRequest = createSendRequest(
-      data.workerPort,
-      data.workerSyncPort,
-      taskId,
-    );
-    const waitFor = createWaitForPendingRequest(sendRequest);
-    try {
-      return serialize({
-        ok: true,
-        data: await loaderImpl(task, sendRequest, waitFor),
-      });
-    } catch (error) {
-      return serialize({ ok: false, error: serializeError(error) });
-    }
-  });
   data.workerPort.postMessage({ type: 'ready' });
+  while (true) {
+    const task = await recvWorkerTask();
+    try {
+      task.complete(await runJsLoaderTask(data, task.takePayload()));
+    } catch (error) {
+      task.fail(serializeError(error).message);
+    }
+  }
+}
+
+async function runJsLoaderTask(data: PersistentWorkerData, payload: Buffer) {
+  const { taskId, task } = deserialize(payload) as {
+    taskId: number;
+    task: WorkerOptions;
+  };
+  const sendRequest = createSendRequest(
+    data.workerPort,
+    data.workerSyncPort,
+    taskId,
+  );
+  const waitFor = createWaitForPendingRequest(sendRequest);
+  try {
+    return serialize({
+      ok: true,
+      data: await loaderImpl(task, sendRequest, waitFor),
+    });
+  } catch (error) {
+    return serialize({ ok: false, error: serializeError(error) });
+  }
 }
 
 function getCurrentLoader(
@@ -751,12 +760,10 @@ function getCurrentLoader(
 }
 
 if (workerData?.rspackNativeLoaderWorker) {
-  void registerPersistentWorker(workerData as PersistentWorkerData).catch(
-    (error) => {
-      (workerData as PersistentWorkerData).workerPort.postMessage({
-        type: 'init-error',
-        error: serializeError(error),
-      });
-    },
-  );
+  void runWorkerLoop(workerData as PersistentWorkerData).catch((error) => {
+    (workerData as PersistentWorkerData).workerPort.postMessage({
+      type: 'init-error',
+      error: serializeError(error),
+    });
+  });
 }

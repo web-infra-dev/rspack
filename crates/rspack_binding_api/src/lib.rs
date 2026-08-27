@@ -101,6 +101,7 @@ mod swc;
 mod trace_event;
 mod utils;
 mod virtual_modules;
+mod worker;
 
 use std::{
   cell::RefCell,

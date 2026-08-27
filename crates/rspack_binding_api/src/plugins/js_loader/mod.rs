@@ -2,7 +2,6 @@ mod cache;
 mod context;
 mod resolver;
 mod scheduler;
-mod worker_adapter;
 
 use std::{
   ffi::c_void,

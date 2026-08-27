@@ -513,6 +513,12 @@ export declare class VirtualFileStore {
 }
 export type JsVirtualFileStore = VirtualFileStore
 
+export declare class WorkerTask {
+  takePayload(): Buffer
+  complete(payload: Buffer): void
+  fail(error: string): void
+}
+
 export interface AssetInfoRelated {
   sourceMap?: string | null
 }
@@ -637,7 +643,7 @@ export interface ContextInfo {
   issuerLayer?: string
 }
 
-export declare function dispatchJsLoaderTask(payload: Buffer): Promise<Buffer>
+export declare function dispatchWorkerTask(payload: Buffer): Promise<Buffer>
 
 export declare enum EnforceExtension {
   Auto = 0,
@@ -3221,6 +3227,8 @@ export interface RealDependencyLocation {
   end?: SourcePosition
 }
 
+export declare function recvWorkerTask(): Promise<WorkerTask>
+
 /** * this is a process level tracing, which means it would be shared by all compilers in the same process
  * only the first call would take effect, the following calls would be ignored
  * Some code is modified based on
@@ -3230,12 +3238,6 @@ export interface RealDependencyLocation {
  * Copyright (c)
  */
 export declare function registerGlobalTrace(filter: string, layer:  "logger" | "perfetto" , output: string): void
-
-/**
- * Registers one environment-local callback as a persistent consumer. The generic dispatcher is
- * intentionally independent of loader context ownership so other JS worker jobs can reuse it.
- */
-export declare function registerJsLoaderWorker(callback: (arg: Buffer) => Promise<Buffer>): Promise<undefined>
 
 export declare enum RegisterJsTapKind {
   CompilerThisCompilation = 0,
