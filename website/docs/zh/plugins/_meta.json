@@ -60,14 +60,9 @@
     "type": "section-header",
     "label": "运行目标与运行时"
   },
-  "electron-target-plugin",
   "enable-chunk-loading-plugin",
   "enable-library-plugin",
   "enable-wasm-loading-plugin",
-  "jsonp-template-plugin",
-  "node-target-plugin",
-  "node-template-plugin",
-  "web-worker-template-plugin",
   {
     "type": "section-header",
     "label": "参考"

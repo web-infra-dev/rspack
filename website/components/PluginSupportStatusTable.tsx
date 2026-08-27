@@ -174,12 +174,12 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
   },
   {
     name: 'JsonpTemplatePlugin',
-    url: '/plugins/jsonp-template-plugin',
+    url: '/plugins/internal-plugins#jsonp-template-plugin',
     status: SupportStatus.FullySupported,
   },
   {
     name: 'NodeTemplatePlugin',
-    url: '/plugins/node-template-plugin',
+    url: '/plugins/internal-plugins#node-template-plugin',
     status: SupportStatus.FullySupported,
   },
   {
@@ -188,7 +188,7 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
   },
   {
     name: 'WebWorkerTemplatePlugin',
-    url: '/plugins/web-worker-template-plugin',
+    url: '/plugins/internal-plugins#web-worker-template-plugin',
     status: SupportStatus.FullySupported,
   },
   {
@@ -213,7 +213,7 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
   },
   {
     name: 'NodeTargetPlugin',
-    url: '/plugins/node-target-plugin',
+    url: '/plugins/internal-plugins#node-target-plugin',
     status: SupportStatus.FullySupported,
   },
   {
@@ -334,7 +334,7 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
   },
   {
     name: 'ElectronTargetPlugin',
-    url: '/plugins/electron-target-plugin',
+    url: '/plugins/internal-plugins#electron-target-plugin',
     status: SupportStatus.FullySupported,
   },
   {

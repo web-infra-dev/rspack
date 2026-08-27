@@ -1,5 +1,5 @@
 ---
-description: 'externalsPresets.electron、externalsPresets.electronMain、externalsPresets.electronRenderer 和 externalsPresets.electronPreload 配置项均依赖该插件。'
+description: '介绍用于目标预设、运行时模板、子编译器和上层插件的 Rspack 底层插件。'
 ---
 
 import WebpackLicense from '@components/WebpackLicense';
@@ -8,34 +8,47 @@ import WebpackLicense from '@components/WebpackLicense';
 
 # 内部使用的插件
 
-这是 Rspack 内部使用的插件列表，对齐 webpack 内部使用的插件。
+本页面汇总 Rspack 主要用于实现目标预设、运行时模板、子编译器和上层插件的底层插件。
 
 :::warning 警告
-通常你不需要关心这些插件，除非你在基于 Rspack 构建自己的编译器，或者是深入探查其内部机制。
+大多数应用构建应使用对应的上层配置。只有在开发自定义编译器、配置子编译器或研究 Rspack 内部机制时，才建议直接使用这些插件。
 :::
 
-使用的插件的分类：
+内部使用的插件分为以下类别：
 
 - [environment](#environment)
-- [compiler](#compiler)
 - [entry](#entry)
 - [output](#output)
-- [source](#source)
-- [optimize](#optimize)
 - [loader](#loader)
 - [module federation](#module-federation)
+- [experiments](#experiments)
 
 ## environment
 
-影响编译器环境的插件。
+影响编译器环境和运行目标的插件。
 
-### ElectronTargetPlugin
+### ElectronTargetPlugin \{#electron-target-plugin}
 
 `electron.ElectronTargetPlugin(context)`
 
-为 Electron 应用中的不同上下文（如主进程、预加载脚本和渲染进程）定制外部依赖处理。
+`ElectronTargetPlugin` 会将 Electron 内置模块保留为外部依赖，使其在运行时由 Electron 加载。传入 `'main'`、`'preload'` 或 `'renderer'`，可以额外外置对应进程中可用的模块。
 
-[`externalsPresets.electron`](/config/externals#externalspresetselectron)、[`externalsPresets.electronMain`](/config/externals#externalspresetselectronmain)、[`externalsPresets.electronRenderer`](/config/externals#externalspresetselectronrenderer) 和 [`externalsPresets.electronPreload`](/config/externals#externalspresetselectronpreload) 配置项均依赖该插件。
+[`externalsPresets.electron`](/config/externals#externalspresetselectron)、[`externalsPresets.electronMain`](/config/externals#externalspresetselectronmain)、[`externalsPresets.electronRenderer`](/config/externals#externalspresetselectronrenderer) 和 [`externalsPresets.electronPreload`](/config/externals#externalspresetselectronpreload) 配置会在内部应用该插件。
+
+对于常规 Electron 应用，推荐使用对应的 [target](/config/target)：
+
+```js title="rspack.config.mjs"
+export default {
+  target: 'electron-main',
+  entry: './src/main.js',
+};
+```
+
+配置子编译器时，可以直接将插件应用到该编译器：
+
+```js
+new compiler.rspack.electron.ElectronTargetPlugin('main').apply(childCompiler);
+```
 
 ### NodeEnvironmentPlugin
 
@@ -43,25 +56,36 @@ import WebpackLicense from '@components/WebpackLicense';
 
 将 Node.js 风格的文件系统应用到编译器。
 
-## compiler
+### NodeTargetPlugin \{#node-target-plugin}
 
-影响编译器的插件。
+`node.NodeTargetPlugin()`
 
-### ProgressPlugin
+`NodeTargetPlugin` 会将 Node.js 内置模块和使用 `node:` scheme 的请求保留为外部依赖，使其由 Node.js 运行时加载，而不是被 Rspack 打进 bundle。[`externalsPresets.node`](/config/externals#externalspresetsnode) 配置会在内部应用该插件。
 
-`ProgressPlugin(handler)`
+对于常规 Node.js 应用，推荐使用 `node` target：
 
-订阅编译器钩子以获取进度信息。处理函数必须符合 `function(percentage, message)` 的签名形式。其中的 `percentage` 会被调用，并传入一个介于 0 和 1 之间的值，0 表示开始，1 表示结束。
+```js title="rspack.config.mjs"
+export default {
+  target: 'node',
+  entry: './src/index.js',
+};
+```
+
+配置子编译器时，可以直接将插件应用到该编译器：
+
+```js
+new compiler.rspack.node.NodeTargetPlugin().apply(childCompiler);
+```
 
 ## entry
 
-处理入口 chunk 的插件。
+向 compilation 添加入口 chunk 的插件。
 
 ### DynamicEntryPlugin
 
 `DynamicEntryPlugin(context, entry)`
 
-与 `EntryPlugin` 类似，但接受一个函数作为 `entry` 参数。该函数在构建过程中的每个 `make` 事件触发时调用，以支持动态决定入口点。
+与 `EntryPlugin` 类似，但接受一个函数作为 `entry` 参数。该函数会在每次触发 `make` 事件时调用，以动态决定入口点。
 
 ### EntryOptionPlugin
 
@@ -69,63 +93,204 @@ import WebpackLicense from '@components/WebpackLicense';
 
 ## output
 
+影响模块、chunk 和运行时加载代码生成的插件。
+
 ### EvalDevToolModulePlugin
 
 `EvalDevToolModulePlugin(options)`
 
-通过在每个模块中使用带有 `// @sourceURL` 注释的 `eval` 来装饰模块模板。
-
-### JsonpTemplatePlugin
-
-`web.JsonpTemplatePlugin()`
-
-在 Web 环境中通过 `jsonp` 加载代码块。
-
-### WebWorkerTemplatePlugin
-
-`webworker.WebWorkerTemplatePlugin(options)`
-
-在 Web Worker 环境中通过 `importScripts` 加载代码块。
-
-`options` 是输出配置。
+使用带有 `// @sourceURL` 注释的 `eval` 包裹每个模块，以装饰模块模板。
 
 ### FetchCompileAsyncWasmPlugin
 
-用来提供 WASM 打包的运行时代码，经常配合 childCompiler 一起使用。
-
 `web.FetchCompileAsyncWasmPlugin()`
 
-## source
+为异步获取和编译 WebAssembly 模块提供运行时代码，通常配合子编译器使用。
 
-影响模块源代码的插件。
+### JsonpTemplatePlugin \{#jsonp-template-plugin}
 
-### ProvidePlugin
+`web.JsonpTemplatePlugin()`
 
-`ProvidePlugin(name, request)`
+`JsonpTemplatePlugin` 用于配置子编译器的浏览器产物。它会将 [`output.chunkLoading`](/config/output#outputchunkloading) 设置为 `'jsonp'`，应用 [`'array-push'` chunk format](/config/output#outputchunkformat)，并启用 JSONP chunk loading 所需的运行时代码。
 
-如果在模块中使用 `name`，则会由通过填充 `require(<request>)` 来加载它。
+下面的浏览器入口会生成一个异步 chunk：
 
-### NodeTargetPlugin
+```js title="src/browser-child.js"
+document.querySelector('button').addEventListener('click', async () => {
+  const { message } = await import('./message.js');
+  console.log(message);
+});
+```
 
-`node.NodeTargetPlugin()`
+```js title="src/message.js"
+export const message = 'Hello from the child compiler';
+```
 
-如果你在 Node.js 环境中运行打包文件，应当使用这个插件。
+下面的配置会创建一个子编译器，并直接应用 `JsonpTemplatePlugin`：
 
-它确保即使在打包后，原生模块也能被正确加载。
+```js title="rspack.config.mjs"
+export default {
+  target: 'web',
+  entry: {},
+  plugins: [
+    (compiler) => {
+      compiler.hooks.make.tapAsync(
+        'BrowserChildCompiler',
+        (compilation, callback) => {
+          const childCompiler = compilation.createChildCompiler(
+            'browser-child',
+            {
+              filename: 'browser-child.js',
+              chunkFilename: '[name].browser-child.js',
+            },
+            [
+              new compiler.rspack.web.JsonpTemplatePlugin(),
+              new compiler.rspack.EntryPlugin(
+                compiler.context,
+                './src/browser-child.js',
+                { name: 'browser-child' },
+              ),
+            ],
+          );
 
-## optimize
+          childCompiler.runAsChild((error) => callback(error));
+        },
+      );
+    },
+  ],
+};
+```
 
-请注意，只有当 `mode` 设置为 `'none'` 时，才应该使用 `rspack.optimize` 命名空间下的插件。否则，你可能会遇到插件被应用两次而导致问题的情况。
+`JsonpTemplatePlugin` 会让子编译器生成 array-push chunk，并在需要加载异步 chunk 时向页面添加 script。
 
-### LimitChunkCountPlugin
+对于常规 web 构建，推荐使用 `target: 'web'`。Rspack 会通过该 target 的默认配置选择 `'array-push'` chunk format 和 `'jsonp'` chunk loading。设置 `output.chunkLoading: 'jsonp'` 只会选择加载实现，并不会应用 `JsonpTemplatePlugin` 或选择 chunk format。
 
-`optimize.LimitChunkCountPlugin(options)`
+### NodeTemplatePlugin \{#node-template-plugin}
 
-合并 chunk，直到 chunk 数量少于 `options.maxChunks` 所设定的上限。
+`node.NodeTemplatePlugin(options)`
 
-每个 chunk 的开销由 `options.chunkOverhead` 决定，如果没有指定则默认为 10000。入口 chunk 的大小会被 `options.entryChunkMultiplicator`（或默认的 10）所乘。
+`NodeTemplatePlugin` 用于配置子编译器的 Node.js 产物。它会应用 [`'commonjs'` chunk format](/config/output#outputchunkformat)，默认将 [`output.chunkLoading`](/config/output#outputchunkloading) 设置为 `'require'`，并启用所需的 chunk loading 运行时代码。
 
-首先合并那些能最大幅度减少总大小的 chunk。如果有多个组合能够等量减少，那么合并后大小最小的组合将会胜出。
+#### asyncChunkLoading
+
+- 类型：`boolean`
+- 默认值：`false`
+
+当 `asyncChunkLoading` 为 `true` 时，该插件会使用 `'async-node'` chunk loading，而不是 `'require'`。
+
+下面的 Node.js 入口会生成一个异步 chunk：
+
+```js title="src/node-child.js"
+async function main() {
+  const { run } = await import('./task.js');
+  run();
+}
+
+main();
+```
+
+```js title="src/task.js"
+export function run() {
+  console.log('Task completed');
+}
+```
+
+下面的配置会创建一个子编译器，并直接应用 `NodeTemplatePlugin`：
+
+```js title="rspack.config.mjs"
+export default {
+  target: 'node',
+  entry: {},
+  plugins: [
+    (compiler) => {
+      compiler.hooks.make.tapAsync(
+        'NodeChildCompiler',
+        (compilation, callback) => {
+          const childCompiler = compilation.createChildCompiler(
+            'node-child',
+            {
+              filename: 'node-child.js',
+              chunkFilename: '[name].node-child.js',
+            },
+            [
+              new compiler.rspack.node.NodeTemplatePlugin(),
+              new compiler.rspack.EntryPlugin(
+                compiler.context,
+                './src/node-child.js',
+                { name: 'node-child' },
+              ),
+            ],
+          );
+
+          childCompiler.runAsChild((error) => callback(error));
+        },
+      );
+    },
+  ],
+};
+```
+
+`NodeTemplatePlugin` 会让子编译器生成 CommonJS chunk，并通过 `require` 加载其中的异步 chunk。
+
+对于常规 Node.js 构建，推荐使用 `target: 'node'`。Rspack 会通过该 target 的默认配置选择 `'commonjs'` chunk format 和 `'require'` chunk loading。设置 `output.chunkLoading: 'require'` 只会选择加载实现，并不会应用 `NodeTemplatePlugin` 或选择 chunk format。
+
+### WebWorkerTemplatePlugin \{#web-worker-template-plugin}
+
+`webworker.WebWorkerTemplatePlugin()`
+
+`WebWorkerTemplatePlugin` 用于配置子编译器的 Web Worker 产物。它会将 [`output.chunkLoading`](/config/output#outputchunkloading) 设置为 `'import-scripts'`，应用 [`'array-push'` chunk format](/config/output#outputchunkformat)，并启用基于 `importScripts` 的 chunk loading 运行时代码。
+
+下面的 Worker 入口会生成一个异步 chunk：
+
+```js title="src/worker-child.js"
+self.onmessage = async ({ data }) => {
+  const { double } = await import('./math.js');
+  self.postMessage(double(data));
+};
+```
+
+```js title="src/math.js"
+export const double = (value) => value * 2;
+```
+
+下面的配置会创建一个子编译器，并直接应用 `WebWorkerTemplatePlugin`：
+
+```js title="rspack.config.mjs"
+export default {
+  target: 'webworker',
+  entry: {},
+  plugins: [
+    (compiler) => {
+      compiler.hooks.make.tapAsync(
+        'WorkerChildCompiler',
+        (compilation, callback) => {
+          const childCompiler = compilation.createChildCompiler(
+            'worker-child',
+            {
+              filename: 'worker-child.js',
+              chunkFilename: '[name].worker-child.js',
+            },
+            [
+              new compiler.rspack.webworker.WebWorkerTemplatePlugin(),
+              new compiler.rspack.EntryPlugin(
+                compiler.context,
+                './src/worker-child.js',
+                { name: 'worker-child' },
+              ),
+            ],
+          );
+
+          childCompiler.runAsChild((error) => callback(error));
+        },
+      );
+    },
+  ],
+};
+```
+
+`WebWorkerTemplatePlugin` 会让子编译器生成 array-push chunk，并通过 `importScripts` 加载其中的异步 chunk。
+
+对于常规 Web Worker 构建，推荐使用 `target: 'webworker'`。Rspack 会通过该 target 的默认配置选择 `'array-push'` chunk format 和 `'import-scripts'` chunk loading。设置 `output.chunkLoading: 'import-scripts'` 只会选择加载实现，并不会应用 `WebWorkerTemplatePlugin` 或选择 chunk format。
 
 ## loader
 
@@ -139,7 +304,7 @@ import WebpackLicense from '@components/WebpackLicense';
 
 ## module federation
 
-使用模块联邦（Module Federation）时内部所使用的插件，这些是 `ModuleFederationPlugin` 所依赖的基础插件。
+`ModuleFederationPlugin` 使用的底层插件。
 
 ### ContainerPlugin
 
