@@ -3,12 +3,10 @@ description: '在 minor release 中，Rspack 可能对这些实验性特性的 p
 ---
 
 import { ApiMeta, Stability } from '../../../components/ApiMeta';
-import WebpackLicense from '@components/WebpackLicense';
+import Attribution from '@components/Attribution';
 import PropertyType from '@components/PropertyType';
 import { Table } from '@builtIns';
 import { Tabs, Tab } from '@theme';
-
-<WebpackLicense from="https://webpack.js.org/configuration/experiments/" />
 
 # Experiments
 
@@ -416,3 +414,5 @@ export default {
 ```
 
 当访问 `virtual-entry.js` 和 `src/another-virtual.js` 时，它们匹配了 `experiments.useInputFileSystem` 中的正则规则，Rspack 会通过 `VirtualModulesPlugin` 包装的输入文件系统读取它们；而像 `src/disk-file.js`，则会使用原生文件系统读取。
+
+<Attribution url="https://webpack.js.org/configuration/experiments/" />

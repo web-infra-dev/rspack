@@ -2,10 +2,8 @@
 description: 'SplitChunksPlugin 是一个内置插件，用于将代码拆分成多个 chunk，以优化应用的加载性能，实现更好的缓存策略和并行加载效果。'
 ---
 
-import WebpackLicense from '@components/WebpackLicense';
+import Attribution from '@components/Attribution';
 import { ApiMeta } from '@components/ApiMeta';
-
-<WebpackLicense from="https://webpack.docschina.org/configuration/optimization/" />
 
 # SplitChunksPlugin
 
@@ -733,3 +731,5 @@ export default {
 有可能。
 
 在 `mini-css-extract-plugin`、Rspack 的[内置 CSS 支持](/guide/tech/css#内置-css-支持)这类抽取式 CSS 场景里，splitChunks 改变 chunk group 后，最终 CSS 顺序也可能随之变化。可以参考 [Deep dive into webpack CSS order issue](https://github.com/orgs/web-infra-dev/discussions/12)。如果 CSS 顺序是主要诉求，也建议同时参考 [CssChunkingPlugin](/plugins/css-chunking-plugin)。
+
+<Attribution url="https://webpack.docschina.org/configuration/optimization/" />

@@ -2,10 +2,8 @@
 description: 'SplitChunksPlugin is a built-in plugin that splits code into multiple chunks to optimize application loading performance and achieve better caching...'
 ---
 
-import WebpackLicense from '@components/WebpackLicense';
+import Attribution from '@components/Attribution';
 import { ApiMeta } from '@components/ApiMeta';
-
-<WebpackLicense from="https://webpack.js.org/configuration/optimization/" />
 
 # SplitChunksPlugin
 
@@ -739,3 +737,5 @@ No. Tree shaking decides what code is kept. `splitChunks` only decides how kept 
 Yes, potentially. This caveat is about extracted CSS, not JavaScript execution order.
 
 In extracted CSS flows such as `mini-css-extract-plugin` or Rspack's [Built-in CSS support](/guide/tech/css#built-in-css-support), changing chunk groups with splitChunks can also change final CSS order. See [Deep dive into webpack CSS order issue](https://github.com/orgs/web-infra-dev/discussions/12) for background. If CSS order is the primary concern, also review [CssChunkingPlugin](/plugins/css-chunking-plugin).
+
+<Attribution url="https://webpack.js.org/configuration/optimization/" />
