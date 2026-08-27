@@ -4,7 +4,7 @@ use rspack_error::Result;
 use rspack_paths::InternedPathSet;
 
 use super::{
-  CacheFacade, CacheKey, CacheValue, Etag, IdleFileCache, MemoryCache, MemoryCacheGetResult,
+  CacheFacade, CacheKey, CacheValue, Etag, IdleFileCache, MemoryCache, MemoryCacheGetResult, Meta,
   cache_value::CacheValueData,
 };
 
@@ -123,6 +123,28 @@ impl Cache {
       file_cache.store_build_dependencies(dependencies)
     } else {
       Ok(())
+    }
+  }
+
+  pub fn store_meta(&self, meta: Meta) -> Result<()> {
+    let Some(storage) = &self.inner.storage else {
+      return Ok(());
+    };
+    if let Some(file_cache) = &storage.idle_file_cache {
+      file_cache.store_meta(meta)
+    } else {
+      Ok(())
+    }
+  }
+
+  pub fn restore_meta(&self) -> Result<Option<Meta>> {
+    let Some(storage) = &self.inner.storage else {
+      return Ok(None);
+    };
+    if let Some(file_cache) = &storage.idle_file_cache {
+      file_cache.restore_meta()
+    } else {
+      Ok(None)
     }
   }
 

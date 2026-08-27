@@ -16,7 +16,7 @@ use tokio::{
 };
 
 use super::{
-  CacheKey, CacheValue, Etag, FileCacheStrategy,
+  CacheKey, CacheValue, Etag, FileCacheStrategy, Meta,
   cache_value::{CacheValueData, CacheValueDecoder, CacheValueEncoder, ErasedCacheValue},
 };
 
@@ -33,12 +33,16 @@ enum Command {
     value: ErasedCacheValue,
     encoder: CacheValueEncoder,
   },
-  StoreBuildDependencies(InternedPathSet),
   Restore {
     key: CacheKey,
     etag: Option<Etag>,
     decoder: CacheValueDecoder,
     result: sync_mpsc::SyncSender<Result<Option<ErasedCacheValue>>>,
+  },
+  StoreBuildDependencies(InternedPathSet),
+  StoreMeta(Meta),
+  RestoreMeta {
+    result: sync_mpsc::SyncSender<Result<Option<Meta>>>,
   },
   RecordBuildTime(Duration),
   BeginIdle {
@@ -122,6 +126,9 @@ impl BackgroundJob {
       Command::StoreBuildDependencies(dependencies) => {
         self.strategy.store_build_dependencies(dependencies);
       }
+      Command::StoreMeta(meta) => {
+        self.strategy.store_meta(meta);
+      }
       Command::Restore {
         key,
         etag,
@@ -164,6 +171,9 @@ impl BackgroundJob {
         self.idle_deadline = None;
         let _ = result.send(self.strategy.shutdown().await);
         return true;
+      }
+      Command::RestoreMeta { result } => {
+        let _ = result.send(self.strategy.restore_meta());
       }
     }
     false
@@ -284,6 +294,18 @@ impl IdleFileCache {
 
   pub fn store_build_dependencies(&self, dependencies: InternedPathSet) -> Result<()> {
     self.send(Command::StoreBuildDependencies(dependencies))
+  }
+
+  pub fn store_meta(&self, meta: Meta) -> Result<()> {
+    self.send(Command::StoreMeta(meta))
+  }
+
+  pub fn restore_meta(&self) -> Result<Option<Meta>> {
+    let (result, result_receiver) = sync_mpsc::sync_channel(1);
+    self.send(Command::RestoreMeta { result })?;
+    result_receiver
+      .recv()
+      .map_err(|_| rspack_error::error!("Idle file cache background job has stopped"))?
   }
 
   pub fn record_build_time(&self, build_time: Duration) -> Result<()> {

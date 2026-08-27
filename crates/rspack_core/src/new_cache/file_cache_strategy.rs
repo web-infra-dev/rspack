@@ -6,7 +6,7 @@ use rspack_paths::{InternedPathSet, Utf8PathBuf};
 use rustc_hash::FxHashMap;
 
 use super::{
-  CacheKey, Etag,
+  CacheKey, Etag, Meta,
   cache_value::{CacheEntry, CacheValueDecoder, CacheValueEncoder, ErasedCacheValue},
   db::{Database, DatabaseFamily, DatabaseValue},
   snapshot::FileSystemInfo,
@@ -15,11 +15,13 @@ use super::{
 use crate::cache::CacheCodec;
 
 const VALIDATOR_KEY: &[u8] = b"validator";
+const META_KEY: &[u8] = b"meta";
 
 #[derive(Debug, Default)]
 struct PendingWrites {
   entries: FxHashMap<CacheKey, PendingWrite>,
   new_build_dependencies: Option<InternedPathSet>,
+  meta: Option<Meta>,
 }
 
 #[derive(Debug)]
@@ -142,6 +144,23 @@ impl FileCacheStrategy {
       .extend(dependencies);
   }
 
+  pub fn store_meta(&mut self, meta: Meta) {
+    if self.readonly {
+      return;
+    }
+    self.pending_writes.meta = Some(meta);
+  }
+
+  pub fn restore_meta(&self) -> Result<Option<Meta>> {
+    if let Some(pending) = self.pending_writes.meta.as_ref() {
+      return Ok(Some(pending.clone()));
+    }
+    let Some(entry) = self.database.get(DatabaseFamily::Meta, META_KEY)? else {
+      return Ok(None);
+    };
+    Ok(Some(self.codec.decode(&entry)?))
+  }
+
   pub(super) fn restore(
     &self,
     key: &CacheKey,
@@ -173,13 +192,19 @@ impl FileCacheStrategy {
     }
 
     if self.has_pending_writes() {
+      let codec = &self.codec;
+      let entries = &self.pending_writes.entries;
       let validator = if let Some(dependencies) = &self.pending_writes.new_build_dependencies {
         self.validator.update(dependencies.iter().cloned()).await?
       } else {
         None
       };
-      let entries = &self.pending_writes.entries;
-      let codec = &self.codec;
+      let meta = self
+        .pending_writes
+        .meta
+        .as_ref()
+        .map(|meta| codec.encode(meta))
+        .transpose()?;
       self.database.write_batch(move |batch| {
         entries.par_iter().try_for_each(|(key, pending)| {
           let value = (pending.encoder)(&pending.entry, codec)?;
@@ -188,11 +213,15 @@ impl FileCacheStrategy {
         if let Some(validator) = validator {
           batch.put(DatabaseFamily::Validator, VALIDATOR_KEY, validator)?;
         }
+        if let Some(meta) = meta {
+          batch.put(DatabaseFamily::Meta, META_KEY, meta)?;
+        }
         Ok(())
       })?;
 
       self.pending_writes.entries.clear();
       self.pending_writes.new_build_dependencies = None;
+      self.pending_writes.meta = None;
     }
 
     for _ in 0..max_compaction_passes {
@@ -216,6 +245,8 @@ impl FileCacheStrategy {
   }
 
   pub fn has_pending_writes(&self) -> bool {
-    !self.pending_writes.entries.is_empty() || self.pending_writes.new_build_dependencies.is_some()
+    !self.pending_writes.entries.is_empty()
+      || self.pending_writes.new_build_dependencies.is_some()
+      || self.pending_writes.meta.is_some()
   }
 }

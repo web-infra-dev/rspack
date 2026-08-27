@@ -8,6 +8,7 @@ mod file_cache_strategy;
 mod file_dependencies;
 mod idle_file_cache;
 mod memory_cache;
+mod meta;
 mod snapshot;
 mod validator;
 
@@ -22,6 +23,7 @@ pub use file_cache_strategy::FileCacheStrategy;
 pub(crate) use file_dependencies::FileDependencies;
 pub use idle_file_cache::IdleFileCache;
 pub use memory_cache::{MemoryCache, MemoryCacheGetResult};
+pub use meta::Meta;
 use rspack_fs::ReadableFileSystem;
 
 use self::snapshot::FileSystemInfo;
