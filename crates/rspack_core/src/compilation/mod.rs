@@ -80,7 +80,7 @@ use crate::{
   DependenciesDiagnosticsArtifact, Dependency, DependencyId, DependencyRef, DependencyTemplate,
   DependencyTemplateType, DependencyType, Entry, EntryData, EntryOptions, EntryRuntime, Entrypoint,
   ExecuteModuleId, ExportsInfoArtifact, ExternalModuleChunkConditionHook, Filename, ImportPhase,
-  ImportVarMap, ImportedByDeferModulesArtifact, Mode, ModuleFactory, ModuleGraph,
+  ImportVarMap, ImportedByDeferModulesArtifact, ModuleFactory, ModuleGraph,
   ModuleGraphCacheArtifact, ModuleIdentifier, ModuleIdsArtifact, ModuleStaticCache, PathData,
   ProcessRuntimeRequirementsCacheArtifact, ReferencedExport, ResolverFactory, RuntimeGlobals,
   RuntimeKeyMap, RuntimeMode, RuntimeModule, RuntimeProxyMetadataArtifact, RuntimeSpec,
@@ -96,7 +96,7 @@ use crate::{
   legacy_cache::persistent::occasion::{
     devtool::SourceMapDevToolPluginCache, minimize::MinimizePersistentCache,
   },
-  new_cache::{Cache, CacheFacade, MODULE_BUILD_CACHE_NAME, ModuleCache},
+  new_cache::{Cache, CacheFacade, ModuleCache},
   to_identifier,
 };
 
@@ -362,13 +362,7 @@ impl Compilation {
       CacheOptions::Persistent(options) => options.snapshot.clone(),
       CacheOptions::Disabled | CacheOptions::Memory { .. } => Default::default(),
     };
-    // webpack defaults module snapshots to timestamp in non-production modes,
-    // and timestamp + hash in production.
-    let module_snapshot_strategy = if matches!(options.mode, Mode::Production) {
-      crate::cache::SnapshotStrategyOptions::hash_and_timestamp()
-    } else {
-      crate::cache::SnapshotStrategyOptions::timestamp()
-    };
+    let module_snapshot_strategy = options.snapshot_module;
     let mut compilation = Self {
       id: CompilationId::new(),
       compiler_id,
@@ -460,7 +454,7 @@ impl Compilation {
       && !matches!(&compilation.options.cache, CacheOptions::Disabled)
     {
       compilation.module_cache = Some(ModuleCache::new(
-        compilation.get_cache(MODULE_BUILD_CACHE_NAME),
+        compilation.get_cache("Compilation/modules"),
         compilation.input_filesystem.clone(),
         compilation.logging.clone(),
         module_snapshot_options,

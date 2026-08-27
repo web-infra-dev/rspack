@@ -9,6 +9,7 @@ use napi::{
 };
 use napi_derive::napi;
 use raw_snapshot::RawSnapshotOptions;
+pub use raw_snapshot::RawSnapshotStrategyOptions;
 use raw_storage::RawStorageOptions;
 use rspack_core::{CacheOptions, PersistentCacheOptions};
 

@@ -53,9 +53,9 @@ use rspack_core::{
   MangleExportsOption, Mode, ModuleNoParseRules, ModuleOptions, ModuleRule, ModuleRuleEffect,
   ModuleType, NewCacheOptions, NodeDirnameOption, NodeFilenameOption, NodeGlobalOption, NodeOption,
   Optimization, OutputOptions, ParseOption, ParserOptions, ParserOptionsMap, PathInfo, PublicPath,
-  Resolve, RuleSetCondition, RuleSetLogicalConditions, SideEffectOption, StatsOptions,
-  TrustedTypes, UsedExportsOption, WasmLoading, WasmLoadingType, incremental::IncrementalOptions,
-  runtime_mode::RuntimeMode,
+  Resolve, RuleSetCondition, RuleSetLogicalConditions, SideEffectOption, SnapshotStrategyOptions,
+  StatsOptions, TrustedTypes, UsedExportsOption, WasmLoading, WasmLoadingType,
+  incremental::IncrementalOptions, runtime_mode::RuntimeMode,
 };
 use rspack_error::{Error, Result};
 use rspack_fs::{IntermediateFileSystem, ReadableFileSystem, WritableFileSystem};
@@ -1282,6 +1282,11 @@ impl CompilerOptionsBuilder {
       context,
       output,
       mode,
+      snapshot_module: if production {
+        SnapshotStrategyOptions::hash_and_timestamp()
+      } else {
+        SnapshotStrategyOptions::timestamp()
+      },
       resolve,
       resolve_loader,
       module,

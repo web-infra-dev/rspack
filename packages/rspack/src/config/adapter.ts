@@ -100,6 +100,10 @@ export const getRawOptions = (
   return {
     name: options.name,
     mode,
+    snapshotModule: {
+      hash: mode === 'production' || mode === undefined,
+      timestamp: true,
+    },
     context: options.context!,
     output: getRawOutput(options.output),
     resolve: getRawResolve(options.resolve),

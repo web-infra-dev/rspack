@@ -16,8 +16,6 @@ use crate::{
   cache::{CacheCodec, SnapshotOptions, SnapshotStrategyOptions},
 };
 
-pub(crate) const MODULE_BUILD_CACHE_NAME: &str = "Compilation/modules";
-
 type RestoredDependencies = Vec<BoxDependency>;
 // AsyncDependenciesBlock is recursive and intentionally stays behind a pointer.
 #[allow(clippy::vec_box)]

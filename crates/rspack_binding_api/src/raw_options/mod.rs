@@ -46,6 +46,7 @@ pub struct RawOptions {
   pub name: Option<String>,
   #[napi(ts_type = "undefined | 'production' | 'development' | 'none'")]
   pub mode: Option<RawMode>,
+  pub snapshot_module: RawSnapshotStrategyOptions,
   pub context: String,
   pub output: RawOutputOptions,
   pub resolve: RawResolveOptions,
@@ -79,6 +80,7 @@ impl TryFrom<RawOptions> for CompilerOptions {
     let resolve = value.resolve.try_into()?;
     let resolve_loader = value.resolve_loader.try_into()?;
     let mode = value.mode.unwrap_or_default().into();
+    let snapshot_module = value.snapshot_module.into();
     let module: ModuleOptions = value.module.try_into()?;
     let cache = normalize_raw_cache(value.cache)?;
     let experiments: Experiments = value.experiments.into();
@@ -130,6 +132,7 @@ impl TryFrom<RawOptions> for CompilerOptions {
       name: value.name,
       context,
       mode,
+      snapshot_module,
       module,
       output,
       resolve,

@@ -25,7 +25,7 @@ pub(crate) use file_dependencies::FileDependencies;
 pub use idle_file_cache::IdleFileCache;
 pub use memory_cache::{MemoryCache, MemoryCacheGetResult};
 pub use meta::Meta;
-pub(crate) use module_build_cache::{MODULE_BUILD_CACHE_NAME, ModuleCache};
+pub(crate) use module_build_cache::ModuleCache;
 use rspack_fs::ReadableFileSystem;
 pub(crate) use snapshot::Snapshot;
 

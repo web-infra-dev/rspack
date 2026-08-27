@@ -1,9 +1,22 @@
 use napi::Either;
 use napi_derive::napi;
-use rspack_core::{PathMatcher, SnapshotOptions};
+use rspack_core::{PathMatcher, SnapshotOptions, SnapshotStrategyOptions};
 use rspack_regex::RspackRegex;
 
 type RawPathMatcher = Either<String, RspackRegex>;
+
+#[derive(Debug)]
+#[napi(object)]
+pub struct RawSnapshotStrategyOptions {
+  pub hash: bool,
+  pub timestamp: bool,
+}
+
+impl From<RawSnapshotStrategyOptions> for SnapshotStrategyOptions {
+  fn from(value: RawSnapshotStrategyOptions) -> Self {
+    Self::new(value.hash, value.timestamp)
+  }
+}
 
 fn normalize_raw_path_matcher(value: RawPathMatcher) -> PathMatcher {
   match value {

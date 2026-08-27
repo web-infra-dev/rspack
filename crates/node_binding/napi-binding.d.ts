@@ -2824,6 +2824,7 @@ export interface RawOptimizeSharedConfig {
 export interface RawOptions {
   name?: string
   mode?: undefined | 'production' | 'development' | 'none'
+  snapshotModule: RawSnapshotStrategyOptions
   context: string
   output: RawOutputOptions
   resolve: RawResolveOptions
@@ -3113,6 +3114,11 @@ export interface RawSnapshotOptions {
   immutablePaths: Array<string|RegExp>
   unmanagedPaths: Array<string|RegExp>
   managedPaths: Array<string|RegExp>
+}
+
+export interface RawSnapshotStrategyOptions {
+  hash: boolean
+  timestamp: boolean
 }
 
 export interface RawSplitChunkSizes {
