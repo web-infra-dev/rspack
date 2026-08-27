@@ -124,7 +124,8 @@ impl Task<TaskContext> for AddTask {
       plugin_driver: context.plugin_driver.clone(),
       runtime_template: context.runtime_template.create_module_code_template(),
       fs: context.fs.clone(),
-      module_build_cache: context.module_build_cache.clone(),
+      module_cache: context.module_cache.clone(),
+      value_cache_versions: context.value_cache_versions.clone(),
       forwarded_ids,
     })])
   }

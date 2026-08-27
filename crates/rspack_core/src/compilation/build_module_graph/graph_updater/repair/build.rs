@@ -10,9 +10,9 @@ use super::{
 use crate::{
   AsyncDependenciesBlock, BoxDependency, BoxModule, BuildContext, BuildResult, CacheFacade,
   CompilationId, CompilerId, CompilerOptions, DependencyParents, ModuleCodeTemplate,
-  ResolverFactory, SharedPluginDriver,
+  ResolverFactory, SharedPluginDriver, ValueCacheVersions,
   compilation::build_module_graph::{ForwardedIdSet, HasLazyDependencies, LazyDependencies},
-  new_cache::ModuleBuildCache,
+  new_cache::ModuleCache,
   utils::{
     ResourceId,
     task_loop::{Task, TaskResult, TaskType},
@@ -30,7 +30,8 @@ pub struct BuildTask {
   pub runtime_template: ModuleCodeTemplate,
   pub plugin_driver: SharedPluginDriver,
   pub fs: Arc<dyn ReadableFileSystem>,
-  pub(super) module_build_cache: Option<ModuleBuildCache>,
+  pub(super) module_cache: Option<ModuleCache>,
+  pub(super) value_cache_versions: Arc<ValueCacheVersions>,
   pub forwarded_ids: ForwardedIdSet,
 }
 
@@ -50,12 +51,15 @@ impl Task<TaskContext> for BuildTask {
       runtime_template,
       mut module,
       fs,
-      module_build_cache,
+      module_cache,
+      value_cache_versions,
       forwarded_ids,
     } = *self;
 
-    if let Some(module_build_cache) = &module_build_cache
-      && let Some(restored) = module_build_cache.restore(&mut module).await?
+    if let Some(module_cache) = &module_cache
+      && let Some(restored) = module_cache
+        .restore(&mut module, &value_cache_versions)
+        .await?
     {
       plugin_driver
         .compilation_hooks
@@ -71,7 +75,7 @@ impl Task<TaskContext> for BuildTask {
     }
 
     // Snapshot time must precede buildModule because plugins may read files.
-    let build_start_time = module_build_cache.as_ref().map(|_| current_time());
+    let build_start_time = module_cache.as_ref().map(|_| current_time());
 
     plugin_driver
       .compilation_hooks
@@ -96,10 +100,8 @@ impl Task<TaskContext> for BuildTask {
       .await;
 
     let mut build_result = result?;
-    if let (Some(module_build_cache), Some(build_start_time)) =
-      (&module_build_cache, build_start_time)
-    {
-      module_build_cache
+    if let (Some(module_cache), Some(build_start_time)) = (&module_cache, build_start_time) {
+      module_cache
         .store(&mut build_result, build_start_time)
         .await?;
     }

@@ -134,7 +134,7 @@ impl ModuleCacheFactory {
 }
 
 /// Compilation-local view of webpack's `Compilation/modules` cache.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) struct ModuleCache {
   cache: CacheFacade,
   codec: Arc<CacheCodec>,
@@ -144,17 +144,6 @@ pub(crate) struct ModuleCache {
 }
 
 impl ModuleCache {
-  pub(crate) fn build_cache(&self, value_cache_versions: &ValueCacheVersions) -> ModuleBuildCache {
-    ModuleBuildCache {
-      cache: self.cache.clone(),
-      codec: self.codec.clone(),
-      file_system_info: self.file_system_info.clone(),
-      snapshot_strategy: self.snapshot_strategy,
-      value_cache_versions: Arc::new(value_cache_versions.clone()),
-      invalid_modules: self.invalid_modules.clone(),
-    }
-  }
-
   pub(crate) fn invalidate(&self, modules: &IdentifierSet) {
     self
       .invalid_modules
@@ -182,21 +171,14 @@ impl RestoredModuleBuild {
   }
 }
 
-/// Per-NormalModule build cache aligned with webpack's `Compilation/modules` cache.
-#[derive(Debug, Clone)]
-pub(crate) struct ModuleBuildCache {
-  cache: CacheFacade,
-  codec: Arc<CacheCodec>,
-  file_system_info: FileSystemInfo,
-  snapshot_strategy: SnapshotStrategyOptions,
-  value_cache_versions: Arc<ValueCacheVersions>,
-  invalid_modules: Arc<Mutex<IdentifierSet>>,
-}
-
-impl ModuleBuildCache {
+impl ModuleCache {
   /// This is the single validity contract for a restored NormalModule build.
-  async fn need_build(&self, entry: &ModuleBuildCacheEntry) -> Result<bool> {
-    if entry.state.need_build(&self.value_cache_versions) {
+  async fn need_build(
+    &self,
+    entry: &ModuleBuildCacheEntry,
+    value_cache_versions: &ValueCacheVersions,
+  ) -> Result<bool> {
+    if entry.state.need_build(value_cache_versions) {
       return Ok(true);
     }
     let Some(snapshot) = entry.state.snapshot() else {
@@ -212,6 +194,7 @@ impl ModuleBuildCache {
   pub(crate) async fn restore(
     &self,
     module: &mut BoxModule,
+    value_cache_versions: &ValueCacheVersions,
   ) -> Result<Option<RestoredModuleBuild>> {
     if module.as_normal_module().is_none() {
       return Ok(None);
@@ -234,7 +217,7 @@ impl ModuleBuildCache {
     let ModuleBuildCacheValue::Cacheable(entry) = value else {
       return Ok(None);
     };
-    if self.need_build(&entry).await? {
+    if self.need_build(&entry, value_cache_versions).await? {
       return Ok(None);
     }
 
@@ -291,9 +274,9 @@ impl ModuleBuildCache {
       .file_system_info
       .create_snapshot(
         Some(start_time),
-        &build_info.file_dependencies,
-        &build_info.context_dependencies,
-        &build_info.missing_dependencies,
+        &build_info.dependencies.file,
+        &build_info.dependencies.context,
+        &build_info.dependencies.missing,
         self.snapshot_strategy,
       )
       .await

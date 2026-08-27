@@ -70,7 +70,7 @@ pub async fn repair(
     compilation,
     artifact,
     exports_info_artifact,
-    compilation.module_build_cache(),
+    compilation.module_cache.clone(),
   );
   run_task_loop(&mut ctx, init_tasks).await?;
   Ok((ctx.artifact, ctx.exports_info_artifact))

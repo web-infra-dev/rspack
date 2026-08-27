@@ -96,7 +96,7 @@ use crate::{
   legacy_cache::persistent::occasion::{
     devtool::SourceMapDevToolPluginCache, minimize::MinimizePersistentCache,
   },
-  new_cache::{Cache, CacheFacade, ModuleBuildCache, ModuleCache, ModuleCacheFactory},
+  new_cache::{Cache, CacheFacade, ModuleCache, ModuleCacheFactory},
   to_identifier,
 };
 
@@ -485,13 +485,6 @@ impl Compilation {
 
   pub fn get_cache(&self, name: &str) -> CacheFacade {
     self.cache.facade(name)
-  }
-
-  pub(crate) fn module_build_cache(&self) -> Option<ModuleBuildCache> {
-    self
-      .module_cache
-      .as_ref()
-      .map(|module_cache| module_cache.build_cache(&self.value_cache_versions))
   }
 
   pub fn id(&self) -> CompilationId {
