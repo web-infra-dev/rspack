@@ -492,7 +492,7 @@ mod tests {
       reg_exp: Some(RspackRegex::with_flags("^\\./", "i").expect("valid regexp")),
       include: Some(RspackRegex::new("include").expect("valid regexp")),
       exclude: Some(RspackRegex::new("exclude").expect("valid regexp")),
-      mode: Some("lazy".to_string()),
+      mode: Some(ContextMode::Lazy),
       recursive: Some(false),
     };
     let context_options = ContextOptions::from(&options);
