@@ -33,7 +33,6 @@ use crate::{
 pub(super) struct CssModuleParser<'context> {
   parser_options: &'context CssAutoOrModuleParserOptions,
   generator_options: &'context CssModuleGeneratorOptions,
-  exports_only: bool,
   export_type: Option<CssExportType>,
   has_charset: bool,
   parse_context: ParseContext<'context>,
@@ -217,7 +216,6 @@ impl<'context> CssModuleParser<'context> {
   pub fn new(
     generator_options: &'context CssModuleGeneratorOptions,
     parser_options: &'context CssAutoOrModuleParserOptions,
-    exports_only: bool,
     parse_context: ParseContext<'context>,
   ) -> Self {
     let source = remove_bom(parse_context.source.clone());
@@ -233,7 +231,6 @@ impl<'context> CssModuleParser<'context> {
     Self {
       parser_options,
       generator_options,
-      exports_only,
       export_type,
       has_charset: false,
       parse_context,
@@ -562,7 +559,6 @@ impl<'context> CssModuleParser<'context> {
       export_dependency_names,
       graph_export_names: graph_export_name_set,
       presentational_dependency_hash_updates,
-      exports_only: self.exports_only,
       es_module: self.es_module(),
       named_exports: self.named_exports(),
       exports_convention: self.generator_options.exports_convention,
