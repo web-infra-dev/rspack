@@ -4,7 +4,7 @@ description: 'Browse all documented Rspack plugins by function, with concise des
 
 # Rspack plugins
 
-Browse all documented Rspack plugins by function below.
+Browse Rspack's built-in plugins by function below.
 
 To learn how to use plugins, see the [plugin guide](/guide/features/plugin).
 
@@ -43,7 +43,6 @@ To learn how to use plugins, see the [plugin guide](/guide/features/plugin).
 - [ModuleFederationPluginV1](/plugins/module-federation-plugin-v1): Provides webpack-compatible Module Federation 1.0 behavior.
 - [NormalModuleReplacementPlugin](/plugins/normal-module-replacement-plugin): Replaces matching module requests with another resource.
 - [ProvidePlugin](/plugins/provide-plugin): Automatically imports modules when configured identifiers are used.
-- [TreeShakingSharedPlugin](/plugins/tree-shaking-shared-plugin): Performs on-demand builds and export optimization for Module Federation shared dependencies.
 - [VirtualModulesPlugin](/plugins/virtual-modules-plugin): Creates, updates, and deletes in-memory modules that behave like files.
 
 ## Development and debugging
@@ -56,23 +55,20 @@ To learn how to use plugins, see the [plugin guide](/guide/features/plugin).
 - [ProgressPlugin](/plugins/progress-plugin): Reports and customizes compilation progress.
 - [SourceMapDevToolPlugin](/plugins/source-map-dev-tool-plugin): Provides fine-grained control over source map generation.
 
-## Targets and runtime
-
-- [ElectronTargetPlugin](/plugins/electron-target-plugin): Externalizes Electron built-in modules for Electron targets.
-- [EnableChunkLoadingPlugin](/plugins/enable-chunk-loading-plugin): Enables a chunk-loading type and its required runtime modules.
-- [EnableLibraryPlugin](/plugins/enable-library-plugin): Enables output for a specified library type.
-- [EnableWasmLoadingPlugin](/plugins/enable-wasm-loading-plugin): Enables a WebAssembly loading type and its required runtime modules.
-- [JsonpTemplatePlugin](/plugins/jsonp-template-plugin): Configures browser builds to use JSONP-style chunk loading.
-- [NodeTargetPlugin](/plugins/node-target-plugin): Externalizes Node.js built-in modules for Node targets.
-- [NodeTemplatePlugin](/plugins/node-template-plugin): Configures Node.js chunk format and loading behavior.
-- [WebWorkerTemplatePlugin](/plugins/web-worker-template-plugin): Configures Web Worker builds and `importScripts`-based chunk loading.
-
 ## Reference
 
-- [Internal plugins](/plugins/internal-plugins): Catalogs low-level plugins that Rspack applies internally for custom compiler development and inspection.
+- [Low-level plugins](/plugins/low-level-plugins): Catalogs publicly exposed building blocks for target presets, runtime templates, child compilers, and higher-level plugins.
 - [webpack built-in plugin support](/plugins/webpack-built-in-plugin-support): Summarizes Rspack's support for webpack built-in plugins.
 
-For third-party plugins, see the [plugin compatibility list](/guide/compatibility/plugin) and [awesome-rstack](https://github.com/rstackjs/awesome-rstack).
+## Community plugins
+
+Rspack strives to maintain compatibility with the webpack plugin ecosystem to leverage the excellent features that have been accumulated and validated by the community.
+
+Please refer to the [Plugin compatibility list](/guide/compatibility/plugin) to access a list of webpack plugins that have passed our compatibility tests.
+
+You can also check out the community Rspack plugins at [awesome-rstack](https://github.com/rstackjs/awesome-rstack).
+
+Welcome to add the plugins you developed to this repository.
 
 ## Deprecated
 
