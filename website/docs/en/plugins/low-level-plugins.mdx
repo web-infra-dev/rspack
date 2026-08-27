@@ -164,7 +164,7 @@ For a regular library build, prefer [`output.library`](/config/output#outputlibr
 
 The supported types are `'fetch'`, `'async-node'`, and `'universal'`.
 
-The following dynamic entry selects `'fetch'` and enables it explicitly because the entry-specific type cannot be discovered during configuration normalization:
+The following example sets `output.wasmLoading` to `false` to disable automatic setup, then directly applies `EnableWasmLoadingPlugin` to install the `'fetch'` loading runtime:
 
 ```js title="src/index.js"
 import { add } from './add.wasm';
@@ -177,12 +177,7 @@ import { rspack } from '@rspack/core';
 
 export default {
   target: 'web',
-  entry: () => ({
-    main: {
-      import: './src/index.js',
-      wasmLoading: 'fetch',
-    },
-  }),
+  entry: './src/index.js',
   experiments: {
     asyncWebAssembly: true,
   },

@@ -164,7 +164,7 @@ export default {
 
 支持的类型包括 `'fetch'`、`'async-node'` 和 `'universal'`。
 
-下面的动态入口选择 `'fetch'`。由于 Rspack 无法在配置标准化阶段发现入口指定的类型，因此需要显式启用：
+下面的示例将 `output.wasmLoading` 设为 `false` 以关闭自动配置，然后直接应用 `EnableWasmLoadingPlugin` 安装 `'fetch'` 加载运行时：
 
 ```js title="src/index.js"
 import { add } from './add.wasm';
@@ -177,12 +177,7 @@ import { rspack } from '@rspack/core';
 
 export default {
   target: 'web',
-  entry: () => ({
-    main: {
-      import: './src/index.js',
-      wasmLoading: 'fetch',
-    },
-  }),
+  entry: './src/index.js',
   experiments: {
     asyncWebAssembly: true,
   },
