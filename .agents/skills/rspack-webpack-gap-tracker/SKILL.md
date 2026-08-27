@@ -8,6 +8,7 @@ description: Use when tracking, auditing, or updating Rspack compatibility gaps 
 ## Tracking Targets
 
 - Main tracking issue: https://github.com/web-infra-dev/rspack/issues/14556
+- Pending evaluation comment ID: `5437977419`
 - Completed feature comment ID: `4785525873`
 - Missing test comment ID: `4785526309`
 - Native CSS tracking issue: https://github.com/web-infra-dev/rspack/issues/14002
@@ -16,13 +17,14 @@ description: Use when tracking, auditing, or updating Rspack compatibility gaps 
 
 Keep the issue and comments as lists, not prose-only summaries.
 
-- Main issue body: missing Rspack features compared with webpack, grouped by implementation recommendation.
+- Main issue body: only missing Rspack features explicitly recommended for implementation.
+- Pending evaluation comment: missing Rspack features compared with webpack that have not been explicitly recommended for implementation.
 - Completed feature comment: webpack compatibility features that Rspack has completed.
 - Missing test comment: webpack tests missing from Rspack that are not already covered by a missing feature or PR-specific feature gap.
 
-Keep workflow and update rules in this skill only. Do not add an `Update Rules` section or other agent instructions to the GitHub issue body or placeholder comments.
+Keep workflow and update rules in this skill only. Do not add an `Update Rules` section or other agent instructions to the GitHub issue body or tracked comments.
 
-Every update to the issue body or either placeholder comment must include a visible update time, using the local timezone when possible:
+Every update to the issue body or a tracked comment must include a visible update time, using the local timezone when possible:
 
 ```text
 Last updated: YYYY-MM-DD HH:mm:ss Z
@@ -30,7 +32,7 @@ Last updated: YYYY-MM-DD HH:mm:ss Z
 
 ## Preview and Approval Gate
 
-Before every GitHub update, generate a local Markdown preview containing the exact replacement body for the tracking issue and every placeholder comment that would be changed. Clearly mark the file as a preview, include its local path in the response, and do not call any GitHub write operation yet.
+Before every GitHub update, generate a local Markdown preview containing the exact replacement body for the tracking issue and every tracked comment that would be changed. Clearly mark the file as a preview, include its local path in the response, and do not call any GitHub write operation yet.
 
 Wait for the user to explicitly approve that preview before updating GitHub. After approval, re-read the current issue and comments and compare them with the state used to generate the preview. If GitHub changed in the meantime, do not apply the stale preview; generate a refreshed local preview and request approval again.
 
@@ -39,17 +41,17 @@ Apply only the approved preview content. Do not add, remove, reclassify, or rewo
 ## Audit Workflow
 
 1. Read the current tracking issue and its comments before adding anything.
-2. Preserve the existing issue and comment format when updating; only change the relevant timestamp and list entries.
-3. Check associated, linked, or subtask issues for each candidate gap. If a related issue or subtask already records the same content, do not duplicate it in the main tracking issue.
-4. Compare new findings with both missing and completed lists to avoid duplicates.
+2. Preserve the existing issue and comment format when updating; only change the relevant timestamp and list entries. Keep the main issue limited to explicitly recommended features and keep all other unresolved gaps in the Pending evaluation comment.
+3. Check associated, linked, or subtask issues for each candidate gap. If a related issue or subtask already records the same content, do not duplicate it in the main issue or Pending evaluation comment.
+4. Compare new findings with the main issue, Pending evaluation comment, and completed list to avoid duplicates.
 5. Search for missing functionality from these directions:
    - New webpack release features since the last recorded update.
    - Differences between webpack's config object and Rspack's config object.
    - Differences between Rspack built-in plugins and webpack built-in plugins, plus commonly-used webpack ecosystem plugins that Rspack provides built-in alternatives for.
    - Rspack PRs merged since the last recorded update, especially large changes and PRs labeled or titled as features.
    - Existing issue entries and completed entries, to avoid re-recording already tracked work.
-6. Put every missing feature in **Pending evaluation** by default. Do not infer a recommendation from implementation details, performance considerations, existing Rspack APIs, user-demand evidence, or whether the feature could live in an external package.
-7. Put or move any gap into **Recommended to implement in Rspack** only when the tracking issue already contains an explicit manual annotation marking that gap as recommended. Preserve that manual classification on later audits. The audit's own proposed wording or reasoning does not count as a manual recommendation; when the provenance is unclear, leave the gap in **Pending evaluation**. Do not add new gaps to **Not recommended to implement in Rspack** automatically; preserve existing manual classifications.
+6. Put every missing feature in the **Pending evaluation** comment by default. Do not infer a recommendation from implementation details, performance considerations, existing Rspack APIs, user-demand evidence, or whether the feature could live in an external package.
+7. Put or move a gap into the main issue's **Recommended to implement in Rspack** list only when an explicit manual annotation marks that gap as recommended. Preserve that manual classification on later audits. The audit's own proposed wording or reasoning does not count as a manual recommendation; when the provenance is unclear, leave the gap in the **Pending evaluation** comment. When moving a gap to the main issue, remove its Pending evaluation entry in the same approved update.
 8. Inspect the corresponding webpack feature or plugin implementation for accurate compatibility notes. Check whether Rsbuild already provides a solution, and whether https://github.com/rstackjs already has a compatible package or plugin, but keep gaps in **Pending evaluation** unless the issue has the manual recommendation annotation described above.
 9. If the gap is native CSS-related, record it in #14002 instead of #14556.
 10. For missing tests:
