@@ -1,20 +1,20 @@
 ---
-description: 'Low-level Rspack plugins for target presets, runtime templates, child compilers, and higher-level plugins.'
+description: 'Publicly exposed low-level Rspack plugins for target presets, runtime templates, child compilers, and higher-level plugins.'
 ---
 
 import WebpackLicense from '@components/WebpackLicense';
 
 <WebpackLicense from="https://webpack.js.org/plugins/internal-plugins/" />
 
-# Internal plugins
+# Low-level plugins
 
-This page catalogs low-level plugins that Rspack primarily uses to implement target presets, runtime templates, child compilers, and higher-level plugins.
+These plugins are publicly exposed low-level building blocks that Rspack primarily uses to implement target presets, runtime templates, child compilers, and higher-level plugins.
 
-:::warning
-Most application builds should use the corresponding high-level configuration instead. Use these plugins directly only when building a custom compiler, configuring a child compiler, or inspecting Rspack internals.
+:::tip Usage guidance
+For most application builds, prefer the corresponding high-level configuration. Direct use is mainly intended for custom compilers, child compilers, and advanced integrations.
 :::
 
-Categories of internal plugins:
+Categories of low-level plugins:
 
 - [environment](#environment)
 - [entry](#entry)

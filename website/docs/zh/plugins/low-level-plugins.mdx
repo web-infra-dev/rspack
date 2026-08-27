@@ -1,20 +1,20 @@
 ---
-description: '介绍用于目标预设、运行时模板、子编译器和上层插件的 Rspack 底层插件。'
+description: '介绍 Rspack 对外暴露、用于目标预设、运行时模板、子编译器和上层插件的底层插件。'
 ---
 
 import WebpackLicense from '@components/WebpackLicense';
 
 <WebpackLicense from="https://webpack.docschina.org/plugins/internal-plugins/" />
 
-# 内部使用的插件
+# 底层插件
 
-本页面汇总 Rspack 主要用于实现目标预设、运行时模板、子编译器和上层插件的底层插件。
+这些插件是 Rspack 对外暴露的底层构件，主要用于实现目标预设、运行时模板、子编译器和上层插件。
 
-:::warning 警告
-大多数应用构建应使用对应的上层配置。只有在开发自定义编译器、配置子编译器或研究 Rspack 内部机制时，才建议直接使用这些插件。
+:::tip 使用建议
+常规应用构建应优先使用对应的上层配置。直接使用这些插件主要适用于自定义编译器、子编译器和高级集成。
 :::
 
-内部使用的插件分为以下类别：
+底层插件分为以下类别：
 
 - [environment](#environment)
 - [entry](#entry)

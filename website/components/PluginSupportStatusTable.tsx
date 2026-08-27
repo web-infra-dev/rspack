@@ -174,12 +174,12 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
   },
   {
     name: 'JsonpTemplatePlugin',
-    url: '/plugins/internal-plugins#jsonp-template-plugin',
+    url: '/plugins/low-level-plugins#jsonp-template-plugin',
     status: SupportStatus.FullySupported,
   },
   {
     name: 'NodeTemplatePlugin',
-    url: '/plugins/internal-plugins#node-template-plugin',
+    url: '/plugins/low-level-plugins#node-template-plugin',
     status: SupportStatus.FullySupported,
   },
   {
@@ -188,7 +188,7 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
   },
   {
     name: 'WebWorkerTemplatePlugin',
-    url: '/plugins/internal-plugins#web-worker-template-plugin',
+    url: '/plugins/low-level-plugins#web-worker-template-plugin',
     status: SupportStatus.FullySupported,
   },
   {
@@ -213,7 +213,7 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
   },
   {
     name: 'NodeTargetPlugin',
-    url: '/plugins/internal-plugins#node-target-plugin',
+    url: '/plugins/low-level-plugins#node-target-plugin',
     status: SupportStatus.FullySupported,
   },
   {
@@ -334,7 +334,7 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
   },
   {
     name: 'ElectronTargetPlugin',
-    url: '/plugins/internal-plugins#electron-target-plugin',
+    url: '/plugins/low-level-plugins#electron-target-plugin',
     status: SupportStatus.FullySupported,
   },
   {
@@ -363,7 +363,7 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
   },
   {
     name: 'FetchCompileAsyncWasmPlugin',
-    url: '/plugins/internal-plugins#fetchcompileasyncwasmplugin',
+    url: '/plugins/low-level-plugins#fetchcompileasyncwasmplugin',
     status: SupportStatus.FullySupported,
   },
   {

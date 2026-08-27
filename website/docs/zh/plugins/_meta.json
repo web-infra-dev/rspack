@@ -67,7 +67,7 @@
     "type": "section-header",
     "label": "参考"
   },
-  "internal-plugins",
+  "low-level-plugins",
   "webpack-built-in-plugin-support",
   {
     "type": "section-header",
