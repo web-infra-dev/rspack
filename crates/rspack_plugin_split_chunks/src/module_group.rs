@@ -7,7 +7,7 @@ use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::{
   CacheGroup,
-  common::{ModuleSizes, SplitChunkSizes},
+  common::{ModuleSizes, SplitChunkSizes, chunk_mask},
 };
 
 pub(crate) struct IndexedCacheGroup<'a> {
@@ -135,6 +135,10 @@ pub(crate) struct ModuleGroup {
   /// `Chunk`s which `Module`s in this ModuleGroup belong to
   #[debug(skip)]
   pub chunks: FxHashSet<ChunkUkey>,
+  /// A conservative snapshot of the group's chunks before selection starts. Later operations only
+  /// remove chunks, so retaining the original bits can add false positives but never false
+  /// negatives to cleanup filtering.
+  chunk_mask: u64,
   modules_for_compare: ModulesForCompare,
   added: Vec<ModuleIdentifier>,
   removed: Vec<ModuleIdentifier>,
@@ -157,6 +161,7 @@ impl ModuleGroup {
       sizes: Default::default(),
       source_types_modules: Default::default(),
       chunks: Default::default(),
+      chunk_mask: 0,
       modules_for_compare: Default::default(),
       chunk_name,
       added: Default::default(),
@@ -292,6 +297,7 @@ impl ModuleGroup {
   }
 
   pub fn prepare_modules_for_sizes_and_compare(&mut self) {
+    self.chunk_mask = chunk_mask(self.chunks.iter());
     let modules = self.modules.iter().copied().collect::<Vec<_>>();
     self.added = modules.clone();
     self.modules_for_compare.prepare(modules);
@@ -300,6 +306,10 @@ impl ModuleGroup {
 
   pub fn sorted_modules_for_compare(&mut self) -> &[ModuleIdentifier] {
     self.modules_for_compare.sorted()
+  }
+
+  pub fn may_have_chunks_in_mask(&self, mask: u64) -> bool {
+    self.chunk_mask & mask != 0
   }
 
   pub fn get_cache_group<'a>(&self, cache_groups: &'a [CacheGroup]) -> &'a CacheGroup {
