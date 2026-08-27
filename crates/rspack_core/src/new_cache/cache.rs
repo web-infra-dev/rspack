@@ -4,7 +4,7 @@ use rspack_error::Result;
 use rspack_paths::InternedPathSet;
 
 use super::{
-  CacheFacade, CacheKey, CacheValue, Etag, IdleFileCache, MemoryCache, MemoryCacheGetResult,
+  CacheFacade, CacheKey, CacheValue, Etag, IdleFileCache, MemoryCache, MemoryCacheGetResult, Meta,
   cache_value::CacheValueData,
 };
 
@@ -126,26 +126,26 @@ impl Cache {
     }
   }
 
-  pub fn store_dependency_id(&self, dependency_id: u32) -> Result<()> {
+  pub fn store_meta(&self, meta: Meta) -> Result<()> {
     let Some(storage) = &self.inner.storage else {
       return Ok(());
     };
     if let Some(file_cache) = &storage.idle_file_cache {
-      file_cache.store_dependency_id(dependency_id)
+      file_cache.store_meta(meta)
     } else {
       Ok(())
     }
   }
 
-  pub fn restore_dependency_id(&self) -> Result<Option<u32>> {
+  pub fn restore_meta(&self) -> Result<Option<Meta>> {
     let Some(storage) = &self.inner.storage else {
       return Ok(None);
     };
-    storage
-      .idle_file_cache
-      .as_ref()
-      .map(IdleFileCache::restore_dependency_id)
-      .transpose()
+    if let Some(file_cache) = &storage.idle_file_cache {
+      file_cache.restore_meta()
+    } else {
+      Ok(None)
+    }
   }
 
   pub fn has_file_cache(&self) -> bool {

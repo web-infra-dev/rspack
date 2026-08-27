@@ -258,14 +258,14 @@ impl Compiler {
     } else {
       Ok(())
     };
-    let record_dependency_id = self
-      .new_cache
-      .store_dependency_id(self.compiler_context.dependency_id());
+    let store_meta = self.new_cache.store_meta(Meta {
+      max_dependency_id: self.compiler_context.dependency_id(),
+    });
     let begin_idle = self.new_cache.begin_idle();
 
     record_build_time
       .and(store_build_dependencies)
-      .and(record_dependency_id)
+      .and(store_meta)
       .and(begin_idle)
   }
 
@@ -302,10 +302,12 @@ impl Compiler {
 
   #[instrument("Compiler:build",target=TRACING_BENCH_TARGET, skip_all)]
   async fn build_inner(&mut self) -> Result<()> {
-    if let Some(restored) = self.new_cache.restore_dependency_id()? {
+    if let Some(restored) = self.new_cache.restore_meta()? {
       let current = self.compiler_context.dependency_id();
-      if current < restored {
-        self.compiler_context.set_dependency_id(restored);
+      if current < restored.max_dependency_id {
+        self
+          .compiler_context
+          .set_dependency_id(restored.max_dependency_id);
       }
     }
     // TODO: clear the outdated cache entries in resolver,

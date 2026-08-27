@@ -16,7 +16,7 @@ use tokio::{
 };
 
 use super::{
-  CacheKey, CacheValue, Etag, FileCacheStrategy,
+  CacheKey, CacheValue, Etag, FileCacheStrategy, Meta,
   cache_value::{CacheValueData, CacheValueDecoder, CacheValueEncoder, ErasedCacheValue},
 };
 
@@ -33,13 +33,16 @@ enum Command {
     value: ErasedCacheValue,
     encoder: CacheValueEncoder,
   },
-  StoreBuildDependencies(InternedPathSet),
-  StoreDependencyId(u32),
   Restore {
     key: CacheKey,
     etag: Option<Etag>,
     decoder: CacheValueDecoder,
     result: sync_mpsc::SyncSender<Result<Option<ErasedCacheValue>>>,
+  },
+  StoreBuildDependencies(InternedPathSet),
+  StoreMeta(Meta),
+  RestoreMeta {
+    result: sync_mpsc::SyncSender<Result<Option<Meta>>>,
   },
   RecordBuildTime(Duration),
   BeginIdle {
@@ -47,9 +50,6 @@ enum Command {
   },
   EndIdle,
   Shutdown(oneshot::Sender<Result<()>>),
-  RestoreDependencyId {
-    result: sync_mpsc::SyncSender<u32>,
-  },
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -126,8 +126,8 @@ impl BackgroundJob {
       Command::StoreBuildDependencies(dependencies) => {
         self.strategy.store_build_dependencies(dependencies);
       }
-      Command::StoreDependencyId(dependency_id) => {
-        self.strategy.store_dependency_id(dependency_id);
+      Command::StoreMeta(meta) => {
+        self.strategy.store_meta(meta);
       }
       Command::Restore {
         key,
@@ -172,8 +172,8 @@ impl BackgroundJob {
         let _ = result.send(self.strategy.shutdown().await);
         return true;
       }
-      Command::RestoreDependencyId { result } => {
-        let _ = result.send(self.strategy.restore_dependency_id());
+      Command::RestoreMeta { result } => {
+        let _ = result.send(self.strategy.restore_meta());
       }
     }
     false
@@ -296,16 +296,16 @@ impl IdleFileCache {
     self.send(Command::StoreBuildDependencies(dependencies))
   }
 
-  pub fn store_dependency_id(&self, dependency_id: u32) -> Result<()> {
-    self.send(Command::StoreDependencyId(dependency_id))
+  pub fn store_meta(&self, meta: Meta) -> Result<()> {
+    self.send(Command::StoreMeta(meta))
   }
 
-  pub fn restore_dependency_id(&self) -> Result<u32> {
+  pub fn restore_meta(&self) -> Result<Option<Meta>> {
     let (result, result_receiver) = sync_mpsc::sync_channel(1);
-    self.send(Command::RestoreDependencyId { result })?;
+    self.send(Command::RestoreMeta { result })?;
     result_receiver
       .recv()
-      .map_err(|_| rspack_error::error!("Idle file cache background job has stopped"))
+      .map_err(|_| rspack_error::error!("Idle file cache background job has stopped"))?
   }
 
   pub fn record_build_time(&self, build_time: Duration) -> Result<()> {

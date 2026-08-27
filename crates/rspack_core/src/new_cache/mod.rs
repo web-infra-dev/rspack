@@ -7,6 +7,7 @@ mod etag;
 mod file_cache_strategy;
 mod idle_file_cache;
 mod memory_cache;
+mod meta;
 mod snapshot;
 mod validator;
 
@@ -20,6 +21,7 @@ pub use etag::Etag;
 pub use file_cache_strategy::FileCacheStrategy;
 pub use idle_file_cache::IdleFileCache;
 pub use memory_cache::{MemoryCache, MemoryCacheGetResult};
+pub use meta::Meta;
 use rspack_fs::ReadableFileSystem;
 
 use self::snapshot::FileSystemInfo;
