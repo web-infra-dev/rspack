@@ -94,6 +94,19 @@ Cache supports fine-grained entries through two storage modes:
 Filesystem-backed cache implementations may keep a memory front cache. That implementation detail
 does not create a third public storage mode.
 
+## Persistent Cache Format Compatibility
+
+Rspack's persistent cache is internal derived data, not a cross-version storage format. Cache data
+written by one Rspack version does not need to remain readable by another Rspack version.
+
+When a serialized cache value, key meaning, database family, or metadata schema changes, invalidate
+the incompatible cache through the existing package/cache version validation and rebuild it. Prefer
+version invalidation and database reset over migration code, fallback decoding, dual-format writes,
+or retaining obsolete fields solely to read cache data from older Rspack versions.
+
+This rule does not relax correctness within one version: every cache entry and its required metadata
+must still be written, validated, restored, and invalidated consistently.
+
 ## Cache Backends
 
 Rspack currently carries two implementations of the same Cache responsibility:
