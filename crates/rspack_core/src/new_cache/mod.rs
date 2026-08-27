@@ -8,6 +8,7 @@ mod file_cache_strategy;
 mod file_dependencies;
 mod idle_file_cache;
 mod memory_cache;
+mod meta;
 mod snapshot;
 mod validator;
 
@@ -22,6 +23,7 @@ pub use file_cache_strategy::FileCacheStrategy;
 pub(crate) use file_dependencies::FileDependencies;
 pub use idle_file_cache::IdleFileCache;
 pub use memory_cache::{MemoryCache, MemoryCacheGetResult};
+pub use meta::Meta;
 use rspack_fs::ReadableFileSystem;
 
 use self::snapshot::FileSystemInfo;
@@ -47,12 +49,12 @@ pub fn create_cache(
     crate::CacheOptions::Persistent(options) => options,
   };
 
-  let project_root = if options.portable {
+  let portable_project_root = if options.portable {
     Some(compiler_options.context.as_path().to_path_buf())
   } else {
     None
   };
-  let codec = Arc::new(CacheCodec::new(project_root));
+  let codec = Arc::new(CacheCodec::new(portable_project_root));
   let file_system_info = FileSystemInfo::new(
     input_filesystem.clone(),
     CompilationLogger::new("rspack.FileSystemInfo".to_string(), compilation_logging),
