@@ -2827,6 +2827,9 @@ export type OptimizationSplitChunksOptions = {
   hidePathInfo?: boolean;
 } & SharedOptimizationSplitChunksCacheGroup;
 
+/** @deprecated Use `'compact-hashed'` instead. */
+type CompatHashedIds = 'compat-hashed';
+
 export type Optimization = {
   /**
    * Which algorithm to use when choosing module ids.
@@ -2834,7 +2837,13 @@ export type Optimization = {
    * (e.g. HashedModuleIdsPlugin) to provide module ids instead.
    */
   moduleIds?:
-    false | 'named' | 'natural' | 'deterministic' | 'compat-hashed' | 'hashed';
+    | false
+    | 'named'
+    | 'natural'
+    | 'deterministic'
+    | 'compact-hashed'
+    | CompatHashedIds
+    | 'hashed';
 
   /**
    * Which algorithm to use when choosing chunk ids.
@@ -2846,7 +2855,8 @@ export type Optimization = {
     | 'natural'
     | 'named'
     | 'deterministic'
-    | 'compat-hashed'
+    | 'compact-hashed'
+    | CompatHashedIds
     | 'size'
     | 'total-size';
 

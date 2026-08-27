@@ -69,12 +69,12 @@ fn encode_lowercase_alphanumeric_hash(mut hash: u64) -> [u8; FULL_LOWERCASE_ALPH
   identifier
 }
 
-pub(crate) struct CompatHashedIdAssigner {
+pub(crate) struct CompactHashedIdAssigner {
   min_length: usize,
   used_ids: FxHashSet<String>,
 }
 
-impl CompatHashedIdAssigner {
+impl CompactHashedIdAssigner {
   pub(crate) fn new(min_length: usize, used_ids: FxHashSet<String>) -> Self {
     Self {
       min_length,

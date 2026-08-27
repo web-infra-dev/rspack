@@ -31,7 +31,7 @@ use napi::{
 use napi_derive::napi;
 use raw_dll::{RawDllReferenceAgencyPluginOptions, RawFlagAllModulesAsUsedPluginOptions};
 use raw_ids::{
-  RawCompatHashedChunkIdsPluginOptions, RawCompatHashedModuleIdsPluginOptions,
+  RawCompactHashedChunkIdsPluginOptions, RawCompactHashedModuleIdsPluginOptions,
   RawDeterministicModuleIdsPluginOptions, RawHashedModuleIdsPluginOptions,
   RawOccurrenceChunkIdsPluginOptions, RawSyncModuleIdsPluginOptions,
 };
@@ -45,7 +45,7 @@ use raw_sri::RawSubresourceIntegrityPluginOptions;
 use rspack_core::{BoxPlugin, Plugin, PluginExt};
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_ids::{
-  CompatHashedChunkIdsPlugin, CompatHashedModuleIdsPlugin, DeterministicChunkIdsPlugin,
+  CompactHashedChunkIdsPlugin, CompactHashedModuleIdsPlugin, DeterministicChunkIdsPlugin,
   DeterministicModuleIdsPlugin, HashedModuleIdsPlugin, NamedChunkIdsPlugin, NamedModuleIdsPlugin,
   NaturalChunkIdsPlugin, NaturalModuleIdsPlugin, OccurrenceChunkIdsPlugin, SyncModuleIdsPlugin,
 };
@@ -198,12 +198,18 @@ pub enum BuiltinPluginName {
   NamedModuleIdsPlugin,
   NaturalModuleIdsPlugin,
   DeterministicModuleIdsPlugin,
+  CompactHashedModuleIdsPlugin,
+  /// @deprecated Use `CompactHashedModuleIdsPlugin` instead.
+  #[deprecated(note = "Use `CompactHashedModuleIdsPlugin` instead.")]
   CompatHashedModuleIdsPlugin,
   SyncModuleIdsPlugin,
   HashedModuleIdsPlugin,
   NaturalChunkIdsPlugin,
   NamedChunkIdsPlugin,
   DeterministicChunkIdsPlugin,
+  CompactHashedChunkIdsPlugin,
+  /// @deprecated Use `CompactHashedChunkIdsPlugin` instead.
+  #[deprecated(note = "Use `CompactHashedChunkIdsPlugin` instead.")]
   CompatHashedChunkIdsPlugin,
   OccurrenceChunkIdsPlugin,
   RealContentHashPlugin,
@@ -595,9 +601,11 @@ impl<'a> BuiltinPlugin<'a> {
         )
         .boxed(),
       ),
-      BuiltinPluginName::CompatHashedModuleIdsPlugin => plugins.push(
-        CompatHashedModuleIdsPlugin::new(
-          downcast_into::<RawCompatHashedModuleIdsPluginOptions>(self.options)
+      #[allow(deprecated)]
+      BuiltinPluginName::CompactHashedModuleIdsPlugin
+      | BuiltinPluginName::CompatHashedModuleIdsPlugin => plugins.push(
+        CompactHashedModuleIdsPlugin::new(
+          downcast_into::<RawCompactHashedModuleIdsPluginOptions>(self.options)
             .map_err(|report| napi::Error::from_reason(report.to_string()))?
             .into(),
         )
@@ -628,9 +636,11 @@ impl<'a> BuiltinPlugin<'a> {
       BuiltinPluginName::DeterministicChunkIdsPlugin => {
         plugins.push(DeterministicChunkIdsPlugin::default().boxed())
       }
-      BuiltinPluginName::CompatHashedChunkIdsPlugin => plugins.push(
-        CompatHashedChunkIdsPlugin::new(
-          downcast_into::<RawCompatHashedChunkIdsPluginOptions>(self.options)
+      #[allow(deprecated)]
+      BuiltinPluginName::CompactHashedChunkIdsPlugin
+      | BuiltinPluginName::CompatHashedChunkIdsPlugin => plugins.push(
+        CompactHashedChunkIdsPlugin::new(
+          downcast_into::<RawCompactHashedChunkIdsPluginOptions>(self.options)
             .map_err(|report| napi::Error::from_reason(report.to_string()))?
             .into(),
         )

@@ -3471,10 +3471,10 @@ impl OptimizationOptionsBuilder {
           .plugins
           .push(BuiltinPluginOptions::DeterministicModuleIdsPlugin);
       }
-      "compat-hashed" => {
+      "compact-hashed" | "compat-hashed" => {
         builder_context
           .plugins
-          .push(BuiltinPluginOptions::CompatHashedModuleIdsPlugin);
+          .push(BuiltinPluginOptions::CompactHashedModuleIdsPlugin);
       }
       "named" => {
         builder_context
@@ -3519,10 +3519,10 @@ impl OptimizationOptionsBuilder {
           .plugins
           .push(BuiltinPluginOptions::DeterministicChunkIdsPlugin);
       }
-      "compat-hashed" => {
+      "compact-hashed" | "compat-hashed" => {
         builder_context
           .plugins
-          .push(BuiltinPluginOptions::CompatHashedChunkIdsPlugin);
+          .push(BuiltinPluginOptions::CompactHashedChunkIdsPlugin);
       }
       "named" => {
         builder_context

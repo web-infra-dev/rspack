@@ -3,7 +3,7 @@ const chunks = [
 	import("./a?30"),
 ];
 
-it("should extend compat-hashed chunk ids only when shorter prefixes collide", async () => {
+it("should extend compact-hashed chunk ids only when shorter prefixes collide", async () => {
 	const values = await Promise.all(chunks);
 	expect(values.every(value => value.default === "a")).toBe(true);
 });

@@ -8,8 +8,8 @@ use rspack_hook::{plugin, plugin_hook};
 use rustc_hash::{FxBuildHasher, FxHashMap, FxHashSet};
 
 use crate::{
-  compat_hashed_id::{
-    CompatHashedIdAssigner, FULL_LOWERCASE_ALPHANUMERIC_LENGTH, hash_lowercase_alphanumeric,
+  compact_hashed_id::{
+    CompactHashedIdAssigner, FULL_LOWERCASE_ALPHANUMERIC_LENGTH, hash_lowercase_alphanumeric,
     normalize_min_length, validate_min_length,
   },
   id_helpers::{
@@ -18,29 +18,29 @@ use crate::{
 };
 
 #[derive(Debug, Clone, Default)]
-pub struct CompatHashedChunkIdsPluginOptions {
+pub struct CompactHashedChunkIdsPluginOptions {
   pub min_length: Option<usize>,
 }
 
 #[plugin]
 #[derive(Debug)]
-pub struct CompatHashedChunkIdsPlugin {
+pub struct CompactHashedChunkIdsPlugin {
   min_length: usize,
 }
 
-impl Default for CompatHashedChunkIdsPlugin {
+impl Default for CompactHashedChunkIdsPlugin {
   fn default() -> Self {
     Self::new(Default::default())
   }
 }
 
-impl CompatHashedChunkIdsPlugin {
-  pub fn new(options: CompatHashedChunkIdsPluginOptions) -> Self {
+impl CompactHashedChunkIdsPlugin {
+  pub fn new(options: CompactHashedChunkIdsPluginOptions) -> Self {
     Self::new_inner(normalize_min_length(options.min_length))
   }
 }
 
-#[plugin_hook(CompilationChunkIds for CompatHashedChunkIdsPlugin)]
+#[plugin_hook(CompilationChunkIds for CompactHashedChunkIdsPlugin)]
 async fn chunk_ids(
   &self,
   compilation: &Compilation,
@@ -50,7 +50,7 @@ async fn chunk_ids(
 ) -> Result<()> {
   if let Some(diagnostic) = compilation.incremental.disable_passes(
     IncrementalPasses::CHUNK_IDS | IncrementalPasses::MODULES_HASHES,
-    "CompatHashedChunkIdsPlugin (optimization.chunkIds = \"compat-hashed\")",
+    "CompactHashedChunkIdsPlugin (optimization.chunkIds = \"compact-hashed\")",
     "it requires calculating the id of all the chunks, which is a global effect",
   ) && let Some(diagnostic) = diagnostic
   {
@@ -60,7 +60,7 @@ async fn chunk_ids(
   validate_min_length(
     self.min_length,
     FULL_LOWERCASE_ALPHANUMERIC_LENGTH,
-    "CompatHashedChunkIdsPlugin",
+    "CompactHashedChunkIdsPlugin",
   )?;
 
   // Prevent generated ids from aliasing preassigned ids on case-insensitive file systems.
@@ -112,11 +112,11 @@ async fn chunk_ids(
 
   let mut chunk_key_to_id =
     FxHashMap::with_capacity_and_hasher(chunks_with_hashes.len(), FxBuildHasher::default());
-  let mut id_assigner = CompatHashedIdAssigner::new(self.min_length, used_ids);
+  let mut id_assigner = CompactHashedIdAssigner::new(self.min_length, used_ids);
   for (chunk, hash) in chunks_with_hashes {
     let Some(chunk_id) = id_assigner.assign(&hash) else {
       return Err(error!(
-        "Unable to assign a unique compat-hashed id to chunk '{:?}' after using all {FULL_LOWERCASE_ALPHANUMERIC_LENGTH} hash characters",
+        "Unable to assign a unique compact-hashed id to chunk '{:?}' after using all {FULL_LOWERCASE_ALPHANUMERIC_LENGTH} hash characters",
         chunk.ukey()
       ));
     };
@@ -131,9 +131,15 @@ async fn chunk_ids(
   Ok(())
 }
 
-impl Plugin for CompatHashedChunkIdsPlugin {
+impl Plugin for CompactHashedChunkIdsPlugin {
   fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
     ctx.compilation_hooks.chunk_ids.tap(chunk_ids::new(self));
     Ok(())
   }
 }
+
+#[deprecated(note = "Use `CompactHashedChunkIdsPluginOptions` instead.")]
+pub type CompatHashedChunkIdsPluginOptions = CompactHashedChunkIdsPluginOptions;
+
+#[deprecated(note = "Use `CompactHashedChunkIdsPlugin` instead.")]
+pub type CompatHashedChunkIdsPlugin = CompactHashedChunkIdsPlugin;

@@ -8,8 +8,8 @@ use rspack_error::{Diagnostic, Result, error};
 use rspack_hook::{plugin, plugin_hook};
 
 use crate::{
-  compat_hashed_id::{
-    CompatHashedIdAssigner, FULL_IDENTIFIER_LENGTH, hash_identifier, normalize_min_length,
+  compact_hashed_id::{
+    CompactHashedIdAssigner, FULL_IDENTIFIER_LENGTH, hash_identifier, normalize_min_length,
     validate_min_length,
   },
   id_helpers::{
@@ -19,29 +19,29 @@ use crate::{
 };
 
 #[derive(Debug, Clone, Default)]
-pub struct CompatHashedModuleIdsPluginOptions {
+pub struct CompactHashedModuleIdsPluginOptions {
   pub min_length: Option<usize>,
 }
 
 #[plugin]
 #[derive(Debug)]
-pub struct CompatHashedModuleIdsPlugin {
+pub struct CompactHashedModuleIdsPlugin {
   min_length: usize,
 }
 
-impl Default for CompatHashedModuleIdsPlugin {
+impl Default for CompactHashedModuleIdsPlugin {
   fn default() -> Self {
     Self::new(Default::default())
   }
 }
 
-impl CompatHashedModuleIdsPlugin {
-  pub fn new(options: CompatHashedModuleIdsPluginOptions) -> Self {
+impl CompactHashedModuleIdsPlugin {
+  pub fn new(options: CompactHashedModuleIdsPluginOptions) -> Self {
     Self::new_inner(normalize_min_length(options.min_length))
   }
 }
 
-#[plugin_hook(CompilationModuleIds for CompatHashedModuleIdsPlugin)]
+#[plugin_hook(CompilationModuleIds for CompactHashedModuleIdsPlugin)]
 async fn module_ids(
   &self,
   compilation: &Compilation,
@@ -51,7 +51,7 @@ async fn module_ids(
 ) -> Result<()> {
   if let Some(diagnostic) = compilation.incremental.disable_passes(
     IncrementalPasses::MODULE_IDS | IncrementalPasses::MODULES_HASHES,
-    "CompatHashedModuleIdsPlugin (optimization.moduleIds = \"compat-hashed\")",
+    "CompactHashedModuleIdsPlugin (optimization.moduleIds = \"compact-hashed\")",
     "it requires calculating the id of all the modules, which is a global effect",
   ) {
     if let Some(diagnostic) = diagnostic {
@@ -63,7 +63,7 @@ async fn module_ids(
   validate_min_length(
     self.min_length,
     FULL_IDENTIFIER_LENGTH,
-    "CompatHashedModuleIdsPlugin",
+    "CompactHashedModuleIdsPlugin",
   )?;
 
   let (used_ids, modules) =
@@ -89,11 +89,11 @@ async fn module_ids(
     compare_modules_by_pre_order_index_or_identifier(module_graph, &a.identifier(), &b.identifier())
   });
 
-  let mut id_assigner = CompatHashedIdAssigner::new(self.min_length, used_ids);
+  let mut id_assigner = CompactHashedIdAssigner::new(self.min_length, used_ids);
   for (module, hash) in modules_with_hashes {
     let Some(module_id) = id_assigner.assign(&hash) else {
       return Err(error!(
-        "Unable to assign a unique compat-hashed id to module '{}' after using all {FULL_IDENTIFIER_LENGTH} hash characters",
+        "Unable to assign a unique compact-hashed id to module '{}' after using all {FULL_IDENTIFIER_LENGTH} hash characters",
         module.identifier()
       ));
     };
@@ -105,9 +105,15 @@ async fn module_ids(
   Ok(())
 }
 
-impl Plugin for CompatHashedModuleIdsPlugin {
+impl Plugin for CompactHashedModuleIdsPlugin {
   fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
     ctx.compilation_hooks.module_ids.tap(module_ids::new(self));
     Ok(())
   }
 }
+
+#[deprecated(note = "Use `CompactHashedModuleIdsPluginOptions` instead.")]
+pub type CompatHashedModuleIdsPluginOptions = CompactHashedModuleIdsPluginOptions;
+
+#[deprecated(note = "Use `CompactHashedModuleIdsPlugin` instead.")]
+pub type CompatHashedModuleIdsPlugin = CompactHashedModuleIdsPlugin;

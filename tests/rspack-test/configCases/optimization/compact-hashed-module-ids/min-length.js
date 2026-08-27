@@ -54,7 +54,7 @@ const ids = [
 	require("./a?52"),
 ];
 
-it("should extend compat-hashed module ids only when shorter prefixes collide", () => {
+it("should extend compact-hashed module ids only when shorter prefixes collide", () => {
 	expect(new Set(ids).size).toBe(ids.length);
 	expect(ids.some(id => id.length === 1)).toBe(true);
 	expect(ids.some(id => id.length > 1)).toBe(true);
