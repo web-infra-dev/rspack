@@ -26,7 +26,6 @@ use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use rustc_hash::FxHashSet;
 use tokio::sync::{OnceCell, RwLock};
-pub use worker_adapter::close_js_loader_workers;
 
 use crate::{COMPILER_REFERENCES, error::RspackResultToNapiResultExt};
 

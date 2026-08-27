@@ -3,10 +3,7 @@ import path from 'node:path';
 import { deserialize, serialize } from 'node:v8';
 import { MessageChannel, type MessagePort, Worker } from 'node:worker_threads';
 
-import {
-  createJsLoaderWorkerPool,
-  dispatchJsLoaderTask,
-} from '@rspack/binding';
+import { dispatchJsLoaderTask } from '@rspack/binding';
 
 interface WorkerSlot {
   worker: Worker;
@@ -31,7 +28,6 @@ interface WorkerResult {
 }
 
 let workerPool: Promise<void> | undefined;
-let nativePoolId: number | undefined;
 let nextTaskId = 1;
 let shuttingDown = false;
 const workerSlots = new Map<number, WorkerSlot>();
@@ -119,13 +115,12 @@ const handleSyncRequest = async (
   }
 };
 
-const spawnWorker = (slotId: number, poolId: number): Promise<void> => {
+const spawnWorker = (slotId: number): Promise<void> => {
   const { port1: mainPort, port2: workerPort } = new MessageChannel();
   const { port1: mainSyncPort, port2: workerSyncPort } = new MessageChannel();
   const worker = new Worker(path.resolve(import.meta.dirname, 'worker.js'), {
     workerData: {
       rspackNativeLoaderWorker: true,
-      poolId,
       workerPort,
       workerSyncPort,
     },
@@ -177,7 +172,7 @@ const spawnWorker = (slotId: number, poolId: number): Promise<void> => {
         );
       }
       if (!shuttingDown) {
-        void spawnWorker(slotId, poolId).catch(() => {
+        void spawnWorker(slotId).catch(() => {
           // The next loader dispatch reports that no consumer is available.
         });
       }
@@ -199,13 +194,9 @@ const ensureLoaderWorkers = (workerOptions?: {
     10,
   );
   const workerCount = maxWorkers || maxWorkersFromEnv || availableThreads;
-  const poolId = createJsLoaderWorkerPool();
-  nativePoolId = poolId;
   shuttingDown = false;
   workerPool = Promise.all(
-    Array.from({ length: workerCount }, (_, slotId) =>
-      spawnWorker(slotId, poolId),
-    ),
+    Array.from({ length: workerCount }, (_, slotId) => spawnWorker(slotId)),
   ).then(() => undefined);
   return workerPool;
 };
@@ -366,10 +357,7 @@ export const run = async (
   });
 
   try {
-    const payload = await dispatchJsLoaderTask(
-      nativePoolId!,
-      serialize({ taskId, task }),
-    );
+    const payload = await dispatchJsLoaderTask(serialize({ taskId, task }));
     const result = deserialize(payload) as WorkerResult;
     await Promise.allSettled(pendingRequests.values());
     if (!result.ok) throw result.error;

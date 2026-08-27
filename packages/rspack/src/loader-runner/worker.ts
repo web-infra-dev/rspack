@@ -48,7 +48,6 @@ interface WorkerOptions {
 
 interface PersistentWorkerData {
   rspackNativeLoaderWorker: true;
-  poolId: number;
   workerPort: MessagePort;
   workerSyncPort: MessagePort;
 }
@@ -713,7 +712,7 @@ function createSendRequestSync(workerSyncPort: MessagePort, taskId: number) {
 
 async function registerPersistentWorker(data: PersistentWorkerData) {
   data.workerPort.on('message', handleIncomingResponses);
-  await registerJsLoaderWorker(data.poolId, async (payload) => {
+  await registerJsLoaderWorker(async (payload) => {
     const { taskId, task } = deserialize(payload) as {
       taskId: number;
       task: WorkerOptions;
