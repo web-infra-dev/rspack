@@ -73,9 +73,9 @@ pub fn eval_source<'parser>(
         program,
       });
 
-      let module_ast = std::mem::replace(&mut parser.ast, fragment_ast);
-      let mut evaluated = parser.evaluate_expression(expression);
-      parser.ast = module_ast;
+      let mut evaluated = parser.with_parsed_ast(fragment_ast, |parser| {
+        parser.evaluate_expression(expression)
+      });
 
       // The expression handle indexes the fragment AST and must not escape
       // after the parser switches back to the module AST.

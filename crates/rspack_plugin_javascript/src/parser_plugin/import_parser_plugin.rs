@@ -816,53 +816,55 @@ fn walk_import_then_fulfilled_callback(
     TopLevelScope::False
   };
 
-  parser.in_function_scope(is_function, scope_params, |parser| {
-    let ast = parser.ast.ast;
-    if let Some(ns_obj) = namespace_obj_arg.as_binding_identifier(ast) {
-      tag_dynamic_import_referenced(
-        parser,
-        import_call,
-        Atom::from(ast.get_utf8(ns_obj.name(ast))),
-      );
-    } else if let Some(ns_obj) = namespace_obj_arg.as_object_pattern(ast) {
-      if let Some(keys) =
-        parser.collect_destructuring_assignment_properties_from_object_pattern(ns_obj)
-      {
-        let import_span = import_call.span(parser.ast.ast);
-        parser.dynamic_import_references.add_import(import_span);
-        let import_references = parser
-          .dynamic_import_references
-          .get_import_mut_expect(&import_span);
-        let mut refs = Vec::new();
-        keys.traverse_on_leaf(&mut |stack| {
-          refs.push(stack.iter().map(|p| p.id.clone()).collect::<Vec<Atom>>());
-        });
-        for ids in refs {
-          import_references.add_reference(ids);
-        }
-      }
-    } else {
-      unreachable!()
-    }
-    for pattern in formal_parameter_patterns(parser.ast.ast, params) {
-      parser.walk_pattern(pattern);
-    }
-    match parser.ast.ast.expr_data(fulfilled_callback) {
-      ExprData::Function(function) => {
-        parser.walk_function_body(function.body(parser.ast.ast));
-      }
-      ExprData::ArrowFunctionExpression(function) => {
-        match parser
-          .ast
-          .ast
-          .arrow_function_body_data(function.body(parser.ast.ast))
+  parser.in_semantic_scope(fulfilled_callback.node_id(), |parser| {
+    parser.in_function_scope(is_function, scope_params, |parser| {
+      let ast = parser.ast.ast;
+      if let Some(ns_obj) = namespace_obj_arg.as_binding_identifier(ast) {
+        tag_dynamic_import_referenced(
+          parser,
+          import_call,
+          Atom::from(ast.get_utf8(ns_obj.name(ast))),
+        );
+      } else if let Some(ns_obj) = namespace_obj_arg.as_object_pattern(ast) {
+        if let Some(keys) =
+          parser.collect_destructuring_assignment_properties_from_object_pattern(ns_obj)
         {
-          ArrowFunctionBodyData::FunctionBody(body) => parser.walk_function_body(body),
-          ArrowFunctionBodyData::Expr(expression) => parser.walk_expression(expression),
+          let import_span = import_call.span(parser.ast.ast);
+          parser.dynamic_import_references.add_import(import_span);
+          let import_references = parser
+            .dynamic_import_references
+            .get_import_mut_expect(&import_span);
+          let mut refs = Vec::new();
+          keys.traverse_on_leaf(&mut |stack| {
+            refs.push(stack.iter().map(|p| p.id.clone()).collect::<Vec<Atom>>());
+          });
+          for ids in refs {
+            import_references.add_reference(ids);
+          }
         }
+      } else {
+        unreachable!()
       }
-      _ => unreachable!(),
-    }
+      for pattern in formal_parameter_patterns(parser.ast.ast, params) {
+        parser.walk_pattern(pattern);
+      }
+      match parser.ast.ast.expr_data(fulfilled_callback) {
+        ExprData::Function(function) => {
+          parser.walk_function_body(function.body(parser.ast.ast));
+        }
+        ExprData::ArrowFunctionExpression(function) => {
+          match parser
+            .ast
+            .ast
+            .arrow_function_body_data(function.body(parser.ast.ast))
+          {
+            ArrowFunctionBodyData::FunctionBody(body) => parser.walk_function_body(body),
+            ArrowFunctionBodyData::Expr(expression) => parser.walk_expression(expression),
+          }
+        }
+        _ => unreachable!(),
+      }
+    });
   });
   parser.top_level_scope = was_top_level_scope;
 }

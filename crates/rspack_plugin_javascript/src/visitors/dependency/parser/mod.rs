@@ -675,22 +675,7 @@ impl<'parser> JavascriptParser<'parser> {
 
     let plugin_drive = Rc::new(JavaScriptParserPluginDrive::new(plugins));
     let mut db = WebpackVariableEnvironment::new();
-    let root_node = ast.ast.root_program().node_id();
-    let mut semantic_scopes_by_node = Vec::new();
-    let mut current_semantic_scope = ScopeId::ROOT;
-    for entry in ast.semantic.iter_scopes() {
-      let index = entry.scope.node.index();
-      if index >= semantic_scopes_by_node.len() {
-        semantic_scopes_by_node.resize(index + 1, None);
-      }
-      // Multiple semantic scopes may share a node (for example a named
-      // function expression). Creation order is outer-to-inner, so retaining
-      // the last scope gives the scope active while walking that node's body.
-      semantic_scopes_by_node[index] = Some(entry.id);
-      if entry.scope.node == root_node {
-        current_semantic_scope = entry.id;
-      }
-    }
+    let (semantic_scopes_by_node, current_semantic_scope) = Self::semantic_scope_state(ast);
 
     Self {
       last_esm_import_order: 0,
@@ -745,6 +730,50 @@ impl<'parser> JavascriptParser<'parser> {
       dependencies_in_branch_guard: None,
       current_branch_guard: None,
     }
+  }
+
+  fn semantic_scope_state(ast: &ParsedJavaScriptAst<'_>) -> (Vec<Option<ScopeId>>, ScopeId) {
+    let root_node = ast.ast.root_program().node_id();
+    let mut semantic_scopes_by_node = Vec::new();
+    let mut current_semantic_scope = ScopeId::ROOT;
+    for entry in ast.semantic.iter_scopes() {
+      let index = entry.scope.node.index();
+      if index >= semantic_scopes_by_node.len() {
+        semantic_scopes_by_node.resize(index + 1, None);
+      }
+      // Multiple semantic scopes may share a node (for example a named
+      // function expression). Creation order is outer-to-inner, so retaining
+      // the last scope gives the scope active while walking that node's body.
+      semantic_scopes_by_node[index] = Some(entry.id);
+      if entry.scope.node == root_node {
+        current_semantic_scope = entry.id;
+      }
+    }
+    (semantic_scopes_by_node, current_semantic_scope)
+  }
+
+  pub(crate) fn with_parsed_ast<T>(
+    &mut self,
+    ast: &'parser ParsedJavaScriptAst<'parser>,
+    f: impl FnOnce(&mut Self) -> T,
+  ) -> T {
+    let module_ast = std::mem::replace(&mut self.ast, ast);
+    let (semantic_scopes_by_node, current_semantic_scope) = Self::semantic_scope_state(ast);
+    let module_semantic_scopes =
+      std::mem::replace(&mut self.semantic_scopes_by_node, semantic_scopes_by_node);
+    let module_semantic_scope =
+      std::mem::replace(&mut self.current_semantic_scope, current_semantic_scope);
+    let module_semantic_variables = std::mem::take(&mut self.semantic_variables);
+    let module_semantic_overrides = std::mem::take(&mut self.semantic_variable_overrides);
+
+    let result = f(self);
+
+    self.ast = module_ast;
+    self.semantic_scopes_by_node = module_semantic_scopes;
+    self.current_semantic_scope = module_semantic_scope;
+    self.semantic_variables = module_semantic_variables;
+    self.semantic_variable_overrides = module_semantic_overrides;
+    result
   }
 
   pub fn into_results(mut self) -> Result<ScanDependenciesResult, Vec<Diagnostic>> {
@@ -950,7 +979,7 @@ impl<'parser> JavascriptParser<'parser> {
     self.last_esm_import_order
   }
 
-  fn in_semantic_scope<F>(&mut self, node: NodeId, f: F)
+  pub(crate) fn in_semantic_scope<F>(&mut self, node: NodeId, f: F)
   where
     F: FnOnce(&mut Self),
   {
@@ -1005,7 +1034,12 @@ impl<'parser> JavascriptParser<'parser> {
       .map(|symbol| symbol.index())
   }
 
-  fn override_semantic_variable(&mut self, index: usize, variable: VariableInfoId) {
+  fn override_semantic_variable(
+    &mut self,
+    index: usize,
+    variable: VariableInfoId,
+    scope: ScopeInfoId,
+  ) {
     if index >= self.semantic_variables.len() {
       self.semantic_variables.resize(index + 1, None);
     }
@@ -1014,7 +1048,11 @@ impl<'parser> JavascriptParser<'parser> {
     if previous == variable {
       return;
     }
-    if !self.definitions_db.is_root_scope(self.definitions) {
+    // A write to an enclosing webpack scope is an assignment to that binding,
+    // not a temporary override owned by the innermost traversal scope. Keep it
+    // after the inner scope exits; only bindings introduced in the current
+    // scope participate in mark-and-restore.
+    if scope == self.definitions && !self.definitions_db.is_root_scope(scope) {
       self.semantic_variable_overrides.push((
         u32::try_from(index).expect("too many semantic symbols"),
         previous,
@@ -1024,12 +1062,24 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   pub fn get_variable_info(&mut self, name: &str) -> Option<&VariableInfo> {
-    if let Some(index) = self.semantic_symbol_for_name(name) {
-      let id = self.ensure_semantic_variable(index);
-      self.variable_info_from_id(id)
-    } else {
-      self.get_dynamic_variable_info(name)
+    let Some(index) = self.semantic_symbol_for_name(name) else {
+      return self.get_dynamic_variable_info(name);
+    };
+    if let Some(id) = self.semantic_variables.get(index).copied().flatten() {
+      return self.variable_info_from_id(id);
     }
+    let (variable, tracked) =
+      self
+        .definitions_db
+        .get_and_track_semantic_symbol(self.definitions, name, index);
+    let Some(id) = variable.filter(|_| tracked) else {
+      return self.get_dynamic_variable_info(name);
+    };
+    if index >= self.semantic_variables.len() {
+      self.semantic_variables.resize(index + 1, None);
+    }
+    self.semantic_variables[index] = Some(id);
+    self.variable_info_from_id(id)
   }
 
   fn get_dynamic_variable_info(&mut self, name: &str) -> Option<&VariableInfo> {
@@ -1082,7 +1132,13 @@ impl<'parser> JavascriptParser<'parser> {
         self.semantic_variables[index] = Some(id);
         id
       } else {
-        self.ensure_semantic_variable(index)
+        // Webpack intentionally walks some callback bodies without activating
+        // all of their lexical parameters. For example, the `require`
+        // parameter of a `require.ensure` success callback must keep resolving
+        // to webpack's outer `require`. An unactivated semantic symbol must
+        // therefore defer to the dynamic environment instead of being turned
+        // back into a normal lexical variable here.
+        return self.get_dynamic_variable_info(name);
       }
     };
     self.variable_info_from_id(id)
@@ -1110,7 +1166,7 @@ impl<'parser> JavascriptParser<'parser> {
       .map(|symbol| symbol as usize)
       .or(fallback_semantic_symbol)
     {
-      self.override_semantic_variable(index, variable);
+      self.override_semantic_variable(index, variable, scope);
     }
   }
 
@@ -1121,7 +1177,7 @@ impl<'parser> JavascriptParser<'parser> {
       .map(|symbol| symbol as usize)
       .or(fallback_semantic_symbol)
     {
-      self.override_semantic_variable(index, VariableInfoId::tombstone());
+      self.override_semantic_variable(index, VariableInfoId::tombstone(), scope);
     }
   }
 
