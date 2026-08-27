@@ -7,7 +7,7 @@ use rspack_fs::ReadableFileSystem;
 use rspack_hash::HashFunction;
 
 use super::{
-  Cache, CacheFacade, CacheValue,
+  CacheFacade, CacheValue,
   snapshot::{FileSystemInfo, Snapshot, SnapshotValidationResult},
 };
 use crate::{
@@ -16,7 +16,7 @@ use crate::{
   cache::{CacheCodec, SnapshotOptions, SnapshotStrategyOptions},
 };
 
-const MODULE_BUILD_CACHE_NAME: &str = "Compilation/modules";
+pub(crate) const MODULE_BUILD_CACHE_NAME: &str = "Compilation/modules";
 
 type RestoredDependencies = Vec<BoxDependency>;
 // AsyncDependenciesBlock is recursive and intentionally stays behind a pointer.
@@ -95,44 +95,6 @@ struct EncodedModuleBuildCacheValue {
   bytes: Vec<u8>,
 }
 
-/// Creates compilation-local module cache views.
-#[derive(Debug, Clone)]
-pub(crate) struct ModuleCacheFactory {
-  cache: CacheFacade,
-  codec: Arc<CacheCodec>,
-}
-
-impl ModuleCacheFactory {
-  pub(crate) fn new(cache: Cache, codec: Arc<CacheCodec>) -> Self {
-    Self {
-      cache: cache.facade(MODULE_BUILD_CACHE_NAME),
-      codec,
-    }
-  }
-
-  pub(crate) fn create_for_compilation(
-    &self,
-    input_filesystem: Arc<dyn ReadableFileSystem>,
-    logging: CompilationLogging,
-    snapshot_options: SnapshotOptions,
-    hash_function: HashFunction,
-    snapshot_strategy: SnapshotStrategyOptions,
-  ) -> ModuleCache {
-    ModuleCache {
-      cache: self.cache.clone(),
-      codec: self.codec.clone(),
-      file_system_info: FileSystemInfo::new(
-        input_filesystem,
-        CompilationLogger::new("rspack.ModuleBuildCache".to_string(), logging),
-        snapshot_options,
-        hash_function,
-      ),
-      snapshot_strategy,
-      invalid_modules: Default::default(),
-    }
-  }
-}
-
 /// Compilation-local view of webpack's `Compilation/modules` cache.
 #[derive(Debug, Clone)]
 pub(crate) struct ModuleCache {
@@ -144,6 +106,28 @@ pub(crate) struct ModuleCache {
 }
 
 impl ModuleCache {
+  pub(crate) fn new(
+    cache: CacheFacade,
+    input_filesystem: Arc<dyn ReadableFileSystem>,
+    logging: CompilationLogging,
+    snapshot_options: SnapshotOptions,
+    hash_function: HashFunction,
+    snapshot_strategy: SnapshotStrategyOptions,
+  ) -> Self {
+    Self {
+      codec: cache.codec(),
+      cache,
+      file_system_info: FileSystemInfo::new(
+        input_filesystem,
+        CompilationLogger::new("rspack.ModuleBuildCache".to_string(), logging),
+        snapshot_options,
+        hash_function,
+      ),
+      snapshot_strategy,
+      invalid_modules: Default::default(),
+    }
+  }
+
   pub(crate) fn invalidate(&self, modules: &IdentifierSet) {
     self
       .invalid_modules

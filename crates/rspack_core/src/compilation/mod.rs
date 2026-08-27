@@ -96,7 +96,7 @@ use crate::{
   legacy_cache::persistent::occasion::{
     devtool::SourceMapDevToolPluginCache, minimize::MinimizePersistentCache,
   },
-  new_cache::{Cache, CacheFacade, ModuleCache, ModuleCacheFactory},
+  new_cache::{Cache, CacheFacade, MODULE_BUILD_CACHE_NAME, ModuleCache},
   to_identifier,
 };
 
@@ -324,21 +324,6 @@ pub struct Compilation {
   pub compiler_context: Arc<CompilerContext>,
 }
 
-/// Explicit cache capabilities available to a newly created Compilation.
-/// Temporary compilations use `Default` to opt out of module persistence.
-#[derive(Debug, Default)]
-pub struct CompilationCacheContext {
-  module_cache_factory: Option<ModuleCacheFactory>,
-}
-
-impl CompilationCacheContext {
-  pub(crate) fn new(module_cache_factory: Option<&ModuleCacheFactory>) -> Self {
-    Self {
-      module_cache_factory: module_cache_factory.cloned(),
-    }
-  }
-}
-
 impl Compilation {
   pub const OPTIMIZE_CHUNKS_STAGE_BASIC: i32 = -10;
   pub const OPTIMIZE_CHUNKS_STAGE_ADVANCED: i32 = 10;
@@ -365,7 +350,6 @@ impl Compilation {
     module_executor: Option<ModuleExecutor>,
     logging: CompilationLogging,
     cache: Cache,
-    cache_context: CompilationCacheContext,
     modified_files: InternedPathSet,
     removed_files: InternedPathSet,
     input_filesystem: Arc<dyn ReadableFileSystem>,
@@ -385,16 +369,7 @@ impl Compilation {
     } else {
       crate::cache::SnapshotStrategyOptions::timestamp()
     };
-    let module_cache = cache_context.module_cache_factory.as_ref().map(|factory| {
-      factory.create_for_compilation(
-        input_filesystem.clone(),
-        logging.clone(),
-        module_snapshot_options,
-        options.output.hash_function,
-        module_snapshot_strategy,
-      )
-    });
-    Self {
+    let mut compilation = Self {
       id: CompilationId::new(),
       compiler_id,
       hot_index: 0,
@@ -415,7 +390,7 @@ impl Compilation {
       diagnostics: Default::default(),
       logging,
       cache,
-      module_cache,
+      module_cache: None,
       plugin_driver,
       buildtime_plugin_driver,
       resolver_factory,
@@ -480,7 +455,20 @@ impl Compilation {
       output_filesystem,
       is_rebuild,
       compiler_context,
+    };
+    if compilation.options.experiments.new_cache.module
+      && !matches!(&compilation.options.cache, CacheOptions::Disabled)
+    {
+      compilation.module_cache = Some(ModuleCache::new(
+        compilation.get_cache(MODULE_BUILD_CACHE_NAME),
+        compilation.input_filesystem.clone(),
+        compilation.logging.clone(),
+        module_snapshot_options,
+        compilation.options.output.hash_function,
+        module_snapshot_strategy,
+      ));
     }
+    compilation
   }
 
   pub fn get_cache(&self, name: &str) -> CacheFacade {

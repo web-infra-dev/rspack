@@ -94,7 +94,6 @@ impl TaskContext {
       self.cache.clone(),
       Default::default(),
       Default::default(),
-      Default::default(),
       self.fs.clone(),
       self.intermediate_fs.clone(),
       self.output_fs.clone(),
@@ -102,6 +101,7 @@ impl TaskContext {
       false,
       compiler_context,
     );
+    compilation.module_cache = None;
     compilation.runtime_template =
       RuntimeTemplate::for_module_execution(self.compiler_options.clone());
     compilation.dependency_factories = self.dependency_factories.clone();
