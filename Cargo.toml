@@ -523,6 +523,11 @@ opt-level     = "z"
 codegen-units = 1
 opt-level     = "z"
 
+# Most of the SWC Next parser integration is instantiated by this consumer.
+# Release already uses one codegen unit globally, so match it in the CI artifact.
+[profile.ci.package.rspack_plugin_javascript]
+codegen-units = 1
+
 # This is for production for profiling production build
 [profile.profiling]
 debug           = "limited"
