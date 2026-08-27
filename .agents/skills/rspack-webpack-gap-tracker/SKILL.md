@@ -48,12 +48,11 @@ Apply only the approved preview content. Do not add, remove, reclassify, or rewo
    - Differences between Rspack built-in plugins and webpack built-in plugins, plus commonly-used webpack ecosystem plugins that Rspack provides built-in alternatives for.
    - Rspack PRs merged since the last recorded update, especially large changes and PRs labeled or titled as features.
    - Existing issue entries and completed entries, to avoid re-recording already tracked work.
-6. Put every missing feature in **Pending evaluation** by default, except for the DLL-specific rule below. Do not infer a recommendation from implementation details, performance considerations, existing Rspack APIs, or whether the feature could live in an external package.
-7. Treat DLL plugins and DLL-related functionality as legacy webpack features. Put them in **Not recommended to implement in Rspack** by default, do not plan implementation work for them, and state that users should migrate to Module Federation instead. Move a DLL gap to **Pending evaluation** only when the issue records explicit, evidence-backed strong user demand, such as concrete adoption or migration blockers. Strong demand alone does not make the gap recommended.
-8. Put or move any gap into **Recommended to implement in Rspack** only when the tracking issue already contains an explicit manual annotation marking that gap as recommended. Preserve that manual classification on later audits. The audit's own proposed wording, reasoning, or user-demand evidence does not count as a manual recommendation; when the provenance is unclear, leave non-DLL gaps in **Pending evaluation** and DLL gaps in **Not recommended to implement in Rspack**. Do not add other new gaps to **Not recommended to implement in Rspack** automatically.
-9. Inspect the corresponding webpack feature or plugin implementation for accurate compatibility notes. Check whether Rsbuild already provides a solution, and whether https://github.com/rstackjs already has a compatible package or plugin, but keep non-DLL gaps in **Pending evaluation** unless the issue has the manual recommendation annotation described above.
-10. If the gap is native CSS-related, record it in #14002 instead of #14556.
-11. For missing tests:
+6. Put every missing feature in **Pending evaluation** by default. Do not infer a recommendation from implementation details, performance considerations, existing Rspack APIs, user-demand evidence, or whether the feature could live in an external package.
+7. Put or move any gap into **Recommended to implement in Rspack** only when the tracking issue already contains an explicit manual annotation marking that gap as recommended. Preserve that manual classification on later audits. The audit's own proposed wording or reasoning does not count as a manual recommendation; when the provenance is unclear, leave the gap in **Pending evaluation**. Do not add new gaps to **Not recommended to implement in Rspack** automatically; preserve existing manual classifications.
+8. Inspect the corresponding webpack feature or plugin implementation for accurate compatibility notes. Check whether Rsbuild already provides a solution, and whether https://github.com/rstackjs already has a compatible package or plugin, but keep gaps in **Pending evaluation** unless the issue has the manual recommendation annotation described above.
+9. If the gap is native CSS-related, record it in #14002 instead of #14556.
+10. For missing tests:
    - If a missing webpack test maps clearly to a tracked feature gap or a specific PR gap, mention it under that feature instead of adding it to the standalone missing-test comment.
    - Otherwise, list missing tests by webpack test directory.
    - Include older missing tests directly; do not hide them just because they predate the last update.
@@ -63,7 +62,7 @@ Apply only the approved preview content. Do not add, remove, reclassify, or rewo
 - Webpack releases and changelog for new feature candidates.
 - Webpack config schema/types and Rspack config schema/types for option-level gaps.
 - Webpack built-in plugin docs/source, Rspack built-in plugin exports/source, and webpack ecosystem plugin docs/source for plugin-compatibility gaps.
-- Webpack feature/plugin implementation details for accurate compatibility notes; this investigation does not change the default **Pending evaluation** classification or the DLL-specific **Not recommended to implement in Rspack** classification.
+- Webpack feature/plugin implementation details for accurate compatibility notes; this investigation does not change the default **Pending evaluation** classification.
 - GitHub merged PRs in `web-infra-dev/rspack` since the last update.
 - Existing Rspack issues, linked issues, subtask issues, and the completed-feature comment for deduplication.
 - Rsbuild docs/source and https://github.com/rstackjs packages for existing compatibility solutions.
@@ -107,7 +106,7 @@ Use concise checklist entries. Prefer one feature or test group per item.
 Missing feature entry:
 
 ```markdown
-- [ ] `<feature or option>` - Short compatibility note. Recommendation: pending by default; use recommended only when preserving an explicit manual annotation already present in the tracking issue; classify DLL-related gaps as legacy and not recommended, direct users to Module Federation, and move them to pending only for explicit evidence-backed strong user demand. Source: webpack release/config/PR link.
+- [ ] `<feature or option>` - Short compatibility note. Recommendation: pending by default; use recommended only when preserving an explicit manual annotation already present in the tracking issue. Source: webpack release/config/PR link.
 ```
 
 Completed feature entry:
