@@ -1119,14 +1119,19 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   fn get_dynamic_variable_info(&mut self, name: &str) -> Option<&VariableInfo> {
-    let id = self.definitions_db.get_raw(self.definitions, name)?;
+    let id = self.get_dynamic_variable_info_id(name)?;
     self.variable_info_from_id(id)
   }
 
-  pub(super) fn get_variable_info_for_identifier(
+  fn get_dynamic_variable_info_id(&mut self, name: &str) -> Option<VariableInfoId> {
+    let id = self.definitions_db.get_raw(self.definitions, name)?;
+    (id != VariableInfoId::tombstone() && id != VariableInfoId::undefined()).then_some(id)
+  }
+
+  pub(super) fn get_variable_info_id_for_identifier(
     &mut self,
     identifier: IdentifierReference,
-  ) -> Option<&VariableInfo> {
+  ) -> Option<VariableInfoId> {
     let ast = self.ast.ast;
     let name = ast.get_utf8(identifier.name(ast));
     let Some(reference) = self
@@ -1135,21 +1140,21 @@ impl<'parser> JavascriptParser<'parser> {
       .reference_of(identifier.node_id())
       .map(|reference| self.ast.semantic.reference(reference))
     else {
-      return self.get_variable_info(name);
+      return self.get_variable_info(name).map(VariableInfo::id);
     };
     // References affected by `with`, and unresolved globals such as `require`,
     // must keep using Rspack's name-based scope and plugin resolution.
     if reference.flags.is_dynamic() {
       // `with` can redirect an otherwise statically resolvable reference, so
       // preserve the name-based lookup through both semantic and the overlay.
-      return self.get_variable_info(name);
+      return self.get_variable_info(name).map(VariableInfo::id);
     }
     let Some(symbol) = reference.symbol else {
       // Semantic has already established that this identifier is unresolved.
       // Only webpack's dynamic overlay (free-variable aliases, tags, and
       // plugin-created bindings) can change its meaning, so do not repeat a
       // name-based semantic lookup.
-      return self.get_dynamic_variable_info(name);
+      return self.get_dynamic_variable_info_id(name);
     };
 
     let index = symbol.index();
@@ -1174,9 +1179,17 @@ impl<'parser> JavascriptParser<'parser> {
         // to webpack's outer `require`. An unactivated semantic symbol must
         // therefore defer to the dynamic environment instead of being turned
         // back into a normal lexical variable here.
-        return self.get_dynamic_variable_info(name);
+        return self.get_dynamic_variable_info_id(name);
       }
     };
+    (id != VariableInfoId::tombstone() && id != VariableInfoId::undefined()).then_some(id)
+  }
+
+  pub(super) fn get_variable_info_for_identifier(
+    &mut self,
+    identifier: IdentifierReference,
+  ) -> Option<&VariableInfo> {
+    let id = self.get_variable_info_id_for_identifier(identifier)?;
     self.variable_info_from_id(id)
   }
 
@@ -2044,6 +2057,20 @@ impl<'parser> JavascriptParser<'parser> {
     }
   }
 
+  fn evaluate_member_expression_with_info(
+    &mut self,
+    expression: Expr,
+    member: MemberExpression,
+    info: ExpressionExpressionInfo,
+  ) -> BasicEvaluatedExpression<'parser> {
+    let span = expression.span(self.ast.ast);
+    match eval::eval_member_expression_with_info(self, member, expression, info) {
+      Some(evaluated) => evaluated.with_expression(Some(expression)),
+      None => BasicEvaluatedExpression::with_range(span.real_lo(), span.real_hi())
+        .with_expression(Some(expression)),
+    }
+  }
+
   pub fn evaluate<T: Display>(
     &mut self,
     source: String,
@@ -2092,33 +2119,33 @@ impl<'parser> JavascriptParser<'parser> {
           return Some(eval);
         }
         let drive = self.plugin_drive.clone();
-        ident
-          .call_hooks_name(self, |parser, name| {
+        let (evaluated, variable) =
+          call_hooks_name::call_hooks_name_for_identifier(ident, self, |parser, name| {
             drive.evaluate_identifier(parser, name, None, span.real_lo(), span.real_hi())
-          })
-          .or_else(|| {
-            let info = self.get_variable_info_for_identifier(ident);
-            if let Some(info) = info {
-              if let Some(name) = &info.name
-                && (info.is_free() || info.is_tagged())
-              {
-                let mut eval = BasicEvaluatedExpression::with_range(span.real_lo(), span.real_hi());
-                eval.set_identifier(
-                  name.to_owned(),
-                  ExportedVariableInfo::VariableInfo(info.id()),
-                  None,
-                );
-                Some(eval)
-              } else {
-                None
-              }
-            } else {
-              let name = Atom::from(name);
+          });
+        evaluated.or_else(|| {
+          if let Some(variable) = variable {
+            let info = self.definitions_db.expect_get_variable(variable);
+            if let Some(name) = &info.name
+              && (info.is_free() || info.is_tagged())
+            {
               let mut eval = BasicEvaluatedExpression::with_range(span.real_lo(), span.real_hi());
-              eval.set_identifier(name.clone(), ExportedVariableInfo::Name(name), None);
+              eval.set_identifier(
+                name.to_owned(),
+                ExportedVariableInfo::VariableInfo(info.id()),
+                None,
+              );
               Some(eval)
+            } else {
+              None
             }
-          })
+          } else {
+            let name = Atom::from(name);
+            let mut eval = BasicEvaluatedExpression::with_range(span.real_lo(), span.real_hi());
+            eval.set_identifier(name.clone(), ExportedVariableInfo::Name(name), None);
+            Some(eval)
+          }
+        })
       }
       ExprData::ThisExpression(this) => {
         let span = this.span(ast);

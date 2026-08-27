@@ -1,3 +1,4 @@
+use rspack_util::SpanExt;
 use smallvec::SmallVec;
 use swc_next_ecma_ast::*;
 
@@ -18,6 +19,7 @@ use crate::{
     CREATE_REQUIRE_EVALUATED_TAG, CREATE_REQUIRE_SPECIFIER_TAG, CREATED_REQUIRE_IDENTIFIER_TAG,
     CreatedRequireTagData, JavascriptParserPlugin, is_create_require_namespace_member,
   },
+  utils::eval::BasicEvaluatedExpression,
   visitors::{
     AtomMembers, ExportedVariableInfo, ExprRef, Identifier, VariableDeclaration, VariableInfo,
     VariableInfoFlags, get_non_optional_part,
@@ -1319,12 +1321,50 @@ impl JavascriptParser<'_> {
     }
   }
 
+  fn get_member_expression_info_and_await_import(
+    &mut self,
+    expr: MemberExpression,
+    allowed_types: AllowedMemberTypes,
+  ) -> (
+    Option<MemberExpressionInfo>,
+    Option<(ImportExpression, AtomMembers, AwaitExpression)>,
+  ) {
+    let ast = self.ast.ast;
+    let super::RawExtractedMemberExpressionChainData {
+      object,
+      members,
+      mut members_optionals,
+      member_ranges,
+    } = self.extract_member_expression_chain_raw(ExprRef::Member(expr));
+
+    if let ExprRef::Await(await_expr) = object
+      && let Some(call) = await_expr.argument(ast).as_import_expression(ast)
+    {
+      let mut members = super::materialize_member_atoms(ast, members);
+      members.reverse();
+      members_optionals.reverse();
+      let members = get_non_optional_part(&members, &members_optionals);
+      return (None, Some((call, members.into(), await_expr)));
+    }
+
+    (
+      self._get_member_expression_info(
+        object,
+        members,
+        members_optionals,
+        member_ranges,
+        allowed_types,
+      ),
+      None,
+    )
+  }
+
   fn walk_member_expression(&mut self, expr: MemberExpression) {
     let ast = self.ast.ast;
     let drive = self.plugin_drive.clone();
-    if let Some(expr_info) =
-      self.get_member_expression_info(ExprRef::Member(expr), AllowedMemberTypes::all())
-    {
+    let (expr_info, await_import_member) =
+      self.get_member_expression_info_and_await_import(expr, AllowedMemberTypes::all());
+    if let Some(expr_info) = expr_info {
       match expr_info {
         MemberExpressionInfo::Expression(expr_info) => {
           if expr_info
@@ -1405,7 +1445,7 @@ impl JavascriptParser<'_> {
     }
 
     // (await import(...)).a.b
-    if let Some((call, members, await_expr)) = self.extract_await_import_member(expr) {
+    if let Some((call, members, await_expr)) = await_import_member {
       if self.is_top_level_scope() {
         self
           .plugin_drive
@@ -1701,9 +1741,10 @@ impl JavascriptParser<'_> {
   fn walk_call_expression(&mut self, expr: CallExpression) {
     let ast = self.ast.ast;
     let callee = expr.callee(ast);
+    let callee_member = callee.as_member_expression(ast);
     let arguments = expr.arguments(ast);
 
-    if let Some(member) = callee.as_member_expression(ast)
+    if let Some(member) = callee_member
       && let Some(function) = member.object(ast).as_function(ast)
       && Self::property_key_name(ast, member.property(ast))
         .is_some_and(|name| name == "call" || name == "bind")
@@ -1730,28 +1771,37 @@ impl JavascriptParser<'_> {
       return;
     }
 
-    if let Some(member) = callee.as_member_expression(ast) {
-      if let Some(MemberExpressionInfo::Call(expr_info)) =
-        self.get_member_expression_info(ExprRef::Member(member), AllowedMemberTypes::CallExpression)
-        && expr_info
-          .root_info
-          .call_hooks_name(self, |this, for_name| {
-            this
-              .plugin_drive
-              .clone()
-              .call_member_chain_of_call_member_chain(
-                this,
-                expr,
-                &expr_info.callee_members,
-                expr_info.call,
-                &expr_info.members,
-                &expr_info.member_ranges,
-                for_name,
-              )
-          })
-          .unwrap_or_default()
-      {
-        return;
+    let mut callee_expression_info = None;
+    if let Some(member) = callee_member {
+      let (member_info, await_import_member) =
+        self.get_member_expression_info_and_await_import(member, AllowedMemberTypes::all());
+      match member_info {
+        Some(MemberExpressionInfo::Call(expr_info)) => {
+          if expr_info
+            .root_info
+            .call_hooks_name(self, |this, for_name| {
+              this
+                .plugin_drive
+                .clone()
+                .call_member_chain_of_call_member_chain(
+                  this,
+                  expr,
+                  &expr_info.callee_members,
+                  expr_info.call,
+                  &expr_info.members,
+                  &expr_info.member_ranges,
+                  for_name,
+                )
+            })
+            .unwrap_or_default()
+          {
+            return;
+          }
+        }
+        Some(MemberExpressionInfo::Expression(expr_info)) => {
+          callee_expression_info = Some(expr_info);
+        }
+        None => {}
       }
       // import(...).then(...)
       if let Some(import) = member.object(ast).as_import_expression(ast)
@@ -1765,7 +1815,7 @@ impl JavascriptParser<'_> {
         return;
       }
       // (await import(...)).a.b()
-      if let Some((call, members, await_expr)) = self.extract_await_import_member(member) {
+      if let Some((call, members, await_expr)) = await_import_member {
         if self.is_top_level_scope() {
           self
             .plugin_drive
@@ -1783,7 +1833,18 @@ impl JavascriptParser<'_> {
         }
       }
     }
-    let evaluated_callee = self.evaluate_expression(callee);
+    let evaluated_callee = if let Some(member) = callee_member {
+      if let Some(info) = callee_expression_info {
+        self.evaluate_member_expression_with_info(callee, member, info)
+      } else {
+        let span = callee.span(ast);
+        self.member_expr_in_optional_chain = false;
+        BasicEvaluatedExpression::with_range(span.real_lo(), span.real_hi())
+          .with_expression(Some(callee))
+      }
+    } else {
+      self.evaluate_expression(callee)
+    };
     if evaluated_callee.is_identifier() {
       let (members, members_optionals, member_ranges) =
         evaluated_callee.member_path().unwrap_or((&[], &[], &[]));
@@ -1815,7 +1876,7 @@ impl JavascriptParser<'_> {
       }
     }
 
-    if let Some(member) = callee.as_member_expression(ast) {
+    if let Some(member) = callee_member {
       self.walk_expression(member.object(ast));
       if member.computed(ast)
         && let PropertyKeyData::Expr(property) = ast.property_key_data(member.property(ast))
@@ -1826,28 +1887,6 @@ impl JavascriptParser<'_> {
       self.walk_expression(callee);
     }
     self.walk_arguments(arguments.iter().map(|id| ast.get_node_in_sub_range(id)));
-  }
-
-  fn extract_await_import_member(
-    &self,
-    expr: MemberExpression,
-  ) -> Option<(ImportExpression, AtomMembers, AwaitExpression)> {
-    let ast = self.ast.ast;
-    let super::RawExtractedMemberExpressionChainData {
-      object,
-      members,
-      mut members_optionals,
-      ..
-    } = self.extract_member_expression_chain_raw(ExprRef::Member(expr));
-    let ExprRef::Await(await_expr) = object else {
-      return None;
-    };
-    let call = await_expr.argument(ast).as_import_expression(ast)?;
-    let mut members = super::materialize_member_atoms(ast, members);
-    members.reverse();
-    members_optionals.reverse();
-    let members = get_non_optional_part(&members, &members_optionals);
-    Some((call, members.into(), await_expr))
   }
 
   pub fn walk_arguments<I>(&mut self, arguments: I)

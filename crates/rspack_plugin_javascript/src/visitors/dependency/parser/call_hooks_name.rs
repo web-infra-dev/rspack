@@ -61,17 +61,27 @@ impl CallHooksName for IdentifierReference {
   where
     F: Fn(&mut JavascriptParser<'parser>, &str) -> Option<T>,
   {
-    let ast = parser.ast.ast;
-    let name = ast.get_utf8(self.name(ast));
-    if let Some(id) = parser
-      .get_variable_info_for_identifier(*self)
-      .map(|info| info.id())
-    {
-      call_hooks_info(id, parser, hook_call)
-    } else {
-      hook_call(parser, name)
-    }
+    call_hooks_name_for_identifier(*self, parser, hook_call).0
   }
+}
+
+pub(super) fn call_hooks_name_for_identifier<'parser, F, T>(
+  identifier: IdentifierReference,
+  parser: &mut JavascriptParser<'parser>,
+  hook_call: F,
+) -> (Option<T>, Option<VariableInfoId>)
+where
+  F: Fn(&mut JavascriptParser<'parser>, &str) -> Option<T>,
+{
+  let ast = parser.ast.ast;
+  let name = ast.get_utf8(identifier.name(ast));
+  let variable = parser.get_variable_info_id_for_identifier(identifier);
+  let result = if let Some(id) = variable {
+    call_hooks_info(id, parser, hook_call)
+  } else {
+    hook_call(parser, name)
+  };
+  (result, variable)
 }
 
 #[allow(unused_lifetimes)]

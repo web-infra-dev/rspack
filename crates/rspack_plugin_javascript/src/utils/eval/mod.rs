@@ -22,7 +22,7 @@ pub use self::{
   eval_call_expr::eval_call_expression,
   eval_cond_expr::eval_cond_expression,
   eval_lit_expr::eval_lit_expr,
-  eval_member_expr::eval_member_expression,
+  eval_member_expr::{eval_member_expression, eval_member_expression_with_info},
   eval_new_expr::eval_new_expression,
   eval_source::eval_source,
   eval_tpl_expr::{TemplateStringKind, eval_tagged_tpl_expression, eval_tpl_expression},
