@@ -10,6 +10,11 @@ on:
         description: 'Run the build with tmate debugging enabled (https://github.com/marketplace/actions/debugging-with-tmate)'
         required: false
         default: false
+      diag_only:
+        type: boolean
+        description: 'Run only the #15352 diagnostic probe (skips the whole build/test matrix)'
+        required: false
+        default: false
   pull_request:
     types: [opened, synchronize]
   push:
@@ -33,7 +38,90 @@ permissions:
   pull-requests: write
 
 jobs:
+  # Diagnostic only (do not merge): reproduces #15352 on a Windows runner using the
+  # published npm packages, so no Rust build is needed.
+  # Red/green proof for the fix in one run: the unit test passes on this branch and fails
+  # once `portable_path.rs` alone is reverted to main.
+  diag-15352-unit:
+    name: Diag 15352 / unit red-green
+    if: ${{ github.event.inputs.diag_only == 'true' }}
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: ./.github/actions/rustup
+        with:
+          key: diag-15352
+
+      - name: green - fixed portable_path
+        run: cargo test -p rspack_cacheable_test utils::portable_path
+
+      - name: revert only the fix
+        run: |
+          git fetch --depth 1 origin main
+          git checkout FETCH_HEAD -- crates/rspack_cacheable/src/utils/portable_path.rs
+          git diff --stat
+
+      - name: red - unfixed portable_path (expected to fail)
+        id: red
+        continue-on-error: true
+        run: cargo test -p rspack_cacheable_test utils::portable_path
+
+      - name: assert the test actually catches the bug
+        run: |
+          if ("${{ steps.red.outcome }}" -eq "success") {
+            Write-Host "UNEXPECTED: the test passes without the fix, it does not catch the bug"
+            exit 1
+          }
+          Write-Host "OK: the test fails without the fix"
+
+  diag-15352:
+    name: Diag 15352 / ${{ matrix.os }} / rspack ${{ matrix.version }}
+    if: ${{ github.event.inputs.diag_only == 'true' }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest]
+        version: ['2.2.0', '2.1.10']
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: ./.github/actions/pnpm/setup
+        with:
+          node-version: 22
+
+      - name: Clone reporter project
+        working-directory: diag-15352
+        run: git clone --depth 1 https://github.com/nuintun/rspack-antd-builder.git app
+
+      - name: Install reporter project deps
+        working-directory: diag-15352/app
+        run: pnpm i --ignore-scripts
+
+      - name: Pin rspack ${{ matrix.version }}
+        working-directory: diag-15352/app
+        run: pnpm add -D @rspack/core@${{ matrix.version }} --ignore-scripts
+
+      - name: app cold (no cache)
+        working-directory: diag-15352
+        env:
+          CLEAN: '1'
+          PHASE: cold
+        run: node repro-app-config.js
+
+      - name: app warm (restored cache)
+        working-directory: diag-15352
+        env:
+          PHASE: warm
+        run: node repro-app-config.js
+
+      - name: app warm again (restored cache)
+        working-directory: diag-15352
+        env:
+          PHASE: warm2
+        run: node repro-app-config.js
+
   check-changed:
+    if: ${{ github.event.inputs.diag_only != 'true' }}
     runs-on: ${{ fromJSON(vars.CI_LINUX_MINI_RUNNER || '"ubuntu-latest"') }}
     name: Check Source Changed
     outputs:

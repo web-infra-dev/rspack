@@ -100,3 +100,43 @@ fn test_windows_path() {
   assert_eq!(new_data.path1, PathBuf::from("D:\\workspace\\src\\main.rs"));
   assert_eq!(new_data.path2, PathBuf::from("D:\\workspace\\src\\lib.rs"));
 }
+
+/// Paths are stored slash-separated, so restoring one has to put the separators back into the
+/// platform's own form. The assertions compare strings, not `Path`s: `Path` equality on Windows
+/// compares components, so it sees `D:/a/b` and `D:\a\b` as the same path while the consumers
+/// that broke in https://github.com/web-infra-dev/rspack/issues/15352 (watchpack) compare the
+/// spelling.
+#[test]
+fn test_round_trip_keeps_native_separator() {
+  let project_root = PathBuf::from("a").join("project");
+  let path = project_root.join("src").join("main.rs");
+
+  // Without a project root the path is stored as-is and restored verbatim.
+  let restored = PortablePath::new(&path, None).into_path_string(None);
+  assert_eq!(restored, path.to_string_lossy());
+
+  // With one it round trips through a relative path.
+  let restored =
+    PortablePath::new(&path, Some(&project_root)).into_path_string(Some(&project_root));
+  assert_eq!(restored, path.to_string_lossy());
+}
+
+#[test]
+#[cfg(windows)]
+fn test_absolute_round_trip_keeps_native_separator() {
+  let project_root = PathBuf::from("D:\\workspace\\app");
+  let path = PathBuf::from("D:\\workspace\\app\\src\\main.rs");
+
+  let restored = PortablePath::new(&path, None).into_path_string(None);
+  assert_eq!(restored, "D:\\workspace\\app\\src\\main.rs");
+
+  let restored =
+    PortablePath::new(&path, Some(&project_root)).into_path_string(Some(&project_root));
+  assert_eq!(restored, "D:\\workspace\\app\\src\\main.rs");
+
+  // A path outside the project root travels as `..` segments and must come back native too.
+  let outside = PathBuf::from("D:\\workspace\\other\\lib.rs");
+  let restored =
+    PortablePath::new(&outside, Some(&project_root)).into_path_string(Some(&project_root));
+  assert_eq!(restored, "D:\\workspace\\other\\lib.rs");
+}

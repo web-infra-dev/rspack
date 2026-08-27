@@ -4,6 +4,20 @@ use sugar_path::SugarPath;
 
 use crate::{ContextGuard, Result, cacheable, with::AsConverter};
 
+/// Turns the slash-separated stored form back into the platform's own spelling.
+#[cfg(windows)]
+#[inline]
+fn to_native_separator(path: String) -> String {
+  path.replace('/', "\\")
+}
+
+/// The stored form already uses this platform's separator.
+#[cfg(not(windows))]
+#[inline]
+fn to_native_separator(path: String) -> String {
+  path
+}
+
 /// A portable path representation that can be serialized and deserialized across different
 /// environments with different project roots.
 ///
@@ -50,13 +64,18 @@ impl PortablePath {
     if self.transformed
       && let Some(project_root) = project_root
     {
+      // `absolutize_with` normalizes, so the result already uses the native separator.
       return self
         .path
         .absolutize_with(project_root)
         .to_string_lossy()
         .into_owned();
     }
-    self.path
+    // Paths are always stored slash-separated, so an untransformed one has to be put back into
+    // the native form. Restoring `D:/a/b` where the rest of the build produces `D:\a\b` yields
+    // two spellings of one path, and consumers that compare paths as strings (watchpack) then
+    // fail to match the restored one.
+    to_native_separator(self.path)
   }
 }
 
