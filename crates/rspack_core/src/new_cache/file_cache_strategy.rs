@@ -202,7 +202,8 @@ impl FileCacheStrategy {
       let meta = self
         .pending_writes
         .meta
-        .map(|meta| codec.encode(&meta))
+        .as_ref()
+        .map(|meta| codec.encode(meta))
         .transpose()?;
       self.database.write_batch(move |batch| {
         entries.par_iter().try_for_each(|(key, pending)| {
