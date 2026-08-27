@@ -16,21 +16,57 @@ new rspack.webworker.WebWorkerTemplatePlugin();
 
 下面的 worker 会先将 `math.js` 作为异步 chunk 加载，再处理收到的消息：
 
-```js title="src/worker.js"
+```js title="src/worker-child.js"
 self.onmessage = async ({ data }) => {
   const { double } = await import('./math.js');
   self.postMessage(double(data));
 };
 ```
 
+```js title="src/math.js"
+export const double = (value) => value * 2;
+```
+
+下面的配置会创建一个子编译器，并直接对它应用
+`WebWorkerTemplatePlugin`：
+
 ```js title="rspack.config.mjs"
 export default {
   target: 'webworker',
-  entry: './src/worker.js',
-  output: {
-    chunkLoading: 'import-scripts',
-  },
+  entry: {},
+  plugins: [
+    (compiler) => {
+      compiler.hooks.make.tapAsync(
+        'WorkerChildCompiler',
+        (compilation, callback) => {
+          const childCompiler = compilation.createChildCompiler(
+            'worker-child',
+            {
+              filename: 'worker-child.js',
+              chunkFilename: '[name].worker-child.js',
+            },
+            [
+              new compiler.rspack.webworker.WebWorkerTemplatePlugin(),
+              new compiler.rspack.EntryPlugin(
+                compiler.context,
+                './src/worker-child.js',
+                { name: 'worker-child' },
+              ),
+            ],
+          );
+
+          childCompiler.runAsChild((error) => callback(error));
+        },
+      );
+    },
+  ],
 };
 ```
 
-Rspack 会在 worker 中通过 `importScripts` 加载异步 chunk。对于常规 worker 构建，`target: 'webworker'` 会自动启用相同的行为。配置用于生成 Web Worker 产物的子编译器时，可以直接应用 `WebWorkerTemplatePlugin`。
+`WebWorkerTemplatePlugin` 会让子编译器生成 array-push chunk，并通过
+`importScripts` 加载其中的异步 chunk。
+
+对于常规 Web Worker 构建，请改用 `target: 'webworker'`。它会自动选择
+`'array-push'` chunk format 和 `'import-scripts'` chunk loading。设置
+`output.chunkLoading: 'import-scripts'` 只会选择 chunk 加载实现，并不会应用
+`WebWorkerTemplatePlugin`。

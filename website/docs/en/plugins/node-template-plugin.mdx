@@ -25,9 +25,9 @@ Use `'async-node'` chunk loading for async chunks instead of `'require'`.
 
 ## Example
 
-This Node.js entry creates an asynchronous chunk for `task.js`:
+The following Node.js entry creates an asynchronous chunk for `task.js`:
 
-```js title="src/index.js"
+```js title="src/node-child.js"
 async function main() {
   const { run } = await import('./task.js');
   run();
@@ -36,14 +36,52 @@ async function main() {
 main();
 ```
 
+```js title="src/task.js"
+export function run() {
+  console.log('Task completed');
+}
+```
+
+This configuration creates a child compiler and applies `NodeTemplatePlugin`
+directly to it:
+
 ```js title="rspack.config.mjs"
 export default {
   target: 'node',
-  entry: './src/index.js',
-  output: {
-    chunkLoading: 'require',
-  },
+  entry: {},
+  plugins: [
+    (compiler) => {
+      compiler.hooks.make.tapAsync(
+        'NodeChildCompiler',
+        (compilation, callback) => {
+          const childCompiler = compilation.createChildCompiler(
+            'node-child',
+            {
+              filename: 'node-child.js',
+              chunkFilename: '[name].node-child.js',
+            },
+            [
+              new compiler.rspack.node.NodeTemplatePlugin(),
+              new compiler.rspack.EntryPlugin(
+                compiler.context,
+                './src/node-child.js',
+                { name: 'node-child' },
+              ),
+            ],
+          );
+
+          childCompiler.runAsChild((error) => callback(error));
+        },
+      );
+    },
+  ],
 };
 ```
 
-Rspack emits CommonJS chunks and loads the asynchronous chunk with `require`. A normal `target: 'node'` build configures this behavior automatically. Apply `NodeTemplatePlugin` directly when a child compiler needs Node.js-style chunk output.
+`NodeTemplatePlugin` configures the child compiler to emit CommonJS chunks and
+load its asynchronous chunk with `require`.
+
+For a regular Node.js build, use `target: 'node'` instead. It selects the
+`'commonjs'` chunk format and `'require'` chunk loading automatically. Setting
+`output.chunkLoading: 'require'` selects the chunk-loading implementation, but
+it does not apply `NodeTemplatePlugin`.

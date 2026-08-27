@@ -14,23 +14,59 @@ new rspack.web.JsonpTemplatePlugin();
 
 ## Example
 
-This browser entry creates an asynchronous chunk for `message.js`:
+The following browser entry creates an asynchronous chunk for `message.js`:
 
-```js title="src/index.js"
+```js title="src/browser-child.js"
 document.querySelector('button').addEventListener('click', async () => {
   const { message } = await import('./message.js');
   console.log(message);
 });
 ```
 
+```js title="src/message.js"
+export const message = 'Hello from the child compiler';
+```
+
+This configuration creates a child compiler and applies `JsonpTemplatePlugin`
+directly to it:
+
 ```js title="rspack.config.mjs"
 export default {
   target: 'web',
-  entry: './src/index.js',
-  output: {
-    chunkLoading: 'jsonp',
-  },
+  entry: {},
+  plugins: [
+    (compiler) => {
+      compiler.hooks.make.tapAsync(
+        'BrowserChildCompiler',
+        (compilation, callback) => {
+          const childCompiler = compilation.createChildCompiler(
+            'browser-child',
+            {
+              filename: 'browser-child.js',
+              chunkFilename: '[name].browser-child.js',
+            },
+            [
+              new compiler.rspack.web.JsonpTemplatePlugin(),
+              new compiler.rspack.EntryPlugin(
+                compiler.context,
+                './src/browser-child.js',
+                { name: 'browser-child' },
+              ),
+            ],
+          );
+
+          childCompiler.runAsChild((error) => callback(error));
+        },
+      );
+    },
+  ],
 };
 ```
 
-When the button is clicked, Rspack loads the asynchronous chunk by adding a script to the page. For a normal web build, `target: 'web'` and `output.chunkLoading: 'jsonp'` enable the same behavior automatically. Apply `JsonpTemplatePlugin` directly when a child compiler needs browser-style chunk output.
+`JsonpTemplatePlugin` configures the child compiler to emit array-push chunks and
+load the asynchronous chunk by adding a script to the page.
+
+For a regular web build, use `target: 'web'` instead. It selects the
+`'array-push'` chunk format and `'jsonp'` chunk loading automatically. Setting
+`output.chunkLoading: 'jsonp'` selects the chunk-loading implementation, but it
+does not apply `JsonpTemplatePlugin`.
