@@ -1,5 +1,5 @@
 ---
-description: 'This plugin is used to prevent the assets emitting when there are compilation errors'
+description: 'Prevents Rspack from emitting assets when a compilation contains errors.'
 ---
 
 import { ApiMeta } from '@components/ApiMeta.tsx';
@@ -8,8 +8,24 @@ import { ApiMeta } from '@components/ApiMeta.tsx';
 
 <ApiMeta addedVersion={'1.0.0'} />
 
-This plugin is used to prevent the assets emitting when there are compilation errors. [`optimization.emitOnErrors`](/config/optimization#optimizationemitonerrors) uses this plugin.
+`NoEmitOnErrorsPlugin` prevents Rspack from emitting assets when a compilation contains errors. Setting [`optimization.emitOnErrors`](/config/optimization#optimizationemitonerrors) to `false` applies this plugin internally.
 
 ```js
 new rspack.NoEmitOnErrorsPlugin();
 ```
+
+## Example
+
+The following development configuration keeps the previous files in `dist` unchanged when the new compilation has an error:
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  mode: 'development',
+  entry: './src/index.js',
+  plugins: [new rspack.NoEmitOnErrorsPlugin()],
+};
+```
+
+For example, if `src/index.js` contains a syntax error, Rspack reports the error without writing assets from that compilation. The equivalent configuration is `optimization.emitOnErrors: false`.
