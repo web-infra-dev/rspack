@@ -28,31 +28,39 @@ pub struct PortablePath {
 }
 
 impl PortablePath {
-  /// Create a portable path, converting to relative if both path and project_root are absolute
-  pub fn new(path: &Path, project_root: Option<&Path>) -> Self {
+  /// Create a portable path. Passing a root enables portable conversion; otherwise the native
+  /// path representation is preserved.
+  pub fn new(path: &Path, portable_project_root: Option<&Path>) -> Self {
     if path.is_absolute()
-      && let Some(project_root) = project_root
+      && let Some(portable_project_root) = portable_project_root
     {
       return Self {
-        path: path.relative(project_root).to_slash_lossy().into_owned(),
+        path: path
+          .relative(portable_project_root)
+          .to_slash_lossy()
+          .into_owned(),
         transformed: true,
       };
     }
 
     Self {
-      path: path.to_slash_lossy().into_owned(),
+      path: if portable_project_root.is_some() {
+        path.to_slash_lossy().into_owned()
+      } else {
+        path.to_string_lossy().into_owned()
+      },
       transformed: false,
     }
   }
 
-  /// Convert back to path string using project_root if the path was transformed
-  pub fn into_path_string(self, project_root: Option<&Path>) -> String {
+  /// Convert back to a path string using the portable project root if the path was transformed.
+  pub fn into_path_string(self, portable_project_root: Option<&Path>) -> String {
     if self.transformed
-      && let Some(project_root) = project_root
+      && let Some(portable_project_root) = portable_project_root
     {
       return self
         .path
-        .absolutize_with(project_root)
+        .absolutize_with(portable_project_root)
         .to_string_lossy()
         .into_owned();
     }
