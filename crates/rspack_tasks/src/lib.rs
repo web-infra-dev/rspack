@@ -14,6 +14,12 @@ use tokio::{
   task_local,
 };
 
+mod worker_dispatcher;
+pub use worker_dispatcher::{
+  WorkerConsumer, WorkerConsumerHandle, WorkerDispatchError, WorkerDispatchFailure,
+  WorkerDispatcher, WorkerJob,
+};
+
 // don't overuse this and put everything here, it's mostly used for store isolated id generator
 #[derive(Debug)]
 pub struct CompilerContext {

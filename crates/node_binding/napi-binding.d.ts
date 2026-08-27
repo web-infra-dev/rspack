@@ -632,10 +632,20 @@ export declare enum BuiltinPluginName {
 
 export declare function cleanupGlobalTrace(): void
 
+export declare function closeJsLoaderWorkers(poolId: number): Promise<undefined>
+
 export interface ContextInfo {
   issuer: string
   issuerLayer?: string
 }
+
+/**
+ * Creates an isolated scheduling domain. A pool only dispatches work to callbacks registered by
+ * its owning JS main environment, while the generic dispatcher remains loader-independent.
+ */
+export declare function createJsLoaderWorkerPool(): number
+
+export declare function dispatchJsLoaderTask(poolId: number, payload: Buffer): Promise<Buffer>
 
 export declare enum EnforceExtension {
   Auto = 0,
@@ -3228,6 +3238,12 @@ export interface RealDependencyLocation {
  * Copyright (c)
  */
 export declare function registerGlobalTrace(filter: string, layer:  "logger" | "perfetto" , output: string): void
+
+/**
+ * Registers one environment-local callback as a persistent consumer. The generic dispatcher is
+ * intentionally independent of loader context ownership so other JS worker jobs can reuse it.
+ */
+export declare function registerJsLoaderWorker(poolId: number, callback: (arg: Buffer) => Promise<Buffer>): Promise<undefined>
 
 export declare enum RegisterJsTapKind {
   CompilerThisCompilation = 0,

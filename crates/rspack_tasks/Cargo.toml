@@ -11,7 +11,8 @@ repository.workspace    = true
 version.workspace       = true
 
 [dependencies]
-tokio = { workspace = true }
+async-channel = { workspace = true }
+tokio         = { workspace = true, features = ["macros", "sync"] }
 [lints]
 workspace = true
 

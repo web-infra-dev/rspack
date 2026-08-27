@@ -1,9 +1,18 @@
 import fs from 'node:fs';
 import querystring from 'node:querystring';
 import { promisify } from 'node:util';
-import { type MessagePort, receiveMessageOnPort } from 'node:worker_threads';
+import { deserialize, serialize } from 'node:v8';
+import {
+  type MessagePort,
+  receiveMessageOnPort,
+  workerData,
+} from 'node:worker_threads';
 
-import { JsLoaderState, type NormalModule } from '@rspack/binding';
+import {
+  JsLoaderState,
+  type NormalModule,
+  registerJsLoaderWorker,
+} from '@rspack/binding';
 import type { LoaderContext } from '../config';
 import type { ResolveCallback } from '../config/adapterRuleUse';
 import type { ResolveRequest } from '../Resolver';
@@ -35,11 +44,13 @@ interface WorkerOptions {
   loaderContext: LoaderContext;
   loaderState: JsLoaderState;
   args: any[];
+}
 
-  workerData?: {
-    workerPort: MessagePort;
-    workerSyncPort: MessagePort;
-  };
+interface PersistentWorkerData {
+  rspackNativeLoaderWorker: true;
+  poolId: number;
+  workerPort: MessagePort;
+  workerSyncPort: MessagePort;
 }
 
 const loadLoaderAsync: (
@@ -545,7 +556,7 @@ async function loaderImpl(
     }
   }
 
-  sendRequest(
+  await sendRequest(
     RequestType.UpdateLoaderObjects,
     loaderContext.loaders.map((item) => {
       return {
@@ -626,11 +637,13 @@ function createWaitForPendingRequest(
 function createSendRequest(
   workerPort: MessagePort,
   workerSyncPort: MessagePort,
+  taskId: number,
 ): SendRequestFunction {
   const sendRequest = ((requestType, ...args) => {
     const id = nextId++;
     workerPort.postMessage({
       type: 'request',
+      taskId,
       id,
       requestType,
       data: args,
@@ -650,11 +663,11 @@ function createSendRequest(
     result.id = id;
     return result;
   }) as SendRequestFunction;
-  sendRequest.sync = createSendRequestSync(workerSyncPort);
+  sendRequest.sync = createSendRequestSync(workerSyncPort, taskId);
   return sendRequest;
 }
 
-function createSendRequestSync(workerSyncPort: MessagePort) {
+function createSendRequestSync(workerSyncPort: MessagePort, taskId: number) {
   return (requestType: RequestSyncType, ...args: any[]) => {
     const id = nextId++;
 
@@ -665,6 +678,7 @@ function createSendRequestSync(workerSyncPort: MessagePort) {
 
     workerSyncPort.postMessage({
       type: 'request-sync',
+      taskId,
       id,
       requestType,
       data: args,
@@ -697,27 +711,29 @@ function createSendRequestSync(workerSyncPort: MessagePort) {
   };
 }
 
-function worker(workerOptions: WorkerOptions) {
-  const workerData = workerOptions.workerData!;
-  delete workerOptions.workerData;
-
-  workerData.workerPort.on('message', handleIncomingResponses);
-  const sendRequest = createSendRequest(
-    workerData.workerPort,
-    workerData.workerSyncPort,
-  );
-  const waitFor = createWaitForPendingRequest(sendRequest);
-
-  loaderImpl(workerOptions, sendRequest, waitFor)
-    .then((data) => {
-      workerData.workerPort.postMessage({ type: 'done', data });
-    })
-    .catch((err) => {
-      workerData.workerPort.postMessage({
-        type: 'done-error',
-        error: serializeError(err),
+async function registerPersistentWorker(data: PersistentWorkerData) {
+  data.workerPort.on('message', handleIncomingResponses);
+  await registerJsLoaderWorker(data.poolId, async (payload) => {
+    const { taskId, task } = deserialize(payload) as {
+      taskId: number;
+      task: WorkerOptions;
+    };
+    const sendRequest = createSendRequest(
+      data.workerPort,
+      data.workerSyncPort,
+      taskId,
+    );
+    const waitFor = createWaitForPendingRequest(sendRequest);
+    try {
+      return serialize({
+        ok: true,
+        data: await loaderImpl(task, sendRequest, waitFor),
       });
-    });
+    } catch (error) {
+      return serialize({ ok: false, error: serializeError(error) });
+    }
+  });
+  data.workerPort.postMessage({ type: 'ready' });
 }
 
 function getCurrentLoader(
@@ -735,4 +751,13 @@ function getCurrentLoader(
   return null;
 }
 
-export default worker;
+if (workerData?.rspackNativeLoaderWorker) {
+  void registerPersistentWorker(workerData as PersistentWorkerData).catch(
+    (error) => {
+      (workerData as PersistentWorkerData).workerPort.postMessage({
+        type: 'init-error',
+        error: serializeError(error),
+      });
+    },
+  );
+}
