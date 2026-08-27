@@ -178,7 +178,7 @@ program
       '--no-git-push', // Do not push generated commit and tags to git remote
       '--no-git-tag', // Do not tag versions in git, we will tag them in `crate-publish`
       '--force',
-      '*', // Every member inherits `[workspace.package].version`, so all published crates must be bumped together
+      '*', // Published crates share `[workspace.package].version`; include them all so `[workspace.dependencies]` exact pins stay in sync
       '--yes', // Skip confirmation prompt
       bump, // Bump type
     ];
