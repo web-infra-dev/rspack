@@ -36,10 +36,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for JavascriptMetaInfoPlugin {
     if parser.build_info.top_level_declarations.is_none() {
       parser.build_info.top_level_declarations = Some(FxHashSet::default());
     }
-    let variables: Vec<_> = parser
-      .get_all_variables_from_current_scope()
-      .map(|(name, info)| (name.clone(), info))
-      .collect();
+    let variables = parser.get_all_variables_from_current_scope();
     for (name, info) in variables {
       if !parser.definitions_db.expect_get_variable(info).is_free() {
         parser

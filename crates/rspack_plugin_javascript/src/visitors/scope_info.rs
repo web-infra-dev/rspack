@@ -78,7 +78,8 @@ struct Binding {
 /// Scoped symbol table.
 ///
 /// The parser enters and exits scopes in strict stack order and always reads
-/// and writes through the innermost active scope. `ScopeInfoDB` exploits this:
+/// and writes through the innermost active scope. `WebpackVariableEnvironment`
+/// exploits this:
 /// instead of one hash map per scope plus a parent-chain walk on lookup, it
 /// keeps a single map from name to a stack of bindings (outermost first).
 /// Lookup is a single hash probe; the innermost binding is the last element.
@@ -88,7 +89,7 @@ struct Binding {
 /// every scope created by `create_child` must be exited with `exit_scope`
 /// before its parent receives further operations.
 #[derive(Debug)]
-pub struct ScopeInfoDB {
+pub struct WebpackVariableEnvironment {
   map: Vec<ScopeInfo>,
   /// For each name, the stack of active bindings, innermost last.
   bindings: FxHashMap<Atom, SmallVec<[Binding; 2]>>,
@@ -98,13 +99,13 @@ pub struct ScopeInfoDB {
   tag_info_db: TagInfoDB,
 }
 
-impl Default for ScopeInfoDB {
+impl Default for WebpackVariableEnvironment {
   fn default() -> Self {
     Self::new()
   }
 }
 
-impl ScopeInfoDB {
+impl WebpackVariableEnvironment {
   pub fn new() -> Self {
     Self {
       map: Vec::new(),
@@ -182,6 +183,10 @@ impl ScopeInfoDB {
       .unwrap_or_else(|| panic!("{id:#?} should exist"))
   }
 
+  pub fn is_root_scope(&self, id: ScopeInfoId) -> bool {
+    self.expect_get_scope(id).parent.is_none()
+  }
+
   pub fn expect_get_variable(&self, id: VariableInfoId) -> &VariableInfo {
     self
       .variable_info_db
@@ -208,18 +213,25 @@ impl ScopeInfoDB {
 
   /// Resolve `key` starting from the innermost active scope `id`.
   pub fn get(&mut self, id: ScopeInfoId, key: &str) -> Option<VariableInfoId> {
+    let value = self.get_raw(id, key)?;
+    if value == VariableInfoId::tombstone() || value == VariableInfoId::undefined() {
+      None
+    } else {
+      Some(value)
+    }
+  }
+
+  /// Resolve a webpack-created binding without interpreting sentinel values.
+  /// `None` means this name has no dynamic overlay and may fall back to the
+  /// immutable semantic model.
+  pub fn get_raw(&mut self, id: ScopeInfoId, key: &str) -> Option<VariableInfoId> {
     debug_assert_eq!(
       self.current,
       Some(id),
       "lookup must start from the innermost active scope"
     );
     let binding = self.bindings.get(key)?.last()?;
-    let value = binding.value;
-    if value == VariableInfoId::tombstone() || value == VariableInfoId::undefined() {
-      None
-    } else {
-      Some(value)
-    }
+    Some(binding.value)
   }
 
   pub fn get_and_track_semantic_symbol(
@@ -237,6 +249,7 @@ impl ScopeInfoDB {
       .bindings
       .get_mut(key)
       .and_then(|bindings| bindings.last_mut())
+      .filter(|binding| binding.scope == id)
     else {
       return (None, false);
     };
@@ -252,12 +265,7 @@ impl ScopeInfoDB {
         true
       }
     };
-    let value = binding.value;
-    if value == VariableInfoId::tombstone() || value == VariableInfoId::undefined() {
-      (None, tracked)
-    } else {
-      (Some(value), tracked)
-    }
+    (Some(binding.value), tracked)
   }
 
   pub fn set(
@@ -318,7 +326,7 @@ pub struct TagInfo {
 
 impl TagInfo {
   pub fn create(
-    definitions_db: &mut ScopeInfoDB,
+    definitions_db: &mut WebpackVariableEnvironment,
     tag: &'static str,
     data: Option<Box<dyn anymap::CloneAny>>,
     next: Option<TagInfoId>,
@@ -406,7 +414,7 @@ pub struct VariableInfo {
 
 impl VariableInfo {
   pub fn create(
-    definitions_db: &mut ScopeInfoDB,
+    definitions_db: &mut WebpackVariableEnvironment,
     declared_scope: ScopeInfoId,
     name: Option<Atom>,
     flags: VariableInfoFlags,
@@ -446,16 +454,19 @@ pub struct ScopeInfo {
 
 #[cfg(test)]
 mod tests {
-  use super::{ScopeInfoDB, VariableInfo, VariableInfoFlags, VariableInfoId};
+  use super::{VariableInfo, VariableInfoFlags, VariableInfoId, WebpackVariableEnvironment};
   use crate::Atom;
 
-  fn new_variable(db: &mut ScopeInfoDB, scope: super::ScopeInfoId) -> VariableInfoId {
+  fn new_variable(
+    db: &mut WebpackVariableEnvironment,
+    scope: super::ScopeInfoId,
+  ) -> VariableInfoId {
     VariableInfo::create(db, scope, None, VariableInfoFlags::NORMAL, None)
   }
 
   #[test]
   fn inner_scope_shadows_and_unwinds() {
-    let mut db = ScopeInfoDB::new();
+    let mut db = WebpackVariableEnvironment::new();
     let root = db.create();
     let a = Atom::from("a");
 
@@ -476,7 +487,7 @@ mod tests {
 
   #[test]
   fn delete_masks_outer_binding_until_exit() {
-    let mut db = ScopeInfoDB::new();
+    let mut db = WebpackVariableEnvironment::new();
     let root = db.create();
     let a = Atom::from("a");
 
@@ -493,7 +504,7 @@ mod tests {
 
   #[test]
   fn scope_variables_skip_tombstones() {
-    let mut db = ScopeInfoDB::new();
+    let mut db = WebpackVariableEnvironment::new();
     let root = db.create();
 
     let a = new_variable(&mut db, root);

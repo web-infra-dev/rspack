@@ -246,9 +246,12 @@ impl JavascriptParser<'_> {
   }
 
   fn walk_with_statement(&mut self, stmt: WithStatement) {
+    let semantic_node = stmt.node_id();
     self.in_block_scope(true, |this| {
       this.walk_expression(stmt.object(this.ast.ast));
-      this.walk_nested_statement(stmt.body(this.ast.ast));
+      this.in_semantic_scope(semantic_node, |this| {
+        this.walk_nested_statement(stmt.body(this.ast.ast));
+      });
     });
   }
 
@@ -300,26 +303,30 @@ impl JavascriptParser<'_> {
   }
 
   fn walk_catch_clause(&mut self, catch_clause: CatchClause) {
-    self.in_block_scope(true, |this| {
-      let ast = this.ast.ast;
-      if let Some(param) = catch_clause.param(ast) {
-        this.enter_pattern(PatRef::Borrowed(param), |this, ident| {
-          this.define_variable_identifier(ident);
-        });
-        this.walk_pattern(param)
-      }
-      let prev = this.prev_statement;
-      let body = catch_clause.body(ast);
-      this.block_pre_walk_statements(body.body(ast));
-      this.prev_statement = prev;
-      this.walk_statement(Statement::Block(body));
-    })
+    self.in_semantic_scope(catch_clause.node_id(), |this| {
+      this.in_block_scope(true, |this| {
+        let ast = this.ast.ast;
+        if let Some(param) = catch_clause.param(ast) {
+          this.enter_pattern(PatRef::Borrowed(param), |this, ident| {
+            this.define_variable_identifier(ident);
+          });
+          this.walk_pattern(param)
+        }
+        let prev = this.prev_statement;
+        let body = catch_clause.body(ast);
+        this.block_pre_walk_statements(body.body(ast));
+        this.prev_statement = prev;
+        this.walk_statement(Statement::Block(body));
+      })
+    });
   }
 
   fn walk_switch_statement(&mut self, stmt: SwitchStatement) {
     let ast = self.ast.ast;
     self.walk_expression(stmt.discriminant(ast));
-    self.walk_switch_cases(stmt.cases(ast));
+    self.in_semantic_scope(stmt.node_id(), |this| {
+      this.walk_switch_cases(stmt.cases(ast));
+    });
   }
 
   fn walk_switch_cases(&mut self, cases: TypedSubRange<SwitchCase>) {
@@ -425,79 +432,91 @@ impl JavascriptParser<'_> {
   }
 
   fn walk_for_statement(&mut self, stmt: ForStatement) {
-    self.in_block_scope(false, |this| {
-      let ast = this.ast.ast;
-      if let Some(init) = stmt.init(ast) {
-        match ast.for_statement_init_data(init) {
-          ForStatementInitData::VariableDeclaration(decl) => {
-            let decl = VariableDeclaration(decl);
-            this.block_pre_walk_variable_declaration(decl);
-            this.prev_statement = None;
-            this.walk_variable_declaration(decl);
+    self.in_semantic_scope(stmt.node_id(), |this| {
+      this.in_block_scope(false, |this| {
+        let ast = this.ast.ast;
+        if let Some(init) = stmt.init(ast) {
+          match ast.for_statement_init_data(init) {
+            ForStatementInitData::VariableDeclaration(decl) => {
+              let decl = VariableDeclaration(decl);
+              this.block_pre_walk_variable_declaration(decl);
+              this.prev_statement = None;
+              this.walk_variable_declaration(decl);
+            }
+            ForStatementInitData::Expr(expr) => this.walk_expression(expr),
           }
-          ForStatementInitData::Expr(expr) => this.walk_expression(expr),
         }
-      }
-      if let Some(test) = stmt.test(ast) {
-        this.walk_expression(test)
-      }
-      if let Some(update) = stmt.update(ast) {
-        this.walk_expression(update)
-      }
-      let body = stmt.body(ast);
-      if let Some(body) = body.as_block_statement(ast) {
-        let statements = body.body(ast);
-        let prev = this.prev_statement;
-        this.block_pre_walk_statements(statements);
-        this.prev_statement = prev;
-        this.walk_statements(statements);
-      } else {
-        this.walk_nested_statement(body);
-      }
+        if let Some(test) = stmt.test(ast) {
+          this.walk_expression(test)
+        }
+        if let Some(update) = stmt.update(ast) {
+          this.walk_expression(update)
+        }
+        let body = stmt.body(ast);
+        if let Some(body) = body.as_block_statement(ast) {
+          let statements = body.body(ast);
+          this.in_semantic_scope(body.node_id(), |this| {
+            let prev = this.prev_statement;
+            this.block_pre_walk_statements(statements);
+            this.prev_statement = prev;
+            this.walk_statements(statements);
+          });
+        } else {
+          this.walk_nested_statement(body);
+        }
+      });
     });
   }
 
   fn walk_for_of_statement(&mut self, stmt: ForOfStatement) {
-    self.in_block_scope(false, |this| {
-      let ast = this.ast.ast;
-      let left = stmt.left(ast);
-      this.walk_for_head(left);
-      this.walk_expression(stmt.right(ast));
-      if this.javascript_options.is_create_require_enabled() {
-        this.clear_created_require_tags_in_for_head(left);
-      }
-      let body = stmt.body(ast);
-      if let Some(body) = body.as_block_statement(ast) {
-        let statements = body.body(ast);
-        let prev = this.prev_statement;
-        this.block_pre_walk_statements(statements);
-        this.prev_statement = prev;
-        this.walk_statements(statements);
-      } else {
-        this.walk_nested_statement(body);
-      }
+    self.in_semantic_scope(stmt.node_id(), |this| {
+      this.in_block_scope(false, |this| {
+        let ast = this.ast.ast;
+        let left = stmt.left(ast);
+        this.walk_for_head(left);
+        this.walk_expression(stmt.right(ast));
+        if this.javascript_options.is_create_require_enabled() {
+          this.clear_created_require_tags_in_for_head(left);
+        }
+        let body = stmt.body(ast);
+        if let Some(body) = body.as_block_statement(ast) {
+          let statements = body.body(ast);
+          this.in_semantic_scope(body.node_id(), |this| {
+            let prev = this.prev_statement;
+            this.block_pre_walk_statements(statements);
+            this.prev_statement = prev;
+            this.walk_statements(statements);
+          });
+        } else {
+          this.walk_nested_statement(body);
+        }
+      });
     });
   }
 
   fn walk_for_in_statement(&mut self, stmt: ForInStatement) {
-    self.in_block_scope(false, |this| {
-      let ast = this.ast.ast;
-      let left = stmt.left(ast);
-      this.walk_for_head(left);
-      this.walk_expression(stmt.right(ast));
-      if this.javascript_options.is_create_require_enabled() {
-        this.clear_created_require_tags_in_for_head(left);
-      }
-      let body = stmt.body(ast);
-      if let Some(body) = body.as_block_statement(ast) {
-        let statements = body.body(ast);
-        let prev = this.prev_statement;
-        this.block_pre_walk_statements(statements);
-        this.prev_statement = prev;
-        this.walk_statements(statements);
-      } else {
-        this.walk_nested_statement(body);
-      }
+    self.in_semantic_scope(stmt.node_id(), |this| {
+      this.in_block_scope(false, |this| {
+        let ast = this.ast.ast;
+        let left = stmt.left(ast);
+        this.walk_for_head(left);
+        this.walk_expression(stmt.right(ast));
+        if this.javascript_options.is_create_require_enabled() {
+          this.clear_created_require_tags_in_for_head(left);
+        }
+        let body = stmt.body(ast);
+        if let Some(body) = body.as_block_statement(ast) {
+          let statements = body.body(ast);
+          this.in_semantic_scope(body.node_id(), |this| {
+            let prev = this.prev_statement;
+            this.block_pre_walk_statements(statements);
+            this.prev_statement = prev;
+            this.walk_statements(statements);
+          });
+        } else {
+          this.walk_nested_statement(body);
+        }
+      });
     });
   }
 
@@ -1505,24 +1524,26 @@ impl JavascriptParser<'_> {
   }
 
   pub(crate) fn walk_function_body(&mut self, body: FunctionBody) {
-    let ast = self.ast.ast;
-    for directive in body
-      .directives(ast)
-      .iter()
-      .map(|id| ast.get_node_in_sub_range(id))
-    {
-      if ast.get_utf8(directive.value(ast)) == "use strict" {
-        self.set_strict(true);
-        break;
+    self.in_semantic_scope(body.node_id(), |this| {
+      let ast = this.ast.ast;
+      for directive in body
+        .directives(ast)
+        .iter()
+        .map(|id| ast.get_node_in_sub_range(id))
+      {
+        if ast.get_utf8(directive.value(ast)) == "use strict" {
+          this.set_strict(true);
+          break;
+        }
       }
-    }
-    let statements = body.body(ast);
-    let prev = self.prev_statement;
-    self.pre_walk_statements(statements);
-    self.prev_statement = prev;
-    self.block_pre_walk_statements(statements);
-    self.prev_statement = prev;
-    self.walk_statements(statements);
+      let statements = body.body(ast);
+      let prev = this.prev_statement;
+      this.pre_walk_statements(statements);
+      this.prev_statement = prev;
+      this.block_pre_walk_statements(statements);
+      this.prev_statement = prev;
+      this.walk_statements(statements);
+    });
   }
 
   fn walk_import_expression(&mut self, expr: ImportExpression) {
@@ -1633,37 +1654,39 @@ impl JavascriptParser<'_> {
       TopLevelScope::False
     };
 
-    self.in_function_scope(true, scope_params.into_iter(), |parser| {
-      if let Some(this) = rename_this
-        && !expr.is_arrow_function_expression(parser.ast.ast)
-      {
-        parser.set_variable("this".into(), this)
-      }
-      for (i, var_info) in variable_info_for_args.into_iter().enumerate() {
-        if let Some(var_info) = var_info
-          && let Some(param) = params.get(i)
+    self.in_semantic_scope(expr.node_id(), |this| {
+      this.in_function_scope(true, scope_params.into_iter(), |parser| {
+        if let Some(this) = rename_this
+          && !expr.is_arrow_function_expression(parser.ast.ast)
         {
-          parser.set_variable(
-            Atom::from(parser.ast.ast.get_utf8(param.name(parser.ast.ast))),
-            var_info,
-          );
+          parser.set_variable("this".into(), this)
         }
-      }
-
-      match parser.ast.ast.expr_data(expr) {
-        ExprData::Function(function) => parser.walk_function_body(function.body(parser.ast.ast)),
-        ExprData::ArrowFunctionExpression(arrow) => {
-          match parser
-            .ast
-            .ast
-            .arrow_function_body_data(arrow.body(parser.ast.ast))
+        for (i, var_info) in variable_info_for_args.into_iter().enumerate() {
+          if let Some(var_info) = var_info
+            && let Some(param) = params.get(i)
           {
-            ArrowFunctionBodyData::FunctionBody(body) => parser.walk_function_body(body),
-            ArrowFunctionBodyData::Expr(expression) => parser.walk_expression(expression),
+            parser.set_variable(
+              Atom::from(parser.ast.ast.get_utf8(param.name(parser.ast.ast))),
+              var_info,
+            );
           }
         }
-        _ => unreachable!(),
-      }
+
+        match parser.ast.ast.expr_data(expr) {
+          ExprData::Function(function) => parser.walk_function_body(function.body(parser.ast.ast)),
+          ExprData::ArrowFunctionExpression(arrow) => {
+            match parser
+              .ast
+              .ast
+              .arrow_function_body_data(arrow.body(parser.ast.ast))
+            {
+              ArrowFunctionBodyData::FunctionBody(body) => parser.walk_function_body(body),
+              ArrowFunctionBodyData::Expr(expression) => parser.walk_expression(expression),
+            }
+          }
+          _ => unreachable!(),
+        }
+      });
     });
     self.top_level_scope = was_top_level_scope;
   }
@@ -2043,23 +2066,25 @@ impl JavascriptParser<'_> {
     if !matches!(was_top_level_scope, TopLevelScope::False) {
       self.top_level_scope = TopLevelScope::ArrowFunction;
     }
-    self.in_function_scope(
-      false,
-      Self::formal_parameter_patterns(ast, params).map(PatRef::Borrowed),
-      |this| {
-        for pattern in Self::formal_parameter_patterns(ast, params) {
-          this.walk_pattern(pattern)
-        }
-        match this
-          .ast
-          .ast
-          .arrow_function_body_data(expr.body(this.ast.ast))
-        {
-          ArrowFunctionBodyData::FunctionBody(body) => this.walk_function_body(body),
-          ArrowFunctionBodyData::Expr(expression) => this.walk_expression(expression),
-        }
-      },
-    );
+    self.in_semantic_scope(expr.node_id(), |this| {
+      this.in_function_scope(
+        false,
+        Self::formal_parameter_patterns(ast, params).map(PatRef::Borrowed),
+        |this| {
+          for pattern in Self::formal_parameter_patterns(ast, params) {
+            this.walk_pattern(pattern)
+          }
+          match this
+            .ast
+            .ast
+            .arrow_function_body_data(expr.body(this.ast.ast))
+          {
+            ArrowFunctionBodyData::FunctionBody(body) => this.walk_function_body(body),
+            ArrowFunctionBodyData::Expr(expression) => this.walk_expression(expression),
+          }
+        },
+      );
+    });
     self.top_level_scope = was_top_level_scope;
   }
 
@@ -2096,12 +2121,14 @@ impl JavascriptParser<'_> {
   fn walk_block_statement(&mut self, stmt: BlockStatement) {
     let ast = self.ast.ast;
     let statements = stmt.body(ast);
-    self.in_block_scope(true, |this| {
-      let prev = this.prev_statement;
-      this.block_pre_walk_statements(statements);
-      this.prev_statement = prev;
-      this.walk_statements(statements);
-    })
+    self.in_semantic_scope(stmt.node_id(), |this| {
+      this.in_block_scope(true, |this| {
+        let prev = this.prev_statement;
+        this.block_pre_walk_statements(statements);
+        this.prev_statement = prev;
+        this.walk_statements(statements);
+      })
+    });
   }
 
   fn walk_function_declaration(&mut self, decl: MaybeNamedFunctionDecl) {
@@ -2110,8 +2137,10 @@ impl JavascriptParser<'_> {
     let ast = self.ast.ast;
     let function = decl.function();
     let patterns = Self::formal_parameter_patterns(ast, function.params(ast));
-    self.in_function_scope(true, patterns.map(PatRef::Borrowed), |this| {
-      this.walk_function(function);
+    self.in_semantic_scope(function.node_id(), |this| {
+      this.in_function_scope(true, patterns.map(PatRef::Borrowed), |this| {
+        this.walk_function(function);
+      });
     });
     self.top_level_scope = was_top_level;
   }
@@ -2137,8 +2166,10 @@ impl JavascriptParser<'_> {
           .map(PatRef::Owned),
       );
 
-    self.in_function_scope(true, scope_params, |this| {
-      this.walk_function(expr);
+    self.in_semantic_scope(expr.node_id(), |this| {
+      this.in_function_scope(true, scope_params, |this| {
+        this.walk_function(expr);
+      });
     });
     self.top_level_scope = was_top_level;
   }
@@ -2255,79 +2286,85 @@ impl JavascriptParser<'_> {
     };
 
     let elements = classy.body(ast).body(ast);
-    self.in_class_scope(true, scope_param.into_iter(), |this| {
-      for class_element in elements.iter().map(|id| ast.get_node_in_sub_range(id)) {
-        if this
-          .plugin_drive
-          .clone()
-          .class_body_element(this, class_element, class_decl_or_expr)
-          .unwrap_or_default()
-        {
-          continue;
-        }
-
-        match this.ast.ast.class_element_data(class_element) {
-          ClassElementData::MethodDefinition(method) => {
-            let ast = this.ast.ast;
-            if method.computed(ast) {
-              this.walk_property_key(method.key(ast));
-            }
-            if this
-              .plugin_drive
-              .clone()
-              .class_body_value(this, class_element, method.span(ast), class_decl_or_expr)
-              .unwrap_or_default()
-            {
-              continue;
-            }
-            let was_top_level = this.top_level_scope;
-            this.top_level_scope = TopLevelScope::False;
-            let function = method.value(ast);
-            let patterns = Self::formal_parameter_patterns(ast, function.params(ast));
-            this.in_function_scope(true, patterns.map(PatRef::Borrowed), |this| {
-              this.walk_function(function)
-            });
-            this.top_level_scope = was_top_level;
+    self.in_semantic_scope(classy.node_id(), |this| {
+      this.in_class_scope(true, scope_param.into_iter(), |this| {
+        for class_element in elements.iter().map(|id| ast.get_node_in_sub_range(id)) {
+          if this
+            .plugin_drive
+            .clone()
+            .class_body_element(this, class_element, class_decl_or_expr)
+            .unwrap_or_default()
+          {
+            continue;
           }
-          ClassElementData::PropertyDefinition(property) => {
-            let ast = this.ast.ast;
-            if property.computed(ast) {
-              this.walk_property_key(property.key(ast));
-            }
-            if let Some(value) = property.value(ast)
-              && !this
+
+          match this.ast.ast.class_element_data(class_element) {
+            ClassElementData::MethodDefinition(method) => {
+              let ast = this.ast.ast;
+              if method.computed(ast) {
+                this.walk_property_key(method.key(ast));
+              }
+              if this
                 .plugin_drive
                 .clone()
-                .class_body_value(this, class_element, value.span(ast), class_decl_or_expr)
+                .class_body_value(this, class_element, method.span(ast), class_decl_or_expr)
                 .unwrap_or_default()
-            {
+              {
+                continue;
+              }
               let was_top_level = this.top_level_scope;
               this.top_level_scope = TopLevelScope::False;
-              this.walk_expression(value);
+              let function = method.value(ast);
+              let patterns = Self::formal_parameter_patterns(ast, function.params(ast));
+              this.in_semantic_scope(function.node_id(), |this| {
+                this.in_function_scope(true, patterns.map(PatRef::Borrowed), |this| {
+                  this.walk_function(function)
+                });
+              });
               this.top_level_scope = was_top_level;
             }
-          }
-          ClassElementData::StaticBlock(block) => {
-            let was_top_level = this.top_level_scope;
-            this.top_level_scope = TopLevelScope::False;
-            let ast = this.ast.ast;
-            let statements = block.body(ast);
-            this.in_block_scope(true, |this| {
-              let prev = this.prev_statement;
-              this.block_pre_walk_statements(statements);
-              this.prev_statement = prev;
-              this.walk_statements(statements);
-            });
-            this.top_level_scope = was_top_level;
-          }
-          ClassElementData::TsMethodDefinition(method) => {
-            if method.computed(this.ast.ast) {
-              this.walk_property_key(method.key(this.ast.ast));
+            ClassElementData::PropertyDefinition(property) => {
+              let ast = this.ast.ast;
+              if property.computed(ast) {
+                this.walk_property_key(property.key(ast));
+              }
+              if let Some(value) = property.value(ast)
+                && !this
+                  .plugin_drive
+                  .clone()
+                  .class_body_value(this, class_element, value.span(ast), class_decl_or_expr)
+                  .unwrap_or_default()
+              {
+                let was_top_level = this.top_level_scope;
+                this.top_level_scope = TopLevelScope::False;
+                this.walk_expression(value);
+                this.top_level_scope = was_top_level;
+              }
             }
-          }
-          ClassElementData::TsIndexSignature(_) => {}
-        };
-      }
+            ClassElementData::StaticBlock(block) => {
+              let was_top_level = this.top_level_scope;
+              this.top_level_scope = TopLevelScope::False;
+              let ast = this.ast.ast;
+              let statements = block.body(ast);
+              this.in_semantic_scope(block.node_id(), |this| {
+                this.in_block_scope(true, |this| {
+                  let prev = this.prev_statement;
+                  this.block_pre_walk_statements(statements);
+                  this.prev_statement = prev;
+                  this.walk_statements(statements);
+                });
+              });
+              this.top_level_scope = was_top_level;
+            }
+            ClassElementData::TsMethodDefinition(method) => {
+              if method.computed(this.ast.ast) {
+                this.walk_property_key(method.key(this.ast.ast));
+              }
+            }
+            ClassElementData::TsIndexSignature(_) => {}
+          };
+        }
+      });
     });
   }
 }
