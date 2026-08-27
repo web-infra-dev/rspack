@@ -8,12 +8,12 @@ use rspack_hash::HashFunction;
 
 use super::{
   Cache, CacheFacade, CacheValue,
-  snapshot::{FileSystemInfo, SnapshotValidationResult},
+  snapshot::{FileSystemInfo, Snapshot, SnapshotValidationResult},
 };
 use crate::{
   AsyncDependenciesBlock, BoxDependency, BoxModule, BuildInfo, BuildResult, CompilationLogger,
   CompilationLogging, Module, NormalModuleBuildState, OptimizationBailoutItem, ValueCacheVersions,
-  cache::{CacheCodec, Snapshot, SnapshotOptions, SnapshotStrategyOptions},
+  cache::{CacheCodec, SnapshotOptions, SnapshotStrategyOptions},
 };
 
 const MODULE_BUILD_CACHE_NAME: &str = "Compilation/modules";

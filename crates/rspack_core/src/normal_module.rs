@@ -177,7 +177,7 @@ impl NormalModuleBuildState {
       .need_build(&self.diagnostics, value_cache_versions)
   }
 
-  pub(crate) fn snapshot(&self) -> Option<&crate::cache::Snapshot> {
+  pub(crate) fn snapshot(&self) -> Option<&crate::new_cache::Snapshot> {
     self.build_info.snapshot.as_deref()
   }
 }

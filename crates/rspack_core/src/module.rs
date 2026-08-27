@@ -35,9 +35,9 @@ use crate::{
   ExportProvided, ExportsInfoArtifact, ExternalModule, Filename, GetTargetResult, ImportPhase,
   ModuleCodeTemplate, ModuleGraph, ModuleGraphCacheArtifact, ModuleLayer, ModuleType, NormalModule,
   OptimizationBailoutItem, RawModule, Resolve, ResolverFactory, RuntimeSpec, SelfModule,
-  SharedPluginDriver, SideEffectsStateArtifact, SourceType, cache::Snapshot,
+  SharedPluginDriver, SideEffectsStateArtifact, SourceType,
   concatenated_module::ConcatenatedModule, dependencies_block::dependencies_block_update_hash,
-  get_target, value_cache_versions::ValueCacheVersions,
+  get_target, new_cache::Snapshot, value_cache_versions::ValueCacheVersions,
 };
 
 pub struct BuildContext {

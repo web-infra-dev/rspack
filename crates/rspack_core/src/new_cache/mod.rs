@@ -27,6 +27,7 @@ pub use memory_cache::{MemoryCache, MemoryCacheGetResult};
 pub use meta::Meta;
 pub(crate) use module_build_cache::{ModuleBuildCache, ModuleCache, ModuleCacheFactory};
 use rspack_fs::ReadableFileSystem;
+pub(crate) use snapshot::Snapshot;
 
 use self::snapshot::FileSystemInfo;
 use crate::{CompilationLogger, CompilationLogging, CompilerOptions, cache::CacheCodec};
