@@ -92,8 +92,6 @@ Rspack 2.2 避免了 HMR 中不必要的 CSS 请求。此前，即使只修改�
 
 此外，[#14580](https://github.com/web-infra-dev/rspack/pull/14580) 修复了 `mini-css-extract-plugin` 热更新时样式短暂失效的问题，避免页面闪烁。
 
-<a id="compat-hashed-ids" />
-
 ### 更短的模块 ID \{#compact-hashed-ids}
 
 Rspack 现在支持为模块和 chunk 生成更短的 ID。相比当前的 `deterministic` 策略，新的 `compact-hashed` 策略会从稳定 hash 中选取最短可用前缀，在保持 ID 稳定和运行时索引效率的同时，进一步减小产物体积。
