@@ -77,10 +77,6 @@ export default {
 };
 ```
 
-`NodeTemplatePlugin` 会让子编译器生成 CommonJS chunk，并通过 `require`
-加载其中的异步 chunk。
+`NodeTemplatePlugin` 会让子编译器生成 CommonJS chunk，并通过 `require` 加载其中的异步 chunk。
 
-对于常规 Node.js 构建，请改用 `target: 'node'`。它会自动选择
-`'commonjs'` chunk format 和 `'require'` chunk loading。设置
-`output.chunkLoading: 'require'` 只会选择 chunk 加载实现，并不会应用
-`NodeTemplatePlugin`。
+对于常规 Node.js 构建，请改用 `target: 'node'`。它会自动选择 `'commonjs'` chunk format 和 `'require'` chunk loading。设置 `output.chunkLoading: 'require'` 只会选择 chunk 加载实现，并不会应用 `NodeTemplatePlugin`。

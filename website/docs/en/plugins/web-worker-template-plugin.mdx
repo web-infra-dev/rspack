@@ -14,8 +14,7 @@ new rspack.webworker.WebWorkerTemplatePlugin();
 
 ## Example
 
-The following worker loads `math.js` as an asynchronous chunk before processing
-a message:
+The following worker loads `math.js` as an asynchronous chunk before processing a message:
 
 ```js title="src/worker-child.js"
 self.onmessage = async ({ data }) => {
@@ -28,8 +27,7 @@ self.onmessage = async ({ data }) => {
 export const double = (value) => value * 2;
 ```
 
-This configuration creates a child compiler and applies
-`WebWorkerTemplatePlugin` directly to it:
+This configuration creates a child compiler and applies `WebWorkerTemplatePlugin` directly to it:
 
 ```js title="rspack.config.mjs"
 export default {
@@ -64,10 +62,6 @@ export default {
 };
 ```
 
-`WebWorkerTemplatePlugin` configures the child compiler to emit array-push
-chunks and load its asynchronous chunk with `importScripts`.
+`WebWorkerTemplatePlugin` configures the child compiler to emit array-push chunks and load its asynchronous chunk with `importScripts`.
 
-For a regular Web Worker build, use `target: 'webworker'` instead. It selects
-the `'array-push'` chunk format and `'import-scripts'` chunk loading
-automatically. Setting `output.chunkLoading: 'import-scripts'` selects the
-chunk-loading implementation, but it does not apply `WebWorkerTemplatePlugin`.
+For a regular Web Worker build, use `target: 'webworker'` instead. It selects the `'array-push'` chunk format and `'import-scripts'` chunk loading automatically. Setting `output.chunkLoading: 'import-scripts'` selects the chunk-loading implementation, but it does not apply `WebWorkerTemplatePlugin`.

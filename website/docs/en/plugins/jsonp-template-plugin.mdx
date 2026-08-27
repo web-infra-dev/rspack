@@ -27,8 +27,7 @@ document.querySelector('button').addEventListener('click', async () => {
 export const message = 'Hello from the child compiler';
 ```
 
-This configuration creates a child compiler and applies `JsonpTemplatePlugin`
-directly to it:
+This configuration creates a child compiler and applies `JsonpTemplatePlugin` directly to it:
 
 ```js title="rspack.config.mjs"
 export default {
@@ -63,10 +62,6 @@ export default {
 };
 ```
 
-`JsonpTemplatePlugin` configures the child compiler to emit array-push chunks and
-load the asynchronous chunk by adding a script to the page.
+`JsonpTemplatePlugin` configures the child compiler to emit array-push chunks and load the asynchronous chunk by adding a script to the page.
 
-For a regular web build, use `target: 'web'` instead. It selects the
-`'array-push'` chunk format and `'jsonp'` chunk loading automatically. Setting
-`output.chunkLoading: 'jsonp'` selects the chunk-loading implementation, but it
-does not apply `JsonpTemplatePlugin`.
+For a regular web build, use `target: 'web'` instead. It selects the `'array-push'` chunk format and `'jsonp'` chunk loading automatically. Setting `output.chunkLoading: 'jsonp'` selects the chunk-loading implementation, but it does not apply `JsonpTemplatePlugin`.

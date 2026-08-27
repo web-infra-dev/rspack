@@ -42,8 +42,7 @@ export function run() {
 }
 ```
 
-This configuration creates a child compiler and applies `NodeTemplatePlugin`
-directly to it:
+This configuration creates a child compiler and applies `NodeTemplatePlugin` directly to it:
 
 ```js title="rspack.config.mjs"
 export default {
@@ -78,10 +77,6 @@ export default {
 };
 ```
 
-`NodeTemplatePlugin` configures the child compiler to emit CommonJS chunks and
-load its asynchronous chunk with `require`.
+`NodeTemplatePlugin` configures the child compiler to emit CommonJS chunks and load its asynchronous chunk with `require`.
 
-For a regular Node.js build, use `target: 'node'` instead. It selects the
-`'commonjs'` chunk format and `'require'` chunk loading automatically. Setting
-`output.chunkLoading: 'require'` selects the chunk-loading implementation, but
-it does not apply `NodeTemplatePlugin`.
+For a regular Node.js build, use `target: 'node'` instead. It selects the `'commonjs'` chunk format and `'require'` chunk loading automatically. Setting `output.chunkLoading: 'require'` selects the chunk-loading implementation, but it does not apply `NodeTemplatePlugin`.

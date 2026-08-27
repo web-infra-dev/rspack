@@ -62,10 +62,6 @@ export default {
 };
 ```
 
-`JsonpTemplatePlugin` 会让子编译器生成 array-push chunk，并在需要加载异步
-chunk 时向页面添加 script。
+`JsonpTemplatePlugin` 会让子编译器生成 array-push chunk，并在需要加载异步 chunk 时向页面添加 script。
 
-对于常规 web 构建，请改用 `target: 'web'`。它会自动选择 `'array-push'`
-chunk format 和 `'jsonp'` chunk loading。设置
-`output.chunkLoading: 'jsonp'` 只会选择 chunk 加载实现，并不会应用
-`JsonpTemplatePlugin`。
+对于常规 web 构建，请改用 `target: 'web'`。它会自动选择 `'array-push'` chunk format 和 `'jsonp'` chunk loading。设置 `output.chunkLoading: 'jsonp'` 只会选择 chunk 加载实现，并不会应用 `JsonpTemplatePlugin`。
