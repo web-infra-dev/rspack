@@ -565,13 +565,13 @@ export declare enum BuiltinPluginName {
   NamedModuleIdsPlugin = 'NamedModuleIdsPlugin',
   NaturalModuleIdsPlugin = 'NaturalModuleIdsPlugin',
   DeterministicModuleIdsPlugin = 'DeterministicModuleIdsPlugin',
-  CompatHashedModuleIdsPlugin = 'CompatHashedModuleIdsPlugin',
+  CompactHashedModuleIdsPlugin = 'CompactHashedModuleIdsPlugin',
   SyncModuleIdsPlugin = 'SyncModuleIdsPlugin',
   HashedModuleIdsPlugin = 'HashedModuleIdsPlugin',
   NaturalChunkIdsPlugin = 'NaturalChunkIdsPlugin',
   NamedChunkIdsPlugin = 'NamedChunkIdsPlugin',
   DeterministicChunkIdsPlugin = 'DeterministicChunkIdsPlugin',
-  CompatHashedChunkIdsPlugin = 'CompatHashedChunkIdsPlugin',
+  CompactHashedChunkIdsPlugin = 'CompactHashedChunkIdsPlugin',
   OccurrenceChunkIdsPlugin = 'OccurrenceChunkIdsPlugin',
   RealContentHashPlugin = 'RealContentHashPlugin',
   RemoveEmptyChunksPlugin = 'RemoveEmptyChunksPlugin',
@@ -1981,11 +1981,11 @@ export interface RawCollectShareEntryPluginOptions {
   filename?: string
 }
 
-export interface RawCompatHashedChunkIdsPluginOptions {
+export interface RawCompactHashedChunkIdsPluginOptions {
   minLength?: number
 }
 
-export interface RawCompatHashedModuleIdsPluginOptions {
+export interface RawCompactHashedModuleIdsPluginOptions {
   minLength?: number
 }
 

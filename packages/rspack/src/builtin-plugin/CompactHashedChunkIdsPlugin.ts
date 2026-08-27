@@ -1,15 +1,15 @@
 import { type BuiltinPlugin, BuiltinPluginName } from '@rspack/binding';
 import { createBuiltinPlugin, RspackBuiltinPlugin } from './base';
 
-export interface CompatHashedModuleIdsPluginOptions {
+export interface CompactHashedChunkIdsPluginOptions {
   minLength?: number;
 }
 
-export class CompatHashedModuleIdsPlugin extends RspackBuiltinPlugin {
-  name = BuiltinPluginName.CompatHashedModuleIdsPlugin;
+export class CompactHashedChunkIdsPlugin extends RspackBuiltinPlugin {
+  name = BuiltinPluginName.CompactHashedChunkIdsPlugin;
   affectedHooks = 'compilation' as const;
 
-  constructor(private options: CompatHashedModuleIdsPluginOptions = {}) {
+  constructor(private options: CompactHashedChunkIdsPluginOptions = {}) {
     super();
   }
 

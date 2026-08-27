@@ -1,9 +1,18 @@
 const rspack = require('@rspack/core');
 
+if (
+  rspack.ids.CompatHashedChunkIdsPlugin !==
+  rspack.ids.CompactHashedChunkIdsPlugin
+) {
+  throw new Error(
+    'CompatHashedChunkIdsPlugin must alias CompactHashedChunkIdsPlugin',
+  );
+}
+
 const checkChunkIds =
   (minLength, expectExtended = false) =>
   (compiler) => {
-    compiler.hooks.done.tap('CheckCompatHashedChunkIds', (stats) => {
+    compiler.hooks.done.tap('CheckCompactHashedChunkIds', (stats) => {
       const ids = stats
         .toJson({
           all: false,
@@ -28,7 +37,7 @@ const checkChunkIds =
 module.exports = [
   {
     optimization: {
-      chunkIds: 'compat-hashed',
+      chunkIds: 'compact-hashed',
     },
     plugins: [checkChunkIds(1)],
   },
@@ -38,8 +47,14 @@ module.exports = [
       chunkIds: false,
     },
     plugins: [
-      new rspack.ids.CompatHashedChunkIdsPlugin({ minLength: 1 }),
+      new rspack.ids.CompactHashedChunkIdsPlugin({ minLength: 1 }),
       checkChunkIds(1, true),
     ],
+  },
+  {
+    optimization: {
+      chunkIds: 'compat-hashed',
+    },
+    plugins: [checkChunkIds(1)],
   },
 ];

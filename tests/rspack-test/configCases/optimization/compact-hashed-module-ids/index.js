@@ -1,4 +1,4 @@
-it("should assign identifier-safe module ids with compat-hashed", () => {
+it("should assign identifier-safe module ids with compact-hashed", () => {
 	const ids = [require("./a"), require("./b"), require("./c")];
 
 	expect(new Set(ids).size).toBe(ids.length);
