@@ -27,7 +27,7 @@ use crate::{
   incremental::{Incremental, IncrementalPasses},
   legacy_cache::{Cache as LegacyCache, create_cache as create_legacy_cache},
   logger::Logger,
-  new_cache::{Cache, CacheFacade, create_cache},
+  new_cache::{Cache, CacheFacade, Meta, create_cache},
   trim_dir,
 };
 
