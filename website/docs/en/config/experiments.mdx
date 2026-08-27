@@ -3,11 +3,9 @@ description: 'In minor releases, Rspack may change the APIs of experimental feat
 ---
 
 import { ApiMeta, Stability } from '../../../components/ApiMeta';
-import WebpackLicense from '@components/WebpackLicense';
+import Attribution from '@components/Attribution';
 import PropertyType from '@components/PropertyType';
 import { Tabs, Tab } from '@theme';
-
-<WebpackLicense from="https://webpack.js.org/configuration/experiments/" />
 
 # Experiments
 
@@ -416,3 +414,5 @@ export default {
 
 When access to `virtual-entry.js` and `src/another-virtual.js` which match the regular expressions of `experiments.useInputFileSystem`,
 Rspack will use the input file system wrapped by `VirtualModulesPlugin`; other than that, `src/disk-file.js` will be accessed by the native file system.
+
+<Attribution url="https://webpack.js.org/configuration/experiments/" />

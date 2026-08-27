@@ -2,9 +2,7 @@
 description: 'Configure the runtime environment and ECMAScript compatibility of Rspack output.'
 ---
 
-import WebpackLicense from '@components/WebpackLicense';
-
-<WebpackLicense from="https://webpack.js.org/configuration/target/" />
+import Attribution from '@components/Attribution';
 
 # Target
 
@@ -223,3 +221,5 @@ A configuration containing only `target: false` will fail because Rspack cannot 
 - [`externalsPresets`](/config/externals#externalspresets) controls which platform built-ins are treated as external.
 - [`resolve.conditionNames`](/config/resolve#resolveconditionnames) controls which conditions in the `exports` field of `package.json` are used during resolution.
 - Plugin authors can read the resolved target from [`compiler.target`](/api/javascript-api/compiler#target).
+
+<Attribution url="https://webpack.js.org/configuration/target/" />

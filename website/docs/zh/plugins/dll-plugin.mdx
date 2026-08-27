@@ -3,9 +3,7 @@ description: 'Dll 插件用于在一个单独的 rspack 配置中生成一个 dl
 ---
 
 import { Table } from '@builtIns';
-import WebpackLicense from '@components/WebpackLicense';
-
-<WebpackLicense from="https://webpack.docschina.org/plugins/dll-plugin/" />
+import Attribution from '@components/Attribution';
 
 # DllPlugin
 
@@ -100,3 +98,5 @@ manifest 文件包含了从 `require` 和 `import` 请求到模块id的映射。
 `manifest.json` 将会被 [DllReferencePlugin](/plugins/dll-reference-plugin) 消费，通过"动态链接库"的方式将依赖链接起来。
 
 此插件与 `output.library` 的选项相结合可以暴露出dll 函数。
+
+<Attribution url="https://webpack.docschina.org/plugins/dll-plugin/" />

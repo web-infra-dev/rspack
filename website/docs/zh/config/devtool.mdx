@@ -2,9 +2,7 @@
 description: '了解如何为开发和生产环境配置 source map，以及每个 devtool 修饰符的作用。'
 ---
 
-import WebpackLicense from '@components/WebpackLicense';
-
-<WebpackLicense from="https://webpack.js.org/configuration/devtool/" />
+import Attribution from '@components/Attribution';
 
 # Devtool
 
@@ -148,3 +146,5 @@ Rspack 会校验修饰符的顺序，格式必须为 `[inline-|hidden-|eval-][no
 ## 精细控制
 
 如需更细粒度地控制 source map 的生成方式，将 `devtool` 设为 `false`，并改用 [SourceMapDevToolPlugin](/plugins/source-map-dev-tool-plugin)；对于基于 `eval` 的 source map，改用 [EvalSourceMapDevToolPlugin](/plugins/eval-source-map-dev-tool-plugin)。
+
+<Attribution url="https://webpack.js.org/configuration/devtool/" />

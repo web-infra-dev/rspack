@@ -3,9 +3,7 @@ description: 'The DllPlugin is used in a separate rspack configuration exclusive
 ---
 
 import { Table } from '@builtIns';
-import WebpackLicense from '@components/WebpackLicense';
-
-<WebpackLicense from="https://webpack.js.org/plugins/dll-plugin/" />
+import Attribution from '@components/Attribution';
 
 # DllPlugin
 
@@ -100,3 +98,5 @@ It contains mappings from require and import requests to module ids.
 The `manifest.json` is used by the [DllReferencePlugin](/plugins/dll-reference-plugin)
 
 Combine this plugin with `output.library` options to expose the dll function.
+
+<Attribution url="https://webpack.js.org/plugins/dll-plugin/" />

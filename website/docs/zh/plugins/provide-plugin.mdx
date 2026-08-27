@@ -2,9 +2,7 @@
 description: '每当在模块中遇到 identifier 作为自由变量时，相应的模块会自动加载，且 identifier 会被填充为已加载模块的输出（或者是属性，以支持具名导出）。'
 ---
 
-import WebpackLicense from '@components/WebpackLicense';
-
-<WebpackLicense from="https://webpack.docschina.org/plugins/provide-plugin/" />
+import Attribution from '@components/Attribution';
 
 # ProvidePlugin
 
@@ -110,3 +108,5 @@ new rspack.ProvidePlugin({
   Vue: ['vue/dist/vue.esm.js', 'default'],
 });
 ```
+
+<Attribution url="https://webpack.docschina.org/plugins/provide-plugin/" />
