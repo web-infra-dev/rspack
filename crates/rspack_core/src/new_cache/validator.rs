@@ -6,7 +6,7 @@ use rspack_paths::{InternedPath, InternedPathSet};
 
 use super::snapshot::{FileSystemInfo, Snapshot};
 use crate::{
-  CompilationLogger, Logger,
+  InfrastructureLogger, Logger,
   cache::CacheCodec,
   new_cache::{db::DatabaseValue, snapshot::SnapshotValidationResult},
 };
@@ -50,7 +50,7 @@ pub(super) struct CacheValidator {
   data: CacheValidatorData,
   codec: Arc<CacheCodec>,
   file_system_info: FileSystemInfo,
-  logger: Arc<CompilationLogger>,
+  logger: Arc<InfrastructureLogger>,
 }
 
 impl CacheValidator {
@@ -59,7 +59,7 @@ impl CacheValidator {
     cache_version: String,
     codec: Arc<CacheCodec>,
     file_system_info: FileSystemInfo,
-    logger: Arc<CompilationLogger>,
+    logger: Arc<InfrastructureLogger>,
   ) -> Self {
     Self {
       data: CacheValidatorData::new(rspack_pkg_version, cache_version),

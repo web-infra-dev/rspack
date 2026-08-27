@@ -469,6 +469,7 @@ impl CompilerBuilder {
       None,
       None,
       compiler_context,
+      None,
       Arc::new(platform),
     ))
   }

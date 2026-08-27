@@ -5,7 +5,7 @@ use rspack_paths::Utf8PathBuf;
 use rustc_hash::FxHashMap;
 
 use super::DatabaseFamily;
-use crate::CompilationLogger;
+use crate::InfrastructureLogger;
 
 pub type DatabaseValue = Arc<[u8]>;
 
@@ -27,7 +27,7 @@ impl DatabaseBatch {
 #[derive(Debug)]
 pub struct Database {
   families: [FxHashMap<Vec<u8>, DatabaseValue>; DatabaseFamily::COUNT],
-  _logger: Arc<CompilationLogger>,
+  _logger: Arc<InfrastructureLogger>,
 }
 
 impl Database {
@@ -35,7 +35,7 @@ impl Database {
     _base_path: Utf8PathBuf,
     _path: Utf8PathBuf,
     _readonly: bool,
-    logger: Arc<CompilationLogger>,
+    logger: Arc<InfrastructureLogger>,
   ) -> Result<Self> {
     Ok(Self {
       families: Default::default(),

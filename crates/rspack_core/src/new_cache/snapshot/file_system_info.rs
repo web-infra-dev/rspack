@@ -13,7 +13,7 @@ use super::{
   TimestampAndHash,
 };
 use crate::{
-  CompilationLogger,
+  InfrastructureLogger,
   cache::{BuildDependencyHelper, SnapshotOptions, SnapshotStrategyOptions, is_node_package_path},
 };
 
@@ -82,7 +82,7 @@ struct ContextValue {
 #[derive(Clone)]
 pub struct FileSystemInfo {
   fs: Arc<dyn ReadableFileSystem>,
-  logger: CompilationLogger,
+  logger: InfrastructureLogger,
   options: Arc<SnapshotOptions>,
   hash_function: HashFunction,
   file_timestamps: Arc<InternedPathDashMap<Option<FileSystemInfoEntry>>>,
@@ -105,7 +105,7 @@ impl fmt::Debug for FileSystemInfo {
 impl FileSystemInfo {
   pub fn new(
     fs: Arc<dyn ReadableFileSystem>,
-    logger: CompilationLogger,
+    logger: InfrastructureLogger,
     options: SnapshotOptions,
     hash_function: HashFunction,
   ) -> Self {

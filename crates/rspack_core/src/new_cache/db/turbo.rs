@@ -12,7 +12,7 @@ use turbo_persistence::{
   WriteBatch,
 };
 
-use crate::{CompilationLogger, Logger, new_cache::db::DatabaseFamily};
+use crate::{InfrastructureLogger, Logger, new_cache::db::DatabaseFamily};
 
 const STALE_DIRECTORY: &str = "_stale";
 const MB: u64 = 1024 * 1024;
@@ -178,7 +178,7 @@ pub struct Database {
   base_path: Utf8PathBuf,
   path: Utf8PathBuf,
   readonly: bool,
-  logger: Arc<CompilationLogger>,
+  logger: Arc<InfrastructureLogger>,
 }
 
 impl fmt::Debug for Database {
@@ -196,7 +196,7 @@ impl Database {
     base_path: Utf8PathBuf,
     path: Utf8PathBuf,
     readonly: bool,
-    logger: Arc<CompilationLogger>,
+    logger: Arc<InfrastructureLogger>,
   ) -> Result<Self> {
     let inner = open_database(&path, readonly)?;
     Ok(Self {

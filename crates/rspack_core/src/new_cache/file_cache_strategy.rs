@@ -12,7 +12,7 @@ use super::{
   snapshot::FileSystemInfo,
   validator::{CacheValidator, CacheValidatorResult},
 };
-use crate::{CompilationLogger, Logger, cache::CacheCodec};
+use crate::{InfrastructureLogger, Logger, cache::CacheCodec};
 
 const VALIDATOR_KEY: &[u8] = b"validator";
 const META_KEY: &[u8] = b"meta";
@@ -37,7 +37,7 @@ pub struct FileCacheStrategy {
   database: Database,
   pending_writes: PendingWrites,
   readonly: bool,
-  logger: Arc<CompilationLogger>,
+  logger: Arc<InfrastructureLogger>,
 }
 
 impl fmt::Debug for FileCacheStrategy {
@@ -58,7 +58,7 @@ impl FileCacheStrategy {
     cache_version: String,
     codec: Arc<CacheCodec>,
     file_system_info: FileSystemInfo,
-    logger: Arc<CompilationLogger>,
+    logger: Arc<InfrastructureLogger>,
   ) -> Result<Self> {
     let (base_path, database_path) = database_paths;
     let start = logger.time("open cache database");

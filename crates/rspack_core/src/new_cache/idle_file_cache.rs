@@ -19,7 +19,7 @@ use super::{
   CacheKey, CacheValue, Etag, FileCacheStrategy, Meta,
   cache_value::{CacheValueData, CacheValueDecoder, CacheValueEncoder, ErasedCacheValue},
 };
-use crate::{CompilationLogger, Logger};
+use crate::{InfrastructureLogger, Logger};
 
 const DEFAULT_IDLE_TIMEOUT: Duration = Duration::from_secs(60);
 const DEFAULT_IDLE_TIMEOUT_FOR_INITIAL_STORE: Duration = Duration::from_secs(5);
@@ -61,7 +61,7 @@ struct IdleDeadline {
 
 struct BackgroundJob {
   strategy: FileCacheStrategy,
-  logger: Arc<CompilationLogger>,
+  logger: Arc<InfrastructureLogger>,
   command_receiver: mpsc::UnboundedReceiver<Command>,
   // A deadline remains valid only while this still matches its captured epoch.
   idle_epoch: Arc<AtomicU64>,
@@ -218,7 +218,7 @@ pub struct IdleFileCache {
 impl IdleFileCache {
   pub fn new(
     strategy: FileCacheStrategy,
-    logger: Arc<CompilationLogger>,
+    logger: Arc<InfrastructureLogger>,
     idle_timeout: Option<Duration>,
     idle_timeout_for_initial_store: Option<Duration>,
     idle_timeout_after_large_changes: Option<Duration>,

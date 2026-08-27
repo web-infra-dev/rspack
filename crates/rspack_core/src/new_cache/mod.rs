@@ -27,13 +27,15 @@ pub use meta::Meta;
 use rspack_fs::ReadableFileSystem;
 
 use self::snapshot::FileSystemInfo;
-use crate::{CompilationLogger, CompilationLogging, CompilerOptions, Logger, cache::CacheCodec};
+use crate::{
+  CompilerOptions, InfrastructureLogSink, InfrastructureLogger, Logger, cache::CacheCodec,
+};
 
 pub fn create_cache(
   compiler_path: String,
   compiler_options: Arc<CompilerOptions>,
   input_filesystem: Arc<dyn ReadableFileSystem>,
-  compilation_logging: CompilationLogging,
+  infrastructure_log_sink: Arc<dyn InfrastructureLogSink>,
 ) -> Cache {
   if !compiler_options.experiments.new_cache.is_enabled() {
     return Cache::new_disabled(compiler_path);
@@ -55,9 +57,9 @@ pub fn create_cache(
     None
   };
   let codec = Arc::new(CacheCodec::new(project_root));
-  let logger = Arc::new(CompilationLogger::new(
+  let logger = Arc::new(InfrastructureLogger::new(
     "rspack.cache.IdleFileCache",
-    compilation_logging,
+    infrastructure_log_sink,
   ));
   let file_system_info = FileSystemInfo::new(
     input_filesystem.clone(),
