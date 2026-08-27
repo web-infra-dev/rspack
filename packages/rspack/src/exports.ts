@@ -190,8 +190,6 @@ export const electron: Electron = { ElectronTargetPlugin };
 import {
   CompactHashedChunkIdsPlugin,
   CompactHashedModuleIdsPlugin,
-  CompatHashedChunkIdsPlugin,
-  CompatHashedModuleIdsPlugin,
   DeterministicModuleIdsPlugin,
   HashedModuleIdsPlugin,
   SyncModuleIdsPlugin,
@@ -201,9 +199,9 @@ interface Ids {
   CompactHashedChunkIdsPlugin: typeof CompactHashedChunkIdsPlugin;
   CompactHashedModuleIdsPlugin: typeof CompactHashedModuleIdsPlugin;
   /** @deprecated Use `CompactHashedChunkIdsPlugin` instead. */
-  CompatHashedChunkIdsPlugin: typeof CompatHashedChunkIdsPlugin;
+  CompatHashedChunkIdsPlugin: typeof CompactHashedChunkIdsPlugin;
   /** @deprecated Use `CompactHashedModuleIdsPlugin` instead. */
-  CompatHashedModuleIdsPlugin: typeof CompatHashedModuleIdsPlugin;
+  CompatHashedModuleIdsPlugin: typeof CompactHashedModuleIdsPlugin;
   DeterministicModuleIdsPlugin: typeof DeterministicModuleIdsPlugin;
   HashedModuleIdsPlugin: typeof HashedModuleIdsPlugin;
 }
@@ -211,8 +209,8 @@ interface Ids {
 export const ids: Ids = {
   CompactHashedChunkIdsPlugin,
   CompactHashedModuleIdsPlugin,
-  CompatHashedChunkIdsPlugin,
-  CompatHashedModuleIdsPlugin,
+  CompatHashedChunkIdsPlugin: CompactHashedChunkIdsPlugin,
+  CompatHashedModuleIdsPlugin: CompactHashedModuleIdsPlugin,
   DeterministicModuleIdsPlugin,
   HashedModuleIdsPlugin,
 };

@@ -3471,7 +3471,7 @@ impl OptimizationOptionsBuilder {
           .plugins
           .push(BuiltinPluginOptions::DeterministicModuleIdsPlugin);
       }
-      "compact-hashed" | "compat-hashed" => {
+      "compact-hashed" => {
         builder_context
           .plugins
           .push(BuiltinPluginOptions::CompactHashedModuleIdsPlugin);
@@ -3519,7 +3519,7 @@ impl OptimizationOptionsBuilder {
           .plugins
           .push(BuiltinPluginOptions::DeterministicChunkIdsPlugin);
       }
-      "compact-hashed" | "compat-hashed" => {
+      "compact-hashed" => {
         builder_context
           .plugins
           .push(BuiltinPluginOptions::CompactHashedChunkIdsPlugin);

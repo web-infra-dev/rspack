@@ -111,9 +111,3 @@ impl Plugin for CompactHashedModuleIdsPlugin {
     Ok(())
   }
 }
-
-#[deprecated(note = "Use `CompactHashedModuleIdsPluginOptions` instead.")]
-pub type CompatHashedModuleIdsPluginOptions = CompactHashedModuleIdsPluginOptions;
-
-#[deprecated(note = "Use `CompactHashedModuleIdsPlugin` instead.")]
-pub type CompatHashedModuleIdsPlugin = CompactHashedModuleIdsPlugin;

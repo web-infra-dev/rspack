@@ -137,9 +137,3 @@ impl Plugin for CompactHashedChunkIdsPlugin {
     Ok(())
   }
 }
-
-#[deprecated(note = "Use `CompactHashedChunkIdsPluginOptions` instead.")]
-pub type CompatHashedChunkIdsPluginOptions = CompactHashedChunkIdsPluginOptions;
-
-#[deprecated(note = "Use `CompactHashedChunkIdsPlugin` instead.")]
-pub type CompatHashedChunkIdsPlugin = CompactHashedChunkIdsPlugin;

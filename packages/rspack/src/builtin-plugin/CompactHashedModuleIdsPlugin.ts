@@ -17,13 +17,3 @@ export class CompactHashedModuleIdsPlugin extends RspackBuiltinPlugin {
     return createBuiltinPlugin(this.name, { ...this.options });
   }
 }
-
-/** @deprecated Use `CompactHashedModuleIdsPluginOptions` instead. */
-export type CompatHashedModuleIdsPluginOptions =
-  CompactHashedModuleIdsPluginOptions;
-
-/** @deprecated Use `CompactHashedModuleIdsPlugin` instead. */
-export const CompatHashedModuleIdsPlugin = CompactHashedModuleIdsPlugin;
-
-/** @deprecated Use `CompactHashedModuleIdsPlugin` instead. */
-export type CompatHashedModuleIdsPlugin = CompactHashedModuleIdsPlugin;

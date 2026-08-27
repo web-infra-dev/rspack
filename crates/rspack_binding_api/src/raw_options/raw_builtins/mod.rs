@@ -199,18 +199,12 @@ pub enum BuiltinPluginName {
   NaturalModuleIdsPlugin,
   DeterministicModuleIdsPlugin,
   CompactHashedModuleIdsPlugin,
-  /// @deprecated Use `CompactHashedModuleIdsPlugin` instead.
-  #[deprecated(note = "Use `CompactHashedModuleIdsPlugin` instead.")]
-  CompatHashedModuleIdsPlugin,
   SyncModuleIdsPlugin,
   HashedModuleIdsPlugin,
   NaturalChunkIdsPlugin,
   NamedChunkIdsPlugin,
   DeterministicChunkIdsPlugin,
   CompactHashedChunkIdsPlugin,
-  /// @deprecated Use `CompactHashedChunkIdsPlugin` instead.
-  #[deprecated(note = "Use `CompactHashedChunkIdsPlugin` instead.")]
-  CompatHashedChunkIdsPlugin,
   OccurrenceChunkIdsPlugin,
   RealContentHashPlugin,
   RemoveEmptyChunksPlugin,
@@ -601,9 +595,7 @@ impl<'a> BuiltinPlugin<'a> {
         )
         .boxed(),
       ),
-      #[allow(deprecated)]
-      BuiltinPluginName::CompactHashedModuleIdsPlugin
-      | BuiltinPluginName::CompatHashedModuleIdsPlugin => plugins.push(
+      BuiltinPluginName::CompactHashedModuleIdsPlugin => plugins.push(
         CompactHashedModuleIdsPlugin::new(
           downcast_into::<RawCompactHashedModuleIdsPluginOptions>(self.options)
             .map_err(|report| napi::Error::from_reason(report.to_string()))?
@@ -636,9 +628,7 @@ impl<'a> BuiltinPlugin<'a> {
       BuiltinPluginName::DeterministicChunkIdsPlugin => {
         plugins.push(DeterministicChunkIdsPlugin::default().boxed())
       }
-      #[allow(deprecated)]
-      BuiltinPluginName::CompactHashedChunkIdsPlugin
-      | BuiltinPluginName::CompatHashedChunkIdsPlugin => plugins.push(
+      BuiltinPluginName::CompactHashedChunkIdsPlugin => plugins.push(
         CompactHashedChunkIdsPlugin::new(
           downcast_into::<RawCompactHashedChunkIdsPluginOptions>(self.options)
             .map_err(|report| napi::Error::from_reason(report.to_string()))?
