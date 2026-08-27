@@ -1,0 +1,78 @@
+---
+description: '这个插件可以更细致地控制源映射文件（source map）的生成。在特定的 devtool 配置选项设置下，它也会被自动启用。'
+---
+
+import Attribution from '@components/Attribution';
+
+# EvalSourceMapDevToolPlugin
+
+这个插件可以更细致地控制源映射文件（source map）的生成。在特定的 [`devtool`](/config/devtool) 配置选项设置下，它也会被自动启用。
+
+```js
+new webpack.EvalSourceMapDevToolPlugin(options);
+```
+
+## 选项
+
+### test
+
+- **类型：** `string` `RegExp` `[string, RegExp]`
+
+根据模块扩展名，匹配的生成 source map（默认是 `.js`、`.mjs` 和 `.css`）。
+
+### include
+
+- **类型：** `string` `RegExp` `[string, RegExp]`
+
+使路径与该值匹配的模块生成 source map。
+
+### exclude
+
+- **类型：** `string` `RegExp` `[string, RegExp]`
+
+使匹配该值的模块不生成 source map。
+
+### append
+
+- **类型：** `string | function`
+
+将给定值附加到原始资源。通常是 `#sourceMappingURL` 注释。`[url]` 会被替换成指向源映射文件的 URL。设置为 `false` 将禁止附加。
+
+### module
+
+- **类型：** `boolean`
+
+指示 loader 是否应生成 source map（默认为 `true`）。
+
+### columns
+
+- **类型：** `boolean`
+
+指示是否应该使用列映射（默认为 `true`）。
+
+## 示例
+
+### 基本使用
+
+你可以使用以下代码来替换配置选项 `devtool: eval-source-map`，使用等效的自定义插件配置：
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  devtool: false,
+  plugins: [new rspack.EvalSourceMapDevToolPlugin({})],
+};
+```
+
+### 排除 Vendor maps
+
+以下代码将排除 `vendor.js` 打包文件中的任何模块的 source map：
+
+```js
+new rspack.EvalSourceMapDevToolPlugin({
+  exclude: ['vendor.js'],
+});
+```
+
+<Attribution url="https://webpack.docschina.org/plugins/eval-source-map-dev-tool-plugin/" />

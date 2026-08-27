@@ -24,7 +24,8 @@ import {
   ChunkPrefetchPreloadPlugin,
   CircularModulesInfoPlugin,
   CommonJsChunkFormatPlugin,
-  CompatHashedModuleIdsPlugin,
+  CompactHashedChunkIdsPlugin,
+  CompactHashedModuleIdsPlugin,
   CssHttpExternalsRspackPlugin,
   CssModulesPlugin,
   DataUriPlugin,
@@ -355,8 +356,9 @@ export class RspackOptionsApply {
           new DeterministicModuleIdsPlugin().apply(compiler);
           break;
         }
+        case 'compact-hashed':
         case 'compat-hashed': {
-          new CompatHashedModuleIdsPlugin().apply(compiler);
+          new CompactHashedModuleIdsPlugin().apply(compiler);
           break;
         }
         case 'hashed': {
@@ -380,6 +382,11 @@ export class RspackOptionsApply {
         }
         case 'deterministic': {
           new DeterministicChunkIdsPlugin().apply(compiler);
+          break;
+        }
+        case 'compact-hashed':
+        case 'compat-hashed': {
+          new CompactHashedChunkIdsPlugin().apply(compiler);
           break;
         }
         case 'size': {

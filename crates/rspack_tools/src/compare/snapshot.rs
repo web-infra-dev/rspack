@@ -1,5 +1,5 @@
 use rspack_cacheable::from_bytes;
-use rspack_core::cache::persistent::{
+use rspack_core::legacy_cache::persistent::{
   snapshot::{SnapshotScope, Strategy},
   storage::Storage,
 };

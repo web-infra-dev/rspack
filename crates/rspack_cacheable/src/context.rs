@@ -11,6 +11,10 @@ const CONTEXT_ADDR: usize = 0;
 unsafe fn default_drop(_: ErasedPtr) {}
 
 pub trait CacheableContext: Any {
+  /// Returns the project root used for portable path conversion.
+  ///
+  /// `Some` enables portable conversion relative to this root, while `None` keeps paths in their
+  /// native representation.
   fn project_root(&self) -> Option<&Path>;
 }
 

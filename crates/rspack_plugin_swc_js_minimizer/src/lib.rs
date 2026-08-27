@@ -12,10 +12,9 @@ use regex::Regex;
 use rspack_core::{
   AssetInfo, CacheOptions, CacheValue, ChunkUkey, Compilation, CompilationAsset, CompilationParams,
   CompilationProcessAssets, CompilerCompilation, Etag, Logger, Plugin,
-  cache::persistent::occasion::minimize::{
-    CachedExtractedComments, CachedMinimizeEntry, MinimizeCacheKey,
-  },
+  cache::{CachedExtractedComments, CachedMinimizeEntry},
   diagnostics::MinifyError,
+  legacy_cache::persistent::occasion::minimize::MinimizeCacheKey,
   rspack_sources::{
     BoxSource, ConcatSource, MapOptions, ObjectPool, RawStringSource, Source, SourceExt,
     SourceMapSource, SourceMapSourceOptions,

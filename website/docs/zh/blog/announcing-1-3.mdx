@@ -9,7 +9,7 @@ authors:
     x: 'https://x.com/rspack_dev'
 ---
 
-import { BlogAuthors } from '@rstack-dev/doc-ui/blog-authors';
+import { BlogAuthors } from '@rstackjs/doc-ui/blog-authors';
 
 # Rspack 1.3 发布公告
 
@@ -51,7 +51,7 @@ Rspack 1.3 已经正式发布！
 
 ### 循环引用检测
 
-Rspack 1.3 新增了一个内置插件 [CircularDependencyRspackPlugin](/plugins/rspack/circular-dependency-rspack-plugin)，用于检测运行时模块之间的循环依赖。
+Rspack 1.3 新增了一个内置插件 [CircularDependencyRspackPlugin](/plugins/circular-dependency-rspack-plugin)，用于检测运行时模块之间的循环依赖。
 
 该插件采用 Rust 实现，并与 Rspack 的模块图深度集成，避免了昂贵的数据复制和序列化开销。它通过对每个入口点的模块图执行单次遍历，来检测所有循环依赖，而非独立检查每个模块，因此性能开销更小。
 

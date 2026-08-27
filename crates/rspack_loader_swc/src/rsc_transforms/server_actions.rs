@@ -1560,7 +1560,7 @@ impl<'a, C: Comments> VisitMut for ServerActions<'a, C> {
       }
     }
 
-    if in_action_file && !self.config.is_react_server_layer {
+    if in_action_file {
       self.reference_ids_by_export_name.extend(
         self
           .server_reference_exports

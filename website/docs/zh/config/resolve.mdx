@@ -2,9 +2,7 @@
 description: "当你使用 resolve.alias 将包名导入（例如 import 'lib'）重定向到 monorepo 或 nodemodules 中的具体目录时，模块的解析方式会发生变化："
 ---
 
-import WebpackLicense from '@components/WebpackLicense';
-
-<WebpackLicense from="https://webpack.js.org/configuration/resolve/" />
+import Attribution from '@components/Attribution';
 
 # Resolve
 
@@ -732,3 +730,5 @@ export default {
 可以通过文件路径用于手动配置，或者使用 `auto` 用于自动读取 `tsconfig.references` 中的文件路径。
 
 使用 `undefined` 将会关闭该功能。
+
+<Attribution url="https://webpack.js.org/configuration/resolve/" />

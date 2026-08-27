@@ -2,7 +2,7 @@
 
 use std::sync::atomic::AtomicU8;
 
-use rspack_paths::ArcPath;
+use rspack_paths::InternedPath;
 use rspack_watcher::{FsWatcher, FsWatcherOptions};
 
 mod helpers;
@@ -15,7 +15,7 @@ macro_rules! e {
 
 macro_rules! f {
   ($($file:expr),*) => {
-    (vec![$(ArcPath::from($file)),*].into_iter(), std::iter::empty())
+    (vec![$(InternedPath::from($file)),*].into_iter(), std::iter::empty())
   };
 }
 

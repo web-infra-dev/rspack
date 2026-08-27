@@ -153,7 +153,7 @@ Alternatively, you can configure a global default using [output.hashDigestLength
 
 During local development, avoid using hash-based filenames.
 
-Entry chunks and chunks produced by [optimization.splitChunks](/plugins/webpack/split-chunks-plugin) are loaded via `<script>` tags in HTML. If filenames contain hashes, the HTML file cannot update dynamically, which breaks HMR.
+Entry chunks and chunks produced by [optimization.splitChunks](/plugins/split-chunks-plugin) are loaded via `<script>` tags in HTML. If filenames contain hashes, the HTML file cannot update dynamically, which breaks HMR.
 
 :::
 

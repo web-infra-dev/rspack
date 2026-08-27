@@ -378,7 +378,11 @@ impl DestructuringAssignmentProperties {
     for prop in &self.inner {
       stack.push(prop);
       on_enter_node(stack);
-      if let Some(pattern) = &prop.pattern {
+      // Empty nested patterns still access and coerce their parent value, so
+      // the parent property is a referenced leaf in that case.
+      if let Some(pattern) = &prop.pattern
+        && !pattern.inner.is_empty()
+      {
         pattern.traverse_impl(on_leaf_node, on_enter_node, stack);
       } else {
         on_leaf_node(stack);

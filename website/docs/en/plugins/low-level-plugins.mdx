@@ -1,0 +1,466 @@
+---
+description: 'Publicly exposed low-level Rspack plugins for target presets, runtime templates, child compilers, and higher-level plugins.'
+---
+
+import Attribution from '@components/Attribution';
+import { ApiMeta, Stability } from '@components/ApiMeta';
+
+# Low-level plugins
+
+These plugins are publicly exposed low-level building blocks that Rspack primarily uses to implement target presets, runtime templates, child compilers, and higher-level plugins.
+
+:::tip Usage guidance
+For most application builds, prefer the corresponding high-level configuration. Direct use is mainly intended for custom compilers, child compilers, and advanced integrations.
+:::
+
+Categories of low-level plugins:
+
+- [environment](#environment)
+- [entry](#entry)
+- [output](#output)
+- [loader](#loader)
+- [module federation](#module-federation)
+- [experiments](#experiments)
+
+## environment
+
+Plugins affecting the compiler environment and runtime target.
+
+### ElectronTargetPlugin \{#electron-target-plugin}
+
+`electron.ElectronTargetPlugin(context)`
+
+`ElectronTargetPlugin` keeps Electron built-in modules external so Electron can load them at runtime. Pass `'main'`, `'preload'`, or `'renderer'` to externalize the additional modules available in that process.
+
+The [`externalsPresets.electron`](/config/externals#externalspresetselectron), [`externalsPresets.electronMain`](/config/externals#externalspresetselectronmain), [`externalsPresets.electronRenderer`](/config/externals#externalspresetselectronrenderer), and [`externalsPresets.electronPreload`](/config/externals#externalspresetselectronpreload) options apply this plugin internally.
+
+For a regular Electron application, prefer the corresponding [target](/config/target):
+
+```js title="rspack.config.mjs"
+export default {
+  target: 'electron-main',
+  entry: './src/main.js',
+};
+```
+
+When configuring a child compiler directly, apply the plugin to that compiler:
+
+```js
+new compiler.rspack.electron.ElectronTargetPlugin('main').apply(childCompiler);
+```
+
+### NodeEnvironmentPlugin
+
+`node.NodeEnvironmentPlugin()`
+
+Applies a Node.js-style filesystem to the compiler.
+
+### NodeTargetPlugin \{#node-target-plugin}
+
+`node.NodeTargetPlugin()`
+
+`NodeTargetPlugin` keeps Node.js built-in modules and requests using the `node:` scheme external so the Node.js runtime loads them instead of Rspack bundling them. The [`externalsPresets.node`](/config/externals#externalspresetsnode) option applies this plugin internally.
+
+For a regular Node.js application, prefer the `node` target:
+
+```js title="rspack.config.mjs"
+export default {
+  target: 'node',
+  entry: './src/index.js',
+};
+```
+
+When configuring a child compiler directly, apply the plugin to that compiler:
+
+```js
+new compiler.rspack.node.NodeTargetPlugin().apply(childCompiler);
+```
+
+## entry
+
+Plugins that add entry chunks to the compilation.
+
+### DynamicEntryPlugin
+
+`DynamicEntryPlugin(context, entry)`
+
+Similar to `EntryPlugin` but accepts a function as the `entry` argument. This function is called during each `make` event to determine the entry points dynamically.
+
+### EntryOptionPlugin
+
+`EntryOptionPlugin()`
+
+## output
+
+Plugins affecting generated modules, chunks, and runtime loading.
+
+### EnableChunkLoadingPlugin \{#enable-chunk-loading-plugin}
+
+`javascript.EnableChunkLoadingPlugin(type)`
+
+`EnableChunkLoadingPlugin` enables the runtime modules required by a chunk-loading type. Rspack normally applies it for the types collected in [`output.enabledChunkLoadingTypes`](/config/output#outputenabledchunkloadingtypes).
+
+The supported built-in types are `'jsonp'`, `'import-scripts'`, `'require'`, `'async-node'`, and `'import'`.
+
+Direct application is useful when a dynamic entry selects a type that Rspack cannot discover while normalizing the configuration:
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  entry: () => ({
+    main: {
+      import: './src/index.js',
+      chunkLoading: 'jsonp',
+    },
+  }),
+  output: {
+    chunkLoading: false,
+  },
+  plugins: [new rspack.javascript.EnableChunkLoadingPlugin('jsonp')],
+};
+```
+
+For a custom chunk-loading implementation, call `EnableChunkLoadingPlugin.setEnabled(compiler, type)` after installing its runtime hooks. This method only registers the type; it does not implement chunk loading.
+
+### EnableLibraryPlugin \{#enable-library-plugin}
+
+`library.EnableLibraryPlugin(type)`
+
+`EnableLibraryPlugin` registers a library output type with the compiler. Rspack normally applies it for the types collected in [`output.enabledLibraryTypes`](/config/output#outputenabledlibrarytypes).
+
+The following dynamic entry selects the `'var'` library type and enables it explicitly because Rspack cannot inspect a function entry during configuration normalization:
+
+```js title="src/index.js"
+export const add = (a, b) => a + b;
+```
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  entry: () => ({
+    main: {
+      import: './src/index.js',
+      library: {
+        name: 'MathLibrary',
+        type: 'var',
+      },
+    },
+  }),
+  plugins: [new rspack.library.EnableLibraryPlugin('var')],
+};
+```
+
+For a regular library build, prefer [`output.library`](/config/output#outputlibrary), which automatically enables its library type.
+
+### EnableWasmLoadingPlugin \{#enable-wasm-loading-plugin}
+
+`wasm.EnableWasmLoadingPlugin(type)`
+
+`EnableWasmLoadingPlugin` enables the runtime modules required by a WebAssembly loading type. Rspack normally applies it for the types collected in [`output.enabledWasmLoadingTypes`](/config/output#outputenabledwasmloadingtypes).
+
+The supported types are `'fetch'`, `'async-node'`, and `'universal'`.
+
+The following example sets `output.wasmLoading` to `false` to disable automatic setup, then directly applies `EnableWasmLoadingPlugin` to install the `'fetch'` loading runtime:
+
+```js title="src/index.js"
+import { add } from './add.wasm';
+
+console.log(add(1, 2));
+```
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  target: 'web',
+  entry: './src/index.js',
+  experiments: {
+    asyncWebAssembly: true,
+  },
+  output: {
+    wasmLoading: false,
+  },
+  plugins: [new rspack.wasm.EnableWasmLoadingPlugin('fetch')],
+};
+```
+
+For a regular build, prefer [`output.wasmLoading`](/config/output#outputwasmloading), which automatically enables the selected type.
+
+### EvalDevToolModulePlugin
+
+`EvalDevToolModulePlugin(options)`
+
+Decorates the module template by wrapping each module in an `eval` annotated with `// @sourceURL`.
+
+### FetchCompileAsyncWasmPlugin
+
+`web.FetchCompileAsyncWasmPlugin()`
+
+Provides runtime code for fetching and compiling asynchronous WebAssembly modules, and is often used with a child compiler.
+
+### JsonpTemplatePlugin \{#jsonp-template-plugin}
+
+`web.JsonpTemplatePlugin()`
+
+`JsonpTemplatePlugin` configures browser output for child compilers. It sets [`output.chunkLoading`](/config/output#outputchunkloading) to `'jsonp'`, applies the [`'array-push'` chunk format](/config/output#outputchunkformat), and enables the required JSONP chunk-loading runtime.
+
+The following browser entry creates an asynchronous chunk:
+
+```js title="src/browser-child.js"
+document.querySelector('button').addEventListener('click', async () => {
+  const { message } = await import('./message.js');
+  console.log(message);
+});
+```
+
+```js title="src/message.js"
+export const message = 'Hello from the child compiler';
+```
+
+This configuration creates a child compiler and applies `JsonpTemplatePlugin` directly:
+
+```js title="rspack.config.mjs"
+export default {
+  target: 'web',
+  entry: {},
+  plugins: [
+    (compiler) => {
+      compiler.hooks.make.tapAsync(
+        'BrowserChildCompiler',
+        (compilation, callback) => {
+          const childCompiler = compilation.createChildCompiler(
+            'browser-child',
+            {
+              filename: 'browser-child.js',
+              chunkFilename: '[name].browser-child.js',
+            },
+            [
+              new compiler.rspack.web.JsonpTemplatePlugin(),
+              new compiler.rspack.EntryPlugin(
+                compiler.context,
+                './src/browser-child.js',
+                { name: 'browser-child' },
+              ),
+            ],
+          );
+
+          childCompiler.runAsChild((error) => callback(error));
+        },
+      );
+    },
+  ],
+};
+```
+
+`JsonpTemplatePlugin` makes the child compiler emit array-push chunks and load asynchronous chunks by adding `script` elements to the page.
+
+For a regular web build, prefer `target: 'web'`. It selects the `'array-push'` chunk format and `'jsonp'` chunk loading through Rspack's target defaults. Setting `output.chunkLoading: 'jsonp'` only selects the loading implementation; it does not apply `JsonpTemplatePlugin` or choose the chunk format.
+
+### NodeTemplatePlugin \{#node-template-plugin}
+
+`node.NodeTemplatePlugin(options)`
+
+`NodeTemplatePlugin` configures Node.js output for child compilers. It applies the [`'commonjs'` chunk format](/config/output#outputchunkformat), sets [`output.chunkLoading`](/config/output#outputchunkloading) to `'require'` by default, and enables the required chunk-loading runtime.
+
+#### asyncChunkLoading
+
+- Type: `boolean`
+- Default: `false`
+
+When `asyncChunkLoading` is `true`, the plugin uses `'async-node'` chunk loading instead of `'require'`.
+
+The following Node.js entry creates an asynchronous chunk:
+
+```js title="src/node-child.js"
+async function main() {
+  const { run } = await import('./task.js');
+  run();
+}
+
+main();
+```
+
+```js title="src/task.js"
+export function run() {
+  console.log('Task completed');
+}
+```
+
+This configuration creates a child compiler and applies `NodeTemplatePlugin` directly:
+
+```js title="rspack.config.mjs"
+export default {
+  target: 'node',
+  entry: {},
+  plugins: [
+    (compiler) => {
+      compiler.hooks.make.tapAsync(
+        'NodeChildCompiler',
+        (compilation, callback) => {
+          const childCompiler = compilation.createChildCompiler(
+            'node-child',
+            {
+              filename: 'node-child.js',
+              chunkFilename: '[name].node-child.js',
+            },
+            [
+              new compiler.rspack.node.NodeTemplatePlugin(),
+              new compiler.rspack.EntryPlugin(
+                compiler.context,
+                './src/node-child.js',
+                { name: 'node-child' },
+              ),
+            ],
+          );
+
+          childCompiler.runAsChild((error) => callback(error));
+        },
+      );
+    },
+  ],
+};
+```
+
+`NodeTemplatePlugin` makes the child compiler emit CommonJS chunks and load asynchronous chunks with `require`.
+
+For a regular Node.js build, prefer `target: 'node'`. It selects the `'commonjs'` chunk format and `'require'` chunk loading through Rspack's target defaults. Setting `output.chunkLoading: 'require'` only selects the loading implementation; it does not apply `NodeTemplatePlugin` or choose the chunk format.
+
+### WebWorkerTemplatePlugin \{#web-worker-template-plugin}
+
+`webworker.WebWorkerTemplatePlugin()`
+
+`WebWorkerTemplatePlugin` configures Web Worker output for child compilers. It sets [`output.chunkLoading`](/config/output#outputchunkloading) to `'import-scripts'`, applies the [`'array-push'` chunk format](/config/output#outputchunkformat), and enables the required `importScripts` chunk-loading runtime.
+
+The following worker creates an asynchronous chunk:
+
+```js title="src/worker-child.js"
+self.onmessage = async ({ data }) => {
+  const { double } = await import('./math.js');
+  self.postMessage(double(data));
+};
+```
+
+```js title="src/math.js"
+export const double = (value) => value * 2;
+```
+
+This configuration creates a child compiler and applies `WebWorkerTemplatePlugin` directly:
+
+```js title="rspack.config.mjs"
+export default {
+  target: 'webworker',
+  entry: {},
+  plugins: [
+    (compiler) => {
+      compiler.hooks.make.tapAsync(
+        'WorkerChildCompiler',
+        (compilation, callback) => {
+          const childCompiler = compilation.createChildCompiler(
+            'worker-child',
+            {
+              filename: 'worker-child.js',
+              chunkFilename: '[name].worker-child.js',
+            },
+            [
+              new compiler.rspack.webworker.WebWorkerTemplatePlugin(),
+              new compiler.rspack.EntryPlugin(
+                compiler.context,
+                './src/worker-child.js',
+                { name: 'worker-child' },
+              ),
+            ],
+          );
+
+          childCompiler.runAsChild((error) => callback(error));
+        },
+      );
+    },
+  ],
+};
+```
+
+`WebWorkerTemplatePlugin` makes the child compiler emit array-push chunks and load asynchronous chunks with `importScripts`.
+
+For a regular Web Worker build, prefer `target: 'webworker'`. It selects the `'array-push'` chunk format and `'import-scripts'` chunk loading through Rspack's target defaults. Setting `output.chunkLoading: 'import-scripts'` only selects the loading implementation; it does not apply `WebWorkerTemplatePlugin` or choose the chunk format.
+
+## loader
+
+### LoaderOptionsPlugin
+
+`LoaderOptionsPlugin(options)`
+
+### LoaderTargetPlugin
+
+`LoaderTargetPlugin(target)`
+
+## module federation
+
+Low-level plugins used by `ModuleFederationPlugin`.
+
+### ContainerPlugin
+
+`container.ContainerPlugin(options)`
+
+### ContainerReferencePlugin
+
+`container.ContainerReferencePlugin(options)`
+
+### ConsumeSharedPlugin
+
+`sharing.ConsumeSharedPlugin(options)`
+
+### ProvideSharedPlugin
+
+`sharing.ProvideSharedPlugin(options)`
+
+### SharePlugin
+
+`sharing.SharePlugin(options)`
+
+### TreeShakingSharedPlugin \{#tree-shaking-shared-plugin}
+
+`sharing.TreeShakingSharedPlugin(options)`
+
+<ApiMeta stability={Stability.Experimental} />
+
+`TreeShakingSharedPlugin` creates independent builds and optimizes exports for Module Federation shared dependencies. `ModuleFederationPlugin` applies it automatically when at least one `shared` dependency enables `treeShaking`.
+
+#### Options
+
+- `mfConfig`: The `ModuleFederationPluginOptions` used to configure the shared dependencies and output.
+- `secondary`: Whether to perform a second tree-shaking pass during the independent build. The default is `false`.
+- `onBuildAssets`: A callback invoked with the generated shared fallback assets.
+
+Direct application is mainly intended for deployment integrations that perform a secondary build after collecting complete dependency information:
+
+```js title="rspack.config.mjs"
+import { sharing } from '@rspack/core';
+
+export default {
+  plugins: [
+    new sharing.TreeShakingSharedPlugin({
+      secondary: true,
+      mfConfig: {
+        name: 'app',
+        shared: {
+          'lodash-es': { treeShaking: { mode: 'server-calc' } },
+        },
+        library: { type: 'var', name: 'App' },
+        manifest: true,
+      },
+    }),
+  ],
+};
+```
+
+The plugin creates an independent build only for shared dependencies that enable `treeShaking` and retain a local implementation. When `mfConfig.manifest` is enabled, it records the generated fallback assets in the stats and manifest.
+
+## experiments
+
+### RemoveDuplicateModulesPlugin
+
+`experiments.RemoveDuplicateModulesPlugin()`
+
+<Attribution url="https://webpack.js.org/plugins/internal-plugins/" />

@@ -66,8 +66,8 @@ Incremental compilation is designed for rebuilds performed by the same compiler 
 modified and removed files. The supported user-facing workflows are development, watch mode, and
 HMR.
 
-Here, “development-time” describes the long-lived rebuild workflow, not `mode: 'development'`.
-Production-mode watch and other explicit rebuilds in the same compiler can also use Incremental.
+Incremental passes are enabled only when `mode` is `development`. The initial compilation prepares
+artifacts for a possible later rebuild, even though it cannot reuse a previous compilation.
 
 A standalone `rspack build` creates a fresh compiler and performs a one-shot build. There is no
 previous in-memory compilation to incrementally update, so `incremental` does not turn separate
@@ -98,10 +98,10 @@ does not create a third public storage mode.
 
 Rspack currently carries two implementations of the same Cache responsibility:
 
-| Backend        | Location                            |
-| -------------- | ----------------------------------- |
-| `legacy_cache` | `crates/rspack_core/src/cache/`     |
-| `new_cache`    | `crates/rspack_core/src/new_cache/` |
+| Backend        | Location                               |
+| -------------- | -------------------------------------- |
+| `legacy_cache` | `crates/rspack_core/src/legacy_cache/` |
+| `new_cache`    | `crates/rspack_core/src/new_cache/`    |
 
 The backend selector is not another Incremental mode. Switching between `legacy_cache` and
 `new_cache` may change how cache entries are keyed, retained, serialized, or flushed, but it must not
@@ -168,7 +168,8 @@ introduce new Cache/Incremental coupling.
 ## Relevant Code
 
 - Cache configuration: `crates/rspack_core/src/options/cache.rs`
-- Legacy Cache backend: `crates/rspack_core/src/cache/`
+- Shared Cache dependencies: `crates/rspack_core/src/cache/`
+- Legacy Cache backend: `crates/rspack_core/src/legacy_cache/`
 - New Cache backend: `crates/rspack_core/src/new_cache/`
 - Incremental configuration and mutations: `crates/rspack_core/src/incremental/`
 - Incremental artifact ownership: `crates/rspack_core/src/artifacts/incremental_artifacts.rs`

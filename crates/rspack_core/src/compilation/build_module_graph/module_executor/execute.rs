@@ -3,7 +3,7 @@ use std::{collections::VecDeque, fmt::Write, iter::once, sync::atomic::AtomicU32
 use itertools::Itertools;
 use rspack_collections::{Identifier, IdentifierSet};
 use rspack_error::Error;
-use rspack_paths::ArcPathSet;
+use rspack_paths::InternedPathSet;
 use rspack_sources::{RawStringSource, SourceExt};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet};
 use tokio::sync::oneshot::Sender;
@@ -141,10 +141,10 @@ fn create_execute_runtime_source(
 pub struct ExecuteModuleResult {
   pub error: Option<String>,
   pub cacheable: bool,
-  pub file_dependencies: ArcPathSet,
-  pub context_dependencies: ArcPathSet,
-  pub missing_dependencies: ArcPathSet,
-  pub build_dependencies: ArcPathSet,
+  pub file_dependencies: InternedPathSet,
+  pub context_dependencies: InternedPathSet,
+  pub missing_dependencies: InternedPathSet,
+  pub build_dependencies: InternedPathSet,
   pub code_generated_modules: IdentifierSet,
   pub id: ExecuteModuleId,
 }
@@ -250,16 +250,16 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
       let build_info = module.build_info();
       execute_result
         .file_dependencies
-        .extend(build_info.file_dependencies.iter().cloned());
+        .extend(build_info.dependencies.file.iter().cloned());
       execute_result
         .context_dependencies
-        .extend(build_info.context_dependencies.iter().cloned());
+        .extend(build_info.dependencies.context.iter().cloned());
       execute_result
         .missing_dependencies
-        .extend(build_info.missing_dependencies.iter().cloned());
+        .extend(build_info.dependencies.missing.iter().cloned());
       execute_result
         .build_dependencies
-        .extend(build_info.build_dependencies.iter().cloned());
+        .extend(build_info.dependencies.build.iter().cloned());
       if !build_info.cacheable {
         execute_result.cacheable = false;
       }

@@ -65,6 +65,8 @@ import * as ModuleFilenameHelpers from './lib/ModuleFilenameHelpers';
 
 // API extractor not working with some re-exports, see: https://github.com/microsoft/fluentui/issues/20694
 export { Template } from './Template';
+export { RuntimeTemplate } from './RuntimeTemplate';
+export type { ConcatenationArg } from './RuntimeTemplate';
 export { ModuleFilenameHelpers };
 
 export const WebpackError = Error;
@@ -186,20 +188,29 @@ interface Electron {
 export const electron: Electron = { ElectronTargetPlugin };
 
 import {
-  CompatHashedModuleIdsPlugin,
+  CompactHashedChunkIdsPlugin,
+  CompactHashedModuleIdsPlugin,
   DeterministicModuleIdsPlugin,
   HashedModuleIdsPlugin,
   SyncModuleIdsPlugin,
 } from './builtin-plugin';
 
 interface Ids {
-  CompatHashedModuleIdsPlugin: typeof CompatHashedModuleIdsPlugin;
+  CompactHashedChunkIdsPlugin: typeof CompactHashedChunkIdsPlugin;
+  CompactHashedModuleIdsPlugin: typeof CompactHashedModuleIdsPlugin;
+  /** @deprecated Use `CompactHashedChunkIdsPlugin` instead. */
+  CompatHashedChunkIdsPlugin: typeof CompactHashedChunkIdsPlugin;
+  /** @deprecated Use `CompactHashedModuleIdsPlugin` instead. */
+  CompatHashedModuleIdsPlugin: typeof CompactHashedModuleIdsPlugin;
   DeterministicModuleIdsPlugin: typeof DeterministicModuleIdsPlugin;
   HashedModuleIdsPlugin: typeof HashedModuleIdsPlugin;
 }
 
 export const ids: Ids = {
-  CompatHashedModuleIdsPlugin,
+  CompactHashedChunkIdsPlugin,
+  CompactHashedModuleIdsPlugin,
+  CompatHashedChunkIdsPlugin: CompactHashedChunkIdsPlugin,
+  CompatHashedModuleIdsPlugin: CompactHashedModuleIdsPlugin,
   DeterministicModuleIdsPlugin,
   HashedModuleIdsPlugin,
 };

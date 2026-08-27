@@ -371,7 +371,7 @@ export declare class JsContextModuleFactoryBeforeResolveData {
 }
 
 export declare class JsCoordinator {
-  constructor(getServerCompilerIdJsFn: () => ExternalObject<CompilerId>)
+  constructor()
 }
 
 export declare class JsDependencies {
@@ -405,6 +405,11 @@ export declare class JsExportsInfo {
   isModuleUsed(runtime: string | string[] | undefined): boolean
   setUsedInUnknownWay(runtime: string | string[] | undefined): boolean
   getUsed(name: string | string[], runtime: string | string[] | undefined):  0 | 1 | 2 | 3 | 4
+}
+
+export declare class JsLoaderCache {
+  get(loaderIndex: number, content: string | Uint8Array, existing: JsLoaderDependencies): JsLoaderCacheEntry | null
+  store(loaderIndex: number, output: JsLoaderCacheEntry): void
 }
 
 export declare class JsModuleGraph {
@@ -560,12 +565,13 @@ export declare enum BuiltinPluginName {
   NamedModuleIdsPlugin = 'NamedModuleIdsPlugin',
   NaturalModuleIdsPlugin = 'NaturalModuleIdsPlugin',
   DeterministicModuleIdsPlugin = 'DeterministicModuleIdsPlugin',
-  CompatHashedModuleIdsPlugin = 'CompatHashedModuleIdsPlugin',
+  CompactHashedModuleIdsPlugin = 'CompactHashedModuleIdsPlugin',
   SyncModuleIdsPlugin = 'SyncModuleIdsPlugin',
   HashedModuleIdsPlugin = 'HashedModuleIdsPlugin',
   NaturalChunkIdsPlugin = 'NaturalChunkIdsPlugin',
   NamedChunkIdsPlugin = 'NamedChunkIdsPlugin',
   DeterministicChunkIdsPlugin = 'DeterministicChunkIdsPlugin',
+  CompactHashedChunkIdsPlugin = 'CompactHashedChunkIdsPlugin',
   OccurrenceChunkIdsPlugin = 'OccurrenceChunkIdsPlugin',
   RealContentHashPlugin = 'RealContentHashPlugin',
   RemoveEmptyChunksPlugin = 'RemoveEmptyChunksPlugin',
@@ -950,6 +956,13 @@ export interface JsLinkPreloadData {
   chunk: Chunk
 }
 
+export interface JsLoaderCacheEntry {
+  content: null | string | Uint8Array
+  sourceMap?: Uint8Array
+  addedDependencies: JsLoaderDependencies
+  removedDependencies: JsLoaderDependencies
+}
+
 export interface JsLoaderContext {
   resource: string
   _module: Module
@@ -960,14 +973,12 @@ export interface JsLoaderContext {
   __internal__parseMeta: Record<string, string>
   sourceMap?: Buffer
   cacheable: boolean
-  fileDependencies: Array<string>
-  contextDependencies: Array<string>
-  missingDependencies: Array<string>
-  buildDependencies: Array<string>
+  dependencies: JsLoaderDependencies
   loaderItems: Array<JsLoaderItem>
   loaderIndex: number
   loaderState: Readonly<JsLoaderState>
   __internal__error?: RspackError
+  __internal__loaderCache?: JsLoaderCache | undefined
   /**
    * UTF-8 hint for `content`
    * - Some(true): `content` is a `UTF-8` encoded sequence
@@ -975,9 +986,17 @@ export interface JsLoaderContext {
   __internal__utf8Hint?: boolean
 }
 
+export interface JsLoaderDependencies {
+  fileDependencies: Array<string>
+  contextDependencies: Array<string>
+  missingDependencies: Array<string>
+  buildDependencies: Array<string>
+}
+
 export interface JsLoaderItem {
   loader: string
   type: string
+  cache: boolean
   data: any
   normalExecuted: boolean
   pitchExecuted: boolean
@@ -1962,7 +1981,11 @@ export interface RawCollectShareEntryPluginOptions {
   filename?: string
 }
 
-export interface RawCompatHashedModuleIdsPluginOptions {
+export interface RawCompactHashedChunkIdsPluginOptions {
+  minLength?: number
+}
+
+export interface RawCompactHashedModuleIdsPluginOptions {
   minLength?: number
 }
 
@@ -2749,10 +2772,14 @@ export interface RawModuleRule {
 export interface RawModuleRuleUse {
   loader: string
   options?: string
+  cache: boolean
+  optionsCacheKey: string
 }
 
 export interface RawNewCache {
   codeGeneration: boolean
+  devtool: boolean
+  loader: boolean
   minimize: boolean
 }
 
@@ -2820,6 +2847,7 @@ export interface RawOutputOptions {
   publicPath: "auto" | JsFilename
   assetModuleFilename: JsFilename
   wasmLoading: string | false
+  wasmStreamingFallback: boolean
   enabledWasmLoadingTypes: Array<string>
   webassemblyModuleFilename: string
   filename: JsFilename
@@ -3213,55 +3241,56 @@ export declare enum RegisterJsTapKind {
   CompilerCompilation = 1,
   CompilerMake = 2,
   CompilerFinishMake = 3,
-  CompilerShouldEmit = 4,
-  CompilerEmit = 5,
-  CompilerAfterEmit = 6,
-  CompilerAssetEmitted = 7,
-  CompilationBuildModule = 8,
-  CompilationStillValidModule = 9,
-  CompilationSucceedModule = 10,
-  CompilationExecuteModule = 11,
-  CompilationFinishModules = 12,
-  CompilationOptimizeModules = 13,
-  CompilationAfterOptimizeModules = 14,
-  CompilationOptimizeTree = 15,
-  CompilationOptimizeChunkModules = 16,
-  CompilationBeforeModuleIds = 17,
-  CompilationAdditionalTreeRuntimeRequirements = 18,
-  CompilationRuntimeRequirementInTree = 19,
-  CompilationRuntimeModule = 20,
-  CompilationChunkHash = 21,
-  CompilationChunkAsset = 22,
-  CompilationProcessAssets = 23,
-  CompilationAfterProcessAssets = 24,
-  CompilationSeal = 25,
-  CompilationAfterSeal = 26,
-  NormalModuleFactoryBeforeResolve = 27,
-  NormalModuleFactoryFactorize = 28,
-  NormalModuleFactoryResolve = 29,
-  NormalModuleFactoryAfterResolve = 30,
-  NormalModuleFactoryCreateModule = 31,
-  NormalModuleFactoryResolveForScheme = 32,
-  ContextModuleFactoryBeforeResolve = 33,
-  ContextModuleFactoryAfterResolve = 34,
-  ExternalModuleChunkCondition = 35,
-  JavascriptModulesChunkHash = 36,
-  HtmlPluginBeforeAssetTagGeneration = 37,
-  HtmlPluginAlterAssetTags = 38,
-  HtmlPluginAlterAssetTagGroups = 39,
-  HtmlPluginAfterTemplateExecution = 40,
-  HtmlPluginBeforeEmit = 41,
-  HtmlPluginAfterEmit = 42,
-  RuntimePluginCreateScript = 43,
-  RuntimePluginCreateLink = 44,
-  RuntimePluginLinkPreload = 45,
-  RuntimePluginLinkPrefetch = 46,
-  RealContentHashPluginUpdateHash = 47,
-  RsdoctorPluginModuleGraph = 48,
-  RsdoctorPluginChunkGraph = 49,
-  RsdoctorPluginModuleIds = 50,
-  RsdoctorPluginModuleSources = 51,
-  RsdoctorPluginAssets = 52
+  CompilerAfterCompile = 4,
+  CompilerShouldEmit = 5,
+  CompilerEmit = 6,
+  CompilerAfterEmit = 7,
+  CompilerAssetEmitted = 8,
+  CompilationBuildModule = 9,
+  CompilationStillValidModule = 10,
+  CompilationSucceedModule = 11,
+  CompilationExecuteModule = 12,
+  CompilationFinishModules = 13,
+  CompilationOptimizeModules = 14,
+  CompilationAfterOptimizeModules = 15,
+  CompilationOptimizeTree = 16,
+  CompilationOptimizeChunkModules = 17,
+  CompilationBeforeModuleIds = 18,
+  CompilationAdditionalTreeRuntimeRequirements = 19,
+  CompilationRuntimeRequirementInTree = 20,
+  CompilationRuntimeModule = 21,
+  CompilationChunkHash = 22,
+  CompilationChunkAsset = 23,
+  CompilationProcessAssets = 24,
+  CompilationAfterProcessAssets = 25,
+  CompilationSeal = 26,
+  CompilationAfterSeal = 27,
+  NormalModuleFactoryBeforeResolve = 28,
+  NormalModuleFactoryFactorize = 29,
+  NormalModuleFactoryResolve = 30,
+  NormalModuleFactoryAfterResolve = 31,
+  NormalModuleFactoryCreateModule = 32,
+  NormalModuleFactoryResolveForScheme = 33,
+  ContextModuleFactoryBeforeResolve = 34,
+  ContextModuleFactoryAfterResolve = 35,
+  ExternalModuleChunkCondition = 36,
+  JavascriptModulesChunkHash = 37,
+  HtmlPluginBeforeAssetTagGeneration = 38,
+  HtmlPluginAlterAssetTags = 39,
+  HtmlPluginAlterAssetTagGroups = 40,
+  HtmlPluginAfterTemplateExecution = 41,
+  HtmlPluginBeforeEmit = 42,
+  HtmlPluginAfterEmit = 43,
+  RuntimePluginCreateScript = 44,
+  RuntimePluginCreateLink = 45,
+  RuntimePluginLinkPreload = 46,
+  RuntimePluginLinkPrefetch = 47,
+  RealContentHashPluginUpdateHash = 48,
+  RsdoctorPluginModuleGraph = 49,
+  RsdoctorPluginChunkGraph = 50,
+  RsdoctorPluginModuleIds = 51,
+  RsdoctorPluginModuleSources = 52,
+  RsdoctorPluginAssets = 53
 }
 
 export interface RegisterJsTaps {
@@ -3269,6 +3298,7 @@ export interface RegisterJsTaps {
   registerCompilerCompilationTaps: (stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => void); stage: number; }>
   registerCompilerMakeTaps: (stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => Promise<void>); stage: number; }>
   registerCompilerFinishMakeTaps: (stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => void); stage: number; }>
+  registerCompilerAfterCompileTaps: (stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => Promise<void>); stage: number; }>
   registerCompilerShouldEmitTaps: (stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => boolean | undefined); stage: number; }>
   registerCompilerEmitTaps: (stages: Array<number>) => Array<{ function: (() => Promise<void>); stage: number; }>
   registerCompilerAfterEmitTaps: (stages: Array<number>) => Array<{ function: (() => Promise<void>); stage: number; }>

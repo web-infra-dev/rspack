@@ -60,7 +60,7 @@ impl<'a> AssertUtf8 for &'a Path {
 /// The interning kind for paths: a header holding the precomputed [`hash_path`] of the path,
 /// plus the path's `OsStr` bytes, stored together in one allocation.
 ///
-/// This is what makes an [`ArcPath`] a thin pointer with a content hash attached and no second
+/// This is what makes an [`InternedPath`] a thin pointer with a content hash attached and no second
 /// indirection to reach the bytes.
 pub struct PreHashedPath;
 
@@ -99,7 +99,7 @@ impl SliceInternable for PreHashedPath {
 /// Reads back bytes produced by `OsStr::as_encoded_bytes`.
 ///
 /// # Panics-free safety
-/// The bytes always come from [`ArcPath::from_parts`], which takes them from `as_encoded_bytes`
+/// The bytes always come from [`InternedPath::from_parts`], which takes them from `as_encoded_bytes`
 /// on this same platform and stores the whole slice — the round trip `OsStr` documents as sound.
 #[inline]
 fn path_from_bytes(bytes: &[u8]) -> &Path {
@@ -112,20 +112,20 @@ fn path_from_bytes(bytes: &[u8]) -> &Path {
 /// (see [`Hash`] below).
 #[cfg_attr(feature = "cacheable", cacheable(with=Custom))]
 #[derive(Clone, PartialEq, Eq)]
-pub struct ArcPath(InternedSlice<PreHashedPath>);
+pub struct InternedPath(InternedSlice<PreHashedPath>);
 
-impl Debug for ArcPath {
+impl Debug for InternedPath {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     self.as_path().fmt(f)
   }
 }
 
-impl ArcPath {
+impl InternedPath {
   pub fn new(path: &Path) -> Self {
     Self::from_parts(hash_path(path), path)
   }
 
-  /// Build an `ArcPath` from a precomputed hash without rehashing. The caller MUST guarantee
+  /// Build an `InternedPath` from a precomputed hash without rehashing. The caller MUST guarantee
   /// that `hash` equals [`hash_path`] of `path`. Used at boundaries (e.g. consuming
   /// `rspack_resolver::ResolverPath`) where the same `FxHash` has already been computed
   /// upstream.
@@ -152,7 +152,7 @@ impl ArcPath {
 /// Hash a path with `FxHasher`, hashing the raw `OsStr` bytes on Unix rather than walking
 /// components as `Path::hash` does — materially cheaper on the resolver's hot path.
 ///
-/// `rspack_resolver` computes this once per cached path, which lets [`ArcPath::from_parts`]
+/// `rspack_resolver` computes this once per cached path, which lets [`InternedPath::from_parts`]
 /// intern a resolved dependency without rehashing it.
 #[inline]
 pub fn hash_path(path: &Path) -> u64 {
@@ -164,7 +164,7 @@ pub fn hash_path(path: &Path) -> u64 {
   hasher.finish()
 }
 
-impl Deref for ArcPath {
+impl Deref for InternedPath {
   type Target = Path;
 
   fn deref(&self) -> &Self::Target {
@@ -172,56 +172,56 @@ impl Deref for ArcPath {
   }
 }
 
-impl AsRef<Path> for ArcPath {
+impl AsRef<Path> for InternedPath {
   fn as_ref(&self) -> &Path {
     self.as_path()
   }
 }
 
-impl From<PathBuf> for ArcPath {
+impl From<PathBuf> for InternedPath {
   fn from(value: PathBuf) -> Self {
-    ArcPath::new(&value)
+    InternedPath::new(&value)
   }
 }
 
-impl From<&PathBuf> for ArcPath {
+impl From<&PathBuf> for InternedPath {
   fn from(value: &PathBuf) -> Self {
-    ArcPath::new(value)
+    InternedPath::new(value)
   }
 }
 
-impl From<&Path> for ArcPath {
+impl From<&Path> for InternedPath {
   fn from(value: &Path) -> Self {
-    ArcPath::new(value)
+    InternedPath::new(value)
   }
 }
 
-impl From<Utf8PathBuf> for ArcPath {
+impl From<Utf8PathBuf> for InternedPath {
   fn from(value: Utf8PathBuf) -> Self {
-    ArcPath::new(value.as_std_path())
+    InternedPath::new(value.as_std_path())
   }
 }
 
-impl From<&Utf8Path> for ArcPath {
+impl From<&Utf8Path> for InternedPath {
   fn from(value: &Utf8Path) -> Self {
-    ArcPath::new(value.as_std_path())
+    InternedPath::new(value.as_std_path())
   }
 }
 
-impl From<&ArcPath> for ArcPath {
-  fn from(value: &ArcPath) -> Self {
+impl From<&InternedPath> for InternedPath {
+  fn from(value: &InternedPath) -> Self {
     value.clone()
   }
 }
 
-impl From<&str> for ArcPath {
+impl From<&str> for InternedPath {
   fn from(value: &str) -> Self {
-    ArcPath::new(<str as std::convert::AsRef<Path>>::as_ref(value))
+    InternedPath::new(<str as std::convert::AsRef<Path>>::as_ref(value))
   }
 }
 
 #[cfg(feature = "cacheable")]
-impl CustomConverter for ArcPath {
+impl CustomConverter for InternedPath {
   type Target = PortablePath;
   fn serialize(&self, guard: &ContextGuard) -> Result<Self::Target, CacheableError> {
     Ok(PortablePath::new(self.as_path(), guard.project_root()))
@@ -233,8 +233,8 @@ impl CustomConverter for ArcPath {
   }
 }
 
-impl Hash for ArcPath {
-  /// Hashes by content, not by the interned pointer: [`ArcPathMap`] and friends feed this
+impl Hash for InternedPath {
+  /// Hashes by content, not by the interned pointer: [`InternedPathMap`] and friends feed this
   /// straight into [`IdentityHasher`], and pointer addresses are allocation-aligned (low bits
   /// always zero, so hashbrown would cluster every entry into a few buckets) and differ between
   /// runs, which would make anything ordered by hash non-deterministic.
@@ -244,22 +244,22 @@ impl Hash for ArcPath {
   }
 }
 
-/// A standard `HashMap` using `ArcPath` as the key type with a custom `Hasher`
+/// A standard `HashMap` using `InternedPath` as the key type with a custom `Hasher`
 /// that just uses the precomputed hash for speed instead of calculating it.
-pub type ArcPathMap<V> = HashMap<ArcPath, V, BuildHasherDefault<IdentityHasher>>;
+pub type InternedPathMap<V> = HashMap<InternedPath, V, BuildHasherDefault<IdentityHasher>>;
 
-/// A standard `HashSet` using `ArcPath` as the key type with a custom `Hasher`
+/// A standard `HashSet` using `InternedPath` as the key type with a custom `Hasher`
 /// that just uses the precomputed hash for speed instead of calculating it.
-pub type ArcPathSet = HashSet<ArcPath, BuildHasherDefault<IdentityHasher>>;
+pub type InternedPathSet = HashSet<InternedPath, BuildHasherDefault<IdentityHasher>>;
 
-/// A standard `DashMap` using `ArcPath` as the key type with a custom `Hasher`
+/// A standard `DashMap` using `InternedPath` as the key type with a custom `Hasher`
 /// that just uses the precomputed hash for speed instead of calculating it.
-pub type ArcPathDashMap<V> = DashMap<ArcPath, V, BuildHasherDefault<IdentityHasher>>;
+pub type InternedPathDashMap<V> = DashMap<InternedPath, V, BuildHasherDefault<IdentityHasher>>;
 
-/// A standard `DashSet` using `ArcPath` as the key type with a custom `Hasher`
+/// A standard `DashSet` using `InternedPath` as the key type with a custom `Hasher`
 /// that just uses the precomputed hash for speed instead of calculating it.
-pub type ArcPathDashSet = DashSet<ArcPath, BuildHasherDefault<IdentityHasher>>;
+pub type InternedPathDashSet = DashSet<InternedPath, BuildHasherDefault<IdentityHasher>>;
 
-/// A standard `IndexSet` using `ArcPath` as the key type with a custom `Hasher`
+/// A standard `IndexSet` using `InternedPath` as the key type with a custom `Hasher`
 /// that just uses the precomputed hash for speed instead of calculating it.
-pub type ArcPathIndexSet = IndexSet<ArcPath, BuildHasherDefault<IdentityHasher>>;
+pub type InternedPathIndexSet = IndexSet<InternedPath, BuildHasherDefault<IdentityHasher>>;

@@ -14,7 +14,7 @@ use rspack_collections::{Identifiable, Identifier};
 use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::{RspackHashDigest, RspackHasher};
 use rspack_macros::impl_source_map_config;
-use rspack_paths::{ArcPathSet, Utf8PathBuf};
+use rspack_paths::{InternedPathSet, Utf8PathBuf};
 use rspack_regex::RspackRegex;
 use rspack_sources::{BoxSource, OriginalSource, RawStringSource, SourceExt};
 use rspack_util::{
@@ -1526,9 +1526,9 @@ impl Module for ContextModule {
     }
 
     if !self.options.resource.as_str().is_empty() {
-      let mut context_dependencies: ArcPathSet = Default::default();
+      let mut context_dependencies: InternedPathSet = Default::default();
       context_dependencies.insert(self.options.resource.as_std_path().into());
-      self.build_info.context_dependencies = context_dependencies;
+      self.build_info.dependencies.context = context_dependencies;
     }
 
     Ok(BuildResult {

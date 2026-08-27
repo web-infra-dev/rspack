@@ -48,6 +48,7 @@ import type { NormalModuleFactory } from './NormalModuleFactory';
 import type { ResolverFactory } from './ResolverFactory';
 import type { RspackError } from './RspackError';
 import { RuntimeModule } from './RuntimeModule';
+import { RuntimeTemplate } from './RuntimeTemplate';
 import {
   Stats,
   type StatsAsset,
@@ -326,6 +327,7 @@ export class Compilation {
   inputFileSystem: InputFileSystem | null;
   options: RspackOptionsNormalized;
   outputOptions: OutputNormalized;
+  runtimeTemplate: RuntimeTemplate;
   logging: Map<string, LogEntry[]>;
   childrenCounters: Record<string, number>;
   children: Compilation[];
@@ -473,6 +475,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
     this.inputFileSystem = compiler.inputFileSystem;
     this.options = compiler.options;
     this.outputOptions = compiler.options.output;
+    this.runtimeTemplate = new RuntimeTemplate(this, this.outputOptions);
     this.logging = new Map();
     this.childrenCounters = {};
     this.children = [];

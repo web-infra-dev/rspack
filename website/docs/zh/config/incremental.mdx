@@ -6,7 +6,7 @@ description: '控制是否在开发期重建和 HMR 中复用未受影响的中�
 
 `incremental` 控制 Rspack 是否在同一个长生命周期 compiler 的多次 compilation 之间复用未受影响的中间结果。它面向开发期重建、watch 模式和热模块替换（HMR）：Rspack 已知发生变化的文件，因此可以避免重新计算未受影响的阶段和产物。
 
-这里的“开发期”描述的是重建工作流，并不等同于 `mode: 'development'`；production 模式下的 watch 同样可以使用 Incremental。独立的 `rspack build` 是一次性构建，没有可供更新的上一次 compilation，因此 `incremental` 不会让多次独立的 build 命令变成增量构建。
+Incremental 仅在 `mode` 设置为 `'development'` 时启用。独立的 `rspack build` 是一次性构建，没有可供更新的上一次 compilation，因此 `incremental` 不会让多次独立的 build 命令变成增量构建。
 
 - **类型：** `boolean | 'none' | 'safe' | 'advance' | 'advance-silent' | Incremental`
 - **默认值：** `'advance-silent'`
@@ -53,6 +53,7 @@ Rspack Incremental 的优化目标与 webpack 的
 
 ```js title="rspack.config.mjs"
 export default {
+  mode: 'development',
   incremental: 'advance',
 };
 ```
@@ -97,6 +98,6 @@ type Incremental = {
 
 ## 性能影响
 
-Incremental 只会在存在上一次 compilation 和明确变更集合时加速重建与 HMR，不会让首次 compilation 或独立的一次性 build 变成增量构建。
+Incremental 只会在存在上一次 compilation 和明确变更集合时加速重建与 HMR，不会让首次 compilation 或独立的一次性 build 变成增量构建，但首次 compilation 仍会为后续重建准备 Artifact。
 
 Memory Cache 或 Persistent Cache 可以独立加速首次构建和重建中的具体计算。尤其是进程启动后命中的 FileSystem Cache 属于 Cache 加速，而不是增量构建。
