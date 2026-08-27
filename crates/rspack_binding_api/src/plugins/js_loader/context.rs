@@ -237,7 +237,7 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
         .map(|v| v.to_json())
         .map(|v| v.into_bytes().into()),
       cacheable: cx.cacheable,
-      dependencies: cx.dependencies().into(),
+      dependencies: cx.dependencies().as_ref().into(),
 
       loader_items: cx.loader_items.iter().map(Into::into).collect(),
       loader_index: cx.loader_index,

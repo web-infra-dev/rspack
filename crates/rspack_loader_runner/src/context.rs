@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{borrow::Cow, sync::Arc};
 
 use derive_more::Debug;
 use rspack_cacheable::cacheable;
@@ -83,24 +83,71 @@ pub struct LoaderContext<Context: Send> {
 }
 
 impl<Context: Send> LoaderContext<Context> {
-  pub fn dependencies(&self) -> &LoaderDependencies {
+  fn effective_dependency_set<'a>(
+    existing: &'a InternedPathSet,
+    added: &InternedPathSet,
+    removed: &InternedPathSet,
+  ) -> Cow<'a, InternedPathSet> {
+    if added.is_empty() && removed.is_empty() {
+      return Cow::Borrowed(existing);
+    }
+    let mut dependencies = existing.clone();
+    for dependency in removed {
+      dependencies.remove(dependency);
+    }
+    dependencies.extend(added.iter().cloned());
+    Cow::Owned(dependencies)
+  }
+
+  /// Dependencies visible to the current loader, with its pending additions and removals applied.
+  pub fn dependencies(&self) -> Cow<'_, LoaderDependencies> {
+    if self.added_dependencies.is_empty() && self.removed_dependencies.is_empty() {
+      return Cow::Borrowed(&self.dependencies);
+    }
+    Cow::Owned(LoaderDependencies {
+      file: self.file_dependencies().into_owned(),
+      context: self.context_dependencies().into_owned(),
+      missing: self.missing_dependencies().into_owned(),
+      build: self.build_dependencies().into_owned(),
+    })
+  }
+
+  /// Dependencies committed before the current loader started.
+  #[doc(hidden)]
+  pub fn existing_dependencies(&self) -> &LoaderDependencies {
     &self.dependencies
   }
 
-  pub fn file_dependencies(&self) -> &InternedPathSet {
-    &self.dependencies.file
+  pub fn file_dependencies(&self) -> Cow<'_, InternedPathSet> {
+    Self::effective_dependency_set(
+      &self.dependencies.file,
+      &self.added_dependencies.file,
+      &self.removed_dependencies.file,
+    )
   }
 
-  pub fn context_dependencies(&self) -> &InternedPathSet {
-    &self.dependencies.context
+  pub fn context_dependencies(&self) -> Cow<'_, InternedPathSet> {
+    Self::effective_dependency_set(
+      &self.dependencies.context,
+      &self.added_dependencies.context,
+      &self.removed_dependencies.context,
+    )
   }
 
-  pub fn missing_dependencies(&self) -> &InternedPathSet {
-    &self.dependencies.missing
+  pub fn missing_dependencies(&self) -> Cow<'_, InternedPathSet> {
+    Self::effective_dependency_set(
+      &self.dependencies.missing,
+      &self.added_dependencies.missing,
+      &self.removed_dependencies.missing,
+    )
   }
 
-  pub fn build_dependencies(&self) -> &InternedPathSet {
-    &self.dependencies.build
+  pub fn build_dependencies(&self) -> Cow<'_, InternedPathSet> {
+    Self::effective_dependency_set(
+      &self.dependencies.build,
+      &self.added_dependencies.build,
+      &self.removed_dependencies.build,
+    )
   }
 
   #[doc(hidden)]

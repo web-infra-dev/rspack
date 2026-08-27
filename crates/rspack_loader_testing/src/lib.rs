@@ -120,7 +120,42 @@ impl Loader<RunnerContext> for DependencyLoader {
       .resource_path()
       .expect("test dependency loader requires a resource path")
       .with_file_name("overlap-dependency.txt");
+    let transient_dependency = dependency.with_file_name("transient-dependency.txt");
+    loader_context.add_file_dependency(transient_dependency.clone());
+    assert!(
+      !loader_context
+        .existing_dependencies()
+        .file
+        .iter()
+        .any(|item| item.as_path() == transient_dependency)
+    );
+    assert!(
+      loader_context
+        .dependencies()
+        .file
+        .iter()
+        .any(|item| item.as_path() == transient_dependency)
+    );
+    assert!(
+      loader_context
+        .file_dependencies()
+        .iter()
+        .any(|item| item.as_path() == transient_dependency)
+    );
+    loader_context.remove_file_dependency(transient_dependency.clone());
+    assert!(
+      !loader_context
+        .file_dependencies()
+        .iter()
+        .any(|item| item.as_path() == transient_dependency)
+    );
     loader_context.add_file_dependency(dependency.clone());
+    assert!(
+      loader_context
+        .file_dependencies()
+        .iter()
+        .any(|item| item.as_path() == dependency)
+    );
     let value = loader_context
       .context
       .fs

@@ -166,7 +166,7 @@ fn input_etag(context: &LoaderContext<RunnerContext>) -> Option<Etag> {
   let loader = context.current_loader();
   Some(loader_cache_etag(
     context.content()?,
-    context.dependencies(),
+    context.existing_dependencies(),
     loader.options_cache_key(),
     loader.loader_version(),
   ))
@@ -181,12 +181,13 @@ pub(crate) fn before_normal_loader(
   }
   // Source maps are intentionally excluded from the etag as a performance trade-off. The minimal
   // cache treats source-map-only changes as equivalent inputs.
+  let existing_dependencies = context.existing_dependencies();
   if context.additional_data().is_some()
     || !context.parse_meta.is_empty()
     || !context.context.module.build_info().assets.is_empty()
     || !context.context.module.build_info().extras.is_empty()
-    || !context.context_dependencies().is_empty()
-    || !context.missing_dependencies().is_empty()
+    || !existing_dependencies.context.is_empty()
+    || !existing_dependencies.missing.is_empty()
   {
     return Ok(LoaderCacheAction::Disabled);
   }
