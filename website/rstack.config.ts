@@ -19,28 +19,6 @@ define.doc(async () => {
   const PUBLISH_URL = 'https://rspack.rs';
   const description =
     'Fast Rust-based bundler for the web with a modernized webpack API';
-  const pluginRedirects = [
-    {
-      from: '^(/zh)?/plugins/webpack/warn-case-sensitive-modules-plugin/?$',
-      to: '$1/plugins/case-sensitive-plugin',
-    },
-    {
-      from: '^(/zh)?/plugins/webpack(?:/index)?/?$',
-      to: '$1/plugins/webpack-built-in-plugin-support',
-    },
-    {
-      from: '^(/zh)?/plugins/rspack/?$',
-      to: '$1/plugins/',
-    },
-    {
-      from: '^(/zh)?/plugins/(?:(?:rspack|webpack)/)?(electron-target-plugin|jsonp-template-plugin|node-target-plugin|node-template-plugin|web-worker-template-plugin)/?$',
-      to: '$1/plugins/internal-plugins#$2',
-    },
-    {
-      from: '^(/zh)?/plugins/(?:rspack|webpack)/([^/]+)/?$',
-      to: '$1/plugins/$2',
-    },
-  ];
 
   return {
     root: path.join(import.meta.dirname, 'docs'),
@@ -77,21 +55,25 @@ define.doc(async () => {
     },
     plugins: [
       pluginClientRedirects({
-        redirects: pluginRedirects,
-      }),
-      {
-        name: 'localized-client-redirects',
-        globalUIComponents: [
-          [
-            path.join(
-              import.meta.dirname,
-              'components',
-              'LocalizedClientRedirects.tsx',
-            ),
-            { redirects: pluginRedirects },
-          ],
+        redirects: [
+          {
+            from: '^(/zh)?/plugins/webpack/warn-case-sensitive-modules-plugin/?$',
+            to: '$1/plugins/case-sensitive-plugin',
+          },
+          {
+            from: '^(/zh)?/plugins/webpack(?:/index)?/?$',
+            to: '$1/plugins/webpack-built-in-plugin-support',
+          },
+          {
+            from: '^(/zh)?/plugins/rspack/?$',
+            to: '$1/plugins/',
+          },
+          {
+            from: '^(/zh)?/plugins/(?:rspack|webpack)/([^/]+)/?$',
+            to: '$1/plugins/$2',
+          },
         ],
-      },
+      }),
       pluginAlgolia(),
       pluginSitemap({
         siteUrl: PUBLISH_URL,
