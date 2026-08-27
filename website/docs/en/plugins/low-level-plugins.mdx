@@ -3,6 +3,7 @@ description: 'Publicly exposed low-level Rspack plugins for target presets, runt
 ---
 
 import WebpackLicense from '@components/WebpackLicense';
+import { ApiMeta, Stability } from '@components/ApiMeta';
 
 <WebpackLicense from="https://webpack.js.org/plugins/internal-plugins/" />
 
@@ -94,6 +95,105 @@ Similar to `EntryPlugin` but accepts a function as the `entry` argument. This fu
 ## output
 
 Plugins affecting generated modules, chunks, and runtime loading.
+
+### EnableChunkLoadingPlugin \{#enable-chunk-loading-plugin}
+
+`javascript.EnableChunkLoadingPlugin(type)`
+
+`EnableChunkLoadingPlugin` enables the runtime modules required by a chunk-loading type. Rspack normally applies it for the types collected in [`output.enabledChunkLoadingTypes`](/config/output#outputenabledchunkloadingtypes).
+
+The supported built-in types are `'jsonp'`, `'import-scripts'`, `'require'`, `'async-node'`, and `'import'`.
+
+Direct application is useful when a dynamic entry selects a type that Rspack cannot discover while normalizing the configuration:
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  entry: () => ({
+    main: {
+      import: './src/index.js',
+      chunkLoading: 'jsonp',
+    },
+  }),
+  output: {
+    chunkLoading: false,
+  },
+  plugins: [new rspack.javascript.EnableChunkLoadingPlugin('jsonp')],
+};
+```
+
+For a custom chunk-loading implementation, call `EnableChunkLoadingPlugin.setEnabled(compiler, type)` after installing its runtime hooks. This method only registers the type; it does not implement chunk loading.
+
+### EnableLibraryPlugin \{#enable-library-plugin}
+
+`library.EnableLibraryPlugin(type)`
+
+`EnableLibraryPlugin` registers a library output type with the compiler. Rspack normally applies it for the types collected in [`output.enabledLibraryTypes`](/config/output#outputenabledlibrarytypes).
+
+The following dynamic entry selects the `'var'` library type and enables it explicitly because Rspack cannot inspect a function entry during configuration normalization:
+
+```js title="src/index.js"
+export const add = (a, b) => a + b;
+```
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  entry: () => ({
+    main: {
+      import: './src/index.js',
+      library: {
+        name: 'MathLibrary',
+        type: 'var',
+      },
+    },
+  }),
+  plugins: [new rspack.library.EnableLibraryPlugin('var')],
+};
+```
+
+For a regular library build, prefer [`output.library`](/config/output#outputlibrary), which automatically enables its library type.
+
+### EnableWasmLoadingPlugin \{#enable-wasm-loading-plugin}
+
+`wasm.EnableWasmLoadingPlugin(type)`
+
+`EnableWasmLoadingPlugin` enables the runtime modules required by a WebAssembly loading type. Rspack normally applies it for the types collected in [`output.enabledWasmLoadingTypes`](/config/output#outputenabledwasmloadingtypes).
+
+The supported types are `'fetch'`, `'async-node'`, and `'universal'`.
+
+The following dynamic entry selects `'fetch'` and enables it explicitly because the entry-specific type cannot be discovered during configuration normalization:
+
+```js title="src/index.js"
+import { add } from './add.wasm';
+
+console.log(add(1, 2));
+```
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  target: 'web',
+  entry: () => ({
+    main: {
+      import: './src/index.js',
+      wasmLoading: 'fetch',
+    },
+  }),
+  experiments: {
+    asyncWebAssembly: true,
+  },
+  output: {
+    wasmLoading: false,
+  },
+  plugins: [new rspack.wasm.EnableWasmLoadingPlugin('fetch')],
+};
+```
+
+For a regular build, prefer [`output.wasmLoading`](/config/output#outputwasmloading), which automatically enables the selected type.
 
 ### EvalDevToolModulePlugin
 
@@ -325,6 +425,44 @@ Low-level plugins used by `ModuleFederationPlugin`.
 ### SharePlugin
 
 `sharing.SharePlugin(options)`
+
+### TreeShakingSharedPlugin \{#tree-shaking-shared-plugin}
+
+`sharing.TreeShakingSharedPlugin(options)`
+
+<ApiMeta stability={Stability.Experimental} />
+
+`TreeShakingSharedPlugin` creates independent builds and optimizes exports for Module Federation shared dependencies. `ModuleFederationPlugin` applies it automatically when at least one `shared` dependency enables `treeShaking`.
+
+#### Options
+
+- `mfConfig`: The `ModuleFederationPluginOptions` used to configure the shared dependencies and output.
+- `secondary`: Whether to perform a second tree-shaking pass during the independent build. The default is `false`.
+- `onBuildAssets`: A callback invoked with the generated shared fallback assets.
+
+Direct application is mainly intended for deployment integrations that perform a secondary build after collecting complete dependency information:
+
+```js title="rspack.config.mjs"
+import { sharing } from '@rspack/core';
+
+export default {
+  plugins: [
+    new sharing.TreeShakingSharedPlugin({
+      secondary: true,
+      mfConfig: {
+        name: 'app',
+        shared: {
+          'lodash-es': { treeShaking: { mode: 'server-calc' } },
+        },
+        library: { type: 'var', name: 'App' },
+        manifest: true,
+      },
+    }),
+  ],
+};
+```
+
+The plugin creates an independent build only for shared dependencies that enable `treeShaking` and retain a local implementation. When `mfConfig.manifest` is enabled, it records the generated fallback assets in the stats and manifest.
 
 ## experiments
 

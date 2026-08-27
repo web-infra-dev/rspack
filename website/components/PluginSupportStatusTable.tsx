@@ -339,17 +339,17 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
   },
   {
     name: 'EnableChunkLoadingPlugin',
-    url: '/plugins/enable-chunk-loading-plugin',
+    url: '/plugins/low-level-plugins#enable-chunk-loading-plugin',
     status: SupportStatus.FullySupported,
   },
   {
     name: 'EnableLibraryPlugin',
-    url: '/plugins/enable-library-plugin',
+    url: '/plugins/low-level-plugins#enable-library-plugin',
     status: SupportStatus.FullySupported,
   },
   {
     name: 'EnableWasmLoadingPlugin',
-    url: '/plugins/enable-wasm-loading-plugin',
+    url: '/plugins/low-level-plugins#enable-wasm-loading-plugin',
     status: SupportStatus.FullySupported,
   },
   {

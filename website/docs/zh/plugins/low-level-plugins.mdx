@@ -3,6 +3,7 @@ description: '介绍 Rspack 对外暴露、用于目标预设、运行时模板�
 ---
 
 import WebpackLicense from '@components/WebpackLicense';
+import { ApiMeta, Stability } from '@components/ApiMeta';
 
 <WebpackLicense from="https://webpack.docschina.org/plugins/internal-plugins/" />
 
@@ -94,6 +95,105 @@ new compiler.rspack.node.NodeTargetPlugin().apply(childCompiler);
 ## output
 
 影响模块、chunk 和运行时加载代码生成的插件。
+
+### EnableChunkLoadingPlugin \{#enable-chunk-loading-plugin}
+
+`javascript.EnableChunkLoadingPlugin(type)`
+
+`EnableChunkLoadingPlugin` 会启用指定 chunk loading 类型所需的运行时模块。Rspack 通常会根据 [`output.enabledChunkLoadingTypes`](/config/output#outputenabledchunkloadingtypes) 收集到的类型应用该插件。
+
+支持的内置类型包括 `'jsonp'`、`'import-scripts'`、`'require'`、`'async-node'` 和 `'import'`。
+
+当动态入口选择了 Rspack 在配置标准化阶段无法发现的类型时，可以直接应用该插件：
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  entry: () => ({
+    main: {
+      import: './src/index.js',
+      chunkLoading: 'jsonp',
+    },
+  }),
+  output: {
+    chunkLoading: false,
+  },
+  plugins: [new rspack.javascript.EnableChunkLoadingPlugin('jsonp')],
+};
+```
+
+自定义 chunk loading 实现可以在安装相应运行时钩子后调用 `EnableChunkLoadingPlugin.setEnabled(compiler, type)`。该方法只注册类型，并不会实现 chunk loading。
+
+### EnableLibraryPlugin \{#enable-library-plugin}
+
+`library.EnableLibraryPlugin(type)`
+
+`EnableLibraryPlugin` 会向编译器注册一种 library 输出类型。Rspack 通常会根据 [`output.enabledLibraryTypes`](/config/output#outputenabledlibrarytypes) 收集到的类型应用该插件。
+
+下面的动态入口选择 `'var'` library 类型。由于 Rspack 无法在配置标准化阶段检查函数入口，因此需要显式启用该类型：
+
+```js title="src/index.js"
+export const add = (a, b) => a + b;
+```
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  entry: () => ({
+    main: {
+      import: './src/index.js',
+      library: {
+        name: 'MathLibrary',
+        type: 'var',
+      },
+    },
+  }),
+  plugins: [new rspack.library.EnableLibraryPlugin('var')],
+};
+```
+
+常规 library 构建应优先使用 [`output.library`](/config/output#outputlibrary)，Rspack 会自动启用其中的 library 类型。
+
+### EnableWasmLoadingPlugin \{#enable-wasm-loading-plugin}
+
+`wasm.EnableWasmLoadingPlugin(type)`
+
+`EnableWasmLoadingPlugin` 会启用指定 WebAssembly 加载类型所需的运行时模块。Rspack 通常会根据 [`output.enabledWasmLoadingTypes`](/config/output#outputenabledwasmloadingtypes) 收集到的类型应用该插件。
+
+支持的类型包括 `'fetch'`、`'async-node'` 和 `'universal'`。
+
+下面的动态入口选择 `'fetch'`。由于 Rspack 无法在配置标准化阶段发现入口指定的类型，因此需要显式启用：
+
+```js title="src/index.js"
+import { add } from './add.wasm';
+
+console.log(add(1, 2));
+```
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  target: 'web',
+  entry: () => ({
+    main: {
+      import: './src/index.js',
+      wasmLoading: 'fetch',
+    },
+  }),
+  experiments: {
+    asyncWebAssembly: true,
+  },
+  output: {
+    wasmLoading: false,
+  },
+  plugins: [new rspack.wasm.EnableWasmLoadingPlugin('fetch')],
+};
+```
+
+常规构建应优先使用 [`output.wasmLoading`](/config/output#outputwasmloading)，Rspack 会自动启用所选类型。
 
 ### EvalDevToolModulePlugin
 
@@ -325,6 +425,44 @@ export default {
 ### SharePlugin
 
 `sharing.SharePlugin(options)`
+
+### TreeShakingSharedPlugin \{#tree-shaking-shared-plugin}
+
+`sharing.TreeShakingSharedPlugin(options)`
+
+<ApiMeta stability={Stability.Experimental} />
+
+`TreeShakingSharedPlugin` 会为 Module Federation 共享依赖创建独立构建并优化导出。当至少一个 `shared` 依赖启用了 `treeShaking` 时，`ModuleFederationPlugin` 会自动应用该插件。
+
+#### 选项
+
+- `mfConfig`：用于配置共享依赖和产物的 `ModuleFederationPluginOptions`。
+- `secondary`：是否在独立构建中执行第二次 tree shaking，默认值为 `false`。
+- `onBuildAssets`：生成共享 fallback 产物后调用的回调函数。
+
+直接应用该插件主要适用于部署平台在收集完整依赖信息后执行二次构建的场景：
+
+```js title="rspack.config.mjs"
+import { sharing } from '@rspack/core';
+
+export default {
+  plugins: [
+    new sharing.TreeShakingSharedPlugin({
+      secondary: true,
+      mfConfig: {
+        name: 'app',
+        shared: {
+          'lodash-es': { treeShaking: { mode: 'server-calc' } },
+        },
+        library: { type: 'var', name: 'App' },
+        manifest: true,
+      },
+    }),
+  ],
+};
+```
+
+该插件只会为启用了 `treeShaking` 且保留本地实现的共享依赖创建独立构建。启用 `mfConfig.manifest` 后，生成的 fallback 产物信息会写入 stats 和 manifest。
 
 ## experiments
 
