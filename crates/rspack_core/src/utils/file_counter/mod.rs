@@ -3,7 +3,7 @@ mod resource_id;
 use std::hash::BuildHasherDefault;
 
 use rspack_collections::IdentifierSet;
-use rspack_paths::{InternedPath, InternedPathMap, InternedPathSet};
+use rspack_paths::{InternedPath, InternedPathMap};
 use rustc_hash::FxHashSet;
 use ustr::IdentityHasher;
 
@@ -56,7 +56,11 @@ impl FileCounter {
   /// Add batch [`PathBuf`] to counter
   ///
   /// It will add resource_id at the PathBuf in inner hashmap
-  pub fn add_files(&mut self, resource_id: &ResourceId, paths: &InternedPathSet) {
+  pub fn add_files<'a>(
+    &mut self,
+    resource_id: &ResourceId,
+    paths: impl IntoIterator<Item = &'a InternedPath>,
+  ) {
     for path in paths {
       let list = self.inner.entry(path.clone()).or_default();
       if list.is_empty() {
@@ -73,7 +77,11 @@ impl FileCounter {
   ///
   /// If the PathBuf resource_id is empty after reduction, the record will be deleted
   /// If PathBuf does not exist, panic will occur.
-  pub fn remove_files(&mut self, resource_id: &ResourceId, paths: &InternedPathSet) {
+  pub fn remove_files<'a>(
+    &mut self,
+    resource_id: &ResourceId,
+    paths: impl IntoIterator<Item = &'a InternedPath>,
+  ) {
     for path in paths {
       let Some(list) = self.inner.get_mut(path) else {
         panic!("unable to remove untracked file {}", path.to_string_lossy());
