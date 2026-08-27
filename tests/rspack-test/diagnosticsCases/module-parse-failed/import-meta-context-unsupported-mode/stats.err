@@ -1,11 +1,8 @@
-ERROR in ./index.js
-  × Module parse failed:
-  ╰─▶   × Unsupported mode: `mode` expected "sync", "eager", "weak", "async-weak", "lazy" or "lazy-once", but received: "unknown-mode".
+WARNING in ./index.js
+  ⚠ Module parse warning:
+  ╰─▶   ⚠ Unsupported mode: `mode` expected "sync", "eager", "weak", "async-weak", "lazy" or "lazy-once", but received: "unknown-mode".
          ╭─[1:56]
        1 │ const ctx = import.meta.webpackContext("./dir", { mode: "unknown-mode" });
          ·                                                         ──────────────
        2 │ module.exports = ctx;
          ╰────
-      
-  help: 
-        You may need an appropriate loader to handle this file type.
