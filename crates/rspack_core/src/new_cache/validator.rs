@@ -71,7 +71,13 @@ impl CacheValidator {
 
   /// See webpack's persistent build snapshot validation:
   /// https://github.com/webpack/webpack/blob/ce97d583e1cd8f3e47b70737de72e91b567a8497/lib/cache/PackFileCacheStrategy.js#L1345-L1429
-  pub(super) async fn validate(&mut self, data: DatabaseValue) -> Result<CacheValidatorResult> {
+  pub(super) async fn validate(
+    &mut self,
+    data: Option<DatabaseValue>,
+  ) -> Result<CacheValidatorResult> {
+    let Some(data) = data else {
+      return Ok(CacheValidatorResult::InvalidError);
+    };
     let validator = self.codec.decode::<CacheValidatorData>(&data)?;
     if !validator.has_same_version(&self.data) {
       return Ok(CacheValidatorResult::InvalidVersion);

@@ -47,6 +47,10 @@ impl Database {
     Ok(self.families[family.index()].get(key).cloned())
   }
 
+  pub fn is_empty(&self) -> bool {
+    self.families.iter().all(|family| family.is_empty())
+  }
+
   pub fn write_batch(&mut self, write: impl FnOnce(&DatabaseBatch) -> Result<()>) -> Result<()> {
     let batch = DatabaseBatch {
       writes: Mutex::new(Default::default()),

@@ -212,6 +212,10 @@ impl Database {
     Ok(self.inner.get(family.index(), &key)?)
   }
 
+  pub fn is_empty(&self) -> bool {
+    self.inner.is_empty()
+  }
+
   pub fn write_batch<'key>(
     &mut self,
     write: impl FnOnce(&DatabaseBatch<'_, 'key>) -> Result<()>,

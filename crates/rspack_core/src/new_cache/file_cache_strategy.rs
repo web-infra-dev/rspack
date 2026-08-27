@@ -84,25 +84,25 @@ impl FileCacheStrategy {
   /// Validates the current database's build dependencies once before the
   /// background job starts serving commands.
   pub async fn db_validation(&mut self) -> Result<()> {
-    let Some(data) = self
-      .database
-      .get(DatabaseFamily::Validator, VALIDATOR_KEY)?
-    else {
+    if self.database.is_empty() {
       return Ok(());
-    };
-    let validation = self.validator.validate(data).await;
+    }
+    let data = self
+      .database
+      .get(DatabaseFamily::Validator, VALIDATOR_KEY)?;
+    let validation = self.validator.validate(data).await?;
     match validation {
-      Ok(CacheValidatorResult::Valid) => {}
-      Ok(CacheValidatorResult::InvalidVersion) => {
+      CacheValidatorResult::Valid => {}
+      CacheValidatorResult::InvalidVersion => {
         self
           .logger
           .log("Resetting cache, the cache version doesn't match");
         self.database.reset()?;
       }
-      Ok(CacheValidatorResult::InvalidBuildDependencies {
+      CacheValidatorResult::InvalidBuildDependencies {
         modified_files,
         removed_files,
-      }) => {
+      } => {
         self.logger.log(format!(
           "Resetting cache, build dependencies have changed ({} modified, {} removed)",
           modified_files.len(),
@@ -110,16 +110,10 @@ impl FileCacheStrategy {
         ));
         self.database.reset()?;
       }
-      Ok(CacheValidatorResult::InvalidError) => {
+      CacheValidatorResult::InvalidError => {
         self
           .logger
           .warn("Resetting cache, unexpected error occurred");
-        self.database.reset()?;
-      }
-      Err(error) => {
-        self.logger.log(format!(
-          "Resetting cache, unexpected error occurred: {error}"
-        ));
         self.database.reset()?;
       }
     }
