@@ -21,8 +21,7 @@ pub use self::rebuild::CompilationRecords;
 use crate::{
   BoxPlugin, CacheOptions, CleanOptions, Compilation, CompilationAsset, CompilationLogging,
   CompilerOptions, CompilerPlatform, ContextModuleFactory, Filename, InfrastructureLogSink,
-  KeepPattern, NormalModuleFactory, PluginDriver, PrintlnInfrastructureLogSink, ResolverFactory,
-  SharedPluginDriver,
+  KeepPattern, NormalModuleFactory, PluginDriver, ResolverFactory, SharedPluginDriver,
   artifacts::IncrementalArtifacts,
   compilation::build_module_graph::ModuleExecutor,
   fast_set,
@@ -133,7 +132,7 @@ impl Compiler {
     resolver_factory: Option<Arc<ResolverFactory>>,
     loader_resolver_factory: Option<Arc<ResolverFactory>>,
     compiler_context: Option<Arc<CompilerContext>>,
-    infrastructure_log_sink: Option<Arc<dyn InfrastructureLogSink>>,
+    infrastructure_log_sink: Arc<dyn InfrastructureLogSink>,
     platform: Arc<CompilerPlatform>,
   ) -> Self {
     #[cfg(debug_assertions)]
@@ -166,8 +165,6 @@ impl Compiler {
 
     let options = Arc::new(options);
     let compilation_logging: CompilationLogging = Default::default();
-    let infrastructure_log_sink =
-      infrastructure_log_sink.unwrap_or_else(|| Arc::new(PrintlnInfrastructureLogSink));
     let plugin_driver = PluginDriver::new(options.clone(), plugins, resolver_factory.clone());
     let buildtime_plugin_driver =
       PluginDriver::new(options.clone(), buildtime_plugins, resolver_factory.clone());

@@ -52,10 +52,10 @@ use rspack_core::{
   JsonParserOptions, LibraryName, LibraryNonUmdObject, LibraryOptions, LibraryType,
   MangleExportsOption, Mode, ModuleNoParseRules, ModuleOptions, ModuleRule, ModuleRuleEffect,
   ModuleType, NewCacheOptions, NodeDirnameOption, NodeFilenameOption, NodeGlobalOption, NodeOption,
-  Optimization, OutputOptions, ParseOption, ParserOptions, ParserOptionsMap, PathInfo, PublicPath,
-  Resolve, RuleSetCondition, RuleSetLogicalConditions, SideEffectOption, StatsOptions,
-  TrustedTypes, UsedExportsOption, WasmLoading, WasmLoadingType, incremental::IncrementalOptions,
-  runtime_mode::RuntimeMode,
+  Optimization, OutputOptions, ParseOption, ParserOptions, ParserOptionsMap, PathInfo,
+  PrintlnInfrastructureLogSink, PublicPath, Resolve, RuleSetCondition, RuleSetLogicalConditions,
+  SideEffectOption, StatsOptions, TrustedTypes, UsedExportsOption, WasmLoading, WasmLoadingType,
+  incremental::IncrementalOptions, runtime_mode::RuntimeMode,
 };
 use rspack_error::{Error, Result};
 use rspack_fs::{IntermediateFileSystem, ReadableFileSystem, WritableFileSystem};
@@ -469,7 +469,7 @@ impl CompilerBuilder {
       None,
       None,
       compiler_context,
-      None,
+      Arc::new(PrintlnInfrastructureLogSink),
       Arc::new(platform),
     ))
   }

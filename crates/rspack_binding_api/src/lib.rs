@@ -406,7 +406,7 @@ impl JsCompiler {
         Some(resolver_factory),
         Some(loader_resolver_factory),
         Some(compiler_context.clone()),
-        Some(infrastructure_log_sink),
+        infrastructure_log_sink,
         platform,
       );
 
