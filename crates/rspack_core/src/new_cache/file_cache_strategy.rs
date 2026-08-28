@@ -56,7 +56,7 @@ impl FileCacheStrategy {
     rspack_pkg_version: String,
     cache_version: String,
     codec: Arc<CacheCodec>,
-    file_system_info: FileSystemInfo,
+    file_system_info: Arc<FileSystemInfo>,
   ) -> Result<Self> {
     let (base_path, database_path) = database_paths;
     let database = Database::open(base_path, database_path, readonly)?;

@@ -79,19 +79,18 @@ struct ContextValue {
 ///
 /// See webpack's `FileSystemInfo` implementation:
 /// https://github.com/webpack/webpack/blob/ce97d583e1cd8f3e47b70737de72e91b567a8497/lib/FileSystemInfo.js#L1282-L1450
-#[derive(Clone)]
 pub struct FileSystemInfo {
   fs: Arc<dyn ReadableFileSystem>,
   logger: CompilationLogger,
-  options: Arc<SnapshotOptions>,
+  options: SnapshotOptions,
   hash_function: HashFunction,
-  file_timestamps: Arc<InternedPathDashMap<Option<FileSystemInfoEntry>>>,
-  file_hashes: Arc<InternedPathDashMap<Option<FileHash>>>,
-  file_timestamp_hashes: Arc<InternedPathDashMap<Option<TimestampAndHash>>>,
-  context_timestamps: Arc<InternedPathDashMap<Option<ContextFileSystemInfoEntry>>>,
-  context_hashes: Arc<InternedPathDashMap<Option<RspackHashDigest>>>,
-  context_timestamp_hashes: Arc<InternedPathDashMap<Option<ContextTimestampAndHash>>>,
-  managed_items: Arc<InternedPathDashMap<Option<String>>>,
+  file_timestamps: InternedPathDashMap<Option<FileSystemInfoEntry>>,
+  file_hashes: InternedPathDashMap<Option<FileHash>>,
+  file_timestamp_hashes: InternedPathDashMap<Option<TimestampAndHash>>,
+  context_timestamps: InternedPathDashMap<Option<ContextFileSystemInfoEntry>>,
+  context_hashes: InternedPathDashMap<Option<RspackHashDigest>>,
+  context_timestamp_hashes: InternedPathDashMap<Option<ContextTimestampAndHash>>,
+  managed_items: InternedPathDashMap<Option<String>>,
 }
 
 impl fmt::Debug for FileSystemInfo {
@@ -108,11 +107,11 @@ impl FileSystemInfo {
     logger: CompilationLogger,
     options: SnapshotOptions,
     hash_function: HashFunction,
-  ) -> Self {
-    Self {
+  ) -> Arc<Self> {
+    Arc::new(Self {
       fs,
       logger,
-      options: Arc::new(options),
+      options,
       hash_function,
       file_timestamps: Default::default(),
       file_hashes: Default::default(),
@@ -121,14 +120,14 @@ impl FileSystemInfo {
       context_hashes: Default::default(),
       context_timestamp_hashes: Default::default(),
       managed_items: Default::default(),
-    }
+    })
   }
 
   /// See webpack's snapshot creation implementation:
   /// https://github.com/webpack/webpack/blob/ce97d583e1cd8f3e47b70737de72e91b567a8497/lib/FileSystemInfo.js#L2525-L3079
   #[tracing::instrument("Cache::FileSystemInfo::create_snapshot", skip_all)]
   pub async fn create_snapshot(
-    &self,
+    self: Arc<Self>,
     start_time: Option<u64>,
     files: &InternedPathSet,
     contexts: &InternedPathSet,
@@ -151,8 +150,14 @@ impl FileSystemInfo {
       .capture_non_managed(&mut snapshot, missing, PathKind::Missing)
       .await?;
 
-    self.capture_files(&mut snapshot, files, mode).await?;
-    self.capture_contexts(&mut snapshot, contexts, mode).await?;
+    self
+      .clone()
+      .capture_files(&mut snapshot, files, mode)
+      .await?;
+    self
+      .clone()
+      .capture_contexts(&mut snapshot, contexts, mode)
+      .await?;
     self.capture_missing(&mut snapshot, missing).await?;
     Ok(snapshot)
   }
@@ -270,7 +275,7 @@ impl FileSystemInfo {
   }
 
   async fn capture_files(
-    &self,
+    self: Arc<Self>,
     snapshot: &mut Snapshot,
     paths: Vec<InternedPath>,
     mode: SnapshotMode,
@@ -329,7 +334,7 @@ impl FileSystemInfo {
   }
 
   async fn capture_contexts(
-    &self,
+    self: Arc<Self>,
     snapshot: &mut Snapshot,
     paths: Vec<InternedPath>,
     mode: SnapshotMode,
@@ -387,7 +392,11 @@ impl FileSystemInfo {
     Ok(())
   }
 
-  async fn capture_missing(&self, snapshot: &mut Snapshot, paths: Vec<InternedPath>) -> Result<()> {
+  async fn capture_missing(
+    self: Arc<Self>,
+    snapshot: &mut Snapshot,
+    paths: Vec<InternedPath>,
+  ) -> Result<()> {
     let map = snapshot.missing_existence.get_or_insert_default();
     paths
       .into_iter()

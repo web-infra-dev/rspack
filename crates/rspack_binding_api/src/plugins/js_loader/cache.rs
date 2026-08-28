@@ -37,7 +37,7 @@ pub struct JsLoaderCacheEntry {
 #[napi]
 pub struct JsLoaderCache {
   cache: CacheFacade,
-  file_system_info: FileSystemInfo,
+  file_system_info: Arc<FileSystemInfo>,
   module_identifier: String,
   loaders: Vec<LoaderRunnerOptions>,
   pending_etags: Arc<Mutex<Vec<Option<Etag>>>>,
@@ -86,7 +86,7 @@ impl ValidateNapiValue for JsLoaderCacheObject {}
 impl JsLoaderCache {
   fn new(
     cache: CacheFacade,
-    file_system_info: FileSystemInfo,
+    file_system_info: Arc<FileSystemInfo>,
     module_identifier: String,
     loaders: Vec<LoaderRunnerOptions>,
   ) -> Self {
@@ -205,7 +205,7 @@ impl JsLoaderCache {
     }
     let dependencies: LoaderDependencies = output.added_dependencies.into();
     let Some(dependency_snapshot) =
-      loader_cache_dependency_snapshot(&self.file_system_info, &dependencies).await
+      loader_cache_dependency_snapshot(self.file_system_info.clone(), &dependencies).await
     else {
       return Ok(());
     };
@@ -230,7 +230,7 @@ impl JsLoaderCache {
 impl JsLoaderCacheObject {
   pub(super) fn new(
     cache: CacheFacade,
-    file_system_info: FileSystemInfo,
+    file_system_info: Arc<FileSystemInfo>,
     module_identifier: String,
     loaders: Vec<LoaderRunnerOptions>,
   ) -> Self {

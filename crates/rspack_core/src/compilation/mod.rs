@@ -238,7 +238,7 @@ pub struct Compilation {
   diagnostics: Vec<Diagnostic>,
   logging: CompilationLogging,
   cache: Cache,
-  file_system_info: FileSystemInfo,
+  file_system_info: Arc<FileSystemInfo>,
   pub plugin_driver: SharedPluginDriver,
   pub buildtime_plugin_driver: SharedPluginDriver,
   pub resolver_factory: Arc<ResolverFactory>,
@@ -457,7 +457,7 @@ impl Compilation {
     self.cache.facade(name)
   }
 
-  pub fn file_system_info(&self) -> FileSystemInfo {
+  pub fn file_system_info(&self) -> Arc<FileSystemInfo> {
     self.file_system_info.clone()
   }
 
