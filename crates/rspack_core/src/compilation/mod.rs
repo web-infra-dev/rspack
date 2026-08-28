@@ -86,7 +86,6 @@ use crate::{
   RuntimeKeyMap, RuntimeMode, RuntimeModule, RuntimeProxyMetadataArtifact, RuntimeSpec,
   RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver, SideEffectsOptimizeArtifact,
   SideEffectsStateArtifact, SourceType, Stats, StatsContext, StealCell, ValueCacheVersions,
-  cache::SnapshotOptions,
   compilation::build_module_graph::{
     BuildModuleGraphArtifact, ModuleExecutor, UpdateParam, update_module_graph,
   },
@@ -359,14 +358,10 @@ impl Compilation {
     is_rebuild: bool,
     compiler_context: Arc<CompilerContext>,
   ) -> Self {
-    let snapshot_options = match &options.cache {
-      CacheOptions::Persistent(options) => options.snapshot.clone(),
-      CacheOptions::Disabled | CacheOptions::Memory { .. } => SnapshotOptions::default(),
-    };
     let file_system_info = FileSystemInfo::new(
       input_filesystem.clone(),
       CompilationLogger::new("rspack.FileSystemInfo", logging.clone()),
-      snapshot_options,
+      options.snapshot.clone(),
       options.output.hash_function,
     );
 

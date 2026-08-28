@@ -635,6 +635,12 @@ export interface ModuleOptionsNormalized {
   noParse?: NoParseOption;
 }
 
+export type CacheSnapshotNormalized = {
+  immutablePaths?: (string | RegExp)[];
+  unmanagedPaths?: (string | RegExp)[];
+  managedPaths?: (string | RegExp)[];
+};
+
 export type CacheNormalized =
   | false
   | {
@@ -647,11 +653,7 @@ export type CacheNormalized =
       version?: string;
       maxAge?: number;
       maxVersions?: number;
-      snapshot: {
-        immutablePaths?: (string | RegExp)[];
-        unmanagedPaths?: (string | RegExp)[];
-        managedPaths?: (string | RegExp)[];
-      };
+      snapshot: CacheSnapshotNormalized;
       storage: {
         type: 'filesystem';
         directory?: string;

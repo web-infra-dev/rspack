@@ -54,8 +54,8 @@ use rspack_core::{
   ModuleType, NewCacheOptions, NodeDirnameOption, NodeFilenameOption, NodeGlobalOption, NodeOption,
   Optimization, OutputOptions, ParseOption, ParserOptions, ParserOptionsMap, PathInfo,
   PrintlnInfrastructureLogSink, PublicPath, Resolve, RuleSetCondition, RuleSetLogicalConditions,
-  SideEffectOption, StatsOptions, TrustedTypes, UsedExportsOption, WasmLoading, WasmLoadingType,
-  incremental::IncrementalOptions, runtime_mode::RuntimeMode,
+  SideEffectOption, SnapshotOptions, StatsOptions, TrustedTypes, UsedExportsOption, WasmLoading,
+  WasmLoadingType, incremental::IncrementalOptions, runtime_mode::RuntimeMode,
 };
 use rspack_error::{Error, Result};
 use rspack_fs::{IntermediateFileSystem, ReadableFileSystem, WritableFileSystem};
@@ -198,6 +198,14 @@ impl CompilerBuilder {
   /// See [`CompilerOptionsBuilder::cache`] for more details.
   pub fn cache(&mut self, cache: CacheOptions) -> &mut Self {
     self.options_builder.cache(cache);
+    self
+  }
+
+  /// Set the filesystem snapshot options.
+  ///
+  /// See [`CompilerOptionsBuilder::snapshot`] for more details.
+  pub fn snapshot(&mut self, snapshot: SnapshotOptions) -> &mut Self {
+    self.options_builder.snapshot(snapshot);
     self
   }
 
@@ -580,6 +588,8 @@ pub struct CompilerOptionsBuilder {
   context: Option<Context>,
   /// Options for caching.
   cache: Option<CacheOptions>,
+  /// Options for filesystem snapshots.
+  snapshot: Option<SnapshotOptions>,
   /// The mode in which Rspack should operate.
   mode: Option<Mode>,
   /// The type of externals.
@@ -619,6 +629,7 @@ impl From<&mut CompilerOptionsBuilder> for CompilerOptionsBuilder {
       externals_presets: value.externals_presets.take(),
       context: value.context.take(),
       cache: value.cache.take(),
+      snapshot: value.snapshot.take(),
       mode: value.mode.take(),
       resolve: value.resolve.take(),
       resolve_loader: value.resolve_loader.take(),
@@ -694,6 +705,12 @@ impl CompilerOptionsBuilder {
   /// Set options for caching.
   pub fn cache(&mut self, cache: CacheOptions) -> &mut Self {
     self.cache = Some(cache);
+    self
+  }
+
+  /// Set options for filesystem snapshots.
+  pub fn snapshot(&mut self, snapshot: SnapshotOptions) -> &mut Self {
+    self.snapshot = Some(snapshot);
     self
   }
 
@@ -948,6 +965,7 @@ impl CompilerOptionsBuilder {
         CacheOptions::Disabled
       }
     });
+    let snapshot = d!(self.snapshot.take(), SnapshotOptions::default());
 
     // apply experiments defaults
     let mut experiments_builder = f!(self.experiments.take(), Experiments::builder);
@@ -1287,6 +1305,7 @@ impl CompilerOptionsBuilder {
       resolve_loader,
       module,
       stats,
+      snapshot,
       cache,
       experiments,
       incremental,

@@ -8,7 +8,7 @@ use napi::{
   bindgen_prelude::{FromNapiValue, JsObjectValue, Object, TypeName, ValidateNapiValue},
 };
 use napi_derive::napi;
-use raw_snapshot::RawSnapshotOptions;
+pub use raw_snapshot::RawSnapshotOptions;
 use raw_storage::RawStorageOptions;
 use rspack_core::{CacheOptions, PersistentCacheOptions};
 
