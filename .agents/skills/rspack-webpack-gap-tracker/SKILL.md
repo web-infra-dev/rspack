@@ -55,9 +55,10 @@ Apply only the approved preview content. Do not add, remove, reclassify, or rewo
 8. Inspect the corresponding webpack feature or plugin implementation for accurate compatibility notes. Check whether Rsbuild already provides a solution, and whether https://github.com/rstackjs already has a compatible package or plugin, but keep gaps in **Pending evaluation** unless the issue has the manual recommendation annotation described above.
 9. If the gap is native CSS-related, record it in #14002 instead of #14556.
 10. For missing tests:
-   - If a missing webpack test maps clearly to a tracked feature gap or a specific PR gap, mention it under that feature instead of adding it to the standalone missing-test comment.
-   - Otherwise, list missing tests by webpack test directory.
-   - Include older missing tests directly; do not hide them just because they predate the last update.
+
+- If a missing webpack test maps clearly to a tracked feature gap or a specific PR gap, mention it under that feature instead of adding it to the standalone missing-test comment.
+- Otherwise, list missing tests by webpack test directory.
+- Include older missing tests directly; do not hide them just because they predate the last update.
 
 ## Suggested Investigation Sources
 
