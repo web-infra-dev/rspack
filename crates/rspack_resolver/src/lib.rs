@@ -90,7 +90,7 @@ use futures::future::{BoxFuture, try_join_all};
 // Resolved dependencies are reported as interned paths, so consumers do not have to convert or
 // rehash them; re-exported for anyone reading a `ResolveContext`.
 pub use rspack_paths::{InternedPath, InternedPathSet};
-use rustc_hash::FxHashSet;
+use rustc_hash::{FxBuildHasher, FxHashSet};
 
 use crate::{
   alias_trie::AliasTrie,
@@ -114,6 +114,7 @@ pub use crate::{
 };
 
 type ResolveResult = Result<Option<CachedPath>, ResolveError>;
+type FxDashSet<T> = DashSet<T, FxBuildHasher>;
 
 /// Context returned from the [Resolver::resolve_with_context] API
 #[derive(Debug, Default, Clone)]
@@ -140,7 +141,7 @@ pub struct ResolverGeneric<Fs> {
   pnp_manifest: Arc<arc_swap::ArcSwapOption<(PathBuf, pnp::Manifest)>>,
   /// Paths that have been searched and confirmed to have no `.pnp.cjs` reachable by filesystem walk.
   #[cfg(feature = "yarn_pnp")]
-  pnp_no_manifest_cache: Arc<DashSet<CachedPath>>,
+  pnp_no_manifest_cache: Arc<FxDashSet<CachedPath>>,
   /// Lazily parsed directories from `NODE_PATH` env var.
   node_path_dirs: OnceLock<Vec<PathBuf>>,
 }
@@ -170,7 +171,7 @@ impl<Fs: Send + Sync + FileSystem + Default> ResolverGeneric<Fs> {
       #[cfg(feature = "yarn_pnp")]
       pnp_manifest: Arc::new(arc_swap::ArcSwapOption::empty()),
       #[cfg(feature = "yarn_pnp")]
-      pnp_no_manifest_cache: Arc::new(DashSet::new()),
+      pnp_no_manifest_cache: Arc::new(FxDashSet::default()),
       node_path_dirs: OnceLock::new(),
     }
   }
@@ -189,7 +190,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
       #[cfg(feature = "yarn_pnp")]
       pnp_manifest: Arc::new(arc_swap::ArcSwapOption::empty()),
       #[cfg(feature = "yarn_pnp")]
-      pnp_no_manifest_cache: Arc::new(DashSet::new()),
+      pnp_no_manifest_cache: Arc::new(FxDashSet::default()),
       node_path_dirs: OnceLock::new(),
     }
   }

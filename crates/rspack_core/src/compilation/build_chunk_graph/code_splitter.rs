@@ -7,7 +7,7 @@ use std::{
 use itertools::Itertools;
 use num_bigint::BigUint;
 use rayon::prelude::*;
-use rspack_collections::{IdentifierIndexSet, IdentifierMap, IdentifierSet};
+use rspack_collections::{IdentifierIndexMap, IdentifierIndexSet, IdentifierMap, IdentifierSet};
 use rspack_error::{Diagnostic, Error, Result, error};
 use rspack_util::{
   fx_hash::{FxIndexMap, FxIndexSet},
@@ -1166,7 +1166,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     module_identifier: ModuleIdentifier,
     runtime: Arc<RuntimeSpec>,
     visited: &mut IdentifierSet,
-    ctx: &mut (u32, u32, FxIndexMap<ModuleIdentifier, (u32, u32)>),
+    ctx: &mut (u32, u32, IdentifierIndexMap<(u32, u32)>),
     compilation: &Compilation,
   ) {
     if !visited.insert(module_identifier) {
