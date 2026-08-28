@@ -11,8 +11,8 @@ use napi_derive::napi;
 use rspack_collections::{Identifier, IdentifierMap};
 use rspack_core::{
   BindingCell, BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, Compilation, CompilerId,
-  FactoryMeta, LibIdentOptions, Module as _, ModuleIdentifier, RuntimeModuleCommon,
-  RuntimeModuleStage, SourceType, internal, rspack_sources::Source,
+  FactoryMeta, LibIdentOptions, LoaderCompilation, Module as _, ModuleIdentifier,
+  RuntimeModuleCommon, RuntimeModuleStage, SourceType, internal, rspack_sources::Source,
 };
 use rspack_napi::{
   OneShotInstanceRef, OneShotRef, WeakRef, napi::bindgen_prelude::*, string::JsStringExt,
@@ -298,6 +298,7 @@ pub struct Module {
   pub(crate) identifier: ModuleIdentifier,
   ptr: Option<NonNull<dyn rspack_core::Module>>,
   compiler_id: CompilerId,
+  loader_compilation: Option<LoaderCompilation>,
   original_source_ref: Option<OriginalSourceNapiRef>,
   pub(crate) build_info_ref: Option<WeakRef>,
 }
@@ -340,6 +341,10 @@ impl Module {
     &self,
     f: impl FnOnce(&Compilation) -> napi::Result<R>,
   ) -> napi::Result<R> {
+    if let Some(compilation) = self.loader_compilation {
+      return f(compilation.as_ref());
+    }
+
     let compiler_reference = COMPILER_REFERENCES.with(|ref_cell| {
       let references = ref_cell.borrow();
       references.get(&self.compiler_id).cloned()
@@ -410,30 +415,8 @@ impl Module {
     enumerable = false
   )]
   pub fn original_source<'a>(&mut self, env: &'a Env) -> napi::Result<Either<Unknown<'a>, ()>> {
-    let compiler_reference = COMPILER_REFERENCES.with(|ref_cell| {
-      let references = ref_cell.borrow();
-      references.get(&self.compiler_id).cloned()
-    });
-
-    let compilation = {
-      let Some(this) = compiler_reference
-        .as_ref()
-        .and_then(|compiler_reference| compiler_reference.get())
-      else {
-        return Err(self.compiler_garbage_collected_error());
-      };
-      &this.compiler.compilation
-    };
-
-    let module = {
-      if let Some(module) = compilation.module_by_identifier(&self.identifier) {
-        module.as_ref()
-      } else {
-        return Ok(Either::B(()));
-      }
-    };
-
-    let Some(original_source) = module.source() else {
+    let original_source = self.with_ref(|_, module| Ok(module.source().cloned()))?;
+    let Some(original_source) = original_source else {
       self.original_source_ref = None;
       return Ok(Either::B(()));
     };
@@ -442,16 +425,16 @@ impl Module {
       related_source,
       napi_ref,
     }) = &self.original_source_ref
-      && (related_source.ptr_eq(&Arc::downgrade(original_source)))
+      && (related_source.ptr_eq(&Arc::downgrade(&original_source)))
     {
       return Ok(Either::A(ToNapiValue::into_unknown(napi_ref, env)?));
     }
 
-    let binding = JsSourceToJs::try_from(original_source)?;
+    let binding = JsSourceToJs::try_from(&original_source)?;
     let mut one_shot_ref = OneShotRef::new(env.raw(), binding)?;
     let result = ToNapiValue::into_unknown(&mut one_shot_ref, env)?;
     self.original_source_ref = Some(OriginalSourceNapiRef {
-      related_source: Arc::downgrade(original_source),
+      related_source: Arc::downgrade(&original_source),
       napi_ref: one_shot_ref,
     });
 
@@ -625,6 +608,7 @@ pub struct ModuleObject {
   identifier: ModuleIdentifier,
   ptr: Option<NonNull<dyn rspack_core::Module>>,
   compiler_id: CompilerId,
+  loader_compilation: Option<LoaderCompilation>,
 }
 
 unsafe impl Send for ModuleObject {}
@@ -637,6 +621,7 @@ impl ModuleObject {
       identifier: module.identifier(),
       ptr: None,
       compiler_id,
+      loader_compilation: None,
     }
   }
 
@@ -648,7 +633,12 @@ impl ModuleObject {
       identifier: module.identifier(),
       ptr: Some(module_ptr),
       compiler_id,
+      loader_compilation: None,
     }
+  }
+
+  pub(crate) fn set_loader_compilation(&mut self, compilation: LoaderCompilation) {
+    self.loader_compilation = Some(compilation);
   }
 
   pub fn cleanup_by_compiler_id(compiler_id: &CompilerId) {
@@ -710,6 +700,7 @@ impl ToNapiValue for ModuleObject {
               Either5::E(module) => &mut **module,
             };
             instance.ptr = val.ptr;
+            instance.loader_compilation = val.loader_compilation;
             match instance_ref {
               Either5::A(r) => ToNapiValue::to_napi_value(env, r),
               Either5::B(r) => ToNapiValue::to_napi_value(env, r),
@@ -723,6 +714,7 @@ impl ToNapiValue for ModuleObject {
               identifier: val.identifier,
               compiler_id: val.compiler_id,
               ptr: val.ptr,
+              loader_compilation: val.loader_compilation,
               original_source_ref: None,
               build_info_ref: Default::default(),
             };
@@ -782,30 +774,35 @@ impl FromNapiValue for ModuleObject {
           identifier: normal_module.module.identifier,
           ptr: normal_module.module.ptr,
           compiler_id: normal_module.module.compiler_id,
+          loader_compilation: normal_module.module.loader_compilation,
         },
         Either5::B(concatenated_module) => Self {
           type_id: TypeId::of::<rspack_core::ConcatenatedModule>(),
           identifier: concatenated_module.module.identifier,
           ptr: concatenated_module.module.ptr,
           compiler_id: concatenated_module.module.compiler_id,
+          loader_compilation: concatenated_module.module.loader_compilation,
         },
         Either5::C(context_module) => Self {
           type_id: TypeId::of::<rspack_core::ContextModule>(),
           identifier: context_module.module.identifier,
           ptr: context_module.module.ptr,
           compiler_id: context_module.module.compiler_id,
+          loader_compilation: context_module.module.loader_compilation,
         },
         Either5::D(external_module) => Self {
           type_id: TypeId::of::<rspack_core::ExternalModule>(),
           identifier: external_module.module.identifier,
           ptr: external_module.module.ptr,
           compiler_id: external_module.module.compiler_id,
+          loader_compilation: external_module.module.loader_compilation,
         },
         Either5::E(module) => Self {
           type_id: TypeId::of::<dyn rspack_core::Module>(),
           identifier: module.identifier,
           ptr: module.ptr,
           compiler_id: module.compiler_id,
+          loader_compilation: module.loader_compilation,
         },
       })
     }

@@ -852,8 +852,10 @@ impl NormalModuleFactory {
                 .get(ident)
                 .map(|object| object.to_string())
             }),
+            js_options_handle: None,
             cache: false,
             options_cache_key: String::new(),
+            parallel: false,
           }
         }));
         scheme = get_scheme(unresolved_resource);
@@ -1097,10 +1099,12 @@ module.exports = "data:,";
     } else {
       resource_data.resource().to_owned()
     };
-    let has_cached_loader = resolved_loaders
-      .iter()
-      .any(|resolved| resolved.options.cache);
-    let (loaders, loader_options) = if has_cached_loader {
+    let has_execution_options = resolved_loaders.iter().any(|resolved| {
+      resolved.options.cache
+        || resolved.options.parallel
+        || resolved.options.js_options_handle.is_some()
+    });
+    let (loaders, loader_options) = if has_execution_options {
       let (loaders, loader_options) = resolved_loaders
         .into_iter()
         .map(|resolved| (resolved.loader, resolved.options))
@@ -1396,7 +1400,10 @@ async fn resolve_each_with_options(
     &uncached_loader
   };
   let resolved = resolve_each(plugin_driver, &options.context, loader_resolver, loader).await?;
-  if !loader.cache {
+  let ident = parse_resource(&loader.loader)
+    .and_then(|resource| resource.query)
+    .and_then(|query| query.strip_prefix("??").map(ToOwned::to_owned));
+  if !loader.cache && !loader.parallel && loader.js_options_handle.is_none() && ident.is_none() {
     return Ok(ResolvedLoader::uncached(resolved));
   }
   let loader_name = parse_resource(&loader.loader).map_or_else(
@@ -1410,10 +1417,13 @@ async fn resolve_each_with_options(
   Ok(ResolvedLoader {
     loader: resolved,
     options: LoaderRunnerOptions {
-      cache: true,
+      cache: loader.cache,
       loader_name,
       options_cache_key: loader.options_cache_key.clone(),
       loader_version,
+      parallel: loader.parallel,
+      js_options_handle: loader.js_options_handle,
+      ident,
     },
   })
 }

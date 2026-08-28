@@ -1,5 +1,5 @@
 /** @type {import('@rspack/core').Configuration} */
-module.exports = {
+const createConfig = (parallel) => ({
   module: {
     rules: [
       {
@@ -7,11 +7,17 @@ module.exports = {
         use: [
           {
             loader: './loader.js',
-            parallel: true,
+            parallel,
             options: {},
           },
         ],
       },
+      {
+        test: /stats\.js$/,
+        use: [{ loader: './stats-loader.js', parallel }],
+      },
     ],
   },
-};
+});
+
+module.exports = [createConfig(true), createConfig(false)];

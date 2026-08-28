@@ -513,6 +513,20 @@ export declare class VirtualFileStore {
 }
 export type JsVirtualFileStore = VirtualFileStore
 
+/** Owns one Rust loader context received from the process-wide native MPMC queue. */
+export declare class WorkerTask {
+  /**
+   * Materializes the ordinary JsLoaderContext DTO in the worker isolate. Until this boundary the
+   * queue contains only the canonical Rust LoaderContext.
+   */
+  takeContext(): JsLoaderContext
+  getCompilation(): JsCompilationWrapper
+  getResolver(options?: RawResolveOptionsWithDependencyType | undefined | null): JsResolver
+  log(name: string, logType: string, message?: string | undefined | null): void
+  complete(context: JsLoaderContext): void
+  fail(error: string): void
+}
+
 export interface AssetInfoRelated {
   sourceMap?: string | null
 }
@@ -967,9 +981,11 @@ export interface JsLoaderContext {
   resource: string
   _module: Module
   hot: Readonly<boolean>
+  __internal__runHooksOnly: boolean
+  __internal__hookExtensions?: string
   /** Content maybe empty in pitching stage */
   content: null | Buffer
-  additionalData?: any
+  additionalData?: number
   __internal__parseMeta: Record<string, string>
   sourceMap?: Buffer
   cacheable: boolean
@@ -997,6 +1013,9 @@ export interface JsLoaderItem {
   loader: string
   type: string
   cache: boolean
+  parallel: boolean
+  optionsHandle?: number
+  ident?: string
   data: any
   normalExecuted: boolean
   pitchExecuted: boolean
@@ -2772,8 +2791,11 @@ export interface RawModuleRule {
 export interface RawModuleRuleUse {
   loader: string
   options?: string
+  /** Handle for ordinary JavaScript loader options kept in the main JS isolate. */
+  jsOptionsHandle?: number
   cache: boolean
   optionsCacheKey: string
+  parallel: boolean
 }
 
 export interface RawNewCache {
@@ -3226,6 +3248,12 @@ export interface RealDependencyLocation {
   end?: SourcePosition
 }
 
+/**
+ * Every JavaScript worker loops around this receive operation, so all workers compete for the
+ * same unbounded MPMC receiver without registration or per-pool state.
+ */
+export declare function recvWorkerTask(): Promise<WorkerTask>
+
 /** * this is a process level tracing, which means it would be shared by all compilers in the same process
  * only the first call would take effect, the following calls would be ignored
  * Some code is modified based on
@@ -3349,6 +3377,8 @@ export interface RegisterJsTaps {
   registerRsdoctorPluginModuleSourcesTaps: (stages: Array<number>) => Array<{ function: ((arg: JsRsdoctorModuleSourcesPatch) => Promise<boolean | undefined>); stage: number; }>
   registerRsdoctorPluginAssetsTaps: (stages: Array<number>) => Array<{ function: ((arg: JsRsdoctorAssetPatch) => Promise<boolean | undefined>); stage: number; }>
 }
+
+export declare function registerMainThreadJsValueRelease(release: (arg: number) => void): void
 
 export interface ResolveResult {
   path?: string

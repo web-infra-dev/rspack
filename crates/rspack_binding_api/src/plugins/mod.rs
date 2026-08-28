@@ -1,7 +1,7 @@
 mod interceptor;
 mod js_cleanup_plugin;
 mod js_hooks_plugin;
-mod js_loader;
+pub(crate) mod js_loader;
 mod rsc;
 
 pub use js_cleanup_plugin::*;

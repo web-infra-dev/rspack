@@ -117,6 +117,7 @@ impl Task<TaskContext> for AddTask {
     Ok(vec![Box::new(BuildTask {
       compiler_id: context.compiler_id,
       compilation_id: context.compilation_id,
+      compilation: context.compilation,
       module: self.module,
       resolver_factory: context.resolver_factory.clone(),
       compiler_options: context.compiler_options.clone(),

@@ -1,4 +1,8 @@
 import type { AssetInfo, RawModuleRuleUse, RawOptions } from '@rspack/binding';
+import {
+  ensureNativeLoaderWorkers,
+  registerLoaderOptions,
+} from '../loader-runner/service';
 import { getLightningcssLoaderOptions } from '../builtin-loader/lightningcss';
 import { getSwcLoaderOptions } from '../builtin-loader/swc';
 import type { Compilation } from '../Compilation';
@@ -549,6 +553,12 @@ function createRawModuleRuleUsesImpl(
       isBuiltin = true;
     }
 
+    const jsOptions =
+      use.options && typeof use.options === 'object' ? use.options : undefined;
+    const jsOptionsHandle =
+      jsOptions || (!isBuiltin && use.parallel)
+        ? registerLoaderOptions(jsOptions, options.compiler)
+        : undefined;
     return {
       loader: resolveStringifyLoaders(
         use,
@@ -557,10 +567,12 @@ function createRawModuleRuleUsesImpl(
         isBuiltin,
       ),
       options: o,
+      jsOptionsHandle,
       cache: use.cache ?? false,
       optionsCacheKey: use.cache
         ? (JSON.stringify(fingerprintOptions) ?? '')
         : '',
+      parallel: Boolean(use.parallel),
     };
   });
 }
@@ -585,19 +597,15 @@ function resolveStringifyLoaders(
 
   const parallelism = use.parallel;
 
-  if (!!parallelism && (!use.options || typeof use.options !== 'object')) {
-    throw new Error(
-      `\`Rule.use.parallel\` requires \`Rule.use.options\` to be an object.\nHowever the received value is \`${use.options}\` under option path \`${path}\`\nInternally, parallelism is provided by passing \`Rule.use.ident\` to the loader as an identifier to ident the parallelism option\nYou can either replace the \`Rule.use.loader\` with \`Rule.use.options = {}\` or remove \`Rule.use.parallel\`.`,
+  if (parallelism) {
+    ensureNativeLoaderWorkers(
+      typeof parallelism === 'object' ? parallelism : undefined,
     );
   }
 
   if (use.options && typeof use.options === 'object') {
     if (!ident) ident = '[[missing ident]]';
     compiler.__internal__ruleSet.references.set(ident, use.options);
-    compiler.__internal__ruleSet.references.set(
-      `${ident}$$parallelism`,
-      parallelism,
-    );
     if (isBuiltin) {
       compiler.__internal__ruleSet.builtinReferences.set(ident, use.options);
     }

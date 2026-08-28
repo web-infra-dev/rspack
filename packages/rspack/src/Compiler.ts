@@ -50,6 +50,7 @@ import type { rspack } from './index';
 import Cache from './lib/Cache';
 import CacheFacade from './lib/CacheFacade';
 import { Logger, type LogTypeEnum } from './logging/Logger';
+import { releaseLoaderFunctions } from './loader-runner/service';
 import { NormalModuleFactory } from './NormalModuleFactory';
 import { ResolverFactory } from './ResolverFactory';
 import { RuleSetCompiler } from './RuleSetCompiler';
@@ -810,10 +811,7 @@ class Compiler {
         }
         this.#compilation!.startTime = startTime;
         this.#compilation!.endTime = Date.now();
-        // `hooks.afterCompile` is not called here: it is driven from the Rust
-        // side through `registerCompilerAfterCompileTaps`, so that it runs right
-        // after the compilation is sealed and before `shouldEmit`/`emit`, the
-        // same position webpack calls it from.
+        // `hooks.afterCompile` is driven from Rust immediately after seal.
         return callback(null, this.#compilation);
       });
     });
@@ -828,6 +826,7 @@ class Compiler {
       return;
     }
 
+    releaseLoaderFunctions(this);
     this.hooks.shutdown.callAsync((err) => {
       if (err) return callback(err);
       this.cache.shutdown(() => {
@@ -952,7 +951,6 @@ class Compiler {
     this.#rawOptions.__references = Object.fromEntries(
       this.#ruleSet.builtinReferences.entries(),
     );
-
     this.#rawOptions.__virtual_files =
       VirtualModulesPlugin.__internal__take_virtual_files(this);
 

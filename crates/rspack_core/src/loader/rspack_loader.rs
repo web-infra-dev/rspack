@@ -111,13 +111,21 @@ impl LoaderRunnerPlugin for RspackLoaderRunnerPlugin {
     Ok(false)
   }
 
-  async fn start_yielding(&self, context: &mut LoaderContext<Self::Context>) -> Result<()> {
-    self
+  async fn start_yielding(
+    &self,
+    context: Box<LoaderContext<Self::Context>>,
+  ) -> (Box<LoaderContext<Self::Context>>, Result<()>) {
+    let mut context = Some(context);
+    let result = self
       .plugin_driver
       .normal_module_hooks
       .loader_yield
-      .call(context)
-      .await
+      .call(&mut context)
+      .await;
+    (
+      context.expect("loader_yield hook must restore LoaderContext ownership"),
+      result,
+    )
   }
 
   async fn run_normal_loader(
