@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 pub use rspack_core::legacy_cache::persistent::occasion::make::SCOPE;
 use rspack_core::{
-  DependencyId,
+  BuildInfo, DependencyId,
   build_module_graph::BuildModuleGraphArtifact,
   cache::CacheCodec,
   legacy_cache::persistent::{
@@ -226,8 +226,8 @@ impl<'a> ArtifactComparator<'a> {
   }
 
   /// Compare module's BuildInfo using DependencyId mapping
-  /// We take an extreme approach: clone the BuildInfo, extract all_star_exports connections,
-  /// and serialize the rest for direct comparison.
+  /// We take an extreme approach: extract all_star_exports connections and serialize the rest for
+  /// direct comparison.
   fn compare_module_build_info(
     &self,
     module1: &rspack_core::BoxModule,
@@ -246,19 +246,19 @@ impl<'a> ArtifactComparator<'a> {
       debug_info,
     )?;
 
-    // Clone BuildInfo and clear all_star_exports for serialization comparison
-    let mut normalized_info1 = build_info1.clone();
-    let mut normalized_info2 = build_info2.clone();
-    normalized_info1.all_star_exports.clear();
-    normalized_info2.all_star_exports.clear();
-
     // Serialize and compare the rest of BuildInfo using rspack_cacheable
     let ctx = ();
-    let bytes1 = rspack_cacheable::to_bytes(&normalized_info1, &ctx).map_err(|e| {
-      rspack_error::error!("Failed to serialize BuildInfo 1: {:?}\n{}", e, debug_info)
+    let normalize = |build_info: &BuildInfo| -> rspack_cacheable::Result<Vec<u8>> {
+      let bytes = rspack_cacheable::to_bytes(build_info, &ctx)?;
+      let mut normalized: BuildInfo = rspack_cacheable::from_bytes(&bytes, &ctx)?;
+      normalized.all_star_exports.clear();
+      rspack_cacheable::to_bytes(&normalized, &ctx)
+    };
+    let bytes1 = normalize(build_info1).map_err(|e| {
+      rspack_error::error!("Failed to normalize BuildInfo 1: {:?}\n{}", e, debug_info)
     })?;
-    let bytes2 = rspack_cacheable::to_bytes(&normalized_info2, &ctx).map_err(|e| {
-      rspack_error::error!("Failed to serialize BuildInfo 2: {:?}\n{}", e, debug_info)
+    let bytes2 = normalize(build_info2).map_err(|e| {
+      rspack_error::error!("Failed to normalize BuildInfo 2: {:?}\n{}", e, debug_info)
     })?;
 
     if bytes1 != bytes2 {
