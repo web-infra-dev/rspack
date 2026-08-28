@@ -512,10 +512,7 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
     status: SupportStatus.FullySupported,
   },
 ].sort((a, b) => {
-  return (
-    b.status - a.status ||
-    (b.url && a.url ? 0 : (b.url?.length || 0) - (a.url?.length || 0))
-  );
+  return b.status - a.status || a.name.localeCompare(b.name);
 });
 
 const getNotesText = (
