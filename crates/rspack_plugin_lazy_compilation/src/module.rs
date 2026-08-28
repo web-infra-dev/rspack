@@ -7,8 +7,8 @@ use rspack_core::{
   BuildInfo, BuildMeta, BuildResult, ChunkGraph, CodeGenerationResultBuilder, Compilation, Context,
   DependenciesBlock, DependencyId, DependencyRange, FactoryMeta, ImportPhase, LibIdentOptions,
   Module, ModuleArgument, ModuleCodeGenerationContext, ModuleFactoryCreateData, ModuleGraph,
-  ModuleIdentifier, ModuleLayer, ModuleType, OutputOptions, RuntimeGlobals, RuntimeSpec,
-  SourceType, ValueCacheVersions, impl_module_meta_info, module_update_hash,
+  ModuleIdentifier, ModuleLayer, ModuleType, NeedBuildContext, OutputOptions, RuntimeGlobals,
+  RuntimeSpec, SourceType, ValueCacheVersions, impl_module_meta_info, module_update_hash,
   rspack_sources::{BoxSource, RawStringSource},
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
@@ -170,7 +170,7 @@ impl Module for LazyCompilationProxyModule {
     self.lib_ident.as_ref().map(|s| Cow::Borrowed(s.as_str()))
   }
 
-  fn need_build(&self, value_cache_versions: &ValueCacheVersions) -> bool {
+  fn need_build_for_incremental(&self, value_cache_versions: &ValueCacheVersions) -> bool {
     if self.need_build {
       return true;
     }
@@ -183,6 +183,10 @@ impl Module for LazyCompilationProxyModule {
     } else {
       true
     }
+  }
+
+  async fn need_build(&mut self, context: &NeedBuildContext<'_>) -> Result<bool> {
+    Ok(self.need_build_for_incremental(context.value_cache_versions))
   }
 
   async fn build(

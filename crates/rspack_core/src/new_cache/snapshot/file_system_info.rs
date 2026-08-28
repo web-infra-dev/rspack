@@ -3,6 +3,7 @@ use std::{collections::VecDeque, fmt, sync::Arc};
 use rspack_error::{Result, error};
 use rspack_fs::{Error as FsError, FileMetadata, ReadableFileSystem};
 use rspack_hash::{HashDigest, HashFunction, RspackHashDigest, RspackHasher};
+use rspack_loader_runner::LoaderDependencies;
 use rspack_parallel::TryFutureConsumer;
 use rspack_paths::{AssertUtf8, InternedPath, InternedPathDashMap, InternedPathSet};
 use rspack_util::time::mtime_accuracy;
@@ -13,9 +14,24 @@ use super::{
   TimestampAndHash,
 };
 use crate::{
-  InfrastructureLogger,
+  CompilationLogger, InfrastructureLogger, LogType, Logger,
   cache::{BuildDependencyHelper, SnapshotOptions, SnapshotStrategyOptions, is_node_package_path},
 };
+
+#[derive(Debug, Clone)]
+enum FileSystemInfoLogger {
+  Compilation(CompilationLogger),
+  Infrastructure(InfrastructureLogger),
+}
+
+impl Logger for FileSystemInfoLogger {
+  fn raw(&self, log_type: LogType) {
+    match self {
+      Self::Compilation(logger) => logger.raw(log_type),
+      Self::Infrastructure(logger) => logger.raw(log_type),
+    }
+  }
+}
 
 #[derive(Debug, Default)]
 pub struct ResolvedBuildDependencies {
@@ -86,7 +102,7 @@ pub struct FileSystemInfo {
 
 struct FileSystemInfoInner {
   fs: Arc<dyn ReadableFileSystem>,
-  logger: InfrastructureLogger,
+  logger: FileSystemInfoLogger,
   options: SnapshotOptions,
   hash_function: HashFunction,
   file_timestamps: InternedPathDashMap<Option<FileSystemInfoEntry>>,
@@ -110,6 +126,34 @@ impl FileSystemInfo {
   pub fn new(
     fs: Arc<dyn ReadableFileSystem>,
     logger: InfrastructureLogger,
+    options: SnapshotOptions,
+    hash_function: HashFunction,
+  ) -> Self {
+    Self::with_logger(
+      fs,
+      FileSystemInfoLogger::Infrastructure(logger),
+      options,
+      hash_function,
+    )
+  }
+
+  pub fn new_for_compilation(
+    fs: Arc<dyn ReadableFileSystem>,
+    logger: CompilationLogger,
+    options: SnapshotOptions,
+    hash_function: HashFunction,
+  ) -> Self {
+    Self::with_logger(
+      fs,
+      FileSystemInfoLogger::Compilation(logger),
+      options,
+      hash_function,
+    )
+  }
+
+  fn with_logger(
+    fs: Arc<dyn ReadableFileSystem>,
+    logger: FileSystemInfoLogger,
     options: SnapshotOptions,
     hash_function: HashFunction,
   ) -> Self {
@@ -162,6 +206,25 @@ impl FileSystemInfo {
     Ok(snapshot)
   }
 
+  /// Captures the filesystem inputs of a module build.
+  pub async fn create_module_snapshot(
+    &self,
+    start_time: Option<u64>,
+    dependencies: &LoaderDependencies,
+  ) -> Result<Snapshot> {
+    self
+      .create_snapshot(
+        start_time,
+        &dependencies.file,
+        &dependencies.context,
+        &dependencies.missing,
+        // Rspack does not expose webpack's `snapshot.module` option yet, so use
+        // webpack's default module snapshot strategy directly.
+        SnapshotStrategyOptions::timestamp(),
+      )
+      .await
+  }
+
   /// See webpack's snapshot merge implementation:
   /// https://github.com/webpack/webpack/blob/ce97d583e1cd8f3e47b70737de72e91b567a8497/lib/FileSystemInfo.js#L3081-L3166
   pub fn merge_snapshots(&self, mut first: Snapshot, second: Snapshot) -> Snapshot {
@@ -171,35 +234,6 @@ impl FileSystemInfo {
 
   pub fn build_dependencies_strategy(&self) -> SnapshotStrategyOptions {
     self.inner.options.dependencies_strategy()
-  }
-
-  pub(crate) fn invalidate<'a>(&self, paths: impl Iterator<Item = &'a InternedPath>) {
-    let mut has_invalidated_path = false;
-    for path in paths {
-      has_invalidated_path = true;
-      self.inner.file_timestamps.remove(path);
-      self.inner.file_hashes.remove(path);
-      self.inner.file_timestamp_hashes.remove(path);
-    }
-    if has_invalidated_path {
-      // A changed path can affect any cached ancestor context, including one
-      // reached through a symlink. Clear context and managed-item caches when
-      // the watcher reports a change instead of trying to infer every owner.
-      self.inner.context_timestamps.clear();
-      self.inner.context_hashes.clear();
-      self.inner.context_timestamp_hashes.clear();
-      self.inner.managed_items.clear();
-    }
-  }
-
-  pub(crate) fn invalidate_all(&self) {
-    self.inner.file_timestamps.clear();
-    self.inner.file_hashes.clear();
-    self.inner.file_timestamp_hashes.clear();
-    self.inner.context_timestamps.clear();
-    self.inner.context_hashes.clear();
-    self.inner.context_timestamp_hashes.clear();
-    self.inner.managed_items.clear();
   }
 
   /// See webpack's snapshot validation implementation:

@@ -7,7 +7,7 @@ use rspack_core::{
   AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta,
   BuildResult, CodeGenerationResultBuilder, Compilation, Context, DependenciesBlock, DependencyId,
   FactoryMeta, LibIdentOptions, Module, ModuleArgument, ModuleCodeGenerationContext,
-  ModuleDependency, ModuleGraph, ModuleId, ModuleType, RuntimeSpec, SourceType,
+  ModuleDependency, ModuleGraph, ModuleId, ModuleType, NeedBuildContext, RuntimeSpec, SourceType,
   StaticExportsDependency, StaticExportsSpec, ValueCacheVersions, impl_module_meta_info,
   impl_source_map_config, module_update_hash,
   rspack_sources::{BoxSource, OriginalSource, RawStringSource},
@@ -184,8 +184,12 @@ impl Module for DelegatedModule {
     Ok(code_generation_result)
   }
 
-  fn need_build(&self, _value_cache_versions: &ValueCacheVersions) -> bool {
+  fn need_build_for_incremental(&self, _value_cache_versions: &ValueCacheVersions) -> bool {
     false
+  }
+
+  async fn need_build(&mut self, _context: &NeedBuildContext<'_>) -> Result<bool> {
+    Ok(false)
   }
 
   async fn get_runtime_hash(

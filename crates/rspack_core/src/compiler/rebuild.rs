@@ -68,11 +68,6 @@ impl Compiler {
       let mut removed_files: InternedPathSet = InternedPathSet::default();
       removed_files.extend(deleted_files.iter().map(|files| Path::new(files).into()));
 
-      self
-        .new_cache
-        .file_system_info()
-        .invalidate(modified_files.iter().chain(&removed_files));
-
       let mut all_files = modified_files.clone();
       all_files.extend(removed_files.clone());
 

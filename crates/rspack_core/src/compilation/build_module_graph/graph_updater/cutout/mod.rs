@@ -51,11 +51,9 @@ impl Cutout {
         }
         UpdateParam::CheckNeedBuild => {
           force_build_modules.extend(module_graph.modules().filter_map(|(_, module)| {
-            if module.need_build(&compilation.value_cache_versions) {
-              Some(module.identifier())
-            } else {
-              None
-            }
+            module
+              .need_build_for_incremental(&compilation.value_cache_versions)
+              .then(|| module.identifier())
           }));
         }
         UpdateParam::ModifiedFiles(files) | UpdateParam::RemovedFiles(files) => {

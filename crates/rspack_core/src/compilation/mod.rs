@@ -79,13 +79,14 @@ use crate::{
   CompilationLogging, CompilerOptions, CompilerPlatform, ConcatenationScope,
   DependenciesDiagnosticsArtifact, Dependency, DependencyId, DependencyRef, DependencyTemplate,
   DependencyTemplateType, DependencyType, Entry, EntryData, EntryOptions, EntryRuntime, Entrypoint,
-  ExecuteModuleId, ExportsInfoArtifact, ExternalModuleChunkConditionHook, Filename, ImportPhase,
-  ImportVarMap, ImportedByDeferModulesArtifact, ModuleFactory, ModuleGraph,
+  ExecuteModuleId, ExportsInfoArtifact, ExternalModuleChunkConditionHook, FileSystemInfo, Filename,
+  ImportPhase, ImportVarMap, ImportedByDeferModulesArtifact, ModuleFactory, ModuleGraph,
   ModuleGraphCacheArtifact, ModuleIdentifier, ModuleIdsArtifact, ModuleStaticCache, PathData,
   ProcessRuntimeRequirementsCacheArtifact, ReferencedExport, ResolverFactory, RuntimeGlobals,
   RuntimeKeyMap, RuntimeMode, RuntimeModule, RuntimeProxyMetadataArtifact, RuntimeSpec,
   RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver, SideEffectsOptimizeArtifact,
   SideEffectsStateArtifact, SourceType, Stats, StatsContext, StealCell, ValueCacheVersions,
+  cache::SnapshotOptions,
   compilation::build_module_graph::{
     BuildModuleGraphArtifact, ModuleExecutor, UpdateParam, update_module_graph,
   },
@@ -96,7 +97,7 @@ use crate::{
   legacy_cache::persistent::occasion::{
     devtool::SourceMapDevToolPluginCache, minimize::MinimizePersistentCache,
   },
-  new_cache::{Cache, CacheFacade, FileSystemInfo},
+  new_cache::{Cache, CacheFacade},
   to_identifier,
 };
 
@@ -238,7 +239,7 @@ pub struct Compilation {
   diagnostics: Vec<Diagnostic>,
   logging: CompilationLogging,
   cache: Cache,
-  file_system_info: FileSystemInfo,
+  pub file_system_info: FileSystemInfo,
   pub plugin_driver: SharedPluginDriver,
   pub buildtime_plugin_driver: SharedPluginDriver,
   pub resolver_factory: Arc<ResolverFactory>,
@@ -358,7 +359,17 @@ impl Compilation {
     is_rebuild: bool,
     compiler_context: Arc<CompilerContext>,
   ) -> Self {
-    let file_system_info = cache.file_system_info();
+    let snapshot_options = match &options.cache {
+      CacheOptions::Persistent(options) => options.snapshot.clone(),
+      CacheOptions::Disabled | CacheOptions::Memory { .. } => SnapshotOptions::default(),
+    };
+    let file_system_info = FileSystemInfo::new_for_compilation(
+      input_filesystem.clone(),
+      CompilationLogger::new("rspack.FileSystemInfo", logging.clone()),
+      snapshot_options,
+      options.output.hash_function,
+    );
+
     Self {
       id: CompilationId::new(),
       compiler_id,
@@ -450,10 +461,6 @@ impl Compilation {
 
   pub fn get_cache(&self, name: &str) -> CacheFacade {
     self.cache.facade(name)
-  }
-
-  pub fn file_system_info(&self) -> FileSystemInfo {
-    self.file_system_info.clone()
   }
 
   pub fn id(&self) -> CompilationId {
