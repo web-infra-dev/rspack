@@ -8,7 +8,6 @@ mod file_cache_strategy;
 mod idle_file_cache;
 mod memory_cache;
 mod meta;
-pub(crate) mod module_cache;
 pub(crate) mod snapshot;
 mod validator;
 
@@ -49,12 +48,7 @@ pub fn create_cache(
       max_generations: _, /* TODO: old cache default to 1, change to 5 and pass to MemoryCache */
       ..
     } => {
-      return Cache::new(
-        compiler_path,
-        Arc::new(CacheCodec::new(None)),
-        Some(MemoryCache::new(5)),
-        None,
-      );
+      return Cache::new(compiler_path, Some(MemoryCache::new(5)), None);
     }
     crate::CacheOptions::Persistent(options) => options,
   };
@@ -107,7 +101,6 @@ pub fn create_cache(
 
   Cache::new(
     compiler_path,
-    codec,
     memory_cache,
     Some(idle_file_cache),
   )

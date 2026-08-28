@@ -7,7 +7,6 @@ use super::{
   CacheFacade, CacheKey, CacheValue, Etag, IdleFileCache, MemoryCache, MemoryCacheGetResult, Meta,
   cache_value::CacheValueData,
 };
-use crate::cache::CacheCodec;
 
 /// Cache entry point backed by memory and optional filesystem storage.
 ///
@@ -23,7 +22,6 @@ struct CacheStorage {
 #[derive(Debug)]
 struct CacheInner {
   compiler_path: String,
-  codec: Arc<CacheCodec>,
   storage: Option<CacheStorage>,
 }
 
@@ -36,7 +34,6 @@ pub struct Cache {
 impl Cache {
   pub fn new(
     compiler_path: String,
-    codec: Arc<CacheCodec>,
     memory_cache: Option<MemoryCache>,
     idle_file_cache: Option<IdleFileCache>,
   ) -> Self {
@@ -51,7 +48,6 @@ impl Cache {
     Self {
       inner: Arc::new(CacheInner {
         compiler_path,
-        codec,
         storage,
       }),
     }
@@ -61,14 +57,9 @@ impl Cache {
     Self {
       inner: Arc::new(CacheInner {
         compiler_path,
-        codec: Arc::new(CacheCodec::new(None)),
         storage: None,
       }),
     }
-  }
-
-  pub(crate) fn codec(&self) -> Arc<CacheCodec> {
-    self.inner.codec.clone()
   }
 
   pub(crate) fn facade(&self, name: &str) -> CacheFacade {

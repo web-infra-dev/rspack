@@ -3,7 +3,6 @@ use std::sync::Arc;
 use rspack_error::Result;
 
 use super::{Cache, CacheKey, CacheValue, Etag, cache_value::CacheValueData};
-use crate::cache::CacheCodec;
 
 /// A namespaced view of the shared cache.
 ///
@@ -28,10 +27,6 @@ impl CacheFacade {
       cache: self.cache.clone(),
       name: join_name(&self.name, name, true),
     }
-  }
-
-  pub(crate) fn codec(&self) -> Arc<CacheCodec> {
-    self.cache.codec()
   }
 
   pub fn get_item_cache(&self, identifier: &str, etag: Option<Etag>) -> ItemCacheFacade {

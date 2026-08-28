@@ -9,7 +9,6 @@ use crate::{
   BoxModule, DependencyRef, ModuleIdentifier,
   compilation::build_module_graph::ForwardedIdSet,
   module_graph::{ModuleGraph, ModuleGraphModule},
-  new_cache::module_cache,
   utils::task_loop::{Task, TaskResult, TaskType},
 };
 
@@ -110,14 +109,14 @@ impl Task<TaskContext> for AddTask {
       return Ok(vec![]);
     }
 
-    let cached_build_result = if let Some(cache_facade) = &context.module_cache {
-      module_cache::restore(
-        cache_facade,
-        &mut module,
-        &context.file_system_info,
-        &context.value_cache_versions,
-      )
-      .await?
+    let cached_build_result = if let Some(module_build_cache) = &context.module_build_cache {
+      module_build_cache
+        .restore(
+          &mut module,
+          &context.file_system_info,
+          &context.value_cache_versions,
+        )
+        .await?
     } else {
       None
     };
@@ -164,7 +163,7 @@ impl Task<TaskContext> for AddTask {
       runtime_template: context.runtime_template.create_module_code_template(),
       fs: context.fs.clone(),
       forwarded_ids,
-      module_cache: context.module_cache.clone(),
+      module_build_cache: context.module_build_cache.clone(),
     })])
   }
 }
