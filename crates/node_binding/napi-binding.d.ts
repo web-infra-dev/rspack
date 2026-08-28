@@ -408,8 +408,8 @@ export declare class JsExportsInfo {
 }
 
 export declare class JsLoaderCache {
-  get(loaderIndex: number, content: string | Uint8Array, existing: JsLoaderDependencies): JsLoaderCacheEntry | null
-  store(loaderIndex: number, output: JsLoaderCacheEntry): void
+  get(loaderIndex: number, content: string | Uint8Array, existing: JsLoaderDependencies): Promise<JsLoaderCacheEntry | null>
+  store(loaderIndex: number, output: JsLoaderCacheEntry): Promise<void>
 }
 
 export declare class JsModuleGraph {

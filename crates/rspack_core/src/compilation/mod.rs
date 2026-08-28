@@ -96,7 +96,7 @@ use crate::{
   legacy_cache::persistent::occasion::{
     devtool::SourceMapDevToolPluginCache, minimize::MinimizePersistentCache,
   },
-  new_cache::{Cache, CacheFacade},
+  new_cache::{Cache, CacheFacade, FileSystemInfo},
   to_identifier,
 };
 
@@ -238,6 +238,7 @@ pub struct Compilation {
   diagnostics: Vec<Diagnostic>,
   logging: CompilationLogging,
   cache: Cache,
+  file_system_info: FileSystemInfo,
   pub plugin_driver: SharedPluginDriver,
   pub buildtime_plugin_driver: SharedPluginDriver,
   pub resolver_factory: Arc<ResolverFactory>,
@@ -357,6 +358,7 @@ impl Compilation {
     is_rebuild: bool,
     compiler_context: Arc<CompilerContext>,
   ) -> Self {
+    let file_system_info = cache.file_system_info();
     Self {
       id: CompilationId::new(),
       compiler_id,
@@ -378,6 +380,7 @@ impl Compilation {
       diagnostics: Default::default(),
       logging,
       cache,
+      file_system_info,
       plugin_driver,
       buildtime_plugin_driver,
       resolver_factory,
@@ -447,6 +450,10 @@ impl Compilation {
 
   pub fn get_cache(&self, name: &str) -> CacheFacade {
     self.cache.facade(name)
+  }
+
+  pub fn file_system_info(&self) -> FileSystemInfo {
+    self.file_system_info.clone()
   }
 
   pub fn id(&self) -> CompilationId {

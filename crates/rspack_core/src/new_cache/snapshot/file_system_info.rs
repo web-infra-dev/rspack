@@ -81,17 +81,21 @@ struct ContextValue {
 /// https://github.com/webpack/webpack/blob/ce97d583e1cd8f3e47b70737de72e91b567a8497/lib/FileSystemInfo.js#L1282-L1450
 #[derive(Clone)]
 pub struct FileSystemInfo {
+  inner: Arc<FileSystemInfoInner>,
+}
+
+struct FileSystemInfoInner {
   fs: Arc<dyn ReadableFileSystem>,
   logger: InfrastructureLogger,
-  options: Arc<SnapshotOptions>,
+  options: SnapshotOptions,
   hash_function: HashFunction,
-  file_timestamps: Arc<InternedPathDashMap<Option<FileSystemInfoEntry>>>,
-  file_hashes: Arc<InternedPathDashMap<Option<FileHash>>>,
-  file_timestamp_hashes: Arc<InternedPathDashMap<Option<TimestampAndHash>>>,
-  context_timestamps: Arc<InternedPathDashMap<Option<ContextFileSystemInfoEntry>>>,
-  context_hashes: Arc<InternedPathDashMap<Option<RspackHashDigest>>>,
-  context_timestamp_hashes: Arc<InternedPathDashMap<Option<ContextTimestampAndHash>>>,
-  managed_items: Arc<InternedPathDashMap<Option<String>>>,
+  file_timestamps: InternedPathDashMap<Option<FileSystemInfoEntry>>,
+  file_hashes: InternedPathDashMap<Option<FileHash>>,
+  file_timestamp_hashes: InternedPathDashMap<Option<TimestampAndHash>>,
+  context_timestamps: InternedPathDashMap<Option<ContextFileSystemInfoEntry>>,
+  context_hashes: InternedPathDashMap<Option<RspackHashDigest>>,
+  context_timestamp_hashes: InternedPathDashMap<Option<ContextTimestampAndHash>>,
+  managed_items: InternedPathDashMap<Option<String>>,
 }
 
 impl fmt::Debug for FileSystemInfo {
@@ -110,17 +114,19 @@ impl FileSystemInfo {
     hash_function: HashFunction,
   ) -> Self {
     Self {
-      fs,
-      logger,
-      options: Arc::new(options),
-      hash_function,
-      file_timestamps: Default::default(),
-      file_hashes: Default::default(),
-      file_timestamp_hashes: Default::default(),
-      context_timestamps: Default::default(),
-      context_hashes: Default::default(),
-      context_timestamp_hashes: Default::default(),
-      managed_items: Default::default(),
+      inner: Arc::new(FileSystemInfoInner {
+        fs,
+        logger,
+        options,
+        hash_function,
+        file_timestamps: Default::default(),
+        file_hashes: Default::default(),
+        file_timestamp_hashes: Default::default(),
+        context_timestamps: Default::default(),
+        context_hashes: Default::default(),
+        context_timestamp_hashes: Default::default(),
+        managed_items: Default::default(),
+      }),
     }
   }
 
@@ -164,7 +170,36 @@ impl FileSystemInfo {
   }
 
   pub fn build_dependencies_strategy(&self) -> SnapshotStrategyOptions {
-    self.options.dependencies_strategy()
+    self.inner.options.dependencies_strategy()
+  }
+
+  pub(crate) fn invalidate<'a>(&self, paths: impl Iterator<Item = &'a InternedPath>) {
+    let mut has_invalidated_path = false;
+    for path in paths {
+      has_invalidated_path = true;
+      self.inner.file_timestamps.remove(path);
+      self.inner.file_hashes.remove(path);
+      self.inner.file_timestamp_hashes.remove(path);
+    }
+    if has_invalidated_path {
+      // A changed path can affect any cached ancestor context, including one
+      // reached through a symlink. Clear context and managed-item caches when
+      // the watcher reports a change instead of trying to infer every owner.
+      self.inner.context_timestamps.clear();
+      self.inner.context_hashes.clear();
+      self.inner.context_timestamp_hashes.clear();
+      self.inner.managed_items.clear();
+    }
+  }
+
+  pub(crate) fn invalidate_all(&self) {
+    self.inner.file_timestamps.clear();
+    self.inner.file_hashes.clear();
+    self.inner.file_timestamp_hashes.clear();
+    self.inner.context_timestamps.clear();
+    self.inner.context_hashes.clear();
+    self.inner.context_timestamp_hashes.clear();
+    self.inner.managed_items.clear();
   }
 
   /// See webpack's snapshot validation implementation:
@@ -199,7 +234,7 @@ impl FileSystemInfo {
     &self,
     paths: impl Iterator<Item = InternedPath>,
   ) -> ResolvedBuildDependencies {
-    let mut helper = BuildDependencyHelper::new(self.fs.clone(), self.logger.clone());
+    let mut helper = BuildDependencyHelper::new(self.inner.fs.clone(), self.inner.logger.clone());
     let mut resolved = ResolvedBuildDependencies::default();
     let mut visited = InternedPathSet::default();
     let mut queue = VecDeque::new();
@@ -209,7 +244,7 @@ impl FileSystemInfo {
       if !visited.insert(dependency.clone()) {
         continue;
       }
-      match self.fs.metadata(dependency.assert_utf8()).await {
+      match self.inner.fs.metadata(dependency.assert_utf8()).await {
         Ok(metadata) if metadata.is_directory => {
           resolved.contexts.insert(dependency.clone());
         }
@@ -244,11 +279,11 @@ impl FileSystemInfo {
     let mut captured = Vec::with_capacity(paths.len());
     for path in paths {
       let path_str = path.to_string_lossy();
-      if self.options.is_immutable_path(&path_str) {
+      if self.inner.options.is_immutable_path(&path_str) {
         managed_paths(snapshot, kind).insert(path.clone());
         continue;
       }
-      if self.options.is_managed_path(&path_str)
+      if self.inner.options.is_managed_path(&path_str)
         && let Some((managed_item, info)) = self.find_managed_item(path).await?
       {
         managed_paths(snapshot, kind).insert(path.clone());
@@ -403,7 +438,7 @@ impl FileSystemInfo {
   }
 
   async fn metadata(&self, path: &InternedPath) -> Result<Option<FileMetadata>> {
-    match self.fs.metadata(path.assert_utf8()).await {
+    match self.inner.fs.metadata(path.assert_utf8()).await {
       Ok(metadata) => Ok(Some(metadata)),
       Err(error) if is_not_found(&error) => Ok(None),
       Err(error) => Err(error.into()),
@@ -413,7 +448,7 @@ impl FileSystemInfo {
   /// See webpack's file timestamp and hash implementations:
   /// https://github.com/webpack/webpack/blob/ce97d583e1cd8f3e47b70737de72e91b567a8497/lib/FileSystemInfo.js#L3737-L3865
   async fn file_timestamp(&self, path: &InternedPath) -> Result<Option<FileSystemInfoEntry>> {
-    if let Some(entry) = self.file_timestamps.get(path) {
+    if let Some(entry) = self.inner.file_timestamps.get(path) {
       return Ok(entry.clone());
     }
     let entry = self.metadata(path).await?.map(|metadata| {
@@ -435,44 +470,50 @@ impl FileSystemInfo {
         }
       }
     });
-    self.file_timestamps.insert(path.clone(), entry.clone());
+    self
+      .inner
+      .file_timestamps
+      .insert(path.clone(), entry.clone());
     Ok(entry)
   }
 
   async fn file_hash(&self, path: &InternedPath) -> Result<Option<FileHash>> {
-    if let Some(entry) = self.file_hashes.get(path) {
+    if let Some(entry) = self.inner.file_hashes.get(path) {
       return Ok(entry.clone());
     }
     let Some(metadata) = self.metadata(path).await? else {
-      self.file_hashes.insert(path.clone(), None);
+      self.inner.file_hashes.insert(path.clone(), None);
       return Ok(None);
     };
     let hash = if metadata.is_directory {
       FileHash::Directory
     } else {
-      let content = match self.fs.read(path.assert_utf8()).await {
+      let content = match self.inner.fs.read(path.assert_utf8()).await {
         Ok(content) => content,
         Err(error) if is_not_found(&error) => {
-          self.file_hashes.insert(path.clone(), None);
+          self.inner.file_hashes.insert(path.clone(), None);
           return Ok(None);
         }
         Err(error) => return Err(error.into()),
       };
       FileHash::Digest(self.digest(&content))
     };
-    self.file_hashes.insert(path.clone(), Some(hash.clone()));
+    self
+      .inner
+      .file_hashes
+      .insert(path.clone(), Some(hash.clone()));
     Ok(Some(hash))
   }
 
   async fn file_timestamp_and_hash(&self, path: &InternedPath) -> Result<Option<TimestampAndHash>> {
-    if let Some(entry) = self.file_timestamp_hashes.get(path) {
+    if let Some(entry) = self.inner.file_timestamp_hashes.get(path) {
       return Ok(entry.clone());
     }
     let (Some(timestamp), Some(hash)) = (
       self.file_timestamp(path).await?,
       self.file_hash(path).await?,
     ) else {
-      self.file_timestamp_hashes.insert(path.clone(), None);
+      self.inner.file_timestamp_hashes.insert(path.clone(), None);
       return Ok(None);
     };
     let value = TimestampAndHash {
@@ -481,6 +522,7 @@ impl FileSystemInfo {
       hash,
     };
     self
+      .inner
       .file_timestamp_hashes
       .insert(path.clone(), Some(value.clone()));
     Ok(Some(value))
@@ -490,7 +532,7 @@ impl FileSystemInfo {
     &self,
     path: &InternedPath,
   ) -> Result<Option<ContextFileSystemInfoEntry>> {
-    if let Some(entry) = self.context_timestamps.get(path) {
+    if let Some(entry) = self.inner.context_timestamps.get(path) {
       return Ok(entry.clone());
     }
     let mut visiting = InternedPathSet::default();
@@ -503,12 +545,15 @@ impl FileSystemInfo {
           .timestamp_hash
           .expect("timestamp mode should produce a timestamp hash"),
       });
-    self.context_timestamps.insert(path.clone(), value.clone());
+    self
+      .inner
+      .context_timestamps
+      .insert(path.clone(), value.clone());
     Ok(value)
   }
 
   async fn context_hash(&self, path: &InternedPath) -> Result<Option<RspackHashDigest>> {
-    if let Some(entry) = self.context_hashes.get(path) {
+    if let Some(entry) = self.inner.context_hashes.get(path) {
       return Ok(entry.clone());
     }
     let mut visiting = InternedPathSet::default();
@@ -516,7 +561,10 @@ impl FileSystemInfo {
       .context_value(path, SnapshotMode::Hash, &mut visiting)
       .await?
       .map(|value| value.hash.expect("hash mode should produce a hash"));
-    self.context_hashes.insert(path.clone(), value.clone());
+    self
+      .inner
+      .context_hashes
+      .insert(path.clone(), value.clone());
     Ok(value)
   }
 
@@ -524,7 +572,7 @@ impl FileSystemInfo {
     &self,
     path: &InternedPath,
   ) -> Result<Option<ContextTimestampAndHash>> {
-    if let Some(entry) = self.context_timestamp_hashes.get(path) {
+    if let Some(entry) = self.inner.context_timestamp_hashes.get(path) {
       return Ok(entry.clone());
     }
     let mut visiting = InternedPathSet::default();
@@ -541,6 +589,7 @@ impl FileSystemInfo {
           .expect("timestamp and hash mode should produce a hash"),
       });
     self
+      .inner
       .context_timestamp_hashes
       .insert(path.clone(), value.clone());
     Ok(value)
@@ -574,7 +623,7 @@ impl FileSystemInfo {
     mode: SnapshotMode,
     visiting: &mut InternedPathSet,
   ) -> Result<Option<ContextValue>> {
-    let symlink_metadata = match self.fs.symlink_metadata(path.assert_utf8()).await {
+    let symlink_metadata = match self.inner.fs.symlink_metadata(path.assert_utf8()).await {
       Ok(metadata) => Some(metadata),
       Err(error) if is_not_found(&error) => None,
       Err(error) => return Err(error.into()),
@@ -584,17 +633,17 @@ impl FileSystemInfo {
     };
 
     if symlink_metadata.is_symlink {
-      let target = self.fs.canonicalize(path.assert_utf8()).await?;
+      let target = self.inner.fs.canonicalize(path.assert_utf8()).await?;
       let target = InternedPath::from(target);
       let mut value = self.context_leaf(target.to_string_lossy().as_bytes(), mode, 0);
       if let Some(target_value) = self.context_value(&target, mode, visiting).await? {
         value.safe_time = value.safe_time.max(target_value.safe_time);
         value.timestamp_hash = merge_digests(
-          self.hash_function,
+          self.inner.hash_function,
           value.timestamp_hash,
           target_value.timestamp_hash,
         );
-        value.hash = merge_digests(self.hash_function, value.hash, target_value.hash);
+        value.hash = merge_digests(self.inner.hash_function, value.hash, target_value.hash);
       }
       return Ok(Some(value));
     }
@@ -607,7 +656,7 @@ impl FileSystemInfo {
       return self.file_context_value(path, mode).await;
     }
 
-    let mut children = match self.fs.read_dir(path.assert_utf8()).await {
+    let mut children = match self.inner.fs.read_dir(path.assert_utf8()).await {
       Ok(children) => children,
       Err(error) if is_not_found(&error) => return Ok(None),
       Err(error) => return Err(error.into()),
@@ -616,10 +665,10 @@ impl FileSystemInfo {
 
     let mut timestamp_hasher = mode
       .uses_timestamp()
-      .then(|| RspackHasher::new(&self.hash_function));
+      .then(|| RspackHasher::new(&self.inner.hash_function));
     let mut content_hasher = mode
       .uses_hash()
-      .then(|| RspackHasher::new(&self.hash_function));
+      .then(|| RspackHasher::new(&self.inner.hash_function));
     for child in &children {
       if let Some(hasher) = &mut timestamp_hasher {
         hasher.write(child.as_bytes());
@@ -633,9 +682,9 @@ impl FileSystemInfo {
     for child in children {
       let child_path = InternedPath::from(path.join(child));
       let child_path_str = child_path.to_string_lossy();
-      let child_value = if self.options.is_immutable_path(&child_path_str) {
+      let child_value = if self.inner.options.is_immutable_path(&child_path_str) {
         None
-      } else if self.options.is_managed_path(&child_path_str) {
+      } else if self.inner.options.is_managed_path(&child_path_str) {
         self
           .find_managed_item(&child_path)
           .await?
@@ -694,7 +743,7 @@ impl FileSystemInfo {
 
     let safe_time = timestamp.as_ref().map_or(0, |entry| entry.safe_time);
     let timestamp_hash = timestamp.map(|entry| {
-      let mut hasher = RspackHasher::new(&self.hash_function);
+      let mut hasher = RspackHasher::new(&self.inner.hash_function);
       if let Some(timestamp) = entry.timestamp {
         hasher.write(b"f");
         hasher.write(timestamp.to_string().as_bytes());
@@ -721,7 +770,7 @@ impl FileSystemInfo {
   }
 
   fn digest(&self, bytes: &[u8]) -> RspackHashDigest {
-    let mut hasher = RspackHasher::new(&self.hash_function);
+    let mut hasher = RspackHasher::new(&self.inner.hash_function);
     hasher.write(bytes);
     digest_hasher(hasher)
   }
@@ -738,7 +787,7 @@ impl FileSystemInfo {
     };
     while let Some(directory) = current {
       let directory_str = directory.to_string_lossy();
-      if !self.options.is_managed_path(&directory_str) {
+      if !self.inner.options.is_managed_path(&directory_str) {
         break;
       }
       if let Some(info) = self.managed_item_info(&directory).await? {
@@ -752,14 +801,14 @@ impl FileSystemInfo {
   /// See webpack's managed item metadata implementation:
   /// https://github.com/webpack/webpack/blob/ce97d583e1cd8f3e47b70737de72e91b567a8497/lib/FileSystemInfo.js#L4505-L4577
   async fn managed_item_info(&self, path: &InternedPath) -> Result<Option<String>> {
-    if let Some(info) = self.managed_items.get(path) {
+    if let Some(info) = self.inner.managed_items.get(path) {
       return Ok(info.clone());
     }
     let package_json = InternedPath::from(path.join("package.json"));
-    let mut content = match self.fs.read(package_json.assert_utf8()).await {
+    let mut content = match self.inner.fs.read(package_json.assert_utf8()).await {
       Ok(content) => content,
       Err(error) if is_not_found(&error) => {
-        self.managed_items.insert(path.clone(), None);
+        self.inner.managed_items.insert(path.clone(), None);
         return Ok(None);
       }
       Err(error) => return Err(error.into()),
@@ -767,7 +816,7 @@ impl FileSystemInfo {
     let package_json = simd_json::to_borrowed_value(&mut content)
       .map_err(|error| error!("Failed to parse {package_json:?}: {error}"))?;
     let Some(name) = package_json.get("name").and_then(|value| value.as_str()) else {
-      self.managed_items.insert(path.clone(), None);
+      self.inner.managed_items.insert(path.clone(), None);
       return Ok(None);
     };
     let version = package_json
@@ -775,7 +824,10 @@ impl FileSystemInfo {
       .and_then(|value| value.as_str())
       .unwrap_or_default();
     let info = format!("{name}@{version}");
-    self.managed_items.insert(path.clone(), Some(info.clone()));
+    self
+      .inner
+      .managed_items
+      .insert(path.clone(), Some(info.clone()));
     Ok(Some(info))
   }
 

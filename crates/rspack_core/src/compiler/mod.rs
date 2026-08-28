@@ -307,6 +307,7 @@ impl Compiler {
 
   #[instrument("Compiler:build",target=TRACING_BENCH_TARGET, skip_all)]
   async fn build_inner(&mut self) -> Result<()> {
+    self.new_cache.file_system_info().invalidate_all();
     if let Some(restored) = self.new_cache.restore_meta()? {
       let current = self.compiler_context.dependency_id();
       if current < restored.max_dependency_id {

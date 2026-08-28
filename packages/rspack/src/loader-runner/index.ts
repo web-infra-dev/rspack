@@ -1110,7 +1110,7 @@ export async function runLoaders(
               !parallelism &&
               currentLoaderObject.loaderItem.cache &&
               loaderCache
-                ? loaderCache.get(
+                ? await loaderCache.get(
                     loaderContext.loaderIndex,
                     content,
                     additionalData,
@@ -1147,7 +1147,7 @@ export async function runLoaders(
             ]);
 
             if (cached === null) {
-              loaderCache?.store(
+              await loaderCache?.store(
                 loaderContext.loaderIndex,
                 content,
                 JsSourceMap.__to_binding(sourceMap),

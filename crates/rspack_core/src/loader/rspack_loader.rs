@@ -126,7 +126,7 @@ impl LoaderRunnerPlugin for RspackLoaderRunnerPlugin {
     loader: Arc<dyn Loader<Self::Context>>,
   ) -> Result<()> {
     let cache_action = if context.current_loader().cache() {
-      before_normal_loader(context)?
+      before_normal_loader(context).await?
     } else {
       LoaderCacheAction::Disabled
     };
@@ -140,7 +140,7 @@ impl LoaderRunnerPlugin for RspackLoaderRunnerPlugin {
       context.finish_with_empty();
     }
     if let LoaderCacheAction::Miss(state) = cache_action {
-      after_normal_loader(context, &state)?;
+      after_normal_loader(context, &state).await?;
     }
     Ok(())
   }

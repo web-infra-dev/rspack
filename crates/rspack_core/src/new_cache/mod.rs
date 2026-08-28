@@ -5,7 +5,6 @@ mod cache_value;
 mod db;
 mod etag;
 mod file_cache_strategy;
-mod file_dependencies;
 mod idle_file_cache;
 mod memory_cache;
 mod meta;
@@ -20,13 +19,13 @@ pub use cache_key::CacheKey;
 pub use cache_value::CacheValue;
 pub use etag::Etag;
 pub use file_cache_strategy::FileCacheStrategy;
-pub(crate) use file_dependencies::FileDependencies;
 pub use idle_file_cache::IdleFileCache;
 pub use memory_cache::{MemoryCache, MemoryCacheGetResult};
 pub use meta::Meta;
 use rspack_fs::ReadableFileSystem;
+pub use snapshot::FileSystemInfo;
+pub(crate) use snapshot::{Snapshot, SnapshotValidationResult};
 
-use self::snapshot::FileSystemInfo;
 use crate::{
   CompilerOptions, InfrastructureLogSink, InfrastructureLogger, Logger, cache::CacheCodec,
 };
@@ -37,16 +36,33 @@ pub fn create_cache(
   input_filesystem: Arc<dyn ReadableFileSystem>,
   infrastructure_log_sink: Arc<dyn InfrastructureLogSink>,
 ) -> Cache {
+  let logger = Arc::new(InfrastructureLogger::new(
+    "rspack.cache.IdleFileCache",
+    infrastructure_log_sink,
+  ));
+  let snapshot_options = match &compiler_options.cache {
+    crate::CacheOptions::Persistent(options) => options.snapshot.clone(),
+    _ => Default::default(),
+  };
+  let file_system_info = FileSystemInfo::new(
+    input_filesystem.clone(),
+    logger.get_child("rspack.FileSystemInfo"),
+    snapshot_options,
+    compiler_options.output.hash_function,
+  );
+
   if !compiler_options.experiments.new_cache.is_enabled() {
-    return Cache::new_disabled(compiler_path);
+    return Cache::new_disabled(compiler_path, file_system_info);
   }
 
   let options = match &compiler_options.cache {
-    crate::CacheOptions::Disabled => return Cache::new_disabled(compiler_path),
+    crate::CacheOptions::Disabled => {
+      return Cache::new_disabled(compiler_path, file_system_info);
+    }
     crate::CacheOptions::Memory {
       max_generations: _, /* TODO: old cache default to 1, change to 5 and pass to MemoryCache */
     } => {
-      return Cache::new(compiler_path, MemoryCache::new(5), None);
+      return Cache::new(compiler_path, MemoryCache::new(5), None, file_system_info);
     }
     crate::CacheOptions::Persistent(options) => options,
   };
@@ -57,16 +73,6 @@ pub fn create_cache(
     None
   };
   let codec = Arc::new(CacheCodec::new(project_root));
-  let logger = Arc::new(InfrastructureLogger::new(
-    "rspack.cache.IdleFileCache",
-    infrastructure_log_sink,
-  ));
-  let file_system_info = FileSystemInfo::new(
-    input_filesystem.clone(),
-    logger.get_child("rspack.FileSystemInfo"),
-    options.snapshot.clone(),
-    compiler_options.output.hash_function,
-  );
   let (base_path, database_path) = match &options.storage {
     crate::cache::StorageOptions::FileSystem { directory } => {
       let base_path = directory.parent().unwrap_or_else(|| {
@@ -81,16 +87,26 @@ pub fn create_cache(
     rspack_workspace::rspack_pkg_version!().to_string(),
     options.version.clone(),
     codec,
-    file_system_info,
+    file_system_info.clone(),
     logger.clone(),
   ) {
     Ok(strategy) => strategy,
     Err(error) => {
       logger.warn(format!("Open cache from {database_path} failed: {error}"));
-      return Cache::new(compiler_path, MemoryCache::default(), None);
+      return Cache::new(
+        compiler_path,
+        MemoryCache::default(),
+        None,
+        file_system_info,
+      );
     }
   };
   let idle_file_cache = IdleFileCache::new(strategy, logger, None, None, None);
 
-  Cache::new(compiler_path, MemoryCache::default(), Some(idle_file_cache))
+  Cache::new(
+    compiler_path,
+    MemoryCache::default(),
+    Some(idle_file_cache),
+    file_system_info,
+  )
 }
