@@ -3,7 +3,6 @@ description: 'SplitChunksPlugin is a built-in plugin that splits code into multi
 ---
 
 import Attribution from '@components/Attribution';
-import { ApiMeta } from '@components/ApiMeta';
 
 # SplitChunksPlugin
 
@@ -434,8 +433,6 @@ type SplitChunksNameFunction = (
 
 - **Default:** `false`
 
-> where the version of the function type is `>=0.4.1`.
-
 Also available for each cacheGroup: `splitChunks.cacheGroups.{cacheGroup}.name`.
 
 The name of the split chunk. Providing `false` will keep the same name of the chunks so it doesn't change names unnecessarily. It is the recommended value for production builds.
@@ -545,8 +542,6 @@ export default {
 
 ### splitChunks.usedExports
 
-<ApiMeta addedVersion="1.0.0" />
-
 - **Type:** `boolean`
 - **Default:** Value of [optimization.usedExports](/config/optimization#optimizationusedexports)
 
@@ -641,8 +636,6 @@ A module can belong to multiple cache groups. The optimization will prefer the c
 #### splitChunks.cacheGroups.\{cacheGroup\}.test
 
 - **Type:** `RegExp | string | (module: Module, { chunkGraph: ChunkGraph, moduleGraph: ModuleGraph }) => boolean`
-
-> where the version of the function type is `>=0.4.1`.
 
 Controls which modules are selected by this cache group. Omitting it selects all modules. It can match the absolute module resource path or chunk names. When a chunk name is matched, all modules in the chunk are selected.
 

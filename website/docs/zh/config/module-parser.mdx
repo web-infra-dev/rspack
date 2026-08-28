@@ -208,8 +208,6 @@ export default {
 
 ### javascript.dynamicImportFetchPriority
 
-<ApiMeta addedVersion="1.0.0" />
-
 <PropertyType
   type="'low' | 'high' | 'auto'"
   defaultValueList={[{ defaultValue: "'auto'" }]}
@@ -370,8 +368,6 @@ export default {
 ```
 
 ### javascript.importMeta
-
-<ApiMeta addedVersion="1.0.0-alpha.6" />
 
 - **类型：** `boolean | 'preserve-unknown' | ImportMetaParserOptions`
 - **默认值：** 当输出为 [ESM 格式](/guide/features/esm) 时，默认值为 `'preserve-unknown'`，其他情况默认值为 `true`
@@ -557,8 +553,6 @@ export default {
 
 ### javascript.worker
 
-<ApiMeta addedVersion="1.0.0-alpha.0" />
-
 <PropertyType type="string[] | boolean | { alias?: string[], url?: 'new-url-relative' }" />
 
 为 Worker 解析提供自定义的语法，常用于支持 Worklet：
@@ -618,8 +612,6 @@ new Worker(new URL('./worker.bundle.js', import.meta.url));
 > 查看 [Web Workers](/guide/features/web-workers) 了解更多。
 
 ### javascript.overrideStrict
-
-<ApiMeta addedVersion="1.0.0-alpha.4" />
 
 <PropertyType type="'strict' | 'non-strict'" />
 
@@ -1024,8 +1016,6 @@ export default {
 
 ### json
 
-<ApiMeta addedVersion="1.2.0" />
-
 `json` 模块的解析器选项。
 
 ```js title="rspack.config.mjs"
@@ -1041,8 +1031,6 @@ export default {
 ```
 
 ### json.exportsDepth
-
-<ApiMeta addedVersion="1.2.0" />
 
 - **Type:** `number`
 - **Default:** production 模式为 `Number.MAX_SAFE_INTEGER`, development 模式为 `1`

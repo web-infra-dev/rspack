@@ -2,11 +2,7 @@
 description: '当编译中存在错误时，阻止 Rspack 输出构建产物。'
 ---
 
-import { ApiMeta } from '@components/ApiMeta.tsx';
-
 # NoEmitOnErrorsPlugin
-
-<ApiMeta addedVersion={'1.0.0'} />
 
 `NoEmitOnErrorsPlugin` 会在编译中存在错误时阻止 Rspack 输出构建产物。将 [`optimization.emitOnErrors`](/config/optimization#optimizationemitonerrors) 设置为 `false` 会在内部应用此插件。
 

@@ -12,7 +12,6 @@
   "tsconfig-paths-webpack-plugin-desc": "使用 [resolve.tsConfig](/zh/config/resolve#resolvetsconfig) 替代",
   "pnp-webpack-plugin-desc": "使用 [resolve.pnp](/zh/config/resolve#resolvepnp) 替代",
   "case-sensitive-paths-webpack-plugin-desc": "不支持 `useBeforeEmitHook` 选项",
-  "moment-locales-webpack-plugin-desc": "在 v0.7.0 已实现对该插件的支持，请升级 Rspack 版本来使用",
   "resolve-plugin-un-support-desc": "不支持 `resolve.plugins`",
   "progress-plugin-desc": "使用 [webpackbar](https://www.npmjs.com/package/webpackbar) 替代",
   "webpack-virtual-modules-desc": "使用 [VirtualModulesPlugin](/plugins/virtual-modules-plugin) 替代",

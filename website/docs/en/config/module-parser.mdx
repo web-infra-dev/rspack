@@ -208,8 +208,6 @@ export default {
 
 ### javascript.dynamicImportFetchPriority
 
-<ApiMeta addedVersion="1.0.0" />
-
 <PropertyType
   type="'low' | 'high' | 'auto'"
   defaultValueList={[{ defaultValue: "'auto'" }]}
@@ -370,8 +368,6 @@ export default {
 ```
 
 ### javascript.importMeta
-
-<ApiMeta addedVersion="1.0.0-alpha.6" />
 
 - **Type:** `boolean | 'preserve-unknown' | ImportMetaParserOptions`
 - **Default:** When using [ESM output](/guide/features/esm), the default value is `'preserve-unknown'`; otherwise, it is `true`
@@ -557,8 +553,6 @@ Please refer to [type reexports presence example](https://github.com/rstackjs/rs
 
 ### javascript.worker
 
-<ApiMeta addedVersion="1.0.0-alpha.0" />
-
 <PropertyType type="string[] | boolean | { alias?: string[], url?: 'new-url-relative' }" />
 
 Provide custom syntax for Worker parsing, commonly used to support Worklet:
@@ -619,8 +613,6 @@ new Worker(new URL('./worker.bundle.js', import.meta.url));
 > See [Web Workers](/guide/features/web-workers) for more details.
 
 ### javascript.overrideStrict
-
-<ApiMeta addedVersion="1.0.0-alpha.4" />
 
 <PropertyType type="'strict' | 'non-strict'" />
 
@@ -1025,8 +1017,6 @@ export default {
 
 ### json
 
-<ApiMeta addedVersion="1.2.0" />
-
 Parser options for `json` modules.
 
 ```js title="rspack.config.mjs"
@@ -1042,8 +1032,6 @@ export default {
 ```
 
 ### json.exportsDepth
-
-<ApiMeta addedVersion="1.2.0" />
 
 - **Type:** `number`
 - **Default:** production mode is `Number.MAX_SAFE_INTEGER`, development mode is `1`

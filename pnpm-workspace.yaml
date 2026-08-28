@@ -47,7 +47,7 @@ catalog:
   '@rspress/plugin-client-redirects': '^2.0.19'
   '@rspress/plugin-rss': '^2.0.19'
   '@rspress/plugin-sitemap': '^2.0.19'
-  '@rstackjs/doc-ui': '1.14.9'
+  '@rstackjs/doc-ui': '1.14.11'
   '@rstackjs/create-toolkit': '2.2.3'
   '@rstackjs/load-config': '^0.1.2'
   '@shikijs/transformers': '^4.4.3'

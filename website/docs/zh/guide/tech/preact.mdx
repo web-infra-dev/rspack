@@ -64,12 +64,6 @@ export default {
     - 在 `jsc.experimental.plugins` 中添加 [`@swc/plugin-prefresh`](https://github.com/swc-project/plugins/tree/main/packages/prefresh) 以支持 preact 特有的转换
   - 使用 `babel-loader` 并接入 prefresh 官方[babel 插件](https://github.com/preactjs/prefresh/tree/main/packages/babel)。
 
-:::warning
-在 1.0.0 以下版本, Rspack 不支持在 `swc-loader` 中使用 preact 特有转换。
-
-请使用 `builtin:swc-loader` 并在配置中添加 `rspackExperiments.preact: {}` 以开启 preact 特有转换。
-:::
-
 ```js title="rspack.config.mjs"
 import PreactRefreshPlugin from '@rspack/plugin-preact-refresh';
 
