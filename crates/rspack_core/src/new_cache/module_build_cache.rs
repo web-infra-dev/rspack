@@ -3,17 +3,15 @@ use std::sync::{Arc, Mutex};
 use rspack_cacheable::{cacheable, utils::OwnedOrRef};
 use rspack_collections::IdentifierSet;
 use rspack_error::Result;
-use rspack_fs::ReadableFileSystem;
-use rspack_hash::HashFunction;
 
 use super::{
   CacheFacade, CacheValue,
   snapshot::{FileSystemInfo, Snapshot, SnapshotValidationResult},
 };
 use crate::{
-  AsyncDependenciesBlock, BoxDependency, BoxModule, BuildInfo, BuildResult, CompilationLogger,
-  CompilationLogging, Module, NormalModuleBuildState, OptimizationBailoutItem, ValueCacheVersions,
-  cache::{CacheCodec, SnapshotOptions, SnapshotStrategyOptions},
+  AsyncDependenciesBlock, BoxDependency, BoxModule, BuildInfo, BuildResult, Module,
+  NormalModuleBuildState, OptimizationBailoutItem, ValueCacheVersions,
+  cache::{CacheCodec, SnapshotStrategyOptions},
 };
 
 type RestoredDependencies = Vec<BoxDependency>;
@@ -98,30 +96,14 @@ struct EncodedModuleBuildCacheValue {
 pub(crate) struct ModuleCache {
   cache: CacheFacade,
   codec: Arc<CacheCodec>,
-  file_system_info: FileSystemInfo,
-  snapshot_strategy: SnapshotStrategyOptions,
   invalid_modules: Arc<Mutex<IdentifierSet>>,
 }
 
 impl ModuleCache {
-  pub(crate) fn new(
-    cache: CacheFacade,
-    input_filesystem: Arc<dyn ReadableFileSystem>,
-    logging: CompilationLogging,
-    snapshot_options: SnapshotOptions,
-    hash_function: HashFunction,
-    snapshot_strategy: SnapshotStrategyOptions,
-  ) -> Self {
+  pub(crate) fn new(cache: CacheFacade) -> Self {
     Self {
       codec: cache.codec(),
       cache,
-      file_system_info: FileSystemInfo::new(
-        input_filesystem,
-        CompilationLogger::new("rspack.ModuleBuildCache".to_string(), logging),
-        snapshot_options,
-        hash_function,
-      ),
-      snapshot_strategy,
       invalid_modules: Default::default(),
     }
   }
@@ -157,6 +139,7 @@ impl ModuleCache {
   /// This is the single validity contract for a restored NormalModule build.
   async fn need_build(
     &self,
+    file_system_info: &FileSystemInfo,
     entry: &ModuleBuildCacheEntry,
     value_cache_versions: &ValueCacheVersions,
   ) -> Result<bool> {
@@ -167,7 +150,7 @@ impl ModuleCache {
       return Ok(true);
     };
     Ok(!matches!(
-      self.file_system_info.check_snapshot_valid(snapshot).await?,
+      file_system_info.check_snapshot_valid(snapshot).await?,
       SnapshotValidationResult::Valid
     ))
   }
@@ -176,6 +159,7 @@ impl ModuleCache {
   pub(crate) async fn restore(
     &self,
     module: &mut BoxModule,
+    file_system_info: &FileSystemInfo,
     value_cache_versions: &ValueCacheVersions,
   ) -> Result<Option<RestoredModuleBuild>> {
     if module.as_normal_module().is_none() {
@@ -199,7 +183,10 @@ impl ModuleCache {
     let ModuleBuildCacheValue::Cacheable(entry) = value else {
       return Ok(None);
     };
-    if self.need_build(&entry, value_cache_versions).await? {
+    if self
+      .need_build(file_system_info, &entry, value_cache_versions)
+      .await?
+    {
       return Ok(None);
     }
 
@@ -212,7 +199,13 @@ impl ModuleCache {
   }
 
   #[tracing::instrument("Cache::ModuleBuild::store", skip_all)]
-  pub(crate) async fn store(&self, build_result: &mut BuildResult, start_time: u64) -> Result<()> {
+  pub(crate) async fn store(
+    &self,
+    build_result: &mut BuildResult,
+    file_system_info: &FileSystemInfo,
+    snapshot_strategy: SnapshotStrategyOptions,
+    start_time: u64,
+  ) -> Result<()> {
     let Some(module) = build_result.module.as_normal_module() else {
       return Ok(());
     };
@@ -222,7 +215,12 @@ impl ModuleCache {
       .get_item_cache(build_result.module.identifier().as_str(), None);
     let value = if cacheable {
       let snapshot = self
-        .create_snapshot(module.build_info(), start_time)
+        .create_snapshot(
+          module.build_info(),
+          file_system_info,
+          snapshot_strategy,
+          start_time,
+        )
         .await?;
       let build_result_bytes = self
         .codec
@@ -251,15 +249,20 @@ impl ModuleCache {
     item_cache.store(CacheValue::new(EncodedModuleBuildCacheValue { bytes }))
   }
 
-  async fn create_snapshot(&self, build_info: &BuildInfo, start_time: u64) -> Result<Snapshot> {
-    self
-      .file_system_info
+  async fn create_snapshot(
+    &self,
+    build_info: &BuildInfo,
+    file_system_info: &FileSystemInfo,
+    snapshot_strategy: SnapshotStrategyOptions,
+    start_time: u64,
+  ) -> Result<Snapshot> {
+    file_system_info
       .create_snapshot(
         Some(start_time),
         &build_info.dependencies.file,
         &build_info.dependencies.context,
         &build_info.dependencies.missing,
-        self.snapshot_strategy,
+        snapshot_strategy,
       )
       .await
   }

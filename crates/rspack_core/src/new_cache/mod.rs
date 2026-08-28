@@ -27,9 +27,8 @@ pub use memory_cache::{MemoryCache, MemoryCacheGetResult};
 pub use meta::Meta;
 pub(crate) use module_build_cache::ModuleCache;
 use rspack_fs::ReadableFileSystem;
-pub(crate) use snapshot::Snapshot;
+pub(crate) use snapshot::{FileSystemInfo, Snapshot};
 
-use self::snapshot::FileSystemInfo;
 use crate::{CompilationLogger, CompilationLogging, CompilerOptions, cache::CacheCodec};
 
 fn memory_cache(compiler_path: String, memory_cache: MemoryCache) -> Cache {

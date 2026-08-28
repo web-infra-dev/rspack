@@ -96,7 +96,7 @@ use crate::{
   legacy_cache::persistent::occasion::{
     devtool::SourceMapDevToolPluginCache, minimize::MinimizePersistentCache,
   },
-  new_cache::{Cache, CacheFacade, ModuleCache},
+  new_cache::{Cache, CacheFacade, FileSystemInfo, ModuleCache},
   to_identifier,
 };
 
@@ -238,6 +238,7 @@ pub struct Compilation {
   diagnostics: Vec<Diagnostic>,
   logging: CompilationLogging,
   cache: Cache,
+  file_system_info: Option<FileSystemInfo>,
   module_cache: Option<ModuleCache>,
   pub plugin_driver: SharedPluginDriver,
   pub buildtime_plugin_driver: SharedPluginDriver,
@@ -362,7 +363,6 @@ impl Compilation {
       CacheOptions::Persistent(options) => options.snapshot.clone(),
       CacheOptions::Disabled | CacheOptions::Memory { .. } => Default::default(),
     };
-    let module_snapshot_strategy = options.snapshot_module;
     let mut compilation = Self {
       id: CompilationId::new(),
       compiler_id,
@@ -384,6 +384,7 @@ impl Compilation {
       diagnostics: Default::default(),
       logging,
       cache,
+      file_system_info: None,
       module_cache: None,
       plugin_driver,
       buildtime_plugin_driver,
@@ -453,13 +454,14 @@ impl Compilation {
     if compilation.options.experiments.new_cache.module
       && !matches!(&compilation.options.cache, CacheOptions::Disabled)
     {
-      compilation.module_cache = Some(ModuleCache::new(
-        compilation.get_cache("Compilation/modules"),
+      compilation.file_system_info = Some(FileSystemInfo::new(
         compilation.input_filesystem.clone(),
-        compilation.logging.clone(),
+        compilation.get_logger("rspack.FileSystemInfo"),
         module_snapshot_options,
         compilation.options.output.hash_function,
-        module_snapshot_strategy,
+      ));
+      compilation.module_cache = Some(ModuleCache::new(
+        compilation.get_cache("Compilation/modules"),
       ));
     }
     compilation
