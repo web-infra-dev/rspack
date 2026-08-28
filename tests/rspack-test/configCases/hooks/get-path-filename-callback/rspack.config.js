@@ -31,6 +31,36 @@ class Plugin {
         expect(seen.chunk).toBe(chunk);
         expect(seen.contentHashType).toBe('javascript');
 
+        // getPath helpers provide the compilation hash to callbacks by default
+        const pathWithDefaultHash = compilation.getPath('[fullhash].js');
+        expect(compilation.getPath(({ hash }) => `${hash}.js`)).toBe(
+          pathWithDefaultHash,
+        );
+        expect(
+          compilation.getPath((pathData) => {
+            pathData.hash = 'callback-hash';
+            return '[fullhash].js';
+          }),
+        ).toBe('callback-hash.js');
+
+        // with-info helpers pass one mutable info object through the callback
+        // and placeholder rendering
+        const defaultHash = pathWithDefaultHash.slice(0, -'.js'.length);
+        let callbackInfo;
+        const pathWithInfo = compilation.getPathWithInfo(({ hash }, info) => {
+          expect(hash).toBe(defaultHash);
+          callbackInfo = info;
+          info.custom = 'from-callback';
+          info.fullhash = 'from-callback';
+          return '[fullhash].js';
+        });
+        expect(pathWithInfo.path).toBe(pathWithDefaultHash);
+        expect(pathWithInfo.info).toBe(callbackInfo);
+        expect(pathWithInfo.info.custom).toBe('from-callback');
+        expect(new Set(pathWithInfo.info.fullhash)).toEqual(
+          new Set(['from-callback', defaultHash]),
+        );
+
         // the other three helpers accept callbacks too
         expect(compilation.getAssetPath(() => '[name].js', { chunk })).toBe(
           'main.js',

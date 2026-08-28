@@ -97,17 +97,6 @@ export type ChunkPathData = {
   contentHash?: Record<string, string> | string;
 };
 
-/**
- * Resolve a `Filename` to a template string.
- *
- * `output.filename`, `output.chunkFilename` and a chunk's own filename template
- * may all be functions. Align with webpack, which evaluates the function with
- * the path data before rendering the placeholders it returns.
- */
-function resolveFilename(filename: Filename, data: PathData): string {
-  return typeof filename === 'function' ? filename(data) : filename;
-}
-
 function normalizePathData(data: PathData = {}): JsPathData {
   const pathData: JsPathData = {
     filename: data.filename,
@@ -805,29 +794,35 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
   }
 
   getPath(filename: Filename, data: PathData = {}) {
-    const pathData = normalizePathData(data);
-    return this.#inner.getPath(resolveFilename(filename, data), pathData);
+    if (!data.hash) {
+      data = {
+        hash: this.hash ?? undefined,
+        ...data,
+      };
+    }
+    return this.getAssetPath(filename, data);
   }
 
   getPathWithInfo(filename: Filename, data: PathData = {}) {
-    const pathData = normalizePathData(data);
-    return this.#inner.getPathWithInfo(
-      resolveFilename(filename, data),
-      pathData,
-    );
+    if (!data.hash) {
+      data = {
+        hash: this.hash ?? undefined,
+        ...data,
+      };
+    }
+    return this.getAssetPathWithInfo(filename, data);
   }
 
   getAssetPath(filename: Filename, data: PathData = {}) {
+    const template = typeof filename === 'function' ? filename(data) : filename;
     const pathData = normalizePathData(data);
-    return this.#inner.getAssetPath(resolveFilename(filename, data), pathData);
+    return this.#inner.getAssetPath(template, pathData);
   }
 
   getAssetPathWithInfo(filename: Filename, data: PathData = {}) {
+    const template = typeof filename === 'function' ? filename(data) : filename;
     const pathData = normalizePathData(data);
-    return this.#inner.getAssetPathWithInfo(
-      resolveFilename(filename, data),
-      pathData,
-    );
+    return this.#inner.getAssetPathWithInfo(template, pathData);
   }
 
   getLogger(name: string | (() => string)) {
